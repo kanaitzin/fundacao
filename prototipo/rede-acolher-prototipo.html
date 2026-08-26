@@ -1,0 +1,920 @@
+<title>Rede Acolher</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap">
+<style>
+/* ===== Tokens ===== */
+:root{
+  --ground:#F4F6F9; --surface:#FFFFFF; --raised:#FAFBFD;
+  --ink:#1E2833; --muted:#5A6673; --line:#D9E0E8; --line-strong:#BFC9D4;
+  --brand:#003262;
+  --primary:#005993; --primary-ink:#FFFFFF; --primary-soft:#E0EDF6; --primary-soft-ink:#0E4674;
+  --amber:#8F6119; --amber-bg:#F4E8D2; --crit:#A8423C; --crit-bg:#F5E1DF;
+  --pos:#3E7A50; --pos-bg:#E3EFE4; --info:#33627A; --info-bg:#E2ECF2;
+  --restr:#6B4E8E; --restr-bg:#ECE5F4;
+  --shadow:0 1px 3px rgba(25,40,60,.08),0 4px 14px rgba(25,40,60,.06);
+  --focus:#005993;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#10161D; --surface:#182028; --raised:#1F2933;
+    --ink:#E4EAF0; --muted:#93A1B0; --line:#2B3642; --line-strong:#41505F;
+    --brand:#8FC1E8;
+    --primary:#6FAEDD; --primary-ink:#062640; --primary-soft:#1B3450; --primary-soft-ink:#A9CFEA;
+    --amber:#D9A55A; --amber-bg:#3A2F1B; --crit:#D97B74; --crit-bg:#3D2422;
+    --pos:#7FB58C; --pos-bg:#22352A; --info:#7FA8BF; --info-bg:#20313C;
+    --restr:#B49BD6; --restr-bg:#2F2740;
+    --shadow:0 1px 3px rgba(0,0,0,.4),0 4px 14px rgba(0,0,0,.3);
+    --focus:#6FAEDD;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#10161D; --surface:#182028; --raised:#1F2933;
+  --ink:#E4EAF0; --muted:#93A1B0; --line:#2B3642; --line-strong:#41505F;
+  --brand:#8FC1E8;
+  --primary:#6FAEDD; --primary-ink:#062640; --primary-soft:#1B3450; --primary-soft-ink:#A9CFEA;
+  --amber:#D9A55A; --amber-bg:#3A2F1B; --crit:#D97B74; --crit-bg:#3D2422;
+  --pos:#7FB58C; --pos-bg:#22352A; --info:#7FA8BF; --info-bg:#20313C;
+  --restr:#B49BD6; --restr-bg:#2F2740;
+  --shadow:0 1px 3px rgba(0,0,0,.4),0 4px 14px rgba(0,0,0,.3);
+  --focus:#6FAEDD;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--ground); color:var(--ink);
+  font-family:"Atkinson Hyperlegible",system-ui,-apple-system,Segoe UI,sans-serif;
+  font-size:16px; line-height:1.45;
+}
+h1,h2,h3,h4{font-family:"Sora","Atkinson Hyperlegible",system-ui,sans-serif;margin:0;text-wrap:balance}
+button{font:inherit;cursor:pointer}
+button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{outline:3px solid var(--focus);outline-offset:2px;border-radius:6px}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+
+/* ===== Barra de validação ===== */
+.valbar{
+  position:sticky;top:0;z-index:50;background:var(--surface);border-bottom:1px solid var(--line);
+  padding:10px 14px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;box-shadow:var(--shadow);
+}
+.valbar .brand{display:flex;align-items:center;gap:9px;margin-right:auto}
+.valbar .brand b{font-family:"Sora",sans-serif;font-size:17px;color:var(--brand)}
+.logochip{background:#FFFFFF;border-radius:8px;padding:2px 6px;display:inline-flex;align-items:center;border:1px solid var(--line)}
+.logochip img{height:28px;width:auto;display:block}
+.valbar .brand span{font-size:11.5px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.valbar select{
+  background:var(--raised);color:var(--ink);border:1px solid var(--line-strong);border-radius:8px;
+  padding:7px 10px;font:inherit;font-size:14px;max-width:210px;
+}
+.chipbtn{
+  border:1px solid var(--line-strong);background:var(--raised);color:var(--ink);
+  border-radius:999px;padding:7px 13px;font-size:13.5px;display:inline-flex;gap:6px;align-items:center;
+}
+.chipbtn[aria-pressed="true"]{background:var(--amber-bg);border-color:var(--amber);color:var(--amber);font-weight:700}
+.offbanner{
+  background:var(--amber-bg);color:var(--amber);border-bottom:1px solid var(--amber);
+  padding:8px 14px;font-size:14px;text-align:center;font-weight:700;
+}
+.offbanner small{display:block;font-weight:400;font-size:12.5px}
+
+/* ===== Casca do app ===== */
+.phone{max-width:460px;margin:0 auto;min-height:calc(100dvh - 120px);display:flex;flex-direction:column}
+.apphead{padding:18px 16px 10px}
+.apphead .ctx{font-size:12.5px;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;margin-bottom:2px}
+.apphead h1{font-size:21px}
+.apphead .sub{font-size:14px;color:var(--muted);margin-top:3px}
+main.screen{flex:1;padding:4px 14px 96px}
+.tabbar{
+  position:fixed;bottom:0;left:0;right:0;z-index:40;background:var(--surface);
+  border-top:1px solid var(--line);display:flex;justify-content:center;
+}
+.tabbar .inner{display:flex;width:100%;max-width:460px}
+.tabbar button{
+  flex:1;background:none;border:none;color:var(--muted);padding:9px 2px 12px;font-size:11.5px;
+  display:flex;flex-direction:column;gap:3px;align-items:center;border-top:3px solid transparent;
+}
+.tabbar button .ic{font-size:19px;line-height:1}
+.tabbar button[aria-current="true"]{color:var(--primary);font-weight:700;border-top-color:var(--primary)}
+
+/* ===== Componentes ===== */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;box-shadow:var(--shadow)}
+.stack{display:flex;flex-direction:column;gap:10px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.grow{flex:1}
+.pill{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:2.5px 10px;font-size:12px;font-weight:700;white-space:nowrap}
+.pill.ok{background:var(--pos-bg);color:var(--pos)}
+.pill.warn{background:var(--amber-bg);color:var(--amber)}
+.pill.crit{background:var(--crit-bg);color:var(--crit)}
+.pill.info{background:var(--info-bg);color:var(--info)}
+.pill.neutral{background:var(--primary-soft);color:var(--primary-soft-ink)}
+.pill.restr{background:var(--restr-bg);color:var(--restr)}
+.btn{
+  border:none;border-radius:10px;padding:10px 16px;font-weight:700;font-size:14.5px;
+  background:var(--primary);color:var(--primary-ink);
+}
+.btn.sec{background:var(--primary-soft);color:var(--primary-soft-ink)}
+.btn.ghost{background:none;border:1px solid var(--line-strong);color:var(--ink)}
+.btn.small{padding:7px 12px;font-size:13px;border-radius:8px}
+.btn.danger{background:var(--crit-bg);color:var(--crit)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.mutetxt{color:var(--muted);font-size:13px}
+.divider{border:none;border-top:1px solid var(--line);margin:12px 0}
+.notice{border-radius:12px;padding:10px 13px;font-size:13.5px}
+.notice.info{background:var(--info-bg);color:var(--info)}
+.notice.warn{background:var(--amber-bg);color:var(--amber)}
+.notice.restr{background:var(--restr-bg);color:var(--restr)}
+.section-title{font-size:13px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:18px 0 8px;font-family:"Sora",sans-serif}
+input[type=text],input[type=password],textarea,select.field{
+  width:100%;background:var(--raised);color:var(--ink);border:1px solid var(--line-strong);
+  border-radius:10px;padding:10px 12px;font:inherit;font-size:15px;
+}
+textarea{min-height:74px;resize:vertical}
+label.f{display:block;font-size:13.5px;font-weight:700;margin:12px 0 5px}
+label.f small{font-weight:400;color:var(--muted)}
+
+/* ===== Linha do tempo ===== */
+.tl-item{display:flex;gap:12px}
+.tl-time{
+  width:52px;flex:none;text-align:right;font-family:"Sora",sans-serif;font-weight:700;font-size:14px;
+  font-variant-numeric:tabular-nums;color:var(--primary);padding-top:13px;
+}
+.tl-item.past .tl-time{color:var(--muted)}
+.tl-rail{width:12px;flex:none;display:flex;flex-direction:column;align-items:center}
+.tl-dot{width:12px;height:12px;border-radius:50%;background:var(--line-strong);margin-top:18px;flex:none}
+.tl-item.now .tl-dot{background:var(--primary);box-shadow:0 0 0 4px var(--primary-soft)}
+.tl-item.crit .tl-dot{background:var(--crit)}
+.tl-line{width:2px;flex:1;background:var(--line)}
+.tl-card{flex:1;margin-bottom:10px}
+.tl-card .who{font-weight:700;font-size:15px}
+.tl-card .what{font-size:14.5px;margin-top:1px}
+.seg{display:flex;background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:3px;margin:10px 0}
+.seg button{flex:1;border:none;background:none;color:var(--muted);border-radius:8px;padding:7px 4px;font-size:13px;font-weight:700}
+.seg button[aria-pressed="true"]{background:var(--primary);color:var(--primary-ink)}
+
+/* ===== Visão dos 20 ===== */
+.kids{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.kidcard{background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:11px;box-shadow:var(--shadow);text-align:left;color:var(--ink);display:flex;flex-direction:column;gap:6px}
+.kidcard .nm{font-weight:700;font-size:14.5px;line-height:1.2}
+.kidcard .age{color:var(--muted);font-size:12px}
+.kidcard .st{font-size:12.5px}
+@media (max-width:360px){.kids{grid-template-columns:1fr}}
+
+/* ===== Chamada ===== */
+.callrow{display:flex;flex-direction:column;gap:8px;padding:11px 0;border-bottom:1px solid var(--line)}
+.callrow .opts{display:flex;flex-wrap:wrap;gap:6px}
+.optchip{border:1px solid var(--line-strong);background:var(--raised);color:var(--ink);border-radius:999px;padding:5px 11px;font-size:12.5px}
+.optchip[aria-pressed="true"]{background:var(--primary);border-color:var(--primary);color:var(--primary-ink);font-weight:700}
+.optchip.exc[aria-pressed="true"]{background:var(--amber);border-color:var(--amber);color:#fff}
+.progressbar{height:8px;border-radius:99px;background:var(--line);overflow:hidden}
+.progressbar>div{height:100%;background:var(--primary);border-radius:99px}
+
+/* ===== Modal / sheet ===== */
+.overlay{position:fixed;inset:0;background:rgba(10,15,13,.55);z-index:90;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--surface);border-radius:18px 18px 0 0;width:100%;max-width:460px;max-height:86dvh;overflow:auto;padding:18px 16px 22px}
+.sheet h3{font-size:17px;margin-bottom:4px}
+.sheet .handle{width:44px;height:5px;border-radius:99px;background:var(--line-strong);margin:0 auto 14px}
+
+/* ===== Grades / tabelas ===== */
+.med-dose{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--line)}
+.med-dose .hr{font-family:"Sora",sans-serif;font-weight:700;font-variant-numeric:tabular-nums;width:50px;color:var(--primary)}
+.houses{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.housecard{background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:12px;box-shadow:var(--shadow);color:var(--ink);text-align:left;display:flex;flex-direction:column;gap:6px}
+.housecard .cd{font-family:"Sora",sans-serif;font-weight:700;font-size:15px}
+.sidebyside{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+@media (max-width:420px){.sidebyside{grid-template-columns:1fr}}
+.statement{background:var(--restr-bg);border-radius:12px;padding:11px;font-size:13.5px;color:var(--ink)}
+.statement .au{font-weight:700;font-size:12.5px;color:var(--restr);margin-bottom:4px}
+
+/* validação flutuante */
+.valfab{
+  position:fixed;right:14px;bottom:76px;z-index:45;border:none;border-radius:999px;
+  background:var(--info-bg);color:var(--info);font-weight:700;font-size:13px;padding:9px 14px;box-shadow:var(--shadow);
+}
+.checklist li{margin-bottom:8px;font-size:14px}
+.toast{
+  position:fixed;left:50%;transform:translateX(-50%);bottom:86px;z-index:95;background:var(--ink);color:var(--ground);
+  border-radius:10px;padding:10px 16px;font-size:14px;font-weight:700;box-shadow:var(--shadow);max-width:90vw;text-align:center;
+}
+.audit{font-size:11.5px;color:var(--muted);margin-top:6px}
+</style>
+<div id="app"></div>
+<script>
+/* =========================================================
+   Rede Acolher — protótipo navegável (Fase 0)
+   Dados 100% fictícios. Nenhuma lógica de servidor.
+   ========================================================= */
+"use strict";
+
+/* ---------- Dados fictícios: Casa 03 (AI3) ---------- */
+const HOJE = "terça-feira, 26 de agosto";
+const CASAS = [
+  {cod:"AI1", nome:"Abrigo Institucional 1"},
+  {cod:"AI2", nome:"Abrigo Institucional 2"},
+  {cod:"AI3", nome:"Casa 03 · piloto"},
+  {cod:"AI4", nome:"Abrigo Institucional 4"},
+  {cod:"ARM1", nome:"Casa-Lar ARM1"},
+  {cod:"ARM2", nome:"Casa-Lar ARM2"},
+  {cod:"ARM3", nome:"Casa-Lar ARM3"},
+  {cod:"ARM4", nome:"Casa-Lar ARM4"},
+];
+const KIDS = [
+  {id:1, nome:"Alice R.", social:"Alice", idade:7,  escola:"EMEF Vila Nova · manhã", alergia:"Amendoim", restr:"Sem amendoim e derivados"},
+  {id:2, nome:"Bruno S.", social:"Bruno", idade:9,  escola:"EMEF Vila Nova · manhã"},
+  {id:3, nome:"Caio M.",  social:"Caio",  idade:11, escola:"EMEF Vila Nova · tarde"},
+  {id:4, nome:"Davi L.",  social:"Davi",  idade:8,  escola:"EMEF Vila Nova · manhã", alergia:"Lactose", restr:"Dieta sem lactose"},
+  {id:5, nome:"Enzo P.",  social:"Enzo",  idade:13, escola:"EMEF Padre Cacique · tarde"},
+  {id:6, nome:"Felipe A.",social:"Felipe",idade:15, escola:"EEEM Centro · manhã"},
+  {id:7, nome:"Gabriela T.",social:"Gabi",idade:12, escola:"EMEF Padre Cacique · tarde"},
+  {id:8, nome:"Helena C.",social:"Helena",idade:6,  escola:"EMEI Jardim · tarde", restr:"Textura pastosa (orientação fono)"},
+  {id:9, nome:"Igor F.",  social:"Igor",  idade:14, escola:"EEEM Centro · manhã"},
+  {id:10,nome:"João V.",  social:"João",  idade:10, escola:"EMEF Vila Nova · tarde"},
+  {id:11,nome:"Kauã B.",  social:"Kauã",  idade:16, escola:"EEEM Centro · noite"},
+  {id:12,nome:"Lara N.",  social:"Lara",  idade:9,  escola:"EMEF Vila Nova · manhã", alergia:"Dipirona"},
+  {id:13,nome:"Miguel D.",social:"Miguel",idade:12, escola:"EMEF Padre Cacique · tarde"},
+  {id:14,nome:"Nina O.",  social:"Nina",  idade:7,  escola:"EMEF Vila Nova · manhã"},
+  {id:15,nome:"Otávio G.",social:"Otávio",idade:17, escola:"Curso técnico · noite"},
+  {id:16,nome:"Pedro H.", social:"Pedro", idade:11, escola:"EMEF Vila Nova · tarde", alergia:"Picada de abelha"},
+  {id:17,nome:"Rafaela Q.",social:"Rafa", idade:13, escola:"EMEF Padre Cacique · tarde"},
+  {id:18,nome:"Sofia J.", social:"Sofia", idade:8,  escola:"EMEF Vila Nova · manhã", restr:"Diabetes tipo 1 — sem açúcar"},
+  {id:19,nome:"Theo W.",  social:"Theo",  idade:10, escola:"EMEF Vila Nova · tarde"},
+  {id:20,nome:"Yasmin K.",social:"Yasmin",idade:15, escola:"EEEM Centro · manhã"},
+];
+const kid = id => KIDS.find(k=>k.id===id);
+
+/* Medicamentos previstos hoje (fonte oficial: módulo de medicamentos) */
+let MEDS = [
+  {id:"m1", kidId:18, nome:"Insulina NPH", dose:"6 UI", via:"subcutânea", hora:"07:00", estado:"Administrado no horário", por:"Enfermagem (T. Souza)"},
+  {id:"m2", kidId:5,  nome:"Metilfenidato", dose:"10 mg", via:"oral", hora:"07:30", estado:"Administrado no horário", por:"Enfermagem (T. Souza)"},
+  {id:"m3", kidId:12, nome:"Fluoxetina", dose:"20 mg", via:"oral", hora:"08:00", estado:"Administrado com atraso", por:"Ed. autorizado (M. Silva)", obs:"Aguardou café da manhã"},
+  {id:"m4", kidId:18, nome:"Insulina Regular", dose:"4 UI", via:"subcutânea", hora:"11:30", estado:"Aguardando confirmação", pendente:true},
+  {id:"m5", kidId:9,  nome:"Amoxicilina", dose:"500 mg", via:"oral", hora:"14:00", estado:"Agendado"},
+  {id:"m6", kidId:5,  nome:"Metilfenidato", dose:"10 mg", via:"oral", hora:"13:00", estado:"Agendado"},
+  {id:"m7", kidId:8,  nome:"Vitamina D", dose:"2 gotas", via:"oral", hora:"12:00", estado:"Agendado"},
+  {id:"m8", kidId:18, nome:"Insulina NPH", dose:"6 UI", via:"subcutânea", hora:"19:00", estado:"Agendado"},
+];
+
+/* Linha do tempo de hoje */
+let EVENTOS = [
+  {id:"e1", hora:"06:30", tipo:"rotina", titulo:"Acordar e higiene", coletivo:true, estado:"Concluída no horário"},
+  {id:"e2", hora:"07:00", tipo:"refeicao", titulo:"Café da manhã", coletivo:true, estado:"Concluída no horário", nota:"Chamada registrada · 18 normais, 1 parcial, 1 ausente"},
+  {id:"e3", hora:"07:00", tipo:"med", titulo:"Insulina NPH — Sofia", kidId:18, estado:"Administrado no horário"},
+  {id:"e4", hora:"07:20", tipo:"saida", titulo:"Saída para escola — turno da manhã (9)", coletivo:true, estado:"Concluída no horário"},
+  {id:"e5", hora:"09:00", tipo:"atv", titulo:"Consulta pediatria — Helena", kidId:8, resp:"Ed. M. Silva acompanha", estado:"Em andamento", ciencia:true, destaque:true},
+  {id:"e6", hora:"10:00", tipo:"atv", titulo:"Reforço escolar — Caio", kidId:3, resp:"Equipe do plantão", estado:"Aguardando ciência", precisaCiencia:true},
+  {id:"e7", hora:"11:30", tipo:"med", titulo:"Insulina Regular — Sofia", kidId:18, estado:"Aguardando confirmação", crit:true},
+  {id:"e8", hora:"12:00", tipo:"refeicao", titulo:"Almoço", coletivo:true, estado:"Agendada", chamada:true},
+  {id:"e9", hora:"13:30", tipo:"saida", titulo:"Saída para escola — turno da tarde (7)", coletivo:true, estado:"Agendada"},
+  {id:"e10",hora:"14:00", tipo:"atv", titulo:"Curso de informática — Otávio", kidId:15, resp:"Transporte institucional", estado:"Agendada", precisaCiencia:true},
+  {id:"e11",hora:"15:00", tipo:"atv", titulo:"Fisioterapia — Pedro", kidId:16, resp:"Ed. a definir · substituição pedida", estado:"Aguardando substituição", warn:true},
+  {id:"e12",hora:"16:00", tipo:"rotina", titulo:"Lanche e contraturno", coletivo:true, estado:"Agendada"},
+  {id:"e13",hora:"19:00", tipo:"med", titulo:"Insulina NPH — Sofia", kidId:18, estado:"Agendado"},
+  {id:"e14",hora:"19:00", tipo:"plantao", titulo:"Troca de plantão — passagens individuais", coletivo:true, estado:"Agendada"},
+];
+
+/* Evoluções de saúde aguardando triagem da Enfermagem */
+let TRIAGEM = [
+  {id:"t1", kidId:8, quando:"Hoje 10:40", quem:"Ed. M. Silva", tipo:"Consulta pediatria", resumo:"Consulta de rotina. Pediatra solicitou exame de sangue e retorno em 30 dias. Receita anexada (vitamina D mantida).", assinada:false},
+  {id:"t2", kidId:9, quando:"Ontem 16:20", quem:"Ed. P. Rocha", tipo:"Urgência odontológica", resumo:"Dor de dente relatada após almoço. Atendido na UPA odontológica; prescrita amoxicilina 500mg 8/8h por 7 dias.", assinada:false},
+];
+
+/* Estado geral do protótipo */
+let S = {
+  role:"educador", tab:"tl", tlMode:"casa", offline:false, instDevice:false,
+  filaOffline:0, kidView:null, chamadaAberta:false, chamada:{}, chamadaConfirmada:false,
+  passagem:{texto:"", narrativa:"", testemunho:null, assinada:false},
+  recebimentoOk:false, sheet:null, toast:null,
+  ataFechada:false, ataPendencia:false,
+  gestorCasa:null, reauth:false, bankOpen:false,
+  noturno:{visitas:{}, ataGeral:false},
+  subPendente:true, urgente:[],
+  casaAberta:"AI3",
+};
+const ROLES = {
+  educador:"Educador social", lider:"Líder Diurno — Casa 03", noturno:"Líder Noturno Geral",
+  enfermagem:"Enfermagem (8 casas)", tecnica:"Equipe técnica — Casa 03", coordenador:"Coordenador — Casa 03", gestor:"Gestor Geral",
+};
+
+/* ---------- Infra ---------- */
+const app = document.getElementById("app");
+function toast(msg){ S.toast = msg; render(); setTimeout(()=>{ if(S.toast===msg){S.toast=null; render();} }, 2600); }
+function offlineQueue(){ if(S.offline){ S.filaOffline++; } }
+function pillEstado(e){
+  if(!e) return "";
+  if(/no horário|Concluída no horário|Assinada|Participou|Compareceu|Normal/i.test(e)) return `<span class="pill ok">${e}</span>`;
+  if(/Aguardando|pendente|substituição|Sem confirmação|Agendad/i.test(e)) return `<span class="pill warn">${e}</span>`;
+  if(/atraso|Recusa|Não realizada|Ausente|incidente|não autorizada/i.test(e)) return `<span class="pill crit">${e}</span>`;
+  if(/andamento|ciente|Em andamento/i.test(e)) return `<span class="pill info">${e}</span>`;
+  return `<span class="pill neutral">${e}</span>`;
+}
+const IC = {rotina:"🕰️", refeicao:"🍽️", med:"💊", atv:"📌", saida:"🚌", plantao:"🔁"};
+
+/* ---------- Barra de validação + casca ---------- */
+function shell(inner, tabs, head){
+  const off = S.offline ? `<div class="offbanner">Sem conexão — modo offline ativo
+      <small>${S.filaOffline} registro(s) na fila local criptografada · horário real preservado · sincroniza ao reconectar</small></div>` : "";
+  const roleOpts = Object.entries(ROLES).map(([k,v])=>`<option value="${k}" ${S.role===k?"selected":""}>${v}</option>`).join("");
+  app.innerHTML = `
+    <div class="valbar" role="toolbar" aria-label="Barra de validação do protótipo">
+      <div class="brand"><span class="logochip"><img src="data:image/png;base64,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" alt="Pão dos Pobres"></span><b>Rede Acolher</b><span>protótipo · fase 0 · dados fictícios</span></div>
+      <label style="font-size:12px;color:var(--muted)">Papel
+        <select aria-label="Trocar papel simulado" onchange="A.setRole(this.value)">${roleOpts}</select>
+      </label>
+      <button class="chipbtn" aria-pressed="${S.offline}" onclick="A.toggleOffline()">📶 ${S.offline?"Offline":"Online"}</button>
+      <button class="chipbtn" onclick="A.toggleTheme()" aria-label="Alternar tema claro e escuro">◐ Tema</button>
+    </div>
+    ${off}
+    <div class="phone">
+      ${head||""}
+      <main class="screen">${inner}</main>
+    </div>
+    <button class="valfab" onclick="A.valNotes()">ⓘ O que validar aqui</button>
+    ${tabs||""}
+    ${S.sheet ? `<div class="overlay" onclick="if(event.target===this)A.closeSheet()"><div class="sheet" role="dialog" aria-modal="true"><div class="handle"></div>${S.sheet}</div></div>`:""}
+    ${S.toast ? `<div class="toast" role="status">${S.toast}</div>`:""}
+  `;
+}
+function tabbar(items){
+  return `<nav class="tabbar" aria-label="Navegação principal"><div class="inner">${
+    items.map(t=>`<button aria-current="${S.tab===t.id}" onclick="A.setTab('${t.id}')"><span class="ic" aria-hidden="true">${t.ic}</span>${t.label}</button>`).join("")
+  }</div></nav>`;
+}
+function apphead(ctx, titulo, sub){
+  return `<header class="apphead"><div class="ctx">${ctx}</div><h1>${titulo}</h1>${sub?`<div class="sub">${sub}</div>`:""}</header>`;
+}
+
+/* ---------- EDUCADOR ---------- */
+function vEducador(){
+  const tabs = tabbar([
+    {id:"tl", ic:"🕰️", label:"Linha do tempo"},
+    {id:"kids", ic:"👥", label:"Os 20"},
+    {id:"chamada", ic:"✅", label:"Chamada"},
+    {id:"meds", ic:"💊", label:"Medicamentos"},
+    {id:"passagem", ic:"🔁", label:"Passagem"},
+  ]);
+  let inner="";
+  if(S.kidView){ inner = vPerfil(S.kidView); }
+  else if(S.tab==="tl") inner = vTimeline();
+  else if(S.tab==="kids") inner = vKids();
+  else if(S.tab==="chamada") inner = vChamada();
+  else if(S.tab==="meds") inner = vMedsEducador();
+  else if(S.tab==="passagem") inner = vPassagem();
+  const head = apphead("Casa 03 · plantão diurno 07h–19h", S.kidView? "Perfil do Acolhido" : {tl:"Linha do tempo",kids:"Painel da casa — os 20",chamada:"Chamada coletiva",meds:"Medicamentos de hoje",passagem:"Minha passagem de plantão"}[S.tab], HOJE);
+  shell(inner, tabs, head);
+}
+function vTimeline(){
+  const seg = `<div class="seg" role="group" aria-label="Modo de visão">
+    <button aria-pressed="${S.tlMode==='casa'}" onclick="A.tlMode('casa')">Casa — todos</button>
+    <button aria-pressed="${S.tlMode==='minhas'}" onclick="A.tlMode('minhas')">Minhas responsabilidades</button>
+  </div>`;
+  const evs = EVENTOS.filter(e => S.tlMode==="casa" ? true : (e.resp||e.precisaCiencia||e.tipo==="med"));
+  const list = evs.map((e,i)=>{
+    const past = /Concluída|Administrado/.test(e.estado);
+    const cls = `tl-item ${past?"past":""} ${e.destaque?"now":""} ${e.crit?"crit":""}`;
+    const who = e.kidId ? `<span class="who">${kid(e.kidId).social}, ${kid(e.kidId).idade}</span> · ` : `<span class="who">Coletiva</span> · `;
+    const actions = [];
+    if(e.precisaCiencia && !e.ciencia) actions.push(`<button class="btn small" onclick="A.ciencia('${e.id}')">Estou ciente</button>`);
+    if(e.ciencia && !/Concluída|Em andamento/.test(e.estado)) actions.push(`<button class="btn small sec" onclick="A.concluir('${e.id}')">Concluir</button>`);
+    if(!/Concluída|Administrado/.test(e.estado)) actions.push(`<button class="btn small ghost" onclick="A.excecao('${e.id}')">Exceção…</button>`);
+    if(e.chamada) actions.push(`<button class="btn small" onclick="A.setTab('chamada')">Abrir chamada</button>`);
+    if(e.tipo==="med" && /Aguardando/.test(e.estado)) actions.push(`<button class="btn small" onclick="A.medSheet('m4')">Confirmar dose</button>`);
+    return `<div class="${cls}">
+      <div class="tl-time">${e.hora}</div>
+      <div class="tl-rail"><div class="tl-dot"></div>${i<evs.length-1?'<div class="tl-line"></div>':""}</div>
+      <div class="tl-card"><div class="card">
+        <div class="row"><span aria-hidden="true">${IC[e.tipo]||"📌"}</span><div class="grow">${who}<span class="what">${e.titulo}</span></div></div>
+        <div class="row" style="margin-top:7px">${pillEstado(e.estado)} ${e.resp?`<span class="mutetxt">${e.resp}</span>`:""}</div>
+        ${e.nota?`<div class="mutetxt" style="margin-top:5px">${e.nota}</div>`:""}
+        ${e.ciencia?`<div class="audit">Ciência registrada · você · 08:12 ${S.offline?"· offline":""}</div>`:""}
+        ${actions.length?`<div class="row" style="margin-top:9px">${actions.join("")}</div>`:""}
+      </div></div>
+    </div>`;
+  }).join("");
+  return `${seg}<div class="notice info" style="margin-bottom:10px">Tarefas individuais aparecem sempre na visão da casa — nada fica oculto. Toque no nome para abrir o perfil.</div>${list}`;
+}
+function vKids(){
+  const cards = KIDS.map(k=>{
+    const med = MEDS.find(m=>m.kidId===k.id && /Aguardando|Agendado/.test(m.estado));
+    const ev = EVENTOS.find(e=>e.kidId===k.id && !/Concluída|Administrado/.test(e.estado));
+    return `<button class="kidcard" onclick="A.openKid(${k.id})">
+      <div><span class="nm">${k.social}</span> <span class="age">${k.idade} anos</span></div>
+      ${k.alergia?`<span class="pill crit">⚠ ${k.alergia}</span>`:""}
+      ${k.restr&&!k.alergia?`<span class="pill warn">${k.restr.split("—")[0]}</span>`:""}
+      ${med?`<span class="pill warn">💊 ${med.hora}</span>`:""}
+      ${ev?`<span class="st mutetxt">${ev.hora} · ${ev.titulo.split("—")[0]}</span>`:`<span class="st mutetxt">Sem pendência agora</span>`}
+    </button>`;
+  }).join("");
+  return `<div class="notice info" style="margin-bottom:10px">Situação atual de todos os acolhidos ativos, sem ranking e sem pontuação. Ordem alfabética.</div><div class="kids">${cards}</div>`;
+}
+function vPerfil(id){
+  const k = kid(id);
+  const meds = MEDS.filter(m=>m.kidId===id);
+  return `
+  <button class="btn ghost small" onclick="A.closeKid()">← Voltar</button>
+  <div class="card" style="margin-top:10px">
+    <h2 style="font-size:19px">${k.social} <span class="mutetxt" style="font-weight:400">· ${k.idade} anos</span></h2>
+    <div class="mutetxt">Nome civil: ${k.nome} · CPF ***.***.***-** · Casa 03 · episódio atual desde mar/2026</div>
+    <div class="row" style="margin-top:8px">
+      ${k.alergia?`<span class="pill crit">⚠ Alergia: ${k.alergia}</span>`:""}
+      ${k.restr?`<span class="pill warn">${k.restr}</span>`:""}
+    </div>
+  </div>
+  <div class="section-title">Rotina e próximas atividades</div>
+  <div class="card stack">
+    ${EVENTOS.filter(e=>e.coletivo||e.kidId===id).slice(0,5).map(e=>`<div class="row"><b style="font-variant-numeric:tabular-nums">${e.hora}</b><div class="grow">${e.titulo}</div>${pillEstado(e.estado)}</div>`).join("")}
+  </div>
+  <div class="section-title">Medicamentos</div>
+  <div class="card">${meds.length? meds.map(m=>`<div class="med-dose"><span class="hr">${m.hora}</span><div class="grow"><b>${m.nome}</b> ${m.dose} · ${m.via}</div>${pillEstado(m.estado)}</div>`).join("") : `<span class="mutetxt">Sem medicamento previsto. Fonte oficial: módulo de medicamentos, assinado pela Enfermagem.</span>`}</div>
+  <div class="section-title">Observações operacionais — últimos plantões</div>
+  <div class="card stack">
+    <div><b>Ontem · noturno</b><div class="mutetxt">Dormiu no horário. Sem intercorrências.</div></div>
+    <div><b>Ontem · diurno</b><div class="mutetxt">Participou do futebol no pátio. Almoço normal.</div></div>
+  </div>
+  <div class="section-title">Escola</div>
+  <div class="card">${k.escola||"—"}</div>
+  <div class="notice restr" style="margin-top:14px">Seções restritas ao seu papel: Família/Rede/Judiciário, PIA, Benefícios/Dados bancários e narrativas pessoais de outros educadores <b>não são exibidas</b> para educadores. Dados estruturais só são editados pela equipe técnica/coordenação.</div>
+  <div class="row" style="margin-top:10px"><button class="btn sec" onclick="A.resumoSaude('${k.social}')">📄 Resumo de Saúde (PDF)</button></div>`;
+}
+function vChamada(){
+  const OPTS = ["Normal","Parcial","Recusou","Ausente/atividade externa","Dieta adaptada","Não aplicável","Outro…"];
+  const done = Object.keys(S.chamada).length;
+  if(!S.chamadaAberta){
+    return `<div class="card stack">
+      <h3>Almoço · 12:00</h3>
+      <p class="mutetxt" style="margin:0">Uma chamada confere todos os acolhidos ativos numa operação. Cada seleção gera registro individual no perfil. Meta operacional: concluir em menos de 2 minutos.</p>
+      <button class="btn" onclick="A.abrirChamada()">Iniciar chamada do almoço</button>
+    </div>
+    <div class="section-title">Chamadas do dia</div>
+    <div class="card stack">
+      <div class="row"><b class="grow">Café da manhã · 07:00</b>${pillEstado("Concluída no horário")}</div>
+      <div class="row"><b class="grow">Saída escola manhã · 07:20</b>${pillEstado("Concluída no horário")}</div>
+      <div class="row"><b class="grow">Almoço · 12:00</b>${pillEstado("Agendada")}</div>
+    </div>`;
+  }
+  const rows = KIDS.map(k=>{
+    const sel = S.chamada[k.id];
+    return `<div class="callrow">
+      <div class="row"><b class="grow">${k.social} <span class="mutetxt" style="font-weight:400">${k.idade}a</span></b>
+        ${k.restr?`<span class="pill warn">${k.restr.split("—")[0].split("(")[0]}</span>`:""}${k.alergia?`<span class="pill crit">⚠ ${k.alergia}</span>`:""}</div>
+      <div class="opts">${OPTS.map(o=>`<button class="optchip ${o!=="Normal"?"exc":""}" aria-pressed="${sel===o}" onclick="A.marcar(${k.id},'${o}')">${o}</button>`).join("")}</div>
+      ${sel && sel!=="Normal" && sel!=="Não aplicável" ? `<input type="text" placeholder="Justificativa objetiva (fato, sem rótulo)" aria-label="Justificativa para ${k.social}">`:""}
+    </div>`;
+  }).join("");
+  return `<div class="card">
+      <div class="row"><b class="grow">Almoço · 12:00</b><span class="mutetxt">${done}/${KIDS.length}</span></div>
+      <div class="progressbar" style="margin-top:8px"><div style="width:${done/KIDS.length*100}%"></div></div>
+    </div>
+    ${rows}
+    <div style="margin-top:14px" class="stack">
+      <button class="btn ghost" onclick="A.marcarTodosNormais()">Pré-marcar “Normal” e revisar um a um</button>
+      <button class="btn" ${done<KIDS.length?"disabled":""} onclick="A.fecharChamada()">Confirmar chamada (${done}/${KIDS.length})</button>
+      <p class="mutetxt" style="margin:0">A confirmação final exige que todos tenham sido conferidos individualmente. Não há marcação em lote silenciosa.</p>
+    </div>`;
+}
+function vMedsEducador(){
+  const list = MEDS.map(m=>{
+    const k = kid(m.kidId);
+    const pode = /Aguardando|Agendado/.test(m.estado);
+    return `<div class="med-dose">
+      <span class="hr">${m.hora}</span>
+      <div class="grow"><b>${k.social}</b> · ${m.nome} ${m.dose} <span class="mutetxt">· ${m.via}</span>
+        <div style="margin-top:3px">${pillEstado(m.estado)}</div>
+        ${m.por?`<div class="audit">Confirmado por ${m.por}${m.obs?` · ${m.obs}`:""}</div>`:""}
+      </div>
+      ${pode?`<button class="btn small" onclick="A.medSheet('${m.id}')">Confirmar</button>`:""}
+    </div>`;
+  }).join("");
+  return `<div class="notice warn" style="margin-bottom:10px">Cada dose é confirmada <b>somente por quem a administrou</b>, em conta individual. Ninguém confirma por outro. Alertas: −30, −15, no horário e +30 min.</div>
+  <div class="card">${list}</div>
+  <p class="mutetxt" style="margin-top:10px">Até análise da equipe, dose vencida aparece como “sem confirmação”, nunca como “não administrado”.</p>`;
+}
+function vPassagem(){
+  const p = S.passagem;
+  if(p.assinada){
+    return `<div class="card stack">
+      <h3>Passagem assinada ✓</h3>
+      <div>${pillEstado("Assinada")} <span class="mutetxt">hoje ${S.offline?"(offline — sincroniza ao reconectar)":"18:47"}</span></div>
+      <p class="mutetxt" style="margin:0">Sua passagem individual foi registrada. A ATA da casa consolida após as passagens de todos os educadores do plantão e a confirmação do Líder Diurno.</p>
+      <div class="audit">Registro imutável. Complementos posteriores entram como adendo com horário real.</div>
+    </div>
+    <div class="section-title">Recebimento do próximo turno</div>
+    <div class="card stack">
+      <p class="mutetxt" style="margin:0">Simulação: você agora é do turno que entra.</p>
+      <button class="btn sec" ${S.recebimentoOk?"disabled":""} onclick="A.receber()">${S.recebimentoOk?"Recebimento confirmado ✓":"Li a passagem e assumo as pendências"}</button>
+      <p class="mutetxt" style="margin:0">Confirmação individual de cada educador que entra. Não significa concordância com narrativas restritas.</p>
+    </div>`;
+  }
+  return `<div class="card">
+    <h3>Passagem individual · plantão diurno</h3>
+    <p class="mutetxt">Todos os educadores presentes preenchem e assinam a própria passagem. Ninguém assina por outro.</p>
+    <label class="f">Itens do plantão, pendências e orientações <small>(visível ao próximo turno)</small></label>
+    <textarea placeholder="Ex.: fisioterapia do Pedro aguarda substituição; retorno da Helena na pediatria em 30 dias…" oninput="S.passagem.texto=this.value"></textarea>
+    <label class="f">Relato pessoal independente <small>(restrito: você + equipe técnica + coordenação)</small></label>
+    <div class="notice restr" style="margin-bottom:8px">Colegas de plantão não veem este campo. O gestor só acessa com apuração formal justificada e auditada.</div>
+    <textarea placeholder="O que você presenciou, em linguagem factual…" oninput="S.passagem.narrativa=this.value"></textarea>
+    <label class="f">Sobre os fatos relevantes do plantão, você:</label>
+    <div class="opts row">
+      ${["Presenciei integralmente","Presenciei parcialmente","Não presenciei","Soube depois","Intervim","Sem informação adicional","Preciso complementar"].map(o=>`<button class="optchip" aria-pressed="${p.testemunho===o}" onclick="A.testemunho('${o}')">${o}</button>`).join("")}
+    </div>
+    <div style="margin-top:16px" class="stack">
+      <button class="btn" onclick="A.assinarPassagem()">Assinar minha passagem</button>
+      <p class="mutetxt" style="margin:0">A assinatura registra usuário, plantão, horário e aparelho, e é imutável.</p>
+    </div>
+  </div>`;
+}
+
+/* ---------- LÍDER DIURNO ---------- */
+function vLider(){
+  const tabs = tabbar([
+    {id:"painel", ic:"🏠", label:"Painel da casa"},
+    {id:"ata", ic:"📔", label:"ATA diurna"},
+  ]);
+  let inner="";
+  if(S.tab==="ata"){
+    inner = `
+    <div class="card stack">
+      <h3>ATA diurna · Casa 03 · ${HOJE}</h3>
+      <div class="section-title" style="margin-top:4px">Passagens do plantão</div>
+      ${[["Ed. M. Silva","Assinada"],["Ed. P. Rocha","Assinada"],["Ed. J. Costa","Pendente"],["Sua passagem de líder", S.passagem.assinada?"Assinada":"Pendente"]].map(([n,st])=>`<div class="row"><span class="grow">${n}</span>${pillEstado(st)}</div>`).join("")}
+      <hr class="divider">
+      <div class="mutetxt">Conteúdo estruturado conforme o LIVRO ATA — AI 03: presentes e ausências, situação dos acolhidos, convivência familiar, saídas e retornos, visitas, Enfermagem, escola, medicamentos, organização da casa, ocorrências e orientações ao próximo turno.</div>
+      ${S.ataFechada
+        ? `<div class="notice ${S.ataPendencia?"warn":"info"}">${S.ataPendencia?"ATA fechada <b>com pendência</b> registrada: passagem de J. Costa ausente — equipe técnica e coordenação avisadas. Nenhuma assinatura foi criada em nome de terceiros.":"ATA fechada e consolidada."} PDF gerado sob demanda; cópia documental na fila do Drive.</div>`
+        : `<div class="stack">
+            <button class="btn" onclick="A.fecharAta(false)">Confirmar fechamento da ATA</button>
+            <button class="btn ghost" onclick="A.fecharAta(true)">Fechar com pendência (falta passagem)</button>
+          </div>`}
+    </div>`;
+  } else {
+    inner = `
+    <div class="section-title">Alertas essenciais da casa</div>
+    <div class="stack">
+      <div class="card row"><span class="pill crit">💊 11:30</span><div class="grow">Insulina da Sofia aguardando confirmação (+15 min)</div></div>
+      <div class="card row"><span class="pill warn">🔁</span><div class="grow">Fisioterapia do Pedro às 15:00 aguarda substituição</div></div>
+      <div class="card row"><span class="pill info">🏥</span><div class="grow">Helena em consulta pediátrica com Ed. M. Silva desde 09:00</div></div>
+    </div>
+    <div class="section-title">Pedido de substituição</div>
+    <div class="card stack">
+      ${S.subPendente?`
+        <div><b>Ed. J. Costa</b> pediu substituição — fisioterapia do Pedro, 15:00.<div class="mutetxt">Motivo: acompanhará retorno da UPA com Igor.</div></div>
+        <div class="row">
+          <button class="btn small" onclick="A.aprovarSub()">Atribuir a Ed. P. Rocha</button>
+          <button class="btn small ghost" onclick="toast('No protótipo, apenas o fluxo de aprovação está simulado.')">Recusar…</button>
+        </div>
+        <p class="mutetxt" style="margin:0">Toda a cadeia fica registrada: quem pediu, motivo, quem autorizou, quem assumiu e a ciência do substituto. Sem WhatsApp.</p>`
+        :`<div class="row"><span class="grow">Substituição atribuída a Ed. P. Rocha</span>${pillEstado("Aguardando ciência")}</div>`}
+    </div>
+    <div class="section-title">Atividade urgente do plantão</div>
+    <div class="card stack">
+      ${S.urgente.map(u=>`<div class="row"><span class="grow">${u}</span>${pillEstado("Agendada")}</div>`).join("")}
+      <button class="btn sec" onclick="A.urgenteSheet()">+ Criar atividade urgente e pontual</button>
+      <p class="mutetxt" style="margin:0">Com motivo, autoria e histórico. Não substitui o planejamento semanal da equipe técnica.</p>
+    </div>`;
+  }
+  shell(inner, tabs, apphead("Líder Diurno · Casa 03 · 07h–19h", S.tab==="ata"?"ATA diurna da casa":"Visão operacional", HOJE));
+}
+
+/* ---------- LÍDER NOTURNO GERAL ---------- */
+function vNoturno(){
+  const tabs = tabbar([
+    {id:"casas", ic:"🌙", label:"As 8 casas"},
+    {id:"ataGeral", ic:"📔", label:"ATA Geral"},
+  ]);
+  let inner="";
+  if(S.tab==="ataGeral"){
+    const linhas = CASAS.map(c=>{
+      const v = S.noturno.visitas[c.cod];
+      return `<div class="row" style="padding:7px 0;border-bottom:1px solid var(--line)">
+        <b style="width:52px">${c.cod}</b>
+        <div class="grow">${v? `${v.tipo} · ${v.motivo} <span class="mutetxt">· cheg. ${v.chegada} — saída ${v.saida}</span>` : `<span class="mutetxt">Sem chamado ou visita</span>`}</div>
+        ${pillEstado(v? "Registrado" : "Sem chamado")}
+      </div>`;
+    }).join("");
+    inner = `<div class="card stack">
+      <h3>ATA Geral Noturna · ${HOJE}</h3>
+      <p class="mutetxt" style="margin:0">Base: documento real “ATA — LÍDERES NOTURNO”. Casas sem chamado também são indicadas — a ausência de demanda é registrada, não omitida.</p>
+      ${linhas}
+      ${S.noturno.ataGeral
+        ?`<div class="notice info">ATA Geral assinada e fechada. As 8 ATAs noturnas de casa foram confirmadas — cada educador assinou apenas a própria passagem.</div>`
+        :`<button class="btn" onclick="A.fecharAtaGeral()">Assinar e fechar a ATA Geral Noturna</button>`}
+    </div>`;
+  } else {
+    const cards = CASAS.map(c=>{
+      const v = S.noturno.visitas[c.cod];
+      return `<button class="housecard" onclick="A.visitaSheet('${c.cod}')">
+        <span class="cd">${c.cod}</span>
+        <span class="mutetxt" style="font-size:12px">${c.nome}</span>
+        ${c.cod==="AI2"?`<span class="pill crit">Chamado 02:10 · saúde</span>`:""}
+        ${v?`<span class="pill ok">${v.tipo} registrado</span>`:`<span class="pill neutral">Sem chamado</span>`}
+        <span class="mutetxt" style="font-size:12px">ATA noturna: ${v?"confirmada":"aguardando"}</span>
+      </button>`;
+    }).join("");
+    inner = `<div class="notice info" style="margin-bottom:10px">Visão operacional mínima das 8 casas durante o turno (19h–7h, horário preliminar). Sem acesso a dados bancários, conteúdo judicial ou narrativas pessoais.</div>
+      <div class="houses">${cards}</div>
+      <p class="mutetxt" style="margin-top:10px">Toque numa casa para registrar chamado ou visita: motivo, contato, chegada, saída, providência e pendência.</p>`;
+  }
+  shell(inner, tabs, apphead("Líder Noturno Geral · 8 casas · 19h–07h", S.tab==="ataGeral"?"ATA Geral Noturna":"Plantão noturno", HOJE));
+}
+
+/* ---------- ENFERMAGEM ---------- */
+function vEnfermagem(){
+  const tabs = tabbar([
+    {id:"painel", ic:"🩺", label:"Painel de saúde"},
+    {id:"triagem", ic:"📥", label:`Triagem (${TRIAGEM.filter(t=>!t.assinada).length})`},
+  ]);
+  let inner="";
+  if(S.tab==="triagem"){
+    inner = TRIAGEM.map(t=>`<div class="card stack" style="margin-bottom:10px">
+      <div class="row"><b class="grow">${kid(t.kidId).social} · ${t.tipo}</b>${pillEstado(t.assinada?"Assinada":"Aguardando triagem")}</div>
+      <div class="mutetxt">Enviada por ${t.quem} · ${t.quando}</div>
+      <div>${t.resumo}</div>
+      ${t.assinada?`<div class="audit">Triada, conferida e assinada pela Enfermagem. Receita nova só altera a grade de medicamentos após esta revisão.</div>`
+        :`<div class="row"><button class="btn small" onclick="A.assinarTriagem('${t.id}')">Revisar e assinar</button><button class="btn small ghost" onclick="toast('No sistema real: devolver ao educador com pedido de complemento.')">Pedir complemento</button></div>`}
+    </div>`).join("");
+    inner = `<div class="notice info" style="margin-bottom:10px">Evoluções de Saúde enviadas pelos educadores acompanhantes. A Enfermagem tria, complementa, confere e assina. O coordenador cobra pendências, mas não substitui a assinatura de saúde.</div>`+inner;
+  } else {
+    const casa3 = KIDS.map(k=>{
+      const meds = MEDS.filter(m=>m.kidId===k.id);
+      const prox = meds.find(m=>/Agendado|Aguardando/.test(m.estado));
+      return `<div class="row" style="padding:7px 0;border-bottom:1px solid var(--line)">
+        <div class="grow"><b>${k.social}</b> <span class="mutetxt">${k.idade}a</span>
+          ${k.alergia?`<span class="pill crit">⚠ ${k.alergia}</span>`:""}
+        </div>
+        ${prox? `<span class="pill warn">💊 ${prox.hora}</span>` : meds.length? `<span class="pill ok">Em dia</span>` : `<span class="pill neutral">Sem medicação</span>`}
+      </div>`;
+    }).join("");
+    const outras = CASAS.filter(c=>c.cod!=="AI3").map(c=>`<button class="housecard" onclick="toast('No protótipo, apenas a Casa 03 tem dados detalhados.')">
+      <span class="cd">${c.cod}</span><span class="pill neutral">${3+((c.cod.charCodeAt(2)||3)%4)} pendências</span>
+    </button>`).join("");
+    inner = `
+    <div class="row" style="margin-bottom:8px">
+      <span class="pill warn">2 triagens pendentes</span><span class="pill warn">1 dose aguardando</span><span class="pill info">1 consulta em andamento</span><span class="pill crit">1 receita vence em 5 dias</span>
+    </div>
+    <div class="section-title">Casa 03 — todos os acolhidos</div>
+    <div class="card">${casa3}</div>
+    <div class="section-title">Demais casas</div>
+    <div class="houses">${outras}</div>
+    <p class="mutetxt" style="margin-top:10px">Todos os acolhidos aparecem, inclusive sem medicação prevista. Indicadores não são diagnóstico nem prioridade clínica automática.</p>`;
+  }
+  shell(inner, tabs, apphead("Enfermagem · transversal às 8 casas · escopo de saúde", S.tab==="triagem"?"Fila de triagem":"Painel de saúde", HOJE));
+}
+
+/* ---------- EQUIPE TÉCNICA ---------- */
+function vTecnica(){
+  const tabs = tabbar([
+    {id:"painel", ic:"🗂️", label:"Painel"},
+    {id:"narrativas", ic:"🔒", label:"Narrativas"},
+  ]);
+  let inner="";
+  if(S.tab==="narrativas"){
+    inner = `<div class="notice restr" style="margin-bottom:10px">Relatos independentes do plantão diurno de ontem, lado a lado. Originais imutáveis; a síntese técnica não apaga versões. Pares não têm acesso a esta tela.</div>
+    <div class="sidebyside">
+      <div class="statement"><div class="au">Ed. M. Silva · presenciei integralmente</div>Durante o lanche, Caio e Miguel discutiram pela posse do videogame. Intervim, propus revezamento de 20 minutos e ambos aceitaram. Sem contato físico.</div>
+      <div class="statement"><div class="au">Ed. P. Rocha · presenciei parcialmente</div>Ouvi a discussão da cozinha. Quando cheguei, M. Silva já havia intervindo e os dois estavam calmos. Não presenciei o início.</div>
+    </div>
+    <div class="card stack" style="margin-top:10px">
+      <label class="f">Síntese operacional para o próximo turno <small>(mínima e separada dos relatos)</small></label>
+      <textarea placeholder="Ex.: combinado revezamento do videogame em blocos de 20 min…"></textarea>
+      <button class="btn sec" onclick="toast('Síntese registrada com autoria e vínculo aos originais.')">Registrar síntese</button>
+    </div>`;
+  } else {
+    inner = `
+    <div class="section-title">Inconsistências sinalizadas — o sistema não decide a verdade</div>
+    <div class="stack">
+      <div class="card stack">
+        <div class="row"><span class="pill warn">Versões offline concorrentes</span></div>
+        <div>Dose de 08:00 da Lara tem <b>duas confirmações offline</b> (aparelho institucional 07:58 · celular pessoal 08:04 — registro de outra atividade associado por engano). Ambas as versões foram preservadas.</div>
+        <div class="row"><button class="btn small" onclick="toast('Resolução registrada: versão do aparelho institucional validada; a outra arquivada como duplicidade. Originais mantidos.')">Resolver mantendo originais</button></div>
+      </div>
+      <div class="card row"><span class="pill warn">Presença conflitante</span><div class="grow">Theo marcado “ausente” no café e “normal” na saída para escola.</div><button class="btn small ghost" onclick="toast('Encaminhado para conferência com os autores dos registros.')">Verificar</button></div>
+    </div>
+    <div class="section-title">Pendências automáticas de acompanhamento</div>
+    <div class="card stack">
+      <div class="row"><span class="grow"><b>Semanal</b> · 20 acolhidos</span><span class="pill warn">14 pendentes</span></div>
+      <div class="row"><span class="grow"><b>Mensal</b> · redige técnica, aprova coordenação</span><span class="pill warn">6 pendentes</span></div>
+      <p class="mutetxt" style="margin:0">A automação cria a pendência; nunca escreve avaliação. Observações diárias só entram no relatório por escolha humana, com fonte, autor e data.</p>
+    </div>
+    <div class="section-title">Ocorrência aguardando revisão técnica</div>
+    <div class="card stack">
+      <div class="row"><b class="grow">Saída não autorizada · Kauã · ontem 21:40</b>${pillEstado("Aguardando revisão técnica")}</div>
+      <div class="mutetxt">Etapa operacional encerrada pelo Líder Noturno Geral. Retornou 23:15 acompanhado. Casos críticos permanecem aguardando validação técnica/coordenação.</div>
+      <button class="btn small sec" onclick="toast('No sistema real: abre o fluxo completo da ocorrência com relatos independentes.')">Abrir ocorrência</button>
+    </div>`;
+  }
+  shell(inner, tabs, apphead("Equipe técnica · Casa 03 · escala individual", S.tab==="narrativas"?"Relatos independentes":"Painel da casa", HOJE));
+}
+
+/* ---------- COORDENADOR ---------- */
+function vCoordenador(){
+  const tabs = tabbar([
+    {id:"casa", ic:"🏠", label:"Casa"},
+    {id:"aprova", ic:"✅", label:"Aprovações"},
+    {id:"banco", ic:"🔐", label:"Benefícios"},
+  ]);
+  let inner="";
+  if(S.tab==="banco"){
+    if(!S.reauth){
+      inner = `<div class="card stack">
+        <h3>Benefícios e dados bancários</h3>
+        <div class="notice restr">Área altamente restrita: somente coordenador da casa atual e Gestor Geral. Cada visualização, edição, impressão e exportação gera log específico. Nunca aparece em linha do tempo, ATA, notificação ou busca.</div>
+        <label class="f">Confirme sua senha para continuar</label>
+        <input type="password" placeholder="Senha do e-mail institucional" aria-label="Senha">
+        <button class="btn" onclick="A.reauthOk()">Confirmar identidade</button>
+      </div>`;
+    } else {
+      inner = `<div class="card stack">
+        <div class="row"><h3 class="grow">Benefícios · Casa 03</h3><span class="pill restr">Acesso auditado</span></div>
+        ${[["Felipe A.","BPC · Caixa ag. 0000 c/ 00000-0","último acesso: você, agora"],["Otávio G.","Poupança institucional · Banrisul","último acesso: gestor, 12/08"],["Yasmin K.","Pensão · em regularização","último acesso: você, 20/08"]].map(([n,d,l])=>`<div style="padding:8px 0;border-bottom:1px solid var(--line)"><b>${n}</b><div class="mutetxt">${d}</div><div class="audit">${l}</div></div>`).join("")}
+        <p class="mutetxt" style="margin:0">Após transferência aceita, o coordenador de origem perde este acesso e o do destino passa a recebê-lo. Cópia institucional restrita mantida no Drive, em pasta segregada.</p>
+      </div>`;
+    }
+  } else if(S.tab==="aprova"){
+    inner = `<div class="stack">
+      <div class="card stack">
+        <div class="row"><b class="grow">Relatório mensal · agosto · Casa 03</b>${pillEstado("Aguardando aprovação")}</div>
+        <div class="mutetxt">Redigido pela equipe técnica em 24/08. Mudança após aprovação cria nova versão e exige nova aprovação.</div>
+        <div class="row"><button class="btn small" onclick="toast('Aprovado. Versão tornou-se retrato imutável; cópia na fila do Drive.')">Aprovar</button><button class="btn small ghost" onclick="toast('Devolvido com apontamentos à equipe técnica.')">Devolver</button></div>
+      </div>
+      <div class="card stack">
+        <div class="row"><b class="grow">Relatório para audiência concentrada · Enzo</b>${pillEstado("Rascunho")}</div>
+        <div class="mutetxt">Estrutura baseada no documento real de Audiência Concentrada. O sistema gera; o envio ao Judiciário é sempre manual e registrado separadamente.</div>
+      </div>
+      <div class="card stack">
+        <div class="row"><b class="grow">Reabertura de plantão · 24/08 noturno</b>${pillEstado("Aguardando")}</div>
+        <div class="mutetxt">Correção entra como adendo com motivo, antes/depois e versão original preservada.</div>
+      </div>
+    </div>`;
+  } else {
+    inner = `<div class="stack">
+      <div class="card row"><div class="grow"><b>Equipe e escalas</b><div class="mutetxt">12×36 · 4 educadores hoje · 1 substituição em curso</div></div><button class="btn small ghost" onclick="toast('No sistema real: editor da escala semanal, exceções e janela T−10/T+10 configurável.')">Escalas</button></div>
+      <div class="card row"><div class="grow"><b>Usuários da casa</b><div class="mutetxt">11 ativos · desligado é desativado, nunca apagado</div></div><button class="btn small ghost" onclick="toast('Gestão cotidiana de contas é do coordenador; o gestor intervém com auditoria.')">Gerenciar</button></div>
+      <div class="card row"><div class="grow"><b>Sincronizações</b><div class="mutetxt">1 conflito offline aguardando a equipe técnica</div></div>${pillEstado("Atenção")}</div>
+      <div class="card row"><div class="grow"><b>ATAs da casa</b><div class="mutetxt">Diurna de ontem fechada com pendência (adendo aberto)</div></div>${pillEstado("Com pendência")}</div>
+    </div>`;
+  }
+  shell(inner, tabs, apphead("Coordenação · Casa 03 · sem limite de horário", {casa:"Controle da casa",aprova:"Aprovações",banco:"Benefícios e dados bancários"}[S.tab]||"Casa", HOJE));
+}
+
+/* ---------- GESTOR ---------- */
+function vGestor(){
+  const tabs = tabbar([{id:"casas", ic:"🏢", label:"As 8 unidades"}]);
+  let inner="";
+  if(S.gestorCasa){
+    const c = CASAS.find(x=>x.cod===S.gestorCasa);
+    inner = `<button class="btn ghost small" onclick="A.gestorFechar()">← Todas as unidades</button>
+    <div class="card stack" style="margin-top:10px">
+      <h3>${c.cod} · ${c.nome}</h3>
+      <div class="row"><span class="pill neutral">20 acolhidos ativos</span><span class="pill info">1 transferência pendente</span><span class="pill warn">2 alertas de saúde</span></div>
+      <hr class="divider">
+      <div class="row"><span class="grow">Entradas / saídas / retornos (30 dias)</span><b style="font-variant-numeric:tabular-nums">2 · 1 · 1</b></div>
+      <div class="row"><span class="grow">ATAs diurnas / noturnas confirmadas</span><b>ok · ok</b></div>
+      <div class="row"><span class="grow">Triagens de Enfermagem pendentes</span><b>2</b></div>
+      <div class="row"><span class="grow">Falhas de sincronização</span><b>1 em análise</b></div>
+      <hr class="divider">
+      <p class="mutetxt" style="margin:0">Acesso institucional completo a observações diárias e relatórios. Narrativas pessoais independentes exigem apuração formal: finalidade, justificativa, reautenticação e auditoria destacada.</p>
+      <button class="btn ghost small" onclick="toast('Fluxo excepcional: exige finalidade + justificativa + senha; o acesso fica destacado na auditoria.')">Acesso excepcional a narrativa…</button>
+    </div>`;
+  } else {
+    const cards = CASAS.map(c=>`<button class="housecard" onclick="A.gestorAbrir('${c.cod}')">
+      <span class="cd">${c.cod}</span>
+      <span class="mutetxt" style="font-size:12px">${c.nome}</span>
+      <span class="pill neutral">${18+((c.cod.length+c.cod.charCodeAt(1))%4)} acolhidos</span>
+      ${c.cod==="AI3"?'<span class="pill info">piloto</span>':""}
+    </button>`).join("");
+    inner = `<div class="notice info" style="margin-bottom:10px">Oito unidades, sem ranking e sem comparação de “melhor/pior”. Abre-se uma casa por vez.</div>
+    <div class="houses">${cards}</div>`;
+  }
+  shell(inner, tabs, apphead("Gestor Geral · escopo institucional", S.gestorCasa?`Unidade ${S.gestorCasa}`:"Visão institucional", HOJE));
+}
+
+/* ---------- Notas de validação por tela ---------- */
+function valNotesContent(){
+  const per = {
+    educador_tl:["A ordem e os tipos de evento correspondem ao dia real da casa?","O destaque de itens críticos está claro sem esconder os demais?","Faltam tipos de evento (visita recebida, ligação, videochamada)?"],
+    educador_kids:["Estes são os dados certos para o painel dos 20?","O que o educador mais precisa ver primeiro em cada card?"],
+    educador_chamada:["Dá para concluir a chamada do almoço em menos de 2 minutos?","Os estados de refeição cobrem a realidade? Falta algum?","O pré-marcar “Normal” e revisar um a um é aceitável ou arriscado?"],
+    educador_meds:["Os 4 alertas (−30/−15/0/+30) fazem sentido na rotina?","O bloqueio de confirmação offline fora do aparelho institucional é operável?"],
+    educador_passagem:["Os campos cobrem a passagem real?","A separação entre itens visíveis e relato restrito está clara?","As 7 opções de testemunho são suficientes?"],
+    lider:["O líder precisa de mais alguma visão além de alertas, substituições e urgências?","O fluxo de fechar ATA com pendência reflete a prática?"],
+    noturno:["A visão mínima das 8 casas basta para o plantão noturno?","Os campos de chamado/visita (motivo, chegada, saída, providência) estão completos?"],
+    enfermagem:["A ordem casa → acolhidos funciona para a rotina da Enfermagem?","O fluxo de triagem das Evoluções está correto?","Que filtros faltam (receita vencendo, exame, retorno, internação)?"],
+    tecnica:["As inconsistências sinalizadas são as que ocorrem de verdade?","A visão lado a lado das narrativas atende à análise técnica?"],
+    coordenador:["As aprovações listadas são as críticas do dia a dia?","A reautenticação para dados bancários está no nível certo de fricção?"],
+    gestor:["Os cards por unidade mostram o que o gestor precisa sem criar ranking?","O fluxo de acesso excepcional está suficientemente protegido?"],
+  };
+  const key = S.role==="educador" ? `educador_${S.kidView?"kids":S.tab}` : S.role;
+  const list = per[key]||per[S.role]||["Esta tela representa bem o trabalho real?"];
+  return `<h3>O que validar com a equipe nesta tela</h3>
+  <ul class="checklist">${list.map(i=>`<li>${i}</li>`).join("")}</ul>
+  <p class="mutetxt">Este protótipo é a Fase 0 do projeto: validar fluxo e linguagem com quem vive o plantão, antes de construir o sistema real. Nada aqui é definitivo.</p>
+  <button class="btn sec" onclick="A.closeSheet()">Fechar</button>`;
+}
+
+/* ---------- Ações ---------- */
+const A = {
+  setRole(r){ S.role=r; S.kidView=null; S.sheet=null; S.gestorCasa=null;
+    S.tab = {educador:"tl",lider:"painel",noturno:"casas",enfermagem:"painel",tecnica:"painel",coordenador:"casa",gestor:"casas"}[r]; render(); },
+  setTab(t){ S.tab=t; S.kidView=null; render(); },
+  toggleOffline(){ S.offline=!S.offline; if(!S.offline && S.filaOffline>0){ toast(`Reconectado — ${S.filaOffline} registro(s) sincronizados com horário real preservado`); S.filaOffline=0;} render(); },
+  toggleTheme(){ const r=document.documentElement; const cur=r.getAttribute("data-theme");
+    const sysDark = matchMedia("(prefers-color-scheme: dark)").matches;
+    const next = cur==="dark" ? "light" : cur==="light" ? "dark" : (sysDark?"light":"dark");
+    r.setAttribute("data-theme", next); },
+  tlMode(m){ S.tlMode=m; render(); },
+  openKid(id){ S.kidView=id; render(); },
+  closeKid(){ S.kidView=null; render(); },
+  valNotes(){ S.sheet = valNotesContent(); render(); },
+  closeSheet(){ S.sheet=null; render(); },
+
+  ciencia(id){ const e=EVENTOS.find(x=>x.id===id); e.ciencia=true; e.estado="Ciente"; offlineQueue(); toast("Ciência registrada — ciência não é conclusão"); },
+  concluir(id){ const e=EVENTOS.find(x=>x.id===id); e.estado="Concluída no horário"; offlineQueue(); toast("Atividade concluída"); },
+  excecao(id){
+    const e=EVENTOS.find(x=>x.id===id);
+    S.sheet = `<h3>Registrar exceção</h3><p class="mutetxt">${e.titulo}</p>
+      ${["Reagendada","Cancelada externamente","Recusada pelo acolhido","Não realizada — saúde","Não realizada — ausência profissional","Não realizada — transporte","Não realizada — decisão institucional","Não aplicável"].map(o=>`<button class="optchip exc" style="margin:3px" onclick="A.excecaoOk('${id}','${o}')">${o}</button>`).join("")}
+      <label class="f">Justificativa objetiva <small>(fato e contexto, sem rótulo)</small></label>
+      <textarea placeholder="Descreva o fato concreto…"></textarea>`;
+    render();
+  },
+  excecaoOk(id,estado){ const e=EVENTOS.find(x=>x.id===id); e.estado=estado; S.sheet=null; offlineQueue(); toast("Exceção registrada com justificativa"); },
+
+  abrirChamada(){ S.chamadaAberta=true; render(); },
+  marcar(id,op){ S.chamada[id]=op; offlineQueue(); render(); },
+  marcarTodosNormais(){ KIDS.forEach(k=>{ if(!S.chamada[k.id]) S.chamada[k.id]="Normal"; }); toast("Pré-marcado — revise um a um antes de confirmar"); render(); },
+  fecharChamada(){ S.chamadaAberta=false; S.chamadaConfirmada=true;
+    const e=EVENTOS.find(x=>x.id==="e8"); e.estado="Concluída no horário"; e.chamada=false;
+    const exc = Object.values(S.chamada).filter(v=>v!=="Normal").length;
+    e.nota = `Chamada registrada · ${20-exc} normais, ${exc} com anotação`;
+    toast("Chamada confirmada — 20 registros individuais criados"); render(); },
+
+  medSheet(id){
+    const m = MEDS.find(x=>x.id===id); const k = kid(m.kidId);
+    const bloqueado = S.offline && !S.instDevice;
+    S.sheet = `<h3>Confirmar dose · ${k.social}</h3>
+      <p class="mutetxt">${m.nome} ${m.dose} · ${m.via} · previsto ${m.hora}</p>
+      ${k.alergia?`<div class="notice warn">⚠ Alergia registrada: ${k.alergia}</div>`:""}
+      ${S.offline?`<label class="f" style="display:flex;gap:8px;align-items:center"><input type="checkbox" ${S.instDevice?"checked":""} onchange="A.instDev(this.checked,'${id}')" style="width:auto"> Este é o aparelho institucional designado da casa</label>`:""}
+      ${bloqueado?`<div class="notice warn">Offline, somente o <b>aparelho institucional designado</b> confirma medicamento, para evitar duplicidade entre aparelhos desconectados. Celular pessoal pode consultar e registrar outras atividades.</div>`:`
+      <label class="f">Quem administrou foi você?</label>
+      <div class="notice info">A confirmação é individual e intransferível: só confirma quem efetivamente administrou.</div>
+      ${["Administrado no horário","Administrado com atraso","Recusado","Indisponível","Acolhido ausente","Incidente"].map(o=>`<button class="optchip ${o.startsWith("Administrado")?"":"exc"}" style="margin:3px" onclick="A.medOk('${id}','${o}')">${o}</button>`).join("")}
+      <label class="f">Observação <small>(obrigatória para recusa, atraso, omissão ou incidente)</small></label>
+      <textarea placeholder="Ex.: recusou a primeira oferta; aceitou após conversa…"></textarea>`}`;
+    render();
+  },
+  instDev(v,id){ S.instDevice=v; A.medSheet(id); },
+  medOk(id,estado){
+    const m = MEDS.find(x=>x.id===id); m.estado=estado; m.por="Você"; m.pendente=false;
+    const e = EVENTOS.find(x=>x.tipo==="med" && x.kidId===m.kidId && x.hora===m.hora); if(e){e.estado=estado; e.crit=false;}
+    S.sheet=null; offlineQueue();
+    toast(estado.startsWith("Administrado") ? "Dose confirmada — horário real registrado" : `Registrado: ${estado} — Enfermagem, técnica e coordenação notificadas`);
+  },
+  resumoSaude(nome){
+    S.sheet = `<h3>Resumo de Saúde · ${nome}</h3>
+    <label class="f">Finalidade da emissão <small>(obrigatória e auditada)</small></label>
+    <select class="field"><option>Consulta</option><option>Exame</option><option>Urgência/emergência</option><option>Internação</option><option>Transferência assistencial</option></select>
+    <div class="notice warn" style="margin-top:10px">O PDF contém somente o necessário: identificação, alergias, restrições, condições relevantes, medicamentos ativos e atendimentos recentes. <b>Sem</b> dados bancários, conteúdo judicial, comportamento ou narrativas. Marcado “confidencial — uso em saúde”.${S.offline?" Versão offline indica data/hora da última sincronização.":""}</div>
+    <button class="btn" style="margin-top:12px" onclick="A.closeSheet();toast('PDF gerado — geração, finalidade e download registrados em auditoria')">Gerar PDF</button>`;
+    render();
+  },
+
+  testemunho(o){ S.passagem.testemunho=o; render(); },
+  assinarPassagem(){ S.passagem.assinada=true; offlineQueue(); toast(S.offline?"Passagem assinada offline — provisória até consolidar no servidor":"Passagem assinada"); render(); },
+  receber(){ S.recebimentoOk=true; toast("Recebimento confirmado individualmente"); render(); },
+
+  fecharAta(pend){ S.ataFechada=true; S.ataPendencia=pend; toast(pend?"ATA fechada com pendência — sem assinatura falsa":"ATA fechada e consolidada"); render(); },
+  aprovarSub(){ S.subPendente=false; toast("Substituto atribuído — aguardando ciência dele"); render(); },
+  urgenteSheet(){
+    S.sheet = `<h3>Atividade urgente e pontual</h3>
+      <label class="f">O quê</label><input type="text" id="urg-t" placeholder="Ex.: levar Igor ao retorno da UPA às 16h">
+      <label class="f">Motivo <small>(obrigatório — fica no histórico)</small></label><textarea id="urg-m" placeholder="Por que esta atividade não estava no planejamento…"></textarea>
+      <button class="btn" style="margin-top:10px" onclick="A.urgenteOk()">Criar com autoria e histórico</button>`;
+    render();
+  },
+  urgenteOk(){ const t=document.getElementById("urg-t").value||"Atividade urgente"; S.urgente.push(t); S.sheet=null; toast("Criada — não altera o planejamento regular"); render(); },
+
+  visitaSheet(cod){
+    S.sheet = `<h3>Registro · ${cod}</h3>
+      <label class="f">Tipo</label>
+      <div class="row">${["Chamado atendido por telefone","Visita à casa"].map(o=>`<button class="optchip" onclick="A.visitaOk('${cod}','${o}')">${o}</button>`).join("")}</div>
+      <label class="f">Motivo</label><select class="field"><option>Saúde</option><option>Medicamento</option><option>Saída não autorizada</option><option>Falta de pessoal</option><option>Apoio operacional</option><option>Outro</option></select>
+      <div class="row" style="margin-top:10px">
+        <div class="grow"><label class="f" style="margin-top:0">Chegada</label><input type="text" value="02:20"></div>
+        <div class="grow"><label class="f" style="margin-top:0">Saída</label><input type="text" value="03:05"></div>
+      </div>
+      <label class="f">Providência e pendência deixada</label><textarea placeholder="O que foi feito e o que fica para a casa/técnica/coordenação…"></textarea>`;
+    render();
+  },
+  visitaOk(cod,tipo){ S.noturno.visitas[cod]={tipo, motivo:"Saúde", chegada:"02:20", saida:"03:05"}; S.sheet=null; toast(`${tipo} registrado para ${cod}`); render(); },
+  fecharAtaGeral(){ S.noturno.ataGeral=true; toast("ATA Geral Noturna fechada — situação das 8 casas registrada"); render(); },
+
+  assinarTriagem(id){ const t=TRIAGEM.find(x=>x.id===id); t.assinada=true; toast("Evolução triada e assinada — agora a grade de medicamentos pode ser atualizada"); render(); },
+
+  gestorAbrir(cod){ S.gestorCasa=cod; toast("Abertura da unidade registrada em auditoria"); render(); },
+  gestorFechar(){ S.gestorCasa=null; render(); },
+  reauthOk(){ S.reauth=true; toast("Identidade confirmada — cada visualização gera log específico"); render(); },
+};
+window.A = A;
+
+function render(){
+  ({educador:vEducador, lider:vLider, noturno:vNoturno, enfermagem:vEnfermagem,
+    tecnica:vTecnica, coordenador:vCoordenador, gestor:vGestor}[S.role])();
+}
+render();
+</script>
