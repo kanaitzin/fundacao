@@ -10,7 +10,7 @@ export class DevicesController {
   constructor(@Inject(DevicesService) private readonly devices: DevicesService) {}
 
   @Get()
-  list(@CurrentUser() user: AuthenticatedUser, @Query('houseId', ParseUUIDPipe) houseId: string) {
+  list(@CurrentUser() user: AuthenticatedUser, @Query('houseId') houseId?: string) {
     return this.devices.list(user, houseId);
   }
 

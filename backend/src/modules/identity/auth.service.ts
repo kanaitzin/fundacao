@@ -1,7 +1,7 @@
-import { Inject, Injectable, UnauthorizedException, HttpException, HttpStatus } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, UnauthorizedException, HttpException, HttpStatus } from '@nestjs/common';
 import { DatabaseService } from '../../kernel/database/database.service';
 import { AuditService } from '../../kernel/audit/audit.service';
-import { verifyPassword, newSessionToken, hashToken } from '../../kernel/common/crypto';
+import { verifyPassword, hashPassword, newSessionToken, hashToken } from '../../kernel/common/crypto';
 import { AuthenticatedUser } from '../../kernel/contracts';
 
 // O tipo vive no kernel: é o vocabulário que todo módulo autenticado usa.
@@ -110,6 +110,41 @@ export class AuthService {
    * Reautenticação para ações altamente sensíveis (§4.5): nova confirmação
    * da senha, registrada na sessão. Consumidores checam janela recente.
    */
+  /**
+   * Troca da PRÓPRIA senha (§5.1). Exige a senha atual: sem isso, uma sessão
+   * esquecida aberta num aparelho vira uma troca de dono da conta.
+   *
+   * Trocar a senha derruba as OUTRAS sessões e mantém a atual — quem trocou
+   * continua trabalhando; quem estava com a conta aberta em outro lugar, não.
+   */
+  async changeOwnPassword(user: AuthenticatedUser, atual: string, nova: string) {
+    if ((nova ?? '').length < 6) {
+      throw new BadRequestException('A senha precisa de pelo menos 6 caracteres.');
+    }
+    if (nova === atual) {
+      throw new BadRequestException('A senha nova precisa ser diferente da atual.');
+    }
+    const ok = await this.db.asUser(user.id, async (c) => {
+      const { rows: [u] } = await c.query(`SELECT password_hash FROM app_user WHERE id = $1`, [user.id]);
+      return u ? verifyPassword(atual ?? '', u.password_hash) : false;
+    });
+    if (!(await ok)) throw new UnauthorizedException('Senha atual incorreta.');
+
+    const hash = await hashPassword(nova);
+    await this.db.asUser(user.id, async (c) => {
+      await c.query(
+        `UPDATE app_user SET password_hash = $2, must_change_password = false, updated_at = now()
+          WHERE id = $1`, [user.id, hash]);
+      await c.query(
+        `UPDATE user_session SET revoked_at = now(), revoked_reason = 'senha_alterada_pelo_usuario'
+          WHERE user_id = $1 AND id <> $2 AND revoked_at IS NULL`, [user.id, user.sessionId]);
+    });
+    await this.audit.log({
+      action: 'auth.password_change', actorId: user.id, entity: 'app_user', entityId: user.id,
+    });
+    return { ok: true, aviso: 'Senha alterada. As outras sessões abertas foram encerradas.' };
+  }
+
   async reauth(user: AuthenticatedUser, password: string) {
     const { rows: [u] } = await this.db.query(`SELECT * FROM auth_find_user($1)`, [user.email]);
     if (!u || !(await verifyPassword(password, u.password_hash))) {

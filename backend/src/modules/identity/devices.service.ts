@@ -18,13 +18,18 @@ import { newSessionToken, hashToken } from '../../kernel/common/crypto';
 export class DevicesService {
   constructor(@Inject(DatabaseService) private readonly db: DatabaseService) {}
 
-  async list(user: AuthenticatedUser, houseId: string) {
+  async list(user: AuthenticatedUser, houseId?: string) {
     return this.db.asUser(user.id, async (c) => {
+      // Sem casa informada: tudo que o usuário alcança — inclusive o aparelho
+      // da instituição, que não pertence a nenhuma unidade.
       const { rows } = await c.query(
-        `SELECT id, label, active, registered_at, revoked_at, revoked_reason, last_seen_at
-         FROM institutional_device WHERE house_id = $1 ORDER BY active DESC, label`, [houseId]);
+        `SELECT id, label, active, registered_at, revoked_at, revoked_reason, last_seen_at, house_id
+         FROM institutional_device
+         WHERE ($1::uuid IS NULL OR house_id = $1::uuid)
+         ORDER BY active DESC, label`, [houseId ?? null]);
       return rows.map((r) => ({
         id: r.id, rotulo: r.label, ativo: r.active,
+        escopo: r.house_id ? 'casa' : 'instituicao',
         registradoEm: r.registered_at, revogadoEm: r.revoked_at,
         motivoRevogacao: r.revoked_reason, ultimoUso: r.last_seen_at,
       }));
@@ -32,16 +37,17 @@ export class DevicesService {
   }
 
   /** Registra e devolve o token UMA vez. Depois disso ele não é recuperável. */
-  async register(user: AuthenticatedUser, input: { houseId: string; rotulo: string }) {
+  async register(user: AuthenticatedUser, input: { houseId?: string; rotulo: string }) {
     const { token, hash } = newSessionToken();
     try {
       const id = await this.db.asUser(user.id, async (c) => {
         const { rows: [r] } = await c.query(
-          `SELECT * FROM app_register_device($1,$2,$3)`, [input.houseId, input.rotulo ?? '', hash]);
+          `SELECT * FROM app_register_device($1,$2,$3)`, [input.houseId ?? null, input.rotulo ?? '', hash]);
         return r.out_id as string;
       });
       return {
         id, rotulo: input.rotulo,
+        escopo: input.houseId ? 'casa' : 'instituicao',
         token,
         aviso: 'Guarde este código no aparelho agora: ele é mostrado uma única vez. '
              + 'O sistema conserva apenas a impressão digital dele — se perder, registre outro aparelho e revogue este.',
@@ -50,6 +56,11 @@ export class DevicesService {
       const m = e?.message ?? '';
       if (m.includes('cargo_nao_registra_aparelho')) {
         throw new ForbiddenException('O registro de aparelhos é da coordenação.');
+      }
+      if (m.includes('aparelho_institucional_e_do_gestor')) {
+        throw new ForbiddenException(
+          'O aparelho da instituição — o que vale nas oito casas — é registrado pelo Gestor Geral. '
+          + 'A coordenação registra aparelhos da própria casa, informando a casa.');
       }
       if (m.includes('fora_de_escopo')) throw new ForbiddenException('Esta casa não está no seu alcance.');
       if (m.includes('rotulo_insuficiente')) {

@@ -189,3 +189,125 @@ input {
   font-family: "Plus Jakarta Sans", sans-serif; font-weight: 800; font-size: 15px;
   color: var(--brand-solid); width: 56px; flex: none; letter-spacing: -.02em;
 }
+
+/* ============================================================
+   TELA DE ENTRADA
+   Fundo navy institucional; o cartão é a única superfície clara,
+   para que o olho vá direto ao que precisa ser preenchido.
+   ============================================================ */
+.loginwrap{
+  min-height:100dvh; display:grid; place-items:center; padding:24px;
+  background:
+    radial-gradient(1200px 600px at 50% -10%, #0A4A86 0%, transparent 60%),
+    linear-gradient(160deg, var(--navy) 0%, var(--navy-2) 55%, #001B38 100%);
+}
+.logincard{
+  width:100%; max-width:430px; background:var(--surface); color:var(--ink);
+  border-radius:20px; padding:34px 30px 26px;
+  box-shadow:0 24px 60px rgba(0,20,45,.45), 0 2px 6px rgba(0,20,45,.25);
+}
+.loginbrand{ text-align:center; margin-bottom:22px }
+.loginlogo{
+  width:96px; height:96px; margin:0 auto 16px; display:grid; place-items:center;
+  border-radius:50%; background:var(--brand-soft); border:1px solid var(--line);
+}
+.loginlogo img{ width:64px; height:64px; object-fit:contain }
+.logincard h1{
+  font-size:19px; line-height:1.32; margin:0; color:var(--navy);
+  font-family:"Plus Jakarta Sans",system-ui,sans-serif; font-weight:800;
+}
+.logincard h1 span{ display:block; font-weight:600; color:var(--brand) }
+.loginsub{ margin:8px 0 0; font-size:13px; color:var(--muted); text-align:center }
+.loginhint{
+  margin:8px 0 4px; font-size:12.5px; line-height:1.5; color:var(--muted);
+}
+.loginfoot{
+  margin:18px 0 0; font-size:12px; line-height:1.5;
+  color:var(--muted); text-align:center;
+}
+.demochips{ display:flex; flex-wrap:wrap; gap:8px; justify-content:center }
+.chipbtn{
+  border:1px solid var(--line-2); background:var(--surface); color:var(--brand);
+  border-radius:999px; padding:7px 14px; font-size:12.5px; font-weight:600;
+  cursor:pointer; font-family:inherit;
+}
+.chipbtn:hover{ background:var(--brand-soft); border-color:var(--brand) }
+
+/* ---------- Barra e navegação do app ---------- */
+.app{ max-width:1180px; margin:0 auto; padding-bottom:48px }
+/* A barra é uma linha: nada de botão esticado ocupando o vão. */
+.appbar .top{ display:flex; align-items:center; gap:10px; flex-wrap:nowrap }
+.appbar .top .grow{ flex:1 1 auto; min-width:0 }
+.appbar .top .btn{ flex:0 0 auto; width:auto }
+.iconbtn{
+  border:1px solid rgba(255,255,255,.28); background:rgba(255,255,255,.10);
+  color:#fff; border-radius:10px; width:34px; height:34px; font-size:15px;
+  cursor:pointer; line-height:1;
+}
+.iconbtn:hover{ background:rgba(255,255,255,.2) }
+.tabbar{ display:flex; gap:8px; padding:12px 16px 0 }
+.tabbar button{
+  border:1px solid var(--line); background:var(--surface); color:var(--ink-2);
+  border-radius:12px 12px 0 0; padding:10px 18px; font-size:14px; font-weight:600;
+  cursor:pointer; font-family:inherit; border-bottom:none;
+}
+.tabbar button.on{ background:var(--brand); border-color:var(--brand); color:#fff }
+.conteudo{ padding:16px }
+
+/* ---------- Tabela de equipe ---------- */
+.tablewrap{ overflow-x:auto; border:1px solid var(--line); border-radius:12px }
+.tabela{ width:100%; border-collapse:collapse; font-size:13.5px; min-width:1080px }
+.tabela thead th{
+  background:var(--navy); color:var(--on-navy); text-align:left;
+  padding:11px 14px; font-size:11.5px; letter-spacing:.06em; text-transform:uppercase;
+  font-weight:700; white-space:nowrap;
+}
+.tabela td{ padding:11px 14px; border-top:1px solid var(--line); vertical-align:middle }
+/* Nome e e-mail não quebram em três linhas: a coluna cede, o dado não. */
+.tabela td:first-child{ white-space:nowrap }
+.tabela td:first-child b{ display:inline-block; margin-right:6px }
+.tabela .mono{ white-space:nowrap }
+.tabela tbody tr:hover{ background:var(--raised) }
+.tabela tr.inativo td{ opacity:.62 }
+.tabela .mono{ font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12.5px; color:var(--muted) }
+.tabela .acoes{ white-space:nowrap; text-align:right }
+/* O botão base é largura total (bom no celular); dentro de tabela e de
+   cabeçalho de card ele volta a ter o tamanho do próprio rótulo. */
+.tabela .acoes .btn, .card > .row > .btn, .setores .btn{ width:auto; display:inline-flex }
+.tabela .acoes .btn{ margin-left:6px }
+.tabela .pill + .pill{ margin-left:6px }
+.setores{ display:grid; gap:10px; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)) }
+
+/* ---------- Modal ---------- */
+.overlay{
+  position:fixed; inset:0; background:rgba(4,18,36,.55);
+  display:grid; place-items:center; padding:20px; z-index:50;
+}
+.sheet.modal{
+  background:var(--surface); border-radius:16px; padding:24px;
+  width:100%; max-width:480px; max-height:88dvh; overflow:auto;
+  box-shadow:0 24px 60px rgba(0,20,45,.4);
+}
+.sheet.modal h3{ margin:0 0 6px; font-size:17px; color:var(--navy) }
+.sheet.modal .mutetxt{ font-size:12.5px; line-height:1.5 }
+.sheet.modal .notice{ font-size:12.5px; line-height:1.5 }
+.senhabox{
+  margin-top:10px; padding:10px 12px; border-radius:10px;
+  background:var(--sunken); border:1px dashed var(--line-2);
+  display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+}
+.senhabox code{
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-size:16px; font-weight:700; color:var(--navy); letter-spacing:.04em;
+}
+select{
+  width:100%; padding:11px 12px; border:1px solid var(--line-2); border-radius:10px;
+  background:var(--surface); color:var(--ink); font-size:14.5px; font-family:inherit;
+}
+select:focus, .logincard input:focus{ outline:2px solid var(--brand); outline-offset:1px }
+
+@media (max-width:640px){
+  .logincard{ padding:26px 20px 20px }
+  .tabbar{ padding:10px 12px 0 }
+  .conteudo{ padding:12px }
+}

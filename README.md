@@ -40,7 +40,7 @@ narrativa pessoal.
 ## Testes
 
 ```bash
-npm test        # 123 testes: fronteiras de arquitetura, aceite das fases 1–5 e duas suítes de regressão
+npm test        # 133 testes: arquitetura, aceite das fases 1–5, regressão e gestão de equipe
 ```
 
 Cada execução **recria o banco do zero** (migrações + seeds fictícios), porque os
@@ -71,6 +71,9 @@ matriz requisito → implementação → teste.
 - ✅ Transferência (revisão): duas caixas na coordenação — recebidas e da casa —,
   nome completo e unidade de origem antes do aceite, conversa entre as duas
   coordenações dentro do sistema, recusa com motivo registrada nas duas casas
+- ✅ Entrada e equipe: tela de login institucional, sugestão de senha pessoal no
+  primeiro acesso, e cadastro de funcionários por setor pela coordenação —
+  incluindo Enfermagem. Sem botão "remover": desligado é desativado
 - ⏳ Fase 6 — Relatórios, aprovações e Drive (próxima)
 - Fase 7 — ver `docs/backlog.md`
 

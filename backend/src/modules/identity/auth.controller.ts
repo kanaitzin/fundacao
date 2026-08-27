@@ -21,6 +21,14 @@ export class AuthController {
     return { ok: true };
   }
 
+  /** Troca da própria senha — sugerida no primeiro acesso, disponível sempre. */
+  @Post('password')
+  @UseGuards(SessionGuard)
+  changePassword(@CurrentUser() user: AuthenticatedUser,
+                 @Body() body: { senhaAtual?: string; novaSenha: string }) {
+    return this.auth.changeOwnPassword(user, body?.senhaAtual ?? '', body?.novaSenha ?? '');
+  }
+
   @Post('reauth')
   @UseGuards(SessionGuard)
   reauth(@CurrentUser() user: AuthenticatedUser, @Body() body: { password: string }) {

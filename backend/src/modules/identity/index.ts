@@ -11,4 +11,5 @@ export { SessionGuard } from './session.guard';
 export { CurrentUser } from './current-user.decorator';
 export { AuthService } from './auth.service';
 export { DevicesService } from './devices.service';
+export { StaffService, SETORES } from './staff.service';
 export type { AuthenticatedUser } from '../../kernel/contracts';

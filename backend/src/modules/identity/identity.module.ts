@@ -2,9 +2,11 @@ import { Module } from '@nestjs/common';
 import { AuthController } from './auth.controller';
 import { UsersController } from './users.controller';
 import { DevicesController } from './devices.controller';
+import { StaffController } from './staff.controller';
 import { AuthService } from './auth.service';
 import { SessionGuard } from './session.guard';
 import { DevicesService } from './devices.service';
+import { StaffService } from './staff.service';
 
 /**
  * Módulo `identity` — quem é a pessoa e o que ela ainda pode fazer nesta sessão.
@@ -14,8 +16,8 @@ import { DevicesService } from './devices.service';
  * porta pública é deliberadamente estreita (guard, decorator, serviço).
  */
 @Module({
-  controllers: [AuthController, UsersController, DevicesController],
-  providers: [AuthService, SessionGuard, DevicesService],
-  exports: [AuthService, SessionGuard, DevicesService],
+  controllers: [AuthController, UsersController, DevicesController, StaffController],
+  providers: [AuthService, SessionGuard, DevicesService, StaffService],
+  exports: [AuthService, SessionGuard, DevicesService, StaffService],
 })
 export class IdentityModule {}
