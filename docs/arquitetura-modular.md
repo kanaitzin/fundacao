@@ -159,6 +159,56 @@ atualização genérica).
 
 As políticas ficaram **mais** estritas depois de cada um deles, não menos.
 
+## A regra do JOIN: RLS não filtra coluna, some com a linha
+
+Este é o defeito mais perigoso já encontrado no projeto, porque **não dá erro**.
+
+Quando uma consulta faz `JOIN` com uma tabela protegida por RLS e o usuário não
+tem permissão sobre aquela linha específica, o banco não retorna a coluna vazia:
+ele **elimina a linha inteira do resultado**. Sem exceção, sem log, sem sinal.
+
+A causa de fundo é um descasamento entre duas regras que estão certas:
+
+| O que | Fica visível por |
+|---|---|
+| Episódio de ATA, ocorrência, atividade, evolução, estoque, item de rotina | a **casa** — e continua visível para ela, inclusive depois de fechado |
+| A pessoa | a **permanência ativa** — que muda na transferência e acaba na saída |
+
+No instante em que a criança é transferida, o `JOIN person` deixa de encontrar
+par. Uma auditoria do código inteiro achou **oito** lugares assim. Os piores:
+
+- o **episódio de contenção sumia da ATA fechada** — registro imutável, tela vazia;
+- a **ocorrência de violência perdia o nome de quem ela tratava**, justamente para
+  a equipe técnica que precisa revisá-la para poder fechar;
+- a **ATA Geral Noturna mostrava uma casa em vez de oito**, e os contadores da tela
+  diziam "1 de 1 confirmada" — noite inteira em ordem, sete casas sequer lidas.
+
+**A correção nunca é afrouxar a política.** É devolver o mínimo por função
+própria, o mesmo padrão de `app_user_display_name`:
+
+| Função | Devolve | No lugar de |
+|---|---|---|
+| `app_person_display_name(uuid)` | nome social ou civil | `JOIN person` |
+| `app_person_age(uuid)` | idade em anos | `JOIN person` |
+| `app_house_label(uuid)` | código da unidade | `JOIN house` |
+| `app_house_name(uuid)` | nome da unidade | `JOIN house` |
+| `app_night_ata_status(casa, dia)` | estado da ATA noturna | subconsulta em `ata` |
+
+A guarda de cada uma é estreita: você só nomeia quem **algum dia** teve
+permanência numa casa do seu escopo. Uma criança que nunca passou pela sua
+unidade continua sem nome para você.
+
+**A trava:** `test/arquitetura.spec.ts` varre todo `JOIN` com tabela protegida e
+falha o build se não houver, nas linhas acima, um comentário `rls-join-ok:`
+dizendo por que o par sempre existe. Não proíbe o JOIN — obriga alguém a ter
+pensado. E `test/regressao-saida.e2e.spec.ts` transfere crianças de propósito
+para verificar que o registro deixado para trás continua legível.
+
+**Corolário, que vale além do JOIN:** lista vazia por falta de permissão **não é**
+"não existe". Onde a política esvazia uma seção, a API diz isso em texto
+(`avisoProtegido`, `avisoAnaliseTecnica`) em vez de deixar a tela sugerir que
+nada aconteceu.
+
 ## Quando a proteção muda de lugar em vez de mudar de força
 
 A Fase 5 trouxe um caso que vale registrar, porque a tentação era a de sempre.

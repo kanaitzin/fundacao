@@ -68,8 +68,12 @@ export class ActivitiesService {
   async listDay(user: AuthenticatedUser, houseId: string, date: string, opts: { personId?: string; onlyMine?: boolean } = {}) {
     return this.db.asUser(user.id, async (c) => {
       const { rows } = await c.query(
-        `SELECT a.*, coalesce(nullif(p.social_name,''), p.full_name) AS pessoa,
-                date_part('year', age(p.birth_date))::int AS idade,
+        // Sem `LEFT JOIN person`: o JOIN não derrubava a atividade, mas
+        // devolvia nome NULL para quem já saiu — e o Painel da Casa montava
+        // uma linha do "Visão dos 20" chamada "—". Perder identidade sem
+        // sinalizar é o mesmo defeito, de terno.
+        `SELECT a.*, app_person_display_name(a.person_id) AS pessoa,
+                app_person_age(a.person_id) AS idade,
                 (SELECT count(*)::int FROM activity_acknowledgement k
                   WHERE k.activity_id = a.id) AS ciencias,
                 EXISTS (SELECT 1 FROM activity_acknowledgement k
@@ -80,7 +84,6 @@ export class ActivitiesService {
                 (SELECT app_user_display_name(g.user_id) FROM activity_assignment g
                   WHERE g.activity_id = a.id AND g.user_id IS NOT NULL LIMIT 1) AS responsavel
          FROM activity a
-         LEFT JOIN person p ON p.id = a.person_id
          WHERE a.house_id = $1
            AND (a.scheduled_at AT TIME ZONE 'America/Sao_Paulo')::date = $2::date
            AND ($4::uuid IS NULL OR a.person_id = $4)
@@ -323,7 +326,10 @@ export function mapActivity(r: any) {
     estado: r.state,
     rotulo: ESTADO_LABEL[r.state] ?? r.state,
     coletiva: r.person_id === null,
-    acolhido: r.person_id ? { id: r.person_id, nome: r.pessoa, idade: r.idade } : null,
+    acolhido: r.person_id
+      ? { id: r.person_id, nome: r.pessoa ?? '(fora do seu alcance)',
+          idade: r.idade, visivel: r.pessoa != null }
+      : null,
     exigeCiencia: r.requires_ack,
     cientePorMim: r.ciente_por_mim,
     ciencias: r.ciencias,

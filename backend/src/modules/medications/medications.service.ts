@@ -151,6 +151,8 @@ export class MedicationsService {
                 (SELECT string_agg(h.description, ' · ') FROM health_condition h
                   WHERE h.person_id = a.person_id AND h.active AND h.kind='alergia') AS alergias
          FROM medication_administration a
+         -- rls-join-ok: adm_select é app_person_in_scope(person_id), a MESMA
+         -- política de person e prescription — quem lê a dose lê os dois.
          JOIN prescription pr ON pr.id = a.prescription_id
          JOIN person p ON p.id = a.person_id
          WHERE a.house_id = $1
@@ -234,6 +236,7 @@ export class MedicationsService {
         `SELECT a.id, a.scheduled_at, pr.medication,
                 coalesce(nullif(p.social_name,''), p.full_name) AS pessoa
          FROM medication_administration a
+         -- rls-join-ok: mesma política (app_person_in_scope) nas três tabelas.
          JOIN prescription pr ON pr.id = a.prescription_id
          JOIN person p ON p.id = a.person_id
          WHERE a.house_id = $1 AND a.state = 'aguardando_confirmacao'
@@ -268,10 +271,12 @@ export class MedicationsService {
   async stock(user: AuthenticatedUser, houseId: string) {
     return this.db.asUser(user.id, async (c) => {
       const { rows } = await c.query(
-        `SELECT s.id, s.medication, s.quantity, s.unit, s.expires_on, s.low_flag, s.updated_at,
-                coalesce(nullif(p.social_name,''), p.full_name) AS pessoa
+        `SELECT s.id, s.medication, s.quantity, s.unit, s.expires_on, s.low_flag, s.updated_at, s.person_id,
+                -- Sem LEFT JOIN person: um estoque NOMINAL de quem já saiu
+                -- aparecia com acolhido nulo, indistinguível de estoque de uso
+                -- comum da casa. Medicamento de alguém não pode virar "de todos".
+                app_person_display_name(s.person_id) AS pessoa
          FROM medication_stock s
-         LEFT JOIN person p ON p.id = s.person_id
          WHERE s.house_id = $1 ORDER BY s.expires_on NULLS LAST, s.medication`, [houseId]);
       const hoje = new Date();
       return rows.map((r) => {
@@ -279,7 +284,11 @@ export class MedicationsService {
           ? Math.ceil((new Date(r.expires_on).getTime() - hoje.getTime()) / 86_400_000) : null;
         return {
           id: r.id, medicamento: r.medication, quantidade: Number(r.quantity), unidade: r.unit,
-          acolhido: r.pessoa, validade: r.expires_on, diasParaVencer: dias,
+          // `individual` vem do dado, não do nome: um estoque nominal continua
+          // nominal mesmo quando o nome não pode ser exibido a quem consulta.
+          individual: r.person_id != null,
+          acolhido: r.person_id ? (r.pessoa ?? '(fora do seu alcance)') : null,
+          validade: r.expires_on, diasParaVencer: dias,
           // Validade próxima é alerta (§11.6). Estoque baixo é sinalizado por
           // pessoa, não calculado: só a equipe sabe o que é pouco para cada caso.
           validadeProxima: dias !== null && dias <= 30,

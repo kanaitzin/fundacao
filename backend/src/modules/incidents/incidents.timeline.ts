@@ -27,11 +27,13 @@ export class IncidentsTimelineProvider implements TimelineProvider, OnModuleInit
     const rows = await this.db.asUser(q.user.id, async (c) => {
       const { rows } = await c.query(
         `SELECT i.id, i.category, i.happened_at, i.status, i.requires_technical_review,
-                (SELECT p.id FROM incident_person ip JOIN person p ON p.id = ip.person_id
-                  WHERE ip.incident_id = i.id LIMIT 1) AS person_id,
-                (SELECT coalesce(nullif(p.social_name,''), p.full_name)
-                   FROM incident_person ip JOIN person p ON p.id = ip.person_id
-                  WHERE ip.incident_id = i.id LIMIT 1) AS person_name,
+                -- Sem JOIN person: o JOIN devolvia NULL para criança já
+                -- transferida enquanto o contador de envolvidos seguia em 1 — a
+                -- ocorrência aparecia na linha do tempo como se fosse coletiva.
+                (SELECT ip.person_id FROM incident_person ip
+                  WHERE ip.incident_id = i.id ORDER BY ip.person_id LIMIT 1) AS person_id,
+                (SELECT app_person_display_name(ip.person_id) FROM incident_person ip
+                  WHERE ip.incident_id = i.id ORDER BY ip.person_id LIMIT 1) AS person_name,
                 (SELECT count(*)::int FROM incident_person ip WHERE ip.incident_id = i.id) AS envolvidos
          FROM incident i
          WHERE i.house_id = $1

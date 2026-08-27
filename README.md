@@ -40,7 +40,7 @@ narrativa pessoal.
 ## Testes
 
 ```bash
-npm test        # 102 testes: fronteiras de arquitetura + aceite das fases 1–5
+npm test        # 109 testes: fronteiras de arquitetura, aceite das fases 1–5 e regressão
 ```
 
 Cada execução **recria o banco do zero** (migrações + seeds fictícios), porque os

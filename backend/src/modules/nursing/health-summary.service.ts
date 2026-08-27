@@ -55,6 +55,8 @@ export class HealthSummaryService {
 
       const { rows: [casa] } = await c.query(
         `SELECT h.id, h.code, h.name, h.address
+         -- rls-join-ok: a permanência é ATIVA, logo a casa é a atual do
+         -- acolhido, sobre a qual app_person_in_scope já se pronunciou.
          FROM house_stay s JOIN house h ON h.id = s.house_id
          WHERE s.person_id = $1 AND s.status = 'ativa'`, [personId]);
 

@@ -177,10 +177,13 @@ export class IncidentsService {
     const dados = await this.db.asUser(user.id, async (c) => {
       const { rows: [i] } = await c.query(`SELECT * FROM incident WHERE id = $1`, [id]);
       if (!i) return null;
+      // Sem `JOIN person`: a ocorrência pertence à CASA, a pessoa é visível
+      // pela permanência ATIVA. Numa ocorrência de violência — categoria em
+      // que a transferência é frequente — a equipe técnica que PRECISA fazer
+      // a revisão abria o caso e não via mais criança nenhuma associada.
       const { rows: pessoas } = await c.query(
-        `SELECT p.id, coalesce(nullif(p.social_name,''), p.full_name) AS nome
-         FROM incident_person ip JOIN person p ON p.id = ip.person_id
-         WHERE ip.incident_id = $1`, [id]);
+        `SELECT ip.person_id AS id, app_person_display_name(ip.person_id) AS nome
+         FROM incident_person ip WHERE ip.incident_id = $1`, [id]);
       const { rows: [prot] } = await c.query(
         `SELECT spontaneous_speech, observed_signs, at FROM incident_protected WHERE incident_id = $1`, [id]);
       const { rows: [cont] } = await c.query(
@@ -216,7 +219,13 @@ export class IncidentsService {
       contatos: i.contacts, pendencias: i.pendencies, prazo: i.deadline,
       status: i.status, nivelAcesso: i.access_level,
       revisaoTecnicaObrigatoria: i.requires_technical_review,
-      acolhidos: dados.pessoas.map((p: any) => ({ id: p.id, nome: p.nome })),
+      acolhidos: dados.pessoas.map((p: any) => ({
+        id: p.id,
+        // Nome nulo aqui significa uma coisa só: a criança nunca esteve numa
+        // casa do seu alcance. Dizer isso é melhor do que exibir um vazio.
+        nome: p.nome ?? '(fora do seu alcance)',
+        visivel: p.nome != null,
+      })),
       // Vem nulo para quem a política não autoriza — e a tela diz por quê.
       protegido: dados.prot
         ? { falaEspontanea: dados.prot.spontaneous_speech,
@@ -234,6 +243,12 @@ export class IncidentsService {
       } : null,
       sinteses: dados.sinteses.map((s: any) => ({ id: s.id, texto: s.body, autor: s.autor, quando: s.at })),
       relatos,
+      // Listas vazias por política não são "não existe": são "não posso ver".
+      // O líder encerra a etapa operacional sem navegar pela análise técnica,
+      // mas precisa saber que ela pode existir (§13.5).
+      avisoAnaliseTecnica: ['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(user.role)
+        ? null
+        : 'Sínteses técnicas e comunicações externas, quando existem, são acessíveis à equipe técnica e à coordenação.',
       anexos: dados.anexos.map((a: any) => ({
         id: a.id, tipo: a.kind, nome: a.display_name, justificativa: a.justification,
         restrito: a.restricted, autor: a.autor, quando: a.at,

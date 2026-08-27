@@ -71,11 +71,15 @@ export class ShiftsService {
       const { rows: faltam } = await c.query(
         `SELECT full_name, role FROM app_missing_handovers($1)`, [shiftId]);
       const { rows: episodios } = await c.query(
+        // Sem `JOIN person`: a ATA pertence à CASA e é imutável, mas a pessoa
+        // é visível pela permanência ATIVA. Um episódio de contenção sumia da
+        // ATA fechada no dia em que a criança era transferida — o registro
+        // continuava lá, e a tela mostrava lista vazia.
         `SELECT e.id, e.person_id, e.classification, e.factual, e.happened_at, e.incident_id,
-                coalesce(nullif(p.social_name,''), p.full_name) AS acolhido,
+                app_person_display_name(e.person_id) AS acolhido,
                 app_user_display_name(e.created_by) AS registrado_por,
                 (SELECT count(*)::int FROM ata_episode_ack k WHERE k.episode_id = e.id) AS ciencias
-         FROM ata_episode e JOIN person p ON p.id = e.person_id
+         FROM ata_episode e
          WHERE e.ata_id = $1 ORDER BY e.happened_at`, [a?.id ?? null]);
       return { s, a, passagens, recebimentos, faltam, episodios };
     });
@@ -419,11 +423,17 @@ export class ShiftsService {
       const { rows: [g] } = await c.query(`SELECT * FROM general_night_ata WHERE id = $1`, [id]);
       if (!g) return null;
       const { rows } = await c.query(
-        `SELECT e.*, h.code, h.name,
-                (SELECT a.status FROM ata a
-                  WHERE a.house_id = e.house_id AND a.on_date = $2 AND a.period = 'noturno') AS ata_casa
-         FROM general_night_house_entry e JOIN house h ON h.id = e.house_id
-         WHERE e.general_ata_id = $1 ORDER BY h.code`, [id, g.on_date]);
+        // A política entrega as OITO linhas à coordenação de propósito; o
+        // `JOIN house` desfazia isso (a casa alheia não passa pelo RLS) e os
+        // contadores acabavam calculados sobre uma lista truncada — a tela
+        // dizia "1 de 1 confirmada" com sete casas sequer lidas.
+        `SELECT e.*,
+                app_house_label(e.house_id) AS code,
+                app_house_name(e.house_id) AS name,
+                app_night_ata_status(e.house_id, $2::date) AS ata_casa
+         FROM general_night_house_entry e
+         WHERE e.general_ata_id = $1
+         ORDER BY app_house_label(e.house_id)`, [id, g.on_date]);
       return { g, rows };
     });
     if (!dados) throw new NotFoundException('ATA Geral não encontrada.');
@@ -438,7 +448,8 @@ export class ShiftsService {
         motivo: e.reason, pessoas: e.people_involved, acao: e.action_taken,
         categoria: e.category, pendencias: e.pendencies,
         ataNoturnaConfirmada: e.house_ata_confirmed,
-        situacaoAtaDaCasa: e.ata_casa ?? 'sem ATA aberta',
+        // Agora NULL significa mesmo 'não existe', e não 'não posso ver'.
+        situacaoAtaDaCasa: e.ata_casa ?? 'ATA noturna ainda não aberta',
       })),
       confirmadas: dados.rows.filter((e: any) => e.house_ata_confirmed).length,
       total: dados.rows.length,
@@ -534,6 +545,7 @@ export class ShiftsService {
                 a.id AS ata_id, a.status AS ata_status, a.missing_signatures,
                 (SELECT count(*)::int FROM handover h WHERE h.shift_id = s.id) AS assinadas,
                 (SELECT count(*)::int FROM handover_receipt r WHERE r.shift_id = s.id) AS recebimentos
+         -- rls-join-ok: shift e ata compartilham a mesma política (casa).
          FROM shift s LEFT JOIN ata a ON a.shift_id = s.id
          WHERE s.house_id = $1 AND s.on_date = $2::date
          ORDER BY s.period`, [houseId, date]);

@@ -146,14 +146,17 @@ export class NursingService {
       const { rows } = await c.query(
         `SELECT e.id, e.kind, e.happened_at, e.place, e.specialty, e.status, e.created_at,
                 e.state_return, e.prescription_note, e.guidance, e.restrictions, e.return_deadline,
-                e.offline, e.house_id, h.code AS casa,
-                coalesce(nullif(p.social_name,''), p.full_name) AS pessoa, e.person_id,
+                e.offline, e.house_id,
+                -- e.house_id é a casa do ATENDIMENTO, congelada. Com JOIN
+                -- house, a evolução pendente de uma criança recém-transferida
+                -- sumia para a técnica que acabou de recebê-la — justamente
+                -- quem o §7.2 encarrega de cobrar a pendência.
+                app_house_label(e.house_id) AS casa,
+                app_person_display_name(e.person_id) AS pessoa, e.person_id,
                 app_user_display_name(e.accompanied_by) AS acompanhante,
                 (SELECT t.request_note FROM nursing_triage t
                   WHERE t.evolution_id = e.id ORDER BY t.at DESC LIMIT 1) AS pedido_complemento
          FROM health_evolution e
-         JOIN person p ON p.id = e.person_id
-         JOIN house h ON h.id = e.house_id
          WHERE e.status <> 'assinada' AND ($1::uuid IS NULL OR e.house_id = $1)
          ORDER BY e.created_at`, [houseId ?? null]);
       return rows;
@@ -250,6 +253,8 @@ export class NursingService {
         `SELECT a.scheduled_at, a.state, a.administered_at, a.note, pr.medication, pr.dose,
                 app_user_display_name(a.administered_by) AS por
          FROM medication_administration a
+         -- rls-join-ok: prescription e medication_administration usam a mesma
+         -- política (app_person_in_scope).
          JOIN prescription pr ON pr.id = a.prescription_id
          WHERE a.person_id = $1 AND a.state <> 'aguardando_confirmacao'
          ORDER BY a.scheduled_at DESC LIMIT 100`, [personId]);

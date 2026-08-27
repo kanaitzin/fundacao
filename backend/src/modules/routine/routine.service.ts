@@ -45,9 +45,8 @@ export class RoutineService {
         `SELECT ri.id, ri.kind, ri.title, ri.start_time, ri.end_time, ri.weekdays,
                 ri.collective, ri.person_id, ri.instructions, ri.transport,
                 ri.priority, ri.requires_ack,
-                coalesce(nullif(p.social_name,''), p.full_name) AS pessoa
+                app_person_display_name(ri.person_id) AS pessoa
          FROM routine_item ri
-         LEFT JOIN person p ON p.id = ri.person_id
          WHERE ri.version_id = $1
          ORDER BY ri.start_time, ri.title`, [v.id]);
 
@@ -122,7 +121,9 @@ function mapItem(r: any) {
     fim: r.end_time ? String(r.end_time).slice(0, 5) : null,
     diasSemana: r.weekdays,
     coletiva: r.collective,
-    acolhido: r.person_id ? { id: r.person_id, nome: r.pessoa } : null,
+    acolhido: r.person_id
+      ? { id: r.person_id, nome: r.pessoa ?? '(fora do seu alcance)', visivel: r.pessoa != null }
+      : null,
     instrucoes: r.instructions, transporte: r.transport,
     prioridade: r.priority, exigeCiencia: r.requires_ack,
   };

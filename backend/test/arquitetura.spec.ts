@@ -140,6 +140,40 @@ describe('Fronteiras entre partições', () => {
     }
   });
 
+  /**
+   * JOIN com tabela protegida por RLS não filtra coluna — ele ELIMINA A LINHA,
+   * em silêncio. Uma auditoria encontrou oito lugares com esse defeito, todos
+   * com o mesmo efeito: o registro deixado numa casa desaparecia no dia em que
+   * a criança era transferida.
+   *
+   * Não dá para proibir o JOIN — em muitos casos ele é seguro, porque as duas
+   * tabelas compartilham a mesma política. O que dá para exigir é que alguém
+   * TENHA PENSADO: cada JOIN com tabela protegida precisa de um comentário
+   * `rls-join-ok:` dizendo por que o par sempre existe.
+   *
+   * Sem isso, use uma função SECURITY DEFINER de rótulo mínimo
+   * (app_person_display_name, app_house_label, app_user_display_name).
+   */
+  it('todo JOIN com tabela protegida por RLS está justificado', () => {
+    const PROTEGIDAS = ['person', 'house', 'app_user', 'incident', 'ata', 'prescription', 'statement'];
+    const re = new RegExp(`\\bJOIN\\s+(${PROTEGIDAS.join('|')})\\b`, 'i');
+    const violacoes: string[] = [];
+
+    for (const file of [...tsFiles(MODULES_DIR), ...tsFiles(join(SRC, 'kernel'))]) {
+      const linhas = readFileSync(file, 'utf8').split('\n');
+      linhas.forEach((linha, i) => {
+        // Comentários que apenas MENCIONAM um JOIN não contam.
+        const semComentario = linha.replace(/--.*$/, '').replace(/\/\/.*$/, '');
+        if (!re.test(semComentario)) return;
+        const contexto = linhas.slice(Math.max(0, i - 4), i).join('\n');
+        if (!contexto.includes('rls-join-ok')) {
+          violacoes.push(`${relative(SRC, file)}:${i + 1} — ${semComentario.trim()}`);
+        }
+      });
+    }
+    expect(violacoes).toEqual([]);
+  });
+
   it('a linha do tempo não conhece nenhum módulo de domínio', () => {
     // O ponto de encontro do sistema é justamente onde acoplamento seria fatal:
     // a timeline só fala com o registro de provedores, no kernel.
