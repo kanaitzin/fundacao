@@ -1,55 +1,191 @@
-/* Rede Acolher — design system provisório (cores institucionais Pão dos Pobres) */
+/* ============================================================
+   REDE ACOLHER — Design System
+   Marca: Fundação O Pão dos Pobres (navy #003262 / azul #005993)
+   Cor comunica ESTADO OPERACIONAL e categoria — nunca julgamento
+   sobre a pessoa. Sem ranking, sem pontuação de comportamento.
+   Espelha prototipo/rede-acolher-prototipo.html (fonte do design).
+   ============================================================ */
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap");
+
+/* ---------- Tema claro ---------- */
 :root {
-  --ground: #F4F6F9; --surface: #FFFFFF; --raised: #FAFBFD;
-  --ink: #1E2833; --muted: #5A6673; --line: #D9E0E8; --line-strong: #BFC9D4;
-  --brand: #003262;
-  --primary: #005993; --primary-ink: #FFFFFF; --primary-soft: #E0EDF6; --primary-soft-ink: #0E4674;
-  --amber: #8F6119; --amber-bg: #F4E8D2; --crit: #A8423C; --crit-bg: #F5E1DF;
-  --pos: #3E7A50; --pos-bg: #E3EFE4;
-  --focus: #005993;
+  --ground:#EDF1F7; --surface:#FFFFFF; --raised:#F6F9FC; --sunken:#E3EAF3;
+  --ink:#0F1C2E; --ink-2:#26374D; --muted:#5A6B82; --line:#D8E1EC; --line-2:#BDCBDC;
+
+  --navy:#003262; --navy-2:#00254A;
+  --brand:#005993; --brand-2:#0A7BC4; --brand-soft:#E2EFF9; --brand-solid:#005993;
+  --on-navy:#DCEBF7;
+
+  /* Paleta viva: tom vivo (tinta/borda) + sólido (fundo cheio, contraste AA) */
+  --emerald:#10B981; --emerald-solid:#047857;
+  --amber:#F59E0B;   --amber-solid:#B45309;
+  --red:#EF4444;     --red-solid:#B91C1C;
+  --blue:#3B82F6;    --blue-solid:#1D4ED8;
+  --violet:#8B5CF6;  --violet-solid:#6D28D9;
+  --cyan:#06B6D4;    --cyan-solid:#0E7490;
+  --pink:#EC4899;    --pink-solid:#BE185D;
+  --slate:#64748B;   --slate-solid:#475569;
+  --on-solid:#FFFFFF;
+
+  --shadow-1:0 1px 2px rgba(15,28,46,.05), 0 1px 3px rgba(15,28,46,.08);
+  --shadow-2:0 2px 6px rgba(15,28,46,.06), 0 10px 24px rgba(15,28,46,.09);
+  --focus:#0A7BC4;
+  --r-sm:9px; --r-md:13px; --r-lg:18px;
 }
+
+/* ---------- Tema escuro ---------- */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --ground: #10161D; --surface: #182028; --raised: #1F2933;
-    --ink: #E4EAF0; --muted: #93A1B0; --line: #2B3642; --line-strong: #41505F;
-    --brand: #8FC1E8;
-    --primary: #6FAEDD; --primary-ink: #062640; --primary-soft: #1B3450; --primary-soft-ink: #A9CFEA;
-    --amber: #D9A55A; --amber-bg: #3A2F1B; --crit: #D97B74; --crit-bg: #3D2422;
-    --pos: #7FB58C; --pos-bg: #22352A;
-    --focus: #6FAEDD;
+    --ground:#0C1219; --surface:#151E28; --raised:#1C2833; --sunken:#0F1720;
+    --ink:#E8EEF5; --ink-2:#C6D3E0; --muted:#8FA1B5; --line:#26333F; --line-2:#3B4C5D;
+
+    --navy:#0A1B2C; --navy-2:#061420;
+    --brand:#4FA3DC; --brand-2:#7BC0EC; --brand-soft:#152C41; --brand-solid:#7BC0EC;
+    --on-navy:#BFDCF2;
+
+    --emerald:#34D399; --emerald-solid:#6EE7B7;
+    --amber:#FBBF24;   --amber-solid:#FCD34D;
+    --red:#F87171;     --red-solid:#FCA5A5;
+    --blue:#60A5FA;    --blue-solid:#93C5FD;
+    --violet:#A78BFA;  --violet-solid:#C4B5FD;
+    --cyan:#22D3EE;    --cyan-solid:#67E8F9;
+    --pink:#F472B6;    --pink-solid:#F9A8D4;
+    --slate:#94A3B8;   --slate-solid:#CBD5E1;
+    --on-solid:#07121C;
+
+    --shadow-1:0 1px 2px rgba(0,0,0,.5);
+    --shadow-2:0 2px 6px rgba(0,0,0,.45), 0 10px 24px rgba(0,0,0,.4);
+    --focus:#7BC0EC;
   }
 }
 :root[data-theme="dark"] {
-  --ground: #10161D; --surface: #182028; --raised: #1F2933;
-  --ink: #E4EAF0; --muted: #93A1B0; --line: #2B3642; --line-strong: #41505F;
-  --brand: #8FC1E8;
-  --primary: #6FAEDD; --primary-ink: #062640; --primary-soft: #1B3450; --primary-soft-ink: #A9CFEA;
-  --amber: #D9A55A; --amber-bg: #3A2F1B; --crit: #D97B74; --crit-bg: #3D2422;
-  --pos: #7FB58C; --pos-bg: #22352A;
-  --focus: #6FAEDD;
+  --ground:#0C1219; --surface:#151E28; --raised:#1C2833; --sunken:#0F1720;
+  --ink:#E8EEF5; --ink-2:#C6D3E0; --muted:#8FA1B5; --line:#26333F; --line-2:#3B4C5D;
+
+  --navy:#0A1B2C; --navy-2:#061420;
+  --brand:#4FA3DC; --brand-2:#7BC0EC; --brand-soft:#152C41; --brand-solid:#7BC0EC;
+  --on-navy:#BFDCF2;
+
+  --emerald:#34D399; --emerald-solid:#6EE7B7;
+  --amber:#FBBF24;   --amber-solid:#FCD34D;
+  --red:#F87171;     --red-solid:#FCA5A5;
+  --blue:#60A5FA;    --blue-solid:#93C5FD;
+  --violet:#A78BFA;  --violet-solid:#C4B5FD;
+  --cyan:#22D3EE;    --cyan-solid:#67E8F9;
+  --pink:#F472B6;    --pink-solid:#F9A8D4;
+  --slate:#94A3B8;   --slate-solid:#CBD5E1;
+  --on-solid:#07121C;
+
+  --shadow-1:0 1px 2px rgba(0,0,0,.5);
+  --shadow-2:0 2px 6px rgba(0,0,0,.45), 0 10px 24px rgba(0,0,0,.4);
+  --focus:#7BC0EC;
 }
+
+/* ---------- Base ---------- */
 * { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
 body {
-  margin: 0; background: var(--ground); color: var(--ink);
-  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-  font-size: 16px; line-height: 1.45;
+  background: var(--ground); color: var(--ink);
+  font-family: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 16px; line-height: 1.45; -webkit-font-smoothing: antialiased;
 }
-button:focus-visible, input:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
-.wrap { max-width: 460px; margin: 0 auto; padding: 24px 16px; }
-.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px; }
-.brand { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
-.brand h1 { font-size: 20px; color: var(--brand); margin: 0; }
-label { display: block; font-size: 14px; font-weight: 700; margin: 12px 0 5px; }
+h1, h2, h3, .ff {
+  font-family: "Plus Jakarta Sans", "Atkinson Hyperlegible", system-ui, sans-serif;
+  margin: 0; letter-spacing: -.011em; text-wrap: balance;
+}
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; border-radius: 6px; }
+@media (prefers-reduced-motion: no-preference) {
+  .btn { transition: transform .13s ease, box-shadow .13s ease, background-color .13s ease; }
+  .btn:active { transform: scale(.975); }
+}
+
+/* ---------- Layout ---------- */
+.wrap { max-width: 468px; margin: 0 auto; min-height: 100dvh; display: flex; flex-direction: column; }
+.appbar {
+  background: linear-gradient(168deg, var(--navy) 0%, var(--navy-2) 100%);
+  color: var(--on-navy); padding: 16px 16px 20px;
+}
+.appbar .top { display: flex; align-items: center; gap: 10px; }
+.logochip { background: #fff; border-radius: 9px; padding: 3px 7px; display: inline-flex; align-items: center; flex: none; }
+.logochip img { height: 26px; width: auto; display: block; }
+.appbar .wordmark {
+  font-family: "Plus Jakarta Sans", sans-serif; font-weight: 800; font-size: 16px;
+  color: #fff; letter-spacing: -.02em;
+}
+.appbar .rolechip {
+  margin-left: auto; background: rgba(255,255,255,.13); border: 1px solid rgba(255,255,255,.2);
+  border-radius: 999px; padding: 4px 11px; font-size: 11.5px; font-weight: 700;
+  font-family: "Plus Jakarta Sans", sans-serif; color: #fff; white-space: nowrap;
+}
+.appbar h1 { font-size: 23px; font-weight: 800; color: #fff; margin-top: 14px; }
+.appbar .sub { font-size: 13px; opacity: .92; margin-top: 3px; }
+main { flex: 1; padding: 16px 14px 40px; }
+
+/* ---------- Componentes ---------- */
+.card {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-md); padding: 18px; box-shadow: var(--shadow-1);
+}
+.card.raise { box-shadow: var(--shadow-2); }
+.stack { display: flex; flex-direction: column; gap: 11px; }
+.row { display: flex; gap: 9px; align-items: center; flex-wrap: wrap; }
+.grow { flex: 1; min-width: 0; }
+.eyebrow {
+  font-family: "Plus Jakarta Sans", sans-serif; font-size: 11px; font-weight: 800;
+  letter-spacing: .09em; text-transform: uppercase; color: var(--muted);
+  margin: 22px 0 9px; display: flex; align-items: center; gap: 9px;
+}
+.eyebrow::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+
+label { display: block; font-size: 13px; font-weight: 800; margin: 14px 0 6px;
+        font-family: "Plus Jakarta Sans", sans-serif; }
 input {
-  width: 100%; padding: 11px 12px; border: 1px solid var(--line-strong);
-  border-radius: 10px; background: var(--raised); color: var(--ink); font: inherit;
+  width: 100%; padding: 11px 12px; border: 1.5px solid var(--line-2);
+  border-radius: var(--r-sm); background: var(--raised); color: var(--ink); font: inherit; font-size: 15px;
 }
 .btn {
-  width: 100%; margin-top: 16px; padding: 12px; border: none; border-radius: 10px;
-  background: var(--primary); color: var(--primary-ink); font: inherit; font-weight: 700; cursor: pointer;
+  width: 100%; margin-top: 18px; padding: 12px; border: none; border-radius: var(--r-sm);
+  background: var(--brand-solid); color: var(--on-solid); font-weight: 700; font-size: 14.5px;
+  font-family: "Plus Jakarta Sans", sans-serif; cursor: pointer; box-shadow: var(--shadow-1);
 }
-.err { background: var(--crit-bg); color: var(--crit); border-radius: 10px; padding: 10px 12px; margin-top: 12px; font-size: 14px; }
-.muted { color: var(--muted); font-size: 13.5px; }
-.houseitem { display: flex; gap: 10px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--line); }
-.code { font-weight: 700; color: var(--primary); width: 56px; }
-.pill { background: var(--primary-soft); color: var(--primary-soft-ink); border-radius: 99px; padding: 2px 10px; font-size: 12px; font-weight: 700; }
+.btn.sec { background: var(--brand-soft); color: var(--brand-solid); box-shadow: none; }
+.btn.ghost { background: transparent; border: 1.5px solid var(--line-2); color: var(--ink-2); box-shadow: none; }
+.btn:disabled { opacity: .42; cursor: not-allowed; box-shadow: none; }
+
+/* Pílulas de estado — cor viva por matiz */
+.pill {
+  display: inline-flex; align-items: center; gap: 5px; border-radius: 999px; padding: 3px 10px;
+  font-size: 11.5px; font-weight: 800; font-family: "Plus Jakarta Sans", sans-serif; white-space: nowrap;
+  background: color-mix(in srgb, var(--c) 15%, var(--surface));
+  color: var(--ct); border: 1px solid color-mix(in srgb, var(--c) 34%, transparent);
+}
+.pill.solid { background: var(--ct); color: var(--on-solid); border-color: var(--ct); }
+.c-ok    { --c: var(--emerald); --ct: var(--emerald-solid); }
+.c-warn  { --c: var(--amber);   --ct: var(--amber-solid); }
+.c-crit  { --c: var(--red);     --ct: var(--red-solid); }
+.c-info  { --c: var(--blue);    --ct: var(--blue-solid); }
+.c-med   { --c: var(--violet);  --ct: var(--violet-solid); }
+.c-move  { --c: var(--cyan);    --ct: var(--cyan-solid); }
+.c-other { --c: var(--pink);    --ct: var(--pink-solid); }
+.c-mute  { --c: var(--slate);   --ct: var(--slate-solid); }
+.c-brand { --c: var(--brand-2); --ct: var(--brand-solid); }
+
+.notice {
+  border-radius: var(--r-md); padding: 11px 13px; font-size: 13.5px; line-height: 1.4;
+  background: color-mix(in srgb, var(--c) 12%, var(--surface));
+  border-left: 4px solid var(--c); color: var(--ink-2);
+}
+.notice b { color: var(--ct); }
+.err { --c: var(--red); --ct: var(--red-solid);
+  background: color-mix(in srgb, var(--c) 13%, var(--surface)); color: var(--ct);
+  border-radius: var(--r-sm); padding: 10px 12px; margin-top: 12px; font-size: 14px; font-weight: 700;
+}
+.muted { color: var(--muted); font-size: 13px; }
+
+/* Lista de casas */
+.houseitem { display: flex; gap: 11px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.houseitem:last-of-type { border-bottom: none; }
+.code {
+  font-family: "Plus Jakarta Sans", sans-serif; font-weight: 800; font-size: 15px;
+  color: var(--brand-solid); width: 56px; flex: none; letter-spacing: -.02em;
+}
