@@ -95,9 +95,39 @@ export class TransfersController {
     return this.transfers.request(user, body);
   }
 
+  /** Recebidas: o que outras casas pediram a esta. */
+  @Get('inbox')
+  inbox(@CurrentUser() user: AuthenticatedUser, @Query('houseId', ParseUUIDPipe) houseId: string) {
+    return this.transfers.inbox(user, houseId);
+  }
+
+  /** Da casa: o que esta casa pediu, com a resposta que veio. */
+  @Get('outbox')
+  outbox(@CurrentUser() user: AuthenticatedUser, @Query('houseId', ParseUUIDPipe) houseId: string) {
+    return this.transfers.outbox(user, houseId);
+  }
+
   @Get('pending')
   pending(@CurrentUser() user: AuthenticatedUser, @Query('houseId', ParseUUIDPipe) houseId: string) {
     return this.transfers.pendingFor(user, houseId);
+  }
+
+  /** Conversa entre as duas coordenações sobre a solicitação (§3.3: no sistema). */
+  @Get(':id/messages')
+  messages(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.transfers.messages(user, id);
+  }
+
+  @Post(':id/messages')
+  sendMessage(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
+              @Body() body: { casaId: string; texto: string }) {
+    return this.transfers.sendMessage(user, id, body);
+  }
+
+  @Post(':id/cancel')
+  cancel(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
+         @Body() body: { motivo: string }) {
+    return this.transfers.cancel(user, id, body?.motivo ?? '');
   }
 
   @Post(':id/accept')

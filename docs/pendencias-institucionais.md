@@ -16,6 +16,17 @@ nunca regra invisível. Nenhuma foi "inventada".
 | 9 | Campos finais de cadastro/PIA/passagens/protocolos | Aguardando documentos do Marcelo (§33.3); formulários da Fase 2/5 serão versionáveis. |
 | 10 | Critérios de aceite do piloto e autoridade | A registrar na Fase 7; homologação controlada prevista no plano. |
 
+## Decisões institucionais tomadas durante a construção
+
+Registradas aqui para que ninguém precise adivinhar depois de onde vieram —
+e para que a equipe possa reverter uma delas se discordar.
+
+| Data | Decisão | Quem decidiu | O que mudou no código |
+|---|---|---|---|
+| 27/08/2026 | Na caixa de transferências recebidas, o **nome completo** do acolhido e a **unidade de origem** aparecem antes do aceite | Leonardo (Fundação) | `app_transfer_inbox` passou a devolver nome, idade, origem, motivo e quem pediu. O **perfil** — saúde, documentos, medicamentos, benefícios, narrativas e histórico — continua fechado até o aceite. Justificativa: aceitar ou recusar uma criança sem saber quem ela é não é decisão, é sorteio; e recusar exige motivo escrito |
+| 27/08/2026 | As duas coordenações **conversam dentro do sistema** sobre uma solicitação de transferência | Leonardo (Fundação) | Tabela `transfer_message`, restrita às coordenações das duas casas envolvidas, com mensagens imutáveis. Substitui a ligação e o WhatsApp (§3.3) sem que ninguém entre na casa do outro |
+| 27/08/2026 | Recusa de transferência **exige motivo** e fica registrada **nas duas casas** | Leonardo (Fundação) | `app_decline_transfer` (mínimo 15 caracteres) grava um evento de auditoria para cada casa; a origem lê a justificativa na própria caixa "Da casa" |
+
 ## Documentos a solicitar ao Marcelo (§33.3)
 
 1. agenda/rotina real (diária/semanal); 2. folha real de administração de medicamentos;

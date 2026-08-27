@@ -455,6 +455,33 @@ let TRIAGEM = [
   {id:"t2", kidId:9, quando:"Ontem 16:20", quem:"Ed. P. Rocha", tipo:"Urgência odontológica", resumo:"Dor de dente relatada após almoço. Atendido na UPA odontológica; prescrita amoxicilina 500 mg 8/8h por 7 dias.", assinada:false},
 ];
 
+/* ---------- Transferências entre casas (§15.6) ----------
+   Duas caixas: o que chegou de outras unidades e o que esta casa pediu.
+   A decisão é sempre do DESTINO; recusar exige motivo, e o motivo aparece
+   nas duas casas.                                                        */
+let TRANSF_RECEBIDAS = [
+  {id:"tr1", nome:"Kauã Ribeiro dos Santos (fictício)", social:"Kauã", idade:11,
+   origem:"AI4 · Abrigo Institucional 4", motivo:"Aproximação da rede de apoio familiar materna, residente no bairro desta unidade.",
+   por:"Cátia Coordenadora (fictícia)", quando:"ontem, 16:20", status:"solicitada",
+   msgs:[{casa:"AI4", autor:"Cátia Coordenadora", txt:"Temos relatório escolar e da equipe técnica prontos para enviar assim que houver aceite."}]},
+];
+let TRANSF_CASA = [
+  {id:"tc1", nome:"Helena Prado Martins (fictícia)", social:"Helena", idade:9,
+   destino:"ARM2 · Casa-Lar ARM2", motivo:"Perfil de casa-lar indicado pela equipe técnica após audiência concentrada.",
+   por:"você", quando:"há 2 dias", status:"solicitada", msgs:[]},
+  {id:"tc2", nome:"Enzo Barbosa Lima (fictício)", social:"Enzo", idade:14,
+   destino:"AI1 · Abrigo Institucional 1", motivo:"Solicitação da equipe técnica para reaproximação de irmãos.",
+   por:"Tatiane Técnica (fictícia)", quando:"12/08", status:"devolvida",
+   justificativa:"Sem vaga no perfil etário até o fim do mês; sugerimos reavaliar em 30 dias.",
+   decidiuPor:"Coordenação AI1", decidiuEm:"13/08", msgs:[]},
+];
+const TRANSF_STATUS = {
+  solicitada:["Aguardando decisão do destino","c-warn"],
+  aceita:["Aceita — acolhido transferido","c-ok"],
+  devolvida:["Recusada com justificativa","c-crit"],
+  cancelada:["Cancelada pela origem","c-mute"],
+};
+
 let S = {
   role:"educador", tab:"tl", tlMode:"casa", offline:false, instDevice:false,
   filaOffline:0, kidView:null, chamadaAberta:false, chamada:{}, chamadaConfirmada:false,
@@ -462,6 +489,7 @@ let S = {
   sheet:null, toast:null, ataFechada:false, ataPendencia:false,
   gestorCasa:null, reauth:false, noturno:{visitas:{}, ataGeral:false},
   subPendente:true, urgente:[],
+  transfSub:"recebidas", transfChat:null,
 };
 const ROLES = {
   educador:"Educador social", lider:"Líder Diurno", noturno:"Líder Noturno Geral",
@@ -1012,10 +1040,84 @@ function vTecnica(){
 }
 
 /* ================= COORDENAÇÃO ================= */
-function vCoordenador(){
-  const tabs = tabbar([{id:"casa", ic:"🏠", label:"Casa"},{id:"aprova", ic:"✅", label:"Aprovações"},{id:"banco", ic:"🔐", label:"Benefícios"}]);
+function vTransferencias(){
+  const sub = S.transfSub;
+  const seletor = `<div class="opts" style="margin-bottom:14px">
+    <button class="opt c-info" aria-pressed="${sub==="recebidas"}" onclick="A.transfSub('recebidas')">
+      Recebidas de outras casas${TRANSF_RECEBIDAS.filter(t=>t.status==="solicitada").length?` · ${TRANSF_RECEBIDAS.filter(t=>t.status==="solicitada").length}`:""}</button>
+    <button class="opt c-move" aria-pressed="${sub==="casa"}" onclick="A.transfSub('casa')">Transferências da casa</button>
+  </div>`;
+
+  const conversa = t => {
+    if(S.transfChat !== t.id) return "";
+    const linhas = t.msgs.length
+      ? t.msgs.map(m=>`<div class="statement"><div class="au">${m.autor} · ${m.casa}</div>${m.txt}</div>`).join("")
+      : `<p class="mutetxt" style="margin:0">Ainda não há mensagens sobre esta solicitação.</p>`;
+    return `<hr class="divider">
+      <div class="eyebrow" style="margin-top:0">Conversa entre as coordenações</div>
+      <div class="stack">${linhas}</div>
+      <label class="f">Sua mensagem</label>
+      <textarea id="msg-${t.id}" placeholder="Escreva para a outra coordenação…"></textarea>
+      <button class="btn sec block" onclick="A.transfMsg('${t.id}')">Enviar mensagem</button>
+      <p class="mutetxt" style="margin:6px 0 0">A conversa fica dentro do sistema, ligada a esta solicitação, e não pode ser apagada. Nenhuma coordenação entra na casa da outra para falar.</p>`;
+  };
+
   let inner;
-  if(S.tab==="banco"){
+  if(sub === "recebidas"){
+    const lista = TRANSF_RECEBIDAS.length ? TRANSF_RECEBIDAS.map(t=>`
+      <div class="card raise stack" style="border-left:4px solid var(--blue)">
+        <div class="row"><b class="ff grow" style="font-size:16px">${t.nome}</b>${pill(...TRANSF_STATUS[t.status])}</div>
+        <div class="mutetxt">Chamado(a) de <b>${t.social}</b> · ${t.idade} anos</div>
+        <div class="row"><span class="pill c-move">Vem de ${t.origem}</span></div>
+        <div><b class="ff">Motivo:</b> ${t.motivo}</div>
+        <div class="mutetxt">Solicitado por ${t.por} · ${t.quando}</div>
+        ${t.status==="solicitada" ? `<div class="row" style="gap:8px">
+          <button class="btn grow" onclick="A.transfAceitar('${t.id}')">✓ Aceitar</button>
+          <button class="btn sec grow" onclick="A.transfRecusar('${t.id}')">Recusar com motivo</button>
+        </div>
+        <button class="btn ghost sm block" onclick="A.transfChat('${t.id}')">
+          ${S.transfChat===t.id?"Fechar conversa":`💬 Conversar com a coordenação de origem${t.msgs.length?` (${t.msgs.length})`:""}`}</button>` : ""}
+        ${conversa(t)}
+      </div>`).join("")
+      : `<div class="card"><p class="mutetxt" style="margin:0">Nenhuma solicitação recebida no momento.</p></div>`;
+
+    inner = `${seletor}
+      <div class="notice c-info" style="margin-bottom:14px">Você vê <b>quem é</b>, <b>de onde vem</b> e <b>por quê</b> — o necessário para decidir. O perfil completo (saúde, documentos, benefícios e histórico) só abre <b>depois do aceite</b>.</div>
+      <div class="stack">${lista}</div>`;
+  } else {
+    const lista = TRANSF_CASA.map(t=>`
+      <div class="card stack" style="border-left:4px solid var(--${t.status==="devolvida"?"red":t.status==="aceita"?"emerald":"amber"})">
+        <div class="row"><b class="ff grow" style="font-size:16px">${t.nome}</b>${pill(...TRANSF_STATUS[t.status])}</div>
+        <div class="mutetxt">${t.idade} anos · destino <b>${t.destino}</b></div>
+        <div><b class="ff">Motivo:</b> ${t.motivo}</div>
+        <div class="mutetxt">Solicitado por ${t.por} · ${t.quando}</div>
+        ${t.justificativa ? `<div class="notice c-crit" style="margin:0"><b>Recusada por ${t.decidiuPor} em ${t.decidiuEm}:</b><br>${t.justificativa}</div>` : ""}
+        ${t.status==="solicitada" ? `<div class="row" style="gap:8px">
+          <button class="btn ghost sm grow" onclick="A.transfChat('${t.id}')">
+            ${S.transfChat===t.id?"Fechar conversa":"💬 Conversar com o destino"}</button>
+          <button class="btn ghost sm grow" onclick="toast('No sistema real: cancelamento com motivo, enquanto o destino não decidiu.')">Cancelar pedido</button>
+        </div>` : ""}
+        ${conversa(t)}
+      </div>`).join("");
+
+    inner = `${seletor}
+      <div class="stack">${lista}</div>
+      <div class="card stack" style="margin-top:14px">
+        <b class="ff">Nova transferência</b>
+        <p class="mutetxt" style="margin:0">Escolha o acolhido no painel da casa e a unidade de destino. O motivo é obrigatório: é ele que a outra coordenação vai ler para decidir.</p>
+        <button class="btn sec block" onclick="toast('No sistema real: escolher acolhido, destino entre as 8 unidades e escrever o motivo.')">Solicitar transferência</button>
+      </div>
+      <p class="mutetxt" style="margin-top:12px">A criança só muda de casa <b>no aceite</b>. Até lá, a responsabilidade continua sendo desta unidade.</p>`;
+  }
+  return inner;
+}
+
+function vCoordenador(){
+  const tabs = tabbar([{id:"casa", ic:"🏠", label:"Casa"},{id:"transf", ic:"🔁", label:"Transferências"},{id:"aprova", ic:"✅", label:"Aprovações"},{id:"banco", ic:"🔐", label:"Benefícios"}]);
+  let inner;
+  if(S.tab==="transf"){
+    inner = vTransferencias();
+  } else if(S.tab==="banco"){
     inner = !S.reauth
       ? `<div class="card raise stack">
           <div class="row"><span style="font-size:22px" aria-hidden="true">🔐</span><h3 class="grow" style="font-size:17px">Benefícios e dados bancários</h3></div>
@@ -1069,7 +1171,7 @@ function vCoordenador(){
         <div class="card row"><div class="grow"><b class="ff">ATAs da casa</b><div class="mutetxt">Diurna de ontem fechada com pendência (adendo aberto)</div></div>${pill("Com pendência")}</div>
       </div>`;
   }
-  const t = {casa:"Controle da casa", aprova:"Aprovações", banco:"Benefícios e dados bancários"}[S.tab];
+  const t = {casa:"Controle da casa", transf:"Transferências", aprova:"Aprovações", banco:"Benefícios e dados bancários"}[S.tab];
   shell(inner, tabs, appbar(t, ["Casa 03","Sem limite de horário",HOJE]));
 }
 
@@ -1133,9 +1235,12 @@ function valNotesContent(){
     enfermagem:["A ordem casa → acolhidos funciona para a rotina da Enfermagem?","O fluxo de triagem das Evoluções está correto?","Que filtros faltam?"],
     tecnica:["As inconsistências sinalizadas são as que ocorrem de verdade?","A visão lado a lado das narrativas atende à análise técnica?","As categorias de ocorrência cobrem o que acontece na casa? Falta alguma?","Quais categorias, na prática de vocês, não podem ser encerradas sem revisão técnica?","O registro da comunicação externa tem os campos que o Conselho e o Judiciário cobram?"],
     coordenador:["As aprovações listadas são as críticas do dia a dia?","A reautenticação para dados bancários está no nível certo de fricção?"],
+    coordenador_transf:["A caixa de recebidas mostra o suficiente para decidir sobre a criança?","Falta alguma informação antes do aceite — e alguma está sobrando?","A conversa entre coordenações substitui as ligações e o WhatsApp de hoje?","O motivo obrigatório na recusa é operável no dia a dia?"],
     gestor:["Os cards por unidade mostram o que o gestor precisa sem criar ranking?","O fluxo de acesso excepcional está suficientemente protegido?"],
   };
-  const key = S.role==="educador" ? `educador_${S.kidView?"kids":S.tab}` : S.role;
+  const key = S.role==="educador" ? `educador_${S.kidView?"kids":S.tab}`
+            : (S.role==="coordenador" && S.tab==="transf") ? "coordenador_transf"
+            : S.role;
   const list = per[key] || per[S.role] || ["Esta tela representa bem o trabalho real?"];
   return `<h3>O que validar nesta tela</h3>
     <p class="mutetxt">Leve estas perguntas à equipe da Casa 03.</p>
@@ -1182,6 +1287,57 @@ const A = {
     render();
   },
   excecaoOk(id,estado){ EVENTOS.find(x=>x.id===id).estado=estado; S.sheet=null; fila(); toast("Exceção registrada com justificativa"); },
+
+  /* ---------- Transferências (§15.6) ---------- */
+  transfSub(x){ S.transfSub=x; S.transfChat=null; render(); },
+  transfChat(id){ S.transfChat = S.transfChat===id ? null : id; render(); },
+  transfMsg(id){
+    const el = document.getElementById(`msg-${id}`);
+    const txt = (el?.value || "").trim();
+    if(!txt){ toast("Escreva a mensagem antes de enviar"); return; }
+    const t = TRANSF_RECEBIDAS.concat(TRANSF_CASA).find(x=>x.id===id);
+    t.msgs.push({casa:"AI3", autor:"você (Coordenação Casa 03)", txt});
+    fila(); render();
+    toast("Mensagem registrada — a outra coordenação foi avisada dentro do sistema");
+  },
+  transfAceitar(id){
+    const t = TRANSF_RECEBIDAS.find(x=>x.id===id);
+    S.sheet = `<h3>Aceitar ${t.social}?</h3>
+      <p class="mutetxt">${t.nome} · ${t.idade} anos · vem de ${t.origem}</p>
+      <div class="notice c-info" style="margin:12px 0">Ao aceitar, e só então:
+        <ul class="checklist" style="margin-top:8px">
+          <li>a casa atual passa a ser a sua e o perfil abre por completo;</li>
+          <li>histórico, documentos, medicamentos, alergias e pendências vêm junto;</li>
+          <li>as ATAs fechadas da origem continuam imutáveis;</li>
+          <li>os dados bancários deixam a coordenação de origem e passam à sua.</li>
+        </ul></div>
+      <label class="f">Observação para o registro <small>— opcional</small></label>
+      <textarea placeholder="Ex.: vaga confirmada no quarto 2, chegada combinada para quinta…"></textarea>
+      <button class="btn block" style="margin-top:14px" onclick="A.transfAceitarOk('${id}')">Confirmar aceite</button>`;
+    render();
+  },
+  transfAceitarOk(id){
+    const t = TRANSF_RECEBIDAS.find(x=>x.id===id);
+    t.status = "aceita"; S.sheet=null; S.transfChat=null; fila();
+    toast(`${t.social} agora é da Casa 03 — perfil completo liberado e origem notificada`);
+  },
+  transfRecusar(id){
+    const t = TRANSF_RECEBIDAS.find(x=>x.id===id);
+    S.sheet = `<h3>Recusar a transferência de ${t.social}</h3>
+      <div class="notice c-crit" style="margin:12px 0">O motivo é <b>obrigatório</b> e fica registrado <b>nas duas casas</b>. É por ele que a coordenação de origem decide o próximo passo da criança.</div>
+      <label class="f" style="margin-top:0">Motivo da recusa</label>
+      <textarea id="rec-${id}" placeholder="Ex.: sem vaga no perfil etário até o fim do mês; sugerimos reavaliar em 30 dias…"></textarea>
+      <button class="btn block" style="margin-top:14px" onclick="A.transfRecusarOk('${id}')">Registrar recusa</button>`;
+    render();
+  },
+  transfRecusarOk(id){
+    const el = document.getElementById(`rec-${id}`);
+    const txt = (el?.value || "").trim();
+    if(txt.length < 15){ toast("Descreva o motivo — ele será lido pela outra coordenação"); return; }
+    const t = TRANSF_RECEBIDAS.find(x=>x.id===id);
+    t.status = "devolvida"; t.justificativa = txt; S.sheet=null; fila();
+    toast("Recusa registrada com justificativa nas duas casas — nada mudou de lugar");
+  },
 
   /* ---------- Ocorrências (§13) ---------- */
   novaOcorrencia(){

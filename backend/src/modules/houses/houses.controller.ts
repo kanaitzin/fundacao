@@ -13,6 +13,12 @@ export class HousesController {
     return this.houses.list(user);
   }
 
+  /** Catálogo de unidades — para escolher destino de transferência (§15.6). */
+  @Get('directory')
+  directory(@CurrentUser() user: AuthenticatedUser) {
+    return this.houses.directory(user);
+  }
+
   @Get(':id')
   open(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.houses.open(user, id);

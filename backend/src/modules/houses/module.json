@@ -1,8 +1,13 @@
 {
   "name": "houses",
   "descricao": "Unidades de acolhimento e escopo de casas por papel.",
-  "depends": ["identity"],
-  "publica": ["HousesModule", "HousesService"],
+  "depends": [
+    "identity"
+  ],
+  "publica": [
+    "HousesModule",
+    "HousesService"
+  ],
   "tabelas": [],
-  "observacao": "Lê tabelas criadas pela fundação; não possui migração própria."
+  "observacao": "Lê tabelas criadas pela fundação; não possui migração própria. Publica o catálogo de unidades (código, nome, tipo) usado para escolher destino de transferência — catálogo institucional, não janela para dentro da outra casa."
 }

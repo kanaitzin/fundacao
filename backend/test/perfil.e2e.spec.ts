@@ -23,6 +23,7 @@ describe('Fase 2 — Perfil, benefícios, transferência e acervo', () => {
   let app: INestApplication, http: any, admin: Client;
   const tokens: Record<string, string> = {};
   let AI3: string, AI4: string, alice: string, vitoria: string, lucas: string, otavio: string;
+  let devolvida: string;
 
   const login = async (email: string) => {
     const res = await request(http).post('/api/v1/auth/login').send({ email, password: SENHA });
@@ -245,10 +246,19 @@ describe('Fase 2 — Perfil, benefícios, transferência e acervo', () => {
     expect(naOrigem.body.casaAtual.codigo).toBe('AI3');
     await request(http).get(`/api/v1/people/${alice}`).set(auth(tokens.coord4)).expect(404);
 
-    // 3. o destino vê a solicitação sem o perfil: origem, motivo e idade apenas
-    const pend = await request(http).get(`/api/v1/transfers/pending?houseId=${AI4}`).set(auth(tokens.coord4));
-    expect(pend.body).toHaveLength(1);
-    expect(Object.keys(pend.body[0]).sort()).toEqual(['id', 'idade', 'motivo', 'origem', 'solicitadaEm']);
+    // 3. o destino vê QUEM é, DE ONDE vem e POR QUÊ — e nada além disso.
+    //    O perfil (saúde, documentos, benefícios, histórico) continua fechado
+    //    até o aceite: o 404 do passo 2 é a prova.
+    const caixa = await request(http).get(`/api/v1/transfers/inbox?houseId=${AI4}`).set(auth(tokens.coord4));
+    expect(caixa.body.solicitacoes).toHaveLength(1);
+    const s = caixa.body.solicitacoes[0];
+    expect(s.nomeCompleto).toBeTruthy();
+    expect(s.origem.codigo).toBe('AI3');
+    expect(s.motivo).toMatch(/rede de apoio/i);
+    expect(s.solicitadaPor).toBeTruthy();
+    expect(Object.keys(s).sort()).toEqual(
+      ['id', 'idade', 'mensagens', 'motivo', 'nomeCompleto', 'nomeSocial',
+       'origem', 'solicitadaEm', 'solicitadaPor']);
 
     // 4. coordenação de origem AINDA acessa benefícios (responsabilidade é dela)
     const tOrigem = await login('coord.ai3@paodospobres.dev');
@@ -291,9 +301,117 @@ describe('Fase 2 — Perfil, benefícios, transferência e acervo', () => {
     const um = await request(http).post('/api/v1/transfers').set(auth(tokens.coord4))
       .send({ personId: alice, toHouseId: AI3, reason: 'retorno à casa de origem' });
     expect(um.status).toBe(201);
+    devolvida = um.body.id;
     const dois = await request(http).post('/api/v1/transfers').set(auth(tokens.coord4))
-      .send({ personId: alice, toHouseId: AI3, reason: 'duplicada' });
+      .send({ personId: alice, toHouseId: AI3, reason: 'pedido duplicado, para verificar o bloqueio' });
     expect(dois.status).toBe(409);
+  });
+
+  // ---------- Duas caixas, conversa e recusa justificada ----------
+
+  it('a coordenação nomeia as unidades para escolher destino, e continua sem enxergar dentro delas', async () => {
+    const cat = await request(http).get('/api/v1/houses/directory').set(auth(tokens.coord3));
+    expect(cat.body).toHaveLength(8);
+    expect(cat.body.filter((h: any) => h.propria).map((h: any) => h.codigo)).toEqual(['AI3']);
+    // Só o catálogo: código, nome e tipo. Nada de dentro da casa.
+    expect(Object.keys(cat.body[0]).sort()).toEqual(['codigo', 'id', 'nome', 'propria', 'tipo']);
+
+    // O catálogo não amplia nada: a AI4 continua invisível por dentro.
+    const outra = await request(http).get(`/api/v1/people?houseId=${AI4}`).set(auth(tokens.coord3));
+    expect(outra.body).toEqual([]);
+    await request(http).get(`/api/v1/houses/${AI4}`).set(auth(tokens.coord3)).expect(404);
+
+    // Educador não decide transferência: não recebe o catálogo.
+    const doEducador = await request(http).get('/api/v1/houses/directory').set(auth(tokens.educador));
+    expect(doEducador.body).toEqual([]);
+  });
+
+  it('as duas coordenações conversam sobre a solicitação sem entrar na casa uma da outra', async () => {
+    // O destino (AI3) escreve; a origem (AI4) responde.
+    const daAI3 = await request(http).post(`/api/v1/transfers/${devolvida}/messages`)
+      .set(auth(tokens.coord3)).send({ casaId: AI3, texto: 'Temos vaga a partir da semana que vem. Há acompanhamento escolar em curso?' });
+    expect(daAI3.status).toBe(201);
+
+    const daAI4 = await request(http).post(`/api/v1/transfers/${devolvida}/messages`)
+      .set(auth(tokens.coord4)).send({ casaId: AI4, texto: 'Sim, matrícula ativa na EMEF do bairro; a equipe técnica envia o relatório.' });
+    expect(daAI4.status).toBe(201);
+
+    const conversa = await request(http).get(`/api/v1/transfers/${devolvida}/messages`)
+      .set(auth(tokens.coord3));
+    expect(conversa.body).toHaveLength(2);
+    expect(conversa.body.map((m: any) => m.casa)).toEqual(['AI3', 'AI4']);
+    expect(conversa.body[0].minha).toBe(true);
+    expect(conversa.body[1].minha).toBe(false);
+
+    // O educador não participa: transferência é ato de coordenação.
+    const educadorTenta = await request(http).get(`/api/v1/transfers/${devolvida}/messages`)
+      .set(auth(tokens.educador));
+    expect(educadorTenta.body).toHaveLength(0);
+
+    // Ninguém escreve em nome de uma casa que não é sua.
+    const forjada = await request(http).post(`/api/v1/transfers/${devolvida}/messages`)
+      .set(auth(tokens.coord3)).send({ casaId: AI4, texto: 'Falando pela outra casa.' });
+    expect(forjada.status).toBe(403);
+  });
+
+  it('recusar exige motivo — e o motivo aparece nas duas casas', async () => {
+    const semMotivo = await request(http).post(`/api/v1/transfers/${devolvida}/decline`)
+      .set(auth(tokens.coord3)).send({ motivo: 'não dá' });
+    expect(semMotivo.status).toBe(400);
+    expect(semMotivo.body.message).toMatch(/mínimo 15/);
+
+    // Quem recusa é o DESTINO. A origem não decide pelo outro.
+    const origemTenta = await request(http).post(`/api/v1/transfers/${devolvida}/decline`)
+      .set(auth(tokens.coord4))
+      .send({ motivo: 'Recusando a própria solicitação para testar a fronteira.' });
+    expect(origemTenta.status).toBe(403);
+
+    const recusa = await request(http).post(`/api/v1/transfers/${devolvida}/decline`)
+      .set(auth(tokens.coord3))
+      .send({ motivo: 'Sem vaga no perfil etário até o fim do mês; sugerimos reavaliar em 30 dias.' });
+    expect(recusa.status).toBe(201);
+    expect(recusa.body.status).toBe('devolvida');
+
+    // A origem lê a justificativa na PRÓPRIA caixa, sem entrar na casa do destino.
+    const daCasa = await request(http).get(`/api/v1/transfers/outbox?houseId=${AI4}`).set(auth(tokens.coord4));
+    const item = daCasa.body.solicitacoes.find((x: any) => x.id === devolvida);
+    expect(item.status).toBe('devolvida');
+    expect(item.situacao).toMatch(/Recusada com justificativa/);
+    expect(item.justificativa).toMatch(/perfil etário/);
+    expect(item.destino.codigo).toBe('AI3');
+    expect(item.nomeCompleto).toBeTruthy();
+
+    // E o registro existe nas duas casas na auditoria.
+    const { rows } = await admin.query(
+      `SELECT h.code, a.action FROM audit_event a JOIN house h ON h.id = a.house_id
+        WHERE a.entity_id = $1 AND a.action LIKE 'transfer.decline%' ORDER BY h.code`, [devolvida]);
+    expect(rows.map((r: any) => r.code).sort()).toEqual(['AI3', 'AI4']);
+
+    // Nada mudou de lugar: o acolhido continua na origem.
+    const { rows: casa } = await admin.query(
+      `SELECT h.code FROM house_stay s JOIN house h ON h.id = s.house_id
+        WHERE s.person_id = $1 AND s.status = 'ativa'`, [alice]);
+    expect(casa[0].code).toBe('AI4');
+  });
+
+  it('a origem cancela a própria solicitação; decisão já tomada não se apaga', async () => {
+    const nova = await request(http).post('/api/v1/transfers').set(auth(tokens.coord4))
+      .send({ personId: alice, toHouseId: AI3, reason: 'nova tentativa após reavaliação da equipe' });
+    expect(nova.status).toBe(201);
+
+    // O destino não cancela o pedido do outro.
+    const destinoTenta = await request(http).post(`/api/v1/transfers/${nova.body.id}/cancel`)
+      .set(auth(tokens.coord3)).send({ motivo: 'cancelando o pedido alheio' });
+    expect(destinoTenta.status).toBe(403);
+
+    const cancelada = await request(http).post(`/api/v1/transfers/${nova.body.id}/cancel`)
+      .set(auth(tokens.coord4)).send({ motivo: 'Família mudou de endereço; destino deixou de fazer sentido.' });
+    expect(cancelada.body.status).toBe('cancelada');
+
+    // A recusa anterior continua lá, com a justificativa intacta.
+    const tentaReescrever = await request(http).post(`/api/v1/transfers/${devolvida}/cancel`)
+      .set(auth(tokens.coord4)).send({ motivo: 'tentando apagar a recusa recebida' });
+    expect(tentaReescrever.status).toBe(400);
   });
 
   // ---------- Acervo ----------

@@ -42,6 +42,10 @@ limitados à **finalidade** do cargo na camada de aplicação.
 | Ver fala espontânea / sinais observados | autor | — | ✅ | ✅ | se saúde | — | — |
 | Abrir anexo restrito | autor | — | ✅ | ✅ | doc. médico | — | — |
 | Registrar comunicação externa | — | — | ✅ | ✅ | — | — | — |
+| Ver caixas de transferência (recebidas / da casa) | — | — | ✅ | ✅ | — | — | ✅ |
+| Conversar com a outra coordenação sobre uma transferência | — | — | ✅ | ✅ | — | — | ✅ |
+| Aceitar ou recusar transferência | — | — | ✅ destino | ✅ destino | — | — | ✅ |
+| Catálogo das unidades (para escolher destino) | — | — | ✅ | ✅ | — | — | ✅ |
 | Aprovar comunicação externa | — | — | ✅ | ✅ | — | — | ✅ |
 | Auditoria (leitura) | — | — | — | própria casa | — | — | ✅ |
 

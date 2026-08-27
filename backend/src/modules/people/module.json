@@ -1,8 +1,27 @@
 {
   "name": "people",
   "descricao": "Perfil do Acolhido: pessoa, episódio, permanência, saúde, documentos, benefícios e transferências.",
-  "depends": ["identity"],
-  "publica": ["PeopleModule", "PeopleService", "PersonSummary"],
-  "tabelas": ["person", "care_episode", "house_stay", "profile_detail", "health_condition", "food_restriction", "document", "document_version", "benefit_record", "memory_record", "transfer_request"],
-  "observacao": "Base do domínio: routine, activities, checks e timeline dependem da noção de acolhido ativo numa casa."
+  "depends": [
+    "identity"
+  ],
+  "publica": [
+    "PeopleModule",
+    "PeopleService",
+    "PersonSummary"
+  ],
+  "tabelas": [
+    "person",
+    "care_episode",
+    "house_stay",
+    "profile_detail",
+    "health_condition",
+    "food_restriction",
+    "document",
+    "document_version",
+    "benefit_record",
+    "memory_record",
+    "transfer_request",
+    "transfer_message"
+  ],
+  "observacao": "Base do domínio: routine, activities, checks e timeline dependem da noção de acolhido ativo numa casa. A transferência tem duas caixas (recebidas/da casa) e conversa entre as coordenações — a decisão é do destino, e a única escrita que cruza a fronteira entre casas é o comando app_accept_transfer."
 }

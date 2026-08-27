@@ -40,7 +40,7 @@ narrativa pessoal.
 ## Testes
 
 ```bash
-npm test        # 98 testes: fronteiras de arquitetura + aceite das fases 1–5
+npm test        # 102 testes: fronteiras de arquitetura + aceite das fases 1–5
 ```
 
 Cada execução **recria o banco do zero** (migrações + seeds fictícios), porque os
@@ -68,6 +68,9 @@ matriz requisito → implementação → teste.
   ATA Geral Noturna das oito casas, relatos independentes com narrativa pessoal
   protegida, ocorrências com revisão técnica obrigatória por categoria, anexos
   restritos e comunicação externa registrada — nunca enviada pelo sistema
+- ✅ Transferência (revisão): duas caixas na coordenação — recebidas e da casa —,
+  nome completo e unidade de origem antes do aceite, conversa entre as duas
+  coordenações dentro do sistema, recusa com motivo registrada nas duas casas
 - ⏳ Fase 6 — Relatórios, aprovações e Drive (próxima)
 - Fase 7 — ver `docs/backlog.md`
 

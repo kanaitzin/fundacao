@@ -250,6 +250,50 @@ Construída já dentro da arquitetura de partições (ver `docs/arquitetura-modu
   nenhuma passagem foi criada no lugar de quem faltou — o sistema **nomeia** a
   ausência em vez de preenchê-la.
 
+## Transferência: as duas caixas da coordenação (revisão pós-Fase 5) ✅
+
+Pedido de Leonardo, sobre a experiência real do coordenador: um lugar só para
+transferências, com o que chegou e o que foi pedido, nome completo da criança,
+unidade de origem, conversa entre as coordenações e recusa justificada.
+
+| Requisito | Onde ficou | Teste |
+|---|---|---|
+| Caixa **Recebidas** — o que outras casas pediram | `app_transfer_inbox` + `GET /transfers/inbox` | "cenários #6, #7 e #39" |
+| Nome completo e unidade de origem antes do aceite | mesma função (decisão de 27/08) | "cenários #6, #7 e #39" |
+| Perfil segue fechado até o aceite | política de `person` inalterada | 404 no passo 2 do mesmo teste |
+| Caixa **Da casa** — o que esta unidade pediu | `app_transfer_outbox` + `GET /transfers/outbox` | "recusar exige motivo" |
+| Conversa entre as duas coordenações, no sistema | `transfer_message` + policies | "as duas coordenações conversam" |
+| Educador não entra na conversa | policy exige técnica/coordenação/gestor | "as duas coordenações conversam" |
+| Ninguém fala em nome da casa alheia | `author_house_id` no `WITH CHECK` | "as duas coordenações conversam" |
+| Mensagem não se apaga | gatilho `transfer_msg_no_change` | policy sem UPDATE/DELETE |
+| Aceitar / recusar como dois atos distintos | `app_accept_transfer` / `app_decline_transfer` | "recusar exige motivo" |
+| Recusa exige motivo (mín. 15 caracteres) | comando recusa antes de gravar | "recusar exige motivo" |
+| Motivo registrado **nas duas casas** | dois eventos de auditoria + caixa "Da casa" | "recusar exige motivo" |
+| Só o destino decide | `somente_o_destino_decide` | "recusar exige motivo" |
+| Só a origem cancela, enquanto ninguém decidiu | `app_cancel_transfer` | "a origem cancela a própria solicitação" |
+| Decisão tomada não se apaga | cancelamento recusado após decisão | "a origem cancela a própria solicitação" |
+| Catálogo de unidades para escolher destino | `app_house_directory` + `GET /houses/directory` | "a coordenação nomeia as unidades" |
+| O catálogo não amplia acesso | AI4 segue 404 e lista vazia | "a coordenação nomeia as unidades" |
+| Avisos automáticos nos dois sentidos | `escalation.requested` nível `tecnica_coordenacao` | central de notificações |
+
+### Achados desta revisão
+
+- **Um `JOIN` que apagava a mensagem do outro.** A conversa lia a casa de cada
+  mensagem com `JOIN house` — e a política de casas, corretamente, só mostra a
+  própria unidade. Resultado: a mensagem da outra coordenação simplesmente não
+  aparecia, sem erro nenhum. É o mesmo defeito da Fase 4 com o nome do
+  educador, e a mesma correção: `app_house_label` devolve só o código, sem
+  abrir o cadastro da casa. **JOIN com tabela protegida por RLS não filtra —
+  ele some com a linha.** Vale como regra geral do projeto.
+- **Não dava para pedir transferência.** Escolher um destino exige nomear as
+  outras unidades, e nenhum coordenador conseguia listá-las. O isolamento
+  estava certo; faltava o catálogo institucional — código, nome e tipo, o mesmo
+  que está na porta de cada casa. É a diferença entre saber que a AI1 existe e
+  saber o que acontece dentro dela.
+- **A recusa é uma resposta, não um "não".** Recusar sem motivo deixaria a
+  coordenação de origem sem nada para fazer com a criança. O motivo virou
+  obrigatório no comando (não na tela) e é gravado dos dois lados.
+
 ## Fase 6 — Relatórios e Drive
 Acompanhamentos, aprovações, relatórios (§14), arquivamento no Drive (#26, #27),
 exportações auditadas (#32), painéis sem ranking.

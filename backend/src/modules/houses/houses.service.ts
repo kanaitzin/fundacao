@@ -27,6 +27,25 @@ export class HousesService {
     });
   }
 
+  /**
+   * Catálogo de unidades para ESCOLHER um destino de transferência (§15.6).
+   *
+   * Não é brecha no isolamento: devolve código, nome e tipo — o catálogo
+   * institucional, o mesmo que está na porta de cada casa. Nada do que
+   * acontece dentro da outra unidade aparece aqui. Existe porque, sem ele,
+   * pedir transferência seria impossível: não se aponta um destino que não se
+   * consegue nomear. Restrito a quem decide transferência.
+   */
+  async directory(user: AuthenticatedUser) {
+    const rows = await this.db.asUser(user.id, async (c) => {
+      const { rows } = await c.query(`SELECT * FROM app_house_directory()`);
+      return rows;
+    });
+    return rows.map((r) => ({
+      id: r.id, codigo: r.code, nome: r.name, tipo: r.kind, propria: r.propria,
+    }));
+  }
+
   async open(user: AuthenticatedUser, houseId: string) {
     const house = await this.db.asUser(user.id, async (c) => {
       const { rows: [h] } = await c.query(
