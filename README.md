@@ -26,6 +26,7 @@ docker compose up -d db redis   # PostgreSQL + Redis
 npm install
 npm run migrate                 # aplica db/migrations/*.sql
 npm run seed                    # instituição, 8 casas e usuários fictícios (senha: senha-dev-123)
+npm run seed:fase2              # 20 acolhidos fictícios na Casa 03, acervo e transferência
 npm run dev:backend             # API em http://localhost:3000/api/v1
 npm run dev:frontend            # PWA em http://localhost:5173 (proxy /api -> 3000)
 ```
@@ -36,8 +37,11 @@ Usuários fictícios: `educador.ai3@`, `lider.ai3@`, `tecnica.ai3@`, `coord.ai3@
 ## Testes
 
 ```bash
-npm test        # testes de aceite da fundação (isolamento, RLS, auth, auditoria)
+npm test        # 30 testes de aceite (fundação + perfil)
 ```
+
+Cada execução **recria o banco do zero** (migrações + seeds fictícios), porque os
+testes exercitam fluxos que mudam o estado — transferência, retorno e saída.
 
 Os testes cobrem cenários do Prompt Master §26.2 — ver `docs/backlog.md` para a
 matriz requisito → implementação → teste.
@@ -46,5 +50,8 @@ matriz requisito → implementação → teste.
 
 - ✅ Fase 0 — protótipo navegável validável (em `prototipo/`)
 - ✅ Fase 1 — fundação: autenticação, casas, papéis, isolamento (API **e** RLS), auditoria imutável, PWA
-- ⏳ Fase 2 — Perfil do Acolhido (próxima)
-- Fases 3–7 — ver `docs/backlog.md`
+- ✅ Fase 2 — Perfil do Acolhido: pessoa/episódio/permanência, CPF único com detecção de
+  duplicidade, documentos por categoria, saúde e restrições, benefícios restritos com
+  reautenticação, transferência, acervo e retorno
+- ⏳ Fase 3 — Rotina, agenda e linha do tempo (próxima)
+- Fases 4–7 — ver `docs/backlog.md`

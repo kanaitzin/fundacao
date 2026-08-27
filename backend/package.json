@@ -10,7 +10,8 @@
     "migrate": "tsx scripts/migrate.ts",
     "seed": "tsx scripts/seed.ts",
     "test": "jest --runInBand",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "seed:fase2": "tsx scripts/seed-fase2.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.4.15",
@@ -42,6 +43,10 @@
     "roots": [
       "<rootDir>/test"
     ],
-    "testTimeout": 30000
+    "testTimeout": 30000,
+    "globalSetup": "<rootDir>/test/setup/reset-db.ts",
+    "testPathIgnorePatterns": [
+      "<rootDir>/test/setup/"
+    ]
   }
 }

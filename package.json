@@ -13,6 +13,7 @@
     "migrate": "npm run migrate -w backend",
     "seed": "npm run seed -w backend",
     "test": "npm run test -w backend",
-    "build": "npm run build -w backend && npm run build -w frontend"
+    "build": "npm run build -w backend && npm run build -w frontend",
+    "seed:fase2": "npm run seed:fase2 -w backend"
   }
 }

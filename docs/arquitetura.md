@@ -35,7 +35,11 @@ flowchart LR
    sem vazar existência (§23, cenário #1).
 5. **Auditoria append-only**: trigger no banco impede UPDATE/DELETE mesmo pelo admin;
    logs guardam metadados, nunca conteúdo sensível (§20, §27).
-6. **Janela T-10/T+10** (§5.12): implementada como configuração
+6. **Transições de estado são comandos de sistema**: admissão, retorno e aceite de
+   transferência rodam em funções `SECURITY DEFINER` que verificam a autorização
+   internamente. Isso evita afrouxar o RLS para acomodar operações legítimas que
+   cruzam fronteiras de casa (§25) — ver `docs/backlog.md`, achados da Fase 2.
+7. **Janela T-10/T+10** (§5.12): implementada como configuração
    (`SHIFT_WINDOW_MODE=observe|enforce|off`). No piloto, `observe`: registra violações
    na auditoria sem bloquear — evita impedir fechamento legítimo de plantão.
 
@@ -47,8 +51,10 @@ flowchart LR
 | organizações/unidades | ✅ Fase 1 | `backend/src/houses` |
 | funcionários/cargos/escalas | ✅ base (tabelas + vínculos) | `db/migrations/001` |
 | auditoria/segurança | ✅ base | `backend/src/audit` |
-| acolhidos/episódios/permanências | Fase 2 | — |
-| documentos/anexos | Fase 2 | — |
+| acolhidos/episódios/permanências | ✅ Fase 2 | `backend/src/people` |
+| documentos/anexos | ✅ Fase 2 (metadados; objetos na Fase 3) | `db/migrations/002` |
+| benefícios e dados bancários restritos | ✅ Fase 2 | `backend/src/people/benefits.service.ts` |
+| transferências/acervo | ✅ Fase 2 | `backend/src/people/transfers.service.ts` |
 | rotina/agenda/linha do tempo | Fase 3 | — |
 | medicamentos/enfermagem | Fase 4 | — |
 | plantões/ATAs/ocorrências | Fase 5 | — |

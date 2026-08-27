@@ -4,6 +4,7 @@ import { DatabaseModule } from './database/database.module';
 import { AuthModule } from './auth/auth.module';
 import { HousesModule } from './houses/houses.module';
 import { UsersModule } from './users/users.module';
+import { PeopleModule } from './people/people.module';
 import { AuditModule } from './audit/audit.module';
 import { HealthController } from './health/health.controller';
 
@@ -15,6 +16,7 @@ import { HealthController } from './health/health.controller';
     AuthModule,
     HousesModule,
     UsersModule,
+    PeopleModule,
   ],
   controllers: [HealthController],
 })
