@@ -1,0 +1,12 @@
+{
+  "name": "incidents",
+  "descricao": "Ocorrências especiais e proteção (§13): abertura imediata, contenção com campos próprios, síntese técnica ao lado dos originais, anexos restritos e comunicação externa sem envio automático.",
+  "depends": ["identity", "statements"],
+  "publica": ["IncidentsModule", "IncidentsService", "CATEGORIAS"],
+  "tabelas": [
+    "incident", "incident_person", "incident_protected", "incident_restraint",
+    "incident_synthesis", "external_communication", "incident_attachment"
+  ],
+  "removivel": true,
+  "observacao": "Provedor da linha do tempo (só categoria e estado; nunca o fato). `storage_ref` do anexo não é legível pelo papel da aplicação — privilégio por coluna; a leitura passa por app_open_attachment, que registra finalidade. Não existe rota, fila ou integração de envio para órgãos externos: a entrega é humana e apenas registrada."
+}

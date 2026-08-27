@@ -1,0 +1,9 @@
+{
+  "name": "statements",
+  "descricao": "Relatos independentes (§12.2, §13.4): o que cada profissional presenciou, imutável e atribuído, com narrativa pessoal invisível a colegas.",
+  "depends": ["identity"],
+  "publica": ["StatementsModule", "StatementsService"],
+  "tabelas": ["statement", "witness_option"],
+  "removivel": true,
+  "observacao": "Não referencia plantão nem ocorrência: guarda entity/entityId genéricos. A regra 'par não lê narrativa pessoal' mora aqui, uma vez só, e vale nos dois domínios. Leitura excepcional do Gestor Geral só pelo comando app_read_statement, com finalidade registrada."
+}

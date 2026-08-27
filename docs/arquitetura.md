@@ -67,7 +67,9 @@ flowchart LR
 | offline/sincronização | ✅ Fase 3 (servidor) | `backend/src/modules/sync` |
 | medicamentos/estoque | ✅ Fase 4 | `backend/src/modules/medications` |
 | enfermagem/evoluções/resumo de saúde | ✅ Fase 4 | `backend/src/modules/nursing` |
-| plantões/ATAs/ocorrências | Fase 5 | — |
+| relatos independentes | ✅ Fase 5 | `backend/src/modules/statements` |
+| plantões/passagens/ATAs | ✅ Fase 5 | `backend/src/modules/shifts` |
+| ocorrências/comunicação externa | ✅ Fase 5 | `backend/src/modules/incidents` |
 | relatórios/Drive | Fase 6 | — |
 | fila local no aparelho | Fase 4 (IndexedDB no PWA) | `frontend` |
 

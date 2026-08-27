@@ -1,0 +1,12 @@
+{
+  "name": "shifts",
+  "descricao": "Plantão e ATA (§12): passagem individual assinada por quem esteve, recebimento pelo turno que entra, ATA da casa por plantão e ATA Geral Noturna das oito casas.",
+  "depends": ["identity", "sync"],
+  "publica": ["ShiftsModule", "ShiftsService", "SECOES_ATA", "CLASSIFICACOES_EPISODIO"],
+  "tabelas": [
+    "shift", "handover", "handover_receipt", "ata", "ata_addendum",
+    "ata_episode", "ata_episode_ack", "general_night_ata", "general_night_house_entry"
+  ],
+  "removivel": true,
+  "observacao": "Provedor da linha do tempo e aplicador offline próprio. A narrativa pessoal NÃO mora aqui — mora em `statements`, com política própria; a passagem guarda apenas conteúdo operacional. `ata_episode.incident_id` é ligação sem chave estrangeira, de propósito: `incidents` pode ser removido sem levar a ATA junto."
+}

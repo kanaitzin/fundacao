@@ -27,6 +27,10 @@ const USUARIOS: Array<[string, string, string, string | null]> = [
   ['coord.ai3@paodospobres.dev', 'Carla Coordenadora (fictícia)', 'coordenador', 'AI3'],
   ['tecnica.ai3@paodospobres.dev', 'Tatiane Técnica (fictícia)', 'equipe_tecnica', 'AI3'],
   ['educador.ai3@paodospobres.dev', 'Mário Silva (fictício)', 'educador', 'AI3'],
+  // Um segundo educador na casa piloto não é enfeite do seed: sem um par, não
+  // há como PROVAR que ninguém assina a passagem do outro (§26.2 #18) nem que
+  // o colega não lê a narrativa pessoal (§26.2 #11).
+  ['educador2.ai3@paodospobres.dev', 'Joana Lima (fictícia)', 'educador', 'AI3'],
   ['lider.ai3@paodospobres.dev', 'Lúcia Líder Diurna (fictícia)', 'lider_diurno', 'AI3'],
   ['educador.ai4@paodospobres.dev', 'Paula Rocha (fictícia)', 'educador', 'AI4'],
   ['coord.ai4@paodospobres.dev', 'Cátia Coordenadora (fictícia)', 'coordenador', 'AI4'],

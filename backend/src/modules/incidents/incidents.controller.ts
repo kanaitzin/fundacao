@@ -1,0 +1,108 @@
+import { Body, Controller, Get, Inject, Param, ParseUUIDPipe, Post, Query, UseGuards } from '@nestjs/common';
+import { SessionGuard, CurrentUser } from '../identity';
+import { AuthenticatedUser } from '../../kernel/contracts';
+import { IncidentsService } from './incidents.service';
+
+@Controller('incidents')
+@UseGuards(SessionGuard)
+export class IncidentsController {
+  constructor(@Inject(IncidentsService) private readonly incidents: IncidentsService) {}
+
+  @Get('catalog')
+  catalog() { return this.incidents.catalogo(); }
+
+  @Get()
+  list(@CurrentUser() user: AuthenticatedUser,
+       @Query('houseId', ParseUUIDPipe) houseId: string,
+       @Query('abertas') abertas?: string) {
+    return this.incidents.list(user, houseId, abertas === 'true');
+  }
+
+  @Post()
+  open(@CurrentUser() user: AuthenticatedUser, @Body() body: any) {
+    return this.incidents.open(user, body);
+  }
+
+  // ---------- Comunicação externa (rotas fixas antes de :id) ----------
+  // Não existe rota de envio. Procurar por ela é a forma mais rápida de
+  // verificar o §13.6: não há POST que despache nada para fora.
+
+  @Get('communications')
+  listCommunications(@CurrentUser() user: AuthenticatedUser,
+                     @Query('houseId', ParseUUIDPipe) houseId: string) {
+    return this.incidents.listCommunications(user, houseId);
+  }
+
+  @Post('communications')
+  createCommunication(@CurrentUser() user: AuthenticatedUser, @Body() body: any) {
+    return this.incidents.createCommunication(user, body);
+  }
+
+  @Post('communications/:id/submit')
+  submit(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.incidents.submitCommunication(user, id);
+  }
+
+  @Post('communications/:id/approve')
+  approve(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.incidents.approveCommunication(user, id);
+  }
+
+  @Post('communications/:id/delivery')
+  delivery(@CurrentUser() user: AuthenticatedUser,
+           @Param('id', ParseUUIDPipe) id: string, @Body() body: any) {
+    return this.incidents.registerDelivery(user, id, body ?? {});
+  }
+
+  // ---------- Anexos ----------
+
+  @Post('attachments/:id/open')
+  openAttachment(@CurrentUser() user: AuthenticatedUser,
+                 @Param('id', ParseUUIDPipe) id: string, @Body() body: any) {
+    return this.incidents.openAttachment(user, id, body?.finalidade);
+  }
+
+  // ---------- Ocorrência ----------
+
+  @Get(':id')
+  get(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.incidents.get(user, id);
+  }
+
+  @Post(':id/protected')
+  addProtected(@CurrentUser() user: AuthenticatedUser,
+               @Param('id', ParseUUIDPipe) id: string, @Body() body: any) {
+    return this.incidents.addProtected(user, id, body);
+  }
+
+  @Post(':id/restraint')
+  addRestraint(@CurrentUser() user: AuthenticatedUser,
+               @Param('id', ParseUUIDPipe) id: string, @Body() body: any) {
+    return this.incidents.addRestraint(user, id, body);
+  }
+
+  @Post(':id/synthesis')
+  addSynthesis(@CurrentUser() user: AuthenticatedUser,
+               @Param('id', ParseUUIDPipe) id: string, @Body() body: any) {
+    return this.incidents.addSynthesis(user, id, body?.texto ?? '');
+  }
+
+  @Post(':id/attachments')
+  addAttachment(@CurrentUser() user: AuthenticatedUser,
+                @Param('id', ParseUUIDPipe) id: string, @Body() body: any) {
+    return this.incidents.addAttachment(user, id, body);
+  }
+
+  /** Encerra a ETAPA OPERACIONAL. Categoria crítica segue aguardando revisão. */
+  @Post(':id/operational-close')
+  closeOperational(@CurrentUser() user: AuthenticatedUser,
+                   @Param('id', ParseUUIDPipe) id: string, @Body() body: any) {
+    return this.incidents.closeOperational(user, id, body?.nota);
+  }
+
+  @Post(':id/review')
+  review(@CurrentUser() user: AuthenticatedUser,
+         @Param('id', ParseUUIDPipe) id: string, @Body() body: any) {
+    return this.incidents.review(user, id, body?.decisao ?? 'validar', body?.nota);
+  }
+}

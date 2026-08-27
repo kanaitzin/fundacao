@@ -32,7 +32,17 @@ limitados à **finalidade** do cargo na camada de aplicação.
 | Criar/desativar usuários | — | — | — | ✅ própria casa | — | — | ✅ com auditoria |
 | Dados bancários/benefícios | — | — | — | ✅ casa atual + reauth | — | — | ✅ + reauth |
 | Baixar Resumo de Saúde | plantão | própria casa | própria casa | própria casa | 8 casas | 8 casas no turno | ✅ |
-| Fechar ATA | assina a própria passagem | ✅ diurna | pode confirmar | reabre | — | ✅ noturnas + Geral | — |
+| Assinar passagem de plantão | ✅ a própria | ✅ a própria | — | — | — | ✅ a própria | — |
+| Confirmar recebimento do turno | ✅ individual | ✅ individual | — | — | — | ✅ individual | — |
+| Fechar ATA | assina a própria passagem | ✅ diurna | ✅ | ✅ | — | ✅ noturnas + Geral | — |
+| Reabrir/corrigir ATA fechada | — | — | ✅ com motivo | ✅ com motivo | — | — | — |
+| Abrir ocorrência | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | — |
+| Encerrar etapa operacional da ocorrência | — | ✅ | ✅ | ✅ | — | ✅ | — |
+| Validar ocorrência crítica (fechar) | — | — | ✅ | ✅ | — | — | — |
+| Ver fala espontânea / sinais observados | autor | — | ✅ | ✅ | se saúde | — | — |
+| Abrir anexo restrito | autor | — | ✅ | ✅ | doc. médico | — | — |
+| Registrar comunicação externa | — | — | ✅ | ✅ | — | — | — |
+| Aprovar comunicação externa | — | — | ✅ | ✅ | — | — | ✅ |
 | Auditoria (leitura) | — | — | — | própria casa | — | — | ✅ |
 
 ## Regras invariantes
@@ -43,3 +53,10 @@ limitados à **finalidade** do cargo na camada de aplicação.
   **reautenticação** e auditoria destacada (§5.2).
 - Desligado = desativado; autoria e histórico preservados (§5.1).
 - Alterar relógio do aparelho não amplia acesso (§5.12) — janela avaliada no servidor.
+- Ninguém assina a passagem de outro, e o recebimento do turno é individual (§12.1, §12.3);
+  confirmar recebimento **não** significa concordar com narrativa alheia.
+- ATA fechada não é sobrescrita: correção é adendo com antes e depois (§12.7).
+- Violência ou suspeita, contenção, erro de medicamento e emergência de saúde **não se
+  encerram** sem validação técnica ou de coordenação (§13.5).
+- Nenhuma comunicação sai do sistema para órgão externo: registro, aprovação e entrega
+  humana registrada — não existe envio automático (§13.6).

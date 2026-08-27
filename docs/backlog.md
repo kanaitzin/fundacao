@@ -168,9 +168,87 @@ Construída já dentro da arquitetura de partições (ver `docs/arquitetura-modu
   dar essa permissão a ele, a evolução e o atendimento nascem juntos num comando
   que valida apenas o necessário.
 
-## Fase 5 — Plantão e proteção
-Passagens individuais (#11, #12, #18), ATAs (#19, #20, #21, #36), ocorrências (#22),
-comunicações externas (#23), narrativas restritas (#29).
+## Fase 5 — Plantão, ATA e proteção ✅
+
+| Requisito | Onde ficou | Teste |
+|---|---|---|
+| Cada educador assina só a própria passagem (#18, §12.1) | policy `handover_insert` (`user_id = app_current_user()`) | "cenário #18", com tentativa direta no banco |
+| Passagem imutável | gatilho `handover_no_change` | "cenário #18" |
+| Passagem posterior = complemento tardio com horário real (§12.4) | `late = true` + adendo na ATA | `signHandover` exige `happenedAt` após o fechamento |
+| Relatos independentes com as 7 opções (§12.2) | módulo `statements`, `witness_option` | "#11", "#12" |
+| Par não vê narrativa pessoal (#11) | policy `st_select` | "cenário #11" |
+| Equipe técnica vê lado a lado (#12) | mesma policy, ramo `equipe_tecnica/coordenador` | "cenário #12" |
+| Originais imutáveis; complemento é registro novo (§12.2) | gatilho + `supplements_id` | "cenário #12" |
+| Gestor só abre narrativa com justificativa (#29) | comando `app_read_statement` | "cenário #29" + auditoria |
+| Recebimento individual do turno que entra (#21, §12.3) | policy `receipt_insert` + unicidade | "cenário #21" |
+| Receber ≠ concordar (§12.3) | aviso textual na resposta da API | "cenário #21" |
+| Uma ATA por plantão (§12.4) | `ata.shift_id` UNIQUE, criada com o plantão | "abre o plantão diurno" |
+| Conteúdo estruturado do LIVRO ATA (§12.5) | `SECOES_ATA` (15 seções, como dado) | `GET /shifts/ata-sections` |
+| Fecha com pendência, sem assinatura falsa (#19) | `app_close_ata` + `app_missing_handovers` | "cenário #19" |
+| Falta de passagem avisa técnica/coordenação (§12.4) | `escalation.requested` nível `tecnica_coordenacao` | "cenário #19" |
+| ATA fechada não é sobrescrita (§12.7) | gatilho `ata_guard` + policy de UPDATE | "ATA fechada não é reescrita" |
+| Reabertura só por técnica/coordenação, com motivo (§12.7) | `app_reopen_ata` | "cenário #20" |
+| Correção por adendo com antes e depois (#20) | `app_amend_ata` + `ata_addendum` | "cenário #20" |
+| Episódio do acolhido registrado uma vez (§12.5) | `ata_episode`, imutável, ligado ao perfil | "registra o episódio" |
+| Ciência do líder sem alterar o relato (§12.5) | `ata_episode_ack` | "registra o episódio" |
+| ATA Geral Noturna mostra as 8 casas (#36, §12.6) | `app_open_general_night_ata` cria as 8 linhas | "cenário #36" |
+| Casa sem chamado também é registro (§12.6) | linha existe com `had_contact = false` | "cenário #36" |
+| Confirmar fechamento ≠ assinar por educador (#36) | exige ATA da casa já fechada | "cenário #36" |
+| Líder Noturno assina só a sua ATA (#36) | `app_close_general_night_ata` (`leader_id = eu`) | "cenário #36" |
+| Abertura de ocorrência sem atrasar proteção (§13.1) | só categoria, horário e fato são exigidos | `catalogo()` e `open()` |
+| Aviso imediato a líder/técnica/coordenação (§13.2) | 2 ou 3 escalonamentos por abertura | "cenário #22" |
+| Enfermagem avisada em saúde/medicamento (§13.2) | nível `enfermagem` | "cenário #22" |
+| Gestor não recebe automaticamente (§13.2) | nível `gestao` existe, mas não é publicado na abertura | inspeção de `open()` |
+| Revisão técnica obrigatória por categoria (#22, §13.5) | gatilho `incident_defaults` (não é a tela que decide) | "cenário #22" |
+| Encerramento do líder não fecha caso crítico (#22) | `app_close_incident_operational` | "cenário #22" |
+| Fechar saúde/medicamento exige síntese | `app_review_incident` | "cenário #22" |
+| Síntese não apaga originais (§13.4) | `incident_synthesis`, registro novo | "cenário #22" |
+| Contenção com campos próprios (§13.3) | `incident_restraint`, 5 campos obrigatórios | `addRestraint` |
+| Sistema não avalia se a contenção foi adequada (§13.3) | nenhuma classificação automática; aviso explícito | resposta da API |
+| Fala espontânea e sinais fora do alcance do plantão (§13.3) | `incident_protected`, policy própria | "a fala espontânea…" |
+| Líder encerra sem navegar por narrativa restrita (§13.5) | vê a ocorrência, não vê `incident_protected` | "a fala espontânea…" |
+| Foto exige justificativa (§13.7) | validação em `addAttachment` | "anexo: foto exige justificativa" |
+| CPF/diagnóstico/judicial fora do nome de arquivo (§3.3) | `PROIBIDO_NO_NOME` | "anexo: …nome de arquivo" |
+| Anexo restrito: ver que existe ≠ abrir (§13.7) | privilégio **por coluna** em `storage_ref` + `app_open_attachment` | "anexo: …", com `permission denied` |
+| Comunicação externa nunca enviada automaticamente (#23, §13.6) | não existe rota, fila ou integração de envio | "cenário #23" |
+| Entrega só com aprovação e humano identificado (#23) | gatilho `extcom_guard` + CHECK `entrega_tem_responsavel_humano` | "cenário #23" |
+| Destinatário funcional, não pessoa (§13.6) | `recipient_role` + validação | `createCommunication` |
+| Ocorrência na linha do tempo sem contar o fato (§9, §13.7) | provedor devolve categoria e estado | "a linha do tempo mostra que houve" |
+| Plantão na linha do tempo | provedor `shifts` | "a linha do tempo mostra…" |
+| Passagem e recebimento funcionam offline (§17.1) | handlers `handover.sign` e `handover.receipt` | tipos suportados em `/sync` |
+
+### Achados desta fase
+
+- **Os relatos viraram um módulo próprio.** A regra "par não lê a narrativa
+  pessoal do colega" aparece duas vezes no Prompt Master: na passagem (§12.2) e
+  na ocorrência (§13.4). Escrita duas vezes, um dia divergiria — e a que
+  divergisse seria a que vaza. Agora existe `statements`, que não conhece nem
+  plantão nem ocorrência: recebe `entity`/`entityId` e guarda. A proteção é uma
+  política só, no banco, e os dois domínios a herdam.
+- **Avisar alguém que não pode abrir é fabricar ruído.** A primeira versão da
+  política de ocorrências deixava a categoria restrita invisível ao Líder Diurno
+  — mas o §13.2 manda avisá-lo na abertura e o §13.5 lhe dá o encerramento da
+  etapa operacional. O teste pegou: líder notificado recebia 404. A correção não
+  foi afrouxar a proteção, foi **mudá-la de lugar**: o líder enxerga a ocorrência
+  e continua sem alcançar `incident_protected` (fala espontânea, sinais) nem as
+  narrativas. É exatamente o que o §13.5 descreve — encerrar a etapa operacional
+  sem navegar pelo conteúdo restrito.
+- **Privilégio por coluna, não por disciplina.** A referência do arquivo de um
+  anexo (`storage_ref`) não é legível pelo papel da aplicação: o `GRANT SELECT` é
+  coluna a coluna e a exclui. Um `SELECT *` esquecido em qualquer rota futura
+  falha com *permission denied* em vez de vazar o caminho do arquivo. A leitura
+  passa obrigatoriamente por `app_open_attachment`, que registra a finalidade.
+- **O nível de escalonamento virou dado.** O Líder Noturno Geral é uma função
+  transversal, sem vínculo de casa, e não cabia no `CASE` que existia dentro de
+  `app_escalation_targets`. Em vez de editar aquele `CASE` a cada módulo novo, os
+  níveis passaram a ser linhas em `escalation_level`. Um nível desconhecido agora
+  **falha** em vez de escalonar para ninguém — antes, um erro de digitação viraria
+  um aviso que nunca chegava, silenciosamente.
+- **A honestidade do fechamento é do banco.** Fechar a ATA não conta assinaturas
+  na aplicação: `app_missing_handovers` deriva do vínculo vigente com a casa, e o
+  comando decide entre `fechada` e `fechada_com_pendencia`. O teste confere que
+  nenhuma passagem foi criada no lugar de quem faltou — o sistema **nomeia** a
+  ausência em vez de preenchê-la.
 
 ## Fase 6 — Relatórios e Drive
 Acompanhamentos, aprovações, relatórios (§14), arquivamento no Drive (#26, #27),

@@ -751,6 +751,21 @@ const TESTEMUNHO = [
   ["Não presenciei","c-mute"], ["Soube depois","c-move"],
   ["Intervim","c-info"], ["Sem informação adicional","c-mute"], ["Preciso complementar","c-other"],
 ];
+
+/* ---------- Ocorrências especiais (§13) ----------
+   `rev` = a categoria não se encerra sem validação técnica.
+   `res` = o registro nasce restrito: colega de plantão não abre.        */
+const OCORRENCIAS = [
+  {cod:"violencia_ou_suspeita", l:"Violência ou suspeita de violação", c:"c-crit", rev:true,  res:true},
+  {cod:"conflito_agressao",     l:"Conflito ou agressão",              c:"c-warn", rev:false, res:false},
+  {cod:"saida_nao_autorizada",  l:"Saída não autorizada",              c:"c-move", rev:false, res:false},
+  {cod:"erro_medicamento",      l:"Erro de medicamento",               c:"c-med",  rev:true,  res:false},
+  {cod:"emergencia_saude",      l:"Emergência de saúde",               c:"c-crit", rev:true,  res:false},
+  {cod:"contencao",             l:"Contenção",                         c:"c-other",rev:true,  res:true},
+  {cod:"desorganizacao_relevante", l:"Desorganização relevante",       c:"c-info", rev:false, res:false},
+  {cod:"dano_recusa_critica",   l:"Dano ou recusa crítica",            c:"c-warn", rev:false, res:false},
+  {cod:"outro",                 l:"Outro",                             c:"c-mute", rev:false, res:false},
+];
 function vPassagem(){
   const p = S.passagem;
   if(p.assinada){
@@ -780,6 +795,11 @@ function vPassagem(){
       <button class="opt ${c}" aria-pressed="${p.testemunho===o}" onclick="A.testemunho('${o}')">${o}</button>`).join("")}</div>
     <button class="btn block" style="margin-top:18px" onclick="A.assinarPassagem()">✍️ Assinar minha passagem</button>
     <p class="mutetxt" style="margin-top:9px">A assinatura registra usuário, plantão, horário e aparelho, e é imutável.</p>
+  </div>
+  <div class="eyebrow">Fato que exige acompanhamento formal</div>
+  <div class="card stack">
+    <p class="mutetxt" style="margin:0">Alguns fatos não cabem na passagem: abrem fluxo próprio, avisam o líder, a equipe técnica e a coordenação na hora, e alguns não se encerram sem revisão técnica.</p>
+    <button class="btn sec block" onclick="A.novaOcorrencia()">🚨 Registrar ocorrência</button>
   </div>`;
 }
 
@@ -985,7 +1005,7 @@ function vTecnica(){
       <div class="card stack" style="border-left:4px solid var(--violet)">
         <div class="row"><b class="ff grow">Saída não autorizada · Kauã · ontem 21:40</b>${pill("Aguardando revisão técnica","c-med")}</div>
         <div class="mutetxt">Etapa operacional encerrada pelo Líder Noturno Geral. Retornou 23:15 acompanhado. Casos críticos permanecem aguardando validação técnica/coordenação.</div>
-        <button class="btn sm sec" onclick="toast('No sistema real: abre o fluxo completo com relatos independentes.')">Abrir ocorrência</button>
+        <button class="btn sm sec" onclick="A.verOcorrencia()">Abrir ocorrência</button>
       </div>`;
   }
   shell(inner, tabs, appbar(S.tab==="narrativas"?"Relatos independentes":"Painel da casa", ["Casa 03","Escala individual",HOJE]));
@@ -1111,7 +1131,7 @@ function valNotesContent(){
     lider:["O líder precisa de mais alguma visão além de alertas, substituições e urgências?","O fluxo de fechar ATA com pendência reflete a prática?"],
     noturno:["A visão mínima das 8 casas basta para o plantão noturno?","Os campos de chamado/visita estão completos?"],
     enfermagem:["A ordem casa → acolhidos funciona para a rotina da Enfermagem?","O fluxo de triagem das Evoluções está correto?","Que filtros faltam?"],
-    tecnica:["As inconsistências sinalizadas são as que ocorrem de verdade?","A visão lado a lado das narrativas atende à análise técnica?"],
+    tecnica:["As inconsistências sinalizadas são as que ocorrem de verdade?","A visão lado a lado das narrativas atende à análise técnica?","As categorias de ocorrência cobrem o que acontece na casa? Falta alguma?","Quais categorias, na prática de vocês, não podem ser encerradas sem revisão técnica?","O registro da comunicação externa tem os campos que o Conselho e o Judiciário cobram?"],
     coordenador:["As aprovações listadas são as críticas do dia a dia?","A reautenticação para dados bancários está no nível certo de fricção?"],
     gestor:["Os cards por unidade mostram o que o gestor precisa sem criar ranking?","O fluxo de acesso excepcional está suficientemente protegido?"],
   };
@@ -1162,6 +1182,66 @@ const A = {
     render();
   },
   excecaoOk(id,estado){ EVENTOS.find(x=>x.id===id).estado=estado; S.sheet=null; fila(); toast("Exceção registrada com justificativa"); },
+
+  /* ---------- Ocorrências (§13) ---------- */
+  novaOcorrencia(){
+    S.sheet = `<h3>Registrar ocorrência</h3>
+      <div class="notice c-crit" style="margin:10px 0">O registro <b>nunca</b> deve atrasar a proteção imediata, o atendimento de saúde ou o protocolo institucional. Abra com o mínimo — o resto entra depois.</div>
+      <label class="f" style="margin-top:0">Categoria</label>
+      <div class="opts">${OCORRENCIAS.map(o=>`
+        <button class="opt ${o.c}" onclick="A.ocorrenciaOk('${o.cod}')">${o.l}</button>`).join("")}</div>
+      <p class="mutetxt" style="margin-top:12px">Violência ou suspeita, contenção, erro de medicamento e emergência de saúde <b>não se encerram</b> sem validação da equipe técnica ou da coordenação.</p>`;
+    render();
+  },
+  ocorrenciaOk(cod){
+    const o = OCORRENCIAS.find(x=>x.cod===cod);
+    const avisados = ["Líder Diurno","equipe técnica","coordenação"]
+      .concat(/saude|medicamento/.test(cod) ? ["Enfermagem"] : []);
+    S.sheet = `<h3>${o.l}</h3>
+      <div class="row" style="margin:8px 0">${pill(o.rev?"Exige revisão técnica":"Encerramento operacional", o.rev?"c-med":"c-info")}
+        ${o.res?pill("Acesso restrito","c-crit"):""}</div>
+      <label class="f" style="margin-top:0">Fato objetivo <small>— o que aconteceu, sem interpretação</small></label>
+      <textarea placeholder="Descreva o fato, o horário e o que foi feito imediatamente…"></textarea>
+      <label class="f">Medidas imediatas</label>
+      <textarea placeholder="O que foi feito para proteger e atender…"></textarea>
+      ${o.res ? `<label class="f">Fala espontânea do acolhido <small>— transcrição, sem interpretação</small></label>
+      <div class="notice c-med" style="margin-bottom:9px">Este campo e os sinais observados <b>não aparecem</b> para colegas de plantão. Acesso: você, equipe técnica e coordenação.</div>
+      <textarea placeholder="Transcreva o que foi dito, entre aspas…"></textarea>` : ""}
+      ${cod==="contencao" ? `<div class="notice c-warn" style="margin-top:10px">A contenção exige campos próprios: antecedentes, local, presentes, tentativas anteriores, método, duração, possível lesão e avaliação de saúde. <b>O sistema não avalia se a medida foi adequada</b> — essa análise é humana.</div>` : ""}
+      <button class="btn block" style="margin-top:16px" onclick="A.ocorrenciaAbrir('${cod}')">Abrir ocorrência e avisar</button>
+      <p class="mutetxt" style="margin-top:9px">Serão avisados na hora: ${avisados.join(", ")}. O Gestor Geral <b>não</b> recebe automaticamente — quem escalona a ele é a equipe técnica ou a coordenação, conforme a gravidade.</p>`;
+    render();
+  },
+  ocorrenciaAbrir(cod){
+    const o = OCORRENCIAS.find(x=>x.cod===cod);
+    S.sheet=null; fila();
+    toast(o.rev
+      ? "Ocorrência aberta. Encerrada a etapa operacional, ela AGUARDA revisão técnica — não fecha sozinha."
+      : "Ocorrência aberta. Líder, equipe técnica e coordenação foram avisados.");
+  },
+  verOcorrencia(){
+    S.sheet = `<h3>Saída não autorizada · Kauã</h3>
+      <div class="row" style="margin:8px 0">${pill("Aguardando revisão técnica","c-med")}${pill("Etapa operacional encerrada","c-info")}</div>
+      <p class="mutetxt" style="margin:0">Ontem 21:40 · retorno 23:15 acompanhado · etapa operacional encerrada pelo Líder Noturno Geral, que <b>não</b> navegou pelas narrativas restritas.</p>
+      <div class="eyebrow">Relatos independentes — originais imutáveis</div>
+      <div class="sidebyside">
+        <div class="statement"><div class="au">Ed. J. Costa · presenciei parcialmente</div>Vi quando saiu pelo portão dos fundos; chamei o líder imediatamente.</div>
+        <div class="statement"><div class="au">Ed. P. Rocha · soube depois</div>Estava na outra ala. Soube pelo rádio e acompanhei o retorno.</div>
+      </div>
+      <div class="eyebrow">Síntese técnica <small>— registro novo, não apaga nenhum relato</small></div>
+      <textarea placeholder="A que se chegou, e o que fica combinado…"></textarea>
+      <div class="eyebrow">Comunicação externa</div>
+      <div class="card stack" style="border-left:4px solid var(--blue)">
+        <div class="row"><span class="grow"><b class="ff">Conselho Tutelar</b> · ofício · destinatário funcional</span>${pill("Aprovado","c-ok")}</div>
+        <div class="notice c-info" style="margin:0">O sistema <b>não envia</b> nada para fora. Ele registra, gera o documento, guarda a aprovação e registra que uma pessoa entregou — com nome e horário.</div>
+        <button class="btn sm sec" onclick="toast('Entrega registrada com responsável e horário. Nenhum envio automático.')">Registrar entrega feita</button>
+      </div>
+      <div class="row" style="margin-top:16px;gap:8px">
+        <button class="btn grow" onclick="A.closeSheet();toast('Validada e fechada. Histórico preservado e reabrível.')">Validar e fechar</button>
+        <button class="btn sec grow" onclick="A.closeSheet();toast('Reaberta com histórico — nada foi apagado.')">Reabrir</button>
+      </div>`;
+    render();
+  },
 
   abrirChamada(){ S.chamadaAberta=true; render(); },
   marcar(id,op){ S.chamada[id]=op; fila(); render(); },

@@ -32,12 +32,15 @@ npm run dev:frontend            # PWA em http://localhost:5173 (proxy /api -> 30
 ```
 
 Usuários fictícios: `educador.ai3@`, `lider.ai3@`, `tecnica.ai3@`, `coord.ai3@`,
-`enfermagem@`, `lider.noturno@`, `gestor@` … `paodospobres.dev` — senha `senha-dev-123`.
+`educador2.ai3@`, `enfermagem@`, `lider.noturno@`, `gestor@` … `paodospobres.dev` —
+senha `senha-dev-123`. São **dois** educadores na Casa 03 de propósito: sem um par,
+não há como provar que ninguém assina a passagem do outro nem que o colega não lê a
+narrativa pessoal.
 
 ## Testes
 
 ```bash
-npm test        # 82 testes: fronteiras de arquitetura + aceite das fases 1–4
+npm test        # 98 testes: fronteiras de arquitetura + aceite das fases 1–5
 ```
 
 Cada execução **recria o banco do zero** (migrações + seeds fictícios), porque os
@@ -59,8 +62,14 @@ matriz requisito → implementação → teste.
 - ✅ Fase 4 — Medicamentos e Enfermagem: prescrição assinada, grade de doses com
   confirmação individual, protocolo de administração configurável, estoque,
   painel da Enfermagem, Evolução de Saúde com triagem e Resumo de Saúde
-- ⏳ Fase 5 — Plantão, ATAs e ocorrências (próxima)
-- Fases 6–7 — ver `docs/backlog.md`
+- ✅ Fase 5 — Plantão e proteção: passagem individual assinada por quem esteve,
+  recebimento individual do turno que entra, ATA da casa por plantão com fechamento
+  honesto (com pendência, nunca com assinatura presumida), adendo com antes e depois,
+  ATA Geral Noturna das oito casas, relatos independentes com narrativa pessoal
+  protegida, ocorrências com revisão técnica obrigatória por categoria, anexos
+  restritos e comunicação externa registrada — nunca enviada pelo sistema
+- ⏳ Fase 6 — Relatórios, aprovações e Drive (próxima)
+- Fase 7 — ver `docs/backlog.md`
 
 ## Arquitetura em partições
 
