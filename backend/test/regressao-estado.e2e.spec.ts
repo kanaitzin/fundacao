@@ -260,6 +260,90 @@ describe('Regressão — estado, concorrência e silêncio', () => {
     expect(rows[0].state).toBe('concluida_no_horario');
   });
 
+  // ==================== Chamada coletiva ====================
+
+  it('a chamada dos 20 não fecha com 21 na casa: quem chega no meio é conferido', async () => {
+    const chamada = await request(http).post('/api/v1/checks').set(auth(tokens.educador))
+      .send({ houseId: AI3, kind: 'chamada_final', titulo: 'Chamada final (regressão)' });
+    expect(chamada.status).toBe(201);
+    const esperadosNaAbertura = chamada.body.esperados;
+
+    // Confere todo mundo que existia quando a chamada abriu.
+    const antes = await request(http).get(`/api/v1/checks/${chamada.body.id}`).set(auth(tokens.educador));
+    for (const linha of antes.body.linhas) {
+      await request(http).post(`/api/v1/checks/${chamada.body.id}/mark`)
+        .set(auth(tokens.educador))
+        .send({ personId: linha.acolhidoId, opcao: 'sem_alteracao' });
+    }
+
+    // Às 21h30 chega um acolhido de urgência. A casa tem um a mais.
+    const chegou = await request(http).post('/api/v1/people').set(auth(tokens.tecnica))
+      .send({ houseId: AI3, fullName: 'Recém-chegado Teste (fictício)', socialName: 'RecemR',
+              birthDate: '2014-02-02', provisionalReason: 'Acolhimento de urgência (teste)' });
+    const novoAcolhido = chegou.body.personId;
+
+    // ANTES: `conferidos >= expected` dava verdadeiro e a chamada FECHAVA
+    // declarando todos conferidos, com uma criança que ninguém olhou.
+    const cedo = await request(http).post(`/api/v1/checks/${chamada.body.id}/confirm`)
+      .set(auth(tokens.educador)).send({});
+    expect(cedo.status).toBe(400);
+    expect(cedo.body.message).toMatch(/RecemR/);   // nomeia quem falta
+
+    // A tela também mostra quem falta ANTES de tentar fechar.
+    const durante = await request(http).get(`/api/v1/checks/${chamada.body.id}`).set(auth(tokens.educador));
+    expect(durante.body.esperados).toBe(esperadosNaAbertura + 1);
+    expect(durante.body.quemFalta).toContain('RecemR');
+
+    await request(http).post(`/api/v1/checks/${chamada.body.id}/mark`)
+      .set(auth(tokens.educador))
+      .send({ personId: novoAcolhido, opcao: 'sem_alteracao' });
+    const fecha = await request(http).post(`/api/v1/checks/${chamada.body.id}/confirm`)
+      .set(auth(tokens.educador)).send({});
+    expect(fecha.status).toBe(201);
+
+    await request(http).post(`/api/v1/people/${novoAcolhido}/discharge`)
+      .set(auth(tokens.tecnica)).send({ motivo: 'Encerramento de fixture de teste' });
+  });
+
+  it('a chamada não trava quando alguém sai no meio dela', async () => {
+    const sai = await request(http).post('/api/v1/people').set(auth(tokens.tecnica))
+      .send({ houseId: AI3, fullName: 'Sai No Meio Teste (fictício)', socialName: 'SaiR',
+              birthDate: '2011-06-06', provisionalReason: 'Ingresso de teste automatizado' });
+    const pessoa = sai.body.personId;
+
+    const chamada = await request(http).post('/api/v1/checks').set(auth(tokens.educador))
+      .send({ houseId: AI3, kind: 'alimentacao', titulo: 'Almoço (regressão saída)' });
+
+    const lista = await request(http).get(`/api/v1/checks/${chamada.body.id}`).set(auth(tokens.educador));
+    for (const linha of lista.body.linhas) {
+      await request(http).post(`/api/v1/checks/${chamada.body.id}/mark`)
+        .set(auth(tokens.educador)).send({ personId: linha.acolhidoId, opcao: 'normal' });
+    }
+
+    // A criança é transferida com a chamada ainda aberta.
+    const req = await request(http).post('/api/v1/transfers').set(auth(tokens.tecnica))
+      .send({ personId: pessoa, toHouseId: AI4, reason: 'Vaga aberta na outra unidade' });
+    await request(http).post(`/api/v1/transfers/${req.body.id}/accept`)
+      .set(auth(tokens.coord4)).send({});
+
+    // ANTES: os resultados existiam mas o cruzamento com permanência ativa
+    // devolvia um a menos que o `expected` congelado — a chamada ficava
+    // impossível de fechar, para sempre, sem rota de ajuste.
+    const fecha = await request(http).post(`/api/v1/checks/${chamada.body.id}/confirm`)
+      .set(auth(tokens.educador)).send({});
+    expect(fecha.status).toBe(201);
+
+    // E o registro de quem saiu continua lá, marcado como não mais ativo.
+    const depois = await request(http).get(`/api/v1/checks/${chamada.body.id}`).set(auth(tokens.educador));
+    const linha = depois.body.linhas.find((l: any) => l.acolhidoId === pessoa);
+    expect(linha).toBeDefined();
+    expect(linha.resultado).toBe('normal');
+    expect(linha.ativo).toBe(false);
+
+    await request(http).post(`/api/v1/people/${pessoa}/discharge`)
+      .set(auth(tokens.coord4)).send({ motivo: 'Encerramento de fixture de teste' });
+  });
+
   // ==================== Ocorrências ====================
 
   it('a revisão técnica não fecha o que ninguém encerrou', async () => {

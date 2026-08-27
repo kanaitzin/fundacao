@@ -151,15 +151,19 @@ export class ProfileService {
          LEFT JOIN LATERAL (SELECT version, storage_key FROM document_version
                             WHERE document_id = d.id ORDER BY version DESC LIMIT 1) v ON true
          WHERE d.id = $1 AND d.person_id = $2`, [documentId, personId]);
+      if (d) {
+        // Abertura de documento sensível: o registro do acesso nasce junto com
+        // o acesso, na mesma transação (§20).
+        await this.audit.log({
+          action: 'document.open', actorId: user.id, entity: 'document', entityId: documentId,
+          detail: { categoria: d.category, versao: d.version },
+        }, c);
+      }
       return d;
     });
     // Categoria fora do papel: o RLS já filtrou — resposta idêntica a inexistente.
     if (!doc) throw new NotFoundException('Documento não encontrado');
 
-    await this.audit.log({
-      action: 'document.open', actorId: user.id, entity: 'document', entityId: documentId,
-      detail: { categoria: doc.category, versao: doc.version },
-    });
     return {
       id: doc.id, categoria: doc.category, titulo: doc.title,
       validoAte: doc.valid_until, versao: doc.version,

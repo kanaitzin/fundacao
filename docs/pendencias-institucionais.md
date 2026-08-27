@@ -11,7 +11,7 @@ nunca regra invisível. Nenhuma foi "inventada".
 | 4 | Horário oficial do Líder Noturno Geral | `NIGHT_LEADER_START/END` no `.env` (19h–7h como hipótese configurável). |
 | 5 | Relatórios obrigatórios no piloto | Backlog da Fase 6 marca todos como candidatos; seleção com Marcelo. |
 | 6 | Permissões de fotos em memórias | Modelo `MemoryRecord`+`PhotoAuthorization` planejado; upload desabilitado por flag até confirmação. |
-| 7 | Aparelhos institucionais disponíveis (offline) | Registro de aparelho designado por casa entra na Fase 3; confirmação de medicamento offline restrita a ele (§11.7). |
+| 7 | Aparelhos institucionais disponíveis (offline) | ✅ **Resolvido no sistema.** A coordenação registra o aparelho da casa e recebe um código mostrado uma vez; o banco guarda só o hash e o **servidor** decide contra o registro (§11.7). Falta a Fundação dizer quais aparelhos existem em cada casa — agora é cadastro, não suposição. |
 | 8 | Códigos oficiais das unidades | Seed usa AI1–AI4/ARM1–ARM4 como preliminares; troca é um UPDATE de `house.code` sem impacto estrutural (IDs internos são UUID). |
 | 9 | Campos finais de cadastro/PIA/passagens/protocolos | Aguardando documentos do Marcelo (§33.3); formulários da Fase 2/5 serão versionáveis. |
 | 10 | Critérios de aceite do piloto e autoridade | A registrar na Fase 7; homologação controlada prevista no plano. |

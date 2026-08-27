@@ -65,18 +65,20 @@ export class BenefitsService {
     this.exigirReauth(user);
     if (!(await this.podeVer(user, personId))) await this.negar(user, personId, 'fora_da_casa_atual');
 
+    // A leitura e o registro da leitura acontecem na MESMA transação: nesta
+    // área, "quem viu, quando e para quê" não pode ficar separado do ato de ver.
     const rows = await this.db.asUser(user.id, async (c) => {
       const { rows } = await c.query(
         `SELECT id, benefit_type, bank_name, agency, account, status, notes, updated_at
          FROM benefit_record WHERE person_id = $1 ORDER BY benefit_type`, [personId]);
-      return rows;
-    });
 
-    // Log por VISUALIZAÇÃO, com finalidade declarada (§6.10)
-    await this.audit.log({
-      action: 'benefits.view', actorId: user.id, entity: 'person', entityId: personId,
-      purpose: finalidade, houseId: null,
-      detail: { registros: rows.length },   // nunca o conteúdo bancário
+      // Log por VISUALIZAÇÃO, com finalidade declarada (§6.10)
+      await this.audit.log({
+        action: 'benefits.view', actorId: user.id, entity: 'person', entityId: personId,
+        purpose: finalidade, houseId: null,
+        detail: { registros: rows.length },   // nunca o conteúdo bancário
+      }, c);
+      return rows;
     });
 
     const ultimoAcesso = await this.lastAccess(personId, user.id);

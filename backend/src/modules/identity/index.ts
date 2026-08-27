@@ -10,4 +10,5 @@ export { IdentityModule } from './identity.module';
 export { SessionGuard } from './session.guard';
 export { CurrentUser } from './current-user.decorator';
 export { AuthService } from './auth.service';
+export { DevicesService } from './devices.service';
 export type { AuthenticatedUser } from '../../kernel/contracts';

@@ -350,20 +350,16 @@ crianças de propósito. Verificado que 4 dos 6 testes falham sem a correção.
 **Trava:** `test/regressao-estado.e2e.spec.ts`, 12 testes. Verificado que 7
 falham sem as correções de serviço (os outros 5 são protegidos por migração).
 
-### O que ficou de fora, e por quê
+### Terceira rodada — os três que tinham ficado em aberto ✅
 
-- **#13 (chamada coletiva)** — `expected` é fotografado na abertura e a
-  conferência é contada sobre quem está ativo agora. Uma criança que chega no
-  meio da chamada não é conferida, e uma que sai trava a confirmação. A
-  correção mexe na semântica da "chamada final dos 20" e é melhor decidir com a
-  equipe antes: vale reabrir a chamada, ou abrir outra?
-- **Auditoria fora da transação** (`audit.service` usa a conexão do pool, não o
-  cliente da transação): uma operação revertida pode deixar rastro de auditoria.
-  Conservador na direção certa — sobra registro, não falta —, mas é uma refatoração
-  transversal que merece fase própria.
-- **`institutionalDevice` vem do cliente**: a regra do §11.7 se apoia num campo
-  que o próprio aparelho afirma. Falta a tabela de aparelhos designados por casa
-  (pendência institucional #7).
+| Defeito | Correção | Teste |
+|---|---|---|
+| **A chamada dos 20 fechava com 21 na casa.** `expected` era fotografado na abertura e a conferência contada sobre quem está ativo agora. Uma criança que chegava às 21h30 não era conferida e a chamada final fechava declarando todos vistos; uma que saía no meio travava a confirmação **para sempre**, sem rota de ajuste | a conferência passa a ser medida contra o **efetivo vivo**; `expected` vira dado histórico. A recusa **nomeia quem falta** — "faltam 2" numa casa de 20 obriga a reconferir a lista inteira. Quem saiu continua listado, com o registro, marcado como não ativo | "a chamada dos 20 não fecha com 21", "a chamada não trava quando alguém sai" |
+| **`institutionalDevice` vinha do cliente.** A regra do §11.7 — offline, só o aparelho designado confirma medicamento — era verificada contra um booleano no corpo da requisição: quem enviasse `true` passava. A regra existia no papel e no código, e não existia de fato | o aparelho virou **credencial**: a coordenação registra, o sistema devolve o código uma vez e guarda só o hash (mesmo padrão das sessões). O servidor decide contra o registro da casa. Revogação não apaga o histórico | cenário #15 reescrito: afirmar-se institucional é rejeitado; código errado é rejeitado; código revogado deixa de valer |
+| **Auditoria fora da transação.** `audit.log` usava outra conexão do pool: operação revertida deixava rastro de algo que não aconteceu, e falha ao auditar depois do COMMIT devolvia erro sobre escrita que ficou | `log(entry, client?)` aceita o cliente da transação. Aplicado onde mais importa: **acesso a dado sensível audita dentro da transação** — benefícios e abertura de documento. Ou os dois existem, ou nenhum dos dois | suítes existentes de benefícios e documentos |
+
+Isso encerra a pendência institucional **#7** do lado do sistema: quais aparelhos
+existem em cada casa passou a ser um cadastro, não uma suposição.
 
 ## Fase 6 — Relatórios e Drive
 Acompanhamentos, aprovações, relatórios (§14), arquivamento no Drive (#26, #27),

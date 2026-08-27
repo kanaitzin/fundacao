@@ -266,17 +266,65 @@ describe('Fase 4 — Medicamentos e Enfermagem', () => {
     expect(direto.status).toBe(403);
     expect(direto.body.message).toMatch(/aparelho institucional/i);
 
-    // No aparelho institucional, passa — e preserva o horário real
+    // Afirmar-se institucional não basta: o servidor confere contra o registro
+    // de aparelhos da casa. Antes, `institutionalDevice: true` no corpo da
+    // requisição era suficiente — a regra do §11.7 se apoiava na palavra do
+    // próprio aparelho.
+    const mentiroso = await request(http).post('/api/v1/sync/push').set(auth(tokens.enfermagem)).send({
+      operacoes: [{
+        clientOpId: 'dose-mentirosa-001', kind: 'medication.confirm', houseId: AI3,
+        payload: { administrationId: dose.id, estado: 'administrado_no_horario' },
+        happenedAt: new Date().toISOString(), queuedAt: new Date().toISOString(),
+        device: 'celular-pessoal', institutionalDevice: true,
+      }],
+    });
+    expect(mentiroso.body.resultados[0].status).toBe('rejeitada');
+
+    // A coordenação registra o aparelho da casa; o código é mostrado uma vez.
+    const aparelho = await request(http).post('/api/v1/devices').set(auth(tokens.coord))
+      .send({ houseId: AI3, rotulo: 'Tablet da Casa 03 — plantão' });
+    expect(aparelho.status).toBe(201);
+    expect(aparelho.body.token).toBeTruthy();
+
+    // Código errado continua sendo recusado.
+    const errado = await request(http).post('/api/v1/sync/push').set(auth(tokens.enfermagem)).send({
+      operacoes: [{
+        clientOpId: 'dose-token-errado-001', kind: 'medication.confirm', houseId: AI3,
+        payload: { administrationId: dose.id, estado: 'administrado_no_horario' },
+        happenedAt: new Date().toISOString(), queuedAt: new Date().toISOString(),
+        deviceToken: 'codigo-que-nao-existe',
+      }],
+    });
+    expect(errado.body.resultados[0].status).toBe('rejeitada');
+
+    // No aparelho institucional de verdade, passa — e preserva o horário real
     const horarioReal = new Date(Date.now() - 90 * 60_000).toISOString();
     const ok = await request(http).post('/api/v1/sync/push').set(auth(tokens.enfermagem)).send({
       operacoes: [{
         clientOpId: 'dose-institucional-001', kind: 'medication.confirm', houseId: AI3,
         payload: { administrationId: dose.id, estado: 'administrado_com_atraso', nota: 'Sem sinal na casa' },
         happenedAt: horarioReal, queuedAt: horarioReal,
-        device: 'tablet-casa-03', institutionalDevice: true,
+        device: 'tablet-casa-03', deviceToken: aparelho.body.token,
       }],
     });
     expect(ok.body.resultados[0].status).toBe('aplicada');
+
+    // Revogado, o mesmo código deixa de valer — sem apagar o histórico dele.
+    await request(http).post(`/api/v1/devices/${aparelho.body.id}/revoke`)
+      .set(auth(tokens.coord)).send({ motivo: 'Aparelho extraviado' });
+    const { rows: [outraDose] } = await admin.query(
+      `SELECT id FROM medication_administration WHERE state='aguardando_confirmacao' LIMIT 1`);
+    if (outraDose) {
+      const revogado = await request(http).post('/api/v1/sync/push').set(auth(tokens.enfermagem)).send({
+        operacoes: [{
+          clientOpId: 'dose-revogada-001', kind: 'medication.confirm', houseId: AI3,
+          payload: { administrationId: outraDose.id, estado: 'administrado_no_horario' },
+          happenedAt: new Date().toISOString(), queuedAt: new Date().toISOString(),
+          deviceToken: aparelho.body.token,
+        }],
+      });
+      expect(revogado.body.resultados[0].status).toBe('rejeitada');
+    }
 
     const { rows: [conf] } = await admin.query(
       `SELECT administered_at, synced_at, offline, institutional_device

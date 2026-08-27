@@ -217,8 +217,9 @@ describe('Fase 3 — Rotina, atividades, chamadas, linha do tempo e offline', ()
     // A técnica recebeu notificação na central — agrupada, não uma por atividade.
     const notif = await request(http).get('/api/v1/notifications').set(auth(tokens.tecnica));
     expect(notif.body.length).toBeGreaterThan(0);
-    expect(notif.body[0].titulo).toMatch(/sem confirmação/i);
-    const agrupadas = notif.body.filter((n: any) => /sem confirmação/i.test(n.titulo));
+    // Agrupada: uma notificação para N atividades vencidas, não uma por
+    // atividade. (Doses vencidas têm título e agrupamento próprios.)
+    const agrupadas = notif.body.filter((n: any) => n.titulo === 'Atividades sem confirmação');
     expect(agrupadas.length).toBe(1);
   });
 

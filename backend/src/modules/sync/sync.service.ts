@@ -3,6 +3,7 @@ import { DatabaseService } from '../../kernel/database/database.service';
 import { AuditService } from '../../kernel/audit/audit.service';
 import { EventBus } from '../../kernel/events/event-bus.service';
 import { AuthenticatedUser } from '../../kernel/contracts';
+import { DevicesService } from '../identity';
 
 export interface OfflineOp {
   clientOpId: string;
@@ -13,6 +14,9 @@ export interface OfflineOp {
   happenedAt: string;
   queuedAt: string;
   device?: string;
+  /** Código do aparelho institucional (§11.7). O servidor confere; o cliente não afirma. */
+  deviceToken?: string;
+  /** Preenchido pelo SERVIDOR a partir de `deviceToken`. Ignorado se vier do cliente. */
   institutionalDevice?: boolean;
 }
 
@@ -39,6 +43,7 @@ export class SyncService {
     @Inject(DatabaseService) private readonly db: DatabaseService,
     @Inject(AuditService) private readonly audit: AuditService,
     @Inject(EventBus) private readonly bus: EventBus,
+    @Inject(DevicesService) private readonly devices: DevicesService,
   ) {}
 
   /** Um módulo declara que sabe aplicar um tipo de operação offline. */
@@ -88,6 +93,14 @@ export class SyncService {
       const retentativa = jaVista != null;   // conflito/rejeitada anteriores
 
       // 2) Regra do aparelho institucional para medicamento (§11.7).
+      //
+      // Quem decide é o SERVIDOR, contra o registro de aparelhos da casa.
+      // Antes, `op.institutionalDevice` vinha no corpo da requisição: quem
+      // enviasse `true` passava, e o cenário de aceite #15 se apoiava na
+      // palavra do próprio aparelho.
+      const aparelhoId = await this.devices.verificar(user, op.houseId, op.deviceToken);
+      op.institutionalDevice = aparelhoId != null;
+
       if (op.kind.startsWith('medication.') && !op.institutionalDevice) {
         await this.registrar(user, op, 'rejeitada', 'aparelho não institucional');
         resultados.push({

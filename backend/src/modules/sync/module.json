@@ -14,5 +14,5 @@
     "sync_conflict"
   ],
   "removivel": true,
-  "observacao": "Não conhece nenhum domínio: quem sabe aplicar uma operação offline é o módulo dono, que se registra via SyncService.registerHandler."
+  "observacao": "Não conhece nenhum domínio: quem sabe aplicar uma operação offline é o módulo dono, que se registra via SyncService.registerHandler. O aparelho institucional (§11.7) é verificado pelo servidor contra o registro da casa — o cliente não afirma nada sobre si."
 }

@@ -81,36 +81,58 @@ export class ChecksService {
       const { rows: [k] } = await c.query(
         `SELECT * FROM collective_check WHERE id = $1`, [checkId]);
       if (!k) return null;
+      // A lista é a UNIÃO de quem está ativo agora com quem já foi conferido:
+      // uma criança que chegou depois da abertura precisa aparecer para ser
+      // olhada, e uma que saiu no meio não pode sumir com o registro dela.
       const { rows } = await c.query(
-        `SELECT p.id AS person_id,
-                coalesce(nullif(p.social_name,''), p.full_name) AS nome,
-                date_part('year', age(p.birth_date))::int AS idade,
+        `WITH efetivo AS (
+           SELECT s.person_id FROM house_stay s
+            WHERE s.house_id = $2 AND s.status = 'ativa'
+           UNION
+           SELECT r.person_id FROM check_result r WHERE r.check_id = $1
+         )
+         SELECT e.person_id,
+                app_person_display_name(e.person_id) AS nome,
+                app_person_age(e.person_id) AS idade,
+                EXISTS (SELECT 1 FROM house_stay s
+                         WHERE s.person_id = e.person_id AND s.house_id = $2
+                           AND s.status = 'ativa') AS ativo,
                 r.option_code, r.note, r.happened_at,
                 app_user_display_name(r.recorded_by) AS por,
                 (SELECT string_agg(h.description, ' · ') FROM health_condition h
-                  WHERE h.person_id = p.id AND h.active AND h.essential_alert) AS alertas,
+                  WHERE h.person_id = e.person_id AND h.active AND h.essential_alert) AS alertas,
                 (SELECT string_agg(f.restriction, ' · ') FROM food_restriction f
-                  WHERE f.person_id = p.id AND f.active) AS restricoes
-         FROM person p
-         JOIN house_stay s ON s.person_id = p.id AND s.status = 'ativa' AND s.house_id = $2
-         LEFT JOIN check_result r ON r.check_id = $1 AND r.person_id = p.id
-         ORDER BY coalesce(nullif(p.social_name,''), p.full_name)`, [checkId, k.house_id]);
+                  WHERE f.person_id = e.person_id AND f.active) AS restricoes
+         FROM efetivo e
+         LEFT JOIN check_result r ON r.check_id = $1 AND r.person_id = e.person_id
+         ORDER BY app_person_display_name(e.person_id)`, [checkId, k.house_id]);
       return { k, rows };
     });
     if (!data) throw new NotFoundException('Chamada não encontrada');
 
     const linhas = data.rows.map((r: any) => ({
-      acolhidoId: r.person_id, nome: r.nome, idade: r.idade,
+      acolhidoId: r.person_id, nome: r.nome ?? '(fora do seu alcance)', idade: r.idade,
+      // Quem saiu no meio da chamada continua listado com o que foi registrado,
+      // mas não é cobrado no fechamento.
+      ativo: r.ativo,
       // Alertas essenciais aparecem na hora de marcar — é onde eles importam.
       alertas: r.alertas, restricoes: r.restricoes,
       resultado: r.option_code, justificativa: r.note,
       registradoPor: r.por, registradoEm: r.happened_at,
     }));
     const conferidos = linhas.filter((l: any) => l.resultado).length;
+    // `faltam` é medido contra o EFETIVO VIVO, não contra o número congelado
+    // na abertura: era essa diferença que deixava a chamada fechar com uma
+    // criança recém-chegada sem conferir, ou travar quando alguém saía.
+    const pendentes = linhas.filter((l: any) => l.ativo && !l.resultado);
     return {
       id: data.k.id, tipo: data.k.kind, titulo: data.k.title,
-      status: data.k.status, esperados: data.k.expected, conferidos,
-      faltam: data.k.expected - conferidos,
+      status: data.k.status,
+      esperados: linhas.filter((l: any) => l.ativo).length,
+      esperadosNaAbertura: data.k.expected,
+      conferidos,
+      faltam: pendentes.length,
+      quemFalta: pendentes.map((l: any) => l.nome),
       opcoes: this.opcoes(data.k.kind),
       linhas,
     };
@@ -190,8 +212,11 @@ export class ChecksService {
       };
     } catch (e: any) {
       if (e?.message?.includes('conferencia_incompleta')) {
+        const quem = (e.message.split('conferencia_incompleta:')[1] ?? '').trim();
         throw new BadRequestException(
-          'Ainda há acolhidos sem conferência. Todos os ativos precisam ser conferidos individualmente.');
+          quem
+            ? `Ainda falta conferir: ${quem}. Todos os acolhidos ativos precisam ser conferidos individualmente.`
+            : 'Ainda há acolhidos sem conferência. Todos os ativos precisam ser conferidos individualmente.');
       }
       if (e?.message?.includes('chamada_inexistente')) throw new NotFoundException('Chamada não encontrada');
       throw e;
