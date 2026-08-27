@@ -123,11 +123,17 @@ export class ProfileService {
     }
     if (!sets.length) return { ok: true, alterado: 0 };
 
-    await this.db.asUser(user.id, async (c) => {
-      await c.query(
+    // `alterado` contava os campos ENVIADOS, não os gravados: fora de escopo,
+    // o RLS não atualizava linha nenhuma e a resposta seguia dizendo "ok".
+    const gravou = await this.db.asUser(user.id, async (c) => {
+      const { rowCount } = await c.query(
         `UPDATE profile_detail SET ${sets.join(', ')}, updated_at = now(), updated_by = $${vals.length + 1},
          version = version + 1 WHERE person_id = $1`, [...vals, user.id]);
+      return (rowCount ?? 0) > 0;
     });
+    if (!gravou) {
+      throw new NotFoundException('Perfil não encontrado — ou fora do seu alcance.');
+    }
     await this.audit.log({
       action: 'person.profile_update', actorId: user.id, entity: 'person', entityId: personId,
       detail: { campos: Object.keys(patch) },   // nomes dos campos, nunca o conteúdo (§20)

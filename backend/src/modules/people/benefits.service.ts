@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { DatabaseService } from '../../kernel/database/database.service';
 import { AuditService } from '../../kernel/audit/audit.service';
 import { AuthenticatedUser } from '../../kernel/contracts';
@@ -103,15 +103,27 @@ export class BenefitsService {
 
     const res = await this.db.asUser(user.id, async (c) => {
       if (input.id) {
+        // O `id` do registro precisa PERTENCER a este acolhido. Antes, a
+        // autorização era conferida pelo personId da URL e o UPDATE usava só o
+        // id do registro: com um id de outro acolhido da mesma casa — que passa
+        // pelo RLS — a conta bancária de uma criança era sobrescrita com os
+        // dados de outra, e a auditoria registrava o `entityId` de uma com o
+        // `personId` da outra. Na área mais sensível do sistema, o log contava
+        // outra história.
         const { rows: [antes] } = await c.query(
-          `SELECT benefit_type, bank_name, agency, account, status FROM benefit_record WHERE id = $1`, [input.id]);
+          `SELECT benefit_type, bank_name, agency, account, status FROM benefit_record
+            WHERE id = $1 AND person_id = $2`, [input.id, personId]);
+        if (!antes) {
+          throw new NotFoundException('Registro de benefício não encontrado para este acolhido.');
+        }
         const { rows: [r] } = await c.query(
           `UPDATE benefit_record SET benefit_type=$2, bank_name=$3, agency=$4, account=$5,
              status=coalesce($6,status), notes=$7, updated_at=now(), updated_by=$8
-           WHERE id = $1 RETURNING id`,
+           WHERE id = $1 AND person_id = $9 RETURNING id`,
           [input.id, input.tipo, input.banco ?? null, input.agencia ?? null, input.conta ?? null,
-           input.situacao ?? null, input.observacoes ?? null, user.id]);
-        return { id: r?.id, criado: false, mudouCampos: camposAlterados(antes, input) };
+           input.situacao ?? null, input.observacoes ?? null, user.id, personId]);
+        if (!r?.id) throw new NotFoundException('Registro de benefício não encontrado para este acolhido.');
+        return { id: r.id, criado: false, mudouCampos: camposAlterados(antes, input) };
       }
       const { rows: [r] } = await c.query(
         `INSERT INTO benefit_record (person_id, benefit_type, bank_name, agency, account, status, notes, created_by, updated_by)

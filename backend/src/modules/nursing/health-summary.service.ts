@@ -77,6 +77,14 @@ export class HealthSummaryService {
                    WHERE a.prescription_id = pr.id AND a.administered_at IS NOT NULL) AS ultima
          FROM prescription pr
          WHERE pr.person_id = $1 AND pr.status = 'ativa'
+           -- Tratamento com prazo que já terminou NÃO é medicamento em uso.
+           -- Nenhum caminho do sistema marca a prescrição como 'encerrada', e
+           -- app_generate_doses já parava de gerar doses pelo ends_on — só
+           -- este documento continuava listando. É o ÚNICO documento que sai da
+           -- instituição e vai para a mão de um profissional de saúde: uma
+           -- amoxicilina de maio aparecia como uso atual numa emergência de
+           -- setembro, com horários.
+           AND (pr.ends_on IS NULL OR pr.ends_on >= current_date)
          ORDER BY pr.medication`, [personId]);
 
       const { rows: atendimentos } = await c.query(

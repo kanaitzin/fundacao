@@ -157,6 +157,21 @@ export class PeopleService {
         `UPDATE care_episode SET status='encerrado', ended_at=now(), end_reason=$2
          WHERE person_id=$1 AND status='ativo'`, [personId, reason]);
 
+      // Uma solicitação de transferência pendente sobre quem já saiu é uma
+      // bomba-relógio: dias depois, a coordenação do destino clica em "aceitar"
+      // limpando a caixa e a criança volta a existir operacionalmente numa casa,
+      // com permanência nova pendurada num episódio encerrado. Cancelar aqui,
+      // na MESMA transação da saída, fecha esse caminho.
+      const { rows: [canc] } = await c.query(
+        `SELECT app_cancel_transfers_on_exit($1, $2) AS n`,
+        [personId, 'Cancelada automaticamente: o acolhido deixou a unidade.']);
+      if (Number(canc?.n ?? 0) > 0) {
+        await c.query(
+          `INSERT INTO audit_event (house_id, actor_id, action, entity, entity_id, detail)
+           VALUES ($1,$2,'transfer.cancel_on_exit','person',$3, jsonb_build_object('canceladas', $4::int))`,
+          [houseId, user.id, personId, Number(canc.n)]);
+      }
+
       await this.audit.log({
         action: 'person.discharge', actorId: user.id, institutionId: user.institutionId,
         houseId, entity: 'person', entityId: personId, detail: { motivo: reason },

@@ -181,24 +181,45 @@ describe('Fase 3 — Rotina, atividades, chamadas, linha do tempo e offline', ()
     expect(rows[0].state).not.toBe('nao_realizada_decisao_institucional');
   });
 
-  it('escalonamento avisa técnica/coordenação e é idempotente', async () => {
-    // O primeiro mark-unconfirmed (teste anterior) já escalonou.
+  it('escalonamento avisa técnica/coordenação e é idempotente por atividade', async () => {
+    // O primeiro mark-unconfirmed (teste anterior) já escalonou. O
+    // escalonamento é POR ATIVIDADE: usar a casa como entidade gastava a chave
+    // de idempotência no primeiro dia e calava o aviso para sempre.
     const { rows: esc } = await admin.query(
-      `SELECT level, count(*)::int AS n FROM escalation
-       WHERE entity='activity_batch' GROUP BY level`);
-    expect(esc.find((e: any) => e.level === 'tecnica_coordenacao')?.n).toBe(1);
+      `SELECT count(*)::int AS n FROM escalation
+        WHERE entity='activity_unconfirmed' AND level='tecnica_coordenacao'`);
+    expect(esc[0].n).toBeGreaterThan(0);
+    const antes = esc[0].n;
 
-    // Reprocessar não duplica escalonamento nem inunda de avisos.
+    // Reprocessar a fila não duplica: é o que a idempotência protege.
     await request(http).post('/api/v1/activities/mark-unconfirmed')
       .set(auth(tokens.tecnica)).send({ houseId: AI3, minutos: 60 });
     const { rows: depois } = await admin.query(
-      `SELECT count(*)::int AS n FROM escalation WHERE entity='activity_batch' AND level='tecnica_coordenacao'`);
-    expect(depois[0].n).toBe(1);
+      `SELECT count(*)::int AS n FROM escalation
+        WHERE entity='activity_unconfirmed' AND level='tecnica_coordenacao'`);
+    expect(depois[0].n).toBe(antes);
 
-    // A técnica recebeu notificação na central
+    // Mas uma atividade DIFERENTE vencendo gera aviso novo — o defeito antigo
+    // era exatamente este silêncio a partir do segundo caso.
+    const outra = await request(http).post('/api/v1/activities/urgent')
+      .set(auth(tokens.lider))
+      .send({ houseId: AI3, title: 'Reunião de equipe extraordinária',
+              scheduledAt: new Date(Date.now() - 3 * 3600_000).toISOString(),
+              reason: 'Convocação da coordenação para alinhar o plantão' });
+    expect(outra.status).toBe(201);
+    await request(http).post('/api/v1/activities/mark-unconfirmed')
+      .set(auth(tokens.tecnica)).send({ houseId: AI3, minutos: 60 });
+    const { rows: nova } = await admin.query(
+      `SELECT count(*)::int AS n FROM escalation
+        WHERE entity='activity_unconfirmed' AND level='tecnica_coordenacao'`);
+    expect(nova[0].n).toBeGreaterThan(antes);
+
+    // A técnica recebeu notificação na central — agrupada, não uma por atividade.
     const notif = await request(http).get('/api/v1/notifications').set(auth(tokens.tecnica));
     expect(notif.body.length).toBeGreaterThan(0);
     expect(notif.body[0].titulo).toMatch(/sem confirmação/i);
+    const agrupadas = notif.body.filter((n: any) => /sem confirmação/i.test(n.titulo));
+    expect(agrupadas.length).toBe(1);
   });
 
   it('notificação não revela conteúdo sensível fora do app', async () => {

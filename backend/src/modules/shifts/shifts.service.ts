@@ -3,7 +3,7 @@ import { DatabaseService } from '../../kernel/database/database.service';
 import { AuditService } from '../../kernel/audit/audit.service';
 import { EventBus } from '../../kernel/events/event-bus.service';
 import { AuthenticatedUser, EscalationRequest } from '../../kernel/contracts';
-import { hojeNaInstituicao } from '../../kernel/common/tempo';
+import { hojeNaInstituicao, dataDoPlantao } from '../../kernel/common/tempo';
 import { SECOES_ATA, CLASSIFICACOES_EPISODIO } from './ata-secoes';
 
 /**
@@ -36,7 +36,10 @@ export class ShiftsService {
   // ------------------------------------------------------------------
 
   async open(user: AuthenticatedUser, input: { houseId: string; data?: string; turno: string }) {
-    const data = input.data ?? hojeNaInstituicao();
+    // A noite pertence ao dia em que COMEÇOU: às 02h de quinta ainda é o
+    // plantão de quarta. Sem isso, quem abre antes e quem abre depois da
+    // meia-noite criam dois plantões para a mesma noite.
+    const data = input.data ?? dataDoPlantao(input.turno);
     if (!['diurno', 'noturno'].includes(input.turno)) {
       throw new BadRequestException('Turno deve ser "diurno" ou "noturno".');
     }
@@ -133,20 +136,37 @@ export class ShiftsService {
     });
     if (!s) throw new NotFoundException('Plantão não encontrado.');
 
-    const tardia = ['fechado', 'fechado_com_pendencia'].includes(s.status);
-    if (tardia && !input.happenedAt) {
+    if (['fechado', 'fechado_com_pendencia'].includes(s.status) && !input.happenedAt) {
       throw new BadRequestException(
         'Este plantão já foi fechado. Informe o horário real em que a passagem foi feita — ela entra como complemento tardio.');
     }
 
-    let id: string;
+    // TUDO numa transação só. Antes eram três chamadas `asUser` separadas, e
+    // entre a leitura do plantão e a gravação da passagem o líder podia fechar
+    // a ATA: a passagem entrava como assinada a tempo, sem adendo — exatamente
+    // o registro que o §12.4 quer impedir. Agora o estado é relido COM TRAVA
+    // dentro da mesma transação que grava, e o adendo nasce junto: ou os dois
+    // existem, ou nenhum dos dois.
+    let id: string; let tardia = false; let duplicada = false;
     try {
-      id = await this.db.asUser(user.id, async (c) => {
+      ({ id, tardia, duplicada } = await this.db.asUser(user.id, async (c) => {
         if (input.clientOpId) {
           const { rows: [dup] } = await c.query(
-            `SELECT id FROM handover WHERE client_op_id = $1`, [input.clientOpId]);
-          if (dup) return dup.id as string;
+            `SELECT id, late FROM handover WHERE client_op_id = $1`, [input.clientOpId]);
+          // Reenvio da fila devolve o que já existe e NÃO grava outro adendo.
+          // Antes, cinco reenvios numa madrugada de internet ruim criavam cinco
+          // adendos idênticos de "complemento tardio" — numa tabela append-only,
+          // sem como remover.
+          if (dup) return { id: dup.id as string, tardia: !!dup.late, duplicada: true };
         }
+        const { rows: [atual] } = await c.query(
+          `SELECT status FROM shift WHERE id = $1 FOR UPDATE`, [shiftId]);
+        const fechado = ['fechado', 'fechado_com_pendencia'].includes(atual?.status);
+        if (fechado && !input.happenedAt) {
+          throw new BadRequestException(
+            'Este plantão foi fechado enquanto você preenchia. Informe o horário real da passagem — ela entra como complemento tardio.');
+        }
+
         const { rows: [r] } = await c.query(
           `INSERT INTO handover (shift_id, house_id, user_id, role, device, items,
              contributions, pending, guidance, happened_at, late, offline, client_op_id)
@@ -155,10 +175,20 @@ export class ShiftsService {
           [shiftId, s.house_id, user.id, user.role, input.aparelho ?? null,
            JSON.stringify(input.itens ?? {}), input.contribuicoes ?? null,
            input.pendencias ?? null, input.orientacoes ?? null,
-           input.happenedAt ?? null, tardia, input.offline ?? false, input.clientOpId ?? null]);
-        return r.id as string;
-      });
+           input.happenedAt ?? null, fechado, input.offline ?? false, input.clientOpId ?? null]);
+
+        if (fechado) {
+          await c.query(
+            `INSERT INTO ata_addendum (ata_id, kind, reason, after_state, author_id)
+             SELECT a.id, 'complemento_tardio',
+                    'Passagem assinada após o fechamento, com horário real informado.',
+                    jsonb_build_object('handover', $2::text), $3
+             FROM ata a WHERE a.shift_id = $1`, [shiftId, r.id, user.id]);
+        }
+        return { id: r.id as string, tardia: fechado, duplicada: false };
+      }));
     } catch (e: any) {
+      if (e instanceof BadRequestException) throw e;
       if (e?.code === '23505') {
         throw new BadRequestException(
           'Você já assinou a passagem deste plantão. Um registro adicional entra como relato complementar.');
@@ -170,15 +200,9 @@ export class ShiftsService {
       throw e;
     }
 
-    if (tardia) {
-      await this.db.asUser(user.id, async (c) => {
-        await c.query(
-          `INSERT INTO ata_addendum (ata_id, kind, reason, after_state, author_id)
-           SELECT a.id, 'complemento_tardio',
-                  'Passagem assinada após o fechamento, com horário real informado.',
-                  jsonb_build_object('handover', $2::text), $3
-           FROM ata a WHERE a.shift_id = $1`, [shiftId, id, user.id]);
-      });
+    if (duplicada) {
+      return { id, tardia, duplicada: true,
+               aviso: 'Esta passagem já havia sido registrada — o reenvio não cria outra.' };
     }
 
     await this.audit.log({
@@ -407,7 +431,9 @@ export class ShiftsService {
   // ------------------------------------------------------------------
 
   async openGeneral(user: AuthenticatedUser, data?: string) {
-    const dia = data ?? hojeNaInstituicao();
+    // A ATA Geral é da NOITE, e a noite tem a data em que começou — senão o
+    // líder que a abre depois da meia-noite não encontra as ATAs das casas.
+    const dia = data ?? dataDoPlantao('noturno');
     const r = await this.comando(user, 'app_open_general_night_ata($1)', [dia], {
       apenas_lider_noturno_geral: () => new ForbiddenException(
         'A ATA Geral Noturna é do Líder Noturno Geral.'),

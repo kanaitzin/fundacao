@@ -201,8 +201,14 @@ describe('Fase 4 — Medicamentos e Enfermagem', () => {
 
   it('cenário #14 — dose vencida continua "aguardando confirmação", nunca "não administrado"', async () => {
     // Cria uma dose no passado
+    // A prescrição precisa ser de um acolhido ATIVO na casa — do contrário a
+    // dose existe mas fica fora do escopo de quem consulta, e o teste passa a
+    // medir outra coisa.
     const { rows: [pr] } = await admin.query(
-      `SELECT id, person_id, house_id FROM prescription WHERE status='ativa' LIMIT 1`);
+      `SELECT p.id, p.person_id, p.house_id FROM prescription p
+        JOIN house_stay s ON s.person_id = p.person_id AND s.status = 'ativa'
+       WHERE p.status='ativa' AND p.house_id = $1 LIMIT 1`, [AI3]);
+    expect(pr).toBeDefined();
     await admin.query(
       `INSERT INTO medication_administration (prescription_id, person_id, house_id, scheduled_at)
        VALUES ($1,$2,$3, now() - interval '2 hours')`, [pr.id, pr.person_id, pr.house_id]);

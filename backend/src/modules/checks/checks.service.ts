@@ -121,7 +121,8 @@ export class ChecksService {
    * a conferência é individual por definição (§10, §11.2).
    */
   async mark(user: AuthenticatedUser, checkId: string, input: {
-    personId: string; opcao: string; nota?: string; offline?: boolean; clientOpId?: string;
+    personId: string; opcao: string; nota?: string; offline?: boolean;
+    clientOpId?: string; happenedAt?: string;
   }) {
     const kind = await this.db.asUser(user.id, async (c) => {
       const { rows: [k] } = await c.query(`SELECT kind, house_id, status FROM collective_check WHERE id=$1`, [checkId]);
@@ -140,15 +141,23 @@ export class ChecksService {
     }
 
     try {
+      const dup = await this.db.asUser(user.id, async (c) => {
+        if (!input.clientOpId) return false;
+        const { rows: [d] } = await c.query(
+          `SELECT id FROM check_result WHERE client_op_id = $1`, [input.clientOpId]);
+        return !!d;
+      });
+      if (dup) return { ok: true, duplicada: true, opcao: opcao.label };
+
       await this.db.asUser(user.id, async (c) => {
         await c.query(
-          `INSERT INTO check_result (check_id, person_id, option_code, note, recorded_by, offline, client_op_id)
-           VALUES ($1,$2,$3,$4,$5,$6,$7)
+          `INSERT INTO check_result (check_id, person_id, option_code, note, recorded_by, offline, client_op_id, happened_at)
+           VALUES ($1,$2,$3,$4,$5,$6,$7, coalesce($8::timestamptz, now()))
            ON CONFLICT (check_id, person_id) DO UPDATE
              SET option_code = EXCLUDED.option_code, note = EXCLUDED.note,
                  recorded_by = EXCLUDED.recorded_by, recorded_at = now()`,
           [checkId, input.personId, input.opcao, input.nota ?? null, user.id,
-           input.offline ?? false, input.clientOpId ?? null]);
+           input.offline ?? false, input.clientOpId ?? null, input.happenedAt ?? null]);
       });
     } catch (e: any) {
       // A política do banco (migração 0150) só aceita acolhido com permanência

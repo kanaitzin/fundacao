@@ -6,6 +6,7 @@ import { DatabaseService } from '../../kernel/database/database.service';
 import { AuditService } from '../../kernel/audit/audit.service';
 import { EventBus } from '../../kernel/events/event-bus.service';
 import { AuthenticatedUser } from '../../kernel/contracts';
+import { hojeNaInstituicao } from '../../kernel/common/tempo';
 
 /** Estados que encerram a atividade — depois deles só cabe adendo. */
 const ESTADOS_FINAIS = new Set([
@@ -139,14 +140,23 @@ export class ActivitiesService {
     }
 
     const res = await this.db.asUser(user.id, async (c) => {
-      const { rows: [a] } = await c.query(`SELECT id, house_id, person_id, title FROM activity WHERE id = $1`, [activityId]);
+      // FOR UPDATE + leitura do estado: a atividade já encerrada não é
+      // reescrita. Antes, `ESTADOS_FINAIS` só escondia o botão na tela — quem
+      // chamasse a rota às 17h sobrescrevia o "compareceu" registrado às 08h,
+      // e todo consumidor lê `activity.state` (painel, visão dos 20, relatório).
+      const { rows: [a] } = await c.query(
+        `SELECT id, house_id, person_id, title, state FROM activity WHERE id = $1 FOR UPDATE`,
+        [activityId]);
       if (!a) return null;
+      if (ESTADOS_FINAIS.has(a.state) && !input.clientOpId) {
+        return { a, encerrada: true, duplicada: false };
+      }
 
       // Idempotência offline (§17.4): reenvio da mesma operação não duplica.
       if (input.clientOpId) {
         const { rows: [dup] } = await c.query(
           `SELECT id FROM activity_execution WHERE client_op_id = $1`, [input.clientOpId]);
-        if (dup) return { a, duplicada: true };
+        if (dup) return { a, duplicada: true, encerrada: false };
       }
 
       await c.query(
@@ -162,9 +172,14 @@ export class ActivitiesService {
            updated_at=now(), version=version+1 WHERE id=$1`,
         [activityId, input.estado, EXIGEM_JUSTIFICATIVA.has(input.estado) ? (input.nota ?? null) : null]);
 
-      return { a, duplicada: false };
+      return { a, duplicada: false, encerrada: false };
     });
     if (!res) throw new NotFoundException('Atividade não encontrada');
+    if ((res as any).encerrada) {
+      throw new BadRequestException(
+        `Esta atividade já foi encerrada como "${ESTADO_LABEL[(res.a as any).state] ?? (res.a as any).state}". `
+        + 'Uma correção entra como adendo pela equipe técnica — o registro original não é sobrescrito.');
+    }
     if (res.duplicada) return { ok: true, duplicada: true, estado: input.estado };
 
     await this.audit.log({
@@ -302,15 +317,28 @@ export class ActivitiesService {
     });
     if (n > 0) {
       // Contrato genérico do kernel: pedimos que alguém seja avisado, sem
-      // saber quem avisa (§8.5).
-      await this.bus.publish('escalation.requested', {
-        level: 'tecnica_coordenacao',
-        entity: 'activity_batch', entityId: houseId,
-        reason: `${n} atividade(s) sem confirmação há mais de ${minutes} min`,
-        title: 'Atividades sem confirmação',
-        body: `${n} atividade(s) venceram sem registro. "Sem confirmação" não significa não realizada — é preciso conferir com a equipe do plantão.`,
-        priority: 'alta', groupKey: `unconfirmed:${houseId}`,
-      }, { houseId });
+      // saber quem avisa (§8.5). O escalonamento é por ATIVIDADE — usar a casa
+      // como entidade gastava a chave de idempotência no primeiro dia e calava
+      // o aviso para sempre. `groupKey` continua juntando tudo numa
+      // notificação só na caixa de entrada.
+      const vencidas = await this.db.asUser(user.id, async (c) => {
+        const { rows } = await c.query(
+          `SELECT id FROM activity
+           WHERE house_id = $1 AND state = 'sem_confirmacao'
+             AND (scheduled_at AT TIME ZONE 'America/Sao_Paulo')::date = $2::date`,
+          [houseId, hojeNaInstituicao()]);
+        return rows.map((r) => r.id as string);
+      });
+      for (const id of vencidas) {
+        await this.bus.publish('escalation.requested', {
+          level: 'tecnica_coordenacao',
+          entity: 'activity_unconfirmed', entityId: id,
+          reason: `atividade sem confirmação há mais de ${minutes} min`,
+          title: 'Atividades sem confirmação',
+          body: `${n} atividade(s) venceram sem registro nesta casa. "Sem confirmação" não significa não realizada — é preciso conferir com a equipe do plantão.`,
+          priority: 'alta', groupKey: `unconfirmed:${houseId}`,
+        }, { houseId });
+      }
     }
     return { marcadas: n, aviso: 'Marcadas como “sem confirmação”. A equipe analisa; o sistema não conclui omissão.' };
   }

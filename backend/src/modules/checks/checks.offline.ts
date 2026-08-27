@@ -1,37 +1,37 @@
 import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
-import { SyncService } from '../sync';
-import { DatabaseService } from '../../kernel/database/database.service';
+import { SyncService, OfflineOp } from '../sync';
 import { AuthenticatedUser } from '../../kernel/contracts';
+import { ChecksService } from './checks.service';
 
-/** Aplicador das marcações de chamada feitas offline (§17). */
+/**
+ * Aplicador das marcações de chamada feitas offline (§17).
+ *
+ * **Por que passa pelo serviço.** Escrevendo direto na tabela, a fila não
+ * validava a opção contra a lista do tipo de chamada (a coluna é `text`, sem
+ * CHECK) e não exigia a justificativa que toda opção de exceção exige
+ * (§10). Pela API, marcar "Recusou" no almoço sem dizer o que houve dá 400;
+ * pela fila, entrava vazio — e a chamada era confirmada como completa.
+ *
+ * Estar sem sinal não afrouxa a regra: se não passa, vira conflito para
+ * decisão humana (§17.4).
+ */
 @Injectable()
 export class ChecksOfflineHandlers implements OnModuleInit {
   constructor(
     @Inject(SyncService) private readonly sync: SyncService,
-    @Inject(DatabaseService) private readonly db: DatabaseService,
+    @Inject(ChecksService) private readonly checks: ChecksService,
   ) {}
 
   onModuleInit() {
     this.sync.registerHandler('check.mark', (u, op) => this.mark(u, op));
   }
 
-  private async mark(user: AuthenticatedUser, op: any) {
-    const p = op.payload;
-    return this.db.asUser(user.id, async (c) => {
-      const { rows: [dup] } = await c.query(
-        `SELECT id FROM check_result WHERE client_op_id = $1`, [op.clientOpId]);
-      if (dup) return { duplicada: true };
-
-      // A política do banco continua valendo aqui: só entra quem tem
-      // permanência ativa na casa da chamada, mesmo vindo do offline.
-      await c.query(
-        `INSERT INTO check_result (check_id, person_id, option_code, note, recorded_by,
-           happened_at, offline, client_op_id)
-         VALUES ($1,$2,$3,$4,$5,$6,true,$7)
-         ON CONFLICT (check_id, person_id) DO UPDATE
-           SET option_code = EXCLUDED.option_code, note = EXCLUDED.note, recorded_at = now()`,
-        [p.checkId, p.personId, p.opcao, p.nota ?? null, user.id, op.happenedAt, op.clientOpId]);
-      return {};
+  private async mark(user: AuthenticatedUser, op: OfflineOp) {
+    const p = op.payload as any;
+    const r = await this.checks.mark(user, p.checkId, {
+      personId: p.personId, opcao: p.opcao, nota: p.nota,
+      offline: true, clientOpId: op.clientOpId, happenedAt: op.happenedAt,
     });
+    return { duplicada: !!(r as any).duplicada };
   }
 }

@@ -73,10 +73,19 @@ export class SyncService {
           `SELECT status FROM offline_operation WHERE client_op_id = $1`, [op.clientOpId]);
         return r?.status as string | undefined;
       });
-      if (jaVista) {
+      // Só o que FOI APLICADO é duplicata. Uma operação que falhou (conflito)
+      // ou foi recusada continua pendente, e o reenvio é uma NOVA tentativa.
+      //
+      // Antes, qualquer estado gravado respondia "duplicada" e o clientOpId
+      // voltava em `podeLimpar` — o aparelho apagava o registro local de uma
+      // operação que nunca chegou a existir no servidor. Uma confirmação de
+      // dose podia deixar de existir em qualquer lugar. É o oposto do §17.2,
+      // que só autoriza apagar depois de sincronização VERIFICADA.
+      if (jaVista === 'aplicada' || jaVista === 'duplicada') {
         resultados.push({ clientOpId: op.clientOpId, status: 'duplicada', motivo: `já ${jaVista}` });
         continue;
       }
+      const retentativa = jaVista != null;   // conflito/rejeitada anteriores
 
       // 2) Regra do aparelho institucional para medicamento (§11.7).
       if (op.kind.startsWith('medication.') && !op.institutionalDevice) {
@@ -98,7 +107,11 @@ export class SyncService {
       try {
         const r = await handler(user, op);
         await this.registrar(user, op, r.duplicada ? 'duplicada' : 'aplicada');
-        resultados.push({ clientOpId: op.clientOpId, status: r.duplicada ? 'duplicada' : 'aplicada' });
+        resultados.push({
+          clientOpId: op.clientOpId,
+          status: r.duplicada ? 'duplicada' : 'aplicada',
+          motivo: retentativa ? 'aplicada em nova tentativa' : undefined,
+        });
       } catch (e: any) {
         // Falha de aplicação vira conflito para revisão humana, não descarte.
         await this.registrar(user, op, 'conflito', e?.message ?? 'erro ao aplicar');
@@ -140,7 +153,14 @@ export class SyncService {
         `INSERT INTO offline_operation (client_op_id, user_id, house_id, kind, payload,
            happened_at, queued_at, applied_at, status, device, institutional_device, error)
          VALUES ($1,$2,$3,$4,$5::jsonb,$6,$7, CASE WHEN $8='aplicada' THEN now() END, $8,$9,$10,$11)
-         ON CONFLICT (client_op_id) DO NOTHING`,
+         -- Na RETENTATIVA a linha já existe com status 'conflito': o resultado
+         -- novo precisa substituir o antigo, senão a operação aplicada com
+         -- sucesso continuaria marcada como falha para sempre.
+         ON CONFLICT (client_op_id) DO UPDATE
+           SET status = EXCLUDED.status,
+               applied_at = EXCLUDED.applied_at,
+               error = EXCLUDED.error,
+               payload = EXCLUDED.payload`,
         [op.clientOpId, user.id, op.houseId ?? null, op.kind, JSON.stringify(op.payload ?? {}),
          op.happenedAt, op.queuedAt ?? op.happenedAt, status, op.device ?? null,
          op.institutionalDevice ?? false, error ?? null]);

@@ -6,6 +6,7 @@ import { DatabaseService } from '../../kernel/database/database.service';
 import { AuditService } from '../../kernel/audit/audit.service';
 import { EventBus } from '../../kernel/events/event-bus.service';
 import { AuthenticatedUser } from '../../kernel/contracts';
+import { hojeNaInstituicao } from '../../kernel/common/tempo';
 
 /** Estados que exigem observação obrigatória (§11.4). */
 const EXIGEM_NOTA = new Set([
@@ -112,11 +113,27 @@ export class MedicationsService {
       throw new ForbiddenException('Somente a Enfermagem suspende um esquema.');
     }
     if (!motivo?.trim()) throw new BadRequestException('Informe a orientação que motivou a suspensão.');
-    await this.db.asUser(user.id, async (c) => {
-      await c.query(
-        `UPDATE prescription SET status='suspensa', suspended_reason=$2, version=version+1 WHERE id=$1`,
+    // Antes: `rowCount` ignorado e sem pré-condição de estado. Suspender um id
+    // inexistente, um rascunho ou uma prescrição de outra casa devolvia
+    // {ok:true} e gravava auditoria de suspensão — a Enfermagem acreditava ter
+    // suspendido o medicamento enquanto as doses continuavam sendo geradas.
+    const suspensa = await this.db.asUser(user.id, async (c) => {
+      const { rowCount } = await c.query(
+        `UPDATE prescription SET status='suspensa', suspended_reason=$2, version=version+1
+          WHERE id=$1 AND status='ativa'`,
         [prescriptionId, motivo]);
+      return (rowCount ?? 0) > 0;
     });
+    if (!suspensa) {
+      const atual = await this.db.asUser(user.id, async (c) => {
+        const { rows: [r] } = await c.query(`SELECT status FROM prescription WHERE id=$1`, [prescriptionId]);
+        return r?.status as string | undefined;
+      });
+      if (!atual) throw new NotFoundException('Prescrição não encontrada.');
+      throw new BadRequestException(
+        atual === 'suspensa' ? 'Este esquema já está suspenso.'
+        : `Só se suspende um esquema ativo. Este está como "${atual}".`);
+    }
     await this.audit.log({
       action: 'prescription.suspend', actorId: user.id,
       entity: 'prescription', entityId: prescriptionId, detail: { motivo },
@@ -244,15 +261,20 @@ export class MedicationsService {
       return rows;
     });
 
-    if (pendentes.length) {
-      // Enfermagem, equipe técnica e coordenação (§11.3). Dois níveis, mesmo
-      // contrato genérico — este módulo não conhece o de notificações.
+    // O escalonamento é por DOSE, não por casa. Antes o `entityId` era a casa,
+    // e como a chave de idempotência de `escalation` é (entity, entity_id,
+    // level), o primeiro atraso da Casa 03 gastava a chave: nenhuma outra dose,
+    // em nenhum outro dia, gerava aviso — para sempre, e em silêncio.
+    //
+    // O agrupamento na caixa de entrada continua sendo feito por `groupKey`,
+    // que existe exatamente para não inundar o educador (§19).
+    for (const dose of pendentes) {
       for (const level of ['enfermagem', 'tecnica_coordenacao']) {
         await this.bus.publish('escalation.requested', {
-          level, entity: 'medication_overdue', entityId: houseId,
-          reason: `${pendentes.length} dose(s) sem confirmação há mais de ${minutos} min`,
-          title: 'Doses de medicamento sem confirmação',
-          body: `${pendentes.length} dose(s) venceram sem registro. Permanecem como "aguardando confirmação" — o sistema não conclui que não foram administradas.`,
+          level, entity: 'medication_dose', entityId: dose.id,
+          reason: `dose sem confirmação há mais de ${minutos} min`,
+          title: 'Dose de medicamento sem confirmação',
+          body: `${pendentes.length} dose(s) venceram sem registro nesta casa. Permanecem como "aguardando confirmação" — o sistema não conclui que não foram administradas.`,
           priority: 'critica', groupKey: `dose-overdue:${houseId}:${level}`,
         }, { actorId: user.id, houseId });
       }
@@ -278,7 +300,7 @@ export class MedicationsService {
                 app_person_display_name(s.person_id) AS pessoa
          FROM medication_stock s
          WHERE s.house_id = $1 ORDER BY s.expires_on NULLS LAST, s.medication`, [houseId]);
-      const hoje = new Date();
+      const hoje = new Date(`${hojeNaInstituicao()}T12:00:00Z`);
       return rows.map((r) => {
         const dias = r.expires_on
           ? Math.ceil((new Date(r.expires_on).getTime() - hoje.getTime()) / 86_400_000) : null;

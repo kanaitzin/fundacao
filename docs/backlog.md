@@ -294,6 +294,77 @@ unidade de origem, conversa entre as coordenações e recusa justificada.
   coordenação de origem sem nada para fazer com a criança. O motivo virou
   obrigatório no comando (não na tela) e é gravado dos dois lados.
 
+## Auditoria de defeitos — duas varreduras ✅
+
+Feita a pedido de Leonardo ("vamos arrumar os erros e bugs"). Duas varreduras
+independentes sobre o código inteiro, com verificação caso a caso contra as
+políticas e as constraints do banco. **Vinte e nove defeitos confirmados.**
+
+O fio comum, e a razão de valerem uma seção: **nenhum deles dava erro.** A tela
+continuava mostrando tudo normal enquanto o alerta de medicação parava de sair,
+a dose era sobrescrita, o registro offline sumia do aparelho e a rotina noturna
+duplicava. Num sistema de proteção, falhar em silêncio é pior do que falhar.
+
+### Primeira varredura — `JOIN` com tabela sob RLS (8 achados)
+
+| Onde | O que sumia | Correção |
+|---|---|---|
+| ATA fechada | o episódio de contenção, no dia da transferência | `app_person_display_name` |
+| Ocorrência | o nome de quem ela trata, para quem precisa revisar | idem |
+| ATA Geral Noturna | 7 das 8 casas, com contador dizendo "1 de 1 confirmada" | `app_house_label` / `app_house_name` |
+| Fila de triagem | a evolução pendente, para a técnica que recebeu a criança | `app_house_label` |
+| Atividade individual | o nome do acolhido; virava linha "—" no Painel da Casa | `app_person_display_name` + `app_person_age` |
+| Estoque nominal | virava indistinguível de estoque de uso comum | idem |
+| Item de rotina | idem | idem |
+| Situação da ATA da casa | "não posso ver" exibido como "sem ATA aberta" | `app_night_ata_status` |
+
+**Travas:** `test/arquitetura.spec.ts` exige comentário `rls-join-ok:` em todo
+`JOIN` com tabela protegida; `test/regressao-saida.e2e.spec.ts` transfere
+crianças de propósito. Verificado que 4 dos 6 testes falham sem a correção.
+
+### Segunda varredura — estado, concorrência e fuso (21 achados)
+
+| # | Defeito | Correção |
+|---|---|---|
+| 1 | O alerta de dose vencida disparava **uma vez por casa e nunca mais** — a chave de idempotência do escalonamento não tinha data e usava a casa como entidade | escalonamento por **dose**; `on_date` na chave |
+| 2 | Dois educadores confirmando a mesma dose: a segunda sobrescrevia a primeira sem rastro | `FOR UPDATE` em `app_confirm_dose` |
+| 3 | Operação offline que falhou voltava como "duplicada" e o aparelho **apagava o registro local** | só `aplicada` é duplicata; retentativa é nova tentativa |
+| 4 | Plantão noturno atravessando a meia-noite caía no dia seguinte | `dataDoPlantao()` |
+| 5 | Aceite de transferência não conferia se a criança ainda estava lá | estado verificado no comando; saída cancela pendentes; índice único |
+| 6 | `app_generate_day` duplicava a rotina noturna a cada recarga (cast de data no fuso do banco) | comparação em `America/Sao_Paulo` + índice único |
+| 7 | ATA reaberta podia ser reescrita por PATCH, sem adendo e sem cargo | política de UPDATE por status e cargo |
+| 8 | `app_review_incident` fechava ocorrência que ninguém encerrou, e refechava a já fechada | verificação de estado; síntese exigida também em contenção e violência |
+| 9 | Os handlers offline entravam **por baixo** das validações (justificativa, `exception_note`, estado da ciência, receita e prazo da evolução descartados) | passam pelo serviço |
+| 10 | `app_missing_handovers` ignorava turno e escala: toda ATA fechava "com pendência" nomeando quem estava de folga | usa `work_schedule`, e declara a fonte |
+| 11 | Atividade concluída podia ser "reconcluída" com outro estado horas depois | estado final verificado com trava |
+| 12 | `app_amend_ata` era o único comando de ATA **sem checagem de casa** | linha acrescentada |
+| 13 | Chamada comparava contagem viva contra número congelado | pendente — ver abaixo |
+| 14 | Uma dose baixava **dois** estoques (comum e nominal) | precedência do nominal |
+| 16 | Prescrição com prazo vencido aparecia como uso atual no **Resumo de Saúde** — o único documento que sai da instituição | filtro por `ends_on` |
+| 17 | `rowCount` ignorado em `suspend`, `benefits` e `updateDetail`: sucesso sobre zero linhas | verificado, com erro honesto |
+| 18 | `benefits.upsert` não amarrava o `id` ao acolhido: dava para sobrescrever a conta de outro | `WHERE id = $1 AND person_id = $2` |
+| 19 | Família de comandos com `SELECT` sem trava (fechar ATA, reabrir, encerrar ocorrência) | `FOR UPDATE` |
+| 20 | Duas solicitações de transferência pendentes pela mesma criança | índice único parcial |
+| 21 | Comunicação externa aprovada pelo próprio autor | gatilho recusa |
+
+**Trava:** `test/regressao-estado.e2e.spec.ts`, 12 testes. Verificado que 7
+falham sem as correções de serviço (os outros 5 são protegidos por migração).
+
+### O que ficou de fora, e por quê
+
+- **#13 (chamada coletiva)** — `expected` é fotografado na abertura e a
+  conferência é contada sobre quem está ativo agora. Uma criança que chega no
+  meio da chamada não é conferida, e uma que sai trava a confirmação. A
+  correção mexe na semântica da "chamada final dos 20" e é melhor decidir com a
+  equipe antes: vale reabrir a chamada, ou abrir outra?
+- **Auditoria fora da transação** (`audit.service` usa a conexão do pool, não o
+  cliente da transação): uma operação revertida pode deixar rastro de auditoria.
+  Conservador na direção certa — sobra registro, não falta —, mas é uma refatoração
+  transversal que merece fase própria.
+- **`institutionalDevice` vem do cliente**: a regra do §11.7 se apoia num campo
+  que o próprio aparelho afirma. Falta a tabela de aparelhos designados por casa
+  (pendência institucional #7).
+
 ## Fase 6 — Relatórios e Drive
 Acompanhamentos, aprovações, relatórios (§14), arquivamento no Drive (#26, #27),
 exportações auditadas (#32), painéis sem ranking.

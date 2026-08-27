@@ -354,6 +354,8 @@ export class IncidentsService {
       cargo_nao_encerra_ocorrencia: () => new ForbiddenException(
         'O encerramento da etapa operacional cabe ao líder responsável, à equipe técnica ou à coordenação.'),
       ocorrencia_ja_fechada: () => new BadRequestException('Esta ocorrência já está fechada.'),
+      etapa_operacional_ja_encerrada: () => new BadRequestException(
+        'A etapa operacional desta ocorrência já foi encerrada.'),
       ocorrencia_inexistente: () => new NotFoundException('Ocorrência não encontrada.'),
     });
 
@@ -382,7 +384,15 @@ export class IncidentsService {
       cargo_nao_revisa: () => new ForbiddenException(
         'A validação técnica cabe à equipe técnica e à coordenação.'),
       sintese_ausente: () => new BadRequestException(
-        'Registre a síntese técnica antes de fechar: em caso de saúde ou medicamento, o fechamento precisa dizer a que se chegou.'),
+        'Registre a síntese técnica antes de fechar. Em caso de saúde, medicamento, contenção ou '
+        + 'violência, o fechamento precisa dizer a que se chegou.'),
+      etapa_operacional_em_aberto: () => new BadRequestException(
+        'A revisão técnica vem depois do encerramento da etapa operacional. '
+        + 'O líder responsável precisa encerrá-la primeiro.'),
+      ocorrencia_ja_fechada: () => new BadRequestException(
+        'Esta ocorrência já está fechada. Reabra com histórico se for preciso rever.'),
+      ocorrencia_nao_esta_encerrada: () => new BadRequestException(
+        'Só se reabre uma ocorrência encerrada ou fechada.'),
       decisao_invalida: () => new BadRequestException('Decisão deve ser "validar" ou "reabrir".'),
       ocorrencia_inexistente: () => new NotFoundException('Ocorrência não encontrada.'),
     });
@@ -521,6 +531,17 @@ export class IncidentsService {
         `UPDATE external_communication SET status = 'aprovado', approved_by = $2, approved_at = now()
          WHERE id = $1 AND status IN ('rascunho','em_revisao')`, [id, user.id]);
       return (rowCount ?? 0) > 0;
+    }).catch((e: any) => {
+      // Padrão protetivo (reversível): quem redige não aprova. O §13.6 trata
+      // "registrar", "revisar" e "aprovar" como etapas distintas — e uma
+      // comunicação ao Judiciário ou ao Conselho Tutelar aprovada pelo próprio
+      // autor não passou por revisão nenhuma.
+      if ((e?.message ?? '').includes('aprovador_igual_ao_autor')) {
+        throw new BadRequestException(
+          'Quem redigiu a comunicação não pode aprová-la. A aprovação é de outra pessoa da equipe técnica, '
+          + 'da coordenação ou do Gestor Geral.');
+      }
+      throw e;
     });
     if (!ok) throw new BadRequestException('Só se aprova comunicação em rascunho ou em revisão.');
     await this.audit.log({ action: 'external_comm.approve', actorId: user.id,
