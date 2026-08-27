@@ -214,7 +214,7 @@ main.screen{flex:1;padding:16px 14px 128px;background:var(--ground)}
 .btn.tone{background:var(--ct);color:var(--on-solid)}
 
 /* Campos */
-input[type=text],input[type=password],input[type=email],textarea,select.field{
+input:not([type=checkbox]):not([type=radio]),textarea,select.field,.sheet select{
   width:100%;background:var(--raised);color:var(--ink);border:1.5px solid var(--line-2);
   border-radius:var(--r-sm);padding:11px 12px;font:inherit;font-size:15px;
 }
@@ -378,6 +378,57 @@ hr.divider{border:none;border-top:1px solid var(--line);margin:13px 0}
   box-shadow:var(--shadow-2);max-width:92vw;text-align:center;line-height:1.35;
 }
 :root[data-theme="dark"] .toast, :root:not([data-theme="light"]) .toast{border:1px solid var(--line-2)}
+
+/* ===== Entrada e equipe (espelham o sistema real) ===== */
+.loginwrap{min-height:100dvh;display:grid;place-items:center;padding:24px;
+  background:radial-gradient(1200px 600px at 50% -10%, #0A4A86 0%, transparent 60%),
+  linear-gradient(160deg,var(--navy) 0%,var(--navy-2) 55%,#001B38 100%)}
+.logincard{width:100%;max-width:430px;background:var(--surface);color:var(--ink);
+  border-radius:20px;padding:34px 30px 26px;box-shadow:0 24px 60px rgba(0,20,45,.45)}
+.loginbrand{text-align:center;margin-bottom:22px}
+.loginlogo{width:92px;height:92px;margin:0 auto 14px;display:grid;place-items:center;
+  border-radius:50%;background:var(--brand-soft);border:1px solid var(--line);font-size:34px}
+.logincard h2{font-size:19px;line-height:1.32;margin:0;color:var(--navy);font-weight:800}
+.logincard h2 span{display:block;font-weight:600;color:var(--brand)}
+.loginsub{margin:8px 0 0;font-size:13px;color:var(--muted);text-align:center}
+.loginhint{margin:8px 0 4px;font-size:12.5px;line-height:1.5;color:var(--muted)}
+.loginfoot{margin:18px 0 0;font-size:12px;line-height:1.5;color:var(--muted);text-align:center}
+.demochips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.chipbtn{border:1px solid var(--line-2);background:var(--surface);color:var(--brand);
+  border-radius:999px;padding:7px 14px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit}
+.chipbtn:hover{background:var(--brand-soft);border-color:var(--brand)}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px}
+.tabela{width:100%;border-collapse:collapse;font-size:13px;min-width:900px}
+.tabela thead th{background:var(--navy);color:var(--on-navy);text-align:left;padding:10px 13px;
+  font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:700;white-space:nowrap}
+.tabela td{padding:10px 13px;border-top:1px solid var(--line);vertical-align:middle}
+.tabela tr.inativo td{opacity:.6}
+.tabela td:first-child{white-space:nowrap}
+.tabela .mono{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--muted);white-space:nowrap}
+.tabela .acoes{white-space:nowrap;text-align:right}
+.tabela .acoes .btn{width:auto;display:inline-flex;margin-left:6px}
+.setoresgrid{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+/* No celular a tabela vira lista: a coordenação precisa das ações à mão,
+   e uma tabela de seis colunas num aparelho de 5 polegadas esconde justamente
+   a coluna que decide (Situação e ações). */
+/* A lista vale sempre: o app vive numa moldura de celular. */
+.tablewrap{border:none;border-radius:0;overflow:visible}
+.tabela{min-width:0;font-size:14px}
+.tabela thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.tabela tr{display:block;border:1px solid var(--line);border-radius:12px;padding:11px 13px;margin-bottom:10px;background:var(--surface)}
+.tabela td{display:block;border:none;padding:3px 0}
+.tabela td:first-child{white-space:normal;font-size:15px}
+.tabela td[data-l]:not(:empty)::before{content:attr(data-l);display:block;font-size:10.5px;
+  letter-spacing:.06em;text-transform:uppercase;font-weight:800;color:var(--muted);margin-bottom:2px}
+.tabela .mono{white-space:normal;word-break:break-all}
+.tabela .acoes{text-align:left;white-space:normal;display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.tabela .acoes .btn{margin-left:0}
+/* Com uma folha aberta, o aviso sai de baixo (onde ficam os botões) e vai para o topo. */
+.overlay ~ .toast{bottom:auto;top:16px}
+.senhabox{margin-top:10px;padding:10px 12px;border-radius:10px;background:var(--sunken);
+  border:1px dashed var(--line-2);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.senhabox code{font-family:ui-monospace,Menlo,monospace;font-size:16px;font-weight:700;color:var(--navy)}
+.card > .row > .btn{width:auto;display:inline-flex}
 </style>
 <div id="app"></div>
 <script>
@@ -455,6 +506,41 @@ let TRIAGEM = [
   {id:"t2", kidId:9, quando:"Ontem 16:20", quem:"Ed. P. Rocha", tipo:"Urgência odontológica", resumo:"Dor de dente relatada após almoço. Atendido na UPA odontológica; prescrita amoxicilina 500 mg 8/8h por 7 dias.", assinada:false},
 ];
 
+/* ---------- Equipe (§5.3) ----------
+   A coordenação monta a equipe da casa e cadastra a Enfermagem. Não cadastra
+   Gestor Geral nem TI: se pudesse, bastaria criar uma conta para enxergar as
+   oito casas, e o isolamento cairia por dentro.                          */
+const SETORES_EQUIPE = [
+  {cod:"educador",    label:"Educador social",   c:"c-info",  transversal:false,
+   desc:"Plantão, rotina, chamadas e passagem individual"},
+  {cod:"lider_diurno",label:"Líder Diurno",      c:"c-ok",    transversal:false,
+   desc:"Conduz o plantão diurno e fecha a ATA da casa"},
+  {cod:"equipe_tecnica",label:"Equipe técnica",  c:"c-other", transversal:false,
+   desc:"Perfil do acolhido, acompanhamentos, relatos lado a lado e revisão técnica"},
+  {cod:"cozinha",     label:"Cozinha",           c:"c-warn",  transversal:false,
+   desc:"Somente o relatório de restrições alimentares — sem acesso a perfil"},
+  {cod:"enfermagem",  label:"Enfermagem",        c:"c-med",   transversal:true,
+   desc:"Saúde das oito casas: prescrições, triagem de evoluções e Resumo de Saúde"},
+];
+let EQUIPE = [
+  {id:"u1", nome:"Carla Coordenadora (fictícia)", email:"coord.ai3@paodospobres.dev",
+   cargo:"coordenador", setor:"Coordenação", c:"c-brand", casa:"AI3", ativo:true, inicial:false, propria:true},
+  {id:"u2", nome:"Mário Silva (fictício)", email:"educador.ai3@paodospobres.dev",
+   cargo:"educador", casa:"AI3", ativo:true, inicial:false},
+  {id:"u3", nome:"Joana Lima (fictícia)", email:"educador2.ai3@paodospobres.dev",
+   cargo:"educador", casa:"AI3", ativo:true, inicial:true},
+  {id:"u4", nome:"Lúcia Líder Diurna (fictícia)", email:"lider.ai3@paodospobres.dev",
+   cargo:"lider_diurno", casa:"AI3", ativo:true, inicial:false},
+  {id:"u5", nome:"Tatiane Técnica (fictícia)", email:"tecnica.ai3@paodospobres.dev",
+   cargo:"equipe_tecnica", casa:"AI3", ativo:true, inicial:false},
+  {id:"u6", nome:"Tainá Souza (fictícia)", email:"enfermagem@paodospobres.dev",
+   cargo:"enfermagem", casa:null, ativo:true, inicial:false},
+  {id:"u7", nome:"Roberto Cozinha (fictício)", email:"cozinha@paodospobres.dev",
+   cargo:"cozinha", casa:"AI3", ativo:false, inicial:false, motivo:"Desligamento a pedido, em 12/08"},
+];
+const setorDe = cod => SETORES_EQUIPE.find(s=>s.cod===cod)
+  || {label:"Coordenação", c:"c-brand", transversal:false, desc:"Equipe da casa, aprovações e transferências"};
+
 /* ---------- Transferências entre casas (§15.6) ----------
    Duas caixas: o que chegou de outras unidades e o que esta casa pediu.
    A decisão é sempre do DESTINO; recusar exige motivo, e o motivo aparece
@@ -490,6 +576,8 @@ let S = {
   gestorCasa:null, reauth:false, noturno:{visitas:{}, ataGeral:false},
   subPendente:true, urgente:[],
   transfSub:"recebidas", transfChat:null,
+  // Sessão: o protótipo agora começa pela porta de entrada, como o sistema real.
+  logado:false, sugereSenha:false, trocarSenha:false, equipeForm:null,
 };
 const ROLES = {
   educador:"Educador social", lider:"Líder Diurno", noturno:"Líder Noturno Geral",
@@ -1112,10 +1200,85 @@ function vTransferencias(){
   return inner;
 }
 
+/* ================= ENTRADA ================= */
+function vLogin(){
+  const chips = Object.entries(ROLES).map(([k,v])=>
+    `<button class="chipbtn" onclick="A.entrar('${k}')">${v}</button>`).join("");
+  app.innerHTML = `<div class="loginwrap">
+    <div class="logincard">
+      <div class="loginbrand">
+        <div class="loginlogo" aria-hidden="true">🤍</div>
+        <h2>Fundação O Pão dos Pobres<span>Acolhimento Institucional</span></h2>
+        <p class="loginsub">Rede Acolher · Sistema de gestão do acolhimento</p>
+      </div>
+      <label class="f" style="margin-top:0">E-mail institucional</label>
+      <input type="email" placeholder="nome@paodospobres.org.br" value="coord.ai3@paodospobres.dev">
+      <label class="f">Senha</label>
+      <input type="password" placeholder="Sua senha" value="senha-inicial">
+      <p class="loginhint">🔒 No primeiro acesso, use a senha entregue pela coordenação — o sistema vai sugerir que você crie uma senha só sua.</p>
+      <button class="btn block" onclick="A.entrar('coordenador')">Entrar no sistema</button>
+      <hr class="divider">
+      <p class="loginsub" style="margin-bottom:8px">Acesso rápido — protótipo, dados fictícios</p>
+      <div class="demochips">${chips}</div>
+      <p class="loginfoot">Conta individual. Ninguém assina, confirma ou registra em nome de outra pessoa.</p>
+    </div></div>`;
+}
+
+/* ================= EQUIPE (coordenação) ================= */
+function vEquipe(){
+  const ativos = EQUIPE.filter(u=>u.ativo).length;
+  const linhas = EQUIPE.map(u=>{
+    const st = setorDe(u.cargo);
+    const acoes = u.propria ? "" : `
+      <button class="btn sm ghost" onclick="A.equipeEditar('${u.id}')">Editar</button>
+      <button class="btn sm ghost" onclick="toast('Nova senha gerada e mostrada uma única vez. As sessões abertas caem.')">Nova senha</button>
+      ${u.ativo
+        ? `<button class="btn sm ghost" onclick="A.equipeDesativar('${u.id}')">Desativar</button>`
+        : `<button class="btn sm ghost" onclick="A.equipeReativar('${u.id}')">Reativar</button>`}`;
+    return `<tr class="${u.ativo?"":"inativo"}">
+      <td><b class="ff">${u.nome}</b>${u.propria?' <span class="pill c-mute">você</span>':""}</td>
+      <td class="mono" data-l="E-mail">${u.email}</td>
+      <td data-l="Setor"><span class="pill ${u.c||st.c}">${u.setor||st.label}</span></td>
+      <td data-l="Casa">${st.transversal?'<span class="mutetxt">8 casas</span>':(u.casa||"—")}</td>
+      <td data-l="Situação">${u.ativo?pill("Ativo","c-ok"):pill("Desativado","c-mute")}
+          ${u.ativo&&u.inicial?' <span class="pill c-warn">senha inicial</span>':""}
+          ${!u.ativo&&u.motivo?`<div class="mutetxt" style="margin-top:4px">${u.motivo}</div>`:""}</td>
+      <td class="acoes">${acoes}</td></tr>`;
+  }).join("");
+
+  const setores = SETORES_EQUIPE.map(st=>{
+    const n = EQUIPE.filter(u=>u.cargo===st.cod && u.ativo).length;
+    return `<div class="card">
+      <div class="row"><span class="pill ${st.c}">${st.label}</span>
+        <span class="mutetxt grow">${n} ${n===1?"pessoa":"pessoas"}</span>
+        ${st.transversal?pill("8 casas","c-move"):""}</div>
+      <div class="mutetxt">${st.desc}</div></div>`;
+  }).join("");
+
+  return `<div class="card raise">
+      <div class="row" style="margin-bottom:12px;gap:10px">
+        <div class="grow">
+          <h3 style="font-size:17px;margin:0">Equipe cadastrada</h3>
+          <div class="mutetxt">${ativos} ativos · ${EQUIPE.length} no total</div>
+        </div>
+        <button class="btn sm" onclick="A.equipeNovo()">+ Novo cadastro</button>
+      </div>
+      <div class="tablewrap"><table class="tabela">
+        <thead><tr><th>Nome</th><th>E-mail</th><th>Setor</th><th>Casa</th><th>Situação</th><th></th></tr></thead>
+        <tbody>${linhas}</tbody></table></div>
+      <p class="mutetxt" style="margin:12px 0 0">Não existe remover. Desligado é <b>desativado</b>: o acesso acaba na hora e as sessões abertas caem, mas tudo o que a pessoa registrou continua com o nome dela.</p>
+    </div>
+    <div class="eyebrow">Setores e o que cada um alcança</div>
+    <div class="setoresgrid">${setores}</div>
+    <p class="mutetxt" style="margin-top:12px">A coordenação cadastra a equipe da casa e a Enfermagem. Criar conta de alcance institucional — Gestor Geral, TI — é do Gestor Geral: se a coordenação pudesse, bastaria cadastrar alguém para enxergar as oito casas.</p>`;
+}
+
 function vCoordenador(){
-  const tabs = tabbar([{id:"casa", ic:"🏠", label:"Casa"},{id:"transf", ic:"🔁", label:"Transferências"},{id:"aprova", ic:"✅", label:"Aprovações"},{id:"banco", ic:"🔐", label:"Benefícios"}]);
+  const tabs = tabbar([{id:"casa", ic:"🏠", label:"Casa"},{id:"equipe", ic:"👥", label:"Equipe"},{id:"transf", ic:"🔁", label:"Transferências"},{id:"aprova", ic:"✅", label:"Aprovações"},{id:"banco", ic:"🔐", label:"Benefícios"}]);
   let inner;
-  if(S.tab==="transf"){
+  if(S.tab==="equipe"){
+    inner = vEquipe();
+  } else if(S.tab==="transf"){
     inner = vTransferencias();
   } else if(S.tab==="banco"){
     inner = !S.reauth
@@ -1171,7 +1334,7 @@ function vCoordenador(){
         <div class="card row"><div class="grow"><b class="ff">ATAs da casa</b><div class="mutetxt">Diurna de ontem fechada com pendência (adendo aberto)</div></div>${pill("Com pendência")}</div>
       </div>`;
   }
-  const t = {casa:"Controle da casa", transf:"Transferências", aprova:"Aprovações", banco:"Benefícios e dados bancários"}[S.tab];
+  const t = {casa:"Controle da casa", equipe:"Equipe do acolhimento", transf:"Transferências", aprova:"Aprovações", banco:"Benefícios e dados bancários"}[S.tab];
   shell(inner, tabs, appbar(t, ["Casa 03","Sem limite de horário",HOJE]));
 }
 
@@ -1287,6 +1450,119 @@ const A = {
     render();
   },
   excecaoOk(id,estado){ EVENTOS.find(x=>x.id===id).estado=estado; S.sheet=null; fila(); toast("Exceção registrada com justificativa"); },
+
+  /* ---------- Entrada e equipe ---------- */
+  entrar(papel){
+    S.logado = true; S.role = papel;
+    S.tab = {educador:"tl",lider:"painel",noturno:"casas",enfermagem:"painel",
+             tecnica:"painel",coordenador:"equipe",gestor:"casas"}[papel];
+    // Primeiro acesso: o sistema SUGERE senha pessoal, não obriga.
+    S.sugereSenha = true;
+    render();
+  },
+  sair(){ S.logado=false; S.sheet=null; S.sugereSenha=false; render(); },
+  senhaModal(primeiro){
+    S.sheet = `<h3>🔑 ${primeiro?"Que tal criar uma senha pessoal?":"Trocar minha senha"}</h3>
+      <p class="mutetxt">${primeiro
+        ? "Você está usando a senha inicial entregue pela coordenação. Uma senha só sua protege o que você registra — e o que você registra tem o seu nome. Se preferir, pode continuar com a atual e trocar quando quiser pelo botão 🔑 da barra."
+        : "Trocar a senha encerra as outras sessões abertas em seu nome. A sua, aqui, continua."}</p>
+      <label class="f">Senha atual${primeiro?" (a que a coordenação entregou)":""}</label>
+      <input type="password" placeholder="Senha atual">
+      <label class="f">Nova senha</label>
+      <input type="password" placeholder="Mínimo 6 caracteres">
+      <label class="f">Confirmar nova senha</label>
+      <input type="password" placeholder="Repita a senha">
+      <div class="row" style="gap:8px;margin-top:16px">
+        <button class="btn sec grow" onclick="A.senhaAdiar()">${primeiro?"Continuar com a senha atual":"Cancelar"}</button>
+        <button class="btn grow" onclick="A.senhaOk()">Salvar nova senha</button>
+      </div>`;
+    S.sugereSenha = false; render();
+  },
+  senhaAdiar(){
+    S.sheet=null; S.sugereSenha=false; render();
+    toast("Seguindo com a senha inicial — a coordenação continua vendo isso na lista de equipe");
+  },
+  senhaOk(){ S.sheet=null; S.sugereSenha=false; render(); toast("Senha alterada. As outras sessões abertas foram encerradas."); },
+
+  equipeNovo(){ A.equipeForm(null); },
+  equipeEditar(id){ A.equipeForm(EQUIPE.find(u=>u.id===id)); },
+  equipeForm(u){
+    const editar = !!u;
+    const opts = SETORES_EQUIPE.map(st=>
+      `<option value="${st.cod}" ${u&&u.cargo===st.cod?"selected":""}>${st.label}</option>`).join("");
+    S.sheet = `<h3>${editar?`Editar ${u.nome}`:"Cadastrar profissional"}</h3>
+      <label class="f" style="margin-top:0">Nome completo</label>
+      <input id="eq-nome" value="${editar?u.nome:""}" placeholder="Nome como consta no crachá">
+      <label class="f">E-mail institucional</label>
+      <input id="eq-mail" value="${editar?u.email:""}" ${editar?"disabled":""} placeholder="nome@paodospobres.org.br">
+      ${editar?'<p class="mutetxt">O e-mail identifica a conta e não muda.</p>':""}
+      <label class="f">Setor</label>
+      <select id="eq-setor" onchange="A.equipeSetor()">${opts}</select>
+      <p class="mutetxt" id="eq-desc">${setorDe(u?u.cargo:"educador").desc}</p>
+      <div id="eq-casa">${A.blocoCasa(u?setorDe(u.cargo).transversal:false)}</div>
+      ${editar?"":`<div class="notice c-info">O sistema gera uma <b>senha inicial</b> e mostra uma única vez. Entregue à pessoa; no primeiro acesso ela é convidada a criar a sua.</div>`}
+      <div class="row" style="gap:8px;margin-top:16px">
+        <button class="btn sec grow" onclick="A.closeSheet()">Cancelar</button>
+        <button class="btn grow" onclick="A.equipeSalvar(${editar?`'${u.id}'`:"null"})">${editar?"Salvar alterações":"Cadastrar"}</button>
+      </div>`;
+    render();
+  },
+  blocoCasa(transversal){
+    return transversal
+      ? `<div class="notice c-move">Este é um cargo <b>transversal</b>: alcança as oito casas por função, sem vínculo com uma unidade (§5.13).</div>`
+      : `<label class="f">Casa</label>
+         <select id="eq-casaid">${CASAS.map(c=>`<option ${c.cod==="AI3"?"selected":""}>${c.cod} — ${c.nome}</option>`).join("")}</select>`;
+  },
+  equipeSetor(){
+    const cod = document.getElementById("eq-setor").value, st = setorDe(cod);
+    document.getElementById("eq-desc").textContent = st.desc;
+    document.getElementById("eq-casa").innerHTML = A.blocoCasa(st.transversal);
+  },
+  equipeSalvar(id){
+    const nome = (document.getElementById("eq-nome")?.value || "").trim();
+    const mail = (document.getElementById("eq-mail")?.value || "").trim();
+    const cod  = document.getElementById("eq-setor").value;
+    const st   = setorDe(cod);
+    if(nome.length < 3){ toast("Informe o nome completo"); return; }
+    if(id){
+      const u = EQUIPE.find(x=>x.id===id);
+      u.nome = nome; u.cargo = cod; u.setor = null; u.c = null;
+      u.casa = st.transversal ? null : "AI3";
+      S.sheet=null; render(); toast("Cadastro atualizado");
+    } else {
+      if(!/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(mail)){ toast("E-mail institucional inválido"); return; }
+      if(EQUIPE.some(u=>u.email===mail)){ toast("Já existe uma conta com este e-mail"); return; }
+      const senha = ["acolher","cuidado","plantao","unidade","equipe"][Math.floor(Math.random()*5)]
+                    + "-" + Math.floor(1000+Math.random()*9000);
+      EQUIPE.push({id:"u"+(EQUIPE.length+1), nome, email:mail, cargo:cod,
+                   casa: st.transversal?null:"AI3", ativo:true, inicial:true});
+      S.sheet = `<h3>✅ ${nome} cadastrado(a)</h3>
+        <p class="mutetxt">Setor: <b>${st.label}</b>${st.transversal?" · alcança as oito casas":" · Casa 03"}</p>
+        <div class="senhabox"><span class="mutetxt">Senha inicial</span><code>${senha}</code></div>
+        <p class="mutetxt" style="margin-top:10px">Entregue esta senha à pessoa — ela é mostrada <b>uma única vez</b>. No primeiro acesso o sistema sugere que ela crie a sua, e até lá a lista mostra “senha inicial”.</p>
+        <button class="btn block" onclick="A.closeSheet()">Fechar</button>`;
+      render();
+    }
+  },
+  equipeDesativar(id){
+    const u = EQUIPE.find(x=>x.id===id);
+    S.sheet = `<h3>Desativar ${u.nome}</h3>
+      <div class="notice c-warn" style="margin:12px 0">Desligado é <b>desativado</b>, nunca apagado: o acesso acaba na hora e as sessões abertas caem, mas cada passagem assinada, cada ATA fechada e cada dose confirmada por esta pessoa continuam com o nome dela.</div>
+      <label class="f" style="margin-top:0">Motivo</label>
+      <textarea id="eq-motivo" placeholder="Ex.: desligamento a pedido, em 27/08"></textarea>
+      <button class="btn block" onclick="A.equipeDesativarOk('${id}')">Registrar desativação</button>`;
+    render();
+  },
+  equipeDesativarOk(id){
+    const m = (document.getElementById("eq-motivo")?.value || "").trim();
+    if(m.length < 5){ toast("Descreva o motivo — ele fica registrado"); return; }
+    const u = EQUIPE.find(x=>x.id===id); u.ativo=false; u.motivo=m;
+    S.sheet=null; render(); toast("Desativado e sessões encerradas. O histórico permanece.");
+  },
+  equipeReativar(id){
+    const u = EQUIPE.find(x=>x.id===id); u.ativo=true; u.motivo=null;
+    render(); toast("Reativado — o histórico dele nunca deixou de existir");
+  },
 
   /* ---------- Transferências (§15.6) ---------- */
   transfSub(x){ S.transfSub=x; S.transfChat=null; render(); },
@@ -1500,8 +1776,12 @@ const A = {
 window.A = A;
 
 function render(){
+  // A porta de entrada vem primeiro, como no sistema real.
+  if(!S.logado){ vLogin(); return; }
   ({educador:vEducador, lider:vLider, noturno:vNoturno, enfermagem:vEnfermagem,
     tecnica:vTecnica, coordenador:vCoordenador, gestor:vGestor}[S.role])();
+  // Primeiro acesso: sugestão de senha pessoal, logo depois de entrar.
+  if(S.sugereSenha && !S.sheet) setTimeout(()=>A.senhaModal(true), 350);
 }
 render();
 </script>
