@@ -65,7 +65,8 @@ flowchart LR
 | linha do tempo | ✅ Fase 3 | `backend/src/modules/timeline` |
 | notificações/escalonamentos | ✅ Fase 3 | `backend/src/modules/notifications` |
 | offline/sincronização | ✅ Fase 3 (servidor) | `backend/src/modules/sync` |
-| medicamentos/enfermagem | Fase 4 | — |
+| medicamentos/estoque | ✅ Fase 4 | `backend/src/modules/medications` |
+| enfermagem/evoluções/resumo de saúde | ✅ Fase 4 | `backend/src/modules/nursing` |
 | plantões/ATAs/ocorrências | Fase 5 | — |
 | relatórios/Drive | Fase 6 | — |
 | fila local no aparelho | Fase 4 (IndexedDB no PWA) | `frontend` |

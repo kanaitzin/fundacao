@@ -2,7 +2,9 @@ import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { DatabaseService } from '../../kernel/database/database.service';
 import { AuditService } from '../../kernel/audit/audit.service';
 import { EventBus } from '../../kernel/events/event-bus.service';
-import { AuthenticatedUser, DomainEvent } from '../../kernel/contracts';
+import {
+  AuthenticatedUser, DomainEvent, EscalationRequest, DirectNotice,
+} from '../../kernel/contracts';
 
 /** Texto neutro para tela bloqueada e push (§19). Nunca revela conteúdo. */
 const TITULO_SEGURO = 'Há uma pendência na Rede Acolher';
@@ -24,69 +26,27 @@ export class NotificationsService implements OnModuleInit {
   ) {}
 
   onModuleInit() {
-    // Assinaturas por NOME do evento — nenhuma importação de módulo.
-    this.bus.on('activity.unconfirmed', (e) => this.onUnconfirmed(e));
-    this.bus.on('substitution.requested', (e) => this.onSubstitution(e));
-    this.bus.on('substitution.assigned', (e) => this.onSubstituteAssigned(e));
+    // DOIS eventos genéricos, definidos no kernel. Este módulo não conhece
+    // atividade, dose, substituição ou evolução — só o pedido de avisar.
+    // Um módulo novo entra no fluxo de notificação sem alterar uma linha aqui.
+    this.bus.on('escalation.requested', (e) => this.onEscalation(e));
+    this.bus.on('notice.requested', (e) => this.onDirectNotice(e));
   }
 
-  // ---------- Reações ----------
-
-  /**
-   * Atividade vencida sem confirmação: uma hora depois, avisa equipe técnica
-   * e coordenação (§8.5). O escalonamento é idempotente — reprocessar a fila
-   * não gera avalanche de avisos repetidos.
-   */
-  private async onUnconfirmed(e: DomainEvent<{ quantidade: number; minutos: number }>) {
+  private async onEscalation(e: DomainEvent<EscalationRequest>) {
     if (!e.houseId) return;
-    await this.escalate({
-      houseId: e.houseId,
-      entity: 'activity_batch',
-      entityId: e.houseId,          // agrupado por casa e nível
-      level: 'tecnica_coordenacao',
-      reason: `${e.payload.quantidade} atividade(s) sem confirmação há mais de ${e.payload.minutos} min`,
-      title: 'Atividades sem confirmação',
-      body: `${e.payload.quantidade} atividade(s) venceram sem registro. "Sem confirmação" não significa não realizada — é preciso conferir com a equipe do plantão.`,
-      priority: 'alta',
-      groupKey: `unconfirmed:${e.houseId}`,
-    });
+    await this.escalate({ houseId: e.houseId, ...e.payload });
   }
 
-  private async onSubstitution(e: DomainEvent<{ substitutionId: string; titulo: string }>) {
-    if (!e.houseId) return;
-    await this.escalate({
-      houseId: e.houseId,
-      entity: 'substitution_request',
-      entityId: e.payload.substitutionId,
-      level: 'lider',
-      reason: 'Pedido de substituição aguardando autorização',
-      title: 'Pedido de substituição',
-      body: `Atividade "${e.payload.titulo}" aguarda substituto.`,
-      priority: 'alta',
-    });
-    // Também à técnica/coordenação: a escala oficial é responsabilidade delas.
-    await this.escalate({
-      houseId: e.houseId,
-      entity: 'substitution_request',
-      entityId: e.payload.substitutionId,
-      level: 'tecnica_coordenacao',
-      reason: 'Pedido de substituição registrado',
-      title: 'Pedido de substituição na casa',
-      body: `Atividade "${e.payload.titulo}" aguarda substituto.`,
-      priority: 'normal',
-    });
-  }
-
-  /** O substituto precisa TOMAR CIÊNCIA — ser designado não basta (§8.3). */
-  private async onSubstituteAssigned(e: DomainEvent<{ substituteId: string; activityId: string }>) {
+  private async onDirectNotice(e: DomainEvent<DirectNotice>) {
     await this.notify({
-      userId: e.payload.substituteId,
+      userId: e.payload.userId,
       houseId: e.houseId ?? null,
-      title: 'Você foi designado para uma atividade',
-      body: 'Tome ciência para assumir a atividade do plantão.',
-      priority: 'alta',
-      entity: 'activity',
-      entityId: e.payload.activityId,
+      title: e.payload.title,
+      body: e.payload.body,
+      priority: e.payload.priority,
+      entity: e.payload.entity,
+      entityId: e.payload.entityId,
     });
   }
 

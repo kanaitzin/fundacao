@@ -75,8 +75,10 @@ Consequências práticas:
 
 | Precisa | Mecanismo | Exemplo |
 |---|---|---|
-| Aparecer na linha do tempo | registrar um `TimelineProvider` | `activities`, `checks` |
-| Reagir a algo que aconteceu | assinar evento pelo **nome** no `EventBus` | `notifications` ouve `activity.unconfirmed` |
+| Aparecer na linha do tempo | registrar um `TimelineProvider` | `activities`, `checks`, `medications` |
+| Pedir que alguém seja avisado | publicar `escalation.requested` (contrato do kernel) | dose vencida, atividade sem confirmação, evolução aguardando triagem |
+| Avisar uma pessoa específica | publicar `notice.requested` | substituto designado |
+| Aplicar operação offline própria | registrar handler no `SyncService` | `activities`, `checks`, `medications`, `nursing` |
 | Ler dado de outro domínio | consulta no banco, sujeita ao RLS | `activities` lê a rotina vigente |
 | Usar serviço de outro módulo | importar a **porta pública** e declarar em `depends` | todos usam `identity` |
 
@@ -122,5 +124,7 @@ atualização genérica).
 | `app_accept_transfer` | quem aceita é o **destino**, mas é preciso encerrar a permanência na **origem** — e o destino não tem escrita lá |
 | `app_admit_person` | a visibilidade nasce da permanência; no instante do `INSERT` a pessoa ainda é invisível ao próprio autor |
 | `app_emit_escalation` | o aviso vai para a caixa de **outra pessoa**; permitir isso genericamente abriria a caixa alheia |
+| `app_confirm_dose` | verificar protocolo, gravar em nome de quem administrou e baixar estoque precisa ser atômico — e a verificação não pode ser pulável por nenhuma rota |
+| `app_submit_evolution` | o educador **relata** o que acompanhou; escrever no histórico de saúde é ato da Enfermagem |
 
 As políticas ficaram **mais** estritas depois de cada um deles, não menos.

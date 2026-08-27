@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 import { IdentityModule } from '../identity';
+import { SyncModule } from '../sync';
+import { ActivitiesOfflineHandlers } from './activities.offline';
 import { ActivitiesController } from './activities.controller';
 import { ActivitiesService } from './activities.service';
 import { ActivitiesTimelineProvider } from './activities.timeline';
@@ -15,9 +17,9 @@ import { ActivitiesTimelineProvider } from './activities.timeline';
  * mantêm as partições soltas.
  */
 @Module({
-  imports: [IdentityModule],
+  imports: [IdentityModule, SyncModule],
   controllers: [ActivitiesController],
-  providers: [ActivitiesService, ActivitiesTimelineProvider],
+  providers: [ActivitiesService, ActivitiesTimelineProvider, ActivitiesOfflineHandlers],
   exports: [ActivitiesService],
 })
 export class ActivitiesModule {}

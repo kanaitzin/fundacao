@@ -115,9 +115,58 @@ Construída já dentro da arquitetura de partições (ver `docs/arquitetura-modu
   de outra pessoa não cabe sob RLS. Virou comando privilegiado, e a leitura
   continua estrita (cada um vê só as suas).
 
-## Fase 4 — Medicamentos e saúde
-Grade da Enfermagem, administração (#13, #14), Evolução de Saúde + triagem (#37),
-Resumo de Saúde PDF (#38), estoque/validade, pendências 33.4.1/2 como configuração.
+## ✅ Fase 4 — Medicamentos e Enfermagem
+
+| Requisito | Implementação | Teste |
+|---|---|---|
+| Só a Enfermagem cadastra e assina o esquema (§11.1) | `medications`, policy `presc_insert` | "somente a Enfermagem cadastra" |
+| Prescrição em rascunho não entra na grade (§7.2) | status `rascunho` → `ativa` só na assinatura | "rascunho NÃO gera doses" |
+| "Quando necessário" exige orientação prévia (§11.5) | condição de uso obrigatória | "quando necessário" |
+| Geração de doses idempotente | `app_generate_doses` | "prescrição em rascunho…" |
+| Cada dose confirmada por quem administrou (§11.2) | `app_confirm_dose` + policy `adm_update` | "quem confirma é quem administrou" |
+| Ninguém confirma por outro | dose já confirmada → 409 | "ninguém confirma por outro" |
+| Sem marcação em lote | só rota de dose individual | inspeção de rotas |
+| Recusa/atraso/incidente exigem observação (§11.4) | `EXIGEM_NOTA` | "recusa, atraso e incidente" |
+| Alertas −30/−15/0/+30 (#13) | `ALERTAS_MIN`, publicados na API | "cenário #13" |
+| Vencida ≠ não administrada (#14) | estado permanece `aguardando_confirmacao` | "cenário #14" |
+| Escalonamento a Enfermagem/técnica/coordenação (§11.3) | `escalation.requested` | "cenário #14" |
+| Offline só no aparelho institucional (#15, §11.7) | recusa na fila **e** no comando | "cenário #15" |
+| Horário real preservado na dose offline (§17.3) | `administered_at` ≠ `synced_at` | "cenário #15" |
+| Estoque: só quantidade e validade (§11.6) | sem compras; alerta de validade | "estoque controla só…" |
+| Estoque baixo sinalizado à mão (§11.6) | `low_flag` manual | "estoque controla só…" |
+| Quem administra = configuração (pendência 33.4.1) | `medication_protocol` + autorização nominal | "padrão protetivo", "coordenação configura" |
+| Painel com TODOS os acolhidos (#35, §7.1) | `app_nursing_panel` | "cenário #35" |
+| Enfermagem em escopo de saúde, sem bancário (#35) | `app_can_see_benefits` nega | "cenário #35 — sem bancário" |
+| Evolução do acompanhante gera pendência (#37, §7.2) | `app_submit_evolution` | "cenário #37" |
+| Coordenação cobra mas não assina (§7.2) | policy `triage_insert` só Enfermagem | "coordenação acompanha, mas NÃO assina" |
+| Triagem: complementa, confere, assina (#37) | `nursing_triage`, relato original intacto | "Enfermagem tria, complementa e assina" |
+| Prazo de triagem = configuração (pendência 33.4.2) | `NURSING_TRIAGE_SLA_HOURS` | fila indica `foraDoPrazo` |
+| Histórico de saúde em linha única (§7.3) | atendimentos + evoluções + doses | "histórico de saúde reúne" |
+| Resumo com finalidade obrigatória (#38, §7.4) | `FINALIDADES` | "cenário #38" |
+| Resumo só com o pertinente (#38) | construído por subtração + `naoIncluido` | "cenário #38" |
+| Versão offline indica sincronização (#38) | `avisoOffline` | "versão offline" |
+| Geração e download auditados (#38) | eventos distintos com `purpose` | "geração e download" |
+| Medicamentos na linha do tempo | provedor registrado | "linha do tempo mostra a dose vencida" |
+
+### Achados desta fase
+
+- **Escalonamento virou contrato genérico.** O módulo de notificações assinava um
+  evento por domínio e crescia a cada módulo novo. Agora existe um só contrato no
+  kernel (`escalation.requested`): quem precisa avisar publica, e `notifications`
+  nunca mais muda. Medicamentos entrou no fluxo de aviso sem tocar nele.
+- **Autoria visível sem abrir o cadastro.** A Enfermagem não via a fila de triagem
+  porque a consulta pedia o *cadastro* do educador para mostrar quem acompanhou.
+  A política estava certa; o erro era pedir demais. `app_user_display_name`
+  entrega só o nome — e corrigiu de quebra um defeito latente: o educador nunca
+  via o nome do colega responsável por uma atividade.
+- **Um teste que congelava a arquitetura.** O teste da linha do tempo exigia
+  exatamente `['activities','checks']` e quebrou quando medicamentos entrou —
+  justamente o oposto do que a partição promete. Passou a verificar
+  comportamento, não a lista de módulos.
+- **Submissão de Evolução como comando de sistema.** O educador relata o que
+  acompanhou, mas escrever no histórico de saúde é ato da Enfermagem. Em vez de
+  dar essa permissão a ele, a evolução e o atendimento nascem juntos num comando
+  que valida apenas o necessário.
 
 ## Fase 5 — Plantão e proteção
 Passagens individuais (#11, #12, #18), ATAs (#19, #20, #21, #36), ocorrências (#22),

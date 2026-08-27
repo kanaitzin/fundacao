@@ -20,6 +20,8 @@ import { ChecksModule } from './modules/checks';
 import { TimelineModule } from './modules/timeline';
 import { NotificationsModule } from './modules/notifications';
 import { SyncModule } from './modules/sync';
+import { MedicationsModule } from './modules/medications';
+import { NursingModule } from './modules/nursing';
 
 @Module({
   imports: [
@@ -37,6 +39,8 @@ import { SyncModule } from './modules/sync';
     TimelineModule,
     NotificationsModule,
     SyncModule,
+    MedicationsModule,
+    NursingModule,
   ],
   controllers: [HealthController],
 })

@@ -85,7 +85,8 @@ export class ChecksService {
         `SELECT p.id AS person_id,
                 coalesce(nullif(p.social_name,''), p.full_name) AS nome,
                 date_part('year', age(p.birth_date))::int AS idade,
-                r.option_code, r.note, r.happened_at, u.full_name AS por,
+                r.option_code, r.note, r.happened_at,
+                app_user_display_name(r.recorded_by) AS por,
                 (SELECT string_agg(h.description, ' · ') FROM health_condition h
                   WHERE h.person_id = p.id AND h.active AND h.essential_alert) AS alertas,
                 (SELECT string_agg(f.restriction, ' · ') FROM food_restriction f
@@ -93,7 +94,6 @@ export class ChecksService {
          FROM person p
          JOIN house_stay s ON s.person_id = p.id AND s.status = 'ativa' AND s.house_id = $2
          LEFT JOIN check_result r ON r.check_id = $1 AND r.person_id = p.id
-         LEFT JOIN app_user u ON u.id = r.recorded_by
          ORDER BY coalesce(nullif(p.social_name,''), p.full_name)`, [checkId, k.house_id]);
       return { k, rows };
     });

@@ -76,9 +76,9 @@ export class ActivitiesService {
                          WHERE k.activity_id = a.id AND k.user_id = $3) AS ciente_por_mim,
                 EXISTS (SELECT 1 FROM activity_assignment g
                          WHERE g.activity_id = a.id AND (g.user_id = $3 OR g.user_id IS NULL)) AS minha,
-                (SELECT u.full_name FROM activity_assignment g
-                   JOIN app_user u ON u.id = g.user_id
-                  WHERE g.activity_id = a.id LIMIT 1) AS responsavel
+                -- Autoria visível (§9) sem abrir o cadastro de funcionários.
+                (SELECT app_user_display_name(g.user_id) FROM activity_assignment g
+                  WHERE g.activity_id = a.id AND g.user_id IS NOT NULL LIMIT 1) AS responsavel
          FROM activity a
          LEFT JOIN person p ON p.id = a.person_id
          WHERE a.house_id = $1
@@ -226,9 +226,15 @@ export class ActivitiesService {
       action: 'substitution.request', actorId: user.id, houseId: r.a.house_id,
       entity: 'substitution_request', entityId: r.s.id, detail: { activityId },
     });
-    await this.bus.publish('substitution.requested',
-      { substitutionId: r.s.id, activityId, titulo: r.a.title },
-      { actorId: user.id, houseId: r.a.house_id });
+    for (const level of ['lider', 'tecnica_coordenacao']) {
+      await this.bus.publish('escalation.requested', {
+        level, entity: 'substitution_request', entityId: r.s.id,
+        reason: 'Pedido de substituição aguardando autorização',
+        title: 'Pedido de substituição',
+        body: `Atividade "${r.a.title}" aguarda substituto.`,
+        priority: level === 'lider' ? 'alta' : 'normal',
+      }, { actorId: user.id, houseId: r.a.house_id });
+    }
 
     return { id: r.s.id, status: 'solicitada', aviso: 'Pedido registrado no sistema, com motivo e autoria.' };
   }
@@ -256,9 +262,13 @@ export class ActivitiesService {
       action: 'substitution.assign', actorId: user.id, houseId: r.house_id,
       entity: 'substitution_request', entityId: substitutionId, detail: { substituteId },
     });
-    await this.bus.publish('substitution.assigned',
-      { substitutionId, activityId: r.activity_id, substituteId },
-      { actorId: user.id, houseId: r.house_id });
+    // O substituto precisa TOMAR CIÊNCIA: ser designado não basta (§8.3).
+    await this.bus.publish('notice.requested', {
+      userId: substituteId,
+      title: 'Você foi designado para uma atividade',
+      body: 'Tome ciência para assumir a atividade do plantão.',
+      priority: 'alta', entity: 'activity', entityId: r.activity_id,
+    }, { actorId: user.id, houseId: r.house_id });
 
     return { ok: true, status: 'atribuida', aviso: 'O substituto precisa tomar ciência para assumir.' };
   }
@@ -268,11 +278,10 @@ export class ActivitiesService {
       const { rows } = await c.query(
         `SELECT s.id, s.reason, s.status, s.requested_at, s.decision_note,
                 a.title, a.scheduled_at,
-                pedinte.full_name AS pedinte, subst.full_name AS substituto
+                app_user_display_name(s.requested_by) AS pedinte,
+                app_user_display_name(s.substitute_id) AS substituto
          FROM substitution_request s
          JOIN activity a ON a.id = s.activity_id
-         JOIN app_user pedinte ON pedinte.id = s.requested_by
-         LEFT JOIN app_user subst ON subst.id = s.substitute_id
          WHERE s.house_id = $1 ORDER BY s.requested_at DESC LIMIT 50`, [houseId]);
       return rows.map((r) => ({
         id: r.id, atividade: r.title, horario: r.scheduled_at, motivo: r.reason,
@@ -289,7 +298,16 @@ export class ActivitiesService {
       return Number(r.n);
     });
     if (n > 0) {
-      await this.bus.publish('activity.unconfirmed', { quantidade: n, minutos: minutes }, { houseId });
+      // Contrato genérico do kernel: pedimos que alguém seja avisado, sem
+      // saber quem avisa (§8.5).
+      await this.bus.publish('escalation.requested', {
+        level: 'tecnica_coordenacao',
+        entity: 'activity_batch', entityId: houseId,
+        reason: `${n} atividade(s) sem confirmação há mais de ${minutes} min`,
+        title: 'Atividades sem confirmação',
+        body: `${n} atividade(s) venceram sem registro. "Sem confirmação" não significa não realizada — é preciso conferir com a equipe do plantão.`,
+        priority: 'alta', groupKey: `unconfirmed:${houseId}`,
+      }, { houseId });
     }
     return { marcadas: n, aviso: 'Marcadas como “sem confirmação”. A equipe analisa; o sistema não conclui omissão.' };
   }

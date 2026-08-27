@@ -329,7 +329,10 @@ describe('Fase 3 — Rotina, atividades, chamadas, linha do tempo e offline', ()
   it('linha do tempo agrega provedores registrados, em ordem cronológica', async () => {
     const tl = await request(http).get(`/api/v1/timeline?houseId=${AI3}&date=${HOJE}`)
       .set(auth(tokens.educador));
-    expect(tl.body.fontes.sort()).toEqual(['activities', 'checks']);
+    // Verifica o COMPORTAMENTO (os provedores registrados aparecem), não a
+    // lista exata: congelar os nomes faria este teste quebrar a cada módulo
+    // novo — justamente o oposto do que a arquitetura de partições promete.
+    expect(tl.body.fontes).toEqual(expect.arrayContaining(['activities', 'checks']));
     expect(tl.body.incompleta).toBe(false);
 
     const horas = tl.body.eventos.map((e: any) => e.at);

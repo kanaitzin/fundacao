@@ -37,7 +37,7 @@ Usuários fictícios: `educador.ai3@`, `lider.ai3@`, `tecnica.ai3@`, `coord.ai3@
 ## Testes
 
 ```bash
-npm test        # 58 testes: fronteiras de arquitetura + aceite das fases 1–3
+npm test        # 82 testes: fronteiras de arquitetura + aceite das fases 1–4
 ```
 
 Cada execução **recria o banco do zero** (migrações + seeds fictícios), porque os
@@ -56,8 +56,11 @@ matriz requisito → implementação → teste.
 - ✅ Fase 3 — Operação: rotina versionada, atividades com ciência e exceções,
   chamadas coletivas, linha do tempo unificada, notificações com escalonamento
   e sincronização offline com conflitos
-- ⏳ Fase 4 — Medicamentos e Enfermagem (próxima)
-- Fases 5–7 — ver `docs/backlog.md`
+- ✅ Fase 4 — Medicamentos e Enfermagem: prescrição assinada, grade de doses com
+  confirmação individual, protocolo de administração configurável, estoque,
+  painel da Enfermagem, Evolução de Saúde com triagem e Resumo de Saúde
+- ⏳ Fase 5 — Plantão, ATAs e ocorrências (próxima)
+- Fases 6–7 — ver `docs/backlog.md`
 
 ## Arquitetura em partições
 

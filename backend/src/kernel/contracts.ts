@@ -92,3 +92,38 @@ export interface DomainEvent<T = Record<string, unknown>> {
   houseId?: string | null;
   payload: T;
 }
+
+/**
+ * Pedido de escalonamento — o contrato que qualquer módulo usa para pedir que
+ * alguém seja avisado, SEM conhecer quem avisa.
+ *
+ * Antes, o módulo de notificações precisava assinar um evento por domínio
+ * ("atividade vencida", "dose atrasada", "substituição pedida") e crescia a
+ * cada módulo novo. Com um contrato único, `notifications` ouve UM evento e
+ * nunca mais muda; e um módulo novo é avisado sem tocar em nada.
+ *
+ * Publique com: bus.publish('escalation.requested', payload, { houseId }).
+ */
+export interface EscalationRequest extends Record<string, unknown> {
+  /** Quem deve ser avisado: 'equipe' | 'lider' | 'tecnica_coordenacao' | 'enfermagem'. */
+  level: string;
+  /** Agrupa o escalonamento para não repetir o mesmo aviso (idempotência). */
+  entity: string;
+  entityId: string;
+  reason: string;
+  title: string;
+  body: string;
+  priority?: 'normal' | 'alta' | 'critica';
+  /** Notificações com a mesma chave se somam em vez de inundar (§19). */
+  groupKey?: string;
+}
+
+/** Aviso direto a UMA pessoa (ex.: substituto designado). */
+export interface DirectNotice extends Record<string, unknown> {
+  userId: string;
+  title: string;
+  body?: string;
+  priority?: 'normal' | 'alta' | 'critica';
+  entity?: string;
+  entityId?: string;
+}

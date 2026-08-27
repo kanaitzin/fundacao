@@ -147,8 +147,7 @@ export class BenefitsService {
 
   private async lastAccess(personId: string, exceptActor: string) {
     const { rows: [r] } = await this.db.query(
-      `SELECT a.at, u.full_name FROM audit_event a
-       LEFT JOIN app_user u ON u.id = a.actor_id
+      `SELECT a.at, app_user_display_name(a.actor_id) AS full_name FROM audit_event a
        WHERE a.entity_id = $1 AND a.action IN ('benefits.view','benefits.update','benefits.export')
          AND a.actor_id <> $2
        ORDER BY a.at DESC LIMIT 1`, [personId, exceptActor]);
