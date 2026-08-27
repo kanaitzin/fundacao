@@ -4,7 +4,7 @@
  * Nunca usar dados reais em desenvolvimento/teste (§3.3).
  */
 import { Client } from 'pg';
-import { hashPassword } from '../src/common/crypto';
+import { hashPassword } from '../src/kernel/common/crypto';
 
 const SENHA_DEV = 'senha-dev-123'; // troca obrigatória no primeiro login (must_change_password)
 

@@ -1,22 +1,42 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { DatabaseModule } from './database/database.module';
-import { AuthModule } from './auth/auth.module';
-import { HousesModule } from './houses/houses.module';
-import { UsersModule } from './users/users.module';
-import { PeopleModule } from './people/people.module';
-import { AuditModule } from './audit/audit.module';
-import { HealthController } from './health/health.controller';
+
+// ---------- Kernel: infraestrutura compartilhada, não domínio ----------
+import { DatabaseModule } from './kernel/database/database.module';
+import { AuditModule } from './kernel/audit/audit.module';
+import { EventsModule } from './kernel/events/events.module';
+import { HealthController } from './kernel/health/health.controller';
+
+// ---------- Módulos de domínio: partições independentes ----------
+// Cada linha abaixo é um módulo inteiro. Remover a linha remove o módulo do
+// sistema sem tocar nos demais; adicionar um módulo novo é acrescentar uma.
+// As fronteiras entre eles são verificadas por test/arquitetura.spec.ts.
+import { IdentityModule } from './modules/identity';
+import { HousesModule } from './modules/houses';
+import { PeopleModule } from './modules/people';
+import { RoutineModule } from './modules/routine';
+import { ActivitiesModule } from './modules/activities';
+import { ChecksModule } from './modules/checks';
+import { TimelineModule } from './modules/timeline';
+import { NotificationsModule } from './modules/notifications';
+import { SyncModule } from './modules/sync';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     DatabaseModule,
     AuditModule,
-    AuthModule,
+    EventsModule,
+
+    IdentityModule,
     HousesModule,
-    UsersModule,
     PeopleModule,
+    RoutineModule,
+    ActivitiesModule,
+    ChecksModule,
+    TimelineModule,
+    NotificationsModule,
+    SyncModule,
   ],
   controllers: [HealthController],
 })

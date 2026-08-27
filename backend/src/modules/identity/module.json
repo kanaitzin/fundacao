@@ -1,0 +1,8 @@
+{
+  "name": "identity",
+  "descricao": "Autenticação, sessões revogáveis, reautenticação e usuários.",
+  "depends": [],
+  "publica": ["IdentityModule", "SessionGuard", "CurrentUser", "AuthService"],
+  "tabelas": ["institution", "house", "app_user", "user_house_assignment", "work_schedule", "user_session", "login_attempt", "audit_event"],
+  "observacao": "Contém a migração de fundação (instituição, casas, usuários e auditoria), da qual todo o resto depende. Não é removível."
+}

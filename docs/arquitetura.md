@@ -21,6 +21,10 @@ flowchart LR
   API --> GD[Google Shared Drive\ncópias documentais fechadas]
 ```
 
+> **Partições:** a organização em `kernel` + `modules` e as regras de fronteira
+> estão em `docs/arquitetura-modular.md`. Resumo: cada módulo tem porta pública,
+> manifesto e migrações próprias; um teste falha o build se alguém cruzar.
+
 ## Decisões estruturais
 
 1. **Monólito modular** (§4.2): módulos NestJS com fronteiras claras (auth, houses,
@@ -55,11 +59,16 @@ flowchart LR
 | documentos/anexos | ✅ Fase 2 (metadados; objetos na Fase 3) | `db/migrations/002` |
 | benefícios e dados bancários restritos | ✅ Fase 2 | `backend/src/people/benefits.service.ts` |
 | transferências/acervo | ✅ Fase 2 | `backend/src/people/transfers.service.ts` |
-| rotina/agenda/linha do tempo | Fase 3 | — |
+| rotina/agenda | ✅ Fase 3 | `backend/src/modules/routine` |
+| atividades/execução/substituição | ✅ Fase 3 | `backend/src/modules/activities` |
+| chamadas coletivas | ✅ Fase 3 | `backend/src/modules/checks` |
+| linha do tempo | ✅ Fase 3 | `backend/src/modules/timeline` |
+| notificações/escalonamentos | ✅ Fase 3 | `backend/src/modules/notifications` |
+| offline/sincronização | ✅ Fase 3 (servidor) | `backend/src/modules/sync` |
 | medicamentos/enfermagem | Fase 4 | — |
 | plantões/ATAs/ocorrências | Fase 5 | — |
 | relatórios/Drive | Fase 6 | — |
-| offline/sincronização | transversal (SW pronto; fila local na Fase 3) | `frontend` |
+| fila local no aparelho | Fase 4 (IndexedDB no PWA) | `frontend` |
 
 ## Ambientes
 

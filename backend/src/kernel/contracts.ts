@@ -1,0 +1,94 @@
+/**
+ * KERNEL — Contratos compartilhados.
+ *
+ * O único vocabulário que TODOS os módulos podem conhecer. Mantenha mínimo:
+ * cada tipo aqui é um acoplamento global. Se algo serve a um só domínio,
+ * o lugar dele é dentro do módulo, não aqui.
+ */
+
+/** Identidade resolvida da sessão. Produzida pelo módulo `identity`. */
+export interface AuthenticatedUser {
+  id: string;
+  institutionId: string;
+  email: string;
+  fullName: string;
+  role: RoleCode;
+  sessionId: string;
+  lastReauthAt: Date | null;
+  mustChangePassword: boolean;
+}
+
+export type RoleCode =
+  | 'gestor_geral' | 'coordenador' | 'equipe_tecnica' | 'educador'
+  | 'lider_diurno' | 'lider_noturno_geral' | 'enfermagem'
+  | 'cozinha' | 'admin_tecnico';
+
+/**
+ * Evento da Linha do Tempo Unificada (§9).
+ *
+ * É o formato comum que qualquer módulo usa para aparecer na linha do tempo,
+ * SEM que a timeline precise conhecer o módulo. Rotina, atividades, chamadas,
+ * medicamentos (Fase 4) e ocorrências (Fase 5) publicam neste mesmo formato.
+ */
+export interface TimelineEvent {
+  /** Identificador único e estável, prefixado pelo módulo: "activity:<uuid>". */
+  id: string;
+  /** Módulo de origem — permite filtrar e depurar sem acoplar. */
+  source: string;
+  /** Momento previsto do evento, no fuso America/Sao_Paulo. */
+  at: string;
+  kind: TimelineKind;
+  title: string;
+  /** Nulo quando é evento coletivo da casa. */
+  personId: string | null;
+  personName: string | null;
+  houseId: string;
+  /** Estado textual já em linguagem de usuário (§8.4). */
+  state: string;
+  /** Severidade operacional — cor/destaque na interface, nunca julgamento. */
+  severity: 'normal' | 'atencao' | 'critico';
+  responsible?: string | null;
+  note?: string | null;
+  /** Ações que este papel pode executar sobre o evento. */
+  actions?: TimelineAction[];
+}
+
+export type TimelineKind =
+  | 'rotina' | 'refeicao' | 'atividade' | 'saida' | 'medicamento'
+  | 'chamada' | 'plantao' | 'ocorrencia' | 'saude';
+
+export interface TimelineAction {
+  /** Comando específico, não update genérico (§25). */
+  command: string;
+  label: string;
+}
+
+/**
+ * Um módulo que quer aparecer na linha do tempo implementa isto e se registra.
+ * A timeline não importa nada do módulo — só esta interface.
+ */
+export interface TimelineProvider {
+  /** Nome do módulo, usado em `TimelineEvent.source`. */
+  readonly source: string;
+  fetch(query: TimelineQuery): Promise<TimelineEvent[]>;
+}
+
+export interface TimelineQuery {
+  user: AuthenticatedUser;
+  houseId: string;
+  /** Dia no formato YYYY-MM-DD (fuso da instituição). */
+  date: string;
+  /** Quando presente, filtra a um acolhido (modo "Acolhido individual", §9). */
+  personId?: string;
+  /** Modo "Minhas responsabilidades" (§9). */
+  onlyMine?: boolean;
+}
+
+/** Evento de domínio publicado no barramento interno. */
+export interface DomainEvent<T = Record<string, unknown>> {
+  name: string;
+  at: Date;
+  actorId?: string | null;
+  houseId?: string | null;
+  payload: T;
+}

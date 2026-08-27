@@ -71,10 +71,49 @@ autorização internamente — exatamente o que o §25 pede ao exigir comandos e
 vez de atualização genérica. As políticas de permanência ficaram mais estritas, não menos
 (migrações 004 e 005).
 
-## Fase 3 — Operação
-Rotina versionada, agenda, linha do tempo (#8, #9, #10), chamadas, visão dos 20,
-notificações/escalonamento, substituição, fila offline criptografada (#16, #17),
-aparelho institucional designado (#15).
+## ✅ Fase 3 — Operação do plantão
+
+Construída já dentro da arquitetura de partições (ver `docs/arquitetura-modular.md`).
+
+| Requisito | Implementação | Teste |
+|---|---|---|
+| Rotina versionada (§8.1) | módulo `routine`, `app_new_routine_version` | "alterar a rotina cria versão nova" |
+| Só técnica/coordenação alteram rotina (§8.2) | guarda de papel + RLS | "educador não altera" |
+| Geração do dia idempotente | `app_generate_day` | "gerar de novo não duplica" |
+| Tarefa individual visível na visão da casa (#8) | timeline sem filtro no modo casa | "cenário #8" |
+| Tarefa específica exige ciência (#9) | `activity_acknowledgement`, estado `ciente` | "cenário #9" |
+| Ciência é pessoal e única | chave única + policy `user_id = app_current_user()` | "cenário #9" |
+| Exceção exige justificativa neutra (§8.4) | `EXIGEM_JUSTIFICATIVA` | "exceção exige justificativa" |
+| Vencida vira "sem confirmação", nunca "não realizada" (§8.5) | `app_mark_unconfirmed` | "vencida sem confirmação" |
+| Escalonamento a técnica/coordenação, idempotente | `app_emit_escalation` + chave única | "escalonamento avisa e é idempotente" |
+| Nada sensível na tela bloqueada (§19) | `safe_title` fixo | "notificação não revela conteúdo" |
+| Substituição com cadeia completa (§8.3) | `substitution_request` | "substituição registra a cadeia" |
+| Substituto precisa tomar ciência | notificação + estado `aguardando_ciencia` | "substituição registra a cadeia" |
+| Atividade urgente do líder, com motivo (§8.2) | `createUrgent` + `CHECK` no banco | "atividade urgente do líder" |
+| Chamada coletiva → registro individual (#10) | módulo `checks`, `app_confirm_check` | "cenário #10" |
+| Sem marcação em lote silenciosa (§10, §11.2) | só endpoint de marcação individual | "cenário #10" |
+| Chamada alcança só quem está na casa (§5.13) | policy `cr_insert` (migração 0150) | "cenário #10" |
+| Linha do tempo unificada por provedores (§9) | `TimelineRegistry` no kernel | "linha do tempo agrega provedores" |
+| Painel da casa sem ranking (§9, §3.3) | ordem alfabética, sem pontuação | "painel da casa sem ranking" |
+| Offline preserva horário real (#16, §17.3) | `happened_at` ≠ `synced_at` | "cenário #16" |
+| Idempotência da fila offline (§17.4) | `client_op_id` único | "reenvio não duplica" |
+| Medicamento offline só em aparelho institucional (§11.7) | recusa na porta de entrada | "aparelho institucional" |
+| Conflito preserva versões, decisão humana (#17) | `sync_conflict` com as duas versões | "cenário #17" |
+| Aparelho só limpa o confirmado (§17.2) | `podeLimpar` na resposta | "o aparelho só limpa o confirmado" |
+| Fronteiras entre partições | `test/arquitetura.spec.ts` | 7 verificações automáticas |
+
+### Achados desta fase
+
+- **Fuso horário não é cosmético.** O sistema raciocina em `America/Sao_Paulo`
+  (§23): às 02h UTC ainda é ontem em Porto Alegre, e um registro do plantão
+  noturno — justamente o turno que atravessa a virada — cairia no dia errado.
+  Centralizado em `kernel/common/tempo.ts`.
+- **Furo de isolamento encontrado pelo teste:** era possível registrar resultado
+  de chamada para acolhido de outra casa. Corrigido na migração 0150, exigindo
+  permanência ativa na casa da chamada.
+- **Notificação é efeito do sistema, não escrita de usuário:** escrever na caixa
+  de outra pessoa não cabe sob RLS. Virou comando privilegiado, e a leitura
+  continua estrita (cada um vê só as suas).
 
 ## Fase 4 — Medicamentos e saúde
 Grade da Enfermagem, administração (#13, #14), Evolução de Saúde + triagem (#37),

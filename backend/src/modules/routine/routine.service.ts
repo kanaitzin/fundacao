@@ -1,0 +1,129 @@
+import { BadRequestException, ForbiddenException, Inject, Injectable } from '@nestjs/common';
+import { DatabaseService } from '../../kernel/database/database.service';
+import { AuditService } from '../../kernel/audit/audit.service';
+import { AuthenticatedUser } from '../../kernel/contracts';
+
+const PODE_EDITAR = ['equipe_tecnica', 'coordenador', 'gestor_geral'];
+
+export interface RoutineItemInput {
+  kind: string;
+  title: string;
+  startTime: string;          // "07:00"
+  endTime?: string;
+  weekdays?: number[];        // 0=domingo … 6=sábado
+  collective?: boolean;
+  personId?: string;
+  instructions?: string;
+  transport?: string;
+  priority?: number;
+  requiresAck?: boolean;
+}
+
+/**
+ * Rotina versionada da casa (§8.1).
+ *
+ * Alterar a rotina cria uma versão nova e copia os itens: o molde antigo
+ * permanece explicando os registros que nasceram dele. A equipe técnica e a
+ * coordenação editam; líderes de plantão não alteram o planejamento regular
+ * — o que eles podem fazer (atividade urgente e pontual) vive em `activities`.
+ */
+@Injectable()
+export class RoutineService {
+  constructor(
+    @Inject(DatabaseService) private readonly db: DatabaseService,
+    @Inject(AuditService) private readonly audit: AuditService,
+  ) {}
+
+  async current(user: AuthenticatedUser, houseId: string) {
+    return this.db.asUser(user.id, async (c) => {
+      const { rows: [v] } = await c.query(
+        `SELECT id, number, valid_from, note FROM routine_version
+         WHERE house_id = $1 AND valid_to IS NULL`, [houseId]);
+      if (!v) return { versao: null, itens: [] };
+
+      const { rows: itens } = await c.query(
+        `SELECT ri.id, ri.kind, ri.title, ri.start_time, ri.end_time, ri.weekdays,
+                ri.collective, ri.person_id, ri.instructions, ri.transport,
+                ri.priority, ri.requires_ack,
+                coalesce(nullif(p.social_name,''), p.full_name) AS pessoa
+         FROM routine_item ri
+         LEFT JOIN person p ON p.id = ri.person_id
+         WHERE ri.version_id = $1
+         ORDER BY ri.start_time, ri.title`, [v.id]);
+
+      return {
+        versao: { id: v.id, numero: v.number, vigenteDesde: v.valid_from, nota: v.note },
+        itens: itens.map(mapItem),
+      };
+    });
+  }
+
+  async history(user: AuthenticatedUser, houseId: string) {
+    return this.db.asUser(user.id, async (c) => {
+      const { rows } = await c.query(
+        `SELECT number, valid_from, valid_to, note FROM routine_version
+         WHERE house_id = $1 ORDER BY number DESC`, [houseId]);
+      return rows.map((r) => ({
+        numero: r.number, vigenteDesde: r.valid_from, vigenteAte: r.valid_to,
+        nota: r.note, atual: r.valid_to === null,
+      }));
+    });
+  }
+
+  /** Abre uma versão nova (copiando os itens vigentes) para poder alterar. */
+  async newVersion(user: AuthenticatedUser, houseId: string, note: string) {
+    if (!PODE_EDITAR.includes(user.role)) {
+      throw new ForbiddenException('Somente equipe técnica e coordenação alteram a rotina.');
+    }
+    if (!note?.trim()) throw new BadRequestException('Descreva o motivo da nova versão da rotina.');
+
+    const v = await this.db.asUser(user.id, async (c) => {
+      const { rows: [r] } = await c.query(
+        `SELECT * FROM app_new_routine_version($1, $2)`, [houseId, note]);
+      return r;
+    });
+    await this.audit.log({
+      action: 'routine.new_version', actorId: user.id, houseId,
+      entity: 'routine_version', entityId: v.out_version_id, detail: { numero: v.out_number },
+    });
+    return { versaoId: v.out_version_id, numero: v.out_number };
+  }
+
+  async addItem(user: AuthenticatedUser, houseId: string, versionId: string, input: RoutineItemInput) {
+    if (!PODE_EDITAR.includes(user.role)) {
+      throw new ForbiddenException('Somente equipe técnica e coordenação alteram a rotina.');
+    }
+    if (!input.collective && !input.personId) {
+      throw new BadRequestException('Item individual precisa indicar o acolhido.');
+    }
+    const id = await this.db.asUser(user.id, async (c) => {
+      const { rows: [r] } = await c.query(
+        `INSERT INTO routine_item (version_id, house_id, kind, title, start_time, end_time,
+           weekdays, collective, person_id, instructions, transport, priority, requires_ack, created_by)
+         VALUES ($1,$2,$3::routine_kind,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING id`,
+        [versionId, houseId, input.kind, input.title, input.startTime, input.endTime ?? null,
+         input.weekdays ?? [0, 1, 2, 3, 4, 5, 6], input.collective ?? true, input.personId ?? null,
+         input.instructions ?? null, input.transport ?? null, input.priority ?? 3,
+         input.requiresAck ?? !input.collective, user.id]);
+      return r.id;
+    });
+    await this.audit.log({
+      action: 'routine.item_add', actorId: user.id, houseId,
+      entity: 'routine_item', entityId: id, detail: { kind: input.kind, coletiva: input.collective ?? true },
+    });
+    return { id };
+  }
+}
+
+function mapItem(r: any) {
+  return {
+    id: r.id, tipo: r.kind, titulo: r.title,
+    inicio: String(r.start_time).slice(0, 5),
+    fim: r.end_time ? String(r.end_time).slice(0, 5) : null,
+    diasSemana: r.weekdays,
+    coletiva: r.collective,
+    acolhido: r.person_id ? { id: r.person_id, nome: r.pessoa } : null,
+    instrucoes: r.instructions, transporte: r.transport,
+    prioridade: r.priority, exigeCiencia: r.requires_ack,
+  };
+}

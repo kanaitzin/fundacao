@@ -1,0 +1,9 @@
+{
+  "name": "activities",
+  "descricao": "Atividades do dia (§8): ciência, execução, exceções, urgentes e substituição.",
+  "depends": ["identity"],
+  "publica": ["ActivitiesModule", "ActivitiesService", "ESTADO_LABEL"],
+  "tabelas": ["activity", "activity_assignment", "activity_acknowledgement", "activity_execution", "substitution_request"],
+  "removivel": true,
+  "observacao": "Registra-se como provedor da linha do tempo. Removê-lo apenas retira as atividades da timeline."
+}

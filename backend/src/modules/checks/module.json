@@ -1,0 +1,9 @@
+{
+  "name": "checks",
+  "descricao": "Chamadas coletivas (§10): confere todos os ativos numa operação, gerando registro individual.",
+  "depends": ["identity"],
+  "publica": ["ChecksModule", "ChecksService", "OPCOES"],
+  "tabelas": ["collective_check", "check_result"],
+  "removivel": true,
+  "observacao": "Provedor da linha do tempo. Removê-lo retira as chamadas da timeline sem afetar atividades."
+}

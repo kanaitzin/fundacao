@@ -1,0 +1,9 @@
+{
+  "name": "timeline",
+  "descricao": "Linha do tempo unificada (§9) e painel da casa, agregando provedores registrados.",
+  "depends": ["identity"],
+  "publica": ["TimelineModule", "TimelineService", "TimelineMode"],
+  "tabelas": [],
+  "removivel": true,
+  "observacao": "Sem tabelas próprias: só agrega. Novos módulos aparecem aqui apenas registrando um TimelineProvider."
+}

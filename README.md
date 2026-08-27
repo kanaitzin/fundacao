@@ -37,7 +37,7 @@ Usuários fictícios: `educador.ai3@`, `lider.ai3@`, `tecnica.ai3@`, `coord.ai3@
 ## Testes
 
 ```bash
-npm test        # 30 testes de aceite (fundação + perfil)
+npm test        # 58 testes: fronteiras de arquitetura + aceite das fases 1–3
 ```
 
 Cada execução **recria o banco do zero** (migrações + seeds fictícios), porque os
@@ -53,5 +53,15 @@ matriz requisito → implementação → teste.
 - ✅ Fase 2 — Perfil do Acolhido: pessoa/episódio/permanência, CPF único com detecção de
   duplicidade, documentos por categoria, saúde e restrições, benefícios restritos com
   reautenticação, transferência, acervo e retorno
-- ⏳ Fase 3 — Rotina, agenda e linha do tempo (próxima)
-- Fases 4–7 — ver `docs/backlog.md`
+- ✅ Fase 3 — Operação: rotina versionada, atividades com ciência e exceções,
+  chamadas coletivas, linha do tempo unificada, notificações com escalonamento
+  e sincronização offline com conflitos
+- ⏳ Fase 4 — Medicamentos e Enfermagem (próxima)
+- Fases 5–7 — ver `docs/backlog.md`
+
+## Arquitetura em partições
+
+O sistema é dividido em módulos isolados (`backend/src/modules/*`), cada um com
+porta pública, manifesto e migrações próprias. **Acrescentar ou remover um
+módulo não quebra os outros** — e isso é verificado por teste automático, não
+prometido em documento. Ver `docs/arquitetura-modular.md`.

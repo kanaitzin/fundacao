@@ -1,0 +1,9 @@
+{
+  "name": "sync",
+  "descricao": "Sincronização offline (§17): idempotência, horário real preservado e conflitos com todas as versões.",
+  "depends": ["identity"],
+  "publica": ["SyncModule", "SyncService", "OfflineOp"],
+  "tabelas": ["offline_operation", "sync_conflict"],
+  "removivel": true,
+  "observacao": "Aplica operações por comando no banco; não importa módulos de domínio."
+}

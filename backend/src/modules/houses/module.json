@@ -1,0 +1,8 @@
+{
+  "name": "houses",
+  "descricao": "Unidades de acolhimento e escopo de casas por papel.",
+  "depends": ["identity"],
+  "publica": ["HousesModule", "HousesService"],
+  "tabelas": [],
+  "observacao": "Lê tabelas criadas pela fundação; não possui migração própria."
+}
