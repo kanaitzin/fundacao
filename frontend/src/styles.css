@@ -207,16 +207,21 @@ input {
   box-shadow:0 24px 60px rgba(0,20,45,.45), 0 2px 6px rgba(0,20,45,.25);
 }
 .loginbrand{ text-align:center; margin-bottom:22px }
-.loginlogo{
-  width:96px; height:96px; margin:0 auto 16px; display:grid; place-items:center;
-  border-radius:50%; background:var(--brand-soft); border:1px solid var(--line);
+.loginlogo{ display:block; margin:0 auto 18px }
+.loginlogo img{ display:block; width:auto; max-width:230px; height:auto }
+/* No escuro a arte precisa do seu próprio branco para não sumir no fundo. */
+:root[data-theme="dark"] .loginlogo img, :root:not([data-theme="light"]) .loginlogo img{
+  background:#fff; border-radius:14px; padding:10px 14px;
 }
-.loginlogo img{ width:64px; height:64px; object-fit:contain }
 .logincard h1{
-  font-size:19px; line-height:1.32; margin:0; color:var(--navy);
+  font-size:27px; line-height:1.2; margin:0; color:var(--navy); letter-spacing:-.01em;
   font-family:"Plus Jakarta Sans",system-ui,sans-serif; font-weight:800;
 }
-.logincard h1 span{ display:block; font-weight:600; color:var(--brand) }
+:root[data-theme="dark"] .logincard h1, :root:not([data-theme="light"]) .logincard h1{ color:var(--ink) }
+.logincard h1 span{
+  display:block; font-size:15px; font-weight:600; color:var(--brand);
+  margin-top:4px; letter-spacing:0;
+}
 .loginsub{ margin:8px 0 0; font-size:13px; color:var(--muted); text-align:center }
 .loginhint{
   margin:8px 0 4px; font-size:12.5px; line-height:1.5; color:var(--muted);

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import logo from '../assets/logo.png';
+import marca from '../assets/logo-marca.png';
 
 /**
  * ENTRADA NO SISTEMA.
@@ -37,10 +37,10 @@ export function Login({ onSubmit, erro, ocupado }: {
       <main className="logincard" role="main">
         <div className="loginbrand">
           <span className="loginlogo">
-            <img src={logo} alt="" aria-hidden="true" />
+            <img src={marca} alt="Fundação O Pão dos Pobres" />
           </span>
-          <h1>Fundação O Pão dos Pobres<span>Acolhimento Institucional</span></h1>
-          <p className="loginsub">Rede Acolher · Sistema de gestão do acolhimento</p>
+          <h1>Rede Acolher<span>Acolhimento Institucional</span></h1>
+          <p className="loginsub">Sistema de gestão do acolhimento</p>
         </div>
 
         <form onSubmit={(e) => { e.preventDefault(); onSubmit(email.trim(), senha); }}>
