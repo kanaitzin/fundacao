@@ -454,6 +454,14 @@ textarea{
   color:var(--ink-2); min-width:42px;
 }
 
+/* O rodapé da folha acompanha a rolagem: em formulário longo, o botão
+   longe do olho é botão que não se acha. */
+.sheet .rodape{
+  position:sticky; bottom:-24px; gap:8px; margin-top:16px;
+  padding:12px 0; background:var(--surface);
+  box-shadow:0 -10px 12px -10px rgba(0,20,45,.18);
+}
+
 /* No celular o cabeçalho encolhe: cada linha dele é uma linha a menos do dia,
    e é o dia que a pessoa veio ver. */
 @media (max-width:640px){

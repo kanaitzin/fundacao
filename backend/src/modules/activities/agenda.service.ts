@@ -108,9 +108,16 @@ export class AgendaService {
         [houseId, diaSemana, hora]);
       return rows;
     });
-    return rows.map((r) => ({
-      id: r.user_id, nome: r.nome, cargo: r.cargo, naEscala: r.na_escala,
-    }));
+    return {
+      // `haEscala` false significa que a CASA não tem escala cadastrada para
+      // aquele dia — e não que todo mundo está de folga. Sem essa distinção, a
+      // tela marcava "fora da escala" nos oito nomes, e um aviso que aparece
+      // sempre deixa de ser aviso (migração 0610).
+      haEscala: rows.length > 0 ? !!rows[0].ha_escala : false,
+      equipe: rows.map((r) => ({
+        id: r.user_id, nome: r.nome, cargo: r.cargo, naEscala: r.na_escala,
+      })),
+    };
   }
 
   async marcar(user: AuthenticatedUser, input: NovoCompromisso) {
@@ -155,12 +162,14 @@ export class AgendaService {
     // legítimo — a saída pode ter sido combinada justamente assim.
     let foraDaEscala: string | null = null;
     if (modo === 'pessoa') {
-      const equipe = await this.equipeDisponivel(user, input.houseId, input.inicio, input.hora);
+      const { equipe, haEscala } = await this.equipeDisponivel(user, input.houseId, input.inicio, input.hora);
       const escolhido = equipe.find((e) => e.id === input.responsavelId);
       if (!escolhido) {
         throw new BadRequestException('Esta pessoa não está na equipe desta casa.');
       }
-      if (!escolhido.naEscala) foraDaEscala = escolhido.nome;
+      // Sem escala cadastrada, ninguém está "fora" dela: o aviso seria sobre
+      // uma lista que não existe.
+      if (haEscala && !escolhido.naEscala) foraDaEscala = escolhido.nome;
     }
 
     const r = await this.db.asUser(user.id, async (c) => {

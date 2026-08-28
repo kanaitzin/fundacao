@@ -8,6 +8,7 @@ import { Dia } from './screens/Dia';
 import { Chamada } from './screens/Chamada';
 import { Passagem } from './screens/Passagem';
 import { Acolhidos } from './screens/Acolhidos';
+import { Agenda } from './screens/Agenda';
 
 interface Me {
   id: string; email: string; fullName: string; role: string;
@@ -25,7 +26,7 @@ const ROLE_LABEL: Record<string, string> = {
 const KIND_TONE: Record<string, string> = { casa_lar: 'c-move', abrigo_institucional: 'c-brand' };
 
 /** As telas que não são do turno; a aba "Mais" fica acesa quando uma delas está aberta. */
-const OUTRAS = new Set(['equipe', 'casas']);
+const OUTRAS = new Set(['agenda', 'equipe', 'casas']);
 
 /** Quem administra equipe (§5.3). O menu não oferece o que o cargo não faz. */
 const ADMINISTRA_EQUIPE = ['coordenador', 'gestor_geral', 'admin_tecnico'];
@@ -35,7 +36,7 @@ export function App() {
   const [houses, setHouses] = useState<House[]>([]);
   const [erro, setErro] = useState('');
   const [ocupado, setOcupado] = useState(false);
-  const [aba, setAba] = useState<'dia' | 'chamada' | 'passagem' | 'acolhidos' | 'casas' | 'equipe'>('dia');
+  const [aba, setAba] = useState<'dia' | 'chamada' | 'passagem' | 'acolhidos' | 'agenda' | 'casas' | 'equipe'>('dia');
   const [sugerirSenha, setSugerirSenha] = useState(false);
   const [trocarSenha, setTrocarSenha] = useState(false);
   const [mais, setMais] = useState(false);
@@ -143,6 +144,8 @@ export function App() {
           <Passagem houseId={casaAtual.id} />
         )}
 
+        {aba === 'agenda' && casaAtual && <Agenda houseId={casaAtual.id} papel={me.role} />}
+
         {aba === 'equipe' && administra && <Equipe />}
 
         {aba === 'casas' && (
@@ -182,6 +185,13 @@ export function App() {
           <div className="sheet">
             <h3 id="t-mais">Mais</h3>
             <div className="stack">
+              <button className="card row" onClick={() => { setAba('agenda'); setMais(false); }}>
+                <span aria-hidden="true">📅</span>
+                <div className="grow" style={{ textAlign: 'left' }}>
+                  <b className="ff">Agenda</b>
+                  <div className="mutetxt">O que está marcado e o que vem pela frente.</div>
+                </div>
+              </button>
               {administra && (
                 <button className="card row" onClick={() => { setAba('equipe'); setMais(false); }}>
                   <span aria-hidden="true">👥</span>

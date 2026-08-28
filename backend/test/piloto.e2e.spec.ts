@@ -145,7 +145,7 @@ describe('Piloto da Casa 03 — ensaio geral do dia', () => {
     const equipe = await request(http)
       .get(`/api/v1/activities/agenda/staff?houseId=${AI3}&data=${hoje}&hora=10:00`)
       .set(auth(t.tecnica));
-    const educador = equipe.body.find((e: any) => e.cargo === 'educador');
+    const educador = equipe.body.equipe.find((e: any) => e.cargo === 'educador');
 
     const marcado = await request(http).post('/api/v1/activities/agenda')
       .set(auth(t.tecnica)).send({

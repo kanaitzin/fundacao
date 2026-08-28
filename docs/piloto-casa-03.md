@@ -37,7 +37,7 @@ medicamentos dos quatro tipos, restrições e estoque baixo de propósito).
 |---|---|---|---|
 | 1 | Confirmar códigos e nomes reais das oito unidades | Gestor Geral | os códigos AI1–AI4/ARM1–ARM4 ainda são preliminares |
 | 2 | Cadastrar a equipe real da Casa 03 por setor | Coordenação | e-mails institucionais individuais criados |
-| 3 | Registrar a escala 12×36 vigente | Coordenação | falta o documento do §33.3 |
+| 3 | Registrar a escala 12×36 vigente | Coordenação | falta o documento do §33.3 — **sem ela, o aviso de "fora da escala" ao marcar compromisso não funciona, e a tela diz isso em vez de acusar todo mundo** |
 | 4 | Conferir o limite de vagas da casa | Coordenação | 20 é o padrão; alterar exige motivo registrado |
 | 5 | Registrar o aparelho institucional | Gestor Geral | é um só, e fica com a técnica/coordenação |
 | 6 | Definir a chave do cofre de acessos (`CREDENTIAL_KEY`) | TI | fora do código, no ambiente |

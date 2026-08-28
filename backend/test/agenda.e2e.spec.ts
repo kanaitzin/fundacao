@@ -219,12 +219,13 @@ describe('Agenda — marcar na linha do tempo com data, hora e repetição', () 
       .get(`/api/v1/activities/agenda/staff?houseId=${AI3}&data=${hoje}&hora=15:00`)
       .set(auth(tokens.tecnica));
     expect(equipe.status).toBe(200);
-    expect(equipe.body.length).toBeGreaterThan(0);
-    expect(equipe.body[0]).toHaveProperty('naEscala');
+    expect(equipe.body.equipe.length).toBeGreaterThan(0);
+    expect(equipe.body.equipe[0]).toHaveProperty('naEscala');
+    expect(equipe.body).toHaveProperty('haEscala');
     // A cozinha não acompanha saída nem atividade: não é oferecida.
-    expect(equipe.body.some((e: any) => e.cargo === 'cozinha')).toBe(false);
+    expect(equipe.body.equipe.some((e: any) => e.cargo === 'cozinha')).toBe(false);
 
-    const educador = equipe.body.find((e: any) => e.cargo === 'educador');
+    const educador = equipe.body.equipe.find((e: any) => e.cargo === 'educador');
     const res = await request(http).post('/api/v1/activities/agenda')
       .set(auth(tokens.tecnica)).send({
         houseId: AI3, personId: pessoa, tipo: 'saude',
@@ -277,13 +278,55 @@ describe('Agenda — marcar na linha do tempo com data, hora e repetição', () 
     expect(c.responsavel).toBe('Plantão do horário');
   });
 
-  it('nomear quem está fora da escala avisa, mas não impede', async () => {
-    // Um horário em que ninguém da casa costuma estar: madrugada do diurno.
+  /**
+   * Casa SEM escala cadastrada não tem ninguém "fora da escala".
+   *
+   * A tela de marcar mostrava "(fora da escala deste horário)" nos oito nomes
+   * da casa — não porque todos estivessem de folga, mas porque não havia
+   * escala nenhuma. Aviso que aparece em todo nome deixa de ser aviso, e
+   * ensina a equipe a ignorá-lo justamente antes do dia em que ele acerta.
+   */
+  it('sem escala cadastrada, ninguém é marcado como fora dela', async () => {
+    await admin.query(`DELETE FROM work_schedule WHERE house_id = $1`, [AI3]);
+
     const equipe = await request(http)
       .get(`/api/v1/activities/agenda/staff?houseId=${AI3}&data=${hoje}&hora=03:00`)
       .set(auth(tokens.coord));
-    const foraDaEscala = equipe.body.find((e: any) => !e.naEscala && e.cargo === 'educador');
-    if (!foraDaEscala) return;   // ambiente sem escala cadastrada: nada a provar
+    expect(equipe.body.haEscala).toBe(false);
+
+    const alguem = equipe.body.equipe.find((e: any) => e.cargo === 'educador');
+    const res = await request(http).post('/api/v1/activities/agenda')
+      .set(auth(tokens.coord)).send({
+        houseId: AI3, personId: pessoa, tipo: 'saude',
+        titulo: 'Exame sem escala cadastrada (fictício)', inicio: hoje, hora: '03:00',
+        recorrencia: 'unica', responsavel: 'pessoa', responsavelId: alguem.id,
+      });
+    expect(res.status).toBe(201);
+    // Nada de alarme falso: não existe lista da qual estar fora.
+    expect(res.body.foraDaEscala).toBeNull();
+    expect(res.body.aviso).not.toMatch(/não está na escala/i);
+    criados.push(res.body.id);
+  });
+
+  it('nomear quem está fora da escala avisa, mas não impede', async () => {
+    // Com escala DE VERDADE cadastrada, o aviso volta a significar algo. Sem
+    // este cadastro o teste passava sem provar nada: saía pelo `return` na
+    // primeira linha, num ambiente onde ninguém estava em escala alguma.
+    const { rows: [outro] } = await admin.query(
+      `SELECT u.id FROM app_user u
+         JOIN user_house_assignment a ON a.user_id = u.id AND a.house_id = $1
+        WHERE u.role = 'educador' AND u.active LIMIT 1`, [AI3]);
+    await admin.query(
+      `INSERT INTO work_schedule (user_id, house_id, weekday, start_time, end_time, valid_from)
+       VALUES ($1, $2, extract(dow from current_date)::smallint, '07:00', '19:00', current_date)`,
+      [outro.id, AI3]);
+
+    const equipe = await request(http)
+      .get(`/api/v1/activities/agenda/staff?houseId=${AI3}&data=${hoje}&hora=03:00`)
+      .set(auth(tokens.coord));
+    expect(equipe.body.haEscala).toBe(true);
+    const foraDaEscala = equipe.body.equipe.find((e: any) => !e.naEscala && e.cargo === 'educador');
+    expect(foraDaEscala).toBeTruthy();
 
     const res = await request(http).post('/api/v1/activities/agenda')
       .set(auth(tokens.coord)).send({
