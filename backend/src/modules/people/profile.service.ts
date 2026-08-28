@@ -50,7 +50,8 @@ export class ProfileService {
                  FROM house_stay s JOIN house h ON h.id = s.house_id
                  WHERE s.person_id = $1 AND s.status = 'ativa'`, [personId]),
         () => c.query(`SELECT * FROM profile_detail WHERE person_id = $1`, [personId]),
-        () => c.query(`SELECT id, kind, description, severity, essential_alert, source, review_on
+        () => c.query(`SELECT id, kind, description, severity, essential_alert, source, review_on,
+                        app_condition_label(kind, description) AS rotulo
                  FROM health_condition WHERE person_id = $1 AND active
                  ORDER BY essential_alert DESC, kind`, [personId]),
         () => c.query(`SELECT id, restriction, substitution, guidance, review_on
@@ -86,8 +87,11 @@ export class ProfileService {
       casaAtual: data.stay ? { id: data.stay.house_id, codigo: data.stay.code, nome: data.stay.name, desde: data.stay.started_at } : null,
       noAcervo: !data.stay,
       // 1) alertas essenciais e saúde primeiro
+      // `descricao` já vem como frase que se lê sozinha (§6.4): a tela mostra
+      // o alerta, não remonta a frase — remontar em cada tela é como um dia
+      // uma tela esquece.
       alertasEssenciais: data.conditions.filter((c: any) => c.essential_alert)
-        .map((c: any) => ({ tipo: c.kind, descricao: c.description, gravidade: c.severity })),
+        .map((c: any) => ({ tipo: c.kind, descricao: c.rotulo, gravidade: c.severity })),
       condicoesSaude: data.conditions,
       restricoesAlimentares: data.restrictions,
       // 2) dados estruturais

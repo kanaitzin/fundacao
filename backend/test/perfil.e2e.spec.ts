@@ -46,6 +46,7 @@ describe('Fase 2 — Perfil, benefícios, transferência e acervo', () => {
 
     for (const [k, email] of Object.entries({
       educador: 'educador.ai3@paodospobres.dev',
+      lider: 'lider.ai3@paodospobres.dev',
       tecnica: 'tecnica.ai3@paodospobres.dev',
       coord3: 'coord.ai3@paodospobres.dev',
       coord4: 'coord.ai4@paodospobres.dev',
@@ -85,6 +86,33 @@ describe('Fase 2 — Perfil, benefícios, transferência e acervo', () => {
     expect(res.body.nome).toBe('Alice');                       // nome social nas telas (§6.1)
     expect(res.body.alertasEssenciais[0].descricao).toMatch(/Amendoim/);
     expect(res.body.restricoesAlimentares.length).toBeGreaterThan(0);
+  });
+
+  /**
+   * A tela do perfil mostrava "⚠ Dipirona" como alerta essencial — o tipo
+   * ficava numa coluna e o texto noutra, e só o texto ia para a tela. Lido de
+   * relance, logo acima de "Remédio de hoje", isso não parece aviso de
+   * alergia: parece prescrição. O alerta agora sai do banco já como frase que
+   * se lê sozinha, no perfil e em toda tela que o mostre.
+   */
+  it('o alerta essencial diz DO QUE ele é — "Alergia a", nunca só o nome do remédio', async () => {
+    const { rows: [lara] } = await admin.query(`SELECT id FROM person WHERE social_name = 'Lara'`);
+    const res = await request(http).get(`/api/v1/people/${lara.id}`).set(auth(tokens.educador));
+    expect(res.body.alertasEssenciais[0].descricao).toBe('Alergia a Dipirona');
+
+    // E o que já era frase inteira não vira "Intolerância a Intolerância…".
+    const { rows: [davi] } = await admin.query(`SELECT id FROM person WHERE social_name = 'Davi'`);
+    const dele = await request(http).get(`/api/v1/people/${davi.id}`).set(auth(tokens.educador));
+    expect(dele.body.alertasEssenciais[0].descricao).toBe('Intolerância à lactose');
+
+    // A mesma frase na chamada do almoço, que é onde ela decide o prato.
+    const chamada = await request(http).post('/api/v1/checks').set(auth(tokens.lider))
+      .send({ houseId: AI3, kind: 'alimentacao', titulo: 'Almoço (alerta legível)' });
+    if (chamada.status !== 201) throw new Error(`abrir chamada: ${chamada.status} ${JSON.stringify(chamada.body)}`);
+    const aberta = await request(http).get(`/api/v1/checks/${chamada.body.id}`).set(auth(tokens.lider));
+    if (aberta.status !== 200) throw new Error(`ler chamada: ${aberta.status} ${JSON.stringify(aberta.body)}`);
+    const linhaDaLara = aberta.body.linhas.find((l: any) => l.nome === 'Lara');
+    expect(linhaDaLara.alertas).toMatch(/^Alergia a Dipirona/);
   });
 
   it('cenário #40 — perfil não expõe dados bancários em nenhum campo', async () => {

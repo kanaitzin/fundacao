@@ -7,6 +7,7 @@ import { Equipe } from './screens/Equipe';
 import { Dia } from './screens/Dia';
 import { Chamada } from './screens/Chamada';
 import { Passagem } from './screens/Passagem';
+import { Acolhidos } from './screens/Acolhidos';
 
 interface Me {
   id: string; email: string; fullName: string; role: string;
@@ -23,6 +24,9 @@ const ROLE_LABEL: Record<string, string> = {
 /** Cor por tipo de unidade — categoria, nunca ranking entre casas. */
 const KIND_TONE: Record<string, string> = { casa_lar: 'c-move', abrigo_institucional: 'c-brand' };
 
+/** As telas que não são do turno; a aba "Mais" fica acesa quando uma delas está aberta. */
+const OUTRAS = new Set(['equipe', 'casas']);
+
 /** Quem administra equipe (§5.3). O menu não oferece o que o cargo não faz. */
 const ADMINISTRA_EQUIPE = ['coordenador', 'gestor_geral', 'admin_tecnico'];
 
@@ -31,9 +35,10 @@ export function App() {
   const [houses, setHouses] = useState<House[]>([]);
   const [erro, setErro] = useState('');
   const [ocupado, setOcupado] = useState(false);
-  const [aba, setAba] = useState<'dia' | 'chamada' | 'passagem' | 'casas' | 'equipe'>('dia');
+  const [aba, setAba] = useState<'dia' | 'chamada' | 'passagem' | 'acolhidos' | 'casas' | 'equipe'>('dia');
   const [sugerirSenha, setSugerirSenha] = useState(false);
   const [trocarSenha, setTrocarSenha] = useState(false);
+  const [mais, setMais] = useState(false);
 
   async function entrar(email: string, password: string) {
     setErro(''); setOcupado(true);
@@ -87,6 +92,15 @@ export function App() {
         </div>
       </header>
 
+      {/*
+        A barra carrega o TURNO: as quatro telas que a pessoa de plantão abre
+        dezenas de vezes. O resto — unidades, equipe, e o que a coordenação vai
+        ganhar — mora em "Mais".
+
+        Foi a tela de verdade que decidiu isso: com cinco abas, "Unidades" já
+        saía pela borda do celular, e a sexta chegaria com a coordenação. Aba
+        que não cabe é aba que ninguém acha.
+      */}
       <nav className="tabbar" aria-label="Seções">
         <button className={aba === 'dia' ? 'on' : ''} onClick={() => setAba('dia')}>
           <span aria-hidden="true">📋</span> Dia
@@ -94,16 +108,14 @@ export function App() {
         <button className={aba === 'chamada' ? 'on' : ''} onClick={() => setAba('chamada')}>
           <span aria-hidden="true">✅</span> Chamada
         </button>
+        <button className={aba === 'acolhidos' ? 'on' : ''} onClick={() => setAba('acolhidos')}>
+          <span aria-hidden="true">🧒</span> Acolhidos
+        </button>
         <button className={aba === 'passagem' ? 'on' : ''} onClick={() => setAba('passagem')}>
           <span aria-hidden="true">🔁</span> Passagem
         </button>
-        {administra && (
-          <button className={aba === 'equipe' ? 'on' : ''} onClick={() => setAba('equipe')}>
-            <span aria-hidden="true">👥</span> Equipe
-          </button>
-        )}
-        <button className={aba === 'casas' ? 'on' : ''} onClick={() => setAba('casas')}>
-          <span aria-hidden="true">🏠</span> Unidades
+        <button className={OUTRAS.has(aba) ? 'on' : ''} onClick={() => setMais(true)}>
+          <span aria-hidden="true">⋯</span> Mais
         </button>
       </nav>
 
@@ -122,6 +134,10 @@ export function App() {
         )}
 
         {aba === 'chamada' && casaAtual && <Chamada houseId={casaAtual.id} />}
+
+        {aba === 'acolhidos' && casaAtual && (
+          <Acolhidos houseId={casaAtual.id} papel={me.role} />
+        )}
 
         {aba === 'passagem' && casaAtual && (
           <Passagem houseId={casaAtual.id} />
@@ -159,6 +175,36 @@ export function App() {
           </>
         )}
       </main>
+
+      {mais && (
+        <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-mais"
+             onClick={(e) => { if (e.target === e.currentTarget) setMais(false); }}>
+          <div className="sheet">
+            <h3 id="t-mais">Mais</h3>
+            <div className="stack">
+              {administra && (
+                <button className="card row" onClick={() => { setAba('equipe'); setMais(false); }}>
+                  <span aria-hidden="true">👥</span>
+                  <div className="grow" style={{ textAlign: 'left' }}>
+                    <b className="ff">Equipe</b>
+                    <div className="mutetxt">Quem trabalha nesta casa, por setor.</div>
+                  </div>
+                </button>
+              )}
+              <button className="card row" onClick={() => { setAba('casas'); setMais(false); }}>
+                <span aria-hidden="true">🏠</span>
+                <div className="grow" style={{ textAlign: 'left' }}>
+                  <b className="ff">Unidades</b>
+                  <div className="mutetxt">As unidades no seu alcance.</div>
+                </div>
+              </button>
+            </div>
+            <button className="btn sec block" style={{ marginTop: 16 }} onClick={() => setMais(false)}>
+              Fechar
+            </button>
+          </div>
+        </div>
+      )}
 
       {(sugerirSenha || trocarSenha) && (
         <SenhaPessoal

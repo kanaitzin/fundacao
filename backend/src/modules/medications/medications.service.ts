@@ -165,7 +165,10 @@ export class MedicationsService {
                 a.person_id, coalesce(nullif(p.social_name,''), p.full_name) AS pessoa,
                 pr.medication, pr.dose, pr.route, pr.kind, pr.use_condition,
                 app_user_display_name(a.administered_by) AS confirmado_por,
-                (SELECT string_agg(h.description, ' · ') FROM health_condition h
+                -- Ao lado de uma dose, "Dipirona" sozinha se lê como o que
+                -- dar. Aqui sai "Alergia a Dipirona" (§6.4, migração 0600).
+                (SELECT string_agg(app_condition_label(h.kind, h.description), ' · ')
+                   FROM health_condition h
                   WHERE h.person_id = a.person_id AND h.active AND h.kind='alergia') AS alergias
          FROM medication_administration a
          -- rls-join-ok: adm_select é app_person_in_scope(person_id), a MESMA

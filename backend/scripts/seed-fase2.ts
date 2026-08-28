@@ -28,7 +28,9 @@ const ACOLHIDOS = [
   { nome: 'Bruno Santos (fictício)', social: 'Bruno', anos: 9, escola: 'EMEF Vila Nova', turno: 'manhã', serie: '4º ano' },
   { nome: 'Caio Martins (fictício)', social: 'Caio', anos: 11, escola: 'EMEF Vila Nova', turno: 'tarde', serie: '6º ano' },
   { nome: 'Davi Lima (fictício)', social: 'Davi', anos: 8, escola: 'EMEF Vila Nova', turno: 'manhã', serie: '3º ano',
-    alergia: { desc: 'Intolerância à lactose', grav: 'moderada' }, restricao: { evitar: 'Leite e derivados', subst: 'Bebida vegetal sem lactose' } },
+    // Intolerância NÃO é alergia — o seed as tratava como a mesma coisa, e a
+    // tela do perfil repetia o erro para quem fosse aprender o sistema por ela.
+    intolerancia: { desc: 'Intolerância à lactose', grav: 'moderada' }, restricao: { evitar: 'Leite e derivados', subst: 'Bebida vegetal sem lactose' } },
   { nome: 'Enzo Pereira (fictício)', social: 'Enzo', anos: 13, escola: 'EMEF Padre Cacique', turno: 'tarde', serie: '8º ano' },
   { nome: 'Felipe Almeida (fictício)', social: 'Felipe', anos: 15, escola: 'EEEM Centro', turno: 'manhã', serie: '1º ano EM' },
   { nome: 'Gabriela Teixeira (fictícia)', social: 'Gabi', anos: 12, escola: 'EMEF Padre Cacique', turno: 'tarde', serie: '7º ano' },
@@ -98,6 +100,13 @@ async function main() {
         `INSERT INTO health_condition (person_id, kind, description, severity, essential_alert, source, created_by)
          VALUES ($1,'alergia',$2,$3,true,'Relatório médico (fictício)',$4)`,
         [p.id, a.alergia.desc, a.alergia.grav, tecnica.id]);
+    }
+    if ((a as any).intolerancia) {
+      const int = (a as any).intolerancia;
+      await c.query(
+        `INSERT INTO health_condition (person_id, kind, description, severity, essential_alert, source, created_by)
+         VALUES ($1,'intolerancia',$2,$3,true,'Relatório médico (fictício)',$4)`,
+        [p.id, int.desc, int.grav, tecnica.id]);
     }
     if ((a as any).condicao) {
       const cond = (a as any).condicao;

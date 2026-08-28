@@ -4,6 +4,22 @@ const BASE = '/api/v1';
 let token: string | null = null;
 export function setToken(t: string | null) { token = t; }
 
+/**
+ * O erro carrega o STATUS, além da frase.
+ *
+ * A tela do perfil precisou distinguir duas coisas que a frase sozinha
+ * confundia: "esta área é restrita ao seu cargo" e "este campo nunca foi
+ * preenchido". As duas chegavam como "Não encontrado." — e a segunda é um
+ * trabalho a fazer, não um bloqueio. Quem quiser só a mensagem continua
+ * usando `e.message`, como antes.
+ */
+export class ErroApi extends Error {
+  constructor(readonly status: number, message: string) {
+    super(message);
+    this.name = 'ErroApi';
+  }
+}
+
 /** Mensagens em português, úteis e sem jargão técnico. */
 function mensagem(status: number, doServidor?: string): string {
   if (status === 401) return doServidor || 'E-mail ou senha inválidos.';
@@ -35,7 +51,7 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
     // Mensagem do servidor só é exibida quando já vem em linguagem de usuário.
     const doServidor = typeof body.message === 'string' && /[À-ÿ]|senha|tentativas|Sessão/i.test(body.message)
       ? body.message : undefined;
-    throw new Error(mensagem(res.status, doServidor));
+    throw new ErroApi(res.status, mensagem(res.status, doServidor));
   }
   return res.json();
 }

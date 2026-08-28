@@ -425,6 +425,35 @@ textarea{
 }
 .check input{ width:20px; height:20px; accent-color:var(--brand-solid) }
 
+/* ---------------------------------------------------------------
+   OS ACOLHIDOS E O PERFIL
+
+   Vinte nomes numa tela de celular: linha alta o bastante para o
+   polegar, com os dois avisos que importam à direita, onde o olho
+   corre. No perfil, listas sem marcador e separadas por linha — o
+   dado é curto, o rótulo vem embaixo, e ler é mais rápido que
+   caçar dois pontos.
+   --------------------------------------------------------------- */
+.pessoas{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px }
+.pessoas .card{ width:100%; gap:8px; cursor:pointer; text-align:left }
+.pessoas .card:hover{ border-color:var(--brand) }
+
+.lista{ list-style:none; margin:0; padding:0 }
+.lista li{ padding:9px 0; border-top:1px solid var(--line) }
+.lista li:first-child{ border-top:0; padding-top:0 }
+
+.doses{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column }
+.doses li{
+  display:flex; align-items:flex-start; gap:10px;
+  padding:10px 0; border-top:1px solid var(--line);
+}
+.doses li:first-child{ border-top:0; padding-top:0 }
+.doses li.feito{ opacity:.6 }
+.doses .hora{
+  font-variant-numeric:tabular-nums; font-weight:700; font-size:13.5px;
+  color:var(--ink-2); min-width:42px;
+}
+
 /* No celular o cabeçalho encolhe: cada linha dele é uma linha a menos do dia,
    e é o dia que a pessoa veio ver. */
 @media (max-width:640px){

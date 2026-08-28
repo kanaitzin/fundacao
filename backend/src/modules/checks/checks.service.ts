@@ -99,7 +99,10 @@ export class ChecksService {
                            AND s.status = 'ativa') AS ativo,
                 r.option_code, r.note, r.happened_at,
                 app_user_display_name(r.recorded_by) AS por,
-                (SELECT string_agg(h.description, ' · ') FROM health_condition h
+                -- O alerta sai daqui já legível: "Alergia a Dipirona", nunca
+                -- só "Dipirona" (§6.4, migração 0600).
+                (SELECT string_agg(app_condition_label(h.kind, h.description), ' · ')
+                   FROM health_condition h
                   WHERE h.person_id = e.person_id AND h.active AND h.essential_alert) AS alertas,
                 (SELECT string_agg(f.restriction, ' · ') FROM food_restriction f
                   WHERE f.person_id = e.person_id AND f.active) AS restricoes
