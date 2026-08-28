@@ -542,6 +542,42 @@ const COFRE_HIST = [
   {quem:"Carla Coordenadora (fictícia)", acao:"cadastro", quando:"02/08, 10:05", fim:"—"},
 ];
 
+/* ---------- Agenda da linha do tempo ----------
+   Compromisso é a REGRA ("fono toda terça às 14h"); a linha do tempo do dia é
+   a ocorrência. Marcar não enche o banco de linhas futuras: o dia vira linha
+   quando o dia chega. */
+const AGENDA = [
+  {id:"g1", tipo:"saude", titulo:"Fono", pessoa:"Alice", local:"Clínica fictícia",
+   hora:"14:00", dur:45, rec:"semanal", dias:[2], inicio:"05/08", fim:"30/10", autor:"Tatiane Técnica (fictícia)"},
+  {id:"g2", tipo:"tratamento", titulo:"Colírio da manhã", pessoa:"Alice",
+   hora:"07:30", dur:5, rec:"diaria", inicio:"12/08", fim:null,
+   motivo:"Uso contínuo conforme laudo oftalmológico, sem previsão de alta (fictício).",
+   autor:"Tainá Souza (fictícia) · Enfermagem"},
+  {id:"g3", tipo:"saude", titulo:"Consulta oftalmológica", pessoa:"Bruno", local:"UBS fictícia",
+   hora:"09:30", dur:60, rec:"unica", inicio:"27/10", fim:"27/10", autor:"Tatiane Técnica (fictícia)"},
+  {id:"g4", tipo:"lazer", titulo:"Cinema na sala", pessoa:null, hora:"19:00", dur:90,
+   rec:"unica", inicio:"28/08", fim:"28/08", autor:"Carla Coordenadora (fictícia)"},
+  {id:"g5", tipo:"visita", titulo:"Visita da avó materna", pessoa:"Alice",
+   hora:"15:00", dur:120, rec:"quinzenal", dias:[6], inicio:"16/08", fim:"20/12",
+   autor:"Tatiane Técnica (fictícia)"},
+];
+const TIPOS_COMPROMISSO = [["atividade","Atividade","c-info"],["saude","Saúde — consulta, exame, terapia","c-med"],
+  ["tratamento","Tratamento continuado","c-crit"],["escola","Escola","c-ok"],
+  ["curso","Curso ou profissionalização","c-move"],["visita","Visita ou convivência familiar","c-other"],
+  ["documentacao","Documentação","c-mute"],["lazer","Lazer","c-warn"],["outro","Outro","c-mute"]];
+const RECORRENCIAS = [["unica","Uma vez"],["diaria","Todos os dias"],
+  ["semanal","Toda semana, nos dias escolhidos"],["quinzenal","A cada 15 dias"],["mensal","Todo mês, no mesmo dia"]];
+const DIAS = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
+const tomTipo = t => (TIPOS_COMPROMISSO.find(x=>x[0]===t)||[])[2] || "c-mute";
+const labelTipo = t => (TIPOS_COMPROMISSO.find(x=>x[0]===t)||[])[1] || t;
+const labelRec = (g) => {
+  if(g.rec==="unica") return "uma vez";
+  if(g.rec==="diaria") return "todos os dias";
+  if(g.rec==="mensal") return "todo mês";
+  const d = (g.dias||[]).map(n=>DIAS[n]).join(", ");
+  return g.rec==="quinzenal" ? `a cada 15 dias · ${d}` : `toda semana · ${d}`;
+};
+
 const KIDS = [
   {id:1, nome:"Alice R.", social:"Alice", idade:7,  escola:"EMEF Vila Nova · manhã", alergia:"Amendoim", restr:"Sem amendoim e derivados"},
   {id:2, nome:"Bruno S.", social:"Bruno", idade:9,  escola:"EMEF Vila Nova · manhã"},
@@ -671,7 +707,7 @@ let S = {
   transfSub:"recebidas", transfChat:null,
   // Sessão: o protótipo agora começa pela porta de entrada, como o sistema real.
   logado:false, sugereSenha:false, trocarSenha:false, equipeForm:null,
-  cadastroLimite:false,
+  cadastroLimite:false, agDias:[], agPrazo:"data",
 };
 const ROLES = {
   educador:"Educador social", lider:"Líder Diurno", noturno:"Líder Noturno Geral",
@@ -1015,9 +1051,11 @@ function vPassagem(){
 
 /* ================= LÍDER DIURNO ================= */
 function vLider(){
-  const tabs = tabbar([{id:"painel", ic:"🏠", label:"Painel da casa"},{id:"ata", ic:"📔", label:"ATA diurna"}]);
+  const tabs = tabbar([{id:"painel", ic:"🏠", label:"Painel da casa"},{id:"agenda", ic:"🗓️", label:"Agenda"},{id:"ata", ic:"📔", label:"ATA diurna"}]);
   let inner;
-  if(S.tab==="ata"){
+  if(S.tab==="agenda"){
+    inner = vAgenda();
+  } else if(S.tab==="ata"){
     const passagens = [["Ed. M. Silva","Assinada"],["Ed. P. Rocha","Assinada"],["Ed. J. Costa","Pendente"],["Sua passagem de líder","Assinada"]];
     inner = `<div class="card raise stack">
       <h3 style="font-size:17px">ATA diurna · Casa 03</h3>
@@ -1073,7 +1111,7 @@ function vLider(){
         <p class="mutetxt" style="margin:0">Com motivo, autoria e histórico. Não substitui o planejamento semanal da equipe técnica.</p>
       </div>`;
   }
-  shell(inner, tabs, appbar(S.tab==="ata"?"ATA diurna da casa":"Visão operacional", ["Casa 03","07h–19h",HOJE]));
+  shell(inner, tabs, appbar(S.tab==="agenda"?"Agenda da linha do tempo":S.tab==="ata"?"ATA diurna da casa":"Visão operacional", ["Casa 03","07h–19h",HOJE]));
 }
 
 /* ================= LÍDER NOTURNO GERAL ================= */
@@ -1125,9 +1163,11 @@ function vNoturno(){
 /* ================= ENFERMAGEM ================= */
 function vEnfermagem(){
   const pend = TRIAGEM.filter(t=>!t.assinada).length;
-  const tabs = tabbar([{id:"painel", ic:"🩺", label:"Painel de saúde"},{id:"triagem", ic:"📥", label:`Triagem (${pend})`}]);
+  const tabs = tabbar([{id:"painel", ic:"🩺", label:"Painel de saúde"},{id:"agenda", ic:"🗓️", label:"Agenda"},{id:"triagem", ic:"📥", label:`Triagem (${pend})`}]);
   let inner;
-  if(S.tab==="triagem"){
+  if(S.tab==="agenda"){
+    inner = vAgenda();
+  } else if(S.tab==="triagem"){
     inner = `<div class="notice c-info" style="margin-bottom:14px">Evoluções de Saúde enviadas pelos educadores acompanhantes. A Enfermagem tria, complementa, confere e assina. A coordenação cobra pendências, mas <b>não substitui a assinatura de saúde</b>.</div>`
       + TRIAGEM.map(t=>`<div class="card stack" style="margin-bottom:11px;border-left:4px solid var(--${t.assinada?"emerald":"amber"})">
         <div class="row"><span class="avatar ${avatarCor(t.kidId)}" aria-hidden="true">${iniciais(kid(t.kidId).nome)}</span>
@@ -1167,14 +1207,16 @@ function vEnfermagem(){
       <div class="houses">${outras}</div>
       <p class="mutetxt" style="margin-top:12px">Todos os acolhidos aparecem, inclusive sem medicação prevista. Indicadores não são diagnóstico nem prioridade clínica automática.</p>`;
   }
-  shell(inner, tabs, appbar(S.tab==="triagem"?"Fila de triagem":"Painel de saúde", ["8 casas","Escopo de saúde",HOJE]));
+  shell(inner, tabs, appbar(S.tab==="agenda"?"Agenda da linha do tempo":S.tab==="triagem"?"Fila de triagem":"Painel de saúde", ["8 casas","Escopo de saúde",HOJE]));
 }
 
 /* ================= EQUIPE TÉCNICA ================= */
 function vTecnica(){
-  const tabs = tabbar([{id:"painel", ic:"🗂️", label:"Painel"},{id:"cadastro", ic:"🧒", label:"Cadastro"},{id:"acomp", ic:"📝", label:"Acompanhar"},{id:"relat", ic:"📄", label:"Relatórios"},{id:"narrativas", ic:"🔒", label:"Narrativas"}]);
+  const tabs = tabbar([{id:"painel", ic:"🗂️", label:"Painel"},{id:"agenda", ic:"🗓️", label:"Agenda"},{id:"cadastro", ic:"🧒", label:"Cadastro"},{id:"acomp", ic:"📝", label:"Acompanhar"},{id:"relat", ic:"📄", label:"Relatórios"},{id:"narrativas", ic:"🔒", label:"Narrativas"}]);
   let inner;
-  if(S.tab==="cadastro"){
+  if(S.tab==="agenda"){
+    inner = vAgenda();
+  } else if(S.tab==="cadastro"){
     inner = vCadastro();
   } else if(S.tab==="acomp"){
     inner = vAcompanhamentos();
@@ -1224,7 +1266,7 @@ function vTecnica(){
         <button class="btn sm sec" onclick="A.verOcorrencia()">Abrir ocorrência</button>
       </div>`;
   }
-  const t = {cadastro:"Cadastro de acolhido", acomp:"Acompanhamentos", relat:"Relatórios", narrativas:"Relatos independentes", painel:"Painel da casa"}[S.tab] || "Painel da casa";
+  const t = {agenda:"Agenda da linha do tempo", cadastro:"Cadastro de acolhido", acomp:"Acompanhamentos", relat:"Relatórios", narrativas:"Relatos independentes", painel:"Painel da casa"}[S.tab] || "Painel da casa";
   shell(inner, tabs, appbar(t, ["Casa 03","Escala individual",HOJE]));
 }
 
@@ -1264,6 +1306,44 @@ function vCadastro(){
 
     <div class="eyebrow">Mudanças de limite</div>
     <div class="card">${hist}</div>`;
+}
+
+/* ================= AGENDA / LINHA DO TEMPO ================= */
+function vAgenda(){
+  const cartao = g => `<div class="card stack">
+      <div class="row">
+        <span class="pill ${tomTipo(g.tipo)}">${labelTipo(g.tipo).split(" —")[0]}</span>
+        <b class="ff grow">${g.titulo}</b>
+        ${g.fim===null?pill("sem prazo","c-crit"):""}
+      </div>
+      <div class="row" style="gap:6px">
+        <span class="grow"><b class="ff">${g.pessoa || "Casa toda"}</b>
+          <div class="mutetxt">${g.hora}${g.dur?` · ${g.dur} min`:""} · ${labelRec(g)}</div>
+          ${g.local?`<div class="mutetxt">📍 ${g.local}</div>`:""}</span>
+      </div>
+      <div class="mutetxt">De ${g.inicio} ${g.fim?`até ${g.fim}`:"— por tempo indeterminado"} · marcado por ${g.autor}</div>
+      ${g.motivo?`<div class="notice c-med" style="margin:0">Sem prazo porque: ${g.motivo}</div>`:""}
+      <div class="row" style="gap:6px">
+        <button class="btn sm ghost" onclick="A.agendaEncerrar('${g.id}')">Encerrar</button>
+      </div>
+    </div>`;
+
+  const individuais = AGENDA.filter(g=>g.pessoa);
+  const coletivos = AGENDA.filter(g=>!g.pessoa);
+
+  return `<div class="card raise stack">
+      <div class="row">
+        <div class="grow"><h3 style="font-size:17px;margin:0">Agenda da linha do tempo</h3>
+          <div class="mutetxt">Marque para um acolhido ou para a casa toda</div></div>
+        <button class="btn sm" onclick="A.agendaNova()">+ Marcar</button>
+      </div>
+      <div class="notice c-info" style="margin:0">O compromisso é a <b>regra</b> ("fono toda terça às 14h"); a linha do tempo do dia é a ocorrência. Marcar a consulta de outubro hoje não cria sessenta linhas — cada dia vira linha quando o dia chega, e mudar o horário não reescreve o que já passou.</div>
+    </div>
+    <div class="eyebrow">Compromissos individuais</div>
+    <div class="stack">${individuais.map(cartao).join("")}</div>
+    <div class="eyebrow">Da casa</div>
+    <div class="stack">${coletivos.map(cartao).join("")}</div>
+    <p class="mutetxt" style="margin-top:12px">Encerrar um compromisso tira o que estava marcado para a frente e <b>deixa o passado intacto</b>: o que já aconteceu continua na linha do tempo, com a data em que aconteceu.</p>`;
 }
 
 /* ================= COFRE DE ACESSOS ================= */
@@ -1533,9 +1613,11 @@ function vEquipe(){
 }
 
 function vCoordenador(){
-  const tabs = tabbar([{id:"casa", ic:"🏠", label:"Casa"},{id:"cadastro", ic:"🧒", label:"Cadastro"},{id:"equipe", ic:"👥", label:"Equipe"},{id:"acomp", ic:"📝", label:"Acompanhar"},{id:"relat", ic:"📄", label:"Relatórios"},{id:"arquivo", ic:"🗄️", label:"Arquivo"},{id:"transf", ic:"🔁", label:"Transferências"},{id:"aprova", ic:"✅", label:"Aprovações"},{id:"banco", ic:"🔐", label:"Benefícios"}]);
+  const tabs = tabbar([{id:"casa", ic:"🏠", label:"Casa"},{id:"agenda", ic:"🗓️", label:"Agenda"},{id:"cadastro", ic:"🧒", label:"Cadastro"},{id:"equipe", ic:"👥", label:"Equipe"},{id:"acomp", ic:"📝", label:"Acompanhar"},{id:"relat", ic:"📄", label:"Relatórios"},{id:"arquivo", ic:"🗄️", label:"Arquivo"},{id:"transf", ic:"🔁", label:"Transferências"},{id:"aprova", ic:"✅", label:"Aprovações"},{id:"banco", ic:"🔐", label:"Benefícios"}]);
   let inner;
-  if(S.tab==="cadastro"){
+  if(S.tab==="agenda"){
+    inner = vAgenda();
+  } else if(S.tab==="cadastro"){
     inner = vCadastro();
   } else if(S.tab==="acomp"){
     inner = vAcompanhamentos();
@@ -1602,7 +1684,7 @@ function vCoordenador(){
         <div class="card row"><div class="grow"><b class="ff">ATAs da casa</b><div class="mutetxt">Diurna de ontem fechada com pendência (adendo aberto)</div></div>${pill("Com pendência")}</div>
       </div>`;
   }
-  const t = {casa:"Controle da casa", cadastro:"Cadastro de acolhido", equipe:"Equipe do acolhimento", acomp:"Acompanhamentos", relat:"Relatórios", arquivo:"Arquivo documental", transf:"Transferências", aprova:"Aprovações", banco:"Benefícios e dados bancários"}[S.tab];
+  const t = {casa:"Controle da casa", agenda:"Agenda da linha do tempo", cadastro:"Cadastro de acolhido", equipe:"Equipe do acolhimento", acomp:"Acompanhamentos", relat:"Relatórios", arquivo:"Arquivo documental", transf:"Transferências", aprova:"Aprovações", banco:"Benefícios e dados bancários"}[S.tab];
   shell(inner, tabs, appbar(t, ["Casa 03","Sem limite de horário",HOJE]));
 }
 
@@ -1718,6 +1800,125 @@ const A = {
     render();
   },
   excecaoOk(id,estado){ EVENTOS.find(x=>x.id===id).estado=estado; S.sheet=null; fila(); toast("Exceção registrada com justificativa"); },
+
+  /* ---------- Agenda da linha do tempo ---------- */
+  agendaNova(){
+    const kids = KIDS.slice(0,8).map(k=>`<option value="${k.social}">${k.social}</option>`).join("");
+    S.sheet = `<h3>Marcar na linha do tempo</h3>
+      <label class="f" style="margin-top:0">Para quem</label>
+      <select id="ag-quem" class="field" onchange="A.agendaQuem()">
+        <option value="">A casa toda (coletivo)</option>${kids}</select>
+      <label class="f">Tipo</label>
+      <select id="ag-tipo" class="field">${TIPOS_COMPROMISSO.map(([c,l])=>`<option value="${c}">${l}</option>`).join("")}</select>
+      <label class="f">O que é</label>
+      <input id="ag-titulo" placeholder="Ex.: consulta oftalmológica, fono, curso de informática">
+      <label class="f">Local <small>— opcional</small></label>
+      <input id="ag-local" placeholder="Onde acontece">
+      <label class="f">Data de início</label>
+      <input id="ag-inicio" type="date" value="2026-08-28">
+      <div class="row" style="gap:8px">
+        <div class="grow"><label class="f">Horário</label><input id="ag-hora" type="time" value="14:00"></div>
+        <div class="grow"><label class="f">Duração (min)</label><input id="ag-dur" type="number" value="60" min="5" max="720"></div>
+      </div>
+      <label class="f">Repete</label>
+      <select id="ag-rec" class="field" onchange="A.agendaRec()">${RECORRENCIAS.map(([c,l])=>`<option value="${c}">${l}</option>`).join("")}</select>
+      <div id="ag-dias" style="display:none">
+        <label class="f">Em quais dias</label>
+        <div class="opts">${DIAS.map((d,i)=>`<button type="button" class="opt c-info" id="ag-d${i}" aria-pressed="false" onclick="A.agendaDia(${i})">${d}</button>`).join("")}</div>
+      </div>
+      <div id="ag-prazo">
+        <label class="f">Até quando</label>
+        <div class="opts">
+          <button type="button" class="opt c-ok" id="ag-p-data" aria-pressed="true" onclick="A.agendaPrazo('data')">Tem data para terminar</button>
+          <button type="button" class="opt c-crit" id="ag-p-indet" aria-pressed="false" onclick="A.agendaPrazo('indet')">Por tempo indeterminado</button>
+        </div>
+        <div id="ag-fim-box"><label class="f">Data final</label><input id="ag-fim" type="date" value="2026-12-20"></div>
+        <div id="ag-motivo-box" style="display:none">
+          <div class="notice c-med">Tratamento contínuo, escola, uso de medicação por laudo — sem data para acabar é legítimo e comum. O motivo aqui é o que permite, daqui a um ano, alguém saber se ainda faz sentido.</div>
+          <label class="f">Por que não tem prazo</label>
+          <textarea id="ag-motivo" placeholder="Ex.: uso contínuo conforme laudo oftalmológico, sem previsão de alta."></textarea>
+        </div>
+      </div>
+      <label class="f">Orientações para quem vai executar <small>— opcional</small></label>
+      <textarea id="ag-orient" placeholder="Ex.: levar cartão SUS e o encaminhamento."></textarea>
+      <div class="row" style="gap:8px;margin-top:16px">
+        <button class="btn sec grow" onclick="A.closeSheet()">Cancelar</button>
+        <button class="btn grow" onclick="A.agendaSalvar()">Marcar</button>
+      </div>`;
+    S.agDias = []; S.agPrazo = "data";
+    render();
+  },
+  agendaQuem(){ /* o protótipo não muda nada aqui; a tela real filtra o que é do acolhido */ },
+  agendaRec(){
+    const rec = document.getElementById("ag-rec").value;
+    document.getElementById("ag-dias").style.display =
+      (rec==="semanal"||rec==="quinzenal") ? "block" : "none";
+    // Uma vez começa e termina no mesmo dia: não faz sentido perguntar prazo.
+    document.getElementById("ag-prazo").style.display = rec==="unica" ? "none" : "block";
+  },
+  agendaDia(i){
+    S.agDias = S.agDias || [];
+    const el = document.getElementById("ag-d"+i);
+    const marcado = S.agDias.includes(i);
+    S.agDias = marcado ? S.agDias.filter(x=>x!==i) : S.agDias.concat(i);
+    el.setAttribute("aria-pressed", String(!marcado));
+  },
+  agendaPrazo(qual){
+    S.agPrazo = qual;
+    document.getElementById("ag-fim-box").style.display = qual==="data" ? "block" : "none";
+    document.getElementById("ag-motivo-box").style.display = qual==="indet" ? "block" : "none";
+    document.getElementById("ag-p-data").setAttribute("aria-pressed", String(qual==="data"));
+    document.getElementById("ag-p-indet").setAttribute("aria-pressed", String(qual==="indet"));
+  },
+  agendaSalvar(){
+    const v = id => (document.getElementById(id)?.value ?? "").trim();
+    const titulo = v("ag-titulo"), rec = v("ag-rec");
+    if(!titulo) return toast("Dê um nome ao compromisso.");
+    if((rec==="semanal"||rec==="quinzenal") && !(S.agDias||[]).length){
+      return toast("Escolha em quais dias da semana o compromisso acontece.");
+    }
+    const indet = rec!=="unica" && S.agPrazo==="indet";
+    if(indet && v("ag-motivo").length < 10){
+      return toast("Sem data para terminar, descreva o motivo — ele fica visível para quem revisar depois.");
+    }
+    const quem = v("ag-quem");
+    AGENDA.unshift({
+      id:"g"+Date.now(), tipo:v("ag-tipo"), titulo, pessoa: quem || null, local:v("ag-local")||null,
+      hora:v("ag-hora"), dur:Number(v("ag-dur"))||null, rec, dias:(S.agDias||[]).slice(),
+      inicio:v("ag-inicio").split("-").reverse().slice(0,2).join("/"),
+      fim: rec==="unica" ? v("ag-inicio").split("-").reverse().slice(0,2).join("/")
+         : indet ? null : v("ag-fim").split("-").reverse().slice(0,2).join("/"),
+      motivo: indet ? v("ag-motivo") : null,
+      autor: S.role==="coordenador" ? "Carla Coordenadora (fictícia)"
+           : S.role==="tecnica" ? "Tatiane Técnica (fictícia)"
+           : S.role==="enfermagem" ? "Tainá Souza (fictícia) · Enfermagem" : "Lúcia Líder Diurna (fictícia)",
+    });
+    S.sheet=null; render();
+    toast(indet
+      ? "Marcado por tempo indeterminado. Vai aparecer todo dia até alguém encerrar."
+      : "Marcado. Aparece na linha do tempo no dia e no horário — inclusive meses à frente.");
+  },
+  agendaEncerrar(id){
+    const g = AGENDA.find(x=>x.id===id);
+    S.sheet = `<h3>Encerrar ${g.titulo}</h3>
+      <p class="mutetxt">${g.pessoa || "Casa toda"} · ${g.hora} · ${labelRec(g)}</p>
+      <div class="notice c-info">Encerrar tira o que estava marcado <b>para a frente</b>. O que já aconteceu continua na linha do tempo, com a data em que aconteceu — e o compromisso fica registrado como encerrado, com o seu motivo.</div>
+      <label class="f">Por que está sendo encerrado</label>
+      <textarea id="ag-fimotivo" placeholder="Ex.: alta da fonoaudióloga em 20/08."></textarea>
+      <div class="row" style="gap:8px;margin-top:16px">
+        <button class="btn sec grow" onclick="A.closeSheet()">Cancelar</button>
+        <button class="btn grow" onclick="A.agendaEncerrarOk('${g.id}')">Encerrar</button>
+      </div>`;
+    render();
+  },
+  agendaEncerrarOk(id){
+    const m = (document.getElementById("ag-fimotivo").value||"").trim();
+    if(m.length < 5) return toast("Descreva por que o compromisso está sendo encerrado.");
+    const i = AGENDA.findIndex(x=>x.id===id);
+    AGENDA.splice(i,1);
+    S.sheet=null; render();
+    toast("Encerrado. O que já aconteceu continua na linha do tempo.");
+  },
 
   /* ---------- Cofre de acessos ---------- */
   cofreAbrir(id){

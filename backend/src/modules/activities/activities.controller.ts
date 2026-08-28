@@ -3,11 +3,55 @@ import { SessionGuard, CurrentUser } from '../identity';
 import { AuthenticatedUser } from '../../kernel/contracts';
 import { hojeNaInstituicao } from '../../kernel/common/tempo';
 import { ActivitiesService } from './activities.service';
+import { AgendaService } from './agenda.service';
 
 @Controller('activities')
 @UseGuards(SessionGuard)
 export class ActivitiesController {
-  constructor(@Inject(ActivitiesService) private readonly activities: ActivitiesService) {}
+  constructor(
+    @Inject(ActivitiesService) private readonly activities: ActivitiesService,
+    @Inject(AgendaService) private readonly agenda: AgendaService,
+  ) {}
+
+  // ---- Agenda da linha do tempo: marcar com data e hora, semanas à frente ----
+
+  /** Tipos, repetições e dias da semana — a tela não inventa a lista. */
+  @Get('agenda/options')
+  opcoesAgenda() { return this.agenda.opcoes(); }
+
+  /** Projeção de um período: o que cai em cada dia, sem materializar nada. */
+  @Get('agenda')
+  verAgenda(@CurrentUser() user: AuthenticatedUser,
+            @Query('houseId', ParseUUIDPipe) houseId: string,
+            @Query('de') de: string, @Query('ate') ate: string,
+            @Query('personId') personId?: string) {
+    return this.agenda.agenda(user, houseId, de ?? hojeNaInstituicao(),
+      ate ?? hojeNaInstituicao(), personId || undefined);
+  }
+
+  /** Compromissos vigentes da casa — para revisar o que continua marcado. */
+  @Get('agenda/commitments')
+  compromissos(@CurrentUser() user: AuthenticatedUser,
+               @Query('houseId', ParseUUIDPipe) houseId: string) {
+    return this.agenda.vigentes(user, houseId);
+  }
+
+  @Post('agenda')
+  marcar(@CurrentUser() user: AuthenticatedUser, @Body() body: any) {
+    return this.agenda.marcar(user, body);
+  }
+
+  @Post('agenda/generate')
+  materializar(@CurrentUser() user: AuthenticatedUser,
+               @Body() body: { houseId: string; date?: string }) {
+    return this.agenda.gerarDoDia(user, body.houseId, body.date);
+  }
+
+  @Post('agenda/:id/cancel')
+  encerrar(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
+           @Body() body: { motivo: string }) {
+    return this.agenda.cancelar(user, id, body?.motivo ?? '');
+  }
 
   @Get()
   list(@CurrentUser() user: AuthenticatedUser,

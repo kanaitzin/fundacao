@@ -5,6 +5,7 @@ import { ActivitiesOfflineHandlers } from './activities.offline';
 import { ActivitiesController } from './activities.controller';
 import { ActivitiesService } from './activities.service';
 import { ActivitiesTimelineProvider } from './activities.timeline';
+import { AgendaService } from './agenda.service';
 
 /**
  * Módulo `activities` — o que acontece no dia e quem responde por isso.
@@ -19,7 +20,7 @@ import { ActivitiesTimelineProvider } from './activities.timeline';
 @Module({
   imports: [IdentityModule, SyncModule],
   controllers: [ActivitiesController],
-  providers: [ActivitiesService, ActivitiesTimelineProvider, ActivitiesOfflineHandlers],
+  providers: [ActivitiesService, AgendaService, ActivitiesTimelineProvider, ActivitiesOfflineHandlers],
   exports: [ActivitiesService],
 })
 export class ActivitiesModule {}
