@@ -71,6 +71,9 @@ describe('Agenda — marcar na linha do tempo com data, hora e repetição', () 
 
   afterAll(async () => {
     if (criados.length) {
+      await admin.query(
+        `DELETE FROM activity_assignment WHERE activity_id IN
+           (SELECT id FROM activity WHERE commitment_id = ANY($1::uuid[]))`, [criados]);
       await admin.query(`DELETE FROM activity WHERE commitment_id = ANY($1::uuid[])`, [criados]);
       await admin.query(`DELETE FROM commitment WHERE id = ANY($1::uuid[])`, [criados]);
     }
@@ -207,6 +210,92 @@ describe('Agenda — marcar na linha do tempo com data, hora e repetição', () 
          FROM activity WHERE commitment_id=$1`, [res.body.id]);
     expect(rows[0].n).toBe(1);
     expect(rows[0].com_pessoa).toBe(0);
+  });
+
+  it('marcar com um educador responsável faz a atividade cair no nome dele', async () => {
+    // A lista traz quem pode ser nomeado, com quem está na escala do horário
+    // aparecendo primeiro — o sinal ordena e avisa, não impede.
+    const equipe = await request(http)
+      .get(`/api/v1/activities/agenda/staff?houseId=${AI3}&data=${hoje}&hora=15:00`)
+      .set(auth(tokens.tecnica));
+    expect(equipe.status).toBe(200);
+    expect(equipe.body.length).toBeGreaterThan(0);
+    expect(equipe.body[0]).toHaveProperty('naEscala');
+    // A cozinha não acompanha saída nem atividade: não é oferecida.
+    expect(equipe.body.some((e: any) => e.cargo === 'cozinha')).toBe(false);
+
+    const educador = equipe.body.find((e: any) => e.cargo === 'educador');
+    const res = await request(http).post('/api/v1/activities/agenda')
+      .set(auth(tokens.tecnica)).send({
+        houseId: AI3, personId: pessoa, tipo: 'saude',
+        titulo: 'Consulta com preparo (fictícia)', inicio: hoje, hora: '15:00',
+        duracaoMin: 90, recorrencia: 'unica',
+        responsavel: 'pessoa', responsavelId: educador.id,
+        observacaoResponsavel: 'Combinado com ele na reunião de equipe (fictício).',
+      });
+    expect(res.status).toBe(201);
+    expect(res.body.responsavel).toBe('pessoa');
+    criados.push(res.body.id);
+
+    // A ocorrência do dia nasce atribuída: é o que faz aparecer em
+    // "Minhas responsabilidades" de quem foi nomeado.
+    const { rows } = await admin.query(
+      `SELECT aa.user_id FROM activity a
+         JOIN activity_assignment aa ON aa.activity_id = a.id
+        WHERE a.commitment_id = $1`, [res.body.id]);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].user_id).toBe(educador.id);
+
+    // E o cartão de revisão mostra o nome, em vez de "plantão".
+    const vigentes = await request(http)
+      .get(`/api/v1/activities/agenda/commitments?houseId=${AI3}`).set(auth(tokens.coord));
+    const c = vigentes.body.find((x: any) => x.id === res.body.id);
+    expect(c.responsavelNomeado).toBe(true);
+    expect(c.responsavel).toBe(educador.nome);
+  });
+
+  it('sem nome, o compromisso é do plantão do horário — e ninguém é atribuído', async () => {
+    const res = await request(http).post('/api/v1/activities/agenda')
+      .set(auth(tokens.lider)).send({
+        houseId: AI3, tipo: 'atividade', titulo: 'Lanche coletivo (fictício)',
+        inicio: hoje, hora: '16:30', recorrencia: 'unica',
+      });
+    expect(res.status).toBe(201);
+    expect(res.body.responsavel).toBe('plantao');
+    expect(res.body.aviso).toMatch(/quem estiver no plantão/i);
+    criados.push(res.body.id);
+
+    const { rows } = await admin.query(
+      `SELECT count(*)::int AS n FROM activity a
+         JOIN activity_assignment aa ON aa.activity_id = a.id
+        WHERE a.commitment_id = $1`, [res.body.id]);
+    expect(rows[0].n).toBe(0);
+
+    const vigentes = await request(http)
+      .get(`/api/v1/activities/agenda/commitments?houseId=${AI3}`).set(auth(tokens.coord));
+    const c = vigentes.body.find((x: any) => x.id === res.body.id);
+    expect(c.responsavel).toBe('Plantão do horário');
+  });
+
+  it('nomear quem está fora da escala avisa, mas não impede', async () => {
+    // Um horário em que ninguém da casa costuma estar: madrugada do diurno.
+    const equipe = await request(http)
+      .get(`/api/v1/activities/agenda/staff?houseId=${AI3}&data=${hoje}&hora=03:00`)
+      .set(auth(tokens.coord));
+    const foraDaEscala = equipe.body.find((e: any) => !e.naEscala && e.cargo === 'educador');
+    if (!foraDaEscala) return;   // ambiente sem escala cadastrada: nada a provar
+
+    const res = await request(http).post('/api/v1/activities/agenda')
+      .set(auth(tokens.coord)).send({
+        houseId: AI3, personId: pessoa, tipo: 'saude',
+        titulo: 'Exame de madrugada (fictício)', inicio: hoje, hora: '03:00',
+        recorrencia: 'unica', responsavel: 'pessoa', responsavelId: foraDaEscala.id,
+      });
+    // Marca, e diz o que precisa ser dito.
+    expect(res.status).toBe(201);
+    expect(res.body.foraDaEscala).toBe(foraDaEscala.nome);
+    expect(res.body.aviso).toMatch(/não está na escala/i);
+    criados.push(res.body.id);
   });
 
   it('materializar o dia é idempotente: rodar de novo não duplica', async () => {

@@ -548,19 +548,38 @@ const COFRE_HIST = [
    quando o dia chega. */
 const AGENDA = [
   {id:"g1", tipo:"saude", titulo:"Fono", pessoa:"Alice", local:"Clínica fictícia",
-   hora:"14:00", dur:45, rec:"semanal", dias:[2], inicio:"05/08", fim:"30/10", autor:"Tatiane Técnica (fictícia)"},
+   hora:"14:00", dur:45, rec:"semanal", dias:[2], inicio:"05/08", fim:"30/10",
+   resp:"Mário Silva (fictício)", autor:"Tatiane Técnica (fictícia)"},
   {id:"g2", tipo:"tratamento", titulo:"Colírio da manhã", pessoa:"Alice",
    hora:"07:30", dur:5, rec:"diaria", inicio:"12/08", fim:null,
    motivo:"Uso contínuo conforme laudo oftalmológico, sem previsão de alta (fictício).",
-   autor:"Tainá Souza (fictícia) · Enfermagem"},
+   resp:null, autor:"Tainá Souza (fictícia) · Enfermagem"},
   {id:"g3", tipo:"saude", titulo:"Consulta oftalmológica", pessoa:"Bruno", local:"UBS fictícia",
-   hora:"09:30", dur:60, rec:"unica", inicio:"27/10", fim:"27/10", autor:"Tatiane Técnica (fictícia)"},
+   hora:"09:30", dur:60, rec:"unica", inicio:"27/10", fim:"27/10",
+   resp:"Joana Lima (fictícia)", obsResp:"Combinado com ela na reunião de equipe (fictício).",
+   autor:"Tatiane Técnica (fictícia)"},
   {id:"g4", tipo:"lazer", titulo:"Cinema na sala", pessoa:null, hora:"19:00", dur:90,
    rec:"unica", inicio:"28/08", fim:"28/08", autor:"Carla Coordenadora (fictícia)"},
   {id:"g5", tipo:"visita", titulo:"Visita da avó materna", pessoa:"Alice",
    hora:"15:00", dur:120, rec:"quinzenal", dias:[6], inicio:"16/08", fim:"20/12",
    autor:"Tatiane Técnica (fictícia)"},
 ];
+/* Equipe que pode ser nomeada. `escala` diz em que horas a pessoa costuma
+   estar — o protótipo usa isso só para AVISAR, como o sistema real. */
+const EQUIPE_AGENDA = [
+  {id:"u1", nome:"Mário Silva (fictício)", cargo:"Educador social", de:"07:00", ate:"19:00"},
+  {id:"u2", nome:"Joana Lima (fictícia)", cargo:"Educador social", de:"07:00", ate:"19:00"},
+  {id:"u3", nome:"Lúcia Líder Diurna (fictícia)", cargo:"Líder Diurno", de:"07:00", ate:"19:00"},
+  {id:"u4", nome:"Roni Alves (fictício)", cargo:"Educador social", de:"19:00", ate:"07:00"},
+  {id:"u5", nome:"Tainá Souza (fictícia)", cargo:"Enfermagem", de:"08:00", ate:"17:00"},
+];
+const naEscala = (u, hora) => {
+  const h = Number(hora.slice(0,2)) * 60 + Number(hora.slice(3,5));
+  const a = Number(u.de.slice(0,2))*60 + Number(u.de.slice(3,5));
+  const b = Number(u.ate.slice(0,2))*60 + Number(u.ate.slice(3,5));
+  return b > a ? (h >= a && h < b) : (h >= a || h < b);
+};
+
 const TIPOS_COMPROMISSO = [["atividade","Atividade","c-info"],["saude","Saúde — consulta, exame, terapia","c-med"],
   ["tratamento","Tratamento continuado","c-crit"],["escola","Escola","c-ok"],
   ["curso","Curso ou profissionalização","c-move"],["visita","Visita ou convivência familiar","c-other"],
@@ -707,7 +726,7 @@ let S = {
   transfSub:"recebidas", transfChat:null,
   // Sessão: o protótipo agora começa pela porta de entrada, como o sistema real.
   logado:false, sugereSenha:false, trocarSenha:false, equipeForm:null,
-  cadastroLimite:false, agDias:[], agPrazo:"data",
+  cadastroLimite:false, agDias:[], agPrazo:"data", agResp:"plantao",
 };
 const ROLES = {
   educador:"Educador social", lider:"Líder Diurno", noturno:"Líder Noturno Geral",
@@ -1321,6 +1340,12 @@ function vAgenda(){
           <div class="mutetxt">${g.hora}${g.dur?` · ${g.dur} min`:""} · ${labelRec(g)}</div>
           ${g.local?`<div class="mutetxt">📍 ${g.local}</div>`:""}</span>
       </div>
+      <div class="row" style="gap:6px">
+        ${g.resp
+          ? `<span class="pill c-brand">👤 ${g.resp}</span>`
+          : `<span class="pill c-mute">Plantão do horário</span>`}
+      </div>
+      ${g.obsResp?`<div class="mutetxt">${g.obsResp}</div>`:""}
       <div class="mutetxt">De ${g.inicio} ${g.fim?`até ${g.fim}`:"— por tempo indeterminado"} · marcado por ${g.autor}</div>
       ${g.motivo?`<div class="notice c-med" style="margin:0">Sem prazo porque: ${g.motivo}</div>`:""}
       <div class="row" style="gap:6px">
@@ -1839,17 +1864,57 @@ const A = {
           <textarea id="ag-motivo" placeholder="Ex.: uso contínuo conforme laudo oftalmológico, sem previsão de alta."></textarea>
         </div>
       </div>
+      <label class="f">Quem leva</label>
+      <div class="opts">
+        <button type="button" class="opt c-mute" id="ag-r-plantao" aria-pressed="true" onclick="A.agendaResp('plantao')">Quem estiver no plantão</button>
+        <button type="button" class="opt c-brand" id="ag-r-pessoa" aria-pressed="false" onclick="A.agendaResp('pessoa')">Um educador com nome</button>
+      </div>
+      <div id="ag-resp-plantao"><p class="mutetxt">Para a rotina e o que qualquer educador de serviço faz. Ninguém é nomeado agora; quem estiver de plantão no horário assume.</p></div>
+      <div id="ag-resp-pessoa" style="display:none">
+        <p class="mutetxt">Para o que precisa de preparo — consulta, saída, audiência. Marcar com nome semanas antes é o que permite a pessoa se organizar.</p>
+        <label class="f">Educador responsável</label>
+        <select id="ag-resp" class="field" onchange="A.agendaRespCheck()"></select>
+        <div id="ag-resp-aviso"></div>
+        <label class="f">Observação <small>— opcional</small></label>
+        <input id="ag-resp-obs" placeholder="Ex.: combinado com ele na reunião de equipe">
+      </div>
       <label class="f">Orientações para quem vai executar <small>— opcional</small></label>
       <textarea id="ag-orient" placeholder="Ex.: levar cartão SUS e o encaminhamento."></textarea>
       <div class="row" style="gap:8px;margin-top:16px">
         <button class="btn sec grow" onclick="A.closeSheet()">Cancelar</button>
         <button class="btn grow" onclick="A.agendaSalvar()">Marcar</button>
       </div>`;
-    S.agDias = []; S.agPrazo = "data";
+    S.agDias = []; S.agPrazo = "data"; S.agResp = "plantao";
     render();
   },
   agendaQuem(){ /* o protótipo não muda nada aqui; a tela real filtra o que é do acolhido */ },
+  agendaResp(modo){
+    S.agResp = modo;
+    document.getElementById("ag-resp-plantao").style.display = modo==="plantao" ? "block" : "none";
+    document.getElementById("ag-resp-pessoa").style.display = modo==="pessoa" ? "block" : "none";
+    document.getElementById("ag-r-plantao").setAttribute("aria-pressed", String(modo==="plantao"));
+    document.getElementById("ag-r-pessoa").setAttribute("aria-pressed", String(modo==="pessoa"));
+    if(modo==="pessoa") A.agendaEquipe();
+  },
+  /* A lista põe primeiro quem está na escala daquele horário — e mantém os
+     demais, porque escala muda e troca de plantão existe. */
+  agendaEquipe(){
+    const hora = (document.getElementById("ag-hora").value || "12:00");
+    const ordenada = EQUIPE_AGENDA.slice().sort((a,b)=>
+      Number(naEscala(b,hora)) - Number(naEscala(a,hora)) || a.nome.localeCompare(b.nome));
+    document.getElementById("ag-resp").innerHTML = ordenada.map(u=>
+      `<option value="${u.id}">${u.nome} · ${u.cargo}${naEscala(u,hora)?"":" — fora da escala deste horário"}</option>`).join("");
+    A.agendaRespCheck();
+  },
+  agendaRespCheck(){
+    const hora = (document.getElementById("ag-hora").value || "12:00");
+    const u = EQUIPE_AGENDA.find(x=>x.id===document.getElementById("ag-resp").value);
+    document.getElementById("ag-resp-aviso").innerHTML = (u && !naEscala(u,hora))
+      ? `<div class="notice c-warn">${u.nome} não está na escala das ${hora}. Dá para marcar assim mesmo — se foi combinado, o registro fica com esse nome.</div>`
+      : "";
+  },
   agendaRec(){
+    if(S.agResp === "pessoa") A.agendaEquipe();
     const rec = document.getElementById("ag-rec").value;
     document.getElementById("ag-dias").style.display =
       (rec==="semanal"||rec==="quinzenal") ? "block" : "none";
@@ -1882,6 +1947,9 @@ const A = {
       return toast("Sem data para terminar, descreva o motivo — ele fica visível para quem revisar depois.");
     }
     const quem = v("ag-quem");
+    const comNome = S.agResp === "pessoa";
+    const resp = comNome ? (EQUIPE_AGENDA.find(u=>u.id===v("ag-resp"))||{}) : {};
+    if(comNome && !resp.nome) return toast("Escolha o educador responsável.");
     AGENDA.unshift({
       id:"g"+Date.now(), tipo:v("ag-tipo"), titulo, pessoa: quem || null, local:v("ag-local")||null,
       hora:v("ag-hora"), dur:Number(v("ag-dur"))||null, rec, dias:(S.agDias||[]).slice(),
@@ -1889,14 +1957,21 @@ const A = {
       fim: rec==="unica" ? v("ag-inicio").split("-").reverse().slice(0,2).join("/")
          : indet ? null : v("ag-fim").split("-").reverse().slice(0,2).join("/"),
       motivo: indet ? v("ag-motivo") : null,
+      resp: comNome ? resp.nome : null,
+      obsResp: comNome ? (v("ag-resp-obs") || null) : null,
       autor: S.role==="coordenador" ? "Carla Coordenadora (fictícia)"
            : S.role==="tecnica" ? "Tatiane Técnica (fictícia)"
            : S.role==="enfermagem" ? "Tainá Souza (fictícia) · Enfermagem" : "Lúcia Líder Diurna (fictícia)",
     });
     S.sheet=null; render();
-    toast(indet
-      ? "Marcado por tempo indeterminado. Vai aparecer todo dia até alguém encerrar."
-      : "Marcado. Aparece na linha do tempo no dia e no horário — inclusive meses à frente.");
+    const foraEscala = comNome && !naEscala(resp, v("ag-hora"));
+    toast(foraEscala
+      ? `Marcado. Atenção: ${resp.nome} não está na escala deste horário — se foi combinado, tudo bem.`
+      : comNome
+        ? `Marcado com ${resp.nome}. Aparece em "Minhas responsabilidades" dela no dia.`
+        : indet
+          ? "Marcado por tempo indeterminado, para o plantão do horário."
+          : "Marcado. Aparece na linha do tempo no dia e no horário — inclusive meses à frente.");
   },
   agendaEncerrar(id){
     const g = AGENDA.find(x=>x.id===id);

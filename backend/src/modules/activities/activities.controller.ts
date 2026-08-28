@@ -36,6 +36,14 @@ export class ActivitiesController {
     return this.agenda.vigentes(user, houseId);
   }
 
+  /** Equipe que pode ser nomeada, com quem está na escala daquele horário. */
+  @Get('agenda/staff')
+  equipeDaAgenda(@CurrentUser() user: AuthenticatedUser,
+                 @Query('houseId', ParseUUIDPipe) houseId: string,
+                 @Query('data') data: string, @Query('hora') hora: string) {
+    return this.agenda.equipeDisponivel(user, houseId, data ?? hojeNaInstituicao(), hora ?? '12:00');
+  }
+
   @Post('agenda')
   marcar(@CurrentUser() user: AuthenticatedUser, @Body() body: any) {
     return this.agenda.marcar(user, body);

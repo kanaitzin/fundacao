@@ -70,6 +70,10 @@ export interface NovoCompromisso {
   fim?: string | null;           // null = indeterminado
   motivoSemPrazo?: string;
   exigeCiencia?: boolean;
+  /** 'plantao' = quem estiver de serviço no horário; 'pessoa' = alguém com nome. */
+  responsavel?: 'plantao' | 'pessoa';
+  responsavelId?: string;
+  observacaoResponsavel?: string;
 }
 
 @Injectable()
@@ -80,7 +84,33 @@ export class AgendaService {
   ) {}
 
   opcoes() {
-    return { tipos: TIPOS_COMPROMISSO, recorrencias: RECORRENCIAS, diasSemana: DIAS_SEMANA };
+    return {
+      tipos: TIPOS_COMPROMISSO, recorrencias: RECORRENCIAS, diasSemana: DIAS_SEMANA,
+      responsaveis: [
+        { cod: 'plantao', label: 'Quem estiver no plantão do horário',
+          ajuda: 'Para a rotina e o que qualquer educador de serviço faz.' },
+        { cod: 'pessoa', label: 'Um educador com nome',
+          ajuda: 'Para o que precisa de preparo — consulta, saída, audiência.' },
+      ],
+    };
+  }
+
+  /**
+   * Quem pode ser nomeado, com o sinal de quem está na escala daquele
+   * horário. O sinal ordena a lista e alimenta o aviso da tela; não impede
+   * nomear quem está de folga — escala muda, e troca de plantão existe.
+   */
+  async equipeDisponivel(user: AuthenticatedUser, houseId: string, data: string, hora: string) {
+    const diaSemana = new Date(`${data}T12:00:00Z`).getUTCDay();
+    const rows = await this.db.asUser(user.id, async (c) => {
+      const { rows } = await c.query(
+        `SELECT * FROM app_staff_for_commitment($1,$2::smallint,$3::time)`,
+        [houseId, diaSemana, hora]);
+      return rows;
+    });
+    return rows.map((r) => ({
+      id: r.user_id, nome: r.nome, cargo: r.cargo, naEscala: r.na_escala,
+    }));
   }
 
   async marcar(user: AuthenticatedUser, input: NovoCompromisso) {
@@ -115,18 +145,40 @@ export class AgendaService {
         + 'Fica visível para quem for revisar a agenda depois.');
     }
 
+    // Responsável: por plantão (o padrão) ou com nome.
+    const modo = input.responsavel === 'pessoa' ? 'pessoa' : 'plantao';
+    if (modo === 'pessoa' && !input.responsavelId) {
+      throw new BadRequestException('Escolha o educador responsável, ou deixe para o plantão do horário.');
+    }
+
+    // Aviso, não bloqueio: nomear quem não está na escala daquele horário é
+    // legítimo — a saída pode ter sido combinada justamente assim.
+    let foraDaEscala: string | null = null;
+    if (modo === 'pessoa') {
+      const equipe = await this.equipeDisponivel(user, input.houseId, input.inicio, input.hora);
+      const escolhido = equipe.find((e) => e.id === input.responsavelId);
+      if (!escolhido) {
+        throw new BadRequestException('Esta pessoa não está na equipe desta casa.');
+      }
+      if (!escolhido.naEscala) foraDaEscala = escolhido.nome;
+    }
+
     const r = await this.db.asUser(user.id, async (c) => {
       const { rows: [row] } = await c.query(
         `INSERT INTO commitment (house_id, person_id, kind, title, place, instructions,
                                  start_date, time_of_day, duration_min, recurrence, weekdays,
-                                 end_date, open_ended_reason, requires_ack, created_by, updated_by)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11::smallint[],$12,$13,$14,
+                                 end_date, open_ended_reason, requires_ack,
+                                 responsible_mode, responsible_id, responsible_note,
+                                 created_by, updated_by)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11::smallint[],$12,$13,$14,$15,$16,$17,
                  app_current_user(), app_current_user())
          RETURNING id`,
         [input.houseId, input.personId ?? null, input.tipo, input.titulo.trim(),
          input.local ?? null, input.orientacoes ?? null, input.inicio, input.hora,
          input.duracaoMin ?? null, input.recorrencia, dias, fim,
-         fim ? null : input.motivoSemPrazo!.trim(), input.exigeCiencia ?? true]);
+         fim ? null : input.motivoSemPrazo!.trim(), input.exigeCiencia ?? true,
+         modo, modo === 'pessoa' ? input.responsavelId : null,
+         input.observacaoResponsavel ?? null]);
       return row;
     }).catch((e: any) => {
       const m = String(e?.message ?? '');
@@ -155,17 +207,29 @@ export class AgendaService {
       houseId: input.houseId, entity: 'commitment', entityId: r.id,
       detail: {
         tipo: input.tipo, recorrencia: input.recorrencia,
-        coletivo: !input.personId, indeterminado: !fim,
+        coletivo: !input.personId, indeterminado: !fim, responsavel: modo,
       },
     });
+
+    const avisos = [
+      !fim
+        ? 'Marcado por tempo indeterminado. Vai continuar aparecendo até alguém encerrar — e o motivo que você escreveu fica visível para quem revisar.'
+        : 'Marcado. Aparece na linha do tempo no dia e no horário, inclusive semanas à frente.',
+      modo === 'pessoa'
+        ? 'O responsável recebe isto em "Minhas responsabilidades" no dia, e pode se organizar desde já.'
+        : 'Sem nome: quem estiver no plantão daquele horário assume.',
+      foraDaEscala
+        ? `Atenção: ${foraDaEscala} não está na escala deste dia e horário. Se foi combinado assim, tudo bem — o registro fica com esse nome.`
+        : null,
+    ].filter(Boolean);
 
     return {
       id: r.id,
       coletivo: !input.personId,
       indeterminado: !fim,
-      aviso: !fim
-        ? 'Marcado por tempo indeterminado. Ele vai continuar aparecendo até alguém encerrar — e o motivo que você escreveu fica visível para quem revisar.'
-        : 'Marcado. Aparece na linha do tempo no dia e no horário, inclusive semanas à frente.',
+      responsavel: modo,
+      foraDaEscala,
+      aviso: avisos.join(' '),
     };
   }
 
@@ -199,10 +263,12 @@ export class AgendaService {
         `SELECT c.id, c.kind, c.title, c.place, c.start_date, c.end_date, c.time_of_day,
                 c.duration_min, c.recurrence, c.weekdays, c.open_ended_reason,
                 c.person_id, app_person_display_name(c.person_id) AS pessoa,
-                u.full_name AS autor, c.created_at
+                c.responsible_mode, c.responsible_note,
+                r.full_name AS responsavel, u.full_name AS autor, c.created_at
            FROM commitment c
            -- rls-join-ok: o nome do acolhido vem de app_person_display_name; app_user não tem RLS de linha.
            LEFT JOIN app_user u ON u.id = c.created_by
+           LEFT JOIN app_user r ON r.id = c.responsible_id
           WHERE c.house_id = $1 AND c.active
           ORDER BY c.time_of_day, c.title`, [houseId]);
       return rows;
@@ -214,6 +280,9 @@ export class AgendaService {
       motivoSemPrazo: r.open_ended_reason,
       hora: String(r.time_of_day).slice(0, 5), duracaoMin: r.duration_min,
       recorrencia: r.recurrence, diasSemana: r.weekdays,
+      responsavel: r.responsible_mode === 'pessoa' ? r.responsavel : 'Plantão do horário',
+      responsavelNomeado: r.responsible_mode === 'pessoa',
+      observacaoResponsavel: r.responsible_note,
       marcadoPor: r.autor, marcadoEm: r.created_at,
     }));
   }
