@@ -522,6 +522,26 @@ const SITUACAO_TOM = {pendente:"c-warn", rascunho:"c-info", em_aprovacao:"c-med"
 const SITUACAO_LABEL = {pendente:"Pendente", rascunho:"Rascunho", em_aprovacao:"Aguardando aprovação",
   aprovado:"Aprovado", substituido:"Substituído"};
 
+/* ---------- Cofre de acessos (decisão da Fundação, 28/08) ----------
+   As senhas dos acolhidos ficam no sistema, com a coordenação da casa. Aqui,
+   como no sistema real, a lista mostra a DICA — a senha só aparece quando
+   alguém pede, com finalidade, e a abertura fica registrada. */
+const COFRE = [
+  {id:"c1", pessoa:"Alice", tipo:"gov.br", login:"000.000.000-00", dica:"F••••••••3 (13)",
+   resp:"Coordenação da Casa 03", senha:"Ficticia@2013"},
+  {id:"c2", pessoa:"Alice", tipo:"Banco / poupança social", login:"ag. 0000 · c/ 00000-0",
+   dica:"P••••••••1 (11)", resp:"Coordenação da Casa 03", senha:"Poupanca#1"},
+  {id:"c3", pessoa:"Bruno", tipo:"INSS / Meu INSS", login:"000.000.000-00", dica:"M•••••••0 (10)",
+   resp:"Coordenação da Casa 03", senha:"MeuINSS@10"},
+];
+const COFRE_HIST = [
+  {quem:"Carla Coordenadora (fictícia)", acao:"abertura", quando:"hoje, 09:12",
+   fim:"Atualizar cadastro do benefício no gov.br"},
+  {quem:"João Gestor (fictício)", acao:"abertura excepcional", quando:"12/08, 15:40", excepcional:true,
+   fim:"Coordenadora em licença; benefício vencia na semana"},
+  {quem:"Carla Coordenadora (fictícia)", acao:"cadastro", quando:"02/08, 10:05", fim:"—"},
+];
+
 const KIDS = [
   {id:1, nome:"Alice R.", social:"Alice", idade:7,  escola:"EMEF Vila Nova · manhã", alergia:"Amendoim", restr:"Sem amendoim e derivados"},
   {id:2, nome:"Bruno S.", social:"Bruno", idade:9,  escola:"EMEF Vila Nova · manhã"},
@@ -1246,6 +1266,42 @@ function vCadastro(){
     <div class="card">${hist}</div>`;
 }
 
+/* ================= COFRE DE ACESSOS ================= */
+/* Decisão da Fundação: as senhas das crianças ficam aqui, com a coordenação
+   da casa. O que muda em relação à planilha não é o guardar — é o cofre ter
+   porta: cifra, dica no lugar da senha, finalidade a cada abertura e registro
+   com nome e hora. */
+function vCofre(){
+  const linhas = COFRE.map(c=>`<div class="card stack">
+      <div class="row"><b class="ff grow">${c.pessoa} · ${c.tipo}</b>${pill("cifrado","c-med")}</div>
+      <div class="mutetxt mono" style="font-size:12px">${c.login}</div>
+      <div class="row" style="gap:8px">
+        <span class="grow"><span class="mutetxt">Senha:</span> <b class="ff mono">${c.dica}</b></span>
+        <button class="btn sm ghost" onclick="A.cofreAbrir('${c.id}')">Ver senha</button>
+      </div>
+      <div class="mutetxt">Responsável: ${c.resp}</div>
+    </div>`).join("");
+
+  const hist = COFRE_HIST.map(h=>`<div class="li" style="align-items:flex-start">
+      <div class="grow"><b class="ff">${h.quem}</b>
+        <div class="mutetxt">${h.acao} · ${h.quando}</div>
+        <div class="mutetxt">Finalidade: ${h.fim}</div></div>
+      ${h.excepcional?pill("exceção","c-crit"):""}</div>`).join("");
+
+  return `<div class="eyebrow">Cofre de acessos do acolhido</div>
+    <div class="card raise stack">
+      <div class="row"><span style="font-size:20px" aria-hidden="true">🔑</span>
+        <h3 class="grow" style="font-size:16px;margin:0">gov.br, INSS, CTPS, banco e escola</h3></div>
+      <div class="notice c-med" style="margin:0">A coordenação tem a guarda das crianças e precisa destes acessos. Eles ficam <b>cifrados</b>: nem quem administra o banco de dados lê a senha. A lista mostra uma <b>dica</b>, que resolve a conferência sem abrir nada.</div>
+      ${linhas}
+      <button class="btn sec block" onclick="A.cofreNovo()">+ Guardar um acesso</button>
+    </div>
+    <div class="eyebrow">Quem abriu, quando e para quê</div>
+    <div class="card"><div class="lista">${hist}</div>
+      <p class="mutetxt" style="margin:10px 0 0">Cada abertura pede finalidade e fica registrada com nome e hora. O Gestor Geral só entra pela exceção — e a exceção aparece marcada, como acima.</p>
+    </div>`;
+}
+
 /* ================= ACOMPANHAMENTOS E RELATÓRIOS (Fase 6) ================= */
 function vAcompanhamentos(){
   const cartao = f => `<div class="card stack">
@@ -1510,7 +1566,8 @@ function vCoordenador(){
               <div class="mutetxt">${d}</div><div class="audit" style="border:none;padding:0;margin-top:4px">🕐 Último acesso: ${l}</div></div></div>`).join("")}
           </div>
           <p class="mutetxt" style="margin:0">Após transferência aceita, a coordenação de origem perde este acesso e a de destino passa a recebê-lo. Cópia institucional restrita mantida no Drive, em pasta segregada.</p>
-        </div>`;
+        </div>
+        ${vCofre()}`;
   } else if(S.tab==="aprova"){
     inner = `<div class="stack">
       <div class="card stack" style="border-left:4px solid var(--amber)">
@@ -1661,6 +1718,56 @@ const A = {
     render();
   },
   excecaoOk(id,estado){ EVENTOS.find(x=>x.id===id).estado=estado; S.sheet=null; fila(); toast("Exceção registrada com justificativa"); },
+
+  /* ---------- Cofre de acessos ---------- */
+  cofreAbrir(id){
+    const c = COFRE.find(x=>x.id===id);
+    S.sheet = `<h3>Ver senha · ${c.pessoa}</h3>
+      <p class="mutetxt">${c.tipo} · ${c.login}</p>
+      <div class="notice c-med">Esta abertura fica registrada com o seu nome, o horário e a finalidade. Se você só precisa conferir se a senha é a que espera, a dica <b class="ff mono">${c.dica}</b> costuma bastar.</div>
+      <label class="f">Para que você precisa deste acesso?</label>
+      <input id="cof-fim" placeholder="Ex.: atualizar cadastro do benefício no gov.br">
+      <div class="row" style="gap:8px;margin-top:16px">
+        <button class="btn sec grow" onclick="A.closeSheet()">Cancelar</button>
+        <button class="btn grow" onclick="A.cofreAbrirOk('${c.id}')">Ver senha</button>
+      </div>`;
+    render();
+  },
+  cofreAbrirOk(id){
+    const fim = (document.getElementById("cof-fim").value||"").trim();
+    if(fim.length < 5) return toast("Descreva para que precisa deste acesso.");
+    const c = COFRE.find(x=>x.id===id);
+    COFRE_HIST.unshift({quem:"Carla Coordenadora (fictícia)", acao:"abertura", quando:"agora", fim});
+    S.sheet = `<h3>${c.tipo} · ${c.pessoa}</h3>
+      <div class="senhabox"><span class="mutetxt">Senha</span><code>${c.senha}</code></div>
+      <p class="mutetxt" style="margin-top:10px">Abertura registrada: <b>${fim}</b>. Feche esta janela quando terminar — a senha não fica na tela.</p>
+      <button class="btn block" style="margin-top:12px" onclick="A.closeSheet()">Fechar</button>`;
+    render();
+  },
+  cofreNovo(){
+    const tipos = ["gov.br","INSS / Meu INSS","Carteira de Trabalho Digital","Banco / poupança social","Portal da escola","Outro acesso"];
+    S.sheet = `<h3>Guardar um acesso</h3>
+      <label class="f" style="margin-top:0">Acolhido</label>
+      <select class="field">${KIDS.slice(0,6).map(k=>`<option>${k.social}</option>`).join("")}</select>
+      <label class="f">Tipo de acesso</label>
+      <select class="field">${tipos.map(t=>`<option>${t}</option>`).join("")}</select>
+      <label class="f">Login <small>— CPF, matrícula ou usuário</small></label>
+      <input placeholder="Identifica o acesso; não abre nada sozinho">
+      <label class="f">Senha</label>
+      <input type="password" placeholder="Fica cifrada no sistema">
+      <label class="f">Quem responde por este acesso</label>
+      <input value="Coordenação da Casa 03">
+      <div class="notice c-info">A senha é cifrada antes de ser guardada. Depois disso, a tela mostra só a dica — e cada abertura pede finalidade.</div>
+      <div class="row" style="gap:8px;margin-top:16px">
+        <button class="btn sec grow" onclick="A.closeSheet()">Cancelar</button>
+        <button class="btn grow" onclick="A.cofreSalvar()">Guardar</button>
+      </div>`;
+    render();
+  },
+  cofreSalvar(){
+    S.sheet=null; render();
+    toast("Acesso guardado e cifrado. Trocar depois não apaga o histórico de quem já viu.");
+  },
 
   /* ---------- Fase 6: acompanhamentos, relatórios e arquivo ---------- */
   fuGerar(){

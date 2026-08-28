@@ -8,6 +8,7 @@ import { ProfileService } from './profile.service';
 import { BenefitsService } from './benefits.service';
 import { TransfersService } from './transfers.service';
 import { AdmissionService } from './admission.service';
+import { CredentialsService } from './credentials.service';
 
 @Controller('people')
 @UseGuards(SessionGuard)
@@ -18,6 +19,7 @@ export class PeopleController {
     @Inject(BenefitsService) private readonly benefits: BenefitsService,
     @Inject(TransfersService) private readonly transfers: TransfersService,
     @Inject(AdmissionService) private readonly admission: AdmissionService,
+    @Inject(CredentialsService) private readonly credentials: CredentialsService,
   ) {}
 
   /** Visão da casa — “os 20”. */
@@ -112,6 +114,37 @@ export class PeopleController {
   benefitsUpsert(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
                  @Body() body: any) {
     return this.benefits.upsert(user, id, body);
+  }
+
+  // ---- Cofre de acessos do acolhido (§6.10) ----
+  // Só a coordenação da casa. Cada abertura exige finalidade e fica registrada.
+
+  @Get('credentials/kinds')
+  tiposCredencial() { return this.credentials.tipos(); }
+
+  @Post(':id/credentials/view')
+  credenciais(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.credentials.listar(user, id);
+  }
+
+  @Post(':id/credentials')
+  guardarCredencial(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
+                    @Body() body: any) {
+    return this.credentials.guardar(user, id, body);
+  }
+
+  /** Abrir uma senha: devolve uma vez, com finalidade, e registra antes. */
+  @Post(':id/credentials/:credId/reveal')
+  revelarCredencial(@CurrentUser() user: AuthenticatedUser,
+                    @Param('id', ParseUUIDPipe) id: string,
+                    @Param('credId', ParseUUIDPipe) credId: string,
+                    @Body() body: { finalidade: string }) {
+    return this.credentials.revelar(user, credId, body?.finalidade ?? '');
+  }
+
+  @Post(':id/credentials/history')
+  historicoCredencial(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.credentials.historico(user, id);
   }
 
   @Post(':id/benefits/export')

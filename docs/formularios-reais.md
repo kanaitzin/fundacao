@@ -100,59 +100,71 @@ e observação de situação.
 
 ## 2. O que o sistema deliberadamente NÃO vai copiar
 
-### 2.1 Senhas de gov.br, INSS e CTPS — urgente
+### 2.1 Senhas de gov.br, INSS e CTPS — resolvido: cofre no sistema
 
-A planilha atual traz, em texto claro, **as senhas de acesso gov.br de
-crianças e adolescentes**, na mesma linha do nome, do CPF, da data de
-nascimento e do nome da mãe. Há ainda a anotação de que as contas ficam
-"logadas no celular institucional".
+**Decisão da Fundação (Leonardo, 28/08/2026):** as senhas ficam no sistema,
+visíveis à **coordenação de cada casa**. O argumento é o certo: a coordenação
+tem a guarda das crianças e precisa desses acessos para resolver benefício,
+matrícula e documento. Se o sistema não guardar, isso não deixa de existir —
+continua numa planilha compartilhada, sem cifra, sem controle de quem abriu.
 
-Se essa coluna virasse campo do sistema, um problema de documento viraria um
-problema de banco de dados: um único vazamento daria acesso ao gov.br de cada
-criança, com o CPF na linha de cima, e a resposta a "quem tinha acesso?"
-continuaria sendo "todo mundo que abriu a pasta".
+Então o cofre existe, e existe com o que a planilha não tinha:
 
-**O que o sistema faz:** registra que existe credencial e **quem responde por
-ela** (`has_gov_access`, `gov_access_holder`, `gov_access_note`). O segredo
-fica num gerenciador de senhas institucional, fora do sistema. Um CHECK recusa
-texto que pareça senha nos campos de observação — grosseiro de propósito: não
-impede um determinado, impede o distraído.
+* **cifrado** (AES-256-GCM) antes de chegar ao banco, com a chave no ambiente
+  do serviço e não no banco. Um dump ou um backup extraviado devolvem bytes
+  sem uso;
+* **o papel da aplicação não lê a coluna do segredo** — privilégio por coluna.
+  Nem a coordenação, consultando a tabela direto, enxerga a senha: ver exige o
+  comando que registra antes de devolver. É o que impede a senha de vazar num
+  relatório escrito com pressa;
+* **cada abertura pede finalidade** e vira evento com nome e hora. A pergunta
+  "quem viu a senha do fulano em março?" passou a ter resposta;
+* **a lista mostra uma dica** — primeira letra, tamanho, última letra — que
+  resolve a maior parte das conferências sem abrir nada, e cada abertura
+  evitada é uma exposição a menos;
+* **só a coordenação da casa atual.** Educador, técnica, enfermagem e a
+  coordenação de outra casa não abrem nem enxergam que existe. Depois de uma
+  transferência aceita, o acesso muda de casa junto com a criança;
+* **o Gestor Geral entra pela exceção**, com motivo institucional escrito
+  (mínimo 20 caracteres), e a exceção fica marcada como exceção. Sem essa
+  porta, a licença de uma coordenadora deixaria a instituição sem acesso ao
+  benefício de uma criança — que seria pior;
+* **trocar a senha não apaga o histórico** de quem já a viu;
+* credencial **nunca** entra em relatório, exportação, linha do tempo,
+  notificação, busca ou cópia para o Drive.
 
-**O que sugerimos à Fundação, independentemente do sistema:**
+Duas coisas que continuam valendo, independentemente do sistema:
 
-1. tirar as senhas da planilha compartilhada e movê-las para um gerenciador
-   institucional (Bitwarden, 1Password ou equivalente), com acesso nominal;
-2. trocar as senhas que já circularam — uma senha que esteve num documento
-   compartilhado precisa ser considerada conhecida;
-3. definir quem responde por cada credencial, e registrar isso no sistema;
-4. evitar contas permanentemente logadas no aparelho institucional.
+1. **trocar as senhas que já circularam.** Uma senha que esteve num documento
+   compartilhado precisa ser considerada conhecida — guardá-la cifrada agora
+   não desfaz o que já circulou;
+2. **evitar contas permanentemente logadas no aparelho institucional.** O
+   cofre protege a senha; uma sessão aberta no aparelho dispensa a senha.
 
-Isso não é urgente por causa do sistema. É urgente porque são contas de
-governo de crianças sob proteção da Fundação.
+### 2.2 Conteúdo do cofre físico — fica de fora
 
-### 2.2 Conteúdo do cofre
+**Decisão da Fundação (28/08/2026):** o cofre físico não entra no sistema. O
+registro do que há dentro dele continua onde está hoje. O sistema de
+acolhimento não é livro-caixa, e um inventário de valores aqui dentro
+convidaria a discussões de responsabilidade que ele não tem como arbitrar.
 
-O LIVRO ATA pede "registre o conteúdo que há dentro do cofre". O Prompt Master
-exclui explicitamente controle de cofre físico do escopo (§3.3), e a exclusão
-faz sentido: um inventário de valores dentro de um sistema de acolhimento
-convida a discussões de responsabilidade que o sistema não pode arbitrar.
+### 2.3 WhatsApp — fica de fora, e essa é a questão
 
-**Pergunta para a Fundação:** o registro do cofre continua no papel, ou o
-sistema deve guardar apenas *que a conferência foi feita*, por quem e quando —
-sem a lista do conteúdo? A segunda opção preserva a prática sem transformar o
-sistema em livro-caixa. Enquanto não houver resposta, o campo **não existe**.
+**Decisão da Fundação (28/08/2026):** tudo no sistema. E o diagnóstico do
+Leonardo é o que importa: *eles usam o WhatsApp como forma de comunicação
+porque ainda não têm um sistema.* Não é preferência por aplicativo — é
+ausência de alternativa.
 
-### 2.3 WhatsApp
+O que isso exige da nossa parte, e vale mais do que qualquer proibição: o
+registro no sistema precisa ser **mais rápido do que digitar a mesma coisa no
+aplicativo**. Se for mais lento, o WhatsApp volta, e volta sem que ninguém
+avise. É por isso que a passagem, a ATA e a linha do tempo foram desenhadas
+com campos curtos, opções prontas e escrita offline: a concorrência real do
+sistema, no meio da noite, é uma conversa que já está aberta no celular.
 
-O formulário do Líder Noturno pergunta por "contato por telefone ou **whats**
-funcional da casa". O sistema registra que houve contato e por qual meio
-(telefone institucional, presencial ou pelo próprio sistema), mas **o conteúdo
-do que foi tratado é registrado aqui**, não no aplicativo — onde o dado sai da
-instituição e fica no aparelho de quem estava de plantão (§3.3).
-
-Isso muda uma prática que existe hoje. Vale conversar com a equipe antes do
-piloto: a mudança é viável quando o registro no sistema é mais rápido do que
-digitar a mesma coisa no aplicativo, e não quando é mais burocrático.
+O sistema registra **que** houve contato e por qual meio (telefone
+institucional, presencial ou pelo próprio sistema); o conteúdo do que foi
+tratado fica aqui.
 
 ### 2.4 Linguagem que rotula
 
