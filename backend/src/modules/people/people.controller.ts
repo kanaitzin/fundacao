@@ -7,6 +7,7 @@ import { PeopleService } from './people.service';
 import { ProfileService } from './profile.service';
 import { BenefitsService } from './benefits.service';
 import { TransfersService } from './transfers.service';
+import { AdmissionService } from './admission.service';
 
 @Controller('people')
 @UseGuards(SessionGuard)
@@ -16,6 +17,7 @@ export class PeopleController {
     @Inject(ProfileService) private readonly profile: ProfileService,
     @Inject(BenefitsService) private readonly benefits: BenefitsService,
     @Inject(TransfersService) private readonly transfers: TransfersService,
+    @Inject(AdmissionService) private readonly admission: AdmissionService,
   ) {}
 
   /** Visão da casa — “os 20”. */
@@ -33,6 +35,41 @@ export class PeopleController {
   @Post()
   admit(@CurrentUser() user: AuthenticatedUser, @Body() body: any) {
     return this.people.admit(user, body);
+  }
+
+  // ---- Cadastro completo (§6.1, §13.1) ----
+
+  /** Listas fechadas do formulário: motivos, órgãos e tipos de medida. */
+  @Get('admission/options')
+  admissionOptions() {
+    return this.admission.opcoes();
+  }
+
+  @Post('admission')
+  admitFull(@CurrentUser() user: AuthenticatedUser, @Body() body: any) {
+    return this.admission.admitFull(user, {
+      houseId: body?.houseId,
+      pessoa: body?.pessoa ?? {},
+      acolhimento: body?.acolhimento ?? {},
+      judicial: body?.judicial ?? {},
+    });
+  }
+
+  @Get(':id/admission')
+  acolhimento(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.admission.acolhimento(user, id);
+  }
+
+  /** Área restrita: motivo do acolhimento, guia, processo e vara (§13.1). */
+  @Get(':id/judicial')
+  judicial(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.admission.judicial(user, id);
+  }
+
+  @Patch(':id/judicial')
+  judicialUpdate(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
+                 @Body() body: Record<string, string | null>) {
+    return this.admission.atualizarJudicial(user, id, body ?? {});
   }
 
   @Post(':id/readmit')

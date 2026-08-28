@@ -1,4 +1,6 @@
-import { Controller, Get, Inject, Param, ParseUUIDPipe, UseGuards } from '@nestjs/common';
+import {
+  Body, Controller, Get, Inject, Param, ParseUUIDPipe, Post, UseGuards,
+} from '@nestjs/common';
 import { SessionGuard, CurrentUser } from '../identity';
 import { AuthenticatedUser } from '../../kernel/contracts';
 import { HousesService } from './houses.service';
@@ -17,6 +19,23 @@ export class HousesController {
   @Get('directory')
   directory(@CurrentUser() user: AuthenticatedUser) {
     return this.houses.directory(user);
+  }
+
+  /** Ocupação e limite da unidade. */
+  @Get(':id/occupancy')
+  occupancy(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.houses.occupancy(user, id);
+  }
+
+  @Get(':id/capacity-history')
+  capacityHistory(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.houses.capacityHistory(user, id);
+  }
+
+  @Post(':id/capacity')
+  setCapacity(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
+              @Body() body: { capacidade: number; motivo: string }) {
+    return this.houses.setCapacity(user, id, Number(body?.capacidade), body?.motivo ?? '');
   }
 
   @Get(':id')

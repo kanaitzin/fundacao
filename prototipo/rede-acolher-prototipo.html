@@ -453,6 +453,34 @@ const CASAS = [
   {cod:"ARM3", nome:"Casa-Lar ARM3"},
   {cod:"ARM4", nome:"Casa-Lar ARM4"},
 ];
+/* ---------- Limite da casa ----------
+   As oito unidades praticam 20. O número é DA CASA: mudar aqui não mexe nas
+   outras, e mudar exige motivo registrado. */
+const CAPACIDADE = { limite:20, ocupadas:20, historico:[] };
+
+/* Motivo do acolhimento — categorias fechadas para relatório, texto para o caso.
+   Vive na ÁREA RESTRITA: equipe técnica, coordenação e Gestor Geral. */
+const MOTIVOS_ACOLHIMENTO = [
+  ["negligencia","Negligência"],["abandono","Abandono"],
+  ["violencia_fisica","Violência física"],["violencia_psicologica","Violência psicológica"],
+  ["violencia_sexual","Violência sexual"],["trabalho_infantil","Trabalho infantil"],
+  ["situacao_de_rua","Situação de rua"],
+  ["dependencia_quimica_do_responsavel","Dependência química do responsável"],
+  ["dependencia_quimica_propria","Dependência química do acolhido"],
+  ["orfandade","Orfandade"],["ausencia_de_responsavel","Ausência de responsável"],
+  ["entrega_voluntaria","Entrega voluntária"],
+  ["ordem_judicial_outra","Ordem judicial — outro fundamento"],["outro","Outro"],
+];
+const ORGAOS = [
+  ["vara_da_infancia","Vara da Infância e Juventude"],["conselho_tutelar","Conselho Tutelar"],
+  ["ministerio_publico","Ministério Público"],["delegacia","Delegacia"],["outro","Outro"],
+];
+const MEDIDAS = [
+  ["acolhimento_institucional","Acolhimento institucional"],
+  ["acolhimento_familiar","Acolhimento familiar"],
+  ["medida_protetiva_outra","Outra medida protetiva"],
+];
+
 const KIDS = [
   {id:1, nome:"Alice R.", social:"Alice", idade:7,  escola:"EMEF Vila Nova · manhã", alergia:"Amendoim", restr:"Sem amendoim e derivados"},
   {id:2, nome:"Bruno S.", social:"Bruno", idade:9,  escola:"EMEF Vila Nova · manhã"},
@@ -582,6 +610,7 @@ let S = {
   transfSub:"recebidas", transfChat:null,
   // Sessão: o protótipo agora começa pela porta de entrada, como o sistema real.
   logado:false, sugereSenha:false, trocarSenha:false, equipeForm:null,
+  cadastroLimite:false,
 };
 const ROLES = {
   educador:"Educador social", lider:"Líder Diurno", noturno:"Líder Noturno Geral",
@@ -1082,9 +1111,11 @@ function vEnfermagem(){
 
 /* ================= EQUIPE TÉCNICA ================= */
 function vTecnica(){
-  const tabs = tabbar([{id:"painel", ic:"🗂️", label:"Painel"},{id:"narrativas", ic:"🔒", label:"Narrativas"}]);
+  const tabs = tabbar([{id:"painel", ic:"🗂️", label:"Painel"},{id:"cadastro", ic:"🧒", label:"Cadastro"},{id:"narrativas", ic:"🔒", label:"Narrativas"}]);
   let inner;
-  if(S.tab==="narrativas"){
+  if(S.tab==="cadastro"){
+    inner = vCadastro();
+  } else if(S.tab==="narrativas"){
     inner = `<div class="notice c-med" style="margin-bottom:14px">Relatos independentes do plantão diurno de ontem, lado a lado. Originais <b>imutáveis</b>; a síntese técnica não apaga versões. Pares não têm acesso a esta tela.</div>
       <div class="sidebyside">
         <div class="statement"><div class="au">Ed. M. Silva · presenciei integralmente</div>Durante o lanche, Caio e Miguel discutiram pela posse do videogame. Intervim, propus revezamento de 20 minutos e ambos aceitaram. Sem contato físico.</div>
@@ -1128,7 +1159,45 @@ function vTecnica(){
         <button class="btn sm sec" onclick="A.verOcorrencia()">Abrir ocorrência</button>
       </div>`;
   }
-  shell(inner, tabs, appbar(S.tab==="narrativas"?"Relatos independentes":"Painel da casa", ["Casa 03","Escala individual",HOJE]));
+  shell(inner, tabs, appbar(S.tab==="cadastro"?"Cadastro de acolhido":S.tab==="narrativas"?"Relatos independentes":"Painel da casa", ["Casa 03","Escala individual",HOJE]));
+}
+
+/* ================= CADASTRO DO ACOLHIDO ================= */
+/* Quem cadastra: equipe técnica e coordenação (§6.1). O bloco judicial é área
+   restrita (§13.1) — quem cuida no dia a dia não lê o motivo do acolhimento. */
+function vCadastro(){
+  const c = CAPACIDADE, vagas = Math.max(c.limite - c.ocupadas, 0);
+  const cheia = c.ocupadas >= c.limite;
+  const acima = c.ocupadas > c.limite;
+  const tom = acima ? "c-crit" : cheia ? "c-warn" : "c-ok";
+  const hist = c.historico.length
+    ? `<div class="stack" style="margin-top:10px">${c.historico.map(h=>
+        `<div class="mutetxt">De <b>${h.de}</b> para <b>${h.para}</b> · ${h.autor} · ${h.quando}<br>${h.motivo}</div>`).join("")}</div>`
+    : `<p class="mutetxt" style="margin:8px 0 0">Nenhuma mudança de limite registrada. As oito casas estão em 20.</p>`;
+
+  return `<div class="card raise stack">
+      <div class="row">
+        <h3 class="grow" style="font-size:17px;margin:0">Cadastro de acolhido</h3>
+        <button class="btn sm" onclick="A.cadastroNovo()">+ Novo cadastro</button>
+      </div>
+      <p class="mutetxt" style="margin:0">Identificação, acolhimento e situação judicial. O bloco judicial entra em <b>área restrita</b>: educador, líder, cozinha e enfermagem não leem o motivo.</p>
+    </div>
+
+    <div class="eyebrow">Vagas da Casa 03</div>
+    <div class="card stack">
+      <div class="row">
+        <span class="grow"><b class="ff" style="font-size:22px">${c.ocupadas}</b> <span class="mutetxt">de ${c.limite}</span></span>
+        ${pill(acima ? "Acima do limite" : cheia ? "No limite" : `${vagas} ${vagas===1?"vaga":"vagas"}`, tom)}
+      </div>
+      <div class="mutetxt">Limite desta unidade. Ele é da casa, não do sistema: mudar aqui não altera as outras sete.</div>
+      ${S.role==="coordenador"
+        ? `<button class="btn sec block" onclick="A.limiteAbrir()">Alterar limite da casa</button>`
+        : `<p class="mutetxt" style="margin:0">Quem altera o limite é a coordenação da casa ou o Gestor Geral.</p>`}
+      ${cheia ? `<div class="notice c-warn" style="margin:0">Casa no limite. Um novo acolhimento ainda é possível — o sistema pede uma justificativa que fica registrada. <b>A porta não trava.</b></div>` : ""}
+    </div>
+
+    <div class="eyebrow">Mudanças de limite</div>
+    <div class="card">${hist}</div>`;
 }
 
 /* ================= COORDENAÇÃO ================= */
@@ -1281,9 +1350,11 @@ function vEquipe(){
 }
 
 function vCoordenador(){
-  const tabs = tabbar([{id:"casa", ic:"🏠", label:"Casa"},{id:"equipe", ic:"👥", label:"Equipe"},{id:"transf", ic:"🔁", label:"Transferências"},{id:"aprova", ic:"✅", label:"Aprovações"},{id:"banco", ic:"🔐", label:"Benefícios"}]);
+  const tabs = tabbar([{id:"casa", ic:"🏠", label:"Casa"},{id:"cadastro", ic:"🧒", label:"Cadastro"},{id:"equipe", ic:"👥", label:"Equipe"},{id:"transf", ic:"🔁", label:"Transferências"},{id:"aprova", ic:"✅", label:"Aprovações"},{id:"banco", ic:"🔐", label:"Benefícios"}]);
   let inner;
-  if(S.tab==="equipe"){
+  if(S.tab==="cadastro"){
+    inner = vCadastro();
+  } else if(S.tab==="equipe"){
     inner = vEquipe();
   } else if(S.tab==="transf"){
     inner = vTransferencias();
@@ -1341,7 +1412,7 @@ function vCoordenador(){
         <div class="card row"><div class="grow"><b class="ff">ATAs da casa</b><div class="mutetxt">Diurna de ontem fechada com pendência (adendo aberto)</div></div>${pill("Com pendência")}</div>
       </div>`;
   }
-  const t = {casa:"Controle da casa", equipe:"Equipe do acolhimento", transf:"Transferências", aprova:"Aprovações", banco:"Benefícios e dados bancários"}[S.tab];
+  const t = {casa:"Controle da casa", cadastro:"Cadastro de acolhido", equipe:"Equipe do acolhimento", transf:"Transferências", aprova:"Aprovações", banco:"Benefícios e dados bancários"}[S.tab];
   shell(inner, tabs, appbar(t, ["Casa 03","Sem limite de horário",HOJE]));
 }
 
@@ -1457,6 +1528,132 @@ const A = {
     render();
   },
   excecaoOk(id,estado){ EVENTOS.find(x=>x.id===id).estado=estado; S.sheet=null; fila(); toast("Exceção registrada com justificativa"); },
+
+  /* ---------- Cadastro do acolhido ---------- */
+  cadastroNovo(){
+    const c = CAPACIDADE, cheia = c.ocupadas >= c.limite;
+    const opt = ([v,l]) => `<option value="${v}">${l}</option>`;
+    S.cadastroLimite = cheia;
+    S.sheet = `<h3>Cadastrar acolhido</h3>
+      <p class="mutetxt">Casa 03 · ${c.ocupadas} de ${c.limite}</p>
+
+      <div class="eyebrow" style="margin-top:14px">1 · Identificação</div>
+      <label class="f" style="margin-top:0">Nome completo</label>
+      <input id="ac-nome" placeholder="Nome civil, como consta na certidão">
+      <label class="f">Nome social ou como prefere ser chamado <small>— é o nome que aparece nas telas do dia a dia</small></label>
+      <input id="ac-social" placeholder="Opcional">
+      <label class="f">Data de nascimento</label>
+      <input id="ac-nasc" type="date">
+      <label class="f">CPF <small>— sem CPF o ingresso continua, com ID provisório e pendência</small></label>
+      <input id="ac-cpf" placeholder="000.000.000-00">
+      <label class="f">Naturalidade</label>
+      <input id="ac-natural" placeholder="Município/UF">
+      <label class="f">Cor/raça <small>— autodeclarada</small></label>
+      <select id="ac-raca"><option value="">Não informado</option><option>Branca</option><option>Preta</option><option>Parda</option><option>Amarela</option><option>Indígena</option></select>
+      <label class="f">Certidão de nascimento <small>— termo/livro/folha</small></label>
+      <input id="ac-certidao" placeholder="Opcional">
+      <label class="f">Cuidados essenciais, acessibilidade e comunicação</label>
+      <textarea id="ac-cuidados" placeholder="O que quem cuida precisa saber já no primeiro dia."></textarea>
+      <label class="f">Escola e turno</label>
+      <input id="ac-escola" placeholder="Ex.: EMEF Vila Nova · manhã">
+
+      <div class="eyebrow" style="margin-top:16px">2 · Acolhimento</div>
+      <label class="f" style="margin-top:0">Data de ingresso</label>
+      <input id="ac-ingresso" type="date">
+      <label class="f">Quem conduziu até a casa</label>
+      <input id="ac-conduziu" placeholder="Conselho Tutelar, Brigada Militar, família…">
+      <label class="f">Município de origem</label>
+      <input id="ac-origem" placeholder="Município/UF">
+      <label class="f">Acolhimento anterior</label>
+      <input id="ac-anterior" placeholder="Unidade e período, se houver">
+      <label class="f">Irmãos acolhidos</label>
+      <input id="ac-irmaos" placeholder="Aqui ou em outra unidade">
+      <label class="f">Referência familiar autorizada</label>
+      <input id="ac-familia" placeholder="Nome e vínculo — contatos autorizados entram no perfil">
+      <label class="f">Como chegou <small>— pertences, condições, o que foi observado</small></label>
+      <textarea id="ac-chegada" placeholder="Fato e contexto, sem rótulo."></textarea>
+
+      <div class="eyebrow" style="margin-top:16px">3 · Situação judicial <span class="pill c-med">Área restrita</span></div>
+      <div class="notice c-med">Este bloco fica restrito à equipe técnica, à coordenação e ao Gestor Geral (§13.1). Quem cuida no dia a dia <b>não lê o motivo</b> — saber por que a criança foi retirada de casa muda o olhar, e essa informação existe para decidir o caso.</div>
+      <label class="f">Motivo do acolhimento</label>
+      <select id="ac-motivo"><option value="">Selecione</option>${MOTIVOS_ACOLHIMENTO.map(opt).join("")}</select>
+      <label class="f">Detalhamento do motivo</label>
+      <textarea id="ac-motivodet" placeholder="Descrição objetiva, conforme a determinação."></textarea>
+      <label class="f">Medida</label>
+      <select id="ac-medida">${MEDIDAS.map(opt).join("")}</select>
+      <label class="f">Quem determinou</label>
+      <select id="ac-orgao"><option value="">Selecione</option>${ORGAOS.map(opt).join("")}</select>
+      <label class="f">Vara/comarca</label>
+      <input id="ac-vara" placeholder="Ex.: 1ª Vara da Infância e Juventude de Porto Alegre">
+      <label class="f">Número do processo</label>
+      <input id="ac-processo" placeholder="0000000-00.0000.0.00.0000">
+      <label class="f">Guia de acolhimento</label>
+      <input id="ac-guia" placeholder="Número da guia">
+      <label class="f">Data da determinação</label>
+      <input id="ac-determinado" type="date">
+      <label class="f">Situação atual</label>
+      <input id="ac-situacao" placeholder="Ex.: audiência concentrada a marcar">
+
+      ${cheia ? `<div class="eyebrow" style="margin-top:16px">4 · Casa no limite</div>
+        <div class="notice c-warn">A casa está com ${c.ocupadas} de ${c.limite}. O cadastro <b>não fica travado</b> — o sistema pede uma justificativa, que fica registrada com o seu nome.</div>
+        <label class="f">Justificativa do acolhimento acima do limite</label>
+        <textarea id="ac-limite" placeholder="Ex.: chegada às 23h com guia do plantão judiciário; sem outra unidade disponível hoje."></textarea>` : ""}
+
+      <div class="row" style="gap:8px;margin-top:18px">
+        <button class="btn sec grow" onclick="A.closeSheet()">Cancelar</button>
+        <button class="btn grow" onclick="A.cadastroSalvar()">Cadastrar</button>
+      </div>`;
+    render();
+  },
+  cadastroSalvar(){
+    const v = id => (document.getElementById(id)?.value ?? "").trim();
+    const nome = v("ac-nome"), nasc = v("ac-nasc"), motivo = v("ac-motivo"), orgao = v("ac-orgao");
+    if(!nome || !nasc) return toast("Informe nome completo e data de nascimento.");
+    if(!motivo) return toast("Informe o motivo do acolhimento — sem ele não existe medida protetiva.");
+    if(!orgao) return toast("Informe quem determinou o acolhimento.");
+    if(S.cadastroLimite && v("ac-limite").length < 15){
+      return toast("Casa no limite: descreva a justificativa (mínimo 15 caracteres). Ela fica registrada.");
+    }
+    const acima = S.cadastroLimite;
+    CAPACIDADE.ocupadas += 1;
+    const social = v("ac-social") || nome.split(" ")[0];
+    S.sheet = `<h3>✅ ${social} cadastrado(a)</h3>
+      <p class="mutetxt">Casa 03 · episódio 1 · ${CAPACIDADE.ocupadas} de ${CAPACIDADE.limite}</p>
+      ${v("ac-cpf") ? "" : `<div class="notice c-warn">Sem CPF: entrou com <b>ID provisório</b> e pendência aberta. A pendência não some sozinha.</div>`}
+      ${acima ? `<div class="notice c-crit">Cadastro feito com a casa <b>acima do limite</b>. A justificativa ficou registrada com o seu nome — em vez de virar vaga fantasma na planilha.</div>` : ""}
+      <div class="notice c-med">Motivo, guia e processo foram para a <b>área restrita</b>. Na tela do plantão aparece o nome e os cuidados essenciais — não o motivo.</div>
+      <button class="btn block" style="margin-top:12px" onclick="A.closeSheet()">Fechar</button>`;
+    S.cadastroLimite = false;
+    render();
+  },
+  limiteAbrir(){
+    S.sheet = `<h3>Limite da Casa 03</h3>
+      <p class="mutetxt">Hoje: <b>${CAPACIDADE.limite}</b> vagas · ${CAPACIDADE.ocupadas} acolhidos</p>
+      <div class="notice c-info">O limite é desta casa. As outras sete continuam em 20. A mudança fica registrada com autor, data, número anterior e motivo — um dia alguém vai precisar explicar por que esta unidade passou a receber mais.</div>
+      <label class="f">Novo limite</label>
+      <input id="lim-num" type="number" min="1" max="60" value="${CAPACIDADE.limite}">
+      <label class="f">Motivo da mudança</label>
+      <textarea id="lim-motivo" placeholder="Ex.: ampliação aprovada em reunião institucional, com adequação de dormitórios."></textarea>
+      <div class="row" style="gap:8px;margin-top:16px">
+        <button class="btn sec grow" onclick="A.closeSheet()">Cancelar</button>
+        <button class="btn grow" onclick="A.limiteSalvar()">Salvar limite</button>
+      </div>`;
+    render();
+  },
+  limiteSalvar(){
+    const num = Number(document.getElementById("lim-num").value);
+    const motivo = (document.getElementById("lim-motivo").value || "").trim();
+    if(!(num >= 1 && num <= 60)) return toast("O limite precisa estar entre 1 e 60.");
+    if(num === CAPACIDADE.limite) return toast("Este já é o limite atual.");
+    if(motivo.length < 15) return toast("Descreva o motivo da mudança (mínimo 15 caracteres).");
+    CAPACIDADE.historico.unshift({
+      de:CAPACIDADE.limite, para:num, motivo,
+      autor:"Carla Coordenadora (fictícia)", quando:"hoje, agora",
+    });
+    CAPACIDADE.limite = num;
+    S.sheet = null; render();
+    toast(`Limite da Casa 03 alterado para ${num}. A mudança ficou registrada com o seu nome.`);
+  },
 
   /* ---------- Entrada e equipe ---------- */
   entrar(papel){

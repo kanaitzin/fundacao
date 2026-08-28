@@ -5,11 +5,12 @@ import { PeopleService } from './people.service';
 import { ProfileService } from './profile.service';
 import { BenefitsService } from './benefits.service';
 import { TransfersService } from './transfers.service';
+import { AdmissionService } from './admission.service';
 
 @Module({
   imports: [IdentityModule],
   controllers: [PeopleController, TransfersController, ReportsController],
-  providers: [PeopleService, ProfileService, BenefitsService, TransfersService],
+  providers: [PeopleService, ProfileService, BenefitsService, TransfersService, AdmissionService],
   exports: [PeopleService],
 })
 export class PeopleModule {}
