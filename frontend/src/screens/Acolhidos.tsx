@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api, ErroApi } from '../api';
+import { Cadastro } from './Cadastro';
 
 /**
  * OS ACOLHIDOS DA CASA e o PERFIL (§6, §13).
@@ -67,6 +68,8 @@ interface Judicial {
 
 /** Quem tem a área restrita do §13.1. O menu não oferece o que o cargo não faz. */
 const VE_JUDICIAL = ['equipe_tecnica', 'coordenador', 'gestor_geral'];
+/** Quem cadastra (§6.1) — a mesma regra que o banco aplica no comando. */
+const QUEM_CADASTRA = ['equipe_tecnica', 'coordenador', 'gestor_geral'];
 
 const CATEGORIA: Record<string, string> = {
   saude: 'Saúde', escolar: 'Escolar', pessoal: 'Pessoal',
@@ -96,11 +99,15 @@ const dia = (d: string) => {
     : data.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 };
 
-export function Acolhidos({ houseId, papel }: { houseId: string; papel: string }) {
+export function Acolhidos({ houseId, casaLabel, papel }: {
+  houseId: string; casaLabel: string; papel: string;
+}) {
   const [lista, setLista] = useState<Resumo[]>([]);
   const [abertoId, setAbertoId] = useState<string | null>(null);
   const [erro, setErro] = useState('');
   const [busca, setBusca] = useState('');
+  const [cadastrando, setCadastrando] = useState(false);
+  const [aviso, setAviso] = useState('');
 
   const carregar = useCallback(async () => {
     setErro('');
@@ -109,6 +116,22 @@ export function Acolhidos({ houseId, papel }: { houseId: string; papel: string }
   }, [houseId]);
 
   useEffect(() => { carregar(); }, [carregar]);
+
+  if (cadastrando) {
+    return (
+      <>
+        <button className="btn sm ghost" onClick={() => setCadastrando(false)}>← Acolhidos</button>
+        <Cadastro houseId={houseId} casaLabel={casaLabel}
+                  onPronto={async (personId, msg) => {
+                    setCadastrando(false); setAviso(msg);
+                    await carregar();
+                    // Abre o perfil recém-criado: é onde a equipe técnica
+                    // continua o trabalho — saúde, escola, documentos.
+                    setAbertoId(personId);
+                  }} />
+      </>
+    );
+  }
 
   if (abertoId) {
     return <Perfil personId={abertoId} houseId={houseId} papel={papel}
@@ -127,6 +150,13 @@ export function Acolhidos({ houseId, papel }: { houseId: string; papel: string }
       </div>
 
       {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+      {aviso && <div className="notice c-ok" role="status">{aviso}</div>}
+
+      {QUEM_CADASTRA.includes(papel) && (
+        <button className="btn block" onClick={() => setCadastrando(true)}>
+          Cadastrar acolhido
+        </button>
+      )}
 
       {/* Vinte nomes cabem na tela; a busca é para a casa que crescer, e para
           quem está com pressa e sabe o nome. */}

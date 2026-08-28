@@ -137,7 +137,8 @@ export function App() {
         {aba === 'chamada' && casaAtual && <Chamada houseId={casaAtual.id} />}
 
         {aba === 'acolhidos' && casaAtual && (
-          <Acolhidos houseId={casaAtual.id} papel={me.role} />
+          <Acolhidos houseId={casaAtual.id} casaLabel={`${casaAtual.code} · ${casaAtual.name}`}
+                     papel={me.role} />
         )}
 
         {aba === 'passagem' && casaAtual && (

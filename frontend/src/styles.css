@@ -454,8 +454,28 @@ textarea{
   color:var(--ink-2); min-width:42px;
 }
 
-/* O rodapé da folha acompanha a rolagem: em formulário longo, o botão
+/* Linha de conferência: rótulo pequeno em cima, valor embaixo. Ler uma
+   confirmação é ler os valores; os rótulos são só o mapa. */
+.conf{ padding:8px 0; border-top:1px solid var(--line) }
+.conf:first-child{ border-top:0; padding-top:0 }
+.conf .mutetxt{
+  /* Rótulo e valor colados numa linha só ("NOMERafa Nova") era o que a tela
+     de conferência mostrava — justamente a tela cujo trabalho inteiro é ser
+     lida com atenção antes de gravar. */
+  display:block; font-size:11.5px; text-transform:uppercase; letter-spacing:.04em;
+  margin-bottom:2px;
+}
+.conf .ff{ display:block }
+
+/* O rodapé acompanha a rolagem: em formulário longo, o botão
    longe do olho é botão que não se acha. */
+.rodape{
+  position:sticky; bottom:0; gap:8px; margin-top:16px;
+  padding:12px 0; background:var(--ground);
+  box-shadow:0 -10px 12px -10px rgba(0,20,45,.18);
+}
+/* Dentro da folha o fundo é o da folha, e o rodapé precisa vencer o
+   padding de 24px dela para colar mesmo no fim. */
 .sheet .rodape{
   position:sticky; bottom:-24px; gap:8px; margin-top:16px;
   padding:12px 0; background:var(--surface);
