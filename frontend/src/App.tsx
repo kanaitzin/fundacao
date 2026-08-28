@@ -9,6 +9,13 @@ import { Chamada } from './screens/Chamada';
 import { Passagem } from './screens/Passagem';
 import { Acolhidos } from './screens/Acolhidos';
 import { Agenda } from './screens/Agenda';
+import { Saude } from './screens/Saude';
+import { Ocorrencias } from './screens/Ocorrencias';
+import { Ata } from './screens/Ata';
+import { Cofre } from './screens/Cofre';
+import { Transferencias } from './screens/Transferencias';
+import { Acompanhamentos } from './screens/Acompanhamentos';
+import { Arquivo } from './screens/Arquivo';
 
 interface Me {
   id: string; email: string; fullName: string; role: string;
@@ -28,10 +35,27 @@ const ROLE_LABEL: Record<string, string> = {
 const KIND_TONE: Record<string, string> = { casa_lar: 'c-move', abrigo_institucional: 'c-brand' };
 
 /** As telas que não são do turno; a aba "Mais" fica acesa quando uma delas está aberta. */
-const OUTRAS = new Set(['agenda', 'equipe', 'casas']);
+const OUTRAS = new Set(['agenda', 'equipe', 'casas', 'saude', 'ocorrencias', 'ata',
+  'cofre', 'transferencias', 'acompanhamentos', 'arquivo']);
 
 /** Quem administra equipe (§5.3). O menu não oferece o que o cargo não faz. */
 const ADMINISTRA_EQUIPE = ['coordenador', 'gestor_geral', 'admin_tecnico'];
+
+/*
+ * Os demais alcances. Esconder o botão é gentileza com quem usa; a proteção
+ * de verdade mora no banco, e o servidor recusa de novo por baixo.
+ */
+/** Saúde: a Enfermagem trabalha aqui; a liderança e a gestão acompanham. */
+const VE_SAUDE = ['enfermagem', 'coordenador', 'lider_diurno',
+  'lider_noturno_geral', 'gestor_geral'];
+/** O cofre guarda as contas das crianças: só quem tem a guarda entra. */
+const VE_COFRE = ['coordenador', 'gestor_geral'];
+/** Acompanhar e relatar é da técnica, com aprovação da coordenação. */
+const VE_ACOMPANHAMENTOS = ['equipe_tecnica', 'coordenador', 'gestor_geral'];
+/** Transferir criança de casa é decisão de coordenação. */
+const VE_TRANSFERENCIAS = ['coordenador', 'gestor_geral'];
+/** O Drive não abre para o plantão: o educador lê o perfil, com registro. */
+const VE_ARQUIVO = ['equipe_tecnica', 'coordenador', 'gestor_geral'];
 
 /**
  * Só no protótipo, e desde a tela de entrada: quem abre o arquivo precisa
@@ -44,12 +68,50 @@ function Tarja() {
   return <div className="tarja">Protótipo · dados fictícios · nada é salvo ao fechar</div>;
 }
 
+/**
+ * Seletor de cargo — só aparece no protótipo.
+ * Permite alternar entre funções sem sair do sistema, para avaliação do design.
+ */
+const CARGOS_DEMO = [
+  { value: 'coordenador',         label: '👩‍💼 Coordenação' },
+  { value: 'equipe_tecnica',      label: '🧠 Equipe técnica' },
+  { value: 'educador',            label: '🏫 Educador social' },
+  { value: 'lider_diurno',        label: '☀️ Líder Diurno' },
+  { value: 'lider_noturno_geral', label: '🌙 Líder Noturno' },
+  { value: 'enfermagem',          label: '🩺 Enfermagem' },
+  { value: 'cozinha',             label: '🍽️ Cozinha' },
+  { value: 'admin_tecnico',       label: '🗂️ Administração técnica' },
+  { value: 'gestor_geral',        label: '🏛️ Gestor Geral' },
+];
+
+function TrocaCargo({ cargoAtual, onChange }: { cargoAtual: string; onChange: (role: string) => void }) {
+  if (import.meta.env.VITE_PROTOTIPO !== '1') return null;
+  return (
+    <div className="troca-cargo">
+      <span className="troca-cargo-label">👁 Ver como:</span>
+      <select
+        value={cargoAtual}
+        onChange={(e) => onChange(e.target.value)}
+        className="troca-cargo-sel"
+        aria-label="Trocar cargo para visualização"
+      >
+        {CARGOS_DEMO.map((c) => (
+          <option key={c.value} value={c.value}>{c.label}</option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
 export function App() {
   const [me, setMe] = useState<Me | null>(null);
   const [houses, setHouses] = useState<House[]>([]);
   const [erro, setErro] = useState('');
   const [ocupado, setOcupado] = useState(false);
-  const [aba, setAba] = useState<'dia' | 'chamada' | 'passagem' | 'acolhidos' | 'agenda' | 'casas' | 'equipe'>('dia');
+  const [aba, setAba] = useState<
+    'dia' | 'chamada' | 'passagem' | 'acolhidos' | 'agenda' | 'casas' | 'equipe'
+    | 'saude' | 'ocorrencias' | 'ata' | 'cofre' | 'transferencias'
+    | 'acompanhamentos' | 'arquivo'>('dia');
   const [sugerirSenha, setSugerirSenha] = useState(false);
   const [trocarSenha, setTrocarSenha] = useState(false);
   const [mais, setMais] = useState(false);
@@ -91,6 +153,11 @@ export function App() {
 
   const casa = me.assignments[0];
   const administra = ADMINISTRA_EQUIPE.includes(me.role);
+  const veSaude = VE_SAUDE.includes(me.role);
+  const veCofre = VE_COFRE.includes(me.role);
+  const veAcompanhamentos = VE_ACOMPANHAMENTOS.includes(me.role);
+  const veTransferencias = VE_TRANSFERENCIAS.includes(me.role);
+  const veArquivo = VE_ARQUIVO.includes(me.role);
   // A casa de trabalho: o vínculo do usuário quando existe; senão, a primeira
   // do alcance — que é o caso das funções transversais (§5.13).
   const casaAtual = houses.find((h) => h.code === casa?.code) ?? houses[0] ?? null;
@@ -104,6 +171,15 @@ export function App() {
           <span className="wordmark">Rede Acolher</span>
           <span className="rolechip">{ROLE_LABEL[me.role] ?? me.role}</span>
           <span className="grow" />
+          {import.meta.env.VITE_PROTOTIPO === '1' && (
+            <button className="iconbtn" title="Alternar tema claro/escuro"
+                    aria-label="Alternar tema"
+                    onClick={() => {
+                      const root = document.documentElement;
+                      root.setAttribute('data-theme',
+                        root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+                    }}>🌓</button>
+          )}
           <button className="iconbtn" title="Trocar minha senha" aria-label="Trocar minha senha"
                   onClick={() => setTrocarSenha(true)}>🔑</button>
           <button className="btn sm ghost" onClick={sair}>Sair</button>
@@ -123,6 +199,16 @@ export function App() {
         saía pela borda do celular, e a sexta chegaria com a coordenação. Aba
         que não cabe é aba que ninguém acha.
       */}
+      <TrocaCargo cargoAtual={me.role} onChange={(role) => {
+        setMe({ ...me, role });
+        // No protótipo o servidor de mentira precisa saber do mesmo cargo, senão
+        // as áreas restritas respondem pelo cargo do login, e não pelo escolhido.
+        if (import.meta.env.VITE_PROTOTIPO === '1') {
+          api('/prototipo/cargo', { method: 'POST', body: JSON.stringify({ role }) })
+            .catch(() => { /* o seletor é de demonstração; falhar aqui não trava a tela */ });
+        }
+      }} />
+
       <nav className="tabbar" aria-label="Seções">
         <button className={aba === 'dia' ? 'on' : ''} onClick={() => setAba('dia')}>
           <span aria-hidden="true">📋</span> Dia
@@ -169,6 +255,22 @@ export function App() {
         {aba === 'agenda' && casaAtual && <Agenda houseId={casaAtual.id} papel={me.role} />}
 
         {aba === 'equipe' && administra && <Equipe />}
+
+        {aba === 'saude' && veSaude && <Saude papel={me.role} />}
+
+        {/* Ocorrência e ATA são de todo mundo do plantão: quem viu o fato é
+            quem registra, e quem conduz o turno é quem fecha. */}
+        {aba === 'ocorrencias' && <Ocorrencias papel={me.role} />}
+
+        {aba === 'ata' && <Ata />}
+
+        {aba === 'cofre' && veCofre && <Cofre />}
+
+        {aba === 'transferencias' && veTransferencias && <Transferencias />}
+
+        {aba === 'acompanhamentos' && veAcompanhamentos && <Acompanhamentos />}
+
+        {aba === 'arquivo' && veArquivo && <Arquivo />}
 
         {aba === 'casas' && (
           <>
@@ -220,6 +322,65 @@ export function App() {
                   <div className="grow" style={{ textAlign: 'left' }}>
                     <b className="ff">Equipe</b>
                     <div className="mutetxt">Quem trabalha nesta casa, por setor.</div>
+                  </div>
+                </button>
+              )}
+              <button className="card row" onClick={() => { setAba('ocorrencias'); setMais(false); }}>
+                <span aria-hidden="true">🚨</span>
+                <div className="grow" style={{ textAlign: 'left' }}>
+                  <b className="ff">Ocorrências</b>
+                  <div className="mutetxt">Abrir, acompanhar e encerrar com análise — nunca sozinha.</div>
+                </div>
+              </button>
+              <button className="card row" onClick={() => { setAba('ata'); setMais(false); }}>
+                <span aria-hidden="true">📔</span>
+                <div className="grow" style={{ textAlign: 'left' }}>
+                  <b className="ff">ATA</b>
+                  <div className="mutetxt">A da casa e a Geral Noturna, com pendência quando for o caso.</div>
+                </div>
+              </button>
+              {veSaude && (
+                <button className="card row" onClick={() => { setAba('saude'); setMais(false); }}>
+                  <span aria-hidden="true">🩺</span>
+                  <div className="grow" style={{ textAlign: 'left' }}>
+                    <b className="ff">Saúde</b>
+                    <div className="mutetxt">Doses do dia, estoque, triagem e resumo de saúde.</div>
+                  </div>
+                </button>
+              )}
+              {veAcompanhamentos && (
+                <button className="card row" onClick={() => { setAba('acompanhamentos'); setMais(false); }}>
+                  <span aria-hidden="true">📝</span>
+                  <div className="grow" style={{ textAlign: 'left' }}>
+                    <b className="ff">Acompanhamentos</b>
+                    <div className="mutetxt">Eixos obrigatórios, aprovação e relatórios.</div>
+                  </div>
+                </button>
+              )}
+              {veArquivo && (
+                <button className="card row" onClick={() => { setAba('arquivo'); setMais(false); }}>
+                  <span aria-hidden="true">🗄️</span>
+                  <div className="grow" style={{ textAlign: 'left' }}>
+                    <b className="ff">Arquivo documental</b>
+                    <div className="mutetxt">Cópia do que fechou, com versões e fila de envio.</div>
+                  </div>
+                </button>
+              )}
+              {veTransferencias && (
+                <button className="card row" onClick={() => { setAba('transferencias'); setMais(false); }}>
+                  <span aria-hidden="true">🔁</span>
+                  <div className="grow" style={{ textAlign: 'left' }}>
+                    <b className="ff">Transferências</b>
+                    <div className="mutetxt">Pedidos enviados e recebidos, com conversa entre coordenações.</div>
+                  </div>
+                </button>
+              )}
+              {veCofre && (
+                <button className="card row" onClick={() => { setAba('cofre'); setMais(false); }}>
+                  <span aria-hidden="true">🔑</span>
+                  <div className="grow" style={{ textAlign: 'left' }}>
+                    <b className="ff">Cofre de acessos</b>
+                    <div className="mutetxt">Contas do acolhido. Pede a sua senha de novo e é auditado.</div>
                   </div>
                 </button>
               )}

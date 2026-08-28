@@ -462,6 +462,25 @@ textarea{
   font-size:12px; font-weight:700; letter-spacing:.03em; padding:6px 10px;
 }
 
+/* Seletor de cargo — só no protótipo */
+.troca-cargo{
+  display:flex; align-items:center; gap:8px;
+  background:#EEF4FB; border-bottom:2px dashed #BDCBDC;
+  padding:7px 16px; flex-wrap:wrap;
+}
+.troca-cargo-label{
+  font-size:12px; font-weight:700; color:var(--brand,#005993);
+  white-space:nowrap;
+}
+.troca-cargo-sel{
+  flex:1; min-width:180px; max-width:320px;
+  border:1.5px solid var(--brand,#005993); border-radius:8px;
+  padding:5px 10px; font-size:13px; font-weight:600;
+  color:var(--ink,#0F1C2E); background:#fff; cursor:pointer;
+  outline:none;
+}
+.troca-cargo-sel:focus{ box-shadow:0 0 0 2px var(--focus,#0A7BC4); }
+
 /* Linha de conferência: rótulo pequeno em cima, valor embaixo. Ler uma
    confirmação é ler os valores; os rótulos são só o mapa. */
 .conf{ padding:8px 0; border-top:1px solid var(--line) }
@@ -507,3 +526,51 @@ textarea{
   .overlay{ align-items:flex-end; padding:0 }
   .sheet{ border-radius:18px 18px 0 0; max-width:none }
 }
+
+/* ============================================================
+   TELAS DA COORDENAÇÃO, DA SAÚDE E DO ARQUIVO
+   Só o que faltava: o resto reusa .card, .stack, .pill, .notice,
+   .bloco, .opts e .lista. Cores sempre por variável — o app tem
+   tema claro e escuro, e cor fixa quebra um dos dois.
+   ============================================================ */
+
+/* O texto de apoio existia em toda tela e nunca tinha regra própria:
+   herdava o corpo e ficava do mesmo peso do que importa. */
+.mutetxt{ color:var(--muted); font-size:13px; line-height:1.45 }
+.mono{ font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12.5px }
+.divider{ border:0; border-top:1px solid var(--line); margin:12px 0 }
+
+/* Quatro números de estado operacional. Não é placar: são contagens do
+   turno — nada aqui ordena casas, equipes ou crianças. */
+.painel{
+  display:grid; gap:10px; grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+  margin-bottom:14px;
+}
+.painel .tile{
+  background:var(--surface); border:1px solid var(--line);
+  border-left:4px solid var(--c,var(--slate));
+  border-radius:var(--r-md); padding:12px 13px; box-shadow:var(--shadow-1);
+}
+.painel .tile b{
+  display:block; font-family:"Plus Jakarta Sans",system-ui,sans-serif;
+  font-size:24px; font-weight:800; color:var(--ct,var(--ink)); letter-spacing:-.02em;
+}
+.painel .tile span{ display:block; font-size:12.5px; color:var(--muted); margin-top:2px }
+
+/* As listas destas telas usam .lista com linhas em .row: sem isso o
+   conteúdo encosta na borda de cima da linha seguinte. */
+.lista li.row{ align-items:flex-start }
+
+/* Os botões pequenos dentro de .row e .stack não devem ocupar a largura
+   toda, como o .btn base faz no formulário. */
+.btn.sm{
+  width:auto; display:inline-flex; align-items:center; justify-content:center;
+  margin-top:0; padding:8px 13px; font-size:13px;
+}
+/* "block" continua sendo o jeito de pedir a largura toda, inclusive no pequeno. */
+.btn.block{ width:100% }
+
+/* A senha revelada no cofre precisa de contraste próprio nos dois temas:
+   var(--navy) some no escuro. */
+.senhabox{ background:var(--sunken); border:1px solid var(--line) }
+.senhabox code{ color:var(--brand-solid) }

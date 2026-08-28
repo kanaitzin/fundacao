@@ -25,7 +25,11 @@ export default defineConfig(({ mode }) => ({
     ...(mode === 'prototipo'
       ? [{ name: 'icone-embutido',
            transformIndexHtml: (html: string) =>
-             html.replace(/<link rel="icon"[^>]*>/,
+             html
+               // Força tema claro: o protótipo é distribuído por arquivo e não
+               // pode depender de OS dark mode ficar desligado na máquina de quem abre.
+               .replace(/<html/, '<html data-theme="light"')
+               .replace(/<link rel="icon"[^>]*>/,
                `<link rel="icon" href="data:image/png;base64,${ICONE}" />`) },
          viteSingleFile()]
       : []),

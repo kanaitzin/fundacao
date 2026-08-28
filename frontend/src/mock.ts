@@ -290,6 +290,321 @@ const DOSES = [
     estado: 'aguardando_confirmacao', rotulo: 'Se necessário', pendente: true, confirmadaPor: null },
 ];
 
+/**
+ * Estoque da casa. Não é farmácia: é o que existe no armário, para a
+ * Enfermagem ver o que vai faltar antes de faltar. Quantidade baixa é
+ * ESTADO OPERACIONAL do armário — não diz nada sobre nenhuma criança.
+ */
+const ESTOQUE = [
+  { id: 'e1', medicamento: 'Amoxicilina (fictícia) 250 mg/5 mL', unidade: 'frasco',
+    quantidade: 2, minimo: 2, validade: '2027-01-31', conferidoPor: 'Enfermeira Fictícia' },
+  { id: 'e2', medicamento: 'Colírio lubrificante (fictício)', unidade: 'frasco',
+    quantidade: 5, minimo: 2, validade: '2026-12-10', conferidoPor: 'Enfermeira Fictícia' },
+  { id: 'e3', medicamento: 'Paracetamol (fictício) 500 mg', unidade: 'comprimido',
+    quantidade: 8, minimo: 20, validade: '2026-11-30', conferidoPor: 'Enfermeira Fictícia' },
+  { id: 'e4', medicamento: 'Insulina (fictícia) — caneta', unidade: 'caneta',
+    quantidade: 3, minimo: 2, validade: '2026-10-05', conferidoPor: 'Enfermeira Fictícia' },
+];
+
+/**
+ * Triagem de enfermagem: evoluções escritas pelo educador que acompanhou o
+ * atendimento. A Enfermagem tria, complementa e assina — e a coordenação
+ * cobra a pendência, mas nunca assina no lugar dela.
+ */
+interface Triagem {
+  id: string; personId: string; tipo: string; enviadaPor: string; enviadaEm: string;
+  resumo: string; assinada: boolean; assinadaPor: string | null; complemento: string | null;
+}
+let TRIAGENS: Triagem[] = [
+  { id: 't1', personId: 'p08', tipo: 'Consulta de pediatria', enviadaPor: 'Mário Silva (fictício)',
+    enviadaEm: emHoras(10, 40), assinada: false, assinadaPor: null, complemento: null,
+    resumo: 'Consulta de rotina. Pediatra pediu exame de sangue e retorno em 30 dias. '
+      + 'Receita anexada; vitamina D mantida.' },
+  { id: 't2', personId: 'p09', tipo: 'Urgência odontológica', enviadaPor: 'Joana Lima (fictícia)',
+    enviadaEm: emHoras(16, 20), assinada: false, assinadaPor: null, complemento: null,
+    resumo: 'Dor de dente referida depois do almoço. Atendido na unidade fictícia; '
+      + 'prescrita amoxicilina 500 mg 8/8h por 7 dias.' },
+  { id: 't3', personId: 'p15', tipo: 'Retorno de endocrinologia', enviadaPor: 'Tainá Souza (fictícia)',
+    enviadaEm: emHoras(9, 10), assinada: true, assinadaPor: 'Enfermeira Fictícia',
+    complemento: 'Grade de glicemia conferida com a receita nova antes de valer na casa.',
+    resumo: 'Ajuste de dose conforme laudo. Glicemia antes das refeições mantida.' },
+];
+
+/** Cada emissão de Resumo de Saúde pede finalidade — e a finalidade fica. */
+const RESUMOS: { id: string; personId: string; finalidade: string;
+                 por: string; em: string }[] = [];
+
+/**
+ * OCORRÊNCIAS (§13).
+ *
+ * `exigeRevisao` = a categoria não encerra sem validação técnica ou da
+ * coordenação. `restrita` = o registro nasce restrito: colega de plantão não
+ * abre. Nenhuma delas se encerra sozinha, e nenhuma delas é classificada
+ * pelo sistema — quem classifica é quem estava lá.
+ */
+const CATEGORIAS_OCORRENCIA = [
+  { cod: 'violencia_ou_suspeita', label: 'Violência ou suspeita de violação', tom: 'c-crit',
+    exigeRevisao: true, restrita: true },
+  { cod: 'conflito_agressao', label: 'Conflito ou agressão', tom: 'c-warn',
+    exigeRevisao: false, restrita: false },
+  { cod: 'saida_nao_autorizada', label: 'Saída não autorizada', tom: 'c-move',
+    exigeRevisao: false, restrita: false },
+  { cod: 'erro_medicamento', label: 'Erro de medicamento', tom: 'c-med',
+    exigeRevisao: true, restrita: false },
+  { cod: 'emergencia_saude', label: 'Emergência de saúde', tom: 'c-crit',
+    exigeRevisao: true, restrita: false },
+  { cod: 'contencao', label: 'Contenção', tom: 'c-other', exigeRevisao: true, restrita: true },
+  { cod: 'desorganizacao_relevante', label: 'Desorganização relevante', tom: 'c-info',
+    exigeRevisao: false, restrita: false },
+  { cod: 'dano_recusa_critica', label: 'Dano ou recusa crítica', tom: 'c-warn',
+    exigeRevisao: false, restrita: false },
+  { cod: 'outro', label: 'Outro', tom: 'c-mute', exigeRevisao: false, restrita: false },
+];
+
+interface Ocorrencia {
+  id: string; categoria: string; personId: string | null; fato: string; medidas: string;
+  falaEspontanea: string | null; abertaPor: string; abertaEm: string;
+  etapaOperacional: 'aberta' | 'encerrada'; situacao: 'em_andamento' | 'aguardando_revisao' | 'encerrada';
+  avisados: string[];
+  acompanhamento: { id: string; quem: string; texto: string; em: string }[];
+}
+let OCORRENCIAS: Ocorrencia[] = [
+  { id: 'o1', categoria: 'saida_nao_autorizada', personId: 'p10',
+    fato: 'Saiu pelo portão dos fundos por volta das 21h40. Retornou às 23h15, acompanhado.',
+    medidas: 'Líder Noturno Geral acionado na hora; busca conforme protocolo da casa; '
+      + 'acolhido recebido e avaliado pela equipe do plantão.',
+    falaEspontanea: null, abertaPor: 'Joana Lima (fictícia)', abertaEm: emHoras(21, 40),
+    etapaOperacional: 'encerrada', situacao: 'aguardando_revisao',
+    avisados: ['Líder Diurno', 'equipe técnica', 'coordenação'],
+    acompanhamento: [
+      { id: 'oa1', quem: 'Nélio Noturno (fictício)',
+        texto: 'Etapa operacional encerrada às 23h40, com o acolhido na casa e sem lesão referida.',
+        em: emHoras(23, 40) },
+    ] },
+  { id: 'o2', categoria: 'erro_medicamento', personId: 'p02',
+    fato: 'A dose das 8h foi ofertada com 40 minutos de atraso, por indisponibilidade do frasco na casa.',
+    medidas: 'Enfermagem avisada na hora; frasco reposto do estoque da unidade; '
+      + 'horário real anotado na grade.',
+    falaEspontanea: null, abertaPor: 'Tainá Souza (fictícia)', abertaEm: emHoras(8, 45),
+    etapaOperacional: 'encerrada', situacao: 'aguardando_revisao',
+    avisados: ['Líder Diurno', 'equipe técnica', 'coordenação', 'Enfermagem'],
+    acompanhamento: [] },
+];
+
+/**
+ * ATAs. A da casa fecha depois das passagens; a Geral Noturna fecha depois
+ * das oito ATAs de casa. Fechar COM PENDÊNCIA é uma saída de verdade — a
+ * alternativa seria o sistema presumir uma assinatura que ninguém deu.
+ */
+let ATA_CASA = {
+  data: HOJE, turno: 'diurno', horario: '07h–19h', estado: 'aberta' as 'aberta' | 'fechada',
+  comPendencia: false, motivoPendencia: null as string | null,
+  fechadaPor: null as string | null, fechadaEm: null as string | null,
+  passagens: [
+    { quem: 'Mário Silva (fictício)', cargo: 'educador', assinada: true },
+    { quem: 'Tainá Souza (fictícia)', cargo: 'educador', assinada: true },
+    { quem: 'Joana Lima (fictícia)', cargo: 'educador', assinada: false },
+    { quem: 'Lúcia Líder Diurna (fictícia)', cargo: 'lider_diurno', assinada: true },
+  ],
+  secoes: ['Presentes e ausências', 'Situação dos acolhidos', 'Convivência familiar',
+    'Saídas e retornos', 'Visitas', 'Enfermagem', 'Escola', 'Medicamentos',
+    'Organização da casa', 'Ocorrências', 'Orientações ao próximo turno'],
+};
+let ATA_GERAL = {
+  data: HOJE, turno: 'noturno', horario: '19h–07h',
+  estado: 'aberta' as 'aberta' | 'fechada', comPendencia: false,
+  motivoPendencia: null as string | null,
+  fechadaPor: null as string | null, fechadaEm: null as string | null,
+  casas: CASAS.map((c, i) => ({
+    codigo: c.code, nome: c.name,
+    // Casa sem chamado também entra: a ausência de demanda é registrada, não omitida.
+    registro: i === 2 ? 'Chamado às 02h10 — saúde; enfermagem orientou por telefone.'
+            : i === 5 ? 'Visita de rotina às 01h20; sem intercorrência.' : null,
+    ataNoturna: i === 2 ? 'aguardando' : 'confirmada',
+  })),
+};
+
+/**
+ * COFRE DE ACESSOS.
+ *
+ * A coordenação tem a guarda e precisa destes acessos. O que muda em relação
+ * à planilha não é o guardar — é o cofre ter porta: a lista mostra a DICA, a
+ * senha só aparece com finalidade escrita, e cada abertura fica com nome e
+ * hora. No protótipo a "cifra" é de mentira; no sistema real nem quem
+ * administra o banco lê a senha.
+ */
+const COFRE = [
+  { id: 'v1', personId: 'p01', tipo: 'gov.br', login: '000.000.000-00',
+    dica: 'F••••••••3 (13)', senha: 'Ficticia@2013', responsavel: 'Coordenação da Casa 03' },
+  { id: 'v2', personId: 'p01', tipo: 'Banco — poupança social', login: 'ag. 0000 · c/ 00000-0',
+    dica: 'P••••••••1 (11)', senha: 'Poupanca#1', responsavel: 'Coordenação da Casa 03' },
+  { id: 'v3', personId: 'p02', tipo: 'INSS — Meu INSS', login: '000.000.000-00',
+    dica: 'M•••••••0 (10)', senha: 'MeuINSS@10', responsavel: 'Coordenação da Casa 03' },
+  { id: 'v4', personId: 'p10', tipo: 'Carteira de Trabalho Digital', login: '000.000.000-00',
+    dica: 'C•••••••7 (12)', senha: 'CtpsFicti@7', responsavel: 'Coordenação da Casa 03' },
+];
+let COFRE_HIST = [
+  { id: 'ch1', quem: 'Carla Coordenadora (fictícia)', acao: 'abertura', em: emHoras(9, 12),
+    finalidade: 'Atualizar cadastro do benefício no gov.br', excepcional: false },
+  { id: 'ch2', quem: 'João Gestor (fictício)', acao: 'abertura excepcional', em: emHoras(8, 5),
+    finalidade: 'Coordenadora em licença; benefício vencia na semana', excepcional: true },
+  { id: 'ch3', quem: 'Carla Coordenadora (fictícia)', acao: 'cadastro do acesso',
+    em: emHoras(7, 40), finalidade: '—', excepcional: false },
+];
+/** A reautenticação vale enquanto a página estiver aberta. */
+let cofreLiberado = false;
+
+/**
+ * TRANSFERÊNCIAS (§15.6). Duas caixas: o que chegou de outras unidades e o
+ * que esta casa pediu. A decisão é sempre do DESTINO, recusar exige motivo, e
+ * o motivo aparece nas duas casas. O sistema não decide nada disso.
+ */
+interface Transferencia {
+  id: string; caixa: 'recebida' | 'enviada'; nomeCivil: string; nome: string; idade: number;
+  outraCasa: string; motivo: string; pedidaPor: string; pedidaEm: string;
+  situacao: 'solicitada' | 'aceita' | 'recusada' | 'cancelada';
+  justificativa: string | null; decididaPor: string | null; decididaEm: string | null;
+  mensagens: { id: string; casa: string; autor: string; texto: string; em: string }[];
+}
+let TRANSFERENCIAS: Transferencia[] = [
+  { id: 'x1', caixa: 'recebida', nomeCivil: 'Kauã Teixeira (fictício)', nome: 'Kauã', idade: 16,
+    outraCasa: 'AI4 · Abrigo Institucional 4',
+    motivo: 'Aproximação da rede de apoio familiar materna, que reside no bairro desta unidade.',
+    pedidaPor: 'Cátia Coordenadora (fictícia)', pedidaEm: emHoras(16, 20), situacao: 'solicitada',
+    justificativa: null, decididaPor: null, decididaEm: null,
+    mensagens: [{ id: 'm1', casa: 'AI4', autor: 'Cátia Coordenadora (fictícia)',
+      texto: 'Temos relatório escolar e da equipe técnica prontos para enviar assim que houver aceite.',
+      em: emHoras(16, 25) }] },
+  { id: 'x2', caixa: 'enviada', nomeCivil: 'Helena Prado (fictícia)', nome: 'Helena', idade: 6,
+    outraCasa: 'ARM2 · Casa-Lar ARM2',
+    motivo: 'Perfil de casa-lar indicado pela equipe técnica depois da audiência concentrada.',
+    pedidaPor: 'Carla Coordenadora (fictícia)', pedidaEm: emHoras(10, 0), situacao: 'solicitada',
+    justificativa: null, decididaPor: null, decididaEm: null, mensagens: [] },
+  { id: 'x3', caixa: 'enviada', nomeCivil: 'Enzo Farias (fictício)', nome: 'Enzo', idade: 13,
+    outraCasa: 'AI1 · Abrigo Institucional 1',
+    motivo: 'Pedido da equipe técnica para reaproximação de irmãos.',
+    pedidaPor: 'Tatiane Técnica (fictícia)', pedidaEm: emHoras(9, 0), situacao: 'recusada',
+    justificativa: 'Sem vaga no perfil etário até o fim do mês; sugerimos reavaliar em 30 dias.',
+    decididaPor: 'Coordenação AI1', decididaEm: emHoras(11, 0), mensagens: [] },
+];
+
+/**
+ * ACOMPANHAMENTOS E RELATÓRIOS.
+ *
+ * A automação cria a PENDÊNCIA e nunca escreve a avaliação: os eixos nascem
+ * vazios. Aprovado não se edita — corrigir gera a versão seguinte, e a
+ * anterior continua legível como estava.
+ */
+const EIXOS = [
+  { cod: 'saude', label: 'Saúde, alimentação e medicamentos' },
+  { cod: 'escola', label: 'Escola, cursos e atividades' },
+  { cod: 'convivencia', label: 'Convivência e desenvolvimento' },
+  { cod: 'familia', label: 'Família, rede e situação judicial' },
+];
+interface Acompanhamento {
+  id: string; personId: string; tipo: 'semanal' | 'mensal'; periodo: string;
+  situacao: 'pendente' | 'rascunho' | 'em_aprovacao' | 'aprovado';
+  versao: number; redator: string | null; aprovador: string | null;
+  eixos: Record<string, string>;
+  devolucao: string | null;
+  historico: { id: string; quem: string; acao: string; em: string; nota: string | null }[];
+}
+let ACOMPANHAMENTOS: Acompanhamento[] = [
+  { id: 'f1', personId: 'p01', tipo: 'mensal', periodo: 'agosto de 2026', situacao: 'pendente',
+    versao: 1, redator: null, aprovador: null, eixos: {}, devolucao: null, historico: [] },
+  { id: 'f2', personId: 'p02', tipo: 'mensal', periodo: 'agosto de 2026', situacao: 'em_aprovacao',
+    versao: 1, redator: 'Tatiane Técnica (fictícia)', aprovador: null, devolucao: null,
+    eixos: {
+      saude: 'Consulta odontológica realizada em 12/08, sem intercorrências.',
+      escola: 'Frequência regular; reunião de responsáveis em 20/08.',
+      convivencia: 'Participou das atividades coletivas e combinou o revezamento do videogame.',
+      familia: 'Visita da avó materna autorizada em 16/08.',
+    },
+    historico: [{ id: 'h1', quem: 'Tatiane Técnica (fictícia)', acao: 'enviado para aprovação',
+      em: emHoras(11, 0), nota: null }] },
+  { id: 'f3', personId: 'p03', tipo: 'semanal', periodo: 'semana de 24 a 30 de agosto',
+    situacao: 'rascunho', versao: 1, redator: 'Tatiane Técnica (fictícia)', aprovador: null,
+    devolucao: null, eixos: { escola: 'Entregou o trabalho de ciências em atraso combinado com a escola.' },
+    historico: [] },
+  { id: 'f4', personId: 'p04', tipo: 'mensal', periodo: 'julho de 2026', situacao: 'aprovado',
+    versao: 1, redator: 'Tatiane Técnica (fictícia)', aprovador: 'Carla Coordenadora (fictícia)',
+    devolucao: null,
+    eixos: {
+      saude: 'Dieta sem lactose mantida; sem intercorrência no período.',
+      escola: 'Boletim do semestre entregue; sem faltas.',
+      convivencia: 'Boa adaptação ao quarto novo.',
+      familia: 'Sem visitas no período; contato telefônico autorizado mantido.',
+    },
+    historico: [{ id: 'h2', quem: 'Carla Coordenadora (fictícia)', acao: 'aprovado',
+      em: emHoras(8, 0), nota: null }] },
+];
+interface Relatorio {
+  id: string; tipo: string; personId: string | null; periodo: string;
+  situacao: 'em_aprovacao' | 'aprovado'; finalidade: string; autor: string;
+  entregas: { id: string; destino: string; meio: string; em: string; protocolo: string | null;
+              por: string }[];
+}
+let RELATORIOS: Relatorio[] = [
+  { id: 'r1', tipo: 'Judiciário', personId: 'p02', periodo: 'agosto de 2026',
+    situacao: 'em_aprovacao', finalidade: 'Audiência concentrada marcada para setembro.',
+    autor: 'Tatiane Técnica (fictícia)', entregas: [] },
+  { id: 'r2', tipo: 'Mensal da casa', personId: null, periodo: 'julho de 2026',
+    situacao: 'aprovado', finalidade: 'Prestação de contas interna da unidade.',
+    autor: 'Carla Coordenadora (fictícia)',
+    entregas: [{ id: 'en1', destino: 'Diretoria da Fundação', meio: 'Entrega em mãos',
+      em: emHoras(9, 30), protocolo: null, por: 'Carla Coordenadora (fictícia)' }] },
+  { id: 'r3', tipo: 'Alimentação e restrições', personId: null, periodo: 'agosto de 2026',
+    situacao: 'aprovado', finalidade: 'Planejamento do cardápio da cozinha.',
+    autor: 'Tatiane Técnica (fictícia)', entregas: [] },
+];
+
+/**
+ * ARQUIVO DOCUMENTAL (Drive institucional).
+ *
+ * Não é backup do sistema: banco e arquivos têm backup técnico próprio. Aqui
+ * vai a CÓPIA do que a instituição fechou. Nunca sobrescreve — correção vira
+ * V2_ADENDO ao lado da V1 — e o nome do arquivo não carrega nome, CPF nem
+ * diagnóstico.
+ */
+interface Arquivado {
+  id: string; categoria: string; caminho: string; arquivo: string;
+  estado: 'verificado' | 'salvo' | 'enviando' | 'aguardando' | 'falhou';
+  restrito: boolean; tentativas: number; erro: string | null; fechadoEm: string;
+}
+let ARQUIVO: Arquivado[] = [
+  { id: 'a1', categoria: 'ATA', caminho: 'ACOLHIMENTO/AI3/2026/08/ata',
+    arquivo: 'ata_2026-08-27_9f2c1a44_V1.pdf', estado: 'verificado', restrito: false,
+    tentativas: 1, erro: null, fechadoEm: emHoras(19, 10) },
+  { id: 'a2', categoria: 'Adendo', caminho: 'ACOLHIMENTO/AI3/2026/08/adendo',
+    arquivo: 'adendo_2026-08-27_9f2c1a44_V2_ADENDO.pdf', estado: 'verificado', restrito: false,
+    tentativas: 1, erro: null, fechadoEm: emHoras(20, 5) },
+  { id: 'a3', categoria: 'Narrativa restrita', caminho: 'RESTRITO/AI3/2026/08/narrativa_restrita',
+    arquivo: 'narrativa_restrita_2026-08-26_5b1e77a0_V1.pdf', estado: 'salvo', restrito: true,
+    tentativas: 1, erro: null, fechadoEm: emHoras(7, 50) },
+  { id: 'a4', categoria: 'Ocorrência', caminho: 'ACOLHIMENTO/AI3/2026/08/ocorrencia',
+    arquivo: 'ocorrencia_2026-08-26_c31d0e12_V1.pdf', estado: 'falhou', restrito: false,
+    tentativas: 3, erro: 'Drive indisponível', fechadoEm: emHoras(6, 30) },
+];
+/** Documentos por acolhido, com versões. A V1 nunca some quando entra a V2. */
+const DOCUMENTOS = [
+  { id: 'dc1', personId: 'p01', categoria: 'saude', titulo: 'Receita em vigência',
+    versoes: [
+      { versao: 1, arquivo: 'receita_2026-06-02_1a2b3c44_V1.pdf', em: emHoras(6, 0),
+        por: 'Enfermeira Fictícia', vigente: false },
+      { versao: 2, arquivo: 'receita_2026-08-01_1a2b3c44_V2_ADENDO.pdf', em: emHoras(6, 10),
+        por: 'Enfermeira Fictícia', vigente: true },
+    ] },
+  { id: 'dc2', personId: 'p01', categoria: 'escolar', titulo: 'Boletim do semestre',
+    versoes: [{ versao: 1, arquivo: 'boletim_2026-07-15_7c9d0e21_V1.pdf', em: emHoras(6, 20),
+      por: 'Tatiane Técnica (fictícia)', vigente: true }] },
+  { id: 'dc3', personId: 'p11', categoria: 'judicial_socioassistencial', titulo: 'Guia de acolhimento',
+    versoes: [{ versao: 1, arquivo: 'guia_2026-02-25_44ff10ab_V1.pdf', em: emHoras(6, 30),
+      por: 'Carla Coordenadora (fictícia)', vigente: true }] },
+  { id: 'dc4', personId: 'p02', categoria: 'saude', titulo: 'Encaminhamento odontológico',
+    versoes: [{ versao: 1, arquivo: 'encaminhamento_2026-08-12_31ac77e0_V1.pdf', em: emHoras(6, 40),
+      por: 'Tatiane Técnica (fictícia)', vigente: true }] },
+];
+
 /** Acolhidos criados no protótipo entram aqui e aparecem em tudo. */
 const NOVOS: Kid[] = [];
 const todosKids = () => [...KIDS, ...NOVOS];
@@ -343,6 +658,17 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     return { token: 'prototipo' };
   }
   if (rota === '/auth/logout') return { ok: true };
+  /*
+   * Só no protótipo: o seletor "Ver como" troca o cargo da sessão de mentira
+   * também aqui dentro. Sem isto, a tela mudava de cargo e o servidor de
+   * mentira continuava respondendo com o cargo do login — e as áreas
+   * restritas devolviam 403 para um cargo que, na tela, podia entrar.
+   */
+  if (rota === '/prototipo/cargo') {
+    eu.role = String(b.role ?? eu.role);
+    cofreLiberado = false;   // trocar de cargo fecha o cofre: a porta é por pessoa.
+    return { ok: true };
+  }
   if (rota === '/auth/password') {
     // Vale enquanto a página estiver aberta: a partir daqui a conta pede senha.
     eu.senha = String(b.novaSenha ?? '');
@@ -775,6 +1101,506 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     COMPROMISSOS = COMPROMISSOS.filter((c) => c.id !== seg[2]);
     return { cancelado: true, futurasRemovidas: 0,
              aviso: 'Compromisso encerrado. O que já aconteceu continua na linha do tempo.' };
+  }
+
+  // ---- saúde: doses, estoque, triagem e resumo
+  if (rota === '/health/panel') {
+    const doses = DOSES.map((d) => ({
+      id: d.id, horario: d.horario, medicamento: d.medicamento, dose: d.dose, via: d.via,
+      tipo: d.tipo, condicaoUso: d.condicaoUso, estado: d.estado, rotulo: d.rotulo,
+      pendente: d.pendente, confirmadaPor: d.confirmadaPor,
+      acolhido: kid(d.personId)?.nome ?? '—',
+      alerta: kid(d.personId)?.alerta?.descricao ?? null,
+    }));
+    return {
+      data: HOJE,
+      resumo: {
+        administradas: doses.filter((d) => d.estado === 'administrada').length,
+        aguardando: doses.filter((d) => d.pendente).length,
+        triagensPendentes: TRIAGENS.filter((t) => !t.assinada).length,
+        estoqueBaixo: ESTOQUE.filter((e) => e.quantidade < e.minimo).length,
+      },
+      doses,
+      acolhidos: todosKids().map((k) => ({
+        id: k.id, nome: k.nome, idade: k.idade,
+        alerta: k.alerta?.descricao ?? null,
+        cuidado: k.cuidado ?? null,
+        doses: DOSES.filter((d) => d.personId === k.id).length,
+      })),
+    };
+  }
+  if (rota === '/health/stock') return ESTOQUE;
+  if (rota === '/health/triage' && metodo === 'GET') {
+    return TRIAGENS.map((t) => ({ ...t, acolhido: kid(t.personId)?.nome ?? '—' }));
+  }
+  if (seg[0] === 'health' && seg[1] === 'doses' && seg[3] === 'confirm') {
+    const d = DOSES.find((x) => x.id === seg[2]);
+    if (!d) return new Recusa(404, 'Não encontrado.');
+    if (!d.pendente) {
+      return new Recusa(400, 'Esta dose já foi confirmada. A correção entra como '
+        + 'ocorrência de medicamento, não como reescrita do que foi registrado.');
+    }
+    if (!String(b.resultado ?? '').trim()) {
+      return new Recusa(400, 'Escolha o resultado da dose.');
+    }
+    if (b.resultado !== 'administrada_no_horario' && String(b.observacao ?? '').trim().length < 5) {
+      return new Recusa(400, 'Atraso, recusa, ausência ou incidente pedem observação — '
+        + 'é ela que explica o que aconteceu.');
+    }
+    d.pendente = false;
+    d.confirmadaPor = eu.fullName;
+    d.estado = b.resultado === 'administrada_no_horario' ? 'administrada' : 'registrada';
+    d.rotulo = { administrada_no_horario: 'Administrada no horário',
+      administrada_com_atraso: 'Administrada com atraso', recusada: 'Recusada pelo acolhido',
+      indisponivel: 'Medicamento indisponível', acolhido_ausente: 'Acolhido ausente',
+      incidente: 'Incidente registrado' }[String(b.resultado)] ?? 'Registrada';
+    return { ok: true, aviso: 'Dose confirmada em seu nome, com o horário de agora. '
+      + 'Só confirma quem administrou; ninguém confirma pelo outro.' };
+  }
+  if (seg[0] === 'health' && seg[1] === 'triage' && seg[3] === 'sign') {
+    const t = TRIAGENS.find((x) => x.id === seg[2]);
+    if (!t) return new Recusa(404, 'Não encontrado.');
+    if (eu.role !== 'enfermagem') {
+      return new Recusa(403, 'A assinatura de saúde é da Enfermagem. A coordenação cobra '
+        + 'a pendência, mas não assina no lugar dela.');
+    }
+    t.assinada = true; t.assinadaPor = eu.fullName;
+    t.complemento = String(b.complemento ?? '').trim() || null;
+    return { ok: true, aviso: 'Evolução triada, conferida e assinada. Receita nova só altera '
+      + 'a grade de medicamentos depois desta revisão.' };
+  }
+  if (seg[0] === 'health' && seg[1] === 'summary' && metodo === 'POST') {
+    if (String(b.finalidade ?? '').trim().length < 3) {
+      return new Recusa(400, 'A finalidade da emissão é obrigatória e fica registrada.');
+    }
+    RESUMOS.push({ id: uid(), personId: String(b.personId ?? ''), finalidade: b.finalidade,
+      por: eu.fullName, em: new Date().toISOString() });
+    return { ok: true, aviso: 'Resumo de Saúde gerado com o mínimo necessário: identificação, '
+      + 'alergias, restrições, condições relevantes, medicamentos ativos e atendimentos '
+      + 'recentes. Sem dados bancários, conteúdo judicial nem narrativas. A finalidade e o '
+      + 'download ficaram registrados com o seu nome.' };
+  }
+
+  // ---- ocorrências
+  if (rota === '/incidents/categories') return CATEGORIAS_OCORRENCIA;
+  if (rota === '/incidents' && metodo === 'GET') {
+    return OCORRENCIAS.map((o) => {
+      const cat = CATEGORIAS_OCORRENCIA.find((c) => c.cod === o.categoria)!;
+      return {
+        id: o.id, categoria: cat.label, tom: cat.tom, exigeRevisao: cat.exigeRevisao,
+        restrita: cat.restrita, acolhido: o.personId ? kid(o.personId)?.nome ?? '—' : 'Casa toda',
+        fato: o.fato, medidas: o.medidas,
+        // Campo restrito não é filtro de tela por acaso: quem não pode ler recebe null.
+        falaEspontanea: ['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)
+          ? o.falaEspontanea : null,
+        abertaPor: o.abertaPor, abertaEm: o.abertaEm,
+        etapaOperacional: o.etapaOperacional, situacao: o.situacao,
+        avisados: o.avisados, acompanhamento: o.acompanhamento,
+      };
+    });
+  }
+  if (rota === '/incidents' && metodo === 'POST') {
+    const cat = CATEGORIAS_OCORRENCIA.find((c) => c.cod === b.categoria);
+    if (!cat) return new Recusa(400, 'Escolha a categoria da ocorrência.');
+    if (String(b.fato ?? '').trim().length < 10) {
+      return new Recusa(400, 'Descreva o fato: o que aconteceu, o horário e o que foi '
+        + 'feito na hora. Fato e contexto, sem rótulo.');
+    }
+    if (String(b.medidas ?? '').trim().length < 5) {
+      return new Recusa(400, 'Descreva as medidas imediatas de proteção e atendimento.');
+    }
+    const avisados = ['Líder Diurno', 'equipe técnica', 'coordenação']
+      .concat(/saude|medicamento/.test(String(b.categoria)) ? ['Enfermagem'] : []);
+    const nova: Ocorrencia = {
+      id: uid(), categoria: cat.cod, personId: b.personId || null,
+      fato: b.fato, medidas: b.medidas,
+      falaEspontanea: cat.restrita ? (String(b.falaEspontanea ?? '').trim() || null) : null,
+      abertaPor: eu.fullName, abertaEm: new Date().toISOString(),
+      etapaOperacional: 'aberta', situacao: 'em_andamento', avisados, acompanhamento: [],
+    };
+    OCORRENCIAS = [nova, ...OCORRENCIAS];
+    return { id: nova.id, avisados, exigeRevisao: cat.exigeRevisao,
+      aviso: (cat.exigeRevisao
+        ? 'Ocorrência aberta. Encerrada a etapa operacional, ela AGUARDA revisão técnica — '
+          + 'não se encerra sozinha.'
+        : 'Ocorrência aberta e em acompanhamento. Ela não se encerra sozinha.')
+        + ` Avisados agora: ${avisados.join(', ')}. O Gestor Geral não recebe automaticamente: `
+        + 'quem escalona é a equipe técnica ou a coordenação.' };
+  }
+  if (seg[0] === 'incidents' && seg[2] === 'note') {
+    const o = OCORRENCIAS.find((x) => x.id === seg[1]);
+    if (!o) return new Recusa(404, 'Não encontrado.');
+    if (String(b.texto ?? '').trim().length < 5) {
+      return new Recusa(400, 'Escreva o acompanhamento antes de registrar.');
+    }
+    o.acompanhamento = [...o.acompanhamento, { id: uid(), quem: eu.fullName,
+      texto: b.texto, em: new Date().toISOString() }];
+    return { ok: true, aviso: 'Acompanhamento registrado ao lado do que já estava escrito. '
+      + 'Nada foi reescrito.' };
+  }
+  if (seg[0] === 'incidents' && seg[2] === 'operational-close') {
+    const o = OCORRENCIAS.find((x) => x.id === seg[1]);
+    if (!o) return new Recusa(404, 'Não encontrado.');
+    const cat = CATEGORIAS_OCORRENCIA.find((c) => c.cod === o.categoria)!;
+    o.etapaOperacional = 'encerrada';
+    o.situacao = cat.exigeRevisao ? 'aguardando_revisao' : 'aguardando_revisao';
+    return { ok: true, aviso: 'Etapa operacional encerrada. A ocorrência continua aberta '
+      + 'aguardando a análise de quem responde pelo caso.' };
+  }
+  if (seg[0] === 'incidents' && seg[2] === 'close') {
+    const o = OCORRENCIAS.find((x) => x.id === seg[1]);
+    if (!o) return new Recusa(404, 'Não encontrado.');
+    const cat = CATEGORIAS_OCORRENCIA.find((c) => c.cod === o.categoria)!;
+    if (cat.exigeRevisao && !['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403, 'Esta categoria só se encerra com validação da equipe técnica '
+        + 'ou da coordenação. A etapa operacional você pode encerrar; a análise, não.');
+    }
+    if (String(b.sintese ?? '').trim().length < 15) {
+      return new Recusa(400, 'A síntese é obrigatória: é ela que diz a que se chegou e o que '
+        + 'fica combinado. Ela entra como registro novo, sem apagar nenhum relato.');
+    }
+    o.acompanhamento = [...o.acompanhamento, { id: uid(), quem: eu.fullName,
+      texto: b.sintese, em: new Date().toISOString() }];
+    o.situacao = 'encerrada';
+    return { ok: true, aviso: 'Ocorrência encerrada com síntese assinada por você. Os relatos '
+      + 'originais continuam como foram escritos, e a ocorrência pode ser reaberta com histórico.' };
+  }
+  if (seg[0] === 'incidents' && seg[2] === 'reopen') {
+    const o = OCORRENCIAS.find((x) => x.id === seg[1]);
+    if (!o) return new Recusa(404, 'Não encontrado.');
+    o.situacao = 'aguardando_revisao';
+    o.acompanhamento = [...o.acompanhamento, { id: uid(), quem: eu.fullName,
+      texto: `Reaberta. Motivo: ${String(b.motivo ?? '—')}`, em: new Date().toISOString() }];
+    return { ok: true, aviso: 'Reaberta com histórico. Nada foi apagado.' };
+  }
+
+  // ---- ATA
+  if (rota === '/minutes') {
+    return {
+      casa: { ...ATA_CASA,
+        podeFechar: ['lider_diurno', 'coordenador', 'gestor_geral'].includes(eu.role),
+        assinaturasFaltantes: ATA_CASA.passagens.filter((p) => !p.assinada).length },
+      geral: { ...ATA_GERAL,
+        podeFechar: ['lider_noturno_geral', 'coordenador', 'gestor_geral'].includes(eu.role),
+        casasAguardando: ATA_GERAL.casas.filter((c) => c.ataNoturna !== 'confirmada').length },
+    };
+  }
+  if (rota === '/minutes/house/close') {
+    if (ATA_CASA.estado === 'fechada') {
+      return new Recusa(400, 'Esta ATA já foi fechada. O que vier depois entra como adendo, '
+        + 'ao lado — registro fechado não é reescrito.');
+    }
+    const faltam = ATA_CASA.passagens.filter((p) => !p.assinada);
+    if (faltam.length && !b.comPendencia) {
+      return new Recusa(400, `Falta a passagem de ${faltam.map((p) => p.quem).join(', ')}. `
+        + 'O sistema não assina no lugar de ninguém: feche com pendência, dizendo o que faltou.');
+    }
+    if (b.comPendencia && String(b.motivoPendencia ?? '').trim().length < 10) {
+      return new Recusa(400, 'Descreva a pendência — é ela que a equipe técnica e a coordenação '
+        + 'vão ler amanhã.');
+    }
+    ATA_CASA = { ...ATA_CASA, estado: 'fechada', comPendencia: !!b.comPendencia,
+      motivoPendencia: b.comPendencia ? b.motivoPendencia : null,
+      fechadaPor: eu.fullName, fechadaEm: new Date().toISOString() };
+    ARQUIVO = [{ id: uid(), categoria: 'ATA', caminho: `ACOLHIMENTO/${CASA.code}/2026/08/ata`,
+      arquivo: `ata_${HOJE}_${uid()}_V1.pdf`, estado: 'aguardando', restrito: false,
+      tentativas: 0, erro: null, fechadoEm: new Date().toISOString() }, ...ARQUIVO];
+    return { ok: true, aviso: b.comPendencia
+      ? 'ATA fechada COM PENDÊNCIA, com a sua assinatura e o motivo escrito. Nenhuma assinatura '
+        + 'foi criada em nome de terceiros. Equipe técnica e coordenação avisadas.'
+      : 'ATA fechada e consolidada. A cópia documental entrou na fila do arquivo.' };
+  }
+  if (rota === '/minutes/general/close') {
+    if (ATA_GERAL.estado === 'fechada') {
+      return new Recusa(400, 'A ATA Geral desta noite já foi fechada.');
+    }
+    const aguardando = ATA_GERAL.casas.filter((c) => c.ataNoturna !== 'confirmada');
+    if (aguardando.length && !b.comPendencia) {
+      return new Recusa(400, `${aguardando.map((c) => c.codigo).join(', ')} ainda não confirmou `
+        + 'a ATA noturna da casa. Feche com pendência, dizendo o que faltou.');
+    }
+    if (b.comPendencia && String(b.motivoPendencia ?? '').trim().length < 10) {
+      return new Recusa(400, 'Descreva a pendência da ATA Geral.');
+    }
+    ATA_GERAL = { ...ATA_GERAL, estado: 'fechada', comPendencia: !!b.comPendencia,
+      motivoPendencia: b.comPendencia ? b.motivoPendencia : null,
+      fechadaPor: eu.fullName, fechadaEm: new Date().toISOString() };
+    return { ok: true, aviso: 'ATA Geral Noturna assinada e fechada por você. Cada educador '
+      + 'assinou apenas a própria passagem — nenhuma assinatura foi presumida.' };
+  }
+
+  // ---- cofre de acessos
+  if (rota.startsWith('/vault')) {
+    if (!['coordenador', 'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403, 'Seu cargo não tem acesso a este conteúdo.');
+    }
+  }
+  if (rota === '/vault/reauth') {
+    // No protótipo qualquer senha com 4 caracteres serve; no sistema real é a
+    // senha da própria conta, conferida de novo, mesmo com a sessão aberta.
+    if (String(b.senha ?? '').length < 4) {
+      return new Recusa(401, 'Senha incorreta. O cofre pede a sua senha de novo, mesmo com a '
+        + 'sessão já aberta.');
+    }
+    cofreLiberado = true;
+    return { ok: true, aviso: 'Acesso liberado nesta janela. Cada abertura de senha continua '
+      + 'pedindo finalidade e fica registrada.' };
+  }
+  if (rota === '/vault' && metodo === 'GET') {
+    if (!cofreLiberado) return new Recusa(401, 'Confirme sua senha para continuar.');
+    return COFRE.map((c) => ({
+      id: c.id, acolhido: kid(c.personId)?.nome ?? '—', tipo: c.tipo, login: c.login,
+      dica: c.dica, responsavel: c.responsavel,
+    }));
+  }
+  if (rota === '/vault/history') {
+    if (!cofreLiberado) return new Recusa(401, 'Confirme sua senha para continuar.');
+    return COFRE_HIST;
+  }
+  if (seg[0] === 'vault' && seg[2] === 'reveal') {
+    if (!cofreLiberado) return new Recusa(401, 'Confirme sua senha para continuar.');
+    const c = COFRE.find((x) => x.id === seg[1]);
+    if (!c) return new Recusa(404, 'Não encontrado.');
+    if (String(b.finalidade ?? '').trim().length < 5) {
+      return new Recusa(400, 'Descreva para que você precisa deste acesso. A finalidade fica '
+        + 'registrada com o seu nome e o horário.');
+    }
+    COFRE_HIST = [{ id: uid(), quem: eu.fullName,
+      acao: eu.role === 'gestor_geral' ? 'abertura excepcional' : 'abertura',
+      em: new Date().toISOString(), finalidade: b.finalidade,
+      excepcional: eu.role === 'gestor_geral' }, ...COFRE_HIST];
+    return { senha: c.senha, aviso: 'Abertura registrada. Feche a janela quando terminar — '
+      + 'a senha não fica na tela.' };
+  }
+  if (rota === '/vault' && metodo === 'POST') {
+    if (!cofreLiberado) return new Recusa(401, 'Confirme sua senha para continuar.');
+    return { ok: true, aviso: 'No protótipo o acesso não é guardado. No sistema real ele é '
+      + 'cifrado antes de ser gravado, e trocar a senha depois não apaga o histórico de '
+      + 'quem já a abriu.' };
+  }
+
+  // ---- transferências
+  if (rota === '/transfers' && metodo === 'GET') {
+    if (!['coordenador', 'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403, 'Seu cargo não tem acesso a este conteúdo.');
+    }
+    return TRANSFERENCIAS;
+  }
+  if (rota === '/transfers' && metodo === 'POST') {
+    if (String(b.motivo ?? '').trim().length < 15) {
+      return new Recusa(400, 'O motivo é obrigatório: é ele que a outra coordenação vai ler '
+        + 'para decidir.');
+    }
+    const k = kid(String(b.personId ?? ''));
+    if (!k) return new Recusa(400, 'Escolha o acolhido.');
+    TRANSFERENCIAS = [{
+      id: uid(), caixa: 'enviada', nomeCivil: k.civil, nome: k.nome, idade: k.idade,
+      outraCasa: String(b.destino ?? ''), motivo: b.motivo, pedidaPor: eu.fullName,
+      pedidaEm: new Date().toISOString(), situacao: 'solicitada', justificativa: null,
+      decididaPor: null, decididaEm: null, mensagens: [],
+    }, ...TRANSFERENCIAS];
+    return { ok: true, aviso: 'Pedido enviado à coordenação de destino. A criança só muda de '
+      + 'casa no aceite — até lá, a responsabilidade continua sendo desta unidade.' };
+  }
+  if (seg[0] === 'transfers' && seg[2] === 'message') {
+    const t = TRANSFERENCIAS.find((x) => x.id === seg[1]);
+    if (!t) return new Recusa(404, 'Não encontrado.');
+    if (!String(b.texto ?? '').trim()) return new Recusa(400, 'Escreva a mensagem antes de enviar.');
+    t.mensagens = [...t.mensagens, { id: uid(), casa: CASA.code, autor: eu.fullName,
+      texto: b.texto, em: new Date().toISOString() }];
+    return { ok: true, aviso: 'Mensagem registrada dentro do sistema, ligada a esta '
+      + 'solicitação. Ela não pode ser apagada, e nenhuma coordenação entra na casa da outra.' };
+  }
+  if (seg[0] === 'transfers' && seg[2] === 'accept') {
+    const t = TRANSFERENCIAS.find((x) => x.id === seg[1]);
+    if (!t) return new Recusa(404, 'Não encontrado.');
+    if (t.caixa !== 'recebida') {
+      return new Recusa(400, 'Quem decide é a coordenação de destino. Este pedido é seu; '
+        + 'a decisão é da outra casa.');
+    }
+    if (t.situacao !== 'solicitada') return new Recusa(400, 'Esta solicitação já foi decidida.');
+    t.situacao = 'aceita'; t.decididaPor = eu.fullName; t.decididaEm = new Date().toISOString();
+    return { ok: true, aviso: `${t.nome} passa a ser desta casa e o perfil abre por completo. `
+      + 'Histórico, documentos, medicamentos, alergias e pendências vêm junto; as ATAs fechadas '
+      + 'da origem continuam imutáveis; e os dados bancários deixam a coordenação de origem.' };
+  }
+  if (seg[0] === 'transfers' && seg[2] === 'refuse') {
+    const t = TRANSFERENCIAS.find((x) => x.id === seg[1]);
+    if (!t) return new Recusa(404, 'Não encontrado.');
+    if (String(b.justificativa ?? '').trim().length < 15) {
+      return new Recusa(400, 'A justificativa é obrigatória e fica registrada nas duas casas. '
+        + 'É por ela que a coordenação de origem decide o próximo passo da criança.');
+    }
+    t.situacao = 'recusada'; t.justificativa = b.justificativa;
+    t.decididaPor = eu.fullName; t.decididaEm = new Date().toISOString();
+    return { ok: true, aviso: 'Recusa registrada com justificativa nas duas casas. '
+      + 'Nada mudou de lugar.' };
+  }
+  if (seg[0] === 'transfers' && seg[2] === 'cancel') {
+    const t = TRANSFERENCIAS.find((x) => x.id === seg[1]);
+    if (!t) return new Recusa(404, 'Não encontrado.');
+    if (String(b.motivo ?? '').trim().length < 10) {
+      return new Recusa(400, 'Diga por que o pedido está sendo cancelado — a outra '
+        + 'coordenação vai ler.');
+    }
+    t.situacao = 'cancelada'; t.justificativa = b.motivo;
+    t.decididaPor = eu.fullName; t.decididaEm = new Date().toISOString();
+    return { ok: true, aviso: 'Pedido cancelado com motivo. O histórico continua visível '
+      + 'nas duas casas.' };
+  }
+
+  // ---- acompanhamentos e relatórios
+  if (rota === '/followups/axes') return EIXOS;
+  if (rota === '/followups' && metodo === 'GET') {
+    return ACOMPANHAMENTOS.map((f) => ({
+      ...f, acolhido: kid(f.personId)?.nome ?? '—',
+      proprio: f.redator === eu.fullName,
+      podeAprovar: ['coordenador', 'gestor_geral'].includes(eu.role),
+    }));
+  }
+  if (rota === '/followups/generate') {
+    return { criadas: 0, aviso: 'Pendências da semana e do mês criadas para os acolhidos '
+      + 'ativos. Os eixos nascem vazios: a automação cria a pendência e nunca escreve a '
+      + 'avaliação — o texto é de quem acompanha o caso.' };
+  }
+  if (seg[0] === 'followups' && seg[2] === 'save') {
+    const f = ACOMPANHAMENTOS.find((x) => x.id === seg[1]);
+    if (!f) return new Recusa(404, 'Não encontrado.');
+    if (f.situacao === 'aprovado') {
+      return new Recusa(400, 'Acompanhamento aprovado não se edita. Corrigir cria a versão '
+        + 'seguinte, que precisa de nova aprovação — e a anterior continua legível.');
+    }
+    const eixos = (b.eixos ?? {}) as Record<string, string>;
+    const enviar = !!b.enviar;
+    if (enviar) {
+      const vazios = EIXOS.filter((e) => !String(eixos[e.cod] ?? '').trim());
+      if (vazios.length) {
+        return new Recusa(400, `Faltam eixos: ${vazios.map((e) => e.label).join('; ')}. `
+          + 'Os eixos são obrigatórios — o que não foi observado se escreve como não observado, '
+          + 'não se deixa em branco.');
+      }
+    }
+    f.eixos = eixos;
+    f.redator = eu.fullName;
+    f.situacao = enviar ? 'em_aprovacao' : 'rascunho';
+    f.devolucao = null;
+    f.historico = [...f.historico, { id: uid(), quem: eu.fullName,
+      acao: enviar ? 'enviado para aprovação' : 'rascunho salvo',
+      em: new Date().toISOString(), nota: null }];
+    return { ok: true, aviso: enviar
+      ? 'Enviado para aprovação, com o seu nome como quem redigiu.'
+      : 'Rascunho salvo. Ninguém além de você o lê enquanto não for enviado.' };
+  }
+  if (seg[0] === 'followups' && seg[2] === 'approve') {
+    const f = ACOMPANHAMENTOS.find((x) => x.id === seg[1]);
+    if (!f) return new Recusa(404, 'Não encontrado.');
+    if (!['coordenador', 'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403, 'Aprovar acompanhamento é da coordenação.');
+    }
+    if (f.redator === eu.fullName) {
+      return new Recusa(400, 'Você redigiu este acompanhamento. Revisão feita pelo próprio '
+        + 'autor não é revisão.');
+    }
+    f.situacao = 'aprovado'; f.aprovador = eu.fullName;
+    f.historico = [...f.historico, { id: uid(), quem: eu.fullName, acao: 'aprovado',
+      em: new Date().toISOString(), nota: String(b.nota ?? '') || null }];
+    ARQUIVO = [{ id: uid(), categoria: 'Acompanhamento',
+      caminho: `ACOLHIMENTO/${CASA.code}/2026/08/acompanhamento`,
+      arquivo: `acompanhamento_${HOJE}_${uid()}_V${f.versao}.pdf`, estado: 'aguardando',
+      restrito: false, tentativas: 0, erro: null, fechadoEm: new Date().toISOString() },
+      ...ARQUIVO];
+    return { ok: true, aviso: 'Aprovado. Esta versão virou o retrato daquele momento: não se '
+      + 'edita mais, e a cópia documental entrou na fila do arquivo.' };
+  }
+  if (seg[0] === 'followups' && seg[2] === 'return') {
+    const f = ACOMPANHAMENTOS.find((x) => x.id === seg[1]);
+    if (!f) return new Recusa(404, 'Não encontrado.');
+    if (!['coordenador', 'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403, 'Devolver acompanhamento é da coordenação.');
+    }
+    if (String(b.motivo ?? '').trim().length < 10) {
+      return new Recusa(400, 'Escreva o que precisa ser revisto. Devolver sem dizer o que '
+        + 'falta devolve o trabalho duas vezes.');
+    }
+    f.situacao = 'rascunho'; f.devolucao = b.motivo;
+    f.historico = [...f.historico, { id: uid(), quem: eu.fullName, acao: 'devolvido para revisão',
+      em: new Date().toISOString(), nota: b.motivo }];
+    return { ok: true, aviso: 'Devolvido a quem redigiu, com o seu nome e o que você pediu. '
+      + 'O texto anterior continua lá — nada foi apagado.' };
+  }
+  if (seg[0] === 'followups' && seg[2] === 'correct') {
+    const f = ACOMPANHAMENTOS.find((x) => x.id === seg[1]);
+    if (!f) return new Recusa(404, 'Não encontrado.');
+    if (String(b.motivo ?? '').trim().length < 10) {
+      return new Recusa(400, 'Diga o que está sendo corrigido e por quê.');
+    }
+    const nova: Acompanhamento = {
+      ...f, id: uid(), versao: f.versao + 1, situacao: 'rascunho',
+      aprovador: null, redator: eu.fullName, devolucao: null,
+      historico: [{ id: uid(), quem: eu.fullName,
+        acao: `nova versão a partir da V${f.versao}`, em: new Date().toISOString(),
+        nota: b.motivo }],
+    };
+    ACOMPANHAMENTOS = [nova, ...ACOMPANHAMENTOS];
+    return { ok: true, aviso: `Criada a versão ${nova.versao}, que precisa de nova aprovação. `
+      + `A V${f.versao} continua legível exatamente como foi aprovada.` };
+  }
+  if (rota === '/reports' && metodo === 'GET') {
+    return RELATORIOS.map((r) => ({
+      ...r, acolhido: r.personId ? kid(r.personId)?.nome ?? '—' : null,
+      podeAprovar: ['coordenador', 'gestor_geral'].includes(eu.role) && r.autor !== eu.fullName,
+    }));
+  }
+  if (seg[0] === 'reports' && seg[2] === 'approve') {
+    const r = RELATORIOS.find((x) => x.id === seg[1]);
+    if (!r) return new Recusa(404, 'Não encontrado.');
+    if (r.autor === eu.fullName) {
+      return new Recusa(400, 'Você escreveu este relatório. Quem aprova é outra pessoa.');
+    }
+    r.situacao = 'aprovado';
+    return { ok: true, aviso: 'Relatório aprovado. O sistema gera e não envia: a entrega ao '
+      + 'Judiciário, ao Conselho Tutelar ou ao Ministério Público é feita por uma pessoa e '
+      + 'registrada aqui.' };
+  }
+  if (seg[0] === 'reports' && seg[2] === 'delivery') {
+    const r = RELATORIOS.find((x) => x.id === seg[1]);
+    if (!r) return new Recusa(404, 'Não encontrado.');
+    if (!String(b.destino ?? '').trim()) return new Recusa(400, 'Informe o destinatário.');
+    r.entregas = [...r.entregas, { id: uid(), destino: b.destino,
+      meio: b.meio ?? 'Protocolo presencial', em: new Date().toISOString(),
+      protocolo: String(b.protocolo ?? '').trim() || null, por: eu.fullName }];
+    return { ok: true, aviso: 'Entrega registrada com destinatário, meio, data e o seu nome. '
+      + 'Nenhum envio automático saiu do sistema.' };
+  }
+
+  // ---- arquivo documental
+  if (rota === '/archive') {
+    if (eu.role === 'educador' || eu.role === 'cozinha') {
+      return new Recusa(403, 'O Drive institucional não abre para o plantão. O que você '
+        + 'precisa ler do acolhido está no perfil, com permissão e registro.');
+    }
+    return {
+      itens: ARQUIVO.map((a) => ({ ...a,
+        // A pasta restrita é outra raiz e outra permissão — nem todo cargo a enxerga.
+        visivel: !a.restrito || ['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role) })),
+      falhas: ARQUIVO.filter((a) => a.estado === 'falhou').length,
+      naFila: ARQUIVO.filter((a) => ['aguardando', 'enviando'].includes(a.estado)).length,
+    };
+  }
+  if (rota === '/archive/documents') {
+    if (eu.role === 'educador' || eu.role === 'cozinha') {
+      return new Recusa(403, 'Seu cargo não tem acesso a este conteúdo.');
+    }
+    const pid = q.get('personId');
+    return DOCUMENTOS.filter((d) => !pid || d.personId === pid)
+      .map((d) => ({ ...d, acolhido: kid(d.personId)?.nome ?? '—' }));
+  }
+  if (seg[0] === 'archive' && seg[2] === 'retry') {
+    const a = ARQUIVO.find((x) => x.id === seg[1]);
+    if (!a) return new Recusa(404, 'Não encontrado.');
+    a.tentativas += 1; a.estado = 'verificado'; a.erro = null;
+    return { ok: true, aviso: 'Reenviado e conferido. A retentativa não duplica: mesma '
+      + 'versão, mesmo arquivo.' };
   }
 
   return new Recusa(404, 'Esta parte do sistema ainda não está no protótipo.');
