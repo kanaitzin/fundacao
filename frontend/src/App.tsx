@@ -77,6 +77,14 @@ export function App() {
 
   return (
     <div className="app">
+      {/* Só no protótipo. Quem abre o arquivo precisa saber, antes de digitar
+          qualquer coisa, que nada ali é real e nada fica salvo — senão alguém
+          um dia usa isto para anotar o dia de uma criança de verdade. */}
+      {import.meta.env.VITE_PROTOTIPO === '1' && (
+        <div className="tarja">
+          Protótipo · dados fictícios · nada é salvo ao fechar
+        </div>
+      )}
       <header className="appbar">
         <div className="top">
           <span className="logochip"><img src={logo} alt="Fundação O Pão dos Pobres" /></span>

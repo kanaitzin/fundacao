@@ -454,6 +454,11 @@ textarea{
   color:var(--ink-2); min-width:42px;
 }
 
+.tarja{
+  background:var(--amber-solid,#B45309); color:#fff; text-align:center;
+  font-size:12px; font-weight:700; letter-spacing:.03em; padding:6px 10px;
+}
+
 /* Linha de conferência: rótulo pequeno em cima, valor embaixo. Ler uma
    confirmação é ler os valores; os rótulos são só o mapa. */
 .conf{ padding:8px 0; border-top:1px solid var(--line) }

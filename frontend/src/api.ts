@@ -30,7 +30,20 @@ function mensagem(status: number, doServidor?: string): string {
   return doServidor || 'Não foi possível concluir a ação.';
 }
 
+/**
+ * O protótipo navegável usa exatamente estas telas, com um servidor de
+ * mentira dentro da própria página (`mock.ts`). É o que impede protótipo e
+ * aplicativo de divergirem: são o mesmo código, mudando só de onde vêm os
+ * dados. Fora do build do protótipo, esta constante é `false` e o `import`
+ * abaixo some do pacote final.
+ */
+const PROTOTIPO = import.meta.env.VITE_PROTOTIPO === '1';
+
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
+  if (PROTOTIPO) {
+    const { mockApi } = await import('./mock');
+    return mockApi<T>(path, init);
+  }
   let res: Response;
   try {
     res = await fetch(`${BASE}${path}`, {
