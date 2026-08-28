@@ -25,6 +25,8 @@ import { NursingModule } from './modules/nursing';
 import { StatementsModule } from './modules/statements';
 import { ShiftsModule } from './modules/shifts';
 import { IncidentsModule } from './modules/incidents';
+import { ReportsModule } from './modules/reports';
+import { ArchiveModule } from './modules/archive';
 
 @Module({
   imports: [
@@ -47,6 +49,8 @@ import { IncidentsModule } from './modules/incidents';
     StatementsModule,
     ShiftsModule,
     IncidentsModule,
+    ReportsModule,
+    ArchiveModule,
   ],
   controllers: [HealthController],
 })

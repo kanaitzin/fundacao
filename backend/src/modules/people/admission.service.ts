@@ -164,8 +164,8 @@ export class AdmissionService {
                 a.siblings_note, a.family_reference, a.arrival_note,
                 a.over_capacity, a.capacity_reason
            FROM admission_record a
+           -- rls-join-ok: care_episode não tem policy própria; quem filtra é adm_select.
            JOIN care_episode e ON e.id = a.episode_id AND e.status = 'ativo'
-           -- rls-join-ok: care_episode não tem policy própria; o filtro é a de admission_record.
           WHERE a.person_id = $1
           ORDER BY a.admitted_on DESC LIMIT 1`, [personId]);
       return r;
@@ -197,8 +197,8 @@ export class AdmissionService {
                 j.court_name, j.process_number, j.guide_number, j.guide_date,
                 j.determined_on, j.legal_status, j.notes, j.updated_at
            FROM judicial_record j
+           -- rls-join-ok: quem filtra o acesso é a policy jud_select de judicial_record.
            JOIN care_episode e ON e.id = j.episode_id AND e.status = 'ativo'
-           -- rls-join-ok: o filtro de acesso é a policy jud_select de judicial_record.
           WHERE j.person_id = $1
           ORDER BY j.updated_at DESC LIMIT 1`, [personId]);
       return r;

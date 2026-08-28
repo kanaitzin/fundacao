@@ -116,10 +116,10 @@ export class HousesService {
   /** Histórico de mudanças de limite — a decisão precisa continuar visível. */
   async capacityHistory(user: AuthenticatedUser, houseId: string) {
     return this.db.asUser(user.id, async (c) => {
-      // rls-join-ok: app_user não tem RLS de linha; o filtro é a policy de house_capacity_change.
       const { rows } = await c.query(
         `SELECT ch.from_capacity, ch.to_capacity, ch.reason, ch.changed_at, u.full_name AS autor
            FROM house_capacity_change ch
+           -- rls-join-ok: app_user não tem RLS de linha; quem filtra é a policy cap_select.
            JOIN app_user u ON u.id = ch.changed_by
           WHERE ch.house_id = $1
           ORDER BY ch.changed_at DESC LIMIT 50`, [houseId]);

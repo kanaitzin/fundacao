@@ -1,0 +1,9 @@
+{
+  "name": "archive",
+  "descricao": "Arquivo documental no Google Shared Drive (§16): fila, estados, retentativa idempotente, versões que nunca sobrescrevem e reconciliação.",
+  "depends": ["identity"],
+  "publica": ["ArchiveModule", "ArchiveService"],
+  "tabelas": ["archive_item", "archive_attempt"],
+  "removivel": true,
+  "observacao": "Não é backup do sistema — banco e objetos têm backup técnico próprio. Nome de arquivo não carrega pessoa: o CHECK recusa CPF (11 dígitos) e espaços. Área restrita (narrativas, benefícios) vai para outra raiz, com outra permissão. Falha em três tentativas escala para técnica/coordenação pelo contrato genérico, sem conhecer notifications. O DriveGateway escreve em pasta local no desenvolvimento: credencial real só na implantação, por variável de ambiente."
+}

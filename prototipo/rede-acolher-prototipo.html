@@ -157,9 +157,13 @@ main.screen{flex:1;padding:16px 14px 128px;background:var(--ground)}
   border-top:1px solid var(--line);display:flex;justify-content:center;box-shadow:var(--shadow-up);
   padding-bottom:env(safe-area-inset-bottom);
 }
-.tabbar .inner{display:flex;width:100%;max-width:468px}
+/* Com a Fase 6 a coordenação passou de cinco para nove seções. Em vez de
+   espremer todas na largura do aparelho — que é como se perde a última —
+   a barra rola na horizontal e cada item guarda a largura mínima legível. */
+.tabbar .inner{display:flex;width:100%;max-width:468px;overflow-x:auto;scrollbar-width:none}
+.tabbar .inner::-webkit-scrollbar{display:none}
 .tabbar button{
-  flex:1;background:none;border:none;color:var(--muted);padding:8px 2px 10px;
+  flex:1 0 auto;min-width:70px;background:none;border:none;color:var(--muted);padding:8px 2px 10px;
   font-size:10.5px;font-weight:700;font-family:"Plus Jakarta Sans",sans-serif;
   display:flex;flex-direction:column;gap:5px;align-items:center;position:relative;line-height:1.15;text-align:center;
 }
@@ -480,6 +484,43 @@ const MEDIDAS = [
   ["acolhimento_familiar","Acolhimento familiar"],
   ["medida_protetiva_outra","Outra medida protetiva"],
 ];
+
+/* ---------- Fase 6: acompanhamentos, relatórios e arquivo ---------- */
+const ACOMPANHAMENTOS = [
+  {id:"f1", pessoa:"Alice", tipo:"mensal",  periodo:"agosto", situacao:"pendente"},
+  {id:"f2", pessoa:"Bruno", tipo:"mensal",  situacao:"em_aprovacao", periodo:"agosto",
+   redator:"Tatiane Técnica (fictícia)", eixos:{
+     saude:"Consulta odontológica realizada em 12/08; sem intercorrências.",
+     escola:"Frequência regular; reunião de pais em 20/08.",
+     convivencia:"Participou das atividades coletivas; combinou revezamento do videogame.",
+     familia:"Visita da avó materna autorizada em 16/08."},
+   fontes:[{origem:"Ocorrência de 12/08", autor:"Ed. M. Silva (fictício)", classe:"restrito"},
+           {origem:"Atividade escolar de 20/08", autor:"Lúcia Líder Diurna (fictícia)", classe:"operacional"}]},
+  {id:"f3", pessoa:"Caio",  tipo:"semanal", periodo:"25–31/08", situacao:"rascunho",
+   redator:"Tatiane Técnica (fictícia)"},
+  {id:"f4", pessoa:"Davi",  tipo:"mensal",  periodo:"julho", situacao:"aprovado", versao:1,
+   redator:"Tatiane Técnica (fictícia)", aprovador:"Carla Coordenadora (fictícia)"},
+];
+const RELATORIOS = [
+  {id:"r1", tipo:"Judiciário", pessoa:"Bruno", periodo:"agosto", situacao:"em_aprovacao",
+   finalidade:"Audiência concentrada agendada para setembro.", autor:"Tatiane Técnica (fictícia)"},
+  {id:"r2", tipo:"Mensal da casa", periodo:"julho", situacao:"aprovado",
+   finalidade:"Prestação de contas interna da unidade.", autor:"Carla Coordenadora (fictícia)",
+   entregas:[{destino:"Diretoria da Fundação", meio:"entrega em mãos", em:"05/08"}]},
+  {id:"r3", tipo:"Alimentação e restrições", periodo:"agosto", situacao:"aprovado",
+   finalidade:"Planejamento do cardápio da cozinha.", autor:"Tatiane Técnica (fictícia)"},
+];
+const ARQUIVO = [
+  {id:"a1", cat:"ata", caminho:"ACOLHIMENTO/AI3/2026/08/ata", arq:"ata_2026-08-27_9f2c1a44_V1.pdf", estado:"verificado"},
+  {id:"a2", cat:"adendo", caminho:"ACOLHIMENTO/AI3/2026/08/adendo", arq:"adendo_2026-08-27_9f2c1a44_V2_ADENDO.pdf", estado:"verificado"},
+  {id:"a3", cat:"narrativa_restrita", caminho:"RESTRITO/AI3/2026/08/narrativa_restrita", arq:"narrativa_restrita_2026-08-26_5b1e77a0_V1.pdf", estado:"salvo", restrita:true},
+  {id:"a4", cat:"ocorrencia", caminho:"ACOLHIMENTO/AI3/2026/08/ocorrencia", arq:"ocorrencia_2026-08-26_c31d0e12_V1.pdf", estado:"falhou", tentativas:3, erro:"Drive indisponível"},
+];
+const EIXOS = [["saude","Saúde, alimentação e medicamentos"],["escola","Escola, cursos e atividades"],
+  ["convivencia","Convivência e desenvolvimento"],["familia","Família, rede e situação judicial"]];
+const SITUACAO_TOM = {pendente:"c-warn", rascunho:"c-info", em_aprovacao:"c-med", aprovado:"c-ok", substituido:"c-mute"};
+const SITUACAO_LABEL = {pendente:"Pendente", rascunho:"Rascunho", em_aprovacao:"Aguardando aprovação",
+  aprovado:"Aprovado", substituido:"Substituído"};
 
 const KIDS = [
   {id:1, nome:"Alice R.", social:"Alice", idade:7,  escola:"EMEF Vila Nova · manhã", alergia:"Amendoim", restr:"Sem amendoim e derivados"},
@@ -1111,10 +1152,14 @@ function vEnfermagem(){
 
 /* ================= EQUIPE TÉCNICA ================= */
 function vTecnica(){
-  const tabs = tabbar([{id:"painel", ic:"🗂️", label:"Painel"},{id:"cadastro", ic:"🧒", label:"Cadastro"},{id:"narrativas", ic:"🔒", label:"Narrativas"}]);
+  const tabs = tabbar([{id:"painel", ic:"🗂️", label:"Painel"},{id:"cadastro", ic:"🧒", label:"Cadastro"},{id:"acomp", ic:"📝", label:"Acompanhar"},{id:"relat", ic:"📄", label:"Relatórios"},{id:"narrativas", ic:"🔒", label:"Narrativas"}]);
   let inner;
   if(S.tab==="cadastro"){
     inner = vCadastro();
+  } else if(S.tab==="acomp"){
+    inner = vAcompanhamentos();
+  } else if(S.tab==="relat"){
+    inner = vRelatorios();
   } else if(S.tab==="narrativas"){
     inner = `<div class="notice c-med" style="margin-bottom:14px">Relatos independentes do plantão diurno de ontem, lado a lado. Originais <b>imutáveis</b>; a síntese técnica não apaga versões. Pares não têm acesso a esta tela.</div>
       <div class="sidebyside">
@@ -1159,7 +1204,8 @@ function vTecnica(){
         <button class="btn sm sec" onclick="A.verOcorrencia()">Abrir ocorrência</button>
       </div>`;
   }
-  shell(inner, tabs, appbar(S.tab==="cadastro"?"Cadastro de acolhido":S.tab==="narrativas"?"Relatos independentes":"Painel da casa", ["Casa 03","Escala individual",HOJE]));
+  const t = {cadastro:"Cadastro de acolhido", acomp:"Acompanhamentos", relat:"Relatórios", narrativas:"Relatos independentes", painel:"Painel da casa"}[S.tab] || "Painel da casa";
+  shell(inner, tabs, appbar(t, ["Casa 03","Escala individual",HOJE]));
 }
 
 /* ================= CADASTRO DO ACOLHIDO ================= */
@@ -1198,6 +1244,87 @@ function vCadastro(){
 
     <div class="eyebrow">Mudanças de limite</div>
     <div class="card">${hist}</div>`;
+}
+
+/* ================= ACOMPANHAMENTOS E RELATÓRIOS (Fase 6) ================= */
+function vAcompanhamentos(){
+  const cartao = f => `<div class="card stack">
+      <div class="row">
+        <b class="ff grow">${f.pessoa} · ${f.tipo}</b>
+        ${pill(SITUACAO_LABEL[f.situacao], SITUACAO_TOM[f.situacao])}
+      </div>
+      <div class="mutetxt">Período: ${f.periodo}${f.redator?` · redigido por ${f.redator}`:""}${f.aprovador?` · aprovado por ${f.aprovador}`:""}</div>
+      <div class="row" style="gap:6px">
+        <button class="btn sm ghost" onclick="A.fuAbrir('${f.id}')">${f.situacao==="pendente"?"Preencher":"Abrir"}</button>
+        ${f.situacao==="em_aprovacao" && S.role==="coordenador"
+          ? `<button class="btn sm" onclick="A.fuAprovar('${f.id}')">Revisar e aprovar</button>` : ""}
+        ${f.situacao==="aprovado"
+          ? `<button class="btn sm ghost" onclick="A.fuCorrigir('${f.id}')">Corrigir (nova versão)</button>` : ""}
+      </div>
+    </div>`;
+
+  return `<div class="card raise stack">
+      <div class="row">
+        <div class="grow"><h3 style="font-size:17px;margin:0">Acompanhamentos</h3>
+          <div class="mutetxt">Semanal e mensal · eixos obrigatórios</div></div>
+        <button class="btn sm" onclick="A.fuGerar()">Gerar pendências</button>
+      </div>
+      <div class="notice c-info" style="margin:0">A automação cria a pendência e <b>nunca escreve a avaliação</b>. Os eixos nascem vazios; o texto é de quem acompanha o caso.</div>
+    </div>
+    <div class="eyebrow">Abertos</div>
+    <div class="stack">${ACOMPANHAMENTOS.filter(f=>f.situacao!=="aprovado").map(cartao).join("")}</div>
+    <div class="eyebrow">Aprovados — retrato daquele momento</div>
+    <div class="stack">${ACOMPANHAMENTOS.filter(f=>f.situacao==="aprovado").map(cartao).join("")}</div>
+    <p class="mutetxt" style="margin-top:12px">Aprovado não se edita. Corrigir cria a versão seguinte, que precisa de nova aprovação — e a anterior continua legível como estava.</p>`;
+}
+
+function vRelatorios(){
+  const linhas = RELATORIOS.map(r=>`<div class="card stack">
+      <div class="row"><b class="ff grow">${r.tipo}${r.pessoa?` · ${r.pessoa}`:""}</b>
+        ${pill(SITUACAO_LABEL[r.situacao], SITUACAO_TOM[r.situacao])}</div>
+      <div class="mutetxt">${r.periodo} · ${r.autor}</div>
+      <div class="mutetxt"><b>Finalidade:</b> ${r.finalidade}</div>
+      ${r.entregas ? r.entregas.map(e=>`<div class="mutetxt">📎 Entregue a ${e.destino} · ${e.meio} · ${e.em}</div>`).join("") : ""}
+      <div class="row" style="gap:6px">
+        ${r.situacao==="em_aprovacao" && S.role==="coordenador"
+          ? `<button class="btn sm" onclick="A.relAprovar('${r.id}')">Aprovar</button>` : ""}
+        ${r.situacao==="aprovado" ? `<button class="btn sm ghost" onclick="A.relExportar('${r.id}')">Exportar</button>
+          <button class="btn sm ghost" onclick="A.relEntrega('${r.id}')">Registrar entrega</button>` : ""}
+      </div>
+    </div>`).join("");
+
+  return `<div class="card raise stack">
+      <div class="row">
+        <div class="grow"><h3 style="font-size:17px;margin:0">Relatórios</h3>
+          <div class="mutetxt">Toda geração pede finalidade</div></div>
+        <button class="btn sm" onclick="A.relNovo()">+ Novo relatório</button>
+      </div>
+      <div class="notice c-med" style="margin:0">O sistema <b>gera e não envia</b>. A entrega ao Judiciário, ao Conselho Tutelar ou ao MP é feita por uma pessoa e registrada aqui, com destinatário, meio, data e protocolo (§14.6).</div>
+    </div>
+    <div class="stack">${linhas}</div>`;
+}
+
+function vArquivo(){
+  const tom = {verificado:"c-ok", salvo:"c-info", enviando:"c-info", aguardando:"c-warn", falhou:"c-crit"};
+  const linhas = ARQUIVO.map(a=>`<div class="card stack">
+      <div class="row"><b class="ff grow" style="font-size:13px">${a.arq}</b>${pill(a.estado, tom[a.estado])}</div>
+      <div class="mutetxt mono" style="font-size:12px">${a.caminho}</div>
+      ${a.restrita?`<div class="mutetxt">🔒 Área restrita — outra raiz, outra permissão</div>`:""}
+      ${a.estado==="falhou"?`<div class="notice c-crit" style="margin:0">${a.tentativas} tentativas · ${a.erro}. A equipe técnica e a coordenação foram avisadas. <b>O documento continua íntegro no sistema</b> — o que faltou foi a cópia no Drive.
+        <button class="btn sm" style="margin-top:8px" onclick="A.arqTentar('${a.id}')">Tentar novamente</button></div>`:""}
+    </div>`).join("");
+
+  const falhas = ARQUIVO.filter(a=>a.estado==="falhou").length;
+  return `<div class="card raise stack">
+      <h3 style="font-size:17px;margin:0">Arquivo documental</h3>
+      <div class="mutetxt">Cópia do que fechou, no Drive institucional</div>
+      <div class="notice c-info" style="margin:0">Não é backup do sistema — banco e arquivos têm backup técnico próprio. Aqui vai a cópia documental do que a instituição <b>fechou</b>: ATA, passagem, ocorrência, acompanhamento, relatório.</div>
+      ${falhas?`<div class="notice c-crit" style="margin:0">${falhas} documento(s) fechado(s) ainda não chegaram ao arquivo.</div>`
+              :`<div class="notice c-ok" style="margin:0">Tudo o que fechou está arquivado e verificado.</div>`}
+    </div>
+    <div class="eyebrow">Fila e histórico</div>
+    <div class="stack">${linhas}</div>
+    <p class="mutetxt" style="margin-top:12px">Nunca sobrescreve: correção vira <b>V2_ADENDO</b>, ao lado da V1. O nome do arquivo não carrega nome, CPF nem diagnóstico — quem precisa saber de quem é abre o sistema, onde a leitura tem permissão e registro.</p>`;
 }
 
 /* ================= COORDENAÇÃO ================= */
@@ -1350,10 +1477,16 @@ function vEquipe(){
 }
 
 function vCoordenador(){
-  const tabs = tabbar([{id:"casa", ic:"🏠", label:"Casa"},{id:"cadastro", ic:"🧒", label:"Cadastro"},{id:"equipe", ic:"👥", label:"Equipe"},{id:"transf", ic:"🔁", label:"Transferências"},{id:"aprova", ic:"✅", label:"Aprovações"},{id:"banco", ic:"🔐", label:"Benefícios"}]);
+  const tabs = tabbar([{id:"casa", ic:"🏠", label:"Casa"},{id:"cadastro", ic:"🧒", label:"Cadastro"},{id:"equipe", ic:"👥", label:"Equipe"},{id:"acomp", ic:"📝", label:"Acompanhar"},{id:"relat", ic:"📄", label:"Relatórios"},{id:"arquivo", ic:"🗄️", label:"Arquivo"},{id:"transf", ic:"🔁", label:"Transferências"},{id:"aprova", ic:"✅", label:"Aprovações"},{id:"banco", ic:"🔐", label:"Benefícios"}]);
   let inner;
   if(S.tab==="cadastro"){
     inner = vCadastro();
+  } else if(S.tab==="acomp"){
+    inner = vAcompanhamentos();
+  } else if(S.tab==="relat"){
+    inner = vRelatorios();
+  } else if(S.tab==="arquivo"){
+    inner = vArquivo();
   } else if(S.tab==="equipe"){
     inner = vEquipe();
   } else if(S.tab==="transf"){
@@ -1412,7 +1545,7 @@ function vCoordenador(){
         <div class="card row"><div class="grow"><b class="ff">ATAs da casa</b><div class="mutetxt">Diurna de ontem fechada com pendência (adendo aberto)</div></div>${pill("Com pendência")}</div>
       </div>`;
   }
-  const t = {casa:"Controle da casa", cadastro:"Cadastro de acolhido", equipe:"Equipe do acolhimento", transf:"Transferências", aprova:"Aprovações", banco:"Benefícios e dados bancários"}[S.tab];
+  const t = {casa:"Controle da casa", cadastro:"Cadastro de acolhido", equipe:"Equipe do acolhimento", acomp:"Acompanhamentos", relat:"Relatórios", arquivo:"Arquivo documental", transf:"Transferências", aprova:"Aprovações", banco:"Benefícios e dados bancários"}[S.tab];
   shell(inner, tabs, appbar(t, ["Casa 03","Sem limite de horário",HOJE]));
 }
 
@@ -1528,6 +1661,180 @@ const A = {
     render();
   },
   excecaoOk(id,estado){ EVENTOS.find(x=>x.id===id).estado=estado; S.sheet=null; fila(); toast("Exceção registrada com justificativa"); },
+
+  /* ---------- Fase 6: acompanhamentos, relatórios e arquivo ---------- */
+  fuGerar(){
+    toast("Pendências da semana e do mês criadas para os 20. Os eixos ficam vazios — o texto é seu.");
+  },
+  fuAbrir(id){
+    const f = ACOMPANHAMENTOS.find(x=>x.id===id);
+    const campos = EIXOS.map(([cod,label])=>`
+      <label class="f">${label}</label>
+      <textarea id="fu-${cod}" ${f.situacao==="aprovado"?"disabled":""} placeholder="Fato e contexto, sem rótulo.">${(f.eixos&&f.eixos[cod])||""}</textarea>`).join("");
+    const fontes = (f.fontes||[]).map(x=>`<div class="row" style="gap:8px">
+        <span class="grow"><b class="ff">${x.origem}</b><div class="mutetxt">${x.autor}</div></span>
+        ${pill(x.classe==="restrito"?"restrita":"operacional", x.classe==="restrito"?"c-med":"c-info")}</div>`).join("")
+      || `<p class="mutetxt" style="margin:0">Nenhuma fonte escolhida ainda.</p>`;
+
+    S.sheet = `<h3>${f.pessoa} · acompanhamento ${f.tipo}</h3>
+      <p class="mutetxt">${f.periodo} · ${SITUACAO_LABEL[f.situacao]}${f.versao?` · versão ${f.versao}`:""}</p>
+      ${f.situacao==="aprovado"?`<div class="notice c-ok">Aprovado por ${f.aprovador}. É o retrato daquele momento: para mudar, gere uma nova versão.</div>`:""}
+      <div class="eyebrow" style="margin-top:14px">Eixos obrigatórios</div>
+      ${campos}
+      <div class="eyebrow" style="margin-top:16px">Fontes escolhidas</div>
+      <div class="card stack">${fontes}</div>
+      <div class="notice c-info">Observação diária não entra sozinha. O sistema mostra origem, autor, data e classificação; a escolha é sua, e o que fica guardado é a <b>referência ao original</b> — não a cópia da narrativa restrita.</div>
+      <button class="btn sec block" style="margin-top:10px" onclick="A.fuFonte()">+ Escolher uma fonte</button>
+      <div class="row" style="gap:8px;margin-top:16px">
+        <button class="btn sec grow" onclick="A.closeSheet()">Fechar</button>
+        ${f.situacao==="aprovado" ? "" :
+          `<button class="btn grow" onclick="A.fuEnviar('${f.id}')">Enviar para aprovação</button>`}
+      </div>`;
+    render();
+  },
+  fuFonte(){
+    toast("No sistema real: lista de atividades, ocorrências e evoluções do período, com origem, autor, data e classificação.");
+  },
+  fuEnviar(id){
+    const f = ACOMPANHAMENTOS.find(x=>x.id===id);
+    const preenchido = EIXOS.some(([cod])=>{
+      const e = document.getElementById("fu-"+cod); return e && e.value.trim();
+    });
+    if(!preenchido) return toast("Preencha ao menos um eixo antes de enviar para aprovação.");
+    f.eixos = f.eixos || {};
+    EIXOS.forEach(([cod])=>{ const e=document.getElementById("fu-"+cod); if(e) f.eixos[cod]=e.value.trim(); });
+    f.situacao = "em_aprovacao"; f.redator = "Tatiane Técnica (fictícia)";
+    S.sheet = null; render();
+    toast("Enviado. A coordenação foi avisada — e quem redigiu não aprova o próprio texto.");
+  },
+  fuAprovar(id){
+    const f = ACOMPANHAMENTOS.find(x=>x.id===id);
+    if(f.redator === "Carla Coordenadora (fictícia)"){
+      return toast("Você redigiu este acompanhamento. Revisão feita pelo próprio autor não é revisão (§14.2).");
+    }
+    S.sheet = `<h3>Aprovar acompanhamento de ${f.pessoa}</h3>
+      <p class="mutetxt">${f.tipo} · ${f.periodo} · redigido por ${f.redator}</p>
+      <div class="notice c-med">Aprovar congela este texto. Depois disso, corrigir cria uma versão nova — a aprovada continua legível como está, porque foi ela que foi à audiência.</div>
+      <label class="f">Nota de revisão <small>— opcional</small></label>
+      <textarea id="fu-nota" placeholder="Ex.: revisado com a equipe técnica em reunião de 27/08."></textarea>
+      <div class="row" style="gap:8px;margin-top:16px">
+        <button class="btn sec grow" onclick="A.closeSheet()">Cancelar</button>
+        <button class="btn grow" onclick="A.fuAprovarOk('${f.id}')">Aprovar</button>
+      </div>`;
+    render();
+  },
+  fuAprovarOk(id){
+    const f = ACOMPANHAMENTOS.find(x=>x.id===id);
+    f.situacao="aprovado"; f.aprovador="Carla Coordenadora (fictícia)"; f.versao=1;
+    S.sheet=null; render(); toast("Aprovado. A partir daqui é retrato daquele momento.");
+  },
+  fuCorrigir(id){
+    const f = ACOMPANHAMENTOS.find(x=>x.id===id);
+    S.sheet = `<h3>Corrigir acompanhamento de ${f.pessoa}</h3>
+      <div class="notice c-info">Isto não apaga nada. Cria a <b>versão ${(f.versao||1)+1}</b> em rascunho, que precisa de nova aprovação; a versão ${f.versao||1} continua legível, marcada como substituída. As fontes escolhidas vão junto.</div>
+      <label class="f">Motivo da correção</label>
+      <textarea id="fu-motivo" placeholder="Ex.: correção da data da consulta odontológica, conferida no prontuário."></textarea>
+      <div class="row" style="gap:8px;margin-top:16px">
+        <button class="btn sec grow" onclick="A.closeSheet()">Cancelar</button>
+        <button class="btn grow" onclick="A.fuCorrigirOk('${f.id}')">Criar nova versão</button>
+      </div>`;
+    render();
+  },
+  fuCorrigirOk(id){
+    const motivo = (document.getElementById("fu-motivo").value||"").trim();
+    if(motivo.length < 15) return toast("Descreva o motivo da correção (mínimo 15 caracteres).");
+    const f = ACOMPANHAMENTOS.find(x=>x.id===id);
+    f.situacao = "substituido";
+    ACOMPANHAMENTOS.unshift({...f, id:f.id+"v2", situacao:"rascunho", versao:(f.versao||1)+1,
+      aprovador:null, redator:"Tatiane Técnica (fictícia)"});
+    S.sheet=null; render();
+    toast(`Versão ${(f.versao||1)+1} criada em rascunho. A anterior continua legível.`);
+  },
+
+  relNovo(){
+    const tipos = ["Diário","Semanal","Mensal","Período personalizado","Individual completo","Medicamentos",
+      "Atividades","Ocorrências","Reunião técnica","Audiência concentrada","Judiciário","Mensal da casa",
+      "ATAs consolidadas","Alimentação e restrições","Histórico institucional","Evolução e Resumo de Saúde"];
+    S.sheet = `<h3>Novo relatório</h3>
+      <label class="f" style="margin-top:0">Tipo</label>
+      <select id="rel-tipo" class="field">${tipos.map(t=>`<option>${t}</option>`).join("")}</select>
+      <label class="f">Período</label>
+      <div class="row" style="gap:8px"><input id="rel-de" type="date" value="2026-08-01"><input id="rel-ate" type="date" value="2026-08-31"></div>
+      <label class="f">Finalidade <small>— fica no documento e no registro de exportação</small></label>
+      <textarea id="rel-fin" placeholder="Ex.: audiência concentrada agendada para setembro."></textarea>
+      <div class="notice c-info">Não existe relatório "só para ver". A finalidade é o que permite responder, depois, por que aquele conjunto de dados saiu do sistema.</div>
+      <div class="notice c-med">Judiciário, audiência e mensal da casa só valem <b>depois de aprovados por outra pessoa</b>. E o sistema não envia: a entrega é sua, e fica registrada.</div>
+      <div class="row" style="gap:8px;margin-top:16px">
+        <button class="btn sec grow" onclick="A.closeSheet()">Cancelar</button>
+        <button class="btn grow" onclick="A.relGerar()">Gerar rascunho</button>
+      </div>`;
+    render();
+  },
+  relGerar(){
+    const fin = (document.getElementById("rel-fin").value||"").trim();
+    if(fin.length < 10) return toast("Descreva a finalidade do relatório (mínimo 10 caracteres).");
+    const tipo = document.getElementById("rel-tipo").value;
+    RELATORIOS.unshift({id:"r"+Date.now(), tipo, periodo:"agosto", situacao:"em_aprovacao",
+      finalidade:fin, autor: S.role==="coordenador"?"Carla Coordenadora (fictícia)":"Tatiane Técnica (fictícia)"});
+    S.sheet=null; render();
+    toast("Rascunho criado, com a fonte de cada trecho preservada.");
+  },
+  relAprovar(id){
+    const r = RELATORIOS.find(x=>x.id===id);
+    if(r.autor === "Carla Coordenadora (fictícia)"){
+      return toast("Você redigiu este relatório. Quem escreve não aprova o próprio texto (§14.6).");
+    }
+    r.situacao="aprovado"; render();
+    toast("Aprovado. Continua sendo o retrato daquele momento depois da audiência.");
+  },
+  relExportar(id){
+    S.sheet = `<h3>Exportar relatório</h3>
+      <label class="f" style="margin-top:0">Formato</label>
+      <select id="exp-fmt" class="field"><option>PDF</option><option>Planilha</option><option>Documento editável</option><option>Tela</option></select>
+      <label class="f">Finalidade da exportação</label>
+      <textarea id="exp-fin" placeholder="Ex.: cópia para a pasta do caso, uso interno."></textarea>
+      <div class="notice c-med">A exportação fica registrada com o seu nome, a finalidade, o formato, os filtros e o horário. Em <b>planilha</b>, o sistema leva os títulos e deixa o conteúdo sensível de fora — planilha viaja fácil demais.</div>
+      <div class="row" style="gap:8px;margin-top:16px">
+        <button class="btn sec grow" onclick="A.closeSheet()">Cancelar</button>
+        <button class="btn grow" onclick="A.relExportarOk()">Exportar</button>
+      </div>`;
+    render();
+  },
+  relExportarOk(){
+    const fin = (document.getElementById("exp-fin").value||"").trim();
+    if(fin.length < 10) return toast("Descreva a finalidade da exportação (mínimo 10 caracteres).");
+    S.sheet=null; render(); toast("Exportação registrada com o seu nome, a finalidade e o horário.");
+  },
+  relEntrega(id){
+    S.sheet = `<h3>Registrar entrega</h3>
+      <div class="notice c-med">Isto <b>não envia nada</b>. É o registro de que uma pessoa entregou — o equivalente ao protocolo que já existe no papel. O sistema nunca manda documento para o Judiciário, o Conselho Tutelar ou o MP por conta própria.</div>
+      <label class="f">Destinatário</label>
+      <input id="ent-dest" placeholder="Ex.: 1ª Vara da Infância e Juventude">
+      <label class="f">Meio</label>
+      <select id="ent-meio" class="field"><option>Protocolo presencial</option><option>E-mail institucional</option><option>Entrega em mãos</option><option>Sistema do Judiciário</option></select>
+      <label class="f">Data da entrega</label>
+      <input id="ent-data" type="date" value="2026-08-28">
+      <label class="f">Número do protocolo <small>— se houver</small></label>
+      <input id="ent-prot" placeholder="Opcional">
+      <div class="row" style="gap:8px;margin-top:16px">
+        <button class="btn sec grow" onclick="A.closeSheet()">Cancelar</button>
+        <button class="btn grow" onclick="A.relEntregaOk('${id}')">Registrar</button>
+      </div>`;
+    render();
+  },
+  relEntregaOk(id){
+    const dest = (document.getElementById("ent-dest").value||"").trim();
+    if(!dest) return toast("Informe o destinatário da entrega.");
+    const r = RELATORIOS.find(x=>x.id===id);
+    r.entregas = r.entregas || [];
+    r.entregas.push({destino:dest, meio:document.getElementById("ent-meio").value.toLowerCase(), em:"hoje"});
+    S.sheet=null; render(); toast("Entrega registrada com destinatário, meio, data e o seu nome.");
+  },
+  arqTentar(id){
+    const a = ARQUIVO.find(x=>x.id===id);
+    a.estado="verificado"; a.erro=null; render();
+    toast("Reenviado e verificado. A retentativa não duplica: mesma versão, mesmo arquivo.");
+  },
 
   /* ---------- Cadastro do acolhido ---------- */
   cadastroNovo(){

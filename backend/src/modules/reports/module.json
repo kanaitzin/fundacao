@@ -1,0 +1,9 @@
+{
+  "name": "reports",
+  "descricao": "Acompanhamentos semanais e mensais, relatórios, aprovações, exportações com finalidade e painéis da casa e do gestor (§14, §18).",
+  "depends": ["identity"],
+  "publica": ["ReportsModule", "ReportsService", "FollowupsService", "TIPOS_RELATORIO", "SECOES_AUDIENCIA"],
+  "tabelas": ["followup", "followup_source", "report_document", "report_delivery", "export_log"],
+  "removivel": true,
+  "observacao": "A automação cria pendência e nunca escreve avaliação. Fonte não entra sozinha: o sistema lista com origem/autor/data/classificação e guarda a REFERÊNCIA escolhida, não a cópia. Aprovado é imutável; correção cria versão. Não existe rota, fila ou integração de ENVIO a órgão externo — a entrega é humana e apenas registrada (§14.6). O painel consulta tabelas de outros módulos de forma opcional (to_regclass): remover um módulo tira o número, não derruba a tela."
+}

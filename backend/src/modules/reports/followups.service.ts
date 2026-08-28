@@ -1,0 +1,282 @@
+import {
+  BadRequestException, ConflictException, ForbiddenException,
+  Inject, Injectable, NotFoundException,
+} from '@nestjs/common';
+import { DatabaseService } from '../../kernel/database/database.service';
+import { AuditService } from '../../kernel/audit/audit.service';
+import { EventBus } from '../../kernel/events/event-bus.service';
+import { AuthenticatedUser, EscalationRequest } from '../../kernel/contracts';
+
+/**
+ * ACOMPANHAMENTOS SEMANAIS E MENSAIS (§14.1–§14.4).
+ *
+ * A automação faz uma coisa só: criar a pendência. Ela não escreve avaliação,
+ * não puxa observação do dia para dentro do texto e não transforma ausência de
+ * registro em fato negativo — "sem registro" é sem registro, não é "semana
+ * ruim".
+ *
+ * As fontes são escolhidas por gente. O sistema lista o que é elegível com
+ * origem, autor, data e classificação; quem redige decide o que entra, e a
+ * referência ao original fica guardada para quem ler depois.
+ */
+
+const EIXOS = {
+  axis_health: 'saúde, alimentação e medicamentos',
+  axis_school: 'escola, cursos e atividades',
+  axis_coexistence: 'convivência e desenvolvimento',
+  axis_family: 'família, rede e situação judicial',
+} as const;
+
+const CAMPOS: Record<string, keyof typeof EIXOS> = {
+  saude: 'axis_health', escola: 'axis_school',
+  convivencia: 'axis_coexistence', familia: 'axis_family',
+};
+
+@Injectable()
+export class FollowupsService {
+  constructor(
+    @Inject(DatabaseService) private readonly db: DatabaseService,
+    @Inject(AuditService) private readonly audit: AuditService,
+    @Inject(EventBus) private readonly bus: EventBus,
+  ) {}
+
+  /** Eixos obrigatórios (§14.3) — a tela não inventa a lista. */
+  eixos() {
+    return Object.entries(CAMPOS).map(([cod, col]) => ({ cod, label: EIXOS[col] }));
+  }
+
+  /**
+   * Gera as pendências do período. Idempotente: rodar de novo não duplica,
+   * e quem chegou hoje entra na conta.
+   */
+  async gerar(user: AuthenticatedUser, houseId: string, data?: string) {
+    const r = await this.db.asUser(user.id, async (c) => {
+      const { rows: [row] } = await c.query(
+        `SELECT * FROM app_generate_followups($1,$2)`, [houseId, data ?? null]);
+      return row;
+    }).catch((e: any) => {
+      if (String(e?.message).includes('sem_permissao_gerar')) {
+        throw new ForbiddenException('Sem permissão para gerar acompanhamentos nesta unidade.');
+      }
+      throw e;
+    });
+    await this.audit.log({
+      action: 'followup.generate', actorId: user.id, institutionId: user.institutionId,
+      houseId, entity: 'followup_batch', detail: { criadas: r.criadas },
+    });
+    return {
+      criadas: r.criadas, jaExistiam: r.ja_existiam,
+      aviso: 'A automação criou as pendências. O texto é humano — o sistema não escreve avaliação.',
+    };
+  }
+
+  /** Pendências abertas da casa, por tipo. */
+  async pendentes(user: AuthenticatedUser, houseId: string, kind?: string) {
+    return this.db.asUser(user.id, async (c) => {
+      const { rows } = await c.query(
+        `SELECT f.id, f.kind, f.status, f.period_start, f.period_end, f.version,
+                app_person_display_name(f.person_id) AS pessoa, f.person_id,
+                u.full_name AS redator
+           FROM followup f
+           -- rls-join-ok: o nome do acolhido vem de app_person_display_name, e não de
+           -- JOIN com person; app_user não tem RLS de linha.
+           LEFT JOIN app_user u ON u.id = f.written_by
+          WHERE f.house_id = $1
+            AND f.status IN ('pendente','rascunho','em_aprovacao')
+            AND ($2::text IS NULL OR f.kind = $2)
+          ORDER BY f.kind, f.period_start DESC, pessoa`, [houseId, kind ?? null]);
+      return rows.map((r) => ({
+        id: r.id, tipo: r.kind, situacao: r.status, pessoa: r.pessoa, personId: r.person_id,
+        periodo: { de: r.period_start, ate: r.period_end }, versao: r.version, redator: r.redator,
+      }));
+    });
+  }
+
+  /** Um acompanhamento com seus eixos e as fontes escolhidas. */
+  async abrir(user: AuthenticatedUser, id: string) {
+    const dados = await this.db.asUser(user.id, async (c) => {
+      const { rows: [f] } = await c.query(
+        `SELECT f.*, app_person_display_name(f.person_id) AS pessoa,
+                a.full_name AS aprovador, w.full_name AS redator
+           FROM followup f
+           -- rls-join-ok: app_user não tem RLS de linha; quem filtra é a policy fu_select.
+           LEFT JOIN app_user a ON a.id = f.approved_by
+           LEFT JOIN app_user w ON w.id = f.written_by
+          WHERE f.id = $1`, [id]);
+      if (!f) return null;
+      const { rows: fontes } = await c.query(
+        `SELECT entity, entity_id, origem, autor, registrado_em, classificacao, escolhido_em
+           FROM followup_source WHERE followup_id = $1 ORDER BY registrado_em`, [id]);
+      return { f, fontes };
+    });
+    if (!dados) throw new NotFoundException('Acompanhamento não encontrado.');
+    const { f, fontes } = dados;
+    return {
+      id: f.id, tipo: f.kind, situacao: f.status, pessoa: f.pessoa, personId: f.person_id,
+      periodo: { de: f.period_start, ate: f.period_end },
+      versao: f.version, substitui: f.supersedes_id,
+      eixos: {
+        saude: f.axis_health, escola: f.axis_school,
+        convivencia: f.axis_coexistence, familia: f.axis_family,
+      },
+      redator: f.redator, aprovador: f.aprovador, aprovadoEm: f.approved_at,
+      notaAprovacao: f.approval_note,
+      fontes: fontes.map((s) => ({
+        entidade: s.entity, id: s.entity_id, origem: s.origem, autor: s.autor,
+        registradoEm: s.registrado_em, classificacao: s.classificacao,
+      })),
+    };
+  }
+
+  /** Salvar rascunho dos eixos. Só quem redige — e nunca sobre o aprovado. */
+  async salvar(user: AuthenticatedUser, id: string, eixos: Record<string, string>) {
+    if (!['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(user.role)) {
+      throw new ForbiddenException('Somente equipe técnica e coordenação redigem acompanhamentos.');
+    }
+    const sets: string[] = []; const vals: (string | null)[] = [id];
+    for (const [k, v] of Object.entries(eixos ?? {})) {
+      const col = CAMPOS[k];
+      if (!col) continue;
+      vals.push(v?.trim() ? v.trim() : null);
+      sets.push(`${col} = $${vals.length}`);
+    }
+    if (!sets.length) throw new BadRequestException('Nenhum eixo informado.');
+
+    const n = await this.db.asUser(user.id, async (c) => {
+      const { rowCount } = await c.query(
+        `UPDATE followup
+            SET ${sets.join(', ')}, written_by = app_current_user(),
+                status = CASE WHEN status = 'pendente' THEN 'rascunho' ELSE status END
+          WHERE id = $1 AND status IN ('pendente','rascunho')`, vals);
+      return rowCount;
+    }).catch((e: any) => {
+      if (String(e?.message).includes('aprovado_e_imutavel')) {
+        throw new ConflictException(
+          'Este acompanhamento já foi aprovado. Para corrigir, gere uma nova versão — a aprovada continua sendo o retrato daquele momento.');
+      }
+      throw e;
+    });
+    if (!n) throw new ConflictException('Acompanhamento não está aberto para edição.');
+    return { salvo: true };
+  }
+
+  /**
+   * Escolher uma fonte (§14.4). Guarda a referência ao original, com origem,
+   * autor, data e classificação — nunca a cópia do texto restrito.
+   */
+  async escolherFonte(user: AuthenticatedUser, id: string, fonte: {
+    entidade: string; entityId: string; origem: string;
+    autor?: string; registradoEm?: string; classificacao?: string;
+  }) {
+    if (!fonte?.entidade || !fonte?.entityId) {
+      throw new BadRequestException('Informe a fonte que está sendo escolhida.');
+    }
+    await this.db.asUser(user.id, async (c) => {
+      await c.query(
+        `INSERT INTO followup_source (followup_id, entity, entity_id, origem, autor,
+                                      registrado_em, classificacao, escolhido_por)
+         VALUES ($1,$2,$3,$4,$5,$6,$7, app_current_user())
+         ON CONFLICT (followup_id, entity, entity_id) DO NOTHING`,
+        [id, fonte.entidade, fonte.entityId, fonte.origem,
+         fonte.autor ?? null, fonte.registradoEm ?? null, fonte.classificacao ?? 'operacional']);
+    });
+    return {
+      escolhida: true,
+      aviso: fonte.classificacao === 'restrito'
+        ? 'Fonte restrita: o acompanhamento guarda a referência, não a narrativa. Copiar o texto é decisão sua, feita à mão.'
+        : null,
+    };
+  }
+
+  /** Enviar para aprovação. O mensal exige revisão da coordenação (§14.2). */
+  async enviarParaAprovacao(user: AuthenticatedUser, id: string) {
+    const r = await this.db.asUser(user.id, async (c) => {
+      const { rows: [row] } = await c.query(
+        `UPDATE followup
+            SET status = 'em_aprovacao', submitted_at = now(),
+                written_by = coalesce(written_by, app_current_user())
+          WHERE id = $1 AND status IN ('rascunho','pendente')
+          RETURNING id, kind, house_id, person_id,
+                    coalesce(axis_health,'') || coalesce(axis_school,'')
+                    || coalesce(axis_coexistence,'') || coalesce(axis_family,'') AS texto`, [id]);
+      return row;
+    });
+    if (!r) throw new ConflictException('Acompanhamento não está em rascunho.');
+    if (!r.texto.trim()) {
+      throw new BadRequestException('Preencha ao menos um eixo antes de enviar para aprovação.');
+    }
+
+    const pedido: EscalationRequest = {
+      level: 'tecnica_coordenacao', entity: 'followup', entityId: r.id,
+      reason: 'acompanhamento aguardando aprovação',
+      title: r.kind === 'mensal' ? 'Acompanhamento mensal para revisar' : 'Acompanhamento semanal para revisar',
+      body: 'Um acompanhamento está aguardando revisão e aprovação da coordenação.',
+      priority: 'normal', groupKey: `followup:${r.house_id}`,
+    };
+    await this.bus.publish('escalation.requested', pedido, { actorId: user.id, houseId: r.house_id });
+    await this.audit.log({
+      action: 'followup.submit', actorId: user.id, institutionId: user.institutionId,
+      houseId: r.house_id, entity: 'followup', entityId: r.id, detail: { tipo: r.kind },
+    });
+    return { situacao: 'em_aprovacao' };
+  }
+
+  /** Aprovar. Quem redigiu não aprova o próprio texto. */
+  async aprovar(user: AuthenticatedUser, id: string, nota?: string) {
+    const r = await this.db.asUser(user.id, async (c) => {
+      const { rows: [row] } = await c.query(
+        `SELECT * FROM app_approve_followup($1,$2)`, [id, nota ?? null]);
+      return row;
+    }).catch((e: any) => {
+      const m = String(e?.message ?? '');
+      if (m.includes('autor_nao_aprova')) {
+        throw new ForbiddenException(
+          'Quem redigiu não aprova o próprio texto. A equipe técnica redige, a coordenação revisa (§14.2).');
+      }
+      if (m.includes('somente_coordenacao_aprova')) {
+        throw new ForbiddenException('Somente a coordenação e o Gestor Geral aprovam acompanhamentos.');
+      }
+      if (m.includes('nao_esta_em_aprovacao')) {
+        throw new ConflictException('Este acompanhamento não está aguardando aprovação.');
+      }
+      if (m.includes('fora_de_escopo')) throw new NotFoundException('Acompanhamento não encontrado.');
+      if (m.includes('inexistente')) throw new NotFoundException('Acompanhamento não encontrado.');
+      throw e;
+    });
+    await this.audit.log({
+      action: 'followup.approve', actorId: user.id, institutionId: user.institutionId,
+      entity: 'followup', entityId: id, detail: { versao: r.versao },
+    });
+    return {
+      aprovado: true, versao: r.versao,
+      aviso: 'Aprovado. A partir daqui é retrato daquele momento: corrigir cria uma nova versão, sem apagar esta.',
+    };
+  }
+
+  /** Correção depois de aprovado: nova versão, nova aprovação (§14.2). */
+  async novaVersao(user: AuthenticatedUser, id: string, motivo: string) {
+    const r = await this.db.asUser(user.id, async (c) => {
+      const { rows: [row] } = await c.query(`SELECT * FROM app_amend_followup($1,$2)`, [id, motivo]);
+      return row;
+    }).catch((e: any) => {
+      const m = String(e?.message ?? '');
+      if (m.includes('motivo_insuficiente')) {
+        throw new BadRequestException('Descreva o motivo da correção (mínimo 15 caracteres).');
+      }
+      if (m.includes('somente_aprovado_gera_versao')) {
+        throw new ConflictException('Só um acompanhamento aprovado gera nova versão.');
+      }
+      if (m.includes('fora_de_escopo')) throw new NotFoundException('Acompanhamento não encontrado.');
+      if (m.includes('inexistente')) throw new NotFoundException('Acompanhamento não encontrado.');
+      throw e;
+    });
+    await this.audit.log({
+      action: 'followup.amend', actorId: user.id, institutionId: user.institutionId,
+      entity: 'followup', entityId: id, detail: { novaVersao: r.versao },
+    });
+    return {
+      id: r.novo_id, versao: r.versao,
+      aviso: 'Nova versão criada em rascunho. A versão aprovada continua legível como estava.',
+    };
+  }
+}
