@@ -350,7 +350,31 @@ select:focus, .logincard input:focus{ outline:2px solid var(--brand); outline-of
 .linha .estado{ display:flex; flex-wrap:wrap; gap:6px; align-items:center }
 .linha .acoes{ display:flex; gap:8px; flex-wrap:wrap; margin-top:4px }
 /* Alvo de toque de 44px: dedo no corredor, não mouse na mesa. */
-.linha .acoes .btn{ width:auto; display:inline-flex; min-height:40px; padding:9px 14px }
+.linha .acoes .btn, .chamada .acoes .btn{
+  width:auto; display:inline-flex; min-height:40px; padding:9px 14px;
+}
+.chamada .acoes{ display:flex; gap:8px; flex-wrap:wrap; margin-top:8px }
+
+/* ---------- Chamada ---------- */
+.chamadacard{ width:100%; text-align:left; cursor:pointer; border:1px solid var(--line) }
+.chamada{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px }
+.chamada .ev{
+  display:block; background:var(--surface); border:1px solid var(--line);
+  border-radius:14px; padding:12px;
+}
+.chamada .ev.saiu{ opacity:.55 }
+/* O alerta essencial e a restrição ficam NA LINHA, onde a marcação acontece —
+   no almoço, com a bandeja na mão, e não numa tela de perfil que ninguém abre
+   naquele momento. */
+.alerta{
+  background:color-mix(in srgb, var(--red,#B42318) 9%, var(--surface));
+  border-left:3px solid var(--red,#B42318); border-radius:8px;
+  padding:6px 9px; font-size:12.5px; color:var(--ink-2); margin-top:2px;
+}
+.alerta.rest{
+  background:color-mix(in srgb, var(--amber,#B45309) 10%, var(--surface));
+  border-left-color:var(--amber,#B45309);
+}
 
 /* Opções da exceção */
 .opts{ display:flex; flex-wrap:wrap; gap:7px; margin:12px 0 4px }
