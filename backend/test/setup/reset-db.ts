@@ -25,4 +25,7 @@ export default async function reset() {
   run('migrate.ts');
   run('seed.ts');
   run('seed-fase2.ts');
+  // Medicamentos fictícios: sem eles a demonstração mostra a parte fácil, e o
+  // módulo onde o erro custa mais caro fica de fora do ensaio (§33.3).
+  run('seed-fase4.ts');
 }
