@@ -311,8 +311,81 @@ select{
 }
 select:focus, .logincard input:focus{ outline:2px solid var(--brand); outline-offset:1px }
 
+/* ---------- O dia (linha do tempo) ---------- */
+/* A tela mais usada do sistema. Tudo aqui otimiza uma coisa: encontrar e
+   registrar rápido, com a mão, no meio do turno. */
+.diahead{ display:flex; align-items:flex-end; gap:12px; flex-wrap:wrap; margin-bottom:12px }
+.diahead h2{ margin:2px 0 0; font-size:22px; color:var(--navy);
+  font-family:"Plus Jakarta Sans",system-ui,sans-serif }
+.diahead .resumo{ display:flex; gap:6px; flex-wrap:wrap; margin-left:auto }
+
+.filtros{ display:flex; gap:8px; margin-bottom:14px }
+.filtros button{
+  flex:1; padding:9px 10px; border-radius:999px; border:1.5px solid var(--line-2);
+  background:var(--surface); color:var(--ink-2); font-weight:700; font-size:13.5px;
+  font-family:"Plus Jakarta Sans",system-ui,sans-serif; cursor:pointer;
+}
+.filtros button.on{ background:var(--brand); border-color:var(--brand); color:#fff }
+
+.linha{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:10px }
+.linha .ev{
+  display:grid; grid-template-columns:56px 1fr; gap:10px; align-items:start;
+  background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:12px;
+}
+/* O que já foi resolvido continua na lista, com menos peso — some do foco,
+   não da história. */
+.linha .ev.feito{ opacity:.62 }
+.linha .hora{
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:14px;
+  font-weight:700; color:var(--navy); padding-top:2px;
+}
+.linha .ic{ font-size:17px; line-height:1; flex:none }
+.linha .corpo{ min-width:0; display:flex; flex-direction:column; gap:5px }
+/* O título ocupa a linha inteira e o estado desce para a linha seguinte.
+   Espremidos lado a lado, "Amoxicilina 250 mg/5 mL" quebrava em quatro linhas
+   para caber ao lado de "Aguardando confirmação" — e o remédio é o que
+   importa ler primeiro. */
+.linha .tit{ display:flex; align-items:flex-start; gap:8px }
+.linha .tit b{ font-size:15px; line-height:1.28 }
+.linha .estado{ display:flex; flex-wrap:wrap; gap:6px; align-items:center }
+.linha .acoes{ display:flex; gap:8px; flex-wrap:wrap; margin-top:4px }
+/* Alvo de toque de 44px: dedo no corredor, não mouse na mesa. */
+.linha .acoes .btn{ width:auto; display:inline-flex; min-height:40px; padding:9px 14px }
+
+/* Opções da exceção */
+.opts{ display:flex; flex-wrap:wrap; gap:7px; margin:12px 0 4px }
+.opt{
+  border:1.5px solid var(--line-2); background:var(--surface); color:var(--ink-2);
+  border-radius:999px; padding:8px 13px; font-size:12.5px; font-weight:700;
+  font-family:"Plus Jakarta Sans",system-ui,sans-serif; cursor:pointer;
+}
+.opt[aria-pressed="true"]{ background:var(--amber,#B45309); border-color:transparent; color:#fff }
+.sheet{
+  background:var(--surface); border-radius:16px; padding:24px;
+  width:100%; max-width:520px; max-height:88dvh; overflow:auto;
+  box-shadow:0 24px 60px rgba(0,20,45,.4);
+}
+.sheet h3{ margin:0 0 6px; font-size:18px; color:var(--navy) }
+textarea{
+  width:100%; min-height:96px; padding:11px 12px; border:1px solid var(--line-2);
+  border-radius:10px; background:var(--surface); color:var(--ink);
+  font:inherit; font-size:14.5px; resize:vertical;
+}
+
+/* No celular o cabeçalho encolhe: cada linha dele é uma linha a menos do dia,
+   e é o dia que a pessoa veio ver. */
 @media (max-width:640px){
+  .appbar{ padding:10px 14px 12px }
+  .appbar .wordmark{ font-size:14px }
+  .appbar h1{ font-size:18px; margin-top:8px }
+  .appbar .sub{ font-size:11.5px }
+  .logochip img{ height:20px }
   .logincard{ padding:26px 20px 20px }
   .tabbar{ padding:10px 12px 0 }
   .conteudo{ padding:12px }
+  .linha .ev{ grid-template-columns:44px 1fr; padding:11px }
+  .diahead .resumo{ margin-left:0 }
+  /* No celular a folha vem de baixo, como o dedo espera. */
+  .overlay{ align-items:flex-end; padding:0 }
+  .sheet{ border-radius:18px 18px 0 0; max-width:none }
 }

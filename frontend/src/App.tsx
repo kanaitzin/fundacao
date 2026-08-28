@@ -4,6 +4,7 @@ import logo from './assets/logo.png';
 import { Login } from './screens/Login';
 import { SenhaPessoal } from './screens/SenhaPessoal';
 import { Equipe } from './screens/Equipe';
+import { Dia } from './screens/Dia';
 
 interface Me {
   id: string; email: string; fullName: string; role: string;
@@ -28,7 +29,7 @@ export function App() {
   const [houses, setHouses] = useState<House[]>([]);
   const [erro, setErro] = useState('');
   const [ocupado, setOcupado] = useState(false);
-  const [aba, setAba] = useState<'casas' | 'equipe'>('casas');
+  const [aba, setAba] = useState<'dia' | 'casas' | 'equipe'>('dia');
   const [sugerirSenha, setSugerirSenha] = useState(false);
   const [trocarSenha, setTrocarSenha] = useState(false);
 
@@ -42,7 +43,9 @@ export function App() {
       const eu = await api<Me>('/users/me');
       setMe(eu);
       setHouses(await api<House[]>('/houses'));
-      setAba(ADMINISTRA_EQUIPE.includes(eu.role) ? 'equipe' : 'casas');
+      // Quem trabalha no plantão abre no DIA. É a tela que ele veio usar; a
+      // lista de unidades é consulta, não trabalho.
+      setAba('dia');
       if (eu.mustChangePassword) setSugerirSenha(true);
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Não foi possível entrar. Tente novamente.');
@@ -53,13 +56,16 @@ export function App() {
 
   async function sair() {
     try { await api('/auth/logout', { method: 'POST' }); } catch { /* sessão pode já ter expirado */ }
-    setToken(null); setMe(null); setHouses([]); setAba('casas'); setSugerirSenha(false);
+    setToken(null); setMe(null); setHouses([]); setAba('dia'); setSugerirSenha(false);
   }
 
   if (!me) return <Login onSubmit={entrar} erro={erro} ocupado={ocupado} />;
 
   const casa = me.assignments[0];
   const administra = ADMINISTRA_EQUIPE.includes(me.role);
+  // A casa de trabalho: o vínculo do usuário quando existe; senão, a primeira
+  // do alcance — que é o caso das funções transversais (§5.13).
+  const casaAtual = houses.find((h) => h.code === casa?.code) ?? houses[0] ?? null;
 
   return (
     <div className="app">
@@ -79,18 +85,34 @@ export function App() {
         </div>
       </header>
 
-      {administra && (
-        <nav className="tabbar" aria-label="Seções">
+      <nav className="tabbar" aria-label="Seções">
+        <button className={aba === 'dia' ? 'on' : ''} onClick={() => setAba('dia')}>
+          <span aria-hidden="true">📋</span> Dia
+        </button>
+        {administra && (
           <button className={aba === 'equipe' ? 'on' : ''} onClick={() => setAba('equipe')}>
             <span aria-hidden="true">👥</span> Equipe
           </button>
-          <button className={aba === 'casas' ? 'on' : ''} onClick={() => setAba('casas')}>
-            <span aria-hidden="true">🏠</span> Unidades
-          </button>
-        </nav>
-      )}
+        )}
+        <button className={aba === 'casas' ? 'on' : ''} onClick={() => setAba('casas')}>
+          <span aria-hidden="true">🏠</span> Unidades
+        </button>
+      </nav>
 
       <main className="conteudo">
+        {aba === 'dia' && (
+          casaAtual
+            ? <Dia houseId={casaAtual.id} casaLabel={`${casaAtual.code} · ${casaAtual.name}`} />
+            : (
+              <div className="card">
+                <p className="mutetxt" style={{ margin: 0 }}>
+                  Você não tem uma unidade no seu alcance hoje. Se isso parece errado,
+                  fale com a coordenação.
+                </p>
+              </div>
+            )
+        )}
+
         {aba === 'equipe' && administra && <Equipe />}
 
         {aba === 'casas' && (
