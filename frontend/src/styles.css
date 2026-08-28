@@ -396,6 +396,35 @@ textarea{
   font:inherit; font-size:14.5px; resize:vertical;
 }
 
+/* ---------------------------------------------------------------
+   PASSAGEM DE PLANTÃO
+
+   O que quem chega precisa ler tem que ser lido de longe, com o
+   celular na mão e o casaco ainda no braço. Por isso os blocos são
+   rotulados por dentro — "Para o próximo turno" numa linha só — e o
+   bloco que importa tem barra à esquerda.
+   --------------------------------------------------------------- */
+.passagem{ margin-top:14px }
+.passagem .eyebrow{ margin-bottom:8px }
+.bloco{
+  margin:10px 0 0; padding:10px 12px; border-radius:10px;
+  background:var(--raised); font-size:14.5px; line-height:1.5;
+  white-space:pre-wrap;
+}
+.bloco small{
+  display:block; margin-bottom:3px; font-size:11.5px; letter-spacing:.04em;
+  text-transform:uppercase; color:var(--muted);
+}
+/* O campo que a próxima pessoa vai ler primeiro. */
+.bloco.destaque{ border-left:3px solid var(--brand); background:var(--brand-soft) }
+/* O que veio depois parece o que é: veio depois. */
+.bloco.compl{ border-left:3px dashed var(--line-2); background:transparent }
+.check{
+  display:flex; align-items:center; gap:10px; margin-top:12px;
+  font-size:14.5px; cursor:pointer;
+}
+.check input{ width:20px; height:20px; accent-color:var(--brand-solid) }
+
 /* No celular o cabeçalho encolhe: cada linha dele é uma linha a menos do dia,
    e é o dia que a pessoa veio ver. */
 @media (max-width:640px){

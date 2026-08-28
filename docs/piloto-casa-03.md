@@ -189,6 +189,10 @@ Faltam:
 2. **agenda/rotina real** (diária e semanal), para a rotina do sistema nascer
    igual à da casa;
 3. **formulário de ingresso/PIA**;
-4. **modelo de passagem individual** — hoje a nossa é uma proposta;
+4. **modelo de passagem individual** — hoje a nossa é uma proposta: três campos
+   (o que foi feito, o que fica pendente, o que o próximo turno precisa saber),
+   assinatura individual e **complemento** para o que a pessoa lembra depois,
+   ao lado da passagem e nunca por cima dela. É o desenho a conferir com o
+   papel quando ele chegar;
 5. **formulários de ocorrência e contenção**;
 6. **exemplo de escala 12×36**, com os horários da técnica e da Enfermagem.

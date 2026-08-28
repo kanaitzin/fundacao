@@ -67,12 +67,16 @@ export class ShiftsService {
                 h.signed_at, h.happened_at, h.late, h.offline,
                 app_user_display_name(h.user_id) AS quem
          FROM handover h WHERE h.shift_id = $1 ORDER BY h.signed_at`, [shiftId]);
+      const { rows: complementos } = await c.query(
+        `SELECT n.id, n.handover_id, n.user_id, n.body, n.happened_at, n.written_at, n.offline,
+                app_user_display_name(n.user_id) AS quem
+         FROM handover_note n WHERE n.shift_id = $1 ORDER BY n.written_at`, [shiftId]);
       const { rows: recebimentos } = await c.query(
         `SELECT r.id, r.user_id, r.received_at, r.read_guidance, r.took_pending, r.note,
                 app_user_display_name(r.user_id) AS quem
          FROM handover_receipt r WHERE r.shift_id = $1 ORDER BY r.received_at`, [shiftId]);
       const { rows: faltam } = await c.query(
-        `SELECT full_name, role FROM app_missing_handovers($1)`, [shiftId]);
+        `SELECT user_id, full_name, role FROM app_missing_handovers($1)`, [shiftId]);
       const { rows: episodios } = await c.query(
         // Sem `JOIN person`: a ATA pertence à CASA e é imutável, mas a pessoa
         // é visível pela permanência ATIVA. Um episódio de contenção sumia da
@@ -84,13 +88,14 @@ export class ShiftsService {
                 (SELECT count(*)::int FROM ata_episode_ack k WHERE k.episode_id = e.id) AS ciencias
          FROM ata_episode e
          WHERE e.ata_id = $1 ORDER BY e.happened_at`, [a?.id ?? null]);
-      return { s, a, passagens, recebimentos, faltam, episodios };
+      return { s, a, passagens, complementos, recebimentos, faltam, episodios };
     });
     if (!dados) throw new NotFoundException('Plantão não encontrado.');
 
     return {
       id: dados.s.id, casaId: dados.s.house_id, data: dados.s.on_date,
       turno: dados.s.period, status: dados.s.status,
+      abertoEm: dados.s.opened_at, fechadoEm: dados.s.closed_at,
       ata: dados.a ? {
         id: dados.a.id, status: dados.a.status, versao: dados.a.version,
         conteudo: dados.a.content, pendencias: dados.a.pendencies,
@@ -103,13 +108,35 @@ export class ShiftsService {
         assinadaEm: h.signed_at, horarioReal: h.happened_at,
         complementoTardio: h.late, offline: h.offline,
         propria: h.user_id === user.id,
+        // O complemento nasce ao lado da passagem, nunca dentro dela: quem
+        // lê vê o que foi assinado às 19h e, separado, o que o mesmo autor
+        // acrescentou às 20h.
+        complementos: dados.complementos
+          .filter((n: any) => n.handover_id === h.id)
+          .map((n: any) => ({
+            id: n.id, quem: n.quem, texto: n.body,
+            quando: n.happened_at, escritoEm: n.written_at, offline: n.offline,
+          })),
       })),
       // A lista de quem falta é parte da tela, não um detalhe de fechamento:
       // é o que permite ir atrás da pessoa antes de fechar com pendência.
       assinaturasPendentes: dados.faltam.map((f: any) => ({ quem: f.full_name, cargo: f.role })),
+      /**
+       * Se a passagem de QUEM ESTÁ OLHANDO é esperada neste plantão.
+       *
+       * A tela dizia "sua passagem falta" para a equipe técnica num plantão
+       * em que ela nunca esteve — transformando "você não trabalhou aqui" em
+       * alarme. Falta é de quem era esperado; para os demais, assinar
+       * continua possível (quem cobriu um turno fora da escala precisa
+       * registrar), só não é cobrança.
+       */
+      minhaPassagemEsperada: dados.faltam.some((f: any) => f.user_id === user.id),
       recebimentos: dados.recebimentos.map((r: any) => ({
         id: r.id, quem: r.quem, recebidoEm: r.received_at,
         leuOrientacoes: r.read_guidance, assumiuPendencias: r.took_pending, nota: r.note,
+        // A tela precisa saber se o recebimento é SEU sem comparar nomes: dois
+        // homônimos na Fundação fariam a tela esconder o botão da pessoa errada.
+        propria: r.user_id === user.id,
       })),
       episodios: dados.episodios.map((e: any) => ({
         id: e.id, acolhidoId: e.person_id, acolhido: e.acolhido,
@@ -191,7 +218,10 @@ export class ShiftsService {
       if (e instanceof BadRequestException) throw e;
       if (e?.code === '23505') {
         throw new BadRequestException(
-          'Você já assinou a passagem deste plantão. Um registro adicional entra como relato complementar.');
+          // A mensagem antiga prometia "relato complementar" sem que existisse
+          // caminho para ele. Agora existe, e ela diz qual é.
+          'Você já assinou a passagem deste plantão. Para acrescentar algo, registre um complemento — '
+          + 'ele entra ao lado, sem reescrever o que você assinou.');
       }
       if (e?.code === '42501' || /row-level security/i.test(e?.message ?? '')) {
         // Chega aqui quem tentou gravar em nome de outro ou fora da própria casa.
@@ -220,6 +250,94 @@ export class ShiftsService {
   }
 
   /** Recebimento individual pelo turno que entra (§12.3, §26.2 #21). */
+  /**
+   * COMPLEMENTO da própria passagem (§12.1, §12.4).
+   *
+   * Existe porque a lembrança não respeita o fim do turno. O educador assina
+   * às 19h e, às 20h, lembra que a mãe do Bruno ligou às 17h30 — sem este
+   * caminho, ou ele reescreve (proibido), ou pede a outro (o que a passagem
+   * individual existe para impedir), ou manda no aplicativo de conversa.
+   *
+   * O complemento não toca a passagem assinada: nasce ao lado, com hora
+   * própria. Se a ATA já estiver fechada, entra também como adendo — pelo
+   * mesmo motivo da passagem tardia: quem ler depois precisa saber que
+   * chegou depois.
+   */
+  async complementHandover(user: AuthenticatedUser, shiftId: string, input: {
+    texto?: string; happenedAt?: string; offline?: boolean; clientOpId?: string;
+  }) {
+    const texto = (input.texto ?? '').trim();
+    if (texto.length < 5) {
+      throw new BadRequestException('Escreva o complemento — o que aconteceu, em uma linha que seja.');
+    }
+
+    const contexto = await this.db.asUser(user.id, async (c) => {
+      const { rows: [row] } = await c.query(
+        `SELECT s.house_id, s.status,
+                (SELECT h.id FROM handover h
+                  WHERE h.shift_id = s.id AND h.user_id = app_current_user()) AS handover_id
+           FROM shift s WHERE s.id = $1`, [shiftId]);
+      return row;
+    });
+    if (!contexto) throw new NotFoundException('Plantão não encontrado.');
+    if (!contexto.handover_id) {
+      throw new BadRequestException(
+        'Você ainda não assinou a passagem deste plantão. Assine primeiro — o complemento acrescenta a ela.');
+    }
+
+    const fechado = ['fechado', 'fechado_com_pendencia'].includes(contexto.status);
+
+    let id: string; let duplicado = false;
+    try {
+      ({ id, duplicado } = await this.db.asUser(user.id, async (c) => {
+        if (input.clientOpId) {
+          const { rows: [dup] } = await c.query(
+            `SELECT id FROM handover_note WHERE client_op_id = $1`, [input.clientOpId]);
+          if (dup) return { id: dup.id as string, duplicado: true };
+        }
+        const { rows: [r] } = await c.query(
+          `INSERT INTO handover_note (handover_id, shift_id, house_id, user_id, body,
+                                      happened_at, offline, client_op_id)
+           VALUES ($1,$2,$3,$4,$5, coalesce($6::timestamptz, now()), $7, $8)
+           RETURNING id`,
+          [contexto.handover_id, shiftId, contexto.house_id, user.id, texto,
+           input.happenedAt ?? null, input.offline ?? false, input.clientOpId ?? null]);
+
+        if (fechado) {
+          await c.query(
+            `INSERT INTO ata_addendum (ata_id, kind, reason, after_state, author_id)
+             SELECT a.id, 'complemento_tardio',
+                    'Complemento da própria passagem, escrito após o fechamento.',
+                    jsonb_build_object('handover_note', $2::text), $3
+             FROM ata a WHERE a.shift_id = $1`, [shiftId, r.id, user.id]);
+        }
+        return { id: r.id as string, duplicado: false };
+      }));
+    } catch (e: any) {
+      if (e?.code === '42501' || /row-level security/i.test(e?.message ?? '')) {
+        throw new ForbiddenException('O complemento é da própria passagem, escrito por quem a assinou.');
+      }
+      throw e;
+    }
+
+    if (duplicado) {
+      return { id, aviso: 'Este complemento já havia sido registrado — o reenvio não cria outro.' };
+    }
+
+    await this.audit.log({
+      action: 'handover.complement', actorId: user.id, houseId: contexto.house_id,
+      entity: 'handover', entityId: contexto.handover_id,
+      detail: { nota: id, ataFechada: fechado },
+    });
+
+    return {
+      id,
+      aviso: fechado
+        ? 'Complemento registrado ao lado da sua passagem, e a ATA guarda o adendo. O que já estava escrito continua como estava.'
+        : 'Complemento registrado ao lado da sua passagem. O que já estava escrito continua como estava.',
+    };
+  }
+
   async receive(user: AuthenticatedUser, shiftId: string, input: {
     leuOrientacoes?: boolean; assumiuPendencias?: boolean; nota?: string;
     offline?: boolean; clientOpId?: string;

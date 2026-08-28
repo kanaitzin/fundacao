@@ -6,6 +6,7 @@ import { SenhaPessoal } from './screens/SenhaPessoal';
 import { Equipe } from './screens/Equipe';
 import { Dia } from './screens/Dia';
 import { Chamada } from './screens/Chamada';
+import { Passagem } from './screens/Passagem';
 
 interface Me {
   id: string; email: string; fullName: string; role: string;
@@ -30,7 +31,7 @@ export function App() {
   const [houses, setHouses] = useState<House[]>([]);
   const [erro, setErro] = useState('');
   const [ocupado, setOcupado] = useState(false);
-  const [aba, setAba] = useState<'dia' | 'chamada' | 'casas' | 'equipe'>('dia');
+  const [aba, setAba] = useState<'dia' | 'chamada' | 'passagem' | 'casas' | 'equipe'>('dia');
   const [sugerirSenha, setSugerirSenha] = useState(false);
   const [trocarSenha, setTrocarSenha] = useState(false);
 
@@ -93,6 +94,9 @@ export function App() {
         <button className={aba === 'chamada' ? 'on' : ''} onClick={() => setAba('chamada')}>
           <span aria-hidden="true">✅</span> Chamada
         </button>
+        <button className={aba === 'passagem' ? 'on' : ''} onClick={() => setAba('passagem')}>
+          <span aria-hidden="true">🔁</span> Passagem
+        </button>
         {administra && (
           <button className={aba === 'equipe' ? 'on' : ''} onClick={() => setAba('equipe')}>
             <span aria-hidden="true">👥</span> Equipe
@@ -118,6 +122,10 @@ export function App() {
         )}
 
         {aba === 'chamada' && casaAtual && <Chamada houseId={casaAtual.id} />}
+
+        {aba === 'passagem' && casaAtual && (
+          <Passagem houseId={casaAtual.id} />
+        )}
 
         {aba === 'equipe' && administra && <Equipe />}
 

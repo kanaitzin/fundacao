@@ -107,6 +107,16 @@ export class ShiftsController {
     return this.shifts.signHandover(user, id, body);
   }
 
+  /**
+   * Complementa a PRÓPRIA passagem (§12.4). A passagem assinada não muda: o
+   * complemento nasce ao lado dela, com hora própria.
+   */
+  @Post(':id/handover/note')
+  complement(@CurrentUser() user: AuthenticatedUser,
+             @Param('id', ParseUUIDPipe) id: string, @Body() body: any) {
+    return this.shifts.complementHandover(user, id, body);
+  }
+
   @Post(':id/receipt')
   receive(@CurrentUser() user: AuthenticatedUser,
           @Param('id', ParseUUIDPipe) id: string, @Body() body: any) {

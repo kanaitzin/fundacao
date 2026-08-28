@@ -117,6 +117,79 @@ describe('Fase 5 — Plantão, ATA e proteção', () => {
     await cliente.end();
   });
 
+  /**
+   * A tela da passagem encontrou uma promessa sem caminho: ao recusar a
+   * segunda assinatura, o sistema dizia "entra como relato complementar" — e
+   * não havia rota nenhuma para isso. Quem lembrasse de algo às 20h só tinha
+   * saídas ruins. Estes três testes guardam a saída boa.
+   */
+  it('a pessoa complementa a PRÓPRIA passagem — ao lado dela, sem reescrever nada', async () => {
+    const c = await request(http).post(`/api/v1/shifts/${plantaoDiurno}/handover/note`)
+      .set(auth(tokens.educador))
+      .send({ texto: 'A mãe do Bruno ligou às 17h30 e avisou que não vem na visita de sábado.' });
+    expect(c.status).toBe(201);
+
+    const visto = await request(http).get(`/api/v1/shifts/${plantaoDiurno}`).set(auth(tokens.educador));
+    const minha = visto.body.passagens.find((p: any) => p.propria);
+    // O que foi assinado continua exatamente como foi assinado...
+    expect(minha.contribuicoes).toMatch(/Acompanhei o café/);
+    // ...e o que veio depois aparece ao lado, com hora própria.
+    expect(minha.complementos).toHaveLength(1);
+    expect(minha.complementos[0].texto).toMatch(/não vem na visita de sábado/);
+
+    const curto = await request(http).post(`/api/v1/shifts/${plantaoDiurno}/handover/note`)
+      .set(auth(tokens.educador)).send({ texto: 'ok' });
+    expect(curto.status).toBe(400);
+  });
+
+  it('quem não assinou a passagem não a complementa — nem pela rota, nem pelo banco', async () => {
+    const semPassagem = await request(http).post(`/api/v1/shifts/${plantaoDiurno}/handover/note`)
+      .set(auth(tokens.educador2)).send({ texto: 'Quero acrescentar algo ao turno de hoje.' });
+    expect(semPassagem.status).toBe(400);
+    expect(semPassagem.body.message).toMatch(/ainda não assinou/i);
+
+    // E a prova onde importa: com a identidade do colega, escrever um
+    // complemento NA PASSAGEM DO OUTRO é recusado pela política.
+    const { rows: [h] } = await admin.query(
+      `SELECT id FROM handover WHERE shift_id = $1 AND user_id = $2`, [plantaoDiurno, ids.educador]);
+    const cliente = new Client({ connectionString: appUrl });
+    await cliente.connect();
+    await cliente.query('BEGIN');
+    await cliente.query(`SELECT set_config('app.user_id', $1, true)`, [ids.educador2]);
+    await expect(cliente.query(
+      `INSERT INTO handover_note (handover_id, shift_id, house_id, user_id, body)
+       VALUES ($1,$2,$3,$4,'Complemento escrito por quem não assinou.')`,
+      [h.id, plantaoDiurno, ids.AI3, ids.educador2])).rejects.toThrow(/row-level security|violates/i);
+    await cliente.query('ROLLBACK');
+    await cliente.end();
+  });
+
+  /**
+   * A tela mostrou "sua passagem falta" para a equipe técnica num plantão em
+   * que ela nunca esteve. Falta é de quem era ESPERADO; para os demais,
+   * assinar continua possível — quem cobre um turno fora da escala precisa
+   * registrar —, só não é cobrança.
+   */
+  it('falta de passagem é de quem era esperado no plantão, não de quem apenas enxerga a casa', async () => {
+    const doEducador = await request(http).get(`/api/v1/shifts/${plantaoDiurno}`).set(auth(tokens.educador2));
+    expect(doEducador.body.minhaPassagemEsperada).toBe(true);
+
+    const daTecnica = await request(http).get(`/api/v1/shifts/${plantaoDiurno}`).set(auth(tokens.tecnica));
+    expect(daTecnica.body.minhaPassagemEsperada).toBe(false);
+    // Mas ela continua vendo o plantão inteiro, e o recebimento é dela mesma.
+    expect(daTecnica.body.passagens.length).toBeGreaterThan(0);
+    expect(daTecnica.body.passagens.every((p: any) => p.propria === false)).toBe(true);
+  });
+
+  it('o complemento também não é reescrito nem apagado', async () => {
+    const { rows: [n] } = await admin.query(
+      `SELECT id FROM handover_note WHERE shift_id = $1 LIMIT 1`, [plantaoDiurno]);
+    await expect(admin.query(
+      `UPDATE handover_note SET body = 'outra coisa' WHERE id = $1`, [n.id])).rejects.toThrow();
+    await expect(admin.query(
+      `DELETE FROM handover_note WHERE id = $1`, [n.id])).rejects.toThrow();
+  });
+
   it('#11 a narrativa pessoal do colega não aparece ao par', async () => {
     const criado = await request(http).post('/api/v1/statements').set(auth(tokens.educador))
       .send({ houseId: ids.AI3, context: 'passagem', entity: 'handover', entityId: plantaoDiurno,
