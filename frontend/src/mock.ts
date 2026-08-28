@@ -121,7 +121,15 @@ const KIDS: Kid[] = [
 
 // ---------------------------------------------------------------- pessoas do sistema
 
-const USUARIOS: Record<string, { id: string; fullName: string; role: string; senha: string }> = {
+/**
+ * As contas do protótipo.
+ *
+ * `senha: null` é conta sem senha ainda: entra só com o e-mail e cria a
+ * própria senha na hora — é assim que a primeira pessoa da Fundação vai
+ * entrar, sem senha inicial circulando em grupo de mensagens.
+ */
+const USUARIOS: Record<string, { id: string; fullName: string; role: string; senha: string | null }> = {
+  'mbarbosa@paodospobres.com.br': { id: 'u0', fullName: 'Marcelo Barbosa', role: 'coordenador', senha: null },
   'educador.ai3@paodospobres.dev': { id: 'u1', fullName: 'Mário Silva (fictício)', role: 'educador', senha: 'senha-dev-123' },
   'lider.ai3@paodospobres.dev': { id: 'u2', fullName: 'Lúcia Líder Diurna (fictícia)', role: 'lider_diurno', senha: 'senha-dev-123' },
   'tecnica.ai3@paodospobres.dev': { id: 'u3', fullName: 'Tatiane Técnica (fictícia)', role: 'equipe_tecnica', senha: 'senha-dev-123' },
@@ -318,9 +326,17 @@ export async function mockApi<T>(path: string, init?: RequestInit): Promise<T> {
 function responder(rota: string, seg: string[], q: URLSearchParams,
                    b: any, metodo: string): unknown {
   // ---- entrada
+  // Passo 1 da entrada: esta conta já tem senha?
+  if (rota === '/auth/primeiro-acesso') {
+    const u = USUARIOS[String(b.email ?? '').toLowerCase().trim()];
+    // Conta que não existe responde como as que têm senha: quem digita um
+    // e-mail errado não descobre por aqui quem trabalha na Fundação.
+    return { temSenha: !u || u.senha !== null };
+  }
   if (rota === '/auth/login') {
     const u = USUARIOS[String(b.email ?? '').toLowerCase().trim()];
-    if (!u || b.password !== u.senha) {
+    if (!u) return new Recusa(401, 'E-mail ou senha inválidos.');
+    if (u.senha !== null && b.password !== u.senha) {
       return new Recusa(401, 'E-mail ou senha inválidos.');
     }
     eu = u;
@@ -328,12 +344,15 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
   }
   if (rota === '/auth/logout') return { ok: true };
   if (rota === '/auth/password') {
-    return { ok: true, aviso: 'No protótipo a senha não é gravada em lugar nenhum.' };
+    // Vale enquanto a página estiver aberta: a partir daqui a conta pede senha.
+    eu.senha = String(b.novaSenha ?? '');
+    return { ok: true, aviso: 'Senha criada. No protótipo ela vale só nesta janela.' };
   }
   if (rota === '/users/me') {
     return {
       id: eu.id, email: Object.keys(USUARIOS).find((e) => USUARIOS[e].id === eu.id),
-      fullName: eu.fullName, role: eu.role, mustChangePassword: false,
+      fullName: eu.fullName, role: eu.role,
+      mustChangePassword: false, semSenha: eu.senha === null,
       assignments: [{ code: CASA.code, name: CASA.name, role: eu.role }],
     };
   }

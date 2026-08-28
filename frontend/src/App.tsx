@@ -13,6 +13,8 @@ import { Agenda } from './screens/Agenda';
 interface Me {
   id: string; email: string; fullName: string; role: string;
   mustChangePassword: boolean;
+  /** A conta ainda não tem senha nenhuma: o primeiro acesso é criá-la. */
+  semSenha?: boolean;
   assignments: { code: string; name: string; role: string }[];
 }
 interface House { id: string; code: string; name: string; kind: string; }
@@ -30,6 +32,17 @@ const OUTRAS = new Set(['agenda', 'equipe', 'casas']);
 
 /** Quem administra equipe (§5.3). O menu não oferece o que o cargo não faz. */
 const ADMINISTRA_EQUIPE = ['coordenador', 'gestor_geral', 'admin_tecnico'];
+
+/**
+ * Só no protótipo, e desde a tela de entrada: quem abre o arquivo precisa
+ * saber, antes de digitar qualquer coisa, que nada ali é real e nada fica
+ * salvo — senão alguém um dia usa isto para anotar o dia de uma criança de
+ * verdade.
+ */
+function Tarja() {
+  if (import.meta.env.VITE_PROTOTIPO !== '1') return null;
+  return <div className="tarja">Protótipo · dados fictícios · nada é salvo ao fechar</div>;
+}
 
 export function App() {
   const [me, setMe] = useState<Me | null>(null);
@@ -54,7 +67,7 @@ export function App() {
       // Quem trabalha no plantão abre no DIA. É a tela que ele veio usar; a
       // lista de unidades é consulta, não trabalho.
       setAba('dia');
-      if (eu.mustChangePassword) setSugerirSenha(true);
+      if (eu.semSenha || eu.mustChangePassword) setSugerirSenha(true);
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Não foi possível entrar. Tente novamente.');
     } finally {
@@ -67,7 +80,14 @@ export function App() {
     setToken(null); setMe(null); setHouses([]); setAba('dia'); setSugerirSenha(false);
   }
 
-  if (!me) return <Login onSubmit={entrar} erro={erro} ocupado={ocupado} />;
+  if (!me) {
+    return (
+      <>
+        <Tarja />
+        <Login onSubmit={entrar} erro={erro} ocupado={ocupado} />
+      </>
+    );
+  }
 
   const casa = me.assignments[0];
   const administra = ADMINISTRA_EQUIPE.includes(me.role);
@@ -77,14 +97,7 @@ export function App() {
 
   return (
     <div className="app">
-      {/* Só no protótipo. Quem abre o arquivo precisa saber, antes de digitar
-          qualquer coisa, que nada ali é real e nada fica salvo — senão alguém
-          um dia usa isto para anotar o dia de uma criança de verdade. */}
-      {import.meta.env.VITE_PROTOTIPO === '1' && (
-        <div className="tarja">
-          Protótipo · dados fictícios · nada é salvo ao fechar
-        </div>
-      )}
+      <Tarja />
       <header className="appbar">
         <div className="top">
           <span className="logochip"><img src={logo} alt="Fundação O Pão dos Pobres" /></span>
@@ -229,9 +242,10 @@ export function App() {
         <SenhaPessoal
           email={me.email}
           primeiroAcesso={sugerirSenha}
+          semSenhaAinda={!!me.semSenha && sugerirSenha}
           onPronto={() => {
             setSugerirSenha(false); setTrocarSenha(false);
-            setMe({ ...me, mustChangePassword: false });
+            setMe({ ...me, mustChangePassword: false, semSenha: false });
           }}
           onAdiar={() => { setSugerirSenha(false); setTrocarSenha(false); }}
         />

@@ -1,17 +1,28 @@
 import { useState } from 'react';
+import { api } from '../api';
 import marca from '../assets/logo-marca.png';
 
 /**
  * ENTRADA NO SISTEMA.
  *
  * Conta individual e e-mail institucional (§5.1) — não há login por casa, por
- * turno ou compartilhado. A senha inicial é entregue pela coordenação e, no
- * primeiro acesso, o sistema sugere que a pessoa crie a sua.
+ * turno ou compartilhado.
  *
- * O acesso rápido só aparece no ambiente de demonstração, com dados fictícios:
- * é para o Marcelo e a equipe circularem pelas telas sem decorar senha, e
- * some em produção (§3.3 — nunca dados reais fora de produção, e nunca atalho
- * de autenticação dentro dela).
+ * A entrada tem DOIS passos, e o segundo às vezes não acontece: a pessoa
+ * digita o e-mail, e o sistema responde se aquela conta já tem senha. Quem
+ * ainda não tem entra direto e cria a sua ali; quem já tem, digita.
+ *
+ * A razão é a coordenação, não a tecnologia. Distribuir senha inicial para
+ * quarenta pessoas por WhatsApp — que é como isso acabaria acontecendo — é
+ * pior do que qualquer senha fraca: a senha circula em grupo, some no
+ * histórico e nunca é trocada. Aqui a primeira senha da pessoa é criada pela
+ * própria pessoa, no aparelho dela.
+ *
+ * O que isso exige do servidor, e ainda não está feito: o primeiro acesso sem
+ * senha precisa valer UMA vez, por convite da coordenação e com prazo — senão
+ * o e-mail sozinho vira porta permanente. Enquanto essa rota não existe, o
+ * aplicativo de verdade continua pedindo a senha (o passo 1 responde 404 e a
+ * tela mostra o campo). Quem usa o caminho curto é o protótipo.
  */
 const DEMO = [
   { label: 'Coordenação', email: 'coord.ai3@paodospobres.dev' },
@@ -31,6 +42,30 @@ export function Login({ onSubmit, erro, ocupado }: {
 }) {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
+  /** '' = ainda não perguntamos; 'senha' = tem senha; 'primeira' = não tem. */
+  const [passo, setPasso] = useState<'' | 'senha' | 'primeira'>('');
+  const [conferindo, setConferindo] = useState(false);
+
+  async function continuar(e: React.FormEvent) {
+    e.preventDefault();
+    if (passo !== '') { onSubmit(email.trim(), senha); return; }
+
+    setConferindo(true);
+    try {
+      const r = await api<{ temSenha: boolean }>('/auth/primeiro-acesso', {
+        method: 'POST', body: JSON.stringify({ email: email.trim() }),
+      });
+      if (r.temSenha) { setPasso('senha'); return; }
+      setPasso('primeira');
+      onSubmit(email.trim(), '');
+    } catch {
+      // Servidor sem essa rota: o caminho de sempre, com senha. Falhar aqui
+      // não pode impedir ninguém de entrar.
+      setPasso('senha');
+    } finally {
+      setConferindo(false);
+    }
+  }
 
   return (
     <div className="loginwrap">
@@ -43,29 +78,42 @@ export function Login({ onSubmit, erro, ocupado }: {
           <p className="loginsub">Sistema de gestão do acolhimento</p>
         </div>
 
-        <form onSubmit={(e) => { e.preventDefault(); onSubmit(email.trim(), senha); }}>
+        <form onSubmit={continuar}>
           <label className="f" htmlFor="email">E-mail institucional</label>
           <input
             id="email" type="email" autoComplete="username" required
-            value={email} onChange={(e) => setEmail(e.target.value)}
-            placeholder="nome@paodospobres.org.br"
+            value={email} onChange={(e) => { setEmail(e.target.value); setPasso(''); }}
+            placeholder="nome@paodospobres.com.br"
           />
 
-          <label className="f" htmlFor="senha">Senha</label>
-          <input
-            id="senha" type="password" autoComplete="current-password" required
-            value={senha} onChange={(e) => setSenha(e.target.value)}
-            placeholder="Sua senha"
-          />
-          <p className="loginhint">
-            🔒 No primeiro acesso, use a senha entregue pela coordenação — o sistema
-            vai sugerir que você crie uma senha só sua.
-          </p>
+          {passo === 'senha' && (
+            <>
+              <label className="f" htmlFor="senha">Senha</label>
+              <input
+                id="senha" type="password" autoComplete="current-password" required autoFocus
+                value={senha} onChange={(e) => setSenha(e.target.value)}
+                placeholder="Sua senha"
+              />
+              <p className="loginhint">
+                🔒 Esqueceu? A coordenação reenvia o primeiro acesso — ninguém, nem ela,
+                consegue ver a sua senha.
+              </p>
+            </>
+          )}
+
+          {passo === '' && (
+            <p className="loginhint">
+              🔒 No primeiro acesso, é só o e-mail: a senha quem cria é você, agora,
+              neste aparelho.
+            </p>
+          )}
 
           {erro && <div className="notice c-crit" role="alert">{erro}</div>}
 
-          <button className="btn block" type="submit" disabled={ocupado}>
-            {ocupado ? 'Entrando…' : 'Entrar no sistema'}
+          <button className="btn block" type="submit" disabled={ocupado || conferindo}>
+            {ocupado || conferindo
+              ? 'Entrando…'
+              : passo === 'senha' ? 'Entrar no sistema' : 'Continuar'}
           </button>
         </form>
 
@@ -78,7 +126,7 @@ export function Login({ onSubmit, erro, ocupado }: {
             <div className="demochips">
               {DEMO.map((d) => (
                 <button key={d.email} type="button" className="chipbtn"
-                        onClick={() => { setEmail(d.email); setSenha(SENHA_DEMO); }}>
+                        onClick={() => { setEmail(d.email); setSenha(SENHA_DEMO); setPasso('senha'); }}>
                   {d.label}
                 </button>
               ))}
