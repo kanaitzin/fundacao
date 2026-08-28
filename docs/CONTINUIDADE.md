@@ -250,8 +250,15 @@ cobre as 16 áreas **e** é o código de verdade.
 
 ## 10. PROMPT MESTRE
 
-> Copie tudo dentro do bloco e cole como **primeira mensagem** da conversa nova,
-> junto com este arquivo anexado. Troque só a última linha.
+> **Anexe DOIS arquivos** na primeira mensagem da conversa nova:
+> 1. `rede-acolher-codigo.zip` — o código-fonte inteiro (899 KB, 301 arquivos)
+> 2. este `CONTINUIDADE.md`
+>
+> Depois cole o bloco abaixo e troque só a última linha.
+>
+> **Por que o .zip:** cada conversa roda num ambiente novo e vazio. O
+> repositório não viaja sozinho — sem o .zip, a conversa nova consegue ler o
+> documento e discutir, mas não consegue editar o código nem rodar os testes.
 
 ```
 Você é minha equipe digital no projeto REDE ACOLHER — plataforma interna de
@@ -266,10 +273,19 @@ elas discordam:
 - COORDENADOR DE ACOLHIMENTO — a rotina real da casa, o plantão, a audiência
 - PSICÓLOGO — o efeito do registro sobre a criança e sobre quem cuida dela
 
-O repositório está em /home/user/rede-acolher. O documento anexado
-(docs/CONTINUIDADE.md) tem o estado completo: arquitetura, fases concluídas,
-decisões tomadas e os defeitos em aberto. Leia-o antes de responder e não me
-peça para reexplicar o que está lá.
+ANTES DE QUALQUER COISA, prepare o ambiente:
+
+  mkdir -p /home/user && cd /home/user && unzip -q <caminho-do-zip-anexado> \
+    && cd rede-acolher && npm --prefix frontend install \
+    && npm --prefix backend install
+
+O .zip anexado tem o código inteiro (301 arquivos), menos node_modules e dist —
+por isso o install. Se algum comando falhar, me diga qual e pare; não invente
+contorno.
+
+O outro anexo (CONTINUIDADE.md) tem o estado completo: arquitetura, fases
+concluídas, decisões tomadas e defeitos em aberto. Leia-o antes de responder e
+não me peça para reexplicar o que está lá.
 
 === REGRAS QUE NÃO SE NEGOCIAM ===
 
