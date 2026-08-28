@@ -50,12 +50,35 @@ export const TIPOS_RELATORIO = [
 /** Os que só existem depois de aprovados por quem não os escreveu (§14.6). */
 const EXIGEM_APROVACAO = ['judiciario', 'audiencia', 'mensal_da_casa'];
 
-/** Seções da Audiência Concentrada (§14.6), na ordem do documento real. */
+/**
+ * Seções da Audiência Concentrada.
+ *
+ * A primeira lista veio do §14.6 e tinha onze seções. O documento REAL que a
+ * Fundação levou à audiência de março tem quatro blocos por criança:
+ * Acompanhamento, Saúde, Educação e Profissionalização, Contexto
+ * Sociofamiliar. Ele é mais curto porque foi escrito por quem redige de
+ * verdade, na véspera, para vinte crianças.
+ *
+ * Então o padrão passou a ser o real, e o restante do §14.6 fica como seções
+ * OPCIONAIS, oferecidas quando o caso pede — apadrinhamento e projeto de vida
+ * aparecem no texto da Fundação dentro do bloco sociofamiliar, e forçar onze
+ * títulos criaria nove campos vazios que, num documento judicial, são lidos
+ * como ausência de trabalho.
+ *
+ * Os quatro blocos também são os mesmos eixos do acompanhamento mensal
+ * (§14.3), o que não é coincidência: é o que permite a audiência ser montada
+ * a partir do que já foi escrito no mês, com fonte, autor e data.
+ */
 export const SECOES_AUDIENCIA = [
-  'identificação e resumo do acolhimento',
+  'acompanhamento',
   'saúde',
-  'educação, cursos, profissionalização e lazer',
-  'convivência familiar e comunitária',
+  'educação e profissionalização',
+  'contexto sociofamiliar',
+];
+
+/** Oferecidas conforme o caso, não como campo em branco a preencher. */
+export const SECOES_AUDIENCIA_OPCIONAIS = [
+  'identificação e resumo do acolhimento',
   'apadrinhamento',
   'projeto de vida',
   'autonomia e preparação para desligamento',
@@ -79,6 +102,7 @@ export class ReportsService {
       .map((t) => ({
         ...t, exigeAprovacao: EXIGEM_APROVACAO.includes(t.cod),
         secoes: t.cod === 'audiencia' ? SECOES_AUDIENCIA : undefined,
+        secoesOpcionais: t.cod === 'audiencia' ? SECOES_AUDIENCIA_OPCIONAIS : undefined,
       }));
   }
 

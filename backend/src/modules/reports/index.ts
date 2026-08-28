@@ -6,5 +6,7 @@
  * escolhidas, painel, versões) é assunto interno.
  */
 export { ReportsModule } from './reports.module';
-export { ReportsService, TIPOS_RELATORIO, SECOES_AUDIENCIA } from './reports.service';
+export {
+  ReportsService, TIPOS_RELATORIO, SECOES_AUDIENCIA, SECOES_AUDIENCIA_OPCIONAIS,
+} from './reports.service';
 export { FollowupsService } from './followups.service';
