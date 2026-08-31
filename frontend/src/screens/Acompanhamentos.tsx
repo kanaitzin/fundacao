@@ -44,6 +44,16 @@ const SITUACAO: Record<string, { label: string; tom: string }> = {
 const MEIOS = ['Protocolo presencial', 'E-mail institucional', 'Entrega em mãos',
   'Sistema do Judiciário'];
 
+interface TipoRelatorio {
+  cod: string; label: string; escopo: 'casa' | 'pessoa';
+  exigeAprovacao?: boolean;
+}
+
+/** Data de hoje na instituição, não do aparelho de quem abriu a tela. */
+const diaLocal = (offset = 0) => new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit',
+}).format(new Date(Date.now() + offset * 86400_000));
+
 const quando = (iso: string) => new Date(iso).toLocaleString('pt-BR',
   { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
     timeZone: 'America/Sao_Paulo' });
@@ -53,6 +63,9 @@ export function Acompanhamentos() {
   const [eixos, setEixos] = useState<Eixo[]>([]);
   const [lista, setLista] = useState<Acompanhamento[]>([]);
   const [relatorios, setRelatorios] = useState<Relatorio[]>([]);
+  const [baixando, setBaixando] = useState('');
+  const [gerando, setGerando] = useState(false);
+  const [tipos, setTipos] = useState<TipoRelatorio[]>([]);
   const [erro, setErro] = useState('');
   const [aviso, setAviso] = useState('');
   const [editando, setEditando] = useState<Acompanhamento | null>(null);
@@ -61,17 +74,62 @@ export function Acompanhamentos() {
   async function carregar() {
     setErro('');
     try {
-      const [e, f, r] = await Promise.all([
+      const [e, f, r, t] = await Promise.all([
         api<Eixo[]>('/followups/axes'),
         api<Acompanhamento[]>('/followups'),
         api<Relatorio[]>('/reports'),
+        // Os tipos vêm do servidor, e já chegam filtrados pelo cargo: quem não
+        // pode ver dado bancário não recebe o tipo de benefícios na lista.
+        api<TipoRelatorio[]>('/reports/kinds').catch(() => [] as TipoRelatorio[]),
       ]);
-      setEixos(e); setLista(f); setRelatorios(r);
+      setEixos(e); setLista(f); setRelatorios(r); setTipos(t);
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Não foi possível carregar os acompanhamentos.');
     }
   }
   useEffect(() => { carregar(); }, []);
+
+  /**
+   * Baixa o relatório em Word.
+   *
+   * Word, e não PDF, porque quem assina precisa poder mexer: a técnica escreve
+   * a avaliação, a coordenação acrescenta uma linha antes da audiência, alguém
+   * corrige um nome. A conversão para PDF fica com a pessoa, na hora de
+   * enviar, quando o texto já está fechado.
+   *
+   * A finalidade é pedida ANTES de baixar, e não é burocracia: toda exportação
+   * fica registrada com o nome de quem baixou, o horário e para quê. É o que
+   * permite responder, meses depois, quem tirou aquele documento do sistema.
+   */
+  async function baixar(r: Relatorio) {
+    const finalidade = window.prompt(
+      'Para que este documento vai ser usado? Fica registrado junto com o seu nome.',
+      r.finalidade ?? '');
+    if (!finalidade || !finalidade.trim()) return;
+
+    setBaixando(r.id);
+    try {
+      const res = await api<{ nomeArquivo: string; conteudoBase64: string; aviso: string }>(
+        `/reports/${r.id}/export`,
+        { method: 'POST', body: JSON.stringify({ formato: 'documento', finalidade: finalidade.trim() }) });
+
+      const bytes = Uint8Array.from(atob(res.conteudoBase64), (ch) => ch.charCodeAt(0));
+      const blob = new Blob([bytes], {
+        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = res.nomeArquivo;
+      a.click();
+      URL.revokeObjectURL(url);
+      setAviso(res.aviso);
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Não foi possível gerar o documento.');
+    } finally {
+      setBaixando('');
+    }
+  }
 
   async function acao(fn: () => Promise<any>) {
     setErro(''); setAviso('');
@@ -206,6 +264,9 @@ export function Acompanhamentos() {
               Tutelar ou ao Ministério Público é feita por uma pessoa e registrada aqui,
               com destinatário, meio, data e protocolo.
             </div>
+            <button className="btn" onClick={() => setGerando(true)}>
+              Gerar relatório
+            </button>
           </div>
 
           <div className="stack">
@@ -232,6 +293,10 @@ export function Acompanhamentos() {
                         Aprovar
                       </button>
                     )}
+                    <button className="btn sm ghost" disabled={baixando === r.id}
+                            onClick={() => void baixar(r)}>
+                      {baixando === r.id ? 'Preparando…' : 'Baixar em Word'}
+                    </button>
                     {r.situacao === 'aprovado' && (
                       <button className="btn sm ghost" onClick={() => setEntregando(r)}>
                         Registrar entrega feita
@@ -253,6 +318,17 @@ export function Acompanhamentos() {
                         method: 'POST', body: JSON.stringify({ eixos: valores, enviar }) }));
                       if (ok) setEditando(null);
                     }} />
+      )}
+
+      {gerando && (
+        <FolhaGerar
+          tipos={tipos}
+          onFechar={() => setGerando(false)}
+          onGerar={async (dados) => {
+            const ok = await acao(() => api('/reports', {
+              method: 'POST', body: JSON.stringify(dados) }));
+            if (ok) setGerando(false);
+          }} />
       )}
 
       {entregando && (
@@ -324,6 +400,104 @@ function FolhaEixos({ acompanhamento, eixos, onFechar, onSalvar }: {
             Fechar
           </button>
         )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Escolher o tipo e o período.
+ *
+ * O período abre em "últimos 30 dias" porque é o recorte que a equipe pede em
+ * quase todo relatório, e porque tela que abre vazia é tela em que alguém
+ * digita a data errada às 23h. A finalidade é obrigatória, e não é
+ * formalidade: ela vai impressa no documento e fica registrada com o nome de
+ * quem gerou.
+ */
+function FolhaGerar({ tipos, onFechar, onGerar }: {
+  tipos: TipoRelatorio[];
+  onFechar: () => void;
+  onGerar: (dados: Record<string, unknown>) => void;
+}) {
+  const [kind, setKind] = useState('');
+  const [de, setDe] = useState(diaLocal(-30));
+  const [ate, setAte] = useState(diaLocal());
+  const [finalidade, setFinalidade] = useState('');
+  const [pessoas, setPessoas] = useState<{ id: string; nome: string }[]>([]);
+  const [personId, setPersonId] = useState('');
+
+  const tipo = tipos.find((t) => t.cod === kind);
+  const precisaPessoa = tipo?.escopo === 'pessoa';
+  const pode = !!kind && !!de && !!ate && de <= ate
+    && finalidade.trim().length >= 5 && (!precisaPessoa || !!personId);
+
+  useEffect(() => {
+    if (!precisaPessoa || pessoas.length) return;
+    api<any>('/people')
+      .then((r) => setPessoas(Array.isArray(r) ? r : (r?.pessoas ?? [])))
+      .catch(() => setPessoas([]));
+  }, [precisaPessoa, pessoas.length]);
+
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-ger"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet">
+        <h3 id="t-ger">Gerar relatório</h3>
+
+        <label className="f" htmlFor="kind">Tipo</label>
+        <select id="kind" value={kind} onChange={(e) => setKind(e.target.value)}>
+          <option value="">Escolha…</option>
+          {tipos.map((t) => (
+            <option key={t.cod} value={t.cod}>
+              {t.label}{t.exigeAprovacao ? ' (exige aprovação)' : ''}
+            </option>
+          ))}
+        </select>
+
+        {precisaPessoa && (
+          <>
+            <label className="f" htmlFor="pessoa">Acolhido</label>
+            <select id="pessoa" value={personId} onChange={(e) => setPersonId(e.target.value)}>
+              <option value="">Escolha…</option>
+              {pessoas.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
+            </select>
+          </>
+        )}
+
+        <div className="row" style={{ gap: 8 }}>
+          <div className="grow">
+            <label className="f" htmlFor="de">De</label>
+            <input id="de" type="date" value={de} onChange={(e) => setDe(e.target.value)} />
+          </div>
+          <div className="grow">
+            <label className="f" htmlFor="ate">Até</label>
+            <input id="ate" type="date" value={ate} onChange={(e) => setAte(e.target.value)} />
+          </div>
+        </div>
+        {de > ate && <div className="notice c-crit">A data inicial vem depois da final.</div>}
+
+        <label className="f" htmlFor="fin">
+          Finalidade <small>— vai impressa no documento e fica registrada</small>
+        </label>
+        <textarea id="fin" value={finalidade} onChange={(e) => setFinalidade(e.target.value)}
+                  placeholder="Ex.: instruir audiência concentrada de setembro." />
+
+        <div className="notice c-info" role="status">
+          O sistema escreve a parte factual do período: atividades, saúde, medicação,
+          ocorrências e a linha do tempo. Os campos de avaliação e encaminhamento
+          ficam em branco para você escrever, e aparecem marcados no documento.
+        </div>
+
+        <div className="row" style={{ gap: 8, marginTop: 16 }}>
+          <button type="button" className="btn sec grow" onClick={onFechar}>Cancelar</button>
+          <button type="button" className="btn grow" disabled={!pode}
+                  onClick={() => onGerar({
+                    kind, de, ate, finalidade: finalidade.trim(),
+                    ...(precisaPessoa ? { personId } : {}),
+                  })}>
+            Gerar
+          </button>
+        </div>
       </div>
     </div>
   );

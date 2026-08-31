@@ -165,6 +165,7 @@ export class ChecksService {
         `"${opcao.label}" exige justificativa objetiva: descreva o fato e o contexto, sem rótulo.`);
     }
 
+    let corrigido = false;
     try {
       const dup = await this.db.asUser(user.id, async (c) => {
         if (!input.clientOpId) return false;
@@ -174,7 +175,15 @@ export class ChecksService {
       });
       if (dup) return { ok: true, duplicada: true, opcao: opcao.label };
 
-      await this.db.asUser(user.id, async (c) => {
+      // Defeito 5: a correção continua permitida — quem clicou errado precisa
+      // consertar no meio do plantão —, mas o valor anterior não morre. O
+      // gatilho tg_check_result_amend (migração 0670) copia o que constava
+      // para check_result_amendment ANTES da troca, com autor e horário.
+      // A trava está no banco: nenhum caminho de escrita escapa dela.
+      corrigido = await this.db.asUser(user.id, async (c) => {
+        const { rows: [antes] } = await c.query(
+          `SELECT option_code, note FROM check_result
+            WHERE check_id = $1 AND person_id = $2 FOR UPDATE`, [checkId, input.personId]);
         await c.query(
           `INSERT INTO check_result (check_id, person_id, option_code, note, recorded_by, offline, client_op_id, happened_at)
            VALUES ($1,$2,$3,$4,$5,$6,$7, coalesce($8::timestamptz, now()))
@@ -183,6 +192,7 @@ export class ChecksService {
                  recorded_by = EXCLUDED.recorded_by, recorded_at = now()`,
           [checkId, input.personId, input.opcao, input.nota ?? null, user.id,
            input.offline ?? false, input.clientOpId ?? null, input.happenedAt ?? null]);
+        return !!antes && (antes.option_code !== input.opcao || (antes.note ?? null) !== (input.nota ?? null));
       });
     } catch (e: any) {
       // A política do banco (migração 0150) só aceita acolhido com permanência
@@ -192,6 +202,17 @@ export class ChecksService {
           'Este acolhido não está ativo nesta casa. A conferência alcança apenas quem está na unidade.');
       }
       throw e;
+    }
+    if (corrigido) {
+      await this.audit.log({
+        action: 'check.amend', actorId: user.id, houseId: kind.house_id,
+        entity: 'check_result', entityId: checkId,
+        detail: { acolhidoId: input.personId, opcao: input.opcao },
+      });
+      return {
+        ok: true, opcao: opcao.label, corrigido: true,
+        aviso: 'Correção registrada. O que constava antes fica no histórico desta chamada, com autor e horário.',
+      };
     }
     return { ok: true, opcao: opcao.label };
   }
@@ -229,15 +250,24 @@ export class ChecksService {
   async listDay(user: AuthenticatedUser, houseId: string, date: string) {
     return this.db.asUser(user.id, async (c) => {
       const { rows } = await c.query(
+        // Defeito 11: a lista do dia mostrava `expected`, congelado na abertura,
+        // enquanto o detalhe e o fechamento já contavam o efetivo VIVO. A casa
+        // que recebeu uma criança às 15h via "12/15" na lista e "12/12" ao
+        // abrir a mesma chamada — e a equipe ia procurar três crianças que
+        // ninguém tinha deixado de conferir. É a mesma contagem de
+        // app_confirm_check: quem está ativo na casa AGORA.
         `SELECT k.id, k.kind, k.title, k.reference_at, k.status, k.expected,
-                (SELECT count(*)::int FROM check_result r WHERE r.check_id = k.id) AS conferidos
+                (SELECT count(*)::int FROM check_result r WHERE r.check_id = k.id) AS conferidos,
+                (SELECT count(*)::int FROM house_stay s
+                  WHERE s.house_id = k.house_id AND s.status = 'ativa') AS ativos
          FROM collective_check k
          WHERE k.house_id = $1
            AND (k.reference_at AT TIME ZONE 'America/Sao_Paulo')::date = $2::date
          ORDER BY k.reference_at`, [houseId, date]);
       return rows.map((r) => ({
         id: r.id, tipo: r.kind, titulo: r.title, horario: r.reference_at,
-        status: r.status, esperados: r.expected, conferidos: r.conferidos,
+        status: r.status, esperados: r.ativos, esperadosNaAbertura: r.expected,
+        conferidos: r.conferidos,
       }));
     });
   }

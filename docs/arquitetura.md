@@ -83,3 +83,14 @@ flowchart LR
 
 Armazenamento em `timestamptz` (UTC); apresentação sempre em `America/Sao_Paulo` (§23).
 Offline preserva o horário real do evento e registra o horário de sincronização (§17.3).
+
+**Fonte única, dos dois lados.** No TypeScript, `kernel/common/tempo.ts`
+(`hojeNaInstituicao`, `dataNaInstituicao`, `janelaDoMes`). No SQL, `app_hoje()`
+e `app_fuso()`. **Migração nova não usa `current_date`** — ele devolve a data do
+fuso do SERVIDOR, e em UTC já é amanhã a partir das 21h daqui. Três defeitos de
+auditoria vieram exatamente disso: o mês do painel cortado três horas antes, o
+nome do arquivo discordando da pasta, e a dose da noite que não era gerada.
+
+Comparar data com coluna `timestamptz` também não é inocente: o Postgres promove
+a data usando o fuso da sessão. Por isso a janela do mês chega pronta do kernel,
+em instante UTC, em vez de ser montada no SQL.

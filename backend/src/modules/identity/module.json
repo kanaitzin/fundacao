@@ -7,7 +7,8 @@
     "SessionGuard",
     "CurrentUser",
     "AuthService",
-    "DevicesService"
+    "DevicesService",
+    "InviteService"
   ],
   "tabelas": [
     "institution",
@@ -18,7 +19,8 @@
     "user_session",
     "login_attempt",
     "audit_event",
-    "institutional_device"
+    "institutional_device",
+    "user_invite"
   ],
   "observacao": "Contém a migração de fundação (instituição, casas, usuários e auditoria), da qual todo o resto depende. Não é removível."
 }

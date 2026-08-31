@@ -1,4 +1,7 @@
-import { BadRequestException, ForbiddenException, Inject, Injectable } from '@nestjs/common';
+import {
+  BadRequestException, ConflictException, ForbiddenException,
+  Inject, Injectable, NotFoundException,
+} from '@nestjs/common';
 import { DatabaseService } from '../../kernel/database/database.service';
 import { AuditService } from '../../kernel/audit/audit.service';
 import { AuthenticatedUser } from '../../kernel/contracts';
@@ -105,6 +108,23 @@ export class RoutineService {
          input.instructions ?? null, input.transport ?? null, input.priority ?? 3,
          input.requiresAck ?? !input.collective, user.id]);
       return r.id;
+    }).catch((e: any) => {
+      // As travas vivem no gatilho tg_routine_item_guard (migração 0680); aqui
+      // só traduzimos. A mensagem diz o que fazer, não só o que deu errado:
+      // quem está com a tela aberta às 23h precisa saber o próximo passo.
+      const m = String(e?.message ?? '');
+      if (m.includes('versao_fechada')) {
+        throw new ConflictException(
+          'Esta versão da rotina já foi encerrada e não recebe itens novos — o que ela contém é o que a casa seguiu naquele período. '
+          + 'Abra uma versão nova para alterar a rotina.');
+      }
+      if (m.includes('versao_de_outra_casa')) {
+        throw new BadRequestException('Esta versão de rotina é de outra unidade.');
+      }
+      if (m.includes('versao_inexistente')) {
+        throw new NotFoundException('Versão de rotina não encontrada.');
+      }
+      throw e;
     });
     await this.audit.log({
       action: 'routine.item_add', actorId: user.id, houseId,

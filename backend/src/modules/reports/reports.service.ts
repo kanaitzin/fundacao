@@ -4,6 +4,8 @@ import {
 } from '@nestjs/common';
 import { createHash } from 'node:crypto';
 import { DatabaseService } from '../../kernel/database/database.service';
+import { ConteudoService } from './conteudo.service';
+import { DocumentoService } from './documento.service';
 import { AuditService } from '../../kernel/audit/audit.service';
 import { AuthenticatedUser } from '../../kernel/contracts';
 
@@ -42,10 +44,22 @@ export const TIPOS_RELATORIO = [
   { cod: 'mensal_da_casa', label: 'Mensal da casa', escopo: 'casa' },
   { cod: 'atas_consolidadas', label: 'ATAs consolidadas', escopo: 'casa' },
   { cod: 'alimentacao', label: 'Alimentação e restrições', escopo: 'casa' },
+  { cod: 'desenvolvimento', label: 'Desenvolvimento da criança na casa', escopo: 'pessoa' },
   { cod: 'historico', label: 'Histórico institucional', escopo: 'pessoa' },
   { cod: 'saude', label: 'Evolução e Resumo de Saúde', escopo: 'pessoa' },
   { cod: 'beneficios', label: 'Benefícios e dados bancários', escopo: 'pessoa', restrito: true },
 ] as const;
+
+/** Como o cargo aparece embaixo da assinatura, no papel. */
+const CARGO_LABEL: Record<string, string> = {
+  gestor_geral: 'Gestor Geral',
+  coordenador: 'Coordenação da unidade',
+  equipe_tecnica: 'Equipe técnica',
+  enfermagem: 'Enfermagem',
+  lider_diurno: 'Líder Diurno',
+  lider_noturno_geral: 'Líder Noturno Geral',
+  educador: 'Educador social',
+};
 
 /** Os que só existem depois de aprovados por quem não os escreveu (§14.6). */
 const EXIGEM_APROVACAO = ['judiciario', 'audiencia', 'mensal_da_casa'];
@@ -91,6 +105,8 @@ export const SECOES_AUDIENCIA_OPCIONAIS = [
 @Injectable()
 export class ReportsService {
   constructor(
+    @Inject(ConteudoService) private readonly conteudo: ConteudoService,
+    @Inject(DocumentoService) private readonly documento: DocumentoService,
     @Inject(DatabaseService) private readonly db: DatabaseService,
     @Inject(AuditService) private readonly audit: AuditService,
   ) {}
@@ -138,11 +154,35 @@ export class ReportsService {
 
     // Cada seção carrega a própria origem. Sem fonte, o trecho fica marcado
     // como redigido pelo autor — nunca como fato de origem desconhecida.
-    const secoes = (input.secoes ?? []).map((s) => ({
-      titulo: s.titulo, texto: s.texto,
-      fonte: s.fonte ?? 'redigido pelo autor do relatório',
-      autor: s.autor ?? user.fullName, em: s.em ?? new Date().toISOString(),
-    }));
+    /*
+     * O relatório nascia vazio, e isso foi o achado mais caro do ensaio de
+     * uso: a equipe abria o documento e encontrava um formulário em branco,
+     * tendo que digitar à mão o que o sistema inteiro já sabia. Quando o autor
+     * não manda seções, o sistema monta a parte factual e deixa em branco,
+     * marcados como pendência, os campos que só uma pessoa pode escrever.
+     */
+    const doSistema = (input.secoes?.length ?? 0) > 0
+      ? []
+      : await this.conteudo.montar(user, {
+          kind: input.kind, houseId: input.houseId, personId: input.personId,
+          de: input.de, ate: input.ate,
+        });
+
+    const secoes = [
+      ...doSistema.map((s) => ({
+        titulo: s.titulo, texto: s.texto,
+        fonte: s.fonte ?? 'registros do sistema',
+        aPreencher: s.aPreencher ?? false,
+        autor: s.aPreencher ? null : 'Rede Acolher',
+        em: new Date().toISOString(),
+      })),
+      ...(input.secoes ?? []).map((s) => ({
+        titulo: s.titulo, texto: s.texto,
+        fonte: s.fonte ?? 'redigido pelo autor do relatório',
+        aPreencher: false,
+        autor: s.autor ?? user.fullName, em: s.em ?? new Date().toISOString(),
+      })),
+    ];
     const body = { finalidade: input.finalidade.trim(), secoes };
     const checksum = createHash('sha256').update(JSON.stringify(body)).digest('hex');
 
@@ -175,11 +215,16 @@ export class ReportsService {
   async abrir(user: AuthenticatedUser, id: string) {
     const row = await this.db.asUser(user.id, async (c) => {
       const { rows: [r] } = await c.query(
-        `SELECT r.*, a.full_name AS aprovador, cr.full_name AS autor
+        `SELECT r.*, a.full_name AS aprovador, cr.full_name AS autor,
+                h.code AS casa_codigo, h.name AS casa_nome,
+                CASE WHEN r.person_id IS NOT NULL
+                     THEN app_person_display_name(r.person_id) END AS acolhido
            FROM report_document r
-           -- rls-join-ok: app_user não tem RLS de linha; quem filtra é a policy rep_select.
+           -- rls-join-ok: app_user e house não filtram por linha aqui; quem
+           -- decide o que este usuário enxerga é a policy rep_select.
            LEFT JOIN app_user a ON a.id = r.approved_by
            LEFT JOIN app_user cr ON cr.id = r.created_by
+           LEFT JOIN house h ON h.id = r.house_id
           WHERE r.id = $1`, [id]);
       return r;
     });
@@ -189,6 +234,9 @@ export class ReportsService {
       periodo: { de: row.period_start, ate: row.period_end },
       finalidade: row.purpose, formato: row.format, corpo: row.body,
       autor: row.autor, aprovador: row.aprovador, aprovadoEm: row.approved_at,
+      aprovadoPor: row.aprovador,
+      unidade: row.casa_codigo ? `${row.casa_codigo} ${row.casa_nome}` : null,
+      acolhido: row.acolhido ?? null,
       checksum: row.checksum,
     };
   }
@@ -285,6 +333,44 @@ export class ReportsService {
       action: 'report.export', actorId: user.id, institutionId: user.institutionId,
       entity: 'report', entityId: id, detail: { formato, tipo: doc.tipo },
     });
+    /*
+     * Word, e não PDF, por uso e não por tecnologia: quem assina precisa poder
+     * mexer. A técnica escreve a avaliação, a coordenação acrescenta uma linha
+     * antes da audiência, alguém corrige um nome. Um PDF fechado empurraria a
+     * equipe a refazer tudo no Word da máquina dela, e aí o que vai ao Juízo
+     * deixa de ter relação com o que está no sistema. A conversão para PDF é
+     * da pessoa, na hora de enviar, quando o texto já está fechado.
+     */
+    if (formato === 'documento' || formato === 'docx') {
+      const tipo = TIPOS_RELATORIO.find((t) => t.cod === doc.tipo);
+      const arquivo = await this.documento.gerar({
+        titulo: `Relatório ${tipo?.label ?? doc.tipo}`,
+        tipoLabel: tipo?.label ?? doc.tipo,
+        situacao: doc.situacao,
+        finalidade: doc.finalidade,
+        periodoDe: doc.periodo.de, periodoAte: doc.periodo.ate,
+        unidade: doc.unidade ?? null,
+        acolhido: doc.acolhido ?? null,
+        secoes: (doc.corpo?.secoes ?? []).map((x: any) => ({
+          titulo: x.titulo, texto: x.texto ?? '', fonte: x.fonte, aPreencher: x.aPreencher,
+        })),
+        geradoPor: user.fullName,
+        cargo: CARGO_LABEL[user.role] ?? user.role,
+        aprovadoPor: doc.aprovadoPor ?? null,
+      });
+      return {
+        id, tipo: doc.tipo, formato: 'docx',
+        nomeArquivo: this.documento.nomeDoArquivo(
+          tipo?.label ?? doc.tipo, doc.periodo.de, doc.periodo.ate),
+        conteudoBase64: arquivo.toString('base64'),
+        aviso: doc.situacao === 'aprovado'
+          ? 'Documento gerado em Word, com timbre. Exportação registrada com o seu nome, '
+            + 'a finalidade e o horário. Converta para PDF na hora de enviar.'
+          : 'Documento gerado em Word, marcado como RASCUNHO na primeira página. '
+            + 'Ele só deixa de ser rascunho depois da aprovação de outra pessoa.',
+      };
+    }
+
     return {
       id, tipo: doc.tipo, formato, corpo,
       aviso: 'Exportação registrada com o seu nome, a finalidade e o horário.',

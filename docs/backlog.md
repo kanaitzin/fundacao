@@ -367,3 +367,40 @@ exportações auditadas (#32), painéis sem ranking.
 
 ## Fase 7 — Piloto Casa 03
 Migração assistida, treinamento, paralelo com prazo, homologação, aceite (#42).
+
+---
+
+## Fase 8 — Os doze defeitos da auditoria ✅
+
+| # | Defeito | Correção |
+|---|---|---|
+| 1 | `app_mark_unconfirmed` rodava `SECURITY DEFINER` sem checar escopo: qualquer usuário autenticado marcava atividade de outra casa, sem ver a casa e com resposta de sucesso | `app_house_in_scope()` dentro da função (0620). Fora de escopo responde 404, não 403 — 403 confirmaria que o uuid é de uma casa real |
+| 2 | `clientOpId` contornava a trava de estado final: a fila offline sobrescrevia atividade que outra pessoa já concluíra, e o aparelho limpava o registro local | idempotência ANTES da trava; a trava vale para todos. Operação atrasada vira conflito e vai para revisão humana |
+| 3 | `enviarParaAprovacao` validava depois do commit: o acompanhamento vazio ficava preso em `em_aprovacao`, fora do rascunho de quem escreveu | validação dentro da transação, com `FOR UPDATE`. Ou os dois acontecem, ou nenhum |
+| 4 | `UNIQUE` do estoque com `person_id` anulável nunca disparava para o estoque comum: duplicatas acumulavam e **uma dose descontava de todas** | `UNIQUE NULLS NOT DISTINCT` (0690), com consolidação registrada como movimento de ajuste — nada some em silêncio |
+| 5 | A chamada sobrescrevia marcação **e autoria** sem histórico | `check_result_amendment` + gatilho (0670). Correção continua permitida; o valor anterior não morre |
+| 6 | `atualizarJudicial` atingia todos os episódios: corrigir a situação de hoje reescrevia a de 2019 | filtro pelo episódio ativo |
+| 7, 9, 10 | Fuso: mês cortado em UTC, nome de arquivo discordando da pasta, `current_date` perdendo a dose depois das 21h | `app_hoje()`/`app_fuso()` (0630) como gêmeo SQL do `tempo.ts`; janela do mês calculada no kernel em instante UTC |
+| 8 | Pedido de substituição reabria atividade concluída | trava nos dois pontos — no pedido e na autorização |
+| 11 | `listDay` usava `expected` congelado: a lista dizia "12/15" e o detalhe "12/12" | efetivo vivo, igual ao fechamento |
+| 12 | `addItem` aceitava qualquer `versionId`, inclusive de versão fechada e **de outra casa** | gatilho `tg_routine_item_guard` (0680) |
+
+**Trava:** `test/regressao-autoria.e2e.spec.ts`, 19 testes.
+
+## Fase 9 — Convite de primeiro acesso ✅
+Uso único, 24 horas, e-mail institucional. Emitir embaralha a senha atual e
+derruba as sessões. Quem convida não vê o link. `MailGateway` escreve em caixa
+local em dev, no mesmo desenho do `DriveGateway` — SMTP real só na implantação.
+
+## Fase 10 — Autoria dupla, delegação e painel do plantão ✅
+Líder e coordenação registram pelo colega que realizou e não conseguiu
+registrar, com os DOIS nomes e o motivo. Não vale para dose nem para chamada.
+Delegação de cima para baixo, sem apagar a designação anterior. Recusa de
+substituição com motivo obrigatório. Painel do turno sem contagem por pessoa.
+
+## Fase 11 — Auditoria de testes e documentação ✅
+219 testes em 16 suítes, todas verdes. As 6 falhas antigas do `saude` eram uma
+só, em cascata: o teste media `criadas` na casa inteira e dependia da ordem das
+suítes. **Regra que ficou:** suíte que muta estado compartilhado desfaz o que
+criou — a primeira versão da regressão passava sozinha e derrubava duas suítes
+vizinhas.

@@ -7,6 +7,8 @@ import { AuthService } from './auth.service';
 import { SessionGuard } from './session.guard';
 import { DevicesService } from './devices.service';
 import { StaffService } from './staff.service';
+import { InviteService } from './invite.service';
+import { MailGateway } from './mail.gateway';
 
 /**
  * Módulo `identity` — quem é a pessoa e o que ela ainda pode fazer nesta sessão.
@@ -17,7 +19,7 @@ import { StaffService } from './staff.service';
  */
 @Module({
   controllers: [AuthController, UsersController, DevicesController, StaffController],
-  providers: [AuthService, SessionGuard, DevicesService, StaffService],
-  exports: [AuthService, SessionGuard, DevicesService, StaffService],
+  providers: [AuthService, SessionGuard, DevicesService, StaffService, InviteService, MailGateway],
+  exports: [AuthService, SessionGuard, DevicesService, StaffService, InviteService],
 })
 export class IdentityModule {}

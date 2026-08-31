@@ -48,10 +48,35 @@ limitados à **finalidade** do cargo na camada de aplicação.
 | Catálogo das unidades (para escolher destino) | — | — | ✅ | ✅ | — | — | ✅ |
 | Aprovar comunicação externa | — | — | ✅ | ✅ | — | — | ✅ |
 | Auditoria (leitura) | — | — | — | própria casa | — | — | ✅ |
+| Registrar conclusão **pelo colega** (autoria dupla) | — | ✅ | — | ✅ | — | ✅ | ✅ |
+| Delegar atividade em aberto a outro educador | — | ✅ | — | ✅ | — | ✅ | ✅ |
+| Autorizar ou **recusar** substituição | — | ✅ | ✅ | ✅ | — | ✅ | — |
+| Ver o painel do plantão (quem está em quê) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Convidar para o primeiro acesso | — | — | — | ✅ própria casa | — | — | ✅ |
 
 ## Regras invariantes
 
 - Conta individual; ninguém assina ou confirma por outro (§5.1, §11.2, §12.1).
+  **Uma exceção, com forma própria:** o líder do turno e a coordenação podem
+  REGISTRAR a conclusão de uma atividade comum por um educador que a realizou e
+  não conseguiu registrar (aparelho da casa sem sinal, e ele não usa o próprio
+  celular). Isso não é assinar por outro: o registro guarda os DOIS nomes —
+  quem realizou e quem registrou — mais o motivo, e toda tela mostra os dois
+  juntos. O nome de quem operou o sistema nunca é substituído.
+  **A exceção não alcança dose de medicamento (§11.2) nem chamada (§10):** numa,
+  a confirmação individual é a proteção da criança; na outra, quem marca
+  presença é quem olhou a criança. Líder marcando por outro transformaria a
+  conferência em formulário.
+- Substituição tem os dois lados: autorizar e **recusar**, esta com motivo
+  obrigatório, porque quem pediu vai ler. O sistema não fecha pedido sozinho —
+  nem o pedido cuja atividade já foi concluída enquanto ele aguardava; esse
+  aparece marcado na lista do líder, explicado, para ele recusar.
+- Primeiro acesso é por convite de **uso único e prazo de 24 horas**, enviado ao
+  e-mail institucional. Quem convida não vê o link. Emitir convite embaralha a
+  senha atual e derruba as sessões: a partir dali a única porta é o link.
+- O painel do plantão mostra quem está em quê AGORA, para toda a equipe. Não é
+  medição: sem contagem por pessoa, sem ordenação por desempenho, sem histórico
+  de deslocamento (§3.3).
 - Fora de escopo = **404 idêntico a inexistente** (não vaza existência).
 - Acesso excepcional (gestor → narrativa pessoal) exige finalidade, justificativa,
   **reautenticação** e auditoria destacada (§5.2).

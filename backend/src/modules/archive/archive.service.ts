@@ -7,6 +7,7 @@ import { AuditService } from '../../kernel/audit/audit.service';
 import { EventBus } from '../../kernel/events/event-bus.service';
 import { AuthenticatedUser, EscalationRequest } from '../../kernel/contracts';
 import { DriveGateway } from './drive.gateway';
+import { dataNaInstituicao } from '../../kernel/common/tempo';
 
 /**
  * ARQUIVO DOCUMENTAL NO DRIVE (§16).
@@ -37,7 +38,13 @@ export class ArchiveService {
    * abre o sistema, onde há permissão e registro de leitura.
    */
   nomeSeguro(categoria: string, entityId: string, data: Date, versao = 'V1'): string {
-    const dia = data.toISOString().slice(0, 10);
+    // Defeito 9: `toISOString()` é UTC. A PASTA no Drive já era montada em
+    // America/Sao_Paulo (app_archive_enqueue), então a ATA fechada às 22h do
+    // dia 31 ia para a pasta 2026/07 com o nome dizendo 2026-08-01. Quem for
+    // procurar o documento da noite do dia 31 — e quem vai procurar é a
+    // coordenação na véspera de uma audiência — não acha nem pelo nome nem
+    // pela pasta. Nome e caminho passam a falar a mesma data.
+    const dia = dataNaInstituicao(data);
     return `${categoria}_${dia}_${entityId.slice(0, 8)}_${versao}.pdf`;
   }
 

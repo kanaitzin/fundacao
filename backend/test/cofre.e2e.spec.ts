@@ -80,8 +80,24 @@ describe('Cofre de acessos — gov.br, INSS, CTPS e banco', () => {
     expect(guardado.startsWith('v1.')).toBe(true);
     expect(decifrarSegredo(guardado)).toBe(SENHA_FICTICIA);
 
-    // Um byte alterado não devolve lixo silencioso: falha.
-    const adulterado = guardado.slice(0, -2) + 'AA';
+    /*
+     * Um byte alterado não devolve lixo silencioso: falha.
+     *
+     * Trocar os dois últimos caracteres por 'AA' às vezes cai justamente no
+     * valor que já estava lá, e aí nada é adulterado e o teste falha sem que
+     * nada esteja errado. O teste passava quase sempre, o que é pior do que
+     * falhar sempre: uma luz vermelha que acende de vez em quando ensina a
+     * equipe a ignorá-la. Agora a alteração é garantida.
+     */
+    // A alteração vai no MEIO da cifra, não no fim: os últimos caracteres de
+    // um base64 carregam bits de preenchimento, e trocá-los muitas vezes
+    // decodifica para exatamente os mesmos bytes. Era essa a razão de o teste
+    // passar quase sempre e falhar de vez em quando.
+    const meio = Math.floor(guardado.length / 2);
+    const atual = guardado[meio];
+    const adulterado = guardado.slice(0, meio) + (atual === 'A' ? 'B' : 'A')
+      + guardado.slice(meio + 1);
+    expect(adulterado).not.toBe(guardado);
     expect(() => decifrarSegredo(adulterado)).toThrow();
 
     // A dica mostra o suficiente para conferir e nada além disso.

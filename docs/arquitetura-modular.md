@@ -19,10 +19,12 @@ backend/src/
     activities/  checks/  timeline/  notifications/  sync/
     medications/  nursing/
     statements/  shifts/  incidents/
+    reports/  archive/
 ```
 
-Quatorze partições. A ordem acima é a das fases: cada bloco entrou sem alterar o
-anterior.
+Dezesseis partições. A ordem acima é a das fases: cada bloco entrou sem alterar
+o anterior. `reports` e `archive` entraram na fase 6 e o mapa tinha ficado para
+trás — o documento dizia quatorze enquanto o código já tinha dezesseis.
 
 Cada módulo tem sempre três coisas:
 
@@ -74,7 +76,8 @@ Consequências práticas:
 
 **Verificado na prática, duas vezes.** Fase 3: removendo `modules/checks/` e sua
 linha em `app.module.ts`, o sistema compila, sobe e responde
-`fontes: ['activities'], incompleta: false`. Fase 5, com quatorze módulos:
+`fontes: ['activities'], incompleta: false`. Fase 5, com catorze módulos na
+época:
 removendo `modules/incidents/` — que tem provedor de linha do tempo, comandos de
 sistema e depende de `statements` — o sistema compila, sobe e responde
 `fontes: ['activities','checks','medications','shifts'], incompleta: false`.

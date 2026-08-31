@@ -48,6 +48,7 @@ export function Login({ onSubmit, erro, ocupado }: {
 
   async function continuar(e: React.FormEvent) {
     e.preventDefault();
+    if (passo === 'primeira') { setPasso(''); setSenha(''); return; }
     if (passo !== '') { onSubmit(email.trim(), senha); return; }
 
     setConferindo(true);
@@ -56,8 +57,10 @@ export function Login({ onSubmit, erro, ocupado }: {
         method: 'POST', body: JSON.stringify({ email: email.trim() }),
       });
       if (r.temSenha) { setPasso('senha'); return; }
+      // Conta ainda sem senha: a criação acontece pelo link do convite, no
+      // e-mail institucional. Criar senha aqui, só com o e-mail, devolveria a
+      // porta permanente que o convite existe para fechar (§8.2).
       setPasso('primeira');
-      onSubmit(email.trim(), '');
     } catch {
       // Servidor sem essa rota: o caminho de sempre, com senha. Falhar aqui
       // não pode impedir ninguém de entrar.
@@ -103,9 +106,17 @@ export function Login({ onSubmit, erro, ocupado }: {
 
           {passo === '' && (
             <p className="loginhint">
-              🔒 No primeiro acesso, é só o e-mail: a senha quem cria é você, agora,
-              neste aparelho.
+              🔒 No primeiro acesso, a senha quem cria é você — pelo link que a
+              coordenação envia para o seu e-mail institucional.
             </p>
+          )}
+
+          {passo === 'primeira' && (
+            <div className="notice c-info" role="status">
+              Esta conta ainda não tem senha. Abra o e-mail institucional e use o link
+              do convite para criar a sua — ele vale 24 horas e serve uma vez.
+              Se não chegou, peça um novo à coordenação.
+            </div>
           )}
 
           {erro && <div className="notice c-crit" role="alert">{erro}</div>}
@@ -113,7 +124,8 @@ export function Login({ onSubmit, erro, ocupado }: {
           <button className="btn block" type="submit" disabled={ocupado || conferindo}>
             {ocupado || conferindo
               ? 'Entrando…'
-              : passo === 'senha' ? 'Entrar no sistema' : 'Continuar'}
+              : passo === 'senha' ? 'Entrar no sistema'
+              : passo === 'primeira' ? 'Tentar outro e-mail' : 'Continuar'}
           </button>
         </form>
 

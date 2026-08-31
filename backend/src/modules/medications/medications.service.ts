@@ -62,7 +62,7 @@ export class MedicationsService {
         `INSERT INTO prescription (person_id, house_id, kind, medication, purpose, dose, route,
            instructions, use_condition, prescriber, starts_on, ends_on, status, created_by)
          VALUES ($1,$2,$3::prescription_kind,$4,$5,$6,$7,$8,$9,$10,
-                 coalesce($11::date, current_date), $12::date, 'rascunho', $13)
+                 coalesce($11::date, app_hoje()), $12::date, 'rascunho', $13)
          RETURNING id`,
         [input.personId, input.houseId, input.tipo, input.medicamento, input.finalidade ?? null,
          input.dose, input.via, input.instrucoes ?? null, input.condicaoUso ?? null,

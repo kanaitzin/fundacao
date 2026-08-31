@@ -31,15 +31,31 @@ const SENHA = 'senha-dev-123';
 const adminUrl = process.env.DATABASE_URL ?? 'postgres://rede_admin:dev-only-change-me@127.0.0.1:5432/rede_acolher';
 
 /** Datas fixas e futuras, para o teste não depender do dia em que roda. */
-const hoje = new Date().toISOString().slice(0, 10);
-const daquiUmMes = new Date(Date.now() + 30 * 86400_000).toISOString().slice(0, 10);
-const daquiDoisMeses = new Date(Date.now() + 60 * 86400_000).toISOString().slice(0, 10);
+/*
+ * As datas do teste são as da INSTITUIÇÃO, não as do servidor.
+ *
+ * Estavam em UTC. Depois das 21h de Porto Alegre o servidor já virou o dia, e
+ * a suíte passava a marcar o compromisso para amanhã enquanto cobrava a
+ * materialização de hoje: cinco testes falhavam toda noite e voltavam a passar
+ * de manhã, sem que nada no sistema tivesse mudado.
+ *
+ * É a mesma família de defeitos que a auditoria corrigiu no código — e ela
+ * tinha sobrado aqui, no lugar que deveria denunciá-la.
+ */
+const dia = (offsetDias = 0) => new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit',
+}).format(new Date(Date.now() + offsetDias * 86400_000));
+
+const hoje = dia();
+const daquiUmMes = dia(30);
+const daquiDoisMeses = dia(60);
 
 describe('Agenda — marcar na linha do tempo com data, hora e repetição', () => {
   let app: INestApplication, http: any, admin: Client;
   const tokens: Record<string, string> = {};
   let AI3: string, pessoa: string;
   const criados: string[] = [];
+  const escalasCriadas: string[] = [];
 
   const auth = (t: string) => ({ Authorization: `Bearer ${t}` });
   const login = (email: string) =>
@@ -70,6 +86,18 @@ describe('Agenda — marcar na linha do tempo com data, hora e repetição', () 
   });
 
   afterAll(async () => {
+    /*
+     * A escala criada aqui precisa sair daqui.
+     *
+     * Enquanto as datas do teste eram UTC, a escala caía no dia errado e não
+     * atrapalhava ninguém — o vazamento existia e estava escondido pelo mesmo
+     * defeito de fuso. Corrigido o fuso, ela passou a valer HOJE e a suíte do
+     * plantão começou a cobrar passagem de um educador que só existia por
+     * causa deste teste. Suíte que muta estado compartilhado desfaz o que criou.
+     */
+    if (escalasCriadas.length) {
+      await admin.query(`DELETE FROM work_schedule WHERE id = ANY($1::uuid[])`, [escalasCriadas]);
+    }
     if (criados.length) {
       await admin.query(
         `DELETE FROM activity_assignment WHERE activity_id IN
@@ -316,10 +344,15 @@ describe('Agenda — marcar na linha do tempo com data, hora e repetição', () 
       `SELECT u.id FROM app_user u
          JOIN user_house_assignment a ON a.user_id = u.id AND a.house_id = $1
         WHERE u.role = 'educador' AND u.active LIMIT 1`, [AI3]);
-    await admin.query(
+    // `app_hoje()`, não `current_date`: o dia da semana da escala tem de ser o
+    // de Porto Alegre. Com o servidor em UTC, depois das 21h a escala nascia
+    // para o dia seguinte e a consulta de hoje não a encontrava.
+    const { rows: [escala] } = await admin.query(
       `INSERT INTO work_schedule (user_id, house_id, weekday, start_time, end_time, valid_from)
-       VALUES ($1, $2, extract(dow from current_date)::smallint, '07:00', '19:00', current_date)`,
+       VALUES ($1, $2, extract(dow from app_hoje())::smallint, '07:00', '19:00', app_hoje())
+       RETURNING id`,
       [outro.id, AI3]);
+    escalasCriadas.push(escala.id);
 
     const equipe = await request(http)
       .get(`/api/v1/activities/agenda/staff?houseId=${AI3}&data=${hoje}&hora=03:00`)
@@ -363,7 +396,7 @@ describe('Agenda — marcar na linha do tempo com data, hora e repetição', () 
       .set(auth(tokens.lider)).send({ houseId: AI3, date: hoje });
 
     // Materializa também um dia futuro, para provar que ele é retirado.
-    const amanha = new Date(Date.now() + 86400_000).toISOString().slice(0, 10);
+    const amanha = dia(1);
     await request(http).post('/api/v1/activities/agenda/generate')
       .set(auth(tokens.lider)).send({ houseId: AI3, date: amanha });
 

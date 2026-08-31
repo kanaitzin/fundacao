@@ -31,15 +31,24 @@ export class EventBus {
     name: string,
     payload: T,
     ctx: { actorId?: string | null; houseId?: string | null } = {},
-  ): Promise<void> {
+  ): Promise<{ falhas: string[] }> {
     const event: DomainEvent<T> = { name, at: new Date(), payload, ...ctx };
+    const falhas: string[] = [];
     for (const handler of this.handlers.get(name) ?? []) {
       try {
         await handler(event);
       } catch (err) {
         // Um ouvinte com defeito não pode derrubar a operação que publicou.
         this.log.error(`ouvinte de "${name}" falhou: ${(err as Error).message}`);
+        falhas.push((err as Error).message);
       }
     }
+    // Mas quem publicou PRECISA poder saber que falhou.
+    //
+    // No ensaio de uso, autorizar uma substituição respondeu "o substituto
+    // precisa tomar ciência" enquanto o aviso morria aqui dentro em silêncio.
+    // Às 23h o líder achou que tinha resolvido o plantão. Engolir o erro
+    // protege a operação; escondê-lo de quem chamou é outra coisa.
+    return { falhas };
   }
 }

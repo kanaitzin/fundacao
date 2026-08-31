@@ -638,6 +638,23 @@ export async function mockApi<T>(path: string, init?: RequestInit): Promise<T> {
   return r as T;
 }
 
+/** Pedidos de substituição do protótipo — um deles já sem efeito. */
+const PEDIDOS_SUB = [
+  { id: 'sub1', atividade: 'Consulta odontológica — Luiz', motivo: 'Preciso sair mais cedo hoje.',
+    status: 'solicitada', pedidoPor: 'Mário Silva (fictício)',
+    solicitadoEm: new Date().toISOString(), semEfeito: false, aviso: null as string | null },
+  { id: 'sub2', atividade: 'Café da manhã', motivo: 'Fiquei retido no transporte.',
+    status: 'solicitada', pedidoPor: 'Joana Lima (fictícia)',
+    solicitadoEm: new Date().toISOString(), semEfeito: true,
+    aviso: 'A atividade já foi encerrada como "Concluída no horário" enquanto o pedido '
+         + 'aguardava. Não cabe substituir o que já aconteceu — recuse o pedido com o motivo.' },
+];
+
+/** Token de mentira do protótipo: entre com ?convite=demo na barra de endereço. */
+const CONVITE_DEMO = 'demo';
+const EMAIL_DEMO = 'mbarbosa@paodospobres.com.br';
+let conviteGasto = false;
+
 function responder(rota: string, seg: string[], q: URLSearchParams,
                    b: any, metodo: string): unknown {
   // ---- entrada
@@ -647,6 +664,37 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     // Conta que não existe responde como as que têm senha: quem digita um
     // e-mail errado não descobre por aqui quem trabalha na Fundação.
     return { temSenha: !u || u.senha !== null };
+  }
+  /*
+   * Convite de primeiro acesso. No protótipo o "e-mail" não sai daqui: o
+   * token de mentira é sempre o mesmo, e a tarja já avisa que nada é real.
+   * O que este trecho demonstra é o CAMINHO — conferir antes de pedir senha,
+   * gastar o convite uma vez, e o link vencido não contar de quem era.
+   */
+  if (rota === '/auth/convite/conferir') {
+    if (String(b.convite ?? '') !== CONVITE_DEMO || conviteGasto) {
+      return new Recusa(410, 'Convite inválido ou vencido. Peça um novo à coordenação.');
+    }
+    return { valido: true, nome: eu.fullName, email: EMAIL_DEMO };
+  }
+  if (rota === '/auth/convite/concluir') {
+    if (String(b.convite ?? '') !== CONVITE_DEMO || conviteGasto) {
+      return new Recusa(410, 'Convite inválido ou vencido. Peça um novo à coordenação.');
+    }
+    if (String(b.novaSenha ?? '').length < 8) {
+      return new Recusa(400, 'A senha precisa de pelo menos 8 caracteres.');
+    }
+    conviteGasto = true;                 // uma vez só, também aqui
+    eu.senha = String(b.novaSenha);
+    return { ok: true, token: 'prototipo' };
+  }
+  if (rota.startsWith('/staff/') && rota.endsWith('/convite')) {
+    return {
+      ok: true,
+      expiraEm: new Date(Date.now() + 24 * 3600_000).toISOString(),
+      aviso: 'Convite enviado para o e-mail institucional. Vale 24 horas e serve uma vez. '
+           + 'No protótipo nenhum e-mail é enviado de verdade.',
+    };
   }
   if (rota === '/auth/login') {
     const u = USUARIOS[String(b.email ?? '').toLowerCase().trim()];
@@ -716,6 +764,30 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
   }
 
   // ---- o dia
+  /*
+   * O dia das unidades no protótipo.
+   *
+   * O servidor de mentira tem uma casa só, então a lista repete a linha do
+   * tempo da Casa 03 com a etiqueta da unidade. O que a tela precisa mostrar
+   * é o formato: tudo em ordem, com a origem em cada linha, sem contagem que
+   * vire comparação entre casas.
+   */
+  if (rota === '/timeline/all') {
+    const eventos = LINHA.map((e) => ({ ...e, casa: 'AI3' }))
+      .sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
+    return {
+      data: String(q.get('date') ?? ''),
+      modo: 'casa',
+      unidades: [{ casa: 'AI3', nome: 'Casa 03 (piloto)', eventos: eventos.length }],
+      incompleta: false,
+      fontesIndisponiveis: [],
+      eventos,
+      nota: 'Dia completo das unidades que você alcança, das 00h00 às 23h59 no horário '
+          + 'de Porto Alegre, em ordem. Não é medição de casa nem de equipe: não há '
+          + 'contagem por pessoa nem comparação entre unidades.',
+    };
+  }
+
   if (rota === '/timeline') {
     const so = q.get('mode') === 'minhas';
     const eventos = so ? LINHA.filter((e) => e.responsible === eu.fullName) : LINHA;
@@ -736,12 +808,69 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
   }
   if (seg[0] === 'activities' && seg[2] === 'record') {
     const ev = LINHA.find((e) => e.id.endsWith(seg[1]));
+    // Registro pelo colega: os DOIS nomes, sempre juntos (§8.2). No protótipo
+    // isso aparece exatamente como vai aparecer na linha do tempo real.
+    const colega = b.realizadoPor
+      ? EQUIPE_CASA.find((m) => m.id === b.realizadoPor)?.nome ?? 'Colega'
+      : null;
     if (ev) {
       ev.state = ESTADO_LABEL[b.estado] ?? b.estado;
-      ev.note = b.nota ?? null;
       ev.severity = b.estado === 'concluida_no_horario' ? 'normal' : 'atencao';
+      if (colega) {
+        ev.responsible = `${colega} — registrado por ${eu.fullName}`;
+        ev.note = `Registrado em nome do colega: ${b.motivoRegistroPorOutro ?? ''}`;
+      } else {
+        ev.note = b.nota ?? null;
+      }
     }
-    return { ok: true, aviso: 'Registrado com o seu nome e o horário de agora.' };
+    return colega
+      ? { ok: true, aviso: 'Registrado em nome do colega. A atividade mostra os dois nomes, '
+                         + 'quem realizou e quem registrou, com o motivo.' }
+      : { ok: true, aviso: 'Registrado com o seu nome e o horário de agora.' };
+  }
+  if (seg[0] === 'activities' && seg[2] === 'delegate') {
+    const ev = LINHA.find((e) => e.id.endsWith(seg[1]));
+    const para = EQUIPE_CASA.find((m) => m.id === b.paraId)?.nome ?? 'Colega';
+    if (ev) { ev.state = 'Aguardando ciência'; ev.responsible = para; }
+    return { ok: true, aviso: `Atividade delegada a ${para}. Ela volta a aguardar ciência: `
+                            + 'designado não é o mesmo que avisado.' };
+  }
+  /*
+   * Substituição no protótipo. Um dos dois pedidos é justamente o caso que
+   * o painel existe para explicar: a atividade foi concluída enquanto o
+   * pedido aguardava, e a autorização não cabe mais. A tela precisa mostrar
+   * isso, não quebrar no clique.
+   */
+  if (rota === '/activities/substitutions' && metodo === 'GET') {
+    return PEDIDOS_SUB.filter((p) => p.status === 'solicitada');
+  }
+  if (seg[0] === 'activities' && seg[1] === 'substitutions' && seg[3] === 'decline') {
+    const p = PEDIDOS_SUB.find((x) => x.id === seg[2]);
+    if (!p) return new Recusa(404, 'Pedido não encontrado ou já decidido.');
+    if (String(b.motivo ?? '').trim().length < 5) {
+      return new Recusa(400, 'Informe o motivo da recusa — quem pediu vai ler.');
+    }
+    p.status = 'recusada';
+    return { ok: true, status: 'recusada',
+             aviso: 'Pedido recusado, com motivo e autoria. Quem pediu foi avisado.' };
+  }
+  if (rota === '/activities/shift-board') {
+    // O servidor de verdade devolve o CÓDIGO do estado em `estado` e o texto em
+    // `rotulo`; aqui a linha guarda só o texto. A conversão de volta mantém o
+    // protótipo fiel ao contrato — sem ela, a tela não separava o que já foi
+    // registrado do que está em aberto.
+    const codigoDe = (texto: string) =>
+      Object.keys(ESTADO_LABEL).find((k) => ESTADO_LABEL[k] === texto) ?? texto;
+    return {
+      linhas: LINHA.filter((e) => e.id.startsWith('activity:')).map((e) => ({
+        atividadeId: e.id, titulo: e.title, horario: e.at,
+        estado: codigoDe(e.state), rotulo: e.state,
+        responsavel: e.responsible ?? 'Equipe do plantão',
+        acolhido: e.personName,
+      })),
+      nota: 'Quem está em quê neste turno. Não é medição de ninguém: não há contagem '
+          + 'por pessoa, ordenação por desempenho nem histórico de deslocamento.',
+    };
   }
 
   // ---- chamada
@@ -1545,11 +1674,94 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     return { ok: true, aviso: `Criada a versão ${nova.versao}, que precisa de nova aprovação. `
       + `A V${f.versao} continua legível exatamente como foi aprovada.` };
   }
+  if (rota === '/reports/kinds') {
+    // Mesma lista do servidor, com o mesmo filtro por cargo: quem não pode
+    // ver dado bancário não recebe o tipo de benefícios.
+    const podeBanco = ['coordenador', 'gestor_geral'].includes(eu.role);
+    return [
+      { cod: 'diario', label: 'Diário', escopo: 'casa' },
+      { cod: 'semanal', label: 'Semanal', escopo: 'pessoa' },
+      { cod: 'mensal', label: 'Mensal', escopo: 'pessoa' },
+      { cod: 'periodo', label: 'Período personalizado', escopo: 'casa' },
+      { cod: 'individual', label: 'Individual completo', escopo: 'pessoa' },
+      { cod: 'desenvolvimento', label: 'Desenvolvimento da criança na casa', escopo: 'pessoa' },
+      { cod: 'ocorrencias', label: 'Ocorrências', escopo: 'casa' },
+      { cod: 'alimentacao', label: 'Alimentação e restrições', escopo: 'casa' },
+      { cod: 'saude', label: 'Evolução e Resumo de Saúde', escopo: 'pessoa' },
+      { cod: 'judiciario', label: 'Judiciário', escopo: 'pessoa', exigeAprovacao: true },
+      { cod: 'audiencia', label: 'Audiência concentrada', escopo: 'pessoa', exigeAprovacao: true },
+      { cod: 'mensal_da_casa', label: 'Mensal da casa', escopo: 'casa', exigeAprovacao: true },
+      ...(podeBanco
+        ? [{ cod: 'beneficios', label: 'Benefícios e dados bancários', escopo: 'pessoa' }]
+        : []),
+    ];
+  }
+  if (rota === '/reports' && metodo === 'POST') {
+    const acolhido = b.personId ? kid(String(b.personId))?.nome ?? null : null;
+    const novo = {
+      id: `rel-${Date.now()}`,
+      tipo: String(b.kind ?? ''),
+      personId: b.personId ?? null,
+      periodo: `${String(b.de ?? '')} a ${String(b.ate ?? '')}`,
+      finalidade: String(b.finalidade ?? ''),
+      situacao: 'rascunho',
+      autor: eu.fullName,
+      entregas: [] as any[],
+    };
+    RELATORIOS.unshift(novo as any);
+    return {
+      id: novo.id, situacao: 'rascunho', acolhido,
+      aviso: 'Relatório criado com a parte factual já preenchida pelo sistema. '
+           + 'Os campos de avaliação ficam em branco para a equipe escrever.',
+    };
+  }
   if (rota === '/reports' && metodo === 'GET') {
     return RELATORIOS.map((r) => ({
       ...r, acolhido: r.personId ? kid(r.personId)?.nome ?? '—' : null,
       podeAprovar: ['coordenador', 'gestor_geral'].includes(eu.role) && r.autor !== eu.fullName,
     }));
+  }
+  /*
+   * Exportação em Word no protótipo.
+   *
+   * O documento de verdade é montado no servidor, com o timbre da Fundação e o
+   * conteúdo puxado dos registros. Aqui não há servidor, então o protótipo
+   * entrega um arquivo de texto que explica isso e mostra o que o documento
+   * real traz. Fingir um .docx com timbre daria a impressão de que a parte
+   * mais delicada já está pronta e conferida, e ela precisa ser conferida
+   * contra o banco, não contra uma tela.
+   */
+  if (seg[0] === 'reports' && seg[2] === 'export') {
+    const r = RELATORIOS.find((x) => x.id === seg[1]);
+    const texto = [
+      'PROTÓTIPO — DOCUMENTO DE MENTIRA, DADOS FICTÍCIOS',
+      '',
+      `Relatório: ${r?.tipo ?? '—'}`,
+      `Período: ${r?.periodo ?? '—'}`,
+      `Finalidade informada: ${String(b.finalidade ?? '')}`,
+      '',
+      'No sistema real este download é um arquivo do Word (.docx) com:',
+      '  · o timbre da Fundação O Pão dos Pobres no cabeçalho;',
+      '  · identificação do acolhido, unidade, período e finalidade;',
+      '  · a parte factual já escrita pelo sistema (atividades, saúde,',
+      '    medicação, ocorrências e acompanhamentos aprovados), cada seção',
+      '    dizendo de onde a informação veio;',
+      '  · os campos de avaliação e encaminhamento em branco, marcados como',
+      '    "a preencher", porque são o que só uma pessoa pode escrever;',
+      '  · tarja de RASCUNHO enquanto não houver aprovação de outra pessoa;',
+      '  · rodapé com quem gerou, quando, e a numeração das páginas;',
+      '  · linha de assinatura com nome e cargo.',
+      '',
+      'O arquivo sai em Word para a equipe editar. A conversão para PDF é feita',
+      'pela própria pessoa, na hora de imprimir ou enviar.',
+    ].join('\n');
+    return {
+      formato: 'docx',
+      nomeArquivo: 'PROTOTIPO-relatorio-exemplo.txt',
+      conteudoBase64: btoa(unescape(encodeURIComponent(texto))),
+      aviso: 'Protótipo: o documento com timbre é gerado pelo servidor. '
+           + 'Aqui vai um arquivo de exemplo explicando o que ele contém.',
+    };
   }
   if (seg[0] === 'reports' && seg[2] === 'approve') {
     const r = RELATORIOS.find((x) => x.id === seg[1]);

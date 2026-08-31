@@ -153,6 +153,17 @@ export class StaffService {
       if (e?.code === '23505' || /app_user_email_key/.test(m)) {
         throw new ConflictException('Já existe uma conta com este e-mail.');
       }
+      /*
+       * Cargo que não existe no banco devolvia 500 — erro interno na cara de
+       * quem só digitou algo fora da lista. Encontrado no ensaio de uso, e a
+       * causa foi instrutiva: a matriz de permissões documentava "Educador
+       * volante" como cargo, e ele nunca existiu no enum. Documento e código
+       * discordavam, e quem pagava era a tela.
+       */
+      if (e?.code === '22P02' || /invalid input value for enum role_code/.test(m)) {
+        const cargos = [...LABEL.entries()].map(([c, l]) => `${l} (${c})`).join('; ');
+        throw new BadRequestException(`Cargo desconhecido. Os cargos são: ${cargos}.`);
+      }
       if (m.includes('cargo_nao_pode_criar:') || m.includes('cargo_nao_pode_editar:')) {
         const cargo = m.split(':').pop()?.trim() ?? '';
         throw new ForbiddenException(

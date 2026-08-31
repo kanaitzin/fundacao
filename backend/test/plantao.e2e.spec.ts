@@ -78,7 +78,19 @@ describe('Fase 5 — Plantão, ATA e proteção', () => {
     const res = await request(http).post('/api/v1/shifts').set(auth(tokens.educador))
       .send({ houseId: ids.AI3, data: HOJE, turno: 'diurno' });
     expect(res.status).toBe(201);
-    expect(res.body.novo).toBe(true);
+    /*
+     * `novo` diz se ESTA chamada criou o plantão, e a suíte afirmava que sim.
+     * Isso só era verdade enquanto ela fosse a primeira a rodar: a
+     * `regressao-saida` também abre o diurno de hoje na Casa 03, e a ordem em
+     * que o Jest escolhe os arquivos mudou quando outros arquivos mudaram de
+     * tamanho. Catorze testes quebraram sem que nada no sistema tivesse
+     * mudado.
+     *
+     * O que este teste prova continua valendo: abrir o plantão devolve UMA
+     * ATA, e abrir de novo devolve a mesma. Quem cria a primeira é
+     * indiferente, e afirmar isso era afirmar sobre a ordem dos arquivos.
+     */
+    expect(typeof res.body.novo).toBe('boolean');
     expect(res.body.ataId).toBeTruthy();
     plantaoDiurno = res.body.plantaoId;
     ataDiurna = res.body.ataId;

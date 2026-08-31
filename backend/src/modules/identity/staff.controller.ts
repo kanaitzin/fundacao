@@ -3,6 +3,7 @@ import { SessionGuard } from './session.guard';
 import { CurrentUser } from './current-user.decorator';
 import { AuthenticatedUser } from '../../kernel/contracts';
 import { StaffService } from './staff.service';
+import { InviteService } from './invite.service';
 
 /**
  * Equipe da casa (§5.3). Não existe rota de remoção: desligado é desativado.
@@ -10,7 +11,10 @@ import { StaffService } from './staff.service';
 @Controller('staff')
 @UseGuards(SessionGuard)
 export class StaffController {
-  constructor(@Inject(StaffService) private readonly staff: StaffService) {}
+  constructor(
+    @Inject(StaffService) private readonly staff: StaffService,
+    @Inject(InviteService) private readonly convite: InviteService,
+  ) {}
 
   @Get('sectors')
   sectors(@CurrentUser() user: AuthenticatedUser) {
@@ -42,6 +46,15 @@ export class StaffController {
   @Post(':id/reactivate')
   reactivate(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.staff.setActive(user, id, true);
+  }
+
+  /**
+   * Convidar para o primeiro acesso. Preferível ao reset-password: a senha
+   * não passa pela mão de quem convida, e o link vence em 24 horas.
+   */
+  @Post(':id/convite')
+  convidar(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.convite.convidar(user, id);
   }
 
   @Post(':id/reset-password')

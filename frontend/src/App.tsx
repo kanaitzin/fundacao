@@ -2,9 +2,12 @@ import { useState } from 'react';
 import { api, setToken } from './api';
 import logo from './assets/logo.png';
 import { Login } from './screens/Login';
+import { PrimeiroAcesso } from './screens/PrimeiroAcesso';
 import { SenhaPessoal } from './screens/SenhaPessoal';
 import { Equipe } from './screens/Equipe';
 import { Dia } from './screens/Dia';
+import { PainelPlantao } from './screens/PainelPlantao';
+import { DiaDasUnidades } from './screens/DiaDasUnidades';
 import { Chamada } from './screens/Chamada';
 import { Passagem } from './screens/Passagem';
 import { Acolhidos } from './screens/Acolhidos';
@@ -111,10 +114,20 @@ export function App() {
   const [aba, setAba] = useState<
     'dia' | 'chamada' | 'passagem' | 'acolhidos' | 'agenda' | 'casas' | 'equipe'
     | 'saude' | 'ocorrencias' | 'ata' | 'cofre' | 'transferencias'
-    | 'acompanhamentos' | 'arquivo'>('dia');
+    | 'acompanhamentos' | 'arquivo' | 'plantao' | 'unidades'>('dia');
   const [sugerirSenha, setSugerirSenha] = useState(false);
   const [trocarSenha, setTrocarSenha] = useState(false);
   const [mais, setMais] = useState(false);
+  /*
+   * O convite chega pela URL, no link do e-mail. Lido UMA vez, na montagem, e
+   * apagado da barra de endereço logo em seguida: token em URL fica no
+   * histórico do navegador, e o aparelho da casa é compartilhado entre turnos.
+   */
+  const [convite, setConvite] = useState(() => {
+    const t = new URLSearchParams(window.location.search).get('convite') ?? '';
+    if (t) window.history.replaceState({}, '', window.location.pathname);
+    return t;
+  });
 
   async function entrar(email: string, password: string) {
     setErro(''); setOcupado(true);
@@ -137,9 +150,34 @@ export function App() {
     }
   }
 
+  /** Sessão já criada pelo convite: só falta carregar quem é e abrir o DIA. */
+  async function entrarComToken(t: string) {
+    setErro(''); setOcupado(true);
+    try {
+      setToken(t);
+      const eu = await api<Me>('/users/me');
+      setMe(eu);
+      setHouses(await api<House[]>('/houses'));
+      setAba('dia');
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Senha criada, mas não foi possível entrar. Tente pela tela de entrada.');
+    } finally {
+      setOcupado(false);
+    }
+  }
+
   async function sair() {
     try { await api('/auth/logout', { method: 'POST' }); } catch { /* sessão pode já ter expirado */ }
     setToken(null); setMe(null); setHouses([]); setAba('dia'); setSugerirSenha(false);
+  }
+
+  if (!me && convite) {
+    return (
+      <>
+        <Tarja />
+        <PrimeiroAcesso convite={convite} onEntrou={(t) => { setConvite(''); entrarComToken(t); }} />
+      </>
+    );
   }
 
   if (!me) {
@@ -230,7 +268,8 @@ export function App() {
       <main className="conteudo">
         {aba === 'dia' && (
           casaAtual
-            ? <Dia houseId={casaAtual.id} casaLabel={`${casaAtual.code} · ${casaAtual.name}`} />
+            ? <Dia houseId={casaAtual.id} casaLabel={`${casaAtual.code} · ${casaAtual.name}`}
+                   papel={me.role} />
             : (
               <div className="card">
                 <p className="mutetxt" style={{ margin: 0 }}>
@@ -253,6 +292,14 @@ export function App() {
         )}
 
         {aba === 'agenda' && casaAtual && <Agenda houseId={casaAtual.id} papel={me.role} />}
+
+        {aba === 'unidades' && <DiaDasUnidades />}
+
+        {aba === 'plantao' && casaAtual && (
+          <PainelPlantao houseId={casaAtual.id}
+                         casaLabel={`${casaAtual.code} · ${casaAtual.name}`}
+                         papel={me.role} />
+        )}
 
         {aba === 'equipe' && administra && <Equipe />}
 
@@ -309,6 +356,25 @@ export function App() {
           <div className="sheet">
             <h3 id="t-mais">Mais</h3>
             <div className="stack">
+              {['gestor_geral', 'coordenador', 'equipe_tecnica', 'enfermagem',
+                'lider_noturno_geral'].includes(me.role) && (
+                <button className="card row" onClick={() => { setAba('unidades'); setMais(false); }}>
+                  <span aria-hidden="true">🗓️</span>
+                  <div className="grow" style={{ textAlign: 'left' }}>
+                    <b className="ff">O dia, em ordem</b>
+                    <div className="mutetxt">
+                      Todas as unidades que você acompanha, das 00h às 23h59.
+                    </div>
+                  </div>
+                </button>
+              )}
+              <button className="card row" onClick={() => { setAba('plantao'); setMais(false); }}>
+                <span aria-hidden="true">🧭</span>
+                <div className="grow" style={{ textAlign: 'left' }}>
+                  <b className="ff">Painel do plantão</b>
+                  <div className="mutetxt">Quem está em quê agora, neste turno.</div>
+                </div>
+              </button>
               <button className="card row" onClick={() => { setAba('agenda'); setMais(false); }}>
                 <span aria-hidden="true">📅</span>
                 <div className="grow" style={{ textAlign: 'left' }}>

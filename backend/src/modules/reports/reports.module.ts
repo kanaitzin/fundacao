@@ -4,6 +4,8 @@ import { FollowupsController, ReportsController } from './reports.controller';
 import { FollowupsService } from './followups.service';
 import { ReportsService } from './reports.service';
 import { PanelService } from './panel.service';
+import { ConteudoService } from './conteudo.service';
+import { DocumentoService } from './documento.service';
 
 /**
  * Módulo `reports` — acompanhamentos, relatórios, aprovações e painéis (§14, §18).
@@ -15,7 +17,7 @@ import { PanelService } from './panel.service';
 @Module({
   imports: [IdentityModule],
   controllers: [FollowupsController, ReportsController],
-  providers: [FollowupsService, ReportsService, PanelService],
+  providers: [FollowupsService, ReportsService, PanelService, ConteudoService, DocumentoService],
   exports: [ReportsService, FollowupsService],
 })
 export class ReportsModule {}

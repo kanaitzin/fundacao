@@ -190,21 +190,35 @@ export class FollowupsService {
 
   /** Enviar para aprovação. O mensal exige revisão da coordenação (§14.2). */
   async enviarParaAprovacao(user: AuthenticatedUser, id: string) {
+    // A validação mora DENTRO da transação. Antes, o UPDATE já tinha sido
+    // comitado quando a checagem dos eixos falhava: o acompanhamento vazio
+    // ficava preso em `em_aprovacao`, fora do rascunho de quem escreveu e na
+    // fila de quem revisa, sem caminho de volta. O erro na tela dizia
+    // "preencha um eixo" e o botão de preencher já não existia mais.
+    // Agora ou os dois acontecem, ou nenhum: o `throw` desfaz o UPDATE (§4.4).
     const r = await this.db.asUser(user.id, async (c) => {
+      const { rows: [atual] } = await c.query(
+        `SELECT id, status,
+                coalesce(axis_health,'') || coalesce(axis_school,'')
+                || coalesce(axis_coexistence,'') || coalesce(axis_family,'') AS texto
+           FROM followup WHERE id = $1 FOR UPDATE`, [id]);
+      if (!atual) throw new NotFoundException('Acompanhamento não encontrado.');
+      if (!['rascunho', 'pendente'].includes(atual.status)) {
+        throw new ConflictException('Acompanhamento não está em rascunho.');
+      }
+      if (!String(atual.texto).trim()) {
+        throw new BadRequestException('Preencha ao menos um eixo antes de enviar para aprovação.');
+      }
+
       const { rows: [row] } = await c.query(
         `UPDATE followup
             SET status = 'em_aprovacao', submitted_at = now(),
                 written_by = coalesce(written_by, app_current_user())
           WHERE id = $1 AND status IN ('rascunho','pendente')
-          RETURNING id, kind, house_id, person_id,
-                    coalesce(axis_health,'') || coalesce(axis_school,'')
-                    || coalesce(axis_coexistence,'') || coalesce(axis_family,'') AS texto`, [id]);
+          RETURNING id, kind, house_id, person_id`, [id]);
       return row;
     });
     if (!r) throw new ConflictException('Acompanhamento não está em rascunho.');
-    if (!r.texto.trim()) {
-      throw new BadRequestException('Preencha ao menos um eixo antes de enviar para aprovação.');
-    }
 
     const pedido: EscalationRequest = {
       level: 'tecnica_coordenacao', entity: 'followup', entityId: r.id,

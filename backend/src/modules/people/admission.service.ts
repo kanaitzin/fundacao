@@ -243,12 +243,28 @@ export class AdmissionService {
     }
     if (!sets.length) throw new BadRequestException('Nenhum campo alterável informado.');
 
+    // Defeito 6: faltava o filtro por episódio. `WHERE person_id = $1` alcança
+    // TODOS os acolhimentos daquela criança — a criança que já esteve na
+    // instituição antes tem mais de um `judicial_record`, um por episódio.
+    // Atualizar a situação de hoje reescrevia a de 2019: o processo, a vara e
+    // a situação do acolhimento anterior passavam a ser os de agora, e o
+    // registro do episódio encerrado deixava de contar o que de fato houve.
+    // É o histórico partido que a audiência pergunta, com a agravante de que
+    // aqui ele não fica partido — fica falso.
     const ok = await this.db.asUser(user.id, async (c) => {
       const { rowCount } = await c.query(
-        `UPDATE judicial_record SET ${sets.join(', ')} WHERE person_id = $1`, vals);
+        `UPDATE judicial_record j SET ${sets.join(', ')}
+          WHERE j.person_id = $1
+            AND j.episode_id = (SELECT e.id FROM care_episode e
+                                 WHERE e.person_id = $1 AND e.status = 'ativo'
+                                 ORDER BY e.number DESC LIMIT 1)`, vals);
       return rowCount;
     });
-    if (!ok) throw new NotFoundException('Registro judicial não encontrado.');
+    if (!ok) {
+      throw new NotFoundException(
+        'Nenhum registro judicial em episódio ativo para este acolhido. '
+        + 'Registro de acolhimento encerrado não é alterado por aqui.');
+    }
 
     await this.audit.log({
       action: 'person.judicial_update', actorId: user.id, institutionId: user.institutionId,

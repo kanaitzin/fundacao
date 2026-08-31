@@ -68,12 +68,19 @@ const ICONE: Record<string, string> = {
 const hhmm = (iso: string) => new Date(iso).toLocaleTimeString('pt-BR',
   { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' });
 
-export function Dia({ houseId, casaLabel }: { houseId: string; casaLabel: string }) {
+/** Cargos que podem registrar pelo colega e delegar (§8.2, §8.3). */
+const LIDERA = ['lider_diurno', 'lider_noturno_geral', 'coordenador', 'gestor_geral'];
+
+export function Dia({ houseId, casaLabel, papel }: {
+  houseId: string; casaLabel: string; papel: string;
+}) {
+  const lidera = LIDERA.includes(papel);
   const [dados, setDados] = useState<Resposta | null>(null);
   const [erro, setErro] = useState('');
   const [filtro, setFiltro] = useState<'agora' | 'minhas' | 'tudo'>('agora');
   const [ocupado, setOcupado] = useState<string | null>(null);
   const [excecao, setExcecao] = useState<Evento | null>(null);
+  const [porOutro, setPorOutro] = useState<Evento | null>(null);
   const [aviso, setAviso] = useState('');
 
   const carregar = useCallback(async () => {
@@ -200,6 +207,12 @@ export function Dia({ houseId, casaLabel }: { houseId: string; casaLabel: string
                               onClick={() => setExcecao(ev)}>
                         Não aconteceu
                       </button>
+                      {lidera && (
+                        <button className="btn sm ghost" disabled={ocupado === ev.id}
+                                onClick={() => setPorOutro(ev)}>
+                          Registrar pelo colega
+                        </button>
+                      )}
                     </>
                   )}
                 </div>
@@ -221,6 +234,25 @@ export function Dia({ houseId, casaLabel }: { houseId: string; casaLabel: string
         </div>
       )}
 
+      {porOutro && (
+        <FolhaPorOutro
+          evento={porOutro}
+          houseId={houseId}
+          onFechar={() => setPorOutro(null)}
+          onRegistrar={async (realizadoPor, motivo) => {
+            const ev = porOutro;
+            setPorOutro(null);
+            await acao(ev, () => api(`/activities/${idDe(ev)}/record`, {
+              method: 'POST',
+              body: JSON.stringify({
+                estado: 'concluida_no_horario',
+                realizadoPor, motivoRegistroPorOutro: motivo,
+              }),
+            }));
+          }}
+        />
+      )}
+
       {excecao && (
         <FolhaExcecao
           evento={excecao}
@@ -235,6 +267,74 @@ export function Dia({ houseId, casaLabel }: { houseId: string; casaLabel: string
         />
       )}
     </>
+  );
+}
+
+/**
+ * Registrar pelo colega (§8.2).
+ *
+ * A tela existe porque o caso é real: a atividade aconteceu, o aparelho da
+ * casa não pegou e o educador não usa o próprio celular. Sem isto, o buraco no
+ * histórico — que é pior do que qualquer registro imperfeito, porque é o que
+ * ninguém sabe explicar meses depois.
+ *
+ * O que ela NÃO faz: assinar no lugar de alguém. Os dois nomes ficam, e o
+ * aviso na própria folha diz isso antes de a pessoa confirmar — quem registra
+ * precisa saber que o nome dele vai junto.
+ */
+function FolhaPorOutro({ evento, houseId, onFechar, onRegistrar }: {
+  evento: Evento;
+  houseId: string;
+  onFechar: () => void;
+  onRegistrar: (realizadoPor: string, motivo: string) => void;
+}) {
+  const [equipe, setEquipe] = useState<{ id: string; nome: string }[]>([]);
+  const [quem, setQuem] = useState('');
+  const [motivo, setMotivo] = useState('');
+  const pode = quem !== '' && motivo.trim().length >= 5;
+
+  useEffect(() => {
+    // A rota devolve `{equipe}` na agenda e lista simples em outros pontos;
+    // aceitar os dois formatos evita que a folha fique vazia por um detalhe
+    // de contrato — e uma folha vazia às 23h é a folha que ninguém usa.
+    api<any>(`/activities/agenda/staff?houseId=${houseId}`)
+      .then((r) => setEquipe(Array.isArray(r) ? r : (r?.equipe ?? [])))
+      .catch(() => setEquipe([]));
+  }, [houseId]);
+
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-por"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet">
+        <h3 id="t-por">Quem realizou?</h3>
+        <p className="mutetxt">{evento.title} · {hhmm(evento.at)} · {evento.personName ?? 'Casa toda'}</p>
+
+        <label className="f" htmlFor="quem">A pessoa que realizou a atividade</label>
+        <select id="quem" value={quem} onChange={(e) => setQuem(e.target.value)}>
+          <option value="">Escolha…</option>
+          {equipe.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
+        </select>
+
+        <label className="f" htmlFor="motivo">
+          Por que você está registrando no lugar dela <small>— o fato, não a justificativa</small>
+        </label>
+        <textarea id="motivo" value={motivo} onChange={(e) => setMotivo(e.target.value)}
+                  placeholder="Ex.: o aparelho da casa ficou sem sinal e ela não tem acesso pelo celular." />
+
+        <div className="notice c-info" role="status">
+          A atividade vai mostrar os <strong>dois nomes</strong>: quem realizou e você, que
+          registrou, com este motivo. Ninguém assina no lugar de ninguém.
+        </div>
+
+        <div className="row" style={{ gap: 8, marginTop: 16 }}>
+          <button type="button" className="btn sec grow" onClick={onFechar}>Cancelar</button>
+          <button type="button" className="btn grow" disabled={!pode}
+                  onClick={() => onRegistrar(quem, motivo.trim())}>
+            Registrar
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 

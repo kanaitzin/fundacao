@@ -95,6 +95,20 @@ export class ActivitiesController {
     return this.activities.record(user, id, body);
   }
 
+  /** Delegar atividade em aberto — líder do turno e coordenação. */
+  @Post(':id/delegate')
+  delegate(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
+           @Body() body: { paraId: string; motivo: string }) {
+    return this.activities.delegate(user, id, body?.paraId, body?.motivo ?? '');
+  }
+
+  /** Painel do plantão — visível a toda a equipe do turno. */
+  @Get('shift-board')
+  shiftBoard(@CurrentUser() user: AuthenticatedUser,
+             @Query('houseId') houseId: string, @Query('date') date?: string) {
+    return this.activities.shiftBoard(user, houseId, date);
+  }
+
   @Post(':id/substitution')
   substitution(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
                @Body() body: { motivo: string }) {
@@ -110,6 +124,12 @@ export class ActivitiesController {
   assign(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
          @Body() body: { substitutoId: string; nota?: string }) {
     return this.activities.assignSubstitute(user, id, body.substitutoId, body.nota);
+  }
+
+  @Post('substitutions/:id/decline')
+  decline(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
+          @Body() body: { motivo: string }) {
+    return this.activities.declineSubstitution(user, id, body?.motivo ?? '');
   }
 
   @Post('mark-unconfirmed')

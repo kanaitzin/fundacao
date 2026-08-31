@@ -1,9 +1,9 @@
 # Rede Acolher — Documento de Continuidade
 
-> **Como usar este arquivo:** anexe-o na primeira mensagem de uma conversa nova.
-> Ele substitui todo o histórico. Nada anterior precisa ser relido.
+> **Como usar este arquivo:** anexe-o na primeira mensagem de uma conversa nova,
+> junto com o zip do repositório. Ele substitui todo o histórico.
 >
-> Última atualização: 28/08/2026 · commit `4f5c135`
+> Última atualização: 29/08/2026 · 12 defeitos corrigidos + convite de primeiro acesso
 
 ---
 
@@ -28,43 +28,32 @@ ponto de vista técnico.
 
 ## 2. Restrições permanentes (não negociáveis)
 
-Estas regras valem para tudo que for construído. Não são preferências.
-
 ### Segurança do processo
 - **Nunca publicar, nunca fazer deploy em produção, nunca usar dado real** sem
-  autorização expressa. Construir e validar local/dev com **dados fictícios**. (§3.3)
+  autorização expressa. Construir e validar local/dev com **dados fictícios**.
 - **Segredos nunca no código.**
 - **Logs da aplicação nunca copiam conteúdo sensível** — só IDs e metadados.
+  Vale também para token de convite e link de acesso.
 
 ### Proibições absolutas
-- WhatsApp, ou envio de dados por WhatsApp
-- GPS, geolocalização contínua, mapa de deslocamento
-- Contas compartilhadas
-- Acesso de um funcionário a outra casa fora das exceções funcionais expressas
-  (Gestor Geral, Enfermagem, Líder Noturno Geral)
-- Ranking de casas, de acolhidos ou de equipe
-- Pontuação de comportamento
-- Decisão automática sobre diagnóstico, culpa, risco, punição, visita,
-  medicação, destino ou transferência
-- Exclusão simples ou silenciosa
-- Sobrescrever registro fechado
-- CPF, diagnóstico ou conteúdo judicial em nome de arquivo
-- Dado real em dev/teste
-- Envio automático para Judiciário, Conselho Tutelar, MP ou serviços de saúde
-- Acesso direto do educador ao Drive
-- Módulo de alistamento militar
-- Controle de cofre físico
-- Microsserviços prematuros
+WhatsApp ou envio de dados por WhatsApp · GPS ou rastreamento · contas
+compartilhadas · acesso a outra casa fora das exceções funcionais (Gestor
+Geral, Enfermagem, Líder Noturno Geral) · ranking de casas, acolhidos ou
+equipe · pontuação de comportamento · decisão automática sobre diagnóstico,
+culpa, risco, punição, visita, medicação, destino ou transferência · exclusão
+simples ou silenciosa · sobrescrever registro fechado · CPF, diagnóstico ou
+conteúdo judicial em nome de arquivo · dado real em dev/teste · envio
+automático para Judiciário, Conselho Tutelar, MP ou saúde · acesso direto do
+educador ao Drive · módulo de alistamento militar · controle de cofre físico ·
+microsserviços prematuros.
 
-### Dados bancários e benefícios
+### Dados bancários e cofre de acessos
 Visíveis **apenas** para o coordenador da casa atual e o Gestor Geral, com
 **reautenticação** e **log por visualização**.
 
 ### Arquitetura
 > "Quero que você separe as partições das funções, caso seja necessário deletar
 > ou adicionar algo, não estraga nenhuma outra parte construída junto."
-
-Cada módulo é uma partição isolada. Mexer em um não pode quebrar outro.
 
 ### Design
 Cor comunica **estado operacional** e categoria — **nunca julgamento sobre a
@@ -86,13 +75,14 @@ pessoa**. Toda ação tem autor e histórico.
 **Autorização em duas camadas:**
 1. Regra de negócio na aplicação
 2. **Row-Level Security** no banco — `DatabaseService.asUser()` define
-   `app.user_id` por transação. O banco não devolve linha fora do escopo:
-   não é filtro de tela.
+   `app.user_id` por transação. O banco não devolve linha fora do escopo.
+
+**Regra que se aprendeu caro:** função `SECURITY DEFINER` desliga o RLS. Toda
+função que recebe `p_house` **precisa** chamar `app_house_in_scope()` no corpo.
 
 **Protótipo:** `VITE_PROTOTIPO=1` faz `api()` em `src/api.ts` chamar
-`mockApi()` de `src/mock.ts` — um servidor de mentira em memória. O protótipo
-**é** o aplicativo de verdade, só com outra fonte de dados. Foi assim que ele
-parou de divergir das telas reais.
+`mockApi()` de `src/mock.ts`. O protótipo **é** o aplicativo de verdade, só com
+outra fonte de dados.
 
 ---
 
@@ -103,9 +93,9 @@ rede-acolher/
 ├── backend/src/
 │   ├── kernel/          audit, common (cpf, crypto, segredo, tempo),
 │   │                    database, events, health
-│   └── modules/         16 partições isoladas ↓
+│   └── modules/         16 partições isoladas
 ├── frontend/src/
-│   ├── screens/         16 telas React
+│   ├── screens/         19 telas React
 │   ├── mock.ts          servidor de mentira do protótipo
 │   ├── api.ts           cliente HTTP + classe ErroApi
 │   ├── App.tsx          navegação, abas, seletor de cargo
@@ -118,15 +108,15 @@ rede-acolher/
 incidents, medications, notifications, nursing, people, reports, routine,
 shifts, statements, sync, timeline
 
-**Telas do frontend (16):** Login, SenhaPessoal, Dia, Chamada, Acolhidos,
-Cadastro, Passagem, Agenda, Equipe, Saude, Ocorrencias, Ata, Cofre,
-Transferencias, Acompanhamentos, Arquivo
+**Telas do frontend (19):** Login, PrimeiroAcesso, SenhaPessoal, Dia,
+PainelPlantao, DiaDasUnidades, Chamada, Acolhidos, Cadastro, Passagem, Agenda,
+Equipe, Saude, Ocorrencias, Ata, Cofre, Transferencias, Acompanhamentos, Arquivo
 
 **Comandos:**
 ```bash
 cd frontend && npm run prototipo   # gera o .html de um arquivo só
 cd frontend && npx tsc --noEmit    # confere tipos
-cd backend  && npm test            # testes
+cd backend  && npm test            # testes (precisa de PostgreSQL)
 ```
 
 ---
@@ -139,126 +129,312 @@ cd backend  && npm test            # testes
 | 2 | Perfil do acolhido: pessoa/episódio/permanência, CPF único, documentos, benefícios restritos, transferência, acervo |
 | 3 | Partições isoladas + rotina, atividades, chamadas, linha do tempo, notificações, offline |
 | 4 | Medicamentos com confirmação individual, enfermagem com triagem, escalonamento como contrato genérico |
-| 5 | Plantão com passagem individual; ATA que fecha com pendência em vez de assinatura presumida; ocorrências que não se encerram sozinhas |
+| 5 | Plantão com passagem individual; ATA que fecha com pendência; ocorrências que não se encerram sozinhas |
 | 6 | Acompanhamentos, relatórios, aprovações, arquivo no Drive |
 | 7 | Ensaio geral do piloto e plano da Casa 03 |
-| — | Cofre de acessos, formulários reais da Fundação, agenda com responsável nomeado, cadastro completo do acolhido |
-
-**Duas auditorias já rodadas:** uma corrigiu uma classe inteira de defeitos
-(JOIN com tabela sob RLS apagava a linha); outra encontrou 21 defeitos de
-estado, concorrência e fuso.
+| 8 | **Os 12 defeitos de auditoria, corrigidos e verificados contra banco** |
+| 9 | **Convite de primeiro acesso: e-mail institucional, uso único, 24 horas** |
+| 10 | **Registro por outra pessoa com autoria dupla, delegação pelo líder, painel do plantão** |
+| 11 | **Terceira auditoria: regressão dos 12 defeitos e das funções novas; suíte verde** |
+| 12 | **Auditoria de documentação: matriz, DER, backlog e manifestos alinhados ao código** |
+| 13 | **Ensaio de uso por cargo: 5 defeitos corrigidos + 2 alcances ajustados** |
+| 14 | **Relatórios de verdade: conteúdo puxado do sistema e documento Word com timbre** |
+| 15 | **Relatório de desenvolvimento da criança na casa; arquivos de origem desconhecida avaliados e descartados** |
+| 16 | **Linha do tempo corrida no relatório, ordem das seções e tela para gerar** |
+| 17 | **O dia das unidades: linha do tempo unificada para quem alcança mais de uma casa** |
 
 ---
 
 ## 6. Decisões de produto que valem lembrar
 
-**Entrada em dois passos.** A pessoa digita o e-mail; o sistema responde se
-aquela conta já tem senha. Quem não tem entra e cria a sua ali mesmo, no
-próprio aparelho. Motivo: distribuir senha inicial para 40 pessoas acabaria
-virando mensagem de WhatsApp — a senha circula em grupo, some no histórico e
-nunca é trocada.
-**Falta no servidor:** o primeiro acesso precisa valer **uma vez**, por convite
-da coordenação e com prazo. Sem isso, o e-mail sozinho vira porta permanente.
+**Entrada em dois passos, agora completa.** A pessoa digita o e-mail; o sistema
+responde se aquela conta já tem senha. Quem não tem **não cria senha ali** —
+recebe um link no e-mail institucional. Distribuir senha inicial para 40
+pessoas viraria mensagem de WhatsApp; mas deixar o e-mail sozinho abrir a
+criação de senha faria do e-mail a senha. O convite resolve os dois: uso único,
+24 horas, com autor registrado. Emitir convite **embaralha** a senha atual e
+derruba as sessões — a partir dali a única porta é o link.
 
 **Cofre de acessos.** As senhas das contas das crianças entram no sistema,
-criptografadas, visíveis só para o coordenador da casa, com auditoria.
-Raciocínio do Leonardo: *"Se não colocarmos isso no sistema eles ainda vão
-fazer isso numa planilha solta, prefiro no nosso sistema unificado e protegido."*
+criptografadas, visíveis só para o coordenador da casa, com auditoria. *"Se não
+colocarmos isso no sistema eles ainda vão fazer isso numa planilha solta."*
 
 **Cinco abas, não seis.** A barra inferior carrega o turno — Dia, Chamada,
-Acolhidos, Passagem. O resto mora em "Mais". Com seis, "Unidades" já saía pela
-borda do celular. Aba que não cabe é aba que ninguém acha.
+Acolhidos, Passagem. O resto mora em "Mais".
 
-**Cadastro em quatro passos.** 25 campos numa rolagem só é o formulário que
-ninguém termina. O CPF é conferido **antes** do resto: se a criança já tem
-perfil, cadastrar de novo parte o histórico em dois — e é o histórico partido
-que faz a audiência perguntar o que o sistema deveria saber.
+**Cadastro em quatro passos.** O CPF é conferido **antes** do resto: histórico
+partido é o que faz a audiência perguntar o que o sistema deveria saber.
+
+**Correção não é sobrescrita.** Quando um registro fechado precisa mudar, o
+valor anterior vai para uma tabela de histórico com autor e horário — nunca
+some. Vale para a chamada (`check_result_amendment`) e é o padrão para o resto.
+
+**Autoria dupla, nunca autoria trocada.** O líder do turno e a coordenação
+podem registrar a conclusão por um educador que realizou a atividade e não
+conseguiu registrar — aparelho da casa sem sinal, e ele não usa o próprio
+celular. O registro guarda os DOIS nomes e o motivo, e toda tela mostra os dois
+juntos. **Não vale para dose de medicamento (§11.2) nem para chamada (§10):**
+numa, a confirmação individual é a proteção da criança; na outra, quem marca
+presença é quem olhou a criança.
+
+**Recusar também é decisão, e precisa de motivo.** Havia como autorizar
+substituição e não havia como recusar — o pedido que não cabia mais ficava
+aberto para sempre. `POST /activities/substitutions/:id/decline` fecha com
+motivo obrigatório, e quem pediu é avisado pelo sistema. O pedido cuja
+atividade foi concluída enquanto esperava aparece marcado na lista do líder,
+explicado; o sistema não o fecha sozinho.
+
+**Delegar é o caminho de cima para baixo.** O pedido de substituição nasce de
+quem vai sair; quem faltou não pede nada. `app_delegate_activity` deixa o líder
+passar a atividade adiante, com motivo, sem apagar a designação anterior. A
+atividade volta a aguardar ciência: designado não é o mesmo que avisado.
+
+**Painel do plantão, não painel de pessoas.** `app_shift_board` mostra as
+atividades do turno e quem está em cada uma, visível a toda a equipe. A tela
+mora em "Mais" — as cinco abas da barra continuam sendo as do turno. Sem
+contagem por pessoa, sem ordenação por desempenho, sem histórico de
+deslocamento. O sistema sabe o que foi COMBINADO, não onde alguém está.
+
+**O relatório sai em Word, não em PDF.** Quem assina precisa poder mexer: a
+técnica escreve a avaliação, a coordenação acrescenta uma linha antes da
+audiência, alguém corrige um nome. Um PDF fechado empurraria a equipe a refazer
+tudo no Word da máquina dela, e aí o que vai ao Juízo deixaria de ter relação
+com o que está no sistema. A conversão para PDF é da pessoa, na hora de enviar.
+
+**A criança não é só o que deu problema.** O relatório de desenvolvimento
+puxa também `memory_record` e `education_evolution`: a apresentação no coral, a
+tarefa entregue sem lembrete. Um documento feito só de ocorrências e faltas
+devolve uma pessoa que não existe, e é esse documento reduzido que segue para a
+audiência, para a escola e para o próximo serviço.
+
+**O dia das unidades não compara unidades.** `GET /timeline/all` junta o dia
+das casas que a pessoa alcança, em ordem, com a origem em cada linha. As casas
+vêm do banco sob RLS: quem alcança uma recebe uma, quem alcança oito recebe
+oito. Não há modo individual ali de propósito — acompanhar uma criança é dentro
+da casa dela, e varrer as oito atrás de alguém é vigilância com outro nome. O
+servidor recusa.
+
+**A linha do tempo corrida conta a história.** As seções por assunto servem
+para conferir cada coisa; a cronologia junta a consulta de terça, a ocorrência
+de terça à noite e a dose recusada na quarta. Separadas, parecem três fatos
+independentes. Em ordem, viram a explicação. Corta em 120 registros e avisa que
+cortou.
+
+**Seção vazia diz "não há"; ela não some.** Seção ausente vira dúvida de quem
+lê. A frase escrita vira informação.
+
+**Relato de ocorrência restrita não entra em relatório.** Sai a categoria, a
+data e a situação. Quem precisar do inteiro teor abre a ocorrência e responde
+pelo acesso dela. Relatório circula: vai por e-mail, é impresso, fica em cima
+de uma mesa.
+
+**O sistema conta; a pessoa avalia.** O relatório traz a parte factual já
+escrita (atividades, saúde, medicação, ocorrências, acompanhamentos aprovados),
+cada seção dizendo de onde veio. Os campos de avaliação e encaminhamento vêm em
+branco, marcados como "a preencher". O sistema nunca interpreta, nunca conclui,
+nunca avalia ninguém, e nunca conta por educador.
+
+**"Hoje" é sempre o dia de Porto Alegre.** `hojeNaInstituicao()` no TypeScript,
+`app_hoje()` no SQL. `current_date` está proibido em migração nova.
 
 ---
 
 ## 7. Protótipo — estado atual
 
-`prototipo/rede-acolher-prototipo.html` — **431 KB, um arquivo só**. Abre com
+`prototipo/rede-acolher-prototipo.html` — **457 KB, um arquivo só**. Abre com
 dois cliques, sem servidor, sem banco, sem instalar nada.
 
-**Entrar:** `mbarbosa@paodospobres.com.br` — sem senha inicial; ele cria a dele
-na hora.
+**Entrar:** `mbarbosa@paodospobres.com.br` · **Primeiro acesso:** abra o
+protótipo com `?convite=demo` na barra de endereço.
 
-**Recursos exclusivos do protótipo:**
-- **👁 Ver como** — barra abaixo do cabeçalho: troca o cargo e o sistema inteiro
-  se reorganiza. Permite percorrer as 9 funções sem sair e entrar de novo.
-- **🌓** — alterna tema claro/escuro.
-- Abre **sempre em tema claro** (`data-theme="light"` no `<html>`), porque o
-  arquivo é distribuído por anexo e não pode depender do modo escuro estar
-  desligado na máquina de quem recebe.
-- Tarja permanente: *"Protótipo · dados fictícios · nada é salvo ao fechar"*.
+**Recursos exclusivos do protótipo:** 👁 Ver como (troca o cargo e o sistema
+inteiro se reorganiza) · 🌓 tema claro/escuro · abre sempre em tema claro ·
+tarja permanente *"Protótipo · dados fictícios · nada é salvo ao fechar"*.
 
 **O que o protótipo NÃO faz, e é bom que não faça:** isolamento por casa, RLS,
 auditoria, criptografia. Essas proteções vivem no banco, e é lá que precisam ser
-conferidas. Um protótipo que fingisse tê-las daria uma sensação de segurança que
-não tem como sustentar.
-
-### ⚠️ Nota histórica sobre o protótipo
-Existiram **duas gerações**. A primeira era um HTML escrito à mão (2.681 linhas)
-que cobria todas as áreas, mas divergia do aplicativo real. A segunda, atual, é
-o aplicativo React compilado — fiel, porém nasceu com só 7 telas. Isso causou a
-impressão de que o protótipo "tinha piorado". **Já corrigido:** as 7 telas
-faltantes foram reconstruídas como React (commit `4f5c135`). O protótipo atual
-cobre as 16 áreas **e** é o código de verdade.
+conferidas.
 
 ---
 
 ## 8. Pendências
 
-### 8.1 Defeitos do backend — auditoria (12 confirmados, por prioridade)
+### 8.1 Testes
+**219 testes, 16 suítes, todas passando.** Sem falha conhecida.
 
-| # | Onde | Defeito |
+- `test/regressao-autoria.e2e.spec.ts` trava os 12 defeitos e as funções que
+  vieram depois: convite, autoria dupla, delegação, painel, recusa.
+- As 6 falhas antigas do `saude.e2e.spec.ts` eram uma só, em cascata: o teste
+  media `criadas` na casa inteira, e o número dependia da ordem das suítes.
+  Agora conta as doses DAQUELA prescrição.
+- **Lição que vale para todo teste novo:** suíte que muta estado compartilhado
+  (rotina, versões, efetivo, **equipe da casa**) precisa desfazer o que criou.
+  A primeira versão da regressão passava sozinha e derrubava duas suítes
+  vizinhas; a segunda passou uma rodada inteira e só vazou na seguinte —
+  desativar a funcionária criada não bastava, o vínculo com a casa continuava e
+  a ATA passou a cobrar uma assinatura a mais. Vale rodar a suíte **duas vezes**
+  antes de considerar verde.
+- **Três testes frágeis, encontrados ao mexer nos relatórios:** o do cofre
+  alterava os últimos caracteres do base64, que carregam bits de preenchimento
+  e às vezes decodificam para os mesmos bytes (passava quase sempre); o do
+  plantão afirmava ser o primeiro a abrir o turno do dia, o que só valia
+  enquanto o Jest escolhesse aquela ordem de arquivos; e o de arquitetura pegou
+  dois JOINs sem justificativa, fazendo exatamente o trabalho dele.
+- **E rodar à noite.** `agenda` e `piloto` calculavam "hoje" em UTC: depois das
+  21h de Porto Alegre marcavam para amanhã e cobravam de hoje. Cinco testes
+  falhavam toda noite e voltavam a passar de manhã. Corrigido — e a correção
+  revelou um vazamento que o próprio defeito escondia: a escala criada pela
+  suíte da agenda passou a valer HOJE e a suíte do plantão começou a cobrar
+  passagem de um educador que só existia por causa do teste.
+
+### 8.2 Sobre os arquivos "de origem desconhecida" (resolvido)
+Três arquivos apareceram no repositório durante o trabalho. A origem foi
+identificada: **execuções paralelas desta mesma conversa**. A prova é o `docx`,
+que constava instalado às 01h00 de 30/08, no mesmo minuto em que os arquivos
+surgiram, catorze horas antes de os relatórios serem pedidos. Não houve acesso
+externo, processo oculto nem tarefa agendada. Os três foram lidos, o que
+prestava entrou no código, e o resto foi descartado.
+
+### 8.3 Achados do ensaio de uso ainda em aberto
+- **Sem tela** que mostre ao coordenador o que cada setor enxerga.
+- A matriz de permissões documentava **"Educador volante"**, cargo que não
+  existe no `role_code`.
+
+### 8.4 Decisões de produto em aberto
+- `upsertStock` faz `SET quantity = EXCLUDED.quantity` (substitui) mas grava o
+  movimento como `'entrada'`. Uma entrada de 10 sobre 30 deixa 10, não 40.
+- Painel de enfermagem: "vencendo em 7 dias" hoje conta a partir de `p_date`
+  (o dia que o painel mostra), não de hoje.
+- Nada pendente da substituição nem do painel: a lista, o aviso do pedido sem
+  efeito e a recusa com motivo estão prontos.
+
+### 8.5 Próximos passos sugeridos
+1. Decidir os dois itens de produto da §8.4 (é o que trava mais coisa)
+2. Aplicar o retorno do Marcelo por cargo (protótipo aprovado em 28/08)
+3. Trazer as fases 3–7 para o `der.md`
+3. Configurar SMTP institucional na implantação (`MailGateway` já está pronto)
+4. Trazer as fases 3–7 para o `der.md` — maior lacuna restante da documentação
+
+---
+
+## 9. Migrações desta série (0620–0740)
+
+| Nº | Módulo | O que faz |
 |---|---|---|
-| 1 | `app_mark_unconfirmed` | SECURITY DEFINER **sem checagem de escopo** — qualquer usuário autenticado afeta atividade de outra casa |
-| 2 | `clientOpId` | Contorna a proteção de estado final — a fila offline sobrescreve atividade concluída |
-| 3 | `enviarParaAprovacao` | Valida **depois** do commit — acompanhamento trava em `em_aprovacao` com eixos vazios |
-| 4 | `medication_stock` | UNIQUE com `person_id` anulável — NULL nunca conflita, duplicatas acumulam |
-| 5 | Chamada | `ON CONFLICT DO UPDATE` sobrescreve marcação **e autoria** sem histórico |
-| 6 | `atualizarJudicial` | Atualiza **todos** os episódios da pessoa — falta filtro por `episode_id` |
-| 7 | Panel service | Corta o mês em UTC, não em America/Sao_Paulo |
-| 8 | `requestSubstitution` | Reabre atividade já concluída |
-| 9 | Arquivo | Nome do arquivo usa data UTC; o caminho usa data São Paulo |
-| 10 | Prescrições | `current_date` em UTC — dose perdida depois das 21h, Resumo de Saúde errado |
-| 11 | `listDay` (chamada) | Usa contagem `expected` congelada em vez da contagem viva |
-| 12 | `addItem` (rotina) | Aceita qualquer `versionId`, inclusive de versão fechada |
+| 0620 | activities | escopo em `app_mark_unconfirmed` |
+| 0630 | identity | `app_hoje()` e `app_fuso()` — fonte única de "hoje" |
+| 0640 | medications | prescrições e autorização em `app_hoje()` |
+| 0650 | nursing | painel: janela de vencimento a partir de `p_date` |
+| 0660 | routine | versão da rotina em `app_hoje()` |
+| 0670 | checks | `check_result_amendment` + gatilho de histórico |
+| 0680 | routine | item só em versão vigente da própria casa |
+| 0690 | medications | `UNIQUE NULLS NOT DISTINCT` no estoque |
+| 0700 | identity | convite de primeiro acesso |
+| 0710 | activities | autoria dupla, delegação pelo líder, painel do plantão |
+| 0720 | activities | equipe técnica também troca quem vai na atividade |
+| 0730 | statements | líder do turno lê o registro restrito da própria casa |
+| 0740 | reports | tipo `desenvolvimento` liberado no CHECK do banco |
 
-> **Padrão por trás dos defeitos 7, 9 e 10:** o sistema é de Porto Alegre, o
-> servidor pensa em UTC. Toda data que vira "o dia de hoje" precisa passar por
-> `America/Sao_Paulo`. Vale revisar o `kernel/common/tempo.ts` como fonte única.
-
-### 8.2 Funcionalidades
-- Rota `/auth/primeiro-acesso` no backend real, com convite de uso único e prazo
-- Segunda auditoria (testes e documentação) — ficou incompleta por limite de taxa
+Sem migração nova na fase 14: os relatórios usam o que já estava gravado.
+A dependência `docx` entrou no backend, e o timbre vive em `backend/assets/timbre.png`.
 
 ---
 
-## 9. Sugestão de próximo passo
+## 10. Entrega para a conversa nova (30/08/2026)
 
-1. **Corrigir os defeitos 1 a 3** — são os de segurança e perda de dado
-2. **Fuso horário (7, 9, 10)** em um só passe, via `tempo.ts`
-3. **Histórico de autoria (5, 6, 8, 12)** — a família "registro fechado não se
-   sobrescreve", que é uma das regras do projeto
-4. Rota de primeiro acesso com convite
-5. Levar o protótipo ao Marcelo e coletar o retorno por cargo
+### 11.1 O que existe hoje, em uma frase
+Backend NestJS com PostgreSQL 16 e Row-Level Security, 16 partições isoladas;
+frontend React PWA com 19 telas; protótipo de um arquivo só com servidor de
+mentira; **219 testes passando em 16 suítes**; documento Word com timbre saindo
+do sistema. Nada foi publicado, nada roda em produção, nenhum dado real entrou.
+
+### 11.2 O que foi feito nesta série de conversas
+
+**Os 12 defeitos da auditoria, corrigidos e travados por teste.** Escopo em
+função `SECURITY DEFINER`, fila offline que sobrescrevia conclusão alheia,
+validação depois do commit, UNIQUE do estoque que nunca valia para o estoque
+comum, chamada que apagava autoria, situação judicial que reescrevia episódio
+encerrado, três defeitos de fuso, substituição que ressuscitava atividade
+concluída, contagem congelada e item em versão fechada.
+
+**Fuso como fonte única.** `hojeNaInstituicao()` no TypeScript, `app_hoje()` no
+SQL. `current_date` proibido em migração nova.
+
+**Convite de primeiro acesso.** E-mail institucional, uso único, 24 horas.
+Emitir embaralha a senha atual e derruba as sessões. Quem convida não vê o link.
+
+**Autoria dupla, delegação e painel do plantão.** Líder e coordenação registram
+pelo colega que realizou e não conseguiu registrar, com os dois nomes e o
+motivo; nunca para dose nem para chamada. Delegação de cima para baixo sem
+apagar a designação anterior. Recusa de substituição com motivo obrigatório.
+
+**Ensaio de uso por cargo.** Percorri o sistema como coordenador, equipe
+técnica, educador, líder e gestor. Rendeu 5 defeitos corrigidos e 2 alcances
+ajustados (técnica troca quem foi na atividade; líder lê o registro restrito).
+
+**Relatórios de verdade.** Deixaram de nascer vazios: o sistema escreve a parte
+factual e a pessoa escreve a avaliação. Saem em Word com timbre, editáveis.
+Tipo novo: **desenvolvimento da criança na casa**, com escola, apoios,
+evolução educacional, saúde, alimentação, ocorrências, marcos e conquistas, e
+**linha do tempo corrida** do período.
+
+**O dia das unidades.** `GET /timeline/all` e a tela `DiaDasUnidades`: o dia das
+casas que a pessoa alcança, em ordem, sem comparar unidades e sem modo
+individual.
+
+**Duas auditorias de teste e documentação.** Suíte de regressão nova, 6 falhas
+antigas resolvidas, três testes frágeis consertados, matriz de permissões, DER,
+backlog e manifestos alinhados ao código.
+
+### 11.3 O que falta, em ordem de valor
+
+1. **Duas decisões de produto, e elas travam código** (§8.4): o `upsertStock`
+   que substitui a quantidade mas grava o movimento como "entrada"; e a âncora
+   do "vencendo em 7 dias" no painel de enfermagem.
+2. **Tela mostrando ao coordenador o que cada setor enxerga.** Começada e não
+   feita: hoje `/staff/sectors` lista os cargos, mas não há tela que responda
+   "o que o educador vê?" sem trocar de conta.
+3. **Fases 3 a 7 no `der.md`.** São 82 tabelas no banco e o DER cobre menos de
+   vinte. Trabalho mecânico, feito a partir das próprias migrações.
+4. **Retorno do Marcelo por cargo.** O protótipo foi entregue e aprovado em
+   28/08. Falta perguntar coisas específicas: o líder achou o "Registrar pelo
+   colega"? Alguém encontrou o Painel do Plantão sem ajuda?
+5. **SMTP institucional**, só na implantação, e só com autorização expressa.
+   Falta saber o provedor, o endereço remetente, o endereço onde o sistema vai
+   rodar, e SPF/DKIM no domínio.
+
+### 11.4 Como retomar
+
+O repositório vai anexado em zip, já com tudo aplicado. Descompacte, e:
+
+```bash
+npm install                      # na raiz, uma vez
+docker compose up -d             # PostgreSQL 16
+cd backend && npx ts-node scripts/migrate.ts
+npx ts-node scripts/seed.ts && npx ts-node scripts/seed-fase2.ts && npx ts-node scripts/seed-fase4.ts
+npm test                         # 219 testes
+cd ../frontend && npm run prototipo
+```
+
+**Rode a suíte duas vezes, e uma delas depois das 21h.** Duas classes de
+defeito só aparecem assim: contaminação de estado entre suítes, e datas
+calculadas em UTC.
+
+### 11.5 Uma nota honesta sobre arquivos que aparecem sozinhos
+
+Durante o trabalho, arquivos surgiram no repositório minutos antes de eu
+escrever a mesma coisa. A origem foi identificada: **execuções paralelas desta
+mesma conversa** (ramificações descartadas compartilham o container). Não houve
+acesso externo nem processo oculto. A regra que ficou, e que vale manter: se
+aparecer arquivo que você não reconhece, leia, aproveite o que presta e
+descarte o resto — nunca aplique sem ler.
 
 ---
 
-## 10. PROMPT MESTRE
+## 11. PROMPT MESTRE
 
-> **Anexe DOIS arquivos** na primeira mensagem da conversa nova:
-> 1. `rede-acolher-codigo.zip` — o código-fonte inteiro (899 KB, 301 arquivos)
-> 2. este `CONTINUIDADE.md`
->
-> Depois cole o bloco abaixo e troque só a última linha.
->
-> **Por que o .zip:** cada conversa roda num ambiente novo e vazio. O
-> repositório não viaja sozinho — sem o .zip, a conversa nova consegue ler o
-> documento e discutir, mas não consegue editar o código nem rodar os testes.
+> Copie tudo dentro do bloco e cole como **primeira mensagem** da conversa nova,
+> com este arquivo e o zip do repositório anexados. Troque só a última linha.
 
 ```
 Você é minha equipe digital no projeto REDE ACOLHER — plataforma interna de
@@ -273,36 +449,24 @@ elas discordam:
 - COORDENADOR DE ACOLHIMENTO — a rotina real da casa, o plantão, a audiência
 - PSICÓLOGO — o efeito do registro sobre a criança e sobre quem cuida dela
 
-ANTES DE QUALQUER COISA, prepare o ambiente:
-
-  mkdir -p /home/user && cd /home/user && unzip -q <caminho-do-zip-anexado> \
-    && cd rede-acolher && npm --prefix frontend install \
-    && npm --prefix backend install
-
-O .zip anexado tem o código inteiro (301 arquivos), menos node_modules e dist —
-por isso o install. Se algum comando falhar, me diga qual e pare; não invente
-contorno.
-
-O outro anexo (CONTINUIDADE.md) tem o estado completo: arquitetura, fases
-concluídas, decisões tomadas e defeitos em aberto. Leia-o antes de responder e
-não me peça para reexplicar o que está lá.
+Anexei o repositório (zip) e o documento de continuidade. Leia-os antes de
+responder e não me peça para reexplicar o que está lá.
 
 === REGRAS QUE NÃO SE NEGOCIAM ===
 
 1. NUNCA publicar, nunca fazer deploy em produção, nunca usar dado real sem
    minha autorização expressa. Construir e validar local, com dados fictícios.
 2. Segredo nunca no código. Log da aplicação nunca copia conteúdo sensível —
-   só ID e metadado.
+   só ID e metadado. Vale para token de convite e link de acesso.
 3. PROIBIDO, sem exceção: WhatsApp ou envio de dados por WhatsApp; GPS ou
    rastreamento; conta compartilhada; acesso a outra casa fora das exceções
-   funcionais (Gestor Geral, Enfermagem, Líder Noturno Geral); ranking de
-   casas, acolhidos ou equipe; pontuação de comportamento; decisão automática
-   sobre diagnóstico, culpa, risco, punição, visita, medicação, destino ou
-   transferência; exclusão simples ou silenciosa; sobrescrever registro
-   fechado; CPF, diagnóstico ou conteúdo judicial em nome de arquivo; envio
-   automático para Judiciário, Conselho Tutelar, MP ou saúde; acesso direto do
-   educador ao Drive; módulo de alistamento militar; controle de cofre físico;
-   microsserviços prematuros.
+   funcionais; ranking de casas, acolhidos ou equipe; pontuação de
+   comportamento; decisão automática sobre diagnóstico, culpa, risco, punição,
+   visita, medicação, destino ou transferência; exclusão simples ou silenciosa;
+   sobrescrever registro fechado; CPF, diagnóstico ou conteúdo judicial em nome
+   de arquivo; envio automático para Judiciário, Conselho Tutelar, MP ou saúde;
+   acesso direto do educador ao Drive; módulo de alistamento militar; controle
+   de cofre físico; microsserviços prematuros.
 4. Dado bancário e cofre de acessos: só o coordenador da casa atual e o Gestor
    Geral, com reautenticação e log por visualização.
 5. PARTIÇÕES ISOLADAS. Cada módulo no seu arquivo. Apagar ou acrescentar uma
@@ -310,13 +474,16 @@ não me peça para reexplicar o que está lá.
 6. Toda ação tem autor e histórico. Nada é anônimo, nada some.
 7. Cor comunica estado operacional e categoria — nunca julgamento sobre a
    pessoa.
+8. Função SECURITY DEFINER com p_house SEMPRE confere app_house_in_scope().
+9. Migração nova NUNCA usa current_date. Use app_hoje().
 
 === COMO QUERO QUE VOCÊ TRABALHE ===
 
 - Interface, código, comentário e commit em PORTUGUÊS DO BRASIL.
 - Antes de construir, diga em duas linhas o que vai fazer. Depois faça.
 - Termine sempre com `npx tsc --noEmit` e `npm run prototipo` passando. Não me
-  entregue build quebrado, e não diga que passou sem ter rodado.
+  entregue build quebrado, e não diga que passou sem ter rodado. Se não puder
+  rodar, diga que não rodou.
 - Quando eu pedir algo que fere uma regra acima, não faça e me diga qual regra
   e qual é o caminho certo.
 - Quando a decisão for de produto e houver dois caminhos defensáveis, me
@@ -326,17 +493,20 @@ não me peça para reexplicar o que está lá.
 - Não repita para mim o que já está no documento. Não recapitule passos.
 - Se encontrar um defeito enquanto faz outra coisa, anote e me avise no fim —
   não desvie a tarefa sem falar.
+- Se algum arquivo do repositório mudar sem você ter mudado, me avise.
 
 === ESTADO ATUAL ===
 
-Fases 0 a 7 concluídas. Backend NestJS + PostgreSQL 16 com Row-Level Security,
-16 módulos. Frontend React PWA com 16 telas. O protótipo é o aplicativo de
-verdade compilado num .html único, com servidor de mentira em memória
-(src/mock.ts) e dados fictícios.
+Fases 0 a 17 concluídas. 219 testes passando em 16 suítes, sem falha
+conhecida. Backend NestJS + PostgreSQL 16 com RLS, 16 partições. Frontend React
+PWA com 19 telas. Relatórios saem em Word com timbre, com a parte factual
+escrita pelo sistema. Convite de primeiro acesso por e-mail, uso único, 24h.
 
-Em aberto: 12 defeitos de backend listados na seção 8.1 do documento, a rota
-de primeiro acesso com convite de uso único, e a auditoria de testes e
-documentação que ficou incompleta.
+Em aberto, na ordem: as duas decisões de produto da seção 8.4; a tela que mostra
+ao coordenador o que cada setor enxerga; as fases 3 a 7 no der.md; o retorno do
+Marcelo por cargo; e o SMTP institucional, só na implantação.
+
+Leia a seção 10 do documento: ela tem a entrega completa e como retomar.
 
 === O QUE EU QUERO AGORA ===
 

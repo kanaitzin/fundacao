@@ -84,7 +84,9 @@ export class HealthSummaryService {
            -- instituição e vai para a mão de um profissional de saúde: uma
            -- amoxicilina de maio aparecia como uso atual numa emergência de
            -- setembro, com horários.
-           AND (pr.ends_on IS NULL OR pr.ends_on >= current_date)
+           -- app_hoje(), não current_date: em servidor UTC, depois das 21h o
+           -- tratamento que termina HOJE já sairia do resumo (defeito 10).
+           AND (pr.ends_on IS NULL OR pr.ends_on >= app_hoje())
          ORDER BY pr.medication`, [personId]);
 
       const { rows: atendimentos } = await c.query(

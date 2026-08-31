@@ -90,20 +90,36 @@ describe('Fase 4 — Medicamentos e Enfermagem', () => {
   });
 
   it('prescrição em rascunho NÃO gera doses; só depois da assinatura', async () => {
-    const antes = await request(http).post('/api/v1/medications/generate-doses')
+    /*
+     * A conta é sobre ESTA prescrição, não sobre a casa.
+     *
+     * O teste media `criadas` no total da AI3, que já tem medicamentos vindos
+     * do seed-fase4 — então o número dependia de quantas doses da casa inteira
+     * ainda faltavam gerar, e portanto da ORDEM em que as suítes rodaram. O
+     * teste falhava sozinho e passava no conjunto, ou o contrário, sem que
+     * nada no sistema tivesse mudado. Um teste assim não protege: ensina a
+     * equipe a ignorar a luz vermelha.
+     */
+    const doses = async () => {
+      const { rows: [r] } = await admin.query(
+        `SELECT count(*)::int AS n FROM medication_administration WHERE prescription_id = $1`,
+        [prescricaoId]);
+      return r.n as number;
+    };
+    const gerar = () => request(http).post('/api/v1/medications/generate-doses')
       .set(auth(tokens.enfermagem)).send({ houseId: AI3, date: HOJE });
-    expect(antes.body.criadas).toBe(0);           // rascunho não entra na grade
+
+    await gerar();
+    expect(await doses()).toBe(0);                // rascunho não entra na grade
 
     await request(http).post(`/api/v1/medications/prescriptions/${prescricaoId}/sign`)
       .set(auth(tokens.enfermagem)).expect(201);
 
-    const depois = await request(http).post('/api/v1/medications/generate-doses')
-      .set(auth(tokens.enfermagem)).send({ houseId: AI3, date: HOJE });
-    expect(depois.body.criadas).toBe(2);          // 07:00 e 19:00
+    await gerar();
+    expect(await doses()).toBe(2);                // 07:00 e 19:00
 
-    const repetido = await request(http).post('/api/v1/medications/generate-doses')
-      .set(auth(tokens.enfermagem)).send({ houseId: AI3, date: HOJE });
-    expect(repetido.body.criadas).toBe(0);        // idempotente
+    await gerar();
+    expect(await doses()).toBe(2);                // idempotente: não duplica
   });
 
   // ---------- Protocolo: pendência institucional 33.4.1 ----------
@@ -340,6 +356,7 @@ describe('Fase 4 — Medicamentos e Enfermagem', () => {
   it('estoque controla só quantidade e validade; estoque baixo é sinalizado à mão (§11.6)', async () => {
     await request(http).post('/api/v1/medications/stock').set(auth(tokens.enfermagem))
       .send({ houseId: AI3, medicamento: 'Insulina NPH', quantidade: 3, unidade: 'frasco',
+              // Data futura: o deslocamento de fuso não altera o que o teste prova.
               validade: new Date(Date.now() + 15 * 86400000).toISOString().slice(0, 10) })
       .expect(201);
 

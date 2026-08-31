@@ -104,7 +104,17 @@ export class StatementsService {
       return rows;
     });
 
-    const ladoALado = ['equipe_tecnica', 'coordenador'].includes(user.role);
+    /*
+     * O líder do turno entrou aqui depois do ensaio de uso.
+     *
+     * Quem está com a criança às 23h precisa saber o que a equipe técnica
+     * registrou sobre ela — não para avaliar ninguém, mas para não repetir uma
+     * pergunta que já feriu, ou para entender por que ela não quer dormir no
+     * quarto de sempre. Educador e enfermagem seguem fora, e o Gestor Geral
+     * continua precisando da leitura excepcional com finalidade (§26.2 #29).
+     */
+    const ladoALado = ['equipe_tecnica', 'coordenador', 'lider_diurno', 'lider_noturno_geral']
+      .includes(user.role);
     if (ladoALado && rows.length) {
       await this.audit.log({
         action: 'statement.read_side_by_side', actorId: user.id,

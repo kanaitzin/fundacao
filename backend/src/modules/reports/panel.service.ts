@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { PoolClient } from 'pg';
 import { DatabaseService } from '../../kernel/database/database.service';
 import { AuthenticatedUser } from '../../kernel/contracts';
+import { janelaDoMes } from '../../kernel/common/tempo';
 
 /**
  * PAINEL DA CASA E DO GESTOR (§18.1–§18.3).
@@ -86,11 +87,11 @@ export class PanelService {
    * é um mês bom nem ruim, é um mês sem ocorrência registrada.
    */
   async mensalDaCasa(user: AuthenticatedUser, houseId: string, mes: string) {
-    const inicio = `${mes}-01`;
+    const janela = janelaDoMes(mes);
     const opcionais: Opcional[] = [
-      { chave: 'ocorrencias', tabela: 'incident',
+      { chave: 'ocorrências', tabela: 'incident',
         sql: `(SELECT count(*) FROM incident i
-                WHERE i.house_id = $1 AND i.happened_at >= p.ini AND i.happened_at < p.fim)::int` },
+                WHERE i.house_id = $1 AND i.happened_at >= p.ini_ts AND i.happened_at < p.fim_ts)::int` },
       { chave: 'acompanhamentosAprovados', tabela: 'followup',
         sql: `(SELECT count(*) FROM followup f
                 WHERE f.house_id = $1 AND f.period_start >= p.ini AND f.period_start < p.fim
@@ -105,7 +106,7 @@ export class PanelService {
                   AND a.status = 'fechada')::int` },
       { chave: 'documentosArquivados', tabela: 'archive_item',
         sql: `(SELECT count(*) FROM archive_item ar
-                WHERE ar.house_id = $1 AND ar.fechado_em >= p.ini AND ar.fechado_em < p.fim
+                WHERE ar.house_id = $1 AND ar.fechado_em >= p.ini_ts AND ar.fechado_em < p.fim_ts
                   AND ar.status = 'verificado')::int` },
     ];
 
@@ -113,22 +114,36 @@ export class PanelService {
       const tem = await this.existentes(c, opcionais.map((o) => o.tabela));
       const extras = opcionais.filter((o) => tem.has(o.tabela));
       const { rows: [r] } = await c.query(
-        `WITH p AS (SELECT $2::date AS ini, ($2::date + interval '1 month')::date AS fim)
+        // Defeito 7: a janela do mês era cortada no fuso do SERVIDOR.
+        //
+        // `happened_at >= '2026-08-01'` compara timestamptz com date, e o
+        // Postgres promove a date usando o TimeZone da sessão. Com o servidor
+        // em UTC, agosto passava a começar às 21h do dia 31 de julho em Porto
+        // Alegre: a ocorrência registrada naquela noite entrava no mês
+        // seguinte e sumia do mês em que aconteceu. Três horas em cada ponta,
+        // todo mês, sempre no plantão noturno — o turno que mais registra.
+        //
+        // As fronteiras chegam prontas do kernel (janelaDoMes), já em instante
+        // UTC: o banco não precisa saber onde fica a instituição. `ini`/`fim`
+        // seguem em date para as colunas que são date (period_start, on_date).
+        `WITH p AS (SELECT $2::date AS ini, ($2::date + interval '1 month')::date AS fim,
+                           $3::timestamptz AS ini_ts, $4::timestamptz AS fim_ts)
          SELECT
            (SELECT count(*) FROM house_stay s
              WHERE s.house_id = $1 AND s.status = 'ativa')::int AS ativos,
            (SELECT count(*) FROM house_stay s, p
-             WHERE s.house_id = $1 AND s.started_at >= p.ini AND s.started_at < p.fim)::int AS entradas,
+             WHERE s.house_id = $1 AND s.started_at >= p.ini_ts AND s.started_at < p.fim_ts)::int AS entradas,
            (SELECT count(*) FROM house_stay s, p
-             WHERE s.house_id = $1 AND s.ended_at >= p.ini AND s.ended_at < p.fim)::int AS saidas
+             WHERE s.house_id = $1 AND s.ended_at >= p.ini_ts AND s.ended_at < p.fim_ts)::int AS saidas
            ${extras.map((o) => `, ${o.sql} AS "${o.chave}"`).join('')}
-           FROM p`, [houseId, inicio]);
+           FROM p`,
+        [houseId, janela.primeiroDia, janela.inicio.toISOString(), janela.fim.toISOString()]);
 
       return {
         mes,
         ocupacao: { ativosHoje: r.ativos },
         fluxo: { entradas: r.entradas, saidas: r.saidas },
-        ocorrencias: r.ocorrencias ?? null,
+        ocorrências: r.ocorrências ?? null,
         acompanhamentos: {
           aprovados: r.acompanhamentosAprovados ?? null,
           abertos: r.acompanhamentosAbertos ?? null,

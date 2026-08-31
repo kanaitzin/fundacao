@@ -21,7 +21,17 @@ import { AppModule } from '../src/app.module';
 
 const SENHA = 'senha-dev-123';
 const adminUrl = process.env.DATABASE_URL ?? 'postgres://rede_admin:dev-only-change-me@127.0.0.1:5432/rede_acolher';
-const hoje = new Date().toISOString().slice(0, 10);
+/*
+ * Datas da INSTITUIÇÃO, não do servidor. Em UTC, depois das 21h de Porto
+ * Alegre o "hoje" do teste já é amanhã, e a suíte passa a cobrar do sistema um
+ * dia que não é o dele. É a mesma família de defeitos que a auditoria corrigiu
+ * no código.
+ */
+const dia = (offsetDias = 0) => new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit',
+}).format(new Date(Date.now() + offsetDias * 86400_000));
+
+const hoje = dia();
 /**
  * O ensaio abre o SEU plantão numa data própria, dois dias atrás.
  *
@@ -31,7 +41,7 @@ const hoje = new Date().toISOString().slice(0, 10);
  * indiferente para o que ele prova, e um dia só seu deixa as duas suítes
  * independentes uma da outra.
  */
-const diaDoEnsaio = new Date(Date.now() - 2 * 86400_000).toISOString().slice(0, 10);
+const diaDoEnsaio = dia(-2);
 
 describe('Piloto da Casa 03 — ensaio geral do dia', () => {
   let app: INestApplication, http: any, admin: Client;

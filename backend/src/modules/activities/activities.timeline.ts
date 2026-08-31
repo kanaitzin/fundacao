@@ -42,8 +42,15 @@ export class ActivitiesTimelineProvider implements TimelineProvider, OnModuleIni
       houseId: q.houseId,
       state: a.rotulo,
       severity: severidade(a.estado),
-      responsible: a.responsavel ?? (a.urgente ? 'Atividade urgente do plantão' : null),
-      note: a.justificativa ?? a.instrucoes ?? null,
+      // A linha do tempo é onde alguém vai ler isto meses depois, numa
+      // audiência. Os dois nomes andam juntos ou não andam.
+      responsible: a.registroPorOutro
+        ? `${a.registroPorOutro.realizadoPor} — registrado por ${a.registroPorOutro.registradoPor}`
+        : a.responsavel ?? (a.urgente ? 'Atividade urgente do plantão' : null),
+      note: a.registroPorOutro
+        ? [`Registrado em nome do colega: ${a.registroPorOutro.motivo}`,
+           a.justificativa ?? a.instrucoes ?? ''].filter(Boolean).join(' · ')
+        : a.justificativa ?? a.instrucoes ?? null,
       actions: acoes(a),
     }));
   }
