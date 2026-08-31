@@ -398,12 +398,12 @@ transformá-lo em teste.
 5. ~~O laço do arquivo e a abertura da chamada~~ — feito em 31/08 (§8.8)
 6. ~~O corpo da ATA, o aditamento e a reabertura~~ — feito em 31/08 (§8.9)
 7. ~~A comunicação externa da ocorrência~~ — feito em 31/08 (§8.10)
-8. **Anexos e contenção na ocorrência** — o que resta de mais sensível no grupo
-   1: foto do machucado e registro de contenção física, que hoje saem da casa
-   por foto de celular
-9. Conversar com o Marcelo sobre o resto do **grupo 1 do `docs/o-que-falta.md`**
-10. Aplicar o retorno do Marcelo por cargo
-11. Configurar SMTP institucional na implantação (`MailGateway` já está pronto)
+8. ~~Anexos e contenção na ocorrência~~ — feito em 31/08 (§8.11)
+9. **Episódios da noite** e a **rotina versionada da casa** — o que resta do
+   grupo 1 com mais efeito no dia a dia
+10. Conversar com o Marcelo sobre o resto do **grupo 1 do `docs/o-que-falta.md`**
+11. Aplicar o retorno do Marcelo por cargo
+12. Configurar SMTP institucional na implantação (`MailGateway` já está pronto)
 
 ### 8.6 O Arquivo das ATAS — 31/08/2026
 
@@ -604,7 +604,45 @@ Era a maior função sem porta do sistema.
 pelo mesmo motivo dos tipos de chamada — no dia em que entrar um órgão novo, a
 lista muda no servidor e a tela acompanha sem release.
 
-### 8.11 Ensaio como usuário — 31/08/2026, os nove cargos
+### 8.11 Anexos e contenção na ocorrência — 31/08/2026
+
+O material mais sensível do sistema, e o que hoje sai da casa por foto de
+celular justamente por não ter porta.
+
+**Anexo aqui NÃO é upload,** e essa é a decisão de desenho que o servidor já
+tinha tomado: o arquivo vive no Drive da instituição e o sistema guarda a
+REFERÊNCIA, o nome neutro e quem pode abrir. É o desenho que existe porque o
+educador não tem acesso direto às pastas (§2) — a abertura passa pelo sistema,
+com finalidade declarada e registro.
+
+Três recusas moram na folha:
+
+* **nome de arquivo não leva CPF, diagnóstico nem conteúdo judicial** (§3.3). O
+  servidor recusa por expressão regular desde a fase 5; a tela agora avisa
+  ANTES, com a mesma checagem, para a recusa não chegar depois de digitar. O
+  nome circula em lista, em pasta e em notificação — é ele que vaza, não o
+  conteúdo;
+* **foto exige justificativa escrita** — para que é necessária e qual
+  autorização a ampara;
+* **restrito é padrão do TIPO**, não uma caixinha a marcar: foto, documento
+  médico e documento técnico nascem fechados. O anexo restrito APARECE para
+  todos — some seria pior, cria a impressão de que não existe — e abrir exige a
+  folha de finalidade, com mínimo de quinze caracteres.
+
+**A contenção (§13.3)** ganhou a folha com os cinco campos obrigatórios —
+antecedentes, tentativas anteriores, local, presentes e método — e a frase que
+importa mais que os campos: *o sistema não avalia se a medida foi adequada*.
+Essa análise é humana e técnica; um sistema que a fizesse estaria julgando
+conduta por formulário. Os campos existem para que a análise SEJA POSSÍVEL. A
+seção só aparece onde cabe: numa ocorrência de contenção, ou onde já há
+registro.
+
+**No servidor:** os tipos de anexo passaram a sair do catálogo com rótulo,
+ajuda, `restritoPorPadrao` e `exigeJustificativa` — a tela deixa de decidir
+sozinha o que nasce fechado. E `addAttachment` passou a exigir a referência com
+uma frase que explica o desenho, em vez de gravar `storage_ref` vazio.
+
+### 8.12 Ensaio como usuário — 31/08/2026, os nove cargos
 
 Três roteiros de navegador contra o protótipo de arquivo único, com todos os
 cargos: `passeio.mjs` (o que cada um alcança, tela por tela), `acoes.mjs` e
@@ -826,7 +864,7 @@ responder e não me peça para reexplicar o que está lá.
 
 === ESTADO ATUAL ===
 
-Fases 0 a 26 concluídas. 265 testes passando em 23 suítes, sem falha conhecida
+Fases 0 a 27 concluídas. 265 testes passando em 23 suítes, sem falha conhecida
 — a suíte rodou três vezes seguidas e mais duas às 22h32 de Porto Alegre, com o
 relógio do banco movido junto. Backend NestJS + PostgreSQL 16 com RLS, 16
 partições. Frontend React PWA com 21 telas, todas falando as rotas reais do

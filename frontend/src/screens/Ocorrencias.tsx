@@ -34,9 +34,14 @@ interface Categoria {
   code: string; label: string; revisaoTecnica: boolean; restrito: boolean;
 }
 interface Opcao { cod: string; label: string }
+interface TipoAnexo {
+  cod: string; label: string; ajuda: string;
+  restritoPorPadrao: boolean; exigeJustificativa: boolean;
+}
 interface Catalogo {
   categorias: Categoria[]; orgaos: Opcao[]; canais: Opcao[];
-  aviso: string; avisoComunicacao?: string;
+  tiposAnexo?: TipoAnexo[];
+  aviso: string; avisoComunicacao?: string; avisoAnexo?: string;
 }
 
 /**
@@ -133,6 +138,10 @@ export function Ocorrencias({ houseId, papel }: { houseId: string; papel: string
   const [aba, setAba] = useState<'ocorrencias' | 'comunicacoes'>('ocorrencias');
   const [comunicacoes, setComunicacoes] = useState<Comunicacao[]>([]);
   const [comunicando, setComunicando] = useState<ItemLista | 'avulsa' | null>(null);
+  const [anexando, setAnexando] = useState<ItemLista | null>(null);
+  const [contendo, setContendo] = useState<ItemLista | null>(null);
+  const [abrindoAnexo, setAbrindoAnexo] = useState<{ id: string; nome: string } | null>(null);
+  const [anexoAberto, setAnexoAberto] = useState<{ nome: string; referencia: string } | null>(null);
   const [aberta, setAberta] = useState<string | null>(null);
   const [encerrando, setEncerrando] = useState<ItemLista | null>(null);
 
@@ -349,6 +358,90 @@ export function Ocorrencias({ houseId, papel }: { houseId: string; papel: string
                     </div>
                   ))}
 
+                  {/*
+                    * ANEXOS (§13.7).
+                    *
+                    * O sistema não guarda o arquivo — guarda a REFERÊNCIA dele
+                    * no Drive da instituição, o nome neutro e quem pode abrir.
+                    * É o desenho que existe porque o educador não tem acesso
+                    * direto às pastas (§2): sem esta porta, a foto do machucado
+                    * sai da casa por celular, que é o que se está tentando
+                    * evitar.
+                    *
+                    * Anexo restrito APARECE para todos — some seria pior, cria
+                    * a impressão de que não existe — e abrir exige dizer para
+                    * quê, com o nome de quem abriu no registro.
+                    */}
+                  <div className="eyebrow">Anexos</div>
+                  {d.anexos.length === 0 && (
+                    <p className="mutetxt" style={{ margin: 0 }}>Nenhum anexo registrado.</p>
+                  )}
+                  {d.anexos.map((a) => {
+                    const tipo = catalogo?.tiposAnexo?.find((t) => t.cod === a.tipo);
+                    return (
+                      <div className="row" key={a.id}>
+                        <div className="grow">
+                          <b className="ff">{a.nome}</b>
+                          <div className="mutetxt">
+                            {tipo?.label ?? a.tipo} · registrado por {a.autor}
+                          </div>
+                        </div>
+                        {a.restrito && <span className="pill c-warn">Restrito</span>}
+                        <button className="btn sm ghost"
+                                onClick={() => (a.restrito
+                                  ? setAbrindoAnexo({ id: a.id, nome: a.nome })
+                                  : acao(async () => {
+                                      const r = await api<{ nome: string; referencia: string }>(
+                                        `/incidents/attachments/${a.id}/open`,
+                                        { method: 'POST', body: '{}' });
+                                      setAnexoAberto(r);
+                                      return r;
+                                    }))}>
+                          Abrir
+                        </button>
+                      </div>
+                    );
+                  })}
+                  {d.status !== 'fechada' && (
+                    <button className="btn sec sm" onClick={() => setAnexando(o)}>
+                      📎 Registrar anexo
+                    </button>
+                  )}
+
+                  {/*
+                    * CONTENÇÃO (§13.3).
+                    *
+                    * Cinco campos obrigatórios, e o sistema NÃO avalia se a
+                    * medida foi adequada — essa análise é humana e técnica. O
+                    * que o registro garante é que ela possa ser analisada:
+                    * o que veio antes, o que se tentou antes, quem estava, o
+                    * método e o que se fez depois.
+                    */}
+                  {(d.contencao || d.codigoCategoria === 'contencao') && (
+                    <>
+                      <div className="eyebrow">Contenção</div>
+                      {d.contencao ? (
+                        <div className="notice c-info">
+                          Contenção registrada nesta ocorrência, com antecedentes, tentativas
+                          anteriores, método e o que foi feito depois. O sistema não avalia se a
+                          medida foi adequada — a análise é da equipe técnica.
+                        </div>
+                      ) : (
+                        <>
+                          <p className="mutetxt" style={{ margin: 0 }}>
+                            Esta ocorrência é de contenção e ainda não tem o registro próprio,
+                            que o §13.3 exige.
+                          </p>
+                          {d.status !== 'fechada' && (
+                            <button className="btn sec sm" onClick={() => setContendo(o)}>
+                              ✋ Registrar a contenção
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </>
+                  )}
+
                   {analisa && (
                     <>
                       <div className="eyebrow">Comunicação externa</div>
@@ -549,6 +642,62 @@ export function Ocorrencias({ houseId, papel }: { houseId: string; papel: string
             }));
             if (ok) setRelatando(null);
           }} />
+      )}
+
+      {anexando && catalogo && (
+        <FolhaAnexo
+          tipos={catalogo.tiposAnexo ?? []} aviso={catalogo.avisoAnexo ?? ''}
+          onFechar={() => setAnexando(null)}
+          onEnviar={async (corpo) => {
+            const ok = await acao(() => api(`/incidents/${anexando.id}/attachments`, {
+              method: 'POST', body: JSON.stringify(corpo) }));
+            if (ok) setAnexando(null);
+          }} />
+      )}
+
+      {contendo && (
+        <FolhaContencao
+          onFechar={() => setContendo(null)}
+          onEnviar={async (corpo) => {
+            const ok = await acao(() => api(`/incidents/${contendo.id}/restraint`, {
+              method: 'POST', body: JSON.stringify(corpo) }));
+            if (ok) setContendo(null);
+          }} />
+      )}
+
+      {abrindoAnexo && (
+        <FolhaFinalidade
+          nome={abrindoAnexo.nome}
+          onFechar={() => setAbrindoAnexo(null)}
+          onAbrir={async (finalidade) => {
+            const ok = await acao(async () => {
+              const r = await api<{ nome: string; referencia: string; aviso?: string }>(
+                `/incidents/attachments/${abrindoAnexo.id}/open`,
+                { method: 'POST', body: JSON.stringify({ finalidade }) });
+              setAnexoAberto(r);
+              return r;
+            });
+            if (ok) setAbrindoAnexo(null);
+          }} />
+      )}
+
+      {anexoAberto && (
+        <div className="overlay" role="dialog" aria-modal="true"
+             onClick={(e) => { if (e.target === e.currentTarget) setAnexoAberto(null); }}>
+          <div className="sheet modal">
+            <h3>{anexoAberto.nome}</h3>
+            {/* O sistema não abre o arquivo: ele diz ONDE ele está, no Drive
+                da instituição, e registra que você perguntou. */}
+            <div className="notice c-info">
+              A abertura foi registrada com o seu nome e o horário. O arquivo está no Drive
+              da instituição, no caminho abaixo.
+            </div>
+            <div className="bloco"><small>Onde está</small>{anexoAberto.referencia}</div>
+            <div className="row rodape">
+              <button className="btn block" onClick={() => setAnexoAberto(null)}>Fechar</button>
+            </div>
+          </div>
+        </div>
       )}
 
       {comunicando && catalogo && (
@@ -773,6 +922,223 @@ function FolhaEncerrar({ ocorrencia, jaTemSintese, onFechar, onEncerrar }: {
  *  * **o teor é escrito à mão.** Nenhum texto é gerado a partir da ocorrência:
  *    quem comunica a um órgão externo assina o que escreveu.
  */
+/**
+ * A FOLHA DO ANEXO (§13.7).
+ *
+ * O sistema não recebe o arquivo. Ele registra ONDE ele está, com que nome
+ * neutro, de que tipo, e quem pode abrir. Três recusas moram aqui:
+ *
+ *  * **nome de arquivo não leva CPF, diagnóstico nem conteúdo judicial**
+ *    (§3.3). O servidor recusa por expressão regular; a tela avisa antes, para
+ *    a recusa não chegar depois de digitar;
+ *  * **foto exige justificativa escrita** — para que ela é necessária e qual
+ *    autorização a ampara. Uma foto de criança sem isso é o tipo de registro
+ *    que ninguém consegue explicar depois;
+ *  * **restrito é o padrão do tipo**, e não uma caixinha esquecida: foto,
+ *    documento médico e documento técnico nascem fechados.
+ */
+function FolhaAnexo({ tipos, aviso, onFechar, onEnviar }: {
+  tipos: TipoAnexo[]; aviso: string;
+  onFechar: () => void; onEnviar: (corpo: Record<string, unknown>) => void;
+}) {
+  const [tipo, setTipo] = useState('');
+  const [nome, setNome] = useState('');
+  const [referencia, setReferencia] = useState('');
+  const [justificativa, setJustificativa] = useState('');
+  const escolhido = tipos.find((t) => t.cod === tipo);
+  // A mesma checagem do servidor, para o aviso chegar antes da recusa.
+  const nomeSuspeito = /\d{11}|\d{3}\.?\d{3}\.?\d{3}-?\d{2}|hiv|aids|autis|esquizo|depress|transtorn|psiquiatr|cid[\s-]?\d/i
+    .test(nome);
+  const pode = tipo !== '' && nome.trim().length >= 3 && !nomeSuspeito
+    && referencia.trim().length >= 3
+    && (!escolhido?.exigeJustificativa || justificativa.trim().length >= 15);
+
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-anx"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet modal">
+        <h3 id="t-anx">Registrar anexo</h3>
+        <div className="notice c-info">{aviso}</div>
+
+        <label className="f">Tipo</label>
+        <div className="opts">
+          {tipos.map((t) => (
+            <button type="button" key={t.cod} className={`opt ${t.restritoPorPadrao ? 'c-warn' : 'c-info'}`}
+                    aria-pressed={tipo === t.cod} onClick={() => setTipo(t.cod)}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+        {escolhido && <p className="mutetxt">{escolhido.ajuda}</p>}
+
+        <label className="f" htmlFor="anx-nome">
+          Nome de exibição <small>— neutro: sem CPF, diagnóstico ou processo</small>
+        </label>
+        <input id="anx-nome" className="field" value={nome}
+               onChange={(e) => setNome(e.target.value)}
+               placeholder="Ex.: receita da consulta de 31-08" />
+        {nomeSuspeito && (
+          <div className="notice c-crit">
+            Este nome parece conter CPF, diagnóstico ou referência judicial. Use um nome
+            neutro — o conteúdo fica protegido dentro do anexo, e o nome circula em lista,
+            em pasta e em notificação.
+          </div>
+        )}
+
+        <label className="f" htmlFor="anx-ref">
+          Onde o arquivo está <small>— a pasta ou o link no Drive da instituição</small>
+        </label>
+        <input id="anx-ref" className="field" value={referencia}
+               onChange={(e) => setReferencia(e.target.value)}
+               placeholder="Ex.: ACOLHIMENTO/AI3/2026/08/saude/receita-3108.pdf" />
+
+        {escolhido?.exigeJustificativa && (
+          <>
+            <label className="f" htmlFor="anx-just">
+              Por que a foto é necessária <small>— e qual autorização a ampara</small>
+            </label>
+            <textarea id="anx-just" value={justificativa}
+                      onChange={(e) => setJustificativa(e.target.value)}
+                      placeholder="Ex.: registro da lesão pedido pela Enfermagem para a consulta de amanhã; autorização da coordenação em 31/08." />
+          </>
+        )}
+
+        {escolhido?.restritoPorPadrao && (
+          <p className="mutetxt">
+            Este tipo nasce <b>restrito</b>: a equipe vê que o anexo existe, e abri-lo cabe
+            à equipe técnica e à coordenação, com finalidade declarada.
+          </p>
+        )}
+
+        <div className="row rodape">
+          <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
+          <button className="btn grow" disabled={!pode}
+                  onClick={() => onEnviar({
+                    tipo, nome: nome.trim(), referencia: referencia.trim(),
+                    justificativa: justificativa.trim() || undefined,
+                  })}>
+            Registrar anexo
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * ABRIR UM ANEXO RESTRITO — a finalidade é a condição, não um formulário.
+ *
+ * Não existe abertura sem dizer para quê. O texto escrito aqui vai para a
+ * auditoria junto com o nome de quem abriu: é o que permite, depois, perguntar
+ * por que alguém abriu a foto de uma criança numa terça-feira à tarde.
+ */
+function FolhaFinalidade({ nome, onFechar, onAbrir }: {
+  nome: string; onFechar: () => void; onAbrir: (finalidade: string) => void;
+}) {
+  const [finalidade, setFinalidade] = useState('');
+  const pode = finalidade.trim().length >= 15;
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-fin"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet modal">
+        <h3 id="t-fin">Abrir “{nome}”</h3>
+        <div className="notice c-warn">
+          Anexo restrito. A abertura fica registrada com o seu nome, o horário e a
+          finalidade que você escrever.
+        </div>
+        <label className="f" htmlFor="fin-txt">
+          Para que você precisa abrir <small>— pelo menos 15 caracteres</small>
+        </label>
+        <textarea id="fin-txt" value={finalidade}
+                  onChange={(e) => setFinalidade(e.target.value)}
+                  placeholder="Ex.: conferir a receita antes da consulta de retorno de amanhã." />
+        <div className="row rodape">
+          <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
+          <button className="btn grow" disabled={!pode}
+                  onClick={() => onAbrir(finalidade.trim())}>
+            Abrir com esta finalidade
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * A FOLHA DA CONTENÇÃO (§13.3).
+ *
+ * Cinco campos obrigatórios, e nenhum deles opina. O sistema NÃO avalia se a
+ * contenção foi adequada — essa análise é humana e técnica, e um sistema que
+ * a fizesse estaria julgando conduta por formulário. O que estes campos
+ * garantem é que a análise SEJA POSSÍVEL: o que veio antes, o que já se tentou
+ * antes de conter, quem estava presente, o método e o que se fez depois.
+ */
+function FolhaContencao({ onFechar, onEnviar }: {
+  onFechar: () => void; onEnviar: (corpo: Record<string, unknown>) => void;
+}) {
+  const [c, setC] = useState<Record<string, string>>({});
+  const põe = (k: string) => (e: { target: { value: string } }) =>
+    setC((m) => ({ ...m, [k]: e.target.value }));
+  const CAMPOS: { chave: string; rotulo: string; ajuda: string; obrigatorio: boolean }[] = [
+    { chave: 'antecedentes', rotulo: 'O que aconteceu antes', obrigatorio: true,
+      ajuda: 'Os fatos que antecederam, na ordem em que aconteceram.' },
+    { chave: 'tentativasAnteriores', rotulo: 'O que foi tentado antes', obrigatorio: true,
+      ajuda: 'Conversa, afastamento, mudança de ambiente — o que se tentou antes de conter.' },
+    { chave: 'local', rotulo: 'Local', obrigatorio: true, ajuda: 'Onde aconteceu.' },
+    { chave: 'presentes', rotulo: 'Quem estava presente', obrigatorio: true,
+      ajuda: 'Profissionais presentes. Nomes de acolhidos ficam na ocorrência, não aqui.' },
+    { chave: 'metodo', rotulo: 'Método utilizado', obrigatorio: true,
+      ajuda: 'Descreva objetivamente o que foi feito.' },
+    { chave: 'duracaoMinutos', rotulo: 'Duração, em minutos', obrigatorio: false, ajuda: '' },
+    { chave: 'possivelLesao', rotulo: 'Possível lesão', obrigatorio: false,
+      ajuda: 'O que foi observado, sem diagnóstico.' },
+    { chave: 'avaliacaoSaude', rotulo: 'Avaliação de saúde', obrigatorio: false,
+      ajuda: 'A Enfermagem foi acionada? Houve atendimento?' },
+    { chave: 'acaoPosterior', rotulo: 'O que foi feito depois', obrigatorio: false,
+      ajuda: 'Acolhimento, conversa, comunicação à equipe técnica.' },
+  ];
+  const pode = CAMPOS.filter((x) => x.obrigatorio).every((x) => (c[x.chave] ?? '').trim());
+
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-cont"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet modal">
+        <h3 id="t-cont">Registrar a contenção</h3>
+        <div className="notice c-warn">
+          O sistema <b>não avalia</b> se a contenção foi adequada — essa análise é da equipe
+          técnica. O registro existe para que ela seja possível.
+        </div>
+
+        {CAMPOS.map((x) => (
+          <div key={x.chave}>
+            <label className="f" htmlFor={`ct-${x.chave}`}>
+              {x.rotulo}{x.obrigatorio ? '' : ' (opcional)'}
+              {x.ajuda && <small> — {x.ajuda}</small>}
+            </label>
+            {x.chave === 'duracaoMinutos' ? (
+              <input id={`ct-${x.chave}`} className="field" type="number" min="0"
+                     value={c[x.chave] ?? ''} onChange={põe(x.chave)} />
+            ) : (
+              <textarea id={`ct-${x.chave}`} value={c[x.chave] ?? ''} onChange={põe(x.chave)} />
+            )}
+          </div>
+        ))}
+
+        <div className="row rodape">
+          <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
+          <button className="btn grow" disabled={!pode}
+                  onClick={() => onEnviar({
+                    ...c,
+                    duracaoMinutos: c.duracaoMinutos ? Number(c.duracaoMinutos) : undefined,
+                  })}>
+            Registrar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function FolhaComunicacao({ orgaos, canais, aviso, ocorrencia, onFechar, onEnviar }: {
   orgaos: Opcao[]; canais: Opcao[]; aviso: string;
   ocorrencia: ItemLista | null;

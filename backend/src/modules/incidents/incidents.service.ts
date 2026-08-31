@@ -45,6 +45,36 @@ const CANAIS_LISTA = [
   { cod: 'telefone', label: 'Telefone' },
   { cod: 'sistema_externo', label: 'Sistema do órgão' },
 ];
+/**
+ * TIPOS DE ANEXO (§13.7).
+ *
+ * Anexo aqui NÃO é upload: o arquivo vive no Drive institucional e o sistema
+ * guarda a REFERÊNCIA, o nome neutro e quem pode abrir — o educador não tem
+ * acesso direto às pastas (§2), e é justamente por isso que a abertura passa
+ * por aqui, com finalidade declarada e registro.
+ *
+ * `restritoPorPadrao` diz o que já nasce fechado: foto e documento médico não
+ * circulam pelo plantão. `exigeJustificativa` é a regra do §13.7 para foto —
+ * para que ela é necessária e qual autorização a ampara.
+ */
+const TIPOS_ANEXO = [
+  { cod: 'documento_medico', label: 'Documento médico',
+    ajuda: 'Receita, atestado, encaminhamento, laudo.',
+    restritoPorPadrao: true, exigeJustificativa: false },
+  { cod: 'comunicacao_oficial', label: 'Comunicação oficial',
+    ajuda: 'Ofício recebido ou enviado, decisão, guia.',
+    restritoPorPadrao: false, exigeJustificativa: false },
+  { cod: 'foto_autorizada', label: 'Foto autorizada',
+    ajuda: 'Só com autorização, e nunca na linha do tempo. Exige justificativa escrita.',
+    restritoPorPadrao: true, exigeJustificativa: true },
+  { cod: 'documento_escolar', label: 'Documento escolar',
+    ajuda: 'Boletim, declaração de matrícula, comunicado da escola.',
+    restritoPorPadrao: false, exigeJustificativa: false },
+  { cod: 'documento_tecnico', label: 'Documento técnico',
+    ajuda: 'Relatório ou parecer produzido pela equipe.',
+    restritoPorPadrao: true, exigeJustificativa: false },
+];
+
 const ORGAOS = ORGAOS_LISTA.map((o) => o.cod);
 const CANAIS = CANAIS_LISTA.map((c) => c.cod);
 
@@ -77,6 +107,11 @@ export class IncidentsService {
     return {
       categorias: CATEGORIAS,
       orgaos: ORGAOS_LISTA, canais: CANAIS_LISTA,
+      tiposAnexo: TIPOS_ANEXO,
+      avisoAnexo: 'O sistema não guarda o arquivo: guarda a REFERÊNCIA dele no Drive da '
+        + 'instituição, o nome neutro e quem pode abrir. Nome de arquivo nunca leva CPF, '
+        + 'diagnóstico nem conteúdo judicial (§3.3), e abrir um anexo restrito exige dizer '
+        + 'para quê — a abertura fica registrada com o seu nome.',
       /*
        * A frase é a regra, e vai junto do vocabulário de propósito: quem
        * desenhar uma tela sobre estes dados lê, na mesma resposta, que não
@@ -460,8 +495,16 @@ export class IncidentsService {
     tipo: string; nome: string; referencia: string; justificativa?: string;
     restrito?: boolean; checksum?: string;
   }) {
-    const tipos = ['documento_medico', 'comunicacao_oficial', 'foto_autorizada', 'documento_escolar', 'documento_tecnico'];
-    if (!tipos.includes(input.tipo)) throw new BadRequestException('Tipo de anexo inválido.');
+    const tipo = TIPOS_ANEXO.find((t) => t.cod === input.tipo);
+    if (!tipo) {
+      throw new BadRequestException(
+        `Escolha o tipo do anexo: ${TIPOS_ANEXO.map((t) => t.label).join('; ')}.`);
+    }
+    if (!(input.referencia ?? '').trim()) {
+      throw new BadRequestException(
+        'Informe onde o arquivo está — a pasta ou o link no Drive da instituição. '
+        + 'O sistema guarda a referência, não o arquivo.');
+    }
     // §13.7: foto exige justificativa. Sem ela, não entra.
     if (input.tipo === 'foto_autorizada' && (input.justificativa ?? '').trim().length < 15) {
       throw new BadRequestException(
@@ -483,7 +526,7 @@ export class IncidentsService {
            justification, restricted, storage_ref, checksum, author_id)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id`,
         [id, casa, input.tipo, nome, input.justificativa ?? null,
-         input.restrito ?? (input.tipo === 'foto_autorizada'),
+         input.restrito ?? tipo.restritoPorPadrao,
          input.referencia, input.checksum ?? null, user.id]);
       return r.id as string;
     });

@@ -597,6 +597,40 @@ const CATEGORIAS_OCORRENCIA = [
  * estado que engana — parece pronto, e a criança continua sem que o órgão
  * saiba.
  */
+/**
+ * TIPOS DE ANEXO (§13.7). Anexo não é upload: é a REFERÊNCIA de um arquivo que
+ * vive no Drive da instituição, com nome neutro e finalidade para abrir.
+ */
+const TIPOS_ANEXO = [
+  { cod: 'documento_medico', label: 'Documento médico',
+    ajuda: 'Receita, atestado, encaminhamento, laudo.',
+    restritoPorPadrao: true, exigeJustificativa: false },
+  { cod: 'comunicacao_oficial', label: 'Comunicação oficial',
+    ajuda: 'Ofício recebido ou enviado, decisão, guia.',
+    restritoPorPadrao: false, exigeJustificativa: false },
+  { cod: 'foto_autorizada', label: 'Foto autorizada',
+    ajuda: 'Só com autorização, e nunca na linha do tempo. Exige justificativa escrita.',
+    restritoPorPadrao: true, exigeJustificativa: true },
+  { cod: 'documento_escolar', label: 'Documento escolar',
+    ajuda: 'Boletim, declaração de matrícula, comunicado da escola.',
+    restritoPorPadrao: false, exigeJustificativa: false },
+  { cod: 'documento_tecnico', label: 'Documento técnico',
+    ajuda: 'Relatório ou parecer produzido pela equipe.',
+    restritoPorPadrao: true, exigeJustificativa: false },
+];
+interface AnexoMock {
+  id: string; ocorrenciaId: string; tipo: string; nome: string;
+  referencia: string; restrito: boolean; autor: string;
+}
+let ANEXOS: AnexoMock[] = [
+  { id: 'ax1', ocorrenciaId: 'o2', tipo: 'documento_medico',
+    nome: 'orientação da consulta de 31-08',
+    referencia: 'RESTRITO/AI3/2026/08/saude/orientacao-3108.pdf',
+    restrito: true, autor: 'Enfermeira Fictícia' },
+];
+/** A contenção registrada por ocorrência (§13.3). */
+const CONTENCOES: Record<string, Record<string, unknown>> = {};
+
 const ORGAOS_EXTERNOS = [
   { cod: 'judiciario', label: 'Judiciário (Vara da Infância)' },
   { cod: 'conselho_tutelar', label: 'Conselho Tutelar' },
@@ -2384,6 +2418,78 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
   // a MESMA rota de revisão, com decisões opostas. E /categories casava com
   // GET /incidents/:id: o servidor leria "categories" como um id.
 
+  /* Abrir anexo: palavra fixa antes de `/incidents/:id`. */
+  if (seg[0] === 'incidents' && seg[1] === 'attachments' && seg[3] === 'open'
+      && metodo === 'POST') {
+    const a = ANEXOS.find((x) => x.id === seg[2]);
+    if (!a) return new Recusa(404, 'Anexo não encontrado.');
+    if (a.restrito && !['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403, 'Anexo restrito. Você pode ver que ele existe; abri-lo cabe à '
+        + 'equipe técnica e à coordenação.');
+    }
+    if (a.restrito && String(b.finalidade ?? '').trim().length < 15) {
+      return new Recusa(400, 'Descreva a finalidade da abertura (mínimo 15 caracteres).');
+    }
+    return { referencia: a.referencia, tipo: a.tipo, nome: a.nome,
+             aviso: 'Abertura registrada em auditoria.' };
+  }
+
+  if (seg[0] === 'incidents' && seg[2] === 'attachments' && metodo === 'POST') {
+    const o = OCORRENCIAS.find((x) => x.id === seg[1]);
+    if (!o) return new Recusa(404, 'Ocorrência não encontrada.');
+    const tipo = TIPOS_ANEXO.find((t) => t.cod === String(b.tipo ?? ''));
+    if (!tipo) {
+      return new Recusa(400,
+        'Escolha o tipo do anexo: ' + TIPOS_ANEXO.map((t) => t.label).join('; ') + '.');
+    }
+    const nome = String(b.nome ?? '').trim();
+    if (!nome) return new Recusa(400, 'Informe um nome de exibição para o anexo.');
+    // §3.3 — a mesma recusa do servidor, pelas mesmas expressões.
+    if (/\d{11}|\d{3}\.?\d{3}\.?\d{3}-?\d{2}/.test(nome)
+        || /\b(hiv|aids|soropositiv|cid[\s-]?\d|autis|esquizo|depress|transtorn|psiquiatr)/i.test(nome)) {
+      return new Recusa(400, 'O nome do arquivo não pode conter CPF, diagnóstico ou '
+        + 'referência judicial. Use um nome neutro; o conteúdo fica protegido dentro do anexo.');
+    }
+    if (!String(b.referencia ?? '').trim()) {
+      return new Recusa(400, 'Informe onde o arquivo está — a pasta ou o link no Drive da '
+        + 'instituição. O sistema guarda a referência, não o arquivo.');
+    }
+    if (tipo.exigeJustificativa && String(b.justificativa ?? '').trim().length < 15) {
+      return new Recusa(400,
+        'Foto exige justificativa: para que ela é necessária e qual autorização a ampara.');
+    }
+    ANEXOS = [...ANEXOS, {
+      id: uid(), ocorrenciaId: o.id, tipo: tipo.cod, nome,
+      referencia: String(b.referencia).trim(),
+      restrito: b.restrito ?? tipo.restritoPorPadrao, autor: eu.fullName,
+    }];
+    return { id: ANEXOS[ANEXOS.length - 1].id,
+      aviso: 'Anexo registrado. Fotos não aparecem na linha do tempo.' };
+  }
+
+  /* Contenção (§13.3): cinco campos obrigatórios, e nenhuma avaliação. */
+  if (seg[0] === 'incidents' && seg[2] === 'restraint' && metodo === 'POST') {
+    const o = OCORRENCIAS.find((x) => x.id === seg[1]);
+    if (!o) return new Recusa(404, 'Ocorrência não encontrada.');
+    if (CONTENCOES[o.id]) {
+      return new Recusa(400, 'Esta contenção já foi registrada e não é reescrita.');
+    }
+    const obrigatorios: [string, string][] = [
+      ['antecedentes', 'fatos antecedentes'], ['local', 'local'],
+      ['presentes', 'pessoas presentes'], ['tentativasAnteriores', 'tentativas anteriores'],
+      ['metodo', 'método utilizado'],
+    ];
+    const faltando = obrigatorios.filter(([k]) => !String(b[k] ?? '').trim());
+    if (faltando.length) {
+      return new Recusa(400,
+        'Registro de contenção exige: ' + faltando.map(([, l]) => l).join(', ') + '.');
+    }
+    CONTENCOES[o.id] = { ...b, registradoPor: eu.fullName, em: new Date().toISOString() };
+    return { ok: true,
+      aviso: 'Registrado. O sistema não avalia se a medida foi adequada — a análise é da '
+        + 'equipe técnica.' };
+  }
+
   /*
    * As rotas da comunicação externa. Ficam ANTES de `/incidents/:id`:
    * `['incidents','communications']` tem o mesmo tamanho de
@@ -2475,7 +2581,11 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       categorias: CATEGORIAS_OCORRENCIA.map((c) => ({
         code: c.cod, label: c.label, revisaoTecnica: c.exigeRevisao, restrito: c.restrita,
       })),
-      orgaos: ORGAOS_EXTERNOS, canais: CANAIS_EXTERNOS,
+      orgaos: ORGAOS_EXTERNOS, canais: CANAIS_EXTERNOS, tiposAnexo: TIPOS_ANEXO,
+      avisoAnexo: 'O sistema não guarda o arquivo: guarda a REFERÊNCIA dele no Drive da '
+        + 'instituição, o nome neutro e quem pode abrir. Nome de arquivo nunca leva CPF, '
+        + 'diagnóstico nem conteúdo judicial (§3.3), e abrir um anexo restrito exige dizer '
+        + 'para quê — a abertura fica registrada com o seu nome.',
       aviso: 'O registro nunca deve atrasar proteção imediata, atendimento de saúde ou o '
         + 'protocolo institucional. Abra a ocorrência com o mínimo e complete depois.',
       avisoComunicacao: 'O sistema NÃO envia nada para fora. Ele registra o que foi redigido, '
@@ -2493,7 +2603,8 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         nivelAcesso: cat.restrita ? 'restrito' : 'equipe',
         revisaoTecnicaObrigatoria: cat.exigeRevisao,
         prazo: null, abertaPor: o.abertaPor,
-        acolhidos: o.personId ? 1 : 0, anexos: 0,
+        acolhidos: o.personId ? 1 : 0,
+        anexos: ANEXOS.filter((a) => a.ocorrenciaId === o.id).length,
       };
     });
   }
@@ -2523,13 +2634,15 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       avisoProtegido: podeProtegido ? null
         : 'Fala espontânea e sinais observados, quando existem, são acessíveis à equipe '
           + 'técnica e à coordenação.',
-      contencao: null,
+      contencao: CONTENCOES[o.id] ?? null,
       sinteses: tecnica ? o.sinteses : [],
       relatos: relatosDe('incident', o.id),
       avisoAnaliseTecnica: tecnica ? null
         : 'Sínteses técnicas e comunicações externas, quando existem, são acessíveis à '
           + 'equipe técnica e à coordenação.',
-      anexos: [],
+      anexos: ANEXOS.filter((a) => a.ocorrenciaId === o.id).map((a) => ({
+        id: a.id, tipo: a.tipo, nome: a.nome, restrito: a.restrito, autor: a.autor,
+      })),
       comunicacoesExternas: COMUNICACOES
         .filter((c) => c.ocorrenciaId === o.id)
         .map((c) => ({ id: c.id, orgao: c.orgao, canal: c.canal, status: c.status })),
