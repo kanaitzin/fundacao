@@ -1,11 +1,12 @@
 # O que falta da ideia original
 
 Levantamento de 31/08/2026, feito por leitura cruzada entre as rotas que o
-servidor serve e as chamadas que as telas fazem. Sobram **68 rotas que existem,
+servidor serve e as chamadas que as telas fazem. Sobram **66 rotas que existem,
 têm regra, têm RLS e auditoria — e não têm porta**.
 
-*Atualizado no mesmo dia: o **Arquivo das ATAS** foi construído e saiu desta
-lista — ver a decisão 2 no fim do documento.*
+*Atualizado no mesmo dia: saíram desta lista o **Arquivo das ATAS** (ver a
+decisão 2, no fim) e a **saída, o acervo e o retorno** — o ciclo do acolhimento
+agora fecha pela tela, com `GET /people/archive` como a porta que faltava.*
 
 Isso não é lista de bugs. É o mapa do que já está construído por baixo e ainda
 não tem por onde ser usado. Serve para decidir com o Marcelo o que entra antes
@@ -24,7 +25,6 @@ WhatsApp é proibido (§2).
 
 | O que é | Rotas | Por que dói agora |
 |---|---|---|
-| **Desligamento e reacolhimento** | `POST /people/:id/discharge`, `/readmit` | Criança sai da casa e o sistema não sabe. Toda a contagem de ocupação, chamada e agenda continua contando alguém que não está lá. |
 | **Corrigir o cadastro depois da admissão** | `PATCH /people/:id`, `PATCH /people/:id/judicial` | Hoje só dá para cadastrar. Nome errado, data de nascimento errada, decisão judicial que mudou — nada disso tem onde ser corrigido, e o certo é corrigir com histórico, não recadastrar. |
 | **Anexar documento ao arquivo** | `POST /archive`, `GET /people/:id/documents/:docId` | A tela do Arquivo documental mostra a fila e o que já entrou; **não tem como colocar nada lá**. |
 | **Abrir a chamada do turno** | `POST /checks` | A chamada só existe se alguém a criar. No protótipo elas vêm prontas; na casa, ninguém as cria. |
@@ -71,6 +71,7 @@ São rotas de máquina: tarefa agendada, verificação interna, chamada de servi
 `GET /activities`, `GET /health`, `POST /people` (a admissão usa
 `/people/admission`), `GET /transfers/pending` (a tela usa `inbox`/`outbox`),
 `GET /statements` (os relatos chegam junto com o detalhe da ocorrência),
+`GET /people/:id/admission` (a ficha da admissão entra no perfil),
 `PATCH /shifts/general-ata/:id/house/:houseId`.
 
 ---

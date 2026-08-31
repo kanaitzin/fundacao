@@ -59,6 +59,12 @@ interface Dose {
   tipo: string; condicaoUso: string | null; estado: string; rotulo: string;
   pendente: boolean; confirmadaPor: string | null;
 }
+/** Quem já esteve nesta casa e não está mais (§15.2). */
+interface NoAcervo {
+  id: string; nome: string; idade: number;
+  saiuEm: string | null; motivoDaSaida: string | null; episodios: number;
+}
+interface Acervo { aviso: string; pessoas: NoAcervo[] }
 interface Judicial {
   motivo: string; detalhe: string | null; medida: string; orgao: string;
   vara: string | null; processo: string | null; guia: string | null;
@@ -70,6 +76,29 @@ interface Judicial {
 const VE_JUDICIAL = ['equipe_tecnica', 'coordenador', 'gestor_geral'];
 /** Quem cadastra (§6.1) — a mesma regra que o banco aplica no comando. */
 const QUEM_CADASTRA = ['equipe_tecnica', 'coordenador', 'gestor_geral'];
+/*
+ * alcance:acolhidos — quem registra SAÍDA e RETORNO, e quem abre o acervo.
+ * Conferido contra `PeopleService.discharge/readmit/acervo`. Um líder ou um
+ * educador não desliga ninguém: a saída encerra episódio, cancela
+ * transferências pendentes e move o perfil para o acervo.
+ */
+const REGISTRA_SAIDA = ['equipe_tecnica', 'coordenador', 'gestor_geral'];
+
+/**
+ * Motivos de saída que a casa usa. O servidor recebe TEXTO LIVRE, e é por isso
+ * que estes botões apenas PREENCHEM o campo — quem registra continua podendo
+ * escrever o que aconteceu com as palavras dela. Uma lista fechada aqui viraria
+ * um contrato que o servidor não tem, e a primeira saída fora da lista seria
+ * registrada errada só para caber num botão.
+ */
+const MOTIVOS_DE_SAIDA = [
+  'Reintegração familiar',
+  'Colocação em família extensa',
+  'Adoção',
+  'Transferência para outro serviço de acolhimento',
+  'Maioridade',
+  'Determinação judicial',
+];
 /**
  * Quem RELATA um atendimento de saúde (§7.2): quem acompanhou a criança.
  * A Enfermagem tria e assina; a coordenação e a técnica também relatam quando
@@ -125,6 +154,9 @@ export function Acolhidos({ houseId, casaLabel, papel }: {
   const [busca, setBusca] = useState('');
   const [cadastrando, setCadastrando] = useState(false);
   const [aviso, setAviso] = useState('');
+  const [acervo, setAcervo] = useState<Acervo | null>(null);
+  const [vendoAcervo, setVendoAcervo] = useState(false);
+  const [retornando, setRetornando] = useState<NoAcervo | null>(null);
 
   const carregar = useCallback(async () => {
     setErro('');
@@ -133,6 +165,12 @@ export function Acolhidos({ houseId, casaLabel, papel }: {
   }, [houseId]);
 
   useEffect(() => { carregar(); }, [carregar]);
+
+  const carregarAcervo = useCallback(async () => {
+    setErro('');
+    try { setAcervo(await api<Acervo>(`/people/archive?houseId=${houseId}`)); }
+    catch (e) { setErro(e instanceof Error ? e.message : 'Não foi possível abrir o acervo.'); }
+  }, [houseId]);
 
   if (cadastrando) {
     return (
@@ -155,6 +193,87 @@ export function Acolhidos({ houseId, casaLabel, papel }: {
                    onVoltar={() => { setAbertoId(null); carregar(); }} />;
   }
 
+  /*
+   * O ACERVO HISTÓRICO (§15.2).
+   *
+   * Ele fica numa tela à parte, e não misturado à lista da casa, porque as
+   * duas respondem perguntas diferentes: "quem está aqui agora" é a pergunta
+   * do plantão, feita dezenas de vezes por dia; "quem já esteve" é a pergunta
+   * de quem vai registrar um retorno. Misturar as duas põe na lista da manhã
+   * nomes de crianças que já foram embora.
+   */
+  if (vendoAcervo) {
+    return (
+      <>
+        <button className="btn sm ghost" onClick={() => { setVendoAcervo(false); carregar(); }}>
+          ← Acolhidos
+        </button>
+
+        <div className="diahead">
+          <div><h2>Acervo histórico</h2>
+            <div className="mutetxt">Quem já esteve nesta casa e não está mais.</div></div>
+          <div className="resumo">
+            <span className="pill c-mute">{acervo?.pessoas.length ?? 0} no acervo</span>
+          </div>
+        </div>
+
+        {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+        {aviso && <div className="notice c-ok" role="status">{aviso}</div>}
+        {acervo && <div className="notice c-info">{acervo.aviso}</div>}
+
+        <ol className="pessoas">
+          {(acervo?.pessoas ?? []).map((p) => (
+            <li key={p.id}>
+              <div className="card stack">
+                <div className="row">
+                  <div className="grow">
+                    <b className="ff">{p.nome}</b>
+                    <div className="mutetxt">
+                      {p.idade} anos
+                      {p.saiuEm && ` · saiu em ${dia(p.saiuEm)}`}
+                      {p.episodios > 1 && ` · ${p.episodios} acolhimentos`}
+                    </div>
+                  </div>
+                  <button className="btn sm sec" onClick={() => setRetornando(p)}>
+                    Registrar retorno
+                  </button>
+                </div>
+                {p.motivoDaSaida && (
+                  <div className="bloco"><small>Motivo da saída</small>{p.motivoDaSaida}</div>
+                )}
+              </div>
+            </li>
+          ))}
+        </ol>
+
+        {acervo && acervo.pessoas.length === 0 && (
+          <div className="card"><p className="mutetxt" style={{ margin: 0 }}>
+            Ninguém saiu desta casa até agora.</p></div>
+        )}
+
+        {retornando && (
+          <FolhaRetorno
+            pessoa={retornando}
+            onFechar={() => setRetornando(null)}
+            onConfirmar={async () => {
+              setErro(''); setAviso('');
+              try {
+                const r = await api<{ aviso?: string; episodio?: number }>(
+                  `/people/${retornando.id}/readmit`,
+                  { method: 'POST', body: JSON.stringify({ houseId }) });
+                setRetornando(null);
+                setAviso(`${retornando.nome} voltou para a casa — episódio `
+                  + `${r.episodio ?? 'novo'}. ${r.aviso ?? ''}`);
+                await carregarAcervo(); await carregar();
+              } catch (e) {
+                setErro(e instanceof Error ? e.message : 'Não foi possível registrar o retorno.');
+              }
+            }} />
+        )}
+      </>
+    );
+  }
+
   const filtrada = busca.trim()
     ? lista.filter((p) => p.nome.toLowerCase().includes(busca.trim().toLowerCase()))
     : lista;
@@ -172,6 +291,12 @@ export function Acolhidos({ houseId, casaLabel, papel }: {
       {QUEM_CADASTRA.includes(papel) && (
         <button className="btn block" onClick={() => setCadastrando(true)}>
           Cadastrar acolhido
+        </button>
+      )}
+      {REGISTRA_SAIDA.includes(papel) && (
+        <button className="btn block sec" style={{ marginTop: 8 }}
+                onClick={() => { setVendoAcervo(true); carregarAcervo(); }}>
+          🗄️ Acervo histórico — quem saiu, e registrar retorno
         </button>
       )}
 
@@ -230,6 +355,7 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
   const [semJudicial, setSemJudicial] = useState(false);
   const [evolucao, setEvolucao] = useState(false);
   const [aviso, setAviso] = useState('');
+  const [saindo, setSaindo] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -519,6 +645,50 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
         </Secao>
       )}
 
+      {/*
+        * A SAÍDA (§15.2).
+        *
+        * Fica no FIM do perfil, e não num botão de topo: é o ato menos
+        * frequente e o mais definitivo desta tela, e um toque errado no lugar
+        * onde a mão passa o dia inteiro encerraria o acolhimento de uma
+        * criança. Do lado do servidor a saída encerra a permanência e o
+        * episódio, cancela transferências pendentes e leva o perfil ao acervo
+        * — nada disso é apagamento, e é isso que a tela diz antes de pedir a
+        * confirmação.
+        */}
+      {REGISTRA_SAIDA.includes(papel) && (
+        <Secao titulo="Saída da casa">
+          <p className="mutetxt" style={{ marginTop: 0 }}>
+            Registrar a saída encerra o acolhimento nesta casa. O perfil <b>não é
+            apagado</b>: vai para o acervo histórico com tudo o que foi registrado, e um
+            retorno abre episódio novo no mesmo perfil.
+          </p>
+          <button className="btn sec" onClick={() => setSaindo(true)}>
+            Registrar saída de {p.nome}
+          </button>
+        </Secao>
+      )}
+
+      {saindo && (
+        <FolhaSaida
+          nome={p.nome}
+          onFechar={() => setSaindo(false)}
+          onConfirmar={async (motivo) => {
+            setErro(''); setAviso('');
+            try {
+              await api(`/people/${personId}/discharge`,
+                { method: 'POST', body: JSON.stringify({ motivo }) });
+              setSaindo(false);
+              // Volta para a lista: a criança não está mais na casa, e deixar
+              // o perfil aberto sugere que ainda está.
+              onVoltar();
+            } catch (e) {
+              setSaindo(false);
+              setErro(e instanceof Error ? e.message : 'Não foi possível registrar a saída.');
+            }
+          }} />
+      )}
+
       {p.memorias.length > 0 && (
         <Secao titulo="Memórias">
           <ul className="lista">
@@ -532,6 +702,112 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
         </Secao>
       )}
     </>
+  );
+}
+
+/**
+ * A FOLHA DA SAÍDA (§15.2).
+ *
+ * Três coisas que ela protege:
+ *
+ *  * **o motivo é escrito, não escolhido.** Os botões preenchem o campo e o
+ *    texto continua editável: "reintegração familiar" e "reintegração familiar
+ *    com acompanhamento da rede de origem" não são a mesma frase, e a segunda
+ *    é a que serve daqui a um ano. Uma lista fechada faria a saída fora da
+ *    lista ser registrada errada só para caber num botão;
+ *  * **a tela diz o que vai acontecer antes de acontecer** — encerra o
+ *    acolhimento, cancela transferência pendente, leva ao acervo. Confirmar
+ *    sem saber o efeito é o caminho conhecido do arrependimento;
+ *  * **não existe desfazer, e a tela avisa.** O caminho de volta é registrar
+ *    um retorno, que é episódio NOVO — e é assim que tem de ser: a criança
+ *    que voltou não desfez a saída, ela voltou.
+ */
+function FolhaSaida({ nome, onFechar, onConfirmar }: {
+  nome: string; onFechar: () => void; onConfirmar: (motivo: string) => void;
+}) {
+  const [motivo, setMotivo] = useState('');
+  const pode = motivo.trim().length >= 3;
+
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-saida"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet modal">
+        <h3 id="t-saida">Registrar a saída de {nome}</h3>
+        <div className="notice c-warn">
+          Isto encerra o acolhimento nesta casa: a criança sai da chamada, da agenda e da
+          contagem da casa, e uma solicitação de transferência pendente sobre ela é
+          cancelada. <b>O perfil não é apagado</b> — vai para o acervo, com o histórico
+          inteiro.
+        </div>
+
+        <label className="f" htmlFor="saida-motivo">
+          Motivo da saída <small>— com as suas palavras; os botões só ajudam a começar</small>
+        </label>
+        <div className="opts">
+          {MOTIVOS_DE_SAIDA.map((m) => (
+            <button type="button" key={m} className="opt c-info"
+                    aria-pressed={motivo === m} onClick={() => setMotivo(m)}>
+              {m}
+            </button>
+          ))}
+        </div>
+        <textarea id="saida-motivo" value={motivo} onChange={(e) => setMotivo(e.target.value)}
+                  placeholder="Ex.: reintegração familiar, com acompanhamento da rede de origem; determinação da Vara em 12/08." />
+
+        <p className="mutetxt">
+          Não há como desfazer. Se a criança voltar, registre um <b>retorno</b> pelo acervo —
+          ele abre um episódio novo, e nada do episódio anterior é reativado sozinho.
+        </p>
+
+        <div className="row rodape">
+          <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
+          <button className="btn grow" disabled={!pode} onClick={() => onConfirmar(motivo.trim())}>
+            Registrar a saída
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * A FOLHA DO RETORNO (§15.3).
+ *
+ * O retorno não restaura nada. Ele abre um episódio NOVO no mesmo perfil, e o
+ * que estava ativo no episódio anterior — medicamento, alergia, restrição —
+ * continua no histórico esperando revisão da Enfermagem. Reativar sozinho uma
+ * prescrição de um ano atrás é o tipo de gentileza automática que termina numa
+ * dose errada.
+ */
+function FolhaRetorno({ pessoa, onFechar, onConfirmar }: {
+  pessoa: NoAcervo; onFechar: () => void; onConfirmar: () => void;
+}) {
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-ret"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet modal">
+        <h3 id="t-ret">Registrar o retorno de {pessoa.nome}</h3>
+        <div className="notice c-info">
+          O retorno abre um <b>episódio novo</b> no mesmo perfil. Nada é apagado e nada
+          é reativado sozinho.
+        </div>
+        {pessoa.saiuEm && (
+          <div className="bloco">
+            <small>Saiu em</small>{dia(pessoa.saiuEm)}
+            {pessoa.motivoDaSaida ? ` — ${pessoa.motivoDaSaida}` : ''}
+          </div>
+        )}
+        <p className="mutetxt">
+          <b>Antes de reativar qualquer coisa</b>, revise com a Enfermagem os medicamentos,
+          as alergias e as restrições alimentares do episódio anterior. Elas continuam no
+          histórico, e é uma pessoa que decide o que volta a valer.
+        </p>
+        <div className="row rodape">
+          <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
+          <button className="btn grow" onClick={onConfirmar}>Registrar o retorno</button>
+        </div>
+      </div>
+    </div>
   );
 }
 

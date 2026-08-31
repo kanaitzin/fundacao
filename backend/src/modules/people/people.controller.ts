@@ -28,6 +28,16 @@ export class PeopleController {
     return this.people.listByHouse(user, houseId);
   }
 
+  /**
+   * Acervo histórico da casa (§15.2) — quem saiu, e por onde se registra o
+   * retorno. Palavra fixa, declarada antes de `@Get(':id')`.
+   */
+  @Get('archive')
+  archive(@CurrentUser() user: AuthenticatedUser,
+          @Query('houseId', ParseUUIDPipe) houseId: string) {
+    return this.people.acervo(user, houseId);
+  }
+
   /** Verificação obrigatória antes de qualquer cadastro (§6.1). */
   @Post('check-cpf')
   checkCpf(@CurrentUser() user: AuthenticatedUser, @Body() body: { cpf: string }) {

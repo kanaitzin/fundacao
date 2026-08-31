@@ -901,8 +901,32 @@ const DOCUMENTOS = [
 
 /** Acolhidos criados no protótipo entram aqui e aparecem em tudo. */
 const NOVOS: Kid[] = [];
-const todosKids = () => [...KIDS, ...NOVOS];
-const kid = (id: string) => todosKids().find((k) => k.id === id);
+
+/**
+ * O ACERVO HISTÓRICO (§15.2) — quem saiu.
+ *
+ * No protótipo a saída MOVE o acolhido para cá e o retorno o traz de volta, do
+ * mesmo jeito que no servidor: nada é apagado, e o perfil é o mesmo. Dois
+ * nomes já nascem no acervo para que a tela tenha o que mostrar antes de
+ * alguém registrar a primeira saída na demonstração.
+ */
+interface NoAcervo { kid: Kid; saiuEm: string; motivo: string; episodios: number }
+const ACERVO: NoAcervo[] = [
+  { kid: { id: 'ac1', nome: 'Marina', civil: 'Marina (fictícia)', idade: 13,
+           nascimento: '2013-04-18' } as Kid,
+    saiuEm: new Date(Date.now() - 47 * 86_400_000).toISOString(),
+    motivo: 'Reintegração familiar, com acompanhamento da rede de origem.', episodios: 1 },
+  { kid: { id: 'ac2', nome: 'Tiago', civil: 'Tiago (fictício)', idade: 16,
+           nascimento: '2010-01-09' } as Kid,
+    saiuEm: new Date(Date.now() - 12 * 86_400_000).toISOString(),
+    motivo: 'Transferência para outro serviço de acolhimento, por decisão da Vara.',
+    episodios: 2 },
+];
+
+const todosKids = () => [...KIDS, ...NOVOS].filter(
+  (k) => !ACERVO.some((a) => a.kid.id === k.id));
+const kid = (id: string) => [...KIDS, ...NOVOS, ...ACERVO.map((a) => a.kid)]
+  .find((k) => k.id === id);
 
 /** A ATA de um plantão — criada junto com ele, como no servidor. */
 function ataDo(plantaoId: string): AtaMock {
@@ -1590,6 +1614,54 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
   }
 
   // ---- acolhidos
+  /*
+   * O ACERVO e as duas pontas do ciclo. Fica ANTES de `/people/:id`: palavra
+   * fixa antes do curinga, como no servidor — `['people','archive']` tem dois
+   * segmentos, exatamente como `['people', id]`.
+   */
+  if (rota === '/people/archive' && metodo === 'GET') {
+    if (!['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403, 'O acervo histórico é da equipe técnica e da coordenação.');
+    }
+    return {
+      aviso: 'O perfil de quem saiu não é apagado — ele fica no acervo, com o histórico '
+        + 'inteiro. Um retorno abre episódio NOVO no mesmo perfil, e nada do episódio '
+        + 'anterior é reativado sozinho.',
+      pessoas: ACERVO.map((a) => ({
+        id: a.kid.id, nome: a.kid.nome, idade: a.kid.idade,
+        saiuEm: a.saiuEm, motivoDaSaida: a.motivo, episodios: a.episodios,
+      })),
+    };
+  }
+
+  if (seg[0] === 'people' && seg[2] === 'discharge' && metodo === 'POST') {
+    if (!['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403, 'Somente equipe técnica e coordenação registram saída.');
+    }
+    const k = kid(seg[1]);
+    if (!k) return new Recusa(404, 'Acolhido não encontrado entre os ativos.');
+    const motivo = String(b.motivo ?? '').trim();
+    if (!motivo) return new Recusa(400, 'Informe o motivo da saída.');
+    ACERVO.unshift({ kid: k, saiuEm: new Date().toISOString(), motivo, episodios: 1 });
+    return { ok: true, acervo: true,
+      aviso: `${k.nome} saiu da casa. O perfil foi para o acervo com o histórico inteiro.` };
+  }
+
+  if (seg[0] === 'people' && seg[2] === 'readmit' && metodo === 'POST') {
+    if (!['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403, 'Somente equipe técnica e coordenação registram retorno.');
+    }
+    const i = ACERVO.findIndex((a) => a.kid.id === seg[1]);
+    if (i < 0) return new Recusa(404, 'Perfil não encontrado no acervo.');
+    const [saiu] = ACERVO.splice(i, 1);
+    // Quem nasceu no acervo (a semeadura) precisa passar a existir na casa.
+    if (!KIDS.some((k) => k.id === saiu.kid.id) && !NOVOS.some((k) => k.id === saiu.kid.id)) {
+      NOVOS.push(saiu.kid);
+    }
+    return { personId: saiu.kid.id, episodio: saiu.episodios + 1,
+      aviso: 'Revise medicamentos, alergias e restrições com a Enfermagem antes de reativá-los.' };
+  }
+
   if (rota === '/people' && metodo === 'GET') {
     return todosKids().map((k) => ({
       id: k.id, nome: k.nome, nomeCivil: k.civil, idade: k.idade, nascimento: k.nascimento,

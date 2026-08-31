@@ -394,10 +394,12 @@ transformá-lo em teste.
 2. ~~Trazer as fases 3–7 para o `der.md`~~ — feito; as 82 tabelas estão
    documentadas e `documentacao.spec.ts` não deixa a próxima escapar
 3. ~~O Arquivo das ATAS~~ — feito em 31/08 (§8.6)
-4. Conversar com o Marcelo sobre o **grupo 1 do `docs/o-que-falta.md`** — as
-   funções que existem no servidor, valem para o piloto e ainda não têm tela
-5. Aplicar o retorno do Marcelo por cargo
-6. Configurar SMTP institucional na implantação (`MailGateway` já está pronto)
+4. ~~Saída, acervo e retorno~~ — feito em 31/08 (§8.7)
+5. Anexar documento ao arquivo (`POST /archive`) e abrir a chamada do turno
+   (`POST /checks`) — os dois seguintes do grupo 1
+6. Conversar com o Marcelo sobre o resto do **grupo 1 do `docs/o-que-falta.md`**
+7. Aplicar o retorno do Marcelo por cargo
+8. Configurar SMTP institucional na implantação (`MailGateway` já está pronto)
 
 ### 8.6 O Arquivo das ATAS — 31/08/2026
 
@@ -451,7 +453,38 @@ a pessoa concluir que o sistema perdeu os registros.
   dois segmentos, e a consulta virava busca de plantão inexistente. Mesma regra
   do servidor — palavra fixa antes do `:id`.
 
-### 8.7 Ensaio como usuário — 31/08/2026, os nove cargos
+### 8.7 Saída, acervo e retorno — 31/08/2026
+
+A saída e o retorno existiam no servidor desde a fase 2 e não tinham como ser
+chamados: registrar retorno pede o `personId` de alguém que nenhuma lista
+devolvia. Enquanto isso, a criança que saía da casa continuava na chamada, na
+agenda e na contagem — o defeito que mais dói do grupo 1.
+
+**Sem migração nova.** `app_person_in_scope` já alcança quem saiu: para a
+equipe técnica e a coordenação ele olha QUALQUER permanência, e não só a ativa.
+A porta que faltava era a listagem, `GET /people/archive?houseId=`, declarada
+antes de `@Get(':id')`.
+
+**O que entrou:** o acervo histórico como tela própria (e não misturado à lista
+da casa — "quem está aqui agora" e "quem já esteve" são perguntas diferentes, e
+misturá-las põe na lista da manhã nomes de crianças que já foram embora); a
+folha da saída no fim do perfil, com o motivo ESCRITO (os botões preenchem o
+campo e o texto continua editável — lista fechada aqui viraria contrato que o
+servidor não tem); e a folha do retorno, que diz que o episódio é novo e que
+nada é reativado sozinho. Suíte `test/saida-e-retorno.e2e.spec.ts`, 8 testes.
+
+O acervo é deliberadamente pobre — nome, idade, quando saiu, motivo e quantos
+acolhimentos. Um teste guarda exatamente esse conjunto de campos: nada de CPF,
+saúde, judicial ou benefício. A consulta grava `person.acervo.consulta` com o
+tamanho da lista, e nome de criança não vai para log de consulta.
+
+**Dois cuidados de teste que valem registro:** a suíte cria a própria criança
+em vez de desligar alguém da semeadura (desligar é definitivo, e mexeria no
+estado das outras suítes), e a desliga de novo no `afterAll` — sem isso, cada
+rodada acrescentaria um nome à Casa 03 e a casa cresceria sozinha. A admissão
+precisou responder à regra de lotação, que é o que a coordenação faria.
+
+### 8.8 Ensaio como usuário — 31/08/2026, os nove cargos
 
 Três roteiros de navegador contra o protótipo de arquivo único, com todos os
 cargos: `passeio.mjs` (o que cada um alcança, tela por tela), `acoes.mjs` e
@@ -673,12 +706,13 @@ responder e não me peça para reexplicar o que está lá.
 
 === ESTADO ATUAL ===
 
-Fases 0 a 22 concluídas. 245 testes passando em 20 suítes, sem falha conhecida
-— a suíte rodou seis vezes seguidas e mais duas às 22h32 de Porto Alegre, com o
-relógio do banco movido junto. Backend NestJS + PostgreSQL 16 com RLS, 16
+Fases 0 a 23 concluídas. 253 testes passando em 21 suítes, sem falha conhecida
+— a suíte rodou cinco vezes seguidas e mais duas às 22h32 de Porto Alegre, com
+o relógio do banco movido junto. Backend NestJS + PostgreSQL 16 com RLS, 16
 partições. Frontend React PWA com 21 telas, todas falando as rotas reais do
 servidor. A ATA agora tem arquivo: dia, semana ou mês de calendário, com a ATA
-Geral Noturna recortada na linha de cada casa. Relatórios saem em Word com timbre, com a parte factual
+Geral Noturna recortada na linha de cada casa. O ciclo do acolhimento fecha:
+cadastro, saída com motivo, acervo histórico e retorno como episódio novo. Relatórios saem em Word com timbre, com a parte factual
 escrita pelo sistema. Convite de primeiro acesso por e-mail, uso único, 24h.
 
 Em aberto, na ordem: `docs/o-que-falta.md` — 69 rotas que existem no servidor e

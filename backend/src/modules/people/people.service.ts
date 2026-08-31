@@ -180,6 +180,77 @@ export class PeopleService {
     });
   }
 
+  /**
+   * ACERVO HISTÓRICO da casa (§15.2) — quem já esteve aqui e não está mais.
+   *
+   * A saída existia e o retorno existia; o que não existia era o caminho
+   * entre os dois. Registrar retorno pede o `personId` de alguém que a tela
+   * não tinha como encontrar — e uma função sem lista é uma função que
+   * ninguém usa.
+   *
+   * A lista é DELIBERADAMENTE POBRE: nome de exibição, idade, quando saiu, o
+   * motivo escrito na saída e quantos episódios a pessoa teve. Nada de CPF,
+   * saúde, judicial ou benefício (§3.1, §6.10) — quem precisa disso abre o
+   * perfil, onde a permissão é conferida de novo.
+   *
+   * Sem SECURITY DEFINER: `app_person_in_scope` já resolve o caso de quem
+   * saiu — a equipe técnica e a coordenação alcançam quem teve permanência
+   * numa casa do seu escopo, mesmo encerrada. A RLS faz o trabalho, e a
+   * conferência de cargo aqui existe só para a recusa dizer o motivo em vez
+   * de devolver lista vazia.
+   */
+  async acervo(user: AuthenticatedUser, houseId: string) {
+    if (!['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(user.role)) {
+      throw new ForbiddenException(
+        'O acervo histórico é da equipe técnica e da coordenação.');
+    }
+    const linhas = await this.db.asUser(user.id, async (c) => {
+      const { rows } = await c.query(
+        `SELECT p.id, p.full_name, p.social_name, p.birth_date,
+                date_part('year', age(p.birth_date))::int AS idade,
+                s.ended_at, e.end_reason,
+                (SELECT count(*)::int FROM care_episode x WHERE x.person_id = p.id) AS episodios
+           FROM house_stay s
+           -- As duas políticas concordam aqui: app_person_in_scope olha
+           -- QUALQUER permanência, e não só a ativa — é o que faz quem já
+           -- saiu continuar alcançável pela técnica e pela coordenação.
+           -- rls-join-ok: permanência sem pessoa não é criada.
+           JOIN person p ON p.id = s.person_id
+           LEFT JOIN LATERAL (
+             SELECT ce.end_reason FROM care_episode ce
+              WHERE ce.person_id = p.id AND ce.status = 'encerrado'
+              ORDER BY ce.ended_at DESC NULLS LAST LIMIT 1) e ON true
+          WHERE s.house_id = $1
+            AND s.status = 'encerrada'
+            -- Quem voltou (aqui ou noutra casa) não é acervo: é acolhido.
+            AND NOT EXISTS (SELECT 1 FROM house_stay a
+                             WHERE a.person_id = p.id AND a.status = 'ativa')
+          ORDER BY s.ended_at DESC NULLS LAST`, [houseId]);
+      return rows;
+    });
+
+    await this.audit.log({
+      action: 'person.acervo.consulta', actorId: user.id, institutionId: user.institutionId,
+      houseId, entity: 'house', entityId: houseId,
+      // Só o tamanho da lista. Nome de criança não vai para log de consulta.
+      detail: { registros: linhas.length },
+    });
+
+    return {
+      aviso: 'O perfil de quem saiu não é apagado — ele fica no acervo, com o histórico '
+        + 'inteiro. Um retorno abre episódio NOVO no mesmo perfil, e nada do episódio '
+        + 'anterior é reativado sozinho.',
+      pessoas: linhas.map((r: any) => ({
+        id: r.id,
+        nome: r.social_name || r.full_name,
+        idade: r.idade,
+        saiuEm: r.ended_at,
+        motivoDaSaida: r.end_reason ?? null,
+        episodios: r.episodios,
+      })),
+    };
+  }
+
   /** Lista operacional da casa — “visão dos 20” (§9). */
   async listByHouse(user: AuthenticatedUser, houseId: string) {
     return this.db.asUser(user.id, async (c) => {
