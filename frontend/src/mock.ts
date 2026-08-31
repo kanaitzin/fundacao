@@ -156,6 +156,28 @@ let eu = USUARIOS['educador.ai3@paodospobres.dev'];
 /** Quem foi desativado no protótipo — some da escala, nunca do histórico. */
 const DESATIVADOS = new Set<string>();
 
+/** Os setores do §5, na ordem da casa para fora — como em `staff.service.ts`. */
+const TIPOS_SETOR = [
+  { code: 'educador', label: 'Educador social', transversal: false,
+    descricao: 'Plantão, rotina, chamadas e passagem individual' },
+  { code: 'lider_diurno', label: 'Líder Diurno', transversal: false,
+    descricao: 'Conduz o plantão diurno e fecha a ATA da casa' },
+  { code: 'equipe_tecnica', label: 'Equipe técnica', transversal: false,
+    descricao: 'Perfil do acolhido, acompanhamentos e revisão técnica' },
+  { code: 'cozinha', label: 'Cozinha', transversal: false,
+    descricao: 'Somente o relatório de restrições alimentares' },
+  { code: 'enfermagem', label: 'Enfermagem', transversal: true,
+    descricao: 'Saúde das oito casas' },
+  { code: 'lider_noturno_geral', label: 'Líder Noturno Geral', transversal: true,
+    descricao: 'Plantão noturno das oito casas e ATA Geral Noturna' },
+  { code: 'coordenador', label: 'Coordenação', transversal: false,
+    descricao: 'Equipe da casa, aprovações, transferências e cofre' },
+  { code: 'gestor_geral', label: 'Gestor Geral', transversal: true,
+    descricao: 'Escopo institucional; abre uma casa por vez, com auditoria' },
+  { code: 'admin_tecnico', label: 'Administração técnica', transversal: true,
+    descricao: 'Infraestrutura e suporte; sem acesso ao conteúdo do acolhimento' },
+];
+
 // ---------------------------------------------------------------- estado vivo
 
 interface Ev {
@@ -844,7 +866,16 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     };
   }
   if (rota === '/houses') return [CASA];
-  if (rota === '/houses/directory') return CASAS;
+  /**
+   * `GET /houses/directory` no formato do servidor: código, nome, tipo e se é
+   * a casa da pessoa. O mock devolvia `CASAS` cru (id/code/name/kind), e a
+   * tela lê `codigo`/`nome`/`propria` — a lista aparecia sem nome nenhum.
+   */
+  if (rota === '/houses/directory') {
+    return CASAS.map((c) => ({
+      id: c.id, codigo: c.code, nome: c.name, tipo: c.kind, propria: c.id === CASA.id,
+    }));
+  }
   if (rota.startsWith('/houses/') && rota.endsWith('/occupancy')) {
     const ocupadas = todosKids().length;
     return {
@@ -855,11 +886,30 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
   }
 
   // ---- equipe
+  /**
+   * `GET /staff` no formato do servidor — em PORTUGUÊS.
+   *
+   * O mock devolvia `fullName`, `role`, `active` e `houses`, e a tela lê
+   * `nome`, `cargo`, `setor`, `casa` e `ativo`. O resultado no protótipo era a
+   * equipe inteira aparecendo como DESATIVADA, sem setor e com "0 pessoas" em
+   * cada função — e ninguém tinha notado, porque a tela não quebra: ela mente
+   * baixinho.
+   */
   if (rota === '/staff') {
+    const podeEditar = ['coordenador', 'gestor_geral', 'admin_tecnico'].includes(eu.role);
     return EQUIPE_CASA.map((m) => ({
-      id: m.id, fullName: m.nome, email: `${m.nome.split(' ')[0].toLowerCase()}@paodospobres.dev`,
-      role: m.cargo, active: !DESATIVADOS.has(m.id), mustChangePassword: false,
-      houses: [{ code: CASA.code, name: CASA.name }],
+      id: m.id,
+      nome: m.nome,
+      email: `${m.nome.split(' ')[0].toLowerCase().normalize('NFD').replace(/[^a-z]/g, '')}@paodospobres.dev`,
+      cargo: m.cargo,
+      setor: TIPOS_SETOR.find((t) => t.code === m.cargo)?.label ?? m.cargo,
+      transversal: TIPOS_SETOR.find((t) => t.code === m.cargo)?.transversal ?? false,
+      casa: CASA.code, casaId: CASA.id,
+      ativo: !DESATIVADOS.has(m.id),
+      ultimoAcesso: null,
+      senhaInicialPendente: false,
+      editavel: podeEditar,
+      proprio: m.id === eu.id,
     }));
   }
   /**
@@ -867,17 +917,44 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
    * copiada de `backend/src/modules/identity/alcance.ts` — e o teste de
    * contrato cobra que as duas não divirjam.
    */
+  /**
+   * `GET /reports/kitchen` — a projeção deliberadamente pobre da cozinha:
+   * nome, o que evitar, a substituição e quando revisar. Sem motivo, sem CPF,
+   * sem caso, sem histórico.
+   */
+  if (rota === '/reports/kitchen' && metodo === 'GET') {
+    if (!['cozinha', 'coordenador', 'equipe_tecnica', 'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403, 'Sem acesso ao relatório de alimentação.');
+    }
+    return todosKids()
+      .filter((k) => k.restricao)
+      .map((k) => ({
+        nome: k.nome,
+        evitar: k.restricao!.restriction,
+        substituicao: k.restricao!.substitution ?? null,
+        orientacao: k.restricao!.guidance ?? null,
+        revisarEm: null,
+      }));
+  }
+
   if (rota === '/staff/alcance') return { cargos: ALCANCE_POR_CARGO };
 
+  /**
+   * `GET /staff/sectors` — os setores que ESTE cargo pode cadastrar, no
+   * formato do servidor (`code`, não `cod`). A coordenação monta a equipe da
+   * casa e cadastra a Enfermagem; conta de alcance institucional é do Gestor
+   * Geral (§5.13) — se a coordenação pudesse criar Gestor Geral, bastaria
+   * cadastrar alguém para enxergar as oito casas.
+   */
   if (rota === '/staff/sectors') {
-    return [
-      { cod: 'educador', label: 'Educador social', ajuda: 'Cuida do dia a dia da casa.' },
-      { cod: 'lider_diurno', label: 'Líder Diurno', ajuda: 'Coordena o turno e fecha a ATA.' },
-      { cod: 'equipe_tecnica', label: 'Equipe técnica', ajuda: 'Psicologia e serviço social.' },
-      { cod: 'coordenador', label: 'Coordenação', ajuda: 'Responde pela casa.' },
-      { cod: 'enfermagem', label: 'Enfermagem', ajuda: 'Alcança as oito unidades.' },
-      { cod: 'cozinha', label: 'Cozinha', ajuda: 'Só o relatório de restrições.' },
-    ];
+    const podeCadastrar: Record<string, string[]> = {
+      coordenador: ['educador', 'lider_diurno', 'equipe_tecnica', 'cozinha', 'enfermagem'],
+      gestor_geral: TIPOS_SETOR.map((t) => t.code),
+      admin_tecnico: ['admin_tecnico', 'educador', 'lider_diurno', 'equipe_tecnica', 'cozinha'],
+    };
+    const meus = podeCadastrar[eu.role] ?? [];
+    return TIPOS_SETOR.filter((t) => meus.includes(t.code))
+      .map((t) => ({ ...t, exigeCasa: !t.transversal }));
   }
   /**
    * Desativar, reativar e redefinir senha — cada um com a sua frase.

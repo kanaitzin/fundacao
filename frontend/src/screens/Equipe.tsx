@@ -122,8 +122,27 @@ export function Equipe() {
                         <button className="btn sm ghost" onClick={() => { setEditando(m); setForm(true); }}>
                           Editar
                         </button>
-                        <button className="btn sm ghost" onClick={() => acao(() =>
-                          api(`/staff/${m.id}/reset-password`, { method: 'POST', body: '{}' }))}>
+                        {/*
+                          * Convidar vem ANTES de "Nova senha", e é o caminho
+                          * preferido: a senha não passa pela mão de quem
+                          * convida, o link vale 24 horas e serve uma vez. O
+                          * botão não existia — o servidor tinha a rota desde a
+                          * fase 9, e a tela só oferecia a senha inicial, que é
+                          * justamente o que vira recado de WhatsApp.
+                          */}
+                        <button className="btn sm" onClick={() => acao(() =>
+                          api(`/staff/${m.id}/convite`, { method: 'POST', body: '{}' }))}>
+                          Convidar
+                        </button>
+                        <button className="btn sm ghost" onClick={() => {
+                          const ok = confirm(
+                            'Prefira o convite: a senha não passa pela sua mão.\n\n'
+                            + 'A senha inicial aparece UMA vez e você precisa entregá-la à '
+                            + 'pessoa. Continuar mesmo assim?');
+                          if (ok) {
+                            acao(() => api(`/staff/${m.id}/reset-password`, { method: 'POST', body: '{}' }));
+                          }
+                        }}>
                           Nova senha
                         </button>
                         {m.ativo ? (

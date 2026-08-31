@@ -62,6 +62,9 @@ export const AREAS = {
   arquivo: 'Arquivo documental',
   equipe: 'Equipe',
   unidades: 'O dia das unidades',
+  setores: 'O que cada setor enxerga',
+  cozinha: 'Restrições alimentares',
+  casas: 'Unidades',
 } as const;
 
 const NUNCA_NINGUEM = [
@@ -98,6 +101,7 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
         servidor: 'Fala espontânea e sinais observados não são devolvidos a quem não é técnica '
           + 'ou coordenação — nem para quem abriu a ocorrência de outra pessoa.' },
       { area: 'ata', titulo: AREAS.ata, faz: 'Lê a ATA do turno; não fecha.' },
+      { area: 'casas', titulo: AREAS.casas, faz: 'A lista das unidades, sem entrar em nenhuma.' },
     ],
     naoAlcanca: [
       'outra casa',
@@ -131,6 +135,11 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
       { area: 'saude', titulo: AREAS.saude,
         faz: 'Acompanha doses e triagem da casa.',
         servidor: 'Não assina evolução de saúde: a assinatura é da Enfermagem.' },
+      { area: 'dia', titulo: AREAS.dia, faz: 'Conduz o dia.' },
+      { area: 'chamada', titulo: AREAS.chamada, faz: 'Confere a chamada.' },
+      { area: 'acolhidos', titulo: AREAS.acolhidos, faz: 'Abre o perfil de quem está na casa.' },
+      { area: 'agenda', titulo: AREAS.agenda, faz: 'Vê e marca o que está combinado.' },
+      { area: 'casas', titulo: AREAS.casas, faz: 'A lista das unidades.' },
     ],
     naoAlcanca: [
       'outra casa',
@@ -156,6 +165,13 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
       { area: 'arquivo', titulo: AREAS.arquivo, faz: 'Confere se o que fechou chegou ao Drive.' },
       { area: 'saude', titulo: AREAS.saude, faz: 'Acompanha o painel e movimenta o armário.' },
       { area: 'agenda', titulo: AREAS.agenda, faz: 'Marca compromissos e troca quem vai.' },
+      { area: 'dia', titulo: AREAS.dia, faz: 'Acompanha o dia da casa.' },
+      { area: 'chamada', titulo: AREAS.chamada, faz: 'Confere a chamada quando precisa.' },
+      { area: 'passagem', titulo: AREAS.passagem, faz: 'Lê as passagens do turno.' },
+      { area: 'plantao', titulo: AREAS.plantao, faz: 'Vê quem está em cada atividade.' },
+      { area: 'ata', titulo: AREAS.ata, faz: 'Lê e fecha a ATA quando o líder não está.' },
+      { area: 'unidades', titulo: AREAS.unidades, faz: 'O dia das casas que alcança.' },
+      { area: 'casas', titulo: AREAS.casas, faz: 'A lista das unidades.' },
     ],
     naoAlcanca: [
       'outra casa',
@@ -170,7 +186,7 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
     transversal: false,
     resumo: 'Uma tela só, e de propósito: o que cada criança não pode comer.',
     areas: [
-      { area: 'acolhidos', titulo: 'Restrições alimentares',
+      { area: 'cozinha', titulo: AREAS.cozinha,
         faz: 'Vê nome, restrição e substituição orientada.',
         servidor: 'Sem perfil, sem CPF, sem diagnóstico, sem caso, sem histórico. A lista traz '
           + 'a restrição, não a razão dela.' },
@@ -197,6 +213,11 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
         faz: 'Vê o necessário de saúde de quem atende.',
         servidor: 'Sem dados bancários, sem cofre, sem conteúdo judicial.' },
       { area: 'unidades', titulo: AREAS.unidades, faz: 'O dia das casas que alcança, em ordem.' },
+      { area: 'dia', titulo: AREAS.dia, faz: 'Vê o dia da casa que está atendendo.' },
+      { area: 'agenda', titulo: AREAS.agenda, faz: 'Marca consulta, exame e retorno.' },
+      { area: 'plantao', titulo: AREAS.plantao, faz: 'Vê quem está em cada atividade.' },
+      { area: 'ocorrencias', titulo: AREAS.ocorrencias, faz: 'Abre e acompanha ocorrência de saúde.' },
+      { area: 'casas', titulo: AREAS.casas, faz: 'A lista das unidades.' },
     ],
     naoAlcanca: [
       'o cofre de acessos e os dados bancários',
@@ -217,6 +238,13 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
         servidor: 'Casa sem chamado também entra: a ausência de demanda é registrada, não omitida.' },
       { area: 'ocorrencias', titulo: AREAS.ocorrencias, faz: 'Abre e encerra a etapa operacional.' },
       { area: 'unidades', titulo: AREAS.unidades, faz: 'O dia das unidades, em ordem.' },
+      { area: 'dia', titulo: AREAS.dia, faz: 'Vê o dia da casa que está acompanhando.' },
+      { area: 'chamada', titulo: AREAS.chamada, faz: 'Confere a chamada da noite.' },
+      { area: 'acolhidos', titulo: AREAS.acolhidos, faz: 'Abre o perfil de quem está na casa.' },
+      { area: 'passagem', titulo: AREAS.passagem, faz: 'Assina a própria passagem.' },
+      { area: 'agenda', titulo: AREAS.agenda, faz: 'Vê o que está marcado.' },
+      { area: 'saude', titulo: AREAS.saude, faz: 'Acompanha doses da noite.' },
+      { area: 'casas', titulo: AREAS.casas, faz: 'A lista das unidades.' },
     ],
     naoAlcanca: [
       'o cofre de acessos e os dados bancários',
@@ -230,6 +258,8 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
     transversal: false,
     resumo: 'Responde pela casa: equipe, aprovações, transferências e o cofre.',
     areas: [
+      { area: 'setores', titulo: AREAS.setores,
+        faz: 'Responde "o educador vê isso?" sem entrar com a conta de ninguém.' },
       { area: 'equipe', titulo: AREAS.equipe,
         faz: 'Cadastra, convida, desativa e redefine senha.',
         servidor: 'Não existe apagar pessoa: desligado é desativado, e a autoria do que ela '
@@ -249,6 +279,14 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
       { area: 'arquivo', titulo: AREAS.arquivo, faz: 'Confere a fila do arquivo.' },
       { area: 'ata', titulo: AREAS.ata, faz: 'Fecha a ATA quando o líder não está.' },
       { area: 'saude', titulo: AREAS.saude, faz: 'Acompanha o painel; não assina evolução.' },
+      { area: 'dia', titulo: AREAS.dia, faz: 'Acompanha o dia da casa.' },
+      { area: 'chamada', titulo: AREAS.chamada, faz: 'Confere a chamada quando precisa.' },
+      { area: 'acolhidos', titulo: AREAS.acolhidos, faz: 'Perfil completo de quem está na casa.' },
+      { area: 'passagem', titulo: AREAS.passagem, faz: 'Lê as passagens do turno.' },
+      { area: 'agenda', titulo: AREAS.agenda, faz: 'Marca e acompanha compromissos.' },
+      { area: 'plantao', titulo: AREAS.plantao, faz: 'Vê quem está em cada atividade.' },
+      { area: 'unidades', titulo: AREAS.unidades, faz: 'O dia das casas que alcança.' },
+      { area: 'casas', titulo: AREAS.casas, faz: 'A lista das unidades.' },
     ],
     naoAlcanca: [
       'outra casa',
@@ -263,7 +301,18 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
     resumo: 'Escopo institucional. Abre UMA casa por vez, e cada abertura fica registrada.',
     areas: [
       { area: 'unidades', titulo: AREAS.unidades, faz: 'O dia das oito unidades, em ordem.' },
+      { area: 'casas', titulo: AREAS.casas, faz: 'A lista das unidades e a ocupação de cada uma.' },
+      { area: 'dia', titulo: AREAS.dia,
+        faz: 'Abre o dia de UMA casa por vez.',
+        servidor: 'Cada abertura de casa fica registrada — é o que separa acompanhar de vigiar.' },
+      { area: 'acolhidos', titulo: AREAS.acolhidos, faz: 'Abre o perfil quando precisa, com registro.' },
+      { area: 'equipe', titulo: AREAS.equipe, faz: 'Cadastra contas de alcance institucional.' },
+      { area: 'setores', titulo: AREAS.setores, faz: 'Consulta o alcance de cada cargo.' },
       { area: 'acompanhamentos', titulo: AREAS.acompanhamentos, faz: 'Aprova e acompanha.' },
+      { area: 'transferencias', titulo: AREAS.transferencias, faz: 'Acompanha as transferências.' },
+      { area: 'ocorrencias', titulo: AREAS.ocorrencias, faz: 'Acompanha e valida.' },
+      { area: 'ata', titulo: AREAS.ata, faz: 'Lê as ATAs das unidades que abriu.' },
+      { area: 'saude', titulo: AREAS.saude, faz: 'Acompanha o painel de saúde.' },
       { area: 'cofre', titulo: AREAS.cofre,
         faz: 'Abre um acesso pela exceção.',
         servidor: 'Exceção pede motivo institucional de 20 caracteres, e aparece MARCADA como '
@@ -283,7 +332,12 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
       + 'lê o que a casa registra.',
     areas: [
       { area: 'equipe', titulo: AREAS.equipe, faz: 'Cadastra contas e redefine senha.' },
-      { area: 'arquivo', titulo: AREAS.arquivo, faz: 'Processa a fila do arquivo.' },
+      { area: 'setores', titulo: AREAS.setores,
+        faz: 'Consulta o alcance de cada cargo — é a descrição do sistema, não conteúdo.' },
+      { area: 'arquivo', titulo: AREAS.arquivo,
+        faz: 'Processa a fila do arquivo quando o envio falha.',
+        servidor: 'Vê nomes de arquivo e caminhos, que por regra já não carregam nome, '
+          + 'CPF nem diagnóstico. Não abre perfil, ocorrência nem documento.' },
     ],
     naoAlcanca: [
       'perfil de acolhido, ocorrências, ATA, saúde e acompanhamentos',

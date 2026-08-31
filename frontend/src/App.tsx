@@ -20,6 +20,8 @@ import { Transferencias } from './screens/Transferencias';
 import { Acompanhamentos } from './screens/Acompanhamentos';
 import { Arquivo } from './screens/Arquivo';
 import { Setores } from './screens/Setores';
+import { Cozinha } from './screens/Cozinha';
+import { ALCANCE_POR_CARGO } from '../../backend/src/modules/identity/alcance';
 
 interface Me {
   id: string; email: string; fullName: string; role: string;
@@ -40,42 +42,29 @@ const KIND_TONE: Record<string, string> = { casa_lar: 'c-move', abrigo_instituci
 
 /** As telas que não são do turno; a aba "Mais" fica acesa quando uma delas está aberta. */
 const OUTRAS = new Set(['agenda', 'equipe', 'casas', 'saude', 'ocorrencias', 'ata',
-  'cofre', 'transferencias', 'acompanhamentos', 'arquivo', 'setores']);
+  'cofre', 'transferencias', 'acompanhamentos', 'arquivo', 'setores', 'unidades', 'plantao']);
 
-/** Quem administra equipe (§5.3). O menu não oferece o que o cargo não faz. */
-const ADMINISTRA_EQUIPE = ['coordenador', 'gestor_geral', 'admin_tecnico'];
 
-/*
- * Os demais alcances. Esconder o botão é gentileza com quem usa; a proteção
- * de verdade mora no banco, e o servidor recusa de novo por baixo.
- */
 /**
- * Saúde: a Enfermagem trabalha aqui; a liderança e a gestão acompanham.
+ * O MENU VEM DO ALCANCE PUBLICADO — não de listas paralelas.
  *
- * A equipe técnica entrou em 31/08. O servidor já a autorizava a movimentar o
- * armário e a ler o painel, e o menu não oferecia a tela: permissão sem porta.
- * Na casa é ela quem costuma estar quando a Enfermagem não está, e o armário é
- * da casa. Continua sem assinar evolução de saúde — isso é da Enfermagem, e o
- * servidor recusa.
- */
-const VE_SAUDE = ['enfermagem', 'equipe_tecnica', 'coordenador', 'lider_diurno',
-  'lider_noturno_geral', 'gestor_geral'];
-/** O cofre guarda as contas das crianças: só quem tem a guarda entra. */
-const VE_COFRE = ['coordenador', 'gestor_geral'];
-/** Acompanhar e relatar é da técnica, com aprovação da coordenação. */
-const VE_ACOMPANHAMENTOS = ['equipe_tecnica', 'coordenador', 'gestor_geral'];
-/** Transferir criança de casa é decisão de coordenação. */
-const VE_TRANSFERENCIAS = ['coordenador', 'gestor_geral'];
-/**
- * O Drive não abre para o plantão: o educador lê o perfil, com registro.
+ * Até 31/08 as abas de baixo (Dia, Chamada, Acolhidos, Passagem) e metade do
+ * "Mais" não tinham guarda NENHUMA: eram iguais para os nove cargos. A COZINHA
+ * — que por regra vê uma tela só — enxergava o dia, a chamada, o perfil dos
+ * acolhidos, a passagem, as ocorrências e a ATA. Para saber que a Alice não
+ * come amendoim, ela passava pelo caso de cada criança.
  *
- * A administração técnica entrou em 31/08, e só pela fila: reenviar o que
- * falhou é trabalho de infraestrutura, e quando o Drive cai às 22h quem sabe
- * consertar precisa conseguir reprocessar. Ela vê nomes de arquivo e caminhos
- * — que por regra já não carregam nome, CPF nem diagnóstico — e não abre
- * perfil, ocorrência nem documento.
+ * Havia constantes (VE_SAUDE, VE_COFRE…) para as outras telas, e elas eram uma
+ * segunda fonte de verdade ao lado de `alcance.ts`. Agora é uma só: o menu
+ * pergunta ao mesmo mapa que a página "O que cada setor enxerga" mostra. Se as
+ * duas divergirem, é porque alguém mudou o mapa — e aí mudam as duas juntas.
+ *
+ * Continua valendo: esconder o botão é gentileza com quem usa. A proteção mora
+ * no banco, e o servidor recusa de novo por baixo.
  */
-const VE_ARQUIVO = ['equipe_tecnica', 'coordenador', 'gestor_geral', 'admin_tecnico'];
+const ALCANCE = new Map(ALCANCE_POR_CARGO.map(
+  (a) => [a.cargo, new Set(a.areas.map((x) => x.area))] as const));
+const alcanca = (papel: string, area: string) => ALCANCE.get(papel)?.has(area) ?? false;
 
 /**
  * Só no protótipo, e desde a tela de entrada: quem abre o arquivo precisa
@@ -131,7 +120,7 @@ export function App() {
   const [aba, setAba] = useState<
     'dia' | 'chamada' | 'passagem' | 'acolhidos' | 'agenda' | 'casas' | 'equipe'
     | 'saude' | 'ocorrencias' | 'ata' | 'cofre' | 'transferencias'
-    | 'acompanhamentos' | 'arquivo' | 'plantao' | 'unidades' | 'setores'>('dia');
+    | 'acompanhamentos' | 'arquivo' | 'plantao' | 'unidades' | 'setores' | 'cozinha'>('dia');
   const [sugerirSenha, setSugerirSenha] = useState(false);
   const [trocarSenha, setTrocarSenha] = useState(false);
   const [mais, setMais] = useState(false);
@@ -157,8 +146,9 @@ export function App() {
       setMe(eu);
       setHouses(await api<House[]>('/houses'));
       // Quem trabalha no plantão abre no DIA. É a tela que ele veio usar; a
-      // lista de unidades é consulta, não trabalho.
-      setAba('dia');
+      // lista de unidades é consulta, não trabalho. Quem não alcança o Dia —
+      // a cozinha — abre na tela que tem.
+      setAba(alcanca(eu.role, 'dia') ? 'dia' : (alcanca(eu.role, 'cozinha') ? 'cozinha' : 'casas'));
       if (eu.semSenha || eu.mustChangePassword) setSugerirSenha(true);
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Não foi possível entrar. Tente novamente.');
@@ -175,7 +165,7 @@ export function App() {
       const eu = await api<Me>('/users/me');
       setMe(eu);
       setHouses(await api<House[]>('/houses'));
-      setAba('dia');
+      setAba(alcanca(eu.role, 'dia') ? 'dia' : (alcanca(eu.role, 'cozinha') ? 'cozinha' : 'casas'));
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Senha criada, mas não foi possível entrar. Tente pela tela de entrada.');
     } finally {
@@ -207,12 +197,38 @@ export function App() {
   }
 
   const casa = me.assignments[0];
-  const administra = ADMINISTRA_EQUIPE.includes(me.role);
-  const veSaude = VE_SAUDE.includes(me.role);
-  const veCofre = VE_COFRE.includes(me.role);
-  const veAcompanhamentos = VE_ACOMPANHAMENTOS.includes(me.role);
-  const veTransferencias = VE_TRANSFERENCIAS.includes(me.role);
-  const veArquivo = VE_ARQUIVO.includes(me.role);
+  const ve = (area: string) => alcanca(me.role, area);
+  const administra = ve('equipe');
+  const veSaude = ve('saude');
+  const veCofre = ve('cofre');
+  const veAcompanhamentos = ve('acompanhamentos');
+  const veTransferencias = ve('transferencias');
+  const veArquivo = ve('arquivo');
+
+  /** As abas do turno que este cargo alcança, na ordem de quem trabalha na casa. */
+  const abasDoTurno = [
+    { aba: 'dia', icone: '📋', label: 'Dia' },
+    { aba: 'cozinha', icone: '🍽️', label: 'Restrições' },
+    { aba: 'chamada', icone: '✅', label: 'Chamada' },
+    { aba: 'acolhidos', icone: '🧒', label: 'Acolhidos' },
+    { aba: 'passagem', icone: '🔁', label: 'Passagem' },
+  ].filter((t) => ve(t.aba));
+  const doMais = ['unidades', 'plantao', 'agenda', 'equipe', 'setores', 'ocorrencias',
+    'ata', 'saude', 'acompanhamentos', 'arquivo', 'transferencias', 'cofre', 'casas']
+    .filter((a) => ve(a));
+  const temMais = doMais.length > 0;
+
+  /*
+   * A aba EFETIVA, e não a guardada.
+   *
+   * Trocar de cargo no protótipo deixava a pessoa numa aba que o novo cargo
+   * não alcança, e a tela ficava em branco — sem erro, sem explicação. No
+   * sistema real o mesmo acontece quando alguém muda de função no meio do
+   * expediente. Em vez de renderizar nada, cai na primeira tela que o cargo
+   * tem: para a cozinha, as restrições; para o Gestor Geral, o dia das
+   * unidades.
+   */
+  const abaEfetiva = (ve(aba) ? aba : (abasDoTurno[0]?.aba ?? doMais[0] ?? 'casas')) as typeof aba;
   // A casa de trabalho: o vínculo do usuário quando existe; senão, a primeira
   // do alcance — que é o caso das funções transversais (§5.13).
   const casaAtual = houses.find((h) => h.code === casa?.code) ?? houses[0] ?? null;
@@ -264,26 +280,28 @@ export function App() {
         }
       }} />
 
-      <nav className="tabbar" aria-label="Seções">
-        <button className={aba === 'dia' ? 'on' : ''} onClick={() => setAba('dia')}>
-          <span aria-hidden="true">📋</span> Dia
-        </button>
-        <button className={aba === 'chamada' ? 'on' : ''} onClick={() => setAba('chamada')}>
-          <span aria-hidden="true">✅</span> Chamada
-        </button>
-        <button className={aba === 'acolhidos' ? 'on' : ''} onClick={() => setAba('acolhidos')}>
-          <span aria-hidden="true">🧒</span> Acolhidos
-        </button>
-        <button className={aba === 'passagem' ? 'on' : ''} onClick={() => setAba('passagem')}>
-          <span aria-hidden="true">🔁</span> Passagem
-        </button>
-        <button className={OUTRAS.has(aba) ? 'on' : ''} onClick={() => setMais(true)}>
-          <span aria-hidden="true">⋯</span> Mais
-        </button>
-      </nav>
+      {/*
+        * A barra carrega o TURNO, e só o que o cargo alcança. Quem tem uma
+        * tela só não recebe barra nenhuma: cinco botões para uma tela é ruído.
+        */}
+      {(abasDoTurno.length > 1 || temMais) && (
+        <nav className="tabbar" aria-label="Seções">
+          {abasDoTurno.map((t) => (
+            <button key={t.aba} className={abaEfetiva === t.aba ? 'on' : ''}
+                    onClick={() => setAba(t.aba as typeof aba)}>
+              <span aria-hidden="true">{t.icone}</span> {t.label}
+            </button>
+          ))}
+          {temMais && (
+            <button className={OUTRAS.has(abaEfetiva) ? 'on' : ''} onClick={() => setMais(true)}>
+              <span aria-hidden="true">⋯</span> Mais
+            </button>
+          )}
+        </nav>
+      )}
 
       <main className="conteudo">
-        {aba === 'dia' && (
+        {abaEfetiva === 'dia' && ve('dia') && (
           casaAtual
             ? <Dia houseId={casaAtual.id} casaLabel={`${casaAtual.code} · ${casaAtual.name}`}
                    papel={me.role} />
@@ -297,57 +315,61 @@ export function App() {
             )
         )}
 
-        {aba === 'chamada' && casaAtual && <Chamada houseId={casaAtual.id} />}
+        {abaEfetiva === 'cozinha' && casaAtual && (
+          <Cozinha houseId={casaAtual.id} casaLabel={`${casaAtual.code} · ${casaAtual.name}`} />
+        )}
 
-        {aba === 'acolhidos' && casaAtual && (
+        {abaEfetiva === 'chamada' && ve('chamada') && casaAtual && <Chamada houseId={casaAtual.id} />}
+
+        {abaEfetiva === 'acolhidos' && ve('acolhidos') && casaAtual && (
           <Acolhidos houseId={casaAtual.id} casaLabel={`${casaAtual.code} · ${casaAtual.name}`}
                      papel={me.role} />
         )}
 
-        {aba === 'passagem' && casaAtual && (
+        {abaEfetiva === 'passagem' && ve('passagem') && casaAtual && (
           <Passagem houseId={casaAtual.id} />
         )}
 
-        {aba === 'agenda' && casaAtual && <Agenda houseId={casaAtual.id} papel={me.role} />}
+        {abaEfetiva === 'agenda' && ve('agenda') && casaAtual && <Agenda houseId={casaAtual.id} papel={me.role} />}
 
-        {aba === 'unidades' && <DiaDasUnidades />}
+        {abaEfetiva === 'unidades' && ve('unidades') && <DiaDasUnidades />}
 
-        {aba === 'plantao' && casaAtual && (
+        {abaEfetiva === 'plantao' && ve('plantao') && casaAtual && (
           <PainelPlantao houseId={casaAtual.id}
                          casaLabel={`${casaAtual.code} · ${casaAtual.name}`}
                          papel={me.role} />
         )}
 
-        {aba === 'equipe' && administra && <Equipe />}
+        {abaEfetiva === 'equipe' && administra && <Equipe />}
 
-        {aba === 'setores' && administra && <Setores papel={me.role} />}
+        {abaEfetiva === 'setores' && administra && <Setores papel={me.role} />}
 
-        {aba === 'saude' && veSaude && casaAtual && (
+        {abaEfetiva === 'saude' && veSaude && casaAtual && (
           <Saude houseId={casaAtual.id} casaLabel={`${casaAtual.code} · ${casaAtual.name}`}
                  papel={me.role} />
         )}
 
         {/* Ocorrência e ATA são de todo mundo do plantão: quem viu o fato é
             quem registra, e quem conduz o turno é quem fecha. */}
-        {aba === 'ocorrencias' && casaAtual && <Ocorrencias houseId={casaAtual.id} papel={me.role} />}
+        {abaEfetiva === 'ocorrencias' && ve('ocorrencias') && casaAtual && <Ocorrencias houseId={casaAtual.id} papel={me.role} />}
 
-        {aba === 'ata' && casaAtual && <Ata houseId={casaAtual.id} papel={me.role} />}
+        {abaEfetiva === 'ata' && ve('ata') && casaAtual && <Ata houseId={casaAtual.id} papel={me.role} />}
 
-        {aba === 'cofre' && veCofre && casaAtual && (
+        {abaEfetiva === 'cofre' && veCofre && casaAtual && (
           <Cofre houseId={casaAtual.id} papel={me.role} />
         )}
 
-        {aba === 'transferencias' && veTransferencias && casaAtual && (
+        {abaEfetiva === 'transferencias' && veTransferencias && casaAtual && (
           <Transferencias houseId={casaAtual.id} />
         )}
 
-        {aba === 'acompanhamentos' && veAcompanhamentos && <Acompanhamentos />}
+        {abaEfetiva === 'acompanhamentos' && veAcompanhamentos && <Acompanhamentos />}
 
-        {aba === 'arquivo' && veArquivo && casaAtual && (
+        {abaEfetiva === 'arquivo' && veArquivo && casaAtual && (
           <Arquivo houseId={casaAtual.id} papel={me.role} />
         )}
 
-        {aba === 'casas' && (
+        {abaEfetiva === 'casas' && ve('casas') && (
           <>
             <div className="eyebrow">Unidades no seu alcance</div>
             <div className="stack">
@@ -384,8 +406,7 @@ export function App() {
           <div className="sheet">
             <h3 id="t-mais">Mais</h3>
             <div className="stack">
-              {['gestor_geral', 'coordenador', 'equipe_tecnica', 'enfermagem',
-                'lider_noturno_geral'].includes(me.role) && (
+              {ve('unidades') && (
                 <button className="card row" onClick={() => { setAba('unidades'); setMais(false); }}>
                   <span aria-hidden="true">🗓️</span>
                   <div className="grow" style={{ textAlign: 'left' }}>
@@ -396,6 +417,7 @@ export function App() {
                   </div>
                 </button>
               )}
+              {ve('plantao') && (
               <button className="card row" onClick={() => { setAba('plantao'); setMais(false); }}>
                 <span aria-hidden="true">🧭</span>
                 <div className="grow" style={{ textAlign: 'left' }}>
@@ -403,6 +425,8 @@ export function App() {
                   <div className="mutetxt">Quem está em quê agora, neste turno.</div>
                 </div>
               </button>
+              )}
+              {ve('agenda') && (
               <button className="card row" onClick={() => { setAba('agenda'); setMais(false); }}>
                 <span aria-hidden="true">📅</span>
                 <div className="grow" style={{ textAlign: 'left' }}>
@@ -410,6 +434,7 @@ export function App() {
                   <div className="mutetxt">O que está marcado e o que vem pela frente.</div>
                 </div>
               </button>
+              )}
               {administra && (
                 <button className="card row" onClick={() => { setAba('equipe'); setMais(false); }}>
                   <span aria-hidden="true">👥</span>
@@ -430,6 +455,7 @@ export function App() {
                   </div>
                 </button>
               )}
+              {ve('ocorrencias') && (
               <button className="card row" onClick={() => { setAba('ocorrencias'); setMais(false); }}>
                 <span aria-hidden="true">🚨</span>
                 <div className="grow" style={{ textAlign: 'left' }}>
@@ -437,6 +463,8 @@ export function App() {
                   <div className="mutetxt">Abrir, acompanhar e encerrar com análise — nunca sozinha.</div>
                 </div>
               </button>
+              )}
+              {ve('ata') && (
               <button className="card row" onClick={() => { setAba('ata'); setMais(false); }}>
                 <span aria-hidden="true">📔</span>
                 <div className="grow" style={{ textAlign: 'left' }}>
@@ -444,6 +472,7 @@ export function App() {
                   <div className="mutetxt">A da casa e a Geral Noturna, com pendência quando for o caso.</div>
                 </div>
               </button>
+              )}
               {veSaude && (
                 <button className="card row" onClick={() => { setAba('saude'); setMais(false); }}>
                   <span aria-hidden="true">🩺</span>
@@ -489,6 +518,7 @@ export function App() {
                   </div>
                 </button>
               )}
+              {ve('casas') && (
               <button className="card row" onClick={() => { setAba('casas'); setMais(false); }}>
                 <span aria-hidden="true">🏠</span>
                 <div className="grow" style={{ textAlign: 'left' }}>
@@ -496,6 +526,7 @@ export function App() {
                   <div className="mutetxt">As unidades no seu alcance.</div>
                 </div>
               </button>
+              )}
             </div>
             <button className="btn sec block" style={{ marginTop: 16 }} onClick={() => setMais(false)}>
               Fechar

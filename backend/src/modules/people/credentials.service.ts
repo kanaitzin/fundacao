@@ -68,6 +68,7 @@ export class CredentialsService {
    * decifrar a cada listagem, e o cofre só se abre quando alguém pede.
    */
   async listar(user: AuthenticatedUser, personId: string) {
+    /* alcance:cofre — quem abre o cofre de acessos. Conferido contra `alcance.ts`. */
     if (!['coordenador', 'gestor_geral'].includes(user.role)) {
       await this.audit.log({
         action: 'credential.denied', actorId: user.id, institutionId: user.institutionId,

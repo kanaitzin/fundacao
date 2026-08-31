@@ -354,6 +354,7 @@ export class MedicationsService {
     houseId: string; medicamento: string; quantidade: number; unidade?: string;
     validade?: string; personId?: string; motivo?: string;
   }) {
+    /* alcance:saude — quem movimenta o armário. Conferido contra `alcance.ts`. */
     if (!['enfermagem', 'equipe_tecnica', 'coordenador', 'gestor_geral'].includes(user.role)) {
       throw new ForbiddenException('Sem permissão para movimentar estoque.');
     }

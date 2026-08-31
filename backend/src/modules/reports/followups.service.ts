@@ -130,6 +130,7 @@ export class FollowupsService {
 
   /** Salvar rascunho dos eixos. Só quem redige — e nunca sobre o aprovado. */
   async salvar(user: AuthenticatedUser, id: string, eixos: Record<string, string>) {
+    /* alcance:acompanhamentos — quem redige. Conferido contra `alcance.ts`. */
     if (!['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(user.role)) {
       throw new ForbiddenException('Somente equipe técnica e coordenação redigem acompanhamentos.');
     }
