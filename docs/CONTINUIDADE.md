@@ -3,7 +3,7 @@
 > **Como usar este arquivo:** anexe-o na primeira mensagem de uma conversa nova,
 > junto com o zip do repositório. Ele substitui todo o histórico.
 >
-> Última atualização: 31/08/2026 · §8.4 decidida + protótipo e aplicativo unificados nas rotas
+> Última atualização: 31/08/2026 · §8.4 decidida, rotas unificadas, alcance por setor e DER completo
 
 ---
 
@@ -144,6 +144,7 @@ cd backend  && npm test            # testes (precisa de PostgreSQL)
 | 17 | **O dia das unidades: linha do tempo unificada para quem alcança mais de uma casa** |
 | 18 | **As duas decisões da §8.4: estoque com entrada e contagem separadas; vencimento ancorado em hoje** |
 | 19 | **Um sistema só: as 7 telas que falavam rotas inexistentes passaram a falar as do servidor** |
+| 20 | **Três testes que cobram o que envelhece sozinho: contrato de rotas, alcance por setor e o DER** |
 
 ---
 
@@ -277,7 +278,7 @@ conferidas.
 ## 8. Pendências
 
 ### 8.1 Testes
-**224 testes, 16 suítes, todas passando.** Sem falha conhecida.
+**235 testes, 19 suítes, todas passando.** Sem falha conhecida.
 
 - `test/regressao-autoria.e2e.spec.ts` trava os 12 defeitos e as funções que
   vieram depois: convite, autoria dupla, delegação, painel, recusa.
@@ -354,7 +355,12 @@ propaganda. Há um verificador em `/tmp` que cruza rotas e verbos — vale
 transformá-lo em teste.
 
 ### 8.3 Achados do ensaio de uso ainda em aberto
-- **Sem tela** que mostre ao coordenador o que cada setor enxerga.
+- ~~Sem tela que mostre ao coordenador o que cada setor enxerga~~ — **feito em
+  31/08**: `GET /staff/alcance` e a tela "O que cada setor enxerga", com o que
+  o cargo alcança, a regra que o servidor aplica e o que ele NÃO alcança. O
+  teste que confere página contra menu encontrou duas permissões sem porta
+  (equipe técnica na Saúde, administração técnica no Arquivo), decididas e
+  abertas em 31/08.
 - A matriz de permissões documentava **"Educador volante"**, cargo que não
   existe no `role_code`.
 - **Devolver acompanhamento para correção** não existe no servidor: há aprovar
@@ -418,7 +424,7 @@ A dependência `docx` entrou no backend, e o timbre vive em `backend/assets/timb
 ### 11.1 O que existe hoje, em uma frase
 Backend NestJS com PostgreSQL 16 e Row-Level Security, 16 partições isoladas;
 frontend React PWA com 19 telas; protótipo de um arquivo só com servidor de
-mentira; **224 testes passando em 16 suítes**; documento Word com timbre saindo
+mentira; **235 testes passando em 19 suítes**; documento Word com timbre saindo
 do sistema. Nada foi publicado, nada roda em produção, nenhum dado real entrou.
 
 ### 11.2 O que foi feito nesta série de conversas
@@ -464,11 +470,12 @@ backlog e manifestos alinhados ao código.
 1. ~~Duas decisões de produto (§8.4)~~ — **decididas e no código em 31/08**:
    estoque com `entrada` e `contagem` separadas, e a janela de vencimento
    ancorada em `app_hoje()`.
-2. **Tela mostrando ao coordenador o que cada setor enxerga.** Começada e não
-   feita: hoje `/staff/sectors` lista os cargos, mas não há tela que responda
-   "o que o educador vê?" sem trocar de conta.
-3. **Fases 3 a 7 no `der.md`.** São 82 tabelas no banco e o DER cobre menos de
-   vinte. Trabalho mecânico, feito a partir das próprias migrações.
+2. ~~Tela mostrando ao coordenador o que cada setor enxerga~~ — **feita em
+   31/08**: `GET /staff/alcance` e a tela em "Mais". O teste que confere a
+   página contra o menu achou duas permissões sem porta, decididas por você.
+3. ~~Fases 3 a 7 no `der.md`~~ — **feito em 31/08**: as 82 tabelas estão
+   documentadas por partição, com o motivo de cada uma, e um teste cobra que
+   toda tabela nova apareça lá.
 4. **Retorno do Marcelo por cargo.** O protótipo foi entregue e aprovado em
    28/08. Falta perguntar coisas específicas: o líder achou o "Registrar pelo
    colega"? Alguém encontrou o Painel do Plantão sem ajuda?
@@ -570,14 +577,14 @@ responder e não me peça para reexplicar o que está lá.
 
 === ESTADO ATUAL ===
 
-Fases 0 a 18 concluídas. 224 testes passando em 16 suítes, sem falha
+Fases 0 a 20 concluídas. 235 testes passando em 19 suítes, sem falha
 conhecida. Backend NestJS + PostgreSQL 16 com RLS, 16 partições. Frontend React
 PWA com 19 telas. Relatórios saem em Word com timbre, com a parte factual
 escrita pelo sistema. Convite de primeiro acesso por e-mail, uso único, 24h.
 
-Em aberto, na ordem: a tela que mostra
-ao coordenador o que cada setor enxerga; as fases 3 a 7 no der.md; o retorno do
-Marcelo por cargo; e o SMTP institucional, só na implantação.
+Em aberto, na ordem: o retorno do Marcelo por cargo; a devolução de
+acompanhamento com motivo e a busca da ATA Geral pela data (as duas decisões
+de produto abertas); e o SMTP institucional, só na implantação.
 
 Leia a seção 10 do documento: ela tem a entrega completa e como retomar.
 
