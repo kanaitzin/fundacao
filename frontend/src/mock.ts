@@ -153,6 +153,34 @@ const EQUIPE_CASA = [
 ];
 
 let eu = USUARIOS['educador.ai3@paodospobres.dev'];
+/**
+ * AVISOS (§19). O texto diz que existe algo e onde continuar — nunca repete o
+ * conteúdo: a notificação chega na tela de bloqueio do aparelho da casa, que
+ * fica em cima da mesa.
+ */
+const AVISOS = [
+  { id: 'n1', titulo: 'ATA fechada com assinatura pendente',
+    texto: '1 passagem não assinada no plantão de ontem. A ATA foi fechada com pendência registrada.',
+    prioridade: 'alta', entidade: 'ata', entidadeId: 'a1',
+    lida: false, ciente: false, em: emHoras(19, 40) },
+  { id: 'n2', titulo: 'Ocorrência aguardando revisão técnica',
+    texto: 'A etapa operacional foi encerrada. A validação técnica ainda é necessária para fechar.',
+    prioridade: 'critica', entidade: 'incident_review', entidadeId: 'o2',
+    lida: false, ciente: false, em: emHoras(9, 5) },
+  { id: 'n3', titulo: 'Dose sem confirmação há mais de 30 minutos',
+    texto: 'Uma dose prevista continua aguardando confirmação. O sistema não conclui por ninguém.',
+    prioridade: 'alta', entidade: 'medication_administration', entidadeId: 'd4',
+    lida: false, ciente: false, em: emHoras(16, 35) },
+  { id: 'n4', titulo: 'Documento não chegou ao arquivo',
+    texto: 'Terceira tentativa de envio ao Drive falhou. O documento continua íntegro no sistema.',
+    prioridade: 'alta', entidade: 'archive', entidadeId: 'a4',
+    lida: true, ciente: false, em: emHoras(7, 10) },
+  { id: 'n5', titulo: 'Compromisso marcado para a casa',
+    texto: 'Fonoaudiologia da Lara às 15h, na Clínica Fictícia. Responsável designado.',
+    prioridade: 'normal', entidade: 'activity', entidadeId: 'c1',
+    lida: true, ciente: true, em: emHoras(8, 0) },
+];
+
 /** Quem foi desativado no protótipo — some da escala, nunca do histórico. */
 const DESATIVADOS = new Set<string>();
 
@@ -883,6 +911,32 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       acimaDoLimite: ocupadas > 20,
       podeAlterar: ['coordenador', 'gestor_geral'].includes(eu.role),
     };
+  }
+
+  // ---- avisos (§19): a caixa do escalonamento
+  /*
+   * O protótipo mostra a caixa com o que o sistema escalaria num dia comum da
+   * casa: a ATA fechada com pendência, a dose sem confirmação, a ocorrência
+   * crítica aguardando análise e a falha do Drive na terceira tentativa. É
+   * assim que o educador descobre que "avisa a técnica na hora" tem endereço.
+   */
+  if (rota === '/notifications/count') {
+    return { naoLidas: AVISOS.filter((a) => !a.lida).length,
+             tituloSeguro: 'Há uma pendência na Rede Acolher' };
+  }
+  if (rota === '/notifications' && metodo === 'GET') {
+    const so = q.get('unread') === 'true';
+    return AVISOS.filter((a) => !so || !a.lida);
+  }
+  if (seg[0] === 'notifications' && seg[2] === 'read' && metodo === 'POST') {
+    const a = AVISOS.find((x) => x.id === seg[1]);
+    if (!a) return new Recusa(404, 'Aviso não encontrado.');
+    a.lida = true; return { ok: true };
+  }
+  if (seg[0] === 'notifications' && seg[2] === 'acknowledge' && metodo === 'POST') {
+    const a = AVISOS.find((x) => x.id === seg[1]);
+    if (!a) return new Recusa(404, 'Aviso não encontrado.');
+    a.lida = true; a.ciente = true; return { ok: true };
   }
 
   // ---- equipe

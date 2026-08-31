@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { api, setToken } from './api';
 import logo from './assets/logo.png';
 import { Login } from './screens/Login';
@@ -21,6 +21,7 @@ import { Acompanhamentos } from './screens/Acompanhamentos';
 import { Arquivo } from './screens/Arquivo';
 import { Setores } from './screens/Setores';
 import { Cozinha } from './screens/Cozinha';
+import { Avisos } from './screens/Avisos';
 import { ALCANCE_POR_CARGO } from '../../backend/src/modules/identity/alcance';
 
 interface Me {
@@ -43,6 +44,7 @@ const KIND_TONE: Record<string, string> = { casa_lar: 'c-move', abrigo_instituci
 /** As telas que não são do turno; a aba "Mais" fica acesa quando uma delas está aberta. */
 const OUTRAS = new Set(['agenda', 'equipe', 'casas', 'saude', 'ocorrencias', 'ata',
   'cofre', 'transferencias', 'acompanhamentos', 'arquivo', 'setores', 'unidades', 'plantao']);
+/* O sino é de todo mundo: não há cargo que não receba escalonamento. */
 
 
 /**
@@ -120,15 +122,36 @@ export function App() {
   const [aba, setAba] = useState<
     'dia' | 'chamada' | 'passagem' | 'acolhidos' | 'agenda' | 'casas' | 'equipe'
     | 'saude' | 'ocorrencias' | 'ata' | 'cofre' | 'transferencias'
-    | 'acompanhamentos' | 'arquivo' | 'plantao' | 'unidades' | 'setores' | 'cozinha'>('dia');
+    | 'acompanhamentos' | 'arquivo' | 'plantao' | 'unidades' | 'setores' | 'cozinha'
+    | 'avisos'>('dia');
   const [sugerirSenha, setSugerirSenha] = useState(false);
   const [trocarSenha, setTrocarSenha] = useState(false);
   const [mais, setMais] = useState(false);
+  /*
+   * Quantos avisos esperam a pessoa. O sino fica na barra de cima, ao lado do
+   * nome: o escalonamento existe desde a fase 3 e não tinha onde chegar.
+   */
+  const [naoLidos, setNaoLidos] = useState(0);
   /*
    * O convite chega pela URL, no link do e-mail. Lido UMA vez, na montagem, e
    * apagado da barra de endereço logo em seguida: token em URL fica no
    * histórico do navegador, e o aparelho da casa é compartilhado entre turnos.
    */
+  /** Recontagem dos avisos: ao entrar, ao trocar de tela e a cada dois minutos. */
+  useEffect(() => {
+    if (!me) return;
+    let vivo = true;
+    const contar = async () => {
+      try {
+        const r = await api<{ naoLidas: number }>('/notifications/count');
+        if (vivo) setNaoLidos(r.naoLidas);
+      } catch { /* sem rede: o sino apenas não atualiza */ }
+    };
+    contar();
+    const t = setInterval(contar, 120_000);
+    return () => { vivo = false; clearInterval(t); };
+  }, [me, aba]);
+
   const [convite, setConvite] = useState(() => {
     const t = new URLSearchParams(window.location.search).get('convite') ?? '';
     if (t) window.history.replaceState({}, '', window.location.pathname);
@@ -228,7 +251,8 @@ export function App() {
    * tem: para a cozinha, as restrições; para o Gestor Geral, o dia das
    * unidades.
    */
-  const abaEfetiva = (ve(aba) ? aba : (abasDoTurno[0]?.aba ?? doMais[0] ?? 'casas')) as typeof aba;
+  const abaEfetiva = ((aba === 'avisos' || ve(aba))
+    ? aba : (abasDoTurno[0]?.aba ?? doMais[0] ?? 'casas')) as typeof aba;
   // A casa de trabalho: o vínculo do usuário quando existe; senão, a primeira
   // do alcance — que é o caso das funções transversais (§5.13).
   const casaAtual = houses.find((h) => h.code === casa?.code) ?? houses[0] ?? null;
@@ -251,6 +275,11 @@ export function App() {
                         root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
                     }}>🌓</button>
           )}
+          <button className="iconbtn" title="Avisos"
+                  aria-label={naoLidos ? `Avisos: ${naoLidos} não lidos` : 'Avisos'}
+                  onClick={() => setAba('avisos')}>
+            🔔{naoLidos > 0 && <span className="badge">{naoLidos > 9 ? '9+' : naoLidos}</span>}
+          </button>
           <button className="iconbtn" title="Trocar minha senha" aria-label="Trocar minha senha"
                   onClick={() => setTrocarSenha(true)}>🔑</button>
           <button className="btn sm ghost" onClick={sair}>Sair</button>
@@ -313,6 +342,13 @@ export function App() {
                 </p>
               </div>
             )
+        )}
+
+        {abaEfetiva === 'avisos' && (
+          <Avisos onMudou={() => {
+            api<{ naoLidas: number }>('/notifications/count')
+              .then((r) => setNaoLidos(r.naoLidas)).catch(() => {});
+          }} />
         )}
 
         {abaEfetiva === 'cozinha' && casaAtual && (

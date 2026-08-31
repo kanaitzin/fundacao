@@ -252,6 +252,17 @@ input {
   cursor:pointer; line-height:1;
 }
 .iconbtn:hover{ background:rgba(255,255,255,.2) }
+/*
+ * O sino conta o que espera a pessoa. O número fica NO botão, e não numa
+ * frase: quem está no corredor com uma criança pelo braço lê um número.
+ */
+.iconbtn{ position:relative }
+.badge{
+  position:absolute; top:-6px; right:-6px; min-width:18px; height:18px;
+  padding:0 4px; border-radius:9px; background:var(--crit,#c0392b); color:#fff;
+  font-size:11px; font-weight:700; line-height:18px; text-align:center;
+  border:2px solid var(--brand);
+}
 .tabbar{ display:flex; gap:8px; padding:12px 16px 0 }
 .tabbar button{
   border:1px solid var(--line); background:var(--surface); color:var(--ink-2);
