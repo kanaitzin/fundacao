@@ -401,7 +401,8 @@ const ESTOQUE: ItemEstoque[] = [
  */
 interface Triagem {
   id: string; personId: string; tipo: string; enviadaPor: string; enviadaEm: string;
-  resumo: string; assinada: boolean; assinadaPor: string | null; complemento: string | null;
+  resumo: string; receita?: string | null; orientacoes?: string | null;
+  assinada: boolean; assinadaPor: string | null; complemento: string | null;
   /** Devolvida pedindo o que falta — o pedido fica escrito para quem acompanhou. */
   pedidoComplemento?: string | null;
 }
@@ -1092,6 +1093,40 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     if (ev) ev.state = 'Ciente';
     return { ok: true, aviso: 'Ciência registrada em seu nome.' };
   }
+  /**
+   * `POST /activities/:id/delegate` — o caminho de CIMA para baixo (§10).
+   *
+   * A decisão é da fase 10 e existia só no servidor: o líder passa a atividade
+   * adiante, com motivo, sem apagar a designação anterior. Quem faltou não
+   * pede nada — o pedido de substituição nasce de quem vai sair.
+   */
+  if (seg[0] === 'activities' && seg[2] === 'delegate' && metodo === 'POST') {
+    if (!['lider_diurno', 'lider_noturno_geral', 'coordenador', 'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403, 'Somente o líder do turno e a coordenação delegam atividade.');
+    }
+    if (String(b.motivo ?? '').trim().length < 5) {
+      return new Recusa(400, 'Informe o motivo da delegação.');
+    }
+    const quem = EQUIPE_CASA.find((m) => m.id === String(b.paraId ?? ''));
+    if (!quem) return new Recusa(400, 'Esta pessoa não está na equipe desta unidade hoje.');
+    const ev = LINHA.find((e) => (e.id.split(':')[1] ?? e.id) === seg[1]);
+    if (ev) {
+      ev.responsible = quem.nome;
+      // O estado aqui é RÓTULO, como no resto da linha do tempo: a tela mostra
+      // o que está escrito. "aguardando_ciencia" cru vazava para o corredor.
+      ev.state = 'Aguardando ciência';
+      ev.actions = [{ command: 'activity.acknowledge', label: 'Estou ciente' }];
+    }
+    AVISOS.unshift({ id: uid(), titulo: 'Uma atividade passou para você',
+      texto: `"${ev?.title ?? 'Atividade'}" — tome ciência para assumir.`,
+      prioridade: 'alta', entidade: 'activity', entidadeId: seg[1],
+      lida: false, ciente: false, em: new Date().toISOString() });
+    return { ok: true, para: quem.nome,
+      aviso: `Atividade passada para ${quem.nome}, com o motivo registrado. A designação `
+        + 'anterior não foi apagada, e a atividade volta a aguardar ciência: designado não '
+        + 'é o mesmo que avisado.' };
+  }
+
   if (seg[0] === 'activities' && seg[2] === 'record') {
     const ev = LINHA.find((e) => e.id.endsWith(seg[1]));
     // Registro pelo colega: os DOIS nomes, sempre juntos (§8.2). No protótipo
@@ -1717,7 +1752,8 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         id: t.id, acolhidoId: t.personId, acolhido: kid(t.personId)?.nome ?? '—',
         casa: 'AI3 · Casa 03', tipo: t.tipo, quando: t.enviadaEm,
         local: null, especialidade: null, acompanhante: t.enviadaPor,
-        estadoRetorno: t.resumo, receita: null, orientacoes: null, restricoes: null,
+        estadoRetorno: t.resumo, receita: t.receita ?? null,
+        orientacoes: t.orientacoes ?? null, restricoes: null,
         prazoRetorno: null, offline: false,
         status: t.pedidoComplemento ? 'complemento_solicitado' : 'aguardando_triagem',
         pedidoComplemento: t.pedidoComplemento,
@@ -1726,6 +1762,42 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         foraDoPrazo: horas > 24,
       };
     });
+  }
+
+  /**
+   * `POST /nursing/evolutions` — quem acompanhou relata; a Enfermagem tria.
+   *
+   * A fila de triagem existia e não era alimentada por tela nenhuma: a criança
+   * ia ao médico e o sistema não ficava sabendo.
+   */
+  if (rota === '/nursing/evolutions' && metodo === 'POST') {
+    if (!String(b.quandoAconteceu ?? '')) {
+      return new Recusa(400, 'Informe o horário real do atendimento.');
+    }
+    if (String(b.estadoRetorno ?? '').trim().length < 5) {
+      return new Recusa(400, 'Descreva o estado observado no retorno.');
+    }
+    const k = kid(String(b.personId ?? ''));
+    const TIPO: Record<string, string> = {
+      consulta: 'Consulta', exame: 'Exame', urgencia: 'Urgência ou emergência',
+      internacao: 'Internação', retorno: 'Retorno', vacina: 'Vacina',
+    };
+    TRIAGENS = [{
+      id: uid(), personId: String(b.personId ?? ''),
+      tipo: `${TIPO[String(b.tipo)] ?? 'Atendimento'}${b.especialidade ? ` de ${b.especialidade}` : ''}`,
+      enviadaPor: eu.fullName, enviadaEm: String(b.quandoAconteceu),
+      resumo: String(b.estadoRetorno),
+      receita: (b.receita as string) ?? null,
+      orientacoes: (b.orientacoes as string) ?? null,
+      assinada: false, assinadaPor: null, complemento: null, pedidoComplemento: null,
+    }, ...TRIAGENS];
+    AVISOS.unshift({ id: uid(), titulo: 'Evolução de Saúde aguardando triagem',
+      texto: `Atendimento de ${k?.nome ?? 'acolhido'} registrado por ${eu.fullName}.`,
+      prioridade: 'normal', entidade: 'health_evolution', entidadeId: 't0',
+      lida: false, ciente: false, em: new Date().toISOString() });
+    return { ok: true,
+      aviso: 'Evolução registrada e enviada para a triagem da Enfermagem. Receita nova só '
+        + 'altera a grade de medicamentos depois que a Enfermagem conferir e assinar.' };
   }
 
   /** `POST /nursing/evolutions/:id/triage` — assinar, ou devolver pedindo complemento. */

@@ -80,6 +80,7 @@ export function Dia({ houseId, casaLabel, papel }: {
   const [filtro, setFiltro] = useState<'agora' | 'minhas' | 'tudo'>('agora');
   const [ocupado, setOcupado] = useState<string | null>(null);
   const [excecao, setExcecao] = useState<Evento | null>(null);
+  const [delegando, setDelegando] = useState<Evento | null>(null);
   const [porOutro, setPorOutro] = useState<Evento | null>(null);
   const [aviso, setAviso] = useState('');
 
@@ -213,6 +214,18 @@ export function Dia({ houseId, casaLabel, papel }: {
                           Registrar pelo colega
                         </button>
                       )}
+                      {/*
+                        * DELEGAR é o caminho de cima para baixo (§10), e é
+                        * diferente de substituição: o pedido de substituição
+                        * nasce de quem VAI SAIR; quem faltou não pede nada.
+                        * A decisão é da fase 10 e vivia só no servidor.
+                        */}
+                      {lidera && (
+                        <button className="btn sm ghost" disabled={ocupado === ev.id}
+                                onClick={() => setDelegando(ev)}>
+                          Passar para outra pessoa
+                        </button>
+                      )}
                     </>
                   )}
                 </div>
@@ -251,6 +264,20 @@ export function Dia({ houseId, casaLabel, papel }: {
             }));
           }}
         />
+      )}
+
+      {delegando && (
+        <FolhaDelegar
+          evento={delegando}
+          houseId={houseId}
+          onFechar={() => setDelegando(null)}
+          onDelegar={async (paraId, motivo) => {
+            const ev = delegando;
+            setDelegando(null);
+            await acao(ev, () => api(`/activities/${idDe(ev)}/delegate`, {
+              method: 'POST', body: JSON.stringify({ paraId, motivo }),
+            }));
+          }} />
       )}
 
       {excecao && (
@@ -395,6 +422,66 @@ function FolhaExcecao({ evento, onFechar, onRegistrar }: {
             Escolha o que aconteceu e descreva o fato — é o que a próxima pessoa vai ler.
           </p>
         )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * PASSAR A ATIVIDADE PARA OUTRA PESSOA (§10).
+ *
+ * Delegar não é substituir. A substituição nasce de quem VAI SAIR e pede;
+ * quem faltou não pede nada, e é aí que a atividade some. Delegar é o caminho
+ * de cima para baixo: o líder passa adiante, com motivo, sem apagar a
+ * designação anterior — e a atividade volta a AGUARDAR CIÊNCIA, porque
+ * designado não é o mesmo que avisado.
+ */
+function FolhaDelegar({ evento, houseId, onFechar, onDelegar }: {
+  evento: Evento; houseId: string;
+  onFechar: () => void; onDelegar: (paraId: string, motivo: string) => void;
+}) {
+  const [equipe, setEquipe] = useState<{ id: string; nome: string }[]>([]);
+  const [quem, setQuem] = useState('');
+  const [motivo, setMotivo] = useState('');
+  const pode = quem !== '' && motivo.trim().length >= 5;
+
+  useEffect(() => {
+    api<any>(`/activities/agenda/staff?houseId=${houseId}`)
+      .then((r) => setEquipe(Array.isArray(r) ? r : (r?.equipe ?? [])))
+      .catch(() => setEquipe([]));
+  }, [houseId]);
+
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-del"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet">
+        <h3 id="t-del">Passar para outra pessoa</h3>
+        <p className="mutetxt">
+          {evento.title} · {hhmm(evento.at)} · {evento.personName ?? 'Casa toda'}
+        </p>
+        <div className="notice c-info">
+          A designação anterior <b>não é apagada</b>, e a atividade volta a aguardar
+          ciência: quem recebe precisa dizer que soube.
+        </div>
+
+        <label className="f" htmlFor="del-quem">Quem assume</label>
+        <select id="del-quem" value={quem} onChange={(e) => setQuem(e.target.value)}>
+          <option value="">Escolha…</option>
+          {equipe.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
+        </select>
+
+        <label className="f" htmlFor="del-motivo">
+          Motivo <small>— quem recebe vai ler, e fica no histórico</small>
+        </label>
+        <textarea id="del-motivo" value={motivo} onChange={(e) => setMotivo(e.target.value)}
+                  placeholder="Ex.: Mário foi acompanhar a Lara na consulta; Joana assume o reforço." />
+
+        <div className="row rodape">
+          <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
+          <button className="btn grow" disabled={!pode} onClick={() => onDelegar(quem, motivo)}>
+            Passar adiante
+          </button>
+        </div>
       </div>
     </div>
   );

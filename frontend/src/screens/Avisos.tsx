@@ -56,7 +56,11 @@ export function Avisos({ onMudou }: { onMudou?: () => void }) {
   async function carregar(filtro = so) {
     setErro('');
     try {
-      setLista(await api<Aviso[]>(`/notifications${filtro === 'nao_lidos' ? '?unread=true' : ''}`));
+      // A rota vai escrita, e não montada dentro da string: é assim que o
+      // teste de contrato consegue conferir se ela existe no servidor.
+      setLista(filtro === 'nao_lidos'
+        ? await api<Aviso[]>('/notifications?unread=true')
+        : await api<Aviso[]>('/notifications'));
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Não foi possível carregar os avisos.');
     }
@@ -66,7 +70,10 @@ export function Avisos({ onMudou }: { onMudou?: () => void }) {
   async function agir(id: string, acao: 'read' | 'acknowledge') {
     setErro('');
     try {
-      await api(`/notifications/${id}/${acao}`, { method: 'POST', body: '{}' });
+      // Duas rotas escritas por extenso, pelo mesmo motivo: `${acao}` no meio
+      // do caminho esconde do verificador qual rota está sendo chamada.
+      if (acao === 'read') await api(`/notifications/${id}/read`, { method: 'POST', body: '{}' });
+      else await api(`/notifications/${id}/acknowledge`, { method: 'POST', body: '{}' });
       await carregar();
       // O sino da barra de cima conta os não lidos: ele precisa saber agora,
       // e não daqui a dois minutos.

@@ -70,6 +70,23 @@ interface Judicial {
 const VE_JUDICIAL = ['equipe_tecnica', 'coordenador', 'gestor_geral'];
 /** Quem cadastra (§6.1) — a mesma regra que o banco aplica no comando. */
 const QUEM_CADASTRA = ['equipe_tecnica', 'coordenador', 'gestor_geral'];
+/**
+ * Quem RELATA um atendimento de saúde (§7.2): quem acompanhou a criança.
+ * A Enfermagem tria e assina; a coordenação e a técnica também relatam quando
+ * são elas que vão junto. O educador relata e não edita o histórico de saúde.
+ */
+const REGISTRA_EVOLUCAO = ['educador', 'lider_diurno', 'lider_noturno_geral',
+  'equipe_tecnica', 'coordenador', 'enfermagem', 'gestor_geral'];
+
+/** Tipos de atendimento, nos códigos do servidor. */
+const TIPOS_ATENDIMENTO = [
+  { cod: 'consulta', label: 'Consulta' },
+  { cod: 'exame', label: 'Exame' },
+  { cod: 'urgencia', label: 'Urgência ou emergência' },
+  { cod: 'internacao', label: 'Internação' },
+  { cod: 'retorno', label: 'Retorno' },
+  { cod: 'vacina', label: 'Vacina' },
+];
 
 const CATEGORIA: Record<string, string> = {
   saude: 'Saúde', escolar: 'Escolar', pessoal: 'Pessoal',
@@ -211,6 +228,8 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
   const [erro, setErro] = useState('');
   const [erroJudicial, setErroJudicial] = useState('');
   const [semJudicial, setSemJudicial] = useState(false);
+  const [evolucao, setEvolucao] = useState(false);
+  const [aviso, setAviso] = useState('');
 
   useEffect(() => {
     (async () => {
@@ -341,8 +360,29 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
         )}
       </Secao>
 
-      {p.condicoesSaude.length > 0 && (
-        <Secao titulo="Saúde">
+      <Secao titulo="Saúde">
+        {/*
+          * REGISTRAR ATENDIMENTO — quem acompanhou é quem relata (§7.2).
+          *
+          * A fila de triagem da Enfermagem existia desde a fase 4 e não era
+          * alimentada por tela nenhuma: a criança ia ao médico e o sistema não
+          * ficava sabendo. Quem escreve é quem foi junto — o educador —, e a
+          * Enfermagem tria, complementa e assina. O educador RELATA; não ganha
+          * permissão de editar o histórico de saúde.
+          */}
+        {REGISTRA_EVOLUCAO.includes(papel) && (
+          <>
+            <button className="btn sec block" onClick={() => setEvolucao(true)}>
+              🩺 Registrar atendimento de saúde
+            </button>
+            <p className="mutetxt">
+              Voltou de consulta, exame, urgência ou internação? Quem acompanhou escreve o
+              que viu; a Enfermagem tria e assina. <b>Receita nova só altera a grade de
+              medicamentos depois dessa revisão.</b>
+            </p>
+          </>
+        )}
+        {p.condicoesSaude.length > 0 && (
           <ul className="lista">
             {p.condicoesSaude.map((c) => (
               <li key={c.id}>
@@ -354,8 +394,8 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
               </li>
             ))}
           </ul>
-        </Secao>
-      )}
+        )}
+      </Secao>
 
       {p.escola && (p.escola.nome || p.escola.serie) && (
         <Secao titulo="Escola">
@@ -400,6 +440,34 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
 
       {/* A ÁREA RESTRITA. Não abre junto com o perfil: exige o toque, e o
           toque fica registrado com o nome de quem deu (§13.1, §20). */}
+      {aviso && (
+        <div className="notice c-ok" role="status">
+          {aviso}
+          <button className="btn sm ghost" style={{ marginTop: 8 }} onClick={() => setAviso('')}>
+            Entendi
+          </button>
+        </div>
+      )}
+
+      {evolucao && p && (
+        <FolhaEvolucao
+          nome={p.nome}
+          onFechar={() => setEvolucao(false)}
+          onEnviar={async (corpo) => {
+            setErro('');
+            try {
+              const r = await api<{ aviso?: string }>('/nursing/evolutions', {
+                method: 'POST',
+                body: JSON.stringify({ personId, houseId, ...corpo }),
+              });
+              setEvolucao(false);
+              setAviso(r?.aviso ?? 'Evolução enviada para a triagem da Enfermagem.');
+            } catch (e) {
+              setErro(e instanceof Error ? e.message : 'Não foi possível registrar o atendimento.');
+            }
+          }} />
+      )}
+
       {VE_JUDICIAL.includes(papel) && (
         <Secao titulo="Motivo do acolhimento e dados judiciais">
           {!judicial && !erroJudicial && !semJudicial && (
@@ -473,5 +541,109 @@ function Secao({ titulo, children }: { titulo: string; children: React.ReactNode
       <div className="eyebrow">{titulo}</div>
       <div className="card">{children}</div>
     </section>
+  );
+}
+
+/**
+ * A FOLHA DO ATENDIMENTO — escrita por quem foi junto.
+ *
+ * Dois campos são obrigatórios, e os dois pelo mesmo motivo: o próximo plantão
+ * precisa saber QUANDO aconteceu e COMO a criança voltou. O resto entra se
+ * existir — o formulário aceita o mínimo, porque o educador escreve isso na
+ * volta do posto, no corredor, com a criança do lado.
+ *
+ * A receita entra como TEXTO do que foi entregue. Ela não altera a grade de
+ * medicamentos: a grade só muda depois que a Enfermagem tria e assina (§11.1).
+ */
+function FolhaEvolucao({ nome, onFechar, onEnviar }: {
+  nome: string; onFechar: () => void;
+  onEnviar: (corpo: Record<string, unknown>) => void;
+}) {
+  const agora = new Date();
+  const local2 = (n: number) => String(n).padStart(2, '0');
+  const [tipo, setTipo] = useState('consulta');
+  const [quando, setQuando] = useState(
+    `${agora.getFullYear()}-${local2(agora.getMonth() + 1)}-${local2(agora.getDate())}`
+    + `T${local2(agora.getHours())}:${local2(agora.getMinutes())}`);
+  const [local, setLocal] = useState('');
+  const [especialidade, setEspecialidade] = useState('');
+  const [estadoRetorno, setEstadoRetorno] = useState('');
+  const [orientacoes, setOrientacoes] = useState('');
+  const [receita, setReceita] = useState('');
+  const [prazoRetorno, setPrazoRetorno] = useState('');
+  const pode = quando.length >= 16 && estadoRetorno.trim().length >= 5;
+
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-evo"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet modal">
+        <h3 id="t-evo">Atendimento de saúde · {nome}</h3>
+        <div className="notice c-info">
+          Quem acompanhou é quem escreve. A <b>Enfermagem tria, complementa e assina</b> —
+          e é só depois disso que uma receita nova altera a grade de medicamentos.
+        </div>
+
+        <label className="f">Tipo de atendimento</label>
+        <div className="opts">
+          {TIPOS_ATENDIMENTO.map((t) => (
+            <button type="button" key={t.cod} className="opt c-med"
+                    aria-pressed={tipo === t.cod} onClick={() => setTipo(t.cod)}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        <label className="f" htmlFor="evo-quando">
+          Quando aconteceu <small>— o horário real, não o do registro</small>
+        </label>
+        <input id="evo-quando" type="datetime-local" value={quando}
+               onChange={(e) => setQuando(e.target.value)} />
+
+        <label className="f" htmlFor="evo-local">Onde</label>
+        <input id="evo-local" value={local} onChange={(e) => setLocal(e.target.value)}
+               placeholder="Ex.: UBS do bairro, hospital, clínica" />
+
+        <label className="f" htmlFor="evo-esp">Especialidade</label>
+        <input id="evo-esp" value={especialidade} onChange={(e) => setEspecialidade(e.target.value)}
+               placeholder="Ex.: pediatria, odontologia" />
+
+        <label className="f" htmlFor="evo-ret">
+          Como a criança voltou <small>— obrigatório: é o que o próximo plantão mais precisa</small>
+        </label>
+        <textarea id="evo-ret" value={estadoRetorno} onChange={(e) => setEstadoRetorno(e.target.value)}
+                  placeholder="Ex.: voltou tranquila, sem dor referida; comeu bem no jantar." />
+
+        <label className="f" htmlFor="evo-ori">Orientações recebidas</label>
+        <textarea id="evo-ori" value={orientacoes} onChange={(e) => setOrientacoes(e.target.value)}
+                  placeholder="Ex.: repouso hoje; retornar se a febre passar de 38°C." />
+
+        <label className="f" htmlFor="evo-rec">
+          Receita entregue <small>— o texto do que foi prescrito</small>
+        </label>
+        <textarea id="evo-rec" value={receita} onChange={(e) => setReceita(e.target.value)}
+                  placeholder="Ex.: amoxicilina 500 mg, 8/8h por 7 dias." />
+
+        <label className="f" htmlFor="evo-prazo">Retorno marcado para</label>
+        <input id="evo-prazo" type="date" value={prazoRetorno}
+               onChange={(e) => setPrazoRetorno(e.target.value)} />
+
+        <div className="row rodape">
+          <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
+          <button className="btn grow" disabled={!pode}
+                  onClick={() => onEnviar({
+                    tipo,
+                    quandoAconteceu: new Date(quando).toISOString(),
+                    local: local || undefined,
+                    especialidade: especialidade || undefined,
+                    estadoRetorno,
+                    orientacoes: orientacoes || undefined,
+                    receita: receita || undefined,
+                    prazoRetorno: prazoRetorno || undefined,
+                  })}>
+            Enviar para a Enfermagem
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }

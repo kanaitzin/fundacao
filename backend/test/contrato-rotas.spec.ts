@@ -24,6 +24,11 @@
  * Quando este teste falhar, a correção é quase sempre na TELA: o servidor é
  * quem tem RLS, auditoria e as recusas por cargo. Mudar a rota do servidor
  * para agradar a tela costuma ser o caminho errado.
+ *
+ * COROLÁRIO PRÁTICO: escreva a rota por extenso. `/notifications/${id}/${acao}`
+ * e `/x${cond ? '?a=1' : ''}` escondem qual rota está sendo chamada — do
+ * verificador e de quem lê. Duas linhas explícitas custam menos que um 404 na
+ * casa às onze da noite.
  */
 import { readdirSync, readFileSync, statSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
