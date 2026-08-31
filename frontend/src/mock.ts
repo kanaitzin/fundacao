@@ -603,6 +603,102 @@ let ATA_GERAL = {
 };
 
 /**
+ * O ARQUIVO DAS ATAS — dias anteriores desta casa.
+ *
+ * No servidor o arquivo é uma consulta; aqui é uma semeadura, porque o
+ * protótipo não tem um livro com meses dentro. O que ele PRECISA demonstrar é
+ * o recorte e o alcance: que dá para pedir a semana e o mês, que a ATA
+ * fechada com pendência se anuncia na capa, e que da ATA Geral Noturna sai a
+ * LINHA desta casa — nunca a folha das oito.
+ */
+const diasAtras = (n: number) => new Intl.DateTimeFormat('en-CA',
+  { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' })
+  .format(new Date(Date.now() - n * 86_400_000));
+
+interface AtaArquivada {
+  data: string;
+  diurno: any; noturno: any; geral: any;
+}
+const capa = (o: Partial<Record<string, any>> = {}) => ({
+  ataId: uid(), plantaoId: uid(), status: 'fechada',
+  pendencias: null, assinaturasFaltantes: 0, fechadaEm: null, fechadaPor: null,
+  aditamentos: 0, episodios: 0, passagens: 3, ...o,
+});
+/**
+ * A janela de consulta — a MESMA conta do servidor
+ * (`kernel/common/tempo.ts`). Semana é de calendário, segunda a domingo, e
+ * mês vai do dia 1 ao último. Se as duas contas divergirem, o protótipo
+ * mostra um período e o sistema real mostra outro — e a diferença só
+ * apareceria na frente da equipe.
+ */
+function janelaDeConsulta(escala: string, data: string): { de: string; ate: string } {
+  if (escala === 'dia') return { de: data, ate: data };
+  if (escala === 'mes') {
+    const [ano, mes] = data.split('-').map(Number);
+    const ultimo = new Date(Date.UTC(ano, mes, 0)).getUTCDate();
+    return { de: `${data.slice(0, 7)}-01`,
+             ate: `${data.slice(0, 7)}-${String(ultimo).padStart(2, '0')}` };
+  }
+  const d = new Date(`${data}T00:00:00Z`);
+  const recuo = (d.getUTCDay() + 6) % 7;
+  const segunda = new Date(d.getTime() - recuo * 86_400_000);
+  const iso = (x: Date) => x.toISOString().slice(0, 10);
+  return { de: iso(segunda), ate: iso(new Date(segunda.getTime() + 6 * 86_400_000)) };
+}
+
+const ARQUIVO_ATAS: AtaArquivada[] = [
+  { data: diasAtras(1),
+    diurno: capa({ fechadaEm: emHoras(19, 10), fechadaPor: 'Lúcia Líder Diurna (fictícia)' }),
+    noturno: capa({ status: 'fechada_com_pendencia', assinaturasFaltantes: 1,
+                    pendencias: 'Mário Silva (fictício) saiu antes do fim do turno e não assinou '
+                      + 'a passagem. Fechada com pendência, sem assinatura em nome dele.',
+                    episodios: 1, passagens: 2,
+                    fechadaEm: emHoras(7, 20), fechadaPor: 'Nélio Noturno (fictício)' }),
+    geral: { id: null, status: 'fechada', houveContato: true, categoria: 'saude',
+             motivo: 'Chamado às 02h10 — Bruno com febre; enfermagem orientada por telefone.',
+             acao: 'Fui à casa, acompanhei a medicação e conferi o registro.',
+             pendencias: null, chegada: emHoras(2, 25), saida: emHoras(3, 40) } },
+  { data: diasAtras(2),
+    diurno: capa({ fechadaEm: emHoras(19, 5), fechadaPor: 'Lúcia Líder Diurna (fictícia)' }),
+    noturno: capa({ fechadaEm: emHoras(7, 5), fechadaPor: 'Nélio Noturno (fictício)', passagens: 2 }),
+    geral: { id: null, status: 'fechada', houveContato: false, categoria: null,
+             motivo: null, acao: null, pendencias: null, chegada: null, saida: null } },
+  { data: diasAtras(5),
+    diurno: capa({ aditamentos: 1, fechadaEm: emHoras(19, 30),
+                   fechadaPor: 'Carla Coordenadora (fictícia)' }),
+    noturno: null,
+    geral: null },
+];
+
+/** A capa da ATA de hoje, montada a partir do plantão vivo. */
+function capaDoPlantao(turno: string) {
+  const s = PLANTOES.find((x) => x.turno === turno);
+  if (!s) return null;
+  const a = ataDo(s.id);
+  const faltam = s.esperados.filter(
+    (e) => !s.passagens.some((p) => p.userId === e.userId)).length;
+  return { ataId: a.id, plantaoId: s.id, status: a.status === 'aberta' ? 'rascunho' : a.status,
+    pendencias: a.pendencias, assinaturasFaltantes: faltam,
+    fechadaEm: a.fechadaEm, fechadaPor: a.fechadaEm ? 'Lúcia Líder Diurna (fictícia)' : null,
+    aditamentos: 0, episodios: 0, passagens: s.passagens.length };
+}
+
+/**
+ * A linha DESTA casa na ATA Geral Noturna de hoje — e só ela. O recorte é
+ * feito aqui, do lado do servidor de mentira, pelo mesmo motivo do servidor
+ * de verdade: se a tela recebesse as oito e escondesse sete, a primeira tela
+ * nova perderia a proteção.
+ */
+function linhaDaCasaNaGeral() {
+  const linha = ATA_GERAL.casas.find((c) => c.casaId === CASA.id);
+  if (!linha) return null;
+  return { id: null as string | null, status: ATA_GERAL.status,
+    houveContato: linha.houveContato, categoria: null as string | null,
+    motivo: linha.motivo, acao: linha.acao, pendencias: linha.pendencias,
+    chegada: null as string | null, saida: null as string | null };
+}
+
+/**
  * COFRE DE ACESSOS.
  *
  * A coordenação tem a guarda e precisa destes acessos. O que muda em relação
@@ -1378,6 +1474,50 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     PLANTOES = [...PLANTOES, novo];
     return { plantaoId: novo.id, novo: true, turno: b.turno };
   }
+  /**
+   * O ARQUIVO DAS ATAS. Fica ANTES de `/shifts/:id`, e não por arrumação: o
+   * roteador decide por segmento, `['shifts','ata-archive']` tem o mesmo
+   * tamanho de `['shifts', id]`, e a consulta caía na busca do plantão — que
+   * não achava nada e estourava com "reading 'id'". É a mesma regra do
+   * servidor, onde a rota de palavra fixa vem antes do `:id`.
+   *
+   * Duas regras de alcance vivem aqui, e são as mesmas do servidor:
+   * quem folheia (coordenação, equipe técnica e os dois líderes — o educador
+   * não), e o que sai da ATA Geral Noturna (a linha desta casa; o caminho para
+   * a folha das oito só para quem responde por ela).
+   */
+  if (rota === '/shifts/ata-archive' && metodo === 'GET') {
+    const folheia = ['coordenador', 'equipe_tecnica', 'lider_diurno',
+                     'lider_noturno_geral', 'gestor_geral'].includes(eu.role);
+    if (!folheia) {
+      return new Recusa(403,
+        'O arquivo das ATAS é da coordenação, da equipe técnica e dos líderes.');
+    }
+    const escala = String(q.get('escala') ?? 'dia');
+    const base = String(q.get('data') || HOJE);
+    const { de, ate } = janelaDeConsulta(escala, base);
+    const veFolhaCompleta = eu.role === 'gestor_geral' || eu.role === 'lider_noturno_geral';
+
+    const dias = [
+      // O dia de hoje sai dos plantões vivos: o arquivo e a tela do dia
+      // contam a mesma história, e é isso que o Marcelo vai conferir.
+      { data: HOJE,
+        diurno: capaDoPlantao('diurno'), noturno: capaDoPlantao('noturno'),
+        geral: linhaDaCasaNaGeral() },
+      ...ARQUIVO_ATAS,
+    ].filter((d) => d.data >= de && d.data <= ate)
+     .filter((d) => d.diurno || d.noturno || d.geral)
+     .map((d) => ({ ...d,
+       geral: d.geral && { ...d.geral, id: veFolhaCompleta ? ATA_GERAL.id : null } }));
+
+    return { de, ate, escala, dias,
+      notaAtaGeral: veFolhaCompleta
+        ? 'Da ATA Geral Noturna aparece aqui a linha desta casa. A folha completa das oito '
+          + 'casas você abre pela ATA Geral do dia.'
+        : 'Da ATA Geral Noturna aparece a linha desta casa — o que o Líder Noturno Geral '
+          + 'registrou sobre ela. O que ele registrou sobre as outras casas é assunto delas.' };
+  }
+
   if (seg[0] === 'shifts' && seg.length === 2) {
     const s = PLANTOES.find((x) => x.id === seg[1])!;
     return {

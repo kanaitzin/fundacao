@@ -109,6 +109,44 @@ function deslocamentoEmMinutos(instante: Date): number {
 }
 
 /**
+ * JANELA DE CONSULTA — o dia, a semana ou o mês DE CALENDÁRIO de uma data.
+ *
+ * "Semana" e "mês" têm duas leituras defensáveis, e a escolhida é a do
+ * calendário: a semana do dia 12 é a segunda a domingo que o contém, e o mês
+ * do dia 12 vai do primeiro ao último dia. A outra leitura — últimos 7 ou 30
+ * dias — é mais simples de calcular e impossível de pedir a alguém: ninguém
+ * manda "a ATA dos últimos sete dias" para o Conselho Tutelar.
+ *
+ * A conta é feita em UTC de propósito, sobre a data já resolvida no fuso da
+ * instituição: aqui só se somam e subtraem DIAS de calendário, e usar o
+ * relógio local no meio disso é o caminho conhecido para o mês que começa no
+ * dia 31 do mês anterior.
+ */
+export function janelaDeConsulta(escala: 'dia' | 'semana' | 'mes', data: string):
+{ de: string; ate: string } {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) throw new Error(`Data inválida: ${data} (use YYYY-MM-DD)`);
+  if (escala === 'dia') return { de: data, ate: data };
+
+  if (escala === 'mes') {
+    const [ano, mes] = data.split('-').map(Number);
+    const ultimo = new Date(Date.UTC(ano, mes, 0)).getUTCDate();
+    return {
+      de: `${data.slice(0, 7)}-01`,
+      ate: `${data.slice(0, 7)}-${String(ultimo).padStart(2, '0')}`,
+    };
+  }
+
+  // Semana de SEGUNDA a domingo: é a semana do plantão e a da escala. Domingo
+  // volta 6 dias, e não 0 — `getUTCDay()` chama domingo de 0.
+  const dia = new Date(`${data}T00:00:00Z`);
+  const recuo = (dia.getUTCDay() + 6) % 7;
+  const segunda = new Date(dia.getTime() - recuo * 86_400_000);
+  const domingo = new Date(segunda.getTime() + 6 * 86_400_000);
+  const iso = (d: Date) => d.toISOString().slice(0, 10);
+  return { de: iso(segunda), ate: iso(domingo) };
+}
+
+/**
  * Janela de um mês (YYYY-MM) da instituição, em instantes UTC.
  * Meio aberta: `[inicio, fim)` — o último dia do mês entra inteiro, e nenhum
  * registro é contado duas vezes na fronteira entre dois meses.

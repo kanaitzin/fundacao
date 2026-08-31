@@ -24,6 +24,22 @@ export class ShiftsController {
     return this.shifts.open(user, body);
   }
 
+  /**
+   * O ARQUIVO DAS ATAS — o livro folheado para trás, por dia, semana ou mês.
+   *
+   * Fica ANTES de `@Get(':id')`, como as demais rotas de palavra fixa: o Nest
+   * casa na ordem de declaração, e `ata-archive` cairia em `:id` — que exige
+   * uuid e devolveria erro de formato em vez da tela.
+   */
+  @Get('ata-archive')
+  archive(@CurrentUser() user: AuthenticatedUser,
+          @Query('houseId', ParseUUIDPipe) houseId: string,
+          @Query('escala') escala?: string,
+          @Query('data') data?: string) {
+    const janela = escala === 'semana' || escala === 'mes' ? escala : 'dia';
+    return this.shifts.arquivo(user, houseId, janela, data ?? hojeNaInstituicao());
+  }
+
   // ---------- ATA Geral Noturna (rotas fixas antes de :id) ----------
 
   @Post('general-ata')

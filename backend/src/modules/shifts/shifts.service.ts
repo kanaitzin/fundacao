@@ -3,7 +3,7 @@ import { DatabaseService } from '../../kernel/database/database.service';
 import { AuditService } from '../../kernel/audit/audit.service';
 import { EventBus } from '../../kernel/events/event-bus.service';
 import { AuthenticatedUser, EscalationRequest } from '../../kernel/contracts';
-import { hojeNaInstituicao, dataDoPlantao } from '../../kernel/common/tempo';
+import { hojeNaInstituicao, dataDoPlantao, janelaDeConsulta } from '../../kernel/common/tempo';
 import { SECOES_ATA, CLASSIFICACOES_EPISODIO } from './ata-secoes';
 
 /**
@@ -701,6 +701,118 @@ export class ShiftsService {
         passagensAssinadas: r.assinadas, recebimentos: r.recebimentos,
       }));
     });
+  }
+
+  /**
+   * O ARQUIVO DAS ATAS — folhear o livro para trás.
+   *
+   * Três coisas que este método decide, e que não são detalhe:
+   *
+   *  * o recorte é de CALENDÁRIO, e a conta é feita aqui, no fuso da
+   *     instituição: "a semana do dia 12" é segunda a domingo, "março" é do
+   *     primeiro ao último dia. "Últimos 7 dias" seria mais fácil de somar e
+   *     impossível de pedir a alguém — ninguém manda "a ATA dos últimos sete
+   *     dias" para o Conselho Tutelar;
+   *  * a ATA Geral Noturna entra só pela linha DAQUELA CASA. Quem quiser a
+   *     folha das oito abre a Geral pelo caminho de sempre, e para isso
+   *     precisa ser o Líder Noturno Geral ou o Gestor Geral;
+   *  * consultar deixa rastro. O que fica registrado é o recorte — casa e
+   *     período —, nunca o conteúdo das ATAS lidas (§20).
+   */
+  async arquivo(user: AuthenticatedUser, houseId: string,
+                escala: 'dia' | 'semana' | 'mes', data: string) {
+    const { de, ate } = janelaDeConsulta(escala, data || hojeNaInstituicao());
+
+    const linhas = await this.db.asUser(user.id, async (c) => {
+      const { rows } = await c.query(
+        `SELECT * FROM app_arquivo_atas($1, $2::date, $3::date)`, [houseId, de, ate]);
+      return rows;
+    }).catch((e: any) => {
+      const msg: string = e?.message ?? '';
+      if (msg.includes('fora_de_escopo')) {
+        throw new ForbiddenException('Esta casa não está no seu alcance.');
+      }
+      if (msg.includes('cargo_nao_consulta_arquivo')) {
+        throw new ForbiddenException(
+          'O arquivo das ATAS é da coordenação, da equipe técnica e dos líderes.');
+      }
+      if (msg.includes('periodo_invalido')) {
+        throw new BadRequestException('Escolha um período de até um mês.');
+      }
+      throw e;
+    });
+
+    await this.audit.log({
+      action: 'ata.arquivo.consulta', actorId: user.id, houseId,
+      entity: 'ata', entityId: houseId,
+      // Só o recorte. O que estava escrito nas ATAS não vai para o log.
+      detail: { escala, de, ate, atas: linhas.length },
+    });
+
+    // Um DIA por vez, com os dois turnos dentro — é assim que o livro é lido
+    // na casa, e é assim que a pessoa pergunta ("o que houve no dia 12?").
+    const dias = new Map<string, any>();
+    for (const l of linhas) {
+      const dia = typeof l.na_data === 'string'
+        ? l.na_data : new Date(l.na_data).toISOString().slice(0, 10);
+      if (!dias.has(dia)) dias.set(dia, { data: dia, diurno: null, noturno: null, geral: null });
+      const registro = {
+        ataId: l.ata_id, plantaoId: l.shift_id, status: l.ata_status,
+        pendencias: l.pendencias, assinaturasFaltantes: l.assinaturas_faltantes,
+        fechadaEm: l.fechada_em, fechadaPor: l.fechada_por,
+        aditamentos: l.aditamentos, episodios: l.episodios, passagens: l.passagens,
+      };
+      const d = dias.get(dia);
+      if (l.turno === 'noturno') {
+        d.noturno = registro;
+        if (l.geral_id) {
+          d.geral = {
+            status: l.geral_status, houveContato: l.geral_houve_contato,
+            categoria: l.geral_categoria, motivo: l.geral_motivo, acao: l.geral_acao,
+            pendencias: l.geral_pendencias, chegada: l.geral_chegada, saida: l.geral_saida,
+          };
+        }
+      } else d.diurno = registro;
+    }
+
+    /*
+     * O identificador da folha completa das oito casas sai daqui só para quem
+     * responde por ela: o Líder Noturno Geral, que a escreve, e o Gestor
+     * Geral. Para os demais o arquivo entrega a LINHA da casa e mais nada —
+     * ter o id em mãos é ter o caminho para a folha inteira.
+     *
+     * (A ATA Geral do DIA CORRENTE continua como está na tela de sempre, e a
+     * coordenação a alcança. Se o mesmo recorte deve valer lá, é decisão de
+     * produto ainda aberta — não mudei sozinho o que já foi aprovado.)
+     */
+    const veFolhaCompleta = user.role === 'gestor_geral' || user.role === 'lider_noturno_geral';
+
+    return {
+      de, ate, escala,
+      dias: [...dias.values()].map((d) => ({
+        ...d,
+        geral: d.geral && {
+          ...d.geral,
+          id: veFolhaCompleta
+            ? linhas.find((l: any) => l.geral_id
+                && (typeof l.na_data === 'string' ? l.na_data
+                    : new Date(l.na_data).toISOString().slice(0, 10)) === d.data)?.geral_id ?? null
+            : null,
+        },
+      })),
+      /*
+       * A tela diz por que a folha das oito casas não está ali. Esconder sem
+       * explicar faz a pessoa achar que o sistema perdeu o registro — e o
+       * caminho seguinte costuma ser pedir por fora, que é o que a regra 2
+       * proíbe.
+       */
+      notaAtaGeral: user.role === 'gestor_geral'
+        ? 'Da ATA Geral Noturna aparece aqui a linha desta casa. A folha completa '
+          + 'das oito casas você abre pela ATA Geral do dia.'
+        : 'Da ATA Geral Noturna aparece a linha desta casa — o que o Líder Noturno '
+          + 'Geral registrou sobre ela. O que ele registrou sobre as outras casas é '
+          + 'assunto delas.',
+    };
   }
 
   // ------------------------------------------------------------------

@@ -42,6 +42,22 @@ interface Plantao {
   assinaturasPendentes: { quem: string; cargo: string }[];
 }
 interface Secoes { secoes: { cod: string; label: string }[] }
+/** Uma ATA como ela aparece no arquivo: a capa, sem o conteúdo. */
+interface AtaNoArquivo {
+  ataId: string; plantaoId: string; status: string; pendencias: string | null;
+  assinaturasFaltantes: number; fechadaEm: string | null; fechadaPor: string | null;
+  aditamentos: number; episodios: number; passagens: number;
+}
+interface DiaDoArquivo {
+  data: string;
+  diurno: AtaNoArquivo | null;
+  noturno: AtaNoArquivo | null;
+  /** A LINHA desta casa na ATA Geral Noturna — nunca a folha das oito. */
+  geral: { id: string | null; status: string; houveContato: boolean;
+           categoria: string | null; motivo: string | null; acao: string | null;
+           pendencias: string | null; chegada: string | null; saida: string | null } | null;
+}
+interface Arquivo { de: string; ate: string; escala: string; dias: DiaDoArquivo[]; notaAtaGeral: string }
 interface CasaGeral {
   casaId: string; codigo: string; nome: string;
   houveContato: boolean; motivo: string | null; acao: string | null;
@@ -61,8 +77,25 @@ const dia = (iso: string) => new Date(`${iso}T12:00:00-03:00`).toLocaleDateStrin
 /** Quem fecha a ATA da casa (§12.4) — o mesmo alcance do servidor. */
 const FECHA_ATA = ['lider_diurno', 'lider_noturno_geral', 'equipe_tecnica', 'coordenador', 'gestor_geral'];
 
+/* alcance:ata — quem folheia o arquivo. Conferido contra app_consulta_arquivo_ata(). */
+const CONSULTA_ARQUIVO = ['coordenador', 'equipe_tecnica', 'lider_diurno',
+                          'lider_noturno_geral', 'gestor_geral'];
+
+/** Rótulo do que o Líder Noturno Geral registrou sobre a casa. */
+const CATEGORIA_GERAL: Record<string, string> = {
+  ocorrencia: 'Ocorrência', saude: 'Saúde', medicamento: 'Medicamento',
+  saida_nao_autorizada: 'Saída não autorizada', falta_de_pessoal: 'Falta de pessoal',
+  outro_apoio: 'Outro apoio',
+};
+const SITUACAO: Record<string, { rotulo: string; tom: string }> = {
+  rascunho: { rotulo: 'Aberta', tom: 'c-info' },
+  reaberta: { rotulo: 'Reaberta', tom: 'c-warn' },
+  fechada: { rotulo: 'Fechada', tom: 'c-ok' },
+  fechada_com_pendencia: { rotulo: 'Fechada com pendência', tom: 'c-warn' },
+};
+
 export function Ata({ houseId, papel }: { houseId: string; papel: string }) {
-  const [aba, setAba] = useState<'casa' | 'geral'>('casa');
+  const [aba, setAba] = useState<'casa' | 'geral' | 'arquivo'>('casa');
   const [doDia, setDoDia] = useState<PlantaoDoDia[]>([]);
   const [escolhido, setEscolhido] = useState<string | null>(null);
   const [plantao, setPlantao] = useState<Plantao | null>(null);
@@ -72,6 +105,17 @@ export function Ata({ houseId, papel }: { houseId: string; papel: string }) {
   const [erro, setErro] = useState('');
   const [aviso, setAviso] = useState('');
   const [fechando, setFechando] = useState<'casa' | 'geral' | null>(null);
+  /*
+   * Abre no MÊS, e não na semana. A semana de calendário começa vazia toda
+   * segunda-feira: quem abrisse o arquivo na manhã de segunda veria "nenhuma
+   * ATA neste período" com o livro cheio logo atrás, e a conclusão razoável
+   * seria que o sistema perdeu os registros. O mês sempre tem o que mostrar,
+   * e estreitar é um toque.
+   */
+  const [escala, setEscala] = useState<'dia' | 'semana' | 'mes'>('mes');
+  const [quando, setQuando] = useState('');
+  const [arquivo, setArquivo] = useState<Arquivo | null>(null);
+  const [buscando, setBuscando] = useState(false);
 
   async function carregar() {
     setErro('');
@@ -101,9 +145,9 @@ export function Ata({ houseId, papel }: { houseId: string; papel: string }) {
   async function carregarGeral() {
     setErro(''); setSemGeral('');
     if (papel !== 'lider_noturno_geral') {
-      setSemGeral('A ATA Geral Noturna é aberta pelo Líder Noturno Geral. Hoje o sistema não '
-        + 'tem como localizá-la pela data para outros cargos — quem precisa consultá-la '
-        + 'recebe o link de quem a abriu.');
+      setSemGeral('A ATA Geral Noturna do dia é aberta pelo Líder Noturno Geral. Para consultar '
+        + 'o que ele registrou sobre ESTA casa, em qualquer data, use o Arquivo — a folha '
+        + 'completa das oito casas fica com quem responde pela instituição.');
       return;
     }
     try {
@@ -115,6 +159,26 @@ export function Ata({ houseId, papel }: { houseId: string; papel: string }) {
     }
   }
   useEffect(() => { if (aba === 'geral' && !geral) carregarGeral(); }, [aba]);
+
+  /**
+   * O ARQUIVO — folhear o livro para trás.
+   *
+   * A data vai VAZIA por padrão e o servidor entende como hoje. Preencher com
+   * `new Date()` aqui na tela parece inofensivo e não é: o navegador do
+   * celular pode estar em outro fuso, e o dia da instituição é decidido num
+   * lugar só (§23).
+   */
+  async function consultar(nova = escala, data = quando) {
+    setErro(''); setBuscando(true);
+    try {
+      // Escrita por extenso, e não montada: é assim que o teste de contrato
+      // consegue conferir que a rota existe do outro lado.
+      setArquivo(await api<Arquivo>(
+        `/shifts/ata-archive?houseId=${houseId}&escala=${nova}&data=${data}`));
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Não foi possível abrir o arquivo.');
+    } finally { setBuscando(false); }
+  }
 
   async function acao(fn: () => Promise<any>) {
     setErro(''); setAviso('');
@@ -152,6 +216,12 @@ export function Ata({ houseId, papel }: { houseId: string; papel: string }) {
                 onClick={() => setAba('casa')}>ATA da casa</button>
         <button role="tab" aria-selected={aba === 'geral'} className={aba === 'geral' ? 'on' : ''}
                 onClick={() => setAba('geral')}>ATA Geral Noturna</button>
+        {CONSULTA_ARQUIVO.includes(papel) && (
+          <button role="tab" aria-selected={aba === 'arquivo'} className={aba === 'arquivo' ? 'on' : ''}
+                  onClick={() => { setAba('arquivo'); if (!arquivo) consultar(); }}>
+            📚 Arquivo
+          </button>
+        )}
       </div>
 
       {aba === 'casa' && (
@@ -328,6 +398,156 @@ export function Ata({ houseId, papel }: { houseId: string; papel: string }) {
               )}
             </div>
           )}
+        </>
+      )}
+
+      {aba === 'arquivo' && (
+        <>
+          {/*
+            * O ARQUIVO DAS ATAS.
+            *
+            * Duas decisões que esta aba carrega:
+            *
+            *  * o recorte é de CALENDÁRIO. "A semana do dia 12" é segunda a
+            *    domingo e "março" é o mês inteiro, porque é assim que o pedido
+            *    chega — ninguém pede "a ATA dos últimos sete dias";
+            *  * o arquivo mostra a CAPA de cada ATA, não o conteúdo. Quem
+            *    precisa do que foi escrito abre a ATA, e a permissão é
+            *    conferida de novo lá dentro. Uma lista que já traz tudo é uma
+            *    lista que vaza tudo quando alguém tira um print.
+            */}
+          <div className="card raise stack">
+            <h3 style={{ fontSize: 17, margin: 0 }}>Arquivo das ATAS</h3>
+            <div className="mutetxt">
+              O livro folheado para trás: um dia, uma semana ou um mês desta casa.
+            </div>
+
+            <div className="filtros" role="tablist" aria-label="Recorte">
+              {([['dia', 'Um dia'], ['semana', 'A semana'], ['mes', 'O mês']] as const).map(
+                ([cod, label]) => (
+                  <button key={cod} role="tab" aria-selected={escala === cod}
+                          className={escala === cod ? 'on' : ''}
+                          onClick={() => { setEscala(cod); consultar(cod, quando); }}>
+                    {label}
+                  </button>
+                ))}
+            </div>
+
+            <label className="f" htmlFor="arq-data">
+              Data <small>— a semana e o mês são os DESTA data</small>
+            </label>
+            <div className="row">
+              <input id="arq-data" type="date" className="grow" value={quando}
+                     onChange={(e) => { setQuando(e.target.value); consultar(escala, e.target.value); }} />
+              <button className="btn sm sec" onClick={() => { setQuando(''); consultar(escala, ''); }}>
+                Hoje
+              </button>
+            </div>
+          </div>
+
+          {arquivo && (
+            <>
+              <p className="mutetxt" style={{ marginTop: 12 }}>
+                De {dia(arquivo.de)} a {dia(arquivo.ate)} · {arquivo.dias.length} dia(s) com ATA.
+              </p>
+              <div className="notice c-info">{arquivo.notaAtaGeral}</div>
+            </>
+          )}
+
+          {buscando && <div className="card"><p className="mutetxt" style={{ margin: 0 }}>Buscando…</p></div>}
+
+          <div className="stack" style={{ marginTop: 12 }}>
+            {(arquivo?.dias ?? []).map((d) => (
+              <div className="card stack" key={d.data}>
+                <b className="ff">{dia(d.data)}</b>
+
+                {([['diurno', 'Turno diurno', d.diurno], ['noturno', 'Turno noturno', d.noturno]] as const)
+                  .map(([cod, rotulo, a]) => a && (
+                    <div className="bloco" key={cod}>
+                      <div className="row">
+                        <b className="grow">{rotulo}</b>
+                        <span className={`pill ${SITUACAO[a.status]?.tom ?? 'c-mute'}`}>
+                          {SITUACAO[a.status]?.rotulo ?? a.status}
+                        </span>
+                      </div>
+                      <div className="mutetxt">
+                        {a.passagens} passagem(ns) assinada(s)
+                        {a.assinaturasFaltantes > 0 && ` · ${a.assinaturasFaltantes} faltando`}
+                        {a.episodios > 0 && ` · ${a.episodios} episódio(s)`}
+                        {/* Aditamento aparece na CAPA: uma ATA corrigida depois
+                            precisa se anunciar antes de ser lida. */}
+                        {a.aditamentos > 0 && ` · ${a.aditamentos} aditamento(s)`}
+                        {a.fechadaEm && ` · fechada às ${hhmm(a.fechadaEm)}`}
+                        {a.fechadaPor && ` por ${a.fechadaPor}`}
+                      </div>
+                      {a.pendencias && (
+                        <div className="notice c-warn" style={{ marginTop: 8 }}>
+                          <b>Pendência registrada:</b> {a.pendencias}
+                        </div>
+                      )}
+                      <button className="btn sm sec" style={{ marginTop: 8 }}
+                              onClick={async () => {
+                                setAba('casa'); setEscolhido(a.plantaoId);
+                                setPlantao(await api<Plantao>(`/shifts/${a.plantaoId}`));
+                              }}>
+                        Abrir esta ATA
+                      </button>
+                    </div>
+                  ))}
+
+                {d.geral && (
+                  <div className="bloco destaque">
+                    <small>ATA Geral Noturna — o que foi registrado sobre esta casa</small>
+                    {d.geral.houveContato ? (
+                      <>
+                        {d.geral.categoria && (
+                          <div className="mutetxt">
+                            {CATEGORIA_GERAL[d.geral.categoria] ?? d.geral.categoria}
+                            {d.geral.chegada && ` · chegou às ${hhmm(d.geral.chegada)}`}
+                            {d.geral.saida && ` · saiu às ${hhmm(d.geral.saida)}`}
+                          </div>
+                        )}
+                        {d.geral.motivo && <div>{d.geral.motivo}</div>}
+                        {d.geral.acao && <div className="mutetxt">O que foi feito: {d.geral.acao}</div>}
+                        {d.geral.pendencias && (
+                          <div className="notice c-warn" style={{ marginTop: 8 }}>
+                            <b>Ficou pendente:</b> {d.geral.pendencias}
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      /* Casa sem chamado é REGISTRO, não silêncio (§12.6). */
+                      <div className="mutetxt">
+                        Sem chamado nesta noite. A ausência de demanda fica registrada.
+                      </div>
+                    )}
+                    {d.geral.id && (
+                      <button className="btn sm ghost" style={{ marginTop: 8 }}
+                              onClick={async () => {
+                                setAba('geral');
+                                setGeral(await api<AtaGeral>(`/shifts/general-ata/${d.geral!.id}`));
+                                setSemGeral('');
+                              }}>
+                        Ver a folha completa das oito casas
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+
+            {arquivo && arquivo.dias.length === 0 && !buscando && (
+              <div className="card"><p className="mutetxt" style={{ margin: 0 }}>
+                Nenhuma ATA neste período. A ATA nasce com o plantão: dia sem plantão aberto
+                é dia sem ATA — e isso também é informação. Se procurava algo mais antigo,
+                abra <b>O mês</b> ou escolha outra data.</p></div>
+            )}
+          </div>
+
+          <p className="mutetxt" style={{ marginTop: 12 }}>
+            <b>Consultar deixa rastro.</b> Fica registrado quem abriu o arquivo, de que casa e
+            de que período — nunca o que estava escrito nas ATAS.
+          </p>
         </>
       )}
 

@@ -259,7 +259,7 @@ diz de onde o número parte quando o dia mostrado não é hoje.
 
 ## 7. Protótipo — estado atual
 
-`prototipo/rede-acolher-prototipo.html` — **536 KB, um arquivo só**. Abre com
+`prototipo/rede-acolher-prototipo.html` — **544 KB, um arquivo só**. Abre com
 dois cliques, sem servidor, sem banco, sem instalar nada.
 
 **Entrar:** `mbarbosa@paodospobres.com.br` · **Primeiro acesso:** abra o
@@ -393,12 +393,65 @@ transformá-lo em teste.
 1. ~~Decidir os dois itens de produto da §8.4~~ — feito em 31/08
 2. ~~Trazer as fases 3–7 para o `der.md`~~ — feito; as 82 tabelas estão
    documentadas e `documentacao.spec.ts` não deixa a próxima escapar
-3. Conversar com o Marcelo sobre o **grupo 1 do `docs/o-que-falta.md`** — as 14
+3. ~~O Arquivo das ATAS~~ — feito em 31/08 (§8.6)
+4. Conversar com o Marcelo sobre o **grupo 1 do `docs/o-que-falta.md`** — as
    funções que existem no servidor, valem para o piloto e ainda não têm tela
-4. Aplicar o retorno do Marcelo por cargo
-5. Configurar SMTP institucional na implantação (`MailGateway` já está pronto)
+5. Aplicar o retorno do Marcelo por cargo
+6. Configurar SMTP institucional na implantação (`MailGateway` já está pronto)
 
-### 8.6 Ensaio como usuário — 31/08/2026, os nove cargos
+### 8.6 O Arquivo das ATAS — 31/08/2026
+
+A ATA existia no dia em que era escrita. Fechada, continuava no banco e não
+tinha por onde ser lida de novo: a tela pedia sempre o dia de hoje. Um livro
+ATA que não se folheia serve para o turno e não serve para a casa.
+
+**O que entrou:**
+
+* migração `shifts/0760_arquivo_das_atas.sql` — `app_arquivo_atas(p_house, p_de,
+  p_ate)`, SECURITY DEFINER conferindo `app_house_in_scope` (regra 8), e
+  `app_consulta_arquivo_ata()` com os cinco cargos que folheiam;
+* `GET /shifts/ata-archive?houseId=&escala=&data=`, declarada **antes** de
+  `@Get(':id')`;
+* `janelaDeConsulta()` em `kernel/common/tempo.ts` — o recorte de calendário,
+  com gêmeo idêntico no `mock.ts` do protótipo;
+* aba **📚 Arquivo** na tela de ATAS, com dia / semana / mês e seletor de data;
+* suíte `test/arquivo-atas.e2e.spec.ts`, 8 testes.
+
+**O alcance, decidido pelo Leonardo em 31/08:**
+
+| Quem | ATA diurna e noturna da casa | ATA Geral Noturna |
+|---|---|---|
+| Coordenação, equipe técnica, Líder Diurno, Líder Noturno Geral | sim | **só a linha daquela casa** |
+| Gestor Geral | sim | a linha, e o caminho para a folha das oito |
+| Educador, enfermagem, cozinha, administração técnica | não | não |
+
+O recorte parcial é feito **no banco**, não na tela: afrouxar a política de
+`general_night_house_entry` abriria as oito linhas para todo mundo que alcança
+qualquer casa, e a tela é que teria de esconder sete — proteção que se perde na
+primeira tela nova. Consultar grava `ata.arquivo.consulta` com casa, escala e
+período; o conteúdo das ATAS nunca entra no log (§20).
+
+**Duas escolhas de tela que valem registro:** o arquivo mostra a CAPA de cada
+ATA (situação, assinaturas, pendência, aditamentos, episódios), nunca o
+conteúdo — quem precisa do que foi escrito abre a ATA, onde a permissão é
+conferida de novo. E a aba abre no MÊS: a semana de calendário começa vazia
+toda segunda-feira, e "nenhuma ATA neste período" com o livro cheio atrás faz
+a pessoa concluir que o sistema perdeu os registros.
+
+**Dois defeitos que este trabalho encontrou:**
+
+* **contaminação entre suítes, pega na segunda rodada.** A suíte nova montava a
+  noite de HOJE e `plantao.e2e` reescreve a linha da AI3 na ATA Geral de hoje —
+  quem rodasse por último ganhava, e o resultado alternava a cada duas rodadas.
+  O teste passou a usar o dia ANTERIOR, que além de resolver pela raiz é mais
+  fiel: o arquivo existe para os dias que já passaram. A regra das duas rodadas
+  provou o seu valor pela segunda vez.
+* **rota do protótipo caindo no curinga.** No `mock.ts`, `/shifts/ata-archive`
+  ficou depois de `/shifts/:id`: o roteador decide por segmento, os dois têm
+  dois segmentos, e a consulta virava busca de plantão inexistente. Mesma regra
+  do servidor — palavra fixa antes do `:id`.
+
+### 8.7 Ensaio como usuário — 31/08/2026, os nove cargos
 
 Três roteiros de navegador contra o protótipo de arquivo único, com todos os
 cargos: `passeio.mjs` (o que cada um alcança, tela por tela), `acoes.mjs` e
@@ -436,7 +489,7 @@ explicar.
 
 ---
 
-## 9. Migrações desta série (0620–0740)
+## 9. Migrações desta série (0620–0760)
 
 | Nº | Módulo | O que faz |
 |---|---|---|
@@ -454,6 +507,7 @@ explicar.
 | 0730 | statements | líder do turno lê o registro restrito da própria casa |
 | 0740 | reports | tipo `desenvolvimento` liberado no CHECK do banco |
 | 0750 | nursing | "vencendo em 7 dias" ancorado em `app_hoje()`, não em `p_date` |
+| 0760 | shifts | arquivo das ATAS; da Geral Noturna sai só a linha da casa |
 
 Sem migração nova na fase 14: os relatórios usam o que já estava gravado.
 A dependência `docx` entrou no backend, e o timbre vive em `backend/assets/timbre.png`.
@@ -619,18 +673,20 @@ responder e não me peça para reexplicar o que está lá.
 
 === ESTADO ATUAL ===
 
-Fases 0 a 21 concluídas. 237 testes passando em 19 suítes, sem falha conhecida
-— a suíte rodou duas vezes seguidas e uma terceira às 22h32 de Porto Alegre,
-com o relógio do banco movido junto. Backend NestJS + PostgreSQL 16 com RLS, 16
+Fases 0 a 22 concluídas. 245 testes passando em 20 suítes, sem falha conhecida
+— a suíte rodou seis vezes seguidas e mais duas às 22h32 de Porto Alegre, com o
+relógio do banco movido junto. Backend NestJS + PostgreSQL 16 com RLS, 16
 partições. Frontend React PWA com 21 telas, todas falando as rotas reais do
-servidor. Relatórios saem em Word com timbre, com a parte factual
+servidor. A ATA agora tem arquivo: dia, semana ou mês de calendário, com a ATA
+Geral Noturna recortada na linha de cada casa. Relatórios saem em Word com timbre, com a parte factual
 escrita pelo sistema. Convite de primeiro acesso por e-mail, uso único, 24h.
 
 Em aberto, na ordem: `docs/o-que-falta.md` — 69 rotas que existem no servidor e
 não têm tela, separadas entre o que vale para o piloto, o que espera e o que é
-de máquina; o retorno do Marcelo por cargo; três decisões de produto que não são
-minhas (devolver acompanhamento para correção, achar a ATA Geral Noturna por
-data, listar rascunho de prescrição); e o SMTP institucional, só na implantação.
+de máquina; o retorno do Marcelo por cargo; duas decisões de produto que não são
+minhas (devolver acompanhamento para correção e listar rascunho de prescrição),
+mais a pergunta menor de se o recorte por casa deve valer também para a ATA
+Geral do dia corrente; e o SMTP institucional, só na implantação.
 
 Leia a seção 10 do documento: ela tem a entrega completa e como retomar.
 
