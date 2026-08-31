@@ -43,6 +43,9 @@ interface Resumo {
   id: string; tipo: string; titulo: string; status: string;
   esperados: number; conferidos: number; horario: string;
 }
+/** O vocabulário vem do servidor: `kind` é um enum do banco (§10). */
+interface TipoDeChamada { cod: string; label: string; sugestao: string }
+interface Vocabulario { tipos: TipoDeChamada[]; aviso: string }
 
 const hhmm = (iso: string) => new Date(iso).toLocaleTimeString('pt-BR',
   { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' });
@@ -54,6 +57,8 @@ export function Chamada({ houseId }: { houseId: string }) {
   const [aviso, setAviso] = useState('');
   const [ocupado, setOcupado] = useState<string | null>(null);
   const [excecao, setExcecao] = useState<Linha | null>(null);
+  const [tipos, setTipos] = useState<Vocabulario | null>(null);
+  const [abrindo, setAbrindo] = useState(false);
 
   const carregarLista = useCallback(async () => {
     setErro('');
@@ -62,6 +67,11 @@ export function Chamada({ houseId }: { houseId: string }) {
   }, [houseId]);
 
   useEffect(() => { carregarLista(); }, [carregarLista]);
+  useEffect(() => {
+    // Falhar aqui não pode travar a chamada em andamento: sem o vocabulário,
+    // some o botão de abrir e o resto da tela continua servindo o turno.
+    api<Vocabulario>('/checks/kinds').then(setTipos).catch(() => setTipos(null));
+  }, []);
 
   async function abrir(id: string) {
     setErro('');
@@ -106,6 +116,41 @@ export function Chamada({ houseId }: { houseId: string }) {
       <>
         <div className="diahead"><div><h2>Chamadas de hoje</h2></div></div>
         {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+        {aviso && <div className="notice c-ok" role="status">{aviso}</div>}
+
+        {/*
+          * ABRIR A CHAMADA.
+          *
+          * Até 31/08/2026 a chamada só existia se alguém a criasse pelo
+          * servidor — e não havia por onde. Na casa, isso significava uma tela
+          * que dizia "nenhuma chamada aberta hoje" para sempre.
+          */}
+        {tipos && (
+          <button className="btn block" style={{ marginBottom: 12 }}
+                  onClick={() => setAbrindo(true)}>
+            ✅ Abrir uma chamada
+          </button>
+        )}
+
+        {abrindo && tipos && (
+          <FolhaAbrir
+            tipos={tipos.tipos} aviso={tipos.aviso}
+            onFechar={() => setAbrindo(false)}
+            onAbrir={async (kind, titulo) => {
+              setErro(''); setAviso('');
+              try {
+                const r = await api<{ id: string }>('/checks', {
+                  method: 'POST', body: JSON.stringify({ houseId, kind, titulo }) });
+                setAbrindo(false);
+                await carregarLista();
+                // Abre já: quem abriu a chamada é quem vai conferir agora.
+                await abrir(r.id);
+              } catch (e) {
+                setErro(e instanceof Error ? e.message : 'Não foi possível abrir a chamada.');
+              }
+            }} />
+        )}
+
         <div className="stack">
           {lista.map((c) => (
             <button key={c.id} className="card row chamadacard" onClick={() => abrir(c.id)}>
@@ -121,8 +166,8 @@ export function Chamada({ houseId }: { houseId: string }) {
           {lista.length === 0 && (
             <div className="card">
               <p className="mutetxt" style={{ margin: 0 }}>
-                Nenhuma chamada aberta hoje. O Líder Diurno abre a chamada do café, do almoço,
-                da escola, da janta e do dormir.
+                Nenhuma chamada aberta hoje. Abra a do café, do almoço, da escola, da janta
+                ou do dormir — cada uma confere uma pessoa por vez.
               </p>
             </div>
           )}
@@ -256,6 +301,72 @@ export function Chamada({ houseId }: { houseId: string }) {
 }
 
 /** As opções do tipo de chamada. Exceção pede o fato; o resto, não. */
+/**
+ * ABRIR A CHAMADA.
+ *
+ * Duas decisões pequenas que evitam duas frustrações conhecidas:
+ *
+ *  * o TIPO vem do servidor. `kind` é um enum do banco com oito valores; uma
+ *    tela que escrevesse "jantar" descobriria o erro na casa, às sete da
+ *    noite, com a chamada aberta pela metade;
+ *  * o NOME vem preenchido pela sugestão do tipo e continua editável. "Janta
+ *    de sexta" e "Almoço — passeio no parque" são o que a próxima pessoa lê na
+ *    lista do dia, e obrigar a digitar do zero às 18h é atrito sem ganho.
+ */
+function FolhaAbrir({ tipos, aviso, onFechar, onAbrir }: {
+  tipos: TipoDeChamada[]; aviso: string;
+  onFechar: () => void; onAbrir: (kind: string, titulo: string) => void;
+}) {
+  const [kind, setKind] = useState('');
+  const [titulo, setTitulo] = useState('');
+  const pode = kind !== '' && titulo.trim().length >= 3;
+
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-abrir"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet modal">
+        <h3 id="t-abrir">Abrir uma chamada</h3>
+        <div className="notice c-info">{aviso}</div>
+
+        <label className="f">O que está sendo conferido</label>
+        <div className="opts">
+          {tipos.map((t) => (
+            <button type="button" key={t.cod} className="opt c-info"
+                    aria-pressed={kind === t.cod}
+                    onClick={() => { setKind(t.cod); setTitulo(t.sugestao); }}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {kind && (
+          <>
+            <label className="f" htmlFor="ch-titulo">
+              Nome da chamada <small>— é o que a próxima pessoa lê na lista do dia</small>
+            </label>
+            <input id="ch-titulo" className="field" value={titulo}
+                   onChange={(e) => setTitulo(e.target.value)}
+                   placeholder="Ex.: Janta de sexta" />
+          </>
+        )}
+
+        <p className="mutetxt">
+          A chamada nasce com <b>todos os acolhidos ativos da casa</b>. Quem chegar depois
+          aparece para ser conferido; quem sair no meio continua com o que já foi registrado.
+        </p>
+
+        <div className="row rodape">
+          <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
+          <button className="btn grow" disabled={!pode}
+                  onClick={() => onAbrir(kind, titulo.trim())}>
+            Abrir e conferir agora
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function FolhaOpcao({ linha, opcoes, onFechar, onMarcar }: {
   linha: Linha; opcoes: Opcao[];
   onFechar: () => void;

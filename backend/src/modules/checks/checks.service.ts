@@ -48,6 +48,28 @@ export const OPCOES: Record<string, { code: string; label: string; excecao: bool
 };
 const PADRAO = OPCOES.alimentacao;
 
+/**
+ * OS TIPOS DE CHAMADA, com o nome que a casa usa (§10).
+ *
+ * A lista vive AQUI, e não na tela, pelo mesmo motivo das opções: o `kind` é
+ * um enum do banco (`check_type`), e uma tela que inventa o vocabulário
+ * escreve `"jantar"` num campo que só aceita oito valores — e descobre isso
+ * na casa, às sete da noite, com a chamada aberta pela metade.
+ *
+ * O `titulo` é sugestão, não regra: quem abre pode escrever "Janta de sexta"
+ * ou "Almoço — passeio no parque". Ele é o que a próxima pessoa lê na lista.
+ */
+export const TIPOS_DE_CHAMADA: { cod: string; label: string; sugestao: string }[] = [
+  { cod: 'acordar', label: 'Acordar', sugestao: 'Acordar' },
+  { cod: 'alimentacao', label: 'Refeição', sugestao: 'Refeição' },
+  { cod: 'escola', label: 'Escola', sugestao: 'Saída para a escola' },
+  { cod: 'banho', label: 'Banho', sugestao: 'Banho' },
+  { cod: 'lazer', label: 'Lazer ou atividade', sugestao: 'Atividade de lazer' },
+  { cod: 'dormir', label: 'Rotina de dormir', sugestao: 'Rotina de dormir' },
+  { cod: 'chamada_final', label: 'Chamada final do turno', sugestao: 'Chamada final do turno' },
+  { cod: 'outro', label: 'Outra conferência', sugestao: '' },
+];
+
 @Injectable()
 export class ChecksService {
   constructor(
@@ -60,7 +82,39 @@ export class ChecksService {
     return OPCOES[kind] ?? PADRAO;
   }
 
+  /**
+   * O vocabulário da chamada, para a tela não inventar nenhum dos dois lados:
+   * nem o tipo (enum do banco), nem as opções de marcação por acolhido.
+   */
+  tipos() {
+    return {
+      tipos: TIPOS_DE_CHAMADA.map((t) => ({ ...t, opcoes: this.opcoes(t.cod) })),
+      aviso: 'A chamada confere UMA pessoa por vez. Não existe marcar todos de uma vez: '
+        + 'a conferência coletiva é justamente o que impede que alguém passe despercebido.',
+    };
+  }
+
   async open(user: AuthenticatedUser, input: { houseId: string; kind: string; titulo: string; referenceAt?: string }) {
+    /*
+     * O tipo é conferido AQUI, antes do banco.
+     *
+     * `p_kind::check_type` com um valor fora do enum devolve um erro de
+     * conversão do PostgreSQL — que chegaria à educadora como "invalid input
+     * value for enum check_type". A recusa precisa ser uma frase, e precisa
+     * dizer o que fazer.
+     */
+    const tipo = TIPOS_DE_CHAMADA.find((t) => t.cod === input?.kind);
+    if (!tipo) {
+      throw new BadRequestException(
+        `Escolha o tipo da chamada: ${TIPOS_DE_CHAMADA.map((t) => t.label).join('; ')}.`);
+    }
+    const titulo = (input.titulo ?? '').trim() || tipo.sugestao;
+    if (titulo.length < 3) {
+      throw new BadRequestException(
+        'Dê um nome à chamada — é o que a próxima pessoa lê na lista do dia.');
+    }
+    input = { ...input, titulo };
+
     const r = await this.db.asUser(user.id, async (c) => {
       const { rows: [row] } = await c.query(
         `SELECT * FROM app_open_check($1,$2,$3, coalesce($4::timestamptz, now()))`,

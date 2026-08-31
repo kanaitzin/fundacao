@@ -2,7 +2,7 @@ import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundEx
 import { DatabaseService } from '../../kernel/database/database.service';
 import { AuditService } from '../../kernel/audit/audit.service';
 import { EventBus } from '../../kernel/events/event-bus.service';
-import { AuthenticatedUser, EscalationRequest } from '../../kernel/contracts';
+import { AuthenticatedUser, DocumentClosed, EscalationRequest } from '../../kernel/contracts';
 import { hojeNaInstituicao, dataDoPlantao, janelaDeConsulta } from '../../kernel/common/tempo';
 import { SECOES_ATA, CLASSIFICACOES_EPISODIO } from './ata-secoes';
 
@@ -424,6 +424,19 @@ export class ShiftsService {
       await this.bus.publish('escalation.requested', pedido, { actorId: user.id, houseId: casa });
     }
 
+    /*
+     * A CÓPIA DOCUMENTAL (§16.2): fechou, entra na fila do arquivo.
+     *
+     * Publicado DEPOIS do fechamento e por evento, não por chamada: este
+     * módulo não conhece o `archive`, e a ATA precisa fechar mesmo que o
+     * Drive esteja fora do ar. A fila tem retentativa; o documento vale no
+     * sistema desde já.
+     */
+    const copia: DocumentClosed = {
+      categoria: 'ata', entidade: 'ata', entityId: ataId, houseId: casa,
+    };
+    await this.bus.publish('document.closed', copia, { actorId: user.id, houseId: casa });
+
     return {
       status: r.out_status,
       assinaturasFaltantes: faltam,
@@ -668,6 +681,13 @@ export class ShiftsService {
         entity: 'general_night_ata', entityId: id, detail: { casas: abertas },
       });
     }
+    // A Geral Noturna é institucional: vai para a raiz sem casa, e é por isso
+    // que `houseId` fica nulo — o caminho no Drive diz INSTITUCIONAL.
+    const copia: DocumentClosed = {
+      categoria: 'ata', entidade: 'general_night_ata', entityId: id, houseId: null,
+    };
+    await this.bus.publish('document.closed', copia, { actorId: user.id });
+
     return {
       status: r.out_status,
       confirmadas: Number(r.out_confirmed), total: Number(r.out_total),

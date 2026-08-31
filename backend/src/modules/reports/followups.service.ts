@@ -5,7 +5,7 @@ import {
 import { DatabaseService } from '../../kernel/database/database.service';
 import { AuditService } from '../../kernel/audit/audit.service';
 import { EventBus } from '../../kernel/events/event-bus.service';
-import { AuthenticatedUser, EscalationRequest } from '../../kernel/contracts';
+import { AuthenticatedUser, DocumentClosed, EscalationRequest } from '../../kernel/contracts';
 
 /**
  * ACOMPANHAMENTOS SEMANAIS E MENSAIS (§14.1–§14.4).
@@ -262,6 +262,25 @@ export class FollowupsService {
       action: 'followup.approve', actorId: user.id, institutionId: user.institutionId,
       entity: 'followup', entityId: id, detail: { versao: r.versao },
     });
+    /*
+     * Aprovado é fechado: entra na fila do arquivo (§16.2), com a VERSÃO no
+     * nome. Uma correção depois vira V2 e nasce como cópia própria, ao lado —
+     * o arquivo guarda as duas, e é assim que se sabe o que foi entregue e o
+     * que foi corrigido depois.
+     */
+    // `app_approve_followup` devolve só (aprovado, versao); a casa vem daqui,
+    // sob a mesma RLS que já deixou aprovar.
+    const casa = await this.db.asUser(user.id, async (c) => {
+      const { rows: [f] } = await c.query(`SELECT house_id FROM followup WHERE id = $1`, [id]);
+      return f?.house_id ?? null;
+    });
+    const copia: DocumentClosed = {
+      categoria: 'acompanhamento', entidade: 'followup', entityId: id,
+      houseId: casa, restrita: true,
+      versao: Number(r.versao) > 1 ? `V${r.versao}_ADENDO` : 'V1',
+    };
+    await this.bus.publish('document.closed', copia, { actorId: user.id, houseId: casa });
+
     return {
       aprovado: true, versao: r.versao,
       aviso: 'Aprovado. A partir daqui é retrato daquele momento: corrigir cria uma nova versão, sem apagar esta.',

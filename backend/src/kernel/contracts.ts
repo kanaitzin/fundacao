@@ -104,6 +104,35 @@ export interface DomainEvent<T = Record<string, unknown>> {
  *
  * Publique com: bus.publish('escalation.requested', payload, { houseId }).
  */
+/**
+ * DOCUMENTO FECHADO — o gatilho da cópia documental (§16).
+ *
+ * Publicado por quem fecha: a ATA da casa, a ATA Geral Noturna, a ocorrência
+ * validada, o acompanhamento entregue. O módulo `archive` escuta e enfileira.
+ *
+ * Por que evento, e não chamada direta: `shifts` não pode importar `archive`
+ * (partições isoladas, regra 5), e o arquivo é uma CÓPIA — se a partição for
+ * removida, fechar a ATA continua funcionando, o evento apenas deixa de ter
+ * ouvinte. O contrário — a ATA não fechar porque o Drive está fora do ar — é
+ * o desenho errado: o documento vale no sistema, a cópia é conveniência.
+ *
+ * Carrega IDs e categoria. Nunca o conteúdo (§20).
+ */
+export interface DocumentClosed extends Record<string, unknown> {
+  /** Categoria do acervo: 'ata', 'ocorrencia', 'acompanhamento'… */
+  categoria: string;
+  /** Módulo de origem: 'ata', 'general_night_ata', 'incident', 'followup'. */
+  entidade: string;
+  entityId: string;
+  houseId?: string | null;
+  /** Documento de área restrita vai para outra raiz no Drive (§16.5). */
+  restrita?: boolean;
+  /** Quando o documento fechou — decide a pasta ano/mês. */
+  quando?: string;
+  /** V1, V2_ADENDO… */
+  versao?: string;
+}
+
 export interface EscalationRequest extends Record<string, unknown> {
   /** Quem deve ser avisado: 'equipe' | 'lider' | 'tecnica_coordenacao' | 'enfermagem'. */
   level: string;

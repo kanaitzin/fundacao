@@ -345,9 +345,24 @@ describe('Fase 6 — acompanhamentos, relatórios, aprovações e arquivo', () =
   });
 
   it('o envio percorre os estados e termina verificado (§16.4)', async () => {
-    const res = await request(http).post('/api/v1/archive/process')
-      .set(auth(tokens.coord)).send({ limite: 5 });
-    expect(res.status).toBe(201);
+    /*
+     * Processa até ESTE item sair da fila, em vez de mandar um lote fixo.
+     *
+     * Enquanto nada enfileirava sozinho, a fila continha só o que este teste
+     * pusera nela e `limite: 5` bastava. Desde que fechar ATA, ocorrência e
+     * acompanhamento passou a gerar cópia documental, a fila tem a vida da
+     * instituição dentro — e um lote fixo processava os outros primeiro,
+     * deixando o item do teste "aguardando". O teste afirmava sobre o tamanho
+     * da fila sem querer.
+     */
+    let res: any;
+    for (let i = 0; i < 12; i++) {
+      res = await request(http).post('/api/v1/archive/process')
+        .set(auth(tokens.coord)).send({ limite: 10 });
+      expect(res.status).toBe(201);
+      const eu = await request(http).get(`/api/v1/archive/${arquivados[0]}`).set(auth(tokens.coord));
+      if (eu.body.situacao === 'verificado') break;
+    }
     expect(res.body.itens.every((i: any) => i.situacao === 'verificado')).toBe(true);
 
     const item = await request(http).get(`/api/v1/archive/${arquivados[0]}`).set(auth(tokens.coord));
@@ -365,11 +380,16 @@ describe('Fase 6 — acompanhamentos, relatórios, aprovações e arquivo', () =
         .send({ houseId: AI3, categoria: 'ocorrencia', entidade: 'incident', entityId: id });
       arquivados.push(item.body.id);
 
-      for (let i = 0; i < 3; i++) {
-        await request(http).post('/api/v1/archive/process').set(auth(tokens.coord)).send({ limite: 1 });
+      // Mesmo motivo do caso anterior: processa lotes até ESTE item esgotar
+      // as três tentativas, e não três lotes de um item qualquer.
+      let depois: any;
+      for (let i = 0; i < 15; i++) {
+        await request(http).post('/api/v1/archive/process').set(auth(tokens.coord)).send({ limite: 10 });
+        depois = await request(http).get(`/api/v1/archive/${item.body.id}`).set(auth(tokens.coord));
+        // O item volta a 'falhou' a CADA tentativa; o que interessa é ele ter
+        // esgotado as três — é aí que a falha vira aviso para gente.
+        if (Number(depois.body.tentativas) >= 3) break;
       }
-
-      const depois = await request(http).get(`/api/v1/archive/${item.body.id}`).set(auth(tokens.coord));
       expect(depois.body.situacao).toBe('falhou');
       expect(depois.body.tentativas).toBe(3);
       expect(depois.body.ultimoErro).toMatch(/indisponível/i);

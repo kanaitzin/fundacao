@@ -5,7 +5,7 @@ import { createHash } from 'node:crypto';
 import { DatabaseService } from '../../kernel/database/database.service';
 import { AuditService } from '../../kernel/audit/audit.service';
 import { EventBus } from '../../kernel/events/event-bus.service';
-import { AuthenticatedUser, EscalationRequest } from '../../kernel/contracts';
+import { DocumentClosed, DomainEvent, AuthenticatedUser, EscalationRequest } from '../../kernel/contracts';
 import { DriveGateway } from './drive.gateway';
 import { dataNaInstituicao } from '../../kernel/common/tempo';
 
@@ -28,7 +28,56 @@ export class ArchiveService {
     @Inject(AuditService) private readonly audit: AuditService,
     @Inject(EventBus) private readonly bus: EventBus,
     @Inject(DriveGateway) private readonly drive: DriveGateway,
-  ) {}
+  ) {
+    /*
+     * O LAÇO QUE FALTAVA.
+     *
+     * Até 31/08/2026 NADA enfileirava: a única porta era `POST /archive`, que
+     * nenhuma tela chamava. A fila do arquivo ficava permanentemente vazia, a
+     * reconciliação dizia "nada pendente" — e dizia a verdade sobre a fila e
+     * uma mentira sobre a instituição — e o protótipo ainda avisava, ao fechar
+     * a ATA, que "a cópia documental entrou na fila do arquivo". Não entrava.
+     *
+     * Agora quem fecha um documento publica `document.closed`, e é aqui que a
+     * cópia nasce. Um ouvinte que falha não derruba quem publicou: fechar a
+     * ATA é o ato que importa, e a cópia tem fila com retentativa.
+     */
+    this.bus.on('document.closed', (e) => this.onDocumentoFechado(e));
+  }
+
+  /**
+   * Reage a `document.closed`. Roda como QUEM FECHOU: a permissão de arquivar
+   * é conferida no banco, com o cargo de quem assinou o documento — o mesmo
+   * caminho de uma chamada pela tela, e não uma porta de serviço sem dono.
+   */
+  private async onDocumentoFechado(e: DomainEvent<DocumentClosed>): Promise<void> {
+    const d = e.payload;
+    const actorId = e.actorId ?? null;
+    if (!actorId || !d?.categoria || !d?.entidade || !d?.entityId) return;
+
+    const quando = d.quando ? new Date(d.quando) : (e.at ?? new Date());
+    const versao = d.versao ?? 'V1';
+    const filename = this.nomeSeguro(d.categoria, d.entityId, quando, versao);
+    const casa = d.houseId ?? e.houseId ?? null;
+
+    const r = await this.db.asUser(actorId, async (c) => {
+      const { rows: [row] } = await c.query(
+        `SELECT * FROM app_archive_enqueue($1,$2,$3,$4,$5,$6,$7,$8)`,
+        [casa, d.categoria, d.entidade, d.entityId, filename, versao,
+         d.restrita ?? false, quando.toISOString()]);
+      return row;
+    });
+
+    // Já existia é o caso NORMAL de reprocessamento — fechar de novo depois de
+    // uma reabertura não duplica a cópia. Não é evento de auditoria.
+    if (!r?.ja_existia) {
+      await this.audit.log({
+        action: 'archive.enqueue.auto', actorId, houseId: casa,
+        entity: 'archive_item', entityId: r.item_id,
+        detail: { categoria: d.categoria, origem: d.entidade, versao },
+      });
+    }
+  }
 
   /**
    * Nome de arquivo sem pessoa (§3.3, §16.3).

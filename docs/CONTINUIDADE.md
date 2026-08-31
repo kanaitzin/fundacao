@@ -395,11 +395,12 @@ transformá-lo em teste.
    documentadas e `documentacao.spec.ts` não deixa a próxima escapar
 3. ~~O Arquivo das ATAS~~ — feito em 31/08 (§8.6)
 4. ~~Saída, acervo e retorno~~ — feito em 31/08 (§8.7)
-5. Anexar documento ao arquivo (`POST /archive`) e abrir a chamada do turno
-   (`POST /checks`) — os dois seguintes do grupo 1
-6. Conversar com o Marcelo sobre o resto do **grupo 1 do `docs/o-que-falta.md`**
-7. Aplicar o retorno do Marcelo por cargo
-8. Configurar SMTP institucional na implantação (`MailGateway` já está pronto)
+5. ~~O laço do arquivo e a abertura da chamada~~ — feito em 31/08 (§8.8)
+6. Aditamento e reabertura da ATA, e a comunicação externa da ocorrência — os
+   dois seguintes do grupo 1
+7. Conversar com o Marcelo sobre o resto do **grupo 1 do `docs/o-que-falta.md`**
+8. Aplicar o retorno do Marcelo por cargo
+9. Configurar SMTP institucional na implantação (`MailGateway` já está pronto)
 
 ### 8.6 O Arquivo das ATAS — 31/08/2026
 
@@ -484,7 +485,48 @@ estado das outras suítes), e a desliga de novo no `afterAll` — sem isso, cada
 rodada acrescentaria um nome à Casa 03 e a casa cresceria sozinha. A admissão
 precisou responder à regra de lotação, que é o que a coordenação faria.
 
-### 8.8 Ensaio como usuário — 31/08/2026, os nove cargos
+### 8.8 O laço do arquivo e a abertura da chamada — 31/08/2026
+
+**O laço do arquivo (§16.2).** Nada enfileirava cópia documental. A única porta
+era `POST /archive`, que nenhuma tela chamava: a fila ficava permanentemente
+vazia, `GET /archive/reconcile` respondia "nada pendente: tudo o que fechou
+está arquivado" — verdade sobre a fila, mentira sobre a instituição — e o
+protótipo ainda avisava, ao fechar a ATA, que a cópia documental tinha entrado
+na fila. Não tinha. Módulo inteiro construído, testado, com falha e
+retentativa, e sem nada chegando nele.
+
+O laço agora fecha por EVENTO, e não por chamada: quem fecha publica
+`document.closed` (contrato novo no kernel) e o `archive` escuta. `shifts` não
+importa `archive` (regra 5), e a ATA precisa fechar mesmo com o Drive fora do
+ar — a cópia tem fila com retentativa, o documento vale no sistema desde já.
+Publicam hoje: ATA da casa, ATA Geral Noturna, ocorrência FECHADA (reabrir não
+arquiva: cópia de meio de caminho circula como se fosse a final) e
+acompanhamento aprovado, com a versão no nome. O ouvinte roda como QUEM
+FECHOU — a permissão de arquivar é conferida no banco com o cargo de quem
+assinou, e não por uma porta de serviço sem dono. Suíte
+`test/arquivo-laco.e2e.spec.ts`, 4 testes.
+
+**Abrir a chamada do turno (§10).** `POST /checks` não tinha porta: a tela
+dizia "nenhuma chamada aberta hoje" para sempre. Entrou `GET /checks/kinds`
+(palavra fixa antes do `:id`) servindo os oito tipos do enum `check_type` com
+as opções de cada um, e o botão "Abrir uma chamada". O tipo vem do servidor
+porque uma tela que escrevesse "jantar" descobriria o erro na casa, às sete da
+noite, com a chamada aberta pela metade; o nome vem preenchido pela sugestão do
+tipo e continua editável. O serviço passou a recusar tipo inválido com uma
+frase, em vez de deixar o PostgreSQL responder "invalid input value for enum".
+
+**Um defeito de honestidade do protótipo, corrigido junto:** o `mock.ts` tinha
+uma chamada semeada com tipo `presenca` — que não existe no enum — e opções
+(`comeu_pouco`, `ausente_sem_autorizacao`) que o servidor não conhece. O
+protótipo mostrava um vocabulário que o sistema recusaria.
+
+**Dois testes precisaram mudar, e a mudança é o próprio efeito:** `relatorios`
+e `piloto` processavam a fila com lote fixo, porque a fila só continha o que
+eles punham nela. Agora ela tem a vida da instituição dentro, e um lote fixo
+processava outro documento primeiro. Passaram a empurrar lotes até o item DELES
+sair — deixaram de afirmar sobre o tamanho da fila sem querer.
+
+### 8.9 Ensaio como usuário — 31/08/2026, os nove cargos
 
 Três roteiros de navegador contra o protótipo de arquivo único, com todos os
 cargos: `passeio.mjs` (o que cada um alcança, tela por tela), `acoes.mjs` e
@@ -706,13 +748,14 @@ responder e não me peça para reexplicar o que está lá.
 
 === ESTADO ATUAL ===
 
-Fases 0 a 23 concluídas. 253 testes passando em 21 suítes, sem falha conhecida
-— a suíte rodou cinco vezes seguidas e mais duas às 22h32 de Porto Alegre, com
+Fases 0 a 24 concluídas. 257 testes passando em 22 suítes, sem falha conhecida
+— a suíte rodou quatro vezes seguidas e mais duas às 22h32 de Porto Alegre, com
 o relógio do banco movido junto. Backend NestJS + PostgreSQL 16 com RLS, 16
 partições. Frontend React PWA com 21 telas, todas falando as rotas reais do
 servidor. A ATA agora tem arquivo: dia, semana ou mês de calendário, com a ATA
 Geral Noturna recortada na linha de cada casa. O ciclo do acolhimento fecha:
-cadastro, saída com motivo, acervo histórico e retorno como episódio novo. Relatórios saem em Word com timbre, com a parte factual
+cadastro, saída com motivo, acervo histórico e retorno como episódio novo. E o
+arquivo documental deixou de ser um módulo sem entrada: fechou, entra na fila. Relatórios saem em Word com timbre, com a parte factual
 escrita pelo sistema. Convite de primeiro acesso por e-mail, uso único, 24h.
 
 Em aberto, na ordem: `docs/o-que-falta.md` — 69 rotas que existem no servidor e

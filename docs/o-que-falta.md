@@ -1,12 +1,20 @@
 # O que falta da ideia original
 
 Levantamento de 31/08/2026, feito por leitura cruzada entre as rotas que o
-servidor serve e as chamadas que as telas fazem. Sobram **66 rotas que existem,
+servidor serve e as chamadas que as telas fazem. Sobram **64 rotas que existem,
 têm regra, têm RLS e auditoria — e não têm porta**.
 
-*Atualizado no mesmo dia: saíram desta lista o **Arquivo das ATAS** (ver a
-decisão 2, no fim) e a **saída, o acervo e o retorno** — o ciclo do acolhimento
-agora fecha pela tela, com `GET /people/archive` como a porta que faltava.*
+*Atualizado no mesmo dia: saíram desta lista o **Arquivo das ATAS** (decisão 2,
+no fim); a **saída, o acervo e o retorno**, com `GET /people/archive` como a
+porta que faltava; e a **abertura da chamada do turno**.*
+
+*E uma correção ao próprio levantamento: eu havia escrito que faltava "anexar
+documento ao arquivo". `POST /archive` não recebe arquivo — ele enfileira a
+CÓPIA DOCUMENTAL de algo que já existe no sistema. O que faltava era pior e
+mais silencioso: **nada enfileirava**. A fila do arquivo estava permanentemente
+vazia, a reconciliação respondia "nada pendente" e o protótipo avisava, ao
+fechar a ATA, que a cópia tinha entrado na fila. Não tinha. O laço foi fechado —
+ver §8.9 da CONTINUIDADE.*
 
 Isso não é lista de bugs. É o mapa do que já está construído por baixo e ainda
 não tem por onde ser usado. Serve para decidir com o Marcelo o que entra antes
@@ -26,8 +34,7 @@ WhatsApp é proibido (§2).
 | O que é | Rotas | Por que dói agora |
 |---|---|---|
 | **Corrigir o cadastro depois da admissão** | `PATCH /people/:id`, `PATCH /people/:id/judicial` | Hoje só dá para cadastrar. Nome errado, data de nascimento errada, decisão judicial que mudou — nada disso tem onde ser corrigido, e o certo é corrigir com histórico, não recadastrar. |
-| **Anexar documento ao arquivo** | `POST /archive`, `GET /people/:id/documents/:docId` | A tela do Arquivo documental mostra a fila e o que já entrou; **não tem como colocar nada lá**. |
-| **Abrir a chamada do turno** | `POST /checks` | A chamada só existe se alguém a criar. No protótipo elas vêm prontas; na casa, ninguém as cria. |
+| **Baixar um documento do acolhido** | `GET /people/:id/documents/:docId` | O perfil lista os documentos e não abre nenhum. |
 | **Comunicação externa da ocorrência** | `GET/POST /incidents/communications` + `submit`, `approve`, `delivery` | O caminho de comunicar Conselho Tutelar / MP / Judiciário existe inteiro no servidor, com aprovação e registro de entrega, e nunca aparece. Lembrando: envio automático é proibido (§2) — o que falta é a **tela de redigir, submeter e aprovar**, com pessoa decidindo em cada passo. |
 | **Anexos e contenção na ocorrência** | `POST /incidents/:id/attachments`, `/protected`, `/restraint`, `attachments/:id/open` | Foto do machucado, registro de contenção física, marcação de conteúdo protegido. É exatamente o material sensível que hoje sai da casa por foto de celular. |
 | **Aditamento e reabertura da ATA** | `PATCH /shifts/ata/:id`, `/reopen`, `/amend`, `GET /addenda` | ATA fechada com pendência não tem como receber o complemento. Regra §6: nada se apaga, tudo entra ao lado — o servidor já faz; a tela não oferece. O Arquivo já **anuncia** na capa quantos aditamentos a ATA tem; abrir e escrever um ainda não existe. |

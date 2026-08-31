@@ -322,12 +322,61 @@ let LINHA: Ev[] = [
     actions: [{ command: 'activity.record', label: 'Registrar' }] },
 ];
 
-const OPCOES_CHAMADA = [
-  { code: 'normal', label: 'Normal', excecao: false },
-  { code: 'comeu_pouco', label: 'Comeu pouco', excecao: true },
-  { code: 'recusou', label: 'Recusou', excecao: true },
-  { code: 'ausente_autorizado', label: 'Ausente — autorizado', excecao: true },
-  { code: 'ausente_sem_autorizacao', label: 'Ausente — sem autorização', excecao: true },
+/*
+ * As OPÇÕES por tipo de chamada, nos códigos do servidor (`checks.service`).
+ *
+ * A lista antiga tinha "comeu_pouco" e "ausente_sem_autorizacao", que o
+ * servidor não conhece — e o `tipo` de uma das chamadas semeadas era
+ * "presenca", fora do enum `check_type`. O protótipo mostrava um vocabulário
+ * que o sistema recusaria.
+ */
+const OPCOES_POR_TIPO: Record<string, { code: string; label: string; excecao: boolean }[]> = {
+  alimentacao: [
+    { code: 'normal', label: 'Normal', excecao: false },
+    { code: 'parcial', label: 'Parcial', excecao: true },
+    { code: 'recusou', label: 'Recusou', excecao: true },
+    { code: 'ausente_externa', label: 'Ausente / atividade externa', excecao: true },
+    { code: 'dieta_adaptada', label: 'Dieta adaptada', excecao: false },
+    { code: 'desconforto', label: 'Desconforto', excecao: true },
+    { code: 'nao_aplicavel', label: 'Não aplicável', excecao: false },
+    { code: 'outro', label: 'Outro', excecao: true },
+  ],
+  escola: [
+    { code: 'compareceu', label: 'Compareceu', excecao: false },
+    { code: 'atraso', label: 'Atraso', excecao: true },
+    { code: 'ausencia_saude', label: 'Ausência por saúde', excecao: true },
+    { code: 'transporte', label: 'Transporte', excecao: true },
+    { code: 'cancelamento', label: 'Cancelamento', excecao: true },
+    { code: 'decisao_institucional', label: 'Decisão institucional', excecao: true },
+    { code: 'outro', label: 'Outro', excecao: true },
+  ],
+  lazer: [
+    { code: 'participou', label: 'Participou', excecao: false },
+    { code: 'preferiu_nao', label: 'Preferiu não participar', excecao: false },
+    { code: 'outra_atividade', label: 'Estava em outra atividade', excecao: false },
+    { code: 'doenca', label: 'Doença', excecao: true },
+    { code: 'restricao_saude', label: 'Restrição de saúde', excecao: true },
+    { code: 'transporte_indisponivel', label: 'Transporte indisponível', excecao: true },
+    { code: 'decisao_institucional', label: 'Decisão institucional', excecao: true },
+    { code: 'outro', label: 'Outro', excecao: true },
+  ],
+  chamada_final: [
+    { code: 'sem_alteracao', label: 'Sem alteração relevante', excecao: false },
+    { code: 'com_registro', label: 'Com registro no plantão', excecao: true },
+  ],
+};
+const opcoesDoTipo = (tipo: string) => OPCOES_POR_TIPO[tipo] ?? OPCOES_POR_TIPO.alimentacao;
+
+/** Os oito tipos do enum `check_type`, com o nome que a casa usa. */
+const TIPOS_DE_CHAMADA = [
+  { cod: 'acordar', label: 'Acordar', sugestao: 'Acordar' },
+  { cod: 'alimentacao', label: 'Refeição', sugestao: 'Refeição' },
+  { cod: 'escola', label: 'Escola', sugestao: 'Saída para a escola' },
+  { cod: 'banho', label: 'Banho', sugestao: 'Banho' },
+  { cod: 'lazer', label: 'Lazer ou atividade', sugestao: 'Atividade de lazer' },
+  { cod: 'dormir', label: 'Rotina de dormir', sugestao: 'Rotina de dormir' },
+  { cod: 'chamada_final', label: 'Chamada final do turno', sugestao: 'Chamada final do turno' },
+  { cod: 'outro', label: 'Outra conferência', sugestao: '' },
 ];
 
 interface Chamada {
@@ -339,8 +388,8 @@ let CHAMADAS: Chamada[] = [
     horario: emHoras(7, 30), resultados: Object.fromEntries(KIDS.map((k) => [k.id, { opcao: 'normal' }])) },
   { id: 'k2', tipo: 'alimentacao', titulo: 'Almoço', status: 'aberta', horario: emHoras(11, 30),
     resultados: { p02: { opcao: 'normal' }, p04: { opcao: 'normal' },
-                  p11: { opcao: 'comeu_pouco', nota: 'Comeu metade e disse que estava sem fome.' } } },
-  { id: 'k3', tipo: 'presenca', titulo: 'Janta', status: 'aberta', horario: emHoras(18, 30),
+                  p11: { opcao: 'parcial', nota: 'Comeu metade e disse que estava sem fome.' } } },
+  { id: 'k3', tipo: 'alimentacao', titulo: 'Janta', status: 'aberta', horario: emHoras(18, 30),
     resultados: {} },
 ];
 
@@ -879,6 +928,33 @@ let ARQUIVO: Arquivado[] = [
     arquivo: 'ocorrencia_2026-08-26_c31d0e12_V1.pdf', estado: 'falhou', restrito: false,
     tentativas: 3, erro: 'Drive indisponível', fechadoEm: emHoras(6, 30) },
 ];
+
+/**
+ * O LAÇO DO ARQUIVO no protótipo (§16.2): fechou, entra na fila.
+ *
+ * O protótipo já dizia, ao fechar a ATA, que "a cópia documental entrou na
+ * fila do arquivo" — e não entrava, nem aqui nem no servidor. Agora entra dos
+ * dois lados, e a tela do Arquivo mostra o que a demonstração acabou de gerar.
+ *
+ * Idempotente pela mesma chave do servidor: fechar de novo depois de reabrir
+ * não cria uma segunda cópia.
+ */
+function enfileirarCopia(categoria: string, entidade: string, entityId: string,
+                         restrito = false) {
+  const rotulo: Record<string, string> = {
+    ata: 'ATA', ocorrencia: 'Ocorrência', acompanhamento: 'Acompanhamento',
+  };
+  const dia = HOJE;
+  const arquivo = `${categoria}_${dia}_${entityId.slice(0, 8).padEnd(8, '0')}_V1.pdf`;
+  if (ARQUIVO.some((a) => a.arquivo === arquivo)) return;
+  const raiz = restrito ? 'RESTRITO' : 'ACOLHIMENTO';
+  ARQUIVO = [{
+    id: uid(), categoria: rotulo[categoria] ?? categoria,
+    caminho: `${raiz}/${CASA.code}/${dia.slice(0, 4)}/${dia.slice(5, 7)}/${categoria}`,
+    arquivo, estado: 'aguardando', restrito, tentativas: 0, erro: null,
+    fechadoEm: new Date().toISOString(),
+  }, ...ARQUIVO];
+}
 /** Documentos por acolhido, com versões. A V1 nunca some quando entra a V2. */
 const DOCUMENTOS = [
   { id: 'dc1', personId: 'p01', categoria: 'saude', titulo: 'Receita em vigência',
@@ -1425,11 +1501,30 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       esperados: todosKids().length, conferidos: Object.keys(k.resultados).length,
     }));
   }
+  /* Palavra fixa antes de `/checks/:id`: dois segmentos dos dois lados. */
+  if (rota === '/checks/kinds' && metodo === 'GET') {
+    return {
+      tipos: TIPOS_DE_CHAMADA.map((t) => ({ ...t, opcoes: opcoesDoTipo(t.cod) })),
+      aviso: 'A chamada confere UMA pessoa por vez. Não existe marcar todos de uma vez: '
+        + 'a conferência coletiva é justamente o que impede que alguém passe despercebido.',
+    };
+  }
+
   if (rota === '/checks' && metodo === 'POST') {
-    const nova: Chamada = { id: uid(), tipo: b.kind ?? 'presenca', titulo: b.titulo ?? 'Chamada',
+    const tipo = TIPOS_DE_CHAMADA.find((t) => t.cod === String(b.kind ?? ''));
+    if (!tipo) {
+      return new Recusa(400, 'Escolha o tipo da chamada: '
+        + TIPOS_DE_CHAMADA.map((t) => t.label).join('; ') + '.');
+    }
+    const titulo = String(b.titulo ?? '').trim() || tipo.sugestao;
+    if (titulo.length < 3) {
+      return new Recusa(400,
+        'Dê um nome à chamada — é o que a próxima pessoa lê na lista do dia.');
+    }
+    const nova: Chamada = { id: uid(), tipo: tipo.cod, titulo,
                             status: 'aberta', horario: new Date().toISOString(), resultados: {} };
     CHAMADAS = [...CHAMADAS, nova];
-    return { id: nova.id, esperados: todosKids().length, opcoes: OPCOES_CHAMADA };
+    return { id: nova.id, esperados: todosKids().length, opcoes: opcoesDoTipo(tipo.cod) };
   }
   if (seg[0] === 'checks' && seg.length === 2) {
     const k = CHAMADAS.find((x) => x.id === seg[1])!;
@@ -1448,7 +1543,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       id: k.id, tipo: k.tipo, titulo: k.titulo, status: k.status,
       esperados: linhas.length, conferidos, faltam: linhas.length - conferidos,
       quemFalta: linhas.filter((l) => !l.resultado).map((l) => l.nome),
-      linhas, opcoes: OPCOES_CHAMADA,
+      linhas, opcoes: opcoesDoTipo(k.tipo),
     };
   }
   if (seg[0] === 'checks' && seg[2] === 'mark') {
@@ -2365,6 +2460,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         + 'medicamento, contenção ou violência, o fechamento precisa dizer a que se chegou.');
     }
     o.status = 'fechada';
+    enfileirarCopia('ocorrencia', 'incident', o.id);
     return { status: 'fechada',
       aviso: 'Fechada após validação técnica. O histórico permanece consultável e pode ser reaberto.' };
   }
@@ -2399,6 +2495,9 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     a.status = 'fechada';
     a.pendencias = pendencias || null;
     a.fechadaEm = new Date().toISOString();
+    // Fechou, entra na fila do arquivo — a mesma coisa que o servidor faz por
+    // evento. O aviso abaixo prometia isso desde sempre; agora é verdade.
+    enfileirarCopia('ata', 'ata', a.id);
     ARQUIVO = [{ id: uid(), categoria: 'ATA', caminho: `ACOLHIMENTO/${CASA.code}/2026/08/ata`,
       arquivo: `ata_${HOJE}_${uid()}_V${a.versao}.pdf`, estado: 'aguardando', restrito: false,
       tentativas: 0, erro: null, fechadoEm: new Date().toISOString() }, ...ARQUIVO];
@@ -2436,6 +2535,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     }
     ATA_GERAL = { ...ATA_GERAL, status: 'fechada', pendencias: pendencias || null,
       assinadaEm: new Date().toISOString() };
+    enfileirarCopia('ata', 'general_night_ata', ATA_GERAL.id);
     return { status: 'fechada', aviso: 'ATA Geral Noturna assinada e fechada por você. Cada '
       + 'educador assinou apenas a própria passagem — nenhuma assinatura foi presumida.' };
   }

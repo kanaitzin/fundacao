@@ -2,7 +2,7 @@ import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundEx
 import { DatabaseService } from '../../kernel/database/database.service';
 import { AuditService } from '../../kernel/audit/audit.service';
 import { EventBus } from '../../kernel/events/event-bus.service';
-import { AuthenticatedUser, EscalationRequest } from '../../kernel/contracts';
+import { AuthenticatedUser, DocumentClosed, EscalationRequest } from '../../kernel/contracts';
 import { StatementsService } from '../statements';
 
 /** Situações que abrem fluxo especial (§13.1). */
@@ -396,6 +396,20 @@ export class IncidentsService {
       decisao_invalida: () => new BadRequestException('Decisão deve ser "validar" ou "reabrir".'),
       ocorrencia_inexistente: () => new NotFoundException('Ocorrência não encontrada.'),
     });
+    /*
+     * Só a ocorrência FECHADA vira cópia documental. Reabrir não arquiva: o
+     * documento ainda está sendo escrito, e uma cópia de meio de caminho é
+     * pior do que cópia nenhuma — ela circula como se fosse a versão final.
+     * O segundo fechamento reenfileira, e a fila é idempotente por versão.
+     */
+    if (r.out_status === 'fechada') {
+      const casa = await this.casa(user, id);
+      const copia: DocumentClosed = {
+        categoria: 'ocorrencia', entidade: 'incident', entityId: id, houseId: casa,
+      };
+      await this.bus.publish('document.closed', copia, { actorId: user.id, houseId: casa });
+    }
+
     return {
       status: r.out_status,
       aviso: r.out_status === 'fechada'

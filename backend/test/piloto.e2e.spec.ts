@@ -372,14 +372,27 @@ describe('Piloto da Casa 03 — ensaio geral do dia', () => {
       });
       lixo.archive.push(item.body.id);
 
-      await request(http).post('/api/v1/archive/process').set(auth(t.coord)).send({ limite: 1 });
-      const falhou = await request(http).get(`/api/v1/archive/${item.body.id}`).set(auth(t.coord));
+      /*
+       * Processa lotes até ESTE item ser tocado. A fila deixou de ser só o que
+       * o teste põe nela: desde que fechar ATA, ocorrência e acompanhamento
+       * gera cópia documental, ela tem a vida da instituição dentro, e um lote
+       * de um item processava outro documento qualquer.
+       */
+      const empurrar = async (alvo: string) => {
+        for (let i = 0; i < 15; i++) {
+          await request(http).post('/api/v1/archive/process').set(auth(t.coord)).send({ limite: 10 });
+          const r = await request(http).get(`/api/v1/archive/${item.body.id}`).set(auth(t.coord));
+          if (r.body.situacao === alvo) return r;
+        }
+        return request(http).get(`/api/v1/archive/${item.body.id}`).set(auth(t.coord));
+      };
+
+      const falhou = await empurrar('falhou');
       expect(falhou.body.situacao).toBe('falhou');
 
       // A rede volta: a retentativa é idempotente e termina verificada.
       delete process.env.ARQUIVO_MODO;
-      await request(http).post('/api/v1/archive/process').set(auth(t.coord)).send({ limite: 1 });
-      const ok = await request(http).get(`/api/v1/archive/${item.body.id}`).set(auth(t.coord));
+      const ok = await empurrar('verificado');
       expect(ok.body.situacao).toBe('verificado');
       // Uma única linha para o documento: a falha não criou um segundo arquivo.
       const { rows } = await admin.query(

@@ -20,6 +20,13 @@ export class ChecksController {
     return this.checks.open(user, body);
   }
 
+  /**
+   * O vocabulário da chamada — tipos e opções. Palavra fixa antes de
+   * `@Get(':id')`, que exige uuid.
+   */
+  @Get('kinds')
+  kinds() { return this.checks.tipos(); }
+
   @Get(':id')
   get(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.checks.get(user, id);
