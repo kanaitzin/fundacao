@@ -98,13 +98,17 @@ function chamadasDoFrontend(): Chamada[] {
     // rotas erradas viravam uma só encontrada. A janela também para na próxima
     // chamada `api(`, para não herdar o método dela.
     for (const m of src.matchAll(/api(?:<[^>]*>)?\(\s*[`'"]([^`'"]+)[`'"](?=([\s\S]{0,300}))/g)) {
-      const bruto = m[1].split('?')[0];
+      // A ordem importa: o `${...}` vira `:x` ANTES de cortar a query string.
+      // Ao contrário, `/shifts/ata/${ata?.id}/close` era cortado no `?` do
+      // encadeamento opcional e virava `/shifts/ata/${ata` — uma rota que não
+      // existe em lugar nenhum, acusada por um teste que estava errado.
+      const bruto = m[1].replace(/\$\{[^}]*\}/g, ':x').split('?')[0];
       if (!bruto.startsWith('/')) continue;
       const janela = m[2].split(/\bapi[<(]/)[0].split(';')[0];
       const verbo = /method:\s*'(\w+)'/.exec(janela)?.[1]?.toUpperCase() ?? 'GET';
       out.push({
         verbo,
-        caminho: bruto.replace(/\$\{[^}]*\}/g, ':x'),
+        caminho: bruto,
         arquivo: arq.slice(arq.indexOf('frontend')),
       });
     }
@@ -157,6 +161,27 @@ describe('Contrato de rotas entre a tela e o servidor', () => {
       });
 
     expect(problemas).toEqual([]);
+  });
+
+  it('nenhuma rota entra no api() escondida dentro de uma variável', () => {
+    /*
+     * O corolário do cabeçalho deixou de ser conselho e virou verificação, no
+     * dia em que ele se provou sozinho: `api(rota, ...)`, com `rota` escolhida
+     * num ternário acima, escondia quatro rotas do conferidor —
+     * `/transfers/:id/accept` e `/decline` (aceitar ou recusar a mudança de
+     * casa de uma criança) e o fechamento das duas ATAs. Estavam certas; o
+     * ponto é que ninguém estava conferindo, e o teste passava dizendo que
+     * sim. Duas linhas explícitas custam menos que isso.
+     */
+    const suspeitas: string[] = [];
+    const alvos = arquivos(FRONT, (f) => (f.endsWith('.ts') || f.endsWith('.tsx')) && f !== 'mock.ts');
+    for (const arq of alvos) {
+      const src = readFileSync(arq, 'utf8');
+      for (const m of src.matchAll(/\bapi(?:<[^>]*>)?\(\s*([A-Za-z_$][\w$]*)\s*[,)]/g)) {
+        suspeitas.push(`${m[0].trim()} — rota em variável (${arq.slice(arq.indexOf('frontend'))})`);
+      }
+    }
+    expect(suspeitas).toEqual([]);
   });
 
   it('o servidor de mentira responde às mesmas rotas que a tela chama', () => {

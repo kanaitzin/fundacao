@@ -278,12 +278,17 @@ export function Transferencias({ houseId }: { houseId: string }) {
           onConfirmar={async (texto) => {
             // `decline`, não `refuse`; e as chaves do corpo são as do servidor:
             // o aceite guarda uma NOTA opcional, a recusa exige MOTIVO.
-            const rota = decidindo.modo === 'aceitar'
-              ? `/transfers/${decidindo.id}/accept` : `/transfers/${decidindo.id}/decline`;
-            const corpo = decidindo.modo === 'aceitar'
-              ? { nota: texto } : { motivo: texto };
-            const ok = await acao(() => api(rota, {
-              method: 'POST', body: JSON.stringify(corpo) }));
+            //
+            // As duas rotas vão ESCRITAS, e não escolhidas dentro de uma
+            // variável passada ao `api()`. Enquanto estavam numa variável, o
+            // teste de contrato não conseguia lê-las: aceitar e recusar uma
+            // transferência — as duas ações que movem uma criança de casa —
+            // eram justamente as que ninguém estava conferindo.
+            const ok = await acao(() => decidindo.modo === 'aceitar'
+              ? api(`/transfers/${decidindo.id}/accept`, {
+                  method: 'POST', body: JSON.stringify({ nota: texto }) })
+              : api(`/transfers/${decidindo.id}/decline`, {
+                  method: 'POST', body: JSON.stringify({ motivo: texto }) }));
             if (ok) setDecidindo(null);
           }} />
       )}

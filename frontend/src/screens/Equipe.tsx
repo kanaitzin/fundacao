@@ -102,7 +102,7 @@ export function Equipe() {
             <tbody>
               {membros.map((m) => (
                 <tr key={m.id} className={m.ativo ? '' : 'inativo'}>
-                  <td><b className="ff">{m.nome}</b>{m.proprio && <span className="pill c-mute">você</span>}</td>
+                  <td><b className="ff">{m.nome}</b>{m.proprio && <> <span className="pill c-mute">você</span></>}</td>
                   <td className="mono">{m.email}</td>
                   <td><span className={`pill ${TOM[m.cargo] ?? 'c-mute'}`}>{m.setor}</span></td>
                   <td>{m.transversal ? <span className="mutetxt">8 casas</span> : (m.casa ?? '—')}</td>

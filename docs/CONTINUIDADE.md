@@ -259,7 +259,7 @@ diz de onde o número parte quando o dia mostrado não é hoje.
 
 ## 7. Protótipo — estado atual
 
-`prototipo/rede-acolher-prototipo.html` — **457 KB, um arquivo só**. Abre com
+`prototipo/rede-acolher-prototipo.html` — **536 KB, um arquivo só**. Abre com
 dois cliques, sem servidor, sem banco, sem instalar nada.
 
 **Entrar:** `mbarbosa@paodospobres.com.br` · **Primeiro acesso:** abra o
@@ -391,10 +391,48 @@ transformá-lo em teste.
 
 ### 8.5 Próximos passos sugeridos
 1. ~~Decidir os dois itens de produto da §8.4~~ — feito em 31/08
-2. Aplicar o retorno do Marcelo por cargo (protótipo aprovado em 28/08)
-3. Trazer as fases 3–7 para o `der.md`
-3. Configurar SMTP institucional na implantação (`MailGateway` já está pronto)
-4. Trazer as fases 3–7 para o `der.md` — maior lacuna restante da documentação
+2. ~~Trazer as fases 3–7 para o `der.md`~~ — feito; as 82 tabelas estão
+   documentadas e `documentacao.spec.ts` não deixa a próxima escapar
+3. Conversar com o Marcelo sobre o **grupo 1 do `docs/o-que-falta.md`** — as 14
+   funções que existem no servidor, valem para o piloto e ainda não têm tela
+4. Aplicar o retorno do Marcelo por cargo
+5. Configurar SMTP institucional na implantação (`MailGateway` já está pronto)
+
+### 8.6 Ensaio como usuário — 31/08/2026, os nove cargos
+
+Três roteiros de navegador contra o protótipo de arquivo único, com todos os
+cargos: `passeio.mjs` (o que cada um alcança, tela por tela), `acoes.mjs` e
+`acoes2.mjs` (clicar tudo o que é clicável) e `relatos.mjs` (§12.2 ponta a
+ponta). Sem erro de console e sem erro de página em nenhum dos nove.
+
+**Defeitos encontrados e corrigidos nesta rodada:**
+
+* **A tela guardava resposta de outro alcance.** A equipe técnica abria uma
+  ocorrência, o cargo mudava, e a narrativa pessoal de uma colega — que o
+  educador não alcança — seguia na tela, com "todos os relatos deste fato" por
+  cima. O servidor havia recusado; a tela é que mostrava a resposta antiga. O
+  conteúdo passa a remontar quando muda o cargo ou a casa. **Era o defeito mais
+  grave da série: vazamento por cache de tela, não por permissão.**
+* **Quatro rotas escondidas do teste de contrato.** `api(rota, ...)`, com a rota
+  escolhida num ternário acima, tirava do conferidor justamente aceitar e
+  recusar transferência (a mudança de casa de uma criança) e o fechamento das
+  duas ATAs. O corolário do cabeçalho do teste virou verificação: agora falha
+  quem passar rota em variável.
+* **O próprio teste de contrato cortava a rota no `?`.** `/shifts/ata/${ata?.id}/close`
+  virava `/shifts/ata/${ata` — o encadeamento opcional era lido como query
+  string. A normalização do `${...}` passou a vir antes do corte.
+* **Nome de pessoa em caixa alta** no bloco de complemento — relatos, sínteses e
+  mensagens de transferência. Num caso de proteção o destaque é o que foi
+  escrito, não quem escreveu.
+* **"Carla Coordenadora (fictícia)você"** — falta de espaço antes da etiqueta.
+
+**Conferido e correto** (não são defeitos, foram verificados um a um): a cozinha
+cai direto nas restrições, sem barra de abas e sem a razão da restrição; a
+administração técnica não alcança acolhido nenhum; o Gestor Geral entra no cofre
+com reautenticação, como a regra 4 exige; o Líder Noturno Geral assina passagem
+fora da escala com o aviso de que não constava; o educador não vê a narrativa
+pessoal da colega, e a tela diz que não vê em vez de mostrar lista curta sem
+explicar.
 
 ---
 
@@ -581,14 +619,18 @@ responder e não me peça para reexplicar o que está lá.
 
 === ESTADO ATUAL ===
 
-Fases 0 a 20 concluídas. 235 testes passando em 19 suítes, sem falha
-conhecida. Backend NestJS + PostgreSQL 16 com RLS, 16 partições. Frontend React
-PWA com 19 telas. Relatórios saem em Word com timbre, com a parte factual
+Fases 0 a 21 concluídas. 237 testes passando em 19 suítes, sem falha conhecida
+— a suíte rodou duas vezes seguidas e uma terceira às 22h32 de Porto Alegre,
+com o relógio do banco movido junto. Backend NestJS + PostgreSQL 16 com RLS, 16
+partições. Frontend React PWA com 21 telas, todas falando as rotas reais do
+servidor. Relatórios saem em Word com timbre, com a parte factual
 escrita pelo sistema. Convite de primeiro acesso por e-mail, uso único, 24h.
 
-Em aberto, na ordem: o retorno do Marcelo por cargo; a devolução de
-acompanhamento com motivo e a busca da ATA Geral pela data (as duas decisões
-de produto abertas); e o SMTP institucional, só na implantação.
+Em aberto, na ordem: `docs/o-que-falta.md` — 69 rotas que existem no servidor e
+não têm tela, separadas entre o que vale para o piloto, o que espera e o que é
+de máquina; o retorno do Marcelo por cargo; três decisões de produto que não são
+minhas (devolver acompanhamento para correção, achar a ATA Geral Noturna por
+data, listar rascunho de prescrição); e o SMTP institucional, só na implantação.
 
 Leia a seção 10 do documento: ela tem a entrega completa e como retomar.
 

@@ -341,10 +341,14 @@ export function Ata({ houseId, papel }: { houseId: string; papel: string }) {
             // sem pendência. O servidor não tem um booleano à parte, porque a
             // frase escrita É o registro.
             const corpo = JSON.stringify({ pendencias: comPendencia ? motivoPendencia : null });
-            const rota = fechando === 'casa'
-              ? `/shifts/ata/${ata?.id}/close`
-              : `/shifts/general-ata/${geral?.id}/sign`;
-            const ok = await acao(() => api(rota, { method: 'POST', body: corpo }));
+            // Escritas por extenso, e não escolhidas numa variável: a rota
+            // montada some do teste de contrato, e fechar a ATA da casa e
+            // assinar a Geral Noturna são atos distintos, com destinatários
+            // distintos. Se uma delas mudar de nome no servidor, é aqui que
+            // precisa quebrar.
+            const ok = await acao(() => fechando === 'casa'
+              ? api(`/shifts/ata/${ata?.id}/close`, { method: 'POST', body: corpo })
+              : api(`/shifts/general-ata/${geral?.id}/sign`, { method: 'POST', body: corpo }));
             if (ok) setFechando(null);
           }} />
       )}
