@@ -24,26 +24,51 @@ import marca from '../assets/logo-marca.png';
  * aplicativo de verdade continua pedindo a senha (o passo 1 responde 404 e a
  * tela mostra o campo). Quem usa o caminho curto é o protótipo.
  */
+/**
+ * O PROTÓTIPO É PARA SER ABERTO, e não decifrado.
+ *
+ * A entrada de verdade tem dois passos, e o segundo é uma recusa útil: conta
+ * sem senha manda a pessoa ao link do convite, porque distribuir senha inicial
+ * para quarenta pessoas acabaria no WhatsApp. No protótipo, que não envia
+ * e-mail nenhum, essa recusa virava um beco: quem digitava o próprio e-mail
+ * lia "use o link do convite" e não tinha link.
+ *
+ * Aqui o e-mail já vem escrito e um clique entra. Os atalhos por cargo existem
+ * pelo mesmo motivo: a demonstração é entrar COMO cada função — o que a pessoa
+ * vê ao abrir o aplicativo é metade do que se está mostrando.
+ */
+const CONVIDADO = { nome: 'Marcelo Barbosa', email: 'mbarbosa@paodospobres.com.br' };
+
 const DEMO = [
   { label: 'Coordenação', email: 'coord.ai3@paodospobres.dev' },
   { label: 'Equipe técnica', email: 'tecnica.ai3@paodospobres.dev' },
   { label: 'Educador social', email: 'educador.ai3@paodospobres.dev' },
   { label: 'Líder Diurno', email: 'lider.ai3@paodospobres.dev' },
-  { label: 'Enfermagem', email: 'enfermagem@paodospobres.dev' },
   { label: 'Líder Noturno', email: 'lider.noturno@paodospobres.dev' },
+  { label: 'Enfermagem', email: 'enfermagem@paodospobres.dev' },
+  { label: 'Cozinha', email: 'cozinha@paodospobres.dev' },
+  { label: 'Administração técnica', email: 'admin@paodospobres.dev' },
   { label: 'Gestor Geral', email: 'gestor@paodospobres.dev' },
 ];
 const SENHA_DEMO = 'senha-dev-123';
-const demoDisponivel = import.meta.env.DEV;
+/*
+ * Antes era só `import.meta.env.DEV` — falso no build do protótipo. Os atalhos
+ * existiam e nunca apareciam justamente no arquivo que vai para a mão de quem
+ * precisa deles.
+ */
+const ehPrototipo = import.meta.env.VITE_PROTOTIPO === '1';
+const demoDisponivel = import.meta.env.DEV || ehPrototipo;
 
 export function Login({ onSubmit, erro, ocupado }: {
   onSubmit: (email: string, senha: string) => void;
   erro: string; ocupado: boolean;
 }) {
-  const [email, setEmail] = useState('');
-  const [senha, setSenha] = useState('');
+  // No protótipo a tela já abre pronta para entrar; no aplicativo de verdade,
+  // vazia, como tem de ser.
+  const [email, setEmail] = useState(ehPrototipo ? CONVIDADO.email : '');
+  const [senha, setSenha] = useState(ehPrototipo ? SENHA_DEMO : '');
   /** '' = ainda não perguntamos; 'senha' = tem senha; 'primeira' = não tem. */
-  const [passo, setPasso] = useState<'' | 'senha' | 'primeira'>('');
+  const [passo, setPasso] = useState<'' | 'senha' | 'primeira'>(ehPrototipo ? 'senha' : '');
   const [conferindo, setConferindo] = useState(false);
 
   async function continuar(e: React.FormEvent) {
@@ -89,6 +114,14 @@ export function Login({ onSubmit, erro, ocupado }: {
             placeholder="nome@paodospobres.com.br"
           />
 
+          {ehPrototipo && (
+            <div className="notice c-info" role="status">
+              Protótipo aberto no seu nome, <b>{CONVIDADO.nome}</b> — é só tocar em
+              <b> Entrar no sistema</b>. Depois, use “Ver como” no alto da tela para
+              percorrer o sistema com os olhos de cada função.
+            </div>
+          )}
+
           {passo === 'senha' && (
             <>
               <label className="f" htmlFor="senha">Senha</label>
@@ -133,7 +166,7 @@ export function Login({ onSubmit, erro, ocupado }: {
           <>
             <hr className="divider" />
             <p className="loginsub" style={{ marginBottom: 8 }}>
-              Acesso rápido — ambiente de demonstração, dados fictícios
+              Ou entre como outra função — demonstração, dados fictícios
             </p>
             <div className="demochips">
               {DEMO.map((d) => (

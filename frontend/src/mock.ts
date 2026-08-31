@@ -24,6 +24,8 @@
  * O arquivo é dado puro, sem dependência nenhuma, e por isso atravessa.
  */
 import { ALCANCE_POR_CARGO } from '../../backend/src/modules/identity/alcance';
+import { SECOES_ATA, AMBIENTES_CASA, CLASSIFICACOES_EPISODIO }
+  from '../../backend/src/modules/shifts/ata-secoes';
 
 const HOJE = new Intl.DateTimeFormat('en-CA',
   { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' })
@@ -135,13 +137,29 @@ const KIDS: Kid[] = [
  * própria senha na hora — é assim que a primeira pessoa da Fundação vai
  * entrar, sem senha inicial circulando em grupo de mensagens.
  */
+/*
+ * CONTAS DO PROTÓTIPO.
+ *
+ * A conta do Marcelo estava aqui com `senha: null` — o que, no caminho de dois
+ * passos da entrada, significa "ainda não tem senha, use o link do convite".
+ * No sistema de verdade isso é o certo; no protótipo, que não manda e-mail
+ * nenhum, era um beco sem saída: ele digitava o e-mail dele e não entrava.
+ *
+ * Agora ele entra em um clique, com o e-mail já escrito na tela. As demais
+ * contas existem uma por cargo, para que a demonstração possa ser feita
+ * entrando COMO cada função — e não só trocando o cargo depois de entrar.
+ */
 const USUARIOS: Record<string, { id: string; fullName: string; role: string; senha: string | null }> = {
-  'mbarbosa@paodospobres.com.br': { id: 'u0', fullName: 'Marcelo Barbosa', role: 'coordenador', senha: null },
+  'mbarbosa@paodospobres.com.br': { id: 'u0', fullName: 'Marcelo Barbosa', role: 'coordenador', senha: 'senha-dev-123' },
   'educador.ai3@paodospobres.dev': { id: 'u1', fullName: 'Mário Silva (fictício)', role: 'educador', senha: 'senha-dev-123' },
   'lider.ai3@paodospobres.dev': { id: 'u2', fullName: 'Lúcia Líder Diurna (fictícia)', role: 'lider_diurno', senha: 'senha-dev-123' },
   'tecnica.ai3@paodospobres.dev': { id: 'u3', fullName: 'Tatiane Técnica (fictícia)', role: 'equipe_tecnica', senha: 'senha-dev-123' },
   'coord.ai3@paodospobres.dev': { id: 'u4', fullName: 'Carla Coordenadora (fictícia)', role: 'coordenador', senha: 'senha-dev-123' },
   'enfermagem@paodospobres.dev': { id: 'u5', fullName: 'Enfermeira Fictícia', role: 'enfermagem', senha: 'senha-dev-123' },
+  'lider.noturno@paodospobres.dev': { id: 'u8', fullName: 'Nélio Noturno (fictício)', role: 'lider_noturno_geral', senha: 'senha-dev-123' },
+  'cozinha@paodospobres.dev': { id: 'u9', fullName: 'Cida da Cozinha (fictícia)', role: 'cozinha', senha: 'senha-dev-123' },
+  'admin@paodospobres.dev': { id: 'u10', fullName: 'Adair Administrativo (fictício)', role: 'admin_tecnico', senha: 'senha-dev-123' },
+  'gestor@paodospobres.dev': { id: 'u11', fullName: 'Gilberto Gestor (fictício)', role: 'gestor_geral', senha: 'senha-dev-123' },
 };
 const EQUIPE_CASA = [
   { id: 'u1', nome: 'Mário Silva (fictício)', cargo: 'educador' },
@@ -620,23 +638,32 @@ let OCORRENCIAS: Ocorrencia[] = [
  * por isso não sabia dizer de qual plantão eram as passagens que mostrava.
  */
 interface AtaMock {
-  id: string; plantaoId: string; status: 'aberta' | 'fechada'; versao: number;
+  id: string; plantaoId: string; status: 'aberta' | 'fechada' | 'reaberta'; versao: number;
   pendencias: string | null; fechadaEm: string | null;
+  /** O corpo do livro, por seção. Vazio até alguém escrever. */
+  conteudo: Record<string, string>;
+  /*
+   * Adendos: o antes e o depois de cada correção (§12.7).
+   *
+   * O estado vai EMBRULHADO, como o servidor guarda — `{status, versao,
+   * conteudo}` na reabertura e `{conteudo}` na correção. A primeira versão
+   * daqui guardava o texto cru, e a tela, que lê `antes.conteudo`, mostrava
+   * "nenhuma seção alterada" em toda correção do protótipo.
+   */
+  adendos: { id: string; tipo: string; motivo: string; autor: string; quando: string;
+             antes: Record<string, unknown> | null;
+             depois: Record<string, unknown> | null }[];
 }
 let ATAS: AtaMock[] = [];
-const SECOES_ATA = [
-  { cod: 'presentes', label: 'Presentes e ausências' },
-  { cod: 'acolhidos', label: 'Situação dos acolhidos' },
-  { cod: 'familiar', label: 'Convivência familiar' },
-  { cod: 'saidas', label: 'Saídas e retornos' },
-  { cod: 'visitas', label: 'Visitas' },
-  { cod: 'enfermagem', label: 'Enfermagem' },
-  { cod: 'escola', label: 'Escola' },
-  { cod: 'medicamentos', label: 'Medicamentos' },
-  { cod: 'organizacao', label: 'Organização da casa' },
-  { cod: 'ocorrencias', label: 'Ocorrências' },
-  { cod: 'orientacoes', label: 'Orientações ao próximo turno' },
-];
+/*
+ * As seções vêm do MESMO arquivo que o servidor usa.
+ *
+ * Aqui havia nove seções inventadas — "Presentes e ausências", "Visitas" —
+ * enquanto o servidor serve as dezesseis do LIVRO ATA de papel da Casa 03. A
+ * demonstração mostrava um formulário que a casa não usa, para quem entregou
+ * o livro. `ata-secoes.ts` não importa nada, exatamente para poder ser lido
+ * daqui.
+ */
 let ATA_GERAL = {
   id: 'g1', data: HOJE, status: 'aberta' as 'aberta' | 'fechada',
   pendencias: null as string | null, assinadaEm: null as string | null,
@@ -1008,7 +1035,8 @@ const kid = (id: string) => [...KIDS, ...NOVOS, ...ACERVO.map((a) => a.kid)]
 function ataDo(plantaoId: string): AtaMock {
   let a = ATAS.find((x) => x.plantaoId === plantaoId);
   if (!a) {
-    a = { id: uid(), plantaoId, status: 'aberta', versao: 1, pendencias: null, fechadaEm: null };
+    a = { id: uid(), plantaoId, status: 'aberta', versao: 1, pendencias: null,
+          fechadaEm: null, conteudo: {}, adendos: [] };
     ATAS.push(a);
   }
   return a;
@@ -1568,7 +1596,12 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
 
   // ---- plantão e passagem
   if (rota === '/shifts/ata-sections') {
-    return { secoes: SECOES_ATA, classificacoesEpisodio: [] };
+    return {
+      secoes: SECOES_ATA, ambientes: AMBIENTES_CASA,
+      classificacoesEpisodio: CLASSIFICACOES_EPISODIO,
+      aviso: 'A ATA descreve o TURNO e os AMBIENTES. A organização da casa é do ambiente, '
+        + 'nunca de quem arrumou ou deixou de arrumar (§3.3).',
+    };
   }
   if (rota === '/shifts' && metodo === 'GET') {
     return PLANTOES.map((s) => {
@@ -1645,7 +1678,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       // A ATA vem DENTRO do plantão, como no servidor.
       ata: (() => {
         const a = ataDo(s.id);
-        return { id: a.id, status: a.status, versao: a.versao, conteudo: null,
+        return { id: a.id, status: a.status, versao: a.versao, conteudo: a.conteudo,
                  pendencias: a.pendencias,
                  assinaturasFaltantes: s.esperados.filter(
                    (e) => !s.passagens.some((p) => p.userId === e.userId)).length,
@@ -2471,6 +2504,70 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
   // Não existe módulo `minutes`: a ATA da casa vive dentro do plantão
   // (/shifts/:id, fechada em /shifts/ata/:ataId/close) e a Geral tem rotas
   // próprias em /shifts/general-ata/*.
+
+  /* PATCH /shifts/ata/:id — escrever o corpo do livro enquanto ela está aberta. */
+  if (seg[0] === 'shifts' && seg[1] === 'ata' && seg.length === 3 && metodo === 'PATCH') {
+    const a = ATAS.find((x) => x.id === seg[2]);
+    if (!a) return new Recusa(404, 'ATA não encontrada.');
+    if (a.status === 'fechada') {
+      return new Recusa(400, 'ATA fechada não é reescrita. Peça reabertura à equipe técnica — '
+        + 'a correção entra como adendo, com antes e depois.');
+    }
+    a.conteudo = { ...(b.conteudo ?? {}) };
+    return { ok: true };
+  }
+
+  /* Reabrir: grava o estado ANTERIOR no adendo, antes de qualquer alteração. */
+  if (seg[0] === 'shifts' && seg[1] === 'ata' && seg[3] === 'reopen' && metodo === 'POST') {
+    const a = ATAS.find((x) => x.id === seg[2]);
+    if (!a) return new Recusa(404, 'ATA não encontrada.');
+    if (!['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403, 'A reabertura de ATA cabe à equipe técnica e à coordenação.');
+    }
+    if (a.status !== 'fechada') return new Recusa(400, 'Esta ATA não está fechada.');
+    const motivo = String(b.motivo ?? '').trim();
+    if (motivo.length < 15) {
+      return new Recusa(400,
+        'Descreva o motivo da reabertura (mínimo 15 caracteres). Ele fica gravado no adendo.');
+    }
+    a.adendos.push({ id: uid(), tipo: 'reabertura', motivo, autor: eu.fullName,
+                     quando: new Date().toISOString(),
+                     antes: { status: a.status, versao: a.versao, conteudo: { ...a.conteudo } },
+                     depois: null });
+    a.status = 'reaberta';
+    a.versao += 1;
+    return { versao: a.versao,
+      aviso: 'Reaberta. O estado anterior foi gravado no adendo antes de qualquer alteração.' };
+  }
+
+  /* Corrigir: grava o antes e o depois. */
+  if (seg[0] === 'shifts' && seg[1] === 'ata' && seg[3] === 'amend' && metodo === 'POST') {
+    const a = ATAS.find((x) => x.id === seg[2]);
+    if (!a) return new Recusa(404, 'ATA não encontrada.');
+    if (!['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403, 'A correção de ATA cabe à equipe técnica e à coordenação.');
+    }
+    if (a.status !== 'reaberta') {
+      return new Recusa(400,
+        'Corrija apenas depois de reabrir: a reabertura é o que grava o estado anterior.');
+    }
+    const motivo = String(b.motivo ?? '').trim();
+    if (motivo.length < 15) return new Recusa(400, 'Descreva o motivo da correção (mínimo 15 caracteres).');
+    const antes = { ...a.conteudo };
+    a.conteudo = { ...(b.conteudo ?? a.conteudo) };
+    a.adendos.push({ id: uid(), tipo: 'correcao', motivo, autor: eu.fullName,
+                     quando: new Date().toISOString(),
+                     antes: { conteudo: antes }, depois: { conteudo: { ...a.conteudo } } });
+    a.status = 'fechada';
+    a.versao += 1;
+    return { versao: a.versao, status: 'fechada',
+      aviso: 'Correção gravada com antes e depois. A versão anterior continua consultável.' };
+  }
+
+  if (seg[0] === 'shifts' && seg[1] === 'ata' && seg[3] === 'addenda' && metodo === 'GET') {
+    const a = ATAS.find((x) => x.id === seg[2]);
+    return a ? a.adendos : [];
+  }
 
   if (seg[0] === 'shifts' && seg[1] === 'ata' && seg[3] === 'close' && metodo === 'POST') {
     const a = ATAS.find((x) => x.id === seg[2]);

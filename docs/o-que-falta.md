@@ -1,12 +1,14 @@
 # O que falta da ideia original
 
 Levantamento de 31/08/2026, feito por leitura cruzada entre as rotas que o
-servidor serve e as chamadas que as telas fazem. Sobram **64 rotas que existem,
+servidor serve e as chamadas que as telas fazem. Sobram **60 rotas que existem,
 têm regra, têm RLS e auditoria — e não têm porta**.
 
 *Atualizado no mesmo dia: saíram desta lista o **Arquivo das ATAS** (decisão 2,
 no fim); a **saída, o acervo e o retorno**, com `GET /people/archive` como a
-porta que faltava; e a **abertura da chamada do turno**.*
+porta que faltava; a **abertura da chamada do turno**; e o **corpo da ATA com a
+reabertura e a correção** — que era o silêncio maior de todos: `content` nunca
+recebia nada, e fechava-se todo dia uma ATA vazia.*
 
 *E uma correção ao próprio levantamento: eu havia escrito que faltava "anexar
 documento ao arquivo". `POST /archive` não recebe arquivo — ele enfileira a
@@ -37,7 +39,6 @@ WhatsApp é proibido (§2).
 | **Baixar um documento do acolhido** | `GET /people/:id/documents/:docId` | O perfil lista os documentos e não abre nenhum. |
 | **Comunicação externa da ocorrência** | `GET/POST /incidents/communications` + `submit`, `approve`, `delivery` | O caminho de comunicar Conselho Tutelar / MP / Judiciário existe inteiro no servidor, com aprovação e registro de entrega, e nunca aparece. Lembrando: envio automático é proibido (§2) — o que falta é a **tela de redigir, submeter e aprovar**, com pessoa decidindo em cada passo. |
 | **Anexos e contenção na ocorrência** | `POST /incidents/:id/attachments`, `/protected`, `/restraint`, `attachments/:id/open` | Foto do machucado, registro de contenção física, marcação de conteúdo protegido. É exatamente o material sensível que hoje sai da casa por foto de celular. |
-| **Aditamento e reabertura da ATA** | `PATCH /shifts/ata/:id`, `/reopen`, `/amend`, `GET /addenda` | ATA fechada com pendência não tem como receber o complemento. Regra §6: nada se apaga, tudo entra ao lado — o servidor já faz; a tela não oferece. O Arquivo já **anuncia** na capa quantos aditamentos a ATA tem; abrir e escrever um ainda não existe. |
 | **Episódios da noite** | `POST /shifts/ata/:id/episodes`, `POST /shifts/episodes/:id/ack` | O que aconteceu de madrugada e o "estou ciente" do turno seguinte. |
 | **Rotina da casa** | `GET /routine`, `/routine/history`, `POST /routine/versions`, `/versions/:id/items` | A rotina versionada — horário de acordar, refeições, dormir — que alimenta a geração do dia. Hoje o dia vem de dados semeados. |
 | **Substituição de atividade** | `POST /activities/:id/substitution`, `/substitutions/:id/assign` | "Não vou conseguir levar o Bruno na fono" — pedir e assumir a substituição. Existe delegação direta; falta o pedido em aberto. |

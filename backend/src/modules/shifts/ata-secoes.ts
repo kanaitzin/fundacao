@@ -1,6 +1,14 @@
 /**
  * ESTRUTURA DA ATA DA CASA (§12.5).
  *
+ * ESTE ARQUIVO NÃO IMPORTA NADA, de propósito — como `identity/alcance.ts`.
+ * O protótipo lê daqui a mesma lista que o servidor serve, e é isso que
+ * impede a divergência que existiu até 31/08/2026: o `mock.ts` tinha inventado
+ * nove seções com outros nomes ("Presentes e ausências", "Visitas"), enquanto
+ * o servidor servia as dezesseis do livro de papel da Casa 03. A demonstração
+ * mostrava um formulário que a casa não usa — para o Marcelo, que entregou o
+ * livro.
+ *
  * Transcrição estruturada do LIVRO ATA — AI 03 (o formulário real da casa,
  * conferido em 28/08/2026). Cada seção existe porque aparece no livro;
  * nenhuma foi inventada aqui. Manter esta lista

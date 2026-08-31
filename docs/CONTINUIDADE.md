@@ -396,11 +396,13 @@ transformá-lo em teste.
 3. ~~O Arquivo das ATAS~~ — feito em 31/08 (§8.6)
 4. ~~Saída, acervo e retorno~~ — feito em 31/08 (§8.7)
 5. ~~O laço do arquivo e a abertura da chamada~~ — feito em 31/08 (§8.8)
-6. Aditamento e reabertura da ATA, e a comunicação externa da ocorrência — os
-   dois seguintes do grupo 1
-7. Conversar com o Marcelo sobre o resto do **grupo 1 do `docs/o-que-falta.md`**
-8. Aplicar o retorno do Marcelo por cargo
-9. Configurar SMTP institucional na implantação (`MailGateway` já está pronto)
+6. ~~O corpo da ATA, o aditamento e a reabertura~~ — feito em 31/08 (§8.9)
+7. A **comunicação externa da ocorrência** — a maior que resta do grupo 1: o
+   caminho de comunicar Conselho Tutelar e MP existe inteiro no servidor, com
+   redação, submissão, aprovação e registro de entrega, e nunca aparece
+8. Conversar com o Marcelo sobre o resto do **grupo 1 do `docs/o-que-falta.md`**
+9. Aplicar o retorno do Marcelo por cargo
+10. Configurar SMTP institucional na implantação (`MailGateway` já está pronto)
 
 ### 8.6 O Arquivo das ATAS — 31/08/2026
 
@@ -526,7 +528,52 @@ eles punham nela. Agora ela tem a vida da instituição dentro, e um lote fixo
 processava outro documento primeiro. Passaram a empurrar lotes até o item DELES
 sair — deixaram de afirmar sobre o tamanho da fila sem querer.
 
-### 8.9 Ensaio como usuário — 31/08/2026, os nove cargos
+### 8.9 O corpo da ATA, a correção, e a entrada do Marcelo — 31/08/2026
+
+**A ATA fechava vazia, todo dia.** `PATCH /shifts/ata/:id` existia desde a fase
+5 e nenhuma tela o chamava: o campo `content` nunca recebia nada. A tela listava
+os nomes das seções como etiquetas — e nem isso funcionava, porque declarava
+`{cod,label}` enquanto o servidor devolve `{chave,titulo,tipo,ajuda,
+obrigatoria}`: as etiquetas saíam vazias e todas as `key` do React eram
+`undefined`.
+
+Pior: o `mock.ts` tinha inventado **nove seções com outros nomes** ("Presentes e
+ausências", "Visitas") enquanto o servidor serve as **dezesseis do LIVRO ATA de
+papel da Casa 03**. A demonstração mostrava um formulário que a casa não usa —
+para quem entregou o livro. Corrigido pela raiz: o `mock.ts` agora IMPORTA
+`ata-secoes.ts`, como já fazia com `alcance.ts`. Esse arquivo passou a declarar,
+no cabeçalho, que não importa nada de propósito.
+
+O corpo agora se escreve enquanto a ATA está aberta, salvando ao sair de cada
+campo, com as seções obrigatórias em branco listadas antes do fechamento (avisa,
+não impede — uma ATA que se recusa a fechar às 23h empurra a casa de volta para
+o papel). A seção "Organização da casa" ganhou os atalhos dos seis ambientes, e
+o registro continua sendo do AMBIENTE, nunca de quem arrumou (§3.3).
+
+**A correção (§12.7).** Reabrir grava o estado anterior no adendo; corrigir
+grava o antes e o depois. Dois atos, duas folhas, motivo de no mínimo quinze
+caracteres — "erro" não explica nada a quem ler a ATA no ano que vem, e é essa
+pessoa que o adendo existe para servir. O histórico aparece na própria ATA,
+dizendo QUAIS seções mudaram. Suíte `test/ata-corpo-e-correcao.e2e.spec.ts`,
+8 testes.
+
+**Uma terceira divergência mock/servidor, encontrada pelo teste:** o adendo
+guarda o estado EMBRULHADO — `{status, versao, conteudo}` na reabertura,
+`{conteudo}` na correção. A tela lia o texto cru e o `mock.ts` gravava cru: no
+protótipo, toda correção dizia "nenhuma seção alterada". Os dois lados passaram
+à forma do servidor.
+
+**A entrada do protótipo.** A conta do Marcelo existia com `senha: null` — que
+no caminho de dois passos significa "use o link do convite". Correto no sistema
+de verdade; no protótipo, que não envia e-mail nenhum, era um beco sem saída:
+ele digitava o próprio e-mail e não entrava. Agora o protótipo abre com o e-mail
+dele escrito e a senha preenchida, um clique entra. E os atalhos por cargo, que
+só apareciam em `import.meta.env.DEV`, passaram a aparecer no protótipo —
+existiam e nunca apareciam justamente no arquivo que vai para a mão de quem
+precisa deles. São nove agora, um por cargo, incluindo Cozinha e Administração
+técnica, que não tinham conta.
+
+### 8.10 Ensaio como usuário — 31/08/2026, os nove cargos
 
 Três roteiros de navegador contra o protótipo de arquivo único, com todos os
 cargos: `passeio.mjs` (o que cada um alcança, tela por tela), `acoes.mjs` e
@@ -748,9 +795,9 @@ responder e não me peça para reexplicar o que está lá.
 
 === ESTADO ATUAL ===
 
-Fases 0 a 24 concluídas. 257 testes passando em 22 suítes, sem falha conhecida
-— a suíte rodou quatro vezes seguidas e mais duas às 22h32 de Porto Alegre, com
-o relógio do banco movido junto. Backend NestJS + PostgreSQL 16 com RLS, 16
+Fases 0 a 25 concluídas. 265 testes passando em 23 suítes, sem falha conhecida
+— a suíte rodou três vezes seguidas e mais duas às 22h32 de Porto Alegre, com o
+relógio do banco movido junto. Backend NestJS + PostgreSQL 16 com RLS, 16
 partições. Frontend React PWA com 21 telas, todas falando as rotas reais do
 servidor. A ATA agora tem arquivo: dia, semana ou mês de calendário, com a ATA
 Geral Noturna recortada na linha de cada casa. O ciclo do acolhimento fecha:

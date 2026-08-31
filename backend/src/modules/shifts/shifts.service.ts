@@ -4,7 +4,7 @@ import { AuditService } from '../../kernel/audit/audit.service';
 import { EventBus } from '../../kernel/events/event-bus.service';
 import { AuthenticatedUser, DocumentClosed, EscalationRequest } from '../../kernel/contracts';
 import { hojeNaInstituicao, dataDoPlantao, janelaDeConsulta } from '../../kernel/common/tempo';
-import { SECOES_ATA, CLASSIFICACOES_EPISODIO } from './ata-secoes';
+import { SECOES_ATA, AMBIENTES_CASA, CLASSIFICACOES_EPISODIO } from './ata-secoes';
 
 /**
  * PLANTÃO, PASSAGEM E ATA (§12).
@@ -28,7 +28,15 @@ export class ShiftsService {
   ) {}
 
   secoes() {
-    return { secoes: SECOES_ATA, classificacoesEpisodio: CLASSIFICACOES_EPISODIO };
+    return {
+      secoes: SECOES_ATA,
+      // Os ambientes da seção "Organização da casa": o formulário de papel
+      // marca um por um, e a tela precisa da lista para desenhar o mesmo.
+      ambientes: AMBIENTES_CASA,
+      classificacoesEpisodio: CLASSIFICACOES_EPISODIO,
+      aviso: 'A ATA descreve o TURNO e os AMBIENTES. A organização da casa é do ambiente, '
+        + 'nunca de quem arrumou ou deixou de arrumar (§3.3).',
+    };
   }
 
   // ------------------------------------------------------------------

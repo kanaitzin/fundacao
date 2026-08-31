@@ -41,7 +41,38 @@ interface Plantao {
                propria: boolean }[];
   assinaturasPendentes: { quem: string; cargo: string }[];
 }
-interface Secoes { secoes: { cod: string; label: string }[] }
+/**
+ * A estrutura vem do SERVIDOR, com a forma real do LIVRO ATA da Casa 03.
+ *
+ * A tela declarava `{ cod, label }` e o servidor devolve
+ * `{ chave, titulo, tipo, ajuda, obrigatoria }`: as etiquetas saíam vazias e a
+ * `key` do React era `undefined` em todas. E o `mock.ts` tinha inventado nove
+ * seções com outros nomes — a demonstração mostrava um formulário que a casa
+ * não usa, para quem entregou o livro de papel.
+ */
+interface SecaoAta {
+  chave: string; titulo: string; ajuda: string; obrigatoria: boolean;
+  tipo: 'texto' | 'lista' | 'sim_nao_detalhe' | 'checklist_ambientes';
+}
+interface Secoes {
+  secoes: SecaoAta[];
+  ambientes: { chave: string; label: string }[];
+  aviso?: string;
+}
+/**
+ * Um adendo: o antes e o depois que o §26.2 #20 exige poder ver.
+ *
+ * O estado vem EMBRULHADO — `{status, versao, conteudo}` na reabertura e
+ * `{conteudo}` na correção. A tela presumia o texto cru e listava "sem
+ * mudança de texto" em toda correção que houvesse acontecido.
+ */
+interface EstadoDoAdendo {
+  status?: string; versao?: number; conteudo?: Record<string, string> | null;
+}
+interface Adendo {
+  id: string; tipo: string; motivo: string; autor: string; quando: string;
+  antes: EstadoDoAdendo | null; depois: EstadoDoAdendo | null;
+}
 /** Uma ATA como ela aparece no arquivo: a capa, sem o conteúdo. */
 interface AtaNoArquivo {
   ataId: string; plantaoId: string; status: string; pendencias: string | null;
@@ -76,6 +107,13 @@ const dia = (iso: string) => new Date(`${iso}T12:00:00-03:00`).toLocaleDateStrin
 
 /** Quem fecha a ATA da casa (§12.4) — o mesmo alcance do servidor. */
 const FECHA_ATA = ['lider_diurno', 'lider_noturno_geral', 'equipe_tecnica', 'coordenador', 'gestor_geral'];
+
+/** Quem REABRE e CORRIGE ATA fechada (§12.7) — o mesmo alcance do servidor. */
+const CORRIGE_ATA = ['equipe_tecnica', 'coordenador', 'gestor_geral'];
+
+const TIPO_ADENDO: Record<string, string> = {
+  reabertura: 'Reabertura', correcao: 'Correção', complemento_tardio: 'Complemento tardio',
+};
 
 /* alcance:ata — quem folheia o arquivo. Conferido contra app_consulta_arquivo_ata(). */
 const CONSULTA_ARQUIVO = ['coordenador', 'equipe_tecnica', 'lider_diurno',
@@ -116,6 +154,11 @@ export function Ata({ houseId, papel }: { houseId: string; papel: string }) {
   const [quando, setQuando] = useState('');
   const [arquivo, setArquivo] = useState<Arquivo | null>(null);
   const [buscando, setBuscando] = useState(false);
+  const [conteudo, setConteudo] = useState<Record<string, string>>({});
+  const [salvando, setSalvando] = useState(false);
+  const [adendos, setAdendos] = useState<Adendo[]>([]);
+  const [reabrindo, setReabrindo] = useState(false);
+  const [corrigindo, setCorrigindo] = useState(false);
 
   async function carregar() {
     setErro('');
@@ -130,7 +173,13 @@ export function Ata({ houseId, papel }: { houseId: string; papel: string }) {
         ? escolhido
         : (lista.find((p) => p.status !== 'fechado') ?? lista[lista.length - 1])?.id ?? null;
       setEscolhido(alvo);
-      setPlantao(alvo ? await api<Plantao>(`/shifts/${alvo}`) : null);
+      const p = alvo ? await api<Plantao>(`/shifts/${alvo}`) : null;
+      setPlantao(p);
+      // O rascunho da tela parte SEMPRE do que o servidor tem: quem digitou
+      // aqui e recarregou não pode ver o próprio texto sobreviver a um
+      // salvamento que não aconteceu.
+      setConteudo((p?.ata?.conteudo ?? {}) as Record<string, string>);
+      setAdendos(p?.ata ? await api<Adendo[]>(`/shifts/ata/${p.ata.id}/addenda`).catch(() => []) : []);
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Não foi possível carregar as ATAs.');
     }
@@ -193,11 +242,34 @@ export function Ata({ houseId, papel }: { houseId: string; papel: string }) {
     }
   }
 
+  /**
+   * Salva o corpo da ATA. Só enquanto ela está aberta ou reaberta — o servidor
+   * recusa o resto, e a recusa dele é a frase que a tela mostra.
+   */
+  async function salvarConteudo() {
+    if (!plantao?.ata || fechada) return;
+    setSalvando(true); setErro('');
+    try {
+      await api(`/shifts/ata/${plantao.ata.id}`, {
+        method: 'PATCH', body: JSON.stringify({ conteudo }) });
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Não foi possível salvar a ATA.');
+    } finally { setSalvando(false); }
+  }
+
   const ata = plantao?.ata ?? null;
   const fechada = ata?.status === 'fechada';
   const podeFechar = FECHA_ATA.includes(papel);
   const faltam = ata?.assinaturasFaltantes ?? plantao?.assinaturasPendentes.length ?? 0;
   const casasAguardando = geral ? geral.casas.filter((c) => !c.ataNoturnaConfirmada).length : 0;
+  /*
+   * As seções obrigatórias ainda em branco. A tela AVISA e não impede: fechar
+   * com pendência é o caminho previsto, e uma ATA que se recusa a fechar às
+   * 23h empurra a casa de volta para o papel.
+   */
+  const faltamObrigatorias = (secoes?.secoes ?? [])
+    .filter((sec) => sec.obrigatoria && !(conteudo[sec.chave] ?? '').trim())
+    .map((sec) => sec.titulo);
 
   return (
     <>
@@ -233,7 +305,12 @@ export function Ata({ houseId, papel }: { houseId: string; papel: string }) {
                         className={escolhido === p.id ? 'on' : ''}
                         onClick={async () => {
                           setEscolhido(p.id);
-                          setPlantao(await api<Plantao>(`/shifts/${p.id}`));
+                          const novo = await api<Plantao>(`/shifts/${p.id}`);
+                          setPlantao(novo);
+                          setConteudo((novo.ata?.conteudo ?? {}) as Record<string, string>);
+                          setAdendos(novo.ata
+                            ? await api<Adendo[]>(`/shifts/ata/${novo.ata.id}/addenda`).catch(() => [])
+                            : []);
                         }}>
                   {p.turno === 'diurno' ? 'Turno diurno' : 'Turno noturno'}
                 </button>
@@ -289,14 +366,131 @@ export function Ata({ houseId, papel }: { houseId: string; papel: string }) {
                   )}
                 </ul>
 
+                {/*
+                  * O CORPO DA ATA — as dezesseis seções do LIVRO ATA da Casa 03.
+                  *
+                  * Até 31/08/2026 a tela só listava os NOMES das seções como
+                  * etiquetas, e o campo `content` da ATA nunca recebia nada:
+                  * fechava-se, todo dia, uma ATA vazia. `PATCH /shifts/ata/:id`
+                  * existia desde a fase 5 e não tinha por onde ser chamado.
+                  *
+                  * Enquanto a ATA está aberta (ou reaberta), escreve-se aqui.
+                  * Fechada, o texto fica — e corrigir é reabrir e registrar a
+                  * correção, que nasce ao lado com antes e depois (§12.7).
+                  */}
                 {secoes && (
                   <>
-                    <div className="eyebrow">O que a ATA consolida</div>
-                    <div className="row">
-                      {secoes.secoes.map((s) => (
-                        <span className="pill c-mute" key={s.cod}>{s.label}</span>
-                      ))}
+                    <div className="eyebrow">O livro ATA da casa</div>
+                    {secoes.aviso && <p className="mutetxt" style={{ margin: 0 }}>{secoes.aviso}</p>}
+
+                    {secoes.secoes.map((sec) => {
+                      const valor = conteudo[sec.chave] ?? '';
+                      const editavel = !fechada && podeFechar;
+                      if (!editavel && !valor) return null;
+                      return (
+                        <div key={sec.chave} className={valor ? 'bloco' : 'bloco'}>
+                          <small>
+                            {sec.titulo}
+                            {sec.obrigatoria && !valor ? ' · obrigatória' : ''}
+                          </small>
+                          {editavel ? (
+                            <>
+                              <textarea
+                                aria-label={sec.titulo}
+                                value={valor}
+                                placeholder={sec.ajuda}
+                                onChange={(e) => setConteudo(
+                                  (m) => ({ ...m, [sec.chave]: e.target.value }))}
+                                onBlur={() => salvarConteudo()} />
+                              {sec.tipo === 'checklist_ambientes' && secoes.ambientes.length > 0 && (
+                                <div className="row" style={{ flexWrap: 'wrap', gap: 6 }}>
+                                  {/* Os ambientes do formulário de papel, como
+                                      atalho de escrita. O registro é do
+                                      AMBIENTE, nunca de quem arrumou (§3.3). */}
+                                  {secoes.ambientes.map((amb) => (
+                                    <button type="button" key={amb.chave} className="btn sm ghost"
+                                            onClick={() => setConteudo((m) => ({
+                                              ...m,
+                                              [sec.chave]: `${(m[sec.chave] ?? '').trimEnd()}${
+                                                m[sec.chave] ? '\n' : ''}${amb.label}: `,
+                                            }))}>
+                                      + {amb.label}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                            </>
+                          ) : valor}
+                        </div>
+                      );
+                    })}
+
+                    {!fechada && podeFechar && (
+                      <div className="mutetxt">
+                        {salvando ? 'Salvando…' : 'O texto é salvo ao sair de cada campo.'}
+                        {faltamObrigatorias.length > 0 && (
+                          <> · Ainda em branco: <b>{faltamObrigatorias.join(', ')}</b>.</>
+                        )}
+                      </div>
+                    )}
+                    {fechada && Object.keys(conteudo).length === 0 && (
+                      <p className="mutetxt" style={{ margin: 0 }}>
+                        Esta ATA foi fechada sem texto nas seções.
+                      </p>
+                    )}
+                  </>
+                )}
+
+                {/*
+                  * CORRIGIR DEPOIS DE FECHADA (§12.7).
+                  *
+                  * Nunca por cima: reabrir grava o estado anterior no adendo,
+                  * e a correção grava o antes e o depois. Duas etapas porque
+                  * são dois atos — e porque quem lê a ATA daqui a um ano
+                  * precisa ver que houve correção, quando e por quê.
+                  */}
+                {fechada && CORRIGE_ATA.includes(papel) && (
+                  <button className="btn sec sm" onClick={() => setReabrindo(true)}>
+                    ✏️ Reabrir para corrigir
+                  </button>
+                )}
+                {ata?.status === 'reaberta' && CORRIGE_ATA.includes(papel) && (
+                  <>
+                    <div className="notice c-warn">
+                      ATA <b>reaberta</b>. O estado anterior já foi gravado no adendo. Escreva a
+                      correção nas seções acima e registre — o que estava antes continua
+                      consultável.
                     </div>
+                    <button className="btn sm" onClick={() => setCorrigindo(true)}>
+                      Registrar a correção
+                    </button>
+                  </>
+                )}
+
+                {adendos.length > 0 && (
+                  <>
+                    <div className="eyebrow">Correções desta ATA</div>
+                    {adendos.map((d) => (
+                      <div className="bloco compl" key={d.id}>
+                        <small>
+                          {TIPO_ADENDO[d.tipo] ?? d.tipo} · {d.autor} · {hhmm(d.quando)}
+                        </small>
+                        {d.motivo}
+                        {d.antes?.conteudo && d.depois?.conteudo && (
+                          <div className="mutetxt" style={{ marginTop: 6 }}>
+                            {/* Quais SEÇÕES mudaram. O texto de antes não é
+                                repetido aqui: quem precisa compará-lo abre o
+                                registro, e a lista serve para saber ONDE
+                                olhar. */}
+                            Seções alteradas: {Object.keys({ ...d.antes.conteudo, ...d.depois.conteudo })
+                              .filter((k) => (d.antes?.conteudo?.[k] ?? '')
+                                          !== (d.depois?.conteudo?.[k] ?? ''))
+                              .map((k) => secoes?.secoes.find((x) => x.chave === k)?.titulo ?? k)
+                              .join(' · ') || 'nenhuma — só a situação da ATA mudou.'}
+                          </div>
+                        )}
+                      </div>
+                    ))}
                   </>
                 )}
 
@@ -551,6 +745,37 @@ export function Ata({ houseId, papel }: { houseId: string; papel: string }) {
         </>
       )}
 
+      {reabrindo && ata && (
+        <FolhaMotivo
+          titulo="Reabrir a ATA para corrigir"
+          explicacao={'Reabrir NÃO apaga nada. O estado atual da ATA é gravado no adendo antes '
+            + 'de qualquer alteração, e o motivo que você escrever fica junto — é ele que '
+            + 'explica, daqui a um ano, por que este documento foi mexido.'}
+          rotulo="Por que precisa ser corrigida"
+          botao="Reabrir"
+          onFechar={() => setReabrindo(false)}
+          onEnviar={async (motivo) => {
+            const ok = await acao(() => api(`/shifts/ata/${ata.id}/reopen`, {
+              method: 'POST', body: JSON.stringify({ motivo }) }));
+            if (ok) setReabrindo(false);
+          }} />
+      )}
+
+      {corrigindo && ata && (
+        <FolhaMotivo
+          titulo="Registrar a correção"
+          explicacao={'A correção grava o ANTES e o DEPOIS. A versão anterior continua '
+            + 'consultável; ninguém, em nenhum cargo, reescreve o que já foi assinado.'}
+          rotulo="O que está sendo corrigido, e por quê"
+          botao="Registrar a correção"
+          onFechar={() => setCorrigindo(false)}
+          onEnviar={async (motivo) => {
+            const ok = await acao(() => api(`/shifts/ata/${ata.id}/amend`, {
+              method: 'POST', body: JSON.stringify({ motivo, conteudo }) }));
+            if (ok) setCorrigindo(false);
+          }} />
+      )}
+
       {fechando && (
         <FolhaFechar
           qual={fechando}
@@ -573,6 +798,43 @@ export function Ata({ houseId, papel }: { houseId: string; papel: string }) {
           }} />
       )}
     </>
+  );
+}
+
+/**
+ * A FOLHA DO MOTIVO — reabertura e correção.
+ *
+ * O mínimo de quinze caracteres não é capricho: "erro" e "ajuste" não
+ * explicam nada a quem ler a ATA no ano que vem, e é justamente essa pessoa
+ * que o adendo existe para servir. O servidor recusa abaixo disso; a tela
+ * segura o botão antes, para a recusa não chegar depois de escrever.
+ */
+function FolhaMotivo({ titulo, explicacao, rotulo, botao, onFechar, onEnviar }: {
+  titulo: string; explicacao: string; rotulo: string; botao: string;
+  onFechar: () => void; onEnviar: (motivo: string) => void;
+}) {
+  const [motivo, setMotivo] = useState('');
+  const pode = motivo.trim().length >= 15;
+
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-mot"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet modal">
+        <h3 id="t-mot">{titulo}</h3>
+        <div className="notice c-info">{explicacao}</div>
+        <label className="f" htmlFor="mot-txt">
+          {rotulo} <small>— pelo menos 15 caracteres</small>
+        </label>
+        <textarea id="mot-txt" value={motivo} onChange={(e) => setMotivo(e.target.value)}
+                  placeholder="Ex.: o horário do acionamento da Enfermagem foi anotado como 21h e o correto é 23h10." />
+        <div className="row rodape">
+          <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
+          <button className="btn grow" disabled={!pode} onClick={() => onEnviar(motivo.trim())}>
+            {botao}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
