@@ -303,7 +303,10 @@ export function App() {
 
         {aba === 'equipe' && administra && <Equipe />}
 
-        {aba === 'saude' && veSaude && <Saude papel={me.role} />}
+        {aba === 'saude' && veSaude && casaAtual && (
+          <Saude houseId={casaAtual.id} casaLabel={`${casaAtual.code} · ${casaAtual.name}`}
+                 papel={me.role} />
+        )}
 
         {/* Ocorrência e ATA são de todo mundo do plantão: quem viu o fato é
             quem registra, e quem conduz o turno é quem fecha. */}

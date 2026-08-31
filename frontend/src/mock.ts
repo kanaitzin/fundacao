@@ -271,56 +271,68 @@ let COMPROMISSOS: Compromisso[] = [
     marcadoPor: 'Tatiane Técnica (fictícia)' },
 ];
 
-const DOSES = [
+interface DoseMock {
+  id: string; personId: string; horario: string; medicamento: string; dose: string;
+  via: string; tipo: string; condicaoUso: string | null;
+  estado: string; rotulo: string; pendente: boolean;
+  confirmadaPor: string | null; administradaEm: string | null; observacao: string | null;
+}
+const DOSES: DoseMock[] = [
   { id: 'd1', personId: 'p11', horario: emHoras(7, 30), medicamento: 'Colírio lubrificante (fictício)',
     dose: '1 gota em cada olho', via: 'oftálmica', tipo: 'uso_continuo', condicaoUso: null,
-    estado: 'aguardando_confirmacao', rotulo: 'Aguardando confirmação', pendente: true, confirmadaPor: null },
+    estado: 'aguardando_confirmacao', rotulo: 'Aguardando confirmação', pendente: true,
+    confirmadaPor: null, administradaEm: null, observacao: null },
   { id: 'd2', personId: 'p11', horario: emHoras(19, 30), medicamento: 'Colírio lubrificante (fictício)',
     dose: '1 gota em cada olho', via: 'oftálmica', tipo: 'uso_continuo', condicaoUso: null,
-    estado: 'aguardando_confirmacao', rotulo: 'Aguardando confirmação', pendente: true, confirmadaPor: null },
+    estado: 'aguardando_confirmacao', rotulo: 'Aguardando confirmação', pendente: true,
+    confirmadaPor: null, administradaEm: null, observacao: null },
   { id: 'd3', personId: 'p02', horario: emHoras(8, 0), medicamento: 'Amoxicilina (fictícia) 250 mg/5 mL',
     dose: '5 mL', via: 'oral', tipo: 'tratamento', condicaoUso: null,
-    estado: 'administrada', rotulo: 'Administrada', pendente: false, confirmadaPor: 'Tainá Souza (fictícia)' },
+    estado: 'administrado_no_horario', rotulo: 'Administrado no horário', pendente: false,
+    confirmadaPor: 'Tainá Souza (fictícia)', administradaEm: emHoras(8, 5), observacao: null },
   { id: 'd4', personId: 'p02', horario: emHoras(16, 0), medicamento: 'Amoxicilina (fictícia) 250 mg/5 mL',
     dose: '5 mL', via: 'oral', tipo: 'tratamento', condicaoUso: null,
-    estado: 'aguardando_confirmacao', rotulo: 'Aguardando confirmação', pendente: true, confirmadaPor: null },
+    estado: 'aguardando_confirmacao', rotulo: 'Aguardando confirmação', pendente: true,
+    confirmadaPor: null, administradaEm: null, observacao: null },
   { id: 'd5', personId: 'p10', horario: emHoras(0, 0), medicamento: 'Paracetamol (fictício) 500 mg',
     dose: '1 comprimido', via: 'oral', tipo: 'quando_necessario',
     condicaoUso: 'Dor de cabeça referida ou temperatura acima de 37,8 °C. Intervalo mínimo de 6 horas.',
-    estado: 'aguardando_confirmacao', rotulo: 'Se necessário', pendente: true, confirmadaPor: null },
+    estado: 'aguardando_confirmacao', rotulo: 'Se necessário', pendente: true,
+    confirmadaPor: null, administradaEm: null, observacao: null },
 ];
 
 /**
  * Estoque da casa. Não é farmácia: é o que existe no armário, para a
  * Enfermagem ver o que vai faltar antes de faltar. Quantidade baixa é
  * ESTADO OPERACIONAL do armário — não diz nada sobre nenhuma criança.
- */
-/**
- * Estoque: cada item carrega o ÚLTIMO movimento, porque o número sozinho não
- * explica nada. "8 comprimidos" pode ser o que sobrou de 30 ou o que chegou
- * ontem, e a diferença entre as duas coisas é o que a Enfermagem precisa ver.
+ *
+ * Estoque no formato do servidor (`GET /medications/stock`): sem "mínimo".
+ *
+ * O protótipo tinha um campo `minimo` e pintava "Abaixo do mínimo" sozinho.
+ * O sistema de verdade recusa isso de propósito (§11.6): estoque baixo é
+ * SINALIZADO À MÃO, com autor, porque só a equipe sabe o que é pouco em cada
+ * caso — dois frascos de um xarope eventual sobram, e dois de um contínuo
+ * acabam na quinta. O protótipo estava mostrando um julgamento automático que
+ * o aplicativo nunca faria.
  */
 interface ItemEstoque {
-  id: string; medicamento: string; unidade: string; quantidade: number; minimo: number;
-  validade: string; conferidoPor: string;
-  ultimoMovimento: { tipo: 'entrada' | 'ajuste'; quantidade: number; motivo: string | null;
-                     por: string; em: string } | null;
+  id: string; medicamento: string; quantidade: number; unidade: string;
+  personId: string | null; validade: string | null; estoqueBaixo: boolean;
+  atualizadoEm: string;
 }
 const ESTOQUE: ItemEstoque[] = [
   { id: 'e1', medicamento: 'Amoxicilina (fictícia) 250 mg/5 mL', unidade: 'frasco',
-    quantidade: 2, minimo: 2, validade: '2027-01-31', conferidoPor: 'Enfermeira Fictícia',
-    ultimoMovimento: { tipo: 'entrada', quantidade: 2, motivo: null,
-                       por: 'Enfermeira Fictícia', em: emHoras(9, 15) } },
+    quantidade: 2, personId: null, validade: '2027-01-31', estoqueBaixo: false,
+    atualizadoEm: emHoras(9, 15) },
   { id: 'e2', medicamento: 'Colírio lubrificante (fictício)', unidade: 'frasco',
-    quantidade: 5, minimo: 2, validade: '2026-12-10', conferidoPor: 'Enfermeira Fictícia',
-    ultimoMovimento: null },
+    quantidade: 5, personId: null, validade: '2026-12-10', estoqueBaixo: false,
+    atualizadoEm: emHoras(9, 20) },
   { id: 'e3', medicamento: 'Paracetamol (fictício) 500 mg', unidade: 'comprimido',
-    quantidade: 8, minimo: 20, validade: '2026-11-30', conferidoPor: 'Enfermeira Fictícia',
-    ultimoMovimento: { tipo: 'ajuste', quantidade: -4, motivo: 'Conferência do armário: quatro a menos que o registrado.',
-                       por: 'Enfermeira Fictícia', em: emHoras(20, 30) } },
+    quantidade: 8, personId: null, validade: '2026-11-30', estoqueBaixo: true,
+    atualizadoEm: emHoras(20, 30) },
   { id: 'e4', medicamento: 'Insulina (fictícia) — caneta', unidade: 'caneta',
-    quantidade: 3, minimo: 2, validade: '2026-10-05', conferidoPor: 'Enfermeira Fictícia',
-    ultimoMovimento: null },
+    quantidade: 3, personId: 'p11', validade: '2026-10-05', estoqueBaixo: false,
+    atualizadoEm: emHoras(9, 25) },
 ];
 
 /**
@@ -331,6 +343,8 @@ const ESTOQUE: ItemEstoque[] = [
 interface Triagem {
   id: string; personId: string; tipo: string; enviadaPor: string; enviadaEm: string;
   resumo: string; assinada: boolean; assinadaPor: string | null; complemento: string | null;
+  /** Devolvida pedindo o que falta — o pedido fica escrito para quem acompanhou. */
+  pedidoComplemento?: string | null;
 }
 let TRIAGENS: Triagem[] = [
   { id: 't1', personId: 'p08', tipo: 'Consulta de pediatria', enviadaPor: 'Mário Silva (fictício)',
@@ -638,6 +652,32 @@ const ESTADO_LABEL: Record<string, string> = {
   nao_realizada_decisao_institucional: 'Não realizada — decisão institucional',
   nao_aplicavel: 'Não aplicável',
 };
+
+/**
+ * Os estados de dose são os do servidor (§11.2) — mesma chave, mesmo rótulo.
+ * A tela e o protótipo tinham uma lista paralela, no feminino, que o servidor
+ * teria recusado com 400 em toda confirmação.
+ */
+const ESTADO_DOSE: Record<string, string> = {
+  aguardando_confirmacao: 'Aguardando confirmação',
+  administrado_no_horario: 'Administrado no horário',
+  administrado_com_atraso: 'Administrado com atraso',
+  recusado: 'Recusado',
+  nao_administrado: 'Não administrado',
+  indisponivel: 'Indisponível',
+  suspenso_conforme_orientacao: 'Suspenso conforme orientação',
+  acolhido_ausente: 'Acolhido ausente',
+  incidente: 'Incidente',
+};
+/** Estados que exigem observação obrigatória (§11.4). */
+const EXIGEM_NOTA = new Set([
+  'administrado_com_atraso', 'recusado', 'nao_administrado',
+  'indisponivel', 'acolhido_ausente', 'incidente',
+]);
+/** Finalidades do Resumo de Saúde, nos códigos do servidor (§7.4). */
+const FINALIDADES_RESUMO = [
+  'consulta', 'exame', 'urgencia', 'internacao', 'transferencia_assistencial',
+];
 
 class Recusa extends Error {
   constructor(readonly status: number, message: string) { super(message); }
@@ -1249,121 +1289,233 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
              aviso: 'Compromisso encerrado. O que já aconteceu continua na linha do tempo.' };
   }
 
-  // ---- saúde: doses, estoque, triagem e resumo
-  if (rota === '/health/panel') {
-    const doses = DOSES.map((d) => ({
-      id: d.id, horario: d.horario, medicamento: d.medicamento, dose: d.dose, via: d.via,
-      tipo: d.tipo, condicaoUso: d.condicaoUso, estado: d.estado, rotulo: d.rotulo,
-      pendente: d.pendente, confirmadaPor: d.confirmadaPor,
-      acolhido: kid(d.personId)?.nome ?? '—',
-      alerta: kid(d.personId)?.alerta?.descricao ?? null,
+  // ---- saúde: as rotas do SERVIDOR, com os formatos do servidor
+  //
+  // Este bloco falava `/health/*`, que não existe no backend. O protótipo
+  // funcionava e o aplicativo teria falhado inteiro. Agora responde
+  // `/nursing/*` e `/medications/*`, com os mesmos campos, os mesmos códigos
+  // de estado e as mesmas recusas — é o que impede protótipo e aplicativo de
+  // divergirem de novo.
+
+  /** `GET /medications?houseId=&date=` — a grade do dia (mapDose no servidor). */
+  if (rota === '/medications' && metodo === 'GET') {
+    return DOSES.map((d) => ({
+      id: d.id, horario: d.horario,
+      acolhido: { id: d.personId, nome: kid(d.personId)?.nome ?? '—' },
+      medicamento: d.medicamento, dose: d.dose, via: d.via,
+      tipo: d.tipo, condicaoUso: d.condicaoUso,
+      estado: d.estado, rotulo: d.rotulo, pendente: d.pendente,
+      confirmadaPor: d.confirmadaPor, administradaEm: d.administradaEm,
+      offline: false, observacao: d.observacao,
+      // Ao lado de uma dose, "Dipirona" sozinha se lê como o que dar.
+      alergias: kid(d.personId)?.alerta?.tipo === 'alergia'
+        ? kid(d.personId)!.alerta!.descricao : null,
     }));
-    return {
-      data: HOJE,
-      resumo: {
-        administradas: doses.filter((d) => d.estado === 'administrada').length,
-        aguardando: doses.filter((d) => d.pendente).length,
-        triagensPendentes: TRIAGENS.filter((t) => !t.assinada).length,
-        estoqueBaixo: ESTOQUE.filter((e) => e.quantidade < e.minimo).length,
-      },
-      doses,
-      acolhidos: todosKids().map((k) => ({
-        id: k.id, nome: k.nome, idade: k.idade,
-        alerta: k.alerta?.descricao ?? null,
-        cuidado: k.cuidado ?? null,
-        doses: DOSES.filter((d) => d.personId === k.id).length,
-      })),
-    };
   }
-  if (rota === '/health/stock' && metodo === 'GET') return ESTOQUE;
+
+  /** `POST /medications/doses/:id/confirm` — uma dose, uma confirmação (§11.2). */
+  if (seg[0] === 'medications' && seg[1] === 'doses' && seg[3] === 'confirm' && metodo === 'POST') {
+    const d = DOSES.find((x) => x.id === seg[2]);
+    if (!d) return new Recusa(404, 'Dose não encontrada.');
+    if (!d.pendente) {
+      return new Recusa(409, 'Esta dose já foi confirmada por outro profissional.');
+    }
+    const estado = String(b.estado ?? '');
+    if (!ESTADO_DOSE[estado] || estado === 'aguardando_confirmacao') {
+      return new Recusa(400, 'Estado inválido para confirmação.');
+    }
+    if (EXIGEM_NOTA.has(estado) && !String(b.nota ?? '').trim()) {
+      return new Recusa(400, `"${ESTADO_DOSE[estado]}" exige observação: descreva o fato de `
+        + 'forma objetiva.');
+    }
+    d.pendente = false;
+    d.estado = estado;
+    d.rotulo = ESTADO_DOSE[estado];
+    d.confirmadaPor = eu.fullName;
+    d.administradaEm = new Date().toISOString();
+    d.observacao = String(b.nota ?? '').trim() || null;
+    return { ok: true, estado, rotulo: ESTADO_DOSE[estado] };
+  }
+
+  /** `GET /medications/stock?houseId=` — o armário, sem mínimo calculado. */
+  if (rota === '/medications/stock' && metodo === 'GET') {
+    const hoje = new Date(`${HOJE}T12:00:00-03:00`).getTime();
+    return ESTOQUE.map((i) => {
+      const dias = i.validade
+        ? Math.ceil((new Date(`${i.validade}T12:00:00-03:00`).getTime() - hoje) / 86_400_000) : null;
+      return {
+        id: i.id, medicamento: i.medicamento, quantidade: i.quantidade, unidade: i.unidade,
+        individual: i.personId != null,
+        acolhido: i.personId ? (kid(i.personId)?.nome ?? '(fora do seu alcance)') : null,
+        validade: i.validade, diasParaVencer: dias,
+        validadeProxima: dias !== null && dias <= 30,
+        estoqueBaixo: i.estoqueBaixo, atualizadoEm: i.atualizadoEm,
+      };
+    });
+  }
 
   /**
-   * Movimento de estoque — as DUAS ações, como no servidor de verdade (§8.4).
+   * `POST /medications/stock` — as DUAS ações (§8.4).
    *
    * `entrada` soma o que chegou; `contagem` substitui pelo que foi conferido,
    * exige motivo e grava a diferença. O protótipo recusa nos mesmos pontos em
    * que o banco recusa: é o que faz a demonstração valer como conversa com a
    * equipe, e não como propaganda.
    */
-  if (seg[0] === 'health' && seg[1] === 'stock' && seg[3] === 'movimento' && metodo === 'POST') {
-    const item = ESTOQUE.find((x) => x.id === seg[2]);
-    if (!item) return new Recusa(404, 'Não encontrado.');
+  if (rota === '/medications/stock' && metodo === 'POST') {
     if (!['enfermagem', 'equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)) {
-      return new Recusa(403, 'Seu cargo não movimenta o estoque.');
+      return new Recusa(403, 'Sem permissão para movimentar estoque.');
     }
     const tipo = String(b.tipo ?? '');
     if (tipo !== 'entrada' && tipo !== 'contagem') {
-      return new Recusa(400, 'Escolha: chegou remédio (entrada) ou conferi o armário (contagem).');
+      return new Recusa(400, 'Informe tipo: "entrada" (chegou remédio, soma) ou "contagem" '
+        + '(conferência do armário, substitui).');
     }
     const q = Number(b.quantidade);
     if (!Number.isFinite(q) || q < 0) return new Recusa(400, 'Quantidade inválida.');
     if (tipo === 'entrada' && q === 0) return new Recusa(400, 'Entrada de zero não é entrada.');
     const motivo = String(b.motivo ?? '').trim();
     if (tipo === 'contagem' && motivo.length < 3) {
-      return new Recusa(400, 'A contagem exige motivo: o que foi conferido, e por quê. '
-        + 'Remédio que some do armário sem explicação escrita é o que não pode virar rotina.');
+      return new Recusa(400, 'A contagem exige motivo: o que foi conferido, e por quê.');
+    }
+    const nome = String(b.medicamento ?? '');
+    const pid = (b.personId as string | undefined) ?? null;
+    let item = ESTOQUE.find((x) => x.medicamento === nome && x.personId === pid);
+    if (!item) {
+      item = { id: uid(), medicamento: nome, quantidade: 0, unidade: String(b.unidade ?? 'unidade'),
+               personId: pid, validade: (b.validade as string | undefined) ?? null,
+               estoqueBaixo: false, atualizadoEm: new Date().toISOString() };
+      ESTOQUE.push(item);
     }
     const anterior = item.quantidade;
     item.quantidade = tipo === 'entrada' ? anterior + q : q;
-    item.conferidoPor = eu.fullName;
-    item.ultimoMovimento = {
-      tipo: tipo === 'entrada' ? 'entrada' : 'ajuste',
-      quantidade: tipo === 'entrada' ? q : item.quantidade - anterior,
-      motivo: motivo || null, por: eu.fullName, em: new Date().toISOString(),
-    };
+    // Validade: na entrada fica a MAIS PRÓXIMA; na contagem, o que foi conferido.
+    const nova = (b.validade as string | undefined) ?? null;
+    if (nova) {
+      item.validade = tipo === 'entrada' && item.validade
+        ? (item.validade < nova ? item.validade : nova) : nova;
+    }
+    item.atualizadoEm = new Date().toISOString();
+    const diferenca = tipo === 'entrada' ? q : item.quantidade - anterior;
     return {
-      ok: true, tipo, anterior, quantidade: item.quantidade,
-      diferenca: item.ultimoMovimento.quantidade,
+      id: item.id, ok: true, tipo, anterior, quantidade: item.quantidade, diferenca,
       aviso: tipo === 'entrada'
         ? `Entrada registrada: ${anterior} + ${q} = ${item.quantidade} ${item.unidade}(s).`
         : `Contagem registrada: de ${anterior} para ${item.quantidade} ${item.unidade}(s). `
           + 'A diferença ficou no histórico, com o motivo e o seu nome.',
     };
   }
-  if (rota === '/health/triage' && metodo === 'GET') {
-    return TRIAGENS.map((t) => ({ ...t, acolhido: kid(t.personId)?.nome ?? '—' }));
+
+  /** `POST /medications/stock/:id/flag-low` — estoque baixo é sinalizado à mão (§11.6). */
+  if (seg[0] === 'medications' && seg[1] === 'stock' && seg[3] === 'flag-low' && metodo === 'POST') {
+    const item = ESTOQUE.find((x) => x.id === seg[2]);
+    if (!item) return new Recusa(404, 'Não encontrado.');
+    if (!['enfermagem', 'equipe_tecnica', 'coordenador'].includes(eu.role)) {
+      return new Recusa(403, 'Somente Enfermagem ou equipe técnica sinalizam estoque baixo.');
+    }
+    item.estoqueBaixo = b.baixo !== false;
+    return { ok: true, estoqueBaixo: item.estoqueBaixo };
   }
-  if (seg[0] === 'health' && seg[1] === 'doses' && seg[3] === 'confirm') {
-    const d = DOSES.find((x) => x.id === seg[2]);
-    if (!d) return new Recusa(404, 'Não encontrado.');
-    if (!d.pendente) {
-      return new Recusa(400, 'Esta dose já foi confirmada. A correção entra como '
-        + 'ocorrência de medicamento, não como reescrita do que foi registrado.');
-    }
-    if (!String(b.resultado ?? '').trim()) {
-      return new Recusa(400, 'Escolha o resultado da dose.');
-    }
-    if (b.resultado !== 'administrada_no_horario' && String(b.observacao ?? '').trim().length < 5) {
-      return new Recusa(400, 'Atraso, recusa, ausência ou incidente pedem observação — '
-        + 'é ela que explica o que aconteceu.');
-    }
-    d.pendente = false;
-    d.confirmadaPor = eu.fullName;
-    d.estado = b.resultado === 'administrada_no_horario' ? 'administrada' : 'registrada';
-    d.rotulo = { administrada_no_horario: 'Administrada no horário',
-      administrada_com_atraso: 'Administrada com atraso', recusada: 'Recusada pelo acolhido',
-      indisponivel: 'Medicamento indisponível', acolhido_ausente: 'Acolhido ausente',
-      incidente: 'Incidente registrado' }[String(b.resultado)] ?? 'Registrada';
-    return { ok: true, aviso: 'Dose confirmada em seu nome, com o horário de agora. '
-      + 'Só confirma quem administrou; ninguém confirma pelo outro.' };
+
+  /** `GET /nursing/panel?houseId=&date=` — todos os acolhidos, inclusive sem medicação. */
+  if (rota === '/nursing/panel' && metodo === 'GET') {
+    const data = String(q.get('date') ?? HOJE);
+    const acolhidos = todosKids().map((k) => {
+      const doses = DOSES.filter((d) => d.personId === k.id);
+      const pendentes = doses.filter((d) => d.pendente);
+      const triagens = TRIAGENS.filter((t) => t.personId === k.id && !t.assinada);
+      return {
+        acolhidoId: k.id, nome: k.nome, nomeCivil: k.civil, idade: k.idade,
+        // Dois formatos, de propósito, como no servidor: o PAINEL devolve a
+        // descrição crua ("Amendoim e derivados") e a tela põe o rótulo; a
+        // GRADE devolve já rotulada, porque ao lado de uma dose o nome sozinho
+        // se lê como o que dar. Aqui os dados nascem rotulados, então o painel
+        // tira o prefixo — era o que produzia "Alergia a Alergia a Amendoim".
+        alergias: k.alerta?.tipo === 'alergia'
+          ? k.alerta.descricao.replace(/^Alergia a /, '') : null,
+        restricoes: k.restricao?.restriction ?? null,
+        condicoes: k.alerta && k.alerta.tipo === 'condicao' ? k.alerta.descricao : null,
+        dosesPrevistas: doses.length,
+        proximaDose: pendentes[0]?.horario ?? null,
+        ultimaDose: doses.find((d) => !d.pendente)?.administradaEm ?? null,
+        dosesPendentes: pendentes.length,
+        evolucoesAguardandoTriagem: triagens.length,
+        internacaoEmAndamento: false,
+        retornoPendente: null,
+        receitaVencendo: null,
+        semMedicacaoPrevista: doses.length === 0,
+      };
+    });
+    return {
+      data,
+      hoje: HOJE,
+      receitaVencendoAncoradaEm: HOJE,
+      revendoOutroDia: data !== HOJE,
+      total: acolhidos.length,
+      resumo: {
+        comMedicacao: acolhidos.filter((a) => !a.semMedicacaoPrevista).length,
+        semMedicacao: acolhidos.filter((a) => a.semMedicacaoPrevista).length,
+        dosesPendentes: acolhidos.reduce((n, a) => n + a.dosesPendentes, 0),
+        triagensPendentes: TRIAGENS.filter((t) => !t.assinada).length,
+        internacoes: 0,
+      },
+      acolhidos,
+      aviso: 'Indicadores operacionais. Não constituem diagnóstico nem prioridade clínica automática.',
+    };
   }
-  if (seg[0] === 'health' && seg[1] === 'triage' && seg[3] === 'sign') {
+
+  /** `GET /nursing/triage?houseId=` — a fila do que ainda não foi assinado. */
+  if (rota === '/nursing/triage' && metodo === 'GET') {
+    return TRIAGENS.filter((t) => !t.assinada).map((t) => {
+      const horas = Math.floor((Date.now() - new Date(t.enviadaEm).getTime()) / 3_600_000);
+      return {
+        id: t.id, acolhidoId: t.personId, acolhido: kid(t.personId)?.nome ?? '—',
+        casa: 'AI3 · Casa 03', tipo: t.tipo, quando: t.enviadaEm,
+        local: null, especialidade: null, acompanhante: t.enviadaPor,
+        estadoRetorno: t.resumo, receita: null, orientacoes: null, restricoes: null,
+        prazoRetorno: null, offline: false,
+        status: t.pedidoComplemento ? 'complemento_solicitado' : 'aguardando_triagem',
+        pedidoComplemento: t.pedidoComplemento,
+        horasNaFila: horas,
+        // Prazo é acompanhamento, não punição.
+        foraDoPrazo: horas > 24,
+      };
+    });
+  }
+
+  /** `POST /nursing/evolutions/:id/triage` — assinar, ou devolver pedindo complemento. */
+  if (seg[0] === 'nursing' && seg[1] === 'evolutions' && seg[3] === 'triage' && metodo === 'POST') {
     const t = TRIAGENS.find((x) => x.id === seg[2]);
-    if (!t) return new Recusa(404, 'Não encontrado.');
-    if (eu.role !== 'enfermagem') {
-      return new Recusa(403, 'A assinatura de saúde é da Enfermagem. A coordenação cobra '
-        + 'a pendência, mas não assina no lugar dela.');
+    if (!t) return new Recusa(404, 'Evolução não encontrada.');
+    if (!['enfermagem', 'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403, 'Somente a Enfermagem tria e assina Evoluções de Saúde. '
+        + 'A coordenação acompanha e cobra a pendência.');
+    }
+    if (t.assinada) return new Recusa(400, 'Esta evolução já foi triada e assinada.');
+    if (b.acao === 'pedir_complemento') {
+      if (!String(b.pedido ?? '').trim()) {
+        return new Recusa(400, 'Descreva o que falta para o acompanhante complementar.');
+      }
+      t.pedidoComplemento = String(b.pedido);
+      return { ok: true, status: 'complemento_solicitado',
+               aviso: 'Devolvida ao acompanhante com o pedido registrado.' };
     }
     t.assinada = true; t.assinadaPor = eu.fullName;
     t.complemento = String(b.complemento ?? '').trim() || null;
-    return { ok: true, aviso: 'Evolução triada, conferida e assinada. Receita nova só altera '
-      + 'a grade de medicamentos depois desta revisão.' };
+    return { ok: true, status: 'assinada',
+             aviso: 'Evolução conferida e assinada. Agora a grade de medicamentos pode ser '
+               + 'atualizada, se for o caso.' };
   }
-  if (seg[0] === 'health' && seg[1] === 'summary' && metodo === 'POST') {
-    if (String(b.finalidade ?? '').trim().length < 3) {
-      return new Recusa(400, 'A finalidade da emissão é obrigatória e fica registrada.');
+
+  /** `POST /nursing/summary/:personId` — emissão com finalidade registrada (§7.4). */
+  if (seg[0] === 'nursing' && seg[1] === 'summary' && seg.length === 3 && metodo === 'POST') {
+    if (!['enfermagem', 'equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403, 'Seu cargo não emite Resumo de Saúde.');
     }
-    RESUMOS.push({ id: uid(), personId: String(b.personId ?? ''), finalidade: b.finalidade,
+    if (!FINALIDADES_RESUMO.includes(String(b.finalidade ?? ''))) {
+      return new Recusa(400, `Informe a finalidade da emissão: ${FINALIDADES_RESUMO.join(', ')}.`);
+    }
+    RESUMOS.push({ id: uid(), personId: seg[2], finalidade: String(b.finalidade),
       por: eu.fullName, em: new Date().toISOString() });
     return { ok: true, aviso: 'Resumo de Saúde gerado com o mínimo necessário: identificação, '
       + 'alergias, restrições, condições relevantes, medicamentos ativos e atendimentos '

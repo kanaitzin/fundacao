@@ -12,29 +12,71 @@ import { api } from '../api';
  *    administrada" — a segunda frase é uma conclusão, e conclusão é de gente;
  *  * a triagem só a Enfermagem assina. A coordenação cobra a pendência e vê a
  *    fila, mas não assina no lugar dela.
+ *
+ * ROTAS — 31/08/2026. Esta tela falava uma língua que o servidor não entende:
+ * `/health/panel`, `/health/stock`, `/health/triage`, `/health/doses/:id/confirm`.
+ * Nenhuma existia. Funcionava no protótipo porque o servidor de mentira havia
+ * sido escrito para ela, e teria falhado inteira no primeiro dia contra o
+ * servidor de verdade. Agora chama o que existe — `/nursing/*` e
+ * `/medications/*` — com os formatos que o backend devolve, e o `mock.ts`
+ * responde exatamente ao mesmo contrato. É um sistema só.
  */
 
 interface Dose {
-  id: string; horario: string; medicamento: string; dose: string; via: string;
-  tipo: string; condicaoUso: string | null; estado: string; rotulo: string;
-  pendente: boolean; confirmadaPor: string | null; acolhido: string; alerta: string | null;
+  id: string; horario: string;
+  acolhido: { id: string; nome: string };
+  medicamento: string; dose: string; via: string;
+  tipo: string; condicaoUso: string | null;
+  estado: string; rotulo: string; pendente: boolean;
+  confirmadaPor: string | null; administradaEm: string | null;
+  offline: boolean; observacao: string | null;
+  /** Sai do servidor já como "Alergia a Dipirona": ao lado de uma dose, o nome
+   *  do medicamento sozinho se lê como o que dar. */
+  alergias: string | null;
 }
+
+interface AcolhidoPainel {
+  acolhidoId: string; nome: string; nomeCivil: string; idade: number;
+  alergias: string | null; restricoes: string | null; condicoes: string | null;
+  dosesPrevistas: number; proximaDose: string | null; ultimaDose: string | null;
+  dosesPendentes: number; evolucoesAguardandoTriagem: number;
+  internacaoEmAndamento: boolean; retornoPendente: string | null;
+  receitaVencendo: string | null; semMedicacaoPrevista: boolean;
+}
+
 interface Painel {
   data: string;
-  resumo: { administradas: number; aguardando: number; triagensPendentes: number; estoqueBaixo: number };
-  doses: Dose[];
-  acolhidos: { id: string; nome: string; idade: number; alerta: string | null;
-               cuidado: string | null; doses: number }[];
+  /** O dia da instituição, e a âncora do aviso de receita vencendo (§8.4). */
+  hoje: string;
+  receitaVencendoAncoradaEm: string;
+  revendoOutroDia: boolean;
+  total: number;
+  resumo: {
+    comMedicacao: number; semMedicacao: number; dosesPendentes: number;
+    triagensPendentes: number; internacoes: number;
+  };
+  acolhidos: AcolhidoPainel[];
+  aviso: string;
 }
+
 interface Item {
-  id: string; medicamento: string; unidade: string; quantidade: number; minimo: number;
-  validade: string; conferidoPor: string;
-  ultimoMovimento: { tipo: 'entrada' | 'ajuste'; quantidade: number; motivo: string | null;
-                     por: string; em: string } | null;
+  id: string; medicamento: string; quantidade: number; unidade: string;
+  /** Estoque nominal de um acolhido, contra estoque de uso comum da casa. */
+  individual: boolean; acolhido: string | null;
+  validade: string | null; diasParaVencer: number | null; validadeProxima: boolean;
+  /** Sinalizado À MÃO, com autor (§11.6). O sistema não calcula o que é pouco. */
+  estoqueBaixo: boolean;
+  atualizadoEm: string;
 }
+
 interface Evolucao {
-  id: string; acolhido: string; tipo: string; enviadaPor: string; enviadaEm: string;
-  resumo: string; assinada: boolean; assinadaPor: string | null; complemento: string | null;
+  id: string; acolhidoId: string; acolhido: string; casa: string;
+  tipo: string; quando: string; local: string | null; especialidade: string | null;
+  acompanhante: string | null; estadoRetorno: string | null;
+  receita: string | null; orientacoes: string | null; restricoes: string | null;
+  prazoRetorno: string | null; offline: boolean;
+  status: string; pedidoComplemento: string | null;
+  horasNaFila: number; foraDoPrazo: boolean;
 }
 
 const hhmm = (iso: string) => new Date(iso).toLocaleTimeString('pt-BR',
@@ -44,24 +86,46 @@ const dia = (iso: string) => new Date(`${iso}T12:00:00-03:00`).toLocaleDateStrin
 
 /** O tom fala do ESTADO da dose, nunca do acolhido. */
 const TOM_DOSE: Record<string, string> = {
-  administrada: 'c-ok', registrada: 'c-info', aguardando_confirmacao: 'c-warn',
+  administrado_no_horario: 'c-ok',
+  administrado_com_atraso: 'c-warn',
+  aguardando_confirmacao: 'c-warn',
+  suspenso_conforme_orientacao: 'c-info',
+  recusado: 'c-crit', incidente: 'c-crit',
+  nao_administrado: 'c-crit', indisponivel: 'c-other',
+  acolhido_ausente: 'c-move',
 };
 
+/**
+ * Os códigos são os do servidor (`ESTADO_DOSE`, §11.2), não uma lista paralela.
+ * A tela tinha os mesmos rótulos com outros códigos — `administrada_no_horario`
+ * contra `administrado_no_horario` — e toda confirmação teria voltado 400.
+ */
 const RESULTADOS: { cod: string; label: string; tom: string; exigeObs: boolean }[] = [
-  { cod: 'administrada_no_horario', label: 'Administrada no horário', tom: 'c-ok', exigeObs: false },
-  { cod: 'administrada_com_atraso', label: 'Administrada com atraso', tom: 'c-warn', exigeObs: true },
-  { cod: 'recusada', label: 'Recusada pelo acolhido', tom: 'c-crit', exigeObs: true },
+  { cod: 'administrado_no_horario', label: 'Administrada no horário', tom: 'c-ok', exigeObs: false },
+  { cod: 'administrado_com_atraso', label: 'Administrada com atraso', tom: 'c-warn', exigeObs: true },
+  { cod: 'recusado', label: 'Recusada pelo acolhido', tom: 'c-crit', exigeObs: true },
+  { cod: 'nao_administrado', label: 'Não administrada', tom: 'c-crit', exigeObs: true },
   { cod: 'indisponivel', label: 'Medicamento indisponível', tom: 'c-other', exigeObs: true },
+  { cod: 'suspenso_conforme_orientacao', label: 'Suspensa conforme orientação', tom: 'c-info', exigeObs: false },
   { cod: 'acolhido_ausente', label: 'Acolhido ausente', tom: 'c-move', exigeObs: true },
   { cod: 'incidente', label: 'Incidente', tom: 'c-crit', exigeObs: true },
 ];
 
-const FINALIDADES = ['Consulta', 'Exame', 'Urgência ou emergência', 'Internação',
-  'Transferência assistencial'];
+/** Códigos do servidor, rótulo para gente. */
+const FINALIDADES: { cod: string; label: string }[] = [
+  { cod: 'consulta', label: 'Consulta' },
+  { cod: 'exame', label: 'Exame' },
+  { cod: 'urgencia', label: 'Urgência ou emergência' },
+  { cod: 'internacao', label: 'Internação' },
+  { cod: 'transferencia_assistencial', label: 'Transferência assistencial' },
+];
 
-export function Saude({ papel }: { papel: string }) {
+export function Saude({ houseId, casaLabel, papel }: {
+  houseId: string; casaLabel: string; papel: string;
+}) {
   const [aba, setAba] = useState<'doses' | 'triagem' | 'estoque' | 'resumo'>('doses');
   const [painel, setPainel] = useState<Painel | null>(null);
+  const [doses, setDoses] = useState<Dose[]>([]);
   const [estoque, setEstoque] = useState<Item[]>([]);
   const [triagem, setTriagem] = useState<Evolucao[]>([]);
   const [erro, setErro] = useState('');
@@ -74,17 +138,18 @@ export function Saude({ papel }: { papel: string }) {
   async function carregar() {
     setErro('');
     try {
-      const [p, e, t] = await Promise.all([
-        api<Painel>('/health/panel'),
-        api<Item[]>('/health/stock'),
-        api<Evolucao[]>('/health/triage'),
+      const [p, g, e, t] = await Promise.all([
+        api<Painel>(`/nursing/panel?houseId=${houseId}`),
+        api<Dose[]>(`/medications?houseId=${houseId}`),
+        api<Item[]>(`/medications/stock?houseId=${houseId}`),
+        api<Evolucao[]>(`/nursing/triage?houseId=${houseId}`),
       ]);
-      setPainel(p); setEstoque(e); setTriagem(t);
+      setPainel(p); setDoses(g); setEstoque(e); setTriagem(t);
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Não foi possível carregar a saúde da casa.');
     }
   }
-  useEffect(() => { carregar(); }, []);
+  useEffect(() => { carregar(); }, [houseId]);
 
   async function acao(fn: () => Promise<any>) {
     setErro(''); setAviso('');
@@ -92,9 +157,16 @@ export function Saude({ papel }: { papel: string }) {
     catch (e) { setErro(e instanceof Error ? e.message : 'Não foi possível concluir.'); return false; }
   }
 
-  const enfermagem = papel === 'enfermagem';
+  const enfermagem = papel === 'enfermagem' || papel === 'gestor_geral';
   /** Quem mexe no armário — o mesmo alcance do servidor. O educador vê e não mexe. */
   const movimenta = ['enfermagem', 'equipe_tecnica', 'coordenador', 'gestor_geral'].includes(papel);
+  const emiteResumo = ['enfermagem', 'equipe_tecnica', 'coordenador', 'gestor_geral'].includes(papel);
+
+  // Os números vêm do que já está na tela, não de um resumo paralelo: o painel
+  // do servidor conta acolhidos e pendências, e a grade conta doses.
+  const administradas = doses.filter((d) => !d.pendente).length;
+  const aguardando = doses.filter((d) => d.pendente).length;
+  const baixos = estoque.filter((i) => i.estoqueBaixo).length;
 
   return (
     <>
@@ -109,12 +181,22 @@ export function Saude({ papel }: { papel: string }) {
       )}
 
       {painel && (
-        <div className="painel">
-          <div className="tile c-ok"><b>{painel.resumo.administradas}</b><span>Doses confirmadas hoje</span></div>
-          <div className="tile c-warn"><b>{painel.resumo.aguardando}</b><span>Aguardando confirmação</span></div>
-          <div className="tile c-med"><b>{painel.resumo.triagensPendentes}</b><span>Evoluções na triagem</span></div>
-          <div className="tile c-info"><b>{painel.resumo.estoqueBaixo}</b><span>Itens abaixo do mínimo</span></div>
-        </div>
+        <>
+          <div className="eyebrow">{casaLabel} · {dia(painel.data)}</div>
+          <div className="painel">
+            <div className="tile c-ok"><b>{administradas}</b><span>Doses confirmadas hoje</span></div>
+            <div className="tile c-warn"><b>{aguardando}</b><span>Aguardando confirmação</span></div>
+            <div className="tile c-med"><b>{painel.resumo.triagensPendentes}</b><span>Evoluções na triagem</span></div>
+            <div className="tile c-info"><b>{baixos}</b><span>Itens sinalizados como baixos</span></div>
+          </div>
+          {painel.revendoOutroDia && (
+            <div className="notice c-info">
+              Você está revendo <b>{dia(painel.data)}</b>. O aviso de receita vencendo continua
+              contado a partir de hoje, {dia(painel.receitaVencendoAncoradaEm)} — a receita vence
+              numa data, e ela não muda conforme o dia que a tela mostra.
+            </div>
+          )}
+        </>
       )}
 
       <div className="filtros" role="tablist" aria-label="Seções da saúde">
@@ -128,29 +210,34 @@ export function Saude({ papel }: { papel: string }) {
                 onClick={() => setAba('resumo')}>Resumo de saúde</button>
       </div>
 
-      {aba === 'doses' && painel && (
+      {aba === 'doses' && (
         <>
           <div className="notice c-crit">
             Cada dose é confirmada <b>somente por quem a administrou</b>, na conta dela.
             Ninguém confirma pelo outro, e não existe marcação em lote.
           </div>
-          <div className="eyebrow">Doses de hoje · {dia(painel.data)}</div>
+          <div className="eyebrow">Doses de hoje</div>
           <ul className="doses">
-            {painel.doses.map((d) => (
+            {doses.map((d) => (
               <li key={d.id} className={d.pendente ? '' : 'feito'}>
                 <span className="hora">{d.tipo === 'quando_necessario' ? 's/n' : hhmm(d.horario)}</span>
                 <div className="grow">
-                  <b className="ff">{d.acolhido}</b> · {d.medicamento} {d.dose}
+                  <b className="ff">{d.acolhido.nome}</b> · {d.medicamento} {d.dose}
                   <span className="mutetxt"> · {d.via}</span>
                   {d.condicaoUso && (
                     <div className="mutetxt">Condição de uso: {d.condicaoUso}</div>
                   )}
                   <div className="row" style={{ marginTop: 5 }}>
                     <span className={`pill ${TOM_DOSE[d.estado] ?? 'c-mute'}`}>{d.rotulo}</span>
-                    {d.alerta && <span className="pill c-crit">⚠ {d.alerta}</span>}
+                    {d.alergias && <span className="pill c-crit">⚠ {d.alergias}</span>}
+                    {d.offline && <span className="pill c-mute">Registrada offline</span>}
                   </div>
+                  {d.observacao && <div className="mutetxt">{d.observacao}</div>}
                   {d.confirmadaPor && (
-                    <div className="mutetxt">Confirmada por {d.confirmadaPor}.</div>
+                    <div className="mutetxt">
+                      Confirmada por {d.confirmadaPor}
+                      {d.administradaEm ? ` às ${hhmm(d.administradaEm)}` : ''}.
+                    </div>
                   )}
                 </div>
                 {d.pendente && (
@@ -158,6 +245,9 @@ export function Saude({ papel }: { papel: string }) {
                 )}
               </li>
             ))}
+            {doses.length === 0 && (
+              <li><div className="mutetxt">Nenhuma dose na grade de hoje nesta casa.</div></li>
+            )}
           </ul>
           <p className="mutetxt" style={{ marginTop: 12 }}>
             Dose que passou da hora aparece como <b>sem confirmação</b>, nunca como
@@ -179,22 +269,38 @@ export function Saude({ papel }: { papel: string }) {
               <div className="card stack" key={t.id}>
                 <div className="row">
                   <b className="ff grow">{t.acolhido} · {t.tipo}</b>
-                  <span className={`pill ${t.assinada ? 'c-ok' : 'c-warn'}`}>
-                    {t.assinada ? 'Assinada' : 'Aguardando triagem'}
+                  <span className={`pill ${t.status === 'complemento_solicitado' ? 'c-other' : 'c-warn'}`}>
+                    {t.status === 'complemento_solicitado' ? 'Devolvida para complemento' : 'Aguardando triagem'}
                   </span>
                 </div>
-                <div className="mutetxt">Enviada por {t.enviadaPor} às {hhmm(t.enviadaEm)}.</div>
-                <div>{t.resumo}</div>
-                {t.complemento && (
-                  <div className="bloco"><small>Complemento da Enfermagem</small>{t.complemento}</div>
+                <div className="mutetxt">
+                  {t.casa} · atendimento em {hhmm(t.quando)}
+                  {t.local ? ` · ${t.local}` : ''}{t.especialidade ? ` · ${t.especialidade}` : ''}
+                  {t.acompanhante ? ` · acompanhou: ${t.acompanhante}` : ''}
+                </div>
+                {t.estadoRetorno && (
+                  <div className="bloco"><small>Estado no retorno</small>{t.estadoRetorno}</div>
                 )}
-                {t.assinada
-                  ? <div className="mutetxt">✓ Triada, conferida e assinada por {t.assinadaPor}.
-                      Receita nova só altera a grade depois desta revisão.</div>
-                  : enfermagem
-                    ? <button className="btn sm" onClick={() => setTriando(t)}>Revisar e assinar</button>
-                    : <div className="mutetxt">Só a Enfermagem assina. Você enxerga a fila para
-                        cobrar a pendência.</div>}
+                {t.orientacoes && (
+                  <div className="bloco"><small>Orientações recebidas</small>{t.orientacoes}</div>
+                )}
+                {t.receita && (
+                  <div className="mutetxt">
+                    Receita entregue: {t.receita} — <b>só altera a grade depois da triagem</b>.
+                  </div>
+                )}
+                {t.pedidoComplemento && (
+                  <div className="bloco"><small>Complemento pedido pela Enfermagem</small>{t.pedidoComplemento}</div>
+                )}
+                <div className="row">
+                  <span className={`pill ${t.foraDoPrazo ? 'c-warn' : 'c-mute'} grow`}>
+                    {t.horasNaFila}h na fila{t.foraDoPrazo ? ' · passou do combinado' : ''}
+                  </span>
+                  {enfermagem
+                    ? <button className="btn sm" onClick={() => setTriando(t)}>Revisar</button>
+                    : <span className="mutetxt">Só a Enfermagem assina. Você enxerga a fila para
+                        cobrar a pendência.</span>}
+                </div>
               </div>
             ))}
             {triagem.length === 0 && (
@@ -202,6 +308,10 @@ export function Saude({ papel }: { papel: string }) {
                 Nenhuma evolução na fila.</p></div>
             )}
           </div>
+          <p className="mutetxt" style={{ marginTop: 12 }}>
+            A fila mostra o que ainda não foi assinado. O prazo sinaliza o que passou do
+            combinado — é acompanhamento, não punição, e não ordena ninguém por desempenho.
+          </p>
         </>
       )}
 
@@ -209,45 +319,48 @@ export function Saude({ papel }: { papel: string }) {
         <>
           <div className="eyebrow">Armário de medicamentos da casa</div>
           <div className="stack">
-            {estoque.map((i) => {
-              const baixo = i.quantidade < i.minimo;
-              const m = i.ultimoMovimento;
-              return (
-                <div className="card" key={i.id}>
-                  <div className="row">
-                    <div className="grow">
-                      <b className="ff">{i.medicamento}</b>
-                      <div className="mutetxt">
-                        {i.quantidade} {i.unidade}{i.quantidade === 1 ? '' : 's'} ·
-                        mínimo {i.minimo} · validade {dia(i.validade)}
-                      </div>
-                      <div className="mutetxt">Última conferência: {i.conferidoPor}.</div>
-                      {m && (
-                        <div className="mutetxt">
-                          Último movimento: {m.tipo === 'entrada'
-                            ? `entrada de ${m.quantidade}`
-                            : `conferência, ${m.quantidade > 0 ? '+' : ''}${m.quantidade}`}
-                          {' '}· {m.por}{m.motivo ? ` · ${m.motivo}` : ''}
-                        </div>
-                      )}
+            {estoque.map((i) => (
+              <div className="card" key={i.id}>
+                <div className="row">
+                  <div className="grow">
+                    <b className="ff">{i.medicamento}</b>
+                    <div className="mutetxt">
+                      {i.quantidade} {i.unidade}{i.quantidade === 1 ? '' : 's'}
+                      {i.validade ? ` · validade ${dia(i.validade)}` : ' · sem validade registrada'}
+                      {i.diasParaVencer !== null ? ` (${i.diasParaVencer} dia(s))` : ''}
                     </div>
-                    <span className={`pill ${baixo ? 'c-warn' : 'c-ok'}`}>
-                      {baixo ? 'Abaixo do mínimo' : 'Suficiente'}
-                    </span>
+                    <div className="mutetxt">
+                      {i.individual
+                        ? `Estoque nominal de ${i.acolhido ?? '—'} — não é do uso comum da casa.`
+                        : 'Uso comum da casa.'}
+                    </div>
                   </div>
-                  {movimenta && (
-                    <div className="row" style={{ marginTop: 10, gap: 8 }}>
-                      <button className="btn sm" onClick={() => setMovendo({ item: i, tipo: 'entrada' })}>
-                        Chegou remédio
-                      </button>
-                      <button className="btn sm ghost" onClick={() => setMovendo({ item: i, tipo: 'contagem' })}>
-                        Conferi o armário
-                      </button>
-                    </div>
-                  )}
+                  <div className="stack">
+                    {i.validadeProxima && <span className="pill c-warn">Validade próxima</span>}
+                    {i.estoqueBaixo && <span className="pill c-info">Sinalizado como baixo</span>}
+                  </div>
                 </div>
-              );
-            })}
+                {movimenta && (
+                  <div className="row" style={{ marginTop: 10, gap: 8 }}>
+                    <button className="btn sm" onClick={() => setMovendo({ item: i, tipo: 'entrada' })}>
+                      Chegou remédio
+                    </button>
+                    <button className="btn sm ghost" onClick={() => setMovendo({ item: i, tipo: 'contagem' })}>
+                      Conferi o armário
+                    </button>
+                    <button className="btn sm ghost"
+                            onClick={() => acao(() => api(`/medications/stock/${i.id}/flag-low`, {
+                              method: 'POST', body: JSON.stringify({ baixo: !i.estoqueBaixo }) }))}>
+                      {i.estoqueBaixo ? 'Tirar o sinal de baixo' : 'Sinalizar como baixo'}
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
+            {estoque.length === 0 && (
+              <div className="card"><p className="mutetxt" style={{ margin: 0 }}>
+                Nada registrado no armário desta casa.</p></div>
+            )}
           </div>
           <p className="mutetxt" style={{ marginTop: 12 }}>
             <b>Chegou remédio</b> soma ao que já estava lá. <b>Conferi o armário</b> troca pelo
@@ -255,8 +368,11 @@ export function Saude({ papel }: { papel: string }) {
             diferentes, e o sistema não adivinha qual delas você está fazendo.
           </p>
           <p className="mutetxt" style={{ marginTop: 12 }}>
-            O estoque diz o estado do <b>armário</b>. Falta de medicamento é problema de
-            compra e de logística — não é indicador sobre nenhuma criança.
+            <b>Estoque baixo é sinalizado por gente.</b> Não existe "mínimo" calculado: só a
+            equipe sabe o que é pouco para cada caso — dois frascos de um xarope de uso
+            eventual podem sobrar, e dois de um contínuo acabam na quinta-feira. O estoque diz
+            o estado do <b>armário</b>: falta de medicamento é problema de compra e de
+            logística, não indicador sobre nenhuma criança.
           </p>
         </>
       )}
@@ -269,47 +385,64 @@ export function Saude({ papel }: { papel: string }) {
             <b> Sem</b> dados bancários, conteúdo judicial, comportamento ou narrativas.
             Toda emissão pede finalidade, e a finalidade fica registrada.
           </div>
-          <div className="eyebrow">Todos os acolhidos</div>
+          <div className="eyebrow">Todos os acolhidos · {painel.total}</div>
           <div className="stack">
             {painel.acolhidos.map((k) => (
-              <div className="card row" key={k.id}>
+              <div className="card row" key={k.acolhidoId}>
                 <div className="grow">
                   <b className="ff">{k.nome}</b> <span className="mutetxt">{k.idade} anos</span>
-                  {k.alerta && <div><span className="pill c-crit">⚠ {k.alerta}</span></div>}
-                  {k.cuidado && <div className="mutetxt">{k.cuidado}</div>}
+                  {k.alergias && <div><span className="pill c-crit">⚠ Alergia a {k.alergias}</span></div>}
+                  {k.restricoes && <div className="mutetxt">Restrição alimentar: {k.restricoes}</div>}
+                  {k.condicoes && <div className="mutetxt">Condições: {k.condicoes}</div>}
+                  <div className="row" style={{ marginTop: 5 }}>
+                    {k.internacaoEmAndamento && <span className="pill c-crit">Internação em andamento</span>}
+                    {k.retornoPendente && (
+                      <span className="pill c-warn">Retorno em {dia(k.retornoPendente)}</span>
+                    )}
+                    {k.receitaVencendo && (
+                      <span className="pill c-warn">Receita vence em {dia(k.receitaVencendo)}</span>
+                    )}
+                    {k.evolucoesAguardandoTriagem > 0 && (
+                      <span className="pill c-med">{k.evolucoesAguardandoTriagem} evolução(ões) na triagem</span>
+                    )}
+                  </div>
                 </div>
-                <span className={`pill ${k.doses ? 'c-med' : 'c-mute'}`}>
-                  {k.doses ? `${k.doses} dose(s) na grade` : 'Sem medicação prevista'}
+                <span className={`pill ${k.semMedicacaoPrevista ? 'c-mute' : 'c-med'}`}>
+                  {k.semMedicacaoPrevista
+                    ? 'Sem medicação prevista'
+                    : `${k.dosesPrevistas} dose(s) na grade`}
                 </span>
-                <button className="btn sm ghost"
-                        onClick={() => setResumindo({ id: k.id, nome: k.nome })}>
-                  Gerar resumo
-                </button>
+                {emiteResumo && (
+                  <button className="btn sm ghost"
+                          onClick={() => setResumindo({ id: k.acolhidoId, nome: k.nome })}>
+                    Gerar resumo
+                  </button>
+                )}
               </div>
             ))}
           </div>
           <p className="mutetxt" style={{ marginTop: 12 }}>
-            Todos aparecem, inclusive quem não tem medicação. A lista não ordena por
-            gravidade nem sugere prioridade clínica — isso seria uma decisão que o
-            sistema não pode tomar.
+            {painel.aviso} Todos aparecem, inclusive quem não tem medicação. A lista não
+            ordena por gravidade nem sugere prioridade clínica — isso seria uma decisão que
+            o sistema não pode tomar.
           </p>
         </>
       )}
 
       {confirmando && (
         <FolhaDose dose={confirmando} onFechar={() => setConfirmando(null)}
-                   onConfirmar={async (resultado, observacao) => {
-                     const ok = await acao(() => api(`/health/doses/${confirmando.id}/confirm`, {
-                       method: 'POST', body: JSON.stringify({ resultado, observacao }) }));
+                   onConfirmar={async (estado, nota) => {
+                     const ok = await acao(() => api(`/medications/doses/${confirmando.id}/confirm`, {
+                       method: 'POST', body: JSON.stringify({ estado, nota }) }));
                      if (ok) setConfirmando(null);
                    }} />
       )}
 
       {triando && (
         <FolhaTriagem evolucao={triando} onFechar={() => setTriando(null)}
-                      onAssinar={async (complemento) => {
-                        const ok = await acao(() => api(`/health/triage/${triando.id}/sign`, {
-                          method: 'POST', body: JSON.stringify({ complemento }) }));
+                      onEnviar={async (corpo) => {
+                        const ok = await acao(() => api(`/nursing/evolutions/${triando.id}/triage`, {
+                          method: 'POST', body: JSON.stringify(corpo) }));
                         if (ok) setTriando(null);
                       }} />
       )}
@@ -317,9 +450,8 @@ export function Saude({ papel }: { papel: string }) {
       {resumindo && (
         <FolhaResumo pessoa={resumindo} onFechar={() => setResumindo(null)}
                      onGerar={async (finalidade) => {
-                       const ok = await acao(() => api('/health/summary', {
-                         method: 'POST',
-                         body: JSON.stringify({ personId: resumindo.id, finalidade }) }));
+                       const ok = await acao(() => api(`/nursing/summary/${resumindo.id}`, {
+                         method: 'POST', body: JSON.stringify({ finalidade }) }));
                        if (ok) setResumindo(null);
                      }} />
       )}
@@ -328,9 +460,12 @@ export function Saude({ papel }: { papel: string }) {
         <FolhaEstoque
           item={movendo.item} tipo={movendo.tipo} onFechar={() => setMovendo(null)}
           onGravar={async (quantidade, motivo) => {
-            const ok = await acao(() => api(`/health/stock/${movendo.item.id}/movimento`, {
+            const ok = await acao(() => api('/medications/stock', {
               method: 'POST',
-              body: JSON.stringify({ tipo: movendo.tipo, quantidade, motivo }) }));
+              body: JSON.stringify({
+                tipo: movendo.tipo, houseId, medicamento: movendo.item.medicamento,
+                unidade: movendo.item.unidade, quantidade, motivo,
+              }) }));
             if (ok) setMovendo(null);
           }} />
       )}
@@ -411,22 +546,23 @@ function FolhaEstoque({ item, tipo, onFechar, onGravar }: {
 }
 
 function FolhaDose({ dose, onFechar, onConfirmar }: {
-  dose: Dose; onFechar: () => void; onConfirmar: (resultado: string, obs: string) => void;
+  dose: Dose; onFechar: () => void; onConfirmar: (estado: string, nota: string) => void;
 }) {
-  const [resultado, setResultado] = useState('');
-  const [obs, setObs] = useState('');
-  const escolhido = RESULTADOS.find((r) => r.cod === resultado);
+  const [estado, setEstado] = useState('');
+  const [nota, setNota] = useState('');
+  const escolhido = RESULTADOS.find((r) => r.cod === estado);
+  const podeConfirmar = !!estado && (!escolhido?.exigeObs || nota.trim().length > 0);
 
   return (
     <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-dose"
          onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
       <div className="sheet modal">
-        <h3 id="t-dose">Confirmar dose · {dose.acolhido}</h3>
+        <h3 id="t-dose">Confirmar dose · {dose.acolhido.nome}</h3>
         <p className="mutetxt">
           {dose.medicamento} {dose.dose} · {dose.via} · previsto para {hhmm(dose.horario)}
         </p>
-        {dose.alerta && (
-          <div className="notice c-crit">⚠ Alerta essencial registrado: <b>{dose.alerta}</b></div>
+        {dose.alergias && (
+          <div className="notice c-crit">⚠ Alerta essencial registrado: <b>{dose.alergias}</b></div>
         )}
         <div className="notice c-info">
           A confirmação é individual e intransferível: <b>só confirma quem administrou</b>.
@@ -437,8 +573,8 @@ function FolhaDose({ dose, onFechar, onConfirmar }: {
         <div className="opts">
           {RESULTADOS.map((r) => (
             <button type="button" key={r.cod} className={`opt ${r.tom}`}
-                    aria-pressed={resultado === r.cod}
-                    onClick={() => setResultado(r.cod)}>{r.label}</button>
+                    aria-pressed={estado === r.cod}
+                    onClick={() => setEstado(r.cod)}>{r.label}</button>
           ))}
         </div>
 
@@ -447,41 +583,89 @@ function FolhaDose({ dose, onFechar, onConfirmar }: {
             <label className="f" htmlFor="obs-dose">
               Observação <small>— obrigatória neste resultado</small>
             </label>
-            <textarea id="obs-dose" value={obs} onChange={(e) => setObs(e.target.value)}
+            <textarea id="obs-dose" value={nota} onChange={(e) => setNota(e.target.value)}
                       placeholder="Ex.: recusou a primeira oferta; aceitou depois de conversar." />
           </>
         )}
 
         <div className="row rodape">
           <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
-          <button className="btn grow" disabled={!resultado}
-                  onClick={() => onConfirmar(resultado, obs)}>Confirmar dose</button>
+          <button className="btn grow" disabled={!podeConfirmar}
+                  onClick={() => onConfirmar(estado, nota)}>Confirmar dose</button>
         </div>
       </div>
     </div>
   );
 }
 
-function FolhaTriagem({ evolucao, onFechar, onAssinar }: {
-  evolucao: Evolucao; onFechar: () => void; onAssinar: (complemento: string) => void;
+/**
+ * Triar é conferir e assinar — ou devolver pedindo o que falta.
+ *
+ * A tela só sabia assinar, e o servidor sempre soube fazer as duas coisas. A
+ * evolução incompleta ficava entre assinar algo que a Enfermagem não confere e
+ * deixar na fila para sempre; devolver com o pedido escrito é o caminho que a
+ * casa já usa.
+ */
+function FolhaTriagem({ evolucao, onFechar, onEnviar }: {
+  evolucao: Evolucao; onFechar: () => void;
+  onEnviar: (corpo: { acao: 'assinar' | 'pedir_complemento'; complemento?: string;
+                      notaClinica?: string; pedido?: string }) => void;
 }) {
+  const [acao, setAcao] = useState<'assinar' | 'pedir_complemento'>('assinar');
   const [complemento, setComplemento] = useState('');
+  const [pedido, setPedido] = useState('');
+  const assinar = acao === 'assinar';
+  const pode = assinar || pedido.trim().length > 0;
+
   return (
     <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-tri"
          onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
       <div className="sheet modal">
-        <h3 id="t-tri">Revisar e assinar · {evolucao.acolhido}</h3>
-        <p className="mutetxt">{evolucao.tipo} · enviada por {evolucao.enviadaPor}.</p>
-        <div className="bloco"><small>Relato de quem acompanhou</small>{evolucao.resumo}</div>
-        <label className="f" htmlFor="compl">
-          Complemento da Enfermagem <small>— entra ao lado, sem reescrever o relato</small>
-        </label>
-        <textarea id="compl" value={complemento} onChange={(e) => setComplemento(e.target.value)}
-                  placeholder="Ex.: grade conferida com a receita nova antes de valer na casa." />
+        <h3 id="t-tri">Revisar · {evolucao.acolhido}</h3>
+        <p className="mutetxt">
+          {evolucao.tipo}
+          {evolucao.acompanhante ? ` · acompanhou: ${evolucao.acompanhante}` : ''}
+          {' '}· {evolucao.horasNaFila}h na fila.
+        </p>
+        {evolucao.estadoRetorno && (
+          <div className="bloco"><small>Estado no retorno</small>{evolucao.estadoRetorno}</div>
+        )}
+        {evolucao.orientacoes && (
+          <div className="bloco"><small>Orientações recebidas</small>{evolucao.orientacoes}</div>
+        )}
+
+        <div className="opts">
+          <button type="button" className="opt c-ok" aria-pressed={assinar}
+                  onClick={() => setAcao('assinar')}>Conferir e assinar</button>
+          <button type="button" className="opt c-other" aria-pressed={!assinar}
+                  onClick={() => setAcao('pedir_complemento')}>Devolver pedindo complemento</button>
+        </div>
+
+        {assinar ? (
+          <>
+            <label className="f" htmlFor="compl">
+              Complemento da Enfermagem <small>— entra ao lado, sem reescrever o relato</small>
+            </label>
+            <textarea id="compl" value={complemento} onChange={(e) => setComplemento(e.target.value)}
+                      placeholder="Ex.: grade conferida com a receita nova antes de valer na casa." />
+          </>
+        ) : (
+          <>
+            <label className="f" htmlFor="ped">
+              O que falta <small>— obrigatório: quem acompanhou precisa saber o que completar</small>
+            </label>
+            <textarea id="ped" value={pedido} onChange={(e) => setPedido(e.target.value)}
+                      placeholder="Ex.: falta o horário da próxima dose e o nome de quem atendeu." />
+          </>
+        )}
+
         <div className="row rodape">
           <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
-          <button className="btn grow" onClick={() => onAssinar(complemento)}>
-            Assinar como Enfermagem
+          <button className="btn grow" disabled={!pode}
+                  onClick={() => onEnviar(assinar
+                    ? { acao: 'assinar', complemento }
+                    : { acao: 'pedir_complemento', pedido })}>
+            {assinar ? 'Assinar como Enfermagem' : 'Devolver com o pedido'}
           </button>
         </div>
       </div>
@@ -492,7 +676,7 @@ function FolhaTriagem({ evolucao, onFechar, onAssinar }: {
 function FolhaResumo({ pessoa, onFechar, onGerar }: {
   pessoa: { id: string; nome: string }; onFechar: () => void; onGerar: (f: string) => void;
 }) {
-  const [finalidade, setFinalidade] = useState(FINALIDADES[0]);
+  const [finalidade, setFinalidade] = useState(FINALIDADES[0].cod);
   return (
     <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-res"
          onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
@@ -502,7 +686,7 @@ function FolhaResumo({ pessoa, onFechar, onGerar }: {
           Finalidade da emissão <small>— obrigatória e registrada</small>
         </label>
         <select id="fin-res" value={finalidade} onChange={(e) => setFinalidade(e.target.value)}>
-          {FINALIDADES.map((f) => <option key={f} value={f}>{f}</option>)}
+          {FINALIDADES.map((f) => <option key={f.cod} value={f.cod}>{f.label}</option>)}
         </select>
         <div className="notice c-warn">
           O documento sai marcado <b>confidencial — uso em saúde</b> e leva apenas o
