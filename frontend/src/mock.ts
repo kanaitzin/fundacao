@@ -146,6 +146,8 @@ const EQUIPE_CASA = [
 ];
 
 let eu = USUARIOS['educador.ai3@paodospobres.dev'];
+/** Quem foi desativado no protótipo — some da escala, nunca do histórico. */
+const DESATIVADOS = new Set<string>();
 
 // ---------------------------------------------------------------- estado vivo
 
@@ -849,7 +851,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
   if (rota === '/staff') {
     return EQUIPE_CASA.map((m) => ({
       id: m.id, fullName: m.nome, email: `${m.nome.split(' ')[0].toLowerCase()}@paodospobres.dev`,
-      role: m.cargo, active: true, mustChangePassword: false,
+      role: m.cargo, active: !DESATIVADOS.has(m.id), mustChangePassword: false,
       houses: [{ code: CASA.code, name: CASA.name }],
     }));
   }
@@ -863,8 +865,43 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       { cod: 'cozinha', label: 'Cozinha', ajuda: 'Só o relatório de restrições.' },
     ];
   }
-  if (rota.startsWith('/staff/')) {
-    return { ok: true, aviso: 'No protótipo, a alteração vale só nesta tela.' };
+  /**
+   * Desativar, reativar e redefinir senha — cada um com a sua frase.
+   *
+   * Havia um curinga aqui que respondia "no protótipo, a alteração vale só
+   * nesta tela" para QUALQUER coisa sob /staff/. Redefinir a senha de alguém
+   * não é "uma alteração": encerra as sessões abertas e devolve uma senha que
+   * aparece uma única vez. Um curinga que engole isso ensina a equipe uma
+   * operação que não é a do sistema.
+   */
+  if (seg[0] === 'staff' && seg[2] === 'deactivate' && metodo === 'POST') {
+    if (!['coordenador', 'gestor_geral', 'admin_tecnico'].includes(eu.role)) {
+      return new Recusa(403, 'Administrar a equipe é da coordenação, da gestão ou da '
+        + 'administração técnica.');
+    }
+    DESATIVADOS.add(seg[1]);
+    return { ok: true, ativo: false,
+      aviso: 'Desativado, e as sessões abertas foram encerradas. O histórico e a autoria '
+        + 'de tudo o que registrou permanecem — o sistema não apaga pessoas.' };
+  }
+  if (seg[0] === 'staff' && seg[2] === 'reactivate' && metodo === 'POST') {
+    DESATIVADOS.delete(seg[1]);
+    return { ok: true, ativo: true, aviso: 'Reativado. O histórico dele nunca deixou de existir.' };
+  }
+  if (seg[0] === 'staff' && seg[2] === 'reset-password' && metodo === 'POST') {
+    if (!['coordenador', 'gestor_geral', 'admin_tecnico'].includes(eu.role)) {
+      return new Recusa(403, 'Redefinir senha é da coordenação, da gestão ou da '
+        + 'administração técnica.');
+    }
+    const senha = String(b.senha ?? '').trim() || `inicial-${uid()}`;
+    if (senha.length < 6) return new Recusa(400, 'A senha precisa de pelo menos 6 caracteres.');
+    return { senhaInicial: senha,
+      aviso: 'Senha redefinida e sessões encerradas. Entregue a senha à pessoa; ela é '
+        + 'mostrada uma única vez. Quando der, prefira o convite: assim a senha não passa '
+        + 'pela mão de quem convida.' };
+  }
+  if (seg[0] === 'staff' && seg.length === 2 && metodo === 'PATCH') {
+    return { ok: true, aviso: 'Cadastro atualizado. No protótipo a alteração vale só nesta tela.' };
   }
 
   // ---- o dia
