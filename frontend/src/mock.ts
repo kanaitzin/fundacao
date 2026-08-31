@@ -392,12 +392,20 @@ const CATEGORIAS_OCORRENCIA = [
   { cod: 'outro', label: 'Outro', tom: 'c-mute', exigeRevisao: false, restrita: false },
 ];
 
+/**
+ * Ocorrência no vocabulário do servidor: um `status` só, com os mesmos valores
+ * do CHECK do banco. O protótipo tinha DOIS campos paralelos
+ * (`etapaOperacional` + `situacao`) que juntos diziam menos e podiam
+ * contradizer um ao outro — "operacional aberta" com "aguardando revisão".
+ */
+type StatusOcorrencia = 'aberta' | 'em_acompanhamento' | 'encerrada_operacional'
+  | 'aguardando_revisao_tecnica' | 'fechada' | 'reaberta';
 interface Ocorrencia {
   id: string; categoria: string; personId: string | null; fato: string; medidas: string;
   falaEspontanea: string | null; abertaPor: string; abertaEm: string;
-  etapaOperacional: 'aberta' | 'encerrada'; situacao: 'em_andamento' | 'aguardando_revisao' | 'encerrada';
+  status: StatusOcorrencia;
   avisados: string[];
-  acompanhamento: { id: string; quem: string; texto: string; em: string }[];
+  sinteses: { id: string; texto: string; autor: string; quando: string }[];
 }
 let OCORRENCIAS: Ocorrencia[] = [
   { id: 'o1', categoria: 'saida_nao_autorizada', personId: 'p10',
@@ -405,21 +413,21 @@ let OCORRENCIAS: Ocorrencia[] = [
     medidas: 'Líder Noturno Geral acionado na hora; busca conforme protocolo da casa; '
       + 'acolhido recebido e avaliado pela equipe do plantão.',
     falaEspontanea: null, abertaPor: 'Joana Lima (fictícia)', abertaEm: emHoras(21, 40),
-    etapaOperacional: 'encerrada', situacao: 'aguardando_revisao',
+    status: 'encerrada_operacional',
     avisados: ['Líder Diurno', 'equipe técnica', 'coordenação'],
-    acompanhamento: [
-      { id: 'oa1', quem: 'Nélio Noturno (fictício)',
+    sinteses: [
+      { id: 'oa1', autor: 'Nélio Noturno (fictício)',
         texto: 'Etapa operacional encerrada às 23h40, com o acolhido na casa e sem lesão referida.',
-        em: emHoras(23, 40) },
+        quando: emHoras(23, 40) },
     ] },
   { id: 'o2', categoria: 'erro_medicamento', personId: 'p02',
     fato: 'A dose das 8h foi ofertada com 40 minutos de atraso, por indisponibilidade do frasco na casa.',
     medidas: 'Enfermagem avisada na hora; frasco reposto do estoque da unidade; '
       + 'horário real anotado na grade.',
     falaEspontanea: null, abertaPor: 'Tainá Souza (fictícia)', abertaEm: emHoras(8, 45),
-    etapaOperacional: 'encerrada', situacao: 'aguardando_revisao',
+    status: 'aguardando_revisao_tecnica',
     avisados: ['Líder Diurno', 'equipe técnica', 'coordenação', 'Enfermagem'],
-    acompanhamento: [] },
+    sinteses: [] },
 ];
 
 /**
@@ -1523,42 +1531,100 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       + 'download ficaram registrados com o seu nome.' };
   }
 
-  // ---- ocorrências
-  if (rota === '/incidents/categories') return CATEGORIAS_OCORRENCIA;
+  // ---- ocorrências: as rotas do servidor (§13)
+  //
+  // Chamava /incidents/categories, /:id/note, /:id/close e /:id/reopen. O
+  // catálogo é /incidents/catalog; a nota é uma SÍNTESE; fechar e reabrir são
+  // a MESMA rota de revisão, com decisões opostas. E /categories casava com
+  // GET /incidents/:id: o servidor leria "categories" como um id.
+
+  if (rota === '/incidents/catalog') {
+    return {
+      categorias: CATEGORIAS_OCORRENCIA.map((c) => ({
+        code: c.cod, label: c.label, revisaoTecnica: c.exigeRevisao, restrito: c.restrita,
+      })),
+      orgaos: ['judiciario', 'conselho_tutelar', 'ministerio_publico', 'saude', 'escola', 'rede', 'outro'],
+      canais: ['oficio', 'email_institucional', 'presencial', 'telefone', 'sistema_externo'],
+      aviso: 'O registro nunca deve atrasar proteção imediata, atendimento de saúde ou o '
+        + 'protocolo institucional. Abra a ocorrência com o mínimo e complete depois.',
+    };
+  }
+
+  /** Lista MAGRA, como a do servidor: nada de fato, medidas ou fala espontânea. */
   if (rota === '/incidents' && metodo === 'GET') {
     return OCORRENCIAS.map((o) => {
       const cat = CATEGORIAS_OCORRENCIA.find((c) => c.cod === o.categoria)!;
       return {
-        id: o.id, categoria: cat.label, tom: cat.tom, exigeRevisao: cat.exigeRevisao,
-        restrita: cat.restrita, acolhido: o.personId ? kid(o.personId)?.nome ?? '—' : 'Casa toda',
-        fato: o.fato, medidas: o.medidas,
-        // Campo restrito não é filtro de tela por acaso: quem não pode ler recebe null.
-        falaEspontanea: ['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)
-          ? o.falaEspontanea : null,
-        abertaPor: o.abertaPor, abertaEm: o.abertaEm,
-        etapaOperacional: o.etapaOperacional, situacao: o.situacao,
-        avisados: o.avisados, acompanhamento: o.acompanhamento,
+        id: o.id, categoria: cat.label, codigoCategoria: cat.cod,
+        quando: o.abertaEm, status: o.status,
+        nivelAcesso: cat.restrita ? 'restrito' : 'equipe',
+        revisaoTecnicaObrigatoria: cat.exigeRevisao,
+        prazo: null, abertaPor: o.abertaPor,
+        acolhidos: o.personId ? 1 : 0, anexos: 0,
       };
     });
   }
+
+  /** Detalhe: é AQUI que a política decide o que devolver. */
+  if (seg[0] === 'incidents' && seg.length === 2 && metodo === 'GET') {
+    const o = OCORRENCIAS.find((x) => x.id === seg[1]);
+    if (!o) return new Recusa(404, 'Ocorrência não encontrada — ou fora do seu alcance.');
+    const cat = CATEGORIAS_OCORRENCIA.find((c) => c.cod === o.categoria)!;
+    const tecnica = ['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role);
+    // Conteúdo protegido não é escondido na tela: NÃO É DEVOLVIDO.
+    const podeProtegido = tecnica || o.abertaPor === eu.fullName;
+    return {
+      id: o.id, casaId: 'AI3', categoria: cat.label, codigoCategoria: cat.cod,
+      quando: o.abertaEm, atividade: null,
+      fato: o.fato, presentes: null, medidasImediatas: o.medidas,
+      saude: /saude|medicamento/.test(cat.cod), medicamento: cat.cod === 'erro_medicamento',
+      contatos: null, pendencias: null, prazo: null,
+      status: o.status, nivelAcesso: cat.restrita ? 'restrito' : 'equipe',
+      revisaoTecnicaObrigatoria: cat.exigeRevisao,
+      acolhidos: o.personId
+        ? [{ id: o.personId, nome: kid(o.personId)?.nome ?? '(fora do seu alcance)', visivel: true }]
+        : [],
+      protegido: podeProtegido && o.falaEspontanea
+        ? { falaEspontanea: o.falaEspontanea, sinaisObservados: null, registradoEm: o.abertaEm }
+        : null,
+      avisoProtegido: podeProtegido ? null
+        : 'Fala espontânea e sinais observados, quando existem, são acessíveis à equipe '
+          + 'técnica e à coordenação.',
+      contencao: null,
+      sinteses: tecnica ? o.sinteses : [],
+      relatos: {
+        modo: ['equipe_tecnica', 'coordenador', 'lider_diurno', 'lider_noturno_geral'].includes(eu.role)
+          ? 'lado_a_lado' : 'restrito_ao_proprio',
+        nota: ['equipe_tecnica', 'coordenador', 'lider_diurno', 'lider_noturno_geral'].includes(eu.role)
+          ? 'Todos os relatos deste fato, na ordem em que aconteceram. Nenhum foi alterado.'
+          : 'Você vê o seu relato e os registros abertos à equipe. Narrativas pessoais de '
+            + 'colegas não são exibidas.',
+        relatos: [],
+      },
+      avisoAnaliseTecnica: tecnica ? null
+        : 'Sínteses técnicas e comunicações externas, quando existem, são acessíveis à '
+          + 'equipe técnica e à coordenação.',
+      anexos: [], comunicacoesExternas: [],
+    };
+  }
+
   if (rota === '/incidents' && metodo === 'POST') {
     const cat = CATEGORIAS_OCORRENCIA.find((c) => c.cod === b.categoria);
-    if (!cat) return new Recusa(400, 'Escolha a categoria da ocorrência.');
-    if (String(b.fato ?? '').trim().length < 10) {
-      return new Recusa(400, 'Descreva o fato: o que aconteceu, o horário e o que foi '
-        + 'feito na hora. Fato e contexto, sem rótulo.');
+    if (!cat) return new Recusa(400, 'Categoria inválida.');
+    if (String(b.fato ?? '').trim().length < 15) {
+      return new Recusa(400, 'Descreva o fato objetivamente: o que aconteceu, onde e quando. '
+        + 'Sem interpretação e sem juízo sobre a pessoa.');
     }
-    if (String(b.medidas ?? '').trim().length < 5) {
-      return new Recusa(400, 'Descreva as medidas imediatas de proteção e atendimento.');
-    }
+    if (!b.quando) return new Recusa(400, 'Informe a data e a hora do fato.');
     const avisados = ['Líder Diurno', 'equipe técnica', 'coordenação']
       .concat(/saude|medicamento/.test(String(b.categoria)) ? ['Enfermagem'] : []);
+    const acolhidos: string[] = Array.isArray(b.acolhidos) ? b.acolhidos : [];
     const nova: Ocorrencia = {
-      id: uid(), categoria: cat.cod, personId: b.personId || null,
-      fato: b.fato, medidas: b.medidas,
+      id: uid(), categoria: cat.cod, personId: acolhidos[0] ?? null,
+      fato: String(b.fato), medidas: String(b.medidasImediatas ?? ''),
       falaEspontanea: cat.restrita ? (String(b.falaEspontanea ?? '').trim() || null) : null,
-      abertaPor: eu.fullName, abertaEm: new Date().toISOString(),
-      etapaOperacional: 'aberta', situacao: 'em_andamento', avisados, acompanhamento: [],
+      abertaPor: eu.fullName, abertaEm: String(b.quando),
+      status: 'aberta', avisados, sinteses: [],
     };
     OCORRENCIAS = [nova, ...OCORRENCIAS];
     return { id: nova.id, avisados, exigeRevisao: cat.exigeRevisao,
@@ -1569,51 +1635,76 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         + ` Avisados agora: ${avisados.join(', ')}. O Gestor Geral não recebe automaticamente: `
         + 'quem escalona é a equipe técnica ou a coordenação.' };
   }
-  if (seg[0] === 'incidents' && seg[2] === 'note') {
+
+  /** Síntese: registro NOVO, ao lado. Nunca reescreve relato nenhum. */
+  if (seg[0] === 'incidents' && seg[2] === 'synthesis' && metodo === 'POST') {
     const o = OCORRENCIAS.find((x) => x.id === seg[1]);
     if (!o) return new Recusa(404, 'Não encontrado.');
-    if (String(b.texto ?? '').trim().length < 5) {
-      return new Recusa(400, 'Escreva o acompanhamento antes de registrar.');
+    if (!['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403, 'A síntese cabe à equipe técnica e à coordenação.');
     }
-    o.acompanhamento = [...o.acompanhamento, { id: uid(), quem: eu.fullName,
-      texto: b.texto, em: new Date().toISOString() }];
-    return { ok: true, aviso: 'Acompanhamento registrado ao lado do que já estava escrito. '
-      + 'Nada foi reescrito.' };
+    if (String(b.texto ?? '').trim().length < 20) {
+      return new Recusa(400, 'A síntese precisa de conteúdo (mínimo 20 caracteres).');
+    }
+    o.sinteses = [...o.sinteses, { id: uid(), autor: eu.fullName,
+      texto: String(b.texto), quando: new Date().toISOString() }];
+    return { ok: true, aviso: 'Síntese gravada. Nenhum relato original foi alterado ou apagado.' };
   }
-  if (seg[0] === 'incidents' && seg[2] === 'operational-close') {
+
+  if (seg[0] === 'incidents' && seg[2] === 'operational-close' && metodo === 'POST') {
     const o = OCORRENCIAS.find((x) => x.id === seg[1]);
-    if (!o) return new Recusa(404, 'Não encontrado.');
+    if (!o) return new Recusa(404, 'Ocorrência não encontrada.');
+    if (o.status === 'fechada') return new Recusa(400, 'Esta ocorrência já está fechada.');
+    if (['encerrada_operacional', 'aguardando_revisao_tecnica'].includes(o.status)) {
+      return new Recusa(400, 'A etapa operacional desta ocorrência já foi encerrada.');
+    }
+    if (!['lider_diurno', 'lider_noturno_geral', 'equipe_tecnica', 'coordenador', 'gestor_geral']
+        .includes(eu.role)) {
+      return new Recusa(403, 'O encerramento da etapa operacional cabe ao líder responsável, '
+        + 'à equipe técnica ou à coordenação.');
+    }
     const cat = CATEGORIAS_OCORRENCIA.find((c) => c.cod === o.categoria)!;
-    o.etapaOperacional = 'encerrada';
-    o.situacao = cat.exigeRevisao ? 'aguardando_revisao' : 'aguardando_revisao';
-    return { ok: true, aviso: 'Etapa operacional encerrada. A ocorrência continua aberta '
-      + 'aguardando a análise de quem responde pelo caso.' };
+    o.status = cat.exigeRevisao ? 'aguardando_revisao_tecnica' : 'encerrada_operacional';
+    return { status: o.status,
+      aviso: cat.exigeRevisao
+        ? 'Etapa operacional encerrada. A ocorrência permanece AGUARDANDO REVISÃO TÉCNICA — '
+          + 'ela não está fechada.'
+        : 'Etapa operacional encerrada.' };
   }
-  if (seg[0] === 'incidents' && seg[2] === 'close') {
+
+  /** Fechar e reabrir: a MESMA rota, decisões opostas — como no servidor. */
+  if (seg[0] === 'incidents' && seg[2] === 'review' && metodo === 'POST') {
     const o = OCORRENCIAS.find((x) => x.id === seg[1]);
-    if (!o) return new Recusa(404, 'Não encontrado.');
+    if (!o) return new Recusa(404, 'Ocorrência não encontrada.');
+    const decisao = String(b.decisao ?? '');
+    if (!['validar', 'reabrir'].includes(decisao)) {
+      return new Recusa(400, 'Decisão deve ser "validar" ou "reabrir".');
+    }
+    if (!['equipe_tecnica', 'coordenador'].includes(eu.role)) {
+      return new Recusa(403, 'A validação técnica cabe à equipe técnica e à coordenação.');
+    }
+    if (decisao === 'reabrir') {
+      if (!['fechada', 'encerrada_operacional', 'aguardando_revisao_tecnica'].includes(o.status)) {
+        return new Recusa(400, 'Só se reabre uma ocorrência encerrada ou fechada.');
+      }
+      o.status = 'reaberta';
+      return { status: 'reaberta', aviso: 'Reaberta, com histórico preservado.' };
+    }
+    if (o.status === 'fechada') return new Recusa(400, 'Esta ocorrência já está fechada.');
+    if (!['aguardando_revisao_tecnica', 'encerrada_operacional'].includes(o.status)) {
+      return new Recusa(400, 'A revisão técnica vem depois do encerramento da etapa '
+        + 'operacional. O líder responsável precisa encerrá-la primeiro.');
+    }
     const cat = CATEGORIAS_OCORRENCIA.find((c) => c.cod === o.categoria)!;
-    if (cat.exigeRevisao && !['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)) {
-      return new Recusa(403, 'Esta categoria só se encerra com validação da equipe técnica '
-        + 'ou da coordenação. A etapa operacional você pode encerrar; a análise, não.');
+    const grave = /saude|medicamento/.test(cat.cod)
+      || ['contencao', 'violencia_ou_suspeita'].includes(cat.cod);
+    if (grave && o.sinteses.length === 0) {
+      return new Recusa(400, 'Registre a síntese técnica antes de fechar. Em caso de saúde, '
+        + 'medicamento, contenção ou violência, o fechamento precisa dizer a que se chegou.');
     }
-    if (String(b.sintese ?? '').trim().length < 15) {
-      return new Recusa(400, 'A síntese é obrigatória: é ela que diz a que se chegou e o que '
-        + 'fica combinado. Ela entra como registro novo, sem apagar nenhum relato.');
-    }
-    o.acompanhamento = [...o.acompanhamento, { id: uid(), quem: eu.fullName,
-      texto: b.sintese, em: new Date().toISOString() }];
-    o.situacao = 'encerrada';
-    return { ok: true, aviso: 'Ocorrência encerrada com síntese assinada por você. Os relatos '
-      + 'originais continuam como foram escritos, e a ocorrência pode ser reaberta com histórico.' };
-  }
-  if (seg[0] === 'incidents' && seg[2] === 'reopen') {
-    const o = OCORRENCIAS.find((x) => x.id === seg[1]);
-    if (!o) return new Recusa(404, 'Não encontrado.');
-    o.situacao = 'aguardando_revisao';
-    o.acompanhamento = [...o.acompanhamento, { id: uid(), quem: eu.fullName,
-      texto: `Reaberta. Motivo: ${String(b.motivo ?? '—')}`, em: new Date().toISOString() }];
-    return { ok: true, aviso: 'Reaberta com histórico. Nada foi apagado.' };
+    o.status = 'fechada';
+    return { status: 'fechada',
+      aviso: 'Fechada após validação técnica. O histórico permanece consultável e pode ser reaberto.' };
   }
 
   // ---- ATA

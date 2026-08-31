@@ -310,7 +310,7 @@ export function App() {
 
         {/* Ocorrência e ATA são de todo mundo do plantão: quem viu o fato é
             quem registra, e quem conduz o turno é quem fecha. */}
-        {aba === 'ocorrencias' && <Ocorrencias papel={me.role} />}
+        {aba === 'ocorrencias' && casaAtual && <Ocorrencias houseId={casaAtual.id} papel={me.role} />}
 
         {aba === 'ata' && <Ata />}
 
