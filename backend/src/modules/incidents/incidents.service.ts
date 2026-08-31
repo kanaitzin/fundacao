@@ -18,8 +18,35 @@ export const CATEGORIAS = [
   { code: 'outro', label: 'Outro', revisaoTecnica: false, restrito: false },
 ];
 
-const ORGAOS = ['judiciario', 'conselho_tutelar', 'ministerio_publico', 'saude', 'escola', 'rede', 'outro'];
-const CANAIS = ['oficio', 'email_institucional', 'presencial', 'telefone', 'sistema_externo'];
+/**
+ * ÓRGÃOS e CANAIS da comunicação externa (§13.6).
+ *
+ * Os códigos são do banco; os rótulos existem porque a tela não deve traduzir
+ * `ministerio_publico` sozinha — no dia em que entrar um órgão novo, a lista
+ * muda aqui e a tela acompanha sem release.
+ *
+ * O CANAL é registro do que foi feito por uma PESSOA. Não existe rota de
+ * envio, e é por isso que "e-mail institucional" aqui significa "alguém
+ * enviou um e-mail e anotou", jamais "o sistema enviou".
+ */
+const ORGAOS_LISTA = [
+  { cod: 'judiciario', label: 'Judiciário (Vara da Infância)' },
+  { cod: 'conselho_tutelar', label: 'Conselho Tutelar' },
+  { cod: 'ministerio_publico', label: 'Ministério Público' },
+  { cod: 'saude', label: 'Rede de saúde' },
+  { cod: 'escola', label: 'Escola' },
+  { cod: 'rede', label: 'Outro serviço da rede' },
+  { cod: 'outro', label: 'Outro' },
+];
+const CANAIS_LISTA = [
+  { cod: 'oficio', label: 'Ofício em papel' },
+  { cod: 'email_institucional', label: 'E-mail institucional' },
+  { cod: 'presencial', label: 'Entrega presencial' },
+  { cod: 'telefone', label: 'Telefone' },
+  { cod: 'sistema_externo', label: 'Sistema do órgão' },
+];
+const ORGAOS = ORGAOS_LISTA.map((o) => o.cod);
+const CANAIS = CANAIS_LISTA.map((c) => c.cod);
 
 /** Termos que não podem aparecer em nome de arquivo (§3.3). */
 const PROIBIDO_NO_NOME = [
@@ -49,7 +76,14 @@ export class IncidentsService {
   catalogo() {
     return {
       categorias: CATEGORIAS,
-      orgaos: ORGAOS, canais: CANAIS,
+      orgaos: ORGAOS_LISTA, canais: CANAIS_LISTA,
+      /*
+       * A frase é a regra, e vai junto do vocabulário de propósito: quem
+       * desenhar uma tela sobre estes dados lê, na mesma resposta, que não
+       * existe envio (§13.6, e a proibição do §2).
+       */
+      avisoComunicacao: 'O sistema NÃO envia nada para fora. Ele registra o que foi redigido, '
+        + 'quem revisou, quem aprovou e quem entregou — a entrega é sempre de uma pessoa.',
       aviso: 'O registro nunca deve atrasar proteção imediata, atendimento de saúde ou o protocolo institucional. '
            + 'Abra a ocorrência com o mínimo e complete depois.',
     };

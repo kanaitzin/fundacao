@@ -33,7 +33,37 @@ import { api } from '../api';
 interface Categoria {
   code: string; label: string; revisaoTecnica: boolean; restrito: boolean;
 }
-interface Catalogo { categorias: Categoria[]; orgaos: string[]; canais: string[]; aviso: string }
+interface Opcao { cod: string; label: string }
+interface Catalogo {
+  categorias: Categoria[]; orgaos: Opcao[]; canais: Opcao[];
+  aviso: string; avisoComunicacao?: string;
+}
+
+/**
+ * COMUNICAÇÃO EXTERNA (§13.6) — quatro etapas, quatro pessoas possíveis.
+ *
+ * Redigir, revisar, aprovar e ENTREGAR são atos distintos. A entrega é a
+ * única que acontece fora do sistema: alguém leva o ofício, manda o e-mail
+ * institucional ou entra no sistema do órgão — e volta aqui para registrar
+ * que fez. Não existe rota de envio; procurar por ela é a forma mais rápida
+ * de conferir a proibição do §2.
+ */
+interface Comunicacao {
+  id: string; orgao: string; destinatarioFuncional: string; canal: string;
+  status: string; resumo: string; quando: string | null;
+  aprovadaEm: string | null; entregueEm: string | null;
+  ocorrenciaId: string | null; responsavel: string | null;
+}
+const ETAPA: Record<string, { rotulo: string; tom: string; oQueFalta: string }> = {
+  rascunho: { rotulo: 'Rascunho', tom: 'c-info',
+    oQueFalta: 'Ainda sendo escrita. Envie para revisão quando o teor estiver pronto.' },
+  em_revisao: { rotulo: 'Em revisão', tom: 'c-warn',
+    oQueFalta: 'Aguardando quem revisa. Quem redigiu não aprova o próprio texto.' },
+  aprovado: { rotulo: 'Aprovada', tom: 'c-ok',
+    oQueFalta: 'Aprovada e AINDA NÃO ENTREGUE. A entrega é feita por uma pessoa — depois, registre aqui.' },
+  entregue_manualmente: { rotulo: 'Entregue', tom: 'c-ok',
+    oQueFalta: 'Entrega registrada, com responsável e horário.' },
+};
 
 interface ItemLista {
   id: string; categoria: string; codigoCategoria: string; quando: string;
@@ -100,6 +130,9 @@ export function Ocorrencias({ houseId, papel }: { houseId: string; papel: string
   const [erro, setErro] = useState('');
   const [aviso, setAviso] = useState('');
   const [abrindo, setAbrindo] = useState(false);
+  const [aba, setAba] = useState<'ocorrencias' | 'comunicacoes'>('ocorrencias');
+  const [comunicacoes, setComunicacoes] = useState<Comunicacao[]>([]);
+  const [comunicando, setComunicando] = useState<ItemLista | 'avulsa' | null>(null);
   const [aberta, setAberta] = useState<string | null>(null);
   const [encerrando, setEncerrando] = useState<ItemLista | null>(null);
 
@@ -141,9 +174,23 @@ export function Ocorrencias({ houseId, papel }: { houseId: string; papel: string
     }
   }
 
+  async function carregarComunicacoes() {
+    setErro('');
+    try { setComunicacoes(await api<Comunicacao[]>(`/incidents/communications?houseId=${houseId}`)); }
+    catch (e) {
+      setErro(e instanceof Error ? e.message : 'Não foi possível carregar as comunicações.');
+    }
+  }
+
   async function acao(fn: () => Promise<any>) {
     setErro(''); setAviso('');
-    try { const r = await fn(); if (r?.aviso) setAviso(r.aviso); await carregar(); return true; }
+    try {
+      const r = await fn();
+      if (r?.aviso) setAviso(r.aviso);
+      await carregar();
+      if (aba === 'comunicacoes') await carregarComunicacoes();
+      return true;
+    }
     catch (e) { setErro(e instanceof Error ? e.message : 'Não foi possível concluir.'); return false; }
   }
 
@@ -162,6 +209,21 @@ export function Ocorrencias({ houseId, papel }: { houseId: string; papel: string
         </div>
       )}
 
+      <div className="filtros" role="tablist" aria-label="Ocorrências ou comunicações">
+        <button role="tab" aria-selected={aba === 'ocorrencias'}
+                className={aba === 'ocorrencias' ? 'on' : ''}
+                onClick={() => setAba('ocorrencias')}>Ocorrências</button>
+        {ANALISA.includes(papel) && (
+          <button role="tab" aria-selected={aba === 'comunicacoes'}
+                  className={aba === 'comunicacoes' ? 'on' : ''}
+                  onClick={() => { setAba('comunicacoes'); carregarComunicacoes(); }}>
+            📨 Comunicações externas
+          </button>
+        )}
+      </div>
+
+      {aba === 'ocorrencias' && (
+       <>
       <div className="card raise stack">
         <h3 style={{ fontSize: 17, margin: 0 }}>Fato que exige acompanhamento formal</h3>
         <p className="mutetxt" style={{ margin: 0 }}>
@@ -287,6 +349,31 @@ export function Ocorrencias({ houseId, papel }: { houseId: string; papel: string
                     </div>
                   ))}
 
+                  {analisa && (
+                    <>
+                      <div className="eyebrow">Comunicação externa</div>
+                      {d.comunicacoesExternas.length > 0 ? (
+                        d.comunicacoesExternas.map((c) => (
+                          <div className="row" key={c.id}>
+                            <span className="grow">
+                              {catalogo?.orgaos.find((o) => o.cod === c.orgao)?.label ?? c.orgao}
+                            </span>
+                            <span className={`pill ${ETAPA[c.status]?.tom ?? 'c-mute'}`}>
+                              {ETAPA[c.status]?.rotulo ?? c.status}
+                            </span>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="mutetxt" style={{ margin: 0 }}>
+                          Nada comunicado para fora sobre esta ocorrência.
+                        </p>
+                      )}
+                      <button className="btn sec sm" onClick={() => setComunicando(o)}>
+                        📨 Comunicar a um órgão externo
+                      </button>
+                    </>
+                  )}
+
                   {d.status !== 'fechada' && analisa && (
                     <Sintese onEnviar={(texto) => acao(() =>
                       api(`/incidents/${o.id}/synthesis`, {
@@ -341,6 +428,102 @@ export function Ocorrencias({ houseId, papel }: { houseId: string; papel: string
         alguém continua como aquela pessoa escreveu; a síntese entra ao lado, com autor
         e horário.
       </p>
+       </>
+      )}
+
+      {/*
+        * COMUNICAÇÕES EXTERNAS (§13.6).
+        *
+        * Quatro etapas e nenhum envio. Redigir, revisar, aprovar e ENTREGAR são
+        * atos distintos, e a entrega é a única que acontece fora do sistema:
+        * alguém leva o ofício ou manda o e-mail institucional e volta aqui para
+        * registrar que fez, com o horário e o nome.
+        *
+        * A tela mostra em que etapa cada comunicação está e O QUE FALTA — sem
+        * isso, "aprovado" parece "pronto", e uma comunicação ao Conselho
+        * Tutelar aprovada e nunca entregue passa por entregue.
+        */}
+      {aba === 'comunicacoes' && (
+        <>
+          <div className="card raise stack">
+            <h3 style={{ fontSize: 17, margin: 0 }}>Comunicações a órgãos externos</h3>
+            <div className="notice c-crit">
+              {catalogo?.avisoComunicacao
+                ?? 'O sistema NÃO envia nada para fora. Ele registra o que foi redigido, quem '
+                 + 'revisou, quem aprovou e quem entregou — a entrega é sempre de uma pessoa.'}
+            </div>
+            <button className="btn block" onClick={() => setComunicando('avulsa')}>
+              📨 Registrar comunicação externa
+            </button>
+          </div>
+
+          <div className="stack" style={{ marginTop: 12 }}>
+            {comunicacoes.map((c) => {
+              const etapa = ETAPA[c.status] ?? { rotulo: c.status, tom: 'c-mute', oQueFalta: '' };
+              const orgao = catalogo?.orgaos.find((o) => o.cod === c.orgao)?.label ?? c.orgao;
+              const canal = catalogo?.canais.find((x) => x.cod === c.canal)?.label ?? c.canal;
+              return (
+                <div className="card stack" key={c.id}>
+                  <div className="row">
+                    <b className="ff grow">{orgao}</b>
+                    <span className={`pill ${etapa.tom}`}>{etapa.rotulo}</span>
+                  </div>
+                  <div className="mutetxt">
+                    {c.destinatarioFuncional} · {canal}
+                    {c.responsavel && ` · redigida por ${c.responsavel}`}
+                    {c.entregueEm && ` · entregue em ${dia(c.entregueEm)} às ${hhmm(c.entregueEm)}`}
+                  </div>
+                  <div className="bloco"><small>Teor</small>{c.resumo}</div>
+                  <div className={`notice ${c.status === 'aprovado' ? 'c-warn' : 'c-info'}`}>
+                    {etapa.oQueFalta}
+                  </div>
+
+                  <div className="row">
+                    {c.status === 'rascunho' && (
+                      <button className="btn sm sec" onClick={() => acao(() =>
+                        api(`/incidents/communications/${c.id}/submit`,
+                            { method: 'POST', body: '{}' }))}>
+                        Enviar para revisão
+                      </button>
+                    )}
+                    {(c.status === 'rascunho' || c.status === 'em_revisao') && (
+                      <button className="btn sm" onClick={() => acao(() =>
+                        api(`/incidents/communications/${c.id}/approve`,
+                            { method: 'POST', body: '{}' }))}>
+                        Aprovar
+                      </button>
+                    )}
+                    {c.status === 'aprovado' && (
+                      <button className="btn sm" onClick={() => acao(() =>
+                        api(`/incidents/communications/${c.id}/delivery`, {
+                          method: 'POST',
+                          body: JSON.stringify({
+                            quando: new Date().toISOString(),
+                            nota: 'Entrega registrada pela tela.',
+                          }) }))}>
+                        Registrar que foi entregue
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+
+            {comunicacoes.length === 0 && (
+              <div className="card"><p className="mutetxt" style={{ margin: 0 }}>
+                Nenhuma comunicação externa registrada nesta casa. Comunicar não é o mesmo
+                que registrar a ocorrência: aqui fica o que a instituição escreveu PARA FORA,
+                com quem aprovou e quem entregou.</p></div>
+            )}
+          </div>
+
+          <p className="mutetxt" style={{ marginTop: 12 }}>
+            <b>Quem redige não aprova.</b> Uma comunicação ao Conselho Tutelar ou ao
+            Judiciário aprovada pelo próprio autor não passou por revisão nenhuma — e o
+            servidor recusa antes de a tela opinar.
+          </p>
+        </>
+      )}
 
       {abrindo && catalogo && (
         <FolhaNova categorias={catalogo.categorias} pessoas={pessoas}
@@ -365,6 +548,25 @@ export function Ocorrencias({ houseId, papel }: { houseId: string; papel: string
               }),
             }));
             if (ok) setRelatando(null);
+          }} />
+      )}
+
+      {comunicando && catalogo && (
+        <FolhaComunicacao
+          orgaos={catalogo.orgaos} canais={catalogo.canais}
+          aviso={catalogo.avisoComunicacao ?? ''}
+          ocorrencia={comunicando === 'avulsa' ? null : comunicando}
+          onFechar={() => setComunicando(null)}
+          onEnviar={async (corpo) => {
+            const ok = await acao(() => api('/incidents/communications', {
+              method: 'POST',
+              body: JSON.stringify({
+                houseId,
+                incidentId: comunicando === 'avulsa' ? undefined : comunicando.id,
+                ...corpo,
+              }),
+            }));
+            if (ok) { setComunicando(null); setAba('comunicacoes'); await carregarComunicacoes(); }
           }} />
       )}
 
@@ -556,6 +758,109 @@ function FolhaEncerrar({ ocorrencia, jaTemSintese, onFechar, onEncerrar }: {
  * "Sem informação adicional" é resposta legítima e dispensa texto — quem foi
  * chamado a relatar e não tem o que dizer precisa poder dizer isso.
  */
+/**
+ * A FOLHA DA COMUNICAÇÃO EXTERNA (§13.6).
+ *
+ * Três coisas que ela protege:
+ *
+ *  * **o destinatário é FUNCIONAL, não pessoal.** "Conselheira Marta" muda de
+ *    emprego; "Conselho Tutelar — Regional Centro" continua sendo quem
+ *    responde. Guardar o nome de uma pessoa de fora num registro que fala de
+ *    uma criança é dado pessoal sem necessidade;
+ *  * **o canal é o que uma PESSOA fez**, e não o que o sistema fez. "E-mail
+ *    institucional" aqui significa "alguém mandou e anotou". Não existe rota
+ *    de envio, e a folha diz isso antes de escrever a primeira letra;
+ *  * **o teor é escrito à mão.** Nenhum texto é gerado a partir da ocorrência:
+ *    quem comunica a um órgão externo assina o que escreveu.
+ */
+function FolhaComunicacao({ orgaos, canais, aviso, ocorrencia, onFechar, onEnviar }: {
+  orgaos: Opcao[]; canais: Opcao[]; aviso: string;
+  ocorrencia: ItemLista | null;
+  onFechar: () => void; onEnviar: (corpo: Record<string, unknown>) => void;
+}) {
+  const [orgao, setOrgao] = useState('');
+  const [canal, setCanal] = useState('');
+  const [destinatario, setDestinatario] = useState('');
+  const [resumo, setResumo] = useState('');
+  const [orientacao, setOrientacao] = useState('');
+  const pode = orgao !== '' && canal !== '' && destinatario.trim().length >= 3
+    && resumo.trim().length >= 20;
+
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-com"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet modal">
+        <h3 id="t-com">Registrar comunicação externa</h3>
+        <div className="notice c-crit">{aviso}</div>
+        {ocorrencia && (
+          <div className="bloco">
+            <small>Sobre a ocorrência</small>
+            {ocorrencia.categoria} · {dia(ocorrencia.quando)} às {hhmm(ocorrencia.quando)}
+          </div>
+        )}
+
+        <label className="f">Órgão</label>
+        <div className="opts">
+          {orgaos.map((o) => (
+            <button type="button" key={o.cod} className="opt c-info"
+                    aria-pressed={orgao === o.cod} onClick={() => setOrgao(o.cod)}>
+              {o.label}
+            </button>
+          ))}
+        </div>
+
+        <label className="f" htmlFor="com-dest">
+          Destinatário <small>— o cargo ou o setor, nunca o nome de uma pessoa</small>
+        </label>
+        <input id="com-dest" className="field" value={destinatario}
+               onChange={(e) => setDestinatario(e.target.value)}
+               placeholder="Ex.: Conselho Tutelar — Regional Centro" />
+
+        <label className="f">Como foi (ou vai ser) entregue</label>
+        <div className="opts">
+          {canais.map((c) => (
+            <button type="button" key={c.cod} className="opt c-ok"
+                    aria-pressed={canal === c.cod} onClick={() => setCanal(c.cod)}>
+              {c.label}
+            </button>
+          ))}
+        </div>
+
+        <label className="f" htmlFor="com-resumo">
+          Teor da comunicação <small>— o que a instituição está dizendo, com as suas palavras</small>
+        </label>
+        <textarea id="com-resumo" value={resumo} onChange={(e) => setResumo(e.target.value)}
+                  placeholder="Ex.: comunicamos a saída não autorizada ocorrida em 31/08, o retorno às 23h15 e as medidas adotadas pela unidade." />
+
+        <label className="f" htmlFor="com-orient">
+          Orientação recebida <small>— se já houve alguma; pode ficar em branco</small>
+        </label>
+        <textarea id="com-orient" value={orientacao} onChange={(e) => setOrientacao(e.target.value)}
+                  placeholder="Ex.: o Conselho orientou aguardar a audiência do dia 12." />
+
+        <p className="mutetxt">
+          Entra como <b>rascunho</b>. Depois vem a revisão, a aprovação — que é de outra
+          pessoa — e, por último, o registro de quem entregou.
+        </p>
+
+        <div className="row rodape">
+          <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
+          <button className="btn grow" disabled={!pode}
+                  onClick={() => onEnviar({
+                    orgao, canal,
+                    destinatarioFuncional: destinatario.trim(),
+                    resumo: resumo.trim(),
+                    orientacao: orientacao.trim() || undefined,
+                    quando: new Date().toISOString(),
+                  })}>
+            Registrar como rascunho
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function FolhaRelato({ opcoes, onFechar, onEnviar }: {
   opcoes: OpcaoTestemunho[]; onFechar: () => void;
   onEnviar: (corpo: Record<string, unknown>) => void;

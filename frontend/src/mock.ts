@@ -590,6 +590,54 @@ const CATEGORIAS_OCORRENCIA = [
 ];
 
 /**
+ * COMUNICAÇÃO EXTERNA (§13.6) — o vocabulário e o que já foi escrito.
+ *
+ * O protótipo demonstra o que mais importa aqui: as QUATRO ETAPAS e a ausência
+ * de envio. Uma comunicação semeada fica em "aprovada e não entregue", que é o
+ * estado que engana — parece pronto, e a criança continua sem que o órgão
+ * saiba.
+ */
+const ORGAOS_EXTERNOS = [
+  { cod: 'judiciario', label: 'Judiciário (Vara da Infância)' },
+  { cod: 'conselho_tutelar', label: 'Conselho Tutelar' },
+  { cod: 'ministerio_publico', label: 'Ministério Público' },
+  { cod: 'saude', label: 'Rede de saúde' },
+  { cod: 'escola', label: 'Escola' },
+  { cod: 'rede', label: 'Outro serviço da rede' },
+  { cod: 'outro', label: 'Outro' },
+];
+const CANAIS_EXTERNOS = [
+  { cod: 'oficio', label: 'Ofício em papel' },
+  { cod: 'email_institucional', label: 'E-mail institucional' },
+  { cod: 'presencial', label: 'Entrega presencial' },
+  { cod: 'telefone', label: 'Telefone' },
+  { cod: 'sistema_externo', label: 'Sistema do órgão' },
+];
+interface ComunicacaoMock {
+  id: string; orgao: string; destinatarioFuncional: string; canal: string;
+  status: 'rascunho' | 'em_revisao' | 'aprovado' | 'entregue_manualmente';
+  resumo: string; quando: string | null; aprovadaEm: string | null;
+  entregueEm: string | null; ocorrenciaId: string | null;
+  responsavel: string; autorId: string;
+}
+let COMUNICACOES: ComunicacaoMock[] = [
+  { id: 'c1', orgao: 'conselho_tutelar',
+    destinatarioFuncional: 'Conselho Tutelar — Regional Centro', canal: 'oficio',
+    status: 'aprovado',
+    resumo: 'Comunicamos a saída não autorizada ocorrida em 31/08, o retorno às 23h15 '
+      + 'acompanhado e as medidas adotadas pela unidade.',
+    quando: emHoras(9, 20), aprovadaEm: emHoras(11, 5), entregueEm: null,
+    ocorrenciaId: 'o1', responsavel: 'Tatiane Técnica (fictícia)', autorId: 'u3' },
+  { id: 'c2', orgao: 'judiciario',
+    destinatarioFuncional: 'Vara da Infância e Juventude — 1ª Vara', canal: 'oficio',
+    status: 'entregue_manualmente',
+    resumo: 'Encaminhamento do relatório semestral de acompanhamento, conforme determinação.',
+    quando: emHoras(8, 0), aprovadaEm: emHoras(8, 40),
+    entregueEm: new Date(Date.now() - 3 * 86_400_000).toISOString(),
+    ocorrenciaId: null, responsavel: 'Carla Coordenadora (fictícia)', autorId: 'u4' },
+];
+
+/**
  * Ocorrência no vocabulário do servidor: um `status` só, com os mesmos valores
  * do CHECK do banco. O protótipo tinha DOIS campos paralelos
  * (`etapaOperacional` + `situacao`) que juntos diziam menos e podiam
@@ -2336,15 +2384,102 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
   // a MESMA rota de revisão, com decisões opostas. E /categories casava com
   // GET /incidents/:id: o servidor leria "categories" como um id.
 
+  /*
+   * As rotas da comunicação externa. Ficam ANTES de `/incidents/:id`:
+   * `['incidents','communications']` tem o mesmo tamanho de
+   * `['incidents', id]` — palavra fixa primeiro, como no servidor.
+   */
+  if (rota === '/incidents/communications' && metodo === 'GET') {
+    return COMUNICACOES.map((c) => ({ ...c }));
+  }
+
+  if (rota === '/incidents/communications' && metodo === 'POST') {
+    if (!['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403,
+        'A comunicação externa é registrada pela equipe técnica ou pela coordenação.');
+    }
+    if (!ORGAOS_EXTERNOS.some((o) => o.cod === String(b.orgao ?? ''))) {
+      return new Recusa(400, 'Órgão inválido.');
+    }
+    if (!CANAIS_EXTERNOS.some((c) => c.cod === String(b.canal ?? ''))) {
+      return new Recusa(400, 'Canal inválido.');
+    }
+    if (String(b.resumo ?? '').trim().length < 20) {
+      return new Recusa(400, 'Descreva o teor da comunicação (mínimo 20 caracteres).');
+    }
+    if (!String(b.destinatarioFuncional ?? '').trim()) {
+      return new Recusa(400,
+        'Informe o destinatário funcional (o cargo ou setor), não o nome de uma pessoa.');
+    }
+    const nova: ComunicacaoMock = {
+      id: uid(), orgao: String(b.orgao), canal: String(b.canal),
+      destinatarioFuncional: String(b.destinatarioFuncional).trim(),
+      status: 'rascunho', resumo: String(b.resumo).trim(),
+      quando: String(b.quando ?? new Date().toISOString()),
+      aprovadaEm: null, entregueEm: null,
+      ocorrenciaId: b.incidentId ? String(b.incidentId) : null,
+      responsavel: eu.fullName, autorId: eu.id,
+    };
+    COMUNICACOES = [nova, ...COMUNICACOES];
+    return { id: nova.id, status: 'rascunho',
+      aviso: 'Registrada como rascunho. O sistema NÃO envia nada para fora: depois de revisada '
+        + 'e aprovada, a entrega é feita por uma pessoa e registrada aqui.' };
+  }
+
+  if (seg[0] === 'incidents' && seg[1] === 'communications' && seg[3] === 'submit') {
+    const c = COMUNICACOES.find((x) => x.id === seg[2]);
+    if (!c) return new Recusa(404, 'Comunicação não encontrada.');
+    if (c.status !== 'rascunho') {
+      return new Recusa(400, 'Transição não permitida a partir do estado atual.');
+    }
+    c.status = 'em_revisao';
+    return { status: 'em_revisao', aviso: 'Enviada para revisão interna.' };
+  }
+
+  if (seg[0] === 'incidents' && seg[1] === 'communications' && seg[3] === 'approve') {
+    const c = COMUNICACOES.find((x) => x.id === seg[2]);
+    if (!c) return new Recusa(404, 'Comunicação não encontrada.');
+    if (!['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403,
+        'A aprovação cabe à equipe técnica, à coordenação ou ao Gestor Geral.');
+    }
+    // Padrão protetivo: quem redigiu não aprova. Uma comunicação ao Conselho
+    // Tutelar aprovada pelo próprio autor não passou por revisão nenhuma.
+    if (c.autorId === eu.id) {
+      return new Recusa(400, 'Quem redigiu a comunicação não pode aprová-la. A aprovação é de '
+        + 'outra pessoa da equipe técnica, da coordenação ou do Gestor Geral.');
+    }
+    if (!['rascunho', 'em_revisao'].includes(c.status)) {
+      return new Recusa(400, 'Só se aprova comunicação em rascunho ou em revisão.');
+    }
+    c.status = 'aprovado'; c.aprovadaEm = new Date().toISOString();
+    return { status: 'aprovado',
+      aviso: 'Aprovada. O documento pode ser gerado e entregue por uma pessoa — o sistema não '
+        + 'realiza o envio.' };
+  }
+
+  if (seg[0] === 'incidents' && seg[1] === 'communications' && seg[3] === 'delivery') {
+    const c = COMUNICACOES.find((x) => x.id === seg[2]);
+    if (!c) return new Recusa(404, 'Comunicação não encontrada.');
+    if (c.status !== 'aprovado') {
+      return new Recusa(400, 'A entrega só é registrada depois da aprovação.');
+    }
+    c.status = 'entregue_manualmente';
+    c.entregueEm = String(b.quando ?? new Date().toISOString());
+    return { status: 'entregue_manualmente',
+      aviso: 'Entrega registrada, com responsável e horário.' };
+  }
+
   if (rota === '/incidents/catalog') {
     return {
       categorias: CATEGORIAS_OCORRENCIA.map((c) => ({
         code: c.cod, label: c.label, revisaoTecnica: c.exigeRevisao, restrito: c.restrita,
       })),
-      orgaos: ['judiciario', 'conselho_tutelar', 'ministerio_publico', 'saude', 'escola', 'rede', 'outro'],
-      canais: ['oficio', 'email_institucional', 'presencial', 'telefone', 'sistema_externo'],
+      orgaos: ORGAOS_EXTERNOS, canais: CANAIS_EXTERNOS,
       aviso: 'O registro nunca deve atrasar proteção imediata, atendimento de saúde ou o '
         + 'protocolo institucional. Abra a ocorrência com o mínimo e complete depois.',
+      avisoComunicacao: 'O sistema NÃO envia nada para fora. Ele registra o que foi redigido, '
+        + 'quem revisou, quem aprovou e quem entregou — a entrega é sempre de uma pessoa.',
     };
   }
 
@@ -2394,7 +2529,10 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       avisoAnaliseTecnica: tecnica ? null
         : 'Sínteses técnicas e comunicações externas, quando existem, são acessíveis à '
           + 'equipe técnica e à coordenação.',
-      anexos: [], comunicacoesExternas: [],
+      anexos: [],
+      comunicacoesExternas: COMUNICACOES
+        .filter((c) => c.ocorrenciaId === o.id)
+        .map((c) => ({ id: c.id, orgao: c.orgao, canal: c.canal, status: c.status })),
     };
   }
 

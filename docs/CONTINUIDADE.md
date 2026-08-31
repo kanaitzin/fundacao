@@ -397,12 +397,13 @@ transformá-lo em teste.
 4. ~~Saída, acervo e retorno~~ — feito em 31/08 (§8.7)
 5. ~~O laço do arquivo e a abertura da chamada~~ — feito em 31/08 (§8.8)
 6. ~~O corpo da ATA, o aditamento e a reabertura~~ — feito em 31/08 (§8.9)
-7. A **comunicação externa da ocorrência** — a maior que resta do grupo 1: o
-   caminho de comunicar Conselho Tutelar e MP existe inteiro no servidor, com
-   redação, submissão, aprovação e registro de entrega, e nunca aparece
-8. Conversar com o Marcelo sobre o resto do **grupo 1 do `docs/o-que-falta.md`**
-9. Aplicar o retorno do Marcelo por cargo
-10. Configurar SMTP institucional na implantação (`MailGateway` já está pronto)
+7. ~~A comunicação externa da ocorrência~~ — feito em 31/08 (§8.10)
+8. **Anexos e contenção na ocorrência** — o que resta de mais sensível no grupo
+   1: foto do machucado e registro de contenção física, que hoje saem da casa
+   por foto de celular
+9. Conversar com o Marcelo sobre o resto do **grupo 1 do `docs/o-que-falta.md`**
+10. Aplicar o retorno do Marcelo por cargo
+11. Configurar SMTP institucional na implantação (`MailGateway` já está pronto)
 
 ### 8.6 O Arquivo das ATAS — 31/08/2026
 
@@ -573,7 +574,37 @@ existiam e nunca apareciam justamente no arquivo que vai para a mão de quem
 precisa deles. São nove agora, um por cargo, incluindo Cozinha e Administração
 técnica, que não tinham conta.
 
-### 8.10 Ensaio como usuário — 31/08/2026, os nove cargos
+### 8.10 A comunicação externa da ocorrência — 31/08/2026
+
+O caminho de comunicar Conselho Tutelar, MP e Judiciário existia inteiro no
+servidor desde a fase 5 — redigir, submeter, aprovar, registrar a entrega, com
+o padrão protetivo de que quem redige não aprova — e nenhuma tela o chamava.
+Era a maior função sem porta do sistema.
+
+**O que a tela carrega, e por quê:**
+
+* **quatro etapas, e a tela diz O QUE FALTA em cada uma.** Sem isso "aprovado"
+  parece "pronto", e uma comunicação ao Conselho Tutelar aprovada e nunca
+  entregue passa por entregue. O estado "Aprovada e AINDA NÃO ENTREGUE" é o que
+  mais precisa gritar, e é o único em tom de alerta;
+* **nenhum botão de enviar, em lugar nenhum.** Não existe rota de envio no
+  servidor, e procurar por ela continua sendo a forma mais rápida de conferir a
+  proibição do §2. O aviso vem do próprio catálogo do servidor — quem desenhar
+  outra tela sobre esses dados lê a regra na mesma resposta;
+* **destinatário FUNCIONAL, não pessoal.** "Conselheira Marta" muda de emprego;
+  "Conselho Tutelar — Regional Centro" continua sendo quem responde. O servidor
+  já recusava vazio; a tela agora explica o porquê no rótulo do campo;
+* **o teor é escrito à mão.** Nenhum texto é gerado a partir da ocorrência: quem
+  comunica a um órgão externo assina o que escreveu;
+* o educador não alcança nem a aba nem o botão dentro da ocorrência, e a
+  ocorrência mostra o que já foi comunicado sobre ela.
+
+**Uma melhoria no servidor junto:** `GET /incidents/catalog` servia `orgaos` e
+`canais` como códigos crus (`ministerio_publico`). Passaram a sair com rótulo,
+pelo mesmo motivo dos tipos de chamada — no dia em que entrar um órgão novo, a
+lista muda no servidor e a tela acompanha sem release.
+
+### 8.11 Ensaio como usuário — 31/08/2026, os nove cargos
 
 Três roteiros de navegador contra o protótipo de arquivo único, com todos os
 cargos: `passeio.mjs` (o que cada um alcança, tela por tela), `acoes.mjs` e
@@ -795,7 +826,7 @@ responder e não me peça para reexplicar o que está lá.
 
 === ESTADO ATUAL ===
 
-Fases 0 a 25 concluídas. 265 testes passando em 23 suítes, sem falha conhecida
+Fases 0 a 26 concluídas. 265 testes passando em 23 suítes, sem falha conhecida
 — a suíte rodou três vezes seguidas e mais duas às 22h32 de Porto Alegre, com o
 relógio do banco movido junto. Backend NestJS + PostgreSQL 16 com RLS, 16
 partições. Frontend React PWA com 21 telas, todas falando as rotas reais do

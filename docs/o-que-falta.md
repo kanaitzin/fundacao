@@ -1,7 +1,7 @@
 # O que falta da ideia original
 
 Levantamento de 31/08/2026, feito por leitura cruzada entre as rotas que o
-servidor serve e as chamadas que as telas fazem. Sobram **60 rotas que existem,
+servidor serve e as chamadas que as telas fazem. Sobram **55 rotas que existem,
 têm regra, têm RLS e auditoria — e não têm porta**.
 
 *Atualizado no mesmo dia: saíram desta lista o **Arquivo das ATAS** (decisão 2,
@@ -37,7 +37,6 @@ WhatsApp é proibido (§2).
 |---|---|---|
 | **Corrigir o cadastro depois da admissão** | `PATCH /people/:id`, `PATCH /people/:id/judicial` | Hoje só dá para cadastrar. Nome errado, data de nascimento errada, decisão judicial que mudou — nada disso tem onde ser corrigido, e o certo é corrigir com histórico, não recadastrar. |
 | **Baixar um documento do acolhido** | `GET /people/:id/documents/:docId` | O perfil lista os documentos e não abre nenhum. |
-| **Comunicação externa da ocorrência** | `GET/POST /incidents/communications` + `submit`, `approve`, `delivery` | O caminho de comunicar Conselho Tutelar / MP / Judiciário existe inteiro no servidor, com aprovação e registro de entrega, e nunca aparece. Lembrando: envio automático é proibido (§2) — o que falta é a **tela de redigir, submeter e aprovar**, com pessoa decidindo em cada passo. |
 | **Anexos e contenção na ocorrência** | `POST /incidents/:id/attachments`, `/protected`, `/restraint`, `attachments/:id/open` | Foto do machucado, registro de contenção física, marcação de conteúdo protegido. É exatamente o material sensível que hoje sai da casa por foto de celular. |
 | **Episódios da noite** | `POST /shifts/ata/:id/episodes`, `POST /shifts/episodes/:id/ack` | O que aconteceu de madrugada e o "estou ciente" do turno seguinte. |
 | **Rotina da casa** | `GET /routine`, `/routine/history`, `POST /routine/versions`, `/versions/:id/items` | A rotina versionada — horário de acordar, refeições, dormir — que alimenta a geração do dia. Hoje o dia vem de dados semeados. |
