@@ -17,6 +17,13 @@
  * e é lá que elas têm de ser conferidas — um protótipo que fingisse tê-las
  * daria uma sensação de segurança que ele não tem como sustentar.
  */
+/*
+ * A única coisa que o protótipo importa de fora: a descrição do alcance por
+ * cargo, LIDA DA MESMA FONTE que o servidor usa. Uma cópia aqui divergiria na
+ * primeira correção — e divergiria justamente na demonstração para a equipe.
+ * O arquivo é dado puro, sem dependência nenhuma, e por isso atravessa.
+ */
+import { ALCANCE_POR_CARGO } from '../../backend/src/modules/identity/alcance';
 
 const HOJE = new Intl.DateTimeFormat('en-CA',
   { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' })
@@ -855,6 +862,13 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       houses: [{ code: CASA.code, name: CASA.name }],
     }));
   }
+  /**
+   * O que cada setor enxerga. No protótipo a lista é a mesma do servidor,
+   * copiada de `backend/src/modules/identity/alcance.ts` — e o teste de
+   * contrato cobra que as duas não divirjam.
+   */
+  if (rota === '/staff/alcance') return { cargos: ALCANCE_POR_CARGO };
+
   if (rota === '/staff/sectors') {
     return [
       { cod: 'educador', label: 'Educador social', ajuda: 'Cuida do dia a dia da casa.' },

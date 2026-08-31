@@ -3,6 +3,7 @@ import { SessionGuard } from './session.guard';
 import { CurrentUser } from './current-user.decorator';
 import { AuthenticatedUser } from '../../kernel/contracts';
 import { StaffService } from './staff.service';
+import { ALCANCE_POR_CARGO } from './alcance';
 import { InviteService } from './invite.service';
 
 /**
@@ -15,6 +16,17 @@ export class StaffController {
     @Inject(StaffService) private readonly staff: StaffService,
     @Inject(InviteService) private readonly convite: InviteService,
   ) {}
+
+  /**
+   * O que cada setor enxerga — a resposta escrita (§8.3).
+   *
+   * A leitura é aberta a quem administra equipe e a quem responde pela casa:
+   * a pergunta "o educador vê isso?" é da coordenação, e respondê-la trocando
+   * de conta é o que o §2 proíbe. Não há dado de acolhido aqui: é a descrição
+   * do sistema, não conteúdo do acolhimento.
+   */
+  @Get('alcance')
+  alcance() { return { cargos: ALCANCE_POR_CARGO }; }
 
   @Get('sectors')
   sectors(@CurrentUser() user: AuthenticatedUser) {

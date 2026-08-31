@@ -19,6 +19,7 @@ import { Cofre } from './screens/Cofre';
 import { Transferencias } from './screens/Transferencias';
 import { Acompanhamentos } from './screens/Acompanhamentos';
 import { Arquivo } from './screens/Arquivo';
+import { Setores } from './screens/Setores';
 
 interface Me {
   id: string; email: string; fullName: string; role: string;
@@ -39,7 +40,7 @@ const KIND_TONE: Record<string, string> = { casa_lar: 'c-move', abrigo_instituci
 
 /** As telas que não são do turno; a aba "Mais" fica acesa quando uma delas está aberta. */
 const OUTRAS = new Set(['agenda', 'equipe', 'casas', 'saude', 'ocorrencias', 'ata',
-  'cofre', 'transferencias', 'acompanhamentos', 'arquivo']);
+  'cofre', 'transferencias', 'acompanhamentos', 'arquivo', 'setores']);
 
 /** Quem administra equipe (§5.3). O menu não oferece o que o cargo não faz. */
 const ADMINISTRA_EQUIPE = ['coordenador', 'gestor_geral', 'admin_tecnico'];
@@ -48,8 +49,16 @@ const ADMINISTRA_EQUIPE = ['coordenador', 'gestor_geral', 'admin_tecnico'];
  * Os demais alcances. Esconder o botão é gentileza com quem usa; a proteção
  * de verdade mora no banco, e o servidor recusa de novo por baixo.
  */
-/** Saúde: a Enfermagem trabalha aqui; a liderança e a gestão acompanham. */
-const VE_SAUDE = ['enfermagem', 'coordenador', 'lider_diurno',
+/**
+ * Saúde: a Enfermagem trabalha aqui; a liderança e a gestão acompanham.
+ *
+ * A equipe técnica entrou em 31/08. O servidor já a autorizava a movimentar o
+ * armário e a ler o painel, e o menu não oferecia a tela: permissão sem porta.
+ * Na casa é ela quem costuma estar quando a Enfermagem não está, e o armário é
+ * da casa. Continua sem assinar evolução de saúde — isso é da Enfermagem, e o
+ * servidor recusa.
+ */
+const VE_SAUDE = ['enfermagem', 'equipe_tecnica', 'coordenador', 'lider_diurno',
   'lider_noturno_geral', 'gestor_geral'];
 /** O cofre guarda as contas das crianças: só quem tem a guarda entra. */
 const VE_COFRE = ['coordenador', 'gestor_geral'];
@@ -57,8 +66,16 @@ const VE_COFRE = ['coordenador', 'gestor_geral'];
 const VE_ACOMPANHAMENTOS = ['equipe_tecnica', 'coordenador', 'gestor_geral'];
 /** Transferir criança de casa é decisão de coordenação. */
 const VE_TRANSFERENCIAS = ['coordenador', 'gestor_geral'];
-/** O Drive não abre para o plantão: o educador lê o perfil, com registro. */
-const VE_ARQUIVO = ['equipe_tecnica', 'coordenador', 'gestor_geral'];
+/**
+ * O Drive não abre para o plantão: o educador lê o perfil, com registro.
+ *
+ * A administração técnica entrou em 31/08, e só pela fila: reenviar o que
+ * falhou é trabalho de infraestrutura, e quando o Drive cai às 22h quem sabe
+ * consertar precisa conseguir reprocessar. Ela vê nomes de arquivo e caminhos
+ * — que por regra já não carregam nome, CPF nem diagnóstico — e não abre
+ * perfil, ocorrência nem documento.
+ */
+const VE_ARQUIVO = ['equipe_tecnica', 'coordenador', 'gestor_geral', 'admin_tecnico'];
 
 /**
  * Só no protótipo, e desde a tela de entrada: quem abre o arquivo precisa
@@ -114,7 +131,7 @@ export function App() {
   const [aba, setAba] = useState<
     'dia' | 'chamada' | 'passagem' | 'acolhidos' | 'agenda' | 'casas' | 'equipe'
     | 'saude' | 'ocorrencias' | 'ata' | 'cofre' | 'transferencias'
-    | 'acompanhamentos' | 'arquivo' | 'plantao' | 'unidades'>('dia');
+    | 'acompanhamentos' | 'arquivo' | 'plantao' | 'unidades' | 'setores'>('dia');
   const [sugerirSenha, setSugerirSenha] = useState(false);
   const [trocarSenha, setTrocarSenha] = useState(false);
   const [mais, setMais] = useState(false);
@@ -303,6 +320,8 @@ export function App() {
 
         {aba === 'equipe' && administra && <Equipe />}
 
+        {aba === 'setores' && administra && <Setores papel={me.role} />}
+
         {aba === 'saude' && veSaude && casaAtual && (
           <Saude houseId={casaAtual.id} casaLabel={`${casaAtual.code} · ${casaAtual.name}`}
                  papel={me.role} />
@@ -397,6 +416,17 @@ export function App() {
                   <div className="grow" style={{ textAlign: 'left' }}>
                     <b className="ff">Equipe</b>
                     <div className="mutetxt">Quem trabalha nesta casa, por setor.</div>
+                  </div>
+                </button>
+              )}
+              {administra && (
+                <button className="card row" onClick={() => { setAba('setores'); setMais(false); }}>
+                  <span aria-hidden="true">🔎</span>
+                  <div className="grow" style={{ textAlign: 'left' }}>
+                    <b className="ff">O que cada setor enxerga</b>
+                    <div className="mutetxt">
+                      A resposta escrita, sem entrar com a conta de ninguém.
+                    </div>
                   </div>
                 </button>
               )}
