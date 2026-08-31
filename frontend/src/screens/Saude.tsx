@@ -29,6 +29,8 @@ interface Painel {
 interface Item {
   id: string; medicamento: string; unidade: string; quantidade: number; minimo: number;
   validade: string; conferidoPor: string;
+  ultimoMovimento: { tipo: 'entrada' | 'ajuste'; quantidade: number; motivo: string | null;
+                     por: string; em: string } | null;
 }
 interface Evolucao {
   id: string; acolhido: string; tipo: string; enviadaPor: string; enviadaEm: string;
@@ -67,6 +69,7 @@ export function Saude({ papel }: { papel: string }) {
   const [confirmando, setConfirmando] = useState<Dose | null>(null);
   const [triando, setTriando] = useState<Evolucao | null>(null);
   const [resumindo, setResumindo] = useState<{ id: string; nome: string } | null>(null);
+  const [movendo, setMovendo] = useState<{ item: Item; tipo: 'entrada' | 'contagem' } | null>(null);
 
   async function carregar() {
     setErro('');
@@ -90,6 +93,8 @@ export function Saude({ papel }: { papel: string }) {
   }
 
   const enfermagem = papel === 'enfermagem';
+  /** Quem mexe no armário — o mesmo alcance do servidor. O educador vê e não mexe. */
+  const movimenta = ['enfermagem', 'equipe_tecnica', 'coordenador', 'gestor_geral'].includes(papel);
 
   return (
     <>
@@ -206,23 +211,49 @@ export function Saude({ papel }: { papel: string }) {
           <div className="stack">
             {estoque.map((i) => {
               const baixo = i.quantidade < i.minimo;
+              const m = i.ultimoMovimento;
               return (
-                <div className="card row" key={i.id}>
-                  <div className="grow">
-                    <b className="ff">{i.medicamento}</b>
-                    <div className="mutetxt">
-                      {i.quantidade} {i.unidade}{i.quantidade === 1 ? '' : 's'} ·
-                      mínimo {i.minimo} · validade {dia(i.validade)}
+                <div className="card" key={i.id}>
+                  <div className="row">
+                    <div className="grow">
+                      <b className="ff">{i.medicamento}</b>
+                      <div className="mutetxt">
+                        {i.quantidade} {i.unidade}{i.quantidade === 1 ? '' : 's'} ·
+                        mínimo {i.minimo} · validade {dia(i.validade)}
+                      </div>
+                      <div className="mutetxt">Última conferência: {i.conferidoPor}.</div>
+                      {m && (
+                        <div className="mutetxt">
+                          Último movimento: {m.tipo === 'entrada'
+                            ? `entrada de ${m.quantidade}`
+                            : `conferência, ${m.quantidade > 0 ? '+' : ''}${m.quantidade}`}
+                          {' '}· {m.por}{m.motivo ? ` · ${m.motivo}` : ''}
+                        </div>
+                      )}
                     </div>
-                    <div className="mutetxt">Última conferência: {i.conferidoPor}.</div>
+                    <span className={`pill ${baixo ? 'c-warn' : 'c-ok'}`}>
+                      {baixo ? 'Abaixo do mínimo' : 'Suficiente'}
+                    </span>
                   </div>
-                  <span className={`pill ${baixo ? 'c-warn' : 'c-ok'}`}>
-                    {baixo ? 'Abaixo do mínimo' : 'Suficiente'}
-                  </span>
+                  {movimenta && (
+                    <div className="row" style={{ marginTop: 10, gap: 8 }}>
+                      <button className="btn sm" onClick={() => setMovendo({ item: i, tipo: 'entrada' })}>
+                        Chegou remédio
+                      </button>
+                      <button className="btn sm ghost" onClick={() => setMovendo({ item: i, tipo: 'contagem' })}>
+                        Conferi o armário
+                      </button>
+                    </div>
+                  )}
                 </div>
               );
             })}
           </div>
+          <p className="mutetxt" style={{ marginTop: 12 }}>
+            <b>Chegou remédio</b> soma ao que já estava lá. <b>Conferi o armário</b> troca pelo
+            número que você contou e guarda a diferença, com o seu motivo. São duas coisas
+            diferentes, e o sistema não adivinha qual delas você está fazendo.
+          </p>
           <p className="mutetxt" style={{ marginTop: 12 }}>
             O estoque diz o estado do <b>armário</b>. Falta de medicamento é problema de
             compra e de logística — não é indicador sobre nenhuma criança.
@@ -292,7 +323,90 @@ export function Saude({ papel }: { papel: string }) {
                        if (ok) setResumindo(null);
                      }} />
       )}
+
+      {movendo && (
+        <FolhaEstoque
+          item={movendo.item} tipo={movendo.tipo} onFechar={() => setMovendo(null)}
+          onGravar={async (quantidade, motivo) => {
+            const ok = await acao(() => api(`/health/stock/${movendo.item.id}/movimento`, {
+              method: 'POST',
+              body: JSON.stringify({ tipo: movendo.tipo, quantidade, motivo }) }));
+            if (ok) setMovendo(null);
+          }} />
+      )}
     </>
+  );
+}
+
+/**
+ * Uma folha, dois sentidos — e a diferença aparece antes de gravar.
+ *
+ * O campo de "entrada" pergunta o que CHEGOU; o de "contagem" pergunta o que
+ * EXISTE. A linha de prévia diz em que número o armário vai ficar, porque foi
+ * exatamente essa confusão que produziu o defeito: uma entrada de 10 sobre 30
+ * deixava 10, e ninguém via isso até faltar remédio.
+ */
+function FolhaEstoque({ item, tipo, onFechar, onGravar }: {
+  item: Item; tipo: 'entrada' | 'contagem';
+  onFechar: () => void; onGravar: (quantidade: number, motivo: string) => void;
+}) {
+  const [valor, setValor] = useState('');
+  const [motivo, setMotivo] = useState('');
+  const entrada = tipo === 'entrada';
+  const q = Number(valor);
+  const valido = valor.trim() !== '' && Number.isFinite(q) && q >= 0 && (!entrada || q > 0);
+  const depois = !valido ? null : entrada ? item.quantidade + q : q;
+  const podeGravar = valido && (entrada || motivo.trim().length >= 3);
+
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-est"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet modal">
+        <h3 id="t-est">{entrada ? 'Chegou remédio' : 'Conferi o armário'} · {item.medicamento}</h3>
+        <p className="mutetxt">
+          Registrado agora: <b>{item.quantidade} {item.unidade}(s)</b>.
+        </p>
+        <div className={`notice ${entrada ? 'c-info' : 'c-warn'}`}>
+          {entrada
+            ? 'A quantidade que você digitar SOMA ao que já estava no armário.'
+            : 'A quantidade que você digitar SUBSTITUI o registro, e a diferença fica no '
+              + 'histórico com o seu nome e o seu motivo.'}
+        </div>
+
+        <label className="f" htmlFor="q-est">
+          {entrada ? 'Quanto chegou' : 'Quanto você contou'} <small>— em {item.unidade}(s)</small>
+        </label>
+        <input id="q-est" type="number" min={entrada ? 1 : 0} inputMode="numeric"
+               value={valor} onChange={(e) => setValor(e.target.value)} />
+
+        {depois !== null && (
+          <p className="mutetxt">
+            O armário fica com <b>{depois} {item.unidade}(s)</b>
+            {!entrada && depois !== item.quantidade
+              ? ` — diferença de ${depois > item.quantidade ? '+' : ''}${depois - item.quantidade}.`
+              : '.'}
+          </p>
+        )}
+
+        <label className="f" htmlFor="m-est">
+          Motivo {entrada
+            ? <small>— opcional: nota de compra, doação</small>
+            : <small>— obrigatório</small>}
+        </label>
+        <textarea id="m-est" value={motivo} onChange={(e) => setMotivo(e.target.value)}
+                  placeholder={entrada
+                    ? 'Ex.: entrega da farmácia, nota 4471.'
+                    : 'Ex.: conferência do armário na passagem; quatro a menos que o registrado.'} />
+
+        <div className="row rodape">
+          <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
+          <button className="btn grow" disabled={!podeGravar}
+                  onClick={() => onGravar(q, motivo)}>
+            {entrada ? 'Registrar entrada' : 'Registrar contagem'}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 

@@ -324,33 +324,105 @@ export class MedicationsService {
     });
   }
 
+  /**
+   * Estoque: DUAS ações, e a pessoa diz qual (§8.4, decidido em 31/08).
+   *
+   * Havia uma só, e ela mentia. `SET quantity = EXCLUDED.quantity` substituía
+   * a quantidade, mas o movimento era gravado como `'entrada'`: chegaram 10
+   * frascos sobre os 30 do armário e o armário passava a ter 10, com o
+   * histórico afirmando que uma entrada de 10 tinha acontecido. O número
+   * errado e a explicação errada, na mesma linha.
+   *
+   * Agora quem mexe escolhe o que está fazendo, porque são duas rotinas
+   * diferentes da casa:
+   *
+   * - `entrada`   — chegou remédio. SOMA à quantidade que estava lá, grava
+   *                 movimento `'entrada'` com o que chegou. Motivo opcional:
+   *                 a nota de compra ou a doação explicam sozinhas.
+   * - `contagem`  — conferiram o armário. SUBSTITUI pela quantidade contada,
+   *                 grava movimento `'ajuste'` com a DIFERENÇA assinada
+   *                 (negativa quando falta), e o motivo é OBRIGATÓRIO: some
+   *                 remédio do armário, e sumiço sem explicação escrita é
+   *                 exatamente o que não pode virar rotina.
+   *
+   * O sistema não decide qual é qual pelo tamanho do número. Uma contagem que
+   * dá mais do que o registrado é possível (frasco que estava em outra
+   * gaveta), e uma entrada não deixa de ser entrada por ser pequena.
+   */
   async upsertStock(user: AuthenticatedUser, input: {
+    tipo?: 'entrada' | 'contagem';
     houseId: string; medicamento: string; quantidade: number; unidade?: string;
     validade?: string; personId?: string; motivo?: string;
   }) {
     if (!['enfermagem', 'equipe_tecnica', 'coordenador', 'gestor_geral'].includes(user.role)) {
       throw new ForbiddenException('Sem permissão para movimentar estoque.');
     }
-    const id = await this.db.asUser(user.id, async (c) => {
+    const tipo = input.tipo;
+    if (tipo !== 'entrada' && tipo !== 'contagem') {
+      // Sem palpite: o padrão silencioso é o que produziu o defeito.
+      throw new BadRequestException(
+        'Informe tipo: "entrada" (chegou remédio, soma) ou "contagem" (conferência do armário, substitui).');
+    }
+    const quantidade = Number(input.quantidade);
+    if (!Number.isFinite(quantidade) || quantidade < 0) {
+      throw new BadRequestException('Quantidade inválida.');
+    }
+    if (tipo === 'entrada' && quantidade === 0) {
+      throw new BadRequestException('Entrada de zero não é entrada.');
+    }
+    const motivo = (input.motivo ?? '').trim();
+    if (tipo === 'contagem' && motivo.length < 3) {
+      throw new BadRequestException('A contagem exige motivo: o que foi conferido, e por quê.');
+    }
+
+    const r = await this.db.asUser(user.id, async (c) => {
+      const { rows: [antes] } = await c.query(
+        `SELECT id, quantity FROM medication_stock
+          WHERE house_id=$1 AND medication=$2 AND person_id IS NOT DISTINCT FROM $3::uuid`,
+        [input.houseId, input.medicamento, input.personId ?? null]);
+      const anterior = antes ? Number(antes.quantity) : 0;
+
       const { rows: [s] } = await c.query(
         `INSERT INTO medication_stock (house_id, medication, quantity, unit, expires_on, person_id)
          VALUES ($1,$2,$3,coalesce($4,'unidade'),$5::date,$6)
          ON CONFLICT (house_id, medication, person_id) DO UPDATE
-           SET quantity = EXCLUDED.quantity, expires_on = EXCLUDED.expires_on, updated_at = now()
-         RETURNING id`,
-        [input.houseId, input.medicamento, input.quantidade, input.unidade ?? null,
-         input.validade ?? null, input.personId ?? null]);
+           SET quantity = CASE WHEN $7 = 'entrada'
+                               THEN medication_stock.quantity + EXCLUDED.quantity
+                               ELSE EXCLUDED.quantity END,
+               -- Validade: na ENTRADA vale sempre a MAIS PRÓXIMA entre o que
+               -- estava e o que chegou, porque é ela que manda descartar. Um
+               -- lote novo e longo não pode apagar o lote velho que ainda está
+               -- na gaveta. Na CONTAGEM, quem conferiu olhou a caixa: o que
+               -- ela informar substitui; se não informar nada, fica o que havia.
+               expires_on = CASE
+                 WHEN EXCLUDED.expires_on IS NULL THEN medication_stock.expires_on
+                 WHEN $7 = 'entrada' THEN least(
+                   coalesce(medication_stock.expires_on, EXCLUDED.expires_on), EXCLUDED.expires_on)
+                 ELSE EXCLUDED.expires_on END,
+               updated_at = now()
+         RETURNING id, quantity`,
+        [input.houseId, input.medicamento, quantidade, input.unidade ?? null,
+         input.validade ?? null, input.personId ?? null, tipo]);
+
+      const depois = Number(s.quantity);
+      // O movimento conta o que ACONTECEU: o que chegou, ou a diferença que a
+      // conferência encontrou. Nunca o total do armário.
+      const delta = tipo === 'entrada' ? quantidade : depois - anterior;
       await c.query(
         `INSERT INTO medication_stock_movement (stock_id, kind, quantity, reason, by_user)
-         VALUES ($1,'entrada',$2,$3,$4)`,
-        [s.id, input.quantidade, input.motivo ?? null, user.id]);
-      return s.id;
+         VALUES ($1,$2,$3,$4,$5)`,
+        [s.id, tipo === 'entrada' ? 'entrada' : 'ajuste', delta, motivo || null, user.id]);
+      return { id: s.id as string, anterior, depois, delta };
     });
+
     await this.audit.log({
-      action: 'stock.upsert', actorId: user.id, houseId: input.houseId,
-      entity: 'medication_stock', entityId: id, detail: { medicamento: input.medicamento },
+      action: tipo === 'entrada' ? 'stock.entrada' : 'stock.contagem',
+      actorId: user.id, houseId: input.houseId,
+      entity: 'medication_stock', entityId: r.id,
+      // Metadado, não conteúdo: medicamento, números e autor. Sem acolhido.
+      detail: { medicamento: input.medicamento, anterior: r.anterior, depois: r.depois, delta: r.delta },
     });
-    return { id, ok: true };
+    return { id: r.id, ok: true, tipo, anterior: r.anterior, quantidade: r.depois, diferenca: r.delta };
   }
 
   /** Estoque baixo é sinalizado MANUALMENTE (§11.6) — o sistema não adivinha. */

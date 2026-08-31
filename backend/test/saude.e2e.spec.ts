@@ -355,7 +355,7 @@ describe('Fase 4 — Medicamentos e Enfermagem', () => {
 
   it('estoque controla só quantidade e validade; estoque baixo é sinalizado à mão (§11.6)', async () => {
     await request(http).post('/api/v1/medications/stock').set(auth(tokens.enfermagem))
-      .send({ houseId: AI3, medicamento: 'Insulina NPH', quantidade: 3, unidade: 'frasco',
+      .send({ tipo: 'entrada', houseId: AI3, medicamento: 'Insulina NPH', quantidade: 3, unidade: 'frasco',
               // Data futura: o deslocamento de fuso não altera o que o teste prova.
               validade: new Date(Date.now() + 15 * 86400000).toISOString().slice(0, 10) })
       .expect(201);

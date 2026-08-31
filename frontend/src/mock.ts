@@ -295,15 +295,32 @@ const DOSES = [
  * Enfermagem ver o que vai faltar antes de faltar. Quantidade baixa é
  * ESTADO OPERACIONAL do armário — não diz nada sobre nenhuma criança.
  */
-const ESTOQUE = [
+/**
+ * Estoque: cada item carrega o ÚLTIMO movimento, porque o número sozinho não
+ * explica nada. "8 comprimidos" pode ser o que sobrou de 30 ou o que chegou
+ * ontem, e a diferença entre as duas coisas é o que a Enfermagem precisa ver.
+ */
+interface ItemEstoque {
+  id: string; medicamento: string; unidade: string; quantidade: number; minimo: number;
+  validade: string; conferidoPor: string;
+  ultimoMovimento: { tipo: 'entrada' | 'ajuste'; quantidade: number; motivo: string | null;
+                     por: string; em: string } | null;
+}
+const ESTOQUE: ItemEstoque[] = [
   { id: 'e1', medicamento: 'Amoxicilina (fictícia) 250 mg/5 mL', unidade: 'frasco',
-    quantidade: 2, minimo: 2, validade: '2027-01-31', conferidoPor: 'Enfermeira Fictícia' },
+    quantidade: 2, minimo: 2, validade: '2027-01-31', conferidoPor: 'Enfermeira Fictícia',
+    ultimoMovimento: { tipo: 'entrada', quantidade: 2, motivo: null,
+                       por: 'Enfermeira Fictícia', em: emHoras(9, 15) } },
   { id: 'e2', medicamento: 'Colírio lubrificante (fictício)', unidade: 'frasco',
-    quantidade: 5, minimo: 2, validade: '2026-12-10', conferidoPor: 'Enfermeira Fictícia' },
+    quantidade: 5, minimo: 2, validade: '2026-12-10', conferidoPor: 'Enfermeira Fictícia',
+    ultimoMovimento: null },
   { id: 'e3', medicamento: 'Paracetamol (fictício) 500 mg', unidade: 'comprimido',
-    quantidade: 8, minimo: 20, validade: '2026-11-30', conferidoPor: 'Enfermeira Fictícia' },
+    quantidade: 8, minimo: 20, validade: '2026-11-30', conferidoPor: 'Enfermeira Fictícia',
+    ultimoMovimento: { tipo: 'ajuste', quantidade: -4, motivo: 'Conferência do armário: quatro a menos que o registrado.',
+                       por: 'Enfermeira Fictícia', em: emHoras(20, 30) } },
   { id: 'e4', medicamento: 'Insulina (fictícia) — caneta', unidade: 'caneta',
-    quantidade: 3, minimo: 2, validade: '2026-10-05', conferidoPor: 'Enfermeira Fictícia' },
+    quantidade: 3, minimo: 2, validade: '2026-10-05', conferidoPor: 'Enfermeira Fictícia',
+    ultimoMovimento: null },
 ];
 
 /**
@@ -1258,7 +1275,51 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       })),
     };
   }
-  if (rota === '/health/stock') return ESTOQUE;
+  if (rota === '/health/stock' && metodo === 'GET') return ESTOQUE;
+
+  /**
+   * Movimento de estoque — as DUAS ações, como no servidor de verdade (§8.4).
+   *
+   * `entrada` soma o que chegou; `contagem` substitui pelo que foi conferido,
+   * exige motivo e grava a diferença. O protótipo recusa nos mesmos pontos em
+   * que o banco recusa: é o que faz a demonstração valer como conversa com a
+   * equipe, e não como propaganda.
+   */
+  if (seg[0] === 'health' && seg[1] === 'stock' && seg[3] === 'movimento' && metodo === 'POST') {
+    const item = ESTOQUE.find((x) => x.id === seg[2]);
+    if (!item) return new Recusa(404, 'Não encontrado.');
+    if (!['enfermagem', 'equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403, 'Seu cargo não movimenta o estoque.');
+    }
+    const tipo = String(b.tipo ?? '');
+    if (tipo !== 'entrada' && tipo !== 'contagem') {
+      return new Recusa(400, 'Escolha: chegou remédio (entrada) ou conferi o armário (contagem).');
+    }
+    const q = Number(b.quantidade);
+    if (!Number.isFinite(q) || q < 0) return new Recusa(400, 'Quantidade inválida.');
+    if (tipo === 'entrada' && q === 0) return new Recusa(400, 'Entrada de zero não é entrada.');
+    const motivo = String(b.motivo ?? '').trim();
+    if (tipo === 'contagem' && motivo.length < 3) {
+      return new Recusa(400, 'A contagem exige motivo: o que foi conferido, e por quê. '
+        + 'Remédio que some do armário sem explicação escrita é o que não pode virar rotina.');
+    }
+    const anterior = item.quantidade;
+    item.quantidade = tipo === 'entrada' ? anterior + q : q;
+    item.conferidoPor = eu.fullName;
+    item.ultimoMovimento = {
+      tipo: tipo === 'entrada' ? 'entrada' : 'ajuste',
+      quantidade: tipo === 'entrada' ? q : item.quantidade - anterior,
+      motivo: motivo || null, por: eu.fullName, em: new Date().toISOString(),
+    };
+    return {
+      ok: true, tipo, anterior, quantidade: item.quantidade,
+      diferenca: item.ultimoMovimento.quantidade,
+      aviso: tipo === 'entrada'
+        ? `Entrada registrada: ${anterior} + ${q} = ${item.quantidade} ${item.unidade}(s).`
+        : `Contagem registrada: de ${anterior} para ${item.quantidade} ${item.unidade}(s). `
+          + 'A diferença ficou no histórico, com o motivo e o seu nome.',
+    };
+  }
   if (rota === '/health/triage' && metodo === 'GET') {
     return TRIAGENS.map((t) => ({ ...t, acolhido: kid(t.personId)?.nome ?? '—' }));
   }

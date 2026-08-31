@@ -74,6 +74,11 @@ export class MedicationsController {
     return this.meds.stock(user, houseId);
   }
 
+  /**
+   * `tipo` é obrigatório: 'entrada' soma o que chegou, 'contagem' substitui
+   * pelo que foi conferido e exige motivo. Sem padrão — ver o comentário em
+   * `MedicationsService.upsertStock`.
+   */
   @Post('stock')
   upsertStock(@CurrentUser() user: AuthenticatedUser, @Body() body: any) {
     return this.meds.upsertStock(user, body);

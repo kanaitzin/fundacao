@@ -354,7 +354,7 @@ describe('Regressão — escopo, autoria e primeiro acesso', () => {
     const med = `Dipirona Teste ${Date.now()}`;
     const entrada = () => request(http).post('/api/v1/medications/stock')
       .set(auth(tokens.enfermagem))
-      .send({ houseId: AI3, medicamento: med, quantidade: 10, unidade: 'comprimido' });
+      .send({ tipo: 'entrada', houseId: AI3, medicamento: med, quantidade: 10, unidade: 'comprimido' });
 
     expect((await entrada()).status).toBe(201);
     expect((await entrada()).status).toBe(201);   // upsert, não linha nova
@@ -365,6 +365,103 @@ describe('Regressão — escopo, autoria e primeiro acesso', () => {
     // Era aqui que as duplicatas se acumulavam — e cada dose administrada
     // descontava uma unidade de CADA uma delas.
     expect(rows[0].n).toBe(1);
+  });
+
+  // ==================== Estoque: entrada e contagem (§8.4) ====================
+
+  it('§8.4 entrada SOMA e o movimento conta o que chegou', async () => {
+    const med = `Amoxicilina Teste ${Date.now()}`;
+    const post = (body: any) => request(http).post('/api/v1/medications/stock')
+      .set(auth(tokens.enfermagem)).send({ houseId: AI3, medicamento: med, ...body });
+
+    expect((await post({ tipo: 'entrada', quantidade: 30, unidade: 'frasco' })).status).toBe(201);
+    const r = await post({ tipo: 'entrada', quantidade: 10 });
+    expect(r.status).toBe(201);
+    // Era isto que estava errado: 10 sobre 30 deixava 10.
+    expect(Number(r.body.quantidade)).toBe(40);
+    expect(Number(r.body.anterior)).toBe(30);
+
+    const { rows } = await admin.query(
+      `SELECT m.kind, m.quantity FROM medication_stock_movement m
+         JOIN medication_stock s ON s.id = m.stock_id
+        WHERE s.house_id=$1 AND s.medication=$2 ORDER BY m.at`, [AI3, med]);
+    expect(rows.map((x) => x.kind)).toEqual(['entrada', 'entrada']);
+    expect(rows.map((x) => Number(x.quantity))).toEqual([30, 10]);
+  });
+
+  it('§8.4 contagem SUBSTITUI, exige motivo e grava a diferença como ajuste', async () => {
+    const med = `Paracetamol Teste ${Date.now()}`;
+    const post = (body: any) => request(http).post('/api/v1/medications/stock')
+      .set(auth(tokens.enfermagem)).send({ houseId: AI3, medicamento: med, ...body });
+
+    await post({ tipo: 'entrada', quantidade: 30, unidade: 'comprimido' }).expect(201);
+
+    // Sem motivo, a contagem não passa: sumiço sem explicação escrita é o que
+    // não pode virar rotina.
+    expect((await post({ tipo: 'contagem', quantidade: 26 })).status).toBe(400);
+
+    const r = await post({ tipo: 'contagem', quantidade: 26, motivo: 'Conferência do armário na passagem.' });
+    expect(r.status).toBe(201);
+    expect(Number(r.body.quantidade)).toBe(26);
+    expect(Number(r.body.diferenca)).toBe(-4);
+
+    const { rows } = await admin.query(
+      `SELECT m.kind, m.quantity, m.reason FROM medication_stock_movement m
+         JOIN medication_stock s ON s.id = m.stock_id
+        WHERE s.house_id=$1 AND s.medication=$2 ORDER BY m.at`, [AI3, med]);
+    const ajuste = rows[rows.length - 1];
+    expect(ajuste.kind).toBe('ajuste');            // nunca 'entrada'
+    expect(Number(ajuste.quantity)).toBe(-4);      // a diferença, não o total
+    expect(ajuste.reason).toContain('Conferência');
+  });
+
+  it('§8.4 sem "tipo" o servidor recusa, em vez de escolher por mim', async () => {
+    const r = await request(http).post('/api/v1/medications/stock')
+      .set(auth(tokens.enfermagem))
+      .send({ houseId: AI3, medicamento: `Sem Tipo ${Date.now()}`, quantidade: 5 });
+    expect(r.status).toBe(400);
+    expect(String(r.body.message)).toMatch(/entrada|contagem/);
+  });
+
+  it('§8.4 a entrada mantém a validade MAIS PRÓXIMA — lote novo não apaga o velho', async () => {
+    const med = `Colírio Teste ${Date.now()}`;
+    const post = (body: any) => request(http).post('/api/v1/medications/stock')
+      .set(auth(tokens.enfermagem)).send({ houseId: AI3, medicamento: med, ...body });
+
+    await post({ tipo: 'entrada', quantidade: 2, unidade: 'frasco', validade: '2026-10-05' }).expect(201);
+    await post({ tipo: 'entrada', quantidade: 3, validade: '2027-06-30' }).expect(201);
+
+    const { rows: [s] } = await admin.query(
+      `SELECT quantity, expires_on FROM medication_stock
+        WHERE house_id=$1 AND medication=$2`, [AI3, med]);
+    expect(Number(s.quantity)).toBe(5);
+    // O frasco de outubro continua na gaveta: é ele que manda descartar.
+    expect(new Date(s.expires_on).toISOString().slice(0, 10)).toBe('2026-10-05');
+  });
+
+  // ============ Painel de enfermagem: a âncora do vencimento (§8.4) ============
+
+  it('§8.4 "vencendo em 7 dias" parte de HOJE, mesmo revisando outro dia', async () => {
+    const { rows: [f] } = await admin.query(
+      `SELECT pg_get_functiondef(p.oid) AS def FROM pg_proc p
+        WHERE p.proname = 'app_nursing_panel'`);
+    // A janela não pode mais depender do dia que o painel mostra.
+    expect(f.def).toContain('app_hoje() + 7');
+    expect(f.def).not.toContain('p_date + 7');
+    expect(f.def).not.toContain('current_date');
+
+    // E o painel de outro dia continua sendo o painel daquele dia, avisando
+    // que o alerta de receita é de hoje.
+    // Véspera calculada a partir do dia da INSTITUIÇÃO, não do dia UTC: às 22h
+    // de Porto Alegre o UTC já virou, e "ontem em UTC" seria hoje aqui.
+    const ontem = dataNaInstituicao(
+      new Date(new Date(`${HOJE}T12:00:00-03:00`).getTime() - 86400000));
+    const p = await request(http).get(`/api/v1/nursing/panel?houseId=${AI3}&date=${ontem}`)
+      .set(auth(tokens.enfermagem));
+    expect(p.status).toBe(200);
+    expect(p.body.data).toBe(ontem);
+    expect(p.body.revendoOutroDia).toBe(true);
+    expect(p.body.receitaVencendoAncoradaEm).toBe(p.body.hoje);
   });
 
   // ==================== Autoria dupla e delegação ====================

@@ -5,6 +5,7 @@ import { DatabaseService } from '../../kernel/database/database.service';
 import { AuditService } from '../../kernel/audit/audit.service';
 import { EventBus } from '../../kernel/events/event-bus.service';
 import { AuthenticatedUser } from '../../kernel/contracts';
+import { hojeNaInstituicao } from '../../kernel/common/tempo';
 
 /** Prazo esperado de triagem — pendência institucional 33.4.2, configurável. */
 const SLA_TRIAGEM_HORAS = Number(process.env.NURSING_TRIAGE_SLA_HOURS ?? 24);
@@ -49,8 +50,17 @@ export class NursingService {
       semMedicacaoPrevista: r.doses_previstas === 0,
     }));
 
+    // O aviso de receita vencendo parte de HOJE, e não do dia mostrado (§8.4):
+    // a receita vence numa data, e a data não muda porque a Enfermagem foi
+    // revisar a véspera. Quando os dois dias diferem, a tela precisa dizer de
+    // onde o número parte — número certo com origem escondida vira dúvida.
+    const hoje = hojeNaInstituicao();
+
     return {
       data: date,
+      hoje,
+      receitaVencendoAncoradaEm: hoje,
+      revendoOutroDia: date !== hoje,
       total: acolhidos.length,
       resumo: {
         comMedicacao: acolhidos.filter((a) => !a.semMedicacaoPrevista).length,

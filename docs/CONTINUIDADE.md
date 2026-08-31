@@ -3,7 +3,7 @@
 > **Como usar este arquivo:** anexe-o na primeira mensagem de uma conversa nova,
 > junto com o zip do repositório. Ele substitui todo o histórico.
 >
-> Última atualização: 29/08/2026 · 12 defeitos corrigidos + convite de primeiro acesso
+> Última atualização: 31/08/2026 · as duas decisões de produto da §8.4, decididas e no código
 
 ---
 
@@ -142,6 +142,7 @@ cd backend  && npm test            # testes (precisa de PostgreSQL)
 | 15 | **Relatório de desenvolvimento da criança na casa; arquivos de origem desconhecida avaliados e descartados** |
 | 16 | **Linha do tempo corrida no relatório, ordem das seções e tela para gerar** |
 | 17 | **O dia das unidades: linha do tempo unificada para quem alcança mais de uma casa** |
+| 18 | **As duas decisões da §8.4: estoque com entrada e contagem separadas; vencimento ancorado em hoje** |
 
 ---
 
@@ -234,6 +235,21 @@ cada seção dizendo de onde veio. Os campos de avaliação e encaminhamento vê
 branco, marcados como "a preencher". O sistema nunca interpreta, nunca conclui,
 nunca avalia ninguém, e nunca conta por educador.
 
+**Chegou remédio e conferi o armário são duas coisas.** O estoque tinha uma
+ação só, e ela mentia: substituía a quantidade e gravava o movimento como
+"entrada" — 10 sobre 30 deixava 10, com o histórico jurando que uma entrada de
+10 havia acontecido. Agora quem mexe escolhe. Entrada soma e o movimento conta
+o que chegou; contagem substitui, grava a diferença como ajuste e **exige
+motivo**, porque remédio que some do armário sem explicação escrita é
+exatamente o que não pode virar rotina. O sistema não adivinha qual é qual pelo
+tamanho do número: contagem maior que o registrado acontece (frasco em outra
+gaveta), e entrada pequena não deixa de ser entrada.
+
+**O aviso de receita é sobre a receita, não sobre a tela.** A janela de 7 dias
+parte de hoje. O painel de outro dia é o que a Enfermagem abre para revisar a
+véspera — e era justamente aí que o alerta sumia para quem foi conferir. A tela
+diz de onde o número parte quando o dia mostrado não é hoje.
+
 **"Hoje" é sempre o dia de Porto Alegre.** `hojeNaInstituicao()` no TypeScript,
 `app_hoje()` no SQL. `current_date` está proibido em migração nova.
 
@@ -260,7 +276,7 @@ conferidas.
 ## 8. Pendências
 
 ### 8.1 Testes
-**219 testes, 16 suítes, todas passando.** Sem falha conhecida.
+**224 testes, 16 suítes, todas passando.** Sem falha conhecida.
 
 - `test/regressao-autoria.e2e.spec.ts` trava os 12 defeitos e as funções que
   vieram depois: convite, autoria dupla, delegação, painel, recusa.
@@ -287,6 +303,15 @@ conferidas.
   suíte da agenda passou a valer HOJE e a suíte do plantão começou a cobrar
   passagem de um educador que só existia por causa do teste.
 
+- **Aplicação e banco precisam do MESMO relógio.** Verificado em 31/08: a
+  suíte inteira passa às 22h30 de Porto Alegre quando os dois andam juntos.
+  Com o relógio do processo adiantado em relação ao do banco, atravessando a
+  meia-noite, 17 testes em 5 suítes caem — `app_hoje()` no SQL responde um dia
+  e `hojeNaInstituicao()` no TypeScript responde outro. Não é defeito do
+  código: é requisito de implantação (NTP nos dois, ou o banco como fonte
+  única da data). Fica anotado porque a falha, quando vier, vai parecer
+  qualquer outra coisa.
+
 ### 8.2 Sobre os arquivos "de origem desconhecida" (resolvido)
 Três arquivos apareceram no repositório durante o trabalho. A origem foi
 identificada: **execuções paralelas desta mesma conversa**. A prova é o `docx`,
@@ -300,16 +325,25 @@ prestava entrou no código, e o resto foi descartado.
 - A matriz de permissões documentava **"Educador volante"**, cargo que não
   existe no `role_code`.
 
-### 8.4 Decisões de produto em aberto
-- `upsertStock` faz `SET quantity = EXCLUDED.quantity` (substitui) mas grava o
-  movimento como `'entrada'`. Uma entrada de 10 sobre 30 deixa 10, não 40.
-- Painel de enfermagem: "vencendo em 7 dias" hoje conta a partir de `p_date`
-  (o dia que o painel mostra), não de hoje.
+### 8.4 Decisões de produto — DECIDIDAS em 31/08/2026
+- **Estoque: duas ações, e quem mexe diz qual.** `POST /medications/stock`
+  passou a exigir `tipo`. `entrada` SOMA ao que estava no armário e grava
+  movimento `'entrada'` com o que chegou; `contagem` SUBSTITUI pelo número
+  conferido, exige motivo e grava movimento `'ajuste'` com a DIFERENÇA
+  assinada. Sem padrão: faltando `tipo`, o servidor recusa em vez de escolher.
+  Na entrada, a validade que fica é a **mais próxima** entre a que havia e a
+  que chegou — lote novo e longo não apaga o lote velho que ainda está na
+  gaveta.
+- **"Vencendo em 7 dias" parte de HOJE** (migração 0750), e não do dia que o
+  painel mostra. Revisar a véspera na sexta escondia a receita que vence no
+  sábado. `p_date` continua mandando no resto do painel; a resposta traz
+  `hoje`, `receitaVencendoAncoradaEm` e `revendoOutroDia` para a tela avisar
+  quando os dois dias diferem.
 - Nada pendente da substituição nem do painel: a lista, o aviso do pedido sem
   efeito e a recusa com motivo estão prontos.
 
 ### 8.5 Próximos passos sugeridos
-1. Decidir os dois itens de produto da §8.4 (é o que trava mais coisa)
+1. ~~Decidir os dois itens de produto da §8.4~~ — feito em 31/08
 2. Aplicar o retorno do Marcelo por cargo (protótipo aprovado em 28/08)
 3. Trazer as fases 3–7 para o `der.md`
 3. Configurar SMTP institucional na implantação (`MailGateway` já está pronto)
@@ -334,6 +368,7 @@ prestava entrou no código, e o resto foi descartado.
 | 0720 | activities | equipe técnica também troca quem vai na atividade |
 | 0730 | statements | líder do turno lê o registro restrito da própria casa |
 | 0740 | reports | tipo `desenvolvimento` liberado no CHECK do banco |
+| 0750 | nursing | "vencendo em 7 dias" ancorado em `app_hoje()`, não em `p_date` |
 
 Sem migração nova na fase 14: os relatórios usam o que já estava gravado.
 A dependência `docx` entrou no backend, e o timbre vive em `backend/assets/timbre.png`.
@@ -345,7 +380,7 @@ A dependência `docx` entrou no backend, e o timbre vive em `backend/assets/timb
 ### 11.1 O que existe hoje, em uma frase
 Backend NestJS com PostgreSQL 16 e Row-Level Security, 16 partições isoladas;
 frontend React PWA com 19 telas; protótipo de um arquivo só com servidor de
-mentira; **219 testes passando em 16 suítes**; documento Word com timbre saindo
+mentira; **224 testes passando em 16 suítes**; documento Word com timbre saindo
 do sistema. Nada foi publicado, nada roda em produção, nenhum dado real entrou.
 
 ### 11.2 O que foi feito nesta série de conversas
@@ -388,9 +423,9 @@ backlog e manifestos alinhados ao código.
 
 ### 11.3 O que falta, em ordem de valor
 
-1. **Duas decisões de produto, e elas travam código** (§8.4): o `upsertStock`
-   que substitui a quantidade mas grava o movimento como "entrada"; e a âncora
-   do "vencendo em 7 dias" no painel de enfermagem.
+1. ~~Duas decisões de produto (§8.4)~~ — **decididas e no código em 31/08**:
+   estoque com `entrada` e `contagem` separadas, e a janela de vencimento
+   ancorada em `app_hoje()`.
 2. **Tela mostrando ao coordenador o que cada setor enxerga.** Começada e não
    feita: hoje `/staff/sectors` lista os cargos, mas não há tela que responda
    "o que o educador vê?" sem trocar de conta.
@@ -497,12 +532,12 @@ responder e não me peça para reexplicar o que está lá.
 
 === ESTADO ATUAL ===
 
-Fases 0 a 17 concluídas. 219 testes passando em 16 suítes, sem falha
+Fases 0 a 18 concluídas. 224 testes passando em 16 suítes, sem falha
 conhecida. Backend NestJS + PostgreSQL 16 com RLS, 16 partições. Frontend React
 PWA com 19 telas. Relatórios saem em Word com timbre, com a parte factual
 escrita pelo sistema. Convite de primeiro acesso por e-mail, uso único, 24h.
 
-Em aberto, na ordem: as duas decisões de produto da seção 8.4; a tela que mostra
+Em aberto, na ordem: a tela que mostra
 ao coordenador o que cada setor enxerga; as fases 3 a 7 no der.md; o retorno do
 Marcelo por cargo; e o SMTP institucional, só na implantação.
 
