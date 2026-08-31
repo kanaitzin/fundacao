@@ -312,7 +312,7 @@ export function App() {
             quem registra, e quem conduz o turno é quem fecha. */}
         {aba === 'ocorrencias' && casaAtual && <Ocorrencias houseId={casaAtual.id} papel={me.role} />}
 
-        {aba === 'ata' && <Ata />}
+        {aba === 'ata' && casaAtual && <Ata houseId={casaAtual.id} papel={me.role} />}
 
         {aba === 'cofre' && veCofre && casaAtual && (
           <Cofre houseId={casaAtual.id} papel={me.role} />

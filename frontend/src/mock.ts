@@ -435,31 +435,40 @@ let OCORRENCIAS: Ocorrencia[] = [
  * das oito ATAs de casa. Fechar COM PENDÊNCIA é uma saída de verdade — a
  * alternativa seria o sistema presumir uma assinatura que ninguém deu.
  */
-let ATA_CASA = {
-  data: HOJE, turno: 'diurno', horario: '07h–19h', estado: 'aberta' as 'aberta' | 'fechada',
-  comPendencia: false, motivoPendencia: null as string | null,
-  fechadaPor: null as string | null, fechadaEm: null as string | null,
-  passagens: [
-    { quem: 'Mário Silva (fictício)', cargo: 'educador', assinada: true },
-    { quem: 'Tainá Souza (fictícia)', cargo: 'educador', assinada: true },
-    { quem: 'Joana Lima (fictícia)', cargo: 'educador', assinada: false },
-    { quem: 'Lúcia Líder Diurna (fictícia)', cargo: 'lider_diurno', assinada: true },
-  ],
-  secoes: ['Presentes e ausências', 'Situação dos acolhidos', 'Convivência familiar',
-    'Saídas e retornos', 'Visitas', 'Enfermagem', 'Escola', 'Medicamentos',
-    'Organização da casa', 'Ocorrências', 'Orientações ao próximo turno'],
-};
+/**
+ * A ATA da casa VIVE DENTRO DO PLANTÃO, como no servidor: uma por turno, com
+ * as assinaturas daquele turno. O protótipo tinha uma ATA solta, sem turno, e
+ * por isso não sabia dizer de qual plantão eram as passagens que mostrava.
+ */
+interface AtaMock {
+  id: string; plantaoId: string; status: 'aberta' | 'fechada'; versao: number;
+  pendencias: string | null; fechadaEm: string | null;
+}
+let ATAS: AtaMock[] = [];
+const SECOES_ATA = [
+  { cod: 'presentes', label: 'Presentes e ausências' },
+  { cod: 'acolhidos', label: 'Situação dos acolhidos' },
+  { cod: 'familiar', label: 'Convivência familiar' },
+  { cod: 'saidas', label: 'Saídas e retornos' },
+  { cod: 'visitas', label: 'Visitas' },
+  { cod: 'enfermagem', label: 'Enfermagem' },
+  { cod: 'escola', label: 'Escola' },
+  { cod: 'medicamentos', label: 'Medicamentos' },
+  { cod: 'organizacao', label: 'Organização da casa' },
+  { cod: 'ocorrencias', label: 'Ocorrências' },
+  { cod: 'orientacoes', label: 'Orientações ao próximo turno' },
+];
 let ATA_GERAL = {
-  data: HOJE, turno: 'noturno', horario: '19h–07h',
-  estado: 'aberta' as 'aberta' | 'fechada', comPendencia: false,
-  motivoPendencia: null as string | null,
-  fechadaPor: null as string | null, fechadaEm: null as string | null,
+  id: 'g1', data: HOJE, status: 'aberta' as 'aberta' | 'fechada',
+  pendencias: null as string | null, assinadaEm: null as string | null,
   casas: CASAS.map((c, i) => ({
-    codigo: c.code, nome: c.name,
+    casaId: c.id, codigo: c.code, nome: c.name,
     // Casa sem chamado também entra: a ausência de demanda é registrada, não omitida.
-    registro: i === 2 ? 'Chamado às 02h10 — saúde; enfermagem orientou por telefone.'
-            : i === 5 ? 'Visita de rotina às 01h20; sem intercorrência.' : null,
-    ataNoturna: i === 2 ? 'aguardando' : 'confirmada',
+    houveContato: i === 2 || i === 5,
+    motivo: i === 2 ? 'Chamado às 02h10 — saúde; enfermagem orientou por telefone.'
+          : i === 5 ? 'Visita de rotina às 01h20; sem intercorrência.' : null,
+    acao: null as string | null, pendencias: null as string | null,
+    ataNoturnaConfirmada: i !== 2,
   })),
 };
 
@@ -668,6 +677,16 @@ const DOCUMENTOS = [
 const NOVOS: Kid[] = [];
 const todosKids = () => [...KIDS, ...NOVOS];
 const kid = (id: string) => todosKids().find((k) => k.id === id);
+
+/** A ATA de um plantão — criada junto com ele, como no servidor. */
+function ataDo(plantaoId: string): AtaMock {
+  let a = ATAS.find((x) => x.plantaoId === plantaoId);
+  if (!a) {
+    a = { id: uid(), plantaoId, status: 'aberta', versao: 1, pendencias: null, fechadaEm: null };
+    ATAS.push(a);
+  }
+  return a;
+}
 
 // ---------------------------------------------------------------- roteador
 
@@ -1012,13 +1031,20 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
   }
 
   // ---- plantão e passagem
+  if (rota === '/shifts/ata-sections') {
+    return { secoes: SECOES_ATA, classificacoesEpisodio: [] };
+  }
   if (rota === '/shifts' && metodo === 'GET') {
-    return PLANTOES.map((s) => ({
-      id: s.id, turno: s.turno, status: s.status, abertoEm: s.abertoEm, fechadoEm: s.fechadoEm,
-      passagensAssinadas: s.passagens.length, recebimentos: s.recebimentos.length,
-      assinaturasFaltantes: s.esperados.filter(
-        (e) => !s.passagens.some((p) => p.userId === e.userId)).length,
-    }));
+    return PLANTOES.map((s) => {
+      const a = ataDo(s.id);
+      return {
+        id: s.id, turno: s.turno, status: s.status, abertoEm: s.abertoEm, fechadoEm: s.fechadoEm,
+        ataId: a.id, ataStatus: a.status,
+        passagensAssinadas: s.passagens.length, recebimentos: s.recebimentos.length,
+        assinaturasFaltantes: s.esperados.filter(
+          (e) => !s.passagens.some((p) => p.userId === e.userId)).length,
+      };
+    });
   }
   if (rota === '/shifts' && metodo === 'POST') {
     const existente = PLANTOES.find((s) => s.turno === b.turno);
@@ -1035,7 +1061,16 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     const s = PLANTOES.find((x) => x.id === seg[1])!;
     return {
       id: s.id, casaId: CASA.id, data: HOJE, turno: s.turno, status: s.status,
-      abertoEm: s.abertoEm, fechadoEm: s.fechadoEm, ata: null,
+      abertoEm: s.abertoEm, fechadoEm: s.fechadoEm,
+      // A ATA vem DENTRO do plantão, como no servidor.
+      ata: (() => {
+        const a = ataDo(s.id);
+        return { id: a.id, status: a.status, versao: a.versao, conteudo: null,
+                 pendencias: a.pendencias,
+                 assinaturasFaltantes: s.esperados.filter(
+                   (e) => !s.passagens.some((p) => p.userId === e.userId)).length,
+                 fechadaEm: a.fechadaEm };
+      })(),
       passagens: s.passagens.map((p) => ({ ...p, propria: p.userId === eu.id })),
       assinaturasPendentes: s.esperados
         .filter((e) => !s.passagens.some((p) => p.userId === e.userId))
@@ -1727,59 +1762,75 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       aviso: 'Fechada após validação técnica. O histórico permanece consultável e pode ser reaberto.' };
   }
 
-  // ---- ATA
-  if (rota === '/minutes') {
-    return {
-      casa: { ...ATA_CASA,
-        podeFechar: ['lider_diurno', 'coordenador', 'gestor_geral'].includes(eu.role),
-        assinaturasFaltantes: ATA_CASA.passagens.filter((p) => !p.assinada).length },
-      geral: { ...ATA_GERAL,
-        podeFechar: ['lider_noturno_geral', 'coordenador', 'gestor_geral'].includes(eu.role),
-        casasAguardando: ATA_GERAL.casas.filter((c) => c.ataNoturna !== 'confirmada').length },
-    };
-  }
-  if (rota === '/minutes/house/close') {
-    if (ATA_CASA.estado === 'fechada') {
+  // ---- ATA: as rotas do servidor (§12)
+  //
+  // A tela chamava /minutes, /minutes/house/close e /minutes/general/close.
+  // Não existe módulo `minutes`: a ATA da casa vive dentro do plantão
+  // (/shifts/:id, fechada em /shifts/ata/:ataId/close) e a Geral tem rotas
+  // próprias em /shifts/general-ata/*.
+
+  if (seg[0] === 'shifts' && seg[1] === 'ata' && seg[3] === 'close' && metodo === 'POST') {
+    const a = ATAS.find((x) => x.id === seg[2]);
+    if (!a) return new Recusa(404, 'ATA não encontrada.');
+    if (a.status === 'fechada') {
       return new Recusa(400, 'Esta ATA já foi fechada. O que vier depois entra como adendo, '
         + 'ao lado — registro fechado não é reescrito.');
     }
-    const faltam = ATA_CASA.passagens.filter((p) => !p.assinada);
-    if (faltam.length && !b.comPendencia) {
-      return new Recusa(400, `Falta a passagem de ${faltam.map((p) => p.quem).join(', ')}. `
+    if (!['lider_diurno', 'lider_noturno_geral', 'equipe_tecnica', 'coordenador', 'gestor_geral']
+        .includes(eu.role)) {
+      return new Recusa(403, 'O fechamento da ATA cabe ao líder do turno, à equipe técnica '
+        + 'ou à coordenação.');
+    }
+    const plantao = PLANTOES.find((x) => x.id === a.plantaoId)!;
+    const faltam = plantao.esperados.filter(
+      (e) => !plantao.passagens.some((p) => p.userId === e.userId));
+    const pendencias = String(b.pendencias ?? '').trim();
+    if (faltam.length && !pendencias) {
+      return new Recusa(400, `Falta a passagem de ${faltam.map((f) => f.quem).join(', ')}. `
         + 'O sistema não assina no lugar de ninguém: feche com pendência, dizendo o que faltou.');
     }
-    if (b.comPendencia && String(b.motivoPendencia ?? '').trim().length < 10) {
-      return new Recusa(400, 'Descreva a pendência — é ela que a equipe técnica e a coordenação '
-        + 'vão ler amanhã.');
-    }
-    ATA_CASA = { ...ATA_CASA, estado: 'fechada', comPendencia: !!b.comPendencia,
-      motivoPendencia: b.comPendencia ? b.motivoPendencia : null,
-      fechadaPor: eu.fullName, fechadaEm: new Date().toISOString() };
+    a.status = 'fechada';
+    a.pendencias = pendencias || null;
+    a.fechadaEm = new Date().toISOString();
     ARQUIVO = [{ id: uid(), categoria: 'ATA', caminho: `ACOLHIMENTO/${CASA.code}/2026/08/ata`,
-      arquivo: `ata_${HOJE}_${uid()}_V1.pdf`, estado: 'aguardando', restrito: false,
+      arquivo: `ata_${HOJE}_${uid()}_V${a.versao}.pdf`, estado: 'aguardando', restrito: false,
       tentativas: 0, erro: null, fechadoEm: new Date().toISOString() }, ...ARQUIVO];
-    return { ok: true, aviso: b.comPendencia
-      ? 'ATA fechada COM PENDÊNCIA, com a sua assinatura e o motivo escrito. Nenhuma assinatura '
-        + 'foi criada em nome de terceiros. Equipe técnica e coordenação avisadas.'
-      : 'ATA fechada e consolidada. A cópia documental entrou na fila do arquivo.' };
+    return { status: 'fechada', assinaturasFaltantes: faltam.length,
+      aviso: pendencias
+        ? 'ATA fechada COM PENDÊNCIA, com a sua assinatura e o motivo escrito. Nenhuma '
+          + 'assinatura foi criada em nome de terceiros. Equipe técnica e coordenação avisadas.'
+        : 'ATA fechada e consolidada. A cópia documental entrou na fila do arquivo.' };
   }
-  if (rota === '/minutes/general/close') {
-    if (ATA_GERAL.estado === 'fechada') {
+
+  /** Abrir a ATA Geral é do Líder Noturno Geral — e é assim que ela é achada. */
+  if (rota === '/shifts/general-ata' && metodo === 'POST') {
+    if (eu.role !== 'lider_noturno_geral') {
+      return new Recusa(403, 'A ATA Geral Noturna é do Líder Noturno Geral.');
+    }
+    return { id: ATA_GERAL.id, data: ATA_GERAL.data, casas: ATA_GERAL.casas.length,
+      aviso: 'As oito casas já constam na ATA. Casa sem chamado também é registro — não pode '
+        + 'ficar em branco.' };
+  }
+
+  if (seg[0] === 'shifts' && seg[1] === 'general-ata' && seg.length === 3 && metodo === 'GET') {
+    if (seg[2] !== ATA_GERAL.id) return new Recusa(404, 'ATA Geral não encontrada.');
+    return ATA_GERAL;
+  }
+
+  if (seg[0] === 'shifts' && seg[1] === 'general-ata' && seg[3] === 'sign' && metodo === 'POST') {
+    if (ATA_GERAL.status === 'fechada') {
       return new Recusa(400, 'A ATA Geral desta noite já foi fechada.');
     }
-    const aguardando = ATA_GERAL.casas.filter((c) => c.ataNoturna !== 'confirmada');
-    if (aguardando.length && !b.comPendencia) {
+    const aguardando = ATA_GERAL.casas.filter((c) => !c.ataNoturnaConfirmada);
+    const pendencias = String(b.pendencias ?? '').trim();
+    if (aguardando.length && !pendencias) {
       return new Recusa(400, `${aguardando.map((c) => c.codigo).join(', ')} ainda não confirmou `
         + 'a ATA noturna da casa. Feche com pendência, dizendo o que faltou.');
     }
-    if (b.comPendencia && String(b.motivoPendencia ?? '').trim().length < 10) {
-      return new Recusa(400, 'Descreva a pendência da ATA Geral.');
-    }
-    ATA_GERAL = { ...ATA_GERAL, estado: 'fechada', comPendencia: !!b.comPendencia,
-      motivoPendencia: b.comPendencia ? b.motivoPendencia : null,
-      fechadaPor: eu.fullName, fechadaEm: new Date().toISOString() };
-    return { ok: true, aviso: 'ATA Geral Noturna assinada e fechada por você. Cada educador '
-      + 'assinou apenas a própria passagem — nenhuma assinatura foi presumida.' };
+    ATA_GERAL = { ...ATA_GERAL, status: 'fechada', pendencias: pendencias || null,
+      assinadaEm: new Date().toISOString() };
+    return { status: 'fechada', aviso: 'ATA Geral Noturna assinada e fechada por você. Cada '
+      + 'educador assinou apenas a própria passagem — nenhuma assinatura foi presumida.' };
   }
 
   // ---- cofre de acessos
