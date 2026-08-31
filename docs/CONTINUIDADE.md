@@ -305,6 +305,9 @@ conferidas.
   suíte da agenda passou a valer HOJE e a suíte do plantão começou a cobrar
   passagem de um educador que só existia por causa do teste.
 
+- **Rodada de 31/08, depois das mudanças:** suíte duas vezes seguidas (235
+  testes, 19 suítes) e uma terceira às 22h30 de Porto Alegre, com os relógios
+  da aplicação e do banco juntos. Verde nas três.
 - **Aplicação e banco precisam do MESMO relógio.** Verificado em 31/08: a
   suíte inteira passa às 22h30 de Porto Alegre quando os dois andam juntos.
   Com o relógio do processo adiantado em relação ao do banco, atravessando a
@@ -476,12 +479,13 @@ backlog e manifestos alinhados ao código.
 3. ~~Fases 3 a 7 no `der.md`~~ — **feito em 31/08**: as 82 tabelas estão
    documentadas por partição, com o motivo de cada uma, e um teste cobra que
    toda tabela nova apareça lá.
-4. **Retorno do Marcelo por cargo.** O protótipo foi entregue e aprovado em
-   28/08. Falta perguntar coisas específicas: o líder achou o "Registrar pelo
-   colega"? Alguém encontrou o Painel do Plantão sem ajuda?
+4. **Retorno do Marcelo por cargo.** O roteiro está escrito e pronto para
+   aplicar: `docs/roteiro-marcelo.md` — tarefas por cargo, o que observar em
+   cada uma, e a §0 com o que mudou depois da aprovação de 28/08 (a tela de
+   estoque que ele viu não existe mais como era). Falta **aplicar**.
 5. **SMTP institucional**, só na implantação, e só com autorização expressa.
-   Falta saber o provedor, o endereço remetente, o endereço onde o sistema vai
-   rodar, e SPF/DKIM no domínio.
+   As perguntas, o que configurar no domínio e a ordem de validação estão em
+   `docs/implantacao-smtp.md`. Nada foi executado.
 
 ### 11.4 Como retomar
 
