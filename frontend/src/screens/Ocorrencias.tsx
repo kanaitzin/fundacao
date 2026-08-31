@@ -63,6 +63,7 @@ interface Detalhe {
 }
 
 interface Pessoa { id: string; nome: string }
+interface OpcaoTestemunho { code: string; label: string; pendente: boolean }
 
 /** Os estados são os do banco (§13.5) — a tela não inventa um fluxo paralelo. */
 const SITUACAO: Record<string, { label: string; tom: string }> = {
@@ -94,6 +95,8 @@ export function Ocorrencias({ houseId, papel }: { houseId: string; papel: string
   const [catalogo, setCatalogo] = useState<Catalogo | null>(null);
   const [pessoas, setPessoas] = useState<Pessoa[]>([]);
   const [detalhes, setDetalhes] = useState<Record<string, Detalhe>>({});
+  const [testemunhos, setTestemunhos] = useState<OpcaoTestemunho[]>([]);
+  const [relatando, setRelatando] = useState<ItemLista | null>(null);
   const [erro, setErro] = useState('');
   const [aviso, setAviso] = useState('');
   const [abrindo, setAbrindo] = useState(false);
@@ -103,12 +106,13 @@ export function Ocorrencias({ houseId, papel }: { houseId: string; papel: string
   async function carregar() {
     setErro('');
     try {
-      const [o, c, p] = await Promise.all([
+      const [o, c, p, t] = await Promise.all([
         api<ItemLista[]>(`/incidents?houseId=${houseId}`),
         api<Catalogo>('/incidents/catalog'),
         api<Pessoa[]>(`/people?houseId=${houseId}`),
+        api<OpcaoTestemunho[]>('/statements/options').catch(() => [] as OpcaoTestemunho[]),
       ]);
-      setLista(o); setCatalogo(c); setPessoas(p);
+      setLista(o); setCatalogo(c); setPessoas(p); setTestemunhos(t);
       // Detalhes já abertos são recarregados: o que a tela mostra continua
       // sendo o que o servidor devolve agora, não o que devolveu antes.
       const abertos = Object.keys(detalhes);
@@ -244,9 +248,31 @@ export function Ocorrencias({ houseId, papel }: { houseId: string; papel: string
                   <p className="mutetxt" style={{ margin: 0 }}>{d.relatos.nota}</p>
                   {d.relatos.relatos.map((r) => (
                     <div className="bloco compl" key={r.id}>
-                      <small>{r.autor} · {r.testemunho} · {hhmm(r.quando)}</small>{r.relato}
+                      <small>
+                        {r.autor}{r.meu ? ' (seu)' : ''} · {r.testemunho} · {hhmm(r.quando)}
+                        {/* A mesma palavra da caixa que a pessoa marcou ao
+                            escrever: "restrito" sozinho não diz por quê. */}
+                        {r.restrito ? ' · narrativa pessoal' : ''}
+                      </small>{r.relato}
                     </div>
                   ))}
+                  {d.relatos.relatos.length === 0 && (
+                    <p className="mutetxt" style={{ margin: 0 }}>Nenhum relato escrito ainda.</p>
+                  )}
+                  {/*
+                    * RELATO INDEPENDENTE (§12.2). Cada pessoa escreve o que
+                    * viu, do jeito dela, e a versão de cada um fica. Não é um
+                    * campo de "observações" da ocorrência: é o relato DELA,
+                    * com o grau de participação declarado — presenciei
+                    * integralmente, presenciei em parte, soube depois,
+                    * intervim. Num caso de proteção, a diferença entre essas
+                    * frases é o dado.
+                    */}
+                  {d.status !== 'fechada' && (
+                    <button className="btn sec sm" onClick={() => setRelatando(o)}>
+                      ✍️ Escrever o meu relato
+                    </button>
+                  )}
 
                   <div className="eyebrow">Sínteses técnicas</div>
                   {d.avisoAnaliseTecnica && (
@@ -324,6 +350,22 @@ export function Ocorrencias({ houseId, papel }: { houseId: string; papel: string
                        method: 'POST', body: JSON.stringify({ houseId, ...corpo }) }));
                      if (ok) setAbrindo(false);
                    }} />
+      )}
+
+      {relatando && (
+        <FolhaRelato
+          opcoes={testemunhos}
+          onFechar={() => setRelatando(null)}
+          onEnviar={async (corpo) => {
+            const ok = await acao(() => api('/statements', {
+              method: 'POST',
+              body: JSON.stringify({
+                houseId, context: 'ocorrencia',
+                entity: 'incident', entityId: relatando.id, ...corpo,
+              }),
+            }));
+            if (ok) setRelatando(null);
+          }} />
       )}
 
       {encerrando && (
@@ -492,6 +534,97 @@ function FolhaEncerrar({ ocorrencia, jaTemSintese, onFechar, onEncerrar }: {
           <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
           <button className="btn grow" disabled={!pode} onClick={() => onEncerrar(sintese)}>
             Fechar com a minha assinatura
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * O RELATO INDEPENDENTE (§12.2).
+ *
+ * Duas coisas que esta folha protege:
+ *
+ *  * **cada um escreve o seu.** Ninguém edita o relato de ninguém, e relatos
+ *    que se contradizem continuam os dois. Corrigir é escrever outro, ao lado;
+ *  * **o grau de participação é declarado, não deduzido.** "Presenciei
+ *    integralmente" e "soube depois" não são a mesma frase, e num caso de
+ *    proteção a diferença entre elas é o dado. Por isso a lista vem do
+ *    servidor: a tela não inventa opção nem junta duas numa só.
+ *
+ * "Sem informação adicional" é resposta legítima e dispensa texto — quem foi
+ * chamado a relatar e não tem o que dizer precisa poder dizer isso.
+ */
+function FolhaRelato({ opcoes, onFechar, onEnviar }: {
+  opcoes: OpcaoTestemunho[]; onFechar: () => void;
+  onEnviar: (corpo: Record<string, unknown>) => void;
+}) {
+  const [witness, setWitness] = useState('');
+  const [texto, setTexto] = useState('');
+  const [restrito, setRestrito] = useState(false);
+  const dispensaTexto = witness === 'sem_informacao_adicional';
+  const pode = witness !== '' && (dispensaTexto || texto.trim().length >= 10);
+
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-rel"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet modal">
+        <h3 id="t-rel">O meu relato</h3>
+        <div className="notice c-info">
+          Escreva o que <b>você</b> viu. Ninguém edita o relato de ninguém, e dois relatos
+          que se contradizem continuam os dois — corrigir é escrever outro, ao lado.
+        </div>
+
+        <label className="f">Como você participou do fato</label>
+        <div className="opts">
+          {opcoes.map((o) => (
+            <button type="button" key={o.code} className={`opt ${o.pendente ? 'c-warn' : 'c-info'}`}
+                    aria-pressed={witness === o.code} onClick={() => setWitness(o.code)}>
+              {o.label}
+            </button>
+          ))}
+        </div>
+        {opcoes.length === 0 && (
+          <p className="mutetxt">Não foi possível carregar as opções de testemunho.</p>
+        )}
+
+        {dispensaTexto ? (
+          <p className="mutetxt">
+            Resposta legítima: você foi chamado a relatar e não tem o que acrescentar. Fica
+            registrado assim mesmo, com o seu nome.
+          </p>
+        ) : (
+          <>
+            <label className="f" htmlFor="rel-texto">
+              O que você viu <small>— o fato, o horário, o que foi feito. Sem rótulo sobre ninguém.</small>
+            </label>
+            <textarea id="rel-texto" value={texto} onChange={(e) => setTexto(e.target.value)}
+                      placeholder="Ex.: por volta das 21h40 vi o portão dos fundos aberto; avisei o Líder Noturno na hora." />
+          </>
+        )}
+
+        <label className="row" style={{ marginTop: 10, gap: 8, alignItems: 'center' }}>
+          <input type="checkbox" checked={restrito} onChange={(e) => setRestrito(e.target.checked)} />
+          <span className="grow">
+            <b>Narrativa pessoal</b>
+            <div className="mutetxt">
+              Marque quando o relato disser algo sobre você — o que sentiu, o que temeu.
+              Assim ele não circula pelo plantão: abrem a equipe técnica e a coordenação.
+            </div>
+          </span>
+        </label>
+
+        <div className="row rodape">
+          <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
+          <button className="btn grow" disabled={!pode}
+                  onClick={() => onEnviar({
+                    witness,
+                    body: dispensaTexto ? 'Sem informação adicional.' : texto,
+                    restrito,
+                    happenedAt: new Date().toISOString(),
+                  })}>
+            Registrar o meu relato
           </button>
         </div>
       </div>

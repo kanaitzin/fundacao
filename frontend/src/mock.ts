@@ -181,6 +181,76 @@ const AVISOS = [
     lida: true, ciente: true, em: emHoras(8, 0) },
 ];
 
+/**
+ * RELATOS INDEPENDENTES (§12.2) — as sete opções e o que já foi escrito.
+ *
+ * A narrativa pessoal (`restrito`) não circula pelo plantão: abrem a equipe
+ * técnica, a coordenação e o líder do turno. Educador e enfermagem só veem o
+ * próprio — e a tela DIZ isso, em vez de mostrar uma lista curta sem explicar.
+ */
+const OPCOES_TESTEMUNHO = [
+  { code: 'presenciei_integralmente', label: 'Presenciei integralmente', pendente: false },
+  { code: 'presenciei_parcialmente', label: 'Presenciei parcialmente', pendente: false },
+  { code: 'nao_presenciei', label: 'Não presenciei', pendente: false },
+  { code: 'soube_depois', label: 'Soube depois', pendente: false },
+  { code: 'intervim', label: 'Intervim', pendente: false },
+  { code: 'sem_informacao_adicional', label: 'Sem informação adicional', pendente: false },
+  { code: 'preciso_complementar', label: 'Preciso complementar', pendente: true },
+];
+interface RelatoMock {
+  id: string; entity: string; entityId: string; autor: string; autorId: string;
+  testemunho: string; codigoTestemunho: string; relato: string;
+  restrito: boolean; quando: string;
+}
+const RELATOS: RelatoMock[] = [
+  { id: 'r1', entity: 'incident', entityId: 'o1', autor: 'Joana Lima (fictícia)', autorId: 'u6',
+    testemunho: 'Presenciei parcialmente', codigoTestemunho: 'presenciei_parcialmente',
+    relato: 'Por volta das 21h40 vi o portão dos fundos aberto e o Kauã não estava na sala. '
+      + 'Avisei o Líder Noturno Geral na hora e conferi os quartos.',
+    restrito: false, quando: emHoras(21, 45) },
+  { id: 'r2', entity: 'incident', entityId: 'o1', autor: 'Nélio Noturno (fictício)', autorId: 'u8',
+    testemunho: 'Intervim', codigoTestemunho: 'intervim',
+    relato: 'Recebi o aviso às 21h45 e segui o protocolo da casa. O acolhido retornou às '
+      + '23h15, acompanhado, sem lesão referida.',
+    restrito: false, quando: emHoras(23, 20) },
+  // Narrativa pessoal (§26.2 #11): fala do que a pessoa sentiu. Não circula
+  // pelo plantão — a equipe técnica, a coordenação e o líder do turno abrem;
+  // o colega educador não. Está aqui no protótipo justamente para que a
+  // diferença apareça na demonstração, e não só no texto da tela.
+  { id: 'r3', entity: 'incident', entityId: 'o1', autor: 'Tainá Souza (fictícia)', autorId: 'u7',
+    testemunho: 'Presenciei parcialmente', codigoTestemunho: 'presenciei_parcialmente',
+    relato: 'Estava sozinha com os outros seis quando percebi a ausência. Fiquei com medo '
+      + 'de sair para procurar e deixar a casa, e por isso chamei antes de ir.',
+    restrito: true, quando: emHoras(21, 50) },
+];
+function relatosDe(entity: string, entityId: string) {
+  const ladoALado = ['equipe_tecnica', 'coordenador', 'lider_diurno', 'lider_noturno_geral']
+    .includes(eu.role);
+  const meus = RELATOS.filter((r) => r.entity === entity && r.entityId === entityId
+    && (ladoALado || !r.restrito || r.autorId === eu.id));
+  return {
+    modo: ladoALado ? 'lado_a_lado' : 'restrito_ao_proprio',
+    nota: ladoALado
+      ? 'Todos os relatos deste fato, na ordem em que aconteceram. Nenhum foi alterado.'
+      : 'Você vê o seu relato e os registros abertos à equipe. Narrativas pessoais de '
+        + 'colegas não são exibidas.',
+    relatos: meus
+      .sort((a, b2) => a.quando.localeCompare(b2.quando))
+      .map((r) => ({
+        id: r.id, autor: r.autor, meu: r.autorId === eu.id,
+        testemunho: r.testemunho, codigoTestemunho: r.codigoTestemunho,
+        relato: r.relato, restrito: r.restrito, acolhidoId: null,
+        quando: r.quando, registradoEm: r.quando, complementaId: null,
+      })),
+  };
+}
+
+/** Prescrições em rascunho — no protótipo, enquanto a página está aberta. */
+const RASCUNHOS = new Map<string, {
+  medicamento: string; dose: string; via: string; tipo: string; personId: string;
+  horarios: string[]; condicaoUso: string | null;
+}>();
+
 /** Quem foi desativado no protótipo — some da escala, nunca do histórico. */
 const DESATIVADOS = new Set<string>();
 
@@ -914,6 +984,40 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     };
   }
 
+  // ---- relatos independentes (§12.2)
+  /*
+   * As sete opções vêm do SERVIDOR, e é por isso que a tela não inventa a
+   * lista: "presenciei integralmente" e "soube depois" não são a mesma frase,
+   * e num caso de proteção a diferença entre elas é o dado.
+   */
+  if (rota === '/statements/options') return OPCOES_TESTEMUNHO;
+
+  if (rota === '/statements' && metodo === 'POST') {
+    const op = OPCOES_TESTEMUNHO.find((o) => o.code === String(b.witness ?? ''));
+    if (!op) {
+      return new Recusa(400, 'Informe como você participou do fato: '
+        + OPCOES_TESTEMUNHO.map((o) => o.label).join('; ') + '.');
+    }
+    // "Sem informação adicional" é resposta legítima e dispensa texto. As
+    // demais afirmam algo sobre um fato e precisam dizer o quê.
+    if (op.code !== 'sem_informacao_adicional' && String(b.body ?? '').trim().length < 10) {
+      return new Recusa(400, 'Escreva o que você viu: o fato, o horário e o que foi feito.');
+    }
+    RELATOS.push({
+      id: uid(), entity: String(b.entity ?? ''), entityId: String(b.entityId ?? ''),
+      autor: eu.fullName, autorId: eu.id, testemunho: op.label, codigoTestemunho: op.code,
+      relato: String(b.body ?? ''), restrito: b.restrito === true,
+      quando: String(b.happenedAt ?? new Date().toISOString()),
+    });
+    return { ok: true,
+      aviso: 'Relato registrado com o seu nome. Ninguém edita o relato de ninguém — se '
+        + 'precisar corrigir, escreva outro ao lado.' };
+  }
+
+  if (rota === '/statements' && metodo === 'GET') {
+    return relatosDe(String(q.get('entity') ?? ''), String(q.get('entityId') ?? ''));
+  }
+
   // ---- avisos (§19): a caixa do escalonamento
   /*
    * O protótipo mostra a caixa com o que o sistema escalaria num dia comum da
@@ -1617,6 +1721,51 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     return { ok: true, estado, rotulo: ESTADO_DOSE[estado] };
   }
 
+  /**
+   * `POST /medications/prescriptions` — nasce RASCUNHO (§11.1).
+   *
+   * A receita entregue numa consulta não altera a grade sozinha: alguém
+   * confere e assume, com nome e horário. E "quando necessário" exige a
+   * condição de uso escrita pelo profissional — o sistema não decide quando
+   * dar.
+   */
+  if (rota === '/medications/prescriptions' && metodo === 'POST') {
+    if (!['enfermagem', 'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403, 'Somente a Enfermagem cadastra e assina esquema de medicamentos.');
+    }
+    if (b.tipo === 'quando_necessario' && !String(b.condicaoUso ?? '').trim()) {
+      return new Recusa(400, 'Medicamento "quando necessário" exige a condição de uso escrita '
+        + 'pelo profissional.');
+    }
+    const id = uid();
+    RASCUNHOS.set(id, { medicamento: String(b.medicamento ?? ''), dose: String(b.dose ?? ''),
+      via: String(b.via ?? 'oral'), tipo: String(b.tipo ?? 'uso_continuo'),
+      personId: String(b.personId ?? ''), horarios: (b.horarios as string[]) ?? [],
+      condicaoUso: (b.condicaoUso as string) ?? null });
+    return { id, status: 'rascunho',
+      aviso: 'Prescrição registrada como rascunho. Só entra na grade após conferência e '
+        + 'assinatura da Enfermagem.' };
+  }
+
+  /** `POST /medications/prescriptions/:id/sign` — é a assinatura que faz valer. */
+  if (seg[0] === 'medications' && seg[1] === 'prescriptions' && seg[3] === 'sign' && metodo === 'POST') {
+    const r = RASCUNHOS.get(seg[2]);
+    if (!r) return new Recusa(404, 'Prescrição não encontrada ou já assinada.');
+    RASCUNHOS.delete(seg[2]);
+    // Assinada: as doses do dia entram na grade da casa.
+    for (const h of (r.horarios.length ? r.horarios : ['08:00'])) {
+      DOSES.push({ id: uid(), personId: r.personId,
+        horario: emHoras(Number(h.split(':')[0]), Number(h.split(':')[1] ?? 0)),
+        medicamento: r.medicamento, dose: r.dose, via: r.via, tipo: r.tipo,
+        condicaoUso: r.condicaoUso,
+        estado: 'aguardando_confirmacao', rotulo: 'Aguardando confirmação',
+        pendente: true, confirmadaPor: null, administradaEm: null, observacao: null });
+    }
+    return { ok: true, status: 'ativa',
+      aviso: `Esquema assinado por você. ${r.medicamento} entrou na grade da casa — a partir `
+        + 'de agora existe dose para alguém confirmar, uma a uma.' };
+  }
+
   /** `GET /medications/stock?houseId=` — o armário, sem mínimo calculado. */
   if (rota === '/medications/stock' && metodo === 'GET') {
     const hoje = new Date(`${HOJE}T12:00:00-03:00`).getTime();
@@ -1901,15 +2050,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
           + 'técnica e à coordenação.',
       contencao: null,
       sinteses: tecnica ? o.sinteses : [],
-      relatos: {
-        modo: ['equipe_tecnica', 'coordenador', 'lider_diurno', 'lider_noturno_geral'].includes(eu.role)
-          ? 'lado_a_lado' : 'restrito_ao_proprio',
-        nota: ['equipe_tecnica', 'coordenador', 'lider_diurno', 'lider_noturno_geral'].includes(eu.role)
-          ? 'Todos os relatos deste fato, na ordem em que aconteceram. Nenhum foi alterado.'
-          : 'Você vê o seu relato e os registros abertos à equipe. Narrativas pessoais de '
-            + 'colegas não são exibidas.',
-        relatos: [],
-      },
+      relatos: relatosDe('incident', o.id),
       avisoAnaliseTecnica: tecnica ? null
         : 'Sínteses técnicas e comunicações externas, quando existem, são acessíveis à '
           + 'equipe técnica e à coordenação.',

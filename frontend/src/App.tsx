@@ -329,7 +329,21 @@ export function App() {
         </nav>
       )}
 
-      <main className="conteudo">
+      {/*
+        * A `key` remonta TODO o conteúdo quando muda o cargo ou a casa — e não
+        * é detalhe de React. Sem ela, o que uma tela buscou sob um cargo
+        * continuava na memória dela depois da troca: no ensaio, a equipe
+        * técnica abriu uma ocorrência, o cargo virou educador, e a narrativa
+        * pessoal de uma colega — que o educador não alcança — seguiu na tela,
+        * com o texto "todos os relatos deste fato" por cima. O servidor tinha
+        * recusado; a tela é que ainda mostrava a resposta antiga.
+        *
+        * No sistema de verdade ninguém troca de cargo no meio da sessão, mas
+        * o cargo MUDA (a coordenação altera) e a casa muda o tempo todo — e a
+        * regra que vale é a mesma: resposta buscada sob um alcance não
+        * sobrevive à mudança de alcance.
+        */}
+      <main className="conteudo" key={`${me.role}:${casaAtual?.id ?? 'sem-casa'}`}>
         {abaEfetiva === 'dia' && ve('dia') && (
           casaAtual
             ? <Dia houseId={casaAtual.id} casaLabel={`${casaAtual.code} · ${casaAtual.name}`}

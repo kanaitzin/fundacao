@@ -432,6 +432,12 @@ textarea{
 .bloco.destaque{ border-left:3px solid var(--brand); background:var(--brand-soft) }
 /* O que veio depois parece o que é: veio depois. */
 .bloco.compl{ border-left:3px dashed var(--line-2); background:transparent }
+/* No bloco comum o `small` é RÓTULO ("Fato", "Motivo") e caixa alta ajuda a
+   separá-lo do texto. No complemento ele é ASSINATURA — nome de pessoa e
+   horário. "JOANA LIMA (FICTÍCIA) · PRESENCIEI PARCIALMENTE" grita o nome de
+   quem escreveu um relato, e num caso de proteção quem escreveu não é o
+   destaque: o que foi escrito é. */
+.bloco.compl small{ text-transform:none; letter-spacing:0; font-size:12px }
 .check{
   display:flex; align-items:center; gap:10px; margin-top:12px;
   font-size:14.5px; cursor:pointer;

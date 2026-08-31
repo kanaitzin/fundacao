@@ -118,7 +118,6 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
     transversal: false,
     resumo: 'Conduz o turno diurno da casa: o que o educador alcança, mais o fechamento.',
     areas: [
-      { area: 'dia', titulo: AREAS.dia, faz: 'Conduz o dia e distribui as atividades.' },
       { area: 'plantao', titulo: AREAS.plantao,
         faz: 'Vê o turno inteiro e delega atividade com motivo.',
         servidor: 'Delegar não apaga a designação anterior, e a atividade volta a aguardar ciência.' },
@@ -135,7 +134,7 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
       { area: 'saude', titulo: AREAS.saude,
         faz: 'Acompanha doses e triagem da casa.',
         servidor: 'Não assina evolução de saúde: a assinatura é da Enfermagem.' },
-      { area: 'dia', titulo: AREAS.dia, faz: 'Conduz o dia.' },
+      { area: 'dia', titulo: AREAS.dia, faz: 'Conduz o dia e distribui as atividades.' },
       { area: 'chamada', titulo: AREAS.chamada, faz: 'Confere a chamada.' },
       { area: 'acolhidos', titulo: AREAS.acolhidos, faz: 'Abre o perfil de quem está na casa.' },
       { area: 'agenda', titulo: AREAS.agenda, faz: 'Vê e marca o que está combinado.' },

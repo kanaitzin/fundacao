@@ -123,7 +123,17 @@ const FINALIDADES: { cod: string; label: string }[] = [
 export function Saude({ houseId, casaLabel, papel }: {
   houseId: string; casaLabel: string; papel: string;
 }) {
-  const [aba, setAba] = useState<'doses' | 'triagem' | 'estoque' | 'resumo'>('doses');
+  const [aba, setAba] = useState<'doses' | 'triagem' | 'estoque' | 'prescricoes' | 'resumo'>('doses');
+  const [prescrevendo, setPrescrevendo] = useState(false);
+  /*
+   * O rascunho recém-criado fica na mão até ser assinado ou deixado como está.
+   *
+   * LACUNA ANOTADA: o servidor não tem rota que LISTE prescrições — só a grade
+   * de doses, que mostra o que já está ativo. Um rascunho salvo hoje e não
+   * assinado não é encontrável amanhã por tela nenhuma. Enquanto a rota não
+   * existir, a assinatura acontece aqui, logo depois de cadastrar.
+   */
+  const [rascunho, setRascunho] = useState<{ id: string; medicamento: string } | null>(null);
   const [painel, setPainel] = useState<Painel | null>(null);
   const [doses, setDoses] = useState<Dose[]>([]);
   const [estoque, setEstoque] = useState<Item[]>([]);
@@ -206,6 +216,11 @@ export function Saude({ houseId, casaLabel, papel }: {
                 onClick={() => setAba('triagem')}>Triagem</button>
         <button role="tab" aria-selected={aba === 'estoque'} className={aba === 'estoque' ? 'on' : ''}
                 onClick={() => setAba('estoque')}>Estoque</button>
+        {enfermagem && (
+          <button role="tab" aria-selected={aba === 'prescricoes'}
+                  className={aba === 'prescricoes' ? 'on' : ''}
+                  onClick={() => setAba('prescricoes')}>Prescrever</button>
+        )}
         <button role="tab" aria-selected={aba === 'resumo'} className={aba === 'resumo' ? 'on' : ''}
                 onClick={() => setAba('resumo')}>Resumo de saúde</button>
       </div>
@@ -377,6 +392,50 @@ export function Saude({ houseId, casaLabel, papel }: {
         </>
       )}
 
+      {aba === 'prescricoes' && enfermagem && (
+        <>
+          <div className="notice c-crit">
+            Uma prescrição nasce como <b>rascunho</b> e só entra na grade quando a Enfermagem
+            <b> assina</b>. Receita entregue numa consulta não altera a grade sozinha: alguém
+            confere e assume, com nome e horário.
+          </div>
+          {rascunho && (
+            <div className="card raise stack">
+              <b className="ff">Rascunho: {rascunho.medicamento}</b>
+              <div className="mutetxt">
+                Ainda NÃO está na grade. Confira o que você cadastrou e assine — a
+                assinatura é o que faz a casa começar a dar o medicamento.
+              </div>
+              <div className="row">
+                <button className="btn grow" onClick={async () => {
+                  const ok = await acao(() => api(`/medications/prescriptions/${rascunho.id}/sign`, {
+                    method: 'POST', body: '{}' }));
+                  if (ok) setRascunho(null);
+                }}>
+                  Conferir e assinar
+                </button>
+                <button className="btn sec grow" onClick={() => setRascunho(null)}>
+                  Deixar como rascunho
+                </button>
+              </div>
+              <p className="mutetxt" style={{ margin: 0 }}>
+                Deixando como rascunho, ele fica gravado — mas hoje <b>nenhuma tela lista
+                rascunhos</b>. Enquanto essa lista não existir, assine agora ou cadastre de
+                novo depois.
+              </p>
+            </div>
+          )}
+          <button className="btn block" onClick={() => setPrescrevendo(true)}>
+            + Cadastrar esquema de medicamento
+          </button>
+          <p className="mutetxt" style={{ marginTop: 12 }}>
+            "Quando necessário" exige a <b>condição de uso escrita pelo profissional</b> — o
+            sistema não decide quando dar. Sem essa frase, a decisão cairia no colo de quem
+            está no plantão às três da manhã.
+          </p>
+        </>
+      )}
+
       {aba === 'resumo' && painel && (
         <>
           <div className="notice c-warn">
@@ -454,6 +513,25 @@ export function Saude({ houseId, casaLabel, papel }: {
                          method: 'POST', body: JSON.stringify({ finalidade }) }));
                        if (ok) setResumindo(null);
                      }} />
+      )}
+
+      {prescrevendo && painel && (
+        <FolhaPrescricao
+          acolhidos={painel.acolhidos}
+          onFechar={() => setPrescrevendo(false)}
+          onGravar={async (corpo) => {
+            setErro(''); setAviso('');
+            try {
+              const r = await api<{ id: string; aviso?: string }>('/medications/prescriptions', {
+                method: 'POST', body: JSON.stringify({ houseId, ...corpo }) });
+              setPrescrevendo(false);
+              setRascunho({ id: r.id, medicamento: String(corpo.medicamento) });
+              if (r.aviso) setAviso(r.aviso);
+              await carregar();
+            } catch (e) {
+              setErro(e instanceof Error ? e.message : 'Não foi possível cadastrar.');
+            }
+          }} />
       )}
 
       {movendo && (
@@ -695,6 +773,149 @@ function FolhaResumo({ pessoa, onFechar, onGerar }: {
         <div className="row rodape">
           <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
           <button className="btn grow" onClick={() => onGerar(finalidade)}>Gerar resumo</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * CADASTRAR ESQUEMA DE MEDICAMENTO (§11.1).
+ *
+ * O ato mais delicado da Enfermagem, e o que a tela protege:
+ *
+ *  * nasce RASCUNHO. Só entra na grade com a assinatura — a receita que veio
+ *    da consulta não muda o que a casa dá sozinha;
+ *  * "quando necessário" exige a CONDIÇÃO DE USO escrita pelo profissional. O
+ *    sistema não decide quando dar; sem a frase, a decisão cai no colo de quem
+ *    está no plantão às três da manhã;
+ *  * horários são a grade. Sem horário, não há dose para ninguém confirmar —
+ *    e "tomar de 8 em 8 horas" não é horário: é conta que alguém faz errado.
+ */
+function FolhaPrescricao({ acolhidos, onFechar, onGravar }: {
+  acolhidos: AcolhidoPainel[]; onFechar: () => void;
+  onGravar: (corpo: Record<string, unknown>) => void;
+}) {
+  const [personId, setPersonId] = useState('');
+  const [tipo, setTipo] = useState('uso_continuo');
+  const [medicamento, setMedicamento] = useState('');
+  const [dose, setDose] = useState('');
+  const [via, setVia] = useState('oral');
+  const [horarios, setHorarios] = useState<string[]>(['08:00']);
+  const [condicaoUso, setCondicaoUso] = useState('');
+  const [prescritor, setPrescritor] = useState('');
+  const [fim, setFim] = useState('');
+
+  const seNecessario = tipo === 'quando_necessario';
+  const pode = personId !== '' && medicamento.trim() !== '' && dose.trim() !== ''
+    && (seNecessario ? condicaoUso.trim().length >= 10 : horarios.some((h) => h));
+
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-presc"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet modal">
+        <h3 id="t-presc">Cadastrar esquema de medicamento</h3>
+        <div className="notice c-info">
+          Entra como <b>rascunho</b>. A grade da casa só muda depois que você assinar.
+        </div>
+
+        <label className="f" htmlFor="pr-pessoa">Acolhido</label>
+        <select id="pr-pessoa" value={personId} onChange={(e) => setPersonId(e.target.value)}>
+          <option value="">Escolha…</option>
+          {acolhidos.map((k) => (
+            <option key={k.acolhidoId} value={k.acolhidoId}>{k.nome}</option>
+          ))}
+        </select>
+
+        <label className="f">Tipo</label>
+        <div className="opts">
+          {[
+            { cod: 'uso_continuo', label: 'Uso contínuo' },
+            { cod: 'tratamento', label: 'Tratamento com prazo' },
+            { cod: 'quando_necessario', label: 'Quando necessário' },
+            { cod: 'episodio_agudo', label: 'Episódio agudo' },
+          ].map((t) => (
+            <button type="button" key={t.cod} className="opt c-med"
+                    aria-pressed={tipo === t.cod} onClick={() => setTipo(t.cod)}>{t.label}</button>
+          ))}
+        </div>
+
+        <label className="f" htmlFor="pr-med">Medicamento</label>
+        <input id="pr-med" value={medicamento} onChange={(e) => setMedicamento(e.target.value)}
+               placeholder="Ex.: Amoxicilina 250 mg/5 mL" />
+
+        <label className="f" htmlFor="pr-dose">Dose</label>
+        <input id="pr-dose" value={dose} onChange={(e) => setDose(e.target.value)}
+               placeholder="Ex.: 5 mL" />
+
+        <label className="f" htmlFor="pr-via">Via</label>
+        <select id="pr-via" value={via} onChange={(e) => setVia(e.target.value)}>
+          {['oral', 'tópica', 'oftálmica', 'nasal', 'inalatória', 'subcutânea'].map((v) => (
+            <option key={v} value={v}>{v}</option>
+          ))}
+        </select>
+
+        {seNecessario ? (
+          <>
+            <label className="f" htmlFor="pr-cond">
+              Condição de uso <small>— obrigatória, escrita pelo profissional</small>
+            </label>
+            <textarea id="pr-cond" value={condicaoUso} onChange={(e) => setCondicaoUso(e.target.value)}
+                      placeholder="Ex.: dor referida ou temperatura acima de 37,8 °C; intervalo mínimo de 6 horas." />
+            <p className="mutetxt">
+              Sem esta frase, quem está no plantão decide sozinho quando dar — e essa
+              decisão não é dele.
+            </p>
+          </>
+        ) : (
+          <>
+            <label className="f">Horários da grade</label>
+            {horarios.map((h, i) => (
+              <div className="row" key={i} style={{ marginBottom: 6 }}>
+                <input type="time" value={h} className="grow"
+                       onChange={(e) => setHorarios(horarios.map((x, j) => j === i ? e.target.value : x))} />
+                {horarios.length > 1 && (
+                  <button className="btn sm ghost" type="button"
+                          onClick={() => setHorarios(horarios.filter((_, j) => j !== i))}>
+                    Remover
+                  </button>
+                )}
+              </div>
+            ))}
+            <button className="btn sm ghost" type="button"
+                    onClick={() => setHorarios([...horarios, '20:00'])}>
+              + Outro horário
+            </button>
+          </>
+        )}
+
+        <label className="f" htmlFor="pr-quem">Quem prescreveu</label>
+        <input id="pr-quem" value={prescritor} onChange={(e) => setPrescritor(e.target.value)}
+               placeholder="Ex.: Dra. Fulana, UBS do bairro" />
+
+        {tipo === 'tratamento' && (
+          <>
+            <label className="f" htmlFor="pr-fim">Até quando</label>
+            <input id="pr-fim" type="date" value={fim} onChange={(e) => setFim(e.target.value)} />
+            <p className="mutetxt">
+              Tratamento com prazo que termina deixa de gerar dose — e deixa de aparecer como
+              uso atual no Resumo de Saúde.
+            </p>
+          </>
+        )}
+
+        <div className="row rodape">
+          <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
+          <button className="btn grow" disabled={!pode}
+                  onClick={() => onGravar({
+                    personId, tipo, medicamento, dose, via,
+                    horarios: seNecessario ? [] : horarios.filter(Boolean),
+                    condicaoUso: seNecessario ? condicaoUso : undefined,
+                    prescritor: prescritor || undefined,
+                    fim: fim || undefined,
+                  })}>
+            Salvar como rascunho
+          </button>
         </div>
       </div>
     </div>
