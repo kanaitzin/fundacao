@@ -3,7 +3,7 @@
 > **Como usar este arquivo:** anexe-o na primeira mensagem de uma conversa nova,
 > junto com o zip do repositório. Ele substitui todo o histórico.
 >
-> Última atualização: 31/08/2026 · as duas decisões de produto da §8.4, decididas e no código
+> Última atualização: 31/08/2026 · §8.4 decidida + protótipo e aplicativo unificados nas rotas
 
 ---
 
@@ -143,6 +143,7 @@ cd backend  && npm test            # testes (precisa de PostgreSQL)
 | 16 | **Linha do tempo corrida no relatório, ordem das seções e tela para gerar** |
 | 17 | **O dia das unidades: linha do tempo unificada para quem alcança mais de uma casa** |
 | 18 | **As duas decisões da §8.4: estoque com entrada e contagem separadas; vencimento ancorado em hoje** |
+| 19 | **Um sistema só: as 7 telas que falavam rotas inexistentes passaram a falar as do servidor** |
 
 ---
 
@@ -320,10 +321,47 @@ surgiram, catorze horas antes de os relatórios serem pedidos. Não houve acesso
 externo, processo oculto nem tarefa agendada. Os três foram lidos, o que
 prestava entrou no código, e o resto foi descartado.
 
+### 8.3-A A unificação das rotas (31/08/2026)
+
+A tela e o servidor falavam línguas diferentes. Cruzando as chamadas do
+frontend com as rotas do backend, **28 de 78 chamadas não tinham par** — sete
+telas inteiras que funcionavam no protótipo e teriam falhado contra o servidor
+de verdade. Hoje o cruzamento dá **zero**, com uma exceção proposital
+(`/prototipo/cargo`).
+
+O que o descompasso escondia, por tela:
+
+- **Saúde** — os códigos de estado da dose estavam no feminino na tela e no
+  masculino no servidor: TODA confirmação teria voltado 400. E o protótipo
+  calculava "abaixo do mínimo" sozinho, coisa que o sistema recusa por
+  princípio (§11.6) — foi assim que a tela foi aprovada em 28/08.
+- **Ocorrências** — a lista do servidor é magra de propósito; a tela pedia
+  fato, medidas e fala espontânea de uma vez, o que entregaria conteúdo
+  restrito a quem só precisava ver que a ocorrência existe.
+- **Cofre** — a reautenticação mandava `senha` e o servidor lê `password`: a
+  porta do cofre não abriria NUNCA. E o cofre é de um acolhido, não da casa —
+  a lista única era a planilha solta de novo.
+- **Arquivo** — a retentativa é da fila, não do item; e a aba "documentos por
+  acolhido" duplicava a leitura que só deve acontecer no perfil (§16.5).
+- **Transferências** — as caixas têm formatos diferentes de propósito: quem
+  recebe vê menos, porque o perfil só abre depois do aceite.
+- **Acompanhamentos** — salvar são dois atos (`draft` e `submit`).
+- **ATA** — a ATA vive DENTRO do plantão, e o dia tem duas.
+
+**Regra que fica:** o `mock.ts` responde às MESMAS rotas, com os MESMOS campos
+e as MESMAS recusas do servidor. Protótipo que aceita o que o sistema recusa é
+propaganda. Há um verificador em `/tmp` que cruza rotas e verbos — vale
+transformá-lo em teste.
+
 ### 8.3 Achados do ensaio de uso ainda em aberto
 - **Sem tela** que mostre ao coordenador o que cada setor enxerga.
 - A matriz de permissões documentava **"Educador volante"**, cargo que não
   existe no `role_code`.
+- **Devolver acompanhamento para correção** não existe no servidor: há aprovar
+  e há nova versão. O botão saiu da tela (era `/followups/:id/return`, rota
+  inexistente). Criar a devolução com motivo registrado é decisão de produto.
+- **A ATA Geral Noturna não se acha pela data.** Só o Líder Noturno Geral a
+  abre, e é abrindo que se descobre o id. Nenhum outro cargo chega nela.
 
 ### 8.4 Decisões de produto — DECIDIDAS em 31/08/2026
 - **Estoque: duas ações, e quem mexe diz qual.** `POST /medications/stock`
