@@ -1887,41 +1887,94 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
           + 'fica registrada.' };
   }
 
-  // ---- transferências
-  if (rota === '/transfers' && metodo === 'GET') {
+  // ---- transferências: as rotas do servidor (§15.6)
+  //
+  // As rotas existiam; a tela é que falava errado com elas. `GET /transfers`
+  // só aceita POST no servidor: as caixas são /transfers/inbox e
+  // /transfers/outbox, com FORMATOS DIFERENTES — quem recebe vê menos do que
+  // quem pediu, e é essa diferença que protege o perfil antes do aceite.
+  // Recusar é `decline` (era `refuse`), a conversa é `messages` (era
+  // `message`) e sai por rota própria, não junto da lista.
+
+  if (rota === '/transfers/inbox' && metodo === 'GET') {
     if (!['coordenador', 'gestor_geral'].includes(eu.role)) {
       return new Recusa(403, 'Seu cargo não tem acesso a este conteúdo.');
     }
-    return TRANSFERENCIAS;
+    return {
+      aviso: 'Você vê quem é, de onde vem e por quê. O perfil completo — saúde, documentos, '
+        + 'benefícios e histórico — só abre depois do aceite.',
+      solicitacoes: TRANSFERENCIAS
+        .filter((t) => t.caixa === 'recebida' && t.situacao === 'solicitada')
+        .map((t) => ({
+          id: t.id, nomeCompleto: t.nomeCivil, nomeSocial: t.nome, idade: t.idade,
+          origem: { codigo: t.outraCasa.split(' · ')[0], nome: t.outraCasa.split(' · ')[1] ?? t.outraCasa },
+          motivo: t.motivo, solicitadaPor: t.pedidaPor, solicitadaEm: t.pedidaEm,
+          mensagens: t.mensagens.length,
+        })),
+    };
   }
+
+  if (rota === '/transfers/outbox' && metodo === 'GET') {
+    if (!['coordenador', 'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403, 'Seu cargo não tem acesso a este conteúdo.');
+    }
+    const ROTULO: Record<string, string> = {
+      solicitada: 'Aguardando decisão do destino', aceita: 'Aceita — acolhido transferido',
+      recusada: 'Recusada com justificativa', cancelada: 'Cancelada pela origem',
+    };
+    return {
+      solicitacoes: TRANSFERENCIAS.filter((t) => t.caixa === 'enviada').map((t) => ({
+        id: t.id, nomeCompleto: t.nomeCivil, nomeSocial: t.nome, idade: t.idade,
+        destino: { codigo: t.outraCasa.split(' · ')[0], nome: t.outraCasa.split(' · ')[1] ?? t.outraCasa },
+        motivo: t.motivo, status: t.situacao, situacao: ROTULO[t.situacao] ?? t.situacao,
+        solicitadaPor: t.pedidaPor, solicitadaEm: t.pedidaEm,
+        decididaPor: t.decididaPor, decididaEm: t.decididaEm,
+        justificativa: t.justificativa, mensagens: t.mensagens.length,
+      })),
+    };
+  }
+
   if (rota === '/transfers' && metodo === 'POST') {
-    if (String(b.motivo ?? '').trim().length < 15) {
+    if (String(b.reason ?? '').trim().length < 15) {
       return new Recusa(400, 'O motivo é obrigatório: é ele que a outra coordenação vai ler '
         + 'para decidir.');
     }
     const k = kid(String(b.personId ?? ''));
     if (!k) return new Recusa(400, 'Escolha o acolhido.');
+    const casa = CASAS.find((c) => c.id === String(b.toHouseId ?? ''));
+    if (!casa) return new Recusa(400, 'Escolha a unidade de destino.');
     TRANSFERENCIAS = [{
       id: uid(), caixa: 'enviada', nomeCivil: k.civil, nome: k.nome, idade: k.idade,
-      outraCasa: String(b.destino ?? ''), motivo: b.motivo, pedidaPor: eu.fullName,
-      pedidaEm: new Date().toISOString(), situacao: 'solicitada', justificativa: null,
-      decididaPor: null, decididaEm: null, mensagens: [],
+      outraCasa: `${casa.code} · ${casa.name}`, motivo: String(b.reason),
+      pedidaPor: eu.fullName, pedidaEm: new Date().toISOString(), situacao: 'solicitada',
+      justificativa: null, decididaPor: null, decididaEm: null, mensagens: [],
     }, ...TRANSFERENCIAS];
     return { ok: true, aviso: 'Pedido enviado à coordenação de destino. A criança só muda de '
       + 'casa no aceite — até lá, a responsabilidade continua sendo desta unidade.' };
   }
-  if (seg[0] === 'transfers' && seg[2] === 'message') {
+
+  if (seg[0] === 'transfers' && seg[2] === 'messages' && metodo === 'GET') {
     const t = TRANSFERENCIAS.find((x) => x.id === seg[1]);
-    if (!t) return new Recusa(404, 'Não encontrado.');
-    if (!String(b.texto ?? '').trim()) return new Recusa(400, 'Escreva a mensagem antes de enviar.');
+    if (!t) return new Recusa(404, 'Solicitação não encontrada.');
+    return t.mensagens.map((m) => ({
+      id: m.id, autor: m.autor, casa: m.casa, texto: m.texto, quando: m.em,
+      minha: m.autor === eu.fullName,
+    }));
+  }
+
+  if (seg[0] === 'transfers' && seg[2] === 'messages' && metodo === 'POST') {
+    const t = TRANSFERENCIAS.find((x) => x.id === seg[1]);
+    if (!t) return new Recusa(404, 'Solicitação não encontrada.');
+    if (String(b.texto ?? '').trim().length < 2) return new Recusa(400, 'Escreva a mensagem.');
     t.mensagens = [...t.mensagens, { id: uid(), casa: CASA.code, autor: eu.fullName,
-      texto: b.texto, em: new Date().toISOString() }];
+      texto: String(b.texto), em: new Date().toISOString() }];
     return { ok: true, aviso: 'Mensagem registrada dentro do sistema, ligada a esta '
       + 'solicitação. Ela não pode ser apagada, e nenhuma coordenação entra na casa da outra.' };
   }
-  if (seg[0] === 'transfers' && seg[2] === 'accept') {
+
+  if (seg[0] === 'transfers' && seg[2] === 'accept' && metodo === 'POST') {
     const t = TRANSFERENCIAS.find((x) => x.id === seg[1]);
-    if (!t) return new Recusa(404, 'Não encontrado.');
+    if (!t) return new Recusa(404, 'Solicitação não encontrada.');
     if (t.caixa !== 'recebida') {
       return new Recusa(400, 'Quem decide é a coordenação de destino. Este pedido é seu; '
         + 'a decisão é da outra casa.');
@@ -1932,29 +1985,33 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       + 'Histórico, documentos, medicamentos, alergias e pendências vêm junto; as ATAs fechadas '
       + 'da origem continuam imutáveis; e os dados bancários deixam a coordenação de origem.' };
   }
-  if (seg[0] === 'transfers' && seg[2] === 'refuse') {
+
+  if (seg[0] === 'transfers' && seg[2] === 'decline' && metodo === 'POST') {
     const t = TRANSFERENCIAS.find((x) => x.id === seg[1]);
-    if (!t) return new Recusa(404, 'Não encontrado.');
-    if (String(b.justificativa ?? '').trim().length < 15) {
+    if (!t) return new Recusa(404, 'Solicitação não encontrada.');
+    if (String(b.motivo ?? '').trim().length < 15) {
       return new Recusa(400, 'A justificativa é obrigatória e fica registrada nas duas casas. '
         + 'É por ela que a coordenação de origem decide o próximo passo da criança.');
     }
-    t.situacao = 'recusada'; t.justificativa = b.justificativa;
+    t.situacao = 'recusada'; t.justificativa = String(b.motivo);
     t.decididaPor = eu.fullName; t.decididaEm = new Date().toISOString();
     return { ok: true, aviso: 'Recusa registrada com justificativa nas duas casas. '
       + 'Nada mudou de lugar.' };
   }
-  if (seg[0] === 'transfers' && seg[2] === 'cancel') {
+
+  if (seg[0] === 'transfers' && seg[2] === 'cancel' && metodo === 'POST') {
     const t = TRANSFERENCIAS.find((x) => x.id === seg[1]);
-    if (!t) return new Recusa(404, 'Não encontrado.');
-    if (String(b.motivo ?? '').trim().length < 10) {
-      return new Recusa(400, 'Diga por que o pedido está sendo cancelado — a outra '
-        + 'coordenação vai ler.');
+    if (!t) return new Recusa(404, 'Solicitação não encontrada.');
+    if (t.caixa !== 'enviada') {
+      return new Recusa(400, 'Só a casa que pediu cancela o pedido.');
     }
-    t.situacao = 'cancelada'; t.justificativa = b.motivo;
+    if (t.situacao !== 'solicitada') return new Recusa(400, 'Esta solicitação já foi decidida.');
+    if (String(b.motivo ?? '').trim().length < 10) {
+      return new Recusa(400, 'Diga por que o pedido está sendo cancelado. A outra coordenação lê.');
+    }
+    t.situacao = 'cancelada'; t.justificativa = String(b.motivo);
     t.decididaPor = eu.fullName; t.decididaEm = new Date().toISOString();
-    return { ok: true, aviso: 'Pedido cancelado com motivo. O histórico continua visível '
-      + 'nas duas casas.' };
+    return { ok: true, aviso: 'Pedido cancelado, com o motivo registrado nas duas casas.' };
   }
 
   // ---- acompanhamentos e relatórios
@@ -1971,33 +2028,45 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       + 'ativos. Os eixos nascem vazios: a automação cria a pendência e nunca escreve a '
       + 'avaliação — o texto é de quem acompanha o caso.' };
   }
-  if (seg[0] === 'followups' && seg[2] === 'save') {
+  /**
+   * Rascunho e envio são DOIS atos, como no servidor: `draft` recebe os eixos
+   * direto no corpo e `submit` é a decisão de entregar para aprovação. A tela
+   * mandava tudo junto para `/save`, que não existe.
+   */
+  if (seg[0] === 'followups' && seg[2] === 'draft' && metodo === 'POST') {
     const f = ACOMPANHAMENTOS.find((x) => x.id === seg[1]);
-    if (!f) return new Recusa(404, 'Não encontrado.');
+    if (!f) return new Recusa(404, 'Acompanhamento não encontrado.');
+    if (!['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403, 'Somente equipe técnica e coordenação redigem acompanhamentos.');
+    }
     if (f.situacao === 'aprovado') {
       return new Recusa(400, 'Acompanhamento aprovado não se edita. Corrigir cria a versão '
         + 'seguinte, que precisa de nova aprovação — e a anterior continua legível.');
     }
-    const eixos = (b.eixos ?? {}) as Record<string, string>;
-    const enviar = !!b.enviar;
-    if (enviar) {
-      const vazios = EIXOS.filter((e) => !String(eixos[e.cod] ?? '').trim());
-      if (vazios.length) {
-        return new Recusa(400, `Faltam eixos: ${vazios.map((e) => e.label).join('; ')}. `
-          + 'Os eixos são obrigatórios — o que não foi observado se escreve como não observado, '
-          + 'não se deixa em branco.');
-      }
-    }
+    const eixos = b as Record<string, string>;
+    if (!Object.keys(eixos).length) return new Recusa(400, 'Nenhum eixo informado.');
     f.eixos = eixos;
     f.redator = eu.fullName;
-    f.situacao = enviar ? 'em_aprovacao' : 'rascunho';
+    f.situacao = 'rascunho';
     f.devolucao = null;
-    f.historico = [...f.historico, { id: uid(), quem: eu.fullName,
-      acao: enviar ? 'enviado para aprovação' : 'rascunho salvo',
+    f.historico = [...f.historico, { id: uid(), quem: eu.fullName, acao: 'rascunho salvo',
       em: new Date().toISOString(), nota: null }];
-    return { ok: true, aviso: enviar
-      ? 'Enviado para aprovação, com o seu nome como quem redigiu.'
-      : 'Rascunho salvo. Ninguém além de você o lê enquanto não for enviado.' };
+    return { ok: true, aviso: 'Rascunho salvo. Ninguém além de você o lê enquanto não for enviado.' };
+  }
+
+  if (seg[0] === 'followups' && seg[2] === 'submit' && metodo === 'POST') {
+    const f = ACOMPANHAMENTOS.find((x) => x.id === seg[1]);
+    if (!f) return new Recusa(404, 'Acompanhamento não encontrado.');
+    const vazios = EIXOS.filter((e) => !String(f.eixos[e.cod] ?? '').trim());
+    if (vazios.length) {
+      return new Recusa(400, `Faltam eixos: ${vazios.map((e) => e.label).join('; ')}. `
+        + 'Os eixos são obrigatórios — o que não foi observado se escreve como não observado, '
+        + 'não se deixa em branco.');
+    }
+    f.situacao = 'em_aprovacao';
+    f.historico = [...f.historico, { id: uid(), quem: eu.fullName,
+      acao: 'enviado para aprovação', em: new Date().toISOString(), nota: null }];
+    return { ok: true, aviso: 'Enviado para aprovação, com o seu nome como quem redigiu.' };
   }
   if (seg[0] === 'followups' && seg[2] === 'approve') {
     const f = ACOMPANHAMENTOS.find((x) => x.id === seg[1]);
@@ -2020,23 +2089,13 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     return { ok: true, aviso: 'Aprovado. Esta versão virou o retrato daquele momento: não se '
       + 'edita mais, e a cópia documental entrou na fila do arquivo.' };
   }
-  if (seg[0] === 'followups' && seg[2] === 'return') {
-    const f = ACOMPANHAMENTOS.find((x) => x.id === seg[1]);
-    if (!f) return new Recusa(404, 'Não encontrado.');
-    if (!['coordenador', 'gestor_geral'].includes(eu.role)) {
-      return new Recusa(403, 'Devolver acompanhamento é da coordenação.');
-    }
-    if (String(b.motivo ?? '').trim().length < 10) {
-      return new Recusa(400, 'Escreva o que precisa ser revisto. Devolver sem dizer o que '
-        + 'falta devolve o trabalho duas vezes.');
-    }
-    f.situacao = 'rascunho'; f.devolucao = b.motivo;
-    f.historico = [...f.historico, { id: uid(), quem: eu.fullName, acao: 'devolvido para revisão',
-      em: new Date().toISOString(), nota: b.motivo }];
-    return { ok: true, aviso: 'Devolvido a quem redigiu, com o seu nome e o que você pediu. '
-      + 'O texto anterior continua lá — nada foi apagado.' };
-  }
-  if (seg[0] === 'followups' && seg[2] === 'correct') {
+  /*
+   * `/followups/:id/return` — a devolução com motivo — NÃO EXISTE no servidor,
+   * e por isso saiu daqui também. O protótipo que aceita o que o sistema
+   * recusa é propaganda: alguém aprova a tela, e a função não chega na casa.
+   * Criar a devolução é decisão de produto, e está anotada.
+   */
+  if (seg[0] === 'followups' && seg[2] === 'amend' && metodo === 'POST') {
     const f = ACOMPANHAMENTOS.find((x) => x.id === seg[1]);
     if (!f) return new Recusa(404, 'Não encontrado.');
     if (String(b.motivo ?? '').trim().length < 10) {

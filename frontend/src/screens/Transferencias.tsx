@@ -13,54 +13,77 @@ import { api } from '../api';
  *
  * A conversa entre as coordenações mora aqui dentro, presa à solicitação, e
  * não pode ser apagada — para não voltar a acontecer no grupo de mensagens.
+ *
+ * ROTAS — 31/08/2026. As rotas existiam; a tela é que falava com elas errado:
+ * pedia `GET /transfers`, que no servidor só aceita POST — as duas caixas são
+ * `GET /transfers/inbox` e `GET /transfers/outbox`, com formatos diferentes,
+ * porque quem recebe vê MENOS do que quem pediu (o perfil completo só abre
+ * depois do aceite). Recusar era `/refuse` e é `/decline`; a conversa era
+ * `/message` e é `/messages`, buscada por solicitação — a lista não traz as
+ * mensagens junto.
  */
 
-interface Transferencia {
-  id: string; caixa: 'recebida' | 'enviada'; nomeCivil: string; nome: string; idade: number;
-  outraCasa: string; motivo: string; pedidaPor: string; pedidaEm: string;
-  situacao: 'solicitada' | 'aceita' | 'recusada' | 'cancelada';
-  justificativa: string | null; decididaPor: string | null; decididaEm: string | null;
-  mensagens: { id: string; casa: string; autor: string; texto: string; em: string }[];
+/** Recebida: quem é, de onde vem e por quê. Nada além disso antes do aceite. */
+interface Recebida {
+  id: string; nomeCompleto: string; nomeSocial: string | null; idade: number;
+  origem: { codigo: string; nome: string };
+  motivo: string; solicitadaPor: string; solicitadaEm: string; mensagens: number;
+}
+/** Enviada: o que esta casa pediu, com a resposta que veio de volta. */
+interface Enviada {
+  id: string; nomeCompleto: string; nomeSocial: string | null; idade: number;
+  destino: { codigo: string; nome: string };
+  motivo: string; status: string; situacao: string;
+  solicitadaPor: string; solicitadaEm: string;
+  decididaPor: string | null; decididaEm: string | null;
+  justificativa: string | null; mensagens: number;
+}
+interface Mensagem {
+  id: string; autor: string; casa: string; texto: string; quando: string; minha: boolean;
 }
 interface Casa { id: string; code: string; name: string }
 interface Pessoa { id: string; nome: string; idade: number }
 
-const SITUACAO: Record<string, { label: string; tom: string }> = {
-  solicitada: { label: 'Aguardando decisão do destino', tom: 'c-warn' },
-  aceita: { label: 'Aceita — acolhido transferido', tom: 'c-ok' },
-  recusada: { label: 'Recusada com justificativa', tom: 'c-crit' },
-  cancelada: { label: 'Cancelada pela origem', tom: 'c-mute' },
+/** Os tons acompanham o `status` do banco; o rótulo vem do servidor. */
+const TOM_STATUS: Record<string, string> = {
+  solicitada: 'c-warn', aceita: 'c-ok', recusada: 'c-crit', cancelada: 'c-mute',
 };
 
 const quando = (iso: string) => new Date(iso).toLocaleString('pt-BR',
   { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
     timeZone: 'America/Sao_Paulo' });
 
-export function Transferencias() {
+export function Transferencias({ houseId }: { houseId: string }) {
   const [caixa, setCaixa] = useState<'recebida' | 'enviada'>('recebida');
-  const [lista, setLista] = useState<Transferencia[]>([]);
+  const [recebidas, setRecebidas] = useState<Recebida[]>([]);
+  const [enviadas, setEnviadas] = useState<Enviada[]>([]);
+  const [avisoCaixa, setAvisoCaixa] = useState('');
   const [casas, setCasas] = useState<Casa[]>([]);
   const [pessoas, setPessoas] = useState<Pessoa[]>([]);
   const [erro, setErro] = useState('');
   const [aviso, setAviso] = useState('');
   const [conversa, setConversa] = useState<string | null>(null);
-  const [decidindo, setDecidindo] = useState<{ t: Transferencia; modo: 'aceitar' | 'recusar' } | null>(null);
+  const [mensagens, setMensagens] = useState<Record<string, Mensagem[]>>({});
+  const [decidindo, setDecidindo] = useState<{ id: string; nome: string; modo: 'aceitar' | 'recusar' } | null>(null);
   const [nova, setNova] = useState(false);
 
   async function carregar() {
     setErro('');
     try {
-      const [t, c, p] = await Promise.all([
-        api<Transferencia[]>('/transfers'),
+      const [r, e, c, p] = await Promise.all([
+        api<{ aviso: string; solicitacoes: Recebida[] }>(`/transfers/inbox?houseId=${houseId}`),
+        api<{ solicitacoes: Enviada[] }>(`/transfers/outbox?houseId=${houseId}`),
         api<Casa[]>('/houses/directory').catch(() => [] as Casa[]),
-        api<Pessoa[]>('/people').catch(() => [] as Pessoa[]),
+        api<Pessoa[]>(`/people?houseId=${houseId}`).catch(() => [] as Pessoa[]),
       ]);
-      setLista(t); setCasas(c); setPessoas(p);
-    } catch (e) {
-      setErro(e instanceof Error ? e.message : 'Não foi possível carregar as transferências.');
+      setRecebidas(r.solicitacoes); setAvisoCaixa(r.aviso);
+      setEnviadas(e.solicitacoes); setCasas(c); setPessoas(p);
+      setMensagens({}); setConversa(null);
+    } catch (err) {
+      setErro(err instanceof Error ? err.message : 'Não foi possível carregar as transferências.');
     }
   }
-  useEffect(() => { carregar(); }, []);
+  useEffect(() => { carregar(); }, [houseId]);
 
   async function acao(fn: () => Promise<any>) {
     setErro(''); setAviso('');
@@ -68,9 +91,55 @@ export function Transferencias() {
     catch (e) { setErro(e instanceof Error ? e.message : 'Não foi possível concluir.'); return false; }
   }
 
-  const daCaixa = lista.filter((t) => t.caixa === caixa);
-  const pendentesRecebidas = lista.filter(
-    (t) => t.caixa === 'recebida' && t.situacao === 'solicitada').length;
+  /** A conversa é buscada por solicitação: a lista traz só quantas há. */
+  async function abrirConversa(id: string) {
+    if (conversa === id) { setConversa(null); return; }
+    setConversa(id);
+    if (mensagens[id]) return;
+    try {
+      const m = await api<Mensagem[]>(`/transfers/${id}/messages`);
+      setMensagens((x) => ({ ...x, [id]: m }));
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Não foi possível abrir a conversa.');
+    }
+  }
+
+  const pendentesRecebidas = recebidas.length;
+
+  function Conversa({ id, quantas }: { id: string; quantas: number }) {
+    const aberta = conversa === id;
+    const lista = mensagens[id] ?? [];
+    return (
+      <>
+        <button className="btn ghost sm" onClick={() => abrirConversa(id)}>
+          {aberta ? 'Fechar conversa'
+            : `💬 Conversar com a outra coordenação${quantas ? ` (${quantas})` : ''}`}
+        </button>
+        {aberta && (
+          <>
+            <div className="eyebrow">Conversa entre as coordenações</div>
+            {lista.length === 0 && (
+              <p className="mutetxt" style={{ margin: 0 }}>
+                Ainda não há mensagens sobre esta solicitação.
+              </p>
+            )}
+            {lista.map((m) => (
+              <div className="bloco compl" key={m.id}>
+                <small>{m.autor} · {m.casa} · {quando(m.quando)}</small>{m.texto}
+              </div>
+            ))}
+            <CampoMensagem onEnviar={(texto) => acao(() =>
+              api(`/transfers/${id}/messages`, {
+                method: 'POST', body: JSON.stringify({ casaId: houseId, texto }) }))} />
+            <p className="mutetxt" style={{ margin: 0 }}>
+              A conversa fica dentro do sistema, presa a esta solicitação, e não pode
+              ser apagada. Nenhuma coordenação entra na casa da outra para falar.
+            </p>
+          </>
+        )}
+      </>
+    );
+  }
 
   return (
     <>
@@ -98,58 +167,73 @@ export function Transferencias() {
       </div>
 
       {caixa === 'recebida' && (
-        <div className="notice c-info">
-          Você vê <b>quem é</b>, <b>de onde vem</b> e <b>por quê</b> — o necessário para
-          decidir. O perfil completo (saúde, documentos, benefícios e histórico) só abre
-          <b> depois do aceite</b>.
-        </div>
+        <>
+          <div className="notice c-info">{avisoCaixa}</div>
+          <div className="stack" style={{ marginTop: 12 }}>
+            {recebidas.map((t) => (
+              <div className="card stack" key={t.id}>
+                <div className="row">
+                  <b className="ff grow" style={{ fontSize: 16 }}>{t.nomeCompleto}</b>
+                  <span className="pill c-warn">Aguardando decisão desta casa</span>
+                </div>
+                {t.nomeSocial && (
+                  <div className="mutetxt">Chamado(a) de <b>{t.nomeSocial}</b> · {t.idade} anos</div>
+                )}
+                {!t.nomeSocial && <div className="mutetxt">{t.idade} anos</div>}
+                <div className="row">
+                  <span className="pill c-move">Vem de {t.origem.codigo} · {t.origem.nome}</span>
+                </div>
+                <div className="bloco destaque"><small>Motivo</small>{t.motivo}</div>
+                <div className="mutetxt">
+                  Solicitada por {t.solicitadaPor} em {quando(t.solicitadaEm)}.
+                </div>
+                <div className="row">
+                  <button className="btn sm grow"
+                          onClick={() => setDecidindo({ id: t.id, nome: t.nomeCompleto, modo: 'aceitar' })}>
+                    ✓ Aceitar
+                  </button>
+                  <button className="btn sec sm grow"
+                          onClick={() => setDecidindo({ id: t.id, nome: t.nomeCompleto, modo: 'recusar' })}>
+                    Recusar com motivo
+                  </button>
+                </div>
+                <Conversa id={t.id} quantas={t.mensagens} />
+              </div>
+            ))}
+            {recebidas.length === 0 && (
+              <div className="card"><p className="mutetxt" style={{ margin: 0 }}>
+                Nenhuma solicitação nesta caixa no momento.</p></div>
+            )}
+          </div>
+        </>
       )}
 
-      <div className="stack" style={{ marginTop: 12 }}>
-        {daCaixa.map((t) => {
-          const s = SITUACAO[t.situacao];
-          const aberta = conversa === t.id;
-          return (
+      {caixa === 'enviada' && (
+        <div className="stack" style={{ marginTop: 12 }}>
+          {enviadas.map((t) => (
             <div className="card stack" key={t.id}>
               <div className="row">
-                <b className="ff grow" style={{ fontSize: 16 }}>{t.nomeCivil}</b>
-                <span className={`pill ${s.tom}`}>{s.label}</span>
+                <b className="ff grow" style={{ fontSize: 16 }}>{t.nomeCompleto}</b>
+                <span className={`pill ${TOM_STATUS[t.status] ?? 'c-mute'}`}>{t.situacao}</span>
               </div>
-              <div className="mutetxt">
-                Chamado(a) de <b>{t.nome}</b> · {t.idade} anos
-              </div>
+              {t.nomeSocial && (
+                <div className="mutetxt">Chamado(a) de <b>{t.nomeSocial}</b> · {t.idade} anos</div>
+              )}
               <div className="row">
-                <span className="pill c-move">
-                  {t.caixa === 'recebida' ? `Vem de ${t.outraCasa}` : `Destino ${t.outraCasa}`}
-                </span>
+                <span className="pill c-move">Destino {t.destino.codigo} · {t.destino.nome}</span>
               </div>
               <div className="bloco destaque"><small>Motivo</small>{t.motivo}</div>
               <div className="mutetxt">
-                Solicitada por {t.pedidaPor} em {quando(t.pedidaEm)}.
+                Solicitada por {t.solicitadaPor} em {quando(t.solicitadaEm)}.
               </div>
-
               {t.justificativa && (
-                <div className={`notice ${t.situacao === 'recusada' ? 'c-crit' : 'c-mute'}`}>
-                  <b>{t.situacao === 'recusada' ? 'Recusada' : 'Cancelada'} por {t.decididaPor}
+                <div className={`notice ${t.status === 'recusada' ? 'c-crit' : 'c-mute'}`}>
+                  <b>{t.situacao}{t.decididaPor ? ` por ${t.decididaPor}` : ''}
                     {t.decididaEm ? ` em ${quando(t.decididaEm)}` : ''}:</b>
                   <div>{t.justificativa}</div>
                 </div>
               )}
-
-              {t.situacao === 'solicitada' && t.caixa === 'recebida' && (
-                <div className="row">
-                  <button className="btn sm grow"
-                          onClick={() => setDecidindo({ t, modo: 'aceitar' })}>
-                    ✓ Aceitar
-                  </button>
-                  <button className="btn sec sm grow"
-                          onClick={() => setDecidindo({ t, modo: 'recusar' })}>
-                    Recusar com motivo
-                  </button>
-                </div>
-              )}
-
-              {t.situacao === 'solicitada' && t.caixa === 'enviada' && (
+              {t.status === 'solicitada' && (
                 <button className="btn ghost sm" onClick={() => {
                   const motivo = prompt('Por que o pedido está sendo cancelado? '
                     + 'A outra coordenação vai ler:') ?? '';
@@ -159,45 +243,15 @@ export function Transferencias() {
                   }
                 }}>Cancelar pedido</button>
               )}
-
-              <button className="btn ghost sm" onClick={() => setConversa(aberta ? null : t.id)}>
-                {aberta ? 'Fechar conversa'
-                  : `💬 Conversar com a outra coordenação${t.mensagens.length
-                      ? ` (${t.mensagens.length})` : ''}`}
-              </button>
-
-              {aberta && (
-                <>
-                  <div className="eyebrow">Conversa entre as coordenações</div>
-                  {t.mensagens.length === 0 && (
-                    <p className="mutetxt" style={{ margin: 0 }}>
-                      Ainda não há mensagens sobre esta solicitação.
-                    </p>
-                  )}
-                  {t.mensagens.map((m) => (
-                    <div className="bloco compl" key={m.id}>
-                      <small>{m.autor} · {m.casa} · {quando(m.em)}</small>{m.texto}
-                    </div>
-                  ))}
-                  <Mensagem onEnviar={(texto) => acao(() =>
-                    api(`/transfers/${t.id}/message`, {
-                      method: 'POST', body: JSON.stringify({ texto }) }))} />
-                  <p className="mutetxt" style={{ margin: 0 }}>
-                    A conversa fica dentro do sistema, presa a esta solicitação, e não pode
-                    ser apagada. Nenhuma coordenação entra na casa da outra para falar.
-                  </p>
-                </>
-              )}
+              <Conversa id={t.id} quantas={t.mensagens} />
             </div>
-          );
-        })}
-
-        {daCaixa.length === 0 && (
-          <div className="card"><p className="mutetxt" style={{ margin: 0 }}>
-            Nenhuma solicitação nesta caixa no momento.
-          </p></div>
-        )}
-      </div>
+          ))}
+          {enviadas.length === 0 && (
+            <div className="card"><p className="mutetxt" style={{ margin: 0 }}>
+              Nenhuma solicitação nesta caixa no momento.</p></div>
+          )}
+        </div>
+      )}
 
       {caixa === 'enviada' && (
         <div className="card stack" style={{ marginTop: 14 }}>
@@ -219,13 +273,15 @@ export function Transferencias() {
 
       {decidindo && (
         <FolhaDecisao
-          transferencia={decidindo.t} modo={decidindo.modo}
+          nome={decidindo.nome} modo={decidindo.modo}
           onFechar={() => setDecidindo(null)}
           onConfirmar={async (texto) => {
+            // `decline`, não `refuse`; e as chaves do corpo são as do servidor:
+            // o aceite guarda uma NOTA opcional, a recusa exige MOTIVO.
             const rota = decidindo.modo === 'aceitar'
-              ? `/transfers/${decidindo.t.id}/accept` : `/transfers/${decidindo.t.id}/refuse`;
+              ? `/transfers/${decidindo.id}/accept` : `/transfers/${decidindo.id}/decline`;
             const corpo = decidindo.modo === 'aceitar'
-              ? { observacao: texto } : { justificativa: texto };
+              ? { nota: texto } : { motivo: texto };
             const ok = await acao(() => api(rota, {
               method: 'POST', body: JSON.stringify(corpo) }));
             if (ok) setDecidindo(null);
@@ -244,7 +300,7 @@ export function Transferencias() {
   );
 }
 
-function Mensagem({ onEnviar }: { onEnviar: (texto: string) => Promise<boolean> }) {
+function CampoMensagem({ onEnviar }: { onEnviar: (texto: string) => Promise<boolean> }) {
   const [texto, setTexto] = useState('');
   return (
     <>
@@ -259,8 +315,8 @@ function Mensagem({ onEnviar }: { onEnviar: (texto: string) => Promise<boolean> 
   );
 }
 
-function FolhaDecisao({ transferencia, modo, onFechar, onConfirmar }: {
-  transferencia: Transferencia; modo: 'aceitar' | 'recusar';
+function FolhaDecisao({ nome, modo, onFechar, onConfirmar }: {
+  nome: string; modo: 'aceitar' | 'recusar';
   onFechar: () => void; onConfirmar: (texto: string) => void;
 }) {
   const [texto, setTexto] = useState('');
@@ -269,12 +325,8 @@ function FolhaDecisao({ transferencia, modo, onFechar, onConfirmar }: {
          onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
       <div className="sheet modal">
         <h3 id="t-dec">
-          {modo === 'aceitar' ? `Aceitar ${transferencia.nome}?`
-            : `Recusar a transferência de ${transferencia.nome}`}
+          {modo === 'aceitar' ? `Aceitar ${nome}?` : `Recusar a transferência de ${nome}`}
         </h3>
-        <p className="mutetxt">
-          {transferencia.nomeCivil} · {transferencia.idade} anos · vem de {transferencia.outraCasa}.
-        </p>
 
         {modo === 'aceitar' ? (
           <div className="notice c-info">
@@ -340,7 +392,7 @@ function FolhaNova({ casas, pessoas, onFechar, onEnviar }: {
         <select id="tr-destino" value={destino} onChange={(e) => setDestino(e.target.value)}>
           <option value="">Escolha</option>
           {casas.map((c) => (
-            <option key={c.id} value={`${c.code} · ${c.name}`}>{c.code} — {c.name}</option>
+            <option key={c.id} value={c.id}>{c.code} — {c.name}</option>
           ))}
         </select>
 
@@ -354,8 +406,8 @@ function FolhaNova({ casas, pessoas, onFechar, onEnviar }: {
 
         <div className="row rodape">
           <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
-          <button className="btn grow" disabled={!personId || !destino}
-                  onClick={() => onEnviar({ personId, destino, motivo })}>
+          <button className="btn grow" disabled={!personId || !destino || motivo.trim().length < 10}
+                  onClick={() => onEnviar({ personId, toHouseId: destino, reason: motivo })}>
             Enviar pedido
           </button>
         </div>

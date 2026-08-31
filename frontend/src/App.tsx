@@ -318,7 +318,9 @@ export function App() {
           <Cofre houseId={casaAtual.id} papel={me.role} />
         )}
 
-        {aba === 'transferencias' && veTransferencias && <Transferencias />}
+        {aba === 'transferencias' && veTransferencias && casaAtual && (
+          <Transferencias houseId={casaAtual.id} />
+        )}
 
         {aba === 'acompanhamentos' && veAcompanhamentos && <Acompanhamentos />}
 

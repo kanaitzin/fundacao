@@ -168,13 +168,15 @@ export function Acompanhamentos() {
                 api(`/followups/${f.id}/approve`, { method: 'POST', body: '{}' }))}>
                 Revisar e aprovar
               </button>
-              <button className="btn sm ghost" onClick={() => {
-                const motivo = prompt('O que precisa ser revisto? A pessoa que redigiu vai ler:') ?? '';
-                if (motivo.trim().length >= 10) {
-                  acao(() => api(`/followups/${f.id}/return`, {
-                    method: 'POST', body: JSON.stringify({ motivo }) }));
-                }
-              }}>Devolver</button>
+              {/*
+                * "Devolver para correção" saiu da tela em 31/08: a rota que ela
+                * chamava (/followups/:id/return) NÃO EXISTE no servidor, e o
+                * fluxo do banco hoje tem duas saídas para quem revisa —
+                * aprovar, ou pedir a correção fora do sistema e deixar o autor
+                * salvar de novo. Deixar um botão que sempre falharia é pior que
+                * não ter o botão. A decisão de criar a devolução com motivo
+                * registrado é de produto, e está anotada.
+                */}
             </>
           )}
           {f.situacao === 'em_aprovacao' && f.proprio && (
@@ -186,7 +188,7 @@ export function Acompanhamentos() {
             <button className="btn sm ghost" onClick={() => {
               const motivo = prompt('O que está sendo corrigido, e por quê?') ?? '';
               if (motivo.trim().length >= 10) {
-                acao(() => api(`/followups/${f.id}/correct`, {
+                acao(() => api(`/followups/${f.id}/amend`, {
                   method: 'POST', body: JSON.stringify({ motivo }) }));
               }
             }}>Corrigir (nova versão)</button>
@@ -314,8 +316,17 @@ export function Acompanhamentos() {
         <FolhaEixos acompanhamento={editando} eixos={eixos}
                     onFechar={() => setEditando(null)}
                     onSalvar={async (valores, enviar) => {
-                      const ok = await acao(() => api(`/followups/${editando.id}/save`, {
-                        method: 'POST', body: JSON.stringify({ eixos: valores, enviar }) }));
+                      // Duas rotas, como no servidor: o rascunho é `draft` e
+                      // recebe os eixos DIRETO no corpo; enviar para aprovação
+                      // é outro ato, em `submit`. A tela mandava tudo junto
+                      // para /save, que não existe.
+                      const ok = await acao(async () => {
+                        const r = await api(`/followups/${editando.id}/draft`, {
+                          method: 'POST', body: JSON.stringify(valores) });
+                        if (!enviar) return r;
+                        return api(`/followups/${editando.id}/submit`, {
+                          method: 'POST', body: '{}' });
+                      });
                       if (ok) setEditando(null);
                     }} />
       )}
