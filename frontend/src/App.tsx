@@ -314,13 +314,17 @@ export function App() {
 
         {aba === 'ata' && <Ata />}
 
-        {aba === 'cofre' && veCofre && <Cofre />}
+        {aba === 'cofre' && veCofre && casaAtual && (
+          <Cofre houseId={casaAtual.id} papel={me.role} />
+        )}
 
         {aba === 'transferencias' && veTransferencias && <Transferencias />}
 
         {aba === 'acompanhamentos' && veAcompanhamentos && <Acompanhamentos />}
 
-        {aba === 'arquivo' && veArquivo && <Arquivo />}
+        {aba === 'arquivo' && veArquivo && casaAtual && (
+          <Arquivo houseId={casaAtual.id} papel={me.role} />
+        )}
 
         {aba === 'casas' && (
           <>

@@ -472,23 +472,43 @@ let ATA_GERAL = {
  * hora. No protótipo a "cifra" é de mentira; no sistema real nem quem
  * administra o banco lê a senha.
  */
-const COFRE = [
-  { id: 'v1', personId: 'p01', tipo: 'gov.br', login: '000.000.000-00',
-    dica: 'F••••••••3 (13)', senha: 'Ficticia@2013', responsavel: 'Coordenação da Casa 03' },
-  { id: 'v2', personId: 'p01', tipo: 'Banco — poupança social', login: 'ag. 0000 · c/ 00000-0',
-    dica: 'P••••••••1 (11)', senha: 'Poupanca#1', responsavel: 'Coordenação da Casa 03' },
-  { id: 'v3', personId: 'p02', tipo: 'INSS — Meu INSS', login: '000.000.000-00',
-    dica: 'M•••••••0 (10)', senha: 'MeuINSS@10', responsavel: 'Coordenação da Casa 03' },
-  { id: 'v4', personId: 'p10', tipo: 'Carteira de Trabalho Digital', login: '000.000.000-00',
-    dica: 'C•••••••7 (12)', senha: 'CtpsFicti@7', responsavel: 'Coordenação da Casa 03' },
+/** Tipos de acesso, nos códigos do servidor (§6.10). */
+const TIPOS_CREDENCIAL = [
+  { cod: 'gov_br', label: 'gov.br' },
+  { cod: 'inss', label: 'INSS / Meu INSS' },
+  { cod: 'ctps', label: 'Carteira de Trabalho Digital' },
+  { cod: 'banco', label: 'Banco / poupança social' },
+  { cod: 'escola', label: 'Portal da escola' },
+  { cod: 'outro', label: 'Outro acesso' },
 ];
-let COFRE_HIST = [
-  { id: 'ch1', quem: 'Carla Coordenadora (fictícia)', acao: 'abertura', em: emHoras(9, 12),
+interface Credencial {
+  id: string; personId: string; tipoCodigo: string; qual: string | null;
+  login: string | null; dica: string; senha: string;
+  responsavel: string | null; observacao: string | null; atualizadoEm: string;
+}
+const COFRE: Credencial[] = [
+  { id: 'v1', personId: 'p01', tipoCodigo: 'gov_br', qual: null, login: '000.000.000-00',
+    dica: 'F••••••••3 (13)', senha: 'Ficticia@2013', responsavel: 'Coordenação da Casa 03',
+    observacao: null, atualizadoEm: emHoras(7, 40) },
+  { id: 'v2', personId: 'p01', tipoCodigo: 'banco', qual: null, login: 'ag. 0000 · c/ 00000-0',
+    dica: 'P••••••••1 (11)', senha: 'Poupanca#1', responsavel: 'Coordenação da Casa 03',
+    observacao: null, atualizadoEm: emHoras(7, 45) },
+  { id: 'v3', personId: 'p02', tipoCodigo: 'inss', qual: null, login: '000.000.000-00',
+    dica: 'M•••••••0 (10)', senha: 'MeuINSS@10', responsavel: 'Coordenação da Casa 03',
+    observacao: null, atualizadoEm: emHoras(8, 10) },
+  { id: 'v4', personId: 'p10', tipoCodigo: 'ctps', qual: null, login: '000.000.000-00',
+    dica: 'C•••••••7 (12)', senha: 'CtpsFicti@7', responsavel: 'Coordenação da Casa 03',
+    observacao: null, atualizadoEm: emHoras(8, 30) },
+];
+/** Histórico POR ACOLHIDO, como no servidor. */
+let COFRE_HIST: { personId: string; quando: string; quem: string;
+                  finalidade: string | null; acao: string; excepcional: boolean }[] = [
+  { personId: 'p01', quem: 'Carla Coordenadora (fictícia)', acao: 'abertura', quando: emHoras(9, 12),
     finalidade: 'Atualizar cadastro do benefício no gov.br', excepcional: false },
-  { id: 'ch2', quem: 'João Gestor (fictício)', acao: 'abertura excepcional', em: emHoras(8, 5),
+  { personId: 'p01', quem: 'João Gestor (fictício)', acao: 'abertura excepcional', quando: emHoras(8, 5),
     finalidade: 'Coordenadora em licença; benefício vencia na semana', excepcional: true },
-  { id: 'ch3', quem: 'Carla Coordenadora (fictícia)', acao: 'cadastro do acesso',
-    em: emHoras(7, 40), finalidade: '—', excepcional: false },
+  { personId: 'p01', quem: 'Carla Coordenadora (fictícia)', acao: 'cadastro',
+    quando: emHoras(7, 40), finalidade: null, excepcional: false },
 ];
 /** A reautenticação vale enquanto a página estiver aberta. */
 let cofreLiberado = false;
@@ -1763,53 +1783,108 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
   }
 
   // ---- cofre de acessos
-  if (rota.startsWith('/vault')) {
-    if (!['coordenador', 'gestor_geral'].includes(eu.role)) {
-      return new Recusa(403, 'Seu cargo não tem acesso a este conteúdo.');
-    }
-  }
-  if (rota === '/vault/reauth') {
-    // No protótipo qualquer senha com 4 caracteres serve; no sistema real é a
-    // senha da própria conta, conferida de novo, mesmo com a sessão aberta.
-    if (String(b.senha ?? '').length < 4) {
-      return new Recusa(401, 'Senha incorreta. O cofre pede a sua senha de novo, mesmo com a '
-        + 'sessão já aberta.');
+  // ---- cofre de acessos: as rotas do servidor (§6.10)
+  //
+  // Chamava /vault, /vault/history e /vault/reauth — e, pior que o 404, com o
+  // desenho errado: no servidor o cofre é DE UM ACOLHIDO
+  // (/people/:id/credentials/*), não uma lista da casa. Uma lista única com as
+  // senhas de vinte crianças é a planilha solta de novo.
+
+  if (rota === '/people/credentials/kinds' && metodo === 'GET') return TIPOS_CREDENCIAL;
+
+  /** Reautenticação: o campo é `password`, e a sessão aberta não basta. */
+  if (rota === '/auth/reauth' && metodo === 'POST') {
+    if (String(b.password ?? '').length < 4) {
+      return new Recusa(401, 'Senha incorreta');
     }
     cofreLiberado = true;
-    return { ok: true, aviso: 'Acesso liberado nesta janela. Cada abertura de senha continua '
-      + 'pedindo finalidade e fica registrada.' };
+    return { ok: true };
   }
-  if (rota === '/vault' && metodo === 'GET') {
-    if (!cofreLiberado) return new Recusa(401, 'Confirme sua senha para continuar.');
-    return COFRE.map((c) => ({
-      id: c.id, acolhido: kid(c.personId)?.nome ?? '—', tipo: c.tipo, login: c.login,
-      dica: c.dica, responsavel: c.responsavel,
+
+  if (seg[0] === 'people' && seg[2] === 'credentials' && seg[3] === 'view' && metodo === 'POST') {
+    if (!['coordenador', 'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403, 'Somente a coordenação da casa acessa o cofre de acessos.');
+    }
+    if (!cofreLiberado) return new Recusa(403, 'Confirme sua senha para abrir o cofre de acessos.');
+    // Listar JÁ É um ato auditado — por isso é POST, e não GET.
+    return COFRE.filter((c) => c.personId === seg[1]).map((c) => ({
+      id: c.id,
+      tipo: TIPOS_CREDENCIAL.find((t) => t.cod === c.tipoCodigo)?.label ?? c.tipoCodigo,
+      tipoCodigo: c.tipoCodigo, qual: c.qual, login: c.login, dica: c.dica,
+      responsavel: c.responsavel, observacao: c.observacao, atualizadoEm: c.atualizadoEm,
     }));
   }
-  if (rota === '/vault/history') {
-    if (!cofreLiberado) return new Recusa(401, 'Confirme sua senha para continuar.');
-    return COFRE_HIST;
-  }
-  if (seg[0] === 'vault' && seg[2] === 'reveal') {
-    if (!cofreLiberado) return new Recusa(401, 'Confirme sua senha para continuar.');
-    const c = COFRE.find((x) => x.id === seg[1]);
-    if (!c) return new Recusa(404, 'Não encontrado.');
-    if (String(b.finalidade ?? '').trim().length < 5) {
-      return new Recusa(400, 'Descreva para que você precisa deste acesso. A finalidade fica '
-        + 'registrada com o seu nome e o horário.');
+
+  if (seg[0] === 'people' && seg[2] === 'credentials' && seg[3] === 'history' && metodo === 'POST') {
+    if (!['coordenador', 'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403, 'Somente a coordenação da casa acessa o cofre de acessos.');
     }
-    COFRE_HIST = [{ id: uid(), quem: eu.fullName,
-      acao: eu.role === 'gestor_geral' ? 'abertura excepcional' : 'abertura',
-      em: new Date().toISOString(), finalidade: b.finalidade,
-      excepcional: eu.role === 'gestor_geral' }, ...COFRE_HIST];
-    return { senha: c.senha, aviso: 'Abertura registrada. Feche a janela quando terminar — '
-      + 'a senha não fica na tela.' };
+    return COFRE_HIST.filter((h) => h.personId === seg[1]);
   }
-  if (rota === '/vault' && metodo === 'POST') {
-    if (!cofreLiberado) return new Recusa(401, 'Confirme sua senha para continuar.');
-    return { ok: true, aviso: 'No protótipo o acesso não é guardado. No sistema real ele é '
-      + 'cifrado antes de ser gravado, e trocar a senha depois não apaga o histórico de '
-      + 'quem já a abriu.' };
+
+  if (seg[0] === 'people' && seg[2] === 'credentials' && seg[4] === 'reveal' && metodo === 'POST') {
+    if (!cofreLiberado) return new Recusa(403, 'Confirme sua senha para abrir o cofre de acessos.');
+    const c = COFRE.find((x) => x.id === seg[3]);
+    if (!c) return new Recusa(404, 'Acesso não encontrado.');
+    const finalidade = String(b.finalidade ?? '').trim();
+    if (finalidade.length < 5) {
+      return new Recusa(400, 'Descreva para que precisa deste acesso (mínimo 5 caracteres).');
+    }
+    // O Gestor Geral entra pela EXCEÇÃO, e a exceção pede motivo institucional.
+    if (eu.role === 'gestor_geral' && finalidade.length < 20) {
+      return new Recusa(400, 'Acesso excepcional do Gestor Geral: descreva o motivo '
+        + 'institucional (mínimo 20 caracteres). Fica registrado como exceção.');
+    }
+    const excepcional = eu.role === 'gestor_geral';
+    COFRE_HIST = [{ personId: c.personId, quem: eu.fullName,
+      acao: excepcional ? 'abertura excepcional' : 'abertura',
+      quando: new Date().toISOString(), finalidade, excepcional }, ...COFRE_HIST];
+    return { senha: c.senha, excepcional,
+      aviso: excepcional
+        ? 'Acesso excepcional do Gestor Geral registrado como exceção, com o motivo informado.'
+        : 'Abertura registrada com o seu nome, o horário e a finalidade.' };
+  }
+
+  if (seg[0] === 'people' && seg[2] === 'credentials' && seg.length === 3 && metodo === 'POST') {
+    if (eu.role !== 'coordenador') {
+      return new Recusa(403, 'O cofre de acessos é da coordenação da casa. O Gestor Geral '
+        + 'tem acesso excepcional e justificado.');
+    }
+    if (!cofreLiberado) return new Recusa(403, 'Confirme sua senha para abrir o cofre de acessos.');
+    if (!TIPOS_CREDENCIAL.some((t) => t.cod === b.tipo)) {
+      return new Recusa(400, 'Tipo de acesso desconhecido.');
+    }
+    const senha = String(b.senha ?? '').trim();
+    if (!senha) return new Recusa(400, 'Informe a senha a guardar.');
+    if (b.tipo === 'outro' && !String(b.qual ?? '').trim()) {
+      return new Recusa(400, 'Descreva qual é o acesso.');
+    }
+    // A "cifra" do protótipo é de mentira; o que importa aqui é a FORMA: a
+    // tela nunca mais vê a senha, só a dica.
+    const dica = `${senha[0]}${'•'.repeat(Math.max(senha.length - 2, 1))}`
+      + `${senha[senha.length - 1]} (${senha.length})`;
+    const existente = COFRE.find((c) => c.personId === seg[1] && c.tipoCodigo === b.tipo
+      && (c.qual ?? '') === String(b.qual ?? ''));
+    if (existente) {
+      existente.senha = senha; existente.dica = dica;
+      existente.login = (b.login as string) ?? existente.login;
+      existente.responsavel = (b.responsavel as string) ?? existente.responsavel;
+      existente.observacao = (b.observacao as string) ?? existente.observacao;
+      existente.atualizadoEm = new Date().toISOString();
+    } else {
+      COFRE.push({ id: uid(), personId: seg[1], tipoCodigo: String(b.tipo),
+        qual: (b.qual as string) ?? null, login: (b.login as string) ?? null,
+        dica, senha, responsavel: (b.responsavel as string) ?? null,
+        observacao: (b.observacao as string) ?? null, atualizadoEm: new Date().toISOString() });
+    }
+    COFRE_HIST = [{ personId: seg[1], quem: eu.fullName,
+      acao: existente ? 'troca de senha' : 'cadastro',
+      quando: new Date().toISOString(), finalidade: null, excepcional: false }, ...COFRE_HIST];
+    return { id: uid(), substituiu: !!existente,
+      aviso: existente
+        ? 'Acesso atualizado. A troca fica registrada com a data e o seu nome.'
+        : 'Acesso guardado e cifrado. Só a coordenação desta casa abre — e cada abertura '
+          + 'fica registrada.' };
   }
 
   // ---- transferências
@@ -2090,33 +2165,86 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
   }
 
   // ---- arquivo documental
-  if (rota === '/archive') {
-    if (eu.role === 'educador' || eu.role === 'cozinha') {
-      return new Recusa(403, 'O Drive institucional não abre para o plantão. O que você '
-        + 'precisa ler do acolhido está no perfil, com permissão e registro.');
+  // ---- arquivo documental: as rotas do servidor (§16)
+  //
+  // Chamava /archive (é /archive/queue), /archive/:id/retry (não existe: a
+  // retentativa é da FILA, em /archive/process) e /archive/documents, que
+  // casava com GET /archive/:id — o servidor leria "documents" como um id.
+
+  if (rota === '/archive/queue' && metodo === 'GET') {
+    if (['educador', 'cozinha', 'enfermagem'].includes(eu.role)) {
+      return new Recusa(403, 'A fila do arquivo é da equipe técnica, da coordenação e do '
+        + 'Gestor Geral. Educadores não têm acesso às pastas (§16.5).');
     }
-    return {
-      itens: ARQUIVO.map((a) => ({ ...a,
-        // A pasta restrita é outra raiz e outra permissão — nem todo cargo a enxerga.
-        visivel: !a.restrito || ['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role) })),
-      falhas: ARQUIVO.filter((a) => a.estado === 'falhou').length,
-      naFila: ARQUIVO.filter((a) => ['aguardando', 'enviando'].includes(a.estado)).length,
-    };
+    return ARQUIVO
+      // A pasta restrita é outra raiz e outra permissão: quem não alcança não
+      // recebe a linha. Não é filtro de tela — o item não é devolvido.
+      .filter((a) => !a.restrito || ['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role))
+      .map((a) => ({
+        id: a.id, caminho: a.caminho, arquivo: a.arquivo, entidade: a.categoria,
+        versao: a.arquivo.includes('_V2') ? 'V2_ADENDO' : 'V1',
+        situacao: a.estado, tentativas: a.tentativas, areaRestrita: a.restrito,
+      }));
   }
-  if (rota === '/archive/documents') {
-    if (eu.role === 'educador' || eu.role === 'cozinha') {
+
+  if (rota === '/archive/reconcile' && metodo === 'GET') {
+    if (['educador', 'cozinha'].includes(eu.role)) {
       return new Recusa(403, 'Seu cargo não tem acesso a este conteúdo.');
     }
-    const pid = q.get('personId');
-    return DOCUMENTOS.filter((d) => !pid || d.personId === pid)
-      .map((d) => ({ ...d, acolhido: kid(d.personId)?.nome ?? '—' }));
+    const cats = [...new Set(ARQUIVO.map((a) => a.categoria))];
+    const porCategoria = cats.map((c) => {
+      const dela = ARQUIVO.filter((a) => a.categoria === c);
+      return {
+        categoria: c,
+        aguardando: dela.filter((a) => ['aguardando', 'enviando'].includes(a.estado)).length,
+        falhou: dela.filter((a) => a.estado === 'falhou').length,
+        verificado: dela.filter((a) => a.estado === 'verificado').length,
+      };
+    });
+    const pendentes = porCategoria.reduce((n, c) => n + c.aguardando + c.falhou, 0);
+    return {
+      porCategoria, pendentes,
+      aviso: pendentes
+        ? 'Há documentos fechados que ainda não estão no arquivo. Eles continuam íntegros no sistema.'
+        : 'Nada pendente: tudo o que fechou está arquivado e verificado.',
+    };
   }
-  if (seg[0] === 'archive' && seg[2] === 'retry') {
+
+  /** Retentativa é da FILA e é idempotente: mesma versão, mesmo arquivo. */
+  if (rota === '/archive/process' && metodo === 'POST') {
+    if (!['admin_tecnico', 'equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403, 'Sem permissão para processar a fila do arquivo.');
+    }
+    const limite = Number(b.limite ?? 5);
+    const pendentes = ARQUIVO
+      .filter((a) => ['aguardando', 'enviando', 'falhou', 'salvo'].includes(a.estado))
+      .slice(0, limite);
+    const itens = pendentes.map((a) => {
+      a.tentativas += 1;
+      a.estado = 'verificado';
+      a.erro = null;
+      return { id: a.id, situacao: 'verificado' };
+    });
+    return { processados: itens.length, itens };
+  }
+
+  if (seg[0] === 'archive' && seg.length === 2 && metodo === 'GET') {
     const a = ARQUIVO.find((x) => x.id === seg[1]);
-    if (!a) return new Recusa(404, 'Não encontrado.');
-    a.tentativas += 1; a.estado = 'verificado'; a.erro = null;
-    return { ok: true, aviso: 'Reenviado e conferido. A retentativa não duplica: mesma '
-      + 'versão, mesmo arquivo.' };
+    if (!a) return new Recusa(404, 'Item de arquivo não encontrado.');
+    return {
+      id: a.id, caminho: a.caminho, arquivo: a.arquivo, categoria: a.categoria,
+      entidade: a.categoria, entityId: a.id,
+      versao: a.arquivo.includes('_V2') ? 'V2_ADENDO' : 'V1',
+      situacao: a.estado, tentativas: a.tentativas, ultimoErro: a.erro,
+      driveFileId: null, sha256: null, areaRestrita: a.restrito,
+      fechadoEm: a.fechadoEm,
+      enviadoEm: a.estado === 'aguardando' ? null : a.fechadoEm,
+      verificadoEm: a.estado === 'verificado' ? a.fechadoEm : null,
+      historico: a.estado === 'falhou'
+        ? [{ de: 'aguardando', para: 'enviando', erro: null, em: a.fechadoEm },
+           { de: 'enviando', para: 'falhou', erro: a.erro, em: a.fechadoEm }]
+        : [{ de: 'aguardando', para: 'salvo', erro: null, em: a.fechadoEm }],
+    };
   }
 
   return new Recusa(404, 'Esta parte do sistema ainda não está no protótipo.');
