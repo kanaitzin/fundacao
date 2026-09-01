@@ -1382,13 +1382,27 @@ export async function mockApi<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 /** Pedidos de substituição do protótipo — um deles já sem efeito. */
-const PEDIDOS_SUB = [
-  { id: 'sub1', atividade: 'Consulta odontológica — Luiz', motivo: 'Preciso sair mais cedo hoje.',
-    status: 'solicitada', pedidoPor: 'Mário Silva (fictício)',
-    solicitadoEm: new Date().toISOString(), semEfeito: false, aviso: null as string | null },
-  { id: 'sub2', atividade: 'Café da manhã', motivo: 'Fiquei retido no transporte.',
-    status: 'solicitada', pedidoPor: 'Joana Lima (fictícia)',
-    solicitadoEm: new Date().toISOString(), semEfeito: true,
+/* alcance:substituicao — quem decide. Espelha PODE_AUTORIZAR_SUB do servidor. */
+const DECIDE_SUB_MOCK = ['lider_diurno', 'lider_noturno_geral', 'equipe_tecnica', 'coordenador'];
+/* Quem cria atividade urgente (§8.2) — espelha PODE_URGENTE do servidor. */
+const CRIA_URGENTE_MOCK = ['lider_diurno', 'lider_noturno_geral', 'equipe_tecnica',
+                           'coordenador', 'gestor_geral'];
+
+interface PedidoSub {
+  id: string; atividade: string; horario: string; motivo: string; status: string;
+  pedidoPor: string; substituto: string | null; decidiuNota: string | null;
+  solicitadoEm: string; semEfeito: boolean; aviso: string | null;
+}
+const PEDIDOS_SUB: PedidoSub[] = [
+  { id: 'sub1', atividade: 'Consulta odontológica — Luiz', horario: emHoras(15, 0),
+    motivo: 'Preciso sair às 16h para uma consulta e não volto a tempo de levá-lo.',
+    status: 'solicitada', pedidoPor: 'Mário Silva (fictício)', substituto: null,
+    decidiuNota: null, solicitadoEm: new Date().toISOString(),
+    semEfeito: false, aviso: null },
+  { id: 'sub2', atividade: 'Café da manhã', horario: emHoras(7, 0),
+    motivo: 'Fiquei retido no transporte e cheguei depois das oito.',
+    status: 'solicitada', pedidoPor: 'Joana Lima (fictícia)', substituto: null,
+    decidiuNota: null, solicitadoEm: new Date().toISOString(), semEfeito: true,
     aviso: 'A atividade já foi encerrada como "Concluída no horário" enquanto o pedido '
          + 'aguardava. Não cabe substituir o que já aconteceu — recuse o pedido com o motivo.' },
 ];
@@ -1701,6 +1715,28 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       eventos: eventos.map((e) => ({ ...e, actions: acoes(e) })),
     };
   }
+  /* A ATIVIDADE URGENTE (§8.2): pontual, com autoria e motivo. Antes dos
+     ramos `:id`, porque "urgent" é palavra fixa no lugar do identificador. */
+  if (rota === '/activities/urgent' && metodo === 'POST') {
+    if (!CRIA_URGENTE_MOCK.includes(eu.role)) {
+      return new Recusa(403,
+        'Somente líderes de plantão, equipe técnica e coordenação criam atividade urgente.');
+    }
+    if (String(b.reason ?? '').trim().length < 5) {
+      return new Recusa(400, 'Informe o motivo da atividade urgente.');
+    }
+    if (String(b.title ?? '').trim().length < 3) {
+      return new Recusa(400, 'Dê um nome à atividade — é o que a próxima pessoa lê na linha.');
+    }
+    const quem = b.personId ? KIDS.find((k) => k.id === b.personId)?.nome ?? null : null;
+    LINHA.push({ id: `activity:${uid()}`, source: 'agenda',
+      at: String(b.scheduledAt), kind: 'outro', title: String(b.title).trim(),
+      person: quem, responsible: eu.fullName, state: 'Aguardando ciência',
+      severity: 'alta', instructions: b.instructions ? String(b.instructions) : null,
+      urgente: true, motivoUrgente: String(b.reason).trim() } as any);
+    return { aviso: 'Atividade urgente e pontual registrada com autoria e motivo. O '
+      + 'planejamento regular não foi alterado.' };
+  }
   if (seg[0] === 'activities' && seg[2] === 'acknowledge') {
     const ev = LINHA.find((e) => e.id.endsWith(seg[1]));
     if (ev) ev.state = 'Ciente';
@@ -1776,15 +1812,67 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
    * isso, não quebrar no clique.
    */
   if (rota === '/activities/substitutions' && metodo === 'GET') {
-    return PEDIDOS_SUB.filter((p) => p.status === 'solicitada');
+    // Os decididos vêm junto: quem pediu precisa poder ler a recusa e o motivo
+    // dela sem perguntar a ninguém.
+    return PEDIDOS_SUB;
+  }
+  /* O pedido nasce de QUEM VAI SAIR — e a atividade fica marcada na linha. */
+  if (seg[0] === 'activities' && seg[2] === 'substitution' && metodo === 'POST') {
+    if (String(b.motivo ?? '').trim().length < 5) {
+      return new Recusa(400, 'Informe o motivo do pedido de substituição.');
+    }
+    const ev = LINHA.find((e) => e.id.endsWith(seg[1]));
+    if (!ev) return new Recusa(404, 'Atividade não encontrada');
+    if (['Concluída no horário', 'Concluída com atraso', 'Cancelada externamente']
+          .includes(ev.state)) {
+      return new Recusa(400,
+        `Esta atividade já foi encerrada como "${ev.state}". Não cabe substituição no que já `
+        + 'aconteceu — uma correção entra como adendo pela equipe técnica.');
+    }
+    PEDIDOS_SUB.unshift({ id: uid(), atividade: ev.title, horario: ev.at,
+      motivo: String(b.motivo).trim(), status: 'solicitada', pedidoPor: eu.fullName,
+      substituto: null, decidiuNota: null, solicitadoEm: new Date().toISOString(),
+      semEfeito: false, aviso: null });
+    ev.state = 'Aguardando substituição';
+    return { aviso: 'Pedido registrado, com o seu nome e o motivo. Ele fica em aberto até o '
+      + 'líder do turno, a equipe técnica ou a coordenação decidir — ninguém é dado como '
+      + 'substituído sozinho.' };
+  }
+  if (seg[0] === 'activities' && seg[1] === 'substitutions' && seg[3] === 'assign') {
+    const p = PEDIDOS_SUB.find((x) => x.id === seg[2]);
+    if (!p || p.status !== 'solicitada') {
+      return new Recusa(404, 'Pedido não encontrado ou já decidido.');
+    }
+    if (!DECIDE_SUB_MOCK.includes(eu.role)) {
+      return new Recusa(403,
+        'Somente o líder do turno, a equipe técnica ou a coordenação decidem substituição.');
+    }
+    if (p.semEfeito) {
+      return new Recusa(400,
+        'A atividade já foi encerrada enquanto o pedido esperava. Não cabe substituir o que já '
+        + 'aconteceu — recuse o pedido, com o motivo.');
+    }
+    const nome = EQUIPE_CASA.find((m) => m.id === b.substitutoId)?.nome ?? 'Colega';
+    // `atribuida` é o valor que o banco aceita — o mock não pode inventar outro.
+    p.status = 'atribuida'; p.substituto = nome;
+    p.decidiuNota = b.nota ? String(b.nota) : null;
+    const ev = LINHA.find((e) => e.title === p.atividade);
+    if (ev) { ev.state = 'Aguardando ciência'; ev.responsible = nome; }
+    return { ok: true, status: 'atribuida',
+      aviso: `Substituição autorizada: ${nome} assume, e precisa tomar ciência. O sistema não `
+        + 'dá ninguém como avisado por ter sido escolhido.' };
   }
   if (seg[0] === 'activities' && seg[1] === 'substitutions' && seg[3] === 'decline') {
     const p = PEDIDOS_SUB.find((x) => x.id === seg[2]);
     if (!p) return new Recusa(404, 'Pedido não encontrado ou já decidido.');
+    if (!DECIDE_SUB_MOCK.includes(eu.role)) {
+      return new Recusa(403,
+        'Somente o líder do turno, a equipe técnica ou a coordenação decidem substituição.');
+    }
     if (String(b.motivo ?? '').trim().length < 5) {
       return new Recusa(400, 'Informe o motivo da recusa — quem pediu vai ler.');
     }
-    p.status = 'recusada';
+    p.status = 'recusada'; p.decidiuNota = String(b.motivo).trim();
     return { ok: true, status: 'recusada',
              aviso: 'Pedido recusado, com motivo e autoria. Quem pediu foi avisado.' };
   }

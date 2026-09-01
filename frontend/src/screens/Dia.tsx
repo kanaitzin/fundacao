@@ -71,6 +71,27 @@ const hhmm = (iso: string) => new Date(iso).toLocaleTimeString('pt-BR',
 /** Cargos que podem registrar pelo colega e delegar (§8.2, §8.3). */
 const LIDERA = ['lider_diurno', 'lider_noturno_geral', 'coordenador', 'gestor_geral'];
 
+/* alcance:urgente — quem cria atividade urgente. Conferido contra `alcance.ts`. */
+const CRIA_URGENTE = ['lider_diurno', 'lider_noturno_geral', 'equipe_tecnica',
+                      'coordenador', 'gestor_geral'];
+/** Quem DECIDE uma substituição — o mesmo alcance do servidor. */
+const DECIDE_SUB = ['lider_diurno', 'lider_noturno_geral', 'equipe_tecnica', 'coordenador'];
+
+/**
+ * Um pedido de substituição (§8.3).
+ *
+ * DELEGAR e SUBSTITUIR não são a mesma coisa, e a tela não pode misturá-las:
+ * delegar é de cima para baixo — o líder passa a atividade para outra pessoa;
+ * o pedido de substituição nasce de QUEM VAI SAIR, e fica em aberto até
+ * alguém decidir. Quem faltou não pede nada.
+ */
+interface Substituicao {
+  id: string; atividade: string; horario: string; motivo: string;
+  status: string; pedidoPor: string; substituto: string | null;
+  decidiuNota: string | null; solicitadoEm: string;
+  semEfeito: boolean; aviso?: string;
+}
+
 export function Dia({ houseId, casaLabel, papel }: {
   houseId: string; casaLabel: string; papel: string;
 }) {
@@ -85,12 +106,21 @@ export function Dia({ houseId, casaLabel, papel }: {
   const [delegando, setDelegando] = useState<Evento | null>(null);
   const [porOutro, setPorOutro] = useState<Evento | null>(null);
   const [aviso, setAviso] = useState('');
+  /** "Não vou conseguir levar o Bruno na fono" — quem VAI SAIR pede (§8.3). */
+  const [pedindoSub, setPedindoSub] = useState<Evento | null>(null);
+  const [urgente, setUrgente] = useState(false);
+  const [substituicoes, setSubstituicoes] = useState<Substituicao[]>([]);
+  const [decidindo, setDecidindo] = useState<Substituicao | null>(null);
 
   const carregar = useCallback(async () => {
     setErro('');
     try {
       const q = filtro === 'minhas' ? '&mode=minhas' : '';
       setDados(await api<Resposta>(`/timeline?houseId=${houseId}${q}`));
+      // Falhar aqui não trava o dia: sem a lista de pedidos, a linha do tempo
+      // continua servindo o turno.
+      setSubstituicoes(await api<Substituicao[]>(
+        `/activities/substitutions?houseId=${houseId}`).catch(() => []));
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Não foi possível carregar o dia.');
     }
@@ -112,6 +142,21 @@ export function Dia({ houseId, casaLabel, papel }: {
       FINALIZADOS.has(e.state) && Math.abs(new Date(e.at).getTime() - agora) < 2 * 3600_000);
     return [...emAberto, ...recentes].sort((a, b) => a.at.localeCompare(b.at));
   }, [dados, filtro]);
+
+  /** Ação que não pertence a uma linha da agenda: pedido e atividade urgente. */
+  async function acaoSolta(fn: () => Promise<any>) {
+    setErro(''); setAviso('');
+    try {
+      const r = await fn();
+      if (r?.aviso) setAviso(r.aviso);
+      await carregar();
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Não foi possível concluir.');
+    }
+  }
+
+  const emAberto = substituicoes.filter((s) => s.status === 'solicitada');
+  const decididos = substituicoes.filter((s) => s.status !== 'solicitada').slice(0, 5);
 
   async function acao(ev: Evento, fn: () => Promise<any>) {
     setOcupado(ev.id); setErro(''); setAviso('');
@@ -228,6 +273,21 @@ export function Dia({ houseId, casaLabel, papel }: {
                         * diferente de substituição: o pedido de substituição
                         * nasce de quem VAI SAIR; quem faltou não pede nada.
                         */}
+                      {maisAcoes === ev.id && (
+                        /* Pedir substituição é de QUALQUER pessoa do turno —
+                           quem vai sair mais cedo é quem sabe que vai. */
+                        <button className="btn sm ghost" disabled={ocupado === ev.id}
+                                onClick={() => setPedindoSub(ev)}>
+                          Não vou conseguir
+                        </button>
+                      )}
+                      {!lidera && maisAcoes !== ev.id && (
+                        <button className="btn sm ghost acoesmais" aria-expanded={false}
+                                aria-label="Mais ações para esta atividade"
+                                onClick={() => setMaisAcoes(ev.id)}>
+                          ⋯
+                        </button>
+                      )}
                       {lidera && (
                         maisAcoes === ev.id ? (
                           <>
@@ -256,6 +316,80 @@ export function Dia({ houseId, casaLabel, papel }: {
           </li>
         ))}
       </ol>
+
+      {/*
+        * OS PEDIDOS DE SUBSTITUIÇÃO EM ABERTO.
+        *
+        * Ficam DEPOIS da linha do tempo e não dentro dela: o pedido não é uma
+        * atividade, é um recado esperando decisão. Enquanto ele espera, a
+        * atividade continua na linha, marcada — e quem decide precisa ver os
+        * dois lugares.
+        */}
+      {emAberto.length > 0 && (
+        <>
+          <div className="eyebrow">Pedidos de substituição · {emAberto.length}</div>
+          <div className="stack">
+            {emAberto.map((s) => (
+              <article className="card" key={s.id}>
+                <div className="row">
+                  <div className="grow">
+                    <b className="ff">{s.atividade}</b>
+                    <div className="mutetxt linhadois">
+                      {hhmm(s.horario)} · pedido por {s.pedidoPor}
+                    </div>
+                  </div>
+                  <span className="pill c-warn">Aguardando</span>
+                </div>
+                <p style={{ margin: '8px 0 0' }}>{s.motivo}</p>
+                {/* O pedido ficou sem sentido enquanto esperava: o servidor diz
+                    isso, e a tela mostra ANTES de a pessoa tentar decidir. */}
+                {s.semEfeito && s.aviso && (
+                  <div className="notice c-mute" style={{ marginTop: 8 }}>{s.aviso}</div>
+                )}
+                {DECIDE_SUB.includes(papel) && (
+                  <button className="btn sec sm" onClick={() => setDecidindo(s)}>
+                    Decidir
+                  </button>
+                )}
+              </article>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* Os pedidos já decididos ficam legíveis: quem pediu precisa poder ver
+          a recusa e o motivo dela sem perguntar a ninguém. */}
+      {decididos.length > 0 && (
+        <>
+          <div className="eyebrow">Substituições decididas hoje</div>
+          <ul className="lista">
+            {decididos.map((s) => (
+              <li key={s.id} className="row">
+                <div className="grow">
+                  <b className="ff">{s.atividade}</b>
+                  <div className="mutetxt linhadois">
+                    pedido por {s.pedidoPor}
+                    {s.substituto ? ` · assumida por ${s.substituto}` : ''}
+                  </div>
+                  {s.decidiuNota && <div className="mutetxt">{s.decidiuNota}</div>}
+                </div>
+                {/* `atribuida` é o valor do banco; "Assumida" é o que a casa diz. */}
+                <span className={`pill ${s.status === 'atribuida' ? 'c-ok' : 'c-mute'}`}>
+                  {s.status === 'atribuida' ? 'Assumida' : 'Recusada'}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+
+      {/* A ATIVIDADE URGENTE (§8.2): o que apareceu agora e não estava na
+          agenda. Fica no fim porque é exceção, e exceção não abre a tela. */}
+      {CRIA_URGENTE.includes(papel) && (
+        <button className="btn sec block" style={{ marginTop: 16 }} onClick={() => setUrgente(true)}>
+          + Atividade urgente
+        </button>
+      )}
 
       {dados && eventos.length === 0 && (
         <div className="card">
@@ -286,6 +420,51 @@ export function Dia({ houseId, casaLabel, papel }: {
             }));
           }}
         />
+      )}
+
+      {pedindoSub && (
+        <FolhaMotivoSimples
+          titulo={`Não vou conseguir · ${pedindoSub.title}`}
+          explicacao={'O pedido fica EM ABERTO até o líder do turno, a equipe técnica ou a '
+            + 'coordenação decidir — e a atividade continua na linha do dia, marcada como '
+            + 'aguardando substituição. Ninguém é dado como substituído sozinho.'}
+          rotulo="Por que você não vai conseguir"
+          exemplo="Ex.: preciso sair às 16h para uma consulta; a fono do Bruno é às 15h e volto tarde."
+          botao="Pedir substituição"
+          onFechar={() => setPedindoSub(null)}
+          onEnviar={async (motivo) => {
+            const ev = pedindoSub;
+            setPedindoSub(null);
+            await acao(ev, () => api(`/activities/${idDe(ev)}/substitution`, {
+              method: 'POST', body: JSON.stringify({ motivo }) }));
+          }} />
+      )}
+
+      {decidindo && (
+        <FolhaDecidirSub
+          pedido={decidindo} houseId={houseId}
+          onFechar={() => setDecidindo(null)}
+          onAssumir={async (substitutoId, nota) => {
+            const p = decidindo; setDecidindo(null);
+            await acaoSolta(() => api(`/activities/substitutions/${p.id}/assign`, {
+              method: 'POST', body: JSON.stringify({ substitutoId, nota }) }));
+          }}
+          onRecusar={async (motivo) => {
+            const p = decidindo; setDecidindo(null);
+            await acaoSolta(() => api(`/activities/substitutions/${p.id}/decline`, {
+              method: 'POST', body: JSON.stringify({ motivo }) }));
+          }} />
+      )}
+
+      {urgente && (
+        <FolhaUrgente
+          houseId={houseId}
+          onFechar={() => setUrgente(false)}
+          onCriar={async (dados) => {
+            setUrgente(false);
+            await acaoSolta(() => api('/activities/urgent', {
+              method: 'POST', body: JSON.stringify({ houseId, ...dados }) }));
+          }} />
       )}
 
       {delegando && (
@@ -502,6 +681,210 @@ function FolhaDelegar({ evento, houseId, onFechar, onDelegar }: {
           <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
           <button className="btn grow" disabled={!pode} onClick={() => onDelegar(quem, motivo)}>
             Passar adiante
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * FOLHA DE MOTIVO — o pedido de substituição.
+ *
+ * O motivo é o que a próxima pessoa vai ler para decidir. "Não posso" não
+ * decide nada; "saio às 16h e a fono é às 15h" decide na hora.
+ */
+function FolhaMotivoSimples({ titulo, explicacao, rotulo, exemplo, botao, onFechar, onEnviar }: {
+  titulo: string; explicacao: string; rotulo: string; exemplo: string; botao: string;
+  onFechar: () => void; onEnviar: (motivo: string) => void;
+}) {
+  const [motivo, setMotivo] = useState('');
+  const pode = motivo.trim().length >= 15;
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-sub"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet modal">
+        <h3 id="t-sub">{titulo}</h3>
+        <div className="notice c-info">{explicacao}</div>
+        <label className="f" htmlFor="sub-txt">
+          {rotulo} <small>— pelo menos 15 caracteres</small>
+        </label>
+        <textarea id="sub-txt" value={motivo} onChange={(e) => setMotivo(e.target.value)}
+                  placeholder={exemplo} />
+        <div className="row rodape">
+          <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
+          <button className="btn grow" disabled={!pode} onClick={() => onEnviar(motivo.trim())}>
+            {botao}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * FOLHA DA DECISÃO — assumir ou recusar um pedido.
+ *
+ * Recusar EXIGE motivo, e o servidor avisa quem pediu. É o que substitui o
+ * recado no corredor: a pessoa que ia sair mais cedo precisa saber, antes de
+ * sair, que ninguém vai cobrir — e precisa saber por quê.
+ */
+function FolhaDecidirSub({ pedido, houseId, onFechar, onAssumir, onRecusar }: {
+  pedido: { id: string; atividade: string; motivo: string; pedidoPor: string; semEfeito: boolean };
+  houseId: string; onFechar: () => void;
+  onAssumir: (substitutoId: string, nota?: string) => void;
+  onRecusar: (motivo: string) => void;
+}) {
+  const [equipe, setEquipe] = useState<{ id: string; nome: string; cargo: string }[]>([]);
+  const [quem, setQuem] = useState('');
+  const [nota, setNota] = useState('');
+  const [recusando, setRecusando] = useState(false);
+  const [motivo, setMotivo] = useState('');
+
+  useEffect(() => {
+    api<any>(`/activities/agenda/staff?houseId=${houseId}`)
+      .then((r) => setEquipe(r?.equipe ?? r ?? []))
+      .catch(() => setEquipe([]));
+  }, [houseId]);
+
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-dec"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet modal">
+        <h3 id="t-dec">{pedido.atividade}</h3>
+        <div className="bloco">
+          <small>O que {pedido.pedidoPor} escreveu</small>
+          {pedido.motivo}
+        </div>
+
+        {pedido.semEfeito && (
+          <div className="notice c-warn">
+            A atividade já foi encerrada enquanto o pedido esperava. Não cabe substituir o que já
+            aconteceu — recusar, com o motivo, é o caminho que fecha isto sem apagar nada.
+          </div>
+        )}
+
+        {!recusando ? (
+          <>
+            <label className="f" htmlFor="dec-quem">Quem assume</label>
+            <select id="dec-quem" value={quem} onChange={(e) => setQuem(e.target.value)}>
+              <option value="">Escolha…</option>
+              {equipe.map((p) => (
+                <option key={p.id} value={p.id}>{p.nome}</option>
+              ))}
+            </select>
+            <label className="f" htmlFor="dec-nota">Observação <small>— opcional</small></label>
+            <input id="dec-nota" value={nota} onChange={(e) => setNota(e.target.value)}
+                   placeholder="Ex.: combinei com a Joana; ela já leva a Alice na mesma clínica." />
+            <p className="mutetxt">
+              Quem assume recebe o aviso e precisa tomar ciência — o sistema não dá ninguém como
+              avisado por ter sido escolhido.
+            </p>
+            <div className="row rodape">
+              <button className="btn sec grow" onClick={() => setRecusando(true)}>
+                Não vai ter substituto
+              </button>
+              <button className="btn grow" disabled={!quem}
+                      onClick={() => onAssumir(quem, nota.trim() || undefined)}>
+                Passar para esta pessoa
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <label className="f" htmlFor="dec-mot">
+              Por que não vai ter substituto <small>— quem pediu vai ler</small>
+            </label>
+            <textarea id="dec-mot" value={motivo} onChange={(e) => setMotivo(e.target.value)}
+                      placeholder="Ex.: não há outra pessoa na escala hoje; a consulta será remarcada pela técnica." />
+            <div className="row rodape">
+              <button className="btn sec grow" onClick={() => setRecusando(false)}>Voltar</button>
+              <button className="btn grow" disabled={motivo.trim().length < 10}
+                      onClick={() => onRecusar(motivo.trim())}>
+                Recusar, com este motivo
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * FOLHA DA ATIVIDADE URGENTE (§8.2).
+ *
+ * O que apareceu agora e não estava na agenda: a consulta que foi encaixada, a
+ * ida ao Conselho, a visita que remarcou. Ela é PONTUAL — não muda a rotina da
+ * casa, e a tela diz isso, porque é a confusão mais fácil de fazer: quem quer
+ * mudar o horário da janta para sempre precisa da tela da Rotina.
+ */
+function FolhaUrgente({ houseId, onFechar, onCriar }: {
+  houseId: string; onFechar: () => void;
+  onCriar: (d: { title: string; scheduledAt: string; reason: string;
+                 personId?: string; instructions?: string }) => void;
+}) {
+  const [titulo, setTitulo] = useState('');
+  const [quando, setQuando] = useState('');
+  const [motivo, setMotivo] = useState('');
+  const [pessoa, setPessoa] = useState('');
+  const [instrucoes, setInstrucoes] = useState('');
+  const [acolhidos, setAcolhidos] = useState<{ id: string; nome: string }[]>([]);
+
+  useEffect(() => {
+    api<{ id: string; nome: string }[]>(`/people?houseId=${houseId}`)
+      .then(setAcolhidos).catch(() => setAcolhidos([]));
+  }, [houseId]);
+
+  const pode = titulo.trim().length >= 3 && quando !== '' && motivo.trim().length >= 10;
+
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-urg"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet modal">
+        <h3 id="t-urg">Atividade urgente</h3>
+        <div className="notice c-info">
+          Isto é <b>pontual</b>: entra no dia de hoje, com autoria e motivo, e <b>não altera a
+          rotina da casa</b>. Para mudar o horário de sempre, o caminho é a tela da Rotina — e
+          lá a mudança abre versão nova.
+        </div>
+
+        <label className="f" htmlFor="urg-tit">O que é</label>
+        <input id="urg-tit" value={titulo} onChange={(e) => setTitulo(e.target.value)}
+               placeholder="Ex.: Consulta encaixada na UBS" />
+
+        <label className="f" htmlFor="urg-quando">Quando</label>
+        <input id="urg-quando" type="datetime-local" value={quando}
+               onChange={(e) => setQuando(e.target.value)} />
+
+        <label className="f" htmlFor="urg-quem">
+          De quem <small>— em branco, é da casa toda</small>
+        </label>
+        <select id="urg-quem" value={pessoa} onChange={(e) => setPessoa(e.target.value)}>
+          <option value="">Da casa toda</option>
+          {acolhidos.map((a) => <option key={a.id} value={a.id}>{a.nome}</option>)}
+        </select>
+
+        <label className="f" htmlFor="urg-mot">
+          Por que ela é urgente <small>— fica registrado com o seu nome</small>
+        </label>
+        <textarea id="urg-mot" value={motivo} onChange={(e) => setMotivo(e.target.value)}
+                  placeholder="Ex.: a UBS ligou agora oferecendo a vaga que estava na fila desde março." />
+
+        <label className="f" htmlFor="urg-ins">
+          Como se faz <small>— opcional, e é o que evita a pergunta no meio do turno</small>
+        </label>
+        <textarea id="urg-ins" value={instrucoes} onChange={(e) => setInstrucoes(e.target.value)}
+                  placeholder="Ex.: levar a carteirinha e a caderneta de vacinação; a van sai às 13h30." />
+
+        <div className="row rodape">
+          <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
+          <button className="btn grow" disabled={!pode} onClick={() => onCriar({
+            title: titulo.trim(), scheduledAt: new Date(quando).toISOString(),
+            reason: motivo.trim(), personId: pessoa || undefined,
+            instructions: instrucoes.trim() || undefined,
+          })}>
+            Registrar atividade urgente
           </button>
         </div>
       </div>

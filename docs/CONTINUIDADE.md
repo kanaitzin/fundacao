@@ -865,7 +865,7 @@ responder e não me peça para reexplicar o que está lá.
 
 === ESTADO ATUAL ===
 
-Fases 0 a 32 concluídas. 308 testes passando em 27 suítes, sem falha conhecida
+Fases 0 a 33 concluídas. 317 testes passando em 28 suítes, sem falha conhecida
 — a suíte rodou cinco vezes seguidas entre 21h44 e 23h30 de Porto Alegre, que
 já é depois das 21h E depois da virada do dia em UTC (01/09 no banco, 31/08 na
 casa): a contaminação de data que a regra procura estava valendo em todas as
@@ -876,6 +876,27 @@ Geral Noturna recortada na linha de cada casa. O ciclo do acolhimento fecha:
 cadastro, saída com motivo, acervo histórico e retorno como episódio novo. E o
 arquivo documental deixou de ser um módulo sem entrada: fechou, entra na fila. Relatórios saem em Word com timbre, com a parte factual
 escrita pelo sistema. Convite de primeiro acesso por e-mail, uso único, 24h.
+
+A SUBSTITUIÇÃO DE ATIVIDADE (§8.3) e a ATIVIDADE URGENTE (§8.2) ganharam porta.
+Cinco rotas da fase 3 sem tela nenhuma.
+
+DELEGAR e SUBSTITUIR não são a mesma coisa, e a tela não as mistura: delegar é
+de cima para baixo, do líder; o PEDIDO nasce de quem vai sair, e por isso o
+"Não vou conseguir" fica atrás do "..." para QUALQUER pessoa do turno — inclusive
+o educador, que antes só via o "..." se fosse líder. O pedido fica em aberto,
+a atividade vai para "aguardando substituição", e quem assume ainda precisa
+tomar ciência: designado não é o mesmo que avisado. Recusar exige motivo, e o
+sistema entrega esse motivo a quem pediu — é o que substitui o recado no
+corredor. O pedido que perdeu o sentido enquanto esperava vem MARCADO e não
+some: o sistema diz o que houve e deixa a decisão com quem lidera.
+
+A atividade urgente é PONTUAL, e a folha diz isso com todas as letras, porque é
+a confusão mais fácil de fazer: quem quer mudar o horário da janta para sempre
+precisa da tela da Rotina, e lá a mudança abre versão nova.
+
+UM DESENCONTRO encontrado pelo teste: a tela e o mock diziam `autorizada` e o
+banco só aceita `atribuida` (CHECK da migração 0110). O e2e pegou na primeira
+rodada; os três lados falam o mesmo valor agora.
 
 O DOSSIÊ DO ACOLHIDO (§6.1, migração 0800) e o ÁLBUM DE VIVÊNCIAS (§6.9)
 saíram do papel. `document`, `document_version` e `memory_record` existiam
