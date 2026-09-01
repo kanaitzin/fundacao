@@ -865,7 +865,7 @@ responder e não me peça para reexplicar o que está lá.
 
 === ESTADO ATUAL ===
 
-Fases 0 a 36 concluídas. 342 testes passando em 31 suítes, sem falha conhecida
+Fases 0 a 37 concluídas. 350 testes passando em 32 suítes, sem falha conhecida
 — a suíte rodou cinco vezes seguidas entre 21h44 e 23h30 de Porto Alegre, que
 já é depois das 21h E depois da virada do dia em UTC (01/09 no banco, 31/08 na
 casa): a contaminação de data que a regra procura estava valendo em todas as
@@ -1121,7 +1121,37 @@ noturno" pelo texto do botão, mas QUAL turno a tela oferece depende da hora em
 que o ensaio roda (7h–19h é diurno). Às 7h da manhã ele falhava por isso. Agora
 abre o que estiver oferecido e entra no plantão que houver.
 
-Em aberto, na ordem: `docs/o-que-falta.md` — 32 rotas que existem no servidor e
+O HISTÓRICO DE SAÚDE DO ACOLHIDO (§7.3) e as EMISSÕES DO RESUMO (§7.4) abrem o
+grupo 2. Três rotas da fase 4 sem tela nenhuma: o sistema guardava cada
+consulta, cada evolução assinada por quem acompanhou e cada dose administrada, e
+a pergunta mais comum da casa — "quando é o retorno dele?" — se respondia
+perguntando a um colega.
+
+A folha mostra as três origens em listas separadas, cada uma com a autoria dela,
+e conta no alto o que está ESPERANDO alguém. A decisão que mais vale ali é o
+retorno cuja data já passou: ele vem marcado como vencido e contado à parte,
+porque uma data antiga em cinza se lê como história, e a diferença entre as duas
+leituras é uma consulta perdida. A comparação usa `app_hoje()` e não o dia do
+banco — depois das 21h de Porto Alegre o retorno de HOJE apareceria como
+vencido, e a tela mandaria correr atrás de uma consulta que é amanhã.
+
+Duas escolhas menores que o teste guarda: dose ainda por confirmar NÃO entra no
+histórico (ela está na grade, esperando alguém — contá-la como coisa acontecida
+seria o sistema afirmando que a criança tomou), e a evolução mostra as duas
+vozes, o que o acompanhante escreveu e o complemento da Enfermagem, sem uma
+escrever por cima da outra.
+
+As emissões do Resumo vêm na mesma folha porque respondem à mesma pergunta —
+"isto já foi para alguém, e para quê?". Um Resumo gerado e nunca retirado
+continua na lista até alguém registrar que levou: papel que ninguém pegou não
+chegou a lugar nenhum.
+
+E o protótipo tinha três valores escritos na mão no painel da Enfermagem
+(`internacaoEmAndamento: false`, `retornoPendente: null`), porque não havia
+atendimento nenhum semeado de onde tirá-los. Agora saem da mesma lista que o
+histórico lê, e o painel e a folha dizem a mesma coisa.
+
+Em aberto, na ordem: `docs/o-que-falta.md` — 29 rotas que existem no servidor e
 não têm tela, separadas entre o que vale para o piloto, o que espera e o que é
 de máquina; o retorno do Marcelo por cargo; duas decisões de produto que não são
 minhas (devolver acompanhamento para correção; o "concluí tudo até agora" na

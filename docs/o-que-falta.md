@@ -1,7 +1,7 @@
 # O que falta da ideia original
 
 Levantamento de 31/08/2026, feito por leitura cruzada entre as rotas que o
-servidor serve e as chamadas que as telas fazem. Sobram **32 rotas que existem,
+servidor serve e as chamadas que as telas fazem. Sobram **29 rotas que existem,
 têm regra, têm RLS e auditoria — e não têm porta**.
 
 *Atualizado no mesmo dia: saíram desta lista o **Arquivo das ATAS** (decisão 2,
@@ -88,6 +88,17 @@ documental já foi arquivada; e a recusa do "já existe" **não conta o que já 
 lá**, senão a mensagem de erro vira a porta dos fundos para o conteúdo que a
 política protege.*
 
+*E o **histórico de saúde do acolhido** (§7.3) com as **emissões do Resumo**
+(§7.4): três rotas da fase 4 sem tela nenhuma. O sistema guardava cada consulta,
+cada evolução assinada por quem acompanhou e cada dose administrada, e a
+pergunta mais comum da casa — "quando é o retorno dele?" — se respondia
+perguntando a um colega. É assim que um retorno se perde. A folha mostra a linha
+única em quatro listas, conta o que está esperando alguém, e marca o **retorno
+cuja data já passou**: sem essa marca, uma data antiga se lê como história e não
+como pendência. As emissões vêm junto porque respondem à mesma pergunta — um
+Resumo gerado e nunca retirado não chegou a lugar nenhum, e continua na lista até
+alguém dizer que levou.*
+
 *E uma correção ao próprio levantamento: eu havia escrito que faltava "anexar
 documento ao arquivo". `POST /archive` não recebe arquivo — ele enfileira a
 CÓPIA DOCUMENTAL de algo que já existe no sistema. O que faltava era pior e
@@ -126,8 +137,6 @@ Coisas de coordenação e de gestão, não de plantão. Nenhuma delas trava a ca
   acompanhamento (`POST /followups/:id/sources`).
 - **Capacidade da casa** — `POST /houses/:id/capacity`,
   `GET /houses/:id/capacity-history`.
-- **Histórico e pendências de saúde** — `GET /nursing/history/:personId`,
-  `GET /nursing/summary/:personId/issues`, `POST /nursing/summary/issues/:id/download`.
 - **Painel da casa na linha do tempo** — `GET /timeline/house-panel`.
 - **Leitura excepcional de relato** — `POST /statements/:id/exceptional-read`
   (§26.2 #29): abrir um relato fora do alcance, declarando a finalidade. A regra

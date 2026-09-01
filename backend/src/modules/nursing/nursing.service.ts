@@ -10,6 +10,47 @@ import { hojeNaInstituicao } from '../../kernel/common/tempo';
 /** Prazo esperado de triagem — pendência institucional 33.4.2, configurável. */
 const SLA_TRIAGEM_HORAS = Number(process.env.NURSING_TRIAGE_SLA_HOURS ?? 24);
 
+/**
+ * O vocabulário do histórico sai daqui, e não da tela.
+ *
+ * `encounter_kind` é ENUM do banco (0210) e `status` é CHECK. Traduzir na tela
+ * significa duas listas que combinam hoje e divergem no dia em que entrar um
+ * tipo novo — foi exatamente o que aconteceu com os estados da dose, que a
+ * Saúde escrevia com outros códigos e ninguém percebeu porque o rótulo batia.
+ */
+const TIPO_ATENDIMENTO: Record<string, string> = {
+  consulta: 'Consulta', exame: 'Exame', urgencia: 'Urgência',
+  emergencia: 'Emergência', internacao: 'Internação', retorno: 'Retorno',
+  terapia: 'Terapia',
+};
+const ESTADO_ATENDIMENTO: Record<string, string> = {
+  em_andamento: 'Em andamento', concluido: 'Concluído',
+  retorno_pendente: 'Retorno marcado',
+};
+const ESTADO_EVOLUCAO: Record<string, string> = {
+  aguardando_triagem: 'Aguardando triagem da Enfermagem',
+  complemento_solicitado: 'Devolvida para complemento',
+  assinada: 'Conferida e assinada',
+};
+/**
+ * Os mesmos rótulos de `ESTADO_DOSE` do módulo de medicamentos, escritos de
+ * novo de propósito: partição não importa partição (arquitetura.spec), e a
+ * alternativa — a Enfermagem pedir a lista ao módulo vizinho — é justamente o
+ * acoplamento que a regra 5 evita. Se um estado novo entrar no ENUM, o `??`
+ * abaixo mostra o código cru em vez de mentir um rótulo.
+ */
+const ESTADO_DA_DOSE: Record<string, string> = {
+  aguardando_confirmacao: 'Aguardando confirmação',
+  administrado_no_horario: 'Administrado no horário',
+  administrado_com_atraso: 'Administrado com atraso',
+  recusado: 'Recusado pelo acolhido',
+  nao_administrado: 'Não administrado',
+  indisponivel: 'Medicamento indisponível',
+  suspenso_conforme_orientacao: 'Suspenso conforme orientação',
+  acolhido_ausente: 'Acolhido ausente',
+  incidente: 'Incidente registrado',
+};
+
 @Injectable()
 export class NursingService {
   constructor(
@@ -246,11 +287,29 @@ export class NursingService {
       : { ok: true, status: 'complemento_solicitado', aviso: 'Devolvida ao acompanhante com o pedido registrado.' };
   }
 
-  /** Histórico de saúde do acolhido — linha única (§7.3). */
+  /**
+   * HISTÓRICO DE SAÚDE DO ACOLHIDO — a linha única do §7.3.
+   *
+   * A rota existia desde a fase 4 e nunca teve tela. O sistema guardava
+   * atendimento, evolução e dose administrada de cada criança, e quem
+   * precisasse saber quando foi a última consulta ou quando é o retorno tinha
+   * de perguntar a um colega — que é como um retorno se perde.
+   *
+   * Três coisas que a resposta carrega e que a tela sozinha não deveria
+   * inventar:
+   *
+   *  * o RÓTULO de cada tipo e estado vem daqui, dos códigos do banco;
+   *  * o retorno marcado que já passou vem MARCADO como vencido. Sem isso a
+   *    tela mostra uma data antiga em cinza e ninguém a lê como pendência;
+   *  * e a contagem no topo, para quem abre e precisa saber, em um olhar, se
+   *    há algo esperando.
+   */
   async history(user: AuthenticatedUser, personId: string) {
+    const hoje = hojeNaInstituicao();
     return this.db.asUser(user.id, async (c) => {
       const { rows: encontros } = await c.query(
-        `SELECT kind, happened_at, place, specialty, professional, reason, outcome, status, return_on
+        `SELECT id, kind, happened_at, place, specialty, professional, reason, outcome,
+                status, return_on::text AS return_on
          FROM health_encounter WHERE person_id = $1 ORDER BY happened_at DESC LIMIT 100`, [personId]);
       const { rows: evolucoes } = await c.query(
         `SELECT e.id, e.kind, e.happened_at, e.state_return, e.guidance, e.status,
@@ -269,17 +328,47 @@ export class NursingService {
          WHERE a.person_id = $1 AND a.state <> 'aguardando_confirmacao'
          ORDER BY a.scheduled_at DESC LIMIT 100`, [personId]);
 
+      const atendimentos = encontros.map((e) => ({
+        id: e.id, tipo: e.kind, tipoRotulo: TIPO_ATENDIMENTO[e.kind] ?? e.kind,
+        quando: e.happened_at, local: e.place, especialidade: e.specialty,
+        profissional: e.professional, motivo: e.reason, desfecho: e.outcome,
+        status: e.status, statusRotulo: ESTADO_ATENDIMENTO[e.status] ?? e.status,
+        retornoEm: e.return_on,
+        // Retorno marcado para uma data que já passou não é histórico: é
+        // pendência. Quem lê precisa disso escrito, não deduzido da data.
+        retornoVencido: e.status === 'retorno_pendente'
+          && e.return_on != null && String(e.return_on) < hoje,
+      }));
+      const evolucoesMap = evolucoes.map((e) => ({
+        id: e.id, tipo: e.kind, tipoRotulo: TIPO_ATENDIMENTO[e.kind] ?? e.kind,
+        quando: e.happened_at, estadoRetorno: e.state_return,
+        orientacoes: e.guidance, acompanhante: e.acompanhante, status: e.status,
+        statusRotulo: ESTADO_EVOLUCAO[e.status] ?? e.status,
+        complementoEnfermagem: e.complemento,
+      }));
+
       return {
-        atendimentos: encontros,
-        evolucoes: evolucoes.map((e) => ({
-          id: e.id, tipo: e.kind, quando: e.happened_at, estadoRetorno: e.state_return,
-          orientacoes: e.guidance, acompanhante: e.acompanhante, status: e.status,
-          complementoEnfermagem: e.complemento,
-        })),
+        atendimentos,
+        evolucoes: evolucoesMap,
         administracoes: doses.map((d) => ({
-          previsto: d.scheduled_at, estado: d.state, realizado: d.administered_at,
+          previsto: d.scheduled_at, estado: d.state,
+          estadoRotulo: ESTADO_DA_DOSE[d.state] ?? d.state,
+          realizado: d.administered_at,
           medicamento: d.medication, dose: d.dose, por: d.por, observacao: d.note,
         })),
+        // O que está esperando alguém, contado aqui e não na tela.
+        pendencias: {
+          retornosVencidos: atendimentos.filter((a) => a.retornoVencido).length,
+          retornosMarcados: atendimentos.filter(
+            (a) => a.status === 'retorno_pendente' && !a.retornoVencido).length,
+          internacaoEmAndamento: atendimentos.some(
+            (a) => a.tipo === 'internacao' && a.status === 'em_andamento'),
+          evolucoesAguardandoTriagem: evolucoesMap.filter(
+            (e) => e.status !== 'assinada').length,
+        },
+        aviso: 'O histórico é a linha única do acolhido: atendimento, evolução de quem '
+          + 'acompanhou e dose administrada, na ordem em que aconteceram. Ele não resume, '
+          + 'não conclui e não ordena por gravidade — quem lê é quem interpreta.',
       };
     });
   }

@@ -55,6 +55,9 @@ const emHoras = (h: number, m = 0) =>
  */
 const daquiA = (min: number) => new Date(Date.now() + min * 60000).toISOString();
 const haMinutos = (min: number) => new Date(Date.now() - min * 60000).toISOString();
+const diasAtras = (n: number) => new Intl.DateTimeFormat('en-CA',
+  { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' })
+  .format(new Date(Date.now() - n * 86_400_000));
 const uid = () => Math.random().toString(36).slice(2, 10);
 
 // ---------------------------------------------------------------- pessoas
@@ -621,9 +624,56 @@ let TRIAGENS: Triagem[] = [
     resumo: 'Ajuste de dose conforme laudo. Glicemia antes das refeições mantida.' },
 ];
 
+/**
+ * ATENDIMENTOS DE SAÚDE — a linha única do §7.3.
+ *
+ * O protótipo não tinha nenhum, e por isso o painel devolvia `internacao: false`
+ * e `retornoPendente: null` escritos na mão: não havia de onde tirar. Com estes
+ * quatro, as três situações que a casa realmente vive aparecem — o retorno que
+ * já venceu, o que ainda vem, e a internação em andamento.
+ */
+const ATENDIMENTOS: {
+  id: string; personId: string; tipo: string; quando: string; local: string | null;
+  especialidade: string | null; profissional: string | null; motivo: string | null;
+  desfecho: string | null; status: string; retornoEm: string | null;
+}[] = [
+  { id: 'at1', personId: 'p08', tipo: 'consulta', quando: `${diasAtras(21)}T09:30:00-03:00`,
+    local: 'UBS fictícia Centro', especialidade: 'Pediatria',
+    profissional: 'Dra. Fictícia (CRM 00000)',
+    motivo: 'Consulta de rotina do acolhimento.',
+    desfecho: 'Solicitado exame de sangue; retorno marcado.',
+    // Retorno que JÁ PASSOU: é a pendência que some quando ninguém a escreve.
+    status: 'retorno_pendente', retornoEm: diasAtras(4) },
+  { id: 'at2', personId: 'p08', tipo: 'exame', quando: `${diasAtras(9)}T08:00:00-03:00`,
+    local: 'Laboratório fictício', especialidade: null, profissional: null,
+    motivo: 'Hemograma pedido na consulta de pediatria.',
+    desfecho: 'Coleta realizada; resultado ainda não retirado.',
+    status: 'concluido', retornoEm: null },
+  { id: 'at3', personId: 'p15', tipo: 'retorno', quando: `${diasAtras(6)}T14:00:00-03:00`,
+    local: 'Ambulatório fictício', especialidade: 'Endocrinologia',
+    profissional: 'Dr. Fictício (CRM 00000)',
+    motivo: 'Retorno para ajuste de dose.',
+    desfecho: 'Dose ajustada conforme laudo; nova avaliação em 60 dias.',
+    status: 'retorno_pendente', retornoEm: diasAtras(-54) },
+  { id: 'at4', personId: 'p09', tipo: 'urgencia', quando: `${diasAtras(1)}T19:20:00-03:00`,
+    local: 'Pronto-atendimento fictício', especialidade: 'Odontologia',
+    profissional: 'Equipe do plantão', motivo: 'Dor de dente referida depois do almoço.',
+    desfecho: 'Prescrito antibiótico por 7 dias; orientado retorno se piorar.',
+    status: 'concluido', retornoEm: null },
+];
+
 /** Cada emissão de Resumo de Saúde pede finalidade — e a finalidade fica. */
 const RESUMOS: { id: string; personId: string; finalidade: string;
-                 por: string; em: string }[] = [];
+                 por: string; em: string; baixadoEm?: string | null;
+                 offline?: boolean }[] = [
+  // Gerado e nunca retirado: o papel que ninguém pegou não chegou a lugar
+  // nenhum, e é por isso que ele continua aparecendo na lista.
+  { id: 'res1', personId: 'p08', finalidade: 'consulta',
+    por: 'Enfermeira Fictícia', em: `${diasAtras(22)}T08:10:00-03:00`, baixadoEm: null },
+  { id: 'res2', personId: 'p15', finalidade: 'exame',
+    por: 'Enfermeira Fictícia', em: `${diasAtras(30)}T11:00:00-03:00`,
+    baixadoEm: `${diasAtras(30)}T11:05:00-03:00` },
+];
 
 /**
  * OCORRÊNCIAS (§13).
@@ -835,10 +885,6 @@ let ATA_GERAL = {
  * fechada com pendência se anuncia na capa, e que da ATA Geral Noturna sai a
  * LINHA desta casa — nunca a folha das oito.
  */
-const diasAtras = (n: number) => new Intl.DateTimeFormat('en-CA',
-  { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' })
-  .format(new Date(Date.now() - n * 86_400_000));
-
 interface AtaArquivada {
   data: string;
   diurno: any; noturno: any; geral: any;
@@ -3158,8 +3204,16 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         ultimaDose: doses.find((d) => !d.pendente)?.administradaEm ?? null,
         dosesPendentes: pendentes.length,
         evolucoesAguardandoTriagem: triagens.length,
-        internacaoEmAndamento: false,
-        retornoPendente: null,
+        // Antes eram três valores escritos na mão, porque não havia atendimento
+        // nenhum no protótipo de onde tirá-los. Agora saem da mesma lista que o
+        // histórico lê — e o retorno do Bruno aparece no painel e na folha
+        // dizendo a mesma coisa.
+        internacaoEmAndamento: ATENDIMENTOS.some(
+          (a) => a.personId === k.id && a.tipo === 'internacao' && a.status === 'em_andamento'),
+        retornoPendente: ATENDIMENTOS
+          .filter((a) => a.personId === k.id && a.status === 'retorno_pendente' && a.retornoEm)
+          .map((a) => a.retornoEm!)
+          .sort()[0] ?? null,
         receitaVencendo: null,
         semMedicacaoPrevista: doses.length === 0,
       };
@@ -3260,6 +3314,97 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     return { ok: true, status: 'assinada',
              aviso: 'Evolução conferida e assinada. Agora a grade de medicamentos pode ser '
                + 'atualizada, se for o caso.' };
+  }
+
+  /**
+   * `GET /nursing/history/:personId` — a linha única do §7.3.
+   *
+   * Existia no servidor desde a fase 4 e nunca teve tela. Os rótulos vêm daqui
+   * porque no servidor vêm de lá: a tela não mantém uma lista paralela.
+   */
+  if (seg[0] === 'nursing' && seg[1] === 'history' && seg.length === 3 && metodo === 'GET') {
+    const pid = seg[2];
+    const TIPO: Record<string, string> = {
+      consulta: 'Consulta', exame: 'Exame', urgencia: 'Urgência', emergencia: 'Emergência',
+      internacao: 'Internação', retorno: 'Retorno', terapia: 'Terapia',
+    };
+    const EST_AT: Record<string, string> = {
+      em_andamento: 'Em andamento', concluido: 'Concluído', retorno_pendente: 'Retorno marcado',
+    };
+    const EST_EV: Record<string, string> = {
+      aguardando_triagem: 'Aguardando triagem da Enfermagem',
+      complemento_solicitado: 'Devolvida para complemento',
+      assinada: 'Conferida e assinada',
+    };
+    const EST_DOSE: Record<string, string> = {
+      aguardando_confirmacao: 'Aguardando confirmação',
+      administrado_no_horario: 'Administrado no horário',
+      administrado_com_atraso: 'Administrado com atraso',
+      recusado: 'Recusado pelo acolhido', nao_administrado: 'Não administrado',
+      indisponivel: 'Medicamento indisponível',
+      suspenso_conforme_orientacao: 'Suspenso conforme orientação',
+      acolhido_ausente: 'Acolhido ausente', incidente: 'Incidente registrado',
+    };
+    const atendimentos = ATENDIMENTOS
+      .filter((a) => a.personId === pid)
+      .sort((a, x) => (a.quando < x.quando ? 1 : -1))
+      .map((a) => ({
+        id: a.id, tipo: a.tipo, tipoRotulo: TIPO[a.tipo] ?? a.tipo, quando: a.quando,
+        local: a.local, especialidade: a.especialidade, profissional: a.profissional,
+        motivo: a.motivo, desfecho: a.desfecho,
+        status: a.status, statusRotulo: EST_AT[a.status] ?? a.status,
+        retornoEm: a.retornoEm,
+        // A data que já passou não é histórico: é pendência, e vem escrita.
+        retornoVencido: a.status === 'retorno_pendente'
+          && a.retornoEm != null && a.retornoEm < HOJE,
+      }));
+    const evolucoes = TRIAGENS.filter((t) => t.personId === pid).map((t) => ({
+      id: t.id, tipoRotulo: t.tipo, quando: t.enviadaEm,
+      estadoRetorno: t.resumo, orientacoes: null, acompanhante: t.enviadaPor,
+      status: t.assinada ? 'assinada'
+        : t.pedidoComplemento ? 'complemento_solicitado' : 'aguardando_triagem',
+      statusRotulo: EST_EV[t.assinada ? 'assinada'
+        : t.pedidoComplemento ? 'complemento_solicitado' : 'aguardando_triagem'],
+      complementoEnfermagem: t.complemento,
+    }));
+    const administracoes = DOSES.filter((d) => d.personId === pid && !d.pendente).map((d) => ({
+      previsto: d.horario, estado: d.estado, estadoRotulo: EST_DOSE[d.estado] ?? d.rotulo,
+      realizado: d.administradaEm, medicamento: d.medicamento, dose: d.dose,
+      por: d.confirmadaPor, observacao: d.observacao,
+    }));
+    return {
+      atendimentos, evolucoes, administracoes,
+      pendencias: {
+        retornosVencidos: atendimentos.filter((a) => a.retornoVencido).length,
+        retornosMarcados: atendimentos.filter(
+          (a) => a.status === 'retorno_pendente' && !a.retornoVencido).length,
+        internacaoEmAndamento: atendimentos.some(
+          (a) => a.tipo === 'internacao' && a.status === 'em_andamento'),
+        evolucoesAguardandoTriagem: evolucoes.filter((e) => e.status !== 'assinada').length,
+      },
+      aviso: 'O histórico é a linha única do acolhido: atendimento, evolução de quem '
+        + 'acompanhou e dose administrada, na ordem em que aconteceram. Ele não resume, '
+        + 'não conclui e não ordena por gravidade — quem lê é quem interpreta.',
+    };
+  }
+
+  /** `GET /nursing/summary/:personId/issues` — o que já saiu, e para quê. */
+  if (seg[0] === 'nursing' && seg[1] === 'summary' && seg[3] === 'issues' && metodo === 'GET') {
+    return RESUMOS.filter((r) => r.personId === seg[2])
+      .sort((a, b2) => (a.em < b2.em ? 1 : -1))
+      .map((r) => ({
+        id: r.id, finalidade: r.finalidade, geradoEm: r.em,
+        baixadoEm: r.baixadoEm ?? null, versaoOffline: r.offline ?? false, por: r.por,
+      }));
+  }
+
+  /** `POST /nursing/summary/issues/:id/download` — quem retirou o papel, e quando. */
+  if (seg[0] === 'nursing' && seg[1] === 'summary' && seg[2] === 'issues'
+      && seg[4] === 'download' && metodo === 'POST') {
+    const r = RESUMOS.find((x) => x.id === seg[3]);
+    if (!r) return new Recusa(404, 'Emissão não encontrada.');
+    r.baixadoEm = new Date().toISOString();
+    return { ok: true };
   }
 
   /** `POST /nursing/summary/:personId` — emissão com finalidade registrada (§7.4). */

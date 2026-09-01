@@ -147,6 +147,42 @@ interface Protocolo {
   pendenciaInstitucional: string;
 }
 
+/**
+ * O HISTÓRICO DE SAÚDE do acolhido — a linha única do §7.3.
+ *
+ * Atendimento, evolução de quem acompanhou e dose administrada, na ordem em
+ * que aconteceram. A tela NÃO resume e NÃO conclui: ela mostra o que está
+ * escrito e diz o que está esperando alguém.
+ */
+interface Historico {
+  atendimentos: {
+    id: string; tipo: string; tipoRotulo: string; quando: string;
+    local: string | null; especialidade: string | null; profissional: string | null;
+    motivo: string | null; desfecho: string | null;
+    status: string; statusRotulo: string;
+    retornoEm: string | null; retornoVencido: boolean;
+  }[];
+  evolucoes: {
+    id: string; tipoRotulo: string; quando: string; estadoRetorno: string | null;
+    orientacoes: string | null; acompanhante: string | null;
+    status: string; statusRotulo: string; complementoEnfermagem: string | null;
+  }[];
+  administracoes: {
+    previsto: string; estado: string; estadoRotulo: string; realizado: string | null;
+    medicamento: string; dose: string; por: string | null; observacao: string | null;
+  }[];
+  pendencias: {
+    retornosVencidos: number; retornosMarcados: number;
+    internacaoEmAndamento: boolean; evolucoesAguardandoTriagem: number;
+  };
+  aviso: string;
+}
+/** Cada emissão do Resumo de Saúde pede finalidade — e a finalidade fica (§7.4). */
+interface Emissao {
+  id: string; finalidade: string; geradoEm: string;
+  baixadoEm: string | null; versaoOffline: boolean; por: string | null;
+}
+
 export function Saude({ houseId, casaLabel, papel }: {
   houseId: string; casaLabel: string; papel: string;
 }) {
@@ -178,6 +214,8 @@ export function Saude({ houseId, casaLabel, papel }: {
   const [autorizacoes, setAutorizacoes] = useState<Autorizacao[]>([]);
   const [autorizando, setAutorizando] = useState(false);
   const [movendo, setMovendo] = useState<{ item: Item; tipo: 'entrada' | 'contagem' } | null>(null);
+  const [historico, setHistorico] = useState<
+    { pessoa: { id: string; nome: string }; dados: Historico; emissoes: Emissao[] } | null>(null);
 
   async function carregar() {
     setErro('');
@@ -208,6 +246,25 @@ export function Saude({ houseId, casaLabel, papel }: {
     setErro(''); setAviso('');
     try { const r = await fn(); if (r?.aviso) setAviso(r.aviso); await carregar(); return true; }
     catch (e) { setErro(e instanceof Error ? e.message : 'Não foi possível concluir.'); return false; }
+  }
+
+  /**
+   * Abre a linha única de um acolhido. As emissões do Resumo vêm junto porque
+   * respondem à mesma pergunta que se faz olhando o histórico — "isto já foi
+   * para alguém, e para quê?" — e porque uma emissão gerada e nunca baixada é
+   * uma pendência que ninguém via.
+   */
+  async function abrirHistorico(id: string, nome: string) {
+    setErro('');
+    try {
+      const [dados, emissoes] = await Promise.all([
+        api<Historico>(`/nursing/history/${id}`),
+        api<Emissao[]>(`/nursing/summary/${id}/issues`).catch(() => [] as Emissao[]),
+      ]);
+      setHistorico({ pessoa: { id, nome }, dados, emissoes });
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Não foi possível abrir o histórico.');
+    }
   }
 
   const enfermagem = papel === 'enfermagem' || papel === 'gestor_geral';
@@ -649,6 +706,13 @@ export function Saude({ houseId, casaLabel, papel }: {
                     ? 'Sem medicação prevista'
                     : `${k.dosesPrevistas} dose(s) na grade`}
                 </span>
+                {/* A linha única vem ANTES de gerar resumo, de propósito: o
+                    resumo é o que sai da casa, e ninguém deveria emiti-lo sem
+                    ter olhado o que está escrito. */}
+                <button className="btn sm ghost"
+                        onClick={() => abrirHistorico(k.acolhidoId, k.nome)}>
+                  Histórico
+                </button>
                 {emiteResumo && (
                   <button className="btn sm ghost"
                           onClick={() => setResumindo({ id: k.acolhidoId, nome: k.nome })}>
@@ -714,6 +778,22 @@ export function Saude({ houseId, casaLabel, papel }: {
                          method: 'POST', body: JSON.stringify({ finalidade }) }));
                        if (ok) setResumindo(null);
                      }} />
+      )}
+
+      {historico && (
+        <FolhaHistorico
+          pessoa={historico.pessoa} dados={historico.dados} emissoes={historico.emissoes}
+          onFechar={() => setHistorico(null)}
+          onBaixar={async (emissaoId) => {
+            setErro('');
+            try {
+              await api(`/nursing/summary/issues/${emissaoId}/download`,
+                        { method: 'POST', body: '{}' });
+              await abrirHistorico(historico.pessoa.id, historico.pessoa.nome);
+            } catch (e) {
+              setErro(e instanceof Error ? e.message : 'Não foi possível registrar a retirada.');
+            }
+          }} />
       )}
 
       {prescrevendo && painel && (
@@ -946,6 +1026,215 @@ function FolhaTriagem({ evolucao, onFechar, onEnviar }: {
                     : { acao: 'pedir_complemento', pedido })}>
             {assinar ? 'Assinar como Enfermagem' : 'Devolver com o pedido'}
           </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * A LINHA ÚNICA DA CRIANÇA (§7.3), e o que já saiu dela (§7.4).
+ *
+ * `GET /nursing/history/:personId` existia desde a fase 4 sem tela nenhuma. O
+ * sistema guardava cada consulta, cada evolução assinada por quem acompanhou e
+ * cada dose administrada — e a pergunta mais comum da casa, "quando é o retorno
+ * do Bruno?", se respondia perguntando a um colega. Retorno se perde assim.
+ *
+ * Quatro decisões desta folha:
+ *
+ *  * o que está ESPERANDO alguém vem primeiro, contado pelo servidor. Retorno
+ *    que já venceu não é história antiga: é pendência, e aparece como tal;
+ *  * nada aqui ordena por gravidade nem sugere prioridade clínica — isso seria
+ *    o sistema decidindo sobre a criança;
+ *  * a evolução mostra quem ACOMPANHOU e o complemento da Enfermagem lado a
+ *    lado. São duas vozes, e nenhuma escreve por cima da outra;
+ *  * e a emissão do Resumo que foi gerada e nunca retirada fica marcada. O
+ *    papel que ninguém pegou não chegou a lugar nenhum.
+ */
+function FolhaHistorico({ pessoa, dados, emissoes, onFechar, onBaixar }: {
+  pessoa: { id: string; nome: string };
+  dados: Historico; emissoes: Emissao[];
+  onFechar: () => void; onBaixar: (emissaoId: string) => void;
+}) {
+  const [aba, setAba] = useState<'atendimentos' | 'evolucoes' | 'doses' | 'emissoes'>('atendimentos');
+  const p = dados.pendencias;
+  const nada = (o: string) => <li><div className="mutetxt">{o}</div></li>;
+
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-hist"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet modal">
+        <h3 id="t-hist">Histórico de saúde · {pessoa.nome}</h3>
+
+        {(p.retornosVencidos > 0 || p.retornosMarcados > 0 || p.internacaoEmAndamento
+          || p.evolucoesAguardandoTriagem > 0) && (
+          <div className="row" style={{ flexWrap: 'wrap', gap: 6 }}>
+            {p.internacaoEmAndamento && <span className="pill c-crit">Internação em andamento</span>}
+            {p.retornosVencidos > 0 && (
+              <span className="pill c-crit">
+                {p.retornosVencidos} retorno(s) com a data já passada
+              </span>
+            )}
+            {p.retornosMarcados > 0 && (
+              <span className="pill c-warn">{p.retornosMarcados} retorno(s) marcado(s)</span>
+            )}
+            {p.evolucoesAguardandoTriagem > 0 && (
+              <span className="pill c-med">
+                {p.evolucoesAguardandoTriagem} evolução(ões) esperando a Enfermagem
+              </span>
+            )}
+          </div>
+        )}
+
+        <div className="filtros" role="tablist">
+          <button role="tab" aria-selected={aba === 'atendimentos'}
+                  className={aba === 'atendimentos' ? 'on' : ''}
+                  onClick={() => setAba('atendimentos')}>
+            Atendimentos ({dados.atendimentos.length})
+          </button>
+          <button role="tab" aria-selected={aba === 'evolucoes'}
+                  className={aba === 'evolucoes' ? 'on' : ''} onClick={() => setAba('evolucoes')}>
+            Evoluções ({dados.evolucoes.length})
+          </button>
+          <button role="tab" aria-selected={aba === 'doses'}
+                  className={aba === 'doses' ? 'on' : ''} onClick={() => setAba('doses')}>
+            Doses ({dados.administracoes.length})
+          </button>
+          <button role="tab" aria-selected={aba === 'emissoes'}
+                  className={aba === 'emissoes' ? 'on' : ''} onClick={() => setAba('emissoes')}>
+            Resumos ({emissoes.length})
+          </button>
+        </div>
+
+        {aba === 'atendimentos' && (
+          <ul className="lista">
+            {dados.atendimentos.map((a) => (
+              <li key={a.id} className="row">
+                <div className="grow">
+                  <b className="ff">{a.tipoRotulo}</b>
+                  <div className="mutetxt linhadois">
+                    {dia(String(a.quando).slice(0, 10))}
+                    {a.especialidade ? ` · ${a.especialidade}` : ''}
+                    {a.local ? ` · ${a.local}` : ''}
+                  </div>
+                  {a.profissional && <div className="mutetxt">Atendeu: {a.profissional}</div>}
+                  {a.motivo && <div className="mutetxt">Motivo: {a.motivo}</div>}
+                  {a.desfecho && <div className="mutetxt">Desfecho: {a.desfecho}</div>}
+                  {a.retornoEm && (
+                    <div className={a.retornoVencido ? '' : 'mutetxt'}>
+                      Retorno em {dia(a.retornoEm)}
+                      {a.retornoVencido && <b> — a data já passou.</b>}
+                    </div>
+                  )}
+                </div>
+                <span className={`pill ${a.retornoVencido ? 'c-crit'
+                  : a.status === 'em_andamento' ? 'c-warn'
+                  : a.status === 'retorno_pendente' ? 'c-med' : 'c-ok'}`}>
+                  {a.statusRotulo}
+                </span>
+              </li>
+            ))}
+            {dados.atendimentos.length === 0
+              && nada('Nenhum atendimento registrado para esta criança.')}
+          </ul>
+        )}
+
+        {aba === 'evolucoes' && (
+          <ul className="lista">
+            {dados.evolucoes.map((e) => (
+              <li key={e.id}>
+                <div className="row">
+                  <div className="grow">
+                    <b className="ff">{e.tipoRotulo}</b>
+                    <div className="mutetxt linhadois">
+                      {dia(String(e.quando).slice(0, 10))}
+                      {e.acompanhante ? ` · acompanhou: ${e.acompanhante}` : ''}
+                    </div>
+                  </div>
+                  <span className={`pill ${e.status === 'assinada' ? 'c-ok'
+                    : e.status === 'complemento_solicitado' ? 'c-warn' : 'c-med'}`}>
+                    {e.statusRotulo}
+                  </span>
+                </div>
+                {e.estadoRetorno && (
+                  <div className="bloco"><small>Como voltou</small>{e.estadoRetorno}</div>
+                )}
+                {e.orientacoes && (
+                  <div className="bloco"><small>Orientações recebidas</small>{e.orientacoes}</div>
+                )}
+                {/* Duas vozes, lado a lado: quem acompanhou escreveu o que viu,
+                    a Enfermagem complementou o que faltava. Nenhuma apaga a
+                    outra. */}
+                {e.complementoEnfermagem && (
+                  <div className="bloco compl">
+                    <small>Complemento da Enfermagem</small>{e.complementoEnfermagem}
+                  </div>
+                )}
+              </li>
+            ))}
+            {dados.evolucoes.length === 0 && nada('Nenhuma evolução registrada.')}
+          </ul>
+        )}
+
+        {aba === 'doses' && (
+          <ul className="lista">
+            {dados.administracoes.map((d, i) => (
+              <li key={`${d.previsto}-${i}`} className="row">
+                <div className="grow">
+                  <b className="ff">{d.medicamento}</b>
+                  <div className="mutetxt linhadois">
+                    {d.dose} · previsto para {dia(String(d.previsto).slice(0, 10))} às {hhmm(d.previsto)}
+                    {d.realizado ? ` · dado às ${hhmm(d.realizado)}` : ''}
+                  </div>
+                  {d.por && <div className="mutetxt">Confirmada por {d.por}.</div>}
+                  {d.observacao && <div className="mutetxt">{d.observacao}</div>}
+                </div>
+                <span className={`pill ${TOM_DOSE[d.estado] ?? 'c-mute'}`}>{d.estadoRotulo}</span>
+              </li>
+            ))}
+            {dados.administracoes.length === 0
+              && nada('Nenhuma dose administrada registrada. Dose ainda por confirmar está na '
+                      + 'grade do dia, não aqui.')}
+          </ul>
+        )}
+
+        {aba === 'emissoes' && (
+          <>
+            <ul className="lista">
+              {emissoes.map((em) => (
+                <li key={em.id} className="row">
+                  <div className="grow">
+                    <b className="ff">
+                      {FINALIDADES.find((f) => f.cod === em.finalidade)?.label ?? em.finalidade}
+                    </b>
+                    <div className="mutetxt linhadois">
+                      {dia(String(em.geradoEm).slice(0, 10))} às {hhmm(em.geradoEm)}
+                      {em.por ? ` · por ${em.por}` : ''}
+                      {em.versaoOffline ? ' · versão offline' : ''}
+                    </div>
+                  </div>
+                  {em.baixadoEm ? (
+                    <span className="pill c-ok">Retirado em {dia(String(em.baixadoEm).slice(0, 10))}</span>
+                  ) : (
+                    <button className="btn sm" onClick={() => onBaixar(em.id)}>
+                      Registrar que retirei
+                    </button>
+                  )}
+                </li>
+              ))}
+              {emissoes.length === 0 && nada('Nenhum Resumo de Saúde emitido para esta criança.')}
+            </ul>
+            <p className="mutetxt" style={{ margin: '10px 0 0' }}>
+              Cada emissão guarda a finalidade e quem emitiu. Um resumo <b>gerado e nunca
+              retirado</b> não chegou a lugar nenhum — e é por isso que ele continua na lista.
+            </p>
+          </>
+        )}
+
+        <p className="mutetxt" style={{ marginTop: 12 }}>{dados.aviso}</p>
+
+        <div className="row rodape">
+          <button className="btn block" onClick={onFechar}>Fechar</button>
         </div>
       </div>
     </div>
