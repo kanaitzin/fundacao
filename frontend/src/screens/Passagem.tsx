@@ -406,6 +406,27 @@ function Formulario({ esperada, fechado, fechadoEm, ocupado, onAssinar }: {
         </div>
       )}
 
+      {/*
+        * O TURNO SEM INTERCORRÊNCIA é a maioria dos turnos, e é justamente o
+        * que fica sem registro: escrever três parágrafos para dizer "correu
+        * tudo bem" é o que faz a pessoa pular a passagem. O botão escreve um
+        * RASCUNHO nos três campos, e ele é editável — a frase entra no lugar
+        * do papel em branco, não no lugar do que a pessoa tem a dizer.
+        *
+        * Ele só aparece com os campos VAZIOS: depois que a pessoa começou a
+        * escrever, um botão que sobrescreve o texto dela é um botão perigoso.
+        */}
+      {!contribuicoes && !pendencias && !orientacoes && (
+        <button type="button" className="btn sec block" style={{ marginTop: 10 }}
+                onClick={() => {
+                  setContribuicoes('Rotina cumprida: refeições, higiene e horários sem intercorrência.');
+                  setPendencias('Nada pendente deste turno.');
+                  setOrientacoes('Sem orientação especial para o próximo turno.');
+                }}>
+          Turno sem intercorrência — escrever o rascunho
+        </button>
+      )}
+
       <label className="f" htmlFor="contrib">
         O que foi feito <small>— o turno em poucas linhas</small>
       </label>

@@ -85,6 +85,8 @@ export function Chamada({ houseId }: { houseId: string }) {
   /** O nome conferido que a pessoa reabriu para conferir ou corrigir. */
   const [reaberta, setReaberta] = useState<string | null>(null);
   const [conferindoMesa, setConferindoMesa] = useState(false);
+  /** Filtro por nome: no fim da chamada sobra uma criança, e achá-la custa rolagem. */
+  const [busca, setBusca] = useState('');
 
   const carregarLista = useCallback(async () => {
     setErro('');
@@ -238,6 +240,10 @@ export function Chamada({ houseId }: { houseId: string }) {
    * registrado, e fora da conta.
    */
   const conferidosAtivos = aberta.linhas.filter((l) => l.ativo && l.resultado).length;
+  /* Sem acento e sem caixa: "Otávio" tem de ser achado digitando "otavio". */
+  const semAcento = (t: string) =>
+    t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  const filtro = (l: Linha) => !busca || semAcento(l.nome).includes(semAcento(busca));
   const saiuNoMeio = aberta.linhas.filter((l) => !l.ativo && l.resultado).length;
 
   return (
@@ -333,15 +339,26 @@ export function Chamada({ houseId }: { houseId: string }) {
         </div>
       )}
 
+      {/* Buscar pelo nome. Só aparece quando a lista é grande o bastante para
+          a rolagem custar: numa casa de seis, o campo seria estorvo. */}
+      {aberta.linhas.length > 8 && (
+        <input className="field" value={busca} onChange={(e) => setBusca(e.target.value)}
+               placeholder="Buscar pelo nome" aria-label="Buscar acolhido pelo nome"
+               style={{ marginBottom: 10 }} />
+      )}
+
       {/*
         * QUEM AINDA FALTA fica em cima, aberto. É a lista que encolhe enquanto
         * a pessoa trabalha, e é a única coisa que ela precisa olhar.
         */}
       {pendentes.length > 0 && (
-        <div className="eyebrow">Faltam conferir · {pendentes.length}</div>
+        <div className="eyebrow">
+          Faltam conferir · {pendentes.length}
+          {busca && ` · filtrando por "${busca}"`}
+        </div>
       )}
       <ol className="chamada">
-        {aberta.linhas.filter((l) => l.ativo && !l.resultado).map((l) => (
+        {aberta.linhas.filter((l) => l.ativo && !l.resultado).filter(filtro).map((l) => (
           <li key={l.acolhidoId} className="ev">
             <div className="corpo">
               <div className="row">
@@ -382,7 +399,7 @@ export function Chamada({ houseId }: { houseId: string }) {
             Já conferidos · {conferidosAtivos} de {aberta.esperados}
           </div>
           <ul className="conferidos">
-            {aberta.linhas.filter((l) => l.resultado || !l.ativo).map((l) => {
+            {aberta.linhas.filter((l) => l.resultado || !l.ativo).filter(filtro).map((l) => {
               const rotulo = aberta.opcoes.find((o) => o.code === l.resultado)?.label;
               const excecional = aberta.opcoes.find((o) => o.code === l.resultado)?.excecao;
               const aberto = reaberta === l.acolhidoId;

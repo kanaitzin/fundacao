@@ -460,6 +460,23 @@ export function Ata({ houseId, papel }: { houseId: string; papel: string }) {
                                 onBlur={() => salvarConteudo()} />
                               {sec.tipo === 'checklist_ambientes' && secoes.ambientes.length > 0 && (
                                 <div className="row" style={{ flexWrap: 'wrap', gap: 6 }}>
+                                  {/*
+                                    * "Todos organizados" ESCREVE a linha de cada
+                                    * ambiente, uma por uma, em vez de uma frase
+                                    * só: o campo continua sendo texto de quem
+                                    * assina, e a pessoa apaga ou corrige a
+                                    * linha do ambiente que não estava assim.
+                                    * Uma frase única ("tudo ok") não deixaria
+                                    * onde escrever que o banheiro alagou.
+                                    */}
+                                  <button type="button" className="btn sm sec"
+                                          onClick={() => setConteudo((m) => ({
+                                            ...m,
+                                            [sec.chave]: secoes.ambientes
+                                              .map((a) => `${a.label}: organizado`).join('\n'),
+                                          }))}>
+                                    ✓ Todos organizados
+                                  </button>
                                   {/* Os ambientes do formulário de papel, como
                                       atalho de escrita. O registro é do
                                       AMBIENTE, nunca de quem arrumou (§3.3). */}

@@ -1,7 +1,7 @@
 # O que falta da ideia original
 
 Levantamento de 31/08/2026, feito por leitura cruzada entre as rotas que o
-servidor serve e as chamadas que as telas fazem. Sobram **46 rotas que existem,
+servidor serve e as chamadas que as telas fazem. Sobram **45 rotas que existem,
 têm regra, têm RLS e auditoria — e não têm porta**.
 
 *Atualizado no mesmo dia: saíram desta lista o **Arquivo das ATAS** (decisão 2,
@@ -32,6 +32,11 @@ e fica gravado COMO ato — quem, quando e quantos —, o que o separa da "marca
 em lote silenciosa" que a regra proíbe. E a lista de quem já foi conferido
 recolhe, com contador, para a tela encolher enquanto a pessoa trabalha.*
 
+*E o **dossiê do acolhido** com o **álbum de vivências**, em 01/09/2026, a
+pedido do Marcelo: a lista exigida da casa em cinco categorias, o anexo com
+prévia antes de enviar, o aceite de quem olhou — separado do anexo —, e o álbum
+de aniversários, festas e conquistas que a criança leva quando sai.*
+
 *E uma correção ao próprio levantamento: eu havia escrito que faltava "anexar
 documento ao arquivo". `POST /archive` não recebe arquivo — ele enfileira a
 CÓPIA DOCUMENTAL de algo que já existe no sistema. O que faltava era pior e
@@ -58,7 +63,6 @@ WhatsApp é proibido (§2).
 | O que é | Rotas | Por que dói agora |
 |---|---|---|
 | **Corrigir o cadastro depois da admissão** | `PATCH /people/:id`, `PATCH /people/:id/judicial` | Hoje só dá para cadastrar. Nome errado, data de nascimento errada, decisão judicial que mudou — nada disso tem onde ser corrigido, e o certo é corrigir com histórico, não recadastrar. |
-| **Baixar um documento do acolhido** | `GET /people/:id/documents/:docId` | O perfil lista os documentos e não abre nenhum. |
 | **Marcação de conteúdo protegido** | `POST /incidents/:id/protected` | Fala espontânea e sinais observados. O detalhe da ocorrência já MOSTRA quando existem; registrar ainda não tem porta. |
 | **Substituição de atividade** | `POST /activities/:id/substitution`, `/substitutions/:id/assign` | "Não vou conseguir levar o Bruno na fono" — pedir e assumir a substituição. Existe delegação direta; falta o pedido em aberto. |
 | **Atividade urgente** | `POST /activities/urgent` | O que apareceu agora e não estava na agenda. |

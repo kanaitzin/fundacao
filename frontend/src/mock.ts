@@ -28,6 +28,9 @@ import { SECOES_ATA, AMBIENTES_CASA, CLASSIFICACOES_EPISODIO }
   from '../../backend/src/modules/shifts/ata-secoes';
 import { TIPOS_ROTINA, DIAS_DA_SEMANA }
   from '../../backend/src/modules/routine/rotina-vocabulario';
+import { CATEGORIAS_DOSSIE, DOSSIE_EXIGIDO, TIPOS_DE_VIVENCIA, TAMANHO_MAXIMO,
+         TIPOS_DE_ARQUIVO, tituloProibido }
+  from '../../backend/src/modules/people/dossie-exigido';
 
 const HOJE = new Intl.DateTimeFormat('en-CA',
   { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' })
@@ -1191,6 +1194,105 @@ const ITENS_ROTINA: ItemRotinaMock[] = [
     diasSemana: TODOS_OS_DIAS, coletiva: true, acolhidoId: null, instrucoes: null },
 ];
 
+/**
+ * O DOSSIÊ e as VIVÊNCIAS no protótipo.
+ *
+ * Os arquivos ficam em memória, como data-URL — é o que o navegador consegue
+ * fazer sozinho, e some ao fechar, como todo o resto da demonstração. O que
+ * importa é o CAMINHO ser o mesmo do servidor: anexar não confere, o aceite
+ * tem nome, e o judicial some para quem não o alcança.
+ */
+interface DocumentoMock {
+  id: string; personId: string; chave: string | null; categoria: string; titulo: string;
+  emitidoEm: string | null; validoAte: string | null; origem: string | null;
+  anexadoEm: string; anexadoPor: string;
+  aceitoEm: string | null; aceitoPor: string | null; notaDoAceite: string | null;
+  versao: number; conteudo: string;
+  arquivo: { nome: string; tipo: string; tamanho: number; sha256: string };
+}
+interface VivenciaMock {
+  id: string; personId: string; tipo: string; quando: string; descricao: string;
+  temFoto: boolean; autorizacaoRegistrada: boolean;
+  arquivo: { nome: string; tipo: string } | null; conteudo: string | null;
+  registradoPor: string; registradoEm: string;
+}
+/* alcance:judicial — quem lê a área restrita. O educador não entra. */
+const VE_JUDICIAL = ['equipe_tecnica', 'coordenador', 'gestor_geral'];
+
+/** O tipo REAL, pelos primeiros bytes — a extensão não entra na conta. */
+function tipoDoDataUrl(dataUrl: string): string | null {
+  const b64 = (dataUrl.split(',')[1] ?? '').slice(0, 24);
+  let bin = '';
+  try { bin = atob(b64); } catch { return null; }
+  const hex = [...bin].map((c) => c.charCodeAt(0).toString(16).padStart(2, '0')).join('');
+  if (hex.slice(8, 16) === '66747970') return 'image/heic';
+  const achado = TIPOS_DE_ARQUIVO.find((t) => hex.startsWith(t.assinatura));
+  return achado ? achado.tipo : null;
+}
+
+/**
+ * Um JPEG mínimo de verdade, desenhado no momento: a demonstração precisa de
+ * uma prévia que ABRA, e não de um retângulo cinza dizendo "documento".
+ */
+function jpegFicticio(rotulo: string): string {
+  const cv = document.createElement('canvas');
+  cv.width = 560; cv.height = 360;
+  const x = cv.getContext('2d')!;
+  x.fillStyle = '#E8EEF5'; x.fillRect(0, 0, 560, 360);
+  x.fillStyle = '#FFFFFF'; x.fillRect(20, 20, 520, 320);
+  x.fillStyle = '#003262'; x.font = 'bold 24px system-ui';
+  x.fillText(rotulo.toUpperCase(), 44, 78);
+  x.font = '15px system-ui'; x.fillStyle = '#26374D';
+  x.fillText('Documento FICTÍCIO, gerado para a demonstração.', 44, 124);
+  x.fillText('Nenhum dado real de criança entra aqui.', 44, 150);
+  x.save(); x.translate(280, 250); x.rotate(-0.08);
+  x.font = 'bold 30px system-ui'; x.fillStyle = 'rgba(185,28,28,.72)';
+  x.textAlign = 'center'; x.fillText('FICTÍCIO — DEMONSTRAÇÃO', 0, 0); x.restore();
+  return cv.toDataURL('image/jpeg', 0.82);
+}
+
+const DOSSIE_DOCS: DocumentoMock[] = [];
+const VIVENCIAS: VivenciaMock[] = [];
+
+/**
+ * Semeia a pasta da Alice: um documento CONFERIDO, um AGUARDANDO conferência e
+ * uma vivência com foto sem autorização registrada. Sem isso a tela abre em
+ * três estados vazios e não mostra a diferença entre eles — que é a coisa
+ * inteira que ela existe para mostrar.
+ */
+function semearDossie() {
+  if (DOSSIE_DOCS.length) return;
+  const doc = (chave: string, categoria: string, titulo: string, aceito: boolean,
+               validoAte: string | null = null): DocumentoMock => ({
+    id: uid(), personId: 'p01', chave, categoria, titulo,
+    emitidoEm: null, validoAte, origem: null,
+    anexadoEm: emHoras(9, 15), anexadoPor: 'Tatiane Técnica (fictícia)',
+    aceitoEm: aceito ? emHoras(9, 40) : null,
+    aceitoPor: aceito ? 'Marcelo Barbosa' : null,
+    notaDoAceite: aceito ? 'Legível, e é a certidão dela.' : null,
+    versao: 1, conteudo: jpegFicticio(titulo),
+    arquivo: { nome: `${chave}.jpg`, tipo: 'image/jpeg', tamanho: 48_000, sha256: uid() },
+  });
+  DOSSIE_DOCS.push(
+    doc('certidao_nascimento', 'pessoal', 'Certidão de nascimento', true),
+    doc('cartao_sus', 'pessoal', 'Cartão SUS', false),
+    doc('caderneta_vacinacao', 'pessoal', 'Caderneta de vacinação', true, diasAtras(-120)),
+    doc('guia_acolhimento', 'judicial_socioassistencial', 'Guia de acolhimento', true),
+  );
+  VIVENCIAS.push(
+    { id: uid(), personId: 'p01', tipo: 'aniversario', quando: diasAtras(110),
+      descricao: 'Aniversário de 7 anos, com bolo de chocolate feito na casa e a turma toda cantando.',
+      temFoto: true, autorizacaoRegistrada: false,
+      arquivo: { nome: 'aniversario.jpg', tipo: 'image/jpeg' },
+      conteudo: jpegFicticio('Foto do aniversário'),
+      registradoPor: 'Tainá Souza (fictícia)', registradoEm: emHoras(20, 0) },
+    { id: uid(), personId: 'p01', tipo: 'conquista', quando: diasAtras(30),
+      descricao: 'Aprendeu a andar de bicicleta sem rodinhas no pátio, num sábado de manhã.',
+      temFoto: false, autorizacaoRegistrada: false, arquivo: null, conteudo: null,
+      registradoPor: 'Lúcia Líder Diurna (fictícia)', registradoEm: emHoras(11, 30) },
+  );
+}
+
 const EPISODIOS: EpisodioMock[] = [];
 
 /**
@@ -1905,6 +2007,127 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
   // Versionada de verdade também aqui: abrir versão nova ENCERRA a atual com a
   // data de hoje e COPIA os itens. Se a demonstração deixasse a rotina ser
   // reescrita, ela ensinaria o contrário do que o sistema faz.
+  // ---------- O DOSSIÊ DO ACOLHIDO (§6.1) e as VIVÊNCIAS (§6.9) ----------
+  // Palavra fixa antes dos ramos `:id`, pela mesma razão do servidor.
+  if (rota === '/people/dossie/catalogo') {
+    semearDossie();
+    return { categorias: CATEGORIAS_DOSSIE, itens: DOSSIE_EXIGIDO,
+      tiposDeVivencia: TIPOS_DE_VIVENCIA, tamanhoMaximo: TAMANHO_MAXIMO,
+      aceitos: TIPOS_DE_ARQUIVO.map((t) => t.rotulo),
+      aviso: 'O arquivo é conferido pela assinatura dele, não pela extensão. E o título nunca '
+        + 'leva CPF, diagnóstico nem teor de decisão judicial: nome de arquivo aparece em '
+        + 'lista, em busca e em pasta compartilhada.' };
+  }
+  if (seg[0] === 'people' && seg[2] === 'dossie' && metodo === 'GET') {
+    semearDossie();
+    const meus = DOSSIE_DOCS.filter((d) => d.personId === seg[1]);
+    const podeJudicial = VE_JUDICIAL.includes(eu.role);
+    const categorias = CATEGORIAS_DOSSIE
+      .filter((c) => !c.restrita || podeJudicial)
+      .map((cat) => {
+        const itens = DOSSIE_EXIGIDO.filter((i) => i.categoria === cat.code).map((i) => {
+          const dele = meus.filter((d) => d.chave === i.chave);
+          return { ...i, documentos: dele,
+            situacao: dele.some((d) => d.aceitoEm) ? 'aceito'
+              : dele.length ? 'aguardando_conferencia' : 'falta' };
+        });
+        return { ...cat, itens,
+          obrigatoriosQueFaltam: itens.filter((i) => i.obrigatorio && i.situacao === 'falta')
+            .map((i) => i.label),
+          aguardandoConferencia: itens.filter((i) => i.situacao === 'aguardando_conferencia').length };
+      });
+    return { categorias, avulsos: meus.filter((d) => !d.chave),
+      vence: meus.filter((d) => d.validoAte).slice(0, 5),
+      aviso: 'Anexar não é conferir. O arquivo entra, e o aceite é de quem OLHOU e disse que é '
+        + 'aquele documento e que está legível — com o nome dessa pessoa e o horário.' };
+  }
+  if (seg[0] === 'people' && seg[2] === 'documents' && seg.length === 3 && metodo === 'POST') {
+    const proibido = tituloProibido(String(b.titulo ?? ''));
+    if (proibido) return new Recusa(400, proibido);
+    const noNome = tituloProibido(String(b.nomeArquivo ?? 'arquivo'));
+    if (noNome) return new Recusa(400, `O NOME DO ARQUIVO tem o mesmo problema: ${noNome}`);
+    const tipo = tipoDoDataUrl(String(b.conteudo ?? ''));
+    if (!tipo) {
+      return new Recusa(400,
+        'Este arquivo não é imagem nem PDF. O dossiê guarda documento digitalizado — e a '
+        + 'conferência é pela assinatura do arquivo, não pela extensão do nome.');
+    }
+    const id = uid();
+    DOSSIE_DOCS.unshift({ id, personId: String(seg[1]), chave: b.chave ? String(b.chave) : null,
+      categoria: String(b.categoria), titulo: String(b.titulo).trim(),
+      emitidoEm: b.emitidoEm ? String(b.emitidoEm) : null,
+      validoAte: b.validoAte ? String(b.validoAte) : null, origem: null,
+      anexadoEm: new Date().toISOString(), anexadoPor: eu.fullName,
+      aceitoEm: null, aceitoPor: null, notaDoAceite: null, versao: 1,
+      conteudo: String(b.conteudo),
+      arquivo: { nome: String(b.nomeArquivo), tipo,
+                 tamanho: Math.round(String(b.conteudo).length * 0.75), sha256: uid() } });
+    return { id, tipo,
+      aviso: 'Arquivo guardado — e ainda NÃO conferido. Abra a prévia e confirme que é este '
+        + 'documento e que está legível; o aceite fica com o seu nome e o horário.' };
+  }
+  if (seg[0] === 'people' && seg[2] === 'documents' && seg[4] === 'accept' && metodo === 'POST') {
+    const d = DOSSIE_DOCS.find((x) => x.id === seg[3]);
+    if (!d) return new Recusa(404, 'Documento não encontrado.');
+    if (d.aceitoEm) {
+      return new Recusa(400,
+        'Este documento não existe nesta criança, ou já foi conferido. Se o arquivo estiver '
+        + 'errado, anexe a versão certa — o que foi aceito antes continua registrado.');
+    }
+    d.aceitoEm = new Date().toISOString(); d.aceitoPor = eu.fullName;
+    d.notaDoAceite = b.nota ? String(b.nota) : null;
+    return { ok: true, aviso: 'Conferido, com o seu nome e o horário.' };
+  }
+  if (seg[0] === 'people' && seg[2] === 'documents' && seg[4] === 'file' && metodo === 'GET') {
+    const d = DOSSIE_DOCS.find((x) => x.id === seg[3]);
+    if (!d) return new Recusa(404, 'Documento não encontrado.');
+    const [cab, dados] = d.conteudo.split(',');
+    return { nome: d.arquivo.nome, tipo: (cab.match(/data:([^;]+)/) ?? [])[1] ?? 'image/jpeg',
+             conteudo: dados ?? '' };
+  }
+  if (seg[0] === 'people' && seg[2] === 'memories' && seg.length === 3 && metodo === 'GET') {
+    semearDossie();
+    const itens = VIVENCIAS.filter((v) => v.personId === seg[1]);
+    const semAutorizacao = itens.filter((v) => v.temFoto && !v.autorizacaoRegistrada).length;
+    return { itens, tipos: TIPOS_DE_VIVENCIA, semAutorizacao,
+      aviso: 'Este álbum é da criança. É o que ela leva quando sai, e costuma ser a única '
+        + 'coisa do acolhimento que ela vai querer rever.',
+      avisoDaAutorizacao: semAutorizacao > 0
+        ? `${semAutorizacao} ${semAutorizacao === 1 ? 'foto está' : 'fotos estão'} sem a `
+          + 'autorização de uso de imagem registrada. O sistema não impede — mas registra que '
+          + 'não está, para ninguém ser pego de surpresa quando alguém perguntar.'
+        : '' };
+  }
+  if (seg[0] === 'people' && seg[2] === 'memories' && seg.length === 3 && metodo === 'POST') {
+    if (!TIPOS_DE_VIVENCIA.some((t) => t.code === b.tipo)) {
+      return new Recusa(400, 'Tipo de vivência inválido.');
+    }
+    if (String(b.descricao ?? '').trim().length < 5) {
+      return new Recusa(400,
+        'Escreva o que aconteceu. A foto sozinha, daqui a dez anos, não diz de que dia foi.');
+    }
+    if (b.conteudo && !String(b.conteudo).startsWith('data:image')) {
+      return new Recusa(400, 'A vivência recebe FOTO. Documento vai para o dossiê.');
+    }
+    const id = uid();
+    VIVENCIAS.unshift({ id, personId: String(seg[1]), tipo: String(b.tipo),
+      quando: String(b.quando), descricao: String(b.descricao).trim(),
+      temFoto: !!b.conteudo, autorizacaoRegistrada: b.autorizacaoRegistrada === true,
+      arquivo: b.conteudo ? { nome: String(b.nomeArquivo ?? 'foto'), tipo: 'image/jpeg' } : null,
+      conteudo: b.conteudo ? String(b.conteudo) : null,
+      registradoPor: eu.fullName, registradoEm: new Date().toISOString() });
+    return { id, aviso: b.conteudo && b.autorizacaoRegistrada !== true
+      ? 'Vivência registrada. A autorização de uso de imagem NÃO está registrada nesta foto — '
+        + 'fica anotado assim, e o álbum mostra.'
+      : 'Vivência registrada no álbum da criança.' };
+  }
+  if (seg[0] === 'people' && seg[2] === 'memories' && seg[4] === 'file' && metodo === 'GET') {
+    const v = VIVENCIAS.find((x) => x.id === seg[3]);
+    if (!v?.conteudo) return new Recusa(404, 'Esta vivência não tem foto.');
+    return { nome: v.arquivo?.nome ?? 'foto', tipo: 'image/jpeg',
+             conteudo: v.conteudo.split(',')[1] ?? '' };
+  }
+
   if (seg[0] === 'routine' && seg.length === 1 && metodo === 'GET') {
     const v = VERSOES_ROTINA.find((x) => x.vigenteAte === null) ?? null;
     return {

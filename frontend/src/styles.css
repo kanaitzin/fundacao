@@ -748,3 +748,13 @@ textarea{
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
 .conferidos .linhaconf .seta{ color:var(--muted); font-size:13px; flex:0 0 auto }
 .conferidos .corpo{ padding:0 12px 12px; display:flex; flex-direction:column; gap:7px }
+
+/* Um documento dentro do item do dossiê: nome, autoria e o botão, cada um na
+   sua linha. O botão no meio da frase fazia o nome de quem conferiu quebrar
+   em cima dele. */
+.docdoitem{
+  margin-top:6px; padding:8px 10px; background:var(--sunken);
+  border:1px solid var(--line); border-radius:10px;
+  display:flex; flex-direction:column; gap:4px; align-items:flex-start;
+}
+.docdoitem .btn{ margin-top:4px; width:auto }

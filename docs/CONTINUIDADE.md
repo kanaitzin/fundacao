@@ -865,7 +865,7 @@ responder e não me peça para reexplicar o que está lá.
 
 === ESTADO ATUAL ===
 
-Fases 0 a 31 concluídas. 294 testes passando em 26 suítes, sem falha conhecida
+Fases 0 a 32 concluídas. 308 testes passando em 27 suítes, sem falha conhecida
 — a suíte rodou cinco vezes seguidas entre 21h44 e 23h30 de Porto Alegre, que
 já é depois das 21h E depois da virada do dia em UTC (01/09 no banco, 31/08 na
 casa): a contaminação de data que a regra procura estava valendo em todas as
@@ -876,6 +876,39 @@ Geral Noturna recortada na linha de cada casa. O ciclo do acolhimento fecha:
 cadastro, saída com motivo, acervo histórico e retorno como episódio novo. E o
 arquivo documental deixou de ser um módulo sem entrada: fechou, entra na fila. Relatórios saem em Word com timbre, com a parte factual
 escrita pelo sistema. Convite de primeiro acesso por e-mail, uso único, 24h.
+
+O DOSSIÊ DO ACOLHIDO (§6.1, migração 0800) e o ÁLBUM DE VIVÊNCIAS (§6.9)
+saíram do papel. `document`, `document_version` e `memory_record` existiam
+desde a fase 0 e nunca tiveram porta — o perfil listava documentos e não abria
+nenhum. Agora a tela é a LISTA EXIGIDA da casa, em cinco categorias
+(pessoais/escolares, atendimentos médicos, educacionais, convivência e
+registros judiciais), e cada item tem uma de três situações: falta, aguardando
+conferência, aceito.
+
+Quatro coisas que valem mais do que a tela:
+
+ * ANEXAR NÃO É CONFERIR. O arquivo entra sem aceite; o aceite é ato separado,
+   de quem OLHOU, com nome e horário — e o gatilho do banco recusa aceitar em
+   nome de outro e recusa apagar um aceite;
+ * o tipo é conferido pela ASSINATURA do arquivo, não pela extensão;
+ * o título E o nome do arquivo são barrados quando parecem CPF, diagnóstico ou
+   teor judicial (regra 3), na tela e no servidor;
+ * a categoria judicial some para quem não a alcança — e a recusa ao abrir é
+   404, não 403: dizer "proibido" já contaria que o documento existe.
+
+Sobre as FOTOS das vivências: o Marcelo decidiu, em 01/09/2026, NÃO bloquear a
+foto por falta de autorização de uso de imagem. O sistema não impede — e MOSTRA,
+por foto e no topo do álbum, quando a autorização não está registrada.
+
+Os objetos ficam em `ARQUIVOS_DIR` (fora do repositório, no `.gitignore`), com
+sha256 conferido a cada abertura: objeto trocado por baixo não passa como se
+fosse o que foi aceito.
+
+QUATRO FACILITADORES, pedidos depois de usar o protótipo: "todos organizados"
+na seção de ambientes da ATA (escrevendo uma linha por ambiente, para sobrar
+onde dizer que o banheiro alagou), "turno sem intercorrência" escrevendo o
+rascunho da passagem (só com os campos vazios), busca por nome na chamada, e a
+conferência de mesa abaixo.
 
 A CONFERÊNCIA DE MESA (§10, migração 0780) veio de o Marcelo usar o protótipo:
 no almoço, a educadora olha a mesa, vê que as vinte estão comendo, e precisava
@@ -898,6 +931,14 @@ das 21h — e o primeiro é grave:
    crianças. Agora ele avisa sobre as que ESTA CHAMADA marcou (migração 0790);
  * `regressao-estado` prescrevia doses às 06h de HOJE, que de madrugada estão
    no futuro. Passou a prescrever desde ONTEM.
+
+FICA ANOTADO: o quinto facilitador pedido — "concluí tudo até agora" no Dia —
+NÃO foi feito, e por um motivo. A linha do tempo do Dia inclui DOSE DE
+MEDICAMENTO, e ali "não existe marcação em lote" é absoluto, sem a palavra
+"silenciosa" (§11.2). Um botão de concluir tudo naquela tela confirmaria doses.
+O caminho seguro é restringi-lo às atividades COLETIVAS que não são
+medicamento, com o mesmo ato declarado da conferência de mesa — e isso é
+decisão do Marcelo.
 
 FICA ANOTADO, e é decisão do Marcelo: o Arquivo das ATAS abre no MÊS CORRENTE, e
 todo dia 1º esse mês está quase vazio — o mesmo argumento que fez o padrão

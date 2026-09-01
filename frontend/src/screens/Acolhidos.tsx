@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Dossie } from './Dossie';
 import { api, ErroApi } from '../api';
 import { Cadastro } from './Cadastro';
 
@@ -356,6 +357,8 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
   const [evolucao, setEvolucao] = useState(false);
   const [aviso, setAviso] = useState('');
   const [saindo, setSaindo] = useState(false);
+  /** O dossiê é tela própria: a pasta da criança não cabe dentro do perfil. */
+  const [dossie, setDossie] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -395,6 +398,11 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
   }
   if (!p) return <p className="mutetxt">Abrindo…</p>;
 
+  if (dossie) {
+    return <Dossie personId={personId} nome={p.nome} papel={papel}
+                   onVoltar={() => setDossie(false)} />;
+  }
+
   const pendentes = doses.filter((d) => d.pendente);
 
   return (
@@ -409,6 +417,11 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
           </div>
         </div>
       </div>
+
+      {/* A pasta da criança: o que a casa precisa ter, e o álbum dela. */}
+      <button className="btn sec block" style={{ marginBottom: 12 }} onClick={() => setDossie(true)}>
+        📂 Dossiê e vivências
+      </button>
 
       {/* PRIMEIRO, e sem precisar rolar: o que machuca hoje se for ignorado. */}
       {p.alertasEssenciais.map((a, i) => (

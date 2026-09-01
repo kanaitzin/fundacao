@@ -3,6 +3,7 @@ import {
 } from '@nestjs/common';
 import { SessionGuard, CurrentUser } from '../identity';
 import { AuthenticatedUser } from '../../kernel/contracts';
+import { DossieService } from './dossie.service';
 import { PeopleService } from './people.service';
 import { ProfileService } from './profile.service';
 import { BenefitsService } from './benefits.service';
@@ -20,6 +21,7 @@ export class PeopleController {
     @Inject(TransfersService) private readonly transfers: TransfersService,
     @Inject(AdmissionService) private readonly admission: AdmissionService,
     @Inject(CredentialsService) private readonly credentials: CredentialsService,
+    @Inject(DossieService) private readonly dossie: DossieService,
   ) {}
 
   /** Visão da casa — “os 20”. */
@@ -105,6 +107,54 @@ export class PeopleController {
   update(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
          @Body() body: Record<string, string | null>) {
     return this.profile.updateDetail(user, id, body);
+  }
+
+  // ---- O dossiê do acolhido (§6.1) e o álbum de vivências (§6.9) ----
+  // `catalogo` é palavra fixa e vem ANTES de `:id`, que exige uuid.
+
+  @Get('dossie/catalogo')
+  catalogo() { return this.dossie.catalogo(); }
+
+  @Get(':id/dossie')
+  dossieDo(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.dossie.dossie(user, id);
+  }
+
+  @Post(':id/documents')
+  anexar(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
+         @Body() body: any) {
+    return this.dossie.anexar(user, id, body);
+  }
+
+  /** O ACEITE — de quem olhou a prévia. Anexar não confere. */
+  @Post(':id/documents/:docId/accept')
+  aceitar(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
+          @Param('docId', ParseUUIDPipe) docId: string, @Body() body: any) {
+    return this.dossie.aceitar(user, id, docId, body?.nota);
+  }
+
+  /** Os bytes, para a prévia. Cada abertura vira registro (§20). */
+  @Get(':id/documents/:docId/file')
+  arquivoDo(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
+            @Param('docId', ParseUUIDPipe) docId: string) {
+    return this.dossie.arquivo(user, id, docId);
+  }
+
+  @Get(':id/memories')
+  vivencias(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.dossie.vivencias(user, id);
+  }
+
+  @Post(':id/memories')
+  registrarVivencia(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
+                    @Body() body: any) {
+    return this.dossie.registrarVivencia(user, id, body);
+  }
+
+  @Get(':id/memories/:memId/file')
+  fotoDaVivencia(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
+                 @Param('memId', ParseUUIDPipe) memId: string) {
+    return this.dossie.foto(user, id, memId);
   }
 
   @Get(':id/documents/:docId')
