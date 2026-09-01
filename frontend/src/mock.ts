@@ -47,6 +47,14 @@ const HOJE = new Intl.DateTimeFormat('en-CA',
 const emHoras = (h: number, m = 0) =>
   new Date(`${HOJE}T${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00-03:00`)
     .toISOString();
+/**
+ * Relógio RELATIVO. Suspender um esquema tira da grade a dose que AINDA NÃO
+ * chegou a hora — e "ainda não chegou" depende da hora em que a demonstração
+ * for aberta. Com horário fixo, a mesma tela contava histórias diferentes às
+ * 10h e às 22h. Estas duas leem o relógio de quem abriu.
+ */
+const daquiA = (min: number) => new Date(Date.now() + min * 60000).toISOString();
+const haMinutos = (min: number) => new Date(Date.now() - min * 60000).toISOString();
 const uid = () => Math.random().toString(36).slice(2, 10);
 
 // ---------------------------------------------------------------- pessoas
@@ -191,7 +199,7 @@ const AVISOS = [
     lida: false, ciente: false, em: emHoras(9, 5) },
   { id: 'n3', titulo: 'Dose sem confirmação há mais de 30 minutos',
     texto: 'Uma dose prevista continua aguardando confirmação. O sistema não conclui por ninguém.',
-    prioridade: 'alta', entidade: 'medication_administration', entidadeId: 'd4',
+    prioridade: 'alta', entidade: 'medication_administration', entidadeId: 'd2',
     lida: false, ciente: false, em: emHoras(16, 35) },
   { id: 'n4', titulo: 'Documento não chegou ao arquivo',
     texto: 'Terceira tentativa de envio ao Drive falhou. O documento continua íntegro no sistema.',
@@ -478,20 +486,70 @@ interface DoseMock {
   estado: string; rotulo: string; pendente: boolean;
   confirmadaPor: string | null; administradaEm: string | null; observacao: string | null;
 }
-const DOSES: DoseMock[] = [
+/**
+ * Os ESQUEMAS de medicamento da casa (§11.1), semeados com os três estados:
+ * um na grade, um já suspenso. Sem os três, a tela abre mostrando um só e não
+ * explica a diferença — que é a coisa inteira que ela existe para mostrar.
+ */
+interface EsquemaMock {
+  id: string; medicamento: string; dose: string; via: string; tipo: string;
+  status: string; rotulo: string;
+  acolhido: { id: string; nome: string };
+  condicaoUso: string | null; prescritor: string | null;
+  inicio: string; fim: string | null; horarios: string[];
+  assinadaPor: string | null; assinadaEm: string | null; motivoDaSuspensao: string | null;
+}
+const ESQUEMAS: EsquemaMock[] = [
+  { id: 'esq1', medicamento: 'Colírio lubrificante (fictício)', dose: '1 gota em cada olho',
+    via: 'oftálmica', tipo: 'uso_continuo', status: 'ativa', rotulo: 'Na grade',
+    acolhido: { id: 'p11', nome: 'Lara' }, condicaoUso: null,
+    prescritor: 'Oftalmologia — Clínica Fictícia', inicio: '2026-06-01', fim: null,
+    horarios: ['07:30', '19:30'], assinadaPor: 'Enfermeira Fictícia',
+    assinadaEm: '2026-06-01T10:00:00-03:00', motivoDaSuspensao: null },
+  { id: 'esq2', medicamento: 'Amoxicilina (fictícia) 250 mg/5 mL', dose: '5 mL',
+    via: 'oral', tipo: 'tratamento', status: 'ativa', rotulo: 'Na grade',
+    acolhido: { id: 'p02', nome: 'Bruno' }, condicaoUso: null,
+    prescritor: 'Pediatria — UBS Fictícia', inicio: '2026-08-28', fim: '2026-09-04',
+    horarios: ['08:00', '16:00', '00:00'], assinadaPor: 'Enfermeira Fictícia',
+    assinadaEm: '2026-08-28T09:20:00-03:00', motivoDaSuspensao: null },
+  { id: 'esq3', medicamento: 'Anti-histamínico (fictício)', dose: '1 comprimido',
+    via: 'oral', tipo: 'uso_continuo', status: 'suspensa', rotulo: 'Suspenso',
+    acolhido: { id: 'p01', nome: 'Alice' }, condicaoUso: null,
+    prescritor: 'Alergologia — Clínica Fictícia', inicio: '2026-04-10', fim: null,
+    horarios: ['20:00'], assinadaPor: 'Enfermeira Fictícia',
+    assinadaEm: '2026-04-10T11:00:00-03:00',
+    motivoDaSuspensao: 'Consulta de retorno em 12/08 na Clínica Fictícia: a alergologista '
+      + 'suspendeu o uso contínuo e manterá só o inalador em crise.' },
+];
+
+/** Quem está nominalmente autorizado a administrar (§11.3). */
+interface AutorizacaoMock {
+  id: string; userId: string; quem: string; de: string; ate: string | null;
+  nota: string | null; autorizadoPor: string | null;
+}
+/** O protocolo por período. O noturno fica em aberto de propósito (33.4.1). */
+const PROTOCOLO: { periodo: string; enfermagem: boolean; educadorAutorizado: boolean;
+                   nota: string | null; definidoEm: string | null }[] = [
+  { periodo: 'diurno', enfermagem: true, educadorAutorizado: false,
+    nota: 'Enfermagem presente das 7h às 19h.', definidoEm: '2026-03-02T10:00:00-03:00' },
+];
+
+const AUTORIZACOES: AutorizacaoMock[] = [];
+
+let DOSES: DoseMock[] = [
   { id: 'd1', personId: 'p11', horario: emHoras(7, 30), medicamento: 'Colírio lubrificante (fictício)',
     dose: '1 gota em cada olho', via: 'oftálmica', tipo: 'uso_continuo', condicaoUso: null,
     estado: 'aguardando_confirmacao', rotulo: 'Aguardando confirmação', pendente: true,
     confirmadaPor: null, administradaEm: null, observacao: null },
-  { id: 'd2', personId: 'p11', horario: emHoras(19, 30), medicamento: 'Colírio lubrificante (fictício)',
+  { id: 'd2', personId: 'p11', horario: haMinutos(45), medicamento: 'Colírio lubrificante (fictício)',
     dose: '1 gota em cada olho', via: 'oftálmica', tipo: 'uso_continuo', condicaoUso: null,
     estado: 'aguardando_confirmacao', rotulo: 'Aguardando confirmação', pendente: true,
     confirmadaPor: null, administradaEm: null, observacao: null },
-  { id: 'd3', personId: 'p02', horario: emHoras(8, 0), medicamento: 'Amoxicilina (fictícia) 250 mg/5 mL',
+  { id: 'd3', personId: 'p02', horario: haMinutos(300), medicamento: 'Amoxicilina (fictícia) 250 mg/5 mL',
     dose: '5 mL', via: 'oral', tipo: 'tratamento', condicaoUso: null,
     estado: 'administrado_no_horario', rotulo: 'Administrado no horário', pendente: false,
     confirmadaPor: 'Tainá Souza (fictícia)', administradaEm: emHoras(8, 5), observacao: null },
-  { id: 'd4', personId: 'p02', horario: emHoras(16, 0), medicamento: 'Amoxicilina (fictícia) 250 mg/5 mL',
+  { id: 'd4', personId: 'p02', horario: daquiA(120), medicamento: 'Amoxicilina (fictícia) 250 mg/5 mL',
     dose: '5 mL', via: 'oral', tipo: 'tratamento', condicaoUso: null,
     estado: 'aguardando_confirmacao', rotulo: 'Aguardando confirmação', pendente: true,
     confirmadaPor: null, administradaEm: null, observacao: null },
@@ -2855,6 +2913,120 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         + 'assinatura da Enfermagem.' };
   }
 
+  /**
+   * `GET /medications/prescriptions` — os esquemas da casa.
+   *
+   * Palavra fixa, e ANTES dos ramos `prescriptions/:id/*`. Antes desta rota, o
+   * rascunho ficava gravado e invisível, e não havia de onde suspender.
+   */
+  if (rota === '/medications/prescriptions' && metodo === 'GET') {
+    const ROTULO: Record<string, string> = {
+      rascunho: 'Rascunho — fora da grade', ativa: 'Na grade', suspensa: 'Suspenso',
+    };
+    const daPessoa = (id: string) => KIDS.find((k) => k.id === id)?.nome ?? '(fora do seu alcance)';
+    const esquemas = [
+      ...[...RASCUNHOS.entries()].map(([id, r]) => ({
+        id, medicamento: r.medicamento, dose: r.dose, via: r.via, tipo: r.tipo,
+        status: 'rascunho', rotulo: ROTULO.rascunho,
+        acolhido: { id: r.personId, nome: daPessoa(r.personId) },
+        condicaoUso: r.condicaoUso, prescritor: null,
+        inicio: HOJE, fim: null, horarios: r.horarios,
+        assinadaPor: null, assinadaEm: null, motivoDaSuspensao: null,
+      })),
+      ...ESQUEMAS,
+    ];
+    return { esquemas,
+      aviso: 'Rascunho NÃO está na grade: ele só começa a gerar dose quando a Enfermagem '
+        + 'confere e assina. Suspender é o contrário — tira da grade a partir de hoje, e o '
+        + 'que já foi confirmado continua registrado.' };
+  }
+  /*
+   * O PROTOCOLO (§11.3) e a pendência institucional 33.4.1.
+   *
+   * Enquanto a instituição não decide quem administra em cada período, vale o
+   * padrão mais protetivo: somente Enfermagem. A demonstração mostra a casa
+   * com o diurno DEFINIDO e o noturno ainda em aberto — que é a situação real
+   * da maioria das casas, e é o que a tela precisa saber dizer.
+   */
+  if (rota === '/medications/protocol' && metodo === 'GET') {
+    return { periodos: PROTOCOLO,
+      pendenciaInstitucional:
+        'Quem administra medicamentos em cada período (pendência 33.4.1) é decisão da '
+        + 'instituição. Enquanto não houver definição formal, vale o padrão mais protetivo: '
+        + 'somente Enfermagem.' };
+  }
+  if (rota === '/medications/protocol' && metodo === 'POST') {
+    if (!['coordenador', 'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403, 'Somente a coordenação define o protocolo de administração.');
+    }
+    const alvoP = PROTOCOLO.find((x) => x.periodo === b.periodo);
+    const novoP = { periodo: String(b.periodo), enfermagem: b.enfermagem !== false,
+      educadorAutorizado: b.educadorAutorizado === true,
+      nota: b.nota ? String(b.nota) : null, definidoEm: new Date().toISOString() };
+    if (alvoP) Object.assign(alvoP, novoP); else PROTOCOLO.push(novoP);
+    return { ok: true };
+  }
+  if (rota === '/medications/authorizations' && metodo === 'GET') {
+    return AUTORIZACOES.map((a) => ({ ...a,
+      vigente: (a.ate == null || a.ate >= HOJE) }));
+  }
+  if (rota === '/medications/authorize-educator' && metodo === 'POST') {
+    if (!['coordenador', 'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403, 'Somente a coordenação autoriza educadores nominalmente.');
+    }
+    const nome = EQUIPE_CASA.find((m) => m.id === b.userId)?.nome ?? 'Colega';
+    AUTORIZACOES.unshift({ id: uid(), userId: String(b.userId), quem: nome,
+      de: HOJE, ate: b.validoAte ? String(b.validoAte) : null,
+      nota: b.nota ? String(b.nota) : null, autorizadoPor: eu.fullName });
+    return { ok: true,
+      aviso: `${nome} está autorizada nominalmente nesta casa, com o seu nome e o horário. `
+        + 'Isto NÃO substitui o protocolo: se o protocolo do período não permite educador, '
+        + 'o servidor recusa a confirmação da dose.' };
+  }
+  /* SUSPENDER — só o que está na grade, e a orientação é obrigatória. */
+  if (seg[0] === 'medications' && seg[1] === 'prescriptions' && seg[3] === 'suspend'
+      && metodo === 'POST') {
+    if (!['enfermagem', 'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403, 'Somente a Enfermagem suspende um esquema.');
+    }
+    const e = ESQUEMAS.find((x) => x.id === seg[2]);
+    if (!e) return new Recusa(404, 'Prescrição não encontrada.');
+    if (e.status !== 'ativa') {
+      return new Recusa(400, e.status === 'suspensa'
+        ? 'Este esquema já está suspenso.'
+        : `Só se suspende um esquema ativo. Este está como "${e.status}".`);
+    }
+    if (String(b.motivo ?? '').trim().length < 3) {
+      return new Recusa(400, 'Informe a orientação que motivou a suspensão.');
+    }
+    e.status = 'suspensa'; e.rotulo = 'Suspenso';
+    e.motivoDaSuspensao = String(b.motivo).trim();
+    // A MESMA regra do servidor, e é uma regra de três partes:
+    //
+    //  * a dose que AINDA NÃO chegou a hora sai da grade — com estado próprio
+    //    e a orientação escrita ao lado. Nada é apagado;
+    //  * a dose já confirmada fica exatamente como está: suspender não apaga o
+    //    que a criança tomou;
+    //  * e a dose que passou da hora e ninguém confirmou CONTINUA pendente. Ela
+    //    não foi suspensa — ficou sem resposta, e alguém ainda deve essa
+    //    resposta. Suspender hoje não é caneta para apagar a manhã.
+    const agora = new Date().toISOString();
+    let retiradas = 0;
+    for (const d of DOSES) {
+      if (d.medicamento !== e.medicamento || !d.pendente || d.horario <= agora) continue;
+      d.pendente = false;
+      d.estado = 'suspenso_conforme_orientacao';
+      d.rotulo = 'Suspenso conforme orientação';
+      d.observacao = `Esquema suspenso: ${e.motivoDaSuspensao}`;
+      retiradas += 1;
+    }
+    return { ok: true, status: 'suspensa', dosesRetiradasDaGrade: retiradas,
+      aviso: retiradas > 0
+        ? `${retiradas} dose(s) ainda por vir saíram da grade de hoje, com a orientação `
+          + 'escrita ao lado. O que já foi confirmado continua registrado.'
+        : 'Não havia dose por vir hoje. O que já foi confirmado continua registrado.' };
+  }
+
   /** `POST /medications/prescriptions/:id/sign` — é a assinatura que faz valer. */
   if (seg[0] === 'medications' && seg[1] === 'prescriptions' && seg[3] === 'sign' && metodo === 'POST') {
     const r = RASCUNHOS.get(seg[2]);
@@ -2869,6 +3041,12 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         estado: 'aguardando_confirmacao', rotulo: 'Aguardando confirmação',
         pendente: true, confirmadaPor: null, administradaEm: null, observacao: null });
     }
+    ESQUEMAS.unshift({ id: seg[2], medicamento: r.medicamento, dose: r.dose, via: r.via,
+      tipo: r.tipo, status: 'ativa', rotulo: 'Na grade',
+      acolhido: { id: r.personId, nome: KIDS.find((k) => k.id === r.personId)?.nome ?? '—' },
+      condicaoUso: r.condicaoUso, prescritor: null, inicio: HOJE, fim: null,
+      horarios: r.horarios, assinadaPor: eu.fullName, assinadaEm: new Date().toISOString(),
+      motivoDaSuspensao: null });
     return { ok: true, status: 'ativa',
       aviso: `Esquema assinado por você. ${r.medicamento} entrou na grade da casa — a partir `
         + 'de agora existe dose para alguém confirmar, uma a uma.' };

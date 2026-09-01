@@ -108,6 +108,80 @@ export class MedicationsService {
     return { ok: true, status: 'ativa' };
   }
 
+  /**
+   * OS ESQUEMAS DA CASA — rascunho, ativo e suspenso.
+   *
+   * Não existia rota que LISTASSE prescrições, só a grade de doses. Duas
+   * consequências, e as duas apareceram na casa:
+   *
+   *  * um rascunho salvo hoje e não assinado não era encontrável amanhã por
+   *    tela nenhuma. Ficava gravado e invisível — que é o pior dos dois mundos;
+   *  * e não havia de onde SUSPENDER: o médico suspendia o remédio, a grade
+   *    continuava cobrando a dose todo dia, e a Enfermagem só tinha o caminho
+   *    de marcar "não administrada" indefinidamente.
+   *
+   * A lista é da casa e o RLS filtra; o rascunho aparece primeiro, porque é o
+   * que está esperando alguém.
+   */
+  async listPrescriptions(user: AuthenticatedUser, houseId: string) {
+    const rows = await this.db.asUser(user.id, async (c) => {
+      const { rows: r } = await c.query(
+        // rls-join-ok: a policy de prescription já filtra por casa e pessoa.
+        `SELECT p.id, p.medication, p.dose, p.route, p.kind, p.status, p.use_condition,
+                p.prescriber, p.starts_on, p.ends_on, p.suspended_reason, p.signed_at,
+                p.person_id, app_person_display_name(p.person_id) AS acolhido,
+                app_user_display_name(p.signed_by) AS assinada_por,
+                (SELECT array_agg(to_char(ms.time_of_day, 'HH24:MI') ORDER BY ms.time_of_day)
+                   FROM medication_schedule ms WHERE ms.prescription_id = p.id) AS horarios
+           FROM prescription p
+          WHERE p.house_id = $1 AND p.status <> 'encerrada'
+          ORDER BY (p.status = 'rascunho') DESC, p.status, p.medication`, [houseId]);
+      return r;
+    });
+    const ROTULO: Record<string, string> = {
+      rascunho: 'Rascunho — fora da grade', ativa: 'Na grade', suspensa: 'Suspenso',
+    };
+    return {
+      esquemas: rows.map((r: any) => ({
+        id: r.id, medicamento: r.medication, dose: r.dose, via: r.route, tipo: r.kind,
+        status: r.status, rotulo: ROTULO[r.status] ?? r.status,
+        acolhido: { id: r.person_id, nome: r.acolhido ?? '(fora do seu alcance)' },
+        condicaoUso: r.use_condition, prescritor: r.prescriber,
+        inicio: r.starts_on, fim: r.ends_on,
+        horarios: r.horarios ?? [], assinadaPor: r.assinada_por, assinadaEm: r.signed_at,
+        motivoDaSuspensao: r.suspended_reason,
+      })),
+      aviso: 'Rascunho NÃO está na grade: ele só começa a gerar dose quando a Enfermagem '
+        + 'confere e assina. Suspender é o contrário — tira da grade a partir de hoje, e o '
+        + 'que já foi confirmado continua registrado.',
+    };
+  }
+
+  /** Quem está nominalmente autorizado a administrar nesta casa (§11.3). */
+  async listAuthorizations(user: AuthenticatedUser, houseId: string) {
+    return this.db.asUser(user.id, async (c) => {
+      const { rows } = await c.query(
+        // `::text` não é enfeite. O driver devolve `date` como Date do
+        // JavaScript, e `String(new Date(...))` vira "Mon Sep 01 2026 00:00:00
+        // GMT+0000" — que comparado com "2026-09-01" dá sempre falso. A
+        // autorização vigente aparecia como VENCIDA na tela da coordenação.
+        `SELECT a.id, a.user_id, a.valid_from::text AS valid_from,
+                a.valid_to::text AS valid_to, a.note,
+                app_user_display_name(a.user_id) AS quem,
+                app_user_display_name(a.authorized_by) AS autorizado_por
+           FROM medication_authorization a
+          WHERE a.house_id = $1 ORDER BY a.valid_from DESC`, [houseId]);
+      const hoje = hojeNaInstituicao();
+      return rows.map((r: any) => ({
+        id: r.id, userId: r.user_id, quem: r.quem,
+        de: r.valid_from, ate: r.valid_to, nota: r.note, autorizadoPor: r.autorizado_por,
+        // Autorização vencida NÃO some da lista: quem lê precisa saber que
+        // existiu, e até quando. Some do alcance, não do papel.
+        vigente: r.valid_from <= hoje && (r.valid_to == null || r.valid_to >= hoje),
+      }));
+    });
+  }
+
   async suspend(user: AuthenticatedUser, prescriptionId: string, motivo: string) {
     if (!['enfermagem', 'gestor_geral'].includes(user.role)) {
       throw new ForbiddenException('Somente a Enfermagem suspende um esquema.');
@@ -117,14 +191,39 @@ export class MedicationsService {
     // inexistente, um rascunho ou uma prescrição de outra casa devolvia
     // {ok:true} e gravava auditoria de suspensão — a Enfermagem acreditava ter
     // suspendido o medicamento enquanto as doses continuavam sendo geradas.
+    //
+    // E a segunda metade do mesmo defeito: suspender mudava o status da
+    // prescrição e DEIXAVA AS DOSES DE HOJE na grade. `app_generate_doses` só
+    // gera para 'ativa', então amanhã ficava limpo — mas o remédio suspenso às
+    // 10h continuava cobrando a dose das 16h de HOJE, com o botão "Confirmar"
+    // ao lado. Alguém dava. É o pior lugar possível para um silêncio.
+    //
+    // As duas escritas vão na MESMA transação: ou o esquema sai da grade
+    // inteiro, ou não sai.
     const suspensa = await this.db.asUser(user.id, async (c) => {
       const { rowCount } = await c.query(
         `UPDATE prescription SET status='suspensa', suspended_reason=$2, version=version+1
           WHERE id=$1 AND status='ativa'`,
         [prescriptionId, motivo]);
-      return (rowCount ?? 0) > 0;
+      if ((rowCount ?? 0) === 0) return { ok: false, doses: 0 };
+      // `scheduled_at > now()`: só o que AINDA NÃO chegou a hora. A dose das
+      // 08h que ninguém confirmou não vira "suspensa conforme orientação" —
+      // ela não foi suspensa, ela ficou sem confirmação, e continua cobrando
+      // essa resposta de alguém. Suspender não é caneta para apagar ontem.
+      //
+      // Nada é apagado: a linha fica, com estado próprio e a orientação
+      // escrita. `administered_by` continua NULO porque ninguém administrou.
+      const { rowCount: n } = await c.query(
+        `UPDATE medication_administration
+            SET state = 'suspenso_conforme_orientacao',
+                note = coalesce(note || ' · ', '') || $2
+          WHERE prescription_id = $1
+            AND state = 'aguardando_confirmacao'
+            AND scheduled_at > now()`,
+        [prescriptionId, `Esquema suspenso: ${motivo.trim()}`]);
+      return { ok: true, doses: n ?? 0 };
     });
-    if (!suspensa) {
+    if (!suspensa.ok) {
       const atual = await this.db.asUser(user.id, async (c) => {
         const { rows: [r] } = await c.query(`SELECT status FROM prescription WHERE id=$1`, [prescriptionId]);
         return r?.status as string | undefined;
@@ -136,9 +235,16 @@ export class MedicationsService {
     }
     await this.audit.log({
       action: 'prescription.suspend', actorId: user.id,
-      entity: 'prescription', entityId: prescriptionId, detail: { motivo },
+      entity: 'prescription', entityId: prescriptionId,
+      detail: { motivo, dosesRetiradasDaGrade: suspensa.doses },
     });
-    return { ok: true, status: 'suspensa' };
+    return {
+      ok: true, status: 'suspensa', dosesRetiradasDaGrade: suspensa.doses,
+      aviso: suspensa.doses > 0
+        ? `${suspensa.doses} dose(s) ainda por vir saíram da grade de hoje, com a orientação `
+          + 'escrita ao lado. O que já foi confirmado continua registrado.'
+        : 'Não havia dose por vir hoje. O que já foi confirmado continua registrado.',
+    };
   }
 
   // ---------- Grade do dia ----------
@@ -465,7 +571,9 @@ export class MedicationsService {
     if (!['coordenador', 'gestor_geral'].includes(user.role)) {
       throw new ForbiddenException('Somente a coordenação define o protocolo de administração.');
     }
-    await this.db.asUser(user.id, async (c) => {
+    // A RLS (0820) já recusa a casa fora do alcance, mas recusa em linguagem de
+    // banco e com 500. As duas camadas: a regra de negócio aqui, a policy lá.
+    await this.recusaCasaDeFora(async () => this.db.asUser(user.id, async (c) => {
       await c.query(
         `INSERT INTO medication_protocol (house_id, period, allows_nursing, allows_authorized_educator, note, decided_by)
          VALUES ($1,$2,$3,$4,$5,$6)
@@ -475,12 +583,29 @@ export class MedicationsService {
                note = EXCLUDED.note, decided_by = EXCLUDED.decided_by, decided_at = now()`,
         [input.houseId, input.periodo, input.enfermagem, input.educadorAutorizado,
          input.nota ?? null, user.id]);
-    });
+    }), 'Somente a coordenação DESTA casa define o protocolo de administração dela.');
     await this.audit.log({
       action: 'medication.protocol_set', actorId: user.id, houseId: input.houseId,
       detail: { periodo: input.periodo, educadorAutorizado: input.educadorAutorizado },
     });
     return { ok: true };
+  }
+
+  /**
+   * Coordenador é cargo de UMA casa, e a policy fala em linguagem de banco.
+   * Sem isto, escrever o protocolo da casa vizinha devolvia 500 com "new row
+   * violates row-level security policy" — que não é uma frase para quem está
+   * decidindo quem pode dar remédio.
+   */
+  private async recusaCasaDeFora<T>(fn: () => Promise<T>, frase: string): Promise<T> {
+    try {
+      return await fn();
+    } catch (e: any) {
+      if (String(e?.message ?? '').includes('row-level security')) {
+        throw new ForbiddenException(frase);
+      }
+      throw e;
+    }
   }
 
   async authorizeEducator(user: AuthenticatedUser, input: {
@@ -489,14 +614,14 @@ export class MedicationsService {
     if (!['coordenador', 'gestor_geral'].includes(user.role)) {
       throw new ForbiddenException('Somente a coordenação autoriza educadores nominalmente.');
     }
-    await this.db.asUser(user.id, async (c) => {
+    await this.recusaCasaDeFora(async () => this.db.asUser(user.id, async (c) => {
       await c.query(
         `INSERT INTO medication_authorization (user_id, house_id, valid_to, authorized_by, note)
          VALUES ($1,$2,$3::date,$4,$5)
          ON CONFLICT (user_id, house_id, valid_from) DO UPDATE
            SET valid_to = EXCLUDED.valid_to, note = EXCLUDED.note`,
         [input.userId, input.houseId, input.validoAte ?? null, user.id, input.nota ?? null]);
-    });
+    }), 'Só a coordenação DESTA casa autoriza quem dá medicamento aqui.');
     await this.audit.log({
       action: 'medication.authorize_educator', actorId: user.id, houseId: input.houseId,
       entity: 'app_user', entityId: input.userId,

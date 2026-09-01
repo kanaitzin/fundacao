@@ -57,6 +57,25 @@ export class MedicationsController {
     return this.meds.prescribe(user, body);
   }
 
+  /**
+   * OS ESQUEMAS DA CASA. Palavra fixa, e vem ANTES de `prescriptions/:id/*`.
+   *
+   * Não existia rota que listasse prescrições: um rascunho salvo e não
+   * assinado ficava gravado e invisível, e não havia de onde suspender.
+   */
+  @Get('prescriptions')
+  prescriptions(@CurrentUser() user: AuthenticatedUser,
+                @Query('houseId', ParseUUIDPipe) houseId: string) {
+    return this.meds.listPrescriptions(user, houseId);
+  }
+
+  /** Quem está nominalmente autorizado a administrar nesta casa (§11.3). */
+  @Get('authorizations')
+  authorizations(@CurrentUser() user: AuthenticatedUser,
+                 @Query('houseId', ParseUUIDPipe) houseId: string) {
+    return this.meds.listAuthorizations(user, houseId);
+  }
+
   @Post('prescriptions/:id/sign')
   sign(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.meds.sign(user, id);

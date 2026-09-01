@@ -1,7 +1,7 @@
 # O que falta da ideia original
 
 Levantamento de 31/08/2026, feito por leitura cruzada entre as rotas que o
-servidor serve e as chamadas que as telas fazem. Sobram **38 rotas que existem,
+servidor serve e as chamadas que as telas fazem. Sobram **33 rotas que existem,
 têm regra, têm RLS e auditoria — e não têm porta**.
 
 *Atualizado no mesmo dia: saíram desta lista o **Arquivo das ATAS** (decisão 2,
@@ -52,6 +52,30 @@ judicial atualiza no episódio ativo, sem tocar no acolhimento anterior. Faltava
 também mostrar a situação judicial na tela — o servidor devolvia o campo desde
 a fase 0 e ninguém o desenhava.*
 
+*E, fechando o grupo 1 dos medicamentos em 01/09/2026, a **suspensão do esquema**
+e a **autorização nominal para administrar** (§11.1 e §11.3). Não havia rota que
+LISTASSE prescrições: um rascunho salvo e não assinado ficava gravado e
+invisível, e não existia de onde suspender. Ao construir a tela apareceram três
+defeitos no que já estava escrito, e nenhum deles daria erro na cara de
+ninguém — todos apareceriam como o sistema pedindo remédio a mais ou negando
+quem estava autorizado:*
+
+ - *suspender mudava o status da prescrição e **deixava as doses de hoje na
+   grade**, com o botão "Confirmar" ao lado. `app_generate_doses` só gera para
+   prescrição ativa, então no dia seguinte ficava limpo — e hoje alguém dava o
+   remédio suspenso. Agora a dose que ainda não chegou a hora sai da grade
+   dizendo por quê; a já confirmada fica como está; e a que passou da hora sem
+   ninguém confirmar **continua pendente**, porque não foi suspensa: ficou sem
+   resposta, e alguém ainda deve essa resposta;*
+ - *o protocolo da casa e a autorização nominal conferiam o **cargo** e
+   esqueciam a **casa**: a coordenação da Casa 03 podia definir quem dá remédio
+   na Casa 04 e autorizar um educador de lá. Corrigido nas policies (migração
+   0820) e com a frase de recusa na aplicação, nas duas camadas;*
+ - *e `medication_authorization.valid_from` nascia com `DEFAULT current_date`,
+   que é o dia do banco em UTC. Depois das 21h de Porto Alegre a autorização
+   escrita hoje nascia datada de amanhã, e o sistema recusava a dose a noite
+   inteira com a autorização visível na tela. Regra 9, no lugar mais caro.*
+
 *E uma correção ao próprio levantamento: eu havia escrito que faltava "anexar
 documento ao arquivo". `POST /archive` não recebe arquivo — ele enfileira a
 CÓPIA DOCUMENTAL de algo que já existe no sistema. O que faltava era pior e
@@ -78,8 +102,6 @@ WhatsApp é proibido (§2).
 | O que é | Rotas | Por que dói agora |
 |---|---|---|
 | **Marcação de conteúdo protegido** | `POST /incidents/:id/protected` | Fala espontânea e sinais observados. O detalhe da ocorrência já MOSTRA quando existem; registrar ainda não tem porta. |
-| **Suspender prescrição** | `POST /medications/prescriptions/:id/suspend` | Médico suspendeu o remédio e a grade continua cobrando dose. |
-| **Autorizar educador a administrar** | `POST /medications/authorize-educator`, `GET /medications/can-administer`, `GET/POST /medications/protocol` | Quem pode dar remédio, sob qual protocolo. Hoje a autorização existe no banco e não tem quem a conceda pela tela. |
 
 ## 2. Falta tela, mas dá para esperar
 

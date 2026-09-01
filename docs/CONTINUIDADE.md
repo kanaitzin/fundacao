@@ -865,7 +865,7 @@ responder e não me peça para reexplicar o que está lá.
 
 === ESTADO ATUAL ===
 
-Fases 0 a 34 concluídas. 326 testes passando em 29 suítes, sem falha conhecida
+Fases 0 a 35 concluídas. 335 testes passando em 30 suítes, sem falha conhecida
 — a suíte rodou cinco vezes seguidas entre 21h44 e 23h30 de Porto Alegre, que
 já é depois das 21h E depois da virada do dia em UTC (01/09 no banco, 31/08 na
 casa): a contaminação de data que a regra procura estava valendo em todas as
@@ -1032,12 +1032,63 @@ dois temas — o cartão que era botão ficava cinza no escuro, o "Sair" sumia n
 barra, os títulos de folha usavam a cor de FUNDO da barra, e a linha do tempo
 tinha quatro botões do mesmo peso.
 
-Em aberto, na ordem: `docs/o-que-falta.md` — 52 rotas que existem no servidor e
+SUSPENDER O ESQUEMA e AUTORIZAR QUEM PODE DAR (§11.1 e §11.3, migração 0820).
+É onde o silêncio custa mais caro, e havia três silêncios empilhados.
+
+Primeiro, não existia rota que LISTASSE prescrições — só a grade de doses. Um
+rascunho salvo e não assinado ficava gravado e invisível, que é o pior dos dois
+mundos, e não havia de onde suspender.
+
+Segundo, e este é o grave: suspender mudava o status da prescrição e DEIXAVA AS
+DOSES DE HOJE NA GRADE, com o botão "Confirmar" ao lado. `app_generate_doses` só
+gera para prescrição ativa, então no dia seguinte ficava tudo limpo e ninguém
+percebia — mas o remédio suspenso às 10h continuava sendo cobrado às 16h, e
+alguém dava. A regra agora tem três partes, e as três estão no e2e:
+
+ * a dose que AINDA NÃO chegou a hora sai da grade com estado próprio
+   (`suspenso_conforme_orientacao`) e a orientação escrita ao lado. Nada é
+   apagado, e `administered_by` continua nulo porque ninguém administrou;
+ * a dose já confirmada fica exatamente como está — suspender não apaga o que a
+   criança tomou;
+ * a dose que passou da hora e ninguém confirmou CONTINUA pendente. Ela não foi
+   suspensa: ficou sem resposta, e alguém ainda deve essa resposta. Suspender
+   hoje não é caneta para apagar a manhã.
+
+Terceiro, do lado de quem pode dar: as policies do protocolo e da autorização
+nominal conferiam o CARGO e esqueciam a CASA — `WITH CHECK (app_current_role()
+IN ('coordenador','gestor_geral'))`, sem `app_house_in_scope`. Coordenador é
+cargo de UMA casa: a coordenação da Casa 03 podia escrever o protocolo da Casa
+04 e autorizar nominalmente um educador de lá, sem passar por ninguém daquela
+casa. É o "acesso a outra casa fora das exceções funcionais" da regra 3, no
+lugar mais caro possível. Corrigido nas duas camadas: policy na 0820, frase de
+recusa na aplicação (a policy sozinha devolvia 500 com texto de banco).
+
+E dois defeitos de data no mesmo canto. `medication_authorization.valid_from`
+nascia com `DEFAULT current_date` — o dia do BANCO, em UTC: depois das 21h de
+Porto Alegre a autorização escrita hoje nascia datada de amanhã, e
+`app_can_administer` (que compara com `app_hoje()`) recusava a dose a noite
+inteira com a autorização visível na tela. E `listAuthorizations` comparava
+`String(valorDate) <= hoje`, o que dá "Mon Sep 01 2026 00:00:00 GMT+0000" contra
+"2026-09-01": TODA autorização vigente aparecia como vencida.
+
+A tela: a aba "Prescrever" virou "Esquemas" e abriu para a coordenação, que não
+prescreve nem suspende, mas precisa ler quem está na grade para decidir o
+protocolo. Suspender pede a ORIENTAÇÃO que motivou (não uma opinião) e a folha
+diz, antes de confirmar, que sai da grade a partir de agora e que o já
+confirmado continua registrado. Autorizar diz duas coisas que não podem ser
+esquecidas: a autorização é da PESSOA, não do cargo, e NÃO substitui o
+protocolo da casa — as duas condições valem juntas, e o e2e guarda isso
+autorizando um educador e mostrando que ele continua recusado até o protocolo
+abrir o período.
+
+Em aberto, na ordem: `docs/o-que-falta.md` — 33 rotas que existem no servidor e
 não têm tela, separadas entre o que vale para o piloto, o que espera e o que é
 de máquina; o retorno do Marcelo por cargo; duas decisões de produto que não são
-minhas (devolver acompanhamento para correção e listar rascunho de prescrição),
-mais a pergunta menor de se o recorte por casa deve valer também para a ATA
-Geral do dia corrente; e o SMTP institucional, só na implantação.
+minhas (devolver acompanhamento para correção; o "concluí tudo até agora" na
+linha do dia, que só é seguro fora dos medicamentos; e o padrão "últimos 30
+dias" no Arquivo das ATAS, hoje preso ao mês de calendário e quase vazio todo
+dia 1º), mais a pergunta menor de se o recorte por casa deve valer também para a
+ATA Geral do dia corrente; e o SMTP institucional, só na implantação.
 
 Leia a seção 10 do documento: ela tem a entrega completa e como retomar.
 
