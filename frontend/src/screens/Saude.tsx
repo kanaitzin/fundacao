@@ -762,9 +762,9 @@ export function Saude({ houseId, casaLabel, papel }: {
                 </button>
               </div>
               <p className="mutetxt" style={{ margin: 0 }}>
-                Deixando como rascunho, ele fica gravado — mas hoje <b>nenhuma tela lista
-                rascunhos</b>. Enquanto essa lista não existir, assine agora ou cadastre de
-                novo depois.
+                Deixando como rascunho, ele fica gravado e <b>aparece no alto da lista de
+                esquemas desta aba</b>, porque é o que está esperando alguém. Enquanto não
+                for assinado, <b>não gera dose nenhuma</b>.
               </p>
             </div>
           )}
