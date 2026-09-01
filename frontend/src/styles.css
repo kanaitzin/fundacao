@@ -603,11 +603,38 @@ textarea{
   color:var(--ink-2); min-width:42px;
 }
 
+/*
+ * A TARJA DO PROTÓTIPO.
+ *
+ * Antes era uma faixa de âmbar SÓLIDO com `color:#fff` fixo. Duas coisas
+ * quebravam:
+ *
+ *  * no tema claro, um laranja queimado colado na barra azul-marinho da
+ *    instituição — duas cores fortes brigando na primeira linha da tela;
+ *  * no tema escuro o token `--amber-solid` vira um amarelo CLARO, e o branco
+ *    fixo por cima dele sumia. O aviso mais importante da tela era o texto
+ *    menos legível dela.
+ *
+ * Agora ela pertence ao sistema: fundo tênue tirado do próprio âmbar sobre a
+ * superfície do tema, tinta `--ink` (que contrasta por definição nos dois), e
+ * o peso fica no SELO, que é onde o olho precisa bater.
+ */
 .tarja{
   position:relative; z-index:5;
-  background:var(--amber-solid,#B45309); color:#fff; text-align:center;
-  font-size:12px; font-weight:700; letter-spacing:.03em; padding:6px 10px;
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  flex-wrap:wrap;
+  background:color-mix(in srgb, var(--amber) 13%, var(--surface));
+  border-bottom:1px solid color-mix(in srgb, var(--amber) 45%, var(--surface));
+  color:var(--ink); text-align:center;
+  font-size:12px; letter-spacing:.01em; padding:7px 12px;
 }
+.tarja-selo{
+  background:var(--amber-solid); color:var(--on-solid);
+  font-family:"Plus Jakarta Sans", sans-serif;
+  font-size:10.5px; font-weight:800; letter-spacing:.08em; text-transform:uppercase;
+  padding:2px 8px; border-radius:999px; white-space:nowrap;
+}
+.tarja-txt{ color:var(--ink-2) }
 
 /* Seletor de cargo — só no protótipo */
 .troca-cargo{
@@ -758,3 +785,54 @@ textarea{
   display:flex; flex-direction:column; gap:4px; align-items:flex-start;
 }
 .docdoitem .btn{ margin-top:4px; width:auto }
+
+/* ============================================================================
+   A FOLHA NA TELA — pré-visualização do documento que vai sair em Word.
+   
+   Ela imita papel de propósito: fundo claro nos DOIS temas, serifada, margens
+   largas. Quem confere precisa reconhecer a folha que sai da impressora, e um
+   documento desenhado com a cara do aplicativo não se confere — se navega.
+   O papel é o único lugar do sistema que não muda com o tema, porque impresso
+   ele também não muda.
+   ========================================================================== */
+.papel{
+  background:#FFFDF9; color:#1A1A1A;
+  border:1px solid #D9D2C7; border-radius:8px;
+  padding:22px 20px; margin-top:10px;
+  max-height:56vh; overflow:auto;
+  font-family:Georgia, "Times New Roman", serif; font-size:13.5px; line-height:1.6;
+}
+.papel-timbre{
+  text-align:center; border-bottom:1px solid #D9D2C7; padding-bottom:10px; margin-bottom:14px;
+  display:flex; flex-direction:column; gap:2px;
+}
+.papel-timbre b{ font-size:11.5px; letter-spacing:.04em; color:#1F3864 }
+.papel-timbre span{ font-size:10.5px; color:#5B6B7B }
+.papel-rascunho{
+  text-align:center; font-weight:700; color:#B45309; margin:0 0 12px;
+}
+.papel-titulo{
+  text-align:center; text-transform:uppercase; font-size:15px; margin:0 0 4px; color:#1A1A1A;
+}
+.papel-sub{ text-align:center; margin:0 0 16px; color:#4A4A4A }
+.papel-secao{
+  font-size:13.5px; margin:16px 0 6px; text-transform:uppercase; letter-spacing:.02em;
+}
+.papel-ident{ margin:0 0 3px }
+.papel-par{ margin:0 0 8px; text-align:justify; text-indent:1.25em }
+.papel-itens{ margin:0 0 8px; padding-left:20px }
+.papel-itens li{ margin-bottom:4px }
+.papel-fonte{ font-size:11.5px; color:#5B6B7B; font-style:italic; margin:4px 0 10px }
+.papel-preencher{ font-style:italic; color:#5B6B7B; margin:0 0 8px }
+.papel-linha{ border-bottom:1px solid #B9B2A6; height:14px; margin-bottom:6px }
+.papel-assina{
+  margin-top:28px; text-align:center; display:flex; flex-direction:column; gap:2px;
+}
+.papel-assina .papel-linha{ width:70%; margin:0 auto 6px }
+.papel-assina span{ font-size:12px; color:#4A4A4A }
+.papel-tabela{ width:100%; border-collapse:collapse; font-size:12px; margin-bottom:8px }
+.papel-tabela th, .papel-tabela td{
+  border:1px solid #C9C2B6; padding:5px 7px; text-align:left; vertical-align:top;
+}
+.papel-tabela th{ background:#EFEAE1; font-size:11.5px }
+.rolar{ overflow-x:auto; -webkit-overflow-scrolling:touch }

@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api';
+import { FolhaDocumento, documentoDeSaude, documentoDaGradeDaCasa } from '../documentos';
+import type { DocumentoWord } from '../docx';
+import { quemAssina } from '../quem-assina';
 
 /**
  * SAÚDE — MEDICAMENTOS E ENFERMAGEM.
@@ -216,6 +219,8 @@ export function Saude({ houseId, casaLabel, papel }: {
   const [movendo, setMovendo] = useState<{ item: Item; tipo: 'entrada' | 'contagem' } | null>(null);
   const [historico, setHistorico] = useState<
     { pessoa: { id: string; nome: string }; dados: Historico; emissoes: Emissao[] } | null>(null);
+  /* A folha de papel: o que se vê aqui é o que sai no Word. */
+  const [documento, setDocumento] = useState<DocumentoWord | null>(null);
 
   async function carregar() {
     setErro('');
@@ -332,6 +337,16 @@ export function Saude({ houseId, casaLabel, papel }: {
           <div className="notice c-crit">
             Cada dose é confirmada <b>somente por quem a administrou</b>, na conta dela.
             Ninguém confirma pelo outro, e não existe marcação em lote.
+          </div>
+          {/* A folha que fica no armário da medicação. Vem depois do resumo do
+              dia porque conferir na tela é o caminho normal; o papel é para o
+              turno que confere de porta aberta, com as mãos ocupadas. */}
+          <div className="row" style={{ justifyContent: 'flex-end' }}>
+            <button className="btn sm ghost"
+                    onClick={() => setDocumento(documentoDaGradeDaCasa(
+                      casaLabel, doses, quemAssina()))}>
+              🖨️ Grade do dia em Word
+            </button>
           </div>
           <div className="eyebrow">Doses de hoje</div>
           <ul className="doses">
@@ -780,10 +795,20 @@ export function Saude({ houseId, casaLabel, papel }: {
                      }} />
       )}
 
+      {documento && (
+        <FolhaDocumento doc={documento} onFechar={() => setDocumento(null)} />
+      )}
+
       {historico && (
         <FolhaHistorico
           pessoa={historico.pessoa} dados={historico.dados} emissoes={historico.emissoes}
           onFechar={() => setHistorico(null)}
+          /* Fecha o histórico ao abrir a folha: duas folhas empilhadas
+             deixam quem lê sem saber em qual delas está o botão. */
+          onDocumento={() => {
+            setDocumento(documentoDeSaude(historico.pessoa, historico.dados, quemAssina()));
+            setHistorico(null);
+          }}
           onBaixar={async (emissaoId) => {
             setErro('');
             try {
@@ -1051,10 +1076,10 @@ function FolhaTriagem({ evolucao, onFechar, onEnviar }: {
  *  * e a emissão do Resumo que foi gerada e nunca retirada fica marcada. O
  *    papel que ninguém pegou não chegou a lugar nenhum.
  */
-function FolhaHistorico({ pessoa, dados, emissoes, onFechar, onBaixar }: {
+function FolhaHistorico({ pessoa, dados, emissoes, onFechar, onBaixar, onDocumento }: {
   pessoa: { id: string; nome: string };
   dados: Historico; emissoes: Emissao[];
-  onFechar: () => void; onBaixar: (emissaoId: string) => void;
+  onFechar: () => void; onBaixar: (emissaoId: string) => void; onDocumento: () => void;
 }) {
   const [aba, setAba] = useState<'atendimentos' | 'evolucoes' | 'doses' | 'emissoes'>('atendimentos');
   const p = dados.pendencias;
@@ -1234,7 +1259,9 @@ function FolhaHistorico({ pessoa, dados, emissoes, onFechar, onBaixar }: {
         <p className="mutetxt" style={{ marginTop: 12 }}>{dados.aviso}</p>
 
         <div className="row rodape">
-          <button className="btn block" onClick={onFechar}>Fechar</button>
+          <button className="btn sec grow" onClick={onFechar}>Fechar</button>
+          {/* O documento que a enfermagem leva para a consulta. */}
+          <button className="btn grow" onClick={onDocumento}>Ver em folha / baixar</button>
         </div>
       </div>
     </div>

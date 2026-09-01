@@ -28,6 +28,10 @@ import { SECOES_ATA, AMBIENTES_CASA, CLASSIFICACOES_EPISODIO }
   from '../../backend/src/modules/shifts/ata-secoes';
 import { TIPOS_ROTINA, DIAS_DA_SEMANA }
   from '../../backend/src/modules/routine/rotina-vocabulario';
+import { gerarDocx, nomeDeArquivo } from './docx';
+import type { DocumentoWord, SecaoDoDocumento } from './docx';
+import { timbreEmBytes } from './timbre';
+import { ROTULO_CARGO } from './rotulos';
 import { CATEGORIAS_DOSSIE, DOSSIE_EXIGIDO, TIPOS_DE_VIVENCIA, TAMANHO_MAXIMO,
          TIPOS_DE_ARQUIVO, tituloProibido }
   from '../../backend/src/modules/people/dossie-exigido';
@@ -1015,8 +1019,164 @@ let COFRE_HIST: { personId: string; quando: string; quem: string;
   { personId: 'p01', quem: 'Carla Coordenadora (fictícia)', acao: 'cadastro',
     quando: emHoras(7, 40), finalidade: null, excepcional: false },
 ];
+/**
+ * REUNIÕES E COMBINADOS (§9.4).
+ *
+ * O que a equipe estabeleceu, escrito num lugar só. Escreve a técnica e a
+ * coordenação; lê todo mundo da casa — inclusive quem não estava na reunião,
+ * que é quem mais precisa.
+ */
+const TIPOS_REUNIAO_MOCK = [
+  { code: 'equipe', label: 'Reunião de equipe' },
+  { code: 'tecnica', label: 'Reunião técnica' },
+  { code: 'extraordinaria', label: 'Reunião extraordinária' },
+  { code: 'capacitacao', label: 'Capacitação' },
+  { code: 'supervisao', label: 'Supervisão' },
+];
+const SITUACAO_COMBINADO: Record<string, string> = {
+  vigente: 'Vigente', cumprido: 'Cumprido',
+  revogado: 'Revogado', substituido: 'Substituído por outro',
+};
+interface CombinadoMock {
+  id: string; reuniaoId: string | null; texto: string;
+  responsavel: string | null; prazo: string | null; situacao: string;
+  motivoDaSituacao: string | null; mudadoPor: string | null; mudadoEm: string | null;
+  por: string; criadoEm: string;
+  historico: { de: string; para: string; motivo: string; quem: string; quando: string }[];
+}
+interface ReuniaoMock {
+  id: string; data: string; tipo: string; titulo: string;
+  participantes: string | null; pauta: string | null; notas: string | null;
+  por: string; registradaEm: string;
+}
+const REUNIOES: ReuniaoMock[] = [
+  { id: 'rn1', data: diasAtras(3), tipo: 'equipe',
+    titulo: 'Organização das saídas para a escola',
+    participantes: 'Carla Coordenadora, Tatiane Técnica, Joana Lima, Mário Silva e a '
+      + 'Enfermagem (fictícios).',
+    pauta: 'Horários de saída, quem acompanha cada criança e o que fazer quando falta '
+      + 'gente no turno.',
+    notas: 'A escola mudou o horário da saída da tarde. A equipe combinou dois ajustes, '
+      + 'registrados abaixo, e a coordenação ficou de avisar a Enfermagem sobre o novo '
+      + 'horário da medicação da volta.',
+    por: 'Tatiane Técnica (fictícia)', registradaEm: `${diasAtras(3)}T16:40:00-03:00` },
+  { id: 'rn2', data: diasAtras(24), tipo: 'tecnica',
+    titulo: 'Revisão dos PIAs do trimestre',
+    participantes: 'Tatiane Técnica e Carla Coordenadora (fictícias).',
+    pauta: 'Prazos de revisão e o que falta de documento em cada dossiê.',
+    notas: 'Combinado que o dossiê é conferido junto com o PIA, para não descobrir '
+      + 'documento vencido na véspera da audiência.',
+    por: 'Tatiane Técnica (fictícia)', registradaEm: `${diasAtras(24)}T15:10:00-03:00` },
+];
+let COMBINADOS: CombinadoMock[] = [
+  { id: 'cb1', reuniaoId: 'rn1',
+    texto: 'A partir de segunda, a saída para a fono é com a educadora do turno da tarde, '
+      + 'e não mais com quem estiver de folga entrando mais cedo.',
+    responsavel: 'Turno da tarde', prazo: null, situacao: 'vigente',
+    motivoDaSituacao: null, mudadoPor: null, mudadoEm: null,
+    por: 'Tatiane Técnica (fictícia)', criadoEm: `${diasAtras(3)}T16:45:00-03:00`,
+    historico: [] },
+  { id: 'cb2', reuniaoId: 'rn1',
+    texto: 'Ninguém entra no quarto do Bruno sem bater e esperar resposta — inclusive na '
+      + 'ronda da noite, que passa a bater antes de abrir.',
+    responsavel: 'Todos os turnos', prazo: null, situacao: 'vigente',
+    motivoDaSituacao: null, mudadoPor: null, mudadoEm: null,
+    por: 'Carla Coordenadora (fictícia)', criadoEm: `${diasAtras(3)}T16:52:00-03:00`,
+    historico: [] },
+  { id: 'cb3', reuniaoId: 'rn2',
+    texto: 'O dossiê é conferido junto com a revisão do PIA, e o que estiver vencido entra '
+      + 'na pauta da reunião seguinte.',
+    responsavel: 'Equipe técnica', prazo: diasAtras(-45), situacao: 'vigente',
+    motivoDaSituacao: null, mudadoPor: null, mudadoEm: null,
+    por: 'Tatiane Técnica (fictícia)', criadoEm: `${diasAtras(24)}T15:20:00-03:00`,
+    historico: [] },
+  // O encerrado NÃO some: ele fica, com o motivo, porque a equipe cumpriu ele
+  // durante semanas e precisa entender por que parou.
+  { id: 'cb4', reuniaoId: 'rn2',
+    texto: 'A conferência do armário de medicação passa a ser às quintas, no fim do turno '
+      + 'da tarde.',
+    responsavel: 'Enfermagem', prazo: null, situacao: 'revogado',
+    motivoDaSituacao: 'A Enfermagem passou a vir às terças. A conferência foi para a terça, '
+      + 'e o combinado novo está registrado.',
+    mudadoPor: 'Carla Coordenadora (fictícia)', mudadoEm: `${diasAtras(10)}T11:00:00-03:00`,
+    por: 'Tatiane Técnica (fictícia)', criadoEm: `${diasAtras(24)}T15:25:00-03:00`,
+    historico: [{ de: 'Vigente', para: 'Revogado',
+      motivo: 'A Enfermagem passou a vir às terças. A conferência foi para a terça, e o '
+        + 'combinado novo está registrado.',
+      quem: 'Carla Coordenadora (fictícia)', quando: `${diasAtras(10)}T11:00:00-03:00` }] },
+];
+
 /** A reautenticação vale enquanto a página estiver aberta. */
 let cofreLiberado = false;
+
+/**
+ * BENEFÍCIOS E DADOS BANCÁRIOS (§6.10) — os campos da planilha real.
+ *
+ * A planilha "DADOS BANCÁRIOS - AI 03" tem número do benefício, operação da
+ * conta, nome da agência e a coluna PENDÊNCIA BANCÁRIA, que é o motivo de ela
+ * existir. O banco tinha as colunas desde a migração 055 e o serviço nunca as
+ * leu; aqui elas aparecem para que a demonstração mostre a casa como ela é.
+ */
+const TIPOS_BENEFICIO_MOCK = [
+  { cod: 'bpc', label: 'BPC — Benefício de Prestação Continuada' },
+  { cod: 'pensao', label: 'Pensão' },
+  { cod: 'poupanca_institucional', label: 'Poupança institucional' },
+  { cod: 'bolsa_familia', label: 'Bolsa Família / transferência de renda' },
+  { cod: 'auxilio_judicial', label: 'Valor depositado por decisão judicial' },
+  { cod: 'outro', label: 'Outro benefício ou conta' },
+];
+const SITUACOES_BENEFICIO_MOCK = [
+  { cod: 'ativo', label: 'Ativo' },
+  { cod: 'em_regularizacao', label: 'Em regularização' },
+  { cod: 'encerrado', label: 'Encerrado' },
+];
+interface BeneficioMock {
+  id: string; personId: string; tipo: string; numero: string | null;
+  banco: string | null; agencia: string | null; agenciaNome: string | null;
+  conta: string | null; operacao: string | null; situacao: string;
+  pendenciaBancaria: boolean; pendenciaNota: string | null; observacoes: string | null;
+  temAcessoGov: boolean; responsavelPeloAcesso: string | null; ondeEstaGuardado: string | null;
+  atualizadoEm: string; atualizadoPor: string | null;
+}
+const BENEFICIOS: BeneficioMock[] = [
+  { id: 'b1', personId: 'p01', tipo: 'bpc', numero: '000.000.000-0',
+    banco: 'Banco fictício', agencia: '0000', agenciaNome: 'Agência Centro (fictícia)',
+    conta: '00000-0', operacao: '013', situacao: 'ativo',
+    pendenciaBancaria: false, pendenciaNota: null,
+    observacoes: 'Saque mensal acompanhado pela coordenação, com recibo arquivado.',
+    temAcessoGov: true, responsavelPeloAcesso: 'Coordenação da Casa 03',
+    ondeEstaGuardado: 'Guardada no cofre de acessos deste sistema.',
+    atualizadoEm: emHoras(7, 50), atualizadoPor: 'Carla Coordenadora (fictícia)' },
+  // A pendência é o caso que a planilha existe para lembrar.
+  { id: 'b2', personId: 'p01', tipo: 'poupanca_institucional', numero: null,
+    banco: 'Banco fictício', agencia: '0000', agenciaNome: 'Agência Centro (fictícia)',
+    conta: '11111-1', operacao: '023', situacao: 'em_regularizacao',
+    pendenciaBancaria: true,
+    pendenciaNota: 'Conta bloqueada por falta de atualização cadastral. Atendimento agendado '
+      + 'na agência para o dia 12; levar certidão de nascimento e a guia de acolhimento.',
+    observacoes: null,
+    temAcessoGov: false, responsavelPeloAcesso: null, ondeEstaGuardado: null,
+    atualizadoEm: emHoras(8, 20), atualizadoPor: 'Carla Coordenadora (fictícia)' },
+  { id: 'b3', personId: 'p02', tipo: 'pensao', numero: '111.111.111-1',
+    banco: 'Banco fictício', agencia: '0001', agenciaNome: 'Agência Norte (fictícia)',
+    conta: '22222-2', operacao: null, situacao: 'ativo',
+    pendenciaBancaria: false, pendenciaNota: null,
+    observacoes: 'Depósito por decisão judicial; extrato conferido todo mês.',
+    temAcessoGov: false, responsavelPeloAcesso: null, ondeEstaGuardado: null,
+    atualizadoEm: emHoras(9, 5), atualizadoPor: 'Carla Coordenadora (fictícia)' },
+];
+/** Quem abriu, alterou — ou TENTOU e foi recusado. A tentativa não some. */
+let BENEFICIO_HIST: { personId: string; quando: string; quem: string;
+                      finalidade: string | null; acao: string; recusada: boolean }[] = [
+  { personId: 'p01', quem: 'Carla Coordenadora (fictícia)', acao: 'consulta',
+    quando: emHoras(9, 30), finalidade: 'Conferir a conta para o saque do BPC de setembro',
+    recusada: false },
+  { personId: 'p01', quem: 'Mário Silva (fictício)', acao: 'tentativa recusada',
+    quando: emHoras(8, 55), finalidade: null, recusada: true },
+  { personId: 'p01', quem: 'Carla Coordenadora (fictícia)', acao: 'alteração',
+    quando: emHoras(8, 20), finalidade: 'Registro da pendência informada pelo banco',
+    recusada: false },
+];
 
 /**
  * TRANSFERÊNCIAS (§15.6). Duas caixas: o que chegou de outras unidades e o
@@ -1121,6 +1281,106 @@ let RELATORIOS: Relatorio[] = [
     situacao: 'aprovado', finalidade: 'Planejamento do cardápio da cozinha.',
     autor: 'Tatiane Técnica (fictícia)', entregas: [] },
 ];
+
+/**
+ * O RELATÓRIO COMO DOCUMENTO — a folha que sai daqui e vai para fora.
+ *
+ * O que o sistema sabe escrever sozinho, ele escreve, e diz de ONDE tirou. O
+ * que só uma pessoa pode escrever — avaliação técnica, encaminhamento,
+ * parecer — sai em branco e marcado "a preencher". Um relatório que chegasse
+ * preenchido pelo sistema seria decisão automática sobre a vida de uma
+ * criança, que é a coisa que este projeto mais recusa.
+ */
+function documentoDoRelatorio(
+  r: Relatorio, crianca: ReturnType<typeof kid> | null, finalidade: string, rascunho: boolean,
+): DocumentoWord {
+  const secoes: SecaoDoDocumento[] = [];
+
+  if (crianca) {
+    const doses = DOSES.filter((d) => d.personId === crianca.id);
+    const atend = ATENDIMENTOS.filter((a) => a.personId === crianca.id);
+    const acomp = ACOMPANHAMENTOS
+      .filter((a) => a.personId === crianca.id && a.situacao === 'aprovado');
+
+    secoes.push({
+      titulo: 'Saúde no período',
+      paragrafos: atend.length
+        ? []
+        : ['Não há atendimento de saúde registrado para o acolhido no período.'],
+      tabela: atend.length ? {
+        cabecalho: ['Data', 'Atendimento', 'Serviço', 'Situação'],
+        linhas: atend.map((a) => [
+          String(a.quando).slice(8, 10) + '/' + String(a.quando).slice(5, 7),
+          a.tipo, a.local ?? '—',
+          a.status === 'retorno_pendente'
+            ? `Retorno em ${a.retornoEm ?? '—'}` : 'Concluído',
+        ]),
+      } : undefined,
+      procedencia: 'atendimentos e evoluções registrados no módulo de Enfermagem.',
+    });
+
+    secoes.push({
+      titulo: 'Medicação',
+      paragrafos: doses.length
+        ? [`No período constam ${doses.length} dose(s) previstas na grade da casa, `
+           + `das quais ${doses.filter((d) => !d.pendente).length} com confirmação `
+           + 'registrada por quem administrou.']
+        : ['O acolhido não tem medicação prevista na grade da casa.'],
+      procedencia: 'grade de medicamentos; cada dose é confirmada por quem a administrou.',
+    });
+
+    if (acomp.length) {
+      secoes.push({
+        titulo: 'Acompanhamento aprovado',
+        itens: acomp.flatMap((a) => Object.entries(a.eixos ?? {})
+          .map(([eixo, texto]) => `${eixo}: ${texto}`)),
+        procedencia: 'acompanhamentos com aprovação de segunda pessoa.',
+      });
+    }
+  } else {
+    const ocorr = OCORRENCIAS.length;
+    secoes.push({
+      titulo: 'Movimento da unidade no período',
+      itens: [
+        `${todosKids().length} acolhidos na unidade ao fim do período.`,
+        `${ocorr} ocorrência(s) registrada(s), com etapa operacional encerrada `
+        + 'ou em revisão técnica.',
+        `${DOSES.length} dose(s) na grade de medicamentos do dia de referência.`,
+      ],
+      procedencia: 'registros operacionais da unidade no período informado.',
+    });
+  }
+
+  secoes.push({
+    titulo: 'Avaliação técnica',
+    aPreencher: 'escrito por quem assina o documento; o sistema não avalia',
+  });
+  secoes.push({
+    titulo: 'Encaminhamentos',
+    aPreencher: 'o que a equipe propõe, e para quem',
+  });
+
+  return {
+    titulo: `Relatório ${r.tipo}`,
+    subtitulo: `Período de referência: ${r.periodo}`,
+    identificacao: [
+      ...(crianca
+        ? [{ rotulo: 'Acolhido', valor: `${crianca.nome} (${crianca.idade} anos)` }]
+        : [{ rotulo: 'Abrangência', valor: 'Unidade — todos os acolhidos' }]),
+      { rotulo: 'Unidade', valor: 'AI3 — Casa 03 (piloto)' },
+      { rotulo: 'Período', valor: r.periodo },
+      { rotulo: 'Finalidade declarada', valor: finalidade },
+      { rotulo: 'Situação do documento', valor: rascunho ? 'Rascunho — sem aprovação' : 'Aprovado' },
+    ],
+    secoes,
+    rascunho,
+    geradoPor: eu.fullName,
+    cargo: ROTULO_CARGO[eu.role] ?? eu.role,
+    ressalva: 'Documento gerado pelo protótipo do Rede Acolher com DADOS FICTÍCIOS, para '
+      + 'demonstração. A parte factual é escrita pelo sistema a partir dos registros; a '
+      + 'avaliação e os encaminhamentos são escritos por pessoas.',
+  };
+}
 
 /**
  * ARQUIVO DOCUMENTAL (Drive institucional).
@@ -3960,7 +4220,254 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
   // (/people/:id/credentials/*), não uma lista da casa. Uma lista única com as
   // senhas de vinte crianças é a planilha solta de novo.
 
+  // ---- alinhamentos: reuniões e combinados (§9.4)
+  //
+  // Ler é de todo mundo com alcance na casa. Escrever é da equipe técnica e da
+  // coordenação — e o servidor recusa de novo por baixo, na policy.
+
+  if (rota === '/alignments/kinds' && metodo === 'GET') {
+    return {
+      tipos: TIPOS_REUNIAO_MOCK,
+      aviso: 'A reunião e os combinados são escritos pela equipe técnica e pela coordenação, '
+        + 'e lidos por todo mundo da casa — inclusive por quem não estava na reunião, que é '
+        + 'justamente quem mais precisa deles.',
+    };
+  }
+
+  if (seg[0] === 'alignments' && seg.length === 1 && metodo === 'GET') {
+    const escreve = ['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role);
+    const comRotulo = (c: CombinadoMock) => ({
+      ...c, situacaoRotulo: SITUACAO_COMBINADO[c.situacao] ?? c.situacao,
+    });
+    const todos = [...COMBINADOS]
+      .sort((a, b2) => (Number(b2.situacao === 'vigente') - Number(a.situacao === 'vigente'))
+        || (a.criadoEm < b2.criadoEm ? 1 : -1))
+      .map(comRotulo);
+    const vigentes = todos.filter((c) => c.situacao === 'vigente');
+    return {
+      reunioes: REUNIOES.map((r) => ({
+        ...r,
+        tipoRotulo: TIPOS_REUNIAO_MOCK.find((t) => t.code === r.tipo)?.label ?? r.tipo,
+        combinados: todos.filter((c) => c.reuniaoId === r.id),
+      })),
+      combinados: todos,
+      ultimo: vigentes[0] ?? null,
+      vigentes: vigentes.length,
+      podeEscrever: escreve,
+      aviso: escreve
+        ? 'O texto de um combinado não se reescreve. Mudou de ideia? Registre outro, dizendo '
+          + 'que substitui o anterior — é assim que a equipe muda de acordo sem apagar o que '
+          + 'todo mundo cumpriu até ontem.'
+        : 'Aqui está o que a equipe combinou. Quem registra é a equipe técnica e a '
+          + 'coordenação; ler é de todo mundo da casa, e é para isso que existe.',
+    };
+  }
+
+  if (seg[0] === 'alignments' && seg[1] === 'meetings' && metodo === 'POST') {
+    if (!['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403,
+        'Registrar reunião é da equipe técnica e da coordenação. Ler é de todo mundo da casa.');
+    }
+    if (String(b.titulo ?? '').trim().length < 4) {
+      return new Recusa(400, 'Dê um assunto à reunião — é como ela vai ser achada depois.');
+    }
+    for (const c of (b.combinados ?? []) as any[]) {
+      if (String(c.texto ?? '').trim().length < 10) {
+        return new Recusa(400,
+          'Cada combinado precisa estar escrito por inteiro. Uma linha de três palavras não '
+          + 'diz a quem não estava na reunião o que foi que ficou acertado.');
+      }
+    }
+    const id = uid();
+    REUNIOES.unshift({
+      id, data: String(b.data), tipo: String(b.tipo ?? 'equipe'),
+      titulo: String(b.titulo).trim(),
+      participantes: (b.participantes as string) ?? null,
+      pauta: (b.pauta as string) ?? null, notas: (b.notas as string) ?? null,
+      por: eu.fullName, registradaEm: new Date().toISOString(),
+    });
+    for (const c of (b.combinados ?? []) as any[]) {
+      COMBINADOS.unshift({
+        id: uid(), reuniaoId: id, texto: String(c.texto).trim(),
+        responsavel: c.responsavel ?? null, prazo: c.prazo ?? null, situacao: 'vigente',
+        motivoDaSituacao: null, mudadoPor: null, mudadoEm: null,
+        por: eu.fullName, criadoEm: new Date().toISOString(), historico: [],
+      });
+    }
+    return { id, ok: true,
+      aviso: 'Reunião registrada. Os combinados já aparecem para todo mundo da casa — '
+        + 'inclusive para quem não estava.' };
+  }
+
+  if (seg[0] === 'alignments' && seg[1] === 'agreements' && seg.length === 2
+      && metodo === 'POST') {
+    if (!['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403, 'Registrar combinado é da equipe técnica e da coordenação.');
+    }
+    if (String(b.texto ?? '').trim().length < 10) {
+      return new Recusa(400, 'Escreva o combinado por inteiro. Quem lê não estava na conversa.');
+    }
+    const id = uid();
+    COMBINADOS.unshift({
+      id, reuniaoId: (b.reuniaoId as string) ?? null, texto: String(b.texto).trim(),
+      responsavel: (b.responsavel as string) ?? null, prazo: (b.prazo as string) ?? null,
+      situacao: 'vigente', motivoDaSituacao: null, mudadoPor: null, mudadoEm: null,
+      por: eu.fullName, criadoEm: new Date().toISOString(), historico: [],
+    });
+    return { id, ok: true, aviso: 'Combinado registrado e visível para a casa.' };
+  }
+
+  if (seg[0] === 'alignments' && seg[1] === 'agreements' && seg[3] === 'status'
+      && metodo === 'POST') {
+    if (!['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403, 'Mudar um combinado é da equipe técnica e da coordenação.');
+    }
+    const c = COMBINADOS.find((x) => x.id === seg[2]);
+    if (!c) return new Recusa(404, 'Combinado não encontrado.');
+    if (c.situacao !== 'vigente') {
+      return new Recusa(400,
+        'Este combinado já não está vigente. Registre um novo em vez de mexer neste.');
+    }
+    const motivo = String(b.motivo ?? '').trim();
+    if (motivo.length < 5) {
+      return new Recusa(400,
+        'Escreva por que este combinado mudou. Um combinado que some sem explicação deixa a '
+        + 'equipe cumprindo o que já foi desfeito.');
+    }
+    const situacao = String(b.situacao ?? '');
+    if (!['cumprido', 'revogado', 'substituido'].includes(situacao)) {
+      return new Recusa(400, 'Situação inválida.');
+    }
+    // O texto não muda: muda a SITUAÇÃO, e a mudança fica registrada ao lado.
+    c.historico = [{ de: SITUACAO_COMBINADO[c.situacao], para: SITUACAO_COMBINADO[situacao],
+      motivo, quem: eu.fullName, quando: new Date().toISOString() }, ...c.historico];
+    c.situacao = situacao; c.motivoDaSituacao = motivo;
+    c.mudadoPor = eu.fullName; c.mudadoEm = new Date().toISOString();
+    return { ok: true, situacao, rotulo: SITUACAO_COMBINADO[situacao] };
+  }
+
   if (rota === '/people/credentials/kinds' && metodo === 'GET') return TIPOS_CREDENCIAL;
+
+  // ---- benefícios e dados bancários (§6.10): a outra metade da mesma porta
+  //
+  // Três rotas que o servidor serve com RLS, reautenticação e log por
+  // visualização, e que não tinham tela. Aqui valem as mesmas fricções: a
+  // consulta pede finalidade, a alteração também, e a tentativa de quem não
+  // pode fica escrita.
+
+  if (rota === '/people/benefits/kinds' && metodo === 'GET') {
+    return {
+      tipos: TIPOS_BENEFICIO_MOCK, situacoes: SITUACOES_BENEFICIO_MOCK,
+      aviso: 'Esta área exige a sua senha de novo e registra cada visualização, alteração e '
+        + 'exportação, com a finalidade que você declarar. Nada daqui aparece em linha do '
+        + 'tempo, ATA, notificação, relatório geral ou busca.',
+    };
+  }
+
+  if (seg[0] === 'people' && seg[2] === 'benefits' && seg[3] === 'view' && metodo === 'POST') {
+    if (!['coordenador', 'gestor_geral'].includes(eu.role)) {
+      // A recusa fica registrada: quem responde pela criança precisa saber que
+      // alguém tentou abrir a conta dela.
+      BENEFICIO_HIST = [{ personId: seg[1], quem: eu.fullName, acao: 'tentativa recusada',
+        quando: new Date().toISOString(), finalidade: null, recusada: true }, ...BENEFICIO_HIST];
+      return new Recusa(403,
+        'Somente a coordenação da casa atual e o Gestor Geral acessam esta área.');
+    }
+    if (!cofreLiberado) {
+      return new Recusa(403, 'Confirme sua senha para acessar benefícios e dados bancários.');
+    }
+    const finalidade = String(b.finalidade ?? '').trim();
+    if (finalidade.length < 5) return new Recusa(400, 'Informe a finalidade do acesso.');
+    BENEFICIO_HIST = [{ personId: seg[1], quem: eu.fullName, acao: 'consulta',
+      quando: new Date().toISOString(), finalidade, recusada: false }, ...BENEFICIO_HIST];
+    const registros = BENEFICIOS.filter((x) => x.personId === seg[1])
+      .sort((a, x) => Number(x.pendenciaBancaria) - Number(a.pendenciaBancaria))
+      .map((x) => ({
+        ...x,
+        tipoRotulo: TIPOS_BENEFICIO_MOCK.find((t) => t.cod === x.tipo)?.label ?? x.tipo,
+        situacaoRotulo: SITUACOES_BENEFICIO_MOCK.find((s) => s.cod === x.situacao)?.label
+          ?? x.situacao,
+      }));
+    return {
+      registros, pendencias: registros.filter((r) => r.pendenciaBancaria).length,
+      ultimoAcesso: null,
+      aviso: 'Cada visualização, edição, impressão e exportação desta área é registrada.',
+    };
+  }
+
+  if (seg[0] === 'people' && seg[2] === 'benefits' && seg[3] === 'history' && metodo === 'POST') {
+    if (!['coordenador', 'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403,
+        'Somente a coordenação da casa atual e o Gestor Geral acessam esta área.');
+    }
+    return BENEFICIO_HIST.filter((h) => h.personId === seg[1]);
+  }
+
+  if (seg[0] === 'people' && seg[2] === 'benefits' && seg[3] === 'export' && metodo === 'POST') {
+    if (!['coordenador', 'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403, 'Sem permissão para exportar esta área.');
+    }
+    const finalidade = String(b.finalidade ?? '').trim();
+    if (finalidade.length < 5) return new Recusa(400, 'Informe a finalidade da exportação.');
+    BENEFICIO_HIST = [{ personId: seg[1], quem: eu.fullName, acao: 'exportação',
+      quando: new Date().toISOString(), finalidade, recusada: false }, ...BENEFICIO_HIST];
+    return { ok: true, formato: 'pdf',
+      aviso: 'Exportação registrada em auditoria com finalidade declarada.' };
+  }
+
+  if (seg[0] === 'people' && seg[2] === 'benefits' && seg.length === 3 && metodo === 'POST') {
+    if (!['coordenador', 'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403, 'Sem permissão para editar benefícios.');
+    }
+    if (!cofreLiberado) {
+      return new Recusa(403, 'Confirme sua senha para acessar benefícios e dados bancários.');
+    }
+    const finalidade = String(b.finalidade ?? '').trim();
+    if (finalidade.length < 5) return new Recusa(400, 'Informe a finalidade da alteração.');
+    if (!TIPOS_BENEFICIO_MOCK.some((t) => t.cod === b.tipo)) {
+      return new Recusa(400,
+        `Escolha o tipo do benefício: ${TIPOS_BENEFICIO_MOCK.map((t) => t.label).join(', ')}.`);
+    }
+    if (b.pendenciaBancaria && !String(b.pendenciaNota ?? '').trim()) {
+      return new Recusa(400,
+        'Escreva qual é a pendência bancária. "Pendente" sozinho não diz a ninguém o que '
+        + 'falta fazer — e é justamente isso que precisa passar de uma coordenação para a '
+        + 'próxima.');
+    }
+    // O CHECK da migração 055, em forma de frase: senha não entra aqui.
+    const comCaraDeSenha = /(senha|password|passwd)\s*[:=]/i;
+    for (const campo of ['observacoes', 'pendenciaNota', 'ondeEstaGuardado']) {
+      const valor = String((b as Record<string, unknown>)[campo] ?? '');
+      if (valor && comCaraDeSenha.test(valor)) {
+        return new Recusa(400,
+          `O campo "${campo}" parece conter uma senha. A senha tem lugar próprio e cifrado no `
+          + 'cofre de acessos; aqui fica só ONDE ela está guardada e quem responde por ela.');
+      }
+    }
+    const campos = {
+      tipo: String(b.tipo), numero: (b.numero as string) ?? null,
+      banco: (b.banco as string) ?? null, agencia: (b.agencia as string) ?? null,
+      agenciaNome: (b.agenciaNome as string) ?? null, conta: (b.conta as string) ?? null,
+      operacao: (b.operacao as string) ?? null, situacao: String(b.situacao ?? 'ativo'),
+      pendenciaBancaria: !!b.pendenciaBancaria,
+      pendenciaNota: (b.pendenciaNota as string) ?? null,
+      observacoes: (b.observacoes as string) ?? null,
+      temAcessoGov: !!b.temAcessoGov,
+      responsavelPeloAcesso: (b.responsavelPeloAcesso as string) ?? null,
+      ondeEstaGuardado: (b.ondeEstaGuardado as string) ?? null,
+      atualizadoEm: new Date().toISOString(), atualizadoPor: eu.fullName,
+    };
+    const existente = b.id ? BENEFICIOS.find((x) => x.id === b.id && x.personId === seg[1]) : null;
+    if (b.id && !existente) {
+      return new Recusa(404, 'Registro de benefício não encontrado para este acolhido.');
+    }
+    if (existente) Object.assign(existente, campos);
+    else BENEFICIOS.push({ id: uid(), personId: seg[1], ...campos });
+    BENEFICIO_HIST = [{ personId: seg[1], quem: eu.fullName,
+      acao: existente ? 'alteração' : 'cadastro',
+      quando: new Date().toISOString(), finalidade, recusada: false }, ...BENEFICIO_HIST];
+    return { ok: true, id: existente?.id ?? BENEFICIOS[BENEFICIOS.length - 1].id };
+  }
 
   /** Reautenticação: o campo é `password`, e a sessão aberta não basta. */
   if (rota === '/auth/reauth' && metodo === 'POST') {
@@ -4330,45 +4837,54 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     }));
   }
   /*
-   * Exportação em Word no protótipo.
+   * EXPORTAÇÃO EM WORD, DE VERDADE, NO PROTÓTIPO.
    *
-   * O documento de verdade é montado no servidor, com o timbre da Fundação e o
-   * conteúdo puxado dos registros. Aqui não há servidor, então o protótipo
-   * entrega um arquivo de texto que explica isso e mostra o que o documento
-   * real traz. Fingir um .docx com timbre daria a impressão de que a parte
-   * mais delicada já está pronta e conferida, e ela precisa ser conferida
-   * contra o banco, não contra uma tela.
+   * Antes daqui saía um .txt explicando que "no sistema real isto vem em
+   * Word". Era verdade — o servidor gera .docx com timbre desde a fase 7 —,
+   * mas quem testa clica em baixar, abre um bloco de notas e conclui, com toda
+   * a razão, que o relatório não existe. A parte mais visível da entrega
+   * parecia a menos pronta.
+   *
+   * Agora o protótipo monta o documento no navegador (`docx.ts`), com o timbre
+   * do Pão dos Pobres e a folha na ABNT. O CONTEÚDO continua fictício e a
+   * primeira folha diz isso — o que muda é que a forma do documento é a de
+   * verdade, e é a forma que precisa ser conferida por quem assina.
    */
+  /**
+   * `POST /reports/:id/preview` — a folha ANTES de baixar.
+   *
+   * Devolve a ESTRUTURA do documento, não o arquivo: a tela desenha a mesma
+   * folha que o Word vai imprimir, e quem confere confere de verdade, sem
+   * baixar, achar na pasta e abrir o Word. Baixar continua sendo outro ato, com
+   * finalidade declarada e registro próprio — a pré-visualização não substitui
+   * nem dispensa isso.
+   */
+  if (seg[0] === 'reports' && seg[2] === 'preview' && metodo === 'POST') {
+    const r = RELATORIOS.find((x) => x.id === seg[1]);
+    if (!r) return new Recusa(404, 'Relatório não encontrado.');
+    return documentoDoRelatorio(
+      r, r.personId ? kid(r.personId) : null,
+      r.finalidade, r.situacao !== 'aprovado');
+  }
+
   if (seg[0] === 'reports' && seg[2] === 'export') {
     const r = RELATORIOS.find((x) => x.id === seg[1]);
-    const texto = [
-      'PROTÓTIPO — DOCUMENTO DE MENTIRA, DADOS FICTÍCIOS',
-      '',
-      `Relatório: ${r?.tipo ?? '—'}`,
-      `Período: ${r?.periodo ?? '—'}`,
-      `Finalidade informada: ${String(b.finalidade ?? '')}`,
-      '',
-      'No sistema real este download é um arquivo do Word (.docx) com:',
-      '  · o timbre da Fundação O Pão dos Pobres no cabeçalho;',
-      '  · identificação do acolhido, unidade, período e finalidade;',
-      '  · a parte factual já escrita pelo sistema (atividades, saúde,',
-      '    medicação, ocorrências e acompanhamentos aprovados), cada seção',
-      '    dizendo de onde a informação veio;',
-      '  · os campos de avaliação e encaminhamento em branco, marcados como',
-      '    "a preencher", porque são o que só uma pessoa pode escrever;',
-      '  · tarja de RASCUNHO enquanto não houver aprovação de outra pessoa;',
-      '  · rodapé com quem gerou, quando, e a numeração das páginas;',
-      '  · linha de assinatura com nome e cargo.',
-      '',
-      'O arquivo sai em Word para a equipe editar. A conversão para PDF é feita',
-      'pela própria pessoa, na hora de imprimir ou enviar.',
-    ].join('\n');
+    if (!r) return new Recusa(404, 'Relatório não encontrado.');
+    const finalidade = String(b.finalidade ?? '').trim();
+    if (!finalidade) return new Recusa(400, 'Informe a finalidade da exportação.');
+    const crianca = r.personId ? kid(r.personId) : null;
+    const rascunho = r.situacao !== 'aprovado';
+
+    const doc = documentoDoRelatorio(r, crianca, finalidade, rascunho);
     return {
       formato: 'docx',
-      nomeArquivo: 'PROTOTIPO-relatorio-exemplo.txt',
-      conteudoBase64: btoa(unescape(encodeURIComponent(texto))),
-      aviso: 'Protótipo: o documento com timbre é gerado pelo servidor. '
-           + 'Aqui vai um arquivo de exemplo explicando o que ele contém.',
+      nomeArquivo: nomeDeArquivo(`relatorio-${r.tipo}-${r.periodo}`),
+      conteudoBase64: gerarDocx(doc, timbreEmBytes()),
+      aviso: rascunho
+        ? 'Documento gerado em Word, com o timbre e marcado como RASCUNHO na primeira '
+          + 'folha — ele ainda não foi aprovado por outra pessoa.'
+        : 'Documento gerado em Word, com o timbre. A exportação ficou registrada com o seu '
+          + 'nome e a finalidade que você declarou.',
     };
   }
   if (seg[0] === 'reports' && seg[2] === 'approve') {

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { ROTULO_CARGO } from './rotulos';
 import { api, setToken } from './api';
 import logo from './assets/logo.png';
+import { definirQuemAssina } from './quem-assina';
 import { Login } from './screens/Login';
 import { PrimeiroAcesso } from './screens/PrimeiroAcesso';
 import { SenhaPessoal } from './screens/SenhaPessoal';
@@ -19,6 +20,7 @@ import { Ata } from './screens/Ata';
 import { Cofre } from './screens/Cofre';
 import { Transferencias } from './screens/Transferencias';
 import { Acompanhamentos } from './screens/Acompanhamentos';
+import { Alinhamentos } from './screens/Alinhamentos';
 import { Arquivo } from './screens/Arquivo';
 import { Rotina } from './screens/Rotina';
 import { Setores } from './screens/Setores';
@@ -42,7 +44,7 @@ const KIND_TONE: Record<string, string> = { casa_lar: 'c-move', abrigo_instituci
 /** As telas que não são do turno; a aba "Mais" fica acesa quando uma delas está aberta. */
 const OUTRAS = new Set(['agenda', 'equipe', 'casas', 'saude', 'ocorrencias', 'ata',
   'cofre', 'transferencias', 'acompanhamentos', 'arquivo', 'setores', 'unidades', 'plantao',
-  'rotina']);
+  'rotina', 'alinhamentos']);
 /* O sino é de todo mundo: não há cargo que não receba escalonamento. */
 
 
@@ -75,7 +77,12 @@ const alcanca = (papel: string, area: string) => ALCANCE.get(papel)?.has(area) ?
  */
 function Tarja() {
   if (import.meta.env.VITE_PROTOTIPO !== '1') return null;
-  return <div className="tarja">Protótipo · dados fictícios · nada é salvo ao fechar</div>;
+  return (
+    <div className="tarja">
+      <span className="tarja-selo">Protótipo</span>
+      <span className="tarja-txt">dados fictícios · nada é salvo ao fechar</span>
+    </div>
+  );
 }
 
 /**
@@ -121,6 +128,7 @@ export function App() {
     'dia' | 'chamada' | 'passagem' | 'acolhidos' | 'agenda' | 'casas' | 'equipe'
     | 'saude' | 'ocorrencias' | 'ata' | 'cofre' | 'transferencias'
     | 'acompanhamentos' | 'arquivo' | 'plantao' | 'unidades' | 'setores' | 'cozinha'
+    | 'alinhamentos'
     | 'rotina' | 'avisos'>('dia');
   const [sugerirSenha, setSugerirSenha] = useState(false);
   const [trocarSenha, setTrocarSenha] = useState(false);
@@ -165,6 +173,7 @@ export function App() {
       setToken(res.token);
       const eu = await api<Me>('/users/me');
       setMe(eu);
+      definirQuemAssina(eu.fullName, eu.role);
       setHouses(await api<House[]>('/houses'));
       // Quem trabalha no plantão abre no DIA. É a tela que ele veio usar; a
       // lista de unidades é consulta, não trabalho. Quem não alcança o Dia —
@@ -185,6 +194,7 @@ export function App() {
       setToken(t);
       const eu = await api<Me>('/users/me');
       setMe(eu);
+      definirQuemAssina(eu.fullName, eu.role);
       setHouses(await api<House[]>('/houses'));
       setAba(alcanca(eu.role, 'dia') ? 'dia' : (alcanca(eu.role, 'cozinha') ? 'cozinha' : 'casas'));
     } catch (e) {
@@ -236,7 +246,8 @@ export function App() {
     { aba: 'passagem', icone: '🔁', label: 'Passagem' },
   ].filter((t) => ve(t.aba));
   const doMais = ['unidades', 'plantao', 'agenda', 'equipe', 'setores', 'ocorrencias',
-    'ata', 'saude', 'acompanhamentos', 'arquivo', 'transferencias', 'cofre', 'casas']
+    'ata', 'saude', 'alinhamentos', 'acompanhamentos', 'arquivo', 'transferencias',
+    'cofre', 'casas']
     .filter((a) => ve(a));
   const temMais = doMais.length > 0;
 
@@ -300,6 +311,7 @@ export function App() {
       */}
       <TrocaCargo cargoAtual={me.role} onChange={(role) => {
         setMe({ ...me, role });
+        definirQuemAssina(me.fullName, role);
         // No protótipo o servidor de mentira precisa saber do mesmo cargo, senão
         // as áreas restritas respondem pelo cargo do login, e não pelo escolhido.
         if (import.meta.env.VITE_PROTOTIPO === '1') {
@@ -406,7 +418,10 @@ export function App() {
             quem registra, e quem conduz o turno é quem fecha. */}
         {abaEfetiva === 'ocorrencias' && ve('ocorrencias') && casaAtual && <Ocorrencias houseId={casaAtual.id} papel={me.role} />}
 
-        {abaEfetiva === 'ata' && ve('ata') && casaAtual && <Ata houseId={casaAtual.id} papel={me.role} />}
+        {abaEfetiva === 'ata' && ve('ata') && casaAtual && (
+          <Ata houseId={casaAtual.id} papel={me.role}
+               casaLabel={`${casaAtual.code} — ${casaAtual.name}`} />
+        )}
 
         {abaEfetiva === 'cofre' && veCofre && casaAtual && (
           <Cofre houseId={casaAtual.id} papel={me.role} />
@@ -416,7 +431,15 @@ export function App() {
           <Transferencias houseId={casaAtual.id} />
         )}
 
-        {abaEfetiva === 'acompanhamentos' && veAcompanhamentos && <Acompanhamentos />}
+        {abaEfetiva === 'alinhamentos' && ve('alinhamentos') && casaAtual && (
+          <Alinhamentos houseId={casaAtual.id}
+                        casaLabel={`${casaAtual.code} — ${casaAtual.name}`} />
+        )}
+
+        {abaEfetiva === 'acompanhamentos' && veAcompanhamentos && casaAtual && (
+          <Acompanhamentos houseId={casaAtual.id}
+                           casaLabel={`${casaAtual.code} — ${casaAtual.name}`} />
+        )}
 
         {abaEfetiva === 'arquivo' && veArquivo && casaAtual && (
           <Arquivo houseId={casaAtual.id} papel={me.role} />
@@ -543,6 +566,26 @@ export function App() {
                   <div className="grow" style={{ textAlign: 'left' }}>
                     <b className="ff">Saúde</b>
                     <div className="mutetxt">Doses do dia, estoque, triagem e resumo de saúde.</div>
+                  </div>
+                </button>
+              )}
+              {/*
+                * OS COMBINADOS TÊM PORTA PRÓPRIA.
+                *
+                * Eles também vivem numa aba dentro de Acompanhamentos, onde a
+                * técnica e a coordenação trabalham. Mas quem mais precisa do
+                * combinado é o educador do turno da noite — e ele não alcança
+                * Acompanhamentos. Um combinado que a equipe do turno não pode
+                * abrir não é combinado: é recado que ninguém recebeu.
+                */}
+              {ve('alinhamentos') && (
+                <button className="card row" onClick={() => { setAba('alinhamentos'); setMais(false); }}>
+                  <span aria-hidden="true">🤝</span>
+                  <div className="grow" style={{ textAlign: 'left' }}>
+                    <b className="ff">Combinados da equipe</b>
+                    <div className="mutetxt">
+                      O que ficou estabelecido nas reuniões, e o que está valendo agora.
+                    </div>
                   </div>
                 </button>
               )}

@@ -1,7 +1,7 @@
 # O que falta da ideia original
 
 Levantamento de 31/08/2026, feito por leitura cruzada entre as rotas que o
-servidor serve e as chamadas que as telas fazem. Sobram **29 rotas que existem,
+servidor serve e as chamadas que as telas fazem. Sobram **26 rotas que existem,
 têm regra, têm RLS e auditoria — e não têm porta**.
 
 *Atualizado no mesmo dia: saíram desta lista o **Arquivo das ATAS** (decisão 2,
@@ -99,6 +99,30 @@ como pendência. As emissões vêm junto porque respondem à mesma pergunta — 
 Resumo gerado e nunca retirado não chegou a lugar nenhum, e continua na lista até
 alguém dizer que levou.*
 
+*E os **benefícios e dados bancários** (§6.10): três rotas com RLS,
+reautenticação e log por visualização, sem tela — enquanto a planilha "DADOS
+BANCÁRIOS - AI 03" seguia aberta numa pasta compartilhada. Entraram na mesma
+tela do Cofre, atrás da mesma senha, porque é a mesma área e a mesma regra. Ao
+construir apareceu um buraco maior: a **migração 055 acrescentou as colunas que
+a planilha real usa** — número do benefício, operação da conta, nome da agência
+e a PENDÊNCIA BANCÁRIA, que é o motivo de a planilha existir — **e o serviço
+nunca as leu nem as gravou**. O sistema tinha as colunas e continuava sem
+responder "o que falta resolver no banco desta criança?". Agora a pendência vem
+primeiro na lista e exige uma linha dizendo QUAL é; senha em campo de texto é
+recusada com uma frase; e o histórico de acessos — que o cofre tinha e os
+benefícios não — mostra quem abriu, quando, para quê, **e quem tentou e foi
+recusado** (migração 0830).*
+
+*E os **alinhamentos de equipe** (§9.4, partição nova `alignments`, migração
+0840), a pedido do Marcelo: reuniões e combinados escritos num lugar só. Escreve
+a equipe técnica e a coordenação; LÊ todo mundo com alcance na casa — e por isso
+os combinados têm porta própria no menu, e não só a aba dentro de
+Acompanhamentos: quem mais precisa do combinado é o educador da noite, que não
+alcança Acompanhamentos. O texto de um combinado é imutável (o banco recusa);
+o que muda é a situação, com motivo escrito e histórico próprio; e o encerrado
+não some da lista, porque "mas ficou combinado que..." é uma discussão que só o
+registro encerra.*
+
 *E uma correção ao próprio levantamento: eu havia escrito que faltava "anexar
 documento ao arquivo". `POST /archive` não recebe arquivo — ele enfileira a
 CÓPIA DOCUMENTAL de algo que já existe no sistema. O que faltava era pior e
@@ -129,9 +153,6 @@ tem porta. O que sobra abaixo é de coordenação, de gestão e de máquina.
 
 Coisas de coordenação e de gestão, não de plantão. Nenhuma delas trava a casa.
 
-- **Benefícios do acolhido** — `POST /people/:id/benefits`, `/benefits/view`,
-  `/benefits/export`. Mesma regra do cofre: reautenticação e registro por
-  visualização.
 - **Relatórios consolidados** — `GET /reports/panel`, `/reports/house-monthly`,
   `POST /reports/:id/submit`, `GET /reports/:id/delivery`, e as fontes do
   acompanhamento (`POST /followups/:id/sources`).

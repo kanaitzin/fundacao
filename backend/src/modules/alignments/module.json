@@ -1,0 +1,9 @@
+{
+  "name": "alignments",
+  "descricao": "Reuniões de equipe e combinados da casa (§9.4): o que ficou estabelecido, escrito num lugar só e legível por todo mundo do turno.",
+  "depends": ["identity"],
+  "publica": ["AlignmentsModule", "AlignmentsService"],
+  "tabelas": ["team_meeting", "team_agreement", "agreement_change"],
+  "removivel": true,
+  "observacao": "Sem ele a casa não perde nenhum fluxo operacional: os combinados voltam a viver no papel da reunião e na memória de quem estava lá — que é exatamente o problema que ele resolve."
+}

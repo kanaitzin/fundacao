@@ -865,11 +865,11 @@ responder e não me peça para reexplicar o que está lá.
 
 === ESTADO ATUAL ===
 
-Fases 0 a 37 concluídas. 350 testes passando em 32 suítes, sem falha conhecida
+Fases 0 a 39 concluídas. 373 testes passando em 34 suítes, sem falha conhecida
 — a suíte rodou cinco vezes seguidas entre 21h44 e 23h30 de Porto Alegre, que
 já é depois das 21h E depois da virada do dia em UTC (01/09 no banco, 31/08 na
 casa): a contaminação de data que a regra procura estava valendo em todas as
-rodadas, e foi a segunda delas que encontrou duas suítes instáveis (abaixo). Backend NestJS + PostgreSQL 16 com RLS, 16
+rodadas, e foi a segunda delas que encontrou duas suítes instáveis (abaixo). Backend NestJS + PostgreSQL 16 com RLS, 17
 partições. Frontend React PWA com 21 telas, todas falando as rotas reais do
 servidor. A ATA agora tem arquivo: dia, semana ou mês de calendário, com a ATA
 Geral Noturna recortada na linha de cada casa. O ciclo do acolhimento fecha:
@@ -1151,7 +1151,72 @@ E o protótipo tinha três valores escritos na mão no painel da Enfermagem
 atendimento nenhum semeado de onde tirá-los. Agora saem da mesma lista que o
 histórico lê, e o painel e a folha dizem a mesma coisa.
 
-Em aberto, na ordem: `docs/o-que-falta.md` — 29 rotas que existem no servidor e
+OS BENEFÍCIOS E DADOS BANCÁRIOS (§6.10) ganharam porta, na mesma tela do Cofre
+e atrás da mesma senha — é a mesma área e a mesma regra. E ao construir apareceu
+o buraco maior: a migração 055 acrescentou as colunas que a planilha real da
+casa usa todo mês — número do benefício, operação da conta, nome da agência e a
+PENDÊNCIA BANCÁRIA, que é o motivo de a planilha existir — e o serviço nunca as
+leu nem as gravou. O sistema tinha as colunas e continuava sem responder "o que
+falta resolver no banco desta criança?", enquanto a planilha seguia aberta numa
+pasta compartilhada.
+
+Agora a pendência vem primeiro na lista e exige uma linha dizendo QUAL é —
+"pendente" sozinho é uma caixa marcada que a próxima coordenação não sabe
+resolver. Senha em campo de texto é recusada com uma frase, e não só pelo CHECK
+do banco. E nasceu o histórico de acessos que o cofre tinha e os benefícios não
+(migração 0830): quem abriu, quando, para quê — e quem TENTOU e foi recusado,
+que é a linha mais importante da lista e a que o log guardava só na auditoria,
+que é área restrita.
+
+OS ALINHAMENTOS DE EQUIPE (§9.4) são partição nova — `alignments`, migração
+0840 —, a pedido do Marcelo. A pergunta que eles respondem é a que a casa faz
+toda semana: "o que ficou combinado?". Hoje isso mora na ata de papel da
+reunião, no grupo de mensagens e na memória de quem estava lá.
+
+Escreve quem decide, lê quem cuida: registrar é da equipe técnica e da
+coordenação, e LER é de todo mundo com alcance na casa. Por isso os combinados
+têm porta própria no menu, e não apenas a aba dentro de Acompanhamentos — quem
+mais precisa do combinado é o educador do turno da noite, que não alcança
+Acompanhamentos. Um combinado que o turno não pode abrir não é combinado: é
+recado que ninguém recebeu.
+
+Três coisas que o banco garante: o TEXTO do combinado é imutável (o gatilho
+recusa, e o teste tenta por dentro do banco); a SITUAÇÃO muda com motivo escrito
+e o histórico nasce na mesma transação; e o encerrado não some da lista, com o
+motivo e o nome de quem encerrou — "mas ficou combinado que..." é uma discussão
+que só o registro encerra.
+
+O RELATÓRIO SAI EM WORD TAMBÉM NO PROTÓTIPO. O servidor gera .docx com timbre
+desde a fase 7, mas quem abria o protótipo clicava em baixar e recebia um bloco
+de notas explicando que "no sistema real isto vem em Word" — e concluía, com
+razão, que o relatório não existia. A parte mais visível da entrega parecia a
+menos pronta. `frontend/src/docx.ts` monta o documento no navegador, sem
+biblioteca (um .docx é um ZIP de XMLs), com o timbre do Pão dos Pobres, A4,
+margens ABNT de 3 cm à esquerda e no topo, Times 12, entrelinha 1,5 e as seções
+numeradas.
+
+E veio junto o que a casa pediu em volta disso: a PRÉ-VISUALIZAÇÃO — a folha
+abre na tela, com a cara do papel, e o botão de baixar fica ao lado. A folha da
+tela e o .docx saem da MESMA estrutura: duas versões divergiriam no primeiro
+ajuste, e a pessoa conferiria uma coisa e entregaria outra. Ver não é exportar,
+e por isso `POST /reports/:id/preview` não pede finalidade nem deixa rastro:
+quem lê o relatório na tela já podia lê-lo na tela. Tirar o documento do sistema
+continua sendo `POST /:id/export`, com finalidade declarada.
+
+O DOWNLOAD POR SETOR usa o alcance que já existe — cada botão vive dentro da
+tela do setor, e a tela já é filtrada pelo cargo. A enfermagem baixa a situação
+de saúde de um acolhido e a grade do dia da casa; a equipe técnica, a ATA e o
+registro de ocorrência; a coordenação e a gestão, tudo. Uma decisão que não é
+minha e está escrita na própria folha: a grade "para colar na parede" traz
+horário, nome e medicamento, e NÃO traz diagnóstico nem condição de saúde — e
+avisa que corredor, sala de visitas e mural aberto não são lugar para o nome de
+uma criança ao lado do remédio que ela toma.
+
+E a TARJA do protótipo: era âmbar sólido com `color:#fff` fixo — no claro,
+brigava com o azul da barra; no escuro, o token vira amarelo claro e o branco
+sumia. O aviso mais importante da tela era o texto menos legível dela.
+
+Em aberto, na ordem: `docs/o-que-falta.md` — 26 rotas que existem no servidor e
 não têm tela, separadas entre o que vale para o piloto, o que espera e o que é
 de máquina; o retorno do Marcelo por cargo; duas decisões de produto que não são
 minhas (devolver acompanhamento para correção; o "concluí tudo até agora" na

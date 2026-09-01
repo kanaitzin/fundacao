@@ -301,6 +301,54 @@ export class ReportsService {
   }
 
   /**
+   * A FOLHA ANTES DE BAIXAR.
+   *
+   * Devolve a ESTRUTURA do documento — a mesma que vira o .docx —, e não o
+   * arquivo. Conferir um relatório exigia baixar, achar na pasta de downloads e
+   * abrir o Word; e o que exige tudo isso acaba não sendo conferido.
+   *
+   * Ver NÃO é exportar: esta rota não gera arquivo, não registra em
+   * `export_log` e não pede finalidade. Quem lê o relatório na tela já podia
+   * lê-lo na tela. O que deixa rastro é tirar o documento do sistema, e isso
+   * continua sendo `POST /:id/export`, com finalidade declarada.
+   */
+  async previa(user: AuthenticatedUser, id: string) {
+    const doc = await this.abrir(user, id);
+    const tipo = TIPOS_RELATORIO.find((t) => t.cod === doc.tipo);
+    const rascunho = doc.situacao !== 'aprovado';
+    const dia = (v: any) => new Intl.DateTimeFormat('pt-BR', {
+      timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', year: 'numeric',
+    }).format(new Date(`${String(v).slice(0, 10)}T12:00:00Z`));
+
+    return {
+      titulo: `Relatório ${tipo?.label ?? doc.tipo}`,
+      subtitulo: `Período de ${dia(doc.periodo.de)} a ${dia(doc.periodo.ate)}`,
+      identificacao: [
+        ...(doc.acolhido ? [{ rotulo: 'Acolhido', valor: doc.acolhido }]
+                         : [{ rotulo: 'Abrangência', valor: 'Unidade' }]),
+        ...(doc.unidade ? [{ rotulo: 'Unidade', valor: doc.unidade }] : []),
+        { rotulo: 'Período', valor: `${dia(doc.periodo.de)} a ${dia(doc.periodo.ate)}` },
+        { rotulo: 'Finalidade declarada', valor: doc.finalidade },
+        { rotulo: 'Situação do documento',
+          valor: rascunho ? 'Rascunho — sem aprovação' : 'Aprovado' },
+      ],
+      secoes: (doc.corpo?.secoes ?? []).map((x: any) => (
+        x.aPreencher
+          ? { titulo: x.titulo, aPreencher: 'escrito por quem assina; o sistema não avalia' }
+          : { titulo: x.titulo,
+              paragrafos: String(x.texto ?? '').split('\n').map((l: string) => l.trim())
+                .filter(Boolean),
+              procedencia: x.fonte }
+      )),
+      rascunho,
+      geradoPor: user.fullName,
+      cargo: CARGO_LABEL[user.role] ?? user.role,
+      ressalva: 'A parte factual é escrita pelo sistema a partir dos registros, e cada seção '
+        + 'diz de onde veio. A avaliação e os encaminhamentos são escritos por pessoas.',
+    };
+  }
+
+  /**
    * Exportar. Não devolve arquivo mágico: devolve o conteúdo e DEIXA RASTRO
    * de quem exportou, com qual finalidade, formato e filtros (§18.4).
    */

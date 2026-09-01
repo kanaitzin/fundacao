@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api';
+import { FolhaDocumento, documentoDaOcorrencia } from '../documentos';
+import type { DocumentoWord } from '../docx';
+import { quemAssina } from '../quem-assina';
 
 /**
  * OCORRÊNCIAS (§13).
@@ -141,6 +144,8 @@ export function Ocorrencias({ houseId, papel }: { houseId: string; papel: string
   const [anexando, setAnexando] = useState<ItemLista | null>(null);
   const [contendo, setContendo] = useState<ItemLista | null>(null);
   const [protegendo, setProtegendo] = useState<ItemLista | null>(null);
+  /* O registro em folha: a técnica leva para a rede, a coordenação arquiva. */
+  const [documento, setDocumento] = useState<DocumentoWord | null>(null);
   const [abrindoAnexo, setAbrindoAnexo] = useState<{ id: string; nome: string } | null>(null);
   const [anexoAberto, setAnexoAberto] = useState<{ nome: string; referencia: string } | null>(null);
   const [aberta, setAberta] = useState<string | null>(null);
@@ -327,6 +332,22 @@ export function Ocorrencias({ houseId, papel }: { houseId: string; papel: string
                     * por ocorrência) nem na ocorrência fechada — nos dois
                     * casos o caminho é o relato em nome próprio.
                     */}
+                  {/*
+                    * O REGISTRO EM FOLHA.
+                    *
+                    * A ocorrência com os relatos, do jeito que está escrita, é
+                    * o que a equipe técnica leva para a rede. Sem esta porta,
+                    * ela recopiava tudo à mão — e o que chega à rede vira a
+                    * memória de quem copiou.
+                    *
+                    * O conteúdo PROTEGIDO não entra nesta cópia: ele tem
+                    * política própria e mais estreita, e papel não tem RLS.
+                    */}
+                  <button className="btn sec sm"
+                          onClick={() => setDocumento(documentoDaOcorrencia(d, quemAssina()))}>
+                    📄 Ver em folha / baixar em Word
+                  </button>
+
                   {!d.protegido && d.status !== 'fechada' && (
                     <button className="btn sec sm" onClick={() => setProtegendo(o)}>
                       🔒 Registrar fala espontânea ou sinais observados
@@ -688,6 +709,10 @@ export function Ocorrencias({ houseId, papel }: { houseId: string; papel: string
               method: 'POST', body: JSON.stringify(corpo) }));
             if (ok) setContendo(null);
           }} />
+      )}
+
+      {documento && (
+        <FolhaDocumento doc={documento} onFechar={() => setDocumento(null)} />
       )}
 
       {protegendo && (

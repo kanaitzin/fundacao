@@ -15,6 +15,7 @@ import { IdentityModule } from './modules/identity';
 import { HousesModule } from './modules/houses';
 import { PeopleModule } from './modules/people';
 import { RoutineModule } from './modules/routine';
+import { AlignmentsModule } from './modules/alignments';
 import { ActivitiesModule } from './modules/activities';
 import { ChecksModule } from './modules/checks';
 import { TimelineModule } from './modules/timeline';
@@ -39,6 +40,7 @@ import { ArchiveModule } from './modules/archive';
     HousesModule,
     PeopleModule,
     RoutineModule,
+    AlignmentsModule,
     ActivitiesModule,
     ChecksModule,
     TimelineModule,

@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import { cargo } from '../rotulos';
 import { api } from '../api';
+import { FolhaDocumento, documentoDaAta } from '../documentos';
+import type { DocumentoWord } from '../docx';
+import { quemAssina } from '../quem-assina';
 
 /**
  * ATAS — a da casa e a Geral Noturna.
@@ -169,7 +172,9 @@ const SITUACAO: Record<string, { rotulo: string; tom: string }> = {
   fechada_com_pendencia: { rotulo: 'Fechada com pendência', tom: 'c-warn' },
 };
 
-export function Ata({ houseId, papel }: { houseId: string; papel: string }) {
+export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
+  houseId: string; papel: string; casaLabel?: string;
+}) {
   const [aba, setAba] = useState<'casa' | 'geral' | 'arquivo'>('casa');
   const [doDia, setDoDia] = useState<PlantaoDoDia[]>([]);
   const [escolhido, setEscolhido] = useState<string | null>(null);
@@ -194,6 +199,8 @@ export function Ata({ houseId, papel }: { houseId: string; papel: string }) {
   const [conteudo, setConteudo] = useState<Record<string, string>>({});
   const [salvando, setSalvando] = useState(false);
   const [adendos, setAdendos] = useState<Adendo[]>([]);
+  /* A ATA em folha: ver antes de baixar, e baixar o que se viu. */
+  const [documento, setDocumento] = useState<DocumentoWord | null>(null);
   const [reabrindo, setReabrindo] = useState(false);
   const [corrigindo, setCorrigindo] = useState(false);
   const [acolhidos, setAcolhidos] = useState<AcolhidoDaCasa[]>([]);
@@ -599,6 +606,30 @@ export function Ata({ houseId, papel }: { houseId: string; papel: string }) {
                 )}
 
                 {/*
+                  * A ATA EM FOLHA.
+                  *
+                  * A equipe técnica leva a ATA para a reunião, e a coordenação
+                  * a leva para a Fundação. Até aqui, isso significava copiar da
+                  * tela para o Word à mão — e o que chega à reunião passa a ser
+                  * a memória de quem copiou.
+                  */}
+                {ata && (
+                  <button className="btn sec sm"
+                          onClick={() => setDocumento(documentoDaAta(
+                            {
+                              data: plantao.data, turno: plantao.turno,
+                              status: ata.status,
+                              conteudo: ata.conteudo,
+                              pendencias: ata.pendencias,
+                              episodios: plantao.episodios,
+                              passagens: plantao.passagens,
+                            },
+                            secoes?.secoes ?? [], casaLabel, quemAssina()))}>
+                    📄 Ver em folha / baixar em Word
+                  </button>
+                )}
+
+                {/*
                   * CORRIGIR DEPOIS DE FECHADA (§12.7).
                   *
                   * Nunca por cima: reabrir grava o estado anterior no adendo,
@@ -976,6 +1007,10 @@ export function Ata({ houseId, papel }: { houseId: string; papel: string }) {
               : api(`/shifts/general-ata/${geral?.id}/sign`, { method: 'POST', body: corpo }));
             if (ok) setFechando(null);
           }} />
+      )}
+
+      {documento && (
+        <FolhaDocumento doc={documento} onFechar={() => setDocumento(null)} />
       )}
     </>
   );

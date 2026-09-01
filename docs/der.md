@@ -447,7 +447,7 @@ desenvolvimento** (fase 15): a criança não é só o que deu problema. Sala de
 recursos, curso, aprendizagem e a evolução escrita pela equipe entram no
 documento que segue para a audiência e para a escola.
 
-## Inventário — 84 tabelas por partição
+## Inventário — 87 tabelas por partição
 
 | Partição | Tabelas |
 |---|---|
@@ -462,6 +462,7 @@ documento que segue para a audiência e para a escola.
 | checks (4) | collective_check, check_result, check_result_amendment, check_bulk |
 | notifications (3) | notification, escalation, escalation_level |
 | archive (2) | archive_item, archive_attempt |
+| alignments (3) | team_meeting, team_agreement, agreement_change |
 | routine (2) | routine_version, routine_item |
 | statements (2) | witness_option, statement |
 | sync (2) | offline_operation, sync_conflict |

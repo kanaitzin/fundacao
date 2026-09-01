@@ -182,6 +182,20 @@ export class PeopleController {
   }
 
   // ---- Benefícios: comandos específicos, nunca update genérico (§25) ----
+
+  /** Palavra fixa, e por isso vem ANTES de `:id/benefits/*`. */
+  @Get('benefits/kinds')
+  tiposBeneficio() { return this.benefits.vocabulario(); }
+
+  /**
+   * Quem abriu, alterou ou tentou abrir esta área. POST como o `view`, e pela
+   * mesma razão: ler o histórico de um dado bancário também é um ato.
+   */
+  @Post(':id/benefits/history')
+  benefitsHistory(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.benefits.historico(user, id);
+  }
+
   @Post(':id/benefits/view')
   benefitsView(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
                @Body() body: { finalidade: string }) {

@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api';
+import { FolhaDocumento } from '../documentos';
+import { Alinhamentos } from './Alinhamentos';
+import type { DocumentoWord } from '../docx';
 
 /**
  * ACOMPANHAMENTOS E RELATÓRIOS.
@@ -58,12 +61,16 @@ const quando = (iso: string) => new Date(iso).toLocaleString('pt-BR',
   { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
     timeZone: 'America/Sao_Paulo' });
 
-export function Acompanhamentos() {
-  const [aba, setAba] = useState<'acomp' | 'relat'>('acomp');
+export function Acompanhamentos({ houseId, casaLabel }: {
+  houseId: string; casaLabel: string;
+}) {
+  const [aba, setAba] = useState<'acomp' | 'relat' | 'alinha'>('acomp');
   const [eixos, setEixos] = useState<Eixo[]>([]);
   const [lista, setLista] = useState<Acompanhamento[]>([]);
   const [relatorios, setRelatorios] = useState<Relatorio[]>([]);
   const [baixando, setBaixando] = useState('');
+  /* A folha antes de baixar: conferir sem sair da tela. */
+  const [previa, setPrevia] = useState<{ doc: DocumentoWord; r: Relatorio } | null>(null);
   const [gerando, setGerando] = useState(false);
   const [tipos, setTipos] = useState<TipoRelatorio[]>([]);
   const [erro, setErro] = useState('');
@@ -101,6 +108,18 @@ export function Acompanhamentos() {
    * fica registrada com o nome de quem baixou, o horário e para quê. É o que
    * permite responder, meses depois, quem tirou aquele documento do sistema.
    */
+  /** A folha na tela. Baixar continua sendo outro ato, com finalidade. */
+  async function prever(r: Relatorio) {
+    setErro('');
+    try {
+      const doc = await api<DocumentoWord>(`/reports/${r.id}/preview`,
+                                           { method: 'POST', body: '{}' });
+      setPrevia({ doc, r });
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Não foi possível abrir a folha.');
+    }
+  }
+
   async function baixar(r: Relatorio) {
     const finalidade = window.prompt(
       'Para que este documento vai ser usado? Fica registrado junto com o seu nome.',
@@ -227,7 +246,13 @@ export function Acompanhamentos() {
                 onClick={() => setAba('acomp')}>Acompanhamentos</button>
         <button role="tab" aria-selected={aba === 'relat'} className={aba === 'relat' ? 'on' : ''}
                 onClick={() => setAba('relat')}>Relatórios</button>
+        {/* O combinado da equipe vive ao lado do relatório porque é a mesma
+            pergunta em outra escala: o que ficou estabelecido, e por quem. */}
+        <button role="tab" aria-selected={aba === 'alinha'} className={aba === 'alinha' ? 'on' : ''}
+                onClick={() => setAba('alinha')}>Alinhamentos</button>
       </div>
+
+      {aba === 'alinha' && <Alinhamentos houseId={houseId} casaLabel={casaLabel} />}
 
       {aba === 'acomp' && (
         <>
@@ -300,6 +325,11 @@ export function Acompanhamentos() {
                         Aprovar
                       </button>
                     )}
+                    {/* Ver vem antes de baixar: quem confere na tela confere;
+                        quem precisa baixar para conferir, não confere. */}
+                    <button className="btn sm ghost" onClick={() => void prever(r)}>
+                      Ver em folha
+                    </button>
                     <button className="btn sm ghost" disabled={baixando === r.id}
                             onClick={() => void baixar(r)}>
                       {baixando === r.id ? 'Preparando…' : 'Baixar em Word'}
@@ -354,6 +384,13 @@ export function Acompanhamentos() {
                           method: 'POST', body: JSON.stringify(corpo) }));
                         if (ok) setEntregando(null);
                       }} />
+      )}
+
+      {previa && (
+        <FolhaDocumento
+          doc={previa.doc} onFechar={() => setPrevia(null)}
+          /* O download passa pelo servidor porque exportar é ato auditado. */
+          onBaixar={() => { const r = previa.r; setPrevia(null); void baixar(r); }} />
       )}
     </>
   );

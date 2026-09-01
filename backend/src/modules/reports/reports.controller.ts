@@ -113,6 +113,15 @@ export class ReportsController {
     return this.reports.aprovar(user, id);
   }
 
+  /**
+   * A folha ANTES de baixar. Ver não é exportar: não gera arquivo, não pede
+   * finalidade e não deixa rastro — quem lê na tela já podia ler na tela.
+   */
+  @Post(':id/preview')
+  previa(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.reports.previa(user, id);
+  }
+
   /** Exportar deixa rastro: quem, finalidade, formato, filtros, hora (§18.4). */
   @Post(':id/export')
   exportar(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
