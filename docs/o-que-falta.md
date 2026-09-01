@@ -152,6 +152,31 @@ nenhum, conseguia escrever nele.*
    período não pode ficar sem ninguém, porque a dose venceria todo dia sem que
    existisse quem a confirmasse.*
 
+*E os **relatórios consolidados**, em 01/09/2026 — o maior bloco do grupo 2.
+`GET /reports/panel` e `GET /reports/house-monthly` existiam desde a fase 6 sem
+tela nenhuma: "quantos estão na casa hoje?" e "quantas ATAS fecharam em agosto?"
+se respondiam abrindo tela por tela, ou perguntando a um colega. O Painel das
+unidades desenha as duas coisas, na ordem do código da casa e sem nenhuma lista
+ordenada por número.*
+
+*E, ao construí-lo, apareceu o defeito maior deste bloco — o que a aba de
+relatórios já fazia estava **quebrado contra o servidor de verdade**:*
+
+ - *`GET /reports` devolvia sete campos e a tela lia onze. `r.entregas.map(...)`
+   derrubava a aba inteira; no protótipo funcionava, porque o `mock.ts` fora
+   escrito olhando a TELA e não o servidor. O `contrato-rotas.spec` pega a rota
+   que não existe — não pega a rota que existe e responde outra coisa. Agora a
+   lista devolve rótulo do tipo, acolhido, unidade, autor, `exigeAprovacao`,
+   `podeAprovar` e as entregas, e um teste confere isso campo a campo;*
+ - *`POST /reports/:id/submit` não tinha porta, e sem ele o relatório nascia em
+   RASCUNHO e morria em rascunho: `app_approve_report` só aprova o que está
+   `em_aprovacao`, e o botão "Aprovar" nunca aparecia. A folha agora diz, no
+   rascunho que exige aprovação, que ele **ainda não vale**;*
+ - *e a leitura com trava escondia o relatório aprovado. Sob RLS, um
+   `SELECT ... FOR UPDATE` aplica também a policy de UPDATE, e `rep_update` tem
+   `status <> 'aprovado'`: quem tentasse reenviar um relatório já aprovado
+   recebia **404**, ou seja, o sistema respondia que o documento não existe.*
+
 Isso não é lista de bugs. É o mapa do que já está construído por baixo e ainda
 não tem por onde ser usado. Serve para decidir com o Marcelo o que entra antes
 do piloto e o que espera.
@@ -174,9 +199,18 @@ tem porta. O que sobra abaixo é de coordenação, de gestão e de máquina.
 
 Coisas de coordenação e de gestão, não de plantão. Nenhuma delas trava a casa.
 
-- **Relatórios consolidados** — `GET /reports/panel`, `/reports/house-monthly`,
-  `POST /reports/:id/submit`, `GET /reports/:id/delivery`, e as fontes do
-  acompanhamento (`POST /followups/:id/sources`).
+- ~~**Relatórios consolidados**~~ — **resolvido em 01/09/2026**: o Painel das
+  unidades (`/reports/panel` e `/reports/house-monthly`) e o envio para
+  aprovação (`POST /reports/:id/submit`) ganharam tela.
+  *Fica de fora, e por motivos diferentes:*
+  `GET /reports/:id/delivery` — as entregas passaram a vir DENTRO da lista, e
+  desenhá-las já não custa uma segunda ida ao servidor; a rota continua servindo
+  quem quiser só as entregas de um relatório.
+  **`POST /followups/:id/sources` espera uma decisão de produto** — a rota grava
+  a REFERÊNCIA de um registro que embasou a avaliação, e não existe rota que
+  LISTE os candidatos. De onde a equipe técnica escolhe: da linha do tempo da
+  criança no período, das ocorrências, das evoluções de saúde? É pergunta para o
+  Marcelo, não para o código.
 - **Capacidade da casa** — `POST /houses/:id/capacity`,
   `GET /houses/:id/capacity-history`.
 - **Painel da casa na linha do tempo** — `GET /timeline/house-panel`.

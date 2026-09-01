@@ -241,31 +241,143 @@ export class ReportsService {
     };
   }
 
+  /**
+   * A LISTA DE RELATÓRIOS, como a tela precisa dela.
+   *
+   * Até 01/09/2026 esta consulta devolvia sete campos e a tela lia onze: o
+   * nome do acolhido, o autor, se este usuário pode aprovar e as entregas já
+   * registradas. Nada disso vinha — e `r.entregas.map(...)` derrubava a aba
+   * inteira contra o servidor de verdade. No protótipo funcionava, porque o
+   * `mock.ts` fora escrito olhando a tela.
+   *
+   * O `contrato-rotas.spec` pega a rota que não existe; ele não pega a rota
+   * que existe e responde OUTRA COISA. Por isso o `relatorios.e2e` passou a
+   * conferir o formato desta resposta campo a campo.
+   *
+   * `podeAprovar` é calculado AQUI, e não na tela, porque é a mesma regra de
+   * `app_approve_report`: coordenação ou gestão, e nunca quem redigiu. Uma
+   * segunda cópia na tela divergiria — e a que divergisse seria a que mostra
+   * um botão que o servidor recusa.
+   */
   async listar(user: AuthenticatedUser, houseId?: string, personId?: string) {
     return this.db.asUser(user.id, async (c) => {
       const { rows } = await c.query(
-        `SELECT id, kind, status, version, period_start, period_end, purpose, created_at
-           FROM report_document
-          WHERE ($1::uuid IS NULL OR house_id = $1)
-            AND ($2::uuid IS NULL OR person_id = $2)
-          ORDER BY created_at DESC LIMIT 100`, [houseId ?? null, personId ?? null]);
+        `SELECT r.id, r.kind, r.status, r.version, r.period_start, r.period_end,
+                r.purpose, r.created_at, r.created_by,
+                cr.full_name AS autor,
+                h.code AS casa_codigo,
+                CASE WHEN r.person_id IS NOT NULL
+                     THEN app_person_display_name(r.person_id) END AS acolhido
+           FROM report_document r
+           -- rls-join-ok: app_user e house não filtram por linha; quem decide o
+           -- que este usuário enxerga é a policy rep_select sobre report_document.
+           LEFT JOIN app_user cr ON cr.id = r.created_by
+           LEFT JOIN house h ON h.id = r.house_id
+          WHERE ($1::uuid IS NULL OR r.house_id = $1)
+            AND ($2::uuid IS NULL OR r.person_id = $2)
+          ORDER BY r.created_at DESC LIMIT 100`, [houseId ?? null, personId ?? null]);
+
+      // As entregas de todos os relatórios da página, numa consulta só: uma
+      // por relatório faria vinte idas ao banco para desenhar uma lista.
+      const { rows: entregas } = await c.query(
+        `SELECT d.report_id, d.id, d.destinatario, d.meio, d.entregue_em, d.protocolo,
+                u.full_name AS registrou
+           FROM report_delivery d
+           -- rls-join-ok: quem filtra é a policy del_select sobre report_delivery.
+           JOIN app_user u ON u.id = d.registrado_por
+          WHERE d.report_id = ANY($1::uuid[])
+          ORDER BY d.entregue_em DESC`, [rows.map((r) => r.id)]);
+
+      const rotulo = (cod: string) =>
+        TIPOS_RELATORIO.find((t) => t.cod === cod)?.label ?? cod;
+
       return rows.map((r) => ({
-        id: r.id, tipo: r.kind, situacao: r.status, versao: r.version,
+        id: r.id, tipo: rotulo(r.kind), tipoCod: r.kind,
+        situacao: r.status, versao: r.version,
         periodo: { de: r.period_start, ate: r.period_end },
         finalidade: r.purpose, em: r.created_at,
+        autor: r.autor ?? null,
+        acolhido: r.acolhido ?? null,
+        unidade: r.casa_codigo ?? null,
+        exigeAprovacao: EXIGEM_APROVACAO.includes(r.kind),
+        // A mesma regra do comando do banco, para a tela não oferecer um botão
+        // que o servidor vai recusar (§14.6).
+        podeAprovar: r.status === 'em_aprovacao'
+          && ['coordenador', 'gestor_geral'].includes(user.role)
+          && r.created_by !== user.id,
+        entregas: entregas.filter((d) => d.report_id === r.id).map((d) => ({
+          id: d.id, destino: d.destinatario, meio: d.meio, em: d.entregue_em,
+          protocolo: d.protocolo, por: d.registrou,
+        })),
       }));
     });
   }
 
+  /**
+   * ENVIAR PARA APROVAÇÃO.
+   *
+   * O relatório nasce em `rascunho` (`gerar`), e `app_approve_report` só
+   * aprova o que está `em_aprovacao`. Sem este passo, o que a tela criava não
+   * chegava a lugar nenhum: ficava rascunho para sempre, com o botão de
+   * aprovar escondido e nenhuma explicação. A rota existia desde a fase 6 e
+   * nunca teve porta.
+   *
+   * O estado é lido com trava antes de mudar, para que a recusa DIGA em que
+   * situação o relatório está — "não está em rascunho" não ajuda quem já o
+   * enviou há dois minutos e está olhando a tela sem saber se funcionou.
+   */
   async enviarParaAprovacao(user: AuthenticatedUser, id: string) {
-    const n = await this.db.asUser(user.id, async (c) => {
-      const { rowCount } = await c.query(
+    const r = await this.db.asUser(user.id, async (c) => {
+      /*
+       * SEM `FOR UPDATE` aqui, e o motivo não é performance.
+       *
+       * Sob RLS, um `SELECT ... FOR UPDATE` aplica também a policy de UPDATE —
+       * e `rep_update` tem `status <> 'aprovado'`. A leitura com trava
+       * escondia o relatório APROVADO, e a resposta virava 404: "não existe".
+       * Quem acabara de aprová-lo e clicasse em enviar por engano receberia,
+       * do sistema, a informação de que o documento sumiu.
+       */
+      const { rows: [atual] } = await c.query(
+        `SELECT id, status, kind FROM report_document WHERE id = $1`, [id]);
+      if (!atual) throw new NotFoundException('Relatório não encontrado.');
+      if (atual.status === 'em_aprovacao') {
+        throw new ConflictException(
+          'Este relatório já está aguardando aprovação da coordenação.');
+      }
+      if (atual.status === 'aprovado') {
+        throw new ConflictException(
+          'Este relatório já foi aprovado. Aprovado não se reenvia: corrigir gera a versão '
+          + 'seguinte, e a anterior continua legível como estava.');
+      }
+
+      // A troca de estado é atômica: quem chegar depois não sobrescreve.
+      const { rows: [row] } = await c.query(
         `UPDATE report_document SET status = 'em_aprovacao'
-          WHERE id = $1 AND status = 'rascunho'`, [id]);
-      return rowCount;
+          WHERE id = $1 AND status = 'rascunho' RETURNING id, kind`, [id]);
+      if (row) return row;
+
+      // Zero linhas com o estado conferido acima tem duas causas, e elas
+      // pedem respostas diferentes: outra pessoa enviou no meio do caminho,
+      // ou o RLS recusou — `rep_update` não alcança a Enfermagem, que PODE
+      // gerar (`rep_insert`) e não pode enviar.
+      const { rows: [agora] } = await c.query(
+        `SELECT status FROM report_document WHERE id = $1`, [id]);
+      if (agora?.status === 'em_aprovacao') {
+        throw new ConflictException(
+          'Alguém enviou este relatório para aprovação enquanto você olhava a tela.');
+      }
+      throw new ForbiddenException(
+        'Seu cargo gera o relatório, mas não o envia para aprovação. Quem envia é a equipe '
+        + 'técnica ou a coordenação da casa.');
     });
-    if (!n) throw new ConflictException('Relatório não está em rascunho.');
-    return { situacao: 'em_aprovacao' };
+
+    await this.audit.log({
+      action: 'report.submit', actorId: user.id, institutionId: user.institutionId,
+      entity: 'report', entityId: id, detail: { tipo: r.kind },
+    });
+    return { situacao: 'em_aprovacao',
+      aviso: 'Enviado para aprovação. Quem redigiu não aprova o próprio relatório: a '
+        + 'coordenação da casa é quem confere e assina (§14.6).' };
   }
 
   /** Coordenação aprova; quem redigiu, não (§14.6). */

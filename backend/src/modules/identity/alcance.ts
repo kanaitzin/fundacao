@@ -64,6 +64,7 @@ export const AREAS = {
   unidades: 'O dia das unidades',
   rotina: 'A rotina da casa',
   alinhamentos: 'Reuniões e combinados da equipe',
+  painel: 'Painel das unidades',
   setores: 'O que cada setor enxerga',
   cozinha: 'Restrições alimentares',
   casas: 'Unidades',
@@ -172,6 +173,10 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
       { area: 'acompanhamentos', titulo: AREAS.acompanhamentos,
         faz: 'Redige acompanhamentos e gera relatórios.',
         servidor: 'Quem redigiu não aprova o próprio texto.' },
+      { area: 'painel', titulo: AREAS.painel,
+        faz: 'Vê a ocupação, o fluxo e as pendências da unidade, e o quadro de cada mês.',
+        servidor: 'Sem ranking: os cartões saem na ordem do código da casa, nunca ordenados '
+          + 'por número. Ausência de registro não é fato negativo.' },
       { area: 'ocorrencias', titulo: AREAS.ocorrencias,
         faz: 'Lê os relatos lado a lado, escreve a síntese e valida o fechamento.',
         servidor: 'Caso de saúde, medicamento, contenção ou violência não fecha sem síntese.' },
@@ -299,6 +304,10 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
       { area: 'acompanhamentos', titulo: AREAS.acompanhamentos,
         faz: 'Aprova acompanhamentos e relatórios.',
         servidor: 'Não aprova o que ela mesma redigiu.' },
+      { area: 'painel', titulo: AREAS.painel,
+        faz: 'Abre o quadro da casa: ocupação, entradas e saídas, ATAs fechadas e o que está '
+          + 'esperando alguém.',
+        servidor: 'Sem ranking, e sem contagem por educador (§3.3).' },
       { area: 'transferencias', titulo: AREAS.transferencias,
         faz: 'Pede, aceita e recusa com motivo.',
         servidor: 'A criança só muda de casa no aceite; recusar exige motivo, e o motivo '
@@ -356,6 +365,10 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
       { area: 'equipe', titulo: AREAS.equipe, faz: 'Cadastra contas de alcance institucional.' },
       { area: 'setores', titulo: AREAS.setores, faz: 'Consulta o alcance de cada cargo.' },
       { area: 'acompanhamentos', titulo: AREAS.acompanhamentos, faz: 'Aprova e acompanha.' },
+      { area: 'painel', titulo: AREAS.painel,
+        faz: 'Vê as oito unidades lado a lado, na ordem do código.',
+        servidor: 'Não há "melhor casa": nenhuma lista aqui é ordenada por número, porque '
+          + 'ordenar por ocorrências vira cobrança sobre quem registra mais.' },
       { area: 'transferencias', titulo: AREAS.transferencias, faz: 'Acompanha as transferências.' },
       { area: 'ocorrencias', titulo: AREAS.ocorrencias, faz: 'Acompanha e valida.' },
       { area: 'ata', titulo: AREAS.ata, faz: 'Lê as ATAs das unidades que abriu.' },

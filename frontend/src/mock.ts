@@ -1270,24 +1270,50 @@ let ACOMPANHAMENTOS: Acompanhamento[] = [
     historico: [{ id: 'h2', quem: 'Carla Coordenadora (fictícia)', acao: 'aprovado',
       em: emHoras(8, 0), nota: null }] },
 ];
+/**
+ * O relatório do protótipo, no MESMO formato que o servidor devolve.
+ *
+ * Esta interface já divergiu: `periodo` era frase aqui e objeto lá, e o
+ * `entregas` que a tela percorre não existia na resposta de verdade. O
+ * protótipo mostrava a aba inteira funcionando e ela quebrava contra o
+ * servidor. O mock é o servidor de mentira — quando ele responde outra coisa,
+ * a demonstração passa a ensaiar um sistema que não existe.
+ */
 interface Relatorio {
-  id: string; tipo: string; personId: string | null; periodo: string;
-  situacao: 'em_aprovacao' | 'aprovado'; finalidade: string; autor: string;
+  id: string; tipo: string; tipoCod: string; personId: string | null;
+  periodo: { de: string; ate: string }; unidade: string | null;
+  situacao: 'rascunho' | 'em_aprovacao' | 'aprovado';
+  finalidade: string; autor: string; em: string;
   entregas: { id: string; destino: string; meio: string; em: string; protocolo: string | null;
               por: string }[];
 }
+/** Os que exigem aprovação de outra pessoa — a mesma lista do servidor. */
+const EXIGEM_APROVACAO = ['judiciario', 'audiencia', 'mensal_da_casa'];
+/** O rótulo do tipo. O servidor devolve a frase, não o código. */
+const TIPOS_RELATORIO_ROTULO: Record<string, string> = {
+  diario: 'Diário', semanal: 'Semanal', mensal: 'Mensal',
+  periodo: 'Período personalizado', individual: 'Individual completo',
+  desenvolvimento: 'Desenvolvimento da criança na casa', ocorrencias: 'Ocorrências',
+  alimentacao: 'Alimentação e restrições', saude: 'Evolução e Resumo de Saúde',
+  judiciario: 'Judiciário', audiencia: 'Audiência concentrada',
+  mensal_da_casa: 'Mensal da casa', beneficios: 'Benefícios e dados bancários',
+};
+
 let RELATORIOS: Relatorio[] = [
-  { id: 'r1', tipo: 'Judiciário', personId: 'p02', periodo: 'agosto de 2026',
+  { id: 'r1', tipo: 'Judiciário', tipoCod: 'judiciario', personId: 'p02',
+    periodo: { de: '2026-08-01', ate: '2026-08-31' }, unidade: 'AI3',
     situacao: 'em_aprovacao', finalidade: 'Audiência concentrada marcada para setembro.',
-    autor: 'Tatiane Técnica (fictícia)', entregas: [] },
-  { id: 'r2', tipo: 'Mensal da casa', personId: null, periodo: 'julho de 2026',
+    autor: 'Tatiane Técnica (fictícia)', em: emHoras(10, 0), entregas: [] },
+  { id: 'r2', tipo: 'Mensal da casa', tipoCod: 'mensal_da_casa', personId: null,
+    periodo: { de: '2026-07-01', ate: '2026-07-31' }, unidade: 'AI3',
     situacao: 'aprovado', finalidade: 'Prestação de contas interna da unidade.',
-    autor: 'Carla Coordenadora (fictícia)',
+    autor: 'Carla Coordenadora (fictícia)', em: emHoras(9, 0),
     entregas: [{ id: 'en1', destino: 'Diretoria da Fundação', meio: 'Entrega em mãos',
       em: emHoras(9, 30), protocolo: null, por: 'Carla Coordenadora (fictícia)' }] },
-  { id: 'r3', tipo: 'Alimentação e restrições', personId: null, periodo: 'agosto de 2026',
+  { id: 'r3', tipo: 'Alimentação e restrições', tipoCod: 'alimentacao', personId: null,
+    periodo: { de: '2026-08-01', ate: '2026-08-31' }, unidade: 'AI3',
     situacao: 'aprovado', finalidade: 'Planejamento do cardápio da cozinha.',
-    autor: 'Tatiane Técnica (fictícia)', entregas: [] },
+    autor: 'Tatiane Técnica (fictícia)', em: emHoras(11, 0), entregas: [] },
 ];
 
 /**
@@ -1303,6 +1329,13 @@ function documentoDoRelatorio(
   r: Relatorio, crianca: ReturnType<typeof kid> | null, finalidade: string, rascunho: boolean,
 ): DocumentoWord {
   const secoes: SecaoDoDocumento[] = [];
+  // O período é objeto, como no servidor; a folha o escreve como frase.
+  const dePara = (d: string) => {
+    const data = new Date(`${String(d).slice(0, 10)}T12:00:00`);
+    return Number.isNaN(data.getTime()) ? String(d)
+      : data.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  };
+  const periodoEscrito = `${dePara(r.periodo.de)} a ${dePara(r.periodo.ate)}`;
 
   if (crianca) {
     const doses = DOSES.filter((d) => d.personId === crianca.id);
@@ -1370,13 +1403,13 @@ function documentoDoRelatorio(
 
   return {
     titulo: `Relatório ${r.tipo}`,
-    subtitulo: `Período de referência: ${r.periodo}`,
+    subtitulo: `Período de referência: ${periodoEscrito}`,
     identificacao: [
       ...(crianca
         ? [{ rotulo: 'Acolhido', valor: `${crianca.nome} (${crianca.idade} anos)` }]
         : [{ rotulo: 'Abrangência', valor: 'Unidade — todos os acolhidos' }]),
       { rotulo: 'Unidade', valor: 'AI3 — Casa 03 (piloto)' },
-      { rotulo: 'Período', valor: r.periodo },
+      { rotulo: 'Período', valor: periodoEscrito },
       { rotulo: 'Finalidade declarada', valor: finalidade },
       { rotulo: 'Situação do documento', valor: rascunho ? 'Rascunho — sem aprovação' : 'Aprovado' },
     ],
@@ -2027,6 +2060,70 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
    * nome, o que evitar, a substituição e quando revisar. Sem motivo, sem CPF,
    * sem caso, sem histórico.
    */
+  /*
+   * O PAINEL DAS UNIDADES (§18.1–§18.3).
+   *
+   * A ordem é a do CÓDIGO da casa, como no servidor, e nunca a do número:
+   * ordenar por ocorrências vira cobrança sobre quem registra mais (§3.3).
+   *
+   * A Casa 03 é a única com dados de verdade na demonstração; as outras sete
+   * aparecem com o que se sabe delas — existir, e ter um teto. Inventar
+   * números para as sete faria a demonstração ensinar comparação entre casas,
+   * que é exatamente o que o painel recusa.
+   */
+  if (rota === '/reports/panel' && metodo === 'GET') {
+    if (!['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403, 'O painel das unidades é da equipe técnica, da coordenação e do '
+        + 'Gestor Geral.');
+    }
+    const oitoCasas = ['gestor_geral'].includes(eu.role);
+    return (oitoCasas ? CASAS : [CASA]).map((c) => {
+      const daCasa = c.id === CASA.id;
+      const ativos = daCasa ? todosKids().length : 0;
+      return {
+        id: c.id, codigo: c.code, nome: c.name,
+        ocupacao: { ativos, limite: 20, acimaDoLimite: ativos > 20 },
+        entradas30d: daCasa ? NOVOS.length : 0,
+        transferenciasAguardando: daCasa
+          ? TRANSFERENCIAS.filter((t) => t.caixa === 'recebida' && t.situacao === 'solicitada').length
+          : 0,
+        acompanhamentosAbertos: daCasa
+          ? ACOMPANHAMENTOS.filter((f) => f.situacao !== 'aprovado').length : 0,
+        arquivoComFalha: daCasa ? ARQUIVO.filter((a) => a.estado === 'falhou').length : 0,
+      };
+    });
+  }
+  if (rota.startsWith('/reports/house-monthly') && metodo === 'GET') {
+    if (!['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403, 'O quadro do mês é da equipe técnica, da coordenação e do '
+        + 'Gestor Geral.');
+    }
+    const mesPedido = q.get('mes') ?? '';
+    if (!/^\d{4}-\d{2}(-\d{2})?$/.test(mesPedido)) {
+      return new Recusa(400, 'Informe o mês no formato AAAA-MM.');
+    }
+    const daCasa = (q.get('houseId') ?? CASA.id) === CASA.id;
+    // Mês que não é o corrente volta sem registro — e a folha diz que isso não
+    // é fato negativo, que é o ponto do §14.6.
+    const corrente = mesPedido.slice(0, 7) === new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit',
+    }).format(new Date()).slice(0, 7);
+    const cheio = daCasa && corrente;
+    return {
+      mes: mesPedido.slice(0, 7),
+      ocupacao: { ativosHoje: daCasa ? todosKids().length : 0 },
+      fluxo: { entradas: cheio ? NOVOS.length : 0, saidas: cheio ? ACERVO.length : 0 },
+      'ocorrências': cheio ? OCORRENCIAS.length : 0,
+      acompanhamentos: {
+        aprovados: cheio ? ACOMPANHAMENTOS.filter((f) => f.situacao === 'aprovado').length : 0,
+        abertos: cheio ? ACOMPANHAMENTOS.filter((f) => f.situacao !== 'aprovado').length : 0,
+      },
+      atasFechadas: cheio ? 1 : 0,
+      documentosArquivados: cheio ? ARQUIVO.filter((a) => a.estado === 'verificado').length : 0,
+      nota: 'Contagens do mês. Nenhum número aqui classifica casas, equipes ou acolhidos, e '
+        + 'ausência de registro não é fato negativo (§3.3, §14.6).',
+    };
+  }
   if (rota === '/reports/kitchen' && metodo === 'GET') {
     if (!['cozinha', 'coordenador', 'equipe_tecnica', 'gestor_geral'].includes(eu.role)) {
       return new Recusa(403, 'Sem acesso ao relatório de alimentação.');
@@ -4919,29 +5016,66 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     ];
   }
   if (rota === '/reports' && metodo === 'POST') {
+    const cod = String(b.kind ?? '');
     const acolhido = b.personId ? kid(String(b.personId))?.nome ?? null : null;
-    const novo = {
+    const novo: Relatorio = {
       id: `rel-${Date.now()}`,
-      tipo: String(b.kind ?? ''),
-      personId: b.personId ?? null,
-      periodo: `${String(b.de ?? '')} a ${String(b.ate ?? '')}`,
+      tipo: TIPOS_RELATORIO_ROTULO[cod] ?? cod,
+      tipoCod: cod,
+      personId: (b.personId as string) ?? null,
+      periodo: { de: String(b.de ?? ''), ate: String(b.ate ?? '') },
+      unidade: b.personId ? null : CASA.code,
       finalidade: String(b.finalidade ?? ''),
       situacao: 'rascunho',
       autor: eu.fullName,
-      entregas: [] as any[],
+      em: new Date().toISOString(),
+      entregas: [],
     };
-    RELATORIOS.unshift(novo as any);
+    RELATORIOS.unshift(novo);
     return {
       id: novo.id, situacao: 'rascunho', acolhido,
-      aviso: 'Relatório criado com a parte factual já preenchida pelo sistema. '
-           + 'Os campos de avaliação ficam em branco para a equipe escrever.',
+      exigeAprovacao: EXIGEM_APROVACAO.includes(cod),
+      aviso: EXIGEM_APROVACAO.includes(cod)
+        ? 'Rascunho criado, com a parte factual já preenchida pelo sistema. Ele ainda NÃO '
+          + 'vale: envie para aprovação, e outra pessoa confere e assina.'
+        : 'Rascunho criado com a parte factual já preenchida pelo sistema. '
+          + 'Os campos de avaliação ficam em branco para a equipe escrever.',
     };
   }
   if (rota === '/reports' && metodo === 'GET') {
     return RELATORIOS.map((r) => ({
       ...r, acolhido: r.personId ? kid(r.personId)?.nome ?? '—' : null,
-      podeAprovar: ['coordenador', 'gestor_geral'].includes(eu.role) && r.autor !== eu.fullName,
+      exigeAprovacao: EXIGEM_APROVACAO.includes(r.tipoCod),
+      // A mesma regra do servidor: em aprovação, cargo que aprova, e nunca
+      // quem redigiu.
+      podeAprovar: r.situacao === 'em_aprovacao'
+        && ['coordenador', 'gestor_geral'].includes(eu.role) && r.autor !== eu.fullName,
     }));
+  }
+  /* ENVIAR PARA APROVAÇÃO — o passo que faltava entre gerar e aprovar. */
+  if (seg[0] === 'reports' && seg[2] === 'submit' && metodo === 'POST') {
+    const r = RELATORIOS.find((x) => x.id === seg[1]);
+    if (!r) return new Recusa(404, 'Relatório não encontrado.');
+    if (r.situacao === 'em_aprovacao') {
+      return new Recusa(409, 'Este relatório já está aguardando aprovação da coordenação.');
+    }
+    if (r.situacao === 'aprovado') {
+      return new Recusa(409,
+        'Este relatório já foi aprovado. Aprovado não se reenvia: corrigir gera a versão '
+        + 'seguinte, e a anterior continua legível como estava.');
+    }
+    if (!['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403,
+        'Seu cargo gera o relatório, mas não o envia para aprovação. Quem envia é a equipe '
+        + 'técnica ou a coordenação da casa.');
+    }
+    r.situacao = 'em_aprovacao';
+    return { situacao: 'em_aprovacao',
+      aviso: 'Enviado para aprovação. Quem redigiu não aprova o próprio relatório: a '
+        + 'coordenação da casa é quem confere e assina (§14.6).' };
+  }
+  if (seg[0] === 'reports' && seg[2] === 'delivery' && metodo === 'GET') {
+    return RELATORIOS.find((x) => x.id === seg[1])?.entregas ?? [];
   }
   /*
    * EXPORTAÇÃO EM WORD, DE VERDADE, NO PROTÓTIPO.

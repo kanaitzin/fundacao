@@ -29,10 +29,21 @@ interface Acompanhamento {
   proprio: boolean; podeAprovar: boolean;
   historico: { id: string; quem: string; acao: string; em: string; nota: string | null }[];
 }
+/**
+ * Um relatório, no formato que o SERVIDOR devolve.
+ *
+ * Esta interface já foi escrita olhando o `mock.ts`, e o preço apareceu de uma
+ * vez: `periodo` era uma string aqui e um objeto lá, e `entregas` simplesmente
+ * não vinha — `r.entregas.map(...)` derrubava a aba inteira contra o servidor
+ * de verdade, enquanto o protótipo mostrava tudo funcionando.
+ */
 interface Relatorio {
-  id: string; tipo: string; acolhido: string | null; periodo: string;
-  situacao: 'em_aprovacao' | 'aprovado'; finalidade: string; autor: string;
-  podeAprovar: boolean;
+  id: string; tipo: string; tipoCod: string;
+  acolhido: string | null; unidade: string | null;
+  periodo: { de: string; ate: string };
+  situacao: 'rascunho' | 'em_aprovacao' | 'aprovado';
+  finalidade: string; autor: string | null; em: string;
+  exigeAprovacao: boolean; podeAprovar: boolean;
   entregas: { id: string; destino: string; meio: string; em: string;
               protocolo: string | null; por: string }[];
 }
@@ -60,6 +71,16 @@ const diaLocal = (offset = 0) => new Intl.DateTimeFormat('en-CA', {
 const quando = (iso: string) => new Date(iso).toLocaleString('pt-BR',
   { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
     timeZone: 'America/Sao_Paulo' });
+
+/** Uma data sozinha, sem hora. Corta em dez porque umas vêm com hora e outras não. */
+const soDia = (d: string) => {
+  const data = new Date(`${String(d).slice(0, 10)}T12:00:00`);
+  return Number.isNaN(data.getTime()) ? '—'
+    : data.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+};
+/** O período do relatório. Ele vem do servidor como objeto, não como frase. */
+const periodo = (p: { de: string; ate: string } | null | undefined) =>
+  p ? `${soDia(p.de)} a ${soDia(p.ate)}` : '—';
 
 export function Acompanhamentos({ houseId, casaLabel }: {
   houseId: string; casaLabel: string;
@@ -308,22 +329,51 @@ export function Acompanhamentos({ houseId, casaLabel }: {
                 <div className="card stack" key={r.id}>
                   <div className="row">
                     <b className="ff grow">{r.tipo}{r.acolhido ? ` · ${r.acolhido}` : ''}</b>
-                    <span className={`pill ${s.tom}`}>{s.label}</span>
+                    <span className={`pill ${s?.tom ?? 'c-info'}`}>{s?.label ?? r.situacao}</span>
                   </div>
-                  <div className="mutetxt">{r.periodo} · {r.autor}</div>
+                  <div className="mutetxt">
+                    {periodo(r.periodo)}{r.unidade ? ` · ${r.unidade}` : ''}
+                    {r.autor ? ` · ${r.autor}` : ''}
+                  </div>
                   <div className="bloco"><small>Finalidade</small>{r.finalidade}</div>
-                  {r.entregas.map((e) => (
+                  {(r.entregas ?? []).map((e) => (
                     <div className="mutetxt" key={e.id}>
                       📎 Entregue a {e.destino} · {e.meio} · {quando(e.em)} · por {e.por}
                       {e.protocolo ? ` · protocolo ${e.protocolo}` : ''}
                     </div>
                   ))}
+
+                  {/*
+                    * O RASCUNHO PRECISA DE UM PASSO A MAIS, e ele não existia.
+                    *
+                    * `POST /reports` cria em rascunho, e o banco só aprova o
+                    * que está `em_aprovacao`. Sem este botão, o que a equipe
+                    * gerava ficava rascunho para sempre — com o "Aprovar"
+                    * escondido e nenhuma explicação na tela.
+                    */}
+                  {r.situacao === 'rascunho' && r.exigeAprovacao && (
+                    <div className="notice c-warn">
+                      Este relatório <b>ainda não vale</b>: é rascunho, e o tipo dele exige
+                      aprovação de outra pessoa antes de sair da instituição.
+                    </div>
+                  )}
                   <div className="row">
+                    {r.situacao === 'rascunho' && (
+                      <button className="btn sm" onClick={() => acao(() =>
+                        api(`/reports/${r.id}/submit`, { method: 'POST', body: '{}' }))}>
+                        Enviar para aprovação
+                      </button>
+                    )}
                     {r.situacao === 'em_aprovacao' && r.podeAprovar && (
                       <button className="btn sm" onClick={() => acao(() =>
                         api(`/reports/${r.id}/approve`, { method: 'POST', body: '{}' }))}>
                         Aprovar
                       </button>
+                    )}
+                    {r.situacao === 'em_aprovacao' && !r.podeAprovar && (
+                      <span className="mutetxt">
+                        Aguardando a coordenação — quem redigiu não aprova o próprio texto.
+                      </span>
                     )}
                     {/* Ver vem antes de baixar: quem confere na tela confere;
                         quem precisa baixar para conferir, não confere. */}

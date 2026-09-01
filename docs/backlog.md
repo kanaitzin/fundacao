@@ -437,6 +437,45 @@ telas. Nenhuma das duas dava erro: o campo aparecia na tela e vivia em branco.
   "atualização" mil vezes — até que ninguém leia mais o campo, inclusive
   quando ele importa.
 
+## Fase 41 — O painel das unidades, e a aba que quebrava contra o servidor ✅
+
+| Requisito | Onde ficou | Teste |
+|---|---|---|
+| Painel por unidade: ocupação, fluxo e pendências (§18.1) | `PanelService.cards` + tela `Painel.tsx` | "a coordenação recebe a própria casa; o gestor, as oito" |
+| Sem ranking: ordem do código, nunca do número (§3.3) | `ORDER BY h.code` + a tela não reordena | mesmo teste, comparando com a lista ordenada |
+| Quadro do mês da casa (§18.3) | `PanelService.mensalDaCasa` | "o quadro do mês responde com as contagens e a nota do §14.6" |
+| Ausência de registro não é fato negativo | `nota` na resposta, desenhada na folha | mesmo teste |
+| Mês inválido recusado com frase, não com 500 | validação antes de `janelaDoMes` | "mês fora de formato é recusado com uma frase" |
+| Casa fora do alcance: 404, não retrato zerado (§23) | `app_house_in_scope` antes das contagens | "casa fora do alcance responde 404" |
+| O painel é de coordenação, técnica e gestão | `/* alcance:painel */` + área nova em `alcance.ts` | `alcance.spec` (marca nova) + "o educador não abre o painel" |
+| A lista de relatórios devolve o que a tela lê | `ReportsService.listar` reescrito | "a lista de relatórios devolve TODOS os campos que a aba lê" |
+| Enviar para aprovação (§14.6) | `POST /reports/:id/submit` com porta na tela | "quem redigiu não aparece como quem pode aprovar" |
+| Aprovado não volta para aprovação | estado lido SEM trava, recusa com frase | "o aprovado não volta para aprovação" |
+| `podeAprovar` é a regra do banco, não uma segunda cópia | calculado no serviço, espelhando `app_approve_report` | "quem redigiu não aparece como quem pode aprovar" |
+
+### Achados desta fase
+
+- **O contrato de rotas não é o contrato de RESPOSTAS.** `contrato-rotas.spec`
+  pega a rota que não existe, a que existe com outro verbo e a que casa por
+  curinga. Ele não pega — e não tem como pegar, lendo só decoradores — a rota
+  que existe, responde 200 e devolve outra coisa. Era o caso de `GET /reports`:
+  sete campos servidos, onze lidos, e `r.entregas.map(...)` derrubando a aba
+  inteira contra o servidor de verdade enquanto o protótipo mostrava tudo
+  funcionando. O `mock.ts` fora escrito olhando a tela; quando ele responde
+  melhor que o servidor, a demonstração ensaia um sistema que não existe. A
+  trava nova é um e2e que confere o formato campo a campo.
+- **`SELECT ... FOR UPDATE` sob RLS aplica também a policy de UPDATE.** Ler o
+  estado com trava escondia o relatório APROVADO (`rep_update` tem
+  `status <> 'aprovado'`), e a resposta virava 404: o sistema dizia que o
+  documento não existe para quem acabara de aprová-lo. Vale como regra geral —
+  leitura para DIAGNOSTICAR não leva `FOR UPDATE`; a atomicidade fica no
+  `UPDATE ... WHERE status = <esperado>`, que é onde ela é de fato necessária.
+- **Zerar não é o mesmo que recusar.** `house-monthly` de uma casa fora do
+  alcance voltava com todas as contagens em zero, porque o RLS filtra as
+  LINHAS. Zero se lê como "casa vazia", não como "não é sua" — a coordenação da
+  Casa 03 concluiria que a Casa 04 passou o mês sem nada. Toda agregação por
+  casa precisa conferir o escopo ANTES de contar.
+
 ## Fase 11 — Auditoria de testes e documentação ✅
 219 testes em 16 suítes, todas verdes. As 6 falhas antigas do `saude` eram uma
 só, em cascata: o teste media `criadas` na casa inteira e dependia da ordem das

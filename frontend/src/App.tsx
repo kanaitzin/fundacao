@@ -20,6 +20,7 @@ import { Ata } from './screens/Ata';
 import { Cofre } from './screens/Cofre';
 import { Transferencias } from './screens/Transferencias';
 import { Acompanhamentos } from './screens/Acompanhamentos';
+import { Painel } from './screens/Painel';
 import { Alinhamentos } from './screens/Alinhamentos';
 import { Arquivo } from './screens/Arquivo';
 import { Rotina } from './screens/Rotina';
@@ -44,7 +45,7 @@ const KIND_TONE: Record<string, string> = { casa_lar: 'c-move', abrigo_instituci
 /** As telas que não são do turno; a aba "Mais" fica acesa quando uma delas está aberta. */
 const OUTRAS = new Set(['agenda', 'equipe', 'casas', 'saude', 'ocorrencias', 'ata',
   'cofre', 'transferencias', 'acompanhamentos', 'arquivo', 'setores', 'unidades', 'plantao',
-  'rotina', 'alinhamentos']);
+  'rotina', 'alinhamentos', 'painel']);
 /* O sino é de todo mundo: não há cargo que não receba escalonamento. */
 
 
@@ -128,7 +129,7 @@ export function App() {
     'dia' | 'chamada' | 'passagem' | 'acolhidos' | 'agenda' | 'casas' | 'equipe'
     | 'saude' | 'ocorrencias' | 'ata' | 'cofre' | 'transferencias'
     | 'acompanhamentos' | 'arquivo' | 'plantao' | 'unidades' | 'setores' | 'cozinha'
-    | 'alinhamentos'
+    | 'alinhamentos' | 'painel'
     | 'rotina' | 'avisos'>('dia');
   const [sugerirSenha, setSugerirSenha] = useState(false);
   const [trocarSenha, setTrocarSenha] = useState(false);
@@ -233,6 +234,7 @@ export function App() {
   const veSaude = ve('saude');
   const veCofre = ve('cofre');
   const veAcompanhamentos = ve('acompanhamentos');
+  const vePainel = ve('painel');
   const veTransferencias = ve('transferencias');
   const veArquivo = ve('arquivo');
   const veRotina = ve('rotina');
@@ -246,7 +248,7 @@ export function App() {
     { aba: 'passagem', icone: '🔁', label: 'Passagem' },
   ].filter((t) => ve(t.aba));
   const doMais = ['unidades', 'plantao', 'agenda', 'equipe', 'setores', 'ocorrencias',
-    'ata', 'saude', 'alinhamentos', 'acompanhamentos', 'arquivo', 'transferencias',
+    'ata', 'saude', 'alinhamentos', 'acompanhamentos', 'painel', 'arquivo', 'transferencias',
     'cofre', 'casas']
     .filter((a) => ve(a));
   const temMais = doMais.length > 0;
@@ -441,6 +443,11 @@ export function App() {
                            casaLabel={`${casaAtual.code} — ${casaAtual.name}`} />
         )}
 
+        {abaEfetiva === 'painel' && vePainel && casaAtual && (
+          <Painel houseId={casaAtual.id}
+                  casaLabel={`${casaAtual.code} — ${casaAtual.name}`} />
+        )}
+
         {abaEfetiva === 'arquivo' && veArquivo && casaAtual && (
           <Arquivo houseId={casaAtual.id} papel={me.role} />
         )}
@@ -595,6 +602,17 @@ export function App() {
                   <div className="grow" style={{ textAlign: 'left' }}>
                     <b className="ff">Acompanhamentos</b>
                     <div className="mutetxt">Eixos obrigatórios, aprovação e relatórios.</div>
+                  </div>
+                </button>
+              )}
+              {vePainel && (
+                <button className="card row" onClick={() => { setAba('painel'); setMais(false); }}>
+                  <span aria-hidden="true">🏠</span>
+                  <div className="grow" style={{ textAlign: 'left' }}>
+                    <b className="ff">Painel das unidades</b>
+                    <div className="mutetxt">
+                      Ocupação, entradas e saídas, e o quadro de cada mês. Sem ranking.
+                    </div>
                   </div>
                 </button>
               )}

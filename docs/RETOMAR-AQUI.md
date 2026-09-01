@@ -43,11 +43,11 @@ rede-acolher/
 │   │   │                  database, events, health
 │   │   └── modules/       17 partições isoladas, cada uma com as próprias
 │   │                      migrações em modules/<nome>/migrations/
-│   ├── test/              34 suítes (e2e contra PostgreSQL real + estáticas)
+│   ├── test/              37 suítes (e2e contra PostgreSQL real + estáticas)
 │   └── assets/timbre.png  a marca da Fundação, usada no documento em Word
 ├── frontend/
 │   ├── src/
-│   │   ├── screens/       26 telas React
+│   │   ├── screens/       27 telas React
 │   │   ├── mock.ts        o "servidor de mentira" do protótipo
 │   │   ├── docx.ts        monta o .docx no navegador (timbre + ABNT)
 │   │   ├── documentos.tsx pré-visualização em folha + downloads por setor
@@ -55,7 +55,7 @@ rede-acolher/
 │   │   ├── App.tsx        navegação, abas, seletor de cargo do protótipo
 │   │   └── styles.css     design system, tema claro e escuro
 ├── prototipo/             rede-acolher-prototipo.html  ← o arquivo que o
-│                          Marcelo abre (um arquivo só, ~790 KB, sem servidor)
+│                          Marcelo abre (um arquivo só, ~810 KB, sem servidor)
 └── docs/                  este arquivo, CONTINUIDADE, DER, o-que-falta,
                            backlog, matriz de permissões, roteiro do Marcelo…
 ```
@@ -88,7 +88,7 @@ su postgres -c '/usr/lib/postgresql/16/bin/postgres -D /tmp/pgdata \
   -k /tmp/pgrun -h 127.0.0.1 -p 5432'
 ```
 
-O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as 70
+O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as 72
 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`,
 `seed-fase4.ts`).
 
@@ -183,7 +183,7 @@ Além dos e2e, quatro suítes estáticas — elas já pegaram erro de verdade:
 
 ## 5. O QUE JÁ ESTÁ PRONTO
 
-**Fases 0 a 40. 390 testes em 36 suítes**, duas rodadas limpas. 26 telas, 72
+**Fases 0 a 41. 400 testes em 37 suítes**, duas rodadas limpas. 27 telas, 72
 migrações, 89 tabelas.
 
 **O ciclo do acolhimento:** admissão com motivo e capacidade, perfil, correção
@@ -217,7 +217,10 @@ protótipo, em A4 com margens ABNT.
 **Coordenação e gestão:** equipe e convites de primeiro acesso, transferências
 entre casas, cofre de acessos cifrado, benefícios e dados bancários com
 reautenticação e log por visualização, acompanhamentos com aprovação de segunda
-pessoa, relatórios, alinhamentos de equipe (reuniões e combinados).
+pessoa, relatórios que saem do rascunho por um ato declarado e são aprovados por
+outra pessoa, **o Painel das unidades — ocupação, fluxo, pendências e o quadro de
+cada mês, na ordem do código da casa e sem nenhuma lista ordenada por número** —,
+alinhamentos de equipe (reuniões e combinados).
 
 **Pré-visualização e download por setor:** toda folha abre na tela com a cara do
 papel antes de virar arquivo; a enfermagem baixa a saúde de um acolhido e a
@@ -234,11 +237,11 @@ tudo.
 
 Tudo o que a educadora de plantão precisa fazer às 23h tem porta.
 
-### Grupo 2 — falta tela, mas espera (26 rotas)
+### Grupo 2 — falta tela, mas espera
 
-- **Relatórios consolidados** — `GET /reports/panel`, `/reports/house-monthly`,
-  `POST /reports/:id/submit`, `GET /reports/:id/delivery`, e as fontes do
-  acompanhamento (`POST /followups/:id/sources`).
+- **Fontes do acompanhamento** — `POST /followups/:id/sources` grava a
+  REFERÊNCIA de um registro que embasou a avaliação, e não existe rota que liste
+  os candidatos. De onde a equipe escolhe é decisão do Marcelo (§7 abaixo).
 - **Capacidade da casa** — `POST /houses/:id/capacity`,
   `GET /houses/:id/capacity-history`.
 - **Painel da casa na linha do tempo** — `GET /timeline/house-panel`.
@@ -330,6 +333,21 @@ Vale ler antes de mexer em qualquer coisa parecida. Quase todos eram
   sobre "cuidados essenciais" sem guardar o texto anterior é apagar uma
   instrução de proteção — e a auditoria guarda o nome do campo, nunca o
   conteúdo.
+- **A aba de relatórios quebrava contra o servidor de verdade.** `GET /reports`
+  servia sete campos e a tela lia onze; `r.entregas.map(...)` derrubava a aba
+  inteira. No protótipo funcionava, porque o `mock.ts` fora escrito olhando a
+  TELA. A lição dói: o `contrato-rotas.spec` pega a rota que não existe, e não
+  pega a rota que existe e responde outra coisa. Quando o servidor de mentira
+  responde melhor que o servidor, a demonstração ensaia um sistema que não
+  existe.
+- **`SELECT ... FOR UPDATE` sob RLS aplica também a policy de UPDATE.** Ler o
+  estado do relatório com trava escondia o APROVADO (`rep_update` exige
+  `status <> 'aprovado'`), e o sistema respondia **404** — "não existe" — a
+  quem acabara de aprová-lo. Leitura para diagnosticar não leva trava; a
+  atomicidade fica no `UPDATE ... WHERE status = <esperado>`.
+- **Zerar não é recusar.** O quadro do mês de uma casa fora do alcance voltava
+  com tudo em zero, porque o RLS filtra as LINHAS — e zero se lê como "casa
+  vazia", não como "não é sua".
 - **No protótipo, o "Ver como" troca o cargo e mantém a pessoa** — qualquer
   verificação de autoria no `mock.ts` valia para todos os cargos, e a
   demonstração mentia sobre a política mais estreita do sistema.

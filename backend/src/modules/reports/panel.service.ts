@@ -1,4 +1,6 @@
-import { Inject, Injectable } from '@nestjs/common';
+import {
+  BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException,
+} from '@nestjs/common';
 import { PoolClient } from 'pg';
 import { DatabaseService } from '../../kernel/database/database.service';
 import { AuthenticatedUser } from '../../kernel/contracts';
@@ -38,8 +40,21 @@ export class PanelService {
     return new Set(rows.map((r) => r.tabela));
   }
 
-  /** Cartão por unidade no alcance — ocupação, fluxo, pendências. */
+  /**
+   * Cartão por unidade no alcance — ocupação, fluxo, pendências.
+   *
+   * O RLS já entregaria a casa certa a qualquer cargo, e as contagens de
+   * transferência e acompanhamento voltariam zeradas para quem não as alcança.
+   * Ainda assim a leitura é de COORDENAÇÃO: são números do mês e da fila, não
+   * do turno, e para o educador de plantão seriam ruído — a tela dele é a
+   * criança na frente, não o quadro da unidade.
+   */
   async cards(user: AuthenticatedUser) {
+    /* alcance:painel — quem lê o painel da unidade. Conferido contra `alcance.ts`. */
+    if (!['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(user.role)) {
+      throw new ForbiddenException('O painel das unidades é da equipe técnica, da coordenação '
+        + 'e do Gestor Geral.');
+    }
     const opcionais: Opcional[] = [
       { chave: 'transferencias', tabela: 'transfer_request',
         sql: `(SELECT count(*) FROM transfer_request t
@@ -87,7 +102,17 @@ export class PanelService {
    * é um mês bom nem ruim, é um mês sem ocorrência registrada.
    */
   async mensalDaCasa(user: AuthenticatedUser, houseId: string, mes: string) {
-    const janela = janelaDoMes(mes);
+    if (!['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(user.role)) {
+      throw new ForbiddenException('O quadro do mês é da equipe técnica, da coordenação e do '
+        + 'Gestor Geral.');
+    }
+    // A tela manda AAAA-MM; um seletor de data manda AAAA-MM-DD. Os dois são
+    // aceitos, e o resto é recusado com uma frase — `janelaDoMes` lança um
+    // Error cru, que chegaria à tela como 500.
+    if (!/^\d{4}-\d{2}(-\d{2})?$/.test(String(mes ?? ''))) {
+      throw new BadRequestException('Informe o mês no formato AAAA-MM.');
+    }
+    const janela = janelaDoMes(String(mes).slice(0, 7));
     const opcionais: Opcional[] = [
       { chave: 'ocorrências', tabela: 'incident',
         sql: `(SELECT count(*) FROM incident i
@@ -111,6 +136,14 @@ export class PanelService {
     ];
 
     return this.db.asUser(user.id, async (c) => {
+      // Sem esta conferência, a casa fora do alcance devolvia TODOS OS NÚMEROS
+      // ZERADOS — o RLS filtra as linhas, e o resultado se lê como "uma casa
+      // vazia", não como "não é sua". Fora de escopo é 404 igual a inexistente
+      // (§23), e nunca um retrato falso de outra unidade.
+      const { rows: [escopo] } = await c.query(
+        `SELECT app_house_in_scope($1) AS pode`, [houseId]);
+      if (!escopo?.pode) throw new NotFoundException('Unidade não encontrada.');
+
       const tem = await this.existentes(c, opcionais.map((o) => o.tabela));
       const extras = opcionais.filter((o) => tem.has(o.tabela));
       const { rows: [r] } = await c.query(
