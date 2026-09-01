@@ -182,7 +182,7 @@ São rotas de máquina: tarefa agendada, verificação interna, chamada de servi
 
 ---
 
-## Três decisões que não são minhas
+## As decisões que não são minhas
 
 Ficam para a conversa com o Marcelo. Nenhuma delas foi decidida por mim, e
 nenhuma delas é problema de código:
@@ -199,6 +199,15 @@ nenhuma delas é problema de código:
    *Fica uma pergunta menor para o Marcelo: o mesmo recorte deve valer para a
    ATA Geral do DIA CORRENTE, que hoje a coordenação abre inteira? Não mudei
    sozinho o que já estava aprovado.*
-3. **Rascunho de prescrição não tem listagem.** Dá para criar e assinar na
-   sequência; se a enfermagem começar uma folha e sair da tela, não há rota que
-   a traga de volta.
+3. ~~**Rascunho de prescrição não tem listagem.**~~ **Resolvido em
+   01/09/2026:** `GET /medications/prescriptions` lista os esquemas da casa, e o
+   rascunho aparece PRIMEIRO, porque é o que está esperando alguém. Deixar como
+   rascunho passou a ser uma escolha, e não um sumiço.
+
+4. **"Concluí tudo até agora" na linha do dia.** Facilitador pedido, mas a linha
+   do dia contém doses de medicamento, onde "não existe marcação em lote" é
+   absoluto. A versão segura ficaria limitada a atividades coletivas que não
+   sejam medicação, como ato declarado — e isso é decisão da instituição.
+
+5. **O Arquivo das ATAS abre no mês de calendário**, e por isso fica quase vazio
+   todo dia 1º. Um quarto recorte, "últimos 30 dias", resolveria.

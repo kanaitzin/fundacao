@@ -706,7 +706,15 @@ A dependência `docx` entrou no backend, e o timbre vive em `backend/assets/timb
 
 ---
 
-## 10. Entrega para a conversa nova (30/08/2026)
+## 10. Entrega para a conversa nova
+
+> **Este trecho ficou velho.** Para começar uma conversa nova, use
+> **`docs/RETOMAR-AQUI.md`** — ele é o documento único de retomada, escrito em
+> 01/09/2026, e traz o estado atual, as regras, o que falta e as decisões
+> pendentes sem depender de nenhuma conversa anterior. O que segue abaixo é o
+> registro do pacote de 30/08/2026, mantido pelo histórico.
+
+### Pacote de 30/08/2026 (histórico)
 
 ### 11.1 O que existe hoje, em uma frase
 Backend NestJS com PostgreSQL 16 e Row-Level Security, 16 partições isoladas;
