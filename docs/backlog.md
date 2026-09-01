@@ -398,6 +398,45 @@ registrar, com os DOIS nomes e o motivo. Não vale para dose nem para chamada.
 Delegação de cima para baixo, sem apagar a designação anterior. Recusa de
 substituição com motivo obrigatório. Painel do turno sem contagem por pessoa.
 
+## Fase 40 — As duas rotas que a tela mostrava sem deixar escrever ✅
+
+Achadas conferindo, uma a uma, as 210 rotas servidas contra as 212 chamadas das
+telas. Nenhuma das duas dava erro: o campo aparecia na tela e vivia em branco.
+
+| Requisito | Onde ficou | Teste |
+|---|---|---|
+| Atualizar cuidados essenciais, escola, equipe e observações (§6.4) | `app_atualizar_detalhe_perfil` (0850) + `FolhaDetalhe` no perfil | "atualiza, e guarda o que estava escrito antes" |
+| O valor anterior não some | `profile_detail_change`, sem UPDATE nem DELETE | "a segunda escrita guarda o texto da primeira" |
+| Quem CUIDA lê o histórico, não só quem edita | policy `pdc_select` por `app_person_in_scope` | "quem CUIDA da criança lê o histórico" |
+| Educador não altera dado estrutural | guarda de papel + `app_can_edit_profile()` no comando | "o educador não altera — nem pela API, nem no banco" |
+| Fora de escopo é 404, não 403 (§23) | `pessoa_fora_de_escopo` traduzido em `NotFoundException` | "fora de escopo responde 404" |
+| Observações só para quem as escreve | projeção do perfil por cargo | "as observações só vão para quem pode escrevê-las" |
+| Definir quem pode dar remédio no período (§11.3, 33.4.1) | `app_definir_protocolo_medicacao` (0860) + `FolhaProtocolo` | "define, e registra que ANTES não havia definição" |
+| Motivo obrigatório na decisão da instituição | mínimo no serviço + `motivo_obrigatorio` no comando | "o motivo é obrigatório, e uma palavra não basta" |
+| Cada decisão guarda o que valia antes | `medication_protocol_change` | "a decisão seguinte guarda a anterior" |
+| `NULL` no antes ≠ decisão de negar | colunas anuláveis + projeção `antes: null` | mesmo teste |
+| Nenhum período fica sem quem administre | `protocolo_sem_ninguem` no comando | "um período não fica sem ninguém" |
+| Só a coordenação DESTA casa decide | regra 8 no comando + policies da 0820 | "a coordenação de OUTRA casa não define" |
+
+### Achados desta fase
+
+- **Uma rota sem porta não aparece como falta; aparece como campo vazio.** As
+  duas viviam há fases no servidor, com regra, RLS e auditoria — e a tela que
+  as mostrava não tinha botão. O que faz uma coisa dessas ser encontrada não é
+  ler a tela: é comparar a lista das rotas servidas com a lista das chamadas.
+  Vale como verificação a repetir a cada fase.
+- **Abrir a escrita e guardar o antes são a mesma tarefa.** Nos dois casos, dar
+  a porta sem o histórico teria criado um problema pior do que o que ela
+  resolve: sobrescrever "cuidados essenciais" apaga uma instrução de proteção,
+  e sobrescrever o protocolo apaga a decisão institucional que autorizou
+  alguém a dar remédio. A auditoria não cobre nenhum dos dois — ela guarda o
+  nome do campo (§20) e é área restrita.
+- **Motivo obrigatório é decisão caso a caso, não princípio.** Corrigir o nome
+  exige motivo; atualizar a série escolar não, porque em fevereiro a série
+  muda mesmo e cobrar justificativa ali ensina a equipe a escrever
+  "atualização" mil vezes — até que ninguém leia mais o campo, inclusive
+  quando ele importa.
+
 ## Fase 11 — Auditoria de testes e documentação ✅
 219 testes em 16 suítes, todas verdes. As 6 falhas antigas do `saude` eram uma
 só, em cascata: o teste media `criadas` na casa inteira e dependia da ordem das

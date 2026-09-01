@@ -183,12 +183,14 @@ Além dos e2e, quatro suítes estáticas — elas já pegaram erro de verdade:
 
 ## 5. O QUE JÁ ESTÁ PRONTO
 
-**Fases 0 a 39. 373 testes em 34 suítes**, duas rodadas limpas. 26 telas, 70
-migrações, 87 tabelas.
+**Fases 0 a 40. 390 testes em 36 suítes**, duas rodadas limpas. 26 telas, 72
+migrações, 89 tabelas.
 
 **O ciclo do acolhimento:** admissão com motivo e capacidade, perfil, correção
-de cadastro com histórico legível, saída com motivo, acervo histórico e retorno
-como episódio novo.
+de cadastro com histórico legível, **atualização dos dados descritivos —
+cuidados essenciais, escola, equipe de referência — guardando o que estava
+escrito antes**, saída com motivo, acervo histórico e retorno como episódio
+novo.
 
 **O turno:** o Dia com a rotina versionada da casa, chamadas coletivas com
 conferência de mesa, passagem de plantão assinada uma a uma, ATA do turno com o
@@ -197,8 +199,9 @@ nominal, ATA Geral Noturna e o Arquivo das ATAS por dia, semana ou mês.
 
 **Saúde:** grade de doses confirmada uma a uma por quem administrou, triagem de
 evoluções, armário, esquemas de medicamento (rascunho, na grade, suspenso),
-suspensão que tira a dose da grade dizendo por quê, protocolo de quem pode dar
-remédio, autorização nominal de educador, histórico de saúde do acolhido e
+suspensão que tira a dose da grade dizendo por quê, **protocolo de quem pode dar
+remédio definido pela coordenação, com motivo escrito e o registro de cada
+decisão**, autorização nominal de educador, histórico de saúde do acolhido e
 emissões do Resumo de Saúde.
 
 **Ocorrências:** categorias, relatos independentes por autor, registro protegido
@@ -316,6 +319,17 @@ Vale ler antes de mexer em qualquer coisa parecida. Quase todos eram
   operação, agência, pendência bancária) e o serviço nunca as leu nem gravou.
 - **A situação judicial nunca era desenhada** no perfil, embora o servidor a
   devolvesse desde a fase 0.
+- **Duas rotas que a tela mostrava e ninguém conseguia escrever.** Achadas
+  conferindo, uma a uma, as rotas servidas contra as chamadas das telas: o
+  perfil desenhava cuidados essenciais, escola e equipe de referência sem porta
+  de edição (`PATCH /people/:id`, desde a fase 2), e a Saúde desenhava a tarja
+  "Sem definição" em cada período sem botão que definisse
+  (`POST /medications/protocol`, desde a fase 4). Nenhuma das duas dava erro:
+  para quem olhava a tela, o campo simplesmente vivia em branco. As portas
+  vieram com o antes-e-depois (migrações 0850 e 0860), porque abrir a escrita
+  sobre "cuidados essenciais" sem guardar o texto anterior é apagar uma
+  instrução de proteção — e a auditoria guarda o nome do campo, nunca o
+  conteúdo.
 - **No protótipo, o "Ver como" troca o cargo e mantém a pessoa** — qualquer
   verificação de autoria no `mock.ts` valia para todos os cargos, e a
   demonstração mentia sobre a política mais estreita do sistema.
@@ -345,7 +359,7 @@ valendo:
 |---|---|
 | `CONTINUIDADE.md` | a história longa, fase por fase, com o raciocínio de cada decisão |
 | `o-que-falta.md` | o levantamento das rotas sem tela, atualizado |
-| `der.md` | as 87 tabelas por partição, e o que cada uma guarda |
+| `der.md` | as 89 tabelas por partição, e o que cada uma guarda |
 | `matriz-permissoes.md` | quem alcança o quê |
 | `backlog.md` | o que foi pensado e ainda não construído |
 | `piloto-casa-03.md` | o desenho do piloto |

@@ -120,6 +120,13 @@ export class MedicationsController {
     return this.meds.setProtocol(user, body);
   }
 
+  /** Cada decisão sobre quem pode administrar, com o que valia antes (0860). */
+  @Get('protocol-history')
+  protocolHistory(@CurrentUser() user: AuthenticatedUser,
+                  @Query('houseId', ParseUUIDPipe) houseId: string) {
+    return this.meds.protocolHistory(user, houseId);
+  }
+
   @Post('authorize-educator')
   authorize(@CurrentUser() user: AuthenticatedUser, @Body() body: any) {
     return this.meds.authorizeEducator(user, body);

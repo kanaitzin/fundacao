@@ -565,30 +565,93 @@ export class MedicationsService {
     };
   }
 
+  /**
+   * DEFINIR QUEM PODE DAR REMÉDIO NO PERÍODO (§11.3, pendência 33.4.1).
+   *
+   * O motivo é OBRIGATÓRIO, ao contrário dos campos descritivos do perfil:
+   * este muda raramente, e cada mudança precisa se explicar — sob qual
+   * capacitação, qual reunião, qual documento a casa passou a permitir (ou a
+   * deixar de permitir) que o educador autorizado administre.
+   *
+   * As travas vivem no `app_definir_protocolo_medicacao` (migração 0860):
+   * alcance da casa, cargo, período válido, motivo, o período que não pode
+   * ficar sem ninguém, e o registro do que valia antes na mesma transação.
+   */
   async setProtocol(user: AuthenticatedUser, input: {
-    houseId: string; periodo: string; enfermagem: boolean; educadorAutorizado: boolean; nota?: string;
+    houseId: string; periodo: string; enfermagem: boolean; educadorAutorizado: boolean;
+    nota?: string; motivo?: string;
   }) {
     if (!['coordenador', 'gestor_geral'].includes(user.role)) {
       throw new ForbiddenException('Somente a coordenação define o protocolo de administração.');
     }
-    // A RLS (0820) já recusa a casa fora do alcance, mas recusa em linguagem de
-    // banco e com 500. As duas camadas: a regra de negócio aqui, a policy lá.
-    await this.recusaCasaDeFora(async () => this.db.asUser(user.id, async (c) => {
-      await c.query(
-        `INSERT INTO medication_protocol (house_id, period, allows_nursing, allows_authorized_educator, note, decided_by)
-         VALUES ($1,$2,$3,$4,$5,$6)
-         ON CONFLICT (house_id, period) DO UPDATE
-           SET allows_nursing = EXCLUDED.allows_nursing,
-               allows_authorized_educator = EXCLUDED.allows_authorized_educator,
-               note = EXCLUDED.note, decided_by = EXCLUDED.decided_by, decided_at = now()`,
-        [input.houseId, input.periodo, input.enfermagem, input.educadorAutorizado,
-         input.nota ?? null, user.id]);
-    }), 'Somente a coordenação DESTA casa define o protocolo de administração dela.');
+    // `nota` é o nome antigo do campo. Quem já chamava com ela continua
+    // funcionando; o nome novo diz o que se espera que esteja escrito ali.
+    const motivo = (input.motivo ?? input.nota ?? '').trim();
+    if (motivo.length < 15) {
+      throw new BadRequestException(
+        'Escreva sob qual decisão da instituição este protocolo está sendo definido. '
+        + 'Quem for rever isto daqui a seis meses precisa saber por que ficou assim.');
+    }
+    try {
+      await this.db.asUser(user.id, async (c) => {
+        await c.query(`SELECT * FROM app_definir_protocolo_medicacao($1,$2,$3,$4,$5)`,
+          [input.houseId, input.periodo, input.enfermagem, input.educadorAutorizado, motivo]);
+      });
+    } catch (e: any) {
+      const m = String(e?.message ?? '');
+      if (m.includes('casa_fora_de_escopo')) {
+        throw new ForbiddenException(
+          'Somente a coordenação DESTA casa define o protocolo de administração dela.');
+      }
+      if (m.includes('sem_permissao_para_definir_protocolo')) {
+        throw new ForbiddenException('Somente a coordenação define o protocolo de administração.');
+      }
+      if (m.includes('protocolo_sem_ninguem')) {
+        throw new BadRequestException(
+          'Um período precisa de alguém que possa administrar. Sem Enfermagem e sem educador '
+          + 'autorizado, a dose vence todos os dias sem que exista quem a confirme.');
+      }
+      if (m.includes('periodo_invalido')) throw new BadRequestException('Período inválido.');
+      if (m.includes('motivo_obrigatorio')) {
+        throw new BadRequestException('Escreva sob qual decisão o protocolo está sendo definido.');
+      }
+      throw e;
+    }
     await this.audit.log({
       action: 'medication.protocol_set', actorId: user.id, houseId: input.houseId,
       detail: { periodo: input.periodo, educadorAutorizado: input.educadorAutorizado },
     });
-    return { ok: true };
+    return { ok: true,
+      aviso: 'Protocolo definido. O que valia antes continua registrado, com o seu nome, o '
+        + 'horário e o motivo — e a equipe da casa lê esse histórico na tela da Saúde.' };
+  }
+
+  /**
+   * Cada decisão sobre quem pode administrar, com o que valia antes.
+   *
+   * Lê quem alcança a casa, e não só quem decide: a educadora que vai — ou não
+   * vai — dar o remédio tem o direito de saber quando isso mudou e sob qual
+   * decisão, sem precisar pedir à coordenação.
+   */
+  async protocolHistory(user: AuthenticatedUser, houseId: string) {
+    const rows = await this.db.asUser(user.id, async (c) => {
+      const { rows: r } = await c.query(
+        `SELECT id, period, before_nursing, before_educator, after_nursing, after_educator,
+                reason, at, app_user_display_name(decided_by) AS por
+           FROM medication_protocol_change WHERE house_id = $1
+          ORDER BY at DESC LIMIT 50`, [houseId]);
+      return r;
+    });
+    return rows.map((r: any) => ({
+      id: r.id, periodo: r.period,
+      // `null` no "antes" não é `false`: significa que não havia definição e
+      // valia o padrão protetivo. A tela precisa dizer a diferença.
+      antes: r.before_nursing === null
+        ? null
+        : { enfermagem: r.before_nursing, educadorAutorizado: r.before_educator },
+      depois: { enfermagem: r.after_nursing, educadorAutorizado: r.after_educator },
+      motivo: r.reason, por: r.por, quando: r.at,
+    }));
   }
 
   /**

@@ -16,6 +16,18 @@ const DOCS_POR_PAPEL: Record<string, string[]> = {
   cozinha: [],
 };
 
+/**
+ * Os campos descritivos do perfil, com o nome que a tela usa. Fica aqui, e não
+ * na tela, porque o mesmo rótulo vale para a folha de edição e para a linha do
+ * histórico — escrito nos dois lugares, um dia divergem.
+ */
+const ROTULO_DETALHE: Record<string, string> = {
+  essential_care: 'Cuidados essenciais', school_name: 'Escola',
+  school_grade: 'Série', school_shift: 'Turno da escola',
+  school_address: 'Endereço da escola', reference_team: 'Equipe de referência',
+  notes: 'Observações',
+};
+
 /** Executa consultas em sequência no mesmo cliente (pg não aceita paralelo). */
 async function seq<T>(fns: Array<() => Promise<T>>): Promise<T[]> {
   const out: T[] = [];
@@ -101,6 +113,12 @@ export class ProfileService {
         turno: data.detail.school_shift, endereco: data.detail.school_address,
       } : null,
       equipeReferencia: data.detail?.reference_team ?? null,
+      // As observações só vão para quem PODE escrevê-las (§6.2). Editar um
+      // campo às cegas é como se apaga o texto de outra pessoa; e devolvê-lo a
+      // todo mundo ampliaria, de carona numa correção de tela, o que o
+      // educador do plantão passa a ler no perfil — decisão que não é minha.
+      observacoes: ['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(user.role)
+        ? (data.detail?.notes ?? null) : undefined,
       episodios: data.episodes,
       // O RLS já entrega só o que este papel pode abrir; a contagem do que
       // existe e está restrito vem de função própria (número, nunca conteúdo).
@@ -112,6 +130,19 @@ export class ProfileService {
     };
   }
 
+  /**
+   * ATUALIZAR OS DADOS DESCRITIVOS DO PERFIL (§6.4).
+   *
+   * Cuidados essenciais, escola, equipe de referência e observações. Não pede
+   * motivo — mudar a série da criança em fevereiro é atualizar, não corrigir
+   * (a identificação, essa sim, vai por `corrigirIdentificacao`).
+   *
+   * Toda alteração deixa o valor ANTERIOR em `profile_detail_change` (migração
+   * 0850), na mesma transação. Até 01/09/2026 este método sobrescrevia: o
+   * texto de "cuidados essenciais" — o bloco que se lê antes de dar banho ou
+   * de servir o prato — era substituído sem deixar rastro legível, porque a
+   * auditoria guarda o NOME do campo e nunca o conteúdo (§20).
+   */
   async updateDetail(user: AuthenticatedUser, personId: string, patch: Record<string, string | null>) {
     if (!['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(user.role)) {
       throw new ForbiddenException('Educadores não alteram dados estruturais do perfil.');
@@ -121,28 +152,47 @@ export class ProfileService {
       escolaTurno: 'school_shift', escolaEndereco: 'school_address', equipeReferencia: 'reference_team',
       observacoes: 'notes',
     };
-    const sets: string[] = [], vals: unknown[] = [personId];
+    const enviados: Record<string, string | null> = {};
     for (const [k, v] of Object.entries(patch)) {
-      if (campos[k]) { vals.push(v); sets.push(`${campos[k]} = $${vals.length}`); }
+      if (campos[k]) enviados[campos[k]] = v;
     }
-    if (!sets.length) return { ok: true, alterado: 0 };
+    if (!Object.keys(enviados).length) return { ok: true, alterado: 0 };
 
-    // `alterado` contava os campos ENVIADOS, não os gravados: fora de escopo,
-    // o RLS não atualizava linha nenhuma e a resposta seguia dizendo "ok".
-    const gravou = await this.db.asUser(user.id, async (c) => {
-      const { rowCount } = await c.query(
-        `UPDATE profile_detail SET ${sets.join(', ')}, updated_at = now(), updated_by = $${vals.length + 1},
-         version = version + 1 WHERE person_id = $1`, [...vals, user.id]);
-      return (rowCount ?? 0) > 0;
-    });
-    if (!gravou) {
-      throw new NotFoundException('Perfil não encontrado — ou fora do seu alcance.');
+    let n = 0;
+    try {
+      n = await this.db.asUser(user.id, async (c) => {
+        const { rows: [r] } = await c.query(
+          `SELECT * FROM app_atualizar_detalhe_perfil($1, $2::jsonb)`,
+          [personId, JSON.stringify(enviados)]);
+        return Number(r.alterados);
+      });
+    } catch (e: any) {
+      const m = String(e?.message ?? '');
+      if (m.includes('sem_permissao_para_editar')) {
+        throw new ForbiddenException('Educadores não alteram dados estruturais do perfil.');
+      }
+      // Fora de escopo responde 404 igual a inexistente: 403 confirmaria que a
+      // criança existe em outra casa (§23).
+      if (m.includes('pessoa_fora_de_escopo')) {
+        throw new NotFoundException('Perfil não encontrado — ou fora do seu alcance.');
+      }
+      if (m.includes('campo_nao_editavel')) {
+        throw new BadRequestException('Este campo não se altera por aqui.');
+      }
+      throw e;
+    }
+
+    if (n === 0) {
+      return { ok: true, alterado: 0,
+        aviso: 'Nada mudou: o que você enviou é igual ao que já estava.' };
     }
     await this.audit.log({
       action: 'person.profile_update', actorId: user.id, entity: 'person', entityId: personId,
-      detail: { campos: Object.keys(patch) },   // nomes dos campos, nunca o conteúdo (§20)
+      detail: { campos: Object.keys(enviados), alterados: n },  // nomes, nunca o conteúdo (§20)
     });
-    return { ok: true, alterado: sets.length };
+    return { ok: true, alterado: n,
+      aviso: `${n} campo(s) atualizado(s). O que estava antes continua registrado, com o seu `
+        + 'nome e o horário, e aparece no perfil para quem cuida da criança.' };
   }
 
   /**
@@ -254,6 +304,26 @@ export class ProfileService {
       depois: r.field === 'cpf' ? (r.after_value ? '(passou a ter CPF)' : '(ficou em branco)')
                                 : r.after_value,
       motivo: r.reason, por: r.por, quando: r.at,
+    }));
+  }
+
+  /**
+   * O que o perfil dizia antes (migração 0850), legível por quem alcança a
+   * criança — inclusive o educador do plantão, que é quem vai agir sobre o
+   * texto novo e tem o direito de saber que ele mudou hoje de manhã.
+   */
+  async detalheHistorico(user: AuthenticatedUser, personId: string) {
+    const rows = await this.db.asUser(user.id, async (c) => {
+      const { rows: r } = await c.query(
+        `SELECT id, field, before_value, after_value, at,
+                app_user_display_name(changed_by) AS por
+           FROM profile_detail_change WHERE person_id = $1 ORDER BY at DESC LIMIT 50`, [personId]);
+      return r;
+    });
+    return rows.map((r: any) => ({
+      id: r.id, campo: ROTULO_DETALHE[r.field] ?? r.field,
+      antes: r.before_value, depois: r.after_value,
+      por: r.por, quando: r.at,
     }));
   }
 

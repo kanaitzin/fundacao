@@ -121,6 +121,12 @@ export class PeopleController {
     return this.profile.correcoes(user, id);
   }
 
+  /** O que os campos descritivos do perfil diziam antes (migração 0850). */
+  @Get(':id/detalhe-historico')
+  detalheHistorico(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.profile.detalheHistorico(user, id);
+  }
+
   @Patch(':id')
   update(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
          @Body() body: Record<string, string | null>) {

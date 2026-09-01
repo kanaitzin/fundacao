@@ -51,6 +51,8 @@ interface Perfil {
   cuidadosEssenciais: string | null;
   escola: { nome: string | null; serie: string | null; turno: string | null; endereco: string | null } | null;
   equipeReferencia: string | null;
+  /** Só vem para quem pode escrevê-las (§6.2) — o educador não as recebe. */
+  observacoes?: string | null;
   documentos: Doc[];
   documentosRestritos: number;
   memorias: { id: string; event_type: string; happened_on: string; description: string }[];
@@ -83,6 +85,18 @@ interface Judicial {
 interface Correcao {
   id: string; campo: string; antes: string | null; depois: string | null;
   motivo: string; por: string; quando: string;
+}
+
+/**
+ * Uma alteração dos campos descritivos do perfil (§6.4, migração 0850).
+ *
+ * Irmã da correção, e diferente dela: aqui não há motivo escrito, porque
+ * atualizar a série escolar em fevereiro é atualizar, não corrigir. O que se
+ * guarda é o RASTRO — o texto que estava, o que passou a estar, quem e quando.
+ */
+interface Alteracao {
+  id: string; campo: string; antes: string | null; depois: string | null;
+  por: string; quando: string;
 }
 
 /** Quem tem a área restrita do §13.1. O menu não oferece o que o cargo não faz. */
@@ -375,6 +389,9 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
   const [corrigindo, setCorrigindo] = useState(false);
   const [correcoes, setCorrecoes] = useState<Correcao[]>([]);
   const [editandoJudicial, setEditandoJudicial] = useState(false);
+  /** Atualizar o que é descrição (§6.4): não pede motivo, mas deixa rastro. */
+  const [editandoDetalhe, setEditandoDetalhe] = useState(false);
+  const [alteracoes, setAlteracoes] = useState<Alteracao[]>([]);
 
   useEffect(() => {
     (async () => {
@@ -387,6 +404,8 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
         catch { setDoses([]); }
         // O histórico de correções é do caso, e quem alcança a criança lê.
         setCorrecoes(await api<Correcao[]>(`/people/${personId}/correcoes`).catch(() => []));
+        setAlteracoes(
+          await api<Alteracao[]>(`/people/${personId}/detalhe-historico`).catch(() => []));
       } catch (e) {
         setErro(e instanceof Error ? e.message : 'Não foi possível abrir o perfil.');
       }
@@ -419,6 +438,8 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
   async function recarregar() {
     setP(await api<Perfil>(`/people/${personId}`).catch(() => p));
     setCorrecoes(await api<Correcao[]>(`/people/${personId}/correcoes`).catch(() => correcoes));
+    setAlteracoes(
+      await api<Alteracao[]>(`/people/${personId}/detalhe-historico`).catch(() => alteracoes));
   }
 
   if (dossie) {
@@ -461,6 +482,24 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
         </button>
       )}
 
+      {/*
+        * ATUALIZAR O QUE É DESCRIÇÃO (§6.4).
+        *
+        * Separado de "corrigir o cadastro" de propósito, e o rótulo diz a
+        * diferença: corrigir mexe em QUEM a criança é nos papéis e exige
+        * motivo; atualizar mexe no que a casa precisa saber hoje — a escola
+        * nova, o cuidado que a Enfermagem passou a orientar — e a série muda
+        * todo ano. Juntar as duas coisas numa folha só ensinaria a equipe a
+        * escrever "atualização" no campo de motivo mil vezes, e aí o motivo
+        * deixa de ser lido justamente quando importa.
+        */}
+      {QUEM_CADASTRA.includes(papel) && (
+        <button className="btn ghost block" style={{ marginBottom: 12 }}
+                onClick={() => setEditandoDetalhe(true)}>
+          📝 Atualizar escola, cuidados e equipe
+        </button>
+      )}
+
       {/* O histórico fica À VISTA de quem cuida: "por que o nome dela mudou em
           março?" é pergunta do caso, não de auditoria. */}
       {correcoes.length > 0 && (
@@ -477,6 +516,31 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
                 </div>
                 <div className="mutetxt">{c.motivo}</div>
                 <div className="mutetxt">{c.por} · {dia(c.quando)}</div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/*
+        * O que o perfil dizia antes. Fica à vista de TODO MUNDO que alcança a
+        * criança, inclusive do educador de plantão: é ele quem vai agir sobre
+        * o cuidado essencial que a técnica reescreveu hoje de manhã, e ele
+        * precisa poder ver que mudou — e o que dizia antes — sem perguntar.
+        */}
+      {alteracoes.length > 0 && (
+        <div className="card" style={{ marginBottom: 12 }}>
+          <div className="eyebrow" style={{ marginTop: 0 }}>
+            O que mudou no perfil · {alteracoes.length}
+          </div>
+          <ul className="lista">
+            {alteracoes.map((a) => (
+              <li key={a.id}>
+                <b className="ff">{a.campo}</b>
+                <div className="mutetxt linhadois">
+                  de <b>{a.antes || '(em branco)'}</b> para <b>{a.depois || '(em branco)'}</b>
+                </div>
+                <div className="mutetxt">{a.por} · {dia(a.quando)}</div>
               </li>
             ))}
           </ul>
@@ -516,9 +580,20 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
         </div>
       )}
 
-      {p.cuidadosEssenciais && (
+      {/*
+        * Vazio DIZ "não preenchido" para quem pode preencher, e some para quem
+        * não pode. Escondê-lo de todo mundo era o que mantinha o defeito: sem
+        * a seção na tela, ninguém sentia falta da porta que não existia — e o
+        * campo mais importante do perfil ficava em branco para sempre.
+        */}
+      {(p.cuidadosEssenciais || QUEM_CADASTRA.includes(papel)) && (
         <Secao titulo="Cuidados essenciais">
-          <p className="bloco" style={{ marginTop: 0 }}>{p.cuidadosEssenciais}</p>
+          {p.cuidadosEssenciais
+            ? <p className="bloco" style={{ marginTop: 0 }}>{p.cuidadosEssenciais}</p>
+            : <p className="mutetxt" style={{ margin: 0 }}>
+                Nada escrito ainda. É aqui que fica o que a educadora precisa saber antes de
+                dar banho, de deixar sozinha ou de servir o prato.
+              </p>}
         </Secao>
       )}
 
@@ -596,19 +671,37 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
         )}
       </Secao>
 
-      {p.escola && (p.escola.nome || p.escola.serie) && (
+      {((p.escola && (p.escola.nome || p.escola.serie)) || QUEM_CADASTRA.includes(papel)) && (
         <Secao titulo="Escola">
-          <b className="ff">{p.escola.nome ?? 'Escola não informada'}</b>
-          <div className="mutetxt">
-            {[p.escola.serie, p.escola.turno].filter(Boolean).join(' · ') || 'Série e turno não informados'}
-          </div>
-          {p.escola.endereco && <div className="mutetxt">{p.escola.endereco}</div>}
+          {p.escola && (p.escola.nome || p.escola.serie) ? (
+            <>
+              <b className="ff">{p.escola.nome ?? 'Escola não informada'}</b>
+              <div className="mutetxt">
+                {[p.escola.serie, p.escola.turno].filter(Boolean).join(' · ') || 'Série e turno não informados'}
+              </div>
+              {p.escola.endereco && <div className="mutetxt">{p.escola.endereco}</div>}
+            </>
+          ) : (
+            <p className="mutetxt" style={{ margin: 0 }}>Escola não informada.</p>
+          )}
         </Secao>
       )}
 
-      {p.equipeReferencia && (
+      {(p.equipeReferencia || QUEM_CADASTRA.includes(papel)) && (
         <Secao titulo="Equipe de referência">
-          <p className="bloco" style={{ marginTop: 0 }}>{p.equipeReferencia}</p>
+          {p.equipeReferencia
+            ? <p className="bloco" style={{ marginTop: 0 }}>{p.equipeReferencia}</p>
+            : <p className="mutetxt" style={{ margin: 0 }}>Não informada.</p>}
+        </Secao>
+      )}
+
+      {/* As observações só chegam a quem pode escrevê-las: o servidor nem as
+          devolve para os outros cargos (§6.2). */}
+      {p.observacoes !== undefined && (
+        <Secao titulo="Observações">
+          {p.observacoes
+            ? <p className="bloco" style={{ marginTop: 0 }}>{p.observacoes}</p>
+            : <p className="mutetxt" style={{ margin: 0 }}>Nada escrito ainda.</p>}
         </Secao>
       )}
 
@@ -775,6 +868,25 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
               await recarregar();
             } catch (e) {
               setErro(e instanceof Error ? e.message : 'Não foi possível corrigir o cadastro.');
+            }
+          }} />
+      )}
+
+      {editandoDetalhe && (
+        <FolhaDetalhe
+          perfil={p}
+          onFechar={() => setEditandoDetalhe(false)}
+          onSalvar={async (campos) => {
+            setErro(''); setAviso('');
+            try {
+              const r = await api<{ aviso?: string; alterado: number }>(
+                `/people/${personId}`,
+                { method: 'PATCH', body: JSON.stringify(campos) });
+              setEditandoDetalhe(false);
+              setAviso(r?.aviso ?? 'Perfil atualizado.');
+              await recarregar();
+            } catch (e) {
+              setErro(e instanceof Error ? e.message : 'Não foi possível atualizar o perfil.');
             }
           }} />
       )}
@@ -1113,6 +1225,100 @@ function FolhaCorrigir({ perfil, onFechar, onCorrigir }: {
             nascimento, motivo: motivo.trim(),
           })}>
             Corrigir, com este motivo
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * A FOLHA DOS DADOS DESCRITIVOS (§6.4).
+ *
+ * Três decisões que ela toma:
+ *
+ *  * **os campos vêm preenchidos com o que está lá.** Atualizar é comparar; um
+ *    formulário vazio faz a pessoa redigitar o que já estava certo — e, pior,
+ *    apagar por descuido o que não pretendia tocar;
+ *  * **não pede motivo**, e o aviso explica por quê: a série muda todo ano.
+ *    O que fica registrado é o texto anterior, com nome e horário;
+ *  * **o cuidado essencial vem primeiro e com aviso próprio.** É o único campo
+ *    desta folha que alguém lê no corredor às 23h antes de agir, e reescrevê-lo
+ *    por cima do que a Enfermagem orientou é o erro caro daqui.
+ */
+function FolhaDetalhe({ perfil, onFechar, onSalvar }: {
+  perfil: Perfil; onFechar: () => void;
+  onSalvar: (campos: Record<string, string | null>) => void;
+}) {
+  const [cuidados, setCuidados] = useState(perfil.cuidadosEssenciais ?? '');
+  const [escola, setEscola] = useState(perfil.escola?.nome ?? '');
+  const [serie, setSerie] = useState(perfil.escola?.serie ?? '');
+  const [turno, setTurno] = useState(perfil.escola?.turno ?? '');
+  const [endereco, setEndereco] = useState(perfil.escola?.endereco ?? '');
+  const [equipe, setEquipe] = useState(perfil.equipeReferencia ?? '');
+  const [obs, setObs] = useState(perfil.observacoes ?? '');
+
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-det"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet modal">
+        <h3 id="t-det">Atualizar dados do perfil</h3>
+        <div className="notice c-info">
+          Aqui não se pede motivo: a série muda todo ano, e a escola muda quando a criança
+          muda de escola. O que <b>fica registrado</b> é o texto anterior, com o seu nome e o
+          horário — e ele aparece no perfil, para quem cuida da criança poder ler.
+          Nome, nome social e data de nascimento não se alteram por aqui: para isso existe
+          <b> Corrigir o cadastro</b>, que pede motivo.
+        </div>
+
+        <label className="f" htmlFor="det-cui">
+          Cuidados essenciais <small>— o que se precisa saber antes de agir</small>
+        </label>
+        <textarea id="det-cui" value={cuidados} onChange={(e) => setCuidados(e.target.value)}
+                  placeholder="Ex.: usa aparelho auditivo do lado direito; avisar antes de encostar. Engasga com alimento em pedaço — comida cortada pequena." />
+        <p className="mutetxt">
+          Este bloco é lido no corredor, de relance, antes do banho e antes do prato.
+          Acrescente ao que já está escrito em vez de substituir, quando as duas coisas
+          continuarem valendo.
+        </p>
+
+        <label className="f" htmlFor="det-esc">Escola</label>
+        <input id="det-esc" value={escola} onChange={(e) => setEscola(e.target.value)} />
+
+        <label className="f" htmlFor="det-ser">Série</label>
+        <input id="det-ser" value={serie} onChange={(e) => setSerie(e.target.value)} />
+
+        <label className="f" htmlFor="det-tur">Turno da escola</label>
+        <input id="det-tur" value={turno} onChange={(e) => setTurno(e.target.value)} />
+
+        <label className="f" htmlFor="det-end">
+          Endereço da escola <small>— para a logística da ida e da volta</small>
+        </label>
+        <input id="det-end" value={endereco} onChange={(e) => setEndereco(e.target.value)} />
+
+        <label className="f" htmlFor="det-eq">
+          Equipe de referência <small>— quem acompanha esta criança fora da casa</small>
+        </label>
+        <textarea id="det-eq" value={equipe} onChange={(e) => setEquipe(e.target.value)}
+                  placeholder="Ex.: CRAS Restinga — técnica de referência Joana; CAPSi — psicóloga Marta, quinzenal." />
+
+        <label className="f" htmlFor="det-obs">
+          Observações <small>— da equipe técnica e da coordenação</small>
+        </label>
+        <textarea id="det-obs" value={obs} onChange={(e) => setObs(e.target.value)} />
+
+        <div className="row rodape">
+          <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
+          <button className="btn grow" onClick={() => onSalvar({
+            cuidadosEssenciais: cuidados.trim() || null,
+            escolaNome: escola.trim() || null,
+            escolaSerie: serie.trim() || null,
+            escolaTurno: turno.trim() || null,
+            escolaEndereco: endereco.trim() || null,
+            equipeReferencia: equipe.trim() || null,
+            observacoes: obs.trim() || null,
+          })}>
+            Salvar
           </button>
         </div>
       </div>

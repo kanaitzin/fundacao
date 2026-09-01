@@ -543,6 +543,14 @@ const PROTOCOLO: { periodo: string; enfermagem: boolean; educadorAutorizado: boo
 
 const AUTORIZACOES: AutorizacaoMock[] = [];
 
+/** Cada decisão sobre quem pode administrar, com o que valia antes (0860). */
+const DECISOES_PROTOCOLO: {
+  id: string; periodo: string;
+  antes: { enfermagem: boolean; educadorAutorizado: boolean } | null;
+  depois: { enfermagem: boolean; educadorAutorizado: boolean };
+  motivo: string; por: string; quando: string;
+}[] = [];
+
 let DOSES: DoseMock[] = [
   { id: 'd1', personId: 'p11', horario: emHoras(7, 30), medicamento: 'Colírio lubrificante (fictício)',
     dose: '1 gota em cada olho', via: 'oftálmica', tipo: 'uso_continuo', condicaoUso: null,
@@ -1628,6 +1636,41 @@ interface CorrecaoMock {
   motivo: string; por: string; quando: string;
 }
 const CORRECOES: CorrecaoMock[] = [];
+
+/**
+ * Os campos descritivos do perfil (§6.4) e o que já mudou neles.
+ *
+ * `DETALHE` guarda o que está VALENDO agora, por acolhido — a demonstração
+ * precisa mostrar o texto novo depois de salvar, e não voltar ao de fábrica.
+ * `ALTERACOES` guarda o que estava antes, que é o ponto da migração 0850.
+ */
+interface AlteracaoMock {
+  id: string; personId: string; campo: string;
+  antes: string | null; depois: string | null; por: string; quando: string;
+}
+const ALTERACOES: AlteracaoMock[] = [];
+const DETALHE: Record<string, Record<string, string | null>> = {};
+/** O rótulo é o mesmo que o servidor devolve — escrito duas vezes, divergiria. */
+const ROTULO_DETALHE: Record<string, string> = {
+  cuidadosEssenciais: 'Cuidados essenciais', escolaNome: 'Escola',
+  escolaSerie: 'Série', escolaTurno: 'Turno da escola',
+  escolaEndereco: 'Endereço da escola', equipeReferencia: 'Equipe de referência',
+  observacoes: 'Observações',
+};
+/** O que está valendo: o de fábrica da criança, coberto pelo que foi editado. */
+function detalheDe(k: Kid): Record<string, string | null> {
+  return {
+    cuidadosEssenciais: k.cuidado ?? null,
+    escolaNome: 'EMEF Vila Nova (fictícia)',
+    escolaSerie: k.serie,
+    escolaTurno: k.turno,
+    escolaEndereco: 'Rua Fictícia, 100 — Porto Alegre/RS',
+    equipeReferencia: 'Equipe técnica Casa 03',
+    observacoes: null,
+    ...(DETALHE[k.id] ?? {}),
+  };
+}
+
 /** O que a atualização judicial já mudou nesta sessão da demonstração. */
 const JUDICIAL_EXTRA: Record<string, string | null> = {};
 
@@ -2982,6 +3025,11 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
   if (seg[0] === 'people' && seg[2] === 'correcoes' && metodo === 'GET') {
     return CORRECOES.filter((c) => c.personId === seg[1]);
   }
+  /* O que o perfil dizia antes (§6.4, migração 0850). Lê quem alcança a
+     criança — inclusive o educador, que é quem age sobre o texto novo. */
+  if (seg[0] === 'people' && seg[2] === 'detalhe-historico' && metodo === 'GET') {
+    return ALTERACOES.filter((a) => a.personId === seg[1]);
+  }
   if (seg[0] === 'people' && seg[2] === 'judicial' && metodo === 'PATCH') {
     const k = kid(seg[1]);
     if (!['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)) {
@@ -3004,6 +3052,35 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     return { ...k.judicial, situacao: 'Em acompanhamento', observacoes: null,
              ...JUDICIAL_EXTRA };
   }
+  /* ATUALIZAR O QUE É DESCRIÇÃO (§6.4). Vem ANTES do ramo de leitura, que casa
+     com o mesmo caminho: o verbo é o que separa os dois. Não pede motivo — o
+     que fica é o rastro do que estava escrito antes. */
+  if (seg[0] === 'people' && seg.length === 2 && metodo === 'PATCH') {
+    const k = kid(seg[1]);
+    if (!k) return new Recusa(404, 'Perfil não encontrado — ou fora do seu alcance.');
+    if (!['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403, 'Educadores não alteram dados estruturais do perfil.');
+    }
+    const atual = detalheDe(k);
+    let n = 0;
+    for (const campo of Object.keys(ROTULO_DETALHE)) {
+      if (b[campo] === undefined) continue;
+      const novo = String(b[campo] ?? '').trim() || null;
+      if (novo === atual[campo]) continue;   // campo que não mudou não vira linha
+      ALTERACOES.unshift({ id: uid(), personId: k.id, campo: ROTULO_DETALHE[campo],
+        antes: atual[campo], depois: novo, por: eu.fullName,
+        quando: new Date().toISOString() });
+      DETALHE[k.id] = { ...(DETALHE[k.id] ?? {}), [campo]: novo };
+      n += 1;
+    }
+    if (n === 0) {
+      return { ok: true, alterado: 0,
+        aviso: 'Nada mudou: o que você enviou é igual ao que já estava.' };
+    }
+    return { ok: true, alterado: n,
+      aviso: `${n} campo(s) atualizado(s). O que estava antes continua registrado, com o seu `
+        + 'nome e o horário, e aparece no perfil para quem cuida da criança.' };
+  }
   if (seg[0] === 'people' && seg.length === 2) {
     const k = kid(seg[1]);
     if (!k) return new Recusa(404, 'Não encontrado.');
@@ -3021,10 +3098,14 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         rotulo: k.alerta.descricao, severity: k.alerta.gravidade, essential_alert: true,
         source: 'Relatório médico (fictício)', review_on: null }] : [],
       restricoesAlimentares: k.restricao ? [{ id: 'r1', ...k.restricao, review_on: null }] : [],
-      cuidadosEssenciais: k.cuidado ?? null,
-      escola: { nome: 'EMEF Vila Nova (fictícia)', serie: k.serie, turno: k.turno,
-                endereco: 'Rua Fictícia, 100 — Porto Alegre/RS' },
-      equipeReferencia: 'Equipe técnica Casa 03',
+      cuidadosEssenciais: detalheDe(k).cuidadosEssenciais,
+      escola: { nome: detalheDe(k).escolaNome, serie: detalheDe(k).escolaSerie,
+                turno: detalheDe(k).escolaTurno, endereco: detalheDe(k).escolaEndereco },
+      equipeReferencia: detalheDe(k).equipeReferencia,
+      // As observações só vão para quem pode escrevê-las (§6.2): `undefined`
+      // some do JSON, e é assim que a tela sabe que não deve desenhar a seção.
+      observacoes: ['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)
+        ? detalheDe(k).observacoes : undefined,
       episodios: [{ number: 1, started_at: '2026-02-28', ended_at: null, end_reason: null, status: 'ativo' }],
       documentos: podeDoc ? [
         { id: 'doc1', category: 'saude', title: 'Receita em vigência', issued_on: '2026-08-01', valid_until: null },
@@ -3264,16 +3345,42 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         + 'instituição. Enquanto não houver definição formal, vale o padrão mais protetivo: '
         + 'somente Enfermagem.' };
   }
+  /* Cada decisão, com o que valia antes (migração 0860). Lê quem alcança a
+     casa: a educadora tem o direito de saber quando a regra mudou. */
+  if (rota === '/medications/protocol-history' && metodo === 'GET') {
+    return DECISOES_PROTOCOLO;
+  }
   if (rota === '/medications/protocol' && metodo === 'POST') {
     if (!['coordenador', 'gestor_geral'].includes(eu.role)) {
       return new Recusa(403, 'Somente a coordenação define o protocolo de administração.');
     }
+    const motivoP = String(b.motivo ?? b.nota ?? '').trim();
+    if (motivoP.length < 15) {
+      return new Recusa(400,
+        'Escreva sob qual decisão da instituição este protocolo está sendo definido. '
+        + 'Quem for rever isto daqui a seis meses precisa saber por que ficou assim.');
+    }
+    const enf = b.enfermagem !== false;
+    const edu = b.educadorAutorizado === true;
+    if (!enf && !edu) {
+      return new Recusa(400,
+        'Um período precisa de alguém que possa administrar. Sem Enfermagem e sem educador '
+        + 'autorizado, a dose vence todos os dias sem que exista quem a confirme.');
+    }
     const alvoP = PROTOCOLO.find((x) => x.periodo === b.periodo);
-    const novoP = { periodo: String(b.periodo), enfermagem: b.enfermagem !== false,
-      educadorAutorizado: b.educadorAutorizado === true,
-      nota: b.nota ? String(b.nota) : null, definidoEm: new Date().toISOString() };
+    DECISOES_PROTOCOLO.unshift({ id: uid(), periodo: String(b.periodo),
+      // `null` diz "não havia definição, valia o padrão protetivo" — diferente
+      // de uma decisão anterior que negava.
+      antes: alvoP ? { enfermagem: alvoP.enfermagem,
+                       educadorAutorizado: alvoP.educadorAutorizado } : null,
+      depois: { enfermagem: enf, educadorAutorizado: edu },
+      motivo: motivoP, por: eu.fullName, quando: new Date().toISOString() });
+    const novoP = { periodo: String(b.periodo), enfermagem: enf, educadorAutorizado: edu,
+      nota: motivoP, definidoEm: new Date().toISOString() };
     if (alvoP) Object.assign(alvoP, novoP); else PROTOCOLO.push(novoP);
-    return { ok: true };
+    return { ok: true,
+      aviso: 'Protocolo definido. O que valia antes continua registrado, com o seu nome, o '
+        + 'horário e o motivo — e a equipe da casa lê esse histórico na tela da Saúde.' };
   }
   if (rota === '/medications/authorizations' && metodo === 'GET') {
     return AUTORIZACOES.map((a) => ({ ...a,

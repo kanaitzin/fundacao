@@ -151,6 +151,19 @@ linha por campo, e não aceita UPDATE nem DELETE. Ela é tabela e não
 no sistema"; esta responde a uma pergunta do CASO — "por que o nome dela mudou
 em março?" — e é lida por quem cuida, na tela do perfil.
 
+**`profile_detail_change` é a irmã dela para o que é DESCRIÇÃO** (§6.4, migração
+0850): cuidados essenciais, escola, equipe de referência e observações. A rota
+que altera esses campos existia desde a fase 2 e nunca teve tela — o perfil
+mostrava tudo isso e ninguém conseguia escrever. Ao abrir a porta, o
+antes-e-depois veio junto, porque "cuidados essenciais" é o bloco que se lê
+antes de dar banho e antes de servir o prato: reescrevê-lo por cima do que a
+Enfermagem orientou apagaria uma instrução de proteção sem rastro, já que a
+auditoria guarda o NOME do campo e nunca o conteúdo (§20). A diferença para
+`person_correction` é o motivo escrito: corrigir o nome exige um, atualizar a
+série escolar não — em fevereiro a série muda mesmo, e cobrar justificativa ali
+ensina a equipe a escrever "atualização" mil vezes até que ninguém mais leia o
+campo. O que se cobra aqui é o rastro.
+
 **`check_bulk` é a CONFERÊNCIA DE MESA** (§10, migração 0780). A regra escrita
 é "sem marcação em lote SILENCIOSA", e a do banco é "nada que preencha o que
 não foi olhado" — nenhuma proíbe registrar de uma vez o que foi olhado de uma
@@ -325,6 +338,19 @@ apurar e acusar.
 administra em cada período (pendência 33.4.1). Em vez de inventar uma regra
 invisível, a decisão virou configuração por casa, com data e autor.
 
+**`medication_protocol_change` guarda cada decisão dessas** (migração 0860). A
+rota que escreve o protocolo também nunca teve tela: a Saúde desenhava a tarja
+"Sem definição" em cada período e não havia botão que definisse. Ao abrir a
+porta, duas coisas mudaram de peso — a nota deixou de ser opcional, porque uma
+decisão da instituição sem a linha que a explica não se revê; e o
+`ON CONFLICT DO UPDATE` deixou de sobrescrever em silêncio, porque trocar
+"educador autorizado pode dar remédio no turno noturno" de sim para não é a
+decisão mais pesada que uma coordenação toma aqui. `NULL` nos campos "antes"
+significa que não havia definição e valia o padrão protetivo — diferente de
+`false`, que é uma decisão tomada de negar. Lê quem alcança a casa, e não só
+quem decide: a educadora que vai (ou não vai) dar o remédio tem o direito de
+saber quando isso mudou e sob qual decisão.
+
 ## Fase 5 — plantão, passagem, ATA e relatos
 
 ```mermaid
@@ -447,15 +473,15 @@ desenvolvimento** (fase 15): a criança não é só o que deu problema. Sala de
 recursos, curso, aprendizagem e a evolução escrita pela equipe entram no
 documento que segue para a audiência e para a escola.
 
-## Inventário — 87 tabelas por partição
+## Inventário — 89 tabelas por partição
 
 | Partição | Tabelas |
 |---|---|
 | identity (12) | institution, house, app_user, user_house_assignment, work_schedule, user_session, login_attempt, audit_event, institutional_device, staff_role_grant, house_capacity_change, user_invite |
-| people (16) | person, care_episode, house_stay, profile_detail, health_condition, food_restriction, document, document_version, benefit_record, memory_record, transfer_request, transfer_message, admission_record, judicial_record, person_credential, person_correction |
+| people (17) | person, care_episode, house_stay, profile_detail, health_condition, food_restriction, document, document_version, benefit_record, memory_record, transfer_request, transfer_message, admission_record, judicial_record, person_credential, person_correction, profile_detail_change |
 | shifts (10) | shift, handover, handover_receipt, handover_note, ata, ata_addendum, ata_episode, ata_episode_ack, general_night_ata, general_night_house_entry |
 | incidents (7) | incident, incident_person, incident_protected, incident_restraint, incident_synthesis, external_communication, incident_attachment |
-| medications (7) | prescription, medication_schedule, medication_administration, medication_stock, medication_stock_movement, medication_protocol, medication_authorization |
+| medications (8) | prescription, medication_schedule, medication_administration, medication_stock, medication_stock_movement, medication_protocol, medication_authorization, medication_protocol_change |
 | activities (6) | activity, activity_assignment, activity_acknowledgement, activity_execution, substitution_request, commitment |
 | nursing (6) | health_encounter, health_evolution, nursing_triage, health_summary_issue, education_support, education_evolution |
 | reports (5) | followup, followup_source, report_document, report_delivery, export_log |

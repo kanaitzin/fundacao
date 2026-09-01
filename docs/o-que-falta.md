@@ -131,6 +131,27 @@ vazia, a reconciliação respondia "nada pendente" e o protótipo avisava, ao
 fechar a ATA, que a cópia tinha entrado na fila. Não tinha. O laço foi fechado —
 ver §8.9 da CONTINUIDADE.*
 
+*E, em 01/09/2026, **duas rotas que este próprio levantamento não tinha visto** —
+encontradas ao conferir, uma a uma, as rotas servidas contra as chamadas das
+telas. As duas eram do mesmo tipo: a tela MOSTRAVA o campo e ninguém, em cargo
+nenhum, conseguia escrever nele.*
+
+ - *`PATCH /people/:id` — os dados descritivos do perfil (§6.4): cuidados
+   essenciais, escola, equipe de referência e observações. Existia desde a fase
+   2, com regra de cargo e RLS. A criança trocava de escola em março e a saída
+   de quem usa era o papel. Ao abrir a porta veio o antes-e-depois (migração
+   0850): "cuidados essenciais" é o bloco que se lê antes de dar banho e antes
+   de servir o prato, e sobrescrevê-lo apagava uma instrução de proteção sem
+   rastro — a auditoria guarda o NOME do campo e nunca o conteúdo (§20);*
+ - *`POST /medications/protocol` — quem pode dar remédio em cada turno (§11.3).
+   A Saúde desenhava a tarja **"Sem definição"** em cada período e não havia
+   botão que definisse: a pendência institucional 33.4.1 seguia em aberto sem
+   que existisse por onde respondê-la. A autorização NOMINAL tinha formulário;
+   a regra que fica por cima dela, não. Com a porta, o motivo passou a ser
+   obrigatório e cada decisão guarda o que valia antes (migração 0860) — e um
+   período não pode ficar sem ninguém, porque a dose venceria todo dia sem que
+   existisse quem a confirmasse.*
+
 Isso não é lista de bugs. É o mapa do que já está construído por baixo e ainda
 não tem por onde ser usado. Serve para decidir com o Marcelo o que entra antes
 do piloto e o que espera.

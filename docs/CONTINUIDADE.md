@@ -259,7 +259,7 @@ diz de onde o número parte quando o dia mostrado não é hoje.
 
 ## 7. Protótipo — estado atual
 
-`prototipo/rede-acolher-prototipo.html` — **544 KB, um arquivo só**. Abre com
+`prototipo/rede-acolher-prototipo.html` — **~800 KB, um arquivo só**. Abre com
 dois cliques, sem servidor, sem banco, sem instalar nada.
 
 **Entrar:** `mbarbosa@paodospobres.com.br` · **Primeiro acesso:** abra o
@@ -278,7 +278,8 @@ conferidas.
 ## 8. Pendências
 
 ### 8.1 Testes
-**235 testes, 19 suítes, todas passando.** Sem falha conhecida.
+**390 testes, 36 suítes, todas passando.** Sem falha conhecida.
+*(O número desta linha envelhece a cada fase; o `RETOMAR-AQUI.md` é a fonte.)*
 
 - `test/regressao-autoria.e2e.spec.ts` trava os 12 defeitos e as funções que
   vieram depois: convite, autoria dupla, delegação, painel, recusa.
@@ -681,7 +682,7 @@ explicar.
 
 ---
 
-## 9. Migrações desta série (0620–0760)
+## 9. Migrações desta série (0620–0860)
 
 | Nº | Módulo | O que faz |
 |---|---|---|
@@ -700,6 +701,16 @@ explicar.
 | 0740 | reports | tipo `desenvolvimento` liberado no CHECK do banco |
 | 0750 | nursing | "vencendo em 7 dias" ancorado em `app_hoje()`, não em `p_date` |
 | 0760 | shifts | arquivo das ATAS; da Geral Noturna sai só a linha da casa |
+| 0770 | identity | aposenta o admin técnico |
+| 0780 | checks | conferência de mesa: o ato em lote que se declara |
+| 0790 | activities | avisa a atividade que venceu |
+| 0800 | people | dossiê do acolhido e álbum de vivências |
+| 0810 | people | corrigir o cadastro, com histórico legível |
+| 0820 | medications | protocolo e autorização conferem a CASA, não só o cargo |
+| 0830 | people | quem abriu os benefícios — e quem tentou e foi recusado |
+| 0840 | alignments | reuniões e combinados |
+| 0850 | people | o que o perfil dizia antes: histórico dos campos descritivos |
+| 0860 | medications | quem decidiu que podia, e por quê: histórico do protocolo |
 
 Sem migração nova na fase 14: os relatórios usam o que já estava gravado.
 A dependência `docx` entrou no backend, e o timbre vive em `backend/assets/timbre.png`.
