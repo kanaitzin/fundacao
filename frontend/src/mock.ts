@@ -1111,6 +1111,41 @@ const kid = (id: string) => [...KIDS, ...NOVOS, ...ACERVO.map((a) => a.kid)]
   .find((k) => k.id === id);
 
 /** A ATA de um plantão — criada junto com ele, como no servidor. */
+/**
+ * EPISÓDIOS (§12.5). O relato é imutável — no banco há gatilho que recusa
+ * UPDATE e DELETE, e aqui não existe caminho que reescreva `relato`. A ciência
+ * é ato pessoal e única por pessoa: o servidor devolve 400 na segunda.
+ */
+interface EpisodioMock {
+  id: string; ataId: string; acolhidoId: string; classificacao: string;
+  relato: string; quando: string; registradoPor: string;
+  ciencias: { id: string; quem: string; userId: string;
+              comentario: string | null; quando: string }[];
+}
+const EPISODIOS: EpisodioMock[] = [];
+
+/**
+ * Um episódio semeado, com uma ciência já registrada: sem ele a seção abre
+ * vazia e quem está vendo o protótipo não descobre que o relato do colega e o
+ * comentário de quem assume ficam LADO A LADO, cada um com o seu nome — que é
+ * a coisa inteira que a seção existe para mostrar.
+ */
+function semearEpisodio() {
+  if (EPISODIOS.length) return;
+  const s = PLANTOES.find((x) => x.turno === 'diurno');
+  if (!s) return;
+  EPISODIOS.push({
+    id: 'ep1', ataId: ataDo(s.id).id, acolhidoId: 'p01',
+    classificacao: 'desorganizacao',
+    relato: 'Por volta das 2h20 acordou chorando e não quis voltar para o quarto. '
+      + 'Ficou na sala com a educadora até as 3h05, tomou água e dormiu em seguida.',
+    quando: emHoras(2, 20), registradoPor: 'Nélio Noturno (fictício)',
+    ciencias: [{ id: 'k1', quem: 'Lúcia Líder Diurna (fictícia)', userId: 'u2',
+      comentario: 'Acompanhei pela manhã; acordou bem e foi para a escola no horário.',
+      quando: emHoras(7, 15) }],
+  });
+}
+
 function ataDo(plantaoId: string): AtaMock {
   let a = ATAS.find((x) => x.plantaoId === plantaoId);
   if (!a) {
@@ -1750,6 +1785,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
   }
 
   if (seg[0] === 'shifts' && seg.length === 2) {
+    semearEpisodio();
     const s = PLANTOES.find((x) => x.id === seg[1])!;
     return {
       id: s.id, casaId: CASA.id, data: HOJE, turno: s.turno, status: s.status,
@@ -1770,8 +1806,64 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       minhaPassagemEsperada: s.esperados.some((e) => e.userId === eu.id)
         && !s.passagens.some((p) => p.userId === eu.id),
       recebimentos: s.recebimentos.map((r) => ({ ...r, propria: r.userId === eu.id })),
-      episodios: [],
+      episodios: EPISODIOS.filter((e) => e.ataId === ataDo(s.id).id).map((e) => ({
+        id: e.id, acolhidoId: e.acolhidoId,
+        acolhido: KIDS.find((k) => k.id === e.acolhidoId)?.nome ?? '—',
+        classificacao: e.classificacao, relato: e.relato, quando: e.quando,
+        ocorrenciaId: null, registradoPor: e.registradoPor,
+        ciencias: e.ciencias.length,
+        cienciaPropria: e.ciencias.some((k) => k.userId === eu.id),
+        quemDeuCiencia: e.ciencias.map((k) => ({
+          id: k.id, quem: k.quem, comentario: k.comentario, quando: k.quando })),
+      })),
     };
+  }
+
+  // ---------- Episódio: registrar, e dar ciência ----------
+  // Antes dos ramos `:id` do bloco de ATA, pela mesma razão do servidor: um
+  // roteador que casa `ata/:id` primeiro engole `ata/:id/episodes`.
+  if (seg[0] === 'shifts' && seg[1] === 'ata' && seg[3] === 'episodes' && metodo === 'POST') {
+    const ata = ATAS.find((x) => x.id === seg[2]);
+    if (!ata) return new Recusa(404, 'ATA não encontrada.');
+    // A mesma frase do servidor, palavra por palavra: a demonstração não pode
+    // ensinar uma recusa que a casa não vai ver.
+    if (ata.status !== 'aberta' && ata.status !== 'reaberta') {
+      return new Recusa(400,
+        'Esta ATA está fechada e não recebe registro novo. O episódio pertence ao plantão que '
+        + 'está aberto — registre nele, com o horário real do fato. Se o que precisa mudar é o '
+        + 'texto desta ATA, o caminho é a reabertura, e ela deixa adendo.');
+    }
+    if (!CLASSIFICACOES_EPISODIO.some((c) => c.code === b.classificacao)) {
+      return new Recusa(400, 'Classificação inválida para o episódio.');
+    }
+    if (String(b.relato ?? '').trim().length < 10) {
+      return new Recusa(400,
+        'Descreva o fato objetivamente: o que aconteceu, quando e o que foi feito.');
+    }
+    if (!KIDS.some((k) => k.id === b.acolhidoId)) {
+      return new Recusa(400,
+        'Este acolhido não está ativo nesta casa. O episódio pertence à casa onde ele está.');
+    }
+    EPISODIOS.push({
+      id: uid(), ataId: ata.id, acolhidoId: String(b.acolhidoId),
+      classificacao: String(b.classificacao), relato: String(b.relato).trim(),
+      quando: b.happenedAt ? String(b.happenedAt) : new Date().toISOString(),
+      registradoPor: eu.fullName, ciencias: [],
+    });
+    return { aviso: 'Registrado uma única vez: aparece no perfil do acolhido, na linha do tempo '
+      + 'e nesta ATA. O relato original não pode ser alterado — o líder registra ciência e, se '
+      + 'quiser, comentário próprio.' };
+  }
+  if (seg[0] === 'shifts' && seg[1] === 'episodes' && seg[3] === 'ack' && metodo === 'POST') {
+    const ep = EPISODIOS.find((e) => e.id === seg[2]);
+    if (!ep) return new Recusa(404, 'Episódio não encontrado.');
+    if (ep.ciencias.some((k) => k.userId === eu.id)) {
+      return new Recusa(400, 'Você já registrou ciência sobre este episódio.');
+    }
+    ep.ciencias.push({ id: uid(), quem: eu.fullName, userId: eu.id,
+      comentario: b.comentario ? String(b.comentario) : null,
+      quando: new Date().toISOString() });
+    return { ok: true, aviso: 'Ciência registrada. O relato original permanece como foi escrito.' };
   }
   if (seg[0] === 'shifts' && seg[2] === 'handover' && seg.length === 3) {
     const s = PLANTOES.find((x) => x.id === seg[1])!;

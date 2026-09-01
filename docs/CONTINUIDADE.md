@@ -865,16 +865,38 @@ responder e não me peça para reexplicar o que está lá.
 
 === ESTADO ATUAL ===
 
-Fases 0 a 28 concluídas. 265 testes passando em 23 suítes, sem falha conhecida
-— a suíte rodou duas vezes seguidas às 21h44 e 21h47 de Porto Alegre, que já é
-depois das 21h E depois da virada do dia em UTC (01/09 no banco, 31/08 na casa):
-a contaminação de data que a regra procura estava valendo nas duas rodadas. Backend NestJS + PostgreSQL 16 com RLS, 16
+Fases 0 a 29 concluídas. 276 testes passando em 24 suítes, sem falha conhecida
+— a suíte rodou cinco vezes seguidas entre 21h44 e 23h30 de Porto Alegre, que
+já é depois das 21h E depois da virada do dia em UTC (01/09 no banco, 31/08 na
+casa): a contaminação de data que a regra procura estava valendo em todas as
+rodadas, e foi a segunda delas que encontrou duas suítes instáveis (abaixo). Backend NestJS + PostgreSQL 16 com RLS, 16
 partições. Frontend React PWA com 21 telas, todas falando as rotas reais do
 servidor. A ATA agora tem arquivo: dia, semana ou mês de calendário, com a ATA
 Geral Noturna recortada na linha de cada casa. O ciclo do acolhimento fecha:
 cadastro, saída com motivo, acervo histórico e retorno como episódio novo. E o
 arquivo documental deixou de ser um módulo sem entrada: fechou, entra na fila. Relatórios saem em Word com timbre, com a parte factual
 escrita pelo sistema. Convite de primeiro acesso por e-mail, uso único, 24h.
+
+Os EPISÓDIOS DO TURNO (§12.5) ganharam porta. O relato é imutável — o banco
+recusa UPDATE e DELETE —, a classificação descreve o FATO e nunca a criança, e
+quem assume o turno registra CIÊNCIA, com comentário próprio nascendo ao lado.
+Duas coisas foram encontradas ao construir isso:
+
+ * **o servidor aceitava episódio novo numa ATA JÁ FECHADA**, sem adendo
+   nenhum. A cópia documental daquela ATA já tinha ido para o arquivo — sistema
+   e cópia passavam a dizer coisas diferentes, em silêncio. Agora ele recusa e
+   diz onde registrar. *Fica uma pergunta para o Marcelo: se a instituição
+   preferir permitir, o caminho honesto é reabrir a ATA (que deixa adendo) e
+   não abrir uma exceção só para o episódio.*
+ * **a tela tratava "fechada com pendência" como aberta** — comparava só com
+   `'fechada'`. Fechar com pendência é o caminho normal quando falta assinatura,
+   e a ATA voltava com os campos editáveis; quem escrevesse levava a recusa do
+   servidor depois de ter digitado.
+
+Duas suítes eram instáveis e a regra das duas rodadas as pegou: `regressao-saida`
+registrava o episódio na ATA de HOJE (que outra suíte fecha antes, dependendo da
+ordem dos arquivos) e `cadastro` presumia que a mudança de limite mais recente
+era a dela. Ambas passaram a se ancorar no que guardam, não na ordem.
 
 A "Administração técnica" foi aposentada: as funções dela passaram para a
 equipe técnica, a coordenação e o Líder Diurno, sem apagar ninguém e sem

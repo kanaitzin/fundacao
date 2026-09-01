@@ -32,6 +32,27 @@ interface PlantaoDoDia {
   ataId: string | null; ataStatus: string | null;
   assinaturasFaltantes: number; passagensAssinadas: number; recebimentos: number;
 }
+/**
+ * EPISÓDIO (§12.5): "um acolhido apresentou problema no turno".
+ *
+ * O relato é IMUTÁVEL — o banco tem gatilho que recusa UPDATE e DELETE. Quem
+ * assume o turno seguinte não corrige o que o colega escreveu: registra
+ * CIÊNCIA, com comentário próprio se quiser. As duas coisas ficam lado a lado,
+ * cada uma com o seu nome, e é assim que se lê um ano depois.
+ *
+ * A classificação descreve o FATO ("briga ou conflito"), nunca a pessoa. Não
+ * existe classificação da criança, nem gravidade, nem nota (§2).
+ */
+interface CienciaDoEpisodio {
+  id: string; quem: string; comentario: string | null; quando: string;
+}
+interface Episodio {
+  id: string; acolhidoId: string; acolhido: string;
+  classificacao: string; relato: string; quando: string;
+  ocorrenciaId: string | null; registradoPor: string;
+  ciencias: number; cienciaPropria: boolean;
+  quemDeuCiencia: CienciaDoEpisodio[];
+}
 interface Plantao {
   id: string; casaId: string; data: string; turno: string; status: string;
   abertoEm: string; fechadoEm: string | null;
@@ -41,7 +62,10 @@ interface Plantao {
   passagens: { id: string; quem: string; cargo: string; assinadaEm: string | null;
                propria: boolean }[];
   assinaturasPendentes: { quem: string; cargo: string }[];
+  episodios: Episodio[];
 }
+/** O acolhido, como a lista da casa o devolve — só o que o episódio precisa. */
+interface AcolhidoDaCasa { id: string; nome: string; }
 /**
  * A estrutura vem do SERVIDOR, com a forma real do LIVRO ATA da Casa 03.
  *
@@ -58,6 +82,7 @@ interface SecaoAta {
 interface Secoes {
   secoes: SecaoAta[];
   ambientes: { chave: string; label: string }[];
+  classificacoesEpisodio: { code: string; label: string }[];
   aviso?: string;
 }
 /**
@@ -108,6 +133,17 @@ const dia = (iso: string) => new Date(`${iso}T12:00:00-03:00`).toLocaleDateStrin
 
 /** Quem fecha a ATA da casa (§12.4) — o mesmo alcance do servidor. */
 const FECHA_ATA = ['lider_diurno', 'lider_noturno_geral', 'equipe_tecnica', 'coordenador', 'gestor_geral'];
+
+/**
+ * Quem dá CIÊNCIA de um episódio (§12.5).
+ *
+ * O servidor não restringe o cargo: qualquer conta com alcance na casa pode
+ * registrar que leu. A tela oferece o botão a quem assume o turno e a quem
+ * responde pela casa, porque é deles que a ciência é cobrada — o educador que
+ * quiser registrar a sua continua podendo pela sua própria passagem.
+ */
+const DA_CIENCIA = ['lider_diurno', 'lider_noturno_geral', 'equipe_tecnica',
+                    'coordenador', 'gestor_geral'];
 
 /** Quem REABRE e CORRIGE ATA fechada (§12.7) — o mesmo alcance do servidor. */
 const CORRIGE_ATA = ['equipe_tecnica', 'coordenador', 'gestor_geral'];
@@ -160,15 +196,23 @@ export function Ata({ houseId, papel }: { houseId: string; papel: string }) {
   const [adendos, setAdendos] = useState<Adendo[]>([]);
   const [reabrindo, setReabrindo] = useState(false);
   const [corrigindo, setCorrigindo] = useState(false);
+  const [acolhidos, setAcolhidos] = useState<AcolhidoDaCasa[]>([]);
+  const [registrandoEpisodio, setRegistrandoEpisodio] = useState(false);
+  const [dandoCiencia, setDandoCiencia] = useState<Episodio | null>(null);
 
   async function carregar() {
     setErro('');
     try {
-      const [lista, s] = await Promise.all([
+      // A lista da casa é do módulo `people` e chega junto: o episódio é de UM
+      // acolhido, e escolher pelo nome é o que evita o registro no perfil
+      // errado às 3h da manhã. Quem não alcança a lista fica sem o botão de
+      // registrar — e continua lendo os episódios normalmente.
+      const [lista, s, gente] = await Promise.all([
         api<PlantaoDoDia[]>(`/shifts?houseId=${houseId}`),
         api<Secoes>('/shifts/ata-sections'),
+        api<AcolhidoDaCasa[]>(`/people?houseId=${houseId}`).catch(() => [] as AcolhidoDaCasa[]),
       ]);
-      setDoDia(lista); setSecoes(s);
+      setDoDia(lista); setSecoes(s); setAcolhidos(gente);
       // Abre no plantão que ainda está aberto; se todos fecharam, no último.
       const alvo = escolhido && lista.some((p) => p.id === escolhido)
         ? escolhido
@@ -259,7 +303,15 @@ export function Ata({ houseId, papel }: { houseId: string; papel: string }) {
   }
 
   const ata = plantao?.ata ?? null;
-  const fechada = ata?.status === 'fechada';
+  /*
+   * FECHADA é fechada COM ou SEM pendência.
+   *
+   * A tela comparava só com `'fechada'`, e por isso uma ATA fechada com
+   * pendência — que é o caminho normal quando falta assinatura — voltava com
+   * os campos editáveis e o botão de fechar de novo. Quem escrevesse ali
+   * levava a recusa do servidor no `onBlur`, depois de ter digitado.
+   */
+  const fechada = ata?.status === 'fechada' || ata?.status === 'fechada_com_pendencia';
   const podeFechar = FECHA_ATA.includes(papel);
   const faltam = ata?.assinaturasFaltantes ?? plantao?.assinaturasPendentes.length ?? 0;
   const casasAguardando = geral ? geral.casas.filter((c) => !c.ataNoturnaConfirmada).length : 0;
@@ -443,6 +495,90 @@ export function Ata({ houseId, papel }: { houseId: string; papel: string }) {
                       </p>
                     )}
                   </>
+                )}
+
+                {/*
+                  * EPISÓDIOS DO TURNO (§12.5).
+                  *
+                  * As duas rotas existiam desde a fase 5 e nunca tiveram porta:
+                  * o que acontecia de madrugada — a briga, a saída não
+                  * autorizada, a crise — ou virava texto solto numa seção da
+                  * ATA, ou não era registrado. Registrado UMA vez, aparece no
+                  * perfil do acolhido, na linha do tempo e nesta ATA.
+                  *
+                  * Fica DEPOIS do corpo da ATA de propósito: o corpo descreve o
+                  * turno, o episódio descreve uma pessoa naquele turno — e
+                  * misturar os dois foi o que fez o livro de papel virar um
+                  * bloco de texto que ninguém encontra.
+                  */}
+                <div className="eyebrow">Episódios do turno</div>
+                <p className="mutetxt" style={{ margin: 0 }}>
+                  O que aconteceu com um acolhido neste turno, descrito pelo fato. A
+                  classificação é do FATO, nunca da criança — não existe gravidade, nota nem
+                  comparação entre acolhidos. O relato não pode ser alterado depois: quem assume
+                  o turno registra <b>ciência</b>, e o comentário dele nasce ao lado.
+                </p>
+
+                {plantao.episodios.length === 0 && (
+                  <p className="mutetxt">Nenhum episódio registrado neste turno.</p>
+                )}
+                <div className="stack">
+                  {plantao.episodios.map((ep) => (
+                    <article className="card" key={ep.id}>
+                      <div className="row">
+                        <div className="grow">
+                          <b className="ff">{ep.acolhido}</b>
+                          <div className="mutetxt linhadois">
+                            {hhmm(ep.quando)} · registrado por {ep.registradoPor}
+                          </div>
+                        </div>
+                        <span className="pill c-other">
+                          {secoes?.classificacoesEpisodio.find((c) => c.code === ep.classificacao)
+                            ?.label ?? ep.classificacao}
+                        </span>
+                      </div>
+                      <p style={{ margin: '8px 0 0' }}>{ep.relato}</p>
+
+                      {ep.quemDeuCiencia.length > 0 && (
+                        <ul className="lista" style={{ marginTop: 10 }}>
+                          {ep.quemDeuCiencia.map((k) => (
+                            <li key={k.id}>
+                              <span className="pill c-ok">Ciência</span>{' '}
+                              {k.quem} · {hhmm(k.quando)}
+                              {k.comentario && (
+                                <div className="mutetxt linhadois">{k.comentario}</div>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+
+                      {DA_CIENCIA.includes(papel) && !ep.cienciaPropria && (
+                        <button className="btn sec sm" onClick={() => setDandoCiencia(ep)}>
+                          Registrar ciência
+                        </button>
+                      )}
+                      {ep.cienciaPropria && (
+                        <p className="mutetxt" style={{ marginBottom: 0 }}>
+                          Você já registrou ciência deste episódio.
+                        </p>
+                      )}
+                    </article>
+                  ))}
+                </div>
+
+                {/* Registrar exige a ATA ABERTA: episódio é do turno que está
+                    acontecendo, e o servidor recusa em ATA fechada. */}
+                {!fechada && acolhidos.length > 0 && (
+                  <button className="btn sec block" style={{ marginTop: 12 }}
+                          onClick={() => setRegistrandoEpisodio(true)}>
+                    Registrar um episódio
+                  </button>
+                )}
+                {fechada && (
+                  <p className="mutetxt">
+                    A ATA está fechada: episódio novo entra no plantão aberto, não neste.
+                  </p>
                 )}
 
                 {/*
@@ -780,6 +916,29 @@ export function Ata({ houseId, papel }: { houseId: string; papel: string }) {
           }} />
       )}
 
+      {registrandoEpisodio && ata && secoes && (
+        <FolhaEpisodio
+          acolhidos={acolhidos}
+          classificacoes={secoes.classificacoesEpisodio}
+          onFechar={() => setRegistrandoEpisodio(false)}
+          onEnviar={async (dados) => {
+            const ok = await acao(() => api(`/shifts/ata/${ata.id}/episodes`, {
+              method: 'POST', body: JSON.stringify(dados) }));
+            if (ok) setRegistrandoEpisodio(false);
+          }} />
+      )}
+
+      {dandoCiencia && (
+        <FolhaCiencia
+          episodio={dandoCiencia}
+          onFechar={() => setDandoCiencia(null)}
+          onEnviar={async (comentario) => {
+            const ok = await acao(() => api(`/shifts/episodes/${dandoCiencia.id}/ack`, {
+              method: 'POST', body: JSON.stringify({ comentario }) }));
+            if (ok) setDandoCiencia(null);
+          }} />
+      )}
+
       {fechando && (
         <FolhaFechar
           qual={fechando}
@@ -895,6 +1054,134 @@ function FolhaFechar({ qual, faltam, onFechar, onConfirmar }: {
           <button className="btn grow" disabled={!pode}
                   onClick={() => onConfirmar(comPendencia, motivo)}>
             Confirmar fechamento
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * A FOLHA DO EPISÓDIO (§12.5).
+ *
+ * Três coisas que ela faz de propósito:
+ *
+ *  * **o acolhido é escolhido pelo nome, numa lista da casa.** Digitar o nome
+ *    às 3h da manhã acerta o perfil errado, e o registro é imutável — não há
+ *    como corrigir depois de gravado;
+ *  * **a classificação vem do servidor**, e descreve o FATO. A tela não inventa
+ *    opção nenhuma, e não existe campo de gravidade: classificar a criança é
+ *    proibido (§2);
+ *  * **o horário é editável.** O episódio de 2h20 costuma ser escrito às 6h, na
+ *    troca do turno, e gravá-lo com a hora do formulário é perder o único dado
+ *    que a próxima leitura vai querer.
+ */
+function FolhaEpisodio({ acolhidos, classificacoes, onFechar, onEnviar }: {
+  acolhidos: AcolhidoDaCasa[];
+  classificacoes: { code: string; label: string }[];
+  onFechar: () => void;
+  onEnviar: (dados: { acolhidoId: string; classificacao: string;
+                      relato: string; happenedAt?: string }) => void;
+}) {
+  const [acolhidoId, setAcolhidoId] = useState('');
+  const [classificacao, setClassificacao] = useState('');
+  const [relato, setRelato] = useState('');
+  const [quando, setQuando] = useState('');
+  const pode = acolhidoId !== '' && classificacao !== '' && relato.trim().length >= 10;
+
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-epi"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet modal">
+        <h3 id="t-epi">Registrar um episódio</h3>
+        <div className="notice c-info">
+          Registrado <b>uma única vez</b>: aparece no perfil do acolhido, na linha do tempo e
+          nesta ATA. O relato <b>não pode ser alterado depois</b> — quem discordar ou tiver algo
+          a acrescentar registra ciência com comentário próprio, ao lado.
+        </div>
+
+        <label className="f" htmlFor="epi-quem">Acolhido</label>
+        <select id="epi-quem" value={acolhidoId} onChange={(e) => setAcolhidoId(e.target.value)}>
+          <option value="">Escolha…</option>
+          {acolhidos.map((a) => <option key={a.id} value={a.id}>{a.nome}</option>)}
+        </select>
+
+        <label className="f">O que foi <small>— a classificação é do fato</small></label>
+        <div className="opts">
+          {classificacoes.map((c) => (
+            <button type="button" key={c.code} className="opt c-other"
+                    aria-pressed={classificacao === c.code}
+                    onClick={() => setClassificacao(c.code)}>
+              {c.label}
+            </button>
+          ))}
+        </div>
+
+        <label className="f" htmlFor="epi-relato">
+          O que aconteceu <small>— fato, hora e o que foi feito</small>
+        </label>
+        <textarea id="epi-relato" value={relato} onChange={(e) => setRelato(e.target.value)}
+                  placeholder="Ex.: por volta das 2h20 acordou chorando e não quis voltar para o quarto; ficou na sala com a educadora até as 3h e dormiu em seguida." />
+
+        <label className="f" htmlFor="epi-quando">
+          Quando aconteceu <small>— em branco, vale a hora de agora</small>
+        </label>
+        <input id="epi-quando" type="datetime-local" value={quando}
+               onChange={(e) => setQuando(e.target.value)} />
+
+        <div className="row rodape">
+          <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
+          <button className="btn grow" disabled={!pode} onClick={() => onEnviar({
+            acolhidoId, classificacao, relato: relato.trim(),
+            happenedAt: quando ? new Date(quando).toISOString() : undefined,
+          })}>
+            Registrar episódio
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * A FOLHA DA CIÊNCIA (§12.5).
+ *
+ * O comentário é OPCIONAL, e a folha diz isso com todas as letras: obrigar a
+ * escrever para poder registrar que leu produz "ciente" repetido vinte vezes,
+ * que é o mesmo que não ter registro nenhum. O relato do colega aparece inteiro
+ * acima do campo — dar ciência do que não se leu não é ciência.
+ */
+function FolhaCiencia({ episodio, onFechar, onEnviar }: {
+  episodio: Episodio; onFechar: () => void; onEnviar: (comentario?: string) => void;
+}) {
+  const [comentario, setComentario] = useState('');
+
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-cie"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet modal">
+        <h3 id="t-cie">Ciência do episódio · {episodio.acolhido}</h3>
+        <div className="bloco">
+          <small>O que foi registrado</small>
+          {episodio.relato}
+        </div>
+        <p className="mutetxt">
+          Registrar ciência não altera nada do que está acima e não é concordância: é o registro
+          de que você leu. Se tiver algo a acrescentar, escreva — o seu texto nasce ao lado, com
+          o seu nome, e o relato original continua como foi escrito.
+        </p>
+
+        <label className="f" htmlFor="cie-txt">
+          Comentário <small>— opcional</small>
+        </label>
+        <textarea id="cie-txt" value={comentario} onChange={(e) => setComentario(e.target.value)}
+                  placeholder="Ex.: acompanhei pela manhã; ela acordou bem e foi para a escola no horário." />
+
+        <div className="row rodape">
+          <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
+          <button className="btn grow"
+                  onClick={() => onEnviar(comentario.trim() || undefined)}>
+            Registrar ciência
           </button>
         </div>
       </div>

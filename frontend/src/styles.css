@@ -521,7 +521,12 @@ button.card:hover{ border-color:var(--brand) }
   border-radius:999px; padding:8px 13px; font-size:12.5px; font-weight:700;
   font-family:"Plus Jakarta Sans",system-ui,sans-serif; cursor:pointer;
 }
-.opt[aria-pressed="true"]{ background:var(--amber,#B45309); border-color:transparent; color:#fff }
+/* A escolhida é a única preenchida — e o preenchimento usa o par sólido do
+   tom, não `#fff` sobre um âmbar que no tema escuro é quase amarelo. */
+.opt[aria-pressed="true"]{
+  background:var(--ct-solid,var(--brand-solid)); border-color:transparent;
+  color:var(--on-solid); box-shadow:var(--shadow-1);
+}
 .sheet{
   background:var(--surface); border-radius:16px; padding:24px;
   width:100%; max-width:520px; max-height:88dvh; overflow:auto;

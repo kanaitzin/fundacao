@@ -1,7 +1,7 @@
 # O que falta da ideia original
 
 Levantamento de 31/08/2026, feito por leitura cruzada entre as rotas que o
-servidor serve e as chamadas que as telas fazem. Sobram **52 rotas que existem,
+servidor serve e as chamadas que as telas fazem. Sobram **50 rotas que existem,
 têm regra, têm RLS e auditoria — e não têm porta**.
 
 *Atualizado no mesmo dia: saíram desta lista o **Arquivo das ATAS** (decisão 2,
@@ -9,6 +9,14 @@ no fim); a **saída, o acervo e o retorno**, com `GET /people/archive` como a
 porta que faltava; a **abertura da chamada do turno**; e o **corpo da ATA com a
 reabertura e a correção** — que era o silêncio maior de todos: `content` nunca
 recebia nada, e fechava-se todo dia uma ATA vazia.*
+
+*Saíram também, em 01/09/2026, os **episódios do turno**: `POST
+/shifts/ata/:id/episodes` e `POST /shifts/episodes/:id/ack` existiam desde a
+fase 5 e nunca tiveram porta. O que acontecia de madrugada ou virava texto
+solto dentro de uma seção da ATA, ou não era registrado. Agora o relato é
+imutável e a ciência de quem assume o turno nasce ao lado, com nome próprio —
+e o servidor passou a **recusar episódio em ATA já fechada**, que ele aceitava
+em silêncio (ver a nota de defeito na CONTINUIDADE).*
 
 *E uma correção ao próprio levantamento: eu havia escrito que faltava "anexar
 documento ao arquivo". `POST /archive` não recebe arquivo — ele enfileira a
@@ -38,7 +46,6 @@ WhatsApp é proibido (§2).
 | **Corrigir o cadastro depois da admissão** | `PATCH /people/:id`, `PATCH /people/:id/judicial` | Hoje só dá para cadastrar. Nome errado, data de nascimento errada, decisão judicial que mudou — nada disso tem onde ser corrigido, e o certo é corrigir com histórico, não recadastrar. |
 | **Baixar um documento do acolhido** | `GET /people/:id/documents/:docId` | O perfil lista os documentos e não abre nenhum. |
 | **Marcação de conteúdo protegido** | `POST /incidents/:id/protected` | Fala espontânea e sinais observados. O detalhe da ocorrência já MOSTRA quando existem; registrar ainda não tem porta. |
-| **Episódios da noite** | `POST /shifts/ata/:id/episodes`, `POST /shifts/episodes/:id/ack` | O que aconteceu de madrugada e o "estou ciente" do turno seguinte. |
 | **Rotina da casa** | `GET /routine`, `/routine/history`, `POST /routine/versions`, `/versions/:id/items` | A rotina versionada — horário de acordar, refeições, dormir — que alimenta a geração do dia. Hoje o dia vem de dados semeados. |
 | **Substituição de atividade** | `POST /activities/:id/substitution`, `/substitutions/:id/assign` | "Não vou conseguir levar o Bruno na fono" — pedir e assumir a substituição. Existe delegação direta; falta o pedido em aberto. |
 | **Atividade urgente** | `POST /activities/urgent` | O que apareceu agora e não estava na agenda. |

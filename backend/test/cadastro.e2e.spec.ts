@@ -242,10 +242,16 @@ describe('Cadastro do acolhido — dados completos, área judicial e limite da c
     expect(daCoord.status).toBe(201);
     expect(daCoord.body.capacidade).toBe(22);
 
+    // O histórico é da CASA e outras suítes também mexem no limite da AI3 —
+    // presumir que a mudança mais recente é a desta suíte fazia o teste
+    // alternar conforme a ordem em que o Jest escolhe os arquivos. O que ele
+    // guarda é que a decisão ficou registrada COM MOTIVO E AUTOR, não a
+    // posição dela na lista.
     const hist = await request(http).get(`/api/v1/houses/${AI3}/capacity-history`).set(auth(tokens.coord));
-    expect(hist.body[0].para).toBe(22);
-    expect(hist.body[0].motivo).toMatch(/reunião institucional/);
-    expect(hist.body[0].autor).toBeTruthy();
+    const minha = hist.body.find((h: any) => /reunião institucional/.test(h.motivo ?? ''));
+    expect(minha).toBeDefined();
+    expect(minha.para).toBe(22);
+    expect(minha.autor).toBeTruthy();
   });
 
   it('o limite é da casa, não do sistema: mudar a Casa 03 não mexe nas outras', async () => {

@@ -96,7 +96,18 @@ export class ShiftsService {
                 (SELECT count(*)::int FROM ata_episode_ack k WHERE k.episode_id = e.id) AS ciencias
          FROM ata_episode e
          WHERE e.ata_id = $1 ORDER BY e.happened_at`, [a?.id ?? null]);
-      return { s, a, passagens, complementos, recebimentos, faltam, episodios };
+      // A contagem sozinha não serve para nada: "2 ciências" não diz se o
+      // líder que assume o turno é uma delas, e é exatamente isso que a tela
+      // precisa saber para oferecer (ou não) o botão. A ciência é ato com
+      // nome — vem com quem, quando e o comentário próprio, se houver.
+      // rls-join-ok: ack_select já exige app_house_in_scope do episódio.
+      const { rows: ciencias } = await c.query(
+        `SELECT k.id, k.episode_id, k.user_id, k.comment, k.at,
+                app_user_display_name(k.user_id) AS quem
+           FROM ata_episode_ack k
+           JOIN ata_episode e ON e.id = k.episode_id
+          WHERE e.ata_id = $1 ORDER BY k.at`, [a?.id ?? null]);
+      return { s, a, passagens, complementos, recebimentos, faltam, episodios, ciencias };
     });
     if (!dados) throw new NotFoundException('Plantão não encontrado.');
 
@@ -151,6 +162,11 @@ export class ShiftsService {
         classificacao: e.classification, relato: e.factual,
         quando: e.happened_at, ocorrenciaId: e.incident_id,
         registradoPor: e.registrado_por, ciencias: e.ciencias,
+        cienciaPropria: dados.ciencias.some(
+          (k: any) => k.episode_id === e.id && k.user_id === user.id),
+        quemDeuCiencia: dados.ciencias
+          .filter((k: any) => k.episode_id === e.id)
+          .map((k: any) => ({ id: k.id, quem: k.quem, comentario: k.comment, quando: k.at })),
       })),
     };
   }
@@ -513,7 +529,7 @@ export class ShiftsService {
       throw new BadRequestException(
         'Descreva o fato objetivamente: o que aconteceu, quando e o que foi feito.');
     }
-    const casa = await this.casaDaAta(user, ataId);
+    const casa = await this.ataAberta(user, ataId);
     let id: string;
     try {
       id = await this.db.asUser(user.id, async (c) => {
@@ -854,6 +870,32 @@ export class ShiftsService {
     });
     if (!casa) throw new NotFoundException('ATA não encontrada.');
     return casa;
+  }
+
+  /**
+   * A ATA e o STATUS dela — para quem precisa recusar sobre documento fechado.
+   *
+   * Encontrado em 01/09/2026 pelo ensaio dos episódios: `addEpisode` só pedia a
+   * casa, e por isso um episódio novo entrava numa ATA JÁ FECHADA e a mudava
+   * sem adendo nenhum. A cópia documental daquela ATA já tinha ido para o
+   * arquivo — o sistema e a cópia filhada passavam a dizer coisas diferentes,
+   * em silêncio. Corrigir ATA fechada é reabrir e registrar (§12.7); episódio
+   * novo pertence ao plantão que está aberto, com o horário real do fato.
+   */
+  private async ataAberta(user: AuthenticatedUser, ataId: string): Promise<string> {
+    const a = await this.db.asUser(user.id, async (c) => {
+      const { rows: [row] } = await c.query(
+        `SELECT house_id, status FROM ata WHERE id = $1`, [ataId]);
+      return row;
+    });
+    if (!a) throw new NotFoundException('ATA não encontrada.');
+    if (['fechada', 'fechada_com_pendencia'].includes(a.status)) {
+      throw new BadRequestException(
+        'Esta ATA está fechada e não recebe registro novo. O episódio pertence ao plantão que '
+        + 'está aberto — registre nele, com o horário real do fato. Se o que precisa mudar é o '
+        + 'texto desta ATA, o caminho é a reabertura, e ela deixa adendo.');
+    }
+    return a.house_id;
   }
 
   /**

@@ -27,9 +27,20 @@ import { AppModule } from '../src/app.module';
 
 const SENHA = 'senha-dev-123';
 const adminUrl = process.env.DATABASE_URL ?? 'postgres://rede_admin:dev-only-change-me@127.0.0.1:5432/rede_acolher';
-const HOJE = new Intl.DateTimeFormat('en-CA', {
+const emPortoAlegre = (d: Date) => new Intl.DateTimeFormat('en-CA', {
   timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit',
-}).format(new Date());
+}).format(d);
+const HOJE = emPortoAlegre(new Date());
+/*
+ * O plantão do episódio tem um dia SÓ DESTA SUÍTE.
+ *
+ * Enquanto a ATA de hoje aceitava registro depois de fechada, usar HOJE aqui
+ * passava; desde que o servidor recusa episódio em ATA fechada (01/09/2026),
+ * este teste passou a depender de `plantao.e2e` ainda não ter fechado a ATA
+ * diurna de hoje — e a suíte alternava conforme a ordem dos arquivos. O que
+ * este teste guarda não é a data: é que o episódio SOBREVIVE à transferência.
+ */
+const DIA_DO_EPISODIO = emPortoAlegre(new Date(Date.now() - 11 * 86_400_000));
 
 describe('Regressão — registros deixados para trás quando a criança sai', () => {
   let app: INestApplication, http: any, admin: Client;
@@ -107,7 +118,7 @@ describe('Regressão — registros deixados para trás quando a criança sai', (
 
   it('o episódio continua na ATA fechada depois que a criança é transferida', async () => {
     const plantao = await request(http).post('/api/v1/shifts').set(auth(tokens.educador))
-      .send({ houseId: AI3, data: HOJE, turno: 'diurno' });
+      .send({ houseId: AI3, data: DIA_DO_EPISODIO, turno: 'diurno' });
     const ataId = plantao.body.ataId;
 
     const ep = await request(http).post(`/api/v1/shifts/ata/${ataId}/episodes`)
