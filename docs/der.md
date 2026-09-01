@@ -139,6 +139,15 @@ erDiagram
   }
 ```
 
+**`check_bulk` é a CONFERÊNCIA DE MESA** (§10, migração 0780). A regra escrita
+é "sem marcação em lote SILENCIOSA", e a do banco é "nada que preencha o que
+não foi olhado" — nenhuma proíbe registrar de uma vez o que foi olhado de uma
+vez, desde que fique gravado que foi assim. Cada linha de `check_result` que
+nasce de uma conferência de mesa aponta para ela por `bulk_id`; corrigir a
+linha zera esse vínculo, porque alguém passou a olhar aquela criança. A tabela
+não aceita UPDATE nem DELETE: o ato aconteceu. A chamada final do turno não a
+aceita — ela existe para alguém contar as crianças uma a uma antes de dormir.
+
 **`check_result_amendment` é preenchida por gatilho, não pelo serviço**
 (`tg_check_result_amend`). Qualquer caminho que atualize a marcação da chamada
 passa por ele — rota, correção manual, fila offline. Reenvio com o mesmo valor
@@ -426,7 +435,7 @@ desenvolvimento** (fase 15): a criança não é só o que deu problema. Sala de
 recursos, curso, aprendizagem e a evolução escrita pela equipe entram no
 documento que segue para a audiência e para a escola.
 
-## Inventário — 82 tabelas por partição
+## Inventário — 83 tabelas por partição
 
 | Partição | Tabelas |
 |---|---|
@@ -438,7 +447,7 @@ documento que segue para a audiência e para a escola.
 | activities (6) | activity, activity_assignment, activity_acknowledgement, activity_execution, substitution_request, commitment |
 | nursing (6) | health_encounter, health_evolution, nursing_triage, health_summary_issue, education_support, education_evolution |
 | reports (5) | followup, followup_source, report_document, report_delivery, export_log |
-| checks (3) | collective_check, check_result, check_result_amendment |
+| checks (4) | collective_check, check_result, check_result_amendment, check_bulk |
 | notifications (3) | notification, escalation, escalation_level |
 | archive (2) | archive_item, archive_attempt |
 | routine (2) | routine_version, routine_item |

@@ -151,7 +151,7 @@ export class ChecksService {
                 EXISTS (SELECT 1 FROM house_stay s
                          WHERE s.person_id = e.person_id AND s.house_id = $2
                            AND s.status = 'ativa') AS ativo,
-                r.option_code, r.note, r.happened_at,
+                r.option_code, r.note, r.happened_at, r.bulk_id,
                 app_user_display_name(r.recorded_by) AS por,
                 -- O alerta sai daqui já legível: "Alergia a Dipirona", nunca
                 -- só "Dipirona" (§6.4, migração 0600).
@@ -163,7 +163,13 @@ export class ChecksService {
          FROM efetivo e
          LEFT JOIN check_result r ON r.check_id = $1 AND r.person_id = e.person_id
          ORDER BY app_person_display_name(e.person_id)`, [checkId, k.house_id]);
-      return { k, rows };
+      // As conferências de mesa desta chamada — o ato, com nome e horário.
+      // rls-join-ok: cb_select já exige app_house_in_scope da chamada.
+      const { rows: mesas } = await c.query(
+        `SELECT b.id, b.option_code, b.quantos, b.happened_at,
+                app_user_display_name(b.recorded_by) AS por
+           FROM check_bulk b WHERE b.check_id = $1 ORDER BY b.happened_at`, [checkId]);
+      return { k, rows, mesas };
     });
     if (!data) throw new NotFoundException('Chamada não encontrada');
 
@@ -176,6 +182,10 @@ export class ChecksService {
       alertas: r.alertas, restricoes: r.restricoes,
       resultado: r.option_code, justificativa: r.note,
       registradoPor: r.por, registradoEm: r.happened_at,
+      // A tela precisa poder dizer "conferido na mesa" em vez de deixar
+      // parecer que alguém olhou esta criança sozinha. É a diferença inteira
+      // entre um registro honesto e uma marcação em lote silenciosa.
+      naConferenciaDeMesa: r.bulk_id != null,
     }));
     const conferidos = linhas.filter((l: any) => l.resultado).length;
     // `faltam` é medido contra o EFETIVO VIVO, não contra o número congelado
@@ -192,6 +202,89 @@ export class ChecksService {
       quemFalta: pendentes.map((l: any) => l.nome),
       opcoes: this.opcoes(data.k.kind),
       linhas,
+      /*
+       * A CONFERÊNCIA DE MESA (§10) — o que a casa faz de verdade no almoço.
+       *
+       * A regra é "sem marcação em lote SILENCIOSA", e a do banco é "nada que
+       * preencha o que NÃO foi olhado". Conferir a mesa e registrar de uma vez
+       * o que se olhou de uma vez não é nenhuma das duas — desde que fique
+       * gravado que foi assim, que é o que `check_bulk` faz.
+       *
+       * A chamada final do turno é a exceção: ela existe justamente para
+       * alguém contar as crianças uma a uma antes de dormir.
+       */
+      aceitaConferenciaDeMesa: data.k.kind !== 'chamada_final' && data.k.status === 'aberta',
+      opcaoDaMesa: this.opcoes(data.k.kind).find((o) => !o.excecao)?.code ?? null,
+      conferenciasDeMesa: (data.mesas ?? []).map((b: any) => ({
+        id: b.id, opcao: b.option_code, quantos: b.quantos,
+        por: b.por, quando: b.happened_at,
+      })),
+      avisoDaMesa: data.k.kind === 'chamada_final'
+        ? 'A chamada final do turno é um a um: ela existe para alguém contar as crianças '
+          + 'antes de dormir, e "todos" aqui seria suposição, não observação.'
+        : 'Conferir a mesa registra, de uma vez, o que você olhou de uma vez — com o seu nome, '
+          + 'o horário e quantos. Quem já foi marcado NÃO é sobrescrito, e exceção continua '
+          + 'sendo uma a uma, com o motivo escrito.',
+    };
+  }
+
+  /**
+   * A CONFERÊNCIA DE MESA (§10).
+   *
+   * Marca de uma vez, com a opção não-exceção do tipo, TODOS os que ainda não
+   * têm registro — e grava o ato: quem, quando, quantos. As travas moram no
+   * `app_bulk_check` (migração 0780), e não aqui: nenhum caminho de escrita
+   * escapa delas. Este método traduz a recusa do banco em frase de gente.
+   */
+  async bulk(user: AuthenticatedUser, checkId: string) {
+    const k = await this.db.asUser(user.id, async (c) => {
+      const { rows: [row] } = await c.query(
+        `SELECT kind, house_id, status FROM collective_check WHERE id = $1`, [checkId]);
+      return row;
+    });
+    if (!k) throw new NotFoundException('Chamada não encontrada');
+
+    const opcao = this.opcoes(k.kind).find((o) => !o.excecao);
+    if (!opcao) {
+      throw new BadRequestException('Este tipo de chamada não tem uma opção comum a conferir em bloco.');
+    }
+
+    let r: any;
+    try {
+      r = await this.db.asUser(user.id, async (c) => {
+        const { rows: [row] } = await c.query(
+          `SELECT * FROM app_bulk_check($1, $2)`, [checkId, opcao.code]);
+        return row;
+      });
+    } catch (e: any) {
+      const m = String(e?.message ?? '');
+      if (m.includes('chamada_final_e_um_a_um')) {
+        throw new BadRequestException(
+          'A chamada final do turno é um a um. Ela existe para alguém contar as crianças antes '
+          + 'de dormir — "todos" aqui seria suposição, não observação.');
+      }
+      if (m.includes('chamada_confirmada')) {
+        throw new BadRequestException(
+          'Chamada já confirmada. Correções entram como adendo pela equipe técnica.');
+      }
+      if (m.includes('ninguem_pendente')) {
+        throw new BadRequestException(
+          'Todos já foram conferidos nesta chamada — não há o que marcar em bloco.');
+      }
+      throw e;
+    }
+
+    await this.audit.log({
+      action: 'check.bulk', actorId: user.id, houseId: k.house_id,
+      entity: 'collective_check', entityId: checkId,
+      detail: { opcao: opcao.code, quantos: r.marcados, jaTinham: r.ja_tinham },
+    });
+
+    return {
+      id: r.bulk_id, marcados: r.marcados, jaTinham: r.ja_tinham, opcao: opcao.label,
+      aviso: `Conferência de mesa registrada: ${r.marcados} como "${opcao.label}", com o seu nome `
+        + 'e o horário. Quem já estava marcado não foi tocado. Se alguém não estiver assim, '
+        + 'abra o nome dessa criança e corrija — a correção guarda o que constava antes.',
     };
   }
 
@@ -243,7 +336,11 @@ export class ChecksService {
            VALUES ($1,$2,$3,$4,$5,$6,$7, coalesce($8::timestamptz, now()))
            ON CONFLICT (check_id, person_id) DO UPDATE
              SET option_code = EXCLUDED.option_code, note = EXCLUDED.note,
-                 recorded_by = EXCLUDED.recorded_by, recorded_at = now()`,
+                 recorded_by = EXCLUDED.recorded_by, recorded_at = now(),
+                 -- Corrigir uma linha que veio da conferência de mesa a torna
+                 -- INDIVIDUAL: alguém olhou aquela criança. A procedência não
+                 -- pode continuar dizendo "na mesa" depois disso.
+                 bulk_id = NULL`,
           [checkId, input.personId, input.opcao, input.nota ?? null, user.id,
            input.offline ?? false, input.clientOpId ?? null, input.happenedAt ?? null]);
         return !!antes && (antes.option_code !== input.opcao || (antes.note ?? null) !== (input.nota ?? null));

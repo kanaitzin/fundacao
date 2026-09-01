@@ -19,9 +19,11 @@ import { dataDoPlantao } from '../src/kernel/common/tempo';
 
 const SENHA = 'senha-dev-123';
 const adminUrl = process.env.DATABASE_URL ?? 'postgres://rede_admin:dev-only-change-me@127.0.0.1:5432/rede_acolher';
-const HOJE = new Intl.DateTimeFormat('en-CA', {
+const emPortoAlegre = (d: Date) => new Intl.DateTimeFormat('en-CA', {
   timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit',
-}).format(new Date());
+}).format(d);
+const HOJE = emPortoAlegre(new Date());
+const ONTEM = emPortoAlegre(new Date(Date.now() - 86_400_000));
 
 describe('Regressão — estado, concorrência e silêncio', () => {
   let app: INestApplication, http: any, admin: Client;
@@ -83,7 +85,10 @@ describe('Regressão — estado, concorrência e silêncio', () => {
         .set(auth(tokens.enfermagem))
         .send({ personId: crianca, houseId: AI3, tipo: 'uso_continuo',
                 medicamento, dose: '1 comprimido', via: 'oral',
-                horarios: [hora], prescritor: 'Clínica (fictícia)' });
+                // A prescrição vale desde ONTEM: `app_generate_doses` só gera
+                // para datas dentro da validade, e a dose precisa estar no
+                // passado a qualquer hora em que a suíte rodar.
+                horarios: [hora], prescritor: 'Clínica (fictícia)', inicio: ONTEM });
       expect(p.status).toBe(201);
       await request(http).post(`/api/v1/medications/prescriptions/${p.body.id}/sign`)
         .set(auth(tokens.enfermagem)).send({});
@@ -92,8 +97,18 @@ describe('Regressão — estado, concorrência e silêncio', () => {
     await presc('Medicamento Regressão A', '06:00');
     await presc('Medicamento Regressão B', '06:30');
 
+    /*
+     * As doses são geradas para ONTEM, e não para hoje.
+     *
+     * 06:00 e 06:30 de HOJE estão no FUTURO quando a suíte roda de madrugada —
+     * e a regra de rodar depois das 21h encontrou isso às 00h38 de 01/09. O que
+     * este teste guarda não é a data: é que CADA dose vencida gera o seu aviso,
+     * em vez de a primeira gastar a chave de idempotência e calar o resto.
+     * `escalate-overdue` compara com `now()`, sem limite de dia — ontem serve,
+     * e serve a qualquer hora.
+     */
     const g = await request(http).post('/api/v1/medications/generate-doses')
-      .set(auth(tokens.enfermagem)).send({ houseId: AI3, date: HOJE });
+      .set(auth(tokens.enfermagem)).send({ houseId: AI3, date: ONTEM });
     expect(g.status).toBe(201);
 
     const um = await request(http).post('/api/v1/medications/escalate-overdue')

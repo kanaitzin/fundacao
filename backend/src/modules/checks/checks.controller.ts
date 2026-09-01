@@ -32,11 +32,27 @@ export class ChecksController {
     return this.checks.get(user, id);
   }
 
-  /** Marca UM acolhido — não existe marcação em lote (§10, §11.2). */
+  /**
+   * Marca UM acolhido. A marcação em lote SILENCIOSA continua não existindo
+   * (§10, §11.2): o que existe é a conferência de mesa abaixo, que se declara.
+   */
   @Post(':id/mark')
   mark(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
        @Body() body: any) {
     return this.checks.mark(user, id, body);
+  }
+
+  /**
+   * A CONFERÊNCIA DE MESA (§10) — um ATO, gravado como um ato.
+   *
+   * Não é a "marcação em lote silenciosa" que a regra proíbe: o que ela proíbe
+   * é preencher o que não foi olhado, e é por isso que este ato fica com nome,
+   * horário e contagem próprios em `check_bulk`, e as linhas que nascem dele
+   * apontam para ele. Quem lê um ano depois sabe a diferença.
+   */
+  @Post(':id/bulk')
+  bulk(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.checks.bulk(user, id);
   }
 
   @Post(':id/confirm')

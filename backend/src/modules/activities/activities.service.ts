@@ -6,7 +6,6 @@ import { DatabaseService } from '../../kernel/database/database.service';
 import { AuditService } from '../../kernel/audit/audit.service';
 import { EventBus } from '../../kernel/events/event-bus.service';
 import { AuthenticatedUser } from '../../kernel/contracts';
-import { hojeNaInstituicao } from '../../kernel/common/tempo';
 
 /** Estados que encerram a atividade — depois deles só cabe adendo. */
 const ESTADOS_FINAIS = new Set([
@@ -565,9 +564,18 @@ export class ActivitiesService {
 
   /** Vencidas sem confirmação (§8.5) — nunca vira "não realizada" sozinha. */
   async markUnconfirmed(user: AuthenticatedUser, houseId: string, minutes = 60) {
-    const n = await this.db.asUser(user.id, async (c) => {
-      const { rows: [r] } = await c.query(`SELECT app_mark_unconfirmed($1,$2) AS n`, [houseId, minutes]);
-      return Number(r.n);
+    /*
+     * As atividades que ESTA CHAMADA marcou — e não "as de hoje".
+     *
+     * A busca por `hojeNaInstituicao()` que existia aqui calava o aviso depois
+     * da meia-noite: a atividade das 21h vencia, era marcada e não avisava
+     * ninguém, porque já pertencia a ontem. Todas as noites, em silêncio, no
+     * turno em que há uma pessoa sozinha com vinte crianças (migração 0790).
+     */
+    const vencidas = await this.db.asUser(user.id, async (c) => {
+      const { rows } = await c.query(
+        `SELECT id FROM app_mark_unconfirmed_ids($1,$2)`, [houseId, minutes]);
+      return rows.map((r) => r.id as string);
     }).catch((e: any) => {
       const m = String(e?.message ?? '');
       // A casa fora do escopo não é "proibida": para quem pergunta, ela não
@@ -576,20 +584,13 @@ export class ActivitiesService {
       if (m.includes('casa_obrigatoria')) throw new BadRequestException('Informe a casa.');
       throw e;
     });
+    const n = vencidas.length;
     if (n > 0) {
       // Contrato genérico do kernel: pedimos que alguém seja avisado, sem
       // saber quem avisa (§8.5). O escalonamento é por ATIVIDADE — usar a casa
       // como entidade gastava a chave de idempotência no primeiro dia e calava
       // o aviso para sempre. `groupKey` continua juntando tudo numa
       // notificação só na caixa de entrada.
-      const vencidas = await this.db.asUser(user.id, async (c) => {
-        const { rows } = await c.query(
-          `SELECT id FROM activity
-           WHERE house_id = $1 AND state = 'sem_confirmacao'
-             AND (scheduled_at AT TIME ZONE 'America/Sao_Paulo')::date = $2::date`,
-          [houseId, hojeNaInstituicao()]);
-        return rows.map((r) => r.id as string);
-      });
       for (const id of vencidas) {
         await this.bus.publish('escalation.requested', {
           level: 'tecnica_coordenacao',

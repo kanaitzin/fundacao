@@ -865,7 +865,7 @@ responder e não me peça para reexplicar o que está lá.
 
 === ESTADO ATUAL ===
 
-Fases 0 a 30 concluídas. 285 testes passando em 25 suítes, sem falha conhecida
+Fases 0 a 31 concluídas. 294 testes passando em 26 suítes, sem falha conhecida
 — a suíte rodou cinco vezes seguidas entre 21h44 e 23h30 de Porto Alegre, que
 já é depois das 21h E depois da virada do dia em UTC (01/09 no banco, 31/08 na
 casa): a contaminação de data que a regra procura estava valendo em todas as
@@ -876,6 +876,32 @@ Geral Noturna recortada na linha de cada casa. O ciclo do acolhimento fecha:
 cadastro, saída com motivo, acervo histórico e retorno como episódio novo. E o
 arquivo documental deixou de ser um módulo sem entrada: fechou, entra na fila. Relatórios saem em Word com timbre, com a parte factual
 escrita pelo sistema. Convite de primeiro acesso por e-mail, uso único, 24h.
+
+A CONFERÊNCIA DE MESA (§10, migração 0780) veio de o Marcelo usar o protótipo:
+no almoço, a educadora olha a mesa, vê que as vinte estão comendo, e precisava
+de vinte toques para dizer isso. A regra escrita é "sem marcação em lote
+SILENCIOSA", e a do banco é "nada que preencha o que NÃO foi olhado" — nenhuma
+proíbe registrar de uma vez o que foi olhado de uma vez, desde que fique
+gravado que foi assim. O ato tem linha própria em `check_bulk` (quem, quando,
+quantos), as linhas que nascem dele apontam para ele, corrigir uma delas zera
+o vínculo, e a CHAMADA FINAL DO TURNO não a aceita — ela existe para alguém
+contar as crianças uma a uma antes de dormir. A lista de conferidos passou a
+recolher, com contador, e um toque reabre o nome.
+
+DOIS DEFEITOS DE VIRADA DE DIA, encontrados às 00h38 pela regra de rodar depois
+das 21h — e o primeiro é grave:
+
+ * `markUnconfirmed` MARCAVA toda atividade vencida da casa, sem limite de
+   data, mas só AVISAVA as de `hojeNaInstituicao()`. Depois da meia-noite, a
+   atividade das 21h era marcada "sem confirmação" e ninguém era avisado. Toda
+   noite, em silêncio, no turno em que há uma pessoa sozinha com vinte
+   crianças. Agora ele avisa sobre as que ESTA CHAMADA marcou (migração 0790);
+ * `regressao-estado` prescrevia doses às 06h de HOJE, que de madrugada estão
+   no futuro. Passou a prescrever desde ONTEM.
+
+FICA ANOTADO, e é decisão do Marcelo: o Arquivo das ATAS abre no MÊS CORRENTE, e
+todo dia 1º esse mês está quase vazio — o mesmo argumento que fez o padrão
+deixar de ser a semana. Uma quarta opção "últimos 30 dias" como padrão resolve.
 
 A ROTINA VERSIONADA DA CASA (§8.1) ganhou tela. Quatro rotas da fase 2 sem
 porta nenhuma: o dia nascia de dados semeados, e a pergunta "a que horas é a

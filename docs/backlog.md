@@ -91,7 +91,7 @@ Construída já dentro da arquitetura de partições (ver `docs/arquitetura-modu
 | Substituto precisa tomar ciência | notificação + estado `aguardando_ciencia` | "substituição registra a cadeia" |
 | Atividade urgente do líder, com motivo (§8.2) | `createUrgent` + `CHECK` no banco | "atividade urgente do líder" |
 | Chamada coletiva → registro individual (#10) | módulo `checks`, `app_confirm_check` | "cenário #10" |
-| Sem marcação em lote silenciosa (§10, §11.2) | só endpoint de marcação individual | "cenário #10" |
+| Sem marcação em lote silenciosa (§10, §11.2) | marcação individual + `check_bulk`, que DECLARA o ato | "conferência de mesa" |
 | Chamada alcança só quem está na casa (§5.13) | policy `cr_insert` (migração 0150) | "cenário #10" |
 | Linha do tempo unificada por provedores (§9) | `TimelineRegistry` no kernel | "linha do tempo agrega provedores" |
 | Painel da casa sem ranking (§9, §3.3) | ordem alfabética, sem pontuação | "painel da casa sem ranking" |

@@ -398,7 +398,10 @@ const TIPOS_DE_CHAMADA = [
 
 interface Chamada {
   id: string; tipo: string; titulo: string; status: string; horario: string;
-  resultados: Record<string, { opcao: string; nota?: string }>;
+  /** `mesa` guarda de qual conferência de mesa a linha nasceu, se nasceu. */
+  resultados: Record<string, { opcao: string; nota?: string; mesa?: string }>;
+  /** As conferências de mesa desta chamada — o ato, com nome e horário. */
+  mesas?: { id: string; opcao: string; quantos: number; por: string; quando: string }[];
 }
 let CHAMADAS: Chamada[] = [
   { id: 'k1', tipo: 'alimentacao', titulo: 'Café da manhã', status: 'confirmada',
@@ -1744,21 +1747,69 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         restricoes: p.restricao ? p.restricao.restriction : null,
         resultado: res?.opcao ?? null, justificativa: res?.nota ?? null,
         registradoPor: res ? eu.fullName : null, registradoEm: res ? new Date().toISOString() : null,
+        naConferenciaDeMesa: !!res?.mesa,
       };
     });
     const conferidos = linhas.filter((l) => l.resultado).length;
+    const comum = opcoesDoTipo(k.tipo).find((o) => !o.excecao) ?? null;
     return {
       id: k.id, tipo: k.tipo, titulo: k.titulo, status: k.status,
       esperados: linhas.length, conferidos, faltam: linhas.length - conferidos,
       quemFalta: linhas.filter((l) => !l.resultado).map((l) => l.nome),
       linhas, opcoes: opcoesDoTipo(k.tipo),
+      // A chamada final do turno é um a um: ela existe para alguém CONTAR as
+      // crianças antes de dormir, e "todos" ali seria suposição.
+      aceitaConferenciaDeMesa: k.tipo !== 'chamada_final' && k.status === 'aberta',
+      opcaoDaMesa: comum?.code ?? null,
+      conferenciasDeMesa: k.mesas ?? [],
+      avisoDaMesa: k.tipo === 'chamada_final'
+        ? 'A chamada final do turno é um a um: ela existe para alguém contar as crianças '
+          + 'antes de dormir, e "todos" aqui seria suposição, não observação.'
+        : 'Conferir a mesa registra, de uma vez, o que você olhou de uma vez — com o seu nome, '
+          + 'o horário e quantos. Quem já foi marcado NÃO é sobrescrito, e exceção continua '
+          + 'sendo uma a uma, com o motivo escrito.',
     };
+  }
+  // A conferência de mesa ANTES do ramo `mark`/`confirm` não é necessária aqui
+  // (os três segmentos diferem), mas fica junto deles por leitura.
+  if (seg[0] === 'checks' && seg[2] === 'bulk' && metodo === 'POST') {
+    const k = CHAMADAS.find((x) => x.id === seg[1]);
+    if (!k) return new Recusa(404, 'Chamada não encontrada');
+    if (k.status !== 'aberta') {
+      return new Recusa(400,
+        'Chamada já confirmada. Correções entram como adendo pela equipe técnica.');
+    }
+    if (k.tipo === 'chamada_final') {
+      return new Recusa(400,
+        'A chamada final do turno é um a um. Ela existe para alguém contar as crianças antes '
+        + 'de dormir — "todos" aqui seria suposição, não observação.');
+    }
+    const comum = opcoesDoTipo(k.tipo).find((o) => !o.excecao);
+    if (!comum) {
+      return new Recusa(400, 'Este tipo de chamada não tem uma opção comum a conferir em bloco.');
+    }
+    // Só quem AINDA NÃO tem registro. Quem já foi marcado fica como está —
+    // inclusive a criança marcada "recusou" antes de a mesa ser conferida.
+    const pendentes = todosKids().filter((p) => !k.resultados[p.id]);
+    if (!pendentes.length) {
+      return new Recusa(400, 'Todos já foram conferidos nesta chamada — não há o que marcar em bloco.');
+    }
+    const mesa = uid();
+    for (const p of pendentes) k.resultados[p.id] = { opcao: comum.code, mesa };
+    k.mesas = [...(k.mesas ?? []), { id: mesa, opcao: comum.code, quantos: pendentes.length,
+                                     por: eu.fullName, quando: new Date().toISOString() }];
+    return { id: mesa, marcados: pendentes.length, opcao: comum.label,
+      aviso: `Conferência de mesa registrada: ${pendentes.length} como "${comum.label}", com o `
+        + 'seu nome e o horário. Quem já estava marcado não foi tocado. Se alguém não estiver '
+        + 'assim, abra o nome dessa criança e corrija — a correção guarda o que constava antes.' };
   }
   if (seg[0] === 'checks' && seg[2] === 'mark') {
     const k = CHAMADAS.find((x) => x.id === seg[1])!;
     if (k.status === 'confirmada') {
       return new Recusa(400, 'Chamada confirmada não é reescrita — a correção entra como adendo.');
     }
+    // Corrigir uma linha que veio da mesa a torna INDIVIDUAL: alguém olhou
+    // aquela criança. A procedência não pode continuar dizendo "na mesa".
     k.resultados[b.personId] = { opcao: b.opcao, nota: b.nota };
     return { ok: true };
   }

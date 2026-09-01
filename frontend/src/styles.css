@@ -725,3 +725,26 @@ textarea{
 /* Segunda linha de um par "nome + qualificação": bloco próprio, para o
    separador não terminar a linha e deixar a qualificação órfã. */
 .linhadois{ display:block; margin-top:1px }
+
+/* ---------- Chamada: quem já foi conferido, recolhido ----------
+   Vinte cartões abertos são vinte lugares onde o olho se perde. O nome
+   conferido vira UMA LINHA de altura de dedo, com a marca do que ficou
+   registrado; tocar reabre. É o que deixa a lista encolher enquanto a pessoa
+   trabalha, em vez de crescer. */
+.conferidos{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px }
+.conferidos li{
+  background:var(--surface); border:1px solid var(--line); border-radius:11px; overflow:hidden;
+}
+.conferidos li.saiu{ opacity:.62 }
+.conferidos .linhaconf{
+  display:flex; align-items:center; gap:8px; width:100%;
+  padding:10px 12px; min-height:44px;
+  background:transparent; border:0; cursor:pointer;
+  color:var(--ink); font:inherit; text-align:left;
+}
+.conferidos .linhaconf:hover{ background:var(--raised) }
+.conferidos .linhaconf .grow{ flex:1 1 auto; min-width:0; font-weight:700;
+  font-family:"Plus Jakarta Sans",system-ui,sans-serif; font-size:14.5px;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
+.conferidos .linhaconf .seta{ color:var(--muted); font-size:13px; flex:0 0 auto }
+.conferidos .corpo{ padding:0 12px 12px; display:flex; flex-direction:column; gap:7px }

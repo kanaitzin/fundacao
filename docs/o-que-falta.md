@@ -25,6 +25,13 @@ janta aqui?" não tinha resposta dentro do sistema — tinha no quadro da cozinh
 Alterar abre versão nova com motivo escrito e copia os itens; a anterior
 continua inteira, explicando o dia que nasceu dela.*
 
+*Em 01/09/2026 entrou também, a pedido do Marcelo depois de usar o protótipo, a
+**conferência de mesa** (§10): a educadora olha a mesa no almoço, vê que estão
+todos comendo, e precisava de vinte toques para dizer isso. O ato agora é um só
+e fica gravado COMO ato — quem, quando e quantos —, o que o separa da "marcação
+em lote silenciosa" que a regra proíbe. E a lista de quem já foi conferido
+recolhe, com contador, para a tela encolher enquanto a pessoa trabalha.*
+
 *E uma correção ao próprio levantamento: eu havia escrito que faltava "anexar
 documento ao arquivo". `POST /archive` não recebe arquivo — ele enfileira a
 CÓPIA DOCUMENTAL de algo que já existe no sistema. O que faltava era pior e

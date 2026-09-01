@@ -19,6 +19,20 @@ import { api } from '../api';
  *  * **quem falta aparece no topo**, com o número. Fechar a chamada com
  *    alguém sem conferir é o erro que ninguém percebe — e o sistema recusa
  *    o fechamento dizendo QUEM falta.
+ *
+ * E, desde 01/09/2026, duas coisas que vieram de ver a tela sendo usada:
+ *
+ *  * **quem já foi conferido RECOLHE.** Vinte cartões abertos de uma vez são
+ *    vinte lugares onde o olho se perde; o que a pessoa precisa ver é quem
+ *    ainda falta. O nome conferido vira uma linha de uma altura só, com a
+ *    marca do que foi registrado, e um toque reabre para corrigir;
+ *  * **a conferência de mesa.** A educadora olha a mesa, vê que estão todos
+ *    comendo, e hoje precisa de vinte toques para dizer isso. Vinte toques não
+ *    deixam o registro mais verdadeiro — deixam a pessoa com pressa, e pressa
+ *    é o que faz pular a criança que não comeu. O ato fica gravado COMO ATO
+ *    (quem, quando, quantos), e é essa declaração que o separa da "marcação em
+ *    lote silenciosa" que o §10 proíbe. A chamada final do turno não a aceita:
+ *    ela existe para alguém contar as crianças uma a uma antes de dormir.
  */
 
 interface Linha {
@@ -32,12 +46,21 @@ interface Linha {
   justificativa: string | null;
   registradoPor: string | null;
   registradoEm: string | null;
+  /** Nasceu de uma conferência de mesa, e não de um olhar sobre esta criança. */
+  naConferenciaDeMesa: boolean;
+}
+interface ConferenciaDeMesa {
+  id: string; opcao: string; quantos: number; por: string; quando: string;
 }
 interface Opcao { code: string; label: string; excecao: boolean }
 interface Chamada {
   id: string; tipo: string; titulo: string; status: string;
   esperados: number; conferidos: number; faltam: number; quemFalta: string[];
   linhas: Linha[]; opcoes: Opcao[];
+  aceitaConferenciaDeMesa: boolean;
+  opcaoDaMesa: string | null;
+  conferenciasDeMesa: ConferenciaDeMesa[];
+  avisoDaMesa: string;
 }
 interface Resumo {
   id: string; tipo: string; titulo: string; status: string;
@@ -59,6 +82,9 @@ export function Chamada({ houseId }: { houseId: string }) {
   const [excecao, setExcecao] = useState<Linha | null>(null);
   const [tipos, setTipos] = useState<Vocabulario | null>(null);
   const [abrindo, setAbrindo] = useState(false);
+  /** O nome conferido que a pessoa reabriu para conferir ou corrigir. */
+  const [reaberta, setReaberta] = useState<string | null>(null);
+  const [conferindoMesa, setConferindoMesa] = useState(false);
 
   const carregarLista = useCallback(async () => {
     setErro('');
@@ -74,9 +100,32 @@ export function Chamada({ houseId }: { houseId: string }) {
   }, []);
 
   async function abrir(id: string) {
-    setErro('');
+    setErro(''); setReaberta(null);
     try { setAberta(await api<Chamada>(`/checks/${id}`)); }
     catch (e) { setErro(e instanceof Error ? e.message : 'Não foi possível abrir a chamada.'); }
+  }
+
+  /**
+   * A CONFERÊNCIA DE MESA.
+   *
+   * Marca de uma vez os que AINDA NÃO TÊM registro — nunca sobrescreve quem já
+   * foi marcado, inclusive a criança que a pessoa marcou "recusou" antes de
+   * olhar a mesa. O servidor grava o ato com nome, horário e contagem.
+   */
+  async function conferirMesa() {
+    if (!aberta) return;
+    setConferindoMesa(true); setErro(''); setAviso('');
+    try {
+      const r = await api<{ aviso?: string }>(`/checks/${aberta.id}/bulk`, {
+        method: 'POST', body: '{}' });
+      setAberta(await api<Chamada>(`/checks/${aberta.id}`));
+      await carregarLista();
+      setAviso(r?.aviso ?? 'Conferência de mesa registrada.');
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Não foi possível registrar a conferência de mesa.');
+    } finally {
+      setConferindoMesa(false);
+    }
   }
 
   async function marcar(l: Linha, opcao: string, nota?: string) {
@@ -237,42 +286,150 @@ export function Chamada({ houseId }: { houseId: string }) {
         </div>
       )}
 
+      {/*
+        * A CONFERÊNCIA DE MESA — um toque para o que se olhou de uma vez.
+        *
+        * Fica ANTES da lista porque é o primeiro gesto do almoço: olhar a mesa.
+        * A frase diz o que vai ser gravado, e diz que quem já foi marcado não
+        * é tocado — as duas coisas que separam isto de "confirmar tudo".
+        */}
+      {!confirmada && aberta.aceitaConferenciaDeMesa && pendentes.length > 0 && (
+        <div className="card raise stack" style={{ marginBottom: 12 }}>
+          <div className="row">
+            <div className="grow">
+              <b className="ff">Conferi a mesa</b>
+              <div className="mutetxt">{aberta.avisoDaMesa}</div>
+            </div>
+          </div>
+          <button className="btn block" disabled={conferindoMesa} onClick={conferirMesa}>
+            {conferindoMesa
+              ? 'Registrando…'
+              : `Marcar os ${pendentes.length} que faltam como "${
+                  aberta.opcoes.find((o) => o.code === aberta.opcaoDaMesa)?.label ?? normal.label}"`}
+          </button>
+        </div>
+      )}
+
+      {/* Quando a conferência de mesa NÃO se aplica, a ausência do botão precisa
+          ser explicada onde ela é notada. Sem isto, quem usou o almoço de manhã
+          abre a chamada final à noite e conclui que o sistema quebrou. */}
+      {!confirmada && !aberta.aceitaConferenciaDeMesa && pendentes.length > 0 && (
+        <div className="notice c-info" role="status">{aberta.avisoDaMesa}</div>
+      )}
+
+      {/* O ato, depois de feito: quem conferiu a mesa, quando e quantos. Não é
+          detalhe de auditoria — é o que a próxima pessoa precisa ler para saber
+          que tipo de conferência aquela foi. */}
+      {aberta.conferenciasDeMesa.length > 0 && (
+        <div className="notice c-info" role="status">
+          {aberta.conferenciasDeMesa.map((b) => (
+            <div key={b.id}>
+              <b>Conferência de mesa:</b> {b.quantos}{' '}
+              {b.quantos === 1 ? 'acolhido' : 'acolhidos'} como{' '}
+              <b>{aberta.opcoes.find((o) => o.code === b.opcao)?.label ?? b.opcao}</b>
+              {' · '}{b.por} · {hhmm(b.quando)}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/*
+        * QUEM AINDA FALTA fica em cima, aberto. É a lista que encolhe enquanto
+        * a pessoa trabalha, e é a única coisa que ela precisa olhar.
+        */}
+      {pendentes.length > 0 && (
+        <div className="eyebrow">Faltam conferir · {pendentes.length}</div>
+      )}
       <ol className="chamada">
-        {aberta.linhas.map((l) => {
-          const feito = !!l.resultado;
-          const rotulo = aberta.opcoes.find((o) => o.code === l.resultado)?.label;
-          return (
-            <li key={l.acolhidoId} className={`ev ${feito ? 'feito' : ''} ${l.ativo ? '' : 'saiu'}`}>
-              <div className="corpo">
-                <div className="row">
-                  <b className="ff grow">{l.nome}{l.idade ? ` · ${l.idade}` : ''}</b>
-                  {!l.ativo && <span className="pill c-mute">saiu no meio</span>}
-                  {feito && <span className="pill c-ok">{rotulo}</span>}
-                </div>
-
-                {/* Onde o alerta importa: na hora de marcar, com a bandeja na mão. */}
-                {l.alertas && <div className="alerta">⚠ {l.alertas}</div>}
-                {l.restricoes && <div className="alerta rest">🍽 {l.restricoes}</div>}
-                {l.justificativa && <div className="mutetxt">{l.justificativa}</div>}
-
-                {!confirmada && l.ativo && (
-                  <div className="acoes">
-                    <button className={`btn sm ${feito ? 'ghost' : ''}`}
-                            disabled={ocupado === l.acolhidoId}
-                            onClick={() => marcar(l, normal.code)}>
-                      {normal.label}
-                    </button>
-                    <button className="btn sm ghost" disabled={ocupado === l.acolhidoId}
-                            onClick={() => setExcecao(l)}>
-                      Outro
-                    </button>
-                  </div>
-                )}
+        {aberta.linhas.filter((l) => l.ativo && !l.resultado).map((l) => (
+          <li key={l.acolhidoId} className="ev">
+            <div className="corpo">
+              <div className="row">
+                <b className="ff grow">{l.nome}{l.idade ? ` · ${l.idade}` : ''}</b>
               </div>
-            </li>
-          );
-        })}
+              {/* Onde o alerta importa: na hora de marcar, com a bandeja na mão. */}
+              {l.alertas && <div className="alerta">⚠ {l.alertas}</div>}
+              {l.restricoes && <div className="alerta rest">🍽 {l.restricoes}</div>}
+              {!confirmada && (
+                <div className="acoes">
+                  <button className="btn sm" disabled={ocupado === l.acolhidoId}
+                          onClick={() => marcar(l, normal.code)}>
+                    {normal.label}
+                  </button>
+                  <button className="btn sm ghost" disabled={ocupado === l.acolhidoId}
+                          onClick={() => setExcecao(l)}>
+                    Outro
+                  </button>
+                </div>
+              )}
+            </div>
+          </li>
+        ))}
       </ol>
+
+      {/*
+        * QUEM JÁ FOI CONFERIDO, RECOLHIDO.
+        *
+        * Uma linha por criança, com a marca do que ficou registrado. Vinte
+        * cartões abertos são vinte lugares onde o olho se perde; aqui a pessoa
+        * corre a lista e vê que ninguém ficou de fora. Tocar no nome reabre
+        * os botões — corrigir continua a um toque de distância, e a correção
+        * guarda o que constava antes.
+        */}
+      {conferidosAtivos + saiuNoMeio > 0 && (
+        <>
+          <div className="eyebrow">
+            Já conferidos · {conferidosAtivos} de {aberta.esperados}
+          </div>
+          <ul className="conferidos">
+            {aberta.linhas.filter((l) => l.resultado || !l.ativo).map((l) => {
+              const rotulo = aberta.opcoes.find((o) => o.code === l.resultado)?.label;
+              const excecional = aberta.opcoes.find((o) => o.code === l.resultado)?.excecao;
+              const aberto = reaberta === l.acolhidoId;
+              return (
+                <li key={l.acolhidoId} className={`feito ${l.ativo ? '' : 'saiu'}`}>
+                  <button type="button" className="linhaconf"
+                          aria-expanded={aberto}
+                          onClick={() => setReaberta(aberto ? null : l.acolhidoId)}>
+                    <span className="grow">{l.nome}{l.idade ? ` · ${l.idade}` : ''}</span>
+                    {!l.ativo && <span className="pill c-mute">saiu no meio</span>}
+                    {l.resultado
+                      ? <span className={`pill ${excecional ? 'c-warn' : 'c-ok'}`}>{rotulo}</span>
+                      : <span className="pill c-mute">sem registro</span>}
+                    <span className="seta" aria-hidden="true">{aberto ? '⌃' : '⌄'}</span>
+                  </button>
+                  {aberto && (
+                    <div className="corpo">
+                      {l.alertas && <div className="alerta">⚠ {l.alertas}</div>}
+                      {l.restricoes && <div className="alerta rest">🍽 {l.restricoes}</div>}
+                      {l.justificativa && <div className="mutetxt">{l.justificativa}</div>}
+                      <div className="mutetxt">
+                        {l.registradoPor ? `Por ${l.registradoPor}` : 'Sem registro'}
+                        {l.registradoEm ? ` · ${hhmm(l.registradoEm)}` : ''}
+                        {/* A procedência, dita: conferido NA MESA não é o
+                            mesmo que olhado sozinho, e quem lê precisa saber. */}
+                        {l.naConferenciaDeMesa && ' · na conferência de mesa'}
+                      </div>
+                      {!confirmada && l.ativo && (
+                        <div className="acoes">
+                          <button className="btn sm ghost" disabled={ocupado === l.acolhidoId}
+                                  onClick={() => marcar(l, normal.code)}>
+                            {normal.label}
+                          </button>
+                          <button className="btn sm" disabled={ocupado === l.acolhidoId}
+                                  onClick={() => setExcecao(l)}>
+                            Corrigir
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </>
+      )}
 
       {!confirmada && (
         <button className="btn block" style={{ marginTop: 14 }} onClick={confirmar}>
