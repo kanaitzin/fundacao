@@ -65,7 +65,8 @@ const quando = (iso: string) => new Date(iso).toLocaleString('pt-BR',
     timeZone: 'America/Sao_Paulo' });
 
 /** Quem processa a fila (§16.5) — a mesma lista do servidor. */
-const PROCESSA = ['admin_tecnico', 'equipe_tecnica', 'coordenador', 'gestor_geral'];
+/* alcance:arquivo — o mesmo de app_pode_ver_fila_arquivo(), desde a 0770. */
+const PROCESSA = ['equipe_tecnica', 'coordenador', 'gestor_geral'];
 
 export function Arquivo({ houseId, papel }: { houseId: string; papel: string }) {
   const [fila, setFila] = useState<ItemFila[]>([]);

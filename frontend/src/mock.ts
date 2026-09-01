@@ -158,7 +158,6 @@ const USUARIOS: Record<string, { id: string; fullName: string; role: string; sen
   'enfermagem@paodospobres.dev': { id: 'u5', fullName: 'Enfermeira Fictícia', role: 'enfermagem', senha: 'senha-dev-123' },
   'lider.noturno@paodospobres.dev': { id: 'u8', fullName: 'Nélio Noturno (fictício)', role: 'lider_noturno_geral', senha: 'senha-dev-123' },
   'cozinha@paodospobres.dev': { id: 'u9', fullName: 'Cida da Cozinha (fictícia)', role: 'cozinha', senha: 'senha-dev-123' },
-  'admin@paodospobres.dev': { id: 'u10', fullName: 'Adair Administrativo (fictício)', role: 'admin_tecnico', senha: 'senha-dev-123' },
   'gestor@paodospobres.dev': { id: 'u11', fullName: 'Gilberto Gestor (fictício)', role: 'gestor_geral', senha: 'senha-dev-123' },
 };
 const EQUIPE_CASA = [
@@ -290,8 +289,6 @@ const TIPOS_SETOR = [
     descricao: 'Equipe da casa, aprovações, transferências e cofre' },
   { code: 'gestor_geral', label: 'Gestor Geral', transversal: true,
     descricao: 'Escopo institucional; abre uma casa por vez, com auditoria' },
-  { code: 'admin_tecnico', label: 'Administração técnica', transversal: true,
-    descricao: 'Infraestrutura e suporte; sem acesso ao conteúdo do acolhimento' },
 ];
 
 // ---------------------------------------------------------------- estado vivo
@@ -1361,7 +1358,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
    * baixinho.
    */
   if (rota === '/staff') {
-    const podeEditar = ['coordenador', 'gestor_geral', 'admin_tecnico'].includes(eu.role);
+    const podeEditar = ['coordenador', 'gestor_geral', 'equipe_tecnica'].includes(eu.role);
     return EQUIPE_CASA.map((m) => ({
       id: m.id,
       nome: m.nome,
@@ -1415,7 +1412,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     const podeCadastrar: Record<string, string[]> = {
       coordenador: ['educador', 'lider_diurno', 'equipe_tecnica', 'cozinha', 'enfermagem'],
       gestor_geral: TIPOS_SETOR.map((t) => t.code),
-      admin_tecnico: ['admin_tecnico', 'educador', 'lider_diurno', 'equipe_tecnica', 'cozinha'],
+      equipe_tecnica: ['educador', 'lider_diurno', 'equipe_tecnica', 'cozinha', 'enfermagem'],
     };
     const meus = podeCadastrar[eu.role] ?? [];
     return TIPOS_SETOR.filter((t) => meus.includes(t.code))
@@ -1431,9 +1428,9 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
    * operação que não é a do sistema.
    */
   if (seg[0] === 'staff' && seg[2] === 'deactivate' && metodo === 'POST') {
-    if (!['coordenador', 'gestor_geral', 'admin_tecnico'].includes(eu.role)) {
+    if (!['coordenador', 'gestor_geral', 'equipe_tecnica'].includes(eu.role)) {
       return new Recusa(403, 'Administrar a equipe é da coordenação, da gestão ou da '
-        + 'administração técnica.');
+        + 'equipe técnica.');
     }
     DESATIVADOS.add(seg[1]);
     return { ok: true, ativo: false,
@@ -1445,9 +1442,9 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     return { ok: true, ativo: true, aviso: 'Reativado. O histórico dele nunca deixou de existir.' };
   }
   if (seg[0] === 'staff' && seg[2] === 'reset-password' && metodo === 'POST') {
-    if (!['coordenador', 'gestor_geral', 'admin_tecnico'].includes(eu.role)) {
+    if (!['coordenador', 'gestor_geral', 'equipe_tecnica'].includes(eu.role)) {
       return new Recusa(403, 'Redefinir senha é da coordenação, da gestão ou da '
-        + 'administração técnica.');
+        + 'equipe técnica.');
     }
     const senha = String(b.senha ?? '').trim() || `inicial-${uid()}`;
     if (senha.length < 6) return new Recusa(400, 'A senha precisa de pelo menos 6 caracteres.');
@@ -3377,7 +3374,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
 
   /** Retentativa é da FILA e é idempotente: mesma versão, mesmo arquivo. */
   if (rota === '/archive/process' && metodo === 'POST') {
-    if (!['admin_tecnico', 'equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)) {
+    if (!['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)) {
       return new Recusa(403, 'Sem permissão para processar a fila do arquivo.');
     }
     const limite = Number(b.limite ?? 5);

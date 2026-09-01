@@ -81,6 +81,9 @@ describe('Equipe — cadastro por setor e aparelho institucional', () => {
       ['educador', 'lider_diurno', 'equipe_tecnica', 'cozinha', 'enfermagem']));
     // E não oferece o que criaria alcance institucional.
     expect(cargos).not.toContain('gestor_geral');
+    // A administração técnica foi APOSENTADA em 01/09/2026 (migração 0770): o
+    // cargo não existe na Fundação, e `staff_role_grant` não o concede a
+    // ninguém — nem ao Gestor Geral.
     expect(cargos).not.toContain('admin_tecnico');
     expect(cargos).not.toContain('coordenador');
 
@@ -91,8 +94,10 @@ describe('Equipe — cadastro por setor e aparelho institucional', () => {
     expect(enf.descricao).toMatch(/oito casas/i);
 
     const doGestor = await request(http).get('/api/v1/staff/sectors').set(auth(tokens.gestor));
-    expect(doGestor.body.map((s: any) => s.code)).toEqual(expect.arrayContaining(
-      ['coordenador', 'lider_noturno_geral', 'admin_tecnico']));
+    const doGestorCargos = doGestor.body.map((s: any) => s.code);
+    expect(doGestorCargos).toEqual(expect.arrayContaining(
+      ['coordenador', 'lider_noturno_geral']));
+    expect(doGestorCargos).not.toContain('admin_tecnico');
 
     // Educador não administra equipe.
     const doEducador = await request(http).get('/api/v1/staff/sectors').set(auth(tokens.educador));

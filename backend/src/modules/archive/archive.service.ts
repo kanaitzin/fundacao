@@ -165,7 +165,7 @@ export class ArchiveService {
    */
   async processar(user: AuthenticatedUser, limite = 5) {
     /* alcance:arquivo — quem processa a fila. Conferido contra `alcance.ts`. */
-    if (!['admin_tecnico', 'equipe_tecnica', 'coordenador', 'gestor_geral'].includes(user.role)) {
+    if (!['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(user.role)) {
       throw new ForbiddenException('Sem permissão para processar a fila do arquivo.');
     }
     const itens = await this.fila(user, limite);

@@ -237,8 +237,10 @@ export function Saude({ houseId, casaLabel, papel }: {
               <li key={d.id} className={d.pendente ? '' : 'feito'}>
                 <span className="hora">{d.tipo === 'quando_necessario' ? 's/n' : hhmm(d.horario)}</span>
                 <div className="grow">
-                  <b className="ff">{d.acolhido.nome}</b> · {d.medicamento} {d.dose}
-                  <span className="mutetxt"> · {d.via}</span>
+                  {/* Nome em cima, remédio embaixo: numa linha só, o separador
+                      caía no fim da linha e a via ficava órfã. */}
+                  <b className="ff">{d.acolhido.nome}</b>
+                  <div>{d.medicamento} {d.dose} <span className="mutetxt">· {d.via}</span></div>
                   {d.condicaoUso && (
                     <div className="mutetxt">Condição de uso: {d.condicaoUso}</div>
                   )}

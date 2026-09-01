@@ -79,6 +79,8 @@ export function Dia({ houseId, casaLabel, papel }: {
   const [erro, setErro] = useState('');
   const [filtro, setFiltro] = useState<'agora' | 'minhas' | 'tudo'>('agora');
   const [ocupado, setOcupado] = useState<string | null>(null);
+  /** Qual atividade está com as ações do líder abertas — uma por vez. */
+  const [maisAcoes, setMaisAcoes] = useState<string | null>(null);
   const [excecao, setExcecao] = useState<Evento | null>(null);
   const [delegando, setDelegando] = useState<Evento | null>(null);
   const [porOutro, setPorOutro] = useState<Evento | null>(null);
@@ -208,23 +210,43 @@ export function Dia({ houseId, casaLabel, papel }: {
                               onClick={() => setExcecao(ev)}>
                         Não aconteceu
                       </button>
-                      {lidera && (
-                        <button className="btn sm ghost" disabled={ocupado === ev.id}
-                                onClick={() => setPorOutro(ev)}>
-                          Registrar pelo colega
-                        </button>
-                      )}
                       {/*
+                        * AS AÇÕES DO LÍDER FICAM ATRÁS DE UM TOQUE.
+                        *
+                        * Registrar pelo colega e delegar são atos de quem
+                        * conduz o turno, e não do plantão inteiro — mas ficavam
+                        * lado a lado com "Concluí", com o mesmo tamanho. Numa
+                        * tela de celular isso virava quatro botões iguais em
+                        * três linhas por atividade: o cartão ficava mais alto
+                        * que a própria atividade, e nenhum botão era o
+                        * principal. Quem está com pressa toca no errado.
+                        *
+                        * O educador continua vendo dois botões. O líder vê os
+                        * dois e um "⋯" que abre os dele.
+                        *
                         * DELEGAR é o caminho de cima para baixo (§10), e é
                         * diferente de substituição: o pedido de substituição
                         * nasce de quem VAI SAIR; quem faltou não pede nada.
-                        * A decisão é da fase 10 e vivia só no servidor.
                         */}
                       {lidera && (
-                        <button className="btn sm ghost" disabled={ocupado === ev.id}
-                                onClick={() => setDelegando(ev)}>
-                          Passar para outra pessoa
-                        </button>
+                        maisAcoes === ev.id ? (
+                          <>
+                            <button className="btn sm ghost" disabled={ocupado === ev.id}
+                                    onClick={() => setPorOutro(ev)}>
+                              Registrar pelo colega
+                            </button>
+                            <button className="btn sm ghost" disabled={ocupado === ev.id}
+                                    onClick={() => setDelegando(ev)}>
+                              Passar para outra pessoa
+                            </button>
+                          </>
+                        ) : (
+                          <button className="btn sm ghost acoesmais" aria-expanded={false}
+                                  aria-label="Mais ações do líder para esta atividade"
+                                  onClick={() => setMaisAcoes(ev.id)}>
+                            ⋯
+                          </button>
+                        )
                       )}
                     </>
                   )}

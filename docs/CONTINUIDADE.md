@@ -363,7 +363,8 @@ transformá-lo em teste.
   o cargo alcança, a regra que o servidor aplica e o que ele NÃO alcança. O
   teste que confere página contra menu encontrou duas permissões sem porta
   (equipe técnica na Saúde, administração técnica no Arquivo), decididas e
-  abertas em 31/08.
+  abertas em 31/08. A administração técnica foi aposentada em seguida e o
+  Arquivo ficou com a equipe técnica e a coordenação.
 - A matriz de permissões documentava **"Educador volante"**, cargo que não
   existe no `role_code`.
 - **Devolver acompanhamento para correção** não existe no servidor: há aprovar
@@ -429,7 +430,7 @@ ATA que não se folheia serve para o turno e não serve para a casa.
 |---|---|---|
 | Coordenação, equipe técnica, Líder Diurno, Líder Noturno Geral | sim | **só a linha daquela casa** |
 | Gestor Geral | sim | a linha, e o caminho para a folha das oito |
-| Educador, enfermagem, cozinha, administração técnica | não | não |
+| Educador, enfermagem, cozinha | não | não |
 
 O recorte parcial é feito **no banco**, não na tela: afrouxar a política de
 `general_night_house_entry` abriria as oito linhas para todo mundo que alcança
@@ -672,7 +673,7 @@ ponta). Sem erro de console e sem erro de página em nenhum dos nove.
 
 **Conferido e correto** (não são defeitos, foram verificados um a um): a cozinha
 cai direto nas restrições, sem barra de abas e sem a razão da restrição; a
-administração técnica não alcança acolhido nenhum; o Gestor Geral entra no cofre
+o Gestor Geral entra no cofre
 com reautenticação, como a regra 4 exige; o Líder Noturno Geral assina passagem
 fora da escala com o aviso de que não constava; o educador não vê a narrativa
 pessoal da colega, e a tela diz que não vê em vez de mostrar lista curta sem
@@ -864,9 +865,10 @@ responder e não me peça para reexplicar o que está lá.
 
 === ESTADO ATUAL ===
 
-Fases 0 a 27 concluídas. 265 testes passando em 23 suítes, sem falha conhecida
-— a suíte rodou três vezes seguidas e mais duas às 22h32 de Porto Alegre, com o
-relógio do banco movido junto. Backend NestJS + PostgreSQL 16 com RLS, 16
+Fases 0 a 28 concluídas. 265 testes passando em 23 suítes, sem falha conhecida
+— a suíte rodou duas vezes seguidas às 21h44 e 21h47 de Porto Alegre, que já é
+depois das 21h E depois da virada do dia em UTC (01/09 no banco, 31/08 na casa):
+a contaminação de data que a regra procura estava valendo nas duas rodadas. Backend NestJS + PostgreSQL 16 com RLS, 16
 partições. Frontend React PWA com 21 telas, todas falando as rotas reais do
 servidor. A ATA agora tem arquivo: dia, semana ou mês de calendário, com a ATA
 Geral Noturna recortada na linha de cada casa. O ciclo do acolhimento fecha:
@@ -874,7 +876,14 @@ cadastro, saída com motivo, acervo histórico e retorno como episódio novo. E 
 arquivo documental deixou de ser um módulo sem entrada: fechou, entra na fila. Relatórios saem em Word com timbre, com a parte factual
 escrita pelo sistema. Convite de primeiro acesso por e-mail, uso único, 24h.
 
-Em aberto, na ordem: `docs/o-que-falta.md` — 69 rotas que existem no servidor e
+A "Administração técnica" foi aposentada: as funções dela passaram para a
+equipe técnica, a coordenação e o Líder Diurno, sem apagar ninguém e sem
+desativar conta (migração 0770). E o design passou por uma revisão inteira nos
+dois temas — o cartão que era botão ficava cinza no escuro, o "Sair" sumia na
+barra, os títulos de folha usavam a cor de FUNDO da barra, e a linha do tempo
+tinha quatro botões do mesmo peso.
+
+Em aberto, na ordem: `docs/o-que-falta.md` — 52 rotas que existem no servidor e
 não têm tela, separadas entre o que vale para o piloto, o que espera e o que é
 de máquina; o retorno do Marcelo por cargo; duas decisões de produto que não são
 minhas (devolver acompanhamento para correção e listar rascunho de prescrição),

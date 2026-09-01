@@ -206,7 +206,7 @@ export class CredentialsService {
       // Chave trocada ou dado alterado: dizer a verdade em vez de devolver lixo.
       throw new BadRequestException(
         'Não foi possível abrir este acesso: o segredo não confere com a chave atual do sistema. '
-        + 'Cadastre a senha novamente — e avise a administração técnica.');
+        + 'Cadastre a senha novamente — e avise a coordenação da casa.');
     }
 
     return {

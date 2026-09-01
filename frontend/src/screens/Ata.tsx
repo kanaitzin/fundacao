@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { cargo } from '../rotulos';
 import { api } from '../api';
 
 /**
@@ -346,9 +347,11 @@ export function Ata({ houseId, papel }: { houseId: string; papel: string }) {
                 <ul className="lista">
                   {plantao.passagens.map((p) => (
                     <li key={p.id} className="row">
+                      {/* Nome numa linha, cargo embaixo: junto, o separador
+                          caía no fim da linha e o cargo ficava solto. */}
                       <span className="grow">
                         {p.quem}{p.propria ? ' (sua)' : ''}
-                        <span className="mutetxt"> · {p.cargo}</span>
+                        <span className="mutetxt linhadois">{cargo(p.cargo)}</span>
                       </span>
                       <span className={`pill ${p.assinadaEm ? 'c-ok' : 'c-warn'}`}>
                         {p.assinadaEm ? `Assinada às ${hhmm(p.assinadaEm)}` : 'Pendente'}
@@ -357,7 +360,8 @@ export function Ata({ houseId, papel }: { houseId: string; papel: string }) {
                   ))}
                   {plantao.assinaturasPendentes.map((f) => (
                     <li key={f.quem} className="row">
-                      <span className="grow">{f.quem}<span className="mutetxt"> · {f.cargo}</span></span>
+                      <span className="grow">{f.quem}
+                        <span className="mutetxt linhadois">{cargo(f.cargo)}</span></span>
                       <span className="pill c-warn">Não passou o plantão</span>
                     </li>
                   ))}

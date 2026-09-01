@@ -161,7 +161,20 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
       { area: 'ocorrencias', titulo: AREAS.ocorrencias,
         faz: 'Lê os relatos lado a lado, escreve a síntese e valida o fechamento.',
         servidor: 'Caso de saúde, medicamento, contenção ou violência não fecha sem síntese.' },
-      { area: 'arquivo', titulo: AREAS.arquivo, faz: 'Confere se o que fechou chegou ao Drive.' },
+      { area: 'arquivo', titulo: AREAS.arquivo,
+        faz: 'Confere se o que fechou chegou ao Drive, e reprocessa a fila quando o envio falha.' },
+      /*
+       * As duas áreas abaixo vieram da administração técnica, aposentada em
+       * 01/09/2026 (migração 0770). Cadastrar conta e redefinir senha ficam com
+       * quem já responde pelo caso e está na casa — não com um cargo de
+       * infraestrutura que enxergava perfil de criança sem precisar.
+       */
+      { area: 'equipe', titulo: AREAS.equipe,
+        faz: 'Cadastra contas da casa, convida e redefine senha.',
+        servidor: 'Não existe remover: desligado é desativado, e o que a pessoa registrou '
+          + 'continua com o nome dela.' },
+      { area: 'setores', titulo: AREAS.setores,
+        faz: 'Consulta o alcance de cada cargo — é a descrição do sistema, não conteúdo.' },
       { area: 'saude', titulo: AREAS.saude, faz: 'Acompanha o painel e movimenta o armário.' },
       { area: 'agenda', titulo: AREAS.agenda, faz: 'Marca compromissos e troca quem vai.' },
       { area: 'dia', titulo: AREAS.dia, faz: 'Acompanha o dia da casa.' },
@@ -324,24 +337,15 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
       ...NUNCA_NINGUEM,
     ],
   },
-  {
-    cargo: 'admin_tecnico',
-    transversal: true,
-    resumo: 'Infraestrutura e suporte. Não é um cargo do acolhimento: administra contas, e não '
-      + 'lê o que a casa registra.',
-    areas: [
-      { area: 'equipe', titulo: AREAS.equipe, faz: 'Cadastra contas e redefine senha.' },
-      { area: 'setores', titulo: AREAS.setores,
-        faz: 'Consulta o alcance de cada cargo — é a descrição do sistema, não conteúdo.' },
-      { area: 'arquivo', titulo: AREAS.arquivo,
-        faz: 'Processa a fila do arquivo quando o envio falha.',
-        servidor: 'Vê nomes de arquivo e caminhos, que por regra já não carregam nome, '
-          + 'CPF nem diagnóstico. Não abre perfil, ocorrência nem documento.' },
-    ],
-    naoAlcanca: [
-      'perfil de acolhido, ocorrências, ATA, saúde e acompanhamentos',
-      'o cofre de acessos e os dados bancários',
-      ...NUNCA_NINGUEM,
-    ],
-  },
 ];
+
+/*
+ * A ADMINISTRAÇÃO TÉCNICA existia aqui e saiu em 01/09/2026 (migração 0770).
+ * O cargo não existe na Fundação: cadastrar contas, redefinir senha e
+ * processar a fila do arquivo passaram para a equipe técnica e a coordenação.
+ *
+ * O valor continua no enum do banco, porque contas e registros de auditoria
+ * antigos o carregam — apagá-lo reescreveria quem fez o quê. O que sumiu foi o
+ * ALCANCE: sem entrada aqui, o menu não oferece nada, e `staff_role_grant` não
+ * deixa mais ninguém ser cadastrado com ele.
+ */

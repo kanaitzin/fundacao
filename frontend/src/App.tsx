@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { ROTULO_CARGO } from './rotulos';
 import { api, setToken } from './api';
 import logo from './assets/logo.png';
 import { Login } from './screens/Login';
@@ -33,11 +34,7 @@ interface Me {
 }
 interface House { id: string; code: string; name: string; kind: string; }
 
-const ROLE_LABEL: Record<string, string> = {
-  gestor_geral: 'Gestor Geral', coordenador: 'Coordenação', equipe_tecnica: 'Equipe técnica',
-  educador: 'Educador social', lider_diurno: 'Líder Diurno', lider_noturno_geral: 'Líder Noturno Geral',
-  enfermagem: 'Enfermagem', cozinha: 'Cozinha', admin_tecnico: 'Administração técnica',
-};
+const ROLE_LABEL = ROTULO_CARGO;
 /** Cor por tipo de unidade — categoria, nunca ranking entre casas. */
 const KIND_TONE: Record<string, string> = { casa_lar: 'c-move', abrigo_institucional: 'c-brand' };
 
@@ -91,7 +88,6 @@ const CARGOS_DEMO = [
   { value: 'lider_noturno_geral', label: '🌙 Líder Noturno' },
   { value: 'enfermagem',          label: '🩺 Enfermagem' },
   { value: 'cozinha',             label: '🍽️ Cozinha' },
-  { value: 'admin_tecnico',       label: '🗂️ Administração técnica' },
   { value: 'gestor_geral',        label: '🏛️ Gestor Geral' },
 ];
 

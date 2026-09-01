@@ -15,7 +15,7 @@ interface Casa { id: string; codigo: string; nome: string; propria: boolean; }
 const TOM: Record<string, string> = {
   educador: 'c-info', lider_diurno: 'c-ok', equipe_tecnica: 'c-other',
   cozinha: 'c-warn', enfermagem: 'c-med', lider_noturno_geral: 'c-move',
-  coordenador: 'c-brand', gestor_geral: 'c-brand', admin_tecnico: 'c-mute',
+  coordenador: 'c-brand', gestor_geral: 'c-brand',
 };
 
 /**
@@ -103,10 +103,17 @@ export function Equipe() {
               {membros.map((m) => (
                 <tr key={m.id} className={m.ativo ? '' : 'inativo'}>
                   <td><b className="ff">{m.nome}</b>{m.proprio && <> <span className="pill c-mute">você</span></>}</td>
-                  <td className="mono">{m.email}</td>
-                  <td><span className={`pill ${TOM[m.cargo] ?? 'c-mute'}`}>{m.setor}</span></td>
-                  <td>{m.transversal ? <span className="mutetxt">8 casas</span> : (m.casa ?? '—')}</td>
-                  <td>
+                  {/* `data-rotulo` é o que vira etiqueta quando a tabela vira
+                      lista no celular: o cabeçalho da coluna some, e sem ele
+                      "AI3" sozinho não diz que é a casa. */}
+                  <td className="mono" data-rotulo="E-mail">{m.email}</td>
+                  <td data-rotulo="Setor">
+                    <span className={`pill ${TOM[m.cargo] ?? 'c-mute'}`}>{m.setor}</span>
+                  </td>
+                  <td data-rotulo="Casa">
+                    {m.transversal ? <span className="mutetxt">8 casas</span> : (m.casa ?? '—')}
+                  </td>
+                  <td data-rotulo="Situação">
                     {m.ativo
                       ? <span className="pill c-ok">Ativo</span>
                       : <span className="pill c-mute">Desativado</span>}

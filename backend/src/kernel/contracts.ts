@@ -21,7 +21,14 @@ export interface AuthenticatedUser {
 export type RoleCode =
   | 'gestor_geral' | 'coordenador' | 'equipe_tecnica' | 'educador'
   | 'lider_diurno' | 'lider_noturno_geral' | 'enfermagem'
-  | 'cozinha' | 'admin_tecnico';
+  | 'cozinha'
+  /*
+   * APOSENTADO em 01/09/2026 (migração 0770). O cargo não existe na Fundação;
+   * as funções dele passaram para a equipe técnica e a coordenação. O valor
+   * continua no tipo porque continua no enum do banco: contas e registros de
+   * auditoria antigos o carregam, e apagá-lo reescreveria o histórico.
+   */
+  | 'admin_tecnico';
 
 /**
  * Evento da Linha do Tempo Unificada (§9).

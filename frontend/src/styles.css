@@ -13,6 +13,9 @@
   --ink:#0F1C2E; --ink-2:#26374D; --muted:#5A6B82; --line:#D8E1EC; --line-2:#BDCBDC;
 
   --navy:#003262; --navy-2:#00254A;
+  /* `--navy` é FUNDO. `--titulo` é a tinta dos títulos: navy no claro, tinta
+     normal no escuro. Sem essa separação todo h3 de folha sumia no tema escuro. */
+  --titulo:#003262;
   --brand:#005993; --brand-2:#0A7BC4; --brand-soft:#E2EFF9; --brand-solid:#005993;
   --on-navy:#DCEBF7;
 
@@ -40,6 +43,7 @@
     --ink:#E8EEF5; --ink-2:#C6D3E0; --muted:#8FA1B5; --line:#26333F; --line-2:#3B4C5D;
 
     --navy:#0A1B2C; --navy-2:#061420;
+    --titulo:#E8EEF5;
     --brand:#4FA3DC; --brand-2:#7BC0EC; --brand-soft:#152C41; --brand-solid:#7BC0EC;
     --on-navy:#BFDCF2;
 
@@ -63,6 +67,7 @@
   --ink:#E8EEF5; --ink-2:#C6D3E0; --muted:#8FA1B5; --line:#26333F; --line-2:#3B4C5D;
 
   --navy:#0A1B2C; --navy-2:#061420;
+  --titulo:#E8EEF5;
   --brand:#4FA3DC; --brand-2:#7BC0EC; --brand-soft:#152C41; --brand-solid:#7BC0EC;
   --on-navy:#BFDCF2;
 
@@ -105,7 +110,10 @@ h1, h2, h3, .ff {
   background: linear-gradient(168deg, var(--navy) 0%, var(--navy-2) 100%);
   color: var(--on-navy); padding: 16px 16px 20px;
 }
-.appbar .top { display: flex; align-items: center; gap: 10px; }
+.appbar .top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+@media (max-width:379px){
+  .appbar .wordmark{ display:none }
+}
 .logochip { background: #fff; border-radius: 9px; padding: 3px 7px; display: inline-flex; align-items: center; flex: none; }
 .logochip img { height: 26px; width: auto; display: block; }
 .appbar .wordmark {
@@ -113,7 +121,7 @@ h1, h2, h3, .ff {
   color: #fff; letter-spacing: -.02em;
 }
 .appbar .rolechip {
-  margin-left: auto; background: rgba(255,255,255,.13); border: 1px solid rgba(255,255,255,.2);
+  flex: none; background: rgba(255,255,255,.13); border: 1px solid rgba(255,255,255,.2);
   border-radius: 999px; padding: 4px 11px; font-size: 11.5px; font-weight: 700;
   font-family: "Plus Jakarta Sans", sans-serif; color: #fff; white-space: nowrap;
 }
@@ -130,6 +138,9 @@ main { flex: 1; padding: 16px 14px 40px; }
 .stack { display: flex; flex-direction: column; gap: 11px; }
 .row { display: flex; gap: 9px; align-items: center; flex-wrap: wrap; }
 .grow { flex: 1; min-width: 0; }
+/* Título e botão na mesma linha: quando o título não tem 170px, o botão desce
+   inteiro em vez de espremer o subtítulo em três palavras por linha. */
+.card > .row > .grow{ min-width:170px }
 .eyebrow {
   font-family: "Plus Jakarta Sans", sans-serif; font-size: 11px; font-weight: 800;
   letter-spacing: .09em; text-transform: uppercase; color: var(--muted);
@@ -148,9 +159,19 @@ input {
   background: var(--brand-solid); color: var(--on-solid); font-weight: 700; font-size: 14.5px;
   font-family: "Plus Jakarta Sans", sans-serif; cursor: pointer; box-shadow: var(--shadow-1);
 }
-.btn.sec { background: var(--brand-soft); color: var(--brand-solid); box-shadow: none; }
-.btn.ghost { background: transparent; border: 1.5px solid var(--line-2); color: var(--ink-2); box-shadow: none; }
+/* TRÊS PESOS, e a diferença tem de ser vista de relance:
+   `btn` é o ato principal — cheio; `sec` é o alternativo — tinta da marca
+   sobre fundo suave; `ghost` é o secundário — contorno. Quando quatro botões
+   do mesmo peso ficam lado a lado numa linha do tempo, nenhum é o principal, e
+   quem está com pressa toca no errado. */
+.btn.sec { background: var(--brand-soft); color: var(--brand-solid); box-shadow: none;
+           border:1px solid color-mix(in srgb, var(--brand) 26%, transparent); }
+.btn.ghost { background: transparent; border: 1.5px solid var(--line-2); color: var(--ink-2);
+             box-shadow: none; font-weight:600; }
 .btn:disabled { opacity: .42; cursor: not-allowed; box-shadow: none; }
+@media (prefers-reduced-motion: no-preference) {
+  .btn.sec:hover, .btn.ghost:hover { border-color: var(--brand); }
+}
 
 /* Pílulas de estado — cor viva por matiz */
 .pill {
@@ -216,7 +237,7 @@ input {
   background:#fff; border-radius:14px; padding:10px 14px;
 }
 .logincard h1{
-  font-size:27px; line-height:1.2; margin:0; color:var(--navy); letter-spacing:-.01em;
+  font-size:27px; line-height:1.2; margin:0; color:var(--titulo); letter-spacing:-.01em;
   font-family:"Plus Jakarta Sans",system-ui,sans-serif; font-weight:800;
 }
 :root[data-theme="dark"] .logincard h1, :root:not([data-theme="light"]) .logincard h1{ color:var(--ink) }
@@ -242,10 +263,19 @@ input {
 
 /* ---------- Barra e navegação do app ---------- */
 .app{ max-width:1180px; margin:0 auto; padding-bottom:48px }
-/* A barra é uma linha: nada de botão esticado ocupando o vão. */
-.appbar .top{ display:flex; align-items:center; gap:10px; flex-wrap:nowrap }
+/* A barra é uma linha de CONTROLES; nada de botão esticado ocupando o vão.
+   O chip de cargo é informação, não função: ele quebra para a linha de baixo
+   (order:9 + largura total) para que "Sair" nunca saia pela borda direita. */
+.appbar .top{ display:flex; align-items:center; gap:10px; flex-wrap:wrap }
 .appbar .top .grow{ flex:1 1 auto; min-width:0 }
 .appbar .top .btn{ flex:0 0 auto; width:auto }
+.appbar .top .rolechip{ order:9; flex:0 0 auto; margin-left:0; margin-top:2px }
+/* "Sair" é um botão fantasma, e fantasma usa tinta escura — que sobre o azul
+   da barra vira um botão vazio. Na barra ele tem a tinta da barra. */
+.appbar .btn.ghost{
+  color:#fff; border-color:rgba(255,255,255,.34); background:rgba(255,255,255,.10);
+}
+.appbar .btn.ghost:hover{ background:rgba(255,255,255,.2); border-color:rgba(255,255,255,.55) }
 .iconbtn{
   border:1px solid rgba(255,255,255,.28); background:rgba(255,255,255,.10);
   color:#fff; border-radius:10px; width:34px; height:34px; font-size:15px;
@@ -263,13 +293,35 @@ input {
   font-size:11px; font-weight:700; line-height:18px; text-align:center;
   border:2px solid var(--brand);
 }
-.tabbar{ display:flex; gap:8px; padding:12px 16px 0 }
-.tabbar button{
-  border:1px solid var(--line); background:var(--surface); color:var(--ink-2);
-  border-radius:12px 12px 0 0; padding:10px 18px; font-size:14px; font-weight:600;
-  cursor:pointer; font-family:inherit; border-bottom:none;
+/* ---------- Barra de seções ----------
+   As cinco abas PRECISAM caber na largura do celular. Com `padding:10px 18px`
+   e sem encolher, a quinta — "Mais", por onde se chega a metade do sistema —
+   ficava fora da tela num aparelho de 420px: quem usa o celular da casa não
+   alcançava ATA, Saúde nem Ocorrências.
+
+   Agora cada aba divide a largura por igual (`flex:1 1 0`), o rótulo encolhe
+   com reticências antes de empurrar a vizinha, e o ícone fica em cima do texto
+   — que é o que devolve o alvo de toque de 44px sem gastar largura. */
+.tabbar{
+  display:flex; gap:6px; padding:12px 12px 0; align-items:stretch;
 }
-.tabbar button.on{ background:var(--brand); border-color:var(--brand); color:#fff }
+.tabbar button{
+  flex:1 1 0; min-width:0;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
+  border:1px solid var(--line); background:var(--surface); color:var(--ink-2);
+  border-radius:12px 12px 0 0; padding:8px 6px 9px; font-size:12px; font-weight:700;
+  line-height:1.15; cursor:pointer; font-family:"Plus Jakarta Sans",inherit;
+  border-bottom:none; min-height:52px;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.tabbar button > span[aria-hidden]{ font-size:17px; line-height:1 }
+.tabbar button.on{
+  background:var(--brand); border-color:var(--brand); color:var(--on-solid);
+  box-shadow:0 -2px 0 0 var(--brand-2) inset;
+}
+@media (max-width:359px){
+  .tabbar button{ font-size:11px; padding:7px 3px 8px }
+}
 .conteudo{ padding:16px }
 
 /* ---------- Tabela de equipe ---------- */
@@ -289,6 +341,40 @@ input {
 .tabela tr.inativo td{ opacity:.62 }
 .tabela .mono{ font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12.5px; color:var(--muted) }
 .tabela .acoes{ white-space:nowrap; text-align:right }
+
+/* ---------- A tabela vira LISTA no celular ----------
+   `min-width:1080px` numa tela de 420px é rolagem lateral com o nome de cada
+   pessoa quebrado em duas linhas — e a coordenação abre a Equipe no celular da
+   casa, não num monitor. Abaixo de 700px cada linha vira um cartão, e o
+   cabeçalho da coluna reaparece como rótulo em cada campo. Nenhuma informação
+   sai; muda a forma. */
+@media (max-width:700px){
+  .tablewrap{ overflow-x:visible; border:none; border-radius:0 }
+  .tabela{ min-width:0; display:block; font-size:14px }
+  .tabela thead{ display:none }
+  .tabela tbody, .tabela tr, .tabela td{ display:block; width:auto }
+  .tabela tr{
+    background:var(--surface); border:1px solid var(--line); border-radius:var(--r-md);
+    padding:12px 14px; margin-bottom:10px; box-shadow:var(--shadow-1);
+  }
+  .tabela tr.inativo{ opacity:.6 }
+  .tabela td{ border-top:none; padding:3px 0; white-space:normal }
+  .tabela td:first-child{ white-space:normal; font-size:15.5px; margin-bottom:4px }
+  /* O rótulo da coluna volta como etiqueta pequena, e só onde ajuda: nome e
+     ações se explicam sozinhos. */
+  .tabela td[data-rotulo]:not(:empty)::before{
+    content:attr(data-rotulo) " ";
+    font-family:"Plus Jakarta Sans",sans-serif; font-size:10.5px; font-weight:800;
+    letter-spacing:.07em; text-transform:uppercase; color:var(--muted);
+    display:inline-block; min-width:52px;
+  }
+  .tabela .acoes{
+    text-align:left; white-space:normal; display:flex; flex-wrap:wrap; gap:7px;
+    margin-top:10px; padding-top:10px; border-top:1px dashed var(--line);
+  }
+  .tabela .acoes:empty{ display:none }
+  .tabela .acoes .btn{ margin-left:0 }
+}
 /* O botão base é largura total (bom no celular); dentro de tabela e de
    cabeçalho de card ele volta a ter o tamanho do próprio rótulo. */
 .tabela .acoes .btn, .card > .row > .btn, .setores .btn{ width:auto; display:inline-flex }
@@ -306,7 +392,7 @@ input {
   width:100%; max-width:480px; max-height:88dvh; overflow:auto;
   box-shadow:0 24px 60px rgba(0,20,45,.4);
 }
-.sheet.modal h3{ margin:0 0 6px; font-size:17px; color:var(--navy) }
+.sheet.modal h3{ margin:0 0 6px; font-size:17px; color:var(--titulo) }
 .sheet.modal .mutetxt{ font-size:12.5px; line-height:1.5 }
 .sheet.modal .notice{ font-size:12.5px; line-height:1.5 }
 .senhabox{
@@ -316,7 +402,7 @@ input {
 }
 .senhabox code{
   font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
-  font-size:16px; font-weight:700; color:var(--navy); letter-spacing:.04em;
+  font-size:16px; font-weight:700; color:var(--titulo); letter-spacing:.04em;
 }
 select{
   width:100%; padding:11px 12px; border:1px solid var(--line-2); border-radius:10px;
@@ -328,17 +414,34 @@ select:focus, .logincard input:focus{ outline:2px solid var(--brand); outline-of
 /* A tela mais usada do sistema. Tudo aqui otimiza uma coisa: encontrar e
    registrar rápido, com a mão, no meio do turno. */
 .diahead{ display:flex; align-items:flex-end; gap:12px; flex-wrap:wrap; margin-bottom:12px }
-.diahead h2{ margin:2px 0 0; font-size:22px; color:var(--navy);
-  font-family:"Plus Jakarta Sans",system-ui,sans-serif }
+/* `--navy` é COR DE FUNDO da barra de cima. No tema escuro ele vale #0A1B2C —
+   quase preto —, e usá-lo como TINTA fazia o título do dia, o horário da linha
+   do tempo e o rótulo "Ver como" sumirem sobre o fundo escuro. Quem abrisse o
+   sistema à noite via uma tela sem título. Tinta é `--ink`; fundo é `--navy`. */
+.diahead h2{ margin:2px 0 0; font-size:22px; color:var(--ink);
+  font-family:"Plus Jakarta Sans",system-ui,sans-serif; letter-spacing:-.01em }
 .diahead .resumo{ display:flex; gap:6px; flex-wrap:wrap; margin-left:auto }
 
-.filtros{ display:flex; gap:8px; margin-bottom:14px }
-.filtros button{
-  flex:1; padding:9px 10px; border-radius:999px; border:1.5px solid var(--line-2);
-  background:var(--surface); color:var(--ink-2); font-weight:700; font-size:13.5px;
-  font-family:"Plus Jakarta Sans",system-ui,sans-serif; cursor:pointer;
+/* Controle segmentado. Três pílulas soltas de alturas diferentes é o que
+   deixava esta faixa desalinhada: agora elas dividem um trilho, têm a mesma
+   altura mínima e a escolhida é a única preenchida. */
+.filtros{
+  display:flex; gap:4px; margin-bottom:14px; padding:4px;
+  background:var(--sunken); border:1px solid var(--line); border-radius:14px;
 }
-.filtros button.on{ background:var(--brand); border-color:var(--brand); color:#fff }
+.filtros button{
+  flex:1 1 0; min-width:0; min-height:42px; padding:7px 8px;
+  display:inline-flex; align-items:center; justify-content:center; text-align:center;
+  border-radius:10px; border:1px solid transparent; background:transparent;
+  color:var(--ink-2); font-weight:700; font-size:13px; line-height:1.2;
+  font-family:"Plus Jakarta Sans",system-ui,sans-serif; cursor:pointer;
+  transition:background .15s ease, color .15s ease;
+}
+.filtros button:hover{ background:var(--brand-soft); color:var(--brand-ink,var(--ink)) }
+.filtros button.on{
+  background:var(--brand-solid); border-color:var(--brand-solid); color:var(--on-solid);
+  box-shadow:var(--shadow-1);
+}
 
 .linha{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:10px }
 .linha .ev{
@@ -349,8 +452,9 @@ select:focus, .logincard input:focus{ outline:2px solid var(--brand); outline-of
    não da história. */
 .linha .ev.feito{ opacity:.62 }
 .linha .hora{
-  font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:14px;
-  font-weight:700; color:var(--navy); padding-top:2px;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:13.5px;
+  font-weight:700; color:var(--ink-2); padding-top:3px;
+  font-variant-numeric:tabular-nums;
 }
 .linha .ic{ font-size:17px; line-height:1; flex:none }
 .linha .corpo{ min-width:0; display:flex; flex-direction:column; gap:5px }
@@ -362,13 +466,34 @@ select:focus, .logincard input:focus{ outline:2px solid var(--brand); outline-of
 .linha .tit b{ font-size:15px; line-height:1.28 }
 .linha .estado{ display:flex; flex-wrap:wrap; gap:6px; align-items:center }
 .linha .acoes{ display:flex; gap:8px; flex-wrap:wrap; margin-top:4px }
-/* Alvo de toque de 44px: dedo no corredor, não mouse na mesa. */
+/* O "⋯" das ações do líder: quadrado, discreto, e do mesmo alto que os
+   vizinhos — é um atalho, não um ato. */
+.linha .acoes .btn.acoesmais{
+  min-width:44px; padding:8px 12px; font-size:16px; letter-spacing:.12em;
+}
+
+/* Alvo de toque de 44px: dedo no corredor, não mouse na mesa.
+   O ato PRINCIPAL da linha fica cheio; os outros, em contorno e um pouco
+   menores. Com quatro botões idênticos empilhados — que é o que a linha do
+   tempo virou —, o cartão de uma atividade ficava mais alto que a própria
+   atividade, e nenhum botão era o principal. */
 .linha .acoes .btn, .chamada .acoes .btn{
-  width:auto; display:inline-flex; min-height:40px; padding:9px 14px;
+  width:auto; display:inline-flex; min-height:44px; padding:10px 15px;
+}
+.linha .acoes .btn.ghost, .chamada .acoes .btn.ghost{
+  min-height:40px; padding:8px 13px; font-size:12.5px;
 }
 .chamada .acoes{ display:flex; gap:8px; flex-wrap:wrap; margin-top:8px }
 
 /* ---------- Chamada ---------- */
+/* Cartão que é BOTÃO. Sem isto o navegador aplica a cor própria de botão e o
+   título do cartão fica cinza no tema escuro — foi por isso que "Café da manhã"
+   e a lista de acolhidos apagavam enquanto o resto da tela continuava legível. */
+button.card{
+  color:var(--ink); font-family:inherit; font-size:inherit; line-height:inherit;
+  width:100%; text-align:left; cursor:pointer;
+}
+button.card:hover{ border-color:var(--brand) }
 .chamadacard{ width:100%; text-align:left; cursor:pointer; border:1px solid var(--line) }
 .chamada{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px }
 .chamada .ev{
@@ -402,7 +527,7 @@ select:focus, .logincard input:focus{ outline:2px solid var(--brand); outline-of
   width:100%; max-width:520px; max-height:88dvh; overflow:auto;
   box-shadow:0 24px 60px rgba(0,20,45,.4);
 }
-.sheet h3{ margin:0 0 6px; font-size:18px; color:var(--navy) }
+.sheet h3{ margin:0 0 6px; font-size:18px; color:var(--titulo) }
 textarea{
   width:100%; min-height:96px; padding:11px 12px; border:1px solid var(--line-2);
   border-radius:10px; background:var(--surface); color:var(--ink);
@@ -482,18 +607,18 @@ textarea{
 /* Seletor de cargo — só no protótipo */
 .troca-cargo{
   display:flex; align-items:center; gap:8px;
-  background:#EEF4FB; border-bottom:2px dashed #BDCBDC;
+  background:var(--sunken); border-bottom:2px dashed var(--line-2);
   padding:7px 16px; flex-wrap:wrap;
 }
 .troca-cargo-label{
-  font-size:12px; font-weight:700; color:var(--brand,#005993);
+  font-size:12px; font-weight:700; color:var(--brand);
   white-space:nowrap;
 }
 .troca-cargo-sel{
   flex:1; min-width:180px; max-width:320px;
-  border:1.5px solid var(--brand,#005993); border-radius:8px;
+  border:1.5px solid var(--brand); border-radius:8px;
   padding:5px 10px; font-size:13px; font-weight:600;
-  color:var(--ink,#0F1C2E); background:#fff; cursor:pointer;
+  color:var(--ink); background:var(--surface); cursor:pointer;
   outline:none;
 }
 .troca-cargo-sel:focus{ box-shadow:0 0 0 2px var(--focus,#0A7BC4); }
@@ -591,3 +716,7 @@ textarea{
    var(--navy) some no escuro. */
 .senhabox{ background:var(--sunken); border:1px solid var(--line) }
 .senhabox code{ color:var(--brand-solid) }
+
+/* Segunda linha de um par "nome + qualificação": bloco próprio, para o
+   separador não terminar a linha e deixar a qualificação órfã. */
+.linhadois{ display:block; margin-top:1px }

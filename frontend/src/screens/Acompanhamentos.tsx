@@ -144,8 +144,13 @@ export function Acompanhamentos() {
     const s = SITUACAO[f.situacao];
     return (
       <div className="card stack" key={f.id}>
+        {/* O nome numa linha e o tipo embaixo: juntos, "Alice · acompanhamento
+            mensal" quebrava no meio do separador e o cartão ficava torto. */}
         <div className="row">
-          <b className="ff grow">{f.acolhido} · acompanhamento {f.tipo}</b>
+          <div className="grow">
+            <b className="ff">{f.acolhido}</b>
+            <div className="mutetxt">acompanhamento {f.tipo}</div>
+          </div>
           <span className={`pill ${s.tom}`}>{s.label}</span>
         </div>
         <div className="mutetxt">

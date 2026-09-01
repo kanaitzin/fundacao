@@ -27,8 +27,6 @@ export const SETORES: Array<{
     descricao: 'Equipe da casa, aprovações, transferências e dados bancários com reautenticação' },
   { code: 'gestor_geral', label: 'Gestor Geral', transversal: true,
     descricao: 'Escopo institucional; abre uma casa por vez, com auditoria' },
-  { code: 'admin_tecnico', label: 'Administração técnica', transversal: true,
-    descricao: 'Infraestrutura e suporte; sem acesso comum ao conteúdo do acolhimento' },
 ];
 
 const LABEL = new Map(SETORES.map((s) => [s.code, s.label]));
