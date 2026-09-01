@@ -865,7 +865,7 @@ responder e não me peça para reexplicar o que está lá.
 
 === ESTADO ATUAL ===
 
-Fases 0 a 33 concluídas. 317 testes passando em 28 suítes, sem falha conhecida
+Fases 0 a 34 concluídas. 326 testes passando em 29 suítes, sem falha conhecida
 — a suíte rodou cinco vezes seguidas entre 21h44 e 23h30 de Porto Alegre, que
 já é depois das 21h E depois da virada do dia em UTC (01/09 no banco, 31/08 na
 casa): a contaminação de data que a regra procura estava valendo em todas as
@@ -876,6 +876,31 @@ Geral Noturna recortada na linha de cada casa. O ciclo do acolhimento fecha:
 cadastro, saída com motivo, acervo histórico e retorno como episódio novo. E o
 arquivo documental deixou de ser um módulo sem entrada: fechou, entra na fila. Relatórios saem em Word com timbre, com a parte factual
 escrita pelo sistema. Convite de primeiro acesso por e-mail, uso único, 24h.
+
+CORRIGIR O CADASTRO DEPOIS DA ADMISSÃO (§6.2, migração 0810). O sistema só
+sabia CADASTRAR: nome escrito errado às 23h com a criança na porta, data de
+nascimento trocada porque a certidão veio depois. Sem porta para corrigir, a
+saída de quem usa é recadastrar — e aí existem duas crianças, o histórico parte
+em dois, e é isso que a audiência pergunta.
+
+Corrigir SEM histórico seria pior: um nome que muda em silêncio faz toda
+passagem assinada, toda ATA fechada e toda dose confirmada passarem a falar de
+alguém que, nos papéis de antes, tinha outro nome. `person_correction` guarda o
+que estava, o que passou a estar, quem, quando e por quê — uma linha por campo,
+sem UPDATE nem DELETE. Ela é TABELA e não `audit_event` de propósito: a
+auditoria é área restrita e responde "quem mexeu no sistema"; esta responde a
+uma pergunta do caso — "por que o nome dela mudou em março?" — e é lida por quem
+cuida, no perfil.
+
+O motivo é obrigatório com mínimo, campo que não mudou não vira correção, e nome
+civil e nascimento não se esvaziam. A área judicial ganhou a folha de
+atualização, restrita à técnica e à coordenação, valendo só para o episódio
+ATIVO — o acolhimento anterior continua contando o que houve naquela época.
+
+UM DEFEITO DE TELA: a SITUAÇÃO judicial nunca era desenhada. O servidor devolvia
+o campo desde a fase 0 e o perfil mostrava motivo, medida, vara, processo e
+guia — tudo menos o que está valendo hoje. Quem abria a área restrita lia o
+motivo de fevereiro e não sabia da audiência de agosto.
 
 A SUBSTITUIÇÃO DE ATIVIDADE (§8.3) e a ATIVIDADE URGENTE (§8.2) ganharam porta.
 Cinco rotas da fase 3 sem tela nenhuma.

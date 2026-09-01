@@ -1,4 +1,4 @@
-import { ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { DatabaseService } from '../../kernel/database/database.service';
 import { AuditService } from '../../kernel/audit/audit.service';
 import { AuthenticatedUser } from '../../kernel/contracts';
@@ -143,6 +143,118 @@ export class ProfileService {
       detail: { campos: Object.keys(patch) },   // nomes dos campos, nunca o conteúdo (§20)
     });
     return { ok: true, alterado: sets.length };
+  }
+
+  /**
+   * CORRIGIR A IDENTIFICAÇÃO (§6.2) — nome, nome social, nascimento e CPF.
+   *
+   * `updateDetail` acima cuida do que é descrição (escola, cuidados,
+   * observações) e não pede motivo: mudar a série da criança em fevereiro é
+   * atualizar, não corrigir. Já o NOME e a DATA DE NASCIMENTO são a
+   * identidade dela nos papéis, e um deles mudando em silêncio faz toda
+   * passagem assinada e toda ATA fechada passarem a falar de alguém que, nos
+   * documentos de antes, tinha outro nome.
+   *
+   * Por isso é comando próprio, com motivo obrigatório, e o histórico fica
+   * numa tabela LEGÍVEL por quem cuida — não escondido na auditoria, que é
+   * área restrita e responde a outra pergunta.
+   *
+   * As travas vivem no `app_corrigir_pessoa` (migração 0810): alcance, papel,
+   * motivo, campo corrigível, e a recusa de esvaziar nome ou nascimento.
+   * Aqui só traduzimos a recusa do banco em frase de gente.
+   */
+  async corrigirIdentificacao(user: AuthenticatedUser, personId: string, input: {
+    nome?: string; nomeSocial?: string | null; nascimento?: string; cpf?: string | null;
+    motivo?: string;
+  }) {
+    const campos: Record<string, string | null> = {};
+    if (input.nome !== undefined) campos.full_name = input.nome;
+    if (input.nomeSocial !== undefined) campos.social_name = input.nomeSocial;
+    if (input.nascimento !== undefined) campos.birth_date = input.nascimento;
+    if (input.cpf !== undefined) campos.cpf = input.cpf;
+    if (!Object.keys(campos).length) {
+      throw new BadRequestException('Nenhum campo de identificação foi informado.');
+    }
+    if ((input.motivo ?? '').trim().length < 10) {
+      throw new BadRequestException(
+        'Escreva por que o cadastro está sendo corrigido. Quem ler o caso daqui a um ano '
+        + 'precisa saber por que o nome mudou — "erro" não explica nada.');
+    }
+
+    let n = 0;
+    try {
+      n = await this.db.asUser(user.id, async (c) => {
+        const { rows: [r] } = await c.query(
+          `SELECT * FROM app_corrigir_pessoa($1, $2::jsonb, $3)`,
+          [personId, JSON.stringify(campos), input.motivo]);
+        return Number(r.corrigidos);
+      });
+    } catch (e: any) {
+      const m = String(e?.message ?? '');
+      if (m.includes('sem_permissao_para_corrigir')) {
+        throw new ForbiddenException(
+          'Corrigir a identificação é da equipe técnica e da coordenação.');
+      }
+      if (m.includes('pessoa_fora_de_escopo') || m.includes('pessoa_inexistente')) {
+        throw new NotFoundException('Acolhido não encontrado — ou fora do seu alcance.');
+      }
+      if (m.includes('campo_obrigatorio_nao_se_esvazia')) {
+        throw new BadRequestException(
+          'Nome civil e data de nascimento não podem ficar em branco. Se o que está lá é '
+          + 'provisório, corrija para o que a certidão diz.');
+      }
+      if (m.includes('campo_nao_corrigivel')) {
+        throw new BadRequestException('Este campo não se corrige por aqui.');
+      }
+      if (m.includes('motivo_obrigatorio')) {
+        throw new BadRequestException('Escreva por que o cadastro está sendo corrigido.');
+      }
+      throw e;
+    }
+
+    if (n === 0) {
+      return { corrigidos: 0,
+        aviso: 'Nada mudou: o que você enviou é igual ao que já estava. Nenhuma correção foi '
+          + 'registrada — uma lista de correções cheia de linhas iguais é uma lista que '
+          + 'ninguém lê.' };
+    }
+
+    await this.audit.log({
+      action: 'person.correct_identity', actorId: user.id, entity: 'person', entityId: personId,
+      // Nomes dos campos, nunca o conteúdo (§20): o que mudou fica em
+      // `person_correction`, que tem alcance próprio.
+      detail: { campos: Object.keys(campos), corrigidos: n },
+    });
+    return {
+      corrigidos: n,
+      aviso: `${n} campo(s) corrigido(s). O que estava antes continua registrado, com o seu `
+        + 'nome, o horário e o motivo — e aparece no perfil para quem cuida da criança.',
+    };
+  }
+
+  /** O histórico de correções, legível por quem alcança a criança. */
+  async correcoes(user: AuthenticatedUser, personId: string) {
+    const rows = await this.db.asUser(user.id, async (c) => {
+      const { rows: r } = await c.query(
+        `SELECT id, field, before_value, after_value, reason, at,
+                app_user_display_name(corrected_by) AS por
+           FROM person_correction WHERE person_id = $1 ORDER BY at DESC`, [personId]);
+      return r;
+    });
+    const ROTULO: Record<string, string> = {
+      full_name: 'Nome civil', social_name: 'Nome social',
+      birth_date: 'Data de nascimento', cpf: 'CPF',
+    };
+    return rows.map((r: any) => ({
+      id: r.id, campo: ROTULO[r.field] ?? r.field,
+      // O CPF não é devolvido por extenso nem aqui: o que interessa é QUE ele
+      // mudou, e por quê. O número vive no cadastro, com o alcance dele.
+      antes: r.field === 'cpf' ? (r.before_value ? '(havia um CPF)' : '(estava em branco)')
+                               : r.before_value,
+      depois: r.field === 'cpf' ? (r.after_value ? '(passou a ter CPF)' : '(ficou em branco)')
+                                : r.after_value,
+      motivo: r.reason, por: r.por, quando: r.at,
+    }));
   }
 
   /** Abertura de documento: registra acesso a conteúdo sensível (§20). */

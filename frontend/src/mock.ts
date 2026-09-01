@@ -1251,6 +1251,19 @@ function jpegFicticio(rotulo: string): string {
   return cv.toDataURL('image/jpeg', 0.82);
 }
 
+/**
+ * As correções de cadastro (§6.2). Nada é apagado: a linha guarda o que estava,
+ * o que passou a estar, quem corrigiu e por quê.
+ */
+interface CorrecaoMock {
+  id: string; personId: string; campo: string;
+  antes: string | null; depois: string | null;
+  motivo: string; por: string; quando: string;
+}
+const CORRECOES: CorrecaoMock[] = [];
+/** O que a atualização judicial já mudou nesta sessão da demonstração. */
+const JUDICIAL_EXTRA: Record<string, string | null> = {};
+
 const DOSSIE_DOCS: DocumentoMock[] = [];
 const VIVENCIAS: VivenciaMock[] = [];
 
@@ -2553,13 +2566,76 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         : 'Acolhido cadastrado. Continue pelo perfil: saúde, escola e documentos.',
     };
   }
+  /* CORRIGIR O CADASTRO (§6.2). Antes do ramo `:id`, e com o mesmo caminho do
+     servidor: motivo obrigatório, campo que não mudou não vira correção. */
+  if (seg[0] === 'people' && seg[2] === 'corrigir-identificacao' && metodo === 'POST') {
+    const k = kid(seg[1]);
+    if (!k) return new Recusa(404, 'Acolhido não encontrado — ou fora do seu alcance.');
+    if (!['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403, 'Corrigir a identificação é da equipe técnica e da coordenação.');
+    }
+    if (String(b.motivo ?? '').trim().length < 10) {
+      return new Recusa(400,
+        'Escreva por que o cadastro está sendo corrigido. Quem ler o caso daqui a um ano '
+        + 'precisa saber por que o nome mudou — "erro" não explica nada.');
+    }
+    if (b.nome !== undefined && String(b.nome).trim().length < 2) {
+      return new Recusa(400,
+        'Nome civil e data de nascimento não podem ficar em branco. Se o que está lá é '
+        + 'provisório, corrija para o que a certidão diz.');
+    }
+    const trocas: [string, string, string | null, string | null][] = [];
+    if (b.nome !== undefined && String(b.nome).trim() !== k.civil) {
+      trocas.push(['full_name', 'Nome civil', k.civil, String(b.nome).trim()]);
+      k.civil = String(b.nome).trim();
+    }
+    if (b.nomeSocial !== undefined && (b.nomeSocial ?? '') !== k.nome) {
+      trocas.push(['social_name', 'Nome social', k.nome, b.nomeSocial ? String(b.nomeSocial) : null]);
+      k.nome = b.nomeSocial ? String(b.nomeSocial) : k.civil;
+    }
+    if (b.nascimento !== undefined && String(b.nascimento) !== k.nascimento) {
+      trocas.push(['birth_date', 'Data de nascimento', k.nascimento, String(b.nascimento)]);
+      k.nascimento = String(b.nascimento);
+      k.idade = new Date().getFullYear() - Number(String(b.nascimento).slice(0, 4));
+    }
+    if (!trocas.length) {
+      return { corrigidos: 0,
+        aviso: 'Nada mudou: o que você enviou é igual ao que já estava. Nenhuma correção foi '
+          + 'registrada — uma lista de correções cheia de linhas iguais é uma lista que '
+          + 'ninguém lê.' };
+    }
+    for (const [, campo, antes, depois] of trocas) {
+      CORRECOES.unshift({ id: uid(), personId: k.id, campo, antes, depois,
+        motivo: String(b.motivo).trim(), por: eu.fullName, quando: new Date().toISOString() });
+    }
+    return { corrigidos: trocas.length,
+      aviso: `${trocas.length} campo(s) corrigido(s). O que estava antes continua registrado, `
+        + 'com o seu nome, o horário e o motivo — e aparece no perfil para quem cuida da criança.' };
+  }
+  if (seg[0] === 'people' && seg[2] === 'correcoes' && metodo === 'GET') {
+    return CORRECOES.filter((c) => c.personId === seg[1]);
+  }
+  if (seg[0] === 'people' && seg[2] === 'judicial' && metodo === 'PATCH') {
+    const k = kid(seg[1]);
+    if (!['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403, 'Somente equipe técnica e coordenação atualizam a área judicial.');
+    }
+    if (!k?.judicial) return new Recusa(404, 'Não encontrado.');
+    // A atualização vale para o acolhimento EM CURSO; o motivo e a medida são
+    // do episódio e não se editam por aqui.
+    for (const campo of ['vara', 'processo', 'guia', 'situacao', 'observacoes']) {
+      if (b[campo] !== undefined) JUDICIAL_EXTRA[campo] = b[campo] ? String(b[campo]) : null;
+    }
+    return { atualizado: true };
+  }
   if (seg[0] === 'people' && seg[2] === 'judicial') {
     const k = kid(seg[1]);
     if (!['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)) {
       return new Recusa(403, 'Seu cargo não tem acesso a este conteúdo.');
     }
     if (!k?.judicial) return new Recusa(404, 'Não encontrado.');
-    return { ...k.judicial, situacao: 'Em acompanhamento', observacoes: null };
+    return { ...k.judicial, situacao: 'Em acompanhamento', observacoes: null,
+             ...JUDICIAL_EXTRA };
   }
   if (seg[0] === 'people' && seg.length === 2) {
     const k = kid(seg[1]);

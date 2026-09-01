@@ -139,6 +139,18 @@ erDiagram
   }
 ```
 
+**`person_correction` é o HISTÓRICO DA CORREÇÃO DE CADASTRO** (§6.2, migração
+0810). Nome escrito errado às 23h, data de nascimento trocada porque a certidão
+veio depois: sem uma porta para corrigir, a saída de quem usa é recadastrar — e
+aí existem duas crianças e o histórico parte em dois. Corrigir sem histórico
+seria pior: um nome que muda em silêncio faz toda passagem assinada e toda ATA
+fechada passarem a falar de alguém que, nos papéis de antes, tinha outro nome.
+A tabela guarda o que estava, o que passou a estar, quem, quando e por quê, uma
+linha por campo, e não aceita UPDATE nem DELETE. Ela é tabela e não
+`audit_event` de propósito: a auditoria é área restrita e responde "quem mexeu
+no sistema"; esta responde a uma pergunta do CASO — "por que o nome dela mudou
+em março?" — e é lida por quem cuida, na tela do perfil.
+
 **`check_bulk` é a CONFERÊNCIA DE MESA** (§10, migração 0780). A regra escrita
 é "sem marcação em lote SILENCIOSA", e a do banco é "nada que preencha o que
 não foi olhado" — nenhuma proíbe registrar de uma vez o que foi olhado de uma
@@ -435,12 +447,12 @@ desenvolvimento** (fase 15): a criança não é só o que deu problema. Sala de
 recursos, curso, aprendizagem e a evolução escrita pela equipe entram no
 documento que segue para a audiência e para a escola.
 
-## Inventário — 83 tabelas por partição
+## Inventário — 84 tabelas por partição
 
 | Partição | Tabelas |
 |---|---|
 | identity (12) | institution, house, app_user, user_house_assignment, work_schedule, user_session, login_attempt, audit_event, institutional_device, staff_role_grant, house_capacity_change, user_invite |
-| people (15) | person, care_episode, house_stay, profile_detail, health_condition, food_restriction, document, document_version, benefit_record, memory_record, transfer_request, transfer_message, admission_record, judicial_record, person_credential |
+| people (16) | person, care_episode, house_stay, profile_detail, health_condition, food_restriction, document, document_version, benefit_record, memory_record, transfer_request, transfer_message, admission_record, judicial_record, person_credential, person_correction |
 | shifts (10) | shift, handover, handover_receipt, handover_note, ata, ata_addendum, ata_episode, ata_episode_ack, general_night_ata, general_night_house_entry |
 | incidents (7) | incident, incident_person, incident_protected, incident_restraint, incident_synthesis, external_communication, incident_attachment |
 | medications (7) | prescription, medication_schedule, medication_administration, medication_stock, medication_stock_movement, medication_protocol, medication_authorization |

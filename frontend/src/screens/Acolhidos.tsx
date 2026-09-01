@@ -73,6 +73,18 @@ interface Judicial {
   observacoes: string | null;
 }
 
+/**
+ * Uma correção de cadastro (§6.2).
+ *
+ * Ela é do CASO, e não da auditoria: quem cuida da criança precisa poder ler,
+ * no perfil, que o nome mudou em março e por quê — sem pedir a ninguém e sem
+ * entrar numa área restrita.
+ */
+interface Correcao {
+  id: string; campo: string; antes: string | null; depois: string | null;
+  motivo: string; por: string; quando: string;
+}
+
 /** Quem tem a área restrita do §13.1. O menu não oferece o que o cargo não faz. */
 const VE_JUDICIAL = ['equipe_tecnica', 'coordenador', 'gestor_geral'];
 /** Quem cadastra (§6.1) — a mesma regra que o banco aplica no comando. */
@@ -359,6 +371,10 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
   const [saindo, setSaindo] = useState(false);
   /** O dossiê é tela própria: a pasta da criança não cabe dentro do perfil. */
   const [dossie, setDossie] = useState(false);
+  /** Corrigir a identificação (§6.2): exige motivo, e deixa histórico legível. */
+  const [corrigindo, setCorrigindo] = useState(false);
+  const [correcoes, setCorrecoes] = useState<Correcao[]>([]);
+  const [editandoJudicial, setEditandoJudicial] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -369,6 +385,8 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
         // filtrada nesta criança. Se falhar, o perfil ainda serve.
         try { setDoses(await api<Dose[]>(`/medications?houseId=${houseId}&personId=${personId}`)); }
         catch { setDoses([]); }
+        // O histórico de correções é do caso, e quem alcança a criança lê.
+        setCorrecoes(await api<Correcao[]>(`/people/${personId}/correcoes`).catch(() => []));
       } catch (e) {
         setErro(e instanceof Error ? e.message : 'Não foi possível abrir o perfil.');
       }
@@ -398,6 +416,11 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
   }
   if (!p) return <p className="mutetxt">Abrindo…</p>;
 
+  async function recarregar() {
+    setP(await api<Perfil>(`/people/${personId}`).catch(() => p));
+    setCorrecoes(await api<Correcao[]>(`/people/${personId}/correcoes`).catch(() => correcoes));
+  }
+
   if (dossie) {
     return <Dossie personId={personId} nome={p.nome} papel={papel}
                    onVoltar={() => setDossie(false)} />;
@@ -422,6 +445,43 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
       <button className="btn sec block" style={{ marginBottom: 12 }} onClick={() => setDossie(true)}>
         📂 Dossiê e vivências
       </button>
+
+      {/*
+        * CORRIGIR O CADASTRO (§6.2).
+        *
+        * Nome escrito errado às 23h, com a criança na porta. Data de
+        * nascimento trocada porque a certidão veio depois. Sem esta porta, a
+        * saída de quem usa é RECADASTRAR — e aí existem duas crianças, o
+        * histórico parte em dois, e é isso que a audiência pergunta.
+        */}
+      {QUEM_CADASTRA.includes(papel) && (
+        <button className="btn ghost block" style={{ marginBottom: 12 }}
+                onClick={() => setCorrigindo(true)}>
+          ✏️ Corrigir o cadastro
+        </button>
+      )}
+
+      {/* O histórico fica À VISTA de quem cuida: "por que o nome dela mudou em
+          março?" é pergunta do caso, não de auditoria. */}
+      {correcoes.length > 0 && (
+        <div className="card" style={{ marginBottom: 12 }}>
+          <div className="eyebrow" style={{ marginTop: 0 }}>
+            Correções de cadastro · {correcoes.length}
+          </div>
+          <ul className="lista">
+            {correcoes.map((c) => (
+              <li key={c.id}>
+                <b className="ff">{c.campo}</b>
+                <div className="mutetxt linhadois">
+                  de <b>{c.antes || '(em branco)'}</b> para <b>{c.depois || '(em branco)'}</b>
+                </div>
+                <div className="mutetxt">{c.motivo}</div>
+                <div className="mutetxt">{c.por} · {dia(c.quando)}</div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* PRIMEIRO, e sem precisar rolar: o que machuca hoje se for ignorado. */}
       {p.alertasEssenciais.map((a, i) => (
@@ -632,6 +692,16 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
           )}
           {judicial && (
             <>
+              {/* A SITUAÇÃO vem primeiro, e é o que mais muda: audiência
+                  concentrada, decisão nova, reavaliação marcada. O servidor
+                  devolvia este campo desde a fase 0 e a tela nunca o desenhou
+                  — quem abria a área restrita lia o motivo de fevereiro e não
+                  sabia o que estava valendo hoje. */}
+              {judicial.situacao && (
+                <p className="bloco destaque" style={{ marginTop: 0 }}>
+                  <small>Situação hoje</small>{judicial.situacao}
+                </p>
+              )}
               <p className="bloco destaque" style={{ marginTop: 0 }}>
                 <small>Motivo</small>{judicial.motivo}
               </p>
@@ -653,6 +723,14 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
                 )}
               </ul>
               {judicial.observacoes && <p className="bloco"><small>Observações</small>{judicial.observacoes}</p>}
+              {/* A situação judicial MUDA — audiência concentrada, decisão
+                  nova, processo que trocou de vara. O motivo do acolhimento e
+                  a medida não se editam por aqui: eles são do episódio. */}
+              {VE_JUDICIAL.includes(papel) && (
+                <button className="btn sec sm" onClick={() => setEditandoJudicial(true)}>
+                  Atualizar a situação judicial
+                </button>
+              )}
             </>
           )}
         </Secao>
@@ -680,6 +758,43 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
             Registrar saída de {p.nome}
           </button>
         </Secao>
+      )}
+
+      {corrigindo && (
+        <FolhaCorrigir
+          perfil={p}
+          onFechar={() => setCorrigindo(false)}
+          onCorrigir={async (dados) => {
+            setErro(''); setAviso('');
+            try {
+              const r = await api<{ aviso?: string }>(
+                `/people/${personId}/corrigir-identificacao`,
+                { method: 'POST', body: JSON.stringify(dados) });
+              setCorrigindo(false);
+              setAviso(r?.aviso ?? 'Cadastro corrigido.');
+              await recarregar();
+            } catch (e) {
+              setErro(e instanceof Error ? e.message : 'Não foi possível corrigir o cadastro.');
+            }
+          }} />
+      )}
+
+      {editandoJudicial && judicial && (
+        <FolhaJudicial
+          judicial={judicial}
+          onFechar={() => setEditandoJudicial(false)}
+          onSalvar={async (campos) => {
+            setErro(''); setAviso('');
+            try {
+              await api(`/people/${personId}/judicial`,
+                { method: 'PATCH', body: JSON.stringify(campos) });
+              setEditandoJudicial(false);
+              setAviso('Situação judicial atualizada, com o seu nome e o horário.');
+              setJudicial(await api<Judicial>(`/people/${personId}/judicial`).catch(() => judicial));
+            } catch (e) {
+              setErro(e instanceof Error ? e.message : 'Não foi possível atualizar.');
+            }
+          }} />
       )}
 
       {saindo && (
@@ -930,6 +1045,139 @@ function FolhaEvolucao({ nome, onFechar, onEnviar }: {
                     prazoRetorno: prazoRetorno || undefined,
                   })}>
             Enviar para a Enfermagem
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * A FOLHA DA CORREÇÃO DE CADASTRO (§6.2).
+ *
+ * Três coisas que ela faz de propósito:
+ *
+ *  * **mostra o que está lá agora**, dentro do campo. Corrigir é comparar, e
+ *    um formulário vazio faz a pessoa digitar de novo o que já estava certo;
+ *  * **o motivo é obrigatório e tem mínimo.** "Erro" não explica nada a quem
+ *    ler o caso daqui a um ano — e é justamente essa pessoa que o histórico
+ *    existe para servir;
+ *  * **diz que nada é apagado.** O medo de corrigir é o que faz recadastrar, e
+ *    recadastrar cria uma segunda criança no sistema.
+ */
+function FolhaCorrigir({ perfil, onFechar, onCorrigir }: {
+  perfil: Perfil; onFechar: () => void;
+  onCorrigir: (d: { nome?: string; nomeSocial?: string | null;
+                    nascimento?: string; motivo: string }) => void;
+}) {
+  const [nome, setNome] = useState(perfil.nomeCivil ?? perfil.nome);
+  const [social, setSocial] = useState(perfil.nome ?? '');
+  const [nascimento, setNascimento] = useState(String(perfil.nascimento ?? '').slice(0, 10));
+  const [motivo, setMotivo] = useState('');
+  const pode = motivo.trim().length >= 10 && nome.trim().length >= 2 && nascimento !== '';
+
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-cor"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet modal">
+        <h3 id="t-cor">Corrigir o cadastro</h3>
+        <div className="notice c-info">
+          Nada é apagado. O que está registrado hoje continua, com o motivo da correção, o seu
+          nome e o horário — e fica <b>à vista no perfil</b>, para quem cuida da criança poder
+          ler sem perguntar a ninguém. Corrigir é sempre melhor do que recadastrar: recadastrar
+          cria uma segunda criança e parte o histórico em dois.
+        </div>
+
+        <label className="f" htmlFor="cor-nome">Nome civil</label>
+        <input id="cor-nome" value={nome} onChange={(e) => setNome(e.target.value)} />
+
+        <label className="f" htmlFor="cor-social">
+          Nome social ou de uso <small>— é o que aparece nas telas do turno</small>
+        </label>
+        <input id="cor-social" value={social} onChange={(e) => setSocial(e.target.value)} />
+
+        <label className="f" htmlFor="cor-nasc">Data de nascimento</label>
+        <input id="cor-nasc" type="date" value={nascimento}
+               onChange={(e) => setNascimento(e.target.value)} />
+
+        <label className="f" htmlFor="cor-mot">
+          Por que está sendo corrigido <small>— pelo menos 10 caracteres</small>
+        </label>
+        <textarea id="cor-mot" value={motivo} onChange={(e) => setMotivo(e.target.value)}
+                  placeholder="Ex.: a certidão de nascimento chegou hoje; o nome estava escrito de ouvido no ingresso de emergência." />
+
+        <div className="row rodape">
+          <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
+          <button className="btn grow" disabled={!pode} onClick={() => onCorrigir({
+            nome: nome.trim(), nomeSocial: social.trim() || null,
+            nascimento, motivo: motivo.trim(),
+          })}>
+            Corrigir, com este motivo
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * A FOLHA DA SITUAÇÃO JUDICIAL.
+ *
+ * Só o que MUDA com o tempo: vara, processo, guia, situação e observações. O
+ * MOTIVO do acolhimento e a MEDIDA não se editam por aqui — eles pertencem ao
+ * episódio, e mudá-los seria reescrever por que a criança foi acolhida.
+ *
+ * O servidor grava no episódio ATIVO. Um acolhimento anterior, encerrado,
+ * continua contando o que de fato houve naquela época.
+ */
+function FolhaJudicial({ judicial, onFechar, onSalvar }: {
+  judicial: Judicial; onFechar: () => void;
+  onSalvar: (campos: Record<string, string | null>) => void;
+}) {
+  const [vara, setVara] = useState(judicial.vara ?? '');
+  const [processo, setProcesso] = useState(judicial.processo ?? '');
+  const [guia, setGuia] = useState(judicial.guia ?? '');
+  const [situacao, setSituacao] = useState(judicial.situacao ?? '');
+  const [obs, setObs] = useState(judicial.observacoes ?? '');
+
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-jud"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet modal">
+        <h3 id="t-jud">Atualizar a situação judicial</h3>
+        <div className="notice c-med">
+          Área restrita. A atualização vale para o <b>acolhimento em curso</b>: um acolhimento
+          anterior continua contando o que houve naquela época. O <b>motivo</b> e a <b>medida</b>
+          não se editam aqui — eles são do episódio.
+        </div>
+
+        <label className="f" htmlFor="jud-sit">
+          Situação <small>— o que está valendo agora</small>
+        </label>
+        <textarea id="jud-sit" value={situacao} onChange={(e) => setSituacao(e.target.value)}
+                  placeholder="Ex.: audiência concentrada realizada em 12/08; manutenção do acolhimento e reavaliação em 90 dias." />
+
+        <label className="f" htmlFor="jud-vara">Vara</label>
+        <input id="jud-vara" value={vara} onChange={(e) => setVara(e.target.value)} />
+
+        <label className="f" htmlFor="jud-proc">Processo</label>
+        <input id="jud-proc" className="mono" value={processo}
+               onChange={(e) => setProcesso(e.target.value)} />
+
+        <label className="f" htmlFor="jud-guia">Guia</label>
+        <input id="jud-guia" className="mono" value={guia} onChange={(e) => setGuia(e.target.value)} />
+
+        <label className="f" htmlFor="jud-obs">Observações</label>
+        <textarea id="jud-obs" value={obs} onChange={(e) => setObs(e.target.value)} />
+
+        <div className="row rodape">
+          <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
+          <button className="btn grow" onClick={() => onSalvar({
+            vara: vara.trim() || null, processo: processo.trim() || null,
+            guia: guia.trim() || null, situacao: situacao.trim() || null,
+            observacoes: obs.trim() || null,
+          })}>
+            Salvar
           </button>
         </div>
       </div>

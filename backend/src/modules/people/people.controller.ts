@@ -103,6 +103,24 @@ export class PeopleController {
     return this.profile.get(user, id);
   }
 
+  /**
+   * CORRIGIR A IDENTIFICAÇÃO (§6.2) — comando próprio, não update genérico.
+   *
+   * `PATCH :id` abaixo atualiza o que é DESCRIÇÃO (escola, cuidados) e não
+   * pede motivo. Nome e data de nascimento são outra coisa: são a identidade
+   * da criança nos papéis, e mudá-los exige motivo e deixa histórico legível.
+   */
+  @Post(':id/corrigir-identificacao')
+  corrigir(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
+           @Body() body: any) {
+    return this.profile.corrigirIdentificacao(user, id, body ?? {});
+  }
+
+  @Get(':id/correcoes')
+  correcoes(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.profile.correcoes(user, id);
+  }
+
   @Patch(':id')
   update(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
          @Body() body: Record<string, string | null>) {

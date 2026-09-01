@@ -1,7 +1,7 @@
 # O que falta da ideia original
 
 Levantamento de 31/08/2026, feito por leitura cruzada entre as rotas que o
-servidor serve e as chamadas que as telas fazem. Sobram **40 rotas que existem,
+servidor serve e as chamadas que as telas fazem. Sobram **38 rotas que existem,
 têm regra, têm RLS e auditoria — e não têm porta**.
 
 *Atualizado no mesmo dia: saíram desta lista o **Arquivo das ATAS** (decisão 2,
@@ -44,6 +44,14 @@ quem VAI SAIR — qualquer pessoa do turno —, fica em aberto até o líder, a
 técnica ou a coordenação decidir, e recusar exige motivo, que o sistema entrega
 a quem pediu.*
 
+*E a **correção do cadastro depois da admissão**: o sistema só sabia cadastrar,
+e a saída de quem usa era recadastrar — o que cria uma segunda criança e parte o
+histórico em dois. Agora corrigir nome, nome social e data de nascimento exige
+motivo e deixa histórico LEGÍVEL por quem cuida, no próprio perfil; e a situação
+judicial atualiza no episódio ativo, sem tocar no acolhimento anterior. Faltava
+também mostrar a situação judicial na tela — o servidor devolvia o campo desde
+a fase 0 e ninguém o desenhava.*
+
 *E uma correção ao próprio levantamento: eu havia escrito que faltava "anexar
 documento ao arquivo". `POST /archive` não recebe arquivo — ele enfileira a
 CÓPIA DOCUMENTAL de algo que já existe no sistema. O que faltava era pior e
@@ -69,7 +77,6 @@ WhatsApp é proibido (§2).
 
 | O que é | Rotas | Por que dói agora |
 |---|---|---|
-| **Corrigir o cadastro depois da admissão** | `PATCH /people/:id`, `PATCH /people/:id/judicial` | Hoje só dá para cadastrar. Nome errado, data de nascimento errada, decisão judicial que mudou — nada disso tem onde ser corrigido, e o certo é corrigir com histórico, não recadastrar. |
 | **Marcação de conteúdo protegido** | `POST /incidents/:id/protected` | Fala espontânea e sinais observados. O detalhe da ocorrência já MOSTRA quando existem; registrar ainda não tem porta. |
 | **Suspender prescrição** | `POST /medications/prescriptions/:id/suspend` | Médico suspendeu o remédio e a grade continua cobrando dose. |
 | **Autorizar educador a administrar** | `POST /medications/authorize-educator`, `GET /medications/can-administer`, `GET/POST /medications/protocol` | Quem pode dar remédio, sob qual protocolo. Hoje a autorização existe no banco e não tem quem a conceda pela tela. |
