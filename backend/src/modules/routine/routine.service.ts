@@ -5,8 +5,7 @@ import {
 import { DatabaseService } from '../../kernel/database/database.service';
 import { AuditService } from '../../kernel/audit/audit.service';
 import { AuthenticatedUser } from '../../kernel/contracts';
-
-const PODE_EDITAR = ['equipe_tecnica', 'coordenador', 'gestor_geral'];
+import { TIPOS_ROTINA, DIAS_DA_SEMANA } from './rotina-vocabulario';
 
 export interface RoutineItemInput {
   kind: string;
@@ -42,7 +41,14 @@ export class RoutineService {
       const { rows: [v] } = await c.query(
         `SELECT id, number, valid_from, note FROM routine_version
          WHERE house_id = $1 AND valid_to IS NULL`, [houseId]);
-      if (!v) return { versao: null, itens: [] };
+      if (!v) {
+        return {
+          versao: null, itens: [], tipos: TIPOS_ROTINA, dias: DIAS_DA_SEMANA,
+          podeAlterar: ['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(user.role),
+          aviso: 'Esta casa ainda não tem rotina registrada. Enquanto não tiver, o dia nasce '
+            + 'do que está na agenda e do que a equipe lançar — e não de um molde escrito.',
+        };
+      }
 
       const { rows: itens } = await c.query(
         `SELECT ri.id, ri.kind, ri.title, ri.start_time, ri.end_time, ri.weekdays,
@@ -56,6 +62,13 @@ export class RoutineService {
       return {
         versao: { id: v.id, numero: v.number, vigenteDesde: v.valid_from, nota: v.note },
         itens: itens.map(mapItem),
+        tipos: TIPOS_ROTINA, dias: DIAS_DA_SEMANA,
+        // Quem lê e quem ALTERA são conjuntos diferentes: a casa inteira
+        // precisa saber a que horas é a janta; mudar o molde é da técnica e da
+        // coordenação. A tela pergunta ao servidor em vez de repetir a lista.
+        podeAlterar: ['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(user.role),
+        aviso: 'Alterar a rotina cria uma VERSÃO NOVA. A anterior continua inteira: é ela que '
+          + 'explica por que o dia de dois meses atrás foi daquele jeito.',
       };
     });
   }
@@ -74,7 +87,8 @@ export class RoutineService {
 
   /** Abre uma versão nova (copiando os itens vigentes) para poder alterar. */
   async newVersion(user: AuthenticatedUser, houseId: string, note: string) {
-    if (!PODE_EDITAR.includes(user.role)) {
+    /* alcance:rotina — quem altera o molde da casa. Conferido contra `alcance.ts`. */
+    if (!['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(user.role)) {
       throw new ForbiddenException('Somente equipe técnica e coordenação alteram a rotina.');
     }
     if (!note?.trim()) throw new BadRequestException('Descreva o motivo da nova versão da rotina.');
@@ -92,10 +106,28 @@ export class RoutineService {
   }
 
   async addItem(user: AuthenticatedUser, houseId: string, versionId: string, input: RoutineItemInput) {
-    if (!PODE_EDITAR.includes(user.role)) {
+    if (!['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(user.role)) {
       throw new ForbiddenException('Somente equipe técnica e coordenação alteram a rotina.');
     }
-    if (!input.collective && !input.personId) {
+    if (!TIPOS_ROTINA.some((t) => t.code === input.kind)) {
+      throw new BadRequestException('Tipo de item de rotina inválido.');
+    }
+    if (!/^\d{2}:\d{2}$/.test(input.startTime ?? '')) {
+      throw new BadRequestException('Informe o horário de início no formato 07:00.');
+    }
+    if ((input.title ?? '').trim().length < 3) {
+      throw new BadRequestException('Dê um nome ao item: é o que a educadora lê na linha do dia.');
+    }
+    /*
+     * COLETIVO é o padrão, e a guarda precisa usar o MESMO padrão que o INSERT.
+     *
+     * Ela dizia `!input.collective`, e `undefined` é falso: omitir o campo — que
+     * é a forma natural de dizer "da casa toda", e o que o próprio INSERT
+     * entende assim duas linhas abaixo — era recusado como "item individual sem
+     * acolhido". A rota nunca teve tela, e por isso ninguém tinha esbarrado.
+     */
+    const coletiva = input.collective ?? true;
+    if (!coletiva && !input.personId) {
       throw new BadRequestException('Item individual precisa indicar o acolhido.');
     }
     const id = await this.db.asUser(user.id, async (c) => {
@@ -104,9 +136,9 @@ export class RoutineService {
            weekdays, collective, person_id, instructions, transport, priority, requires_ack, created_by)
          VALUES ($1,$2,$3::routine_kind,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING id`,
         [versionId, houseId, input.kind, input.title, input.startTime, input.endTime ?? null,
-         input.weekdays ?? [0, 1, 2, 3, 4, 5, 6], input.collective ?? true, input.personId ?? null,
+         input.weekdays ?? [0, 1, 2, 3, 4, 5, 6], coletiva, input.personId ?? null,
          input.instructions ?? null, input.transport ?? null, input.priority ?? 3,
-         input.requiresAck ?? !input.collective, user.id]);
+         input.requiresAck ?? !coletiva, user.id]);
       return r.id;
     }).catch((e: any) => {
       // As travas vivem no gatilho tg_routine_item_guard (migração 0680); aqui
@@ -128,7 +160,7 @@ export class RoutineService {
     });
     await this.audit.log({
       action: 'routine.item_add', actorId: user.id, houseId,
-      entity: 'routine_item', entityId: id, detail: { kind: input.kind, coletiva: input.collective ?? true },
+      entity: 'routine_item', entityId: id, detail: { kind: input.kind, coletiva },
     });
     return { id };
   }

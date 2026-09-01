@@ -1,7 +1,7 @@
 # O que falta da ideia original
 
 Levantamento de 31/08/2026, feito por leitura cruzada entre as rotas que o
-servidor serve e as chamadas que as telas fazem. Sobram **50 rotas que existem,
+servidor serve e as chamadas que as telas fazem. Sobram **46 rotas que existem,
 têm regra, têm RLS e auditoria — e não têm porta**.
 
 *Atualizado no mesmo dia: saíram desta lista o **Arquivo das ATAS** (decisão 2,
@@ -17,6 +17,13 @@ solto dentro de uma seção da ATA, ou não era registrado. Agora o relato é
 imutável e a ciência de quem assume o turno nasce ao lado, com nome próprio —
 e o servidor passou a **recusar episódio em ATA já fechada**, que ele aceitava
 em silêncio (ver a nota de defeito na CONTINUIDADE).*
+
+*E a **rotina versionada da casa** (`GET /routine`, `/routine/history`, `POST
+/routine/versions`, `/versions/:id/items`), no mesmo dia: quatro rotas da fase 2
+sem tela nenhuma. O dia da casa nascia de dados semeados, e "a que horas é a
+janta aqui?" não tinha resposta dentro do sistema — tinha no quadro da cozinha.
+Alterar abre versão nova com motivo escrito e copia os itens; a anterior
+continua inteira, explicando o dia que nasceu dela.*
 
 *E uma correção ao próprio levantamento: eu havia escrito que faltava "anexar
 documento ao arquivo". `POST /archive` não recebe arquivo — ele enfileira a
@@ -46,7 +53,6 @@ WhatsApp é proibido (§2).
 | **Corrigir o cadastro depois da admissão** | `PATCH /people/:id`, `PATCH /people/:id/judicial` | Hoje só dá para cadastrar. Nome errado, data de nascimento errada, decisão judicial que mudou — nada disso tem onde ser corrigido, e o certo é corrigir com histórico, não recadastrar. |
 | **Baixar um documento do acolhido** | `GET /people/:id/documents/:docId` | O perfil lista os documentos e não abre nenhum. |
 | **Marcação de conteúdo protegido** | `POST /incidents/:id/protected` | Fala espontânea e sinais observados. O detalhe da ocorrência já MOSTRA quando existem; registrar ainda não tem porta. |
-| **Rotina da casa** | `GET /routine`, `/routine/history`, `POST /routine/versions`, `/versions/:id/items` | A rotina versionada — horário de acordar, refeições, dormir — que alimenta a geração do dia. Hoje o dia vem de dados semeados. |
 | **Substituição de atividade** | `POST /activities/:id/substitution`, `/substitutions/:id/assign` | "Não vou conseguir levar o Bruno na fono" — pedir e assumir a substituição. Existe delegação direta; falta o pedido em aberto. |
 | **Atividade urgente** | `POST /activities/urgent` | O que apareceu agora e não estava na agenda. |
 | **Suspender prescrição** | `POST /medications/prescriptions/:id/suspend` | Médico suspendeu o remédio e a grade continua cobrando dose. |

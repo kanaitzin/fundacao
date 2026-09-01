@@ -74,6 +74,7 @@ describe('Alcance por setor', () => {
       cofre: 'modules/people/credentials.service.ts',
       arquivo: 'modules/archive/archive.service.ts',
       acompanhamentos: 'modules/reports/followups.service.ts',
+      rotina: 'modules/routine/routine.service.ts',
     };
     /*
      * O sentido importa. Comparar "a página promete e o servidor recusa" acusa

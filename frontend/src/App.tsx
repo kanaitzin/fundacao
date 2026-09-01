@@ -20,6 +20,7 @@ import { Cofre } from './screens/Cofre';
 import { Transferencias } from './screens/Transferencias';
 import { Acompanhamentos } from './screens/Acompanhamentos';
 import { Arquivo } from './screens/Arquivo';
+import { Rotina } from './screens/Rotina';
 import { Setores } from './screens/Setores';
 import { Cozinha } from './screens/Cozinha';
 import { Avisos } from './screens/Avisos';
@@ -40,7 +41,8 @@ const KIND_TONE: Record<string, string> = { casa_lar: 'c-move', abrigo_instituci
 
 /** As telas que não são do turno; a aba "Mais" fica acesa quando uma delas está aberta. */
 const OUTRAS = new Set(['agenda', 'equipe', 'casas', 'saude', 'ocorrencias', 'ata',
-  'cofre', 'transferencias', 'acompanhamentos', 'arquivo', 'setores', 'unidades', 'plantao']);
+  'cofre', 'transferencias', 'acompanhamentos', 'arquivo', 'setores', 'unidades', 'plantao',
+  'rotina']);
 /* O sino é de todo mundo: não há cargo que não receba escalonamento. */
 
 
@@ -119,7 +121,7 @@ export function App() {
     'dia' | 'chamada' | 'passagem' | 'acolhidos' | 'agenda' | 'casas' | 'equipe'
     | 'saude' | 'ocorrencias' | 'ata' | 'cofre' | 'transferencias'
     | 'acompanhamentos' | 'arquivo' | 'plantao' | 'unidades' | 'setores' | 'cozinha'
-    | 'avisos'>('dia');
+    | 'rotina' | 'avisos'>('dia');
   const [sugerirSenha, setSugerirSenha] = useState(false);
   const [trocarSenha, setTrocarSenha] = useState(false);
   const [mais, setMais] = useState(false);
@@ -223,6 +225,7 @@ export function App() {
   const veAcompanhamentos = ve('acompanhamentos');
   const veTransferencias = ve('transferencias');
   const veArquivo = ve('arquivo');
+  const veRotina = ve('rotina');
 
   /** As abas do turno que este cargo alcança, na ordem de quem trabalha na casa. */
   const abasDoTurno = [
@@ -390,6 +393,10 @@ export function App() {
 
         {abaEfetiva === 'setores' && administra && <Setores papel={me.role} />}
 
+        {abaEfetiva === 'rotina' && veRotina && casaAtual && (
+          <Rotina houseId={casaAtual.id} papel={me.role} />
+        )}
+
         {abaEfetiva === 'saude' && veSaude && casaAtual && (
           <Saude houseId={casaAtual.id} casaLabel={`${casaAtual.code} · ${casaAtual.name}`}
                  papel={me.role} />
@@ -480,6 +487,17 @@ export function App() {
                   <div className="mutetxt">O que está marcado e o que vem pela frente.</div>
                 </div>
               </button>
+              )}
+              {veRotina && (
+                <button className="card row" onClick={() => { setAba('rotina'); setMais(false); }}>
+                  <span aria-hidden="true">🕰️</span>
+                  <div className="grow" style={{ textAlign: 'left' }}>
+                    <b className="ff">A rotina da casa</b>
+                    <div className="mutetxt">
+                      O molde do dia — e as versões que a casa já seguiu.
+                    </div>
+                  </div>
+                </button>
               )}
               {administra && (
                 <button className="card row" onClick={() => { setAba('equipe'); setMais(false); }}>

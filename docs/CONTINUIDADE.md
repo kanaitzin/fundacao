@@ -865,7 +865,7 @@ responder e não me peça para reexplicar o que está lá.
 
 === ESTADO ATUAL ===
 
-Fases 0 a 29 concluídas. 276 testes passando em 24 suítes, sem falha conhecida
+Fases 0 a 30 concluídas. 285 testes passando em 25 suítes, sem falha conhecida
 — a suíte rodou cinco vezes seguidas entre 21h44 e 23h30 de Porto Alegre, que
 já é depois das 21h E depois da virada do dia em UTC (01/09 no banco, 31/08 na
 casa): a contaminação de data que a regra procura estava valendo em todas as
@@ -876,6 +876,18 @@ Geral Noturna recortada na linha de cada casa. O ciclo do acolhimento fecha:
 cadastro, saída com motivo, acervo histórico e retorno como episódio novo. E o
 arquivo documental deixou de ser um módulo sem entrada: fechou, entra na fila. Relatórios saem em Word com timbre, com a parte factual
 escrita pelo sistema. Convite de primeiro acesso por e-mail, uso único, 24h.
+
+A ROTINA VERSIONADA DA CASA (§8.1) ganhou tela. Quatro rotas da fase 2 sem
+porta nenhuma: o dia nascia de dados semeados, e a pergunta "a que horas é a
+janta aqui?" se respondia no quadro da cozinha. A tela mostra o molde de agora
+e as versões que a casa já seguiu; alterar abre VERSÃO NOVA com o motivo
+escrito e copia os itens, e a anterior continua inteira. Quem lê é a casa toda;
+quem altera é a equipe técnica e a coordenação — e o alcance foi aberto no mapa
+de `alcance.ts`, com a marca `alcance:rotina` no servidor, para página e menu
+não divergirem. Um defeito ali: a guarda de "item individual precisa do
+acolhido" usava `!input.collective`, e `undefined` é falso — omitir o campo,
+que é a forma natural de dizer "da casa toda" e o que o próprio INSERT entende
+assim, era recusado. A rota nunca teve tela, e por isso ninguém tinha esbarrado.
 
 Os EPISÓDIOS DO TURNO (§12.5) ganharam porta. O relato é imutável — o banco
 recusa UPDATE e DELETE —, a classificação descreve o FATO e nunca a criança, e
@@ -893,7 +905,9 @@ Duas coisas foram encontradas ao construir isso:
    e a ATA voltava com os campos editáveis; quem escrevesse levava a recusa do
    servidor depois de ter digitado.
 
-Duas suítes eram instáveis e a regra das duas rodadas as pegou: `regressao-saida`
+Três suítes eram instáveis e a regra das duas rodadas as pegou. `rotina-versionada`
+disputava a rotina da AI3 com `operacao.e2e`, que conta as versões e os itens
+dela pelo número exato — passou a trabalhar na Casa 04. `regressao-saida`
 registrava o episódio na ATA de HOJE (que outra suíte fecha antes, dependendo da
 ordem dos arquivos) e `cadastro` presumia que a mudança de limite mais recente
 era a dela. Ambas passaram a se ancorar no que guardam, não na ordem.

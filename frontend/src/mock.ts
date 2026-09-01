@@ -26,6 +26,8 @@
 import { ALCANCE_POR_CARGO } from '../../backend/src/modules/identity/alcance';
 import { SECOES_ATA, AMBIENTES_CASA, CLASSIFICACOES_EPISODIO }
   from '../../backend/src/modules/shifts/ata-secoes';
+import { TIPOS_ROTINA, DIAS_DA_SEMANA }
+  from '../../backend/src/modules/routine/rotina-vocabulario';
 
 const HOJE = new Intl.DateTimeFormat('en-CA',
   { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' })
@@ -1122,6 +1124,70 @@ interface EpisodioMock {
   ciencias: { id: string; quem: string; userId: string;
               comentario: string | null; quando: string }[];
 }
+/**
+ * A ROTINA VERSIONADA (§8.1).
+ *
+ * Duas versões semeadas de propósito: uma encerrada e a que vale. Com uma só, o
+ * histórico abre vazio e a coisa inteira que a tela precisa mostrar — que a
+ * versão antiga CONTINUA e é ela que explica o registro daquela época — fica
+ * invisível justamente na conversa em que ela importa.
+ */
+interface VersaoRotina {
+  id: string; numero: number; vigenteDesde: string; vigenteAte: string | null; nota: string | null;
+}
+interface ItemRotinaMock {
+  id: string; versaoId: string; tipo: string; titulo: string;
+  inicio: string; fim: string | null; diasSemana: number[];
+  coletiva: boolean; acolhidoId: string | null; instrucoes: string | null;
+}
+const ALTERA_ROTINA = ['equipe_tecnica', 'coordenador', 'gestor_geral'];
+
+const VERSOES_ROTINA: VersaoRotina[] = [
+  { id: 'rv1', numero: 1, vigenteDesde: '2026-02-01', vigenteAte: '2026-07-31',
+    nota: 'Primeira rotina escrita da casa, transcrita do quadro da cozinha.' },
+  { id: 'rv2', numero: 2, vigenteDesde: '2026-08-01', vigenteAte: null,
+    nota: 'A escola passou os cinco maiores para o turno da tarde; o almoço e o banho '
+      + 'mudaram de hora por causa disso.' },
+];
+
+const DIAS_UTEIS = [1, 2, 3, 4, 5];
+const TODOS_OS_DIAS = [0, 1, 2, 3, 4, 5, 6];
+const ITENS_ROTINA: ItemRotinaMock[] = [
+  { id: 'ri1', versaoId: 'rv2', tipo: 'acordar', titulo: 'Acordar', inicio: '06:40', fim: '07:00',
+    diasSemana: DIAS_UTEIS, coletiva: true, acolhidoId: null,
+    instrucoes: 'Os menores primeiro; quem vai para a escola da manhã sai às 07h20.' },
+  { id: 'ri2', versaoId: 'rv2', tipo: 'refeicao', titulo: 'Café da manhã', inicio: '07:00',
+    fim: '07:40', diasSemana: TODOS_OS_DIAS, coletiva: true, acolhidoId: null,
+    instrucoes: 'Conferir as restrições alimentares antes de servir.' },
+  { id: 'ri3', versaoId: 'rv2', tipo: 'escola', titulo: 'Escola — turno da manhã', inicio: '07:20',
+    fim: '12:00', diasSemana: DIAS_UTEIS, coletiva: true, acolhidoId: null, instrucoes: null },
+  { id: 'ri4', versaoId: 'rv2', tipo: 'refeicao', titulo: 'Almoço', inicio: '11:30', fim: '12:30',
+    diasSemana: TODOS_OS_DIAS, coletiva: true, acolhidoId: null,
+    instrucoes: 'Quem estuda de tarde almoça primeiro.' },
+  { id: 'ri5', versaoId: 'rv2', tipo: 'escola', titulo: 'Escola — turno da tarde', inicio: '13:00',
+    fim: '17:20', diasSemana: DIAS_UTEIS, coletiva: true, acolhidoId: null, instrucoes: null },
+  { id: 'ri6', versaoId: 'rv2', tipo: 'saude', titulo: 'Fonoaudiologia', inicio: '15:00',
+    fim: '16:00', diasSemana: [2], coletiva: false, acolhidoId: 'p11',
+    instrucoes: 'Clínica Fictícia, no Centro. Levar a carteirinha e o caderno de casa.' },
+  { id: 'ri7', versaoId: 'rv2', tipo: 'educacao', titulo: 'Reforço escolar', inicio: '16:00',
+    fim: '17:00', diasSemana: [1, 3, 5], coletiva: true, acolhidoId: null, instrucoes: null },
+  { id: 'ri8', versaoId: 'rv2', tipo: 'banho', titulo: 'Banho', inicio: '17:30', fim: '18:20',
+    diasSemana: TODOS_OS_DIAS, coletiva: true, acolhidoId: null,
+    instrucoes: 'Em escala, dos menores para os maiores.' },
+  { id: 'ri9', versaoId: 'rv2', tipo: 'refeicao', titulo: 'Janta', inicio: '18:30', fim: '19:15',
+    diasSemana: TODOS_OS_DIAS, coletiva: true, acolhidoId: null, instrucoes: null },
+  { id: 'ri10', versaoId: 'rv2', tipo: 'lazer', titulo: 'Convivência na sala', inicio: '19:15',
+    fim: '20:45', diasSemana: TODOS_OS_DIAS, coletiva: true, acolhidoId: null, instrucoes: null },
+  { id: 'ri11', versaoId: 'rv2', tipo: 'sono', titulo: 'Dormir', inicio: '21:00', fim: null,
+    diasSemana: TODOS_OS_DIAS, coletiva: true, acolhidoId: null,
+    instrucoes: 'Os maiores podem ficar até as 22h na sexta e no sábado.' },
+  // A versão encerrada, com o horário antigo — é o que prova que ela continua.
+  { id: 'ri0a', versaoId: 'rv1', tipo: 'refeicao', titulo: 'Almoço', inicio: '12:00', fim: '13:00',
+    diasSemana: TODOS_OS_DIAS, coletiva: true, acolhidoId: null, instrucoes: null },
+  { id: 'ri0b', versaoId: 'rv1', tipo: 'banho', titulo: 'Banho', inicio: '16:30', fim: '17:30',
+    diasSemana: TODOS_OS_DIAS, coletiva: true, acolhidoId: null, instrucoes: null },
+];
+
 const EPISODIOS: EpisodioMock[] = [];
 
 /**
@@ -1782,6 +1848,99 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
           + 'casas você abre pela ATA Geral do dia.'
         : 'Da ATA Geral Noturna aparece a linha desta casa — o que o Líder Noturno Geral '
           + 'registrou sobre ela. O que ele registrou sobre as outras casas é assunto delas.' };
+  }
+
+  // ---------- A ROTINA DA CASA (§8.1) ----------
+  // Versionada de verdade também aqui: abrir versão nova ENCERRA a atual com a
+  // data de hoje e COPIA os itens. Se a demonstração deixasse a rotina ser
+  // reescrita, ela ensinaria o contrário do que o sistema faz.
+  if (seg[0] === 'routine' && seg.length === 1 && metodo === 'GET') {
+    const v = VERSOES_ROTINA.find((x) => x.vigenteAte === null) ?? null;
+    return {
+      versao: v ? { id: v.id, numero: v.numero, vigenteDesde: v.vigenteDesde, nota: v.nota } : null,
+      itens: v ? ITENS_ROTINA.filter((i) => i.versaoId === v.id)
+        .sort((a, z) => a.inicio.localeCompare(z.inicio))
+        .map((i) => ({
+          id: i.id, tipo: i.tipo, titulo: i.titulo, inicio: i.inicio, fim: i.fim,
+          diasSemana: i.diasSemana, coletiva: i.coletiva,
+          acolhido: i.acolhidoId
+            ? { id: i.acolhidoId,
+                nome: KIDS.find((k) => k.id === i.acolhidoId)?.nome ?? '(fora do seu alcance)',
+                visivel: KIDS.some((k) => k.id === i.acolhidoId) }
+            : null,
+          instrucoes: i.instrucoes, transporte: null,
+          prioridade: 3, exigeCiencia: !i.coletiva,
+        })) : [],
+      tipos: TIPOS_ROTINA, dias: DIAS_DA_SEMANA,
+      podeAlterar: ALTERA_ROTINA.includes(eu.role),
+      aviso: v
+        ? 'Alterar a rotina cria uma VERSÃO NOVA. A anterior continua inteira: é ela que '
+          + 'explica por que o dia de dois meses atrás foi daquele jeito.'
+        : 'Esta casa ainda não tem rotina registrada. Enquanto não tiver, o dia nasce '
+          + 'do que está na agenda e do que a equipe lançar — e não de um molde escrito.',
+    };
+  }
+  if (seg[0] === 'routine' && seg[1] === 'history' && metodo === 'GET') {
+    return [...VERSOES_ROTINA].sort((a, z) => z.numero - a.numero).map((v) => ({
+      numero: v.numero, vigenteDesde: v.vigenteDesde, vigenteAte: v.vigenteAte,
+      nota: v.nota, atual: v.vigenteAte === null,
+    }));
+  }
+  if (seg[0] === 'routine' && seg[1] === 'versions' && seg.length === 2 && metodo === 'POST') {
+    if (!ALTERA_ROTINA.includes(eu.role)) {
+      return new Recusa(403, 'Somente equipe técnica e coordenação alteram a rotina.');
+    }
+    if (!String(b.motivo ?? '').trim()) {
+      return new Recusa(400, 'Descreva o motivo da nova versão da rotina.');
+    }
+    const atual = VERSOES_ROTINA.find((x) => x.vigenteAte === null) ?? null;
+    if (atual) atual.vigenteAte = HOJE;
+    const nova = { id: uid(), numero: (atual?.numero ?? 0) + 1, vigenteDesde: HOJE,
+                   vigenteAte: null as string | null, nota: String(b.motivo).trim() };
+    VERSOES_ROTINA.push(nova);
+    // Copiar os itens é o que faz a versão nova ser um PONTO DE PARTIDA e não
+    // uma folha em branco: ninguém reescreve a rotina inteira para mudar a
+    // hora da janta.
+    if (atual) {
+      for (const i of ITENS_ROTINA.filter((x) => x.versaoId === atual.id)) {
+        ITENS_ROTINA.push({ ...i, id: uid(), versaoId: nova.id });
+      }
+    }
+    return { versaoId: nova.id, numero: nova.numero };
+  }
+  if (seg[0] === 'routine' && seg[1] === 'versions' && seg[3] === 'items' && metodo === 'POST') {
+    if (!ALTERA_ROTINA.includes(eu.role)) {
+      return new Recusa(403, 'Somente equipe técnica e coordenação alteram a rotina.');
+    }
+    const v = VERSOES_ROTINA.find((x) => x.id === seg[2]);
+    if (!v) return new Recusa(404, 'Versão de rotina não encontrada.');
+    if (v.vigenteAte !== null) {
+      return new Recusa(409,
+        'Esta versão da rotina já foi encerrada e não recebe itens novos — o que ela contém é o '
+        + 'que a casa seguiu naquele período. Abra uma versão nova para alterar a rotina.');
+    }
+    if (!TIPOS_ROTINA.some((t) => t.code === b.kind)) {
+      return new Recusa(400, 'Tipo de item de rotina inválido.');
+    }
+    if (!/^\d{2}:\d{2}$/.test(String(b.startTime ?? ''))) {
+      return new Recusa(400, 'Informe o horário de início no formato 07:00.');
+    }
+    if (String(b.title ?? '').trim().length < 3) {
+      return new Recusa(400, 'Dê um nome ao item: é o que a educadora lê na linha do dia.');
+    }
+    if (!b.collective && !b.personId) {
+      return new Recusa(400, 'Item individual precisa indicar o acolhido.');
+    }
+    const id = uid();
+    ITENS_ROTINA.push({
+      id, versaoId: v.id, tipo: String(b.kind), titulo: String(b.title).trim(),
+      inicio: String(b.startTime), fim: b.endTime ? String(b.endTime) : null,
+      diasSemana: Array.isArray(b.weekdays) ? b.weekdays : [0, 1, 2, 3, 4, 5, 6],
+      coletiva: b.collective !== false,
+      acolhidoId: b.collective === false ? String(b.personId) : null,
+      instrucoes: b.instructions ? String(b.instructions) : null,
+    });
+    return { id };
   }
 
   if (seg[0] === 'shifts' && seg.length === 2) {
