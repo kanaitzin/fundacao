@@ -334,10 +334,48 @@ export class IncidentsService {
 
   // ------------------------------------------------------------------
 
+  /**
+   * FALA ESPONTÂNEA E SINAIS OBSERVADOS (§13.2).
+   *
+   * O registro mais delicado do sistema, e o único que a casa não podia fazer
+   * por tela: o servidor tem esta rota desde a fase 6 e não havia porta. Sem
+   * porta, o que a criança disse ou virava texto no campo "fato" — que o
+   * plantão inteiro lê — ou não era registrado.
+   *
+   * Três recusas que valem mais do que o campo:
+   *
+   *  * VAZIO não se registra. Uma linha protegida com os dois campos nulos
+   *    ocupa o lugar único da ocorrência e não pode ser reescrita: a próxima
+   *    pessoa, que tem o que dizer, leva a recusa por causa de um toque errado;
+   *  * OCORRÊNCIA FECHADA não recebe. A cópia documental já foi para o
+   *    arquivo; sistema e cópia passariam a dizer coisas diferentes, em
+   *    silêncio. É a mesma correção do episódio em ATA fechada;
+   *  * e a recusa do registro que já existe NÃO descreve o que existe. Quem
+   *    não pode ler o conteúdo protegido também não deveria saber o que ele
+   *    diz — a frase fala do ATO, e indica o caminho que continua aberto para
+   *    essa pessoa: o relato em nome próprio.
+   */
   async addProtected(user: AuthenticatedUser, id: string, input: {
     falaEspontanea?: string; sinaisObservados?: string;
   }) {
+    const fala = (input.falaEspontanea ?? '').trim();
+    const sinais = (input.sinaisObservados ?? '').trim();
+    if (!fala && !sinais) {
+      throw new BadRequestException(
+        'Escreva ao menos a fala espontânea ou os sinais observados. Este registro é único '
+        + 'por ocorrência e não é reescrito — um registro vazio ocuparia o lugar de quem '
+        + 'tem o que dizer.');
+    }
     const casa = await this.casa(user, id);
+    const { rows: [st] } = await this.db.asUser(user.id, async (c) =>
+      c.query(`SELECT status FROM incident WHERE id = $1`, [id]));
+    if (st?.status === 'fechada') {
+      throw new BadRequestException(
+        'A ocorrência está fechada e a cópia documental dela já foi arquivada. Para acrescentar '
+        + 'algo, peça a reabertura à equipe técnica — a reabertura fica registrada, e o que '
+        + 'você escrever depois nasce datado do dia em que foi escrito.');
+    }
+    input = { falaEspontanea: fala || undefined, sinaisObservados: sinais || undefined };
     try {
       await this.db.asUser(user.id, async (c) => {
         await c.query(
@@ -347,9 +385,12 @@ export class IncidentsService {
       });
     } catch (e: any) {
       if (e?.code === '23505') {
+        // De propósito, não diz o que já está lá: quem não pode LER o conteúdo
+        // protegido não fica sabendo o que ele diz por causa de uma recusa.
         throw new BadRequestException(
-          'Já existe registro protegido nesta ocorrência, e ele não é reescrito. '
-          + 'Acrescente um relato complementar em seu nome.');
+          'Esta ocorrência não recebe outro registro protegido: ele é único e não se reescreve. '
+          + 'Escreva um relato em seu nome — ele fica ao lado, com a sua assinatura e a sua hora, '
+          + 'e ninguém o altera depois.');
       }
       throw e;
     }

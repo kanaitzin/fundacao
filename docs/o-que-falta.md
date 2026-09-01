@@ -1,7 +1,7 @@
 # O que falta da ideia original
 
 Levantamento de 31/08/2026, feito por leitura cruzada entre as rotas que o
-servidor serve e as chamadas que as telas fazem. Sobram **33 rotas que existem,
+servidor serve e as chamadas que as telas fazem. Sobram **32 rotas que existem,
 têm regra, têm RLS e auditoria — e não têm porta**.
 
 *Atualizado no mesmo dia: saíram desta lista o **Arquivo das ATAS** (decisão 2,
@@ -76,6 +76,18 @@ quem estava autorizado:*
    escrita hoje nascia datada de amanhã, e o sistema recusava a dose a noite
    inteira com a autorização visível na tela. Regra 9, no lugar mais caro.*
 
+*E o **registro protegido depois da abertura** (§13.2), que fecha o grupo 1: a
+folha de abrir ocorrência já recebia fala espontânea e sinais observados, mas o
+caso mais comum é a criança falar DEPOIS — três dias depois, às 23h, na hora de
+dormir, para quem estava perto e não para quem abriu a ocorrência. Sem porta,
+sobravam dois caminhos e os dois são piores: escrever no campo "fato", que o
+plantão inteiro lê, ou não registrar. Três recusas nasceram com a porta: vazio
+não se registra (o lugar é único por ocorrência e um registro em branco tomaria
+a vaga de quem tem o que dizer); ocorrência fechada não recebe, porque a cópia
+documental já foi arquivada; e a recusa do "já existe" **não conta o que já está
+lá**, senão a mensagem de erro vira a porta dos fundos para o conteúdo que a
+política protege.*
+
 *E uma correção ao próprio levantamento: eu havia escrito que faltava "anexar
 documento ao arquivo". `POST /archive` não recebe arquivo — ele enfileira a
 CÓPIA DOCUMENTAL de algo que já existe no sistema. O que faltava era pior e
@@ -99,9 +111,8 @@ tela está no grupo 1.
 O trabalho existe na casa hoje. Sem tela, ou vira papel, ou vira WhatsApp — e
 WhatsApp é proibido (§2).
 
-| O que é | Rotas | Por que dói agora |
-|---|---|---|
-| **Marcação de conteúdo protegido** | `POST /incidents/:id/protected` | Fala espontânea e sinais observados. O detalhe da ocorrência já MOSTRA quando existem; registrar ainda não tem porta. |
+**O grupo 1 está vazio.** Tudo o que a educadora de plantão precisa fazer às 23h
+tem porta. O que sobra abaixo é de coordenação, de gestão e de máquina.
 
 ## 2. Falta tela, mas dá para esperar
 

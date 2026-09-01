@@ -744,7 +744,10 @@ type StatusOcorrencia = 'aberta' | 'em_acompanhamento' | 'encerrada_operacional'
   | 'aguardando_revisao_tecnica' | 'fechada' | 'reaberta';
 interface Ocorrencia {
   id: string; categoria: string; personId: string | null; fato: string; medidas: string;
-  falaEspontanea: string | null; abertaPor: string; abertaEm: string;
+  falaEspontanea: string | null; sinaisObservados?: string | null;
+  protegidoPor?: string | null; protegidoPorCargo?: string | null;
+  protegidoEm?: string | null;
+  abertaPor: string; abertaEm: string;
   status: StatusOcorrencia;
   avisados: string[];
   sinteses: { id: string; texto: string; autor: string; quando: string }[];
@@ -3331,6 +3334,44 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       aviso: 'Anexo registrado. Fotos não aparecem na linha do tempo.' };
   }
 
+  /*
+   * Fala espontânea e sinais observados (§13.2), DEPOIS da abertura — que é
+   * quando a criança fala de verdade. As mesmas três recusas do servidor:
+   * vazio não registra, ocorrência fechada não recebe, e o registro é único.
+   */
+  if (seg[0] === 'incidents' && seg[2] === 'protected' && metodo === 'POST') {
+    const o = OCORRENCIAS.find((x) => x.id === seg[1]);
+    if (!o) return new Recusa(404, 'Ocorrência não encontrada — ou fora do seu alcance.');
+    const fala = String(b.falaEspontanea ?? '').trim();
+    const sinais = String(b.sinaisObservados ?? '').trim();
+    if (!fala && !sinais) {
+      return new Recusa(400,
+        'Escreva ao menos a fala espontânea ou os sinais observados. Este registro é único '
+        + 'por ocorrência e não é reescrito — um registro vazio ocuparia o lugar de quem '
+        + 'tem o que dizer.');
+    }
+    if (o.status === 'fechada') {
+      return new Recusa(400,
+        'A ocorrência está fechada e a cópia documental dela já foi arquivada. Para acrescentar '
+        + 'algo, peça a reabertura à equipe técnica — a reabertura fica registrada, e o que '
+        + 'você escrever depois nasce datado do dia em que foi escrito.');
+    }
+    if (o.falaEspontanea || o.sinaisObservados) {
+      // Não diz o que já está lá: quem não pode LER o conteúdo protegido não
+      // fica sabendo o que ele diz por causa de uma recusa.
+      return new Recusa(400,
+        'Esta ocorrência não recebe outro registro protegido: ele é único e não se reescreve. '
+        + 'Escreva um relato em seu nome — ele fica ao lado, com a sua assinatura e a sua hora, '
+        + 'e ninguém o altera depois.');
+    }
+    o.falaEspontanea = fala || null;
+    o.sinaisObservados = sinais || null;
+    o.protegidoPor = eu.fullName;
+    o.protegidoPorCargo = eu.role;
+    o.protegidoEm = new Date().toISOString();
+    return { ok: true, aviso: 'Registrado. Este conteúdo não aparece para colegas do plantão.' };
+  }
+
   /* Contenção (§13.3): cinco campos obrigatórios, e nenhuma avaliação. */
   if (seg[0] === 'incidents' && seg[2] === 'restraint' && metodo === 'POST') {
     const o = OCORRENCIAS.find((x) => x.id === seg[1]);
@@ -3480,7 +3521,18 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     const cat = CATEGORIAS_OCORRENCIA.find((c) => c.cod === o.categoria)!;
     const tecnica = ['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role);
     // Conteúdo protegido não é escondido na tela: NÃO É DEVOLVIDO.
-    const podeProtegido = tecnica || o.abertaPor === eu.fullName;
+    /*
+     * A política real é `author_id = app_current_user()` — quem ESCREVEU lê o
+     * que escreveu. Aqui o "Ver como" troca o cargo e mantém a pessoa, então
+     * comparar só o nome faria toda troca de cargo continuar lendo o registro
+     * protegido, e a demonstração mentiria justamente sobre a política mais
+     * estreita do sistema. No protótipo, portanto, "a mesma pessoa" é o mesmo
+     * nome NO MESMO cargo.
+     */
+    const souAutorDoProtegido = o.protegidoPor === eu.fullName
+      && o.protegidoPorCargo === eu.role;
+    const podeProtegido = tecnica || souAutorDoProtegido
+      || (eu.role === 'enfermagem' && /saude|medicamento/.test(cat.cod));
     return {
       id: o.id, casaId: 'AI3', categoria: cat.label, codigoCategoria: cat.cod,
       quando: o.abertaEm, atividade: null,
@@ -3492,8 +3544,9 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       acolhidos: o.personId
         ? [{ id: o.personId, nome: kid(o.personId)?.nome ?? '(fora do seu alcance)', visivel: true }]
         : [],
-      protegido: podeProtegido && o.falaEspontanea
-        ? { falaEspontanea: o.falaEspontanea, sinaisObservados: null, registradoEm: o.abertaEm }
+      protegido: podeProtegido && (o.falaEspontanea || o.sinaisObservados)
+        ? { falaEspontanea: o.falaEspontanea, sinaisObservados: o.sinaisObservados ?? null,
+            registradoEm: o.protegidoEm ?? o.abertaEm }
         : null,
       avisoProtegido: podeProtegido ? null
         : 'Fala espontânea e sinais observados, quando existem, são acessíveis à equipe '
@@ -3528,6 +3581,8 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       id: uid(), categoria: cat.cod, personId: acolhidos[0] ?? null,
       fato: String(b.fato), medidas: String(b.medidasImediatas ?? ''),
       falaEspontanea: cat.restrita ? (String(b.falaEspontanea ?? '').trim() || null) : null,
+      protegidoPor: eu.fullName, protegidoPorCargo: eu.role,
+      protegidoEm: new Date().toISOString(),
       abertaPor: eu.fullName, abertaEm: String(b.quando),
       status: 'aberta', avisados, sinteses: [],
     };

@@ -140,6 +140,7 @@ export function Ocorrencias({ houseId, papel }: { houseId: string; papel: string
   const [comunicando, setComunicando] = useState<ItemLista | 'avulsa' | null>(null);
   const [anexando, setAnexando] = useState<ItemLista | null>(null);
   const [contendo, setContendo] = useState<ItemLista | null>(null);
+  const [protegendo, setProtegendo] = useState<ItemLista | null>(null);
   const [abrindoAnexo, setAbrindoAnexo] = useState<{ id: string; nome: string } | null>(null);
   const [anexoAberto, setAnexoAberto] = useState<{ nome: string; referencia: string } | null>(null);
   const [aberta, setAberta] = useState<string | null>(null);
@@ -171,10 +172,13 @@ export function Ocorrencias({ houseId, papel }: { houseId: string; papel: string
   }
   useEffect(() => { carregar(); }, [houseId]);
 
-  async function abrirDetalhe(id: string) {
-    if (aberta === id) { setAberta(null); return; }
-    setAberta(id);
-    if (detalhes[id]) return;
+  /** `recarregar` traz o detalhe de novo depois de escrever nele. */
+  async function abrirDetalhe(id: string, recarregar = false) {
+    if (!recarregar) {
+      if (aberta === id) { setAberta(null); return; }
+      setAberta(id);
+      if (detalhes[id]) return;
+    }
     try {
       const d = await api<Detalhe>(`/incidents/${id}`);
       setDetalhes((m) => ({ ...m, [id]: d }));
@@ -307,6 +311,27 @@ export function Ocorrencias({ houseId, papel }: { houseId: string; papel: string
                           {d.avisoProtegido} <b>Não é filtro de tela</b>: o conteúdo não é devolvido.
                         </div>
                       )}
+
+                  {/*
+                    * FALA ESPONTÂNEA E SINAIS OBSERVADOS (§13.2), depois da
+                    * abertura.
+                    *
+                    * A folha de abrir ocorrência já tinha o campo. O que
+                    * faltava é o caso mais comum: a criança fala DEPOIS —
+                    * três dias depois, às 23h, na hora de dormir. Sem esta
+                    * porta, o que ela disse ou ia para o campo "fato", que o
+                    * plantão inteiro lê, ou não era registrado em lugar
+                    * nenhum.
+                    *
+                    * O botão não aparece quando o registro já existe (é único
+                    * por ocorrência) nem na ocorrência fechada — nos dois
+                    * casos o caminho é o relato em nome próprio.
+                    */}
+                  {!d.protegido && d.status !== 'fechada' && (
+                    <button className="btn sec sm" onClick={() => setProtegendo(o)}>
+                      🔒 Registrar fala espontânea ou sinais observados
+                    </button>
+                  )}
 
                   {d.contencao && (
                     <div className="notice c-warn">
@@ -662,6 +687,16 @@ export function Ocorrencias({ houseId, papel }: { houseId: string; papel: string
             const ok = await acao(() => api(`/incidents/${contendo.id}/restraint`, {
               method: 'POST', body: JSON.stringify(corpo) }));
             if (ok) setContendo(null);
+          }} />
+      )}
+
+      {protegendo && (
+        <FolhaProtegido
+          onFechar={() => setProtegendo(null)}
+          onEnviar={async (corpo) => {
+            const ok = await acao(() => api(`/incidents/${protegendo.id}/protected`, {
+              method: 'POST', body: JSON.stringify(corpo) }));
+            if (ok) { await abrirDetalhe(protegendo.id, true); setProtegendo(null); }
           }} />
       )}
 
@@ -1130,6 +1165,83 @@ function FolhaContencao({ onFechar, onEnviar }: {
                   onClick={() => onEnviar({
                     ...c,
                     duracaoMinutos: c.duracaoMinutos ? Number(c.duracaoMinutos) : undefined,
+                  })}>
+            Registrar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * REGISTRAR FALA ESPONTÂNEA E SINAIS OBSERVADOS (§13.2).
+ *
+ * É a folha mais delicada do sistema, e ela pede DUAS coisas difíceis de quem
+ * está cansada às 23h:
+ *
+ *  * transcrever, não interpretar. "Ele disse que o tio bateu" é a leitura de
+ *    quem ouviu; "Ele disse: 'o tio me bateu'" é o que a criança disse. A
+ *    diferença entre as duas frases já decidiu processo;
+ *  * descrever o sinal, não diagnosticar. "Mancha roxa de uns 3 cm no braço
+ *    esquerdo" é observação; "hematoma de agressão" é conclusão, e conclusão
+ *    não é trabalho de quem está de plantão — nem do sistema.
+ *
+ * E uma coisa que a folha diz por escrito porque a pessoa precisa saber ANTES
+ * de escrever: isto não é enviado a lugar nenhum automaticamente. Nem ao
+ * Judiciário, nem ao Conselho Tutelar. O sistema registra e protege; acionar a
+ * rede é decisão humana, com nome.
+ */
+function FolhaProtegido({ onFechar, onEnviar }: {
+  onFechar: () => void; onEnviar: (corpo: Record<string, unknown>) => void;
+}) {
+  const [fala, setFala] = useState('');
+  const [sinais, setSinais] = useState('');
+  const pode = fala.trim().length > 2 || sinais.trim().length > 2;
+
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-prot"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet modal">
+        <h3 id="t-prot">Registro protegido</h3>
+
+        <div className="notice c-med">
+          Este conteúdo <b>não aparece para os colegas do plantão</b>. Ficam com ele a equipe
+          técnica, a coordenação, você — que está escrevendo — e a Enfermagem, quando a
+          ocorrência for de saúde.
+        </div>
+
+        <label className="f" htmlFor="pr-fala">
+          O que a criança disse
+          <small> — com as palavras dela, entre aspas. Escreva a fala, não o que você
+            entendeu dela.</small>
+        </label>
+        <textarea id="pr-fala" value={fala} onChange={(e) => setFala(e.target.value)}
+                  placeholder={'Ex.: "eu não quero ir lá no sábado, ele grita comigo".'} />
+
+        <label className="f" htmlFor="pr-sinais">
+          Sinais observados
+          <small> — o que os seus olhos viram: onde, de que tamanho, de que cor. Sem
+            diagnóstico e sem supor a causa.</small>
+        </label>
+        <textarea id="pr-sinais" value={sinais} onChange={(e) => setSinais(e.target.value)}
+                  placeholder="Ex.: mancha arroxeada de cerca de 3 cm na face interna do braço esquerdo." />
+
+        <div className="notice c-info">
+          O sistema <b>não envia isto a ninguém</b> — nem ao Judiciário, nem ao Conselho
+          Tutelar. Acionar a rede é decisão da equipe técnica, com nome e data.
+        </div>
+        <div className="notice c-warn">
+          O registro protegido é <b>único por ocorrência e não se reescreve</b>. Escreva de uma
+          vez o que tem para escrever; o que vier depois entra como relato em seu nome.
+        </div>
+
+        <div className="row rodape">
+          <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
+          <button className="btn grow" disabled={!pode}
+                  onClick={() => onEnviar({
+                    falaEspontanea: fala.trim() || undefined,
+                    sinaisObservados: sinais.trim() || undefined,
                   })}>
             Registrar
           </button>

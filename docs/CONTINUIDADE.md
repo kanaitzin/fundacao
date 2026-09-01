@@ -865,7 +865,7 @@ responder e não me peça para reexplicar o que está lá.
 
 === ESTADO ATUAL ===
 
-Fases 0 a 35 concluídas. 335 testes passando em 30 suítes, sem falha conhecida
+Fases 0 a 36 concluídas. 342 testes passando em 31 suítes, sem falha conhecida
 — a suíte rodou cinco vezes seguidas entre 21h44 e 23h30 de Porto Alegre, que
 já é depois das 21h E depois da virada do dia em UTC (01/09 no banco, 31/08 na
 casa): a contaminação de data que a regra procura estava valendo em todas as
@@ -1081,7 +1081,47 @@ protocolo da casa — as duas condições valem juntas, e o e2e guarda isso
 autorizando um educador e mostrando que ele continua recusado até o protocolo
 abrir o período.
 
-Em aberto, na ordem: `docs/o-que-falta.md` — 33 rotas que existem no servidor e
+O REGISTRO PROTEGIDO DEPOIS DA ABERTURA (§13.2) fecha o grupo 1 do
+`o-que-falta.md`: não sobra nada que a educadora de plantão precise fazer às 23h
+e não tenha porta.
+
+A folha de abrir ocorrência já recebia fala espontânea e sinais observados. O
+que faltava é o caso mais comum de todos: a criança fala DEPOIS. Três dias
+depois, na hora de dormir, para quem estava perto — e não para quem abriu a
+ocorrência. Sem porta, sobravam dois caminhos e os dois são piores: escrever no
+campo "fato", que o plantão inteiro lê, ou não registrar em lugar nenhum.
+
+A folha pede duas coisas difíceis de quem está cansada, e diz as duas por
+escrito: transcrever e não interpretar ("ele disse que o tio bateu" é leitura de
+quem ouviu; "ele disse: 'o tio me bateu'" é o que a criança disse), e descrever o
+sinal sem diagnosticar. E avisa, antes de a pessoa escrever, que isto NÃO é
+enviado a ninguém automaticamente — nem ao Judiciário, nem ao Conselho Tutelar.
+Acionar a rede é decisão humana, com nome.
+
+Três recusas nasceram junto:
+
+ * VAZIO não se registra. O lugar é único por ocorrência e não se reescreve: uma
+   linha em branco tomaria a vaga de quem tem o que dizer;
+ * OCORRÊNCIA FECHADA não recebe — a cópia documental dela já foi arquivada, e é
+   a mesma correção do episódio em ATA fechada;
+ * e a recusa do "já existe" NÃO conta o que já está lá. Quem levou a recusa
+   pode ser exatamente quem a política impede de ler; a mensagem de erro não
+   pode virar a porta dos fundos do conteúdo protegido. Ela fala do ato e
+   aponta o caminho que continua aberto para essa pessoa: o relato em nome
+   próprio.
+
+UM DEFEITO DO PROTÓTIPO, encontrado ao ensaiar isto: o "Ver como" troca o CARGO
+e mantém a pessoa, então qualquer verificação de autoria no `mock.ts` valia para
+todos os cargos — e a demonstração mentiria justamente sobre a política mais
+estreita do sistema. No protótipo, "a mesma pessoa" passou a ser o mesmo nome no
+mesmo cargo.
+
+E um ensaio frágil, que não era defeito do sistema: `acoes2` abria "o plantão
+noturno" pelo texto do botão, mas QUAL turno a tela oferece depende da hora em
+que o ensaio roda (7h–19h é diurno). Às 7h da manhã ele falhava por isso. Agora
+abre o que estiver oferecido e entra no plantão que houver.
+
+Em aberto, na ordem: `docs/o-que-falta.md` — 32 rotas que existem no servidor e
 não têm tela, separadas entre o que vale para o piloto, o que espera e o que é
 de máquina; o retorno do Marcelo por cargo; duas decisões de produto que não são
 minhas (devolver acompanhamento para correção; o "concluí tudo até agora" na
