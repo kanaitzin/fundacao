@@ -26,6 +26,13 @@
 import { SemConexao } from './api';
 import { ALCANCE_POR_CARGO } from '../../backend/src/modules/identity/alcance';
 import { TIPOS_OFFLINE, TIPOS_OFFLINE_KINDS } from '../../backend/src/modules/sync/tipos-offline';
+import { cargoNoDocumento, nomeDoArquivo as nomeDaFolha }
+  from '../../backend/src/kernel/documentos/folha';
+import { folhaDaAta } from '../../backend/src/modules/shifts/ata-folha';
+import { folhaDaOcorrencia } from '../../backend/src/modules/incidents/ocorrencia-folha';
+import { folhaDeSaude } from '../../backend/src/modules/nursing/saude-folha';
+import { folhaDaGrade } from '../../backend/src/modules/medications/grade-folha';
+import { folhaDosCombinados } from '../../backend/src/modules/alignments/combinados-folha';
 import { SECOES_ATA, AMBIENTES_CASA, CLASSIFICACOES_EPISODIO }
   from '../../backend/src/modules/shifts/ata-secoes';
 import { TIPOS_ROTINA, DIAS_DA_SEMANA }
@@ -5393,6 +5400,140 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
    * finalidade declarada e registro próprio — a pré-visualização não substitui
    * nem dispensa isso.
    */
+
+  /*
+   * AS FOLHAS DOS DOCUMENTOS (§16).
+   *
+   * Estas rotas montam a folha com as MESMAS funções que o servidor usa —
+   * `ata-folha.ts`, `ocorrencia-folha.ts`, `saude-folha.ts`, `grade-folha.ts`,
+   * `combinados-folha.ts` —, e a partir dos MESMOS dados que a tela recebe,
+   * chamando aqui dentro a rota de leitura. Um mock que montasse a folha por
+   * conta própria seria a terceira versão do documento, e a demonstração
+   * ensaiaria um sistema que não existe (a lição que a aba de relatórios
+   * cobrou caro).
+   *
+   * Gerar o .docx no navegador, AQUI, é legítimo: o servidor de mentira é o
+   * navegador. No aplicativo de verdade quem gera é o servidor, e é ele que
+   * registra a saída.
+   */
+  const autorDaFolha = () => ({
+    nome: eu.fullName, cargo: cargoNoDocumento(eu.role),
+  });
+  const casaDaFolha = `${CASA.code} — ${CASA.name}`;
+
+  /** Exportar exige a finalidade escrita — a mesma recusa do servidor. */
+  const exportarFolha = (folha: any) => {
+    const finalidade = String(b.finalidade ?? '').trim();
+    if (finalidade.length < 10) {
+      return new Recusa(400, 'Descreva a finalidade da exportação (mínimo 10 caracteres).');
+    }
+    return {
+      nomeArquivo: nomeDaFolha(folha.titulo),
+      conteudoBase64: gerarDocx(folha, timbreEmBytes()),
+      aviso: folha.rascunho
+        ? 'Documento gerado em Word, marcado como RASCUNHO na primeira página. '
+          + 'Exportação registrada com o seu nome, a finalidade e o horário.'
+        : 'Documento gerado em Word, com timbre. Exportação registrada com o seu nome, '
+          + 'a finalidade e o horário. Converta para PDF na hora de enviar.',
+    };
+  };
+
+  const folhaDoPlantao = (plantaoId: string) => {
+    const p: any = responder(`/shifts/${plantaoId}`, ['shifts', plantaoId], q, {}, 'GET');
+    if (p instanceof Recusa) return p;
+    return folhaDaAta(
+      {
+        data: p.data, turno: p.turno,
+        status: p.ata?.status ?? p.status,
+        conteudo: p.ata?.conteudo ?? null,
+        pendencias: p.ata?.pendencias ?? null,
+        episodios: (p.episodios ?? []).map((e: any) => ({
+          quando: e.quando, classificacao: e.classificacao,
+          relato: e.relato, por: e.registradoPor,
+        })),
+        passagens: (p.passagens ?? []).map((h: any) => ({
+          quem: h.quem, cargo: cargoNoDocumento(h.cargo), assinadaEm: h.assinadaEm,
+        })),
+      },
+      SECOES_ATA.map((x) => ({ chave: x.chave, titulo: x.titulo })),
+      casaDaFolha, autorDaFolha());
+  };
+
+  const folhaDaOcorrenciaMock = (id: string) => {
+    const o: any = responder(`/incidents/${id}`, ['incidents', id], q, {}, 'GET');
+    if (o instanceof Recusa) return o;
+    return folhaDaOcorrencia({
+      categoria: o.categoria, quando: o.quando, status: o.status,
+      fato: o.fato, medidasImediatas: o.medidasImediatas,
+      acolhidos: (o.acolhidos ?? []).map((a: any) => ({ nome: a.nome })),
+      relatos: { relatos: (o.relatos?.relatos ?? []) },
+      sinteses: o.sinteses ?? [],
+    }, autorDaFolha());
+  };
+
+  const folhaDaSaudeMock = (pid: string) => {
+    const h: any = responder(`/nursing/history/${pid}`, ['nursing', 'history', pid], q, {}, 'GET');
+    if (h instanceof Recusa) return h;
+    const pessoa = kid(pid);
+    if (!pessoa) return new Recusa(404, 'Acolhido não encontrado — ou fora do seu alcance.');
+    return folhaDeSaude({ nome: pessoa.nome }, h, casaDaFolha, autorDaFolha());
+  };
+
+  const folhaDaGradeMock = () => {
+    const doses: any = responder('/medications', ['medications'], q, {}, 'GET');
+    if (doses instanceof Recusa) return doses;
+    return folhaDaGrade(casaDaFolha, doses, autorDaFolha());
+  };
+
+  const folhaDosCombinadosMock = () => {
+    const d: any = responder('/alignments', ['alignments'], q, {}, 'GET');
+    if (d instanceof Recusa) return d;
+    return folhaDosCombinados(
+      casaDaFolha,
+      (d.combinados ?? []).map((a: any) => ({
+        texto: a.texto, responsavel: a.responsavel, prazo: a.prazo,
+        por: a.por, criadoEm: a.criadoEm, situacao: a.situacao,
+      })),
+      (d.reunioes ?? []).map((m: any) => ({ data: m.data, titulo: m.titulo, por: m.por })),
+      autorDaFolha());
+  };
+
+  if (seg[0] === 'shifts' && seg[2] === 'folha' && metodo === 'GET') {
+    return folhaDoPlantao(seg[1]);
+  }
+  if (seg[0] === 'shifts' && seg[2] === 'export' && metodo === 'POST') {
+    const f = folhaDoPlantao(seg[1]);
+    return f instanceof Recusa ? f : exportarFolha(f);
+  }
+  if (seg[0] === 'incidents' && seg[2] === 'folha' && metodo === 'GET') {
+    return folhaDaOcorrenciaMock(seg[1]);
+  }
+  if (seg[0] === 'incidents' && seg[2] === 'export' && metodo === 'POST') {
+    const f = folhaDaOcorrenciaMock(seg[1]);
+    return f instanceof Recusa ? f : exportarFolha(f);
+  }
+  if (seg[0] === 'nursing' && seg[1] === 'history' && seg[3] === 'folha' && metodo === 'GET') {
+    return folhaDaSaudeMock(seg[2]);
+  }
+  if (seg[0] === 'nursing' && seg[1] === 'history' && seg[3] === 'export' && metodo === 'POST') {
+    const f = folhaDaSaudeMock(seg[2]);
+    return f instanceof Recusa ? f : exportarFolha(f);
+  }
+  if (rota === '/medications/folha' || rota.startsWith('/medications/folha?')) {
+    return folhaDaGradeMock();
+  }
+  if (rota === '/medications/export' && metodo === 'POST') {
+    const f = folhaDaGradeMock();
+    return f instanceof Recusa ? f : exportarFolha(f);
+  }
+  if (rota === '/alignments/folha' || rota.startsWith('/alignments/folha?')) {
+    return folhaDosCombinadosMock();
+  }
+  if (rota === '/alignments/export' && metodo === 'POST') {
+    const f = folhaDosCombinadosMock();
+    return f instanceof Recusa ? f : exportarFolha(f);
+  }
+
   if (seg[0] === 'reports' && seg[2] === 'preview' && metodo === 'POST') {
     const r = RELATORIOS.find((x) => x.id === seg[1]);
     if (!r) return new Recusa(404, 'Relatório não encontrado.');

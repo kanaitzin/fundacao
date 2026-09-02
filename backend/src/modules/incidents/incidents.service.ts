@@ -4,6 +4,9 @@ import { AuditService } from '../../kernel/audit/audit.service';
 import { EventBus } from '../../kernel/events/event-bus.service';
 import { AuthenticatedUser, DocumentClosed, EscalationRequest } from '../../kernel/contracts';
 import { StatementsService } from '../statements';
+import { DocumentosService } from '../../kernel/documentos/documentos.service';
+import { cargoNoDocumento } from '../../kernel/documentos/folha';
+import { folhaDaOcorrencia } from './ocorrencia-folha';
 
 /** Situações que abrem fluxo especial (§13.1). */
 export const CATEGORIAS = [
@@ -101,6 +104,7 @@ export class IncidentsService {
     @Inject(AuditService) private readonly audit: AuditService,
     @Inject(EventBus) private readonly bus: EventBus,
     @Inject(StatementsService) private readonly statements: StatementsService,
+    @Inject(DocumentosService) private readonly documentos: DocumentosService,
   ) {}
 
   catalogo() {
@@ -766,4 +770,43 @@ export class IncidentsService {
       throw e;
     }
   }
+
+  // ------------------------------------------------------------------
+  // A ocorrência como documento
+  // ------------------------------------------------------------------
+
+  /**
+   * A folha da ocorrência. Ver não é exportar: não gera arquivo e não registra.
+   *
+   * O que fica de fora é a decisão desta folha: `protegido` NUNCA entra, nem
+   * para quem tem a política para lê-lo na tela. Ver na tela é um acesso
+   * registrado, de uma pessoa, num momento; a folha impressa é uma cópia que
+   * anda sozinha pela casa.
+   */
+  async folhaDaOcorrencia(user: AuthenticatedUser, id: string) {
+    const o: any = await this.get(user, id);
+    return folhaDaOcorrencia(
+      {
+        categoria: o.categoria, quando: o.quando, status: o.status,
+        fato: o.fato, medidasImediatas: o.medidasImediatas,
+        acolhidos: (o.acolhidos ?? []).map((a: any) => ({ nome: a.nome })),
+        relatos: { relatos: (o.relatos?.relatos ?? []).map((r: any) => ({
+          autor: r.autor, testemunho: r.testemunho, quando: r.quando, relato: r.relato,
+        })) },
+        sinteses: (o.sinteses ?? []).map((x: any) => ({
+          autor: x.autor, quando: x.quando, texto: x.texto,
+        })),
+      },
+      { nome: user.fullName, cargo: cargoNoDocumento(user.role) },
+    );
+  }
+
+  async exportar(user: AuthenticatedUser, id: string, finalidade: string) {
+    const o: any = await this.get(user, id);
+    const folha = await this.folhaDaOcorrencia(user, id);
+    return this.documentos.exportar(user, folha, {
+      entidade: 'incident', entidadeId: id, houseId: o.casaId, finalidade,
+    });
+  }
+
 }

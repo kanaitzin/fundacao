@@ -7,6 +7,9 @@ import { AuditService } from '../../kernel/audit/audit.service';
 import { EventBus } from '../../kernel/events/event-bus.service';
 import { AuthenticatedUser } from '../../kernel/contracts';
 import { hojeNaInstituicao } from '../../kernel/common/tempo';
+import { DocumentosService } from '../../kernel/documentos/documentos.service';
+import { cargoNoDocumento } from '../../kernel/documentos/folha';
+import { folhaDaGrade } from './grade-folha';
 
 /** Estados que exigem observação obrigatória (§11.4). */
 const EXIGEM_NOTA = new Set([
@@ -35,6 +38,7 @@ export class MedicationsService {
     @Inject(DatabaseService) private readonly db: DatabaseService,
     @Inject(AuditService) private readonly audit: AuditService,
     @Inject(EventBus) private readonly bus: EventBus,
+    @Inject(DocumentosService) private readonly documentos: DocumentosService,
   ) {}
 
   // ---------- Prescrição (Enfermagem) ----------
@@ -691,6 +695,53 @@ export class MedicationsService {
     });
     return { ok: true };
   }
+
+  // ------------------------------------------------------------------
+  // A grade como documento
+  // ------------------------------------------------------------------
+
+  /** A folha da grade. Ver não é exportar: não gera arquivo e não registra. */
+  async folhaDaGrade(user: AuthenticatedUser, houseId: string, date: string) {
+    const doses = await this.dayGrid(user, houseId, date);
+    const casa = await this.db.asUser(user.id, async (c) => {
+      /*
+       * O ESCOPO É CONFERIDO ANTES, e não deduzido do rótulo.
+       *
+       * `app_house_label` filtra por INSTITUIÇÃO, não por alcance: a
+       * coordenação da Casa 03 recebe o código da Casa 04 sem problema
+       * nenhum. Quem responde "esta casa é sua?" é `app_house_in_scope`, e
+       * sem ela a folha da outra casa saía com título certo e conteúdo
+       * vazio — que se lê como "não há nada hoje", e não como "não é sua".
+       */
+      const { rows: [e] } = await c.query(`SELECT app_house_in_scope($1) AS pode`, [houseId]);
+      if (!e?.pode) return null;
+      const { rows: [h] } = await c.query(
+        `SELECT app_house_label($1) AS code, app_house_name($1) AS name`, [houseId]);
+      return [h?.code, h?.name].filter(Boolean).join(' — ');
+    });
+    /*
+     * Casa sem rótulo é casa fora do alcance. Sem esta recusa, a grade de
+     * outra unidade sairia com o título vazio — e o RLS teria devolvido lista
+     * vazia, que se lê como "casa sem medicação hoje" (a mesma armadilha do
+     * "zerar não é recusar").
+     */
+    if (!casa) throw new NotFoundException('Unidade não encontrada — ou fora do seu alcance.');
+    return folhaDaGrade(
+      casa,
+      doses.map((d: any) => ({
+        horario: d.horario, tipo: d.tipo, acolhido: d.acolhido,
+        medicamento: d.medicamento, dose: d.dose, via: d.via, rotulo: d.rotulo,
+      })),
+      { nome: user.fullName, cargo: cargoNoDocumento(user.role) },
+    );
+  }
+
+  async exportarGrade(user: AuthenticatedUser, houseId: string, date: string, finalidade: string) {
+    const folha = await this.folhaDaGrade(user, houseId, date);
+    return this.documentos.exportar(user, folha, {
+      entidade: 'medication_grid', houseId, finalidade,
+    });
+  }
 }
 
 function mapDose(r: any) {
@@ -712,4 +763,5 @@ function mapDose(r: any) {
     alergias: r.alergias,
     pendente: r.state === 'aguardando_confirmacao',
   };
+
 }

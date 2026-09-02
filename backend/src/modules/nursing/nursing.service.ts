@@ -6,6 +6,9 @@ import { AuditService } from '../../kernel/audit/audit.service';
 import { EventBus } from '../../kernel/events/event-bus.service';
 import { AuthenticatedUser } from '../../kernel/contracts';
 import { hojeNaInstituicao } from '../../kernel/common/tempo';
+import { DocumentosService } from '../../kernel/documentos/documentos.service';
+import { cargoNoDocumento } from '../../kernel/documentos/folha';
+import { folhaDeSaude } from './saude-folha';
 
 /** Prazo esperado de triagem — pendência institucional 33.4.2, configurável. */
 const SLA_TRIAGEM_HORAS = Number(process.env.NURSING_TRIAGE_SLA_HOURS ?? 24);
@@ -57,6 +60,7 @@ export class NursingService {
     @Inject(DatabaseService) private readonly db: DatabaseService,
     @Inject(AuditService) private readonly audit: AuditService,
     @Inject(EventBus) private readonly bus: EventBus,
+    @Inject(DocumentosService) private readonly documentos: DocumentosService,
   ) {}
 
   // ---------- Painel (§7.1) ----------
@@ -372,6 +376,47 @@ export class NursingService {
       };
     });
   }
+
+  // ------------------------------------------------------------------
+  // A saúde do acolhido como documento
+  // ------------------------------------------------------------------
+
+  /** A folha da saúde. Ver não é exportar: não gera arquivo e não registra. */
+  async folhaDeSaude(user: AuthenticatedUser, personId: string) {
+    const h: any = await this.history(user, personId);
+    const quem = await this.db.asUser(user.id, async (c) => {
+      const { rows: [r] } = await c.query(
+        `SELECT app_person_display_name($1) AS nome,
+                (SELECT app_house_label(hs.house_id) || ' — ' || app_house_name(hs.house_id)
+                   FROM house_stay hs
+                  WHERE hs.person_id = $1 AND hs.status = 'ativa' LIMIT 1) AS unidade`,
+        [personId]);
+      return r;
+    });
+    /* Nome nulo significa uma coisa só: a criança nunca esteve numa casa do
+     * seu alcance. Gerar a folha assim entregaria um documento sobre alguém
+     * que a pessoa não pode ver. */
+    if (!quem?.nome) {
+      throw new NotFoundException('Acolhido não encontrado — ou fora do seu alcance.');
+    }
+    return folhaDeSaude(
+      { nome: quem.nome },
+      {
+        atendimentos: h.atendimentos, evolucoes: h.evolucoes,
+        administracoes: h.administracoes, pendencias: h.pendencias,
+      },
+      quem.unidade ?? 'Unidade',
+      { nome: user.fullName, cargo: cargoNoDocumento(user.role) },
+    );
+  }
+
+  async exportarSaude(user: AuthenticatedUser, personId: string, finalidade: string) {
+    const folha = await this.folhaDeSaude(user, personId);
+    return this.documentos.exportar(user, folha, {
+      entidade: 'health_history', entidadeId: personId, finalidade,
+    });
+  }
+
 }
 
 export { SLA_TRIAGEM_HORAS };

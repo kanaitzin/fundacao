@@ -18,6 +18,27 @@ export class MedicationsController {
     return this.meds.dayGrid(user, houseId, date ?? hojeNaInstituicao(), personId || undefined);
   }
 
+  /**
+   * A GRADE COMO FOLHA — o papel que fica na porta do armário.
+   *
+   * Vem da mesma grade que a tela mostra. A folha traz horário, nome e
+   * medicamento, e NÃO traz diagnóstico nem alergia: ela é papel de serviço,
+   * fica em área restrita à equipe, e a decisão está escrita nela.
+   */
+  @Get('folha')
+  folha(@CurrentUser() user: AuthenticatedUser,
+        @Query('houseId', ParseUUIDPipe) houseId: string,
+        @Query('date') date?: string) {
+    return this.meds.folhaDaGrade(user, houseId, date ?? hojeNaInstituicao());
+  }
+
+  @Post('export')
+  exportar(@CurrentUser() user: AuthenticatedUser,
+           @Body() body: { houseId: string; date?: string; finalidade?: string }) {
+    return this.meds.exportarGrade(
+      user, body?.houseId, body?.date ?? hojeNaInstituicao(), body?.finalidade ?? '');
+  }
+
   /** Horários dos alertas, para o aparelho agendar lembrete local offline (§17.5). */
   @Get('alert-offsets')
   alerts() {

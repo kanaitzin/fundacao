@@ -578,6 +578,66 @@ para sempre.
 - **Tela vazia precisa dizer por que está vazia.** Uma lista de conflitos em
   branco é boa notícia, e se ela não disser isso será lida como "não carregou".
 
+## Fase 47 — As folhas em Word saem do servidor ✅
+
+A ATA, a ocorrência, a saúde, a grade da casa e os combinados eram montados
+**no navegador**, e o `.docx` era escrito lá. O documento saía certo, e o
+sistema ficava sem resposta para a pergunta que importa meses depois: **quem
+tirou esta cópia daqui, e para quê?** Arquivo gerado no navegador não passa
+por auditoria nenhuma.
+
+| Requisito | Onde ficou | Teste |
+|---|---|---|
+| Um contrato de folha, lido pelas duas pontas | `kernel/documentos/folha.ts` | `folhas-em-word.e2e` |
+| Folha → `.docx` com timbre, uma vez só | `kernel/documentos/documentos.service.ts` | idem |
+| Cada partição monta a folha que é dela | `ata-folha`, `ocorrencia-folha`, `saude-folha`, `grade-folha`, `combinados-folha` | idem |
+| Ver não é exportar | `GET .../folha` não registra nada | contagem relativa na auditoria |
+| Exportar exige finalidade escrita | recusa no kernel, ≥10 caracteres | e2e + `ensaio:folhas` |
+| A saída fica registrada, sem o conteúdo | `audit_event` com título e contagem | e2e confere as chaves do detalhe |
+| Fala espontânea não vai para o papel | folha da ocorrência, e a ressalva diz isso | e2e procura o texto no `.docx` |
+| Casa fora do alcance é recusa | `app_house_in_scope` antes de montar | e2e com a coordenação da Casa 04 |
+| A tela pergunta a finalidade antes | folha "Para que você precisa desta cópia?" | `ensaio:folhas` |
+
+### Achados desta fase
+
+- **`app_house_label` não confere alcance — confere INSTITUIÇÃO.** A grade e
+  os combinados de outra casa saíam com título correto e conteúdo vazio,
+  porque o RLS filtrava as linhas e o rótulo vinha assim mesmo. "Casa 04 —
+  nenhuma dose prevista para hoje" é a mesma armadilha da regra 12, agora em
+  papel timbrado. Agora `app_house_in_scope` responde antes, e a folha é
+  recusada.
+- **O conferidor de rotas pegou a rota que EU escondi numa variável.** A folha
+  recebia `rotaExport` como texto e chamava `api(rotaExport)`: compilava,
+  funcionava, e sumia com as cinco rotas de exportação do `contrato-rotas`.
+  A folha passou a receber a função; a rota está escrita por extenso em cada
+  tela.
+- **E então o mesmo conferidor reprovou o comentário que explicava a
+  correção.** Ele varre texto, e leu `api(rotaExport)` dentro de um comentário
+  como se fosse a chamada. Comentário agora some antes da varredura: um
+  conferidor que pune quem escreve sobre o defeito ensina a não escrever sobre
+  o defeito.
+- **O banco recusou a limpeza da suíte.** O `afterAll` tentava apagar a
+  ocorrência de teste e levou `ocorrencia_nao_e_apagada` — que é exatamente o
+  que a regra manda. A limpeza da suíte não é exceção à regra: quem limpa é o
+  `globalSetup`, recriando o schema.
+
+### O que esta fase decidiu, e não é técnico
+
+- **A folha da ocorrência não leva fala espontânea nem sinais observados**,
+  nem para quem tem política para lê-los na tela. Ver na tela é um acesso
+  registrado, de uma pessoa, num momento; a folha impressa é uma cópia que
+  anda sozinha pela casa. E a folha **diz** que não leva, em vez de só omitir.
+- **A ATA que não está fechada sai marcada como rascunho.** Uma cópia de ATA
+  aberta circulando como institucional é o registro do turno antes de a equipe
+  ter terminado o turno.
+- **A grade da casa é papel de serviço**: horário, nome e medicamento, sem
+  diagnóstico nem alergia, com o aviso escrito dentro de onde ela pode ficar
+  pendurada.
+- **Sai em Word, não em PDF**, por uso: quem assina precisa poder mexer. Um
+  PDF fechado empurraria a equipe a refazer o documento no Word da máquina
+  dela — e aí o que vai ao Juízo deixa de ter relação com o que está no
+  sistema.
+
 ## Fase 46 — A fila local do aparelho ✅
 
 O servidor já sabia receber a fila desde a fase 3: `POST /sync/push` decide o

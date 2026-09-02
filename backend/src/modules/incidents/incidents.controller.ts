@@ -69,6 +69,25 @@ export class IncidentsController {
     return this.incidents.get(user, id);
   }
 
+  /**
+   * A FOLHA DA OCORRÊNCIA — ver antes de baixar, e baixar o que se viu.
+   *
+   * A folha NÃO leva fala espontânea nem sinais observados (§13.2), estejam
+   * eles visíveis ou não para quem pede: papel é fotocopiado, fica em cima de
+   * uma mesa e vai por e-mail. Quem precisar do inteiro teor abre a ocorrência
+   * e responde pelo acesso dela.
+   */
+  @Get(':id/folha')
+  folha(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.incidents.folhaDaOcorrencia(user, id);
+  }
+
+  @Post(':id/export')
+  exportar(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
+           @Body() body: { finalidade?: string }) {
+    return this.incidents.exportar(user, id, body?.finalidade ?? '');
+  }
+
   @Post(':id/protected')
   addProtected(@CurrentUser() user: AuthenticatedUser,
                @Param('id', ParseUUIDPipe) id: string, @Body() body: any) {

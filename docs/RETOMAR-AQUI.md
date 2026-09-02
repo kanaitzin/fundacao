@@ -50,7 +50,9 @@ rede-acolher/
 │   ├── src/
 │   │   ├── screens/       30 telas React
 │   │   ├── mock.ts        o "servidor de mentira" do protótipo
-│   │   ├── docx.ts        monta o .docx no navegador (timbre + ABNT)
+│   │   ├── docx.ts        monta o .docx NO NAVEGADOR — só para o protótipo,
+│   │   │                  que roda sem servidor; no sistema real quem gera é
+│   │   │                  o kernel, e é ele que registra a saída
 │   │   ├── documentos.tsx pré-visualização em folha + downloads por setor
 │   │   ├── api.ts         cliente HTTP, ErroApi, SemConexao e a porta da fila
 │   │   ├── fila-offline.ts a fila local do aparelho (IndexedDB): guarda sem
@@ -202,10 +204,11 @@ Além dos e2e, quatro suítes estáticas — elas já pegaram erro de verdade:
 
 ## 5. O QUE JÁ ESTÁ PRONTO
 
-**Fases 0 a 46. 415 testes em 39 suítes**, **nove rodadas seguidas limpas** —
-cinco em 01/09 e quatro entre 23h50 de 01/09 e 00h45 de Porto Alegre, com o
-UTC já no dia seguinte, que é a condição que a regra pede. 30 telas, 72
-migrações, 89 tabelas.
+**Fases 0 a 47. 425 testes em 40 suítes**, **onze rodadas seguidas limpas** —
+cinco
+em 01/09, quatro entre 23h50 e 00h45 (com o UTC já no dia seguinte, que é a
+condição que a regra pede) e duas na manhã de 02/09. 30 telas, 72 migrações,
+89 tabelas.
 
 E dois ensaios de navegador, que `tsc` não substitui — ele diz que compila,
 nunca disse que renderiza:
@@ -215,7 +218,10 @@ nunca disse que renderiza:
   e que não mostre `undefined` para quem lê;
 - `npm run ensaio:fila` faz o que só existe fora da tela: corta o sinal, marca
   a chamada, fecha e abre o aplicativo, religa e confere que **só o que o
-  servidor confirmou** saiu do aparelho.
+  servidor confirmou** saiu do aparelho;
+- `npm run ensaio:folhas` percorre os quatro caminhos de documento: abre a
+  folha, tenta baixar com finalidade curta demais, baixa com uma frase válida
+  e confere que o `.docx` chegou.
 
 **O ciclo do acolhimento:** admissão com motivo e capacidade, perfil, correção
 de cadastro com histórico legível, **atualização dos dados descritivos —
@@ -314,15 +320,20 @@ enfileiramento da cópia, disparado por evento), `POST /sync/push`,
 resposta (`GET /statements`, `GET /people/:id/admission`,
 `GET /reports/:id/delivery`).
 
-### O que o SERVIDOR ainda não faz, e o protótipo já mostra
+### A dívida do Word — paga em 02/09/2026
 
-Uma dívida honesta, anotada para não ser esquecida: a **pré-visualização e o
-download em Word** de ATA, ocorrência, saúde e combinados são montados no
-NAVEGADOR (`frontend/src/docx.ts`). Só o relatório tem rota de verdade
-(`POST /reports/:id/preview` e `/export`). Para o sistema real, cada uma dessas
-folhas precisa da rota equivalente no servidor, usando o `DocumentoService` que
-já existe em `modules/reports` — provavelmente movido para o kernel, porque
-partição não importa partição.
+Ficou anotada aqui por três semanas: a pré-visualização e o download em Word de
+ATA, ocorrência, saúde e combinados eram montados no NAVEGADOR, e só o
+relatório tinha rota de verdade. **Fase 47.** O contrato da folha subiu para
+`kernel/documentos/folha.ts`, o gerador de `.docx` para
+`kernel/documentos/documentos.service.ts`, e cada partição monta a folha do
+documento que é dela. Dez rotas novas: `GET .../folha` (ver, sem registrar) e
+`POST .../export` (finalidade obrigatória, saída registrada) em `shifts`,
+`incidents`, `nursing`, `medications` e `alignments`.
+
+O `docx.ts` do navegador continua no repositório por uma razão só — o protótipo
+roda sem servidor —, mas deixou de declarar o contrato: ele importa o do
+kernel.
 
 ---
 

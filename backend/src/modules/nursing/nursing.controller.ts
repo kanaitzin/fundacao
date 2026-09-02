@@ -43,6 +43,24 @@ export class NursingController {
     return this.nursing.history(user, personId);
   }
 
+  /**
+   * A FOLHA DE SAÚDE — o que a Enfermagem leva para a consulta.
+   *
+   * Vem do MESMO histórico que a tela mostra: quem alcança o histórico alcança
+   * a folha dele, e é o RLS de `history` que decide isso.
+   */
+  @Get('history/:personId/folha')
+  folha(@CurrentUser() user: AuthenticatedUser, @Param('personId', ParseUUIDPipe) personId: string) {
+    return this.nursing.folhaDeSaude(user, personId);
+  }
+
+  @Post('history/:personId/export')
+  exportar(@CurrentUser() user: AuthenticatedUser,
+           @Param('personId', ParseUUIDPipe) personId: string,
+           @Body() body: { finalidade?: string }) {
+    return this.nursing.exportarSaude(user, personId, body?.finalidade ?? '');
+  }
+
   // ---- Resumo de Saúde (§7.4) ----
   @Post('summary/:personId')
   generate(@CurrentUser() user: AuthenticatedUser,

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api';
-import { FolhaDocumento, documentoDaOcorrencia } from '../documentos';
+import { FolhaDocumento } from '../documentos';
+import type { ArquivoGerado } from '../documentos';
 import type { DocumentoWord } from '../docx';
 import { quemAssina } from '../quem-assina';
 
@@ -136,6 +137,8 @@ export function Ocorrencias({ houseId, papel }: { houseId: string; papel: string
   const [testemunhos, setTestemunhos] = useState<OpcaoTestemunho[]>([]);
   const [relatando, setRelatando] = useState<ItemLista | null>(null);
   const [erro, setErro] = useState('');
+  /** De qual ocorrência é a folha aberta — a rota de exportação precisa saber. */
+  const [documentoDe, setDocumentoDe] = useState<string | null>(null);
   const [aviso, setAviso] = useState('');
   const [abrindo, setAbrindo] = useState(false);
   const [aba, setAba] = useState<'ocorrencias' | 'comunicacoes'>('ocorrencias');
@@ -344,7 +347,15 @@ export function Ocorrencias({ houseId, papel }: { houseId: string; papel: string
                     * política própria e mais estreita, e papel não tem RLS.
                     */}
                   <button className="btn sec sm"
-                          onClick={() => setDocumento(documentoDaOcorrencia(d, quemAssina()))}>
+                          onClick={async () => {
+                            try {
+                              setDocumento(await api<DocumentoWord>(`/incidents/${o.id}/folha`));
+                              setDocumentoDe(o.id);
+                            } catch (e) {
+                              setErro(e instanceof Error ? e.message
+                                : 'Não foi possível montar a folha da ocorrência.');
+                            }
+                          }}>
                     📄 Ver em folha / baixar em Word
                   </button>
 
@@ -712,7 +723,12 @@ export function Ocorrencias({ houseId, papel }: { houseId: string; papel: string
       )}
 
       {documento && (
-        <FolhaDocumento doc={documento} onFechar={() => setDocumento(null)} />
+        <FolhaDocumento doc={documento} onFechar={() => setDocumento(null)}
+                        exportar={documentoDe
+                          ? (finalidade) => api<ArquivoGerado>(
+                              `/incidents/${documentoDe}/export`,
+                              { method: 'POST', body: JSON.stringify({ finalidade }) })
+                          : undefined} />
       )}
 
       {protegendo && (

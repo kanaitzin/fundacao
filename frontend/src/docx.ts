@@ -26,37 +26,26 @@
 
 // ---------------------------------------------------------------- o que entra
 
-export interface LinhaIdentificacao { rotulo: string; valor: string }
+/*
+ * O CONTRATO DA FOLHA NÃO MORA MAIS AQUI.
+ *
+ * Ele subiu para `kernel/documentos/folha.ts`, lido pelo servidor e pela tela.
+ * Enquanto a folha era declarada dos dois lados, ela era a mesma por
+ * disciplina — e disciplina não sobrevive ao primeiro campo que alguém
+ * acrescenta de um lado só.
+ *
+ * Este arquivo continua existindo por uma razão: o PROTÓTIPO não tem servidor.
+ * No aplicativo de verdade quem monta o .docx é o servidor, que registra a
+ * saída com o nome de quem pediu e a finalidade; aqui ele é montado no
+ * navegador, a partir da MESMA folha.
+ */
+export type {
+  LinhaIdentificacao,
+  SecaoDaFolha as SecaoDoDocumento,
+  Folha as DocumentoWord,
+} from '../../backend/src/kernel/documentos/folha';
+import type { Folha as DocumentoWord } from '../../backend/src/kernel/documentos/folha';
 
-export interface SecaoDoDocumento {
-  titulo: string;
-  /** Parágrafos de corpo, justificados e com recuo. */
-  paragrafos?: string[];
-  /** Lista de itens, sem recuo e com marcador. */
-  itens?: string[];
-  /** Tabela simples — usada nos quadros de saúde e de rotina. */
-  tabela?: { cabecalho: string[]; linhas: string[][] };
-  /** Campo que só uma pessoa preenche: sai com a marca e o espaço em branco. */
-  aPreencher?: string;
-  /** De onde a informação veio. Sai em letra menor, abaixo da seção. */
-  procedencia?: string;
-}
-
-export interface DocumentoWord {
-  /** Vira o nome do arquivo e o título na primeira folha. */
-  titulo: string;
-  subtitulo?: string;
-  identificacao: LinhaIdentificacao[];
-  secoes: SecaoDoDocumento[];
-  /** Rascunho recebe tarja na primeira folha: ninguém entrega sem saber. */
-  rascunho?: boolean;
-  geradoPor: string;
-  cargo: string;
-  /** Linha de assinatura no fim, com nome e cargo. */
-  assinatura?: boolean;
-  /** Frase final, quando o documento precisa dizer o que ele não é. */
-  ressalva?: string;
-}
 
 // ---------------------------------------------------------------- utilidades
 

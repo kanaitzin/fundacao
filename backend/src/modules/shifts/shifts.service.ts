@@ -5,6 +5,9 @@ import { EventBus } from '../../kernel/events/event-bus.service';
 import { AuthenticatedUser, DocumentClosed, EscalationRequest } from '../../kernel/contracts';
 import { hojeNaInstituicao, dataDoPlantao, janelaDeConsulta } from '../../kernel/common/tempo';
 import { SECOES_ATA, AMBIENTES_CASA, CLASSIFICACOES_EPISODIO } from './ata-secoes';
+import { DocumentosService } from '../../kernel/documentos/documentos.service';
+import { cargoNoDocumento } from '../../kernel/documentos/folha';
+import { folhaDaAta } from './ata-folha';
 
 /**
  * PLANTÃO, PASSAGEM E ATA (§12).
@@ -25,6 +28,7 @@ export class ShiftsService {
     @Inject(DatabaseService) private readonly db: DatabaseService,
     @Inject(AuditService) private readonly audit: AuditService,
     @Inject(EventBus) private readonly bus: EventBus,
+    @Inject(DocumentosService) private readonly documentos: DocumentosService,
   ) {}
 
   secoes() {
@@ -929,4 +933,53 @@ export class ShiftsService {
       throw e;
     }
   }
+
+  // ------------------------------------------------------------------
+  // A ATA como documento
+  // ------------------------------------------------------------------
+
+  /**
+   * A folha da ATA — a mesma estrutura que a tela desenha e que vira o .docx.
+   *
+   * Não gera arquivo e não registra saída: ver não é exportar. Quem tem
+   * alcance no plantão tem alcance na folha dele, e é o RLS de `get` que
+   * decide isso — não uma segunda lista de permissões aqui.
+   */
+  async folhaDoPlantao(user: AuthenticatedUser, shiftId: string) {
+    const p = await this.get(user, shiftId);
+    const casa = await this.db.asUser(user.id, async (c) => {
+      const { rows: [h] } = await c.query(
+        `SELECT app_house_label($1) AS code, app_house_name($1) AS name`, [p.casaId]);
+      return [h?.code, h?.name].filter(Boolean).join(' — ') || 'Unidade';
+    });
+    return folhaDaAta(
+      {
+        data: p.data, turno: p.turno,
+        status: p.ata?.status ?? p.status,
+        conteudo: p.ata?.conteudo ?? null,
+        pendencias: p.ata?.pendencias ?? null,
+        episodios: p.episodios.map((e: any) => ({
+          quando: e.quando, classificacao: e.classificacao,
+          relato: e.relato, por: e.registradoPor,
+        })),
+        passagens: p.passagens.map((h: any) => ({
+          quem: h.quem, cargo: cargoNoDocumento(h.cargo), assinadaEm: h.assinadaEm,
+        })),
+      },
+      SECOES_ATA.map((s) => ({ chave: s.chave, titulo: s.titulo })),
+      casa,
+      { nome: user.fullName, cargo: cargoNoDocumento(user.role) },
+    );
+  }
+
+  /** O arquivo. Exige finalidade escrita, e a saída fica registrada. */
+  async exportarAta(user: AuthenticatedUser, shiftId: string, finalidade: string) {
+    const folha = await this.folhaDoPlantao(user, shiftId);
+    const p = await this.get(user, shiftId);
+    return this.documentos.exportar(user, folha, {
+      entidade: 'ata', entidadeId: p.ata?.id ?? shiftId,
+      houseId: p.casaId, finalidade,
+    });
+  }
+
 }

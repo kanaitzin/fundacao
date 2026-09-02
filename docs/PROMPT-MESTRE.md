@@ -95,19 +95,23 @@ não me peça para reexplicar o que está lá.
 
 === ESTADO ATUAL (02/09/2026) ===
 
-Fases 0 a 46. 415 testes em 39 suítes, sem falha conhecida — nove rodadas
+Fases 0 a 47. 425 testes em 40 suítes, sem falha conhecida — onze rodadas
 seguidas limpas, quatro delas entre 23h50 e 00h45 de Porto Alegre, com o UTC já
 no dia seguinte, que é a condição que a regra pede. Backend NestJS +
 PostgreSQL 16 com RLS, 17 partições isoladas, 72 migrações, 89 tabelas.
-Frontend React PWA, 30 telas, empacotado num único .html de ~850 KB que abre
-sem servidor. A fila local do aparelho existe desde 02/09: sem sinal a operação
-fica guardada, sobe ao reconectar, e só sai do aparelho o que o servidor
-confirmou.
+Frontend React PWA, 30 telas, empacotado num único .html de ~857 KB que abre
+sem servidor.
+
+Duas dívidas antigas foram pagas em 02/09: a fila local do aparelho (sem sinal
+a operação fica guardada, sobe ao reconectar, e só sai do aparelho o que o
+servidor confirmou) e as folhas em Word, que eram montadas no navegador e agora
+nascem no servidor, com a saída registrada e a finalidade obrigatória.
 
 Comece a sessão por `bash scripts/preparar-ambiente.sh` — dependências,
 PostgreSQL e Chromium caem entre uma sessão e outra. `npm run ensaio` percorre
-as 100 telas dos oito cargos no navegador (tela nova entra nesse percurso) e
-`npm run ensaio:fila` ensaia o que só existe fora da tela.
+as 100 telas dos oito cargos no navegador (tela nova entra nesse percurso),
+`npm run ensaio:fila` ensaia o que só existe fora da tela, e
+`npm run ensaio:folhas` percorre os caminhos de documento até o arquivo baixar.
 
 O grupo 1 do levantamento — o que a educadora precisa fazer às 23h — está
 VAZIO: tudo tem porta. Das 34 rotas que existiam sem tela em 01/09, restam 20,

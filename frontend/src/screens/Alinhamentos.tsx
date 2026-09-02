@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api';
 import { FolhaDocumento } from '../documentos';
+import type { ArquivoGerado } from '../documentos';
 import type { DocumentoWord } from '../docx';
 import { quemAssina } from '../quem-assina';
 
@@ -96,41 +97,10 @@ export function Alinhamentos({ houseId, casaLabel }: { houseId: string; casaLabe
   const vigentes = dados.combinados.filter((c) => c.situacao === 'vigente');
   const encerrados = dados.combinados.filter((c) => c.situacao !== 'vigente');
 
-  /** A folha dos combinados vigentes — a que a equipe leva para o mural dela. */
-  const folhaDosCombinados = (): DocumentoWord => ({
-    titulo: `Combinados vigentes — ${casaLabel}`,
-    subtitulo: 'O que a equipe estabeleceu e está valendo',
-    identificacao: [
-      { rotulo: 'Unidade', valor: casaLabel },
-      { rotulo: 'Emitido em', valor: dia(new Date().toISOString()) },
-      { rotulo: 'Combinados vigentes', valor: String(vigentes.length) },
-    ],
-    secoes: [
-      {
-        titulo: 'Combinados em vigor',
-        paragrafos: vigentes.length ? [] : ['Nenhum combinado vigente registrado.'],
-        itens: vigentes.map((c) => [
-          c.texto,
-          c.responsavel ? `responsável: ${c.responsavel}` : null,
-          c.prazo ? `até ${dia(c.prazo)}` : null,
-          `registrado por ${c.por} em ${dia(c.criadoEm)}`,
-        ].filter(Boolean).join(' · ')),
-        procedencia: 'combinados registrados pela equipe técnica e pela coordenação.',
-      },
-      {
-        titulo: 'Reuniões do período',
-        tabela: dados.reunioes.length ? {
-          cabecalho: ['Data', 'Reunião', 'Registrada por'],
-          linhas: dados.reunioes.slice(0, 20).map((r) => [dia(r.data), r.titulo, r.por]),
-        } : undefined,
-        paragrafos: dados.reunioes.length ? [] : ['Nenhuma reunião registrada.'],
-      },
-    ],
-    geradoPor: quemAssina().nome, cargo: quemAssina().cargo,
-    ressalva: 'Esta folha vale na data em que foi emitida. O que manda é o sistema: um '
-      + 'combinado encerrado depois desta impressão continua encerrado, e o papel não sabe '
-      + 'disso.',
-  });
+  /*
+   * A folha dos combinados vem do SERVIDOR desde 02/09/2026. Ela era montada
+   * aqui, e o documento saía do sistema sem que o sistema soubesse.
+   */
 
   return (
     <>
@@ -175,7 +145,14 @@ export function Alinhamentos({ houseId, casaLabel }: { houseId: string; casaLabe
           <span className="pill c-mute">{encerrados.length} encerrado(s)</span>
         )}
         <span className="grow" />
-        <button className="btn sm ghost" onClick={() => setDocumento(folhaDosCombinados())}>
+        <button className="btn sm ghost" onClick={async () => {
+                  try {
+                    setDocumento(await api<DocumentoWord>(`/alignments/folha?houseId=${houseId}`));
+                  } catch (e) {
+                    setErro(e instanceof Error ? e.message
+                      : 'Não foi possível montar a folha dos combinados.');
+                  }
+                }}>
           📄 Ver em folha / baixar
         </button>
       </div>
@@ -326,7 +303,10 @@ export function Alinhamentos({ houseId, casaLabel }: { houseId: string; casaLabe
       )}
 
       {documento && (
-        <FolhaDocumento doc={documento} onFechar={() => setDocumento(null)} />
+        <FolhaDocumento doc={documento} onFechar={() => setDocumento(null)}
+                        exportar={(finalidade) => api<ArquivoGerado>('/alignments/export', {
+                          method: 'POST', body: JSON.stringify({ houseId, finalidade }),
+                        })} />
       )}
     </>
   );

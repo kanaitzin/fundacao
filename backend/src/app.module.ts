@@ -5,6 +5,7 @@ import { ConfigModule } from '@nestjs/config';
 import { DatabaseModule } from './kernel/database/database.module';
 import { AuditModule } from './kernel/audit/audit.module';
 import { EventsModule } from './kernel/events/events.module';
+import { DocumentosModule } from './kernel/documentos/documentos.module';
 import { HealthController } from './kernel/health/health.controller';
 
 // ---------- Módulos de domínio: partições independentes ----------
@@ -35,6 +36,7 @@ import { ArchiveModule } from './modules/archive';
     DatabaseModule,
     AuditModule,
     EventsModule,
+    DocumentosModule,
 
     IdentityModule,
     HousesModule,

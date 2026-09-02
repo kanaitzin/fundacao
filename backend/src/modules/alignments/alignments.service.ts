@@ -4,6 +4,9 @@ import {
 import { DatabaseService } from '../../kernel/database/database.service';
 import { AuditService } from '../../kernel/audit/audit.service';
 import { AuthenticatedUser } from '../../kernel/contracts';
+import { DocumentosService } from '../../kernel/documentos/documentos.service';
+import { cargoNoDocumento } from '../../kernel/documentos/folha';
+import { folhaDosCombinados } from './combinados-folha';
 
 /**
  * REUNIÕES DE EQUIPE E COMBINADOS (§9.4).
@@ -39,6 +42,7 @@ export class AlignmentsService {
   constructor(
     @Inject(DatabaseService) private readonly db: DatabaseService,
     @Inject(AuditService) private readonly audit: AuditService,
+    @Inject(DocumentosService) private readonly documentos: DocumentosService,
   ) {}
 
   vocabulario() {
@@ -279,4 +283,49 @@ export class AlignmentsService {
       throw e;
     }
   }
+
+  // ------------------------------------------------------------------
+  // Os combinados como documento
+  // ------------------------------------------------------------------
+
+  /** A folha dos combinados. Ver não é exportar. */
+  async folhaDosCombinados(user: AuthenticatedUser, houseId: string) {
+    const d: any = await this.list(user, houseId);
+    const casa = await this.db.asUser(user.id, async (c) => {
+      /*
+       * O ESCOPO É CONFERIDO ANTES, e não deduzido do rótulo.
+       *
+       * `app_house_label` filtra por INSTITUIÇÃO, não por alcance: a
+       * coordenação da Casa 03 recebe o código da Casa 04 sem problema
+       * nenhum. Quem responde "esta casa é sua?" é `app_house_in_scope`, e
+       * sem ela a folha da outra casa saía com título certo e conteúdo
+       * vazio — que se lê como "não há nada hoje", e não como "não é sua".
+       */
+      const { rows: [e] } = await c.query(`SELECT app_house_in_scope($1) AS pode`, [houseId]);
+      if (!e?.pode) return null;
+      const { rows: [h] } = await c.query(
+        `SELECT app_house_label($1) AS code, app_house_name($1) AS name`, [houseId]);
+      return [h?.code, h?.name].filter(Boolean).join(' — ');
+    });
+    /* Casa sem rótulo é casa fora do alcance — e o RLS teria devolvido lista
+     * vazia, que se lê como "esta equipe não combinou nada". */
+    if (!casa) throw new NotFoundException('Unidade não encontrada — ou fora do seu alcance.');
+    return folhaDosCombinados(
+      casa,
+      (d.combinados ?? []).map((a: any) => ({
+        texto: a.texto, responsavel: a.responsavel, prazo: a.prazo,
+        por: a.por, criadoEm: a.criadoEm, situacao: a.situacao,
+      })),
+      (d.reunioes ?? []).map((m: any) => ({ data: m.data, titulo: m.titulo, por: m.por })),
+      { nome: user.fullName, cargo: cargoNoDocumento(user.role) },
+    );
+  }
+
+  async exportarCombinados(user: AuthenticatedUser, houseId: string, finalidade: string) {
+    const folha = await this.folhaDosCombinados(user, houseId);
+    return this.documentos.exportar(user, folha, {
+      entidade: 'alignment_agreements', houseId, finalidade,
+    });
+  }
+
 }

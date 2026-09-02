@@ -184,8 +184,20 @@ describe('Contrato de rotas entre a tela e o servidor', () => {
      */
     const alvos = arquivos(FRONT, (f) =>
       (f.endsWith('.ts') || f.endsWith('.tsx')) && f !== 'mock.ts' && f !== 'api.ts');
+    /*
+     * O COMENTÁRIO NÃO É CÓDIGO — e este conferidor já acusou um.
+     *
+     * Um comentário que explicava por que `api(rotaExport)` era errado foi
+     * lido como a própria chamada, e o teste reprovou a documentação da
+     * correção que ele mesmo tinha exigido. Comentário some antes da varredura:
+     * um conferidor que pune quem escreve sobre o defeito ensina a não
+     * escrever sobre o defeito.
+     */
+    const semComentarios = (t: string) =>
+      t.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/(^|[^:])\/\/[^\n]*/g, '$1 ');
+
     for (const arq of alvos) {
-      const src = readFileSync(arq, 'utf8');
+      const src = semComentarios(readFileSync(arq, 'utf8'));
       for (const m of src.matchAll(/\bapi(?:<[^>]*>)?\(\s*([A-Za-z_$][\w$]*)\s*[,)]/g)) {
         suspeitas.push(`${m[0].trim()} — rota em variável (${arq.slice(arq.indexOf('frontend'))})`);
       }

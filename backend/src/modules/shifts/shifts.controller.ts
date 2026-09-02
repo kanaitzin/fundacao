@@ -74,6 +74,29 @@ export class ShiftsController {
     return this.shifts.saveAta(user, ataId, body);
   }
 
+  /**
+   * A FOLHA DA ATA — ver antes de baixar, e baixar o que se viu.
+   *
+   * `folha` monta a estrutura e não gera arquivo nenhum: ver não é exportar,
+   * e por isso não pede finalidade nem registra saída. `export` gera o .docx
+   * a partir da MESMA folha, exige a finalidade escrita e registra a saída
+   * com o nome de quem pediu.
+   *
+   * Até 02/09/2026 as duas coisas aconteciam no navegador. O documento saía
+   * certo e o sistema ficava sem resposta para a pergunta que importa meses
+   * depois: quem tirou esta cópia daqui, e para quê?
+   */
+  @Get(':id/folha')
+  folha(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.shifts.folhaDoPlantao(user, id);
+  }
+
+  @Post(':id/export')
+  exportar(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
+           @Body() body: { finalidade?: string }) {
+    return this.shifts.exportarAta(user, id, body?.finalidade ?? '');
+  }
+
   @Post('ata/:ataId/close')
   closeAta(@CurrentUser() user: AuthenticatedUser,
            @Param('ataId', ParseUUIDPipe) ataId: string, @Body() body: any) {

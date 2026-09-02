@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { cargo } from '../rotulos';
 import { api } from '../api';
-import { FolhaDocumento, documentoDaAta } from '../documentos';
+import { FolhaDocumento } from '../documentos';
+import type { ArquivoGerado } from '../documentos';
 import type { DocumentoWord } from '../docx';
 import { quemAssina } from '../quem-assina';
 
@@ -614,17 +615,22 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
                   * a memória de quem copiou.
                   */}
                 {ata && (
+                  /*
+                   * A FOLHA VEM DO SERVIDOR.
+                   *
+                   * Ela era montada aqui, a partir do que a tela já tinha em
+                   * mãos. Parecia economia de uma ida ao servidor, e era: o
+                   * documento saía do sistema sem que o sistema soubesse.
+                   */
                   <button className="btn sec sm"
-                          onClick={() => setDocumento(documentoDaAta(
-                            {
-                              data: plantao.data, turno: plantao.turno,
-                              status: ata.status,
-                              conteudo: ata.conteudo,
-                              pendencias: ata.pendencias,
-                              episodios: plantao.episodios,
-                              passagens: plantao.passagens,
-                            },
-                            secoes?.secoes ?? [], casaLabel, quemAssina()))}>
+                          onClick={async () => {
+                            try {
+                              setDocumento(await api<DocumentoWord>(`/shifts/${plantao.id}/folha`));
+                            } catch (e) {
+                              setErro(e instanceof Error ? e.message
+                                : 'Não foi possível montar a folha da ATA.');
+                            }
+                          }}>
                     📄 Ver em folha / baixar em Word
                   </button>
                 )}
@@ -1010,7 +1016,10 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
       )}
 
       {documento && (
-        <FolhaDocumento doc={documento} onFechar={() => setDocumento(null)} />
+        <FolhaDocumento doc={documento} onFechar={() => setDocumento(null)}
+                        exportar={(finalidade) => api<ArquivoGerado>(
+                          `/shifts/${plantao!.id}/export`,
+                          { method: 'POST', body: JSON.stringify({ finalidade }) })} />
       )}
     </>
   );

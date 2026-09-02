@@ -27,6 +27,24 @@ export class AlignmentsController {
     return this.alinhamentos.list(user, houseId);
   }
 
+  /**
+   * A FOLHA DOS COMBINADOS — a que a equipe leva para o mural dela.
+   *
+   * Só os vigentes entram. Dentro do sistema o encerrado não some, porque
+   * "mas ficou combinado que..." é uma discussão que só o registro encerra;
+   * numa folha impressa ele viraria instrução em vigor.
+   */
+  @Get('folha')
+  folha(@CurrentUser() user: AuthenticatedUser, @Query('houseId', ParseUUIDPipe) houseId: string) {
+    return this.alinhamentos.folhaDosCombinados(user, houseId);
+  }
+
+  @Post('export')
+  exportar(@CurrentUser() user: AuthenticatedUser,
+           @Body() body: { houseId: string; finalidade?: string }) {
+    return this.alinhamentos.exportarCombinados(user, body?.houseId, body?.finalidade ?? '');
+  }
+
   @Post('meetings')
   registrarReuniao(@CurrentUser() user: AuthenticatedUser, @Body() body: any) {
     return this.alinhamentos.registrarReuniao(user, body);

@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "prototipo": "VITE_PROTOTIPO=1 vite build --mode prototipo && mv ../prototipo/index.html ../prototipo/rede-acolher-prototipo.html && rm -rf ../prototipo/icons",
     "ensaio": "node ensaio.mjs",
-    "ensaio:fila": "node ensaio-fila.mjs"
+    "ensaio:fila": "node ensaio-fila.mjs",
+    "ensaio:folhas": "node ensaio-folhas.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",

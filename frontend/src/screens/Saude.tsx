@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api';
-import { FolhaDocumento, documentoDeSaude, documentoDaGradeDaCasa } from '../documentos';
+import { FolhaDocumento } from '../documentos';
+import type { ArquivoGerado } from '../documentos';
 import type { DocumentoWord } from '../docx';
 import { quemAssina } from '../quem-assina';
 
@@ -240,6 +241,10 @@ export function Saude({ houseId, casaLabel, papel }: {
   const [estoque, setEstoque] = useState<Item[]>([]);
   const [triagem, setTriagem] = useState<Evolucao[]>([]);
   const [erro, setErro] = useState('');
+  /* A folha aberta pode ser de dois documentos diferentes — a grade da casa e
+   * a saúde de um acolhido —, e cada um chama a sua rota. */
+  const [exportarFolha, setExportarFolha] =
+    useState<((finalidade: string) => Promise<ArquivoGerado>) | null>(null);
   const [aviso, setAviso] = useState('');
   const [confirmando, setConfirmando] = useState<Dose | null>(null);
   const [triando, setTriando] = useState<Evolucao | null>(null);
@@ -383,8 +388,23 @@ export function Saude({ houseId, casaLabel, papel }: {
               turno que confere de porta aberta, com as mãos ocupadas. */}
           <div className="row" style={{ justifyContent: 'flex-end' }}>
             <button className="btn sm ghost"
-                    onClick={() => setDocumento(documentoDaGradeDaCasa(
-                      casaLabel, doses, quemAssina()))}>
+                    onClick={async () => {
+                      try {
+                        setDocumento(await api<DocumentoWord>(
+                          `/medications/folha?houseId=${houseId}`));
+                        /* `useState` com função guardada precisa do
+                         * embrulho: sem ele o React CHAMA a função, tratando-a
+                         * como atualizador de estado. */
+                        setExportarFolha(() => (finalidade: string) =>
+                          api<ArquivoGerado>('/medications/export', {
+                            method: 'POST',
+                            body: JSON.stringify({ houseId, finalidade }),
+                          }));
+                      } catch (e) {
+                        setErro(e instanceof Error ? e.message
+                          : 'Não foi possível montar a grade em folha.');
+                      }
+                    }}>
               🖨️ Grade do dia em Word
             </button>
           </div>
@@ -900,7 +920,8 @@ export function Saude({ houseId, casaLabel, papel }: {
       )}
 
       {documento && (
-        <FolhaDocumento doc={documento} onFechar={() => setDocumento(null)} />
+        <FolhaDocumento doc={documento} onFechar={() => setDocumento(null)}
+                        exportar={exportarFolha ?? undefined} />
       )}
 
       {historico && (
@@ -909,9 +930,19 @@ export function Saude({ houseId, casaLabel, papel }: {
           onFechar={() => setHistorico(null)}
           /* Fecha o histórico ao abrir a folha: duas folhas empilhadas
              deixam quem lê sem saber em qual delas está o botão. */
-          onDocumento={() => {
-            setDocumento(documentoDeSaude(historico.pessoa, historico.dados, quemAssina()));
-            setHistorico(null);
+          onDocumento={async () => {
+            try {
+              const id = historico.pessoa.id;
+              setDocumento(await api<DocumentoWord>(`/nursing/history/${id}/folha`));
+              setExportarFolha(() => (finalidade: string) =>
+                api<ArquivoGerado>(`/nursing/history/${id}/export`, {
+                  method: 'POST', body: JSON.stringify({ finalidade }),
+                }));
+              setHistorico(null);
+            } catch (e) {
+              setErro(e instanceof Error ? e.message
+                : 'Não foi possível montar a folha de saúde.');
+            }
           }}
           onBaixar={async (emissaoId) => {
             setErro('');

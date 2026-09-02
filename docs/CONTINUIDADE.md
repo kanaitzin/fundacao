@@ -770,6 +770,42 @@ exige o aparelho institucional, e o aparelho só sabe que é ele se o código
 estiver guardado nele — o que depende de onde esse código é digitado. É a
 pendência #7 chegando na tela, e a resposta é da Fundação.
 
+### 8.15 As folhas em Word saem do servidor — 02/09/2026
+
+A dívida mais antiga do §11 da lista do que falta. Cinco documentos — ATA,
+ocorrência, saúde do acolhido, grade da casa e combinados — eram montados no
+navegador, e o `.docx` era escrito lá. Só o relatório tinha rota de verdade.
+
+Funcionava, e o preço era invisível: **arquivo gerado no navegador não passa
+por auditoria**. Um documento com o timbre da Fundação saía do sistema e
+ninguém conseguia responder, meses depois, quem o tirou e para quê.
+
+Agora: `kernel/documentos/folha.ts` é o contrato — sem import nenhum, lido
+pelo servidor e pela tela, que é o que garante que a folha conferida na tela é
+o documento que sai. `kernel/documentos/documentos.service.ts` transforma
+folha em `.docx` com o timbre, e mora no kernel porque quatro partições
+precisam dele e **partição não importa partição**. Cada partição monta a folha
+do documento que é dela.
+
+**Ver não é exportar**, e a separação está nas rotas: `GET .../folha` monta a
+estrutura, não gera arquivo e não registra nada — conferir antes de baixar não
+pode custar um registro de exportação que nunca aconteceu. `POST .../export`
+exige a finalidade escrita, gera o arquivo e registra a saída **antes** de
+gerá-lo: se a geração falhar fica o registro de uma tentativa, que é
+informação; a ordem inversa perderia a saída que deu certo e morreu antes de
+auditar.
+
+O `docx.ts` do navegador continua existindo por uma razão só — o protótipo não
+tem servidor —, mas deixou de declarar o contrato: enquanto a folha era
+declarada dos dois lados, ela era a mesma por disciplina, e disciplina não
+sobrevive ao primeiro campo que alguém acrescenta de um lado só.
+
+Quatro defeitos apareceram construindo, e três deles foram achados pelos
+próprios conferidores do projeto (o detalhe está no backlog, fase 47). O mais
+instrutivo: `app_house_label` filtra por INSTITUIÇÃO, não por alcance — a
+grade de outra casa saía com o título certo e o corpo vazio, que é a regra 12
+outra vez, agora impressa em papel timbrado.
+
 ---
 
 ## 9. Migrações desta série (0620–0860)
