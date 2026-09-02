@@ -5,8 +5,9 @@ numa conversa nova. Quem ler isto do começo ao fim sabe o que o sistema é, ond
 ele está, o que já funciona, o que falta e o que não pode ser feito — sem
 precisar de nenhuma outra conversa anterior.
 
-*Atualizado em 01/09/2026. Substitui o "pacote de retomada" da seção 10 do
-`CONTINUIDADE.md`, que ficou velho.*
+*Atualizado em 02/09/2026. Substitui o "pacote de retomada" da seção 10 do
+`CONTINUIDADE.md`, que ficou velho. O prompt para colar na conversa nova está
+em `docs/PROMPT-MESTRE.md`.*
 
 ---
 
@@ -55,7 +56,7 @@ rede-acolher/
 │   │   ├── App.tsx        navegação, abas, seletor de cargo do protótipo
 │   │   └── styles.css     design system, tema claro e escuro
 ├── prototipo/             rede-acolher-prototipo.html  ← o arquivo que o
-│                          Marcelo abre (um arquivo só, ~810 KB, sem servidor)
+│                          Marcelo abre (um arquivo só, ~830 KB, sem servidor)
 └── docs/                  este arquivo, CONTINUIDADE, DER, o-que-falta,
                            backlog, matriz de permissões, roteiro do Marcelo…
 ```
@@ -243,25 +244,40 @@ tudo.
 
 Tudo o que a educadora de plantão precisa fazer às 23h tem porta.
 
-### Grupo 2 — falta tela, mas espera
+### Grupo 2 — o que sobrou, e por que cada um sobrou
 
-- **Fontes do acompanhamento** — `POST /followups/:id/sources` grava a
-  REFERÊNCIA de um registro que embasou a avaliação, e não existe rota que liste
-  os candidatos. De onde a equipe escolhe é decisão do Marcelo (§7 abaixo).
-- **Capacidade da casa** — `POST /houses/:id/capacity`,
-  `GET /houses/:id/capacity-history`.
-- **Painel da casa na linha do tempo** — `GET /timeline/house-panel`.
-- **Leitura excepcional de relato** — `POST /statements/:id/exceptional-read`:
-  abrir um relato fora do alcance declarando a finalidade. A regra está pronta;
-  falta a tela que obriga a escrever o porquê.
-- **Fila offline, a metade do APARELHO** — guardar as operações localmente sem
+Restam **20 rotas sem porta**, de 34 em 01/09. A maior parte é de máquina
+(grupo 3). O que ainda é tela de gente são três coisas, e **nenhuma delas está
+parada por falta de código**:
+
+- **Fila offline, a metade do APARELHO.** Guardar as operações localmente sem
   sinal, enviar ao reconectar e limpar só o que o servidor aplicou. A metade do
-  servidor já tem tela (Sincronização); esta é fase própria, do lado do PWA.
+  servidor já tem tela (Sincronização). Esta é **fase própria**: mexe em service
+  worker e armazenamento local, e é a primeira coisa que muda o comportamento
+  do aplicativo fora da tela. `POST /sync/push` continua sem porta de propósito
+  — é a rota que o PWA chama, não uma pessoa.
+- **Leitura excepcional de relato** (`POST /statements/:id/exceptional-read`).
+  A regra está pronta e é boa: o Gestor Geral só abre uma narrativa pessoal
+  declarando a finalidade, e o comando registra antes de devolver o conteúdo.
+  **O que trava é outra coisa:** pela política comum (`st_select`), o relato
+  restrito é INVISÍVEL ao gestor — ele não tem como saber que existe para pedir
+  a leitura. Dar-lhe a porta exige decidir o que ele vê ANTES de abrir (só a
+  contagem, como nos documentos do §13.7? a data? o autor?), e isso é decisão
+  do Marcelo, não minha. Ver §7.
+- **Fontes do acompanhamento** (`POST /followups/:id/sources`). A rota grava a
+  REFERÊNCIA de um registro que embasou a avaliação — e não existe rota que
+  LISTE os candidatos. De onde a equipe técnica escolhe (a linha do tempo da
+  criança no período? as ocorrências? as evoluções de saúde?) é decisão de
+  produto. Ver §7.
 
 ### Grupo 3 — não precisa de tela
 
 Rotas de máquina: geração de doses e do dia, escalonamento de dose vencida,
-marcação de atividade não confirmada, health check.
+marcação de atividade não confirmada, health check, `POST /archive` (o
+enfileiramento da cópia, disparado por evento), `POST /sync/push`,
+`GET /medications/can-administer` e as leituras que já chegam dentro de outra
+resposta (`GET /statements`, `GET /people/:id/admission`,
+`GET /reports/:id/delivery`).
 
 ### O que o SERVIDOR ainda não faz, e o protótipo já mostra
 
@@ -296,6 +312,24 @@ Nenhuma delas é problema de código. Estão paradas esperando resposta:
    medicamento, **sem diagnóstico**, e com um aviso na própria folha de que
    corredor e mural aberto não são lugar para o nome de uma criança ao lado do
    remédio dela. Se a casa quiser diferente, é decisão dela.
+6. **O que o Gestor Geral vê ANTES de abrir um relato restrito.** A leitura
+   excepcional existe e funciona; o que não existe é o caminho até ela — o
+   relato restrito não aparece para ele. O precedente do §13.7 (documentos)
+   mostra a contagem e nada mais: "existem 2 documentos em área restrita". A
+   pergunta é se aqui vale o mesmo, ou se ele precisa também da data e do autor
+   para saber o que está pedindo. **Enquanto não houver resposta, a tela não
+   será construída** — inventar isso sozinho seria decidir quanto da narrativa
+   de uma criança vaza antes da justificativa.
+7. **De onde a equipe técnica escolhe as fontes de um acompanhamento.** A rota
+   guarda a referência do registro que embasou a avaliação, e o candidato pode
+   vir da linha do tempo da criança no período, das ocorrências ou das
+   evoluções. Cada opção desenha uma tela diferente.
+8. **As fontes do protótipo.** O arquivo busca a *Atkinson Hyperlegible* e a
+   *Plus Jakarta Sans* na rede. Aberto sem internet — que é como ele é
+   entregue —, cai na fonte do sistema; com internet, cada abertura faz uma
+   requisição a um terceiro. Embutir as duas famílias custa uns 300 KB no
+   arquivo. A Atkinson foi escolhida por ser desenhada para leitura difícil, que
+   é o caso de quem lê um alerta no corredor.
 
 ---
 
@@ -379,23 +413,38 @@ Vale ler antes de mexer em qualquer coisa parecida. Quase todos eram
   verificação de autoria no `mock.ts` valia para todos os cargos, e a
   demonstração mentia sobre a política mais estreita do sistema.
 
-E duas armadilhas dos ensaios em Playwright, que custaram tempo:
+E três armadilhas dos ensaios em Playwright, que custaram tempo:
 `text-transform: uppercase` quebra `includes` sensível a maiúsculas (usar
-`/…/i`), e roteiro preso a horário fixo falha em certas horas do dia — o que
-não é defeito do sistema.
+`/…/i`); roteiro preso a horário fixo falha em certas horas do dia — o que não
+é defeito do sistema; e **`getByRole('button', { name: /Mais/ }).last()` pega o
+"⋯" de uma linha de atividade, não a aba da barra de baixo** — as duas têm
+"Mais" no nome acessível, e o ensaio "passa" navegando para lugar nenhum. Use
+`.first()`.
 
 ---
 
 ## 9. COMO COMEÇAR A CONVERSA NOVA
 
-Anexe **este arquivo** e o **`rede-acolher-atualizado.zip`**, e escreva algo
-como:
+Anexe **este arquivo** e o **`rede-acolher-atualizado.zip`**, e cole como
+primeira mensagem o bloco de **`docs/PROMPT-MESTRE.md`**, trocando só a última
+linha pelo que você quer.
+
+Se preferir escrever à mão, o mínimo que funciona é:
 
 > Este é o Rede Acolher, o sistema de gestão do acolhimento da Fundação O Pão
 > dos Pobres. O `RETOMAR-AQUI.md` tem tudo: o que é, onde está, as regras que
 > não se negociam, o que já funciona, o que falta e as decisões que são minhas.
 > Leia primeiro, confirme que rodou `npx tsc --noEmit` e a suíte, e então
 > [o que você quer].
+
+**O que a conversa nova precisa saber logo no começo**, e que já custou tempo:
+
+- o PostgreSQL do ambiente **cai sozinho** entre as sessões; reiniciar antes de
+  qualquer rodada (comando no §2);
+- as dependências vêm de `npm install` **na raiz** — é um workspace, e instalar
+  dentro de `frontend/` ou `backend/` separadamente atrapalha;
+- **tela nova se abre**, não só se compila. Há Chromium e Playwright no
+  ambiente.
 
 Se quiser mais profundidade em algum ponto, os outros documentos continuam
 valendo:
@@ -408,7 +457,8 @@ valendo:
 | `matriz-permissoes.md` | quem alcança o quê |
 | `backlog.md` | o que foi pensado e ainda não construído |
 | `piloto-casa-03.md` | o desenho do piloto |
-| `roteiro-marcelo.md` | o roteiro de demonstração para o Marcelo |
+| `PROMPT-MESTRE.md` | o bloco para colar na primeira mensagem da conversa nova |
+| `roteiro-marcelo.md` | o roteiro de demonstração para o Marcelo, cargo a cargo |
 | `formularios-reais.md` | os formulários de papel da casa que viraram tela |
 | `pendencias-institucionais.md` | o que depende de decisão da instituição |
 | `implantacao-smtp.md` | o e-mail institucional, só na implantação |

@@ -820,6 +820,12 @@ descarte o resto — nunca aplique sem ler.
 
 ## 11. PROMPT MESTRE
 
+> **Este bloco ficou velho.** O prompt atual vive em **`docs/PROMPT-MESTRE.md`**,
+> junto com as regras que nasceram de defeito encontrado (10 a 14) e o estado
+> de 02/09/2026. O que está abaixo é o texto de 01/09, mantido porque explica,
+> em prosa, o raciocínio da fase 39 — mas **não é o que se cola numa conversa
+> nova**.
+>
 > Copie tudo dentro do bloco e cole como **primeira mensagem** da conversa nova,
 > com este arquivo e o zip do repositório anexados. Troque só a última linha.
 
