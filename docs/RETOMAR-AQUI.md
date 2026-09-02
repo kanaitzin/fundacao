@@ -183,9 +183,10 @@ Além dos e2e, quatro suítes estáticas — elas já pegaram erro de verdade:
 
 ## 5. O QUE JÁ ESTÁ PRONTO
 
-**Fases 0 a 42. 409 testes em 38 suítes**, duas rodadas limpas — a segunda às
-21h29 de Porto Alegre, com o UTC já no dia seguinte, que é a condição que a
-regra pede. 27 telas, 72 migrações, 89 tabelas.
+**Fases 0 a 42. 406 testes em 38 suítes**, **cinco rodadas seguidas limpas
+entre 21h42 e 21h47 de Porto Alegre**, com o UTC já em 02/09 e a casa ainda em
+01/09 — a condição que a regra pede. Foi a rodada dessa hora que encontrou a
+suíte instável descrita abaixo. 27 telas, 72 migrações, 89 tabelas.
 
 **O ciclo do acolhimento:** admissão com motivo e capacidade, perfil, correção
 de cadastro com histórico legível, **atualização dos dados descritivos —
@@ -335,6 +336,13 @@ Vale ler antes de mexer em qualquer coisa parecida. Quase todos eram
   sobre "cuidados essenciais" sem guardar o texto anterior é apagar uma
   instrução de proteção — e a auditoria guarda o nome do campo, nunca o
   conteúdo.
+- **Contagem absoluta sobre tabela append-only não se estabiliza.** A suíte
+  nova do limite da casa contava as linhas de `house_capacity_change` em
+  números absolutos — e `cadastro.e2e` também muda o limite da Casa 03. O
+  limite ela restaura no fim; as LINHAS do histórico não se apagam. A suíte
+  passava sozinha e derrubava uma rodada em três, conforme a ordem dos
+  arquivos. Regra: contagem em suíte é sempre RELATIVA ao que já estava lá, e
+  o que se procura é a linha pela frase que aquela suíte escreveu.
 - **A marca `rls-join-ok:` pode mentir — e mentia.** Oito consultas traziam o
   nome de uma pessoa por junção com `app_user`, com o comentário afirmando que
   aquela tabela não tem RLS de linha. Tem. `JOIN` sumia com a LINHA (o histórico

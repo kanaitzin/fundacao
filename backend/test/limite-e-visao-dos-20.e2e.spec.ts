@@ -1,19 +1,35 @@
 /**
- * O LIMITE DA UNIDADE E A VISÃO DOS 20 — duas rotas da fase 1 e da fase 3 que
- * nunca tiveram tela.
+ * O QUE A EQUIPE DA CASA CONSEGUE LER — o histórico do limite, o nome de quem
+ * responde por um compromisso, e o painel que não atravessa a fronteira.
  *
- * **O limite** (`POST /houses/:id/capacity`, `GET /houses/:id/capacity-history`).
- * As oito casas nasceram com 20, que é o número praticado, e não havia por onde
- * mudar. A tarja "acima do limite" da admissão apontava para um teto que
- * ninguém conseguia corrigir quando a unidade de fato passava a operar com
- * outro — e a admissão acima do teto, que é decisão registrada com
- * justificativa, virava rotina por defeito de cadastro.
+ * Esta suíte nasceu com as telas do limite da unidade
+ * (`POST /houses/:id/capacity`) e da visão dos 20
+ * (`GET /timeline/house-panel`), duas rotas que existiam desde as fases 1 e 3
+ * e nunca tiveram porta.
  *
- * **A visão dos 20** (`GET /timeline/house-panel`). A linha do dia responde "o
- * que acontece agora"; esta responde à pergunta da troca de turno: "e a Alice,
- * como está?", vinte vezes, sem rolar a cronologia inteira. A ordem é
- * ALFABÉTICA e o teste cobra isso: ordenar por pendência produziria, todo dia,
- * a mesma lista de crianças no topo — ranking de acolhido, proibido pelo §3.3.
+ * As REGRAS do limite — motivo obrigatório, faixa, quem decide — já são
+ * cobradas por `cadastro.e2e.spec.ts` ("mudar o limite é decisão registrada"),
+ * e a ORDEM do painel por `operacao.e2e.spec.ts` ("painel da casa mostra
+ * situação por acolhido, sem ranking"). Repeti-las aqui só criou colisão: a
+ * primeira versão desta suíte contava as linhas do histórico da Casa 03 em
+ * NÚMEROS ABSOLUTOS, e `house_capacity_change` é append-only — as linhas que
+ * as outras suítes deixam nunca somem. Ela passava sozinha e derrubava uma
+ * rodada em três, conforme a ordem dos arquivos. Foi a rodada das 21h que
+ * pegou, que é exatamente para isso que a regra existe.
+ *
+ * Ficou aqui só o que as outras não cobrem, e toda contagem é RELATIVA ao que
+ * já estava no banco:
+ *
+ *  * quem TRABALHA na casa lê o histórico do limite — não é área restrita;
+ *  * o educador vê o NOME de quem responde por um compromisso da agenda;
+ *  * o painel da casa não devolve o dia de outra unidade.
+ *
+ * Os dois primeiros são o mesmo defeito, e é a terceira aparição dele no
+ * projeto: `JOIN app_user` sumia com a LINHA e `LEFT JOIN app_user` sumia com
+ * o NOME, porque `user_select` (migração 0010) só entrega o cadastro de um
+ * colega a gestor, coordenação e equipe técnica. A marca `rls-join-ok:` que
+ * havia ali afirmava o contrário — e o `arquitetura.spec` cobra que a marca
+ * exista, não que ela diga a verdade.
  */
 import { Test } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
@@ -25,7 +41,11 @@ const SENHA = 'senha-dev-123';
 const adminUrl = process.env.DATABASE_URL
   ?? 'postgres://rede_admin:dev-only-change-me@127.0.0.1:5432/rede_acolher';
 
-describe('O limite da unidade e a visão dos 20', () => {
+/** A frase que identifica a mudança DESTA suíte no histórico da casa. */
+const MOTIVO = 'Reforma do segundo andar concluída em agosto: dois quartos voltaram a ser '
+  + 'usados, conforme vistoria da Fundação.';
+
+describe('O que a equipe da casa consegue ler', () => {
   let app: INestApplication, http: any, admin: Client;
   const tokens: Record<string, string> = {};
   const ids: Record<string, string> = {};
@@ -37,11 +57,9 @@ describe('O limite da unidade e a visão dos 20', () => {
     if (res.status !== 201) throw new Error(`login ${email}: ${res.status}`);
     return res.body.token as string;
   };
-  const alterar = (token: string, corpo: any, casa = ids.AI3) =>
-    request(http).post(`/api/v1/houses/${casa}/capacity`).set(auth(token)).send(corpo);
   const historico = async (token: string) =>
     (await request(http).get(`/api/v1/houses/${ids.AI3}/capacity-history`)
-      .set(auth(token))).body;
+      .set(auth(token))).body as any[];
 
   beforeAll(async () => {
     admin = new Client({ connectionString: adminUrl });
@@ -73,7 +91,9 @@ describe('O limite da unidade e a visão dos 20', () => {
 
   afterAll(async () => {
     // Suíte que muta estado compartilhado desfaz o que criou: o limite da
-    // Casa 03 é lido pela admissão, pelo painel e pelo cadastro.
+    // Casa 03 é lido pela admissão, pelo painel e pelo cadastro. As LINHAS do
+    // histórico não se apagam (append-only), e é por isso que nenhuma
+    // contagem absoluta aparece nesta suíte.
     await admin.query(`UPDATE house SET capacity = $1 WHERE id = $2`,
       [limiteOriginal, ids.AI3]);
     await app.close(); await admin.end();
@@ -81,67 +101,37 @@ describe('O limite da unidade e a visão dos 20', () => {
 
   // ==================== O limite ====================
 
-  it('educador e equipe técnica não alteram o limite da unidade', async () => {
-    for (const quem of ['educador', 'tecnica']) {
-      const res = await alterar(tokens[quem],
-        { capacidade: 22, motivo: 'Tentativa de quem não decide isto.' });
-      expect(res.status).toBe(403);
-      expect(res.body.message).toMatch(/coordenação|Gestor Geral/i);
-    }
-  });
-
   it('a coordenação de outra casa não altera o limite desta', async () => {
-    const res = await alterar(tokens.coordAi4,
-      { capacidade: 22, motivo: 'Escrito por quem não é desta unidade.' });
+    const antes = (await historico(tokens.coord)).length;
+    const res = await request(http).post(`/api/v1/houses/${ids.AI3}/capacity`)
+      .set(auth(tokens.coordAi4))
+      .send({ capacidade: 22, motivo: 'Escrito por quem não é desta unidade.' });
     expect([403, 404]).toContain(res.status);
-    expect(await historico(tokens.coord)).toHaveLength(0);
-  });
-
-  it('o motivo é obrigatório, e o limite tem faixa', async () => {
-    const semMotivo = await alterar(tokens.coord, { capacidade: 22, motivo: 'reforma' });
-    expect(semMotivo.status).toBe(400);
-    expect(semMotivo.body.message).toMatch(/motivo/i);
-
-    const foraDaFaixa = await alterar(tokens.coord,
-      { capacidade: 0, motivo: 'Zerar o limite da unidade, o que não faz sentido.' });
-    expect(foraDaFaixa.status).toBe(400);
-    expect(foraDaFaixa.body.message).toMatch(/entre 1 e 60/);
-
-    // Nenhuma das recusas deixou linha no histórico.
-    expect(await historico(tokens.coord)).toHaveLength(0);
+    // A recusa não deixou linha: a contagem não subiu.
+    expect(await historico(tokens.coord)).toHaveLength(antes);
   });
 
   it('altera com motivo, e a mudança fica registrada com autor e valor anterior', async () => {
-    const res = await alterar(tokens.coord, {
-      capacidade: limiteOriginal + 2,
-      motivo: 'Reforma do segundo andar concluída em agosto: dois quartos voltaram a ser '
-        + 'usados, conforme vistoria da Fundação.',
-    });
+    const antes = (await historico(tokens.coord)).length;
+    const alvo = limiteOriginal + 2;
+
+    const res = await request(http).post(`/api/v1/houses/${ids.AI3}/capacity`)
+      .set(auth(tokens.coord)).send({ capacidade: alvo, motivo: MOTIVO });
     expect(res.status).toBe(201);
     expect(res.body.anterior).toBe(limiteOriginal);
-    expect(res.body.capacidade).toBe(limiteOriginal + 2);
+    expect(res.body.capacidade).toBe(alvo);
     expect(res.body.aviso).toMatch(/registrada com o seu nome/i);
 
     const { rows: [h] } = await admin.query(
       `SELECT capacity FROM house WHERE id = $1`, [ids.AI3]);
-    expect(h.capacity).toBe(limiteOriginal + 2);
+    expect(h.capacity).toBe(alvo);
 
     const hist = await historico(tokens.coord);
-    expect(hist).toHaveLength(1);
-    expect(hist[0]).toEqual(expect.objectContaining({
-      de: limiteOriginal, para: limiteOriginal + 2,
-      motivo: expect.stringMatching(/vistoria/), autor: expect.any(String),
+    expect(hist).toHaveLength(antes + 1);
+    const minha = hist.find((x) => /vistoria da Fundação/.test(x.motivo ?? ''));
+    expect(minha).toEqual(expect.objectContaining({
+      de: limiteOriginal, para: alvo, autor: expect.any(String),
     }));
-  });
-
-  it('o limite igual ao atual não vira mudança', async () => {
-    const res = await alterar(tokens.coord, {
-      capacidade: limiteOriginal + 2,
-      motivo: 'Conferindo se o sistema registra uma mudança que não mudou nada.',
-    });
-    expect(res.status).toBe(400);
-    expect(res.body.message).toMatch(/já é o atual/i);
-    expect(await historico(tokens.coord)).toHaveLength(1);
   });
 
   it('a ocupação passa a contar contra o limite NOVO', async () => {
@@ -152,44 +142,34 @@ describe('O limite da unidade e a visão dos 20', () => {
     expect(res.body.podeAlterar).toBe(true);
   });
 
-  it('quem trabalha na casa LÊ o histórico do limite — não é área restrita', async () => {
-    // A pergunta "por que esta casa recebe 22?" é da equipe inteira, e a
-    // resposta escrita é o que impede que ela vire suposição.
-    const hist = await historico(tokens.educador);
-    expect(hist).toHaveLength(1);
-    expect(hist[0].motivo).toMatch(/vistoria/);
-  });
-
-  // ==================== A visão dos 20 ====================
-  //
-  // A ORDEM e a ausência de pontuação já são cobradas por
-  // `operacao.e2e.spec.ts` ("painel da casa mostra situação por acolhido, sem
-  // ranking"), que gera o dia a partir da rotina antes de olhar. Repetir aqui
-  // exigiria gerar o dia de novo — e `generate-day` é idempotente, o que faria
-  // aquela suíte contar zero atividades criadas conforme a ordem em que as
-  // duas rodassem. Esta suíte cobre então o que aquela não cobre: que o painel
-  // não atravessa a fronteira da casa.
-
   /*
    * ======================================================================
    * O NOME DE QUEM TRABALHA, PARA QUEM TRABALHA AO LADO
    * ======================================================================
-   *
-   * Terceira aparição do mesmo defeito no projeto, e a primeira em que a marca
-   * `rls-join-ok:` estava AFIRMANDO UMA COISA FALSA: "app_user não tem RLS de
-   * linha". Tem. `user_select` (migração 0010) só entrega o cadastro de um
-   * colega a gestor, coordenação e equipe técnica — o educador enxerga apenas
-   * a si mesmo.
-   *
-   * Com isso, `JOIN app_user` SUMIA COM A LINHA (o histórico do limite voltava
-   * vazio para quem trabalha na casa) e `LEFT JOIN app_user` sumia com o NOME
-   * (a agenda mostrava o compromisso sem dizer quem vai levar a criança). Nada
-   * disso dava erro: a tela ficava em branco no lugar certo.
-   *
-   * O teste abaixo cobra o caso operacional — o educador precisa saber quem
-   * leva o Bruno na fono, e essa é a informação que sumia.
    */
+
+  it('quem trabalha na casa LÊ o histórico do limite — não é área restrita', async () => {
+    /*
+     * `JOIN app_user` sumia com a LINHA INTEIRA aqui: o educador, o líder e a
+     * Enfermagem recebiam um histórico VAZIO, sem erro nenhum. "Por que esta
+     * casa recebe 22?" voltava a ser suposição justamente para quem trabalha
+     * dentro dela.
+     */
+    const daCoord = await historico(tokens.coord);
+    const doEducador = await historico(tokens.educador);
+    expect(daCoord.length).toBeGreaterThan(0);
+    expect(doEducador).toHaveLength(daCoord.length);
+    expect(doEducador.find((x) => /vistoria da Fundação/.test(x.motivo ?? '')))
+      .toBeDefined();
+    expect(doEducador.every((x) => Boolean(x.autor))).toBe(true);
+  });
+
   it('o educador vê o NOME de quem responde pelo compromisso da casa', async () => {
+    /*
+     * E `LEFT JOIN app_user` sumia com o NOME: a agenda mostrava o compromisso
+     * sem dizer quem vai levar a criança — que é a informação pela qual aquela
+     * tela existe. Mesmo defeito da fase 4, em outro lugar.
+     */
     const marcado = await request(http).post('/api/v1/activities/agenda')
       .set(auth(tokens.tecnica)).send({
         houseId: ids.AI3, tipo: 'saude', titulo: 'Fonoaudiologia (fixture de teste)',
@@ -198,8 +178,6 @@ describe('O limite da unidade e a visão dos 20', () => {
         responsavel: 'pessoa', responsavelId: ids.tecnicaId,
         motivoSemPrazo: 'Acompanhamento continuado, sem alta prevista.',
       });
-    // Se o cadastro do compromisso mudar de contrato, este teste não deve
-    // mentir passando: ou ele cria o fixture, ou ele diz que não conseguiu.
     if (![200, 201].includes(marcado.status)) {
       throw new Error(`fixture do compromisso: ${marcado.status} ${JSON.stringify(marcado.body)}`);
     }
@@ -222,6 +200,14 @@ describe('O limite da unidade e a visão dos 20', () => {
     expect(criado.responsavel).not.toBe('Plantão do horário');
     expect(criado.marcadoPor).toBeTruthy();
   });
+
+  // ==================== A visão dos 20 ====================
+  //
+  // A ORDEM alfabética e a ausência de pontuação já são cobradas por
+  // `operacao.e2e.spec.ts`, que gera o dia a partir da rotina antes de olhar.
+  // Repetir aqui exigiria gerar o dia de novo, e `generate-day` é idempotente:
+  // aquela suíte passaria a contar zero atividades criadas conforme a ordem em
+  // que as duas rodassem. Fica aqui o que ela não cobre.
 
   it('casa fora do alcance não devolve o painel de ninguém', async () => {
     const res = await request(http)

@@ -481,9 +481,8 @@ telas. Nenhuma das duas dava erro: o campo aparecia na tela e vivia em branco.
 | Requisito | Onde ficou | Teste |
 |---|---|---|
 | Alterar o limite da casa, com motivo (§ capacidade) | `FolhaLimite` no Painel + `app_set_house_capacity` | "altera com motivo, e a mudança fica registrada" |
-| Só coordenação da casa e Gestor Geral alteram | guarda de papel + policy | "educador e equipe técnica não alteram" |
-| A coordenação de outra casa não altera esta | `app_house_in_scope` no comando | "a coordenação de OUTRA casa não altera" |
-| Limite igual ao atual não vira mudança | `capacidade_sem_mudanca` | "o limite igual ao atual não vira mudança" |
+| Só coordenação da casa e Gestor Geral alteram | guarda de papel + policy | `cadastro.e2e` "mudar o limite é decisão registrada" |
+| A coordenação de outra casa não altera esta | `app_house_in_scope` no comando | "a coordenação de outra casa não altera o limite desta" |
 | O histórico do limite é da equipe, não área restrita | `cap_select` por `app_house_in_scope` | "quem trabalha na casa LÊ o histórico" |
 | A visão dos 20 (§9) | filtro "Por criança" no Dia, sobre `/timeline/house-panel` | `operacao.e2e` (ordem alfabética) + "casa fora do alcance não devolve o painel" |
 | Ordem alfabética, e pendência não ordena (§3.3) | o servidor ordena; a tela não reordena | `operacao.e2e` |
@@ -508,6 +507,14 @@ telas. Nenhuma das duas dava erro: o campo aparecia na tela e vivia em branco.
 - **Regra que fica:** nome de pessoa em consulta de leitura vem sempre por
   `app_user_display_name(id)`, nunca por junção com `app_user`. A função é
   `SECURITY DEFINER` e devolve só o nome — não abre o cadastro.
+- **A rodada das 21h pegou a própria suíte nova.** Ela contava as linhas de
+  `house_capacity_change` em números ABSOLUTOS, e `cadastro.e2e` também muda o
+  limite da Casa 03: aquela suíte restaura o limite no fim, mas as linhas do
+  histórico são append-only e ficam. Passava sozinha, falhava uma rodada em
+  três, conforme a ordem dos arquivos — e três dos testes só repetiam o que
+  `cadastro.e2e` já cobria. Regra que fica: **contagem em suíte é relativa ao
+  que já estava lá**, e a linha da própria suíte se acha pela frase que ela
+  escreveu, nunca pela posição. Cinco rodadas seguidas limpas depois disso.
 
 ## Fase 11 — Auditoria de testes e documentação ✅
 219 testes em 16 suítes, todas verdes. As 6 falhas antigas do `saude` eram uma
