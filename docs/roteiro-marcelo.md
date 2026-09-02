@@ -8,7 +8,14 @@
 > aberto. Quem aplica **não explica antes** — pede a tarefa e cala. O que
 > interessa não é a opinião sobre a tela; é onde a pessoa para.
 >
-> Última atualização: 31/08/2026.
+> **Uma observação sobre o arquivo:** ele funciona inteiro sem internet, mas as
+> DUAS FONTES vêm da rede. Aberto offline, o texto aparece na fonte do próprio
+> aparelho — inclusive a *Atkinson Hyperlegible*, escolhida por ser desenhada
+> para leitura difícil, que é o caso de quem lê um alerta no corredor. Se o
+> ensaio for sem internet, a letra não é a que a equipe vai ver no sistema
+> real. Vale saber antes de anotar "achei feio".
+>
+> Última atualização: 02/09/2026.
 
 ---
 
@@ -32,6 +39,38 @@ julgamento automático que o aplicativo nunca faria.
   assinaturas — antes era uma só, sem dizer de qual;
 - há uma tela nova em "Mais": **"O que cada setor enxerga"**, para responder
   "o educador vê isso?" sem entrar com a conta de ninguém.
+
+---
+
+## §0.1 — O que mudou depois de 31/08
+
+Sete coisas novas entraram, e **cinco delas são portas que não existiam para
+regras que o sistema já cumpria por baixo**. Vale saber disso ao aplicar: não
+são funções inventadas agora, são telas para o que o servidor já fazia — e é
+por isso que valem uma pergunta cada.
+
+- **No Dia, um quarto filtro: "Por criança".** Uma linha por acolhido, em
+  ordem alfabética, com o alerta essencial primeiro. Responde "e a Alice, como
+  está?" sem rolar o dia inteiro. *A lista não é ordenada por pendências de
+  propósito — se fosse, as mesmas crianças ficariam no topo todo dia.*
+- **No perfil, "Atualizar escola, cuidados e equipe".** Antes o perfil mostrava
+  esses campos e ninguém conseguia escrever neles. Cada alteração guarda o
+  texto anterior, com nome e horário, à vista no próprio perfil.
+- **Na Saúde, "Quem pode dar remédio" virou decidível.** A tarja "Sem
+  definição" existia e não havia botão. Agora a coordenação define por turno,
+  com motivo escrito, e cada decisão fica registrada com o que valia antes.
+- **Em "Mais", o Painel das unidades.** Ocupação, entradas e saídas, o que
+  espera decisão, e o quadro de cada mês. É também onde o **limite da casa**
+  se altera — com motivo, e sem apagar o limite anterior.
+- **Em "Mais", a Sincronização.** O que este aparelho enviou, e os conflitos
+  que esperam a frase da equipe. As duas versões aparecem inteiras, e nenhuma
+  vem destacada: o sistema não escolhe.
+- **Em Equipe, a aba Aparelhos.** O cadastro dos aparelhos institucionais da
+  casa — o que decide, offline, quem pode confirmar medicamento. O código
+  aparece **uma vez só**.
+- **Nos relatórios, o passo que faltava.** O relatório nasce rascunho e agora
+  tem "Enviar para aprovação"; antes ele ficava rascunho para sempre, com o
+  botão de aprovar invisível.
 
 ---
 
@@ -70,7 +109,12 @@ demora, demora vinte vezes por turno.
 4. **Você precisa saber o que aconteceu no turno da noite.**
    Observar: ela procura a ATA, a passagem ou o "Dia"?
 
-5. **Pergunte depois:** "teve alguma hora em que você achou que ia dar
+5. **Você vai passar o turno e quer saber como cada criança está agora.**
+   Observar: ela acha o filtro **"Por criança"** no Dia, ou procura abrir o
+   perfil de cada uma? Depois de achar, ela entende que a lista está em ordem
+   alfabética e não por gravidade?
+
+6. **Pergunte depois:** "teve alguma hora em que você achou que ia dar
    errado?"
 
 ---
@@ -130,7 +174,14 @@ isso.
    Observar: ela percebe que o sistema **já escreveu a parte factual** e que a
    avaliação é dela? Ela confia no que está escrito, ou vai conferir?
 
-5. **Pergunte depois:** "o que faltou neste documento para você levar a uma
+5. **A Alice mudou de escola em março, e o cuidado essencial dela precisa de
+   uma linha nova.**
+   Observar: ela acha **"Atualizar escola, cuidados e equipe"** no perfil, ou
+   procura "corrigir o cadastro"? Ela entende a diferença — corrigir o nome
+   pede motivo, atualizar a escola não? Depois de salvar, ela repara que o
+   texto anterior ficou registrado logo acima?
+
+6. **Pergunte depois:** "o que faltou neste documento para você levar a uma
    audiência?"
 
 ---
@@ -190,8 +241,37 @@ Responde pela casa. É quem vai usar as telas de decisão.
    Observar: ela entende a ordem — **primeiro a etapa operacional, depois a
    análise** — e que caso de medicamento **não fecha sem síntese**?
 
-6. **Pergunte depois:** "o que desta lista você já faz hoje em outro lugar?
-   Onde?"
+6. **Defina quem pode dar remédio no turno da noite desta casa.**
+   Observar: ela acha isso na Saúde, na aba **Esquemas**? Ela hesita ao ver
+   que precisa **escrever sob qual decisão** — e o que ela escreve?
+   ⚠️ Esta é a **pendência institucional 33.4.1** virando pergunta de verdade:
+   até agora a resposta da Fundação era "não está definido". A tela obriga a
+   definir ou a deixar como está, e as duas coisas ficam registradas.
+
+7. **A casa passou a operar com 22 vagas depois da reforma. Registre isso.**
+   Observar: ela procura em "Mais" → **Painel das unidades**? Entende que o
+   limite pede motivo, e que a mudança anterior não some?
+
+8. **O tablet da sala sumiu. Faça o que precisa ser feito.**
+   Observar: ela chega em Equipe → **Aparelhos**? Ela revoga, ou tenta
+   apagar? Ao registrar um aparelho novo, ela **anota o código na hora** —
+   ou fecha a folha e depois procura onde vê-lo de novo?
+   ⚠️ Se ela fechar sem anotar, **não pergunte nada e observe o que ela faz**.
+   É o teste mais honesto desta tela.
+
+9. **Um registro de dose feito sem sinal colidiu com outro. Resolva.**
+   Observar: ela acha "Mais" → **Sincronização**? Ao ver as duas versões, ela
+   procura um botão para escolher uma — ou entende que o que se pede é a frase
+   dela? *O sistema não escolhe de propósito; queremos saber se isso se lê
+   como cuidado ou como sistema incompleto.*
+
+10. **Aprove o relatório mensal que a técnica escreveu.**
+    Observar: se ele estiver como rascunho, ela entende que alguém precisa
+    **enviar para aprovação** primeiro? A frase "este relatório ainda não
+    vale" chega até ela?
+
+11. **Pergunte depois:** "o que desta lista você já faz hoje em outro lugar?
+    Onde?"
 
 ---
 

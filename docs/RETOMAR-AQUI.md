@@ -345,6 +345,14 @@ Vale ler antes de mexer em qualquer coisa parecida. Quase todos eram
   passava sozinha e derrubava uma rodada em três, conforme a ordem dos
   arquivos. Regra: contagem em suíte é sempre RELATIVA ao que já estava lá, e
   o que se procura é a linha pela frase que aquela suíte escreveu.
+- **O protótipo busca as fontes na rede.** `styles.css` abre com um `@import`
+  do Google Fonts, e o `vite-plugin-singlefile` não embute o que vem de fora.
+  Consequência: aberto sem internet — que é como o arquivo é entregue —, ele
+  cai na fonte do sistema e perde a *Atkinson Hyperlegible*, escolhida por ser
+  desenhada para leitura difícil. E, com internet, cada abertura faz uma
+  requisição a um terceiro. Nenhum dado de criança sai nela, mas é uma saída
+  para fora que ninguém pediu. **Decisão em aberto:** embutir as duas famílias
+  no arquivo (+300 KB, aproximadamente) ou assumir a pilha do sistema.
 - **A marca `rls-join-ok:` pode mentir — e mentia.** Oito consultas traziam o
   nome de uma pessoa por junção com `app_user`, com o comentário afirmando que
   aquela tabela não tem RLS de linha. Tem. `JOIN` sumia com a LINHA (o histórico
