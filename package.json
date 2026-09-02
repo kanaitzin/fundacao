@@ -14,6 +14,8 @@
     "seed": "npm run seed -w backend",
     "test": "npm run test -w backend",
     "build": "npm run build -w backend && npm run build -w frontend",
-    "seed:fase2": "npm run seed:fase2 -w backend"
+    "seed:fase2": "npm run seed:fase2 -w backend",
+    "ensaio:restauracao": "bash scripts/restaurar.sh --ensaio",
+    "backup": "bash scripts/backup.sh"
   }
 }

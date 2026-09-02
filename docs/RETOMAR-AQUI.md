@@ -204,7 +204,7 @@ Além dos e2e, quatro suítes estáticas — elas já pegaram erro de verdade:
 
 ## 5. O QUE JÁ ESTÁ PRONTO
 
-**Fases 0 a 47. 425 testes em 40 suítes**, **onze rodadas seguidas limpas** —
+**Fases 0 a 48. 430 testes em 41 suítes**, **onze rodadas seguidas limpas** —
 cinco
 em 01/09, quatro entre 23h50 e 00h45 (com o UTC já no dia seguinte, que é a
 condição que a regra pede) e duas na manhã de 02/09. 30 telas, 72 migrações,
@@ -222,6 +222,11 @@ nunca disse que renderiza:
 - `npm run ensaio:folhas` percorre os quatro caminhos de documento: abre a
   folha, tenta baixar com finalidade curta demais, baixa com uma frase válida
   e confere que o `.docx` chegou.
+
+E, desde a fase 48, **a restauração é ensaiada como o resto**:
+`npm run ensaio:restauracao` faz o ciclo inteiro num banco descartável —
+backup, restaura, confere as contagens e **abre o cofre com a chave do
+ambiente**. Um backup que nunca foi restaurado não é backup.
 
 **O ciclo do acolhimento:** admissão com motivo e capacidade, perfil, correção
 de cadastro com histórico legível, **atualização dos dados descritivos —
@@ -516,4 +521,5 @@ valendo:
 | `roteiro-marcelo.md` | o roteiro de demonstração para o Marcelo, cargo a cargo |
 | `formularios-reais.md` | os formulários de papel da casa que viraram tela |
 | `pendencias-institucionais.md` | o que depende de decisão da instituição |
+| `implantacao.md` | o que precisa existir antes de a casa usar: configuração, os dois acervos, backup e a prova de que a restauração funciona |
 | `implantacao-smtp.md` | o e-mail institucional, só na implantação |

@@ -95,7 +95,7 @@ não me peça para reexplicar o que está lá.
 
 === ESTADO ATUAL (02/09/2026) ===
 
-Fases 0 a 47. 425 testes em 40 suítes, sem falha conhecida — onze rodadas
+Fases 0 a 48. 430 testes em 41 suítes, sem falha conhecida — doze rodadas
 seguidas limpas, quatro delas entre 23h50 e 00h45 de Porto Alegre, com o UTC já
 no dia seguinte, que é a condição que a regra pede. Backend NestJS +
 PostgreSQL 16 com RLS, 17 partições isoladas, 72 migrações, 89 tabelas.
@@ -106,6 +106,10 @@ Duas dívidas antigas foram pagas em 02/09: a fila local do aparelho (sem sinal
 a operação fica guardada, sobe ao reconectar, e só sai do aparelho o que o
 servidor confirmou) e as folhas em Word, que eram montadas no navegador e agora
 nascem no servidor, com a saída registrada e a finalidade obrigatória.
+
+Há backup e restauração PROVADA desde 02/09: `npm run ensaio:restauracao` faz
+o ciclo num banco descartável e confere, inclusive se o cofre abre com a chave
+do ambiente. A CREDENTIAL_KEY nunca entra no backup.
 
 Comece a sessão por `bash scripts/preparar-ambiente.sh` — dependências,
 PostgreSQL e Chromium caem entre uma sessão e outra. `npm run ensaio` percorre

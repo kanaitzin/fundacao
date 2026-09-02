@@ -43,9 +43,15 @@ flowchart LR
    transferência rodam em funções `SECURITY DEFINER` que verificam a autorização
    internamente. Isso evita afrouxar o RLS para acomodar operações legítimas que
    cruzam fronteiras de casa (§25) — ver `docs/backlog.md`, achados da Fase 2.
-7. **Janela T-10/T+10** (§5.12): implementada como configuração
-   (`SHIFT_WINDOW_MODE=observe|enforce|off`). No piloto, `observe`: registra violações
-   na auditoria sem bloquear — evita impedir fechamento legítimo de plantão.
+7. **Janela T-10/T+10** (§5.12): **NÃO IMPLEMENTADA** — corrigido em
+   02/09/2026. Este item dizia "implementada como configuração", e as duas
+   chaves que ele citava não eram lidas por nenhuma linha de código. Uma chave
+   que não faz nada é pior do que chave nenhuma: alguém escreve `enforce` e
+   acredita que a casa está protegida. A janela depende da **escala 12x36
+   vigente**, que a Fundação ainda não entregou: sem saber quem está de
+   plantão, "fora da escala" não é uma frase com sentido. Quando existir, o
+   piloto começa em modo observado — registra na auditoria sem bloquear, para
+   não impedir o fechamento legítimo de um plantão.
 
 ## Módulos (mapa atual → planejado)
 

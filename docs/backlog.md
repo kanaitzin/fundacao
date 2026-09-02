@@ -578,6 +578,57 @@ para sempre.
 - **Tela vazia precisa dizer por que está vazia.** Uma lista de conflitos em
   branco é boa notícia, e se ela não disser isso será lida como "não carregou".
 
+## Fase 48 — Backup, restauração provada, e a configuração que ninguém documentou ✅
+
+O projeto tinha 425 testes e nenhuma resposta para "o servidor morreu, e
+agora?". Não havia backup, não havia restauração, e o `.env.example` estava
+com metade das variáveis.
+
+| Requisito | Onde ficou | Como se prova |
+|---|---|---|
+| Backup do banco e dos DOIS acervos | `scripts/backup.sh` | `ensaio:restauracao` |
+| Restaurar sem sobrescrever por acidente | `scripts/restaurar.sh` | pede o nome do banco à mão |
+| **Provar** que a restauração funciona | `npm run ensaio:restauracao` | ciclo em banco descartável |
+| O cofre abre depois de restaurar | `scripts/conferir-cofre.mjs` | provado falhando com a chave errada |
+| Nenhuma variável sem documentação | `test/implantacao.spec.ts` | 5 testes estáticos |
+| O que fazer antes do piloto | `docs/implantacao.md` | — |
+
+### Achados desta fase
+
+- **Oito variáveis de ambiente fora do `.env.example`**, entre elas a
+  `CREDENTIAL_KEY` — a chave que cifra as credenciais de acesso dos acolhidos.
+  Uma variável não documentada some duas vezes: na instalação (ninguém sabe
+  que existe) e na restauração (ninguém sabe que precisava vir junto).
+- **`ARQUIVO_DIR` e `ARQUIVOS_DIR`**, uma letra de diferença, apontando para
+  acervos DIFERENTES: as cópias documentais arquivadas e os objetos do dossiê
+  do acolhido. Quem configurasse um acreditando ter configurado os dois
+  perderia metade do acervo no primeiro backup — e o banco continuaria dizendo
+  que o arquivo existe. A primeira virou `ARQUIVO_DRIVE_DIR`.
+- **A janela de acesso por plantão (T-10/T+10) não existe, e três documentos
+  diziam que sim.** `SHIFT_WINDOW_MODE` e `SHIFT_WINDOW_TOLERANCE_MIN` estavam
+  no `.env.example`, citadas na `arquitetura.md` como "implementada como
+  configuração", e nenhuma linha de código as lia. Uma chave que não faz nada
+  é pior do que chave nenhuma: alguém escreve `enforce` e acredita que a casa
+  está protegida. Ela depende da escala 12x36, que a Fundação não entregou.
+- **A primeira lista de tabelas do conferidor tinha dois nomes que nunca
+  existiram.** O conferidor respondia "erro" nos dois lados, e dois erros
+  iguais se leem como acordo: a conferência passava sem conferir nada. Tabela
+  inexistente na origem agora é falha declarada, com a frase "a lista
+  envelheceu".
+
+### A decisão que atravessa esta fase
+
+**A `CREDENTIAL_KEY` não entra no backup.** Sem ela, o backup restaura o cofre
+como bytes ilegíveis: as credenciais dos acolhidos morrem com a chave, não com
+o servidor. Com ela guardada junto, uma pasta de backup extraviada passa a
+valer as senhas de gov.br e INSS de vinte crianças. A chave vive em outro
+lugar, com outro dono — e o script LEMBRA disso toda vez, em vez de resolver
+por conta.
+
+E o conferidor do cofre foi provado **falhando**: com uma chave diferente da
+que cifrou, ele acusa as credenciais e sai com código 1. Um conferidor que só
+foi visto dizendo "sim" não foi visto.
+
 ## Fase 47 — As folhas em Word saem do servidor ✅
 
 A ATA, a ocorrência, a saúde, a grade da casa e os combinados eram montados

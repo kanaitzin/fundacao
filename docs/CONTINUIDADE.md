@@ -806,6 +806,36 @@ instrutivo: `app_house_label` filtra por INSTITUIÇÃO, não por alcance — a
 grade de outra casa saía com o título certo e o corpo vazio, que é a regra 12
 outra vez, agora impressa em papel timbrado.
 
+### 8.16 O servidor morreu, e agora? — 02/09/2026
+
+O projeto tinha 425 testes e nenhuma resposta para essa pergunta. Agora tem
+`scripts/backup.sh`, `scripts/restaurar.sh` e — o que importa —
+`npm run ensaio:restauracao`, que faz o ciclo inteiro num banco descartável e
+confere. Backup que nunca foi restaurado não é backup: é uma esperança
+guardada em disco.
+
+**A decisão que atravessa a fase:** a `CREDENTIAL_KEY` não entra no backup.
+Sem ela, o cofre volta como bytes ilegíveis — as credenciais dos acolhidos
+morrem com a chave, não com o servidor. Com ela junto, uma pasta extraviada
+passa a valer as senhas de gov.br e INSS de vinte crianças. O script lembra
+disso toda vez, em vez de resolver por conta. E `conferir-cofre.mjs` duplica a
+derivação da chave de propósito: no dia da restauração o serviço ainda não
+está no ar, e um conferidor que depende do que se quer conferir não confere
+nada.
+
+Quatro achados, e o mais desconfortável não é técnico: **a janela de acesso
+por plantão (T-10/T+10) não existe, e três documentos diziam que sim.** Duas
+chaves no `.env.example`, uma linha na `arquitetura.md` dizendo "implementada
+como configuração", e nenhum código lendo nada disso. Ela depende da escala
+12x36, que a Fundação não entregou. Corrigido nos três lugares: uma chave que
+não faz nada é pior do que chave nenhuma, porque alguém escreve `enforce` e
+acredita que a casa está protegida.
+
+Os outros três estão no backlog (fase 48). Vale destacar um: `ARQUIVO_DIR` e
+`ARQUIVOS_DIR` diferiam por uma letra e guardavam acervos diferentes — as
+cópias documentais e os objetos do dossiê do acolhido. Perder um deles é
+perder documento de criança sem que o banco acuse nada.
+
 ---
 
 ## 9. Migrações desta série (0620–0860)

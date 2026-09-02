@@ -7,8 +7,8 @@ nunca regra invisível. Nenhuma foi "inventada".
 |---|---|---|
 | 1 | Quem administra medicamentos em cada período | Protocolo será configurável por casa/período (Fase 4). Modelo já separa "quem confirma = quem administrou". **Bloqueia parte da Fase 4** — perguntar antes do piloto. |
 | 2 | Horários da Enfermagem, cobertura noturna, prazo de triagem | Campos de escala prontos (`work_schedule`); prazo de triagem será parâmetro (Fase 4). |
-| 3 | Acesso da equipe técnica fora da escala | `SHIFT_WINDOW_MODE` por papel; técnica em `observe` até definição. |
-| 4 | Horário oficial do Líder Noturno Geral | `NIGHT_LEADER_START/END` no `.env` (19h–7h como hipótese configurável). |
+| 3 | Acesso da equipe técnica fora da escala | Sem efeito no sistema hoje: a janela T-10/T+10 não está implementada e depende da escala 12x36 vigente. Quando existir, a técnica começa em modo observado. |
+| 4 | Horário oficial do Líder Noturno Geral | `NIGHT_SHIFT_END_HOUR` no `.env` (7h como hipótese). A hora de INÍCIO não é lida por ninguém: quem abre a ATA Geral é uma pessoa, não um relógio. |
 | 5 | Relatórios obrigatórios no piloto | Backlog da Fase 6 marca todos como candidatos; seleção com Marcelo. |
 | 6 | Permissões de fotos em memórias | Modelo `MemoryRecord`+`PhotoAuthorization` planejado; upload desabilitado por flag até confirmação. |
 | 7 | Aparelhos institucionais disponíveis (offline) | ✅ **Resolvido no sistema.** A coordenação registra o aparelho da casa e recebe um código mostrado uma vez; o banco guarda só o hash e o **servidor** decide contra o registro (§11.7). Falta a Fundação dizer quais aparelhos existem em cada casa — agora é cadastro, não suposição. |

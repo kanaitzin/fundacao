@@ -27,7 +27,17 @@ export interface EnvioDrive {
 @Injectable()
 export class DriveGateway {
   private readonly log = new Logger('DriveGateway');
-  private readonly raiz = process.env.ARQUIVO_DIR ?? '/tmp/rede-acolher-arquivo';
+  /*
+   * `ARQUIVO_DRIVE_DIR`, e não `ARQUIVO_DIR`.
+   *
+   * O nome antigo diferia do `ARQUIVOS_DIR` do dossiê por UMA LETRA, e os dois
+   * guardam coisas diferentes: aqui ficam as cópias documentais arquivadas;
+   * lá, os objetos do dossiê do acolhido — certidão, foto, laudo. Quem
+   * configurasse um acreditando ter configurado os dois perderia metade do
+   * acervo no primeiro backup, e descobriria isso no dia em que precisasse
+   * restaurar.
+   */
+  private readonly raiz = process.env.ARQUIVO_DRIVE_DIR ?? '/tmp/rede-acolher-arquivo';
 
   async enviar(e: EnvioDrive): Promise<{ driveFileId: string }> {
     if (process.env.ARQUIVO_MODO === 'falha') {
