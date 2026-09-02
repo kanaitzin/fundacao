@@ -578,6 +578,38 @@ para sempre.
 - **Tela vazia precisa dizer por que está vazia.** Uma lista de conflitos em
   branco é boa notícia, e se ela não disser isso será lida como "não carregou".
 
+## Fase 50 — A tela lida no corredor: acessibilidade conferida ✅
+
+O projeto escolheu a *Atkinson Hyperlegible* por ser desenhada para leitura
+difícil, e nunca conferiu o resto. `npm run ensaio:acessibilidade` roda o
+axe-core (WCAG 2.1 A e AA) nas 107 telas que os oito cargos alcançam.
+
+O resultado da primeira rodada foi melhor do que eu esperava e pior do que
+parecia: **uma regra só** — nome acessível, rótulo de campo, ordem de
+cabeçalho, tudo passou —, mas era contraste, e em 49 telas.
+
+| Requisito | Onde ficou |
+|---|---|
+| Conferir as 107 telas contra WCAG 2.1 AA | `frontend/ensaio-acessibilidade.mjs` |
+| Contagem por REGRA, não por elemento | vinte linhas com o mesmo defeito são um defeito |
+| Tolerância só com motivo escrito | `TOLERADAS`, hoje vazio |
+
+### Achados desta fase
+
+- **A pílula "em atenção" estava em 4,46:1**, e a AA pede 4,5. A diferença não
+  se enxerga num monitor, com luz, parado — enxerga-se no corredor às onze da
+  noite. E o âmbar é a cor do que precisa de atenção: a tinta mais fraca da
+  tela estava reservada para o aviso.
+- **`opacity` desbota o texto junto com a decoração.** Quatro listas recuavam
+  o que já aconteceu com opacidade entre .55 e .62. A intenção estava certa —
+  some do foco, não da história —, mas a conta é multiplicativa: a linha que
+  diz **quem confirmou a dose e a que horas** caía para 2,3:1, metade do
+  mínimo, exatamente na linha em que ela é conferida. Agora o recuo é de fundo
+  e de peso.
+- **A mesma tinta passava num fundo e falhava no outro.** `--muted` dava
+  5,44:1 no branco e 4,49:1 sobre a superfície rebaixada. Toda tinta precisa
+  passar nos três fundos claros, e não só no branco.
+
 ## Fase 49 — O roteiro do Marcelo vira ensaio, e o Word para de envelhecer ✅
 
 Duas coisas que o Marcelo leva para a casa em dois dias: as tarefas e o papel.

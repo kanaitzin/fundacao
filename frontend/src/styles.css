@@ -10,7 +10,12 @@
 /* ---------- Tema claro ---------- */
 :root {
   --ground:#EDF1F7; --surface:#FFFFFF; --raised:#F6F9FC; --sunken:#E3EAF3;
-  --ink:#0F1C2E; --ink-2:#26374D; --muted:#5A6B82; --line:#D8E1EC; --line-2:#BDCBDC;
+  /* `--muted` é a tinta do texto de APOIO, e por isso ela precisa passar nos
+   * TRÊS fundos claros — surface, ground e sunken —, e não só no branco.
+   * `#5A6B82` dava 5,44:1 no branco e 4,49:1 sobre a superfície rebaixada: a
+   * mesma cor aprovada num lugar e reprovada no outro, por dois centésimos.
+   * `#566579` dá 4,9:1 no pior caso. */
+  --ink:#0F1C2E; --ink-2:#26374D; --muted:#566579; --line:#D8E1EC; --line-2:#BDCBDC;
 
   --navy:#003262; --navy-2:#00254A;
   /* `--navy` é FUNDO. `--titulo` é a tinta dos títulos: navy no claro, tinta
@@ -19,9 +24,22 @@
   --brand:#005993; --brand-2:#0A7BC4; --brand-soft:#E2EFF9; --brand-solid:#005993;
   --on-navy:#DCEBF7;
 
-  /* Paleta viva: tom vivo (tinta/borda) + sólido (fundo cheio, contraste AA) */
+  /* Paleta viva: tom vivo (tinta/borda) + sólido (fundo cheio, contraste AA)
+   *
+   * O ÂMBAR É MAIS ESCURO DO QUE PARECE PRECISAR, e é de propósito.
+   *
+   * `#B45309` sobre o fundo tênue da pílula dava 4,46:1 — a AA pede 4,5:1.
+   * Passava despercebido em qualquer olhar, inclusive no meu: a diferença
+   * entre 4,46 e 4,5 não se enxerga num monitor, com luz, parado. Enxerga-se
+   * no corredor às onze da noite, que é onde a pílula "em atenção" é lida. E
+   * o âmbar é justamente a cor do que precisa de atenção: a tinta mais fraca
+   * da tela estava reservada para o aviso.
+   *
+   * `#92400E` dá 6,3:1 na pílula e 7,1:1 de branco sobre ele quando é fundo
+   * cheio — folga nos dois usos. Achado pelo `npm run ensaio:acessibilidade`.
+   */
   --emerald:#10B981; --emerald-solid:#047857;
-  --amber:#F59E0B;   --amber-solid:#B45309;
+  --amber:#F59E0B;   --amber-solid:#92400E;
   --red:#EF4444;     --red-solid:#B91C1C;
   --blue:#3B82F6;    --blue-solid:#1D4ED8;
   --violet:#8B5CF6;  --violet-solid:#6D28D9;
@@ -338,7 +356,7 @@ input {
 .tabela td:first-child b{ display:inline-block; margin-right:6px }
 .tabela .mono{ white-space:nowrap }
 .tabela tbody tr:hover{ background:var(--raised) }
-.tabela tr.inativo td{ opacity:.62 }
+
 .tabela .mono{ font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12.5px; color:var(--muted) }
 .tabela .acoes{ white-space:nowrap; text-align:right }
 
@@ -357,7 +375,7 @@ input {
     background:var(--surface); border:1px solid var(--line); border-radius:var(--r-md);
     padding:12px 14px; margin-bottom:10px; box-shadow:var(--shadow-1);
   }
-  .tabela tr.inativo{ opacity:.6 }
+  .tabela tr.inativo{ background:var(--sunken) }
   .tabela td{ border-top:none; padding:3px 0; white-space:normal }
   .tabela td:first-child{ white-space:normal; font-size:15.5px; margin-bottom:4px }
   /* O rótulo da coluna volta como etiqueta pequena, e só onde ajuda: nome e
@@ -448,9 +466,7 @@ select:focus, .logincard input:focus{ outline:2px solid var(--brand); outline-of
   display:grid; grid-template-columns:56px 1fr; gap:10px; align-items:start;
   background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:12px;
 }
-/* O que já foi resolvido continua na lista, com menos peso — some do foco,
-   não da história. */
-.linha .ev.feito{ opacity:.62 }
+
 .linha .hora{
   font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:13.5px;
   font-weight:700; color:var(--ink-2); padding-top:3px;
@@ -500,7 +516,7 @@ button.card:hover{ border-color:var(--brand) }
   display:block; background:var(--surface); border:1px solid var(--line);
   border-radius:14px; padding:12px;
 }
-.chamada .ev.saiu{ opacity:.55 }
+
 /* O alerta essencial e a restrição ficam NA LINHA, onde a marcação acontece —
    no almoço, com a bandeja na mão, e não numa tela de perfil que ninguém abre
    naquele momento. */
@@ -604,7 +620,7 @@ textarea{
   padding:10px 0; border-top:1px solid var(--line);
 }
 .doses li:first-child{ border-top:0; padding-top:0 }
-.doses li.feito{ opacity:.6 }
+
 .doses .hora{
   font-variant-numeric:tabular-nums; font-weight:700; font-size:13.5px;
   color:var(--ink-2); min-width:42px;
@@ -717,6 +733,38 @@ textarea{
 
 /* O texto de apoio existia em toda tela e nunca tinha regra própria:
    herdava o corpo e ficava do mesmo peso do que importa. */
+/*
+ * O QUE JÁ FOI RESOLVIDO RECUA PELO FUNDO, E NÃO PELA TINTA.
+ *
+ * Estas quatro listas usavam `opacity` entre .55 e .62 para tirar do foco o
+ * que já aconteceu — a dose administrada, a atividade concluída, a criança
+ * que saiu. A intenção estava certa: some do foco, não da história.
+ *
+ * O preço não estava à vista. `opacity` desbota o TEXTO junto com a
+ * decoração, e a conta é multiplicativa: a linha de apoio, que já é cinza por
+ * ser apoio, caía para 2,3:1 sobre o fundo do cartão — metade do mínimo da
+ * AA. A informação de quem confirmou a dose e a que horas ficava ilegível
+ * exatamente na linha em que ela é conferida.
+ *
+ * Agora o recuo é de FUNDO e de peso: a linha vai para a superfície rebaixada,
+ * perde o negrito, e a tinta continua sendo a mesma que se lê no corredor.
+ * Achado pelo `npm run ensaio:acessibilidade`.
+ */
+.doses li.feito,
+.linha .ev.feito,
+.chamada .ev.saiu,
+.conferidos li.saiu,
+.tabela tr.inativo td{
+  background:var(--sunken);
+  color:var(--ink-2);
+}
+.doses li.feito .hora,
+.linha .ev.feito .hora,
+.doses li.feito b,
+.linha .ev.feito b,
+.chamada .ev.saiu b,
+.conferidos li.saiu b{ font-weight:600 }
+
 .mutetxt{ color:var(--muted); font-size:13px; line-height:1.45 }
 .mono{ font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12.5px }
 .divider{ border:0; border-top:1px solid var(--line); margin:12px 0 }
@@ -769,7 +817,7 @@ textarea{
 .conferidos li{
   background:var(--surface); border:1px solid var(--line); border-radius:11px; overflow:hidden;
 }
-.conferidos li.saiu{ opacity:.62 }
+
 .conferidos .linhaconf{
   display:flex; align-items:center; gap:8px; width:100%;
   padding:10px 12px; min-height:44px;

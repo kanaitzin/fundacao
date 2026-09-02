@@ -40,6 +40,27 @@ No tema escuro os papéis se invertem: o sólido fica claro e o texto sobre ele,
 | `.c-mute` | ardósia | rotina, não aplicável, sem demanda |
 | `.c-brand` | azul institucional | identidade, contagens neutras |
 
+## Contraste — conferido, não estimado
+
+Desde 02/09/2026 há um conferidor: `npm run ensaio:acessibilidade` roda o
+axe-core (WCAG 2.1 A e AA) nas **107 telas** que os oito cargos alcançam. Três
+coisas que ele ensinou, e que valem como regra daqui em diante:
+
+1. **`opacity` desbota o texto junto com a decoração.** Quatro listas usavam
+   opacidade entre .55 e .62 para recuar o que já aconteceu — a dose
+   administrada, a atividade concluída, a criança que saiu. A conta é
+   multiplicativa: a linha de apoio, já cinza por ser apoio, caía para 2,3:1.
+   **O que já foi resolvido recua pelo FUNDO e pelo peso**, nunca pela tinta:
+   `background: var(--sunken)` e `font-weight: 600`.
+2. **Toda tinta precisa passar nos TRÊS fundos claros** — `--surface`,
+   `--ground` e `--sunken` —, e não só no branco. `--muted` estava em 5,44:1
+   no branco e 4,49:1 sobre a superfície rebaixada: a mesma cor aprovada num
+   lugar e reprovada no outro, por dois centésimos.
+3. **A diferença entre 4,46 e 4,5 não se enxerga num monitor com luz.**
+   Enxerga-se no corredor, às onze da noite. O âmbar da pílula "em atenção"
+   estava nesse limiar — a tinta mais fraca da tela reservada justamente para
+   o aviso. `--amber-solid` foi de `#B45309` para `#92400E`.
+
 Aplicação: `<span class="pill c-warn">Aguardando</span>`,
 `<button class="opt c-crit">Recusou</button>`, `<div class="notice c-info">…</div>`,
 `<div class="tile c-ok">…</div>`.

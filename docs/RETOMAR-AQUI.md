@@ -204,7 +204,7 @@ Além dos e2e, quatro suítes estáticas — elas já pegaram erro de verdade:
 
 ## 5. O QUE JÁ ESTÁ PRONTO
 
-**Fases 0 a 49. 430 testes em 41 suítes**, **treze rodadas seguidas limpas** —
+**Fases 0 a 50. 430 testes em 41 suítes**, **treze rodadas seguidas limpas** —
 cinco
 em 01/09, quatro entre 23h50 e 00h45 (com o UTC já no dia seguinte, que é a
 condição que a regra pede) e duas na manhã de 02/09. 30 telas, 72 migrações,
@@ -223,6 +223,9 @@ nunca disse que renderiza:
   folha, tenta baixar com finalidade curta demais, baixa com uma frase válida
   e confere que o `.docx` chegou.
 
+- `npm run ensaio:acessibilidade` roda o axe-core (WCAG 2.1 AA) nas **107
+  telas**. Nenhuma violação — e a folga foi conquistada em 02/09: contraste
+  não é opinião, e a diferença entre 4,46 e 4,5 só se enxerga no corredor;
 - `npm run ensaio:roteiro` percorre as **20 tarefas do roteiro do Marcelo** e
   cobra que cada uma tenha porta no cargo certo. Ele não simula a procura de
   uma pessoa — onde ela para é o que a aplicação do roteiro descobre —, mas

@@ -860,6 +860,26 @@ O achado que muda o dia da aplicação: **a chamada da manhã do protótipo já
 está confirmada**, e a tarefa 1 pedia "confirme a presença da chamada da
 manhã". O estado confirmado existe de propósito; quem mudou foi o roteiro.
 
+### 8.18 A tela lida no corredor — 02/09/2026
+
+`npm run ensaio:acessibilidade` roda o axe-core (WCAG 2.1 A e AA) nas 107
+telas dos oito cargos. A primeira rodada acusou **uma regra só** — nome
+acessível, rótulo de campo e ordem de cabeçalho passaram todos —, mas era
+contraste, e em 49 telas.
+
+O achado que mais importa não é a cor: é o mecanismo. Quatro listas recuavam o
+que já aconteceu com `opacity` entre .55 e .62 — a dose administrada, a
+atividade concluída, a criança que saiu. A intenção estava certa, e está
+escrita no CSS desde a fase em que nasceu: *some do foco, não da história*. O
+que ninguém viu é que `opacity` desbota o TEXTO junto com a decoração, e a
+conta é multiplicativa: a linha de apoio, já cinza por ser apoio, caía para
+2,3:1 — metade do mínimo. A informação de **quem confirmou a dose e a que
+horas** ficava ilegível exatamente na linha em que ela é conferida.
+
+O recuo passou a ser de fundo e de peso. E ficou a regra: toda tinta precisa
+passar nos três fundos claros, não só no branco — `--muted` estava aprovada em
+5,44:1 no branco e reprovada em 4,49:1 sobre a superfície rebaixada.
+
 ---
 
 ## 9. Migrações desta série (0620–0860)

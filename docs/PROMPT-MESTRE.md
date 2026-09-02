@@ -95,7 +95,7 @@ não me peça para reexplicar o que está lá.
 
 === ESTADO ATUAL (02/09/2026) ===
 
-Fases 0 a 49. 430 testes em 41 suítes, sem falha conhecida — treze rodadas
+Fases 0 a 50. 430 testes em 41 suítes, sem falha conhecida — treze rodadas
 seguidas limpas, quatro delas entre 23h50 e 00h45 de Porto Alegre, com o UTC já
 no dia seguinte, que é a condição que a regra pede. Backend NestJS +
 PostgreSQL 16 com RLS, 17 partições isoladas, 72 migrações, 89 tabelas.
@@ -116,8 +116,9 @@ PostgreSQL e Chromium caem entre uma sessão e outra. `npm run ensaio` percorre
 as 100 telas dos oito cargos no navegador (tela nova entra nesse percurso),
 `npm run ensaio:fila` ensaia o que só existe fora da tela, e
 `npm run ensaio:folhas` percorre os caminhos de documento até o arquivo baixar,
-e `npm run ensaio:roteiro` cobra que as 20 tarefas do roteiro do Marcelo tenham
-porta no cargo certo.
+`npm run ensaio:roteiro` cobra que as 20 tarefas do roteiro do Marcelo tenham
+porta no cargo certo, e `npm run ensaio:acessibilidade` roda o axe-core (WCAG
+2.1 AA) nas 107 telas. Cor nova passa por ele antes de entrar.
 
 O grupo 1 do levantamento — o que a educadora precisa fazer às 23h — está
 VAZIO: tudo tem porta. Das 34 rotas que existiam sem tela em 01/09, restam 20,
