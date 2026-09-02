@@ -55,6 +55,10 @@ rede-acolher/
 │   │   ├── api.ts         cliente HTTP + classe ErroApi
 │   │   ├── App.tsx        navegação, abas, seletor de cargo do protótipo
 │   │   └── styles.css     design system, tema claro e escuro
+│   └── ensaio.mjs         abre o protótipo num navegador de verdade e
+│                          percorre as 100 telas dos oito cargos
+├── scripts/               preparar-ambiente.sh — dependências, banco e
+│                          Chromium, para a sessão nova começar rodando
 ├── prototipo/             rede-acolher-prototipo.html  ← o arquivo que o
 │                          Marcelo abre (um arquivo só, ~830 KB, sem servidor)
 └── docs/                  este arquivo, CONTINUIDADE, DER, o-que-falta,
@@ -67,6 +71,16 @@ routine, shifts, statements, sync, timeline.
 
 ### Como rodar
 
+**Primeiro, o preparo.** Três coisas caem entre uma sessão e outra — as
+dependências, o PostgreSQL (que não é serviço e para sozinho) e o Chromium do
+ensaio. O script resolve as três e imprime as variáveis:
+
+```bash
+eval "$(bash scripts/preparar-ambiente.sh --exportar)"
+```
+
+Depois:
+
 ```bash
 # o protótipo (um arquivo .html, sem servidor, sem banco)
 cd frontend && npm run prototipo
@@ -77,21 +91,22 @@ cd frontend && npx tsc --noEmit
 cd backend  && npx tsc --noEmit -p tsconfig.json
 
 # testes: precisam de PostgreSQL 16 rodando
-cd backend && DATABASE_URL="postgres://rede_admin@127.0.0.1:5432/rede_acolher" \
-              ARQUIVOS_DIR=/tmp/arquivos npx jest
-```
+cd backend && npx jest
 
-**PostgreSQL no ambiente de desenvolvimento** (não há docker daemon; ele para
-sozinho e precisa ser reiniciado antes das rodadas):
-
-```bash
-su postgres -c '/usr/lib/postgresql/16/bin/postgres -D /tmp/pgdata \
-  -k /tmp/pgrun -h 127.0.0.1 -p 5432'
+# o ensaio de navegador: as 100 telas, cargo a cargo, no protótipo de verdade
+cd frontend && npm run ensaio
 ```
 
 O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as 72
 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`,
 `seed-fase4.ts`).
+
+**Se o Chromium não baixar**, o preparo avisa e segue: a suíte e o `tsc` rodam
+sem ele; só o ensaio fica de fora. O caminho normal do Playwright busca o
+binário no CDN dele, que em ambiente com saída restrita é recusado com um
+`403` — e o comando falha **calado**, sem baixar e sem reclamar. O script tenta
+o CDN, e, se não passar, traz o Chromium de dentro de um pacote npm. Liberar
+`cdn.playwright.dev` na rede do ambiente dispensa o contorno.
 
 ### Contas do ambiente de teste (senha `senha-dev-123`)
 
@@ -184,10 +199,16 @@ Além dos e2e, quatro suítes estáticas — elas já pegaram erro de verdade:
 
 ## 5. O QUE JÁ ESTÁ PRONTO
 
-**Fases 0 a 44. 408 testes em 38 suítes**, **cinco rodadas seguidas limpas
-entre 21h42 e 21h47 de Porto Alegre**, com o UTC já em 02/09 e a casa ainda em
-01/09 — a condição que a regra pede. Foi a rodada dessa hora que encontrou a
-suíte instável descrita abaixo. 29 telas, 72 migrações, 89 tabelas.
+**Fases 0 a 45. 408 testes em 38 suítes**, **sete rodadas seguidas limpas** —
+cinco entre 21h42 e 21h47 de 01/09 e mais duas às 23h50 e 00h02 de Porto
+Alegre, com o UTC já no dia seguinte, que é a condição que a regra pede. 29
+telas, 72 migrações, 89 tabelas.
+
+E, desde a fase 45, **o ensaio de navegador**: `npm run ensaio` abre o
+protótipo num Chromium de verdade e percorre as **100 telas** que os oito
+cargos alcançam, cobrando de cada uma que não deixe erro no console, que
+escreva alguma coisa e que não mostre `undefined` para quem lê. Duas rodadas
+limpas. `tsc` diz que compila; ele nunca disse que renderiza.
 
 **O ciclo do acolhimento:** admissão com motivo e capacidade, perfil, correção
 de cadastro com histórico legível, **atualização dos dados descritivos —
@@ -439,12 +460,12 @@ Se preferir escrever à mão, o mínimo que funciona é:
 
 **O que a conversa nova precisa saber logo no começo**, e que já custou tempo:
 
-- o PostgreSQL do ambiente **cai sozinho** entre as sessões; reiniciar antes de
-  qualquer rodada (comando no §2);
-- as dependências vêm de `npm install` **na raiz** — é um workspace, e instalar
-  dentro de `frontend/` ou `backend/` separadamente atrapalha;
-- **tela nova se abre**, não só se compila. Há Chromium e Playwright no
-  ambiente.
+- **comece por `bash scripts/preparar-ambiente.sh`.** Ele cuida das três coisas
+  que caem entre as sessões: as dependências (que vêm de `npm ci` **na raiz**,
+  porque é um workspace), o PostgreSQL (que não é serviço e para sozinho) e o
+  Chromium do ensaio;
+- **tela nova se abre**, não só se compila — e agora isso é um comando:
+  `npm run ensaio`. Tela nova precisa entrar no percurso dele.
 
 Se quiser mais profundidade em algum ponto, os outros documentos continuam
 valendo:

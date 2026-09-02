@@ -578,6 +578,40 @@ para sempre.
 - **Tela vazia precisa dizer por que está vazia.** Uma lista de conflitos em
   branco é boa notícia, e se ela não disser isso será lida como "não carregou".
 
+## Fase 45 — O ensaio de navegador vira suíte ✅
+
+`tsc --noEmit` diz que o código compila; nunca disse que a tela renderiza. Duas
+vezes uma tela ficou em branco no lugar certo sem que nada acusasse erro. O
+ensaio deixou de ser roteiro escrito na hora e virou comando.
+
+| Requisito | Onde ficou | Como se confere |
+|---|---|---|
+| Percorrer toda tela de todo cargo | `frontend/ensaio.mjs` · `npm run ensaio` | 100 telas, oito cargos, duas rodadas limpas |
+| Nenhum erro de página ou de console | ouvintes `pageerror` e `console` | sai com código 1 e nomeia cargo e tela |
+| Tela em branco é defeito | `main.conteudo` com menos de 40 caracteres | mesmo ensaio |
+| Nada de `undefined` no texto | varredura de `undefined`, `NaN`, `[object Object]`, `Invalid Date` | mesmo ensaio |
+| A lista de telas não pode envelhecer | cargos, abas e portas de "Mais" lidos do protótipo | uma tela nova entra sozinha no percurso |
+| A sessão nova começa rodando | `scripts/preparar-ambiente.sh` | dependências, PostgreSQL e Chromium |
+| A suíte sobe em máquina virgem | `rede_app` criado no `globalSetup` | banco e papel apagados, 408 verdes do zero |
+
+### Achados desta fase
+
+- **O conferidor cego no cargo que ele mais deveria olhar.** O ensaio
+  descobria o que percorrer lendo a barra de abas, e a Cozinha não tem barra —
+  com uma tela só, a barra seria decoração no rodapé. Resultado: zero tela
+  ensaiada, e ✓ impresso do mesmo jeito. Um conferidor que não acha o que
+  conferir precisa dizer isso; calado, ele vira selo de qualidade sobre o nada.
+- **Roteiro com lista escrita à mão não ensaia a tela nova.** Por isso os
+  cargos, as abas e as portas vêm do protótipo. O ensaio não sabe quantas telas
+  existem: ele pergunta.
+- **Falha calada em ferramenta de conferência é a pior espécie.**
+  `playwright install` recusado por rede não baixa nada e não reclama; quem
+  rodasse o ensaio depois disso veria "sem navegador" e seguiria em frente. O
+  preparo tem três degraus e diz em qual parou.
+- **O que o ensaio não faz** está escrito no cabeçalho dele: abrir tela não é
+  usar tela. Formulário, folha por cima e fluxo do roteiro do Marcelo ficam
+  para o passo seguinte.
+
 ## Fase 11 — Auditoria de testes e documentação ✅
 219 testes em 16 suítes, todas verdes. As 6 falhas antigas do `saude` eram uma
 só, em cascata: o teste media `criadas` na casa inteira e dependia da ordem das

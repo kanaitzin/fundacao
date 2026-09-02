@@ -95,11 +95,17 @@ não me peça para reexplicar o que está lá.
 
 === ESTADO ATUAL (02/09/2026) ===
 
-Fases 0 a 44. 408 testes em 38 suítes, sem falha conhecida — cinco rodadas
-seguidas limpas entre 21h42 e 21h47 de Porto Alegre, com o UTC já no dia
-seguinte, que é a condição que a regra 15 pede. Backend NestJS + PostgreSQL 16
-com RLS, 17 partições isoladas, 72 migrações, 89 tabelas. Frontend React PWA,
-29 telas, empacotado num único .html de ~830 KB que abre sem servidor.
+Fases 0 a 45. 408 testes em 38 suítes, sem falha conhecida — sete rodadas
+seguidas limpas, cinco entre 21h42 e 21h47 de 01/09 e duas às 23h50 e 00h02 de
+Porto Alegre, com o UTC já no dia seguinte, que é a condição que a regra pede.
+Backend NestJS + PostgreSQL 16 com RLS, 17 partições isoladas, 72 migrações, 89
+tabelas. Frontend React PWA, 29 telas, empacotado num único .html de ~830 KB
+que abre sem servidor.
+
+Comece a sessão por `bash scripts/preparar-ambiente.sh` — dependências,
+PostgreSQL e Chromium caem entre uma sessão e outra. E `npm run ensaio` abre o
+protótipo num navegador de verdade e percorre as 100 telas dos oito cargos:
+tela nova entra nesse percurso.
 
 O grupo 1 do levantamento — o que a educadora precisa fazer às 23h — está
 VAZIO: tudo tem porta. Das 34 rotas que existiam sem tela em 01/09, restam 20,

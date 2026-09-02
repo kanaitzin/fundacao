@@ -680,6 +680,59 @@ fora da escala com o aviso de que não constava; o educador não vê a narrativa
 pessoal da colega, e a tela diz que não vê em vez de mostrar lista curta sem
 explicar.
 
+### 8.13 O ensaio de navegador vira suíte — 02/09/2026
+
+Até aqui, "tela nova você ABRE" era disciplina de quem constrói: um roteiro
+escrito na hora, jogado em `/tmp` ou num `.mjs` solto na raiz do frontend, com
+o caminho da máquina daquele dia dentro dele. Funcionava enquanto a pessoa
+lembrava — e um roteiro que depende de lembrar não pega a tela que ninguém
+desconfiou.
+
+`frontend/ensaio.mjs` (`npm run ensaio`) abre o protótipo num Chromium de
+verdade, entra, e percorre **as 100 telas que os oito cargos alcançam**: as
+abas da barra e todas as portas de "Mais". De cada uma cobra quatro coisas —
+nenhum erro de página, nenhum erro de console (menos os de rede, que aqui são
+só as fontes buscadas fora, §7.8), `main.conteudo` com texto, e nada de
+`undefined`, `NaN`, `[object Object]` ou `Invalid Date` escapando para o texto
+que a educadora lê. Grava uma foto por tela e sai com código 1 se achar algo.
+Duas rodadas limpas; 118 segundos cada.
+
+**A lista de cargos, as abas e as portas de "Mais" são lidas do próprio
+protótipo**, nunca copiadas para dentro do ensaio. Roteiro com lista escrita à
+mão envelhece calado: continuaria "passando" sem visitar exatamente a tela nova.
+
+Dois achados, e nenhum deles no sistema:
+
+- **O ensaio ensaiava zero tela na Cozinha.** Ele descobria o que percorrer
+  lendo a barra de abas — e a Cozinha, com uma tela só, **não tem barra**, por
+  decisão de design: uma aba sozinha seria decoração ocupando o rodapé. O
+  conferidor ficava, portanto, cego justamente no cargo cuja tela única é a
+  razão de ele existir, e ainda assim imprimia ✓. Sem barra, o que está aberto
+  é a tela do cargo, e é ela que se confere.
+- **A suíte não subia numa máquina virgem.** O `globalSetup` faz
+  `GRANT ... TO rede_app` logo depois de recriar o schema, e quem cria
+  `rede_app` é a migração 0010, que só roda em seguida. Em qualquer máquina que
+  já tivesse rodado uma vez o papel existia (ele é do cluster e sobrevive ao
+  `DROP SCHEMA`, como o próprio comentário do arquivo dizia); num cluster novo,
+  a suíte inteira morria antes do primeiro teste, com uma mensagem que não diz
+  isso. Verificado dos dois lados: banco derrubado e papel apagado, a suíte
+  sobe sozinha e fecha 408 verdes.
+
+E `scripts/preparar-ambiente.sh`, para a sessão nova começar rodando em vez de
+descobrir de novo o que cai entre uma e outra: dependências, PostgreSQL e
+Chromium. O Chromium tem um degrau a mais porque o caminho normal —
+`playwright install` — busca o binário num CDN que ambiente com saída restrita
+recusa com `403`, **falhando calado**: não baixa e não reclama, e o ensaio
+some sem que ninguém perceba que sumiu. O script tenta o CDN e, se não passar,
+traz o binário de dentro de um pacote npm.
+
+**O que este ensaio ainda NÃO faz**, para não ser lido como mais do que é: ele
+abre cada tela e olha o que ela escreveu. Não preenche formulário, não fecha
+ATA, não confirma dose. A folha que abre por cima de uma tela — o cofre, a
+folha do código do aparelho, a decisão de conflito — está fora do percurso.
+Cobrir o roteiro do Marcelo tarefa a tarefa é o passo seguinte, e é o que
+transformaria o ensaio em regressão de verdade.
+
 ---
 
 ## 9. Migrações desta série (0620–0860)
