@@ -215,15 +215,15 @@ export class ReportsService {
   async abrir(user: AuthenticatedUser, id: string) {
     const row = await this.db.asUser(user.id, async (c) => {
       const { rows: [r] } = await c.query(
-        `SELECT r.*, a.full_name AS aprovador, cr.full_name AS autor,
+        `SELECT r.*, app_user_display_name(r.approved_by) AS aprovador,
+                app_user_display_name(r.created_by) AS autor,
                 h.code AS casa_codigo, h.name AS casa_nome,
                 CASE WHEN r.person_id IS NOT NULL
                      THEN app_person_display_name(r.person_id) END AS acolhido
            FROM report_document r
-           -- rls-join-ok: app_user e house não filtram por linha aqui; quem
-           -- decide o que este usuário enxerga é a policy rep_select.
-           LEFT JOIN app_user a ON a.id = r.approved_by
-           LEFT JOIN app_user cr ON cr.id = r.created_by
+           -- rls-join-ok: house não filtra por linha aqui; os nomes vêm por
+           -- função, porque app_user TEM RLS de linha e a Enfermagem, que lê
+           -- relatórios, não alcança o cadastro dos colegas.
            LEFT JOIN house h ON h.id = r.house_id
           WHERE r.id = $1`, [id]);
       return r;
@@ -264,14 +264,14 @@ export class ReportsService {
       const { rows } = await c.query(
         `SELECT r.id, r.kind, r.status, r.version, r.period_start, r.period_end,
                 r.purpose, r.created_at, r.created_by,
-                cr.full_name AS autor,
+                app_user_display_name(r.created_by) AS autor,
                 h.code AS casa_codigo,
                 CASE WHEN r.person_id IS NOT NULL
                      THEN app_person_display_name(r.person_id) END AS acolhido
            FROM report_document r
-           -- rls-join-ok: app_user e house não filtram por linha; quem decide o
-           -- que este usuário enxerga é a policy rep_select sobre report_document.
-           LEFT JOIN app_user cr ON cr.id = r.created_by
+           -- rls-join-ok: house não filtra por linha aqui, e o NOME de quem
+           -- escreveu vem por função — app_user tem RLS de linha, e a
+           -- Enfermagem, que lê esta lista, não alcança o cadastro dos colegas.
            LEFT JOIN house h ON h.id = r.house_id
           WHERE ($1::uuid IS NULL OR r.house_id = $1)
             AND ($2::uuid IS NULL OR r.person_id = $2)
@@ -280,11 +280,12 @@ export class ReportsService {
       // As entregas de todos os relatórios da página, numa consulta só: uma
       // por relatório faria vinte idas ao banco para desenhar uma lista.
       const { rows: entregas } = await c.query(
+        // JOIN interno com `app_user` SUMIRIA com a entrega inteira para quem
+        // não alcança o cadastro de quem a registrou — a Enfermagem lê esta
+        // lista. O nome vem por função.
         `SELECT d.report_id, d.id, d.destinatario, d.meio, d.entregue_em, d.protocolo,
-                u.full_name AS registrou
+                app_user_display_name(d.registrado_por) AS registrou
            FROM report_delivery d
-           -- rls-join-ok: quem filtra é a policy del_select sobre report_delivery.
-           JOIN app_user u ON u.id = d.registrado_por
           WHERE d.report_id = ANY($1::uuid[])
           ORDER BY d.entregue_em DESC`, [rows.map((r) => r.id)]);
 
@@ -579,10 +580,8 @@ export class ReportsService {
     return this.db.asUser(user.id, async (c) => {
       const { rows } = await c.query(
         `SELECT d.destinatario, d.meio, d.entregue_em, d.protocolo, d.observacao,
-                u.full_name AS registrou, d.registrado_em
+                app_user_display_name(d.registrado_por) AS registrou, d.registrado_em
            FROM report_delivery d
-           -- rls-join-ok: app_user não tem RLS de linha; quem filtra é a policy del_select.
-           JOIN app_user u ON u.id = d.registrado_por
           WHERE d.report_id = $1 ORDER BY d.entregue_em DESC`, [id]);
       return rows.map((r) => ({
         destinatario: r.destinatario, meio: r.meio, entregueEm: r.entregue_em,

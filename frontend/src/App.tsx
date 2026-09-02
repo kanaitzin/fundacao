@@ -445,7 +445,8 @@ export function App() {
 
         {abaEfetiva === 'painel' && vePainel && casaAtual && (
           <Painel houseId={casaAtual.id}
-                  casaLabel={`${casaAtual.code} — ${casaAtual.name}`} />
+                  casaLabel={`${casaAtual.code} — ${casaAtual.name}`}
+                  papel={me.role} />
         )}
 
         {abaEfetiva === 'arquivo' && veArquivo && casaAtual && (

@@ -11,8 +11,9 @@ import { api } from '../api';
  *
  * As decisões de tela, todas com a mesma razão — velocidade no meio do turno:
  *
- *  * **três filtros, não uma busca.** "Agora", "Minhas" e "Tudo". Quem está
- *    de plantão quer ver o que está acontecendo, não pesquisar;
+ *  * **filtros, não uma busca.** "Agora", "Minhas" e "Tudo" recortam a mesma
+ *    linha; "Por criança" troca a pergunta — de "o que acontece agora" para
+ *    "como está cada um". Quem está de plantão quer ver, não pesquisar;
  *  * **o que já passou não some.** Some do topo, mas continua na lista, com o
  *    estado que recebeu. Sumir esconderia o que ficou sem registro;
  *  * **o resultado é um toque, a exceção é dois.** Concluir é o caminho
@@ -92,13 +93,42 @@ interface Substituicao {
   semEfeito: boolean; aviso?: string;
 }
 
+/**
+ * O PAINEL DA CASA — a visão dos 20 (§9).
+ *
+ * `GET /timeline/house-panel` existia desde a fase 3 e nunca teve tela. A linha
+ * do dia responde "o que acontece agora"; esta responde a outra pergunta, que
+ * é a da troca de turno e a da coordenação passando na casa: **"e a Alice,
+ * como está?"** — vinte vezes, sem rolar uma cronologia inteira atrás do nome
+ * de cada uma.
+ *
+ * ORDEM ALFABÉTICA, e nada mais. O servidor devolve assim, e a tela não
+ * reordena: ordenar por pendências viraria uma lista das crianças "que dão
+ * mais trabalho", com as mesmas no topo todo dia. Isso é ranking de acolhido, e
+ * é proibido (§3.3). O número de pendências aparece na linha de cada uma, onde
+ * é informação; numa ordenação, viraria juízo.
+ */
+interface PainelCasa {
+  data: string;
+  incompleta: boolean;
+  fontesIndisponiveis: string[];
+  coletivos: { titulo: string; horario: string; estado: string; severidade: string }[];
+  acolhidos: {
+    acolhidoId: string; nome: string; situacaoAtual: string;
+    ultimoRegistro: { titulo: string; horario: string; estado: string } | null;
+    proximaAtividade: { titulo: string; horario: string } | null;
+    pendencias: number; alertaEssencial: string | null;
+  }[];
+}
+
 export function Dia({ houseId, casaLabel, papel }: {
   houseId: string; casaLabel: string; papel: string;
 }) {
   const lidera = LIDERA.includes(papel);
   const [dados, setDados] = useState<Resposta | null>(null);
   const [erro, setErro] = useState('');
-  const [filtro, setFiltro] = useState<'agora' | 'minhas' | 'tudo'>('agora');
+  const [filtro, setFiltro] = useState<'agora' | 'minhas' | 'tudo' | 'os20'>('agora');
+  const [painel, setPainel] = useState<PainelCasa | null>(null);
   const [ocupado, setOcupado] = useState<string | null>(null);
   /** Qual atividade está com as ações do líder abertas — uma por vez. */
   const [maisAcoes, setMaisAcoes] = useState<string | null>(null);
@@ -115,6 +145,13 @@ export function Dia({ houseId, casaLabel, papel }: {
   const carregar = useCallback(async () => {
     setErro('');
     try {
+      // A visão dos 20 é outra rota, e não um filtro da linha: ela agrupa POR
+      // CRIANÇA, e agrupar no navegador daria uma lista diferente da que o
+      // servidor monta — com as pendências contadas de outro jeito.
+      if (filtro === 'os20') {
+        setPainel(await api<PainelCasa>(`/timeline/house-panel?houseId=${houseId}`));
+        return;
+      }
       const q = filtro === 'minhas' ? '&mode=minhas' : '';
       setDados(await api<Resposta>(`/timeline?houseId=${houseId}${q}`));
       // Falhar aqui não trava o dia: sem a lista de pedidos, a linha do tempo
@@ -180,7 +217,7 @@ export function Dia({ houseId, casaLabel, papel }: {
           <div className="eyebrow" style={{ margin: 0 }}>{casaLabel}</div>
           <h2>Hoje</h2>
         </div>
-        {dados && (
+        {dados && filtro !== 'os20' && (
           <div className="resumo">
             <span className="pill c-info">{dados.resumo.total} no dia</span>
             {dados.resumo.criticos > 0 && (
@@ -194,7 +231,8 @@ export function Dia({ houseId, casaLabel, papel }: {
       </div>
 
       <nav className="filtros" aria-label="Filtro do dia">
-        {([['agora', 'Agora'], ['minhas', 'Minhas'], ['tudo', 'Tudo']] as const).map(([cod, label]) => (
+        {([['agora', 'Agora'], ['minhas', 'Minhas'], ['tudo', 'Tudo'],
+           ['os20', 'Por criança']] as const).map(([cod, label]) => (
           <button key={cod} className={filtro === cod ? 'on' : ''}
                   aria-pressed={filtro === cod} onClick={() => setFiltro(cod)}>
             {label}
@@ -206,7 +244,7 @@ export function Dia({ houseId, casaLabel, papel }: {
       {aviso && <div className="notice c-ok" role="status">{aviso}</div>}
 
       {/* Transparência honesta: a tela diz quando está incompleta (§9). */}
-      {dados?.incompleta && (
+      {filtro !== 'os20' && dados?.incompleta && (
         <div className="notice c-warn" role="status">
           Parte do dia não carregou ({dados.fontesIndisponiveis.join(', ')}). O que está
           aqui é verdadeiro; o que falta, falta — não confie nesta tela como lista completa
@@ -214,6 +252,7 @@ export function Dia({ houseId, casaLabel, papel }: {
         </div>
       )}
 
+      {filtro !== 'os20' && (
       <ol className="linha">
         {eventos.map((ev) => (
           <li key={ev.id} className={`ev ${FINALIZADOS.has(ev.state) ? 'feito' : ''}`}>
@@ -316,6 +355,100 @@ export function Dia({ houseId, casaLabel, papel }: {
           </li>
         ))}
       </ol>
+      )}
+
+      {/*
+        * A VISÃO DOS 20 (§9).
+        *
+        * Uma linha por criança, em ordem alfabética — a mesma ordem sempre.
+        * Serve à troca de turno e a quem passa na casa: "e a Alice, como
+        * está?", sem rolar a cronologia inteira atrás do nome de cada uma.
+        *
+        * O contador de pendências fica NA LINHA e não ORDENA a lista: ordenar
+        * por pendência produziria, todo dia, a mesma lista de crianças no
+        * topo — que é ranking de acolhido, e é proibido (§3.3).
+        */}
+      {filtro === 'os20' && (
+        <>
+          {painel?.incompleta && (
+            <div className="notice c-warn" role="status">
+              Parte do dia não carregou ({painel.fontesIndisponiveis.join(', ')}). O que está
+              aqui é verdadeiro; o que falta, falta.
+            </div>
+          )}
+
+          {!painel && !erro && <p className="mutetxt">Abrindo…</p>}
+
+          {painel && painel.coletivos.length > 0 && (
+            <>
+              <div className="eyebrow">Da casa toda · {painel.coletivos.length}</div>
+              <ul className="lista">
+                {painel.coletivos.map((c, i) => (
+                  <li key={i} className="row">
+                    <span className="hora">{hhmm(c.horario)}</span>
+                    <span className="grow"><b className="ff">{c.titulo}</b></span>
+                    <span className={`pill ${TOM_SEVERIDADE[c.severidade] ?? 'c-info'}`}>
+                      {c.estado}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+
+          {painel && (
+            <>
+              <div className="eyebrow">
+                Por criança · {painel.acolhidos.length} · em ordem alfabética
+              </div>
+              {painel.acolhidos.length === 0 && (
+                <p className="mutetxt">Nenhum registro individual hoje.</p>
+              )}
+              <div className="stack">
+                {painel.acolhidos.map((a) => (
+                  <article className="card stack" key={a.acolhidoId}>
+                    <div className="row">
+                      <b className="ff grow">{a.nome}</b>
+                      {a.pendencias > 0 && (
+                        <span className="pill c-crit">
+                          {a.pendencias} pendência(s)
+                        </span>
+                      )}
+                    </div>
+
+                    {/* O alerta essencial primeiro: é o que muda o que a
+                        pessoa vai fazer nos próximos minutos. */}
+                    {a.alertaEssencial && (
+                      <div className="notice c-crit" role="alert">⚠ {a.alertaEssencial}</div>
+                    )}
+
+                    <div className="mutetxt">{a.situacaoAtual}</div>
+
+                    {a.ultimoRegistro && (
+                      <div className="mutetxt">
+                        Último: {hhmm(a.ultimoRegistro.horario)} · {a.ultimoRegistro.titulo}
+                        {' · '}{a.ultimoRegistro.estado}
+                      </div>
+                    )}
+                    {a.proximaAtividade ? (
+                      <div className="mutetxt">
+                        A seguir: {hhmm(a.proximaAtividade.horario)} · {a.proximaAtividade.titulo}
+                      </div>
+                    ) : (
+                      <div className="mutetxt">Nada previsto até o fim do dia.</div>
+                    )}
+                  </article>
+                ))}
+              </div>
+              <p className="mutetxt" style={{ marginTop: 12 }}>
+                Esta lista não é ordenada por número de pendências, e não conta nada por
+                educador. Ela responde "como está cada um agora" — não "quem dá mais
+                trabalho".
+              </p>
+            </>
+          )}
+        </>
+      )}
 
       {/*
         * OS PEDIDOS DE SUBSTITUIÇÃO EM ABERTO.

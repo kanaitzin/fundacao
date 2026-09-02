@@ -476,6 +476,39 @@ telas. Nenhuma das duas dava erro: o campo aparecia na tela e vivia em branco.
   Casa 03 concluiria que a Casa 04 passou o mês sem nada. Toda agregação por
   casa precisa conferir o escopo ANTES de contar.
 
+## Fase 42 — O limite da unidade, a visão dos 20, e o JOIN que mentia ✅
+
+| Requisito | Onde ficou | Teste |
+|---|---|---|
+| Alterar o limite da casa, com motivo (§ capacidade) | `FolhaLimite` no Painel + `app_set_house_capacity` | "altera com motivo, e a mudança fica registrada" |
+| Só coordenação da casa e Gestor Geral alteram | guarda de papel + policy | "educador e equipe técnica não alteram" |
+| A coordenação de outra casa não altera esta | `app_house_in_scope` no comando | "a coordenação de OUTRA casa não altera" |
+| Limite igual ao atual não vira mudança | `capacidade_sem_mudanca` | "o limite igual ao atual não vira mudança" |
+| O histórico do limite é da equipe, não área restrita | `cap_select` por `app_house_in_scope` | "quem trabalha na casa LÊ o histórico" |
+| A visão dos 20 (§9) | filtro "Por criança" no Dia, sobre `/timeline/house-panel` | `operacao.e2e` (ordem alfabética) + "casa fora do alcance não devolve o painel" |
+| Ordem alfabética, e pendência não ordena (§3.3) | o servidor ordena; a tela não reordena | `operacao.e2e` |
+| O nome de quem responde chega a quem trabalha ao lado | `app_user_display_name` em 8 consultas | "o educador vê o NOME de quem responde pelo compromisso" |
+
+### Achados desta fase
+
+- **A marca `rls-join-ok:` pode mentir, e mentia.** Oito consultas de quatro
+  partições traziam o nome de uma pessoa por `JOIN app_user`, com o comentário
+  afirmando que "app_user não tem RLS de linha". Tem: `user_select` (0010) só
+  entrega o cadastro de um colega a gestor, coordenação e equipe técnica. O
+  `arquitetura.spec` exige que a marca EXISTA perto de todo JOIN protegido —
+  ele não tem como conferir se o que ela afirma é verdade. Terceira aparição da
+  mesma família de defeito no projeto.
+- **`JOIN` e `LEFT JOIN` erram de jeitos diferentes, e os dois em silêncio.** O
+  interno sumia com a LINHA: o histórico do limite voltava vazio para o
+  educador, o líder e a Enfermagem, e as entregas de um relatório sumiam para
+  quem não alcança quem as registrou. O externo sumia com o NOME: a agenda
+  mostrava o compromisso sem dizer quem vai levar a criança — que é a
+  informação pela qual aquela tela existe, e é exatamente o defeito da fase 4
+  reaparecido em outro lugar.
+- **Regra que fica:** nome de pessoa em consulta de leitura vem sempre por
+  `app_user_display_name(id)`, nunca por junção com `app_user`. A função é
+  `SECURITY DEFINER` e devolve só o nome — não abre o cadastro.
+
 ## Fase 11 — Auditoria de testes e documentação ✅
 219 testes em 16 suítes, todas verdes. As 6 falhas antigas do `saude` eram uma
 só, em cascata: o teste media `criadas` na casa inteira e dependia da ordem das

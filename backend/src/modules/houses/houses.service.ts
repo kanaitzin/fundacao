@@ -117,10 +117,15 @@ export class HousesService {
   async capacityHistory(user: AuthenticatedUser, houseId: string) {
     return this.db.asUser(user.id, async (c) => {
       const { rows } = await c.query(
-        `SELECT ch.from_capacity, ch.to_capacity, ch.reason, ch.changed_at, u.full_name AS autor
+        // `app_user` TEM RLS de linha: `user_select` só entrega o cadastro de
+        // um colega a gestor, coordenação e equipe técnica. O JOIN interno que
+        // estava aqui não filtrava o nome — ele SUMIA COM A LINHA, e o
+        // educador, o líder e a Enfermagem recebiam um histórico VAZIO, sem
+        // erro nenhum. "Por que esta casa recebe 22?" voltava a ser suposição
+        // justamente para quem trabalha nela.
+        `SELECT ch.from_capacity, ch.to_capacity, ch.reason, ch.changed_at,
+                app_user_display_name(ch.changed_by) AS autor
            FROM house_capacity_change ch
-           -- rls-join-ok: app_user não tem RLS de linha; quem filtra é a policy cap_select.
-           JOIN app_user u ON u.id = ch.changed_by
           WHERE ch.house_id = $1
           ORDER BY ch.changed_at DESC LIMIT 50`, [houseId]);
       return rows.map((r) => ({

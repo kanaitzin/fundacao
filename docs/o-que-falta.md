@@ -177,6 +177,31 @@ relatórios já fazia estava **quebrado contra o servidor de verdade**:*
    `status <> 'aprovado'`: quem tentasse reenviar um relatório já aprovado
    recebia **404**, ou seja, o sistema respondia que o documento não existe.*
 
+*E, em 01/09/2026, o **limite da unidade** e a **visão dos 20**. As oito casas
+nasceram com 20 — o número praticado — e não havia por onde mudar: a tarja
+"acima do limite" da admissão apontava para um teto que ninguém conseguia
+corrigir, e a admissão acima do teto, que é decisão registrada com
+justificativa, virava rotina por defeito de cadastro. E o painel por criança
+respondia a pergunta da troca de turno — "e a Alice, como está?" — que a linha
+cronológica não responde sem rolar o dia inteiro atrás de cada nome.*
+
+*Construindo isso apareceu a **terceira aparição do mesmo defeito de JOIN**, e a
+primeira em que a marca `rls-join-ok:` estava afirmando uma coisa FALSA:
+"app_user não tem RLS de linha". Tem — `user_select` (migração 0010) só entrega
+o cadastro de um colega a gestor, coordenação e equipe técnica. Com isso:*
+
+ - *`JOIN app_user` SUMIA COM A LINHA: o histórico do limite voltava **vazio**
+   para o educador, o líder e a Enfermagem, e as entregas de um relatório
+   sumiam para quem não alcança o cadastro de quem as registrou;*
+ - *`LEFT JOIN app_user` sumia com o NOME: a agenda mostrava o compromisso sem
+   dizer **quem vai levar a criança** — que é a informação pela qual a tela
+   existe. É o mesmo defeito da fase 4 ("o educador nunca via o nome do colega
+   responsável"), reaparecido em outro lugar.*
+
+*Corrigido em oito consultas de quatro partições, todas passando a usar
+`app_user_display_name`. Nenhuma dava erro: a tela ficava em branco no lugar
+certo.*
+
 Isso não é lista de bugs. É o mapa do que já está construído por baixo e ainda
 não tem por onde ser usado. Serve para decidir com o Marcelo o que entra antes
 do piloto e o que espera.
@@ -211,9 +236,11 @@ Coisas de coordenação e de gestão, não de plantão. Nenhuma delas trava a ca
   LISTE os candidatos. De onde a equipe técnica escolhe: da linha do tempo da
   criança no período, das ocorrências, das evoluções de saúde? É pergunta para o
   Marcelo, não para o código.
-- **Capacidade da casa** — `POST /houses/:id/capacity`,
-  `GET /houses/:id/capacity-history`.
-- **Painel da casa na linha do tempo** — `GET /timeline/house-panel`.
+- ~~**Capacidade da casa**~~ e ~~**painel da casa na linha do tempo**~~ —
+  **resolvidos em 01/09/2026**: o limite da unidade ganhou folha no Painel, com
+  motivo obrigatório e o histórico de cada mudança à vista; e a visão dos 20
+  virou o filtro **"Por criança"** dentro do Dia — uma linha por acolhido, em
+  ordem alfabética, com o alerta essencial primeiro.
 - **Leitura excepcional de relato** — `POST /statements/:id/exceptional-read`
   (§26.2 #29): abrir um relato fora do alcance, declarando a finalidade. A regra
   está pronta; falta a tela que obriga a escrever o porquê.

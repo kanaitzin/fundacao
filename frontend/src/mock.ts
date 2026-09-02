@@ -67,6 +67,12 @@ const uid = () => Math.random().toString(36).slice(2, 10);
 // ---------------------------------------------------------------- pessoas
 
 const CASA = { id: 'casa-ai3', code: 'AI3', name: 'Casa 03 (piloto)', kind: 'abrigo_institucional' };
+/** O limite da unidade. Objeto, e não `let`, para a demonstração poder mudá-lo. */
+const LIMITE = { valor: 20 };
+/** As mudanças de limite feitas nesta sessão da demonstração. */
+const MUDANCAS_DE_LIMITE: {
+  de: number; para: number; motivo: string; autor: string; em: string;
+}[] = [];
 const CASAS = [
   CASA,
   { id: 'casa-ai1', code: 'AI1', name: 'Abrigo Institucional 1', kind: 'abrigo_institucional' },
@@ -1957,10 +1963,43 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
   if (rota.startsWith('/houses/') && rota.endsWith('/occupancy')) {
     const ocupadas = todosKids().length;
     return {
-      capacidade: 20, ocupadas, vagas: Math.max(0, 20 - ocupadas),
-      acimaDoLimite: ocupadas > 20,
+      capacidade: LIMITE.valor, ocupadas, vagas: Math.max(0, LIMITE.valor - ocupadas),
+      acimaDoLimite: ocupadas > LIMITE.valor,
       podeAlterar: ['coordenador', 'gestor_geral'].includes(eu.role),
     };
+  }
+  /*
+   * O LIMITE DA UNIDADE — motivo obrigatório, e a mudança não some.
+   *
+   * As oito casas nascem com 20, que é o número praticado, e até 01/09/2026
+   * não havia por onde mudar: a tarja "acima do limite" da admissão apontava
+   * para um teto que ninguém conseguia corrigir.
+   */
+  if (rota.startsWith('/houses/') && rota.endsWith('/capacity-history')
+      && metodo === 'GET') {
+    return MUDANCAS_DE_LIMITE;
+  }
+  if (rota.startsWith('/houses/') && rota.endsWith('/capacity') && metodo === 'POST') {
+    if (!['coordenador', 'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403,
+        'Somente a coordenação da casa e o Gestor Geral alteram o limite.');
+    }
+    const nova = Number(b.capacidade);
+    if (!Number.isInteger(nova) || nova < 1 || nova > 60) {
+      return new Recusa(400, 'O limite precisa estar entre 1 e 60.');
+    }
+    if (nova === LIMITE.valor) return new Recusa(400, 'O limite informado já é o atual.');
+    if (String(b.motivo ?? '').trim().length < 15) {
+      return new Recusa(400,
+        'Descreva o motivo da mudança de limite (mínimo 15 caracteres).');
+    }
+    const anterior = LIMITE.valor;
+    MUDANCAS_DE_LIMITE.unshift({ de: anterior, para: nova,
+      motivo: String(b.motivo).trim(), autor: eu.fullName, em: new Date().toISOString() });
+    LIMITE.valor = nova;
+    return { capacidade: nova, anterior,
+      aviso: `Limite da unidade alterado de ${anterior} para ${nova}. A mudança fica `
+        + 'registrada com o seu nome.' };
   }
 
   // ---- relatos independentes (§12.2)
@@ -2082,7 +2121,10 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       const ativos = daCasa ? todosKids().length : 0;
       return {
         id: c.id, codigo: c.code, nome: c.name,
-        ocupacao: { ativos, limite: 20, acimaDoLimite: ativos > 20 },
+        // Só a Casa 03 tem dados de verdade na demonstração; o limite das
+        // outras sete é o número praticado, e mudar o desta não mexe no delas.
+        ocupacao: { ativos, limite: daCasa ? LIMITE.valor : 20,
+                    acimaDoLimite: ativos > (daCasa ? LIMITE.valor : 20) },
         entradas30d: daCasa ? NOVOS.length : 0,
         transferenciasAguardando: daCasa
           ? TRANSFERENCIAS.filter((t) => t.caixa === 'recebida' && t.situacao === 'solicitada').length
@@ -2219,6 +2261,41 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       nota: 'Dia completo das unidades que você alcança, das 00h00 às 23h59 no horário '
           + 'de Porto Alegre, em ordem. Não é medição de casa nem de equipe: não há '
           + 'contagem por pessoa nem comparação entre unidades.',
+    };
+  }
+
+  /*
+   * O PAINEL DA CASA — a visão dos 20 (§9). Uma linha por criança, em ORDEM
+   * ALFABÉTICA: ordenar por pendência produziria a mesma lista de crianças no
+   * topo todo dia, que é ranking de acolhido (§3.3).
+   */
+  if (rota.startsWith('/timeline/house-panel')) {
+    const agora = new Date().toISOString();
+    const porPessoa = new Map<string, typeof LINHA>();
+    const coletivos: typeof LINHA = [];
+    for (const e of LINHA) {
+      if (!e.personId) { coletivos.push(e); continue; }
+      porPessoa.set(e.personId, [...(porPessoa.get(e.personId) ?? []), e]);
+    }
+    return {
+      data: HOJE, incompleta: false, fontesIndisponiveis: [],
+      coletivos: coletivos.map((e) => ({
+        titulo: e.title, horario: e.at, estado: e.state, severidade: e.severity })),
+      acolhidos: [...porPessoa.entries()].map(([id, eventos]) => {
+        const proxima = eventos.find((e) => e.at >= agora) ?? null;
+        const ultimo = [...eventos].reverse().find((e) => e.at < agora) ?? null;
+        const criticos = eventos.filter((e) => e.severity === 'critico');
+        return {
+          acolhidoId: id,
+          nome: kid(id)?.nome ?? '—',
+          situacaoAtual: ultimo?.state ?? 'Sem registro hoje',
+          ultimoRegistro: ultimo
+            ? { titulo: ultimo.title, horario: ultimo.at, estado: ultimo.state } : null,
+          proximaAtividade: proxima ? { titulo: proxima.title, horario: proxima.at } : null,
+          pendencias: criticos.length,
+          alertaEssencial: criticos[0]?.title ?? null,
+        };
+      }).sort((a, b) => a.nome.localeCompare(b.nome)),
     };
   }
 

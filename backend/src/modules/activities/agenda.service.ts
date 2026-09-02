@@ -273,11 +273,9 @@ export class AgendaService {
                 c.duration_min, c.recurrence, c.weekdays, c.open_ended_reason,
                 c.person_id, app_person_display_name(c.person_id) AS pessoa,
                 c.responsible_mode, c.responsible_note,
-                r.full_name AS responsavel, u.full_name AS autor, c.created_at
+                app_user_display_name(c.responsible_id) AS responsavel,
+                app_user_display_name(c.created_by) AS autor, c.created_at
            FROM commitment c
-           -- rls-join-ok: o nome do acolhido vem de app_person_display_name; app_user não tem RLS de linha.
-           LEFT JOIN app_user u ON u.id = c.created_by
-           LEFT JOIN app_user r ON r.id = c.responsible_id
           WHERE c.house_id = $1 AND c.active
           ORDER BY c.time_of_day, c.title`, [houseId]);
       return rows;

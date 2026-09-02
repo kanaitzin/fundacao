@@ -76,11 +76,8 @@ export class FollowupsService {
       const { rows } = await c.query(
         `SELECT f.id, f.kind, f.status, f.period_start, f.period_end, f.version,
                 app_person_display_name(f.person_id) AS pessoa, f.person_id,
-                u.full_name AS redator
+                app_user_display_name(f.written_by) AS redator
            FROM followup f
-           -- rls-join-ok: o nome do acolhido vem de app_person_display_name, e não de
-           -- JOIN com person; app_user não tem RLS de linha.
-           LEFT JOIN app_user u ON u.id = f.written_by
           WHERE f.house_id = $1
             AND f.status IN ('pendente','rascunho','em_aprovacao')
             AND ($2::text IS NULL OR f.kind = $2)
@@ -97,11 +94,9 @@ export class FollowupsService {
     const dados = await this.db.asUser(user.id, async (c) => {
       const { rows: [f] } = await c.query(
         `SELECT f.*, app_person_display_name(f.person_id) AS pessoa,
-                a.full_name AS aprovador, w.full_name AS redator
+                app_user_display_name(f.approved_by) AS aprovador,
+                app_user_display_name(f.written_by) AS redator
            FROM followup f
-           -- rls-join-ok: app_user não tem RLS de linha; quem filtra é a policy fu_select.
-           LEFT JOIN app_user a ON a.id = f.approved_by
-           LEFT JOIN app_user w ON w.id = f.written_by
           WHERE f.id = $1`, [id]);
       if (!f) return null;
       const { rows: fontes } = await c.query(

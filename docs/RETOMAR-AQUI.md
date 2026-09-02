@@ -43,7 +43,7 @@ rede-acolher/
 │   │   │                  database, events, health
 │   │   └── modules/       17 partições isoladas, cada uma com as próprias
 │   │                      migrações em modules/<nome>/migrations/
-│   ├── test/              37 suítes (e2e contra PostgreSQL real + estáticas)
+│   ├── test/              38 suítes (e2e contra PostgreSQL real + estáticas)
 │   └── assets/timbre.png  a marca da Fundação, usada no documento em Word
 ├── frontend/
 │   ├── src/
@@ -183,8 +183,9 @@ Além dos e2e, quatro suítes estáticas — elas já pegaram erro de verdade:
 
 ## 5. O QUE JÁ ESTÁ PRONTO
 
-**Fases 0 a 41. 400 testes em 37 suítes**, duas rodadas limpas. 27 telas, 72
-migrações, 89 tabelas.
+**Fases 0 a 42. 409 testes em 38 suítes**, duas rodadas limpas — a segunda às
+21h29 de Porto Alegre, com o UTC já no dia seguinte, que é a condição que a
+regra pede. 27 telas, 72 migrações, 89 tabelas.
 
 **O ciclo do acolhimento:** admissão com motivo e capacidade, perfil, correção
 de cadastro com histórico legível, **atualização dos dados descritivos —
@@ -192,7 +193,8 @@ cuidados essenciais, escola, equipe de referência — guardando o que estava
 escrito antes**, saída com motivo, acervo histórico e retorno como episódio
 novo.
 
-**O turno:** o Dia com a rotina versionada da casa, chamadas coletivas com
+**O turno:** o Dia com a rotina versionada da casa e o filtro **"Por criança"**
+— uma linha por acolhido, em ordem alfabética, com o alerta essencial primeiro —, chamadas coletivas com
 conferência de mesa, passagem de plantão assinada uma a uma, ATA do turno com o
 corpo do livro real da Casa 03, episódios do turno com relato imutável e ciência
 nominal, ATA Geral Noturna e o Arquivo das ATAS por dia, semana ou mês.
@@ -333,6 +335,13 @@ Vale ler antes de mexer em qualquer coisa parecida. Quase todos eram
   sobre "cuidados essenciais" sem guardar o texto anterior é apagar uma
   instrução de proteção — e a auditoria guarda o nome do campo, nunca o
   conteúdo.
+- **A marca `rls-join-ok:` pode mentir — e mentia.** Oito consultas traziam o
+  nome de uma pessoa por junção com `app_user`, com o comentário afirmando que
+  aquela tabela não tem RLS de linha. Tem. `JOIN` sumia com a LINHA (o histórico
+  do limite da casa voltava vazio para quem trabalha nela); `LEFT JOIN` sumia
+  com o NOME (a agenda mostrava o compromisso sem dizer quem vai levar a
+  criança). Regra que ficou: nome de pessoa vem sempre por
+  `app_user_display_name(id)`.
 - **A aba de relatórios quebrava contra o servidor de verdade.** `GET /reports`
   servia sete campos e a tela lia onze; `r.entregas.map(...)` derrubava a aba
   inteira. No protótipo funcionava, porque o `mock.ts` fora escrito olhando a
