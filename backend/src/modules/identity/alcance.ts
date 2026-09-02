@@ -65,6 +65,7 @@ export const AREAS = {
   rotina: 'A rotina da casa',
   alinhamentos: 'Reuniões e combinados da equipe',
   painel: 'Painel das unidades',
+  sincronizacao: 'Sincronização',
   setores: 'O que cada setor enxerga',
   cozinha: 'Restrições alimentares',
   casas: 'Unidades',
@@ -173,6 +174,10 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
       { area: 'acompanhamentos', titulo: AREAS.acompanhamentos,
         faz: 'Redige acompanhamentos e gera relatórios.',
         servidor: 'Quem redigiu não aprova o próprio texto.' },
+      { area: 'sincronizacao', titulo: AREAS.sincronizacao,
+        faz: 'Decide o que fazer quando duas versões do mesmo registro chegam ao servidor.',
+        servidor: 'O sistema nunca escolhe a versão certa, e nenhuma é apagada: o que se '
+          + 'grava é a decisão escrita, ao lado das duas.' },
       { area: 'painel', titulo: AREAS.painel,
         faz: 'Vê a ocupação, o fluxo e as pendências da unidade, e o quadro de cada mês.',
         servidor: 'Sem ranking: os cartões saem na ordem do código da casa, nunca ordenados '
@@ -306,6 +311,9 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
       { area: 'acompanhamentos', titulo: AREAS.acompanhamentos,
         faz: 'Aprova acompanhamentos e relatórios.',
         servidor: 'Não aprova o que ela mesma redigiu.' },
+      { area: 'sincronizacao', titulo: AREAS.sincronizacao,
+        faz: 'Resolve os conflitos de registro feitos sem sinal, escrevendo o que valeu.',
+        servidor: 'Nenhuma versão é descartada; a decisão é um registro novo.' },
       { area: 'painel', titulo: AREAS.painel,
         faz: 'Abre o quadro da casa: ocupação, entradas e saídas, ATAs fechadas e o que está '
           + 'esperando alguém.',
@@ -369,6 +377,8 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
           + 'oito casas.' },
       { area: 'setores', titulo: AREAS.setores, faz: 'Consulta o alcance de cada cargo.' },
       { area: 'acompanhamentos', titulo: AREAS.acompanhamentos, faz: 'Aprova e acompanha.' },
+      { area: 'sincronizacao', titulo: AREAS.sincronizacao,
+        faz: 'Acompanha e decide conflitos de sincronização.' },
       { area: 'painel', titulo: AREAS.painel,
         faz: 'Vê as oito unidades lado a lado, na ordem do código.',
         servidor: 'Não há "melhor casa": nenhuma lista aqui é ordenada por número, porque '

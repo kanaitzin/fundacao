@@ -218,6 +218,7 @@ export class SyncService {
 
   /** Resolver = registrar a decisão humana. Nenhuma versão é apagada (§17.4). */
   async resolveConflict(user: AuthenticatedUser, conflictId: string, resolution: string) {
+    /* alcance:sincronizacao — quem registra a decisão. Conferido contra `alcance.ts`. */
     if (!['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(user.role)) {
       throw new ForbiddenException('Somente equipe técnica e coordenação resolvem conflitos de sincronização.');
     }

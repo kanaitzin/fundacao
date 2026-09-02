@@ -76,6 +76,7 @@ describe('Alcance por setor', () => {
       acompanhamentos: 'modules/reports/followups.service.ts',
       rotina: 'modules/routine/routine.service.ts',
       painel: 'modules/reports/panel.service.ts',
+      sincronizacao: 'modules/sync/sync.service.ts',
     };
     /*
      * O sentido importa. Comparar "a página promete e o servidor recusa" acusa

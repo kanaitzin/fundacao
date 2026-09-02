@@ -47,7 +47,7 @@ rede-acolher/
 │   └── assets/timbre.png  a marca da Fundação, usada no documento em Word
 ├── frontend/
 │   ├── src/
-│   │   ├── screens/       27 telas React
+│   │   ├── screens/       29 telas React
 │   │   ├── mock.ts        o "servidor de mentira" do protótipo
 │   │   ├── docx.ts        monta o .docx no navegador (timbre + ABNT)
 │   │   ├── documentos.tsx pré-visualização em folha + downloads por setor
@@ -183,10 +183,10 @@ Além dos e2e, quatro suítes estáticas — elas já pegaram erro de verdade:
 
 ## 5. O QUE JÁ ESTÁ PRONTO
 
-**Fases 0 a 43. 407 testes em 38 suítes**, **cinco rodadas seguidas limpas
+**Fases 0 a 44. 408 testes em 38 suítes**, **cinco rodadas seguidas limpas
 entre 21h42 e 21h47 de Porto Alegre**, com o UTC já em 02/09 e a casa ainda em
 01/09 — a condição que a regra pede. Foi a rodada dessa hora que encontrou a
-suíte instável descrita abaixo. 27 telas, 72 migrações, 89 tabelas.
+suíte instável descrita abaixo. 29 telas, 72 migrações, 89 tabelas.
 
 **O ciclo do acolhimento:** admissão com motivo e capacidade, perfil, correção
 de cadastro com histórico legível, **atualização dos dados descritivos —
@@ -222,7 +222,9 @@ institucionais da casa — o cadastro que sustenta a regra do §11.7 —**, tran
 entre casas, cofre de acessos cifrado, benefícios e dados bancários com
 reautenticação e log por visualização, acompanhamentos com aprovação de segunda
 pessoa, relatórios que saem do rascunho por um ato declarado e são aprovados por
-outra pessoa, **o Painel das unidades — ocupação, fluxo, pendências e o quadro de
+outra pessoa, a **Sincronização** — o que este aparelho enviou, e os conflitos
+que esperam a frase da equipe, com as duas versões inteiras e nenhuma
+destacada —, **o Painel das unidades — ocupação, fluxo, pendências e o quadro de
 cada mês, na ordem do código da casa e sem nenhuma lista ordenada por número** —,
 alinhamentos de equipe (reuniões e combinados).
 
@@ -252,9 +254,9 @@ Tudo o que a educadora de plantão precisa fazer às 23h tem porta.
 - **Leitura excepcional de relato** — `POST /statements/:id/exceptional-read`:
   abrir um relato fora do alcance declarando a finalidade. A regra está pronta;
   falta a tela que obriga a escrever o porquê.
-- **Fila offline** — `POST /sync/push`, `GET /sync/status`, `/sync/conflicts`,
-  `POST /sync/conflicts/:id/resolve`. O PWA já instala; o modo offline de
-  verdade é fase própria.
+- **Fila offline, a metade do APARELHO** — guardar as operações localmente sem
+  sinal, enviar ao reconectar e limpar só o que o servidor aplicou. A metade do
+  servidor já tem tela (Sincronização); esta é fase própria, do lado do PWA.
 
 ### Grupo 3 — não precisa de tela
 

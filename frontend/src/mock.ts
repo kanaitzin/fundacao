@@ -549,6 +549,34 @@ const PROTOCOLO: { periodo: string; enfermagem: boolean; educadorAutorizado: boo
 
 const AUTORIZACOES: AutorizacaoMock[] = [];
 
+/** Os conflitos de sincronização em aberto (§17.4). */
+const CONFLITOS: {
+  id: string; entidade: string; entidadeId: string | null; tipo: string;
+  descricao: string; versaoA: Record<string, unknown>; versaoB: Record<string, unknown>;
+  criadoEm: string; aberto: boolean;
+}[] = [
+  { id: 'cf1', entidade: 'medication_administration', entidadeId: 'd3',
+    tipo: 'medication.confirm', aberto: true,
+    descricao: 'A mesma dose foi confirmada duas vezes: uma no tablet que estava sem sinal '
+      + 'e subiu às 23h, outra no aparelho com rede.',
+    versaoA: {
+      'medicamento': 'Amoxicilina (fictícia) 250 mg/5 mL',
+      'estado': 'administrado_no_horario',
+      'confirmada por': 'Tainá Souza (fictícia)',
+      'horário do fato': '08:05',
+      'chegou ao servidor': '08:05',
+    },
+    versaoB: {
+      'medicamento': 'Amoxicilina (fictícia) 250 mg/5 mL',
+      'estado': 'administrado_com_atraso',
+      'confirmada por': 'Mário Silva (fictício)',
+      'horário do fato': '08:20',
+      'chegou ao servidor': '23:04',
+      'observação': 'Sem sinal na casa; registrado no tablet do plantão.',
+    },
+    criadoEm: emHoras(23, 4) },
+];
+
 /**
  * Os aparelhos institucionais da casa (§11.7, pendência #7).
  *
@@ -2157,6 +2185,47 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     return { ok: true,
       aviso: 'Aparelho revogado. O registro permanece: as confirmações feitas por ele '
         + 'continuam rastreáveis.' };
+  }
+
+  /*
+   * SINCRONIZAÇÃO (§17).
+   *
+   * A demonstração começa com UM conflito em aberto, e ele é o caso real que a
+   * regra do §17.4 existe para tratar: a mesma dose confirmada duas vezes —
+   * uma pelo tablet que estava sem sinal e subiu depois, outra pelo aparelho
+   * que tinha rede. Nenhuma das duas está "errada"; o que resolve é a frase
+   * que a equipe escreve, e é ela que fica ao lado das duas versões.
+   */
+  if (rota === '/sync/status' && metodo === 'GET') {
+    return {
+      aplicadas: 12,
+      conflitos: CONFLITOS.filter((c) => c.aberto).length,
+      ultimaSincronizacao: emHoras(7, 10),
+      tiposSuportados: ['medication.confirm', 'activity.record', 'check.confirm',
+                        'handover.sign', 'handover.receipt'],
+    };
+  }
+  if (rota.startsWith('/sync/conflicts') && metodo === 'GET') {
+    return CONFLITOS.filter((c) => c.aberto).map(({ aberto, ...resto }) => ({
+      ...resto,
+      aviso: 'O sistema não escolhe a versão correta. Ambas permanecem registradas.',
+    }));
+  }
+  if (seg[0] === 'sync' && seg[1] === 'conflicts' && seg[3] === 'resolve'
+      && metodo === 'POST') {
+    if (!['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403,
+        'Somente equipe técnica e coordenação resolvem conflitos de sincronização.');
+    }
+    const alvo = CONFLITOS.find((c) => c.id === seg[2] && c.aberto);
+    if (!alvo) return new Recusa(404, 'Conflito não encontrado ou já resolvido.');
+    if (!String(b.decisao ?? '').trim()) {
+      return new Recusa(400, 'Descreva a decisão e o motivo.');
+    }
+    // Resolver é registrar a decisão: nenhuma das duas versões é apagada.
+    alvo.aberto = false;
+    return { ok: true,
+      aviso: 'Decisão registrada. As versões originais permanecem preservadas.' };
   }
 
   if (rota === '/staff') {

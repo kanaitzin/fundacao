@@ -478,6 +478,33 @@ describe('Fase 3 — Rotina, atividades, chamadas, linha do tempo e offline', ()
     expect(rows[0].version_b).toBeTruthy();
   });
 
+  /*
+   * `GET /sync/status` é a outra metade do que a tela de Sincronização lê, e
+   * ela responde a uma pergunta que é DE QUEM REGISTROU, não da casa: "o que
+   * eu mandei chegou?". Vem logo depois do cenário #17 porque conta as
+   * operações que aquele teste acabou de empurrar — dentro de uma suíte a
+   * ordem é sequencial, e é a única contagem que se pode fazer com segurança.
+   */
+  it('o status diz a quem registrou se o que ele mandou chegou', async () => {
+    const meu = await request(http).get('/api/v1/sync/status').set(auth(tokens.educador));
+    expect(meu.status).toBe(200);
+    expect(meu.body).toEqual(expect.objectContaining({
+      aplicadas: expect.any(Number),
+      conflitos: expect.any(Number),
+      tiposSuportados: expect.any(Array),
+    }));
+    // O educador empurrou operações acima, e uma delas virou conflito.
+    expect(meu.body.conflitos).toBeGreaterThan(0);
+    expect(meu.body.ultimaSincronizacao).toBeTruthy();
+
+    // O status é DE QUEM PERGUNTA. Quem não enviou nada não herda a fila de
+    // outra pessoa — seria a fila do colega aparecendo como sua.
+    const daCoord = await request(http).get('/api/v1/sync/status').set(auth(tokens.coord));
+    expect(daCoord.body.aplicadas).toBe(0);
+    expect(daCoord.body.conflitos).toBe(0);
+    expect(daCoord.body.ultimaSincronizacao).toBeNull();
+  });
+
   it('o aparelho só limpa o que foi confirmado pelo servidor (§17.2)', async () => {
     const { rows: [a] } = await admin.query(`SELECT id FROM activity LIMIT 1`);
     const r = await request(http).post('/api/v1/sync/push').set(auth(tokens.educador)).send({

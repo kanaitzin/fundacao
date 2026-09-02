@@ -545,6 +545,39 @@ continuava aberta do lado que interessa.
   aparelho — deixando um ativo e órfão na casa. Ele fica numa folha que só
   fecha por ato declarado ("Guardei o código").
 
+## Fase 44 — A decisão que a regra exigia e ninguém conseguia tomar ✅
+
+O caso mais estranho do levantamento: `GET /sync/status`, `GET /sync/conflicts`
+e `POST /sync/conflicts/:id/resolve` existiam desde a fase 3, a regra do §17.4
+estava cumprida — as duas versões preservadas, o sistema recusando escolher — e
+o estado que ela cria, "aguardando decisão humana", **não era visível a nenhum
+humano**. Um registro feito sem sinal que colidisse com outro ficava parado
+para sempre.
+
+| Requisito | Onde ficou | Teste |
+|---|---|---|
+| Ver os conflitos em aberto da casa (§17.4) | tela `Sincronizacao.tsx` | `operacao.e2e` "cenário #17" |
+| As duas versões inteiras, sem nenhuma destacada | componente `Versao`, campo a campo | mesmo teste (`versaoA`/`versaoB`) |
+| Resolver é registrar a decisão, não escolher | folha com texto obrigatório | "cenário #17" |
+| Só técnica, coordenação e gestão decidem | `/* alcance:sincronizacao */` + `alcance.ts` | `alcance.spec` (marca nova) + "cenário #17" |
+| "O que eu mandei chegou?" é pergunta de quem registrou | `GET /sync/status`, por usuário | "o status diz a quem registrou se o que ele mandou chegou" |
+| A fila de um não aparece como a de outro | `WHERE user_id = $1` | mesmo teste, conferindo a coordenação em zero |
+
+### Achados desta fase
+
+- **Regra cumprida com decisão inalcançável é regra pela metade** — o mesmo
+  formato do achado da fase 43, e vale a pena nomear: o sistema pode estar
+  inteiramente correto no banco e ainda assim deixar a pessoa sem ação. O
+  levantamento das rotas sem porta é o que encontra esse tipo de buraco, porque
+  ele não aparece como erro em lugar nenhum.
+- **Um conflito de sincronização quase nunca é "uma versão errada".** É "a
+  criança tomou o remédio uma vez, e duas pessoas registraram". Por isso a
+  folha não tem botão de escolher versão: o que ela pede é a frase da equipe,
+  que fica ao lado das duas — e é ela que responde, meses depois, por que ficou
+  assim.
+- **Tela vazia precisa dizer por que está vazia.** Uma lista de conflitos em
+  branco é boa notícia, e se ela não disser isso será lida como "não carregou".
+
 ## Fase 11 — Auditoria de testes e documentação ✅
 219 testes em 16 suítes, todas verdes. As 6 falhas antigas do `saude` eram uma
 só, em cascata: o teste media `criadas` na casa inteira e dependia da ordem das

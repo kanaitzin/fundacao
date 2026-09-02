@@ -222,6 +222,19 @@ suposição.*
  - *a casa sem aparelho nenhum lê, na tela, que **nenhuma confirmação offline é
    aceita** — que é o padrão protetivo, e não um defeito a corrigir.*
 
+*E a **decisão do conflito de sincronização** (§17.4), em 02/09/2026. Este é o
+caso mais estranho da lista: a regra estava cumprida e a decisão que ela EXIGE
+não tinha por onde ser tomada. O servidor guarda as duas versões inteiras,
+recusa escolher entre elas e marca o registro como "aguardando decisão humana"
+— e nenhum humano conseguia ver esse estado. Um registro feito sem sinal que
+colidisse com outro ficava parado para sempre.*
+
+*A tela mostra as duas versões campo a campo, sem destacar nenhuma, e o que ela
+pede não é um botão de escolha: é a FRASE da equipe. Porque a decisão de um
+conflito desses quase nunca é "uma está certa e a outra errada" — é "a criança
+tomou o remédio uma vez, e duas pessoas registraram". O texto fica ao lado das
+duas versões, que continuam existindo, com nome e horário.*
+
 Isso não é lista de bugs. É o mapa do que já está construído por baixo e ainda
 não tem por onde ser usado. Serve para decidir com o Marcelo o que entra antes
 do piloto e o que espera.
@@ -268,9 +281,12 @@ Coisas de coordenação e de gestão, não de plantão. Nenhuma delas trava a ca
   **Aparelhos** dentro de Equipe. O código nasce no registro, aparece numa folha
   própria UMA vez (não como aviso de topo, que a primeira rolagem perderia), e
   o revogado continua na lista com data e motivo.
-- **Fila offline** — `POST /sync/push`, `GET /sync/status`, `/sync/conflicts`,
-  `POST /sync/conflicts/:id/resolve`. O PWA já instala; o modo offline de
-  verdade é fase própria.
+- **Fila offline** — a metade do SERVIDOR ganhou tela em 02/09/2026
+  (`GET /sync/status`, `/sync/conflicts`, `POST /sync/conflicts/:id/resolve`).
+  Falta a metade do APARELHO, que é fase própria: guardar as operações
+  localmente sem sinal, enviar ao reconectar e limpar só o que o servidor
+  aplicou. `POST /sync/push` continua sem porta de tela porque é a rota que o
+  PWA chama, não uma pessoa.
 
 ## 3. Não precisa de tela
 
