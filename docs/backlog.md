@@ -578,6 +578,45 @@ para sempre.
 - **Tela vazia precisa dizer por que está vazia.** Uma lista de conflitos em
   branco é boa notícia, e se ela não disser isso será lida como "não carregou".
 
+## Fase 49 — O roteiro do Marcelo vira ensaio, e o Word para de envelhecer ✅
+
+Duas coisas que o Marcelo leva para a casa em dois dias: as tarefas e o papel.
+
+| Requisito | Onde ficou | Como se prova |
+|---|---|---|
+| Toda tarefa do roteiro tem porta, no cargo certo | `frontend/ensaio-roteiro.mjs` | 20 tarefas, todas verdes |
+| O Word do roteiro nasce do markdown | `scripts/roteiro-em-word.mjs` | 11 folhas, uma por cargo |
+| Espaço para escrever à mão em cada tarefa | linhas pontilhadas no gerador | conferido em PDF, folha a folha |
+
+O ensaio **não** simula a procura de uma pessoa — onde ela para é justamente o
+que a aplicação do roteiro serve para descobrir, e nenhum ensaio responde
+isso. O que ele impede é o outro fracasso, o barato: a tarefa não ter porta
+nenhuma, e o Marcelo descobrir isso diante da equipe.
+
+### Achados desta fase
+
+- **A chamada da manhã do protótipo já está confirmada** — 20 de 20 —, e a
+  tarefa 1 do roteiro pede "confirme a presença da chamada da manhã". A
+  educadora chegaria numa chamada já feita e acharia que errou alguma coisa. O
+  estado confirmado existe de propósito, para a demonstração poder mostrá-lo;
+  quem mudou foi o roteiro, que agora pede a do almoço e explica por quê
+  (§0.3).
+- **O Word do roteiro estava dois dias atrasado.** Era montado à mão em 31/08,
+  e desde então o markdown ganhou três seções e uma pergunta — e é o Word que
+  alguém imprime e leva para a casa. Documento que envelhece calado é pior do
+  que documento nenhum: quem o carrega acredita estar com a versão certa.
+  Agora ele nasce do markdown.
+- **O conversor tratava cada linha do arquivo como um parágrafo**, e o
+  documento saiu com 17 páginas de frases cortadas no meio. A quebra de linha
+  do markdown é do ARQUIVO, não do texto; ele passou a ler blocos.
+- **Três tarefas do ensaio estavam procurando no lugar errado**, e nenhuma
+  delas era defeito do sistema: "Triagem" é aba dentro da Saúde e não porta do
+  "Mais"; "Devolver pedindo complemento" mora dentro de "Revisar", porque
+  devolver sem ler não deveria ser possível; e a tela de transferências fala
+  em "Recebidas" e "Enviadas por esta casa", que é a linguagem da casa e não a
+  do cadastro — o ensaio procurava a palavra "transferência" e reprovava uma
+  tela certa.
+
 ## Fase 48 — Backup, restauração provada, e a configuração que ninguém documentou ✅
 
 O projeto tinha 425 testes e nenhuma resposta para "o servidor morreu, e

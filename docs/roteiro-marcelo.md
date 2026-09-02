@@ -15,7 +15,7 @@
 > ensaio for sem internet, a letra não é a que a equipe vai ver no sistema
 > real. Vale saber antes de anotar "achei feio".
 >
-> Última atualização: 02/09/2026 (com a fila offline, §0.2).
+> Última atualização: 02/09/2026 (fila offline no §0.2; avisos do arquivo no §0.3).
 
 ---
 
@@ -97,6 +97,26 @@ pergunte:
 
 ---
 
+## §0.3 — Duas coisas do arquivo, para não tropeçar na hora
+
+**A chamada da manhã já está confirmada no protótipo.** O café das 07h30
+aparece como "20 de 20 · Confirmada", de propósito: a demonstração precisa
+mostrar como fica uma chamada fechada. Mas a tarefa 1 pede *"confirme a
+presença da chamada da manhã"*, e a educadora vai chegar numa chamada já
+feita — e provavelmente vai achar que errou alguma coisa.
+
+**Peça a chamada do ALMOÇO**, que está aberta (3 de 20). A do jantar também
+está, e é a mais vazia se você quiser vê-la marcar muitos de uma vez.
+
+**A devolução da evolução mora dentro de "Revisar".** Na tarefa 4 da
+Enfermagem, "Devolver pedindo complemento" só aparece depois de a pessoa abrir
+a evolução na fila da triagem. Isso é de propósito — devolver sem ler não
+deveria ser possível —, mas se ela procurar o botão na lista e não achar, é
+esse o motivo, e o que interessa anotar é **quanto tempo ela levou até abrir
+uma**.
+
+---
+
 ## Como registrar cada resposta
 
 Para cada tarefa, anote só três coisas:
@@ -117,9 +137,11 @@ A frase dela é o dado mais valioso. "Isso aqui é a passagem?" vale mais que
 A pessoa que mais registra e a que menos tem tempo. Se alguma coisa aqui
 demora, demora vinte vezes por turno.
 
-1. **Confirme a presença da chamada da manhã.**
+1. **Confirme a presença da chamada do almoço.**
+   *(A do café já está confirmada no protótipo — ver §0.3.)*
    Observar: ela procura na barra de baixo ou em "Mais"? Ela entende que
-   confirma **um por um**, ou procura um "marcar todos"?
+   confirma **um por um**, ou procura um "marcar todos"? Ela repara em
+   "Conferi a mesa", que marca de uma vez quem falta?
 
 2. **Registre a sua passagem do turno.**
    Observar: ela escreve nos campos certos? Entende que assina só a dela?

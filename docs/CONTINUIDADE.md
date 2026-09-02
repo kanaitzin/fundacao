@@ -836,6 +836,30 @@ Os outros três estão no backlog (fase 48). Vale destacar um: `ARQUIVO_DIR` e
 cópias documentais e os objetos do dossiê do acolhido. Perder um deles é
 perder documento de criança sem que o banco acuse nada.
 
+### 8.17 O roteiro vira ensaio, e o Word para de envelhecer — 02/09/2026
+
+`frontend/ensaio-roteiro.mjs` percorre as 20 tarefas do `roteiro-marcelo.md` e
+cobra que cada uma tenha porta no cargo certo. Ele **não** simula a procura de
+uma pessoa: onde ela para é justamente o que a aplicação do roteiro serve para
+descobrir. O que ele impede é o fracasso barato — a tarefa não ter porta
+nenhuma, e isso aparecer diante da equipe.
+
+O texto cobrado é o que a PESSOA lê, e não um seletor: se o rótulo mudar, o
+ensaio falha, e é o que se quer, porque o roteiro também envelhece com o
+rótulo.
+
+E o `roteiro-marcelo.docx` passou a nascer do markdown
+(`scripts/roteiro-em-word.mjs`). Ele estava dois dias atrasado, montado à mão
+em 31/08 — e é o Word que alguém imprime e leva para a casa. Uma folha por
+cargo, com as três linhas pontilhadas que o próprio roteiro pede: achou,
+quanto tempo, a frase dela. As perguntas do fim são para o Marcelo, e por isso
+recebem espaço em branco em vez de "achou? sim/não" — a linha errada pede a
+coisa errada.
+
+O achado que muda o dia da aplicação: **a chamada da manhã do protótipo já
+está confirmada**, e a tarefa 1 pedia "confirme a presença da chamada da
+manhã". O estado confirmado existe de propósito; quem mudou foi o roteiro.
+
 ---
 
 ## 9. Migrações desta série (0620–0860)

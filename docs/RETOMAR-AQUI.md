@@ -204,7 +204,7 @@ Além dos e2e, quatro suítes estáticas — elas já pegaram erro de verdade:
 
 ## 5. O QUE JÁ ESTÁ PRONTO
 
-**Fases 0 a 48. 430 testes em 41 suítes**, **onze rodadas seguidas limpas** —
+**Fases 0 a 49. 430 testes em 41 suítes**, **treze rodadas seguidas limpas** —
 cinco
 em 01/09, quatro entre 23h50 e 00h45 (com o UTC já no dia seguinte, que é a
 condição que a regra pede) e duas na manhã de 02/09. 30 telas, 72 migrações,
@@ -222,6 +222,12 @@ nunca disse que renderiza:
 - `npm run ensaio:folhas` percorre os quatro caminhos de documento: abre a
   folha, tenta baixar com finalidade curta demais, baixa com uma frase válida
   e confere que o `.docx` chegou.
+
+- `npm run ensaio:roteiro` percorre as **20 tarefas do roteiro do Marcelo** e
+  cobra que cada uma tenha porta no cargo certo. Ele não simula a procura de
+  uma pessoa — onde ela para é o que a aplicação do roteiro descobre —, mas
+  impede o fracasso barato: a tarefa não ter porta, e isso aparecer diante da
+  equipe.
 
 E, desde a fase 48, **a restauração é ensaiada como o resto**:
 `npm run ensaio:restauracao` faz o ciclo inteiro num banco descartável —
@@ -518,7 +524,7 @@ valendo:
 | `backlog.md` | o que foi pensado e ainda não construído |
 | `piloto-casa-03.md` | o desenho do piloto |
 | `PROMPT-MESTRE.md` | o bloco para colar na primeira mensagem da conversa nova |
-| `roteiro-marcelo.md` | o roteiro de demonstração para o Marcelo, cargo a cargo |
+| `roteiro-marcelo.md` | o roteiro de demonstração para o Marcelo, cargo a cargo. O `.docx` ao lado é GERADO dele por `scripts/roteiro-em-word.mjs` — não edite o Word à mão |
 | `formularios-reais.md` | os formulários de papel da casa que viraram tela |
 | `pendencias-institucionais.md` | o que depende de decisão da instituição |
 | `implantacao.md` | o que precisa existir antes de a casa usar: configuração, os dois acervos, backup e a prova de que a restauração funciona |
