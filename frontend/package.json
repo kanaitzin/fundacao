@@ -9,7 +9,8 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "prototipo": "VITE_PROTOTIPO=1 vite build --mode prototipo && mv ../prototipo/index.html ../prototipo/rede-acolher-prototipo.html && rm -rf ../prototipo/icons",
-    "ensaio": "node ensaio.mjs"
+    "ensaio": "node ensaio.mjs",
+    "ensaio:fila": "node ensaio-fila.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",

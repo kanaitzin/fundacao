@@ -578,6 +578,59 @@ para sempre.
 - **Tela vazia precisa dizer por que está vazia.** Uma lista de conflitos em
   branco é boa notícia, e se ela não disser isso será lida como "não carregou".
 
+## Fase 46 — A fila local do aparelho ✅
+
+O servidor já sabia receber a fila desde a fase 3: `POST /sync/push` decide o
+que aplicar, guarda as duas versões quando não consegue, e devolve o que pode
+ser apagado. Faltava a outra metade — o aparelho que GUARDA quando não há
+sinal, tenta sozinho e só esquece o que o servidor confirmou.
+
+| Requisito | Onde ficou | Teste |
+|---|---|---|
+| Guardar a operação sem sinal (§17.1) | `frontend/src/fila-offline.ts`, IndexedDB | `ensaio:fila` |
+| Sobreviver ao aplicativo fechar | IndexedDB, e não memória nem `localStorage` | `ensaio:fila` |
+| Apagar só o que voltou em `podeLimpar` (§17.2) | `sincronizar()` | `ensaio:fila` (o tipo recusado FICA) |
+| Horário do ato, nunca o do envio (§17.3) | `happenedAt` na hora do toque | `ensaio:fila` |
+| Sem sinal não afrouxa regra | a mesma operação da API, validada na chegada | handlers da fase 3 |
+| Dose exige o aparelho da casa (§11.7) | recusa no `enfileirar`, com frase | `fila-offline.spec` |
+| A lista de tipos é única nas três pontas | `modules/sync/tipos-offline.ts` | `fila-offline.spec` (7 testes) |
+| Ver o que ainda não subiu | selo no cabeçalho + folha "Guardado neste aparelho" | `ensaio:fila` |
+| A chamada marcada offline sai da lista de quem falta | estado local em `Chamada.tsx` | `ensaio:fila` |
+| Experimentar isso antes do piloto | botão "sem sinal", só no protótipo | `ensaio:fila` usa ele |
+
+### Achados desta fase
+
+- **O `mock.ts` anunciava um tipo que o servidor não sabe aplicar**
+  (`check.confirm`) e omitia dois que ele sabe (`activity.acknowledge`,
+  `health.evolution`). Regra 14 de novo, e desta vez numa lista que o aparelho
+  usaria para decidir o que guardar. A lista virou arquivo compartilhado, e o
+  teste recusa handler sem linha e linha sem handler.
+- **A tela ficava dizendo "0 de 20" depois de vinte marcações offline.** Como
+  a lista não é recarregada sem servidor — e não pode ser —, a educadora
+  marcava as vinte crianças e a tela continuava com o botão "Normal" intacto
+  em cada linha. Ela não teria como saber quem já marcou, e a saída natural
+  seria marcar de novo. A marcação guardada agora sai da lista de quem falta e
+  reaparece com a palavra que diz onde ela está.
+- **Uma folha aberta de dentro do cabeçalho herdava a tinta do navy.** Todas
+  as folhas nasciam dentro do conteúdo, e por isso ninguém tinha fixado a cor
+  em `.sheet`. A primeira folha aberta do cabeçalho veio com o título quase
+  invisível sobre o branco. Nenhum erro, nenhum aviso: só um texto que não
+  dava para ler. Achado no ensaio, pela foto.
+- **O teste de rota em variável acusou o próprio cliente HTTP.** `api(path,
+  init)` recebe a rota de quem chama — é o único lugar onde ela não pode estar
+  escrita por extenso. A exceção é só do `api.ts`; quem esconde rota do
+  conferidor é a tela, e as telas continuam todas dentro da regra.
+
+### O que esta fase NÃO fez, e por quê
+
+- **Confirmação de dose offline continua fora.** A regra existe e o servidor a
+  cumpre; o que falta é o aparelho saber que é o aparelho da casa, e isso
+  depende de onde o código do §11.7 é digitado nele. É a pendência
+  institucional #7 chegando na tela — decisão do Marcelo, não minha.
+- **O service worker não foi mexido.** A casca do app já é servida do cache
+  (`vite-plugin-pwa`); o que a fila precisava era armazenamento e reenvio, não
+  interceptação de requisição.
+
 ## Fase 45 — O ensaio de navegador vira suíte ✅
 
 `tsc --noEmit` diz que o código compila; nunca disse que a tela renderiza. Duas

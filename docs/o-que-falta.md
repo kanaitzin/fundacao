@@ -281,12 +281,18 @@ Coisas de coordenação e de gestão, não de plantão. Nenhuma delas trava a ca
   **Aparelhos** dentro de Equipe. O código nasce no registro, aparece numa folha
   própria UMA vez (não como aviso de topo, que a primeira rolagem perderia), e
   o revogado continua na lista com data e motivo.
-- **Fila offline** — a metade do SERVIDOR ganhou tela em 02/09/2026
-  (`GET /sync/status`, `/sync/conflicts`, `POST /sync/conflicts/:id/resolve`).
-  Falta a metade do APARELHO, que é fase própria: guardar as operações
-  localmente sem sinal, enviar ao reconectar e limpar só o que o servidor
-  aplicou. `POST /sync/push` continua sem porta de tela porque é a rota que o
-  PWA chama, não uma pessoa.
+- ~~**Fila offline**~~ — **completa em 02/09/2026**. A metade do SERVIDOR
+  ganhou tela de manhã (`GET /sync/status`, `/sync/conflicts`,
+  `POST /sync/conflicts/:id/resolve`); a metade do APARELHO veio na fase 46:
+  a operação feita sem sinal fica guardada em IndexedDB com o horário do ato,
+  sobrevive ao aplicativo fechar, sobe sozinha ao reconectar, e **só sai do
+  aparelho o que o servidor confirmou ter aplicado** — o que ele recusou fica,
+  com o motivo dele ao lado. `POST /sync/push` segue sem porta de TELA, e
+  agora tem quem a chame: é a rota do PWA, não de uma pessoa.
+  *Fica de fora a confirmação de dose:* o §11.7 exige o aparelho institucional,
+  o aparelho só sabe que é ele se guardar o código, e onde esse código é
+  digitado é decisão da Fundação (pendência #7). A fila recusa na hora, com
+  frase, em vez de guardar até a reconexão algo que voltaria rejeitado.
 
 ## 3. Não precisa de tela
 

@@ -1,3 +1,5 @@
+import { enfileirar, definirEnviador, ligarFila, RecusaDaFila, type AoEnfileirar, type RespostaPush } from './fila-offline';
+
 const BASE = '/api/v1';
 
 // Token só em memória: nada de sessão persistida em celular pessoal (§17.2).
@@ -17,6 +19,21 @@ export class ErroApi extends Error {
   constructor(readonly status: number, message: string) {
     super(message);
     this.name = 'ErroApi';
+  }
+}
+
+/**
+ * SEM SINAL não é erro do servidor.
+ *
+ * O `ErroApi` diz que o servidor respondeu e recusou; este diz que ninguém
+ * respondeu. A diferença decide o que fazer com o que a pessoa acabou de
+ * escrever: recusa do servidor é para mostrar, falta de sinal é para guardar
+ * na fila local (§17.1).
+ */
+export class SemConexao extends Error {
+  constructor(message = 'Sem conexão com o servidor.') {
+    super(message);
+    this.name = 'SemConexao';
   }
 }
 
@@ -55,8 +72,9 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
       },
     });
   } catch {
-    // Sem rede: a fila local offline entra na Fase 3.
-    throw new Error('Sem conexão com o servidor. Verifique a internet e tente novamente.');
+    throw new SemConexao(
+      'Sem conexão com o servidor. O que você registrar fica guardado neste aparelho.',
+    );
   }
 
   if (!res.ok) {
@@ -67,4 +85,57 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
     throw new ErroApi(res.status, mensagem(res.status, doServidor));
   }
   return res.json();
+}
+
+/* ------------------------------------------------------------- Fila offline */
+
+/**
+ * A porta única das ações que sobrevivem à falta de sinal (§17.1).
+ *
+ * Tenta o servidor. Se ninguém respondeu, guarda a operação na fila local e
+ * devolve `enfileirada: true` — a tela avisa que ficou guardado, e não que
+ * falhou. Recusa do servidor (`ErroApi`) continua subindo: "esta opção exige
+ * justificativa" é resposta, não falta de sinal, e guardar isso na fila seria
+ * empurrar para a madrugada um erro que a pessoa consegue corrigir agora.
+ *
+ * O `kind` e o `payload` são os do `POST /sync/push`, não os da rota REST: é o
+ * servidor que aplica a operação depois, pelo módulo dono dela.
+ */
+export async function apiOuFila<T>(
+  path: string,
+  init: RequestInit,
+  offline: AoEnfileirar,
+): Promise<{ resposta?: T; enfileirada: boolean; recusa?: string }> {
+  try {
+    const resposta = await api<T>(path, init);
+    return { resposta, enfileirada: false };
+  } catch (e) {
+    if (!(e instanceof SemConexao)) throw e;
+    try {
+      await enfileirar(offline);
+      return { enfileirada: true };
+    } catch (r) {
+      /* A fila recusou (tipo desconhecido, ou dose fora do aparelho da casa).
+       * A frase dela é a que a pessoa precisa ler. */
+      if (r instanceof RecusaDaFila) return { enfileirada: false, recusa: r.message };
+      throw e;
+    }
+  }
+}
+
+/**
+ * Liga a fila ao cliente HTTP. Chamado uma vez, na entrada do aplicativo.
+ *
+ * O `import` fica aqui, e não dentro de `fila-offline.ts`, para a fila não
+ * conhecer o cliente: assim o ensaio troca o enviador por um servidor de
+ * mentira sem tocar em nenhuma das duas partes.
+ */
+export function ligarFilaAoServidor() {
+  definirEnviador(async (operacoes) => {
+    return api<RespostaPush>('/sync/push', {
+      method: 'POST',
+      body: JSON.stringify({ operacoes }),
+    });
+  });
+  return ligarFila();
 }

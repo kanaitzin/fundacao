@@ -23,7 +23,9 @@
  * primeira correção — e divergiria justamente na demonstração para a equipe.
  * O arquivo é dado puro, sem dependência nenhuma, e por isso atravessa.
  */
+import { SemConexao } from './api';
 import { ALCANCE_POR_CARGO } from '../../backend/src/modules/identity/alcance';
+import { TIPOS_OFFLINE, TIPOS_OFFLINE_KINDS } from '../../backend/src/modules/sync/tipos-offline';
 import { SECOES_ATA, AMBIENTES_CASA, CLASSIFICACOES_EPISODIO }
   from '../../backend/src/modules/shifts/ata-secoes';
 import { TIPOS_ROTINA, DIAS_DA_SEMANA }
@@ -1880,8 +1882,29 @@ class Recusa extends Error {
   constructor(readonly status: number, message: string) { super(message); }
 }
 
+/*
+ * SEM SINAL, NO PROTÓTIPO.
+ *
+ * O arquivo do protótipo não tem rede: sem isto, a fila local seria a única
+ * parte do sistema que ninguém consegue ver antes do piloto — e ela é
+ * justamente a que muda o comportamento do aplicativo fora da tela. Com o
+ * botão ligado, o servidor de mentira para de responder como um servidor
+ * inalcançável responde: silêncio, e não recusa. É o que a `SemConexao` do
+ * `api.ts` distingue.
+ *
+ * Isto NÃO existe no aplicativo de verdade, como o "Ver como" não existe.
+ */
+let semSinal = false;
+export function simularSemSinal(ligado: boolean) { semSinal = ligado; }
+export function estaSemSinal() { return semSinal; }
+
 export async function mockApi<T>(path: string, init?: RequestInit): Promise<T> {
   await new Promise((r) => setTimeout(r, 120));   // uma pausa curta, como a rede real
+  if (semSinal) {
+    throw new SemConexao(
+      'Sem conexão com o servidor. O que você registrar fica guardado neste aparelho.',
+    );
+  }
   const [rota, busca] = path.split('?');
   const q = new URLSearchParams(busca ?? '');
   const corpo = init?.body ? JSON.parse(String(init.body)) : {};
@@ -2201,8 +2224,45 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       aplicadas: 12,
       conflitos: CONFLITOS.filter((c) => c.aberto).length,
       ultimaSincronizacao: emHoras(7, 10),
-      tiposSuportados: ['medication.confirm', 'activity.record', 'check.confirm',
-                        'handover.sign', 'handover.receipt'],
+      /* A lista vem do arquivo compartilhado, e não escrita à mão aqui: a
+       * versão anterior anunciava `check.confirm`, que o servidor não sabe
+       * aplicar, e omitia `activity.acknowledge` e `health.evolution`, que
+       * ele sabe. Servidor de mentira que responde melhor (ou pior) que o
+       * servidor ensaia um sistema que não existe. */
+      tiposSuportados: [...TIPOS_OFFLINE_KINDS],
+    };
+  }
+
+  /*
+   * A CHEGADA DA FILA LOCAL (§17.1).
+   *
+   * Responde como o servidor responde, e não como a tela gostaria: cada
+   * operação recebe um destino, e `podeLimpar` traz SÓ o que foi aplicado.
+   * O aparelho apaga por essa lista — se ela viesse cheia por educação, o
+   * protótipo ensinaria a equipe a confiar num apagamento que o sistema real
+   * não faz (§17.2).
+   */
+  if (rota === '/sync/push' && metodo === 'POST') {
+    const ops: any[] = Array.isArray(b.operacoes) ? b.operacoes : [];
+    if (!ops.length) return new Recusa(400, 'Nada a sincronizar.');
+    const resultados = ops.map((op) => {
+      const tipo = TIPOS_OFFLINE.find((t) => t.kind === op.kind);
+      if (!tipo) {
+        return { clientOpId: op.clientOpId, status: 'rejeitada', motivo: 'tipo de operação desconhecido' };
+      }
+      // §11.7: quem decide se o aparelho é institucional é o SERVIDOR.
+      if (tipo.exigeAparelhoInstitucional && !op.deviceToken) {
+        return { clientOpId: op.clientOpId, status: 'rejeitada',
+                 motivo: 'Offline, somente o aparelho institucional designado confirma medicamento.' };
+      }
+      return { clientOpId: op.clientOpId, status: 'aplicada' };
+    });
+    return {
+      recebidas: ops.length,
+      resultados,
+      podeLimpar: resultados.filter((r) => ['aplicada', 'duplicada'].includes(r.status))
+        .map((r) => r.clientOpId),
+      sincronizadoEm: new Date().toISOString(),
     };
   }
   if (rota.startsWith('/sync/conflicts') && metodo === 'GET') {

@@ -733,6 +733,43 @@ folha do código do aparelho, a decisão de conflito — está fora do percurso.
 Cobrir o roteiro do Marcelo tarefa a tarefa é o passo seguinte, e é o que
 transformaria o ensaio em regressão de verdade.
 
+### 8.14 A fila local do aparelho — 02/09/2026
+
+O caso mais antigo do levantamento: o servidor sabia receber a fila desde a
+fase 3 e nunca existiu quem a enviasse. `frontend/src/fila-offline.ts` é a
+outra metade — guarda em IndexedDB, tenta sozinha ao reconectar e a cada 30
+segundos, e apaga **só** o que voltou em `podeLimpar`.
+
+As quatro decisões, porque cada uma tem um jeito errado mais fácil:
+
+- **IndexedDB, não memória e não `localStorage`.** A aba fecha, o celular
+  reinicia, a bateria acaba. `localStorage` é síncrono, trava a tela no meio
+  do turno e some no primeiro "limpar dados do site".
+- **Apagar só o confirmado.** Uma fila que se limpa ao receber "200 OK" apaga
+  registro que não existe em lugar nenhum. O ensaio guarda uma operação de
+  tipo desconhecido justamente para provar que ela FICA, com o motivo do
+  servidor ao lado.
+- **`SemConexao` não é `ErroApi`.** Ninguém respondeu é uma coisa; o servidor
+  recusou é outra. Recusa não vai para a fila: "esta opção exige
+  justificativa" é resposta, e guardá-la empurraria para a madrugada um erro
+  que a pessoa corrige agora.
+- **A tela não recarrega depois de enfileirar.** Sem servidor não há o que
+  devolver, e recarregar apagaria da tela o que a pessoa acabou de registrar.
+
+O intervalo de 30 segundos existe porque `navigator.onLine` mente: o celular
+na casa fica "conectado" a um wi-fi que não alcança a internet, e o evento
+`online` nunca dispara. Quem sabe se há sinal é a resposta do servidor.
+
+Três defeitos apareceram construindo (o detalhe está no backlog, fase 46): a
+lista de tipos do `mock.ts` divergia do servidor; a chamada marcada offline
+continuava pedindo para ser marcada; e a folha aberta do cabeçalho herdava a
+tinta clara do navy e vinha ilegível.
+
+**Fica de fora, e não por falta de código:** a confirmação de dose. O §11.7
+exige o aparelho institucional, e o aparelho só sabe que é ele se o código
+estiver guardado nele — o que depende de onde esse código é digitado. É a
+pendência #7 chegando na tela, e a resposta é da Fundação.
+
 ---
 
 ## 9. Migrações desta série (0620–0860)

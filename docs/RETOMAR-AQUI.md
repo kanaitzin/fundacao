@@ -44,19 +44,22 @@ rede-acolher/
 │   │   │                  database, events, health
 │   │   └── modules/       17 partições isoladas, cada uma com as próprias
 │   │                      migrações em modules/<nome>/migrations/
-│   ├── test/              38 suítes (e2e contra PostgreSQL real + estáticas)
+│   ├── test/              39 suítes (e2e contra PostgreSQL real + estáticas)
 │   └── assets/timbre.png  a marca da Fundação, usada no documento em Word
 ├── frontend/
 │   ├── src/
-│   │   ├── screens/       29 telas React
+│   │   ├── screens/       30 telas React
 │   │   ├── mock.ts        o "servidor de mentira" do protótipo
 │   │   ├── docx.ts        monta o .docx no navegador (timbre + ABNT)
 │   │   ├── documentos.tsx pré-visualização em folha + downloads por setor
-│   │   ├── api.ts         cliente HTTP + classe ErroApi
+│   │   ├── api.ts         cliente HTTP, ErroApi, SemConexao e a porta da fila
+│   │   ├── fila-offline.ts a fila local do aparelho (IndexedDB): guarda sem
+│   │   │                  sinal, envia ao reconectar, limpa só o confirmado
 │   │   ├── App.tsx        navegação, abas, seletor de cargo do protótipo
 │   │   └── styles.css     design system, tema claro e escuro
-│   └── ensaio.mjs         abre o protótipo num navegador de verdade e
-│                          percorre as 100 telas dos oito cargos
+│   ├── ensaio.mjs         abre o protótipo num navegador de verdade e
+│   │                      percorre as 100 telas dos oito cargos
+│   └── ensaio-fila.mjs    corta o sinal e ensaia o que só existe fora da tela
 ├── scripts/               preparar-ambiente.sh — dependências, banco e
 │                          Chromium, para a sessão nova começar rodando
 ├── prototipo/             rede-acolher-prototipo.html  ← o arquivo que o
@@ -93,8 +96,8 @@ cd backend  && npx tsc --noEmit -p tsconfig.json
 # testes: precisam de PostgreSQL 16 rodando
 cd backend && npx jest
 
-# o ensaio de navegador: as 100 telas, cargo a cargo, no protótipo de verdade
-cd frontend && npm run ensaio
+# os ensaios de navegador: as 100 telas, e a fila offline
+cd frontend && npm run ensaio && npm run ensaio:fila
 ```
 
 O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as 72
@@ -199,22 +202,34 @@ Além dos e2e, quatro suítes estáticas — elas já pegaram erro de verdade:
 
 ## 5. O QUE JÁ ESTÁ PRONTO
 
-**Fases 0 a 45. 408 testes em 38 suítes**, **sete rodadas seguidas limpas** —
-cinco entre 21h42 e 21h47 de 01/09 e mais duas às 23h50 e 00h02 de Porto
-Alegre, com o UTC já no dia seguinte, que é a condição que a regra pede. 29
-telas, 72 migrações, 89 tabelas.
+**Fases 0 a 46. 415 testes em 39 suítes**, **nove rodadas seguidas limpas** —
+cinco em 01/09 e quatro entre 23h50 de 01/09 e 00h45 de Porto Alegre, com o
+UTC já no dia seguinte, que é a condição que a regra pede. 30 telas, 72
+migrações, 89 tabelas.
 
-E, desde a fase 45, **o ensaio de navegador**: `npm run ensaio` abre o
-protótipo num Chromium de verdade e percorre as **100 telas** que os oito
-cargos alcançam, cobrando de cada uma que não deixe erro no console, que
-escreva alguma coisa e que não mostre `undefined` para quem lê. Duas rodadas
-limpas. `tsc` diz que compila; ele nunca disse que renderiza.
+E dois ensaios de navegador, que `tsc` não substitui — ele diz que compila,
+nunca disse que renderiza:
+
+- `npm run ensaio` percorre as **100 telas** que os oito cargos alcançam,
+  cobrando de cada uma que não deixe erro no console, que escreva alguma coisa
+  e que não mostre `undefined` para quem lê;
+- `npm run ensaio:fila` faz o que só existe fora da tela: corta o sinal, marca
+  a chamada, fecha e abre o aplicativo, religa e confere que **só o que o
+  servidor confirmou** saiu do aparelho.
 
 **O ciclo do acolhimento:** admissão com motivo e capacidade, perfil, correção
 de cadastro com histórico legível, **atualização dos dados descritivos —
 cuidados essenciais, escola, equipe de referência — guardando o que estava
 escrito antes**, saída com motivo, acervo histórico e retorno como episódio
 novo.
+
+**Sem sinal:** a **fila local do aparelho** — a operação feita sem internet
+fica guardada em IndexedDB com o horário do ato, sobrevive ao aplicativo
+fechar, sobe sozinha ao reconectar, e **só sai do aparelho o que o servidor
+confirmou ter aplicado**; o que ele recusou fica, com o motivo dele ao lado. O
+selo no cabeçalho diz quanta coisa está guardada, e a folha separa o que sobe
+sozinho do que parou esperando gente. Confirmação de dose continua fora, à
+espera da resposta do §7.9.
 
 **O turno:** o Dia com a rotina versionada da casa e o filtro **"Por criança"**
 — uma linha por acolhido, em ordem alfabética, com o alerta essencial primeiro —, chamadas coletivas com
@@ -271,12 +286,11 @@ Restam **20 rotas sem porta**, de 34 em 01/09. A maior parte é de máquina
 (grupo 3). O que ainda é tela de gente são três coisas, e **nenhuma delas está
 parada por falta de código**:
 
-- **Fila offline, a metade do APARELHO.** Guardar as operações localmente sem
-  sinal, enviar ao reconectar e limpar só o que o servidor aplicou. A metade do
-  servidor já tem tela (Sincronização). Esta é **fase própria**: mexe em service
-  worker e armazenamento local, e é a primeira coisa que muda o comportamento
-  do aplicativo fora da tela. `POST /sync/push` continua sem porta de propósito
-  — é a rota que o PWA chama, não uma pessoa.
+- ~~**Fila offline, a metade do APARELHO.**~~ **Feita em 02/09/2026** (fase
+  46): a operação fica guardada no aparelho, sobe ao reconectar e some só
+  quando o servidor confirma. `POST /sync/push` continua sem porta de tela de
+  propósito — é a rota que o PWA chama, não uma pessoa, e agora ele a chama.
+  *Fica de fora a confirmação de dose*, que depende da resposta do §7.9.
 - **Leitura excepcional de relato** (`POST /statements/:id/exceptional-read`).
   A regra está pronta e é boa: o Gestor Geral só abre uma narrativa pessoal
   declarando a finalidade, e o comando registra antes de devolver o conteúdo.
@@ -345,7 +359,16 @@ Nenhuma delas é problema de código. Estão paradas esperando resposta:
    guarda a referência do registro que embasou a avaliação, e o candidato pode
    vir da linha do tempo da criança no período, das ocorrências ou das
    evoluções. Cada opção desenha uma tela diferente.
-8. **As fontes do protótipo.** O arquivo busca a *Atkinson Hyperlegible* e a
+8. **Onde o aparelho da casa recebe o código do §11.7.** A fila local recusa,
+   com frase, confirmar dose sem sinal num aparelho que não guarda o código —
+   e nenhuma tela pede esse código. A pergunta tem duas partes, e as duas são
+   da Fundação: quem digita o código no aparelho e quando (na entrega dele à
+   casa? na primeira entrada?); e o que fazer na casa que tem **um aparelho
+   só**, quando ele não está com quem faz o plantão — porque aí a confirmação
+   de medicamento offline deixa de existir na prática para o educador, que é a
+   consequência já registrada na decisão de 27/08 e continua valendo.
+
+9. **As fontes do protótipo.** O arquivo busca a *Atkinson Hyperlegible* e a
    *Plus Jakarta Sans* na rede. Aberto sem internet — que é como ele é
    entregue —, cai na fonte do sistema; com internet, cada abertura faz uma
    requisição a um terceiro. Embutir as duas famílias custa uns 300 KB no

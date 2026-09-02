@@ -528,6 +528,13 @@ button.card:hover{ border-color:var(--brand) }
   color:var(--on-solid); box-shadow:var(--shadow-1);
 }
 .sheet{
+  /* A FOLHA É UMA FOLHA, ONDE QUER QUE ELA SEJA MONTADA.
+     Todas as folhas nasciam dentro do conteúdo, que já é tinta escura sobre
+     claro — e por isso ninguém tinha fixado a cor aqui. A primeira folha
+     aberta de dentro do CABEÇALHO (a fila do aparelho) herdou a tinta clara
+     do navy e veio com o título quase invisível sobre o branco. Nenhum erro,
+     nenhum aviso: só um texto que não dava para ler. */
+  color:var(--ink);
   background:var(--surface); border-radius:16px; padding:24px;
   width:100%; max-width:520px; max-height:88dvh; overflow:auto;
   box-shadow:0 24px 60px rgba(0,20,45,.4);

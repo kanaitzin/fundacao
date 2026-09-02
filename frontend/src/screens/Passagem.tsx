@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { api } from '../api';
+import { api, apiOuFila } from '../api';
 
 /**
  * PASSAGEM INDIVIDUAL (§12.1–§12.4).
@@ -128,10 +128,26 @@ export function Passagem({ houseId }: { houseId: string }) {
     if (!aberto) return;
     setErro(''); setAviso(''); setOcupado(true);
     try {
-      const r = await api<{ aviso?: string }>(`/shifts/${aberto.id}/handover`, {
+      /*
+       * A passagem é o que mais se escreve com a internet oscilando, de
+       * madrugada. Sem sinal ela fica guardada aqui com o horário REAL da
+       * assinatura: assinada às 06h10 e subida às 09h, a ATA precisa dizer
+       * 06h10 (§17.3).
+       */
+      const r = await apiOuFila<{ aviso?: string }>(`/shifts/${aberto.id}/handover`, {
         method: 'POST', body: JSON.stringify(dados),
+      }, {
+        kind: 'handover.sign',
+        houseId,
+        happenedAt: dados.happenedAt,
+        payload: { shiftId: aberto.id, ...dados },
       });
-      setAviso(r?.aviso ?? 'Passagem assinada.');
+      if (r.recusa) { setErro(r.recusa); return; }
+      if (r.enfileirada) {
+        setAviso('Sem internet. A passagem assinada ficou guardada neste aparelho, com a hora em que você assinou, e sobe quando a conexão voltar.');
+        return;
+      }
+      setAviso(r.resposta?.aviso ?? 'Passagem assinada.');
       await abrirPlantao(aberto.id);
       await carregarLista();
     } catch (e) {
@@ -163,11 +179,21 @@ export function Passagem({ houseId }: { houseId: string }) {
     if (!aberto) return;
     setErro(''); setAviso(''); setOcupado(true);
     try {
-      const r = await api<{ aviso?: string }>(`/shifts/${aberto.id}/receipt`, {
+      const r = await apiOuFila<{ aviso?: string }>(`/shifts/${aberto.id}/receipt`, {
         method: 'POST', body: JSON.stringify(dados),
+      }, {
+        kind: 'handover.receipt',
+        houseId,
+        payload: { shiftId: aberto.id, ...dados },
       });
+      if (r.recusa) { setErro(r.recusa); return; }
+      if (r.enfileirada) {
+        setRecebendo(false);
+        setAviso('Sem internet. O recebimento ficou guardado neste aparelho e sobe quando a conexão voltar.');
+        return;
+      }
       setRecebendo(false);
-      setAviso(r?.aviso ?? 'Recebimento registrado.');
+      setAviso(r.resposta?.aviso ?? 'Recebimento registrado.');
       await abrirPlantao(aberto.id);
       await carregarLista();
     } catch (e) {

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { api } from '../api';
+import { api, apiOuFila } from '../api';
+import type { AoEnfileirar } from '../fila-offline';
 
 /**
  * O DIA — a linha do tempo (§9).
@@ -210,6 +211,34 @@ export function Dia({ houseId, casaLabel, papel }: {
 
   const idDe = (ev: Evento) => ev.id.split(':')[1] ?? ev.id;
 
+  /**
+   * A ação que sobrevive à falta de sinal (§17.1).
+   *
+   * Igual à `acao`, com uma diferença: sem internet, o registro fica guardado
+   * neste aparelho com o horário em que a atividade aconteceu, e a linha do
+   * dia NÃO é recarregada — recarregar sem servidor apagaria da tela o que a
+   * pessoa acabou de registrar, e ela registraria de novo.
+   */
+  async function acaoComFila(
+    ev: Evento, path: string, init: RequestInit, offline: AoEnfileirar,
+  ) {
+    setOcupado(ev.id); setErro(''); setAviso('');
+    try {
+      const r = await apiOuFila<{ aviso?: string }>(path, init, offline);
+      if (r.recusa) { setErro(r.recusa); return; }
+      if (r.enfileirada) {
+        setAviso('Sem internet. O registro ficou guardado neste aparelho, com a hora de agora, e sobe quando a conexão voltar.');
+        return;
+      }
+      if (r.resposta?.aviso) setAviso(r.resposta.aviso);
+      await carregar();
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Não foi possível registrar.');
+    } finally {
+      setOcupado(null);
+    }
+  }
+
   return (
     <>
       <div className="diahead">
@@ -275,19 +304,20 @@ export function Dia({ houseId, casaLabel, papel }: {
                 <div className="acoes">
                   {ev.actions!.some((a) => a.command === 'activity.acknowledge') && (
                     <button className="btn sm ghost" disabled={ocupado === ev.id}
-                            onClick={() => acao(ev, () =>
-                              api(`/activities/${idDe(ev)}/acknowledge`, { method: 'POST', body: '{}' }))}>
+                            onClick={() => acaoComFila(ev,
+                              `/activities/${idDe(ev)}/acknowledge`, { method: 'POST', body: '{}' },
+                              { kind: 'activity.acknowledge', houseId, payload: { activityId: idDe(ev) } })}>
                       Estou ciente
                     </button>
                   )}
                   {ev.actions!.some((a) => a.command === 'activity.record') && (
                     <>
                       <button className="btn sm" disabled={ocupado === ev.id}
-                              onClick={() => acao(ev, () =>
-                                api(`/activities/${idDe(ev)}/record`, {
-                                  method: 'POST',
-                                  body: JSON.stringify({ estado: 'concluida_no_horario' }),
-                                }))}>
+                              onClick={() => acaoComFila(ev,
+                                `/activities/${idDe(ev)}/record`,
+                                { method: 'POST', body: JSON.stringify({ estado: 'concluida_no_horario' }) },
+                                { kind: 'activity.record', houseId,
+                                  payload: { activityId: idDe(ev), estado: 'concluida_no_horario' } })}>
                         Concluí
                       </button>
                       <button className="btn sm ghost" disabled={ocupado === ev.id}
@@ -621,9 +651,10 @@ export function Dia({ houseId, casaLabel, papel }: {
           onRegistrar={async (estado, nota) => {
             const ev = excecao;
             setExcecao(null);
-            await acao(ev, () => api(`/activities/${idDe(ev)}/record`, {
-              method: 'POST', body: JSON.stringify({ estado, nota }),
-            }));
+            await acaoComFila(ev,
+              `/activities/${idDe(ev)}/record`,
+              { method: 'POST', body: JSON.stringify({ estado, nota }) },
+              { kind: 'activity.record', houseId, payload: { activityId: idDe(ev), estado, nota } });
           }}
         />
       )}

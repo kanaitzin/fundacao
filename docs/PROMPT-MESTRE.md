@@ -95,17 +95,19 @@ não me peça para reexplicar o que está lá.
 
 === ESTADO ATUAL (02/09/2026) ===
 
-Fases 0 a 45. 408 testes em 38 suítes, sem falha conhecida — sete rodadas
-seguidas limpas, cinco entre 21h42 e 21h47 de 01/09 e duas às 23h50 e 00h02 de
-Porto Alegre, com o UTC já no dia seguinte, que é a condição que a regra pede.
-Backend NestJS + PostgreSQL 16 com RLS, 17 partições isoladas, 72 migrações, 89
-tabelas. Frontend React PWA, 29 telas, empacotado num único .html de ~830 KB
-que abre sem servidor.
+Fases 0 a 46. 415 testes em 39 suítes, sem falha conhecida — nove rodadas
+seguidas limpas, quatro delas entre 23h50 e 00h45 de Porto Alegre, com o UTC já
+no dia seguinte, que é a condição que a regra pede. Backend NestJS +
+PostgreSQL 16 com RLS, 17 partições isoladas, 72 migrações, 89 tabelas.
+Frontend React PWA, 30 telas, empacotado num único .html de ~850 KB que abre
+sem servidor. A fila local do aparelho existe desde 02/09: sem sinal a operação
+fica guardada, sobe ao reconectar, e só sai do aparelho o que o servidor
+confirmou.
 
 Comece a sessão por `bash scripts/preparar-ambiente.sh` — dependências,
-PostgreSQL e Chromium caem entre uma sessão e outra. E `npm run ensaio` abre o
-protótipo num navegador de verdade e percorre as 100 telas dos oito cargos:
-tela nova entra nesse percurso.
+PostgreSQL e Chromium caem entre uma sessão e outra. `npm run ensaio` percorre
+as 100 telas dos oito cargos no navegador (tela nova entra nesse percurso) e
+`npm run ensaio:fila` ensaia o que só existe fora da tela.
 
 O grupo 1 do levantamento — o que a educadora precisa fazer às 23h — está
 VAZIO: tudo tem porta. Das 34 rotas que existiam sem tela em 01/09, restam 20,

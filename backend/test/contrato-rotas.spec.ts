@@ -174,7 +174,16 @@ describe('Contrato de rotas entre a tela e o servidor', () => {
      * sim. Duas linhas explícitas custam menos que isso.
      */
     const suspeitas: string[] = [];
-    const alvos = arquivos(FRONT, (f) => (f.endsWith('.ts') || f.endsWith('.tsx')) && f !== 'mock.ts');
+    /*
+     * O `api.ts` fica de fora, e só ele: é o cliente HTTP, onde a rota é
+     * variável POR DEFINIÇÃO — `api(path, init)` recebendo o `path` de quem
+     * chamou. Incluí-lo faria o teste acusar exatamente o lugar onde a rota
+     * não pode estar escrita por extenso, e a saída seria desligar a regra
+     * para todo mundo. Quem esconde rota do conferidor é a TELA, e as telas
+     * continuam todas aqui dentro.
+     */
+    const alvos = arquivos(FRONT, (f) =>
+      (f.endsWith('.ts') || f.endsWith('.tsx')) && f !== 'mock.ts' && f !== 'api.ts');
     for (const arq of alvos) {
       const src = readFileSync(arq, 'utf8');
       for (const m of src.matchAll(/\bapi(?:<[^>]*>)?\(\s*([A-Za-z_$][\w$]*)\s*[,)]/g)) {

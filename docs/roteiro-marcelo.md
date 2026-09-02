@@ -15,7 +15,7 @@
 > ensaio for sem internet, a letra não é a que a equipe vai ver no sistema
 > real. Vale saber antes de anotar "achei feio".
 >
-> Última atualização: 02/09/2026.
+> Última atualização: 02/09/2026 (com a fila offline, §0.2).
 
 ---
 
@@ -74,6 +74,29 @@ por isso que valem uma pergunta cada.
 
 ---
 
+## §0.2 — O que mudou depois de 01/09
+
+Uma coisa só, e é a maior desde que o protótipo foi entregue: **o sistema
+agora funciona sem internet.** O que a pessoa registrar sem sinal fica
+guardado no aparelho, com a hora em que aconteceu, e sobe sozinho quando a
+conexão voltar. Nada é apagado do aparelho antes de o servidor confirmar que
+recebeu.
+
+Para poder ser experimentado, o protótipo ganhou um botão **📶 / 🚫** no alto
+da tela, ao lado do "Ver como". Ele simula a queda do sinal. **Não existe no
+sistema de verdade** — está ali como o "Ver como" está.
+
+Duas coisas ficaram de fora de propósito, e vale saber antes que alguém
+pergunte:
+
+- **confirmar remédio sem sinal continua não funcionando** em aparelho comum.
+  A regra é a de sempre: offline, só o aparelho da casa confirma medicamento.
+  O sistema recusa na hora e explica, em vez de guardar e devolver rejeitado
+  horas depois. A pergunta que sobra disso está no §8;
+- o resto do turno — chamada, atividade, exceção, passagem — funciona.
+
+---
+
 ## Como registrar cada resposta
 
 Para cada tarefa, anote só três coisas:
@@ -114,7 +137,16 @@ demora, demora vinte vezes por turno.
    perfil de cada uma? Depois de achar, ela entende que a lista está em ordem
    alfabética e não por gravidade?
 
-6. **Pergunte depois:** "teve alguma hora em que você achou que ia dar
+6. **Sem internet.** *Toque no 📶 do alto da tela para simular a queda — e não
+   avise o que vai acontecer.* Peça: **"marque a chamada da janta."**
+   Observar: ela repara que a marcação ficou guardada? Ela entende, sem que
+   ninguém explique, que aquilo vai subir depois — ou acha que perdeu? Ela
+   procura o selo 📤 no alto? **Depois de marcar três ou quatro, pergunte:
+   "onde está isso agora?"** A resposta dela é o dado desta tarefa.
+   *Religue o sinal e mostre a fila esvaziando sozinha só DEPOIS de ela
+   responder.*
+
+7. **Pergunte depois:** "teve alguma hora em que você achou que ia dar
    errado?"
 
 ---
@@ -302,7 +334,7 @@ Uma tela só, de propósito.
 
 ---
 
-## 8. Três perguntas para o Marcelo, no fim
+## 8. Quatro perguntas para o Marcelo, no fim
 
 1. **A escala 12×36 vigente** — sem ela o aviso de "fora da escala" ao marcar
    compromisso não funciona (§2 do plano do piloto).
@@ -311,7 +343,20 @@ Uma tela só, de propósito.
    ARM1–ARM4) são preliminares e aparecem em tela, em relatório e em nome de
    arquivo no Drive.
 
-3. **O SMTP institucional** — provedor, endereço remetente, o endereço onde o
+3. **O código do aparelho da casa — onde ele é digitado.** A coordenação
+   registra o aparelho e recebe um código que aparece uma vez (§11.7). Para a
+   confirmação de remédio funcionar sem sinal, esse código precisa estar
+   guardado NAQUELE aparelho — e não existe tela que o peça, porque a decisão
+   é da Fundação: **quem digita, e quando?** Na hora em que o aparelho é
+   entregue à casa? Na primeira entrada de alguém nele?
+   E a segunda metade da pergunta, que é operacional: **a casa tem um aparelho
+   só.** Quando ele não está com quem faz o plantão, confirmar remédio offline
+   deixa de existir na prática para o educador. Isso é a realidade da
+   instituição, não defeito do sistema — mas precisa ser dito em voz alta e
+   decidido: fica assim, a Fundação designa mais aparelhos, ou a confirmação
+   passa a valer no aparelho pessoal com outra proteção?
+
+4. **O SMTP institucional** — provedor, endereço remetente, o endereço onde o
    sistema vai rodar, e quem mexe no DNS do domínio (SPF/DKIM). Sem isso o
    convite de primeiro acesso não sai, e **sem convite não há primeiro acesso
    para 40 pessoas** sem cair na distribuição de senha por mensagem.

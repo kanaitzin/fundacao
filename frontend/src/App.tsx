@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ROTULO_CARGO } from './rotulos';
-import { api, setToken } from './api';
+import { api, setToken, ligarFilaAoServidor } from './api';
 import logo from './assets/logo.png';
 import { definirQuemAssina } from './quem-assina';
 import { Login } from './screens/Login';
@@ -29,6 +29,7 @@ import { Setores } from './screens/Setores';
 import { Cozinha } from './screens/Cozinha';
 import { Avisos } from './screens/Avisos';
 import { ALCANCE_POR_CARGO } from '../../backend/src/modules/identity/alcance';
+import { SeloDaFila } from './screens/SeloDaFila';
 
 interface Me {
   id: string; email: string; fullName: string; role: string;
@@ -121,6 +122,29 @@ function TrocaCargo({ cargoAtual, onChange }: { cargoAtual: string; onChange: (r
   );
 }
 
+/**
+ * Botão "sem sinal" — só no protótipo.
+ *
+ * Existe para a fila local poder ser VISTA antes do piloto: o arquivo do
+ * protótipo não tem rede, e sem este botão a única parte do sistema que muda
+ * o comportamento fora da tela seria também a única que ninguém consegue
+ * experimentar. Desligado, tudo funciona como antes.
+ */
+function BotaoSemSinal() {
+  const [sem, setSem] = useState(false);
+  return (
+    <button className="iconbtn" title={sem ? 'Voltar a ter sinal' : 'Simular sem sinal'}
+            aria-label={sem ? 'Voltar a ter sinal' : 'Simular sem sinal'}
+            onClick={async () => {
+              const { simularSemSinal } = await import('./mock');
+              simularSemSinal(!sem);
+              setSem(!sem);
+            }}>
+      {sem ? '🚫' : '📶'}
+    </button>
+  );
+}
+
 export function App() {
   const [me, setMe] = useState<Me | null>(null);
   const [houses, setHouses] = useState<House[]>([]);
@@ -177,6 +201,10 @@ export function App() {
       setMe(eu);
       definirQuemAssina(eu.fullName, eu.role);
       setHouses(await api<House[]>('/houses'));
+      /* A fila local começa a trabalhar assim que há sessão: ela envia o que
+       * ficou do turno anterior antes de a pessoa tocar em qualquer coisa
+       * (§17.1). Sem sessão não há para quem enviar. */
+      void ligarFilaAoServidor();
       // Quem trabalha no plantão abre no DIA. É a tela que ele veio usar; a
       // lista de unidades é consulta, não trabalho. Quem não alcança o Dia —
       // a cozinha — abre na tela que tem.
@@ -198,6 +226,7 @@ export function App() {
       setMe(eu);
       definirQuemAssina(eu.fullName, eu.role);
       setHouses(await api<House[]>('/houses'));
+      void ligarFilaAoServidor();
       setAba(alcanca(eu.role, 'dia') ? 'dia' : (alcanca(eu.role, 'cozinha') ? 'cozinha' : 'casas'));
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Senha criada, mas não foi possível entrar. Tente pela tela de entrada.');
@@ -289,6 +318,8 @@ export function App() {
                         root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
                     }}>🌓</button>
           )}
+          {import.meta.env.VITE_PROTOTIPO === '1' && <BotaoSemSinal />}
+          <SeloDaFila />
           <button className="iconbtn" title="Avisos"
                   aria-label={naoLidos ? `Avisos: ${naoLidos} não lidos` : 'Avisos'}
                   onClick={() => setAba('avisos')}>

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { api } from '../api';
+import { api, apiOuFila } from '../api';
 
 /**
  * CHAMADA COLETIVA (§10).
@@ -102,7 +102,9 @@ export function Chamada({ houseId }: { houseId: string }) {
   }, []);
 
   async function abrir(id: string) {
-    setErro(''); setReaberta(null);
+    /* As guardadas são desta chamada: abrir outra e continuar mostrando as da
+     * anterior marcaria criança que ninguém conferiu ali. */
+    setErro(''); setReaberta(null); setGuardadas({});
     try { setAberta(await api<Chamada>(`/checks/${id}`)); }
     catch (e) { setErro(e instanceof Error ? e.message : 'Não foi possível abrir a chamada.'); }
   }
@@ -130,14 +132,45 @@ export function Chamada({ houseId }: { houseId: string }) {
     }
   }
 
+  /*
+   * O QUE FOI MARCADO SEM SINAL PRECISA SAIR DA FILA DA TELA.
+   *
+   * Sem isto, a educadora marca as vinte crianças offline e a tela continua
+   * dizendo "0 de 20", com o botão "Normal" intacto em cada linha: ela não
+   * tem como saber quem já marcou, e a saída natural é marcar de novo. A
+   * marcação guardada some daqui e reaparece na lista de conferidos com a
+   * palavra que explica onde ela está — o servidor só saberá disso quando a
+   * conexão voltar, e a tela não pode fingir que já sabe.
+   */
+  const [guardadas, setGuardadas] = useState<Record<string, string>>({});
+
   async function marcar(l: Linha, opcao: string, nota?: string) {
     if (!aberta) return;
     setOcupado(l.acolhidoId); setErro(''); setAviso('');
     try {
-      await api(`/checks/${aberta.id}/mark`, {
+      /*
+       * A marcação da chamada é a operação que mais acontece longe do
+       * roteador: o pátio, o refeitório, a saída para a escola. Sem sinal ela
+       * fica guardada NESTE aparelho, com o horário em que foi feita, e sobe
+       * sozinha quando a conexão voltar (§17.1).
+       */
+      const r = await apiOuFila(`/checks/${aberta.id}/mark`, {
         method: 'POST',
         body: JSON.stringify({ personId: l.acolhidoId, opcao, nota }),
+      }, {
+        kind: 'check.mark',
+        houseId,
+        payload: { checkId: aberta.id, personId: l.acolhidoId, opcao, nota },
       });
+      if (r.recusa) { setErro(r.recusa); return; }
+      if (r.enfileirada) {
+        /* A lista não é recarregada: sem sinal o servidor não tem o que
+         * devolver, e insistir apagaria da tela o que a pessoa acabou de
+         * fazer. O aviso diz onde a marcação está. */
+        setGuardadas((g) => ({ ...g, [l.acolhidoId]: opcao }));
+        setAviso('Sem internet. A marcação ficou guardada neste aparelho e sobe quando a conexão voltar.');
+        return;
+      }
       setAberta(await api<Chamada>(`/checks/${aberta.id}`));
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Não foi possível marcar.');
@@ -228,7 +261,10 @@ export function Chamada({ houseId }: { houseId: string }) {
   }
 
   const normal = aberta.opcoes.find((o) => !o.excecao) ?? aberta.opcoes[0];
-  const pendentes = aberta.linhas.filter((l) => l.ativo && !l.resultado);
+  /* Quem está guardado no aparelho não falta conferir: falta SUBIR. Contá-lo
+   * como pendente faria o topo cobrar da educadora um trabalho que ela já
+   * fez. */
+  const pendentes = aberta.linhas.filter((l) => l.ativo && !l.resultado && !guardadas[l.acolhidoId]);
   const confirmada = aberta.status === 'confirmada';
   /**
    * Conferidos entre quem ESTÁ na casa.
@@ -358,7 +394,8 @@ export function Chamada({ houseId }: { houseId: string }) {
         </div>
       )}
       <ol className="chamada">
-        {aberta.linhas.filter((l) => l.ativo && !l.resultado).filter(filtro).map((l) => (
+        {aberta.linhas.filter((l) => l.ativo && !l.resultado && !guardadas[l.acolhidoId])
+          .filter(filtro).map((l) => (
           <li key={l.acolhidoId} className="ev">
             <div className="corpo">
               <div className="row">
@@ -383,6 +420,26 @@ export function Chamada({ houseId }: { houseId: string }) {
           </li>
         ))}
       </ol>
+
+      {Object.keys(guardadas).length > 0 && (
+        <>
+          <div className="eyebrow">
+            Guardado neste aparelho · {Object.keys(guardadas).length}
+          </div>
+          <ol className="chamada">
+            {aberta.linhas.filter((l) => guardadas[l.acolhidoId]).map((l) => (
+              <li key={l.acolhidoId} className="ev">
+                <div className="corpo">
+                  <div className="row">
+                    <b className="ff grow">{l.nome}</b>
+                    <span className="pill c-warn">Sobe quando a conexão voltar</span>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </>
+      )}
 
       {/*
         * QUEM JÁ FOI CONFERIDO, RECOLHIDO.
