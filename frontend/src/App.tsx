@@ -403,7 +403,7 @@ export function App() {
                          papel={me.role} />
         )}
 
-        {abaEfetiva === 'equipe' && administra && <Equipe />}
+        {abaEfetiva === 'equipe' && administra && <Equipe papel={me.role} />}
 
         {abaEfetiva === 'setores' && administra && <Setores papel={me.role} />}
 

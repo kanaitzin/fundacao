@@ -252,4 +252,48 @@ describe('Equipe — cadastro por setor e aparelho institucional', () => {
          WHERE email='gestor@paodospobres.dev'), false) AS _`);
     expect(conf).toBeDefined();
   });
+
+  /*
+   * `GET /devices` existia desde a fase 8 e nunca teve tela — e é ela que
+   * responde "quais aparelhos esta casa tem", a pendência institucional #7.
+   * Sem a lista, o cadastro que sustenta a regra do §11.7 era invisível: a
+   * coordenação registrava um aparelho e não tinha como saber quais existiam.
+   *
+   * A busca é pelo RÓTULO, e não por posição ou contagem: `saude.e2e` também
+   * registra aparelhos na Casa 03, e contar linhas faria esta prova alternar
+   * conforme a ordem dos arquivos.
+   */
+  it('a lista de aparelhos mostra o que a casa tem — e o revogado não some', async () => {
+    const ROTULO = 'Tablet do corredor (fixture da equipe)';
+
+    const criado = await request(http).post('/api/v1/devices').set(auth(tokens.coord3))
+      .send({ houseId: AI3, rotulo: ROTULO });
+    expect(criado.status).toBe(201);
+
+    const lista = await request(http).get('/api/v1/devices').set(auth(tokens.coord3));
+    expect(lista.status).toBe(200);
+    const meu = lista.body.find((a: any) => a.rotulo === ROTULO);
+    // Campo a campo, com o nome que a tela usa: foi assim que a aba de
+    // relatórios quebrou contra o servidor por servir outro formato.
+    expect(meu).toEqual(expect.objectContaining({
+      id: expect.any(String), rotulo: ROTULO, ativo: true, escopo: 'casa',
+      registradoEm: expect.anything(), revogadoEm: null, motivoRevogacao: null,
+    }));
+    // A lista NUNCA devolve o código: ele foi mostrado uma vez, no registro.
+    expect(JSON.stringify(lista.body)).not.toContain(criado.body.token);
+
+    const revogado = await request(http).post(`/api/v1/devices/${criado.body.id}/revoke`)
+      .set(auth(tokens.coord3))
+      .send({ motivo: 'Aparelho devolvido à administração na troca dos equipamentos.' });
+    expect(revogado.status).toBe(201);
+
+    // Revogar não apaga: sem a linha, cada dose que ele confirmou viraria um
+    // registro de aparelho desconhecido.
+    const depois = await request(http).get('/api/v1/devices').set(auth(tokens.coord3));
+    const mesmo = depois.body.find((a: any) => a.rotulo === ROTULO);
+    expect(mesmo).toEqual(expect.objectContaining({
+      ativo: false, motivoRevogacao: expect.stringMatching(/devolvido/),
+    }));
+    expect(mesmo.revogadoEm).toBeTruthy();
+  });
 });

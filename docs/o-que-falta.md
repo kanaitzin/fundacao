@@ -202,6 +202,26 @@ o cadastro de um colega a gestor, coordenação e equipe técnica. Com isso:*
 `app_user_display_name`. Nenhuma dava erro: a tela ficava em branco no lugar
 certo.*
 
+*E os **aparelhos institucionais** (§11.7, pendência institucional #7), em
+02/09/2026. `GET/POST /devices` e `POST /devices/:id/revoke` existiam desde a
+fase 8 — a fase que transformou o aparelho da casa numa CREDENCIAL, porque
+antes a regra "offline, só o aparelho designado confirma medicamento" era
+conferida contra um booleano enviado pelo próprio cliente. A credencial passou
+a existir; o CADASTRO dela, não: a coordenação registrava um aparelho por rota
+e não tinha como saber quais a casa tinha. A pendência #7 continuava aberta do
+lado que interessa — "quais aparelhos existem em cada casa" seguia sendo
+suposição.*
+
+*Três coisas que a tela faz por causa do que a rota é:*
+
+ - *o código aparece numa **folha própria**, e não como aviso de topo: não
+   existe rota que o recupere, e a primeira rolagem da tela o perderia;*
+ - *o aparelho **revogado não some** da lista — as doses que ele confirmou
+   continuam rastreáveis, e apagá-lo transformaria cada uma delas num registro
+   de aparelho desconhecido;*
+ - *a casa sem aparelho nenhum lê, na tela, que **nenhuma confirmação offline é
+   aceita** — que é o padrão protetivo, e não um defeito a corrigir.*
+
 Isso não é lista de bugs. É o mapa do que já está construído por baixo e ainda
 não tem por onde ser usado. Serve para decidir com o Marcelo o que entra antes
 do piloto e o que espera.
@@ -244,7 +264,10 @@ Coisas de coordenação e de gestão, não de plantão. Nenhuma delas trava a ca
 - **Leitura excepcional de relato** — `POST /statements/:id/exceptional-read`
   (§26.2 #29): abrir um relato fora do alcance, declarando a finalidade. A regra
   está pronta; falta a tela que obriga a escrever o porquê.
-- **Dispositivos confiáveis** — `GET/POST /devices`, `POST /devices/:id/revoke`.
+- ~~**Dispositivos confiáveis**~~ — **resolvido em 02/09/2026**: aba
+  **Aparelhos** dentro de Equipe. O código nasce no registro, aparece numa folha
+  própria UMA vez (não como aviso de topo, que a primeira rolagem perderia), e
+  o revogado continua na lista com data e motivo.
 - **Fila offline** — `POST /sync/push`, `GET /sync/status`, `/sync/conflicts`,
   `POST /sync/conflicts/:id/resolve`. O PWA já instala; o modo offline de
   verdade é fase própria.

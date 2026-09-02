@@ -12,6 +12,34 @@ interface Membro {
 }
 interface Casa { id: string; codigo: string; nome: string; propria: boolean; }
 
+/**
+ * UM APARELHO INSTITUCIONAL (§11.7, pendência institucional #7).
+ *
+ * `GET/POST /devices` e `POST /devices/:id/revoke` existiam desde a fase 8 e
+ * nunca tiveram tela. Sem elas, "quais aparelhos existem em cada casa" seguia
+ * sendo suposição — e é sobre essa suposição que a regra mais dura do sistema
+ * se apoia: offline, SÓ o aparelho designado da casa confirma medicamento.
+ *
+ * O aparelho é uma CREDENCIAL, não uma marcação de tela: o código nasce no
+ * registro, aparece UMA vez, e o banco guarda só a impressão digital dele —
+ * mesmo desenho das sessões. Antes disso, a regra era conferida contra um
+ * booleano enviado pelo próprio cliente: quem mandasse `true` passava.
+ */
+interface Aparelho {
+  id: string; rotulo: string; ativo: boolean;
+  escopo: 'casa' | 'instituicao';
+  registradoEm: string; revogadoEm: string | null;
+  motivoRevogacao: string | null; ultimoUso: string | null;
+}
+
+const quando = (iso: string | null) => {
+  if (!iso) return null;
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? null : d.toLocaleString('pt-BR',
+    { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
+      timeZone: 'America/Sao_Paulo' });
+};
+
 const TOM: Record<string, string> = {
   educador: 'c-info', lider_diurno: 'c-ok', equipe_tecnica: 'c-other',
   cozinha: 'c-warn', enfermagem: 'c-med', lider_noturno_geral: 'c-move',
@@ -30,14 +58,24 @@ const TOM: Record<string, string> = {
  *    a equipe da casa e cadastra a Enfermagem; criar conta de alcance
  *    institucional é do Gestor Geral.
  */
-export function Equipe() {
+export function Equipe({ papel }: { papel: string }) {
+  const [aba, setAba] = useState<'pessoas' | 'aparelhos'>('pessoas');
   const [membros, setMembros] = useState<Membro[]>([]);
   const [setores, setSetores] = useState<Setor[]>([]);
   const [casas, setCasas] = useState<Casa[]>([]);
+  const [aparelhos, setAparelhos] = useState<Aparelho[]>([]);
   const [erro, setErro] = useState('');
   const [aviso, setAviso] = useState<{ texto: string; senha?: string } | null>(null);
   const [form, setForm] = useState(false);
   const [editando, setEditando] = useState<Membro | null>(null);
+  /* O código do aparelho, mostrado UMA vez e nunca mais recuperável. */
+  const [codigoNovo, setCodigoNovo] = useState<
+    { rotulo: string; token: string; aviso: string } | null>(null);
+  const [registrando, setRegistrando] = useState(false);
+  const [revogando, setRevogando] = useState<Aparelho | null>(null);
+
+  const ehGestor = papel === 'gestor_geral';
+  const minhaCasa = casas.find((c) => c.propria) ?? null;
 
   async function carregar() {
     setErro('');
@@ -48,6 +86,9 @@ export function Equipe() {
         api<Casa[]>('/houses/directory').catch(() => [] as Casa[]),
       ]);
       setMembros(m); setSetores(s); setCasas(c);
+      // Falhar aqui não pode travar a equipe: a aba dos aparelhos apenas fica
+      // vazia, e a de pessoas continua servindo a coordenação.
+      setAparelhos(await api<Aparelho[]>('/devices').catch(() => []));
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Não foi possível carregar a equipe.');
     }
@@ -80,6 +121,16 @@ export function Equipe() {
         </div>
       )}
 
+      <nav className="filtros" aria-label="Equipe e aparelhos">
+        {([['pessoas', 'Pessoas'], ['aparelhos', 'Aparelhos']] as const).map(([cod, label]) => (
+          <button key={cod} className={aba === cod ? 'on' : ''}
+                  aria-pressed={aba === cod} onClick={() => setAba(cod)}>
+            {label}
+          </button>
+        ))}
+      </nav>
+
+      {aba === 'pessoas' && (
       <div className="card raise">
         <div className="row" style={{ marginBottom: 12 }}>
           <h3 className="grow" style={{ fontSize: 17, margin: 0 }}>Equipe cadastrada</h3>
@@ -180,7 +231,10 @@ export function Equipe() {
           sessões abertas caem, mas tudo o que a pessoa registrou continua com o nome dela.
         </p>
       </div>
+      )}
 
+      {aba === 'pessoas' && (
+      <>
       <div className="eyebrow">Setores e o que cada um alcança</div>
       <div className="setores">
         {setores.map((s) => (
@@ -196,6 +250,79 @@ export function Equipe() {
           </div>
         ))}
       </div>
+      </>
+      )}
+
+      {aba === 'aparelhos' && (
+        <Aparelhos
+          lista={aparelhos} ehGestor={ehGestor} minhaCasa={minhaCasa}
+          onRegistrar={() => setRegistrando(true)}
+          onRevogar={(a) => setRevogando(a)} />
+      )}
+
+      {/*
+        * O CÓDIGO DO APARELHO, UMA VEZ SÓ.
+        *
+        * Fica numa folha própria e não some sozinho: se aparecesse como aviso
+        * de topo, a primeira rolagem da tela o perderia — e não existe rota
+        * que o recupere. Quem fecha, fecha sabendo.
+        */}
+      {codigoNovo && (
+        <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-cod">
+          <div className="sheet modal">
+            <h3 id="t-cod">Código de {codigoNovo.rotulo}</h3>
+            <div className="notice c-crit">{codigoNovo.aviso}</div>
+            <div className="senhabox">
+              <span className="mutetxt">Código do aparelho</span>
+              <code>{codigoNovo.token}</code>
+            </div>
+            <p className="mutetxt">
+              Digite-o no aparelho da casa AGORA. O sistema guarda apenas a impressão digital
+              dele: não há tela, rota nem suporte que o mostre de novo. Perdeu? Registre outro
+              aparelho e revogue este — o histórico do revogado continua inteiro.
+            </p>
+            <div className="row rodape">
+              <button className="btn grow" onClick={() => setCodigoNovo(null)}>
+                Guardei o código
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {registrando && (
+        <FolhaAparelho
+          ehGestor={ehGestor} minhaCasa={minhaCasa}
+          onFechar={() => setRegistrando(false)}
+          onRegistrar={async (rotulo, institucional) => {
+            setErro('');
+            try {
+              const r = await api<{ rotulo: string; token: string; aviso: string }>('/devices', {
+                method: 'POST',
+                body: JSON.stringify(institucional
+                  ? { rotulo }
+                  : { rotulo, houseId: minhaCasa?.id }),
+              });
+              setRegistrando(false);
+              setCodigoNovo({ rotulo: r.rotulo ?? rotulo, token: r.token, aviso: r.aviso });
+              await carregar();
+            } catch (e) {
+              setErro(e instanceof Error ? e.message : 'Não foi possível registrar o aparelho.');
+            }
+          }} />
+      )}
+
+      {revogando && (
+        <FolhaRevogar
+          aparelho={revogando}
+          onFechar={() => setRevogando(null)}
+          onRevogar={async (motivo) => {
+            const alvo = revogando;
+            setRevogando(null);
+            await acao(() => api(`/devices/${alvo.id}/revoke`, {
+              method: 'POST', body: JSON.stringify({ motivo }) }));
+          }} />
+      )}
 
       {form && (
         <FormCadastro
@@ -302,6 +429,193 @@ function FormCadastro({ setores, casas, membro, onFechar, onSalvo, onErro }: {
             </button>
           </div>
         </form>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * A LISTA DE APARELHOS DA CASA.
+ *
+ * O aparelho revogado NÃO some: ele continua na lista, marcado, com o motivo e
+ * a data. As doses que ele confirmou continuam rastreáveis, e apagá-lo daqui
+ * transformaria cada uma delas num registro de aparelho desconhecido.
+ */
+function Aparelhos({ lista, ehGestor, minhaCasa, onRegistrar, onRevogar }: {
+  lista: Aparelho[]; ehGestor: boolean; minhaCasa: Casa | null;
+  onRegistrar: () => void; onRevogar: (a: Aparelho) => void;
+}) {
+  const ativos = lista.filter((a) => a.ativo);
+  return (
+    <>
+      <div className="card raise stack">
+        <div className="row">
+          <h3 className="grow" style={{ fontSize: 17, margin: 0 }}>
+            Aparelhos institucionais
+          </h3>
+          <span className="mutetxt">
+            {ativos.length} ativo(s) · {lista.length} no total
+          </span>
+          <button className="btn sm" onClick={onRegistrar}>+ Registrar aparelho</button>
+        </div>
+
+        <div className="notice c-crit">
+          Isto é o que decide, <b>offline</b>, quem pode confirmar medicamento (§11.7). Um
+          aparelho não se declara institucional: ele recebe um <b>código</b> no registro, e o
+          servidor confere contra o que a casa tem cadastrado.
+        </div>
+
+        {lista.length === 0 && (
+          <p className="mutetxt" style={{ margin: 0 }}>
+            Nenhum aparelho registrado{minhaCasa ? ` em ${minhaCasa.codigo}` : ''}. Enquanto
+            não houver, <b>nenhuma confirmação de dose offline é aceita</b> — que é o padrão
+            protetivo, e não um defeito.
+          </p>
+        )}
+
+        <ul className="lista">
+          {lista.map((a) => (
+            <li key={a.id} className="row">
+              <div className="grow">
+                <b className="ff">{a.rotulo}</b>
+                <div className="mutetxt linhadois">
+                  {a.escopo === 'instituicao' ? 'Vale nas oito casas' : 'Aparelho desta casa'}
+                  {' · registrado em '}{quando(a.registradoEm) ?? '—'}
+                </div>
+                <div className="mutetxt">
+                  {a.ultimoUso
+                    ? `Último uso: ${quando(a.ultimoUso)}`
+                    : 'Nunca usado para confirmar dose.'}
+                </div>
+                {/* Revogado continua contando o que houve: quando, e por quê. */}
+                {!a.ativo && (
+                  <div className="mutetxt">
+                    Revogado em {quando(a.revogadoEm) ?? '—'}
+                    {a.motivoRevogacao ? ` — ${a.motivoRevogacao}` : ''}
+                  </div>
+                )}
+              </div>
+              <div className="stack" style={{ alignItems: 'flex-end', gap: 6 }}>
+                <span className={`pill ${a.ativo ? 'c-ok' : 'c-mute'}`}>
+                  {a.ativo ? 'Ativo' : 'Revogado'}
+                </span>
+                {a.ativo && (
+                  <button className="btn sec sm" onClick={() => onRevogar(a)}>Revogar</button>
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
+
+        <p className="mutetxt" style={{ margin: 0 }}>
+          Revogar não apaga: o aparelho continua nesta lista, com a data e o motivo, e as
+          doses que ele confirmou seguem rastreáveis.
+          {ehGestor
+            ? ' Como Gestor Geral, você registra também o aparelho que vale nas oito casas.'
+            : ' O aparelho que vale nas oito casas é registrado pelo Gestor Geral.'}
+        </p>
+      </div>
+    </>
+  );
+}
+
+/**
+ * A FOLHA DE REGISTRO.
+ *
+ * O rótulo é o que a equipe vai reconhecer na prateleira às 23h — "tablet da
+ * sala" serve, "Aparelho 1" não. Por isso o exemplo está no campo, e não numa
+ * ajuda que ninguém abre.
+ */
+function FolhaAparelho({ ehGestor, minhaCasa, onFechar, onRegistrar }: {
+  ehGestor: boolean; minhaCasa: Casa | null; onFechar: () => void;
+  onRegistrar: (rotulo: string, institucional: boolean) => void;
+}) {
+  const [rotulo, setRotulo] = useState('');
+  const [institucional, setInstitucional] = useState(false);
+  const pode = rotulo.trim().length >= 3 && (institucional || Boolean(minhaCasa));
+
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-ap"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet modal">
+        <h3 id="t-ap">Registrar aparelho</h3>
+        <div className="notice c-info">
+          O código aparece <b>uma única vez</b>, na tela seguinte. O sistema guarda só a
+          impressão digital dele — como faz com as senhas.
+        </div>
+
+        <label className="f" htmlFor="ap-rot">
+          Nome do aparelho <small>— o que a equipe reconhece na prateleira</small>
+        </label>
+        <input id="ap-rot" value={rotulo} onChange={(e) => setRotulo(e.target.value)}
+               placeholder="Ex.: tablet da sala da coordenação" />
+
+        {ehGestor && (
+          <label className="row" style={{ marginTop: 12 }}>
+            <input type="checkbox" checked={institucional}
+                   onChange={(e) => setInstitucional(e.target.checked)} />
+            <span className="grow">
+              <b className="ff">Vale nas oito casas</b>
+              <div className="mutetxt">
+                Aparelho da instituição, não de uma unidade. Só o Gestor Geral registra.
+              </div>
+            </span>
+          </label>
+        )}
+
+        {!institucional && (
+          <p className="mutetxt">
+            {minhaCasa
+              ? `Será registrado em ${minhaCasa.codigo} — ${minhaCasa.nome}.`
+              : 'Sem uma casa no seu alcance, só é possível registrar o aparelho da instituição.'}
+          </p>
+        )}
+
+        <div className="row rodape">
+          <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
+          <button className="btn grow" disabled={!pode}
+                  onClick={() => onRegistrar(rotulo.trim(), institucional)}>
+            Registrar e ver o código
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * A FOLHA DE REVOGAÇÃO.
+ *
+ * O motivo não é burocracia: um aparelho revogado é um aparelho que sumiu, que
+ * quebrou ou que saiu da casa — e a diferença entre esses três importa para
+ * quem for ler o histórico das doses que ele confirmou.
+ */
+function FolhaRevogar({ aparelho, onFechar, onRevogar }: {
+  aparelho: Aparelho; onFechar: () => void; onRevogar: (motivo: string) => void;
+}) {
+  const [motivo, setMotivo] = useState('');
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-rev"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet modal">
+        <h3 id="t-rev">Revogar {aparelho.rotulo}</h3>
+        <div className="notice c-warn">
+          A partir daqui este aparelho <b>não confirma mais dose offline</b>. O registro dele
+          permanece, e as confirmações que já fez continuam rastreáveis.
+        </div>
+
+        <label className="f" htmlFor="rev-mot">
+          Por que está sendo revogado <small>— sumiu, quebrou, saiu da casa?</small>
+        </label>
+        <textarea id="rev-mot" value={motivo} onChange={(e) => setMotivo(e.target.value)}
+                  placeholder="Ex.: aparelho devolvido à administração após a troca do tablet da sala." />
+
+        <div className="row rodape">
+          <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
+          <button className="btn grow" onClick={() => onRevogar(motivo.trim())}>
+            Revogar
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -298,9 +298,11 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
       { area: 'setores', titulo: AREAS.setores,
         faz: 'Responde "o educador vê isso?" sem entrar com a conta de ninguém.' },
       { area: 'equipe', titulo: AREAS.equipe,
-        faz: 'Cadastra, convida, desativa e redefine senha.',
+        faz: 'Cadastra, convida, desativa e redefine senha. Registra e revoga os aparelhos '
+          + 'institucionais da casa.',
         servidor: 'Não existe apagar pessoa: desligado é desativado, e a autoria do que ela '
-          + 'registrou permanece.' },
+          + 'registrou permanece. O aparelho revogado também fica na lista, com o motivo — '
+          + 'as doses que ele confirmou continuam rastreáveis.' },
       { area: 'acompanhamentos', titulo: AREAS.acompanhamentos,
         faz: 'Aprova acompanhamentos e relatórios.',
         servidor: 'Não aprova o que ela mesma redigiu.' },
@@ -362,7 +364,9 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
         faz: 'Abre o dia de UMA casa por vez.',
         servidor: 'Cada abertura de casa fica registrada — é o que separa acompanhar de vigiar.' },
       { area: 'acolhidos', titulo: AREAS.acolhidos, faz: 'Abre o perfil quando precisa, com registro.' },
-      { area: 'equipe', titulo: AREAS.equipe, faz: 'Cadastra contas de alcance institucional.' },
+      { area: 'equipe', titulo: AREAS.equipe,
+        faz: 'Cadastra contas de alcance institucional e registra o aparelho que vale nas '
+          + 'oito casas.' },
       { area: 'setores', titulo: AREAS.setores, faz: 'Consulta o alcance de cada cargo.' },
       { area: 'acompanhamentos', titulo: AREAS.acompanhamentos, faz: 'Aprova e acompanha.' },
       { area: 'painel', titulo: AREAS.painel,

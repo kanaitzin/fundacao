@@ -183,7 +183,7 @@ Além dos e2e, quatro suítes estáticas — elas já pegaram erro de verdade:
 
 ## 5. O QUE JÁ ESTÁ PRONTO
 
-**Fases 0 a 42. 406 testes em 38 suítes**, **cinco rodadas seguidas limpas
+**Fases 0 a 43. 407 testes em 38 suítes**, **cinco rodadas seguidas limpas
 entre 21h42 e 21h47 de Porto Alegre**, com o UTC já em 02/09 e a casa ainda em
 01/09 — a condição que a regra pede. Foi a rodada dessa hora que encontrou a
 suíte instável descrita abaixo. 27 telas, 72 migrações, 89 tabelas.
@@ -217,7 +217,8 @@ antes de enviar e aceite separado; álbum de vivências; arquivo documental com
 fila de cópia; e o **relatório em Word com timbre**, agora saindo também do
 protótipo, em A4 com margens ABNT.
 
-**Coordenação e gestão:** equipe e convites de primeiro acesso, transferências
+**Coordenação e gestão:** equipe e convites de primeiro acesso, **os aparelhos
+institucionais da casa — o cadastro que sustenta a regra do §11.7 —**, transferências
 entre casas, cofre de acessos cifrado, benefícios e dados bancários com
 reautenticação e log por visualização, acompanhamentos com aprovação de segunda
 pessoa, relatórios que saem do rascunho por um ato declarado e são aprovados por
@@ -251,7 +252,6 @@ Tudo o que a educadora de plantão precisa fazer às 23h tem porta.
 - **Leitura excepcional de relato** — `POST /statements/:id/exceptional-read`:
   abrir um relato fora do alcance declarando a finalidade. A regra está pronta;
   falta a tela que obriga a escrever o porquê.
-- **Dispositivos confiáveis** — `GET/POST /devices`, `POST /devices/:id/revoke`.
 - **Fila offline** — `POST /sync/push`, `GET /sync/status`, `/sync/conflicts`,
   `POST /sync/conflicts/:id/resolve`. O PWA já instala; o modo offline de
   verdade é fase própria.

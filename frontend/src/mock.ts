@@ -549,6 +549,27 @@ const PROTOCOLO: { periodo: string; enfermagem: boolean; educadorAutorizado: boo
 
 const AUTORIZACOES: AutorizacaoMock[] = [];
 
+/**
+ * Os aparelhos institucionais da casa (§11.7, pendência #7).
+ *
+ * A demonstração começa com UM aparelho ativo e um revogado — porque o que a
+ * folha precisa mostrar não é a lista cheia, é que o revogado NÃO some: as
+ * doses que ele confirmou continuam rastreáveis.
+ */
+const APARELHOS: {
+  id: string; rotulo: string; ativo: boolean; escopo: 'casa' | 'instituicao';
+  registradoEm: string; revogadoEm: string | null;
+  motivoRevogacao: string | null; ultimoUso: string | null;
+}[] = [
+  { id: 'ap1', rotulo: 'Tablet da sala da coordenação', ativo: true, escopo: 'casa',
+    registradoEm: '2026-03-02T09:00:00-03:00', revogadoEm: null, motivoRevogacao: null,
+    ultimoUso: emHoras(8, 5) },
+  { id: 'ap2', rotulo: 'Celular do plantão noturno (antigo)', ativo: false, escopo: 'casa',
+    registradoEm: '2025-11-10T10:00:00-03:00', revogadoEm: '2026-06-18T14:20:00-03:00',
+    motivoRevogacao: 'Aparelho devolvido à administração na troca dos equipamentos da casa.',
+    ultimoUso: '2026-06-17T21:40:00-03:00' },
+];
+
 /** Cada decisão sobre quem pode administrar, com o que valia antes (0860). */
 const DECISOES_PROTOCOLO: {
   id: string; periodo: string;
@@ -2072,6 +2093,72 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
    * cada função — e ninguém tinha notado, porque a tela não quebra: ela mente
    * baixinho.
    */
+  /*
+   * OS APARELHOS INSTITUCIONAIS (§11.7, pendência #7).
+   *
+   * O aparelho é uma CREDENCIAL: o código nasce no registro, aparece UMA vez,
+   * e o sistema guarda só a impressão digital dele. Aqui, na demonstração, o
+   * "código" é fictício e nada é conferido contra ele — o que a folha precisa
+   * ensaiar é o gesto: registrar, anotar o código na hora, e revogar com
+   * motivo sem apagar o histórico.
+   */
+  if (rota === '/devices' && metodo === 'GET') {
+    if (!['coordenador', 'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403, 'O cadastro de aparelhos é da coordenação.');
+    }
+    return APARELHOS;
+  }
+  if (rota === '/devices' && metodo === 'POST') {
+    if (!['coordenador', 'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403, 'O registro de aparelhos é da coordenação.');
+    }
+    const institucional = !b.houseId;
+    if (institucional && eu.role !== 'gestor_geral') {
+      return new Recusa(403,
+        'O aparelho da instituição — o que vale nas oito casas — é registrado pelo Gestor '
+        + 'Geral. A coordenação registra aparelhos da própria casa, informando a casa.');
+    }
+    const rotulo = String(b.rotulo ?? '').trim();
+    if (rotulo.length < 3) {
+      return new Recusa(400,
+        'Dê um nome ao aparelho — algo que a equipe reconheça na prateleira.');
+    }
+    if (APARELHOS.some((a) => a.ativo && a.rotulo === rotulo)) {
+      return new Recusa(400, 'Já existe um aparelho com este nome nesta casa.');
+    }
+    const id = uid();
+    APARELHOS.unshift({
+      id, rotulo, ativo: true,
+      escopo: institucional ? 'instituicao' : 'casa',
+      registradoEm: new Date().toISOString(),
+      revogadoEm: null, motivoRevogacao: null, ultimoUso: null,
+    });
+    return {
+      id, rotulo, escopo: institucional ? 'instituicao' : 'casa',
+      // Fictício de propósito, e com o formato do de verdade: quem ensaia
+      // precisa ver que é longo o bastante para não ser digitado de cabeça.
+      token: `demo-${uid()}${uid()}`.replace(/-/g, '').slice(0, 40),
+      aviso: 'Guarde este código no aparelho agora: ele é mostrado uma única vez. O sistema '
+        + 'conserva apenas a impressão digital dele — se perder, registre outro aparelho e '
+        + 'revogue este.',
+    };
+  }
+  if (seg[0] === 'devices' && seg[2] === 'revoke' && metodo === 'POST') {
+    if (!['coordenador', 'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403, 'A revogação de aparelhos é da coordenação.');
+    }
+    const alvo = APARELHOS.find((a) => a.id === seg[1]);
+    if (!alvo) return new Recusa(404, 'Aparelho não encontrado.');
+    // Revogado NÃO some da lista: as doses que ele confirmou continuam
+    // rastreáveis, e apagá-lo transformaria cada uma num aparelho desconhecido.
+    alvo.ativo = false;
+    alvo.revogadoEm = new Date().toISOString();
+    alvo.motivoRevogacao = String(b.motivo ?? '').trim() || null;
+    return { ok: true,
+      aviso: 'Aparelho revogado. O registro permanece: as confirmações feitas por ele '
+        + 'continuam rastreáveis.' };
+  }
+
   if (rota === '/staff') {
     const podeEditar = ['coordenador', 'gestor_geral', 'equipe_tecnica'].includes(eu.role);
     return EQUIPE_CASA.map((m) => ({

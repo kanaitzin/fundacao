@@ -516,6 +516,35 @@ telas. Nenhuma das duas dava erro: o campo aparecia na tela e vivia em branco.
   que já estava lá**, e a linha da própria suíte se acha pela frase que ela
   escreveu, nunca pela posição. Cinco rodadas seguidas limpas depois disso.
 
+## Fase 43 — Os aparelhos institucionais ganham cadastro ✅
+
+`GET/POST /devices` e `POST /devices/:id/revoke` existiam desde a fase 8 e nunca
+tiveram tela. A credencial passou a existir naquela fase; o CADASTRO dela, não —
+e a pendência institucional #7 ("quais aparelhos existem em cada casa")
+continuava aberta do lado que interessa.
+
+| Requisito | Onde ficou | Teste |
+|---|---|---|
+| Listar os aparelhos da casa (§11.7, pendência #7) | aba **Aparelhos** em `Equipe.tsx` | `equipe.e2e` "a lista de aparelhos mostra o que a casa tem" |
+| A lista nunca devolve o código | projeção sem o hash nem o token | mesmo teste, comparando com o token do registro |
+| O código aparece uma vez, em folha própria | `codigoNovo` como overlay, fechado por ato | — (decisão de tela) |
+| Revogar não apaga: fica com data e motivo | `app_revoke_device` | "…e o revogado não some" |
+| Registrar é da coordenação; o da instituição é do gestor | `app_register_device` | `equipe.e2e` "o telefone institucional é um só" |
+| Casa sem aparelho não aceita dose offline | recusa no `sync/push` | `saude.e2e` (cenário #15) |
+
+### Achados desta fase
+
+- **Credencial sem cadastro é regra pela metade.** A fase 8 fechou o buraco de
+  segurança — o aparelho deixou de se declarar institucional — e deixou aberto
+  o buraco de USO: quem administra a casa não conseguia ver, corrigir nem
+  revogar o que estava registrado. Uma regra que ninguém consegue auditar volta
+  a ser suposição, mesmo estando certa no banco.
+- **Segredo que aparece uma vez não cabe num aviso de topo.** O código do
+  aparelho não tem rota de recuperação. Como aviso na área de mensagens, a
+  primeira rolagem o perderia e a saída de quem usa seria registrar outro
+  aparelho — deixando um ativo e órfão na casa. Ele fica numa folha que só
+  fecha por ato declarado ("Guardei o código").
+
 ## Fase 11 — Auditoria de testes e documentação ✅
 219 testes em 16 suítes, todas verdes. As 6 falhas antigas do `saude` eram uma
 só, em cascata: o teste media `criadas` na casa inteira e dependia da ordem das
