@@ -139,6 +139,38 @@ erDiagram
   }
 ```
 
+**`hospitalization` é A CRIANÇA NO HOSPITAL, e não fora do acolhimento**
+(migração 0890). Pedido da coordenação em 03/09/2026.
+
+O que ela decide:
+
+* **não é saída.** A criança continua da casa, na contagem e na vaga —
+  `house_stay` não é tocada. Ela só sai do sistema quando a técnica ou a
+  coordenação a removerem, com motivo, e aí é saída, que manda para o acervo;
+* **ela sai da linha do dia.** `app_esta_internado(pessoa, dia)` é chamada pela
+  chamada e pela grade de medicação. Cobrar da educadora de plantão a
+  confirmação do café de uma criança que está no hospital é pedir que ela minta
+  ou que ignore o alerta — e o que se ignora todo dia deixa de ser alerta;
+* **o dia da alta é dia de casa.** Quem recebe alta às dez da manhã almoça
+  aqui. O contrário, no dia da entrada, é assumido: a criança internada às três
+  da tarde sai da lista do dia inteiro, e o que já foi registrado de manhã não
+  some;
+* **a dose que estava prevista não é apagada nem marcada como não
+  administrada.** Ela sai da tela e fica no banco, sem juízo: o sistema não
+  conclui o que não viu.
+
+`hospitalization_medication` é a medicação dada NO HOSPITAL, em tabela
+separada da grade da casa — e a separação é a regra inteira. A grade tem
+receita assinada, horário previsto e o nome de quem da casa administrou; dose
+de hospital não tem nada disso. Registrá-la lá faria a casa aparecer
+administrando o que não administrou. Aqui há `recorded_by` (quem escreveu) e
+**não há** `administered_by`, porque não seria verdade.
+
+`hospitalization_companion` é uma LISTA com período, e não um campo na
+internação: a criança fica três semanas e quem vai ao hospital muda a cada
+plantão. Um campo único guardaria só o último, e "quem estava com ela no dia
+12?" ficaria sem resposta.
+
 **`person_contact` são OS TELEFONES DE QUEM APARECE** (migração 0880). Vieram
 da lista que a equipe técnica mantinha à mão: por criança, os contatos da
 genitora, do padrinho, da tia e do vínculo comunitário, todos na mesma célula
@@ -491,7 +523,7 @@ desenvolvimento** (fase 15): a criança não é só o que deu problema. Sala de
 recursos, curso, aprendizagem e a evolução escrita pela equipe entram no
 documento que segue para a audiência e para a escola.
 
-## Inventário — 90 tabelas por partição
+## Inventário — 94 tabelas por partição
 
 | Partição | Tabelas |
 |---|---|
@@ -501,7 +533,7 @@ documento que segue para a audiência e para a escola.
 | incidents (7) | incident, incident_person, incident_protected, incident_restraint, incident_synthesis, external_communication, incident_attachment |
 | medications (8) | prescription, medication_schedule, medication_administration, medication_stock, medication_stock_movement, medication_protocol, medication_authorization, medication_protocol_change |
 | activities (6) | activity, activity_assignment, activity_acknowledgement, activity_execution, substitution_request, commitment |
-| nursing (6) | health_encounter, health_evolution, nursing_triage, health_summary_issue, education_support, education_evolution |
+| nursing (10) | health_encounter, health_evolution, nursing_triage, health_summary_issue, education_support, education_evolution, hospitalization, hospitalization_note, hospitalization_medication, hospitalization_companion |
 | reports (5) | followup, followup_source, report_document, report_delivery, export_log |
 | checks (4) | collective_check, check_result, check_result_amendment, check_bulk |
 | notifications (3) | notification, escalation, escalation_level |

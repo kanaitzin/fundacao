@@ -936,9 +936,31 @@ E uma coluna que o documento não tem: `person_contact.restricted`, com motivo
 obrigatório, para o contato cuja aproximação está suspensa por decisão
 judicial. O telefone está no papel; a proibição, não.
 
+### 8.21 Internação hospitalar — 03/09/2026
+
+A criança internada continua da casa e sai da linha do dia. Migração 0890,
+quatro tabelas; o detalhe das decisões está no backlog (fase 53). **A tela
+ainda não existe.**
+
+O achado que vale para o projeto inteiro, e não só para esta partição:
+
+**uma política de RLS não pode se basear em consultar a própria tabela que ela
+protege.** A política de leitura de `hospitalization` chamava uma função que
+fazia `SELECT ... FROM hospitalization`, e todo `INSERT ... RETURNING` falhava:
+devolver a linha recém-criada exige poder lê-la, e a subconsulta enxerga o
+instantâneo ANTERIOR ao comando — onde a linha ainda não existe. A resposta é
+sempre "não".
+
+Duas coisas que isso ensina. A primeira: a recusa chega como `new row violates
+row-level security policy`, que aponta para a política de INSERT, onde não há
+nada errado — uma hora de investigação no lugar errado. A segunda:
+`SECURITY DEFINER` **não** resolve, porque o problema não é privilégio, é
+visibilidade dentro do mesmo comando. A política precisa ser escrita sobre as
+COLUNAS da linha.
+
 ---
 
-## 9. Migrações desta série (0620–0880)
+## 9. Migrações desta série (0620–0890)
 
 | Nº | Módulo | O que faz |
 |---|---|---|

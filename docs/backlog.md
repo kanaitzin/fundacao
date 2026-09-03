@@ -578,6 +578,57 @@ para sempre.
 - **Tela vazia precisa dizer por que está vazia.** Uma lista de conflitos em
   branco é boa notícia, e se ela não disser isso será lida como "não carregou".
 
+## Fase 53 — Internação hospitalar: o servidor ⚠️ (tela pendente)
+
+Pedido da coordenação em 03/09/2026. A criança internada **continua da casa** —
+continua na contagem, continua ocupando a vaga — e **sai da linha do dia**:
+some da chamada e da grade de medicação, e volta sozinha na alta. Ganha um
+diário paralelo, com educador acompanhante, anexos do hospital e a medicação
+que o hospital administrou.
+
+Migração 0890, quatro tabelas, `InternacaoService`, sete rotas, 11 testes e2e.
+**A tela ainda não existe** — está na fase seguinte, junto do `mock.ts`.
+
+### As decisões, e de quem foram
+
+| Pergunta | Resposta |
+|---|---|
+| A vaga continua ocupada? | Sim — coordenação |
+| Quem abre e fecha? | Equipe técnica e coordenação — coordenação |
+| Relato diário é obrigatório? | Não; existe o lugar para escrever — coordenação |
+| Medicação do hospital entra? | Sim, com a origem escrita — coordenação |
+| Educador acompanhante troca? | Sim, delegado pela técnica ou coordenação — coordenação |
+| Educador comum vê? | Não — coordenação |
+| A Enfermagem vê? | **Sim — decisão minha**, a desfazer numa linha se estiver errada |
+
+Duas coisas que o sistema decide e que não estavam na pergunta:
+
+- **a dose que estava prevista não é apagada nem marcada como não
+  administrada** ao abrir a internação. Ela sai da tela e fica no banco, sem
+  juízo: o sistema não conclui o que não viu;
+- **a medicação do hospital tem `recorded_by` e NÃO tem `administered_by`.**
+  Quem escreveu no sistema e quem administrou são pessoas diferentes, e
+  inventar um campo para a segunda seria fazer a casa aparecer administrando o
+  que não administrou.
+
+### Achados desta fase
+
+- **Uma política de RLS não pode se basear em consultar a própria tabela que
+  ela protege.** `int_select` chamava uma função que fazia `SELECT ... FROM
+  hospitalization`, e todo `INSERT ... RETURNING` falhava: devolver a linha
+  recém-criada exige poder lê-la, e a subconsulta enxerga o instantâneo
+  ANTERIOR ao comando, onde a linha ainda não existe. A recusa chegava como
+  `new row violates row-level security policy`, que manda procurar na política
+  de INSERT — onde não havia nada errado. **`SECURITY DEFINER` não resolve:** o
+  problema não é privilégio, é visibilidade dentro do mesmo comando. A política
+  passou a ser escrita sobre as COLUNAS da linha.
+- **O dia da alta é dia de casa.** A primeira versão contava o dia da alta como
+  internada, e a criança que voltou às dez da manhã ficava invisível na chamada
+  do próprio dia em que voltou.
+- **"internação" tem exatamente dez caracteres.** O teste do motivo curto
+  usava essa palavra, passava na validação, e criava sem querer a internação
+  que o teste seguinte tentava criar — e o erro aparecia três testes adiante.
+
 ## Fase 52 — O que a lista da casa pede ✅
 
 A equipe técnica mantém as vinte crianças da Casa 03 num documento de texto,

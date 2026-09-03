@@ -204,9 +204,9 @@ Além dos e2e, quatro suítes estáticas — elas já pegaram erro de verdade:
 
 ## 5. O QUE JÁ ESTÁ PRONTO
 
-**Fases 0 a 52. 441 testes em 43 suítes**, **quinze rodadas seguidas limpas** —
+**Fases 0 a 53. 452 testes em 44 suítes**, **quinze rodadas seguidas limpas** —
 quatro delas com o UTC já no dia seguinte, que é a condição que a regra pede.
-30 telas, 74 migrações, 90 tabelas.
+30 telas, 75 migrações, 94 tabelas.
 
 E dois ensaios de navegador, que `tsc` não substitui — ele diz que compila,
 nunca disse que renderiza:
@@ -337,6 +337,17 @@ enfileiramento da cópia, disparado por evento), `POST /sync/push`,
 `GET /medications/can-administer` e as leituras que já chegam dentro de outra
 resposta (`GET /statements`, `GET /people/:id/admission`,
 `GET /reports/:id/delivery`).
+
+### O que está construído e NÃO tem tela
+
+**A internação hospitalar** (fase 53, migração 0890). O servidor inteiro está
+de pé — abrir, encerrar, diário com anexo, medicação do hospital, educador
+acompanhante, e o efeito na linha do dia —, com 11 testes e2e. Falta a tela e
+o `mock.ts`. É a primeira coisa a fazer numa sessão nova.
+
+As rotas: `GET/POST /nursing/hospitalizations`,
+`GET /nursing/hospitalizations/:id`, e `POST .../close`, `.../notes`,
+`.../medications`, `.../companion`.
 
 ### A dívida do Word — paga em 02/09/2026
 
@@ -526,7 +537,7 @@ valendo:
 |---|---|
 | `CONTINUIDADE.md` | a história longa, fase por fase, com o raciocínio de cada decisão |
 | `o-que-falta.md` | o levantamento das rotas sem tela, atualizado |
-| `der.md` | as 90 tabelas por partição, e o que cada uma guarda |
+| `der.md` | as 94 tabelas por partição, e o que cada uma guarda |
 | `matriz-permissoes.md` | quem alcança o quê |
 | `backlog.md` | o que foi pensado e ainda não construído |
 | `piloto-casa-03.md` | o desenho do piloto |

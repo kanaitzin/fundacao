@@ -304,6 +304,21 @@ export class MedicationsService {
            -- seguinte.
            AND a.scheduled_at >= ($2::date::timestamp AT TIME ZONE 'America/Sao_Paulo')
            AND a.scheduled_at <  (($2::date + 1)::timestamp AT TIME ZONE 'America/Sao_Paulo')
+           /*
+            * A CRIANÇA INTERNADA SAI DA GRADE DA CASA.
+            *
+            * A dose dela não é dada aqui: quem administra no hospital é o
+            * hospital, e isso é registrado no diário da internação, com a
+            * marca de origem. Deixá-la na grade produziria, todo dia, quatro
+            * doses "aguardando confirmação" que ninguém pode confirmar — e
+            * uma tela cheia de pendência impossível é uma tela que a equipe
+            * aprende a não olhar.
+            *
+            * A dose continua existindo no banco. Ela não foi apagada nem
+            * marcada como não administrada: o sistema não conclui que ela não
+            * aconteceu, porque não sabe.
+            */
+           AND NOT app_esta_internado(a.person_id, $2::date)
            AND ($3::uuid IS NULL OR a.person_id = $3)
          ORDER BY a.scheduled_at, pessoa`, [houseId, date, personId ?? null]);
       return rows.map(mapDose);

@@ -99,10 +99,10 @@ não me peça para reexplicar o que está lá.
 
 === ESTADO ATUAL (02/09/2026) ===
 
-Fases 0 a 52. 441 testes em 43 suítes, sem falha conhecida — treze rodadas
+Fases 0 a 53. 452 testes em 44 suítes, sem falha conhecida — treze rodadas
 seguidas limpas, quatro delas entre 23h50 e 00h45 de Porto Alegre, com o UTC já
 no dia seguinte, que é a condição que a regra pede. Backend NestJS +
-PostgreSQL 16 com RLS, 17 partições isoladas, 74 migrações, 90 tabelas.
+PostgreSQL 16 com RLS, 17 partições isoladas, 75 migrações, 94 tabelas.
 Frontend React PWA, 30 telas, empacotado num único .html de ~857 KB que abre
 sem servidor.
 

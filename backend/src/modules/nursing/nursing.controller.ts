@@ -3,6 +3,7 @@ import { SessionGuard, CurrentUser } from '../identity';
 import { AuthenticatedUser } from '../../kernel/contracts';
 import { hojeNaInstituicao } from '../../kernel/common/tempo';
 import { NursingService } from './nursing.service';
+import { InternacaoService } from './internacao.service';
 import { HealthSummaryService } from './health-summary.service';
 
 @Controller('nursing')
@@ -11,6 +12,7 @@ export class NursingController {
   constructor(
     @Inject(NursingService) private readonly nursing: NursingService,
     @Inject(HealthSummaryService) private readonly summary: HealthSummaryService,
+    @Inject(InternacaoService) private readonly internacao: InternacaoService,
   ) {}
 
   /** Painel da casa: todos os acolhidos, inclusive sem medicação prevista (§7.1). */
@@ -59,6 +61,58 @@ export class NursingController {
            @Param('personId', ParseUUIDPipe) personId: string,
            @Body() body: { finalidade?: string }) {
     return this.nursing.exportarSaude(user, personId, body?.finalidade ?? '');
+  }
+
+  /*
+   * INTERNAÇÃO HOSPITALAR (§7.6, migração 0890).
+   *
+   * A criança internada continua da casa e sai da linha do dia. O educador
+   * social comum não alcança estas rotas — decisão da coordenação em
+   * 03/09/2026 —, com uma exceção: o educador DESIGNADO para acompanhar
+   * alcança a internação dele, porque é ele quem escreve o relato do dia.
+   */
+  @Get('hospitalizations/kinds')
+  vocabularioInternacao() { return this.internacao.vocabulario(); }
+
+  @Get('hospitalizations')
+  internacoes(@CurrentUser() user: AuthenticatedUser,
+              @Query('houseId', ParseUUIDPipe) houseId: string,
+              @Query('encerradas') encerradas?: string) {
+    return this.internacao.daCasa(user, houseId, encerradas === '1');
+  }
+
+  @Post('hospitalizations')
+  abrirInternacao(@CurrentUser() user: AuthenticatedUser, @Body() body: any) {
+    return this.internacao.abrir(user, body ?? {});
+  }
+
+  @Get('hospitalizations/:id')
+  internacao_(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.internacao.abrirPeriodo(user, id);
+  }
+
+  @Post('hospitalizations/:id/close')
+  encerrarInternacao(@CurrentUser() user: AuthenticatedUser,
+                     @Param('id', ParseUUIDPipe) id: string, @Body() body: any) {
+    return this.internacao.encerrar(user, id, body ?? {});
+  }
+
+  @Post('hospitalizations/:id/notes')
+  registrarNoDiario(@CurrentUser() user: AuthenticatedUser,
+                    @Param('id', ParseUUIDPipe) id: string, @Body() body: any) {
+    return this.internacao.registrar(user, id, body ?? {});
+  }
+
+  @Post('hospitalizations/:id/medications')
+  medicacaoDoHospital(@CurrentUser() user: AuthenticatedUser,
+                      @Param('id', ParseUUIDPipe) id: string, @Body() body: any) {
+    return this.internacao.registrarMedicacao(user, id, body ?? {});
+  }
+
+  @Post('hospitalizations/:id/companion')
+  designarAcompanhante(@CurrentUser() user: AuthenticatedUser,
+                       @Param('id', ParseUUIDPipe) id: string, @Body() body: any) {
+    return this.internacao.designar(user, id, body ?? {});
   }
 
   // ---- Resumo de Saúde (§7.4) ----

@@ -139,9 +139,22 @@ export class ChecksService {
       // uma criança que chegou depois da abertura precisa aparecer para ser
       // olhada, e uma que saiu no meio não pode sumir com o registro dela.
       const { rows } = await c.query(
+        /*
+         * QUEM ESTÁ INTERNADO NÃO ENTRA NA CHAMADA.
+         *
+         * Não porque deixou de ser da casa — ela continua na contagem e na
+         * vaga —, mas porque cobrar da educadora de plantão a confirmação do
+         * café de uma criança que está no hospital é pedir que ela minta ou
+         * que ignore o alerta. E o que se ignora todo dia deixa de ser alerta.
+         *
+         * O `UNION` continua trazendo quem JÁ FOI conferido: a criança que
+         * foi internada no meio da manhã, depois de marcada no café, não some
+         * do registro daquela chamada.
+         */
         `WITH efetivo AS (
            SELECT s.person_id FROM house_stay s
             WHERE s.house_id = $2 AND s.status = 'ativa'
+              AND NOT app_esta_internado(s.person_id)
            UNION
            SELECT r.person_id FROM check_result r WHERE r.check_id = $1
          )
