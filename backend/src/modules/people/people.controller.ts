@@ -6,6 +6,7 @@ import { AuthenticatedUser } from '../../kernel/contracts';
 import { DossieService } from './dossie.service';
 import { PeopleService } from './people.service';
 import { ProfileService } from './profile.service';
+import { ContatosService } from './contatos.service';
 import { BenefitsService } from './benefits.service';
 import { TransfersService } from './transfers.service';
 import { AdmissionService } from './admission.service';
@@ -22,6 +23,7 @@ export class PeopleController {
     @Inject(AdmissionService) private readonly admission: AdmissionService,
     @Inject(CredentialsService) private readonly credentials: CredentialsService,
     @Inject(DossieService) private readonly dossie: DossieService,
+    @Inject(ContatosService) private readonly contatos: ContatosService,
   ) {}
 
   /** Visão da casa — “os 20”. */
@@ -114,6 +116,46 @@ export class PeopleController {
   corrigir(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
            @Body() body: any) {
     return this.profile.corrigirIdentificacao(user, id, body ?? {});
+  }
+
+  /*
+   * A FOTO E OS CONTATOS.
+   *
+   * `GET :id/photo` devolve a imagem em base64, como o resto do dossiê faz —
+   * o corpo é JSON e o protótipo, que roda sem servidor, precisa do mesmo
+   * formato.
+   */
+  @Get(':id/photo')
+  foto(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.contatos.lerFoto(user, id);
+  }
+
+  @Post(':id/photo')
+  guardarFoto(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
+              @Body() body: any) {
+    return this.contatos.guardarFoto(user, id, body ?? {});
+  }
+
+  /** O vocabulário dos vínculos — rota de palavra fixa, antes de `:id`. */
+  @Get('contacts/kinds')
+  vinculos() { return this.contatos.vocabulario(); }
+
+  @Get(':id/contacts')
+  contatosDo(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.contatos.listar(user, id);
+  }
+
+  @Post(':id/contacts')
+  novoContato(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
+              @Body() body: any) {
+    return this.contatos.criar(user, id, body ?? {});
+  }
+
+  @Post('contacts/:contactId/end')
+  encerrarContato(@CurrentUser() user: AuthenticatedUser,
+                  @Param('contactId', ParseUUIDPipe) contactId: string,
+                  @Body() body: { motivo?: string }) {
+    return this.contatos.encerrar(user, contactId, body?.motivo ?? '');
   }
 
   @Get(':id/correcoes')

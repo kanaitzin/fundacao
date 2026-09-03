@@ -35,6 +35,21 @@ export const TIPOS_CREDENCIAL = [
   { cod: 'ctps', label: 'Carteira de Trabalho Digital' },
   { cod: 'banco', label: 'Banco / poupança social' },
   { cod: 'escola', label: 'Portal da escola' },
+  /*
+   * A CHAVE DE ACESSO AO PROCESSO ENTRA AQUI, e não no cadastro.
+   *
+   * A coordenação pediu, em 03/09/2026, para guardar tudo o que hoje vive na
+   * lista que a equipe técnica mantém à mão — inclusive a chave de acesso ao
+   * processo judicial de cada criança. Está certa: hoje essa chave circula
+   * num arquivo de texto anexado a mensagens.
+   *
+   * O que muda é ONDE ela fica. Essa chave abre o processo inteiro da
+   * criança: é da mesma natureza da senha do gov.br, e não de um número de
+   * documento. No cadastro comum ela apareceria para quem abrisse o perfil;
+   * aqui ela é cifrada, aberta só pelo coordenador da casa e pelo Gestor
+   * Geral, com reautenticação e um registro por visualização (§11.4).
+   */
+  { cod: 'processo_judicial', label: 'Chave de acesso ao processo' },
   { cod: 'outro', label: 'Outro acesso' },
 ] as const;
 

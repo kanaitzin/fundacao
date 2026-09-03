@@ -3,6 +3,7 @@ import { IdentityModule } from '../identity';
 import { PeopleController, TransfersController, ReportsController } from './people.controller';
 import { PeopleService } from './people.service';
 import { ProfileService } from './profile.service';
+import { ContatosService } from './contatos.service';
 import { BenefitsService } from './benefits.service';
 import { TransfersService } from './transfers.service';
 import { AdmissionService } from './admission.service';
@@ -12,7 +13,8 @@ import { CredentialsService } from './credentials.service';
 @Module({
   imports: [IdentityModule],
   controllers: [PeopleController, TransfersController, ReportsController],
-  providers: [PeopleService, ProfileService, BenefitsService, TransfersService, AdmissionService, CredentialsService,
+  providers: [PeopleService, ProfileService,
+    ContatosService, BenefitsService, TransfersService, AdmissionService, CredentialsService,
     DossieService],
   exports: [PeopleService],
 })

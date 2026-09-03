@@ -204,11 +204,9 @@ Além dos e2e, quatro suítes estáticas — elas já pegaram erro de verdade:
 
 ## 5. O QUE JÁ ESTÁ PRONTO
 
-**Fases 0 a 51. 433 testes em 42 suítes**, **treze rodadas seguidas limpas** —
-cinco
-em 01/09, quatro entre 23h50 e 00h45 (com o UTC já no dia seguinte, que é a
-condição que a regra pede) e duas na manhã de 02/09. 30 telas, 72 migrações,
-89 tabelas.
+**Fases 0 a 52. 441 testes em 43 suítes**, **quinze rodadas seguidas limpas** —
+quatro delas com o UTC já no dia seguinte, que é a condição que a regra pede.
+30 telas, 74 migrações, 90 tabelas.
 
 E dois ensaios de navegador, que `tsc` não substitui — ele diz que compila,
 nunca disse que renderiza:
@@ -528,7 +526,7 @@ valendo:
 |---|---|
 | `CONTINUIDADE.md` | a história longa, fase por fase, com o raciocínio de cada decisão |
 | `o-que-falta.md` | o levantamento das rotas sem tela, atualizado |
-| `der.md` | as 89 tabelas por partição, e o que cada uma guarda |
+| `der.md` | as 90 tabelas por partição, e o que cada uma guarda |
 | `matriz-permissoes.md` | quem alcança o quê |
 | `backlog.md` | o que foi pensado e ainda não construído |
 | `piloto-casa-03.md` | o desenho do piloto |

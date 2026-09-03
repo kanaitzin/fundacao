@@ -56,7 +56,8 @@ export class ProfileService {
       if (!p) return null;
 
       // Um cliente pg executa uma consulta por vez: sequencial, não Promise.all.
-      const [stay, detail, conditions, restrictions, episodes, docs, memories] = await seq([
+      const [stay, detail, conditions, restrictions, episodes, docs, memories,
+             contacts] = await seq([
         () => c.query(`SELECT s.house_id, h.code, h.name, s.started_at
                  -- rls-join-ok: permanência ATIVA — a casa é a atual do acolhido.
                  FROM house_stay s JOIN house h ON h.id = s.house_id
@@ -74,11 +75,23 @@ export class ProfileService {
                  FROM document WHERE person_id = $1 ORDER BY category, issued_on DESC NULLS LAST`, [personId]),
         () => c.query(`SELECT id, event_type, happened_on, description, has_photo, photo_authorized
                  FROM memory_record WHERE person_id = $1 ORDER BY happened_on DESC`, [personId]),
+        /*
+         * OS CONTATOS SÃO DO EDUCADOR TAMBÉM.
+         *
+         * Decisão da coordenação em 03/09/2026: quem está com a criança
+         * precisa saber quem é a madrinha que aparece no portão. Encerrados
+         * ficam de fora da tela do plantão — o telefone que deixou de valer
+         * não some do banco, mas ninguém liga para ele às 23h por engano.
+         */
+        () => c.query(`SELECT id, name, bond, bond_other, phone, note,
+                              restricted, restriction_note
+                 FROM person_contact WHERE person_id = $1 AND active
+                 ORDER BY restricted DESC, name`, [personId]),
       ]);
       const { rows: [rc] } = await c.query(`SELECT app_count_restricted_docs($1) AS n`, [personId]);
       return { p, stay: stay.rows[0], detail: detail.rows[0], conditions: conditions.rows,
                restrictions: restrictions.rows, episodes: episodes.rows, docs: docs.rows,
-               memories: memories.rows, restritos: rc.n };
+               memories: memories.rows, contacts: contacts.rows, restritos: rc.n };
     });
 
     // Fora do escopo o RLS não devolve a linha: 404 igual a inexistente,
@@ -96,6 +109,24 @@ export class ProfileService {
       cpf: maskCpf(data.p.cpf),
       cpfPendente: data.p.cpf_pending,
       idProvisorio: data.p.provisional_id,
+      /*
+       * RG, CNS E FILIAÇÃO SAEM INTEIROS, e o CPF continua mascarado.
+       *
+       * Não é incoerência. O CPF é a chave que abre cadastro em serviço de
+       * fora — banco, benefício, consulta pública —, e por isso ele aparece
+       * só onde é usado. RG, cartão SUS e filiação são o que a educadora
+       * precisa DITAR no balcão do posto de saúde com a criança do lado, e
+       * mascará-los ali seria obrigá-la a voltar à planilha impressa que este
+       * sistema existe para aposentar.
+       */
+      rg: data.p.rg ?? null,
+      cns: data.p.cns ?? null,
+      filiacao: data.p.filiation ?? null,
+      /* A foto é de identificação: a tela recebe a rota, não o binário. */
+      foto: data.p.photo_key
+        ? { rota: `/people/${personId}/photo`, em: data.p.photo_at }
+        : null,
+      contatos: data.contacts,
       casaAtual: data.stay ? { id: data.stay.house_id, codigo: data.stay.code, nome: data.stay.name, desde: data.stay.started_at } : null,
       noAcervo: !data.stay,
       // 1) alertas essenciais e saúde primeiro
@@ -152,6 +183,15 @@ export class ProfileService {
       escolaTurno: 'school_shift', escolaEndereco: 'school_address', equipeReferencia: 'reference_team',
       observacoes: 'notes',
     };
+    /*
+     * RG, CNS e filiação NÃO entram aqui, e a diferença não é técnica.
+     *
+     * Este método atualiza o que MUDA na vida da criança — a série em
+     * fevereiro, o cuidado essencial que a técnica reescreveu — e por isso não
+     * pede motivo. Documento de identidade não muda: ou estava errado, ou foi
+     * emitido agora. Os dois casos são `corrigirIdentificacao`, que pede
+     * motivo e guarda o que constava antes.
+     */
     const enviados: Record<string, string | null> = {};
     for (const [k, v] of Object.entries(patch)) {
       if (campos[k]) enviados[campos[k]] = v;
@@ -215,6 +255,7 @@ export class ProfileService {
    */
   async corrigirIdentificacao(user: AuthenticatedUser, personId: string, input: {
     nome?: string; nomeSocial?: string | null; nascimento?: string; cpf?: string | null;
+    rg?: string | null; cns?: string | null; filiacao?: string | null;
     motivo?: string;
   }) {
     const campos: Record<string, string | null> = {};
@@ -222,6 +263,14 @@ export class ProfileService {
     if (input.nomeSocial !== undefined) campos.social_name = input.nomeSocial;
     if (input.nascimento !== undefined) campos.birth_date = input.nascimento;
     if (input.cpf !== undefined) campos.cpf = input.cpf;
+    /*
+     * Os três da lista da casa. A rota fala português — `filiacao`, e não
+     * `filiation` — porque quem lê o contrato de rotas é quem escreve a tela,
+     * e a tela é em português (regra de interface do projeto).
+     */
+    if (input.rg !== undefined) campos.rg = input.rg;
+    if (input.cns !== undefined) campos.cns = input.cns;
+    if (input.filiacao !== undefined) campos.filiation = input.filiacao;
     if (!Object.keys(campos).length) {
       throw new BadRequestException('Nenhum campo de identificação foi informado.');
     }

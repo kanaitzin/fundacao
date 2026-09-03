@@ -891,3 +891,19 @@ textarea{
 }
 .papel-tabela th{ background:#EFEAE1; font-size:11.5px }
 .rolar{ overflow-x:auto; -webkit-overflow-scrolling:touch }
+
+/*
+ * O RETRATO DE IDENTIFICAÇÃO.
+ *
+ * Quadrado, pequeno e sem sombra: ele não é enfeite de perfil de rede social,
+ * é o que faz a educadora do plantão novo saber quem é a criança que chegou na
+ * frente dela. Quem não tem foto mostra as iniciais — a falta não pode virar
+ * um buraco que parece defeito.
+ */
+.retrato{
+  width:64px; height:64px; border-radius:12px; overflow:hidden;
+  background:var(--sunken); border:1px solid var(--line);
+  display:flex; align-items:center; justify-content:center;
+}
+.retrato img{ width:100%; height:100%; object-fit:cover; display:block }
+.retrato span{ font-weight:700; font-size:22px; color:var(--muted) }

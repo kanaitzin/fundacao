@@ -100,10 +100,15 @@ interface Kid {
   cuidado?: string; serie: string; turno: string;
   semCpf?: boolean; provisorio?: string;
   judicial?: Record<string, string>;
+  /* Os campos que vieram da lista que a equipe técnica mantinha à mão. */
+  rg?: string; cns?: string; filiacao?: string;
+  foto?: string; fotoEm?: string;
 }
 
 const KIDS: Kid[] = [
   { id: 'p01', nome: 'Alice', civil: 'Alice Ribeiro (fictícia)', idade: 7, nascimento: '2019-03-14',
+    rg: '1234567890', cns: '700000000000000',
+    filiacao: 'Rosângela Ribeiro (fictícia)',
     alerta: { tipo: 'alergia', descricao: 'Alergia a Amendoim e derivados', gravidade: 'grave' },
     restricao: { restriction: 'Amendoim, pasta de amendoim, doces com traços',
                  substitution: 'Sobremesa de frutas', guidance: 'Conferir rótulos antes de servir.' },
@@ -3392,6 +3397,18 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         + 'provisório, corrija para o que a certidão diz.');
     }
     const trocas: [string, string, string | null, string | null][] = [];
+    /* Os três da lista da casa passam pela MESMA porta do nome — com motivo,
+     * e deixando o que constava antes. */
+    for (const [campo, rotulo, chave] of [
+      ['rg', 'RG', 'rg'], ['cns', 'Cartão SUS', 'cns'], ['filiacao', 'Filiação', 'filiacao'],
+    ] as const) {
+      const enviado = (b as any)[campo];
+      const atual = (k as any)[chave] ?? null;
+      if (enviado !== undefined && (enviado || null) !== atual) {
+        trocas.push([chave, rotulo, atual, enviado ? String(enviado) : null]);
+        (k as any)[chave] = enviado ? String(enviado) : undefined;
+      }
+    }
     if (b.nome !== undefined && String(b.nome).trim() !== k.civil) {
       trocas.push(['full_name', 'Nome civil', k.civil, String(b.nome).trim()]);
       k.civil = String(b.nome).trim();
@@ -3478,6 +3495,133 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       aviso: `${n} campo(s) atualizado(s). O que estava antes continua registrado, com o seu `
         + 'nome e o horário, e aparece no perfil para quem cuida da criança.' };
   }
+/*
+ * OS CONTATOS FICTÍCIOS, na forma da lista que a casa mantém à mão.
+ *
+ * Genitora, madrinha e vínculo comunitário na mesma lista, como está no
+ * documento de texto que a equipe técnica reenvia inteiro toda vez que uma
+ * linha muda — e um contato com aproximação restrita, que é o caso que a tela
+ * precisa saber mostrar antes dos outros.
+ */
+const CONTATOS: Record<string, any[]> = {};
+let proximoContato = 1;
+function contatosDe(id: string) {
+  if (!CONTATOS[id]) {
+    CONTATOS[id] = [
+      { id: `ct-${id}-1`, nome: 'Rosângela (fictícia)', vinculo: 'genitora',
+        vinculoRotulo: 'Genitora', telefone: '51 98888-0001',
+        observacao: 'Liga aos domingos de manhã.',
+        restrito: false, motivoDaRestricao: null, ativo: true, motivoDoEncerramento: null,
+        por: 'Equipe técnica (fictícia)', em: emHoras(9, 0) },
+      { id: `ct-${id}-2`, nome: 'Madrinha Simoni (fictícia)', vinculo: 'madrinha',
+        vinculoRotulo: 'Madrinha', telefone: '51 98888-0002',
+        observacao: 'Busca na escola às sextas.',
+        restrito: false, motivoDaRestricao: null, ativo: true, motivoDoEncerramento: null,
+        por: 'Equipe técnica (fictícia)', em: emHoras(9, 0) },
+      { id: `ct-${id}-3`, nome: 'Tio Fictício', vinculo: 'tio', vinculoRotulo: 'Tia ou tio',
+        telefone: '51 98888-0003', observacao: null,
+        restrito: true,
+        motivoDaRestricao: 'Aproximação suspensa por decisão judicial de 06/2026. '
+          + 'Antes de qualquer contato, falar com a equipe técnica.',
+        ativo: true, motivoDoEncerramento: null,
+        por: 'Equipe técnica (fictícia)', em: emHoras(10, 30) },
+    ];
+  }
+  return CONTATOS[id];
+}
+
+  if (rota === '/people/contacts/kinds') {
+    return {
+      vinculos: [
+        { code: 'genitora', label: 'Genitora' }, { code: 'genitor', label: 'Genitor' },
+        { code: 'irmao', label: 'Irmão ou irmã' }, { code: 'avo', label: 'Avó ou avô' },
+        { code: 'tio', label: 'Tia ou tio' }, { code: 'padrinho', label: 'Padrinho' },
+        { code: 'madrinha', label: 'Madrinha' },
+        { code: 'vinculo_comunitario', label: 'Vínculo comunitário' },
+        { code: 'servico_da_rede', label: 'Serviço da rede' },
+        { code: 'outro', label: 'Outro' },
+      ],
+      nota: 'O vínculo diz quem é, não quem vale mais. Contato com aproximação suspensa '
+        + 'entra marcado, com o motivo — quem descobre isso às 23h descobre tarde.',
+    };
+  }
+
+  if (seg[0] === 'people' && seg[2] === 'contacts' && metodo === 'GET') {
+    return contatosDe(seg[1]);
+  }
+
+  if (seg[0] === 'people' && seg[2] === 'contacts' && metodo === 'POST') {
+    // A MESMA recusa do servidor: o educador lê e não escreve.
+    if (!['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403,
+        'Escrever no cadastro de contatos é da equipe técnica e da coordenação.');
+    }
+    if (!String(b.nome ?? '').trim()) {
+      return new Recusa(400, 'Escreva o nome de quem é este contato.');
+    }
+    if (b.restrito && String(b.motivoDaRestricao ?? '').trim().length < 10) {
+      return new Recusa(400,
+        'Escreva por que este contato tem aproximação restrita. Quem ler às 23h '
+        + 'precisa saber se ainda vale.');
+    }
+    const rotulos: Record<string, string> = {
+      genitora: 'Genitora', genitor: 'Genitor', irmao: 'Irmão ou irmã', avo: 'Avó ou avô',
+      tio: 'Tia ou tio', padrinho: 'Padrinho', madrinha: 'Madrinha',
+      vinculo_comunitario: 'Vínculo comunitário', servico_da_rede: 'Serviço da rede',
+    };
+    const novoContato = {
+      id: `ct-novo-${proximoContato++}`, nome: String(b.nome).trim(),
+      vinculo: b.vinculo,
+      vinculoRotulo: b.vinculo === 'outro' ? String(b.vinculoOutro ?? 'Outro')
+        : (rotulos[String(b.vinculo)] ?? String(b.vinculo)),
+      telefone: b.telefone || null, observacao: b.observacao || null,
+      restrito: !!b.restrito, motivoDaRestricao: b.restrito ? String(b.motivoDaRestricao) : null,
+      ativo: true, motivoDoEncerramento: null,
+      por: eu.fullName, em: new Date().toISOString(),
+    };
+    contatosDe(seg[1]).unshift(novoContato);
+    return { id: novoContato.id, ok: true };
+  }
+
+  if (seg[0] === 'people' && seg[1] === 'contacts' && seg[3] === 'end' && metodo === 'POST') {
+    if (String(b.motivo ?? '').trim().length < 5) {
+      return new Recusa(400, 'Escreva por que este contato não vale mais.');
+    }
+    for (const lista of Object.values(CONTATOS)) {
+      const c = lista.find((x) => x.id === seg[2]);
+      /* Encerra, não apaga: o telefone que deixou de valer é informação. */
+      if (c) { c.ativo = false; c.motivoDoEncerramento = String(b.motivo).trim(); return { ok: true }; }
+    }
+    return new Recusa(404, 'Contato não encontrado — ou já encerrado.');
+  }
+
+  if (seg[0] === 'people' && seg[2] === 'photo' && metodo === 'GET') {
+    const k = kid(seg[1]);
+    if (!k?.foto) return new Recusa(404, 'Este acolhido ainda não tem foto.');
+    return { nome: 'identificacao', tipo: 'image/png', conteudo: k.foto };
+  }
+
+  if (seg[0] === 'people' && seg[2] === 'photo' && metodo === 'POST') {
+    if (!['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403,
+        'A foto de identificação é cadastrada pela técnica ou pela coordenação.');
+    }
+    const k = kid(seg[1]);
+    if (!k) return new Recusa(404, 'Acolhido não encontrado — ou fora do seu alcance.');
+    const limpo = String(b.conteudo ?? '').replace(/^data:[^;]+;base64,/, '');
+    if (!limpo) return new Recusa(400, 'Nenhuma foto foi enviada.');
+    /* O servidor confere a ASSINATURA do arquivo, e não a extensão. O mock
+     * confere o mesmo: um PDF renomeado para .png é recusado nos dois. */
+    const cabeca = atob(limpo.slice(0, 24));
+    const ehImagem = cabeca.startsWith('\x89PNG') || cabeca.startsWith('\xFF\xD8\xFF')
+      || cabeca.slice(0, 4) === 'RIFF';
+    if (!ehImagem) return new Recusa(400, 'Envie uma foto em JPG, PNG ou WEBP.');
+    k.foto = limpo;
+    k.fotoEm = new Date().toISOString();
+    return { ok: true, aviso: 'Foto de identificação guardada. Ela aparece no alto do perfil '
+      + 'e não entra em documento nenhum por padrão.' };
+  }
+
   if (seg[0] === 'people' && seg.length === 2) {
     const k = kid(seg[1]);
     if (!k) return new Recusa(404, 'Não encontrado.');
@@ -3513,6 +3657,11 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         ] : []),
       ] : [],
       documentosRestritos: restritos,
+      rg: k.rg ?? null,
+      cns: k.cns ?? null,
+      filiacao: k.filiacao ?? null,
+      foto: k.foto ? { rota: `/people/${k.id}/photo`, em: k.fotoEm } : null,
+      contatos: contatosDe(k.id).filter((c: any) => c.ativo),
       memorias: [{ id: 'mem1', event_type: 'aniversário', happened_on: '2026-07-14',
                    description: 'Comemoração na casa com bolo escolhido pelo grupo.',
                    has_photo: false, photo_authorized: false }],

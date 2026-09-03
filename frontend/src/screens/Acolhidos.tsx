@@ -40,6 +40,12 @@ interface Restricao {
 interface Doc {
   id: string; category: string; title: string; issued_on: string | null; valid_until: string | null;
 }
+interface Contato {
+  id: string; nome: string; vinculo: string; vinculoRotulo: string;
+  telefone: string | null; observacao: string | null;
+  restrito: boolean; motivoDaRestricao: string | null;
+  ativo: boolean; motivoDoEncerramento: string | null;
+}
 interface Perfil {
   id: string; nome: string; nomeCivil: string; idade: number; nascimento: string;
   cpfPendente: boolean; idProvisorio: string | null;
@@ -53,6 +59,12 @@ interface Perfil {
   equipeReferencia: string | null;
   /** Só vem para quem pode escrevê-las (§6.2) — o educador não as recebe. */
   observacoes?: string | null;
+  /* Os campos que vieram da lista que a equipe técnica mantinha à mão. */
+  rg: string | null;
+  cns: string | null;
+  filiacao: string | null;
+  foto: { rota: string; em: string } | null;
+  contatos: Contato[];
   documentos: Doc[];
   documentosRestritos: number;
   memorias: { id: string; event_type: string; happened_on: string; description: string }[];
@@ -452,15 +464,44 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
   return (
     <>
       <div className="diahead">
-        <div>
-          <button className="btn sm ghost" onClick={onVoltar}>← Acolhidos</button>
-          <h2>{p.nome}</h2>
-          <div className="mutetxt">
-            {p.idade} anos · {dia(p.nascimento)}
-            {p.casaAtual ? ` · ${p.casaAtual.codigo} desde ${dia(p.casaAtual.desde)}` : ''}
+        <div className="row" style={{ gap: 12, alignItems: 'flex-start' }}>
+          {/*
+            * A FOTO DE IDENTIFICAÇÃO.
+            *
+            * Vinte crianças, plantão que troca a cada doze horas, gente nova
+            * toda semana. A foto está aqui para a equipe saber quem é quem —
+            * não é retrato, e não entra em documento nenhum por padrão.
+            */}
+          <FotoDoAcolhido perfil={p} papel={papel} onTrocou={recarregar} />
+          <div className="grow">
+            <button className="btn sm ghost" onClick={onVoltar}>← Acolhidos</button>
+            <h2>{p.nome}</h2>
+            <div className="mutetxt">
+              {p.idade} anos · {dia(p.nascimento)}
+              {p.casaAtual ? ` · ${p.casaAtual.codigo} desde ${dia(p.casaAtual.desde)}` : ''}
+            </div>
+            {(p.rg || p.cns || p.filiacao) && (
+              <div className="mutetxt" style={{ marginTop: 4 }}>
+                {p.rg && <>RG {p.rg}</>}
+                {p.rg && p.cns ? ' · ' : ''}
+                {p.cns && <>SUS {p.cns}</>}
+                {p.filiacao && (
+                  <div>Filiação: {p.filiacao.split('\n').filter(Boolean).join(' · ')}</div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
+
+      {/*
+        * QUEM APARECE POR ESTA CRIANÇA.
+        *
+        * Fica ALTO na tela, junto da identificação, porque é informação de
+        * plantão: quem está com a criança precisa saber quem é a pessoa que
+        * apareceu no portão às nove da noite, sem ligar para a técnica.
+        */}
+      <Contatos perfil={p} papel={papel} onMudou={recarregar} />
 
       {/* A pasta da criança: o que a casa precisa ter, e o álbum dela. */}
       <button className="btn sec block" style={{ marginBottom: 12 }} onClick={() => setDossie(true)}>
@@ -1179,12 +1220,23 @@ function FolhaEvolucao({ nome, onFechar, onEnviar }: {
  */
 function FolhaCorrigir({ perfil, onFechar, onCorrigir }: {
   perfil: Perfil; onFechar: () => void;
-  onCorrigir: (d: { nome?: string; nomeSocial?: string | null;
-                    nascimento?: string; motivo: string }) => void;
+  onCorrigir: (d: { nome?: string; nomeSocial?: string | null; nascimento?: string;
+                    rg?: string | null; cns?: string | null; filiacao?: string | null;
+                    motivo: string }) => void;
 }) {
   const [nome, setNome] = useState(perfil.nomeCivil ?? perfil.nome);
   const [social, setSocial] = useState(perfil.nome ?? '');
   const [nascimento, setNascimento] = useState(String(perfil.nascimento ?? '').slice(0, 10));
+  /*
+   * RG, CNS e filiação entram AQUI, junto do nome — e não na folha de
+   * "atualizar", que não pede motivo. Documento de identidade não muda: ou
+   * estava errado, ou foi emitido agora, e nos dois casos alguém vai
+   * perguntar, um ano depois, por que o RG do relatório de março não é o de
+   * setembro.
+   */
+  const [rg, setRg] = useState(perfil.rg ?? '');
+  const [cns, setCns] = useState(perfil.cns ?? '');
+  const [filiacao, setFiliacao] = useState(perfil.filiacao ?? '');
   const [motivo, setMotivo] = useState('');
   const pode = motivo.trim().length >= 10 && nome.trim().length >= 2 && nascimento !== '';
 
@@ -1212,6 +1264,21 @@ function FolhaCorrigir({ perfil, onFechar, onCorrigir }: {
         <input id="cor-nasc" type="date" value={nascimento}
                onChange={(e) => setNascimento(e.target.value)} />
 
+        <label className="f" htmlFor="cor-rg">RG</label>
+        <input id="cor-rg" value={rg} onChange={(e) => setRg(e.target.value)}
+               placeholder="deixe em branco se ainda não tem" />
+
+        <label className="f" htmlFor="cor-cns">
+          Cartão SUS <small>— o número do CNS</small>
+        </label>
+        <input id="cor-cns" value={cns} onChange={(e) => setCns(e.target.value)} />
+
+        <label className="f" htmlFor="cor-fil">
+          Filiação <small>— um nome por linha, como está na certidão</small>
+        </label>
+        <textarea id="cor-fil" value={filiacao} onChange={(e) => setFiliacao(e.target.value)}
+                  placeholder="Ex.: Fulana de Tal&#10;Beltrano de Tal" />
+
         <label className="f" htmlFor="cor-mot">
           Por que está sendo corrigido <small>— pelo menos 10 caracteres</small>
         </label>
@@ -1222,7 +1289,9 @@ function FolhaCorrigir({ perfil, onFechar, onCorrigir }: {
           <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
           <button className="btn grow" disabled={!pode} onClick={() => onCorrigir({
             nome: nome.trim(), nomeSocial: social.trim() || null,
-            nascimento, motivo: motivo.trim(),
+            nascimento,
+            rg: rg.trim() || null, cns: cns.trim() || null, filiacao: filiacao.trim() || null,
+            motivo: motivo.trim(),
           })}>
             Corrigir, com este motivo
           </button>
@@ -1385,6 +1454,284 @@ function FolhaJudicial({ judicial, onFechar, onSalvar }: {
           })}>
             Salvar
           </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * A FOTO DE IDENTIFICAÇÃO.
+ *
+ * A coordenação decidiu em 03/09/2026 que ela não depende de autorização de
+ * imagem: serve para a equipe reconhecer quem é quem, e se sair num documento
+ * é para o Juízo, que responde pela proteção da criança tanto quanto a casa.
+ *
+ * Duas coisas que a tela faz de propósito:
+ *
+ *  * **quem não tem foto não fica com um buraco.** Aparecem as iniciais, para
+ *    a linha não desalinhar e para a falta não parecer defeito;
+ *  * **a foto não é botão de download.** Ela é vista aqui; quem precisar dela
+ *    num documento vai ter que pedir, e aí a decisão é de quem pede.
+ */
+function FotoDoAcolhido({ perfil, papel, onTrocou }: {
+  perfil: Perfil; papel: string; onTrocou: () => void;
+}) {
+  const [src, setSrc] = useState<string | null>(null);
+  const [erro, setErro] = useState('');
+  const [ocupado, setOcupado] = useState(false);
+  const podeTrocar = QUEM_CADASTRA.includes(papel);
+
+  useEffect(() => {
+    let vivo = true;
+    if (!perfil.foto) { setSrc(null); return () => { vivo = false; }; }
+    api<{ tipo: string; conteudo: string }>(`/people/${perfil.id}/photo`)
+      .then((f) => { if (vivo) setSrc(`data:${f.tipo};base64,${f.conteudo}`); })
+      .catch(() => { if (vivo) setSrc(null); });
+    return () => { vivo = false; };
+  }, [perfil.id, perfil.foto?.em]);
+
+  const iniciais = perfil.nome.split(' ').filter(Boolean).slice(0, 2)
+    .map((n) => n[0]).join('').toUpperCase();
+
+  async function enviar(arquivo: File) {
+    setErro(''); setOcupado(true);
+    try {
+      const base64 = await new Promise<string>((ok, falhou) => {
+        const r = new FileReader();
+        r.onload = () => ok(String(r.result).split(',')[1] ?? '');
+        r.onerror = () => falhou(new Error('Não foi possível ler o arquivo.'));
+        r.readAsDataURL(arquivo);
+      });
+      await api(`/people/${perfil.id}/photo`, {
+        method: 'POST', body: JSON.stringify({ conteudo: base64, nomeArquivo: arquivo.name }),
+      });
+      onTrocou();
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Não foi possível guardar a foto.');
+    } finally {
+      setOcupado(false);
+    }
+  }
+
+  return (
+    <div style={{ flex: 'none', textAlign: 'center' }}>
+      <div className="retrato" aria-label={src ? `Foto de ${perfil.nome}` : 'Sem foto'}>
+        {src ? <img src={src} alt={`Foto de identificação de ${perfil.nome}`} /> : <span>{iniciais}</span>}
+      </div>
+      {podeTrocar && (
+        <label className="btn sm ghost" style={{ marginTop: 6, display: 'inline-block' }}>
+          {ocupado ? 'Enviando…' : (src ? 'Trocar foto' : 'Pôr foto')}
+          <input type="file" accept="image/*" style={{ display: 'none' }}
+                 onChange={(e) => { const f = e.target.files?.[0]; if (f) void enviar(f); }} />
+        </label>
+      )}
+      {erro && <div className="mutetxt">{erro}</div>}
+    </div>
+  );
+}
+
+/**
+ * QUEM APARECE POR ESTA CRIANÇA.
+ *
+ * Veio da lista que a equipe técnica mantinha à mão, onde genitora, padrinho,
+ * tia e vínculo comunitário dividiam a mesma célula. É assim que a casa pensa:
+ * o que importa é quem atende quando a criança precisa.
+ *
+ * O educador LÊ (decisão da coordenação, 03/09/2026) e não escreve. E o
+ * contato com aproximação restrita aparece PRIMEIRO, com o motivo à vista —
+ * quem descobre isso às onze da noite descobre tarde.
+ */
+function Contatos({ perfil, papel, onMudou }: {
+  perfil: Perfil; papel: string; onMudou: () => void;
+}) {
+  const [novo, setNovo] = useState(false);
+  const [encerrando, setEncerrando] = useState<Contato | null>(null);
+  const podeEscrever = QUEM_CADASTRA.includes(papel);
+  const ativos = (perfil.contatos ?? []).filter((c) => c.ativo);
+
+  return (
+    <>
+      <div className="eyebrow">Quem aparece por {perfil.nome} · {ativos.length}</div>
+      {!ativos.length && (
+        <p className="mutetxt">
+          Nenhum contato cadastrado. Enquanto isso, o telefone da mãe e o da madrinha
+          continuam numa lista fora do sistema.
+        </p>
+      )}
+      <div className="stack">
+        {ativos.map((c) => (
+          <div key={c.id} className="card">
+            <div className="row">
+              <b className="ff grow">{c.nome}</b>
+              <span className="pill c-info">{c.vinculoRotulo}</span>
+            </div>
+            {c.telefone && <div>{c.telefone}</div>}
+            {c.observacao && <div className="mutetxt">{c.observacao}</div>}
+            {c.restrito && (
+              <div className="notice c-crit" role="alert">
+                <b>Aproximação restrita.</b> {c.motivoDaRestricao}
+              </div>
+            )}
+            {podeEscrever && (
+              <div className="acoes">
+                <button className="btn sm ghost" onClick={() => setEncerrando(c)}>
+                  Este contato não vale mais
+                </button>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+      {podeEscrever && (
+        <button className="btn sec block" style={{ marginBottom: 12 }} onClick={() => setNovo(true)}>
+          ☎️ Acrescentar contato
+        </button>
+      )}
+
+      {novo && (
+        <FolhaContato
+          nome={perfil.nome}
+          onFechar={() => setNovo(false)}
+          onSalvar={async (d) => {
+            await api(`/people/${perfil.id}/contacts`, {
+              method: 'POST', body: JSON.stringify(d),
+            });
+            setNovo(false); onMudou();
+          }} />
+      )}
+
+      {encerrando && (
+        <FolhaEncerrarContato
+          contato={encerrando}
+          onFechar={() => setEncerrando(null)}
+          onEncerrar={async (motivo) => {
+            await api(`/people/contacts/${encerrando.id}/end`, {
+              method: 'POST', body: JSON.stringify({ motivo }),
+            });
+            setEncerrando(null); onMudou();
+          }} />
+      )}
+    </>
+  );
+}
+
+function FolhaContato({ nome, onFechar, onSalvar }: {
+  nome: string; onFechar: () => void;
+  onSalvar: (d: Record<string, unknown>) => Promise<void>;
+}) {
+  const [vocab, setVocab] = useState<{ vinculos: { code: string; label: string }[]; nota: string } | null>(null);
+  const [dados, setDados] = useState({
+    nome: '', vinculo: 'madrinha', vinculoOutro: '', telefone: '', observacao: '',
+  });
+  const [restrito, setRestrito] = useState(false);
+  const [motivoRestricao, setMotivoRestricao] = useState('');
+  const [erro, setErro] = useState('');
+
+  useEffect(() => {
+    api<{ vinculos: { code: string; label: string }[]; nota: string }>('/people/contacts/kinds')
+      .then(setVocab).catch(() => setVocab(null));
+  }, []);
+
+  const pode = dados.nome.trim().length >= 2
+    && (dados.vinculo !== 'outro' || dados.vinculoOutro.trim().length >= 2)
+    && (!restrito || motivoRestricao.trim().length >= 10);
+
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-cont"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet modal">
+        <h3 id="t-cont">Quem aparece por {nome}</h3>
+        {vocab && <p className="mutetxt">{vocab.nota}</p>}
+
+        <label className="f" htmlFor="ct-nome">Nome</label>
+        <input id="ct-nome" value={dados.nome}
+               onChange={(e) => setDados({ ...dados, nome: e.target.value })} />
+
+        <label className="f" htmlFor="ct-vinc">Vínculo</label>
+        <select id="ct-vinc" value={dados.vinculo}
+                onChange={(e) => setDados({ ...dados, vinculo: e.target.value })}>
+          {(vocab?.vinculos ?? [{ code: 'madrinha', label: 'Madrinha' }])
+            .map((v) => <option key={v.code} value={v.code}>{v.label}</option>)}
+        </select>
+        {dados.vinculo === 'outro' && (
+          <>
+            <label className="f" htmlFor="ct-outro">Qual é o vínculo</label>
+            <input id="ct-outro" value={dados.vinculoOutro}
+                   onChange={(e) => setDados({ ...dados, vinculoOutro: e.target.value })} />
+          </>
+        )}
+
+        <label className="f" htmlFor="ct-tel">Telefone</label>
+        <input id="ct-tel" value={dados.telefone}
+               onChange={(e) => setDados({ ...dados, telefone: e.target.value })} />
+
+        <label className="f" htmlFor="ct-obs">
+          Observação <small>— o que a equipe precisa saber antes de ligar</small>
+        </label>
+        <textarea id="ct-obs" value={dados.observacao}
+                  onChange={(e) => setDados({ ...dados, observacao: e.target.value })}
+                  placeholder="Ex.: busca na escola às sextas; só atende de manhã." />
+
+        <label className="f">
+          <input type="checkbox" checked={restrito}
+                 onChange={(e) => setRestrito(e.target.checked)} />
+          {' '}Aproximação restrita
+        </label>
+        {restrito && (
+          <>
+            <label className="f" htmlFor="ct-mot">
+              Por quê <small>— quem lê às 23h precisa saber se ainda vale</small>
+            </label>
+            <textarea id="ct-mot" value={motivoRestricao}
+                      onChange={(e) => setMotivoRestricao(e.target.value)} />
+          </>
+        )}
+
+        {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+        <div className="row rodape">
+          <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
+          <button className="btn grow" disabled={!pode} onClick={async () => {
+            try {
+              await onSalvar({
+                ...dados, nome: dados.nome.trim(),
+                restrito, motivoDaRestricao: restrito ? motivoRestricao.trim() : undefined,
+              });
+            } catch (e) {
+              setErro(e instanceof Error ? e.message : 'Não foi possível salvar.');
+            }
+          }}>Salvar contato</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FolhaEncerrarContato({ contato, onFechar, onEncerrar }: {
+  contato: Contato; onFechar: () => void; onEncerrar: (motivo: string) => Promise<void>;
+}) {
+  const [motivo, setMotivo] = useState('');
+  const [erro, setErro] = useState('');
+  return (
+    <div className="overlay" role="dialog" aria-modal="true"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet">
+        <h3>Este contato não vale mais</h3>
+        <p className="mutetxt">
+          <b>{contato.nome}</b> sai da lista do plantão e continua no cadastro, com o motivo.
+          O telefone que deixou de valer é informação: alguém tentou por ele e não conseguiu.
+        </p>
+        <label className="f" htmlFor="ct-fim">Por quê</label>
+        <textarea id="ct-fim" value={motivo} onChange={(e) => setMotivo(e.target.value)}
+                  placeholder="Ex.: telefone mudou; a madrinha informou o novo." />
+        {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+        <div className="row rodape">
+          <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
+          <button className="btn grow" disabled={motivo.trim().length < 5}
+                  onClick={async () => {
+                    try { await onEncerrar(motivo.trim()); }
+                    catch (e) { setErro(e instanceof Error ? e.message : 'Não foi possível.'); }
+                  }}>Encerrar contato</button>
         </div>
       </div>
     </div>

@@ -578,6 +578,57 @@ para sempre.
 - **Tela vazia precisa dizer por que está vazia.** Uma lista de conflitos em
   branco é boa notícia, e se ela não disser isso será lida como "não carregou".
 
+## Fase 52 — O que a lista da casa pede ✅
+
+A equipe técnica mantém as vinte crianças da Casa 03 num documento de texto,
+reenviado inteiro toda vez que uma linha muda. Ele traz, por criança:
+filiação, RG, cartão SUS, os telefones da genitora, do padrinho, da tia e do
+vínculo comunitário, o número do processo e a **chave de acesso a ele**.
+
+Esse arquivo é o problema que o sistema existe para resolver — e não um
+defeito da equipe: é o que sobra quando não há onde guardar. Ele foi lido como
+**especificação de campos**. Nenhum dado real entrou: a carga é da implantação,
+com a LGPD decidida.
+
+| Campo | Onde ficou |
+|---|---|
+| Filiação | `person.filiation`, texto, um nome por linha |
+| RG e cartão SUS | `person.rg`, `person.cns` |
+| Foto de identificação | `person.photo_key`, objeto fora do banco |
+| Contatos com vínculo | `person_contact` (migração 0880) |
+| Chave de acesso ao processo | cofre de credenciais, tipo novo |
+| Nº do processo, data do acolhimento, escola, nome social | já existiam |
+
+### As decisões, e de quem foram
+
+- **A filiação é TEXTO, e não duas colunas "mãe" e "pai".** Impor duas colunas
+  obrigaria a decidir, no cadastro, qual nome é de qual papel — e a família de
+  uma criança acolhida raramente cabe nesse molde. Um nome por linha, como a
+  casa já escreve.
+- **A chave de acesso vai para o COFRE**, e não para o cadastro. A coordenação
+  pediu para guardar tudo, e está certa; o que muda é onde. Essa chave abre o
+  processo inteiro: é da natureza da senha do gov.br, e não de um número de
+  documento. Cifrada, aberta só pelo coordenador e pelo Gestor Geral, com
+  reautenticação e registro por visualização.
+- **RG, CNS e filiação corrigem-se com MOTIVO**, pela mesma porta do nome —
+  não pela de "atualizar", que não pede motivo. Documento de identidade não
+  muda: ou estava errado, ou foi emitido agora, e alguém vai perguntar por que
+  o RG do relatório de março não é o de setembro.
+- **O educador LÊ os contatos e não escreve** (coordenação, 03/09/2026): quem
+  está com a criança precisa saber quem é a pessoa que apareceu no portão.
+- **Contato não se apaga, encerra-se com motivo.** O telefone que deixou de
+  valer é informação: alguém tentou por ele e não conseguiu.
+- **A foto não depende de autorização de imagem** (coordenação, 03/09/2026):
+  serve para a equipe reconhecer quem é quem, e se sair num documento é para o
+  Juízo. Mesmo assim ela não entra em documento nenhum por padrão.
+
+### O que a tabela acrescentou por conta
+
+`person_contact.restricted`, com motivo obrigatório. A lista da casa não tem
+essa coluna, e ela existe porque há situação em que o telefone está no papel e
+a aproximação está suspensa por decisão judicial — e quem descobre isso às 23h
+descobre tarde.
+
 ## Fase 51 — Um ano de casa: o que a tela demora ✅
 
 Tudo o que foi medido até aqui foi medido com o banco recém-semeado. A casa

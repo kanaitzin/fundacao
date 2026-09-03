@@ -910,9 +910,35 @@ provado falhando. Em UTC, as 23h59 de Porto Alegre são 02h59 do dia seguinte:
 o erro seria de três horas, todo dia, para sempre, e nenhum dos 430 testes
 existentes o notaria.
 
+### 8.20 O que a lista da casa pede — 03/09/2026
+
+Chegou o documento que a equipe técnica mantém à mão: as vinte crianças da
+Casa 03, com filiação, RG, cartão SUS, os telefones da genitora, do padrinho,
+da tia e do vínculo comunitário, o número do processo e a chave de acesso a
+ele. Reenviado inteiro toda vez que uma linha muda.
+
+**Ele foi lido como especificação, e nenhum dado real entrou no sistema.** A
+carga é da implantação, com a LGPD decidida — e o arquivo em si é o argumento
+mais forte que o projeto tem: CPF, processo e chave de acesso de vinte
+crianças, circulando por anexo, desatualizados no dia seguinte ao envio.
+
+Migração 0880. As decisões que a fase tomou estão no backlog (fase 52); as
+duas que mais mudam a forma do dado:
+
+* **a filiação é texto, um nome por linha.** Duas colunas "mãe" e "pai"
+  obrigariam a decidir, no cadastro, qual nome é de qual papel — e a família de
+  uma criança acolhida raramente cabe nesse molde;
+* **a chave de acesso vai para o cofre**, não para o cadastro. Ela abre o
+  processo inteiro: é da natureza da senha do gov.br, e não de um número de
+  documento.
+
+E uma coluna que o documento não tem: `person_contact.restricted`, com motivo
+obrigatório, para o contato cuja aproximação está suspensa por decisão
+judicial. O telefone está no papel; a proibição, não.
+
 ---
 
-## 9. Migrações desta série (0620–0870)
+## 9. Migrações desta série (0620–0880)
 
 | Nº | Módulo | O que faz |
 |---|---|---|

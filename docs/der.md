@@ -139,6 +139,24 @@ erDiagram
   }
 ```
 
+**`person_contact` são OS TELEFONES DE QUEM APARECE** (migração 0880). Vieram
+da lista que a equipe técnica mantinha à mão: por criança, os contatos da
+genitora, do padrinho, da tia e do vínculo comunitário, todos na mesma célula
+de um documento de texto.
+
+Três coisas que a tabela decide:
+
+* **o vínculo é rótulo, não hierarquia.** Em várias dessas histórias quem
+  aparece é a madrinha, e não a genitora;
+* **o educador LÊ** (decisão da coordenação, 03/09/2026): quem está com a
+  criança precisa saber quem é a pessoa que apareceu no portão. Escrever
+  continua sendo da técnica e da coordenação;
+* **contato não se apaga, encerra-se com motivo** — gatilho
+  `app_contato_nao_e_apagado`. O telefone que deixou de valer é informação:
+  alguém tentou por ele e não conseguiu. E há a marca `restricted`, para o
+  contato com aproximação suspensa, que exige motivo escrito — quem descobre
+  isso às 23h descobre tarde.
+
 **`person_correction` é o HISTÓRICO DA CORREÇÃO DE CADASTRO** (§6.2, migração
 0810). Nome escrito errado às 23h, data de nascimento trocada porque a certidão
 veio depois: sem uma porta para corrigir, a saída de quem usa é recadastrar — e
@@ -473,12 +491,12 @@ desenvolvimento** (fase 15): a criança não é só o que deu problema. Sala de
 recursos, curso, aprendizagem e a evolução escrita pela equipe entram no
 documento que segue para a audiência e para a escola.
 
-## Inventário — 89 tabelas por partição
+## Inventário — 90 tabelas por partição
 
 | Partição | Tabelas |
 |---|---|
 | identity (12) | institution, house, app_user, user_house_assignment, work_schedule, user_session, login_attempt, audit_event, institutional_device, staff_role_grant, house_capacity_change, user_invite |
-| people (17) | person, care_episode, house_stay, profile_detail, health_condition, food_restriction, document, document_version, benefit_record, memory_record, transfer_request, transfer_message, admission_record, judicial_record, person_credential, person_correction, profile_detail_change |
+| people (18) | person, care_episode, house_stay, profile_detail, health_condition, food_restriction, document, document_version, benefit_record, memory_record, transfer_request, transfer_message, admission_record, judicial_record, person_credential, person_correction, profile_detail_change, person_contact |
 | shifts (10) | shift, handover, handover_receipt, handover_note, ata, ata_addendum, ata_episode, ata_episode_ack, general_night_ata, general_night_house_entry |
 | incidents (7) | incident, incident_person, incident_protected, incident_restraint, incident_synthesis, external_communication, incident_attachment |
 | medications (8) | prescription, medication_schedule, medication_administration, medication_stock, medication_stock_movement, medication_protocol, medication_authorization, medication_protocol_change |
