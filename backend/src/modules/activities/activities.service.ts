@@ -98,7 +98,24 @@ export class ActivitiesService {
                   ORDER BY x.recorded_at DESC LIMIT 1) AS motivo_registro
          FROM activity a
          WHERE a.house_id = $1
-           AND (a.scheduled_at AT TIME ZONE 'America/Sao_Paulo')::date = $2::date
+           -- O DIA COMO FAIXA, e não como conversão da coluna.
+           --
+           -- Escrever '(scheduled_at AT TIME ZONE 'America/Sao_Paulo')::date = $2'
+           -- é a forma natural de perguntar "o que é de hoje", e ela custou
+           -- 8,4 SEGUNDOS com um ano de registros. O motivo não é o volume: sob
+           -- RLS, o Postgres só empurra para o índice os predicados
+           -- LEAKPROOF, e 'timezone()' e o cast para 'date' não são. O filtro
+           -- do dia ficava, então, DEPOIS da política de segurança — e
+           -- 'app_person_in_scope()' era chamada uma vez para cada uma das
+           -- vinte mil atividades do ano daquela casa.
+           --
+           -- Comparação de 'timestamptz' é leakproof. Convertendo o
+           -- PARÂMETRO em vez da coluna, a faixa entra no índice, a política
+           -- roda só nas linhas do dia, e a resposta cai para milissegundos.
+           -- A fronteira é a mesma: meia-noite local, meia-noite local do dia
+           -- seguinte.
+           AND a.scheduled_at >= ($2::date::timestamp AT TIME ZONE 'America/Sao_Paulo')
+           AND a.scheduled_at <  (($2::date + 1)::timestamp AT TIME ZONE 'America/Sao_Paulo')
            AND ($4::uuid IS NULL OR a.person_id = $4)
          ORDER BY a.scheduled_at, a.title`,
         [houseId, date, user.id, opts.personId ?? null]);

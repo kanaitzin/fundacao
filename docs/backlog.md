@@ -578,6 +578,71 @@ para sempre.
 - **Tela vazia precisa dizer por que está vazia.** Uma lista de conflitos em
   branco é boa notícia, e se ela não disser isso será lida como "não carregou".
 
+## Fase 51 — Um ano de casa: o que a tela demora ✅
+
+Tudo o que foi medido até aqui foi medido com o banco recém-semeado. A casa
+não vive assim. `backend/scripts/ensaio-carga.ts` escreve doze meses da
+Fundação inteira em dados fictícios — 232 mil marcações de chamada, 191 mil
+linhas de auditoria, 162 mil doses — e mede pelo HTTP, com sessão e RLS, as
+rotas que as telas mais abertas chamam.
+
+| Rota | Antes | Depois |
+|---|---|---|
+| Dia — a linha do dia | **8 612 ms** | 65 ms |
+| Dia — painel da casa | **8 373 ms** | 63 ms |
+| Saúde — grade do dia | **8 245 ms** | 47 ms |
+| Saúde — painel da enfermagem | 472 ms | 130 ms |
+| Chamada — as de hoje | 186 ms | 15 ms |
+
+### O achado
+
+A consulta filtra o dia assim: `(scheduled_at AT TIME ZONE 'America/Sao_Paulo')::date = $2`.
+É a forma natural de perguntar "o que é de hoje", e com um ano de registros ela
+custa oito segundos e meio.
+
+**A causa não é o volume.** Sob RLS, o Postgres só empurra para dentro do
+índice os predicados marcados como LEAKPROOF — a garantia de que a função não
+vaza, por mensagem de erro, o conteúdo de uma linha que a pessoa não podia ver.
+`timezone()` e o cast para `date` não são leakproof. O filtro do dia era
+aplicado DEPOIS da política de segurança, e `app_person_in_scope()` rodava uma
+vez para cada uma das vinte mil doses do ano daquela casa — para devolver
+noventa.
+
+É a regra 12 pelo avesso: lá, agregar sem conferir o escopo antes fazia o RLS
+zerar a contagem em silêncio; aqui, perguntar o dia de um jeito que o índice
+não alcança faz a política rodar vinte mil vezes.
+
+**A correção** converte o PARÂMETRO em vez da coluna: uma faixa
+`>= meia-noite local AND < meia-noite local do dia seguinte`. Comparação de
+`timestamptz` é leakproof, desce para o índice, e a política roda só nas linhas
+do dia. Aplicada em medicamentos, atividades, chamadas e ocorrências.
+
+### O caminho errado, que também ensinou
+
+A primeira hipótese foi índice faltando, e criei quatro índices de expressão
+sobre `(house_id, dia local)`. **O tempo não mudou** — e foi essa não-mudança
+que apontou para a leakproofness. Os quatro índices foram descartados; sobrou
+a 0870, que resolve outra coisa: o histórico de saúde de UM acolhido, a folha
+que a Enfermagem leva para a consulta, não tinha índice por `person_id` e
+varria a tabela.
+
+### A regressão que ficou
+
+`test/fronteira-do-dia.e2e.spec.ts`. A reescrita por faixa é rápida e erra em
+silêncio: um deslocamento de uma hora não quebra nenhum dos 430 testes, só faz
+a dose das 23h40 aparecer no dia seguinte, e alguém na casa concluir que ela
+não foi dada. O teste prega a fronteira no chão — 00:00, 23:59, e a dose que é
+do dia seguinte — e foi provado FALHANDO: com a consulta em UTC, os três casos
+reprovam. Em UTC, as 23h59 de Porto Alegre são 02h59 do dia seguinte; o erro
+seria de exatamente três horas, todo dia, para sempre.
+
+### O que ficou medido e não corrigido
+
+O painel da enfermagem, em 130 ms. Ele alcança as oito casas de propósito, e
+130 ms é o preço disso — abaixo do limiar em que a tela deixa de parecer
+instantânea, e sem uma causa única para atacar. Fica anotado para a próxima
+vez que alguém medir.
+
 ## Fase 50 — A tela lida no corredor: acessibilidade conferida ✅
 
 O projeto escolheu a *Atkinson Hyperlegible* por ser desenhada para leitura

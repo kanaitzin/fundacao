@@ -880,9 +880,39 @@ O recuo passou a ser de fundo e de peso. E ficou a regra: toda tinta precisa
 passar nos três fundos claros, não só no branco — `--muted` estava aprovada em
 5,44:1 no branco e reprovada em 4,49:1 sobre a superfície rebaixada.
 
+### 8.19 Um ano de casa — 02/09/2026
+
+`backend/scripts/ensaio-carga.ts` escreve doze meses da Fundação inteira em
+dados fictícios e mede pelo HTTP, com sessão e RLS. As três telas mais abertas
+do sistema respondiam em **oito segundos e meio**.
+
+A causa é uma frase que parece inofensiva:
+
+```sql
+(scheduled_at AT TIME ZONE 'America/Sao_Paulo')::date = $2
+```
+
+Sob RLS, o Postgres só empurra para dentro do índice os predicados
+**leakproof** — os que não vazam, por mensagem de erro, o conteúdo de uma linha
+que a pessoa não podia ver. `timezone()` e o cast para `date` não são. O filtro
+do dia era aplicado depois da política de segurança, e `app_person_in_scope()`
+rodava uma vez para cada linha do ano da casa.
+
+A correção converte o parâmetro em vez da coluna: uma faixa de `timestamptz`,
+cuja comparação é leakproof. 8 612 ms → 65 ms.
+
+**Duas coisas que esta fase ensina além do número.** A primeira: a hipótese
+óbvia estava errada, e foi a não-mudança que apontou a direção certa — quatro
+índices de expressão criados, e o tempo idêntico. A segunda: a reescrita é o
+tipo de mudança que erra em silêncio, e por isso ela veio com
+`test/fronteira-do-dia.e2e.spec.ts`, que prega 00:00 e 23:59 no chão e foi
+provado falhando. Em UTC, as 23h59 de Porto Alegre são 02h59 do dia seguinte:
+o erro seria de três horas, todo dia, para sempre, e nenhum dos 430 testes
+existentes o notaria.
+
 ---
 
-## 9. Migrações desta série (0620–0860)
+## 9. Migrações desta série (0620–0870)
 
 | Nº | Módulo | O que faz |
 |---|---|---|

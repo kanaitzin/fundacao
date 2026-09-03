@@ -204,7 +204,7 @@ Além dos e2e, quatro suítes estáticas — elas já pegaram erro de verdade:
 
 ## 5. O QUE JÁ ESTÁ PRONTO
 
-**Fases 0 a 50. 430 testes em 41 suítes**, **treze rodadas seguidas limpas** —
+**Fases 0 a 51. 433 testes em 42 suítes**, **treze rodadas seguidas limpas** —
 cinco
 em 01/09, quatro entre 23h50 e 00h45 (com o UTC já no dia seguinte, que é a
 condição que a regra pede) e duas na manhã de 02/09. 30 telas, 72 migrações,
@@ -231,6 +231,12 @@ nunca disse que renderiza:
   uma pessoa — onde ela para é o que a aplicação do roteiro descobre —, mas
   impede o fracasso barato: a tarefa não ter porta, e isso aparecer diante da
   equipe.
+
+E há um ensaio que não abre tela nenhuma: `npx tsx backend/scripts/ensaio-carga.ts`
+escreve **doze meses da Fundação inteira** e mede as rotas com RLS. Foi ele que
+achou as três telas mais abertas do sistema respondendo em oito segundos e meio
+— ver §8.19 da CONTINUIDADE, que é a leitura mais útil antes de escrever
+qualquer consulta nova por dia.
 
 E, desde a fase 48, **a restauração é ensaiada como o resto**:
 `npm run ensaio:restauracao` faz o ciclo inteiro num banco descartável —

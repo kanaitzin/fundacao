@@ -413,7 +413,24 @@ export class ChecksService {
                   WHERE s.house_id = k.house_id AND s.status = 'ativa') AS ativos
          FROM collective_check k
          WHERE k.house_id = $1
-           AND (k.reference_at AT TIME ZONE 'America/Sao_Paulo')::date = $2::date
+           -- O DIA COMO FAIXA, e não como conversão da coluna.
+           --
+           -- Escrever '(reference_at AT TIME ZONE 'America/Sao_Paulo')::date = $2'
+           -- é a forma natural de perguntar "o que é de hoje", e ela custou
+           -- 8,4 SEGUNDOS com um ano de registros. O motivo não é o volume: sob
+           -- RLS, o Postgres só empurra para o índice os predicados
+           -- LEAKPROOF, e 'timezone()' e o cast para 'date' não são. O filtro
+           -- do dia ficava, então, DEPOIS da política de segurança — e
+           -- 'app_person_in_scope()' era chamada uma vez para cada uma das
+           -- vinte mil chamadas do ano daquela casa.
+           --
+           -- Comparação de 'timestamptz' é leakproof. Convertendo o
+           -- PARÂMETRO em vez da coluna, a faixa entra no índice, a política
+           -- roda só nas linhas do dia, e a resposta cai para milissegundos.
+           -- A fronteira é a mesma: meia-noite local, meia-noite local do dia
+           -- seguinte.
+           AND k.reference_at >= ($2::date::timestamp AT TIME ZONE 'America/Sao_Paulo')
+           AND k.reference_at <  (($2::date + 1)::timestamp AT TIME ZONE 'America/Sao_Paulo')
          ORDER BY k.reference_at`, [houseId, date]);
       return rows.map((r) => ({
         id: r.id, tipo: r.kind, titulo: r.title, horario: r.reference_at,
