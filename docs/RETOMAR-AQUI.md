@@ -60,7 +60,7 @@ rede-acolher/
 │   │   ├── App.tsx        navegação, abas, seletor de cargo do protótipo
 │   │   └── styles.css     design system, tema claro e escuro
 │   ├── ensaio.mjs         abre o protótipo num navegador de verdade e
-│   │                      percorre as 100 telas dos oito cargos
+│   │                      percorre as 113 telas dos oito cargos
 │   └── ensaio-fila.mjs    corta o sinal e ensaia o que só existe fora da tela
 ├── scripts/               preparar-ambiente.sh — dependências, banco e
 │                          Chromium, para a sessão nova começar rodando
@@ -98,7 +98,7 @@ cd backend  && npx tsc --noEmit -p tsconfig.json
 # testes: precisam de PostgreSQL 16 rodando
 cd backend && npx jest
 
-# os ensaios de navegador: as 100 telas, e a fila offline
+# os ensaios de navegador: as 113 telas, e a fila offline
 cd frontend && npm run ensaio && npm run ensaio:fila
 ```
 
@@ -204,14 +204,14 @@ Além dos e2e, quatro suítes estáticas — elas já pegaram erro de verdade:
 
 ## 5. O QUE JÁ ESTÁ PRONTO
 
-**Fases 0 a 53. 452 testes em 44 suítes**, **quinze rodadas seguidas limpas** —
+**Fases 0 a 54. 452 testes em 44 suítes**, **quinze rodadas seguidas limpas** —
 quatro delas com o UTC já no dia seguinte, que é a condição que a regra pede.
-30 telas, 75 migrações, 94 tabelas.
+31 telas, 75 migrações, 94 tabelas.
 
 E dois ensaios de navegador, que `tsc` não substitui — ele diz que compila,
 nunca disse que renderiza:
 
-- `npm run ensaio` percorre as **100 telas** que os oito cargos alcançam,
+- `npm run ensaio` percorre as **113 telas** que os oito cargos alcançam,
   cobrando de cada uma que não deixe erro no console, que escreva alguma coisa
   e que não mostre `undefined` para quem lê;
 - `npm run ensaio:fila` faz o que só existe fora da tela: corta o sinal, marca
@@ -221,8 +221,7 @@ nunca disse que renderiza:
   folha, tenta baixar com finalidade curta demais, baixa com uma frase válida
   e confere que o `.docx` chegou.
 
-- `npm run ensaio:acessibilidade` roda o axe-core (WCAG 2.1 AA) nas **107
-  telas**. Nenhuma violação — e a folga foi conquistada em 02/09: contraste
+- `npm run ensaio:acessibilidade` roda o axe-core (WCAG 2.1 AA) nas **113 telas**. Nenhuma violação — e a folga foi conquistada em 02/09: contraste
   não é opinião, e a diferença entre 4,46 e 4,5 só se enxerga no corredor;
 - `npm run ensaio:roteiro` percorre as **20 tarefas do roteiro do Marcelo** e
   cobra que cada uma tenha porta no cargo certo. Ele não simula a procura de
@@ -337,17 +336,6 @@ enfileiramento da cópia, disparado por evento), `POST /sync/push`,
 `GET /medications/can-administer` e as leituras que já chegam dentro de outra
 resposta (`GET /statements`, `GET /people/:id/admission`,
 `GET /reports/:id/delivery`).
-
-### O que está construído e NÃO tem tela
-
-**A internação hospitalar** (fase 53, migração 0890). O servidor inteiro está
-de pé — abrir, encerrar, diário com anexo, medicação do hospital, educador
-acompanhante, e o efeito na linha do dia —, com 11 testes e2e. Falta a tela e
-o `mock.ts`. É a primeira coisa a fazer numa sessão nova.
-
-As rotas: `GET/POST /nursing/hospitalizations`,
-`GET /nursing/hospitalizations/:id`, e `POST .../close`, `.../notes`,
-`.../medications`, `.../companion`.
 
 ### A dívida do Word — paga em 02/09/2026
 

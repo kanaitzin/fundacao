@@ -958,6 +958,22 @@ nada errado — uma hora de investigação no lugar errado. A segunda:
 visibilidade dentro do mesmo comando. A política precisa ser escrita sobre as
 COLUNAS da linha.
 
+### 8.22 A internação ganha tela — 03/09/2026
+
+A tela, a porta em "Mais", o alcance por cargo e o `mock.ts`. O que importa é o
+efeito: no protótipo, a criança internada **some da chamada e da grade** igual
+ao servidor. Sem isso, a demonstração mostraria a internação como uma lista
+bonita e ensinaria exatamente o contrário do que o sistema faz — a explicação
+combinaria com a tela enquanto nenhuma das duas combinasse com o produto.
+
+O achado, e ele é a regra 14 num disfarce novo: **o estado do servidor de
+mentira nasceu dentro da função que responde.** As listas de internações e de
+contatos foram declaradas dentro de `responder()`. Compilava; a demonstração
+respondia "internação aberta"; e a lista seguinte vinha vazia, porque o array
+nascia de novo a cada chamada. Não aparece num ensaio de telas — aparece
+quando alguém usa a demonstração como se fosse o sistema, que é o que a casa
+vai fazer com ela.
+
 ---
 
 ## 9. Migrações desta série (0620–0890)

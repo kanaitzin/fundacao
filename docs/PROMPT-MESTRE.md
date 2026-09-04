@@ -99,11 +99,11 @@ não me peça para reexplicar o que está lá.
 
 === ESTADO ATUAL (02/09/2026) ===
 
-Fases 0 a 53. 452 testes em 44 suítes, sem falha conhecida — treze rodadas
+Fases 0 a 54. 452 testes em 44 suítes, sem falha conhecida — treze rodadas
 seguidas limpas, quatro delas entre 23h50 e 00h45 de Porto Alegre, com o UTC já
 no dia seguinte, que é a condição que a regra pede. Backend NestJS +
 PostgreSQL 16 com RLS, 17 partições isoladas, 75 migrações, 94 tabelas.
-Frontend React PWA, 30 telas, empacotado num único .html de ~857 KB que abre
+Frontend React PWA, 31 telas, empacotado num único .html de ~857 KB que abre
 sem servidor.
 
 Duas dívidas antigas foram pagas em 02/09: a fila local do aparelho (sem sinal
@@ -117,12 +117,12 @@ do ambiente. A CREDENTIAL_KEY nunca entra no backup.
 
 Comece a sessão por `bash scripts/preparar-ambiente.sh` — dependências,
 PostgreSQL e Chromium caem entre uma sessão e outra. `npm run ensaio` percorre
-as 100 telas dos oito cargos no navegador (tela nova entra nesse percurso),
+as 113 telas dos oito cargos no navegador (tela nova entra nesse percurso),
 `npm run ensaio:fila` ensaia o que só existe fora da tela, e
 `npm run ensaio:folhas` percorre os caminhos de documento até o arquivo baixar,
 `npm run ensaio:roteiro` cobra que as 20 tarefas do roteiro do Marcelo tenham
 porta no cargo certo, e `npm run ensaio:acessibilidade` roda o axe-core (WCAG
-2.1 AA) nas 107 telas. Cor nova passa por ele antes de entrar.
+2.1 AA) nas 113 telas. Cor nova passa por ele antes de entrar.
 
 O grupo 1 do levantamento — o que a educadora precisa fazer às 23h — está
 VAZIO: tudo tem porta. Das 34 rotas que existiam sem tela em 01/09, restam 20,

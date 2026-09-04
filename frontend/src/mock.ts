@@ -1958,6 +1958,102 @@ const CONVITE_DEMO = 'demo';
 const EMAIL_DEMO = 'mbarbosa@paodospobres.com.br';
 let conviteGasto = false;
 
+/*
+ * O ESTADO DO SERVIDOR DE MENTIRA VIVE FORA DA FUNÇÃO QUE RESPONDE.
+ *
+ * A primeira versão destes dois blocos foi declarada DENTRO de `responder()`.
+ * Compilava, e a demonstração respondia "internação aberta" — e a lista
+ * seguinte vinha vazia, porque o array nascia de novo a cada chamada. O
+ * defeito não aparece num teste de tela: aparece quando alguém tenta usar a
+ * demonstração como se fosse o sistema, que é exatamente o que a casa vai
+ * fazer com ela.
+ */
+/*
+ * INTERNAÇÃO HOSPITALAR, no servidor de mentira.
+ *
+ * O efeito que importa aqui é o mesmo do servidor: a criança internada SOME da
+ * chamada e da grade de medicação da casa. Um mock que mostrasse a internação
+ * como uma lista bonita, sem tirar a criança da linha do dia, ensaiaria
+ * exatamente o contrário do que o sistema faz — e a demonstração combinaria
+ * com a explicação enquanto nenhuma das duas combinasse com o produto.
+ */
+interface InternacaoMock {
+  id: string; acolhidoId: string; hospital: string; motivo: string;
+  desde: string; ate: string | null; status: string; desfecho: string | null;
+  abertaPor: string; encerradaPor: string | null; observacaoDoDesfecho: string | null;
+  diario: any[]; medicacaoNoHospital: any[]; acompanhantes: any[];
+}
+const INTERNACOES: InternacaoMock[] = [];
+let proximaInternacao = 1;
+
+/** A regra do dia: o dia da ALTA é dia de casa. */
+function estaInternado(personId: string) {
+  return INTERNACOES.some((i) => i.acolhidoId === personId && i.status === 'em_andamento');
+}
+
+const TIPOS_DE_NOTA_INT = [
+  { cod: 'relato', label: 'Relato do dia' },
+  { cod: 'retorno_medico', label: 'Retorno médico' },
+  { cod: 'exame', label: 'Exame' },
+  { cod: 'atendimento', label: 'Atendimento' },
+  { cod: 'medicacao', label: 'Medicação' },
+  { cod: 'solicitacao_do_hospital', label: 'Solicitação do hospital' },
+  { cod: 'alta_prevista', label: 'Alta prevista' },
+];
+
+const QUEM_ABRE_INT = ['equipe_tecnica', 'coordenador', 'gestor_geral'];
+const QUEM_VE_INT = [...QUEM_ABRE_INT, 'lider_diurno', 'lider_noturno_geral', 'enfermagem'];
+
+function resumoInternacao(i: InternacaoMock) {
+  const dias = new Set(i.diario.map((n: any) => n.dia));
+  const acomp = i.acompanhantes.find((a: any) => !a.ate);
+  return {
+    id: i.id, acolhidoId: i.acolhidoId, acolhido: kid(i.acolhidoId)?.nome ?? '—',
+    hospital: i.hospital, motivo: i.motivo, desde: i.desde, ate: i.ate,
+    status: i.status, desfecho: i.desfecho, abertaPor: i.abertaPor,
+    acompanhante: acomp?.quem ?? null,
+    diasComRelato: dias.size, registros: i.diario.length,
+    diasInternada: Math.max(1, Math.ceil(
+      ((i.ate ? new Date(i.ate) : new Date()).getTime() - new Date(i.desde).getTime()) / 86400000)),
+  };
+}
+
+
+/*
+ * OS CONTATOS FICTÍCIOS, na forma da lista que a casa mantém à mão.
+ *
+ * Genitora, madrinha e vínculo comunitário na mesma lista, como está no
+ * documento de texto que a equipe técnica reenvia inteiro toda vez que uma
+ * linha muda — e um contato com aproximação restrita, que é o caso que a tela
+ * precisa saber mostrar antes dos outros.
+ */
+const CONTATOS: Record<string, any[]> = {};
+let proximoContato = 1;
+function contatosDe(id: string) {
+  if (!CONTATOS[id]) {
+    CONTATOS[id] = [
+      { id: `ct-${id}-1`, nome: 'Rosângela (fictícia)', vinculo: 'genitora',
+        vinculoRotulo: 'Genitora', telefone: '51 98888-0001',
+        observacao: 'Liga aos domingos de manhã.',
+        restrito: false, motivoDaRestricao: null, ativo: true, motivoDoEncerramento: null,
+        por: 'Equipe técnica (fictícia)', em: emHoras(9, 0) },
+      { id: `ct-${id}-2`, nome: 'Madrinha Simoni (fictícia)', vinculo: 'madrinha',
+        vinculoRotulo: 'Madrinha', telefone: '51 98888-0002',
+        observacao: 'Busca na escola às sextas.',
+        restrito: false, motivoDaRestricao: null, ativo: true, motivoDoEncerramento: null,
+        por: 'Equipe técnica (fictícia)', em: emHoras(9, 0) },
+      { id: `ct-${id}-3`, nome: 'Tio Fictício', vinculo: 'tio', vinculoRotulo: 'Tia ou tio',
+        telefone: '51 98888-0003', observacao: null,
+        restrito: true,
+        motivoDaRestricao: 'Aproximação suspensa por decisão judicial de 06/2026. '
+          + 'Antes de qualquer contato, falar com a equipe técnica.',
+        ativo: true, motivoDoEncerramento: null,
+        por: 'Equipe técnica (fictícia)', em: emHoras(10, 30) },
+    ];
+  }
+  return CONTATOS[id];
+}
+
 function responder(rota: string, seg: string[], q: URLSearchParams,
                    b: any, metodo: string): unknown {
   // ---- entrada
@@ -2754,7 +2850,14 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
   }
   if (seg[0] === 'checks' && seg.length === 2) {
     const k = CHAMADAS.find((x) => x.id === seg[1])!;
-    const linhas = todosKids().map((p) => {
+    /*
+     * Quem está internado sai da chamada — e quem JÁ FOI marcado antes de ser
+     * internado continua na lista, como no servidor: o registro de quem foi
+     * olhado não some.
+     */
+    const linhas = todosKids()
+      .filter((p) => !estaInternado(p.id) || k.resultados[p.id])
+      .map((p) => {
       const res = k.resultados[p.id];
       return {
         acolhidoId: p.id, nome: p.nome, idade: p.idade, ativo: true,
@@ -3495,40 +3598,138 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       aviso: `${n} campo(s) atualizado(s). O que estava antes continua registrado, com o seu `
         + 'nome e o horário, e aparece no perfil para quem cuida da criança.' };
   }
-/*
- * OS CONTATOS FICTÍCIOS, na forma da lista que a casa mantém à mão.
- *
- * Genitora, madrinha e vínculo comunitário na mesma lista, como está no
- * documento de texto que a equipe técnica reenvia inteiro toda vez que uma
- * linha muda — e um contato com aproximação restrita, que é o caso que a tela
- * precisa saber mostrar antes dos outros.
- */
-const CONTATOS: Record<string, any[]> = {};
-let proximoContato = 1;
-function contatosDe(id: string) {
-  if (!CONTATOS[id]) {
-    CONTATOS[id] = [
-      { id: `ct-${id}-1`, nome: 'Rosângela (fictícia)', vinculo: 'genitora',
-        vinculoRotulo: 'Genitora', telefone: '51 98888-0001',
-        observacao: 'Liga aos domingos de manhã.',
-        restrito: false, motivoDaRestricao: null, ativo: true, motivoDoEncerramento: null,
-        por: 'Equipe técnica (fictícia)', em: emHoras(9, 0) },
-      { id: `ct-${id}-2`, nome: 'Madrinha Simoni (fictícia)', vinculo: 'madrinha',
-        vinculoRotulo: 'Madrinha', telefone: '51 98888-0002',
-        observacao: 'Busca na escola às sextas.',
-        restrito: false, motivoDaRestricao: null, ativo: true, motivoDoEncerramento: null,
-        por: 'Equipe técnica (fictícia)', em: emHoras(9, 0) },
-      { id: `ct-${id}-3`, nome: 'Tio Fictício', vinculo: 'tio', vinculoRotulo: 'Tia ou tio',
-        telefone: '51 98888-0003', observacao: null,
-        restrito: true,
-        motivoDaRestricao: 'Aproximação suspensa por decisão judicial de 06/2026. '
-          + 'Antes de qualquer contato, falar com a equipe técnica.',
-        ativo: true, motivoDoEncerramento: null,
-        por: 'Equipe técnica (fictícia)', em: emHoras(10, 30) },
-    ];
+  if (rota === '/nursing/hospitalizations/kinds') {
+    return {
+      tiposDeNota: TIPOS_DE_NOTA_INT,
+      desfechos: [
+        { cod: 'alta', label: 'Alta — volta para a casa' },
+        { cod: 'transferencia_hospitalar', label: 'Transferência para outro hospital' },
+        { cod: 'obito', label: 'Óbito' },
+      ],
+      nota: 'O relato diário não é obrigatório e não vira pendência de ninguém. '
+        + 'Ele existe porque a equipe visita todo dia, e o que foi visto lá se perde '
+        + 'se não for escrito no mesmo dia.',
+    };
   }
-  return CONTATOS[id];
-}
+
+  if (rota === '/nursing/hospitalizations' || rota.startsWith('/nursing/hospitalizations?')) {
+    if (metodo === 'GET') {
+      if (!QUEM_VE_INT.includes(eu.role)
+          && !INTERNACOES.some((i) => i.acompanhantes.some((a: any) => a.quem === eu.fullName))) {
+        return new Recusa(403, 'A internação não é do educador social.');
+      }
+      const todas = q.get('encerradas') === '1';
+      return INTERNACOES.filter((i) => todas || i.status === 'em_andamento').map(resumoInternacao);
+    }
+    if (metodo === 'POST') {
+      if (!QUEM_ABRE_INT.includes(eu.role)) {
+        return new Recusa(403,
+          'Abrir e encerrar internação é da equipe técnica e da coordenação.');
+      }
+      if (!String(b.hospital ?? '').trim()) {
+        return new Recusa(400, 'Escreva em que hospital a criança está.');
+      }
+      if (String(b.motivo ?? '').trim().length < 10) {
+        return new Recusa(400,
+          'Escreva por que a criança foi internada. Quem ler daqui a um ano precisa '
+          + 'saber o que aconteceu — "internação" não explica nada.');
+      }
+      if (estaInternado(String(b.personId))) {
+        return new Recusa(400,
+          'Esta criança já tem uma internação aberta. Encerre a anterior antes.');
+      }
+      INTERNACOES.unshift({
+        id: `int-${proximaInternacao++}`, acolhidoId: String(b.personId),
+        hospital: String(b.hospital).trim(), motivo: String(b.motivo).trim(),
+        desde: new Date().toISOString(), ate: null, status: 'em_andamento', desfecho: null,
+        abertaPor: eu.fullName, encerradaPor: null, observacaoDoDesfecho: null,
+        diario: [], medicacaoNoHospital: [], acompanhantes: [],
+      });
+      return {
+        id: INTERNACOES[0].id,
+        aviso: 'Internação aberta. A criança sai da chamada e da grade de medicação da '
+          + 'casa enquanto estiver internada, e continua ocupando a vaga. As doses que '
+          + 'estavam previstas não foram apagadas nem marcadas como não administradas — '
+          + 'o sistema não conclui o que não viu.',
+      };
+    }
+  }
+
+  if (seg[0] === 'nursing' && seg[1] === 'hospitalizations' && seg.length >= 3) {
+    const i = INTERNACOES.find((x) => x.id === seg[2]);
+    if (!i) return new Recusa(404, 'Internação não encontrada — ou fora do seu alcance.');
+    const souAcompanhante = i.acompanhantes.some((a: any) => a.quem === eu.fullName);
+    if (!QUEM_VE_INT.includes(eu.role) && !souAcompanhante) {
+      return new Recusa(403, 'A internação não é do educador social.');
+    }
+
+    if (seg.length === 3 && metodo === 'GET') {
+      return { ...resumoInternacao(i), observacaoDoDesfecho: i.observacaoDoDesfecho,
+               encerradaPor: i.encerradaPor, diario: i.diario,
+               medicacaoNoHospital: i.medicacaoNoHospital, acompanhantes: i.acompanhantes };
+    }
+    if (seg[3] === 'notes' && metodo === 'POST') {
+      if (!String(b.texto ?? '').trim()) {
+        return new Recusa(400,
+          'Escreva o que aconteceu. O anexo sozinho, daqui a um ano, não diz o que foi feito.');
+      }
+      const tipo = String(b.tipo ?? 'relato');
+      i.diario.unshift({
+        id: `nota-${i.diario.length + 1}`, dia: HOJE, tipo,
+        tipoRotulo: TIPOS_DE_NOTA_INT.find((t) => t.cod === tipo)?.label ?? tipo,
+        texto: String(b.texto).trim(), temAnexo: !!b.conteudo,
+        nomeDoArquivo: b.nomeArquivo ?? null, por: eu.fullName,
+        em: new Date().toISOString(),
+      });
+      return { ok: true };
+    }
+    if (seg[3] === 'medications' && metodo === 'POST') {
+      if (!String(b.medicamento ?? '').trim()) {
+        return new Recusa(400, 'Escreva qual medicamento o hospital administrou.');
+      }
+      i.medicacaoNoHospital.unshift({
+        id: `intmed-${i.medicacaoNoHospital.length + 1}`, quando: new Date().toISOString(),
+        medicamento: String(b.medicamento).trim(), dose: b.dose || null, via: b.via || null,
+        observacao: b.observacao || null,
+        /* A origem vai SEMPRE escrita, como no servidor. */
+        origem: 'Administrada pelo hospital', registradoPor: eu.fullName,
+      });
+      return { ok: true,
+        aviso: 'Registrado como administrado PELO HOSPITAL. Ele entra no histórico de '
+          + 'saúde da criança com essa origem, e não na grade da casa.' };
+    }
+    if (seg[3] === 'companion' && metodo === 'POST') {
+      if (!QUEM_ABRE_INT.includes(eu.role)) {
+        return new Recusa(403, 'Designar acompanhante é da equipe técnica e da coordenação.');
+      }
+      for (const a of i.acompanhantes) if (!a.ate) a.ate = HOJE;
+      i.acompanhantes.unshift({
+        id: `acomp-${i.acompanhantes.length + 1}`,
+        quem: String(b.quem ?? 'Educador (fictício)'), de: HOJE, ate: null,
+        observacao: b.observacao || null, designadoPor: eu.fullName,
+      });
+      return { ok: true };
+    }
+    if (seg[3] === 'close' && metodo === 'POST') {
+      if (!QUEM_ABRE_INT.includes(eu.role)) {
+        return new Recusa(403,
+          'Abrir e encerrar internação é da equipe técnica e da coordenação.');
+      }
+      if (!['alta', 'transferencia_hospitalar', 'obito'].includes(String(b.desfecho))) {
+        return new Recusa(400, 'Informe como a internação terminou.');
+      }
+      i.status = 'encerrada';
+      i.ate = new Date().toISOString();
+      i.desfecho = String(b.desfecho);
+      i.observacaoDoDesfecho = b.observacao || null;
+      i.encerradaPor = eu.fullName;
+      return { ok: true,
+        aviso: b.desfecho === 'alta'
+          ? 'Internação encerrada. A criança volta à chamada, à grade e à rotina da casa a '
+            + 'partir de hoje. Confira com a Enfermagem se a medicação mudou no hospital.'
+          : 'Internação encerrada.' };
+    }
+  }
 
   if (rota === '/people/contacts/kinds') {
     return {
@@ -3673,7 +3874,10 @@ function contatosDe(id: string) {
   // ---- medicamentos
   if (rota === '/medications' || rota.startsWith('/medications?')) {
     const pid = q.get('personId');
-    return DOSES.filter((d) => !pid || d.personId === pid)
+    /* A criança internada sai da grade da casa — igual ao servidor. A dose
+     * dela não é dada aqui, e uma grade cheia de pendência impossível é uma
+     * grade que a equipe aprende a não olhar. */
+    return DOSES.filter((d) => (!pid || d.personId === pid) && !estaInternado(d.personId))
       .map((d) => ({ ...d, acolhido: { id: d.personId, nome: kid(d.personId)?.nome } }));
   }
 

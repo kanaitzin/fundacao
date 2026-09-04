@@ -30,6 +30,7 @@ import { Cozinha } from './screens/Cozinha';
 import { Avisos } from './screens/Avisos';
 import { ALCANCE_POR_CARGO } from '../../backend/src/modules/identity/alcance';
 import { SeloDaFila } from './screens/SeloDaFila';
+import { Internacao } from './screens/Internacao';
 
 interface Me {
   id: string; email: string; fullName: string; role: string;
@@ -45,7 +46,7 @@ const ROLE_LABEL = ROTULO_CARGO;
 const KIND_TONE: Record<string, string> = { casa_lar: 'c-move', abrigo_institucional: 'c-brand' };
 
 /** As telas que não são do turno; a aba "Mais" fica acesa quando uma delas está aberta. */
-const OUTRAS = new Set(['agenda', 'equipe', 'casas', 'saude', 'ocorrencias', 'ata',
+const OUTRAS = new Set(['agenda', 'equipe', 'casas', 'saude', 'internacao', 'ocorrencias', 'ata',
   'cofre', 'transferencias', 'acompanhamentos', 'arquivo', 'setores', 'unidades', 'plantao',
   'rotina', 'alinhamentos', 'painel', 'sincronizacao']);
 /* O sino é de todo mundo: não há cargo que não receba escalonamento. */
@@ -152,7 +153,7 @@ export function App() {
   const [ocupado, setOcupado] = useState(false);
   const [aba, setAba] = useState<
     'dia' | 'chamada' | 'passagem' | 'acolhidos' | 'agenda' | 'casas' | 'equipe'
-    | 'saude' | 'ocorrencias' | 'ata' | 'cofre' | 'transferencias'
+    | 'saude' | 'internacao' | 'ocorrencias' | 'ata' | 'cofre' | 'transferencias'
     | 'acompanhamentos' | 'arquivo' | 'plantao' | 'unidades' | 'setores' | 'cozinha'
     | 'alinhamentos' | 'painel' | 'sincronizacao'
     | 'rotina' | 'avisos'>('dia');
@@ -279,7 +280,7 @@ export function App() {
     { aba: 'passagem', icone: '🔁', label: 'Passagem' },
   ].filter((t) => ve(t.aba));
   const doMais = ['unidades', 'plantao', 'agenda', 'equipe', 'setores', 'ocorrencias',
-    'ata', 'saude', 'alinhamentos', 'acompanhamentos', 'painel', 'arquivo', 'transferencias',
+    'ata', 'saude', 'internacao', 'alinhamentos', 'acompanhamentos', 'painel', 'arquivo', 'transferencias',
     'cofre', 'sincronizacao', 'casas']
     .filter((a) => ve(a));
   const temMais = doMais.length > 0;
@@ -444,6 +445,10 @@ export function App() {
           <Rotina houseId={casaAtual.id} papel={me.role} />
         )}
 
+        {abaEfetiva === 'internacao' && ve('internacao') && casaAtual && (
+          <Internacao houseId={casaAtual.id} casaLabel={`${casaAtual.code} — ${casaAtual.name}`}
+                      papel={me.role} />
+        )}
         {abaEfetiva === 'saude' && veSaude && casaAtual && (
           <Saude houseId={casaAtual.id} casaLabel={`${casaAtual.code} · ${casaAtual.name}`}
                  papel={me.role} />
@@ -606,6 +611,18 @@ export function App() {
                   <div className="mutetxt">A da casa e a Geral Noturna, com pendência quando for o caso.</div>
                 </div>
               </button>
+              )}
+              {ve('internacao') && (
+                <button className="card row"
+                        onClick={() => { setAba('internacao'); setMais(false); }}>
+                  <span aria-hidden="true">🏥</span>
+                  <div className="grow" style={{ textAlign: 'left' }}>
+                    <b className="ff">Internação hospitalar</b>
+                    <div className="mutetxt">
+                      Quem está no hospital, o diário do período e a medicação de lá.
+                    </div>
+                  </div>
+                </button>
               )}
               {veSaude && (
                 <button className="card row" onClick={() => { setAba('saude'); setMais(false); }}>

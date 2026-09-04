@@ -578,7 +578,35 @@ para sempre.
 - **Tela vazia precisa dizer por que está vazia.** Uma lista de conflitos em
   branco é boa notícia, e se ela não disser isso será lida como "não carregou".
 
-## Fase 53 — Internação hospitalar: o servidor ⚠️ (tela pendente)
+## Fase 54 — A internação ganha tela ✅
+
+A tela (`screens/Internacao.tsx`), a porta em "Mais", o alcance por cargo e o
+`mock.ts` — com o efeito que importa: no protótipo, a criança internada
+**some da chamada e da grade** igual ao servidor. A demonstração passou de 107
+para 113 telas.
+
+Três coisas que a tela faz de propósito:
+
+- **conta os dias COM relato, e nunca os que faltam.** O relato diário não é
+  obrigatório (coordenação, 03/09/2026); uma tela que dissesse "3 dias sem
+  registro" transformaria numa cobrança o que foi combinado como um lugar para
+  escrever;
+- **a medicação do hospital fica separada, com a origem escrita**, e a tela diz
+  em voz alta que ela não entra na grade da casa;
+- **encerrar pede o desfecho, e um dos três é óbito.** Ele está na lista porque
+  acontece, e um sistema que só tem "alta" obriga alguém a mentir no pior dia
+  possível.
+
+### Achado desta fase
+
+**O estado do servidor de mentira nasceu dentro da função que responde.** As
+listas de internações e de contatos foram declaradas dentro de `responder()`:
+compilava, a demonstração respondia "internação aberta", e a lista seguinte
+vinha vazia — o array nascia de novo a cada chamada. O defeito não aparece num
+ensaio de telas; aparece quando alguém tenta usar a demonstração como se fosse
+o sistema, que é exatamente o que a casa vai fazer com ela na reunião.
+
+## Fase 53 — Internação hospitalar: o servidor ✅
 
 Pedido da coordenação em 03/09/2026. A criança internada **continua da casa** —
 continua na contagem, continua ocupando a vaga — e **sai da linha do dia**:
