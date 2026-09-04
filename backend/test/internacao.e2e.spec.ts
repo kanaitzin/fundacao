@@ -225,6 +225,46 @@ describe('Internação hospitalar', () => {
     expect(Object.keys(minha)).not.toContain('pendencias');
   });
 
+  it('o educador sabe ONDE ela está, sem saber por quê', async () => {
+    /*
+     * A criança sumiu da chamada dele. Sem esta linha, ele conta dezenove
+     * onde havia vinte e não tem como saber se ela foi internada,
+     * transferida, ou se alguém errou o cadastro — e liga para a coordenação
+     * às onze da noite para perguntar.
+     *
+     * O que ele recebe é o FATO e o lugar. O motivo, o diário e a medicação
+     * do hospital continuam atrás do alcance da internação.
+     */
+    const lista = await request(http).get(`/api/v1/people?houseId=${AI3}`)
+      .set(auth(tokens.educador));
+    const dela = lista.body.find((p: any) => p.id === crianca);
+    expect(dela.noHospital).toBe('Hospital Fictício da Criança');
+    expect(JSON.stringify(dela)).not.toMatch(/Crise respiratória/);
+  });
+
+  it('a internação e a medicação do hospital entram no histórico de saúde', async () => {
+    /* "O sistema está cuidando da criança como um todo" — sem isto, o
+     * histórico teria um buraco no período em que mais coisa aconteceu. */
+    const h = await request(http).get(`/api/v1/nursing/history/${crianca}`)
+      .set(auth(tokens.enfermagem));
+    expect(h.body.internacoes.some((i: any) => i.hospital === 'Hospital Fictício da Criança'))
+      .toBe(true);
+    expect(h.body.pendencias.internacaoEmAndamento).toBe(true);
+
+    const med = h.body.medicacaoNoHospital.find(
+      (m: any) => m.medicamento === 'Antibiótico fictício');
+    expect(med).toBeTruthy();
+    // A origem vai escrita em cada linha, sempre.
+    expect(med.origem).toMatch(/Administrada pelo Hospital/);
+
+    /* E a folha que a Enfermagem leva para a consulta traz o período. */
+    const folha = await request(http).get(`/api/v1/nursing/history/${crianca}/folha`)
+      .set(auth(tokens.enfermagem));
+    const titulos = folha.body.secoes.map((x: any) => x.titulo);
+    expect(titulos).toContain('Internações');
+    expect(titulos).toContain('Medicação administrada durante a internação');
+  });
+
   it('nada da internação se apaga', async () => {
     await expect(admin.query(`DELETE FROM hospitalization WHERE id = $1`, [internacao]))
       .rejects.toThrow(/internacao_nao_e_apagada/);

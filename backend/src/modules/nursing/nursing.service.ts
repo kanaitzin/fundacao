@@ -332,6 +332,35 @@ export class NursingService {
          WHERE a.person_id = $1 AND a.state <> 'aguardando_confirmacao'
          ORDER BY a.scheduled_at DESC LIMIT 100`, [personId]);
 
+      /*
+       * AS INTERNAÇÕES ENTRAM NO HISTÓRICO DE SAÚDE.
+       *
+       * "A medicação dada no hospital entra no perfil e no sistema sim, pois o
+       * sistema está cuidando da criança como um todo" — coordenação,
+       * 03/09/2026. Sem isto, o histórico teria um buraco de três semanas
+       * exatamente no período em que mais coisa aconteceu com a criança.
+       *
+       * A leitura NÃO passa pela política da internação: quem alcança o
+       * histórico de saúde vê que houve internação, o hospital e o período.
+       * O DIÁRIO continua onde estava, atrás do alcance da internação — o
+       * educador comum não lê o relato do dia no hospital, e essa é a decisão
+       * da coordenação. Saber que a criança esteve internada é outra coisa:
+       * é a resposta para "por que ela sumiu da chamada em agosto?".
+       */
+      const { rows: internacoes } = await c.query(
+        `SELECT h.id, h.hospital, h.started_at, h.ended_at, h.status, h.outcome,
+                (SELECT count(*)::int FROM hospitalization_medication m
+                  WHERE m.hospitalization_id = h.id) AS doses
+           FROM hospitalization h WHERE h.person_id = $1
+          ORDER BY h.started_at DESC`, [personId]);
+
+      const { rows: dosesNoHospital } = await c.query(
+        `SELECT m.given_at, m.medication, m.dose, m.route, m.note, h.hospital
+           FROM hospitalization_medication m
+           JOIN hospitalization h ON h.id = m.hospitalization_id
+          WHERE h.person_id = $1
+          ORDER BY m.given_at DESC LIMIT 100`, [personId]);
+
       const atendimentos = encontros.map((e) => ({
         id: e.id, tipo: e.kind, tipoRotulo: TIPO_ATENDIMENTO[e.kind] ?? e.kind,
         quando: e.happened_at, local: e.place, especialidade: e.specialty,
@@ -360,13 +389,28 @@ export class NursingService {
           realizado: d.administered_at,
           medicamento: d.medication, dose: d.dose, por: d.por, observacao: d.note,
         })),
+        internacoes: internacoes.map((i: any) => ({
+          id: i.id, hospital: i.hospital, desde: i.started_at, ate: i.ended_at,
+          status: i.status, desfecho: i.outcome, dosesNoHospital: i.doses,
+        })),
+        /*
+         * As doses do hospital ficam numa lista SEPARADA da grade da casa, e
+         * cada uma sai com a origem escrita. Misturá-las com as doses
+         * confirmadas por quem administrou faria a casa aparecer
+         * administrando o que não administrou.
+         */
+        medicacaoNoHospital: dosesNoHospital.map((m: any) => ({
+          quando: m.given_at, medicamento: m.medication, dose: m.dose, via: m.route,
+          observacao: m.note, origem: `Administrada pelo ${m.hospital}`,
+        })),
         // O que está esperando alguém, contado aqui e não na tela.
         pendencias: {
           retornosVencidos: atendimentos.filter((a) => a.retornoVencido).length,
           retornosMarcados: atendimentos.filter(
             (a) => a.status === 'retorno_pendente' && !a.retornoVencido).length,
-          internacaoEmAndamento: atendimentos.some(
-            (a) => a.tipo === 'internacao' && a.status === 'em_andamento'),
+          /* A internação de verdade é a da tabela `hospitalization`, e não o
+           * tipo de atendimento — que registra QUE houve, e não o período. */
+          internacaoEmAndamento: internacoes.some((i: any) => i.status === 'em_andamento'),
           evolucoesAguardandoTriagem: evolucoesMap.filter(
             (e) => e.status !== 'assinada').length,
         },
@@ -403,6 +447,11 @@ export class NursingService {
       { nome: quem.nome },
       {
         atendimentos: h.atendimentos, evolucoes: h.evolucoes,
+        /* O período no hospital e a medicação de lá entram na folha que a
+         * Enfermagem leva para a consulta: uma folha com três semanas em
+         * branco, sem dizer que a criança esteve internada, faz o médico
+         * concluir que ninguém acompanhou. */
+        internacoes: h.internacoes, medicacaoNoHospital: h.medicacaoNoHospital,
         administracoes: h.administracoes, pendencias: h.pendencias,
       },
       quem.unidade ?? 'Unidade',

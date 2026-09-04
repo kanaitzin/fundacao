@@ -28,6 +28,8 @@ import { Cadastro } from './Cadastro';
 
 interface Resumo {
   id: string; nome: string; idade: number;
+  /** O hospital, quando ela está internada. O motivo não vem — e não deve. */
+  noHospital?: string;
   alertasEssenciais: number; restricoesAlimentares: number;
 }
 interface Condicao {
@@ -352,8 +354,24 @@ export function Acolhidos({ houseId, casaLabel, papel }: {
             <button className="card row" onClick={() => setAbertoId(p.id)}>
               <div className="grow" style={{ textAlign: 'left' }}>
                 <b className="ff">{p.nome}</b>
-                <div className="mutetxt">{p.idade} anos</div>
+                <div className="mutetxt">
+                  {p.idade} anos
+                  {/*
+                    * ONDE ELA ESTÁ, quando não está na casa.
+                    *
+                    * O educador não lê a internação — o motivo, o diário e a
+                    * medicação do hospital estão atrás do alcance dela. Mas ele
+                    * precisa saber que a criança está no hospital, porque ela
+                    * SUMIU da chamada dele: sem esta linha, ele conta dezenove
+                    * onde havia vinte e liga para a coordenação às onze da
+                    * noite para perguntar o que aconteceu.
+                    */}
+                  {p.noHospital && <> · no hospital</>}
+                </div>
               </div>
+              {p.noHospital && (
+                <span className="pill c-info" title={`No ${p.noHospital}`}>🏥</span>
+              )}
               {p.alertasEssenciais > 0 && (
                 <span className="pill c-crit" title="Alertas essenciais">
                   ⚠ {p.alertasEssenciais}

@@ -260,7 +260,26 @@ export class PeopleService {
                 (SELECT count(*)::int FROM health_condition h
                    WHERE h.person_id = p.id AND h.active AND h.essential_alert) AS alertas,
                 (SELECT count(*)::int FROM food_restriction f
-                   WHERE f.person_id = p.id AND f.active) AS restricoes
+                   WHERE f.person_id = p.id AND f.active) AS restricoes,
+                /*
+                 * ONDE A CRIANÇA ESTÁ — para TODO MUNDO da casa, inclusive o
+                 * educador social.
+                 *
+                 * Ele não lê a internação: o motivo, o diário e a medicação do
+                 * hospital estão atrás do alcance dela, e isso foi decisão da
+                 * coordenação. Mas ele precisa saber que a criança está no
+                 * hospital, e por uma razão prática: ela SUMIU da chamada
+                 * dele. Sem esta linha, o educador do plantão da noite conta
+                 * dezenove onde havia vinte e não tem como saber se a criança
+                 * foi internada, transferida ou se alguém errou o cadastro —
+                 * e a primeira coisa que ele vai fazer é ligar para a
+                 * coordenação às onze da noite para perguntar.
+                 *
+                 * O que sai é o FATO e o lugar. Nunca o motivo.
+                 */
+                (SELECT h.hospital FROM hospitalization h
+                  WHERE h.person_id = p.id AND h.status = 'em_andamento'
+                  LIMIT 1) AS no_hospital
          FROM person p
          JOIN house_stay s ON s.person_id = p.id AND s.status = 'ativa'
          WHERE s.house_id = $1
@@ -292,6 +311,8 @@ export interface PersonSummary {
   cpfPendente: boolean;
   alertasEssenciais: number;
   restricoesAlimentares: number;
+  /** O hospital onde ela está, quando está internada. O motivo nunca vem. */
+  noHospital?: string;
 }
 
 /** Projeção segura: CPF sempre mascarado na exibição operacional (§3.1). */
@@ -306,5 +327,8 @@ export function publicPerson(r: any): PersonSummary {
     cpfPendente: r.cpf_pending,
     alertasEssenciais: r.alertas,
     restricoesAlimentares: r.restricoes,
+    /* Onde ela está, quando não está na casa. `undefined` some do JSON, e a
+     * tela desenha a linha normal. */
+    noHospital: r.no_hospital ?? undefined,
   };
 }

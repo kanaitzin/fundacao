@@ -3415,6 +3415,10 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       id: k.id, nome: k.nome, nomeCivil: k.civil, idade: k.idade, nascimento: k.nascimento,
       cpf: k.semCpf ? null : '***.***.123-**', cpfPendente: !!k.semCpf,
       alertasEssenciais: k.alerta ? 1 : 0, restricoesAlimentares: k.restricao ? 1 : 0,
+      /* Onde ela está — o FATO e o lugar, para todo mundo da casa. Nunca o
+       * motivo, que continua atrás do alcance da internação. */
+      noHospital: INTERNACOES.find(
+        (i) => i.acolhidoId === k.id && i.status === 'em_andamento')?.hospital,
     }));
   }
   if (rota === '/people/admission/options') {

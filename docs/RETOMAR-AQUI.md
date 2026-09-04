@@ -204,7 +204,7 @@ Além dos e2e, quatro suítes estáticas — elas já pegaram erro de verdade:
 
 ## 5. O QUE JÁ ESTÁ PRONTO
 
-**Fases 0 a 54. 452 testes em 44 suítes**, **quinze rodadas seguidas limpas** —
+**Fases 0 a 55. 454 testes em 44 suítes**, **quinze rodadas seguidas limpas** —
 quatro delas com o UTC já no dia seguinte, que é a condição que a regra pede.
 31 telas, 75 migrações, 94 tabelas.
 

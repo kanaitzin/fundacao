@@ -22,6 +22,14 @@ export interface DadosDeSaude {
   administracoes: Array<{
     previsto: string; medicamento: string; dose: string; estadoRotulo: string; por?: string | null;
   }>;
+  internacoes?: Array<{
+    hospital: string; desde: string; ate?: string | null;
+    status: string; desfecho?: string | null;
+  }>;
+  medicacaoNoHospital?: Array<{
+    quando: string; medicamento: string; dose?: string | null;
+    via?: string | null; origem: string;
+  }>;
   pendencias: {
     retornosVencidos: number; retornosMarcados: number;
     internacaoEmAndamento: boolean; evolucoesAguardandoTriagem: number;
@@ -82,6 +90,53 @@ export function folhaDeSaude(
         e.complementoEnfermagem ? `complemento da Enfermagem: ${e.complementoEnfermagem}` : null,
       ].filter(Boolean).join(' · ')),
       procedencia: 'evolução assinada por quem acompanhou, com o complemento da Enfermagem.',
+    });
+  }
+
+  /*
+   * O PERÍODO NO HOSPITAL ENTRA NA FOLHA.
+   *
+   * Ela é o documento que a Enfermagem leva para a consulta. Uma folha que
+   * mostrasse três semanas sem nenhum registro, sem dizer que a criança
+   * esteve internada, faria o médico concluir que ninguém acompanhou.
+   *
+   * O que entra é o PERÍODO e a medicação: hospital, datas, desfecho. O
+   * diário do dia a dia não entra — ele é do sistema, não do papel.
+   */
+  if ((h.internacoes ?? []).length) {
+    secoes.push({
+      titulo: 'Internações',
+      tabela: {
+        cabecalho: ['Período', 'Hospital', 'Situação'],
+        linhas: h.internacoes!.map((i) => [
+          `${diaBR(i.desde)}${i.ate ? ` a ${diaBR(i.ate)}` : ' — em andamento'}`,
+          i.hospital,
+          i.status === 'em_andamento' ? 'Internada agora'
+            : i.desfecho === 'alta' ? 'Alta'
+            : i.desfecho === 'obito' ? 'Óbito' : 'Transferência hospitalar',
+        ]),
+      },
+      procedencia: 'registro de internação aberto e encerrado pela equipe técnica ou '
+        + 'pela coordenação.',
+    });
+  }
+
+  if ((h.medicacaoNoHospital ?? []).length) {
+    secoes.push({
+      titulo: 'Medicação administrada durante a internação',
+      tabela: {
+        cabecalho: ['Data e hora', 'Medicamento', 'Via', 'Quem administrou'],
+        linhas: h.medicacaoNoHospital!.slice(0, 40).map((m) => [
+          `${diaBR(m.quando)} ${hhmmBR(m.quando)}`,
+          [m.medicamento, m.dose].filter(Boolean).join(' '),
+          m.via ?? '—',
+          /* A origem vai na COLUNA de quem administrou, e não numa nota de
+           * rodapé: é a informação que muda a leitura da linha inteira. */
+          m.origem,
+        ]),
+      },
+      procedencia: 'registrada por quem acompanhou a internação; quem administrou foi o '
+        + 'hospital, e não a casa.',
     });
   }
 

@@ -974,6 +974,26 @@ nascia de novo a cada chamada. Não aparece num ensaio de telas — aparece
 quando alguém usa a demonstração como se fosse o sistema, que é o que a casa
 vai fazer com ela.
 
+### 8.23 A internação aparece onde a criança aparece — 03/09/2026
+
+A criança internada sumia da chamada, de propósito, e nada dizia por quê. O
+educador contaria dezenove onde havia vinte. A lista de acolhidos passou a
+mostrar **"no hospital"** para todo mundo da casa: o FATO e o lugar, nunca o
+motivo — que continua atrás do alcance da internação.
+
+É a diferença entre saber por que a cadeira está vazia e ler o prontuário. A
+primeira é condição para trabalhar; a segunda é decisão de quem cuida do caso.
+
+E a promessa da fase anterior foi paga: o período no hospital e as doses de lá
+entram no histórico de saúde e na folha que a Enfermagem leva para a consulta.
+Uma folha com três semanas em branco, sem dizer que houve internação, faz o
+médico concluir que ninguém acompanhou.
+
+Achado: havia duas noções de "internada" convivendo. A pendência do painel de
+saúde olhava o TIPO do atendimento, que registra *que houve* uma internação, e
+não o período — e responderia "não" para uma criança que está no hospital
+agora.
+
 ---
 
 ## 9. Migrações desta série (0620–0890)

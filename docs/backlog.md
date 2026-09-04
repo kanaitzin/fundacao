@@ -578,6 +578,40 @@ para sempre.
 - **Tela vazia precisa dizer por que está vazia.** Uma lista de conflitos em
   branco é boa notícia, e se ela não disser isso será lida como "não carregou".
 
+## Fase 55 — A internação aparece onde a criança aparece ✅
+
+Duas coisas ficaram prometidas na fase anterior e não entregues.
+
+**1. O educador não tinha como saber onde a criança estava.** Ela sumia da
+chamada dele — de propósito — e nada, em lugar nenhum, dizia por quê. Ele
+contaria dezenove onde havia vinte e ligaria para a coordenação às onze da
+noite para perguntar se a criança foi internada, transferida, ou se alguém
+errou o cadastro.
+
+A lista de acolhidos passou a mostrar **"no hospital"**, para todo mundo da
+casa. O que sai é o FATO e o lugar; o motivo, o diário e a medicação continuam
+atrás do alcance da internação, que é a decisão da coordenação. Saber que ela
+está no hospital não é ler o prontuário dela — é saber por que a cadeira está
+vazia.
+
+**2. "A medicação dada no hospital entra no perfil e no sistema."** Entrava na
+internação e parava ali. Agora o histórico de saúde traz o período e as doses
+de lá, e a folha que a Enfermagem leva para a consulta ganhou duas seções.
+Sem isso, o histórico teria um buraco de três semanas exatamente no período em
+que mais coisa aconteceu com a criança — e o médico que recebesse a folha
+concluiria que ninguém acompanhou.
+
+A origem vai escrita **em cada linha**, e na coluna de quem administrou: é a
+informação que muda a leitura da linha inteira, e não cabe numa nota de rodapé.
+
+### Achado desta fase
+
+A pendência `internacaoEmAndamento` do painel de saúde olhava o TIPO do
+atendimento (`health_encounter.kind = 'internacao'`), que registra *que houve*
+uma internação — não o período. Com a tabela nova, ela passou a olhar o
+período de verdade. Eram duas noções de "internada" convivendo, e a mais
+antiga responderia "não" para uma criança que está no hospital agora.
+
 ## Fase 54 — A internação ganha tela ✅
 
 A tela (`screens/Internacao.tsx`), a porta em "Mais", o alcance por cargo e o
