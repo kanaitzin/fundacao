@@ -97,19 +97,29 @@ não me peça para reexplicar o que está lá.
   não desvie a tarefa sem falar.
 - Se algum arquivo do repositório mudar sem você ter mudado, me avise.
 
-=== ESTADO ATUAL (02/09/2026) ===
+=== ESTADO ATUAL (03/09/2026) ===
 
-Fases 0 a 55. 454 testes em 44 suítes, sem falha conhecida — treze rodadas
+Fases 0 a 56. 454 testes em 44 suítes, sem falha conhecida — treze rodadas
 seguidas limpas, quatro delas entre 23h50 e 00h45 de Porto Alegre, com o UTC já
 no dia seguinte, que é a condição que a regra pede. Backend NestJS +
 PostgreSQL 16 com RLS, 17 partições isoladas, 75 migrações, 94 tabelas.
-Frontend React PWA, 31 telas, empacotado num único .html de ~857 KB que abre
+Frontend React PWA, 31 telas, empacotado num único .html de ~890 KB que abre
 sem servidor.
 
 Duas dívidas antigas foram pagas em 02/09: a fila local do aparelho (sem sinal
 a operação fica guardada, sobe ao reconectar, e só sai do aparelho o que o
 servidor confirmou) e as folhas em Word, que eram montadas no navegador e agora
 nascem no servidor, com a saída registrada e a finalidade obrigatória.
+
+Em 03/09 entraram duas coisas pedidas pela Fundação. A INTERNAÇÃO HOSPITALAR:
+a criança internada sai da linha do dia — chamada, grade e rotina — sem sair da
+casa (a vaga continua ocupada), com diário do período, anexo do hospital,
+educador acompanhante, e a medicação de lá entrando no histórico de saúde com a
+origem escrita, nunca na grade da casa. O educador comum não lê a internação,
+mas vê "no hospital" na lista de acolhidos. E O CADASTRO QUE A LISTA DA CASA
+PEDIA: filiação, RG, cartão SUS, foto de identificação, contatos com vínculo
+(que o educador lê e a técnica escreve), e a chave de acesso ao processo
+guardada no cofre.
 
 Há backup e restauração PROVADA desde 02/09: `npm run ensaio:restauracao` faz
 o ciclo num banco descartável e confere, inclusive se o cofre abre com a chave
@@ -122,11 +132,19 @@ as 113 telas dos oito cargos no navegador (tela nova entra nesse percurso),
 `npm run ensaio:folhas` percorre os caminhos de documento até o arquivo baixar,
 `npm run ensaio:roteiro` cobra que as 20 tarefas do roteiro do Marcelo tenham
 porta no cargo certo, e `npm run ensaio:acessibilidade` roda o axe-core (WCAG
-2.1 AA) nas 113 telas. Cor nova passa por ele antes de entrar.
+2.1 AA) nas 113 telas — cor nova passa por ele antes de entrar. E
+`npm run ensaio:uso` percorre os oito cargos apertando os botões até o fim.
 
 O grupo 1 do levantamento — o que a educadora precisa fazer às 23h — está
 VAZIO: tudo tem porta. Das 34 rotas que existiam sem tela em 01/09, restam 20,
 e a maioria delas é rota de máquina que não deve ter tela.
+
+ATENÇÃO — a lista real das crianças da Casa 03 chegou por anexo em 03/09, com
+nome, filiação, CPF, RG, SUS, processo e CHAVE DE ACESSO ao processo de vinte
+crianças. Ela foi lida como ESPECIFICAÇÃO DE CAMPOS e nada dela entrou no
+sistema. Dado real só entra na implantação, com a LGPD decidida e minha
+autorização expressa (regra 1). Se eu anexar algo assim de novo, me lembre
+disso antes de usar.
 
 O detalhe de tudo está no RETOMAR-AQUI.md: o que já funciona, o que falta, as
 decisões que são minhas e os defeitos corrigidos com o que cada um ensinou.

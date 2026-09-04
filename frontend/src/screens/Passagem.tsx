@@ -210,6 +210,24 @@ export function Passagem({ houseId }: { houseId: string }) {
     return (
       <>
         <div className="diahead"><div><h2>Passagem de plantão</h2></div></div>
+        {/*
+          * A TELA PRECISA DIZER O VERBO.
+          *
+          * Ela abria com um cartão só — "Plantão diurno, desde 07:00" — e nada
+          * mais: nenhum botão, nenhuma instrução, o resto da tela em branco. O
+          * cartão É clicável, e a tarefa do educador no roteiro é "registre a
+          * sua passagem do turno". Quem chega aqui vê um aviso de estado, não
+          * uma coisa para fazer, e a chance de parar no primeiro toque é alta.
+          *
+          * Uma linha resolve. Ela some quando não há plantão aberto, porque aí
+          * a frase seria uma instrução para o que não existe.
+          */}
+        {!!lista.length && (
+          <p className="mutetxt">
+            Toque no plantão para <b>assinar a sua passagem</b> ou registrar que recebeu o
+            turno. Cada pessoa assina a dela — o sistema não assina por ninguém.
+          </p>
+        )}
         {erro && <div className="notice c-crit" role="alert">{erro}</div>}
         {aviso && <div className="notice c-ok" role="status">{aviso}</div>}
 

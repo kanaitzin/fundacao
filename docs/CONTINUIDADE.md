@@ -994,6 +994,30 @@ saúde olhava o TIPO do atendimento, que registra *que houve* uma internação, 
 não o período — e responderia "não" para uma criança que está no hospital
 agora.
 
+### 8.24 Simular o uso — 03/09/2026
+
+`npm run ensaio:uso` percorre os oito cargos **apertando os botões até o fim**.
+Os outros ensaios param antes: um abre cada tela e olha o que ela escreveu, o
+outro cobra que cada tarefa tenha porta. Nenhum chegava ao terceiro clique, que
+é onde mora a folha que abre e não fecha, o botão que salva e não recarrega, e
+a tela que mostra estado sem dizer o que fazer.
+
+Os dois achados são da mesma família — **a tela não diz o que a pessoa precisa
+saber ali**:
+
+* **o cofre não abria.** O protótipo entra sem senha e três telas depois pede
+  "sua senha". Quem demonstra não tem senha para dar: tenta, erra, conclui que
+  está quebrado. A tela do cofre passou a dizer, só no protótipo, qual é. No
+  sistema real a dica não existe — escrevê-la lá seria o oposto do que o cofre
+  defende;
+* **a passagem não tinha verbo.** Um cartão de estado e o resto em branco. O
+  cartão é clicável, e a tarefa do educador é "registre a sua passagem". Quem
+  chega vê um aviso, não uma coisa para fazer.
+
+E o ensaio novo caiu, duas vezes, na armadilha que o `ensaio.mjs` já anotava:
+`text-transform: uppercase` faz a tela devolver "QUEM APARECE POR ALICE", e
+comparação sensível a maiúsculas reprova uma tela certa.
+
 ---
 
 ## 9. Migrações desta série (0620–0890)

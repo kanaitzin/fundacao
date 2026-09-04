@@ -578,6 +578,24 @@ function Reautenticar({ erro, onErro, onLiberado }: {
         ficam registradas com o seu nome.
       </div>
 
+      {/*
+        * A SENHA DO PROTÓTIPO PRECISA ESTAR ESCRITA NA TELA.
+        *
+        * O arquivo abre sem senha — "Entrar no sistema" e pronto —, e três
+        * telas depois ele pede "sua senha". Quem está demonstrando não tem
+        * senha nenhuma para dar, tenta, erra, e conclui que o cofre está
+        * quebrado. Foi exatamente o que aconteceu.
+        *
+        * No sistema real esta dica não existe: lá a pessoa tem senha, e
+        * escrevê-la na tela seria o oposto do que este cofre defende.
+        */}
+      {import.meta.env.VITE_PROTOTIPO === '1' && (
+        <div className="notice c-info" role="note">
+          <b>No protótipo, a senha é</b> <code>senha-dev-123</code>. No sistema real é a
+          senha da pessoa, e ela é conferida no servidor.
+        </div>
+      )}
+
       <form onSubmit={entrar}>
         <label className="f" htmlFor="senha-cofre">Sua senha</label>
         <input id="senha-cofre" type="password" value={senha} autoFocus

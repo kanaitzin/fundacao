@@ -13,7 +13,8 @@
     "ensaio:fila": "node ensaio-fila.mjs",
     "ensaio:folhas": "node ensaio-folhas.mjs",
     "ensaio:roteiro": "node ensaio-roteiro.mjs",
-    "ensaio:acessibilidade": "node ensaio-acessibilidade.mjs"
+    "ensaio:acessibilidade": "node ensaio-acessibilidade.mjs",
+    "ensaio:uso": "node ensaio-uso.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",

@@ -578,6 +578,34 @@ para sempre.
 - **Tela vazia precisa dizer por que está vazia.** Uma lista de conflitos em
   branco é boa notícia, e se ela não disser isso será lida como "não carregou".
 
+## Fase 56 — Simular o uso, e a senha do cofre ✅
+
+`npm run ensaio:uso` percorre os **oito cargos apertando os botões até o fim**
+— marcar chamada, abrir exceção, assinar passagem, conferir o armário, abrir o
+cofre, internar uma criança, escrever no diário. Os outros ensaios cobrem
+outras coisas: `ensaio` abre cada tela e olha o que ela escreveu;
+`ensaio:roteiro` cobra que cada tarefa tenha porta. Nenhum dos dois chegava ao
+terceiro clique.
+
+### Achados
+
+- **O cofre não abria, e a culpa era da tela.** O protótipo entra sem senha —
+  "Entrar no sistema" e pronto — e três telas depois pede "sua senha". Quem
+  está demonstrando não tem senha nenhuma para dar: tenta, erra, e conclui que
+  o cofre está quebrado. Foi o que aconteceu de verdade. A tela do cofre passou
+  a dizer, **só no protótipo**, que a senha é `senha-dev-123`. No sistema real
+  a dica não existe — lá a pessoa tem senha, e escrevê-la na tela seria o
+  oposto do que este cofre defende.
+- **A tela de passagem não tinha verbo.** Ela abria com um cartão de estado —
+  "Plantão diurno, desde 07:00" — e o resto em branco: nenhum botão, nenhuma
+  instrução. O cartão é clicável, e a tarefa do educador no roteiro é
+  "registre a sua passagem do turno". Quem chega ali vê um aviso, não uma
+  coisa para fazer. Uma linha resolve, e ela some quando não há plantão aberto.
+- **Duas cobranças do próprio ensaio reprovavam telas certas**, pelo
+  `text-transform: uppercase` do CSS: o texto que volta é "QUEM APARECE POR
+  ALICE", e a comparação era sensível a maiúsculas. É a armadilha já anotada
+  no `ensaio.mjs`, e ela pega de novo quem escreve um ensaio novo.
+
 ## Fase 55 — A internação aparece onde a criança aparece ✅
 
 Duas coisas ficaram prometidas na fase anterior e não entregues.

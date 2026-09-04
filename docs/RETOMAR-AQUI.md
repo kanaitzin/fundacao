@@ -204,7 +204,7 @@ Além dos e2e, quatro suítes estáticas — elas já pegaram erro de verdade:
 
 ## 5. O QUE JÁ ESTÁ PRONTO
 
-**Fases 0 a 55. 454 testes em 44 suítes**, **quinze rodadas seguidas limpas** —
+**Fases 0 a 56. 454 testes em 44 suítes**, **quinze rodadas seguidas limpas** —
 quatro delas com o UTC já no dia seguinte, que é a condição que a regra pede.
 31 telas, 75 migrações, 94 tabelas.
 
@@ -223,6 +223,10 @@ nunca disse que renderiza:
 
 - `npm run ensaio:acessibilidade` roda o axe-core (WCAG 2.1 AA) nas **113 telas**. Nenhuma violação — e a folga foi conquistada em 02/09: contraste
   não é opinião, e a diferença entre 4,46 e 4,5 só se enxerga no corredor;
+- `npm run ensaio:uso` percorre os **oito cargos apertando os botões até o
+  fim** — chamada, exceção, passagem, armário, cofre, internação, diário. É o
+  que pega o defeito do terceiro clique: a folha que abre e não fecha, o botão
+  que salva e não recarrega, a tela que mostra estado e não diz o que fazer;
 - `npm run ensaio:roteiro` percorre as **20 tarefas do roteiro do Marcelo** e
   cobra que cada uma tenha porta no cargo certo. Ele não simula a procura de
   uma pessoa — onde ela para é o que a aplicação do roteiro descobre —, mas
@@ -245,6 +249,22 @@ de cadastro com histórico legível, **atualização dos dados descritivos —
 cuidados essenciais, escola, equipe de referência — guardando o que estava
 escrito antes**, saída com motivo, acervo histórico e retorno como episódio
 novo.
+
+**A criança no hospital (03/09/2026):** a **internação** tira o acolhido da
+linha do dia — chamada, grade e rotina — sem tirá-lo da casa: a vaga continua
+ocupada, e ele volta sozinho na alta. Abrem e encerram a equipe técnica e a
+coordenação; o diário do período aceita anexo do hospital e não cobra registro
+diário de ninguém; a medicação dada lá entra no histórico de saúde e na folha
+da Enfermagem **com a origem escrita em cada linha**, e nunca na grade da casa.
+O educador comum não lê a internação, mas vê "no hospital" na lista de
+acolhidos — ele precisa saber por que a cadeira está vazia.
+
+**O cadastro que a lista da casa pedia (03/09/2026):** filiação, RG, cartão
+SUS, foto de identificação no perfil, e os **contatos com vínculo** — genitora,
+padrinho, tia, vínculo comunitário —, que o educador lê e a técnica escreve.
+Contato não se apaga: encerra-se com motivo. Contato com aproximação restrita
+aparece primeiro, com o motivo à vista. A **chave de acesso ao processo** foi
+para o cofre, com reautenticação e registro por visualização.
 
 **Sem sinal:** a **fila local do aparelho** — a operação feita sem internet
 fica guardada em IndexedDB com o horário do ato, sobrevive ao aplicativo
@@ -396,7 +416,38 @@ Nenhuma delas é problema de código. Estão paradas esperando resposta:
    de medicamento offline deixa de existir na prática para o educador, que é a
    consequência já registrada na decisão de 27/08 e continua valendo.
 
-9. **As fontes do protótipo.** O arquivo busca a *Atkinson Hyperlegible* e a
+9. **A medicação a qualquer horário — e é a que mais muda código.** O Marcelo
+   informou em 03/09/2026 que os educadores dão medicamento a qualquer hora,
+   conforme a necessidade ou o horário do tratamento de cada criança. O sistema
+   foi construído sobre grade de horários previstos, com alertas de −30/−15/0
+   e +30 minutos, e marca "administrado com atraso" quando a dose sai duas
+   horas depois. **Quatro perguntas em aberto:**
+   *(a)* "a qualquer horário" quer dizer que NÃO existe horário previsto, ou
+   que ele existe e é frequentemente descumprido? No primeiro caso, a maior
+   parte das doses vira "quando necessário" e a grade deixa de fazer sentido
+   como está;
+   *(b)* "administrado com atraso" é informação útil para a Enfermagem ou é
+   cobrança injusta com quem estava com uma criança no colo?
+   *(c)* se quem dá é sempre o educador de plantão, a tela de decisão "quem
+   pode dar remédio por turno" perde o sentido — e a pergunta vira: existe
+   alguma medicação que o educador NÃO pode dar?
+   *(d)* o educador de plantão está com o aparelho da casa na mão às 23h? Se
+   não, confirmar medicamento offline não existe na prática (ver decisão 8).
+
+10. **O PIA — último e próximo.** A lista da casa traz duas colunas de data, e
+   nas vinte crianças elas são iguais (18/06 e 18/09), o que sugere controle
+   por uma data única na planilha, e não por criança. **A pergunta:** as datas
+   são mesmo iguais para todo mundo, e o sistema deve avisar por criança
+   quando o próximo PIA está chegando — 30 dias antes, na tela da técnica?
+
+11. **A Enfermagem vê a internação — decisão MINHA, a confirmar.** A resposta
+   da coordenação em 03/09 listou equipe técnica, líder educador e coordenador,
+   e disse que o educador social comum não vê. Incluí a Enfermagem porque
+   internação é primeiro um fato de saúde, e é ela quem responde por medicação
+   e retorno quando a criança volta. Desfaz-se numa linha em
+   `app_pode_ver_internacao`.
+
+12. **As fontes do protótipo.** O arquivo busca a *Atkinson Hyperlegible* e a
    *Plus Jakarta Sans* na rede. Aberto sem internet — que é como ele é
    entregue —, cai na fonte do sistema; com internet, cada abertura faz uma
    requisição a um terceiro. Embutir as duas famílias custa uns 300 KB no
