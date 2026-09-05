@@ -204,7 +204,7 @@ Além dos e2e, quatro suítes estáticas — elas já pegaram erro de verdade:
 
 ## 5. O QUE JÁ ESTÁ PRONTO
 
-**Fases 0 a 56. 454 testes em 44 suítes**, **quinze rodadas seguidas limpas** —
+**Fases 0 a 57. 454 testes em 44 suítes**, **quinze rodadas seguidas limpas** —
 quatro delas com o UTC já no dia seguinte, que é a condição que a regra pede.
 31 telas, 75 migrações, 94 tabelas.
 
@@ -224,9 +224,11 @@ nunca disse que renderiza:
 - `npm run ensaio:acessibilidade` roda o axe-core (WCAG 2.1 AA) nas **113 telas**. Nenhuma violação — e a folga foi conquistada em 02/09: contraste
   não é opinião, e a diferença entre 4,46 e 4,5 só se enxerga no corredor;
 - `npm run ensaio:uso` percorre os **oito cargos apertando os botões até o
-  fim** — chamada, exceção, passagem, armário, cofre, internação, diário. É o
-  que pega o defeito do terceiro clique: a folha que abre e não fecha, o botão
-  que salva e não recarrega, a tela que mostra estado e não diz o que fazer;
+  fim** — chamada, exceção, passagem, armário, cofre, internação, diário — e
+  **lê de volta o que ficou gravado**: a entrada de remédio somou, a
+  conferência travou sem motivo, a exceção escrita apareceu, a contagem de
+  dias com relato mudou. É o que pega o defeito que a tela não denuncia: a
+  folha abriu, o botão salvou, e só o número estava errado;
 - `npm run ensaio:roteiro` percorre as **20 tarefas do roteiro do Marcelo** e
   cobra que cada uma tenha porta no cargo certo. Ele não simula a procura de
   uma pessoa — onde ela para é o que a aplicação do roteiro descobre —, mas

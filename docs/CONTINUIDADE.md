@@ -1018,6 +1018,20 @@ E o ensaio novo caiu, duas vezes, na armadilha que o `ensaio.mjs` já anotava:
 `text-transform: uppercase` faz a tela devolver "QUEM APARECE POR ALICE", e
 comparação sensível a maiúsculas reprova uma tela certa.
 
+### 8.25 O quarto clique — 03/09/2026
+
+O `ensaio:uso` apertava os botões e olhava se a tela respondeu. O defeito da
+fase 31 — a entrada de remédio que substituía em vez de somar, e fazia 30
+frascos virarem 10 — passaria por todas as cobranças que existiam: a folha
+abriu, o botão salvou, a tela mudou. Só o número estava errado.
+
+Ele passou a ler de volta: a quantidade depois da entrada, o travamento sem
+motivo na conferência, a frase da exceção na lista, a contagem de dias com
+relato depois do diário.
+
+E foi provado falhando: invertida a soma no `mock.ts`, o ensaio acusou com o
+número na mensagem — "2 + 10 deveria dar 12, deu 10".
+
 ---
 
 ## 9. Migrações desta série (0620–0890)

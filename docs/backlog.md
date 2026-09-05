@@ -578,6 +578,27 @@ para sempre.
 - **Tela vazia precisa dizer por que está vazia.** Uma lista de conflitos em
   branco é boa notícia, e se ela não disser isso será lida como "não carregou".
 
+## Fase 57 — O quarto clique: o que ficou gravado ✅
+
+O `ensaio:uso` apertava os botões e olhava se a tela respondeu alguma coisa.
+Não é o bastante, e há um defeito no histórico do projeto que prova: a entrada
+de remédio que **substituía em vez de somar**, deixando 30 frascos virarem 10.
+Ele passaria por todas as cobranças que existiam — a folha abriu, o botão
+salvou, a tela mudou. Só o número estava errado.
+
+O ensaio passou a **ler de volta**:
+
+| O que se faz | O que se confere depois |
+|---|---|
+| "Chegou remédio", 10 frascos | a quantidade SOMOU: 2 + 10 = 12 |
+| "Conferi o armário", 26 | o botão fica travado sem motivo escrito, e depois grava 26 |
+| exceção na chamada, com observação | a frase escrita aparece na tela |
+| relato no diário da internação | a lista passa a contar "1 dia com relato" |
+
+**O conferidor foi provado falhando.** Inverti a soma no `mock.ts` de
+propósito, e o ensaio acusou com o número na mensagem: *"2 + 10 deveria dar
+12, deu 10"*. Um conferidor que só foi visto dizendo "sim" não foi visto.
+
 ## Fase 56 — Simular o uso, e a senha do cofre ✅
 
 `npm run ensaio:uso` percorre os **oito cargos apertando os botões até o fim**

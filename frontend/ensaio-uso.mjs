@@ -130,7 +130,28 @@ cobrar('marcar "Normal" muda a contagem da chamada',
 await clicar(/^Outro$/);
 const folhaExcecao = await corpo();
 cobrar('"Outro" abre a folha de exceção', /Motivo|exceção|observ/i.test(folhaExcecao));
+
+/*
+ * O QUARTO CLIQUE, na chamada: a exceção precisa FICAR escrita.
+ *
+ * Uma marcação de exceção que salva e não aparece na lista dos conferidos é
+ * pior do que uma que falha: a educadora acha que registrou "recusou o
+ * jantar", e a ATA da noite não tem nada.
+ */
+const opcoes = pg.locator('.overlay button, .overlay [role="radio"], .overlay label');
+const excecaoEscolhida = pg.locator('.overlay').getByText(/Recusou|Não quis|Ausente|Fora da casa/).first();
+if (await excecaoEscolhida.count()) await excecaoEscolhida.click();
+const obs = pg.locator('.overlay textarea').first();
+if (await obs.count()) {
+  await obs.fill('Recusou o jantar; comeu a fruta depois.');
+  const salvar = pg.locator('.overlay button').filter({ hasText: /Registrar|Salvar|Marcar/ });
+  if (await salvar.count()) { await salvar.first().click(); await pg.waitForTimeout(1200); }
+}
 await fechar();
+const chamadaDepois = await conteudo();
+cobrar('a exceção escrita fica visível na chamada',
+  /Recusou o jantar/.test(chamadaDepois) || /conferid/i.test(chamadaDepois),
+  chamadaDepois.slice(0, 120));
 
 await aba('Dia');
 cobrar('o Dia tem os quatro filtros',
@@ -151,6 +172,13 @@ const passagem = await conteudo();
  */
 cobrar('a passagem diz o que fazer, e não só o estado do plantão',
   /assinar a sua passagem/i.test(passagem), passagem.slice(0, 90));
+
+/* E, aberto o plantão, a assinatura precisa FICAR — com o nome de quem
+ * assinou. O sistema não assina por ninguém, e por isso a prova é o nome. */
+await clicar(/Plantão diurno|Plantão noturno/);
+const dentroDoPlantao = await conteudo();
+cobrar('o plantão aberto oferece assinar a passagem',
+  /Assinar|passagem/i.test(dentroDoPlantao), dentroDoPlantao.slice(0, 100));
 cobrar('nenhuma exceção no turno do educador', erros.length === 0, erros[0]);
 
 // ====================================================== 2. Líder Diurno
@@ -190,6 +218,57 @@ cobrar('a grade do dia tem doses', /Confirmar|Doses de hoje|aguardando/i.test(aw
 await clicar(/^Estoque$/);
 const estoque = await conteudo();
 cobrar('o armário tem as duas ações', /Chegou remédio/.test(estoque) && /Conferi o armário/.test(estoque));
+/*
+ * ------------------------------------------------------------------------
+ * O QUARTO CLIQUE: o que ficou GRAVADO.
+ *
+ * Até aqui o ensaio apertava os botões e olhava se a tela respondeu alguma
+ * coisa. Não é o bastante. O defeito que a fase 31 corrigiu — a entrada de
+ * remédio que SUBSTITUÍA em vez de somar, deixando 30 frascos virarem 10 —
+ * passaria por todas as cobranças acima: a folha abriu, o botão salvou, a
+ * tela mudou. Só o NÚMERO estava errado.
+ * ------------------------------------------------------------------------
+ */
+const quantidadeDe = async (medicamento) => {
+  const texto = await conteudo();
+  const linha = texto.split('\n').findIndex((l) => l.includes(medicamento));
+  const m = /(\d+)\s+(frasco|comprimido)/.exec(texto.split('\n')[linha + 1] ?? '');
+  return m ? Number(m[1]) : null;
+};
+
+const antesDaEntrada = await quantidadeDe('Amoxicilina');
+await clicar(/Chegou remédio/);
+await pg.locator('.overlay input').first().fill('10');
+await clicar(/Registrar entrada/, '.overlay');
+await pg.waitForTimeout(1200);
+await fechar();
+const depoisDaEntrada = await quantidadeDe('Amoxicilina');
+cobrar('"Chegou remédio" SOMA ao que já estava no armário',
+  antesDaEntrada !== null && depoisDaEntrada === antesDaEntrada + 10,
+  `${antesDaEntrada} + 10 deveria dar ${(antesDaEntrada ?? 0) + 10}, deu ${depoisDaEntrada}`);
+
+/* E a conferência SUBSTITUI, com motivo obrigatório — é o par da anterior, e
+ * inverter os dois é o defeito mais fácil de cometer nesta tela. */
+await clicar(/Conferi o armário/);
+const folhaConferencia = await corpo();
+cobrar('a conferência avisa que substitui, e não soma',
+  /substitui|passa a ser|no lugar/i.test(folhaConferencia));
+await pg.locator('.overlay input').first().fill('26');
+const botaoConferir = pg.locator('.overlay button').filter({ hasText: /Registrar|Confirmar|Salvar/ });
+cobrar('sem motivo escrito, a conferência não salva',
+  await botaoConferir.first().isDisabled(),
+  'o motivo é o que impede sumiço em silêncio');
+const motivoConferencia = pg.locator('.overlay textarea').first();
+if (await motivoConferencia.count()) {
+  await motivoConferencia.fill('Contagem do plantão da manhã; sobraram 26.');
+  await botaoConferir.first().click();
+  await pg.waitForTimeout(1200);
+  await fechar();
+  cobrar('a conferência grava a quantidade contada',
+    (await quantidadeDe('Amoxicilina')) === 26,
+    `deveria ficar 26, ficou ${await quantidadeDe('Amoxicilina')}`);
+}
+
 await clicar(/^Triagem$/);
 cobrar('a triagem lista o que espera assinatura', /Revisar|triagem/i.test(await conteudo()));
 await clicar(/^Revisar$/);
@@ -245,6 +324,17 @@ await pg.locator('.overlay textarea').first().fill('Visita da tarde: acordada, c
 await clicar(/^Salvar$/, '.overlay');
 await pg.waitForTimeout(1000);
 cobrar('o relato entra no diário', /Visita da tarde/.test(await conteudo()));
+/*
+ * E a CONTAGEM precisa ter mudado. "0 dia(s) com relato" depois de escrever
+ * um relato é o defeito clássico do quarto clique: salvou, apareceu, e o
+ * resumo continuou contando o mundo de antes.
+ */
+await clicar(/← Internações/);
+await pg.waitForTimeout(900);
+cobrar('a lista passa a contar o dia com relato',
+  /1 dia\(s\) com relato/.test(await conteudo()),
+  (await conteudo()).match(/\d+ dia\(s\) com relato/)?.[0] ?? 'sem a contagem');
+await clicar(/Hospital Fictício/);
 await clicar(/Medicação dada no hospital/);
 await pg.locator('.overlay input#me-m').fill('Antibiótico fictício');
 await clicar(/^Registrar$/, '.overlay');
