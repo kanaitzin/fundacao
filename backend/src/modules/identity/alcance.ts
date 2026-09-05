@@ -57,6 +57,7 @@ export const AREAS = {
   ocorrencias: 'Ocorrências',
   saude: 'Saúde',
   internacao: 'Internação hospitalar',
+  impacto: 'O trabalho social',
   acompanhamentos: 'Acompanhamentos e relatórios',
   transferencias: 'Transferências',
   cofre: 'Cofre de acessos',
@@ -401,6 +402,11 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
       { area: 'transferencias', titulo: AREAS.transferencias, faz: 'Acompanha as transferências.' },
       { area: 'ocorrencias', titulo: AREAS.ocorrencias, faz: 'Acompanha e valida.' },
       { area: 'ata', titulo: AREAS.ata, faz: 'Lê as ATAs das unidades que abriu.' },
+      { area: 'impacto', titulo: AREAS.impacto,
+        faz: 'Vê as oito casas pelo que o acolhimento produziu: quantas crianças, '
+          + 'quantas entraram e saíram, e o que aconteceu de bom no período.',
+        servidor: 'As casas saem na ordem do cadastro, e nunca por resultado — comparar '
+          + 'casas seria um ranking com outro nome.' },
       { area: 'internacao', titulo: AREAS.internacao,
         faz: 'Lê as internações das oito casas.' },
       { area: 'saude', titulo: AREAS.saude, faz: 'Acompanha o painel de saúde.' },

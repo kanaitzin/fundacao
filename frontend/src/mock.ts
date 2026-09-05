@@ -2054,6 +2054,73 @@ function contatosDe(id: string) {
   return CONTATOS[id];
 }
 
+/*
+ * O TRABALHO SOCIAL — os marcos de vida, no servidor de mentira.
+ *
+ * Números fictícios que fazem a leitura do Gestor Geral ter alguma coisa para
+ * mostrar. Duas coisas são de propósito e valem mais que os números:
+ *
+ *  * as casas SAEM NA ORDEM DO CADASTRO, e a casa com mais conquistas não é a
+ *    primeira. Se o mock ordenasse por resultado, a demonstração ensinaria um
+ *    ranking que o sistema recusa a fazer;
+ *  * há casa com zero conquistas registradas. Ela existe na lista para a
+ *    conversa acontecer na frente de quem decide: zero aqui quer dizer que
+ *    ninguém escreveu, e não que nada aconteceu.
+ */
+const TIPOS_DE_MARCO = [
+  { cod: 'aprovacao_escolar', label: 'Passou de ano', icone: '📚' },
+  { cod: 'conclusao_ensino_fundamental', label: 'Terminou o Fundamental', icone: '🎓' },
+  { cod: 'conclusao_ensino_medio', label: 'Terminou o Ensino Médio', icone: '🎓' },
+  { cod: 'curso_profissionalizante', label: 'Curso profissionalizante', icone: '🛠️' },
+  { cod: 'certificado', label: 'Certificado', icone: '📜' },
+  { cod: 'ingresso_faculdade', label: 'Entrou na faculdade', icone: '🏛️' },
+  { cod: 'primeiro_emprego', label: 'Primeiro emprego', icone: '💼' },
+  { cod: 'estagio', label: 'Estágio', icone: '💼' },
+  { cod: 'documento_conquistado', label: 'Documento conquistado', icone: '🪪' },
+  { cod: 'esporte_ou_arte', label: 'Esporte, arte ou cultura', icone: '⚽' },
+  { cod: 'reinsercao_familiar', label: 'Reinserção familiar', icone: '🏠' },
+  { cod: 'outro', label: 'Outro', icone: '✨' },
+];
+
+const MARCOS: any[] = [
+  { id: 'mk1', acolhidoId: 'p12', acolhido: 'Miguel', casa: 'AI3', casaId: 'casa-ai3',
+    tipo: 'primeiro_emprego', quando: `${HOJE.slice(0, 4)}-03-11`,
+    descricao: 'Assinou a primeira carteira como jovem aprendiz na Padaria Fictícia, '
+      + 'depois do curso de panificação.', instituicao: 'Padaria Fictícia',
+    temComprovante: true, por: 'Tatiane Técnica (fictícia)' },
+  { id: 'mk2', acolhidoId: 'p18', acolhido: 'Rafa', casa: 'AI3', casaId: 'casa-ai3',
+    tipo: 'ingresso_faculdade', quando: `${HOJE.slice(0, 4)}-02-04`,
+    descricao: 'Passou em Pedagogia pelo ProUni. Vai continuar na casa até completar 18.',
+    instituicao: 'Faculdade Fictícia', temComprovante: true,
+    por: 'Tatiane Técnica (fictícia)' },
+  { id: 'mk3', acolhidoId: 'p01', acolhido: 'Alice', casa: 'AI3', casaId: 'casa-ai3',
+    tipo: 'aprovacao_escolar', quando: `${Number(HOJE.slice(0, 4)) - 1}-12-18`,
+    descricao: 'Passou para o 2º ano na Escola Fictícia, com reforço em leitura '
+      + 'desde agosto.', instituicao: 'Escola Fictícia Municipal',
+    temComprovante: false, por: 'Tatiane Técnica (fictícia)' },
+  { id: 'mk4', acolhidoId: 'p09', acolhido: 'Igor', casa: 'AI3', casaId: 'casa-ai3',
+    tipo: 'curso_profissionalizante', quando: `${HOJE.slice(0, 4)}-05-30`,
+    descricao: 'Concluiu o curso de elétrica predial de 160 horas.',
+    instituicao: 'Centro Fictício de Formação', temComprovante: true,
+    por: 'Carla Coordenadora (fictícia)' },
+  { id: 'mk5', acolhidoId: 'p14', acolhido: 'Nina', casa: 'AI3', casaId: 'casa-ai3',
+    tipo: 'esporte_ou_arte', quando: `${HOJE.slice(0, 4)}-04-20`,
+    descricao: 'Entrou no time de vôlei da escola e viajou para o intermunicipal.',
+    instituicao: 'Escola Fictícia Municipal', temComprovante: false,
+    por: 'Tatiane Técnica (fictícia)' },
+];
+
+/* Conquistas das outras casas, só como contagem — a demonstração não inventa
+ * nome de criança de casa que não é a do piloto. */
+const MARCOS_DE_OUTRAS: Record<string, number> = {
+  'casa-ai1': 7, 'casa-ai2': 3, 'casa-ai4': 0,
+  'casa-arm1': 2, 'casa-arm2': 4, 'casa-arm3': 1, 'casa-arm4': 2,
+};
+const ACOLHIDOS_POR_CASA: Record<string, number> = {
+  'casa-ai1': 19, 'casa-ai2': 20, 'casa-ai4': 17,
+  'casa-arm1': 8, 'casa-arm2': 7, 'casa-arm3': 9, 'casa-arm4': 6,
+};
+
 function responder(rota: string, seg: string[], q: URLSearchParams,
                    b: any, metodo: string): unknown {
   // ---- entrada
@@ -3602,6 +3669,98 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       aviso: `${n} campo(s) atualizado(s). O que estava antes continua registrado, com o seu `
         + 'nome e o horário, e aparece no perfil para quem cuida da criança.' };
   }
+  if (rota === '/impacto/kinds') {
+    return {
+      tipos: TIPOS_DE_MARCO,
+      nota: 'O marco é da criança; a casa é onde ela estava. Esta tela não compara casas '
+        + 'e não ordena por resultado.',
+    };
+  }
+
+  if (rota === '/impacto/panorama' || rota.startsWith('/impacto/panorama?')) {
+    if (!['gestor_geral', 'admin_tecnico'].includes(eu.role)) {
+      return new Recusa(403,
+        'O panorama das oito casas é do Gestor Geral. A coordenação tem o painel da casa dela.');
+    }
+    /* ORDEM DO CADASTRO. A casa com mais conquistas não é a primeira, e isso
+     * é o que a demonstração precisa mostrar. */
+    const casas = [...CASAS].sort((a, b) => a.code.localeCompare(b.code)).map((c) => ({
+      id: c.id, codigo: c.code, nome: c.name,
+      acolhidos: c.id === CASA.id ? todosKids().length : (ACOLHIDOS_POR_CASA[c.id] ?? 0),
+      capacidade: c.id === CASA.id ? LIMITE.valor : 20,
+      entradas: c.id === CASA.id ? 4 : 2,
+      saidas: c.id === CASA.id ? 2 : 1,
+      ocorrencias: c.id === CASA.id ? OCORRENCIAS.length : 1,
+      marcos: c.id === CASA.id ? MARCOS.length : (MARCOS_DE_OUTRAS[c.id] ?? 0),
+    }));
+    const soma = (campo: string) => casas.reduce((t, x: any) => t + Number(x[campo] ?? 0), 0);
+    return {
+      periodo: { de: `${HOJE.slice(0, 4)}-01-01`, ate: HOJE },
+      casas,
+      total: {
+        casas: casas.length, acolhidos: soma('acolhidos'), capacidade: soma('capacidade'),
+        entradas: soma('entradas'), saidas: soma('saidas'),
+        ocorrencias: soma('ocorrencias'), marcos: soma('marcos'),
+      },
+      marcosPorTipo: TIPOS_DE_MARCO
+        .map((t) => ({ ...t, n: MARCOS.filter((m) => m.tipo === t.cod).length }))
+        .filter((t) => t.n > 0),
+      aviso: 'As casas aparecem na ordem do cadastro, e não por resultado. Este painel '
+        + 'não compara casas: o número de cada uma se lê ao lado do número de acolhidos '
+        + 'dela, e por quem conhece a casa.',
+    };
+  }
+
+  if (rota === '/impacto/marcos' || rota.startsWith('/impacto/marcos?')) {
+    if (metodo === 'POST') {
+      if (!['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)) {
+        return new Recusa(403,
+          'Registrar um marco é da equipe técnica, da coordenação e do Gestor Geral.');
+      }
+      if (String(b.descricao ?? '').trim().length < 10) {
+        return new Recusa(400,
+          'Escreva o que aconteceu. O tipo já diz a categoria — esta linha é a história.');
+      }
+      const t = TIPOS_DE_MARCO.find((x) => x.cod === b.tipo);
+      if (!t) return new Recusa(400, 'Escolha o tipo do marco.');
+      MARCOS.unshift({
+        id: `mk-${MARCOS.length + 1}`, acolhidoId: String(b.personId),
+        acolhido: kid(String(b.personId))?.nome ?? '—', casa: CASA.code, casaId: CASA.id,
+        tipo: b.tipo, quando: b.quando ?? HOJE, descricao: String(b.descricao).trim(),
+        instituicao: b.instituicao || null, temComprovante: !!b.conteudo, por: eu.fullName,
+      });
+      return { id: MARCOS[0].id, ok: true };
+    }
+    const tipo = q.get('tipo');
+    const pid = q.get('personId');
+    return MARCOS
+      .filter((m) => (!tipo || m.tipo === tipo) && (!pid || m.acolhidoId === pid))
+      /* Por DATA, e nunca por criança com mais conquistas. */
+      .sort((a, b2) => String(b2.quando).localeCompare(String(a.quando)))
+      .map((m) => ({
+        ...m,
+        tipoRotulo: TIPOS_DE_MARCO.find((t) => t.cod === m.tipo)?.label ?? m.tipo,
+        icone: TIPOS_DE_MARCO.find((t) => t.cod === m.tipo)?.icone ?? '✨',
+      }));
+  }
+
+  if (seg[0] === 'impacto' && seg[1] === 'trajetoria' && metodo === 'GET') {
+    const k = kid(seg[2]);
+    if (!k) return new Recusa(404, 'Acolhido não encontrado — ou fora do seu alcance.');
+    return {
+      acolhido: k.nome,
+      acolhidoDesde: emHoras(9, 0),
+      casasPorOndePassou: [{ casa: CASA.code, de: emHoras(9, 0), ate: null }],
+      marcos: MARCOS.filter((m) => m.acolhidoId === k.id).map((m) => ({
+        ...m,
+        tipoRotulo: TIPOS_DE_MARCO.find((t) => t.cod === m.tipo)?.label ?? m.tipo,
+        icone: TIPOS_DE_MARCO.find((t) => t.cod === m.tipo)?.icone ?? '✨',
+      })),
+      aviso: 'Esta é a linha do que foi conquistado. Saúde, ocorrências e conteúdo '
+        + 'judicial não entram aqui — eles ficam nas telas do caso, com quem cuida dele.',
+    };
+  }
+
   if (rota === '/nursing/hospitalizations/kinds') {
     return {
       tiposDeNota: TIPOS_DE_NOTA_INT,

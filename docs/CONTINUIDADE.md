@@ -1032,9 +1032,31 @@ relato depois do diário.
 E foi provado falhando: invertida a soma no `mock.ts`, o ensaio acusou com o
 número na mensagem — "2 + 10 deveria dar 12, deu 10".
 
+### 8.26 O trabalho social — 04/09/2026
+
+O Gestor Geral responde pelas oito casas e não vai abrir a grade de medicação
+de nenhuma. Faltava a outra leitura: o que o acolhimento produziu. Migração
+0900, tela `TrabalhoSocial.tsx`, e uma chave no alto do cabeçalho — troca de
+modo, e modo não mora no menu.
+
+**O risco foi escrito antes de a tabela existir**, no cabeçalho da própria
+migração: contar conquistas por casa é a distância de um `ORDER BY` de virar
+ranking de casas. A casa que recebe adolescentes com medida protetiva recente e
+a casa-lar com quatro crianças pequenas não estão na mesma corrida, e o placar
+faz a primeira parecer pior no momento em que ela faz o trabalho mais difícil.
+
+O desenho inteiro é essa recusa — ordem por código, sem média nem meta, lista
+por data —, e há um teste só para isso, escrito **para a próxima pessoa**, que
+vai querer ordenar por marcos porque parece mais útil.
+
+A decisão mais delicada: **ausência de marco não é dado**. A criança sem linha
+aqui não fracassou; ela pode ter passado o ano sobrevivendo a uma coisa que não
+cabe em categoria — e é justamente essa que o trabalho da casa mais tocou. A
+tela diz isso quando o período vem vazio.
+
 ---
 
-## 9. Migrações desta série (0620–0890)
+## 9. Migrações desta série (0620–0900)
 
 | Nº | Módulo | O que faz |
 |---|---|---|

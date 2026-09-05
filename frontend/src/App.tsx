@@ -31,6 +31,7 @@ import { Avisos } from './screens/Avisos';
 import { ALCANCE_POR_CARGO } from '../../backend/src/modules/identity/alcance';
 import { SeloDaFila } from './screens/SeloDaFila';
 import { Internacao } from './screens/Internacao';
+import { TrabalhoSocial } from './screens/TrabalhoSocial';
 
 interface Me {
   id: string; email: string; fullName: string; role: string;
@@ -46,7 +47,7 @@ const ROLE_LABEL = ROTULO_CARGO;
 const KIND_TONE: Record<string, string> = { casa_lar: 'c-move', abrigo_institucional: 'c-brand' };
 
 /** As telas que não são do turno; a aba "Mais" fica acesa quando uma delas está aberta. */
-const OUTRAS = new Set(['agenda', 'equipe', 'casas', 'saude', 'internacao', 'ocorrencias', 'ata',
+const OUTRAS = new Set(['agenda', 'equipe', 'casas', 'saude', 'internacao', 'impacto', 'ocorrencias', 'ata',
   'cofre', 'transferencias', 'acompanhamentos', 'arquivo', 'setores', 'unidades', 'plantao',
   'rotina', 'alinhamentos', 'painel', 'sincronizacao']);
 /* O sino é de todo mundo: não há cargo que não receba escalonamento. */
@@ -153,7 +154,7 @@ export function App() {
   const [ocupado, setOcupado] = useState(false);
   const [aba, setAba] = useState<
     'dia' | 'chamada' | 'passagem' | 'acolhidos' | 'agenda' | 'casas' | 'equipe'
-    | 'saude' | 'internacao' | 'ocorrencias' | 'ata' | 'cofre' | 'transferencias'
+    | 'saude' | 'internacao' | 'impacto' | 'ocorrencias' | 'ata' | 'cofre' | 'transferencias'
     | 'acompanhamentos' | 'arquivo' | 'plantao' | 'unidades' | 'setores' | 'cozinha'
     | 'alinhamentos' | 'painel' | 'sincronizacao'
     | 'rotina' | 'avisos'>('dia');
@@ -280,7 +281,7 @@ export function App() {
     { aba: 'passagem', icone: '🔁', label: 'Passagem' },
   ].filter((t) => ve(t.aba));
   const doMais = ['unidades', 'plantao', 'agenda', 'equipe', 'setores', 'ocorrencias',
-    'ata', 'saude', 'internacao', 'alinhamentos', 'acompanhamentos', 'painel', 'arquivo', 'transferencias',
+    'ata', 'saude', 'internacao', 'impacto', 'alinhamentos', 'acompanhamentos', 'painel', 'arquivo', 'transferencias',
     'cofre', 'sincronizacao', 'casas']
     .filter((a) => ve(a));
   const temMais = doMais.length > 0;
@@ -318,6 +319,29 @@ export function App() {
                       root.setAttribute('data-theme',
                         root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
                     }}>🌓</button>
+          )}
+          {/*
+            * A CHAVE DO GESTOR — operação ou trabalho social.
+            *
+            * Ele responde pelas oito casas e não vai abrir a grade de
+            * medicação de nenhuma. As duas leituras são legítimas e não cabem
+            * na mesma tela: uma é o turno de hoje, a outra é o que o
+            * acolhimento produziu no ano. A chave fica no alto, junto do tema,
+            * porque é troca de MODO e não uma tela a mais no menu.
+            *
+            * Só aparece para quem tem as oito casas. A coordenação de uma casa
+            * tem o painel dela, e ver as outras não é função de quem responde
+            * por uma.
+            */}
+          {['gestor_geral', 'admin_tecnico'].includes(me.role) && (
+            <button className="iconbtn"
+                    title={aba === 'impacto' ? 'Voltar para a operação' : 'Ver o trabalho social'}
+                    aria-label={aba === 'impacto'
+                      ? 'Voltar para a operação das casas'
+                      : 'Ver o trabalho social das oito casas'}
+                    onClick={() => setAba(aba === 'impacto' ? 'casas' : 'impacto')}>
+              {aba === 'impacto' ? '🏠' : '🌱'}
+            </button>
           )}
           {import.meta.env.VITE_PROTOTIPO === '1' && <BotaoSemSinal />}
           <SeloDaFila />
@@ -445,6 +469,9 @@ export function App() {
           <Rotina houseId={casaAtual.id} papel={me.role} />
         )}
 
+        {abaEfetiva === 'impacto' && ve('impacto') && (
+          <TrabalhoSocial papel={me.role} />
+        )}
         {abaEfetiva === 'internacao' && ve('internacao') && casaAtual && (
           <Internacao houseId={casaAtual.id} casaLabel={`${casaAtual.code} — ${casaAtual.name}`}
                       papel={me.role} />
@@ -611,6 +638,28 @@ export function App() {
                   <div className="mutetxt">A da casa e a Geral Noturna, com pendência quando for o caso.</div>
                 </div>
               </button>
+              )}
+              {/*
+                * DUAS PORTAS PARA A MESMA TELA, e é de propósito.
+                *
+                * A chave 🌱 no alto é a que o Gestor Geral vai usar todo dia —
+                * é troca de MODO, e o modo não mora no menu. Mas quem não
+                * reparar nela precisa achar a tela onde acha todas as outras;
+                * e, do lado prático, tela que só existe atrás de um botão do
+                * cabeçalho fica de fora dos ensaios de navegador, que
+                * percorrem as abas e o "Mais".
+                */}
+              {ve('impacto') && (
+                <button className="card row"
+                        onClick={() => { setAba('impacto'); setMais(false); }}>
+                  <span aria-hidden="true">🌱</span>
+                  <div className="grow" style={{ textAlign: 'left' }}>
+                    <b className="ff">O trabalho social</b>
+                    <div className="mutetxt">
+                      As oito casas pelo que o acolhimento produziu, e não pelo turno de hoje.
+                    </div>
+                  </div>
+                </button>
               )}
               {ve('internacao') && (
                 <button className="card row"

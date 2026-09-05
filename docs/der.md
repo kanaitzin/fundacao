@@ -139,6 +139,33 @@ erDiagram
   }
 ```
 
+**`life_milestone` é O TRABALHO SOCIAL, e não o turno** (migração 0900). O
+Gestor Geral responde pelas oito casas e não vai abrir a grade de medicação de
+nenhuma; o que ele precisa é do que o acolhimento produziu — passou de ano,
+terminou o Médio, entrou no curso, assinou a primeira carteira.
+
+**O risco desta tabela está escrito na migração, antes de ela existir:** contar
+conquistas por casa é a distância de um `ORDER BY` de virar ranking de casas,
+que é proibido (regra 3). E a proibição não é burocracia — a casa que recebe
+adolescentes com medida protetiva recente e a casa-lar com quatro crianças
+pequenas não estão na mesma corrida, e o placar faz a primeira parecer pior no
+momento em que ela faz o trabalho mais difícil.
+
+Por isso: `app_panorama_das_casas` ordena por `code`, nunca por contagem; não
+há média, meta, percentual nem "casa destaque"; e **ausência de marco não é
+dado** — a criança sem linha aqui não fracassou.
+
+Três decisões da tabela:
+
+* **o marco é da CRIANÇA**; `house_id` guarda onde ela estava quando aconteceu,
+  gravado na hora, porque ela muda de casa e o marco não muda de lugar junto;
+* **todo mundo da casa lê**, inclusive o educador. É a parte boa da história, e
+  escondê-la de quem acorda a criança todo dia seria transformar em relatório o
+  que devia ser motivo de a casa inteira saber. Escrever é da técnica, da
+  coordenação e do Gestor Geral;
+* **marco não se apaga** — gatilho `app_marco_nao_e_apagado`. Um diploma que
+  sumiu do sistema é um diploma que a instituição deixou de reconhecer.
+
 **`hospitalization` é A CRIANÇA NO HOSPITAL, e não fora do acolhimento**
 (migração 0890). Pedido da coordenação em 03/09/2026.
 
@@ -523,7 +550,7 @@ desenvolvimento** (fase 15): a criança não é só o que deu problema. Sala de
 recursos, curso, aprendizagem e a evolução escrita pela equipe entram no
 documento que segue para a audiência e para a escola.
 
-## Inventário — 94 tabelas por partição
+## Inventário — 95 tabelas por partição
 
 | Partição | Tabelas |
 |---|---|
@@ -534,7 +561,7 @@ documento que segue para a audiência e para a escola.
 | medications (8) | prescription, medication_schedule, medication_administration, medication_stock, medication_stock_movement, medication_protocol, medication_authorization, medication_protocol_change |
 | activities (6) | activity, activity_assignment, activity_acknowledgement, activity_execution, substitution_request, commitment |
 | nursing (10) | health_encounter, health_evolution, nursing_triage, health_summary_issue, education_support, education_evolution, hospitalization, hospitalization_note, hospitalization_medication, hospitalization_companion |
-| reports (5) | followup, followup_source, report_document, report_delivery, export_log |
+| reports (6) | followup, followup_source, report_document, report_delivery, export_log, life_milestone |
 | checks (4) | collective_check, check_result, check_result_amendment, check_bulk |
 | notifications (3) | notification, escalation, escalation_level |
 | archive (2) | archive_item, archive_attempt |

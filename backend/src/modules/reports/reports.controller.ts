@@ -5,6 +5,7 @@ import { SessionGuard, CurrentUser } from '../identity';
 import { AuthenticatedUser } from '../../kernel/contracts';
 import { FollowupsService } from './followups.service';
 import { ReportsService } from './reports.service';
+import { ImpactoService } from './impacto.service';
 import { PanelService } from './panel.service';
 
 @Controller('followups')
@@ -62,6 +63,51 @@ export class FollowupsController {
   novaVersao(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
              @Body() body: { motivo: string }) {
     return this.fu.novaVersao(user, id, body?.motivo ?? '');
+  }
+}
+
+/**
+ * O TRABALHO SOCIAL — o outro jeito de ver as oito casas (§18.4).
+ *
+ * O Gestor Geral responde por todas e não vai abrir a grade de medicação de
+ * nenhuma. Aqui está a leitura que faltava: quantas crianças, quantas
+ * entraram e saíram, e o que aconteceu de bom no período.
+ *
+ * `/impacto/panorama` é só dele; `/impacto/marcos` e a trajetória são de quem
+ * alcança a criança — o educador inclusive, porque a parte boa da história
+ * não se esconde de quem acorda a criança todo dia.
+ */
+@Controller('impacto')
+@UseGuards(SessionGuard)
+export class ImpactoController {
+  constructor(@Inject(ImpactoService) private readonly impacto: ImpactoService) {}
+
+  @Get('kinds')
+  vocabulario() { return this.impacto.vocabulario(); }
+
+  @Get('panorama')
+  panorama(@CurrentUser() user: AuthenticatedUser,
+           @Query('de') de?: string, @Query('ate') ate?: string) {
+    return this.impacto.panorama(user, de, ate);
+  }
+
+  @Get('marcos')
+  marcos(@CurrentUser() user: AuthenticatedUser,
+         @Query('houseId') houseId?: string, @Query('personId') personId?: string,
+         @Query('de') de?: string, @Query('ate') ate?: string,
+         @Query('tipo') tipo?: string) {
+    return this.impacto.marcos(user, { houseId, personId, de, ate, tipo });
+  }
+
+  @Post('marcos')
+  registrar(@CurrentUser() user: AuthenticatedUser, @Body() body: any) {
+    return this.impacto.registrar(user, body ?? {});
+  }
+
+  @Get('trajetoria/:personId')
+  trajetoria(@CurrentUser() user: AuthenticatedUser,
+             @Param('personId', ParseUUIDPipe) personId: string) {
+    return this.impacto.trajetoria(user, personId);
   }
 }
 

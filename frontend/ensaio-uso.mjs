@@ -374,6 +374,34 @@ await trocar('gestor_geral');
 erros.length = 0;
 cobrar('o painel das unidades abre', await doMais('Painel das unidades'));
 cobrar('o painel mostra as oito casas', (await conteudo()).length > 200);
+
+/*
+ * A OUTRA LEITURA DAS OITO CASAS.
+ *
+ * A chave 🌱 no alto é troca de modo — e o teste que importa aqui não é que a
+ * tela abre: é que ela NÃO ordena por resultado. Ordenar por conquistas parece
+ * mais útil e é um ranking com outro nome.
+ */
+const chave = pg.locator('header button').filter({ hasText: /🌱/ });
+cobrar('o gestor tem a chave do trabalho social no alto', await chave.count() > 0);
+if (await chave.count()) {
+  await chave.first().click();
+  await pg.waitForTimeout(1500);
+}
+const impacto = await conteudo();
+cobrar('a tela mostra o que o acolhimento produziu',
+  /conquistas registradas/.test(impacto) && /acolhidos agora/.test(impacto));
+cobrar('as casas saem na ordem do cadastro',
+  (() => {
+    const codigos = [...impacto.matchAll(/\b(AI[1-4]|ARM[1-4]) —/g)].map((m) => m[1]);
+    return codigos.length >= 8
+      && JSON.stringify(codigos) === JSON.stringify([...codigos].sort());
+  })(),
+  'ordenar por resultado seria um ranking com outro nome');
+cobrar('a tela diz em voz alta que não compara casas',
+  /não compara casas/.test(impacto));
+cobrar('a lista de quem conquistou é por data, e não por quem tem mais',
+  /por data, e não por criança/i.test(impacto));
 cobrar('nenhuma exceção no gestor', erros.length === 0, erros[0]);
 
 await navegador.close();

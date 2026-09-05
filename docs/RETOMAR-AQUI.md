@@ -60,7 +60,7 @@ rede-acolher/
 │   │   ├── App.tsx        navegação, abas, seletor de cargo do protótipo
 │   │   └── styles.css     design system, tema claro e escuro
 │   ├── ensaio.mjs         abre o protótipo num navegador de verdade e
-│   │                      percorre as 113 telas dos oito cargos
+│   │                      percorre as 114 telas dos oito cargos
 │   └── ensaio-fila.mjs    corta o sinal e ensaia o que só existe fora da tela
 ├── scripts/               preparar-ambiente.sh — dependências, banco e
 │                          Chromium, para a sessão nova começar rodando
@@ -98,7 +98,7 @@ cd backend  && npx tsc --noEmit -p tsconfig.json
 # testes: precisam de PostgreSQL 16 rodando
 cd backend && npx jest
 
-# os ensaios de navegador: as 113 telas, e a fila offline
+# os ensaios de navegador: as 114 telas, e a fila offline
 cd frontend && npm run ensaio && npm run ensaio:fila
 ```
 
@@ -204,14 +204,14 @@ Além dos e2e, quatro suítes estáticas — elas já pegaram erro de verdade:
 
 ## 5. O QUE JÁ ESTÁ PRONTO
 
-**Fases 0 a 57. 454 testes em 44 suítes**, **quinze rodadas seguidas limpas** —
+**Fases 0 a 58. 463 testes em 45 suítes**, **quinze rodadas seguidas limpas** —
 quatro delas com o UTC já no dia seguinte, que é a condição que a regra pede.
-31 telas, 75 migrações, 94 tabelas.
+32 telas, 76 migrações, 95 tabelas.
 
 E dois ensaios de navegador, que `tsc` não substitui — ele diz que compila,
 nunca disse que renderiza:
 
-- `npm run ensaio` percorre as **113 telas** que os oito cargos alcançam,
+- `npm run ensaio` percorre as **114 telas** que os oito cargos alcançam,
   cobrando de cada uma que não deixe erro no console, que escreva alguma coisa
   e que não mostre `undefined` para quem lê;
 - `npm run ensaio:fila` faz o que só existe fora da tela: corta o sinal, marca
@@ -221,7 +221,7 @@ nunca disse que renderiza:
   folha, tenta baixar com finalidade curta demais, baixa com uma frase válida
   e confere que o `.docx` chegou.
 
-- `npm run ensaio:acessibilidade` roda o axe-core (WCAG 2.1 AA) nas **113 telas**. Nenhuma violação — e a folga foi conquistada em 02/09: contraste
+- `npm run ensaio:acessibilidade` roda o axe-core (WCAG 2.1 AA) nas **114 telas**. Nenhuma violação — e a folga foi conquistada em 02/09: contraste
   não é opinião, e a diferença entre 4,46 e 4,5 só se enxerga no corredor;
 - `npm run ensaio:uso` percorre os **oito cargos apertando os botões até o
   fim** — chamada, exceção, passagem, armário, cofre, internação, diário — e
@@ -251,6 +251,20 @@ de cadastro com histórico legível, **atualização dos dados descritivos —
 cuidados essenciais, escola, equipe de referência — guardando o que estava
 escrito antes**, saída com motivo, acervo histórico e retorno como episódio
 novo.
+
+**As oito casas, do outro jeito (04/09/2026):** o **trabalho social**. O
+Gestor Geral tem uma chave 🌱 no alto, junto do tema, que troca a operação pela
+leitura do que o acolhimento produziu: quantas crianças, quantas entraram e
+saíram, e o que aconteceu de bom — passou de ano, curso profissionalizante,
+faculdade, primeiro emprego. Dá para abrir a **trajetória de uma criança** e
+ver a linha das conquistas dela.
+
+**O desenho é uma recusa:** as casas saem na ordem do cadastro e **nunca por
+resultado**, não há média, meta nem "casa destaque", e a lista de quem
+conquistou é por data. Comparar casas seria um ranking com outro nome — e a
+casa que recebe adolescentes com medida recente não está na mesma corrida da
+casa-lar com quatro crianças pequenas. Ausência de marco não é dado: quer dizer
+que ninguém escreveu, não que nada aconteceu.
 
 **A criança no hospital (03/09/2026):** a **internação** tira o acolhido da
 linha do dia — chamada, grade e rotina — sem tirá-lo da casa: a vaga continua
@@ -578,7 +592,7 @@ valendo:
 |---|---|
 | `CONTINUIDADE.md` | a história longa, fase por fase, com o raciocínio de cada decisão |
 | `o-que-falta.md` | o levantamento das rotas sem tela, atualizado |
-| `der.md` | as 94 tabelas por partição, e o que cada uma guarda |
+| `der.md` | as 95 tabelas por partição, e o que cada uma guarda |
 | `matriz-permissoes.md` | quem alcança o quê |
 | `backlog.md` | o que foi pensado e ainda não construído |
 | `piloto-casa-03.md` | o desenho do piloto |

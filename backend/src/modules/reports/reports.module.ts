@@ -1,8 +1,9 @@
 import { Module } from '@nestjs/common';
 import { IdentityModule } from '../identity';
-import { FollowupsController, ReportsController } from './reports.controller';
+import { FollowupsController, ReportsController, ImpactoController } from './reports.controller';
 import { FollowupsService } from './followups.service';
 import { ReportsService } from './reports.service';
+import { ImpactoService } from './impacto.service';
 import { PanelService } from './panel.service';
 import { ConteudoService } from './conteudo.service';
 import { DocumentoService } from './documento.service';
@@ -16,8 +17,9 @@ import { DocumentoService } from './documento.service';
  */
 @Module({
   imports: [IdentityModule],
-  controllers: [FollowupsController, ReportsController],
-  providers: [FollowupsService, ReportsService, PanelService, ConteudoService, DocumentoService],
+  controllers: [FollowupsController, ReportsController, ImpactoController],
+  providers: [FollowupsService, ReportsService, ImpactoService, PanelService,
+    ConteudoService, DocumentoService],
   exports: [ReportsService, FollowupsService],
 })
 export class ReportsModule {}

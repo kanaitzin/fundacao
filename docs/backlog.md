@@ -578,6 +578,65 @@ para sempre.
 - **Tela vazia precisa dizer por que está vazia.** Uma lista de conflitos em
   branco é boa notícia, e se ela não disser isso será lida como "não carregou".
 
+## Fase 58 — O trabalho social: a outra leitura das oito casas ✅
+
+Pedido da coordenação: o Gestor Geral precisa das oito casas de **duas formas**.
+A que existe é a operação — plantão, dose, ATA. Ele não vai olhar isso todo dia,
+e não deve. A que faltava é o que o acolhimento produziu: quantas crianças,
+quantas entraram e saíram, e **o que aconteceu de bom** — passou de ano,
+terminou o Médio, entrou no curso profissionalizante, tirou o certificado,
+passou na faculdade, assinou a primeira carteira.
+
+Migração 0900 (`life_milestone`), `ImpactoService`, quatro rotas, tela
+`TrabalhoSocial.tsx`, e uma **chave 🌱 no alto**, junto do tema: é troca de
+MODO, e modo não mora no menu. (Há também uma porta no "Mais", porque tela que
+só existe atrás de um botão do cabeçalho fica de fora dos ensaios.)
+
+### O risco, escrito antes de a tabela existir
+
+Contar conquistas por casa é a distância de um `ORDER BY` de virar **ranking de
+casas**, que é proibido (regra 3). A proibição não é burocracia: a casa que
+recebe adolescentes com medida protetiva recente e a casa-lar com quatro
+crianças pequenas não estão na mesma corrida, e o placar faz a primeira parecer
+pior no momento em que ela faz o trabalho mais difícil.
+
+O desenho inteiro é essa recusa:
+
+- `app_panorama_das_casas` ordena por `code`. Sempre. Está escrito na migração
+  e há um teste só para isso — **porque a próxima pessoa vai querer ordenar por
+  marcos, já que parece mais útil**;
+- não há média, meta, percentual de sucesso nem "casa destaque". Um teste varre
+  a resposta procurando essas palavras;
+- a lista de quem conquistou sai **por data**, e não por criança com mais;
+- **ausência de marco não é dado.** A criança sem linha aqui não fracassou: ela
+  pode ter passado o ano sobrevivendo a uma coisa que não cabe em categoria — e
+  é justamente essa que o trabalho da casa mais tocou. A tela diz isso quando o
+  período vem vazio: *"isso diz que ninguém escreveu, não que não aconteceu"*.
+
+### As outras decisões
+
+- **O marco é da criança; a casa é onde ela estava.** `house_id` é gravado na
+  hora, porque ela muda de casa e o marco não muda de lugar junto.
+- **Todo mundo da casa lê, inclusive o educador.** É a parte boa da história, e
+  escondê-la de quem acorda a criança todo dia seria transformar em relatório o
+  que devia ser motivo de a casa inteira saber. Escrever é da técnica, da
+  coordenação e do Gestor Geral.
+- **A trajetória individual não é prontuário.** Ela traz marcos e as casas por
+  onde a criança passou. Saúde, ocorrência e conteúdo judicial ficam nas telas
+  do caso — e um teste varre a resposta para garantir.
+- **Marco não se apaga.** Um diploma que sumiu do sistema é um diploma que a
+  instituição deixou de reconhecer.
+
+### Achados
+
+- **A rota escondida numa variável, de novo.** `api(\`/impacto/panorama${...}\`)`
+  com a query montada condicionalmente sumiu do `contrato-rotas.spec`. Mesma
+  lição da fase 47, e o conferidor pegou no mesmo dia.
+- **O teste que reprovava a própria explicação.** A varredura da trajetória
+  procurava "judicial" na resposta inteira — e reprovava a frase que promete
+  não trazer conteúdo judicial. Um conferidor que proíbe a palavra ensina a não
+  escrever a explicação, e a explicação é metade do valor da tela.
+
 ## Fase 57 — O quarto clique: o que ficou gravado ✅
 
 O `ensaio:uso` apertava os botões e olhava se a tela respondeu alguma coisa.
