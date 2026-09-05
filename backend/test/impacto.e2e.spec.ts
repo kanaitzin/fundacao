@@ -189,6 +189,45 @@ describe('Painel de impacto — o trabalho social nas oito casas', () => {
     expect(aviso).toMatch(/não entram aqui/);
   });
 
+  // ----------------------------------------------------------- A folha
+
+  it('a folha do impacto não vira placar de casas, e diz por quê', async () => {
+    const r = await request(http).get('/api/v1/impacto/folha').set(auth(tokens.gestor));
+    expect(r.status).toBe(200);
+    expect(r.body.titulo).toMatch(/^O trabalho social/);
+
+    const casaACasa = r.body.secoes.find((s: any) => s.titulo === 'Casa a casa');
+    const codigos = casaACasa.tabela.linhas.map((l: string[]) => l[0].split(' —')[0]);
+    expect(codigos).toEqual([...codigos].sort());
+    expect(casaACasa.procedencia).toMatch(/ordem do cadastro/);
+    expect(casaACasa.procedencia).toMatch(/não compara casas/);
+
+    /*
+     * A ressalva é o que impede a folha de virar outra coisa quando ela sair
+     * da instituição. Quem lê de fora não sabe que parte do trabalho não cabe
+     * em categoria, e vai concluir o contrário se ninguém escrever.
+     */
+    expect(r.body.ressalva).toMatch(/Ausência de registro não é ausência de trabalho/);
+    expect(r.body.ressalva).toMatch(/não são comparáveis entre si/);
+  });
+
+  it('exportar o relatório exige finalidade e registra a saída', async () => {
+    await request(http).post('/api/v1/impacto/export')
+      .set(auth(tokens.gestor)).send({ finalidade: 'anual' }).expect(400);
+
+    const finalidade = 'relatório anual para o Conselho Municipal dos Direitos';
+    const r = await request(http).post('/api/v1/impacto/export')
+      .set(auth(tokens.gestor)).send({ finalidade });
+    expect(r.status).toBe(201);
+    expect(r.body.nomeArquivo).toMatch(/\.docx$/);
+
+    const { rows } = await admin.query(
+      `SELECT purpose FROM audit_event
+        WHERE action='documento.export' AND entity='impacto'
+        ORDER BY at DESC LIMIT 1`);
+    expect(rows[0].purpose).toBe(finalidade);
+  });
+
   it('a trajetória de quem está fora do alcance é recusada', async () => {
     const { rows: [outra] } = await admin.query(
       `SELECT hs.person_id AS id FROM house_stay hs

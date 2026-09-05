@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
+import { FolhaDocumento } from '../documentos';
+import type { ArquivoGerado } from '../documentos';
+import type { DocumentoWord } from '../docx';
 
 /**
  * O TRABALHO SOCIAL — a outra leitura das oito casas.
@@ -57,7 +60,10 @@ export function TrabalhoSocial({ papel }: { papel: string }) {
   const [ate, setAte] = useState('');
   const [tipo, setTipo] = useState('');
   const [pessoa, setPessoa] = useState<string | null>(null);
+  const [registrando, setRegistrando] = useState(false);
+  const [documento, setDocumento] = useState<DocumentoWord | null>(null);
   const [erro, setErro] = useState('');
+  const podeRegistrar = ['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(papel);
 
   const carregar = useCallback(async () => {
     setErro('');
@@ -91,6 +97,22 @@ export function TrabalhoSocial({ papel }: { papel: string }) {
         De {dia(p.periodo.de)} a {dia(p.periodo.ate)}. Esta é a leitura do que o
         acolhimento produziu — a operação do dia fica nas telas da casa.
       </p>
+
+      <div className="acoes">
+        {podeRegistrar && (
+          <button className="btn sm" onClick={() => setRegistrando(true)}>
+            ✨ Registrar conquista
+          </button>
+        )}
+        <button className="btn sm sec" onClick={async () => {
+          try {
+            setDocumento(await api<DocumentoWord>(
+              `/impacto/folha?de=${de}&ate=${ate}`));
+          } catch (e) {
+            setErro(e instanceof Error ? e.message : 'Não foi possível montar a folha.');
+          }
+        }}>📄 Relatório em Word</button>
+      </div>
 
       <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
         <label className="f grow" htmlFor="ts-de">De
@@ -176,7 +198,134 @@ export function TrabalhoSocial({ papel }: { papel: string }) {
           </button>
         ))}
       </div>
+
+      {registrando && (
+        <FolhaConquista
+          onFechar={() => setRegistrando(false)}
+          onSalvou={() => { setRegistrando(false); void carregar(); }} />
+      )}
+
+      {documento && (
+        <FolhaDocumento doc={documento} onFechar={() => setDocumento(null)}
+                        exportar={(finalidade) => api<ArquivoGerado>('/impacto/export', {
+                          method: 'POST', body: JSON.stringify({ de, ate, finalidade }),
+                        })} />
+      )}
     </>
+  );
+}
+
+/**
+ * REGISTRAR UMA CONQUISTA.
+ *
+ * A descrição é obrigatória e o servidor recusa frase curta — e a recusa tem
+ * motivo: o tipo já diz a categoria ("passou de ano"), e esta linha é a
+ * história que a criança vai ouvir daqui a dez anos. Em que escola, em que
+ * série, com quem.
+ */
+function FolhaConquista({ onFechar, onSalvou }: {
+  onFechar: () => void; onSalvou: () => void;
+}) {
+  const [tipos, setTipos] = useState<{ cod: string; label: string; icone: string }[]>([]);
+  const [pessoas, setPessoas] = useState<{ id: string; nome: string }[]>([]);
+  const [d, setD] = useState({
+    personId: '', tipo: 'aprovacao_escolar', tipoOutro: '',
+    quando: '', descricao: '', instituicao: '',
+  });
+  const [arquivo, setArquivo] = useState<{ nome: string; base64: string } | null>(null);
+  const [erro, setErro] = useState('');
+  const [ocupado, setOcupado] = useState(false);
+
+  useEffect(() => {
+    api<{ tipos: any[] }>('/impacto/kinds').then((v) => setTipos(v.tipos)).catch(() => setTipos([]));
+    api<{ id: string; nome: string }[]>('/people')
+      .then((r) => { setPessoas(r); setD((x) => ({ ...x, personId: r[0]?.id ?? '' })); })
+      .catch(() => setPessoas([]));
+  }, []);
+
+  const pode = d.personId && d.descricao.trim().length >= 10
+    && (d.tipo !== 'outro' || d.tipoOutro.trim().length >= 2);
+
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-cq"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet modal">
+        <h3 id="t-cq">Registrar conquista</h3>
+        <p className="mutetxt">
+          O marco é da criança; a casa é onde ela estava. Isto entra no histórico dela e
+          pode sair em relatório da Fundação.
+        </p>
+
+        <label className="f" htmlFor="cq-p">Quem</label>
+        <select id="cq-p" value={d.personId}
+                onChange={(e) => setD({ ...d, personId: e.target.value })}>
+          {pessoas.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
+        </select>
+
+        <label className="f" htmlFor="cq-t">O que foi</label>
+        <select id="cq-t" value={d.tipo} onChange={(e) => setD({ ...d, tipo: e.target.value })}>
+          {tipos.map((t) => (
+            <option key={t.cod} value={t.cod}>{t.icone} {t.label}</option>
+          ))}
+        </select>
+        {d.tipo === 'outro' && (
+          <>
+            <label className="f" htmlFor="cq-o">Qual foi a conquista</label>
+            <input id="cq-o" value={d.tipoOutro}
+                   onChange={(e) => setD({ ...d, tipoOutro: e.target.value })} />
+          </>
+        )}
+
+        <label className="f" htmlFor="cq-q">Quando</label>
+        <input id="cq-q" type="date" value={d.quando}
+               onChange={(e) => setD({ ...d, quando: e.target.value })} />
+
+        <label className="f" htmlFor="cq-d">
+          A história <small>— o tipo já diz a categoria; aqui vai o que aconteceu</small>
+        </label>
+        <textarea id="cq-d" value={d.descricao}
+                  onChange={(e) => setD({ ...d, descricao: e.target.value })}
+                  placeholder="Ex.: passou para o 7º ano na Escola Fictícia, com recuperação em matemática vencida no fim do ano." />
+
+        <label className="f" htmlFor="cq-i">Escola, curso ou empresa</label>
+        <input id="cq-i" value={d.instituicao}
+               onChange={(e) => setD({ ...d, instituicao: e.target.value })} />
+
+        <label className="f">
+          Comprovante <small>— diploma, certificado, carteira. PDF, JPG ou PNG, opcional</small>
+        </label>
+        <input type="file" accept="application/pdf,image/*" onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (!f) { setArquivo(null); return; }
+          const r = new FileReader();
+          r.onload = () => setArquivo({ nome: f.name, base64: String(r.result).split(',')[1] ?? '' });
+          r.readAsDataURL(f);
+        }} />
+
+        {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+        <div className="row rodape">
+          <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
+          <button className="btn grow" disabled={!pode || ocupado} onClick={async () => {
+            setOcupado(true); setErro('');
+            try {
+              await api('/impacto/marcos', {
+                method: 'POST',
+                body: JSON.stringify({
+                  ...d, quando: d.quando || undefined,
+                  descricao: d.descricao.trim(),
+                  conteudo: arquivo?.base64, nomeArquivo: arquivo?.nome,
+                }),
+              });
+              onSalvou();
+            } catch (e) {
+              setErro(e instanceof Error ? e.message : 'Não foi possível registrar.');
+            } finally {
+              setOcupado(false);
+            }
+          }}>{ocupado ? 'Registrando…' : 'Registrar'}</button>
+        </div>
+      </div>
+    </div>
   );
 }
 

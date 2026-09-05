@@ -33,6 +33,7 @@ import { folhaDaOcorrencia } from '../../backend/src/modules/incidents/ocorrenci
 import { folhaDeSaude } from '../../backend/src/modules/nursing/saude-folha';
 import { folhaDaGrade } from '../../backend/src/modules/medications/grade-folha';
 import { folhaDosCombinados } from '../../backend/src/modules/alignments/combinados-folha';
+import { folhaDoImpacto } from '../../backend/src/modules/reports/impacto-folha';
 import { SECOES_ATA, AMBIENTES_CASA, CLASSIFICACOES_EPISODIO }
   from '../../backend/src/modules/shifts/ata-secoes';
 import { TIPOS_ROTINA, DIAS_DA_SEMANA }
@@ -2121,6 +2122,150 @@ const ACOLHIDOS_POR_CASA: Record<string, number> = {
   'casa-arm1': 8, 'casa-arm2': 7, 'casa-arm3': 9, 'casa-arm4': 6,
 };
 
+/*
+ * O IMPACTO RESPONDE FORA DE `responder()`.
+ *
+ * Não é organização: é necessidade. `responder()` passou de seis mil linhas, e
+ * quando estes quatro tratadores entraram nela o `vite build` começou a
+ * estourar a memória — "JavaScript heap out of memory", com 3 GB de heap, numa
+ * função que o esbuild precisa analisar inteira de uma vez. O protótipo
+ * simplesmente parou de ser gerado.
+ *
+ * O sintoma some quebrando a função. A lição fica: o servidor de mentira
+ * cresce a cada fase, e uma função única não escala — as próximas partições
+ * nascem aqui fora.
+ *
+ * `chamar` é o próprio `responder`, passado de fora: estes tratadores montam a
+ * folha a partir das MESMAS rotas que a tela usa, e não de uma segunda versão
+ * dos dados.
+ */
+function responderImpacto(
+  rota: string, seg: string[], q: URLSearchParams, b: any, metodo: string,
+  ctx: {
+    eu: any;
+    chamar: (rota: string, seg: string[], q: URLSearchParams, b: any, metodo: string) => unknown;
+    exportarFolha: (folha: any) => unknown;
+  },
+): unknown {
+  const { eu, chamar: responder, exportarFolha } = ctx;
+  {
+  if (rota === '/impacto/kinds') {
+    return {
+      tipos: TIPOS_DE_MARCO,
+      nota: 'O marco é da criança; a casa é onde ela estava. Esta tela não compara casas '
+        + 'e não ordena por resultado.',
+    };
+    }
+
+    if (rota === '/impacto/panorama' || rota.startsWith('/impacto/panorama?')) {
+    if (!['gestor_geral', 'admin_tecnico'].includes(eu.role)) {
+      return new Recusa(403,
+        'O panorama das oito casas é do Gestor Geral. A coordenação tem o painel da casa dela.');
+    }
+    /* ORDEM DO CADASTRO. A casa com mais conquistas não é a primeira, e isso
+     * é o que a demonstração precisa mostrar. */
+    const casas = [...CASAS].sort((a, b) => a.code.localeCompare(b.code)).map((c) => ({
+      id: c.id, codigo: c.code, nome: c.name,
+      acolhidos: c.id === CASA.id ? todosKids().length : (ACOLHIDOS_POR_CASA[c.id] ?? 0),
+      capacidade: c.id === CASA.id ? LIMITE.valor : 20,
+      entradas: c.id === CASA.id ? 4 : 2,
+      saidas: c.id === CASA.id ? 2 : 1,
+      ocorrencias: c.id === CASA.id ? OCORRENCIAS.length : 1,
+      marcos: c.id === CASA.id ? MARCOS.length : (MARCOS_DE_OUTRAS[c.id] ?? 0),
+    }));
+    const soma = (campo: string) => casas.reduce((t, x: any) => t + Number(x[campo] ?? 0), 0);
+    return {
+      periodo: { de: `${HOJE.slice(0, 4)}-01-01`, ate: HOJE },
+      casas,
+      total: {
+        casas: casas.length, acolhidos: soma('acolhidos'), capacidade: soma('capacidade'),
+        entradas: soma('entradas'), saidas: soma('saidas'),
+        ocorrencias: soma('ocorrencias'), marcos: soma('marcos'),
+      },
+      marcosPorTipo: TIPOS_DE_MARCO
+        .map((t) => ({ ...t, n: MARCOS.filter((m) => m.tipo === t.cod).length }))
+        .filter((t) => t.n > 0),
+      aviso: 'As casas aparecem na ordem do cadastro, e não por resultado. Este painel '
+        + 'não compara casas: o número de cada uma se lê ao lado do número de acolhidos '
+        + 'dela, e por quem conhece a casa.',
+    };
+    }
+
+    if (rota === '/impacto/marcos' || rota.startsWith('/impacto/marcos?')) {
+    if (metodo === 'POST') {
+      if (!['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)) {
+        return new Recusa(403,
+          'Registrar um marco é da equipe técnica, da coordenação e do Gestor Geral.');
+      }
+      if (String(b.descricao ?? '').trim().length < 10) {
+        return new Recusa(400,
+          'Escreva o que aconteceu. O tipo já diz a categoria — esta linha é a história.');
+      }
+      const t = TIPOS_DE_MARCO.find((x) => x.cod === b.tipo);
+      if (!t) return new Recusa(400, 'Escolha o tipo do marco.');
+      MARCOS.unshift({
+        id: `mk-${MARCOS.length + 1}`, acolhidoId: String(b.personId),
+        acolhido: kid(String(b.personId))?.nome ?? '—', casa: CASA.code, casaId: CASA.id,
+        tipo: b.tipo, quando: b.quando ?? HOJE, descricao: String(b.descricao).trim(),
+        instituicao: b.instituicao || null, temComprovante: !!b.conteudo, por: eu.fullName,
+      });
+      return { id: MARCOS[0].id, ok: true };
+    }
+    const tipo = q.get('tipo');
+    const pid = q.get('personId');
+    return MARCOS
+      .filter((m) => (!tipo || m.tipo === tipo) && (!pid || m.acolhidoId === pid))
+      /* Por DATA, e nunca por criança com mais conquistas. */
+      .sort((a, b2) => String(b2.quando).localeCompare(String(a.quando)))
+      .map((m) => ({
+        ...m,
+        tipoRotulo: TIPOS_DE_MARCO.find((t) => t.cod === m.tipo)?.label ?? m.tipo,
+        icone: TIPOS_DE_MARCO.find((t) => t.cod === m.tipo)?.icone ?? '✨',
+      }));
+    }
+
+    if (seg[0] === 'impacto' && seg[1] === 'trajetoria' && metodo === 'GET') {
+    const k = kid(seg[2]);
+    if (!k) return new Recusa(404, 'Acolhido não encontrado — ou fora do seu alcance.');
+    return {
+      acolhido: k.nome,
+      acolhidoDesde: emHoras(9, 0),
+      casasPorOndePassou: [{ casa: CASA.code, de: emHoras(9, 0), ate: null }],
+      marcos: MARCOS.filter((m) => m.acolhidoId === k.id).map((m) => ({
+        ...m,
+        tipoRotulo: TIPOS_DE_MARCO.find((t) => t.cod === m.tipo)?.label ?? m.tipo,
+        icone: TIPOS_DE_MARCO.find((t) => t.cod === m.tipo)?.icone ?? '✨',
+      })),
+      aviso: 'Esta é a linha do que foi conquistado. Saúde, ocorrências e conteúdo '
+        + 'judicial não entram aqui — eles ficam nas telas do caso, com quem cuida dele.',
+    };
+    }
+
+    if (rota === '/impacto/folha' || rota.startsWith('/impacto/folha?')) {
+    /* A MESMA folha do servidor, montada pela MESMA função compartilhada. */
+    const pan: any = responder('/impacto/panorama', ['impacto', 'panorama'], q, {}, 'GET');
+    if (pan instanceof Recusa) return pan;
+    const lista: any = responder('/impacto/marcos', ['impacto', 'marcos'], q, {}, 'GET');
+    return folhaDoImpacto(
+      pan.periodo, pan.total, pan.casas,
+      pan.marcosPorTipo.map((t: any) => ({ label: t.label, n: t.n })),
+      (lista as any[]).map((m) => ({
+        acolhido: m.acolhido, casa: m.casa, tipoRotulo: m.tipoRotulo,
+        quando: m.quando, descricao: m.descricao, instituicao: m.instituicao,
+      })),
+      { nome: eu.fullName, cargo: cargoNoDocumento(eu.role) },
+    );
+    }
+
+    if (rota === '/impacto/export' && metodo === 'POST') {
+    const f: any = responder('/impacto/folha', ['impacto', 'folha'], q, {}, 'GET');
+    if (f instanceof Recusa) return f;
+    return exportarFolha(f);
+    }
+  }
+  return undefined;
+}
+
 function responder(rota: string, seg: string[], q: URLSearchParams,
                    b: any, metodo: string): unknown {
   // ---- entrada
@@ -3669,98 +3814,6 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       aviso: `${n} campo(s) atualizado(s). O que estava antes continua registrado, com o seu `
         + 'nome e o horário, e aparece no perfil para quem cuida da criança.' };
   }
-  if (rota === '/impacto/kinds') {
-    return {
-      tipos: TIPOS_DE_MARCO,
-      nota: 'O marco é da criança; a casa é onde ela estava. Esta tela não compara casas '
-        + 'e não ordena por resultado.',
-    };
-  }
-
-  if (rota === '/impacto/panorama' || rota.startsWith('/impacto/panorama?')) {
-    if (!['gestor_geral', 'admin_tecnico'].includes(eu.role)) {
-      return new Recusa(403,
-        'O panorama das oito casas é do Gestor Geral. A coordenação tem o painel da casa dela.');
-    }
-    /* ORDEM DO CADASTRO. A casa com mais conquistas não é a primeira, e isso
-     * é o que a demonstração precisa mostrar. */
-    const casas = [...CASAS].sort((a, b) => a.code.localeCompare(b.code)).map((c) => ({
-      id: c.id, codigo: c.code, nome: c.name,
-      acolhidos: c.id === CASA.id ? todosKids().length : (ACOLHIDOS_POR_CASA[c.id] ?? 0),
-      capacidade: c.id === CASA.id ? LIMITE.valor : 20,
-      entradas: c.id === CASA.id ? 4 : 2,
-      saidas: c.id === CASA.id ? 2 : 1,
-      ocorrencias: c.id === CASA.id ? OCORRENCIAS.length : 1,
-      marcos: c.id === CASA.id ? MARCOS.length : (MARCOS_DE_OUTRAS[c.id] ?? 0),
-    }));
-    const soma = (campo: string) => casas.reduce((t, x: any) => t + Number(x[campo] ?? 0), 0);
-    return {
-      periodo: { de: `${HOJE.slice(0, 4)}-01-01`, ate: HOJE },
-      casas,
-      total: {
-        casas: casas.length, acolhidos: soma('acolhidos'), capacidade: soma('capacidade'),
-        entradas: soma('entradas'), saidas: soma('saidas'),
-        ocorrencias: soma('ocorrencias'), marcos: soma('marcos'),
-      },
-      marcosPorTipo: TIPOS_DE_MARCO
-        .map((t) => ({ ...t, n: MARCOS.filter((m) => m.tipo === t.cod).length }))
-        .filter((t) => t.n > 0),
-      aviso: 'As casas aparecem na ordem do cadastro, e não por resultado. Este painel '
-        + 'não compara casas: o número de cada uma se lê ao lado do número de acolhidos '
-        + 'dela, e por quem conhece a casa.',
-    };
-  }
-
-  if (rota === '/impacto/marcos' || rota.startsWith('/impacto/marcos?')) {
-    if (metodo === 'POST') {
-      if (!['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)) {
-        return new Recusa(403,
-          'Registrar um marco é da equipe técnica, da coordenação e do Gestor Geral.');
-      }
-      if (String(b.descricao ?? '').trim().length < 10) {
-        return new Recusa(400,
-          'Escreva o que aconteceu. O tipo já diz a categoria — esta linha é a história.');
-      }
-      const t = TIPOS_DE_MARCO.find((x) => x.cod === b.tipo);
-      if (!t) return new Recusa(400, 'Escolha o tipo do marco.');
-      MARCOS.unshift({
-        id: `mk-${MARCOS.length + 1}`, acolhidoId: String(b.personId),
-        acolhido: kid(String(b.personId))?.nome ?? '—', casa: CASA.code, casaId: CASA.id,
-        tipo: b.tipo, quando: b.quando ?? HOJE, descricao: String(b.descricao).trim(),
-        instituicao: b.instituicao || null, temComprovante: !!b.conteudo, por: eu.fullName,
-      });
-      return { id: MARCOS[0].id, ok: true };
-    }
-    const tipo = q.get('tipo');
-    const pid = q.get('personId');
-    return MARCOS
-      .filter((m) => (!tipo || m.tipo === tipo) && (!pid || m.acolhidoId === pid))
-      /* Por DATA, e nunca por criança com mais conquistas. */
-      .sort((a, b2) => String(b2.quando).localeCompare(String(a.quando)))
-      .map((m) => ({
-        ...m,
-        tipoRotulo: TIPOS_DE_MARCO.find((t) => t.cod === m.tipo)?.label ?? m.tipo,
-        icone: TIPOS_DE_MARCO.find((t) => t.cod === m.tipo)?.icone ?? '✨',
-      }));
-  }
-
-  if (seg[0] === 'impacto' && seg[1] === 'trajetoria' && metodo === 'GET') {
-    const k = kid(seg[2]);
-    if (!k) return new Recusa(404, 'Acolhido não encontrado — ou fora do seu alcance.');
-    return {
-      acolhido: k.nome,
-      acolhidoDesde: emHoras(9, 0),
-      casasPorOndePassou: [{ casa: CASA.code, de: emHoras(9, 0), ate: null }],
-      marcos: MARCOS.filter((m) => m.acolhidoId === k.id).map((m) => ({
-        ...m,
-        tipoRotulo: TIPOS_DE_MARCO.find((t) => t.cod === m.tipo)?.label ?? m.tipo,
-        icone: TIPOS_DE_MARCO.find((t) => t.cod === m.tipo)?.icone ?? '✨',
-      })),
-      aviso: 'Esta é a linha do que foi conquistado. Saúde, ocorrências e conteúdo '
-        + 'judicial não entram aqui — eles ficam nas telas do caso, com quem cuida dele.',
-    };
-  }
-
   if (rota === '/nursing/hospitalizations/kinds') {
     return {
       tiposDeNota: TIPOS_DE_NOTA_INT,
@@ -6013,6 +6066,13 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       (d.reunioes ?? []).map((m: any) => ({ data: m.data, titulo: m.titulo, por: m.por })),
       autorDaFolha());
   };
+
+  {
+    const doImpacto = responderImpacto(rota, seg, q, b, metodo, {
+      eu, chamar: responder, exportarFolha,
+    });
+    if (doImpacto !== undefined) return doImpacto;
+  }
 
   if (seg[0] === 'shifts' && seg[2] === 'folha' && metodo === 'GET') {
     return folhaDoPlantao(seg[1]);

@@ -104,6 +104,22 @@ export class ImpactoController {
     return this.impacto.registrar(user, body ?? {});
   }
 
+  /*
+   * O documento que sai da instituição. `folha` monta e não registra; `export`
+   * exige a finalidade escrita e registra a saída, como todo documento do
+   * sistema desde a fase 47.
+   */
+  @Get('folha')
+  folhaDoImpacto(@CurrentUser() user: AuthenticatedUser,
+                 @Query('de') de?: string, @Query('ate') ate?: string) {
+    return this.impacto.folha(user, de, ate);
+  }
+
+  @Post('export')
+  exportarImpacto(@CurrentUser() user: AuthenticatedUser, @Body() body: any) {
+    return this.impacto.exportar(user, body ?? {});
+  }
+
   @Get('trajetoria/:personId')
   trajetoria(@CurrentUser() user: AuthenticatedUser,
              @Param('personId', ParseUUIDPipe) personId: string) {

@@ -8,6 +8,9 @@ import { DatabaseService } from '../../kernel/database/database.service';
 import { AuditService } from '../../kernel/audit/audit.service';
 import { AuthenticatedUser } from '../../kernel/contracts';
 import { hojeNaInstituicao } from '../../kernel/common/tempo';
+import { DocumentosService } from '../../kernel/documentos/documentos.service';
+import { cargoNoDocumento } from '../../kernel/documentos/folha';
+import { folhaDoImpacto } from './impacto-folha';
 
 /**
  * O TRABALHO SOCIAL, E NÃO O TURNO (migração 0900).
@@ -42,6 +45,7 @@ export class ImpactoService {
   constructor(
     @Inject(DatabaseService) private readonly db: DatabaseService,
     @Inject(AuditService) private readonly audit: AuditService,
+    @Inject(DocumentosService) private readonly documentos: DocumentosService,
   ) {}
 
   /**
@@ -299,4 +303,34 @@ export class ImpactoService {
       }
     });
   }
+
+  // ------------------------------------------------------- O documento
+
+  /**
+   * A folha do trabalho social. Ver não é exportar: não gera arquivo e não
+   * registra saída.
+   */
+  async folha(user: AuthenticatedUser, de?: string, ate?: string) {
+    const p = await this.panorama(user, de, ate);
+    const marcos = await this.marcos(user, { de: p.periodo.de, ate: p.periodo.ate });
+    return folhaDoImpacto(
+      p.periodo, p.total, p.casas,
+      p.marcosPorTipo.map((t) => ({ label: t.label, n: t.n })),
+      marcos.map((m) => ({
+        acolhido: m.acolhido, casa: m.casa, tipoRotulo: m.tipoRotulo,
+        quando: m.quando, descricao: m.descricao, instituicao: m.instituicao,
+      })),
+      { nome: user.fullName, cargo: cargoNoDocumento(user.role) },
+    );
+  }
+
+  async exportar(user: AuthenticatedUser, input: {
+    de?: string; ate?: string; finalidade?: string;
+  }) {
+    const folha = await this.folha(user, input.de, input.ate);
+    return this.documentos.exportar(user, folha, {
+      entidade: 'impacto', finalidade: input.finalidade ?? '',
+    });
+  }
+
 }

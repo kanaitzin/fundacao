@@ -578,6 +578,37 @@ para sempre.
 - **Tela vazia precisa dizer por que está vazia.** Uma lista de conflitos em
   branco é boa notícia, e se ela não disser isso será lida como "não carregou".
 
+## Fase 59 — A conquista se registra, e o relatório sai ✅
+
+A fase 58 mostrava conquistas que só podiam ser criadas pela API. Agora a tela
+registra — com comprovante anexado — e o relatório em Word do trabalho social
+sai pelo caminho de sempre: folha na tela, finalidade escrita, saída registrada.
+
+A folha (`impacto-folha.ts`) é onde a recusa de comparar casas mais importa,
+porque é o que sai da instituição: uma tabela impressa com as casas em ordem de
+conquistas vira um placar que anda sozinho por reuniões onde ninguém estará
+para explicar o contexto de cada uma. Ela lista por código, põe o número de
+acolhidos ao lado do de conquistas, e carrega a ressalva que não é enfeite:
+**ausência de registro não é ausência de trabalho** — segurar uma crise, manter
+um vínculo, atravessar um ano difícil não cabe em categoria e não aparece ali.
+
+### Achados
+
+- **O protótipo parou de ser gerado.** `vite build` começou a estourar a
+  memória — "JavaScript heap out of memory", com 3 GB de heap — quando quatro
+  tratadores novos entraram em `responder()`, que já passava de seis mil
+  linhas. Não é um erro de código: é uma função que o esbuild precisa analisar
+  inteira. O sintoma sumiu quebrando a função (`responderImpacto`), e a lição
+  fica: o servidor de mentira cresce a cada fase, e uma função única não
+  escala. As próximas partições nascem fora dela.
+- **Uma suíte que falhava às vezes.** O teste da medicação do hospital contava
+  as doses da criança numa janela de cinco minutos esperando zero — e
+  `medication_administration` é compartilhada: seeds e outras suítes escrevem
+  lá dentro da mesma janela. Era a regra 13 sendo violada por quem a conhece.
+  A contagem virou relativa: mede antes, mede depois, e cobra que não mudou.
+  **Uma suíte que falha às vezes é pior do que uma que falta** — ensina a rodar
+  de novo até passar.
+
 ## Fase 58 — O trabalho social: a outra leitura das oito casas ✅
 
 Pedido da coordenação: o Gestor Geral precisa das oito casas de **duas formas**.

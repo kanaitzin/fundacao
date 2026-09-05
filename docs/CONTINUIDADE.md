@@ -1054,6 +1054,26 @@ aqui não fracassou; ela pode ter passado o ano sobrevivendo a uma coisa que nã
 cabe em categoria — e é justamente essa que o trabalho da casa mais tocou. A
 tela diz isso quando o período vem vazio.
 
+### 8.27 A conquista se registra, e o relatório sai — 04/09/2026
+
+A tela do trabalho social ganhou o registro da conquista, com comprovante, e o
+relatório em Word — folha na tela, finalidade escrita, saída registrada, como
+todo documento desde a fase 47.
+
+Dois achados, e os dois são sobre coisas que cresceram sem ninguém olhar:
+
+**O protótipo parou de ser gerado.** `vite build` passou a estourar a memória
+com 3 GB de heap quando quatro tratadores entraram em `responder()`, que já
+tinha mais de seis mil linhas. Não é erro de código: é uma função que o esbuild
+analisa inteira. Quebrar a função resolveu, e a regra que fica é que o servidor
+de mentira não cabe mais numa função só.
+
+**Uma suíte que falhava às vezes.** O teste da medicação do hospital contava
+doses numa janela de cinco minutos esperando zero, sobre uma tabela que os
+seeds e outras suítes também escrevem — a regra 13 violada por quem a escreveu.
+Virou contagem relativa. Uma suíte que falha às vezes é pior do que uma que
+falta: ela ensina a rodar de novo até passar.
+
 ---
 
 ## 9. Migrações desta série (0620–0900)

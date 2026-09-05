@@ -190,6 +190,20 @@ describe('Internação hospitalar', () => {
   });
 
   it('a medicação do hospital entra com a origem escrita, e não na grade da casa', async () => {
+    /*
+     * A contagem é RELATIVA ao que já estava no banco (regra 13).
+     *
+     * A primeira versão contava as doses da criança numa janela de cinco
+     * minutos e esperava zero — e falhava de vez em quando, porque
+     * `medication_administration` é compartilhada: os seeds e as outras
+     * suítes escrevem lá dentro da mesma janela. O teste acusava um defeito
+     * que não existia, e uma suíte que falha às vezes é pior do que uma suíte
+     * que falta: ensina a rodar de novo até passar.
+     */
+    const { rows: [{ n: antesDaDose }] } = await admin.query(
+      `SELECT count(*)::int AS n FROM medication_administration WHERE person_id = $1`,
+      [crianca]);
+
     const r = await request(http)
       .post(`/api/v1/nursing/hospitalizations/${internacao}/medications`)
       .set(auth(tokens.enfermagem))
@@ -206,12 +220,11 @@ describe('Internação hospitalar', () => {
     /* Ninguém da casa aparece como quem administrou: só quem REGISTROU. */
     expect(Object.keys(med)).not.toContain('administradaPor');
 
-    /* E ela não entra na grade da casa. */
-    const { rows } = await admin.query(
-      `SELECT count(*)::int AS n FROM medication_administration
-        WHERE person_id = $1 AND medication_administration.recorded_at > now() - interval '5 minutes'`,
+    /* E ela não entra na grade da casa: a tabela da casa não mudou de tamanho. */
+    const { rows: [{ n: depoisDaDose }] } = await admin.query(
+      `SELECT count(*)::int AS n FROM medication_administration WHERE person_id = $1`,
       [crianca]);
-    expect(rows[0].n).toBe(0);
+    expect(depoisDaDose).toBe(antesDaDose);
   });
 
   it('o diário conta os dias COM relato, e não os que faltam', async () => {
