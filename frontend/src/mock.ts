@@ -3959,9 +3959,12 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         return new Recusa(403, 'Designar acompanhante é da equipe técnica e da coordenação.');
       }
       for (const a of i.acompanhantes) if (!a.ate) a.ate = HOJE;
+      /* A tela manda `userId`; o mock traduz para o nome, como o servidor faz
+       * com `app_user_display_name`. */
+      const escolhido = EQUIPE_CASA.find((m: any) => m.id === b.userId);
       i.acompanhantes.unshift({
         id: `acomp-${i.acompanhantes.length + 1}`,
-        quem: String(b.quem ?? 'Educador (fictício)'), de: HOJE, ate: null,
+        quem: escolhido?.nome ?? String(b.quem ?? 'Educador (fictício)'), de: HOJE, ate: null,
         observacao: b.observacao || null, designadoPor: eu.fullName,
       });
       return { ok: true };

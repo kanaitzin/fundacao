@@ -578,6 +578,48 @@ para sempre.
 - **Tela vazia precisa dizer por que está vazia.** Uma lista de conflitos em
   branco é boa notícia, e se ela não disser isso será lida como "não carregou".
 
+## Fase 62 — O levantamento de rotas sem porta vira conferidor ✅
+
+A fase 61 terminou com uma lição: **construir a rota e a tela em fases
+diferentes deixa buracos que o `tsc` não vê e os testes de servidor não veem**,
+porque do lado do servidor está tudo certo. O levantamento era feito à mão, de
+vez em quando — e por isso duas rotas ficaram semanas sem porta.
+
+`test/rotas-sem-porta.spec.ts` confere o lado que faltava. O `contrato-rotas`
+já garantia que toda chamada da tela existe no servidor; este garante que toda
+rota do servidor **é chamada por alguma tela — ou está declarada como rota de
+máquina, com o motivo por extenso**.
+
+A lista de exceções é o coração do arquivo. Cada linha é uma decisão escrita, e
+o teste cobra que o motivo tenha mais de 40 caracteres — sem isso, a lista
+viraria o lugar onde se esconde o que faltou construir. Há um segundo teste
+para o caminho inverso: **exceção que ganhou tela depois passa a mentir**, e a
+próxima pessoa lê o motivo e acredita nele.
+
+### O que ele achou, na primeira rodada
+
+Onze rotas. Cinco eram de máquina (geração do dia por relógio, escalonamento do
+que passou da hora, sonda de saúde), três eram leituras que a tela resolve por
+outro caminho — e **três esperavam decisão da Fundação**, o que agora está
+escrito ao lado da rota: as fontes do acompanhamento (§7.7), a leitura
+excepcional de relato (§7.6) e a correção da linha da casa na ATA Geral (§7.2).
+Rota parada esperando resposta institucional deixou de parecer esquecimento.
+
+E **uma era gap de verdade**: designar o educador que acompanha a internação. A
+rota existia desde a fase 53 sem botão em lugar nenhum — e é a função que a
+coordenação mais usaria ali, porque a criança fica três semanas e quem vai ao
+hospital muda a cada plantão. Agora tem tela.
+
+### Dois defeitos do próprio conferidor
+
+- **Ele acusou as rotas mais usadas da casa.** `/checks/:id/mark` e
+  `/activities/:id/record` chegam ao servidor por `apiOuFila`, e o caminho é
+  passado a uma função auxiliar da tela — a rota está lá, escrita, só não
+  colada no `api(`. A pergunta deste conferidor não é *como* a rota é chamada
+  (isso é do `contrato-rotas`), e sim se alguma tela sequer a menciona.
+- **A interpolação parava nos parênteses.** `${idDe(ev)}` fez a primeira versão
+  ler `/activities/` como rota, e três chamadas viraram uma.
+
 ## Fase 61 — As portas que faltavam ✅
 
 Duas rotas construídas nas fases 58 e 60 não tinham porta em tela nenhuma —

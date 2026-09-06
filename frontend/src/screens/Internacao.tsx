@@ -240,6 +240,7 @@ function PeriodoNoHospital({ id, papel, onVoltar }: {
   const [escrevendo, setEscrevendo] = useState(false);
   const [medicando, setMedicando] = useState(false);
   const [encerrando, setEncerrando] = useState(false);
+  const [designando, setDesignando] = useState(false);
   const podeEncerrar = QUEM_ABRE.includes(papel);
 
   const carregar = useCallback(async () => {
@@ -284,6 +285,19 @@ function PeriodoNoHospital({ id, papel, onVoltar }: {
 
       {/* ------------------------------------------------------ acompanhantes */}
       <div className="eyebrow">Quem esteve com ela</div>
+      {/*
+        * DESIGNAR O ACOMPANHANTE.
+        *
+        * A rota existia desde a fase 53 e não tinha botão em lugar nenhum — o
+        * conferidor de rotas sem porta a encontrou. E é a função que a
+        * coordenação mais vai usar aqui: a criança fica três semanas, e quem
+        * vai ao hospital muda a cada plantão.
+        */}
+      {p.status === 'em_andamento' && podeEncerrar && (
+        <button className="btn sec block" onClick={() => setDesignando(true)}>
+          👤 Designar quem acompanha
+        </button>
+      )}
       {!p.acompanhantes.length && (
         <p className="mutetxt">Ninguém designado ainda.</p>
       )}
@@ -380,6 +394,17 @@ function PeriodoNoHospital({ id, papel, onVoltar }: {
               method: 'POST', body: JSON.stringify(d),
             });
             setMedicando(false); setAviso(r.aviso); void carregar();
+          }} />
+      )}
+
+      {designando && (
+        <FolhaAcompanhante
+          onFechar={() => setDesignando(false)}
+          onDesignar={async (d) => {
+            await api(`/nursing/hospitalizations/${id}/companion`, {
+              method: 'POST', body: JSON.stringify(d),
+            });
+            setDesignando(false); void carregar();
           }} />
       )}
 
@@ -526,6 +551,63 @@ function FolhaEncerrar({ desfechos, nome, onFechar, onEncerrar }: {
             try { await onEncerrar({ desfecho, observacao: observacao.trim() }); }
             catch (e) { setErro(e instanceof Error ? e.message : 'Não foi possível encerrar.'); }
           }}>Encerrar</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+/**
+ * QUEM VAI ACOMPANHAR.
+ *
+ * A lista é da equipe da casa. Designar encerra o período de quem estava
+ * antes — sem isso, a resposta para "quem estava com ela no dia 12?" seria
+ * "três pessoas ao mesmo tempo", que não ajuda ninguém.
+ */
+function FolhaAcompanhante({ onFechar, onDesignar }: {
+  onFechar: () => void; onDesignar: (d: Record<string, unknown>) => Promise<void>;
+}) {
+  const [equipe, setEquipe] = useState<{ id: string; nome: string; papel?: string }[]>([]);
+  const [userId, setUserId] = useState('');
+  const [observacao, setObservacao] = useState('');
+  const [erro, setErro] = useState('');
+
+  useEffect(() => {
+    api<any[]>('/staff')
+      .then((r) => {
+        const lista = r.map((m) => ({ id: m.id, nome: m.nome ?? m.fullName, papel: m.papel }));
+        setEquipe(lista);
+        setUserId(lista[0]?.id ?? '');
+      })
+      .catch(() => setEquipe([]));
+  }, []);
+
+  return (
+    <div className="overlay" role="dialog" aria-modal="true"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet">
+        <h3>Quem vai acompanhar</h3>
+        <p className="mutetxt">
+          Quem for designado passa a ver esta internação e a escrever no diário — e só
+          nesta. O período de quem estava antes é encerrado hoje.
+        </p>
+        <label className="f" htmlFor="ac-q">Quem</label>
+        <select id="ac-q" value={userId} onChange={(e) => setUserId(e.target.value)}>
+          {equipe.map((m) => (
+            <option key={m.id} value={m.id}>{m.nome}{m.papel ? ` · ${m.papel}` : ''}</option>
+          ))}
+        </select>
+        <label className="f" htmlFor="ac-o">Observação</label>
+        <textarea id="ac-o" value={observacao} onChange={(e) => setObservacao(e.target.value)}
+                  placeholder="Ex.: visitas da tarde nesta semana." />
+        {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+        <div className="row rodape">
+          <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
+          <button className="btn grow" disabled={!userId} onClick={async () => {
+            try { await onDesignar({ userId, observacao: observacao.trim() }); }
+            catch (e) { setErro(e instanceof Error ? e.message : 'Não foi possível designar.'); }
+          }}>Designar</button>
         </div>
       </div>
     </div>

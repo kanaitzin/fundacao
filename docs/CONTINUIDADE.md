@@ -1112,6 +1112,28 @@ diferentes deixa buracos que o `tsc` não vê e os testes de servidor não veem*
 porque do lado do servidor está tudo certo. O levantamento de rotas sem porta
 precisa ser rodado depois de cada fase que abre rota nova — não semanas depois.
 
+### 8.30 O levantamento de rotas sem porta vira conferidor — 04/09/2026
+
+`test/rotas-sem-porta.spec.ts`. O `contrato-rotas` garante que toda chamada da
+tela existe no servidor; este garante o inverso — toda rota do servidor é
+chamada por alguma tela, ou está declarada como rota de máquina com o motivo
+por extenso.
+
+A lista de exceções é o coração do arquivo, e ela tem duas travas: o motivo
+precisa ter mais de 40 caracteres (senão a lista vira o esconderijo do que
+faltou construir), e um teste cobra que **nenhuma exceção esteja mentindo** —
+rota listada como "de máquina" que ganhou tela depois.
+
+Onze rotas na primeira rodada. Uma era gap de verdade — designar o educador que
+acompanha a internação, sem botão desde a fase 53 —, e três esperam decisão da
+Fundação, o que agora está escrito ao lado delas: rota parada por resposta que
+não veio deixou de parecer esquecimento.
+
+O conferidor errou duas vezes antes de acertar, e as duas valem: ele acusou as
+rotas MAIS usadas da casa, porque elas passam por `apiOuFila` e o caminho vai
+numa função auxiliar; e a interpolação `${idDe(ev)}` fez a primeira versão
+parar nos parênteses e ler `/activities/` como rota.
+
 ---
 
 ## 9. Migrações desta série (0620–0900)
