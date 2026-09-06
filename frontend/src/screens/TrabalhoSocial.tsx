@@ -106,6 +106,8 @@ export function TrabalhoSocial({ papel }: { papel: string }) {
         )}
         <button className="btn sm sec" onClick={async () => {
           try {
+            /* Sem `houseId`, é a folha das oito. A coordenação, que só alcança
+             * a casa dela, usa o botão equivalente no painel da unidade. */
             setDocumento(await api<DocumentoWord>(
               `/impacto/folha?de=${de}&ate=${ate}`));
           } catch (e) {
@@ -339,6 +341,7 @@ function FolhaConquista({ onFechar, onSalvou }: {
  */
 function Trajetoria({ personId, onVoltar }: { personId: string; onVoltar: () => void }) {
   const [t, setT] = useState<any>(null);
+  const [doc, setDoc] = useState<DocumentoWord | null>(null);
   const [erro, setErro] = useState('');
 
   useEffect(() => {
@@ -354,6 +357,23 @@ function Trajetoria({ personId, onVoltar }: { personId: string; onVoltar: () => 
     <>
       <button className="btn sm ghost" onClick={onVoltar}>← O trabalho social</button>
       <h2>{t.acolhido}</h2>
+      {/*
+        * A HISTÓRIA DELA, EM FOLHA.
+        *
+        * É o documento que o Juízo mais pergunta e que o sistema não tinha. Ele
+        * não substitui o relatório técnico — e a própria folha diz isso, porque
+        * quem recebe papel timbrado numa audiência não tem obrigação de saber a
+        * diferença.
+        */}
+      <div className="acoes">
+        <button className="btn sm sec" onClick={async () => {
+          try {
+            setDoc(await api<DocumentoWord>(`/impacto/trajetoria/${personId}/folha`));
+          } catch (e) {
+            setErro(e instanceof Error ? e.message : 'Não foi possível montar a folha.');
+          }
+        }}>📄 A trajetória em Word</button>
+      </div>
       <div className="mutetxt">
         Acolhida desde {dia(t.acolhidoDesde)} ·{' '}
         {t.casasPorOndePassou.map((c: any) => c.casa).join(' → ')}
@@ -384,6 +404,13 @@ function Trajetoria({ personId, onVoltar }: { personId: string; onVoltar: () => 
         ))}
       </div>
       <p className="mutetxt" style={{ marginTop: 12 }}>{t.aviso}</p>
+
+      {doc && (
+        <FolhaDocumento doc={doc} onFechar={() => setDoc(null)}
+                        exportar={(finalidade) => api<ArquivoGerado>(
+                          `/impacto/trajetoria/${personId}/export`,
+                          { method: 'POST', body: JSON.stringify({ finalidade }) })} />
+      )}
     </>
   );
 }

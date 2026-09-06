@@ -578,6 +578,39 @@ para sempre.
 - **Tela vazia precisa dizer por que está vazia.** Uma lista de conflitos em
   branco é boa notícia, e se ela não disser isso será lida como "não carregou".
 
+## Fase 60 — O relatório de uma casa, e a trajetória para a audiência ✅
+
+As duas pontas que faltavam na frente do trabalho social.
+
+**O relatório de uma casa só**, e com ele a coordenação entra — decisão de
+produto, não descuido: ela responde por aquelas vinte crianças e é quem vai à
+reunião de rede e à audiência concentrada. Pedir ao Gestor Geral um documento
+sobre o trabalho que ela mesma fez seria estranho. O que continua sendo só dele
+é a visão das OITO — comparar casas não é função de quem responde por uma. E
+casa fora do alcance é **recusa**, não painel zerado: o RLS filtra as linhas, e
+zero se leria como "esta casa não fez nada".
+
+**A trajetória em folha** — o documento que o Juízo mais pergunta e que o
+sistema não tinha: o que esta criança conquistou no tempo em que esteve
+acolhida, com data e instituição. Ela **não substitui o relatório técnico**, e
+a própria folha diz isso: quem recebe papel timbrado numa audiência não tem
+obrigação de saber a diferença.
+
+E quando não há nada registrado, a folha escreve: *"isso diz que ninguém
+escreveu — não diz que nada aconteceu, e não é uma avaliação dela"*. Mostrar
+uma trajetória vazia a um juiz sem essa frase transformaria a falha do registro
+em avaliação da criança.
+
+### Achado
+
+**A rota da trajetória capturava a da folha.** `seg[0]==='impacto' &&
+seg[1]==='trajetoria'` sem conferir o número de segmentos casava também com
+`/impacto/trajetoria/:id/folha`, e devolvia a trajetória crua no lugar da
+folha. A tela recebia um objeto sem seções e **não desenhava nada, sem erro
+nenhum** — o botão parecia morto. É o mesmo padrão de `@Get(':id')` engolindo
+rota de palavra fixa, que o projeto já conhece do lado do servidor; do lado do
+mock, ninguém tinha tropeçado ainda.
+
 ## Fase 59 — A conquista se registra, e o relatório sai ✅
 
 A fase 58 mostrava conquistas que só podiam ser criadas pela API. Agora a tela

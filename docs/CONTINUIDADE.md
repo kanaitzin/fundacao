@@ -1074,6 +1074,29 @@ seeds e outras suítes também escrevem — a regra 13 violada por quem a escrev
 Virou contagem relativa. Uma suíte que falha às vezes é pior do que uma que
 falta: ela ensina a rodar de novo até passar.
 
+### 8.28 O relatório de uma casa, e a trajetória para a audiência — 04/09/2026
+
+Duas pontas da frente do trabalho social.
+
+**O relatório de uma casa só**, e com ele a coordenação entra: ela responde
+por aquelas vinte crianças e é quem vai à reunião de rede e à audiência
+concentrada. A visão das oito continua sendo só do Gestor Geral — comparar
+casas não é função de quem responde por uma. Casa fora do alcance é recusa, e
+não painel zerado, pelo mesmo motivo de sempre: zero se leria como "esta casa
+não fez nada".
+
+**A trajetória em folha** — o documento que o Juízo mais pergunta. Ela não
+substitui o relatório técnico, e diz isso por escrito; e, quando não há nada
+registrado, escreve que a folha vazia fala de quem não escreveu, e não da
+criança. Sem essa frase, uma trajetória em branco numa audiência vira avaliação
+da criança.
+
+Achado: a rota da trajetória, no mock, capturava a da folha — faltava conferir
+o número de segmentos. A tela recebia um objeto sem seções e não desenhava
+nada, **sem erro nenhum**: o botão parecia morto. É o mesmo padrão de
+`@Get(':id')` engolindo rota de palavra fixa, que o projeto já conhece do lado
+do servidor.
+
 ---
 
 ## 9. Migrações desta série (0620–0900)

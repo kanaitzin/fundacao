@@ -120,3 +120,79 @@ export function folhaDoImpacto(
       + 'elas recebem perfis diferentes, por determinação judicial.',
   };
 }
+
+/**
+ * A TRAJETÓRIA DE UMA CRIANÇA, EM FOLHA.
+ *
+ * É o documento que o Juízo mais pergunta e que o sistema não tinha: o que
+ * esta criança conquistou no tempo em que esteve acolhida.
+ *
+ * **Ele não substitui o relatório técnico.** Aquele tem avaliação, e é escrito
+ * e aprovado por quem acompanha o caso. Este é a linha dos fatos bons — data,
+ * o que foi, onde. A ressalva diz isso, porque quem recebe uma folha timbrada
+ * numa audiência não tem obrigação de saber a diferença.
+ *
+ * E ele diz, quando não há nada: **a folha vazia não é sobre a criança.** Uma
+ * trajetória sem conquistas registradas fala de quem não escreveu, e mostrar
+ * isso a um juiz sem explicar seria transformar a falha do registro em
+ * avaliação da criança.
+ */
+export function folhaDaTrajetoria(
+  acolhido: string,
+  desde: string,
+  casas: Array<{ casa: string; de: string; ate: string | null }>,
+  marcos: Array<{ tipoRotulo: string; quando: string; descricao: string;
+                  instituicao?: string | null }>,
+  autor: AutorDaFolha,
+): Folha {
+  const secoes: SecaoDaFolha[] = [
+    {
+      titulo: 'O tempo no acolhimento',
+      tabela: {
+        cabecalho: ['Unidade', 'De', 'Até'],
+        linhas: casas.map((c) => [
+          c.casa, diaBR(c.de), c.ate ? diaBR(c.ate) : 'até hoje',
+        ]),
+      },
+    },
+  ];
+
+  if (marcos.length) {
+    secoes.push({
+      titulo: 'O que ela conquistou',
+      itens: marcos.map((m) => [
+        `${diaBR(m.quando)} — ${m.tipoRotulo}`,
+        m.descricao,
+        m.instituicao ?? null,
+      ].filter(Boolean).join('. ')),
+      procedencia: 'em ordem de data. Cada linha foi escrita por quem acompanha a criança, '
+        + 'com a data em que aconteceu.',
+    });
+  } else {
+    secoes.push({
+      titulo: 'O que ela conquistou',
+      paragrafos: [
+        'Nenhuma conquista foi registrada no sistema para esta criança. Isso diz que '
+        + 'ninguém escreveu — não diz que nada aconteceu, e não é uma avaliação dela.',
+      ],
+    });
+  }
+
+  return {
+    titulo: `Trajetória no acolhimento — ${acolhido}`,
+    identificacao: [
+      { rotulo: 'Acolhido', valor: acolhido },
+      { rotulo: 'Acolhido desde', valor: diaBR(desde) },
+      { rotulo: 'Conquistas registradas', valor: String(marcos.length) },
+      { rotulo: 'Emitida em', valor: diaBR(new Date()) },
+    ],
+    secoes,
+    geradoPor: autor.nome,
+    cargo: autor.cargo,
+    assinatura: true,
+    ressalva: 'Esta folha reúne o que foi CONQUISTADO, com data e instituição. Ela não é '
+      + 'o relatório técnico do caso — aquele tem a avaliação da equipe, e é escrito e '
+      + 'aprovado por quem acompanha esta criança. Saúde, ocorrências e conteúdo judicial '
+      + 'não entram aqui.',
+  };
+}

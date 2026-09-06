@@ -33,7 +33,8 @@ import { folhaDaOcorrencia } from '../../backend/src/modules/incidents/ocorrenci
 import { folhaDeSaude } from '../../backend/src/modules/nursing/saude-folha';
 import { folhaDaGrade } from '../../backend/src/modules/medications/grade-folha';
 import { folhaDosCombinados } from '../../backend/src/modules/alignments/combinados-folha';
-import { folhaDoImpacto } from '../../backend/src/modules/reports/impacto-folha';
+import { folhaDoImpacto, folhaDaTrajetoria }
+  from '../../backend/src/modules/reports/impacto-folha';
 import { SECOES_ATA, AMBIENTES_CASA, CLASSIFICACOES_EPISODIO }
   from '../../backend/src/modules/shifts/ata-secoes';
 import { TIPOS_ROTINA, DIAS_DA_SEMANA }
@@ -2224,7 +2225,12 @@ function responderImpacto(
       }));
     }
 
-    if (seg[0] === 'impacto' && seg[1] === 'trajetoria' && metodo === 'GET') {
+    /* `seg.length === 3`: sem isto, esta rota captura também
+     * `/impacto/trajetoria/:id/folha` e devolve a trajetória crua no lugar da
+     * folha — a tela recebe um objeto sem seções e não desenha nada, sem erro
+     * nenhum na tela. */
+    if (seg[0] === 'impacto' && seg[1] === 'trajetoria' && seg.length === 3
+        && metodo === 'GET') {
     const k = kid(seg[2]);
     if (!k) return new Recusa(404, 'Acolhido não encontrado — ou fora do seu alcance.');
     return {
@@ -2257,7 +2263,27 @@ function responderImpacto(
     );
     }
 
-    if (rota === '/impacto/export' && metodo === 'POST') {
+    if (seg[0] === 'impacto' && seg[1] === 'trajetoria' && seg[3] === 'folha') {
+    const t: any = responder(`/impacto/trajetoria/${seg[2]}`,
+      ['impacto', 'trajetoria', seg[2]], q, {}, 'GET');
+    if (t instanceof Recusa) return t;
+    return folhaDaTrajetoria(t.acolhido, t.acolhidoDesde, t.casasPorOndePassou,
+      t.marcos.map((m: any) => ({
+        tipoRotulo: m.tipoRotulo, quando: m.quando,
+        descricao: m.descricao, instituicao: m.instituicao,
+      })),
+      { nome: eu.fullName, cargo: cargoNoDocumento(eu.role) });
+  }
+
+  if (seg[0] === 'impacto' && seg[1] === 'trajetoria' && seg[3] === 'export'
+      && metodo === 'POST') {
+    const f: any = responder(`/impacto/trajetoria/${seg[2]}/folha`,
+      ['impacto', 'trajetoria', seg[2], 'folha'], q, {}, 'GET');
+    if (f instanceof Recusa) return f;
+    return exportarFolha(f);
+  }
+
+  if (rota === '/impacto/export' && metodo === 'POST') {
     const f: any = responder('/impacto/folha', ['impacto', 'folha'], q, {}, 'GET');
     if (f instanceof Recusa) return f;
     return exportarFolha(f);

@@ -109,15 +109,37 @@ export class ImpactoController {
    * exige a finalidade escrita e registra a saída, como todo documento do
    * sistema desde a fase 47.
    */
+  /*
+   * Com `houseId`, é o relatório da PRÓPRIA casa — e aí a coordenação entra.
+   * Ela responde por aquelas vinte crianças e é quem vai à reunião de rede e à
+   * audiência concentrada; pedir ao Gestor Geral um documento sobre o trabalho
+   * que ela mesma fez seria estranho. Sem `houseId`, é a visão das oito, que
+   * continua sendo só dele.
+   */
   @Get('folha')
   folhaDoImpacto(@CurrentUser() user: AuthenticatedUser,
-                 @Query('de') de?: string, @Query('ate') ate?: string) {
-    return this.impacto.folha(user, de, ate);
+                 @Query('de') de?: string, @Query('ate') ate?: string,
+                 @Query('houseId') houseId?: string) {
+    return this.impacto.folha(user, de, ate, houseId || undefined);
   }
 
   @Post('export')
   exportarImpacto(@CurrentUser() user: AuthenticatedUser, @Body() body: any) {
     return this.impacto.exportar(user, body ?? {});
+  }
+
+  /** A história de uma criança, para levar a uma audiência. */
+  @Get('trajetoria/:personId/folha')
+  folhaDaTrajetoria(@CurrentUser() user: AuthenticatedUser,
+                    @Param('personId', ParseUUIDPipe) personId: string) {
+    return this.impacto.folhaDaTrajetoria(user, personId);
+  }
+
+  @Post('trajetoria/:personId/export')
+  exportarTrajetoria(@CurrentUser() user: AuthenticatedUser,
+                     @Param('personId', ParseUUIDPipe) personId: string,
+                     @Body() body: { finalidade?: string }) {
+    return this.impacto.exportarTrajetoria(user, personId, body?.finalidade ?? '');
   }
 
   @Get('trajetoria/:personId')

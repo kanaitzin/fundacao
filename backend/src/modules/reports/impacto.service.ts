@@ -10,7 +10,7 @@ import { AuthenticatedUser } from '../../kernel/contracts';
 import { hojeNaInstituicao } from '../../kernel/common/tempo';
 import { DocumentosService } from '../../kernel/documentos/documentos.service';
 import { cargoNoDocumento } from '../../kernel/documentos/folha';
-import { folhaDoImpacto } from './impacto-folha';
+import { folhaDoImpacto, folhaDaTrajetoria } from './impacto-folha';
 
 /**
  * O TRABALHO SOCIAL, E NÃO O TURNO (migração 0900).
@@ -145,6 +145,84 @@ export class ImpactoService {
         aviso: 'As casas aparecem na ordem do cadastro, e não por resultado. Este painel '
           + 'não compara casas: o número de cada uma se lê ao lado do número de acolhidos '
           + 'dela, e por quem conhece a casa.',
+      };
+    });
+  }
+
+  /**
+   * O MESMO PANORAMA, DE UMA CASA SÓ.
+   *
+   * Aqui a coordenação entra — e é uma decisão de produto, não um descuido: o
+   * relatório do trabalho da PRÓPRIA casa é dela. Ela responde por aquelas
+   * vinte crianças e é quem vai a reunião de rede, a audiência concentrada e a
+   * conversa com a escola. Negar isso obrigaria a pedir ao Gestor Geral um
+   * documento sobre o trabalho que ela mesma fez.
+   *
+   * O que continua sendo só do Gestor é a visão das OITO — comparar casas não
+   * é função de quem responde por uma.
+   *
+   * As contagens aqui saem por consultas comuns, sob RLS: se a casa não é
+   * dela, as linhas não aparecem. Diferente do panorama das oito, que precisa
+   * de `SECURITY DEFINER` para atravessar as casas.
+   */
+  async panoramaDaCasa(user: AuthenticatedUser, houseId: string, de?: string, ate?: string) {
+    const p = this.periodo(de, ate);
+    return this.db.asUser(user.id, async (c) => {
+      const { rows: [casa] } = await c.query(
+        `SELECT h.id, h.code, h.name, h.capacity FROM house h WHERE h.id = $1`, [houseId]);
+      /* Casa fora do alcance é RECUSA, e não painel zerado — o RLS filtra as
+       * linhas, e zero se leria como "esta casa não fez nada". */
+      if (!casa) {
+        throw new NotFoundException('Unidade não encontrada — ou fora do seu alcance.');
+      }
+
+      const um = async (sql: string, params: unknown[] = []) =>
+        Number((await c.query(sql, params)).rows[0]?.n ?? 0);
+
+      const casaNoPeriodo = {
+        id: casa.id, codigo: casa.code, nome: casa.name,
+        acolhidos: await um(
+          `SELECT count(*)::int AS n FROM house_stay
+            WHERE house_id = $1 AND status = 'ativa'`, [houseId]),
+        capacidade: casa.capacity,
+        entradas: await um(
+          `SELECT count(*)::int AS n FROM house_stay
+            WHERE house_id = $1
+              AND (started_at AT TIME ZONE 'America/Sao_Paulo')::date BETWEEN $2 AND $3`,
+          [houseId, p.de, p.ate]),
+        saidas: await um(
+          `SELECT count(*)::int AS n FROM house_stay
+            WHERE house_id = $1 AND ended_at IS NOT NULL
+              AND (ended_at AT TIME ZONE 'America/Sao_Paulo')::date BETWEEN $2 AND $3`,
+          [houseId, p.de, p.ate]),
+        ocorrencias: await um(
+          `SELECT count(*)::int AS n FROM incident
+            WHERE house_id = $1
+              AND (happened_at AT TIME ZONE 'America/Sao_Paulo')::date BETWEEN $2 AND $3`,
+          [houseId, p.de, p.ate]),
+        marcos: await um(
+          `SELECT count(*)::int AS n FROM life_milestone
+            WHERE house_id = $1 AND happened_on BETWEEN $2 AND $3`, [houseId, p.de, p.ate]),
+      };
+
+      const { rows: porTipo } = await c.query(
+        `SELECT kind, count(*)::int AS n FROM life_milestone
+          WHERE house_id = $1 AND happened_on BETWEEN $2 AND $3
+          GROUP BY kind ORDER BY kind`, [houseId, p.de, p.ate]);
+
+      return {
+        periodo: p,
+        casas: [casaNoPeriodo],
+        total: {
+          casas: 1, acolhidos: casaNoPeriodo.acolhidos, capacidade: casaNoPeriodo.capacidade,
+          entradas: casaNoPeriodo.entradas, saidas: casaNoPeriodo.saidas,
+          ocorrencias: casaNoPeriodo.ocorrencias, marcos: casaNoPeriodo.marcos,
+        },
+        marcosPorTipo: this.TIPOS
+          .map((t) => ({ ...t, n: Number(porTipo.find((x: any) => x.kind === t.cod)?.n ?? 0) }))
+          .filter((t) => t.n > 0),
+        aviso: 'Este é o trabalho desta unidade no período. Ele não se compara com o de '
+          + 'outra: cada casa recebe um perfil diferente, por determinação judicial.',
       };
     });
   }
@@ -310,9 +388,11 @@ export class ImpactoService {
    * A folha do trabalho social. Ver não é exportar: não gera arquivo e não
    * registra saída.
    */
-  async folha(user: AuthenticatedUser, de?: string, ate?: string) {
-    const p = await this.panorama(user, de, ate);
-    const marcos = await this.marcos(user, { de: p.periodo.de, ate: p.periodo.ate });
+  async folha(user: AuthenticatedUser, de?: string, ate?: string, houseId?: string) {
+    const p = houseId
+      ? await this.panoramaDaCasa(user, houseId, de, ate)
+      : await this.panorama(user, de, ate);
+    const marcos = await this.marcos(user, { de: p.periodo.de, ate: p.periodo.ate, houseId });
     return folhaDoImpacto(
       p.periodo, p.total, p.casas,
       p.marcosPorTipo.map((t) => ({ label: t.label, n: t.n })),
@@ -321,15 +401,43 @@ export class ImpactoService {
         quando: m.quando, descricao: m.descricao, instituicao: m.instituicao,
       })),
       { nome: user.fullName, cargo: cargoNoDocumento(user.role) },
+      houseId ? `${p.casas[0].codigo} — ${p.casas[0].nome}` : undefined,
     );
   }
 
   async exportar(user: AuthenticatedUser, input: {
-    de?: string; ate?: string; finalidade?: string;
+    de?: string; ate?: string; houseId?: string; finalidade?: string;
   }) {
-    const folha = await this.folha(user, input.de, input.ate);
+    const folha = await this.folha(user, input.de, input.ate, input.houseId);
     return this.documentos.exportar(user, folha, {
-      entidade: 'impacto', finalidade: input.finalidade ?? '',
+      entidade: 'impacto', houseId: input.houseId ?? null,
+      finalidade: input.finalidade ?? '',
+    });
+  }
+
+  /**
+   * A TRAJETÓRIA COMO FOLHA — a história de uma criança para levar a uma
+   * audiência.
+   *
+   * É o documento que o Juízo mais pergunta e que o sistema não tinha: o que
+   * esta criança conquistou no tempo em que esteve acolhida. Ele não substitui
+   * o relatório técnico — que tem avaliação, e é de quem acompanha o caso.
+   * Este aqui é a linha dos fatos bons, com data e instituição.
+   */
+  async folhaDaTrajetoria(user: AuthenticatedUser, personId: string) {
+    const t = await this.trajetoria(user, personId);
+    return folhaDaTrajetoria(t.acolhido, t.acolhidoDesde, t.casasPorOndePassou,
+      t.marcos.map((m: any) => ({
+        tipoRotulo: m.tipoRotulo, quando: m.quando,
+        descricao: m.descricao, instituicao: m.instituicao,
+      })),
+      { nome: user.fullName, cargo: cargoNoDocumento(user.role) });
+  }
+
+  async exportarTrajetoria(user: AuthenticatedUser, personId: string, finalidade: string) {
+    const folha = await this.folhaDaTrajetoria(user, personId);
+    return this.documentos.exportar(user, folha, {
+      entidade: 'trajetoria', entidadeId: personId, finalidade,
     });
   }
 

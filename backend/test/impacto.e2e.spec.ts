@@ -228,6 +228,54 @@ describe('Painel de impacto — o trabalho social nas oito casas', () => {
     expect(rows[0].purpose).toBe(finalidade);
   });
 
+  it('a coordenação tira o relatório da PRÓPRIA casa, e só dela', async () => {
+    /*
+     * Decisão de produto: o relatório do trabalho da própria casa é da
+     * coordenação. Ela responde por aquelas vinte crianças e é quem vai à
+     * reunião de rede e à audiência concentrada — pedir ao Gestor Geral um
+     * documento sobre o trabalho que ela mesma fez seria estranho.
+     *
+     * O que continua sendo só dele é a visão das OITO.
+     */
+    const daPropria = await request(http)
+      .get(`/api/v1/impacto/folha?houseId=${AI3}`).set(auth(tokens.coord));
+    expect(daPropria.status).toBe(200);
+    expect(daPropria.body.titulo).toMatch(/AI3/);
+    /* Uma casa só: não há quadro comparativo nenhum. */
+    expect(daPropria.body.secoes.some((x: any) => x.titulo === 'Casa a casa')).toBe(false);
+
+    const { rows: [ai4] } = await admin.query(`SELECT id FROM house WHERE code='AI4'`);
+    const deOutra = await request(http)
+      .get(`/api/v1/impacto/folha?houseId=${ai4.id}`).set(auth(tokens.coord));
+    /* Casa fora do alcance é RECUSA, e não painel zerado: o RLS filtra as
+     * linhas, e zero se leria como "esta casa não fez nada". */
+    expect(deOutra.status).toBe(404);
+
+    const asOito = await request(http).get('/api/v1/impacto/folha').set(auth(tokens.coord));
+    expect(asOito.status).toBe(403);
+  });
+
+  it('a trajetória vira folha para a audiência, e diz o que ela NÃO é', async () => {
+    const r = await request(http)
+      .get(`/api/v1/impacto/trajetoria/${crianca}/folha`).set(auth(tokens.tecnica));
+    expect(r.status).toBe(200);
+    expect(r.body.titulo).toMatch(/^Trajetória no acolhimento/);
+    expect(r.body.secoes.map((x: any) => x.titulo)).toContain('O que ela conquistou');
+
+    /*
+     * Quem recebe uma folha timbrada numa audiência não tem obrigação de saber
+     * a diferença entre isto e o relatório técnico. A folha diz.
+     */
+    expect(r.body.ressalva).toMatch(/não é o relatório técnico/i);
+    expect(r.body.ressalva).toMatch(/não entram aqui/);
+
+    const arq = await request(http)
+      .post(`/api/v1/impacto/trajetoria/${crianca}/export`).set(auth(tokens.tecnica))
+      .send({ finalidade: 'levar à audiência concentrada de outubro' });
+    expect(arq.status).toBe(201);
+    expect(arq.body.nomeArquivo).toMatch(/\.docx$/);
+  });
+
   it('a trajetória de quem está fora do alcance é recusada', async () => {
     const { rows: [outra] } = await admin.query(
       `SELECT hs.person_id AS id FROM house_stay hs

@@ -204,7 +204,7 @@ Além dos e2e, quatro suítes estáticas — elas já pegaram erro de verdade:
 
 ## 5. O QUE JÁ ESTÁ PRONTO
 
-**Fases 0 a 59. 465 testes em 45 suítes**, **quinze rodadas seguidas limpas** —
+**Fases 0 a 60. 467 testes em 45 suítes**, **quinze rodadas seguidas limpas** —
 quatro delas com o UTC já no dia seguinte, que é a condição que a regra pede.
 32 telas, 76 migrações, 95 tabelas.
 
@@ -265,6 +265,11 @@ conquistou é por data. Comparar casas seria um ranking com outro nome — e a
 casa que recebe adolescentes com medida recente não está na mesma corrida da
 casa-lar com quatro crianças pequenas. Ausência de marco não é dado: quer dizer
 que ninguém escreveu, não que nada aconteceu.
+
+Dessa leitura saem dois documentos: o **relatório do período** — das oito casas
+para o Gestor Geral, ou de uma casa só para a coordenação dela — e a
+**trajetória de uma criança**, que é a história dela para levar a uma
+audiência. Os dois passam pela finalidade escrita e ficam registrados.
 
 **A criança no hospital (03/09/2026):** a **internação** tira o acolhido da
 linha do dia — chamada, grade e rotina — sem tirá-lo da casa: a vaga continua
