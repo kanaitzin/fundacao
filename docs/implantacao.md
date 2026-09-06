@@ -52,6 +52,47 @@ nada**: ele continua dizendo que o arquivo existe.
 
 ---
 
+## 2.1 Subir o sistema — e provar que ele sobe
+
+```bash
+npm run ensaio:producao
+```
+
+Constrói, cria um banco virgem, aplica as 76 migrações **pelo binário
+compilado**, sobe o serviço e confere `/health`. Não publica nada e não toca no
+banco de trabalho.
+
+Este ensaio existe porque o projeto passou 60 fases sem nunca rodar compilado:
+tudo corria por `tsx` (o servidor de desenvolvimento) e por `jest`. O que se
+implanta é outra coisa — `dist/`, sem `src/`, sem `scripts/`, sem nenhuma
+dependência de desenvolvimento — e da primeira vez que isto foi ensaiado
+encontrou duas coisas que teriam quebrado a implantação:
+
+- **`dist/` saía com ZERO migrações.** Os 76 `.sql` vivem em
+  `src/modules/…`, e o `tsc` não copia `.sql`. Quem implantasse só o `dist/`
+  subiria o serviço, veria `/health` responder "ok" e descobriria o banco
+  vazio. O `/health` responde ok porque o banco EXISTE; ele não sabe se as
+  tabelas estão lá.
+- **A migração dependia de `tsx`**, que é dependência de desenvolvimento. Com
+  `npm ci --omit=dev`, o comando falha com "tsx: not found".
+
+Os dois estão resolvidos: o `postbuild` copia os `.sql` e o timbre para dentro
+do `dist/`, e há um migrador compilado (`npm run migrate:prod`).
+
+Na implantação, a ordem é:
+
+```bash
+npm ci                       # na raiz — é um workspace
+npm run build -w backend     # compila e copia migrações e timbre
+npm run build -w frontend    # o PWA
+DATABASE_URL=…  npm run migrate:prod -w backend
+DATABASE_APP_URL=… node backend/dist/main.js
+```
+
+`DATABASE_URL` é do **dono** do banco (migra); `DATABASE_APP_URL` é da
+**aplicação** (`rede_app`, sem superusuário, com o RLS valendo). Trocar os dois
+faz o sistema funcionar e desliga a proteção — e nada avisa.
+
 ## 3. Backup
 
 ```bash

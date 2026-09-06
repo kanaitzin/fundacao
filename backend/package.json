@@ -5,13 +5,15 @@
   "description": "Rede Acolher — API (monólito modular NestJS)",
   "scripts": {
     "dev": "tsx watch src/main.ts",
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.build.json && npm run postbuild",
     "start": "node dist/main.js",
     "migrate": "tsx scripts/migrate.ts",
     "seed": "tsx scripts/seed.ts",
     "test": "jest --runInBand",
     "lint": "tsc --noEmit",
-    "seed:fase2": "tsx scripts/seed-fase2.ts"
+    "seed:fase2": "tsx scripts/seed-fase2.ts",
+    "migrate:prod": "node dist/migrate.js",
+    "postbuild": "node scripts/copiar-migracoes.mjs"
   },
   "dependencies": {
     "@nestjs/common": "^10.4.15",

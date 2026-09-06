@@ -204,7 +204,7 @@ Além dos e2e, quatro suítes estáticas — elas já pegaram erro de verdade:
 
 ## 5. O QUE JÁ ESTÁ PRONTO
 
-**Fases 0 a 62. 471 testes em 46 suítes**, **quinze rodadas seguidas limpas** —
+**Fases 0 a 63. 471 testes em 46 suítes**, **quinze rodadas seguidas limpas** —
 quatro delas com o UTC já no dia seguinte, que é a condição que a regra pede.
 32 telas, 76 migrações, 95 tabelas.
 
@@ -240,6 +240,12 @@ escreve **doze meses da Fundação inteira** e mede as rotas com RLS. Foi ele qu
 achou as três telas mais abertas do sistema respondendo em oito segundos e meio
 — ver §8.19 da CONTINUIDADE, que é a leitura mais útil antes de escrever
 qualquer consulta nova por dia.
+
+E, desde a fase 63, **o sistema é ensaiado COMPILADO**:
+`npm run ensaio:producao` constrói, cria um banco virgem, aplica as migrações
+pelo binário e sobe o serviço. O projeto passou 62 fases sem nunca rodar assim
+— tudo por `tsx` e por `jest` —, e a primeira rodada encontrou o `dist/` sem
+nenhuma das 76 migrações.
 
 E, desde a fase 48, **a restauração é ensaiada como o resto**:
 `npm run ensaio:restauracao` faz o ciclo inteiro num banco descartável —

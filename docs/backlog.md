@@ -578,6 +578,43 @@ para sempre.
 - **Tela vazia precisa dizer por que está vazia.** Uma lista de conflitos em
   branco é boa notícia, e se ela não disser isso será lida como "não carregou".
 
+## Fase 63 — O sistema sobe compilado ✅
+
+Sessenta e duas fases, 471 testes, seis ensaios de navegador — e o projeto
+**nunca tinha rodado compilado**. Tudo sempre correu por `tsx` (o servidor de
+desenvolvimento) e por `jest` (que compila em memória). O que se implanta é
+outra coisa: `dist/`, sem `src/`, sem `scripts/`, sem nenhuma dependência de
+desenvolvimento.
+
+`npm run ensaio:producao` constrói, cria um banco virgem, aplica as migrações
+**pelo binário compilado**, sobe o serviço e confere `/health`.
+
+### O que ele achou na primeira rodada
+
+- **`dist/` com ZERO migrações.** Os 76 `.sql` vivem em `src/modules/…`, e o
+  `tsc` não copia `.sql`. Quem implantasse só o `dist/` — que é o que se
+  implanta — subiria o serviço, veria `/health` responder "ok", e descobriria o
+  banco vazio. **O `/health` responde ok porque o banco existe; ele não sabe se
+  as tabelas estão lá.**
+- **A migração dependia de `tsx`**, que é dependência de desenvolvimento: com
+  `npm ci --omit=dev`, "tsx: not found". Agora há `src/migrate.ts`, compilado
+  junto, que lê os `.sql` de `dist/modules/…` — e o mesmo código serve rodando
+  de `src/`, para a versão de produção não envelhecer sem ninguém a exercitar.
+
+### E um defeito no próprio ensaio, que vale mais que os dois
+
+Ele **morria em silêncio ao encontrar o problema**. O padrão era
+`<condição>; cobrar "texto" $?`, e com `set -e` o script morre na condição
+falsa, antes de imprimir o ✗ — saindo com código 0, sem dizer nada,
+exatamente quando acha um defeito. Foi visto na prática: desliguei a cópia das
+migrações para provar o conferidor, e ele respondeu "✓ o backend compila" e
+encerrou como se estivesse tudo bem.
+
+`cobrar` passou a receber o comando em vez do resultado. É a terceira vez que
+este projeto encontra a mesma família de defeito — conferidor que falha calado
+—, depois do `playwright install` recusado por rede e do ensaio que ensaiava
+zero telas na Cozinha.
+
 ## Fase 62 — O levantamento de rotas sem porta vira conferidor ✅
 
 A fase 61 terminou com uma lição: **construir a rota e a tela em fases

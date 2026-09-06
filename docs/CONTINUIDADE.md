@@ -1134,6 +1134,30 @@ rotas MAIS usadas da casa, porque elas passam por `apiOuFila` e o caminho vai
 numa função auxiliar; e a interpolação `${idDe(ev)}` fez a primeira versão
 parar nos parênteses e ler `/activities/` como rota.
 
+### 8.31 O sistema sobe compilado — 04/09/2026
+
+Sessenta e duas fases, 471 testes, seis ensaios de navegador — e o projeto
+nunca tinha rodado compilado. Tudo sempre correu por `tsx` e por `jest`. O que
+se implanta é `dist/`, sem `src/`, sem `scripts/` e sem dependência de
+desenvolvimento nenhuma.
+
+`npm run ensaio:producao` fecha essa lacuna, e a primeira rodada achou duas
+coisas que teriam quebrado a implantação: **`dist/` com zero migrações** (o
+`tsc` não copia `.sql`, e o `/health` responde "ok" porque o banco existe — ele
+não sabe se as tabelas estão lá) e **a migração dependendo de `tsx`**, que é
+dependência de desenvolvimento.
+
+E um defeito no próprio ensaio que vale mais que os dois: ele **morria em
+silêncio ao encontrar o problema**. Com `set -e`, o padrão
+`<condição>; cobrar "texto" $?` mata o script na condição falsa, antes de
+imprimir o ✗ — e ele sai com código 0 exatamente quando acha um defeito. Foi
+visto na prática, ao desligar a cópia das migrações para provar o conferidor.
+
+É a terceira vez que este projeto encontra a mesma família de defeito —
+conferidor que falha calado —, depois do `playwright install` recusado por rede
+e do ensaio que ensaiava zero telas na Cozinha. Vale como regra: **todo
+conferidor precisa ser visto reprovando** antes de ser aceito.
+
 ---
 
 ## 9. Migrações desta série (0620–0900)
