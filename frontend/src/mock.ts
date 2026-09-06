@@ -2159,7 +2159,12 @@ function responderImpacto(
     }
 
     if (rota === '/impacto/panorama' || rota.startsWith('/impacto/panorama?')) {
-    if (!['gestor_geral', 'admin_tecnico'].includes(eu.role)) {
+    /*
+     * COM `houseId`, é a casa da própria pessoa — e aí a coordenação entra. A
+     * visão das OITO continua sendo só do Gestor Geral.
+     */
+    const soUma = q.get('houseId');
+    if (!soUma && !['gestor_geral', 'admin_tecnico'].includes(eu.role)) {
       return new Recusa(403,
         'O panorama das oito casas é do Gestor Geral. A coordenação tem o painel da casa dela.');
     }
@@ -2174,12 +2179,19 @@ function responderImpacto(
       ocorrencias: c.id === CASA.id ? OCORRENCIAS.length : 1,
       marcos: c.id === CASA.id ? MARCOS.length : (MARCOS_DE_OUTRAS[c.id] ?? 0),
     }));
-    const soma = (campo: string) => casas.reduce((t, x: any) => t + Number(x[campo] ?? 0), 0);
+    const soUmaLista = soUma ? casas.filter((c) => c.id === soUma) : casas;
+    if (soUma && !soUmaLista.length) {
+      /* Casa fora do alcance é RECUSA, e não painel zerado: zero se leria
+       * como "esta casa não fez nada". */
+      return new Recusa(404, 'Unidade não encontrada — ou fora do seu alcance.');
+    }
+    const soma = (campo: string) =>
+      soUmaLista.reduce((t, x: any) => t + Number(x[campo] ?? 0), 0);
     return {
       periodo: { de: `${HOJE.slice(0, 4)}-01-01`, ate: HOJE },
-      casas,
+      casas: soUmaLista,
       total: {
-        casas: casas.length, acolhidos: soma('acolhidos'), capacidade: soma('capacidade'),
+        casas: soUmaLista.length, acolhidos: soma('acolhidos'), capacidade: soma('capacidade'),
         entradas: soma('entradas'), saidas: soma('saidas'),
         ocorrencias: soma('ocorrencias'), marcos: soma('marcos'),
       },
@@ -2260,6 +2272,8 @@ function responderImpacto(
         quando: m.quando, descricao: m.descricao, instituicao: m.instituicao,
       })),
       { nome: eu.fullName, cargo: cargoNoDocumento(eu.role) },
+      /* Uma casa só: o título diz qual, e o quadro "casa a casa" não entra. */
+      q.get('houseId') ? `${pan.casas[0].codigo} — ${pan.casas[0].nome}` : undefined,
     );
     }
 

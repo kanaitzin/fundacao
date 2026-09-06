@@ -578,6 +578,28 @@ para sempre.
 - **Tela vazia precisa dizer por que está vazia.** Uma lista de conflitos em
   branco é boa notícia, e se ela não disser isso será lida como "não carregou".
 
+## Fase 61 — As portas que faltavam ✅
+
+Duas rotas construídas nas fases 58 e 60 não tinham porta em tela nenhuma —
+e as duas eram das pessoas que mais precisariam delas.
+
+**A técnica não conseguia registrar uma conquista.** A tela do trabalho social
+é do Gestor Geral, e a área `impacto` no alcance é só dele: a equipe técnica,
+que escreve sobre o caso da criança, não alcançava nenhum botão. A fase 58
+tinha criado uma tabela que só a API sabia preencher. A conquista agora se
+registra **no perfil do acolhido**, que é onde a técnica trabalha — e a lista
+das três últimas fica ali, visível para toda a casa.
+
+**A coordenação não tinha como tirar o relatório da própria casa.** A rota
+`?houseId=` nasceu na fase 60 e ninguém podia chamá-la: o botão está agora no
+Painel das unidades, que ela já usa.
+
+O padrão é o mesmo das fases 45 e 47, e vale anotar: **construir a rota e a
+tela em fases diferentes deixa buracos que o `tsc` não vê e os testes de
+servidor não veem** — porque do lado do servidor está tudo certo. Quem pega é
+o levantamento de rotas sem porta, e ele precisa ser rodado depois de cada
+fase que abre rota nova.
+
 ## Fase 60 — O relatório de uma casa, e a trajetória para a audiência ✅
 
 As duas pontas que faltavam na frente do trabalho social.

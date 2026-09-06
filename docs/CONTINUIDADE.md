@@ -1097,6 +1097,21 @@ nada, **sem erro nenhum**: o botão parecia morto. É o mesmo padrão de
 `@Get(':id')` engolindo rota de palavra fixa, que o projeto já conhece do lado
 do servidor.
 
+### 8.29 As portas que faltavam — 04/09/2026
+
+Duas rotas das fases 58 e 60 não tinham porta em tela nenhuma, e as duas eram
+das pessoas que mais precisariam delas: a técnica não conseguia registrar uma
+conquista (a tela é do Gestor Geral, e a área `impacto` no alcance é só dele),
+e a coordenação não tinha como tirar o relatório da própria casa.
+
+A conquista passou para o **perfil do acolhido**, que é onde a técnica trabalha;
+o relatório da casa, para o **Painel das unidades**, que a coordenação já usa.
+
+A lição não é nova, mas ficou mais nítida: **construir a rota e a tela em fases
+diferentes deixa buracos que o `tsc` não vê e os testes de servidor não veem**,
+porque do lado do servidor está tudo certo. O levantamento de rotas sem porta
+precisa ser rodado depois de cada fase que abre rota nova — não semanas depois.
+
 ---
 
 ## 9. Migrações desta série (0620–0900)

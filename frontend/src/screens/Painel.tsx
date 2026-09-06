@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
+import { FolhaDocumento } from '../documentos';
+import type { ArquivoGerado } from '../documentos';
+import type { DocumentoWord } from '../docx';
 
 /**
  * O PAINEL DAS UNIDADES (§18.1–§18.3).
@@ -115,6 +118,8 @@ export function Painel({ houseId, casaLabel, papel }: {
   /** Alterar o limite da unidade (§ capacidade) e o histórico das mudanças. */
   const [mudandoLimite, setMudandoLimite] = useState(false);
   const [limites, setLimites] = useState<MudancaDeLimite[]>([]);
+  /** A folha do trabalho social desta casa, quando pedida. */
+  const [documento, setDocumento] = useState<DocumentoWord | null>(null);
 
   /* Quem altera o limite da unidade — a mesma lista de `HousesService.
      setCapacity`. Esconder o botão é gentileza; o servidor recusa por baixo. */
@@ -174,6 +179,25 @@ export function Painel({ houseId, casaLabel, papel }: {
         As unidades aparecem <b>na ordem do código</b>, sempre. Nenhuma lista aqui é ordenada
         por número: casa não se compara com casa, e ordenar por ocorrências viraria cobrança
         sobre quem registra mais.
+      </div>
+
+      {/*
+        * O RELATÓRIO DO TRABALHO DESTA CASA.
+        *
+        * A coordenação responde por estas vinte crianças e é quem vai à reunião
+        * de rede e à audiência concentrada — o documento sobre o trabalho que
+        * ela mesma fez é dela. A visão das oito continua sendo do Gestor Geral,
+        * e por isso o botão manda a casa atual, e só ela.
+        */}
+      <div className="acoes">
+        <button className="btn sm sec" onClick={async () => {
+          setErro('');
+          try {
+            setDocumento(await api<DocumentoWord>(`/impacto/folha?houseId=${houseId}`));
+          } catch (e) {
+            setErro(e instanceof Error ? e.message : 'Não foi possível montar o relatório.');
+          }
+        }}>🌱 Relatório do trabalho desta casa</button>
       </div>
 
       {aviso && <div className="notice c-ok" role="status">{aviso}</div>}
@@ -325,6 +349,12 @@ export function Painel({ houseId, casaLabel, papel }: {
               setErro(e instanceof Error ? e.message : 'Não foi possível alterar o limite.');
             }
           }} />
+      )}
+      {documento && (
+        <FolhaDocumento doc={documento} onFechar={() => setDocumento(null)}
+                        exportar={(finalidade) => api<ArquivoGerado>('/impacto/export', {
+                          method: 'POST', body: JSON.stringify({ houseId, finalidade }),
+                        })} />
       )}
     </>
   );

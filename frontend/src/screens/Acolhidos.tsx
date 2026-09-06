@@ -513,6 +513,17 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
       </div>
 
       {/*
+        * O QUE ELA CONQUISTOU.
+        *
+        * A conquista se registra AQUI, no perfil, e não na tela do Gestor
+        * Geral: quem escreve é a equipe técnica, que trabalha no caso da
+        * criança — e a tela do gestor é a das oito casas, que a técnica nem
+        * alcança. Sem este bloco, a fase 58 tinha criado uma tabela que só a
+        * API sabia preencher.
+        */}
+      <Conquistas perfil={p} papel={papel} />
+
+      {/*
         * QUEM APARECE POR ESTA CRIANÇA.
         *
         * Fica ALTO na tela, junto da identificação, porque é informação de
@@ -1750,6 +1761,166 @@ function FolhaEncerrarContato({ contato, onFechar, onEncerrar }: {
                     try { await onEncerrar(motivo.trim()); }
                     catch (e) { setErro(e instanceof Error ? e.message : 'Não foi possível.'); }
                   }}>Encerrar contato</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+/**
+ * AS CONQUISTAS, NO PERFIL DA CRIANÇA.
+ *
+ * Todo mundo da casa lê — é a parte boa da história, e escondê-la de quem
+ * acorda a criança todo dia seria transformar em relatório o que devia ser
+ * motivo de a casa inteira saber. Escrever é da técnica, da coordenação e do
+ * Gestor Geral.
+ *
+ * A lista é curta de propósito: as três últimas, e um botão para a trajetória
+ * inteira. O perfil já é longo, e conquista não é o que se procura ali às 23h.
+ */
+function Conquistas({ perfil, papel }: { perfil: Perfil; papel: string }) {
+  const [lista, setLista] = useState<any[] | null>(null);
+  const [registrando, setRegistrando] = useState(false);
+  const [erro, setErro] = useState('');
+  const podeEscrever = QUEM_CADASTRA.includes(papel);
+
+  const carregar = useCallback(async () => {
+    try {
+      setLista(await api<any[]>(`/impacto/marcos?personId=${perfil.id}&de=1900-01-01`));
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : '');
+    }
+  }, [perfil.id]);
+
+  useEffect(() => { void carregar(); }, [carregar]);
+  if (erro) return null;
+
+  return (
+    <>
+      <div className="eyebrow">O que {perfil.nome} conquistou · {(lista ?? []).length}</div>
+      {lista && !lista.length && (
+        <p className="mutetxt">
+          Nada registrado ainda. Isso não é uma avaliação dela: é a informação de que
+          ninguém escreveu.
+        </p>
+      )}
+      <div className="stack">
+        {(lista ?? []).slice(0, 3).map((m) => (
+          <div key={m.id} className="card">
+            <div className="row">
+              <span aria-hidden="true">{m.icone}</span>
+              <b className="ff grow">{m.tipoRotulo}</b>
+              <span className="pill c-ok">{dia(m.quando)}</span>
+            </div>
+            <div>{m.descricao}</div>
+            {m.instituicao && <div className="mutetxt">{m.instituicao}</div>}
+          </div>
+        ))}
+      </div>
+      {podeEscrever && (
+        <button className="btn sec block" style={{ marginBottom: 12 }}
+                onClick={() => setRegistrando(true)}>
+          ✨ Registrar conquista
+        </button>
+      )}
+
+      {registrando && (
+        <FolhaConquistaDoPerfil
+          perfil={perfil}
+          onFechar={() => setRegistrando(false)}
+          onSalvou={() => { setRegistrando(false); void carregar(); }} />
+      )}
+    </>
+  );
+}
+
+function FolhaConquistaDoPerfil({ perfil, onFechar, onSalvou }: {
+  perfil: Perfil; onFechar: () => void; onSalvou: () => void;
+}) {
+  const [tipos, setTipos] = useState<{ cod: string; label: string; icone: string }[]>([]);
+  const [d, setD] = useState({
+    tipo: 'aprovacao_escolar', tipoOutro: '', quando: '', descricao: '', instituicao: '',
+  });
+  const [arquivo, setArquivo] = useState<{ nome: string; base64: string } | null>(null);
+  const [erro, setErro] = useState('');
+  const [ocupado, setOcupado] = useState(false);
+
+  useEffect(() => {
+    api<{ tipos: any[] }>('/impacto/kinds').then((v) => setTipos(v.tipos)).catch(() => setTipos([]));
+  }, []);
+
+  /* A descrição é obrigatória e curta demais é recusada pelo servidor: o tipo
+   * já diz a categoria, e esta linha é a história que a criança vai ouvir
+   * daqui a dez anos. */
+  const pode = d.descricao.trim().length >= 10
+    && (d.tipo !== 'outro' || d.tipoOutro.trim().length >= 2);
+
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-cqp"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet modal">
+        <h3 id="t-cqp">Uma conquista de {perfil.nome}</h3>
+
+        <label className="f" htmlFor="cp-t">O que foi</label>
+        <select id="cp-t" value={d.tipo} onChange={(e) => setD({ ...d, tipo: e.target.value })}>
+          {tipos.map((t) => <option key={t.cod} value={t.cod}>{t.icone} {t.label}</option>)}
+        </select>
+        {d.tipo === 'outro' && (
+          <>
+            <label className="f" htmlFor="cp-o">Qual foi a conquista</label>
+            <input id="cp-o" value={d.tipoOutro}
+                   onChange={(e) => setD({ ...d, tipoOutro: e.target.value })} />
+          </>
+        )}
+
+        <label className="f" htmlFor="cp-q">Quando</label>
+        <input id="cp-q" type="date" value={d.quando}
+               onChange={(e) => setD({ ...d, quando: e.target.value })} />
+
+        <label className="f" htmlFor="cp-d">
+          A história <small>— o tipo já diz a categoria; aqui vai o que aconteceu</small>
+        </label>
+        <textarea id="cp-d" value={d.descricao}
+                  onChange={(e) => setD({ ...d, descricao: e.target.value })}
+                  placeholder="Ex.: passou para o 7º ano na Escola Fictícia, com recuperação em matemática vencida no fim do ano." />
+
+        <label className="f" htmlFor="cp-i">Escola, curso ou empresa</label>
+        <input id="cp-i" value={d.instituicao}
+               onChange={(e) => setD({ ...d, instituicao: e.target.value })} />
+
+        <label className="f">
+          Comprovante <small>— diploma, certificado, carteira. PDF, JPG ou PNG, opcional</small>
+        </label>
+        <input type="file" accept="application/pdf,image/*" onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (!f) { setArquivo(null); return; }
+          const r = new FileReader();
+          r.onload = () => setArquivo({ nome: f.name, base64: String(r.result).split(',')[1] ?? '' });
+          r.readAsDataURL(f);
+        }} />
+
+        {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+        <div className="row rodape">
+          <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
+          <button className="btn grow" disabled={!pode || ocupado} onClick={async () => {
+            setOcupado(true); setErro('');
+            try {
+              await api('/impacto/marcos', {
+                method: 'POST',
+                body: JSON.stringify({
+                  ...d, personId: perfil.id, quando: d.quando || undefined,
+                  descricao: d.descricao.trim(),
+                  conteudo: arquivo?.base64, nomeArquivo: arquivo?.nome,
+                }),
+              });
+              onSalvou();
+            } catch (e) {
+              setErro(e instanceof Error ? e.message : 'Não foi possível registrar.');
+            } finally {
+              setOcupado(false);
+            }
+          }}>{ocupado ? 'Registrando…' : 'Registrar'}</button>
         </div>
       </div>
     </div>
