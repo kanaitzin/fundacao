@@ -90,8 +90,12 @@ DATABASE_APP_URL=… node backend/dist/main.js
 ```
 
 `DATABASE_URL` é do **dono** do banco (migra); `DATABASE_APP_URL` é da
-**aplicação** (`rede_app`, sem superusuário, com o RLS valendo). Trocar os dois
-faz o sistema funcionar e desliga a proteção — e nada avisa.
+**aplicação** (`rede_app`, sem superusuário, com o RLS valendo).
+
+**Trocar os dois desliga o RLS.** Desde a fase 64 o serviço confere isso ao
+subir e **recusa arrancar** se a conexão passar por cima das políticas — ele
+diz qual variável está trocada, no log, antes de aceitar qualquer requisição.
+Se o serviço não sobe e a mensagem fala em `DATABASE_APP_URL`, é isto.
 
 ## 3. Backup
 

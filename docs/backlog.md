@@ -578,6 +578,49 @@ para sempre.
 - **Tela vazia precisa dizer por que está vazia.** Uma lista de conflitos em
   branco é boa notícia, e se ela não disser isso será lida como "não carregou".
 
+## Fase 64 — O serviço recusa subir com o RLS desligado ✅
+
+A fase 63 terminou com um aviso escrito no `implantacao.md`: `DATABASE_URL` é
+do dono do banco, `DATABASE_APP_URL` é da aplicação, e **trocar os dois faz o
+sistema funcionar e desliga o RLS, sem nada avisar**. Aviso em documento é lido
+por quem já sabe. Virou conferência de arranque.
+
+`kernel/database/conferencia-de-arranque.ts` faz três perguntas quando o
+serviço sobe, e **recusa subir** se qualquer uma falhar:
+
+1. a conexão é de superusuário? Superusuário ignora RLS, sempre;
+2. o papel tem `BYPASSRLS`?
+3. **sem identidade de usuário, o banco devolve zero pessoas?**
+
+A terceira é a que importa, e é a única que pega o caso do **dono das
+tabelas** — que não é superusuário, não tem `BYPASSRLS`, e mesmo assim passa
+por cima das políticas, porque o Postgres isenta o dono a menos que a tabela
+use `FORCE ROW LEVEL SECURITY`. As duas primeiras responderiam "está tudo bem".
+
+Provado nos dois sentidos, com o binário compilado: com `rede_app` sobe e
+registra no log qual papel usou; com a conexão do dono recusa, e a mensagem diz
+**qual variável está trocada** — porque quem tropeça nisso está com pressa às
+onze da noite, tentando resolver "erro de permissão".
+
+`test/conexao-e-rls.spec.ts` prega a invariante no chão, nas duas direções:
+pela conexão de aplicação o banco devolve zero em `person`, `house_stay`,
+`health_condition`, `life_milestone`, `person_contact` e `hospitalization`;
+pela conexão que ignora o RLS, devolve gente — senão o teste anterior poderia
+estar apenas olhando um banco vazio.
+
+### O achado
+
+**Eu tinha deixado uma porta dos fundos.** A primeira versão aceitava uma
+variável de ambiente para pular a conferência, deliberadamente **não**
+documentada no `.env.example`: o raciocínio era que quem a descobrisse estaria
+desligando a proteção conscientemente.
+
+O conferidor de configuração da fase 56 reprovou — e estava certo. Uma variável
+que desliga a última proteção do sistema e não aparece em lugar nenhum é uma
+porta dos fundos, não uma decisão informada: quem estiver com pressa vai
+encontrá-la no código do mesmo jeito, e sem nenhum aviso ao lado. Removida. A
+suíte já roda com `NODE_ENV=test`, e não havia outro caso de uso.
+
 ## Fase 63 — O sistema sobe compilado ✅
 
 Sessenta e duas fases, 471 testes, seis ensaios de navegador — e o projeto

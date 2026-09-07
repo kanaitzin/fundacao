@@ -96,6 +96,24 @@ cobrar "e alcança o banco como a aplicação, não como dono" \
 cobrar "nenhum erro no arranque" \
   bash -c '! grep -qiE "\[Nest\].*ERROR|UnhandledPromiseRejection" /tmp/ensaio-prod.log'
 
+cobrar "o arranque confere a conexão e diz qual papel usou" \
+  grep -q "conexão de aplicação conferida" /tmp/ensaio-prod.log
+
+echo
+echo "→ e recusa subir com a conexão errada…"
+#
+# A prova do outro lado. Apontar `DATABASE_APP_URL` para a conexão do DONO é
+# uma linha num arquivo de ambiente, feita por quem está com pressa porque "a
+# aplicação está dando erro de permissão" — e o sistema subiria, funcionaria, e
+# mostraria a casa inteira para o educador de plantão.
+PORT="$((PORTA + 1))" \
+DATABASE_URL="$ALVO" DATABASE_APP_URL="$ALVO" \
+  node "$RAIZ/backend/dist/main.js" > /tmp/ensaio-recusa.log 2>&1 || true
+cobrar "recusa subir quando a conexão passa por cima do RLS" \
+  grep -q "RECUSANDO SUBIR" /tmp/ensaio-recusa.log
+cobrar "e explica qual variável está trocada" \
+  grep -q "DATABASE_APP_URL" /tmp/ensaio-recusa.log
+
 echo
 echo "→ derrubando…"
 kill "$PID" 2>/dev/null || true

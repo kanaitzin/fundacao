@@ -1158,6 +1158,26 @@ conferidor que falha calado —, depois do `playwright install` recusado por red
 e do ensaio que ensaiava zero telas na Cozinha. Vale como regra: **todo
 conferidor precisa ser visto reprovando** antes de ser aceito.
 
+### 8.32 O serviço recusa subir com o RLS desligado — 04/09/2026
+
+O aviso da fase 63 — trocar `DATABASE_URL` por `DATABASE_APP_URL` desliga o RLS
+sem nada avisar — virou conferência de arranque, e o serviço **recusa subir**.
+
+Três perguntas: superusuário, `BYPASSRLS`, e a prática — sem identidade de
+usuário, o banco devolve zero pessoas. A terceira é a única que pega o **dono
+das tabelas**, que não é superusuário nem tem `BYPASSRLS` e mesmo assim passa
+por cima das políticas, porque o Postgres isenta o dono a menos que a tabela
+use `FORCE ROW LEVEL SECURITY`.
+
+A mensagem de recusa diz qual variável está trocada, porque quem tropeça nisso
+está com pressa tentando resolver "erro de permissão".
+
+**O achado foi meu:** a primeira versão tinha uma variável para pular a
+conferência, deliberadamente não documentada — "quem descobrir estará
+desligando conscientemente". O conferidor de configuração da fase 56 reprovou,
+e estava certo: variável que desliga a última proteção e não aparece em lugar
+nenhum é porta dos fundos, não decisão informada. Removida.
+
 ---
 
 ## 9. Migrações desta série (0620–0900)
