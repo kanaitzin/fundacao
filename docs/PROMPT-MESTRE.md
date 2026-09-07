@@ -69,7 +69,11 @@ não me peça para reexplicar o que está lá.
 14. O mock.ts é o servidor de mentira, e precisa responder o que o servidor
     responde — não o que a tela quer. Quando ele responde melhor, a
     demonstração ensaia um sistema que não existe.
-15. Filtro por DIA é faixa de timestamptz, nunca conversão da coluna. Sob RLS
+15. Política de RLS pergunta o PAPEL antes do escopo por linha, e com CASE —
+    o `OR` do SQL não garante a ordem, e o Postgres avalia a consulta por linha
+    antes de descobrir que o cargo já alcançava tudo. Custou 400 ms numa tela
+    que responde em 36 ms.
+16. Filtro por DIA é faixa de timestamptz, nunca conversão da coluna. Sob RLS
     só predicado LEAKPROOF desce para o índice, e `timezone()` não é: o filtro
     fica depois da política, que passa a rodar uma vez por linha do ano. Custou
     8,4 segundos numa tela que responde em 47 ms. Converta o PARÂMETRO.
@@ -99,10 +103,10 @@ não me peça para reexplicar o que está lá.
 
 === ESTADO ATUAL (03/09/2026) ===
 
-Fases 0 a 67. 483 testes em 48 suítes, sem falha conhecida — treze rodadas
+Fases 0 a 68. 485 testes em 48 suítes, sem falha conhecida — treze rodadas
 seguidas limpas, quatro delas entre 23h50 e 00h45 de Porto Alegre, com o UTC já
 no dia seguinte, que é a condição que a regra pede. Backend NestJS +
-PostgreSQL 16 com RLS, 17 partições isoladas, 76 migrações, 95 tabelas.
+PostgreSQL 16 com RLS, 17 partições isoladas, 77 migrações, 95 tabelas.
 Frontend React PWA, 32 telas, empacotado num único .html de ~890 KB que abre
 sem servidor.
 

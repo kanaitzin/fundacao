@@ -210,6 +210,37 @@ describe('Painel de impacto — o trabalho social nas oito casas', () => {
     expect(aviso).toMatch(/não entram aqui/);
   });
 
+  it('a política pergunta o papel ANTES do escopo por linha', async () => {
+    /*
+     * `marco_select` era `app_person_in_scope(person_id) OR papel É gestor`, e
+     * o `OR` do SQL **não garante a ordem de avaliação**: o Postgres perguntava
+     * o caro — uma consulta por LINHA — antes de descobrir que o Gestor Geral
+     * alcançava tudo. Com um ano das oito casas, a tela levava 400 ms, e o
+     * `LIMIT` não ajudava, porque a política filtra antes de cortar.
+     *
+     * `CASE` garante a ordem. Este teste guarda a FORMA da política, porque o
+     * comportamento é idêntico nas duas — quem "consertar" de volta para `OR`
+     * não vai ver nada quebrar.
+     */
+    const { rows } = await admin.query(
+      `SELECT pg_get_expr(polqual, polrelid) AS regra
+         FROM pg_policy WHERE polrelid = 'life_milestone'::regclass AND polname = 'marco_select'`);
+    expect(rows[0].regra).toMatch(/CASE/);
+    expect(rows[0].regra.indexOf('app_current_role'))
+      .toBeLessThan(rows[0].regra.indexOf('app_person_in_scope'));
+  });
+
+  it('a lista tem teto, e diz quando cortou', async () => {
+    /* Ninguém lê 1 920 linhas. E lista truncada em silêncio faz a pessoa
+     * concluir que aquilo é tudo o que aconteceu no período — que aqui é o
+     * mesmo que dizer que a casa não fez mais nada. */
+    const fonte = (await import('node:fs')).readFileSync(
+      (await import('node:path')).join(__dirname, '..', 'src', 'modules', 'reports',
+        'impacto.service.ts'), 'utf8');
+    expect(fonte).toMatch(/TETO_DA_LISTA = \d+/);
+    expect(fonte).toContain('Mostrando os');
+  });
+
   // ----------------------------------------------------------- A folha
 
   it('a folha do impacto não vira placar de casas, e diz por quê', async () => {

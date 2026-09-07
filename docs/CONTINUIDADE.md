@@ -1212,9 +1212,30 @@ que não devolve nada.
 Provado reprovando, como a regra da fase 63 exige. E o próprio conferidor achou
 um caminho errado na lista que eu escrevi.
 
+### 8.35 A política que perguntava caro antes de perguntar barato — 04/09/2026
+
+O ensaio de carga foi estendido às tabelas e rotas que nasceram depois da fase
+51, e achou duas telas acima do limiar: 399 ms e 351 ms.
+
+A causa é escorregadia. `marco_select` era
+`app_person_in_scope(person_id) OR papel É gestor` — correta, e lenta porque
+**o `OR` do SQL não garante a ordem de avaliação**: o Postgres perguntava
+primeiro o caro, uma consulta por linha, antes de descobrir que o Gestor Geral
+alcançava tudo. `CASE` garante a ordem. 399 → 36 ms e 351 → 12 ms.
+
+**Vale como padrão para toda política deste sistema: primeiro o papel, depois o
+escopo por linha.** Virou a regra 15 do prompt mestre, e há um teste que guarda
+a FORMA da política — porque o comportamento é idêntico nas duas, e quem
+"consertar" de volta para `OR` não vê nada quebrar.
+
+Dois caminhos errados no meio: o teto na lista não mudou o tempo, porque a
+política filtra antes de o `LIMIT` cortar (ficou por outro motivo, de produto);
+e o `ORDER BY` pelo nome obriga a calcular a função para todas as linhas antes
+do teto.
+
 ---
 
-## 9. Migrações desta série (0620–0900)
+## 9. Migrações desta série (0620–0910)
 
 | Nº | Módulo | O que faz |
 |---|---|---|

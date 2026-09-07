@@ -578,6 +578,46 @@ para sempre.
 - **Tela vazia precisa dizer por que está vazia.** Uma lista de conflitos em
   branco é boa notícia, e se ela não disser isso será lida como "não carregou".
 
+## Fase 68 — A política que perguntava caro antes de perguntar barato ✅
+
+O ensaio de carga era da fase 51 e não conhecia nada do que veio depois:
+internação, conquistas, o trabalho social. Estendido para gerar volume nessas
+tabelas (1 920 marcos, 378 relatos de internação) e medir as rotas novas, ele
+achou duas telas acima do limiar:
+
+| Rota | Antes | Depois |
+|---|---|---|
+| Trabalho social — quem conquistou | **399 ms** | 36 ms |
+| Trabalho social — as oito casas | **351 ms** | 12 ms |
+
+### A causa, e ela é escorregadia
+
+`marco_select` era `app_person_in_scope(person_id) OR papel É gestor`. Está
+correta — e **o `OR` do SQL não garante a ordem de avaliação**. O Postgres
+perguntava primeiro o caro (uma consulta por LINHA) e só depois descobria que
+o Gestor Geral alcançava tudo de qualquer jeito.
+
+`CASE` garante a ordem: primeiro o papel, depois o escopo por linha. Migração
+0910, e vale como **padrão para toda política deste sistema**. É a mesma
+correção que a `int_select` recebeu na fase 53, por outro motivo — visibilidade
+dentro do mesmo comando.
+
+### Dois caminhos errados, e os dois ensinaram
+
+- **O teto na lista não adiantou nada.** A resposta trazia 1 920 linhas de uma
+  vez; pus um teto de 200, e o tempo não mudou — porque **a política filtra
+  antes de o `LIMIT` cortar**. O teto ficou, e por outro motivo, que é de
+  produto: ninguém lê 1 920 linhas, e a resposta agora diz quando cortou. Lista
+  truncada em silêncio faria a pessoa concluir que aquilo é tudo o que a casa
+  fez no período.
+- **O `ORDER BY` pelo nome também custava.** Ordenar por
+  `app_person_display_name` obriga o banco a calcular a função para todas as
+  linhas antes do teto. O desempate passou a ser por `person_id` — e a ordem
+  alfabética dentro do mesmo dia não significa nada para quem lê.
+
+E, pela terceira vez neste projeto: **crase dentro de comentário em template
+literal** fecha a string no meio do SQL. Já anotado na fase 51.
+
 ## Fase 67 — Todo arquivo guardado tem por onde sair ✅
 
 A fase 66 consertou dois armazenamentos write-only. Esta fase faz a pergunta

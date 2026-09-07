@@ -229,6 +229,22 @@ export class ImpactoService {
 
   // --------------------------------------------------------------- Marcos
 
+  /**
+   * A LISTA TEM TETO, e o teto é a correção de um defeito de produto.
+   *
+   * Ela devolvia TUDO do período: com um ano das oito casas, 1 920 linhas numa
+   * resposta só, cada uma pedindo o nome do acolhido e o rótulo da casa por
+   * função — quase quatro mil consultas para montar uma tela. Meio segundo de
+   * espera, medido pelo `ensaio-carga`.
+   *
+   * E o defeito não é o meio segundo: é que **ninguém lê 1 920 linhas**. A
+   * tela é para olhar o que aconteceu de bom, não para paginar um cadastro.
+   * O teto é 200, e a resposta DIZ quando cortou — um total silenciosamente
+   * truncado seria pior que a lentidão, porque a pessoa concluiria que aquilo
+   * é tudo.
+   */
+  private readonly TETO_DA_LISTA = 200;
+
   async marcos(user: AuthenticatedUser, filtros: {
     houseId?: string; personId?: string; de?: string; ate?: string; tipo?: string;
   }) {
@@ -245,11 +261,33 @@ export class ImpactoService {
             AND ($3::uuid IS NULL OR m.house_id = $3::uuid)
             AND ($4::uuid IS NULL OR m.person_id = $4::uuid)
             AND ($5::text IS NULL OR m.kind = $5::text)
-          /* Por DATA, e nunca por criança ou por casa com mais marcos. */
-          ORDER BY m.happened_on DESC, acolhido`,
-        [p.de, p.ate, filtros.houseId ?? null, filtros.personId ?? null, filtros.tipo ?? null]);
+          /*
+           * Por DATA, e nunca por criança ou por casa com mais marcos.
+           *
+           * O desempate é por 'person_id', e NÃO pelo nome — que é o que a
+           * primeira versão fazia. Ordenar pelo nome obriga o banco a calcular
+           * 'app_person_display_name' para TODAS as linhas do período antes de
+           * aplicar o teto: com um ano das oito casas, 1 920 chamadas de
+           * função para devolver 200 linhas. O teto não adiantou nada
+           * enquanto essa ordenação existiu — meio segundo, medido pelo
+           * 'ensaio-carga'.
+           *
+           * E a ordem alfabética dentro do mesmo dia não significa nada para
+           * quem lê: o que a pessoa procura é o que aconteceu mais recente.
+           */
+          ORDER BY m.happened_on DESC, m.person_id
+          LIMIT $6`,
+        [p.de, p.ate, filtros.houseId ?? null, filtros.personId ?? null, filtros.tipo ?? null,
+         this.TETO_DA_LISTA]);
 
-      return rows.map((r) => ({
+      /*
+       * Quando a lista bate no teto, quem chama precisa saber. Uma lista
+       * truncada em silêncio faz a pessoa concluir que aquilo é tudo o que
+       * aconteceu no período — e aqui o que está sendo contado é o trabalho
+       * da casa.
+       */
+      const cortou = rows.length === this.TETO_DA_LISTA;
+      const lista = rows.map((r) => ({
         id: r.id, acolhidoId: r.person_id, acolhido: r.acolhido,
         casaId: r.house_id, casa: r.casa,
         tipo: r.kind,
@@ -261,6 +299,11 @@ export class ImpactoService {
         temComprovante: r.temcomprovante, nomeDoArquivo: r.file_name,
         por: r.por, em: r.registered_at,
       }));
+      if (cortou) {
+        (lista as any).aviso = `Mostrando os ${this.TETO_DA_LISTA} mais recentes do período. `
+          + 'Escolha um intervalo menor ou filtre por tipo para ver o resto.';
+      }
+      return lista;
     });
   }
 

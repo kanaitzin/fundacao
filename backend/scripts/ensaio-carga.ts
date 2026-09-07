@@ -41,6 +41,8 @@ async function main() {
   const { rows: [{ id: autor }] } = await c.query(
     `SELECT id FROM app_user WHERE email LIKE 'coord.ai3%' LIMIT 1`);
   const { rows: [{ id: instituicao }] } = await c.query(`SELECT id FROM institution LIMIT 1`);
+  const { rows: [{ id: primeiroAcolhido }] } = await c.query(
+    `SELECT person_id AS id FROM house_stay WHERE status = 'ativa' LIMIT 1`);
   const { rows: itens } = await c.query(`SELECT id, house_id FROM routine_item`);
   const { rows: pessoas } = await c.query(
     `SELECT hs.person_id, hs.house_id FROM house_stay hs WHERE hs.status = 'ativa'`);
@@ -194,6 +196,55 @@ async function main() {
     `, [casa.id, autor]);
   }
 
+  /*
+   * AS TABELAS QUE NASCERAM DEPOIS DA FASE 51.
+   *
+   * O ensaio de carga media as telas do turno e não conhecia internação nem
+   * marcos de vida. Uma tela que ninguém mede é uma tela que fica lenta em
+   * silêncio — e a do trabalho social atravessa as OITO casas, que é o pior
+   * caso do sistema inteiro.
+   */
+  console.log('→ conquistas…');
+  for (const casa of casas) {
+    await c.query(`
+      INSERT INTO life_milestone (person_id, house_id, kind, happened_on, description,
+                                  institution, registered_by)
+      SELECT p.id, $1,
+             (ARRAY['aprovacao_escolar','curso_profissionalizante','certificado',
+                    'primeiro_emprego','esporte_ou_arte'])[1 + (n % 5)],
+             app_hoje() - (n * 7),
+             'Conquista fictícia número ' || n || ' para medir a tela.',
+             'Instituição fictícia', $2
+        FROM (SELECT id FROM person LIMIT 20) p
+        CROSS JOIN generate_series(1, 12) AS n
+    `, [casa.id, autor]);
+  }
+
+  console.log('→ internações…');
+  for (const casa of casas) {
+    await c.query(`
+      INSERT INTO hospitalization (person_id, house_id, hospital, reason, started_at,
+                                   ended_at, outcome, status, opened_by, closed_by, closed_at)
+      SELECT p.person_id, $1, 'Hospital fictício',
+             'Internação fictícia para medir a tela do período.',
+             (app_hoje() - (n * 30))::timestamptz,
+             (app_hoje() - (n * 30) + 10)::timestamptz, 'alta', 'encerrada', $2, $2, now()
+        FROM (SELECT person_id FROM house_stay WHERE house_id = $1 AND status = 'ativa'
+               LIMIT 2) p
+        CROSS JOIN generate_series(1, 6) AS n
+      ON CONFLICT DO NOTHING
+    `, [casa.id, autor]);
+  }
+  /* O diário é a tabela que cresce dentro da internação: três semanas de
+   * relato por período, e é o que a tela do período carrega inteiro. */
+  await c.query(`
+    INSERT INTO hospitalization_note (hospitalization_id, on_date, kind, body, written_by)
+    SELECT h.id, (h.started_at::date + d), 'relato',
+           'Relato fictício do dia ' || d || ' para medir a tela.', $1
+      FROM hospitalization h CROSS JOIN generate_series(0, 20) AS d
+     WHERE h.reason LIKE 'Internação fictícia%'
+  `, [autor]);
+
   console.log('→ auditoria…');
   for (const casa of casas) {
     await c.query(`
@@ -289,8 +340,11 @@ async function main() {
   await nest.init();
   const http = nest.getHttpServer();
 
+  /* O GESTOR, e não a coordenação: o panorama das oito casas é dele, e é
+   * justamente a consulta mais cara. Medir com quem recebe 403 mediria o
+   * tempo da recusa. */
   const { body: sessao } = await request(http).post('/api/v1/auth/login')
-    .send({ email: 'coord.ai3@paodospobres.dev', password: 'senha-dev-123' });
+    .send({ email: 'gestor@paodospobres.dev', password: 'senha-dev-123' });
   const auth = { Authorization: `Bearer ${sessao.token}` };
 
   const rotas: Array<[string, string]> = [
@@ -301,6 +355,12 @@ async function main() {
     ['Saúde — painel da enfermagem', `/api/v1/nursing/panel?houseId=${ai3}`],
     ['Passagem — plantões da casa', `/api/v1/shifts?houseId=${ai3}`],
     ['Acolhidos — a lista', `/api/v1/people?houseId=${ai3}`],
+    /* As que nasceram depois da fase 51. A do trabalho social atravessa as
+     * OITO casas — é o pior caso do sistema. */
+    ['Trabalho social — as oito casas', '/api/v1/impacto/panorama'],
+    ['Trabalho social — quem conquistou', '/api/v1/impacto/marcos'],
+    ['Internação — as da casa', `/api/v1/nursing/hospitalizations?houseId=${ai3}&encerradas=1`],
+    ['Perfil — com contatos e conquistas', `/api/v1/people/${primeiroAcolhido}`],
   ];
 
   const pelaRede: Array<{ nome: string; ms: number; status: number }> = [];
