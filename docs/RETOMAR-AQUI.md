@@ -204,7 +204,7 @@ Além dos e2e, quatro suítes estáticas — elas já pegaram erro de verdade:
 
 ## 5. O QUE JÁ ESTÁ PRONTO
 
-**Fases 0 a 64. 476 testes em 47 suítes**, **quinze rodadas seguidas limpas** —
+**Fases 0 a 65. 476 testes em 47 suítes**, **quinze rodadas seguidas limpas** —
 quatro delas com o UTC já no dia seguinte, que é a condição que a regra pede.
 32 telas, 76 migrações, 95 tabelas.
 
@@ -229,7 +229,7 @@ nunca disse que renderiza:
   conferência travou sem motivo, a exceção escrita apareceu, a contagem de
   dias com relato mudou. É o que pega o defeito que a tela não denuncia: a
   folha abriu, o botão salvou, e só o número estava errado;
-- `npm run ensaio:roteiro` percorre as **20 tarefas do roteiro do Marcelo** e
+- `npm run ensaio:roteiro` percorre as **25 tarefas do roteiro do Marcelo** e
   cobra que cada uma tenha porta no cargo certo. Ele não simula a procura de
   uma pessoa — onde ela para é o que a aplicação do roteiro descobre —, mas
   impede o fracasso barato: a tarefa não ter porta, e isso aparecer diante da

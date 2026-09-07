@@ -1,340 +1,51 @@
-# O que falta da ideia original
+# O que falta — atualizado em 04/09/2026
 
-Levantamento de 31/08/2026, feito por leitura cruzada entre as rotas que o
-servidor serve e as chamadas que as telas fazem. Sobram **26 rotas que existem,
-têm regra, têm RLS e auditoria — e não têm porta**.
+> Este documento vinha de 02/09 e não conhecia nada do que foi construído
+> depois. Vale mais como lista do que ESPERA GENTE do que como lista de código.
 
-*Atualizado no mesmo dia: saíram desta lista o **Arquivo das ATAS** (decisão 2,
-no fim); a **saída, o acervo e o retorno**, com `GET /people/archive` como a
-porta que faltava; a **abertura da chamada do turno**; e o **corpo da ATA com a
-reabertura e a correção** — que era o silêncio maior de todos: `content` nunca
-recebia nada, e fechava-se todo dia uma ATA vazia.*
+## O que espera decisão da Fundação, e por isso não foi construído
 
-*Saíram também, em 01/09/2026, os **episódios do turno**: `POST
-/shifts/ata/:id/episodes` e `POST /shifts/episodes/:id/ack` existiam desde a
-fase 5 e nunca tiveram porta. O que acontecia de madrugada ou virava texto
-solto dentro de uma seção da ATA, ou não era registrado. Agora o relato é
-imutável e a ciência de quem assume o turno nasce ao lado, com nome próprio —
-e o servidor passou a **recusar episódio em ATA já fechada**, que ele aceitava
-em silêncio (ver a nota de defeito na CONTINUIDADE).*
+Cada uma destas tem a rota ou o desenho pronto, e a porta parada — e agora isso
+está escrito também no código, ao lado da rota (`test/rotas-sem-porta.spec.ts`).
 
-*E a **rotina versionada da casa** (`GET /routine`, `/routine/history`, `POST
-/routine/versions`, `/versions/:id/items`), no mesmo dia: quatro rotas da fase 2
-sem tela nenhuma. O dia da casa nascia de dados semeados, e "a que horas é a
-janta aqui?" não tinha resposta dentro do sistema — tinha no quadro da cozinha.
-Alterar abre versão nova com motivo escrito e copia os itens; a anterior
-continua inteira, explicando o dia que nasceu dela.*
+1. **A medicação a qualquer horário** (§7.9 do RETOMAR-AQUI). Quatro perguntas,
+   e a primeira muda o modelo: "a qualquer horário" quer dizer que não existe
+   horário previsto, ou que ele existe e é descumprido? Hoje o sistema marca
+   "administrado com atraso", o que pode ser cobrança injusta.
+2. **As fontes do acompanhamento** (§7.7). `POST /followups/:id/sources` existe
+   e não tem tela: de onde a técnica escolhe as fontes é justamente o que não
+   foi respondido.
+3. **A leitura excepcional de relato protegido** (§7.6).
+   `POST /statements/:id/exceptional-read` existe, auditada, sem porta: falta
+   saber o que o Gestor Geral vê ANTES de abrir.
+4. **Quem lê a ATA Geral de dia** (§7.2). A correção da linha de uma casa
+   (`PATCH /shifts/general-ata/:id/house/:houseId`) espera essa resposta.
+5. **O código do aparelho da casa** (§11.7). Sem saber onde ele é digitado,
+   confirmar medicamento sem sinal não existe na prática.
+6. **O PIA** — se as datas são por criança e se o sistema deve avisar.
+7. **A Enfermagem vê a internação?** Decisão minha, a confirmar numa linha.
 
-*Em 01/09/2026 entrou também, a pedido do Marcelo depois de usar o protótipo, a
-**conferência de mesa** (§10): a educadora olha a mesa no almoço, vê que estão
-todos comendo, e precisava de vinte toques para dizer isso. O ato agora é um só
-e fica gravado COMO ato — quem, quando e quantos —, o que o separa da "marcação
-em lote silenciosa" que a regra proíbe. E a lista de quem já foi conferido
-recolhe, com contador, para a tela encolher enquanto a pessoa trabalha.*
+## O que é meu e ficou pequeno
 
-*E o **dossiê do acolhido** com o **álbum de vivências**, em 01/09/2026, a
-pedido do Marcelo: a lista exigida da casa em cinco categorias, o anexo com
-prévia antes de enviar, o aceite de quem olhou — separado do anexo —, e o álbum
-de aniversários, festas e conquistas que a criança leva quando sai.*
+- As **fontes do protótipo**: o arquivo busca duas fontes da rede e, offline,
+  cai na do aparelho. Embutir custa ~300 KB (decisão §7.12).
+- O **comprovante da conquista** entra pelo servidor e pela tela; falta ele
+  aparecer para baixar depois.
 
-*E, ainda em 01/09/2026, a **substituição de atividade** e a **atividade
-urgente**: cinco rotas da fase 3 sem tela. "Não vou conseguir levar o Bruno na
-fono" era conversa de corredor ou grupo de mensagens. O pedido agora nasce de
-quem VAI SAIR — qualquer pessoa do turno —, fica em aberto até o líder, a
-técnica ou a coordenação decidir, e recusar exige motivo, que o sistema entrega
-a quem pediu.*
+## O que não é código
 
-*E a **correção do cadastro depois da admissão**: o sistema só sabia cadastrar,
-e a saída de quem usa era recadastrar — o que cria uma segunda criança e parte o
-histórico em dois. Agora corrigir nome, nome social e data de nascimento exige
-motivo e deixa histórico LEGÍVEL por quem cuida, no próprio perfil; e a situação
-judicial atualiza no episódio ativo, sem tocar no acolhimento anterior. Faltava
-também mostrar a situação judicial na tela — o servidor devolvia o campo desde
-a fase 0 e ninguém o desenhava.*
+- **Implantação**: onde roda, backup com restauração testada (feito), SMTP,
+  dados de partida, LGPD, aparelhos. Ver `implantacao.md`.
+- **Piloto**: treinamento, critérios de aceite, plano de volta atrás, quem
+  atende quando quebrar às 23h.
+- **E o que mais vale:** ninguém que não construiu o sistema abriu o protótipo
+  ainda. Seis ensaios de navegador não medem hesitação.
 
-*E, fechando o grupo 1 dos medicamentos em 01/09/2026, a **suspensão do esquema**
-e a **autorização nominal para administrar** (§11.1 e §11.3). Não havia rota que
-LISTASSE prescrições: um rascunho salvo e não assinado ficava gravado e
-invisível, e não existia de onde suspender. Ao construir a tela apareceram três
-defeitos no que já estava escrito, e nenhum deles daria erro na cara de
-ninguém — todos apareceriam como o sistema pedindo remédio a mais ou negando
-quem estava autorizado:*
+## O que foi construído desde 02/09, e saiu desta lista
 
- - *suspender mudava o status da prescrição e **deixava as doses de hoje na
-   grade**, com o botão "Confirmar" ao lado. `app_generate_doses` só gera para
-   prescrição ativa, então no dia seguinte ficava limpo — e hoje alguém dava o
-   remédio suspenso. Agora a dose que ainda não chegou a hora sai da grade
-   dizendo por quê; a já confirmada fica como está; e a que passou da hora sem
-   ninguém confirmar **continua pendente**, porque não foi suspensa: ficou sem
-   resposta, e alguém ainda deve essa resposta;*
- - *o protocolo da casa e a autorização nominal conferiam o **cargo** e
-   esqueciam a **casa**: a coordenação da Casa 03 podia definir quem dá remédio
-   na Casa 04 e autorizar um educador de lá. Corrigido nas policies (migração
-   0820) e com a frase de recusa na aplicação, nas duas camadas;*
- - *e `medication_authorization.valid_from` nascia com `DEFAULT current_date`,
-   que é o dia do banco em UTC. Depois das 21h de Porto Alegre a autorização
-   escrita hoje nascia datada de amanhã, e o sistema recusava a dose a noite
-   inteira com a autorização visível na tela. Regra 9, no lugar mais caro.*
-
-*E o **registro protegido depois da abertura** (§13.2), que fecha o grupo 1: a
-folha de abrir ocorrência já recebia fala espontânea e sinais observados, mas o
-caso mais comum é a criança falar DEPOIS — três dias depois, às 23h, na hora de
-dormir, para quem estava perto e não para quem abriu a ocorrência. Sem porta,
-sobravam dois caminhos e os dois são piores: escrever no campo "fato", que o
-plantão inteiro lê, ou não registrar. Três recusas nasceram com a porta: vazio
-não se registra (o lugar é único por ocorrência e um registro em branco tomaria
-a vaga de quem tem o que dizer); ocorrência fechada não recebe, porque a cópia
-documental já foi arquivada; e a recusa do "já existe" **não conta o que já está
-lá**, senão a mensagem de erro vira a porta dos fundos para o conteúdo que a
-política protege.*
-
-*E o **histórico de saúde do acolhido** (§7.3) com as **emissões do Resumo**
-(§7.4): três rotas da fase 4 sem tela nenhuma. O sistema guardava cada consulta,
-cada evolução assinada por quem acompanhou e cada dose administrada, e a
-pergunta mais comum da casa — "quando é o retorno dele?" — se respondia
-perguntando a um colega. É assim que um retorno se perde. A folha mostra a linha
-única em quatro listas, conta o que está esperando alguém, e marca o **retorno
-cuja data já passou**: sem essa marca, uma data antiga se lê como história e não
-como pendência. As emissões vêm junto porque respondem à mesma pergunta — um
-Resumo gerado e nunca retirado não chegou a lugar nenhum, e continua na lista até
-alguém dizer que levou.*
-
-*E os **benefícios e dados bancários** (§6.10): três rotas com RLS,
-reautenticação e log por visualização, sem tela — enquanto a planilha "DADOS
-BANCÁRIOS - AI 03" seguia aberta numa pasta compartilhada. Entraram na mesma
-tela do Cofre, atrás da mesma senha, porque é a mesma área e a mesma regra. Ao
-construir apareceu um buraco maior: a **migração 055 acrescentou as colunas que
-a planilha real usa** — número do benefício, operação da conta, nome da agência
-e a PENDÊNCIA BANCÁRIA, que é o motivo de a planilha existir — **e o serviço
-nunca as leu nem as gravou**. O sistema tinha as colunas e continuava sem
-responder "o que falta resolver no banco desta criança?". Agora a pendência vem
-primeiro na lista e exige uma linha dizendo QUAL é; senha em campo de texto é
-recusada com uma frase; e o histórico de acessos — que o cofre tinha e os
-benefícios não — mostra quem abriu, quando, para quê, **e quem tentou e foi
-recusado** (migração 0830).*
-
-*E os **alinhamentos de equipe** (§9.4, partição nova `alignments`, migração
-0840), a pedido do Marcelo: reuniões e combinados escritos num lugar só. Escreve
-a equipe técnica e a coordenação; LÊ todo mundo com alcance na casa — e por isso
-os combinados têm porta própria no menu, e não só a aba dentro de
-Acompanhamentos: quem mais precisa do combinado é o educador da noite, que não
-alcança Acompanhamentos. O texto de um combinado é imutável (o banco recusa);
-o que muda é a situação, com motivo escrito e histórico próprio; e o encerrado
-não some da lista, porque "mas ficou combinado que..." é uma discussão que só o
-registro encerra.*
-
-*E uma correção ao próprio levantamento: eu havia escrito que faltava "anexar
-documento ao arquivo". `POST /archive` não recebe arquivo — ele enfileira a
-CÓPIA DOCUMENTAL de algo que já existe no sistema. O que faltava era pior e
-mais silencioso: **nada enfileirava**. A fila do arquivo estava permanentemente
-vazia, a reconciliação respondia "nada pendente" e o protótipo avisava, ao
-fechar a ATA, que a cópia tinha entrado na fila. Não tinha. O laço foi fechado —
-ver §8.9 da CONTINUIDADE.*
-
-*E, em 01/09/2026, **duas rotas que este próprio levantamento não tinha visto** —
-encontradas ao conferir, uma a uma, as rotas servidas contra as chamadas das
-telas. As duas eram do mesmo tipo: a tela MOSTRAVA o campo e ninguém, em cargo
-nenhum, conseguia escrever nele.*
-
- - *`PATCH /people/:id` — os dados descritivos do perfil (§6.4): cuidados
-   essenciais, escola, equipe de referência e observações. Existia desde a fase
-   2, com regra de cargo e RLS. A criança trocava de escola em março e a saída
-   de quem usa era o papel. Ao abrir a porta veio o antes-e-depois (migração
-   0850): "cuidados essenciais" é o bloco que se lê antes de dar banho e antes
-   de servir o prato, e sobrescrevê-lo apagava uma instrução de proteção sem
-   rastro — a auditoria guarda o NOME do campo e nunca o conteúdo (§20);*
- - *`POST /medications/protocol` — quem pode dar remédio em cada turno (§11.3).
-   A Saúde desenhava a tarja **"Sem definição"** em cada período e não havia
-   botão que definisse: a pendência institucional 33.4.1 seguia em aberto sem
-   que existisse por onde respondê-la. A autorização NOMINAL tinha formulário;
-   a regra que fica por cima dela, não. Com a porta, o motivo passou a ser
-   obrigatório e cada decisão guarda o que valia antes (migração 0860) — e um
-   período não pode ficar sem ninguém, porque a dose venceria todo dia sem que
-   existisse quem a confirmasse.*
-
-*E os **relatórios consolidados**, em 01/09/2026 — o maior bloco do grupo 2.
-`GET /reports/panel` e `GET /reports/house-monthly` existiam desde a fase 6 sem
-tela nenhuma: "quantos estão na casa hoje?" e "quantas ATAS fecharam em agosto?"
-se respondiam abrindo tela por tela, ou perguntando a um colega. O Painel das
-unidades desenha as duas coisas, na ordem do código da casa e sem nenhuma lista
-ordenada por número.*
-
-*E, ao construí-lo, apareceu o defeito maior deste bloco — o que a aba de
-relatórios já fazia estava **quebrado contra o servidor de verdade**:*
-
- - *`GET /reports` devolvia sete campos e a tela lia onze. `r.entregas.map(...)`
-   derrubava a aba inteira; no protótipo funcionava, porque o `mock.ts` fora
-   escrito olhando a TELA e não o servidor. O `contrato-rotas.spec` pega a rota
-   que não existe — não pega a rota que existe e responde outra coisa. Agora a
-   lista devolve rótulo do tipo, acolhido, unidade, autor, `exigeAprovacao`,
-   `podeAprovar` e as entregas, e um teste confere isso campo a campo;*
- - *`POST /reports/:id/submit` não tinha porta, e sem ele o relatório nascia em
-   RASCUNHO e morria em rascunho: `app_approve_report` só aprova o que está
-   `em_aprovacao`, e o botão "Aprovar" nunca aparecia. A folha agora diz, no
-   rascunho que exige aprovação, que ele **ainda não vale**;*
- - *e a leitura com trava escondia o relatório aprovado. Sob RLS, um
-   `SELECT ... FOR UPDATE` aplica também a policy de UPDATE, e `rep_update` tem
-   `status <> 'aprovado'`: quem tentasse reenviar um relatório já aprovado
-   recebia **404**, ou seja, o sistema respondia que o documento não existe.*
-
-*E, em 01/09/2026, o **limite da unidade** e a **visão dos 20**. As oito casas
-nasceram com 20 — o número praticado — e não havia por onde mudar: a tarja
-"acima do limite" da admissão apontava para um teto que ninguém conseguia
-corrigir, e a admissão acima do teto, que é decisão registrada com
-justificativa, virava rotina por defeito de cadastro. E o painel por criança
-respondia a pergunta da troca de turno — "e a Alice, como está?" — que a linha
-cronológica não responde sem rolar o dia inteiro atrás de cada nome.*
-
-*Construindo isso apareceu a **terceira aparição do mesmo defeito de JOIN**, e a
-primeira em que a marca `rls-join-ok:` estava afirmando uma coisa FALSA:
-"app_user não tem RLS de linha". Tem — `user_select` (migração 0010) só entrega
-o cadastro de um colega a gestor, coordenação e equipe técnica. Com isso:*
-
- - *`JOIN app_user` SUMIA COM A LINHA: o histórico do limite voltava **vazio**
-   para o educador, o líder e a Enfermagem, e as entregas de um relatório
-   sumiam para quem não alcança o cadastro de quem as registrou;*
- - *`LEFT JOIN app_user` sumia com o NOME: a agenda mostrava o compromisso sem
-   dizer **quem vai levar a criança** — que é a informação pela qual a tela
-   existe. É o mesmo defeito da fase 4 ("o educador nunca via o nome do colega
-   responsável"), reaparecido em outro lugar.*
-
-*Corrigido em oito consultas de quatro partições, todas passando a usar
-`app_user_display_name`. Nenhuma dava erro: a tela ficava em branco no lugar
-certo.*
-
-*E os **aparelhos institucionais** (§11.7, pendência institucional #7), em
-02/09/2026. `GET/POST /devices` e `POST /devices/:id/revoke` existiam desde a
-fase 8 — a fase que transformou o aparelho da casa numa CREDENCIAL, porque
-antes a regra "offline, só o aparelho designado confirma medicamento" era
-conferida contra um booleano enviado pelo próprio cliente. A credencial passou
-a existir; o CADASTRO dela, não: a coordenação registrava um aparelho por rota
-e não tinha como saber quais a casa tinha. A pendência #7 continuava aberta do
-lado que interessa — "quais aparelhos existem em cada casa" seguia sendo
-suposição.*
-
-*Três coisas que a tela faz por causa do que a rota é:*
-
- - *o código aparece numa **folha própria**, e não como aviso de topo: não
-   existe rota que o recupere, e a primeira rolagem da tela o perderia;*
- - *o aparelho **revogado não some** da lista — as doses que ele confirmou
-   continuam rastreáveis, e apagá-lo transformaria cada uma delas num registro
-   de aparelho desconhecido;*
- - *a casa sem aparelho nenhum lê, na tela, que **nenhuma confirmação offline é
-   aceita** — que é o padrão protetivo, e não um defeito a corrigir.*
-
-*E a **decisão do conflito de sincronização** (§17.4), em 02/09/2026. Este é o
-caso mais estranho da lista: a regra estava cumprida e a decisão que ela EXIGE
-não tinha por onde ser tomada. O servidor guarda as duas versões inteiras,
-recusa escolher entre elas e marca o registro como "aguardando decisão humana"
-— e nenhum humano conseguia ver esse estado. Um registro feito sem sinal que
-colidisse com outro ficava parado para sempre.*
-
-*A tela mostra as duas versões campo a campo, sem destacar nenhuma, e o que ela
-pede não é um botão de escolha: é a FRASE da equipe. Porque a decisão de um
-conflito desses quase nunca é "uma está certa e a outra errada" — é "a criança
-tomou o remédio uma vez, e duas pessoas registraram". O texto fica ao lado das
-duas versões, que continuam existindo, com nome e horário.*
-
-Isso não é lista de bugs. É o mapa do que já está construído por baixo e ainda
-não tem por onde ser usado. Serve para decidir com o Marcelo o que entra antes
-do piloto e o que espera.
-
-O critério de leitura é sempre o mesmo: *a educadora de plantão, às 23h, com uma
-criança chorando do lado, consegue fazer isso?* O que ela não consegue fazer sem
-tela está no grupo 1.
-
----
-
-## 1. Falta tela, e falta para o piloto
-
-O trabalho existe na casa hoje. Sem tela, ou vira papel, ou vira WhatsApp — e
-WhatsApp é proibido (§2).
-
-**O grupo 1 está vazio.** Tudo o que a educadora de plantão precisa fazer às 23h
-tem porta. O que sobra abaixo é de coordenação, de gestão e de máquina.
-
-## 2. Falta tela, mas dá para esperar
-
-Coisas de coordenação e de gestão, não de plantão. Nenhuma delas trava a casa.
-
-- ~~**Relatórios consolidados**~~ — **resolvido em 01/09/2026**: o Painel das
-  unidades (`/reports/panel` e `/reports/house-monthly`) e o envio para
-  aprovação (`POST /reports/:id/submit`) ganharam tela.
-  *Fica de fora, e por motivos diferentes:*
-  `GET /reports/:id/delivery` — as entregas passaram a vir DENTRO da lista, e
-  desenhá-las já não custa uma segunda ida ao servidor; a rota continua servindo
-  quem quiser só as entregas de um relatório.
-  **`POST /followups/:id/sources` espera uma decisão de produto** — a rota grava
-  a REFERÊNCIA de um registro que embasou a avaliação, e não existe rota que
-  LISTE os candidatos. De onde a equipe técnica escolhe: da linha do tempo da
-  criança no período, das ocorrências, das evoluções de saúde? É pergunta para o
-  Marcelo, não para o código.
-- ~~**Capacidade da casa**~~ e ~~**painel da casa na linha do tempo**~~ —
-  **resolvidos em 01/09/2026**: o limite da unidade ganhou folha no Painel, com
-  motivo obrigatório e o histórico de cada mudança à vista; e a visão dos 20
-  virou o filtro **"Por criança"** dentro do Dia — uma linha por acolhido, em
-  ordem alfabética, com o alerta essencial primeiro.
-- **Leitura excepcional de relato** — `POST /statements/:id/exceptional-read`
-  (§26.2 #29): abrir um relato fora do alcance, declarando a finalidade. A regra
-  está pronta; falta a tela que obriga a escrever o porquê.
-- ~~**Dispositivos confiáveis**~~ — **resolvido em 02/09/2026**: aba
-  **Aparelhos** dentro de Equipe. O código nasce no registro, aparece numa folha
-  própria UMA vez (não como aviso de topo, que a primeira rolagem perderia), e
-  o revogado continua na lista com data e motivo.
-- ~~**Fila offline**~~ — **completa em 02/09/2026**. A metade do SERVIDOR
-  ganhou tela de manhã (`GET /sync/status`, `/sync/conflicts`,
-  `POST /sync/conflicts/:id/resolve`); a metade do APARELHO veio na fase 46:
-  a operação feita sem sinal fica guardada em IndexedDB com o horário do ato,
-  sobrevive ao aplicativo fechar, sobe sozinha ao reconectar, e **só sai do
-  aparelho o que o servidor confirmou ter aplicado** — o que ele recusou fica,
-  com o motivo dele ao lado. `POST /sync/push` segue sem porta de TELA, e
-  agora tem quem a chame: é a rota do PWA, não de uma pessoa.
-  *Fica de fora a confirmação de dose:* o §11.7 exige o aparelho institucional,
-  o aparelho só sabe que é ele se guardar o código, e onde esse código é
-  digitado é decisão da Fundação (pendência #7). A fila recusa na hora, com
-  frase, em vez de guardar até a reconexão algo que voltaria rejeitado.
-
-## 3. Não precisa de tela
-
-São rotas de máquina: tarefa agendada, verificação interna, chamada de serviço.
-
-`POST /medications/generate-doses`, `POST /medications/escalate-overdue`,
-`GET /medications/alert-offsets`, `POST /activities/generate-day`,
-`POST /activities/agenda/generate`, `POST /activities/mark-unconfirmed`,
-`GET /activities`, `GET /health`, `POST /people` (a admissão usa
-`/people/admission`), `GET /transfers/pending` (a tela usa `inbox`/`outbox`),
-`GET /statements` (os relatos chegam junto com o detalhe da ocorrência),
-`GET /people/:id/admission` (a ficha da admissão entra no perfil),
-`PATCH /shifts/general-ata/:id/house/:houseId`.
-
----
-
-## As decisões que não são minhas
-
-Ficam para a conversa com o Marcelo. Nenhuma delas foi decidida por mim, e
-nenhuma delas é problema de código:
-
-1. **Devolver um acompanhamento para correção não existe no servidor.** A tela
-   tinha um botão que prometia isso; foi removido em vez de inventar a regra. A
-   pergunta é se a equipe técnica deve poder devolver, e o que acontece com a
-   versão que já estava lá.
-2. ~~**A ATA Geral Noturna não se acha por data.**~~ **Resolvido em 31/08/2026**
-   pelo Arquivo das ATAS: a coordenação, a equipe técnica e os dois líderes
-   consultam qualquer data e recebem, da ATA Geral Noturna, **a linha daquela
-   casa** — o que o Líder Noturno Geral registrou sobre ela. A folha completa
-   das oito casas continua com quem a escreve e com o Gestor Geral.
-   *Fica uma pergunta menor para o Marcelo: o mesmo recorte deve valer para a
-   ATA Geral do DIA CORRENTE, que hoje a coordenação abre inteira? Não mudei
-   sozinho o que já estava aprovado.*
-3. ~~**Rascunho de prescrição não tem listagem.**~~ **Resolvido em
-   01/09/2026:** `GET /medications/prescriptions` lista os esquemas da casa, e o
-   rascunho aparece PRIMEIRO, porque é o que está esperando alguém. Deixar como
-   rascunho passou a ser uma escolha, e não um sumiço.
-
-4. **"Concluí tudo até agora" na linha do dia.** Facilitador pedido, mas a linha
-   do dia contém doses de medicamento, onde "não existe marcação em lote" é
-   absoluto. A versão segura ficaria limitada a atividades coletivas que não
-   sejam medicação, como ato declarado — e isso é decisão da instituição.
-
-5. **O Arquivo das ATAS abre no mês de calendário**, e por isso fica quase vazio
-   todo dia 1º. Um quarto recorte, "últimos 30 dias", resolveria.
+Fila offline no aparelho · folhas em Word saindo do servidor com a saída
+registrada · backup e restauração provada · acessibilidade nas 114 telas ·
+ensaio de carga (as três telas mais abertas respondiam em 8,5 s) · cadastro com
+filiação, RG, CNS, foto e contatos · chave do processo no cofre · internação
+hospitalar inteira · trabalho social das oito casas, com relatório e trajetória
+· o sistema subindo compilado · a recusa de subir com o RLS desligado.

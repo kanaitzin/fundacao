@@ -183,6 +183,42 @@ const TAREFAS = [
     procurar: [/geral|noturna|noite/i],
   },
 
+  // ------------------------------------------- 3.6 a 3.8 — o que nasceu depois
+  {
+    cargo: 'equipe_tecnica', secao: '3.6',
+    nome: 'Registrar a internação de uma criança',
+    caminho: [{ mais: 'Internação' }],
+    procurar: [/registrar internação/i, /continua da casa/i],
+  },
+  {
+    cargo: 'equipe_tecnica', secao: '3.7',
+    nome: 'Registrar uma conquista no perfil',
+    caminho: [{ aba: 'Acolhidos' }, { clicar: /Alice/ }],
+    procurar: [/conquistou/i, /registrar conquista/i],
+  },
+  {
+    cargo: 'equipe_tecnica', secao: '3.8',
+    nome: 'Os contatos de quem aparece pela criança',
+    caminho: [{ aba: 'Acolhidos' }, { clicar: /Alice/ }],
+    procurar: [/quem aparece por/i, /acrescentar contato/i],
+  },
+
+  // ------------------------------------------------ 5.11 e 5.12 — coordenação
+  {
+    cargo: 'coordenador', secao: '5.12',
+    nome: 'O relatório do trabalho desta casa',
+    caminho: [{ mais: 'Painel das unidades' }],
+    procurar: [/relatório do trabalho desta casa/i],
+  },
+
+  // ------------------------------------------------------- 5.1 Gestor Geral
+  {
+    cargo: 'gestor_geral', secao: '5.1',
+    nome: 'As oito casas pelo trabalho social',
+    caminho: [{ mais: 'trabalho social' }],
+    procurar: [/conquistas registradas/i, /ordem do cadastro/i],
+  },
+
   // ------------------------------------------------------------ 7. Cozinha
   {
     cargo: 'cozinha', secao: '7.1',

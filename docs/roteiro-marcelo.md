@@ -15,7 +15,7 @@
 > ensaio for sem internet, a letra não é a que a equipe vai ver no sistema
 > real. Vale saber antes de anotar "achei feio".
 >
-> Última atualização: 02/09/2026 (fila offline no §0.2; avisos do arquivo no §0.3).
+> Última atualização: 04/09/2026 (internação, cadastro e trabalho social no §0.4).
 
 ---
 
@@ -117,6 +117,34 @@ uma**.
 
 ---
 
+## §0.4 — O que mudou depois de 03/09 (é bastante coisa)
+
+Quatro construções novas, todas nascidas do que tu e o Marcelo contaram.
+
+**A criança internada sai da linha do dia.** Quando a técnica ou a coordenação
+registra a internação, o acolhido some da chamada e da grade de medicação da
+casa — e **continua ocupando a vaga**. Volta sozinho na alta. Há um diário do
+período no hospital, com anexo, e a medicação dada lá entra no sistema com a
+marca de que **quem administrou foi o hospital**. O educador social comum não
+lê a internação, mas vê **"no hospital"** na lista de acolhidos: ele precisa
+saber por que a cadeira está vazia.
+
+**O cadastro tem o que a lista da casa tinha.** Filiação, RG, cartão SUS, foto
+de identificação no alto do perfil, e os contatos com o vínculo — genitora,
+madrinha, tia, vínculo comunitário —, que o educador lê e a técnica escreve. A
+chave de acesso ao processo ficou no cofre, e não no cadastro.
+
+**O Gestor Geral tem uma segunda leitura das oito casas.** Uma chave **🌱** no
+alto da tela troca a operação pelo *trabalho social*: quantas crianças, quantas
+entraram e saíram, e o que aconteceu de bom — passou de ano, curso
+profissionalizante, faculdade, primeiro emprego. Dá para abrir a trajetória de
+uma criança e gerar relatório em Word.
+
+**A senha do cofre, no protótipo, é `senha-dev-123`** — e agora está escrita na
+própria tela. Antes não estava, e era impossível adivinhar.
+
+---
+
 ## Como registrar cada resposta
 
 Para cada tarefa, anote só três coisas:
@@ -159,7 +187,13 @@ demora, demora vinte vezes por turno.
    perfil de cada uma? Depois de achar, ela entende que a lista está em ordem
    alfabética e não por gravidade?
 
-6. **Sem internet.** *Toque no 📶 do alto da tela para simular a queda — e não
+6. **A Alice foi internada ontem. Descubra o que aconteceu com ela.**
+   Observar: ela repara no **"no hospital"** na lista de acolhidos? Ela procura
+   a internação no menu — e o que faz quando não acha a porta? *(Não achar é o
+   esperado: o educador comum não lê a internação. O que interessa é se ele
+   sabe a quem perguntar, e se a marca na lista bastou.)*
+
+7. **Sem internet.** *Toque no 📶 do alto da tela para simular a queda — e não
    avise o que vai acontecer.* Peça: **"marque a chamada da janta."**
    Observar: ela repara que a marcação ficou guardada? Ela entende, sem que
    ninguém explique, que aquilo vai subir depois — ou acha que perdeu? Ela
@@ -168,7 +202,7 @@ demora, demora vinte vezes por turno.
    *Religue o sinal e mostre a fila esvaziando sozinha só DEPOIS de ela
    responder.*
 
-7. **Pergunte depois:** "teve alguma hora em que você achou que ia dar
+8. **Pergunte depois:** "teve alguma hora em que você achou que ia dar
    errado?"
 
 ---
@@ -235,7 +269,25 @@ isso.
    pede motivo, atualizar a escola não? Depois de salvar, ela repara que o
    texto anterior ficou registrado logo acima?
 
-6. **Pergunte depois:** "o que faltou neste documento para você levar a uma
+6. **A Alice foi internada. Registre, e depois escreva o relato da visita de
+   hoje.**
+   Observar: ela acha a internação em "Mais"? Entende que a criança **continua
+   da casa** e que a vaga segue ocupada? Ao escrever no diário, ela repara que
+   o relato diário **não é obrigatório** — e o que ela acha disso? ⚠️ **Se ela
+   perguntar quem vai ser cobrado pelo relato, anote a frase**: foi decisão da
+   coordenação não cobrar, e é a hora de saber se isso se sustenta na casa.
+
+7. **A Rayssa passou de ano. Registre no perfil dela.**
+   Observar: ela acha "Registrar conquista" no perfil? Ela escreve a história —
+   escola, série, o que foi feito — ou escreve só "passou"? *(O sistema recusa
+   frase curta, e a reação dela a essa recusa é o dado.)*
+
+8. **Atualize os contatos da Rayssa: a madrinha mudou de telefone.**
+   Observar: ela acha "Quem aparece por…"? Entende que **encerra** o contato
+   antigo com motivo, em vez de apagar? Ela repara na marca de **aproximação
+   restrita**, e o que diz sobre ela?
+
+9. **Pergunte depois:** "o que faltou neste documento para você levar a uma
    audiência?"
 
 ---
@@ -324,8 +376,50 @@ Responde pela casa. É quem vai usar as telas de decisão.
     **enviar para aprovação** primeiro? A frase "este relatório ainda não
     vale" chega até ela?
 
-11. **Pergunte depois:** "o que desta lista você já faz hoje em outro lugar?
+11. **Uma criança da casa foi internada e você precisa designar quem vai
+    acompanhar as visitas desta semana.**
+    Observar: ela acha "Designar quem acompanha"? Entende que quem for
+    designado passa a **ver aquela internação e só ela**? Ela pergunta o que
+    acontece com quem estava antes?
+
+12. **Tire o relatório do trabalho desta casa, para levar à reunião de rede.**
+    Observar: ela acha o botão no Painel das unidades? Ao ver a folha, ela
+    procura comparar com as outras casas — e o que diz quando lê que o
+    documento não compara? ⚠️ **Esta é a pergunta mais delicada do roteiro
+    para este cargo.** Se ela quiser a comparação, anote a frase inteira: a
+    recusa de fazer ranking de casas é decisão de projeto, e vale saber quanto
+    ela custa a quem responde por uma casa.
+
+13. **Pergunte depois:** "o que desta lista você já faz hoje em outro lugar?
     Onde?"
+
+---
+
+## 5.1. Gestor Geral — a leitura das oito casas
+
+*Se o gestor estiver presente. São cinco minutos, e é a única parte do roteiro
+que não é sobre o turno.*
+
+1. **Veja as oito casas pelo trabalho social.**
+   Observar: ele acha a chave **🌱** no alto da tela, ao lado do tema? Ou
+   procura no menu? *(As duas portas existem; qual ele usa primeiro é o dado.)*
+
+2. **Descubra o que aconteceu de bom no ano.**
+   Observar: o que ele olha primeiro — o total, os tipos de conquista, ou a
+   lista casa a casa? Ele procura ordenar por resultado?
+   ⚠️ **Se ele pedir para ordenar as casas por conquistas, não conceda, e
+   anote a frase.** A ordem é a do cadastro de propósito: comparar casas seria
+   um ranking com outro nome, e a casa que recebe adolescentes com medida
+   recente não está na mesma corrida da casa-lar com quatro crianças pequenas.
+   A pergunta que vale fazer é: *"o que você faria com esse número?"*
+
+3. **Abra a trajetória de uma criança.**
+   Observar: ele espera ver saúde e ocorrências ali? A tela traz só as
+   conquistas e as casas por onde ela passou — e diz por escrito que o resto
+   fica nas telas do caso.
+
+4. **Pergunte depois:** "que número desta tela você levaria para uma reunião
+   fora da Fundação, e para quem?"
 
 ---
 

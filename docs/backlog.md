@@ -578,6 +578,38 @@ para sempre.
 - **Tela vazia precisa dizer por que está vazia.** Uma lista de conflitos em
   branco é boa notícia, e se ela não disser isso será lida como "não carregou".
 
+## Fase 65 — O roteiro alcança o que foi construído ✅
+
+O roteiro do Marcelo era de 02/09 e não conhecia nada do que nasceu depois:
+internação, cadastro com filiação e contatos, foto, trabalho social,
+conquistas. É o documento que vai à Casa 03 — e ele estava mandando aplicar um
+sistema que já não é o que existe.
+
+Ganhou um **§0.4** com as quatro construções novas, e **seis tarefas**:
+
+- o educador descobre que a Alice foi internada — e a tarefa mede se a marca
+  "no hospital" na lista basta, já que ele **não** lê a internação;
+- a técnica registra a internação, escreve o relato, registra uma conquista e
+  atualiza os contatos;
+- a coordenação designa quem acompanha as visitas e tira o relatório da casa;
+- e há um cargo novo no roteiro: **o Gestor Geral**, cinco minutos, a única
+  parte que não é sobre o turno.
+
+Duas das tarefas trazem um ⚠️ que não é sobre a tela:
+
+- **se a coordenação quiser comparar a casa dela com as outras**, anotar a
+  frase inteira. A recusa de fazer ranking de casas é decisão de projeto, e
+  vale saber quanto ela custa a quem responde por uma;
+- **se o gestor pedir para ordenar as casas por conquistas**, não conceder — e
+  perguntar "o que você faria com esse número?".
+
+O `ensaio:roteiro` passou de 20 para 25 tarefas, todas com porta, e o `.docx`
+foi regerado do markdown: 14 folhas, uma por cargo, com espaço para escrever.
+
+E o `o-que-falta.md`, que vinha de 02/09, foi refeito: hoje ele é mais uma
+lista do que **espera gente** do que de código — sete decisões da Fundação,
+duas coisas pequenas minhas, e a implantação.
+
 ## Fase 64 — O serviço recusa subir com o RLS desligado ✅
 
 A fase 63 terminou com um aviso escrito no `implantacao.md`: `DATABASE_URL` é
