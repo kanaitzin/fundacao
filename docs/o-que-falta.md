@@ -29,8 +29,9 @@ está escrito também no código, ao lado da rota (`test/rotas-sem-porta.spec.ts
 
 - As **fontes do protótipo**: o arquivo busca duas fontes da rede e, offline,
   cai na do aparelho. Embutir custa ~300 KB (decisão §7.12).
-- O **comprovante da conquista** entra pelo servidor e pela tela; falta ele
-  aparecer para baixar depois.
+- ~~O comprovante da conquista~~ — **feito na fase 66**, junto com o anexo do
+  diário da internação: os dois guardavam arquivo e não tinham rota de
+  leitura.
 
 ## O que não é código
 

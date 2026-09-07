@@ -578,6 +578,42 @@ para sempre.
 - **Tela vazia precisa dizer por que está vazia.** Uma lista de conflitos em
   branco é boa notícia, e se ela não disser isso será lida como "não carregou".
 
+## Fase 66 — Os dois anexos que entravam e não saíam ✅
+
+`hospitalization_note.storage_key` e `life_milestone.storage_key` guardavam
+arquivo desde as fases 53 e 58, e **nenhum dos dois tinha rota de leitura**.
+A equipe digitalizaria o laudo do hospital, devolveria o papel, e no dia em que
+ele fosse pedido não haveria nada — nem o arquivo, nem o papel. **Um arquivo
+que entra e não sai é pior do que arquivo nenhum**, porque a pessoa acredita
+que guardou.
+
+E dói mais no comprovante da conquista: o que está ali é a prova de uma coisa
+boa que aconteceu com a criança, e é o documento que ela vai querer ter na mão
+quando sair do acolhimento.
+
+Duas rotas, duas portas na tela, e dois testes que conferem que **o arquivo que
+sai é igual ao que entrou** — byte a byte.
+
+O alcance é o da coisa que guarda o anexo, e não uma regra própria: quem lê o
+diário lê o anexo dele; quem alcança o marco alcança o comprovante. Regra
+própria é como as duas se desencontram com o tempo.
+
+E quando o banco diz que o anexo existe e o disco não o tem, a mensagem é
+outra: *"está registrado mas não foi encontrado no armazenamento — avise quem
+cuida do servidor: é falha de disco ou de restauração"*. Isso não pode soar
+como "não tem anexo".
+
+### Dois achados
+
+- **O conferidor de rotas sem porta pegou na hora.** Criei as duas rotas, rodei
+  a suíte, e ele reprovou antes de eu ter escrito qualquer tela. É a primeira
+  vez que ele trabalha no mesmo dia — na fase 62 ele encontrou coisas de
+  semanas atrás.
+- **O teste do anexo reprovava o comportamento certo.** Eu esperava 403 para o
+  educador, e ele leu — porque três testes antes ele tinha sido **designado
+  acompanhante** daquela internação. Ler é exatamente o que se espera de quem
+  vai ao hospital escrever o relato do dia.
+
 ## Fase 65 — O roteiro alcança o que foi construído ✅
 
 O roteiro do Marcelo era de 02/09 e não conhecia nada do que nasceu depois:

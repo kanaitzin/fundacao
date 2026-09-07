@@ -1178,6 +1178,25 @@ desligando conscientemente". O conferidor de configuração da fase 56 reprovou,
 e estava certo: variável que desliga a última proteção e não aparece em lugar
 nenhum é porta dos fundos, não decisão informada. Removida.
 
+### 8.33 Os dois anexos que entravam e não saíam — 04/09/2026
+
+`hospitalization_note.storage_key` e `life_milestone.storage_key` guardavam
+arquivo desde as fases 53 e 58, e nenhum dos dois tinha rota de leitura. A
+equipe digitalizaria o laudo, devolveria o papel ao hospital, e no dia em que
+ele fosse pedido não haveria nada. **Arquivo que entra e não sai é pior do que
+arquivo nenhum**, porque a pessoa acredita que guardou.
+
+O alcance do anexo é o da coisa que o guarda — quem lê o diário lê o anexo
+dele —, e não uma regra própria, que é como as duas se desencontram com o
+tempo. E "o banco diz que existe e o disco não tem" precisa soar diferente de
+"não tem anexo": a mensagem manda avisar quem cuida do servidor, porque é
+falha de disco ou de restauração.
+
+Dois achados: o conferidor de rotas sem porta reprovou **no mesmo dia** em que
+as rotas nasceram — na fase 62 ele achava coisas de semanas atrás; e o teste do
+anexo reprovava o comportamento certo, porque o educador que eu esperava ver
+recusado tinha sido designado acompanhante três testes antes.
+
 ---
 
 ## 9. Migrações desta série (0620–0900)

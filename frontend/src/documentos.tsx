@@ -30,6 +30,21 @@ export interface ArquivoGerado {
   aviso: string;
 }
 
+/**
+ * Entrega ao navegador um arquivo qualquer vindo do servidor — anexo do
+ * diário, comprovante de conquista, documento do dossiê. O tipo vem de lá,
+ * porque foi lá que a assinatura do arquivo foi conferida na entrada.
+ */
+export function baixarArquivo(nome: string, tipo: string, base64: string) {
+  const bytes = Uint8Array.from(atob(base64), (ch) => ch.charCodeAt(0));
+  const url = URL.createObjectURL(new Blob([bytes], { type: tipo || 'application/octet-stream' }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = nome || 'documento';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 /** Entrega ao navegador o arquivo que o servidor gerou. */
 export function entregarArquivo(nome: string, base64: string) {
   const bytes = Uint8Array.from(atob(base64), (ch) => ch.charCodeAt(0));

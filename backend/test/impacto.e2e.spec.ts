@@ -107,6 +107,27 @@ describe('Painel de impacto — o trabalho social nas oito casas', () => {
       .rejects.toThrow(/marco_nao_e_apagado/);
   });
 
+  it('o comprovante da conquista SAI, e é igual ao que entrou', async () => {
+    /*
+     * O comprovante é a prova de uma coisa boa que aconteceu com a criança — e
+     * é o documento que ela vai querer ter na mão quando sair do acolhimento.
+     * Guardar sem poder ler seria guardar nada.
+     */
+    const pdf = Buffer.from('%PDF-1.7 certificado fictício');
+    const criado = await request(http).post('/api/v1/impacto/marcos')
+      .set(auth(tokens.tecnica))
+      .send({ personId: crianca, tipo: 'curso_profissionalizante',
+              descricao: 'Concluiu o curso de panificação de 120 horas no contraturno.',
+              conteudo: pdf.toString('base64'), nomeArquivo: 'certificado.pdf' });
+    expect(criado.status).toBe(201);
+
+    const lido = await request(http)
+      .get(`/api/v1/impacto/marcos/${criado.body.id}/comprovante`)
+      .set(auth(tokens.educador));
+    expect(lido.status).toBe(200);
+    expect(Buffer.from(lido.body.conteudo, 'base64').equals(pdf)).toBe(true);
+  });
+
   // -------------------------------------------------------------- Panorama
 
   it('o panorama é do Gestor Geral; a coordenação tem o painel da casa dela', async () => {

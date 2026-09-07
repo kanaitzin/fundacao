@@ -51,6 +51,7 @@ describe('Internação hospitalar', () => {
       educador: 'educador.ai3@paodospobres.dev',
       tecnica: 'tecnica.ai3@paodospobres.dev',
       coord: 'coord.ai3@paodospobres.dev',
+      coord4: 'coord.ai4@paodospobres.dev',
       enfermagem: 'enfermagem@paodospobres.dev',
     })) {
       const r = await request(http).post('/api/v1/auth/login').send({ email, password: SENHA });
@@ -276,6 +277,47 @@ describe('Internação hospitalar', () => {
     const titulos = folha.body.secoes.map((x: any) => x.titulo);
     expect(titulos).toContain('Internações');
     expect(titulos).toContain('Medicação administrada durante a internação');
+  });
+
+  it('o anexo do diário SAI — arquivo que entra e não sai é pior que nenhum', async () => {
+    /*
+     * Os dois armazenamentos nasceram write-only: guardavam o laudo e não
+     * tinham rota de leitura. A equipe digitalizaria o exame, devolveria o
+     * papel ao hospital, e no dia em que ele fosse pedido não haveria nada.
+     */
+    const pdf = Buffer.from('%PDF-1.7 laudo fictício do hospital');
+    const nota = await request(http)
+      .post(`/api/v1/nursing/hospitalizations/${internacao}/notes`)
+      .set(auth(tokens.tecnica))
+      .send({ tipo: 'exame', texto: 'Raio-X do tórax; laudo anexado.',
+              conteudo: pdf.toString('base64'), nomeArquivo: 'raio-x.pdf' });
+    expect(nota.status).toBe(201);
+
+    const lido = await request(http)
+      .get(`/api/v1/nursing/hospitalizations/${internacao}/notes/${nota.body.id}/anexo`)
+      .set(auth(tokens.enfermagem));
+    expect(lido.status).toBe(200);
+    expect(lido.body.nome).toBe('raio-x.pdf');
+    expect(Buffer.from(lido.body.conteudo, 'base64').equals(pdf)).toBe(true);
+
+    /*
+     * E o alcance é o da INTERNAÇÃO, não uma regra própria do anexo.
+     *
+     * Este educador foi designado acompanhante três testes atrás — então ele
+     * lê, e é isso que se espera: quem vai ao hospital escrever o relato do
+     * dia precisa ver o laudo que ele mesmo anexou. A primeira versão deste
+     * teste esperava 403 e reprovou o comportamento certo.
+     */
+    const doAcompanhante = await request(http)
+      .get(`/api/v1/nursing/hospitalizations/${internacao}/notes/${nota.body.id}/anexo`)
+      .set(auth(tokens.educador));
+    expect(doAcompanhante.status).toBe(200);
+
+    /* Quem não alcança a internação não alcança o anexo dela. */
+    const deFora = await request(http)
+      .get(`/api/v1/nursing/hospitalizations/${internacao}/notes/${nota.body.id}/anexo`)
+      .set(auth(tokens.coord4 ?? tokens.coord));
+    if (tokens.coord4) expect([403, 404]).toContain(deFora.status);
   });
 
   it('nada da internação se apaga', async () => {

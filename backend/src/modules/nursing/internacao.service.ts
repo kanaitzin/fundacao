@@ -1,7 +1,7 @@
 import {
   BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException,
 } from '@nestjs/common';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { join } from 'node:path';
 import { DatabaseService } from '../../kernel/database/database.service';
@@ -300,6 +300,48 @@ export class InternacaoService {
         throw e;
       }
     });
+  }
+
+  /**
+   * O ANEXO DO DIÁRIO — o laudo, o exame, a solicitação do hospital.
+   *
+   * Ele era guardado e nunca mais lido: a rota de leitura não existia. Um
+   * arquivo que entra e não sai é pior do que arquivo nenhum — a equipe
+   * acredita que digitalizou o exame, e no dia em que ele for pedido não há
+   * nada, nem o papel, que foi devolvido ao hospital.
+   *
+   * O alcance é o da própria internação: quem lê o diário lê o anexo dele.
+   * Nada de rota separada com regra própria, que é como as duas se
+   * desencontram com o tempo.
+   */
+  async lerAnexo(user: AuthenticatedUser, internacaoId: string, notaId: string) {
+    const nota = await this.db.asUser(user.id, async (c) => {
+      const { rows: [r] } = await c.query(
+        `SELECT storage_key, mime, file_name FROM hospitalization_note
+          WHERE id = $1 AND hospitalization_id = $2`, [notaId, internacaoId]);
+      return r;
+    });
+    if (!nota) {
+      throw new NotFoundException('Registro não encontrado — ou fora do seu alcance.');
+    }
+    if (!nota.storage_key) throw new NotFoundException('Este registro não tem anexo.');
+    const bytes = await readFile(join(this.dir, nota.storage_key)).catch(() => null);
+    if (!bytes) {
+      /* O banco diz que existe e o disco não tem: é falha de armazenamento, e
+       * precisa soar diferente de "não tem anexo". */
+      throw new NotFoundException(
+        'O anexo está registrado mas não foi encontrado no armazenamento. '
+        + 'Avise quem cuida do servidor: é falha de disco ou de restauração.');
+    }
+    await this.audit.log({
+      action: 'internacao.anexo.lido', actorId: user.id, institutionId: user.institutionId,
+      entity: 'hospitalization_note', entityId: notaId,
+      detail: { tipo: nota.mime },
+    });
+    return {
+      nome: nota.file_name ?? 'documento', tipo: nota.mime,
+      conteudo: bytes.toString('base64'),
+    };
   }
 
   async registrarMedicacao(user: AuthenticatedUser, id: string, input: {

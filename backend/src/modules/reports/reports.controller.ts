@@ -142,6 +142,12 @@ export class ImpactoController {
     return this.impacto.exportarTrajetoria(user, personId, body?.finalidade ?? '');
   }
 
+  /** O comprovante de um marco: diploma, certificado, carteira. */
+  @Get('marcos/:id/comprovante')
+  comprovante(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.impacto.lerComprovante(user, id);
+  }
+
   @Get('trajetoria/:personId')
   trajetoria(@CurrentUser() user: AuthenticatedUser,
              @Param('personId', ParseUUIDPipe) personId: string) {

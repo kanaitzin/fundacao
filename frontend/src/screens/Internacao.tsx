@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
+import { baixarArquivo } from '../documentos';
 
 /**
  * INTERNAÇÃO HOSPITALAR.
@@ -340,7 +341,22 @@ function PeriodoNoHospital({ id, papel, onVoltar }: {
             </div>
             <div>{n.texto}</div>
             {n.temAnexo && (
-              <div className="mutetxt">📎 {n.nomeDoArquivo ?? 'documento do hospital'}</div>
+              /*
+                * O ANEXO PRECISA SAIR.
+                *
+                * Ele era guardado e nunca mais lido — a rota de leitura nem
+                * existia. A equipe digitalizaria o exame, devolveria o papel ao
+                * hospital, e no dia em que ele fosse pedido não haveria nada.
+                */
+              <button className="btn sm ghost" onClick={async () => {
+                try {
+                  const a = await api<{ nome: string; tipo: string; conteudo: string }>(
+                    `/nursing/hospitalizations/${id}/notes/${n.id}/anexo`);
+                  baixarArquivo(a.nome, a.tipo, a.conteudo);
+                } catch (e) {
+                  setAviso(e instanceof Error ? e.message : 'Não foi possível abrir o anexo.');
+                }
+              }}>📎 {n.nomeDoArquivo ?? 'documento do hospital'}</button>
             )}
             <div className="mutetxt">{n.por} · {hhmm(n.em)}</div>
           </div>

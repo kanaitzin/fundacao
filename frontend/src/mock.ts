@@ -2241,6 +2241,15 @@ function responderImpacto(
      * `/impacto/trajetoria/:id/folha` e devolve a trajetória crua no lugar da
      * folha — a tela recebe um objeto sem seções e não desenha nada, sem erro
      * nenhum na tela. */
+    if (seg[0] === 'impacto' && seg[1] === 'marcos' && seg[3] === 'comprovante') {
+      const m = MARCOS.find((x) => x.id === seg[2]);
+      if (!m?.temComprovante) return new Recusa(404, 'Este marco não tem comprovante.');
+      /* Um PDF mínimo de mentira: o que a demonstração precisa provar é que o
+       * arquivo SAI, e não o conteúdo dele. */
+      return { nome: 'comprovante.pdf', tipo: 'application/pdf',
+               conteudo: btoa('%PDF-1.7 comprovante fictício') };
+    }
+
     if (seg[0] === 'impacto' && seg[1] === 'trajetoria' && seg.length === 3
         && metodo === 'GET') {
     const k = kid(seg[2]);
@@ -3939,6 +3948,13 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       });
       return { ok: true };
     }
+    if (seg[3] === 'notes' && seg[5] === 'anexo' && metodo === 'GET') {
+      const n = i.diario.find((x: any) => x.id === seg[4]);
+      if (!n?.temAnexo) return new Recusa(404, 'Este registro não tem anexo.');
+      return { nome: n.nomeDoArquivo ?? 'documento.pdf', tipo: 'application/pdf',
+               conteudo: btoa('%PDF-1.7 documento do hospital, fictício') };
+    }
+
     if (seg[3] === 'medications' && metodo === 'POST') {
       if (!String(b.medicamento ?? '').trim()) {
         return new Recusa(400, 'Escreva qual medicamento o hospital administrou.');

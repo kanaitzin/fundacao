@@ -103,6 +103,14 @@ export class NursingController {
     return this.internacao.registrar(user, id, body ?? {});
   }
 
+  /** O anexo de um registro do diário: laudo, exame, solicitação do hospital. */
+  @Get('hospitalizations/:id/notes/:notaId/anexo')
+  anexoDoDiario(@CurrentUser() user: AuthenticatedUser,
+                @Param('id', ParseUUIDPipe) id: string,
+                @Param('notaId', ParseUUIDPipe) notaId: string) {
+    return this.internacao.lerAnexo(user, id, notaId);
+  }
+
   @Post('hospitalizations/:id/medications')
   medicacaoDoHospital(@CurrentUser() user: AuthenticatedUser,
                       @Param('id', ParseUUIDPipe) id: string, @Body() body: any) {

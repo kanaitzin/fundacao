@@ -1,7 +1,7 @@
 import {
   BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException,
 } from '@nestjs/common';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { join } from 'node:path';
 import { DatabaseService } from '../../kernel/database/database.service';
@@ -380,6 +380,40 @@ export class ImpactoService {
         throw e;
       }
     });
+  }
+
+  /**
+   * O COMPROVANTE DA CONQUISTA — diploma, certificado, carteira assinada.
+   *
+   * Mesmo defeito do diário da internação: era guardado e nunca mais lido.
+   * E aqui dói mais, porque o que está no arquivo é a prova de uma coisa boa
+   * que aconteceu com a criança — e é o documento que ela vai querer ter na
+   * mão quando sair do acolhimento.
+   *
+   * Quem alcança o marco alcança o comprovante: a mesma política, sem regra
+   * própria que se desencontre com o tempo.
+   */
+  async lerComprovante(user: AuthenticatedUser, marcoId: string) {
+    const m = await this.db.asUser(user.id, async (c) => {
+      const { rows: [r] } = await c.query(
+        `SELECT storage_key, mime, file_name FROM life_milestone WHERE id = $1`, [marcoId]);
+      return r;
+    });
+    if (!m) throw new NotFoundException('Marco não encontrado — ou fora do seu alcance.');
+    if (!m.storage_key) throw new NotFoundException('Este marco não tem comprovante.');
+    const bytes = await readFile(join(this.dir, m.storage_key)).catch(() => null);
+    if (!bytes) {
+      throw new NotFoundException(
+        'O comprovante está registrado mas não foi encontrado no armazenamento. '
+        + 'Avise quem cuida do servidor: é falha de disco ou de restauração.');
+    }
+    await this.audit.log({
+      action: 'marco.comprovante.lido', actorId: user.id, institutionId: user.institutionId,
+      entity: 'life_milestone', entityId: marcoId, detail: { tipo: m.mime },
+    });
+    return {
+      nome: m.file_name ?? 'comprovante', tipo: m.mime, conteudo: bytes.toString('base64'),
+    };
   }
 
   // ------------------------------------------------------- O documento

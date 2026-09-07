@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
-import { FolhaDocumento } from '../documentos';
+import { FolhaDocumento, baixarArquivo } from '../documentos';
 import type { ArquivoGerado } from '../documentos';
 import type { DocumentoWord } from '../docx';
 
@@ -398,7 +398,20 @@ function Trajetoria({ personId, onVoltar }: { personId: string; onVoltar: () => 
             </div>
             <div>{m.descricao}</div>
             {m.instituicao && <div className="mutetxt">{m.instituicao}</div>}
-            {m.temComprovante && <div className="mutetxt">📎 comprovante anexado</div>}
+            {m.temComprovante && (
+              /* O comprovante é a prova da conquista — e é o documento que a
+               * criança vai querer ter na mão quando sair do acolhimento.
+               * Guardar sem poder ler seria guardar nada. */
+              <button className="btn sm ghost" onClick={async () => {
+                try {
+                  const a = await api<{ nome: string; tipo: string; conteudo: string }>(
+                    `/impacto/marcos/${m.id}/comprovante`);
+                  baixarArquivo(a.nome, a.tipo, a.conteudo);
+                } catch (e) {
+                  setErro(e instanceof Error ? e.message : 'Não foi possível abrir o comprovante.');
+                }
+              }}>📎 comprovante</button>
+            )}
             <div className="mutetxt">registrado por {m.por}</div>
           </div>
         ))}
