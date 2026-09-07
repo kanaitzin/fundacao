@@ -1197,6 +1197,21 @@ as rotas nasceram — na fase 62 ele achava coisas de semanas atrás; e o teste 
 anexo reprovava o comportamento certo, porque o educador que eu esperava ver
 recusado tinha sido designado acompanhante três testes antes.
 
+### 8.34 Todo arquivo guardado tem por onde sair — 04/09/2026
+
+A pergunta que a fase 66 deixou: quantos outros armazenamentos write-only
+existem? Cinco tabelas guardam arquivo, e nenhuma ficou sem saída.
+
+O que ficou é o conferidor: `test/arquivo-tem-saida.spec.ts` pergunta AO BANCO
+quais tabelas têm coluna de arquivo — lista escrita à mão não sabe da tabela
+que nasceu ontem — e cobra rota de leitura declarada para cada uma. A rota
+precisa existir de verdade nos controladores e precisa ser `@Get`: sem essas
+duas travas, a lista viraria promessa, ou apontaria para uma rota de escrita
+que não devolve nada.
+
+Provado reprovando, como a regra da fase 63 exige. E o próprio conferidor achou
+um caminho errado na lista que eu escrevi.
+
 ---
 
 ## 9. Migrações desta série (0620–0900)

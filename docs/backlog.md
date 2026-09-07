@@ -578,6 +578,39 @@ para sempre.
 - **Tela vazia precisa dizer por que está vazia.** Uma lista de conflitos em
   branco é boa notícia, e se ela não disser isso será lida como "não carregou".
 
+## Fase 67 — Todo arquivo guardado tem por onde sair ✅
+
+A fase 66 consertou dois armazenamentos write-only. Esta fase faz a pergunta
+que faltava: **quantos outros existem?**
+
+Cinco tabelas guardam arquivo — dossiê, vivências, foto de identificação,
+diário da internação e comprovante de conquista. As três primeiras já tinham
+saída; as duas últimas ganharam na fase anterior. Nenhum buraco novo.
+
+O valor está em não precisar perguntar de novo. `test/arquivo-tem-saida.spec.ts`
+pergunta **ao banco** quais tabelas têm coluna de arquivo, e cobra que cada uma
+tenha rota de leitura declarada. É pergunta ao banco de propósito: lista
+escrita à mão não sabe da tabela que nasceu ontem.
+
+Quatro travas, e cada uma fecha um jeito de a lista mentir:
+
+1. tabela que guarda arquivo e não está na lista → reprova;
+2. **a rota declarada precisa existir mesmo** nos controladores — senão a
+   lista vira promessa, com o caminho de uma rota nunca construída;
+3. **precisa ser `@Get`** — uma rota de escrita com o mesmo caminho
+   satisfaria a trava anterior e não devolveria arquivo nenhum;
+4. tabela removida ou renomeada que sobra na lista → reprova, porque a lista
+   passaria a afirmar saída para arquivo que ninguém guarda.
+
+**Provado reprovando**, como manda a regra que ficou da fase 63: criei uma
+tabela com `storage_key` dentro da própria suíte e ele acusou pelo nome.
+
+### O achado
+
+Um caminho errado na minha própria lista: escrevi `:id/dossie/:docId/download`
+e a rota é `:id/documents/:docId/file`. A segunda trava pegou — que é
+exatamente para isso que ela existe.
+
 ## Fase 66 — Os dois anexos que entravam e não saíam ✅
 
 `hospitalization_note.storage_key` e `life_milestone.storage_key` guardavam
