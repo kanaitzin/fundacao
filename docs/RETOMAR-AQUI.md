@@ -5,7 +5,7 @@ numa conversa nova. Quem ler isto do começo ao fim sabe o que o sistema é, ond
 ele está, o que já funciona, o que falta e o que não pode ser feito — sem
 precisar de nenhuma outra conversa anterior.
 
-*Atualizado em 08/09/2026 — fases 0 a 70. Substitui o "pacote de retomada" da seção 10 do
+*Atualizado em 08/09/2026 — fases 0 a 71. Substitui o "pacote de retomada" da seção 10 do
 `CONTINUIDADE.md`, que ficou velho. O prompt para colar na conversa nova está
 em `docs/PROMPT-MESTRE.md`.*
 
@@ -32,7 +32,7 @@ O critério que decide qualquer dúvida de produto é sempre o mesmo:
 
 ## 2. ONDE ESTÁ O SISTEMA
 
-O código vive no arquivo **`rede-acolher-atualizado.zip`** (≈1,4 MB), entregue
+O código vive no arquivo **`rede-acolher-atualizado.zip`**, entregue
 no chat. Descompactado, ele é a pasta `rede-acolher/`, um repositório git com
 todo o histórico de commits.
 
@@ -44,11 +44,11 @@ rede-acolher/
 │   │   │                  database, events, health
 │   │   └── modules/       17 partições isoladas, cada uma com as próprias
 │   │                      migrações em modules/<nome>/migrations/
-│   ├── test/              50 suítes (e2e contra PostgreSQL real + estáticas)
+│   ├── test/              51 suítes (e2e contra PostgreSQL real + estáticas)
 │   └── assets/timbre.png  a marca da Fundação, usada no documento em Word
 ├── frontend/
 │   ├── src/
-│   │   ├── screens/       32 telas React
+│   │   ├── screens/       30 telas React
 │   │   ├── mock.ts        o "servidor de mentira" do protótipo
 │   │   ├── docx.ts        monta o .docx NO NAVEGADOR — só para o protótipo,
 │   │   │                  que roda sem servidor; no sistema real quem gera é
@@ -60,12 +60,12 @@ rede-acolher/
 │   │   ├── App.tsx        navegação, abas, seletor de cargo do protótipo
 │   │   └── styles.css     design system, tema claro e escuro
 │   ├── ensaio.mjs         abre o protótipo num navegador de verdade e
-│   │                      percorre as 114 telas dos oito cargos
+│   │                      percorre as 107 telas dos oito cargos
 │   └── ensaio-fila.mjs    corta o sinal e ensaia o que só existe fora da tela
 ├── scripts/               preparar-ambiente.sh — dependências, banco e
 │                          Chromium, para a sessão nova começar rodando
 ├── prototipo/             rede-acolher-prototipo.html  ← o arquivo que o
-│                          Marcelo abre (um arquivo só, ~830 KB, sem servidor)
+│                          Marcelo abre (um arquivo só, ≈900 KB, sem servidor)
 └── docs/                  este arquivo, CONTINUIDADE, DER, o-que-falta,
                            backlog, matriz de permissões, roteiro do Marcelo…
 ```
@@ -98,11 +98,11 @@ cd backend  && npx tsc --noEmit -p tsconfig.json
 # testes: precisam de PostgreSQL 16 rodando
 cd backend && npx jest
 
-# os ensaios de navegador: as 114 telas, e a fila offline
+# os ensaios de navegador: as 107 telas, e a fila offline
 cd frontend && npm run ensaio && npm run ensaio:fila
 ```
 
-O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as 72
+O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as 78
 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`,
 `seed-fase4.ts`).
 
@@ -190,7 +190,7 @@ já evitaram vários erros caros.*
 
 ### Os testes que guardam a arquitetura
 
-Além dos e2e, quatro suítes estáticas — elas já pegaram erro de verdade:
+Além dos e2e, cinco suítes estáticas — elas já pegaram erro de verdade:
 
 - `arquitetura.spec.ts` — fronteiras entre partições, e o marcador
   `rls-join-ok:` obrigatório perto de todo JOIN;
@@ -198,20 +198,32 @@ Além dos e2e, quatro suítes estáticas — elas já pegaram erro de verdade:
   (foi ela que pegou a pré-visualização do relatório sem rota);
 - `alcance.spec.ts` — as marcas `/* alcance:<área> */` lidas do código que roda;
 - `documentacao.spec.ts` — toda tabela do banco aparece em `docs/der.md`, e a
-  contagem do inventário bate.
+  contagem do inventário bate;
+- `numeros-da-documentacao.spec.ts` — os NÚMEROS que este arquivo, o
+  `PROMPT-MESTRE.md` e o `implantacao.md` afirmam (migrações, tabelas, suítes,
+  testes, telas, rotas sem porta e o tamanho do protótipo) batem com o que o
+  código tem. Na primeira rodada acusou seis afirmações erradas ao mesmo tempo,
+  em três documentos.
 
 ---
 
 ## 5. O QUE JÁ ESTÁ PRONTO
 
-**Fases 0 a 70. 495 testes em 50 suítes**, **quinze rodadas seguidas limpas** —
-quatro delas com o UTC já no dia seguinte, que é a condição que a regra pede.
-32 telas, 78 migrações, 95 tabelas.
+**Fases 0 a 71. 504 testes em 51 suítes.** A última verificação inteira foi em
+**08/09/2026**: `tsc` nos dois lados, a suíte **três rodadas seguidas limpas** —
+duas de dia e uma com o relógio da máquina em 21h05 de Porto Alegre e o UTC já
+no dia seguinte, que é a condição que a regra pede —, os sete ensaios de
+navegador, o `ensaio:producao` e o `ensaio:restauracao`.
+30 telas, 78 migrações, 95 tabelas.
+
+*(O contador de "rodadas limpas acumuladas" saiu daqui na fase 71: ele crescia
+a cada conversa e ninguém sabia dizer de onde vinha o número — dois documentos
+chegaram a discordar dele. Data e condição valem mais do que contagem.)*
 
 E dois ensaios de navegador, que `tsc` não substitui — ele diz que compila,
 nunca disse que renderiza:
 
-- `npm run ensaio` percorre as **114 telas** que os oito cargos alcançam,
+- `npm run ensaio` percorre as **107 telas** que os oito cargos alcançam,
   cobrando de cada uma que não deixe erro no console, que escreva alguma coisa
   e que não mostre `undefined` para quem lê;
 - `npm run ensaio:fila` faz o que só existe fora da tela: corta o sinal, marca
@@ -221,7 +233,9 @@ nunca disse que renderiza:
   folha, tenta baixar com finalidade curta demais, baixa com uma frase válida
   e confere que o `.docx` chegou.
 
-- `npm run ensaio:acessibilidade` roda o axe-core (WCAG 2.1 AA) nas **114 telas**. Nenhuma violação — e a folga foi conquistada em 02/09: contraste
+- `npm run ensaio:acessibilidade` roda o axe-core (WCAG 2.1 AA) nas **114 telas**
+  — sete a mais que o `ensaio` porque confere também a **folha do "Mais"** de
+  cada cargo, que é aberta dezenas de vezes por turno. Nenhuma violação — e a folga foi conquistada em 02/09: contraste
   não é opinião, e a diferença entre 4,46 e 4,5 só se enxerga no corredor;
 - `npm run ensaio:uso` percorre os **oito cargos apertando os botões até o
   fim** — chamada, exceção, passagem, armário, cofre, internação, diário — e
@@ -352,9 +366,11 @@ Tudo o que a educadora de plantão precisa fazer às 23h tem porta.
 
 ### Grupo 2 — o que sobrou, e por que cada um sobrou
 
-Restam **20 rotas sem porta**, de 34 em 01/09. A maior parte é de máquina
-(grupo 3). O que ainda é tela de gente são três coisas, e **nenhuma delas está
-parada por falta de código**:
+Restam **14 rotas sem porta**, de 34 em 01/09 — e este número não é mais uma
+contagem à mão: é o tamanho da lista de exceções do `test/rotas-sem-porta.spec.ts`,
+onde cada linha traz o motivo por extenso. A maior parte é de máquina (grupo 3).
+O que ainda é tela de gente são três coisas, e **nenhuma delas está parada por
+falta de código**:
 
 - ~~**Fila offline, a metade do APARELHO.**~~ **Feita em 02/09/2026** (fase
   46): a operação fica guardada no aparelho, sobe ao reconectar e some só
@@ -377,12 +393,20 @@ parada por falta de código**:
 
 ### Grupo 3 — não precisa de tela
 
-Rotas de máquina: geração de doses e do dia, escalonamento de dose vencida,
-marcação de atividade não confirmada, health check, `POST /archive` (o
-enfileiramento da cópia, disparado por evento), `POST /sync/push`,
-`GET /medications/can-administer` e as leituras que já chegam dentro de outra
-resposta (`GET /statements`, `GET /people/:id/admission`,
-`GET /reports/:id/delivery`).
+Onze rotas, e são as que o `rotas-sem-porta.spec.ts` declara com o motivo
+escrito: geração das doses e do dia, geração da agenda dos compromissos,
+escalonamento de dose vencida, marcação de atividade não confirmada, health
+check, `GET /medications/alert-offsets` e `GET /medications/can-administer` (o
+aparelho pergunta; quem decide continua sendo o servidor), `GET /activities` e
+`GET /transfers/pending` (leituras cruas que a tela já recebe juntas em
+`GET /timeline` e nas duas caixas) e `GET /people/:id/admission`, a ficha
+inteira, para o documento e para a migração da implantação.
+
+*(`POST /archive`, `POST /sync/push`, `GET /statements` e
+`GET /reports/:id/delivery` saíram desta lista: as três primeiras ganharam
+quem as chame — o evento, o PWA e a própria tela —, e a última chega dentro de
+`GET /reports`. Estavam aqui por inércia, e o conferidor não as vê como órfãs
+há semanas.)*
 
 ### A dívida do Word — paga em 02/09/2026
 
@@ -401,7 +425,7 @@ kernel.
 
 ---
 
-## 6.9 O QUE ENTROU ENTRE 03 E 08/09/2026
+## 6.9 O QUE ENTROU ENTRE 03 E 08/09/2026 (E A FASE 71)
 
 Em ordem, e cada uma com o defeito real que a motivou:
 
@@ -417,6 +441,7 @@ Em ordem, e cada uma com o defeito real que a motivou:
 | 66–67 | Dois anexos **entravam e não saíam**; agora todo arquivo guardado tem por onde sair, e há conferidor |
 | 68–69 | Duas políticas de RLS **perguntavam caro antes de barato** — 400 ms e 1 096 ms de espera |
 | 70 | As mensagens de erro falam **português** e dizem se o registro foi salvo |
+| 71 | Os **números dos documentos de retomada** passaram a ser cobrados por teste — seis estavam errados em três arquivos |
 
 ---
 

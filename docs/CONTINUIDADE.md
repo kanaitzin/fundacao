@@ -3,7 +3,8 @@
 > **Como usar este arquivo:** anexe-o na primeira mensagem de uma conversa nova,
 > junto com o zip do repositório. Ele substitui todo o histórico.
 >
-> Última atualização: 31/08/2026 · §8.4 decidida, rotas unificadas, alcance por setor e DER completo
+> Última atualização: 08/09/2026 · §8.38, os números dos documentos de retomada
+> passam a ser cobrados por teste
 
 ---
 
@@ -1274,6 +1275,34 @@ precisa saber que aquilo não entrou.
 E três frases que diziam o estado em vez do que fazer foram reescritas —
 "Sessão ausente", "Conta desativada", "Senha atual incorreta". A segunda soava
 como castigo, e quase sempre é troca de equipe.
+
+### 8.38 Os números que os documentos afirmam — 08/09/2026
+
+Os três documentos vivos — `RETOMAR-AQUI.md`, `PROMPT-MESTRE.md` e
+`implantacao.md` — foram lidos contra o código. Seis afirmações numéricas
+estavam erradas ao mesmo tempo, e duas delas discordavam entre si: 72 e 76
+migrações onde há 78, 32 telas onde há 30, 114 telas no ensaio que percorre
+107, "quinze rodadas limpas" contra "treze", 830 KB contra 890 KB num arquivo
+de 901, e 20 rotas sem porta onde a lista do conferidor tem 14.
+
+O detalhe está no backlog (fase 71). O que vale guardar aqui são duas coisas.
+
+**A primeira é o tipo de estrago.** Nada quebra — e por isso o erro sobrevive a
+tudo o que este projeto construiu para se defender: `tsc` não vê, a suíte não
+vê, os sete ensaios não veem. O preço é pago por quem abre a conversa seguinte
+com esses arquivos e começa a trabalhar com seis crenças falsas. É a mesma
+lição da chave que não faz nada no `.env.example`: um dado errado num arquivo
+de referência ensina a não confiar no arquivo inteiro.
+
+**A segunda é sobre contagem acumulada.** "Quinze rodadas seguidas limpas" não
+se verifica nem se refuta: cresce sozinha a cada conversa, e ninguém sabe de
+onde veio o número — foi por isso que dois documentos chegaram a discordar sem
+que nada quebrasse. No lugar dela ficou a DATA e a CONDIÇÃO da última
+verificação, que qualquer pessoa refaz. Virou a regra 18 do prompt mestre.
+
+`test/numeros-da-documentacao.spec.ts` é o conferidor, e foi visto reprovando
+antes de ser aceito. Ele acusou, sozinho, dois números que a leitura à mão não
+tinha pego: os do tamanho da própria suíte, que ele mesmo acabara de mudar.
 
 ---
 

@@ -578,6 +578,64 @@ para sempre.
 - **Tela vazia precisa dizer por que está vazia.** Uma lista de conflitos em
   branco é boa notícia, e se ela não disser isso será lida como "não carregou".
 
+## Fase 71 — Os números dos documentos de retomada ✅
+
+O `RETOMAR-AQUI.md`, o `PROMPT-MESTRE.md` e o `implantacao.md` são os três
+arquivos que alguém lê para retomar o projeto ou para implantá-lo. Uma leitura
+deles contra o código, em 08/09, encontrou **seis afirmações erradas ao mesmo
+tempo** — e duas delas discordando entre si:
+
+| O que o documento dizia | O que o código tem |
+|---|---|
+| "o Jest roda as **72** migrações" (`RETOMAR-AQUI`) | 78 |
+| "aplica as **76** migrações" e "os **76** `.sql`" (`implantacao`) — no mesmo texto que dizia 78 | 78 |
+| "**32** telas React" (os dois) | 30 arquivos em `frontend/src/screens` |
+| "`npm run ensaio` percorre as **114** telas" (os dois) | 107 — as 114 são do `ensaio:acessibilidade`, que confere também a folha do "Mais" de cada cargo |
+| "**quinze** rodadas seguidas limpas" (`RETOMAR-AQUI`) contra "**treze**" (`PROMPT-MESTRE`) | contagem sem origem, retirada dos dois |
+| "protótipo de **~830 KB**" contra "**~890 KB**" | 901 KB |
+| "restam **20** rotas sem porta" (os dois) | 14 — o tamanho da lista de exceções do `rotas-sem-porta.spec` |
+
+Nenhuma delas quebra coisa alguma, e é isso que as torna caras: quem abre uma
+conversa nova com esses arquivos começa com seis crenças falsas, e a primeira
+coisa que aprende é a não confiar no arquivo inteiro. É o mesmo estrago que a
+chave que não faz nada no `.env.example` fazia — e que a fase 48 corrigiu pela
+mesma razão.
+
+**A causa é sempre a mesma:** o número foi escrito de memória, ou copiado do
+documento anterior, e ninguém o mede de novo. O projeto já tinha aprendido isso
+com o DER, que em 31/08 cobria 10 tabelas de 82 sem ninguém notar — a diferença
+é que ali nasceu um teste, e aqui não.
+
+`test/numeros-da-documentacao.spec.ts` faz para os números o que o
+`documentacao.spec.ts` faz para as tabelas: lê o código (as migrações, os
+`CREATE TABLE`, as suítes, os `it(`, os arquivos de tela, a lista de exceções
+de rotas, o tamanho do protótipo) e cobra que os três documentos vivos digam a
+mesma coisa. **Foi visto reprovando antes de ser aceito**, como a regra da fase
+63 exige — e reprovou acusando dois números que a leitura à mão não tinha
+pegado, os do próprio tamanho da suíte.
+
+Três decisões dentro dele valem registro:
+
+- **o `CONTINUIDADE.md` e o `backlog.md` ficam de fora.** São registro
+  histórico: "107 telas em 02/09" continua verdadeiro depois de a tela 108
+  nascer, e reescrever história para um teste passar é apagar o que cada fase
+  encontrou;
+- **cobra-se "telas React", e não "telas".** O ensaio conta VISITAS por cargo,
+  que é outro número e vive na mesma página — um regex frouxo aqui reprovaria
+  o documento certo;
+- **contagem que só cresce deixou de ser dado.** "Quinze rodadas limpas" não se
+  verifica, não se refuta e cresce sozinha a cada conversa. No lugar dela, a
+  DATA e a CONDIÇÃO da última verificação: 08/09/2026, três rodadas, uma delas
+  com o relógio em 21h05 de Porto Alegre e o UTC já no dia seguinte. Virou a
+  regra 18 do prompt mestre.
+
+**A verificação inteira desta fase**, porque a regra manda dizer o que rodou:
+`tsc` nos dois lados; a suíte três vezes (duas de dia, uma na condição
+noturna); `npm run prototipo`; os ensaios `ensaio` (107 telas), `fila`,
+`folhas`, `roteiro` (25 tarefas), `acessibilidade` (114 telas, nenhuma
+violação) e `uso`; `ensaio:producao` e `ensaio:restauracao`. O
+`ensaio-carga.ts` **não** foi rodado nesta fase — nada aqui toca em consulta.
+
 ## Fase 70 — O que a pessoa lê quando o sistema falha ✅
 
 O projeto cuida das frases das telas há dezenas de fases. As frases dos **erros**

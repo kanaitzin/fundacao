@@ -4,7 +4,7 @@
 > **`rede-acolher-atualizado.zip`**, e cole o bloco abaixo como PRIMEIRA
 > mensagem. Troque só a última linha, que é o que você quer que seja feito.
 >
-> Atualizado em 08/09/2026 — fases 0 a 70.
+> Atualizado em 08/09/2026 — fases 0 a 71.
 
 ---
 
@@ -83,6 +83,16 @@ não me peça para reexplicar o que está lá.
     fica depois da política, que passa a rodar uma vez por linha do ano. Custou
     8,4 segundos numa tela que responde em 47 ms. Converta o PARÂMETRO.
 
+18. Número que descreve o sistema — migrações, tabelas, suítes, testes, telas,
+    rotas sem porta, tamanho do protótipo — não se escreve de memória nem se
+    copia do documento anterior: sai do código, e é cobrado por
+    `test/numeros-da-documentacao.spec.ts`. Em 08/09 seis afirmações estavam
+    erradas ao mesmo tempo em três documentos, e duas delas discordavam entre
+    si. Nada quebra, e é por isso que é pior: quem retoma o projeto começa com
+    crenças falsas e aprende a não confiar no arquivo inteiro. Contagem que só
+    cresce ("quinze rodadas limpas") não é dado — escreva a DATA e a CONDIÇÃO
+    da última verificação.
+
 === COMO QUERO QUE VOCÊ TRABALHE ===
 
 - Interface, código, comentário e commit em PORTUGUÊS DO BRASIL.
@@ -108,11 +118,13 @@ não me peça para reexplicar o que está lá.
 
 === ESTADO ATUAL (08/09/2026) ===
 
-Fases 0 a 70. 495 testes em 50 suítes, sem falha conhecida — treze rodadas
-seguidas limpas, quatro delas entre 23h50 e 00h45 de Porto Alegre, com o UTC já
-no dia seguinte, que é a condição que a regra pede. Backend NestJS +
+Fases 0 a 71. 504 testes em 51 suítes, sem falha conhecida. A última
+verificação inteira foi em 08/09/2026: tsc nos dois lados, a suíte três vezes
+seguidas — duas de dia e uma com o relógio em 21h05 de Porto Alegre e o UTC já
+no dia seguinte, que é a condição que a regra pede —, os sete ensaios de
+navegador, o ensaio:producao e o ensaio:restauracao. Backend NestJS +
 PostgreSQL 16 com RLS, 17 partições isoladas, 78 migrações, 95 tabelas.
-Frontend React PWA, 32 telas, empacotado num único .html de ~890 KB que abre
+Frontend React PWA, 30 telas, empacotado num único .html de ≈900 KB que abre
 sem servidor.
 
 Duas dívidas antigas foram pagas em 02/09: a fila local do aparelho (sem sinal
@@ -151,7 +163,7 @@ do ambiente. A CREDENTIAL_KEY nunca entra no backup.
 
 Comece a sessão por `bash scripts/preparar-ambiente.sh` — dependências,
 PostgreSQL e Chromium caem entre uma sessão e outra. `npm run ensaio` percorre
-as 114 telas dos oito cargos no navegador (tela nova entra nesse percurso),
+as 107 telas dos oito cargos no navegador (tela nova entra nesse percurso),
 `npm run ensaio:fila` ensaia o que só existe fora da tela, e
 `npm run ensaio:folhas` percorre os caminhos de documento até o arquivo baixar,
 `npm run ensaio:roteiro` cobra que as 25 tarefas do roteiro do Marcelo tenham
@@ -165,8 +177,9 @@ mede as telas com RLS — foi ele que achou 8,5 s, 400 ms e 1 096 ms de espera e
 telas que pareciam rápidas.
 
 O grupo 1 do levantamento — o que a educadora precisa fazer às 23h — está
-VAZIO: tudo tem porta. Das 34 rotas que existiam sem tela em 01/09, restam 20,
-e a maioria delas é rota de máquina que não deve ter tela.
+VAZIO: tudo tem porta. Das 34 rotas que existiam sem tela em 01/09, restam 14
+— o tamanho da lista de exceções do test/rotas-sem-porta.spec.ts, cada uma com
+o motivo escrito —, e onze delas são rota de máquina que não deve ter tela.
 
 ATENÇÃO — a lista real das crianças da Casa 03 chegou por anexo em 03/09, com
 nome, filiação, CPF, RG, SUS, processo e CHAVE DE ACESSO ao processo de vinte
