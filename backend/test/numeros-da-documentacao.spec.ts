@@ -109,7 +109,16 @@ function protótipoEmKB(): number {
 function conferir(padrao: RegExp, esperado: number): string[] {
   const erros: string[] = [];
   for (const doc of DOCUMENTOS) {
-    const texto = readFileSync(join(DOCS, doc), 'utf8');
+    /*
+     * O ESPAÇO EM BRANCO É NORMALIZADO ANTES DA BUSCA.
+     *
+     * A primeira versão lia o texto cru, e um número separado da palavra por
+     * QUEBRA DE LINHA passava despercebido — "roda as 78\nmigrações" ficou
+     * errado por duas fases seguidas, dentro do arquivo que este teste existe
+     * para guardar. O conferidor que só pega o caso fácil ensina a confiar
+     * nele.
+     */
+    const texto = readFileSync(join(DOCS, doc), 'utf8').replace(/\s+/g, ' ');
     for (const m of texto.matchAll(padrao)) {
       const dito = Number(m[1].replace(/[^\d]/g, ''));
       if (dito !== esperado) {

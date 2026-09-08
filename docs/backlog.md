@@ -578,6 +578,83 @@ para sempre.
 - **Tela vazia precisa dizer por que está vazia.** Uma lista de conflitos em
   branco é boa notícia, e se ela não disser isso será lida como "não carregou".
 
+## Fase 73 — A escala de plantão ✅
+
+Pedido do Marcelo em 08/09/2026: uma aba onde ele prepare com antecedência quem
+assume cada dia — da semana e do mês —, com os nomes dos educadores do sistema,
+as datas e as horas, **sem deixar a casa desassistida**; que gere a folha para
+pregar na parede; e que guarde o mês passado, para o dia em que for preciso
+investigar um evento de meses atrás.
+
+### O achado que decidiu o desenho: 12x36 não cabe numa semana
+
+`work_schedule` existe desde a fundação e é **semanal** — dia da semana, hora de
+início, hora de fim. Foi ela que a 0420 passou a ler para saber quem devia
+assinar a passagem, corrigindo o defeito em que toda ATA fechava "com pendência"
+nomeando quem estava de folga.
+
+Só que numa 12x36 trabalha-se 12 horas e descansa-se 36: **o ciclo é de 48 horas
+e anda pelo calendário**. Quem trabalha terça esta semana não trabalha terça na
+semana que vem. "Toda terça a Joana" é falso na terça seguinte — e uma escala
+que mente sobre quem está na casa é pior do que escala nenhuma: ela nomeia gente
+de folga na lista de faltas da ATA, que é exatamente o defeito que a 0420 tinha
+corrigido, voltando por outra porta.
+
+Por isso `shift_assignment` é por DATA. As duas convivem, e a 0960 diz a ordem:
+escala do dia, escala semanal, vínculo da casa — com a **fonte declarada** na
+resposta, porque ela muda o que a tela diz ("faltou assinar" × "escala não
+cadastrada").
+
+### As decisões
+
+* **nada se apaga.** Retirar alguém é revogar, com autor e horário, e o banco
+  recusa DELETE **inclusive do dono** — a pergunta que a tabela existe para
+  responder não sobrevive a um `DELETE` feito às pressas. Retirar plantão de
+  data JÁ PASSADA exige motivo escrito: mudar o futuro é organização, mudar o
+  passado é dizer que a pessoa não estava lá;
+* **a escala não é porta.** Ela informa quem devia estar; quem cobriu um turno
+  fora dela assina a passagem do mesmo jeito, com o aviso de que não constava.
+  Escala que trava é escala que a casa contorna — e aí o registro para de valer;
+* **a repetição é o que torna a tela usável.** Preencher trinta dias um a um faz
+  a escala voltar para o papel na primeira semana. Ela é idempotente: repetir o
+  mesmo comando não duplica linha, porque o índice parcial recusa e o comando
+  pula — quem clicar duas vezes no fim de um turno de doze horas não vai
+  descobrir isso lendo a lista;
+* **sem contagem por pessoa**, em nenhuma resposta e em nenhuma folha. Somar
+  plantões por nome é medição de gente com outro nome (§3.3), e a folha da
+  parede é o pior lugar possível para isso;
+* **o turno sem ninguém é devolvido pelo servidor**, e não deduzido da ausência
+  de linha pela tela: uma segunda definição de "vazio" divergiria da folha
+  impressa no primeiro ajuste, e é a folha que a casa lê na parede.
+
+### Três achados
+
+* **`String(objetoDate)` de novo.** O driver devolve coluna `date` como `Date` na
+  meia-noite local, e o serviço agrupava os dias por `String(r.on_date).slice(0,10)`
+  — que dá "Tue Sep 09 2026", não ISO. O efeito seria a tela procurar um dia que
+  nunca casa e mostrar o mês inteiro vazio. É o mesmo defeito da fase 44 (toda
+  autorização vigente aparecia como vencida), e a correção é a mesma: converter
+  no SQL, `on_date::text`;
+* **`REVOKE DELETE` não alcança o dono do banco.** O teste da imutabilidade
+  passou a exigir gatilho `BEFORE DELETE`, e a suíte teve que aprender a
+  desfazer o que cria **revogando**, e não apagando — que é a mesma disciplina
+  que a casa terá;
+* **o conferidor de números tinha um buraco**, e ele apareceu aqui: número
+  separado da palavra por QUEBRA DE LINHA escapava do regex. "roda as 78
+  migrações" ficou errado por duas fases seguidas dentro do arquivo que o teste
+  existe para guardar. O texto passou a ser normalizado antes da busca, e o
+  conferidor endurecido achou mais duas afirmações erradas na mesma rodada.
+
+### O que ficou de fora, e por quê
+
+* **a janela de acesso por plantão (T-10/T+10)** continua não existindo. Agora
+  ela seria possível — a escala por data é o dado que faltava —, mas ligá-la é
+  decidir que alguém fica sem abrir o sistema fora do horário, e isso é decisão
+  da Fundação, não minha;
+* **o aviso de "fora da escala" ao marcar compromisso** continua lendo a escala
+  semanal. Trocar a fonte ali é uma linha, e vale fazer junto com a decisão
+  acima, para as duas coisas passarem a olhar o mesmo lugar ao mesmo tempo.
+
 ## Fase 72 — A medicação como a casa faz ✅
 
 A pendência institucional 33.4.1 — *quem administra medicamentos em cada

@@ -4,7 +4,7 @@
 > **`rede-acolher-atualizado.zip`**, e cole o bloco abaixo como PRIMEIRA
 > mensagem. Troque só a última linha, que é o que você quer que seja feito.
 >
-> Atualizado em 08/09/2026 — fases 0 a 72.
+> Atualizado em 08/09/2026 — fases 0 a 73.
 
 ---
 
@@ -118,13 +118,13 @@ não me peça para reexplicar o que está lá.
 
 === ESTADO ATUAL (08/09/2026) ===
 
-Fases 0 a 72. 510 testes em 52 suítes, sem falha conhecida. A última
-verificação inteira foi em 08/09/2026, depois da fase 72: tsc nos dois lados, a
-suíte quatro vezes seguidas — duas de dia e duas com o relógio em 21h05 e 23h37
-de Porto Alegre, com o UTC já no dia seguinte, que é a condição que a regra pede
+Fases 0 a 73. 522 testes em 53 suítes, sem falha conhecida. A última
+verificação inteira foi em 08/09/2026, depois da fase 73: tsc nos dois lados, a
+suíte três vezes seguidas — uma de dia, uma com o relógio em 22h03 de Porto
+Alegre e o UTC já no dia seguinte (a condição que a regra pede), e uma às 01h02
 —, os sete ensaios de navegador, o ensaio:producao e o ensaio:restauracao. Backend NestJS +
-PostgreSQL 16 com RLS, 17 partições isoladas, 80 migrações, 96 tabelas.
-Frontend React PWA, 30 telas, empacotado num único .html de ≈900 KB que abre
+PostgreSQL 16 com RLS, 17 partições isoladas, 82 migrações, 97 tabelas.
+Frontend React PWA, 31 telas, empacotado num único .html de ≈900 KB que abre
 sem servidor.
 
 Duas dívidas antigas foram pagas em 02/09: a fila local do aparelho (sem sinal
@@ -150,8 +150,8 @@ relatório em Word, da Fundação ou de uma casa só. As casas saem na ordem do
 CADASTRO e nunca por resultado: comparar casas seria ranking com outro nome.
 
 E de 04 a 08/09 foram sete fases de robustez, todas achando defeito real:
-o sistema passou a subir COMPILADO (o `dist/` saía sem nenhuma das 78
-migrações); o serviço RECUSA SUBIR se a conexão passar por cima do RLS; dois
+o sistema passou a subir COMPILADO (o `dist/` saía sem migração nenhuma); o
+serviço RECUSA SUBIR se a conexão passar por cima do RLS; dois
 armazenamentos de anexo eram write-only (o laudo do hospital entrava e não
 saía); duas políticas perguntavam caro antes de barato (400 ms e 1 096 ms numa
 tela); e as mensagens de erro passaram a falar português — "Internal server
@@ -163,12 +163,12 @@ do ambiente. A CREDENTIAL_KEY nunca entra no backup.
 
 Comece a sessão por `bash scripts/preparar-ambiente.sh` — dependências,
 PostgreSQL e Chromium caem entre uma sessão e outra. `npm run ensaio` percorre
-as 107 telas dos oito cargos no navegador (tela nova entra nesse percurso),
+as 113 telas dos oito cargos no navegador (tela nova entra nesse percurso),
 `npm run ensaio:fila` ensaia o que só existe fora da tela, e
 `npm run ensaio:folhas` percorre os caminhos de documento até o arquivo baixar,
-`npm run ensaio:roteiro` cobra que as 26 tarefas do roteiro do Marcelo tenham
+`npm run ensaio:roteiro` cobra que as 28 tarefas do roteiro do Marcelo tenham
 porta no cargo certo, e `npm run ensaio:acessibilidade` roda o axe-core (WCAG
-2.1 AA) nas 114 telas — cor nova passa por ele antes de entrar. E
+2.1 AA) nas 120 telas — cor nova passa por ele antes de entrar. E
 `npm run ensaio:uso` percorre os oito cargos apertando os botões até o fim e
 lendo de volta o que ficou gravado. Fora do navegador, `npm run ensaio:producao`
 prova que o sistema sobe compilado num banco virgem, e
@@ -188,6 +188,17 @@ quem assina PRIMEIRO escreve o que houve com as que ficaram sem resposta — iss
 NÃO confirma dose nenhuma. E, como o sistema vai rodar no celular de cada pessoa
 com o e-mail institucional, DOSE NÃO SE CONFIRMA SEM SINAL em aparelho nenhum: a
 recusa vem na hora, e o resto do turno continua offline.
+
+E EM 08/09 ENTROU A ESCALA DE PLANTÃO, também pedida pela Fundação: a
+coordenação monta por DIA e TURNO, com hora, e repete a cada N dias para
+preencher o mês — "a cada 2" é uma 12x36. A escala é por DATA e não por dia da
+semana porque uma 12x36 não cabe numa semana: o ciclo é de 48 horas e anda pelo
+calendário, e "toda terça a Joana" é falso na terça seguinte. O turno SEM
+NINGUÉM aparece escrito, a folha da parede sai em Word, nada se apaga (retirar é
+revogar, com autor; retirar plantão que já passou exige motivo) e não existe
+contagem de plantões por pessoa. Com ela, quem o sistema cobra por assinar a
+passagem passa a ser QUEM ESTAVA ESCALADO — sem escala montada, ele declara que
+caiu no vínculo da casa.
 
 O grupo 1 do levantamento — o que a educadora precisa fazer às 23h — está
 VAZIO: tudo tem porta. Das 34 rotas que existiam sem tela em 01/09, restam 14

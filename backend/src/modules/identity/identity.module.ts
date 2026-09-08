@@ -3,10 +3,12 @@ import { AuthController } from './auth.controller';
 import { UsersController } from './users.controller';
 import { DevicesController } from './devices.controller';
 import { StaffController } from './staff.controller';
+import { EscalaController } from './escala.controller';
 import { AuthService } from './auth.service';
 import { SessionGuard } from './session.guard';
 import { DevicesService } from './devices.service';
 import { StaffService } from './staff.service';
+import { EscalaService } from './escala.service';
 import { InviteService } from './invite.service';
 import { MailGateway } from './mail.gateway';
 
@@ -18,8 +20,8 @@ import { MailGateway } from './mail.gateway';
  * porta pública é deliberadamente estreita (guard, decorator, serviço).
  */
 @Module({
-  controllers: [AuthController, UsersController, DevicesController, StaffController],
-  providers: [AuthService, SessionGuard, DevicesService, StaffService, InviteService, MailGateway],
-  exports: [AuthService, SessionGuard, DevicesService, StaffService, InviteService],
+  controllers: [AuthController, UsersController, DevicesController, StaffController, EscalaController],
+  providers: [AuthService, SessionGuard, DevicesService, StaffService, EscalaService, InviteService, MailGateway],
+  exports: [AuthService, SessionGuard, DevicesService, StaffService, EscalaService, InviteService],
 })
 export class IdentityModule {}

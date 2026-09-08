@@ -177,6 +177,29 @@ institucional, deixou de existir o aparelho único que impedia a mesma dose de
 ser confirmada em dois lugares. A recusa aparece na hora, com a explicação; o
 resto do turno continua funcionando offline.
 
+## §0.6 — A escala de plantão (nova, e é o que o Marcelo pediu)
+
+Há uma aba nova em "Mais": **A escala de plantão**. Ela monta por **dia e
+turno**, com hora quando o plantão não é o inteiro, e tem um botão de
+**repetir a cada N dias** — "a cada 2 dias" é o desenho de uma 12x36.
+
+Três coisas que ela faz e que valem observar na aplicação:
+
+- **o turno sem ninguém aparece escrito** ("— ninguém escalado —"), e o alto da
+  tela conta quantos são no período. Dia vazio se lê como "ainda não montei";
+- **nada se apaga.** Tirar alguém é *Retirar*, e a linha fica riscada com o nome
+  de quem retirou. Se o plantão **já passou**, o sistema pede o motivo por
+  escrito — é a escala que responde quem estava na casa naquela noite;
+- **a folha para a parede** sai em Word, um quadro por semana.
+
+E uma que ela **não** faz de propósito: nenhum total de plantões por pessoa.
+Somar plantão por nome é medir gente, e o sistema não faz isso em lugar nenhum.
+
+**A escala também mudou a ATA:** a partir de agora, quem o sistema cobra por
+assinar a passagem é **quem estava escalado naquele turno** — e não mais todo
+mundo que trabalha na casa. Onde não houver escala montada, ele avisa que caiu
+no vínculo da casa, em vez de fingir que sabe.
+
 ---
 
 ## Como registrar cada resposta
@@ -392,35 +415,50 @@ Responde pela casa. É quem vai usar as telas de decisão.
    melhor delas, porque quer dizer que o educador de plantão dá conta de tudo,
    que é como a casa já funciona hoje.
 
-7. **A casa passou a operar com 22 vagas depois da reforma. Registre isso.**
+7. **Monte a escala da semana que vem: você no diurno, alternando a cada dois
+   dias, até o fim do mês.**
+   Observar: ela acha a aba **A escala de plantão** em "Mais"? Ela usa o
+   **repetir a cada 2 dias**, ou preenche dia a dia? *(Se preencher um a um, é o
+   dado mais importante desta tarefa: a repetição existe justamente para a
+   escala não voltar para o papel.)* Depois, pergunte o que ela faria com o
+   **turno que ficou sem ninguém** — a tela avisa, e a pergunta é se o aviso
+   chega antes de virar problema.
+   ⚠️ Peça também para **retirar alguém de um plantão da semana passada**. Ela
+   entende por que o sistema pede o motivo? Acha justo?
+
+8. **Tire a folha da escala para pregar na parede.**
+   Observar: ela procura imprimir da tela ou baixar o Word? O quadro por semana
+   é como ela desenharia? Ela sente falta de alguma coluna?
+
+9. **A casa passou a operar com 22 vagas depois da reforma. Registre isso.**
    Observar: ela procura em "Mais" → **Painel das unidades**? Entende que o
    limite pede motivo, e que a mudança anterior não some?
 
-8. **O tablet da sala sumiu. Faça o que precisa ser feito.**
+10. **O tablet da sala sumiu. Faça o que precisa ser feito.**
    Observar: ela chega em Equipe → **Aparelhos**? Ela revoga, ou tenta
    apagar? Ao registrar um aparelho novo, ela **anota o código na hora** —
    ou fecha a folha e depois procura onde vê-lo de novo?
    ⚠️ Se ela fechar sem anotar, **não pergunte nada e observe o que ela faz**.
    É o teste mais honesto desta tela.
 
-9. **Um registro de dose feito sem sinal colidiu com outro. Resolva.**
+11. **Um registro de dose feito sem sinal colidiu com outro. Resolva.**
    Observar: ela acha "Mais" → **Sincronização**? Ao ver as duas versões, ela
    procura um botão para escolher uma — ou entende que o que se pede é a frase
    dela? *O sistema não escolhe de propósito; queremos saber se isso se lê
    como cuidado ou como sistema incompleto.*
 
-10. **Aprove o relatório mensal que a técnica escreveu.**
+12. **Aprove o relatório mensal que a técnica escreveu.**
     Observar: se ele estiver como rascunho, ela entende que alguém precisa
     **enviar para aprovação** primeiro? A frase "este relatório ainda não
     vale" chega até ela?
 
-11. **Uma criança da casa foi internada e você precisa designar quem vai
+13. **Uma criança da casa foi internada e você precisa designar quem vai
     acompanhar as visitas desta semana.**
     Observar: ela acha "Designar quem acompanha"? Entende que quem for
     designado passa a **ver aquela internação e só ela**? Ela pergunta o que
     acontece com quem estava antes?
 
-12. **Tire o relatório do trabalho desta casa, para levar à reunião de rede.**
+14. **Tire o relatório do trabalho desta casa, para levar à reunião de rede.**
     Observar: ela acha o botão no Painel das unidades? Ao ver a folha, ela
     procura comparar com as outras casas — e o que diz quando lê que o
     documento não compara? ⚠️ **Esta é a pergunta mais delicada do roteiro
@@ -428,7 +466,7 @@ Responde pela casa. É quem vai usar as telas de decisão.
     recusa de fazer ranking de casas é decisão de projeto, e vale saber quanto
     ela custa a quem responde por uma casa.
 
-13. **Pergunte depois:** "o que desta lista você já faz hoje em outro lugar?
+15. **Pergunte depois:** "o que desta lista você já faz hoje em outro lugar?
     Onde?"
 
 ---

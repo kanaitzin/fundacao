@@ -35,6 +35,15 @@ está escrito também no código, ao lado da rota (`test/rotas-sem-porta.spec.ts
   diário da internação: os dois guardavam arquivo e não tinham rota de
   leitura.
 
+## O que a escala destravou (08/09/2026)
+
+A **escala 12x36 vigente** deixou de ser "documento que falta" e virou tela: a
+coordenação monta por dia e turno, com repetição. O que ainda depende da
+Fundação é o **conteúdo** — quem trabalha quando, na Casa 03 — e duas decisões
+que a escala tornou possíveis: ligar a **janela de acesso por plantão**
+(T-10/T+10), e fazer o aviso de "fora da escala" da agenda olhar a escala por
+data em vez da semanal.
+
 ## O que não é código
 
 - **Implantação**: onde roda, backup com restauração testada (feito), SMTP,

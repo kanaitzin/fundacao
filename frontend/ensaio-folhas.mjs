@@ -141,6 +141,17 @@ await percorrer('Combinados da equipe', async () => {
   return botaoDaFolha();
 });
 
+/* A folha da escala é a que vai PREGADA NA PAREDE — o único documento deste
+ * sistema que não é lido numa tela. Ela entra no percurso pelo mesmo motivo
+ * que as outras: quem confere na tela precisa reconhecer o papel que sai. */
+await percorrer('Escala de plantão', async () => {
+  await abrirDoMais('escala');
+  const b = pg.locator('main.conteudo button').filter({ hasText: /Folha para a parede/ });
+  if (!(await b.count())) return false;
+  await b.first().click();
+  return true;
+});
+
 await navegador.close();
 console.log(achados.length ? `\n${achados.length} ACHADO(S)` : '\nNenhum achado.');
 process.exit(achados.length ? 1 : 0);

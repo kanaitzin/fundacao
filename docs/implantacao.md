@@ -58,7 +58,7 @@ nada**: ele continua dizendo que o arquivo existe.
 npm run ensaio:producao
 ```
 
-Constrói, cria um banco virgem, aplica as 80 migrações **pelo binário
+Constrói, cria um banco virgem, aplica as 82 migrações **pelo binário
 compilado**, sobe o serviço e confere `/health`. Não publica nada e não toca no
 banco de trabalho.
 
@@ -68,7 +68,7 @@ implanta é outra coisa — `dist/`, sem `src/`, sem `scripts/`, sem nenhuma
 dependência de desenvolvimento — e da primeira vez que isto foi ensaiado
 encontrou duas coisas que teriam quebrado a implantação:
 
-- **`dist/` saía com ZERO migrações.** Os 80 `.sql` vivem em
+- **`dist/` saía com ZERO migrações.** Os 82 `.sql` vivem em
   `src/modules/…`, e o `tsc` não copia `.sql`. Quem implantasse só o `dist/`
   subiria o serviço, veria `/health` responder "ok" e descobriria o banco
   vazio. O `/health` responde ok porque o banco EXISTE; ele não sabe se as

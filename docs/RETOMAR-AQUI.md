@@ -5,7 +5,7 @@ numa conversa nova. Quem ler isto do começo ao fim sabe o que o sistema é, ond
 ele está, o que já funciona, o que falta e o que não pode ser feito — sem
 precisar de nenhuma outra conversa anterior.
 
-*Atualizado em 08/09/2026 — fases 0 a 72. Substitui o "pacote de retomada" da seção 10 do
+*Atualizado em 08/09/2026 — fases 0 a 73. Substitui o "pacote de retomada" da seção 10 do
 `CONTINUIDADE.md`, que ficou velho. O prompt para colar na conversa nova está
 em `docs/PROMPT-MESTRE.md`.*
 
@@ -44,11 +44,11 @@ rede-acolher/
 │   │   │                  database, events, health
 │   │   └── modules/       17 partições isoladas, cada uma com as próprias
 │   │                      migrações em modules/<nome>/migrations/
-│   ├── test/              52 suítes (e2e contra PostgreSQL real + estáticas)
+│   ├── test/              53 suítes (e2e contra PostgreSQL real + estáticas)
 │   └── assets/timbre.png  a marca da Fundação, usada no documento em Word
 ├── frontend/
 │   ├── src/
-│   │   ├── screens/       30 telas React
+│   │   ├── screens/       31 telas React
 │   │   ├── mock.ts        o "servidor de mentira" do protótipo
 │   │   ├── docx.ts        monta o .docx NO NAVEGADOR — só para o protótipo,
 │   │   │                  que roda sem servidor; no sistema real quem gera é
@@ -60,7 +60,7 @@ rede-acolher/
 │   │   ├── App.tsx        navegação, abas, seletor de cargo do protótipo
 │   │   └── styles.css     design system, tema claro e escuro
 │   ├── ensaio.mjs         abre o protótipo num navegador de verdade e
-│   │                      percorre as 107 telas dos oito cargos
+│   │                      percorre as 113 telas dos oito cargos
 │   └── ensaio-fila.mjs    corta o sinal e ensaia o que só existe fora da tela
 ├── scripts/               preparar-ambiente.sh — dependências, banco e
 │                          Chromium, para a sessão nova começar rodando
@@ -98,11 +98,11 @@ cd backend  && npx tsc --noEmit -p tsconfig.json
 # testes: precisam de PostgreSQL 16 rodando
 cd backend && npx jest
 
-# os ensaios de navegador: as 107 telas, e a fila offline
+# os ensaios de navegador: as 113 telas, e a fila offline
 cd frontend && npm run ensaio && npm run ensaio:fila
 ```
 
-O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as 78
+O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as 82
 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`,
 `seed-fase4.ts`).
 
@@ -209,13 +209,13 @@ Além dos e2e, cinco suítes estáticas — elas já pegaram erro de verdade:
 
 ## 5. O QUE JÁ ESTÁ PRONTO
 
-**Fases 0 a 72. 510 testes em 52 suítes.** A última verificação inteira foi em
-**08/09/2026**, depois da fase 72: `tsc` nos dois lados, a suíte **quatro
-rodadas seguidas limpas** — duas de dia e duas com o relógio da máquina em 21h05
-e 23h37 de Porto Alegre, com o UTC já no dia seguinte, que é a condição que a
-regra pede —, os sete ensaios de navegador, o `ensaio:producao` e o
-`ensaio:restauracao`.
-30 telas, 80 migrações, 96 tabelas.
+**Fases 0 a 73. 522 testes em 53 suítes.** A última verificação inteira foi em
+**08/09/2026**, depois da fase 73: `tsc` nos dois lados, a suíte **três rodadas
+seguidas limpas** — uma de dia, uma com o relógio da máquina em 22h03 de Porto
+Alegre e o UTC já em 09/09 (a condição que a regra pede), e uma às 01h02, já
+depois da virada do dia na casa —, os sete ensaios de navegador, o
+`ensaio:producao` e o `ensaio:restauracao`.
+30 telas, 82 migrações, 97 tabelas.
 
 *(O contador de "rodadas limpas acumuladas" saiu daqui na fase 71: ele crescia
 a cada conversa e ninguém sabia dizer de onde vinha o número — dois documentos
@@ -224,7 +224,7 @@ chegaram a discordar dele. Data e condição valem mais do que contagem.)*
 E dois ensaios de navegador, que `tsc` não substitui — ele diz que compila,
 nunca disse que renderiza:
 
-- `npm run ensaio` percorre as **107 telas** que os oito cargos alcançam,
+- `npm run ensaio` percorre as **113 telas** que os oito cargos alcançam,
   cobrando de cada uma que não deixe erro no console, que escreva alguma coisa
   e que não mostre `undefined` para quem lê;
 - `npm run ensaio:fila` faz o que só existe fora da tela: corta o sinal, marca
@@ -234,7 +234,7 @@ nunca disse que renderiza:
   folha, tenta baixar com finalidade curta demais, baixa com uma frase válida
   e confere que o `.docx` chegou.
 
-- `npm run ensaio:acessibilidade` roda o axe-core (WCAG 2.1 AA) nas **114 telas**
+- `npm run ensaio:acessibilidade` roda o axe-core (WCAG 2.1 AA) nas **120 telas**
   — sete a mais que o `ensaio` porque confere também a **folha do "Mais"** de
   cada cargo, que é aberta dezenas de vezes por turno. Nenhuma violação — e a folga foi conquistada em 02/09: contraste
   não é opinião, e a diferença entre 4,46 e 4,5 só se enxerga no corredor;
@@ -244,7 +244,7 @@ nunca disse que renderiza:
   conferência travou sem motivo, a exceção escrita apareceu, a contagem de
   dias com relato mudou. É o que pega o defeito que a tela não denuncia: a
   folha abriu, o botão salvou, e só o número estava errado;
-- `npm run ensaio:roteiro` percorre as **26 tarefas do roteiro do Marcelo** e
+- `npm run ensaio:roteiro` percorre as **28 tarefas do roteiro do Marcelo** e
   cobra que cada uma tenha porta no cargo certo. Ele não simula a procura de
   uma pessoa — onde ela para é o que a aplicação do roteiro descobre —, mas
   impede o fracasso barato: a tarefa não ter porta, e isso aparecer diante da
@@ -260,7 +260,7 @@ E, desde a fase 63, **o sistema é ensaiado COMPILADO**:
 `npm run ensaio:producao` constrói, cria um banco virgem, aplica as migrações
 pelo binário e sobe o serviço. O projeto passou 62 fases sem nunca rodar assim
 — tudo por `tsx` e por `jest` —, e a primeira rodada encontrou o `dist/` sem
-nenhuma das 80 migrações.
+migração nenhuma.
 
 E, desde a fase 48, **a restauração é ensaiada como o resto**:
 `npm run ensaio:restauracao` faz o ciclo inteiro num banco descartável —
@@ -317,6 +317,17 @@ sozinho do que parou esperando gente. **Confirmação de dose fica de fora, em
 aparelho nenhum** (08/09/2026): como o sistema roda no celular de cada pessoa,
 não existe mais o aparelho único da casa que impedia a mesma dose de ser
 confirmada em dois lugares. A recusa vem na hora, com a frase.
+
+**A escala (08/09/2026):** a coordenação monta por **dia e turno**, com hora
+quando o plantão não é o inteiro, e **repete a cada N dias** para preencher o
+mês — "a cada 2" é o desenho de uma 12x36, que é o motivo de a escala ser por
+DATA e não por dia da semana (o ciclo anda pelo calendário). O **turno sem
+ninguém** aparece escrito, a folha da parede sai em Word, e **nada se apaga**:
+retirar é revogar, com autor — e retirar plantão que já passou exige motivo,
+porque é a escala que responde quem estava na casa naquela noite. Sem contagem
+de plantões por pessoa em lugar nenhum. Com ela, **quem o sistema cobra por
+assinar a passagem passa a ser quem estava escalado**, e não todo mundo que
+trabalha na casa; sem escala montada, ele declara que caiu no vínculo da casa.
 
 **O turno:** o Dia com a rotina versionada da casa e o filtro **"Por criança"**
 — uma linha por acolhido, em ordem alfabética, com o alerta essencial primeiro —, chamadas coletivas com
@@ -458,6 +469,7 @@ Em ordem, e cada uma com o defeito real que a motivou:
 | 70 | As mensagens de erro falam **português** e dizem se o registro foi salvo |
 | 71 | Os **números dos documentos de retomada** passaram a ser cobrados por teste — seis estavam errados em três arquivos |
 | 72 | **A medicação como a casa faz**: o educador de plantão dá o remédio, a exceção é por medicamento, a passagem lê as doses de volta, e dose não se confirma sem sinal |
+| 73 | **A escala de plantão por DATA** — uma 12x36 não cabe numa semana —, com repetição, turno sem ninguém à vista, folha para a parede, e a passagem cobrando quem estava escalado |
 
 ---
 
@@ -659,7 +671,7 @@ valendo:
 |---|---|
 | `CONTINUIDADE.md` | a história longa, fase por fase, com o raciocínio de cada decisão |
 | `o-que-falta.md` | o levantamento das rotas sem tela, atualizado |
-| `der.md` | as 96 tabelas por partição, e o que cada uma guarda |
+| `der.md` | as 97 tabelas por partição, e o que cada uma guarda |
 | `matriz-permissoes.md` | quem alcança o quê |
 | `backlog.md` | o que foi pensado e ainda não construído |
 | `piloto-casa-03.md` | o desenho do piloto |

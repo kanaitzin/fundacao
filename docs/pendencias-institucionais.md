@@ -7,7 +7,7 @@ nunca regra invisível. Nenhuma foi "inventada".
 |---|---|---|
 | 1 | Quem administra medicamentos em cada período | ✅ **RESPONDIDA em 08/09/2026.** A Enfermagem atende das 9h às 17h; fora disso administra o educador de plantão, conforme a bula do acolhido. O protocolo por período e a autorização nominal saíram de cena (viraram leitura do que valia antes), e no lugar deles ficou a **exceção por medicamento** — "este só a Enfermagem dá" —, com motivo escrito e histórico. Migração 0930 |
 | 2 | Horários da Enfermagem, cobertura noturna, prazo de triagem | **Metade respondida em 08/09/2026:** a Enfermagem atende das **9h às 17h**, e a cobertura noturna é do educador de plantão. Falta o prazo de triagem, que será parâmetro |
-| 3 | Acesso da equipe técnica fora da escala | Sem efeito no sistema hoje: a janela T-10/T+10 não está implementada e depende da escala 12x36 vigente. Quando existir, a técnica começa em modo observado. |
+| 3 | Acesso da equipe técnica fora da escala | A janela T-10/T+10 continua **não implementada** — mas desde 08/09/2026 o dado que faltava existe: a **escala por data** (migração 0950). Ligar a janela passou a ser decisão, e não construção: alguém ficaria sem abrir o sistema fora do horário, e isso é da Fundação |
 | 4 | Horário oficial do Líder Noturno Geral | `NIGHT_SHIFT_END_HOUR` no `.env` (7h como hipótese). A hora de INÍCIO não é lida por ninguém: quem abre a ATA Geral é uma pessoa, não um relógio. |
 | 5 | Relatórios obrigatórios no piloto | Backlog da Fase 6 marca todos como candidatos; seleção com Marcelo. |
 | 6 | Permissões de fotos em memórias | Modelo `MemoryRecord`+`PhotoAuthorization` planejado; upload desabilitado por flag até confirmação. |

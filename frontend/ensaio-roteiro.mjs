@@ -161,24 +161,36 @@ const TAREFAS = [
   },
   {
     cargo: 'coordenador', secao: '5.7',
+    nome: 'Montar a escala do mês — e o turno sem ninguém',
+    caminho: [{ mais: 'escala' }],
+    procurar: [/Escalar alguém/i, /ninguém escalado/i],
+  },
+  {
+    cargo: 'coordenador', secao: '5.8',
+    nome: 'A folha da escala para a parede',
+    caminho: [{ mais: 'escala' }],
+    procurar: [/Folha para a parede/i],
+  },
+  {
+    cargo: 'coordenador', secao: '5.9',
     nome: 'O limite da casa, no Painel das unidades',
     caminho: [{ mais: 'Painel das unidades' }],
     procurar: [/limite|vagas|ocupação/i],
   },
   {
-    cargo: 'coordenador', secao: '5.8',
+    cargo: 'coordenador', secao: '5.10',
     nome: 'O tablet sumiu — Equipe, aba Aparelhos',
     caminho: [{ mais: 'Equipe' }, { clicar: /Aparelhos/ }],
     procurar: [/aparelho/i],
   },
   {
-    cargo: 'coordenador', secao: '5.9',
+    cargo: 'coordenador', secao: '5.11',
     nome: 'Um registro colidiu — Sincronização',
     caminho: [{ mais: 'Sincronização' }],
     procurar: [/conflito|sincroniza/i],
   },
   {
-    cargo: 'coordenador', secao: '5.10',
+    cargo: 'coordenador', secao: '5.12',
     nome: 'Aprovar o relatório mensal',
     caminho: [{ mais: 'Acompanhamentos' }],
     procurar: [/aprova/i],
@@ -214,7 +226,7 @@ const TAREFAS = [
 
   // ------------------------------------------------ 5.11 e 5.12 — coordenação
   {
-    cargo: 'coordenador', secao: '5.12',
+    cargo: 'coordenador', secao: '5.14',
     nome: 'O relatório do trabalho desta casa',
     caminho: [{ mais: 'Painel das unidades' }],
     procurar: [/relatório do trabalho desta casa/i],

@@ -54,6 +54,8 @@ limitados à **finalidade** do cargo na camada de aplicação.
 | Autorizar ou **recusar** substituição | — | ✅ | ✅ | ✅ | — | ✅ | — |
 | Ver o painel do plantão (quem está em quê) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Convidar para o primeiro acesso | — | — | — | ✅ própria casa | — | — | ✅ |
+| Ler a escala de plantão da casa | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ |
+| Montar a escala (escalar, retirar, folha) | — | — | — | ✅ própria casa | — | — | ✅ |
 
 **Quem dá o remédio (atualizado em 08/09/2026, migração 0930).** A Enfermagem
 atende das **9h às 17h**; fora desse horário quem administra é o **educador de
@@ -90,6 +92,10 @@ continua sendo de quem administrou, uma dose por vez.
   **reautenticação** e auditoria destacada (§5.2).
 - Desligado = desativado; autoria e histórico preservados (§5.1).
 - Alterar relógio do aparelho não amplia acesso (§5.12) — janela avaliada no servidor.
+- **A escala informa, não bloqueia** (0950). Ela diz quem devia estar no
+  plantão; quem cobriu um turno fora dela assina a passagem do mesmo jeito, com
+  o aviso de que não constava. Retirar alguém de plantão que já passou exige
+  motivo escrito, e nada é apagado — nem pelo dono do banco.
 - **Dose não se confirma sem sinal, em aparelho nenhum** (0930). O sistema roda
   no celular de cada pessoa: sem o aparelho único da casa, guardar confirmação
   de dose devolveria a mesma dose confirmada em dois lugares. O resto do turno

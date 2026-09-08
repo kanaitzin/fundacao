@@ -25,6 +25,7 @@ import { Sincronizacao } from './screens/Sincronizacao';
 import { Alinhamentos } from './screens/Alinhamentos';
 import { Arquivo } from './screens/Arquivo';
 import { Rotina } from './screens/Rotina';
+import { Escala } from './screens/Escala';
 import { Setores } from './screens/Setores';
 import { Cozinha } from './screens/Cozinha';
 import { Avisos } from './screens/Avisos';
@@ -49,7 +50,7 @@ const KIND_TONE: Record<string, string> = { casa_lar: 'c-move', abrigo_instituci
 /** As telas que não são do turno; a aba "Mais" fica acesa quando uma delas está aberta. */
 const OUTRAS = new Set(['agenda', 'equipe', 'casas', 'saude', 'internacao', 'impacto', 'ocorrencias', 'ata',
   'cofre', 'transferencias', 'acompanhamentos', 'arquivo', 'setores', 'unidades', 'plantao',
-  'rotina', 'alinhamentos', 'painel', 'sincronizacao']);
+  'rotina', 'escala', 'alinhamentos', 'painel', 'sincronizacao']);
 /* O sino é de todo mundo: não há cargo que não receba escalonamento. */
 
 
@@ -157,7 +158,7 @@ export function App() {
     | 'saude' | 'internacao' | 'impacto' | 'ocorrencias' | 'ata' | 'cofre' | 'transferencias'
     | 'acompanhamentos' | 'arquivo' | 'plantao' | 'unidades' | 'setores' | 'cozinha'
     | 'alinhamentos' | 'painel' | 'sincronizacao'
-    | 'rotina' | 'avisos'>('dia');
+    | 'rotina' | 'escala' | 'avisos'>('dia');
   const [sugerirSenha, setSugerirSenha] = useState(false);
   const [trocarSenha, setTrocarSenha] = useState(false);
   const [mais, setMais] = useState(false);
@@ -469,6 +470,11 @@ export function App() {
           <Rotina houseId={casaAtual.id} papel={me.role} />
         )}
 
+        {abaEfetiva === 'escala' && ve('escala') && casaAtual && (
+          <Escala houseId={casaAtual.id} papel={me.role}
+                  casaLabel={`${casaAtual.code} — ${casaAtual.name}`} />
+        )}
+
         {abaEfetiva === 'impacto' && ve('impacto') && (
           <TrabalhoSocial papel={me.role} />
         )}
@@ -597,6 +603,20 @@ export function App() {
                     <b className="ff">A rotina da casa</b>
                     <div className="mutetxt">
                       O molde do dia — e as versões que a casa já seguiu.
+                    </div>
+                  </div>
+                </button>
+              )}
+              {/* A escala fica ao lado da rotina: as duas respondem "como esta
+                  casa funciona" — uma pelo relógio do dia, a outra pelo
+                  calendário de quem trabalha nele. */}
+              {ve('escala') && (
+                <button className="card row" onClick={() => { setAba('escala'); setMais(false); }}>
+                  <span aria-hidden="true">🗓️</span>
+                  <div className="grow" style={{ textAlign: 'left' }}>
+                    <b className="ff">A escala de plantão</b>
+                    <div className="mutetxt">
+                      Quem assume cada dia e cada turno — e o que já passou.
                     </div>
                   </div>
                 </button>

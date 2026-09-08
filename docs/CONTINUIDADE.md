@@ -3,7 +3,7 @@
 > **Como usar este arquivo:** anexe-o na primeira mensagem de uma conversa nova,
 > junto com o zip do repositório. Ele substitui todo o histórico.
 >
-> Última atualização: 08/09/2026 · §8.39, a medicação como a casa faz
+> Última atualização: 08/09/2026 · §8.40, a escala de plantão por data
 
 ---
 
@@ -1340,9 +1340,34 @@ mudar duas regras **perdeu a baixa de estoque**, que não estava em discussão.
 `CREATE OR REPLACE` troca o corpo inteiro. Quem pegou foi `regressao-estado`,
 contando o estoque depois de confirmar.
 
+### 8.40 A escala de plantão — 08/09/2026
+
+O Marcelo pediu a aba da escala, e o pedido trouxe junto o dado que faltava
+desde agosto: a Fundação trabalha em **12x36**. O detalhe está no backlog (fase
+73); o que vale para além desta partição é uma coisa só, e ela é sobre modelo.
+
+**`work_schedule` estava certa e não servia.** Semanal, com dia da semana e
+horário, ela descreve quem tem horário fixo — e foi ela que a 0420 leu para
+parar de nomear gente de folga na lista de faltas da ATA. Só que numa 12x36 o
+ciclo é de 48 horas e ANDA PELO CALENDÁRIO: "toda terça a Joana" é falso na
+terça seguinte. Na prática, nenhuma casa tinha escala cadastrada, e o sistema
+caía no vínculo da casa em todo plantão — o comportamento antigo, agora
+declarado, e por isso ninguém tinha notado.
+
+A lição é a de sempre neste projeto, com roupa nova: **o modelo carrega uma
+hipótese sobre o mundo, e a hipótese envelhece em silêncio**. A tabela não
+quebrou, o teste não caiu, a tela não errou. O que aconteceu é que ela deixou de
+descrever a casa — e só se descobre perguntando à casa.
+
+E dois achados que se repetem, o que também diz alguma coisa: `String(objetoDate)`
+derrubou o agrupamento por dia (é o defeito da fase 44 de novo, em outro canto),
+e o conferidor de números da fase 71 tinha um buraco — número quebrado em duas
+linhas escapava dele, dentro do arquivo que ele existe para guardar. Endurecido,
+achou mais duas na mesma rodada.
+
 ---
 
-## 9. Migrações desta série (0620–0940)
+## 9. Migrações desta série (0620–0960)
 
 | Nº | Módulo | O que faz |
 |---|---|---|
@@ -1373,6 +1398,8 @@ contando o estoque depois de confirmar.
 | 0860 | medications | quem decidiu que podia, e por quê: histórico do protocolo |
 | 0930 | medications | o educador de plantão dá o remédio; a exceção é por medicamento |
 | 0940 | shifts | a passagem lê as doses do turno e cobra a frase do primeiro que assina |
+| 0950 | identity | a escala de plantão POR DATA — 12x36 não cabe numa semana |
+| 0960 | shifts | quem devia assinar vem da escala do dia, com a fonte declarada |
 
 Sem migração nova na fase 14: os relatórios usam o que já estava gravado.
 A dependência `docx` entrou no backend, e o timbre vive em `backend/assets/timbre.png`.

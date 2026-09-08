@@ -105,8 +105,13 @@ describe('Fase 5 — Plantão, ATA e proteção', () => {
   it('#18 cada educador assina a PRÓPRIA passagem — e o banco recusa a assinatura alheia', async () => {
     const a = await request(http).post(`/api/v1/shifts/${plantaoDiurno}/handover`)
       .set(auth(tokens.educador))
+      /* `medicacao` entrou aqui na fase 72: quando alguma dose do turno ficou
+       * sem resposta, a passagem cobra a frase de quem assina primeiro. Nesta
+       * casa outras suítes deixam dose pendente, e é exatamente o que aconteceria
+       * na casa de verdade — o educador que assina primeiro responde por elas. */
       .send({ aparelho: 'tablet-casa03', contribuicoes: 'Acompanhei o café e a saída para a escola.',
-              pendencias: 'Sofia precisa de retorno na UBS.', orientacoes: 'Conferir mochila da tarde.' });
+              pendencias: 'Sofia precisa de retorno na UBS.', orientacoes: 'Conferir mochila da tarde.',
+              medicacao: 'As doses da manhã foram dadas e confirmadas; a das 16h fica para o turno da tarde.' });
     expect(a.status).toBe(201);
 
     // A mesma pessoa não assina duas vezes.

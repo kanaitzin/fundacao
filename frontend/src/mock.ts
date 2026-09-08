@@ -33,6 +33,7 @@ import { folhaDaOcorrencia } from '../../backend/src/modules/incidents/ocorrenci
 import { folhaDeSaude } from '../../backend/src/modules/nursing/saude-folha';
 import { folhaDaGrade } from '../../backend/src/modules/medications/grade-folha';
 import { folhaDosCombinados } from '../../backend/src/modules/alignments/combinados-folha';
+import { folhaDaEscala } from '../../backend/src/modules/identity/escala-folha';
 import { folhaDoImpacto, folhaDaTrajetoria }
   from '../../backend/src/modules/reports/impacto-folha';
 import { SECOES_ATA, AMBIENTES_CASA, CLASSIFICACOES_EPISODIO }
@@ -667,6 +668,111 @@ let DOSES: DoseMock[] = [
     estado: 'aguardando_confirmacao', rotulo: 'Se necessário', pendente: true,
     confirmadaPor: null, administradaEm: null, observacao: null },
 ];
+
+/**
+ * A ESCALA DE PLANTÃO (§5.12, migração 0950).
+ *
+ * A demonstração começa com a semana montada e com DOIS BURACOS de propósito —
+ * a noite de um dia e o dia de outro sem ninguém. Um protótipo com a escala
+ * completa esconderia justamente a coisa que o Marcelo pediu para ver: o turno
+ * sem gente, antes de virar noite sem educador.
+ */
+interface EscalaMock {
+  id: string; userId: string; quem: string; cargo: string;
+  data: string; turno: 'diurno' | 'noturno';
+  inicio: string | null; fim: string | null; nota: string | null;
+  revogadaEm: string | null; motivoRevogacao: string | null; revogadaPor: string | null;
+}
+
+function diaRelativo(n: number): string {
+  const d = new Date(`${HOJE}T12:00:00-03:00`);
+  d.setDate(d.getDate() + n);
+  return d.toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
+}
+
+const ESCALA: EscalaMock[] = (() => {
+  const out: EscalaMock[] = [];
+  const gente = [
+    { userId: 'u1', quem: 'Mário Silva (fictício)', cargo: 'educador' },
+    { userId: 'u6', quem: 'Joana Lima (fictícia)', cargo: 'educador' },
+    { userId: 'u7', quem: 'Tainá Souza (fictícia)', cargo: 'educador' },
+    { userId: 'u2', quem: 'Lúcia Líder Diurna (fictícia)', cargo: 'lider_diurno' },
+  ];
+  let n = 0;
+  for (let d = -7; d <= 21; d++) {
+    const data = diaRelativo(d);
+    /* Dois buracos combinados: a noite de depois de amanhã e o dia do sábado
+       seguinte. São eles que fazem o aviso aparecer na demonstração. */
+    const semNoturno = d === 2;
+    const semDiurno = d === 5;
+    if (!semDiurno) {
+      const p = gente[(d + 7) % 2];
+      out.push({ id: `esc-${++n}`, ...p, data, turno: 'diurno',
+        inicio: null, fim: null, nota: null,
+        revogadaEm: null, motivoRevogacao: null, revogadaPor: null });
+      if (d % 3 === 0) {
+        const l = gente[3];
+        out.push({ id: `esc-${++n}`, ...l, data, turno: 'diurno',
+          inicio: null, fim: null, nota: null,
+          revogadaEm: null, motivoRevogacao: null, revogadaPor: null });
+      }
+    }
+    if (!semNoturno) {
+      const p = gente[2 - ((d + 7) % 2)];
+      out.push({ id: `esc-${++n}`, ...p, data, turno: 'noturno',
+        inicio: null, fim: null, nota: null,
+        revogadaEm: null, motivoRevogacao: null, revogadaPor: null });
+    }
+  }
+  /* Uma retirada, para a demonstração mostrar que nada some: a linha fica
+     riscada, com quem retirou e o motivo. */
+  out.push({ id: 'esc-ret-1', userId: 'u6', quem: 'Joana Lima (fictícia)', cargo: 'educador',
+    data: diaRelativo(3), turno: 'noturno', inicio: null, fim: null, nota: null,
+    revogadaEm: emHoras(9, 15), motivoRevogacao: 'Trocou o plantão com a Tainá.',
+    revogadaPor: 'Carla Coordenadora (fictícia)' });
+  return out;
+})();
+
+/** O período com os dois turnos de TODOS os dias, como o servidor devolve. */
+function escalaDoPeriodo(de: string, ate: string) {
+  const dias: any[] = [];
+  for (let d = new Date(`${de}T12:00:00-03:00`);
+       d.toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' }) <= ate;
+       d.setDate(d.getDate() + 1)) {
+    const data = d.toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
+    const doDia = ESCALA.filter((x) => x.data === data);
+    const vivos = (t: string) => doDia.filter((x) => x.turno === t && !x.revogadaEm);
+    dias.push({
+      data,
+      diurno: vivos('diurno'),
+      noturno: vivos('noturno'),
+      revogadas: doDia.filter((x) => x.revogadaEm),
+      semNinguem: [
+        ...(vivos('diurno').length ? [] : ['diurno']),
+        ...(vivos('noturno').length ? [] : ['noturno']),
+      ],
+    });
+  }
+  const buracos = dias.flatMap((x) => x.semNinguem.map((t: string) => ({ data: x.data, turno: t })));
+  return {
+    de, ate, dias, turnosSemNinguem: buracos,
+    aviso: buracos.length
+      ? `${buracos.length} turno(s) deste período ainda não têm ninguém escalado. A escala `
+        + 'informa quem devia estar; ela não impede ninguém de trabalhar.'
+      : 'Todos os turnos deste período têm alguém escalado.',
+  };
+}
+
+/** As linhas que a folha da parede desenha — o turno vazio sai ESCRITO. */
+function linhasDaEscalaParaFolha(de: string, ate: string) {
+  return escalaDoPeriodo(de, ate).dias.flatMap((d: any) => {
+    const dos = (turno: 'diurno' | 'noturno') => (d[turno].length
+      ? d[turno].map((p: any) => ({ data: d.data, turno, quem: p.quem, cargo: p.cargo,
+                                    inicio: p.inicio, fim: p.fim, nota: p.nota }))
+      : [{ data: d.data, turno, quem: null, cargo: null, inicio: null, fim: null, nota: null }]);
+    return [...dos('diurno'), ...dos('noturno')];
+  });
+}
 
 /**
  * OS REMÉDIOS DE UM TURNO (0940), para a passagem ler de volta.
@@ -3549,6 +3655,105 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       instrucoes: b.instructions ? String(b.instructions) : null,
     });
     return { id };
+  }
+
+  // ---------------------------------------------------------------- ESCALA
+  /*
+   * A ESCALA (§5.12). Palavra fixa ANTES do `:id`, como no servidor: os dois
+   * roteadores decidem por segmento, e `/escala/folha` cairia em
+   * `/escala/:id/...` se a ordem se invertesse — foi o defeito da fase 60 no
+   * mock, e o do arquivo das ATAS antes dele.
+   */
+  if (rota.startsWith('/escala/folha') && metodo === 'GET') {
+    const de = String(q.get('de') ?? HOJE);
+    const ate = String(q.get('ate') ?? HOJE);
+    return folhaDaEscala({
+      casa: `${CASA.code} — ${CASA.name}`,
+      de, ate,
+      linhas: linhasDaEscalaParaFolha(de, ate),
+      autor: { nome: eu.fullName, cargo: cargoNoDocumento(eu.role) },
+    });
+  }
+  if (rota === '/escala/export' && metodo === 'POST') {
+    const finalidade = String(b.finalidade ?? '').trim();
+    if (finalidade.length < 10) {
+      return new Recusa(400, 'Descreva a finalidade da exportação (mínimo 10 caracteres).');
+    }
+    const de = String(b.de ?? HOJE);
+    const ate = String(b.ate ?? HOJE);
+    const folha = folhaDaEscala({
+      casa: `${CASA.code} — ${CASA.name}`, de, ate,
+      linhas: linhasDaEscalaParaFolha(de, ate),
+      autor: { nome: eu.fullName, cargo: cargoNoDocumento(eu.role) },
+    });
+    return {
+      nomeArquivo: nomeDaFolha(folha.titulo),
+      conteudoBase64: gerarDocx(folha, timbreEmBytes()),
+      aviso: 'Escala exportada em Word. A saída fica registrada com o seu nome, a finalidade e '
+        + 'o horário.',
+    };
+  }
+  if (rota.startsWith('/escala') && metodo === 'GET') {
+    const de = String(q.get('de') ?? HOJE);
+    const ate = String(q.get('ate') ?? HOJE);
+    return escalaDoPeriodo(de, ate);
+  }
+  if (rota === '/escala' && metodo === 'POST') {
+    if (!['coordenador', 'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403, 'Quem monta a escala da casa é a coordenação dela.');
+    }
+    if (b.repetirACada && !b.ate) {
+      return new Recusa(400, 'Para repetir, diga até quando — uma repetição sem fim escreveria '
+        + 'plantão para sempre.');
+    }
+    const quem = EQUIPE_CASA.find((m) => m.id === String(b.userId ?? ''));
+    if (!quem) return new Recusa(400, 'Esta pessoa não está ativa no sistema.');
+    const passo = Number(b.repetirACada ?? 0);
+    let data = String(b.data);
+    let criadas = 0; let jaExistiam = 0;
+    for (;;) {
+      const existe = ESCALA.some((x) => x.data === data && x.turno === b.turno
+        && x.userId === quem.id && !x.revogadaEm);
+      if (existe) { jaExistiam++; } else {
+        ESCALA.push({ id: uid(), userId: quem.id, quem: quem.nome, cargo: quem.cargo,
+          data, turno: b.turno === 'noturno' ? 'noturno' : 'diurno',
+          inicio: b.inicio ? String(b.inicio) : null, fim: b.fim ? String(b.fim) : null,
+          nota: b.nota ? String(b.nota) : null,
+          revogadaEm: null, motivoRevogacao: null, revogadaPor: null });
+        criadas++;
+      }
+      if (!passo || !b.ate) break;
+      const d = new Date(`${data}T12:00:00-03:00`);
+      d.setDate(d.getDate() + passo);
+      data = d.toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
+      if (data > String(b.ate)) break;
+    }
+    return { criadas, jaExistiam,
+      aviso: jaExistiam > 0
+        ? `${criadas} plantão(ões) escalado(s). ${jaExistiam} já existia(m) e ficou(aram) como `
+          + 'está(vam) — escalar de novo não duplica.'
+        : `${criadas} plantão(ões) escalado(s).` };
+  }
+  if (seg[0] === 'escala' && seg[2] === 'revogar' && metodo === 'POST') {
+    if (!['coordenador', 'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403, 'Quem monta a escala da casa é a coordenação dela.');
+    }
+    const alvo = ESCALA.find((x) => x.id === seg[1]);
+    if (!alvo) return new Recusa(404, 'Plantão não encontrado na escala.');
+    if (alvo.revogadaEm) {
+      return { ok: true, mudou: false, aviso: 'Este plantão já havia sido retirado da escala.' };
+    }
+    const motivo = String(b.motivo ?? '').trim();
+    if (alvo.data < HOJE && motivo.length < 10) {
+      return new Recusa(400, 'Este plantão já passou. Escreva por que a escala dele muda — é ela '
+        + 'que responde quem estava na casa naquela noite.');
+    }
+    alvo.revogadaEm = new Date().toISOString();
+    alvo.motivoRevogacao = motivo || null;
+    alvo.revogadaPor = eu.fullName;
+    return { ok: true, mudou: true,
+      aviso: 'Plantão retirado da escala. A linha continua registrada, com o seu nome e o '
+        + 'horário — é ela que responde, meses depois, quem estava escalado naquela noite.' };
   }
 
   if (seg[0] === 'shifts' && seg.length === 2) {

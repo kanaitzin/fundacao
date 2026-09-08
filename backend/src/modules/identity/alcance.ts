@@ -65,6 +65,7 @@ export const AREAS = {
   equipe: 'Equipe',
   unidades: 'O dia das unidades',
   rotina: 'A rotina da casa',
+  escala: 'A escala de plantão',
   alinhamentos: 'Reuniões e combinados da equipe',
   painel: 'Painel das unidades',
   sincronizacao: 'Sincronização',
@@ -90,6 +91,9 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
     resumo: 'O turno da casa dele, com a criança na frente. É quem mais registra e quem menos '
       + 'precisa navegar.',
     areas: [
+      { area: 'escala', titulo: AREAS.escala,
+        faz: 'Lê a escala de plantão da casa — quando ele trabalha, e quem está com ele no turno.',
+        servidor: 'Quem monta a escala é a coordenação da casa. A escala informa quem devia estar; ela não impede ninguém de trabalhar — quem cobre um turno fora dela assina a passagem com o aviso de que não constava.' },
       { area: 'alinhamentos', titulo: AREAS.alinhamentos,
         faz: 'Lê o que a equipe combinou, inclusive o que foi decidido em reunião em que não esteve.',
         servidor: 'Registrar reunião e combinado é da equipe técnica e da coordenação.' },
@@ -130,6 +134,9 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
     transversal: false,
     resumo: 'Conduz o turno diurno da casa: o que o educador alcança, mais o fechamento.',
     areas: [
+      { area: 'escala', titulo: AREAS.escala,
+        faz: 'Lê a escala do dia e da semana, e vê quem devia estar em cada turno.',
+        servidor: 'Quem monta a escala é a coordenação da casa. A escala informa quem devia estar; ela não impede ninguém de trabalhar — quem cobre um turno fora dela assina a passagem com o aviso de que não constava.' },
       { area: 'plantao', titulo: AREAS.plantao,
         faz: 'Vê o turno inteiro e delega atividade com motivo.',
         servidor: 'Delegar não apaga a designação anterior, e a atividade volta a aguardar ciência.' },
@@ -174,6 +181,9 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
     transversal: false,
     resumo: 'Psicologia e serviço social da casa: o caso, não o turno.',
     areas: [
+      { area: 'escala', titulo: AREAS.escala,
+        faz: 'Lê a escala da casa para saber quem esteve em cada plantão.',
+        servidor: 'Quem monta a escala é a coordenação da casa. A escala informa quem devia estar; ela não impede ninguém de trabalhar — quem cobre um turno fora dela assina a passagem com o aviso de que não constava.' },
       { area: 'acolhidos', titulo: AREAS.acolhidos,
         faz: 'Perfil completo, histórico, documentos e situação judicial.' },
       { area: 'acompanhamentos', titulo: AREAS.acompanhamentos,
@@ -286,6 +296,9 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
     transversal: true,
     resumo: 'A noite das oito unidades. Também exceção funcional.',
     areas: [
+      { area: 'escala', titulo: AREAS.escala,
+        faz: 'Lê a escala das casas que alcança, para saber quem está de plantão à noite.',
+        servidor: 'Quem monta a escala é a coordenação da casa. A escala informa quem devia estar; ela não impede ninguém de trabalhar — quem cobre um turno fora dela assina a passagem com o aviso de que não constava.' },
       { area: 'plantao', titulo: AREAS.plantao, faz: 'Acompanha o turno das casas que alcança.' },
       { area: 'ata', titulo: 'ATA Geral Noturna',
         faz: 'Abre, preenche casa a casa e assina.',
@@ -314,6 +327,9 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
     transversal: false,
     resumo: 'Responde pela casa: equipe, aprovações, transferências e o cofre.',
     areas: [
+      { area: 'escala', titulo: AREAS.escala,
+        faz: 'Monta a escala da casa por dia e por turno, repete o padrão até o fim do mês, retira alguém com registro, e gera a folha para a parede.',
+        servidor: 'Retirar alguém de um plantão que JÁ PASSOU exige motivo escrito: é a escala que responde quem estava na casa naquela noite.' },
       { area: 'setores', titulo: AREAS.setores,
         faz: 'Responde "o educador vê isso?" sem entrar com a conta de ninguém.' },
       { area: 'equipe', titulo: AREAS.equipe,
@@ -376,6 +392,9 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
     transversal: true,
     resumo: 'Escopo institucional. Abre UMA casa por vez, e cada abertura fica registrada.',
     areas: [
+      { area: 'escala', titulo: AREAS.escala,
+        faz: 'Monta e lê a escala de qualquer casa, e tira a folha do período.',
+        servidor: 'Retirar alguém de um plantão que já passou exige motivo escrito.' },
       { area: 'unidades', titulo: AREAS.unidades, faz: 'O dia das oito unidades, em ordem.' },
       { area: 'casas', titulo: AREAS.casas, faz: 'A lista das unidades e a ocupação de cada uma.' },
       { area: 'alinhamentos', titulo: AREAS.alinhamentos,

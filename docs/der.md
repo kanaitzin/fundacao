@@ -496,6 +496,20 @@ administrou. A cobrança é de quem assina PRIMEIRO: quatro pessoas no mesmo
 turno responderiam quatro vezes sobre as mesmas doses, e a quarta escreveria
 qualquer coisa para conseguir ir embora.
 
+**`shift_assignment` é a escala POR DATA** (migração 0950), e nasceu porque a
+`work_schedule` — semanal, desde a fundação — não descreve uma 12x36: o ciclo é
+de 48 horas e anda pelo calendário, então "toda terça a Joana" é falso na terça
+seguinte. As duas convivem: a semanal continua certa para quem tem horário fixo
+(a Enfermagem das 9h às 17h), e a 0960 diz a ordem em que `app_missing_handovers`
+as consulta — escala do dia, escala semanal, vínculo da casa —, declarando a
+fonte na resposta.
+
+Nada se apaga: tirar alguém de um plantão é revogar, com autor e horário, e o
+banco recusa DELETE **inclusive do dono** — a pergunta que a tabela existe para
+responder é "quem estava na casa naquela noite?". Retirar plantão de data já
+passada exige motivo escrito. E não há contagem por pessoa em lugar nenhum:
+somar plantões por nome é medição de gente com outro nome (§3.3).
+
 ## Fase 5 — ocorrências e proteção
 
 ```mermaid
@@ -576,11 +590,11 @@ desenvolvimento** (fase 15): a criança não é só o que deu problema. Sala de
 recursos, curso, aprendizagem e a evolução escrita pela equipe entram no
 documento que segue para a audiência e para a escola.
 
-## Inventário — 96 tabelas por partição
+## Inventário — 97 tabelas por partição
 
 | Partição | Tabelas |
 |---|---|
-| identity (12) | institution, house, app_user, user_house_assignment, work_schedule, user_session, login_attempt, audit_event, institutional_device, staff_role_grant, house_capacity_change, user_invite |
+| identity (13) | institution, house, app_user, user_house_assignment, work_schedule, shift_assignment, user_session, login_attempt, audit_event, institutional_device, staff_role_grant, house_capacity_change, user_invite |
 | people (18) | person, care_episode, house_stay, profile_detail, health_condition, food_restriction, document, document_version, benefit_record, memory_record, transfer_request, transfer_message, admission_record, judicial_record, person_credential, person_correction, profile_detail_change, person_contact |
 | shifts (10) | shift, handover, handover_receipt, handover_note, ata, ata_addendum, ata_episode, ata_episode_ack, general_night_ata, general_night_house_entry |
 | incidents (7) | incident, incident_person, incident_protected, incident_restraint, incident_synthesis, external_communication, incident_attachment |
