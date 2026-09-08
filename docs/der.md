@@ -510,6 +510,22 @@ responder é "quem estava na casa naquela noite?". Retirar plantão de data já
 passada exige motivo escrito. E não há contagem por pessoa em lugar nenhum:
 somar plantões por nome é medição de gente com outro nome (§3.3).
 
+**`ata_note` é a linha da ATA com dono** (migração 0970). O corpo do livro
+(`ata.content`) descreve o TURNO e é escrito a várias mãos; a linha descreve um
+fato e tem autor, horário e imutabilidade — "a Maria não dormiu bem e fez xixi à
+noite" é o exemplo que a Fundação deu ao pedir. Corrigir é escrever outra linha.
+
+`restricted` fecha a linha para a coordenação, a equipe técnica e os líderes —
+**no banco**, e não na tela: se ficasse na cor, a primeira tela nova mostraria
+tudo (a lição da 0760). Quem não a alcança recebe a CONTAGEM por
+`app_ata_restritas`, que é SECURITY DEFINER justamente porque precisa ver o que
+a pessoa não vê — sumir por completo criaria a impressão de que não existe
+(precedente do §13.7).
+
+`app_ata_anterior` é a porta que faltava para "todos leem a ATA do turno
+anterior": o último plantão que COMEÇOU antes deste, e não "ontem" — que erraria
+toda manhã, quando o anterior é a noite que acabou de passar.
+
 ## Fase 5 — ocorrências e proteção
 
 ```mermaid
@@ -590,13 +606,13 @@ desenvolvimento** (fase 15): a criança não é só o que deu problema. Sala de
 recursos, curso, aprendizagem e a evolução escrita pela equipe entram no
 documento que segue para a audiência e para a escola.
 
-## Inventário — 97 tabelas por partição
+## Inventário — 98 tabelas por partição
 
 | Partição | Tabelas |
 |---|---|
 | identity (13) | institution, house, app_user, user_house_assignment, work_schedule, shift_assignment, user_session, login_attempt, audit_event, institutional_device, staff_role_grant, house_capacity_change, user_invite |
 | people (18) | person, care_episode, house_stay, profile_detail, health_condition, food_restriction, document, document_version, benefit_record, memory_record, transfer_request, transfer_message, admission_record, judicial_record, person_credential, person_correction, profile_detail_change, person_contact |
-| shifts (10) | shift, handover, handover_receipt, handover_note, ata, ata_addendum, ata_episode, ata_episode_ack, general_night_ata, general_night_house_entry |
+| shifts (11) | shift, handover, handover_receipt, handover_note, ata, ata_note, ata_addendum, ata_episode, ata_episode_ack, general_night_ata, general_night_house_entry |
 | incidents (7) | incident, incident_person, incident_protected, incident_restraint, incident_synthesis, external_communication, incident_attachment |
 | medications (9) | prescription, medication_schedule, medication_administration, medication_stock, medication_stock_movement, medication_protocol, medication_authorization, medication_protocol_change, prescription_restriction_change |
 | activities (6) | activity, activity_assignment, activity_acknowledgement, activity_execution, substitution_request, commitment |

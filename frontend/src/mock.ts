@@ -470,6 +470,21 @@ interface Plantao {
   esperados: { quem: string; cargo: string; userId: string }[];
 }
 let PLANTOES: Plantao[] = [
+  /* O turno anterior — a noite que acabou de terminar. É o que a equipe que
+     entra abre para ler, e por isso vem fechado, com passagem assinada. */
+  { id: 's0', turno: 'noturno', status: 'fechado', abertoEm: emHoras(19, 0),
+    fechadoEm: emHoras(7, 10),
+    passagens: [
+      { id: 'h0', quem: 'Nélio Noturno (fictício)', cargo: 'educador', userId: 'u8',
+        contribuicoes: 'Plantão noturno sem intercorrência grave; dois despertares.',
+        pendencias: 'O portão dos fundos está emperrado.',
+        orientacoes: 'A Maria pode estar cansada hoje — não dormiu bem.',
+        medicacao: 'As doses das 22h foram dadas e confirmadas.',
+        assinadaEm: emHoras(7, 5), horarioReal: emHoras(7, 5),
+        complementoTardio: false, offline: false, complementos: [] },
+    ],
+    recebimentos: [],
+    esperados: [{ quem: 'Nélio Noturno (fictício)', cargo: 'educador', userId: 'u8' }] },
   { id: 's1', turno: 'diurno', status: 'aberto', abertoEm: emHoras(7, 0), fechadoEm: null,
     passagens: [
       { id: 'h1', quem: 'Tainá Souza (fictícia)', cargo: 'educador', userId: 'u7',
@@ -732,6 +747,59 @@ const ESCALA: EscalaMock[] = (() => {
     revogadaPor: 'Carla Coordenadora (fictícia)' });
   return out;
 })();
+
+/**
+ * AS LINHAS DA ATA, com autor (0970).
+ *
+ * A demonstração começa com quatro linhas de três pessoas — e uma RESTRITA, que
+ * é a que mostra a regra: quem entra como educador vê a contagem, e não o
+ * texto. Sem a linha restrita semeada, a demonstração ensinaria que a restrição
+ * não existe.
+ */
+interface LinhaAtaMock {
+  id: string; ataId: string; autorId: string; quem: string; cargo: string;
+  texto: string; restrita: boolean; quando: string; escritaEm: string;
+}
+const LINHAS_ATA: LinhaAtaMock[] = [
+  { id: 'ln1', ataId: 'ata-noturna', autorId: 'u8', quem: 'Nélio Noturno (fictício)',
+    cargo: 'educador',
+    texto: 'A Maria não dormiu bem e fez xixi à noite; troquei a roupa de cama às 4h e ela '
+      + 'voltou a dormir. Vale ficar de olho hoje à tarde.',
+    restrita: false, quando: emHoras(4, 10), escritaEm: emHoras(4, 12) },
+  { id: 'ln2', ataId: 'ata-noturna', autorId: 'u8', quem: 'Nélio Noturno (fictício)',
+    cargo: 'educador',
+    texto: 'O portão dos fundos ficou emperrado. Avisei a manutenção pelo caderno da casa.',
+    restrita: false, quando: emHoras(5, 30), escritaEm: emHoras(5, 31) },
+  { id: 'ln3', ataId: 'ata-noturna', autorId: 'u6', quem: 'Joana Lima (fictícia)',
+    cargo: 'educador',
+    texto: 'O Bruno acordou duas vezes com dor de barriga; tomou água e melhorou.',
+    restrita: false, quando: emHoras(3, 5), escritaEm: emHoras(3, 6) },
+  { id: 'ln4', ataId: 'ata-noturna', autorId: 'u3', quem: 'Carla Coordenadora (fictícia)',
+    cargo: 'coordenador',
+    texto: 'A visita da genitora da Alice, marcada para sexta, foi remarcada pela Vara. A '
+      + 'equipe técnica conversa com ela antes de contar.',
+    restrita: true, quando: emHoras(6, 40), escritaEm: emHoras(6, 41) },
+];
+
+const LE_RESTRITA = ['coordenador', 'equipe_tecnica', 'lider_diurno',
+                     'lider_noturno_geral', 'gestor_geral'];
+
+/** As linhas de uma ATA, já filtradas pelo que o cargo alcança. */
+function linhasDaAta(ataId: string, papel: string) {
+  const todas = LINHAS_ATA.filter((l) => l.ataId === ataId);
+  const restritas = todas.filter((l) => l.restrita).length;
+  const visiveis = LE_RESTRITA.includes(papel) ? todas : todas.filter((l) => !l.restrita);
+  return {
+    notas: visiveis.map((l) => ({
+      id: l.id, autorId: l.autorId, quem: l.quem, cargo: l.cargo,
+      texto: l.texto, restrita: l.restrita,
+      quando: l.quando, escritaEm: l.escritaEm, propria: false,
+    })),
+    restritas,
+    restritasOcultas: restritas - visiveis.filter((l) => l.restrita).length,
+    podeEscreverRestrita: LE_RESTRITA.includes(papel),
+  };
+}
 
 /** O período com os dois turnos de TODOS os dias, como o servidor devolve. */
 function escalaDoPeriodo(de: string, ate: string) {
@@ -1097,7 +1165,22 @@ interface AtaMock {
              antes: Record<string, unknown> | null;
              depois: Record<string, unknown> | null }[];
 }
-let ATAS: AtaMock[] = [];
+/*
+ * A ATA do turno ANTERIOR já nasce semeada e FECHADA (0970).
+ *
+ * O protótipo só tinha o plantão de hoje, e "todos leem a ATA do turno
+ * anterior" — o pedido do Marcelo — não teria o que mostrar: a tela responderia
+ * "ainda não há plantão anterior", que é verdade no arquivo e mentira na casa.
+ */
+let ATAS: AtaMock[] = [
+  { id: 'ata-noturna', plantaoId: 's0', status: 'fechada', versao: 2,
+    pendencias: null, fechadaEm: emHoras(7, 10),
+    conteudo: {
+      intercorrencias: 'Noite tranquila, com dois despertares.',
+      medicacao: 'Doses das 22h administradas e confirmadas.',
+    },
+    adendos: [] },
+];
 /*
  * As seções vêm do MESMO arquivo que o servidor usa.
  *
@@ -3657,6 +3740,40 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     return { id };
   }
 
+  // ------------------------------------------------------------------ ATA
+  /*
+   * A ATA DO TURNO ANTERIOR (0970). Palavra fixa ANTES de `/shifts/:id`: os
+   * dois roteadores decidem por segmento, e trocar a ordem faria a consulta
+   * virar busca de um plantão chamado "anterior".
+   */
+  if (rota.startsWith('/shifts/anterior') && metodo === 'GET') {
+    const anterior = PLANTOES.find((p) => p.id === 's0');
+    if (!anterior) {
+      return { existe: false,
+        aviso: 'Ainda não há plantão anterior registrado nesta casa. O primeiro turno a fechar '
+          + 'é o que a próxima equipe vai ler.' };
+    }
+    return { existe: true, ...(responder(`/shifts/${anterior.id}`, ['shifts', anterior.id],
+                                          q, {}, 'GET') as object) };
+  }
+  if (seg[0] === 'shifts' && seg[1] === 'ata' && seg[3] === 'notes' && metodo === 'POST') {
+    const texto = String(b.texto ?? '').trim();
+    if (texto.length < 3) return new Recusa(400, 'Escreva a linha antes de registrar.');
+    const restrita = b.restrita === true;
+    if (restrita && !LE_RESTRITA.includes(eu.role)) {
+      return new Recusa(403, 'A linha restrita é da coordenação, da equipe técnica e dos '
+        + 'líderes — quem escreve uma linha precisa poder relê-la depois.');
+    }
+    LINHAS_ATA.push({ id: uid(), ataId: seg[2], autorId: eu.id, quem: eu.fullName,
+      cargo: eu.role, texto, restrita,
+      quando: new Date().toISOString(), escritaEm: new Date().toISOString() });
+    return { id: 'ln',
+      aviso: restrita
+        ? 'Linha registrada, restrita à coordenação, à equipe técnica e aos líderes. Quem não a '
+          + 'alcança vê que ela existe, e não o que ela diz.'
+        : 'Linha registrada com o seu nome. Ela não é reescrita: para corrigir, escreva outra.' };
+  }
+
   // ---------------------------------------------------------------- ESCALA
   /*
    * A ESCALA (§5.12). Palavra fixa ANTES do `:id`, como no servidor: os dois
@@ -3785,6 +3902,9 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
        * a mais, e não a hora em que a casa percebe o esquecimento.
        */
       remedios: remediosDoTurno(s.turno),
+      /* As linhas da ATA, com autor — e a restrita filtrada pelo CARGO, como o
+         servidor filtra pela política (regra 14). */
+      linhas: linhasDaAta(ataDo(s.id).id, eu.role),
       episodios: EPISODIOS.filter((e) => e.ataId === ataDo(s.id).id).map((e) => ({
         id: e.id, acolhidoId: e.acolhidoId,
         acolhido: KIDS.find((k) => k.id === e.acolhidoId)?.nome ?? '—',

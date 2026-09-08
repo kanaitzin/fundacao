@@ -4,7 +4,7 @@
 > **`rede-acolher-atualizado.zip`**, e cole o bloco abaixo como PRIMEIRA
 > mensagem. Troque só a última linha, que é o que você quer que seja feito.
 >
-> Atualizado em 08/09/2026 — fases 0 a 73.
+> Atualizado em 08/09/2026 — fases 0 a 74.
 
 ---
 
@@ -118,12 +118,12 @@ não me peça para reexplicar o que está lá.
 
 === ESTADO ATUAL (08/09/2026) ===
 
-Fases 0 a 73. 522 testes em 53 suítes, sem falha conhecida. A última
-verificação inteira foi em 08/09/2026, depois da fase 73: tsc nos dois lados, a
-suíte três vezes seguidas — uma de dia, uma com o relógio em 22h03 de Porto
-Alegre e o UTC já no dia seguinte (a condição que a regra pede), e uma às 01h02
-—, os sete ensaios de navegador, o ensaio:producao e o ensaio:restauracao. Backend NestJS +
-PostgreSQL 16 com RLS, 17 partições isoladas, 82 migrações, 97 tabelas.
+Fases 0 a 74. 531 testes em 54 suítes, sem falha conhecida. A última
+verificação inteira foi em 08/09/2026, depois da fase 74: tsc nos dois lados, a
+suíte duas vezes seguidas — uma de dia e uma com o relógio em 22h48 de Porto
+Alegre e o UTC já no dia seguinte, que é a condição que a regra pede —, os sete
+ensaios de navegador e o ensaio:producao. Backend NestJS +
+PostgreSQL 16 com RLS, 17 partições isoladas, 83 migrações, 98 tabelas.
 Frontend React PWA, 31 telas, empacotado num único .html de ≈900 KB que abre
 sem servidor.
 
@@ -199,6 +199,14 @@ revogar, com autor; retirar plantão que já passou exige motivo) e não existe
 contagem de plantões por pessoa. Com ela, quem o sistema cobra por assinar a
 passagem passa a ser QUEM ESTAVA ESCALADO — sem escala montada, ele declara que
 caiu no vínculo da casa.
+
+E A ATA VIROU O QUE A PRÓXIMA EQUIPE LÊ: o ⏮ Turno anterior fica ao lado dos
+turnos de hoje e toda a equipe da casa abre (o educador inclusive, que antes só
+lia a passagem); cada linha escrita tem AUTOR, com cor por pessoa na borda e na
+etiqueta — nunca no texto, e o nome sempre escrito ao lado; e existe a LINHA
+RESTRITA à coordenação, à equipe técnica e aos líderes, fechada no BANCO. Quem
+não a alcança vê a CONTAGEM ("há 1 observação restrita"), e não o texto — é o
+precedente do §13.7, e está anotado no roteiro do Marcelo como pergunta.
 
 O grupo 1 do levantamento — o que a educadora precisa fazer às 23h — está
 VAZIO: tudo tem porta. Das 34 rotas que existiam sem tela em 01/09, restam 14

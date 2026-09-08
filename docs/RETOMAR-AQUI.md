@@ -5,7 +5,7 @@ numa conversa nova. Quem ler isto do começo ao fim sabe o que o sistema é, ond
 ele está, o que já funciona, o que falta e o que não pode ser feito — sem
 precisar de nenhuma outra conversa anterior.
 
-*Atualizado em 08/09/2026 — fases 0 a 73. Substitui o "pacote de retomada" da seção 10 do
+*Atualizado em 08/09/2026 — fases 0 a 74. Substitui o "pacote de retomada" da seção 10 do
 `CONTINUIDADE.md`, que ficou velho. O prompt para colar na conversa nova está
 em `docs/PROMPT-MESTRE.md`.*
 
@@ -44,7 +44,7 @@ rede-acolher/
 │   │   │                  database, events, health
 │   │   └── modules/       17 partições isoladas, cada uma com as próprias
 │   │                      migrações em modules/<nome>/migrations/
-│   ├── test/              53 suítes (e2e contra PostgreSQL real + estáticas)
+│   ├── test/              54 suítes (e2e contra PostgreSQL real + estáticas)
 │   └── assets/timbre.png  a marca da Fundação, usada no documento em Word
 ├── frontend/
 │   ├── src/
@@ -102,7 +102,7 @@ cd backend && npx jest
 cd frontend && npm run ensaio && npm run ensaio:fila
 ```
 
-O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as 82
+O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as 83
 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`,
 `seed-fase4.ts`).
 
@@ -209,13 +209,12 @@ Além dos e2e, cinco suítes estáticas — elas já pegaram erro de verdade:
 
 ## 5. O QUE JÁ ESTÁ PRONTO
 
-**Fases 0 a 73. 522 testes em 53 suítes.** A última verificação inteira foi em
-**08/09/2026**, depois da fase 73: `tsc` nos dois lados, a suíte **três rodadas
-seguidas limpas** — uma de dia, uma com o relógio da máquina em 22h03 de Porto
-Alegre e o UTC já em 09/09 (a condição que a regra pede), e uma às 01h02, já
-depois da virada do dia na casa —, os sete ensaios de navegador, o
-`ensaio:producao` e o `ensaio:restauracao`.
-30 telas, 82 migrações, 97 tabelas.
+**Fases 0 a 74. 531 testes em 54 suítes.** A última verificação inteira foi em
+**08/09/2026**, depois da fase 74: `tsc` nos dois lados, a suíte **duas rodadas
+seguidas limpas** — uma de dia e uma com o relógio da máquina em 22h48 de Porto
+Alegre e o UTC já em 09/09, que é a condição que a regra pede —, os sete ensaios
+de navegador e o `ensaio:producao`.
+30 telas, 83 migrações, 98 tabelas.
 
 *(O contador de "rodadas limpas acumuladas" saiu daqui na fase 71: ele crescia
 a cada conversa e ninguém sabia dizer de onde vinha o número — dois documentos
@@ -328,6 +327,14 @@ porque é a escala que responde quem estava na casa naquela noite. Sem contagem
 de plantões por pessoa em lugar nenhum. Com ela, **quem o sistema cobra por
 assinar a passagem passa a ser quem estava escalado**, e não todo mundo que
 trabalha na casa; sem escala montada, ele declara que caiu no vínculo da casa.
+
+**A ATA como leitura da equipe que entra (08/09/2026):** o **⏮ Turno anterior**
+fica ao lado dos turnos de hoje, e toda a equipe da casa abre — o educador
+inclusive, que antes só lia a passagem. Cada linha escrita tem **autor, cargo e
+horário**, com cor por pessoa na borda e na etiqueta (o nome vem sempre escrito:
+cor não sobrevive à impressão em preto e branco). A **linha restrita** à
+coordenação, à equipe técnica e aos líderes é fechada no BANCO; quem não a
+alcança vê **quantas existem**, e não o que dizem.
 
 **O turno:** o Dia com a rotina versionada da casa e o filtro **"Por criança"**
 — uma linha por acolhido, em ordem alfabética, com o alerta essencial primeiro —, chamadas coletivas com
@@ -470,6 +477,7 @@ Em ordem, e cada uma com o defeito real que a motivou:
 | 71 | Os **números dos documentos de retomada** passaram a ser cobrados por teste — seis estavam errados em três arquivos |
 | 72 | **A medicação como a casa faz**: o educador de plantão dá o remédio, a exceção é por medicamento, a passagem lê as doses de volta, e dose não se confirma sem sinal |
 | 73 | **A escala de plantão por DATA** — uma 12x36 não cabe numa semana —, com repetição, turno sem ninguém à vista, folha para a parede, e a passagem cobrando quem estava escalado |
+| 74 | **A ATA que a próxima equipe lê**: o turno anterior aberto para todos, cada linha com autor e cor, e a linha restrita fechada no banco — com a contagem para quem não a lê |
 
 ---
 
@@ -671,7 +679,7 @@ valendo:
 |---|---|
 | `CONTINUIDADE.md` | a história longa, fase por fase, com o raciocínio de cada decisão |
 | `o-que-falta.md` | o levantamento das rotas sem tela, atualizado |
-| `der.md` | as 97 tabelas por partição, e o que cada uma guarda |
+| `der.md` | as 98 tabelas por partição, e o que cada uma guarda |
 | `matriz-permissoes.md` | quem alcança o quê |
 | `backlog.md` | o que foi pensado e ainda não construído |
 | `piloto-casa-03.md` | o desenho do piloto |

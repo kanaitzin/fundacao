@@ -86,6 +86,20 @@ export class ShiftsService {
       const { rows: [jaEscrito] } = await c.query(
         `SELECT count(*)::int AS n FROM handover
           WHERE shift_id = $1 AND btrim(coalesce(medication_note,'')) <> ''`, [shiftId]);
+      /*
+       * AS LINHAS DA ATA, com autor (0970). A política já esconde as restritas
+       * de quem não as alcança; a CONTAGEM vem de `app_ata_restritas`, que é
+       * SECURITY DEFINER de propósito — quem não lê o texto precisa saber que
+       * ele existe, e é o precedente do §13.7.
+       */
+      const { rows: notas } = await c.query(
+        `SELECT n.id, n.author_id, n.body, n.restricted, n.happened_at, n.created_at,
+                app_user_display_name(n.author_id) AS quem,
+                (SELECT u.role::text FROM app_user u WHERE u.id = n.author_id) AS cargo
+           FROM ata_note n WHERE n.ata_id = $1 ORDER BY n.happened_at`, [a?.id ?? null]);
+      const { rows: [restritas] } = a
+        ? await c.query(`SELECT app_ata_restritas($1) AS n`, [a.id])
+        : { rows: [{ n: 0 }] } as any;
       const { rows: complementos } = await c.query(
         `SELECT n.id, n.handover_id, n.user_id, n.body, n.happened_at, n.written_at, n.offline,
                 app_user_display_name(n.user_id) AS quem
@@ -119,7 +133,8 @@ export class ShiftsService {
            JOIN ata_episode e ON e.id = k.episode_id
           WHERE e.ata_id = $1 ORDER BY k.at`, [a?.id ?? null]);
       return { s, a, passagens, complementos, recebimentos, faltam, episodios, ciencias,
-               doses, jaEscrito: (jaEscrito?.n ?? 0) > 0 };
+               doses, jaEscrito: (jaEscrito?.n ?? 0) > 0,
+               notas, restritas: restritas?.n ?? 0 };
     });
     if (!dados) throw new NotFoundException('Plantão não encontrado.');
 
@@ -181,6 +196,28 @@ export class ShiftsService {
           .filter((k: any) => k.episode_id === e.id)
           .map((k: any) => ({ id: k.id, quem: k.quem, comentario: k.comment, quando: k.at })),
       })),
+      /**
+       * AS LINHAS DA ATA (0970) — o que a próxima equipe abre para ler.
+       *
+       * Cada uma com o AUTOR: quem lê de manhã precisa saber a quem perguntar.
+       * A cor é da tela; o nome vem daqui, porque cor não sobrevive à impressão
+       * em preto e branco nem ao corredor às 23h (regra 7).
+       */
+      linhas: {
+        notas: dados.notas.map((n: any) => ({
+          id: n.id, autorId: n.author_id, quem: n.quem, cargo: n.cargo,
+          texto: n.body, restrita: n.restricted,
+          quando: n.happened_at, escritaEm: n.created_at,
+          propria: n.author_id === user.id,
+        })),
+        /** Quantas linhas restritas existem — inclusive para quem não as lê. */
+        restritas: dados.restritas,
+        /** Quantas delas esta pessoa NÃO está vendo. */
+        restritasOcultas: Math.max(
+          0, dados.restritas - dados.notas.filter((n: any) => n.restricted).length),
+        podeEscreverRestrita: ['coordenador', 'equipe_tecnica', 'lider_diurno',
+                               'lider_noturno_geral', 'gestor_geral'].includes(user.role),
+      },
       /**
        * OS REMÉDIOS DO TURNO (0940). A tela da passagem mostra o que ficou
        * gravado — nunca um botão que marque tudo de uma vez (§11.2).
@@ -370,6 +407,86 @@ export class ShiftsService {
         ? 'Registrada como complemento tardio, com o horário real informado. A ATA guarda o adendo.'
         : 'Passagem assinada. Somente você pode assiná-la, e ela não pode ser reescrita.',
     };
+  }
+
+  /**
+   * ESCREVER UMA LINHA NA ATA (0970).
+   *
+   * A linha é imutável e nasce com o nome de quem escreveu. Corrigir é escrever
+   * outra: a anterior continua legível, com o horário dela — o mesmo desenho do
+   * episódio do turno, e pela mesma razão (§12.5).
+   */
+  async escreverNaAta(user: AuthenticatedUser, ataId: string, input: {
+    texto?: string; restrita?: boolean; happenedAt?: string;
+  }) {
+    const texto = (input.texto ?? '').trim();
+    if (texto.length < 3) {
+      throw new BadRequestException('Escreva a linha antes de registrar.');
+    }
+    const casa = await this.casaDaAta(user, ataId);
+
+    let id: string;
+    try {
+      id = await this.db.asUser(user.id, async (c) => {
+        const { rows: [r] } = await c.query(
+          `INSERT INTO ata_note (ata_id, house_id, author_id, body, restricted, happened_at)
+           VALUES ($1,$2,app_current_user(),$3,$4, coalesce($5::timestamptz, now()))
+           RETURNING id`,
+          [ataId, casa, texto, input.restrita === true, input.happenedAt ?? null]);
+        return r.id as string;
+      });
+    } catch (e: any) {
+      if (e?.code === '42501' || /row-level security/i.test(e?.message ?? '')) {
+        /* Duas recusas caem aqui, e a frase diz qual: escrever em nome de
+         * outro, e marcar como restrita sem poder relê-la depois. */
+        throw new ForbiddenException(input.restrita
+          ? 'A linha restrita é da coordenação, da equipe técnica e dos líderes — quem escreve '
+            + 'uma linha precisa poder relê-la depois.'
+          : 'A linha da ATA é escrita em nome de quem escreve, e na casa dela.');
+      }
+      throw e;
+    }
+
+    await this.audit.log({
+      action: 'ata.note', actorId: user.id, houseId: casa,
+      entity: 'ata', entityId: ataId, detail: { restrita: input.restrita === true },
+    });
+    return {
+      id,
+      aviso: input.restrita
+        ? 'Linha registrada, restrita à coordenação, à equipe técnica e aos líderes. Quem não a '
+          + 'alcança vê que ela existe, e não o que ela diz.'
+        : 'Linha registrada com o seu nome. Ela não é reescrita: para corrigir, escreva outra.',
+    };
+  }
+
+  /**
+   * A ATA DO TURNO ANTERIOR — o que a equipe que entra abre.
+   *
+   * "Todos leem a ATA do turno anterior" foi o pedido do Marcelo, e o que
+   * faltava era a PORTA: a ATA já era legível por toda a equipe da casa, e a
+   * tela pedia sempre o plantão de hoje.
+   */
+  async anterior(user: AuthenticatedUser, houseId: string) {
+    const linha = await this.db.asUser(user.id, async (c) => {
+      const { rows: [r] } = await c.query(
+        `SELECT * FROM app_ata_anterior($1, now())`, [houseId]);
+      return r;
+    }).catch((e: any) => {
+      if (String(e?.message ?? '').includes('casa_fora_de_escopo')) {
+        throw new ForbiddenException('Esta casa está fora do seu alcance.');
+      }
+      throw e;
+    });
+    if (!linha?.shift_id) {
+      return {
+        existe: false,
+        aviso: 'Ainda não há plantão anterior registrado nesta casa. O primeiro turno a fechar '
+          + 'é o que a próxima equipe vai ler.',
+      };
+    }
+    const plantao = await this.get(user, linha.shift_id);
+    return { existe: true, ...plantao };
   }
 
   /** Recebimento individual pelo turno que entra (§12.3, §26.2 #21). */

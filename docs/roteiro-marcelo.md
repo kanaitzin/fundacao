@@ -177,6 +177,23 @@ institucional, deixou de existir o aparelho único que impedia a mesma dose de
 ser confirmada em dois lugares. A recusa aparece na hora, com a explicação; o
 resto do turno continua funcionando offline.
 
+## §0.7 — A ATA que a próxima equipe lê
+
+Três mudanças, e a primeira é a que o Marcelo descreveu com o exemplo da Maria
+que não dormiu bem:
+
+- **o ⏮ Turno anterior** entrou ao lado dos turnos de hoje, na aba ATA. Toda a
+  equipe da casa abre — o educador inclusive, que antes só lia a passagem;
+- **cada linha escrita tem dono**: nome, cargo e horário, com uma **cor por
+  autor** na borda e na etiqueta. A cor é apoio; o nome está sempre escrito,
+  porque cor não sobrevive à impressão em preto e branco nem ao daltonismo;
+- **a linha restrita** à coordenação, à equipe técnica e aos líderes. Quem não a
+  alcança vê **quantas existem**, e não o que dizem — a decisão de mostrar a
+  contagem segue o que o sistema já faz com documentos restritos, e é
+  reversível numa linha se a Fundação preferir que ela suma por completo.
+
+---
+
 ## §0.6 — A escala de plantão (nova, e é o que o Marcelo pediu)
 
 Há uma aba nova em "Mais": **A escala de plantão**. Ela monta por **dia e
@@ -237,7 +254,13 @@ demora, demora vinte vezes por turno.
    **Esta é a pergunta mais importante do roteiro para este cargo.**
 
 4. **Você precisa saber o que aconteceu no turno da noite.**
-   Observar: ela procura a ATA, a passagem ou o "Dia"?
+   Observar: ela procura a ATA, a passagem ou o "Dia"? Ela acha o **⏮ Turno
+   anterior**, ao lado dos turnos de hoje? Depois de abrir, ela repara que
+   **cada linha tem o nome de quem escreveu** — e diz se isso muda alguma coisa
+   para ela? ⚠️ Se aparecer a frase *"há 1 observação restrita à coordenação, à
+   equipe técnica e aos líderes"*, **pergunte o que ela acha disso**: saber que
+   existe algo que ela não lê é melhor ou pior do que não saber? A resposta
+   decide se essa contagem fica.
 
 5. **Você vai passar o turno e quer saber como cada criança está agora.**
    Observar: ela acha o filtro **"Por criança"** no Dia, ou procura abrir o

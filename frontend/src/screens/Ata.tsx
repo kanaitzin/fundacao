@@ -67,6 +67,24 @@ interface Plantao {
                propria: boolean }[];
   assinaturasPendentes: { quem: string; cargo: string }[];
   episodios: Episodio[];
+  /** As linhas escritas na ATA, com autor (0970). */
+  linhas?: {
+    notas: LinhaDaAta[];
+    restritas: number;
+    restritasOcultas: number;
+    podeEscreverRestrita: boolean;
+  };
+}
+/**
+ * A LINHA DA ATA — o que a próxima equipe lê, com o nome de quem escreveu.
+ *
+ * A cor por autor é apoio, e o nome vem sempre escrito: cor não sobrevive à
+ * impressão em preto e branco, ao daltonismo nem à luz do corredor (regra 7).
+ */
+interface LinhaDaAta {
+  id: string; autorId: string; quem: string; cargo: string | null;
+  texto: string; restrita: boolean;
+  quando: string; escritaEm: string; propria: boolean;
 }
 /** O acolhido, como a lista da casa o devolve — só o que o episódio precisa. */
 interface AcolhidoDaCasa { id: string; nome: string; }
@@ -173,6 +191,22 @@ const SITUACAO: Record<string, { rotulo: string; tom: string }> = {
   fechada_com_pendencia: { rotulo: 'Fechada com pendência', tom: 'c-warn' },
 };
 
+/**
+ * A COR DE CADA AUTOR.
+ *
+ * Estável (sai do id, e não da ordem em que a pessoa escreveu) e limitada a
+ * seis tons do próprio design system. Ela pinta a BORDA e a etiqueta do nome —
+ * nunca o texto —, porque tinta sobre texto é onde o contraste quebra, e a ATA
+ * é lida no corredor. Quem imprime em preto e branco continua sabendo quem
+ * escreveu: o nome está escrito ao lado.
+ */
+const TONS_DE_AUTOR = ['c-brand', 'c-move', 'c-ok', 'c-warn', 'c-info', 'c-other'];
+function tomDoAutor(id: string): string {
+  let n = 0;
+  for (const ch of id) n = (n * 31 + ch.charCodeAt(0)) % 997;
+  return TONS_DE_AUTOR[n % TONS_DE_AUTOR.length];
+}
+
 export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
   houseId: string; papel: string; casaLabel?: string;
 }) {
@@ -198,6 +232,11 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
   const [arquivo, setArquivo] = useState<Arquivo | null>(null);
   const [buscando, setBuscando] = useState(false);
   const [conteudo, setConteudo] = useState<Record<string, string>>({});
+  /** A ATA do turno anterior — o que a equipe que ENTRA abre para ler (0970). */
+  const [lendoAnterior, setLendoAnterior] = useState(false);
+  const [semAnterior, setSemAnterior] = useState('');
+  const [linha, setLinha] = useState('');
+  const [linhaRestrita, setLinhaRestrita] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [adendos, setAdendos] = useState<Adendo[]>([]);
   /* A ATA em folha: ver antes de baixar, e baixar o que se viu. */
@@ -359,13 +398,17 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
 
       {aba === 'casa' && (
         <>
-          {doDia.length > 1 && (
-            <div className="filtros" role="tablist" aria-label="Turno">
-              {doDia.map((p) => (
+          {/*
+            * O TURNO ANTERIOR fica ao lado dos turnos de hoje, e não numa tela
+            * à parte: quem chega às 19h abre a ATA para saber o que houve, e a
+            * pergunta "o que aconteceu antes de mim" é da mesma tela.
+            */}
+          <div className="filtros" role="tablist" aria-label="Turno">
+            {doDia.map((p) => (
                 <button key={p.id} role="tab" aria-selected={escolhido === p.id}
                         className={escolhido === p.id ? 'on' : ''}
                         onClick={async () => {
-                          setEscolhido(p.id);
+                          setEscolhido(p.id); setLendoAnterior(false); setSemAnterior('');
                           const novo = await api<Plantao>(`/shifts/${p.id}`);
                           setPlantao(novo);
                           setConteudo((novo.ata?.conteudo ?? {}) as Record<string, string>);
@@ -373,9 +416,37 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
                             ? await api<Adendo[]>(`/shifts/ata/${novo.ata.id}/addenda`).catch(() => [])
                             : []);
                         }}>
-                  {p.turno === 'diurno' ? 'Turno diurno' : 'Turno noturno'}
-                </button>
-              ))}
+                {p.turno === 'diurno' ? 'Turno diurno' : 'Turno noturno'}
+              </button>
+            ))}
+            <button role="tab" aria-selected={lendoAnterior}
+                    className={lendoAnterior ? 'on' : ''}
+                    onClick={async () => {
+                      setErro(''); setSemAnterior('');
+                      try {
+                        const r = await api<Plantao & { existe: boolean; aviso?: string }>(
+                          `/shifts/anterior?houseId=${houseId}`);
+                        if (!r.existe) { setSemAnterior(r.aviso ?? ''); return; }
+                        setLendoAnterior(true);
+                        setEscolhido(r.id);
+                        setPlantao(r);
+                        setConteudo((r.ata?.conteudo ?? {}) as Record<string, string>);
+                        setAdendos(r.ata
+                          ? await api<Adendo[]>(`/shifts/ata/${r.ata.id}/addenda`).catch(() => [])
+                          : []);
+                      } catch (e) {
+                        setErro(e instanceof Error ? e.message : 'Não foi possível abrir a ATA anterior.');
+                      }
+                    }}>
+              ⏮ Turno anterior
+            </button>
+          </div>
+          {semAnterior && <div className="notice c-info">{semAnterior}</div>}
+          {lendoAnterior && plantao && (
+            <div className="notice c-info">
+              Você está lendo a ATA do <b>turno anterior</b>
+              {plantao.ata?.status === 'rascunho' ? ' — ela ainda está aberta.' : '.'}{' '}
+              Para voltar ao turno de agora, toque no turno acima.
             </div>
           )}
 
@@ -536,6 +607,89 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
                   * misturar os dois foi o que fez o livro de papel virar um
                   * bloco de texto que ninguém encontra.
                   */}
+                {/*
+                  * O QUE FICOU ESCRITO NESTE TURNO (0970).
+                  *
+                  * É a parte que a próxima equipe lê — "a Maria não dormiu bem,
+                  * fez xixi à noite" —, e cada linha tem dono: quem lê de manhã
+                  * precisa saber a quem perguntar. A cor é do autor e vive na
+                  * borda; o nome vem escrito, sempre.
+                  */}
+                <div className="eyebrow">O que ficou escrito neste turno</div>
+                <p className="mutetxt" style={{ margin: 0 }}>
+                  Cada linha fica com o nome de quem escreveu e não é reescrita — para corrigir,
+                  escreva outra. É o que a equipe que entra lê antes de começar o turno.
+                </p>
+
+                {(plantao.linhas?.notas.length ?? 0) === 0 && (
+                  <p className="mutetxt">Nada escrito neste turno ainda.</p>
+                )}
+                <div className="stack">
+                  {plantao.linhas?.notas.map((n) => (
+                    <article className={`card linha-ata ${tomDoAutor(n.autorId)}${n.restrita ? ' restrita' : ''}`}
+                             key={n.id}>
+                      <div className="row">
+                        <span className={`pill ${tomDoAutor(n.autorId)}`}>{n.quem}</span>
+                        <span className="mutetxt grow">
+                          {cargo(n.cargo ?? '')} · {hhmm(n.quando)}
+                        </span>
+                        {n.restrita && (
+                          <span className="pill c-crit">só coordenação, técnica e líder</span>
+                        )}
+                      </div>
+                      <p style={{ marginBottom: 0 }}>{n.texto}</p>
+                    </article>
+                  ))}
+                </div>
+
+                {/*
+                  * A CONTAGEM do que esta pessoa não lê.
+                  *
+                  * Sumir por completo criaria a impressão de que não existe — e
+                  * quem precisa saber que existe é justamente quem vai perguntar
+                  * sobre isso. É o precedente do §13.7 com os documentos: o
+                  * número, e nada além dele.
+                  */}
+                {(plantao.linhas?.restritasOcultas ?? 0) > 0 && (
+                  <div className="notice c-mute">
+                    {plantao.linhas!.restritasOcultas === 1
+                      ? 'Há 1 observação restrita à coordenação, à equipe técnica e aos líderes.'
+                      : `Há ${plantao.linhas!.restritasOcultas} observações restritas à coordenação, à equipe técnica e aos líderes.`}
+                    {' '}O conteúdo delas não aparece aqui.
+                  </div>
+                )}
+
+                {!lendoAnterior && plantao.ata && ['rascunho', 'reaberta'].includes(plantao.ata.status) && (
+                  <div className="card stack">
+                    <label className="f" htmlFor="linha-ata">
+                      Escrever uma linha <small>— fica com o seu nome</small>
+                    </label>
+                    <textarea id="linha-ata" rows={2} value={linha}
+                              onChange={(e) => setLinha(e.target.value)}
+                              placeholder="Ex.: a Maria não dormiu bem e fez xixi à noite; trocamos a roupa de cama às 4h." />
+                    {plantao.linhas?.podeEscreverRestrita && (
+                      <label className="row" style={{ gap: 8, alignItems: 'center' }}>
+                        <input type="checkbox" checked={linhaRestrita}
+                               onChange={(e) => setLinhaRestrita(e.target.checked)} />
+                        <span>
+                          Só para a coordenação, a equipe técnica e os líderes
+                          <small className="mutetxt"> — quem não alcança vê que existe, não o que diz</small>
+                        </span>
+                      </label>
+                    )}
+                    <button className="btn block" disabled={linha.trim().length < 3}
+                            onClick={async () => {
+                              const ok = await acao(() => api(
+                                `/shifts/ata/${plantao.ata!.id}/notes`,
+                                { method: 'POST',
+                                  body: JSON.stringify({ texto: linha.trim(), restrita: linhaRestrita }) }));
+                              if (ok) { setLinha(''); setLinhaRestrita(false); }
+                            }}>
+                      Registrar linha
+                    </button>
+                  </div>
+                )}
+
                 <div className="eyebrow">Episódios do turno</div>
                 <p className="mutetxt" style={{ margin: 0 }}>
                   O que aconteceu com um acolhido neste turno, descrito pelo fato. A

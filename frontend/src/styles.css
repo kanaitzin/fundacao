@@ -209,6 +209,20 @@ input {
 .c-mute  { --c: var(--slate);   --ct: var(--slate-solid); }
 .c-brand { --c: var(--brand-2); --ct: var(--brand-solid); }
 
+/*
+ * A LINHA DA ATA, por autor (0970).
+ *
+ * A cor vive na BORDA e na etiqueta do nome — nunca no texto. Tinta sobre texto
+ * é onde o contraste quebra, e esta é a tela que se lê no corredor às 23h; a
+ * regra 7 também não deixa a cor ser a única informação, e por isso o nome vem
+ * sempre escrito ao lado dela.
+ */
+.linha-ata {
+  border-left: 4px solid var(--c, var(--line));
+  padding-left: 10px;
+}
+.linha-ata.restrita { border-left-style: double; border-left-width: 6px; }
+
 .notice {
   border-radius: var(--r-md); padding: 11px 13px; font-size: 13.5px; line-height: 1.4;
   background: color-mix(in srgb, var(--c) 12%, var(--surface));

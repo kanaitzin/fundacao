@@ -578,6 +578,73 @@ para sempre.
 - **Tela vazia precisa dizer por que está vazia.** Uma lista de conflitos em
   branco é boa notícia, e se ela não disser isso será lida como "não carregou".
 
+## Fase 74 — A ATA que a próxima equipe lê ✅
+
+Pedido do Marcelo em 08/09/2026, e o exemplo dele explica tudo: *"todos leem a
+ATA do turno anterior, para saber se tudo ocorreu bem e as informações
+necessárias para o dia — tipo, 'a Maria não dormiu bem, fez xixi à noite'. Não
+se trata de exposição: é uma informação que vai afetar o dia da criança."*
+
+A ATA deixa de ser o livro que a casa FECHA e passa a ser o que a próxima equipe
+ABRE. Isso muda três coisas.
+
+### 1. A linha tem dono
+
+O corpo da ATA (`ata.content`) descreve o TURNO e é escrito a várias mãos, sem
+autoria por linha: quem lia de manhã não sabia a quem perguntar. `ata_note` é a
+linha com autor, horário e imutabilidade — corrigir é escrever outra, e a
+anterior continua legível. É o mesmo desenho do episódio do turno, pela mesma
+razão.
+
+O Marcelo pediu isso como COR ("as partes do educador Alexandre de uma cor, com
+o nome dele"), e a cor entrou — **na borda e na etiqueta do nome, nunca no
+texto**. Tinta sobre texto é onde o contraste quebra, e esta é a tela lida no
+corredor às 23h; a regra 7 também não deixa a cor ser a única informação. A cor
+sai do id do autor (estável, e não da ordem em que a pessoa escreveu) e usa seis
+tons do próprio design system, todos já aprovados no axe. **As 120 telas
+passaram sem violação depois da mudança.**
+
+### 2. A linha restrita, fechada no banco
+
+"Mensagens que forem só para a coordenação, equipe técnica e líder aparecem de
+outra cor apenas para eles." A restrição é da POLÍTICA, e não da tela: se
+ficasse na cor, a primeira tela nova mostraria tudo — a lição que a 0760 já
+tinha dado com a ATA Geral. O teste prova isso pelo banco, com a identidade do
+educador, e não pela rota.
+
+Duas decisões dentro dela:
+
+* **quem não pode LER não pode ESCREVER** uma linha restrita. Um educador que
+  escrevesse uma não conseguiria reler o que escreveu, e a linha ficaria órfã;
+* **quem não a lê vê a CONTAGEM** ("há 1 observação restrita à coordenação"),
+  e não o silêncio. É o precedente do §13.7 com os documentos: sumir por
+  completo cria a impressão de que não existe, e quem precisa saber que existe
+  é justamente quem vai perguntar sobre isso. **Está anotado no roteiro do
+  Marcelo como pergunta**, e desfaz-se numa linha se a Fundação preferir.
+
+### 3. O turno anterior
+
+A ATA já era legível por toda a equipe da casa — `ata_select` confere apenas o
+alcance —, mas não havia PORTA: a tela pedia sempre o plantão de hoje, e o
+educador que chega às 19h lia a passagem, não a ATA.
+
+`app_ata_anterior` é o último plantão que COMEÇOU antes deste, e **não
+"ontem"** — que erraria toda manhã (o anterior do diurno é a noite que acabou de
+passar) e toda noite. Ele também não precisa estar fechado: às 19h05 a ATA do
+diurno pode estar aberta, e é justamente ela que a equipe que entra precisa ler;
+a tela diz o estado em vez de esconder.
+
+### Dois cuidados que valem registro
+
+* **a ordenação por (data, turno) devolveria o plantão errado** toda noite: no
+  mesmo dia o noturno começa depois do diurno, e ordenar pelo texto do turno
+  inverte os dois. A consulta ordena pelo INSTANTE de início;
+* **o protótipo ganhou o turno anterior semeado.** Sem ele, a demonstração
+  responderia "ainda não há plantão anterior" — verdade no arquivo e mentira na
+  casa —, e a tela nova não mostraria nada. Junto vieram quatro linhas de três
+  pessoas e **uma restrita**, que é a que mostra a regra: quem entra como
+  educador vê a contagem, não o texto.
+
 ## Fase 73 — A escala de plantão ✅
 
 Pedido do Marcelo em 08/09/2026: uma aba onde ele prepare com antecedência quem

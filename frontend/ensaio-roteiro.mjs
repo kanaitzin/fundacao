@@ -129,6 +129,12 @@ const TAREFAS = [
 
   // ------------------------------------------------------ 5. Coordenação
   {
+    cargo: 'educador', secao: '1.4',
+    nome: 'A ATA do turno anterior, com o nome de quem escreveu',
+    caminho: [{ mais: 'ATA' }, { clicar: /Turno anterior/ }],
+    procurar: [/O que ficou escrito neste turno/i],
+  },
+  {
     cargo: 'coordenador', secao: '5.1',
     nome: 'O que cada setor enxerga',
     caminho: [{ mais: 'O que cada setor enxerga' }],

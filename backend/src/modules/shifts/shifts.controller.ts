@@ -134,6 +134,22 @@ export class ShiftsController {
 
   // ---------- Plantão ----------
 
+  /**
+   * A ATA do turno ANTERIOR — palavra fixa, e por isso antes do `@Get(':id')`.
+   * É a porta que faltava para "todos leem a ATA do turno anterior" (0970).
+   */
+  @Get('anterior')
+  anterior(@CurrentUser() user: AuthenticatedUser,
+           @Query('houseId', ParseUUIDPipe) houseId: string) {
+    return this.shifts.anterior(user, houseId);
+  }
+
+  @Post('ata/:ataId/notes')
+  escrever(@CurrentUser() user: AuthenticatedUser,
+           @Param('ataId', ParseUUIDPipe) ataId: string, @Body() body: any) {
+    return this.shifts.escreverNaAta(user, ataId, body);
+  }
+
   @Get(':id')
   get(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.shifts.get(user, id);

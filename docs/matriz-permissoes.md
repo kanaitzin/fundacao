@@ -55,6 +55,9 @@ limitados à **finalidade** do cargo na camada de aplicação.
 | Ver o painel do plantão (quem está em quê) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Convidar para o primeiro acesso | — | — | — | ✅ própria casa | — | — | ✅ |
 | Ler a escala de plantão da casa | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ |
+| Ler a ATA do turno anterior | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ |
+| Escrever linha na ATA do turno | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Ler e escrever a linha RESTRITA da ATA | — | ✅ | ✅ | ✅ | — | ✅ | ✅ |
 | Montar a escala (escalar, retirar, folha) | — | — | — | ✅ própria casa | — | — | ✅ |
 
 **Quem dá o remédio (atualizado em 08/09/2026, migração 0930).** A Enfermagem
@@ -92,6 +95,10 @@ continua sendo de quem administrou, uma dose por vez.
   **reautenticação** e auditoria destacada (§5.2).
 - Desligado = desativado; autoria e histórico preservados (§5.1).
 - Alterar relógio do aparelho não amplia acesso (§5.12) — janela avaliada no servidor.
+- **A linha restrita da ATA** (0970) é fechada no banco, e não na tela. Quem
+  não a alcança recebe a CONTAGEM — "há 2 observações restritas à coordenação"
+  —, e nunca o texto: sumir por completo criaria a impressão de que não existe
+  (precedente do §13.7).
 - **A escala informa, não bloqueia** (0950). Ela diz quem devia estar no
   plantão; quem cobriu um turno fora dela assina a passagem do mesmo jeito, com
   o aviso de que não constava. Retirar alguém de plantão que já passou exige

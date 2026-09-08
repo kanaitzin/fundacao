@@ -58,7 +58,7 @@ nada**: ele continua dizendo que o arquivo existe.
 npm run ensaio:producao
 ```
 
-Constrói, cria um banco virgem, aplica as 82 migrações **pelo binário
+Constrói, cria um banco virgem, aplica as 83 migrações **pelo binário
 compilado**, sobe o serviço e confere `/health`. Não publica nada e não toca no
 banco de trabalho.
 
@@ -68,7 +68,7 @@ implanta é outra coisa — `dist/`, sem `src/`, sem `scripts/`, sem nenhuma
 dependência de desenvolvimento — e da primeira vez que isto foi ensaiado
 encontrou duas coisas que teriam quebrado a implantação:
 
-- **`dist/` saía com ZERO migrações.** Os 82 `.sql` vivem em
+- **`dist/` saía com ZERO migrações.** Os 83 `.sql` vivem em
   `src/modules/…`, e o `tsc` não copia `.sql`. Quem implantasse só o `dist/`
   subiria o serviço, veria `/health` responder "ok" e descobriria o banco
   vazio. O `/health` responde ok porque o banco EXISTE; ele não sabe se as
@@ -180,10 +180,12 @@ serviço pergunte a ele.
 
 ## 6. O que ainda não existe, e depende da Fundação
 
-- **A escala 12x36 vigente.** Sem ela, a janela de acesso por plantão
-  (T-10/T+10) não é uma frase com sentido — e por isso ela **não está
-  implementada**. Até 02/09/2026 o `.env.example` trazia duas chaves que
-  ninguém lia, sugerindo o contrário.
+- **A escala 12x36 vigente da Casa 03.** A TELA existe desde 08/09/2026 (fase
+  73): a coordenação monta por dia e turno, com repetição. O que falta é o
+  CONTEÚDO — quem trabalha quando —, e ele é da casa. A janela de acesso por
+  plantão (T-10/T+10) continua **não implementada**: agora ela seria possível,
+  e ligá-la é decidir que alguém fica sem abrir o sistema fora do horário, o
+  que é decisão da Fundação.
 - **Os códigos e nomes reais das oito unidades.** Os atuais (AI1–AI4,
   ARM1–ARM4) são preliminares e aparecem em tela, em relatório e em nome de
   arquivo.

@@ -3,7 +3,7 @@
 > **Como usar este arquivo:** anexe-o na primeira mensagem de uma conversa nova,
 > junto com o zip do repositório. Ele substitui todo o histórico.
 >
-> Última atualização: 08/09/2026 · §8.40, a escala de plantão por data
+> Última atualização: 08/09/2026 · §8.41, a ATA que a próxima equipe lê
 
 ---
 
@@ -1365,9 +1365,27 @@ e o conferidor de números da fase 71 tinha um buraco — número quebrado em du
 linhas escapava dele, dentro do arquivo que ele existe para guardar. Endurecido,
 achou mais duas na mesma rodada.
 
+### 8.41 A ATA que a próxima equipe lê — 08/09/2026
+
+O detalhe está no backlog (fase 74). O que vale guardar aqui é uma pergunta de
+desenho que este projeto já respondeu duas vezes e voltou a aparecer: **o que
+mostrar a quem não pode ler**.
+
+A resposta continua sendo a contagem. "Há 1 observação restrita à coordenação"
+diz à educadora que existe algo que ela não lê — e é isso que permite que ela
+PERGUNTE. Esconder por completo é confortável para quem escreve e cria, do outro
+lado, a impressão de que não há nada; e é o tipo de conforto que o §13.7 já
+tinha recusado nos documentos.
+
+E uma regra de tela que ficou mais nítida: **cor por pessoa é apoio, nunca
+informação**. O Marcelo pediu a ATA colorida por autor, e a versão que passa no
+axe pinta a BORDA e a etiqueta — o texto continua na tinta de sempre, e o nome
+está sempre escrito ao lado. Uma ATA impressa em preto e branco, que é como ela
+circula, continua dizendo quem escreveu o quê.
+
 ---
 
-## 9. Migrações desta série (0620–0960)
+## 9. Migrações desta série (0620–0970)
 
 | Nº | Módulo | O que faz |
 |---|---|---|
@@ -1400,6 +1418,7 @@ achou mais duas na mesma rodada.
 | 0940 | shifts | a passagem lê as doses do turno e cobra a frase do primeiro que assina |
 | 0950 | identity | a escala de plantão POR DATA — 12x36 não cabe numa semana |
 | 0960 | shifts | quem devia assinar vem da escala do dia, com a fonte declarada |
+| 0970 | shifts | a linha da ATA com autor, a linha restrita e a ATA do turno anterior |
 
 Sem migração nova na fase 14: os relatórios usam o que já estava gravado.
 A dependência `docx` entrou no backend, e o timbre vive em `backend/assets/timbre.png`.
