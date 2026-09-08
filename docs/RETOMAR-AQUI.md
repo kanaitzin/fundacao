@@ -5,7 +5,7 @@ numa conversa nova. Quem ler isto do começo ao fim sabe o que o sistema é, ond
 ele está, o que já funciona, o que falta e o que não pode ser feito — sem
 precisar de nenhuma outra conversa anterior.
 
-*Atualizado em 02/09/2026. Substitui o "pacote de retomada" da seção 10 do
+*Atualizado em 08/09/2026 — fases 0 a 70. Substitui o "pacote de retomada" da seção 10 do
 `CONTINUIDADE.md`, que ficou velho. O prompt para colar na conversa nova está
 em `docs/PROMPT-MESTRE.md`.*
 
@@ -44,11 +44,11 @@ rede-acolher/
 │   │   │                  database, events, health
 │   │   └── modules/       17 partições isoladas, cada uma com as próprias
 │   │                      migrações em modules/<nome>/migrations/
-│   ├── test/              39 suítes (e2e contra PostgreSQL real + estáticas)
+│   ├── test/              50 suítes (e2e contra PostgreSQL real + estáticas)
 │   └── assets/timbre.png  a marca da Fundação, usada no documento em Word
 ├── frontend/
 │   ├── src/
-│   │   ├── screens/       30 telas React
+│   │   ├── screens/       32 telas React
 │   │   ├── mock.ts        o "servidor de mentira" do protótipo
 │   │   ├── docx.ts        monta o .docx NO NAVEGADOR — só para o protótipo,
 │   │   │                  que roda sem servidor; no sistema real quem gera é
@@ -398,6 +398,25 @@ documento que é dela. Dez rotas novas: `GET .../folha` (ver, sem registrar) e
 O `docx.ts` do navegador continua no repositório por uma razão só — o protótipo
 roda sem servidor —, mas deixou de declarar o contrato: ele importa o do
 kernel.
+
+---
+
+## 6.9 O QUE ENTROU ENTRE 03 E 08/09/2026
+
+Em ordem, e cada uma com o defeito real que a motivou:
+
+| Fase | O que passou a existir |
+|---|---|
+| 52 | Cadastro com filiação, RG, cartão SUS, foto e contatos com vínculo; chave do processo no cofre |
+| 53–55 | **Internação hospitalar** inteira, e a marca "no hospital" para quem não lê a internação |
+| 56–57 | `ensaio:uso` — os oito cargos apertando os botões e **lendo de volta o que ficou gravado**; a senha do cofre escrita na tela |
+| 58–61 | **O trabalho social** das oito casas para o Gestor Geral, com trajetória por criança e relatório em Word |
+| 62 | Conferidor de **rotas sem porta** — e três rotas paradas esperando decisão da Fundação passaram a dizer isso no código |
+| 63–64 | O sistema **sobe compilado** (o `dist/` saía sem nenhuma migração), e **recusa subir** se o RLS estiver desligado |
+| 65 | O roteiro do Marcelo alcança tudo o que foi construído — 25 tarefas, 14 folhas |
+| 66–67 | Dois anexos **entravam e não saíam**; agora todo arquivo guardado tem por onde sair, e há conferidor |
+| 68–69 | Duas políticas de RLS **perguntavam caro antes de barato** — 400 ms e 1 096 ms de espera |
+| 70 | As mensagens de erro falam **português** e dizem se o registro foi salvo |
 
 ---
 

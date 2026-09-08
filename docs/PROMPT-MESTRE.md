@@ -4,7 +4,7 @@
 > **`rede-acolher-atualizado.zip`**, e cole o bloco abaixo como PRIMEIRA
 > mensagem. Troque só a última linha, que é o que você quer que seja feito.
 >
-> Atualizado em 02/09/2026.
+> Atualizado em 08/09/2026 — fases 0 a 70.
 
 ---
 
@@ -106,7 +106,7 @@ não me peça para reexplicar o que está lá.
   não desvie a tarefa sem falar.
 - Se algum arquivo do repositório mudar sem você ter mudado, me avise.
 
-=== ESTADO ATUAL (03/09/2026) ===
+=== ESTADO ATUAL (08/09/2026) ===
 
 Fases 0 a 70. 495 testes em 50 suítes, sem falha conhecida — treze rodadas
 seguidas limpas, quatro delas entre 23h50 e 00h45 de Porto Alegre, com o UTC já
@@ -130,6 +130,21 @@ PEDIA: filiação, RG, cartão SUS, foto de identificação, contatos com víncu
 (que o educador lê e a técnica escreve), e a chave de acesso ao processo
 guardada no cofre.
 
+Em 04/09 entrou a segunda leitura das oito casas para o GESTOR GERAL: uma
+chave no alto da tela troca a operação pelo TRABALHO SOCIAL — quantas crianças,
+quantas entraram e saíram, e o que aconteceu de bom (passou de ano, curso
+profissionalizante, faculdade, primeiro emprego), com trajetória por criança e
+relatório em Word, da Fundação ou de uma casa só. As casas saem na ordem do
+CADASTRO e nunca por resultado: comparar casas seria ranking com outro nome.
+
+E de 04 a 08/09 foram sete fases de robustez, todas achando defeito real:
+o sistema passou a subir COMPILADO (o `dist/` saía sem nenhuma das 78
+migrações); o serviço RECUSA SUBIR se a conexão passar por cima do RLS; dois
+armazenamentos de anexo eram write-only (o laudo do hospital entrava e não
+saía); duas políticas perguntavam caro antes de barato (400 ms e 1 096 ms numa
+tela); e as mensagens de erro passaram a falar português — "Internal server
+error" era o que a educadora lia quando algo falhava.
+
 Há backup e restauração PROVADA desde 02/09: `npm run ensaio:restauracao` faz
 o ciclo num banco descartável e confere, inclusive se o cofre abre com a chave
 do ambiente. A CREDENTIAL_KEY nunca entra no backup.
@@ -142,7 +157,12 @@ as 114 telas dos oito cargos no navegador (tela nova entra nesse percurso),
 `npm run ensaio:roteiro` cobra que as 25 tarefas do roteiro do Marcelo tenham
 porta no cargo certo, e `npm run ensaio:acessibilidade` roda o axe-core (WCAG
 2.1 AA) nas 114 telas — cor nova passa por ele antes de entrar. E
-`npm run ensaio:uso` percorre os oito cargos apertando os botões até o fim.
+`npm run ensaio:uso` percorre os oito cargos apertando os botões até o fim e
+lendo de volta o que ficou gravado. Fora do navegador, `npm run ensaio:producao`
+prova que o sistema sobe compilado num banco virgem, e
+`npx tsx backend/scripts/ensaio-carga.ts` escreve um ano da Fundação inteira e
+mede as telas com RLS — foi ele que achou 8,5 s, 400 ms e 1 096 ms de espera em
+telas que pareciam rápidas.
 
 O grupo 1 do levantamento — o que a educadora precisa fazer às 23h — está
 VAZIO: tudo tem porta. Das 34 rotas que existiam sem tela em 01/09, restam 20,
