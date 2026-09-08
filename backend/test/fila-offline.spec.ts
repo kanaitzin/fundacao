@@ -49,21 +49,35 @@ describe('fila offline — a lista de tipos', () => {
     expect(semHandler).toEqual([]);
   });
 
-  it('medicamento exige o aparelho institucional, e só ele', () => {
+  it('medicamento é o único que não se guarda sem sinal', () => {
     /*
-     * A marca do arquivo compartilhado tem de bater com a regra que o
-     * `sync.service` aplica na porta de entrada (`kind.startsWith('medication.')`).
-     * Se as duas discordarem, o aparelho recusa o que o servidor aceitaria —
-     * ou, pior, guarda o que ele vai rejeitar.
+     * A marca do arquivo compartilhado é lida pelos DOIS lados: o aparelho
+     * recusa na hora o que está marcado, e o servidor recusa na porta de
+     * entrada. Se as duas pontas discordassem, o aparelho guardaria a noite
+     * inteira uma operação que volta rejeitada — e, até voltar, a educadora
+     * acredita ter registrado.
+     *
+     * Até 08/09/2026 a marca se chamava `exigeAparelhoInstitucional` e valia o
+     * §11.7: offline, só o aparelho registrado da casa confirmava dose. Com o
+     * sistema no celular de cada pessoa, esse aparelho deixou de existir como
+     * trava, e a regra passou a ser "dose não se confirma sem sinal, em
+     * aparelho nenhum" (migração 0930).
      */
     for (const t of TIPOS_OFFLINE) {
-      expect(t.exigeAparelhoInstitucional).toBe(t.kind.startsWith('medication.'));
+      expect(t.foraDaFilaOffline).toBe(t.kind.startsWith('medication.'));
     }
   });
 
-  it('a regra do medicamento na porta de entrada continua sendo por prefixo', () => {
+  it('a porta de entrada lê a MARCA, e não uma lista escrita à mão', () => {
+    /*
+     * O `sync.service` decidia por `kind.startsWith('medication.')` — a regra
+     * repetida em prosa, num arquivo, longe da lista. Agora ele pergunta ao
+     * mesmo `tipoOffline()` que o aparelho consulta: a próxima operação que
+     * não puder ser guardada sem sinal ganha a marca em UM lugar.
+     */
     const servico = readFileSync(join(SRC, 'modules', 'sync', 'sync.service.ts'), 'utf8');
-    expect(servico).toContain("op.kind.startsWith('medication.')");
+    expect(servico).toContain('tipoOffline(op.kind)?.foraDaFilaOffline');
+    expect(servico).not.toContain("op.kind.startsWith('medication.')");
   });
 });
 

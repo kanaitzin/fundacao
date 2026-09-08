@@ -4,7 +4,7 @@
 > **`rede-acolher-atualizado.zip`**, e cole o bloco abaixo como PRIMEIRA
 > mensagem. Troque só a última linha, que é o que você quer que seja feito.
 >
-> Atualizado em 08/09/2026 — fases 0 a 71.
+> Atualizado em 08/09/2026 — fases 0 a 72.
 
 ---
 
@@ -118,12 +118,12 @@ não me peça para reexplicar o que está lá.
 
 === ESTADO ATUAL (08/09/2026) ===
 
-Fases 0 a 71. 504 testes em 51 suítes, sem falha conhecida. A última
-verificação inteira foi em 08/09/2026: tsc nos dois lados, a suíte três vezes
-seguidas — duas de dia e uma com o relógio em 21h05 de Porto Alegre e o UTC já
-no dia seguinte, que é a condição que a regra pede —, os sete ensaios de
-navegador, o ensaio:producao e o ensaio:restauracao. Backend NestJS +
-PostgreSQL 16 com RLS, 17 partições isoladas, 78 migrações, 95 tabelas.
+Fases 0 a 72. 510 testes em 52 suítes, sem falha conhecida. A última
+verificação inteira foi em 08/09/2026, depois da fase 72: tsc nos dois lados, a
+suíte quatro vezes seguidas — duas de dia e duas com o relógio em 21h05 e 23h37
+de Porto Alegre, com o UTC já no dia seguinte, que é a condição que a regra pede
+—, os sete ensaios de navegador, o ensaio:producao e o ensaio:restauracao. Backend NestJS +
+PostgreSQL 16 com RLS, 17 partições isoladas, 80 migrações, 96 tabelas.
 Frontend React PWA, 30 telas, empacotado num único .html de ≈900 KB que abre
 sem servidor.
 
@@ -166,7 +166,7 @@ PostgreSQL e Chromium caem entre uma sessão e outra. `npm run ensaio` percorre
 as 107 telas dos oito cargos no navegador (tela nova entra nesse percurso),
 `npm run ensaio:fila` ensaia o que só existe fora da tela, e
 `npm run ensaio:folhas` percorre os caminhos de documento até o arquivo baixar,
-`npm run ensaio:roteiro` cobra que as 25 tarefas do roteiro do Marcelo tenham
+`npm run ensaio:roteiro` cobra que as 26 tarefas do roteiro do Marcelo tenham
 porta no cargo certo, e `npm run ensaio:acessibilidade` roda o axe-core (WCAG
 2.1 AA) nas 114 telas — cor nova passa por ele antes de entrar. E
 `npm run ensaio:uso` percorre os oito cargos apertando os botões até o fim e
@@ -175,6 +175,19 @@ prova que o sistema sobe compilado num banco virgem, e
 `npx tsx backend/scripts/ensaio-carga.ts` escreve um ano da Fundação inteira e
 mede as telas com RLS — foi ele que achou 8,5 s, 400 ms e 1 096 ms de espera em
 telas que pareciam rápidas.
+
+EM 08/09 A FUNDAÇÃO RESPONDEU A PERGUNTA DA MEDICAÇÃO, e ela virou a fase 72.
+A Enfermagem atende das 9h às 17h; fora disso quem dá o remédio é o EDUCADOR DE
+PLANTÃO, conforme a bula do acolhido — o padrão protetivo antigo (só Enfermagem,
+educador por autorização nominal) recusaria toda dose noturna mandando acionar
+quem foi embora às 17h. O protocolo por período saiu e virou LEITURA do que
+valia antes; no lugar dele há a EXCEÇÃO POR MEDICAMENTO ("este só a Enfermagem
+dá"), com motivo escrito e antes-e-depois. Cadastram esquema a Enfermagem, a
+coordenação e a equipe técnica. No fim da passagem, as doses do turno aparecem e
+quem assina PRIMEIRO escreve o que houve com as que ficaram sem resposta — isso
+NÃO confirma dose nenhuma. E, como o sistema vai rodar no celular de cada pessoa
+com o e-mail institucional, DOSE NÃO SE CONFIRMA SEM SINAL em aparelho nenhum: a
+recusa vem na hora, e o resto do turno continua offline.
 
 O grupo 1 do levantamento — o que a educadora precisa fazer às 23h — está
 VAZIO: tudo tem porta. Das 34 rotas que existiam sem tela em 01/09, restam 14

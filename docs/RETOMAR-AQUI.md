@@ -5,7 +5,7 @@ numa conversa nova. Quem ler isto do começo ao fim sabe o que o sistema é, ond
 ele está, o que já funciona, o que falta e o que não pode ser feito — sem
 precisar de nenhuma outra conversa anterior.
 
-*Atualizado em 08/09/2026 — fases 0 a 71. Substitui o "pacote de retomada" da seção 10 do
+*Atualizado em 08/09/2026 — fases 0 a 72. Substitui o "pacote de retomada" da seção 10 do
 `CONTINUIDADE.md`, que ficou velho. O prompt para colar na conversa nova está
 em `docs/PROMPT-MESTRE.md`.*
 
@@ -44,7 +44,7 @@ rede-acolher/
 │   │   │                  database, events, health
 │   │   └── modules/       17 partições isoladas, cada uma com as próprias
 │   │                      migrações em modules/<nome>/migrations/
-│   ├── test/              51 suítes (e2e contra PostgreSQL real + estáticas)
+│   ├── test/              52 suítes (e2e contra PostgreSQL real + estáticas)
 │   └── assets/timbre.png  a marca da Fundação, usada no documento em Word
 ├── frontend/
 │   ├── src/
@@ -209,12 +209,13 @@ Além dos e2e, cinco suítes estáticas — elas já pegaram erro de verdade:
 
 ## 5. O QUE JÁ ESTÁ PRONTO
 
-**Fases 0 a 71. 504 testes em 51 suítes.** A última verificação inteira foi em
-**08/09/2026**: `tsc` nos dois lados, a suíte **três rodadas seguidas limpas** —
-duas de dia e uma com o relógio da máquina em 21h05 de Porto Alegre e o UTC já
-no dia seguinte, que é a condição que a regra pede —, os sete ensaios de
-navegador, o `ensaio:producao` e o `ensaio:restauracao`.
-30 telas, 78 migrações, 95 tabelas.
+**Fases 0 a 72. 510 testes em 52 suítes.** A última verificação inteira foi em
+**08/09/2026**, depois da fase 72: `tsc` nos dois lados, a suíte **quatro
+rodadas seguidas limpas** — duas de dia e duas com o relógio da máquina em 21h05
+e 23h37 de Porto Alegre, com o UTC já no dia seguinte, que é a condição que a
+regra pede —, os sete ensaios de navegador, o `ensaio:producao` e o
+`ensaio:restauracao`.
+30 telas, 80 migrações, 96 tabelas.
 
 *(O contador de "rodadas limpas acumuladas" saiu daqui na fase 71: ele crescia
 a cada conversa e ninguém sabia dizer de onde vinha o número — dois documentos
@@ -243,7 +244,7 @@ nunca disse que renderiza:
   conferência travou sem motivo, a exceção escrita apareceu, a contagem de
   dias com relato mudou. É o que pega o defeito que a tela não denuncia: a
   folha abriu, o botão salvou, e só o número estava errado;
-- `npm run ensaio:roteiro` percorre as **25 tarefas do roteiro do Marcelo** e
+- `npm run ensaio:roteiro` percorre as **26 tarefas do roteiro do Marcelo** e
   cobra que cada uma tenha porta no cargo certo. Ele não simula a procura de
   uma pessoa — onde ela para é o que a aplicação do roteiro descobre —, mas
   impede o fracasso barato: a tarefa não ter porta, e isso aparecer diante da
@@ -259,7 +260,7 @@ E, desde a fase 63, **o sistema é ensaiado COMPILADO**:
 `npm run ensaio:producao` constrói, cria um banco virgem, aplica as migrações
 pelo binário e sobe o serviço. O projeto passou 62 fases sem nunca rodar assim
 — tudo por `tsx` e por `jest` —, e a primeira rodada encontrou o `dist/` sem
-nenhuma das 78 migrações.
+nenhuma das 80 migrações.
 
 E, desde a fase 48, **a restauração é ensaiada como o resto**:
 `npm run ensaio:restauracao` faz o ciclo inteiro num banco descartável —
@@ -312,8 +313,10 @@ fica guardada em IndexedDB com o horário do ato, sobrevive ao aplicativo
 fechar, sobe sozinha ao reconectar, e **só sai do aparelho o que o servidor
 confirmou ter aplicado**; o que ele recusou fica, com o motivo dele ao lado. O
 selo no cabeçalho diz quanta coisa está guardada, e a folha separa o que sobe
-sozinho do que parou esperando gente. Confirmação de dose continua fora, à
-espera da resposta do §7.9.
+sozinho do que parou esperando gente. **Confirmação de dose fica de fora, em
+aparelho nenhum** (08/09/2026): como o sistema roda no celular de cada pessoa,
+não existe mais o aparelho único da casa que impedia a mesma dose de ser
+confirmada em dois lugares. A recusa vem na hora, com a frase.
 
 **O turno:** o Dia com a rotina versionada da casa e o filtro **"Por criança"**
 — uma linha por acolhido, em ordem alfabética, com o alerta essencial primeiro —, chamadas coletivas com
@@ -322,11 +325,23 @@ corpo do livro real da Casa 03, episódios do turno com relato imutável e ciên
 nominal, ATA Geral Noturna e o Arquivo das ATAS por dia, semana ou mês.
 
 **Saúde:** grade de doses confirmada uma a uma por quem administrou, triagem de
-evoluções, armário, esquemas de medicamento (rascunho, na grade, suspenso),
-suspensão que tira a dose da grade dizendo por quê, **protocolo de quem pode dar
-remédio definido pela coordenação, com motivo escrito e o registro de cada
-decisão**, autorização nominal de educador, histórico de saúde do acolhido e
-emissões do Resumo de Saúde.
+evoluções, armário, esquemas de medicamento (rascunho, na grade, suspenso) —
+cadastrados pela Enfermagem, pela coordenação **ou** pela equipe técnica, porque
+a criança volta da consulta com a receita às 20h —, suspensão que tira a dose da
+grade dizendo por quê, histórico de saúde do acolhido e emissões do Resumo.
+
+**Quem dá o remédio (08/09/2026):** a Enfermagem atende das **9h às 17h**; fora
+disso quem administra é o **educador de plantão**, conforme a bula do acolhido.
+O que existe é a **exceção por medicamento** — "este só a Enfermagem dá" —,
+marcada no esquema com motivo obrigatório e antes-e-depois; o educador barrado
+lê o motivo. O protocolo por período e a autorização nominal **deixaram de
+decidir, não de existir**: eles guardam o que a casa decidiu enquanto ninguém
+sabia o horário da Enfermagem.
+
+**No fim da passagem, as doses do turno aparecem** — confirmadas e sem resposta
+—, e quem assina primeiro escreve o que houve com as que ficaram. Isso **não
+confirma dose nenhuma**: a confirmação continua individual, de quem
+administrou.
 
 **Ocorrências:** categorias, relatos independentes por autor, registro protegido
 (fala espontânea e sinais observados) com política mais estreita, contenção com
@@ -442,6 +457,7 @@ Em ordem, e cada uma com o defeito real que a motivou:
 | 68–69 | Duas políticas de RLS **perguntavam caro antes de barato** — 400 ms e 1 096 ms de espera |
 | 70 | As mensagens de erro falam **português** e dizem se o registro foi salvo |
 | 71 | Os **números dos documentos de retomada** passaram a ser cobrados por teste — seis estavam errados em três arquivos |
+| 72 | **A medicação como a casa faz**: o educador de plantão dá o remédio, a exceção é por medicamento, a passagem lê as doses de volta, e dose não se confirma sem sinal |
 
 ---
 
@@ -478,32 +494,26 @@ Nenhuma delas é problema de código. Estão paradas esperando resposta:
    guarda a referência do registro que embasou a avaliação, e o candidato pode
    vir da linha do tempo da criança no período, das ocorrências ou das
    evoluções. Cada opção desenha uma tela diferente.
-8. **Onde o aparelho da casa recebe o código do §11.7.** A fila local recusa,
-   com frase, confirmar dose sem sinal num aparelho que não guarda o código —
-   e nenhuma tela pede esse código. A pergunta tem duas partes, e as duas são
-   da Fundação: quem digita o código no aparelho e quando (na entrega dele à
-   casa? na primeira entrada?); e o que fazer na casa que tem **um aparelho
-   só**, quando ele não está com quem faz o plantão — porque aí a confirmação
-   de medicamento offline deixa de existir na prática para o educador, que é a
-   consequência já registrada na decisão de 27/08 e continua valendo.
+8. ~~**Onde o aparelho da casa recebe o código do §11.7.**~~ **RESPONDIDA em
+   08/09/2026, e a pergunta deixou de existir.** O sistema vai rodar no
+   **celular de cada pessoa**, com o e-mail institucional — não há mais o
+   aparelho único da casa para ser a trava contra a mesma dose confirmada em
+   dois lugares. A regra passou a ser: **dose não se confirma sem sinal, em
+   aparelho nenhum**, com recusa na hora e a frase explicando; o resto do turno
+   continua funcionando offline. O cadastro de aparelhos da casa continua
+   existindo como cadastro, e não decide mais nada (migração 0930).
 
-9. **A medicação a qualquer horário — e é a que mais muda código.** O Marcelo
-   informou em 03/09/2026 que os educadores dão medicamento a qualquer hora,
-   conforme a necessidade ou o horário do tratamento de cada criança. O sistema
-   foi construído sobre grade de horários previstos, com alertas de −30/−15/0
-   e +30 minutos, e marca "administrado com atraso" quando a dose sai duas
-   horas depois. **Quatro perguntas em aberto:**
-   *(a)* "a qualquer horário" quer dizer que NÃO existe horário previsto, ou
-   que ele existe e é frequentemente descumprido? No primeiro caso, a maior
-   parte das doses vira "quando necessário" e a grade deixa de fazer sentido
-   como está;
-   *(b)* "administrado com atraso" é informação útil para a Enfermagem ou é
-   cobrança injusta com quem estava com uma criança no colo?
-   *(c)* se quem dá é sempre o educador de plantão, a tela de decisão "quem
-   pode dar remédio por turno" perde o sentido — e a pergunta vira: existe
-   alguma medicação que o educador NÃO pode dar?
-   *(d)* o educador de plantão está com o aparelho da casa na mão às 23h? Se
-   não, confirmar medicamento offline não existe na prática (ver decisão 8).
+9. ~~**A medicação a qualquer horário.**~~ **RESPONDIDA em 08/09/2026**, e
+   virou a fase 72. O horário previsto EXISTE: o esquema traz a duração, as
+   doses e os horários da bula de cada acolhido, e a grade continua fazendo
+   sentido. Quem administra é a **Enfermagem das 9h às 17h** e o **educador de
+   plantão** fora disso — não por exceção autorizada, mas porque é ele quem
+   está na casa. A resposta *(c)* veio junto: a decisão "quem pode dar remédio
+   por turno" saiu, e no lugar dela ficou a exceção por medicamento.
+   **Fica UMA pergunta desta família**, e ela é pequena: *(b)* "administrado
+   com atraso" é informação útil para a Enfermagem, ou cobrança injusta com
+   quem estava com uma criança no colo? Hoje o sistema marca; mudar é trocar o
+   rótulo por um que descreva o fato sem julgar quem estava de plantão.
 
 10. **O PIA — último e próximo.** A lista da casa traz duas colunas de data, e
    nas vinte crianças elas são iguais (18/06 e 18/09), o que sugere controle
@@ -511,7 +521,9 @@ Nenhuma delas é problema de código. Estão paradas esperando resposta:
    são mesmo iguais para todo mundo, e o sistema deve avisar por criança
    quando o próximo PIA está chegando — 30 dias antes, na tela da técnica?
 
-11. **A Enfermagem vê a internação — decisão MINHA, a confirmar.** A resposta
+11. **A Enfermagem vê a internação — decisão MINHA, a confirmar.** *(Ganhou
+   apoio na resposta de 08/09: se a Enfermagem responde pela medicação e
+   atende das 9h às 17h, é ela quem recebe a criança de volta na alta.)* A resposta
    da coordenação em 03/09 listou equipe técnica, líder educador e coordenador,
    e disse que o educador social comum não vê. Incluí a Enfermagem porque
    internação é primeiro um fato de saúde, e é ela quem responde por medicação
@@ -647,7 +659,7 @@ valendo:
 |---|---|
 | `CONTINUIDADE.md` | a história longa, fase por fase, com o raciocínio de cada decisão |
 | `o-que-falta.md` | o levantamento das rotas sem tela, atualizado |
-| `der.md` | as 95 tabelas por partição, e o que cada uma guarda |
+| `der.md` | as 96 tabelas por partição, e o que cada uma guarda |
 | `matriz-permissoes.md` | quem alcança o quê |
 | `backlog.md` | o que foi pensado e ainda não construído |
 | `piloto-casa-03.md` | o desenho do piloto |

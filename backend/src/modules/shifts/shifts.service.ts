@@ -76,9 +76,16 @@ export class ShiftsService {
       const { rows: [a] } = await c.query(`SELECT * FROM ata WHERE shift_id = $1`, [shiftId]);
       const { rows: passagens } = await c.query(
         `SELECT h.id, h.user_id, h.role, h.device, h.contributions, h.pending, h.guidance,
-                h.signed_at, h.happened_at, h.late, h.offline,
+                h.medication_note, h.signed_at, h.happened_at, h.late, h.offline,
                 app_user_display_name(h.user_id) AS quem
          FROM handover h WHERE h.shift_id = $1 ORDER BY h.signed_at`, [shiftId]);
+      // As doses do turno vêm JUNTO com o plantão, e não numa rota à parte: a
+      // tela da passagem precisa delas antes de assinar, e uma segunda ida ao
+      // servidor é uma tela que abre pela metade no corredor.
+      const { rows: doses } = await c.query(`SELECT * FROM app_doses_do_turno($1)`, [shiftId]);
+      const { rows: [jaEscrito] } = await c.query(
+        `SELECT count(*)::int AS n FROM handover
+          WHERE shift_id = $1 AND btrim(coalesce(medication_note,'')) <> ''`, [shiftId]);
       const { rows: complementos } = await c.query(
         `SELECT n.id, n.handover_id, n.user_id, n.body, n.happened_at, n.written_at, n.offline,
                 app_user_display_name(n.user_id) AS quem
@@ -111,7 +118,8 @@ export class ShiftsService {
            FROM ata_episode_ack k
            JOIN ata_episode e ON e.id = k.episode_id
           WHERE e.ata_id = $1 ORDER BY k.at`, [a?.id ?? null]);
-      return { s, a, passagens, complementos, recebimentos, faltam, episodios, ciencias };
+      return { s, a, passagens, complementos, recebimentos, faltam, episodios, ciencias,
+               doses, jaEscrito: (jaEscrito?.n ?? 0) > 0 };
     });
     if (!dados) throw new NotFoundException('Plantão não encontrado.');
 
@@ -128,6 +136,7 @@ export class ShiftsService {
       passagens: dados.passagens.map((h: any) => ({
         id: h.id, quem: h.quem, cargo: h.role, aparelho: h.device,
         contribuicoes: h.contributions, pendencias: h.pending, orientacoes: h.guidance,
+        medicacao: h.medication_note,
         assinadaEm: h.signed_at, horarioReal: h.happened_at,
         complementoTardio: h.late, offline: h.offline,
         propria: h.user_id === user.id,
@@ -172,6 +181,25 @@ export class ShiftsService {
           .filter((k: any) => k.episode_id === e.id)
           .map((k: any) => ({ id: k.id, quem: k.quem, comentario: k.comment, quando: k.at })),
       })),
+      /**
+       * OS REMÉDIOS DO TURNO (0940). A tela da passagem mostra o que ficou
+       * gravado — nunca um botão que marque tudo de uma vez (§11.2).
+       */
+      remedios: {
+        doses: dados.doses.map((d: any) => ({
+          id: d.dose_id, acolhido: d.acolhido, medicamento: d.medicamento,
+          previsto: d.previsto, estado: d.estado, confirmou: d.confirmou,
+          soEnfermagem: d.so_enfermagem,
+          semResposta: d.estado === 'aguardando_confirmacao',
+        })),
+        total: dados.doses.length,
+        semResposta: dados.doses.filter(
+          (d: any) => d.estado === 'aguardando_confirmacao').length,
+        /** Alguém do turno já escreveu sobre as doses — a cobrança é uma só. */
+        jaEscrito: dados.jaEscrito,
+        exigeFrase: !dados.jaEscrito
+          && dados.doses.some((d: any) => d.estado === 'aguardando_confirmacao'),
+      },
     };
   }
 
@@ -180,16 +208,83 @@ export class ShiftsService {
    * passagem entra como complemento tardio com o horário REAL informado —
    * nunca como se tivesse sido assinada a tempo (§12.4).
    */
+  /**
+   * AS DOSES DO TURNO, para a passagem ler de volta (0940).
+   *
+   * Não confirma nada: devolve o que ficou gravado, com o que ainda espera
+   * resposta em primeiro lugar na cabeça de quem lê. É o pedido do Marcelo de
+   * 08/09 — "no fim da passagem alguém diz que deu o remédio e se está tudo
+   * ok" — na única forma que não fere o §11.2.
+   */
+  async dosesDoTurno(user: AuthenticatedUser, shiftId: string) {
+    const { linhas, jaEscrito } = await this.db.asUser(user.id, async (c) => {
+      const { rows } = await c.query(`SELECT * FROM app_doses_do_turno($1)`, [shiftId]);
+      /*
+       * "ALGUÉM tem que dizer", e não "cada um tem que dizer".
+       *
+       * Quatro pessoas assinam a passagem do mesmo turno. Cobrar a frase de
+       * todas seria pedir quatro vezes a mesma coisa sobre as mesmas doses —
+       * e a quarta pessoa escreveria qualquer coisa para conseguir sair. A
+       * cobrança é de quem assina primeiro; as demais continuam VENDO a lista,
+       * que é o que faz a dose esquecida aparecer enquanto dá para resolver.
+       */
+      const { rows: [j] } = await c.query(
+        `SELECT count(*)::int AS n FROM handover
+          WHERE shift_id = $1 AND btrim(coalesce(medication_note,'')) <> ''`, [shiftId]);
+      return { linhas: rows, jaEscrito: (j?.n ?? 0) > 0 };
+    });
+    const doses = linhas.map((r: any) => ({
+      id: r.dose_id, acolhido: r.acolhido, medicamento: r.medicamento,
+      previsto: r.previsto, estado: r.estado,
+      confirmou: r.confirmou, soEnfermagem: r.so_enfermagem,
+      semResposta: r.estado === 'aguardando_confirmacao',
+    }));
+    const semResposta = doses.filter((d) => d.semResposta);
+    return {
+      doses,
+      total: doses.length,
+      semResposta: semResposta.length,
+      jaEscrito,
+      // A tela não decide sozinha o que fazer com o número: o servidor diz se
+      // a frase é obrigatória, e é a mesma resposta que a gravação cobra.
+      exigeFrase: semResposta.length > 0 && !jaEscrito,
+    };
+  }
+
   async signHandover(user: AuthenticatedUser, shiftId: string, input: {
     aparelho?: string; itens?: Record<string, unknown>; contribuicoes?: string;
     pendencias?: string; orientacoes?: string; happenedAt?: string;
-    offline?: boolean; clientOpId?: string;
+    offline?: boolean; clientOpId?: string; medicacao?: string;
   }) {
     const s = await this.db.asUser(user.id, async (c) => {
       const { rows: [row] } = await c.query(`SELECT * FROM shift WHERE id = $1`, [shiftId]);
       return row;
     });
     if (!s) throw new NotFoundException('Plantão não encontrado.');
+
+    /*
+     * A COBRANÇA DA FRASE SOBRE OS REMÉDIOS (0940).
+     *
+     * Regra de negócio, e por isso mora aqui e não no banco: quando alguma
+     * dose do turno ficou SEM RESPOSTA, a passagem exige uma linha dizendo o
+     * que houve. Ela avisa e cobra; ela NÃO bloqueia a assinatura — decisão do
+     * Leonardo em 08/09. Uma passagem que se recusa a fechar às 23h empurra a
+     * casa de volta para o caderno, e a saída mais fácil para quem precisa ir
+     * embora seria confirmar dose que não deu.
+     *
+     * O texto entra no lugar próprio, e nunca no campo de contribuições: quem
+     * lê a passagem amanhã procura remédio em um lugar só.
+     */
+    const remedios = await this.dosesDoTurno(user, shiftId);
+    const frase = input.medicacao?.trim() ?? '';
+    if (remedios.exigeFrase && frase.length < 10) {
+      const quais = remedios.doses.filter((d) => d.semResposta)
+        .map((d) => `${d.medicamento} (${d.acolhido})`).join(', ');
+      throw new BadRequestException(
+        `${remedios.semResposta === 1 ? 'Uma dose deste turno ficou' : `${remedios.semResposta} doses deste turno ficaram`}`
+        + ` sem resposta: ${quais}. Escreva o que aconteceu antes de assinar — quem deu o remédio ainda`
+        + ' está na casa agora, e amanhã ninguém vai saber dizer.');
+    }
 
     if (['fechado', 'fechado_com_pendencia'].includes(s.status) && !input.happenedAt) {
       throw new BadRequestException(
@@ -224,12 +319,12 @@ export class ShiftsService {
 
         const { rows: [r] } = await c.query(
           `INSERT INTO handover (shift_id, house_id, user_id, role, device, items,
-             contributions, pending, guidance, happened_at, late, offline, client_op_id)
-           VALUES ($1,$2,$3,$4::role_code,$5,$6,$7,$8,$9, coalesce($10::timestamptz, now()), $11,$12,$13)
+             contributions, pending, guidance, medication_note, happened_at, late, offline, client_op_id)
+           VALUES ($1,$2,$3,$4::role_code,$5,$6,$7,$8,$9,$10, coalesce($11::timestamptz, now()), $12,$13,$14)
            RETURNING id`,
           [shiftId, s.house_id, user.id, user.role, input.aparelho ?? null,
            JSON.stringify(input.itens ?? {}), input.contribuicoes ?? null,
-           input.pendencias ?? null, input.orientacoes ?? null,
+           input.pendencias ?? null, input.orientacoes ?? null, frase || null,
            input.happenedAt ?? null, fechado, input.offline ?? false, input.clientOpId ?? null]);
 
         if (fechado) {

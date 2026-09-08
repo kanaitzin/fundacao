@@ -430,16 +430,23 @@ describe('Fase 3 — Rotina, atividades, chamadas, linha do tempo e offline', ()
     expect(rows[0].n).toBe(1);
   });
 
-  it('offline só aceita medicamento no aparelho institucional designado (§11.7)', async () => {
+  it('offline não aceita dose de medicamento, em aparelho nenhum (0930)', async () => {
+    /*
+     * Era "§11.7 — só o aparelho institucional designado". Com o sistema no
+     * celular de cada pessoa (decisão da Fundação em 08/09/2026), esse
+     * aparelho deixou de existir como trava contra a mesma dose confirmada em
+     * dois lugares, e a regra passou a ser recusar sempre — na hora, com a
+     * frase, em vez de guardar para devolver rejeitada horas depois.
+     */
     const r = await request(http).post('/api/v1/sync/push').set(auth(tokens.educador)).send({
       operacoes: [{
         clientOpId: 'op-med-pessoal', kind: 'medication.confirm', houseId: AI3,
         payload: { dose: 'x' }, happenedAt: new Date().toISOString(),
-        queuedAt: new Date().toISOString(), institutionalDevice: false,
+        queuedAt: new Date().toISOString(),
       }],
     });
     expect(r.body.resultados[0].status).toBe('rejeitada');
-    expect(r.body.resultados[0].motivo).toMatch(/aparelho institucional/i);
+    expect(r.body.resultados[0].motivo).toMatch(/sem internet|sinal/i);
     expect(r.body.podeLimpar).not.toContain('op-med-pessoal');   // não some do aparelho
   });
 

@@ -578,6 +578,124 @@ para sempre.
 - **Tela vazia precisa dizer por que está vazia.** Uma lista de conflitos em
   branco é boa notícia, e se ela não disser isso será lida como "não carregou".
 
+## Fase 72 — A medicação como a casa faz ✅
+
+A pendência institucional 33.4.1 — *quem administra medicamentos em cada
+período* — estava aberta desde agosto. O sistema respondia a ela com o padrão
+mais protetivo que se podia escrever sem saber: **só a Enfermagem**, e educador
+apenas se a coordenação tivesse escrito um protocolo para aquele período **E**
+autorizado aquela pessoa nominalmente.
+
+O Marcelo respondeu em 08/09/2026, e a resposta desfaz a hipótese:
+
+* o remédio é dado pela **Enfermagem ou pelo pessoal da casa**, conforme a bula
+  do acolhido;
+* **a Enfermagem atende das 9h às 17h.** Depois disso é o educador de plantão —
+  e vários tratamentos têm dose à noite;
+* o medicamento fica numa caixa a que só a equipe tem acesso;
+* quem cadastra o esquema (duração, doses, horários) é a **coordenação, a
+  Enfermagem ou a equipe técnica**, e a partir daí a dose aparece sozinha na
+  linha do dia do educador;
+* **no fim da passagem, alguém tem que dizer que deu o remédio.**
+
+### O que a regra antiga faria com esse horário
+
+Toda dose noturna cairia na recusa *"o protocolo desta casa não autoriza
+educadores a confirmar doses neste período. Acione a Enfermagem"* — às 22h,
+para acionar quem foi embora às 17h. A dose seria dada, porque a criança precisa
+dela, e ficaria **sem registro**: o remédio na criança e o sistema dizendo que
+ninguém deu. É a pior combinação que este projeto conhece, e ela estava
+programada para acontecer todas as noites do piloto.
+
+### A inversão, e por que a exceção é por MEDICAMENTO
+
+O educador de plantão passa a poder confirmar dose. O que existe agora é o
+contrário: a exceção — "este aqui só a Enfermagem dá" — no próprio esquema,
+com motivo obrigatório e antes-e-depois em `prescription_restriction_change`.
+
+Por medicamento, e não por período: **injetável continua sendo injetável às
+22h**. E não por pessoa: a autorização nominal fazia a proteção depender de a
+coordenação lembrar de cadastrar cada educador novo — e, quando ela esquecia,
+quem pagava era a dose da noite.
+
+O motivo é obrigatório porque quem o lê é a educadora barrada às 22h. "Não
+autorizado" sem explicação é a frase que faz alguém dar o remédio por fora do
+sistema.
+
+`medication_protocol`, `medication_protocol_change` e `medication_authorization`
+**não foram apagadas**: elas deixaram de decidir, não de existir. O que a casa
+decidiu em agosto continua legível na tela, sob o título "o que valia antes"
+(regra 6).
+
+### A passagem lê as doses de volta (migração 0940)
+
+O jeito errado era óbvio e fácil: um botão no fim da passagem marcando as doses
+do turno como dadas. Isso é marcação em lote de medicamento, que o §11.2 proíbe
+**sem** a palavra "silenciosa" — é absoluto.
+
+O que entrou faz o contrário: a passagem **mostra** o que ficou gravado, na
+única hora em que ainda dá para resolver — enquanto quem deu a dose ainda está
+na casa. Dose sem resposta faz a frase ser obrigatória, e a recusa **nomeia**
+quais. Escrever não confirma nada.
+
+Duas decisões dentro disso:
+
+* **avisa e cobra, não bloqueia** (decisão do Leonardo, 08/09). Uma passagem que
+  se recusa a fechar às 23h empurra a casa de volta para o caderno — e a saída
+  mais fácil para quem precisa ir embora seria confirmar dose que não deu;
+* **"alguém tem que dizer", e não "cada um tem que dizer".** A cobrança é de
+  quem assina primeiro. Quatro pessoas no mesmo turno responderiam quatro vezes
+  sobre as mesmas doses, e a quarta escreveria qualquer coisa. A lista continua
+  à vista para todas.
+
+### Sem sinal, dose não se confirma em aparelho nenhum
+
+O §11.7 dizia: offline, só o aparelho institucional registrado da casa. Era a
+trava contra a mesma dose confirmada em dois aparelhos que não se enxergam — e
+era também a origem da pergunta 8 do §7, parada havia semanas: *onde o aparelho
+recebe o código?*
+
+A decisão de 08/09 — o sistema roda **no celular de cada pessoa**, com o e-mail
+institucional — dissolve a pergunta e a trava junto. Deixar cada celular guardar
+confirmação de dose devolveria a duplicidade, com o agravante de a pessoa só
+descobrir horas depois. A escolha foi **recusar na hora, com a frase**; o resto
+do turno (chamada, atividade, exceção, passagem) continua funcionando offline.
+
+A marca compartilhada `exigeAparelhoInstitucional` virou `foraDaFilaOffline`, e
+o `sync.service` deixou de decidir por `kind.startsWith('medication.')` escrito
+à mão: ele pergunta ao mesmo `tipoOffline()` que o aparelho consulta.
+
+### Três achados
+
+* **A reescrita de `app_confirm_dose` perdeu a baixa de estoque.** `CREATE OR
+  REPLACE` substitui o corpo inteiro, inclusive a parte que não estava em
+  discussão — e o trecho que dá baixa em UMA linha de estoque (o nominal do
+  acolhido tem precedência sobre o comum da casa) simplesmente sumiu. Quem
+  pegou foi `regressao-estado.e2e`, que conta o estoque depois de confirmar:
+  esperava 19, recebeu 20. É o argumento mais concreto que este projeto tem
+  para a regra de rodar a suíte antes de qualquer entrega.
+* **A cobrança da frase esbarrou na contaminação entre suítes.** `plantao.e2e`
+  passava sozinha e falhava no conjunto: outra suíte deixava dose pendente na
+  mesma casa, e a passagem passou a exigir a frase. A investigação levou à
+  regra melhor — "alguém", não "cada um" —, que é o que o Marcelo tinha pedido
+  desde o começo. O defeito de teste apontou o desenho certo.
+* **A tarefa 5.6 do roteiro do Marcelo virou outra coisa.** Ela pedia "defina
+  quem pode dar remédio no turno da noite", numa tela que deixou de existir.
+  Agora pede para marcar a insulina da Rayssa como exclusiva da Enfermagem — e
+  a pergunta que vai junto é a que importa: *existe algum outro remédio que só
+  a Enfermagem pode dar?* O `ensaio:roteiro` passou a cobrar essa porta.
+
+### O que ficou de fora, e por quê
+
+* **"administrado com atraso"** continua como está. A pergunta *(b)* do §7.9 —
+  se o rótulo é informação útil ou cobrança injusta com quem estava com uma
+  criança no colo — não foi respondida, e trocar o rótulo sozinho seria decidir
+  como a Enfermagem lê o próprio registro;
+* **a Enfermagem não ganhou fila de conferência** dos esquemas cadastrados pela
+  coordenação. O esquema entra na grade quando alguém o ativa, com o nome dele
+  registrado. Se a Enfermagem quiser revisar o que foi cadastrado fora do
+  horário dela, isso é uma tela a mais — e é decisão de produto, não minha.
+
 ## Fase 71 — Os números dos documentos de retomada ✅
 
 O `RETOMAR-AQUI.md`, o `PROMPT-MESTRE.md` e o `implantacao.md` são os três

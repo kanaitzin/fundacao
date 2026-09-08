@@ -44,16 +44,24 @@ export class MedicationsService {
   // ---------- Prescrição (Enfermagem) ----------
 
   /**
-   * Cadastro do esquema. Nasce como RASCUNHO: só entra na grade depois que a
-   * Enfermagem assina (§11.1). Uma receita nova nunca altera a grade sozinha.
+   * Cadastro do esquema. Nasce como RASCUNHO: só entra na grade depois que
+   * alguém o ativa, com o nome dele registrado. Uma receita nova nunca altera
+   * a grade sozinha.
+   *
+   * QUEM CADASTRA mudou em 08/09/2026 (migração 0930): além da Enfermagem, a
+   * coordenação e a equipe técnica. A Enfermagem trabalha das 9h às 17h, e a
+   * criança chega da consulta com a receita na mão às 20h — exigir a
+   * Enfermagem ali é adiar o tratamento até o dia seguinte, ou dar o remédio
+   * sem registro. Quem cadastrou e quem ativou continuam gravados, um a um.
    */
   async prescribe(user: AuthenticatedUser, input: {
     personId: string; houseId: string; tipo: string; medicamento: string; dose: string;
     via: string; horarios?: string[]; diasSemana?: number[]; finalidade?: string;
     instrucoes?: string; condicaoUso?: string; prescritor?: string; inicio?: string; fim?: string;
   }) {
-    if (!['enfermagem', 'gestor_geral'].includes(user.role)) {
-      throw new ForbiddenException('Somente a Enfermagem cadastra e assina esquema de medicamentos.');
+    if (!['enfermagem', 'coordenador', 'equipe_tecnica', 'gestor_geral'].includes(user.role)) {
+      throw new ForbiddenException(
+        'Quem cadastra esquema de medicamento é a Enfermagem, a coordenação ou a equipe técnica.');
     }
     if (input.tipo === 'quando_necessario' && !input.condicaoUso?.trim()) {
       // §11.5: o sistema não decide. Exige orientação anterior válida.
@@ -87,14 +95,20 @@ export class MedicationsService {
     });
     return {
       id, status: 'rascunho',
-      aviso: 'Prescrição registrada como rascunho. Só entra na grade após conferência e assinatura da Enfermagem.',
+      aviso: 'Esquema registrado como rascunho. Ele só começa a gerar dose quando alguém o ativar — '
+        + 'e o nome de quem ativou fica ao lado de cada dose.',
     };
   }
 
-  /** Assinatura da Enfermagem: é o que torna a prescrição efetiva (§11.1). */
+  /**
+   * A assinatura é o que torna o esquema efetivo (§11.1) — e passa a ser de
+   * quem responde pelo cuidado na casa, não só da Enfermagem (0930). O nome de
+   * quem assinou fica na grade, ao lado de cada dose gerada.
+   */
   async sign(user: AuthenticatedUser, prescriptionId: string) {
-    if (!['enfermagem', 'gestor_geral'].includes(user.role)) {
-      throw new ForbiddenException('Somente a Enfermagem assina o esquema de medicamentos.');
+    if (!['enfermagem', 'coordenador', 'equipe_tecnica', 'gestor_geral'].includes(user.role)) {
+      throw new ForbiddenException(
+        'Quem ativa o esquema é a Enfermagem, a coordenação ou a equipe técnica.');
     }
     const ok = await this.db.asUser(user.id, async (c) => {
       const { rowCount } = await c.query(
@@ -133,6 +147,7 @@ export class MedicationsService {
         // rls-join-ok: a policy de prescription já filtra por casa e pessoa.
         `SELECT p.id, p.medication, p.dose, p.route, p.kind, p.status, p.use_condition,
                 p.prescriber, p.starts_on, p.ends_on, p.suspended_reason, p.signed_at,
+                p.nurse_only, p.nurse_only_reason,
                 p.person_id, app_person_display_name(p.person_id) AS acolhido,
                 app_user_display_name(p.signed_by) AS assinada_por,
                 (SELECT array_agg(to_char(ms.time_of_day, 'HH24:MI') ORDER BY ms.time_of_day)
@@ -154,6 +169,8 @@ export class MedicationsService {
         inicio: r.starts_on, fim: r.ends_on,
         horarios: r.horarios ?? [], assinadaPor: r.assinada_por, assinadaEm: r.signed_at,
         motivoDaSuspensao: r.suspended_reason,
+        // A exceção (0930): por padrão o educador de plantão pode dar.
+        soEnfermagem: r.nurse_only ?? false, motivoSoEnfermagem: r.nurse_only_reason,
       })),
       aviso: 'Rascunho NÃO está na grade: ele só começa a gerar dose quando a Enfermagem '
         + 'confere e assina. Suspender é o contrário — tira da grade a partir de hoje, e o '
@@ -366,7 +383,20 @@ export class MedicationsService {
       if (msg.includes('dose_ja_confirmada')) {
         throw new ConflictException('Esta dose já foi confirmada por outro profissional.');
       }
+      if (msg.includes('dose_sem_sinal')) {
+        // A regra mudou em 08/09/2026 (migração 0930): o sistema roda no
+        // celular de cada um, e não existe mais "o aparelho da casa" para ser
+        // a trava contra a mesma dose confirmada em dois lugares. A recusa
+        // chega agora, com o caminho, em vez de a dose voltar rejeitada horas
+        // depois — quando ninguém lembra mais do frasco.
+        throw new ForbiddenException(
+          'Sem internet não dá para confirmar remédio: a mesma dose poderia ser confirmada em dois '
+          + 'aparelhos. Dê o medicamento e confirme assim que o sinal voltar — o resto do turno '
+          + 'continua funcionando sem sinal.');
+      }
       if (msg.includes('aparelho_nao_institucional')) {
+        // Recusa da regra antiga (§11.7), mantida para o caso de um banco que
+        // ainda não recebeu a 0930.
         throw new ForbiddenException(
           'Offline, somente o aparelho institucional designado confirma medicamento.');
       }
@@ -595,71 +625,87 @@ export class MedicationsService {
         periodo: r.period, enfermagem: r.allows_nursing,
         educadorAutorizado: r.allows_authorized_educator, nota: r.note, definidoEm: r.decided_at,
       })),
-      pendenciaInstitucional:
-        'Quem administra medicamentos em cada período (pendência 33.4.1) é decisão da instituição. ' +
-        'Enquanto não houver definição formal, vale o padrão mais protetivo: somente Enfermagem.',
+      // A pendência 33.4.1 foi RESPONDIDA pela Fundação em 08/09/2026, e o que
+      // esta lista mostra passou a ser história: o que a casa decidiu enquanto
+      // ninguém sabia o horário da Enfermagem. Ela não decide mais nada.
+      historico: true,
+      respostaDaFundacao:
+        'A Enfermagem atende das 9h às 17h; fora disso, quem administra é o educador de plantão, '
+        + 'conforme a bula do acolhido. O que existe agora é a exceção por MEDICAMENTO — o que só '
+        + 'a Enfermagem dá —, marcada no próprio esquema, com motivo escrito.',
     };
   }
 
   /**
-   * DEFINIR QUEM PODE DAR REMÉDIO NO PERÍODO (§11.3, pendência 33.4.1).
+   * MARCAR UM MEDICAMENTO COMO EXCLUSIVO DA ENFERMAGEM (§11.3, migração 0930).
    *
-   * O motivo é OBRIGATÓRIO, ao contrário dos campos descritivos do perfil:
-   * este muda raramente, e cada mudança precisa se explicar — sob qual
-   * capacitação, qual reunião, qual documento a casa passou a permitir (ou a
-   * deixar de permitir) que o educador autorizado administre.
+   * Substitui a decisão por PERÍODO, que deixou de fazer sentido quando se
+   * soube que a Enfermagem trabalha das 9h às 17h: a dose das 22h é do
+   * educador de plantão por definição, e não por autorização. O que sobra —
+   * e é real — é o medicamento que exige a Enfermagem: injetável, controlado,
+   * de manejo difícil.
    *
-   * As travas vivem no `app_definir_protocolo_medicacao` (migração 0860):
-   * alcance da casa, cargo, período válido, motivo, o período que não pode
-   * ficar sem ninguém, e o registro do que valia antes na mesma transação.
+   * O motivo é obrigatório e vai para o histórico junto do antes-e-depois: a
+   * educadora que for barrada às 22h lê POR QUE aquele frasco não é com ela.
    */
-  async setProtocol(user: AuthenticatedUser, input: {
-    houseId: string; periodo: string; enfermagem: boolean; educadorAutorizado: boolean;
-    nota?: string; motivo?: string;
+  async setNurseOnly(user: AuthenticatedUser, prescriptionId: string, input: {
+    soEnfermagem: boolean; motivo?: string;
   }) {
-    if (!['coordenador', 'gestor_geral'].includes(user.role)) {
-      throw new ForbiddenException('Somente a coordenação define o protocolo de administração.');
-    }
-    // `nota` é o nome antigo do campo. Quem já chamava com ela continua
-    // funcionando; o nome novo diz o que se espera que esteja escrito ali.
-    const motivo = (input.motivo ?? input.nota ?? '').trim();
-    if (motivo.length < 15) {
-      throw new BadRequestException(
-        'Escreva sob qual decisão da instituição este protocolo está sendo definido. '
-        + 'Quem for rever isto daqui a seis meses precisa saber por que ficou assim.');
-    }
+    const motivo = (input.motivo ?? '').trim();
+    let mudou = false;
     try {
-      await this.db.asUser(user.id, async (c) => {
-        await c.query(`SELECT * FROM app_definir_protocolo_medicacao($1,$2,$3,$4,$5)`,
-          [input.houseId, input.periodo, input.enfermagem, input.educadorAutorizado, motivo]);
+      mudou = await this.db.asUser(user.id, async (c) => {
+        const { rows: [r] } = await c.query(
+          `SELECT app_definir_so_enfermagem($1,$2,$3) AS mudou`,
+          [prescriptionId, input.soEnfermagem, motivo]);
+        return !!r?.mudou;
       });
     } catch (e: any) {
       const m = String(e?.message ?? '');
+      if (m.includes('prescricao_inexistente')) throw new NotFoundException('Esquema não encontrado.');
       if (m.includes('casa_fora_de_escopo')) {
-        throw new ForbiddenException(
-          'Somente a coordenação DESTA casa define o protocolo de administração dela.');
+        throw new ForbiddenException('Este esquema é de uma casa fora do seu alcance.');
       }
-      if (m.includes('sem_permissao_para_definir_protocolo')) {
-        throw new ForbiddenException('Somente a coordenação define o protocolo de administração.');
-      }
-      if (m.includes('protocolo_sem_ninguem')) {
-        throw new BadRequestException(
-          'Um período precisa de alguém que possa administrar. Sem Enfermagem e sem educador '
-          + 'autorizado, a dose vence todos os dias sem que exista quem a confirme.');
-      }
-      if (m.includes('periodo_invalido')) throw new BadRequestException('Período inválido.');
-      if (m.includes('motivo_obrigatorio')) {
-        throw new BadRequestException('Escreva sob qual decisão o protocolo está sendo definido.');
+      if (m.startsWith('so_enfermagem:')) {
+        const frase = m.replace('so_enfermagem: ', '');
+        throw m.includes('escreva por que')
+          ? new BadRequestException(frase)
+          : new ForbiddenException(frase);
       }
       throw e;
     }
+    if (!mudou) {
+      return { ok: true, mudou: false,
+        aviso: 'Este esquema já estava assim. Nada foi registrado — marcar duas vezes o mesmo '
+          + 'estado não é decisão.' };
+    }
     await this.audit.log({
-      action: 'medication.protocol_set', actorId: user.id, houseId: input.houseId,
-      detail: { periodo: input.periodo, educadorAutorizado: input.educadorAutorizado },
+      action: 'medication.nurse_only', actorId: user.id,
+      entity: 'prescription', entityId: prescriptionId,
+      detail: { soEnfermagem: input.soEnfermagem },
     });
-    return { ok: true,
-      aviso: 'Protocolo definido. O que valia antes continua registrado, com o seu nome, o '
-        + 'horário e o motivo — e a equipe da casa lê esse histórico na tela da Saúde.' };
+    return { ok: true, mudou: true,
+      aviso: input.soEnfermagem
+        ? 'Marcado: só a Enfermagem administra este medicamento. O educador que tentar confirmar '
+          + 'lê o motivo que você escreveu.'
+        : 'Desmarcado: o educador de plantão volta a poder dar este medicamento. O que valia antes '
+          + 'continua registrado.' };
+  }
+
+  /** O histórico das exceções deste esquema — quem marcou, quando e por quê. */
+  async nurseOnlyHistory(user: AuthenticatedUser, prescriptionId: string) {
+    const rows = await this.db.asUser(user.id, async (c) => {
+      const { rows: r } = await c.query(
+        `SELECT id, was_nurse_only, is_nurse_only, reason, changed_at,
+                app_user_display_name(changed_by) AS por
+           FROM prescription_restriction_change
+          WHERE prescription_id = $1 ORDER BY changed_at DESC LIMIT 50`, [prescriptionId]);
+      return r;
+    });
+    return rows.map((r: any) => ({
+      id: r.id, antes: r.was_nurse_only, depois: r.is_nurse_only,
+      motivo: r.reason, por: r.por, quando: r.changed_at,
+    }));
   }
 
   /**
@@ -705,27 +751,6 @@ export class MedicationsService {
       }
       throw e;
     }
-  }
-
-  async authorizeEducator(user: AuthenticatedUser, input: {
-    userId: string; houseId: string; nota?: string; validoAte?: string;
-  }) {
-    if (!['coordenador', 'gestor_geral'].includes(user.role)) {
-      throw new ForbiddenException('Somente a coordenação autoriza educadores nominalmente.');
-    }
-    await this.recusaCasaDeFora(async () => this.db.asUser(user.id, async (c) => {
-      await c.query(
-        `INSERT INTO medication_authorization (user_id, house_id, valid_to, authorized_by, note)
-         VALUES ($1,$2,$3::date,$4,$5)
-         ON CONFLICT (user_id, house_id, valid_from) DO UPDATE
-           SET valid_to = EXCLUDED.valid_to, note = EXCLUDED.note`,
-        [input.userId, input.houseId, input.validoAte ?? null, user.id, input.nota ?? null]);
-    }), 'Só a coordenação DESTA casa autoriza quem dá medicamento aqui.');
-    await this.audit.log({
-      action: 'medication.authorize_educator', actorId: user.id, houseId: input.houseId,
-      entity: 'app_user', entityId: input.userId,
-    });
-    return { ok: true };
   }
 
   // ------------------------------------------------------------------

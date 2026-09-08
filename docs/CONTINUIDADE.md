@@ -3,8 +3,7 @@
 > **Como usar este arquivo:** anexe-o na primeira mensagem de uma conversa nova,
 > junto com o zip do repositório. Ele substitui todo o histórico.
 >
-> Última atualização: 08/09/2026 · §8.38, os números dos documentos de retomada
-> passam a ser cobrados por teste
+> Última atualização: 08/09/2026 · §8.39, a medicação como a casa faz
 
 ---
 
@@ -1304,9 +1303,46 @@ verificação, que qualquer pessoa refaz. Virou a regra 18 do prompt mestre.
 antes de ser aceito. Ele acusou, sozinho, dois números que a leitura à mão não
 tinha pego: os do tamanho da própria suíte, que ele mesmo acabara de mudar.
 
+### 8.39 A medicação como a casa faz — 08/09/2026
+
+A pendência institucional 33.4.1 foi respondida, e a resposta reescreveu a
+regra mais sensível do sistema. O detalhe está no backlog (fase 72). Aqui ficam
+as três coisas que valem para além desta partição.
+
+**A primeira: um padrão protetivo pode ser perigoso quando a hipótese que o
+sustentava cai.** "Só a Enfermagem administra, e educador só por autorização
+nominal" era a escolha certa enquanto não se sabia quem estava na casa às 22h.
+Sabendo que a Enfermagem atende das 9h às 17h, a mesma regra passaria a recusar
+TODA dose noturna mandando acionar quem foi embora — e a dose seria dada assim
+mesmo, sem registro. Proteção que empurra a operação para fora do sistema não
+protege: ela cega. Vale reler as outras hipóteses do
+`pendencias-institucionais.md` com essa pergunta na mão.
+
+**A segunda: o pedido do Marcelo tinha uma versão fácil e errada.** "No fim da
+passagem alguém tem que dizer que deu o remédio" se implementa em dez minutos
+como um botão que marca as doses do turno — e seria marcação em lote de
+medicamento, absoluta no §11.2. A versão certa faz o contrário: a passagem LÊ o
+que ficou gravado e cobra a frase sobre o que ficou sem resposta, enquanto quem
+deu a dose ainda está na casa. O pedido foi atendido inteiro; o que mudou foi de
+que lado a informação corre.
+
+**A terceira, e é de método: a contaminação entre suítes apontou o desenho
+certo.** A primeira versão cobrava a frase de TODA pessoa que assinasse a
+passagem, e `plantao.e2e` começou a falhar no conjunto porque outra suíte
+deixava dose pendente na mesma casa. A leitura óbvia seria "conserte o teste";
+a leitura certa era que quatro pessoas do mesmo turno seriam cobradas quatro
+vezes pelas mesmas doses, e a quarta escreveria qualquer coisa para ir embora.
+A cobrança passou a ser de quem assina primeiro — que é exatamente o "alguém"
+que o Marcelo tinha dito.
+
+E um achado que vale como aviso permanente: reescrever `app_confirm_dose` para
+mudar duas regras **perdeu a baixa de estoque**, que não estava em discussão.
+`CREATE OR REPLACE` troca o corpo inteiro. Quem pegou foi `regressao-estado`,
+contando o estoque depois de confirmar.
+
 ---
 
-## 9. Migrações desta série (0620–0920)
+## 9. Migrações desta série (0620–0940)
 
 | Nº | Módulo | O que faz |
 |---|---|---|
@@ -1335,6 +1371,8 @@ tinha pego: os do tamanho da própria suíte, que ele mesmo acabara de mudar.
 | 0840 | alignments | reuniões e combinados |
 | 0850 | people | o que o perfil dizia antes: histórico dos campos descritivos |
 | 0860 | medications | quem decidiu que podia, e por quê: histórico do protocolo |
+| 0930 | medications | o educador de plantão dá o remédio; a exceção é por medicamento |
+| 0940 | shifts | a passagem lê as doses do turno e cobra a frase do primeiro que assina |
 
 Sem migração nova na fase 14: os relatórios usam o que já estava gravado.
 A dependência `docx` entrou no backend, e o timbre vive em `backend/assets/timbre.png`.

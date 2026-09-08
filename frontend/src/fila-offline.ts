@@ -32,7 +32,7 @@
  *    silenciosa por baixo da validação, nunca descarte.
  *
  * E uma recusa que acontece AQUI, antes de guardar: confirmação de dose exige
- * o aparelho institucional (§11.7). Enfileirar uma dose num aparelho pessoal
+ * a fila offline (0930). Enfileirar uma dose num aparelho pessoal
  * seria deixar a educadora acreditar por horas que registrou algo que vai
  * voltar rejeitado. Melhor a frase na hora.
  */
@@ -160,7 +160,7 @@ export interface AoEnfileirar {
  * Guarda a operação para enviar quando houver sinal.
  *
  * Recusa dois casos, e os dois com frase: tipo que o servidor não sabe
- * aplicar, e medicamento fora do aparelho institucional (§11.7).
+ * aplicar, e confirmação de dose, que não se guarda sem sinal (0930).
  */
 export async function enfileirar(op: AoEnfileirar): Promise<OperacaoLocal> {
   const tipo = tipoOffline(op.kind);
@@ -169,10 +169,11 @@ export async function enfileirar(op: AoEnfileirar): Promise<OperacaoLocal> {
       'Esta ação não pode ser guardada sem internet. Tente de novo quando a conexão voltar.',
     );
   }
-  if (tipo.exigeAparelhoInstitucional && !codigoDoAparelho()) {
+  if (tipo.foraDaFilaOffline) {
     throw new RecusaDaFila(
-      'Sem internet, somente o aparelho da casa confirma medicamento. '
-      + 'Confirme neste aparelho quando a conexão voltar, ou use o aparelho institucional.',
+      'Sem internet não dá para confirmar remédio: a mesma dose poderia ser confirmada em dois '
+      + 'aparelhos. Dê o medicamento e confirme assim que o sinal voltar — o resto do turno '
+      + 'continua funcionando sem sinal.',
     );
   }
 

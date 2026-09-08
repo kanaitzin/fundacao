@@ -8,10 +8,11 @@
 Cada uma destas tem a rota ou o desenho pronto, e a porta parada — e agora isso
 está escrito também no código, ao lado da rota (`test/rotas-sem-porta.spec.ts`).
 
-1. **A medicação a qualquer horário** (§7.9 do RETOMAR-AQUI). Quatro perguntas,
-   e a primeira muda o modelo: "a qualquer horário" quer dizer que não existe
-   horário previsto, ou que ele existe e é descumprido? Hoje o sistema marca
-   "administrado com atraso", o que pode ser cobrança injusta.
+1. ~~**A medicação a qualquer horário**~~ — **respondida em 08/09/2026** e
+   construída na mesma data (fase 72): o horário previsto existe, a Enfermagem
+   atende das 9h às 17h e o educador de plantão dá o resto. Sobra uma pergunta
+   pequena: "administrado com atraso" é informação útil para a Enfermagem ou
+   cobrança injusta com quem estava com uma criança no colo?
 2. **As fontes do acompanhamento** (§7.7). `POST /followups/:id/sources` existe
    e não tem tela: de onde a técnica escolhe as fontes é justamente o que não
    foi respondido.
@@ -20,8 +21,9 @@ está escrito também no código, ao lado da rota (`test/rotas-sem-porta.spec.ts
    saber o que o Gestor Geral vê ANTES de abrir.
 4. **Quem lê a ATA Geral de dia** (§7.2). A correção da linha de uma casa
    (`PATCH /shifts/general-ata/:id/house/:houseId`) espera essa resposta.
-5. **O código do aparelho da casa** (§11.7). Sem saber onde ele é digitado,
-   confirmar medicamento sem sinal não existe na prática.
+5. ~~**O código do aparelho da casa**~~ — a pergunta **deixou de existir** em
+   08/09: o sistema roda no celular de cada pessoa, e dose não se confirma sem
+   sinal em aparelho nenhum.
 6. **O PIA** — se as datas são por criança e se o sistema deve avisar.
 7. **A Enfermagem vê a internação?** Decisão minha, a confirmar numa linha.
 

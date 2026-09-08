@@ -456,6 +456,8 @@ let CHAMADAS: Chamada[] = [
 interface Passagem {
   id: string; quem: string; cargo: string; userId: string;
   contribuicoes: string | null; pendencias: string | null; orientacoes: string | null;
+  /** O que a pessoa escreveu sobre as doses do turno (0940). */
+  medicacao: string | null;
   assinadaEm: string; horarioReal: string; complementoTardio: boolean; offline: boolean;
   complementos: { id: string; quem: string; texto: string; quando: string; escritoEm: string; offline: boolean }[];
 }
@@ -473,6 +475,7 @@ let PLANTOES: Plantao[] = [
         contribuicoes: 'Acompanhei o café e a saída para a escola; tudo tranquilo.',
         pendencias: 'Falta buscar o resultado do exame do Bruno na unidade de saúde.',
         orientacoes: 'A Alice acordou com tosse; se piorar, acionar a Enfermagem.',
+        medicacao: null,
         assinadaEm: emHoras(13, 0), horarioReal: emHoras(13, 0),
         complementoTardio: false, offline: false, complementos: [] },
     ],
@@ -527,20 +530,27 @@ interface EsquemaMock {
   condicaoUso: string | null; prescritor: string | null;
   inicio: string; fim: string | null; horarios: string[];
   assinadaPor: string | null; assinadaEm: string | null; motivoDaSuspensao: string | null;
+  /** A exceção do 0930: o padrão é o educador de plantão poder dar. */
+  soEnfermagem: boolean; motivoSoEnfermagem: string | null;
 }
+/** O antes-e-depois de cada exceção marcada (0930). */
+const EXCECOES_MEDICAMENTO: { id: string; prescriptionId: string; antes: boolean;
+  depois: boolean; motivo: string; por: string; quando: string }[] = [];
 const ESQUEMAS: EsquemaMock[] = [
   { id: 'esq1', medicamento: 'Colírio lubrificante (fictício)', dose: '1 gota em cada olho',
     via: 'oftálmica', tipo: 'uso_continuo', status: 'ativa', rotulo: 'Na grade',
     acolhido: { id: 'p11', nome: 'Lara' }, condicaoUso: null,
     prescritor: 'Oftalmologia — Clínica Fictícia', inicio: '2026-06-01', fim: null,
     horarios: ['07:30', '19:30'], assinadaPor: 'Enfermeira Fictícia',
-    assinadaEm: '2026-06-01T10:00:00-03:00', motivoDaSuspensao: null },
+    assinadaEm: '2026-06-01T10:00:00-03:00', motivoDaSuspensao: null,
+    soEnfermagem: false, motivoSoEnfermagem: null },
   { id: 'esq2', medicamento: 'Amoxicilina (fictícia) 250 mg/5 mL', dose: '5 mL',
     via: 'oral', tipo: 'tratamento', status: 'ativa', rotulo: 'Na grade',
     acolhido: { id: 'p02', nome: 'Bruno' }, condicaoUso: null,
     prescritor: 'Pediatria — UBS Fictícia', inicio: '2026-08-28', fim: '2026-09-04',
     horarios: ['08:00', '16:00', '00:00'], assinadaPor: 'Enfermeira Fictícia',
-    assinadaEm: '2026-08-28T09:20:00-03:00', motivoDaSuspensao: null },
+    assinadaEm: '2026-08-28T09:20:00-03:00', motivoDaSuspensao: null,
+    soEnfermagem: false, motivoSoEnfermagem: null },
   { id: 'esq3', medicamento: 'Anti-histamínico (fictício)', dose: '1 comprimido',
     via: 'oral', tipo: 'uso_continuo', status: 'suspensa', rotulo: 'Suspenso',
     acolhido: { id: 'p01', nome: 'Alice' }, condicaoUso: null,
@@ -548,7 +558,19 @@ const ESQUEMAS: EsquemaMock[] = [
     horarios: ['20:00'], assinadaPor: 'Enfermeira Fictícia',
     assinadaEm: '2026-04-10T11:00:00-03:00',
     motivoDaSuspensao: 'Consulta de retorno em 12/08 na Clínica Fictícia: a alergologista '
-      + 'suspendeu o uso contínuo e manterá só o inalador em crise.' },
+      + 'suspendeu o uso contínuo e manterá só o inalador em crise.',
+    soEnfermagem: false, motivoSoEnfermagem: null },
+  /* Um esquema com a EXCEÇÃO marcada, para a demonstração mostrar como ela
+     aparece para quem NÃO pode dar — que é o educador, à noite. */
+  { id: 'esq4', medicamento: 'Insulina (fictícia) NPH', dose: '8 unidades',
+    via: 'subcutânea', tipo: 'uso_continuo', status: 'ativa', rotulo: 'Na grade',
+    acolhido: { id: 'p07', nome: 'Rayssa' }, condicaoUso: null,
+    prescritor: 'Endocrinologia — Ambulatório Fictício', inicio: '2026-07-15', fim: null,
+    horarios: ['07:00', '22:00'], assinadaPor: 'Enfermeira Fictícia',
+    assinadaEm: '2026-07-15T08:40:00-03:00', motivoDaSuspensao: null,
+    soEnfermagem: true,
+    motivoSoEnfermagem: 'Aplicação subcutânea com ajuste de dose pela glicemia; a Enfermagem '
+      + 'orientou que a aplicação seja feita por ela, conforme a consulta de 15/07.' },
 ];
 
 /** Quem está nominalmente autorizado a administrar (§11.3). */
@@ -645,6 +667,40 @@ let DOSES: DoseMock[] = [
     estado: 'aguardando_confirmacao', rotulo: 'Se necessário', pendente: true,
     confirmadaPor: null, administradaEm: null, observacao: null },
 ];
+
+/**
+ * OS REMÉDIOS DE UM TURNO (0940), para a passagem ler de volta.
+ *
+ * O recorte é o mesmo do servidor: 07h–19h no diurno, o resto no noturno. Ele
+ * lê a MESMA grade que a tela da Saúde mostra — se fosse uma lista à parte, a
+ * demonstração poderia dizer "tudo confirmado" na passagem enquanto a Saúde
+ * mostrava dose pendente, e o protótipo ensinaria a não olhar nem uma nem
+ * outra.
+ */
+function remediosDoTurno(turno: string) {
+  const noTurno = (iso: string) => {
+    const h = new Date(iso).getHours();
+    return turno === 'diurno' ? h >= 7 && h < 19 : h >= 19 || h < 7;
+  };
+  const doses = DOSES.filter((d) => noTurno(d.horario)).map((d) => ({
+    id: d.id,
+    acolhido: KIDS.find((k) => k.id === d.personId)?.nome ?? '—',
+    medicamento: d.medicamento,
+    previsto: d.horario,
+    estado: d.estado,
+    confirmou: d.confirmadaPor,
+    soEnfermagem: ESQUEMAS.some(
+      (e) => e.medicamento === d.medicamento && e.soEnfermagem),
+    semResposta: d.estado === 'aguardando_confirmacao',
+  }));
+  const semResposta = doses.filter((d) => d.semResposta).length;
+  /* "Alguém tem que dizer", e não "cada um tem que dizer": a cobrança é de
+     quem assina primeiro. */
+  const jaEscrito = PLANTOES.some((p) => p.turno === turno
+    && p.passagens.some((h) => (h.medicacao ?? '').trim().length > 0));
+  return { doses, total: doses.length, semResposta, jaEscrito,
+           exigeFrase: semResposta > 0 && !jaEscrito };
+}
 
 /**
  * Estoque da casa. Não é farmácia: é o que existe no armário, para a
@@ -2619,10 +2675,11 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       if (!tipo) {
         return { clientOpId: op.clientOpId, status: 'rejeitada', motivo: 'tipo de operação desconhecido' };
       }
-      // §11.7: quem decide se o aparelho é institucional é o SERVIDOR.
-      if (tipo.exigeAparelhoInstitucional && !op.deviceToken) {
+      // 0930: confirmação de dose não se guarda sem sinal, em aparelho nenhum.
+      if (tipo.foraDaFilaOffline) {
         return { clientOpId: op.clientOpId, status: 'rejeitada',
-                 motivo: 'Offline, somente o aparelho institucional designado confirma medicamento.' };
+                 motivo: 'Sem internet não dá para confirmar remédio: a mesma dose poderia ser '
+                   + 'confirmada em dois aparelhos. Confirme quando o sinal voltar.' };
       }
       return { clientOpId: op.clientOpId, status: 'aplicada' };
     });
@@ -3516,6 +3573,13 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       minhaPassagemEsperada: s.esperados.some((e) => e.userId === eu.id)
         && !s.passagens.some((p) => p.userId === eu.id),
       recebimentos: s.recebimentos.map((r) => ({ ...r, propria: r.userId === eu.id })),
+      /*
+       * OS REMÉDIOS DO TURNO (0940), como o servidor devolve. A demonstração
+       * precisa mostrar a dose SEM RESPOSTA, que é o caso que motivou o
+       * bloco: se aqui viesse tudo confirmado, a passagem pareceria uma tela
+       * a mais, e não a hora em que a casa percebe o esquecimento.
+       */
+      remedios: remediosDoTurno(s.turno),
       episodios: EPISODIOS.filter((e) => e.ataId === ataDo(s.id).id).map((e) => ({
         id: e.id, acolhidoId: e.acolhidoId,
         acolhido: KIDS.find((k) => k.id === e.acolhidoId)?.nome ?? '—',
@@ -3581,11 +3645,24 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       return new Recusa(400, 'Você já assinou a passagem deste plantão. Para acrescentar algo, '
         + 'registre um complemento — ele entra ao lado, sem reescrever o que você assinou.');
     }
+    /* A MESMA RECUSA DO SERVIDOR (0940, regra 14): dose sem resposta no turno
+       exige a frase. O servidor de mentira que aceitasse aqui ensinaria a
+       equipe a assinar sem escrever, e a demonstração mentiria sobre a única
+       cobrança nova desta tela. */
+    const rem = remediosDoTurno(s.turno);
+    if (rem.exigeFrase && String(b.medicacao ?? '').trim().length < 10) {
+      const quais = rem.doses.filter((d) => d.semResposta)
+        .map((d) => `${d.medicamento} (${d.acolhido})`).join(', ');
+      return new Recusa(400,
+        `${rem.semResposta === 1 ? 'Uma dose deste turno ficou' : `${rem.semResposta} doses deste turno ficaram`}`
+        + ` sem resposta: ${quais}. Escreva o que aconteceu antes de assinar — quem deu o `
+        + 'remédio ainda está na casa agora, e amanhã ninguém vai saber dizer.');
+    }
     const tardia = !!b.happenedAt;
     s.passagens = [...s.passagens, {
       id: uid(), quem: eu.fullName, cargo: eu.role, userId: eu.id,
       contribuicoes: b.contribuicoes || null, pendencias: b.pendencias || null,
-      orientacoes: b.orientacoes || null,
+      orientacoes: b.orientacoes || null, medicacao: b.medicacao || null,
       assinadaEm: new Date().toISOString(),
       horarioReal: b.happenedAt ?? new Date().toISOString(),
       complementoTardio: tardia, offline: false, complementos: [],
@@ -4293,6 +4370,16 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       return new Recusa(400, `"${ESTADO_DOSE[estado]}" exige observação: descreva o fato de `
         + 'forma objetiva.');
     }
+    /* A EXCEÇÃO POR MEDICAMENTO (0930), com a mesma recusa do servidor: o
+       educador lê POR QUE aquele frasco não é com ele. Sem isto no servidor de
+       mentira, a demonstração deixaria o educador confirmar a insulina — e
+       ensinaria o contrário do que o sistema faz. */
+    const esqDaDose = ESQUEMAS.find((e) => e.medicamento === d.medicamento);
+    if (esqDaDose?.soEnfermagem && eu.role !== 'enfermagem') {
+      return new Recusa(403, `${d.medicamento} está marcado como exclusivo da Enfermagem: `
+        + `${esqDaDose.motivoSoEnfermagem ?? 'sem motivo registrado'}. Acione a Enfermagem e `
+        + 'registre a dose com ela.');
+    }
     d.pendente = false;
     d.estado = estado;
     d.rotulo = ESTADO_DOSE[estado];
@@ -4311,8 +4398,9 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
    * dar.
    */
   if (rota === '/medications/prescriptions' && metodo === 'POST') {
-    if (!['enfermagem', 'gestor_geral'].includes(eu.role)) {
-      return new Recusa(403, 'Somente a Enfermagem cadastra e assina esquema de medicamentos.');
+    if (!['enfermagem', 'coordenador', 'equipe_tecnica', 'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403,
+        'Quem cadastra esquema de medicamento é a Enfermagem, a coordenação ou a equipe técnica.');
     }
     if (b.tipo === 'quando_necessario' && !String(b.condicaoUso ?? '').trim()) {
       return new Recusa(400, 'Medicamento "quando necessário" exige a condição de uso escrita '
@@ -4324,8 +4412,8 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       personId: String(b.personId ?? ''), horarios: (b.horarios as string[]) ?? [],
       condicaoUso: (b.condicaoUso as string) ?? null });
     return { id, status: 'rascunho',
-      aviso: 'Prescrição registrada como rascunho. Só entra na grade após conferência e '
-        + 'assinatura da Enfermagem.' };
+      aviso: 'Esquema registrado como rascunho. Ele só começa a gerar dose quando alguém o '
+        + 'ativar — e o nome de quem ativou fica ao lado de cada dose.' };
   }
 
   /**
@@ -4347,13 +4435,14 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         condicaoUso: r.condicaoUso, prescritor: null,
         inicio: HOJE, fim: null, horarios: r.horarios,
         assinadaPor: null, assinadaEm: null, motivoDaSuspensao: null,
+        soEnfermagem: false, motivoSoEnfermagem: null,
       })),
       ...ESQUEMAS,
     ];
     return { esquemas,
-      aviso: 'Rascunho NÃO está na grade: ele só começa a gerar dose quando a Enfermagem '
-        + 'confere e assina. Suspender é o contrário — tira da grade a partir de hoje, e o '
-        + 'que já foi confirmado continua registrado.' };
+      aviso: 'Rascunho NÃO está na grade: ele só começa a gerar dose quando alguém confere e '
+        + 'ativa. Suspender é o contrário — tira da grade a partir de hoje, e o que já foi '
+        + 'confirmado continua registrado.' };
   }
   /*
    * O PROTOCOLO (§11.3) e a pendência institucional 33.4.1.
@@ -4364,65 +4453,63 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
    * da maioria das casas, e é o que a tela precisa saber dizer.
    */
   if (rota === '/medications/protocol' && metodo === 'GET') {
-    return { periodos: PROTOCOLO,
-      pendenciaInstitucional:
-        'Quem administra medicamentos em cada período (pendência 33.4.1) é decisão da '
-        + 'instituição. Enquanto não houver definição formal, vale o padrão mais protetivo: '
-        + 'somente Enfermagem.' };
+    return { periodos: PROTOCOLO, historico: true,
+      respostaDaFundacao:
+        'A Enfermagem atende das 9h às 17h; fora disso, quem administra é o educador de '
+        + 'plantão, conforme a bula do acolhido. O que existe agora é a exceção por '
+        + 'MEDICAMENTO — o que só a Enfermagem dá —, marcada no próprio esquema, com motivo '
+        + 'escrito.' };
   }
   /* Cada decisão, com o que valia antes (migração 0860). Lê quem alcança a
      casa: a educadora tem o direito de saber quando a regra mudou. */
   if (rota === '/medications/protocol-history' && metodo === 'GET') {
     return DECISOES_PROTOCOLO;
   }
-  if (rota === '/medications/protocol' && metodo === 'POST') {
-    if (!['coordenador', 'gestor_geral'].includes(eu.role)) {
-      return new Recusa(403, 'Somente a coordenação define o protocolo de administração.');
-    }
-    const motivoP = String(b.motivo ?? b.nota ?? '').trim();
-    if (motivoP.length < 15) {
-      return new Recusa(400,
-        'Escreva sob qual decisão da instituição este protocolo está sendo definido. '
-        + 'Quem for rever isto daqui a seis meses precisa saber por que ficou assim.');
-    }
-    const enf = b.enfermagem !== false;
-    const edu = b.educadorAutorizado === true;
-    if (!enf && !edu) {
-      return new Recusa(400,
-        'Um período precisa de alguém que possa administrar. Sem Enfermagem e sem educador '
-        + 'autorizado, a dose vence todos os dias sem que exista quem a confirme.');
-    }
-    const alvoP = PROTOCOLO.find((x) => x.periodo === b.periodo);
-    DECISOES_PROTOCOLO.unshift({ id: uid(), periodo: String(b.periodo),
-      // `null` diz "não havia definição, valia o padrão protetivo" — diferente
-      // de uma decisão anterior que negava.
-      antes: alvoP ? { enfermagem: alvoP.enfermagem,
-                       educadorAutorizado: alvoP.educadorAutorizado } : null,
-      depois: { enfermagem: enf, educadorAutorizado: edu },
-      motivo: motivoP, por: eu.fullName, quando: new Date().toISOString() });
-    const novoP = { periodo: String(b.periodo), enfermagem: enf, educadorAutorizado: edu,
-      nota: motivoP, definidoEm: new Date().toISOString() };
-    if (alvoP) Object.assign(alvoP, novoP); else PROTOCOLO.push(novoP);
-    return { ok: true,
-      aviso: 'Protocolo definido. O que valia antes continua registrado, com o seu nome, o '
-        + 'horário e o motivo — e a equipe da casa lê esse histórico na tela da Saúde.' };
-  }
   if (rota === '/medications/authorizations' && metodo === 'GET') {
     return AUTORIZACOES.map((a) => ({ ...a,
       vigente: (a.ate == null || a.ate >= HOJE) }));
   }
-  if (rota === '/medications/authorize-educator' && metodo === 'POST') {
-    if (!['coordenador', 'gestor_geral'].includes(eu.role)) {
-      return new Recusa(403, 'Somente a coordenação autoriza educadores nominalmente.');
+  /*
+   * A EXCEÇÃO POR MEDICAMENTO (0930).
+   *
+   * Substituiu o protocolo por período e a autorização nominal, que decidiam
+   * quem podia dar remédio em cada turno. A Fundação respondeu em 08/09/2026:
+   * a Enfermagem atende das 9h às 17h e o educador de plantão dá o resto.
+   */
+  if (seg[0] === 'medications' && seg[1] === 'prescriptions' && seg[3] === 'nurse-only'
+      && metodo === 'POST') {
+    if (!['enfermagem', 'coordenador', 'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403, 'Somente a Enfermagem, a coordenação ou a gestão marcam um '
+        + 'medicamento como exclusivo da Enfermagem.');
     }
-    const nome = EQUIPE_CASA.find((m) => m.id === b.userId)?.nome ?? 'Colega';
-    AUTORIZACOES.unshift({ id: uid(), userId: String(b.userId), quem: nome,
-      de: HOJE, ate: b.validoAte ? String(b.validoAte) : null,
-      nota: b.nota ? String(b.nota) : null, autorizadoPor: eu.fullName });
-    return { ok: true,
-      aviso: `${nome} está autorizada nominalmente nesta casa, com o seu nome e o horário. `
-        + 'Isto NÃO substitui o protocolo: se o protocolo do período não permite educador, '
-        + 'o servidor recusa a confirmação da dose.' };
+    const e = ESQUEMAS.find((x) => x.id === seg[2]);
+    if (!e) return new Recusa(404, 'Esquema não encontrado.');
+    const motivoE = String(b.motivo ?? '').trim();
+    if (motivoE.length < 15) {
+      return new Recusa(400, 'Escreva por que este medicamento exige a Enfermagem — quem ler '
+        + 'daqui a seis meses precisa entender a decisão.');
+    }
+    const querMarcar = b.soEnfermagem === true;
+    if (e.soEnfermagem === querMarcar) {
+      return { ok: true, mudou: false,
+        aviso: 'Este esquema já estava assim. Nada foi registrado — marcar duas vezes o mesmo '
+          + 'estado não é decisão.' };
+    }
+    EXCECOES_MEDICAMENTO.unshift({ id: uid(), prescriptionId: e.id,
+      antes: e.soEnfermagem, depois: querMarcar, motivo: motivoE,
+      por: eu.fullName, quando: new Date().toISOString() });
+    e.soEnfermagem = querMarcar;
+    e.motivoSoEnfermagem = querMarcar ? motivoE : null;
+    return { ok: true, mudou: true,
+      aviso: querMarcar
+        ? 'Marcado: só a Enfermagem administra este medicamento. O educador que tentar '
+          + 'confirmar lê o motivo que você escreveu.'
+        : 'Desmarcado: o educador de plantão volta a poder dar este medicamento. O que valia '
+          + 'antes continua registrado.' };
+  }
+  if (seg[0] === 'medications' && seg[1] === 'prescriptions' && seg[3] === 'nurse-only-history'
+      && metodo === 'GET') {
+    return EXCECOES_MEDICAMENTO.filter((x) => x.prescriptionId === seg[2]);
   }
   /* SUSPENDER — só o que está na grade, e a orientação é obrigatória. */
   if (seg[0] === 'medications' && seg[1] === 'prescriptions' && seg[3] === 'suspend'
@@ -4487,9 +4574,9 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       acolhido: { id: r.personId, nome: KIDS.find((k) => k.id === r.personId)?.nome ?? '—' },
       condicaoUso: r.condicaoUso, prescritor: null, inicio: HOJE, fim: null,
       horarios: r.horarios, assinadaPor: eu.fullName, assinadaEm: new Date().toISOString(),
-      motivoDaSuspensao: null });
+      motivoDaSuspensao: null, soEnfermagem: false, motivoSoEnfermagem: null });
     return { ok: true, status: 'ativa',
-      aviso: `Esquema assinado por você. ${r.medicamento} entrou na grade da casa — a partir `
+      aviso: `Esquema ativado por você. ${r.medicamento} entrou na grade da casa — a partir `
         + 'de agora existe dose para alguém confirmar, uma a uma.' };
   }
 

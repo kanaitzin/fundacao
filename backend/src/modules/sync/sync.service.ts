@@ -4,6 +4,7 @@ import { AuditService } from '../../kernel/audit/audit.service';
 import { EventBus } from '../../kernel/events/event-bus.service';
 import { AuthenticatedUser } from '../../kernel/contracts';
 import { DevicesService } from '../identity';
+import { tipoOffline } from './tipos-offline';
 
 export interface OfflineOp {
   clientOpId: string;
@@ -92,20 +93,28 @@ export class SyncService {
       }
       const retentativa = jaVista != null;   // conflito/rejeitada anteriores
 
-      // 2) Regra do aparelho institucional para medicamento (§11.7).
+      // 2) Dose não se confirma sem sinal — em aparelho nenhum (0930).
       //
-      // Quem decide é o SERVIDOR, contra o registro de aparelhos da casa.
-      // Antes, `op.institutionalDevice` vinha no corpo da requisição: quem
-      // enviasse `true` passava, e o cenário de aceite #15 se apoiava na
-      // palavra do próprio aparelho.
+      // Até 08/09/2026 valia o §11.7: só o aparelho institucional registrado
+      // da casa, conferido pelo SERVIDOR contra o cadastro (a fase 43 tirou
+      // essa afirmação do cliente). A Fundação decidiu que o sistema roda no
+      // celular de cada pessoa, com o e-mail institucional: não há mais "o
+      // aparelho da casa" para ser a trava contra a mesma dose confirmada em
+      // dois lugares, e aceitar de qualquer celular devolveria a duplicidade
+      // que a regra evitava.
+      //
+      // O cadastro de aparelhos CONTINUA sendo conferido — a casa quer saber
+      // de qual aparelho veio cada operação —, mas ele não abre mais a porta
+      // da dose.
       const aparelhoId = await this.devices.verificar(user, op.houseId, op.deviceToken);
       op.institutionalDevice = aparelhoId != null;
 
-      if (op.kind.startsWith('medication.') && !op.institutionalDevice) {
-        await this.registrar(user, op, 'rejeitada', 'aparelho não institucional');
+      if (tipoOffline(op.kind)?.foraDaFilaOffline) {
+        await this.registrar(user, op, 'rejeitada', 'dose sem sinal');
         resultados.push({
           clientOpId: op.clientOpId, status: 'rejeitada',
-          motivo: 'Offline, somente o aparelho institucional designado confirma medicamento.',
+          motivo: 'Sem internet não dá para confirmar remédio: a mesma dose poderia ser '
+            + 'confirmada em dois aparelhos. Confirme assim que o sinal voltar.',
         });
         continue;
       }

@@ -29,6 +29,7 @@ interface Complemento {
 interface PassagemFeita {
   id: string; quem: string; cargo: string; aparelho: string | null;
   contribuicoes: string | null; pendencias: string | null; orientacoes: string | null;
+  medicacao: string | null;
   assinadaEm: string; horarioReal: string; complementoTardio: boolean;
   offline: boolean; propria: boolean; complementos: Complemento[];
 }
@@ -45,6 +46,14 @@ interface Plantao {
   assinaturasPendentes: { quem: string; cargo: string }[];
   minhaPassagemEsperada: boolean;
   recebimentos: Recebimento[];
+  /** As doses do turno, lidas de volta (0940). Nunca um botão que marque tudo. */
+  remedios: {
+    doses: {
+      id: string; acolhido: string; medicamento: string; previsto: string;
+      estado: string; confirmou: string | null; soEnfermagem: boolean; semResposta: boolean;
+    }[];
+    total: number; semResposta: number; jaEscrito: boolean; exigeFrase: boolean;
+  };
 }
 interface Resumo {
   id: string; turno: string; status: string;
@@ -123,7 +132,8 @@ export function Passagem({ houseId }: { houseId: string }) {
   }
 
   async function assinar(dados: {
-    contribuicoes: string; pendencias: string; orientacoes: string; happenedAt?: string;
+    contribuicoes: string; pendencias: string; orientacoes: string;
+    medicacao?: string; happenedAt?: string;
   }) {
     if (!aberto) return;
     setErro(''); setAviso(''); setOcupado(true);
@@ -345,6 +355,7 @@ export function Passagem({ houseId }: { houseId: string }) {
       {!minha && (
         <Formulario fechado={fechado} fechadoEm={aberto.fechadoEm ?? null}
                     esperada={aberto.minhaPassagemEsperada}
+                    remedios={aberto.remedios}
                     ocupado={ocupado} onAssinar={assinar} />
       )}
 
@@ -388,6 +399,7 @@ function Assinada({ p }: { p: PassagemFeita }) {
       {p.contribuicoes && <p className="bloco"><small>O que foi feito</small>{p.contribuicoes}</p>}
       {p.pendencias && <p className="bloco"><small>Fica pendente</small>{p.pendencias}</p>}
       {p.orientacoes && <p className="bloco destaque"><small>Para o próximo turno</small>{p.orientacoes}</p>}
+      {p.medicacao && <p className="bloco"><small>Sobre os remédios do turno</small>{p.medicacao}</p>}
       {!p.contribuicoes && !p.pendencias && !p.orientacoes && (
         <p className="mutetxt" style={{ margin: 0 }}>Assinada sem observações.</p>
       )}
@@ -408,13 +420,16 @@ function Assinada({ p }: { p: PassagemFeita }) {
  * que o próximo turno precisa saber. O terceiro é o único que aparece na tela
  * de quem chega — e é o que a equipe escreveria no grupo de mensagens.
  */
-function Formulario({ esperada, fechado, fechadoEm, ocupado, onAssinar }: {
+function Formulario({ esperada, fechado, fechadoEm, ocupado, remedios, onAssinar }: {
   esperada: boolean; fechado: boolean; fechadoEm: string | null; ocupado: boolean;
-  onAssinar: (d: { contribuicoes: string; pendencias: string; orientacoes: string; happenedAt?: string }) => void;
+  remedios: Plantao['remedios'];
+  onAssinar: (d: { contribuicoes: string; pendencias: string; orientacoes: string;
+                   medicacao?: string; happenedAt?: string }) => void;
 }) {
   const [contribuicoes, setContribuicoes] = useState('');
   const [pendencias, setPendencias] = useState('');
   const [orientacoes, setOrientacoes] = useState('');
+  const [medicacao, setMedicacao] = useState('');
   /**
    * O horário real vem preenchido com o fechamento do plantão — que é quando
    * a passagem quase sempre aconteceu: na troca de turno, com a pessoa ainda
@@ -426,7 +441,10 @@ function Formulario({ esperada, fechado, fechadoEm, ocupado, onAssinar }: {
   const [quando, setQuando] = useState(paraCampo(fechadoEm));
   // Assinar em branco não passa a informação nenhuma; um dos três basta.
   const temConteudo = [contribuicoes, pendencias, orientacoes].some((t) => t.trim().length >= 5);
-  const pronto = temConteudo && (!fechado || quando !== '') && !ocupado;
+  /* A frase sobre os remédios só é cobrada quando alguma dose ficou sem
+   * resposta — e quem decide isso é o servidor, que responde `exigeFrase`. */
+  const faltaFrase = remedios.exigeFrase && medicacao.trim().length < 10;
+  const pronto = temConteudo && !faltaFrase && (!fechado || quando !== '') && !ocupado;
 
   return (
     <section className="passagem">
@@ -492,6 +510,71 @@ function Formulario({ esperada, fechado, fechadoEm, ocupado, onAssinar }: {
                 onChange={(e) => setOrientacoes(e.target.value)}
                 placeholder="Ex.: a Alice acordou com dor de garganta; se piorar, acionar a Enfermagem." />
 
+      {/*
+        * OS REMÉDIOS DO TURNO (0940).
+        *
+        * O Marcelo pediu que alguém, no fim da passagem, diga que o remédio
+        * foi dado. O jeito errado seria um botão marcando as doses do turno —
+        * marcação em lote de medicamento, que o §11.2 proíbe sem exceção.
+        * Este bloco faz o contrário: mostra o que ficou GRAVADO, agora, com a
+        * pessoa que deu a dose ainda na casa. A dose sem resposta vem primeiro
+        * e em alerta; a confirmada aparece com o nome de quem confirmou.
+        */}
+      {remedios.total > 0 && (
+        <div className="card stack" style={{ marginTop: 14 }}>
+          <div className="eyebrow">Os remédios deste turno · {remedios.total}</div>
+          <ul className="lista">
+            {[...remedios.doses]
+              .sort((a, b) => Number(b.semResposta) - Number(a.semResposta))
+              .map((d) => (
+                <li key={d.id} className="row">
+                  <div className="grow">
+                    <b className="ff">{d.acolhido}</b>
+                    <div className="mutetxt linhadois">
+                      {d.medicamento} · {hhmm(d.previsto)}
+                      {d.soEnfermagem ? ' · só a Enfermagem' : ''}
+                    </div>
+                    {d.confirmou && <div className="mutetxt">Confirmado por {d.confirmou}</div>}
+                  </div>
+                  <span className={`pill ${d.semResposta ? 'c-warn' : 'c-ok'}`}>
+                    {d.semResposta ? 'Sem resposta' : 'Registrada'}
+                  </span>
+                </li>
+              ))}
+          </ul>
+          {remedios.exigeFrase ? (
+            <>
+              <div className="notice c-warn">
+                {remedios.semResposta === 1
+                  ? 'Uma dose deste turno ficou sem resposta.'
+                  : `${remedios.semResposta} doses deste turno ficaram sem resposta.`}
+                {' '}Quem deu o remédio ainda está na casa agora — amanhã ninguém vai saber dizer.
+              </div>
+              <label className="f" htmlFor="medic">
+                O que aconteceu com essas doses <small>— obrigatório</small>
+              </label>
+              <textarea id="medic" value={medicacao} rows={2}
+                        onChange={(e) => setMedicacao(e.target.value)}
+                        placeholder="Ex.: a dose das 22h da Alice foi dada pela Joana, que ficou sem confirmar no aplicativo — ela confirma amanhã." />
+              <p className="mutetxt">
+                Escrever aqui <b>não confirma dose nenhuma</b>: cada dose é confirmada por quem a
+                administrou, na conta dela.
+              </p>
+            </>
+          ) : remedios.semResposta > 0 ? (
+            <p className="mutetxt">
+              Alguém do turno já escreveu sobre as doses sem resposta — a casa diz isso uma vez,
+              e não uma vez por pessoa. A lista fica à vista porque ainda dá para resolver.
+            </p>
+          ) : (
+            <p className="mutetxt">
+              Todas as doses deste turno têm resposta registrada. Se quiser acrescentar alguma
+              coisa sobre elas, escreva em "para o próximo turno".
+            </p>
+          )}
+        </div>
+      )}
+
       {fechado && (
         <>
           <label className="f" htmlFor="quando">
@@ -507,6 +590,7 @@ function Formulario({ esperada, fechado, fechadoEm, ocupado, onAssinar }: {
               onClick={() => onAssinar({
                 contribuicoes: contribuicoes.trim(), pendencias: pendencias.trim(),
                 orientacoes: orientacoes.trim(),
+                medicacao: medicacao.trim() || undefined,
                 happenedAt: fechado && quando ? new Date(quando).toISOString() : undefined,
               })}>
         Assinar minha passagem
@@ -515,6 +599,8 @@ function Formulario({ esperada, fechado, fechadoEm, ocupado, onAssinar }: {
       <p className="mutetxt">
         {!temConteudo
           ? 'Escreva ao menos um dos três campos — passagem em branco não passa nada adiante.'
+          : faltaFrase
+            ? 'Escreva o que aconteceu com as doses sem resposta — é a única coisa que falta.'
           : fechado && !quando
             ? 'Informe o horário real: é ele que diz quando a passagem foi feita, não quando foi digitada.'
             : 'Depois de assinada, ela não é reescrita. Correção entra como complemento, com horário.'}

@@ -25,8 +25,9 @@ limitados à **finalidade** do cargo na camada de aplicação.
 |---|---|---|---|---|---|---|---|
 | Ver linha do tempo/visão dos 20 | ✅ | ✅ | ✅ | ✅ | saúde | mínimo | ✅ |
 | Criar/alterar agenda regular | — | urgente pontual | ✅ | ✅ | — | urgente pontual | — |
-| Confirmar medicamento | se administrou | se administrou | — | — | se administrou | — | — |
-| Cadastrar/revisar esquema de medicamentos | — | — | acompanha | acompanha | ✅ assina | — | — |
+| Confirmar medicamento | ✅ se administrou | ✅ se administrou | — | — | ✅ se administrou | — | — |
+| Cadastrar e ativar esquema de medicamentos | — | — | ✅ | ✅ | ✅ | — | — |
+| Marcar medicamento como exclusivo da Enfermagem | — | — | — | ✅ | ✅ | — | ✅ |
 | Editar perfil estrutural do acolhido | — | — | ✅ | ✅ | saúde | — | — |
 | Ver narrativas pessoais de educadores | próprias | não navega | ✅ | ✅ | — | não | apuração formal |
 | Criar/desativar usuários | — | — | — | ✅ própria casa | — | — | ✅ com auditoria |
@@ -53,6 +54,13 @@ limitados à **finalidade** do cargo na camada de aplicação.
 | Autorizar ou **recusar** substituição | — | ✅ | ✅ | ✅ | — | ✅ | — |
 | Ver o painel do plantão (quem está em quê) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Convidar para o primeiro acesso | — | — | — | ✅ própria casa | — | — | ✅ |
+
+**Quem dá o remédio (atualizado em 08/09/2026, migração 0930).** A Enfermagem
+atende das **9h às 17h**; fora desse horário quem administra é o **educador de
+plantão**, conforme a bula do acolhido. Não há protocolo por período nem
+autorização nominal: o que existe é a **exceção por medicamento**, marcada no
+esquema com motivo escrito — e o educador barrado lê esse motivo. Confirmar
+continua sendo de quem administrou, uma dose por vez.
 
 ## Regras invariantes
 
@@ -82,6 +90,10 @@ limitados à **finalidade** do cargo na camada de aplicação.
   **reautenticação** e auditoria destacada (§5.2).
 - Desligado = desativado; autoria e histórico preservados (§5.1).
 - Alterar relógio do aparelho não amplia acesso (§5.12) — janela avaliada no servidor.
+- **Dose não se confirma sem sinal, em aparelho nenhum** (0930). O sistema roda
+  no celular de cada pessoa: sem o aparelho único da casa, guardar confirmação
+  de dose devolveria a mesma dose confirmada em dois lugares. O resto do turno
+  funciona offline.
 - Ninguém assina a passagem de outro, e o recebimento do turno é individual (§12.1, §12.3);
   confirmar recebimento **não** significa concordar com narrativa alheia.
 - ATA fechada não é sobrescrita: correção é adendo com antes e depois (§12.7).

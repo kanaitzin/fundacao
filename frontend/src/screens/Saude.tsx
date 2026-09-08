@@ -152,6 +152,8 @@ interface Esquema {
   inicio: string; fim: string | null; horarios: string[];
   assinadaPor: string | null; assinadaEm: string | null;
   motivoDaSuspensao: string | null;
+  /** A exceção do 0930: por padrão o educador de plantão pode dar. */
+  soEnfermagem: boolean; motivoSoEnfermagem: string | null;
 }
 /** Quem está nominalmente autorizado a administrar nesta casa (§11.3). */
 interface Autorizacao {
@@ -161,7 +163,8 @@ interface Autorizacao {
 interface Protocolo {
   periodos: { periodo: string; enfermagem: boolean; educadorAutorizado: boolean;
               nota: string | null; definidoEm: string | null }[];
-  pendenciaInstitucional: string;
+  /** O que a Fundação respondeu em 08/09/2026; os períodos viraram história. */
+  respostaDaFundacao?: string;
 }
 
 /**
@@ -254,10 +257,12 @@ export function Saude({ houseId, casaLabel, papel }: {
   const [suspendendo, setSuspendendo] = useState<Esquema | null>(null);
   const [protocolo, setProtocolo] = useState<Protocolo | null>(null);
   const [autorizacoes, setAutorizacoes] = useState<Autorizacao[]>([]);
-  const [autorizando, setAutorizando] = useState(false);
-  /** Definir quem pode dar remédio no período (§11.3, pendência 33.4.1). */
-  const [definindo, setDefinindo] = useState<
-    { periodo: string; enfermagem: boolean; educadorAutorizado: boolean } | null>(null);
+  /**
+   * Marcar um medicamento como exclusivo da Enfermagem (0930). Substituiu a
+   * definição por período: desde 08/09/2026 sabe-se que a Enfermagem atende
+   * das 9h às 17h, e a dose das 22h é do educador de plantão por definição.
+   */
+  const [excecao, setExcecao] = useState<Esquema | null>(null);
   const [decisoes, setDecisoes] = useState<DecisaoProtocolo[]>([]);
   const [movendo, setMovendo] = useState<{ item: Item; tipo: 'entrada' | 'contagem' } | null>(null);
   const [historico, setHistorico] = useState<
@@ -320,8 +325,11 @@ export function Saude({ houseId, casaLabel, papel }: {
   const enfermagem = papel === 'enfermagem' || papel === 'gestor_geral';
   /** Quem mexe no armário — o mesmo alcance do servidor. O educador vê e não mexe. */
   const movimenta = ['enfermagem', 'equipe_tecnica', 'coordenador', 'gestor_geral'].includes(papel);
-  /* alcance:protocolo — quem define quem pode dar remédio (§11.3). */
-  const defineProtocolo = ['coordenador', 'gestor_geral'].includes(papel);
+  /* alcance:protocolo — quem marca o medicamento que só a Enfermagem dá (§11.3). */
+  const defineProtocolo = ['enfermagem', 'coordenador', 'gestor_geral'].includes(papel);
+  /** Quem cadastra e ativa esquema, desde 0930: não é mais só a Enfermagem. */
+  const cadastraEsquema =
+    ['enfermagem', 'coordenador', 'equipe_tecnica', 'gestor_geral'].includes(papel);
   const emiteResumo = ['enfermagem', 'equipe_tecnica', 'coordenador', 'gestor_geral'].includes(papel);
 
   // Os números vêm do que já está na tela, não de um resumo paralelo: o painel
@@ -368,7 +376,7 @@ export function Saude({ houseId, casaLabel, papel }: {
                 onClick={() => setAba('triagem')}>Triagem</button>
         <button role="tab" aria-selected={aba === 'estoque'} className={aba === 'estoque' ? 'on' : ''}
                 onClick={() => setAba('estoque')}>Estoque</button>
-        {(enfermagem || defineProtocolo) && (
+        {(cadastraEsquema || defineProtocolo) && (
           <button role="tab" aria-selected={aba === 'prescricoes'}
                   className={aba === 'prescricoes' ? 'on' : ''}
                   onClick={() => setAba('prescricoes')}>Esquemas</button>
@@ -571,7 +579,7 @@ export function Saude({ houseId, casaLabel, papel }: {
         </>
       )}
 
-      {aba === 'prescricoes' && (enfermagem || defineProtocolo) && (
+      {aba === 'prescricoes' && (cadastraEsquema || defineProtocolo) && (
         <>
           {/*
             * OS ESQUEMAS DA CASA — rascunho, na grade, suspenso.
@@ -610,16 +618,32 @@ export function Saude({ houseId, casaLabel, papel }: {
                 {e.motivoDaSuspensao && (
                   <div className="bloco"><small>Motivo da suspensão</small>{e.motivoDaSuspensao}</div>
                 )}
-                {enfermagem && e.status === 'rascunho' && (
+                {/* A EXCEÇÃO (0930). Ela aparece para TODA a equipe, e não só
+                    para quem pode marcá-la: o educador precisa saber, antes de
+                    chegar a hora, que este frasco não é com ele. */}
+                {e.soEnfermagem && (
+                  <div className="bloco">
+                    <small>Só a Enfermagem administra</small>
+                    {e.motivoSoEnfermagem ?? 'sem motivo registrado'}
+                  </div>
+                )}
+                {cadastraEsquema && e.status === 'rascunho' && (
                   <button className="btn sm" onClick={() => acao(() =>
                     api(`/medications/prescriptions/${e.id}/sign`, { method: 'POST', body: '{}' }))}>
-                    Conferir e assinar
+                    Conferir e ativar
+                  </button>
+                )}
+                {defineProtocolo && e.status !== 'rascunho' && (
+                  <button className="btn sm sec" onClick={() => setExcecao(e)}>
+                    {e.soEnfermagem
+                      ? 'Voltar a permitir o educador'
+                      : 'Só a Enfermagem pode dar'}
                   </button>
                 )}
                 {/* SUSPENDER é da Enfermagem, e só do que está na grade. O
                     médico suspendeu o remédio e a grade continuava cobrando a
                     dose todo dia — este botão é o que fecha esse silêncio. */}
-                {enfermagem && e.status === 'ativa' && (
+                {cadastraEsquema && e.status === 'ativa' && (
                   <button className="btn sm sec" onClick={() => setSuspendendo(e)}>
                     Suspender este esquema
                   </button>
@@ -629,97 +653,64 @@ export function Saude({ houseId, casaLabel, papel }: {
           </div>
 
           {/*
-            * QUEM PODE DAR REMÉDIO (§11.3), e a pendência institucional 33.4.1.
+            * QUEM DÁ O REMÉDIO NESTA CASA (§11.3).
             *
-            * Enquanto a instituição não decide, vale o padrão mais protetivo:
-            * somente Enfermagem. A tela mostra isso escrito, e não como um
-            * campo vazio que se lê como "ninguém pensou nisso".
+            * Até 08/09/2026 este bloco era uma pendência institucional em
+            * aberto, e o sistema valia-se do padrão mais protetivo — somente
+            * Enfermagem, educador só por autorização nominal. A Fundação
+            * respondeu, e a resposta desfaz a hipótese: a Enfermagem atende
+            * das 9h às 17h; fora disso quem dá é o educador de plantão,
+            * conforme a bula do acolhido.
+            *
+            * A regra passou a ser LIDA, e não configurada. O que se configura
+            * agora é a exceção, e ela vive no esquema do medicamento.
             */}
-          {protocolo && (
-            <>
-              <div className="eyebrow">Quem pode dar remédio</div>
-              <div className="card stack">
-                <div className="notice c-warn">{protocolo.pendenciaInstitucional}</div>
-                {/*
-                  * A LISTA É DOS DOIS TURNOS, e não das linhas que existem no
-                  * banco. Até 01/09/2026 esta tela desenhava só o que já
-                  * estava gravado: numa casa sem definição nenhuma ela ficava
-                  * VAZIA, com a frase do padrão protetivo e nenhuma porta — e
-                  * era assim que a pendência institucional 33.4.1 seguia em
-                  * aberto sem que ninguém tivesse por onde respondê-la.
-                  */}
-                <ul className="lista">
-                  {PERIODOS.map(({ cod, label }) => {
-                    const pr = protocolo.periodos.find((x) => x.periodo === cod);
-                    return (
-                      <li key={cod} className="row">
-                        <div className="grow">
-                          <b className="ff">{label}</b>
-                          <div className="mutetxt linhadois">
-                            {pr
-                              ? <>
-                                  {pr.enfermagem ? 'Enfermagem' : '—'}
-                                  {pr.educadorAutorizado ? ' · educador nominalmente autorizado' : ''}
-                                </>
-                              : 'Somente Enfermagem — padrão protetivo, na falta de decisão'}
-                          </div>
-                          {pr?.nota && <div className="mutetxt">{pr.nota}</div>}
-                        </div>
-                        <div className="stack" style={{ alignItems: 'flex-end', gap: 6 }}>
-                          <span className={`pill ${pr?.definidoEm ? 'c-ok' : 'c-warn'}`}>
-                            {pr?.definidoEm ? 'Definido' : 'Sem definição'}
-                          </span>
-                          {defineProtocolo && (
-                            <button className="btn sec sm" onClick={() => setDefinindo({
-                              periodo: cod,
-                              enfermagem: pr?.enfermagem ?? true,
-                              educadorAutorizado: pr?.educadorAutorizado ?? false,
-                            })}>
-                              {pr?.definidoEm ? 'Alterar' : 'Definir'}
-                            </button>
-                          )}
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
+          <div className="eyebrow">Quem dá o remédio</div>
+          <div className="card stack">
+            <div className="notice c-info">
+              <b>A Enfermagem atende das 9h às 17h.</b> Fora desse horário, quem administra é o
+              educador de plantão, conforme a bula do acolhido. Quem dá é quem confirma — uma
+              dose por vez, com o nome de quem deu.
+            </div>
+            <p className="mutetxt">
+              A exceção é por <b>medicamento</b>, e não por turno nem por pessoa: se algum exigir
+              a Enfermagem, marque no esquema dele, na lista acima, com o motivo escrito. O
+              educador que tentar confirmar lê esse motivo.
+            </p>
 
-                {/*
-                  * O histórico fica À VISTA de quem alcança a casa, e não só
-                  * de quem decide: a educadora que vai — ou não vai — dar o
-                  * remédio tem o direito de ler quando a regra mudou e sob
-                  * qual decisão, sem perguntar à coordenação.
-                  */}
+            {/*
+              * O que valia ANTES continua legível — regra 6. Estas decisões
+              * foram tomadas quando ninguém sabia o horário da Enfermagem, e
+              * apagá-las esconderia por que a casa operava daquele jeito.
+              */}
+            {(decisoes.length > 0 || autorizacoes.length > 0) && (
+              <>
+                <div className="eyebrow" style={{ marginTop: 8 }}>O que valia antes de 08/09</div>
                 {decisoes.length > 0 && (
-                  <>
-                    <div className="eyebrow" style={{ marginTop: 8 }}>
-                      Como se chegou até aqui · {decisoes.length}
-                    </div>
-                    <ul className="lista">
-                      {decisoes.map((d) => (
-                        <li key={d.id}>
-                          <b className="ff">
-                            {PERIODOS.find((p) => p.cod === d.periodo)?.label ?? d.periodo}
-                          </b>
-                          <div className="mutetxt linhadois">
-                            {d.antes === null
-                              ? 'não havia definição (valia somente Enfermagem)'
-                              : `${quemAdministra(d.antes)}`}
-                            {' → '}
-                            <b>{quemAdministra(d.depois)}</b>
-                          </div>
-                          <div className="mutetxt">{d.motivo}</div>
-                          <div className="mutetxt">{d.por} · {quando(d.quando)}</div>
-                        </li>
-                      ))}
-                    </ul>
-                  </>
+                  <ul className="lista">
+                    {decisoes.map((d) => (
+                      <li key={d.id}>
+                        <b className="ff">
+                          {PERIODOS.find((p) => p.cod === d.periodo)?.label ?? d.periodo}
+                        </b>
+                        <div className="mutetxt linhadois">
+                          {d.antes === null
+                            ? 'não havia definição (valia somente Enfermagem)'
+                            : `${quemAdministra(d.antes)}`}
+                          {' → '}
+                          <b>{quemAdministra(d.depois)}</b>
+                        </div>
+                        <div className="mutetxt">{d.motivo}</div>
+                        <div className="mutetxt">{d.por} · {quando(d.quando)}</div>
+                      </li>
+                    ))}
+                  </ul>
                 )}
-
                 {autorizacoes.length > 0 && (
                   <>
-                    <div className="eyebrow" style={{ marginTop: 8 }}>
-                      Educadores autorizados nominalmente
+                    <div className="mutetxt" style={{ marginTop: 8 }}>
+                      Educadores que estavam autorizados nominalmente — a autorização deixou de
+                      ser necessária, e a lista fica porque o registro é de quem trabalhou.
                     </div>
                     <ul className="lista">
                       {autorizacoes.map((a) => (
@@ -733,41 +724,31 @@ export function Saude({ houseId, casaLabel, papel }: {
                             </div>
                             {a.nota && <div className="mutetxt">{a.nota}</div>}
                           </div>
-                          {/* Autorização vencida NÃO some da lista: quem lê
-                              precisa saber que existiu, e até quando. */}
-                          <span className={`pill ${a.vigente ? 'c-ok' : 'c-mute'}`}>
-                            {a.vigente ? 'Vigente' : 'Vencida'}
-                          </span>
                         </li>
                       ))}
                     </ul>
                   </>
                 )}
-
-                {defineProtocolo && (
-                  <button className="btn sec block" onClick={() => setAutorizando(true)}>
-                    Autorizar um educador
-                  </button>
-                )}
-              </div>
-            </>
-          )}
+              </>
+            )}
+          </div>
         </>
       )}
 
-      {aba === 'prescricoes' && enfermagem && (
+      {aba === 'prescricoes' && cadastraEsquema && (
         <>
           <div className="notice c-crit">
-            Uma prescrição nasce como <b>rascunho</b> e só entra na grade quando a Enfermagem
-            <b> assina</b>. Receita entregue numa consulta não altera a grade sozinha: alguém
-            confere e assume, com nome e horário.
+            Um esquema nasce como <b>rascunho</b> e só entra na grade quando alguém
+            <b> confere e ativa</b>. Receita entregue numa consulta não altera a grade sozinha:
+            alguém assume, com nome e horário. Cadastram a Enfermagem, a coordenação e a
+            equipe técnica — quem estiver na casa quando a receita chegar.
           </div>
           {rascunho && (
             <div className="card raise stack">
               <b className="ff">Rascunho: {rascunho.medicamento}</b>
               <div className="mutetxt">
-                Ainda NÃO está na grade. Confira o que você cadastrou e assine — a
-                assinatura é o que faz a casa começar a dar o medicamento.
+                Ainda NÃO está na grade. Confira o que você cadastrou e ative — é isso que
+                faz a casa começar a dar o medicamento, e o seu nome fica ao lado de cada dose.
               </div>
               <div className="row">
                 <button className="btn grow" onClick={async () => {
@@ -888,25 +869,15 @@ export function Saude({ houseId, casaLabel, papel }: {
           }} />
       )}
 
-      {definindo && (
-        <FolhaProtocolo
-          inicial={definindo}
-          onFechar={() => setDefinindo(null)}
-          onDefinir={async (dados) => {
-            const ok = await acao(() => api('/medications/protocol', {
-              method: 'POST', body: JSON.stringify({ houseId, ...dados }) }));
-            if (ok) setDefinindo(null);
-          }} />
-      )}
-
-      {autorizando && (
-        <FolhaAutorizar
-          houseId={houseId}
-          onFechar={() => setAutorizando(false)}
-          onAutorizar={async (dados) => {
-            const ok = await acao(() => api('/medications/authorize-educator', {
-              method: 'POST', body: JSON.stringify({ houseId, ...dados }) }));
-            if (ok) setAutorizando(false);
+      {excecao && (
+        <FolhaSoEnfermagem
+          esquema={excecao}
+          onFechar={() => setExcecao(null)}
+          onMarcar={async (soEnfermagem, motivo) => {
+            const ok = await acao(() => api(
+              `/medications/prescriptions/${excecao.id}/nurse-only`,
+              { method: 'POST', body: JSON.stringify({ soEnfermagem, motivo }) }));
+            if (ok) setExcecao(null);
           }} />
       )}
 
@@ -1643,143 +1614,89 @@ function FolhaSuspender({ esquema, onFechar, onSuspender }: {
  *    poder — e o servidor recusa a confirmação da dose por baixo.
  */
 /**
- * A FOLHA DO PROTOCOLO (§11.3, pendência institucional 33.4.1).
+ * A FOLHA DA EXCEÇÃO — o medicamento que só a Enfermagem dá (0930).
  *
- * Ela é a regra que fica POR CIMA da autorização nominal: autorizar a Fulana
- * não faz a Fulana poder, se o protocolo do turno dela não permite educador.
- * Por isso o motivo é obrigatório aqui e a nota da autorização é só uma nota —
- * esta decisão é da INSTITUIÇÃO, e quem for revê-la daqui a seis meses precisa
- * ler sob qual capacitação, reunião ou documento ela foi tomada.
+ * Substituiu a folha do protocolo por período e a da autorização nominal, que
+ * decidiam quem podia dar remédio em cada turno. Elas existiam porque a
+ * instituição não tinha respondido a pendência 33.4.1; a resposta veio em
+ * 08/09/2026 e diz que a Enfermagem atende das 9h às 17h e o educador de
+ * plantão dá o resto. Manter aquelas telas seria pedir à coordenação uma
+ * decisão que já foi tomada — e, pior, deixá-la ESQUECER de tomá-la, com a
+ * dose da noite sendo recusada por isso.
  *
- * O que a folha se recusa a deixar passar: um período sem ninguém. Sem
- * Enfermagem e sem educador autorizado, a dose vence todo dia sem que exista
- * quem a confirme, e o escalonamento noturno vira rotina — que é como um
- * alerta deixa de ser lido.
+ * O que sobrou é real e é raro: injetável, controlado, de manejo difícil. O
+ * motivo é obrigatório porque quem o lê é a educadora barrada às 22h, e "não
+ * autorizado" sem explicação é a frase que faz alguém dar o remédio por fora
+ * do sistema.
  */
-function FolhaProtocolo({ inicial, onFechar, onDefinir }: {
-  inicial: { periodo: string; enfermagem: boolean; educadorAutorizado: boolean };
+function FolhaSoEnfermagem({ esquema, onFechar, onMarcar }: {
+  esquema: Esquema;
   onFechar: () => void;
-  onDefinir: (d: { periodo: string; enfermagem: boolean;
-                   educadorAutorizado: boolean; motivo: string }) => void;
+  onMarcar: (soEnfermagem: boolean, motivo: string) => void;
 }) {
-  const [enfermagem, setEnfermagem] = useState(inicial.enfermagem);
-  const [educador, setEducador] = useState(inicial.educadorAutorizado);
+  const marcando = !esquema.soEnfermagem;
   const [motivo, setMotivo] = useState('');
-  const label = PERIODOS.find((p) => p.cod === inicial.periodo)?.label ?? inicial.periodo;
-  const ninguem = !enfermagem && !educador;
-  const pode = !ninguem && motivo.trim().length >= 15;
-
-  return (
-    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-prot"
-         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
-      <div className="sheet modal">
-        <h3 id="t-prot">Quem pode dar remédio · {label}</h3>
-        <div className="notice c-crit">
-          Esta é a regra da casa, e ela vale <b>por cima</b> das autorizações individuais.
-          Enquanto não houver definição, vale o padrão mais protetivo: somente Enfermagem.
-        </div>
-
-        <label className="row" style={{ marginTop: 12 }}>
-          <input type="checkbox" checked={enfermagem}
-                 onChange={(e) => setEnfermagem(e.target.checked)} />
-          <span className="grow"><b className="ff">Enfermagem</b></span>
-        </label>
-
-        <label className="row">
-          <input type="checkbox" checked={educador}
-                 onChange={(e) => setEducador(e.target.checked)} />
-          <span className="grow">
-            <b className="ff">Educador nominalmente autorizado</b>
-            <div className="mutetxt">
-              Só quem estiver autorizado pelo nome, nesta casa — marcar aqui não autoriza
-              ninguém sozinho.
-            </div>
-          </span>
-        </label>
-
-        {ninguem && (
-          <div className="notice c-warn" role="status">
-            Assim ninguém poderia administrar neste turno, e a dose venceria todos os dias
-            sem que existisse quem a confirmasse. O servidor recusa.
-          </div>
-        )}
-
-        <label className="f" htmlFor="prot-mot">
-          Sob qual decisão da instituição <small>— pelo menos 15 caracteres</small>
-        </label>
-        <textarea id="prot-mot" value={motivo} onChange={(e) => setMotivo(e.target.value)}
-                  placeholder="Ex.: reunião da coordenação com a Enfermagem em 28/08; educadores capacitados na administração de via oral podem administrar no turno noturno, com autorização nominal." />
-
-        <div className="row rodape">
-          <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
-          <button className="btn grow" disabled={!pode} onClick={() => onDefinir({
-            periodo: inicial.periodo, enfermagem, educadorAutorizado: educador,
-            motivo: motivo.trim(),
-          })}>
-            Definir, com este motivo
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function FolhaAutorizar({ houseId, onFechar, onAutorizar }: {
-  houseId: string; onFechar: () => void;
-  onAutorizar: (d: { userId: string; nota?: string; validoAte?: string }) => void;
-}) {
-  const [equipe, setEquipe] = useState<{ id: string; nome: string; cargo: string }[]>([]);
-  const [quem, setQuem] = useState('');
-  const [ate, setAte] = useState('');
-  const [nota, setNota] = useState('');
-
+  const pode = motivo.trim().length >= 15;
+  /* O que já foi decidido sobre ESTE medicamento. Quem vai marcar precisa
+     saber se alguém já marcou e desmarcou antes, e por quê — senão a decisão
+     fica indo e voltando sem que ninguém veja a conversa. */
+  const [historico, setHistorico] = useState<
+    { id: string; antes: boolean; depois: boolean; motivo: string;
+      por: string; quando: string }[]>([]);
   useEffect(() => {
-    api<any>(`/activities/agenda/staff?houseId=${houseId}`)
-      .then((r) => setEquipe(r?.equipe ?? r ?? []))
-      .catch(() => setEquipe([]));
-  }, [houseId]);
-
-  const pode = quem !== '' && nota.trim().length >= 10;
-
+    api<typeof historico>(`/medications/prescriptions/${esquema.id}/nurse-only-history`)
+      .then(setHistorico).catch(() => setHistorico([]));
+  }, [esquema.id]);
   return (
-    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-aut"
-         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
-      <div className="sheet modal">
-        <h3 id="t-aut">Autorizar um educador</h3>
-        <div className="notice c-crit">
-          A autorização é <b>desta pessoa, nesta casa</b> — não do cargo. Ela <b>não substitui o
-          protocolo</b>: se o protocolo da casa não permite educador naquele período, a
-          autorização sozinha não faz a pessoa poder, e o servidor recusa a confirmação da dose.
+    <div className="folha" role="dialog" aria-modal="true" aria-labelledby="t-exc">
+      <div className="folha-corpo stack">
+        <h3 id="t-exc">
+          {marcando ? 'Só a Enfermagem dá este medicamento' : 'Voltar a permitir o educador'}
+        </h3>
+        <p className="mutetxt">
+          <b className="ff">{esquema.medicamento} {esquema.dose}</b> · {esquema.via}
+          <br />{esquema.acolhido.nome}
+        </p>
+        <div className={`notice ${marcando ? 'c-warn' : 'c-info'}`}>
+          {marcando
+            ? 'Marcado assim, o educador de plantão NÃO poderá confirmar esta dose — nem à noite, '
+              + 'quando a Enfermagem já foi embora. Use só quando o medicamento realmente exigir: '
+              + 'injetável, controlado, de manejo difícil.'
+            : 'O educador de plantão volta a poder dar este medicamento. O que valia antes '
+              + 'continua registrado, com o seu nome.'}
         </div>
-
-        <label className="f" htmlFor="aut-quem">Quem</label>
-        <select id="aut-quem" value={quem} onChange={(e) => setQuem(e.target.value)}>
-          <option value="">Escolha…</option>
-          {equipe.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
-        </select>
-
-        <label className="f" htmlFor="aut-ate">
-          Vale até <small>— em branco, sem prazo</small>
+        <label className="f" htmlFor="exc-motivo">
+          Por quê <small>— quem lê esta frase é quem for barrado às 22h</small>
         </label>
-        <input id="aut-ate" type="date" value={ate} onChange={(e) => setAte(e.target.value)} />
-        {!ate && (
-          <p className="mutetxt">
-            Sem prazo, ninguém revisa. Um prazo é o que faz a coordenação olhar de novo.
-          </p>
+        <textarea id="exc-motivo" value={motivo} onChange={(e) => setMotivo(e.target.value)}
+                  placeholder={marcando
+                    ? 'Ex.: injetável, aplicação subcutânea conforme orientação da consulta de 04/09.'
+                    : 'Ex.: passou a ser via oral na receita de 08/09; não exige mais aplicação.'} />
+        {!pode && motivo.length > 0 && (
+          <div className="mutetxt">Escreva um pouco mais — o motivo precisa explicar a decisão.</div>
         )}
-
-        <label className="f" htmlFor="aut-nota">
-          Sob qual protocolo, e por quê <small>— fica registrado com o seu nome</small>
-        </label>
-        <textarea id="aut-nota" value={nota} onChange={(e) => setNota(e.target.value)}
-                  placeholder="Ex.: capacitação da Enfermagem em 20/08; autorizada para o turno noturno, conforme protocolo da casa." />
+        {historico.length > 0 && (
+          <>
+            <div className="eyebrow">O que já se decidiu sobre este medicamento</div>
+            <ul className="lista">
+              {historico.map((h) => (
+                <li key={h.id}>
+                  <b className="ff">
+                    {h.depois ? 'passou a exigir a Enfermagem' : 'voltou a permitir o educador'}
+                  </b>
+                  <div className="mutetxt">{h.motivo}</div>
+                  <div className="mutetxt">{h.por} · {quando(h.quando)}</div>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
 
         <div className="row rodape">
           <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
-          <button className="btn grow" disabled={!pode} onClick={() => onAutorizar({
-            userId: quem, nota: nota.trim(), validoAte: ate || undefined,
-          })}>
-            Autorizar
+          <button className="btn grow" disabled={!pode}
+                  onClick={() => onMarcar(marcando, motivo.trim())}>
+            {marcando ? 'Marcar' : 'Desmarcar'}
           </button>
         </div>
       </div>

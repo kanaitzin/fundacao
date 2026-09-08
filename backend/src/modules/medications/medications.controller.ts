@@ -130,26 +130,34 @@ export class MedicationsController {
     return this.meds.flagLow(user, id, body?.baixo ?? true);
   }
 
-  // ---- Protocolo: pendência institucional 33.4.1 como configuração ----
+  /**
+   * O protocolo por período e a autorização nominal deixaram de DECIDIR em
+   * 08/09/2026 (migração 0930): a Fundação respondeu quem dá o remédio, e a
+   * resposta é "a Enfermagem das 9h às 17h, o educador de plantão fora disso".
+   * As duas rotas de ESCRITA saíram; as de leitura ficam, porque o que a casa
+   * decidiu em agosto continua sendo história dela (regra 6).
+   */
   @Get('protocol')
   protocol(@CurrentUser() user: AuthenticatedUser, @Query('houseId', ParseUUIDPipe) houseId: string) {
     return this.meds.getProtocol(user, houseId);
   }
 
-  @Post('protocol')
-  setProtocol(@CurrentUser() user: AuthenticatedUser, @Body() body: any) {
-    return this.meds.setProtocol(user, body);
-  }
-
-  /** Cada decisão sobre quem pode administrar, com o que valia antes (0860). */
   @Get('protocol-history')
   protocolHistory(@CurrentUser() user: AuthenticatedUser,
                   @Query('houseId', ParseUUIDPipe) houseId: string) {
     return this.meds.protocolHistory(user, houseId);
   }
 
-  @Post('authorize-educator')
-  authorize(@CurrentUser() user: AuthenticatedUser, @Body() body: any) {
-    return this.meds.authorizeEducator(user, body);
+  /** A exceção que passou a existir: o medicamento que só a Enfermagem dá. */
+  @Post('prescriptions/:id/nurse-only')
+  nurseOnly(@CurrentUser() user: AuthenticatedUser,
+            @Param('id', ParseUUIDPipe) id: string, @Body() body: any) {
+    return this.meds.setNurseOnly(user, id, body);
+  }
+
+  @Get('prescriptions/:id/nurse-only-history')
+  nurseOnlyHistory(@CurrentUser() user: AuthenticatedUser,
+                   @Param('id', ParseUUIDPipe) id: string) {
+    return this.meds.nurseOnlyHistory(user, id);
   }
 }

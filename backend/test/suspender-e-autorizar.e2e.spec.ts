@@ -1,5 +1,5 @@
 /**
- * SUSPENDER O ESQUEMA, E AUTORIZAR QUEM PODE DAR (§11.1 e §11.3).
+ * SUSPENDER O ESQUEMA, E O QUE A CASA DECIDIU ANTES (§11.1 e §11.3).
  *
  * Dois buracos que se encontravam na mesma frase da casa: "o médico suspendeu,
  * mas o sistema continua cobrando a dose".
@@ -14,10 +14,11 @@
  *  * e não havia rota que LISTASSE prescrições: um rascunho salvo e não
  *    assinado ficava gravado e invisível, e não havia de onde suspender.
  *
- * Do lado de quem pode dar remédio, três coisas que a autorização nominal não
- * é: não é o cargo (é a PESSOA), não substitui o protocolo da casa (as duas
- * condições valem juntas), e não vale para casa nenhuma além da sua — que era
- * um defeito de verdade, encontrado ao escrever este teste e corrigido na 0820.
+ * A segunda metade desta suíte — a autorização nominal e o protocolo por
+ * período — saiu em 08/09/2026: a Fundação respondeu a pendência 33.4.1 e o
+ * educador de plantão passou a poder dar o remédio por padrão (migração 0930).
+ * A regra nova tem suíte própria, `quem-da-o-remedio.e2e.spec.ts`. Ficou aqui
+ * a leitura do que a casa decidiu ANTES, que não foi apagada.
  */
 import { Test } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
@@ -29,7 +30,7 @@ const SENHA = 'senha-dev-123';
 const adminUrl = process.env.DATABASE_URL
   ?? 'postgres://rede_admin:dev-only-change-me@127.0.0.1:5432/rede_acolher';
 
-describe('Suspender o esquema e autorizar quem pode dar', () => {
+describe('Suspender o esquema, e o que a casa decidiu antes', () => {
   let app: INestApplication, http: any, admin: Client;
   const tokens: Record<string, string> = {};
   const ids: Record<string, string> = {};
@@ -232,100 +233,30 @@ describe('Suspender o esquema e autorizar quem pode dar', () => {
   });
 
   // ==================== Quem pode dar remédio ====================
+  //
+  // Os quatro testes que ficavam aqui guardavam a regra do protocolo por
+  // período e da autorização nominal — a hipótese que valia enquanto a
+  // pendência 33.4.1 estava em aberto. Ela foi respondida em 08/09/2026, e a
+  // regra que a substituiu tem suíte própria: `quem-da-o-remedio.e2e.spec.ts`.
+  //
+  // Fica aqui só o que continua sendo desta suíte: a leitura do que a casa
+  // decidiu ANTES, que não foi apagada (regra 6).
 
-  it('autorização nominal NÃO substitui o protocolo da casa: as duas valem juntas',
-     async () => {
-    const antes = await request(http)
+  it('o que a casa decidiu antes continua legível, e não decide mais nada', async () => {
+    const historico = await request(http)
+      .get(`/api/v1/medications/protocol-history?houseId=${ids.AI4}`).set(auth(tokens.coord));
+    expect(historico.status).toBe(200);
+    expect(Array.isArray(historico.body)).toBe(true);
+
+    const vigente = await request(http)
+      .get(`/api/v1/medications/protocol?houseId=${ids.AI4}`).set(auth(tokens.coord));
+    expect(vigente.body.historico).toBe(true);
+
+    // E o educador continua podendo dar o remédio da noite, que é o ponto
+    // inteiro da mudança: antes, esta mesma casa o recusaria.
+    const pode = await request(http)
       .get(`/api/v1/medications/can-administer?houseId=${ids.AI4}&periodo=noturno`)
       .set(auth(tokens.educador));
-    expect(antes.body.pode).toBe(false);
-    expect(antes.body.motivo).toMatch(/protocolo desta casa não autoriza/i);
-
-    // Só a coordenação autoriza nominalmente.
-    const negado = await request(http).post('/api/v1/medications/authorize-educator')
-      .set(auth(tokens.educador))
-      .send({ userId: ids.educadorId, houseId: ids.AI4 });
-    expect(negado.status).toBe(403);
-
-    const autorizou = await request(http).post('/api/v1/medications/authorize-educator')
-      .set(auth(tokens.coord))
-      .send({ userId: ids.educadorId, houseId: ids.AI4, validoAte: '2099-12-31',
-              nota: 'Capacitação da Enfermagem registrada; turno noturno.' });
-    expect(autorizou.status).toBe(201);
-
-    // Autorizada nominalmente e AINDA ASSIM recusada: o protocolo da casa não
-    // abriu o período. É a regra §11.3 inteira, não a metade dela.
-    const soNominal = await request(http)
-      .get(`/api/v1/medications/can-administer?houseId=${ids.AI4}&periodo=noturno`)
-      .set(auth(tokens.educador));
-    expect(soNominal.body.pode).toBe(false);
-    expect(soNominal.body.motivo).toMatch(/protocolo desta casa não autoriza/i);
-
-    await request(http).post('/api/v1/medications/protocol').set(auth(tokens.coord))
-      .send({ houseId: ids.AI4, periodo: 'noturno', enfermagem: true, educadorAutorizado: true,
-              nota: 'Definido em reunião da casa; vale para quem estiver nominalmente autorizado.' })
-      .expect(201);
-
-    const agora = await request(http)
-      .get(`/api/v1/medications/can-administer?houseId=${ids.AI4}&periodo=noturno`)
-      .set(auth(tokens.educador));
-    expect(agora.body.pode).toBe(true);
-  });
-
-  it('a autorização é da PESSOA e vale a partir de HOJE — não do dia do banco', async () => {
-    /*
-     * `valid_from` nascia com `DEFAULT current_date`, que é o dia do banco em
-     * UTC. Depois das 21h de Porto Alegre, a autorização escrita hoje nascia
-     * datada de amanhã e `app_can_administer` recusava a dose a noite inteira,
-     * com a autorização visível na tela. Regra 9, no lugar mais caro.
-     */
-    const { rows: [a] } = await admin.query(
-      `SELECT valid_from::text AS de FROM medication_authorization
-        WHERE user_id=$1 AND house_id=$2`, [ids.educadorId, ids.AI4]);
-    expect(a.de).toBe(HOJE);
-
-    const lista = await request(http)
-      .get(`/api/v1/medications/authorizations?houseId=${ids.AI4}`).set(auth(tokens.coord));
-    expect(lista.status).toBe(200);
-    const minha = lista.body.find((x: any) => x.userId === ids.educadorId);
-    expect(minha.vigente).toBe(true);
-    expect(minha.quem).toBeTruthy();
-    expect(minha.autorizadoPor).toBeTruthy();
-    expect(minha.nota).toMatch(/Capacitação/);
-  });
-
-  it('a autorização vencida NÃO some da lista — some do alcance, não do papel', async () => {
-    await admin.query(
-      `INSERT INTO medication_authorization (user_id, house_id, valid_from, valid_to, note)
-       VALUES ($1,$2, app_hoje() - 90, app_hoje() - 30, 'Autorização do ano passado.')`,
-      [ids.educadorId, ids.AI4]);
-
-    const lista = await request(http)
-      .get(`/api/v1/medications/authorizations?houseId=${ids.AI4}`).set(auth(tokens.coord));
-    const vencida = lista.body.find((x: any) => x.nota === 'Autorização do ano passado.');
-    expect(vencida).toBeTruthy();
-    expect(vencida.vigente).toBe(false);
-  });
-
-  it('a coordenação de outra casa não escreve o protocolo nem autoriza aqui (0820)',
-     async () => {
-    const protocolo = await request(http).post('/api/v1/medications/protocol')
-      .set(auth(tokens.coordDeOutraCasa))
-      .send({ houseId: ids.AI4, periodo: 'diurno', enfermagem: true, educadorAutorizado: true,
-              nota: 'Escrito por quem não é desta casa.' });
-    // E recusa com uma FRASE, não com "new row violates row-level security".
-    expect(protocolo.status).toBe(403);
-    expect(protocolo.body.message).toMatch(/coordenação DESTA casa/i);
-
-    const autorizacao = await request(http).post('/api/v1/medications/authorize-educator')
-      .set(auth(tokens.coordDeOutraCasa))
-      .send({ userId: ids.educadorId, houseId: ids.AI4, nota: 'De fora.' });
-    expect(autorizacao.status).toBe(403);
-    expect(autorizacao.body.message).toMatch(/DESTA casa/i);
-
-    const { rows } = await admin.query(
-      `SELECT count(*)::int AS n FROM medication_authorization
-        WHERE house_id=$1 AND note='De fora.'`, [ids.AI4]);
-    expect(rows[0].n).toBe(0);
+    expect(pode.body.pode).toBe(true);
   });
 });

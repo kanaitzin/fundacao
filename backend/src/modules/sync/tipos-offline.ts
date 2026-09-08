@@ -11,30 +11,38 @@
  * Quem escreve um handler novo acrescenta a linha aqui. O teste estático
  * `fila-offline.spec.ts` recusa handler sem linha e linha sem handler.
  *
- * `exigeAparelhoInstitucional` não é preferência de segurança: é o §11.7.
- * Offline, só o aparelho registrado da casa confirma medicamento, e quem
- * decide é o servidor contra o cadastro (a fase 43 tirou essa afirmação do
- * cliente). O aparelho usa a marca para RECUSAR NA HORA, com a frase certa,
- * em vez de guardar até a reconexão uma confirmação de dose que vai voltar
- * rejeitada — e que, até voltar, a educadora acredita ter registrado.
+ * `foraDaFilaOffline` marca o que NÃO se guarda sem sinal, e hoje é só a
+ * confirmação de dose.
+ *
+ * Até 08/09/2026 a marca se chamava `exigeAparelhoInstitucional` e valia o
+ * §11.7: offline, só o aparelho registrado da casa confirmava medicamento — a
+ * trava contra a mesma dose confirmada em dois aparelhos que não se enxergam.
+ * A Fundação decidiu que o sistema roda no celular de cada pessoa, com o
+ * e-mail institucional, e com isso não existe mais "o aparelho da casa" para
+ * ser essa trava. Deixar cada celular guardar confirmação de dose devolveria
+ * exatamente a duplicidade que a regra evitava, com o agravante de a pessoa só
+ * descobrir horas depois.
+ *
+ * A recusa continua sendo NA HORA, com a frase certa — nunca guardar para
+ * devolver rejeitada mais tarde, quando quem deu o remédio já foi para casa.
  */
 export interface TipoOffline {
   /** O `kind` que viaja em `POST /sync/push`. */
   kind: string;
   /** O que a pessoa acabou de fazer, na voz dela. Vai para a tela da fila. */
   rotulo: string;
-  /** §11.7 — offline, só o aparelho institucional da casa. */
-  exigeAparelhoInstitucional: boolean;
+  /** Não se guarda sem sinal: a recusa vem na hora, com a frase (0930). */
+  foraDaFilaOffline: boolean;
 }
 
 export const TIPOS_OFFLINE: readonly TipoOffline[] = [
-  { kind: 'activity.record',      rotulo: 'Registro de atividade',        exigeAparelhoInstitucional: false },
-  { kind: 'activity.acknowledge', rotulo: 'Ciência de atividade',         exigeAparelhoInstitucional: false },
-  { kind: 'check.mark',           rotulo: 'Marcação de chamada',          exigeAparelhoInstitucional: false },
-  { kind: 'handover.sign',        rotulo: 'Assinatura da passagem',       exigeAparelhoInstitucional: false },
-  { kind: 'handover.receipt',     rotulo: 'Recebimento da passagem',      exigeAparelhoInstitucional: false },
-  { kind: 'health.evolution',     rotulo: 'Evolução de saúde',            exigeAparelhoInstitucional: false },
-  { kind: 'medication.confirm',   rotulo: 'Confirmação de dose',          exigeAparelhoInstitucional: true  },
+  { kind: 'activity.record',      rotulo: 'Registro de atividade',        foraDaFilaOffline: false },
+  { kind: 'activity.acknowledge', rotulo: 'Ciência de atividade',         foraDaFilaOffline: false },
+  { kind: 'check.mark',           rotulo: 'Marcação de chamada',          foraDaFilaOffline: false },
+  { kind: 'handover.sign',        rotulo: 'Assinatura da passagem',       foraDaFilaOffline: false },
+  { kind: 'handover.receipt',     rotulo: 'Recebimento da passagem',      foraDaFilaOffline: false },
+  { kind: 'health.evolution',     rotulo: 'Evolução de saúde',            foraDaFilaOffline: false },
+  { kind: 'medication.confirm',   rotulo: 'Confirmação de dose',          foraDaFilaOffline: true  },
 ] as const;
 
 export const TIPOS_OFFLINE_KINDS: readonly string[] = TIPOS_OFFLINE.map((t) => t.kind);

@@ -5,13 +5,13 @@ nunca regra invisível. Nenhuma foi "inventada".
 
 | # | Pendência | Tratamento atual |
 |---|---|---|
-| 1 | Quem administra medicamentos em cada período | Protocolo será configurável por casa/período (Fase 4). Modelo já separa "quem confirma = quem administrou". **Bloqueia parte da Fase 4** — perguntar antes do piloto. |
-| 2 | Horários da Enfermagem, cobertura noturna, prazo de triagem | Campos de escala prontos (`work_schedule`); prazo de triagem será parâmetro (Fase 4). |
+| 1 | Quem administra medicamentos em cada período | ✅ **RESPONDIDA em 08/09/2026.** A Enfermagem atende das 9h às 17h; fora disso administra o educador de plantão, conforme a bula do acolhido. O protocolo por período e a autorização nominal saíram de cena (viraram leitura do que valia antes), e no lugar deles ficou a **exceção por medicamento** — "este só a Enfermagem dá" —, com motivo escrito e histórico. Migração 0930 |
+| 2 | Horários da Enfermagem, cobertura noturna, prazo de triagem | **Metade respondida em 08/09/2026:** a Enfermagem atende das **9h às 17h**, e a cobertura noturna é do educador de plantão. Falta o prazo de triagem, que será parâmetro |
 | 3 | Acesso da equipe técnica fora da escala | Sem efeito no sistema hoje: a janela T-10/T+10 não está implementada e depende da escala 12x36 vigente. Quando existir, a técnica começa em modo observado. |
 | 4 | Horário oficial do Líder Noturno Geral | `NIGHT_SHIFT_END_HOUR` no `.env` (7h como hipótese). A hora de INÍCIO não é lida por ninguém: quem abre a ATA Geral é uma pessoa, não um relógio. |
 | 5 | Relatórios obrigatórios no piloto | Backlog da Fase 6 marca todos como candidatos; seleção com Marcelo. |
 | 6 | Permissões de fotos em memórias | Modelo `MemoryRecord`+`PhotoAuthorization` planejado; upload desabilitado por flag até confirmação. |
-| 7 | Aparelhos institucionais disponíveis (offline) | ✅ **Resolvido no sistema.** A coordenação registra o aparelho da casa e recebe um código mostrado uma vez; o banco guarda só o hash e o **servidor** decide contra o registro (§11.7). Falta a Fundação dizer quais aparelhos existem em cada casa — agora é cadastro, não suposição. |
+| 7 | Aparelhos institucionais disponíveis (offline) | ✅ **A pergunta deixou de existir em 08/09/2026.** O sistema roda no celular de cada pessoa, com o e-mail institucional: não há mais aparelho único da casa para ser a trava da confirmação offline. **Dose não se confirma sem sinal, em aparelho nenhum** — recusa na hora, com a frase; o resto do turno continua offline. O cadastro de aparelhos permanece como cadastro (migração 0930) |
 | 8 | Códigos oficiais das unidades | Seed usa AI1–AI4/ARM1–ARM4 como preliminares; troca é um UPDATE de `house.code` sem impacto estrutural (IDs internos são UUID). |
 | 9 | Campos finais de cadastro/PIA/passagens/protocolos | Aguardando documentos do Marcelo (§33.3); formulários da Fase 2/5 serão versionáveis. |
 | 10 | Critérios de aceite do piloto e autoridade | A registrar na Fase 7; homologação controlada prevista no plano. |

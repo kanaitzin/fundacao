@@ -151,6 +151,15 @@ const TAREFAS = [
     procurar: [/Recusar com motivo/i, /Aceitar/],
   },
   {
+    cargo: 'coordenador', secao: '5.6',
+    /* A tarefa que substituiu "defina quem pode dar remédio no turno": desde a
+     * migração 0930 o educador de plantão pode por padrão, e o que se marca é
+     * a EXCEÇÃO, no medicamento. */
+    nome: 'Só a Enfermagem dá este medicamento — a exceção no esquema',
+    caminho: [{ mais: 'Saúde' }, { clicar: /^Esquemas$/ }],
+    procurar: [/Só a Enfermagem pode dar/i, /Voltar a permitir o educador/i],
+  },
+  {
     cargo: 'coordenador', secao: '5.7',
     nome: 'O limite da casa, no Painel das unidades',
     caminho: [{ mais: 'Painel das unidades' }],

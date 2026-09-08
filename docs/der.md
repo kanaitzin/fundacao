@@ -411,9 +411,25 @@ ninguém confirmou? Continua `aguardando_confirmacao`, e o sistema ESCALONA. A
 diferença entre "não temos registro" e "não foi dado" é a diferença entre
 apurar e acusar.
 
-**`medication_protocol` existe porque a instituição ainda não decidiu** quem
-administra em cada período (pendência 33.4.1). Em vez de inventar uma regra
-invisível, a decisão virou configuração por casa, com data e autor.
+**`medication_protocol` existia porque a instituição ainda não tinha decidido**
+quem administra em cada período (pendência 33.4.1). Em vez de inventar uma
+regra invisível, a decisão virou configuração por casa, com data e autor.
+
+**A pendência foi respondida em 08/09/2026** (migração 0930): a Enfermagem
+atende das 9h às 17h, e fora desse horário quem administra é o educador de
+plantão, conforme a bula do acolhido. As duas tabelas do protocolo — e a da
+autorização nominal — **deixaram de decidir, não de existir**: elas guardam o
+que a casa decidiu enquanto ninguém sabia o horário da Enfermagem, e apagá-las
+esconderia por que a casa operava daquele jeito (regra 6).
+
+**`prescription_restriction_change` é o que ficou no lugar delas.** A regra
+passou a ser aberta por padrão e a EXCEÇÃO é por medicamento — "este aqui só a
+Enfermagem dá" —, marcada no próprio esquema (`prescription.nurse_only`), com
+motivo obrigatório e o antes-e-depois nesta tabela, que não aceita UPDATE nem
+DELETE. A exceção é por medicamento, e não por turno ou por pessoa, porque
+injetável continua sendo injetável às 22h — e porque a autorização nominal
+fazia a proteção depender de a coordenação lembrar de cadastrar cada educador
+novo, com a dose da noite recusada quando ela esquecia.
 
 **`medication_protocol_change` guarda cada decisão dessas** (migração 0860). A
 rota que escreve o protocolo também nunca teve tela: a Saúde desenhava a tarja
@@ -448,6 +464,7 @@ erDiagram
     timestamptz signed_at "assinatura individual; ninguém assina por outro"
     timestamptz happened_at "hora real do turno"
     bool late "complemento depois do fechamento aparece marcado"
+    text medication_note "o que houve com as doses sem resposta — não confirma nenhuma"
   }
   ATA {
     text status "aberta | fechada"
@@ -469,6 +486,15 @@ erDiagram
 **Relatos que se contradizem continuam os dois.** `statement` não tem
 atualização: quem quiser corrigir escreve outro, apontando para o primeiro em
 `supplements_id`. Num caso de proteção, a versão de cada um é o dado.
+
+**`handover.medication_note` (migração 0940)** é a resposta ao pedido do
+Marcelo — "no fim da passagem alguém tem que dizer que deu o remédio" — na
+única forma que não fere o §11.2. A passagem LÊ as doses do turno
+(`app_doses_do_turno`) e exige a frase quando alguma ficou sem resposta; ela
+não confirma dose nenhuma, porque a confirmação é individual, de quem
+administrou. A cobrança é de quem assina PRIMEIRO: quatro pessoas no mesmo
+turno responderiam quatro vezes sobre as mesmas doses, e a quarta escreveria
+qualquer coisa para conseguir ir embora.
 
 ## Fase 5 — ocorrências e proteção
 
@@ -550,7 +576,7 @@ desenvolvimento** (fase 15): a criança não é só o que deu problema. Sala de
 recursos, curso, aprendizagem e a evolução escrita pela equipe entram no
 documento que segue para a audiência e para a escola.
 
-## Inventário — 95 tabelas por partição
+## Inventário — 96 tabelas por partição
 
 | Partição | Tabelas |
 |---|---|
@@ -558,7 +584,7 @@ documento que segue para a audiência e para a escola.
 | people (18) | person, care_episode, house_stay, profile_detail, health_condition, food_restriction, document, document_version, benefit_record, memory_record, transfer_request, transfer_message, admission_record, judicial_record, person_credential, person_correction, profile_detail_change, person_contact |
 | shifts (10) | shift, handover, handover_receipt, handover_note, ata, ata_addendum, ata_episode, ata_episode_ack, general_night_ata, general_night_house_entry |
 | incidents (7) | incident, incident_person, incident_protected, incident_restraint, incident_synthesis, external_communication, incident_attachment |
-| medications (8) | prescription, medication_schedule, medication_administration, medication_stock, medication_stock_movement, medication_protocol, medication_authorization, medication_protocol_change |
+| medications (9) | prescription, medication_schedule, medication_administration, medication_stock, medication_stock_movement, medication_protocol, medication_authorization, medication_protocol_change, prescription_restriction_change |
 | activities (6) | activity, activity_assignment, activity_acknowledgement, activity_execution, substitution_request, commitment |
 | nursing (10) | health_encounter, health_evolution, nursing_triage, health_summary_issue, education_support, education_evolution, hospitalization, hospitalization_note, hospitalization_medication, hospitalization_companion |
 | reports (6) | followup, followup_source, report_document, report_delivery, export_log, life_milestone |

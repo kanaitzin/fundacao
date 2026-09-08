@@ -89,10 +89,9 @@ sistema de verdade** — está ali como o "Ver como" está.
 Duas coisas ficaram de fora de propósito, e vale saber antes que alguém
 pergunte:
 
-- **confirmar remédio sem sinal continua não funcionando** em aparelho comum.
-  A regra é a de sempre: offline, só o aparelho da casa confirma medicamento.
-  O sistema recusa na hora e explica, em vez de guardar e devolver rejeitado
-  horas depois. A pergunta que sobra disso está no §8;
+- **confirmar remédio sem sinal não funciona** — e desde 08/09 isso vale para
+  qualquer aparelho, inclusive o da casa (ver §0.5). O sistema recusa na hora e
+  explica, em vez de guardar e devolver rejeitado horas depois;
 - o resto do turno — chamada, atividade, exceção, passagem — funciona.
 
 ---
@@ -142,6 +141,41 @@ uma criança e gerar relatório em Word.
 
 **A senha do cofre, no protótipo, é `senha-dev-123`** — e agora está escrita na
 própria tela. Antes não estava, e era impossível adivinhar.
+
+---
+
+## §0.5 — O que mudou em 08/09 (a medicação, e é a maior mudança de regra)
+
+O Marcelo respondeu a pergunta que estava aberta desde agosto — **quem dá o
+remédio** — e a resposta virou código no mesmo dia.
+
+**O educador de plantão dá o remédio, e o sistema deixa.** Até aqui valia o
+padrão mais protetivo que dava para escrever sem saber: só a Enfermagem, e
+educador apenas se a coordenação tivesse escrito um protocolo E autorizado
+aquela pessoa pelo nome. Sabendo que **a Enfermagem atende das 9h às 17h**,
+essa regra recusaria toda dose noturna mandando acionar quem já foi embora.
+
+**A tela "Quem pode dar remédio" saiu**, e no lugar dela ficou a **exceção por
+medicamento**: na aba Esquemas, a Enfermagem ou a coordenação marca "só a
+Enfermagem dá" no medicamento que exigir isso — injetável, controlado —, com o
+motivo escrito. O educador que tentar confirmar essa dose lê o motivo.
+*No protótipo há um exemplo marcado: a insulina da Rayssa.*
+
+**Cadastrar o esquema deixou de ser só da Enfermagem:** a coordenação e a
+equipe técnica também cadastram, porque a criança volta da consulta com a
+receita às 20h.
+
+**A passagem passou a mostrar as doses do turno.** No fim do plantão, quem
+assina vê o que foi confirmado e o que ficou sem resposta — e, se ficou, o
+sistema pede uma linha dizendo o que houve. **Ela não confirma dose nenhuma**:
+confirmar continua sendo um a um, de quem deu. E a cobrança é de quem assina
+primeiro, não de cada pessoa do turno.
+
+**Sem internet, remédio não se confirma mais em aparelho nenhum** — nem no da
+casa. Como o sistema vai rodar no celular de cada um, com o e-mail
+institucional, deixou de existir o aparelho único que impedia a mesma dose de
+ser confirmada em dois lugares. A recusa aparece na hora, com a explicação; o
+resto do turno continua funcionando offline.
 
 ---
 
@@ -347,12 +381,16 @@ Responde pela casa. É quem vai usar as telas de decisão.
    Observar: ela entende a ordem — **primeiro a etapa operacional, depois a
    análise** — e que caso de medicamento **não fecha sem síntese**?
 
-6. **Defina quem pode dar remédio no turno da noite desta casa.**
-   Observar: ela acha isso na Saúde, na aba **Esquemas**? Ela hesita ao ver
-   que precisa **escrever sob qual decisão** — e o que ela escreve?
-   ⚠️ Esta é a **pendência institucional 33.4.1** virando pergunta de verdade:
-   até agora a resposta da Fundação era "não está definido". A tela obriga a
-   definir ou a deixar como está, e as duas coisas ficam registradas.
+6. **A insulina da Rayssa só pode ser aplicada pela Enfermagem. Faça o
+   sistema saber disso.**
+   Observar: ela acha a marcação na Saúde, aba **Esquemas**? Ela entende que a
+   marca é do **medicamento**, e não do turno nem da pessoa? Ela reclama de ter
+   que escrever o motivo — e o que escreve?
+   ⚠️ Depois, **pergunte**: "existe algum outro remédio da casa que só a
+   Enfermagem pode dar?" A lista que ela disser é o que precisa ser marcado
+   antes do piloto. Se ela disser "nenhum", isso também é resposta — e é a
+   melhor delas, porque quer dizer que o educador de plantão dá conta de tudo,
+   que é como a casa já funciona hoje.
 
 7. **A casa passou a operar com 22 vagas depois da reforma. Registre isso.**
    Observar: ela procura em "Mais" → **Painel das unidades**? Entende que o

@@ -62,7 +62,7 @@ describe('Fase 4 — Medicamentos e Enfermagem', () => {
 
   // ---------- Prescrição ----------
 
-  it('somente a Enfermagem cadastra o esquema; educador é recusado', async () => {
+  it('o educador NÃO cadastra esquema; a Enfermagem, a coordenação e a técnica cadastram', async () => {
     const negado = await request(http).post('/api/v1/medications/prescriptions')
       .set(auth(tokens.educador))
       .send({ personId: sofia, houseId: AI3, tipo: 'uso_continuo',
@@ -76,8 +76,21 @@ describe('Fase 4 — Medicamentos e Enfermagem', () => {
               horarios: ['07:00', '19:00'], prescritor: 'Endocrinologia (fictício)' });
     expect(ok.status).toBe(201);
     expect(ok.body.status).toBe('rascunho');
-    expect(ok.body.aviso).toMatch(/só entra na grade após.*assinatura/i);
+    expect(ok.body.aviso).toMatch(/rascunho/i);
     prescricaoId = ok.body.id;
+
+    /*
+     * Desde 08/09/2026 (migração 0930) a coordenação também cadastra: a
+     * Enfermagem atende das 9h às 17h, e a criança volta da consulta com a
+     * receita às 20h. Exigir a Enfermagem ali é adiar o tratamento ou dar o
+     * remédio sem registro.
+     */
+    const pelaCoord = await request(http).post('/api/v1/medications/prescriptions')
+      .set(auth(tokens.coord))
+      .send({ personId: sofia, houseId: AI3, tipo: 'tratamento',
+              medicamento: 'Xarope (fictício)', dose: '5 mL', via: 'oral',
+              horarios: ['21:00'], prescritor: 'Pediatria (fictícia)' });
+    expect(pelaCoord.status).toBe(201);
   });
 
   it('"quando necessário" exige a condição de uso escrita pelo profissional (§11.5)', async () => {
@@ -122,50 +135,33 @@ describe('Fase 4 — Medicamentos e Enfermagem', () => {
     expect(await doses()).toBe(2);                // idempotente: não duplica
   });
 
-  // ---------- Protocolo: pendência institucional 33.4.1 ----------
+  // ---------- Quem dá o remédio (§11.3, resposta da Fundação em 08/09/2026) ----------
 
-  it('padrão protetivo: sem protocolo definido, educador não confirma dose', async () => {
-    const pode = await request(http).get(`/api/v1/medications/can-administer?houseId=${AI3}&periodo=diurno`)
+  it('o educador de plantão confirma dose — é ele quem está na casa à noite', async () => {
+    /*
+     * Esta era a asserção INVERSA até 08/09/2026: "sem protocolo definido,
+     * educador não confirma dose". Era o padrão protetivo que o sistema
+     * adotava sem saber o horário da Enfermagem. Sabendo — 9h às 17h —, o
+     * padrão antigo recusaria TODA dose noturna, mandando acionar quem já foi
+     * embora; a dose seria dada (a criança precisa dela) e ficaria sem
+     * registro.
+     */
+    const pode = await request(http).get(`/api/v1/medications/can-administer?houseId=${AI3}&periodo=noturno`)
       .set(auth(tokens.educador));
-    expect(pode.body.pode).toBe(false);
-    expect(pode.body.motivo).toMatch(/protocolo desta casa não autoriza/i);
-
-    const { rows: [dose] } = await admin.query(
-      `SELECT id FROM medication_administration WHERE person_id=$1 ORDER BY scheduled_at LIMIT 1`, [sofia]);
-    const tentativa = await request(http).post(`/api/v1/medications/doses/${dose.id}/confirm`)
-      .set(auth(tokens.educador)).send({ estado: 'administrado_no_horario' });
-    expect(tentativa.status).toBe(403);
-    expect(tentativa.body.message).toMatch(/protocolo|Enfermagem/i);
+    expect(pode.body.pode).toBe(true);
   });
 
-  it('a Enfermagem sempre pode confirmar, independentemente do protocolo', async () => {
+  it('a Enfermagem também confirma, a qualquer hora', async () => {
     const pode = await request(http).get(`/api/v1/medications/can-administer?houseId=${AI3}&periodo=diurno`)
       .set(auth(tokens.enfermagem));
     expect(pode.body.pode).toBe(true);
   });
 
-  it('coordenação configura o protocolo e autoriza o educador nominalmente', async () => {
-    // A pendência 33.4.1 vive como configuração, não como regra invisível.
-    const prot = await request(http).get(`/api/v1/medications/protocol?houseId=${AI3}`)
+  it('quem não está no cuidado direto não confirma dose', async () => {
+    const pode = await request(http).get(`/api/v1/medications/can-administer?houseId=${AI3}&periodo=diurno`)
       .set(auth(tokens.coord));
-    expect(prot.body.pendenciaInstitucional).toMatch(/33\.4\.1|decisão da instituição/i);
-
-    await request(http).post('/api/v1/medications/protocol').set(auth(tokens.coord))
-      .send({ houseId: AI3, periodo: 'diurno', enfermagem: true, educadorAutorizado: true,
-              nota: 'Definido em reunião institucional (fictício)' }).expect(201);
-
-    // Protocolo permite, mas o educador ainda precisa de autorização nominal
-    const semNome = await request(http).get(`/api/v1/medications/can-administer?houseId=${AI3}&periodo=diurno`)
-      .set(auth(tokens.educador));
-    expect(semNome.body.pode).toBe(false);
-    expect(semNome.body.motivo).toMatch(/não consta como educador autorizado/i);
-
-    await request(http).post('/api/v1/medications/authorize-educator').set(auth(tokens.coord))
-      .send({ userId: educadorId, houseId: AI3, nota: 'Treinamento concluído (fictício)' }).expect(201);
-
-    const agora = await request(http).get(`/api/v1/medications/can-administer?houseId=${AI3}&periodo=diurno`)
-      .set(auth(tokens.educador));
-    expect(agora.body.pode).toBe(true);
+    expect(pode.body.pode).toBe(false);
+    expect(pode.body.motivo).toMatch(/quem a administrou/i);
   });
 
   // ---------- Administração ----------
@@ -259,96 +255,76 @@ describe('Fase 4 — Medicamentos e Enfermagem', () => {
     }
   });
 
-  it('cenário #15 — offline, só o aparelho institucional designado confirma', async () => {
+  it('sem sinal, dose não se confirma em aparelho nenhum (0930)', async () => {
+    /*
+     * A REGRA MUDOU EM 08/09/2026, e este teste guarda a mudança.
+     *
+     * Até aqui valia o §11.7: offline, só o aparelho institucional registrado
+     * da casa confirmava medicamento — a trava contra a mesma dose confirmada
+     * em dois aparelhos que não se enxergam. A Fundação decidiu que o sistema
+     * roda no celular de cada pessoa, com o e-mail institucional, e com isso
+     * não existe mais "o aparelho da casa" para ser essa trava.
+     *
+     * A escolha foi recusar sempre, na hora, com a frase — e não guardar para
+     * devolver rejeitada horas depois, quando quem deu o remédio já foi
+     * embora. O resto do turno continua funcionando sem sinal.
+     */
     const { rows: [dose] } = await admin.query(
       `SELECT id FROM medication_administration WHERE state='aguardando_confirmacao' LIMIT 1`);
 
-    // Pela fila de sincronização: recusado na porta de entrada
+    // Pela fila de sincronização: recusada na porta de entrada.
     const fila = await request(http).post('/api/v1/sync/push').set(auth(tokens.enfermagem)).send({
       operacoes: [{
-        clientOpId: 'dose-pessoal-001', kind: 'medication.confirm', houseId: AI3,
+        clientOpId: 'dose-sem-sinal-001', kind: 'medication.confirm', houseId: AI3,
         payload: { administrationId: dose.id, estado: 'administrado_no_horario' },
         happenedAt: new Date().toISOString(), queuedAt: new Date().toISOString(),
-        institutionalDevice: false,
       }],
     });
     expect(fila.body.resultados[0].status).toBe('rejeitada');
-    expect(fila.body.resultados[0].motivo).toMatch(/aparelho institucional/i);
+    expect(fila.body.resultados[0].motivo).toMatch(/sem internet|sinal/i);
 
-    // Pela rota direta: a mesma regra vale dentro do comando de confirmação
+    // Pela rota direta: a mesma regra dentro do comando de confirmação.
     const direto = await request(http).post(`/api/v1/medications/doses/${dose.id}/confirm`)
       .set(auth(tokens.enfermagem))
-      .send({ estado: 'administrado_no_horario', offline: true, institutionalDevice: false });
+      .send({ estado: 'administrado_no_horario', offline: true });
     expect(direto.status).toBe(403);
-    expect(direto.body.message).toMatch(/aparelho institucional/i);
+    expect(direto.body.message).toMatch(/sem internet|sinal/i);
 
-    // Afirmar-se institucional não basta: o servidor confere contra o registro
-    // de aparelhos da casa. Antes, `institutionalDevice: true` no corpo da
-    // requisição era suficiente — a regra do §11.7 se apoiava na palavra do
-    // próprio aparelho.
-    const mentiroso = await request(http).post('/api/v1/sync/push').set(auth(tokens.enfermagem)).send({
-      operacoes: [{
-        clientOpId: 'dose-mentirosa-001', kind: 'medication.confirm', houseId: AI3,
-        payload: { administrationId: dose.id, estado: 'administrado_no_horario' },
-        happenedAt: new Date().toISOString(), queuedAt: new Date().toISOString(),
-        device: 'celular-pessoal', institutionalDevice: true,
-      }],
-    });
-    expect(mentiroso.body.resultados[0].status).toBe('rejeitada');
-
-    // A coordenação registra o aparelho da casa; o código é mostrado uma vez.
+    /*
+     * E O APARELHO DA CASA TAMBÉM NÃO BASTA MAIS. O cadastro continua
+     * existindo — a casa quer saber quais aparelhos são dela —, mas ele deixou
+     * de abrir a porta da dose offline. Sem este trecho, alguém "consertaria"
+     * a regra de volta por engano e nada quebraria.
+     */
     const aparelho = await request(http).post('/api/v1/devices').set(auth(tokens.coord))
       .send({ houseId: AI3, rotulo: 'Tablet da Casa 03 — plantão' });
     expect(aparelho.status).toBe(201);
     expect(aparelho.body.token).toBeTruthy();
 
-    // Código errado continua sendo recusado.
-    const errado = await request(http).post('/api/v1/sync/push').set(auth(tokens.enfermagem)).send({
+    const comAparelho = await request(http).post('/api/v1/sync/push').set(auth(tokens.enfermagem)).send({
       operacoes: [{
-        clientOpId: 'dose-token-errado-001', kind: 'medication.confirm', houseId: AI3,
+        clientOpId: 'dose-com-aparelho-001', kind: 'medication.confirm', houseId: AI3,
         payload: { administrationId: dose.id, estado: 'administrado_no_horario' },
         happenedAt: new Date().toISOString(), queuedAt: new Date().toISOString(),
-        deviceToken: 'codigo-que-nao-existe',
-      }],
-    });
-    expect(errado.body.resultados[0].status).toBe('rejeitada');
-
-    // No aparelho institucional de verdade, passa — e preserva o horário real
-    const horarioReal = new Date(Date.now() - 90 * 60_000).toISOString();
-    const ok = await request(http).post('/api/v1/sync/push').set(auth(tokens.enfermagem)).send({
-      operacoes: [{
-        clientOpId: 'dose-institucional-001', kind: 'medication.confirm', houseId: AI3,
-        payload: { administrationId: dose.id, estado: 'administrado_com_atraso', nota: 'Sem sinal na casa' },
-        happenedAt: horarioReal, queuedAt: horarioReal,
         device: 'tablet-casa-03', deviceToken: aparelho.body.token,
       }],
     });
-    expect(ok.body.resultados[0].status).toBe('aplicada');
+    expect(comAparelho.body.resultados[0].status).toBe('rejeitada');
 
-    // Revogado, o mesmo código deixa de valer — sem apagar o histórico dele.
-    await request(http).post(`/api/v1/devices/${aparelho.body.id}/revoke`)
-      .set(auth(tokens.coord)).send({ motivo: 'Aparelho extraviado' });
-    const { rows: [outraDose] } = await admin.query(
-      `SELECT id FROM medication_administration WHERE state='aguardando_confirmacao' LIMIT 1`);
-    if (outraDose) {
-      const revogado = await request(http).post('/api/v1/sync/push').set(auth(tokens.enfermagem)).send({
-        operacoes: [{
-          clientOpId: 'dose-revogada-001', kind: 'medication.confirm', houseId: AI3,
-          payload: { administrationId: outraDose.id, estado: 'administrado_no_horario' },
-          happenedAt: new Date().toISOString(), queuedAt: new Date().toISOString(),
-          deviceToken: aparelho.body.token,
-        }],
-      });
-      expect(revogado.body.resultados[0].status).toBe('rejeitada');
-    }
+    // A dose continua esperando alguém — e é isso que a passagem lê de volta.
+    const { rows: [depois] } = await admin.query(
+      `SELECT state, administered_by FROM medication_administration WHERE id=$1`, [dose.id]);
+    expect(depois.state).toBe('aguardando_confirmacao');
+    expect(depois.administered_by).toBeNull();
 
-    const { rows: [conf] } = await admin.query(
-      `SELECT administered_at, synced_at, offline, institutional_device
-       FROM medication_administration WHERE id=$1`, [dose.id]);
-    expect(conf.offline).toBe(true);
-    expect(conf.institutional_device).toBe(true);
-    expect(new Date(conf.administered_at).toISOString()).toBe(horarioReal);
-    expect(new Date(conf.synced_at).getTime()).toBeGreaterThan(new Date(horarioReal).getTime());
+    // O resto do turno continua subindo sem sinal: a regra é da DOSE.
+    const chamada = await request(http).post('/api/v1/sync/push').set(auth(tokens.educador)).send({
+      operacoes: [{
+        clientOpId: 'passagem-sem-sinal-001', kind: 'handover.receipt', houseId: AI3,
+        payload: {}, happenedAt: new Date().toISOString(), queuedAt: new Date().toISOString(),
+      }],
+    });
+    expect(chamada.body.resultados[0].status).not.toBe('rejeitada');
   });
 
   // ---------- Estoque ----------
