@@ -204,9 +204,9 @@ Além dos e2e, quatro suítes estáticas — elas já pegaram erro de verdade:
 
 ## 5. O QUE JÁ ESTÁ PRONTO
 
-**Fases 0 a 68. 485 testes em 48 suítes**, **quinze rodadas seguidas limpas** —
+**Fases 0 a 69. 489 testes em 49 suítes**, **quinze rodadas seguidas limpas** —
 quatro delas com o UTC já no dia seguinte, que é a condição que a regra pede.
-32 telas, 77 migrações, 95 tabelas.
+32 telas, 78 migrações, 95 tabelas.
 
 E dois ensaios de navegador, que `tsc` não substitui — ele diz que compila,
 nunca disse que renderiza:
@@ -245,7 +245,7 @@ E, desde a fase 63, **o sistema é ensaiado COMPILADO**:
 `npm run ensaio:producao` constrói, cria um banco virgem, aplica as migrações
 pelo binário e sobe o serviço. O projeto passou 62 fases sem nunca rodar assim
 — tudo por `tsx` e por `jest` —, e a primeira rodada encontrou o `dist/` sem
-nenhuma das 77 migrações.
+nenhuma das 78 migrações.
 
 E, desde a fase 48, **a restauração é ensaiada como o resto**:
 `npm run ensaio:restauracao` faz o ciclo inteiro num banco descartável —

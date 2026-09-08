@@ -1233,9 +1233,30 @@ política filtra antes de o `LIMIT` cortar (ficou por outro motivo, de produto);
 e o `ORDER BY` pelo nome obriga a calcular a função para todas as linhas antes
 do teto.
 
+### 8.36 O alcance como conjunto — 04/09/2026
+
+Das dezoito políticas com escopo por linha, catorze já perguntavam o papel
+primeiro. A auditoria — a tabela que mais cresce — escondia um segundo:
+`app_house_in_scope(house_id)` chamada 173 mil vezes, 1 096 ms para a
+coordenação ler os últimos 30 dias da própria casa.
+
+Migração 0920: `house_id = ANY (ARRAY(SELECT app_casas_no_alcance()))`. O
+Postgres avalia o conjunto uma vez, como plano inicial. 1 096 → 122 ms
+(coordenação) e 43 ms (Gestor Geral).
+
+As duas formas convivem: `app_house_in_scope` continua certa para uma linha só
+— política de INSERT, por exemplo.
+
+**A prova que a correção exigia:** ganho de desempenho que muda regra de
+alcance é vazamento, não otimização. `alcance-como-conjunto.spec.ts` não mede
+tempo: compara, para cada cargo e cada casa, se as duas formas respondem o
+mesmo. E guarda a forma da política, porque quem voltar atrás não vê nada
+quebrar — só a coordenação esperando um segundo, o que se atribui à internet
+da casa.
+
 ---
 
-## 9. Migrações desta série (0620–0910)
+## 9. Migrações desta série (0620–0920)
 
 | Nº | Módulo | O que faz |
 |---|---|---|

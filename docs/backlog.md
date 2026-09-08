@@ -578,6 +578,46 @@ para sempre.
 - **Tela vazia precisa dizer por que está vazia.** Uma lista de conflitos em
   branco é boa notícia, e se ela não disser isso será lida como "não carregou".
 
+## Fase 69 — O alcance como conjunto, e não como pergunta por linha ✅
+
+A fase 68 deixou uma pergunta: das dezoito políticas que usam escopo por linha,
+quantas perguntam caro antes de barato? Fui medir em vez de adivinhar.
+
+**Catorze já estavam certas** — pedem o papel primeiro, e a pergunta cara só
+chega para quem depende dela. Mas a auditoria, que é a tabela que mais cresce
+do sistema, escondia um segundo inteiro:
+
+| Quem lê | Antes | Depois |
+|---|---|---|
+| Coordenação — auditoria da casa, 30 dias | **1 096 ms** | 122 ms |
+| Gestor Geral — o mesmo | 1 096 ms | 43 ms |
+
+Com 173 mil linhas, `app_house_in_scope(house_id)` era chamada **173 mil
+vezes**. A correção troca a pergunta por linha por um teste de pertinência a um
+conjunto calculado uma vez: `house_id = ANY (ARRAY(SELECT app_casas_no_alcance()))`.
+O Postgres avalia o conjunto como plano inicial, uma vez, e depois só compara.
+
+Migração 0920. As duas formas convivem de propósito: `app_house_in_scope`
+continua certa para perguntar sobre UMA casa — numa política de INSERT, onde há
+uma linha só. O conjunto é para quando a pergunta se repete por linha.
+
+### A prova que essa correção exigia
+
+**Ganho de desempenho que muda regra de alcance é vazamento, não otimização.**
+`test/alcance-como-conjunto.spec.ts` não mede tempo nenhum: pergunta, para
+**cada cargo e cada casa da instituição**, se as duas formas respondem a mesma
+coisa. Uma divergência ali significa que alguém passou a ver — ou deixou de ver
+— uma casa. E há um teste que guarda a forma da política, porque quem voltar
+atrás não vê nada quebrar: só a coordenação esperando um segundo, o que se
+atribui à internet da casa.
+
+### Por que a auditoria e não outra
+
+Ela é a tabela que mais cresce — uma linha para cada coisa que alguém faz — e é
+onde se olha quando algo deu errado. **Uma tela de auditoria que demora é uma
+tela que não se consulta**, e uma auditoria que não se consulta não protege
+ninguém.
+
 ## Fase 68 — A política que perguntava caro antes de perguntar barato ✅
 
 O ensaio de carga era da fase 51 e não conhecia nada do que veio depois:
