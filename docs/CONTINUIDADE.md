@@ -1254,6 +1254,27 @@ mesmo. E guarda a forma da política, porque quem voltar atrás não vê nada
 quebrar — só a coordenação esperando um segundo, o que se atribui à internet
 da casa.
 
+### 8.37 O que a pessoa lê quando o sistema falha — 04/09/2026
+
+As frases das telas têm cuidado há dezenas de fases; as dos ERROS não tinham
+nenhum — e são as que aparecem no pior momento.
+
+O pior caso encontrado: internação para uma criança inexistente devolvia
+"Internal server error". O oposto seria pior — repassar o texto do Postgres
+conta o nome da tabela e a existência da política, e não ajuda ninguém.
+
+`kernel/common/falhas-em-portugues.ts`: o detalhe técnico vai para o log, com
+caminho e usuário; a pessoa recebe português. Tradução por CLASSE de erro, não
+por tabela, porque frase por tabela envelhece com o esquema.
+
+A frase do caso imprevisto é a mais importante: diz que **o que a pessoa fez
+NÃO foi salvo**, e não manda tentar mais tarde. Quem registrou uma dose às 23h
+precisa saber que aquilo não entrou.
+
+E três frases que diziam o estado em vez do que fazer foram reescritas —
+"Sessão ausente", "Conta desativada", "Senha atual incorreta". A segunda soava
+como castigo, e quase sempre é troca de equipe.
+
 ---
 
 ## 9. Migrações desta série (0620–0920)

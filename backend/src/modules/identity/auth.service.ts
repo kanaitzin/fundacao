@@ -72,7 +72,11 @@ export class AuthService {
        RETURNING id, user_id, last_reauth_at`,
       [hashToken(token)],
     );
-    if (!s) throw new UnauthorizedException('Sessão inválida ou expirada');
+    if (!s) {
+      throw new UnauthorizedException(
+        'Sua sessão terminou. Entre de novo para continuar — o que você digitou nesta '
+        + 'tela não foi salvo.');
+    }
 
     // Identidade aplicada; RLS permite ver o próprio registro
     const user = await this.db.asUser(s.user_id, async (c) => {
@@ -81,7 +85,13 @@ export class AuthService {
          FROM app_user WHERE id = $1`, [s.user_id]);
       return u;
     });
-    if (!user || !user.active) throw new UnauthorizedException('Conta desativada');
+    if (!user || !user.active) {
+      /* "Conta desativada" soa como castigo; quase sempre é troca de equipe ou
+       * fim de contrato, e quem lê precisa saber a quem pedir. */
+      throw new UnauthorizedException(
+        'Esta conta não está mais ativa. Se você continua na equipe, fale com a '
+        + 'coordenação para reativarem o seu acesso.');
+    }
 
     return {
       id: user.id, institutionId: user.institution_id, email: user.email,
@@ -128,7 +138,11 @@ export class AuthService {
       const { rows: [u] } = await c.query(`SELECT password_hash FROM app_user WHERE id = $1`, [user.id]);
       return u ? verifyPassword(atual ?? '', u.password_hash) : false;
     });
-    if (!(await ok)) throw new UnauthorizedException('Senha atual incorreta.');
+    if (!(await ok)) {
+      throw new UnauthorizedException(
+        'A senha atual não confere. Confira e tente de novo; se você não lembra, a '
+        + 'coordenação consegue enviar um novo acesso.');
+    }
 
     const hash = await hashPassword(nova);
     await this.db.asUser(user.id, async (c) => {

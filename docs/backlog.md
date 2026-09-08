@@ -578,6 +578,48 @@ para sempre.
 - **Tela vazia precisa dizer por que está vazia.** Uma lista de conflitos em
   branco é boa notícia, e se ela não disser isso será lida como "não carregou".
 
+## Fase 70 — O que a pessoa lê quando o sistema falha ✅
+
+O projeto cuida das frases das telas há dezenas de fases. As frases dos **erros**
+ficaram de fora — e são as que aparecem no pior momento, quando a pessoa já
+estava com pressa.
+
+Um levantamento provocou falhas de verdade e encontrou o pior caso: abrir uma
+internação para uma criança que não existe devolvia **"Internal server error"**.
+Em inglês, sem dizer o que aconteceu, sem dizer se o registro foi salvo, e sem
+dizer o que fazer.
+
+O oposto seria pior: repassar o texto do Postgres conta o nome da tabela, a
+existência da política de segurança e a forma do banco — e ainda assim não
+ajuda ninguém.
+
+`kernel/common/falhas-em-portugues.ts` é a última linha: **o detalhe técnico vai
+para o log, com o caminho e o usuário; a pessoa recebe uma frase em português
+que diz o que aconteceu e, quando dá, o que fazer.** Cinco classes de erro do
+banco traduzidas — por CLASSE, e não por tabela, porque frase por tabela
+envelhece com o esquema.
+
+A frase mais difícil é a do caso que ninguém previu, e ela diz duas coisas:
+**"o que você fez NÃO foi salvo"** e "a falha ficou registrada com o horário".
+Não manda tentar mais tarde — quem registrou uma dose às 23h precisa saber que
+aquilo não entrou, e "tente mais tarde" deixa a dúvida no ar justamente onde ela
+não pode ficar.
+
+### As frases que diziam o estado, e não o que fazer
+
+- *"Sessão ausente"* → **"Sua sessão terminou. Entre de novo para continuar — o
+  que você digitou nesta tela não foi salvo."**
+- *"Conta desativada"* → soa como castigo, e quase sempre é troca de equipe:
+  **"Se você continua na equipe, fale com a coordenação para reativarem o seu
+  acesso."**
+- *"Senha atual incorreta"* → agora diz que a coordenação consegue enviar um
+  novo acesso.
+
+`test/falhas-em-portugues.e2e.spec.ts` provoca cinco falhas e cobra de cada
+resposta: que esteja em português, que não tenha jargão de banco — a lista
+proíbe `Internal server error`, `row-level security`, `constraint`, `relation`,
+`undefined` — e que diga alguma coisa útil, com mais de vinte caracteres.
+
 ## Fase 69 — O alcance como conjunto, e não como pergunta por linha ✅
 
 A fase 68 deixou uma pergunta: das dezoito políticas que usam escopo por linha,

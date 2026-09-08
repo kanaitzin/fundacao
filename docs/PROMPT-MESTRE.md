@@ -108,7 +108,7 @@ não me peça para reexplicar o que está lá.
 
 === ESTADO ATUAL (03/09/2026) ===
 
-Fases 0 a 69. 489 testes em 49 suítes, sem falha conhecida — treze rodadas
+Fases 0 a 70. 495 testes em 50 suítes, sem falha conhecida — treze rodadas
 seguidas limpas, quatro delas entre 23h50 e 00h45 de Porto Alegre, com o UTC já
 no dia seguinte, que é a condição que a regra pede. Backend NestJS +
 PostgreSQL 16 com RLS, 17 partições isoladas, 78 migrações, 95 tabelas.
