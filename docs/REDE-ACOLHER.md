@@ -84,14 +84,14 @@ discordavam entre si.
 | Quanto | De onde sai |
 |---|---|
 | **17 partições** isoladas | pastas em `backend/src/modules/` |
-| **84 migrações** | `.sql` dentro das partições |
+| **85 migrações** | `.sql` dentro das partições |
 | **99 tabelas** | `CREATE TABLE` nas migrações |
-| **56 suítes** | `backend/test/*.spec.ts` |
-| **554 testes** | `it(` / `test(` nas suítes |
+| **57 suítes** | `backend/test/*.spec.ts` |
+| **562 testes** | `it(` / `test(` nas suítes |
 | **31 telas React** | `frontend/src/screens/*.tsx` |
 | **14 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **6 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
-| protótipo com **≈937 KB** | `prototipo/rede-acolher-prototipo.html` |
+| protótipo com **≈940 KB** | `prototipo/rede-acolher-prototipo.html` |
 
 *A frase importa: o conferidor lê o NÚMERO colado ao substantivo. Escrever
 "Telas React … 31" numa coluna separada faz o teste passar sem conferir nada —
@@ -170,7 +170,7 @@ cd frontend && npm run prototipo
 # sai em prototipo/rede-acolher-prototipo.html
 ```
 
-O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as 84
+O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as 85
 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
 
 ### Os ensaios — e por que cada um existe
@@ -236,7 +236,7 @@ rede-acolher/
 │   │   │   ├── documentos/     o contrato da folha e o gerador de .docx
 │   │   │   └── common/         CPF, criptografia, segredo, fuso da instituição
 │   │   └── modules/       17 partições, cada uma dona das próprias migrações
-│   ├── test/              56 suítes (e2e contra PostgreSQL real + estáticas)
+│   ├── test/              57 suítes (e2e contra PostgreSQL real + estáticas)
 │   ├── scripts/           ensaio-carga.ts, migrador compilado
 │   └── assets/timbre.png  a marca da Fundação, usada no documento em Word
 ├── frontend/
@@ -387,6 +387,18 @@ categoria **escrito** abaixo do título, e a legenda mostra só as categorias qu
 aquele dia tem — legenda fixa de oito itens ensina a ignorá-la. Categoria
 desconhecida cai em "Rotina da casa", nunca em branco: borda sem cor no meio de
 uma lista colorida lê-se como "esta não importa".
+
+**A cor de cada pessoa é escolhida, e não repete na casa.** Antes saía de um
+hash do id sobre seis tons — e hash colide: dois educadores do mesmo plantão
+podiam receber o mesmo, e a cor deixava de distinguir exatamente onde
+precisava. Agora a equipe técnica ou a coordenação escolhe, entre os oito tons
+da paleta, e o servidor recusa repetir **dizendo de quem a cor é** ("já em uso"
+obrigaria a tentar uma por uma). Quem escolhe não é a própria pessoa: se cada
+um escolhesse a sua, o primeiro a entrar levaria o azul e a distinção viraria
+ordem de chegada. A unicidade é **por casa** — oito casas dividindo oito tons
+deixariam sete pessoas sem cor. Sem escolha, cai no tom automático de antes. E
+a cor **não é proteção**: ela não impede ninguém de usar a conta de outro, quem
+faz isso é a sessão.
 
 **A tinta institucional**, extraída do logo da Fundação:
 
@@ -1211,7 +1223,7 @@ ele continua dizendo que o arquivo existe.
 npm run ensaio:producao
 ```
 
-Constrói, cria um banco virgem, aplica as 84 migrações **pelo binário
+Constrói, cria um banco virgem, aplica as 85 migrações **pelo binário
 compilado**, sobe o serviço e confere `/health`. Não publica nada e não toca no
 banco de trabalho.
 

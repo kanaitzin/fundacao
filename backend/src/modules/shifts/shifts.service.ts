@@ -95,7 +95,11 @@ export class ShiftsService {
       const { rows: notas } = await c.query(
         `SELECT n.id, n.author_id, n.body, n.restricted, n.happened_at, n.created_at,
                 app_user_display_name(n.author_id) AS quem,
-                (SELECT u.role::text FROM app_user u WHERE u.id = n.author_id) AS cargo
+                (SELECT u.role::text FROM app_user u WHERE u.id = n.author_id) AS cargo,
+                /* A cor ESCOLHIDA do autor (0990). Sai por função porque quem lê
+                   a ATA não gere equipe — o educador não alcança app_staff_list.
+                   NULL: a tela cai no tom automático, como antes. */
+                app_cor_do_autor(n.author_id) AS cor_autor
            FROM ata_note n WHERE n.ata_id = $1 ORDER BY n.happened_at`, [a?.id ?? null]);
       const { rows: [restritas] } = a
         ? await c.query(`SELECT app_ata_restritas($1) AS n`, [a.id])
@@ -206,6 +210,7 @@ export class ShiftsService {
       linhas: {
         notas: dados.notas.map((n: any) => ({
           id: n.id, autorId: n.author_id, quem: n.quem, cargo: n.cargo,
+          corAutor: n.cor_autor ?? null,
           texto: n.body, restrita: n.restricted,
           quando: n.happened_at, escritaEm: n.created_at,
           propria: n.author_id === user.id,

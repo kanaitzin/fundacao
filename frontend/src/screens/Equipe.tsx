@@ -7,6 +7,7 @@ interface Setor {
 interface Membro {
   id: string; nome: string; email: string; cargo: string; setor: string;
   transversal: boolean; casa: string | null; casaId: string | null;
+  corDaLinha?: string | null;
   ativo: boolean; ultimoAcesso: string | null;
   senhaInicialPendente: boolean; editavel: boolean; proprio: boolean;
 }
@@ -58,6 +59,20 @@ const TOM: Record<string, string> = {
  *    a equipe da casa e cadastra a Enfermagem; criar conta de alcance
  *    institucional é do Gestor Geral.
  */
+/**
+ * Os oito tons da paleta, com NOME.
+ *
+ * O nome não é enfeite: sem ele, escolher a cor de alguém exigiria distinguir
+ * oito matizes na tela — e quem não distingue não é caso raro. Com o nome
+ * escrito, a escolha e a conferência funcionam sem enxergar a cor.
+ */
+const NOME_DO_TOM: Record<string, string> = {
+  'c-brand': 'Azul institucional', 'c-info': 'Azul', 'c-move': 'Ciano',
+  'c-ok': 'Verde', 'c-warn': 'Âmbar', 'c-med': 'Violeta',
+  'c-other': 'Rosa', 'c-crit': 'Vermelho',
+};
+const TONS = Object.keys(NOME_DO_TOM);
+
 export function Equipe({ papel }: { papel: string }) {
   const [aba, setAba] = useState<'pessoas' | 'aparelhos'>('pessoas');
   const [membros, setMembros] = useState<Membro[]>([]);
@@ -68,6 +83,8 @@ export function Equipe({ papel }: { papel: string }) {
   const [aviso, setAviso] = useState<{ texto: string; senha?: string } | null>(null);
   const [form, setForm] = useState(false);
   const [editando, setEditando] = useState<Membro | null>(null);
+  const [pintando, setPintando] = useState<Membro | null>(null);
+  const [ocupadas, setOcupadas] = useState<{ cor: string; deQuem: string; userId: string }[]>([]);
   /* O código do aparelho, mostrado UMA vez e nunca mais recuperável. */
   const [codigoNovo, setCodigoNovo] = useState<
     { rotulo: string; token: string; aviso: string } | null>(null);
@@ -94,6 +111,28 @@ export function Equipe({ papel }: { papel: string }) {
     }
   }
   useEffect(() => { carregar(); }, []);
+
+  /* As cores já em uso na casa DESTA pessoa — para a folha não oferecer o que
+     o servidor vai recusar. */
+  useEffect(() => {
+    if (!pintando?.casaId) { setOcupadas([]); return; }
+    api<{ cor: string; deQuem: string; userId: string }[]>(
+      `/staff/line-colors?houseId=${pintando.casaId}`)
+      .then(setOcupadas).catch(() => setOcupadas([]));
+  }, [pintando?.id, pintando?.casaId]);
+
+  async function pintar(m: Membro, cor: string | null) {
+    setErro('');
+    try {
+      await api(`/staff/${m.id}/line-color`, {
+        method: 'PATCH', body: JSON.stringify({ cor }),
+      });
+      setPintando(null);
+      await carregar();
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Não foi possível definir a cor.');
+    }
+  }
 
   async function acao(fn: () => Promise<any>) {
     setErro('');
@@ -147,7 +186,7 @@ export function Equipe({ papel }: { papel: string }) {
             <thead>
               <tr>
                 <th>Nome</th><th>E-mail</th><th>Setor</th><th>Casa</th>
-                <th>Situação</th><th aria-label="Ações"></th>
+                <th>Cor da linha</th><th>Situação</th><th aria-label="Ações"></th>
               </tr>
             </thead>
             <tbody>
@@ -163,6 +202,18 @@ export function Equipe({ papel }: { papel: string }) {
                   </td>
                   <td data-rotulo="Casa">
                     {m.transversal ? <span className="mutetxt">8 casas</span> : (m.casa ?? '—')}
+                  </td>
+                  <td data-rotulo="Cor da linha">
+                    {/* A cor da ATA. Sempre com o NOME do tom escrito: quem não
+                        distingue os matizes ainda consegue escolher e conferir. */}
+                    {m.transversal || !m.casaId ? <span className="mutetxt">—</span> : (
+                      <button type="button"
+                              className={`pill ${m.corDaLinha ?? 'c-mute'}`}
+                              onClick={() => setPintando(m)}
+                              aria-label={`Cor da linha de ${m.nome}: ${NOME_DO_TOM[m.corDaLinha ?? ''] ?? 'automática'}`}>
+                        {NOME_DO_TOM[m.corDaLinha ?? ''] ?? 'automática'}
+                      </button>
+                    )}
                   </td>
                   <td data-rotulo="Situação">
                     {m.ativo
@@ -322,6 +373,44 @@ export function Equipe({ papel }: { papel: string }) {
             await acao(() => api(`/devices/${alvo.id}/revoke`, {
               method: 'POST', body: JSON.stringify({ motivo }) }));
           }} />
+      )}
+
+      {pintando && (
+        <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-cor"
+             onClick={(e) => { if (e.target === e.currentTarget) setPintando(null); }}>
+          <div className="sheet">
+            <h3 id="t-cor">Cor da linha de {pintando.nome}</h3>
+            <p className="mutetxt">
+              É a cor da borda das linhas que esta pessoa escreve na ATA. <b>Duas
+              pessoas da mesma casa não podem ter a mesma cor</b> — as que já estão
+              com alguém aparecem com o nome de quem as tem. A cor é apoio: o nome
+              de quem escreveu continua escrito em toda linha.
+            </p>
+            <div className="opts">
+              {TONS.map((t) => {
+                const dona = ocupadas.find((o) => o.cor === t && o.userId !== pintando.id);
+                return (
+                  <button key={t} type="button" disabled={!!dona}
+                          className={`opt ${t} ${pintando.corDaLinha === t ? 'on' : ''}`}
+                          onClick={() => pintar(pintando, t)}>
+                    {NOME_DO_TOM[t]}
+                    {dona && <div className="mutetxt">com {dona.deQuem}</div>}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="row" style={{ gap: 8, marginTop: 16 }}>
+              <button type="button" className="btn sec grow" onClick={() => setPintando(null)}>
+                Fechar
+              </button>
+              {/* Tirar a cor é sempre possível: volta ao tom automático. */}
+              <button type="button" className="btn ghost grow"
+                      onClick={() => pintar(pintando, null)}>
+                Deixar automática
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {form && (

@@ -603,6 +603,10 @@ interface Compromisso {
    COMPROMISSOS porque desmarcar uma quarta não altera o combinado. */
 const DESMARCADAS = new Map<string, string>();
 
+/* A cor da linha de cada pessoa. Vazio no começo: sem escolha, a ATA cai no
+   tom automático — que é como o sistema se comportava antes da 0990. */
+const CORES_DA_LINHA = new Map<string, string>();
+
 let COMPROMISSOS: Compromisso[] = [
   { id: 'c1', tipo: 'saude', titulo: 'Fonoaudiologia', local: 'Clínica Fictícia — Centro',
     personId: 'p11', hora: '15:00', duracaoMin: 45, recorrencia: 'semanal', diasSemana: [2, 4],
@@ -911,6 +915,9 @@ function linhasDaAta(ataId: string, papel: string) {
     notas: visiveis.map((l) => ({
       id: l.id, autorId: l.autorId, quem: l.quem, cargo: l.cargo,
       texto: l.texto, restrita: l.restrita,
+      /* A cor escolhida do autor, como no servidor. Sem escolha, null — e a
+         tela cai no tom automático. */
+      corAutor: CORES_DA_LINHA.get(l.autorId) ?? null,
       quando: l.quando, escritaEm: l.escritaEm, propria: false,
     })),
     restritas,
@@ -3036,7 +3043,31 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       senhaInicialPendente: false,
       editavel: podeEditar,
       proprio: m.id === eu.id,
+      corDaLinha: CORES_DA_LINHA.get(m.id) ?? null,
     }));
+  }
+  if (rota.startsWith('/staff/line-colors')) {
+    return [...CORES_DA_LINHA.entries()].map(([userId, cor]) => ({
+      cor, userId,
+      deQuem: EQUIPE_CASA.find((m) => m.id === userId)?.nome ?? '—',
+    }));
+  }
+  if (seg[0] === 'staff' && seg[2] === 'line-color') {
+    if (!['coordenador', 'gestor_geral', 'equipe_tecnica'].includes(eu.role)) {
+      throw new ErroApi(403, 'Só a equipe técnica ou a coordenação definem a cor da linha.');
+    }
+    const cor = b.cor ?? null;
+    if (cor === null) { CORES_DA_LINHA.delete(seg[1]); return { definida: true, cor: null }; }
+    /* O servidor de mentira RECUSA o que o servidor recusa — inclusive
+       nomeando de quem é a cor, que é o que faz a recusa ser útil. */
+    for (const [outro, c] of CORES_DA_LINHA) {
+      if (c === cor && outro !== seg[1]) {
+        const dono = EQUIPE_CASA.find((m) => m.id === outro)?.nome ?? 'outra pessoa';
+        throw new ErroApi(409, `Esta cor já é de ${dono}.`);
+      }
+    }
+    CORES_DA_LINHA.set(seg[1], cor);
+    return { definida: true, cor };
   }
   /**
    * O que cada setor enxerga. No protótipo a lista é a mesma do servidor,

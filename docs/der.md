@@ -24,6 +24,12 @@ erDiagram
     timestamptz valid_from
     timestamptz valid_to "null = vigente"
   }
+  APP_USER_COR {
+    text line_color "tom da paleta para a borda das linhas desta pessoa na ATA"
+    text _ "NULL = tom automático por hash. Único por casa entre ativos,"
+    text __ "conferido em app_definir_cor_da_linha (0990), não por constraint:"
+    text ___ "a unicidade é POR CASA e a casa vive em user_house_assignment."
+  }
   USER_SESSION {
     text token_hash UK "sha256(token+pepper)"
     timestamptz expires_at

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Inject, Param, ParseUUIDPipe, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Inject, Param, ParseUUIDPipe, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { SessionGuard } from './session.guard';
 import { CurrentUser } from './current-user.decorator';
 import { AuthenticatedUser } from '../../kernel/contracts';
@@ -47,6 +47,24 @@ export class StaffController {
   update(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
          @Body() body: any) {
     return this.staff.update(user, id, body);
+  }
+
+  /**
+   * A cor da linha desta pessoa na ATA e nos registros.
+   *
+   * `GET` primeiro, para a tela não oferecer o que o servidor recusa: a fase 75
+   * achou o contrário disto noutra tela — a opção aparecia e a recusa vinha
+   * depois do clique.
+   */
+  @Get('line-colors')
+  coresEmUso(@CurrentUser() user: AuthenticatedUser, @Query('houseId') houseId: string) {
+    return this.staff.coresEmUso(user, houseId);
+  }
+
+  @Patch(':id/line-color')
+  definirCor(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string,
+             @Body() body: { cor: string | null }) {
+    return this.staff.definirCor(user, id, body?.cor ?? null);
   }
 
   @Post(':id/deactivate')

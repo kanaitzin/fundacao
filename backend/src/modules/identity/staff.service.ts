@@ -1,4 +1,5 @@
 import { BadRequestException, ConflictException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { AuditService } from '../../kernel/audit/audit.service';
 import { DatabaseService } from '../../kernel/database/database.service';
 import { AuthenticatedUser, RoleCode } from '../../kernel/contracts';
 import { hashPassword } from '../../kernel/common/crypto';
@@ -50,7 +51,10 @@ function senhaInicial(): string {
  */
 @Injectable()
 export class StaffService {
-  constructor(@Inject(DatabaseService) private readonly db: DatabaseService) {}
+  constructor(
+    @Inject(DatabaseService) private readonly db: DatabaseService,
+    @Inject(AuditService) private readonly audit: AuditService,
+  ) {}
 
   /** Setores que ESTE usuário pode cadastrar — a tela não oferece o que ele não pode. */
   async setores(user: AuthenticatedUser) {
@@ -78,6 +82,7 @@ export class StaffService {
       transversal: SETORES.find((s) => s.code === r.role)?.transversal ?? false,
       casa: r.house_code,
       casaId: r.house_id,
+      corDaLinha: r.line_color ?? null,
       ativo: r.active,
       ultimoAcesso: r.last_login,
       senhaInicialPendente: r.must_change_password,
@@ -190,4 +195,65 @@ export class StaffService {
       throw e;
     }
   }
+  /** Que cores já estão em uso na casa — para a tela não oferecer o que o
+   *  servidor vai recusar. */
+  async coresEmUso(user: AuthenticatedUser, houseId: string) {
+    return this.db.asUser(user.id, async (c) => {
+      const { rows } = await c.query(`SELECT * FROM app_cores_em_uso($1)`, [houseId]);
+      return rows.map((r) => ({ cor: r.cor, deQuem: r.de_quem, userId: r.user_id }));
+    });
+  }
+
+  /**
+   * A cor da linha de alguém. `cor: null` devolve ao tom automático.
+   *
+   * Quem escolhe é a técnica ou a coordenação, não a própria pessoa: se cada um
+   * escolhesse a sua, o primeiro a entrar levaria o azul e a distinção viraria
+   * ordem de chegada.
+   */
+  async definirCor(user: AuthenticatedUser, id: string, cor: string | null) {
+    let r: any;
+    try {
+      r = await this.db.asUser(user.id, async (c) => {
+        const { rows: [row] } = await c.query(
+          `SELECT * FROM app_definir_cor_da_linha($1,$2)`, [id, cor]);
+        return row;
+      });
+    } catch (e: any) {
+      /*
+       * A frase do banco precisa chegar em PORTUGUÊS a quem clicou.
+       *
+       * Sem esta tradução a recusa voltava 500 "Internal server error": a
+       * coordenação via um erro genérico, tentava outro tom, e o nome de quem
+       * já tem a cor — que é o que torna a recusa útil — morria no log. É a
+       * mesma família de defeito que a auditoria de mensagens corrigiu, e ela
+       * voltou pela porta de uma função nova.
+       */
+      const m = String(e?.message ?? '');
+      const dona = /cor_ja_usada_por_(.+)$/.exec(m);
+      if (dona) {
+        throw new ConflictException(
+          `Esta cor já é de ${dona[1]}. Escolha outra — duas pessoas da mesma casa `
+          + 'não podem ter a mesma cor de linha.');
+      }
+      if (m.includes('sem_permissao_cor')) {
+        throw new ForbiddenException(
+          'Só a equipe técnica ou a coordenação definem a cor da linha de alguém.');
+      }
+      if (m.includes('fora_de_escopo')) {
+        throw new NotFoundException('Pessoa não encontrada nesta casa.');
+      }
+      if (m.includes('ck_app_user_line_color')) {
+        throw new BadRequestException(
+          'Este tom não está na paleta conferida. Escolha um dos oito oferecidos.');
+      }
+      throw e;
+    }
+    await this.audit.log({
+      action: 'staff.line_color', actorId: user.id, institutionId: user.institutionId,
+      entity: 'app_user', entityId: id, detail: { cor },
+    });
+    return { definida: true, cor: r.cor ?? null };
+  }
+
 }

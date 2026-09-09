@@ -82,7 +82,7 @@ interface Plantao {
  * impressão em preto e branco, ao daltonismo nem à luz do corredor (regra 7).
  */
 interface LinhaDaAta {
-  id: string; autorId: string; quem: string; cargo: string | null;
+  id: string; autorId: string; quem: string; cargo: string | null; corAutor?: string | null;
   texto: string; restrita: boolean;
   quando: string; escritaEm: string; propria: boolean;
 }
@@ -201,7 +201,17 @@ const SITUACAO: Record<string, { rotulo: string; tom: string }> = {
  * escreveu: o nome está escrito ao lado.
  */
 const TONS_DE_AUTOR = ['c-brand', 'c-move', 'c-ok', 'c-warn', 'c-info', 'c-other'];
-function tomDoAutor(id: string): string {
+/**
+ * O tom do autor.
+ *
+ * Desde 09/09 a cor pode ser ESCOLHIDA pela coordenação, e aí ela não repete
+ * na casa. Sem escolha, cai no hash de antes — que colide: dois educadores do
+ * mesmo plantão podiam receber o mesmo tom, e a cor parava de distinguir
+ * exatamente onde precisava. Ninguém percebia porque o NOME está escrito ao
+ * lado; era a cor que deixava de ajudar.
+ */
+function tomDoAutor(id: string, escolhida?: string | null): string {
+  if (escolhida) return escolhida;
   let n = 0;
   for (const ch of id) n = (n * 31 + ch.charCodeAt(0)) % 997;
   return TONS_DE_AUTOR[n % TONS_DE_AUTOR.length];
@@ -626,10 +636,10 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
                 )}
                 <div className="stack">
                   {plantao.linhas?.notas.map((n) => (
-                    <article className={`card linha-ata ${tomDoAutor(n.autorId)}${n.restrita ? ' restrita' : ''}`}
+                    <article className={`card linha-ata ${tomDoAutor(n.autorId, n.corAutor)}${n.restrita ? ' restrita' : ''}`}
                              key={n.id}>
                       <div className="row">
-                        <span className={`pill ${tomDoAutor(n.autorId)}`}>{n.quem}</span>
+                        <span className={`pill ${tomDoAutor(n.autorId, n.corAutor)}`}>{n.quem}</span>
                         <span className="mutetxt grow">
                           {cargo(n.cargo ?? '')} · {hhmm(n.quando)}
                         </span>
