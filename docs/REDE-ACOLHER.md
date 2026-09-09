@@ -504,7 +504,8 @@ atomicidade fica no `UPDATE … WHERE status = <esperado>`.
 linhas, e zero se lê como "casa vazia", não como "não é sua". **Zerar não é
 recusar.**
 
-**13. Contagem em teste é RELATIVA ao que já estava no banco.** Tabela
+**13. Suíte que muda estado compartilhado desfaz o que criou, e contagem em
+teste é RELATIVA ao que já estava no banco.** Tabela
 append-only guarda o que as outras suítes deixaram; a linha da própria suíte se
 acha **pela frase que ela escreveu**, nunca pela posição. Uma suíte que contava
 em números absolutos passava sozinha e derrubava uma rodada em três, conforme a
@@ -596,12 +597,18 @@ Escopos transversais são limitados pela **finalidade** do cargo.
 | Líder Diurno | própria casa | plantão ativo | operação + fechamento da ATA |
 | Equipe técnica | própria casa | escala individual | técnica |
 | Coordenação | própria casa | sem limite de horário | gestão integral da casa |
-| Educador volante | própria casa | plantão | operação (o deslocamento é do acolhido, não do educador) |
 | Enfermagem | **8 casas** | escala própria | somente saúde |
 | Líder Noturno Geral | **8 casas** | durante o turno (19h–7h, preliminar) | operacional mínimo |
 | Gestor Geral | **8 casas** (abre 1 por vez, auditado) | sem limite | institucional |
 | Cozinha | — | — | somente o relatório mínimo de alimentação |
 | Admin técnico | infraestrutura | emergencial, temporário, auditado | sem acesso comum ao negócio |
+
+*Os nove acima são os do enum `role_code` (migração 0010). **Não existe
+"educador volante"** — ele foi documentado por engano na matriz antiga, foi
+encontrado pelo ensaio de uso em 31/08, e voltou a aparecer na consolidação de
+09/09 porque foi copiado de um documento em vez de sair do código. É a regra 18
+cobrando pela terceira vez o mesmo pedágio: **cargo, como número, sai do
+`role_code`.***
 
 ### Capacidades por papel
 
@@ -749,6 +756,11 @@ etiqueta, e o nome sempre escrito ao lado. A **linha restrita** à coordenação
 equipe técnica e aos líderes é fechada no banco; quem não a alcança vê quantas
 existem.
 
+**A ATA Geral Noturna não se acha pela data.** Só o Líder Noturno Geral a abre,
+e é abrindo que se descobre o id — nenhum outro cargo chega nela. É limitação
+viva, e é metade da decisão §10.2: perguntar quem lê a ATA Geral de dia é
+perguntar por onde ela seria achada.
+
 Também: ATA por turno (diurna e noturna, cada uma com as suas assinaturas),
 episódios do turno com relato imutável e ciência nominal, **ATA Geral Noturna**
 e o Arquivo das ATAS por dia, semana ou mês. O plantão noturno **pertence ao dia
@@ -763,6 +775,9 @@ ações ("Chegou remédio" soma, "Conferi o armário" substitui e pede motivo);
 esquemas de medicamento (rascunho, na grade, suspenso); suspensão que tira a
 dose da grade **dizendo por quê**; histórico de saúde do acolhido; emissões do
 Resumo.
+
+**Na entrada, a validade que fica é a MAIS PRÓXIMA** entre a que havia e a que
+chegou: lote novo e longo não apaga o lote velho que ainda está na gaveta.
 
 **Estoque baixo é sinalizado à mão, com o nome de quem sinalizou** — não há
 mínimo automático, porque só a equipe sabe o que é pouco em cada caso: dois
@@ -1255,6 +1270,12 @@ justamente para não dependerem do relógio de quem executa — mas o serviço t
 formata datas, e uma diferença de minutos aparece disfarçada de qualquer outra
 coisa: dose "atrasada" que não está, plantão noturno que cai no dia errado, ATA
 que abre duas vezes.
+
+Isto foi medido: com o relógio do processo adiantado em relação ao do banco,
+atravessando a meia-noite, **dezessete testes, em cinco suítes, caem** — `app_hoje()` no SQL
+responde um dia e `hojeNaInstituicao()` no TypeScript responde outro. Não é
+defeito do código; é requisito de implantação. Os números vão por extenso de propósito: escritos em algarismo, o conferidor os lê como afirmação sobre o tamanho da suíte — e está certo em ser burro. Fica escrito porque a falha,
+quando vier, vai parecer qualquer outra coisa.
 
 Ative NTP nos dois. Se só um puder ser confiável, que seja o **banco**.
 
