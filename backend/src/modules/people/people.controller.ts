@@ -113,6 +113,24 @@ export class PeopleController {
     return this.people.registrarRetornoFamiliar(user, id, body?.quando, body?.nota);
   }
 
+  /* ---------------- Sair sozinho (1020) ---------------- */
+
+  @Get('outing-permissions')
+  saidasAObservar(@CurrentUser() user: AuthenticatedUser, @Query('houseId') houseId: string) {
+    return this.people.saidasAObservar(user, houseId);
+  }
+
+  @Get(':id/outing-permission')
+  saidaSozinho(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.people.saidaSozinho(user, id);
+  }
+
+  @Post(':id/outing-permission')
+  definirSaida(@CurrentUser() user: AuthenticatedUser,
+               @Param('id', ParseUUIDPipe) id: string, @Body() body: any) {
+    return this.people.definirSaidaSozinho(user, id, body);
+  }
+
   @Post(':id/readmit')
   readmit(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
           @Body() body: { houseId: string }) {

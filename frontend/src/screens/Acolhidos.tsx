@@ -186,6 +186,18 @@ const dia = (d: string) => {
     : data.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 };
 
+interface SaidaSozinho {
+  personId: string; quem: string; status: string; motivo: string;
+  ate: string | null; aRevisar: boolean;
+}
+
+/** O rótulo que o educador lê às sete da manhã. Nunca um número. */
+const SAIDA_ROTULO: Record<string, { txt: string; tom: string }> = {
+  liberada:    { txt: 'sai sozinho', tom: 'c-ok' },
+  acompanhada: { txt: 'sai acompanhado', tom: 'c-warn' },
+  suspensa:    { txt: 'não sai sozinho', tom: 'c-crit' },
+};
+
 interface Convivencia {
   id: string; personId: string; quem: string; comQuem: string; vinculo: string;
   saiuEm: string; retornoPrevisto: string;
@@ -218,6 +230,9 @@ export function Acolhidos({ houseId, casaLabel, papel }: {
   /* Quem está com a família (1010), e quem já devia ter voltado. */
   const [fora, setFora] = useState<Convivencia[]>([]);
   const [recebendo, setRecebendo] = useState<Convivencia | null>(null);
+  /* Quem sai acompanhado ou não sai. Quem está liberado NÃO vem: a lista
+     inteira todo dia vira paisagem. */
+  const [observar, setObservar] = useState<SaidaSozinho[]>([]);
   const [notaRetorno, setNotaRetorno] = useState('');
 
   const carregar = useCallback(async () => {
@@ -226,6 +241,8 @@ export function Acolhidos({ houseId, casaLabel, papel }: {
       setLista(await api<Resumo[]>(`/people?houseId=${houseId}`));
       /* Falhar aqui não trava a lista: os acolhidos continuam servindo. */
       setFora(await api<Convivencia[]>(`/people/family-stays?houseId=${houseId}`).catch(() => []));
+      setObservar(await api<SaidaSozinho[]>(
+        `/people/outing-permissions?houseId=${houseId}`).catch(() => []));
     }
     catch (e) { setErro(e instanceof Error ? e.message : 'Não foi possível carregar os acolhidos.'); }
   }, [houseId]);
@@ -375,6 +392,40 @@ export function Acolhidos({ houseId, casaLabel, papel }: {
 
       {erro && <div className="notice c-crit" role="alert">{erro}</div>}
       {aviso && <div className="notice c-ok" role="status">{aviso}</div>}
+
+      {/*
+        * SAÍDA SOZINHO (1020) — o que a casa precisa saber de manhã.
+        *
+        * O estado vem com o MOTIVO ao lado, sempre. "Vai acompanhado hoje" sem
+        * o porquê é uma ordem sem explicação, e quem conversa com o
+        * adolescente na porta é o educador.
+        *
+        * Não há pontuação, nem contagem, nem comparação entre crianças: um
+        * número seria comparado mesmo sem tela de ranking, e sobreviveria ao
+        * motivo que o gerou.
+        */}
+      {observar.length > 0 && (
+        <div className="card stack" style={{ marginBottom: 12 }}>
+          <div className="eyebrow">Saídas de hoje — atenção</div>
+          {observar.map((o) => (
+            <div key={o.personId}>
+              <div className="row">
+                <b className="ff grow">{o.quem}</b>
+                <span className={`pill ${SAIDA_ROTULO[o.status]?.tom ?? 'c-mute'}`}>
+                  {SAIDA_ROTULO[o.status]?.txt ?? o.status}
+                </span>
+              </div>
+              <div className="mutetxt">{o.motivo}</div>
+              {o.aRevisar && (
+                <div className="mutetxt">
+                  <b>Combinado revisar até {new Date(o.ate!).toLocaleDateString('pt-BR')}.</b>{' '}
+                  Continua valendo até alguém decidir outra coisa.
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
 
       {/*
         * COM A FAMÍLIA — acolhido em experiência familiar (1010).
@@ -648,6 +699,7 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
         * plantão: quem está com a criança precisa saber quem é a pessoa que
         * apareceu no portão às nove da noite, sem ligar para a técnica.
         */}
+      <SairSozinho perfil={p} papel={papel} onMudou={recarregar} />
       <Contatos perfil={p} papel={papel} onMudou={recarregar} />
 
       {/* A pasta da criança: o que a casa precisa ter, e o álbum dela. */}
@@ -1760,6 +1812,155 @@ function FolhaSaidaFamiliar({ pessoa, contato, onFechar, onRegistrar }: {
         </div>
       </div>
     </div>
+  );
+}
+
+
+/**
+ * SAIR SOZINHO — a decisão, o motivo e o histórico.
+ *
+ * Fica no perfil, junto dos contatos, porque é onde a equipe técnica já
+ * trabalha. O educador não decide: ele LÊ, na lista da casa, de manhã.
+ */
+function SairSozinho({ perfil, papel, onMudou }: {
+  perfil: Perfil; papel: string; onMudou: () => void;
+}) {
+  const [dados, setDados] = useState<{ vigente: any; historico: any[] } | null>(null);
+  const [decidindo, setDecidindo] = useState(false);
+  const [status, setStatus] = useState('liberada');
+  const [motivo, setMotivo] = useState('');
+  const [ate, setAte] = useState('');
+  const [onde, setOnde] = useState('');
+  const [erro, setErro] = useState('');
+  const podeDecidir = ['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(papel);
+
+  const carregar = useCallback(async () => {
+    try { setDados(await api(`/people/${perfil.id}/outing-permission`)); }
+    catch { setDados(null); }
+  }, [perfil.id]);
+  useEffect(() => { carregar(); }, [carregar]);
+
+  async function salvar() {
+    setErro('');
+    try {
+      await api(`/people/${perfil.id}/outing-permission`, {
+        method: 'POST',
+        body: JSON.stringify({ status, motivo: motivo.trim(), ate: ate || null, onde: onde.trim() }),
+      });
+      setDecidindo(false); setMotivo(''); setAte(''); setOnde('');
+      await carregar(); onMudou();
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Não foi possível registrar.');
+    }
+  }
+
+  const v = dados?.vigente;
+  return (
+    <>
+      <div className="eyebrow">Sair sozinho</div>
+      {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+
+      {/* Ausência NÃO é liberação: dizer isso por extenso evita que o silêncio
+          do cadastro seja lido como permissão. */}
+      {!v && (
+        <p className="mutetxt">
+          Sem definição registrada. A casa faz o que sempre fez — isto não é
+          autorização para sair sozinho.
+        </p>
+      )}
+
+      {v && (
+        <div className="card stack">
+          <div className="row">
+            <b className="ff grow">{SAIDA_ROTULO[v.status]?.txt ?? v.status}</b>
+            <span className={`pill ${SAIDA_ROTULO[v.status]?.tom ?? 'c-mute'}`}>
+              desde {new Date(v.desde).toLocaleDateString('pt-BR')}
+            </span>
+          </div>
+          <div>{v.motivo}</div>
+          {v.onde && <div className="mutetxt">Onde: {v.onde}</div>}
+          <div className="mutetxt">Decidido por {v.quem}.</div>
+          {v.ate && (
+            <div className={v.aRevisar ? 'notice c-warn' : 'mutetxt'} role="status">
+              Combinado revisar em {new Date(v.ate).toLocaleDateString('pt-BR')}.
+              {v.aRevisar && ' O prazo chegou — continua valendo até alguém decidir outra coisa.'}
+            </div>
+          )}
+        </div>
+      )}
+
+      {podeDecidir && !decidindo && (
+        <button className="btn sec block" style={{ marginBottom: 12 }}
+                onClick={() => { setStatus(v?.status === 'liberada' ? 'suspensa' : 'liberada'); setDecidindo(true); }}>
+          🚪 Registrar decisão sobre sair sozinho
+        </button>
+      )}
+
+      {decidindo && (
+        <div className="card stack">
+          <label className="f" htmlFor="ss-st">O que vale a partir de agora</label>
+          <select id="ss-st" value={status} onChange={(e) => setStatus(e.target.value)}>
+            <option value="liberada">Sai sozinho</option>
+            <option value="acompanhada">Sai acompanhado</option>
+            <option value="suspensa">Não sai sozinho</option>
+          </select>
+
+          <label className="f" htmlFor="ss-mot">Por quê</label>
+          {/* Motivo exigido inclusive para liberar: "por que ele pode sair
+              sozinho" é decisão tão registrável quanto a outra. */}
+          <textarea id="ss-mot" rows={2} value={motivo}
+                    onChange={(e) => setMotivo(e.target.value)}
+                    placeholder="Ex.: vai e volta da escola sozinho desde março, sem intercorrência." />
+
+          {status !== 'liberada' && (
+            <>
+              <label className="f" htmlFor="ss-ate">Revisar até</label>
+              <input id="ss-ate" type="date" value={ate}
+                     onChange={(e) => setAte(e.target.value)} />
+              <div className="mutetxt">
+                Obrigatório quando não sai sozinho: medida sem prazo vira permanente
+                por esquecimento, e ninguém decidiu que seria permanente.
+              </div>
+            </>
+          )}
+
+          <label className="f" htmlFor="ss-onde">Onde pode ir sozinho (opcional)</label>
+          <input id="ss-onde" value={onde} maxLength={120}
+                 onChange={(e) => setOnde(e.target.value)}
+                 placeholder="Ex.: escola e curso; nada além disso." />
+
+          <div className="row" style={{ gap: 8 }}>
+            <button className="btn sec grow" onClick={() => { setDecidindo(false); setErro(''); }}>
+              Cancelar
+            </button>
+            <button className="btn grow"
+                    disabled={motivo.trim().length < 10 || (status === 'suspensa' && !ate)}
+                    onClick={salvar}>
+              Registrar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* O histórico responde "por que ele perdeu a saída em março". */}
+      {(dados?.historico ?? []).length > 1 && (
+        <details style={{ marginBottom: 12 }}>
+          <summary className="mutetxt">Decisões anteriores</summary>
+          <ul className="lista-seca">
+            {dados!.historico.slice(1).map((h, i) => (
+              <li key={i}>
+                <span className={`pill ${SAIDA_ROTULO[h.status]?.tom ?? 'c-mute'}`}>
+                  {SAIDA_ROTULO[h.status]?.txt ?? h.status}
+                </span>{' '}
+                {new Date(h.de).toLocaleDateString('pt-BR')}
+                {h.ateQuando ? ` a ${new Date(h.ateQuando).toLocaleDateString('pt-BR')}` : ''}
+                {' — '}{h.motivo} <span className="mutetxt">({h.quem})</span>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+    </>
   );
 }
 

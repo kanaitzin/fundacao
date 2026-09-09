@@ -616,6 +616,27 @@ const CORES_DA_LINHA = new Map<string, string>();
  * a primeira saída e vê o estado mudar, em vez de encontrar uma criança já
  * fora sem saber quem a mandou.
  */
+/*
+ * SAIR SOZINHO (1020). Um caso na casa fictícia, porque é o que o Marcelo
+ * descreveu: alguém que precisa ir acompanhado hoje, com o motivo à vista.
+ */
+const SAIDAS_SOZINHO: Record<string, {
+  status: string; motivo: string; onde: string | null; ate: string | null;
+  desde: string; quem: string;
+}[]> = {
+  p3: [{
+    status: 'acompanhada',
+    motivo: 'Medida disciplinar combinada com ele na quinta; vai à escola acompanhado.',
+    onde: 'Escola, acompanhado.',
+    ate: new Date(Date.now() + 11 * 86400_000).toISOString().slice(0, 10),
+    /* `emHoras` é a HORA DO DIA, não um deslocamento: emHoras(72) monta
+       "T72:00:00" e o Date sai inválido — o protótipo inteiro deixava de
+       subir, e nem o tsc nem a suíte veem isso. Quem viu foi o ensaio. */
+    desde: new Date(Date.now() - 3 * 86400_000).toISOString(),
+    quem: 'Fernanda Alves (fictícia)',
+  }],
+};
+
 const CONVIVENCIAS: { id: string; personId: string; quem: string; comQuem: string;
                       vinculo: string; saiuEm: string; retornoPrevisto: string;
                       finalidade: string | null }[] = [];
@@ -4281,6 +4302,51 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       aviso: 'Revise medicamentos, alergias e restrições com a Enfermagem antes de reativá-los.' };
   }
 
+  if (rota.startsWith('/people/outing-permissions')) {
+    const hoje = new Date().toISOString().slice(0, 10);
+    return Object.entries(SAIDAS_SOZINHO).flatMap(([pid, hist]) => {
+      const v = hist[0];
+      /* Quem está simplesmente liberado não volta: a lista inteira todo dia
+         vira paisagem, e o que se ignora deixa de ser aviso. */
+      if (!v || v.status === 'liberada') return [];
+      return [{
+        personId: pid, quem: todosKids().find((k) => k.id === pid)?.nome ?? '—',
+        status: v.status, motivo: v.motivo, ate: v.ate,
+        aRevisar: !!v.ate && v.ate <= hoje,
+      }];
+    });
+  }
+  if (seg[0] === 'people' && seg[2] === 'outing-permission') {
+    const hoje = new Date().toISOString().slice(0, 10);
+    if (metodo === 'GET') {
+      const hist = SAIDAS_SOZINHO[seg[1]] ?? [];
+      const v = hist[0];
+      return {
+        /* `null` = sem definição. Ausência NÃO é liberação. */
+        vigente: v ? { ...v, aRevisar: !!v.ate && v.ate <= hoje } : null,
+        historico: hist.map((h, i) => ({
+          ...h, ateQuando: i === 0 ? null : hist[i - 1].desde,
+        })),
+      };
+    }
+    if (!['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)) {
+      throw new ErroApi(403, 'Só a equipe técnica ou a coordenação decidem sobre sair sozinho.');
+    }
+    if (String(b.motivo ?? '').trim().length < 10) {
+      throw new ErroApi(400, 'Escreva o motivo. Quem for conversar com o adolescente '
+        + 'na porta precisa dele.');
+    }
+    if (b.status === 'suspensa' && !b.ate) {
+      throw new ErroApi(400, 'Escreva até quando. Medida sem prazo vira permanente por '
+        + 'esquecimento — e ninguém decidiu que seria permanente.');
+    }
+    SAIDAS_SOZINHO[seg[1]] = [
+      { status: b.status, motivo: String(b.motivo).trim(), onde: b.onde || null,
+        ate: b.ate || null, desde: new Date().toISOString(), quem: eu.fullName },
+      ...(SAIDAS_SOZINHO[seg[1]] ?? []),
+    ];
+    return { definida: true };
+  }
   if (rota.startsWith('/people/family-stays') && metodo === 'GET') {
     /* O servidor de mentira responde o que o servidor responde: as duas
        janelas de aviso saem do relógio, não de um campo gravado. */

@@ -380,6 +380,83 @@ export class PeopleService {
     });
     return { encerrada: true };
   }
+
+  /* ---------------- Sair sozinho (1020) ---------------- */
+
+  /**
+   * O que a casa precisa ver de manhã: quem vai acompanhado e quem não sai.
+   *
+   * Quem está simplesmente liberado NÃO volta — devolver as vinte crianças
+   * faria a lista virar paisagem, e o que se ignora todo dia deixa de ser
+   * aviso.
+   */
+  async saidasAObservar(user: AuthenticatedUser, houseId: string) {
+    return this.db.asUser(user.id, async (c) => {
+      const { rows } = await c.query(`SELECT * FROM app_saidas_a_observar($1)`, [houseId]);
+      return rows.map((r) => ({
+        personId: r.person_id, quem: r.quem, status: r.status,
+        motivo: r.motivo, ate: r.ate, aRevisar: r.a_revisar === true,
+      }));
+    });
+  }
+
+  async saidaSozinho(user: AuthenticatedUser, personId: string) {
+    return this.db.asUser(user.id, async (c) => {
+      const { rows: [v] } = await c.query(`SELECT * FROM app_saida_sozinho($1)`, [personId]);
+      const { rows: h } = await c.query(
+        `SELECT * FROM app_historico_saida_sozinho($1)`, [personId]);
+      return {
+        /* Ausência NÃO é liberação: `null` diz "sem definição", e a tela
+           escreve isso em vez de desenhar uma permissão que ninguém deu. */
+        vigente: v ? {
+          status: v.status, motivo: v.motivo, onde: v.onde, ate: v.ate,
+          desde: v.desde, quem: v.quem, aRevisar: v.a_revisar === true,
+        } : null,
+        historico: h.map((r) => ({
+          status: r.status, motivo: r.motivo, onde: r.onde, ate: r.ate,
+          de: r.de, ateQuando: r.ateq, quem: r.quem,
+        })),
+      };
+    });
+  }
+
+  async definirSaidaSozinho(user: AuthenticatedUser, personId: string, input: {
+    status: string; motivo: string; ate?: string | null; onde?: string | null;
+  }) {
+    try {
+      await this.db.asUser(user.id, async (c) => {
+        await c.query(`SELECT * FROM app_definir_saida_sozinho($1,$2,$3,$4::date,$5)`,
+          [personId, input.status, input.motivo, input.ate || null, input.onde || null]);
+      });
+    } catch (e: any) {
+      const m = String(e?.message ?? '');
+      if (m.includes('sem_permissao_saida_sozinho')) {
+        throw new ForbiddenException(
+          'Só a equipe técnica ou a coordenação decidem sobre sair sozinho.');
+      }
+      if (m.includes('suspensao_exige_prazo')) {
+        throw new BadRequestException(
+          'Escreva até quando. Medida sem prazo vira permanente por esquecimento — '
+          + 'e ninguém decidiu que seria permanente.');
+      }
+      if (m.includes('prazo_no_passado')) {
+        throw new BadRequestException('O prazo de revisão tem de ser hoje ou depois.');
+      }
+      if (m.includes('motivo_obrigatorio')) {
+        throw new BadRequestException(
+          'Escreva o motivo. Quem for conversar com o adolescente na porta precisa dele.');
+      }
+      if (m.includes('pessoa_fora_de_escopo')) {
+        throw new NotFoundException('Criança não encontrada nesta casa.');
+      }
+      throw e;
+    }
+    await this.audit.log({
+      action: 'outing_permission.set', actorId: user.id, institutionId: user.institutionId,
+      entity: 'person', entityId: personId, detail: { status: input.status },
+    });
+    return { definida: true };
+  }
 }
 
 /** Casa atual — usada para carimbar a auditoria antes de encerrar a permanência. */

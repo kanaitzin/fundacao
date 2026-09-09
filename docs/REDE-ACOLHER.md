@@ -20,7 +20,7 @@ começava escolhendo em qual acreditar.*
 
 | Arquivo | Por que sobreviveu |
 |---|---|
-| `der.md` | as 101 tabelas com o que cada coluna guarda. É referência de dado, não narrativa, e o `documentacao.spec.ts` cobra que toda tabela apareça lá |
+| `der.md` | as 102 tabelas com o que cada coluna guarda. É referência de dado, não narrativa, e o `documentacao.spec.ts` cobra que toda tabela apareça lá |
 | `roteiro-marcelo.md` (+ `.docx`) | é entregue à Casa 03, escrito para quem não conhece o sistema. O `.docx` é GERADO do `.md` por `scripts/roteiro-em-word.mjs` — não editar o Word à mão |
 
 ---
@@ -84,14 +84,14 @@ discordavam entre si.
 | Quanto | De onde sai |
 |---|---|
 | **17 partições** isoladas | pastas em `backend/src/modules/` |
-| **87 migrações** | `.sql` dentro das partições |
-| **101 tabelas** | `CREATE TABLE` nas migrações |
-| **59 suítes** | `backend/test/*.spec.ts` |
-| **576 testes** | `it(` / `test(` nas suítes |
+| **88 migrações** | `.sql` dentro das partições |
+| **102 tabelas** | `CREATE TABLE` nas migrações |
+| **60 suítes** | `backend/test/*.spec.ts` |
+| **584 testes** | `it(` / `test(` nas suítes |
 | **31 telas React** | `frontend/src/screens/*.tsx` |
 | **14 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **6 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
-| protótipo com **≈950 KB** | `prototipo/rede-acolher-prototipo.html` |
+| protótipo com **≈956 KB** | `prototipo/rede-acolher-prototipo.html` |
 
 *A frase importa: o conferidor lê o NÚMERO colado ao substantivo. Escrever
 "Telas React … 31" numa coluna separada faz o teste passar sem conferir nada —
@@ -170,7 +170,7 @@ cd frontend && npm run prototipo
 # sai em prototipo/rede-acolher-prototipo.html
 ```
 
-O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as 87
+O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as 88
 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
 
 ### Os ensaios — e por que cada um existe
@@ -236,7 +236,7 @@ rede-acolher/
 │   │   │   ├── documentos/     o contrato da folha e o gerador de .docx
 │   │   │   └── common/         CPF, criptografia, segredo, fuso da instituição
 │   │   └── modules/       17 partições, cada uma dona das próprias migrações
-│   ├── test/              59 suítes (e2e contra PostgreSQL real + estáticas)
+│   ├── test/              60 suítes (e2e contra PostgreSQL real + estáticas)
 │   ├── scripts/           ensaio-carga.ts, migrador compilado
 │   └── assets/timbre.png  a marca da Fundação, usada no documento em Word
 ├── frontend/
@@ -879,6 +879,32 @@ lembrado do remédio das 20h. O custo — as doses anteriores à chegada, naquel
 dia, reaparecem sem confirmação — é o menor dos dois, e quem fecha o turno
 escreve o que houve.
 
+### 8.7.2 Sair sozinho
+
+Há adolescentes autorizados a ir sozinhos à escola, ao curso, ao trabalho. A
+autorização é um **estado** — sai sozinho, sai acompanhado, não sai sozinho —,
+com motivo, autor e prazo de revisão. Na lista da casa, de manhã, aparece só
+quem **não** está simplesmente liberado, com o motivo escrito ao lado: a lista
+inteira todo dia vira paisagem.
+
+**Não existe pontuação de comportamento** (regra 3), e um teste guarda isso por
+expressão regular para que não volte por uma refatoração. O motivo é prático: o
+número viaja e o motivo fica para trás — daqui a seis meses "40" continua na
+tela e "quebrou a porta três dias depois da visita da mãe que não veio" não
+continua. Duas crianças com dois números na mesma lista já é comparação, mesmo
+sem tela de ranking. E o número tira o autor: "o sistema tirou a saída dele" no
+lugar de "eu decidi, e foi por isso" — e a segunda frase é a que sustenta a
+conversa com o adolescente.
+
+**Ausência não é liberação:** sem registro, a tela escreve "sem definição, a
+casa faz o que sempre fez". **Nada se sobrescreve:** decisão nova encerra a
+anterior, e o histórico responde "por que ele perdeu a saída em março".
+**Suspensão exige prazo**, porque medida sem prazo vira permanente por
+esquecimento. E **o prazo não devolve a autorização sozinho** — vencido, o
+sistema lembra que combinou revisar e mantém o que está valendo. O motivo é
+exigido **inclusive para liberar**: é a decisão que a técnica vai defender numa
+audiência.
+
 ### 8.8 Ocorrências
 
 Categorias; relatos independentes por autor; **registro protegido** (fala
@@ -1270,7 +1296,7 @@ ele continua dizendo que o arquivo existe.
 npm run ensaio:producao
 ```
 
-Constrói, cria um banco virgem, aplica as 87 migrações **pelo binário
+Constrói, cria um banco virgem, aplica as 88 migrações **pelo binário
 compilado**, sobe o serviço e confere `/health`. Não publica nada e não toca no
 banco de trabalho.
 
