@@ -23,7 +23,7 @@
  * primeira correção — e divergiria justamente na demonstração para a equipe.
  * O arquivo é dado puro, sem dependência nenhuma, e por isso atravessa.
  */
-import { SemConexao } from './api';
+import { SemConexao, ErroApi } from './api';
 import { ALCANCE_POR_CARGO } from '../../backend/src/modules/identity/alcance';
 import { TIPOS_OFFLINE, TIPOS_OFFLINE_KINDS } from '../../backend/src/modules/sync/tipos-offline';
 import { cargoNoDocumento, nomeDoArquivo as nomeDaFolha }
@@ -595,7 +595,14 @@ interface Compromisso {
   recorrencia: string; diasSemana: number[]; inicio: string; fim: string | null;
   motivoSemPrazo: string | null; responsavelModo: string; responsavelNome: string | null;
   marcadoPor: string;
+  horaSaida?: string | null;
+  endereco?: string | null;
 }
+
+/* Ocorrências desmarcadas: "compromissoId:data" → motivo. Vive FORA de
+   COMPROMISSOS porque desmarcar uma quarta não altera o combinado. */
+const DESMARCADAS = new Map<string, string>();
+
 let COMPROMISSOS: Compromisso[] = [
   { id: 'c1', tipo: 'saude', titulo: 'Fonoaudiologia', local: 'Clínica Fictícia — Centro',
     personId: 'p11', hora: '15:00', duracaoMin: 45, recorrencia: 'semanal', diasSemana: [2, 4],
@@ -4757,6 +4764,11 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
           tipo: c.tipo, titulo: c.titulo, local: c.local, personId: c.personId,
           pessoa: c.personId ? kid(c.personId)?.nome ?? '—' : 'Casa toda',
           coletivo: !c.personId, recorrencia: c.recorrencia, indeterminado: c.fim === null,
+          horaSaida: c.horaSaida ?? null, endereco: c.endereco ?? null,
+          /* O servidor de mentira responde o que o servidor responde: a
+             ocorrência desmarcada CONTINUA na lista, marcada. */
+          desmarcada: DESMARCADAS.has(`${c.id}:${iso}`),
+          motivoDesmarque: DESMARCADAS.get(`${c.id}:${iso}`) ?? null,
         });
       }
     }
@@ -4782,6 +4794,23 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
             ? ' O responsável recebe isto em "Minhas responsabilidades" no dia.'
             : ' Sem nome: quem estiver no plantão daquele horário assume.'),
     };
+  }
+  if (seg[0] === 'activities' && seg[1] === 'agenda' && seg[3] === 'skip') {
+    if (!['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)) {
+      throw new ErroApi(403, 'Só a equipe técnica ou a coordenação desmarcam um atendimento.');
+    }
+    if (String(b.motivo ?? '').trim().length < 5) {
+      throw new ErroApi(400, 'Escreva o motivo — quem abrir a agenda depois precisa saber por que não houve.');
+    }
+    DESMARCADAS.set(`${seg[2]}:${b.data}`, String(b.motivo).trim());
+    return { desmarcada: true, atividadeCancelada: b.data === HOJE };
+  }
+  if (seg[0] === 'activities' && seg[1] === 'agenda' && seg[3] === 'unskip') {
+    if (!['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)) {
+      throw new ErroApi(403, 'Só a equipe técnica ou a coordenação remarcam um atendimento.');
+    }
+    DESMARCADAS.delete(`${seg[2]}:${b.data}`);
+    return { remarcada: true };
   }
   if (seg[0] === 'activities' && seg[1] === 'agenda' && seg[3] === 'cancel') {
     COMPROMISSOS = COMPROMISSOS.filter((c) => c.id !== seg[2]);

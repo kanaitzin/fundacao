@@ -55,6 +55,24 @@ export class ActivitiesController {
     return this.agenda.gerarDoDia(user, body.houseId, body.date);
   }
 
+  /**
+   * Desmarcar UMA ocorrência — sem cancelar a série.
+   *
+   * Duas rotas e não uma com booleano: desmarcar exige motivo e remarcar não,
+   * e uma rota que às vezes exige e às vezes não é uma rota que se erra.
+   */
+  @Post('agenda/:id/skip')
+  desmarcar(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string,
+            @Body() body: { data: string; motivo: string }) {
+    return this.agenda.desmarcarOcorrencia(user, id, body?.data, body?.motivo ?? '');
+  }
+
+  @Post('agenda/:id/unskip')
+  remarcar(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string,
+           @Body() body: { data: string }) {
+    return this.agenda.remarcarOcorrencia(user, id, body?.data);
+  }
+
   @Post('agenda/:id/cancel')
   encerrar(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
            @Body() body: { motivo: string }) {

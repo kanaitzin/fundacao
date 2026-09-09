@@ -606,7 +606,7 @@ desenvolvimento** (fase 15): a criança não é só o que deu problema. Sala de
 recursos, curso, aprendizagem e a evolução escrita pela equipe entram no
 documento que segue para a audiência e para a escola.
 
-## Inventário — 98 tabelas por partição
+## Inventário — 99 tabelas por partição
 
 | Partição | Tabelas |
 |---|---|
@@ -615,7 +615,7 @@ documento que segue para a audiência e para a escola.
 | shifts (11) | shift, handover, handover_receipt, handover_note, ata, ata_note, ata_addendum, ata_episode, ata_episode_ack, general_night_ata, general_night_house_entry |
 | incidents (7) | incident, incident_person, incident_protected, incident_restraint, incident_synthesis, external_communication, incident_attachment |
 | medications (9) | prescription, medication_schedule, medication_administration, medication_stock, medication_stock_movement, medication_protocol, medication_authorization, medication_protocol_change, prescription_restriction_change |
-| activities (6) | activity, activity_assignment, activity_acknowledgement, activity_execution, substitution_request, commitment |
+| activities (7) | activity, activity_assignment, activity_acknowledgement, activity_execution, substitution_request, commitment, commitment_exception |
 | nursing (10) | health_encounter, health_evolution, nursing_triage, health_summary_issue, education_support, education_evolution, hospitalization, hospitalization_note, hospitalization_medication, hospitalization_companion |
 | reports (6) | followup, followup_source, report_document, report_delivery, export_log, life_milestone |
 | checks (4) | collective_check, check_result, check_result_amendment, check_bulk |
@@ -628,3 +628,21 @@ documento que segue para a audiência e para a escola.
 
 Cada partição guarda as próprias migrações. Remover um módulo é remover a
 pasta dele — e é por isso que a lista acima é por partição, e não por assunto.
+
+### `commitment_exception`
+Uma ocorrência desmarcada de um compromisso que continua valendo. Por DATA, com
+motivo e autor. Não apaga nada: a agenda continua mostrando o dia, marcado.
+
+| Coluna | Tipo | Observação |
+|---|---|---|
+| `id` | uuid | |
+| `commitment_id` | uuid | o compromisso que continua vigente |
+| `house_id` | uuid | |
+| `on_date` | date | o dia desmarcado |
+| `reason` | text | mínimo 5 caracteres — quem abrir a agenda depois precisa saber |
+| `created_at` / `created_by` | | |
+| `undone_at` / `undone_by` | | desfazer não apaga a linha: encerra-a |
+
+Índice único parcial por `(commitment_id, on_date) WHERE undone_at IS NULL`:
+uma exceção vigente por data, e o histórico das anteriores fica.
+

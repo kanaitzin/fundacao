@@ -60,10 +60,12 @@ export interface NovoCompromisso {
   personId?: string | null;      // ausente = coletivo
   tipo: string;
   titulo: string;
-  local?: string;
+  local?: string;                // o NOME do lugar: "UBS Bom Jesus"
+  endereco?: string;             // o ENDEREÇO: o que se digita no aplicativo do ônibus
   orientacoes?: string;
   inicio: string;                // YYYY-MM-DD
-  hora: string;                  // HH:MM
+  hora: string;                  // HH:MM — a hora de ESTAR no local
+  horaSaida?: string;            // HH:MM — a hora de SAIR da casa
   duracaoMin?: number;
   recorrencia: string;
   diasSemana?: number[];
@@ -178,16 +180,18 @@ export class AgendaService {
                                  start_date, time_of_day, duration_min, recurrence, weekdays,
                                  end_date, open_ended_reason, requires_ack,
                                  responsible_mode, responsible_id, responsible_note,
+                                 leave_time, address,
                                  created_by, updated_by)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11::smallint[],$12,$13,$14,$15,$16,$17,
-                 app_current_user(), app_current_user())
+                 $18,$19, app_current_user(), app_current_user())
          RETURNING id`,
         [input.houseId, input.personId ?? null, input.tipo, input.titulo.trim(),
          input.local ?? null, input.orientacoes ?? null, input.inicio, input.hora,
          input.duracaoMin ?? null, input.recorrencia, dias, fim,
          fim ? null : input.motivoSemPrazo!.trim(), input.exigeCiencia ?? true,
          modo, modo === 'pessoa' ? input.responsavelId : null,
-         input.observacaoResponsavel ?? null]);
+         input.observacaoResponsavel ?? null,
+         input.horaSaida ?? null, input.endereco?.trim() || null]);
       return row;
     }).catch((e: any) => {
       const m = String(e?.message ?? '');
@@ -196,6 +200,10 @@ export class AgendaService {
       }
       if (m.includes('ck_commitment_indeterminado')) {
         throw new BadRequestException('Sem data para terminar, o motivo é obrigatório.');
+      }
+      if (m.includes('ck_commitment_saida_antes')) {
+        throw new BadRequestException(
+          'A hora de sair tem de ser antes da hora de estar no local.');
       }
       if (m.includes('ck_commitment_semanal')) {
         throw new BadRequestException('Escolha os dias da semana.');
@@ -262,6 +270,12 @@ export class AgendaService {
       duracaoMin: r.duracao, tipo: r.tipo, titulo: r.titulo, local: r.local,
       personId: r.person_id, pessoa: r.coletivo ? 'Casa toda' : r.pessoa,
       coletivo: r.coletivo, recorrencia: r.recorrencia, indeterminado: r.indeterminado,
+      /* A ocorrência desmarcada CONTINUA na lista, marcada. Some-la esconderia
+         que o atendimento estava previsto e não aconteceu. */
+      horaSaida: r.hora_saida ? String(r.hora_saida).slice(0, 5) : null,
+      endereco: r.endereco,
+      desmarcada: r.desmarcada === true,
+      motivoDesmarque: r.motivo_desmarque,
     }));
   }
 
@@ -271,6 +285,7 @@ export class AgendaService {
       const { rows } = await c.query(
         `SELECT c.id, c.kind, c.title, c.place, c.start_date, c.end_date, c.time_of_day,
                 c.duration_min, c.recurrence, c.weekdays, c.open_ended_reason,
+                c.leave_time, c.address,
                 c.person_id, app_person_display_name(c.person_id) AS pessoa,
                 c.responsible_mode, c.responsible_note,
                 app_user_display_name(c.responsible_id) AS responsavel,
@@ -286,6 +301,8 @@ export class AgendaService {
       inicio: r.start_date, fim: r.end_date, indeterminado: r.end_date === null,
       motivoSemPrazo: r.open_ended_reason,
       hora: String(r.time_of_day).slice(0, 5), duracaoMin: r.duration_min,
+      horaSaida: r.leave_time ? String(r.leave_time).slice(0, 5) : null,
+      endereco: r.address,
       recorrencia: r.recurrence, diasSemana: r.weekdays,
       responsavel: r.responsible_mode === 'pessoa' ? r.responsavel : 'Plantão do horário',
       responsavelNomeado: r.responsible_mode === 'pessoa',
@@ -338,4 +355,38 @@ export class AgendaService {
       aviso: 'Compromisso encerrado. O que já aconteceu continua na linha do tempo; o que estava marcado para a frente saiu da agenda.',
     };
   }
+  /**
+   * Desmarcar UMA ocorrência — a quarta em que a psicóloga desmarcou.
+   *
+   * Não cancela a série: o acompanhamento continua valendo na semana que vem.
+   * A data desmarcada continua aparecendo na agenda, com o motivo ao lado.
+   */
+  async desmarcarOcorrencia(
+    user: AuthenticatedUser, compromissoId: string, data: string, motivo: string) {
+    const r = await this.db.asUser(user.id, async (c) => {
+      const { rows: [row] } = await c.query(
+        `SELECT * FROM app_desmarcar_ocorrencia($1,$2::date,$3)`,
+        [compromissoId, data, motivo]);
+      return row;
+    });
+    await this.audit.log({
+      action: 'commitment.skip', actorId: user.id, institutionId: user.institutionId,
+      entity: 'commitment', entityId: compromissoId,
+      detail: { em: data, atividadeCancelada: r.atividade_cancelada },
+    });
+    return { desmarcada: true, atividadeCancelada: r.atividade_cancelada === true };
+  }
+
+  /** Desfaz o desmarque — a psicóloga remarcou para a mesma quarta. */
+  async remarcarOcorrencia(user: AuthenticatedUser, compromissoId: string, data: string) {
+    await this.db.asUser(user.id, async (c) => {
+      await c.query(`SELECT * FROM app_remarcar_ocorrencia($1,$2::date)`, [compromissoId, data]);
+    });
+    await this.audit.log({
+      action: 'commitment.unskip', actorId: user.id, institutionId: user.institutionId,
+      entity: 'commitment', entityId: compromissoId, detail: { em: data },
+    });
+    return { remarcada: true };
+  }
+
 }

@@ -20,7 +20,7 @@ começava escolhendo em qual acreditar.*
 
 | Arquivo | Por que sobreviveu |
 |---|---|
-| `der.md` | as 98 tabelas com o que cada coluna guarda. É referência de dado, não narrativa, e o `documentacao.spec.ts` cobra que toda tabela apareça lá |
+| `der.md` | as 99 tabelas com o que cada coluna guarda. É referência de dado, não narrativa, e o `documentacao.spec.ts` cobra que toda tabela apareça lá |
 | `roteiro-marcelo.md` (+ `.docx`) | é entregue à Casa 03, escrito para quem não conhece o sistema. O `.docx` é GERADO do `.md` por `scripts/roteiro-em-word.mjs` — não editar o Word à mão |
 
 ---
@@ -84,14 +84,14 @@ discordavam entre si.
 | Quanto | De onde sai |
 |---|---|
 | **17 partições** isoladas | pastas em `backend/src/modules/` |
-| **83 migrações** | `.sql` dentro das partições |
-| **98 tabelas** | `CREATE TABLE` nas migrações |
-| **55 suítes** | `backend/test/*.spec.ts` |
-| **546 testes** | `it(` / `test(` nas suítes |
+| **84 migrações** | `.sql` dentro das partições |
+| **99 tabelas** | `CREATE TABLE` nas migrações |
+| **56 suítes** | `backend/test/*.spec.ts` |
+| **554 testes** | `it(` / `test(` nas suítes |
 | **31 telas React** | `frontend/src/screens/*.tsx` |
 | **14 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **6 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
-| protótipo com **≈932 KB** | `prototipo/rede-acolher-prototipo.html` |
+| protótipo com **≈936 KB** | `prototipo/rede-acolher-prototipo.html` |
 
 *A frase importa: o conferidor lê o NÚMERO colado ao substantivo. Escrever
 "Telas React … 31" numa coluna separada faz o teste passar sem conferir nada —
@@ -170,7 +170,7 @@ cd frontend && npm run prototipo
 # sai em prototipo/rede-acolher-prototipo.html
 ```
 
-O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as 83
+O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as 84
 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
 
 ### Os ensaios — e por que cada um existe
@@ -236,7 +236,7 @@ rede-acolher/
 │   │   │   ├── documentos/     o contrato da folha e o gerador de .docx
 │   │   │   └── common/         CPF, criptografia, segredo, fuso da instituição
 │   │   └── modules/       17 partições, cada uma dona das próprias migrações
-│   ├── test/              55 suítes (e2e contra PostgreSQL real + estáticas)
+│   ├── test/              56 suítes (e2e contra PostgreSQL real + estáticas)
 │   ├── scripts/           ensaio-carga.ts, migrador compilado
 │   └── assets/timbre.png  a marca da Fundação, usada no documento em Word
 ├── frontend/
@@ -724,6 +724,20 @@ Chamadas coletivas com conferência de mesa; **painel do plantão** (quem está 
 quê agora); delegação e substituição, que são coisas diferentes — delegar é
 passar adiante, substituição é quem vai sair pedindo.
 
+**Desmarcar uma data sem cancelar a série.** O acompanhamento da Ana é toda
+semana; numa semana a psicóloga desmarcou. A exceção é por data, com motivo e
+autor, e **o dia continua aparecendo na agenda**, marcado como desmarcado —
+sumir esconderia que o atendimento estava previsto e não aconteceu, e no mês
+seguinte a ausência viraria esquecimento. A lista do turno não cria a
+atividade daquele dia; remarcar desfaz sem apagar a linha. Desmarcam a equipe
+técnica e a coordenação: o líder e a Enfermagem encerram a série, mas
+desmarcar um atendimento é reorganizar o plano da criança.
+
+**A hora de sair, a hora de estar lá, e o endereço.** A consulta é às 14h; a
+casa sai às 13h, e entre as duas cabe o trânsito. O educador olha a hora de
+sair. O endereço vem separado do nome do lugar, porque "UBS Bom Jesus" não se
+digita no aplicativo do ônibus.
+
 ### 8.4 A escala de plantão
 
 A coordenação monta por **dia e turno**, com hora quando o plantão não é o
@@ -1185,7 +1199,7 @@ ele continua dizendo que o arquivo existe.
 npm run ensaio:producao
 ```
 
-Constrói, cria um banco virgem, aplica as 83 migrações **pelo binário
+Constrói, cria um banco virgem, aplica as 84 migrações **pelo binário
 compilado**, sobe o serviço e confere `/health`. Não publica nada e não toca no
 banco de trabalho.
 

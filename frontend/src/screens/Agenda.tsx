@@ -32,6 +32,8 @@ interface Ocorrencia {
   tipo: string; titulo: string; local: string | null;
   personId: string | null; pessoa: string; coletivo: boolean;
   recorrencia: string; indeterminado: boolean;
+  horaSaida: string | null; endereco: string | null;
+  desmarcada: boolean; motivoDesmarque: string | null;
 }
 interface Vigente {
   id: string; tipo: string; titulo: string; local: string | null;
@@ -46,6 +48,12 @@ interface Profissional { id: string; nome: string; cargo: string; naEscala: bool
 
 /** Quem marca (§7). A tela não oferece o botão a quem o servidor vai recusar. */
 const QUEM_MARCA = ['lider_diurno', 'equipe_tecnica', 'coordenador', 'gestor_geral', 'enfermagem'];
+/*
+ * Desmarcar UMA data é mais estreito que marcar: o líder e a enfermagem
+ * encerram a série, mas não desmarcam a quarta da Ana. Desmarcar um
+ * atendimento é reorganizar o plano da criança, e isso é da técnica.
+ */
+const QUEM_DESMARCA = ['equipe_tecnica', 'coordenador', 'gestor_geral'];
 
 const hoje = () => new Intl.DateTimeFormat('en-CA',
   { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' })
@@ -67,10 +75,13 @@ export function Agenda({ houseId, papel }: { houseId: string; papel: string }) {
   const [pessoas, setPessoas] = useState<Pessoa[]>([]);
   const [marcando, setMarcando] = useState(false);
   const [encerrando, setEncerrando] = useState<Vigente | null>(null);
+  const [desmarcando, setDesmarcando] = useState<Ocorrencia | null>(null);
+  const [motivoDesmarque, setMotivoDesmarque] = useState('');
   const [erro, setErro] = useState('');
   const [aviso, setAviso] = useState('');
 
   const podeMarcar = QUEM_MARCA.includes(papel);
+  const podeDesmarcar = QUEM_DESMARCA.includes(papel);
 
   const carregar = useCallback(async () => {
     setErro('');
@@ -95,6 +106,37 @@ export function Agenda({ houseId, papel }: { houseId: string; papel: string }) {
       } catch { /* a tela de leitura funciona sem as listas do formulário */ }
     })();
   }, [houseId]);
+
+  /**
+   * Desmarcar UMA ocorrência. Não encerra o compromisso: o acompanhamento
+   * continua valendo na semana que vem, e a data desmarcada continua na tela.
+   */
+  async function desmarcar(o: Ocorrencia, motivo: string) {
+    setErro(''); setAviso('');
+    try {
+      await api(`/activities/agenda/${o.compromissoId}/skip`, {
+        method: 'POST', body: JSON.stringify({ data: o.em, motivo }),
+      });
+      setDesmarcando(null); setMotivoDesmarque('');
+      setAviso('Desmarcado só neste dia. O compromisso continua valendo nas próximas datas.');
+      await carregar();
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Não foi possível desmarcar.');
+    }
+  }
+
+  async function remarcar(o: Ocorrencia) {
+    setErro(''); setAviso('');
+    try {
+      await api(`/activities/agenda/${o.compromissoId}/unskip`, {
+        method: 'POST', body: JSON.stringify({ data: o.em }),
+      });
+      setAviso('Remarcado. Volta a aparecer na lista do dia.');
+      await carregar();
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Não foi possível remarcar.');
+    }
+  }
 
   async function encerrar(c: Vigente, motivo: string) {
     setErro(''); setAviso('');
@@ -158,8 +200,11 @@ export function Agenda({ houseId, papel }: { houseId: string; papel: string }) {
               <div className="eyebrow">{diaLongo(d)}</div>
               <ol className="doses">
                 {itens.map((o) => (
-                  <li key={`${o.compromissoId}:${o.em}`}>
-                    <span className="hora">{o.hora}</span>
+                  <li key={`${o.compromissoId}:${o.em}`}
+                      style={o.desmarcada ? { background: 'var(--sunken)' } : undefined}>
+                    {/* O desmarcado recua pelo FUNDO, nunca por opacidade: a
+                        lição de contraste de 02/09 vale aqui também. */}
+                    <span className="hora">{o.horaSaida ?? o.hora}</span>
                     <div className="grow">
                       <b className="ff">{o.titulo}</b>
                       <div className="mutetxt">
@@ -167,10 +212,37 @@ export function Agenda({ houseId, papel }: { houseId: string; papel: string }) {
                         {o.local ? ` · ${o.local}` : ''}
                         {o.duracaoMin ? ` · ${o.duracaoMin} min` : ''}
                       </div>
-                      {o.indeterminado && (
+                      {o.horaSaida && (
+                        <div className="mutetxt">
+                          Sair {o.horaSaida} · estar lá {o.hora}
+                          {o.endereco ? ` · ${o.endereco}` : ''}
+                        </div>
+                      )}
+                      {!o.horaSaida && o.endereco && (
+                        <div className="mutetxt">{o.endereco}</div>
+                      )}
+                      {o.desmarcada && (
+                        <div className="estado">
+                          <span className="pill c-crit">desmarcado</span>
+                          <span className="mutetxt"> {o.motivoDesmarque}</span>
+                        </div>
+                      )}
+                      {o.indeterminado && !o.desmarcada && (
                         <div className="estado">
                           <span className="pill c-mute">sem data para terminar</span>
                         </div>
+                      )}
+                      {podeDesmarcar && !o.desmarcada && (
+                        <button className="btn sec sm" style={{ marginTop: 6 }}
+                                onClick={() => { setDesmarcando(o); setMotivoDesmarque(''); }}>
+                          Desmarcar este dia
+                        </button>
+                      )}
+                      {podeDesmarcar && o.desmarcada && (
+                        <button className="btn sec sm" style={{ marginTop: 6 }}
+                                onClick={() => remarcar(o)}>
+                          Remarcar
+                        </button>
                       )}
                     </div>
                   </li>
@@ -235,6 +307,12 @@ export function Agenda({ houseId, papel }: { houseId: string; papel: string }) {
         />
       )}
 
+      {desmarcando && (
+        <FolhaDesmarcar ocorrencia={desmarcando}
+                        motivo={motivoDesmarque} setMotivo={setMotivoDesmarque}
+                        onFechar={() => setDesmarcando(null)}
+                        onDesmarcar={() => desmarcar(desmarcando, motivoDesmarque.trim())} />
+      )}
       {encerrando && (
         <FolhaEncerrar compromisso={encerrando}
                        onFechar={() => setEncerrando(null)}
@@ -509,6 +587,44 @@ function FolhaMarcar({ houseId, opcoes, pessoas, onFechar, onPronto }: {
 }
 
 /** Encerrar pede motivo: o compromisso some da agenda, o registro dele não. */
+/**
+ * Desmarcar UM dia.
+ *
+ * A folha diz, com todas as letras, que o compromisso continua — porque a
+ * confusão entre "desmarquei a quarta" e "cancelei o acompanhamento" é a que
+ * apaga um combinado que ninguém pediu para apagar.
+ */
+function FolhaDesmarcar({ ocorrencia, motivo, setMotivo, onFechar, onDesmarcar }: {
+  ocorrencia: { titulo: string; em: string; pessoa: string };
+  motivo: string; setMotivo: (v: string) => void;
+  onFechar: () => void; onDesmarcar: () => void;
+}) {
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-desmarcar"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet">
+        <h3 id="t-desmarcar">Desmarcar “{ocorrencia.titulo}”</h3>
+        <p className="mutetxt">
+          {diaLongo(ocorrencia.em)} · {ocorrencia.pessoa}. <b>Só neste dia</b> — o
+          compromisso continua valendo nas próximas datas, e este dia continua
+          aparecendo na agenda, marcado como desmarcado.
+        </p>
+        <label className="f" htmlFor="mot-desm">Por quê</label>
+        <textarea id="mot-desm" rows={2} value={motivo}
+                  onChange={(e) => setMotivo(e.target.value)}
+                  placeholder="Ex.: a psicóloga desmarcou; remarcado para a próxima semana." />
+        <div className="row" style={{ gap: 8, marginTop: 16 }}>
+          <button type="button" className="btn sec grow" onClick={onFechar}>Cancelar</button>
+          <button type="button" className="btn grow" disabled={motivo.trim().length < 5}
+                  onClick={onDesmarcar}>
+            Desmarcar este dia
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function FolhaEncerrar({ compromisso, onFechar, onEncerrar }: {
   compromisso: Vigente; onFechar: () => void; onEncerrar: (motivo: string) => void;
 }) {
