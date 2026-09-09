@@ -612,7 +612,22 @@ desenvolvimento** (fase 15): a criança não é só o que deu problema. Sala de
 recursos, curso, aprendizagem e a evolução escrita pela equipe entram no
 documento que segue para a audiência e para a escola.
 
-## Inventário — 99 tabelas por partição
+### `statement_request`
+A cobrança de relato aberta quando uma ocorrência grave nasce. Guarda
+entity/entity_id genéricos como o próprio relato — é isso que permite remover
+`incidents` sem levar as cobranças junto.
+
+| Coluna | Tipo | Observação |
+|---|---|---|
+| `user_id` | uuid | de quem se cobra |
+| `prompt` | text | a pergunta objetiva que a pessoa lê; **não descreve o fato** |
+| `origem` | text | `escala` ou `vinculo` — de onde saiu a lista. Sem escala montada, o sistema DIZ que caiu no vínculo em vez de fingir que sabe |
+| `answered_at` / `statement_id` | | atendida por GATILHO no insert do relato, porque o relato entra também pela fila offline |
+
+Índice único por `(entity, entity_id, user_id)`: reabrir a ocorrência não
+duplica a cobrança de quem já respondeu.
+
+## Inventário — 100 tabelas por partição
 
 | Partição | Tabelas |
 |---|---|
@@ -629,7 +644,7 @@ documento que segue para a audiência e para a escola.
 | archive (2) | archive_item, archive_attempt |
 | alignments (3) | team_meeting, team_agreement, agreement_change |
 | routine (2) | routine_version, routine_item |
-| statements (2) | witness_option, statement |
+| statements (3) | witness_option, statement, statement_request |
 | sync (2) | offline_operation, sync_conflict |
 
 Cada partição guarda as próprias migrações. Remover um módulo é remover a

@@ -129,6 +129,19 @@ const dia = (iso: string) => new Date(iso).toLocaleDateString('pt-BR',
 
 const ANALISA = ['equipe_tecnica', 'coordenador', 'gestor_geral'];
 
+interface Cobranca {
+  id: string; casaId: string; contexto: string; entidade: string;
+  entidadeId: string; pergunta: string; abertaEm: string;
+}
+interface Falta {
+  userId: string; quem: string; respondeu: boolean;
+  quando: string | null; origem: string;
+}
+
+/** Quem enxerga quem ainda não escreveu — decisão do Marcelo em 09/09. */
+const VE_QUEM_FALTA = ['equipe_tecnica', 'coordenador', 'lider_diurno',
+                       'lider_noturno_geral', 'gestor_geral'];
+
 export function Ocorrencias({ houseId, papel }: { houseId: string; papel: string }) {
   const [lista, setLista] = useState<ItemLista[]>([]);
   const [catalogo, setCatalogo] = useState<Catalogo | null>(null);
@@ -153,6 +166,9 @@ export function Ocorrencias({ houseId, papel }: { houseId: string; papel: string
   const [anexoAberto, setAnexoAberto] = useState<{ nome: string; referencia: string } | null>(null);
   const [aberta, setAberta] = useState<string | null>(null);
   const [encerrando, setEncerrando] = useState<ItemLista | null>(null);
+  /* As cobranças de relato: as MINHAS, e quem falta em cada ocorrência. */
+  const [cobrancas, setCobrancas] = useState<Cobranca[]>([]);
+  const [quemFalta, setQuemFalta] = useState<Record<string, Falta[]>>({});
 
   async function carregar() {
     setErro('');
@@ -164,6 +180,9 @@ export function Ocorrencias({ houseId, papel }: { houseId: string; papel: string
         api<OpcaoTestemunho[]>('/statements/options').catch(() => [] as OpcaoTestemunho[]),
       ]);
       setLista(o); setCatalogo(c); setPessoas(p); setTestemunhos(t);
+      /* Falhar aqui não pode travar a tela: as ocorrências continuam servindo
+         mesmo que a cobrança não carregue. */
+      setCobrancas(await api<Cobranca[]>('/statements/requests').catch(() => []));
       // Detalhes já abertos são recarregados: o que a tela mostra continua
       // sendo o que o servidor devolve agora, não o que devolveu antes.
       const abertos = Object.keys(detalhes);
@@ -181,6 +200,21 @@ export function Ocorrencias({ houseId, papel }: { houseId: string; papel: string
   useEffect(() => { carregar(); }, [houseId]);
 
   /** `recarregar` traz o detalhe de novo depois de escrever nele. */
+  /**
+   * Quem já escreveu e quem falta.
+   *
+   * Carregado ao abrir o detalhe, não na lista: a lista mostra dezenas de
+   * ocorrências, e uma consulta por linha para saber quem falta em cada uma
+   * seria o custo por linha que a regra 15 existe para evitar.
+   */
+  async function carregarQuemFalta(id: string) {
+    if (!VE_QUEM_FALTA.includes(papel)) return;
+    try {
+      const faltas = await api<Falta[]>(`/statements/requests/incident/${id}`);
+      setQuemFalta((q) => ({ ...q, [id]: faltas }));
+    } catch { /* fora do alcance: a tela simplesmente não mostra a seção */ }
+  }
+
   async function abrirDetalhe(id: string, recarregar = false) {
     if (!recarregar) {
       if (aberta === id) { setAberta(null); return; }
@@ -190,6 +224,7 @@ export function Ocorrencias({ houseId, papel }: { houseId: string; papel: string
     try {
       const d = await api<Detalhe>(`/incidents/${id}`);
       setDetalhes((m) => ({ ...m, [id]: d }));
+      await carregarQuemFalta(id);
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Não foi possível abrir a ocorrência.');
     }
@@ -221,6 +256,39 @@ export function Ocorrencias({ houseId, papel }: { houseId: string; papel: string
   return (
     <>
       {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+
+      {/*
+        * O QUE FALTA VOCÊ ESCREVER.
+        *
+        * Primeiro na tela, antes da lista: a cobrança sobrevive ao turno em
+        * que nasceu, e quem chega de manhã precisa ver isto antes de tudo.
+        * A pergunta NÃO descreve o fato — quem precisa do fato abre a
+        * ocorrência; quem só vai dizer que não estava lá não deve receber o
+        * relato de um episódio grave num aviso.
+        */}
+      {cobrancas.length > 0 && (
+        <div className="notice c-warn" role="status">
+          <b>Falta o seu relato</b>
+          <ul style={{ margin: '8px 0 0', paddingLeft: 18 }}>
+            {cobrancas.map((k) => (
+              <li key={k.id} style={{ marginBottom: 6 }}>
+                {k.pergunta}{' '}
+                <button className="btn sm ghost"
+                        onClick={() => {
+                          const alvo = lista.find((o) => o.id === k.entidadeId);
+                          if (alvo) { setRelatando(alvo); } else { abrirDetalhe(k.entidadeId); }
+                        }}>
+                  Responder
+                </button>
+              </li>
+            ))}
+          </ul>
+          <div className="mutetxt" style={{ marginTop: 6 }}>
+            Se você não presenciou, marque “Não presenciei” — declarar isso é
+            responder, e fica registrado com o seu nome.
+          </div>
+        </div>
+      )}
       {aviso && (
         <div className="notice c-ok" role="status">
           {aviso}
@@ -386,6 +454,35 @@ export function Ocorrencias({ houseId, papel }: { houseId: string; papel: string
                   ))}
                   {d.relatos.relatos.length === 0 && (
                     <p className="mutetxt" style={{ margin: 0 }}>Nenhum relato escrito ainda.</p>
+                  )}
+
+                  {/*
+                    * QUEM JÁ ESCREVEU E QUEM FALTA.
+                    *
+                    * Nome e estado, NUNCA o texto de ninguém: a política do par
+                    * continua valendo. Quem organiza o turno precisa saber quem
+                    * falta, não o que os outros escreveram.
+                    */}
+                  {(quemFalta[d.id] ?? []).length > 0 && (
+                    <>
+                      <div className="eyebrow">Quem foi chamado a relatar</div>
+                      {quemFalta[d.id][0].origem === 'vinculo' && (
+                        <p className="mutetxt" style={{ margin: '0 0 6px' }}>
+                          Não havia escala montada para o dia — a lista saiu de quem
+                          trabalha nesta casa, e pode incluir quem estava de folga.
+                        </p>
+                      )}
+                      <ul className="lista-seca">
+                        {quemFalta[d.id].map((f) => (
+                          <li key={f.userId}>
+                            <span className={`pill ${f.respondeu ? 'c-ok' : 'c-warn'}`}>
+                              {f.respondeu ? 'escreveu' : 'falta'}
+                            </span>{' '}
+                            {f.quem}
+                          </li>
+                        ))}
+                      </ul>
+                    </>
                   )}
                   {/*
                     * RELATO INDEPENDENTE (§12.2). Cada pessoa escreve o que

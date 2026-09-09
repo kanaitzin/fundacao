@@ -20,7 +20,7 @@ começava escolhendo em qual acreditar.*
 
 | Arquivo | Por que sobreviveu |
 |---|---|
-| `der.md` | as 99 tabelas com o que cada coluna guarda. É referência de dado, não narrativa, e o `documentacao.spec.ts` cobra que toda tabela apareça lá |
+| `der.md` | as 100 tabelas com o que cada coluna guarda. É referência de dado, não narrativa, e o `documentacao.spec.ts` cobra que toda tabela apareça lá |
 | `roteiro-marcelo.md` (+ `.docx`) | é entregue à Casa 03, escrito para quem não conhece o sistema. O `.docx` é GERADO do `.md` por `scripts/roteiro-em-word.mjs` — não editar o Word à mão |
 
 ---
@@ -84,14 +84,14 @@ discordavam entre si.
 | Quanto | De onde sai |
 |---|---|
 | **17 partições** isoladas | pastas em `backend/src/modules/` |
-| **85 migrações** | `.sql` dentro das partições |
-| **99 tabelas** | `CREATE TABLE` nas migrações |
-| **57 suítes** | `backend/test/*.spec.ts` |
-| **562 testes** | `it(` / `test(` nas suítes |
+| **86 migrações** | `.sql` dentro das partições |
+| **100 tabelas** | `CREATE TABLE` nas migrações |
+| **58 suítes** | `backend/test/*.spec.ts` |
+| **569 testes** | `it(` / `test(` nas suítes |
 | **31 telas React** | `frontend/src/screens/*.tsx` |
 | **14 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **6 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
-| protótipo com **≈940 KB** | `prototipo/rede-acolher-prototipo.html` |
+| protótipo com **≈943 KB** | `prototipo/rede-acolher-prototipo.html` |
 
 *A frase importa: o conferidor lê o NÚMERO colado ao substantivo. Escrever
 "Telas React … 31" numa coluna separada faz o teste passar sem conferir nada —
@@ -170,7 +170,7 @@ cd frontend && npm run prototipo
 # sai em prototipo/rede-acolher-prototipo.html
 ```
 
-O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as 85
+O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as 86
 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
 
 ### Os ensaios — e por que cada um existe
@@ -236,7 +236,7 @@ rede-acolher/
 │   │   │   ├── documentos/     o contrato da folha e o gerador de .docx
 │   │   │   └── common/         CPF, criptografia, segredo, fuso da instituição
 │   │   └── modules/       17 partições, cada uma dona das próprias migrações
-│   ├── test/              57 suítes (e2e contra PostgreSQL real + estáticas)
+│   ├── test/              58 suítes (e2e contra PostgreSQL real + estáticas)
 │   ├── scripts/           ensaio-carga.ts, migrador compilado
 │   └── assets/timbre.png  a marca da Fundação, usada no documento em Word
 ├── frontend/
@@ -855,6 +855,21 @@ próprios; síntese técnica; comunicação externa registrada — nunca enviada
 sistema. Caso de medicamento **não fecha sem síntese**, e a ordem é primeiro a
 etapa operacional, depois a análise.
 
+**A cobrança de relato.** Ao abrir ocorrência de violência ou suspeita,
+conflito com agressão, contenção, erro de medicamento ou emergência de saúde, o
+sistema pede o relato a **quem estava escalado naquele dia** — não a quem tem
+vínculo com a casa. Sem escala montada ele **declara** que caiu no vínculo, em
+vez de fingir que sabe quem estava lá. A pergunta é objetiva e **não descreve o
+fato**: quem só vai dizer que não estava lá não deve receber o episódio inteiro
+num aviso. Quem não viu marca "Não presenciei" num toque — e isso **é
+responder**: fica relato com autor e horário, porque a diferença entre "não vi
+nada" e "ninguém perguntou" é toda a diferença seis meses depois. Qualquer
+pessoa pode acrescentar relato depois, cobrada ou não: a criança às vezes conta
+dias depois. Equipe técnica, líder e coordenação veem **quem escreveu e quem
+falta** — nome e estado, nunca o texto de ninguém; entre pares isso viraria
+pressão de colega, e o relato tem de nascer do que a pessoa viu. **Quem marca a
+categoria é quem abre:** o sistema não decide sozinho o que é grave.
+
 ### 8.9 Documentos
 
 Dossiê do acolhido em cinco categorias com anexo real, prévia antes de enviar e
@@ -1223,7 +1238,7 @@ ele continua dizendo que o arquivo existe.
 npm run ensaio:producao
 ```
 
-Constrói, cria um banco virgem, aplica as 85 migrações **pelo binário
+Constrói, cria um banco virgem, aplica as 86 migrações **pelo binário
 compilado**, sobe o serviço e confere `/health`. Não publica nada e não toca no
 banco de trabalho.
 

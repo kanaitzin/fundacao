@@ -607,6 +607,24 @@ const DESMARCADAS = new Map<string, string>();
    tom automático — que é como o sistema se comportava antes da 0990. */
 const CORES_DA_LINHA = new Map<string, string>();
 
+/* As cobranças de relato de uma ocorrência grave já aberta na casa fictícia:
+   quatro pessoas do turno, duas ainda sem escrever. */
+const COBRANCAS: { id: string; incidentId: string; userId: string; quem: string;
+                   pergunta: string; abertaEm: string; respondida: boolean;
+                   origem: 'escala' | 'vinculo' }[] = [
+  /* A ocorrência 'o2' é erro de medicamento — categoria que cobra relato.
+     Joana já escreveu; Mário e Tainá ainda não. */
+  { id: 'k1', incidentId: 'o2', userId: 'u6', quem: 'Joana Lima (fictícia)',
+    pergunta: 'Houve erro de medicamento na casa no seu turno. Você presenciou alguma coisa?',
+    abertaEm: emHoras(20, 10), respondida: true, origem: 'escala' },
+  { id: 'k2', incidentId: 'o2', userId: 'u1', quem: 'Mário Silva (fictício)',
+    pergunta: 'Houve erro de medicamento na casa no seu turno. Você presenciou alguma coisa?',
+    abertaEm: emHoras(20, 10), respondida: false, origem: 'escala' },
+  { id: 'k3', incidentId: 'o2', userId: 'u7', quem: 'Tainá Souza (fictícia)',
+    pergunta: 'Houve erro de medicamento na casa no seu turno. Você presenciou alguma coisa?',
+    abertaEm: emHoras(20, 10), respondida: false, origem: 'escala' },
+];
+
 let COMPROMISSOS: Compromisso[] = [
   { id: 'c1', tipo: 'saude', titulo: 'Fonoaudiologia', local: 'Clínica Fictícia — Centro',
     personId: 'p11', hora: '15:00', duracaoMin: 45, recorrencia: 'semanal', diasSemana: [2, 4],
@@ -2820,6 +2838,32 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
    * e num caso de proteção a diferença entre elas é o dado.
    */
   if (rota === '/statements/options') return OPCOES_TESTEMUNHO;
+  /*
+   * AS COBRANÇAS DE RELATO (1000).
+   *
+   * O servidor de mentira responde o que o servidor responde: a cobrança é do
+   * educador que estava no turno, e some quando ele escreve — inclusive quando
+   * o que ele escreve é "Não presenciei".
+   */
+  if (rota === '/statements/requests') {
+    return COBRANCAS
+      .filter((k) => k.userId === eu.id && !k.respondida)
+      .map((k) => ({
+        id: k.id, casaId: CASA.id, contexto: 'ocorrencia',
+        entidade: 'incident', entidadeId: k.incidentId,
+        pergunta: k.pergunta, abertaEm: k.abertaEm,
+      }));
+  }
+  if (seg[0] === 'statements' && seg[1] === 'requests' && seg[2] === 'incident') {
+    if (!['equipe_tecnica', 'coordenador', 'lider_diurno', 'lider_noturno_geral',
+          'gestor_geral'].includes(eu.role)) {
+      throw new ErroApi(403, 'Só quem organiza o turno vê quem ainda não relatou.');
+    }
+    return COBRANCAS.filter((k) => k.incidentId === seg[3]).map((k) => ({
+      userId: k.userId, quem: k.quem, respondeu: k.respondida,
+      quando: k.respondida ? k.abertaEm : null, origem: k.origem,
+    }));
+  }
 
   if (rota === '/statements' && metodo === 'POST') {
     const op = OPCOES_TESTEMUNHO.find((o) => o.code === String(b.witness ?? ''));

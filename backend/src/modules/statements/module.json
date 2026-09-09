@@ -1,9 +1,18 @@
 {
   "name": "statements",
   "descricao": "Relatos independentes (§12.2, §13.4): o que cada profissional presenciou, imutável e atribuído, com narrativa pessoal invisível a colegas.",
-  "depends": ["identity"],
-  "publica": ["StatementsModule", "StatementsService"],
-  "tabelas": ["statement", "witness_option"],
+  "depends": [
+    "identity"
+  ],
+  "publica": [
+    "StatementsModule",
+    "StatementsService"
+  ],
+  "tabelas": [
+    "statement",
+    "witness_option",
+    "statement_request"
+  ],
   "removivel": true,
-  "observacao": "Não referencia plantão nem ocorrência: guarda entity/entityId genéricos. A regra 'par não lê narrativa pessoal' mora aqui, uma vez só, e vale nos dois domínios. Leitura excepcional do Gestor Geral só pelo comando app_read_statement, com finalidade registrada."
+  "observacao": "Não referencia plantão nem ocorrência: guarda entity/entityId genéricos. A regra 'par não lê narrativa pessoal' mora aqui, uma vez só, e vale nos dois domínios. Leitura excepcional do Gestor Geral só pelo comando app_read_statement, com finalidade registrada. A cobrança de relato (statement_request) guarda entity/entityId genéricos como o próprio relato: é isso que permite remover `incidents` sem levar as cobranças junto. Ela é atendida por GATILHO no insert do relato, e não pelo serviço, porque o relato entra também pela fila offline — fechar no serviço deixaria a cobrança aberta justamente para quem escreveu sem sinal."
 }

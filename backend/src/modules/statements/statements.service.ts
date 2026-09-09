@@ -181,4 +181,33 @@ export class StatementsService {
       return r.n as number;
     });
   }
+  /** O que ESTA pessoa precisa responder — a cobrança que sobra do turno. */
+  async minhasCobrancas(user: AuthenticatedUser) {
+    return this.db.asUser(user.id, async (c) => {
+      const { rows } = await c.query(`SELECT * FROM app_minhas_cobrancas()`);
+      return rows.map((r) => ({
+        id: r.id, casaId: r.house_id, contexto: r.context,
+        entidade: r.entity, entidadeId: r.entity_id,
+        pergunta: r.prompt, abertaEm: r.opened_at,
+      }));
+    });
+  }
+
+  /**
+   * Quem já respondeu e quem falta, numa ocorrência.
+   *
+   * Devolve NOME e ESTADO, nunca o texto de ninguém: quem organiza o turno
+   * precisa saber quem falta, não o que os outros escreveram.
+   */
+  async cobrancasDa(user: AuthenticatedUser, entidade: string, entidadeId: string) {
+    return this.db.asUser(user.id, async (c) => {
+      const { rows } = await c.query(
+        `SELECT * FROM app_cobrancas_da_ocorrencia($1,$2)`, [entidade, entidadeId]);
+      return rows.map((r) => ({
+        userId: r.user_id, quem: r.quem, respondeu: r.respondeu,
+        quando: r.quando, origem: r.origem,
+      }));
+    });
+  }
+
 }

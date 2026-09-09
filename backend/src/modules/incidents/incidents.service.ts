@@ -97,6 +97,32 @@ const PROIBIDO_NO_NOME = [
  * qualquer coisa para fora da instituição. Ele registra, avisa quem tem função
  * de agir e mantém o que foi escrito exatamente como foi escrito.
  */
+/**
+ * As categorias que COBRAM relato de quem estava no turno.
+ *
+ * São as quatro que já não se encerram sem validação técnica, mais o conflito
+ * com agressão. Fora delas, a cobrança gastaria atenção onde não muda nada — e
+ * cobrança que se ignora uma vez se ignora sempre.
+ *
+ * Quem marca a categoria é quem abre. O sistema não decide sozinho o que é
+ * grave (regra 3).
+ */
+const COBRA_RELATO = new Set([
+  'violencia_ou_suspeita', 'conflito_agressao', 'contencao',
+  'erro_medicamento', 'emergencia_saude',
+]);
+
+/**
+ * A pergunta que a pessoa lê.
+ *
+ * Objetiva, como a equipe técnica pediu: quem não viu marca "Não presenciei"
+ * num toque e segue o turno. A frase não descreve o fato — quem precisa do
+ * fato abre a ocorrência; quem só vai dizer que não estava lá não deve receber
+ * o relato de um episódio grave numa notificação.
+ */
+const perguntaDoRelato = (categoria: string) =>
+  `Houve ${categoria.toLowerCase()} na casa no seu turno. Você presenciou alguma coisa?`;
+
 @Injectable()
 export class IncidentsService {
   constructor(
@@ -176,6 +202,26 @@ export class IncidentsService {
            VALUES ($1,$2,$3,$4,$5,$6)`,
           [novoId, input.houseId, input.falaEspontanea ?? null,
            input.sinaisObservados ?? null, user.id, input.saude ?? false]);
+      }
+      /*
+       * COBRAR O RELATO DE QUEM ESTAVA NO TURNO (1000).
+       *
+       * Só nas categorias que já não fecham sem revisão técnica, mais o
+       * conflito com agressão: são os episódios em que a técnica vai conversar
+       * com o adolescente, e para isso precisa do relato de todas as partes
+       * antes — pedido dela em 09/09.
+       *
+       * Fora dessas, cobrar relato de seis pessoas por uma desorganização
+       * relevante gastaria a cobrança onde ela não muda nada, e a próxima
+       * seria ignorada junto.
+       *
+       * Dentro da MESMA transação da abertura: ocorrência aberta sem cobrança
+       * é a falha silenciosa que este trecho existe para impedir.
+       */
+      if (COBRA_RELATO.has(input.categoria)) {
+        await c.query(
+          `SELECT * FROM app_cobrar_relatos($1,'ocorrencia','incident',$2,$3,$4::timestamptz)`,
+          [input.houseId, novoId, perguntaDoRelato(cat.label), input.quando]);
       }
       return novoId;
     }).catch((e: any) => {
