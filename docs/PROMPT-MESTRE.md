@@ -116,7 +116,7 @@ não me peça para reexplicar o que está lá.
   não desvie a tarefa sem falar.
 - Se algum arquivo do repositório mudar sem você ter mudado, me avise.
 
-=== ESTADO ATUAL (08/09/2026) ===
+=== ESTADO ATUAL (09/09/2026) ===
 
 Fases 0 a 75. 542 testes em 55 suítes, sem falha conhecida. A última
 verificação inteira foi em 09/09/2026, depois da fase 75: tsc nos dois lados, a
@@ -148,6 +148,24 @@ quantas entraram e saíram, e o que aconteceu de bom (passou de ano, curso
 profissionalizante, faculdade, primeiro emprego), com trajetória por criança e
 relatório em Word, da Fundação ou de uma casa só. As casas saem na ordem do
 CADASTRO e nunca por resultado: comparar casas seria ranking com outro nome.
+
+Em 08/09 a Fundação respondeu quatro perguntas grandes, e três fases saíram
+delas: QUEM DÁ O REMÉDIO (a Enfermagem das 9h às 17h, o educador de plantão
+fora disso, exceção por medicamento com motivo escrito, e a passagem lendo as
+doses de volta); a ESCALA DE PLANTÃO por data, porque uma 12x36 não cabe numa
+semana, com repetição, turno sem ninguém à vista e folha para a parede; e a ATA
+QUE A PRÓXIMA EQUIPE LÊ, com o turno anterior aberto para todos, cada linha com
+autor e cor, e a linha restrita fechada no banco — com a contagem para quem não
+a lê.
+
+Em 09/09 a fase 75 não construiu nada novo: procurou defeito de propósito, cargo
+por cargo, e achou sete. O mais caro: a dose chegava à linha do tempo do
+educador SEM BOTÃO — o servidor mandava `medication.confirm` e a tela não sabia
+o que era, e a tela de Saúde não está no alcance do cargo dele. Outras quatro
+ações estavam mudas do mesmo jeito. Duas verificações nasceram disso: "ação sem
+botão" (dentro de rotas-sem-porta) e a varredura-de-cargos (todos os cargos
+contra todas as rotas de leitura; nada devolve 500) — foi ela que expôs que a
+COZINHA nunca havia logado, porque o cargo não tinha usuário no seed.
 
 E de 04 a 08/09 foram sete fases de robustez, todas achando defeito real:
 o sistema passou a subir COMPILADO (o `dist/` saía sem migração nenhuma); o
@@ -207,6 +225,23 @@ etiqueta — nunca no texto, e o nome sempre escrito ao lado; e existe a LINHA
 RESTRITA à coordenação, à equipe técnica e aos líderes, fechada no BANCO. Quem
 não a alcança vê a CONTAGEM ("há 1 observação restrita"), e não o texto — é o
 precedente do §13.7, e está anotado no roteiro do Marcelo como pergunta.
+
+E EM 09/09 A CAÇA A DEFEITO. Não construí nada novo: percorri cada cargo
+apertando os botões até o fim e varri o servidor cargo a cargo. Sete achados. O
+principal desfaz um silêncio caro: a decisão de 08/09 diz que a dose "aparece
+automaticamente na linha do tempo dos educadores", e ela aparecia — SEM BOTÃO.
+O servidor mandava a ação `medication.confirm` desde a fase 12 e a tela do Dia
+não sabia o que era; a tela de Saúde, onde o botão existe, não está no alcance
+do cargo. Às 22h ele veria o remédio e não teria por onde dizer que deu. Outras
+quatro ações estavam mudas do mesmo jeito ("Abrir chamada", "Assinar minha
+passagem", "Ver ATA", "Abrir ocorrência"). O protótipo escondia isso por estar
+errado ao contrário — mandava `activity.record` para dose e desenhava "Concluí"
+em cima de um remédio. Também apareceram: a COZINHA, que nunca havia logado
+(cargo sem usuário no seed, e o teste do relatório dela rodava com o token da
+coordenação); a rota `/medications` escrita duas vezes no protótipo, comendo o
+⚠ de alergia ao lado da dose; e botões que o servidor recusa oferecidos ao
+Gestor e à técnica. Duas verificações novas guardam isso: "ação sem botão"
+(dentro do rotas-sem-porta) e a varredura-de-cargos.
 
 O grupo 1 do levantamento — o que a educadora precisa fazer às 23h — está
 VAZIO: tudo tem porta. Das 34 rotas que existiam sem tela em 01/09, restam 14
