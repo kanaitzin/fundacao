@@ -142,7 +142,7 @@ const SEM_TELA_DE_PROPOSITO: Record<string, string> = {
     + 'migração de dados da implantação.',
   'PATCH /shifts/general-ata/:id/house/:houseId':
     'Correção da linha de uma casa na ATA Geral. Espera a decisão institucional sobre '
-    + 'quem lê a ATA Geral de dia (§7.2 do RETOMAR-AQUI) — sem ela, não se sabe quem '
+    + 'quem lê a ATA Geral de dia (§10.2 do REDE-ACOLHER) — sem ela, não se sabe quem '
     + 'deveria ter o botão.',
   'POST /followups/:id/sources':
     'Escolha das fontes do acompanhamento. É a decisão de produto §7.7, em aberto: de '

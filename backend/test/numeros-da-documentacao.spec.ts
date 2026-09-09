@@ -35,14 +35,21 @@ const MODULES = join(__dirname, '..', 'src', 'modules');
 const TEST = __dirname;
 const DOCS = join(RAIZ, 'docs');
 
-/** Os três documentos VIVOS — os que alguém lê para retomar ou para implantar. */
-const DOCUMENTOS = ['RETOMAR-AQUI.md', 'PROMPT-MESTRE.md', 'implantacao.md'];
+/**
+ * O documento VIVO. Desde 09/09/2026 é UM só: os dezesseis arquivos de
+ * retomada viraram `REDE-ACOLHER.md`, e os antigos foram para
+ * `docs/historico/`.
+ */
+const DOCUMENTOS = ['REDE-ACOLHER.md'];
 
 /*
- * O `CONTINUIDADE.md` e o `backlog.md` ficam de fora de propósito: eles são
- * registro histórico, e a frase "107 telas em 02/09" continua verdadeira
- * depois de a tela 108 nascer. Reescrever história para o teste passar seria
- * apagar o que cada fase encontrou.
+ * `docs/historico/` fica de fora de propósito: é registro histórico, e a frase
+ * "107 telas em 02/09" continua verdadeira depois de a tela 108 nascer.
+ * Reescrever história para o teste passar seria apagar o que cada fase
+ * encontrou. O `historico/LEIA-ANTES.md` diz isso a quem abrir a pasta.
+ *
+ * E o `roteiro-marcelo.md` também: ele é escrito para a Casa 03, não afirma
+ * número de migração nenhum, e o `.docx` ao lado é gerado dele.
  */
 
 function arquivosSql(): string[] {
@@ -98,6 +105,32 @@ function rotasSemPorta(): number {
   const src = readFileSync(join(TEST, 'rotas-sem-porta.spec.ts'), 'utf8');
   const bloco = src.slice(src.indexOf('SEM_TELA_DE_PROPOSITO'), src.indexOf('describe('));
   return (bloco.match(/^\s*'(?:GET|POST|PUT|PATCH|DELETE) [^']+':/gm) ?? []).length;
+}
+
+/** As partições de domínio. O `arquitetura-modular.md` dizia dezesseis com dezessete no código. */
+function particoes(): number {
+  return readdirSync(MODULES).filter((m) => existsSync(join(MODULES, m, 'module.json'))).length;
+}
+
+/**
+ * Os ensaios de NAVEGADOR — os scripts `ensaio*` do frontend.
+ *
+ * Dois documentos diziam "sete" onde há seis, e o número passou por duas fases
+ * assim: ninguém conta scripts de package.json à mão duas vezes.
+ */
+function ensaiosDeNavegador(): number {
+  const pkg = JSON.parse(readFileSync(join(RAIZ, 'frontend', 'package.json'), 'utf8'));
+  return Object.keys(pkg.scripts ?? {}).filter((s) => s === 'ensaio' || s.startsWith('ensaio:')).length;
+}
+
+/**
+ * As tarefas do roteiro do Marcelo, contadas pelo mesmo lugar que o
+ * `ensaio-roteiro.mjs` percorre. O documento dizia 28 com 29 no código — e
+ * este é um número que vai para a mão da equipe da Casa 03.
+ */
+function tarefasDoRoteiro(): number {
+  const src = readFileSync(join(RAIZ, 'frontend', 'ensaio-roteiro.mjs'), 'utf8');
+  return (src.match(/^ {4}cargo: /gm) ?? []).length;
 }
 
 function protótipoEmKB(): number {
@@ -163,6 +196,45 @@ describe('Os números da documentação', () => {
 
   it('as rotas sem porta', () => {
     expect(conferir(/(\d+) rotas sem porta/g, rotasSemPorta())).toEqual([]);
+  });
+
+  it('as partições', () => {
+    expect(conferir(/(\d+) partições/g, particoes())).toEqual([]);
+  });
+
+  it('os ensaios de navegador', () => {
+    expect(conferir(/(\d+) ensaios de navegador/g, ensaiosDeNavegador())).toEqual([]);
+  });
+
+  it('as tarefas do roteiro', () => {
+    expect(conferir(/(\d+) tarefas/g, tarefasDoRoteiro())).toEqual([]);
+  });
+
+  /*
+   * O CONFERIDOR PRECISA TER LIDO ALGUMA COISA.
+   *
+   * Cada afirmação acima passa vazia se o documento não contiver a frase — e um
+   * conferidor que passa por não ter encontrado nada é o mesmo defeito que ele
+   * existe para pegar. Em 09/09 foi exatamente isso: o documento escrevia
+   * "Telas React | 31" numa tabela de duas colunas, o regex procura o número
+   * COLADO ao substantivo, não achou, e o teste passou com o número errado
+   * escrito em outra seção.
+   */
+  it('cada número que se cobra aparece de fato no documento', () => {
+    const texto = readFileSync(join(DOCS, DOCUMENTOS[0]), 'utf8').replace(/\s+/g, ' ');
+    const exigidos: [string, RegExp][] = [
+      ['migrações', /\d+ migrações/],
+      ['tabelas', /\d+ tabelas/],
+      ['suítes', /\d+ suítes/],
+      ['testes', /\d+ testes/],
+      ['telas React', /\d+ telas React/],
+      ['rotas sem porta', /\d+ rotas sem porta/],
+      ['partições', /\d+ partições/],
+      ['ensaios de navegador', /\d+ ensaios de navegador/],
+      ['tarefas', /\d+ tarefas/],
+      ['tamanho do protótipo', /[~≈] ?\d{3,4} KB/],
+    ];
+    expect(exigidos.filter(([, r]) => !r.test(texto)).map(([nome]) => nome)).toEqual([]);
   });
 
   it('o tamanho do protótipo', () => {

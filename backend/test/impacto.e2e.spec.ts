@@ -192,7 +192,7 @@ describe('Painel de impacto — o trabalho social nas oito casas', () => {
      * Uma visão de impacto que abrisse o prontuário viraria outra coisa. Saúde,
      * ocorrência e conteúdo judicial ficam nas telas do caso, com quem cuida
      * dele — e o que o Gestor Geral vê antes de abrir um relato restrito é
-     * uma decisão institucional ainda em aberto (§7.6 do RETOMAR-AQUI).
+     * uma decisão institucional ainda em aberto (§10.6 do REDE-ACOLHER).
      */
     /*
      * A varredura é sobre os DADOS, e não sobre o aviso — a primeira versão
