@@ -89,6 +89,44 @@ const ICONE: Record<string, string> = {
   chamada: '✅', plantao: '🔁', ocorrencia: '⚠️', saude: '🩺',
 };
 
+/**
+ * A CATEGORIA do evento — pedido da Fundação em 09/09.
+ *
+ * O dia inteiro numa lista cinza obriga a ler título por título para saber se
+ * a tarde foi de escola ou de consulta. A categoria pinta a borda esquerda e
+ * dá a leitura de relance: "hoje teve muita saúde".
+ *
+ * O ESTADO continua na pílula, e não muda de canal. São duas perguntas
+ * diferentes — "isto é o quê" e "isto ainda exige alguma coisa de mim" — e
+ * quem faz a segunda às 23h não pode ter de desempatar um matiz só.
+ *
+ * Oito categorias para os oito matizes da paleta. As quatro que o Marcelo
+ * nomeou (saúde, educação, lazer, atendimento médico) estão separadas; o resto
+ * da rotina da casa fica junto em ardósia, porque colorir 'acordar' e 'banho'
+ * com tons próprios gastaria a distinção onde ela não decide nada.
+ *
+ * Categoria desconhecida cai em rotina — nunca em branco. Uma borda sem cor no
+ * meio de uma lista colorida se lê como "esta não importa".
+ */
+const CATEGORIA: { classe: string; rotulo: string; kinds: string[] }[] = [
+  { classe: 'cat-saude', rotulo: 'Saúde',
+    kinds: ['saude', 'consulta', 'tratamento', 'internacao'] },
+  { classe: 'cat-medicamento', rotulo: 'Medicamento', kinds: ['medicamento'] },
+  { classe: 'cat-educacao', rotulo: 'Educação',
+    kinds: ['escola', 'curso', 'contraturno', 'educacao', 'documentacao'] },
+  { classe: 'cat-lazer', rotulo: 'Lazer e atividade',
+    kinds: ['lazer', 'esporte', 'atividade', 'visita'] },
+  { classe: 'cat-alimentacao', rotulo: 'Alimentação', kinds: ['refeicao'] },
+  { classe: 'cat-saida', rotulo: 'Saída', kinds: ['saida'] },
+  { classe: 'cat-ocorrencia', rotulo: 'Ocorrência', kinds: ['ocorrencia'] },
+  { classe: 'cat-rotina', rotulo: 'Rotina da casa',
+    kinds: ['rotina', 'acordar', 'higiene', 'banho', 'sono', 'chamada', 'plantao', 'outro'] },
+];
+const POR_KIND = new Map(
+  CATEGORIA.flatMap((c) => c.kinds.map((k) => [k, c] as const)));
+const ROTINA = CATEGORIA[CATEGORIA.length - 1];
+const categoriaDe = (kind: string) => POR_KIND.get(kind) ?? ROTINA;
+
 const hhmm = (iso: string) => new Date(iso).toLocaleTimeString('pt-BR',
   { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' });
 
@@ -352,15 +390,35 @@ export function Dia({ houseId, casaLabel, papel, irPara }: {
       )}
 
       {filtro !== 'os20' && (
+      <>
+      {(() => {
+        /* A legenda mostra só as categorias que o DIA tem. Uma legenda fixa de
+           oito itens ensina a ignorá-la; uma que muda com o dia se lê. */
+        const presentes = CATEGORIA.filter((c) => eventos.some((e) => categoriaDe(e.kind) === c));
+        return presentes.length > 1 ? (
+          <div className="legenda">
+            {presentes.map((c) => (
+              <span key={c.classe} className={`item ${c.classe}`}>
+                <span className="ponto" aria-hidden="true" />
+                {c.rotulo}
+              </span>
+            ))}
+          </div>
+        ) : null;
+      })()}
       <ol className="linha">
         {eventos.map((ev) => (
-          <li key={ev.id} className={`ev ${FINALIZADOS.has(ev.state) ? 'feito' : ''}`}>
+          <li key={ev.id}
+              className={`ev ${categoriaDe(ev.kind).classe} ${FINALIZADOS.has(ev.state) ? 'feito' : ''}`}>
             <div className="hora">{hhmm(ev.at)}</div>
             <div className="corpo">
               <div className="tit">
                 <span aria-hidden="true" className="ic">{ICONE[ev.kind] ?? '•'}</span>
                 <b className="ff">{ev.title}</b>
               </div>
+              {/* A categoria por EXTENSO. A borda colorida é o atalho; esta
+                  linha é o que sobra na impressão em preto e branco. */}
+              <div className="catrot">{categoriaDe(ev.kind).rotulo}</div>
               <div className="mutetxt">
                 {ev.personName ?? 'Casa toda'}
                 {ev.responsible ? ` · ${ev.responsible}` : ''}
@@ -490,6 +548,7 @@ export function Dia({ houseId, casaLabel, papel, irPara }: {
           </li>
         ))}
       </ol>
+      </>
       )}
 
       {/*

@@ -479,6 +479,47 @@ select:focus, .logincard input:focus{ outline:2px solid var(--brand); outline-of
 .linha .ev{
   display:grid; grid-template-columns:56px 1fr; gap:10px; align-items:start;
   background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:12px;
+  /* A CATEGORIA pinta a borda esquerda; o ESTADO continua na pílula.
+     São dois canais porque são duas perguntas: "isto é o quê" e "isto ainda
+     exige alguma coisa de mim". Um matiz só teria de responder as duas, e às
+     23h ninguém decodifica cor ambígua. */
+  border-left:5px solid var(--cat, var(--line));
+}
+
+/* ---------------------------------------------------------------
+   As oito categorias da linha do tempo.
+
+   Reaproveitam a paleta viva — nenhum matiz novo. Os nove tons já passaram
+   pelo axe-core nos três fundos claros e no tema escuro, e cor inventada para
+   uma tela só é cor que ninguém volta a conferir.
+
+   O matiz é decoração: NADA depende dele. Cada evento traz o nome da
+   categoria escrito ao lado do ícone, e a legenda repete a correspondência
+   por extenso. Cor não sobrevive à impressão em preto e branco nem ao
+   daltonismo.
+   --------------------------------------------------------------- */
+.cat-saude       { --cat: var(--pink);    }
+.cat-medicamento { --cat: var(--violet);  }
+.cat-educacao    { --cat: var(--blue);    }
+.cat-lazer       { --cat: var(--emerald); }
+.cat-alimentacao { --cat: var(--amber);   }
+.cat-saida       { --cat: var(--cyan);    }
+.cat-ocorrencia  { --cat: var(--red);     }
+.cat-rotina      { --cat: var(--slate);   }
+
+.catrot{
+  font-family:"Plus Jakarta Sans",sans-serif; font-weight:700; font-size:11.5px;
+  letter-spacing:.02em; text-transform:uppercase; color:var(--muted);
+}
+.legenda{
+  display:flex; flex-wrap:wrap; gap:6px 14px; align-items:center;
+  padding:10px 12px; margin-bottom:10px;
+  background:var(--sunken); border-radius:var(--r-md);
+}
+.legenda .item{ display:inline-flex; align-items:center; gap:6px; font-size:12.5px; color:var(--ink-2) }
+.legenda .ponto{
+  width:12px; height:12px; border-radius:3px; flex:none;
+  background:var(--cat, var(--line));
 }
 
 .linha .hora{

@@ -91,7 +91,7 @@ discordavam entre si.
 | **31 telas React** | `frontend/src/screens/*.tsx` |
 | **14 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **6 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
-| protótipo com **≈936 KB** | `prototipo/rede-acolher-prototipo.html` |
+| protótipo com **≈937 KB** | `prototipo/rede-acolher-prototipo.html` |
 
 *A frase importa: o conferidor lê o NÚMERO colado ao substantivo. Escrever
 "Telas React … 31" numa coluna separada faz o teste passar sem conferir nada —
@@ -375,6 +375,18 @@ problemática".
 **Nada depende apenas de cor.** Todo estado traz rótulo textual; a cor por autor
 na ATA vem sempre com o nome escrito ao lado, porque cor não sobrevive à
 impressão em preto e branco nem ao daltonismo.
+
+**Dois canais na linha do tempo.** A **categoria** pinta a borda esquerda do
+evento; o **estado** continua na pílula. São duas perguntas diferentes — "isto
+é o quê" e "isto ainda exige alguma coisa de mim" — e quem faz a segunda às 23h
+não pode ter de desempatar um matiz só. As oito categorias (Saúde, Medicamento,
+Educação, Lazer e atividade, Alimentação, Saída, Ocorrência, Rotina da casa)
+reaproveitam a paleta viva: nenhum matiz novo, porque cor inventada para uma
+tela só é cor que ninguém volta a conferir. Cada evento traz o nome da
+categoria **escrito** abaixo do título, e a legenda mostra só as categorias que
+aquele dia tem — legenda fixa de oito itens ensina a ignorá-la. Categoria
+desconhecida cai em "Rotina da casa", nunca em branco: borda sem cor no meio de
+uma lista colorida lê-se como "esta não importa".
 
 **A tinta institucional**, extraída do logo da Fundação:
 
