@@ -291,6 +291,14 @@ export class MedicationsService {
         `SELECT a.id, a.scheduled_at, a.state, a.note, a.administered_at, a.offline,
                 a.person_id, coalesce(nullif(p.social_name,''), p.full_name) AS pessoa,
                 pr.medication, pr.dose, pr.route, pr.kind, pr.use_condition,
+                -- A EXCEÇÃO VIAJA COM A DOSE (0930).
+                --
+                -- Sem estas duas colunas a grade do dia não sabe que este
+                -- frasco não é do educador, e a recusa só chega DEPOIS do
+                -- clique: ele escolhe o estado, escreve a observação, aperta
+                -- confirmar e só então lê "só a Enfermagem". Às 22h, com a
+                -- criança esperando, isso é uma tela que mente por omissão.
+                pr.nurse_only, pr.nurse_only_reason,
                 app_user_display_name(a.administered_by) AS confirmado_por,
                 -- Ao lado de uma dose, "Dipirona" sozinha se lê como o que
                 -- dar. Aqui sai "Alergia a Dipirona" (§6.4, migração 0600).
@@ -788,6 +796,7 @@ export class MedicationsService {
       doses.map((d: any) => ({
         horario: d.horario, tipo: d.tipo, acolhido: d.acolhido,
         medicamento: d.medicamento, dose: d.dose, via: d.via, rotulo: d.rotulo,
+        soEnfermagem: d.soEnfermagem,
       })),
       { nome: user.fullName, cargo: cargoNoDocumento(user.role) },
     );
@@ -818,6 +827,8 @@ function mapDose(r: any) {
     offline: r.offline,
     observacao: r.note,
     alergias: r.alergias,
+    soEnfermagem: r.nurse_only ?? false,
+    motivoSoEnfermagem: r.nurse_only_reason ?? null,
     pendente: r.state === 'aguardando_confirmacao',
   };
 

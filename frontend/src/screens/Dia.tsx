@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api, apiOuFila } from '../api';
 import type { AoEnfileirar } from '../fila-offline';
+import { FolhaDose } from './Saude';
+import type { Dose } from './Saude';
 
 /**
  * O DIA — a linha do tempo (§9).
@@ -46,6 +48,26 @@ interface Resposta {
   resumo: { total: number; criticos: number; atencao: number; individuais: number; coletivos: number };
   eventos: Evento[];
 }
+
+/**
+ * PARA ONDE CADA AÇÃO LEVA.
+ *
+ * A linha do tempo é montada por seis módulos, e cada um manda a ação que faz
+ * sentido para ele. As que se resolvem aqui mesmo (`activity.record`,
+ * `activity.acknowledge`, `medication.confirm`) têm folha própria; estas
+ * quatro são NAVEGAÇÃO — o trabalho acontece na tela do módulo, que é onde
+ * mora o resto do contexto.
+ *
+ * O teste `rotas-sem-porta` cobra esta tabela: ação que o servidor manda e que
+ * esta tela não sabe atender é botão que não existe, e ninguém percebe pelo
+ * `tsc`.
+ */
+const DESTINO: Record<string, string> = {
+  'check.open': 'chamada',
+  'handover.sign': 'passagem',
+  'ata.view': 'ata',
+  'incident.open': 'ocorrencias',
+};
 
 /** Exceções, com o rótulo que a equipe usa. Justificativa obrigatória (§8.4). */
 const EXCECOES = [
@@ -122,8 +144,10 @@ interface PainelCasa {
   }[];
 }
 
-export function Dia({ houseId, casaLabel, papel }: {
+export function Dia({ houseId, casaLabel, papel, irPara }: {
   houseId: string; casaLabel: string; papel: string;
+  /** Leva a pessoa à tela que o evento aponta — ver `DESTINO` abaixo. */
+  irPara: (aba: string) => void;
 }) {
   const lidera = LIDERA.includes(papel);
   const [dados, setDados] = useState<Resposta | null>(null);
@@ -134,6 +158,19 @@ export function Dia({ houseId, casaLabel, papel }: {
   /** Qual atividade está com as ações do líder abertas — uma por vez. */
   const [maisAcoes, setMaisAcoes] = useState<string | null>(null);
   const [excecao, setExcecao] = useState<Evento | null>(null);
+  /*
+   * A DOSE CONFIRMADA AQUI (0930 + decisão de 08/09/2026).
+   *
+   * O provedor de linha do tempo do módulo de medicamentos manda, desde a fase
+   * 12, a ação `medication.confirm` — e esta tela não sabia o que fazer com
+   * ela. O efeito era mudo e caro: a dose aparecia na linha do educador, como
+   * a Fundação pediu, e SEM BOTÃO NENHUM. Ele via que havia remédio às 22h e
+   * não tinha por onde confirmar: a tela de Saúde não está no alcance do cargo
+   * dele. A dose era dada — a criança precisa dela — e ficava sem registro,
+   * que é exatamente o que este sistema existe para não deixar acontecer.
+   */
+  const [dosando, setDosando] = useState<Dose | null>(null);
+  const [erroDose, setErroDose] = useState('');
   const [delegando, setDelegando] = useState<Evento | null>(null);
   const [porOutro, setPorOutro] = useState<Evento | null>(null);
   const [aviso, setAviso] = useState('');
@@ -212,6 +249,35 @@ export function Dia({ houseId, casaLabel, papel }: {
   const idDe = (ev: Evento) => ev.id.split(':')[1] ?? ev.id;
 
   /**
+   * Abre a folha da dose a partir do evento da linha do tempo.
+   *
+   * O evento não é a dose: ele traz título, estado e severidade, e a folha
+   * precisa do medicamento, da via, do horário previsto e — o que mais
+   * importa — do ALERTA DE ALERGIA. Por isso a dose é buscada na grade do dia
+   * pelo id do evento (`dose:<uuid>`), em vez de montada com o que a linha
+   * mostra: uma folha com meia informação, na hora de dar remédio, é pior que
+   * folha nenhuma.
+   */
+  async function abrirDose(ev: Evento) {
+    setErroDose('');
+    setOcupado(ev.id);
+    try {
+      const grade = await api<Dose[]>(
+        `/medications?houseId=${houseId}&personId=${ev.personId ?? ''}`);
+      const dose = grade.find((d) => d.id === idDe(ev));
+      if (!dose) {
+        setErroDose('Esta dose não está mais na grade de hoje. Recarregue o dia.');
+        return;
+      }
+      setDosando(dose);
+    } catch (e) {
+      setErroDose(e instanceof Error ? e.message : 'Não foi possível abrir a dose.');
+    } finally {
+      setOcupado(null);
+    }
+  }
+
+  /**
    * A ação que sobrevive à falta de sinal (§17.1).
    *
    * Igual à `acao`, com uma diferença: sem internet, o registro fica guardado
@@ -270,6 +336,10 @@ export function Dia({ houseId, casaLabel, papel }: {
       </nav>
 
       {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+      {/* A recusa da dose fica separada do erro do dia: ela é a que a pessoa
+          precisa LER — "só a Enfermagem administra", "dose sem sinal não se
+          confirma" — e some quando ela abre a folha de novo. */}
+      {erroDose && <div className="notice c-crit" role="alert">{erroDose}</div>}
       {aviso && <div className="notice c-ok" role="status">{aviso}</div>}
 
       {/* Transparência honesta: a tela diz quando está incompleta (§9). */}
@@ -308,6 +378,41 @@ export function Dia({ houseId, casaLabel, papel }: {
                               `/activities/${idDe(ev)}/acknowledge`, { method: 'POST', body: '{}' },
                               { kind: 'activity.acknowledge', houseId, payload: { activityId: idDe(ev) } })}>
                       Estou ciente
+                    </button>
+                  )}
+                  {/*
+                    * AS AÇÕES QUE LEVAM A OUTRA TELA.
+                    *
+                    * Quatro módulos mandam ação de navegação para a linha do
+                    * tempo desde a fase 12 — "Abrir chamada", "Assinar minha
+                    * passagem", "Ver ATA", "Abrir ocorrência" — e esta tela
+                    * não sabia o que fazer com nenhuma delas. O evento
+                    * aparecia com o estado certo, a cor certa e NENHUM botão:
+                    * "Chamada aberta — 4/12 conferidos" e nada para tocar.
+                    * Quem está de plantão lê isso como "o sistema mostra e
+                    * não deixa fazer", e volta ao papel.
+                    */}
+                  {ev.actions!.map((a) => DESTINO[a.command] && (
+                    <button key={a.command} className="btn sm"
+                            onClick={() => irPara(DESTINO[a.command])}>
+                      {a.label}
+                    </button>
+                  ))}
+                  {/* Pedir substituição: a mesma folha do "⋯", agora também
+                      pela ação que o servidor manda. */}
+                  {ev.actions!.some((a) => a.command === 'activity.substitution')
+                    && maisAcoes !== ev.id && (
+                    <button className="btn sm ghost" disabled={ocupado === ev.id}
+                            onClick={() => setPedindoSub(ev)}>
+                      Não vou conseguir
+                    </button>
+                  )}
+                  {/* A dose: a mesma folha da tela de Saúde, com os mesmos
+                      resultados e o mesmo alerta de alergia. */}
+                  {ev.actions!.some((a) => a.command === 'medication.confirm') && (
+                    <button className="btn sm" disabled={ocupado === ev.id}
+                            onClick={() => abrirDose(ev)}>
+                      Confirmar dose
                     </button>
                   )}
                   {ev.actions!.some((a) => a.command === 'activity.record') && (
@@ -655,6 +760,38 @@ export function Dia({ houseId, casaLabel, papel }: {
               `/activities/${idDe(ev)}/record`,
               { method: 'POST', body: JSON.stringify({ estado, nota }) },
               { kind: 'activity.record', houseId, payload: { activityId: idDe(ev), estado, nota } });
+          }}
+        />
+      )}
+
+      {/*
+        * A DOSE, NA LINHA DO TEMPO.
+        *
+        * Sem fila offline, e isso é regra do servidor desde a 0930: dose não
+        * se confirma sem sinal, em aparelho nenhum. Guardar a confirmação no
+        * celular devolveria a mesma dose confirmada duas vezes por duas
+        * pessoas que não se enxergam — e as duas só descobririam horas depois.
+        */}
+      {dosando && (
+        <FolhaDose
+          dose={dosando}
+          onFechar={() => setDosando(null)}
+          onConfirmar={async (estado, nota) => {
+            const id = dosando.id;
+            setDosando(null);
+            setErroDose('');
+            setOcupado(`dose:${id}`);
+            try {
+              const r = await api<{ aviso?: string }>(`/medications/doses/${id}/confirm`, {
+                method: 'POST', body: JSON.stringify({ estado, nota }),
+              });
+              if (r?.aviso) setAviso(r.aviso);
+              await carregar();
+            } catch (e) {
+              setErroDose(e instanceof Error ? e.message : 'Não foi possível confirmar a dose.');
+            } finally {
+              setOcupado(null);
+            }
           }}
         />
       )}

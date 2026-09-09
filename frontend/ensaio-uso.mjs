@@ -90,7 +90,11 @@ async function doMais(nome) {
 /** Fecha o que tenha ficado por cima, para o passo seguinte começar limpo. */
 async function fechar() {
   for (let i = 0; i < 3; i++) {
-    const b = pg.locator('.overlay button').filter({ hasText: /^(Fechar|Cancelar|Entendi)$/ });
+    /* `.folha` e `.overlay` são as duas caixas do sistema: a folha que sobe de
+     * baixo e o cartão que cobre a tela. Fechar só uma das duas deixava a
+     * seguinte clicando por baixo de uma caixa aberta. */
+    const b = pg.locator('.overlay button, .folha button')
+      .filter({ hasText: /^(Fechar|Cancelar|Entendi)$/ });
     if (!(await b.count())) return;
     await b.first().click();
     await pg.waitForTimeout(350);
@@ -152,6 +156,30 @@ const chamadaDepois = await conteudo();
 cobrar('a exceção escrita fica visível na chamada',
   /Recusou o jantar/.test(chamadaDepois) || /conferid/i.test(chamadaDepois),
   chamadaDepois.slice(0, 120));
+
+await aba('Dia');
+/*
+ * AS AÇÕES QUE LEVAM A OUTRA TELA.
+ *
+ * A linha do tempo é montada por seis módulos, e quatro deles mandam ação de
+ * navegação. Até 09/09/2026 a tela não sabia desenhar nenhuma delas: o evento
+ * chegava com "Chamada aberta — 4/12 conferidos" e nada para tocar.
+ */
+await clicar(/^Tudo$/);
+const linhaInteira = await conteudo();
+cobrar('a linha do tempo traz a chamada aberta',
+  /Chamada aberta/.test(linhaInteira), linhaInteira.slice(0, 120));
+for (const [oQue, botao] of [['a chamada', /Abrir chamada/],
+                             ['a passagem', /Assinar minha passagem/],
+                             ['a ocorrência', /Abrir ocorrência/]]) {
+  cobrar(`${oQue} tem botão na linha do tempo`,
+    (await pg.locator('main.conteudo li.ev button').filter({ hasText: botao }).count()) > 0,
+    'evento que o servidor manda com ação e a tela não desenha é botão que não existe');
+}
+/* E o botão precisa LEVAR: um que não navega é pior que nenhum. */
+await clicar(/Abrir chamada/);
+cobrar('e o botão leva mesmo à chamada',
+  /Janta|Almoço|Café|conferid/i.test(await conteudo()), (await conteudo()).slice(0, 100));
 
 await aba('Dia');
 cobrar('o Dia tem os quatro filtros',
@@ -403,6 +431,278 @@ cobrar('a tela diz em voz alta que não compara casas',
 cobrar('a lista de quem conquistou é por data, e não por quem tem mais',
   /por data, e não por criança/i.test(impacto));
 cobrar('nenhuma exceção no gestor', erros.length === 0, erros[0]);
+
+/* A caixa, seja qual for: a folha que sobe de baixo ou o cartão que cobre. */
+const CAIXA = ':is(.folha,.overlay)';
+
+// ============================================ 9. O remédio que só a Enfermagem dá
+console.log('\n💊 A exceção do medicamento (fase 72)');
+await trocar('enfermagem');
+erros.length = 0;
+await doMais('Saúde');
+cobrar('a Enfermagem tem a aba dos esquemas', await clicar(/^Esquemas$/));
+const esquemas = await conteudo();
+/* `text-transform: uppercase` de novo: na tela sai "SÓ A ENFERMAGEM
+ * ADMINISTRA". Comparar sensível a maiúsculas reprova a tela certa. */
+cobrar('a exceção que já existe aparece escrita, com o motivo',
+  /Só a Enfermagem administra/i.test(esquemas), esquemas.slice(0, 140));
+
+const marcar = pg.locator('main.conteudo button').filter({ hasText: /^Só a Enfermagem pode dar$/ });
+cobrar('há como marcar um esquema como exclusivo', (await marcar.count()) > 0);
+if (await marcar.count()) {
+  await marcar.first().click();
+  await pg.waitForTimeout(800);
+  const folha = await corpo();
+  cobrar('a folha diz o que a marcação causa às 22h',
+    /NÃO poderá confirmar/i.test(folha), folha.slice(0, 120));
+  const botaoMarcar = pg.locator(`${CAIXA} button`).filter({ hasText: /^Marcar$/ }).first();
+  const motivo = pg.locator(`${CAIXA} textarea`).first();
+  await motivo.fill('curto');
+  cobrar('motivo curto não marca — quem lê a frase é quem for barrado',
+    await botaoMarcar.isDisabled());
+  await motivo.fill('Injetável, aplicação subcutânea conforme a consulta de 04/09.');
+  await botaoMarcar.click();
+  await pg.waitForTimeout(1400);
+  await fechar();
+  const depoisDeMarcar = await conteudo();
+  cobrar('o esquema marcado passa a exibir a exceção na lista',
+    (depoisDeMarcar.match(/Só a Enfermagem administra/gi) ?? []).length >= 2,
+    'marcou e a lista não mudou');
+}
+
+/*
+ * E o outro lado, que é o que importa: o EDUCADOR precisa saber disso ANTES da
+ * hora. A grade do dia é a única tela de medicação que ele abre — a aba dos
+ * esquemas não existe para o cargo dele.
+ */
+await trocar('educador');
+await aba('Dia');
+await clicar(/^Tudo$/);
+const linhaDoEducador = await conteudo();
+cobrar('a dose chega à linha do tempo do educador',
+  /Insulina/i.test(linhaDoEducador), linhaDoEducador.slice(0, 160));
+cobrar('e ela diz, ali mesmo, que não é com ele',
+  /Só a Enfermagem administra/i.test(linhaDoEducador),
+  'a dose exclusiva aparecia muda, e a recusa só chegava depois do clique');
+
+/*
+ * O CARTÃO DA DOSE, um a um. "Confirmar dose" existir na tela não basta: o que
+ * não pode existir é o botão EM CIMA da dose que a pessoa não pode dar.
+ *
+ * `li.ev` é o cartão da linha do tempo, e é preciso ser exato: um seletor
+ * frouxo casa com o `<li>` de fora e pergunta ao pai o que era para se
+ * perguntar ao filho — a resposta vem certa por acidente.
+ */
+const cartao = (texto) => pg.locator('main.conteudo li.ev').filter({ hasText: texto }).first();
+const botaoDose = (texto) =>
+  cartao(texto).locator('button').filter({ hasText: /Confirmar dose/ }).count();
+
+cobrar('a dose exclusiva não oferece botão a quem não pode dá-la',
+  (await botaoDose(/Insulina/)) === 0,
+  'botão que o servidor recusa ensina a equipe a duvidar da tela');
+cobrar('e o cartão dela diz por quê, ali mesmo',
+  /Só a Enfermagem administra/i.test(await cartao(/Insulina/).innerText()));
+
+/*
+ * E o EFEITO DA MARCAÇÃO feita há dois passos: o colírio da Lara acabou de
+ * virar exclusivo pelas mãos da Enfermagem, e o educador tem de perder o botão
+ * dele NESTE turno — sem recarregar nada, sem esperar o dia seguinte.
+ */
+cobrar('a dose recém-marcada perde o botão para o educador',
+  (await botaoDose(/Colírio/)) === 0,
+  'a exceção marcada agora só valeria amanhã');
+
+/* E a dose comum continua confirmável — senão o conserto teria calado todas. */
+cobrar('a dose comum continua com "Confirmar dose" para o educador',
+  (await botaoDose(/Amoxicilina/)) > 0,
+  'a linha do tempo é a única tela em que o educador confirma dose');
+
+/* E o quarto clique: a folha da dose abre com o medicamento e a via certos. */
+if (await botaoDose(/Amoxicilina/)) {
+  await cartao(/Amoxicilina/).locator('button')
+    .filter({ hasText: /Confirmar dose/ }).first().click();
+  await pg.waitForTimeout(1200);
+  const folhaDaDose = await corpo();
+  cobrar('a folha da dose abre com o medicamento, a via e o horário',
+    /Confirmar dose/.test(folhaDaDose) && /oral/i.test(folhaDaDose),
+    folhaDaDose.slice(0, 140));
+  cobrar('a folha diz que só confirma quem administrou',
+    /só confirma quem administrou/i.test(folhaDaDose));
+  await fechar();
+}
+cobrar('nenhuma exceção no caminho do medicamento', erros.length === 0, erros[0]);
+
+// ====================================================== 10. A escala de plantão
+console.log('\n🗓️ A escala de plantão (fase 73)');
+await trocar('coordenador');
+erros.length = 0;
+cobrar('a escala abre em "Mais"', await doMais('escala de plantão'));
+const escala = await conteudo();
+/* De novo o `text-transform: uppercase`: na tela sai "ESCALA DE PLANTÃO",
+ * "DIURNO 7H–19H". Toda cobrança desta tela é insensível a maiúsculas. */
+cobrar('a escala abre nos próximos trinta dias', /Escala de plantão/i.test(escala));
+cobrar('a escala diz em voz alta o turno que está sem ninguém',
+  /sem ninguém|sem escala|ninguém escalado/i.test(escala), escala.slice(0, 160));
+cobrar('os dois turnos aparecem com o horário',
+  /7h–19h/i.test(escala) && /19h–7h/i.test(escala));
+
+const linhasEscaladas = () =>
+  pg.locator('main.conteudo button').filter({ hasText: /^Retirar$/ }).count();
+const escalados = await linhasEscaladas();
+const escalarAlguem = pg.locator('main.conteudo button').filter({ hasText: /^Escalar alguém$/ });
+cobrar('a coordenação pode escalar', (await escalarAlguem.count()) > 0);
+if (await escalarAlguem.count()) {
+  await escalarAlguem.first().click();
+  await pg.waitForTimeout(800);
+  const selecao = pg.locator(`${CAIXA} select#esc-quem`);
+  const quantos = await selecao.locator('option').count();
+  cobrar('a folha traz a equipe da casa para escolher', quantos > 1,
+    'lista vazia é o defeito que não quebra nada — e deixa a escala impossível');
+  const botaoEscalar = pg.locator(`${CAIXA} button`).filter({ hasText: /^Escalar$/ }).first();
+  cobrar('sem escolher ninguém, não escala', await botaoEscalar.isDisabled());
+  if (quantos > 1) {
+    const valor = await selecao.locator('option').nth(1).getAttribute('value');
+    await selecao.selectOption(valor);
+    /* 12x36: é o desenho real da casa, e o que torna a tela usável. */
+    await pg.locator(`${CAIXA} input[type="checkbox"]`).first().check();
+    await pg.waitForTimeout(300);
+    await pg.locator(`${CAIXA} select#esc-passo`).selectOption('2');
+    await botaoEscalar.click();
+    await pg.waitForTimeout(1600);
+    await fechar();
+    const depois = await linhasEscaladas();
+    /* O quarto clique: não basta a folha fechar. A cada 2 dias, em trinta
+     * dias, tem de aparecer mais de uma linha nova — senão a repetição
+     * escreveu só o primeiro dia e a coordenação monta o mês na mão. */
+    cobrar('quem foi escalado aparece no dia', depois > escalados,
+      `${escalados} linha(s) antes, ${depois} depois — escalou e a lista não mudou`);
+    cobrar('a repetição alcança os dias seguintes', depois >= escalados + 2,
+      `a cada 2 dias deveria acrescentar vários dias; acrescentou ${depois - escalados}`);
+  }
+}
+
+const retirar = pg.locator('main.conteudo button').filter({ hasText: /^Retirar$/ });
+if (await retirar.count()) {
+  await retirar.first().click();
+  await pg.waitForTimeout(800);
+  cobrar('retirar diz que a linha não é apagada',
+    /não é apagada|fica registrada como retirada/i.test(await corpo()));
+  await pg.locator(`${CAIXA} button`).filter({ hasText: /^Retirar$/ }).first().click();
+  await pg.waitForTimeout(1400);
+  await fechar();
+}
+
+await clicar(/Mês passado/);
+const mesPassado = await conteudo();
+cobrar('o mês passado abre — é o recorte de quem investiga um evento',
+  /Escala de plantão/i.test(mesPassado) && mesPassado.length > 200);
+cobrar('o que saiu da escala continua legível no passado',
+  /Retirados da escala/i.test(mesPassado) || /ninguém escalado/i.test(mesPassado),
+  mesPassado.slice(0, 140));
+
+await clicar(/Folha para a parede/);
+const folhaDaParede = await corpo();
+cobrar('a folha da parede sai com o cabeçalho da casa',
+  /Escala|plantão/i.test(folhaDaParede) && folhaDaParede.length > 200);
+await fechar();
+
+/* E o educador vê a escala, mas não a monta: ler quem entra amanhã é de todos;
+ * decidir quem entra é da coordenação. */
+await trocar('educador');
+const escalaDoEducador = (await doMais('escala de plantão')) ? await conteudo() : '';
+cobrar('o educador também lê a escala', /Escala de plantão/i.test(escalaDoEducador));
+cobrar('mas não tem como escalar ninguém',
+  !/Escalar alguém/.test(escalaDoEducador),
+  'montar a escala é da coordenação');
+cobrar('nenhuma exceção na escala', erros.length === 0, erros[0]);
+
+// ====================================================== 11. A passagem com remédio
+console.log('\n🌗 A passagem que lê as doses (fase 72)');
+await trocar('educador');
+erros.length = 0;
+await aba('Passagem');
+/*
+ * O plantão ABERTO, e não o primeiro da lista.
+ *
+ * O primeiro cartão é o noturno, já fechado e já com a frase escrita por
+ * quem assinou antes — nele a cobrança da frase não aparece, e o ensaio
+ * passava sem exercitar nada. A regra que interessa mora no turno de agora.
+ */
+const cartaoAberto = pg.locator('main.conteudo button.chamadacard')
+  .filter({ hasText: 'Aberto' }).first();
+cobrar('há um plantão aberto para assinar', (await cartaoAberto.count()) > 0);
+await cartaoAberto.click();
+await pg.waitForTimeout(1200);
+const comRemedios = await conteudo();
+cobrar('a passagem lista as doses do turno',
+  /Os remédios deste turno/i.test(comRemedios), comRemedios.slice(0, 160));
+cobrar('a passagem não oferece marcar tudo de uma vez',
+  !/marcar todas|confirmar todas/i.test(comRemedios),
+  'dose é confirmada por quem a deu, uma a uma');
+const exigeFrase = /ficou sem resposta|ficaram sem resposta/.test(comRemedios);
+const assinar = pg.locator('main.conteudo button').filter({ hasText: /Assinar/ }).first();
+if (exigeFrase && (await assinar.count())) {
+  /* A passagem tem DUAS travas, e é preciso soltar a primeira para ver a
+     segunda: sem nenhum dos três campos escritos, o botão já estaria travado
+     por outro motivo, e o ensaio provaria a trava errada. */
+  await pg.locator('main.conteudo textarea#contrib')
+    .fill('Turno tranquilo; acompanhei o almoço e a saída para a escola.');
+  await pg.waitForTimeout(400);
+  cobrar('sem a frase sobre as doses, a passagem não assina',
+    await assinar.isDisabled(),
+    'a frase é a única coisa que falta, e a tela precisa dizer isso');
+  cobrar('e a tela diz que é a frase que falta, e não outra coisa',
+    /é a única coisa que falta/i.test(await conteudo()));
+  const campo = pg.locator('main.conteudo textarea#medic');
+  if (await campo.count()) {
+    await campo.fill('A dose das 22h da Alice foi dada pela Joana, que ficou sem confirmar.');
+    await pg.waitForTimeout(400);
+    cobrar('escrita a frase, a passagem libera a assinatura',
+      !(await assinar.isDisabled()));
+    /* E ela precisa FICAR: assinar e a frase não aparecer é o quarto clique. */
+    await assinar.click();
+    await pg.waitForTimeout(1500);
+    cobrar('a frase sobre os remédios fica escrita na passagem assinada',
+      /dada pela Joana/.test(await conteudo()),
+      'assinou e o que ela escreveu sobre as doses não voltou');
+  }
+  cobrar('a tela diz que escrever ali não confirma dose nenhuma',
+    /não confirma dose nenhuma/i.test(comRemedios));
+}
+cobrar('nenhuma exceção na passagem', erros.length === 0, erros[0]);
+
+// ====================================================== 12. A ATA da próxima equipe
+console.log('\n📓 A ATA que a próxima equipe lê (fase 74)');
+await trocar('educador');
+erros.length = 0;
+cobrar('o educador chega à ATA', await doMais('ATA'));
+const ataDoEducador = await conteudo();
+cobrar('a ATA oferece o turno anterior',
+  /Turno anterior/.test(ataDoEducador), ataDoEducador.slice(0, 140));
+await clicar(/Turno anterior/);
+const anterior = await conteudo();
+cobrar('o turno anterior traz o que foi escrito lá',
+  anterior.length > 200 && /Turno anterior/.test(anterior), anterior.slice(0, 140));
+cobrar('cada linha da ATA sai com o nome de quem escreveu',
+  (await pg.locator('main.conteudo article.linha-ata').count()) > 0,
+  'ata sem autor é ata de ninguém');
+cobrar('o educador NÃO lê a linha restrita',
+  !/só coordenação, técnica e líder/i.test(anterior),
+  'a linha restrita apareceu inteira para quem não deve lê-la');
+const contagem = /Há \d+ observaç(ão|ões) restrita/i.test(anterior);
+cobrar('e o educador sabe que existe algo que não é para ele', contagem,
+  'esconder sem dizer que escondeu é o que faz a equipe desconfiar do sistema');
+
+/* O líder lê a mesma ATA — e a linha restrita aparece para ele. */
+await trocar('lider_diurno');
+await doMais('ATA');
+await clicar(/Turno anterior/);
+const paraOLider = await conteudo();
+cobrar('o líder lê a linha restrita que o educador não vê',
+  /só coordenação, técnica e líder/i.test(paraOLider)
+    && !/Há \d+ observaç(ão|ões) restrita/i.test(paraOLider),
+  'o líder precisa ver o conteúdo, e não a contagem');
+cobrar('nenhuma exceção na ATA', erros.length === 0, erros[0]);
 
 await navegador.close();
 console.log(achados.length

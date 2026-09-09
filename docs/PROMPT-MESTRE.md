@@ -118,10 +118,10 @@ não me peça para reexplicar o que está lá.
 
 === ESTADO ATUAL (08/09/2026) ===
 
-Fases 0 a 74. 531 testes em 54 suítes, sem falha conhecida. A última
-verificação inteira foi em 08/09/2026, depois da fase 74: tsc nos dois lados, a
-suíte duas vezes seguidas — uma de dia e uma com o relógio em 22h48 de Porto
-Alegre e o UTC já no dia seguinte, que é a condição que a regra pede —, os sete
+Fases 0 a 75. 542 testes em 55 suítes, sem falha conhecida. A última
+verificação inteira foi em 09/09/2026, depois da fase 75: tsc nos dois lados, a
+suíte duas vezes seguidas — uma delas às 21h34 de Porto Alegre, com o UTC já no
+dia seguinte, que é a condição que a regra pede —, os sete
 ensaios de navegador e o ensaio:producao. Backend NestJS +
 PostgreSQL 16 com RLS, 17 partições isoladas, 83 migrações, 98 tabelas.
 Frontend React PWA, 31 telas, empacotado num único .html de ≈900 KB que abre

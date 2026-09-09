@@ -67,6 +67,14 @@ autorização nominal: o que existe é a **exceção por medicamento**, marcada 
 esquema com motivo escrito — e o educador barrado lê esse motivo. Confirmar
 continua sendo de quem administrou, uma dose por vez.
 
+**Onde ele confirma (corrigido em 09/09/2026, fase 75).** Na **linha do tempo**
+— a tela do Dia —, que é onde a dose chega para ele; a tela de Saúde não está no
+alcance do cargo. Até esta data a dose aparecia lá **sem botão**, e a decisão da
+Fundação era, na prática, impossível de cumprir dentro do sistema. A dose
+marcada como exclusiva continua aparecendo na linha de quem não pode dá-la, sem
+botão e **com o motivo escrito ao lado**: ela precisa saber que há remédio às
+22h para chamar quem pode.
+
 ## Regras invariantes
 
 - Conta individual; ninguém assina ou confirma por outro (§5.1, §11.2, §12.1).

@@ -578,6 +578,95 @@ para sempre.
 - **Tela vazia precisa dizer por que está vazia.** Uma lista de conflitos em
   branco é boa notícia, e se ela não disser isso será lida como "não carregou".
 
+## Fase 75 — Procurando defeito de propósito ✅
+
+Pedido do Leonardo em 08/09/2026: *"antes de continuar, quero que você procure
+por erros, teste tudo fingindo ser um usuário, teste cada cargo, procure erros e
+os conserte."*
+
+Foi a primeira fase em que nada novo foi pedido, e ela achou o defeito mais caro
+do projeto até aqui — um que sete suítes verdes, dois `tsc` limpos e seis
+ensaios de navegador não viam, porque cada um deles olhava para um lado certo.
+
+### O defeito principal: a decisão da Fundação estava muda na tela
+
+Em 08/09 a Fundação respondeu quem dá o remédio: *"a Enfermagem é das 9 às 17,
+então depois desse horário é os educadores mesmo (…) automaticamente aparece na
+linha do tempo dos educadores sinalizando que ele precisa do medicamento."*
+
+A fase 72 construiu as duas metades disso — e não construiu a ligação entre
+elas:
+
+* o servidor passou a **permitir** que o educador confirme dose (`app_confirm_dose`);
+* o módulo de medicamentos **manda a dose** para a linha do tempo dele desde a
+  fase 12, com a ação `medication.confirm`;
+* **a tela do Dia não sabia o que é `medication.confirm`.**
+
+O resultado, na casa: às 22h a dose aparece na linha do educador, com o nome da
+criança e o horário, e **sem botão nenhum**. A tela de Saúde — onde o botão
+existe — não está no alcance do cargo dele. Ele veria o remédio e não teria por
+onde dizer que deu. A dose seria dada, porque a criança precisa dela, e ficaria
+sem registro: exatamente o que este sistema existe para não deixar acontecer.
+
+Nada disso quebra. O servidor está certo, a tela compila, o protótipo
+demonstrava — e demonstrava justamente porque estava **errado do jeito
+contrário**: o `mock.ts` devolvia `activity.record` para toda linha, inclusive
+para dose, e desenhava "Concluí" e "Não aconteceu" em cima de um remédio. Dois
+erros opostos se leem como acordo.
+
+E não era só a dose. Quatro outras ações que o servidor manda desde a fase 12
+estavam mudas do mesmo jeito: **"Abrir chamada"**, **"Assinar minha passagem"**,
+**"Ver ATA"** e **"Abrir ocorrência"**. "Chamada aberta — 4/12 conferidos" e
+nada para tocar.
+
+| Requisito | Onde ficou | Como se confere |
+|---|---|---|
+| A dose se confirma na tela do educador | `Dia.tsx` → `FolhaDose` (a mesma da Saúde) | `ensaio:uso`, cargo educador |
+| A exceção viaja com a dose | `pr.nurse_only` na grade; `soEnfermagem` no `mapDose` | `quem-da-o-remedio` |
+| Quem não pode dar não vê botão | `medications.timeline.ts` e `Saude.tsx` | `quem-da-o-remedio`, `ensaio:uso` |
+| Mas continua vendo a dose, e o motivo | `note` da linha do tempo | `quem-da-o-remedio` |
+| Ação sem botão vira teste | `rotas-sem-porta.spec` (bloco novo) | `npm test` |
+| Nenhuma porta devolve 500, para cargo nenhum | `varredura-de-cargos.e2e.spec` | `npm test` |
+| A cozinha existe como usuário | `scripts/seed.ts` | a varredura loga com ela |
+
+### Os outros achados
+
+- **A cozinha nunca havia logado.** O cargo existe desde a migração 0010, tem
+  tela, tem alcance escrito e tem uma rota só dele (`/reports/kitchen`) — e
+  nenhum usuário do seed tinha esse papel. O teste do relatório da cozinha
+  rodava com o token da COORDENAÇÃO, que enxerga tudo: provava que o relatório
+  não traz CPF e não provava que a cozinheira consegue abri-lo.
+- **A rota `/medications` estava escrita duas vezes no `mock.ts`**, e a
+  primeira ganhava. A segunda, inalcançável, era a completa — a que devolvia
+  `alergias`. O protótipo rodava sem o ⚠ de alergia ao lado da dose, que é a
+  informação mais cara daquela tela, e as duas cópias pareciam certas.
+- **Botão que o servidor recusa.** A grade de Saúde oferecia "Confirmar" ao
+  Gestor Geral e à equipe técnica, que `app_can_administer` recusa. Agora a
+  tela espelha a função exatamente.
+- **A mesma criança com dois nomes.** `p07` era "Gabi" na lista e "Rayssa" no
+  esquema de medicamento. Numa demonstração, isso se lê como "o sistema trocou
+  o remédio de criança".
+- **A folha da parede não dizia a exceção.** Quem confere o armário às 22h lê o
+  papel, não a tela: a marcação passou a sair na mesma célula do medicamento.
+- **`text-transform: uppercase` reprovou seis telas certas.** Pela terceira vez
+  no projeto: a tela mostra "SÓ A ENFERMAGEM ADMINISTRA" e a cobrança procurava
+  "Só a Enfermagem administra". Ficou anotado no ensaio.
+- **Dois testes meus passaram sem testar nada.** Um comparava contra uma tela
+  que não continha o termo; outro escolhia o cartão errado da lista com um
+  seletor frouxo (`li` em vez de `li.ev`) e perguntava ao pai o que era para
+  perguntar ao filho. Verificação que passa por acidente é pior que verificação
+  ausente — os dois foram reescritos para falhar antes de passar.
+
+### O que esta fase NÃO fez, e por quê
+
+- **Não varreu as rotas de ESCRITA.** A varredura de cargos bate só em leitura:
+  um POST cego criaria registro de criança em oito casas a cada rodada, e a
+  regra 13 vale também para o conferidor.
+- **A senha de primeiro acesso continua em aberto.** A resposta de 08/09 ("a
+  senha será teste para todos") não foi implementada, e o motivo está em
+  `pendencias-institucionais.md`: senha igual para quarenta pessoas é conta sem
+  senha, e é a autoria — a espinha deste sistema — que se perde primeiro.
+
 ## Fase 74 — A ATA que a próxima equipe lê ✅
 
 Pedido do Marcelo em 08/09/2026, e o exemplo dele explica tudo: *"todos leem a

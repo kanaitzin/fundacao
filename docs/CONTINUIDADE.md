@@ -3,7 +3,7 @@
 > **Como usar este arquivo:** anexe-o na primeira mensagem de uma conversa nova,
 > junto com o zip do repositório. Ele substitui todo o histórico.
 >
-> Última atualização: 08/09/2026 · §8.41, a ATA que a próxima equipe lê
+> Última atualização: 09/09/2026 · §8.42, a caça a defeito
 
 ---
 
@@ -1382,6 +1382,57 @@ informação**. O Marcelo pediu a ATA colorida por autor, e a versão que passa 
 axe pinta a BORDA e a etiqueta — o texto continua na tinta de sempre, e o nome
 está sempre escrito ao lado. Uma ATA impressa em preto e branco, que é como ela
 circula, continua dizendo quem escreveu o quê.
+
+### 8.42 A caça a defeito, e o que ela ensinou — 09/09/2026
+
+O pedido não trouxe funcionalidade nenhuma: *"procure por erros, teste tudo
+fingindo ser um usuário, teste cada cargo, procure erros e os conserte."* O
+detalhe está no backlog (fase 75). O que vale guardar aqui são três formas de
+defeito que este projeto agora sabe que existem — e que nenhuma das ferramentas
+que ele já tinha enxergava.
+
+**1. O defeito que mora ENTRE as duas metades certas.**
+
+O servidor deixava o educador confirmar dose. O servidor mandava a dose para a
+linha do tempo dele. A tela do Dia não sabia o que era `medication.confirm`, e
+o botão não existia. Cada lado, sozinho, estava certo — e cada teste olhava um
+lado sozinho. O `tsc` não vê, porque `command` é texto; a suíte de servidor não
+vê, porque o servidor cumpriu a parte dele; o ensaio de telas não vê, porque a
+tela renderizou.
+
+O que passou a existir: `rotas-sem-porta.spec` ganhou um bloco que lê os
+comandos emitidos pelos `*.timeline.ts` e cobra que cada um apareça na tela do
+Dia **e** no `mock.ts`. É o mesmo raciocínio de "rota sem porta", um andar acima
+— e por isso ficou no mesmo arquivo, e não num novo.
+
+**2. O protótipo que esconde o defeito por estar errado ao contrário.**
+
+O `mock.ts` devolvia `activity.record` para toda linha do tempo, dose inclusive,
+e desenhava "Concluí" e "Não aconteceu" em cima de um remédio. A demonstração
+funcionava — melhor do que o sistema. Dois erros opostos se leem como acordo, e
+foi a terceira vez que este projeto tropeçou nisso (a primeira foi a lista de
+tabelas do ensaio de restauração, com dois nomes que nunca existiram).
+
+Regra 14 continua valendo e ganhou uma leitura mais dura: **o protótipo não
+pode ser mais capaz que o sistema em NADA**, nem nos botões que oferece.
+
+**3. O cargo que nunca logou.**
+
+A cozinha existia em todo lugar — enum, alcance, tela, matriz de permissões, uma
+rota só dela — menos onde importa: nenhum usuário do seed tinha o papel. O teste
+do relatório da cozinha rodava com o token da coordenação. Um cargo que nunca
+abriu o sistema é um cargo que ninguém viu funcionar, e a suíte inteira dizia
+que sim.
+
+O que passou a existir: `varredura-de-cargos.e2e.spec` — todos os cargos contra
+todas as rotas de leitura, com id real, id inexistente e id que não é UUID,
+cobrando uma coisa só: **nada devolve 500**. Ela não sabe o que deveria voltar;
+sabe o que nunca pode.
+
+E uma nota sobre os meus próprios testes: dois deles passaram sem testar nada
+(um comparava contra um texto que a tela não tem; outro pegava o cartão errado
+com um seletor frouxo). Ficou o hábito: **antes de aceitar um ✓ novo, fazer o
+teste falhar de propósito uma vez.**
 
 ---
 

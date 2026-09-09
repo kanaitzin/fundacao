@@ -26,7 +26,7 @@ import { quemAssina } from '../quem-assina';
  * responde exatamente ao mesmo contrato. É um sistema só.
  */
 
-interface Dose {
+export interface Dose {
   id: string; horario: string;
   acolhido: { id: string; nome: string };
   medicamento: string; dose: string; via: string;
@@ -37,6 +37,10 @@ interface Dose {
   /** Sai do servidor já como "Alergia a Dipirona": ao lado de uma dose, o nome
    *  do medicamento sozinho se lê como o que dar. */
   alergias: string | null;
+  /** A exceção do 0930, que precisa ser lida ANTES da hora — não depois do
+   *  clique. Quem não é Enfermagem lê o motivo no lugar do botão. */
+  soEnfermagem: boolean;
+  motivoSoEnfermagem: string | null;
 }
 
 interface AcolhidoPainel {
@@ -323,6 +327,16 @@ export function Saude({ houseId, casaLabel, papel }: {
   }
 
   const enfermagem = papel === 'enfermagem' || papel === 'gestor_geral';
+  /*
+   * QUEM CONFIRMA DOSE — o espelho exato de `app_can_administer` (0930).
+   *
+   * Não é o mesmo conjunto de `enfermagem` acima: o Gestor Geral enxerga a
+   * grade inteira e não administra nada. Botão que o servidor recusa é pior
+   * que botão ausente — ele ensina a equipe a duvidar do que a tela oferece.
+   */
+  const administra = ['enfermagem', 'educador', 'lider_diurno'].includes(papel);
+  /* E a dose marcada como exclusiva é só da Enfermagem, sem exceção de cargo. */
+  const administraExclusiva = papel === 'enfermagem';
   /** Quem mexe no armário — o mesmo alcance do servidor. O educador vê e não mexe. */
   const movimenta = ['enfermagem', 'equipe_tecnica', 'coordenador', 'gestor_geral'].includes(papel);
   /* alcance:protocolo — quem marca o medicamento que só a Enfermagem dá (§11.3). */
@@ -432,6 +446,9 @@ export function Saude({ houseId, casaLabel, papel }: {
                   <div className="row" style={{ marginTop: 5 }}>
                     <span className={`pill ${TOM_DOSE[d.estado] ?? 'c-mute'}`}>{d.rotulo}</span>
                     {d.alergias && <span className="pill c-crit">⚠ {d.alergias}</span>}
+                    {d.soEnfermagem && (
+                      <span className="pill c-warn">Só a Enfermagem administra</span>
+                    )}
                     {d.offline && <span className="pill c-mute">Registrada offline</span>}
                   </div>
                   {d.observacao && <div className="mutetxt">{d.observacao}</div>}
@@ -442,8 +459,23 @@ export function Saude({ houseId, casaLabel, papel }: {
                     </div>
                   )}
                 </div>
-                {d.pendente && (
+                {/*
+                  * O BOTÃO QUE NÃO EXISTE PARA QUEM NÃO PODE.
+                  *
+                  * Deixar "Confirmar" aceso para o educador numa dose marcada
+                  * como exclusiva é oferecer um caminho que termina em recusa
+                  * — depois de escolher o estado e escrever a observação. No
+                  * lugar dele fica o MOTIVO, que é o que ele precisa para
+                  * decidir o que fazer às 22h.
+                  */}
+                {d.pendente && administra && (d.soEnfermagem ? administraExclusiva : true) && (
                   <button className="btn sm" onClick={() => setConfirmando(d)}>Confirmar</button>
+                )}
+                {d.pendente && d.soEnfermagem && !administraExclusiva && (
+                  <div className="bloco">
+                    <small>Esta dose não é com você</small>
+                    {d.motivoSoEnfermagem ?? 'Só a Enfermagem administra este medicamento.'}
+                  </div>
                 )}
               </li>
             ))}
@@ -1035,7 +1067,17 @@ function FolhaEstoque({ item, tipo, onFechar, onGravar }: {
   );
 }
 
-function FolhaDose({ dose, onFechar, onConfirmar }: {
+/*
+ * A folha de confirmar dose é EXPORTADA porque a dose não mora só aqui.
+ *
+ * A tela de Saúde é da Enfermagem e da coordenação; o educador quase não a
+ * abre — e, desde a decisão de 08/09, é ele quem dá o remédio à noite. A dose
+ * chega a ele pela LINHA DO TEMPO, e é lá que ela precisa ser confirmada, com
+ * esta mesma folha: os mesmos resultados, a mesma observação obrigatória, o
+ * mesmo alerta de alergia. Duas folhas diferentes para o mesmo ato seria a
+ * forma mais discreta de as duas divergirem.
+ */
+export function FolhaDose({ dose, onFechar, onConfirmar }: {
   dose: Dose; onFechar: () => void; onConfirmar: (estado: string, nota: string) => void;
 }) {
   const [estado, setEstado] = useState('');

@@ -419,7 +419,12 @@ export function App() {
         {abaEfetiva === 'dia' && ve('dia') && (
           casaAtual
             ? <Dia houseId={casaAtual.id} casaLabel={`${casaAtual.code} · ${casaAtual.name}`}
-                   papel={me.role} />
+                   papel={me.role}
+                   /* A linha do tempo aponta para outras telas: "chamada
+                      aberta", "passagem por assinar", "ocorrência em
+                      acompanhamento". Sem esta função, o evento chegava com
+                      a ação escrita pelo servidor e sem botão nenhum. */
+                   irPara={(destino) => { setAba(destino as typeof aba); setMais(false); }} />
             : (
               <div className="card">
                 <p className="mutetxt" style={{ margin: 0 }}>

@@ -343,18 +343,73 @@ interface Ev {
   actions?: { command: string; label: string }[];
 }
 
-const acoes = (e: Ev) => (['Concluída no horário', 'Concluída com atraso', 'Reagendada',
-  'Cancelada externamente', 'Recusada pelo acolhido', 'Não realizada — saúde',
-  'Não realizada — ausência profissional', 'Não realizada — transporte',
-  'Não realizada — decisão institucional', 'Não aplicável'].includes(e.state)
-  ? [] : [{ command: 'activity.record', label: 'Registrar' }]);
+/**
+ * As ações de cada linha — e a diferença que o protótipo escondia.
+ *
+ * Até 08/09/2026 esta função devolvia `activity.record` para TUDO, inclusive
+ * para dose de medicamento. O servidor nunca fez isso: o provedor de linha do
+ * tempo do módulo `medications` manda `medication.confirm`. O protótipo, com a
+ * ação errada, mostrava "Concluí" e "Não aconteceu" em cima de uma dose — dois
+ * botões que registram ATIVIDADE, não dose — e assim escondia o defeito que a
+ * fase 75 encontrou do outro lado: a tela do Dia não sabia o que fazer com
+ * `medication.confirm` e não desenhava botão nenhum.
+ *
+ * Aqui as duas regras do 0930 valem inteiras: a dose exclusiva não oferece
+ * botão a quem não é Enfermagem, e o motivo vai escrito na linha.
+ */
+/**
+ * A NOTA da linha — onde o educador lê que aquela dose não é com ele.
+ *
+ * Espelha `medications.timeline.ts`: some o botão, fica o motivo. Sumir os
+ * dois deixaria a dose muda na tela, e às 22h ninguém adivinha por que não há
+ * o que apertar.
+ */
+function notaDaLinha(e: Ev, papel: string): string | null {
+  if (e.kind === 'medicamento') {
+    const exc = excecaoDaDose(e.title.split(' — ')[0]);
+    if (exc.soEnfermagem && papel !== 'enfermagem') {
+      return `Só a Enfermagem administra${exc.motivoSoEnfermagem ? ` — ${exc.motivoSoEnfermagem}` : ''}`;
+    }
+  }
+  return e.note ?? null;
+}
+
+const acoes = (e: Ev, papel: string) => {
+  if (e.kind === 'medicamento') {
+    if (e.state !== 'Aguardando confirmação') return [];
+    const exc = excecaoDaDose(e.title.split(' — ')[0]);
+    if (exc.soEnfermagem && papel !== 'enfermagem') return [];
+    if (!['enfermagem', 'educador', 'lider_diurno'].includes(papel)) return [];
+    return [{ command: 'medication.confirm', label: 'Confirmar dose' }];
+  }
+  /* A ação DECLARADA no evento manda. Até 09/09/2026 esta função sobrescrevia
+     tudo pelo estado, e com isso o protótipo perdia o "Estou ciente" da
+     atividade designada e não tinha como mostrar as ações que levam a outra
+     tela — que é justamente o que a fase 75 encontrou faltando no aplicativo. */
+  if (e.actions) return e.actions;
+  const final = ['Concluída no horário', 'Concluída com atraso', 'Reagendada',
+    'Cancelada externamente', 'Recusada pelo acolhido', 'Não realizada — saúde',
+    'Não realizada — ausência profissional', 'Não realizada — transporte',
+    'Não realizada — decisão institucional', 'Não aplicável'].includes(e.state);
+  if (final) return [];
+  /* As duas do servidor (`activities.timeline`): registrar o resultado e
+     pedir substituição. A segunda é de QUALQUER pessoa do turno — quem vai
+     sair mais cedo é quem sabe que vai. */
+  return [
+    { command: 'activity.record', label: 'Registrar' },
+    { command: 'activity.substitution', label: 'Pedir substituição' },
+  ];
+};
 
 let LINHA: Ev[] = [
   { id: 'activity:a1', source: 'rotina', at: emHoras(7, 0), kind: 'rotina', title: 'Despertar e higiene',
     personId: null, personName: null, state: 'Concluída no horário', severity: 'normal' },
   { id: 'activity:a2', source: 'rotina', at: emHoras(7, 30), kind: 'refeicao', title: 'Café da manhã',
     personId: null, personName: null, state: 'Concluída no horário', severity: 'normal' },
-  { id: 'medication:m1', source: 'medicamento', at: emHoras(7, 30), kind: 'medicamento',
+  /* O ID DA LINHA CARREGA O ID DA DOSE, como no servidor (`dose:<uuid>`): a
+     tela do Dia busca a dose na grade por ele para abrir a folha com a
+     alergia e a via. Com um id inventado ('m1'), a folha não abriria. */
+  { id: 'medication:d1', source: 'medicamento', at: emHoras(7, 30), kind: 'medicamento',
     title: 'Colírio lubrificante (fictício) — 1 gota em cada olho', personId: 'p11', personName: 'Lara',
     state: 'Aguardando confirmação', severity: 'atencao' },
   { id: 'activity:a3', source: 'rotina', at: emHoras(8, 0), kind: 'saida', title: 'Saída para a escola',
@@ -369,12 +424,43 @@ let LINHA: Ev[] = [
   { id: 'activity:a6', source: 'agenda', at: emHoras(16, 0), kind: 'atividade',
     title: 'Reforço escolar', personId: null, personName: null, state: 'Agendada',
     severity: 'normal', actions: [{ command: 'activity.record', label: 'Registrar' }] },
-  { id: 'medication:m2', source: 'medicamento', at: emHoras(16, 0), kind: 'medicamento',
+  { id: 'medication:d4', source: 'medicamento', at: emHoras(16, 0), kind: 'medicamento',
     title: 'Amoxicilina (fictícia) 250 mg/5 mL — 5 mL', personId: 'p02', personName: 'Bruno',
     state: 'Aguardando confirmação', severity: 'critico' },
   { id: 'activity:a7', source: 'rotina', at: emHoras(18, 30), kind: 'refeicao', title: 'Janta',
     personId: null, personName: null, state: 'Agendada', severity: 'normal',
     actions: [{ command: 'activity.record', label: 'Registrar' }] },
+  /*
+   * OS EVENTOS QUE LEVAM A OUTRA TELA.
+   *
+   * O servidor monta a linha do tempo com seis módulos, e quatro deles mandam
+   * ação de NAVEGAÇÃO. O protótipo não tinha nenhum evento desses, e por isso
+   * não mostrava — nem denunciava — que a tela do Dia não sabia atendê-los.
+   */
+  { id: 'check:c1', source: 'chamada', at: emHoras(12, 0), kind: 'refeicao',
+    title: 'Almoço — chamada', personId: null, personName: null,
+    state: 'Chamada aberta — 4/12 conferidos', severity: 'atencao',
+    note: 'Faltam 8 acolhidos para conferir',
+    actions: [{ command: 'check.open', label: 'Abrir chamada' }] },
+  { id: 'shift:s1', source: 'plantao', at: emHoras(7, 0), kind: 'plantao',
+    title: 'Plantão diurno', personId: null, personName: null,
+    state: 'Plantão aberto — 1 passagem(ns) assinada(s)', severity: 'normal',
+    note: 'Cada profissional assina a própria passagem.',
+    actions: [{ command: 'handover.sign', label: 'Assinar minha passagem' }] },
+  { id: 'shift:s0', source: 'plantao', at: emHoras(19, 0), kind: 'plantao',
+    title: 'Plantão noturno', personId: null, personName: null,
+    state: 'ATA fechada', severity: 'normal',
+    actions: [{ command: 'ata.view', label: 'Ver ATA' }] },
+  { id: 'incident:o2', source: 'ocorrencia', at: emHoras(10, 15), kind: 'ocorrencia',
+    title: 'Erro de medicamento', personId: 'p02', personName: 'Bruno',
+    state: 'Aguardando revisão técnica', severity: 'critico',
+    actions: [{ command: 'incident.open', label: 'Abrir ocorrência' }] },
+  /* A dose das 22h da Gabi: a que a Enfermagem já não está na casa para dar, e
+     que mesmo assim não é do educador. O protótipo precisa desse estado — é
+     ele que a coordenação vai olhar antes de marcar a exceção de verdade. */
+  { id: 'medication:d6', source: 'medicamento', at: emHoras(22, 0), kind: 'medicamento',
+    title: 'Insulina (fictícia) NPH — 8 unidades', personId: 'p07', personName: 'Gabi',
+    state: 'Aguardando confirmação', severity: 'atencao' },
   { id: 'activity:a8', source: 'rotina', at: emHoras(20, 30), kind: 'rotina', title: 'Rotina de dormir',
     personId: null, personName: null, state: 'Agendada', severity: 'normal',
     actions: [{ command: 'activity.record', label: 'Registrar' }] },
@@ -580,7 +666,10 @@ const ESQUEMAS: EsquemaMock[] = [
      aparece para quem NÃO pode dar — que é o educador, à noite. */
   { id: 'esq4', medicamento: 'Insulina (fictícia) NPH', dose: '8 unidades',
     via: 'subcutânea', tipo: 'uso_continuo', status: 'ativa', rotulo: 'Na grade',
-    acolhido: { id: 'p07', nome: 'Rayssa' }, condicaoUso: null,
+    /* p07 é a Gabi. O nome errado aqui fazia a mesma criança aparecer com
+       dois nomes em duas telas do protótipo — numa demonstração, isso lê como
+       "o sistema trocou o remédio de criança". */
+    acolhido: { id: 'p07', nome: 'Gabi' }, condicaoUso: null,
     prescritor: 'Endocrinologia — Ambulatório Fictício', inicio: '2026-07-15', fim: null,
     horarios: ['07:00', '22:00'], assinadaPor: 'Enfermeira Fictícia',
     assinadaEm: '2026-07-15T08:40:00-03:00', motivoDaSuspensao: null,
@@ -660,6 +749,21 @@ const DECISOES_PROTOCOLO: {
   motivo: string; por: string; quando: string;
 }[] = [];
 
+/**
+ * A exceção do 0930 viaja COM a dose, como no servidor (`pr.nurse_only`).
+ *
+ * Sem isto a grade do protótipo não sabe que aquele frasco não é do educador,
+ * e a recusa só apareceria depois do clique — que é o defeito que a fase 75
+ * corrigiu no servidor.
+ */
+function excecaoDaDose(medicamento: string) {
+  const e = ESQUEMAS.find((x) => x.medicamento === medicamento);
+  return {
+    soEnfermagem: e?.soEnfermagem ?? false,
+    motivoSoEnfermagem: e?.soEnfermagem ? e.motivoSoEnfermagem : null,
+  };
+}
+
 let DOSES: DoseMock[] = [
   { id: 'd1', personId: 'p11', horario: emHoras(7, 30), medicamento: 'Colírio lubrificante (fictício)',
     dose: '1 gota em cada olho', via: 'oftálmica', tipo: 'uso_continuo', condicaoUso: null,
@@ -675,6 +779,13 @@ let DOSES: DoseMock[] = [
     confirmadaPor: 'Tainá Souza (fictícia)', administradaEm: emHoras(8, 5), observacao: null },
   { id: 'd4', personId: 'p02', horario: daquiA(120), medicamento: 'Amoxicilina (fictícia) 250 mg/5 mL',
     dose: '5 mL', via: 'oral', tipo: 'tratamento', condicaoUso: null,
+    estado: 'aguardando_confirmacao', rotulo: 'Aguardando confirmação', pendente: true,
+    confirmadaPor: null, administradaEm: null, observacao: null },
+  /* A DOSE QUE NÃO É DO EDUCADOR, às 22h — depois de a Enfermagem ir embora.
+     É o estado que a decisão de 08/09 criou, e sem ele o protótipo demonstra
+     a regra só por escrito. */
+  { id: 'd6', personId: 'p07', horario: emHoras(22, 0), medicamento: 'Insulina (fictícia) NPH',
+    dose: '8 unidades', via: 'subcutânea', tipo: 'uso_continuo', condicaoUso: null,
     estado: 'aguardando_confirmacao', rotulo: 'Aguardando confirmação', pendente: true,
     confirmadaPor: null, administradaEm: null, observacao: null },
   { id: 'd5', personId: 'p10', horario: emHoras(0, 0), medicamento: 'Paracetamol (fictício) 500 mg',
@@ -3140,7 +3251,11 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       resumo: { total: eventos.length, criticos, atencao,
                 individuais: eventos.filter((e) => e.personId).length,
                 coletivos: eventos.filter((e) => !e.personId).length },
-      eventos: eventos.map((e) => ({ ...e, actions: acoes(e) })),
+      eventos: eventos.map((e) => ({
+        ...e,
+        actions: acoes(e, eu.role),
+        note: notaDaLinha(e, eu.role),
+      })),
     };
   }
   /* A ATIVIDADE URGENTE (§8.2): pontual, com autoria e motivo. Antes dos
@@ -4549,13 +4664,31 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
   }
 
   // ---- medicamentos
+  /*
+   * `GET /medications?houseId=&personId=` — a grade do dia (`mapDose` no
+   * servidor).
+   *
+   * ESTA ROTA ESTAVA ESCRITA DUAS VEZES, e a de cima ganhava. A de baixo,
+   * inalcançável, era a completa: a que devolvia `alergias` e `offline`. O
+   * protótipo rodava sem o ⚠ da alergia ao lado da dose — a informação mais
+   * cara da tela — e ninguém veria isso numa revisão de olho, porque as duas
+   * respondiam e as duas pareciam certas. Agora é uma só.
+   */
   if (rota === '/medications' || rota.startsWith('/medications?')) {
     const pid = q.get('personId');
     /* A criança internada sai da grade da casa — igual ao servidor. A dose
      * dela não é dada aqui, e uma grade cheia de pendência impossível é uma
      * grade que a equipe aprende a não olhar. */
     return DOSES.filter((d) => (!pid || d.personId === pid) && !estaInternado(d.personId))
-      .map((d) => ({ ...d, acolhido: { id: d.personId, nome: kid(d.personId)?.nome } }));
+      .map((d) => ({
+        ...d,
+        acolhido: { id: d.personId, nome: kid(d.personId)?.nome ?? '—' },
+        offline: false,
+        // Ao lado de uma dose, "Dipirona" sozinha se lê como o que dar.
+        alergias: kid(d.personId)?.alerta?.tipo === 'alergia'
+          ? kid(d.personId)!.alerta!.descricao : null,
+        ...excecaoDaDose(d.medicamento),
+      }));
   }
 
   // ---- agenda
@@ -4663,22 +4796,6 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
   // `/nursing/*` e `/medications/*`, com os mesmos campos, os mesmos códigos
   // de estado e as mesmas recusas — é o que impede protótipo e aplicativo de
   // divergirem de novo.
-
-  /** `GET /medications?houseId=&date=` — a grade do dia (mapDose no servidor). */
-  if (rota === '/medications' && metodo === 'GET') {
-    return DOSES.map((d) => ({
-      id: d.id, horario: d.horario,
-      acolhido: { id: d.personId, nome: kid(d.personId)?.nome ?? '—' },
-      medicamento: d.medicamento, dose: d.dose, via: d.via,
-      tipo: d.tipo, condicaoUso: d.condicaoUso,
-      estado: d.estado, rotulo: d.rotulo, pendente: d.pendente,
-      confirmadaPor: d.confirmadaPor, administradaEm: d.administradaEm,
-      offline: false, observacao: d.observacao,
-      // Ao lado de uma dose, "Dipirona" sozinha se lê como o que dar.
-      alergias: kid(d.personId)?.alerta?.tipo === 'alergia'
-        ? kid(d.personId)!.alerta!.descricao : null,
-    }));
-  }
 
   /** `POST /medications/doses/:id/confirm` — uma dose, uma confirmação (§11.2). */
   if (seg[0] === 'medications' && seg[1] === 'doses' && seg[3] === 'confirm' && metodo === 'POST') {

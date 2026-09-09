@@ -24,6 +24,8 @@ export interface DoseDaGrade {
   dose: string;
   via: string;
   rotulo: string;
+  /** A exceção do 0930 — quem confere o armário às 22h precisa lê-la no papel. */
+  soEnfermagem?: boolean;
 }
 
 export function folhaDaGrade(casa: string, doses: DoseDaGrade[], autor: AutorDaFolha): Folha {
@@ -46,7 +48,10 @@ export function folhaDaGrade(casa: string, doses: DoseDaGrade[], autor: AutorDaF
           linhas: ordenadas.map((d) => [
             d.tipo === 'quando_necessario' ? 's/n' : hhmmBR(d.horario),
             d.acolhido?.nome ?? '—',
-            `${d.medicamento} ${d.dose} · ${d.via}`,
+            /* A folha é lida com as mãos ocupadas, de porta aberta: se a
+               exceção não estiver NESTA célula, ela não é lida. */
+            `${d.medicamento} ${d.dose} · ${d.via}`
+              + (d.soEnfermagem ? ' · SÓ A ENFERMAGEM ADMINISTRA' : ''),
             d.rotulo,
           ]),
         } : undefined,

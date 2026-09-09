@@ -44,7 +44,7 @@ rede-acolher/
 │   │   │                  database, events, health
 │   │   └── modules/       17 partições isoladas, cada uma com as próprias
 │   │                      migrações em modules/<nome>/migrations/
-│   ├── test/              54 suítes (e2e contra PostgreSQL real + estáticas)
+│   ├── test/              55 suítes (e2e contra PostgreSQL real + estáticas)
 │   └── assets/timbre.png  a marca da Fundação, usada no documento em Word
 ├── frontend/
 │   ├── src/
@@ -116,8 +116,12 @@ o CDN, e, se não passar, traz o Chromium de dentro de um pacote npm. Liberar
 ### Contas do ambiente de teste (senha `senha-dev-123`)
 
 `coord.ai3@`, `coord.ai4@`, `educador.ai3@`, `educador2.ai3@`, `educador.ai4@`,
-`lider.ai3@`, `lider.noturno@`, `tecnica.ai3@`, `enfermagem@`, `gestor@` —
-todos `@paodospobres.dev`.
+`lider.ai3@`, `lider.noturno@`, `tecnica.ai3@`, `enfermagem@`, `cozinha.ai3@`,
+`gestor@` — todos `@paodospobres.dev`.
+
+A `cozinha.ai3@` entrou em 09/09/2026: o cargo existia desde a migração 0010,
+com tela, alcance e rota própria, e **nenhum usuário do seed o tinha**. O teste
+do relatório da cozinha rodava com o token da coordenação.
 
 No protótipo entra-se com `coord.ai3@paodospobres.dev` e troca-se de função pelo
 seletor **"Ver como"** no alto da tela.
@@ -205,15 +209,27 @@ Além dos e2e, cinco suítes estáticas — elas já pegaram erro de verdade:
   código tem. Na primeira rodada acusou seis afirmações erradas ao mesmo tempo,
   em três documentos.
 
+E duas verificações que nasceram da caça a defeito da fase 75:
+
+- `rotas-sem-porta.spec.ts` ganhou o bloco **ação sem botão**: toda ação que os
+  provedores de linha do tempo emitem (`medication.confirm`, `check.open`,
+  `handover.sign`, `ata.view`, `incident.open`) precisa ser atendida pela tela
+  do Dia **e** pelo `mock.ts`. Foi assim que se descobriu que a dose chegava ao
+  educador sem botão nenhum;
+- `varredura-de-cargos.e2e.spec.ts` — **todos os cargos contra todas as rotas
+  de leitura**, com id real, id inexistente e id que não é UUID, cobrando uma
+  coisa só: nada devolve **500**. Ela não sabe o que deveria voltar; sabe o que
+  nunca pode. Foi ela que expôs que a **cozinha não tinha usuário no seed** —
+  o cargo existia em todo lugar e nunca havia logado.
+
 ---
 
 ## 5. O QUE JÁ ESTÁ PRONTO
 
-**Fases 0 a 74. 531 testes em 54 suítes.** A última verificação inteira foi em
-**08/09/2026**, depois da fase 74: `tsc` nos dois lados, a suíte **duas rodadas
-seguidas limpas** — uma de dia e uma com o relógio da máquina em 22h48 de Porto
-Alegre e o UTC já em 09/09, que é a condição que a regra pede —, os sete ensaios
-de navegador e o `ensaio:producao`.
+**Fases 0 a 75. 542 testes em 55 suítes.** A última verificação inteira foi em
+**09/09/2026**, depois da fase 75: `tsc` nos dois lados, a suíte **duas rodadas
+seguidas limpas** — uma às 21h34 de Porto Alegre, com o UTC já em 09/09, que é a
+condição que a regra pede —, os sete ensaios de navegador e o `ensaio:producao`.
 30 telas, 83 migrações, 98 tabelas.
 
 *(O contador de "rodadas limpas acumuladas" saiu daqui na fase 71: ele crescia
@@ -478,6 +494,7 @@ Em ordem, e cada uma com o defeito real que a motivou:
 | 72 | **A medicação como a casa faz**: o educador de plantão dá o remédio, a exceção é por medicamento, a passagem lê as doses de volta, e dose não se confirma sem sinal |
 | 73 | **A escala de plantão por DATA** — uma 12x36 não cabe numa semana —, com repetição, turno sem ninguém à vista, folha para a parede, e a passagem cobrando quem estava escalado |
 | 74 | **A ATA que a próxima equipe lê**: o turno anterior aberto para todos, cada linha com autor e cor, e a linha restrita fechada no banco — com a contagem para quem não a lê |
+| 75 | **Caça a defeito, sem construir nada novo**: a dose aparecia na linha do educador **sem botão** — o servidor mandava `medication.confirm` e a tela não sabia o que era, junto com outras quatro ações mudas. Mais a cozinha, que nunca havia logado, e o `/medications` escrito duas vezes no protótipo, comendo o ⚠ da alergia |
 
 ---
 

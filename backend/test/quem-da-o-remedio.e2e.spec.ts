@@ -237,6 +237,116 @@ describe('Quem dá o remédio nesta casa', () => {
       .rejects.toThrow();
   });
 
+  // ============ A dose chega ONDE o educador está (fase 75) ============
+
+  /*
+   * A decisão da Fundação tem uma segunda metade que a suíte não cobria: "e
+   * automaticamente aparece na linha do tempo dos educadores, sinalizando que
+   * ele precisa do medicamento".
+   *
+   * A primeira metade — o educador PODE confirmar — estava provada acima e
+   * continuava verdadeira. A segunda estava quebrada em silêncio: a tela de
+   * Saúde não está no alcance do cargo do educador, a linha do tempo era o
+   * único caminho dele até a dose, e a AÇÃO que o servidor mandava
+   * (`medication.confirm`) não tinha botão do outro lado. Ele via o remédio
+   * das 22h e não tinha por onde dizer que deu.
+   *
+   * Nenhum teste de regra pegaria isso: a regra estava certa dos dois lados.
+   * O que faltava era o caminho entre elas.
+   */
+  /**
+   * A dose desta suíte, nova, para daqui a algumas horas.
+   *
+   * Procurar "uma dose pendente qualquer" na linha do tempo passava sozinha e
+   * falhava na suíte inteira: as outras suítes confirmam as doses do seed, e a
+   * linha chegava sem nenhuma pendente. Estado compartilhado outra vez
+   * (regra 13) — cada teste traz a sua.
+   */
+  const doseNova = async (hora: number) => {
+    /*
+     * A HORA É DO DIA DA INSTITUIÇÃO, e não `now() + 3 horas`.
+     *
+     * A primeira versão marcava a dose para daqui a algumas horas, e passava —
+     * de manhã. Rodando às 21h34 de Porto Alegre, "daqui a três horas" cai no
+     * dia seguinte, a grade do dia não devolve a dose e o teste acusa que a
+     * linha do tempo perdeu o evento. É a fronteira do dia (§ regra 17)
+     * mordendo o próprio conferidor: a suíte tem de rodar igual às 9h e às
+     * 23h, que é a condição que a regra 18 pede.
+     */
+    const { rows: [nova] } = await admin.query(
+      `INSERT INTO medication_administration (prescription_id, person_id, house_id, scheduled_at)
+       SELECT prescription_id, person_id, house_id,
+              (app_hoje()::timestamp + ($2 || ' hours')::interval) AT TIME ZONE app_fuso()
+         FROM medication_administration WHERE id = $1 RETURNING id`, [dose, hora]);
+    return nova.id as string;
+  };
+
+  it('a dose entra na linha do tempo do educador COM a ação de confirmar', async () => {
+    const minha = await doseNova(11);  // 11h do dia da casa
+    const r = await request(http).get(`/api/v1/timeline?houseId=${ids.AI3}`)
+      .set(auth(tokens.educador));
+    expect(r.status).toBe(200);
+
+    /* O id do evento carrega o id da dose: é por ele que a tela busca o
+       medicamento, a via e a alergia para abrir a folha. */
+    const pendente = r.body.eventos.find((e: any) => e.id === `dose:${minha}`);
+    expect(pendente).toBeDefined();
+    expect(pendente.kind).toBe('medicamento');
+    expect(pendente.state).toBe('Aguardando confirmação');
+    expect(pendente.actions.map((a: any) => a.command)).toContain('medication.confirm');
+  });
+
+  it('a dose exclusiva aparece na linha SEM botão, e com o motivo escrito', async () => {
+    /* O teste do "desmarcar" rodou antes e devolveu o medicamento ao educador
+       — de propósito, porque é assim que a casa costuma ficar. Aqui o estado
+       precisa ser o outro, e por isso ele é REPOSTO, e não presumido. */
+    await marcar(tokens.enfermagem, { soEnfermagem: true, motivo: MOTIVO });
+    /* Uma dose nova do esquema já marcado como exclusivo — o estado real das
+       22h, com a Enfermagem fora da casa. */
+    const exclusiva = await doseNova(21);  // 21h — a Enfermagem já foi embora às 17h
+
+    const doEducador = await request(http).get(`/api/v1/timeline?houseId=${ids.AI3}`)
+      .set(auth(tokens.educador));
+    const dele = doEducador.body.eventos.find((e: any) => e.id === `dose:${exclusiva}`);
+    expect(dele).toBeDefined();
+    /* Sem botão: oferecer um caminho que termina em 403 depois de a pessoa
+       escolher o estado e escrever a observação é pior que não oferecer. */
+    expect(dele.actions).toEqual([]);
+    /* Mas a dose CONTINUA na linha, e diz por quê: ele precisa saber que há
+       insulina às 22h para chamar quem pode dar. */
+    expect(dele.note).toMatch(/Só a Enfermagem administra/i);
+    expect(dele.note).toMatch(/glicemia/i);
+
+    // E para a Enfermagem, a mesma dose tem o botão.
+    const daEnfermagem = await request(http).get(`/api/v1/timeline?houseId=${ids.AI3}`)
+      .set(auth(tokens.enfermagem));
+    const dela = daEnfermagem.body.eventos.find((e: any) => e.id === dele.id);
+    expect(dela.actions.map((a: any) => a.command)).toContain('medication.confirm');
+  });
+
+  it('a grade do dia carrega a exceção, e não só a recusa depois do clique', async () => {
+    const r = await request(http).get(`/api/v1/medications?houseId=${ids.AI3}`)
+      .set(auth(tokens.educador));
+    /*
+     * O MEDICAMENTO DESTA SUÍTE, pelo nome inteiro.
+     *
+     * `/Insulina/` casava também com a insulina que outra suíte cria, que não
+     * é exclusiva — e o teste passava ou falhava conforme a ordem em que o
+     * Jest resolvesse rodar os arquivos. Falha que aparece uma vez em quatro
+     * rodadas é pior que falha constante: ela ensina a rodar de novo.
+     */
+    const exclusiva = r.body.find(
+      (d: any) => d.medicamento === 'Insulina (fictícia) — suíte da exceção');
+    expect(exclusiva).toBeDefined();
+    expect(exclusiva.soEnfermagem).toBe(true);
+    expect(exclusiva.motivoSoEnfermagem).toMatch(/glicemia/i);
+    /* E a folha da parede diz o mesmo, para quem confere o armário de porta
+       aberta com as mãos ocupadas. */
+    const folha = await request(http).get(`/api/v1/medications/folha?houseId=${ids.AI3}`)
+      .set(auth(tokens.enfermagem));
+    expect(JSON.stringify(folha.body)).toMatch(/SÓ A ENFERMAGEM ADMINISTRA/);
+  });
+
   // ==================== O que valia antes ====================
 
   it('o protocolo por período vira LEITURA, e diz o que a Fundação respondeu', async () => {

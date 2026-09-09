@@ -32,6 +32,17 @@ const USUARIOS: Array<[string, string, string, string | null]> = [
   // o colega não lê a narrativa pessoal (§26.2 #11).
   ['educador2.ai3@paodospobres.dev', 'Joana Lima (fictícia)', 'educador', 'AI3'],
   ['lider.ai3@paodospobres.dev', 'Lúcia Líder Diurna (fictícia)', 'lider_diurno', 'AI3'],
+  /*
+   * A COZINHA, que faltava.
+   *
+   * O cargo existe desde a 0010, tem tela própria, tem alcance escrito e tem
+   * uma rota só dele (`/reports/kitchen`) — e, até 08/09/2026, NENHUM usuário
+   * do seed tinha esse papel. O teste do relatório da cozinha rodava com o
+   * token da COORDENAÇÃO, que enxerga tudo: ele provava que o relatório não
+   * traz CPF, e não provava que a cozinheira consegue abri-lo. Um cargo que
+   * nunca logou é um cargo que ninguém viu funcionar.
+   */
+  ['cozinha.ai3@paodospobres.dev', 'Cida Cozinha (fictícia)', 'cozinha', 'AI3'],
   ['educador.ai4@paodospobres.dev', 'Paula Rocha (fictícia)', 'educador', 'AI4'],
   ['coord.ai4@paodospobres.dev', 'Cátia Coordenadora (fictícia)', 'coordenador', 'AI4'],
 ];

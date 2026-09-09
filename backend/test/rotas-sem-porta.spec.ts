@@ -209,3 +209,58 @@ describe('Rotas sem porta', () => {
     }
   });
 });
+
+/**
+ * AÇÕES SEM BOTÃO — a mesma doença da rota sem porta, um andar acima.
+ *
+ * A linha do tempo é montada por seis módulos, e cada um manda junto com o
+ * evento as AÇÕES que ele oferece: `{ command, label }`. Quem desenha o botão
+ * é a tela do Dia. Se ela não conhece o comando, o evento chega com estado,
+ * cor e severidade — e nenhum botão.
+ *
+ * Foi assim que a decisão mais cara da Fundação ficou muda por uma fase
+ * inteira: o módulo de medicamentos manda `medication.confirm` desde a fase
+ * 12, o educador passou a poder confirmar dose em 08/09/2026, e a tela onde
+ * ele veria a dose não sabia desenhar aquele botão. A dose aparecia às 22h e
+ * não havia o que apertar. Nenhum teste de servidor pega isso — do lado do
+ * servidor está tudo certo —, e o `tsc` também não: `command` é texto.
+ *
+ * Junto com ele estavam mudas outras quatro: "Abrir chamada", "Assinar minha
+ * passagem", "Ver ATA" e "Abrir ocorrência".
+ */
+describe('Ações da linha do tempo sem botão na tela', () => {
+  const DIA = readFileSync(join(FRONT, 'screens', 'Dia.tsx'), 'utf8');
+  const MOCK = readFileSync(join(FRONT, 'mock.ts'), 'utf8');
+
+  /** Os comandos que os provedores de linha do tempo emitem. */
+  const comandos = [...new Set(
+    arquivos(SRC, (f) => f.endsWith('.timeline.ts'))
+      .flatMap((arq) => [...readFileSync(arq, 'utf8').matchAll(/command: '([^']+)'/g)]
+        .map((m) => m[1])),
+  )].sort();
+
+  it('os provedores emitem comandos, e eles foram encontrados', () => {
+    /* Sem esta cobrança, um parser que devolvesse lista vazia faria as duas
+       verificações abaixo passarem sem verificar nada. */
+    expect(comandos.length).toBeGreaterThanOrEqual(5);
+    expect(comandos).toContain('medication.confirm');
+  });
+
+  it('toda ação que o servidor manda tem botão na tela do Dia', () => {
+    /* A tela atende de dois jeitos: com uma folha própria (o comando aparece
+       escrito no código) ou levando a outra tela (a tabela `DESTINO`). */
+    const mudas = comandos.filter((c) => !DIA.includes(`'${c}'`));
+    expect(mudas).toEqual([]);
+  });
+
+  it('e o protótipo mostra as mesmas ações que o servidor manda (regra 14)', () => {
+    /*
+     * O protótipo escondeu este defeito por uma fase: ele devolvia
+     * `activity.record` para TODA linha, inclusive para dose de medicamento, e
+     * assim desenhava "Concluí" e "Não aconteceu" em cima de um remédio. A
+     * demonstração parecia funcionar melhor do que o sistema.
+     */
+    const mudas = comandos.filter((c) => !MOCK.includes(`'${c}'`));
+    expect(mudas).toEqual([]);
+  });
+});
