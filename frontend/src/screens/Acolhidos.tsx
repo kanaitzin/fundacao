@@ -186,6 +186,23 @@ const dia = (d: string) => {
     : data.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 };
 
+interface Convivencia {
+  id: string; personId: string; quem: string; comQuem: string; vinculo: string;
+  saiuEm: string; retornoPrevisto: string;
+  avisar: boolean; atrasado: boolean; finalidade: string | null;
+}
+
+const VINCULO: Record<string, string> = {
+  genitora: 'mãe', genitor: 'pai', irmao: 'irmão', avo: 'avó/avô', tio: 'tio/tia',
+  padrinho: 'padrinho', madrinha: 'madrinha',
+  vinculo_comunitario: 'vínculo comunitário', servico_da_rede: 'serviço da rede',
+  outro: 'outro',
+};
+
+const horaCurta = (iso: string) => new Date(iso).toLocaleString('pt-BR', {
+  timeZone: 'America/Sao_Paulo', weekday: 'short', hour: '2-digit', minute: '2-digit',
+});
+
 export function Acolhidos({ houseId, casaLabel, papel }: {
   houseId: string; casaLabel: string; papel: string;
 }) {
@@ -198,10 +215,18 @@ export function Acolhidos({ houseId, casaLabel, papel }: {
   const [acervo, setAcervo] = useState<Acervo | null>(null);
   const [vendoAcervo, setVendoAcervo] = useState(false);
   const [retornando, setRetornando] = useState<NoAcervo | null>(null);
+  /* Quem está com a família (1010), e quem já devia ter voltado. */
+  const [fora, setFora] = useState<Convivencia[]>([]);
+  const [recebendo, setRecebendo] = useState<Convivencia | null>(null);
+  const [notaRetorno, setNotaRetorno] = useState('');
 
   const carregar = useCallback(async () => {
     setErro('');
-    try { setLista(await api<Resumo[]>(`/people?houseId=${houseId}`)); }
+    try {
+      setLista(await api<Resumo[]>(`/people?houseId=${houseId}`));
+      /* Falhar aqui não trava a lista: os acolhidos continuam servindo. */
+      setFora(await api<Convivencia[]>(`/people/family-stays?houseId=${houseId}`).catch(() => []));
+    }
     catch (e) { setErro(e instanceof Error ? e.message : 'Não foi possível carregar os acolhidos.'); }
   }, [houseId]);
 
@@ -212,6 +237,28 @@ export function Acolhidos({ houseId, casaLabel, papel }: {
     try { setAcervo(await api<Acervo>(`/people/archive?houseId=${houseId}`)); }
     catch (e) { setErro(e instanceof Error ? e.message : 'Não foi possível abrir o acervo.'); }
   }, [houseId]);
+
+  /**
+   * Registrar o retorno.
+   *
+   * Quem recebe a criança na porta às 18h de domingo é o educador de plantão —
+   * e é ele quem registra. Exigir a técnica aqui deixaria a criança marcada
+   * como fora da casa a noite inteira.
+   */
+  async function receber(c: Convivencia) {
+    setErro('');
+    try {
+      await api(`/people/family-stays/${c.id}/return`, {
+        method: 'POST',
+        body: JSON.stringify({ quando: new Date().toISOString(), nota: notaRetorno.trim() }),
+      });
+      setRecebendo(null); setNotaRetorno('');
+      setAviso(`Retorno de ${c.quem} registrado.`);
+      await carregar();
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Não foi possível registrar o retorno.');
+    }
+  }
 
   if (cadastrando) {
     return (
@@ -328,6 +375,77 @@ export function Acolhidos({ houseId, casaLabel, papel }: {
 
       {erro && <div className="notice c-crit" role="alert">{erro}</div>}
       {aviso && <div className="notice c-ok" role="status">{aviso}</div>}
+
+      {/*
+        * COM A FAMÍLIA — acolhido em experiência familiar (1010).
+        *
+        * Antes da lista, e não dentro dela: quem abre esta tela às 17h de
+        * domingo precisa ver quem está para chegar antes de qualquer outra
+        * coisa. Quem está fora continua contando na casa e na vaga.
+        */}
+      {fora.length > 0 && (
+        <div className="card stack" style={{ marginBottom: 12 }}>
+          <div className="eyebrow">Com a família</div>
+          {fora.map((c) => (
+            <div key={c.id} className="row" style={{ gap: 10, alignItems: 'flex-start' }}>
+              <div className="grow">
+                <b className="ff">{c.quem}</b>
+                <div className="mutetxt">
+                  com {c.comQuem} ({VINCULO[c.vinculo] ?? c.vinculo})
+                  {c.finalidade ? ` · ${c.finalidade}` : ''}
+                </div>
+                <div className="estado">
+                  {/*
+                    * Duas frases, nenhuma acusação. O sistema não chama isto de
+                    * evasão: "não voltou às 18h" e "evadiu" são coisas
+                    * diferentes até alguém apurar, e quem apura é gente.
+                    */}
+                  {c.atrasado ? (
+                    <span className="pill c-crit">
+                      previsto {horaCurta(c.retornoPrevisto)} · retorno ainda não registrado
+                    </span>
+                  ) : c.avisar ? (
+                    <span className="pill c-warn">
+                      chega às {horaCurta(c.retornoPrevisto)} — fiquem de olho
+                    </span>
+                  ) : (
+                    <span className="pill c-move">volta {horaCurta(c.retornoPrevisto)}</span>
+                  )}
+                </div>
+              </div>
+              <button className="btn sec sm"
+                      onClick={() => { setRecebendo(c); setNotaRetorno(''); }}>
+                Chegou
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {recebendo && (
+        <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-receber"
+             onClick={(e) => { if (e.target === e.currentTarget) setRecebendo(null); }}>
+          <div className="sheet">
+            <h3 id="t-receber">{recebendo.quem} chegou</h3>
+            <p className="mutetxt">
+              De volta de {recebendo.comQuem}. A partir de agora ela volta à chamada,
+              à rotina e à grade de medicamentos.
+            </p>
+            <label className="f" htmlFor="nota-ret">Como foi a chegada (opcional)</label>
+            {/* A ajuda pede FATO, não rótulo: "voltou agressiva" gruda, "chegou
+                sem falar e foi para o quarto" pode mudar (§8.14). */}
+            <textarea id="nota-ret" rows={3} value={notaRetorno}
+                      onChange={(e) => setNotaRetorno(e.target.value)}
+                      placeholder="O que você observou. Ex.: chegou no horário, trouxe uma mochila de roupas; ficou quieta e foi direto para o quarto." />
+            <div className="row" style={{ gap: 8, marginTop: 16 }}>
+              <button type="button" className="btn sec grow"
+                      onClick={() => setRecebendo(null)}>Cancelar</button>
+              <button type="button" className="btn grow"
+                      onClick={() => receber(recebendo)}>Registrar chegada</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {QUEM_CADASTRA.includes(papel) && (
         <button className="btn block" onClick={() => setCadastrando(true)}>
@@ -1571,11 +1689,87 @@ function FotoDoAcolhido({ perfil, papel, onTrocou }: {
  * contato com aproximação restrita aparece PRIMEIRO, com o motivo à vista —
  * quem descobre isso às onze da noite descobre tarde.
  */
+
+/**
+ * A saída para convivência familiar.
+ *
+ * Duas datas com hora: quando sai e quando é para voltar. A segunda não é
+ * enfeite — é ela que o aviso lê, e sem hora o sistema não teria como dizer
+ * "chega às 18h, fiquem de olho".
+ */
+function FolhaSaidaFamiliar({ pessoa, contato, onFechar, onRegistrar }: {
+  pessoa: string; contato: Contato;
+  onFechar: () => void;
+  onRegistrar: (inicio: string, retorno: string, finalidade: string) => void;
+}) {
+  const agora = new Date();
+  const emDias = (d: number) => {
+    const x = new Date(agora.getTime() + d * 86400_000);
+    x.setHours(18, 0, 0, 0);
+    return x;
+  };
+  const paraInput = (d: Date) =>
+    new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+
+  const [inicio, setInicio] = useState(paraInput(agora));
+  const [retorno, setRetorno] = useState(paraInput(emDias(2)));
+  const [finalidade, setFinalidade] = useState('');
+  const ordemErrada = new Date(retorno) <= new Date(inicio);
+
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-saida"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet">
+        <h3 id="t-saida">{pessoa} com {contato.nome}</h3>
+        <p className="mutetxt">
+          Enquanto estiver fora, {pessoa} sai da chamada, da rotina e da grade de
+          medicamentos — e <b>continua ocupando a vaga na casa</b>. Volta sozinha
+          quando alguém registrar a chegada.
+        </p>
+
+        <label className="f" htmlFor="fs-ini">Sai em</label>
+        <input id="fs-ini" type="datetime-local" value={inicio}
+               onChange={(e) => setInicio(e.target.value)} />
+
+        <label className="f" htmlFor="fs-ret">É para voltar em</label>
+        <input id="fs-ret" type="datetime-local" value={retorno}
+               onChange={(e) => setRetorno(e.target.value)} />
+        <div className="mutetxt">
+          A casa recebe um lembrete uma hora antes, e vê na tela se a hora passar
+          sem a chegada registrada.
+        </div>
+
+        <label className="f" htmlFor="fs-fin">Para quê (opcional)</label>
+        <input id="fs-fin" value={finalidade} maxLength={120}
+               onChange={(e) => setFinalidade(e.target.value)}
+               placeholder="Ex.: fim de semana em casa; aniversário do irmão." />
+
+        {ordemErrada && (
+          <div className="notice c-warn" role="status">
+            A volta tem de ser depois da saída.
+          </div>
+        )}
+
+        <div className="row" style={{ gap: 8, marginTop: 16 }}>
+          <button type="button" className="btn sec grow" onClick={onFechar}>Cancelar</button>
+          <button type="button" className="btn grow" disabled={ordemErrada}
+                  onClick={() => onRegistrar(new Date(inicio).toISOString(),
+                                             new Date(retorno).toISOString(), finalidade.trim())}>
+            Registrar saída
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Contatos({ perfil, papel, onMudou }: {
   perfil: Perfil; papel: string; onMudou: () => void;
 }) {
   const [novo, setNovo] = useState(false);
   const [encerrando, setEncerrando] = useState<Contato | null>(null);
+  const [saindoCom, setSaindoCom] = useState<Contato | null>(null);
+  const [erroSaida, setErroSaida] = useState('');
   const podeEscrever = QUEM_CADASTRA.includes(papel);
   const ativos = (perfil.contatos ?? []).filter((c) => c.ativo);
 
@@ -1604,6 +1798,22 @@ function Contatos({ perfil, papel, onMudou }: {
             )}
             {podeEscrever && (
               <div className="acoes">
+                {/*
+                  * SAIR PARA CONVIVÊNCIA FAMILIAR (1010).
+                  *
+                  * O botão nasce no CONTATO, não numa tela solta: a saída
+                  * aponta para quem já está cadastrado, e digitar o nome à mão
+                  * permitiria escrever qualquer um.
+                  *
+                  * No contato com aproximação restrita ele não aparece — e o
+                  * servidor recusa de qualquer jeito. A tela não oferece o que
+                  * o servidor vai recusar.
+                  */}
+                {!c.restrito && (
+                  <button className="btn sm ghost" onClick={() => setSaindoCom(c)}>
+                    Vai passar dias com {c.nome.split(' ')[0]}
+                  </button>
+                )}
                 <button className="btn sm ghost" onClick={() => setEncerrando(c)}>
                   Este contato não vale mais
                 </button>
@@ -1616,6 +1826,29 @@ function Contatos({ perfil, papel, onMudou }: {
         <button className="btn sec block" style={{ marginBottom: 12 }} onClick={() => setNovo(true)}>
           ☎️ Acrescentar contato
         </button>
+      )}
+
+      {erroSaida && <div className="notice c-crit" role="alert">{erroSaida}</div>}
+
+      {saindoCom && (
+        <FolhaSaidaFamiliar
+          pessoa={perfil.nome} contato={saindoCom}
+          onFechar={() => { setSaindoCom(null); setErroSaida(''); }}
+          onRegistrar={async (inicio, retorno, finalidade) => {
+            setErroSaida('');
+            try {
+              await api('/people/family-stays', {
+                method: 'POST',
+                body: JSON.stringify({
+                  personId: perfil.id, contatoId: saindoCom.id,
+                  inicio, retornoPrevisto: retorno, finalidade,
+                }),
+              });
+              setSaindoCom(null); onMudou();
+            } catch (e) {
+              setErroSaida(e instanceof Error ? e.message : 'Não foi possível registrar a saída.');
+            }
+          }} />
       )}
 
       {novo && (

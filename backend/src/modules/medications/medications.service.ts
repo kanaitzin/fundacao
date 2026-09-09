@@ -344,6 +344,16 @@ export class MedicationsService {
             * aconteceu, porque não sabe.
             */
            AND NOT app_esta_internado(a.person_id, $2::date)
+           /*
+            * E quem está com a família (1010).
+            *
+            * Aqui a razão é DIFERENTE da internação, e é por isso que os dois
+            * predicados são separados: no hospital outro profissional dá a
+            * dose; com a mãe, ninguém da casa dá — e é justamente por isso que
+            * a casa manda o remédio junto, com as doses do período listadas
+            * para a técnica conferir na saída.
+            */
+           AND NOT app_em_convivencia_familiar(a.person_id, $2::date)
            AND ($3::uuid IS NULL OR a.person_id = $3)
          ORDER BY a.scheduled_at, pessoa`, [houseId, date, personId ?? null]);
       return rows.map(mapDose);

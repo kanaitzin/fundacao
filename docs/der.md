@@ -30,6 +30,12 @@ erDiagram
     text __ "conferido em app_definir_cor_da_linha (0990), não por constraint:"
     text ___ "a unicidade é POR CASA e a casa vive em user_house_assignment."
   }
+  FAMILY_STAY {
+    uuid contact_id FK "aponta para person_contact — nunca nome digitado à mão"
+    timestamptz expected_return_at "é isto que o aviso lê: 1h antes e depois da hora"
+    text return_note "pede FATO observado, nunca rótulo sobre a criança"
+    text status "em_andamento | encerrada. Uma aberta por criança"
+  }
   USER_SESSION {
     text token_hash UK "sha256(token+pepper)"
     timestamptz expires_at
@@ -627,12 +633,12 @@ entity/entity_id genéricos como o próprio relato — é isso que permite remov
 Índice único por `(entity, entity_id, user_id)`: reabrir a ocorrência não
 duplica a cobrança de quem já respondeu.
 
-## Inventário — 100 tabelas por partição
+## Inventário — 101 tabelas por partição
 
 | Partição | Tabelas |
 |---|---|
 | identity (13) | institution, house, app_user, user_house_assignment, work_schedule, shift_assignment, user_session, login_attempt, audit_event, institutional_device, staff_role_grant, house_capacity_change, user_invite |
-| people (18) | person, care_episode, house_stay, profile_detail, health_condition, food_restriction, document, document_version, benefit_record, memory_record, transfer_request, transfer_message, admission_record, judicial_record, person_credential, person_correction, profile_detail_change, person_contact |
+| people (19) | person, care_episode, house_stay, profile_detail, health_condition, food_restriction, document, document_version, benefit_record, memory_record, transfer_request, transfer_message, admission_record, judicial_record, person_credential, person_correction, profile_detail_change, person_contact, family_stay |
 | shifts (11) | shift, handover, handover_receipt, handover_note, ata, ata_note, ata_addendum, ata_episode, ata_episode_ack, general_night_ata, general_night_house_entry |
 | incidents (7) | incident, incident_person, incident_protected, incident_restraint, incident_synthesis, external_communication, incident_attachment |
 | medications (9) | prescription, medication_schedule, medication_administration, medication_stock, medication_stock_movement, medication_protocol, medication_authorization, medication_protocol_change, prescription_restriction_change |

@@ -88,6 +88,31 @@ export class PeopleController {
     return this.admission.atualizarJudicial(user, id, body ?? {});
   }
 
+  /**
+   * ACOLHIDO EM EXPERIÊNCIA FAMILIAR (1010).
+   *
+   * `family-stays` antes de `:id` na ordem do arquivo não importa aqui porque
+   * o segmento é fixo e distinto — mas a leitura vem antes da escrita de
+   * propósito: quem abre a tela precisa ver quem está fora antes de registrar
+   * mais alguém saindo.
+   */
+  @Get('family-stays')
+  convivencias(@CurrentUser() user: AuthenticatedUser, @Query('houseId') houseId: string) {
+    return this.people.convivenciasAbertas(user, houseId);
+  }
+
+  @Post('family-stays')
+  registrarSaida(@CurrentUser() user: AuthenticatedUser, @Body() body: any) {
+    return this.people.registrarSaidaFamiliar(user, body);
+  }
+
+  @Post('family-stays/:id/return')
+  registrarRetorno(@CurrentUser() user: AuthenticatedUser,
+                   @Param('id', ParseUUIDPipe) id: string,
+                   @Body() body: { quando: string; nota?: string }) {
+    return this.people.registrarRetornoFamiliar(user, id, body?.quando, body?.nota);
+  }
+
   @Post(':id/readmit')
   readmit(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
           @Body() body: { houseId: string }) {

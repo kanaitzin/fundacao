@@ -20,7 +20,7 @@ começava escolhendo em qual acreditar.*
 
 | Arquivo | Por que sobreviveu |
 |---|---|
-| `der.md` | as 100 tabelas com o que cada coluna guarda. É referência de dado, não narrativa, e o `documentacao.spec.ts` cobra que toda tabela apareça lá |
+| `der.md` | as 101 tabelas com o que cada coluna guarda. É referência de dado, não narrativa, e o `documentacao.spec.ts` cobra que toda tabela apareça lá |
 | `roteiro-marcelo.md` (+ `.docx`) | é entregue à Casa 03, escrito para quem não conhece o sistema. O `.docx` é GERADO do `.md` por `scripts/roteiro-em-word.mjs` — não editar o Word à mão |
 
 ---
@@ -84,14 +84,14 @@ discordavam entre si.
 | Quanto | De onde sai |
 |---|---|
 | **17 partições** isoladas | pastas em `backend/src/modules/` |
-| **86 migrações** | `.sql` dentro das partições |
-| **100 tabelas** | `CREATE TABLE` nas migrações |
-| **58 suítes** | `backend/test/*.spec.ts` |
-| **569 testes** | `it(` / `test(` nas suítes |
+| **87 migrações** | `.sql` dentro das partições |
+| **101 tabelas** | `CREATE TABLE` nas migrações |
+| **59 suítes** | `backend/test/*.spec.ts` |
+| **576 testes** | `it(` / `test(` nas suítes |
 | **31 telas React** | `frontend/src/screens/*.tsx` |
 | **14 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **6 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
-| protótipo com **≈943 KB** | `prototipo/rede-acolher-prototipo.html` |
+| protótipo com **≈950 KB** | `prototipo/rede-acolher-prototipo.html` |
 
 *A frase importa: o conferidor lê o NÚMERO colado ao substantivo. Escrever
 "Telas React … 31" numa coluna separada faz o teste passar sem conferir nada —
@@ -170,7 +170,7 @@ cd frontend && npm run prototipo
 # sai em prototipo/rede-acolher-prototipo.html
 ```
 
-O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as 86
+O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as 87
 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
 
 ### Os ensaios — e por que cada um existe
@@ -236,7 +236,7 @@ rede-acolher/
 │   │   │   ├── documentos/     o contrato da folha e o gerador de .docx
 │   │   │   └── common/         CPF, criptografia, segredo, fuso da instituição
 │   │   └── modules/       17 partições, cada uma dona das próprias migrações
-│   ├── test/              58 suítes (e2e contra PostgreSQL real + estáticas)
+│   ├── test/              59 suítes (e2e contra PostgreSQL real + estáticas)
 │   ├── scripts/           ensaio-carga.ts, migrador compilado
 │   └── assets/timbre.png  a marca da Fundação, usada no documento em Word
 ├── frontend/
@@ -847,6 +847,38 @@ linha**, e nunca na grade da casa.
 O educador comum não lê a internação, mas vê **"no hospital"** na lista de
 acolhidos: ele precisa saber por que a cadeira está vazia.
 
+### 8.7.1 Acolhido em experiência familiar
+
+A criança sai para passar dias com a família de origem ou com o padrinho. Sai
+da chamada, da rotina e da grade — **e a vaga continua ocupada**, como na
+internação. Volta sozinha quando alguém registra a chegada, e o nome veio do
+papel: é uma das seções que o LIVRO ATA da Casa 03 já preenche.
+
+**Não há autorização judicial amarrada.** Quem autoriza é o Juízo, em papel, e o
+sistema não teria como conferir — um campo "autorizado" não verificável
+pareceria conferência. O acolhimento registra que a criança vai, e fica no
+perfil dela.
+
+**Contato com aproximação restrita é barrado, não avisado.** A saída aponta para
+um contato já cadastrado (digitar o nome à mão permitiria escrever qualquer um),
+e no contato restrito o botão nem aparece — o servidor recusa de qualquer jeito,
+com a frase dizendo o motivo.
+
+**O aviso é sobre o relógio, nunca sobre a criança:** "volta sex 18:00", depois
+"chega às 18:00 — fiquem de olho" na última hora, e "previsto 18:00 · retorno
+ainda não registrado" se a hora passar. O sistema não chama isso de evasão — não
+voltar às 18h e evadir são coisas diferentes até alguém apurar (regra 3).
+
+**Quem recebe registra:** o educador de plantão fecha o retorno. Exigir a técnica
+às 18h de domingo deixaria a criança marcada como fora da casa a noite inteira.
+O campo da chegada pede **fato observado**, não rótulo.
+
+**O dia do retorno já conta como de volta.** Se contasse como fora, a criança que
+chegou às 16h passaria a noite em casa com a grade vazia e ninguém seria
+lembrado do remédio das 20h. O custo — as doses anteriores à chegada, naquele
+dia, reaparecem sem confirmação — é o menor dos dois, e quem fecha o turno
+escreve o que houve.
+
 ### 8.8 Ocorrências
 
 Categorias; relatos independentes por autor; **registro protegido** (fala
@@ -1238,7 +1270,7 @@ ele continua dizendo que o arquivo existe.
 npm run ensaio:producao
 ```
 
-Constrói, cria um banco virgem, aplica as 86 migrações **pelo binário
+Constrói, cria um banco virgem, aplica as 87 migrações **pelo binário
 compilado**, sobe o serviço e confere `/health`. Não publica nada e não toca no
 banco de trabalho.
 

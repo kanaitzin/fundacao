@@ -287,6 +287,99 @@ export class PeopleService {
       return rows.map(publicPerson);
     });
   }
+
+  /* ---------------- Acolhido em experiência familiar (1010) ---------------- */
+
+  /** Quem está com a família agora, e quem já devia ter voltado. */
+  async convivenciasAbertas(user: AuthenticatedUser, houseId: string) {
+    return this.db.asUser(user.id, async (c) => {
+      const { rows } = await c.query(`SELECT * FROM app_convivencias_abertas($1)`, [houseId]);
+      return rows.map((r) => ({
+        id: r.id, personId: r.person_id, quem: r.quem,
+        comQuem: r.com_quem, vinculo: r.vinculo,
+        saiuEm: r.saiu_em, retornoPrevisto: r.retorno_previsto,
+        /* Duas frases, nenhuma acusação: "está chegando" e "a hora passou".
+           O sistema não chama isto de evasão — quem apura é gente. */
+        avisar: r.avisar === true, atrasado: r.atrasado === true,
+        finalidade: r.finalidade,
+      }));
+    });
+  }
+
+  async registrarSaidaFamiliar(user: AuthenticatedUser, input: {
+    personId: string; contatoId: string; inicio: string;
+    retornoPrevisto: string; finalidade?: string;
+  }) {
+    try {
+      const id = await this.db.asUser(user.id, async (c) => {
+        const { rows: [row] } = await c.query(
+          `SELECT * FROM app_registrar_saida_familiar($1,$2,$3::timestamptz,$4::timestamptz,$5)`,
+          [input.personId, input.contatoId, input.inicio, input.retornoPrevisto,
+           input.finalidade ?? null]);
+        return row.saida_id as string;
+      });
+      await this.audit.log({
+        action: 'family_stay.open', actorId: user.id, institutionId: user.institutionId,
+        entity: 'family_stay', entityId: id, detail: { personId: input.personId },
+      });
+      return { id };
+    } catch (e: any) {
+      const m = String(e?.message ?? '');
+      /* A frase precisa chegar em português a quem clicou — e esta em
+         particular precisa DIZER o motivo, porque a pessoa vai perguntar. */
+      if (m.includes('contato_com_aproximacao_restrita')) {
+        throw new ForbiddenException(
+          'Este contato está marcado com aproximação restrita. A criança não pode sair '
+          + 'com ele. Fale com a equipe técnica antes de qualquer combinação.');
+      }
+      if (m.includes('sem_permissao_saida_familiar')) {
+        throw new ForbiddenException(
+          'Só a equipe técnica, a coordenação ou o líder do turno registram uma saída '
+          + 'para convivência familiar.');
+      }
+      if (m.includes('uq_convivencia_aberta')) {
+        throw new ConflictException(
+          'Já existe uma saída em aberto para esta criança. Registre o retorno da '
+          + 'anterior antes de abrir outra.');
+      }
+      if (m.includes('contato_inexistente')) {
+        throw new NotFoundException(
+          'Contato não encontrado. A saída aponta para um contato já cadastrado no '
+          + 'perfil — digitar o nome à mão permitiria escrever qualquer um.');
+      }
+      if (m.includes('retorno_antes_da_saida')) {
+        throw new BadRequestException('O retorno previsto tem de ser depois da saída.');
+      }
+      if (m.includes('pessoa_fora_de_escopo')) {
+        throw new NotFoundException('Criança não encontrada nesta casa.');
+      }
+      throw e;
+    }
+  }
+
+  async registrarRetornoFamiliar(user: AuthenticatedUser, id: string,
+                                 quando: string, nota?: string) {
+    try {
+      await this.db.asUser(user.id, async (c) => {
+        await c.query(`SELECT * FROM app_registrar_retorno_familiar($1,$2::timestamptz,$3)`,
+          [id, quando, nota ?? null]);
+      });
+    } catch (e: any) {
+      const m = String(e?.message ?? '');
+      if (m.includes('retorno_ja_registrado')) {
+        throw new ConflictException('O retorno desta saída já foi registrado.');
+      }
+      if (m.includes('saida_inexistente')) {
+        throw new NotFoundException('Saída não encontrada.');
+      }
+      throw e;
+    }
+    await this.audit.log({
+      action: 'family_stay.close', actorId: user.id, institutionId: user.institutionId,
+      entity: 'family_stay', entityId: id, detail: { quando },
+    });
+    return { encerrada: true };
+  }
 }
 
 /** Casa atual — usada para carimbar a auditoria antes de encerrar a permanência. */

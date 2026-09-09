@@ -609,6 +609,17 @@ const CORES_DA_LINHA = new Map<string, string>();
 
 /* As cobranças de relato de uma ocorrência grave já aberta na casa fictícia:
    quatro pessoas do turno, duas ainda sem escrever. */
+/*
+ * ACOLHIDO EM EXPERIÊNCIA FAMILIAR (1010).
+ *
+ * Vazio no começo: a demonstração fica mais honesta quando quem abre registra
+ * a primeira saída e vê o estado mudar, em vez de encontrar uma criança já
+ * fora sem saber quem a mandou.
+ */
+const CONVIVENCIAS: { id: string; personId: string; quem: string; comQuem: string;
+                      vinculo: string; saiuEm: string; retornoPrevisto: string;
+                      finalidade: string | null }[] = [];
+
 const COBRANCAS: { id: string; incidentId: string; userId: string; quem: string;
                    pergunta: string; abertaEm: string; respondida: boolean;
                    origem: 'escala' | 'vinculo' }[] = [
@@ -4270,6 +4281,51 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       aviso: 'Revise medicamentos, alergias e restrições com a Enfermagem antes de reativá-los.' };
   }
 
+  if (rota.startsWith('/people/family-stays') && metodo === 'GET') {
+    /* O servidor de mentira responde o que o servidor responde: as duas
+       janelas de aviso saem do relógio, não de um campo gravado. */
+    const agora = Date.now();
+    return CONVIVENCIAS.map((f) => {
+      const prev = new Date(f.retornoPrevisto).getTime();
+      return {
+        id: f.id, personId: f.personId, quem: f.quem, comQuem: f.comQuem,
+        vinculo: f.vinculo, saiuEm: f.saiuEm, retornoPrevisto: f.retornoPrevisto,
+        avisar: agora >= prev - 3600_000 && agora < prev,
+        atrasado: agora >= prev,
+        finalidade: f.finalidade,
+      };
+    });
+  }
+  if (rota === '/people/family-stays' && metodo === 'POST') {
+    if (!['equipe_tecnica', 'coordenador', 'lider_diurno', 'gestor_geral'].includes(eu.role)) {
+      throw new ErroApi(403, 'Só a equipe técnica, a coordenação ou o líder do turno '
+        + 'registram uma saída para convivência familiar.');
+    }
+    const kid = todosKids().find((k) => k.id === b.personId);
+    const contato = contatosDe(b.personId).find((c: any) => c.id === b.contatoId);
+    if (!contato) throw new ErroApi(404, 'Contato não encontrado.');
+    /* A recusa que importa, e ela é BARRA — não aviso. */
+    if (contato.restrito) {
+      throw new ErroApi(403, 'Este contato está marcado com aproximação restrita. A criança '
+        + 'não pode sair com ele. Fale com a equipe técnica antes de qualquer combinação.');
+    }
+    if (CONVIVENCIAS.some((f) => f.personId === b.personId)) {
+      throw new ErroApi(409, 'Já existe uma saída em aberto para esta criança.');
+    }
+    CONVIVENCIAS.push({
+      id: `fs-${CONVIVENCIAS.length + 1}`, personId: b.personId,
+      quem: kid?.nome ?? '—', comQuem: contato.nome, vinculo: contato.vinculo,
+      saiuEm: b.inicio, retornoPrevisto: b.retornoPrevisto,
+      finalidade: b.finalidade || null,
+    });
+    return { id: `fs-${CONVIVENCIAS.length}` };
+  }
+  if (seg[0] === 'people' && seg[1] === 'family-stays' && seg[3] === 'return') {
+    const i = CONVIVENCIAS.findIndex((f) => f.id === seg[2]);
+    if (i < 0) throw new ErroApi(404, 'Saída não encontrada.');
+    CONVIVENCIAS.splice(i, 1);
+    return { encerrada: true };
+  }
   if (rota === '/people' && metodo === 'GET') {
     return todosKids().map((k) => ({
       id: k.id, nome: k.nome, nomeCivil: k.civil, idade: k.idade, nascimento: k.nascimento,

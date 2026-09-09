@@ -155,6 +155,10 @@ export class ChecksService {
            SELECT s.person_id FROM house_stay s
             WHERE s.house_id = $2 AND s.status = 'ativa'
               AND NOT app_esta_internado(s.person_id)
+              /* E quem está com a família (1010): mesma razão. Cobrar a
+                 confirmação do café de quem passou o fim de semana com a mãe é
+                 pedir que a educadora minta. */
+              AND NOT app_em_convivencia_familiar(s.person_id)
            UNION
            SELECT r.person_id FROM check_result r WHERE r.check_id = $1
          )
