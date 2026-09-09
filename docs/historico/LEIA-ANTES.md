@@ -16,16 +16,16 @@ foram arquivados, e três discordavam entre si sobre fatos verificáveis
 |---|---|---|
 | `RETOMAR-AQUI.md` | o documento de retomada | REDE-ACOLHER inteiro |
 | `PROMPT-MESTRE.md` | o bloco para colar na conversa nova | §14 |
-| `CONTINUIDADE.md` | a história fase a fase, com o raciocínio de cada decisão | §2 (resumo por bloco) e §6 (as lições) |
+| `CONTINUIDADE.md` | a história fase a fase, com o raciocínio de cada decisão | §2 (resumo por bloco), §6 (as lições) e §8.13 (as decisões de produto que valem lembrar) |
 | `backlog.md` | fase a fase, do outro jeito | idem |
 | `o-que-falta.md` | o levantamento de rotas sem tela | §9 |
-| `pendencias-institucionais.md` | o que depende da Fundação | §10 e §11 |
+| `pendencias-institucionais.md` | o que depende da Fundação | §10 (as decisões tomadas, todas) e §11 |
 | `arquitetura.md` + `arquitetura-modular.md` | as partições e as fronteiras | §4 |
-| `design-system.md` | os tokens e a regra da cor | §4.9 |
+| `design-system.md` | os tokens e a regra da cor | §4.9 (inteiro, com as três lições de contraste) |
 | `matriz-permissoes.md` | quem alcança o quê | §7 |
 | `riscos-premissas.md` | riscos e mitigação | §13 |
-| `piloto-casa-03.md` | o plano do piloto | §13 |
-| `formularios-reais.md` | os formulários de papel que viraram tela | §8 |
+| `piloto-casa-03.md` | o plano do piloto | §13 inteiro: preparação, migração, treinamento, paralelo, critérios de aceite, riscos, expansão |
+| `formularios-reais.md` | os formulários de papel que viraram tela | §8.12, §8.14 e §11 (os seis que faltam) |
 | `implantacao.md` + `implantacao-smtp.md` | o que fazer antes de a casa usar | §12 |
 | `adr/` | as quatro decisões de fundação, datadas | §4.1 (o resumo) — os ADRs completos ficam aqui, porque decisão datada é história legítima |
 

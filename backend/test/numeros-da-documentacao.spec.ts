@@ -207,7 +207,14 @@ describe('Os números da documentação', () => {
   });
 
   it('as tarefas do roteiro', () => {
-    expect(conferir(/(\d+) tarefas/g, tarefasDoRoteiro())).toEqual([]);
+    /*
+     * "tarefas do roteiro", e não "tarefas": a primeira versão cobrava o
+     * substantivo solto e acusou "5 tarefas cronometradas, sem ajuda" — um
+     * critério de aceite do piloto, que não tem nada a ver com o roteiro. Um
+     * conferidor cego demais passa sem conferir; um estrito demais cobra a
+     * frase errada, e a primeira coisa que se faz com ele é afrouxá-lo.
+     */
+    expect(conferir(/(\d+) tarefas do roteiro/g, tarefasDoRoteiro())).toEqual([]);
   });
 
   /*
@@ -231,7 +238,7 @@ describe('Os números da documentação', () => {
       ['rotas sem porta', /\d+ rotas sem porta/],
       ['partições', /\d+ partições/],
       ['ensaios de navegador', /\d+ ensaios de navegador/],
-      ['tarefas', /\d+ tarefas/],
+      ['tarefas do roteiro', /\d+ tarefas do roteiro/],
       ['tamanho do protótipo', /[~≈] ?\d{3,4} KB/],
     ];
     expect(exigidos.filter(([, r]) => !r.test(texto)).map(([nome]) => nome)).toEqual([]);

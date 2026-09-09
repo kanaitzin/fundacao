@@ -103,7 +103,7 @@ foi assim que "30 telas" sobreviveu à fase que existiu para acabar com isso.*
 |---|---|
 | `npm run ensaio` | 113 telas nos oito cargos — Coordenação 23, Técnica 21, Gestor 20, Líder Diurno 14, Líder Noturno 13, Educador 12, Enfermagem 9, Cozinha 1 |
 | `npm run ensaio:acessibilidade` | 120 telas, **nenhuma violação de WCAG 2.1 AA** |
-| `npm run ensaio:roteiro` | 29 tarefas, **todas com porta no cargo certo** |
+| `npm run ensaio:roteiro` | 29 tarefas do roteiro, **todas com porta no cargo certo** |
 
 ### A última verificação inteira
 
@@ -362,24 +362,80 @@ Pobres.
 `frontend/src/docx.ts` continua no repositório por uma razão só — o protótipo
 roda sem servidor —, mas deixou de declarar o contrato: ele importa o do kernel.
 
-### 4.9 A cor, e o que ela não pode dizer
+### 4.9 O design system
 
-**Cor comunica estado operacional e categoria de atividade — nunca julgamento,
-ranking ou pontuação sobre a pessoa.** Um chip vermelho significa "exige ação
-agora", jamais "criança problemática". Nenhuma cor é aplicada a pessoas, só a
-estados.
+A fonte da verdade visual é `frontend/src/styles.css`. O protótipo usa os mesmos
+tokens.
+
+**O princípio, que é a regra 7:** cor comunica **estado operacional** e
+**categoria de atividade** — nunca julgamento, ranking ou pontuação sobre a
+pessoa. Um chip vermelho significa "exige ação agora", jamais "criança
+problemática".
 
 **Nada depende apenas de cor.** Todo estado traz rótulo textual; a cor por autor
 na ATA vem sempre com o nome escrito ao lado, porque cor não sobrevive à
 impressão em preto e branco nem ao daltonismo.
 
-A fonte da verdade visual são os tokens de `frontend/src/styles.css`, e a folga
-de contraste foi conquistada em 02/09: contraste não é opinião, e a diferença
-entre 4,46 e 4,5 só se enxerga no corredor.
+**A tinta institucional**, extraída do logo da Fundação:
 
-**As fontes do protótipo** (`Atkinson Hyperlegible` e `Plus Jakarta Sans`) são
-buscadas na rede. Aberto sem internet — que é como o arquivo é entregue —, ele
-cai na fonte do sistema. Decisão em aberto, §10.10.
+| Token | Claro | Escuro | Uso |
+|---|---|---|---|
+| `--navy` | `#003262` | `#0A1B2C` | cabeçalho institucional |
+| `--brand` / `--brand-solid` | `#005993` | `#7BC0EC` | ação primária, links, destaque |
+| `--brand-soft` | `#E2EFF9` | `#152C41` | fundo de ação secundária |
+
+**A paleta viva (estados).** Cada matiz tem dois valores: **vivo** (tinta de
+fundo, borda, ponto da linha do tempo) e **sólido** (texto sobre tinta e chip
+selecionado, com contraste AA). No tema escuro os papéis se invertem.
+
+| Classe | Matiz | Significado |
+|---|---|---|
+| `.c-ok` | esmeralda | concluído, em dia, assinado |
+| `.c-warn` | âmbar | pendente, agendado, aguardando |
+| `.c-crit` | vermelho | exige ação agora, atraso, recusa, incidente |
+| `.c-info` | azul | em andamento, informativo |
+| `.c-med` | violeta | medicamento e conteúdo restrito |
+| `.c-move` | ciano | deslocamento, saída, ausência externa |
+| `.c-other` | rosa | "outro" com nota |
+| `.c-mute` | ardósia | rotina, não aplicável, sem demanda |
+| `.c-brand` | azul institucional | identidade, contagens neutras |
+
+**Componentes:** `.appbar` · `.card` · `.tile` (indicador com faixa colorida) ·
+`.pill` (estado) · `.opt` (opção viva selecionável) · `.notice` (aviso com barra
+lateral) · `.kidcard` (avatar com iniciais) · `.seg` · `.tabbar` · `.sheet`.
+
+**Temas:** claro, escuro e "sistema". Tokens em `:root`, redefinidos em
+`@media (prefers-color-scheme: dark)` com guarda
+`:root:not([data-theme="light"])` e de novo em `:root[data-theme="dark"]`.
+**Nenhuma cor tem definição única dentro de media query.**
+
+**Tipografia:** *Plus Jakarta Sans* (600–800) para títulos, rótulos, números e
+chips — a voz institucional; *Atkinson Hyperlegible* (400/700) para texto
+corrido, escolhida por ser desenhada para leitura difícil.
+
+#### As três lições de contraste — regras, não estimativas
+
+Conferidas por `npm run ensaio:acessibilidade`. **Cor nova passa por ele antes
+de entrar.**
+
+1. **`opacity` desbota o texto junto com a decoração.** Quatro listas usavam
+   opacidade entre .55 e .62 para recuar o que já aconteceu — a dose
+   administrada, a atividade concluída, a criança que saiu. A conta é
+   multiplicativa: a linha de apoio, já cinza por ser apoio, caía para 2,3:1.
+   **O que já foi resolvido recua pelo FUNDO e pelo peso**, nunca pela tinta:
+   `background: var(--sunken)` e `font-weight: 600`.
+2. **Toda tinta precisa passar nos TRÊS fundos claros** — `--surface`,
+   `--ground` e `--sunken` —, não só no branco. `--muted` estava em 5,44:1 no
+   branco e 4,49:1 sobre a superfície rebaixada: a mesma cor aprovada num lugar
+   e reprovada no outro, por dois centésimos.
+3. **A diferença entre 4,46 e 4,5 não se enxerga num monitor com luz.**
+   Enxerga-se no corredor, às onze da noite. O âmbar da pílula "em atenção"
+   estava nesse limiar — a tinta mais fraca da tela reservada justamente para o
+   aviso. `--amber-solid` foi de `#B45309` para `#92400E`.
+
+**As fontes do protótipo** são buscadas na rede. Aberto sem internet — que é
+como o arquivo é entregue —, ele cai na fonte do sistema. Decisão em aberto,
+§10.10.
 
 ### 4.10 Os testes que guardam a arquitetura
 
@@ -805,6 +861,89 @@ ou de uma casa só para a coordenação dela) e a **trajetória de uma criança*
 que é a história dela para levar a uma audiência. Os dois passam pela finalidade
 escrita e ficam registrados.
 
+### 8.12 De onde os formulários vieram
+
+O Marcelo entregou seis documentos de papel em 28/08/2026. **Nenhum dado real
+deles entrou no sistema, nas fixtures ou nesta documentação** — foram lidos como
+referência de campo e fluxo. O que cada um ensinou, e que está no código:
+
+| Documento de papel | O que virou, e o que faltava |
+|---|---|
+| **LIVRO ATA – AI 03** (Google Forms, por turno) | as seções da ATA da casa. Faltavam duas: **acolhido em experiência familiar** (diferente de visita domiciliar — a criança está fora por um período e a casa continua responsável) e a **organização da casa por ambiente** (`checklist_ambientes`, os seis ambientes do papel). *O registro é do ambiente, nunca de quem arrumou — manter assim evita que a ATA vire ficha de comportamento* |
+| **ATA – LÍDERES NOTURNO** (as oito casas) | virou **grade**, não lista: para cada casa, sempre as mesmas perguntas. A forma mudou o uso — a noite inteira numa tela, e **o que ficou em branco fica evidente**. Uma diferença em relação ao papel: **"sim" sem descrição não é registro**; o banco recusa, porque quem lê de manhã precisa do fato |
+| **Modelo de Evolução de Saúde** | **acompanhante em texto** (quem leva à consulta às vezes é motorista ou familiar autorizado, e exigir usuário cadastrado obrigava a mentir no campo), comportamento ao chegar e ao sair, ocorrências no trajeto, data da reconsulta. O rodapé com duas assinaturas virou duas confirmações datadas, cada uma com seu dono |
+| **Prontuário Individual de Evolução – Educação** | **sala de recursos** (motivo e professor), **equipe multiprofissional** (fono, pedagoga, psicopedagoga), **aprendizagem profissional** (curso, turno, unidade, local de trabalho) e a evolução educacional datada — que o educador também escreve, porque quem acompanha a tarefa de casa é ele |
+| **Audiência Concentrada** | **quatro blocos por criança, não onze.** O documento que a Fundação levou à audiência tem Acompanhamento, Saúde, Educação e Profissionalização, Contexto Sociofamiliar — é mais curto porque foi escrito por quem redige de verdade, na véspera, para vinte crianças. As outras sete seções ficaram **opcionais**: onze títulos obrigatórios criariam campos vazios que, num documento judicial, são lidos como ausência de trabalho. E os quatro blocos são os mesmos eixos do acompanhamento mensal |
+| **Planilha de dados bancários** | número do benefício, operação, agência, **pendência bancária** (a coluna que é o motivo de a planilha existir) e observação |
+
+### 8.13 As decisões de produto que se desfazem sem querer
+
+Cada uma foi escolhida contra uma alternativa razoável. Estão aqui porque são
+fáceis de desfazer sem perceber, "simplificando".
+
+- **Cinco abas, não seis.** A barra de baixo carrega o turno — Dia, Chamada,
+  Acolhidos, Passagem. Tudo o mais mora em "Mais".
+- **O CPF é conferido ANTES do resto**, no cadastro em quatro passos: histórico
+  partido é o que faz a audiência perguntar o que o sistema deveria saber.
+- **Correção não é sobrescrita.** Quando um registro fechado muda, o valor
+  anterior vai para uma tabela de histórico com autor e horário. Nunca some.
+- **O relatório sai em Word, não em PDF.** Quem assina precisa poder mexer: a
+  técnica escreve a avaliação, a coordenação acrescenta uma linha antes da
+  audiência, alguém corrige um nome. Um PDF fechado empurraria a equipe a refazer
+  tudo no Word da máquina dela — e aí **o que vai ao Juízo deixaria de ter
+  relação com o que está no sistema**. Converter para PDF é da pessoa, na hora
+  de enviar.
+- **A criança não é só o que deu problema.** O relatório de desenvolvimento puxa
+  também as memórias e a evolução educacional: a apresentação no coral, a tarefa
+  entregue sem lembrete. Um documento feito só de ocorrências e faltas devolve
+  uma pessoa que não existe — e é esse documento reduzido que segue para a
+  audiência, para a escola e para o próximo serviço.
+- **O sistema conta; a pessoa avalia.** O relatório traz a parte factual já
+  escrita, cada seção dizendo de onde veio; os campos de avaliação e
+  encaminhamento vêm **em branco**, marcados como "a preencher". O sistema nunca
+  interpreta, nunca conclui, nunca avalia ninguém, e nunca conta por educador.
+- **Relato de ocorrência restrita não entra em relatório.** Sai a categoria, a
+  data e a situação. Quem precisar do inteiro teor abre a ocorrência e responde
+  pelo acesso dela — relatório circula: vai por e-mail, é impresso, fica em cima
+  de uma mesa.
+- **Seção vazia diz "não há"; ela não some.** Seção ausente vira dúvida de quem
+  lê. A frase escrita vira informação.
+- **A linha do tempo corrida conta a história.** As seções por assunto servem
+  para conferir cada coisa; a cronologia junta a consulta de terça, a ocorrência
+  de terça à noite e a dose recusada na quarta. Separadas, parecem três fatos
+  independentes; em ordem, viram a explicação. Corta em 120 registros **e avisa
+  que cortou**.
+- **O dia das unidades não compara unidades**, e não tem modo individual: quem
+  alcança uma casa recebe uma, quem alcança oito recebe oito. Acompanhar uma
+  criança é dentro da casa dela — varrer as oito atrás de alguém é vigilância
+  com outro nome, e o servidor recusa.
+- **"Chegou remédio" e "conferi o armário" são duas ações.** Havia uma só, e ela
+  mentia: substituía a quantidade e gravava como entrada — 10 sobre 30 deixava
+  10, com o histórico jurando que uma entrada de 10 acontecera. O sistema não
+  adivinha qual é qual pelo tamanho do número: contagem maior que o registrado
+  acontece (frasco em outra gaveta), e entrada pequena não deixa de ser entrada.
+- **O aviso de receita é sobre a receita, não sobre a tela.** A janela de 7 dias
+  parte de HOJE. O painel de outro dia é o que a Enfermagem abre para revisar a
+  véspera — e era aí que o alerta sumia justamente para quem foi conferir.
+
+### 8.14 A linguagem que rotula
+
+O documento de Audiência Concentrada contém, sobre adolescentes,
+caracterizações como "comportamentos manipulativos". Não é crítica a quem
+escreveu — é o vocabulário disponível na hora, para vinte crianças, na véspera.
+
+Mas um documento judicial acompanha a pessoa por anos, e **um rótulo escrito uma
+vez costuma ser lido como diagnóstico depois**.
+
+O sistema **não censura texto** — não deve. O que ele faz é **pedir fato e
+contexto** na ajuda de cada campo, e manter fonte, autor e data de cada trecho,
+para que uma frase escrita numa segunda-feira difícil não vire característica
+permanente de uma criança.
+
+*"Alterou o relato em três ocasiões nesta semana" e "é manipuladora" descrevem
+coisas diferentes: a primeira pode mudar, a segunda gruda.* Vale uma conversa
+curta com a equipe técnica no treinamento do piloto.
+
 ---
 
 ## 9. O QUE FALTA
@@ -918,10 +1057,23 @@ número**.
 | 08/09 | **Quem dá o remédio** | Enfermagem 9h–17h; educador de plantão fora disso. O protocolo por período saiu; entrou a **exceção por medicamento**. Migração 0930 |
 | 08/09 | **Onde o aparelho da casa recebe o código** | **A pergunta deixou de existir.** O sistema roda no celular de cada pessoa: não há mais aparelho único para ser a trava. Dose não se confirma sem sinal, em aparelho nenhum |
 | 08/09 | **A medicação a qualquer horário** | O horário previsto EXISTE — o esquema traz duração, doses e horários da bula. Sobrou só a pergunta 8 acima |
-| 28/08 | Limite de vagas por casa | 20 nas oito unidades, alterável pela coordenação com motivo registrado |
-| 28/08 | As senhas de gov.br, INSS, CTPS e banco | Ficam no sistema, com a coordenação de cada casa, cifradas. Sem isso continuariam numa planilha compartilhada sem cifra nem registro |
+| 28/08 | Limite de vagas por casa | 20 nas oito unidades, alterável pela coordenação com motivo registrado (`house.capacity` + `house_capacity_change`) |
+| 28/08 | **Casa cheia bloqueia acolhimento?** | **Não.** Exige justificativa registrada (mínimo 15 caracteres) e marca `over_capacity`. Uma criança com guia na mão às 23h não pode esbarrar num CHECK. *Se a Fundação preferir bloqueio real, é uma condição a inverter — mas a escolha precisa ser consciente* |
+| 28/08 | As senhas de gov.br, INSS, CTPS e banco | Ficam no sistema, com a coordenação de cada casa, cifradas em AES-256-GCM. Sem isso continuariam numa planilha compartilhada sem cifra nem registro |
 | 28/08 | O conteúdo do cofre físico | **Não entra no sistema.** Nenhum campo criado |
+| 28/08 | A comunicação operacional sai do WhatsApp | O diagnóstico do Leonardo é o que importa: *eles usam o WhatsApp porque ainda não têm um sistema.* **Condição de sucesso, não técnica:** registrar aqui precisa ser mais rápido do que digitar no aplicativo |
+| 28/08 | Quem marca compromisso na linha do tempo | Líder Diurno, equipe técnica, coordenação e Enfermagem. O educador executa e confirma; marcar é de quem responde pelo planejamento |
+| 28/08 | Compromisso com responsável nomeado ou "de quem estiver no plantão" | `commitment.responsible_mode`. Nomear alguém fora da escala **avisa e não bloqueia** — escala muda, troca de plantão existe, e a saída pode ter sido combinada assim |
+| 28/08 | A agenda futura é **projetada**, não materializada | Marcar a consulta de outubro não cria sessenta linhas, e mudar o horário não reescreve o que já passou. Só o dia corrente vira `activity` |
+| 28/08 | **Quem redige não aprova o próprio texto** | Acompanhamento mensal e relatório ao Judiciário. Vale inclusive quando a coordenação redige. Em casa com uma única técnica, ajusta-se quem aprova, não o fluxo |
+| 28/08 | O motivo judicial é área restrita | `judicial_record` com policy própria: equipe técnica, coordenação e Gestor Geral. O educador não lê nem consultando o banco direto |
+| 28/08 | Falha de arquivamento no Drive escala em três tentativas | `app_archive_transition` devolve `escalar` na terceira. Número ajustável sem tocar no fluxo |
 | 27/08 | Nome e origem antes do aceite de transferência | Aparecem. Aceitar ou recusar uma criança sem saber quem ela é não é decisão, é sorteio. O perfil continua fechado até o aceite |
+| 27/08 | As duas coordenações **conversam dentro do sistema** | `transfer_message`, restrita às duas casas, mensagens imutáveis. Substitui a ligação e o WhatsApp sem que ninguém entre na casa do outro |
+| 27/08 | Recusa de transferência exige motivo | Mínimo 15 caracteres, registrada **nas duas casas** |
+| 27/08 | O plantão noturno pertence ao **dia em que começou** (19h–7h) | Sem isso, quem abria às 23h50 e quem abria às 00h10 criavam dois plantões para a mesma noite, e o Líder Noturno não encontrava as ATAs |
+| 27/08 | **Quem redige a comunicação externa não a aprova** | Gatilho `extcom_guard` recusa `approved_by = created_by` |
+| 27/08 | A coordenação cadastra a equipe da casa; conta de alcance institucional é do Gestor Geral | Se a coordenação pudesse criar Gestor Geral, bastaria cadastrar alguém para enxergar as oito casas — o isolamento cairia por dentro |
 
 ---
 
@@ -942,7 +1094,30 @@ desacoplada** — nenhuma pendência virou regra inventada.
 | 8 | **Permissões de fotos em memórias** | Modelo planejado; upload desabilitado por flag até confirmação |
 | 9 | **Os dados de partida** | Equipe, acolhidos já na casa, e a decisão de quanto do histórico em papel entra no sistema |
 | 10 | **LGPD** | Quem responde, por quanto tempo se guarda, o que se apaga |
-| 11 | **Critérios de aceite do piloto e autoridade** | A registrar antes de começar |
+| 11 | **Critérios de aceite do piloto e autoridade** | O §13 tem a proposta; falta a Fundação assinar embaixo |
+
+### Os seis formulários de papel que ainda faltam
+
+Recebidos em 28/08: livro ATA, ATA dos líderes noturnos, evolução de saúde,
+prontuário de educação, audiência concentrada, dados bancários (§8.12). Faltam:
+
+1. **A folha real de administração de medicamentos.** É a mais importante das
+   seis: é o **único módulo ainda desenhado a partir do documento e não do papel
+   que a casa usa**, e é onde o erro custa mais caro.
+2. **A agenda / rotina real** (diária e semanal), para a rotina do sistema
+   nascer igual à da casa.
+3. **O formulário de ingresso / PIA.**
+4. **O modelo de passagem individual.** Hoje a nossa é uma **proposta**: três
+   campos (o que foi feito, o que fica pendente, o que o próximo turno precisa
+   saber), assinatura individual e **complemento** para o que a pessoa lembra
+   depois — ao lado da passagem, nunca por cima dela. É o desenho a conferir com
+   o papel quando ele chegar.
+5. **Os formulários de ocorrência e contenção.**
+6. **Um exemplo de escala 12x36**, com os horários da técnica e da Enfermagem.
+
+*Se algum não existir, desenhamos a partir dos requisitos e submetemos à
+validação operacional antes de tornar definitivo — foi o que já aconteceu com a
+passagem.*
 
 ⚠️ **A lista real das crianças da Casa 03** chegou por anexo em 03/09, com nome,
 filiação, CPF, RG, SUS, processo e **chave de acesso ao processo** de vinte
@@ -1133,9 +1308,130 @@ corrigir antes que oito casas dependam dele.
 **O que já está pronto:** tudo do §8. **O que falta é o §11** — e o retorno do
 roteiro.
 
+### 13.1 Preparação — antes de qualquer acesso da equipe
+
+| # | O que | Quem | Pré-condição |
+|---|---|---|---|
+| 1 | Confirmar códigos e nomes reais das oito unidades | Gestor Geral | AI1–AI4 / ARM1–ARM4 são preliminares |
+| 2 | Cadastrar a equipe real da Casa 03 por setor | Coordenação | e-mails institucionais individuais criados, e o SMTP de pé (§12.7) |
+| 3 | **Montar a escala 12x36 vigente** | Coordenação | a tela existe; falta o conteúdo. Sem ela, as pendências de passagem caem no vínculo da casa e o aviso de "fora da escala" não funciona. **É pré-requisito, não enfeite** |
+| 4 | Conferir o limite de vagas da casa | Coordenação | 20 é o padrão; alterar exige motivo registrado |
+| 5 | Definir a chave do cofre (`CREDENTIAL_KEY`) | TI | fora do código, no ambiente |
+| 6 | Conta institucional aprovada para o Drive | TI + Gestor Geral | pasta compartilhada com as áreas separadas |
+| 7 | Backup agendado e **restauração ensaiada uma vez** | TI | `npm run ensaio:restauracao` (§12.5) |
+
+**Nada de dado real entra antes do item 5.** Um cofre de acessos sem chave
+própria é um cofre com a fechadura do fabricante.
+
+### 13.2 A migração dos vinte perfis
+
+Feita **pela equipe técnica, pelo sistema** — não por importação de planilha. A
+razão é operacional, não técnica: o cadastro completo tem campos que a planilha
+atual não tem (motivo judicial estruturado, guia, referência familiar
+autorizada, cuidados essenciais), e preenchê-los uma vez, lendo o prontuário, é
+o que transforma a migração em **revisão de dados**.
+
+Vinte cadastros, dois por dia, é uma semana e meia — e é a semana em que a
+equipe aprende o sistema com as crianças que ela conhece.
+
+Ordem por acolhido: cadastro completo (identificação, acolhimento, judicial) →
+saúde (alergias, condições, restrições) → prescrições vigentes, conferidas com a
+Enfermagem → escola e prontuário de educação → benefícios e acessos, pela
+coordenação, com reautenticação → compromissos fixos na agenda.
+
+**Ao fim de cada dia**, conferir na tela "os 20" se o que foi cadastrado bate com
+o que a equipe sabe de cor. Divergência encontrada aqui é barata.
+
+### 13.3 Treinamento — três encontros curtos
+
+Não existe treinamento de sistema para quem trabalha em plantão de 12 horas.
+Existe **treinamento de tarefa**: a pessoa faz o que ela já faz, na tela.
+
+- **Educadores (1h, no início do plantão):** linha do tempo do dia, confirmar
+  atividade, registrar exceção com justificativa, chamada, passagem individual
+  no fim do turno, e o ⏮ turno anterior na ATA. Cada um faz a própria passagem.
+- **Líder Diurno, técnica e coordenação (1h30):** agenda, ATA e fechamento com
+  pendência, ocorrência, acompanhamentos, aprovações, transferência. Coordenação
+  também: equipe, escala, limite da casa, benefícios e cofre.
+- **Enfermagem (1h):** esquemas, grade de doses, confirmação, evolução com as
+  duas assinaturas, triagem, Resumo de Saúde, e a **exceção por medicamento**.
+
+Material: o próprio sistema, com dados fictícios. **Nada de apostila** — o que
+não se aprende fazendo, não se lembra às 3h da manhã.
+
+### 13.4 Operação em paralelo — quatro semanas
+
+O papel continua. Não como plano B envergonhado: como **fonte de verdade** até a
+última semana. Quem preenche os dois é a mesma pessoa, e é por isso que o
+paralelo precisa ser curto.
+
+| Semana | No sistema | No papel |
+|---|---|---|
+| 1 | linha do tempo, chamada, atividades | tudo o que já é papel hoje |
+| 2 | + passagem individual e ATA | ATA em papel, para comparar |
+| 3 | + medicação, ocorrência, agenda | folha de medicação em papel |
+| 4 | tudo | papel só para conferência do dia |
+
+**Ritual diário (10 minutos, no fim do turno diurno):** a coordenação compara a
+ATA do sistema com a do papel e anota as diferenças. **A diferença é o dado mais
+valioso do piloto inteiro** — cada uma é o sistema pedindo algo que a casa não
+faz, ou deixando de perguntar algo que a casa faz.
+
+### 13.5 O que decide se o piloto deu certo
+
+Nenhum destes critérios é sobre "o sistema funcionou". Todos são sobre a casa.
+
+| Critério | Como se mede | Meta |
+|---|---|---|
+| A passagem chega ao próximo turno | passagens assinadas / escalados no plantão | ≥ 90% na semana 4 |
+| A ATA fecha no dia | ATAs fechadas no próprio dia | ≥ 90% |
+| A medicação é confirmada na hora | doses confirmadas em até 30 min do horário | ≥ 95% |
+| **O registro é mais rápido que o WhatsApp** | tempo medido, com cronômetro, em 5 passagens | ≤ 3 min por passagem |
+| A equipe encontra o que procura | 5 tarefas cronometradas, sem ajuda | 4 de 5 sem travar |
+| Nada se perde sem internet | operações offline aplicadas na reconexão | 100% |
+| O documento chega ao Drive | itens verificados / itens fechados | ≥ 98% |
+
+E um critério que não é número: **ao fim das quatro semanas, a equipe prefere o
+sistema ao papel.** Se não preferir, o piloto não terminou — mesmo que todos os
+números acima estejam verdes.
+
+### 13.6 Os riscos, e o que fazer com cada um
+
+**A equipe volta para o WhatsApp.** É o mais provável, e não se resolve com
+proibição: se registrar aqui for mais lento, o aplicativo ganha. Medir o tempo
+(critério 4) é o que transforma isso em problema visível na semana 1, e não em
+fracasso silencioso na semana 4.
+
+**A confirmação de dose exige sinal.** Desde 08/09 dose não se confirma offline
+em aparelho nenhum, e a recusa vem na hora com a frase. Onde o sinal da casa for
+ruim, isso vira fricção real num momento ruim. O piloto é onde se descobre se
+dói — e a saída, se doer, é de rede, não de código.
+
+**O paralelo cansa.** Preencher duas vezes gera resistência que parece rejeição
+ao sistema. Por isso quatro semanas, com escopo crescente, e não "até
+estabilizar".
+
+**Cadastro incompleto vira débito.** O que entrar sem motivo judicial, sem
+referência familiar ou sem cuidado essencial fica invisível — e reaparece na
+primeira audiência. Conferência ao fim de cada dia de migração.
+
+**A janela T-10/T+10 não está ligada** (§11.2). Ligá-la durante o piloto
+bloquearia trabalho legítimo antes de alguém saber se a escala reflete a
+realidade. Se for ligada, que comece **só observando**.
+
+### 13.7 Expansão — depois, e só depois
+
+Uma casa por vez, com duas semanas de intervalo, na ordem que a Fundação
+escolher. Cada casa nova repete a preparação (equipe, escala, limite) e faz
+**uma semana** de paralelo, não quatro: o que se aprende no piloto é justamente
+o que encurta o resto.
+
+A Casa 03 continua sendo a referência: mudança que der certo lá vale para as
+outras; mudança pedida por uma casa só é conversa antes de virar código.
+
 ### O roteiro do Marcelo
 
-`roteiro-marcelo.md` (e o `.docx` gerado dele) leva 29 tarefas à Casa 03, cargo a
+`roteiro-marcelo.md` (e o `.docx` gerado dele) leva 29 tarefas do roteiro à Casa 03, cargo a
 cargo. Como se aplica:
 
 - **uma pessoa por vez**, com o protótipo aberto;
