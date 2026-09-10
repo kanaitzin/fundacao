@@ -102,8 +102,16 @@ const CARGOS_DEMO = [
   { value: 'lider_diurno',        label: '☀️ Líder Diurno' },
   { value: 'lider_noturno_geral', label: '🌙 Líder Noturno' },
   { value: 'enfermagem',          label: '🩺 Enfermagem' },
-  { value: 'cozinha',             label: '🍽️ Cozinha' },
   { value: 'gestor_geral',        label: '🏛️ Gestor Geral' },
+  /*
+   * A COZINHA SAIU DAQUI em 09/09/2026, por decisão da Fundação: ela não entra
+   * no sistema por enquanto. O cargo continua existindo no banco — ocultar é
+   * reversível numa linha, apagar exigiria migração destrutiva —, mas não se
+   * oferece para ninguém escolher.
+   *
+   * A tela não sumiu: virou "Cozinha — pedidos e restrições", e agora pertence
+   * a quem trabalha na casa, que é quem pede o lanche e gera as folhas.
+   */
 ];
 
 function TrocaCargo({ cargoAtual, onChange }: { cargoAtual: string; onChange: (role: string) => void }) {
@@ -276,12 +284,11 @@ export function App() {
   /** As abas do turno que este cargo alcança, na ordem de quem trabalha na casa. */
   const abasDoTurno = [
     { aba: 'dia', icone: '📋', label: 'Dia' },
-    { aba: 'cozinha', icone: '🍽️', label: 'Restrições' },
     { aba: 'chamada', icone: '✅', label: 'Chamada' },
     { aba: 'acolhidos', icone: '🧒', label: 'Acolhidos' },
     { aba: 'passagem', icone: '🔁', label: 'Passagem' },
   ].filter((t) => ve(t.aba));
-  const doMais = ['unidades', 'plantao', 'agenda', 'equipe', 'setores', 'ocorrencias',
+  const doMais = ['unidades', 'plantao', 'agenda', 'cozinha', 'equipe', 'setores', 'ocorrencias',
     'ata', 'saude', 'internacao', 'impacto', 'alinhamentos', 'acompanhamentos', 'painel', 'arquivo', 'transferencias',
     'cofre', 'sincronizacao', 'casas']
     .filter((a) => ve(a));
@@ -633,6 +640,17 @@ export function App() {
                   <div className="grow" style={{ textAlign: 'left' }}>
                     <b className="ff">Equipe</b>
                     <div className="mutetxt">Quem trabalha nesta casa, por setor.</div>
+                  </div>
+                </button>
+              )}
+              {ve('cozinha') && (
+                <button className="card row" onClick={() => { setAba('cozinha'); setMais(false); }}>
+                  <span aria-hidden="true">🍽️</span>
+                  <div className="grow" style={{ textAlign: 'left' }}>
+                    <b className="ff">Cozinha</b>
+                    <div className="mutetxt">
+                      Pedir lanche e cesta básica, e gerar as folhas para a cozinha.
+                    </div>
                   </div>
                 </button>
               )}

@@ -64,10 +64,15 @@ Alegre. Oito unidades, cerca de vinte crianças e adolescentes em cada uma.
 Elegância que atrapalha o turno não serve. Quando dois caminhos são
 defensáveis, ganha o que a pessoa cansada consegue usar.
 
-### Os oito cargos
+### Os cargos
 
 Educador social · Líder Diurno · Equipe técnica · Coordenação · Enfermagem ·
-Líder Noturno Geral · Gestor Geral · Cozinha.
+Líder Noturno Geral · Gestor Geral.
+
+**A Cozinha existe no banco e está oculta** desde 09/09/2026: a Fundação
+decidiu que ela não entra no sistema por enquanto, e a casa entrega as folhas em
+papel. O cargo não foi apagado — ocultar é reversível numa linha; apagar
+exigiria migração destrutiva e levaria o histórico junto.
 
 Cada um enxerga um recorte diferente, e o recorte é aplicado **duas vezes**: na
 aplicação e no banco. §7 tem a matriz inteira.
@@ -91,7 +96,7 @@ discordavam entre si.
 | **31 telas React** | `frontend/src/screens/*.tsx` |
 | **14 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **6 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
-| protótipo com **≈971 KB** | `prototipo/rede-acolher-prototipo.html` |
+| protótipo com **≈972 KB** | `prototipo/rede-acolher-prototipo.html` |
 
 *A frase importa: o conferidor lê o NÚMERO colado ao substantivo. Escrever
 "Telas React … 31" numa coluna separada faz o teste passar sem conferir nada —
@@ -101,8 +106,8 @@ foi assim que "30 telas" sobreviveu à fase que existiu para acabar com isso.*
 
 | Ensaio | Resultado |
 |---|---|
-| `npm run ensaio` | 113 telas nos oito cargos — Coordenação 23, Técnica 21, Gestor 20, Líder Diurno 14, Líder Noturno 13, Educador 12, Enfermagem 9, Cozinha 1 |
-| `npm run ensaio:acessibilidade` | 120 telas, **nenhuma violação de WCAG 2.1 AA** |
+| `npm run ensaio` | 118 telas nos **sete** cargos oferecidos — Coordenação 24, Técnica 22, Gestor 21, Líder Diurno 15, Líder Noturno 14, Educador 13, Enfermagem 9. A Cozinha saiu do seletor em 09/09: o cargo continua no banco, oculto |
+| `npm run ensaio:acessibilidade` | 125 telas, **nenhuma violação de WCAG 2.1 AA** |
 | `npm run ensaio:roteiro` | 29 tarefas do roteiro, **todas com porta no cargo certo** |
 
 ### A última verificação inteira
@@ -179,11 +184,11 @@ migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.
 
 | Comando | O que ele faz |
 |---|---|
-| `npm run ensaio` | percorre as 113 telas dos oito cargos num navegador de verdade, cobrando que nenhuma deixe erro no console, que escreva alguma coisa e que não mostre `undefined` para quem lê. **Tela nova entra neste percurso.** |
+| `npm run ensaio` | percorre as 118 telas dos sete cargos oferecidos num navegador de verdade, cobrando que nenhuma deixe erro no console, que escreva alguma coisa e que não mostre `undefined` para quem lê. **Tela nova entra neste percurso.** |
 | `npm run ensaio:fila` | corta o sinal, marca a chamada, fecha e abre o aplicativo, religa, e confere que **só o que o servidor confirmou** saiu do aparelho |
 | `npm run ensaio:folhas` | os caminhos de documento até o arquivo baixar: abre a folha, tenta baixar com finalidade curta demais, baixa com frase válida, confere que o `.docx` chegou |
 | `npm run ensaio:roteiro` | cobra que as 29 tarefas do roteiro do Marcelo tenham porta no cargo certo. Não simula a procura de uma pessoa — mas impede o fracasso barato: a tarefa não ter porta, e isso aparecer diante da equipe |
-| `npm run ensaio:acessibilidade` | axe-core (WCAG 2.1 AA) nas 120 telas — sete a mais que o `ensaio` porque confere também a folha do "Mais" de cada cargo, aberta dezenas de vezes por turno. **Cor nova passa por ele antes de entrar** |
+| `npm run ensaio:acessibilidade` | axe-core (WCAG 2.1 AA) nas 125 telas — sete a mais que o `ensaio` porque confere também a folha do "Mais" de cada cargo, aberta dezenas de vezes por turno. **Cor nova passa por ele antes de entrar** |
 | `npm run ensaio:uso` | percorre os oito cargos **apertando os botões até o fim** — chamada, exceção, passagem, armário, cofre, internação, diário — e **lê de volta o que ficou gravado**. É o que pega o defeito que a tela não denuncia: a folha abriu, o botão salvou, e só o número estava errado |
 
 **Fora do navegador:**

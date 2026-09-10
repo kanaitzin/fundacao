@@ -43,6 +43,14 @@ export interface Alcance {
   areas: AreaAlcance[];
   /** O que este cargo NÃO alcança, dito por extenso — ausência é informação. */
   naoAlcanca: string[];
+  /**
+   * Cargo que existe no banco mas não se oferece para ninguém escolher.
+   *
+   * Não é remoção: o valor continua no `role_code`, e quem já foi cadastrado
+   * assim continua existindo, com histórico. Ocultar é reversível numa linha;
+   * apagar exigiria migração destrutiva.
+   */
+  oculto?: boolean;
 }
 
 /** Áreas com tela própria; a chave é a mesma que o menu usa. */
@@ -70,7 +78,7 @@ export const AREAS = {
   painel: 'Painel das unidades',
   sincronizacao: 'Sincronização',
   setores: 'O que cada setor enxerga',
-  cozinha: 'Restrições alimentares',
+  cozinha: 'Cozinha — pedidos e restrições',
   casas: 'Unidades',
 } as const;
 
@@ -91,6 +99,12 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
     resumo: 'O turno da casa dele, com a criança na frente. É quem mais registra e quem menos '
       + 'precisa navegar.',
     areas: [
+      { area: 'cozinha', titulo: AREAS.cozinha,
+        faz: 'Pede lanche e cesta básica à cozinha, e gera as folhas em Word — '
+          + 'solicitação de lanche, de cesta e a tabela de restrições da casa.',
+        servidor: 'A folha vai para a cozinha em PAPEL, e papel não tem alcance: ela '
+          + 'leva nome, data e quantidade. Nunca diagnóstico, CPF, motivo judicial nem '
+          + 'a razão de uma restrição.' },
       { area: 'escala', titulo: AREAS.escala,
         faz: 'Lê a escala de plantão da casa — quando ele trabalha, e quem está com ele no turno.',
         servidor: 'Quem monta a escala é a coordenação da casa. A escala informa quem devia estar; ela não impede ninguém de trabalhar — quem cobre um turno fora dela assina a passagem com o aviso de que não constava.' },
@@ -134,6 +148,12 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
     transversal: false,
     resumo: 'Conduz o turno diurno da casa: o que o educador alcança, mais o fechamento.',
     areas: [
+      { area: 'cozinha', titulo: AREAS.cozinha,
+        faz: 'Pede lanche e cesta básica à cozinha, e gera as folhas em Word — '
+          + 'solicitação de lanche, de cesta e a tabela de restrições da casa.',
+        servidor: 'A folha vai para a cozinha em PAPEL, e papel não tem alcance: ela '
+          + 'leva nome, data e quantidade. Nunca diagnóstico, CPF, motivo judicial nem '
+          + 'a razão de uma restrição.' },
       { area: 'escala', titulo: AREAS.escala,
         faz: 'Lê a escala do dia e da semana, e vê quem devia estar em cada turno.',
         servidor: 'Quem monta a escala é a coordenação da casa. A escala informa quem devia estar; ela não impede ninguém de trabalhar — quem cobre um turno fora dela assina a passagem com o aviso de que não constava.' },
@@ -181,6 +201,12 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
     transversal: false,
     resumo: 'Psicologia e serviço social da casa: o caso, não o turno.',
     areas: [
+      { area: 'cozinha', titulo: AREAS.cozinha,
+        faz: 'Pede lanche e cesta básica à cozinha, e gera as folhas em Word — '
+          + 'solicitação de lanche, de cesta e a tabela de restrições da casa.',
+        servidor: 'A folha vai para a cozinha em PAPEL, e papel não tem alcance: ela '
+          + 'leva nome, data e quantidade. Nunca diagnóstico, CPF, motivo judicial nem '
+          + 'a razão de uma restrição.' },
       { area: 'escala', titulo: AREAS.escala,
         faz: 'Lê a escala da casa para saber quem esteve em cada plantão.',
         servidor: 'Quem monta a escala é a coordenação da casa. A escala informa quem devia estar; ela não impede ninguém de trabalhar — quem cobre um turno fora dela assina a passagem com o aviso de que não constava.' },
@@ -245,7 +271,17 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
   {
     cargo: 'cozinha',
     transversal: false,
-    resumo: 'Uma tela só, e de propósito: o que cada criança não pode comer.',
+    /*
+     * OCULTO desde 09/09/2026, por decisão da Fundação: a cozinha NÃO entra no
+     * sistema por enquanto. A casa gera as folhas e entrega em papel.
+     *
+     * O cargo continua aqui, e no `role_code`, de propósito. Apagá-lo exigiria
+     * migração destrutiva e levaria junto o histórico de quem já foi cadastrado
+     * assim. Se a cozinha entrar daqui a seis meses, voltar é tirar esta linha.
+     */
+    oculto: true,
+    resumo: 'Cargo não utilizado por enquanto: a cozinha recebe as folhas em papel, '
+      + 'e quem as gera é a equipe da casa.',
     areas: [
       { area: 'cozinha', titulo: AREAS.cozinha,
         faz: 'Vê nome, restrição e substituição orientada.',
@@ -296,6 +332,12 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
     transversal: true,
     resumo: 'A noite das oito unidades. Também exceção funcional.',
     areas: [
+      { area: 'cozinha', titulo: AREAS.cozinha,
+        faz: 'Pede lanche e cesta básica à cozinha, e gera as folhas em Word — '
+          + 'solicitação de lanche, de cesta e a tabela de restrições da casa.',
+        servidor: 'A folha vai para a cozinha em PAPEL, e papel não tem alcance: ela '
+          + 'leva nome, data e quantidade. Nunca diagnóstico, CPF, motivo judicial nem '
+          + 'a razão de uma restrição.' },
       { area: 'escala', titulo: AREAS.escala,
         faz: 'Lê a escala das casas que alcança, para saber quem está de plantão à noite.',
         servidor: 'Quem monta a escala é a coordenação da casa. A escala informa quem devia estar; ela não impede ninguém de trabalhar — quem cobre um turno fora dela assina a passagem com o aviso de que não constava.' },
@@ -327,6 +369,12 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
     transversal: false,
     resumo: 'Responde pela casa: equipe, aprovações, transferências e o cofre.',
     areas: [
+      { area: 'cozinha', titulo: AREAS.cozinha,
+        faz: 'Pede lanche e cesta básica à cozinha, e gera as folhas em Word — '
+          + 'solicitação de lanche, de cesta e a tabela de restrições da casa.',
+        servidor: 'A folha vai para a cozinha em PAPEL, e papel não tem alcance: ela '
+          + 'leva nome, data e quantidade. Nunca diagnóstico, CPF, motivo judicial nem '
+          + 'a razão de uma restrição.' },
       { area: 'escala', titulo: AREAS.escala,
         faz: 'Monta a escala da casa por dia e por turno, repete o padrão até o fim do mês, retira alguém com registro, e gera a folha para a parede.',
         servidor: 'Retirar alguém de um plantão que JÁ PASSOU exige motivo escrito: é a escala que responde quem estava na casa naquela noite.' },
@@ -392,6 +440,12 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
     transversal: true,
     resumo: 'Escopo institucional. Abre UMA casa por vez, e cada abertura fica registrada.',
     areas: [
+      { area: 'cozinha', titulo: AREAS.cozinha,
+        faz: 'Pede lanche e cesta básica à cozinha, e gera as folhas em Word — '
+          + 'solicitação de lanche, de cesta e a tabela de restrições da casa.',
+        servidor: 'A folha vai para a cozinha em PAPEL, e papel não tem alcance: ela '
+          + 'leva nome, data e quantidade. Nunca diagnóstico, CPF, motivo judicial nem '
+          + 'a razão de uma restrição.' },
       { area: 'escala', titulo: AREAS.escala,
         faz: 'Monta e lê a escala de qualquer casa, e tira a folha do período.',
         servidor: 'Retirar alguém de um plantão que já passou exige motivo escrito.' },
