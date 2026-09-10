@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { FolhaDocumento } from '../documentos';
 import { Dossie } from './Dossie';
 import { api, ErroApi } from '../api';
 import { Cadastro } from './Cadastro';
@@ -204,6 +205,9 @@ interface Convivencia {
   avisar: boolean; atrasado: boolean; finalidade: string | null;
 }
 
+/** Quem trata do remédio que vai com a criança. */
+const VE_REMEDIO = ['enfermagem', 'equipe_tecnica', 'coordenador', 'gestor_geral'];
+
 const VINCULO: Record<string, string> = {
   genitora: 'mãe', genitor: 'pai', irmao: 'irmão', avo: 'avó/avô', tio: 'tio/tia',
   padrinho: 'padrinho', madrinha: 'madrinha',
@@ -230,6 +234,7 @@ export function Acolhidos({ houseId, casaLabel, papel }: {
   /* Quem está com a família (1010), e quem já devia ter voltado. */
   const [fora, setFora] = useState<Convivencia[]>([]);
   const [recebendo, setRecebendo] = useState<Convivencia | null>(null);
+  const [remedios, setRemedios] = useState<Convivencia | null>(null);
   /* Quem sai acompanhado ou não sai. Quem está liberado NÃO vem: a lista
      inteira todo dia vira paisagem. */
   const [observar, setObservar] = useState<SaidaSozinho[]>([]);
@@ -464,13 +469,32 @@ export function Acolhidos({ houseId, casaLabel, papel }: {
                   )}
                 </div>
               </div>
-              <button className="btn sec sm"
-                      onClick={() => { setRecebendo(c); setNotaRetorno(''); }}>
-                Chegou
-              </button>
+              <div className="acoes">
+                {/*
+                  * O REMÉDIO QUE VAI JUNTO (1050).
+                  *
+                  * Quem está com a família saiu da grade — a casa não é
+                  * lembrada da dose das 20h porque não é ela quem vai dar. Este
+                  * botão fecha o buraco que essa decisão abriu.
+                  */}
+                {VE_REMEDIO.includes(papel) && (
+                  <button className="btn sec sm" onClick={() => setRemedios(c)}>
+                    💊 Remédios
+                  </button>
+                )}
+                <button className="btn sec sm"
+                        onClick={() => { setRecebendo(c); setNotaRetorno(''); }}>
+                  Chegou
+                </button>
+              </div>
             </div>
           ))}
         </div>
+      )}
+
+      {remedios && (
+        <FolhaRemedios convivencia={remedios} houseId={houseId}
+                       onFechar={() => setRemedios(null)} />
       )}
 
       {recebendo && (
@@ -2355,6 +2379,124 @@ function FolhaConquistaDoPerfil({ perfil, onFechar, onSalvou }: {
               setOcupado(false);
             }
           }}>{ocupado ? 'Registrando…' : 'Registrar'}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * O remédio que vai com a criança no período com a família.
+ *
+ * Duas ações separadas de propósito: **ver a folha** pode ser feito quantas
+ * vezes for preciso — o papel amassou, a mãe pediu outra via — e não muda nada.
+ * **Registrar a saída** é um ato, tira os comprimidos do armário e acontece uma
+ * vez só. Se fossem a mesma coisa, imprimir de novo daria baixa duas vezes.
+ */
+function FolhaRemedios({ convivencia, houseId, onFechar }: {
+  convivencia: { id: string; quem: string; comQuem: string };
+  houseId: string; onFechar: () => void;
+}) {
+  const [dados, setDados] = useState<any | null>(null);
+  const [folha, setFolha] = useState<any | null>(null);
+  const [erro, setErro] = useState('');
+  const [aviso, setAviso] = useState('');
+
+  const carregar = useCallback(async () => {
+    try { setDados(await api(`/medications/family-stays/${convivencia.id}/to-take`)); }
+    catch (e) { setErro(e instanceof Error ? e.message : ''); }
+  }, [convivencia.id]);
+  useEffect(() => { carregar(); }, [carregar]);
+
+  async function registrar() {
+    setErro(''); setAviso('');
+    try {
+      await api(`/medications/family-stays/${convivencia.id}/to-take/register`,
+        { method: 'POST', body: JSON.stringify({}) });
+      setAviso('Saída registrada. Os comprimidos saíram do armário.');
+      await carregar();
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Não foi possível registrar.');
+    }
+  }
+
+  if (folha) {
+    return (
+      <FolhaDocumento
+        doc={folha} onFechar={() => setFolha(null)}
+        exportar={(finalidade: string) =>
+          api(`/medications/family-stays/${convivencia.id}/to-take/export`, {
+            method: 'POST', body: JSON.stringify({ houseId, finalidade }),
+          })} />
+    );
+  }
+
+  const itens = dados?.itens ?? [];
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-rem"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet">
+        <h3 id="t-rem">Remédios de {convivencia.quem}</h3>
+        <p className="mutetxt">
+          Para o período com {convivencia.comQuem}. Enquanto estiver fora, a casa não é
+          lembrada destas doses — quem dá é a família.
+        </p>
+        {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+        {aviso && <div className="notice c-ok" role="status">{aviso}</div>}
+
+        {itens.length === 0 && (
+          <p className="mutetxt">
+            Nenhum medicamento em uso registrado para o período. A lista vazia significa
+            que não há esquema ativo — não que a conferência foi dispensada.
+          </p>
+        )}
+        <div className="stack">
+          {itens.map((i: any) => (
+            <div className="card" key={i.prescriptionId}>
+              <div className="row">
+                <b className="ff grow">{i.medicamento}</b>
+                <span className="pill c-med">{i.doses} doses</span>
+              </div>
+              <div className="mutetxt">{i.dose} · {i.horarios}</div>
+              {/* A restrição da casa NÃO viaja com a criança: quem recebe
+                  precisa saber que tem de falar com a casa antes. */}
+              {i.soEnfermagem && (
+                <div className="notice c-warn" role="status">
+                  Na casa, só a Enfermagem administra este. Converse com ela antes da saída.
+                </div>
+              )}
+              {i.emEstoque != null && i.emEstoque < i.doses && (
+                <div className="notice c-crit" role="status">
+                  O armário tem {i.emEstoque} — menos que as {i.doses} do período.
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {dados?.jaRegistrada && (
+          <div className="notice c-ok" role="status">
+            Saída já registrada por {dados.jaRegistrada.registradoPor}. A folha pode ser
+            gerada de novo sem dar baixa outra vez.
+          </div>
+        )}
+
+        <div className="stack" style={{ marginTop: 12 }}>
+          <button className="btn sec block" onClick={async () => {
+            try {
+              setFolha(await api(`/medications/family-stays/${convivencia.id}/to-take/folha`));
+            } catch (e) {
+              setErro(e instanceof Error ? e.message : 'Não foi possível montar a folha.');
+            }
+          }}>
+            📄 Folha para levar
+          </button>
+          {!dados?.jaRegistrada && itens.length > 0 && (
+            <button className="btn block" onClick={registrar}>
+              Registrar saída do armário
+            </button>
+          )}
+          <button className="btn sec block" onClick={onFechar}>Fechar</button>
         </div>
       </div>
     </div>

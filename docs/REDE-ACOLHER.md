@@ -20,7 +20,7 @@ começava escolhendo em qual acreditar.*
 
 | Arquivo | Por que sobreviveu |
 |---|---|
-| `der.md` | as 105 tabelas com o que cada coluna guarda. É referência de dado, não narrativa, e o `documentacao.spec.ts` cobra que toda tabela apareça lá |
+| `der.md` | as 106 tabelas com o que cada coluna guarda. É referência de dado, não narrativa, e o `documentacao.spec.ts` cobra que toda tabela apareça lá |
 | `roteiro-marcelo.md` (+ `.docx`) | é entregue à Casa 03, escrito para quem não conhece o sistema. O `.docx` é GERADO do `.md` por `scripts/roteiro-em-word.mjs` — não editar o Word à mão |
 
 ---
@@ -37,6 +37,7 @@ começava escolhendo em qual acreditar.*
 8. [O que o sistema faz hoje](#8-o-que-o-sistema-faz-hoje)
 9. [O que falta](#9-o-que-falta)
 10. [As decisões que são do Marcelo](#10-as-decisões-que-são-do-marcelo)
+10.5 [A fila do Marcelo — pedidos de 09/09](#105-a-fila-do-marcelo--o-que-ele-pediu-em-09092026)
 11. [O que depende da Fundação](#11-o-que-depende-da-fundação)
 12. [Implantação](#12-implantação)
 13. [O piloto da Casa 03](#13-o-piloto-da-casa-03)
@@ -89,14 +90,14 @@ discordavam entre si.
 | Quanto | De onde sai |
 |---|---|
 | **17 partições** isoladas | pastas em `backend/src/modules/` |
-| **90 migrações** | `.sql` dentro das partições |
-| **105 tabelas** | `CREATE TABLE` nas migrações |
+| **91 migrações** | `.sql` dentro das partições |
+| **106 tabelas** | `CREATE TABLE` nas migrações |
 | **62 suítes** | `backend/test/*.spec.ts` |
 | **601 testes** | `it(` / `test(` nas suítes |
 | **31 telas React** | `frontend/src/screens/*.tsx` |
 | **14 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **6 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
-| protótipo com **≈980 KB** | `prototipo/rede-acolher-prototipo.html` |
+| protótipo com **≈989 KB** | `prototipo/rede-acolher-prototipo.html` |
 
 *A frase importa: o conferidor lê o NÚMERO colado ao substantivo. Escrever
 "Telas React … 31" numa coluna separada faz o teste passar sem conferir nada —
@@ -122,6 +123,12 @@ protótipo reconstruído e idêntico ao entregue.
 na fase 71, quando dois documentos discordaram dele e ninguém soube dizer de
 onde vinha o número.*
 
+### Como retomar, em três linhas
+
+Anexe **este arquivo** e o **`rede-acolher-atualizado.zip`**, e cole o bloco do
+§14 como primeira mensagem. Rode `bash scripts/preparar-ambiente.sh`. Leia a
+**§10.5** — é a fila de trabalho viva; o resto deste documento é referência.
+
 ### O que cada bloco de fases entregou
 
 Sem fase a fase — isso está no `historico/backlog.md` para quem precisar da
@@ -137,6 +144,7 @@ arqueologia.
 | 63–71 | Sete fases de robustez, **todas achando defeito real**: o sistema sobe compilado; recusa subir com o RLS desligado; dois anexos entravam e não saíam; duas políticas perguntavam caro antes de barato; as mensagens de erro passaram a falar português; os números dos documentos pararam de envelhecer |
 | 72–74 | As três respostas da Fundação viraram código: quem dá o remédio; a escala de plantão por data; a ATA que a próxima equipe lê |
 | 75 | **Caça a defeito, sem construir nada novo.** Sete achados — o principal: a dose chegava ao educador **sem botão** |
+| 76–86 | **A fila do Marcelo** (§10.5): desmarcar ocorrência, hora de sair e endereço, cor por categoria e por pessoa, cobrança de relato, experiência familiar, sair sozinho, a cozinha inteira, estoque com nota e receita, e o remédio que vai com a criança |
 
 ---
 
@@ -175,7 +183,7 @@ cd frontend && npm run prototipo
 # sai em prototipo/rede-acolher-prototipo.html
 ```
 
-O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as 90
+O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as 91
 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
 
 ### Os ensaios — e por que cada um existe
@@ -822,6 +830,18 @@ Resumo.
 **Na entrada, a validade que fica é a MAIS PRÓXIMA** entre a que havia e a que
 chegou: lote novo e longo não apaga o lote velho que ainda está na gaveta.
 
+**O remédio que vai junto.** Quem está com a família saiu da grade — a casa não
+é lembrada da dose das 20h porque não é ela quem vai dar —, e o efeito colateral
+era o remédio sumir de todo lugar. A folha timbrada diz o que a criança leva:
+medicamento, dose, horários e quantidade, com aviso em destaque quando há
+medicamento que, na casa, **só a Enfermagem administra** — essa restrição não
+viaja com a criança. **Ver e dar baixa são atos separados:** a folha pode ser
+gerada quantas vezes for preciso, e a baixa acontece uma vez só. O movimento é
+`saida_com_acolhido`, **nunca `consumo`**: a casa não deu a dose, e registrar
+como consumo faria o histórico dizer que ela administrou o que ninguém viu
+ninguém tomar. A contagem arredonda **para cima** no dia do retorno, e a folha
+diz isso: mandar um comprimido a mais é barato, faltar um não é.
+
 **A dose confirmada registra `consumo` no histórico do armário.** O número já
 caía desde a fase 6; o que faltava era o histórico dizer por quê — ele mostrava
 caixas chegando e nenhuma saindo. Recusada, não administrada e indisponível não
@@ -1260,6 +1280,110 @@ número**.
 
 ---
 
+## 10.5 A FILA DO MARCELO — o que ele pediu em 09/09/2026
+
+Uma conversa longa em 09/09 trouxe treze pedidos. **Nove estão entregues**,
+**quatro esperam código** e **três estão travadas por resposta da casa**.
+
+### Entregues (fases 76–86)
+
+| # | O quê | Fase |
+|---|---|---|
+| 1 | **Desmarcar uma ocorrência** do compromisso sem cancelar a série | 76 |
+| 2 | **Hora de sair, hora de chegar e endereço** no compromisso | 76 |
+| 3 | **Cor por categoria** na linha do tempo, com o estado na pílula | 77 |
+| 4 | **Cor por pessoa**, escolhida e sem repetir na casa | 78 |
+| 5 | **Cobrança de relato** em ocorrência grave, com "não presenciei" a um toque | 79 |
+| 6 | **Acolhido em experiência familiar** — sai da grade, a vaga fica | 80 |
+| 7 | **Sair sozinho** como estado, com motivo e prazo — nunca pontuação | 81 |
+| 8 | **A cozinha**: pedidos de lanche e cesta, três folhas em Word, contabilização, cargo oculto, métrica no painel | 82–84 |
+| 9 | **Estoque, nota fiscal e receita** + o remédio que vai com a criança | 85–86 |
+
+### Esperam código — nenhuma bloqueada por decisão
+
+**1. A PORTARIA.** Cargo oculto como o da cozinha, e um documento tipo planilha:
+para cada acolhido, quem pode visitá-lo, com **foto 3×4, nome, CPF e telefone**.
+A portaria confere quem chega. Os contatos com vínculo já existem no cadastro,
+então a folha é montável.
+
+*Decisão dele, de 09/09, registrada:* o **CPF vai impresso**. Eu levantei que uma
+folha com foto e CPF de familiares numa guarita é o lugar menos controlado da
+instituição, e que o fundamento de LGPD é outro por ser dado de terceiro — ele
+decidiu assim mesmo, e isso vai para o DPO antes do piloto (§11).
+
+*Regras que valem de qualquer jeito:* **contato com aproximação restrita nunca
+aparece como autorizado**; nada de motivo judicial ou diagnóstico; finalidade
+escrita e saída registrada como toda folha.
+
+**2. AS PERMISSÕES EDITÁVEIS PELA COORDENAÇÃO.** Dentro da própria casa, ela liga
+e desliga **campos do perfil** para o educador — telefone de responsável, escola,
+médico, contatos, agenda de consulta. O caso real que ele deu: o educador precisa
+ligar para o colégio ou o médico.
+
+**Cinco campos ficam fora do alcance do botão**, e não são negociáveis: motivo
+judicial, narrativa pessoal restrita, cofre de acessos, benefícios e dados
+bancários, ocorrência restrita.
+
+*O que eu recusei e por quê:* uma tela que deixasse a coordenação alargar o
+**alcance de cargo** é ou cosmética — esconde e não protege — ou real, e aí a
+coordenação de uma casa passa a poder alargar quem enxerga o quê, e o
+isolamento entre as oito casas cai por dentro (decisão de 27/08).
+
+**3. O RETORNO DA VISITA na ATA e na passagem.** Quando a criança volta da
+família: se houve alteração, se trouxe algo de casa. Hoje o retorno é registrado
+no perfil (fase 80); falta ecoar na ATA do turno e na passagem, para a equipe
+seguinte ler sem procurar.
+
+**4. A REUNIÃO DE EQUIPE COM PAUTA.** Nem toda a equipe participa — a maioria das
+reuniões é diurna e o noturno não vai. O que foi decidido é disparado para toda a
+casa; regras de convivência viram um **estatuto** dentro do sistema; e o educador
+**propõe pauta**. Quem decide se entra é a técnica, o líder ou a coordenação — e
+**responde ao educador por que ficou de fora**. Uma pauta recusada sem resposta é
+pior do que não poder propor. O módulo `alignments` já existe e é a base.
+
+### Travadas — esperam a casa, não código
+
+| # | O que falta saber | Por que trava |
+|---|---|---|
+| 1 | **A escala 12x36 vigente da Casa 03** | Sem ela o sistema não sabe quando o plantão termina nem quem está nele — e o **aviso de meia hora antes do fim do plantão** (quem não preencheu a ATA) depende disso. *Detalhe: o "horário de Brasília" que ele pediu já é o que o sistema usa; Porto Alegre é o mesmo fuso* |
+| 2 | **O lembrete de prazo: vencendo o quê, e com quantos dias?** | Atividade, documento, PIA, receita? A antecedência muda o desenho |
+| 3 | **O pente-fino: em que dia da semana?** | Ele o quer semanal; falta o dia |
+
+*Sobre o aviso de meia hora, uma regra que vale desde já:* ele é do **turno
+corrente e não acumula por pessoa**. O painel do plantão já proíbe contagem por
+educador, e um histórico de "quem sempre atrasa a ATA" é medição de gente.
+
+*E sobre a chamada:* fralda, mamadeira e chupeta serão **marcadores por criança**,
+ligados e desligados pela equipe técnica — **nunca automáticos por idade**. Uma
+criança de cinco anos pode usar fralda, e um sistema que decide isso pela data de
+nascimento erra exatamente com quem já tem menos margem.
+
+### O que eu recusei, e o que ofereci no lugar
+
+**WhatsApp.** Ele pediu um botão para mandar o pedido de lanche por WhatsApp.
+Regra 3, sem exceção — e ele mesmo recuou no meio da frase. O documento é
+baixado e levado pelo canal que a instituição decidir. Um botão de WhatsApp
+dentro do sistema desfaz, no primeiro clique, a decisão de 28/08 de tirar a
+operação de lá.
+
+**Pontuação de comportamento.** Ele descreveu pontos: "quebrou alguma coisa,
+perde tantos pontos". Regra 3. O raciocínio dele é bom — confiança construída
+merece registro —, mas o número viaja e o motivo fica para trás: daqui a seis
+meses "40" continua na tela e "quebrou a porta três dias depois da visita da mãe
+que não veio" não continua. Duas crianças com dois números na mesma lista já é
+comparação. E o número tira o autor: *"o sistema tirou a saída dele"* no lugar de
+*"eu decidi, e foi por isso"* — e é a segunda frase que sustenta a conversa com o
+adolescente. **O que construí no lugar** (§8.7.2) dá a mesma frase que ele pediu,
+com motivo, autor e prazo de revisão.
+
+**Soma de pedidos por educador.** Ele pediu "quantos educadores solicitaram, qual
+deles". O "qual deles" existe: cada pedido tem nome. O que não fiz foi **somar
+por pessoa** — num painel de oito casas isso vira comparação entre equipes.
+Ficou a contagem de pessoas **distintas**, que responde "a casa inteira usa isto
+ou só duas?" sem apontar para ninguém.
+
+---
+
 ## 11. O QUE DEPENDE DA FUNDAÇÃO
 
 Nada aqui é código. Cada um está tratado como **configuração ou interface
@@ -1278,6 +1402,7 @@ desacoplada** — nenhuma pendência virou regra inventada.
 | 9 | **Os dados de partida** | Equipe, acolhidos já na casa, e a decisão de quanto do histórico em papel entra no sistema |
 | 10 | **LGPD** | Quem responde, por quanto tempo se guarda, o que se apaga |
 | 11 | **Critérios de aceite do piloto e autoridade** | O §13 tem a proposta; falta a Fundação assinar embaixo |
+| 12 | **A folha da portaria com CPF impresso** | Decisão do Marcelo em 09/09. É dado pessoal de TERCEIRO (familiares), numa folha que fica na guarita — o lugar menos controlado da instituição. O DPO precisa ver antes do piloto |
 
 ### Os seis formulários de papel que ainda faltam
 
@@ -1353,7 +1478,7 @@ ele continua dizendo que o arquivo existe.
 npm run ensaio:producao
 ```
 
-Constrói, cria um banco virgem, aplica as 90 migrações **pelo binário
+Constrói, cria um banco virgem, aplica as 91 migrações **pelo binário
 compilado**, sobe o serviço e confere `/health`. Não publica nada e não toca no
 banco de trabalho.
 

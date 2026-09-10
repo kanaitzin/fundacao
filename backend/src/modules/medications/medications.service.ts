@@ -8,7 +8,7 @@ import { EventBus } from '../../kernel/events/event-bus.service';
 import { AuthenticatedUser } from '../../kernel/contracts';
 import { hojeNaInstituicao } from '../../kernel/common/tempo';
 import { DocumentosService } from '../../kernel/documentos/documentos.service';
-import { cargoNoDocumento } from '../../kernel/documentos/folha';
+import { Folha, diaBR, cargoNoDocumento } from '../../kernel/documentos/folha';
 import { folhaDaGrade } from './grade-folha';
 
 /** Estados que exigem observação obrigatória (§11.4). */
@@ -919,6 +919,156 @@ export class MedicationsService {
       throw e;
     }
   }
+
+
+  /**
+   * A FOLHA que vai na mão de quem recebe a criança.
+   *
+   * Papel, e papel não tem alcance: leva o nome pelo qual ela é chamada, o
+   * medicamento, a dose, os horários e a quantidade. Não leva diagnóstico, não
+   * leva CID, não leva o motivo do acolhimento — quem dá o remédio precisa
+   * saber o quê, quanto e quando.
+   */
+  async folhaDosMedicamentos(user: AuthenticatedUser, familyStayId: string): Promise<Folha> {
+    const { itens } = await this.medicamentosParaLevar(user, familyStayId);
+    const dados = await this.db.asUser(user.id, async (c) => {
+      const { rows: [r] } = await c.query(
+        /* rls-join-ok: `person` e `person_contact` são alcançadas pela mesma
+           casa de `family_stay`, cujo escopo já foi conferido em
+           app_medicamentos_para_levar. O nome da criança e o do contato vêm da
+           própria linha — não há como esta consulta devolver alguém de outra
+           casa sem que a saída também fosse de outra casa. */
+        `SELECT coalesce(nullif(p.social_name,''), p.full_name) AS quem,
+                app_house_label(f.house_id) AS casa,
+                (f.started_at AT TIME ZONE app_fuso())::date AS de,
+                (f.expected_return_at AT TIME ZONE app_fuso())::date AS ate,
+                c.name AS com_quem
+           FROM family_stay f
+           -- rls-join-ok: person e person_contact vêm da PRÓPRIA linha de
+           -- family_stay, cuja casa já foi conferida. Não há como devolver
+           -- alguém de outra casa sem que a saída também fosse de outra.
+           JOIN person p ON p.id = f.person_id
+           JOIN person_contact c ON c.id = f.contact_id
+          WHERE f.id = $1`, [familyStayId]);
+      return r;
+    });
+    if (!dados) throw new NotFoundException('Saída não encontrada.');
+
+    const soEnfermagem = itens.filter((i) => i.soEnfermagem);
+
+    return {
+      titulo: 'Medicamentos para o período fora da casa',
+      subtitulo: dados.casa,
+      identificacao: [
+        { rotulo: 'Acolhido', valor: dados.quem },
+        { rotulo: 'Com', valor: dados.com_quem },
+        { rotulo: 'Período', valor: `${diaBR(dados.de)} a ${diaBR(dados.ate)}` },
+      ],
+      secoes: [{
+        titulo: 'O que vai junto',
+        tabela: {
+          cabecalho: ['Medicamento', 'Dose', 'Horários', 'Quantidade', 'Orientação'],
+          linhas: itens.map((i) => [
+            i.medicamento, i.dose ?? '—', i.horarios ?? '—',
+            String(i.doses), i.orientacoes ?? '—',
+          ]),
+        },
+        procedencia: 'Esquemas ativos da criança, com os horários da bula registrados '
+          + 'no sistema.',
+      }],
+      geradoPor: user.fullName,
+      cargo: cargoNoDocumento(user.role),
+      assinatura: true,
+      ressalva: itens.length === 0
+        ? 'Esta criança não tem medicamento em uso registrado no sistema para o período. '
+          + 'A folha vazia significa que não há esquema ativo — não que a conferência foi '
+          + 'dispensada.'
+        : 'A contagem inclui a dose do dia do retorno, se houver: mandar um comprimido a '
+          + 'mais é barato, faltar um não é. '
+          + (soEnfermagem.length
+              ? 'ATENÇÃO: há medicamento que, na casa, só a Enfermagem administra — '
+                + 'converse com ela antes da saída. '
+              : '')
+          + 'Em caso de dúvida, procure a casa antes de dar qualquer dose.',
+    };
+  }
+
+  async exportarMedicamentosDaSaida(user: AuthenticatedUser, input: {
+    familyStayId: string; houseId: string; finalidade: string;
+  }) {
+    const folha = await this.folhaDosMedicamentos(user, input.familyStayId);
+    return this.documentos.exportar(user, folha, {
+      entidade: 'medicamento_saida_familiar', houseId: input.houseId,
+      finalidade: input.finalidade ?? '',
+    });
+  }
+
+  /* ---------------- O remédio que vai junto (1050) ---------------- */
+
+  /**
+   * O que a criança precisa levar no período com a família.
+   *
+   * Só CALCULA — pode ser chamado quantas vezes for preciso. Quem dá baixa é
+   * `registrarSaidaDeMedicamentos`, e é um ato à parte: se fossem a mesma
+   * coisa, imprimir a folha de novo daria baixa duas vezes no armário.
+   */
+  async medicamentosParaLevar(user: AuthenticatedUser, familyStayId: string) {
+    return this.db.asUser(user.id, async (c) => {
+      const { rows } = await c.query(
+        `SELECT * FROM app_medicamentos_para_levar($1)`, [familyStayId]);
+      const { rows: [ja] } = await c.query(
+        `SELECT * FROM app_saida_de_medicamentos($1)`, [familyStayId]);
+      return {
+        itens: rows.map((r) => ({
+          prescriptionId: r.prescription_id, medicamento: r.medicamento,
+          dose: r.dose, via: r.via, orientacoes: r.orientacoes,
+          horarios: r.horarios, doses: Number(r.doses),
+          emEstoque: r.em_estoque == null ? null : Number(r.em_estoque),
+          soEnfermagem: r.so_enfermagem === true,
+        })),
+        /* Já registrada? A tela precisa saber para não oferecer o botão duas
+           vezes — e o servidor recusa de qualquer jeito. */
+        jaRegistrada: ja ? {
+          itens: ja.itens, registradoPor: ja.registrado_por, em: ja.registrado_em,
+        } : null,
+      };
+    });
+  }
+
+  async registrarSaidaDeMedicamentos(user: AuthenticatedUser, familyStayId: string) {
+    const calculo = await this.medicamentosParaLevar(user, familyStayId);
+    if (calculo.jaRegistrada) {
+      throw new ConflictException(
+        'A saída dos medicamentos desta ida já foi registrada. '
+        + 'A folha pode ser gerada de novo sem dar baixa outra vez.');
+    }
+    try {
+      await this.db.asUser(user.id, async (c) => {
+        await c.query(`SELECT * FROM app_registrar_saida_de_medicamentos($1,$2::jsonb)`,
+          [familyStayId, JSON.stringify(calculo.itens)]);
+      });
+    } catch (e: any) {
+      const m = String(e?.message ?? '');
+      if (m.includes('uq_family_stay_medication')) {
+        throw new ConflictException('A saída dos medicamentos desta ida já foi registrada.');
+      }
+      if (m.includes('sem_permissao_saida_medicamento')) {
+        throw new ForbiddenException(
+          'Registram a saída dos medicamentos a Enfermagem, a equipe técnica e a coordenação.');
+      }
+      if (m.includes('saida_inexistente')) {
+        throw new NotFoundException('Saída para convivência familiar não encontrada.');
+      }
+      throw e;
+    }
+    await this.audit.log({
+      action: 'medication.leave_with_child', actorId: user.id,
+      institutionId: user.institutionId, entity: 'family_stay', entityId: familyStayId,
+      detail: { itens: calculo.itens.length },
+    });
+    return { registrada: true };
+  }
+
 }
 
 function mapDose(r: any) {

@@ -109,6 +109,38 @@ export class MedicationsController {
   }
 
   // ---- Estoque ----
+  /* ---------------- O remédio que vai junto (1050) ---------------- */
+
+  /** Calcula e mostra. Não muda nada — pode ser chamado quantas vezes for. */
+  @Get('family-stays/:id/to-take')
+  medicamentosParaLevar(@CurrentUser() user: AuthenticatedUser,
+                        @Param('id', ParseUUIDPipe) id: string) {
+    return this.meds.medicamentosParaLevar(user, id);
+  }
+
+  /** A folha timbrada que vai na mão de quem recebe a criança. */
+  @Get('family-stays/:id/to-take/folha')
+  folhaDosMedicamentos(@CurrentUser() user: AuthenticatedUser,
+                       @Param('id', ParseUUIDPipe) id: string) {
+    return this.meds.folhaDosMedicamentos(user, id);
+  }
+
+  @Post('family-stays/:id/to-take/export')
+  exportarMedicamentos(@CurrentUser() user: AuthenticatedUser,
+                       @Param('id', ParseUUIDPipe) id: string, @Body() body: any) {
+    return this.meds.exportarMedicamentosDaSaida(user, { ...body, familyStayId: id });
+  }
+
+  /**
+   * O ATO: os comprimidos saíram do armário. Idempotente por saída — imprimir
+   * a folha de novo não pode dar baixa outra vez.
+   */
+  @Post('family-stays/:id/to-take/register')
+  registrarSaidaMedicamentos(@CurrentUser() user: AuthenticatedUser,
+                             @Param('id', ParseUUIDPipe) id: string) {
+    return this.meds.registrarSaidaDeMedicamentos(user, id);
+  }
+
   /* ---------------- Nota fiscal e receita (1040) ---------------- */
 
   /** As compras do período, com o gasto somado e quantas estão sem o papel. */

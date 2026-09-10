@@ -686,6 +686,9 @@ const PEDIDOS_COZINHA: {
 
 /* RECEITAS DIGITALIZADAS por prescrição (1040). Documento médico: nasce
    restrito, e o educador não alcança. */
+/* Baixa dos remédios que saíram com a criança: uma vez por ida. */
+const SAIDAS_DE_REMEDIO = new Map<string, string>();
+
 const RECEITAS: Record<string, { id: string; nome: string; em: string | null;
   prescritor: string | null; anexadoPor: string; anexadoEm: string }[]> = {};
 
@@ -4370,6 +4373,84 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
    * mesmas rotas que a tela chama. Ele lê literais — e tem razão: um prefixo
    * que atende tudo é o mesmo que não declarar nada.
    */
+  if (seg[0] === 'medications' && seg[1] === 'family-stays' && seg[3] === 'to-take') {
+    if (!['enfermagem', 'equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)) {
+      throw new ErroApi(403, 'Sem acesso aos medicamentos da saída.');
+    }
+    const itens = [{
+      prescriptionId: 'pr-fake-1', medicamento: 'Risperidona 1mg (fictícia)',
+      dose: '1 comprimido', via: 'oral',
+      orientacoes: 'Dar após o jantar, com água.',
+      horarios: '20:00', doses: 3, emEstoque: 12, soEnfermagem: false,
+    }];
+    if (seg[4] === 'folha') {
+      return {
+        titulo: 'Medicamentos para o período fora da casa',
+        subtitulo: `${CASA.code} — ${CASA.name}`,
+        identificacao: [
+          { rotulo: 'Acolhido', valor: 'Ana Paula (fictícia)' },
+          { rotulo: 'Com', valor: 'Rosângela (fictícia)' },
+        ],
+        secoes: [{
+          titulo: 'O que vai junto',
+          tabela: {
+            cabecalho: ['Medicamento', 'Dose', 'Horários', 'Quantidade', 'Orientação'],
+            linhas: itens.map((i) => [i.medicamento, i.dose, i.horarios,
+                                      String(i.doses), i.orientacoes]),
+          },
+          procedencia: 'Esquemas ativos da criança, com os horários da bula registrados '
+            + 'no sistema.',
+        }],
+        geradoPor: eu.fullName, cargo: cargoNoDocumento(eu.role), assinatura: true,
+        ressalva: 'A contagem inclui a dose do dia do retorno, se houver: mandar um '
+          + 'comprimido a mais é barato, faltar um não é. Em caso de dúvida, procure a '
+          + 'casa antes de dar qualquer dose.',
+      };
+    }
+    if (seg[4] === 'export') {
+      /* A mesma folha da rota de cima — montada aqui e não chamada de novo,
+         porque o servidor de mentira não é um cliente de si mesmo. */
+      const f: any = {
+        titulo: 'Medicamentos para o período fora da casa',
+        subtitulo: `${CASA.code} — ${CASA.name}`,
+        identificacao: [
+          { rotulo: 'Acolhido', valor: 'Ana Paula (fictícia)' },
+          { rotulo: 'Com', valor: 'Rosângela (fictícia)' },
+        ],
+        secoes: [{
+          titulo: 'O que vai junto',
+          tabela: {
+            cabecalho: ['Medicamento', 'Dose', 'Horários', 'Quantidade', 'Orientação'],
+            linhas: itens.map((i) => [i.medicamento, i.dose, i.horarios,
+                                      String(i.doses), i.orientacoes]),
+          },
+          procedencia: 'Esquemas ativos da criança.',
+        }],
+        geradoPor: eu.fullName, cargo: cargoNoDocumento(eu.role), assinatura: true,
+      };
+      return {
+        nomeArquivo: nomeDaFolha(f.titulo),
+        conteudoBase64: gerarDocx(f, timbreEmBytes()),
+        aviso: 'Folha exportada em Word. A saída fica registrada com o seu nome, a '
+          + 'finalidade e o horário.',
+      };
+    }
+    if (seg[4] === 'register') {
+      if (SAIDAS_DE_REMEDIO.has(seg[2])) {
+        throw new ErroApi(409, 'A saída dos medicamentos desta ida já foi registrada. '
+          + 'A folha pode ser gerada de novo sem dar baixa outra vez.');
+      }
+      SAIDAS_DE_REMEDIO.set(seg[2], eu.fullName);
+      return { registrada: true };
+    }
+    return {
+      itens,
+      jaRegistrada: SAIDAS_DE_REMEDIO.has(seg[2])
+        ? { itens, registradoPor: SAIDAS_DE_REMEDIO.get(seg[2]),
+            em: new Date().toISOString() }
+        : null,
+    };
+  }
   if (rota.startsWith('/medications/purchases') && metodo === 'GET') {
     if (!['enfermagem', 'equipe_tecnica', 'lider_diurno', 'coordenador',
           'gestor_geral'].includes(eu.role)) {
