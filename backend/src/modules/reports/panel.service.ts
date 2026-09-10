@@ -133,6 +133,28 @@ export class PanelService {
         sql: `(SELECT count(*) FROM archive_item ar
                 WHERE ar.house_id = $1 AND ar.fechado_em >= p.ini_ts AND ar.fechado_em < p.fim_ts
                   AND ar.status = 'verificado')::int` },
+      /*
+       * O APOIO ALIMENTAR DO MÊS (1030) — pedido do Marcelo em 09/09.
+       *
+       * PORÇÕES, não pedidos: vinte lanches para a saída do grupo é um pedido
+       * e vinte porções, e a casa que leva as crianças ao parque pareceria
+       * pedir menos que a que pede um lanche por dia.
+       *
+       * Só o que está EM ABERTO. O cancelado continua na folha da cozinha, com
+       * o motivo — mas comida cancelada não é comida que saiu, e somá-la aqui
+       * inflaria o número que a Fundação vai usar para pedir doação.
+       *
+       * O que NÃO entra: quem pediu. Somar por educador é medir gente, e num
+       * painel de oito casas isso viraria comparação entre equipes.
+       */
+      { chave: 'porcoesDeLanche', tabela: 'kitchen_request',
+        sql: `(SELECT coalesce(sum(k.quantity), 0) FROM kitchen_request k
+                WHERE k.house_id = $1 AND k.on_date >= p.ini AND k.on_date < p.fim
+                  AND k.kind = 'lanche' AND k.status = 'aberto')::int` },
+      { chave: 'cestasBasicas', tabela: 'kitchen_request',
+        sql: `(SELECT coalesce(sum(k.quantity), 0) FROM kitchen_request k
+                WHERE k.house_id = $1 AND k.on_date >= p.ini AND k.on_date < p.fim
+                  AND k.kind = 'cesta_basica' AND k.status = 'aberto')::int` },
     ];
 
     return this.db.asUser(user.id, async (c) => {
@@ -183,6 +205,14 @@ export class PanelService {
         },
         atasFechadas: r.atasFechadas ?? null,
         documentosArquivados: r.documentosArquivados ?? null,
+        /*
+         * O apoio alimentar do mês. `?? null` e não `?? 0`: a tabela pode não
+         * existir num banco antigo, e zero se leria como "esta casa não pediu
+         * nada" — que é uma afirmação, não uma ausência. É a mesma regra do
+         * resto do quadro.
+         */
+        porcoesDeLanche: r.porcoesDeLanche ?? null,
+        cestasBasicas: r.cestasBasicas ?? null,
         nota: 'Contagens do mês. Nenhum número aqui classifica casas, equipes ou acolhidos, e ausência de registro não é fato negativo (§3.3, §14.6).',
       };
     });

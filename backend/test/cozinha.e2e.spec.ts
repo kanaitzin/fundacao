@@ -264,6 +264,35 @@ describe('Cozinha — Word com timbre e contabilização', () => {
       .expect((r) => { expect(r.status).toBeGreaterThanOrEqual(400); });
   });
 
+  it('o apoio alimentar entra no quadro do mês — em porções, e sem o cancelado', async () => {
+    const mes = dia().slice(0, 7);
+    const noMes = `${mes}-15`;
+
+    await pedir(tokens.educador, {
+      tipo: 'lanche', personId: null, em: noMes, quantidade: 20,
+      finalidade: 'Saída ao parque com a casa toda.',
+    });
+    await pedir(tokens.coord, {
+      tipo: 'cesta_basica', personId: pessoa, em: noMes, quantidade: 1,
+      finalidade: 'Fim de semana com a família.',
+    });
+    const cancelado = await pedir(tokens.educador, {
+      tipo: 'lanche', personId: pessoa, em: noMes, quantidade: 7,
+      finalidade: 'Consulta no posto pela manhã.',
+    });
+    await request(http).post(`/api/v1/people/kitchen-requests/${cancelado.body.id}/cancel`)
+      .set(auth(tokens.educador)).send({ motivo: 'A consulta foi remarcada.' }).expect(201);
+
+    const r = await request(http)
+      .get(`/api/v1/reports/house-monthly?houseId=${AI3}&mes=${mes}`)
+      .set(auth(tokens.coord)).expect(200);
+
+    /* Porções, não pedidos — e o cancelado fora: comida cancelada não é comida
+       que saiu, e este é o número que a Fundação usa para pedir doação. */
+    expect(r.body.porcoesDeLanche).toBe(20);
+    expect(r.body.cestasBasicas).toBe(1);
+  });
+
   it('a finalidade é obrigatória: "1 lanche" sozinho obriga a cozinha a adivinhar', async () => {
     const r = await pedir(tokens.educador, {
       tipo: 'lanche', personId: pessoa, em: dia(1), quantidade: 1, finalidade: 'x',

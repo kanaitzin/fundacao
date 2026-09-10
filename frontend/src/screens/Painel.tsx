@@ -63,6 +63,9 @@ interface Mensal {
   acompanhamentos: { aprovados: number | null; abertos: number | null };
   atasFechadas: number | null;
   documentosArquivados: number | null;
+  /* O apoio alimentar do mês. PORÇÕES, não pedidos. */
+  porcoesDeLanche: number | null;
+  cestasBasicas: number | null;
   nota: string;
 }
 
@@ -323,6 +326,16 @@ export function Painel({ houseId, casaLabel, papel }: {
                          valor={mensal.acompanhamentos.abertos} />
                   <Conta rotulo="ATAs fechadas" valor={mensal.atasFechadas} />
                   <Conta rotulo="Documentos arquivados" valor={mensal.documentosArquivados} />
+                  {/*
+                    * O APOIO ALIMENTAR.
+                    *
+                    * "Porções de lanche" e não "pedidos": vinte lanches para a
+                    * saída do grupo é UM pedido e VINTE porções, e a casa que
+                    * leva as crianças ao parque pareceria pedir menos que a que
+                    * pede um lanche por dia.
+                    */}
+                  <Conta rotulo="Porções de lanche" valor={mensal.porcoesDeLanche} />
+                  <Conta rotulo="Cestas básicas" valor={mensal.cestasBasicas} />
                 </ul>
                 <p className="mutetxt" style={{ margin: 0 }}>{mensal.nota}</p>
               </>

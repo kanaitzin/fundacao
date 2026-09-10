@@ -92,11 +92,11 @@ discordavam entre si.
 | **89 migrações** | `.sql` dentro das partições |
 | **103 tabelas** | `CREATE TABLE` nas migrações |
 | **61 suítes** | `backend/test/*.spec.ts` |
-| **593 testes** | `it(` / `test(` nas suítes |
+| **594 testes** | `it(` / `test(` nas suítes |
 | **31 telas React** | `frontend/src/screens/*.tsx` |
 | **14 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **6 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
-| protótipo com **≈972 KB** | `prototipo/rede-acolher-prototipo.html` |
+| protótipo com **≈974 KB** | `prototipo/rede-acolher-prototipo.html` |
 
 *A frase importa: o conferidor lê o NÚMERO colado ao substantivo. Escrever
 "Telas React … 31" numa coluna separada faz o teste passar sem conferir nada —

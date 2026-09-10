@@ -3245,6 +3245,14 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       },
       atasFechadas: cheio ? 1 : 0,
       documentosArquivados: cheio ? ARQUIVO.filter((a) => a.estado === 'verificado').length : 0,
+      /* Só o que está EM ABERTO: comida cancelada não é comida que saiu, e
+         somá-la inflaria o número que a Fundação usa para pedir doação. */
+      porcoesDeLanche: cheio
+        ? PEDIDOS_COZINHA.filter((p) => p.tipo === 'lanche' && p.status === 'aberto')
+          .reduce((n, p) => n + p.quantidade, 0) : 0,
+      cestasBasicas: cheio
+        ? PEDIDOS_COZINHA.filter((p) => p.tipo === 'cesta_basica' && p.status === 'aberto')
+          .reduce((n, p) => n + p.quantidade, 0) : 0,
       nota: 'Contagens do mês. Nenhum número aqui classifica casas, equipes ou acolhidos, e '
         + 'ausência de registro não é fato negativo (§3.3, §14.6).',
     };
