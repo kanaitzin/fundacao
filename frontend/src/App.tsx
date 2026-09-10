@@ -377,14 +377,30 @@ export function App() {
         saía pela borda do celular, e a sexta chegaria com a coordenação. Aba
         que não cabe é aba que ninguém acha.
       */}
-      <TrocaCargo cargoAtual={me.role} onChange={(role) => {
+      <TrocaCargo cargoAtual={me.role} onChange={async (role) => {
+        /*
+         * TROCAR DE CARGO TROCA DE PESSOA — e o nome no alto tem de dizer isso.
+         *
+         * O servidor de mentira devolve quem passou a ser (a coordenação
+         * continua sendo o Marcelo; ver PESSOA_DO_CARGO no `mock.ts`). Sem
+         * aplicar o nome aqui, a tela mostrava "Marcelo Barbosa" enquanto o
+         * servidor de mentira já respondia como Mário Silva — e o documento
+         * saía assinado por um e registrado pelo outro.
+         *
+         * Fora do protótipo o seletor não existe, e este bloco não roda: a
+         * pessoa é a da sessão, e cargo não se escolhe.
+         */
         setMe({ ...me, role });
         definirQuemAssina(me.fullName, role);
-        // No protótipo o servidor de mentira precisa saber do mesmo cargo, senão
-        // as áreas restritas respondem pelo cargo do login, e não pelo escolhido.
         if (import.meta.env.VITE_PROTOTIPO === '1') {
-          api('/prototipo/cargo', { method: 'POST', body: JSON.stringify({ role }) })
-            .catch(() => { /* o seletor é de demonstração; falhar aqui não trava a tela */ });
+          try {
+            const quem = await api<{ fullName?: string; id?: string }>(
+              '/prototipo/cargo', { method: 'POST', body: JSON.stringify({ role }) });
+            if (quem?.fullName) {
+              setMe({ ...me, role, fullName: quem.fullName, id: quem.id ?? me.id });
+              definirQuemAssina(quem.fullName, role);
+            }
+          } catch { /* o seletor é de demonstração; falhar aqui não trava a tela */ }
         }
       }} />
 

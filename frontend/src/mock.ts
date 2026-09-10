@@ -212,6 +212,33 @@ const EQUIPE_CASA = [
   { id: 'u4', nome: 'Carla Coordenadora (fictícia)', cargo: 'coordenador' },
 ];
 
+/**
+ * QUEM CADA CARGO É, no seletor "Ver como".
+ *
+ * Existe porque trocar de cargo tem de trocar de PESSOA: metade do sistema
+ * pergunta "isto é seu?" — a cobrança de relato, a passagem que só o autor
+ * assina, o cofre que é por pessoa, a dose que só quem administrou confirma.
+ * Com a pessoa parada, todas essas perguntas respondiam "sim" para qualquer
+ * cargo, e a demonstração ficava mais permissiva que o sistema.
+ *
+ * A COORDENAÇÃO é o Marcelo de propósito: é o cargo dele, e o protótipo é
+ * aberto no nome dele. Nos outros cargos ele vê com os olhos de outra pessoa,
+ * e o nome no alto da tela diz de quem são.
+ *
+ * A cozinha continua aqui, como no `role_code`: o cargo saiu do seletor na
+ * fase 83, não do banco.
+ */
+const PESSOA_DO_CARGO: Record<string, { id: string; fullName: string; role: string; senha: string | null }> = {
+  coordenador: USUARIOS['mbarbosa@paodospobres.com.br'],
+  educador: USUARIOS['educador.ai3@paodospobres.dev'],
+  lider_diurno: USUARIOS['lider.ai3@paodospobres.dev'],
+  equipe_tecnica: USUARIOS['tecnica.ai3@paodospobres.dev'],
+  enfermagem: USUARIOS['enfermagem@paodospobres.dev'],
+  lider_noturno_geral: USUARIOS['lider.noturno@paodospobres.dev'],
+  cozinha: USUARIOS['cozinha@paodospobres.dev'],
+  gestor_geral: USUARIOS['gestor@paodospobres.dev'],
+};
+
 let eu = USUARIOS['educador.ai3@paodospobres.dev'];
 /**
  * AVISOS (§19). O texto diz que existe algo e onde continuar — nunca repete o
@@ -624,16 +651,33 @@ const SAIDAS_SOZINHO: Record<string, {
   status: string; motivo: string; onde: string | null; ate: string | null;
   desde: string; quem: string;
 }[]> = {
-  p3: [{
+  /*
+   * A CHAVE É O ID DO ACOLHIDO, E ELE TEM DOIS DÍGITOS.
+   *
+   * Estava `p3`, e os ids são `p01`…`p20`. O `find` não achava ninguém e a
+   * lista caía no `?? '—'`: a casa abria com "— · sai acompanhado · Medida
+   * disciplinar combinada com ele na quinta". Um travessão no lugar do nome,
+   * com uma medida disciplinar escrita ao lado — o pior lugar da tela para um
+   * nome faltar. Nada acusava: não é erro de tipo, e o `?? '—'` existe
+   * justamente para a tela não quebrar.
+   *
+   * E é um ADOLESCENTE, porque é de quem a autorização trata: quem vai só à
+   * escola, ao curso, ao trabalho.
+   */
+  p10: [{
     status: 'acompanhada',
-    motivo: 'Medida disciplinar combinada com ele na quinta; vai à escola acompanhado.',
-    onde: 'Escola, acompanhado.',
+    motivo: 'Medida disciplinar combinada com ele na quinta; vai ao curso acompanhado.',
+    onde: 'Curso profissionalizante, acompanhado.',
     ate: new Date(Date.now() + 11 * 86400_000).toISOString().slice(0, 10),
     /* `emHoras` é a HORA DO DIA, não um deslocamento: emHoras(72) monta
        "T72:00:00" e o Date sai inválido — o protótipo inteiro deixava de
        subir, e nem o tsc nem a suíte veem isso. Quem viu foi o ensaio. */
     desde: new Date(Date.now() - 3 * 86400_000).toISOString(),
-    quem: 'Fernanda Alves (fictícia)',
+    /* QUEM DECIDIU É DA EQUIPE DESTA CASA. Estava 'Fernanda Alves (fictícia)',
+       que não é nenhuma das seis pessoas do quadro — e esta é a decisão que a
+       técnica vai defender numa audiência (§8.7.2). Autor que não existe é
+       autor que ninguém pode procurar para perguntar por quê. */
+    quem: 'Tatiane Técnica (fictícia)',
   }],
 };
 
@@ -671,12 +715,25 @@ const PEDIDOS_COZINHA: {
     observacao: null, entregarA: 'Educador do plantão diurno',
     status: 'aberto', motivoCancelamento: null,
     pedidoPor: 'Mário Silva (fictício)', pedidoEm: haMinutos(30 * 60) },
-  { id: 'kr2', tipo: 'cesta_basica', personId: 'p3', paraQuem: 'Ana Paula (fictícia)',
+  /*
+   * O NOME QUE VAI PARA A FOLHA TEM DE SER DE UMA CRIANÇA DA CASA.
+   *
+   * Estava `personId: 'p3'` — id que não existe — com `paraQuem: 'Ana Paula
+   * (fictícia)'`, um nome que não é de nenhuma das vinte. E `paraQuem` é
+   * texto guardado: sai IMPRESSO na "Solicitação de cesta básica" que vai
+   * para a cozinha. A demonstração entregava uma folha nomeando uma criança
+   * que não mora aqui — e numa folha sobre comida, com o nome ao lado, é o
+   * tipo de coisa que faz a equipe desconfiar da tela inteira.
+   *
+   * O `pedidoPor` tinha o mesmo problema do outro lado: 'Fernanda Alves', que
+   * não é do quadro. Pede quem está no turno, e o controle aqui é de autoria.
+   */
+  { id: 'kr2', tipo: 'cesta_basica', personId: 'p18', paraQuem: 'Vitória',
     em: new Date(Date.now() + 4 * 86400_000).toISOString().slice(0, 10),
     quantidade: 1, finalidade: 'Fim de semana com a família.',
     observacao: null, entregarA: null, status: 'aberto', motivoCancelamento: null,
-    pedidoPor: 'Fernanda Alves (fictícia)', pedidoEm: haMinutos(26 * 60) },
-  { id: 'kr3', tipo: 'lanche', personId: 'p5', paraQuem: 'Bruno (fictício)',
+    pedidoPor: 'Joana Lima (fictícia)', pedidoEm: haMinutos(26 * 60) },
+  { id: 'kr3', tipo: 'lanche', personId: 'p02', paraQuem: 'Bruno',
     em: new Date(Date.now() + 1 * 86400_000).toISOString().slice(0, 10),
     quantidade: 1, finalidade: 'Consulta no posto pela manhã.',
     observacao: null, entregarA: null, status: 'cancelado',
@@ -713,12 +770,27 @@ const COBRANCAS: { id: string; incidentId: string; userId: string; quem: string;
 ];
 
 let COMPROMISSOS: Compromisso[] = [
+  /*
+   * A HORA DE SAIR E O ENDEREÇO (1000).
+   *
+   * A fase 76 acrescentou `horaSaida` e `endereco` ao compromisso, e o mock
+   * plumbou os dois campos na resposta — e nenhum compromisso os PREENCHIA.
+   * A agenda mostrava "15:00 · Fonoaudiologia · Clínica Fictícia — Centro" e
+   * nunca "Sair 14:00 · estar lá 15:00", que é a coisa que o Marcelo pediu,
+   * descrita pelo trânsito que cabe entre as duas horas. O campo existia, o
+   * dado não — e o protótipo é a única coisa que ele abre.
+   *
+   * Este é o compromisso certo para carregá-los: consulta fora da casa, com
+   * criança nomeada. O endereço vem separado do nome do lugar porque
+   * "Clínica Fictícia — Centro" não se digita no aplicativo do ônibus.
+   */
   { id: 'c1', tipo: 'saude', titulo: 'Fonoaudiologia', local: 'Clínica Fictícia — Centro',
     personId: 'p11', hora: '15:00', duracaoMin: 45, recorrencia: 'semanal', diasSemana: [2, 4],
     inicio: HOJE, fim: null,
     motivoSemPrazo: 'Tratamento contínuo conforme laudo fonoaudiológico, sem previsão de alta.',
     responsavelModo: 'pessoa', responsavelNome: 'Mário Silva (fictício)',
-    marcadoPor: 'Tatiane Técnica (fictícia)' },
+    marcadoPor: 'Tatiane Técnica (fictícia)',
+    horaSaida: '14:00', endereco: 'Rua Fictícia dos Andradas, 1200 — Centro Histórico' },
   { id: 'c2', tipo: 'atividade', titulo: 'Reforço escolar', local: 'Sala de estudos',
     personId: null, hora: '16:00', duracaoMin: 60, recorrencia: 'semanal', diasSemana: [1, 3, 5],
     inicio: HOJE, fim: null, motivoSemPrazo: 'Acompanhamento pedagógico contínuo da casa.',
@@ -1568,7 +1640,11 @@ let COFRE_HIST: { personId: string; quando: string; quem: string;
                   finalidade: string | null; acao: string; excepcional: boolean }[] = [
   { personId: 'p01', quem: 'Carla Coordenadora (fictícia)', acao: 'abertura', quando: emHoras(9, 12),
     finalidade: 'Atualizar cadastro do benefício no gov.br', excepcional: false },
-  { personId: 'p01', quem: 'João Gestor (fictício)', acao: 'abertura excepcional', quando: emHoras(8, 5),
+  /* O Gestor Geral da casa fictícia é o Gilberto. Estava 'João Gestor
+     (fictício)', que não existe em lugar nenhum — e numa tela cujo assunto
+     inteiro é QUEM abriu o cofre e para quê, um nome sem dono é a pior linha
+     possível do histórico. */
+  { personId: 'p01', quem: 'Gilberto Gestor (fictício)', acao: 'abertura excepcional', quando: emHoras(8, 5),
     finalidade: 'Coordenadora em licença; benefício vencia na semana', excepcional: true },
   { personId: 'p01', quem: 'Carla Coordenadora (fictícia)', acao: 'cadastro',
     quando: emHoras(7, 40), finalidade: null, excepcional: false },
@@ -2848,9 +2924,31 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
    * restritas devolviam 403 para um cargo que, na tela, podia entrar.
    */
   if (rota === '/prototipo/cargo') {
-    eu.role = String(b.role ?? eu.role);
+    /*
+     * TROCAR DE CARGO TROCA DE PESSOA.
+     *
+     * Antes esta linha era `eu.role = ...`: o cargo mudava e a PESSOA ficava.
+     * O §6 do documento já listava isso como lição — "qualquer verificação de
+     * autoria no mock valia para todos os cargos, e a demonstração mentia
+     * justamente sobre a política mais estreita do sistema" — e a linha
+     * continuava aqui. O preço apareceu na fase 79: a cobrança de relato é do
+     * Mário (`u1`), o protótipo abre como Marcelo (`u0`), e "Falta o seu
+     * relato" NUNCA aparecia para quem escolhia "Ver como: educador". A tela
+     * existia, o servidor respondia, e a demonstração escondia a entrega.
+     *
+     * Pior: `eu` é uma referência para dentro do `USUARIOS`, então a
+     * atribuição corrompia o cargo da conta do Marcelo pelo resto da sessão —
+     * depois de "ver como educador", a conta dele ERA educador.
+     *
+     * A coordenação é a exceção, e é de propósito: é o cargo do Marcelo, e o
+     * protótipo é aberto no nome dele. Nos outros ele vê com os olhos de
+     * outra pessoa, e o nome no alto da tela diz de quem são os olhos.
+     */
+    const alvo = String(b.role ?? eu.role);
+    const pessoa = PESSOA_DO_CARGO[alvo];
+    if (pessoa) eu = pessoa;
     cofreLiberado = false;   // trocar de cargo fecha o cofre: a porta é por pessoa.
-    return { ok: true };
+    return { ok: true, id: eu.id, fullName: eu.fullName, role: eu.role };
   }
   if (rota === '/auth/password') {
     // Vale enquanto a página estiver aberta: a partir daqui a conta pede senha.

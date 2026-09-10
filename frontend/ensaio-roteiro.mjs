@@ -246,12 +246,107 @@ const TAREFAS = [
     procurar: [/conquistas registradas/i, /ordem do cadastro/i],
   },
 
-  // ------------------------------------------------------------ 7. Cozinha
+  /* ------------------------------------------------------------ 7. Cozinha
+   *
+   * A tarefa era do cargo `cozinha`, que saiu do seletor na fase 83 — e este
+   * ensaio passou a MORRER aqui, porque `selectOption` não acha a opção e
+   * estoura. A tarefa não deixou de existir: mudou de dono. Quem pede o lanche
+   * é quem está no turno, e a tela virou "Cozinha — pedidos e restrições",
+   * atrás do "Mais".
+   */
   {
-    cargo: 'cozinha', secao: '7.1',
+    cargo: 'educador', secao: '7.1',
+    nome: 'Peça o lanche da saída de sábado',
+    caminho: [{ mais: 'Cozinha' }],
+    procurar: [/Pedir lanche/i, /recebe estes pedidos em papel/i],
+  },
+  {
+    cargo: 'educador', secao: '7.2',
     nome: 'O que não pode ser servido hoje',
-    caminho: [],
-    procurar: [/NÃO SERVIR|restri/i],
+    caminho: [{ mais: 'Cozinha' }, { clicar: /^Restrições$/ }],
+    procurar: [/Não servir|restri/i, /não a razão/i],
+  },
+
+  /* ============================================================ FASES 76–86
+   *
+   * O que a fila do Marcelo entregou depois de 08/09, que é a data em que o
+   * roteiro foi escrito. Sem estas tarefas, o roteiro leva à Casa 03 um
+   * sistema de duas semanas atrás — e o que a equipe não é levada a abrir é o
+   * que ninguém descobre estar errado.
+   */
+
+  // ------------------------------------------- 76 e 77, na mão do educador
+  {
+    cargo: 'educador', secao: '1.9',
+    nome: 'O que é cada coisa no dia — a cor da categoria',
+    caminho: [{ aba: 'Dia' }],
+    procurar: [/Saúde|Medicamento|Rotina da casa/],
+  },
+  {
+    cargo: 'educador', secao: '1.10',
+    nome: 'A que hora sair para a consulta, e para onde',
+    caminho: [{ mais: 'Agenda' }],
+    procurar: [/Sair \d|estar lá/i],
+  },
+  {
+    cargo: 'educador', secao: '1.11',
+    nome: 'Você não presenciou — responda mesmo assim',
+    caminho: [{ mais: 'Ocorrências' }],
+    procurar: [/Não presenciei/i],
+  },
+
+  // ------------------------------------------------ 76, 80 e 81, na técnica
+  {
+    cargo: 'equipe_tecnica', secao: '3.10',
+    nome: 'A psicóloga desmarcou a quarta — sem cancelar a série',
+    caminho: [{ mais: 'Agenda' }],
+    procurar: [/Desmarcar este dia/i],
+  },
+  /*
+   * A saída para a família nasce NO CONTATO, e não numa tela solta: a saída
+   * aponta para quem já está cadastrado. Por isso a tarefa passa pelo perfil.
+   */
+  {
+    cargo: 'equipe_tecnica', secao: '3.11',
+    nome: 'A criança vai passar dias com a família',
+    caminho: [{ aba: 'Acolhidos' }, { clicar: /Alice/ }],
+    procurar: [/Vai passar dias com/i],
+  },
+  {
+    cargo: 'equipe_tecnica', secao: '3.12',
+    nome: 'Este adolescente sai sozinho para o curso?',
+    caminho: [{ aba: 'Acolhidos' }, { clicar: /Alice/ }],
+    procurar: [/sozinh/i],
+  },
+
+  // -------------------------------------------------------- 85, na Enfermagem
+  {
+    cargo: 'enfermagem', secao: '4.7',
+    nome: 'Chegou remédio com nota fiscal — e o que ficou sem o papel',
+    caminho: [{ mais: 'Saúde' }, { clicar: /^Compras$/ }],
+    procurar: [/Nota fiscal/i],
+  },
+  {
+    cargo: 'enfermagem', secao: '4.8',
+    nome: 'O que a equipe sinalizou como estoque baixo',
+    caminho: [{ mais: 'Saúde' }, { clicar: /^Estoque$/ }],
+    procurar: [/sinalizado por gente|baixo/i],
+  },
+
+  /* ------------------------------------------------------ 78, na coordenação
+   *
+   * O botão da cor traz o NOME do tom escrito — "automática" quando ninguém
+   * escolheu —, porque quem não distingue os matizes ainda tem de conseguir
+   * escolher e conferir. É por esse nome que se chega nele.
+   */
+  {
+    cargo: 'coordenador', secao: '5.16',
+    nome: 'Escolha a cor da linha de uma educadora — e tente repetir',
+    caminho: [{ mais: 'Equipe' }, { clicar: /automática/ }],
+    /* O "já em uso" é a recusa do servidor, e só aparece depois de tentar
+       repetir — que é o que a PESSOA faz. Aqui se cobra a porta, não a recusa:
+       o ensaio não decide o tom de ninguém. */
+    procurar: [/Cor da linha de/i],
   },
 ];
 

@@ -387,14 +387,92 @@ cobrar('a ATA da noite fala das casas', /casa|noite|noturna/i.test(await conteud
 cobrar('nenhuma exceção no turno da noite', erros.length === 0, erros[0]);
 
 // ====================================================== 7. Cozinha
-console.log('\n🍽️ Cozinha');
-await trocar('cozinha');
+/*
+ * QUEM PEDE O LANCHE É QUEM ESTÁ NO TURNO.
+ *
+ * Este bloco era do cargo `cozinha`, e o cargo saiu do seletor na fase 83 — a
+ * Fundação decidiu que a cozinha não entra no sistema. O ensaio continuou
+ * pedindo `selectOption('cozinha')` e passou a MORRER aqui, no bloco 7 de 13:
+ * as 59 cobranças seguintes — o Gestor Geral, a exceção por medicamento, a
+ * escala, a passagem que lê as doses, a ATA da próxima equipe — deixaram de
+ * rodar, e as fases 84, 85 e 86 foram construídas com este ensaio vermelho.
+ * Ele estourou com exceção do Node em vez de acusar achado, e é por isso que
+ * ninguém viu: quem quebra alto não é ouvido do mesmo jeito que quem reclama.
+ *
+ * Agora é o EDUCADOR, que é quem percebe que falta lanche para a saída de
+ * sábado. E, por ser este o ensaio que aperta os botões até o fim, ele pede de
+ * verdade e LÊ DE VOLTA o que ficou gravado — inclusive a distinção que a casa
+ * perde se o sistema a confundir: vinte lanches para a saída do grupo é UM
+ * pedido e VINTE porções.
+ */
+console.log('\n🍽️ A cozinha, pedida por quem está no turno (fase 82)');
+await trocar('educador');
 erros.length = 0;
-const cozinha = await conteudo();
-cobrar('a tela única mostra o que não pode ser servido', /NÃO SERVIR|restri/i.test(cozinha));
+cobrar('a Cozinha abre em "Mais"', await doMais('Cozinha'));
+
+const antes = await conteudo();
+const numeroDe = (texto, rotulo) => {
+  const m = new RegExp(`(\\d+)\\s+${rotulo}`).exec(texto);
+  return m ? Number(m[1]) : null;
+};
+const porcoesAntes = numeroDe(antes, 'porções de lanche');
+const pedidosAntes = numeroDe(antes, 'pedidos de lanche');
+
+cobrar('a aba dos pedidos abre primeiro, e diz que a folha vai em papel',
+  /recebe estes pedidos em papel/i.test(antes));
+cobrar('o educador tem os dois botões de pedir',
+  /Pedir lanche/i.test(antes) && /Pedir cesta básica/i.test(antes));
+cobrar('a contabilização separa porções de pedidos',
+  porcoesAntes !== null && pedidosAntes !== null,
+  'somar os dois faria a casa parecer que pede pouco');
+/* Somar por pessoa é medir gente (regra 3): conta-se quantas PESSOAS pediram. */
+cobrar('e conta pessoas distintas, não pedidos por educador',
+  /Pedidos por \d+ pessoas? da equipe/i.test(antes));
+
+cobrar('"Pedir lanche" abre a folha do pedido', await clicar(/Pedir lanche/i));
+const folhaPedido = pg.locator('.overlay .sheet');
+const botaoRegistrar = folhaPedido.locator('button', { hasText: /^Registrar pedido$/ });
+
+/* A finalidade é obrigatória porque "1 lanche" sozinho obriga a cozinha a
+ * adivinhar. O botão nasce barrado, e é isso que se cobra aqui. */
+cobrar('sem finalidade escrita, não há como registrar',
+  await botaoRegistrar.isDisabled());
+await folhaPedido.locator('#pd-fin').fill('saída ao parque no sábado à tarde');
+await folhaPedido.locator('#pd-qtd').fill('20');
+await pg.waitForTimeout(300);
+cobrar('com a finalidade escrita, o pedido pode ser registrado',
+  await botaoRegistrar.isEnabled());
+await botaoRegistrar.click();
+await pg.waitForTimeout(1300);
+
+/* A LEITURA DE VOLTA — o que separa este ensaio dos outros cinco. */
+const depois = await conteudo();
+cobrar('o pedido registrado aparece na lista',
+  /saída ao parque no sábado à tarde/i.test(depois));
+cobrar('e com o nome de quem pediu', /Pedido por /i.test(depois),
+  'o controle aqui é de autoria, não de acesso');
+cobrar('vinte lanches contam como UM pedido',
+  numeroDe(depois, 'pedidos de lanche') === (pedidosAntes ?? 0) + 1,
+  `era ${pedidosAntes}, ficou ${numeroDe(depois, 'pedidos de lanche')}`);
+cobrar('e como VINTE porções',
+  numeroDe(depois, 'porções de lanche') === (porcoesAntes ?? 0) + 20,
+  `era ${porcoesAntes}, ficou ${numeroDe(depois, 'porções de lanche')}`);
+
+cobrar('as três folhas para a cozinha têm porta',
+  /Solicitação de lanche/i.test(depois)
+  && /Solicitação de cesta básica/i.test(depois)
+  && /Restrições alimentares/i.test(depois));
+
+/* A outra aba: a restrição sem a razão dela. */
+cobrar('a aba das restrições abre',
+  await clicar(/^Restrições$/, 'main.conteudo .seg'));
+const restricoes = await conteudo();
+cobrar('a lista mostra o que não pode ser servido', /Não servir|restri/i.test(restricoes));
 cobrar('e diz por que não traz o motivo da restrição',
-  /restrição, não a razão|não a razão dela/i.test(cozinha));
+  /restrição<?\/?b?>?, não a razão|não a razão dela/i.test(restricoes)
+  || /não a razão/i.test(restricoes));
 cobrar('nenhuma exceção na cozinha', erros.length === 0, erros[0]);
+await fechar();
 
 // ====================================================== 8. Gestor Geral
 console.log('\n🏛️ Gestor Geral');

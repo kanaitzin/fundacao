@@ -82,7 +82,7 @@ aplicação e no banco. §7 tem a matriz inteira.
 
 ## 2. O ESTADO HOJE
 
-**Fases 0 a 75.** Estes números **saem do código**, não da memória — e são
+**Fases 0 a 87.** Estes números **saem do código**, não da memória — e são
 cobrados por `test/numeros-da-documentacao.spec.ts`, que existe porque em 08/09
 seis afirmações estavam erradas ao mesmo tempo em três documentos, e duas delas
 discordavam entre si.
@@ -92,12 +92,12 @@ discordavam entre si.
 | **17 partições** isoladas | pastas em `backend/src/modules/` |
 | **91 migrações** | `.sql` dentro das partições |
 | **106 tabelas** | `CREATE TABLE` nas migrações |
-| **62 suítes** | `backend/test/*.spec.ts` |
-| **601 testes** | `it(` / `test(` nas suítes |
+| **63 suítes** | `backend/test/*.spec.ts` |
+| **606 testes** | `it(` / `test(` nas suítes |
 | **31 telas React** | `frontend/src/screens/*.tsx` |
 | **14 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **6 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
-| protótipo com **≈989 KB** | `prototipo/rede-acolher-prototipo.html` |
+| protótipo com **≈990 KB** | `prototipo/rede-acolher-prototipo.html` |
 
 *A frase importa: o conferidor lê o NÚMERO colado ao substantivo. Escrever
 "Telas React … 31" numa coluna separada faz o teste passar sem conferir nada —
@@ -109,14 +109,25 @@ foi assim que "30 telas" sobreviveu à fase que existiu para acabar com isso.*
 |---|---|
 | `npm run ensaio` | 118 telas nos **sete** cargos oferecidos — Coordenação 24, Técnica 22, Gestor 21, Líder Diurno 15, Líder Noturno 14, Educador 13, Enfermagem 9. A Cozinha saiu do seletor em 09/09: o cargo continua no banco, oculto |
 | `npm run ensaio:acessibilidade` | 125 telas, **nenhuma violação de WCAG 2.1 AA** |
-| `npm run ensaio:roteiro` | 29 tarefas do roteiro, **todas com porta no cargo certo** |
+| `npm run ensaio:roteiro` | 39 tarefas do roteiro, **todas com porta no cargo certo** |
+| `npm run ensaio:uso` | 128 cobranças em 13 blocos, **todas passando** — e todos os cargos completando o percurso |
 
 ### A última verificação inteira
 
-**09/09/2026.** `tsc` limpo nos dois lados; a suíte **duas rodadas seguidas**,
-uma delas às 21h34 de Porto Alegre com o UTC já no dia seguinte — que é a
-condição que a regra pede; os seis ensaios de navegador; o `ensaio:producao`; o
-protótipo reconstruído e idêntico ao entregue.
+**10/09/2026, fase 87.** `tsc` limpo nos dois lados; a suíte **duas rodadas
+seguidas**, uma delas com **os dois relógios** — o do processo e o do banco —
+às 21h27 de Porto Alegre, com o UTC já no dia seguinte, que é a condição que a
+regra pede; os **seis** ensaios de navegador, os seis verdes; o
+`ensaio:producao` e o `ensaio:restauracao`; o protótipo reconstruído.
+
+*A rodada anterior dizia 09/09 e afirmava "os seis ensaios de navegador". Era
+falsa desde 10/09 às 04h36: a fase 83 tirou a Cozinha do seletor e dois
+ensaios passaram a estourar — as fases 84, 85 e 86 foram construídas com eles
+vermelhos. **Data de verificação também envelhece**, e envelhece pior que
+número, porque parece um fato datado e não uma afirmação sobre o presente. O
+que a corrigiu não foi disciplina: foi o `servidor-de-mentira.spec.ts`, que
+agora falha no `npx jest` se um ensaio escolher um cargo que o seletor não
+oferece.*
 
 *Contagem que só cresce ("quinze rodadas limpas") não é dado. O que vale é a
 **data** e a **condição** da última verificação. O contador acumulado saiu daqui
@@ -145,6 +156,7 @@ arqueologia.
 | 72–74 | As três respostas da Fundação viraram código: quem dá o remédio; a escala de plantão por data; a ATA que a próxima equipe lê |
 | 75 | **Caça a defeito, sem construir nada novo.** Sete achados — o principal: a dose chegava ao educador **sem botão** |
 | 76–86 | **A fila do Marcelo** (§10.5): desmarcar ocorrência, hora de sair e endereço, cor por categoria e por pessoa, cobrança de relato, experiência familiar, sair sozinho, a cozinha inteira, estoque com nota e receita, e o remédio que vai com a criança |
+| 87 | **Destravar.** Dois dos seis ensaios estavam vermelhos desde a fase 83 e ninguém tinha visto; cinco das nove entregas de 09/09 estavam invisíveis no protótipo; o roteiro do Marcelo não conhecia nenhuma delas. Nada de novo foi construído — o que existia passou a ser alcançável, e a §6.19 é a regra que sobrou |
 
 ---
 
@@ -195,9 +207,9 @@ migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.
 | `npm run ensaio` | percorre as 118 telas dos sete cargos oferecidos num navegador de verdade, cobrando que nenhuma deixe erro no console, que escreva alguma coisa e que não mostre `undefined` para quem lê. **Tela nova entra neste percurso.** |
 | `npm run ensaio:fila` | corta o sinal, marca a chamada, fecha e abre o aplicativo, religa, e confere que **só o que o servidor confirmou** saiu do aparelho |
 | `npm run ensaio:folhas` | os caminhos de documento até o arquivo baixar: abre a folha, tenta baixar com finalidade curta demais, baixa com frase válida, confere que o `.docx` chegou |
-| `npm run ensaio:roteiro` | cobra que as 29 tarefas do roteiro do Marcelo tenham porta no cargo certo. Não simula a procura de uma pessoa — mas impede o fracasso barato: a tarefa não ter porta, e isso aparecer diante da equipe |
+| `npm run ensaio:roteiro` | cobra que as 39 tarefas do roteiro do Marcelo tenham porta no cargo certo. Não simula a procura de uma pessoa — mas impede o fracasso barato: a tarefa não ter porta, e isso aparecer diante da equipe |
 | `npm run ensaio:acessibilidade` | axe-core (WCAG 2.1 AA) nas 125 telas — sete a mais que o `ensaio` porque confere também a folha do "Mais" de cada cargo, aberta dezenas de vezes por turno. **Cor nova passa por ele antes de entrar** |
-| `npm run ensaio:uso` | percorre os oito cargos **apertando os botões até o fim** — chamada, exceção, passagem, armário, cofre, internação, diário — e **lê de volta o que ficou gravado**. É o que pega o defeito que a tela não denuncia: a folha abriu, o botão salvou, e só o número estava errado |
+| `npm run ensaio:uso` | percorre os **sete** cargos **apertando os botões até o fim** — chamada, exceção, passagem, armário, cofre, internação, diário, pedido de lanche — e **lê de volta o que ficou gravado**. É o que pega o defeito que a tela não denuncia: a folha abriu, o botão salvou, e só o número estava errado. *Dizia "oito" aqui, e o roteiro dele também: era a Cozinha, que saiu do seletor na fase 83 — e por isso ele morria no meio* |
 
 **Fora do navegador:**
 
@@ -249,7 +261,7 @@ rede-acolher/
 │   │   │   ├── documentos/     o contrato da folha e o gerador de .docx
 │   │   │   └── common/         CPF, criptografia, segredo, fuso da instituição
 │   │   └── modules/       17 partições, cada uma dona das próprias migrações
-│   ├── test/              62 suítes (e2e contra PostgreSQL real + estáticas)
+│   ├── test/              63 suítes (e2e contra PostgreSQL real + estáticas)
 │   ├── scripts/           ensaio-carga.ts, migrador compilado
 │   └── assets/timbre.png  a marca da Fundação, usada no documento em Word
 ├── frontend/
@@ -487,6 +499,7 @@ Além dos e2e, sete suítes estáticas — todas já pegaram erro de verdade:
 | `numeros-da-documentacao.spec.ts` | os números que este arquivo afirma batem com o código |
 | `rotas-sem-porta.spec.ts` | as rotas sem tela são só as 14 declaradas com motivo — e o bloco **"ação sem botão"**: toda ação que os provedores de linha do tempo emitem (`medication.confirm`, `check.open`, `handover.sign`, `ata.view`, `incident.open`) é atendida pela tela do Dia **e** pelo `mock.ts` |
 | `varredura-de-cargos.e2e.spec.ts` | **todos os cargos contra todas as rotas de leitura**, com id real, id inexistente e id que não é UUID, cobrando uma coisa só: nada devolve **500**. Ela não sabe o que deveria voltar; sabe o que nunca pode |
+| `servidor-de-mentira.spec.ts` | o `mock.ts` não aponta para quem não existe — todo id de acolhido e de conta encontra alguém, quem assina um ato desta casa está no quadro dela, e **nenhum ensaio escolhe um cargo que o seletor não oferece**. Lê o código sem os comentários, senão a lição escrita ao lado do conserto derruba a suíte |
 
 ---
 
@@ -554,6 +567,31 @@ lia onze; `r.entregas.map(...)` derrubava a aba inteira, e no protótipo
 funcionava. **Quando o servidor de mentira responde melhor que o servidor, a
 demonstração ensaia um sistema que não existe.** O `contrato-rotas.spec` pega a
 rota que não existe; não pega a rota que existe e responde outra coisa.
+
+**E a metade que faltava, achada em 10/09: quando ele responde PIOR que o
+servidor, a demonstração esconde um sistema que existe.** Cinco entregas das
+fases 76–86 estavam invisíveis ou erradas no único arquivo que o Marcelo abre —
+o campo da hora de sair plumbado e nunca preenchido; um id de acolhido com um
+dígito de menos, que fazia a casa mostrar "— · sai acompanhado · Medida
+disciplinar combinada com ele na quinta", um travessão no lugar do nome; uma
+folha para a cozinha nomeando uma criança que não mora na casa; o histórico do
+cofre registrando abertura excepcional por um Gestor que não existe; e o
+"Ver como" trocando o cargo e **mantendo a pessoa**, o que fazia a cobrança de
+relato da fase 79 nunca aparecer. Nada disso quebra: `tsc` está feliz, são
+strings; a suíte está feliz, não toca no frontend; o `ensaio` está feliz, a
+tela renderiza e "—" não é `undefined`. Agora é o
+`servidor-de-mentira.spec.ts` que cobra.
+
+**19. Ensaio que ESTOURA não é ouvido como ensaio que reclama.** A fase 83
+tirou a Cozinha do seletor e não tirou dos roteiros. O `selectOption('cozinha')`
+passou a dar timeout e derrubar o processo — no terminal isso se lê como
+problema de ambiente, e o `npx jest` continuava verde ao lado. O `ensaio:uso`
+morreu no bloco 7 de 13 por quatro fases: **59 das 114 cobranças deixaram de
+rodar**, e entre elas o Gestor Geral, a exceção por medicamento, a escala e a
+ATA da próxima equipe. Quando destravou, as 59 passaram todas — não havia
+defeito atrás do travamento, e é isso que o torna caro: quatro fases de trabalho
+entregues sem a rede que existia para pegá-las. **Um conferidor que morre em
+vez de acusar é um conferidor desligado que ninguém desligou.**
 
 **15. Escopo que se repete por linha vira CONJUNTO, não função por linha:**
 `house_id = ANY (ARRAY(SELECT app_casas_no_alcance()))`. Chamar
@@ -1299,6 +1337,15 @@ Uma conversa longa em 09/09 trouxe treze pedidos. **Nove estão entregues**,
 | 8 | **A cozinha**: pedidos de lanche e cesta, três folhas em Word, contabilização, cargo oculto, métrica no painel | 82–84 |
 | 9 | **Estoque, nota fiscal e receita** + o remédio que vai com a criança | 85–86 |
 
+⚠️ **Entregue não era o mesmo que visível.** Até a fase 87, **cinco** dos nove
+não apareciam — ou apareciam errados — no protótipo, que é a única coisa que o
+Marcelo abre: a hora de sair (3), a cobrança de relato (5), o remédio que vai
+junto (9), e o "sair sozinho" (7) mostrando um travessão no lugar do nome da
+criança. O código estava certo nos quatro; o servidor de mentira é que não
+tinha dado. Ver §6.14 e §6.19. **Se algum destes for demonstrado ao Marcelo,
+vale abrir a tela antes** — foi a fase 87 que as tornou alcançáveis, e nenhuma
+delas foi vista por gente ainda.
+
 ### Esperam código — nenhuma bloqueada por decisão
 
 **1. A PORTARIA.** Cargo oculto como o da cozinha, e um documento tipo planilha:
@@ -1745,8 +1792,10 @@ outras; mudança pedida por uma casa só é conversa antes de virar código.
 
 ### O roteiro do Marcelo
 
-`roteiro-marcelo.md` (e o `.docx` gerado dele) leva 29 tarefas do roteiro à Casa 03, cargo a
-cargo. Como se aplica:
+`roteiro-marcelo.md` (e o `.docx` gerado dele) leva 39 tarefas do roteiro à Casa 03, cargo a
+cargo — dez delas nasceram na fase 87, para o roteiro alcançar as entregas de
+09/09. **Ele ficou longo: aplique por cargo, e pare onde o tempo acabar.**
+Como se aplica:
 
 - **uma pessoa por vez**, com o protótipo aberto;
 - **quem aplica não explica antes** — pede a tarefa e cala;

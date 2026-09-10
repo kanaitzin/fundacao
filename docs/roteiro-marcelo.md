@@ -15,7 +15,9 @@
 > ensaio for sem internet, a letra não é a que a equipe vai ver no sistema
 > real. Vale saber antes de anotar "achei feio".
 >
-> Última atualização: 04/09/2026 (internação, cadastro e trabalho social no §0.4).
+> Última atualização: 10/09/2026 — as nove entregas de 09/09 no **§0.8**, dez
+> tarefas novas nas seções dos cargos, e a **§7 mudou de dono**: a cozinha não
+> entra no sistema, e quem pede o lanche é quem está no turno.
 
 ---
 
@@ -219,6 +221,43 @@ no vínculo da casa, em vez de fingir que sabe.
 
 ---
 
+## §0.8 — O que mudou depois de 09/09 (a conversa longa, e é bastante coisa)
+
+Nove coisas que o Marcelo pediu em 09/09 já estão no protótipo. **Dez tarefas
+novas** deste roteiro existem por causa delas, e estão marcadas nas seções dos
+cargos. O que vale saber antes de aplicar:
+
+- **A cozinha não entra no sistema** — decisão da Fundação. Não existe mais
+  "entrar como Cozinha": a tela virou *Cozinha — pedidos e restrições*, em
+  "Mais", de quem trabalha na casa. Ver a **§7**, que mudou de dono;
+- **a linha do dia ganhou cor por categoria** (saúde, medicamento, educação,
+  lazer, alimentação, saída, ocorrência, rotina), na borda esquerda — e o
+  **estado** continua na pílula, do lado. São duas perguntas diferentes: "isto
+  é o quê" e "isto ainda exige algo de mim";
+- **cada pessoa da casa tem uma cor na ATA**, escolhida pela coordenação e que
+  **não repete** — e sempre com o nome escrito ao lado, porque cor não
+  sobrevive à impressão em preto e branco nem ao daltonismo;
+- **o compromisso agora diz a que hora sair e para onde**, separado da hora de
+  estar lá: entre as duas cabe o trânsito;
+- **desmarcar uma data não cancela a série**, e o dia desmarcado continua na
+  agenda, marcado;
+- **ocorrência grave cobra relato de quem estava escalado**, com
+  **"Não presenciei"** a um toque — e marcar isso *é* responder;
+- **a criança pode estar em experiência familiar**: sai da chamada, da rotina e
+  da grade, e **a vaga continua ocupada**. Há uma folha do que ela leva de
+  remédio;
+- **"sair sozinho" é um estado** com motivo, autor e prazo de revisão — nunca
+  pontuação de comportamento;
+- **o armário ganhou nota fiscal e receita digitalizada**, e o estoque baixo
+  continua sendo sinalizado **por gente**, com nome.
+
+⚠️ **O roteiro ficou longo — cresceu cerca de um terço.** Não tente aplicar
+tudo com a mesma pessoa numa sentada. As tarefas **novas** de cada cargo estão no fim da
+seção dele — se o tempo acabar, pare onde acabar e marque onde parou. Onde a
+pessoa para é o dado; onde ela cansa não é.
+
+---
+
 ## Como registrar cada resposta
 
 Para cada tarefa, anote só três coisas:
@@ -282,8 +321,33 @@ demora, demora vinte vezes por turno.
    *Religue o sinal e mostre a fila esvaziando sozinha só DEPOIS de ela
    responder.*
 
-8. **Pergunte depois:** "teve alguma hora em que você achou que ia dar
-   errado?"
+9. **Olhe o dia e me diga o que é cada coisa.** *(Não aponte a legenda.)*
+   Observar: ela usa a **cor da borda** para separar saúde de lazer, ou lê
+   título por título? Ela repara que a **pílula** ao lado diz outra coisa — se
+   aquilo ainda exige algo dela? ⚠️ Se ela disser que a cor significa
+   gravidade, ou "criança problemática", **anote a frase inteira**: é a
+   pergunta mais importante desta tarefa. Cor comunica **o que é** e **em que
+   estado está** — nunca julgamento sobre a criança.
+
+10. **A Lara tem fonoaudiologia hoje às 15h. A que hora vocês precisam sair, e
+    para onde vão?**
+    Observar: ela acha **"Sair 14:00 · estar lá 15:00"**, ou lê só as 15h e se
+    programa para sair na hora da consulta? Ela repara que o **endereço** vem
+    escrito separado do nome do lugar? ⚠️ Pergunte: *"esse endereço serve para
+    você pedir o ônibus ou o carro?"* — foi para isso que ele foi separado de
+    "Clínica Fictícia — Centro".
+
+11. **Houve um erro de medicamento na casa no seu turno. O sistema quer o seu
+    relato.**
+    Observar: ela acha **"Falta o seu relato"**, no alto das Ocorrências, antes
+    da lista? Ela repara que a pergunta **não conta o que aconteceu**? Se ela
+    não presenciou, ela acha **"Não presenciei"** — e entende que marcar isso
+    **é responder**, e não escapar? ⚠️ Pergunte depois: *"e se você não tivesse
+    visto nada, você preferiria que ninguém te perguntasse?"* A resposta é o
+    dado desta tarefa.
+
+12. **Pergunte depois:** "teve alguma hora em que você achou que ia dar
+    errado?"
 
 ---
 
@@ -367,8 +431,31 @@ isso.
    antigo com motivo, em vez de apagar? Ela repara na marca de **aproximação
    restrita**, e o que diz sobre ela?
 
-9. **Pergunte depois:** "o que faltou neste documento para você levar a uma
-   audiência?"
+10. **A psicóloga desmarcou o acompanhamento desta quarta. O da semana que vem
+    continua valendo.**
+    Observar: ela acha **"Desmarcar este dia"** na agenda, ou procura cancelar
+    o compromisso inteiro? Depois de desmarcar, ela repara que **o dia continua
+    aparecendo**, marcado como desmarcado? ⚠️ Pergunte: *"por que você acha que
+    ele não sumiu?"* — se sumisse, no mês seguinte a ausência viraria
+    esquecimento, e é isso que se quer conferir com ela.
+
+11. **A Alice vai passar o fim de semana com a mãe. Registre.**
+    Observar: ela procura uma tela de "saídas", ou entende que a saída nasce
+    **no contato** do perfil — "Vai passar dias com…"? Ela repara que o botão
+    **não aparece** no contato com aproximação restrita? Depois de registrar,
+    ela vê a Alice em **"Com a família"** no alto da lista da casa, com a hora
+    de voltar? ⚠️ Pergunte: *"e a vaga dela na casa, continua ocupada?"*
+
+12. **Este adolescente pode ir sozinho ao curso?**
+    Observar: ela acha a autorização no perfil? Ela entende que é um
+    **estado** — sai sozinho, sai acompanhado, não sai sozinho — com motivo,
+    autor e prazo de revisão? ⚠️ **Se ela pedir pontos, nota ou algum número
+    para medir confiança, anote a frase e diga que não existe** — é a regra 3.
+    E pergunte o que ela usaria no lugar; a resposta dela vale mais que a
+    minha.
+
+13. **Pergunte depois:** "o que faltou neste documento para você levar a uma
+    audiência?"
 
 ---
 
@@ -398,7 +485,23 @@ Alcança as oito casas. É o cargo com mais mudança desde 28/08.
    Observar: ela repara no aviso de que o alerta é contado a partir de hoje?
    *(Foi a segunda decisão de 31/08.)*
 
-6. **Pergunte depois:** "em que momento do seu dia você abriria isto?"
+7. **Chegou uma caixa de remédio com nota fiscal. Registre a compra — e
+   descubra o que ainda está sem o papel digitalizado.**
+   Observar: ela acha a aba **"Compras"**, ou procura na de "Estoque"? Ela
+   entende que a nota é do **gasto**, e que a validade é assunto do armário —
+   que já a tem? Ela repara no aviso de **quantas linhas estão sem o papel**?
+   ⚠️ Pergunte: *"quem, na sua casa, junta isso no fim do mês?"* — é o que
+   trava a prestação de contas, e a resposta diz se a porta está no cargo
+   certo.
+
+8. **O que a equipe sinalizou como estoque baixo?**
+   Observar: ela acha os itens sinalizados? ⚠️ **Se ela procurar um "mínimo"
+   calculado, anote a frase.** O sistema recusa isso de propósito: quem
+   sinaliza é gente, com o nome ao lado, porque dois frascos de um xarope
+   eventual sobram e dois de um contínuo acabam na quinta. Pergunte se ela
+   concorda — ou se prefere o cálculo automático, e por quê.
+
+9. **Pergunte depois:** "em que momento do seu dia você abriria isto?"
 
 ---
 
@@ -489,7 +592,17 @@ Responde pela casa. É quem vai usar as telas de decisão.
     recusa de fazer ranking de casas é decisão de projeto, e vale saber quanto
     ela custa a quem responde por uma casa.
 
-15. **Pergunte depois:** "o que desta lista você já faz hoje em outro lugar?
+16. **Escolha a cor da linha de uma das educadoras na ATA — e depois tente dar
+    a mesma cor a outra.**
+    Observar: ela acha o botão da cor na lista da equipe (ele traz o **nome do
+    tom escrito**, "automática" enquanto ninguém escolheu)? Ao tentar repetir,
+    ela entende a recusa — que **diz de quem a cor já é**, e não só "já em
+    uso"? ⚠️ Pergunte duas coisas: *"faz sentido a coordenação escolher, em vez
+    de cada um escolher a sua?"* (se cada um escolhesse, o primeiro a entrar
+    levaria o azul e a distinção viraria ordem de chegada) e *"você usaria a
+    cor para achar quem escreveu, ou o nome ao lado já basta?"*
+
+17. **Pergunte depois:** "o que desta lista você já faz hoje em outro lugar?
     Onde?"
 
 ---
@@ -537,15 +650,33 @@ que não é sobre o turno.*
 
 ---
 
-## 7. Cozinha
+## 7. A cozinha — aplicada com **o educador**, e não com a cozinha
 
-Uma tela só, de propósito.
+⚠️ **Esta seção mudou de dono.** A Fundação decidiu em 09/09 que a cozinha
+**não entra no sistema**: ela recebe as folhas em papel. Então não existe mais
+"entrar como Cozinha" — o cargo saiu do seletor "Ver como", e a tela virou
+**"Cozinha — pedidos e restrições"**, dentro de **"Mais"**, de quem trabalha na
+casa. *Aplique estas duas tarefas com um educador ou um líder — quem percebe
+que falta lanche para a saída de sábado é quem está no turno.*
 
-1. **Descubra o que não pode ser servido hoje.**
-   Observar: ela acha? Ela sente falta de alguma coisa?
+1. **Falta lanche para a saída ao parque de sábado. Peça à cozinha.**
+   Observar: ela procura a cozinha na barra de baixo, ou em "Mais"? Depois de
+   achar, ela entende que **a folha vai em papel** e que o sistema não manda
+   nada para ninguém? No formulário: ela repara que **"Para quê" é
+   obrigatório** — e escreve o motivo, ou tenta salvar sem? Ela usa
+   **"Casa toda"** para a saída do grupo, ou nomeia vinte crianças?
+   ⚠️ Se ela perguntar por um botão de **WhatsApp**, anote a frase e diga que
+   não existe. É a decisão de 28/08, e a conversa dela sobre isso é o dado.
+
+2. **Descubra o que não pode ser servido hoje.**
+   Observar: ela acha a aba **"Restrições"**, ao lado de "Pedidos"? Ela sente
+   falta de alguma coisa?
    ⚠️ Se ela pedir o motivo da restrição, **anote a frase e não conceda** — a
    lista traz a restrição, não a razão dela, e isso é decisão de proteção. Mas
    a pergunta dela é informação: talvez falte a orientação de substituição.
+
+3. **Pergunte depois:** "quem, na sua casa, pediria isso — você, o líder, ou a
+   coordenação?" *A resposta diz se a porta está no cargo certo.*
 
 ---
 
