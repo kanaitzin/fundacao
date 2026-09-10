@@ -637,6 +637,33 @@ const SAIDAS_SOZINHO: Record<string, {
   }],
 };
 
+/* PEDIDOS PARA A COZINHA (1030). Um de cada, para a demonstração mostrar a
+   folha com conteúdo — e um cancelado, porque ele NÃO some da folha. */
+const PEDIDOS_COZINHA: {
+  id: string; tipo: string; personId: string | null; paraQuem: string;
+  em: string; quantidade: number; finalidade: string; observacao: string | null;
+  entregarA: string | null; status: string; motivoCancelamento: string | null;
+  pedidoPor: string; pedidoEm: string;
+}[] = [
+  { id: 'kr1', tipo: 'lanche', personId: null, paraQuem: 'Casa toda',
+    em: new Date(Date.now() + 2 * 86400_000).toISOString().slice(0, 10),
+    quantidade: 20, finalidade: 'Saída ao parque no sábado à tarde.',
+    observacao: null, entregarA: 'Educador do plantão diurno',
+    status: 'aberto', motivoCancelamento: null,
+    pedidoPor: 'Mário Silva (fictício)', pedidoEm: haMinutos(30 * 60) },
+  { id: 'kr2', tipo: 'cesta_basica', personId: 'p3', paraQuem: 'Ana Paula (fictícia)',
+    em: new Date(Date.now() + 4 * 86400_000).toISOString().slice(0, 10),
+    quantidade: 1, finalidade: 'Fim de semana com a família.',
+    observacao: null, entregarA: null, status: 'aberto', motivoCancelamento: null,
+    pedidoPor: 'Fernanda Alves (fictícia)', pedidoEm: haMinutos(26 * 60) },
+  { id: 'kr3', tipo: 'lanche', personId: 'p5', paraQuem: 'Bruno (fictício)',
+    em: new Date(Date.now() + 1 * 86400_000).toISOString().slice(0, 10),
+    quantidade: 1, finalidade: 'Consulta no posto pela manhã.',
+    observacao: null, entregarA: null, status: 'cancelado',
+    motivoCancelamento: 'A consulta foi remarcada para a semana que vem.',
+    pedidoPor: 'Mário Silva (fictício)', pedidoEm: haMinutos(28 * 60) },
+];
+
 const CONVIVENCIAS: { id: string; personId: string; quem: string; comQuem: string;
                       vinculo: string; saiuEm: string; retornoPrevisto: string;
                       finalidade: string | null }[] = [];
@@ -4302,6 +4329,60 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       aviso: 'Revise medicamentos, alergias e restrições com a Enfermagem antes de reativá-los.' };
   }
 
+  /*
+   * As seis rotas da cozinha ESCRITAS POR EXTENSO, e não por prefixo.
+   *
+   * `startsWith('/people/kitchen-requests/folha/')` atende as três, e some do
+   * `contrato-rotas.spec`, que confere se o servidor de mentira responde às
+   * mesmas rotas que a tela chama. Ele lê literais — e tem razão: um prefixo
+   * que atende tudo é o mesmo que não declarar nada.
+   */
+  if (rota.startsWith('/people/kitchen-requests/folha/lanches')) return folhaDaCozinha('lanches', eu);
+  if (rota.startsWith('/people/kitchen-requests/folha/cestas')) return folhaDaCozinha('cestas', eu);
+  if (rota.startsWith('/people/kitchen-requests/folha/restricoes')) return folhaDaCozinha('restricoes', eu);
+
+  if (rota === '/people/kitchen-requests/export/lanches') return docxDaCozinha('lanches', eu);
+  if (rota === '/people/kitchen-requests/export/cestas') return docxDaCozinha('cestas', eu);
+  if (rota === '/people/kitchen-requests/export/restricoes') return docxDaCozinha('restricoes', eu);
+  if (rota.startsWith('/people/kitchen-requests/summary')) {
+    return resumoDaCozinha();
+  }
+  if (rota.startsWith('/people/kitchen-requests') && metodo === 'GET') {
+    return PEDIDOS_COZINHA;
+  }
+  if (rota === '/people/kitchen-requests' && metodo === 'POST') {
+    if (!['educador', 'lider_diurno', 'lider_noturno_geral', 'equipe_tecnica',
+          'coordenador', 'gestor_geral'].includes(eu.role)) {
+      throw new ErroApi(403, 'Sem acesso aos pedidos da cozinha.');
+    }
+    if (String(b.finalidade ?? '').trim().length < 5) {
+      throw new ErroApi(400, 'Escreva para que serve. "1 lanche" sem finalidade obriga '
+        + 'a cozinha a adivinhar.');
+    }
+    PEDIDOS_COZINHA.unshift({
+      id: `kr${PEDIDOS_COZINHA.length + 1}`, tipo: b.tipo, personId: b.personId ?? null,
+      paraQuem: b.personId
+        ? (todosKids().find((k) => k.id === b.personId)?.nome ?? '—') : 'Casa toda',
+      em: b.em, quantidade: Number(b.quantidade), finalidade: String(b.finalidade).trim(),
+      observacao: b.observacao || null, entregarA: b.entregarA || null,
+      status: 'aberto', motivoCancelamento: null,
+      pedidoPor: eu.fullName, pedidoEm: new Date().toISOString(),
+    });
+    return { id: `kr${PEDIDOS_COZINHA.length}` };
+  }
+  if (seg[0] === 'people' && seg[1] === 'kitchen-requests' && seg[3] === 'cancel') {
+    const p = PEDIDOS_COZINHA.find((x) => x.id === seg[2]);
+    if (!p) throw new ErroApi(404, 'Pedido não encontrado.');
+    if (String(b.motivo ?? '').trim().length < 5) {
+      throw new ErroApi(400, 'Escreva o motivo. A cozinha pode já ter comprado, e ela '
+        + 'vai ler isto.');
+    }
+    if (p.status === 'cancelado') throw new ErroApi(409, 'Este pedido já estava cancelado.');
+    /* Cancelar NÃO apaga: o pedido continua na lista e na folha. */
+    p.status = 'cancelado';
+    p.motivoCancelamento = String(b.motivo).trim();
+    return { cancelado: true };
+  }
   if (rota.startsWith('/people/outing-permissions')) {
     const hoje = new Date().toISOString().slice(0, 10);
     return Object.entries(SAIDAS_SOZINHO).flatMap(([pid, hist]) => {
@@ -7058,4 +7139,120 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
   }
 
   return new Recusa(404, 'Esta parte do sistema ainda não está no protótipo.');
+}
+
+/**
+ * As três folhas da cozinha, no servidor de mentira.
+ *
+ * Mesma estrutura do servidor — regra 14: quando o mock responde melhor que o
+ * servidor, a demonstração ensaia um sistema que não existe.
+ */
+function folhaDaCozinha(qual: string, eu: { fullName: string; role: string }) {
+  const autor = { nome: eu.fullName, cargo: cargoNoDocumento(eu.role) };
+  const casa = `${CASA.code} — ${CASA.name}`;
+  const diaBR = (iso: string) => new Date(`${iso}T12:00:00-03:00`)
+    .toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+  const hoje = diaBR(new Date().toISOString().slice(0, 10));
+
+  if (qual === 'restricoes') {
+    const linhas = todosKids().filter((k) => k.restricao).map((k) => [
+      k.nome, k.restricao!.restriction,
+      k.restricao!.substitution ?? '—', k.restricao!.guidance ?? '—',
+    ]);
+    return {
+      titulo: 'Restrições alimentares', subtitulo: casa,
+      identificacao: [
+        { rotulo: 'Emitida em', valor: hoje },
+        { rotulo: 'Crianças com restrição', valor: String(linhas.length) },
+      ],
+      secoes: [{
+        titulo: 'O que não pode ser servido',
+        tabela: { cabecalho: ['Criança', 'Evitar', 'Servir no lugar', 'Orientação'], linhas },
+        procedencia: 'Prontuário de saúde da casa, escrito pela equipe técnica e pela '
+          + 'Enfermagem. Esta folha é uma vista dele — não uma cópia editável.',
+      }],
+      geradoPor: autor.nome, cargo: autor.cargo, assinatura: true,
+      ressalva: 'Esta folha não traz o motivo médico de nenhuma restrição, de propósito. '
+        + 'Ela vale até ser substituída: em caso de dúvida, confirme com a Enfermagem antes '
+        + 'de servir.',
+    };
+  }
+
+  const lanche = qual === 'lanches';
+  const doTipo = PEDIDOS_COZINHA.filter(
+    (p) => p.tipo === (lanche ? 'lanche' : 'cesta_basica'));
+  const abertos = doTipo.filter((p) => p.status === 'aberto');
+  const cancelados = doTipo.filter((p) => p.status === 'cancelado');
+
+  return {
+    titulo: lanche ? 'Solicitação de lanche' : 'Solicitação de cesta básica',
+    subtitulo: casa,
+    identificacao: [
+      { rotulo: 'Pedidos em aberto', valor: String(abertos.length) },
+      ...(lanche ? [{
+        rotulo: 'Porções no total',
+        valor: String(abertos.reduce((n, p) => n + p.quantidade, 0)),
+      }] : []),
+    ],
+    secoes: [
+      {
+        titulo: lanche ? 'Lanches solicitados' : 'Cestas para acompanhamento familiar',
+        tabela: {
+          cabecalho: ['Dia', lanche ? 'Para quem' : 'Acolhido', 'Qtd.', 'Para quê',
+                      'Entregar a', 'Pediu'],
+          linhas: abertos.map((p) => [
+            diaBR(p.em), p.paraQuem, String(p.quantidade),
+            p.finalidade, p.entregarA ?? '—', p.pedidoPor,
+          ]),
+        },
+        procedencia: 'Pedidos registrados pela equipe da casa no período.',
+      },
+      /* O cancelado NÃO some: a cozinha pode já ter comprado. */
+      ...(lanche && cancelados.length ? [{
+        titulo: 'Cancelados no período',
+        tabela: {
+          cabecalho: ['Dia', 'Para quem', 'Qtd.', 'Motivo do cancelamento'],
+          linhas: cancelados.map((p) => [
+            diaBR(p.em), p.paraQuem, String(p.quantidade), p.motivoCancelamento ?? '—',
+          ]),
+        },
+        procedencia: 'Cancelamentos registrados no sistema, com o motivo escrito.',
+      }] : []),
+    ],
+    geradoPor: autor.nome, cargo: autor.cargo, assinatura: true,
+    ...(abertos.length === 0 && lanche
+      ? { ressalva: 'Não há lanche solicitado para este período. A folha vazia significa '
+          + 'que ninguém pediu — não que o pedido se perdeu.' }
+      : {}),
+  };
+}
+
+/* No protótipo o .docx é montado no navegador — o sistema real gera no kernel,
+   e é ele que registra a saída. */
+function docxDaCozinha(qual: string, eu: { fullName: string; role: string }) {
+  const f = folhaDaCozinha(qual, eu);
+  return {
+    nomeArquivo: nomeDaFolha(f.titulo),
+    conteudoBase64: gerarDocx(f as any, timbreEmBytes()),
+    aviso: 'Folha exportada em Word. A saída fica registrada com o seu nome, a '
+      + 'finalidade e o horário.',
+  };
+}
+
+/** Porções e pedidos são números diferentes — ver a nota na migração 1030. */
+function resumoDaCozinha() {
+  const abertos = PEDIDOS_COZINHA.filter((p) => p.status === 'aberto');
+  const lanches = abertos.filter((p) => p.tipo === 'lanche');
+  const cestas = abertos.filter((p) => p.tipo === 'cesta_basica');
+  const distintos = (xs: typeof PEDIDOS_COZINHA) =>
+    new Set(xs.map((p) => p.personId).filter(Boolean)).size;
+  return {
+    lanchesPorcoes: lanches.reduce((n, p) => n + p.quantidade, 0),
+    lanchesPedidos: lanches.length,
+    lanchesCriancas: distintos(lanches),
+    cestas: cestas.reduce((n, p) => n + p.quantidade, 0),
+    cestasCriancas: distintos(cestas),
+    cancelados: PEDIDOS_COZINHA.filter((p) => p.status === 'cancelado').length,
+    quemPediu: new Set(PEDIDOS_COZINHA.map((p) => p.pedidoPor)).size,
+  };
 }

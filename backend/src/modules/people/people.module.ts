@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { IdentityModule } from '../identity';
 import { PeopleController, TransfersController, ReportsController } from './people.controller';
 import { PeopleService } from './people.service';
+import { CozinhaService } from './cozinha.service';
 import { ProfileService } from './profile.service';
 import { ContatosService } from './contatos.service';
 import { BenefitsService } from './benefits.service';
@@ -14,6 +15,7 @@ import { CredentialsService } from './credentials.service';
   imports: [IdentityModule],
   controllers: [PeopleController, TransfersController, ReportsController],
   providers: [PeopleService, ProfileService,
+    CozinhaService,
     ContatosService, BenefitsService, TransfersService, AdmissionService, CredentialsService,
     DossieService],
   exports: [PeopleService],

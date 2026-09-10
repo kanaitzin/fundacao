@@ -443,7 +443,8 @@ export function App() {
         )}
 
         {abaEfetiva === 'cozinha' && casaAtual && (
-          <Cozinha houseId={casaAtual.id} casaLabel={`${casaAtual.code} · ${casaAtual.name}`} />
+          <Cozinha houseId={casaAtual.id} casaLabel={`${casaAtual.code} · ${casaAtual.name}`}
+                   papel={me.role} />
         )}
 
         {abaEfetiva === 'chamada' && ve('chamada') && casaAtual && <Chamada houseId={casaAtual.id} />}

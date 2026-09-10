@@ -30,6 +30,12 @@ erDiagram
     text __ "conferido em app_definir_cor_da_linha (0990), não por constraint:"
     text ___ "a unicidade é POR CASA e a casa vive em user_house_assignment."
   }
+  KITCHEN_REQUEST {
+    text kind "lanche | cesta_basica"
+    uuid person_id FK "NULL = casa toda: a saída do grupo pede para todo mundo"
+    text purpose "obrigatório: '1 lanche' sem finalidade obriga a cozinha a adivinhar"
+    text status "aberto | cancelado. Cancelar NÃO apaga: a cozinha pode ter comprado"
+  }
   OUTING_PERMISSION {
     text status "liberada | acompanhada | suspensa. AUSÊNCIA não é liberação"
     text reason "sempre obrigatório, inclusive para liberar"
@@ -639,12 +645,12 @@ entity/entity_id genéricos como o próprio relato — é isso que permite remov
 Índice único por `(entity, entity_id, user_id)`: reabrir a ocorrência não
 duplica a cobrança de quem já respondeu.
 
-## Inventário — 102 tabelas por partição
+## Inventário — 103 tabelas por partição
 
 | Partição | Tabelas |
 |---|---|
 | identity (13) | institution, house, app_user, user_house_assignment, work_schedule, shift_assignment, user_session, login_attempt, audit_event, institutional_device, staff_role_grant, house_capacity_change, user_invite |
-| people (20) | person, care_episode, house_stay, profile_detail, health_condition, food_restriction, document, document_version, benefit_record, memory_record, transfer_request, transfer_message, admission_record, judicial_record, person_credential, person_correction, profile_detail_change, person_contact, family_stay, outing_permission |
+| people (21) | person, care_episode, house_stay, profile_detail, health_condition, food_restriction, document, document_version, benefit_record, memory_record, transfer_request, transfer_message, admission_record, judicial_record, person_credential, person_correction, profile_detail_change, person_contact, family_stay, outing_permission, kitchen_request |
 | shifts (11) | shift, handover, handover_receipt, handover_note, ata, ata_note, ata_addendum, ata_episode, ata_episode_ack, general_night_ata, general_night_house_entry |
 | incidents (7) | incident, incident_person, incident_protected, incident_restraint, incident_synthesis, external_communication, incident_attachment |
 | medications (9) | prescription, medication_schedule, medication_administration, medication_stock, medication_stock_movement, medication_protocol, medication_authorization, medication_protocol_change, prescription_restriction_change |

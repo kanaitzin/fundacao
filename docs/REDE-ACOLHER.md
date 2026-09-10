@@ -20,7 +20,7 @@ começava escolhendo em qual acreditar.*
 
 | Arquivo | Por que sobreviveu |
 |---|---|
-| `der.md` | as 102 tabelas com o que cada coluna guarda. É referência de dado, não narrativa, e o `documentacao.spec.ts` cobra que toda tabela apareça lá |
+| `der.md` | as 103 tabelas com o que cada coluna guarda. É referência de dado, não narrativa, e o `documentacao.spec.ts` cobra que toda tabela apareça lá |
 | `roteiro-marcelo.md` (+ `.docx`) | é entregue à Casa 03, escrito para quem não conhece o sistema. O `.docx` é GERADO do `.md` por `scripts/roteiro-em-word.mjs` — não editar o Word à mão |
 
 ---
@@ -84,14 +84,14 @@ discordavam entre si.
 | Quanto | De onde sai |
 |---|---|
 | **17 partições** isoladas | pastas em `backend/src/modules/` |
-| **88 migrações** | `.sql` dentro das partições |
-| **102 tabelas** | `CREATE TABLE` nas migrações |
-| **60 suítes** | `backend/test/*.spec.ts` |
-| **584 testes** | `it(` / `test(` nas suítes |
+| **89 migrações** | `.sql` dentro das partições |
+| **103 tabelas** | `CREATE TABLE` nas migrações |
+| **61 suítes** | `backend/test/*.spec.ts` |
+| **593 testes** | `it(` / `test(` nas suítes |
 | **31 telas React** | `frontend/src/screens/*.tsx` |
 | **14 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **6 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
-| protótipo com **≈956 KB** | `prototipo/rede-acolher-prototipo.html` |
+| protótipo com **≈971 KB** | `prototipo/rede-acolher-prototipo.html` |
 
 *A frase importa: o conferidor lê o NÚMERO colado ao substantivo. Escrever
 "Telas React … 31" numa coluna separada faz o teste passar sem conferir nada —
@@ -170,7 +170,7 @@ cd frontend && npm run prototipo
 # sai em prototipo/rede-acolher-prototipo.html
 ```
 
-O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as 88
+O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as 89
 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
 
 ### Os ensaios — e por que cada um existe
@@ -236,7 +236,7 @@ rede-acolher/
 │   │   │   ├── documentos/     o contrato da folha e o gerador de .docx
 │   │   │   └── common/         CPF, criptografia, segredo, fuso da instituição
 │   │   └── modules/       17 partições, cada uma dona das próprias migrações
-│   ├── test/              60 suítes (e2e contra PostgreSQL real + estáticas)
+│   ├── test/              61 suítes (e2e contra PostgreSQL real + estáticas)
 │   ├── scripts/           ensaio-carga.ts, migrador compilado
 │   └── assets/timbre.png  a marca da Fundação, usada no documento em Word
 ├── frontend/
@@ -944,6 +944,42 @@ A **grade "para colar na parede"** sai com horário, nome e medicamento, **sem
 diagnóstico**, e com um aviso na própria folha de que corredor e mural aberto
 não são lugar para o nome de uma criança ao lado do remédio dela.
 
+### 8.9.1 A cozinha, sem a cozinha no sistema
+
+A Fundação decidiu em 09/09 que a cozinha **não entra no sistema** por
+enquanto. O que a casa faz é gerar documentos e entregá-los — em Word, com
+timbre, porque circulam entre setores.
+
+Isso muda o cuidado com o conteúdo: uma tela tem alcance, um **papel não tem**.
+Ele fica em cima de bancada e é lido por quem passa. Por isso as três folhas
+carregam o mínimo — nome pelo qual a criança é chamada, data, quantidade —, e
+nunca diagnóstico, CPF, motivo judicial ou o motivo de uma restrição.
+
+**Solicitação de lanche** e **solicitação de cesta básica** nascem da aba
+"Pedidos para a cozinha". Pede **qualquer educador ou líder**: quem percebe que
+falta lanche para a saída de sábado é quem está no turno, e o controle aqui é de
+**autoria** — fica o nome —, não de acesso. A finalidade é obrigatória, porque
+"1 lanche" sozinho obriga a cozinha a adivinhar.
+
+**Não há trava de data.** A casa tem dezenove crianças e no dia chega a
+vigésima: o lanche sai de qualquer jeito, e recusar o registro só faz a
+contagem do mês nascer errada. As 48 horas que a cozinha pede para se organizar
+são combinado entre pessoas, e o sistema não é o lugar de impor.
+
+**Cancelar não apaga:** o pedido continua na folha, em seção própria, com o
+motivo — a cozinha pode já ter comprado, e "sumiu do sistema" não desfaz compra.
+
+**A tabela de restrições é uma VISTA** da mesma `food_restriction` que a equipe
+técnica e a Enfermagem escrevem. Tabela à parte divergiria no primeiro ajuste, e
+é aí que uma criança come amendoim.
+
+**A contabilização** separa **porções** de **pedidos**: vinte lanches para a
+saída do grupo é um pedido e vinte porções, e confundir os dois faz a casa
+parecer que pede pouco. Conta também cestas, crianças alcançadas, cancelados e
+**quantas pessoas distintas** pediram. Não conta quanto cada educador pediu: a
+autoria de cada pedido tem nome na lista e na folha, mas somar por pessoa é
+medir gente.
+
 ### 8.10 Coordenação e gestão
 
 Equipe e convites de primeiro acesso; o cadastro dos **aparelhos institucionais**
@@ -1296,7 +1332,7 @@ ele continua dizendo que o arquivo existe.
 npm run ensaio:producao
 ```
 
-Constrói, cria um banco virgem, aplica as 88 migrações **pelo binário
+Constrói, cria um banco virgem, aplica as 89 migrações **pelo binário
 compilado**, sobe o serviço e confere `/health`. Não publica nada e não toca no
 banco de trabalho.
 

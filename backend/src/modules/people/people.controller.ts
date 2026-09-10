@@ -5,6 +5,7 @@ import { SessionGuard, CurrentUser } from '../identity';
 import { AuthenticatedUser } from '../../kernel/contracts';
 import { DossieService } from './dossie.service';
 import { PeopleService } from './people.service';
+import { CozinhaService } from './cozinha.service';
 import { ProfileService } from './profile.service';
 import { ContatosService } from './contatos.service';
 import { BenefitsService } from './benefits.service';
@@ -18,6 +19,7 @@ export class PeopleController {
   constructor(
     @Inject(PeopleService) private readonly people: PeopleService,
     @Inject(ProfileService) private readonly profile: ProfileService,
+    @Inject(CozinhaService) private readonly cozinha: CozinhaService,
     @Inject(BenefitsService) private readonly benefits: BenefitsService,
     @Inject(TransfersService) private readonly transfers: TransfersService,
     @Inject(AdmissionService) private readonly admission: AdmissionService,
@@ -111,6 +113,73 @@ export class PeopleController {
                    @Param('id', ParseUUIDPipe) id: string,
                    @Body() body: { quando: string; nota?: string }) {
     return this.people.registrarRetornoFamiliar(user, id, body?.quando, body?.nota);
+  }
+
+  /* ---------------- Pedidos para a cozinha (1030) ---------------- */
+
+  @Get('kitchen-requests')
+  pedidosCozinha(@CurrentUser() user: AuthenticatedUser,
+                 @Query('houseId', ParseUUIDPipe) houseId: string,
+                 @Query('de') de: string, @Query('ate') ate: string) {
+    return this.cozinha.pedidos(user, houseId, de, ate);
+  }
+
+  @Get('kitchen-requests/summary')
+  resumoCozinha(@CurrentUser() user: AuthenticatedUser,
+                @Query('houseId', ParseUUIDPipe) houseId: string,
+                @Query('de') de: string, @Query('ate') ate: string) {
+    return this.cozinha.resumo(user, houseId, de, ate);
+  }
+
+  @Post('kitchen-requests')
+  pedirCozinha(@CurrentUser() user: AuthenticatedUser, @Body() body: any) {
+    return this.cozinha.pedir(user, body);
+  }
+
+  @Post('kitchen-requests/:id/cancel')
+  cancelarPedido(@CurrentUser() user: AuthenticatedUser,
+                 @Param('id', ParseUUIDPipe) id: string,
+                 @Body() body: { motivo: string }) {
+    return this.cozinha.cancelar(user, id, body?.motivo ?? '');
+  }
+
+  /*
+   * As três folhas. `folha` mostra e NÃO registra; `export` exige finalidade e
+   * registra a saída — ver não é exportar, e quem lê na tela já podia ler.
+   */
+  @Get('kitchen-requests/folha/lanches')
+  folhaLanches(@CurrentUser() user: AuthenticatedUser,
+               @Query('houseId', ParseUUIDPipe) houseId: string,
+               @Query('de') de: string, @Query('ate') ate: string) {
+    return this.cozinha.folhaDeLanches(user, houseId, de, ate);
+  }
+
+  @Post('kitchen-requests/export/lanches')
+  exportLanches(@CurrentUser() user: AuthenticatedUser, @Body() body: any) {
+    return this.cozinha.exportarLanches(user, body);
+  }
+
+  @Get('kitchen-requests/folha/restricoes')
+  folhaRestricoes(@CurrentUser() user: AuthenticatedUser,
+                  @Query('houseId', ParseUUIDPipe) houseId: string) {
+    return this.cozinha.folhaDeRestricoes(user, houseId);
+  }
+
+  @Post('kitchen-requests/export/restricoes')
+  exportRestricoes(@CurrentUser() user: AuthenticatedUser, @Body() body: any) {
+    return this.cozinha.exportarRestricoes(user, body);
+  }
+
+  @Get('kitchen-requests/folha/cestas')
+  folhaCestas(@CurrentUser() user: AuthenticatedUser,
+              @Query('houseId', ParseUUIDPipe) houseId: string,
+              @Query('de') de: string, @Query('ate') ate: string) {
+    return this.cozinha.folhaDeCestas(user, houseId, de, ate);
+  }
+
+  @Post('kitchen-requests/export/cestas')
+  exportCestas(@CurrentUser() user: AuthenticatedUser, @Body() body: any) {
+    return this.cozinha.exportarCestas(user, body);
   }
 
   /* ---------------- Sair sozinho (1020) ---------------- */
