@@ -63,7 +63,9 @@ erDiagram
   FAMILY_STAY {
     uuid contact_id FK "aponta para person_contact — nunca nome digitado à mão"
     timestamptz expected_return_at "é isto que o aviso lê: 1h antes e depois da hora"
-    text return_note "pede FATO observado, nunca rótulo sobre a criança"
+    text return_note "COMO ela chegou, em fato observado — nunca rótulo sobre a criança"
+    text brought_back "o que veio com ela: roupa, remédio, documento. Fato do turno seguinte"
+    text _ "não há campo houve_alteracao: sim/não gruda, e o detalhe se perde (§8.14)"
     text status "em_andamento | encerrada. Uma aberta por criança"
   }
   USER_SESSION {

@@ -357,26 +357,44 @@ export class PeopleService {
     }
   }
 
+  /**
+   * O retorno — com o que ela trouxe de casa (1060).
+   *
+   * `nota` é COMO ELA CHEGOU, em fato observado; `trouxe` é o que veio com
+   * ela. O segundo é fato logístico do turno seguinte: veio remédio que não é
+   * o da grade, veio roupa para lavar antes da escola de segunda, veio o
+   * documento que a técnica esperava. Os dois ecoam na passagem e na ATA
+   * daquele turno (1070).
+   */
   async registrarRetornoFamiliar(user: AuthenticatedUser, id: string,
-                                 quando: string, nota?: string) {
+                                 quando: string, nota?: string, trouxe?: string) {
     try {
       await this.db.asUser(user.id, async (c) => {
-        await c.query(`SELECT * FROM app_registrar_retorno_familiar($1,$2::timestamptz,$3)`,
-          [id, quando, nota ?? null]);
+        await c.query(
+          `SELECT * FROM app_registrar_retorno_familiar($1,$2::timestamptz,$3,$4)`,
+          [id, quando, nota ?? null, trouxe ?? null]);
       });
     } catch (e: any) {
       const m = String(e?.message ?? '');
       if (m.includes('retorno_ja_registrado')) {
         throw new ConflictException('O retorno desta saída já foi registrado.');
       }
+      if (m.includes('retorno_antes_da_saida')) {
+        throw new BadRequestException(
+          'A hora da chegada é anterior à da saída. Confira o horário: o retorno lançado '
+          + 'antes da saída apareceria na passagem de um turno em que ela ainda não tinha ido.');
+      }
       if (m.includes('saida_inexistente')) {
         throw new NotFoundException('Saída não encontrada.');
       }
       throw e;
     }
+    /* Sem o conteúdo no log: `nota` e `trouxe` descrevem uma criança, e o log
+       da aplicação guarda ID e metadado (regra 2). */
     await this.audit.log({
       action: 'family_stay.close', actorId: user.id, institutionId: user.institutionId,
-      entity: 'family_stay', entityId: id, detail: { quando },
+      entity: 'family_stay', entityId: id,
+      detail: { quando, comNota: !!nota?.trim(), comTrouxe: !!trouxe?.trim() },
     });
     return { encerrada: true };
   }

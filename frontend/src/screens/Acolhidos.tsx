@@ -239,6 +239,8 @@ export function Acolhidos({ houseId, casaLabel, papel }: {
      inteira todo dia vira paisagem. */
   const [observar, setObservar] = useState<SaidaSozinho[]>([]);
   const [notaRetorno, setNotaRetorno] = useState('');
+  /** O que ela trouxe de casa na volta (1060). */
+  const [trouxeRetorno, setTrouxeRetorno] = useState('');
 
   const carregar = useCallback(async () => {
     setErro('');
@@ -272,9 +274,10 @@ export function Acolhidos({ houseId, casaLabel, papel }: {
     try {
       await api(`/people/family-stays/${c.id}/return`, {
         method: 'POST',
-        body: JSON.stringify({ quando: new Date().toISOString(), nota: notaRetorno.trim() }),
+        body: JSON.stringify({ quando: new Date().toISOString(),
+                               nota: notaRetorno.trim(), trouxe: trouxeRetorno.trim() }),
       });
-      setRecebendo(null); setNotaRetorno('');
+      setRecebendo(null); setNotaRetorno(''); setTrouxeRetorno('');
       setAviso(`Retorno de ${c.quem} registrado.`);
       await carregar();
     } catch (e) {
@@ -483,7 +486,7 @@ export function Acolhidos({ houseId, casaLabel, papel }: {
                   </button>
                 )}
                 <button className="btn sec sm"
-                        onClick={() => { setRecebendo(c); setNotaRetorno(''); }}>
+                        onClick={() => { setRecebendo(c); setNotaRetorno(''); setTrouxeRetorno(''); }}>
                   Chegou
                 </button>
               </div>
@@ -506,12 +509,45 @@ export function Acolhidos({ houseId, casaLabel, papel }: {
               De volta de {recebendo.comQuem}. A partir de agora ela volta à chamada,
               à rotina e à grade de medicamentos.
             </p>
-            <label className="f" htmlFor="nota-ret">Como foi a chegada (opcional)</label>
+            <label className="f" htmlFor="nota-ret">Como ela chegou (opcional)</label>
             {/* A ajuda pede FATO, não rótulo: "voltou agressiva" gruda, "chegou
-                sem falar e foi para o quarto" pode mudar (§8.14). */}
+                sem falar e foi para o quarto" pode mudar (§8.14).
+
+                O Marcelo pediu "se houve alteração". Não existe campo com esse
+                nome, e é decisão consciente: um "alteração: sim" atravessa seis
+                meses e um relatório judicial muito depois de o detalhe ao lado
+                ter sido esquecido. A pergunta dele é respondida aqui, em fato
+                observado — e o que ela trouxe ganhou campo próprio abaixo. */}
             <textarea id="nota-ret" rows={3} value={notaRetorno}
                       onChange={(e) => setNotaRetorno(e.target.value)}
-                      placeholder="O que você observou. Ex.: chegou no horário, trouxe uma mochila de roupas; ficou quieta e foi direto para o quarto." />
+                      placeholder="O que você observou. Ex.: chegou no horário, ficou quieta e foi direto para o quarto." />
+
+            {/*
+              * O QUE ELA TROUXE DE CASA (1060) — pedido do Marcelo.
+              *
+              * Campo próprio, e não uma frase dentro da observação: isto é fato
+              * LOGÍSTICO do turno seguinte, e é o que muda o que a casa faz nas
+              * próximas duas horas. Veio remédio que não é o da grade? Roupa
+              * para lavar antes da escola de segunda? O documento que a técnica
+              * esperava? Misturado à observação, viraria detalhe de um texto
+              * sobre a criança — e é a única das duas coisas que alguém tem de
+              * FAZER algo a respeito.
+              *
+              * Sem lista de opções: a quinta opção sempre existe, e "Outro com
+              * nota" é o que a casa acabaria usando em metade dos retornos.
+              */}
+            <label className="f" htmlFor="trouxe-ret">
+              Trouxe algo de casa? <small>— opcional</small>
+            </label>
+            <input id="trouxe-ret" maxLength={200} value={trouxeRetorno}
+                   onChange={(e) => setTrouxeRetorno(e.target.value)}
+                   placeholder="Ex.: mochila com roupa suja, um frasco de xarope e a carteira de vacina." />
+            <div className="mutetxt">
+              Aparece na passagem e na ATA deste turno, para a equipe seguinte ler sem
+              procurar. Se veio medicamento, avise a Enfermagem: ele não entra na grade
+              sozinho.
+            </div>
+
             <div className="row" style={{ gap: 8, marginTop: 16 }}>
               <button type="button" className="btn sec grow"
                       onClick={() => setRecebendo(null)}>Cancelar</button>

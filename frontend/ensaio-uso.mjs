@@ -782,6 +782,142 @@ cobrar('o líder lê a linha restrita que o educador não vê',
   'o líder precisa ver o conteúdo, e não a contagem');
 cobrar('nenhuma exceção na ATA', erros.length === 0, erros[0]);
 
+// ============================ 13. O retorno da família na passagemNaFase88 e na ATA
+/*
+ * O CAMINHO INTEIRO, DE PONTA A PONTA (1060/1070).
+ *
+ * A técnica registra a saída, o educador recebe a criança escrevendo o que ela
+ * trouxe, e a passagemNaFase88 e a ATA passam a mostrar isso — que era o pedido do
+ * Marcelo: "ecoar, para a equipe seguinte ler sem procurar".
+ *
+ * Este bloco é o que prova o eco, e é para ele que este ensaio existe: o
+ * `tsc` diz que compila, o `ensaio` diz que a tela renderiza, e nenhum dos
+ * dois diz que o que foi gravado às 18h aparece na tela que a equipe das 19h
+ * abre. No protótipo a lista de convivências começa VAZIA de propósito — quem
+ * abre registra a primeira saída —, então o percurso tem de criar o fato antes
+ * de poder lê-lo.
+ */
+console.log('\n🏠 O retorno da família, da chegada até a passagem (fase 88)');
+await trocar('equipe_tecnica');
+erros.length = 0;
+
+cobrar('a técnica abre o perfil de uma criança', await aba('Acolhidos'));
+cobrar('e chega ao perfil', await clicar(/Alice/));
+const perfilNaFase88 = await conteudo();
+cobrar('o perfil tem o contato de quem aparece pela criança',
+  /Vai passar dias com/i.test(perfilNaFase88),
+  'a saída nasce no CONTATO: digitar o nome à mão permitiria escrever qualquer um');
+
+cobrar('"Vai passar dias com" abre a folha da saída', await clicar(/Vai passar dias com/i));
+const folhaSaidaFase88 = pg.locator('.overlay .sheet');
+const registrarSaida = folhaSaidaFase88.locator('button', { hasText: /^Registrar saída$/ });
+cobrar('a folha da saída pede quando ela volta', await registrarSaida.count() > 0);
+if (await registrarSaida.count()) {
+  /* Uma saída que já terminou: o retorno vem logo depois, no mesmo turno, que
+     é o caso do fim de semana. As horas saem do próprio navegador. */
+  const agora = new Date();
+  const local = (d) => new Date(d.getTime() - d.getTimezoneOffset() * 60000)
+    .toISOString().slice(0, 16);
+  /* Pelos ids, e não por posição: `input[type="text"]` não casa com um input
+     SEM atributo type — o campo da finalidade nunca era preenchido, e o ensaio
+     não reclamava porque ele é opcional. Posição em formulário é a mesma
+     armadilha do `.last()` no menu "Mais". */
+  await folhaSaidaFase88.locator('#fs-ini')
+    .fill(local(new Date(agora.getTime() - 3 * 3600_000)));
+  await folhaSaidaFase88.locator('#fs-ret')
+    .fill(local(new Date(agora.getTime() + 3600_000)));
+  await folhaSaidaFase88.locator('#fs-fin').fill('Fim de semana com a mãe.');
+  await pg.waitForTimeout(300);
+  await registrarSaida.click();
+  await pg.waitForTimeout(1400);
+}
+await fechar();
+
+/* Quem recebe é quem está na porta: o educador de plantão. */
+await trocar('educador');
+/* `trocar` volta para a primeira aba — a lista da casa é outra. */
+cobrar('o educador abre a lista da casa', await aba('Acolhidos'));
+cobrar('o educador vê quem está com a família na lista da casa',
+  /Com a família/i.test(await conteudo()),
+  'ele precisa saber por que a cadeira vai ficar vazia no jantar');
+cobrar('e tem o botão de registrar a chegada', await clicar(/^Chegou$/));
+
+const folhaChegadaFase88 = pg.locator('.overlay .sheet');
+cobrar('a folha da chegada pergunta COMO ela chegou',
+  /Como ela chegou/i.test(await folhaChegadaFase88.innerText()));
+/* O pedido do Marcelo, em campo próprio: é fato logístico do turno seguinte. */
+cobrar('e pergunta o que ela trouxe de casa',
+  /Trouxe algo de casa/i.test(await folhaChegadaFase88.innerText()));
+await folhaChegadaFase88.locator('#nota-ret').fill('Chegou no horário e foi direto para o quarto.');
+await folhaChegadaFase88.locator('#trouxe-ret').fill('Mochila com roupa suja e um frasco de xarope.');
+await pg.waitForTimeout(300);
+await folhaChegadaFase88.locator('button', { hasText: /^Registrar chegada$/ }).click();
+await pg.waitForTimeout(1500);
+await fechar();
+
+/* A LEITURA DE VOLTA, que é a fase inteira. */
+/*
+ * O PLANTÃO DO TURNO DE AGORA — e não o que está "Aberto".
+ *
+ * A chegada é registrada com a hora do relógio, e o turno dela sai do FUSO DA
+ * INSTITUIÇÃO: às 19h38 de Porto Alegre a criança volta no plantão NOTURNO, e
+ * o cartão aberto do protótipo é o diurno. A primeira versão deste bloco
+ * cobrava o cartão "Aberto" e falhava a partir das 19h — e falhava dizendo
+ * "a criança não voltou", que é a acusação errada.
+ *
+ * É a armadilha 2 dos ensaios em Playwright, escrita no §6: roteiro preso a
+ * horário fixo falha em certas horas do dia, e isso NÃO é defeito do sistema.
+ * O ensaio calcula o turno como o sistema calcula, e abre o cartão certo.
+ */
+const turnoDeAgora = (() => {
+  const h = Number(new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'America/Sao_Paulo', hour: '2-digit', hour12: false,
+  }).format(new Date()));
+  return h >= 7 && h < 19 ? 'diurno' : 'noturno';
+})();
+
+cobrar('a lista de plantões abre', await aba('Passagem'));
+/* O bloco vive DENTRO do plantão: a aba mostra os cartões. */
+const cartaoDaFase88 = pg.locator('main.conteudo button.chamadacard')
+  .filter({ hasText: new RegExp(`Plantão ${turnoDeAgora}`, 'i') }).first();
+cobrar(`há o plantão ${turnoDeAgora}, que é o turno de agora em Porto Alegre`,
+  (await cartaoDaFase88.count()) > 0);
+await cartaoDaFase88.click();
+await pg.waitForTimeout(1300);
+const passagemNaFase88 = await conteudo();
+cobrar('a passagem mostra quem esteve com a família neste turno',
+  /com a família neste turno/i.test(passagemNaFase88), passagemNaFase88.slice(0, 200));
+cobrar('e diz que a criança voltou', /voltou neste turno/i.test(passagemNaFase88));
+cobrar('com o que ela trouxe de casa escrito',
+  /frasco de xarope/i.test(passagemNaFase88),
+  'é o que muda o que a casa faz nas próximas duas horas');
+cobrar('e com o nome de quem recebeu', /recebida por/i.test(passagemNaFase88));
+
+cobrar('a ATA abre', await doMais('ATA'));
+/*
+ * A ATA TROCA DE TURNO POR ABA, não por cartão — e abre no diurno.
+ *
+ * O ensaio cobrava um `button.chamadacard` aqui, como na Passagem, e não achava
+ * nada: ficava no turno diurno, onde a criança SAIU, e reclamava que o retorno
+ * não aparecia. O bloco estava lá o tempo todo, no turno certo.
+ */
+cobrar(`a ATA oferece o turno ${turnoDeAgora}`,
+  await clicar(new RegExp(`Turno ${turnoDeAgora}`, 'i')));
+const ataNaFase88 = await conteudo();
+cobrar('a ATA mostra o MESMO retorno, da mesma fonte',
+  /Acolhido em experiência familiar/i.test(ataNaFase88) && /frasco de xarope/i.test(ataNaFase88),
+  'duas consultas quase iguais divergiriam no primeiro ajuste');
+/* E o turno em que ela SAIU diz "saiu", não "voltou": é o mesmo componente
+   contando duas metades da mesma história, uma em cada turno. */
+const outroTurno = turnoDeAgora === 'diurno' ? 'noturno' : 'diurno';
+if (await clicar(new RegExp(`Turno ${outroTurno}`, 'i'))) {
+  const naOutra = await conteudo();
+  cobrar('e o turno em que ela saiu conta a outra metade',
+    !/experiência familiar/i.test(naOutra) || /saiu neste turno|está com a família/i.test(naOutra),
+    'o mesmo bloco não pode dizer "voltou" no turno em que ela ainda estava fora');
+}
+cobrar('nenhuma exceção no caminho do retorno', erros.length === 0, erros[0]);
+
 await navegador.close();
 console.log(achados.length
   ? `\n${achados.length} ACHADO(S):\n  ${achados.join('\n  ')}`

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { ConvivenciasDoTurno, ConvivenciaDoTurno } from '../convivencias';
 import { api, apiOuFila } from '../api';
 
 /**
@@ -54,6 +55,8 @@ interface Plantao {
     }[];
     total: number; semResposta: number; jaEscrito: boolean; exigeFrase: boolean;
   };
+  /** As convivências familiares do turno (1070) — quem voltou, saiu e segue fora. */
+  convivencias?: ConvivenciaDoTurno[];
 }
 interface Resumo {
   id: string; turno: string; status: string;
@@ -330,6 +333,17 @@ export function Passagem({ houseId }: { houseId: string }) {
           </div>
         </div>
       )}
+
+      {/*
+        * O RETORNO DA EXPERIÊNCIA FAMILIAR (1070).
+        *
+        * FORA do formulário de assinatura, e antes dele: quem já assinou a sua
+        * passagem também precisa ler isto, e quem CHEGA para receber o turno
+        * precisa mais do que todos. Dentro do `Formulario` o bloco apareceria
+        * só para quem ainda não assinou — que é justamente quem está saindo.
+        */}
+      <ConvivenciasDoTurno lista={aberto.convivencias ?? []}
+                           titulo="Quem esteve com a família neste turno" />
 
       {minha && (
         <section className="passagem">

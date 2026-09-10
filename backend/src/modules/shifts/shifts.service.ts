@@ -83,6 +83,18 @@ export class ShiftsService {
       // tela da passagem precisa delas antes de assinar, e uma segunda ida ao
       // servidor é uma tela que abre pela metade no corredor.
       const { rows: doses } = await c.query(`SELECT * FROM app_doses_do_turno($1)`, [shiftId]);
+      /*
+       * AS CONVIVÊNCIAS FAMILIARES DO TURNO (1070).
+       *
+       * Vem junto pelo mesmo motivo das doses: a Passagem e a ATA precisam
+       * disto antes de qualquer clique, e uma segunda ida ao servidor é uma
+       * tela que abre pela metade no corredor. E vem de UMA função para as
+       * DUAS telas — duas consultas quase iguais divergiriam no primeiro
+       * ajuste, e a passagem passaria a dizer uma coisa e a ATA outra sobre o
+       * mesmo domingo.
+       */
+      const { rows: convivencias } = await c.query(
+        `SELECT * FROM app_convivencias_do_turno($1)`, [shiftId]);
       const { rows: [jaEscrito] } = await c.query(
         `SELECT count(*)::int AS n FROM handover
           WHERE shift_id = $1 AND btrim(coalesce(medication_note,'')) <> ''`, [shiftId]);
@@ -137,7 +149,7 @@ export class ShiftsService {
            JOIN ata_episode e ON e.id = k.episode_id
           WHERE e.ata_id = $1 ORDER BY k.at`, [a?.id ?? null]);
       return { s, a, passagens, complementos, recebimentos, faltam, episodios, ciencias,
-               doses, jaEscrito: (jaEscrito?.n ?? 0) > 0,
+               doses, jaEscrito: (jaEscrito?.n ?? 0) > 0, convivencias,
                notas, restritas: restritas?.n ?? 0 };
     });
     if (!dados) throw new NotFoundException('Plantão não encontrado.');
@@ -242,6 +254,26 @@ export class ShiftsService {
         exigeFrase: !dados.jaEscrito
           && dados.doses.some((d: any) => d.estado === 'aguardando_confirmacao'),
       },
+      /**
+       * AS CONVIVÊNCIAS FAMILIARES DESTE TURNO (1070).
+       *
+       * Quem voltou, quem saiu e quem CONTINUA fora — nesta ordem, porque é a
+       * ordem em que a equipe seguinte precisa das três. O retorno era
+       * registrado no perfil desde a fase 80 e ficava lá: ninguém abre vinte
+       * perfis às 19h para descobrir que a Alice chegou às 18h10.
+       *
+       * `situacao` fala do TURNO, nunca da criança, e `atrasado` fala do
+       * relógio. O sistema não chama isso de evasão — quem apura é gente.
+       */
+      convivencias: dados.convivencias.map((f: any) => ({
+        id: f.id, personId: f.person_id, acolhido: f.acolhido,
+        comQuem: f.com_quem, vinculo: f.vinculo,
+        situacao: f.situacao as 'voltou' | 'saiu' | 'fora',
+        saiuEm: f.saiu_em, retornoPrevisto: f.retorno_previsto,
+        voltouEm: f.voltou_em, recebidaPor: f.recebida_por,
+        comoChegou: f.como_chegou, trouxe: f.trouxe,
+        atrasado: f.atrasado === true,
+      })),
     };
   }
 

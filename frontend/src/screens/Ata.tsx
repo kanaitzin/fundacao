@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { cargo } from '../rotulos';
+import { ConvivenciasDoTurno, ConvivenciaDoTurno } from '../convivencias';
 import { api } from '../api';
 import { FolhaDocumento } from '../documentos';
 import type { ArquivoGerado } from '../documentos';
@@ -67,6 +68,8 @@ interface Plantao {
                propria: boolean }[];
   assinaturasPendentes: { quem: string; cargo: string }[];
   episodios: Episodio[];
+  /** As convivências familiares do turno (1070) — a mesma fonte da passagem. */
+  convivencias?: ConvivenciaDoTurno[];
   /** As linhas escritas na ATA, com autor (0970). */
   linhas?: {
     notas: LinhaDaAta[];
@@ -699,6 +702,23 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
                     </button>
                   </div>
                 )}
+
+                {/*
+                  * O RETORNO DA EXPERIÊNCIA FAMILIAR (1070).
+                  *
+                  * O MESMO componente da passagem, com o MESMO dado, servido
+                  * pela mesma função. Ele vem antes dos episódios porque não é
+                  * episódio: a criança ter ido passar dias com a mãe não é um
+                  * fato a classificar, é o estado da casa no turno.
+                  *
+                  * A seção "Acolhido em experiência familiar" do livro de papel
+                  * continua ali no formulário, de texto livre, e continua sendo
+                  * de quem fecha a ATA — este bloco não a preenche nem a
+                  * substitui. Ele mostra o que o SISTEMA já sabe, para quem
+                  * escreve não precisar procurar em vinte perfis.
+                  */}
+                <ConvivenciasDoTurno lista={plantao.convivencias ?? []}
+                                     titulo="Acolhido em experiência familiar" />
 
                 <div className="eyebrow">Episódios do turno</div>
                 <p className="mutetxt" style={{ margin: 0 }}>

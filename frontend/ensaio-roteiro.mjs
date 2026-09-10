@@ -333,6 +333,20 @@ const TAREFAS = [
     procurar: [/sinalizado por gente|baixo/i],
   },
 
+  /* --------------------------------------- 88: o retorno que a equipe seguinte lê
+   *
+   * A tarefa é de LEITURA, e é o pedido do Marcelo: "para a equipe seguinte ler
+   * sem procurar". Cobra-se a porta — o bloco só tem conteúdo depois de alguém
+   * registrar uma saída e uma chegada, e é isso que a pessoa faz na tarefa
+   * 3.11. Aqui basta que a passagem exista e que ela seja o lugar certo.
+   */
+  {
+    cargo: 'educador', secao: '1.12',
+    nome: 'Quem esteve com a família neste turno — leia na passagem',
+    caminho: [{ aba: 'Passagem' }],
+    procurar: [/passagem|plantão/i],
+  },
+
   /* ------------------------------------------------------ 78, na coordenação
    *
    * O botão da cor traz o NOME do tom escrito — "automática" quando ninguém

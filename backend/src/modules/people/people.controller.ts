@@ -111,8 +111,9 @@ export class PeopleController {
   @Post('family-stays/:id/return')
   registrarRetorno(@CurrentUser() user: AuthenticatedUser,
                    @Param('id', ParseUUIDPipe) id: string,
-                   @Body() body: { quando: string; nota?: string }) {
-    return this.people.registrarRetornoFamiliar(user, id, body?.quando, body?.nota);
+                   @Body() body: { quando: string; nota?: string; trouxe?: string }) {
+    return this.people.registrarRetornoFamiliar(
+      user, id, body?.quando, body?.nota, body?.trouxe);
   }
 
   /* ---------------- Pedidos para a cozinha (1030) ---------------- */

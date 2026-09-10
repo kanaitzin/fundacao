@@ -751,7 +751,15 @@ const RECEITAS: Record<string, { id: string; nome: string; em: string | null;
 
 const CONVIVENCIAS: { id: string; personId: string; quem: string; comQuem: string;
                       vinculo: string; saiuEm: string; retornoPrevisto: string;
-                      finalidade: string | null }[] = [];
+                      finalidade: string | null;
+                      /* O RETORNO FICA (1060/1070). Antes o mock APAGAVA a linha
+                         no retorno — `splice` —, e com ela ia embora tudo o que
+                         a passagem e a ATA precisam mostrar: a hora da chegada,
+                         quem recebeu, como ela chegou e o que trouxe. O servidor
+                         não apaga nada: ele encerra (regra 14, e a regra 6). */
+                      voltouEm?: string | null; recebidaPor?: string | null;
+                      comoChegou?: string | null; trouxe?: string | null;
+                      status?: 'em_andamento' | 'encerrada' }[] = [];
 
 const COBRANCAS: { id: string; incidentId: string; userId: string; quem: string;
                    pergunta: string; abertaEm: string; respondida: boolean;
@@ -1153,11 +1161,33 @@ function linhasDaEscalaParaFolha(de: string, ate: string) {
  * mostrava dose pendente, e o protótipo ensinaria a não olhar nem uma nem
  * outra.
  */
+/**
+ * A HORA NO FUSO DA INSTITUIÇÃO, e nunca a do aparelho.
+ *
+ * `new Date(iso).getHours()` devolve a hora LOCAL de quem abriu o arquivo. O
+ * protótipo roda no celular de cada pessoa, e no celular da Casa 03 isso dá
+ * certo por coincidência — Porto Alegre é o fuso da instituição. Em qualquer
+ * outro fuso, e no navegador dos ensaios (que roda em UTC), a mesma dose e o
+ * mesmo retorno caem no turno ERRADO: às 21h UTC uma chegada das 18h de Porto
+ * Alegre era classificada como noturna, e o bloco não aparecia no plantão
+ * diurno que estava aberto.
+ *
+ * É a regra 4.6 dentro do servidor de mentira, e ela vale aqui pelo mesmo
+ * motivo que vale no servidor: quem decide o dia e o turno é o fuso da
+ * instituição. No servidor isso é `app_fuso()`; aqui é isto.
+ */
+const horaNaInstituicao = (iso: string) => Number(
+  new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'America/Sao_Paulo', hour: '2-digit', hour12: false,
+  }).format(new Date(iso)));
+
+const horaNoTurno = (iso: string, turno: string) => {
+  const h = horaNaInstituicao(iso);
+  return turno === 'diurno' ? h >= 7 && h < 19 : h >= 19 || h < 7;
+};
+
 function remediosDoTurno(turno: string) {
-  const noTurno = (iso: string) => {
-    const h = new Date(iso).getHours();
-    return turno === 'diurno' ? h >= 7 && h < 19 : h >= 19 || h < 7;
-  };
+  const noTurno = (iso: string) => horaNoTurno(iso, turno);
   const doses = DOSES.filter((d) => noTurno(d.horario)).map((d) => ({
     id: d.id,
     acolhido: KIDS.find((k) => k.id === d.personId)?.nome ?? '—',
@@ -1177,6 +1207,46 @@ function remediosDoTurno(turno: string) {
   return { doses, total: doses.length, semResposta, jaEscrito,
            exigeFrase: semResposta > 0 && !jaEscrito };
 }
+/**
+ * AS CONVIVÊNCIAS FAMILIARES DO TURNO (1070), como o servidor devolve.
+ *
+ * Três situações, e a ordem é a da urgência de quem chega: quem VOLTOU no
+ * turno, quem SAIU no turno, e quem CONTINUA fora. A terceira é a que o turno
+ * seguinte mais usa — uma criança que saiu na terça e volta no domingo não
+ * aparece em nenhum turno se o recorte for só o das bordas, e é justamente nos
+ * dias do meio que ninguém sabe o que está acontecendo.
+ *
+ * O recorte da hora é o mesmo de `remediosDoTurno`: 07h–19h no diurno,
+ * 19h–07h no noturno. Simplificado como lá — o protótipo tem um dia só.
+ */
+function convivenciasDoTurno(turno: string) {
+  const noTurno = (iso: string) => horaNoTurno(iso, turno);
+  const agora = Date.now();
+  const linhas = CONVIVENCIAS
+    .map((f) => {
+      const voltouNoTurno = !!f.voltouEm && noTurno(f.voltouEm);
+      const saiuNoTurno = noTurno(f.saiuEm);
+      /* A ordem de teste importa: uma saída que começou E terminou no mesmo
+         turno é 'voltou' — o que interessa é que ela está de volta. */
+      const situacao = voltouNoTurno ? 'voltou'
+        : saiuNoTurno ? 'saiu'
+          : (f.status !== 'encerrada' ? 'fora' : null);
+      if (!situacao) return null;
+      return {
+        id: f.id, personId: f.personId, acolhido: f.quem,
+        comQuem: f.comQuem, vinculo: f.vinculo,
+        situacao, saiuEm: f.saiuEm, retornoPrevisto: f.retornoPrevisto,
+        voltouEm: f.voltouEm ?? null, recebidaPor: f.recebidaPor ?? null,
+        comoChegou: f.comoChegou ?? null, trouxe: f.trouxe ?? null,
+        /* Do RELÓGIO, nunca da criança. */
+        atrasado: !f.voltouEm && agora >= new Date(f.retornoPrevisto).getTime(),
+      };
+    })
+    .filter((x): x is NonNullable<typeof x> => x !== null);
+  const peso = { voltou: 0, saiu: 1, fora: 2 } as Record<string, number>;
+  return linhas.sort((a, z) => peso[a.situacao] - peso[z.situacao]);
+}
+
 
 /**
  * Estoque da casa. Não é farmácia: é o que existe no armário, para a
@@ -4292,6 +4362,8 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
        * a mais, e não a hora em que a casa percebe o esquecimento.
        */
       remedios: remediosDoTurno(s.turno),
+      /* O retorno da experiência familiar, na passagem e na ATA (1070). */
+      convivencias: convivenciasDoTurno(s.turno),
       /* As linhas da ATA, com autor — e a restrita filtrada pelo CARGO, como o
          servidor filtra pela política (regra 14). */
       linhas: linhasDaAta(ataDo(s.id).id, eu.role),
@@ -4688,7 +4760,9 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     /* O servidor de mentira responde o que o servidor responde: as duas
        janelas de aviso saem do relógio, não de um campo gravado. */
     const agora = Date.now();
-    return CONVIVENCIAS.map((f) => {
+    /* Só quem está fora AGORA: as encerradas continuam guardadas, para a
+       passagem e a ATA do turno em que a criança voltou. */
+    return CONVIVENCIAS.filter((f) => f.status !== 'encerrada').map((f) => {
       const prev = new Date(f.retornoPrevisto).getTime();
       return {
         id: f.id, personId: f.personId, quem: f.quem, comQuem: f.comQuem,
@@ -4712,21 +4786,36 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       throw new ErroApi(403, 'Este contato está marcado com aproximação restrita. A criança '
         + 'não pode sair com ele. Fale com a equipe técnica antes de qualquer combinação.');
     }
-    if (CONVIVENCIAS.some((f) => f.personId === b.personId)) {
+    if (CONVIVENCIAS.some((f) => f.personId === b.personId && f.status !== 'encerrada')) {
       throw new ErroApi(409, 'Já existe uma saída em aberto para esta criança.');
     }
     CONVIVENCIAS.push({
       id: `fs-${CONVIVENCIAS.length + 1}`, personId: b.personId,
       quem: kid?.nome ?? '—', comQuem: contato.nome, vinculo: contato.vinculo,
       saiuEm: b.inicio, retornoPrevisto: b.retornoPrevisto,
-      finalidade: b.finalidade || null,
+      finalidade: b.finalidade || null, status: 'em_andamento',
     });
     return { id: `fs-${CONVIVENCIAS.length}` };
   }
   if (seg[0] === 'people' && seg[1] === 'family-stays' && seg[3] === 'return') {
-    const i = CONVIVENCIAS.findIndex((f) => f.id === seg[2]);
-    if (i < 0) throw new ErroApi(404, 'Saída não encontrada.');
-    CONVIVENCIAS.splice(i, 1);
+    const f = CONVIVENCIAS.find((x) => x.id === seg[2]);
+    if (!f) throw new ErroApi(404, 'Saída não encontrada.');
+    if (f.status === 'encerrada') {
+      throw new ErroApi(409, 'O retorno desta saída já foi registrado.');
+    }
+    const quando = String(b.quando ?? new Date().toISOString());
+    if (new Date(quando) < new Date(f.saiuEm)) {
+      throw new ErroApi(400, 'A hora da chegada é anterior à da saída. Confira o horário: '
+        + 'o retorno lançado antes da saída apareceria na passagem de um turno em que ela '
+        + 'ainda não tinha ido.');
+    }
+    /* ENCERRA, não apaga: é o retorno que a passagem e a ATA deste turno
+       mostram (1070). Apagar a linha fazia o eco não ter o que ecoar. */
+    f.status = 'encerrada';
+    f.voltouEm = quando;
+    f.recebidaPor = eu.fullName;
+    f.comoChegou = String(b.nota ?? '').trim() || null;
+    f.trouxe = String(b.trouxe ?? '').trim() || null;
     return { encerrada: true };
   }
   if (rota === '/people' && metodo === 'GET') {

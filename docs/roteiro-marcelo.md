@@ -249,7 +249,11 @@ cargos. O que vale saber antes de aplicar:
 - **"sair sozinho" é um estado** com motivo, autor e prazo de revisão — nunca
   pontuação de comportamento;
 - **o armário ganhou nota fiscal e receita digitalizada**, e o estoque baixo
-  continua sendo sinalizado **por gente**, com nome.
+  continua sendo sinalizado **por gente**, com nome;
+- **o retorno da família aparece na passagem e na ATA do turno** — quem voltou,
+  a que hora, quem recebeu, como ela chegou e **o que ela trouxe de casa**. A
+  equipe seguinte lê sem abrir perfil nenhum, e quem continua fora aparece
+  também, com a hora de voltar.
 
 ⚠️ **O roteiro ficou longo — cresceu cerca de um terço.** Não tente aplicar
 tudo com a mesma pessoa numa sentada. As tarefas **novas** de cada cargo estão no fim da
@@ -346,7 +350,17 @@ demora, demora vinte vezes por turno.
     visto nada, você preferiria que ninguém te perguntasse?"* A resposta é o
     dado desta tarefa.
 
-12. **Pergunte depois:** "teve alguma hora em que você achou que ia dar
+12. **A Alice passou o fim de semana com a mãe e voltou no seu turno. Onde
+    você lê o que aconteceu?**
+    Observar: ela procura o perfil da criança, ou acha na **passagem**? Depois
+    de achar, ela repara que o bloco diz **quem recebeu**, **como a criança
+    chegou** e **o que ela trouxe de casa**? ⚠️ Pergunte: *"se veio um remédio
+    na mochila, o que você faz?"* — a resposta diz se o aviso da tela sobre
+    avisar a Enfermagem está no lugar certo. *(Esta tarefa depende da 3.11: se
+    ninguém registrou uma saída e uma chegada antes, o bloco está vazio, e a
+    tela vai dizer isso.)*
+
+13. **Pergunte depois:** "teve alguma hora em que você achou que ia dar
     errado?"
 
 ---
