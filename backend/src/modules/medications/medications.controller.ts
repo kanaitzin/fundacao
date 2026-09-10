@@ -109,6 +109,34 @@ export class MedicationsController {
   }
 
   // ---- Estoque ----
+  /* ---------------- Nota fiscal e receita (1040) ---------------- */
+
+  /** As compras do período, com o gasto somado e quantas estão sem o papel. */
+  @Get('purchases')
+  compras(@CurrentUser() user: AuthenticatedUser,
+          @Query('houseId', ParseUUIDPipe) houseId: string,
+          @Query('de') de: string, @Query('ate') ate: string) {
+    return this.meds.compras(user, houseId, de, ate);
+  }
+
+  @Post('purchases')
+  registrarCompra(@CurrentUser() user: AuthenticatedUser, @Body() body: any) {
+    return this.meds.registrarCompra(user, body);
+  }
+
+  /* A receita digitalizada fica junto da prescrição que ela autoriza. */
+  @Get('prescriptions/:id/documents')
+  receitas(@CurrentUser() user: AuthenticatedUser,
+           @Param('id', ParseUUIDPipe) id: string) {
+    return this.meds.receitas(user, id);
+  }
+
+  @Post('prescriptions/:id/documents')
+  anexarReceita(@CurrentUser() user: AuthenticatedUser,
+                @Param('id', ParseUUIDPipe) id: string, @Body() body: any) {
+    return this.meds.anexarReceita(user, id, body);
+  }
+
   @Get('stock')
   stock(@CurrentUser() user: AuthenticatedUser, @Query('houseId', ParseUUIDPipe) houseId: string) {
     return this.meds.stock(user, houseId);

@@ -1,9 +1,27 @@
 {
   "name": "medications",
   "descricao": "Medicamentos (§11): prescrição assinada, grade de doses, confirmação individual e estoque.",
-  "depends": ["identity", "sync"],
-  "publica": ["MedicationsModule", "MedicationsService", "ESTADO_DOSE", "ALERTAS_MIN"],
-  "tabelas": ["prescription", "medication_schedule", "medication_administration", "medication_stock", "medication_stock_movement", "medication_protocol", "medication_authorization"],
+  "depends": [
+    "identity",
+    "sync"
+  ],
+  "publica": [
+    "MedicationsModule",
+    "MedicationsService",
+    "ESTADO_DOSE",
+    "ALERTAS_MIN"
+  ],
+  "tabelas": [
+    "prescription",
+    "medication_schedule",
+    "medication_administration",
+    "medication_stock",
+    "medication_stock_movement",
+    "medication_protocol",
+    "medication_authorization",
+    "medication_purchase",
+    "prescription_document"
+  ],
   "removivel": true,
   "observacao": "Provedor da linha do tempo e aplicador offline próprio. A pendência 33.4.1 (quem administra) vive como configuração em medication_protocol, com padrão protetivo."
 }

@@ -639,6 +639,26 @@ const SAIDAS_SOZINHO: Record<string, {
 
 /* PEDIDOS PARA A COZINHA (1030). Um de cada, para a demonstração mostrar a
    folha com conteúdo — e um cancelado, porque ele NÃO some da folha. */
+/* COMPRAS DE MEDICAMENTO (1040). Uma com nota anexada e uma sem — a segunda
+   existe para a demonstração mostrar o aviso de "sem a nota anexada", que é o
+   que trava a prestação de contas no fim do mês. */
+const COMPRAS_MED: {
+  id: string; em: string; itens: string; fornecedor: string | null;
+  totalCentavos: number | null; nota: string | null; observacao: string | null;
+  temAnexo: boolean; nomeDoAnexo: string | null; compradoPor: string;
+}[] = [
+  { id: 'cm1', em: new Date(Date.now() - 6 * 86400_000).toISOString().slice(0, 10),
+    itens: 'Dipirona 500mg — 2 caixas; Amoxicilina suspensão — 1 frasco.',
+    fornecedor: 'Farmácia Fictícia', totalCentavos: 8790, nota: '00123',
+    observacao: null, temAnexo: true, nomeDoAnexo: 'Nota fiscal',
+    compradoPor: 'Fernanda Alves (fictícia)' },
+  { id: 'cm2', em: new Date(Date.now() - 2 * 86400_000).toISOString().slice(0, 10),
+    itens: 'Soro fisiológico — 4 frascos.',
+    fornecedor: null, totalCentavos: 2400, nota: null,
+    observacao: null, temAnexo: false, nomeDoAnexo: null,
+    compradoPor: 'Beatriz Nunes (fictícia)' },
+];
+
 const PEDIDOS_COZINHA: {
   id: string; tipo: string; personId: string | null; paraQuem: string;
   em: string; quantidade: number; finalidade: string; observacao: string | null;
@@ -663,6 +683,11 @@ const PEDIDOS_COZINHA: {
     motivoCancelamento: 'A consulta foi remarcada para a semana que vem.',
     pedidoPor: 'Mário Silva (fictício)', pedidoEm: haMinutos(28 * 60) },
 ];
+
+/* RECEITAS DIGITALIZADAS por prescrição (1040). Documento médico: nasce
+   restrito, e o educador não alcança. */
+const RECEITAS: Record<string, { id: string; nome: string; em: string | null;
+  prescritor: string | null; anexadoPor: string; anexadoEm: string }[]> = {};
 
 const CONVIVENCIAS: { id: string; personId: string; quem: string; comQuem: string;
                       vinculo: string; saiuEm: string; retornoPrevisto: string;
@@ -4345,6 +4370,50 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
    * mesmas rotas que a tela chama. Ele lê literais — e tem razão: um prefixo
    * que atende tudo é o mesmo que não declarar nada.
    */
+  if (rota.startsWith('/medications/purchases') && metodo === 'GET') {
+    if (!['enfermagem', 'equipe_tecnica', 'lider_diurno', 'coordenador',
+          'gestor_geral'].includes(eu.role)) {
+      throw new ErroApi(403, 'Sem acesso às compras de medicamento.');
+    }
+    return {
+      linhas: COMPRAS_MED,
+      gastoCentavos: COMPRAS_MED.reduce((n, c) => n + (c.totalCentavos ?? 0), 0),
+      semAnexo: COMPRAS_MED.filter((c) => !c.temAnexo).length,
+    };
+  }
+  if (rota === '/medications/purchases' && metodo === 'POST') {
+    if (!['enfermagem', 'equipe_tecnica', 'lider_diurno', 'coordenador',
+          'gestor_geral'].includes(eu.role)) {
+      throw new ErroApi(403, 'Registram compra a Enfermagem, a equipe técnica, o líder '
+        + 'e a coordenação.');
+    }
+    if (String(b.itens ?? '').trim().length < 3) {
+      throw new ErroApi(400, 'Escreva o que foi comprado. Uma nota sem itens não presta '
+        + 'contas de nada.');
+    }
+    COMPRAS_MED.unshift({
+      id: `cm${COMPRAS_MED.length + 1}`, em: b.em, itens: String(b.itens).trim(),
+      fornecedor: b.fornecedor || null, totalCentavos: b.totalCentavos ?? null,
+      nota: b.nota || null, observacao: null,
+      temAnexo: !!b.anexoRef, nomeDoAnexo: b.anexoNome ?? null,
+      compradoPor: eu.fullName,
+    });
+    return { id: `cm${COMPRAS_MED.length}` };
+  }
+  if (seg[0] === 'medications' && seg[1] === 'prescriptions' && seg[3] === 'documents') {
+    if (!['enfermagem', 'equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)) {
+      throw new ErroApi(403, 'Anexam e leem receita a Enfermagem, a equipe técnica e a '
+        + 'coordenação.');
+    }
+    if (metodo === 'GET') return RECEITAS[seg[2]] ?? [];
+    RECEITAS[seg[2]] = [
+      { id: `rc${Date.now()}`, nome: String(b.nome ?? 'Receita'), em: b.em ?? null,
+        prescritor: b.prescritor ?? null, anexadoPor: eu.fullName,
+        anexadoEm: new Date().toISOString() },
+      ...(RECEITAS[seg[2]] ?? []),
+    ];
+    return { id: `rc${Date.now()}` };
+  }
   if (rota.startsWith('/people/kitchen-requests/folha/lanches')) return folhaDaCozinha('lanches', eu);
   if (rota.startsWith('/people/kitchen-requests/folha/cestas')) return folhaDaCozinha('cestas', eu);
   if (rota.startsWith('/people/kitchen-requests/folha/restricoes')) return folhaDaCozinha('restricoes', eu);

@@ -818,6 +818,107 @@ export class MedicationsService {
       entidade: 'medication_grid', houseId, finalidade,
     });
   }
+  /* ---------------- Nota fiscal e receita (1040) ---------------- */
+
+  /**
+   * As compras do período, com o gasto somado.
+   *
+   * A soma é do PERÍODO e da CASA, nunca por comprador: quem comprou tem nome
+   * em cada linha, mas somar por pessoa é medir gente.
+   */
+  async compras(user: AuthenticatedUser, houseId: string, de: string, ate: string) {
+    return this.db.asUser(user.id, async (c) => {
+      const { rows } = await c.query(
+        `SELECT * FROM app_compras_de_medicamento($1,$2::date,$3::date)`, [houseId, de, ate]);
+      const linhas = rows.map((r) => ({
+        id: r.id, em: r.em, itens: r.itens, fornecedor: r.fornecedor,
+        totalCentavos: r.total_cents, nota: r.nota, observacao: r.observacao,
+        temAnexo: r.tem_anexo === true, nomeDoAnexo: r.nome_do_anexo,
+        compradoPor: r.comprado_por,
+      }));
+      return {
+        linhas,
+        gastoCentavos: linhas.reduce((n, l) => n + (l.totalCentavos ?? 0), 0),
+        /* Quantas linhas ainda estão sem o papel. A prestação de contas para
+           por causa delas, e no fim do mês ninguém lembra qual foi. */
+        semAnexo: linhas.filter((l) => !l.temAnexo).length,
+      };
+    });
+  }
+
+  async registrarCompra(user: AuthenticatedUser, input: {
+    houseId: string; em: string; itens: string; fornecedor?: string;
+    totalCentavos?: number | null; nota?: string; observacao?: string;
+    anexoRef?: string; anexoNome?: string;
+  }) {
+    try {
+      const id = await this.db.asUser(user.id, async (c) => {
+        const { rows: [row] } = await c.query(
+          `SELECT * FROM app_registrar_compra_medicamento($1,$2::date,$3,$4,$5,$6,$7,$8,$9)`,
+          [input.houseId, input.em, input.itens, input.fornecedor ?? null,
+           input.totalCentavos ?? null, input.nota ?? null, input.observacao ?? null,
+           input.anexoRef ?? null, input.anexoNome ?? null]);
+        return row.compra_id as string;
+      });
+      await this.audit.log({
+        action: 'medication.purchase', actorId: user.id, institutionId: user.institutionId,
+        houseId: input.houseId, entity: 'medication_purchase', entityId: id, detail: {},
+      });
+      return { id };
+    } catch (e: any) {
+      const m = String(e?.message ?? '');
+      if (m.includes('itens_obrigatorios')) {
+        throw new BadRequestException(
+          'Escreva o que foi comprado. Uma nota sem itens não presta contas de nada.');
+      }
+      if (m.includes('sem_permissao_compra')) {
+        throw new ForbiddenException(
+          'Registram compra a Enfermagem, a equipe técnica, o líder e a coordenação.');
+      }
+      throw e;
+    }
+  }
+
+  /** As receitas digitalizadas de uma prescrição. */
+  async receitas(user: AuthenticatedUser, prescriptionId: string) {
+    return this.db.asUser(user.id, async (c) => {
+      const { rows } = await c.query(
+        `SELECT * FROM app_receitas_da_prescricao($1)`, [prescriptionId]);
+      return rows.map((r) => ({
+        id: r.id, nome: r.nome, em: r.em, prescritor: r.prescritor,
+        anexadoPor: r.anexado_por, anexadoEm: r.anexado_em,
+      }));
+    });
+  }
+
+  async anexarReceita(user: AuthenticatedUser, prescriptionId: string, input: {
+    nome: string; anexoRef: string; em?: string | null; prescritor?: string;
+  }) {
+    try {
+      const id = await this.db.asUser(user.id, async (c) => {
+        const { rows: [row] } = await c.query(
+          `SELECT * FROM app_anexar_receita($1,$2,$3,$4::date,$5)`,
+          [prescriptionId, input.nome, input.anexoRef, input.em || null,
+           input.prescritor ?? null]);
+        return row.documento_id as string;
+      });
+      await this.audit.log({
+        action: 'prescription.document', actorId: user.id, institutionId: user.institutionId,
+        entity: 'prescription_document', entityId: id, detail: { prescriptionId },
+      });
+      return { id };
+    } catch (e: any) {
+      const m = String(e?.message ?? '');
+      if (m.includes('sem_permissao_receita')) {
+        throw new ForbiddenException(
+          'Anexam receita a Enfermagem, a equipe técnica e a coordenação.');
+      }
+      if (m.includes('prescricao_fora_de_escopo')) {
+        throw new NotFoundException('Prescrição não encontrada.');
+      }
+      throw e;
+    }
+  }
 }
 
 function mapDose(r: any) {

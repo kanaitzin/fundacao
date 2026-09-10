@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
 import { FolhaDocumento } from '../documentos';
 import type { ArquivoGerado } from '../documentos';
@@ -228,10 +228,41 @@ interface Emissao {
   baixadoEm: string | null; versaoOffline: boolean; por: string | null;
 }
 
+interface Compra {
+  id: string; em: string; itens: string; fornecedor: string | null;
+  totalCentavos: number | null; nota: string | null; observacao: string | null;
+  temAnexo: boolean; nomeDoAnexo: string | null; compradoPor: string;
+}
+interface Compras { linhas: Compra[]; gastoCentavos: number; semAnexo: number }
+
+/**
+ * Quem vê as compras.
+ *
+ * O educador NÃO: nota fiscal é documento financeiro da instituição, e não há
+ * nada nela que ajude o turno.
+ */
+const VE_COMPRAS = ['enfermagem', 'equipe_tecnica', 'lider_diurno',
+                    'coordenador', 'gestor_geral'];
+
 export function Saude({ houseId, casaLabel, papel }: {
   houseId: string; casaLabel: string; papel: string;
 }) {
-  const [aba, setAba] = useState<'doses' | 'triagem' | 'estoque' | 'prescricoes' | 'resumo'>('doses');
+  const [aba, setAba] = useState<
+    'doses' | 'triagem' | 'estoque' | 'compras' | 'prescricoes' | 'resumo'>('doses');
+  const hoje = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo',
+    year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+  const inicioDoMes = `${hoje.slice(0, 7)}-01`;
+  /* Compras de medicamento com nota fiscal (1040) — prestação de contas. */
+  const [compras, setCompras] = useState<Compras | null>(null);
+  const [comprando, setComprando] = useState(false);
+  const [vendoReceitas, setVendoReceitas] = useState<any | null>(null);
+
+  async function carregarCompras() {
+    setCompras(await api<Compras>(
+      `/medications/purchases?houseId=${houseId}&de=${inicioDoMes}&ate=${hoje}`)
+      .catch(() => null));
+  }
+  useEffect(() => { if (aba === 'compras') carregarCompras(); }, [aba, houseId]);
   const [prescrevendo, setPrescrevendo] = useState(false);
   /*
    * O rascunho recém-criado fica na mão até ser assinado ou deixado como está.
@@ -390,6 +421,11 @@ export function Saude({ houseId, casaLabel, papel }: {
                 onClick={() => setAba('triagem')}>Triagem</button>
         <button role="tab" aria-selected={aba === 'estoque'} className={aba === 'estoque' ? 'on' : ''}
                 onClick={() => setAba('estoque')}>Estoque</button>
+        {VE_COMPRAS.includes(papel) && (
+          <button role="tab" aria-selected={aba === 'compras'}
+                  className={aba === 'compras' ? 'on' : ''}
+                  onClick={() => setAba('compras')}>Compras</button>
+        )}
         {(cadastraEsquema || defineProtocolo) && (
           <button role="tab" aria-selected={aba === 'prescricoes'}
                   className={aba === 'prescricoes' ? 'on' : ''}
@@ -549,6 +585,78 @@ export function Saude({ houseId, casaLabel, papel }: {
         </>
       )}
 
+      {vendoReceitas && (
+        <FolhaReceitas esquema={vendoReceitas} papel={papel}
+                       onFechar={() => setVendoReceitas(null)} />
+      )}
+
+      {aba === 'compras' && VE_COMPRAS.includes(papel) && (
+        <>
+          <div className="card raise stack">
+            <h3 style={{ fontSize: 17, margin: 0 }}>Compras de medicamento</h3>
+            <div className="mutetxt">
+              O que a casa comprou no mês, com a nota fiscal anexada. É daqui que
+              sai a prestação de contas.
+            </div>
+            {compras && (
+              <div className="row" style={{ gap: 12, flexWrap: 'wrap' }}>
+                <div className="tile c-brand">
+                  <b>{(compras.gastoCentavos / 100).toLocaleString('pt-BR',
+                      { style: 'currency', currency: 'BRL' })}</b>
+                  <div className="mutetxt">no período</div>
+                </div>
+                {/* Quantas linhas estão sem o papel: a prestação de contas para
+                    por causa delas, e no fim do mês ninguém lembra qual foi. */}
+                {compras.semAnexo > 0 && (
+                  <div className="tile c-warn">
+                    <b>{compras.semAnexo}</b>
+                    <div className="mutetxt">sem a nota anexada</div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <button className="btn block" onClick={() => setComprando(true)}>
+            🧾 Registrar compra
+          </button>
+
+          <div className="eyebrow">Compras do período · {compras?.linhas.length ?? 0}</div>
+          <div className="stack">
+            {(compras?.linhas ?? []).length === 0 && (
+              <p className="mutetxt">
+                Nenhuma compra registrada no período. A lista vazia quer dizer que ninguém
+                registrou — não que a casa não comprou.
+              </p>
+            )}
+            {(compras?.linhas ?? []).map((c) => (
+              <div className="card stack" key={c.id}>
+                <div className="row">
+                  <b className="ff grow">{c.itens}</b>
+                  <span className={`pill ${c.temAnexo ? 'c-ok' : 'c-warn'}`}>
+                    {c.temAnexo ? 'com nota' : 'sem nota'}
+                  </span>
+                </div>
+                <div className="mutetxt">
+                  {new Date(`${c.em}T12:00:00-03:00`).toLocaleDateString('pt-BR')}
+                  {c.fornecedor ? ` · ${c.fornecedor}` : ''}
+                  {c.totalCentavos != null
+                    ? ` · ${(c.totalCentavos / 100).toLocaleString('pt-BR',
+                        { style: 'currency', currency: 'BRL' })}` : ''}
+                </div>
+                {c.nota && <div className="mutetxt">Nota {c.nota}</div>}
+                <div className="mutetxt">Registrado por {c.compradoPor}.</div>
+              </div>
+            ))}
+          </div>
+
+          {comprando && (
+            <FolhaCompra houseId={houseId} onFechar={() => setComprando(false)}
+                         onPronto={() => { setComprando(false); carregarCompras(); }} />
+          )}
+        </>
+      )}
+
       {aba === 'estoque' && (
         <>
           <div className="eyebrow">Armário de medicamentos da casa</div>
@@ -680,6 +788,14 @@ export function Saude({ houseId, casaLabel, papel }: {
                     Suspender este esquema
                   </button>
                 )}
+                {/*
+                  * A RECEITA DIGITALIZADA fica junto da prescrição que ela
+                  * autoriza — não numa pasta de documentos separada. Quem
+                  * confere o esquema é quem quer ver o papel do médico.
+                  */}
+                <button className="btn sm ghost" onClick={() => setVendoReceitas(e)}>
+                  📄 Receitas
+                </button>
               </article>
             ))}
           </div>
@@ -1741,6 +1857,195 @@ function FolhaSoEnfermagem({ esquema, onFechar, onMarcar }: {
             {marcando ? 'Marcar' : 'Desmarcar'}
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Registrar uma compra de medicamento.
+ *
+ * `itens` é TEXTO e não vínculo com o estoque: uma nota traz cinco linhas, e
+ * obrigar a casar cada uma com uma caixa cadastrada faria a prestação de
+ * contas parar por um detalhe de cadastro. Quem confere a gaveta é a
+ * Enfermagem, e ela faz isso pelo armário.
+ */
+function FolhaCompra({ houseId, onFechar, onPronto }: {
+  houseId: string; onFechar: () => void; onPronto: () => void;
+}) {
+  const hoje = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo',
+    year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+  const [em, setEm] = useState(hoje);
+  const [itens, setItens] = useState('');
+  const [fornecedor, setFornecedor] = useState('');
+  const [valor, setValor] = useState('');
+  const [nota, setNota] = useState('');
+  const [anexo, setAnexo] = useState('');
+  const [erro, setErro] = useState('');
+
+  async function salvar() {
+    setErro('');
+    try {
+      const centavos = valor.trim()
+        ? Math.round(Number(valor.replace(/\./g, '').replace(',', '.')) * 100) : null;
+      await api('/medications/purchases', {
+        method: 'POST',
+        body: JSON.stringify({
+          houseId, em, itens: itens.trim(),
+          fornecedor: fornecedor.trim(), totalCentavos: centavos,
+          nota: nota.trim(),
+          /* O anexo entra pelo mesmo caminho dos outros documentos: aqui vai a
+             referência, e o arquivo é guardado fora do banco. */
+          anexoRef: anexo.trim() || undefined,
+          anexoNome: anexo.trim() ? 'Nota fiscal' : undefined,
+        }),
+      });
+      onPronto();
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Não foi possível registrar a compra.');
+    }
+  }
+
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-compra"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet">
+        <h3 id="t-compra">Registrar compra</h3>
+        {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+
+        <label className="f" htmlFor="cp-em">Comprado em</label>
+        <input id="cp-em" type="date" value={em} onChange={(e) => setEm(e.target.value)} />
+
+        <label className="f" htmlFor="cp-itens">O que foi comprado</label>
+        <textarea id="cp-itens" rows={3} value={itens}
+                  onChange={(e) => setItens(e.target.value)}
+                  placeholder="Ex.: Dipirona 500mg — 2 caixas; Amoxicilina suspensão — 1 frasco." />
+        <div className="mutetxt">
+          Escreva como está na nota. Uma nota sem itens não presta contas de nada.
+        </div>
+
+        <label className="f" htmlFor="cp-forn">Onde (opcional)</label>
+        <input id="cp-forn" value={fornecedor} maxLength={80}
+               onChange={(e) => setFornecedor(e.target.value)} />
+
+        <label className="f" htmlFor="cp-valor">Valor total (opcional)</label>
+        <input id="cp-valor" inputMode="decimal" value={valor}
+               onChange={(e) => setValor(e.target.value)} placeholder="0,00" />
+
+        <label className="f" htmlFor="cp-nota">Número da nota (opcional)</label>
+        <input id="cp-nota" value={nota} maxLength={40}
+               onChange={(e) => setNota(e.target.value)} />
+
+        <label className="f" htmlFor="cp-anexo">Nota fiscal digitalizada (opcional)</label>
+        <input id="cp-anexo" value={anexo} maxLength={200}
+               onChange={(e) => setAnexo(e.target.value)}
+               placeholder="Referência do arquivo enviado." />
+        <div className="mutetxt">
+          Pode registrar agora e anexar depois — mas a lista mostra quantas ainda
+          estão sem o papel, porque no fim do mês ninguém lembra qual foi.
+        </div>
+
+        <div className="row" style={{ gap: 8, marginTop: 16 }}>
+          <button type="button" className="btn sec grow" onClick={onFechar}>Cancelar</button>
+          <button type="button" className="btn grow" disabled={itens.trim().length < 3}
+                  onClick={salvar}>Registrar</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * As receitas de um esquema.
+ *
+ * Documento médico: nasce restrito. O educador administra a dose e vê o
+ * esquema, mas a receita traz CID e o nome do prescritor — e nada disso muda o
+ * que ele faz às 22h. Por isso este botão não aparece para ele, e o servidor
+ * recusa de qualquer jeito.
+ */
+function FolhaReceitas({ esquema, papel, onFechar }: {
+  esquema: { id: string; medicamento: string }; papel: string; onFechar: () => void;
+}) {
+  const [lista, setLista] = useState<{ id: string; nome: string; em: string | null;
+    prescritor: string | null; anexadoPor: string; anexadoEm: string }[]>([]);
+  const [nome, setNome] = useState('');
+  const [prescritor, setPrescritor] = useState('');
+  const [em, setEm] = useState('');
+  const [erro, setErro] = useState('');
+  const podeAnexar = ['enfermagem', 'equipe_tecnica', 'coordenador', 'gestor_geral']
+    .includes(papel);
+
+  const carregar = useCallback(async () => {
+    try { setLista(await api(`/medications/prescriptions/${esquema.id}/documents`)); }
+    catch (e) { setErro(e instanceof Error ? e.message : ''); }
+  }, [esquema.id]);
+  useEffect(() => { carregar(); }, [carregar]);
+
+  async function anexar() {
+    setErro('');
+    try {
+      await api(`/medications/prescriptions/${esquema.id}/documents`, {
+        method: 'POST',
+        body: JSON.stringify({
+          nome: nome.trim(), anexoRef: `receita-${Date.now()}`,
+          em: em || null, prescritor: prescritor.trim(),
+        }),
+      });
+      setNome(''); setPrescritor(''); setEm('');
+      await carregar();
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Não foi possível anexar.');
+    }
+  }
+
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-rec"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet">
+        <h3 id="t-rec">Receitas — {esquema.medicamento}</h3>
+        {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+
+        {lista.length === 0 && (
+          <p className="mutetxt">
+            Nenhuma receita anexada a este esquema. A lista vazia quer dizer que ninguém
+            anexou — não que não exista receita.
+          </p>
+        )}
+        <div className="stack">
+          {lista.map((r) => (
+            <div className="card" key={r.id}>
+              <b className="ff">{r.nome}</b>
+              <div className="mutetxt">
+                {r.em ? new Date(`${r.em}T12:00:00-03:00`).toLocaleDateString('pt-BR') : 'sem data'}
+                {r.prescritor ? ` · ${r.prescritor}` : ''}
+              </div>
+              <div className="mutetxt">Anexada por {r.anexadoPor}.</div>
+            </div>
+          ))}
+        </div>
+
+        {podeAnexar && (
+          <>
+            <div className="eyebrow">Anexar receita</div>
+            <label className="f" htmlFor="rc-nome">Como chamar este documento</label>
+            {/* Nome NEUTRO: CPF e diagnóstico nunca em nome de arquivo. */}
+            <input id="rc-nome" value={nome} maxLength={80}
+                   onChange={(e) => setNome(e.target.value)}
+                   placeholder="Ex.: Receita da consulta de setembro." />
+            <label className="f" htmlFor="rc-em">Data da receita</label>
+            <input id="rc-em" type="date" value={em} onChange={(e) => setEm(e.target.value)} />
+            <label className="f" htmlFor="rc-presc">Quem receitou</label>
+            <input id="rc-presc" value={prescritor} maxLength={80}
+                   onChange={(e) => setPrescritor(e.target.value)} />
+            <button className="btn block" disabled={nome.trim().length < 3} onClick={anexar}>
+              Anexar
+            </button>
+          </>
+        )}
+
+        <button className="btn sec block" style={{ marginTop: 12 }} onClick={onFechar}>
+          Fechar
+        </button>
       </div>
     </div>
   );
