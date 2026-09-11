@@ -72,6 +72,8 @@ interface Perfil {
   filiacao: string | null;
   foto: { rota: string; em: string } | null;
   contatos: Contato[];
+  /* O que a coordenação desligou para o plantão (fase 93). */
+  camposDesligados?: { code: string; rotulo: string; motivo: string; por: string; em: string }[];
   documentos: Doc[];
   documentosRestritos: number;
   memorias: { id: string; event_type: string; happened_on: string; description: string }[];
@@ -968,6 +970,29 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
           </ul>
         )}
       </Secao>
+
+      {/*
+        * O QUE A COORDENAÇÃO DESLIGOU (fase 93).
+        *
+        * Campo desligado não some calado: o educador lê que existe, quem
+        * desligou e por quê. Sem isto ele leria a ausência como "não há
+        * telefone da escola" — e ligaria para ninguém.
+        */}
+      {(p.camposDesligados ?? []).length > 0 && (
+        <div className="notice c-info">
+          <b>Fora da vista do plantão, por decisão da coordenação:</b>
+          <ul className="lista">
+            {p.camposDesligados!.map((c) => (
+              <li key={c.code}>
+                <b className="ff">{c.rotulo}</b>
+                <div className="mutetxt">{c.motivo}</div>
+                <div className="mutetxt">{c.por}</div>
+              </li>
+            ))}
+          </ul>
+          O dado existe e a equipe técnica o vê. Se você precisar dele agora, peça a ela.
+        </div>
+      )}
 
       {((p.escola && (p.escola.nome || p.escola.serie)) || QUEM_CADASTRA.includes(papel)) && (
         <Secao titulo="Escola">

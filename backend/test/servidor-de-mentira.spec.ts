@@ -31,6 +31,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { CODIGOS_DE_CAMPO } from '../src/modules/people/campos-do-perfil';
 
 const RAIZ = join(__dirname, '..', '..');
 const MOCK = join(RAIZ, 'frontend', 'src', 'mock.ts');
@@ -223,5 +224,22 @@ describe('O servidor de mentira do protótipo', () => {
       }
     }
     expect(erros).toEqual([]);
+  });
+
+  /**
+   * A LISTA FECHADA É A MESMA NOS TRÊS LUGARES (fase 93).
+   *
+   * O que a coordenação liga e desliga está escrito no CHECK da migração 1130,
+   * em `campos-do-perfil.ts` e no servidor de mentira. É a lista fechada que
+   * impede a coordenação de alcançar motivo judicial, cofre e os outros três —
+   * uma cópia que diverge é a garantia virando promessa. A do banco contra a do
+   * código é cobrada em `campos-do-perfil.e2e.spec.ts`; aqui, a do protótipo.
+   */
+  it('os campos que a coordenação liga e desliga são os mesmos no protótipo', () => {
+    const trecho = mock.slice(mock.indexOf('const CAMPOS_DO_PERFIL'));
+    const noPrototipo = [...trecho.slice(0, trecho.indexOf('];')).matchAll(/code: '([a-z_]+)'/g)]
+      .map((m) => m[1]);
+    expect(noPrototipo.length).toBeGreaterThan(0);
+    expect([...noPrototipo].sort()).toEqual([...CODIGOS_DE_CAMPO].sort());
   });
 });

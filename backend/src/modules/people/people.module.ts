@@ -4,6 +4,7 @@ import { PeopleController, TransfersController, ReportsController } from './peop
 import { PeopleService } from './people.service';
 import { CozinhaService } from './cozinha.service';
 import { PortariaService } from './portaria.service';
+import { CamposDoPerfilService } from './campos.service';
 import { ProfileService } from './profile.service';
 import { ContatosService } from './contatos.service';
 import { BenefitsService } from './benefits.service';
@@ -16,7 +17,7 @@ import { CredentialsService } from './credentials.service';
   imports: [IdentityModule],
   controllers: [PeopleController, TransfersController, ReportsController],
   providers: [PeopleService, ProfileService,
-    CozinhaService, PortariaService,
+    CozinhaService, PortariaService, CamposDoPerfilService,
     ContatosService, BenefitsService, TransfersService, AdmissionService, CredentialsService,
     DossieService],
   exports: [PeopleService],

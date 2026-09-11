@@ -15,9 +15,9 @@
 > ensaio for sem internet, a letra não é a que a equipe vai ver no sistema
 > real. Vale saber antes de anotar "achei feio".
 >
-> Última atualização: 11/09/2026 — as onze entregas de 09/09 no **§0.8**
-> (a mais nova é a **folha da portaria**), catorze tarefas novas nas seções dos
-> cargos, a **§7 mudou de dono** (a
+> Última atualização: 11/09/2026 — as doze entregas de 09/09 no **§0.8**
+> (as mais novas são a **folha da portaria** e **o que o plantão vê no
+> perfil**), quinze tarefas novas nas seções dos cargos, a **§7 mudou de dono** (a
 > cozinha não entra no sistema, e quem pede o lanche é quem está no turno), e a
 > **§8** trocou uma pergunta que tinha deixado de existir pelas que ainda
 > esperam resposta.
@@ -226,7 +226,7 @@ no vínculo da casa, em vez de fingir que sabe.
 
 ## §0.8 — O que mudou depois de 09/09 (a conversa longa, e é bastante coisa)
 
-Onze coisas que o Marcelo pediu em 09/09 já estão no protótipo. **Catorze
+Doze coisas que o Marcelo pediu em 09/09 já estão no protótipo. **Quinze
 tarefas novas** deste roteiro existem por causa delas, e estão marcadas nas seções dos
 cargos. O que vale saber antes de aplicar:
 
@@ -650,7 +650,18 @@ Responde pela casa. É quem vai usar as telas de decisão.
     folha diz que vale até ser substituída, e isso só funciona se alguém
     recolher a anterior.
 
-18. **Pergunte depois:** "o que desta lista você já faz hoje em outro lugar?
+18. **A escola pediu que o contato passe só pela equipe técnica. Tire a escola
+    da vista do plantão — e depois devolva.**
+    Observar: ela acha **"O que o plantão vê"** em "Mais"? Ela entende que isso
+    vale só para o **educador em plantão**, e só nesta casa? Ao desligar, ela
+    escreve um motivo de verdade, sabendo que **o educador vai ler esse
+    motivo**? ⚠️ Pergunte duas coisas: *"em que situação real você desligaria
+    algum destes?"* — se ela não tiver nenhuma, isto é um botão que ninguém vai
+    usar, e vale saber — e *"o que você esperava poder desligar e não está na
+    lista?"*. A lista é fechada de propósito; o que ela pedir a mais é a
+    pergunta 7 da §8.
+
+19. **Pergunte depois:** "o que desta lista você já faz hoje em outro lugar?
     Onde?"
 
 ---
@@ -728,7 +739,7 @@ que falta lanche para a saída de sábado é quem está no turno.*
 
 ---
 
-## 8. Seis perguntas para o Marcelo, no fim
+## 8. Sete perguntas para o Marcelo, no fim
 
 1. **A escala 12×36 vigente** — sem ela o aviso de "fora da escala" ao marcar
    compromisso não funciona (§2 do plano do piloto).
@@ -771,6 +782,19 @@ que falta lanche para a saída de sábado é quem está no turno.*
    folha**, e liga para a casa. **A pergunta:** a casa quer uma segunda lista,
    separada, de quem NÃO entra — só nome e foto, sem motivo? Se quiser, é
    decisão dele junto com o DPO, pela mesma razão do CPF impresso.
+
+---
+
+7. **A "agenda de consulta" não entrou no botão do que o plantão vê — e a
+   decisão é dele.** Ele pediu para a coordenação poder ligar e desligar
+   "telefone de responsável, escola, médico, contatos, agenda de consulta".
+   Quatro viraram botão. A agenda de consulta não: hoje o educador **não a vê**,
+   e ela não mora no perfil — mora nos compromissos, com regra própria de quem
+   enxerga o quê. Ligá-la ali seria alargar o **alcance do cargo**, que é
+   exatamente o que foi recusado em 27/08 por derrubar o isolamento entre as
+   oito casas. **A pergunta:** o educador em plantão deve passar a ver os
+   compromissos das crianças da casa dele? Se sim, isso vale para **todas** as
+   casas, decidido uma vez — e não casa a casa.
 
 ---
 

@@ -7,6 +7,7 @@ import { DossieService } from './dossie.service';
 import { PeopleService } from './people.service';
 import { CozinhaService } from './cozinha.service';
 import { PortariaService } from './portaria.service';
+import { CamposDoPerfilService } from './campos.service';
 import { ProfileService } from './profile.service';
 import { ContatosService } from './contatos.service';
 import { BenefitsService } from './benefits.service';
@@ -22,6 +23,7 @@ export class PeopleController {
     @Inject(ProfileService) private readonly profile: ProfileService,
     @Inject(CozinhaService) private readonly cozinha: CozinhaService,
     @Inject(PortariaService) private readonly portaria: PortariaService,
+    @Inject(CamposDoPerfilService) private readonly campos: CamposDoPerfilService,
     @Inject(BenefitsService) private readonly benefits: BenefitsService,
     @Inject(TransfersService) private readonly transfers: TransfersService,
     @Inject(AdmissionService) private readonly admission: AdmissionService,
@@ -183,6 +185,18 @@ export class PeopleController {
   @Post('kitchen-requests/export/cestas')
   exportCestas(@CurrentUser() user: AuthenticatedUser, @Body() body: any) {
     return this.cozinha.exportarCestas(user, body);
+  }
+
+  /* ---------------- O que a coordenação liga e desliga (1130) ---------------- */
+  @Get('profile-fields')
+  camposDoPerfil(@CurrentUser() user: AuthenticatedUser,
+                 @Query('houseId', ParseUUIDPipe) houseId: string) {
+    return this.campos.listar(user, houseId);
+  }
+
+  @Post('profile-fields')
+  definirCampoDoPerfil(@CurrentUser() user: AuthenticatedUser, @Body() body: any) {
+    return this.campos.definir(user, body ?? {});
   }
 
   /* ---------------- A portaria: quem pode visitar (1120) ---------------- */

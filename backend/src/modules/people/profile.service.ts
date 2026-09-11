@@ -1,4 +1,5 @@
 import { COLUNAS_DO_CONTATO, contatoParaTela } from './contatos.service';
+import { CAMPOS_DO_PERFIL } from './campos-do-perfil';
 import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { DatabaseService } from '../../kernel/database/database.service';
 import { AuditService } from '../../kernel/audit/audit.service';
@@ -58,7 +59,7 @@ export class ProfileService {
 
       // Um cliente pg executa uma consulta por vez: sequencial, não Promise.all.
       const [stay, detail, conditions, restrictions, episodes, docs, memories,
-             contacts] = await seq([
+             contacts, desligados] = await seq([
         () => c.query(`SELECT s.house_id, h.code, h.name, s.started_at
                  -- rls-join-ok: permanência ATIVA — a casa é a atual do acolhido.
                  FROM house_stay s JOIN house h ON h.id = s.house_id
@@ -87,16 +88,51 @@ export class ProfileService {
         () => c.query(`SELECT ${COLUNAS_DO_CONTATO}
                  FROM person_contact WHERE person_id = $1 AND active
                  ORDER BY restricted DESC, name`, [personId]),
+        /*
+         * O que a coordenação desligou para o plantão, NESTA casa (1130).
+         * rls-join-ok: `house_field_permission` responde a `hfp_select`
+         * (app_house_in_scope), e a permanência ativa é lida na mesma
+         * transação, com o mesmo alcance.
+         */
+        () => c.query(`SELECT f.field_code, f.reason, f.changed_at,
+                              app_user_display_name(f.changed_by) AS por
+                 FROM house_field_permission f
+                 JOIN house_stay s ON s.house_id = f.house_id
+                WHERE s.person_id = $1 AND s.status = 'ativa' AND NOT f.visible`, [personId]),
       ]);
       const { rows: [rc] } = await c.query(`SELECT app_count_restricted_docs($1) AS n`, [personId]);
       return { p, stay: stay.rows[0], detail: detail.rows[0], conditions: conditions.rows,
                restrictions: restrictions.rows, episodes: episodes.rows, docs: docs.rows,
-               memories: memories.rows, contacts: contacts.rows, restritos: rc.n };
+               memories: memories.rows, contacts: contacts.rows, restritos: rc.n,
+               desligados: desligados.rows };
     });
 
     // Fora do escopo o RLS não devolve a linha: 404 igual a inexistente,
     // sem revelar que a pessoa existe em outra casa (§23).
     if (!data) throw new NotFoundException('Acolhido não encontrado');
+
+    /*
+     * O QUE A COORDENAÇÃO DESLIGOU PARA O PLANTÃO (fase 93, migração 1130).
+     *
+     * Vale só para o educador: os outros cargos seguem o alcance de sempre.
+     * E campo desligado NÃO some calado — vai em `camposDesligados`, com o
+     * motivo, para a tela poder dizer que o dado existe e por que não está
+     * ali. Ausência que mente é pior do que recusa que explica: sem isso o
+     * educador lê "sem telefone da escola" e liga para ninguém.
+     */
+    const desligados = new Map<string, any>(
+      user.role === 'educador'
+        ? data.desligados.map((r: any) => [r.field_code, r])
+        : []);
+    const liberado = (code: string) => !desligados.has(code);
+    const camposDesligados = CAMPOS_DO_PERFIL
+      .filter((c) => desligados.has(c.code))
+      .map((c) => ({
+        code: c.code, rotulo: c.rotulo,
+        motivo: desligados.get(c.code).reason,
+        por: desligados.get(c.code).por,
+        em: desligados.get(c.code).changed_at,
+      }));
 
     const podeVerCategorias = DOCS_POR_PAPEL[user.role] ?? [];
     return {
@@ -127,7 +163,8 @@ export class ProfileService {
         ? { rota: `/people/${personId}/photo`, em: data.p.photo_at }
         : null,
       /* Na forma que a tela lê — a mesma da lista de contatos (fase 92). */
-      contatos: data.contacts.map((r: any) => contatoParaTela(r, user.role)),
+      contatos: liberado('contatos')
+        ? data.contacts.map((r: any) => contatoParaTela(r, user.role)) : [],
       casaAtual: data.stay ? { id: data.stay.house_id, codigo: data.stay.code, nome: data.stay.name, desde: data.stay.started_at } : null,
       noAcervo: !data.stay,
       // 1) alertas essenciais e saúde primeiro
@@ -139,12 +176,15 @@ export class ProfileService {
       condicoesSaude: data.conditions,
       restricoesAlimentares: data.restrictions,
       // 2) dados estruturais
-      cuidadosEssenciais: data.detail?.essential_care ?? null,
-      escola: data.detail ? {
+      cuidadosEssenciais: liberado('cuidados_essenciais')
+        ? (data.detail?.essential_care ?? null) : null,
+      escola: data.detail && liberado('escola') ? {
         nome: data.detail.school_name, serie: data.detail.school_grade,
         turno: data.detail.school_shift, endereco: data.detail.school_address,
       } : null,
-      equipeReferencia: data.detail?.reference_team ?? null,
+      equipeReferencia: liberado('equipe_referencia')
+        ? (data.detail?.reference_team ?? null) : null,
+      camposDesligados,
       // As observações só vão para quem PODE escrevê-las (§6.2). Editar um
       // campo às cegas é como se apaga o texto de outra pessoa; e devolvê-lo a
       // todo mundo ampliaria, de carona numa correção de tela, o que o

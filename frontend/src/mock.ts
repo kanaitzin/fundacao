@@ -2758,6 +2758,32 @@ const CONTATOS: Record<string, any[]> = {};
 let proximoContato = 1;
 const ESCREVE_CONTATO = ['equipe_tecnica', 'coordenador', 'gestor_geral'];
 
+/**
+ * O que a coordenação liga e desliga para o plantão (fase 93). A mesma lista
+ * fechada de `campos-do-perfil.ts` e do CHECK da migração 1130 — o
+ * `servidor-de-mentira.spec.ts` cobra que não divirjam.
+ */
+const DECIDE_CAMPOS = ['coordenador', 'gestor_geral'];
+const CAMPOS_DO_PERFIL = [
+  { code: 'escola', rotulo: 'Escola',
+    oQueSome: 'Nome, série, turno e endereço da escola — e o telefone para ligar quando a criança falta.' },
+  { code: 'contatos', rotulo: 'Quem aparece pela criança',
+    oQueSome: 'A lista de contatos e os telefones. O educador deixa de saber quem é a pessoa que apareceu no portão.' },
+  { code: 'equipe_referencia', rotulo: 'Equipe de referência',
+    oQueSome: 'O serviço da rede que acompanha a criança — CRAS, CAPS, unidade de saúde.' },
+  { code: 'cuidados_essenciais', rotulo: 'Cuidados essenciais',
+    oQueSome: 'O texto de como cuidar desta criança no dia a dia.' },
+];
+const FORA_DO_ALCANCE = ['Motivo judicial', 'Narrativa pessoal restrita', 'Cofre de acessos',
+  'Benefícios e dados bancários', 'Ocorrência restrita'];
+/* Nasce vazio: o padrão é ligado, como no banco. */
+const CAMPOS_DESLIGADOS: Record<string, { por: string; em: string; motivo: string }> = {};
+
+/** Vale só para o educador, como no servidor. */
+function campoLiberado(code: string, papel: string) {
+  return papel !== 'educador' || !CAMPOS_DESLIGADOS[code];
+}
+
 function acharContato(id: string) {
   for (const lista of Object.values(CONTATOS)) {
     const c = lista.find((x) => x.id === id);
@@ -5381,6 +5407,40 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     };
   }
 
+  /* ------- O que o plantão vê no perfil (fase 93) — as recusas do servidor ------- */
+  if (rota.startsWith('/people/profile-fields') && metodo === 'GET') {
+    return {
+      podeDecidir: DECIDE_CAMPOS.includes(eu.role),
+      campos: CAMPOS_DO_PERFIL.map((c) => {
+        const d = CAMPOS_DESLIGADOS[c.code];
+        return { ...c, visivel: !d, decisao: d ?? null };
+      }),
+      foraDoAlcance: FORA_DO_ALCANCE,
+    };
+  }
+  if (rota === '/people/profile-fields' && metodo === 'POST') {
+    if (!DECIDE_CAMPOS.includes(eu.role)) {
+      return new Recusa(403, 'Ligar e desligar campos do perfil é da coordenação da casa.');
+    }
+    const campo = CAMPOS_DO_PERFIL.find((c) => c.code === b.campo);
+    if (!campo) {
+      return new Recusa(400, 'Este campo não está na lista do que pode ser ligado e desligado. '
+        + `A lista é fechada: ${CAMPOS_DO_PERFIL.map((c) => c.rotulo).join(', ')}.`);
+    }
+    if (typeof b.visivel !== 'boolean') return new Recusa(400, 'Diga se o campo fica à vista do plantão ou não.');
+    const motivo = String(b.motivo ?? '').trim();
+    if (!b.visivel && motivo.length < 15) {
+      return new Recusa(400, 'Escreva por que este campo sai da vista do plantão — quem estiver com a criança '
+        + 'vai ler este motivo quando procurar o dado.');
+    }
+    if (b.visivel) delete CAMPOS_DESLIGADOS[campo.code];
+    else CAMPOS_DESLIGADOS[campo.code] = { por: eu.fullName, em: new Date().toISOString(), motivo };
+    return { ok: true, aviso: b.visivel
+      ? `${campo.rotulo}: à vista do plantão de novo.`
+      : `${campo.rotulo}: fora da vista do plantão. Quem procurar o dado vai ler que a coordenação `
+        + 'desligou, e o motivo — o campo não some sem explicação.' };
+  }
+
   /* ---------------- A portaria (fase 92) — as mesmas recusas do servidor ---------------- */
   if (rota.startsWith('/people/portaria/folha') && metodo === 'GET') {
     if (!ESCREVE_CONTATO.includes(eu.role)) {
@@ -5533,10 +5593,14 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         rotulo: k.alerta.descricao, severity: k.alerta.gravidade, essential_alert: true,
         source: 'Relatório médico (fictício)', review_on: null }] : [],
       restricoesAlimentares: k.restricao ? [{ id: 'r1', ...k.restricao, review_on: null }] : [],
-      cuidadosEssenciais: detalheDe(k).cuidadosEssenciais,
-      escola: { nome: detalheDe(k).escolaNome, serie: detalheDe(k).escolaSerie,
-                turno: detalheDe(k).escolaTurno, endereco: detalheDe(k).escolaEndereco },
-      equipeReferencia: detalheDe(k).equipeReferencia,
+      cuidadosEssenciais: campoLiberado('cuidados_essenciais', eu.role)
+        ? detalheDe(k).cuidadosEssenciais : null,
+      escola: campoLiberado('escola', eu.role)
+        ? { nome: detalheDe(k).escolaNome, serie: detalheDe(k).escolaSerie,
+            turno: detalheDe(k).escolaTurno, endereco: detalheDe(k).escolaEndereco }
+        : null,
+      equipeReferencia: campoLiberado('equipe_referencia', eu.role)
+        ? detalheDe(k).equipeReferencia : null,
       // As observações só vão para quem pode escrevê-las (§6.2): `undefined`
       // some do JSON, e é assim que a tela sabe que não deve desenhar a seção.
       observacoes: ['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)
@@ -5555,9 +5619,16 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       cns: k.cns ?? null,
       filiacao: k.filiacao ?? null,
       foto: k.foto ? { rota: `/people/${k.id}/photo`, em: k.fotoEm } : null,
-      /* Na forma do servidor, inclusive o CPF por cargo (fase 92). */
-      contatos: contatosDe(k.id).filter((c: any) => c.ativo)
-        .map((c) => ({ ...c, cpf: cpfParaTela(c.cpf, eu.role) })),
+      /* Na forma do servidor, inclusive o CPF por cargo (fase 92) e o que a
+         coordenação desligou para o plantão (fase 93). */
+      contatos: campoLiberado('contatos', eu.role)
+        ? contatosDe(k.id).filter((c: any) => c.ativo)
+            .map((c) => ({ ...c, cpf: cpfParaTela(c.cpf, eu.role) }))
+        : [],
+      camposDesligados: eu.role === 'educador'
+        ? CAMPOS_DO_PERFIL.filter((c) => CAMPOS_DESLIGADOS[c.code])
+            .map((c) => ({ code: c.code, rotulo: c.rotulo, ...CAMPOS_DESLIGADOS[c.code] }))
+        : [],
       memorias: [{ id: 'mem1', event_type: 'aniversário', happened_on: '2026-07-14',
                    description: 'Comemoração na casa com bolo escolhido pelo grupo.',
                    has_photo: false, photo_authorized: false }],

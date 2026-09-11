@@ -80,6 +80,7 @@ export const AREAS = {
   setores: 'O que cada setor enxerga',
   cozinha: 'Cozinha — pedidos e restrições',
   portaria: 'Portaria — quem pode visitar',
+  campos_do_perfil: 'O que o plantão vê no perfil',
   casas: 'Unidades',
 } as const;
 
@@ -377,6 +378,14 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
     transversal: false,
     resumo: 'Responde pela casa: equipe, aprovações, transferências e o cofre.',
     areas: [
+      { area: 'campos_do_perfil', titulo: AREAS.campos_do_perfil,
+        faz: 'Liga e desliga, na própria casa, os campos do perfil que o educador em plantão vê — '
+          + 'escola, contatos, equipe de referência, cuidados essenciais.',
+        servidor: 'A lista é fechada no código E no banco: campo novo entra por migração. O padrão é '
+          + 'ligado, desligar exige motivo, e o campo desligado continua aparecendo para o educador '
+          + 'como desligado, com o motivo — ausência que mente é pior que recusa que explica. Motivo '
+          + 'judicial, narrativa restrita, cofre, benefícios e ocorrência restrita ficam fora do '
+          + 'alcance do botão.' },
       { area: 'portaria', titulo: AREAS.portaria,
         faz: 'Marca, no contato da criança, quem está autorizado a visitar — com CPF e foto 3×4 — '
           + 'e gera a folha em Word que vai para a guarita.',
@@ -455,6 +464,14 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
     transversal: true,
     resumo: 'Escopo institucional. Abre UMA casa por vez, e cada abertura fica registrada.',
     areas: [
+      { area: 'campos_do_perfil', titulo: AREAS.campos_do_perfil,
+        faz: 'Liga e desliga, na própria casa, os campos do perfil que o educador em plantão vê — '
+          + 'escola, contatos, equipe de referência, cuidados essenciais.',
+        servidor: 'A lista é fechada no código E no banco: campo novo entra por migração. O padrão é '
+          + 'ligado, desligar exige motivo, e o campo desligado continua aparecendo para o educador '
+          + 'como desligado, com o motivo — ausência que mente é pior que recusa que explica. Motivo '
+          + 'judicial, narrativa restrita, cofre, benefícios e ocorrência restrita ficam fora do '
+          + 'alcance do botão.' },
       { area: 'portaria', titulo: AREAS.portaria,
         faz: 'Marca, no contato da criança, quem está autorizado a visitar — com CPF e foto 3×4 — '
           + 'e gera a folha em Word que vai para a guarita.',

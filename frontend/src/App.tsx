@@ -29,6 +29,7 @@ import { Escala } from './screens/Escala';
 import { Setores } from './screens/Setores';
 import { Cozinha } from './screens/Cozinha';
 import { Portaria } from './screens/Portaria';
+import { CamposDoPerfil } from './screens/CamposDoPerfil';
 import { Avisos } from './screens/Avisos';
 import { ALCANCE_POR_CARGO } from '../../backend/src/modules/identity/alcance';
 import { SeloDaFila } from './screens/SeloDaFila';
@@ -165,7 +166,7 @@ export function App() {
   const [aba, setAba] = useState<
     'dia' | 'chamada' | 'passagem' | 'acolhidos' | 'agenda' | 'casas' | 'equipe'
     | 'saude' | 'internacao' | 'impacto' | 'ocorrencias' | 'ata' | 'cofre' | 'transferencias'
-    | 'acompanhamentos' | 'arquivo' | 'plantao' | 'unidades' | 'setores' | 'cozinha' | 'portaria'
+    | 'acompanhamentos' | 'arquivo' | 'plantao' | 'unidades' | 'setores' | 'cozinha' | 'portaria' | 'campos_do_perfil'
     | 'alinhamentos' | 'painel' | 'sincronizacao'
     | 'rotina' | 'escala' | 'avisos'>('dia');
   const [sugerirSenha, setSugerirSenha] = useState(false);
@@ -289,7 +290,7 @@ export function App() {
     { aba: 'acolhidos', icone: '🧒', label: 'Acolhidos' },
     { aba: 'passagem', icone: '🔁', label: 'Passagem' },
   ].filter((t) => ve(t.aba));
-  const doMais = ['unidades', 'plantao', 'agenda', 'cozinha', 'portaria', 'equipe', 'setores', 'ocorrencias',
+  const doMais = ['unidades', 'plantao', 'agenda', 'cozinha', 'portaria', 'campos_do_perfil', 'equipe', 'setores', 'ocorrencias',
     'ata', 'saude', 'internacao', 'impacto', 'alinhamentos', 'acompanhamentos', 'painel', 'arquivo', 'transferencias',
     'cofre', 'sincronizacao', 'casas']
     .filter((a) => ve(a));
@@ -464,6 +465,10 @@ export function App() {
             api<{ naoLidas: number }>('/notifications/count')
               .then((r) => setNaoLidos(r.naoLidas)).catch(() => {});
           }} />
+        )}
+
+        {abaEfetiva === 'campos_do_perfil' && casaAtual && ve('campos_do_perfil') && (
+          <CamposDoPerfil houseId={casaAtual.id} casaLabel={`${casaAtual.code} · ${casaAtual.name}`} />
         )}
 
         {abaEfetiva === 'portaria' && casaAtual && ve('portaria') && (
@@ -671,6 +676,17 @@ export function App() {
                     <b className="ff">Cozinha</b>
                     <div className="mutetxt">
                       Pedir lanche e cesta básica, e gerar as folhas para a cozinha.
+                    </div>
+                  </div>
+                </button>
+              )}
+              {ve('campos_do_perfil') && (
+                <button className="card row" onClick={() => { setAba('campos_do_perfil'); setMais(false); }}>
+                  <span aria-hidden="true">👁️</span>
+                  <div className="grow" style={{ textAlign: 'left' }}>
+                    <b className="ff">O que o plantão vê</b>
+                    <div className="mutetxt">
+                      Liga e desliga campos do perfil para quem está no turno.
                     </div>
                   </div>
                 </button>

@@ -380,6 +380,13 @@ const TAREFAS = [
    * escolheu —, porque quem não distingue os matizes ainda tem de conseguir
    * escolher e conferir. É por esse nome que se chega nele.
    */
+  /* O que o plantão vê (fase 93): a porta E os quatro campos da lista. */
+  {
+    cargo: 'coordenador', secao: '5.18',
+    nome: 'Tire a escola da vista do plantão — e depois devolva',
+    caminho: [{ mais: 'O que o plantão vê' }],
+    procurar: [/O que o plantão vê no perfil/, /Escola/, /Tirar da vista do plantão/, /não alcança/],
+  },
   {
     cargo: 'coordenador', secao: '5.17',
     nome: 'Gere a folha da portaria para a guarita',

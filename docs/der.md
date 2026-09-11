@@ -274,6 +274,23 @@ lê daqui:
   opcional, guardada como a do acolhido, e com saída declarada em
   `arquivo-tem-saida.spec.ts` (`contacts/:contactId/photo`).
 
+**`house_field_permission` é O QUE O PLANTÃO VÊ** (migração 1130, fase 93).
+Por casa, quais campos do perfil ficam à vista do educador em plantão —
+escola, contatos, equipe de referência, cuidados essenciais.
+
+* **a lista é fechada por CHECK.** Campo novo entra por migração, revisado. É
+  ela que impede a coordenação de alcançar motivo judicial, narrativa restrita,
+  cofre, benefícios e ocorrência restrita — os cinco que não são negociáveis. A
+  mesma lista existe em `campos-do-perfil.ts` e no servidor de mentira, e dois
+  testes cobram que as três não divirjam;
+* **ausência de linha é LIGADO.** Nada mudou de comportamento quando a migração
+  rodou, e nenhuma casa perdeu acesso sem alguém ter decidido;
+* **vale só para o educador, e só na casa que decidiu.** A coordenação de uma
+  casa não mexe no que a outra enxerga — é o mesmo motivo pelo qual a tela de
+  alcance de cargo foi recusada em 27/08;
+* **desligado não é invisível:** o perfil continua dizendo que o campo existe,
+  quem desligou e por quê. Ausência que mente é pior do que recusa que explica.
+
 **`person_correction` é o HISTÓRICO DA CORREÇÃO DE CADASTRO** (§6.2, migração
 0810). Nome escrito errado às 23h, data de nascimento trocada porque a certidão
 veio depois: sem uma porta para corrigir, a saída de quem usa é recadastrar — e
@@ -679,12 +696,12 @@ entity/entity_id genéricos como o próprio relato — é isso que permite remov
 Índice único por `(entity, entity_id, user_id)`: reabrir a ocorrência não
 duplica a cobrança de quem já respondeu.
 
-## Inventário — 106 tabelas por partição
+## Inventário — 107 tabelas por partição
 
 | Partição | Tabelas |
 |---|---|
 | identity (13) | institution, house, app_user, user_house_assignment, work_schedule, shift_assignment, user_session, login_attempt, audit_event, institutional_device, staff_role_grant, house_capacity_change, user_invite |
-| people (21) | person, care_episode, house_stay, profile_detail, health_condition, food_restriction, document, document_version, benefit_record, memory_record, transfer_request, transfer_message, admission_record, judicial_record, person_credential, person_correction, profile_detail_change, person_contact, family_stay, outing_permission, kitchen_request |
+| people (22) | person, care_episode, house_stay, profile_detail, health_condition, food_restriction, document, document_version, benefit_record, memory_record, transfer_request, transfer_message, admission_record, judicial_record, person_credential, person_correction, profile_detail_change, person_contact, family_stay, outing_permission, kitchen_request, house_field_permission |
 | shifts (11) | shift, handover, handover_receipt, handover_note, ata, ata_note, ata_addendum, ata_episode, ata_episode_ack, general_night_ata, general_night_house_entry |
 | incidents (7) | incident, incident_person, incident_protected, incident_restraint, incident_synthesis, external_communication, incident_attachment |
 | medications (12) | prescription, medication_schedule, medication_administration, medication_stock, medication_stock_movement, medication_protocol, medication_authorization, medication_protocol_change, prescription_restriction_change, medication_purchase, prescription_document, family_stay_medication |
