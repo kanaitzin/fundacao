@@ -16,6 +16,7 @@ import request from 'supertest';
 import { Client } from 'pg';
 import { AppModule } from '../src/app.module';
 import { dataDoPlantao } from '../src/kernel/common/tempo';
+import { corrida } from './setup/corrida-no-banco';
 
 const SENHA = 'senha-dev-123';
 const adminUrl = process.env.DATABASE_URL ?? 'postgres://rede_admin:dev-only-change-me@127.0.0.1:5432/rede_acolher';
@@ -443,6 +444,89 @@ describe('Regressão — estado, concorrência e silêncio', () => {
     const { rows: perm } = await admin.query(
       `SELECT count(*)::int AS n FROM house_stay WHERE person_id=$1 AND status='ativa'`, [pessoa]);
     expect(perm[0].n).toBe(0);
+  });
+
+  /*
+   * DUAS DECISÕES AO MESMO TEMPO SOBRE O MESMO PEDIDO (fase 90).
+   *
+   * `app_accept_transfer` trava a linha com FOR UPDATE. `app_decline_transfer`
+   * e `app_cancel_transfer` liam o estado SEM trava e gravavam com
+   * `UPDATE … WHERE id = …`: quem chegava durante o aceite passava pela
+   * leitura (ainda 'solicitada'), esperava a trava e, liberado, gravava
+   * 'devolvida' ou 'cancelada' POR CIMA de 'aceita'. A criança já morava no
+   * destino e o pedido dizia que tinha sido recusado — com a recusa registrada
+   * nas duas casas. Mesmo desenho do retorno familiar (1080), regra 11.
+   *
+   * A prova é a de `setup/corrida-no-banco.ts`, a mesma do retorno familiar.
+   */
+  async function pedidoDeTransferencia(nome: string) {
+    const novo = await request(http).post('/api/v1/people').set(auth(tokens.tecnica))
+      .send({ houseId: AI3, fullName: `${nome} (fictício)`, socialName: nome,
+              birthDate: '2012-05-10', provisionalReason: 'Ingresso de teste automatizado' });
+    expect(novo.status).toBe(201);
+    const pedido = await request(http).post('/api/v1/transfers').set(auth(tokens.tecnica))
+      .send({ personId: novo.body.personId, toHouseId: AI4,
+              reason: 'Aproximação da rede de apoio familiar' });
+    expect(pedido.status).toBe(201);
+    return { pessoa: novo.body.personId as string, pedido: pedido.body.id as string };
+  }
+
+  const ACEITAR = `SELECT * FROM app_accept_transfer($1)`;
+  const RECUSAR = `SELECT * FROM app_decline_transfer($1, $2)`;
+  const CANCELAR = `SELECT * FROM app_cancel_transfer($1, $2)`;
+
+  it('a recusa que chega durante o aceite é recusada, e o pedido continua aceito', async () => {
+    const { pessoa, pedido } = await pedidoDeTransferencia('CorridaAceiteRecusa');
+    const r = await corrida(admin,
+      { email: 'coord.ai4@paodospobres.dev', sql: ACEITAR, params: [pedido] },
+      { email: 'gestor@paodospobres.dev', sql: RECUSAR,
+        params: [pedido, 'A casa está sem vaga para a faixa etária neste mês.'] });
+    expect(r).toMatch(/transferencia_ja_decidida/);
+
+    const { rows: [t] } = await admin.query(
+      `SELECT status FROM transfer_request WHERE id=$1`, [pedido]);
+    expect(t.status).toBe('aceita');
+    const { rows: [casa] } = await admin.query(
+      `SELECT house_id FROM house_stay WHERE person_id=$1 AND status='ativa'`, [pessoa]);
+    expect(casa.house_id).toBe(AI4);
+    /* E a recusa que não aconteceu não ficou registrada em casa nenhuma. */
+    const { rows: [{ n }] } = await admin.query(
+      `SELECT count(*)::int AS n FROM audit_event
+        WHERE entity_id=$1 AND action IN ('transfer.decline','transfer.declined_received')`, [pedido]);
+    expect(n).toBe(0);
+    await request(http).post(`/api/v1/people/${pessoa}/discharge`)
+      .set(auth(tokens.coord4)).send({ motivo: 'Encerramento de fixture de teste' });
+  });
+
+  it('o cancelamento que chega durante o aceite é recusado, e o pedido continua aceito', async () => {
+    const { pessoa, pedido } = await pedidoDeTransferencia('CorridaAceiteCancela');
+    const r = await corrida(admin,
+      { email: 'coord.ai4@paodospobres.dev', sql: ACEITAR, params: [pedido] },
+      { email: 'coord.ai3@paodospobres.dev', sql: CANCELAR,
+        params: [pedido, 'A família pediu para esperar a audiência.'] });
+    expect(r).toMatch(/transferencia_ja_decidida/);
+    const { rows: [t] } = await admin.query(
+      `SELECT status, decided_by FROM transfer_request WHERE id=$1`, [pedido]);
+    expect(t.status).toBe('aceita');
+    await request(http).post(`/api/v1/people/${pessoa}/discharge`)
+      .set(auth(tokens.coord4)).send({ motivo: 'Encerramento de fixture de teste' });
+  });
+
+  it('o cancelamento que chega durante a recusa é recusado, e a recusa fica com o autor dela', async () => {
+    const { pessoa, pedido } = await pedidoDeTransferencia('CorridaRecusaCancela');
+    const r = await corrida(admin,
+      { email: 'coord.ai4@paodospobres.dev', sql: RECUSAR,
+        params: [pedido, 'A casa está sem vaga para a faixa etária neste mês.'] },
+      { email: 'coord.ai3@paodospobres.dev', sql: CANCELAR,
+        params: [pedido, 'A família pediu para esperar a audiência.'] });
+    expect(r).toMatch(/transferencia_ja_decidida/);
+    const { rows: [t] } = await admin.query(
+      `SELECT t.status, u.email FROM transfer_request t JOIN app_user u ON u.id = t.decided_by
+        WHERE t.id=$1`, [pedido]);
+    expect(t.status).toBe('devolvida');
+    expect(t.email).toBe('coord.ai4@paodospobres.dev');
+    await request(http).post(`/api/v1/people/${pessoa}/discharge`)
+      .set(auth(tokens.tecnica)).send({ motivo: 'Encerramento de fixture de teste' });
   });
 
   // ==================== Offline ====================

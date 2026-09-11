@@ -191,3 +191,62 @@ describe('Fronteiras entre partições', () => {
     expect(violacoes).toEqual([]);
   });
 });
+
+/**
+ * ESTADO CONFERIDO NUMA LEITURA, E GRAVADO SÓ PELO ID (regra 11).
+ *
+ * A fase 89 achou o retorno familiar sobrescrevendo outro retorno, e a
+ * varredura que veio atrás achou mais quatro funções com o mesmo desenho —
+ * recusa e cancelamento de transferência, fechamento da ATA Geral, mudança de
+ * combinado. As cinco foram provadas reprovando com duas conexões
+ * (`setup/corrida-no-banco.ts`) e consertadas nas fases 89 e 90.
+ *
+ * O desenho é sempre o mesmo: `IF x.status <> 'esperado' THEN RAISE`, e mais
+ * abaixo `UPDATE … SET status = … WHERE id = …`, sem o estado no WHERE e sem
+ * `FOR UPDATE` na leitura. Quem chega durante o ato do outro passa pela
+ * leitura, espera a trava e grava POR CIMA — e as duas pessoas recebem
+ * sucesso. Nada quebra; é por isso que esta conferência existe.
+ *
+ * Lê a definição VIGENTE de cada função (a da última migração que a define).
+ * É heurística, e diz o que não pega: o mesmo desenho escrito no TypeScript
+ * dos serviços, e função que muda estado sem conferir `status` antes.
+ */
+describe('Estado e concorrência nas funções do banco', () => {
+  function definicoesVigentes(): Map<string, { arquivo: string; corpo: string }> {
+    const arquivos: string[] = [];
+    for (const m of modules) {
+      const dir = join(MODULES_DIR, m, 'migrations');
+      if (!existsSync(dir)) continue;
+      for (const f of readdirSync(dir)) if (f.endsWith('.sql')) arquivos.push(join(dir, f));
+    }
+    arquivos.sort((a, b) => relative(dirname(a), a).localeCompare(relative(dirname(b), b)));
+    const defs = new Map<string, { arquivo: string; corpo: string }>();
+    for (const arq of arquivos) {
+      const sql = readFileSync(arq, 'utf8');
+      for (const m of sql.matchAll(/CREATE OR REPLACE FUNCTION\s+(\w+)\s*\(([\s\S]*?)\$\$([\s\S]*?)\$\$/g)) {
+        defs.set(m[1], { arquivo: relative(MODULES_DIR, arq), corpo: m[3] });
+      }
+    }
+    return defs;
+  }
+
+  it('nenhuma função confere o estado numa leitura e grava só pelo id', () => {
+    const defs = definicoesVigentes();
+    /* Um conferidor que não leu nada passaria dizendo "sim". */
+    expect(defs.size).toBeGreaterThan(100);
+
+    const violacoes: string[] = [];
+    for (const [nome, { arquivo, corpo }] of defs) {
+      if (!/IF\s+\w+\.status\s*(<>|=|!=|NOT IN|IN)/.test(corpo)) continue;
+      if (/FOR UPDATE/.test(corpo)) continue;
+      for (const u of corpo.matchAll(/UPDATE\s+(\w+)\s+SET([\s\S]*?);/g)) {
+        const where = /WHERE([\s\S]*)$/.exec(u[2])?.[1] ?? '';
+        if (/\bstatus\s*=/.test(u[2]) && !/status/.test(where)) {
+          violacoes.push(`${nome} (${arquivo}): UPDATE ${u[1]} muda o estado sem conferi-lo no WHERE`);
+        }
+      }
+    }
+    expect(violacoes).toEqual([]);
+  });
+
+});

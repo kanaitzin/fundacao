@@ -82,7 +82,7 @@ aplicação e no banco. §7 tem a matriz inteira.
 
 ## 2. O ESTADO HOJE
 
-**Fases 0 a 89.** Estes números **saem do código**, não da memória — e são
+**Fases 0 a 90.** Estes números **saem do código**, não da memória — e são
 cobrados por `test/numeros-da-documentacao.spec.ts`, que existe porque em 08/09
 seis afirmações estavam erradas ao mesmo tempo em três documentos, e duas delas
 discordavam entre si.
@@ -90,10 +90,10 @@ discordavam entre si.
 | Quanto | De onde sai |
 |---|---|
 | **17 partições** isoladas | pastas em `backend/src/modules/` |
-| **94 migrações** | `.sql` dentro das partições |
+| **97 migrações** | `.sql` dentro das partições |
 | **106 tabelas** | `CREATE TABLE` nas migrações |
 | **64 suítes** | `backend/test/*.spec.ts` |
-| **618 testes** | `it(` / `test(` nas suítes |
+| **624 testes** | `it(` / `test(` nas suítes |
 | **31 telas React** | `frontend/src/screens/*.tsx` |
 | **14 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **6 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
@@ -114,32 +114,27 @@ foi assim que "30 telas" sobreviveu à fase que existiu para acabar com isso.*
 
 ### A última verificação inteira
 
-**10/09/2026, fase 89.** `tsc` limpo nos dois lados. A suíte **duas rodadas
-inteiras**: uma às 21h de Porto Alegre com o UTC já em 11/09, **no relógio
-real** — o do processo e o do banco são o mesmo, e é a condição que a regra
-pede —, e outra com os dois relógios deslocados para a **manhã** por `faketime`,
-banco e processo com o mesmo deslocamento. Os **seis** ensaios de navegador,
-verdes com o protótipo reconstruído. O `ensaio:producao` aplicou as 94
-migrações pelo binário compilado num banco virgem. O `ensaio:restauracao` rodou
-**com uma credencial fictícia no cofre**: abre com a chave do ambiente e reprova,
-com código 1, com a chave errada — sem credencial ele passa dizendo que não há o
-que conferir, e foi assim que ele rodou na fase 87.
+**10/09/2026, fase 90.** `tsc` limpo nos dois lados. A suíte **duas rodadas
+inteiras**: uma às 22h de Porto Alegre com o UTC já em 11/09, **no relógio
+real**, e outra com banco e processo sob `faketime -12h`, de manhã. O
+`ensaio:producao` aplicou as 97 migrações pelo binário compilado num banco
+virgem; o `ensaio:restauracao` rodou com uma credencial fictícia no cofre,
+abrindo com a chave certa e reprovando com a errada. O protótipo foi
+reconstruído e saiu **idêntico** ao da fase 89 — a fase não tocou em tela.
 
-*A fase 88 tinha ficado com metade da verificação por fazer, anotada aqui como
-primeiro trabalho. Feita na 89, ela passou inteira — e mesmo assim achou quatro
-defeitos que nenhum conferidor acusava (a tabela do §2 e a §6.14 contam quais).
-Verde que nunca desenhou a tela não é verde.*
+**Os seis ensaios de navegador NÃO rodaram nesta fase**, de propósito: nada no
+`frontend/` mudou, e o protótipo é byte a byte o que eles percorreram verdes na
+fase 89, no mesmo dia. Se a próxima fase tocar em tela, eles voltam a ser
+obrigatórios antes da entrega.
 
-*Dois cuidados que a rodada ensinou: o `pg_ctl start` sob `faketime` trava
-esperando o arranque, embora o banco suba — confira com `pg_isready` em outra
-chamada; e processo em segundo plano não sobrevive entre chamadas do ambiente,
-então ensaio longo roda em primeiro plano, um por vez.*
+*Dois cuidados que as rodadas ensinaram: o `pg_ctl start` sob `faketime` trava
+esperando o arranque, embora o banco suba — use `-W` e confira com
+`pg_isready`; e processo em segundo plano não sobrevive entre chamadas do
+ambiente, então ensaio longo roda em primeiro plano, um por vez.*
 
-*Contagem que só cresce ("quinze rodadas limpas") não é dado. O que vale é a
-**data** e a **condição** da última verificação. **Data de verificação também
-envelhece**, e envelhece pior que número, porque parece um fato datado e não uma
-afirmação sobre o presente. Quando a próxima fase terminar, esta seção é
-reescrita, não acrescida.*
+*Contagem que só cresce não é dado. O que vale é a **data** e a **condição** da
+última verificação — e **data de verificação também envelhece**. Quando a
+próxima fase terminar, esta seção é reescrita, não acrescida.*
 
 ### Como retomar, em três linhas
 
@@ -167,6 +162,7 @@ arqueologia.
 | 87 | **Destravar.** Dois dos seis ensaios estavam vermelhos desde a fase 83 e ninguém tinha visto; cinco das nove entregas de 09/09 estavam invisíveis no protótipo; o roteiro do Marcelo não conhecia nenhuma delas. Nada de novo foi construído — o que existia passou a ser alcançável, e a §6.19 é a regra que sobrou |
 | 88 | **O retorno da visita ecoa** (§10.5, item 3): quem voltou, quem saiu e quem continua fora, na Passagem e na ATA, de uma função só. O que ela trouxe de casa virou campo; "se houve alteração" não — e está escrito por quê |
 | 89 | **Fechar as pontas da 88.** A verificação que faltava achou quatro coisas que o verde escondia: dois retornos simultâneos sobrescreviam o primeiro (1080); o bloco novo nunca tinha sido desenhado nos ensaios, porque o servidor de mentira nascia sem convivência; o roteiro mandava ler um retorno que nenhuma tarefa registrava; e o vínculo aparecia como código cru. Mais uma pergunta do roteiro que tinha deixado de existir |
+| 90 | **Uma decisão só.** As quatro funções que a 89 deixou anotadas, provadas reprovando com o estrago lido do banco — a criança morando no destino com o pedido dizendo "recusado"; a ATA Geral com o fechamento do segundo aparelho; o combinado revogado com um histórico que diz cumprido — e consertadas (1090, 1100, 1110). A corrida virou ajudante de teste, e a varredura virou conferência permanente no `arquitetura.spec.ts` |
 
 ---
 
@@ -213,7 +209,7 @@ cd frontend && npm run prototipo
 # sai em prototipo/rede-acolher-prototipo.html
 ```
 
-O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as 94
+O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as 97
 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
 
 ### Os ensaios — e por que cada um existe
@@ -518,7 +514,7 @@ Além dos e2e, sete suítes estáticas — todas já pegaram erro de verdade:
 
 | Suíte | O que ela cobra |
 |---|---|
-| `arquitetura.spec.ts` | as fronteiras entre partições, e o marcador `rls-join-ok:` obrigatório perto de todo JOIN |
+| `arquitetura.spec.ts` | as fronteiras entre partições; o marcador `rls-join-ok:` obrigatório perto de todo JOIN; e, desde a fase 90, **nenhuma função que confere o estado numa leitura e grava só pelo id** (regra 11). Esta última é heurística e diz o que não pega: o mesmo desenho no TypeScript dos serviços |
 | `contrato-rotas.spec.ts` | toda rota chamada pela tela **existe** no servidor |
 | `alcance.spec.ts` | as marcas `/* alcance:<área> */` lidas do código que roda |
 | `documentacao.spec.ts` | toda tabela do banco aparece no `der.md` |
@@ -575,6 +571,18 @@ tinham o comentário `rls-join-ok:` afirmando que aquela tabela não tinha RLS.
 `SELECT … FOR UPDATE` aplica também a policy de UPDATE, e a linha some — o
 sistema responde **404** para algo que existe, a quem acabara de aprová-lo. A
 atomicidade fica no `UPDATE … WHERE status = <esperado>`.
+
+**E a metade que custou cinco defeitos (fases 89 e 90): sem `FOR UPDATE` E sem
+o estado no WHERE, a leitura não protege nada.** `IF x.status <> 'esperado'`
+seguido de `UPDATE … WHERE id = …` deixa quem chega durante o ato do outro
+passar pela leitura, esperar a trava e gravar por cima — e as duas pessoas
+recebem sucesso. Foi assim no retorno familiar, na recusa e no cancelamento de
+transferência, no fechamento da ATA Geral e na mudança de combinado. **Estado
+no WHERE, `IF NOT FOUND THEN RAISE` logo depois, e só então o histórico e a
+auditoria** — senão o ato que perdeu a corrida deixa rastro de algo que não
+aconteceu. A prova é `test/setup/corrida-no-banco.ts` (duas conexões, a segunda
+vista PARADA na trava antes de a primeira confirmar); a conferência permanente
+está no `arquitetura.spec.ts`, e foi vista acusando as cinco antes do conserto.
 
 **12. Agregação por casa confere o escopo ANTES de contar.** O RLS filtra as
 linhas, e zero se lê como "casa vazia", não como "não é sua". **Zerar não é
@@ -1290,16 +1298,13 @@ e para a migração da implantação).
 
 ### Achados de passagem, ainda sem conserto
 
-Anotados na fase 89, fora do que ela veio fazer. Cada um pede o seu teste que
-reprova antes de mexer.
-
-- **Quatro funções gravam só pelo id, sem trava na leitura** — o mesmo desenho
-  que a 1080 consertou no retorno: `app_close_general_night_ata` (0310),
-  `app_cancel_transfer` e `app_decline_transfer` (0330), `app_mudar_combinado`
-  (0840). As de transferência preocupam mais: aceitar e recusar ao mesmo tempo
-  pode terminar num estado que ninguém escolheu. As outras do mesmo desenho
-  travam a linha com `FOR UPDATE` e estão certas.
 - **O conferidor de fronteiras não lê SQL** (§4.3).
+- **A varredura de concorrência só lê as funções do banco.** O mesmo desenho —
+  ler o estado e gravar só pelo id — escrito no TypeScript de um serviço não é
+  pego por ela. Ninguém procurou ainda.
+
+*As quatro funções que gravavam só pelo id, anotadas aqui na fase 89, foram
+provadas e consertadas na 90 (§6.11).*
 
 ### O que é meu e ficou pequeno
 
@@ -1603,7 +1608,7 @@ ele continua dizendo que o arquivo existe.
 npm run ensaio:producao
 ```
 
-Constrói, cria um banco virgem, aplica as 94 migrações **pelo binário
+Constrói, cria um banco virgem, aplica as 97 migrações **pelo binário
 compilado**, sobe o serviço e confere `/health`. Não publica nada e não toca no
 banco de trabalho.
 

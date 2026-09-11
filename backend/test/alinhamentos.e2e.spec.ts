@@ -25,6 +25,7 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { Client } from 'pg';
 import { AppModule } from '../src/app.module';
+import { corrida } from './setup/corrida-no-banco';
 
 const SENHA = 'senha-dev-123';
 const adminUrl = process.env.DATABASE_URL
@@ -256,5 +257,38 @@ describe('Reuniões de equipe e combinados', () => {
       `SELECT count(*)::int AS n FROM audit_event
         WHERE action IN ('alignment.meeting','alignment.agreement','alignment.agreement_status')`);
     expect(rows[0].n).toBeGreaterThanOrEqual(3);
+  });
+
+  /*
+   * O COMBINADO MUDA DE SITUAÇÃO UMA VEZ (fase 90).
+   *
+   * A técnica marca "cumprido" enquanto a coordenação marca "revogado". A
+   * função lia 'vigente', gravava o histórico e depois a situação com
+   * `UPDATE … WHERE id = …`: as duas passavam, o histórico ganhava DUAS
+   * transições saindo de 'vigente', e a situação final era a de quem gravou
+   * por último — com o motivo do outro no histórico dizendo o contrário.
+   * Regra 11; prova em `setup/corrida-no-banco.ts`. Roda por último: esta
+   * suíte conta combinados, e este termina encerrado.
+   */
+  it('duas mudanças de situação ao mesmo tempo: a segunda é recusada e o histórico tem uma', async () => {
+    const novo = await request(http).post('/api/v1/alignments/agreements')
+      .set(auth(tokens.coord))
+      .send({ houseId: ids.AI4,
+              texto: 'Quem chega depois das 22h avisa o plantão pelo interfone antes de subir.' });
+    expect(novo.status).toBe(201);
+    const MUDAR = `SELECT * FROM app_mudar_combinado($1, $2, $3)`;
+    const r = await corrida(admin,
+      { email: 'coord.ai4@paodospobres.dev', sql: MUDAR,
+        params: [novo.body.id, 'cumprido', 'A: o interfone foi instalado e todos usam.'] },
+      { email: 'gestor@paodospobres.dev', sql: MUDAR,
+        params: [novo.body.id, 'revogado', 'B: a portaria passou a controlar a entrada.'] });
+    expect(r).toMatch(/combinado_ja_encerrado/);
+    const { rows: [c] } = await admin.query(
+      `SELECT status, status_reason FROM team_agreement WHERE id=$1`, [novo.body.id]);
+    expect(c.status).toBe('cumprido');
+    expect(c.status_reason).toMatch(/^A:/);
+    const { rows: [{ n }] } = await admin.query(
+      `SELECT count(*)::int AS n FROM agreement_change WHERE agreement_id=$1`, [novo.body.id]);
+    expect(n).toBe(1);
   });
 });

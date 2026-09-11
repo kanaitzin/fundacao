@@ -34,6 +34,7 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { Client } from 'pg';
 import { AppModule } from '../src/app.module';
+import { corrida } from './setup/corrida-no-banco';
 
 const SENHA = 'senha-dev-123';
 const adminUrl = process.env.DATABASE_URL
@@ -307,58 +308,28 @@ describe('O retorno da experiência familiar na passagem e na ATA', () => {
    * Registro fechado sobrescrito com a autoria trocada (regra 3), pelo caminho
    * exato da regra 11: a atomicidade mora no `UPDATE … WHERE status = …`.
    *
-   * O teste é determinístico, não sorte de agenda: a sessão A grava e segura a
-   * transação; o teste ESPERA a sessão B estar parada na trava (pg_locks) e só
-   * então deixa A confirmar.
+   * O teste é determinístico, não sorte de agenda: `setup/corrida-no-banco.ts`.
    */
   it('dois retornos ao mesmo tempo: o segundo é recusado e o primeiro não é sobrescrito', async () => {
     const id = await convivencia(
       new Date(Date.now() - 2 * 86400_000).toISOString(),
       new Date(Date.now() + 86400_000).toISOString());
-    const appUrl = process.env.DATABASE_APP_URL
-      ?? 'postgres://rede_app:dev-only-change-me-app@127.0.0.1:5432/rede_acolher';
     const { rows: [{ id: educadora }] } = await admin.query(
       `SELECT id FROM app_user WHERE email='educador.ai3@paodospobres.dev'`);
-    const { rows: [{ id: lider }] } = await admin.query(
-      `SELECT id FROM app_user WHERE email='lider.ai3@paodospobres.dev'`);
+    const retorno = `SELECT * FROM app_registrar_retorno_familiar($1, now(), $2, $3)`;
 
-    const A = new Client({ connectionString: appUrl });
-    const B = new Client({ connectionString: appUrl });
-    await A.connect(); await B.connect();
-    try {
-      const retorno = `SELECT * FROM app_registrar_retorno_familiar($1, now(), $2, $3)`;
+    const desfecho = await corrida(admin,
+      { email: 'educador.ai3@paodospobres.dev', sql: retorno,
+        params: [id, 'A: chegou com a tia, conversando.', 'A: mochila de roupa'] },
+      { email: 'lider.ai3@paodospobres.dev', sql: retorno,
+        params: [id, 'B: chegou sozinha.', 'B: nada'] });
+    expect(desfecho).toMatch(/retorno_ja_registrado/);
 
-      await A.query('BEGIN');
-      await A.query(`SELECT set_config('app.user_id', $1, true)`, [educadora]);
-      await A.query(retorno, [id, 'A: chegou com a tia, conversando.', 'A: mochila de roupa']);
-
-      const { rows: [{ pid }] } = await B.query('SELECT pg_backend_pid() AS pid');
-      await B.query('BEGIN');
-      await B.query(`SELECT set_config('app.user_id', $1, true)`, [lider]);
-      const segundo = B.query(retorno, [id, 'B: chegou sozinha.', 'B: nada'])
-        .then(() => 'aceito', (e) => String(e?.message ?? e));
-
-      /* B precisa estar PARADO na trava da linha antes de A confirmar. */
-      for (let i = 0; i < 100; i++) {
-        const { rows: [{ n }] } = await admin.query(
-          `SELECT count(*)::int AS n FROM pg_locks WHERE pid = $1 AND NOT granted`, [pid]);
-        if (n > 0) break;
-        await new Promise((r) => setTimeout(r, 50));
-      }
-      await A.query('COMMIT');
-
-      const desfecho = await segundo;
-      await B.query('ROLLBACK').catch(() => undefined);
-      expect(desfecho).toMatch(/retorno_ja_registrado/);
-
-      const { rows: [f] } = await admin.query(
-        `SELECT return_note, brought_back, closed_by FROM family_stay WHERE id = $1`, [id]);
-      expect(f.return_note).toMatch(/^A:/);
-      expect(f.brought_back).toMatch(/^A:/);
-      expect(f.closed_by).toBe(educadora);
-    } finally {
-      await A.end(); await B.end();
-    }
+    const { rows: [f] } = await admin.query(
+      `SELECT return_note, brought_back, closed_by FROM family_stay WHERE id = $1`, [id]);
+    expect(f.return_note).toMatch(/^A:/);
+    expect(f.brought_back).toMatch(/^A:/);
+    expect(f.closed_by).toBe(educadora);
   });
 
   it('o retorno antes da saída é recusado, com a frase dizendo por quê', async () => {

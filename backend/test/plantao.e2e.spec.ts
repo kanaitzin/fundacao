@@ -19,6 +19,7 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { Client } from 'pg';
 import { AppModule } from '../src/app.module';
+import { corrida } from './setup/corrida-no-banco';
 
 const SENHA = 'senha-dev-123';
 const adminUrl = process.env.DATABASE_URL ?? 'postgres://rede_admin:dev-only-change-me@127.0.0.1:5432/rede_acolher';
@@ -361,6 +362,37 @@ describe('Fase 5 — Plantão, ATA e proteção', () => {
   });
 
   // ==================== ATA Geral Noturna ====================
+
+  /*
+   * A ATA GERAL FECHA UMA VEZ SÓ (fase 90).
+   *
+   * Só o próprio líder assina — então a corrida é ELE, em dois aparelhos, ou a
+   * fila offline reenviando a assinatura que já tinha subido. A função lia
+   * 'rascunho' e gravava com `UPDATE … WHERE id = …`: o segundo fechamento
+   * reescrevia as pendências e a hora da assinatura de uma ATA já fechada, e
+   * a auditoria registrava dois fechamentos. Regra 11; prova em
+   * `setup/corrida-no-banco.ts`. Data de 2024, desta suíte (regra 13).
+   */
+  it('a ATA Geral fechada duas vezes ao mesmo tempo guarda o primeiro fechamento', async () => {
+    const geral = await request(http).post('/api/v1/shifts/general-ata')
+      .set(auth(tokens.noturno)).send({ data: '2024-02-11' });
+    expect(geral.status).toBe(201);
+    const FECHAR = `SELECT * FROM app_close_general_night_ata($1, $2)`;
+    const r = await corrida(admin,
+      { email: 'lider.noturno@paodospobres.dev', sql: FECHAR,
+        params: [geral.body.id, 'A: sete casas sem ATA noturna fechada.'] },
+      { email: 'lider.noturno@paodospobres.dev', sql: FECHAR,
+        params: [geral.body.id, 'B: reenviado pela fila do aparelho.'] });
+    expect(r).toMatch(/ata_geral_ja_fechada/);
+    const { rows: [g] } = await admin.query(
+      `SELECT pendencies FROM general_night_ata WHERE id=$1`, [geral.body.id]);
+    expect(g.pendencies).toMatch(/^A:/);
+    const { rows: [{ n }] } = await admin.query(
+      `SELECT count(*)::int AS n FROM audit_event WHERE entity_id=$1 AND action='ata_geral.close'`,
+      [geral.body.id]);
+    expect(n).toBe(1);
+  });
+
 
   it('#36 o Líder Noturno Geral confirma as oito ATAs e assina a sua, sem assinar por ninguém', async () => {
     const geral = await request(http).post('/api/v1/shifts/general-ata')
