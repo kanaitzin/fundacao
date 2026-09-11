@@ -15,6 +15,7 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { Client } from 'pg';
 import { AppModule } from '../src/app.module';
+import { corridaPorHttp } from './setup/corrida-no-banco';
 
 const SENHA = 'senha-dev-123';
 const adminUrl = process.env.DATABASE_URL ?? 'postgres://rede_admin:dev-only-change-me@127.0.0.1:5432/rede_acolher';
@@ -450,6 +451,52 @@ describe('Fase 4 — Medicamentos e Enfermagem', () => {
       `SELECT action, complement FROM nursing_triage WHERE evolution_id=$1 ORDER BY at`, [evolucaoId]);
     expect(triagens).toHaveLength(2);
     expect(triagens[1].complement).toMatch(/142 mg\/dL/);
+  });
+
+  /*
+   * ASSINAR E DEVOLVER AO MESMO TEMPO (fase 91).
+   *
+   * A triagem lia o estado, recusava se já estava 'assinada', GRAVAVA a
+   * triagem e só então mudava o estado com `UPDATE … WHERE id = $1`. A
+   * Enfermagem assinando enquanto o Gestor devolvia pedindo complemento: as
+   * duas passavam pela leitura, e a segunda a gravar desfazia a primeira — a
+   * evolução ASSINADA voltava a "complemento solicitado", com duas triagens
+   * registradas e as duas pessoas recebendo sucesso. O mesmo desenho das fases
+   * 89 e 90, só que no TypeScript do serviço (regra 11).
+   */
+  it('assinar e devolver ao mesmo tempo: uma triagem vale, a outra é recusada', async () => {
+    const nova = await request(http).post('/api/v1/nursing/evolutions').set(auth(tokens.educador))
+      .send({
+        personId: sofia, houseId: AI3, tipo: 'consulta',
+        quandoAconteceu: new Date(Date.now() - 2 * 3600_000).toISOString(),
+        local: 'UBS Vila Nova (fictícia)', especialidade: 'Clínica geral',
+        estadoSaida: 'Tranquila', estadoDurante: 'Colaborativa',
+        estadoRetorno: 'Bem; pediu para ver desenho na volta',
+        orientacoes: 'Retorno se tiver febre',
+      });
+    expect(nova.status).toBe(201);
+    const id = nova.body.id;
+
+    const [assinar, devolver] = await corridaPorHttp(admin, 'health_evolution', id, [
+      () => request(http).post(`/api/v1/nursing/evolutions/${id}/triage`).set(auth(tokens.enfermagem))
+        .send({ acao: 'assinar', complemento: 'Conferido com a orientação da UBS.' }),
+      () => request(http).post(`/api/v1/nursing/evolutions/${id}/triage`).set(auth(tokens.gestor))
+        .send({ acao: 'pedir_complemento', pedido: 'Falta o nome do profissional que atendeu.' }),
+    ]);
+
+    const valeu = [assinar, devolver].filter((r) => r.status === 201);
+    const recusada = [assinar, devolver].filter((r) => r.status !== 201);
+    expect(valeu).toHaveLength(1);
+    expect(recusada).toHaveLength(1);
+    expect(recusada[0].status).toBe(409);
+    expect(recusada[0].body.message).toMatch(/outra pessoa/i);
+
+    const { rows: [evo] } = await admin.query(
+      `SELECT status FROM health_evolution WHERE id=$1`, [id]);
+    expect(evo.status).toBe(valeu[0].body.status);
+    const { rows: [{ n }] } = await admin.query(
+      `SELECT count(*)::int AS n FROM nursing_triage WHERE evolution_id=$1`, [id]);
+    expect(n).toBe(1);
   });
 
   it('histórico de saúde reúne atendimentos, evoluções e administrações (§7.3)', async () => {

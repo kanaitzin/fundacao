@@ -1,5 +1,6 @@
 import {
-  BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException,
+  BadRequestException, ConflictException, ForbiddenException, Inject, Injectable,
+  NotFoundException,
 } from '@nestjs/common';
 import { DatabaseService } from '../../kernel/database/database.service';
 import { AuditService } from '../../kernel/audit/audit.service';
@@ -258,21 +259,38 @@ export class NursingService {
       const { rows: [e] } = await c.query(
         `SELECT id, person_id, house_id, status FROM health_evolution WHERE id = $1`, [evolutionId]);
       if (!e) return null;
-      if (e.status === 'assinada') return { ja: true, e };
+      if (e.status === 'assinada') return { ja: true, corrida: false, e };
+
+      /*
+       * O ESTADO PRIMEIRO, conferido no próprio UPDATE; a triagem depois (fase 91).
+       *
+       * Antes a triagem era gravada e o estado mudava com `WHERE id = $1`. A
+       * Enfermagem assinando enquanto o Gestor devolvia: as duas passavam pela
+       * leitura acima, e a segunda a gravar desfazia a primeira — a evolução
+       * ASSINADA voltava a "complemento solicitado", com duas triagens
+       * registradas, e as duas pessoas lendo "feito". A leitura continua dando
+       * a frase certa; quem garante que é uma triagem só é o WHERE com o estado
+       * que foi lido (regra 11).
+       */
+      const { rowCount } = await c.query(
+        `UPDATE health_evolution SET status = $2 WHERE id = $1 AND status = $3`,
+        [evolutionId, input.acao === 'assinar' ? 'assinada' : 'complemento_solicitado', e.status]);
+      if (!rowCount) return { ja: false, corrida: true, e };
 
       await c.query(
         `INSERT INTO nursing_triage (evolution_id, nurse_id, complement, clinical_note, action, request_note)
          VALUES ($1,$2,$3,$4,$5,$6)`,
         [evolutionId, user.id, input.complemento ?? null, input.notaClinica ?? null,
          input.acao === 'assinar' ? 'assinada' : 'complemento_solicitado', input.pedido ?? null]);
-
-      await c.query(
-        `UPDATE health_evolution SET status = $2 WHERE id = $1`,
-        [evolutionId, input.acao === 'assinar' ? 'assinada' : 'complemento_solicitado']);
-      return { ja: false, e };
+      return { ja: false, corrida: false, e };
     });
     if (!ok) throw new NotFoundException('Evolução não encontrada.');
     if (ok.ja) throw new BadRequestException('Esta evolução já foi triada e assinada.');
+    if (ok.corrida) {
+      throw new ConflictException(
+        'Outra pessoa triou esta evolução enquanto você conferia. Abra de novo para ver como ficou '
+        + '— nada do que você escreveu foi gravado.');
+    }
 
     await this.audit.log({
       action: input.acao === 'assinar' ? 'health.triage_sign' : 'health.triage_request',

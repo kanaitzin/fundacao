@@ -70,3 +70,57 @@ export async function corrida(admin: Client, primeiro: Ato, segundo: Ato): Promi
     await A.end(); await B.end();
   }
 }
+
+/**
+ * A MESMA CORRIDA, QUANDO O DESENHO MORA NO TYPESCRIPT DO SERVIÇO (fase 91).
+ *
+ * `corrida` acima serve para função do banco: o ato é um SQL só. Quando o
+ * serviço lê o estado numa consulta e grava noutra, a prova tem de passar pelo
+ * caminho de verdade — a rota —, e aí não dá para segurar a transação de uma
+ * requisição por fora. O desenho muda, e continua determinístico:
+ *
+ *   1. o dono do banco trava a LINHA disputada (`SELECT … FOR UPDATE`);
+ *   2. as requisições são disparadas: cada uma lê o estado (leitura simples
+ *      não espera trava) e para na primeira escrita que toca a linha;
+ *   3. o teste ESPERA ver todas paradas (pg_locks, `granted = false`);
+ *   4. só então solta a linha, e as requisições seguem sozinhas — todas
+ *      tendo lido o estado ANTIGO, que é a condição da corrida.
+ *
+ * Devolve o status HTTP de cada requisição, na ordem em que foram passadas.
+ * Se nem todas pararam na trava, lança: um teste de corrida sem disputa não
+ * prova nada e não pode passar dizendo que provou.
+ */
+export async function corridaPorHttp(
+  admin: Client, tabela: string, id: string,
+  requisicoes: Array<() => PromiseLike<{ status: number; body: any }>>,
+): Promise<Array<{ status: number; body: any }>> {
+  if (!/^\w+$/.test(tabela)) throw new Error(`corridaPorHttp: tabela inválida ${tabela}`);
+  const url = process.env.DATABASE_URL
+    ?? 'postgres://rede_admin:dev-only-change-me@127.0.0.1:5432/rede_acolher';
+  const trava = new Client({ connectionString: url });
+  await trava.connect();
+  try {
+    await trava.query('BEGIN');
+    await trava.query(`SELECT 1 FROM ${tabela} WHERE id = $1 FOR UPDATE`, [id]);
+    const { rows: [{ pid: meu }] } = await trava.query('SELECT pg_backend_pid() AS pid');
+
+    const emCurso = requisicoes.map((r) => Promise.resolve(r()));
+
+    let paradas = 0;
+    for (let i = 0; i < 200 && paradas < requisicoes.length; i++) {
+      const { rows: [{ n }] } = await admin.query(
+        `SELECT count(DISTINCT pid)::int AS n FROM pg_locks WHERE NOT granted AND pid <> $1`, [meu]);
+      paradas = n;
+      if (paradas < requisicoes.length) await new Promise((r) => setTimeout(r, 25));
+    }
+    await trava.query('COMMIT');
+    const resultados = await Promise.all(emCurso);
+    if (paradas < requisicoes.length) {
+      throw new Error(`corridaPorHttp: só ${paradas} de ${requisicoes.length} requisições `
+        + 'pararam na trava — não houve disputa, e o teste não prova o que diz');
+    }
+    return resultados.map((r) => ({ status: r.status, body: r.body }));
+  } finally {
+    await trava.end();
+  }
+}

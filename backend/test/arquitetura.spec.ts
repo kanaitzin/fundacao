@@ -249,4 +249,53 @@ describe('Estado e concorrência nas funções do banco', () => {
     expect(violacoes).toEqual([]);
   });
 
+
+  /*
+   * O MESMO DESENHO NO TYPESCRIPT DOS SERVIÇOS (fase 91).
+   *
+   * A triagem da Enfermagem lia o estado numa consulta e gravava com
+   * `UPDATE health_evolution SET status = … WHERE id = $1`: assinar e devolver
+   * ao mesmo tempo passavam as duas, e a evolução assinada voltava a
+   * "complemento solicitado". A conferência acima só lia SQL de migração.
+   *
+   * Aqui: todo `UPDATE … SET status = …` escrito num serviço confere o estado
+   * no WHERE — ou está na lista abaixo, com o motivo por extenso, como as
+   * rotas sem porta. Serviço não usa `FOR UPDATE` para isso: sob RLS a leitura
+   * travada aplica a policy de UPDATE e a linha some (regra 11).
+   */
+  const EDICAO_NAO_E_TRANSICAO: Record<string, string> = {
+    'modules/people/benefits.service.ts':
+      'edição do cadastro de benefício pela coordenação: `status` é a situação do benefício '
+      + '(campo do formulário), não um estado que se decide uma vez. Duas edições ao mesmo '
+      + 'tempo deixam valer a última, como em todo formulário, e o antes fica na auditoria',
+  };
+
+  it('nenhum serviço muda o estado gravando só pelo id', () => {
+    const arquivos = [...tsFiles(join(SRC, 'modules')), ...tsFiles(join(SRC, 'kernel'))];
+    let updates = 0;
+    const violacoes: string[] = [];
+    const excecoesUsadas = new Set<string>();
+    for (const arq of arquivos) {
+      const src = readFileSync(arq, 'utf8');
+      const rel = relative(SRC, arq);
+      for (const m of src.matchAll(/`\s*UPDATE\s+(\w+)\s+SET([\s\S]*?)`/g)) {
+        updates++;
+        const resto = m[2];
+        const w = /\bWHERE\b([\s\S]*)$/.exec(resto);
+        const set = w ? resto.slice(0, w.index) : resto;
+        if (!/\bstatus\s*=/.test(set)) continue;
+        if (w && /status/.test(w[1])) continue;
+        if (EDICAO_NAO_E_TRANSICAO[rel]) { excecoesUsadas.add(rel); continue; }
+        const linha = src.slice(0, m.index ?? 0).split('\n').length;
+        violacoes.push(`${rel}:${linha}: UPDATE ${m[1]} muda o estado sem conferi-lo no WHERE`);
+      }
+    }
+    /* Um conferidor que não achou UPDATE nenhum não leu os serviços. */
+    expect(updates).toBeGreaterThan(30);
+    /* Exceção que não é mais usada reprova: lista escrita à mão vira promessa. */
+    for (const rel of Object.keys(EDICAO_NAO_E_TRANSICAO)) {
+      if (!excecoesUsadas.has(rel)) violacoes.push(`${rel}: exceção declarada e não usada — retire da lista`);
+    }
+    expect(violacoes).toEqual([]);
+  });
 });

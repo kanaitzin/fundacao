@@ -82,7 +82,7 @@ aplicação e no banco. §7 tem a matriz inteira.
 
 ## 2. O ESTADO HOJE
 
-**Fases 0 a 90.** Estes números **saem do código**, não da memória — e são
+**Fases 0 a 91.** Estes números **saem do código**, não da memória — e são
 cobrados por `test/numeros-da-documentacao.spec.ts`, que existe porque em 08/09
 seis afirmações estavam erradas ao mesmo tempo em três documentos, e duas delas
 discordavam entre si.
@@ -93,7 +93,7 @@ discordavam entre si.
 | **97 migrações** | `.sql` dentro das partições |
 | **106 tabelas** | `CREATE TABLE` nas migrações |
 | **64 suítes** | `backend/test/*.spec.ts` |
-| **624 testes** | `it(` / `test(` nas suítes |
+| **626 testes** | `it(` / `test(` nas suítes |
 | **31 telas React** | `frontend/src/screens/*.tsx` |
 | **14 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **6 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
@@ -114,27 +114,33 @@ foi assim que "30 telas" sobreviveu à fase que existiu para acabar com isso.*
 
 ### A última verificação inteira
 
-**10/09/2026, fase 90.** `tsc` limpo nos dois lados. A suíte **duas rodadas
-inteiras**: uma às 22h de Porto Alegre com o UTC já em 11/09, **no relógio
-real**, e outra com banco e processo sob `faketime -12h`, de manhã. O
-`ensaio:producao` aplicou as 97 migrações pelo binário compilado num banco
-virgem; o `ensaio:restauracao` rodou com uma credencial fictícia no cofre,
-abrindo com a chave certa e reprovando com a errada. O protótipo foi
-reconstruído e saiu **idêntico** ao da fase 89 — a fase não tocou em tela.
+**11/09/2026, fase 91.** `tsc` limpo nos dois lados. A suíte **duas rodadas
+inteiras**: uma às 08h31 de Porto Alegre, **no relógio real**, e outra com banco
+e processo sob `faketime +14h` — 22h33 de Porto Alegre com o UTC já em 12/09,
+que é a condição da regra —, 64 suítes e 626 testes nas duas. O
+`ensaio:producao` compilou o serviço mudado e aplicou as 97 migrações pelo
+binário num banco virgem. O protótipo foi reconstruído e saiu **idêntico**: a
+fase não tocou no `frontend/`.
 
-**Os seis ensaios de navegador NÃO rodaram nesta fase**, de propósito: nada no
-`frontend/` mudou, e o protótipo é byte a byte o que eles percorreram verdes na
-fase 89, no mesmo dia. Se a próxima fase tocar em tela, eles voltam a ser
-obrigatórios antes da entrega.
+**Não rodaram, de propósito, e com o motivo:** os seis ensaios de navegador
+(nenhuma linha do `frontend/` mudou desde a fase 89, quando os seis passaram
+verdes com este mesmo protótipo) e o `ensaio:restauracao` (nenhuma migração
+nova, e ele passou na fase 90 com credencial no cofre). Se a próxima fase tocar
+em tela ou em migração, eles voltam a ser obrigatórios.
 
-*Dois cuidados que as rodadas ensinaram: o `pg_ctl start` sob `faketime` trava
-esperando o arranque, embora o banco suba — use `-W` e confira com
-`pg_isready`; e processo em segundo plano não sobrevive entre chamadas do
-ambiente, então ensaio longo roda em primeiro plano, um por vez.*
+*A fase 91 começou numa sessão que foi interrompida: a correção do §9 e o
+conserto da triagem estavam no disco, sem commit. Nada disso foi aceito pelos
+logs dela — a prova da triagem foi refeita, reprovando com o serviço antigo e
+passando com o novo, antes de o trabalho ser adotado. **Arquivo que mudou sem
+quem retoma ter mudado é tratado como de terceiro até ser provado.***
+
+*Dois cuidados das rodadas: o `pg_ctl start` sob `faketime` trava esperando o
+arranque — use `-W` e confira com `pg_isready`; e processo em segundo plano não
+sobrevive entre chamadas do ambiente.*
 
 *Contagem que só cresce não é dado. O que vale é a **data** e a **condição** da
-última verificação — e **data de verificação também envelhece**. Quando a
-próxima fase terminar, esta seção é reescrita, não acrescida.*
+última verificação. Quando a próxima fase terminar, esta seção é reescrita, não
+acrescida.*
 
 ### Como retomar, em três linhas
 
@@ -163,6 +169,7 @@ arqueologia.
 | 88 | **O retorno da visita ecoa** (§10.5, item 3): quem voltou, quem saiu e quem continua fora, na Passagem e na ATA, de uma função só. O que ela trouxe de casa virou campo; "se houve alteração" não — e está escrito por quê |
 | 89 | **Fechar as pontas da 88.** A verificação que faltava achou quatro coisas que o verde escondia: dois retornos simultâneos sobrescreviam o primeiro (1080); o bloco novo nunca tinha sido desenhado nos ensaios, porque o servidor de mentira nascia sem convivência; o roteiro mandava ler um retorno que nenhuma tarefa registrava; e o vínculo aparecia como código cru. Mais uma pergunta do roteiro que tinha deixado de existir |
 | 90 | **Uma decisão só.** As quatro funções que a 89 deixou anotadas, provadas reprovando com o estrago lido do banco — a criança morando no destino com o pedido dizendo "recusado"; a ATA Geral com o fechamento do segundo aparelho; o combinado revogado com um histórico que diz cumprido — e consertadas (1090, 1100, 1110). A corrida virou ajudante de teste, e a varredura virou conferência permanente no `arquitetura.spec.ts` |
+| 91 | **O mesmo desenho, no TypeScript.** A varredura dos serviços achou uma ocorrência real: a Enfermagem assinando enquanto o Gestor devolvia, e a evolução ASSINADA voltava a "complemento solicitado" com duas triagens gravadas. Provado pela rota, com uma segunda forma da corrida (`corridaPorHttp`), e consertado. A conferência do `arquitetura.spec.ts` passou a ler os serviços também, com as exceções escritas por extenso. E o §9 deixou de dizer que ninguém de fora tinha usado o protótipo — já usaram, e é daí que veio a fila de 09/09 |
 
 ---
 
@@ -514,7 +521,7 @@ Além dos e2e, sete suítes estáticas — todas já pegaram erro de verdade:
 
 | Suíte | O que ela cobra |
 |---|---|
-| `arquitetura.spec.ts` | as fronteiras entre partições; o marcador `rls-join-ok:` obrigatório perto de todo JOIN; e, desde a fase 90, **nenhuma função que confere o estado numa leitura e grava só pelo id** (regra 11). Esta última é heurística e diz o que não pega: o mesmo desenho no TypeScript dos serviços |
+| `arquitetura.spec.ts` | as fronteiras entre partições; o marcador `rls-join-ok:` obrigatório perto de todo JOIN; e, desde as fases 90 e 91, **nenhuma função do banco nem serviço que confere o estado numa leitura e grava só pelo id** (regra 11). É heurística, e diz o que não pega: estado guardado em coluna que não se chama `status` |
 | `contrato-rotas.spec.ts` | toda rota chamada pela tela **existe** no servidor |
 | `alcance.spec.ts` | as marcas `/* alcance:<área> */` lidas do código que roda |
 | `documentacao.spec.ts` | toda tabela do banco aparece no `der.md` |
@@ -583,6 +590,17 @@ auditoria** — senão o ato que perdeu a corrida deixa rastro de algo que não
 aconteceu. A prova é `test/setup/corrida-no-banco.ts` (duas conexões, a segunda
 vista PARADA na trava antes de a primeira confirmar); a conferência permanente
 está no `arquitetura.spec.ts`, e foi vista acusando as cinco antes do conserto.
+
+**E a sexta, no TypeScript (fase 91).** A triagem da Enfermagem fazia o mesmo
+dentro do serviço: lia o estado, gravava a triagem e depois o estado com
+`WHERE id = $1`. No serviço não há `FOR UPDATE` que resolva — sob RLS ele faz a
+linha sumir —, então o caminho é o mesmo do banco: **o estado lido vai para o
+WHERE, `rowCount` zero vira 409 com a frase, e a triagem só é gravada depois.**
+Quando o desenho mora no serviço, a prova passa pela ROTA: `corridaPorHttp`, no
+mesmo ajudante, trava a linha como dono do banco, dispara as requisições, espera
+ver todas paradas e só então solta. A conferência dos serviços está no
+`arquitetura.spec.ts`, com as exceções escritas por extenso — e exceção que
+deixa de ser usada reprova.
 
 **12. Agregação por casa confere o escopo ANTES de contar.** O RLS filtra as
 linhas, e zero se lê como "casa vazia", não como "não é sua". **Zerar não é
@@ -1299,9 +1317,10 @@ e para a migração da implantação).
 ### Achados de passagem, ainda sem conserto
 
 - **O conferidor de fronteiras não lê SQL** (§4.3).
-- **A varredura de concorrência só lê as funções do banco.** O mesmo desenho —
-  ler o estado e gravar só pelo id — escrito no TypeScript de um serviço não é
-  pego por ela. Ninguém procurou ainda.
+- **A conferência de concorrência só olha a coluna `status`.** Na fase 91 os
+  serviços foram lidos também por colunas de fechamento (`signed_at`,
+  `decided_at`, `revoked_at` e afins) sem guarda no WHERE, uma vez, à mão: só
+  apareceu a revogação de sessão, que é idempotente. Isso não virou conferência.
 
 *As quatro funções que gravavam só pelo id, anotadas aqui na fase 89, foram
 provadas e consertadas na 90 (§6.11).*
@@ -1313,8 +1332,17 @@ provadas e consertadas na 90 (§6.11).*
 
 ### O que não é código, e vale mais que tudo acima
 
-**Ninguém que não construiu o sistema abriu o protótipo ainda.** Seis ensaios de
-navegador não medem hesitação.
+**O protótipo já foi aberto e usado pela Fundação** — aprovado em 28/08, e os
+pedidos de 09/09 (§10.5) nasceram desse uso. *Até a fase 90 esta seção dizia
+que ninguém de fora o tinha aberto; estava errado, e o próprio roteiro já dizia
+o contrário na primeira linha. Corrigido em 10/09 a partir da palavra do dono
+do projeto.*
+
+O que ainda não foi visto por gente é o que veio **depois** desse uso: as dez
+entregas da fila de 09/09 (fases 76–88), que só ficaram alcançáveis no
+protótipo nas fases 87 e 89. **O roteiro aplicado cargo a cargo continua sendo
+a medida que falta** — seis ensaios de navegador dizem que a porta existe, e
+não medem onde uma pessoa hesita.
 
 ---
 
