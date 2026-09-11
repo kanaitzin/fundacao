@@ -82,7 +82,7 @@ aplicação e no banco. §7 tem a matriz inteira.
 
 ## 2. O ESTADO HOJE
 
-**Fases 0 a 88.** Estes números **saem do código**, não da memória — e são
+**Fases 0 a 89.** Estes números **saem do código**, não da memória — e são
 cobrados por `test/numeros-da-documentacao.spec.ts`, que existe porque em 08/09
 seis afirmações estavam erradas ao mesmo tempo em três documentos, e duas delas
 discordavam entre si.
@@ -90,14 +90,14 @@ discordavam entre si.
 | Quanto | De onde sai |
 |---|---|
 | **17 partições** isoladas | pastas em `backend/src/modules/` |
-| **93 migrações** | `.sql` dentro das partições |
+| **94 migrações** | `.sql` dentro das partições |
 | **106 tabelas** | `CREATE TABLE` nas migrações |
 | **64 suítes** | `backend/test/*.spec.ts` |
-| **616 testes** | `it(` / `test(` nas suítes |
+| **618 testes** | `it(` / `test(` nas suítes |
 | **31 telas React** | `frontend/src/screens/*.tsx` |
 | **14 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **6 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
-| protótipo com **≈994 KB** | `prototipo/rede-acolher-prototipo.html` |
+| protótipo com **≈997 KB** | `prototipo/rede-acolher-prototipo.html` |
 
 *A frase importa: o conferidor lê o NÚMERO colado ao substantivo. Escrever
 "Telas React … 31" numa coluna separada faz o teste passar sem conferir nada —
@@ -109,74 +109,43 @@ foi assim que "30 telas" sobreviveu à fase que existiu para acabar com isso.*
 |---|---|
 | `npm run ensaio` | 118 telas nos **sete** cargos oferecidos — Coordenação 24, Técnica 22, Gestor 21, Líder Diurno 15, Líder Noturno 14, Educador 13, Enfermagem 9. A Cozinha saiu do seletor em 09/09: o cargo continua no banco, oculto |
 | `npm run ensaio:acessibilidade` | 125 telas, **nenhuma violação de WCAG 2.1 AA** |
-| `npm run ensaio:roteiro` | 40 tarefas do roteiro, **todas com porta no cargo certo** |
+| `npm run ensaio:roteiro` | 41 tarefas do roteiro, **todas com porta no cargo certo** |
 | `npm run ensaio:uso` | 149 cobranças em 13 blocos, **todas passando** — e todos os cargos completando o percurso |
 
 ### A última verificação inteira
 
-**10/09/2026, fase 87.** `tsc` limpo nos dois lados; a suíte **duas rodadas
-seguidas**, uma delas com **os dois relógios** — o do processo e o do banco —
-às 21h27 de Porto Alegre, com o UTC já no dia seguinte, que é a condição que a
-regra pede; os **seis** ensaios de navegador, os seis verdes; o
-`ensaio:producao` e o `ensaio:restauracao`; o protótipo reconstruído.
+**10/09/2026, fase 89.** `tsc` limpo nos dois lados. A suíte **duas rodadas
+inteiras**: uma às 21h de Porto Alegre com o UTC já em 11/09, **no relógio
+real** — o do processo e o do banco são o mesmo, e é a condição que a regra
+pede —, e outra com os dois relógios deslocados para a **manhã** por `faketime`,
+banco e processo com o mesmo deslocamento. Os **seis** ensaios de navegador,
+verdes com o protótipo reconstruído. O `ensaio:producao` aplicou as 94
+migrações pelo binário compilado num banco virgem. O `ensaio:restauracao` rodou
+**com uma credencial fictícia no cofre**: abre com a chave do ambiente e reprova,
+com código 1, com a chave errada — sem credencial ele passa dizendo que não há o
+que conferir, e foi assim que ele rodou na fase 87.
 
-### ⚠️ A FASE 88 NÃO ESTÁ VERIFICADA POR INTEIRO — comece por isto
+*A fase 88 tinha ficado com metade da verificação por fazer, anotada aqui como
+primeiro trabalho. Feita na 89, ela passou inteira — e mesmo assim achou quatro
+defeitos que nenhum conferidor acusava (a tabela do §2 e a §6.14 contam quais).
+Verde que nunca desenhou a tela não é verde.*
 
-A fase 88 foi construída em 10/09 e a sessão terminou antes de ela ser
-conferida como a regra pede. **O que rodou, e passou:**
-
-| Rodou | Resultado |
-|---|---|
-| `tsc --noEmit` nos dois lados | limpo |
-| a suíte, **UMA** rodada | 64 suítes, 616 testes, todos passando |
-| `npm run prototipo` | reconstruído, e o rebuild sai idêntico (`md5 d9f453f0…`) |
-| `npm run ensaio:roteiro` | 40 tarefas, todas com porta |
-| `npm run ensaio:uso` | 149 cobranças, todas passando — inclusive o bloco 13, novo |
-
-**O que NÃO rodou, e é o primeiro trabalho da próxima sessão:**
-
-1. **a SEGUNDA rodada da suíte**, com os dois relógios depois das 21h de Porto
-   Alegre e o UTC no dia seguinte. É a rodada que pega contaminação de estado
-   entre suítes e data calculada em UTC — e a fase 88 mexeu justamente em
-   recorte de turno por fuso. *Como fazer: `apt-get install -y faketime`, então
-   subir o PostgreSQL sob `faketime -f '+Nh'` e rodar `faketime -f '+Nh' npx
-   jest` com o MESMO N, escolhido para pôr Porto Alegre entre 21h e 24h.
-   Deslocar só o processo reproduz a divergência do §12.6 (dezessete testes
-   caem) e não é o que a regra cobra.*
-2. **`npm run ensaio`** (as 118 telas) e **`npm run ensaio:acessibilidade`**
-   (as 125). O bloco novo é UI nova, com pílula, bloco e texto — cor nova passa
-   pelo conferidor de acessibilidade **antes** de entrar, e isso não aconteceu.
-3. **`npm run ensaio:fila`** e **`npm run ensaio:folhas`** — os dois estavam
-   verdes antes, e o protótipo mudou depois.
-4. **`npm run ensaio:producao`** e **`npm run ensaio:restauracao`** — duas
-   migrações novas (1060 e 1070) que nunca foram aplicadas pelo binário
-   compilado num banco virgem. É exatamente o caso que o `ensaio:producao`
-   existe para pegar.
-
-*Isto está escrito aqui, e não numa anotação à parte, porque data e condição de
-verificação envelhecem pior que número — foi o que a fase 87 descobriu. Quando
-os seis ensaios e a segunda rodada passarem, apague este bloco e atualize o de
-cima.*
-
-*A rodada anterior dizia 09/09 e afirmava "os seis ensaios de navegador". Era
-falsa desde 10/09 às 04h36: a fase 83 tirou a Cozinha do seletor e dois
-ensaios passaram a estourar — as fases 84, 85 e 86 foram construídas com eles
-vermelhos. **Data de verificação também envelhece**, e envelhece pior que
-número, porque parece um fato datado e não uma afirmação sobre o presente. O
-que a corrigiu não foi disciplina: foi o `servidor-de-mentira.spec.ts`, que
-agora falha no `npx jest` se um ensaio escolher um cargo que o seletor não
-oferece.*
+*Dois cuidados que a rodada ensinou: o `pg_ctl start` sob `faketime` trava
+esperando o arranque, embora o banco suba — confira com `pg_isready` em outra
+chamada; e processo em segundo plano não sobrevive entre chamadas do ambiente,
+então ensaio longo roda em primeiro plano, um por vez.*
 
 *Contagem que só cresce ("quinze rodadas limpas") não é dado. O que vale é a
-**data** e a **condição** da última verificação. O contador acumulado saiu daqui
-na fase 71, quando dois documentos discordaram dele e ninguém soube dizer de
-onde vinha o número.*
+**data** e a **condição** da última verificação. **Data de verificação também
+envelhece**, e envelhece pior que número, porque parece um fato datado e não uma
+afirmação sobre o presente. Quando a próxima fase terminar, esta seção é
+reescrita, não acrescida.*
 
 ### Como retomar, em três linhas
 
 Anexe **este arquivo** e o **`rede-acolher-atualizado.zip`**, e cole o bloco do
-§14 como primeira mensagem. Rode `bash scripts/preparar-ambiente.sh`. Leia o
-**aviso da fase 88** logo abaixo — é o primeiro trabalho — e depois a
+§14 como primeira mensagem. Rode `bash scripts/preparar-ambiente.sh`. Leia os
+**achados de passagem** da §9 — são o trabalho que ficou anotado — e depois a
 **§10.5**, que é a fila viva. O resto deste documento é referência.
 
 ### O que cada bloco de fases entregou
@@ -195,14 +164,23 @@ arqueologia.
 | 72–74 | As três respostas da Fundação viraram código: quem dá o remédio; a escala de plantão por data; a ATA que a próxima equipe lê |
 | 75 | **Caça a defeito, sem construir nada novo.** Sete achados — o principal: a dose chegava ao educador **sem botão** |
 | 76–86 | **A fila do Marcelo** (§10.5): desmarcar ocorrência, hora de sair e endereço, cor por categoria e por pessoa, cobrança de relato, experiência familiar, sair sozinho, a cozinha inteira, estoque com nota e receita, e o remédio que vai com a criança |
-| 88 | **O retorno da visita ecoa** (§10.5, item 3): quem voltou, quem saiu e quem continua fora, na Passagem e na ATA, de uma função só. O que ela trouxe de casa virou campo; "se houve alteração" não — e está escrito por quê |
 | 87 | **Destravar.** Dois dos seis ensaios estavam vermelhos desde a fase 83 e ninguém tinha visto; cinco das nove entregas de 09/09 estavam invisíveis no protótipo; o roteiro do Marcelo não conhecia nenhuma delas. Nada de novo foi construído — o que existia passou a ser alcançável, e a §6.19 é a regra que sobrou |
+| 88 | **O retorno da visita ecoa** (§10.5, item 3): quem voltou, quem saiu e quem continua fora, na Passagem e na ATA, de uma função só. O que ela trouxe de casa virou campo; "se houve alteração" não — e está escrito por quê |
+| 89 | **Fechar as pontas da 88.** A verificação que faltava achou quatro coisas que o verde escondia: dois retornos simultâneos sobrescreviam o primeiro (1080); o bloco novo nunca tinha sido desenhado nos ensaios, porque o servidor de mentira nascia sem convivência; o roteiro mandava ler um retorno que nenhuma tarefa registrava; e o vínculo aparecia como código cru. Mais uma pergunta do roteiro que tinha deixado de existir |
 
 ---
 
 ## 3. COMO RODAR
 
 ### Primeiro, o preparo
+
+**O script não instala o PostgreSQL.** Numa máquina nova ele avisa e segue, e a
+suíte morre com erro de conexão. Instale o 16 antes (`apt-get install -y
+postgresql-16 faketime` — o `faketime` é o da rodada depois das 21h). Se o `apt`
+recusar por causa de um repositório de terceiro que responde 403, tire esse
+repositório do caminho: é do ambiente, não do projeto. **E o banco não
+sobrevive entre rodadas do ambiente:** rode o preparo de novo antes de cada
+bateria.
 
 Três coisas caem entre uma sessão e outra: as dependências (que vêm de
 `npm ci` **na raiz**, porque é um workspace), o PostgreSQL (que não é serviço e
@@ -235,7 +213,7 @@ cd frontend && npm run prototipo
 # sai em prototipo/rede-acolher-prototipo.html
 ```
 
-O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as 93
+O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as 94
 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
 
 ### Os ensaios — e por que cada um existe
@@ -247,7 +225,7 @@ migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.
 | `npm run ensaio` | percorre as 118 telas dos sete cargos oferecidos num navegador de verdade, cobrando que nenhuma deixe erro no console, que escreva alguma coisa e que não mostre `undefined` para quem lê. **Tela nova entra neste percurso.** |
 | `npm run ensaio:fila` | corta o sinal, marca a chamada, fecha e abre o aplicativo, religa, e confere que **só o que o servidor confirmou** saiu do aparelho |
 | `npm run ensaio:folhas` | os caminhos de documento até o arquivo baixar: abre a folha, tenta baixar com finalidade curta demais, baixa com frase válida, confere que o `.docx` chegou |
-| `npm run ensaio:roteiro` | cobra que as 40 tarefas do roteiro do Marcelo tenham porta no cargo certo. Não simula a procura de uma pessoa — mas impede o fracasso barato: a tarefa não ter porta, e isso aparecer diante da equipe |
+| `npm run ensaio:roteiro` | cobra que as 41 tarefas do roteiro do Marcelo tenham porta no cargo certo. Não simula a procura de uma pessoa — mas impede o fracasso barato: a tarefa não ter porta, e isso aparecer diante da equipe |
 | `npm run ensaio:acessibilidade` | axe-core (WCAG 2.1 AA) nas 125 telas — sete a mais que o `ensaio` porque confere também a folha do "Mais" de cada cargo, aberta dezenas de vezes por turno. **Cor nova passa por ele antes de entrar** |
 | `npm run ensaio:uso` | percorre os **sete** cargos **apertando os botões até o fim** — chamada, exceção, passagem, armário, cofre, internação, diário, pedido de lanche — e **lê de volta o que ficou gravado**. É o que pega o defeito que a tela não denuncia: a folha abriu, o botão salvou, e só o número estava errado. *Dizia "oito" aqui, e o roteiro dele também: era a Cozinha, que saiu do seletor na fase 83 — e por isso ele morria no meio* |
 
@@ -341,6 +319,14 @@ caminho de entrada), `module.json` (manifesto com `depends` e tabelas) e
 
 Nada disso é promessa: `test/arquitetura.spec.ts` lê os imports de todo arquivo
 e falha o build se alguma regra cair.
+
+**O que ele NÃO lê: SQL.** As migrações de uma partição podem ler tabelas de
+outra sem declarar em `depends`, e isso já acontece: `shifts` declara depender
+de `identity` e `sync`, e a 0310 lê `house_stay`, a 0940 lê a prescrição e a
+dose, e a 1070 lê `family_stay`, `person` e `person_contact`. Remover `people`
+ou `medications` quebraria migrações de `shifts` — o "removível" abaixo vale
+para as partições que foram de fato removidas na prova, não para todas. Achado
+na fase 89; não consertado.
 
 **Remover um módulo:** apagar a linha do `import` e do array `imports` em
 `src/app.module.ts`, apagar a pasta, rodar `npm test`. O teste de fronteiras
@@ -621,6 +607,17 @@ relato da fase 79 nunca aparecer. Nada disso quebra: `tsc` está feliz, são
 strings; a suíte está feliz, não toca no frontend; o `ensaio` está feliz, a
 tela renderiza e "—" não é `undefined`. Agora é o
 `servidor-de-mentira.spec.ts` que cobra.
+
+**E a terceira vez, na fase seguinte à que existiu para acabar com isso.** A
+fase 88 entregou um bloco que **some quando está vazio** — certo no sistema —, e
+o servidor de mentira nascia **sem convivência nenhuma**. O `ensaio` e o
+`ensaio:acessibilidade` passaram verdes sem nunca desenhar o bloco: a cor nova
+não foi conferida, e o Marcelo abriria o arquivo sem ver a entrega. **Bloco que
+some quando vazio precisa de dado no servidor de mentira, e o ensaio precisa
+procurar o CONTEÚDO, não a porta** — o `ensaio:roteiro` cobrava que a aba
+Passagem existisse, e ela existia. A regra geral não cabe numa expressão
+regular; o `servidor-de-mentira.spec.ts` cobra o caso que aconteceu, e é o
+exemplo a copiar no próximo bloco assim.
 
 **19. Ensaio que ESTOURA não é ouvido como ensaio que reclama.** A fase 83
 tirou a Cozinha do seletor e não tirou dos roteiros. O `selectOption('cozinha')`
@@ -1013,6 +1010,13 @@ seis meses e um relatório judicial muito depois de o detalhe ao lado ter sido
 esquecido, e é o §8.14 inteiro. *Decisão minha, registrada: ele pediu a
 palavra, e vale contar isso a ele quando levar.*
 
+**O retorno é um só.** Duas pessoas registrando a mesma chegada ao mesmo tempo
+— a educadora na porta e o líder no celular — recebiam sucesso as duas, e a
+segunda **sobrescrevia** a primeira: outro texto, outro nome em quem recebeu. A
+1080 põe o estado no `UPDATE` (regra 11), e a segunda recebe "o retorno desta
+saída já foi registrado". Achado na verificação da 88, com teste de duas
+conexões que reprovou antes do conserto.
+
 **O dia do retorno já conta como de volta.** Se contasse como fora, a criança que
 chegou às 16h passaria a noite em casa com a grade vazia e ninguém seria
 lembrado do remédio das 20h. O custo — as doses anteriores à chegada, naquele
@@ -1284,6 +1288,19 @@ confirmada, health check, `GET /medications/alert-offsets` e
 recebe juntas) e `GET /people/:id/admission` (a ficha inteira, para o documento
 e para a migração da implantação).
 
+### Achados de passagem, ainda sem conserto
+
+Anotados na fase 89, fora do que ela veio fazer. Cada um pede o seu teste que
+reprova antes de mexer.
+
+- **Quatro funções gravam só pelo id, sem trava na leitura** — o mesmo desenho
+  que a 1080 consertou no retorno: `app_close_general_night_ata` (0310),
+  `app_cancel_transfer` e `app_decline_transfer` (0330), `app_mudar_combinado`
+  (0840). As de transferência preocupam mais: aceitar e recusar ao mesmo tempo
+  pode terminar num estado que ninguém escolheu. As outras do mesmo desenho
+  travam a linha com `FOR UPDATE` e estão certas.
+- **O conferidor de fronteiras não lê SQL** (§4.3).
+
 ### O que é meu e ficou pequeno
 
 - **As fontes do protótipo**: embutir as duas famílias custa cerca de 300 KB. §10.10.
@@ -1381,8 +1398,11 @@ número**.
 
 ## 10.5 A FILA DO MARCELO — o que ele pediu em 09/09/2026
 
-Uma conversa longa em 09/09 trouxe treze pedidos. **Dez estão entregues**,
-**três esperam código** e **três estão travadas por resposta da casa**.
+Da conversa longa de 09/09: **dez pedidos estão entregues**, **três esperam
+código** e **três estão travados por resposta da casa**. *Até a fase 88 esta
+frase começava com "treze pedidos" e somava dezesseis desde a fase 86; ninguém
+soube dizer de onde vinha o treze, e ele saiu daqui. O conferidor de números só
+lê o §2 — número fora dele envelhece sem que nada reclame.*
 
 ### Entregues (fases 76–86)
 
@@ -1406,7 +1426,8 @@ junto (9), e o "sair sozinho" (7) mostrando um travessão no lugar do nome da
 criança. O código estava certo nos quatro; o servidor de mentira é que não
 tinha dado. Ver §6.14 e §6.19. **Se algum destes for demonstrado ao Marcelo,
 vale abrir a tela antes** — foi a fase 87 que as tornou alcançáveis, e nenhuma
-delas foi vista por gente ainda.
+delas foi vista por gente ainda. *A décima repetiu o defeito: o retorno da
+fase 88 só apareceu no protótipo na 89 (§6.14).*
 
 ### Esperam código — nenhuma bloqueada por decisão
 
@@ -1582,7 +1603,7 @@ ele continua dizendo que o arquivo existe.
 npm run ensaio:producao
 ```
 
-Constrói, cria um banco virgem, aplica as 93 migrações **pelo binário
+Constrói, cria um banco virgem, aplica as 94 migrações **pelo binário
 compilado**, sobe o serviço e confere `/health`. Não publica nada e não toca no
 banco de trabalho.
 
@@ -1849,8 +1870,8 @@ outras; mudança pedida por uma casa só é conversa antes de virar código.
 
 ### O roteiro do Marcelo
 
-`roteiro-marcelo.md` (e o `.docx` gerado dele) leva 40 tarefas do roteiro à Casa 03, cargo a
-cargo — dez delas nasceram na fase 87, para o roteiro alcançar as entregas de
+`roteiro-marcelo.md` (e o `.docx` gerado dele) leva 41 tarefas do roteiro à Casa 03, cargo a
+cargo — dez delas nasceram na fase 87, uma na 88 e uma na 89, para o roteiro alcançar as entregas de
 09/09. **Ele ficou longo: aplique por cargo, e pare onde o tempo acabar.**
 Como se aplica:
 

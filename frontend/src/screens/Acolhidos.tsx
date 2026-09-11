@@ -3,6 +3,7 @@ import { FolhaDocumento } from '../documentos';
 import { Dossie } from './Dossie';
 import { api, ErroApi } from '../api';
 import { Cadastro } from './Cadastro';
+import { VINCULO } from '../convivencias';
 
 /**
  * OS ACOLHIDOS DA CASA e o PERFIL (§6, §13).
@@ -208,12 +209,6 @@ interface Convivencia {
 /** Quem trata do remédio que vai com a criança. */
 const VE_REMEDIO = ['enfermagem', 'equipe_tecnica', 'coordenador', 'gestor_geral'];
 
-const VINCULO: Record<string, string> = {
-  genitora: 'mãe', genitor: 'pai', irmao: 'irmão', avo: 'avó/avô', tio: 'tio/tia',
-  padrinho: 'padrinho', madrinha: 'madrinha',
-  vinculo_comunitario: 'vínculo comunitário', servico_da_rede: 'serviço da rede',
-  outro: 'outro',
-};
 
 const horaCurta = (iso: string) => new Date(iso).toLocaleString('pt-BR', {
   timeZone: 'America/Sao_Paulo', weekday: 'short', hour: '2-digit', minute: '2-digit',

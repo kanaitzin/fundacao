@@ -295,6 +295,72 @@ describe('O retorno da experiência familiar na passagem e na ATA', () => {
     expect(cols[0].c).not.toMatch(/evas|fuga|descumpr/i);
   });
 
+  /**
+   * DOIS RETORNOS AO MESMO TEMPO — o segundo é recusado, e o primeiro fica.
+   *
+   * Achado na verificação da fase 88 (fase 89): a função lia o estado numa
+   * consulta e gravava com `UPDATE … WHERE id = p_id`. Duas pessoas registrando
+   * a mesma chegada — a educadora na porta e o líder no celular — passavam as
+   * duas pela leitura; a segunda esperava a trava da linha e, liberada,
+   * SOBRESCREVIA a primeira: outro texto, outro "o que trouxe", outro nome em
+   * quem recebeu. As duas recebiam sucesso, e ninguém via erro nenhum.
+   * Registro fechado sobrescrito com a autoria trocada (regra 3), pelo caminho
+   * exato da regra 11: a atomicidade mora no `UPDATE … WHERE status = …`.
+   *
+   * O teste é determinístico, não sorte de agenda: a sessão A grava e segura a
+   * transação; o teste ESPERA a sessão B estar parada na trava (pg_locks) e só
+   * então deixa A confirmar.
+   */
+  it('dois retornos ao mesmo tempo: o segundo é recusado e o primeiro não é sobrescrito', async () => {
+    const id = await convivencia(
+      new Date(Date.now() - 2 * 86400_000).toISOString(),
+      new Date(Date.now() + 86400_000).toISOString());
+    const appUrl = process.env.DATABASE_APP_URL
+      ?? 'postgres://rede_app:dev-only-change-me-app@127.0.0.1:5432/rede_acolher';
+    const { rows: [{ id: educadora }] } = await admin.query(
+      `SELECT id FROM app_user WHERE email='educador.ai3@paodospobres.dev'`);
+    const { rows: [{ id: lider }] } = await admin.query(
+      `SELECT id FROM app_user WHERE email='lider.ai3@paodospobres.dev'`);
+
+    const A = new Client({ connectionString: appUrl });
+    const B = new Client({ connectionString: appUrl });
+    await A.connect(); await B.connect();
+    try {
+      const retorno = `SELECT * FROM app_registrar_retorno_familiar($1, now(), $2, $3)`;
+
+      await A.query('BEGIN');
+      await A.query(`SELECT set_config('app.user_id', $1, true)`, [educadora]);
+      await A.query(retorno, [id, 'A: chegou com a tia, conversando.', 'A: mochila de roupa']);
+
+      const { rows: [{ pid }] } = await B.query('SELECT pg_backend_pid() AS pid');
+      await B.query('BEGIN');
+      await B.query(`SELECT set_config('app.user_id', $1, true)`, [lider]);
+      const segundo = B.query(retorno, [id, 'B: chegou sozinha.', 'B: nada'])
+        .then(() => 'aceito', (e) => String(e?.message ?? e));
+
+      /* B precisa estar PARADO na trava da linha antes de A confirmar. */
+      for (let i = 0; i < 100; i++) {
+        const { rows: [{ n }] } = await admin.query(
+          `SELECT count(*)::int AS n FROM pg_locks WHERE pid = $1 AND NOT granted`, [pid]);
+        if (n > 0) break;
+        await new Promise((r) => setTimeout(r, 50));
+      }
+      await A.query('COMMIT');
+
+      const desfecho = await segundo;
+      await B.query('ROLLBACK').catch(() => undefined);
+      expect(desfecho).toMatch(/retorno_ja_registrado/);
+
+      const { rows: [f] } = await admin.query(
+        `SELECT return_note, brought_back, closed_by FROM family_stay WHERE id = $1`, [id]);
+      expect(f.return_note).toMatch(/^A:/);
+      expect(f.brought_back).toMatch(/^A:/);
+      expect(f.closed_by).toBe(educadora);
+    } finally {
+      await A.end(); await B.end();
+    }
+  });
+
   it('o retorno antes da saída é recusado, com a frase dizendo por quê', async () => {
     const id = await convivencia('2026-02-10T10:00:00-03:00', '2026-02-12T18:00:00-03:00');
     const r = await request(http)

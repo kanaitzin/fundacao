@@ -15,9 +15,11 @@
 > ensaio for sem internet, a letra não é a que a equipe vai ver no sistema
 > real. Vale saber antes de anotar "achei feio".
 >
-> Última atualização: 10/09/2026 — as nove entregas de 09/09 no **§0.8**, dez
-> tarefas novas nas seções dos cargos, e a **§7 mudou de dono**: a cozinha não
-> entra no sistema, e quem pede o lanche é quem está no turno.
+> Última atualização: 10/09/2026, à noite — as dez entregas de 09/09 no
+> **§0.8**, doze tarefas novas nas seções dos cargos, a **§7 mudou de dono** (a
+> cozinha não entra no sistema, e quem pede o lanche é quem está no turno), e a
+> **§8** trocou uma pergunta que tinha deixado de existir pelas que ainda
+> esperam resposta.
 
 ---
 
@@ -223,7 +225,7 @@ no vínculo da casa, em vez de fingir que sabe.
 
 ## §0.8 — O que mudou depois de 09/09 (a conversa longa, e é bastante coisa)
 
-Nove coisas que o Marcelo pediu em 09/09 já estão no protótipo. **Dez tarefas
+Dez coisas que o Marcelo pediu em 09/09 já estão no protótipo. **Doze tarefas
 novas** deste roteiro existem por causa delas, e estão marcadas nas seções dos
 cargos. O que vale saber antes de aplicar:
 
@@ -350,17 +352,30 @@ demora, demora vinte vezes por turno.
     visto nada, você preferiria que ninguém te perguntasse?"* A resposta é o
     dado desta tarefa.
 
-12. **A Alice passou o fim de semana com a mãe e voltou no seu turno. Onde
-    você lê o que aconteceu?**
+12. **O Felipe acabou de chegar da casa da mãe, com uma mochila. Registre a
+    chegada.**
+    Observar: ela acha o Felipe em **"Com a família"**, no alto da lista da
+    casa, e o botão **Chegou**? No campo de como ele chegou, ela escreve o
+    **fato** ("chegou falando alto e foi direto para o quarto") ou uma
+    **avaliação** ("chegou alterado")? ⚠️ Se escrever avaliação, **anote a frase
+    inteira** — é a mesma conversa do §8.14 do documento, e é o motivo de
+    "houve alteração?" não ter virado um sim/não. Ela usa o campo **"Trouxe
+    algo de casa?"** para a mochila, ou mistura tudo num texto só? Ela lê o
+    aviso, logo abaixo, sobre **avisar a Enfermagem** se vier remédio?
+
+13. **A Helena passou o fim de semana com a madrinha e voltou no seu turno.
+    Onde você lê o que aconteceu?**
     Observar: ela procura o perfil da criança, ou acha na **passagem**? Depois
     de achar, ela repara que o bloco diz **quem recebeu**, **como a criança
-    chegou** e **o que ela trouxe de casa**? ⚠️ Pergunte: *"se veio um remédio
-    na mochila, o que você faz?"* — a resposta diz se o aviso da tela sobre
-    avisar a Enfermagem está no lugar certo. *(Esta tarefa depende da 3.11: se
-    ninguém registrou uma saída e uma chegada antes, o bloco está vazio, e a
-    tela vai dizer isso.)*
+    chegou** e **o que ela trouxe de casa**? ⚠️ Pergunte: *"se viesse um
+    remédio na mochila, o que você faria?"* — o aviso sobre avisar a
+    Enfermagem está na folha da CHEGADA, e não neste bloco. A resposta diz se
+    ele precisa estar aqui também. *(Para quem aplica: a Helena voltou no turno
+    **diurno**. Aplicando à noite, é o cartão do plantão diurno que tem o
+    retorno dela. Se a pessoa fez a tarefa 12 antes, o Felipe aparece no bloco
+    também.)*
 
-13. **Pergunte depois:** "teve alguma hora em que você achou que ia dar
+14. **Pergunte depois:** "teve alguma hora em que você achou que ia dar
     errado?"
 
 ---
@@ -694,7 +709,7 @@ que falta lanche para a saída de sábado é quem está no turno.*
 
 ---
 
-## 8. Quatro perguntas para o Marcelo, no fim
+## 8. Cinco perguntas para o Marcelo, no fim
 
 1. **A escala 12×36 vigente** — sem ela o aviso de "fora da escala" ao marcar
    compromisso não funciona (§2 do plano do piloto).
@@ -703,23 +718,29 @@ que falta lanche para a saída de sábado é quem está no turno.*
    ARM1–ARM4) são preliminares e aparecem em tela, em relatório e em nome de
    arquivo no Drive.
 
-3. **O código do aparelho da casa — onde ele é digitado.** A coordenação
-   registra o aparelho e recebe um código que aparece uma vez (§11.7). Para a
-   confirmação de remédio funcionar sem sinal, esse código precisa estar
-   guardado NAQUELE aparelho — e não existe tela que o peça, porque a decisão
-   é da Fundação: **quem digita, e quando?** Na hora em que o aparelho é
-   entregue à casa? Na primeira entrada de alguém nele?
-   E a segunda metade da pergunta, que é operacional: **a casa tem um aparelho
-   só.** Quando ele não está com quem faz o plantão, confirmar remédio offline
-   deixa de existir na prática para o educador. Isso é a realidade da
-   instituição, não defeito do sistema — mas precisa ser dito em voz alta e
-   decidido: fica assim, a Fundação designa mais aparelhos, ou a confirmação
-   passa a valer no aparelho pessoal com outra proteção?
+3. **"Se houve alteração" não virou um sim/não — de propósito, e ele pode
+   discordar.** Ele pediu, para a volta da família, "se houve alteração e se
+   trouxe algo de casa". O que ela **trouxe** virou campo próprio: é o que
+   alguém tem de FAZER algo a respeito. A **alteração** ficou no campo de como
+   a criança chegou, pedindo o fato observado. Um "alteração: sim" atravessa
+   seis meses e um relatório judicial muito depois de o detalhe ao lado ter
+   sido esquecido, e "alterada" gruda na criança de um jeito que "chegou sem
+   falar e foi direto para o quarto" não gruda. **A pergunta:** com a tarefa
+   1.12 aplicada, a casa ainda quer o sim/não? Se quiser, é uma linha — mas
+   que seja escolha consciente.
+   *(Esta pergunta substitui a do código do aparelho da casa, que deixou de
+   existir em 08/09: o sistema roda no celular de cada pessoa, e dose não se
+   confirma sem sinal em aparelho nenhum.)*
 
 4. **O SMTP institucional** — provedor, endereço remetente, o endereço onde o
    sistema vai rodar, e quem mexe no DNS do domínio (SPF/DKIM). Sem isso o
    convite de primeiro acesso não sai, e **sem convite não há primeiro acesso
    para 40 pessoas** sem cair na distribuição de senha por mensagem.
+
+5. **Os dois pedidos de 09/09 que esperam uma resposta, e não código.** O
+   **lembrete de prazo**: vencendo o quê — atividade, documento, PIA, receita —
+   e com quantos dias de antecedência? E o **pente-fino semanal**: em que dia
+   da semana?
 
 ---
 

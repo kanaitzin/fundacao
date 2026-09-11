@@ -113,7 +113,10 @@ const CAMPOS_DE_AUTORIA_DA_CASA = ['pedidoPor', 'confirmadaPor', 'registradoPor'
    *
    * `paraQuem` não colide: a inicial é maiúscula, e a busca é sensível a caixa.
    */
-  'quem'];
+  'quem',
+  /* `recebidaPor`: quem recebeu a criança na volta da família (fase 89). É
+     o nome que a passagem e a ATA mostram ao lado do retorno. */
+  'recebidaPor'];
 
 describe('O servidor de mentira do protótipo', () => {
   it('encontra o mock e as declarações de onde a verdade sai', () => {
@@ -156,6 +159,28 @@ describe('O servidor de mentira do protótipo', () => {
       }
     }
     expect(erros).toEqual([]);
+  });
+
+  /**
+   * O PROTÓTIPO ABRE COM O RETORNO DA FAMÍLIA À VISTA.
+   *
+   * A fase 88 entregou o bloco "Experiência familiar neste turno" na Passagem
+   * e na ATA, e o bloco some quando não há nada a mostrar — o que está certo
+   * no sistema. No servidor de mentira a lista nascia VAZIA: o `ensaio` e o
+   * `ensaio:acessibilidade` passaram verdes sem nunca desenhar o bloco, e o
+   * Marcelo abria o arquivo sem ver a entrega. Foi a verificação da fase 88
+   * que achou, na fase 89.
+   *
+   * A regra geral — bloco que some quando vazio precisa de dado no servidor
+   * de mentira — não cabe numa expressão regular. Esta cobra o caso que
+   * aconteceu, e fica como o exemplo a copiar no próximo bloco assim.
+   */
+  it('o protótipo abre com um retorno da família para a passagem mostrar', () => {
+    const inicio = mock.indexOf('const CONVIVENCIAS');
+    expect(inicio).toBeGreaterThan(0);
+    const declaracao = mock.slice(inicio, mock.indexOf('];', inicio) + 2);
+    expect(declaracao).not.toMatch(/\}\[\]\s*=\s*\[\s*\];$/);
+    expect(declaracao).toMatch(/=\s*\[\s*\S/);
   });
 
   /**

@@ -340,11 +340,28 @@ const TAREFAS = [
    * registrar uma saída e uma chegada, e é isso que a pessoa faz na tarefa
    * 3.11. Aqui basta que a passagem exista e que ela seja o lugar certo.
    */
+  /*
+   * A CHEGADA, que faltava (fase 89). A fase 88 entregou o que ela trouxe de
+   * casa, e nenhuma tarefa registrava uma chegada — a 3.11 só registra a
+   * saída, e a leitura da 1.13 dependia de um fato que ninguém criava. O
+   * protótipo abre com o Felipe fora de casa para esta tarefa existir sozinha.
+   */
   {
     cargo: 'educador', secao: '1.12',
-    nome: 'Quem esteve com a família neste turno — leia na passagem',
-    caminho: [{ aba: 'Passagem' }],
-    procurar: [/passagem|plantão/i],
+    nome: 'O Felipe chegou da casa da mãe — registre a chegada',
+    caminho: [{ aba: 'Acolhidos' }],
+    procurar: [/Com a família/i, /Felipe/, /Chegou/],
+  },
+  /*
+   * A LEITURA. Desde a fase 89 a porta não basta: o protótipo abre com o
+   * retorno da Helena no turno diurno, e é o NOME dela que se procura — um
+   * cartão de plantão qualquer satisfazia a cobrança antiga, com o bloco vazio.
+   */
+  {
+    cargo: 'educador', secao: '1.13',
+    nome: 'A Helena voltou da madrinha — leia na passagem',
+    caminho: [{ aba: 'Passagem' }, { clicar: /Plantão diurno/i }],
+    procurar: [/com a família neste turno/i, /Helena/, /Trouxe de casa/i],
   },
 
   /* ------------------------------------------------------ 78, na coordenação

@@ -759,7 +759,83 @@ const CONVIVENCIAS: { id: string; personId: string; quem: string; comQuem: strin
                          não apaga nada: ele encerra (regra 14, e a regra 6). */
                       voltouEm?: string | null; recebidaPor?: string | null;
                       comoChegou?: string | null; trouxe?: string | null;
-                      status?: 'em_andamento' | 'encerrada' }[] = [];
+                      status?: 'em_andamento' | 'encerrada' }[] = [
+  /*
+   * UM RETORNO JÁ REGISTRADO, para o protótipo abrir com a entrega à vista.
+   *
+   * A lista nascia VAZIA, e o bloco da fase 88 some quando não há nada a
+   * mostrar. Resultado: o `ensaio` e o `ensaio:acessibilidade` passaram verdes
+   * sem nunca desenhar o bloco — a cor nova não foi conferida —, e o Marcelo
+   * abria o arquivo sem ver a entrega. É a segunda metade da regra 14 outra
+   * vez: o servidor de mentira respondendo PIOR que o servidor esconde um
+   * sistema que existe (fase 89).
+   *
+   * Por que um retorno ENCERRADO, e não uma criança ainda fora: quem está fora
+   * ganha o botão "Chegou" na lista da casa, e o bloco 13 do `ensaio:uso`
+   * registra a chegada da Alice clicando nesse botão. E este servidor de
+   * mentira não tira da chamada quem está com a família — uma criança "fora"
+   * semeada apareceria na chamada e em "Com a família" ao mesmo tempo, na
+   * frente de quem aplica o roteiro.
+   */
+  retornoDeSemente(),
+  /*
+   * E UMA CRIANÇA AINDA FORA, para a tarefa de registrar a chegada existir
+   * sozinha no roteiro. Sem ela, a chegada dependia de a técnica ter
+   * registrado uma saída ANTES, na mesma aba — e o roteiro é aplicado uma
+   * pessoa por vez, com o arquivo reaberto. O Felipe não tem dose na grade e
+   * não aparece em nenhum ensaio; ele sai da chamada como no servidor.
+   */
+  ...foraDeSemente(),
+];
+
+/**
+ * A chegada da Helena cai SEMPRE no turno diurno, que é o plantão aberto do
+ * protótipo, e SEMPRE no passado — calculada no fuso da instituição a partir
+ * do relógio de quem abriu o arquivo. Horário fixo contaria histórias
+ * diferentes às 8h e às 22h (armadilha 2 do §6).
+ */
+function foraDeSemente() {
+  const base = new Date(`${HOJE}T12:00:00-03:00`).getTime();
+  const dia = (d: number) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo',
+    year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(base + d * 86400_000));
+  return [{
+    id: 'fs-semente-2', personId: 'p06', quem: 'Felipe',
+    comQuem: 'Rosângela (fictícia)', vinculo: 'genitora',
+    saiuEm: new Date(`${dia(-2)}T16:00:00-03:00`).toISOString(),
+    retornoPrevisto: new Date(`${dia(2)}T18:00:00-03:00`).toISOString(),
+    finalidade: 'Visita estendida à mãe (fictícia).',
+    status: 'em_andamento' as const,
+  }];
+}
+
+function retornoDeSemente() {
+  const partes = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo',
+    year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', hour12: false,
+  }).formatToParts(new Date());
+  const hora = Number(partes.find((x) => x.type === 'hour')?.value ?? 12) % 24;
+  const naInstituicao = (dias: number, hh: string) => {
+    const base = new Date(`${HOJE}T12:00:00-03:00`).getTime() + dias * 86400_000;
+    const dia = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo',
+      year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(base));
+    return new Date(`${dia}T${hh}:00-03:00`).toISOString();
+  };
+  const diaDaChegada = hora < 7 ? -1 : 0;
+  const chegada = hora >= 7 && hora < 19
+    ? new Date(Math.max(new Date(naInstituicao(0, '07:00')).getTime(),
+                        Date.now() - 40 * 60000)).toISOString()
+    : naInstituicao(diaDaChegada, '17:40');
+  return {
+    id: 'fs-semente-1', personId: 'p08', quem: 'Helena',
+    comQuem: 'Madrinha Simoni (fictícia)', vinculo: 'madrinha',
+    saiuEm: naInstituicao(diaDaChegada - 2, '10:00'),
+    retornoPrevisto: naInstituicao(diaDaChegada, '18:00'),
+    finalidade: 'Fim de semana com a madrinha (fictício).',
+    voltouEm: chegada, recebidaPor: 'Tainá Souza (fictícia)',
+    comoChegou: 'Chegou conversando e pediu para mostrar os desenhos que fez no fim de semana.',
+    trouxe: 'Uma sacola de roupa limpa e o caderno de tarefas assinado pela madrinha.',
+    status: 'encerrada' as const,
+  };
+}
 
 const COBRANCAS: { id: string; incidentId: string; userId: string; quem: string;
                    pergunta: string; abertaEm: string; respondida: boolean;
@@ -1216,21 +1292,45 @@ function remediosDoTurno(turno: string) {
  * aparece em nenhum turno se o recorte for só o das bordas, e é justamente nos
  * dias do meio que ninguém sabe o que está acontecendo.
  *
- * O recorte da hora é o mesmo de `remediosDoTurno`: 07h–19h no diurno,
- * 19h–07h no noturno. Simplificado como lá — o protótipo tem um dia só.
+ * O RECORTE É UMA JANELA COM DATA, como no servidor (1070) — e não só a hora.
+ *
+ * A primeira versão usava a hora do dia, como `remediosDoTurno`. Para doses
+ * isso basta, porque a grade do protótipo é de um dia só. Para convivência
+ * não: uma saída de dois dias atrás às 10h aparecia como "saiu neste turno"
+ * no diurno de hoje, que é a mentira que a regra 14 descreve (fase 89). A
+ * janela é a do turno CORRENTE ou do mais recente daquele período — que é o
+ * que os dois cartões do protótipo representam.
  */
+function janelaDoTurno(turno: string): [number, number] {
+  const partes = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo',
+    year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', hour12: false,
+  }).formatToParts(new Date());
+  const hora = Number(partes.find((x) => x.type === 'hour')?.value ?? 12) % 24;
+  const em = (dias: number, hh: number) =>
+    new Date(`${HOJE}T${String(hh).padStart(2, '0')}:00:00-03:00`).getTime() + dias * 86400_000;
+  if (turno === 'diurno') return hora < 7 ? [em(-1, 7), em(-1, 19)] : [em(0, 7), em(0, 19)];
+  return hora < 7 ? [em(-1, 19), em(0, 7)] : [em(0, 19), em(1, 7)];
+}
+
 function convivenciasDoTurno(turno: string) {
-  const noTurno = (iso: string) => horaNoTurno(iso, turno);
+  const [de, ate] = janelaDoTurno(turno);
+  const noTurno = (iso: string) => {
+    const t = new Date(iso).getTime();
+    return t >= de && t < ate;
+  };
   const agora = Date.now();
   const linhas = CONVIVENCIAS
     .map((f) => {
       const voltouNoTurno = !!f.voltouEm && noTurno(f.voltouEm);
       const saiuNoTurno = noTurno(f.saiuEm);
+      /* Atravessa o turno: saiu antes dele e não voltou até o fim dele. */
+      const atravessa = new Date(f.saiuEm).getTime() < de
+        && (!f.voltouEm || new Date(f.voltouEm).getTime() >= ate);
       /* A ordem de teste importa: uma saída que começou E terminou no mesmo
          turno é 'voltou' — o que interessa é que ela está de volta. */
       const situacao = voltouNoTurno ? 'voltou'
         : saiuNoTurno ? 'saiu'
-          : (f.status !== 'encerrada' ? 'fora' : null);
+          : (atravessa ? 'fora' : null);
       if (!situacao) return null;
       return {
         id: f.id, personId: f.personId, acolhido: f.quem,
@@ -2610,6 +2710,10 @@ const INTERNACOES: InternacaoMock[] = [];
 let proximaInternacao = 1;
 
 /** A regra do dia: o dia da ALTA é dia de casa. */
+function estaComAFamilia(personId: string) {
+  return CONVIVENCIAS.some((f) => f.personId === personId && f.status !== 'encerrada');
+}
+
 function estaInternado(personId: string) {
   return INTERNACOES.some((i) => i.acolhidoId === personId && i.status === 'em_andamento');
 }
@@ -3787,7 +3891,11 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
   if (rota === '/checks' && metodo === 'GET') {
     return CHAMADAS.map((k) => ({
       id: k.id, tipo: k.tipo, titulo: k.titulo, status: k.status, horario: k.horario,
-      esperados: todosKids().length, conferidos: Object.keys(k.resultados).length,
+      /* Os mesmos que a folha da chamada lista: sem internado e sem quem está
+         com a família, salvo quem já foi marcado (fase 89). */
+      esperados: todosKids().filter((p) =>
+        (!estaInternado(p.id) && !estaComAFamilia(p.id)) || k.resultados[p.id]).length,
+      conferidos: Object.keys(k.resultados).length,
     }));
   }
   /* Palavra fixa antes de `/checks/:id`: dois segmentos dos dois lados. */
@@ -3813,7 +3921,9 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     const nova: Chamada = { id: uid(), tipo: tipo.cod, titulo,
                             status: 'aberta', horario: new Date().toISOString(), resultados: {} };
     CHAMADAS = [...CHAMADAS, nova];
-    return { id: nova.id, esperados: todosKids().length, opcoes: opcoesDoTipo(tipo.cod) };
+    return { id: nova.id,
+             esperados: todosKids().filter((p) => !estaInternado(p.id) && !estaComAFamilia(p.id)).length,
+             opcoes: opcoesDoTipo(tipo.cod) };
   }
   if (seg[0] === 'checks' && seg.length === 2) {
     const k = CHAMADAS.find((x) => x.id === seg[1])!;
@@ -3823,7 +3933,10 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
      * olhado não some.
      */
     const linhas = todosKids()
-      .filter((p) => !estaInternado(p.id) || k.resultados[p.id])
+      /* E quem está com a família também sai, como no servidor
+         (`app_em_convivencia_familiar`, 1010). Antes o protótipo mostrava a
+         criança na chamada e em "Com a família" ao mesmo tempo (fase 89). */
+      .filter((p) => (!estaInternado(p.id) && !estaComAFamilia(p.id)) || k.resultados[p.id])
       .map((p) => {
       const res = k.resultados[p.id];
       return {
@@ -4762,7 +4875,11 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     const agora = Date.now();
     /* Só quem está fora AGORA: as encerradas continuam guardadas, para a
        passagem e a ATA do turno em que a criança voltou. */
-    return CONVIVENCIAS.filter((f) => f.status !== 'encerrada').map((f) => {
+    /* Na ordem do servidor: quem volta primeiro vem primeiro
+       (`ORDER BY expected_return_at`, 1010). */
+    return CONVIVENCIAS.filter((f) => f.status !== 'encerrada')
+      .slice().sort((a, z) => a.retornoPrevisto.localeCompare(z.retornoPrevisto))
+      .map((f) => {
       const prev = new Date(f.retornoPrevisto).getTime();
       return {
         id: f.id, personId: f.personId, quem: f.quem, comQuem: f.comQuem,

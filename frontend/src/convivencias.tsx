@@ -43,9 +43,18 @@ export interface ConvivenciaDoTurno {
   atrasado: boolean;
 }
 
-const VINCULO: Record<string, string> = {
+/**
+ * O rótulo de cada vínculo — UM mapa só, que o `Acolhidos.tsx` também usa.
+ *
+ * Havia duas cópias, e a deste bloco tinha sete dos dez valores: uma saída com
+ * "vínculo comunitário" aparecia na passagem como `(vinculo_comunitario)`,
+ * com o código cru. Cópia de mapa diverge no primeiro vínculo novo (fase 89).
+ */
+export const VINCULO: Record<string, string> = {
   genitora: 'mãe', genitor: 'pai', irmao: 'irmão', avo: 'avó/avô', tio: 'tio/tia',
   padrinho: 'padrinho', madrinha: 'madrinha',
+  vinculo_comunitario: 'vínculo comunitário', servico_da_rede: 'serviço da rede',
+  outro: 'outro',
 };
 
 const hhmm = (iso: string) => new Date(iso).toLocaleTimeString('pt-BR',

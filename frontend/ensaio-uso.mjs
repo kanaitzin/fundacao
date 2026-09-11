@@ -837,10 +837,27 @@ await fechar();
 await trocar('educador');
 /* `trocar` volta para a primeira aba — a lista da casa é outra. */
 cobrar('o educador abre a lista da casa', await aba('Acolhidos'));
-cobrar('o educador vê quem está com a família na lista da casa',
-  /Com a família/i.test(await conteudo()),
+/*
+ * A LINHA DA ALICE, e não "alguém com a família".
+ *
+ * Desde a fase 89 o protótipo abre com o Felipe fora de casa, para a tarefa de
+ * registrar a chegada existir sozinha no roteiro. Cobrar só "Com a família"
+ * passaria mesmo que a saída da Alice não tivesse sido gravada — e clicar no
+ * PRIMEIRO "Chegou" podia registrar a chegada do Felipe, com o resto do bloco
+ * verde lendo o retorno errado.
+ */
+const linhaDaAlice = pg.locator('main .card .row').filter({ hasText: /Alice/ })
+  .filter({ has: pg.locator('button', { hasText: /^Chegou$/ }) }).first();
+cobrar('o educador vê a Alice entre quem está com a família',
+  /Com a família/i.test(await conteudo()) && (await linhaDaAlice.count()) > 0,
   'ele precisa saber por que a cadeira vai ficar vazia no jantar');
-cobrar('e tem o botão de registrar a chegada', await clicar(/^Chegou$/));
+let chegouDaAlice = false;
+if (await linhaDaAlice.count()) {
+  await linhaDaAlice.locator('button', { hasText: /^Chegou$/ }).first().click();
+  await pg.waitForTimeout(700);
+  chegouDaAlice = true;
+}
+cobrar('e tem o botão de registrar a chegada DELA', chegouDaAlice);
 
 const folhaChegadaFase88 = pg.locator('.overlay .sheet');
 cobrar('a folha da chegada pergunta COMO ela chegou',
