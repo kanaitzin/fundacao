@@ -1,3 +1,4 @@
+import { COLUNAS_DO_CONTATO, contatoParaTela } from './contatos.service';
 import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { DatabaseService } from '../../kernel/database/database.service';
 import { AuditService } from '../../kernel/audit/audit.service';
@@ -83,8 +84,7 @@ export class ProfileService {
          * ficam de fora da tela do plantão — o telefone que deixou de valer
          * não some do banco, mas ninguém liga para ele às 23h por engano.
          */
-        () => c.query(`SELECT id, name, bond, bond_other, phone, note,
-                              restricted, restriction_note
+        () => c.query(`SELECT ${COLUNAS_DO_CONTATO}
                  FROM person_contact WHERE person_id = $1 AND active
                  ORDER BY restricted DESC, name`, [personId]),
       ]);
@@ -126,7 +126,8 @@ export class ProfileService {
       foto: data.p.photo_key
         ? { rota: `/people/${personId}/photo`, em: data.p.photo_at }
         : null,
-      contatos: data.contacts,
+      /* Na forma que a tela lê — a mesma da lista de contatos (fase 92). */
+      contatos: data.contacts.map((r: any) => contatoParaTela(r, user.role)),
       casaAtual: data.stay ? { id: data.stay.house_id, codigo: data.stay.code, nome: data.stay.name, desde: data.stay.started_at } : null,
       noAcervo: !data.stay,
       // 1) alertas essenciais e saúde primeiro

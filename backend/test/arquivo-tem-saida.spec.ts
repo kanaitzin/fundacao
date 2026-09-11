@@ -42,6 +42,9 @@ const POR_ONDE_SAI: Record<string, string> = {
     ':id/memories/:memId/file',
   'person.photo_key':
     ':id/photo',
+  /* A foto 3×4 do visitante, que vai para a folha da portaria (fase 92). */
+  'person_contact.photo_key':
+    'contacts/:contactId/photo',
   'hospitalization_note.storage_key':
     'hospitalizations/:id/notes/:notaId/anexo',
   'life_milestone.storage_key':

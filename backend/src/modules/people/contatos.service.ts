@@ -7,6 +7,64 @@ import { join } from 'node:path';
 import { DatabaseService } from '../../kernel/database/database.service';
 import { AuditService } from '../../kernel/audit/audit.service';
 import { AuthenticatedUser } from '../../kernel/contracts';
+import { formatCpf, isValidCpf, maskCpf, normalizeCpf } from '../../kernel/common/cpf';
+
+/** Quem ESCREVE no cadastro de contatos — e quem autoriza visita (fase 92). */
+export const ESCREVE_CONTATO = ['equipe_tecnica', 'coordenador', 'gestor_geral'];
+
+export const VINCULOS_DO_CONTATO = [
+  { code: 'genitora', label: 'Genitora' },
+  { code: 'genitor', label: 'Genitor' },
+  { code: 'irmao', label: 'Irmão ou irmã' },
+  { code: 'avo', label: 'Avó ou avô' },
+  { code: 'tio', label: 'Tia ou tio' },
+  { code: 'padrinho', label: 'Padrinho' },
+  { code: 'madrinha', label: 'Madrinha' },
+  { code: 'vinculo_comunitario', label: 'Vínculo comunitário' },
+  { code: 'servico_da_rede', label: 'Serviço da rede' },
+  { code: 'outro', label: 'Outro' },
+];
+
+/**
+ * O CONTATO COMO A TELA LÊ — um lugar só (fase 92).
+ *
+ * O perfil tinha consulta e forma próprias, e devolvia as linhas cruas do
+ * banco: contra o servidor de verdade a seção de contatos saía vazia, porque a
+ * tela filtra por `ativo` e lê `nome`. Colunas e forma moram aqui, e a lista de
+ * contatos e o perfil usam as duas.
+ */
+export const COLUNAS_DO_CONTATO = `id, name, bond, bond_other, phone, note, restricted, restriction_note,
+       active, ended_reason, cpf, visit_authorized, visit_authorized_at,
+       app_user_display_name(visit_authorized_by) AS autorizado_por,
+       photo_key IS NOT NULL AS tem_foto,
+       app_user_display_name(created_by) AS por, created_at`;
+
+export function contatoParaTela(r: any, papel: string) {
+  /*
+   * O CPF é de TERCEIRO. Inteiro só para quem escreve no cadastro; o educador,
+   * que lê os contatos para saber quem aparece no portão, vê os três dígitos
+   * do meio — o bastante para conferir um documento, pouco para copiar.
+   */
+  const inteiro = ESCREVE_CONTATO.includes(papel);
+  return {
+    id: r.id, nome: r.name,
+    vinculo: r.bond,
+    vinculoRotulo: rotuloDoVinculo(r.bond, r.bond_other),
+    telefone: r.phone, observacao: r.note,
+    restrito: r.restricted, motivoDaRestricao: r.restriction_note,
+    ativo: r.active, motivoDoEncerramento: r.ended_reason,
+    cpf: r.cpf ? (inteiro ? formatCpf(r.cpf) : maskCpf(r.cpf)) : null,
+    autorizadoAVisitar: r.visit_authorized,
+    autorizacao: r.visit_authorized ? { por: r.autorizado_por, em: r.visit_authorized_at } : null,
+    temFoto: r.tem_foto,
+    por: r.por, em: r.created_at,
+  };
+}
+
+export function rotuloDoVinculo(bond: string, outro?: string | null): string {
+  return bond === 'outro' ? (outro ?? 'Outro')
+    : (VINCULOS_DO_CONTATO.find((v) => v.code === bond)?.label ?? bond);
+}
 
 /**
  * A FOTO DE IDENTIFICAÇÃO E OS TELEFONES DE QUEM APARECE.
@@ -38,18 +96,7 @@ export class ContatosService {
     @Inject(AuditService) private readonly audit: AuditService,
   ) {}
 
-  private readonly VINCULOS = [
-    { code: 'genitora', label: 'Genitora' },
-    { code: 'genitor', label: 'Genitor' },
-    { code: 'irmao', label: 'Irmão ou irmã' },
-    { code: 'avo', label: 'Avó ou avô' },
-    { code: 'tio', label: 'Tia ou tio' },
-    { code: 'padrinho', label: 'Padrinho' },
-    { code: 'madrinha', label: 'Madrinha' },
-    { code: 'vinculo_comunitario', label: 'Vínculo comunitário' },
-    { code: 'servico_da_rede', label: 'Serviço da rede' },
-    { code: 'outro', label: 'Outro' },
-  ];
+  private readonly VINCULOS = VINCULOS_DO_CONTATO;
 
   vocabulario() {
     return {
@@ -69,29 +116,19 @@ export class ContatosService {
   async listar(user: AuthenticatedUser, personId: string) {
     return this.db.asUser(user.id, async (c) => {
       const { rows } = await c.query(
-        `SELECT id, name, bond, bond_other, phone, note, restricted, restriction_note,
-                active, ended_reason,
-                app_user_display_name(created_by) AS por, created_at
+        `SELECT ${COLUNAS_DO_CONTATO}
            FROM person_contact WHERE person_id = $1
           ORDER BY active DESC, restricted DESC, name`, [personId]);
-      return rows.map((r) => ({
-        id: r.id, nome: r.name,
-        vinculo: r.bond,
-        vinculoRotulo: r.bond === 'outro'
-          ? r.bond_other
-          : (this.VINCULOS.find((v) => v.code === r.bond)?.label ?? r.bond),
-        telefone: r.phone, observacao: r.note,
-        restrito: r.restricted, motivoDaRestricao: r.restriction_note,
-        ativo: r.active, motivoDoEncerramento: r.ended_reason,
-        por: r.por, em: r.created_at,
-      }));
+      return rows.map((r) => contatoParaTela(r, user.role));
     });
   }
 
+
   async criar(user: AuthenticatedUser, personId: string, input: {
     nome?: string; vinculo?: string; vinculoOutro?: string; telefone?: string;
-    observacao?: string; restrito?: boolean; motivoDaRestricao?: string;
+    observacao?: string; restrito?: boolean; motivoDaRestricao?: string; cpf?: string;
   }) {
+    const cpf = this.cpfOuNulo(input.cpf);
     if (!(input.nome ?? '').trim()) {
       throw new BadRequestException('Escreva o nome de quem é este contato.');
     }
@@ -117,13 +154,13 @@ export class ContatosService {
       try {
         const { rows: [r] } = await c.query(
           `INSERT INTO person_contact (person_id, name, bond, bond_other, phone, note,
-                                       restricted, restriction_note, created_by, updated_by)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$9) RETURNING id`,
+                                       restricted, restriction_note, cpf, created_by, updated_by)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$10,$9,$9) RETURNING id`,
           [personId, input.nome!.trim(), input.vinculo,
            input.vinculo === 'outro' ? input.vinculoOutro!.trim() : null,
            (input.telefone ?? '').trim() || null, (input.observacao ?? '').trim() || null,
            !!input.restrito, input.restrito ? input.motivoDaRestricao!.trim() : null,
-           user.id]);
+           user.id, cpf]);
         await this.audit.log({
           action: 'contato.criado', actorId: user.id, institutionId: user.institutionId,
           entity: 'person_contact', entityId: r.id,
@@ -152,6 +189,7 @@ export class ContatosService {
     return this.db.asUser(user.id, async (c) => {
       const { rowCount } = await c.query(
         `UPDATE person_contact SET active = false, ended_reason = $2,
+                visit_authorized = false,
                 updated_at = now(), updated_by = $3
           WHERE id = $1 AND active`, [contatoId, motivo.trim(), user.id]);
       if (!rowCount) throw new NotFoundException('Contato não encontrado — ou já encerrado.');
@@ -159,14 +197,87 @@ export class ContatosService {
     });
   }
 
+  /** CPF opcional: vazio vira nulo; preenchido tem de ser um CPF de verdade. */
+  private cpfOuNulo(bruto?: string | null): string | null {
+    const limpo = normalizeCpf(bruto ?? '');
+    if (!limpo) return null;
+    if (!isValidCpf(limpo)) {
+      throw new BadRequestException(
+        'Este CPF não confere — os dígitos verificadores não batem. Confira no documento.');
+    }
+    return limpo;
+  }
+
+  // ------------------------------------------------- Autorizado a visitar
+
+  /**
+   * A MARCA DE QUEM PODE VISITAR (fase 92), com o CPF junto.
+   *
+   * É um ato separado de criar o contato, de propósito: a auditoria registra
+   * QUEM autorizou e quando, e é essa pessoa que responde se alguém entrou na
+   * casa por causa da folha da guarita.
+   */
+  async definirVisita(user: AuthenticatedUser, contatoId: string, input: {
+    autorizado?: boolean; cpf?: string;
+  }) {
+    if (!ESCREVE_CONTATO.includes(user.role)) {
+      throw new ForbiddenException(
+        'Autorizar visita é da equipe técnica e da coordenação — é quem responde por quem entra.');
+    }
+    if (typeof input.autorizado !== 'boolean') {
+      throw new BadRequestException('Diga se este contato está autorizado a visitar ou não.');
+    }
+    const cpf = input.cpf === undefined ? undefined : this.cpfOuNulo(input.cpf);
+
+    const r = await this.db.asUser(user.id, async (c) => {
+      const { rows: [antes] } = await c.query(
+        `SELECT id, person_id, bond, restricted, active FROM person_contact WHERE id = $1`, [contatoId]);
+      if (!antes) return null;
+      /*
+       * A leitura DIAGNOSTICA, com a frase certa; quem garante é o banco — a
+       * restrição `contato_restrito_nao_visita` recusa de qualquer jeito.
+       */
+      if (input.autorizado && antes.restricted) {
+        throw new BadRequestException(
+          'Este contato tem aproximação restrita e não pode ser autorizado a visitar. '
+          + 'Se a restrição deixou de valer, isso se resolve com a equipe técnica antes.');
+      }
+      if (input.autorizado && !antes.active) {
+        throw new BadRequestException('Este contato foi encerrado. Um contato encerrado não visita.');
+      }
+      await c.query(
+        `UPDATE person_contact
+            SET visit_authorized = $2,
+                visit_authorized_by = CASE WHEN $2 THEN $3::uuid ELSE NULL END,
+                visit_authorized_at = CASE WHEN $2 THEN now() ELSE NULL END,
+                cpf = CASE WHEN $4::boolean THEN $5 ELSE cpf END,
+                updated_at = now(), updated_by = $3
+          WHERE id = $1`,
+        [contatoId, input.autorizado, user.id, cpf !== undefined, cpf ?? null]);
+      return antes;
+    });
+    if (!r) throw new NotFoundException('Contato não encontrado — ou fora do seu alcance.');
+
+    await this.audit.log({
+      action: input.autorizado ? 'contato.visita.autorizada' : 'contato.visita.retirada',
+      actorId: user.id, institutionId: user.institutionId,
+      entity: 'person_contact', entityId: contatoId,
+      // Metadado: o vínculo e se o CPF mudou — nunca o CPF.
+      detail: { vinculo: r.bond, cpfInformado: cpf !== undefined && cpf !== null },
+    });
+    return {
+      ok: true,
+      aviso: input.autorizado
+        ? 'Autorizado a visitar. Ele entra na próxima folha da portaria que for gerada — '
+          + 'a que está na guarita não muda sozinha.'
+        : 'Autorização retirada. Gere uma folha nova para a portaria: a impressa ainda tem o nome.',
+    };
+  }
+
   // ----------------------------------------------------------------- Foto
 
-  async guardarFoto(user: AuthenticatedUser, personId: string, input: {
-    conteudo?: string; nomeArquivo?: string;
-  }) {
-    if (!['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(user.role)) {
-      throw new ForbiddenException('A foto de identificação é cadastrada pela técnica ou pela coordenação.');
-    }
+  /** A mesma conferência para as duas fotos: tamanho e assinatura do arquivo. */
+  private fotoValida(input: { conteudo?: string }): { bytes: Buffer; tipo: string } {
     const limpo = String(input.conteudo ?? '').replace(/^data:[^;]+;base64,/, '');
     if (!limpo) throw new BadRequestException('Nenhuma foto foi enviada.');
     const bytes = Buffer.from(limpo, 'base64');
@@ -174,16 +285,73 @@ export class ContatosService {
     if (bytes.length > 4 * 1024 * 1024) {
       throw new BadRequestException('A foto passa de 4 MB. A do celular costuma resolver.');
     }
-    /*
-     * O tipo vem da ASSINATURA do arquivo, e não da extensão: renomear é um
-     * toque, e quem guarda arquivo de criança confere os primeiros bytes.
-     */
     const hex = bytes.subarray(0, 12).toString('hex');
     const tipo = hex.startsWith('ffd8ff') ? 'image/jpeg'
       : hex.startsWith('89504e47') ? 'image/png'
       : hex.startsWith('52494646') && bytes.subarray(8, 12).toString() === 'WEBP' ? 'image/webp'
       : null;
     if (!tipo) throw new BadRequestException('Envie uma foto em JPG, PNG ou WEBP.');
+    return { bytes, tipo };
+  }
+
+  /**
+   * A FOTO 3×4 DO VISITANTE (fase 92). Opcional: a folha sai sem ela, com o
+   * espaço marcado. Guardada como a do acolhido, e pelas mesmas pessoas.
+   */
+  async guardarFotoDoContato(user: AuthenticatedUser, contatoId: string, input: { conteudo?: string }) {
+    if (!ESCREVE_CONTATO.includes(user.role)) {
+      throw new ForbiddenException('A foto do visitante é cadastrada pela técnica ou pela coordenação.');
+    }
+    const { bytes, tipo } = this.fotoValida(input);
+    const chave = randomUUID();
+    await mkdir(this.dir, { recursive: true });
+    await writeFile(join(this.dir, chave), bytes);
+    await this.db.asUser(user.id, async (c) => {
+      const { rowCount } = await c.query(
+        `UPDATE person_contact SET photo_key = $2, photo_mime = $3, photo_at = now(), photo_by = $4
+          WHERE id = $1 AND active`, [contatoId, chave, tipo, user.id]);
+      if (!rowCount) throw new NotFoundException('Contato não encontrado, encerrado, ou fora do seu alcance.');
+    });
+    await this.audit.log({
+      action: 'foto.contato.guardada', actorId: user.id, institutionId: user.institutionId,
+      entity: 'person_contact', entityId: contatoId, detail: { tipo, bytes: bytes.length },
+    });
+    return { ok: true, aviso: tipo === 'image/webp'
+      ? 'Foto guardada. Ela está em WEBP, que o Word não imprime: na folha da portaria sai o '
+        + 'espaço marcado. Uma foto em JPG ou PNG resolve.'
+      : 'Foto guardada. Ela entra na próxima folha da portaria.' };
+  }
+
+  async lerFotoDoContato(user: AuthenticatedUser, contatoId: string) {
+    const r = await this.db.asUser(user.id, async (c) => {
+      const { rows: [x] } = await c.query(
+        `SELECT photo_key, photo_mime FROM person_contact WHERE id = $1`, [contatoId]);
+      return x;
+    });
+    if (!r) throw new NotFoundException('Contato não encontrado — ou fora do seu alcance.');
+    if (!r.photo_key) throw new NotFoundException('Este contato ainda não tem foto.');
+    const bytes = await readFile(join(this.dir, r.photo_key)).catch(() => null);
+    if (!bytes) throw new NotFoundException('A foto não está no armazenamento.');
+    return { nome: 'visitante', tipo: r.photo_mime, conteudo: bytes.toString('base64') };
+  }
+
+  /** Bytes de uma foto guardada — só para quem monta a folha, dentro do módulo. */
+  async bytesDaFoto(chave: string | null): Promise<Buffer | null> {
+    if (!chave) return null;
+    return readFile(join(this.dir, chave)).catch(() => null);
+  }
+
+  async guardarFoto(user: AuthenticatedUser, personId: string, input: {
+    conteudo?: string; nomeArquivo?: string;
+  }) {
+    if (!['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(user.role)) {
+      throw new ForbiddenException('A foto de identificação é cadastrada pela técnica ou pela coordenação.');
+    }
+    /*
+     * O tipo vem da ASSINATURA do arquivo, e não da extensão: renomear é um
+     * toque, e quem guarda arquivo de criança confere os primeiros bytes.
+     */
+    const { bytes, tipo } = this.fotoValida(input);
 
     const chave = randomUUID();
     await mkdir(this.dir, { recursive: true });

@@ -349,7 +349,9 @@ function documento(d: DocumentoWord): string {
   const secao = '<w:sectPr>'
     + '<w:headerReference w:type="default" r:id="rId2"/>'
     + '<w:footerReference w:type="default" r:id="rId3"/>'
-    + '<w:pgSz w:w="11906" w:h="16838"/>'
+    /* Deitada para quadro largo (a portaria, fase 92): troca as medidas e
+       diz ao Word que é paisagem, senão ele imprime em pé e corta. */
+    + (d.paisagem ? '<w:pgSz w:w="16838" w:h="11906" w:orient="landscape"/>' : '<w:pgSz w:w="11906" w:h="16838"/>')
     + '<w:pgMar w:top="1701" w:right="1134" w:bottom="1134" w:left="1701" '
     + 'w:header="567" w:footer="567" w:gutter="0"/>'
     + '</w:sectPr>';

@@ -2756,6 +2756,93 @@ function resumoInternacao(i: InternacaoMock) {
  */
 const CONTATOS: Record<string, any[]> = {};
 let proximoContato = 1;
+const ESCREVE_CONTATO = ['equipe_tecnica', 'coordenador', 'gestor_geral'];
+
+function acharContato(id: string) {
+  for (const lista of Object.values(CONTATOS)) {
+    const c = lista.find((x) => x.id === id);
+    if (c) return c;
+  }
+  return null;
+}
+
+/** Os mesmos dígitos verificadores de `kernel/common/cpf.ts`. */
+function cpfConfere(cpf: string) {
+  if (!/^\d{11}$/.test(cpf) || /^(\d)\1{10}$/.test(cpf)) return false;
+  const dig = (n: number) => {
+    let soma = 0;
+    for (let i = 0; i < n; i++) soma += Number(cpf[i]) * (n + 1 - i);
+    const r = (soma * 10) % 11;
+    return r === 10 ? 0 : r;
+  };
+  return dig(9) === Number(cpf[9]) && dig(10) === Number(cpf[10]);
+}
+
+function cpfParaTela(cpf: string | null, papel: string) {
+  if (!cpf) return null;
+  return ESCREVE_CONTATO.includes(papel)
+    ? `${cpf.slice(0, 3)}.${cpf.slice(3, 6)}.${cpf.slice(6, 9)}-${cpf.slice(9)}`
+    : `***.***.${cpf.slice(6, 9)}-**`;
+}
+
+/**
+ * A folha da portaria no protótipo — a mesma forma de `portaria.service.ts`.
+ * As fotos saem como a marca "foto"/"sem foto": o gerador de Word do protótipo
+ * não embute imagem, e as pessoas daqui são fictícias.
+ */
+function folhaDaPortaria(eu: { fullName: string; role: string }) {
+  const linhas: string[][] = [];
+  let visitantes = 0, sem = 0, semFoto = 0;
+  const criancas = todosKids().slice().sort((a, z) => a.nome.localeCompare(z.nome));
+  for (const k of criancas) {
+    const autorizados = contatosDe(k.id)
+      .filter((c) => c.ativo && c.autorizadoAVisitar && !c.restrito)
+      .sort((a, z) => a.nome.localeCompare(z.nome));
+    const col = [k.foto ? 'foto' : 'sem foto', k.nome];
+    if (!autorizados.length) {
+      sem++;
+      linhas.push([...col, '', 'Nenhum visitante autorizado', '—', '—', '—']);
+      continue;
+    }
+    autorizados.forEach((c, i) => {
+      visitantes++;
+      if (!c.temFoto) semFoto++;
+      linhas.push([
+        ...(i === 0 ? col : ['', '']),
+        c.temFoto ? 'foto' : 'sem foto — pedir documento com foto',
+        c.nome, c.vinculoRotulo,
+        c.cpf ? cpfParaTela(c.cpf, 'coordenador')! : 'não cadastrado — pedir documento com foto',
+        c.telefone ?? '—',
+      ]);
+    });
+  }
+  const agora = new Date();
+  return {
+    titulo: 'Quem pode visitar',
+    subtitulo: `${CASA.code} — ${CASA.name}`,
+    paisagem: true,
+    identificacao: [
+      { rotulo: 'Emitida em', valor: `${agora.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })}, às ${agora.toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' })}` },
+      { rotulo: 'Crianças na casa', valor: String(criancas.length) },
+      { rotulo: 'Visitantes autorizados', valor: String(visitantes) },
+      ...(sem ? [{ rotulo: 'Crianças sem visitante autorizado', valor: String(sem) }] : []),
+      ...(semFoto ? [{ rotulo: 'Visitantes sem foto cadastrada', valor: String(semFoto) }] : []),
+    ],
+    secoes: [{
+      titulo: 'Visitantes autorizados, por criança',
+      tabela: { cabecalho: ['Foto', 'Criança', 'Foto', 'Quem pode visitar', 'Vínculo', 'CPF', 'Telefone'], linhas },
+      procedencia: 'Cadastro de contatos da casa. Só aparece quem a equipe técnica ou a '
+        + 'coordenação marcou como autorizado a visitar — estar no cadastro não basta.',
+    }],
+    geradoPor: eu.fullName, cargo: cargoNoDocumento(eu.role), assinatura: true,
+    ressalva: 'Quem não está nesta folha não entra sem confirmação da equipe técnica ou da '
+      + 'coordenação, inclusive familiar — ligue para a casa. A folha não diz por que alguém '
+      + 'não está nela, de propósito. Ela vale até ser substituída: descarte a anterior quando '
+      + 'receber esta. Contém fotos, CPF e telefone de crianças e de familiares: guarde longe '
+      + 'da vista de quem passa pela guarita e não fotografe.',
+  };
+}
+
 function contatosDe(id: string) {
   if (!CONTATOS[id]) {
     CONTATOS[id] = [
@@ -2763,11 +2850,18 @@ function contatosDe(id: string) {
         vinculoRotulo: 'Genitora', telefone: '51 98888-0001',
         observacao: 'Liga aos domingos de manhã.',
         restrito: false, motivoDaRestricao: null, ativo: true, motivoDoEncerramento: null,
+        /* A portaria (fase 92): autorizada, sem CPF nem foto — a folha mostra os
+           dois espaços marcados. */
+        cpf: null as string | null, autorizadoAVisitar: true, temFoto: false,
+        autorizacao: { por: 'Equipe técnica (fictícia)', em: emHoras(9, 5) } as { por: string; em: string } | null,
         por: 'Equipe técnica (fictícia)', em: emHoras(9, 0) },
       { id: `ct-${id}-2`, nome: 'Madrinha Simoni (fictícia)', vinculo: 'madrinha',
         vinculoRotulo: 'Madrinha', telefone: '51 98888-0002',
         observacao: 'Busca na escola às sextas.',
         restrito: false, motivoDaRestricao: null, ativo: true, motivoDoEncerramento: null,
+        /* CPF de exemplo com dígitos válidos — não é de ninguém. */
+        cpf: '52998224725', autorizadoAVisitar: true, temFoto: false,
+        autorizacao: { por: 'Equipe técnica (fictícia)', em: emHoras(9, 5) },
         por: 'Equipe técnica (fictícia)', em: emHoras(9, 0) },
       { id: `ct-${id}-3`, nome: 'Tio Fictício', vinculo: 'tio', vinculoRotulo: 'Tia ou tio',
         telefone: '51 98888-0003', observacao: null,
@@ -2775,6 +2869,7 @@ function contatosDe(id: string) {
         motivoDaRestricao: 'Aproximação suspensa por decisão judicial de 06/2026. '
           + 'Antes de qualquer contato, falar com a equipe técnica.',
         ativo: true, motivoDoEncerramento: null,
+        cpf: null, autorizadoAVisitar: false, temFoto: false, autorizacao: null,
         por: 'Equipe técnica (fictícia)', em: emHoras(10, 30) },
     ];
   }
@@ -5286,8 +5381,64 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     };
   }
 
+  /* ---------------- A portaria (fase 92) — as mesmas recusas do servidor ---------------- */
+  if (rota.startsWith('/people/portaria/folha') && metodo === 'GET') {
+    if (!ESCREVE_CONTATO.includes(eu.role)) {
+      return new Recusa(403, 'A folha da portaria é gerada pela equipe técnica ou pela coordenação — '
+        + 'é quem responde por quem está autorizado nela.');
+    }
+    return folhaDaPortaria(eu);
+  }
+  if (rota === '/people/portaria/export' && metodo === 'POST') {
+    if (!ESCREVE_CONTATO.includes(eu.role)) return new Recusa(403, 'A folha da portaria é gerada pela equipe técnica ou pela coordenação.');
+    if (String(b.finalidade ?? '').trim().length < 10) {
+      return new Recusa(400, 'Descreva a finalidade da exportação (mínimo 10 caracteres).');
+    }
+    const f = folhaDaPortaria(eu);
+    return {
+      nomeArquivo: nomeDaFolha(f.titulo),
+      conteudoBase64: gerarDocx(f as any, timbreEmBytes()),
+      aviso: 'Documento gerado em Word, com timbre. Exportação registrada com o seu nome, '
+        + 'a finalidade e o horário. (No protótipo as fotos saem como a marca "foto".)',
+    };
+  }
+  if (seg[0] === 'people' && seg[1] === 'contacts' && seg[3] === 'visit' && metodo === 'POST') {
+    if (!ESCREVE_CONTATO.includes(eu.role)) {
+      return new Recusa(403, 'Autorizar visita é da equipe técnica e da coordenação — é quem responde por quem entra.');
+    }
+    const c = acharContato(seg[2]);
+    if (!c) return new Recusa(404, 'Contato não encontrado — ou fora do seu alcance.');
+    const cpf = String(b.cpf ?? '').replace(/\D/g, '');
+    if (cpf && !cpfConfere(cpf)) {
+      return new Recusa(400, 'Este CPF não confere — os dígitos verificadores não batem. Confira no documento.');
+    }
+    if (b.autorizado && c.restrito) {
+      return new Recusa(400, 'Este contato tem aproximação restrita e não pode ser autorizado a visitar. '
+        + 'Se a restrição deixou de valer, isso se resolve com a equipe técnica antes.');
+    }
+    if (b.autorizado && !c.ativo) return new Recusa(400, 'Este contato foi encerrado. Um contato encerrado não visita.');
+    c.autorizadoAVisitar = !!b.autorizado;
+    c.autorizacao = b.autorizado ? { por: eu.fullName, em: new Date().toISOString() } : null;
+    if (b.cpf !== undefined) c.cpf = cpf || null;
+    return { ok: true, aviso: b.autorizado
+      ? 'Autorizado a visitar. Ele entra na próxima folha da portaria que for gerada — a que está na guarita não muda sozinha.'
+      : 'Autorização retirada. Gere uma folha nova para a portaria: a impressa ainda tem o nome.' };
+  }
+  if (seg[0] === 'people' && seg[1] === 'contacts' && seg[3] === 'photo') {
+    const c = acharContato(seg[2]);
+    if (!c) return new Recusa(404, 'Contato não encontrado — ou fora do seu alcance.');
+    if (metodo === 'POST') {
+      if (!ESCREVE_CONTATO.includes(eu.role)) return new Recusa(403, 'A foto do visitante é cadastrada pela técnica ou pela coordenação.');
+      if (!String(b.conteudo ?? '')) return new Recusa(400, 'Nenhuma foto foi enviada.');
+      c.temFoto = true;
+      return { ok: true, aviso: 'Foto guardada. Ela entra na próxima folha da portaria.' };
+    }
+    return new Recusa(404, 'No protótipo as fotos dos visitantes não ficam guardadas.');
+  }
+
   if (seg[0] === 'people' && seg[2] === 'contacts' && metodo === 'GET') {
-    return contatosDe(seg[1]);
+    /* Na forma do servidor: CPF inteiro só para quem escreve no cadastro. */
+    return contatosDe(seg[1]).map((c) => ({ ...c, cpf: cpfParaTela(c.cpf, eu.role) }));
   }
 
   if (seg[0] === 'people' && seg[2] === 'contacts' && metodo === 'POST') {
@@ -5317,6 +5468,8 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       telefone: b.telefone || null, observacao: b.observacao || null,
       restrito: !!b.restrito, motivoDaRestricao: b.restrito ? String(b.motivoDaRestricao) : null,
       ativo: true, motivoDoEncerramento: null,
+      cpf: String(b.cpf ?? '').replace(/\D/g, '') || null,
+      autorizadoAVisitar: false, temFoto: false, autorizacao: null,
       por: eu.fullName, em: new Date().toISOString(),
     };
     contatosDe(seg[1]).unshift(novoContato);
@@ -5330,7 +5483,8 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     for (const lista of Object.values(CONTATOS)) {
       const c = lista.find((x) => x.id === seg[2]);
       /* Encerra, não apaga: o telefone que deixou de valer é informação. */
-      if (c) { c.ativo = false; c.motivoDoEncerramento = String(b.motivo).trim(); return { ok: true }; }
+      /* E retira a autorização de visita junto, como o servidor (fase 92). */
+      if (c) { c.ativo = false; c.motivoDoEncerramento = String(b.motivo).trim(); c.autorizadoAVisitar = false; c.autorizacao = null; return { ok: true }; }
     }
     return new Recusa(404, 'Contato não encontrado — ou já encerrado.');
   }
@@ -5401,7 +5555,9 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       cns: k.cns ?? null,
       filiacao: k.filiacao ?? null,
       foto: k.foto ? { rota: `/people/${k.id}/photo`, em: k.fotoEm } : null,
-      contatos: contatosDe(k.id).filter((c: any) => c.ativo),
+      /* Na forma do servidor, inclusive o CPF por cargo (fase 92). */
+      contatos: contatosDe(k.id).filter((c: any) => c.ativo)
+        .map((c) => ({ ...c, cpf: cpfParaTela(c.cpf, eu.role) })),
       memorias: [{ id: 'mem1', event_type: 'aniversário', happened_on: '2026-07-14',
                    description: 'Comemoração na casa com bolo escolhido pelo grupo.',
                    has_photo: false, photo_authorized: false }],

@@ -49,6 +49,9 @@ interface Contato {
   telefone: string | null; observacao: string | null;
   restrito: boolean; motivoDaRestricao: string | null;
   ativo: boolean; motivoDoEncerramento: string | null;
+  /* A portaria (fase 92). CPF inteiro só para quem escreve no cadastro. */
+  cpf?: string | null; autorizadoAVisitar?: boolean;
+  autorizacao?: { por: string; em: string } | null; temFoto?: boolean;
 }
 interface Perfil {
   id: string; nome: string; nomeCivil: string; idade: number; nascimento: string;
@@ -2026,6 +2029,7 @@ function Contatos({ perfil, papel, onMudou }: {
   const [encerrando, setEncerrando] = useState<Contato | null>(null);
   const [saindoCom, setSaindoCom] = useState<Contato | null>(null);
   const [erroSaida, setErroSaida] = useState('');
+  const [portariaDe, setPortariaDe] = useState<Contato | null>(null);
   const podeEscrever = QUEM_CADASTRA.includes(papel);
   const ativos = (perfil.contatos ?? []).filter((c) => c.ativo);
 
@@ -2046,7 +2050,14 @@ function Contatos({ perfil, papel, onMudou }: {
               <span className="pill c-info">{c.vinculoRotulo}</span>
             </div>
             {c.telefone && <div>{c.telefone}</div>}
+            {c.cpf && <div className="mutetxt">CPF {c.cpf}</div>}
             {c.observacao && <div className="mutetxt">{c.observacao}</div>}
+            {c.autorizadoAVisitar && (
+              <div className="row">
+                <span className="pill c-ok">Autorizado a visitar</span>
+                {!c.temFoto && <span className="pill c-warn">sem foto 3×4</span>}
+              </div>
+            )}
             {c.restrito && (
               <div className="notice c-crit" role="alert">
                 <b>Aproximação restrita.</b> {c.motivoDaRestricao}
@@ -2068,6 +2079,16 @@ function Contatos({ perfil, papel, onMudou }: {
                 {!c.restrito && (
                   <button className="btn sm ghost" onClick={() => setSaindoCom(c)}>
                     Vai passar dias com {c.nome.split(' ')[0]}
+                  </button>
+                )}
+                {/*
+                  * A PORTARIA (fase 92). A marca de visita nasce no contato, pelo
+                  * mesmo motivo da saída: é aqui que se sabe quem a pessoa é. No
+                  * contato restrito o botão não aparece — e o banco recusa.
+                  */}
+                {!c.restrito && (
+                  <button className="btn sm ghost" onClick={() => setPortariaDe(c)}>
+                    {c.autorizadoAVisitar ? 'Portaria: CPF, foto ou retirar' : 'Autorizar a visitar'}
                   </button>
                 )}
                 <button className="btn sm ghost" onClick={() => setEncerrando(c)}>
@@ -2107,6 +2128,12 @@ function Contatos({ perfil, papel, onMudou }: {
           }} />
       )}
 
+      {portariaDe && (
+        <FolhaVisita contato={portariaDe} crianca={perfil.nome}
+                     onFechar={() => setPortariaDe(null)}
+                     onSalvou={() => { setPortariaDe(null); onMudou(); }} />
+      )}
+
       {novo && (
         <FolhaContato
           nome={perfil.nome}
@@ -2131,6 +2158,89 @@ function Contatos({ perfil, papel, onMudou }: {
           }} />
       )}
     </>
+  );
+}
+
+/**
+ * QUEM PODE VISITAR — a marca que põe o contato na folha da portaria (fase 92).
+ *
+ * CPF e foto 3×4 são opcionais: a folha sai sem eles, com o espaço marcado
+ * para a portaria pedir documento com foto. Travar a autorização neles
+ * deixaria o visitante de verdade do lado de fora.
+ */
+function FolhaVisita({ contato, crianca, onFechar, onSalvou }: {
+  contato: Contato; crianca: string; onFechar: () => void; onSalvou: () => void;
+}) {
+  const [autorizado, setAutorizado] = useState(!!contato.autorizadoAVisitar);
+  const [cpf, setCpf] = useState(/\*/.test(contato.cpf ?? '') ? '' : (contato.cpf ?? ''));
+  const [foto, setFoto] = useState<string | null>(null);
+  const [erro, setErro] = useState('');
+  const [aviso, setAviso] = useState('');
+  const [salvando, setSalvando] = useState(false);
+
+  async function salvar() {
+    setErro(''); setSalvando(true);
+    try {
+      const r = await api<{ aviso: string }>(`/people/contacts/${contato.id}/visit`, {
+        method: 'POST', body: JSON.stringify({ autorizado, cpf }),
+      });
+      if (foto) {
+        await api(`/people/contacts/${contato.id}/photo`, {
+          method: 'POST', body: JSON.stringify({ conteudo: foto }),
+        });
+      }
+      setAviso(r.aviso);
+      setTimeout(onSalvou, 900);
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Não foi possível salvar.');
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-visita"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet modal">
+        <h3 id="t-visita">{contato.nome} pode visitar {crianca}?</h3>
+        <p className="mutetxt">
+          Só quem está marcado aqui entra na folha da portaria. A marca registra o seu nome:
+          é você quem responde por quem entra.
+        </p>
+
+        <label className="f">
+          <input type="checkbox" checked={autorizado} onChange={(e) => setAutorizado(e.target.checked)} />
+          {' '}Autorizado a visitar
+        </label>
+
+        <label className="f" htmlFor="vis-cpf">
+          CPF <small>— sai impresso na folha da guarita</small>
+        </label>
+        <input id="vis-cpf" inputMode="numeric" value={cpf} maxLength={14}
+               placeholder="000.000.000-00" onChange={(e) => setCpf(e.target.value)} />
+
+        <label className="f" htmlFor="vis-foto">
+          Foto 3×4 <small>— opcional; sem ela a portaria pede documento com foto</small>
+        </label>
+        <input id="vis-foto" type="file" accept="image/jpeg,image/png"
+               onChange={(e) => {
+                 const arquivo = e.target.files?.[0];
+                 if (!arquivo) { setFoto(null); return; }
+                 const r = new FileReader();
+                 r.onload = () => setFoto(String(r.result));
+                 r.readAsDataURL(arquivo);
+               }} />
+        {contato.temFoto && !foto && <p className="mutetxt">Já tem foto cadastrada.</p>}
+
+        {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+        {aviso && <div className="notice c-ok" role="status">{aviso}</div>}
+
+        <div className="acoes">
+          <button className="btn ghost" onClick={onFechar}>Cancelar</button>
+          <button className="btn" disabled={salvando} onClick={salvar}>Salvar</button>
+        </div>
+      </div>
+    </div>
   );
 }
 

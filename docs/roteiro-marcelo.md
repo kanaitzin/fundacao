@@ -15,8 +15,9 @@
 > ensaio for sem internet, a letra não é a que a equipe vai ver no sistema
 > real. Vale saber antes de anotar "achei feio".
 >
-> Última atualização: 10/09/2026, à noite — as dez entregas de 09/09 no
-> **§0.8**, doze tarefas novas nas seções dos cargos, a **§7 mudou de dono** (a
+> Última atualização: 11/09/2026 — as onze entregas de 09/09 no **§0.8**
+> (a mais nova é a **folha da portaria**), catorze tarefas novas nas seções dos
+> cargos, a **§7 mudou de dono** (a
 > cozinha não entra no sistema, e quem pede o lanche é quem está no turno), e a
 > **§8** trocou uma pergunta que tinha deixado de existir pelas que ainda
 > esperam resposta.
@@ -225,8 +226,8 @@ no vínculo da casa, em vez de fingir que sabe.
 
 ## §0.8 — O que mudou depois de 09/09 (a conversa longa, e é bastante coisa)
 
-Dez coisas que o Marcelo pediu em 09/09 já estão no protótipo. **Doze tarefas
-novas** deste roteiro existem por causa delas, e estão marcadas nas seções dos
+Onze coisas que o Marcelo pediu em 09/09 já estão no protótipo. **Catorze
+tarefas novas** deste roteiro existem por causa delas, e estão marcadas nas seções dos
 cargos. O que vale saber antes de aplicar:
 
 - **A cozinha não entra no sistema** — decisão da Fundação. Não existe mais
@@ -483,7 +484,16 @@ isso.
     E pergunte o que ela usaria no lugar; a resposta dela vale mais que a
     minha.
 
-13. **Pergunte depois:** "o que faltou neste documento para você levar a uma
+13. **A Rosângela, mãe da Alice, trouxe o CPF. Deixe-a pronta para a folha da
+    portaria.**
+    Observar: ela procura uma tela de "portaria", ou entende que a marca nasce
+    **no contato** do perfil, como a saída? Ela lê a diferença entre **estar no
+    cadastro** e estar **autorizado a visitar**? Ela repara que o tio, com
+    aproximação restrita, **não tem o botão**? ⚠️ Pergunte: *"se o tio chegar à
+    guarita, o que a portaria sabe?"* — a folha não lista quem NÃO entra, de
+    propósito; a resposta dela é a pergunta 6 da §8.
+
+14. **Pergunte depois:** "o que faltou neste documento para você levar a uma
     audiência?"
 
 ---
@@ -631,7 +641,16 @@ Responde pela casa. É quem vai usar as telas de decisão.
     levaria o azul e a distinção viraria ordem de chegada) e *"você usaria a
     cor para achar quem escreveu, ou o nome ao lado já basta?"*
 
-17. **Pergunte depois:** "o que desta lista você já faz hoje em outro lugar?
+17. **Gere a folha da portaria para a guarita.**
+    Observar: ela acha **Portaria** em "Mais"? Antes de gerar, ela lê quem está
+    **sem ninguém autorizado**, sem foto ou sem CPF — e faz alguma coisa com
+    isso, ou passa direto? Na folha, ela confere que **não há motivo de
+    restrição nem observação** de ninguém? ⚠️ Pergunte: *"com que frequência
+    esta folha precisa ser trocada na guarita, e quem recolhe a velha?"* — a
+    folha diz que vale até ser substituída, e isso só funciona se alguém
+    recolher a anterior.
+
+18. **Pergunte depois:** "o que desta lista você já faz hoje em outro lugar?
     Onde?"
 
 ---
@@ -709,7 +728,7 @@ que falta lanche para a saída de sábado é quem está no turno.*
 
 ---
 
-## 8. Cinco perguntas para o Marcelo, no fim
+## 8. Seis perguntas para o Marcelo, no fim
 
 1. **A escala 12×36 vigente** — sem ela o aviso de "fora da escala" ao marcar
    compromisso não funciona (§2 do plano do piloto).
@@ -741,6 +760,17 @@ que falta lanche para a saída de sábado é quem está no turno.*
    **lembrete de prazo**: vencendo o quê — atividade, documento, PIA, receita —
    e com quantos dias de antecedência? E o **pente-fino semanal**: em que dia
    da semana?
+
+---
+
+6. **A folha da portaria diz quem ENTRA — e não diz quem não entra.** Quem tem
+   aproximação restrita não aparece nela de jeito nenhum, nem como "proibido":
+   numa guarita, "proibido de ver a criança" já conta uma história que não é
+   da portaria, e a folha fica na mão de quem passa. O custo é real: se o pai
+   com aproximação suspensa chegar, a portaria só sabe que ele **não está na
+   folha**, e liga para a casa. **A pergunta:** a casa quer uma segunda lista,
+   separada, de quem NÃO entra — só nome e foto, sem motivo? Se quiser, é
+   decisão dele junto com o DPO, pela mesma razão do CPF impresso.
 
 ---
 

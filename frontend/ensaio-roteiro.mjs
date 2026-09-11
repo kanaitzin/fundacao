@@ -318,6 +318,16 @@ const TAREFAS = [
     caminho: [{ aba: 'Acolhidos' }, { clicar: /Alice/ }],
     procurar: [/sozinh/i],
   },
+  /*
+   * A PORTARIA (fase 92). A marca de visita nasce no contato, como a saída.
+   * Procura-se a marca E o botão: a porta sem a marca seria a tela vazia.
+   */
+  {
+    cargo: 'equipe_tecnica', secao: '3.13',
+    nome: 'A mãe trouxe o CPF — deixe-a pronta para a folha da portaria',
+    caminho: [{ aba: 'Acolhidos' }, { clicar: /Alice/ }],
+    procurar: [/Autorizado a visitar/, /Portaria: CPF, foto ou retirar/],
+  },
 
   // -------------------------------------------------------- 85, na Enfermagem
   {
@@ -370,6 +380,12 @@ const TAREFAS = [
    * escolheu —, porque quem não distingue os matizes ainda tem de conseguir
    * escolher e conferir. É por esse nome que se chega nele.
    */
+  {
+    cargo: 'coordenador', secao: '5.17',
+    nome: 'Gere a folha da portaria para a guarita',
+    caminho: [{ mais: 'Portaria' }],
+    procurar: [/Portaria — quem pode visitar/, /Madrinha Simoni/, /Ver a folha da portaria/],
+  },
   {
     cargo: 'coordenador', secao: '5.16',
     nome: 'Escolha a cor da linha de uma educadora — e tente repetir',

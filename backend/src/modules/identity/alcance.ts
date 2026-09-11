@@ -79,6 +79,7 @@ export const AREAS = {
   sincronizacao: 'Sincronização',
   setores: 'O que cada setor enxerga',
   cozinha: 'Cozinha — pedidos e restrições',
+  portaria: 'Portaria — quem pode visitar',
   casas: 'Unidades',
 } as const;
 
@@ -201,6 +202,13 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
     transversal: false,
     resumo: 'Psicologia e serviço social da casa: o caso, não o turno.',
     areas: [
+      { area: 'portaria', titulo: AREAS.portaria,
+        faz: 'Marca, no contato da criança, quem está autorizado a visitar — com CPF e foto 3×4 — '
+          + 'e gera a folha em Word que vai para a guarita.',
+        servidor: 'Estar no cadastro não é estar autorizado: só a marca entra na folha. Contato com '
+          + 'aproximação restrita nunca é autorizado, e o banco recusa. A folha não traz motivo de '
+          + 'restrição, observação, motivo judicial nem diagnóstico, e a saída fica registrada com '
+          + 'finalidade.' },
       { area: 'cozinha', titulo: AREAS.cozinha,
         faz: 'Pede lanche e cesta básica à cozinha, e gera as folhas em Word — '
           + 'solicitação de lanche, de cesta e a tabela de restrições da casa.',
@@ -369,6 +377,13 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
     transversal: false,
     resumo: 'Responde pela casa: equipe, aprovações, transferências e o cofre.',
     areas: [
+      { area: 'portaria', titulo: AREAS.portaria,
+        faz: 'Marca, no contato da criança, quem está autorizado a visitar — com CPF e foto 3×4 — '
+          + 'e gera a folha em Word que vai para a guarita.',
+        servidor: 'Estar no cadastro não é estar autorizado: só a marca entra na folha. Contato com '
+          + 'aproximação restrita nunca é autorizado, e o banco recusa. A folha não traz motivo de '
+          + 'restrição, observação, motivo judicial nem diagnóstico, e a saída fica registrada com '
+          + 'finalidade.' },
       { area: 'cozinha', titulo: AREAS.cozinha,
         faz: 'Pede lanche e cesta básica à cozinha, e gera as folhas em Word — '
           + 'solicitação de lanche, de cesta e a tabela de restrições da casa.',
@@ -440,6 +455,13 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
     transversal: true,
     resumo: 'Escopo institucional. Abre UMA casa por vez, e cada abertura fica registrada.',
     areas: [
+      { area: 'portaria', titulo: AREAS.portaria,
+        faz: 'Marca, no contato da criança, quem está autorizado a visitar — com CPF e foto 3×4 — '
+          + 'e gera a folha em Word que vai para a guarita.',
+        servidor: 'Estar no cadastro não é estar autorizado: só a marca entra na folha. Contato com '
+          + 'aproximação restrita nunca é autorizado, e o banco recusa. A folha não traz motivo de '
+          + 'restrição, observação, motivo judicial nem diagnóstico, e a saída fica registrada com '
+          + 'finalidade.' },
       { area: 'cozinha', titulo: AREAS.cozinha,
         faz: 'Pede lanche e cesta básica à cozinha, e gera as folhas em Word — '
           + 'solicitação de lanche, de cesta e a tabela de restrições da casa.',

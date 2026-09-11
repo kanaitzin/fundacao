@@ -175,10 +175,17 @@ export function FolhaDocumento({ doc, onFechar, onBaixar, exportar }: {
                 </ul>
               )}
               {s.tabela && (
-                <div className="rolar">
+                /*
+                 * O quadro largo rola de lado — e região que rola precisa de foco
+                 * de teclado, senão quem não usa o dedo nunca chega à última
+                 * coluna. Achado na folha da portaria (fase 92), que tem sete, e
+                 * valia para toda folha com quadro. A chave do cabeçalho é a
+                 * posição: a portaria tem duas colunas chamadas "Foto".
+                 */
+                <div className="rolar" tabIndex={0} role="region" aria-label={`Quadro: ${s.titulo}`}>
                   <table className="papel-tabela">
                     <thead>
-                      <tr>{s.tabela.cabecalho.map((c) => <th key={c}>{c}</th>)}</tr>
+                      <tr>{s.tabela.cabecalho.map((c, j) => <th key={j}>{c}</th>)}</tr>
                     </thead>
                     <tbody>
                       {s.tabela.linhas.map((l, i) => (

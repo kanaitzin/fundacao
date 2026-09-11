@@ -260,6 +260,20 @@ Três coisas que a tabela decide:
   contato com aproximação suspensa, que exige motivo escrito — quem descobre
   isso às 23h descobre tarde.
 
+**E, desde a migração 1120 (fase 92), quem pode visitar.** A folha da portaria
+lê daqui:
+
+* `visit_authorized`, com `visit_authorized_by` e `visit_authorized_at` — a
+  marca explícita da técnica ou da coordenação. **Estar na tabela não é estar
+  autorizado.** Duas restrições no banco: `contato_restrito_nao_visita` (restrito
+  nunca autorizado) e `contato_encerrado_nao_visita`; encerrar um contato
+  retira a marca na mesma escrita;
+* `cpf`, normalizado em onze dígitos (`contato_cpf_normalizado`). É dado de
+  terceiro: inteiro só para quem escreve no cadastro e na folha impressa;
+* `photo_key`, `photo_mime`, `photo_at`, `photo_by` — a foto 3×4 do visitante,
+  opcional, guardada como a do acolhido, e com saída declarada em
+  `arquivo-tem-saida.spec.ts` (`contacts/:contactId/photo`).
+
 **`person_correction` é o HISTÓRICO DA CORREÇÃO DE CADASTRO** (§6.2, migração
 0810). Nome escrito errado às 23h, data de nascimento trocada porque a certidão
 veio depois: sem uma porta para corrigir, a saída de quem usa é recadastrar — e

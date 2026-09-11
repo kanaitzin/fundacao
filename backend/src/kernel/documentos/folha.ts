@@ -34,14 +34,32 @@ export interface SecaoDaFolha {
   /** Lista com marcador. */
   itens?: string[];
   /** Quadro simples — usado na saúde, na grade e nas passagens. */
-  tabela?: { cabecalho: string[]; linhas: string[][] };
+  tabela?: {
+    cabecalho: string[];
+    linhas: string[][];
+    /**
+     * Foto numa célula, na MESMA posição de `linhas` (fase 92, a portaria).
+     * Quando há foto, ela ocupa a célula no lugar do texto; o texto continua
+     * em `linhas` e é o que a tela mostra, porque a pré-visualização não
+     * carrega imagem. Só o arquivo exportado leva a foto.
+     */
+    fotos?: (FotoNaCelula | null)[][];
+  };
   /** Campo que só uma pessoa preenche: sai com a marca e o espaço em branco. */
   aPreencher?: string;
   /** De onde a informação veio. Sai em letra menor, abaixo da seção. */
   procedencia?: string;
 }
 
+export interface FotoNaCelula {
+  /** image/jpeg ou image/png. WEBP não imprime no Word e sai como texto. */
+  tipo: string;
+  dados: Uint8Array;
+}
+
 export interface Folha {
+  /** Página deitada — para quadro largo, como a folha da portaria. */
+  paisagem?: boolean;
   /** Vira o título na primeira folha e a base do nome do arquivo. */
   titulo: string;
   subtitulo?: string;

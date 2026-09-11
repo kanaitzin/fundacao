@@ -6,6 +6,7 @@ import { AuthenticatedUser } from '../../kernel/contracts';
 import { DossieService } from './dossie.service';
 import { PeopleService } from './people.service';
 import { CozinhaService } from './cozinha.service';
+import { PortariaService } from './portaria.service';
 import { ProfileService } from './profile.service';
 import { ContatosService } from './contatos.service';
 import { BenefitsService } from './benefits.service';
@@ -20,6 +21,7 @@ export class PeopleController {
     @Inject(PeopleService) private readonly people: PeopleService,
     @Inject(ProfileService) private readonly profile: ProfileService,
     @Inject(CozinhaService) private readonly cozinha: CozinhaService,
+    @Inject(PortariaService) private readonly portaria: PortariaService,
     @Inject(BenefitsService) private readonly benefits: BenefitsService,
     @Inject(TransfersService) private readonly transfers: TransfersService,
     @Inject(AdmissionService) private readonly admission: AdmissionService,
@@ -181,6 +183,41 @@ export class PeopleController {
   @Post('kitchen-requests/export/cestas')
   exportCestas(@CurrentUser() user: AuthenticatedUser, @Body() body: any) {
     return this.cozinha.exportarCestas(user, body);
+  }
+
+  /* ---------------- A portaria: quem pode visitar (1120) ---------------- */
+  /*
+   * Mesmo desenho das folhas da cozinha: `folha` mostra e NÃO registra;
+   * `export` exige finalidade e registra a saída. Rotas de palavra fixa,
+   * antes de `:id`.
+   */
+  @Get('portaria/folha')
+  folhaDaPortaria(@CurrentUser() user: AuthenticatedUser,
+                  @Query('houseId', ParseUUIDPipe) houseId: string) {
+    return this.portaria.folha(user, houseId);
+  }
+
+  @Post('portaria/export')
+  exportarPortaria(@CurrentUser() user: AuthenticatedUser, @Body() body: any) {
+    return this.portaria.exportar(user, body ?? {});
+  }
+
+  @Post('contacts/:contactId/visit')
+  definirVisita(@CurrentUser() user: AuthenticatedUser,
+                @Param('contactId', ParseUUIDPipe) contactId: string, @Body() body: any) {
+    return this.contatos.definirVisita(user, contactId, body ?? {});
+  }
+
+  @Get('contacts/:contactId/photo')
+  fotoDoContato(@CurrentUser() user: AuthenticatedUser,
+                @Param('contactId', ParseUUIDPipe) contactId: string) {
+    return this.contatos.lerFotoDoContato(user, contactId);
+  }
+
+  @Post('contacts/:contactId/photo')
+  guardarFotoDoContato(@CurrentUser() user: AuthenticatedUser,
+                       @Param('contactId', ParseUUIDPipe) contactId: string, @Body() body: any) {
+    return this.contatos.guardarFotoDoContato(user, contactId, body ?? {});
   }
 
   /* ---------------- Sair sozinho (1020) ---------------- */

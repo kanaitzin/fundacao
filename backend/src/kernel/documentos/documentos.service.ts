@@ -3,7 +3,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType,
-  Header, Footer, ImageRun, PageNumber, BorderStyle, Table, TableRow, TableCell,
+  Header, Footer, ImageRun, PageNumber, PageOrientation, BorderStyle, Table, TableRow, TableCell,
   WidthType,
 } from 'docx';
 import { AuditService } from '../audit/audit.service';
@@ -214,7 +214,10 @@ export class DocumentosService {
       title: f.titulo,
       styles: { default: { document: { run: { font: 'Calibri', size: 22 } } } },
       sections: [{
-        properties: { page: { margin: { top: 1000, bottom: 1000, left: 1100, right: 1100 } } },
+        properties: { page: {
+          margin: { top: 1000, bottom: 1000, left: 1100, right: 1100 },
+          ...(f.paisagem ? { size: { orientation: PageOrientation.LANDSCAPE } } : {}),
+        } },
         headers: { default: cabecalho },
         footers: { default: rodape },
         children: filhos,
@@ -262,10 +265,24 @@ export class DocumentosService {
               children: [new Paragraph({ children: [new TextRun({ text: c, bold: true, size: 18 })] })],
             })),
           }),
-          ...s.tabela.linhas.map((l) => new TableRow({
-            children: l.map((v) => new TableCell({
-              children: [new Paragraph({ children: [new TextRun({ text: v, size: 18 })] })],
-            })),
+          ...s.tabela.linhas.map((l, i) => new TableRow({
+            cantSplit: true,
+            children: l.map((v, j) => {
+              const foto = s.tabela!.fotos?.[i]?.[j] ?? null;
+              /*
+               * A foto entra no tamanho de um 3×4 impresso (cerca de 2,6 × 3,5
+               * cm). WEBP o Word não abre: sai o texto da célula, e a pessoa
+               * vê a foto no sistema.
+               */
+              const tipo = foto?.tipo === 'image/jpeg' ? 'jpg' : foto?.tipo === 'image/png' ? 'png' : null;
+              return new TableCell({
+                children: [new Paragraph({
+                  children: foto && tipo
+                    ? [new ImageRun({ type: tipo, data: foto.dados, transformation: { width: 75, height: 100 } })]
+                    : [new TextRun({ text: v, size: 18 })],
+                })],
+              });
+            }),
           })),
         ],
       }));

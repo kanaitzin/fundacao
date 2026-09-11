@@ -82,7 +82,7 @@ aplicação e no banco. §7 tem a matriz inteira.
 
 ## 2. O ESTADO HOJE
 
-**Fases 0 a 91.** Estes números **saem do código**, não da memória — e são
+**Fases 0 a 92.** Estes números **saem do código**, não da memória — e são
 cobrados por `test/numeros-da-documentacao.spec.ts`, que existe porque em 08/09
 seis afirmações estavam erradas ao mesmo tempo em três documentos, e duas delas
 discordavam entre si.
@@ -90,14 +90,14 @@ discordavam entre si.
 | Quanto | De onde sai |
 |---|---|
 | **17 partições** isoladas | pastas em `backend/src/modules/` |
-| **97 migrações** | `.sql` dentro das partições |
+| **98 migrações** | `.sql` dentro das partições |
 | **106 tabelas** | `CREATE TABLE` nas migrações |
-| **64 suítes** | `backend/test/*.spec.ts` |
-| **626 testes** | `it(` / `test(` nas suítes |
-| **31 telas React** | `frontend/src/screens/*.tsx` |
+| **65 suítes** | `backend/test/*.spec.ts` |
+| **633 testes** | `it(` / `test(` nas suítes |
+| **32 telas React** | `frontend/src/screens/*.tsx` |
 | **14 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **6 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
-| protótipo com **≈997 KB** | `prototipo/rede-acolher-prototipo.html` |
+| protótipo com **≈1009 KB** | `prototipo/rede-acolher-prototipo.html` |
 
 *A frase importa: o conferidor lê o NÚMERO colado ao substantivo. Escrever
 "Telas React … 31" numa coluna separada faz o teste passar sem conferir nada —
@@ -107,36 +107,32 @@ foi assim que "30 telas" sobreviveu à fase que existiu para acabar com isso.*
 
 | Ensaio | Resultado |
 |---|---|
-| `npm run ensaio` | 118 telas nos **sete** cargos oferecidos — Coordenação 24, Técnica 22, Gestor 21, Líder Diurno 15, Líder Noturno 14, Educador 13, Enfermagem 9. A Cozinha saiu do seletor em 09/09: o cargo continua no banco, oculto |
-| `npm run ensaio:acessibilidade` | 125 telas, **nenhuma violação de WCAG 2.1 AA** |
-| `npm run ensaio:roteiro` | 41 tarefas do roteiro, **todas com porta no cargo certo** |
+| `npm run ensaio` | 121 telas nos **sete** cargos oferecidos — Coordenação 25, Técnica 23, Gestor 22, Líder Diurno 15, Líder Noturno 14, Educador 13, Enfermagem 9. A Cozinha saiu do seletor em 09/09: o cargo continua no banco, oculto |
+| `npm run ensaio:acessibilidade` | 128 telas, **nenhuma violação de WCAG 2.1 AA** |
+| `npm run ensaio:roteiro` | 43 tarefas do roteiro, **todas com porta no cargo certo** |
 | `npm run ensaio:uso` | 149 cobranças em 13 blocos, **todas passando** — e todos os cargos completando o percurso |
 
 ### A última verificação inteira
 
-**11/09/2026, fase 91.** `tsc` limpo nos dois lados. A suíte **duas rodadas
-inteiras**: uma às 08h31 de Porto Alegre, **no relógio real**, e outra com banco
-e processo sob `faketime +14h` — 22h33 de Porto Alegre com o UTC já em 12/09,
-que é a condição da regra —, 64 suítes e 626 testes nas duas. O
-`ensaio:producao` compilou o serviço mudado e aplicou as 97 migrações pelo
-binário num banco virgem. O protótipo foi reconstruído e saiu **idêntico**: a
-fase não tocou no `frontend/`.
+**11/09/2026, fase 92.** `tsc` limpo nos dois lados. A suíte **duas rodadas
+inteiras**: uma às 09h52 de Porto Alegre, no relógio real, e outra com banco e
+processo sob `faketime +12h` — 21h54 de Porto Alegre com o UTC já em 12/09 —,
+65 suítes e 633 testes nas duas. Os **seis** ensaios de navegador, verdes com o
+protótipo reconstruído: 121 telas, 128 sem violação de acessibilidade, fila,
+folhas, as 43 tarefas do roteiro e o `ensaio:uso` inteiro. O `ensaio:producao`
+aplicou as 98 migrações pelo binário num banco virgem; o `ensaio:restauracao`
+rodou com uma credencial fictícia no cofre, abrindo com a chave certa e
+reprovando com a errada. Dois builds seguidos do protótipo saíram idênticos.
 
-**Não rodaram, de propósito, e com o motivo:** os seis ensaios de navegador
-(nenhuma linha do `frontend/` mudou desde a fase 89, quando os seis passaram
-verdes com este mesmo protótipo) e o `ensaio:restauracao` (nenhuma migração
-nova, e ele passou na fase 90 com credencial no cofre). Se a próxima fase tocar
-em tela ou em migração, eles voltam a ser obrigatórios.
+*Além dos ensaios, a portaria foi percorrida por uma sonda como pessoa: a
+técnica erra e acerta um CPF, o educador vê o mesmo CPF mascarado, a coordenação
+abre a folha com o dado recém-gravado e baixa o Word. Foi essa sonda que achou o
+quadro largo sem foco de teclado — que valia para toda folha com quadro, e que o
+`ensaio:acessibilidade` não via porque não abre folha.*
 
-*A fase 91 começou numa sessão que foi interrompida: a correção do §9 e o
-conserto da triagem estavam no disco, sem commit. Nada disso foi aceito pelos
-logs dela — a prova da triagem foi refeita, reprovando com o serviço antigo e
-passando com o novo, antes de o trabalho ser adotado. **Arquivo que mudou sem
-quem retoma ter mudado é tratado como de terceiro até ser provado.***
-
-*Dois cuidados das rodadas: o `pg_ctl start` sob `faketime` trava esperando o
-arranque — use `-W` e confira com `pg_isready`; e processo em segundo plano não
-sobrevive entre chamadas do ambiente.*
+*Dois cuidados que as rodadas ensinam: o `pg_ctl start` sob `faketime` trava
+esperando o arranque — use `-W` e confira com `pg_isready`; e processo em
+segundo plano não sobrevive entre chamadas do ambiente.*
 
 *Contagem que só cresce não é dado. O que vale é a **data** e a **condição** da
 última verificação. Quando a próxima fase terminar, esta seção é reescrita, não
@@ -170,6 +166,7 @@ arqueologia.
 | 89 | **Fechar as pontas da 88.** A verificação que faltava achou quatro coisas que o verde escondia: dois retornos simultâneos sobrescreviam o primeiro (1080); o bloco novo nunca tinha sido desenhado nos ensaios, porque o servidor de mentira nascia sem convivência; o roteiro mandava ler um retorno que nenhuma tarefa registrava; e o vínculo aparecia como código cru. Mais uma pergunta do roteiro que tinha deixado de existir |
 | 90 | **Uma decisão só.** As quatro funções que a 89 deixou anotadas, provadas reprovando com o estrago lido do banco — a criança morando no destino com o pedido dizendo "recusado"; a ATA Geral com o fechamento do segundo aparelho; o combinado revogado com um histórico que diz cumprido — e consertadas (1090, 1100, 1110). A corrida virou ajudante de teste, e a varredura virou conferência permanente no `arquitetura.spec.ts` |
 | 91 | **O mesmo desenho, no TypeScript.** A varredura dos serviços achou uma ocorrência real: a Enfermagem assinando enquanto o Gestor devolvia, e a evolução ASSINADA voltava a "complemento solicitado" com duas triagens gravadas. Provado pela rota, com uma segunda forma da corrida (`corridaPorHttp`), e consertado. A conferência do `arquitetura.spec.ts` passou a ler os serviços também, com as exceções escritas por extenso. E o §9 deixou de dizer que ninguém de fora tinha usado o protótipo — já usaram, e é daí que veio a fila de 09/09 |
+| 92 | **A portaria.** O primeiro item da fila de 09/09: quem pode visitar cada criança, marcado no contato pela técnica ou pela coordenação — estar no cadastro não é estar autorizado —, com CPF e foto 3×4, e a folha em Word, em paisagem, para a guarita. No caminho, um defeito que o protótipo escondia: **contra o servidor real, a seção de contatos do perfil saía vazia**, e com ela o botão da experiência familiar |
 
 ---
 
@@ -216,7 +213,7 @@ cd frontend && npm run prototipo
 # sai em prototipo/rede-acolher-prototipo.html
 ```
 
-O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as 97
+O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as 98
 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
 
 ### Os ensaios — e por que cada um existe
@@ -225,11 +222,11 @@ migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.
 
 | Comando | O que ele faz |
 |---|---|
-| `npm run ensaio` | percorre as 118 telas dos sete cargos oferecidos num navegador de verdade, cobrando que nenhuma deixe erro no console, que escreva alguma coisa e que não mostre `undefined` para quem lê. **Tela nova entra neste percurso.** |
+| `npm run ensaio` | percorre as 121 telas dos sete cargos oferecidos num navegador de verdade, cobrando que nenhuma deixe erro no console, que escreva alguma coisa e que não mostre `undefined` para quem lê. **Tela nova entra neste percurso.** |
 | `npm run ensaio:fila` | corta o sinal, marca a chamada, fecha e abre o aplicativo, religa, e confere que **só o que o servidor confirmou** saiu do aparelho |
 | `npm run ensaio:folhas` | os caminhos de documento até o arquivo baixar: abre a folha, tenta baixar com finalidade curta demais, baixa com frase válida, confere que o `.docx` chegou |
-| `npm run ensaio:roteiro` | cobra que as 41 tarefas do roteiro do Marcelo tenham porta no cargo certo. Não simula a procura de uma pessoa — mas impede o fracasso barato: a tarefa não ter porta, e isso aparecer diante da equipe |
-| `npm run ensaio:acessibilidade` | axe-core (WCAG 2.1 AA) nas 125 telas — sete a mais que o `ensaio` porque confere também a folha do "Mais" de cada cargo, aberta dezenas de vezes por turno. **Cor nova passa por ele antes de entrar** |
+| `npm run ensaio:roteiro` | cobra que as 43 tarefas do roteiro do Marcelo tenham porta no cargo certo. Não simula a procura de uma pessoa — mas impede o fracasso barato: a tarefa não ter porta, e isso aparecer diante da equipe |
+| `npm run ensaio:acessibilidade` | axe-core (WCAG 2.1 AA) nas 128 telas — sete a mais que o `ensaio` porque confere também a folha do "Mais" de cada cargo, aberta dezenas de vezes por turno. **Cor nova passa por ele antes de entrar** |
 | `npm run ensaio:uso` | percorre os **sete** cargos **apertando os botões até o fim** — chamada, exceção, passagem, armário, cofre, internação, diário, pedido de lanche — e **lê de volta o que ficou gravado**. É o que pega o defeito que a tela não denuncia: a folha abriu, o botão salvou, e só o número estava errado. *Dizia "oito" aqui, e o roteiro dele também: era a Cozinha, que saiu do seletor na fase 83 — e por isso ele morria no meio* |
 
 **Fora do navegador:**
@@ -282,12 +279,12 @@ rede-acolher/
 │   │   │   ├── documentos/     o contrato da folha e o gerador de .docx
 │   │   │   └── common/         CPF, criptografia, segredo, fuso da instituição
 │   │   └── modules/       17 partições, cada uma dona das próprias migrações
-│   ├── test/              64 suítes (e2e contra PostgreSQL real + estáticas)
+│   ├── test/              65 suítes (e2e contra PostgreSQL real + estáticas)
 │   ├── scripts/           ensaio-carga.ts, migrador compilado
 │   └── assets/timbre.png  a marca da Fundação, usada no documento em Word
 ├── frontend/
 │   ├── src/
-│   │   ├── screens/       31 telas React
+│   │   ├── screens/       32 telas React
 │   │   ├── mock.ts        o "servidor de mentira" do protótipo
 │   │   ├── docx.ts        monta o .docx NO NAVEGADOR — só para o protótipo, que
 │   │   │                  roda sem servidor. No sistema real quem gera é o
@@ -644,6 +641,18 @@ procurar o CONTEÚDO, não a porta** — o `ensaio:roteiro` cobrava que a aba
 Passagem existisse, e ela existia. A regra geral não cabe numa expressão
 regular; o `servidor-de-mentira.spec.ts` cobra o caso que aconteceu, e é o
 exemplo a copiar no próximo bloco assim.
+
+**E o avesso, na fase 92: o servidor de mentira respondendo MELHOR.** O perfil do
+servidor devolvia os contatos como vinham do banco — `name`, `bond`,
+`restricted` —, e a tela lê `nome`, `vinculoRotulo` e filtra por `ativo`.
+**Contra o servidor de verdade, a seção de contatos saía vazia**, e com ela o
+botão da experiência familiar. O protótipo mostrava tudo, porque o servidor de
+mentira devolvia a forma certa. Nenhum teste comparava a forma do perfil com a
+da lista de contatos. Achado ao construir a portaria, por uma sonda que chamou a
+rota de verdade; hoje as duas usam a mesma consulta e a mesma função
+(`contatoParaTela`), e `cadastro-da-lista.e2e.spec.ts` cobra que o contato do
+perfil seja IGUAL ao da lista. **Rota que devolve a mesma coisa que outra tem de
+devolver na mesma forma — e o teste compara as duas, não uma com a memória.**
 
 **19. Ensaio que ESTOURA não é ouvido como ensaio que reclama.** A fase 83
 tirou a Cozinha do seletor e não tirou dos roteiros. O `selectOption('cozinha')`
@@ -1150,6 +1159,39 @@ parecer que pede pouco. Conta também cestas, crianças alcançadas, cancelados 
 autoria de cada pedido tem nome na lista e na folha, mas somar por pessoa é
 medir gente.
 
+### 8.9.2 A portaria, sem a portaria no sistema
+
+Como a cozinha: a portaria **não entra no sistema**, recebe uma folha em papel e
+confere quem chega. Quem gera a folha é a equipe técnica ou a coordenação.
+
+**Estar no cadastro não é estar autorizado.** O contato diz quem é da vida da
+criança; a folha diz quem a casa deixa entrar. A autorização é uma marca no
+contato, dada pela técnica ou pela coordenação, com o nome de quem deu e quando
+— é essa pessoa que responde por quem entrou. Um tio recém-localizado ou a
+técnica do CRAS não aparecem na guarita como liberados só por não terem
+restrição.
+
+**Contato com aproximação restrita nunca é autorizado**, e isso está no banco
+(`contato_restrito_nao_visita`), não só na tela. Contato encerrado perde a
+autorização junto. **A folha não diz quem NÃO entra**, nem por quê: numa
+guarita, "proibido de ver a criança" já conta uma história. O custo — a
+portaria só sabe que a pessoa não está na folha, e liga para a casa — está
+escrito para o Marcelo (roteiro, §8, pergunta 6).
+
+**O CPF vai impresso** (decisão dele de 09/09, levada ao DPO, §11). Guardado
+normalizado; inteiro na tela só para quem escreve no cadastro, mascarado para o
+educador. **As fotos:** a da criança sai sempre — a foto de identificação "não
+entra em documento nenhum por padrão", e esta folha é o pedido que a tira de lá
+—, e a do visitante é **opcional**; sem ela, a folha marca "pedir documento com
+foto". Travar a folha em quem ainda não trouxe foto deixaria o visitante de
+verdade do lado de fora. O servidor embute as fotos no Word; o protótipo mostra
+a marca "foto" no lugar, porque o gerador dele não embute imagem.
+
+A folha não traz motivo de restrição, observação do contato, motivo judicial nem
+diagnóstico — procurado no Word **aberto** pela suíte, com frases-sentinela, e
+visto reprovando quando o serviço foi sabotado. Ela diz que vale até ser
+substituída; quem recolhe a anterior é pergunta para a casa.
+
 ### 8.10 Coordenação e gestão
 
 Equipe e convites de primeiro acesso; o cadastro dos **aparelhos institucionais**
@@ -1431,13 +1473,13 @@ número**.
 
 ## 10.5 A FILA DO MARCELO — o que ele pediu em 09/09/2026
 
-Da conversa longa de 09/09: **dez pedidos estão entregues**, **três esperam
+Da conversa longa de 09/09: **onze pedidos estão entregues**, **dois esperam
 código** e **três estão travados por resposta da casa**. *Até a fase 88 esta
 frase começava com "treze pedidos" e somava dezesseis desde a fase 86; ninguém
 soube dizer de onde vinha o treze, e ele saiu daqui. O conferidor de números só
 lê o §2 — número fora dele envelhece sem que nada reclame.*
 
-### Entregues (fases 76–86)
+### Entregues (fases 76–92)
 
 | # | O quê | Fase |
 |---|---|---|
@@ -1451,6 +1493,7 @@ lê o §2 — número fora dele envelhece sem que nada reclame.*
 | 8 | **A cozinha**: pedidos de lanche e cesta, três folhas em Word, contabilização, cargo oculto, métrica no painel | 82–84 |
 | 9 | **Estoque, nota fiscal e receita** + o remédio que vai com a criança | 85–86 |
 | 10 | **O retorno da visita na ATA e na passagem**, com o que ela trouxe de casa | 88 |
+| 11 | **A folha da portaria** — quem pode visitar, com CPF e foto 3×4 (§8.9.2) | 92 |
 
 ⚠️ **Entregue não era o mesmo que visível.** Até a fase 87, **cinco** dos nove
 não apareciam — ou apareciam errados — no protótipo, que é a única coisa que o
@@ -1464,21 +1507,7 @@ fase 88 só apareceu no protótipo na 89 (§6.14).*
 
 ### Esperam código — nenhuma bloqueada por decisão
 
-**1. A PORTARIA.** Cargo oculto como o da cozinha, e um documento tipo planilha:
-para cada acolhido, quem pode visitá-lo, com **foto 3×4, nome, CPF e telefone**.
-A portaria confere quem chega. Os contatos com vínculo já existem no cadastro,
-então a folha é montável.
-
-*Decisão dele, de 09/09, registrada:* o **CPF vai impresso**. Eu levantei que uma
-folha com foto e CPF de familiares numa guarita é o lugar menos controlado da
-instituição, e que o fundamento de LGPD é outro por ser dado de terceiro — ele
-decidiu assim mesmo, e isso vai para o DPO antes do piloto (§11).
-
-*Regras que valem de qualquer jeito:* **contato com aproximação restrita nunca
-aparece como autorizado**; nada de motivo judicial ou diagnóstico; finalidade
-escrita e saída registrada como toda folha.
-
-**2. AS PERMISSÕES EDITÁVEIS PELA COORDENAÇÃO.** Dentro da própria casa, ela liga
+**1. AS PERMISSÕES EDITÁVEIS PELA COORDENAÇÃO.** Dentro da própria casa, ela liga
 e desliga **campos do perfil** para o educador — telefone de responsável, escola,
 médico, contatos, agenda de consulta. O caso real que ele deu: o educador precisa
 ligar para o colégio ou o médico.
@@ -1492,7 +1521,7 @@ bancários, ocorrência restrita.
 coordenação de uma casa passa a poder alargar quem enxerga o quê, e o
 isolamento entre as oito casas cai por dentro (decisão de 27/08).
 
-**3. A REUNIÃO DE EQUIPE COM PAUTA.** Nem toda a equipe participa — a maioria das
+**2. A REUNIÃO DE EQUIPE COM PAUTA.** Nem toda a equipe participa — a maioria das
 reuniões é diurna e o noturno não vai. O que foi decidido é disparado para toda a
 casa; regras de convivência viram um **estatuto** dentro do sistema; e o educador
 **propõe pauta**. Quem decide se entra é a técnica, o líder ou a coordenação — e
@@ -1560,7 +1589,7 @@ desacoplada** — nenhuma pendência virou regra inventada.
 | 9 | **Os dados de partida** | Equipe, acolhidos já na casa, e a decisão de quanto do histórico em papel entra no sistema |
 | 10 | **LGPD** | Quem responde, por quanto tempo se guarda, o que se apaga |
 | 11 | **Critérios de aceite do piloto e autoridade** | O §13 tem a proposta; falta a Fundação assinar embaixo |
-| 12 | **A folha da portaria com CPF impresso** | Decisão do Marcelo em 09/09. É dado pessoal de TERCEIRO (familiares), numa folha que fica na guarita — o lugar menos controlado da instituição. O DPO precisa ver antes do piloto |
+| 12 | **A folha da portaria com CPF e foto impressos** | Decisão do Marcelo em 09/09, construída na fase 92. É dado pessoal de TERCEIRO (familiares) — CPF, telefone e, quando cadastrada, a foto 3×4 do visitante —, e a foto de identificação da criança, numa folha que fica na guarita, o lugar menos controlado da instituição. O DPO precisa ver antes do piloto, junto com a pergunta de uma segunda lista, de quem NÃO entra |
 
 ### Os seis formulários de papel que ainda faltam
 
@@ -1636,7 +1665,7 @@ ele continua dizendo que o arquivo existe.
 npm run ensaio:producao
 ```
 
-Constrói, cria um banco virgem, aplica as 97 migrações **pelo binário
+Constrói, cria um banco virgem, aplica as 98 migrações **pelo binário
 compilado**, sobe o serviço e confere `/health`. Não publica nada e não toca no
 banco de trabalho.
 
@@ -1903,7 +1932,7 @@ outras; mudança pedida por uma casa só é conversa antes de virar código.
 
 ### O roteiro do Marcelo
 
-`roteiro-marcelo.md` (e o `.docx` gerado dele) leva 41 tarefas do roteiro à Casa 03, cargo a
+`roteiro-marcelo.md` (e o `.docx` gerado dele) leva 43 tarefas do roteiro à Casa 03, cargo a
 cargo — dez delas nasceram na fase 87, uma na 88 e uma na 89, para o roteiro alcançar as entregas de
 09/09. **Ele ficou longo: aplique por cargo, e pare onde o tempo acabar.**
 Como se aplica:

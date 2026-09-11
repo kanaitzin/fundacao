@@ -28,6 +28,7 @@ import { Rotina } from './screens/Rotina';
 import { Escala } from './screens/Escala';
 import { Setores } from './screens/Setores';
 import { Cozinha } from './screens/Cozinha';
+import { Portaria } from './screens/Portaria';
 import { Avisos } from './screens/Avisos';
 import { ALCANCE_POR_CARGO } from '../../backend/src/modules/identity/alcance';
 import { SeloDaFila } from './screens/SeloDaFila';
@@ -164,7 +165,7 @@ export function App() {
   const [aba, setAba] = useState<
     'dia' | 'chamada' | 'passagem' | 'acolhidos' | 'agenda' | 'casas' | 'equipe'
     | 'saude' | 'internacao' | 'impacto' | 'ocorrencias' | 'ata' | 'cofre' | 'transferencias'
-    | 'acompanhamentos' | 'arquivo' | 'plantao' | 'unidades' | 'setores' | 'cozinha'
+    | 'acompanhamentos' | 'arquivo' | 'plantao' | 'unidades' | 'setores' | 'cozinha' | 'portaria'
     | 'alinhamentos' | 'painel' | 'sincronizacao'
     | 'rotina' | 'escala' | 'avisos'>('dia');
   const [sugerirSenha, setSugerirSenha] = useState(false);
@@ -288,7 +289,7 @@ export function App() {
     { aba: 'acolhidos', icone: '🧒', label: 'Acolhidos' },
     { aba: 'passagem', icone: '🔁', label: 'Passagem' },
   ].filter((t) => ve(t.aba));
-  const doMais = ['unidades', 'plantao', 'agenda', 'cozinha', 'equipe', 'setores', 'ocorrencias',
+  const doMais = ['unidades', 'plantao', 'agenda', 'cozinha', 'portaria', 'equipe', 'setores', 'ocorrencias',
     'ata', 'saude', 'internacao', 'impacto', 'alinhamentos', 'acompanhamentos', 'painel', 'arquivo', 'transferencias',
     'cofre', 'sincronizacao', 'casas']
     .filter((a) => ve(a));
@@ -463,6 +464,10 @@ export function App() {
             api<{ naoLidas: number }>('/notifications/count')
               .then((r) => setNaoLidos(r.naoLidas)).catch(() => {});
           }} />
+        )}
+
+        {abaEfetiva === 'portaria' && casaAtual && ve('portaria') && (
+          <Portaria houseId={casaAtual.id} casaLabel={`${casaAtual.code} · ${casaAtual.name}`} />
         )}
 
         {abaEfetiva === 'cozinha' && casaAtual && (
@@ -666,6 +671,17 @@ export function App() {
                     <b className="ff">Cozinha</b>
                     <div className="mutetxt">
                       Pedir lanche e cesta básica, e gerar as folhas para a cozinha.
+                    </div>
+                  </div>
+                </button>
+              )}
+              {ve('portaria') && (
+                <button className="card row" onClick={() => { setAba('portaria'); setMais(false); }}>
+                  <span aria-hidden="true">🚪</span>
+                  <div className="grow" style={{ textAlign: 'left' }}>
+                    <b className="ff">Portaria</b>
+                    <div className="mutetxt">
+                      Quem pode visitar cada criança, e a folha em Word para a guarita.
                     </div>
                   </div>
                 </button>

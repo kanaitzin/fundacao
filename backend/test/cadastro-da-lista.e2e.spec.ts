@@ -224,4 +224,32 @@ describe('O cadastro que a lista da casa pede', () => {
     expect(JSON.stringify(tipos.body)).toContain('processo_judicial');
     expect(JSON.stringify(codigos)).toBeDefined();
   });
+
+  /*
+   * O PERFIL ENTREGA OS CONTATOS NA FORMA QUE A TELA LÊ (fase 92).
+   *
+   * O perfil devolvia as linhas cruas do banco — `name`, `bond`, `restricted` —
+   * e a tela lê `nome`, `vinculoRotulo` e filtra por `ativo`. Contra o
+   * servidor de verdade, a seção de contatos saía VAZIA, e com ela o botão da
+   * experiência familiar. O protótipo não mostrava, porque o servidor de
+   * mentira devolvia a forma certa — a regra 14 ao contrário. Achado ao
+   * construir a folha da portaria.
+   */
+  it('o perfil devolve os contatos na mesma forma da lista de contatos', async () => {
+    const c = await request(http).post(`/api/v1/people/${crianca}/contacts`)
+      .set(auth(tokens.tecnica)).send({ nome: 'Forma do Perfil (fictícia)', vinculo: 'madrinha' });
+    expect(c.status).toBe(201);
+    const perfil = await request(http).get(`/api/v1/people/${crianca}`).set(auth(tokens.educador));
+    const lista = await request(http).get(`/api/v1/people/${crianca}/contacts`).set(auth(tokens.educador));
+    const doPerfil = perfil.body.contatos.find((x: any) => x.id === c.body.id);
+    const daLista = lista.body.find((x: any) => x.id === c.body.id);
+    expect(doPerfil).toBeTruthy();
+    for (const campo of ['nome', 'vinculo', 'vinculoRotulo', 'telefone', 'restrito', 'ativo',
+                         'autorizadoAVisitar', 'cpf', 'temFoto']) {
+      expect(doPerfil).toHaveProperty(campo);
+    }
+    expect(doPerfil.ativo).toBe(true);
+    expect(doPerfil).toEqual(daLista);
+    await admin.query(`UPDATE person_contact SET active=false WHERE id=$1`, [c.body.id]);
+  });
 });
