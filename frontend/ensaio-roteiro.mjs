@@ -322,6 +322,23 @@ const TAREFAS = [
    * A PORTARIA (fase 92). A marca de visita nasce no contato, como a saída.
    * Procura-se a marca E o botão: a porta sem a marca seria a tela vazia.
    */
+  /*
+   * A pauta (fase 94). Duas tarefas, dois cargos: quem propõe e quem responde.
+   * Procura-se o CONTEÚDO — a proposta que espera resposta e a que já foi
+   * respondida com não —, não só a porta.
+   */
+  {
+    cargo: 'educador', secao: '4.1',
+    nome: 'Proponha um assunto para a próxima reunião',
+    caminho: [{ mais: 'Combinados' }],
+    procurar: [/Pauta da próxima reunião/i, /Propor um assunto/, /esperando resposta/i],
+  },
+  {
+    cargo: 'equipe_tecnica', secao: '12.1',
+    nome: 'Responda ao educador a pauta que não vai entrar',
+    caminho: [{ mais: 'Combinados' }],
+    procurar: [/Pauta da próxima reunião/i, /^Responder$/m, /não entra/],
+  },
   {
     cargo: 'equipe_tecnica', secao: '3.13',
     nome: 'A mãe trouxe o CPF — deixe-a pronta para a folha da portaria',

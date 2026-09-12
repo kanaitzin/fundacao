@@ -696,7 +696,36 @@ entity/entity_id genéricos como o próprio relato — é isso que permite remov
 Índice único por `(entity, entity_id, user_id)`: reabrir a ocorrência não
 duplica a cobrança de quem já respondeu.
 
-## Inventário — 107 tabelas por partição
+## Reuniões, combinados e pauta — a partição `alignments`
+
+**`team_meeting` e `team_agreement`** (migração 0840) respondem à pergunta que
+alguém faz toda semana: *"o que ficou combinado?"*. O corpo do combinado é
+imutável e não se apaga — o que muda é a SITUAÇÃO (vigente, cumprido,
+revogado, substituído), com motivo e autor em `agreement_change`. Combinado
+reescrito por cima apagaria o que a equipe tinha acertado antes, e é
+exatamente isso que alguém vai querer ler seis meses depois.
+
+**`meeting_agenda_item` é A PAUTA QUE QUEM TRABALHA NA CASA PROPÕE** (migração
+1140, fase 94, pedido do Marcelo em 09/09). Ela nasce SEM reunião: é para a
+próxima, que ainda não existe.
+
+* **recusar e adiar exigem resposta escrita** (`ck_pauta_recusa_responde`), e
+  isso está no banco porque é a garantia, não a mensagem. A frase do pedido é
+  a razão da tabela existir: *"uma pauta recusada sem resposta é pior do que
+  não poder propor"*. Adiar conta como recusar — "fica para a próxima" sem uma
+  palavra é recusa com outro nome;
+* **decisão sem autor não é decisão** (`ck_pauta_decisao_tem_autor`): é um
+  estado que apareceu sozinho;
+* **o texto proposto é imutável**, como o do combinado, e não se apaga. Sem
+  isso, "mas eu propus outra coisa" volta a ser discussão de memória;
+* **propor é de qualquer pessoa da casa**, inclusive o educador e a
+  enfermagem; **responder** é da técnica, da liderança de turno e da
+  coordenação; **ler é de toda a casa** — resposta que só a coordenação
+  enxerga é a mesma coisa que resposta nenhuma;
+* **`app_responder_pauta` põe o estado no `UPDATE`** (regra 11): duas pessoas
+  respondendo ao mesmo tempo não se sobrescrevem.
+
+## Inventário — 108 tabelas por partição
 
 | Partição | Tabelas |
 |---|---|
@@ -711,7 +740,7 @@ duplica a cobrança de quem já respondeu.
 | checks (4) | collective_check, check_result, check_result_amendment, check_bulk |
 | notifications (3) | notification, escalation, escalation_level |
 | archive (2) | archive_item, archive_attempt |
-| alignments (3) | team_meeting, team_agreement, agreement_change |
+| alignments (4) | team_meeting, team_agreement, agreement_change, meeting_agenda_item |
 | routine (2) | routine_version, routine_item |
 | statements (3) | witness_option, statement, statement_request |
 | sync (2) | offline_operation, sync_conflict |

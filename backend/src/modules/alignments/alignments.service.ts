@@ -1,8 +1,10 @@
 import {
-  BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException,
+  BadRequestException, ConflictException, ForbiddenException, Inject, Injectable,
+  NotFoundException,
 } from '@nestjs/common';
 import { DatabaseService } from '../../kernel/database/database.service';
 import { AuditService } from '../../kernel/audit/audit.service';
+import { EventBus } from '../../kernel/events/event-bus.service';
 import { AuthenticatedUser } from '../../kernel/contracts';
 import { DocumentosService } from '../../kernel/documentos/documentos.service';
 import { cargoNoDocumento } from '../../kernel/documentos/folha';
@@ -37,12 +39,31 @@ const SITUACOES: Record<string, string> = {
 
 const ESCREVE = ['equipe_tecnica', 'coordenador', 'gestor_geral'];
 
+/**
+ * Quem RESPONDE uma proposta de pauta (fase 94, migração 1140).
+ *
+ * A técnica, a coordenação — e a liderança de turno, que é o que o Marcelo
+ * pediu. O líder conduz o turno, e é a ele que o educador da noite chega.
+ */
+const RESPONDE_PAUTA = [...ESCREVE, 'lider_diurno', 'lider_noturno_geral'];
+
+/** O que cada desfecho de uma proposta significa para quem propôs. */
+const DESFECHO: Record<string, { rotulo: string; aviso: string }> = {
+  aceita: { rotulo: 'entra na pauta',
+            aviso: 'Aceita. Ela entra na pauta da próxima reunião, e quem propôs vê isso.' },
+  recusada: { rotulo: 'não entra',
+              aviso: 'Recusada, com a sua resposta. Quem propôs vai ler o motivo.' },
+  adiada: { rotulo: 'fica para depois',
+            aviso: 'Adiada, com a sua resposta. Quem propôs vai ler por que ficou para depois.' },
+};
+
 @Injectable()
 export class AlignmentsService {
   constructor(
     @Inject(DatabaseService) private readonly db: DatabaseService,
     @Inject(AuditService) private readonly audit: AuditService,
     @Inject(DocumentosService) private readonly documentos: DocumentosService,
+    @Inject(EventBus) private readonly bus: EventBus,
   ) {}
 
   vocabulario() {
@@ -181,10 +202,48 @@ export class AlignmentsService {
       entity: 'team_meeting', entityId: id,
       detail: { tipo, combinados: (input.combinados ?? []).length },
     });
+
+    /*
+     * O QUE FOI DECIDIDO É DISPARADO PARA QUEM NÃO ESTAVA (fase 94).
+     *
+     * Pedido do Marcelo em 09/09: "nem toda a equipe participa — a maioria das
+     * reuniões é diurna e o noturno não vai. O que foi decidido é disparado
+     * para toda a casa". Até aqui o combinado ficava VISÍVEL para todos, que
+     * não é a mesma coisa: quem não abre a tela não fica sabendo, e o educador
+     * da noite descobre às 23h que havia um combinado — ou não descobre.
+     *
+     * Avisa quem NÃO estava: o plantão da casa (nível `equipe`) e o Líder
+     * Noturno Geral, que é transversal e é o caso que ele deu. A técnica e a
+     * coordenação não recebem porque conduziram a reunião — avisar quem acabou
+     * de decidir é ruído, e ruído ensina a ignorar aviso.
+     *
+     * Reunião SEM combinado não dispara nada: não houve o que avisar.
+     */
+    const quantos = (input.combinados ?? []).length;
+    if (quantos > 0) {
+      const primeiro = (input.combinados ?? [])[0].texto.trim();
+      const corpo = quantos === 1
+        ? primeiro
+        : `${primeiro} — e mais ${quantos - 1} ${quantos === 2 ? 'combinado' : 'combinados'}.`;
+      for (const level of ['equipe', 'lider_noturno']) {
+        await this.bus.publish('escalation.requested', {
+          level,
+          entity: 'team_meeting', entityId: id,
+          reason: 'combinados da reunião',
+          title: quantos === 1 ? 'Um combinado novo na casa' : `${quantos} combinados novos na casa`,
+          body: corpo,
+          /* Mesma reunião, mesmo aviso: reprocessar a fila não inunda ninguém. */
+          groupKey: `reuniao:${id}`,
+        }, { actorId: user.id, houseId: input.houseId });
+      }
+    }
+
     return {
       id, ok: true,
-      aviso: 'Reunião registrada. Os combinados já aparecem para todo mundo da casa — '
-        + 'inclusive para quem não estava.',
+      aviso: quantos > 0
+        ? 'Reunião registrada. Quem não estava — o plantão e o Líder Noturno — foi avisado dos '
+          + 'combinados, e eles já aparecem para toda a casa.'
+        : 'Reunião registrada. Sem combinados, ninguém foi avisado: não houve o que avisar.',
     };
   }
 
@@ -326,6 +385,148 @@ export class AlignmentsService {
     return this.documentos.exportar(user, folha, {
       entidade: 'alignment_agreements', houseId, finalidade,
     });
+  }
+
+
+  // ============================================================
+  // A PAUTA QUE O EDUCADOR PROPÕE (fase 94, migração 1140)
+  // ============================================================
+
+  /**
+   * As propostas da casa — as abertas primeiro, e depois as respondidas.
+   *
+   * Leitura de toda a casa, de propósito: quem propôs precisa ler a resposta,
+   * e quem não foi à reunião precisa ler o que foi proposto e respondido.
+   * Resposta que só a coordenação enxerga é a mesma coisa que resposta nenhuma.
+   */
+  async pautas(user: AuthenticatedUser, houseId: string) {
+    const linhas = await this.db.asUser(user.id, async (c) => {
+      const { rows: [casa] } = await c.query(
+        `SELECT app_house_in_scope($1) AS alcance`, [houseId]);
+      if (!casa?.alcance) return null;
+      const { rows } = await c.query(
+        `SELECT id, body, context, status, answer, proposed_at, answered_at,
+                proposed_by,
+                app_user_display_name(proposed_by) AS por,
+                app_user_display_name(answered_by) AS respondida_por
+           FROM meeting_agenda_item
+          WHERE house_id = $1
+          ORDER BY (status = 'proposta') DESC, proposed_at DESC`, [houseId]);
+      return rows;
+    });
+    if (!linhas) throw new NotFoundException('Casa não encontrada — ou fora do seu alcance.');
+
+    return {
+      podeResponder: RESPONDE_PAUTA.includes(user.role),
+      abertas: linhas.filter((r: any) => r.status === 'proposta').length,
+      itens: linhas.map((r: any) => ({
+        id: r.id, texto: r.body, contexto: r.context,
+        situacao: r.status,
+        situacaoRotulo: r.status === 'proposta' ? 'esperando resposta' : DESFECHO[r.status].rotulo,
+        resposta: r.answer, respondidaPor: r.respondida_por, respondidaEm: r.answered_at,
+        por: r.por, em: r.proposed_at,
+        /* Para a tela poder dizer "sua proposta" sem devolver o id de ninguém. */
+        minha: r.proposed_by === user.id,
+      })),
+    };
+  }
+
+  /** Propor é de quem trabalha na casa — inclusive o educador e a enfermagem. */
+  async proporPauta(user: AuthenticatedUser, input: {
+    houseId?: string; texto?: string; contexto?: string;
+  }) {
+    const texto = String(input.texto ?? '').trim();
+    if (texto.length < 10) {
+      throw new BadRequestException(
+        'Escreva o assunto da pauta — uma frase que quem não estava no seu turno entenda.');
+    }
+    const id = await this.db.asUser(user.id, async (c) => {
+      const { rows: [casa] } = await c.query(
+        `SELECT app_house_in_scope($1) AS alcance`, [input.houseId]);
+      if (!casa?.alcance) return null;
+      const { rows: [r] } = await c.query(
+        `INSERT INTO meeting_agenda_item (house_id, body, context, proposed_by)
+         VALUES ($1,$2,$3,$4) RETURNING id`,
+        [input.houseId, texto, String(input.contexto ?? '').trim() || null, user.id]);
+      return r.id as string;
+    });
+    if (!id) throw new NotFoundException('Casa não encontrada — ou fora do seu alcance.');
+
+    await this.audit.log({
+      action: 'pauta.proposta', actorId: user.id, institutionId: user.institutionId,
+      houseId: input.houseId, entity: 'meeting_agenda_item', entityId: id,
+    });
+    return { id, ok: true,
+      aviso: 'Proposta registrada. A equipe que conduz a reunião vai responder — e, se não '
+        + 'entrar na pauta, você lê aqui o motivo.' };
+  }
+
+  /**
+   * Responder: aceitar, recusar ou adiar — e recusar e adiar EXIGEM resposta.
+   *
+   * A frase do pedido é esta: "uma pauta recusada sem resposta é pior do que
+   * não poder propor". O serviço recusa, e o banco recusa de novo
+   * (`ck_pauta_recusa_responde`), porque é a garantia, não a mensagem.
+   *
+   * Quem propôs é AVISADO — inclusive, e principalmente, quando a resposta é
+   * não. O aviso é o que fecha o ciclo: sem ele a resposta fica numa tela que
+   * o educador da noite talvez nunca abra.
+   */
+  async responderPauta(user: AuthenticatedUser, id: string, input: {
+    situacao?: string; resposta?: string;
+  }) {
+    if (!RESPONDE_PAUTA.includes(user.role)) {
+      throw new ForbiddenException(
+        'Responder a pauta é de quem conduz a reunião — equipe técnica, liderança de turno '
+        + 'ou coordenação.');
+    }
+    const situacao = String(input.situacao ?? '');
+    if (!DESFECHO[situacao]) {
+      throw new BadRequestException('Diga se a pauta entra, não entra, ou fica para depois.');
+    }
+    const resposta = String(input.resposta ?? '').trim();
+    if (situacao !== 'aceita' && resposta.length < 15) {
+      throw new BadRequestException(
+        situacao === 'recusada'
+          ? 'Escreva por que esta pauta não entra. Quem propôs vai ler — e uma pauta recusada '
+            + 'sem resposta é pior do que não poder propor.'
+          : 'Escreva por que fica para depois, e o que quem propôs pode esperar. '
+            + '"Fica para a próxima" sem uma palavra é recusa com outro nome.');
+    }
+
+    const r = await this.db.asUser(user.id, async (c) => {
+      const { rows: [x] } = await c.query(
+        `SELECT * FROM app_responder_pauta($1,$2,$3)`, [id, situacao, resposta]);
+      return x;
+    }).catch((e: any) => {
+      const frase: Record<string, string> = {
+        pauta_inexistente: 'Proposta não encontrada — ou fora do seu alcance.',
+        pauta_ja_respondida: 'Outra pessoa já respondeu esta proposta enquanto você escrevia.',
+      };
+      const chave = Object.keys(frase).find((k) => String(e?.message ?? '').includes(k));
+      if (chave === 'pauta_inexistente') throw new NotFoundException(frase[chave]);
+      if (chave) throw new ConflictException(frase[chave]);
+      throw e;
+    });
+
+    await this.audit.log({
+      action: `pauta.${situacao}`, actorId: user.id, institutionId: user.institutionId,
+      houseId: r.out_house, entity: 'meeting_agenda_item', entityId: id,
+      purpose: situacao === 'aceita' ? undefined : resposta,
+    });
+
+    /* Quem propôs é avisado — principalmente quando a resposta é não. */
+    if (r.out_autor !== user.id) {
+      await this.bus.publish('notice.requested', {
+        userId: r.out_autor,
+        title: situacao === 'aceita'
+          ? 'Sua pauta entra na próxima reunião'
+          : `Sua pauta: ${DESFECHO[situacao].rotulo}`,
+        body: resposta || 'Ela entra na pauta da próxima reunião.',
+        entity: 'meeting_agenda_item', entityId: id,
+      }, { actorId: user.id, houseId: r.out_house });
+    }
+    return { ok: true, situacao, aviso: DESFECHO[situacao].aviso };
   }
 
 }

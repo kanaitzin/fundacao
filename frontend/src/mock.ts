@@ -245,6 +245,39 @@ let eu = USUARIOS['educador.ai3@paodospobres.dev'];
  * conteúdo: a notificação chega na tela de bloqueio do aparelho da casa, que
  * fica em cima da mesa.
  */
+const RESPONDE_PAUTA = ['equipe_tecnica', 'coordenador', 'gestor_geral',
+  'lider_diurno', 'lider_noturno_geral'];
+const DESFECHO_PAUTA: Record<string, string> = {
+  aceita: 'entra na pauta', recusada: 'não entra', adiada: 'fica para depois',
+};
+/**
+ * O protótipo abre com uma proposta ESPERANDO resposta e uma já respondida com
+ * não — é a metade do pedido que mais importa ver (fase 94). Sem dado aqui, a
+ * seção nasceria vazia e o Marcelo não veria a entrega (§6.14).
+ */
+const PAUTAS: {
+  id: string; texto: string; contexto: string | null;
+  situacao: 'proposta' | 'aceita' | 'recusada' | 'adiada';
+  resposta: string | null; respondidaPor: string | null; respondidaEm: string | null;
+  por: string; porId: string; em: string;
+}[] = [
+  { id: 'pa1',
+    texto: 'A troca de turno às 19h está atropelando o jantar das crianças menores.',
+    contexto: 'Na quarta e na quinta as menores comeram às 20h30 (fictício).',
+    situacao: 'proposta', resposta: null, respondidaPor: null, respondidaEm: null,
+    por: 'Tainá Souza (fictícia)', porId: 'u3', em: emHoras(9, 10) },
+  { id: 'pa2',
+    texto: 'Rever quem acompanha as idas ao dentista às terças de manhã.',
+    contexto: null,
+    situacao: 'recusada',
+    resposta: 'Isto é assunto da escala, e já está sendo tratado com a coordenação geral. '
+      + 'Volto com a resposta na reunião do mês que vem.',
+    respondidaPor: 'Equipe técnica (fictícia)', respondidaEm: emHoras(14, 0),
+    /* Proposta ONTEM: `emHoras` é hora do dia, não horas atrás — 30 ali gerava
+       uma data inválida, e a página inteira não subia (fase 94). */
+    por: 'Nélio Noturno (fictício)', porId: 'u8', em: haMinutos(26 * 60) },
+];
+
 const AVISOS = [
   { id: 'n1', titulo: 'ATA fechada com assinatura pendente',
     texto: '1 passagem não assinada no plantão de ontem. A ATA foi fechada com pendência registrada.',
@@ -6920,6 +6953,66 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     };
   }
 
+  /* -------- A pauta que quem trabalha na casa propõe (fase 94) -------- */
+  if (rota.startsWith('/alignments/agenda') && metodo === 'GET') {
+    return {
+      podeResponder: RESPONDE_PAUTA.includes(eu.role),
+      abertas: PAUTAS.filter((p) => p.situacao === 'proposta').length,
+      itens: PAUTAS.slice()
+        .sort((a, z) => Number(z.situacao === 'proposta') - Number(a.situacao === 'proposta'))
+        .map((p) => ({
+          ...p,
+          situacaoRotulo: p.situacao === 'proposta' ? 'esperando resposta' : DESFECHO_PAUTA[p.situacao],
+          minha: p.porId === eu.id,
+        })),
+    };
+  }
+  if (rota === '/alignments/agenda' && metodo === 'POST') {
+    if (String(b.texto ?? '').trim().length < 10) {
+      return new Recusa(400,
+        'Escreva o assunto da pauta — uma frase que quem não estava no seu turno entenda.');
+    }
+    const id = uid();
+    PAUTAS.unshift({
+      id, texto: String(b.texto).trim(), contexto: String(b.contexto ?? '').trim() || null,
+      situacao: 'proposta', resposta: null, respondidaPor: null, respondidaEm: null,
+      por: eu.fullName, porId: eu.id, em: new Date().toISOString(),
+    });
+    return { id, ok: true,
+      aviso: 'Proposta registrada. A equipe que conduz a reunião vai responder — e, se não '
+        + 'entrar na pauta, você lê aqui o motivo.' };
+  }
+  if (seg[0] === 'alignments' && seg[1] === 'agenda' && seg[3] === 'answer' && metodo === 'POST') {
+    if (!RESPONDE_PAUTA.includes(eu.role)) {
+      return new Recusa(403, 'Responder a pauta é de quem conduz a reunião — equipe técnica, '
+        + 'liderança de turno ou coordenação.');
+    }
+    const p = PAUTAS.find((x) => x.id === seg[2]);
+    if (!p) return new Recusa(404, 'Proposta não encontrada — ou fora do seu alcance.');
+    if (p.situacao !== 'proposta') {
+      return new Recusa(409, 'Outra pessoa já respondeu esta proposta enquanto você escrevia.');
+    }
+    const situacao = String(b.situacao ?? '');
+    if (!DESFECHO_PAUTA[situacao]) {
+      return new Recusa(400, 'Diga se a pauta entra, não entra, ou fica para depois.');
+    }
+    const resposta = String(b.resposta ?? '').trim();
+    if (situacao !== 'aceita' && resposta.length < 15) {
+      return new Recusa(400, situacao === 'recusada'
+        ? 'Escreva por que esta pauta não entra. Quem propôs vai ler — e uma pauta recusada sem '
+          + 'resposta é pior do que não poder propor.'
+        : 'Escreva por que fica para depois, e o que quem propôs pode esperar. '
+          + '"Fica para a próxima" sem uma palavra é recusa com outro nome.');
+    }
+    p.situacao = situacao as typeof p.situacao;
+    p.resposta = resposta || null;
+    p.respondidaPor = eu.fullName; p.respondidaEm = new Date().toISOString();
+    return { ok: true, situacao, aviso: situacao === 'aceita'
+      ? 'Aceita. Ela entra na pauta da próxima reunião, e quem propôs vê isso.'
+      : `${situacao === 'recusada' ? 'Recusada' : 'Adiada'}, com a sua resposta. `
+        + 'Quem propôs vai ler o motivo.' };
+  }
+
   if (seg[0] === 'alignments' && seg[1] === 'meetings' && metodo === 'POST') {
     if (!['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)) {
       return new Recusa(403,
@@ -6951,9 +7044,29 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         por: eu.fullName, criadoEm: new Date().toISOString(), historico: [],
       });
     }
+    /*
+     * O disparo a quem NÃO estava (fase 94): no protótipo, o aviso cai na
+     * caixa de quem está vendo, para a pessoa poder ver que ele existe. No
+     * servidor vai para o plantão e para o Líder Noturno — nunca para quem
+     * conduziu a reunião.
+     */
+    const quantos = ((b.combinados ?? []) as any[]).length;
+    if (quantos > 0) {
+      const primeiro = String(((b.combinados ?? []) as any[])[0].texto).trim();
+      AVISOS.unshift({
+        id: uid(),
+        titulo: quantos === 1 ? 'Um combinado novo na casa' : `${quantos} combinados novos na casa`,
+        texto: quantos === 1 ? primeiro
+          : `${primeiro} — e mais ${quantos - 1} ${quantos === 2 ? 'combinado' : 'combinados'}.`,
+        prioridade: 'normal', entidade: 'team_meeting', entidadeId: id,
+        lida: false, ciente: false, em: new Date().toISOString(),
+      });
+    }
     return { id, ok: true,
-      aviso: 'Reunião registrada. Os combinados já aparecem para todo mundo da casa — '
-        + 'inclusive para quem não estava.' };
+      aviso: quantos > 0
+        ? 'Reunião registrada. Quem não estava — o plantão e o Líder Noturno — foi avisado dos '
+          + 'combinados, e eles já aparecem para toda a casa.'
+        : 'Reunião registrada. Sem combinados, ninguém foi avisado: não houve o que avisar.' };
   }
 
   if (seg[0] === 'alignments' && seg[1] === 'agreements' && seg.length === 2

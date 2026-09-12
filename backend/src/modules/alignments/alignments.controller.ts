@@ -50,6 +50,24 @@ export class AlignmentsController {
     return this.alinhamentos.registrarReuniao(user, body);
   }
 
+  /* ---------------- A pauta que o educador propõe (1140) ---------------- */
+  @Get('agenda')
+  pautas(@CurrentUser() user: AuthenticatedUser,
+         @Query('houseId', ParseUUIDPipe) houseId: string) {
+    return this.alinhamentos.pautas(user, houseId);
+  }
+
+  @Post('agenda')
+  proporPauta(@CurrentUser() user: AuthenticatedUser, @Body() body: any) {
+    return this.alinhamentos.proporPauta(user, body ?? {});
+  }
+
+  @Post('agenda/:id/answer')
+  responderPauta(@CurrentUser() user: AuthenticatedUser,
+                 @Param('id', ParseUUIDPipe) id: string, @Body() body: any) {
+    return this.alinhamentos.responderPauta(user, id, body ?? {});
+  }
+
   @Post('agreements')
   registrarCombinado(@CurrentUser() user: AuthenticatedUser, @Body() body: any) {
     return this.alinhamentos.registrarCombinado(user, body);

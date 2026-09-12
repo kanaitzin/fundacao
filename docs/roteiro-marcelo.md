@@ -16,8 +16,9 @@
 > real. Vale saber antes de anotar "achei feio".
 >
 > Última atualização: 11/09/2026 — as doze entregas de 09/09 no **§0.8**
-> (as mais novas são a **folha da portaria** e **o que o plantão vê no
-> perfil**), quinze tarefas novas nas seções dos cargos, a **§7 mudou de dono** (a
+> (as mais novas são a **folha da portaria**, **o que o plantão vê no perfil**
+> e **a pauta que o educador propõe**), dezessete tarefas novas nas seções dos
+> cargos, a **§7 mudou de dono** (a
 > cozinha não entra no sistema, e quem pede o lanche é quem está no turno), e a
 > **§8** trocou uma pergunta que tinha deixado de existir pelas que ainda
 > esperam resposta.
@@ -226,7 +227,7 @@ no vínculo da casa, em vez de fingir que sabe.
 
 ## §0.8 — O que mudou depois de 09/09 (a conversa longa, e é bastante coisa)
 
-Doze coisas que o Marcelo pediu em 09/09 já estão no protótipo. **Quinze
+Treze coisas que o Marcelo pediu em 09/09 já estão no protótipo. **Dezessete
 tarefas novas** deste roteiro existem por causa delas, e estão marcadas nas seções dos
 cargos. O que vale saber antes de aplicar:
 
@@ -407,6 +408,13 @@ Marcelo descreveu, e ninguém da equipe as viu ainda.
    (quem vai sair pede)? Esta distinção foi decisão de produto — vale saber se
    sobrevive ao primeiro contato.
 
+4.1. **Você tem um assunto para a próxima reunião. Proponha.**
+    Observar: ela acha **"Propor um assunto"** na tela de combinados? Ela
+    entende que quem conduz a reunião vai **responder** — e que, se o assunto
+    não entrar, ela lê o motivo ali mesmo? ⚠️ Pergunte: *"e se ninguém
+    responder?"* — a resposta dela diz se o aviso que o sistema manda é
+    suficiente, ou se ela esperaria alguém falar com ela.
+
 5. **Pergunte depois:** "o que você faria com o caderno de plantão depois de
    usar isto por uma semana?"
 
@@ -483,6 +491,16 @@ isso.
     para medir confiança, anote a frase e diga que não existe** — é a regra 3.
     E pergunte o que ela usaria no lugar; a resposta dela vale mais que a
     minha.
+
+12.1. **O educador propôs um assunto que não vai entrar nesta reunião.
+    Responda a ele.**
+    Observar: ela vê a proposta esperando resposta na tela de combinados? Ao
+    escolher **"não entra"**, ela repara que o sistema **exige** escrever, e
+    que o campo diz que é o educador quem vai ler? ⚠️ **Anote a frase que ela
+    escrever.** O pedido do Marcelo foi "responde ao educador por que ficou de
+    fora"; se a resposta dela for burocrática ("não é o momento"), o botão
+    existe e o problema continua — e isso é conversa de equipe, não de
+    sistema.
 
 13. **A Rosângela, mãe da Alice, trouxe o CPF. Deixe-a pronta para a folha da
     portaria.**

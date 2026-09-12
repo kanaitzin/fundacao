@@ -47,6 +47,20 @@ interface Alinhamentos {
 }
 interface Tipo { code: string; label: string }
 
+/** A pauta proposta por quem trabalha na casa (fase 94). */
+interface Pauta {
+  id: string; texto: string; contexto: string | null;
+  situacao: 'proposta' | 'aceita' | 'recusada' | 'adiada';
+  situacaoRotulo: string;
+  resposta: string | null; respondidaPor: string | null; respondidaEm: string | null;
+  por: string; em: string; minha: boolean;
+}
+interface Pautas { podeResponder: boolean; abertas: number; itens: Pauta[] }
+
+const TOM_PAUTA: Record<string, string> = {
+  proposta: 'c-warn', aceita: 'c-ok', recusada: 'c-mute', adiada: 'c-brand',
+};
+
 const dia = (iso: string) => new Date(`${String(iso).slice(0, 10)}T12:00:00-03:00`)
   .toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 const quando = (iso: string) => new Date(iso).toLocaleString('pt-BR',
@@ -67,15 +81,19 @@ export function Alinhamentos({ houseId, casaLabel }: { houseId: string; casaLabe
   const [encerrando, setEncerrando] = useState<Combinado | null>(null);
   const [verEncerrados, setVerEncerrados] = useState(false);
   const [documento, setDocumento] = useState<DocumentoWord | null>(null);
+  const [pautas, setPautas] = useState<Pautas | null>(null);
+  const [propondo, setPropondo] = useState(false);
+  const [respondendo, setRespondendo] = useState<Pauta | null>(null);
 
   async function carregar() {
     setErro('');
     try {
-      const [d, v] = await Promise.all([
+      const [d, v, p] = await Promise.all([
         api<Alinhamentos>(`/alignments?houseId=${houseId}`),
         api<{ tipos: Tipo[] }>('/alignments/kinds').catch(() => ({ tipos: [] })),
+        api<Pautas>(`/alignments/agenda?houseId=${houseId}`),
       ]);
-      setDados(d); setTipos(v.tipos);
+      setDados(d); setTipos(v.tipos); setPautas(p);
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Não foi possível abrir os combinados.');
     }
@@ -219,6 +237,89 @@ export function Alinhamentos({ houseId, casaLabel }: { houseId: string; casaLabe
             </div>
           )}
         </>
+      )}
+
+      {/*
+        * A PAUTA QUE QUEM TRABALHA NA CASA PROPÕE (fase 94).
+        *
+        * Fica ANTES das reuniões, e as que esperam resposta ficam no alto: uma
+        * proposta parada é uma pessoa esperando. E a resposta aparece junto da
+        * proposta, para quem propôs — inclusive quando é não, que é o ponto
+        * inteiro do pedido.
+        */}
+      {pautas && (
+        <>
+          <div className="eyebrow">
+            Pauta da próxima reunião
+            {pautas.abertas > 0 && ` · ${pautas.abertas} esperando resposta`}
+          </div>
+
+          <button className="btn block ghost" onClick={() => setPropondo(true)}>
+            Propor um assunto para a reunião
+          </button>
+
+          {pautas.itens.length === 0 ? (
+            <div className="card">
+              <p className="mutetxt" style={{ margin: 0 }}>
+                Ninguém propôs assunto ainda. Quem trabalha na casa pode propor — e recebe
+                resposta, inclusive quando o assunto não entra.
+              </p>
+            </div>
+          ) : (
+            <ul className="stack lista">
+              {pautas.itens.map((p) => (
+                <li key={p.id} className="card">
+                  <div className="row">
+                    <span className="grow ff">{p.texto}</span>
+                    <span className={`pill ${TOM_PAUTA[p.situacao]}`}>{p.situacaoRotulo}</span>
+                  </div>
+                  {p.contexto && <div className="mutetxt">{p.contexto}</div>}
+                  <div className="mutetxt">
+                    {p.minha ? 'Proposta sua' : `Proposta por ${p.por}`} em {dia(p.em)}.
+                  </div>
+                  {p.resposta && (
+                    <div className="notice c-info" style={{ marginBottom: 0 }}>
+                      <b>Resposta:</b> {p.resposta}
+                      <div className="mutetxt">
+                        {p.respondidaPor}{p.respondidaEm ? `, em ${quando(p.respondidaEm)}` : ''}
+                      </div>
+                    </div>
+                  )}
+                  {pautas.podeResponder && p.situacao === 'proposta' && (
+                    <button className="btn sm" onClick={() => setRespondendo(p)}>
+                      Responder
+                    </button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
+      )}
+
+      {propondo && (
+        <FolhaProporPauta
+          onFechar={() => setPropondo(false)}
+          onEnviar={async (texto, contexto) => {
+            const ok = await acao(() => api('/alignments/agenda', {
+              method: 'POST', body: JSON.stringify({ houseId, texto, contexto }),
+            }));
+            if (ok) setPropondo(false);
+            return ok;
+          }} />
+      )}
+
+      {respondendo && (
+        <FolhaResponderPauta
+          pauta={respondendo}
+          onFechar={() => setRespondendo(null)}
+          onResponder={async (situacao, resposta) => {
+            const ok = await acao(() => api(`/alignments/agenda/${respondendo.id}/answer`, {
+              method: 'POST', body: JSON.stringify({ situacao, resposta }),
+            }));
+            if (ok) setRespondendo(null);
+            return ok;
+          }} />
       )}
 
       <div className="eyebrow">Reuniões</div>
@@ -513,6 +614,105 @@ function FolhaEncerrar({ combinado, onFechar, onEncerrar }: {
           <button className="btn grow" disabled={motivo.trim().length < 5}
                   onClick={() => onEncerrar(situacao, motivo.trim())}>
             Encerrar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * PROPOR UM ASSUNTO — de quem trabalha na casa, inclusive o educador.
+ *
+ * O contexto é opcional e é onde cabe o que a frase curta não diz: em que dia
+ * aconteceu, com quem, o que já se tentou.
+ */
+function FolhaProporPauta({ onFechar, onEnviar }: {
+  onFechar: () => void;
+  onEnviar: (texto: string, contexto: string) => Promise<boolean>;
+}) {
+  const [texto, setTexto] = useState('');
+  const [contexto, setContexto] = useState('');
+  const [enviando, setEnviando] = useState(false);
+
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-pauta"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet modal">
+        <h3 id="t-pauta">Propor um assunto para a reunião</h3>
+        <p className="mutetxt">
+          Quem conduz a reunião vai responder. Se o assunto não entrar, você lê aqui o motivo.
+        </p>
+        <label className="f" htmlFor="pauta-texto">O assunto</label>
+        <textarea id="pauta-texto" rows={3} value={texto}
+                  onChange={(e) => setTexto(e.target.value)}
+                  placeholder="Uma frase que quem não estava no seu turno entenda." />
+        <label className="f" htmlFor="pauta-ctx">
+          Por que isso importa <small>— opcional</small>
+        </label>
+        <textarea id="pauta-ctx" rows={3} value={contexto}
+                  onChange={(e) => setContexto(e.target.value)} />
+        <div className="acoes">
+          <button className="btn ghost" onClick={onFechar}>Cancelar</button>
+          <button className="btn" disabled={enviando}
+                  onClick={async () => { setEnviando(true); await onEnviar(texto, contexto); setEnviando(false); }}>
+            Propor
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * RESPONDER — e recusar ou adiar EXIGE escrever.
+ *
+ * O campo da resposta só aparece quando a resposta é "não entra" ou "fica para
+ * depois", e o botão fica desabilitado enquanto ela estiver vazia. É a mesma
+ * regra do servidor e do banco; aqui ela evita a viagem perdida, não substitui
+ * a garantia. A frase de ajuda diz para quem a pessoa está escrevendo — é
+ * quem propôs que vai ler.
+ */
+function FolhaResponderPauta({ pauta, onFechar, onResponder }: {
+  pauta: Pauta; onFechar: () => void;
+  onResponder: (situacao: string, resposta: string) => Promise<boolean>;
+}) {
+  const [situacao, setSituacao] = useState('aceita');
+  const [resposta, setResposta] = useState('');
+  const [enviando, setEnviando] = useState(false);
+  const exige = situacao !== 'aceita';
+
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-resp"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet modal">
+        <h3 id="t-resp">Responder à pauta</h3>
+        <p className="ff">{pauta.texto}</p>
+        <p className="mutetxt">Proposta por {pauta.por}.</p>
+
+        <label className="f" htmlFor="resp-sit">A pauta</label>
+        <select id="resp-sit" value={situacao} onChange={(e) => setSituacao(e.target.value)}>
+          <option value="aceita">Entra na próxima reunião</option>
+          <option value="recusada">Não entra</option>
+          <option value="adiada">Fica para depois</option>
+        </select>
+
+        {exige && (
+          <>
+            <label className="f" htmlFor="resp-txt">
+              {situacao === 'recusada' ? 'Por que não entra?' : 'Por que fica para depois?'}
+            </label>
+            <textarea id="resp-txt" rows={3} value={resposta}
+                      onChange={(e) => setResposta(e.target.value)}
+                      placeholder={`${pauta.por} vai ler esta resposta.`} />
+          </>
+        )}
+
+        <div className="acoes">
+          <button className="btn ghost" onClick={onFechar}>Cancelar</button>
+          <button className="btn" disabled={enviando || (exige && resposta.trim().length < 15)}
+                  onClick={async () => { setEnviando(true); await onResponder(situacao, resposta); setEnviando(false); }}>
+            Responder
           </button>
         </div>
       </div>

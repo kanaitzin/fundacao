@@ -98,7 +98,10 @@ describe('Reuniões de equipe e combinados', () => {
         ],
       });
     expect(res.status).toBe(201);
-    expect(res.body.aviso).toMatch(/inclusive para quem não estava/i);
+    /* A frase mudou na fase 94: além de aparecerem para todos, os combinados
+       agora são DISPARADOS a quem não estava — e o aviso diz isso. */
+    expect(res.body.aviso).toMatch(/quem não estava/i);
+    expect(res.body.aviso).toMatch(/Líder Noturno/);
     ids.reuniao = res.body.id;
   });
 
