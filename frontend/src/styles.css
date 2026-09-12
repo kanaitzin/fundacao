@@ -5,7 +5,11 @@
    sobre a pessoa. Sem ranking, sem pontuação de comportamento.
    Espelha prototipo/rede-acolher-prototipo.html (fonte do design).
    ============================================================ */
-@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap");
+/* As duas famílias vêm EMBUTIDAS (fase 97, §10.10), geradas por
+   `scripts/gerar-fontes.mjs`. Antes eram buscadas no Google: sem internet — que
+   é como o arquivo é entregue — a letra caía para a do sistema, e com internet
+   cada abertura mandava o IP de quem abriu para um terceiro. */
+@import "./fontes.css";
 
 /* ---------- Tema claro ---------- */
 :root {

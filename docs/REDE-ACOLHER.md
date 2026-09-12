@@ -82,7 +82,7 @@ aplicação e no banco. §7 tem a matriz inteira.
 
 ## 2. O ESTADO HOJE
 
-**Fases 0 a 96.** Estes números **saem do código**, não da memória — e são
+**Fases 0 a 97.** Estes números **saem do código**, não da memória — e são
 cobrados por `test/numeros-da-documentacao.spec.ts`, que existe porque em 08/09
 seis afirmações estavam erradas ao mesmo tempo em três documentos, e duas delas
 discordavam entre si.
@@ -97,7 +97,7 @@ discordavam entre si.
 | **33 telas React** | `frontend/src/screens/*.tsx` |
 | **14 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **6 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
-| protótipo com **≈1035 KB** | `prototipo/rede-acolher-prototipo.html` |
+| protótipo com **≈1153 KB** | `prototipo/rede-acolher-prototipo.html` |
 
 *A frase importa: o conferidor lê o NÚMERO colado ao substantivo. Escrever
 "Telas React … 31" numa coluna separada faz o teste passar sem conferir nada —
@@ -114,26 +114,20 @@ foi assim que "30 telas" sobreviveu à fase que existiu para acabar com isso.*
 
 ### A última verificação inteira
 
-**12/09/2026, fase 96.** `tsc` limpo nos dois lados. A suíte **duas rodadas
-inteiras**: uma às 13h27 de Porto Alegre, no relógio real, e outra com banco e
-processo sob `faketime +9h` — 22h30, com o UTC já em 13/09 —, 68 suítes e 658
-testes nas duas. O `ensaio:producao` aplicou as 101 migrações pelo binário num
-banco virgem; o `ensaio:restauracao` rodou com credencial fictícia no cofre,
-abrindo com a chave certa e reprovando com a errada. O protótipo foi
-reconstruído e saiu **idêntico** ao da fase 95.
+**12/09/2026, fase 97.** `tsc` limpo nos dois lados. A suíte **duas rodadas
+inteiras**: uma às 13h53 de Porto Alegre, no relógio real, e outra com banco e
+processo sob `faketime +9h` — 22h55, com o UTC já em 13/09 —, 68 suítes e 658
+testes nas duas. Os **seis** ensaios de navegador, verdes com o protótipo
+reconstruído. O `ensaio:producao` aplicou as 101 migrações pelo binário num
+banco virgem; o `ensaio:restauracao` rodou com credencial fictícia no cofre. Dois
+builds seguidos do protótipo saíram **idênticos** — a geração das fontes é
+reprodutível.
 
-**Não rodaram, de propósito, e com o motivo:** os seis ensaios de navegador.
-Nenhuma linha do `frontend/` mudou — a fase inteira foi conferência de
-arquitetura —, e o protótipo é byte a byte o que eles percorreram verdes na
-fase 95, no mesmo dia. Se a próxima fase tocar em tela, voltam a ser
-obrigatórios.
-
-*As duas conferências novas foram vistas REPROVANDO antes de valerem: a do SQL
-nos dois sentidos (tirando uma declaração usada, e pondo uma que não se usa), e
-a das colunas de fechamento tirando uma exceção da lista — ela apontou a linha
-exata. **A primeira tentativa de sabotagem não reprovou porque errou o alvo**:
-trocou a primeira ocorrência do arquivo, que não era a do teste. Sabotagem que
-passa não prova nada; é preciso conferir que ela mexeu onde se pensava.*
+*E o que a fase 97 exigia por ser o que é: o protótipo foi aberto num navegador
+**com toda a rede bloqueada**, que é como ele chega à casa. As cinco fontes em
+uso carregaram, nenhum pedido saiu do arquivo, e o console ficou limpo. Antes,
+sem rede, a letra caía para a do sistema — e nenhum ensaio via isso, porque
+ensaio não repara em tipografia.*
 
 *Dois cuidados que as rodadas ensinam: o `pg_ctl start` sob `faketime` trava
 esperando o arranque — use `-W` e confira com `pg_isready`; e processo em
@@ -176,6 +170,7 @@ arqueologia.
 | 94 | **A pauta que o educador propõe.** O último item da fila de 09/09: quem trabalha na casa propõe assunto para a reunião, e **recusar ou adiar exige resposta escrita** — no serviço e no banco —, que quem propôs lê e é avisado. E o que foi decidido na reunião passou a ser **disparado** a quem não estava: o plantão e o Líder Noturno |
 | 95 | **O estatuto.** As regras de convivência, que a fase 94 deixou de fora por serem outra coisa: permanentes, por casa ou da instituição, com público — o que permite afixar na parede só o que é das crianças. A suíte achou a função `SECURITY DEFINER` deixando a coordenação revogar regra da instituição, por cima do RLS |
 | 96 | **As fronteiras que ninguém conferia.** Os dois achados de passagem viraram conferência: o SQL entre partições — **dez** liam tabelas de outra sem declarar, e o "removível" do §4.3 era falso — e as colunas de fechamento que não se chamam `status`. Nenhum defeito novo; o que havia era garantia que ninguém garantia |
+| 97 | **As fontes, embutidas.** A decisão §10.10 estava parada por um custo estimado em 300 KB; medido com o subconjunto latino e só os pesos usados, são **116 KB**. O protótipo deixou de buscar letra no Google: offline — que é como ele é entregue — a letra agora é a que a equipe vai ver, e nenhum IP de quem abre vai para um terceiro |
 
 ---
 
@@ -527,9 +522,11 @@ de entrar.**
    estava nesse limiar — a tinta mais fraca da tela reservada justamente para o
    aviso. `--amber-solid` foi de `#B45309` para `#92400E`.
 
-**As fontes do protótipo** são buscadas na rede. Aberto sem internet — que é
-como o arquivo é entregue —, ele cai na fonte do sistema. Decisão em aberto,
-§10.10.
+**As fontes do protótipo vão EMBUTIDAS** desde a fase 97 — subconjunto latino,
+só os pesos que o CSS usa, 116 KB. Aberto sem internet, que é como o arquivo é
+entregue, a letra é a mesma; e nenhuma abertura manda o IP de quem abriu para
+um terceiro. Geradas por `scripts/gerar-fontes.mjs`, que roda no build; o
+`fontes.css` é gerado e não versionado.
 
 ### 4.10 Os testes que guardam a arquitetura
 
@@ -1479,7 +1476,6 @@ provadas e consertadas na 90 (§6.11).*
 
 ### O que é meu e ficou pequeno
 
-- **As fontes do protótipo**: embutir as duas famílias custa cerca de 300 KB. §10.10.
 - **O prazo de triagem da Enfermagem** será parâmetro, e ainda não tem valor.
 
 ### O que não é código, e vale mais que tudo acima
@@ -1538,12 +1534,16 @@ número**.
    uma data única na planilha, e não por criança. **A pergunta:** as datas são
    mesmo iguais para todo mundo, e o sistema deve avisar por criança quando o
    próximo PIA está chegando — 30 dias antes, na tela da técnica?
-10. **As fontes do protótipo.** Embutir a *Atkinson Hyperlegible* e a *Plus
-    Jakarta Sans* custa cerca de 300 KB no arquivo; não embutir significa que, offline —
-    que é como ele é entregue —, a letra não é a que a equipe vai ver, e que com
-    internet cada abertura faz uma requisição a um terceiro. A Atkinson foi
-    escolhida por ser desenhada para leitura difícil, que é o caso de quem lê um
-    alerta no corredor.
+10. ~~**As fontes do protótipo.**~~ **Resolvida na fase 97, medindo.** A
+    pergunta existia por causa do custo — o documento estimava 300 KB. Com o
+    subconjunto **latino** e só os pesos que o CSS usa (400/700 e o itálico na
+    Atkinson; 600/700/800 na Jakarta), são 87 KB de arquivo e **116 KB** em
+    base64, num protótipo que já tinha 1 MB. Diante disso os dois custos de não
+    embutir não se sustentavam: offline a letra não era a que a equipe veria, e
+    com internet cada abertura mandava o IP de quem abriu para um terceiro. O
+    subconjunto é o latino INTEIRO, e não os caracteres das telas de hoje: o
+    protótipo tem campos onde a pessoa digita, e um nome com Ñ sairia na letra
+    errada. *Número estimado que trava uma decisão pede medição, não opinião.*
 11. **A Enfermagem vê a internação — decisão MINHA, a confirmar.** A resposta da
     coordenação em 03/09 listou equipe técnica, líder educador e coordenador, e
     disse que o educador social comum não vê. Incluí a Enfermagem porque

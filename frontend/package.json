@@ -5,22 +5,25 @@
   "description": "Rede Acolher — PWA (React + TypeScript)",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "dev": "npm run fontes && vite",
+    "build": "npm run fontes && tsc --noEmit && vite build",
     "preview": "vite preview",
-    "prototipo": "VITE_PROTOTIPO=1 vite build --mode prototipo && mv ../prototipo/index.html ../prototipo/rede-acolher-prototipo.html && rm -rf ../prototipo/icons",
+    "prototipo": "npm run fontes && VITE_PROTOTIPO=1 vite build --mode prototipo && mv ../prototipo/index.html ../prototipo/rede-acolher-prototipo.html && rm -rf ../prototipo/icons",
     "ensaio": "node ensaio.mjs",
     "ensaio:fila": "node ensaio-fila.mjs",
     "ensaio:folhas": "node ensaio-folhas.mjs",
     "ensaio:roteiro": "node ensaio-roteiro.mjs",
     "ensaio:acessibilidade": "node ensaio-acessibilidade.mjs",
-    "ensaio:uso": "node ensaio-uso.mjs"
+    "ensaio:uso": "node ensaio-uso.mjs",
+    "fontes": "node ../scripts/gerar-fontes.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@fontsource/atkinson-hyperlegible": "^5.3.0",
+    "@fontsource/plus-jakarta-sans": "^5.3.0",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
     "@vitejs/plugin-react": "^4.3.4",
