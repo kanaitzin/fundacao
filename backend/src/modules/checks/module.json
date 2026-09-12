@@ -5,6 +5,9 @@
     "identity",
     "sync"
   ],
+  "dependeDoEsquemaDe": [
+    "people"
+  ],
   "publica": [
     "ChecksModule",
     "ChecksService",

@@ -2,6 +2,10 @@
   "name": "identity",
   "descricao": "Autenticação, sessões revogáveis, reautenticação e usuários.",
   "depends": [],
+  "dependeDoEsquemaDe": [
+    "archive",
+    "people"
+  ],
   "publica": [
     "IdentityModule",
     "SessionGuard",

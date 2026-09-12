@@ -1,9 +1,27 @@
 {
   "name": "nursing",
   "descricao": "Enfermagem (§7): painel transversal, Evolução de Saúde com triagem e assinatura, histórico e Resumo de Saúde.",
-  "depends": ["identity", "sync"],
-  "publica": ["NursingModule", "NursingService", "HealthSummaryService", "SLA_TRIAGEM_HORAS", "FINALIDADES"],
-  "tabelas": ["health_encounter", "health_evolution", "nursing_triage", "health_summary_issue"],
+  "depends": [
+    "identity",
+    "sync"
+  ],
+  "dependeDoEsquemaDe": [
+    "medications",
+    "people"
+  ],
+  "publica": [
+    "NursingModule",
+    "NursingService",
+    "HealthSummaryService",
+    "SLA_TRIAGEM_HORAS",
+    "FINALIDADES"
+  ],
+  "tabelas": [
+    "health_encounter",
+    "health_evolution",
+    "nursing_triage",
+    "health_summary_issue"
+  ],
   "removivel": true,
   "observacao": "Lê a grade de medicamentos pelo banco, sem importar o módulo medications. O prazo de triagem (pendência 33.4.2) é configurável por NURSING_TRIAGE_SLA_HOURS."
 }

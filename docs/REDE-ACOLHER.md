@@ -82,7 +82,7 @@ aplicação e no banco. §7 tem a matriz inteira.
 
 ## 2. O ESTADO HOJE
 
-**Fases 0 a 95.** Estes números **saem do código**, não da memória — e são
+**Fases 0 a 96.** Estes números **saem do código**, não da memória — e são
 cobrados por `test/numeros-da-documentacao.spec.ts`, que existe porque em 08/09
 seis afirmações estavam erradas ao mesmo tempo em três documentos, e duas delas
 discordavam entre si.
@@ -93,7 +93,7 @@ discordavam entre si.
 | **101 migrações** | `.sql` dentro das partições |
 | **109 tabelas** | `CREATE TABLE` nas migrações |
 | **68 suítes** | `backend/test/*.spec.ts` |
-| **656 testes** | `it(` / `test(` nas suítes |
+| **658 testes** | `it(` / `test(` nas suítes |
 | **33 telas React** | `frontend/src/screens/*.tsx` |
 | **14 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **6 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
@@ -114,22 +114,26 @@ foi assim que "30 telas" sobreviveu à fase que existiu para acabar com isso.*
 
 ### A última verificação inteira
 
-**12/09/2026, fase 95.** `tsc` limpo nos dois lados. A suíte **duas rodadas
-inteiras**: uma às 02h13 de Porto Alegre, **no relógio real**, com o UTC já em
-12/09, e outra com banco e processo sob `faketime +9h` — 11h16, de dia nos dois
-relógios —, 68 suítes e 656 testes nas duas. Os **seis** ensaios de navegador,
-verdes com o protótipo reconstruído: 123 telas, 130 sem violação de
-acessibilidade, fila, folhas, as 47 tarefas do roteiro e o `ensaio:uso`. O
-`ensaio:producao` aplicou as 101 migrações pelo binário num banco virgem; o
-`ensaio:restauracao` rodou com credencial fictícia no cofre, abrindo com a
-chave certa e reprovando com a errada. Dois builds seguidos do protótipo saíram
-idênticos.
+**12/09/2026, fase 96.** `tsc` limpo nos dois lados. A suíte **duas rodadas
+inteiras**: uma às 13h27 de Porto Alegre, no relógio real, e outra com banco e
+processo sob `faketime +9h` — 22h30, com o UTC já em 13/09 —, 68 suítes e 658
+testes nas duas. O `ensaio:producao` aplicou as 101 migrações pelo binário num
+banco virgem; o `ensaio:restauracao` rodou com credencial fictícia no cofre,
+abrindo com a chave certa e reprovando com a errada. O protótipo foi
+reconstruído e saiu **idêntico** ao da fase 95.
 
-*A sonda de navegador achou o que o `ensaio:acessibilidade` não acha: a
-pré-visualização de folha rolava sem foco de teclado
-(`scrollable-region-focusable`) quando a folha passava da altura da tela — e a
-do estatuto foi a primeira a passar. Valia para TODA folha longa. **O ensaio de
-acessibilidade não abre folha; folha nova se confere com sonda.***
+**Não rodaram, de propósito, e com o motivo:** os seis ensaios de navegador.
+Nenhuma linha do `frontend/` mudou — a fase inteira foi conferência de
+arquitetura —, e o protótipo é byte a byte o que eles percorreram verdes na
+fase 95, no mesmo dia. Se a próxima fase tocar em tela, voltam a ser
+obrigatórios.
+
+*As duas conferências novas foram vistas REPROVANDO antes de valerem: a do SQL
+nos dois sentidos (tirando uma declaração usada, e pondo uma que não se usa), e
+a das colunas de fechamento tirando uma exceção da lista — ela apontou a linha
+exata. **A primeira tentativa de sabotagem não reprovou porque errou o alvo**:
+trocou a primeira ocorrência do arquivo, que não era a do teste. Sabotagem que
+passa não prova nada; é preciso conferir que ela mexeu onde se pensava.*
 
 *Dois cuidados que as rodadas ensinam: o `pg_ctl start` sob `faketime` trava
 esperando o arranque — use `-W` e confira com `pg_isready`; e processo em
@@ -171,6 +175,7 @@ arqueologia.
 | 93 | **O que o plantão vê no perfil.** O segundo item da fila de 09/09: a coordenação liga e desliga, na própria casa, campos do perfil para o educador — sobre uma **lista fechada no código e no banco**, que é o que impede isso de virar a tela de alcance de cargo recusada em 27/08. Padrão ligado; desligar pede motivo; e o campo desligado continua aparecendo para o educador **como desligado, com o motivo** |
 | 94 | **A pauta que o educador propõe.** O último item da fila de 09/09: quem trabalha na casa propõe assunto para a reunião, e **recusar ou adiar exige resposta escrita** — no serviço e no banco —, que quem propôs lê e é avisado. E o que foi decidido na reunião passou a ser **disparado** a quem não estava: o plantão e o Líder Noturno |
 | 95 | **O estatuto.** As regras de convivência, que a fase 94 deixou de fora por serem outra coisa: permanentes, por casa ou da instituição, com público — o que permite afixar na parede só o que é das crianças. A suíte achou a função `SECURITY DEFINER` deixando a coordenação revogar regra da instituição, por cima do RLS |
+| 96 | **As fronteiras que ninguém conferia.** Os dois achados de passagem viraram conferência: o SQL entre partições — **dez** liam tabelas de outra sem declarar, e o "removível" do §4.3 era falso — e as colunas de fechamento que não se chamam `status`. Nenhum defeito novo; o que havia era garantia que ninguém garantia |
 
 ---
 
@@ -324,13 +329,23 @@ caminho de entrada), `module.json` (manifesto com `depends` e tabelas) e
 Nada disso é promessa: `test/arquitetura.spec.ts` lê os imports de todo arquivo
 e falha o build se alguma regra cair.
 
-**O que ele NÃO lê: SQL.** As migrações de uma partição podem ler tabelas de
-outra sem declarar em `depends`, e isso já acontece: `shifts` declara depender
-de `identity` e `sync`, e a 0310 lê `house_stay`, a 0940 lê a prescrição e a
-dose, e a 1070 lê `family_stay`, `person` e `person_contact`. Remover `people`
-ou `medications` quebraria migrações de `shifts` — o "removível" abaixo vale
-para as partições que foram de fato removidas na prova, não para todas. Achado
-na fase 89; não consertado.
+**E o SQL, desde a fase 96, num campo próprio.** As conferências acima leem
+`import`. As migrações escapavam: **dez partições** liam tabelas de outras sem
+declarar nada — `shifts` lendo a prescrição e a dose, `nursing` lendo a
+restrição alimentar, `identity` lendo `house_stay`. Cada manifesto passou a
+declarar `dependeDoEsquemaDe`, e o `arquitetura.spec.ts` cobra as duas direções:
+uso não declarado reprova, e declaração que deixou de ser usada também.
+
+**Por que campo próprio, e não `depends`:** são coisas diferentes, e uma delas
+tem **ciclo**. `identity` lê `house_stay` de `people`, e `people` lê tabela de
+`identity`; o mesmo entre `identity` e `archive`. Em código, ciclo é defeito e o
+teste acima o proíbe; no banco, que é um só, a chave estrangeira aponta nos dois
+sentidos e isso é normal. Jogar tudo em `depends` criaria 34 ciclos e derrubaria
+a conferência que funciona.
+
+**O que isso corrige na promessa abaixo:** remover um módulo não é só apagar a
+linha do `import`. É preciso olhar quem lê as tabelas dele — `dependeDoEsquemaDe`
+diz quem são, e agora dizer errado reprova.
 
 **Remover um módulo:** apagar a linha do `import` e do array `imports` em
 `src/app.module.ts`, apagar a pasta, rodar `npm test`. O teste de fronteiras
@@ -522,7 +537,7 @@ Além dos e2e, sete suítes estáticas — todas já pegaram erro de verdade:
 
 | Suíte | O que ela cobra |
 |---|---|
-| `arquitetura.spec.ts` | as fronteiras entre partições; o marcador `rls-join-ok:` obrigatório perto de todo JOIN; e, desde as fases 90 e 91, **nenhuma função do banco nem serviço que confere o estado numa leitura e grava só pelo id** (regra 11). É heurística, e diz o que não pega: estado guardado em coluna que não se chama `status` |
+| `arquitetura.spec.ts` | as fronteiras entre partições **no código E no SQL** (`dependeDoEsquemaDe`, fase 96); o marcador `rls-join-ok:` obrigatório perto de todo JOIN; e, desde as fases 90, 91 e 96, **nenhuma função do banco nem serviço que confere o estado numa leitura e grava só pelo id** (regra 11), inclusive quando o estado mora em coluna de fechamento (`signed_at`, `revoked_at`, `answered_at`). As exceções são escritas por extenso, com o motivo, e exceção que deixa de ser usada reprova |
 | `contrato-rotas.spec.ts` | toda rota chamada pela tela **existe** no servidor |
 | `alcance.spec.ts` | as marcas `/* alcance:<área> */` lidas do código que roda |
 | `documentacao.spec.ts` | toda tabela do banco aparece no `der.md` |
@@ -1454,10 +1469,10 @@ e para a migração da implantação).
 ### Achados de passagem, ainda sem conserto
 
 - **O conferidor de fronteiras não lê SQL** (§4.3).
-- **A conferência de concorrência só olha a coluna `status`.** Na fase 91 os
-  serviços foram lidos também por colunas de fechamento (`signed_at`,
-  `decided_at`, `revoked_at` e afins) sem guarda no WHERE, uma vez, à mão: só
-  apareceu a revogação de sessão, que é idempotente. Isso não virou conferência.
+*Os dois achados que estavam aqui viraram conferência na fase 96 (§4.3 e
+§4.10). Nenhum era defeito em operação: o que havia era garantia que ninguém
+garantia — a fronteira de SQL não era lida por nada, e as colunas de fechamento
+tinham sido lidas uma vez, à mão, na fase 91.*
 
 *As quatro funções que gravavam só pelo id, anotadas aqui na fase 89, foram
 provadas e consertadas na 90 (§6.11).*

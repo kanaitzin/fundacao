@@ -1,9 +1,21 @@
 {
   "name": "routine",
   "descricao": "Rotina versionada da casa (§8.1): o molde do dia.",
-  "depends": ["identity"],
-  "publica": ["RoutineModule", "RoutineService", "RoutineItemInput"],
-  "tabelas": ["routine_version", "routine_item"],
+  "depends": [
+    "identity"
+  ],
+  "dependeDoEsquemaDe": [
+    "people"
+  ],
+  "publica": [
+    "RoutineModule",
+    "RoutineService",
+    "RoutineItemInput"
+  ],
+  "tabelas": [
+    "routine_version",
+    "routine_item"
+  ],
   "removivel": true,
   "observacao": "Sem rotina, activities perde a geração automática do dia mas continua aceitando atividades urgentes e pontuais."
 }

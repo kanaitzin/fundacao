@@ -20,7 +20,12 @@ import { join, relative, dirname, resolve } from 'node:path';
 const SRC = join(__dirname, '..', 'src');
 const MODULES_DIR = join(SRC, 'modules');
 
-interface Manifest { name: string; depends: string[]; descricao: string; }
+interface Manifest {
+  name: string; depends: string[]; descricao: string;
+  tabelas?: string[];
+  /** Partições cujas TABELAS este módulo lê no SQL das migrações (fase 96). */
+  dependeDoEsquemaDe?: string[];
+}
 
 const modules = readdirSync(MODULES_DIR).filter((m) =>
   statSync(join(MODULES_DIR, m)).isDirectory());
@@ -108,6 +113,64 @@ describe('Fronteiras entre partições', () => {
     for (const file of tsFiles(join(SRC, 'kernel'))) {
       for (const spec of importsOf(file)) {
         if (classify(file, spec)) violacoes.push(`${relative(SRC, file)} → ${spec}`);
+      }
+    }
+    expect(violacoes).toEqual([]);
+  });
+
+  /*
+   * A FRONTEIRA QUE NINGUÉM CONFERIA: O SQL (fase 96).
+   *
+   * As conferências acima leem `import` de TypeScript. As MIGRAÇÕES escapavam:
+   * dez partições liam tabelas de outras sem declarar nada — `shifts` lendo a
+   * prescrição e a dose, `nursing` lendo a restrição alimentar, `identity`
+   * lendo `house_stay`. O §4.3 prometia que remover um módulo era apagar uma
+   * linha de `import`, e não era: apagar `medications` quebraria migrações de
+   * `shifts` e de `nursing`, e só se descobriria ao aplicar num banco virgem.
+   * Achado na fase 89, conferido a partir da 96.
+   *
+   * É um campo PRÓPRIO, `dependeDoEsquemaDe`, e não `depends`, porque são
+   * coisas diferentes e uma delas tem CICLO: `identity` lê `house_stay` de
+   * `people`, e `people` lê tabela de `identity`; o mesmo entre `identity` e
+   * `archive`. Em código, ciclo é defeito e o teste acima o proíbe. No banco,
+   * que é um só, a chave estrangeira aponta nos dois sentidos e isso é normal —
+   * jogar tudo em `depends` criaria 34 ciclos e derrubaria a conferência que
+   * funciona.
+   *
+   * Esta cobra as duas direções: uso não declarado reprova, e declaração que
+   * deixou de ser usada também — senão a lista envelhece e vira enfeite.
+   */
+  it('toda tabela de outra partição usada no SQL está declarada', () => {
+    const donoDaTabela = new Map<string, string>();
+    for (const mod of modules) {
+      for (const t of manifests.get(mod)?.tabelas ?? []) donoDaTabela.set(t, mod);
+    }
+    expect(donoDaTabela.size).toBeGreaterThan(50);
+
+    const violacoes: string[] = [];
+    for (const mod of modules) {
+      const dir = join(MODULES_DIR, mod, 'migrations');
+      if (!existsSync(dir)) continue;
+      const m = manifests.get(mod);
+      const declarado = new Set([...(m?.depends ?? []), ...(m?.dependeDoEsquemaDe ?? [])]);
+      const usado = new Map<string, string>();
+      for (const arq of readdirSync(dir).filter((f) => f.endsWith('.sql'))) {
+        const sql = readFileSync(join(dir, arq), 'utf8');
+        for (const [tabela, dono] of donoDaTabela) {
+          if (dono === mod) continue;
+          const re = new RegExp(`\\b(FROM|JOIN|UPDATE|INTO|REFERENCES)\\s+${tabela}\\b`, 'i');
+          if (re.test(sql)) usado.set(dono, `${tabela} em ${arq}`);
+        }
+      }
+      for (const [dono, onde] of usado) {
+        if (!declarado.has(dono)) {
+          violacoes.push(`"${mod}" lê tabela de "${dono}" no SQL sem declarar (${onde})`);
+        }
+      }
+      for (const dono of m?.dependeDoEsquemaDe ?? []) {
+        if (!usado.has(dono)) {
+          violacoes.push(`"${mod}" declara dependeDoEsquemaDe "${dono}" e não usa nenhuma tabela dele — retire`);
+        }
       }
     }
     expect(violacoes).toEqual([]);
@@ -269,6 +332,64 @@ describe('Estado e concorrência nas funções do banco', () => {
       + '(campo do formulário), não um estado que se decide uma vez. Duas edições ao mesmo '
       + 'tempo deixam valer a última, como em todo formulário, e o antes fica na auditoria',
   };
+
+  /*
+   * E AS COLUNAS DE FECHAMENTO, não só `status` (fase 96).
+   *
+   * A conferência abaixo olha `status`. Nem todo estado se chama assim: há
+   * `signed_at`, `decided_at`, `revoked_at`, `answered_at`. Na fase 91 isso foi
+   * lido UMA VEZ, à mão, e a §9 anotou que não tinha virado conferência.
+   *
+   * As quatro ocorrências de hoje estão abaixo com o motivo, e nenhuma é
+   * defeito: três são idempotentes — reescrever "revogada", "lida" e "ciente"
+   * com os mesmos valores não muda nada — e uma é edição de formulário, em que
+   * vale a última, como em todo formulário. Exceção que deixa de ser usada
+   * reprova, como na lista da fase 91.
+   */
+  const FECHAMENTO_SEM_GUARDA: Record<string, string> = {
+    'modules/identity/auth.service.ts::user_session':
+      'revogar sessão é idempotente: a segunda revogação grava o mesmo estado, e a sessão '
+      + 'continua revogada. Reescrever a hora não muda o que importa',
+    'modules/notifications/notifications.service.ts::notification':
+      'marcar aviso como lido e como ciente é idempotente, e é do próprio dono '
+      + '(`WHERE user_id`): duas abas do mesmo aparelho gravam o mesmo',
+    'modules/people/contatos.service.ts::person_contact':
+      'autorizar visita é edição de cadastro, não transição única: duas pessoas mexendo ao '
+      + 'mesmo tempo deixam valer a última, como em todo formulário, e o antes fica na '
+      + 'auditoria. A conferência que importa ali é outra, e está no banco '
+      + '(`contato_restrito_nao_visita`)',
+  };
+
+  it('nenhum serviço grava coluna de fechamento sem guarda, salvo exceção declarada', () => {
+    const COLS = /(signed_at|closed_at|decided_at|decided_by|approved_at|confirmed_at|returned_at|revoked_at|ended_at|resolved_at|answered_at|status_at|visit_authorized_at|acknowledged_at|read_at|received_at)/;
+    const arquivos = [...tsFiles(join(SRC, 'modules')), ...tsFiles(join(SRC, 'kernel'))];
+    const violacoes: string[] = [];
+    const usadas = new Set<string>();
+    let vistos = 0;
+
+    for (const arq of arquivos) {
+      const src = readFileSync(arq, 'utf8');
+      const rel = relative(SRC, arq);
+      for (const m of src.matchAll(/`\s*UPDATE\s+(\w+)\s+SET([\s\S]*?)`/g)) {
+        const resto = m[2];
+        const w = /\bWHERE\b([\s\S]*)$/.exec(resto);
+        const set = w ? resto.slice(0, w.index) : resto;
+        const where = w ? w[1] : '';
+        if (!new RegExp(COLS.source + '\\s*=').test(set)) continue;
+        vistos++;
+        if (/status/.test(where) || /IS NULL|IS NOT NULL/.test(where) || COLS.test(where)) continue;
+        const chave = `${rel}::${m[1]}`;
+        if (FECHAMENTO_SEM_GUARDA[chave]) { usadas.add(chave); continue; }
+        const linha = src.slice(0, m.index ?? 0).split('\n').length;
+        violacoes.push(`${rel}:${linha}: UPDATE ${m[1]} fecha sem conferir o estado no WHERE`);
+      }
+    }
+    expect(vistos).toBeGreaterThan(10);
+    for (const chave of Object.keys(FECHAMENTO_SEM_GUARDA)) {
+      if (!usadas.has(chave)) violacoes.push(`${chave}: exceção declarada e não usada — retire da lista`);
+    }
+    expect(violacoes).toEqual([]);
+  });
 
   it('nenhum serviço muda o estado gravando só pelo id', () => {
     const arquivos = [...tsFiles(join(SRC, 'modules')), ...tsFiles(join(SRC, 'kernel'))];

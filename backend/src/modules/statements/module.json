@@ -4,6 +4,9 @@
   "depends": [
     "identity"
   ],
+  "dependeDoEsquemaDe": [
+    "people"
+  ],
   "publica": [
     "StatementsModule",
     "StatementsService"

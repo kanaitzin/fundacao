@@ -5,6 +5,10 @@
     "identity",
     "sync"
   ],
+  "dependeDoEsquemaDe": [
+    "people",
+    "routine"
+  ],
   "publica": [
     "ActivitiesModule",
     "ActivitiesService",
