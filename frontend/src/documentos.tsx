@@ -137,7 +137,12 @@ export function FolhaDocumento({ doc, onFechar, onBaixar, exportar }: {
           É exatamente esta folha que sai no arquivo do Word, com o timbre da Fundação.
         </p>
 
-        <div className="papel">
+        {/*
+          * A pré-visualização inteira rola quando a folha é longa — e região que
+          * rola precisa de foco de teclado. A folha do estatuto foi a primeira
+          * a passar da altura da tela e acusar (fase 95); vale para todas.
+          */}
+        <div className="papel" tabIndex={0} role="region" aria-label={`Folha: ${doc.titulo}`}>
           <div className="papel-timbre">
             <b>FUNDAÇÃO O PÃO DOS POBRES DE SANTO ANTÔNIO</b>
             <span>Programa de Acolhimento Institucional · Porto Alegre — RS</span>

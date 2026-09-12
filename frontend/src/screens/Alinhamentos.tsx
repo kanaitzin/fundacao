@@ -57,6 +57,19 @@ interface Pauta {
 }
 interface Pautas { podeResponder: boolean; abertas: number; itens: Pauta[] }
 
+/** O estatuto — regras de convivência (fase 95). */
+interface Regra {
+  id: string; texto: string; publico: string; publicoRotulo: string;
+  desde: string; daInstituicao: boolean; origem: string; aindaNaoVale: boolean;
+  situacao: 'vigente' | 'revogada' | 'substituida';
+  motivoDaSituacao: string | null; mudadaPor: string | null;
+  substitui: string | null; por: string; em: string;
+}
+interface Estatuto {
+  casa: string; podeEscrever: boolean; podeEscreverDaInstituicao: boolean;
+  publicos: { code: string; label: string }[]; regras: Regra[];
+}
+
 const TOM_PAUTA: Record<string, string> = {
   proposta: 'c-warn', aceita: 'c-ok', recusada: 'c-mute', adiada: 'c-brand',
 };
@@ -84,16 +97,21 @@ export function Alinhamentos({ houseId, casaLabel }: { houseId: string; casaLabe
   const [pautas, setPautas] = useState<Pautas | null>(null);
   const [propondo, setPropondo] = useState(false);
   const [respondendo, setRespondendo] = useState<Pauta | null>(null);
+  const [estatuto, setEstatuto] = useState<Estatuto | null>(null);
+  const [escrevendo, setEscrevendo] = useState<{ substitui: Regra | null } | null>(null);
+  const [revogando, setRevogando] = useState<Regra | null>(null);
+  const [verEncerradas, setVerEncerradas] = useState(false);
 
   async function carregar() {
     setErro('');
     try {
-      const [d, v, p] = await Promise.all([
+      const [d, v, p, e] = await Promise.all([
         api<Alinhamentos>(`/alignments?houseId=${houseId}`),
         api<{ tipos: Tipo[] }>('/alignments/kinds').catch(() => ({ tipos: [] })),
         api<Pautas>(`/alignments/agenda?houseId=${houseId}`),
+        api<Estatuto>(`/alignments/statute?houseId=${houseId}`),
       ]);
-      setDados(d); setTipos(v.tipos); setPautas(p);
+      setDados(d); setTipos(v.tipos); setPautas(p); setEstatuto(e);
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Não foi possível abrir os combinados.');
     }
@@ -237,6 +255,129 @@ export function Alinhamentos({ houseId, casaLabel }: { houseId: string; casaLabe
             </div>
           )}
         </>
+      )}
+
+      {/*
+        * O ESTATUTO — o que vale sempre (fase 95).
+        *
+        * Fica ANTES da pauta e dos combinados: é o que a pessoa nova lê
+        * primeiro, e o que não muda. As regras da casa e as da instituição
+        * aparecem juntas, porque quem lê quer saber o que vale AQUI — de onde
+        * a regra veio é informação de cada uma, não duas listas para procurar.
+        */}
+      {estatuto && (
+        <>
+          <div className="eyebrow">Regras de convivência · o que vale sempre</div>
+          {(() => {
+            const vigentes = estatuto.regras.filter((r) => r.situacao === 'vigente');
+            const encerradas = estatuto.regras.filter((r) => r.situacao !== 'vigente');
+            return (
+              <>
+                {vigentes.length === 0 ? (
+                  <div className="card">
+                    <p className="mutetxt" style={{ margin: 0 }}>
+                      Nenhuma regra de convivência escrita ainda.
+                    </p>
+                  </div>
+                ) : (
+                  <ul className="stack lista">
+                    {vigentes.map((r) => (
+                      <li key={r.id} className="card">
+                        <div className="row">
+                          <span className="grow ff">{r.texto}</span>
+                          <span className="pill c-mute">{r.publicoRotulo}</span>
+                        </div>
+                        <div className="mutetxt">
+                          {r.origem} · desde {dia(r.desde)}
+                          {r.aindaNaoVale && ' · ainda não está valendo'}
+                        </div>
+                        {estatuto.podeEscrever
+                          && (!r.daInstituicao || estatuto.podeEscreverDaInstituicao) && (
+                          <div className="row">
+                            <button className="btn sm ghost"
+                                    onClick={() => setEscrevendo({ substitui: r })}>
+                              Mudar esta regra
+                            </button>
+                            <button className="btn sm ghost" onClick={() => setRevogando(r)}>
+                              Deixou de valer
+                            </button>
+                          </div>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                {estatuto.podeEscrever && (
+                  <button className="btn block ghost" onClick={() => setEscrevendo({ substitui: null })}>
+                    Escrever uma regra
+                  </button>
+                )}
+
+                {encerradas.length > 0 && (
+                  <>
+                    <button className="btn block ghost"
+                            onClick={() => setVerEncerradas(!verEncerradas)}>
+                      {verEncerradas ? 'Esconder' : 'Mostrar'} as {encerradas.length} que
+                      {encerradas.length === 1 ? ' deixou' : ' deixaram'} de valer
+                    </button>
+                    {verEncerradas && (
+                      <ul className="stack lista">
+                        {encerradas.map((r) => (
+                          <li key={r.id} className="card">
+                            <div className="row">
+                              <span className="grow">{r.texto}</span>
+                              <span className="pill c-mute">
+                                {r.situacao === 'revogada' ? 'revogada' : 'substituída'}
+                              </span>
+                            </div>
+                            {r.motivoDaSituacao && <div className="mutetxt">{r.motivoDaSituacao}</div>}
+                            {r.mudadaPor && <div className="mutetxt">{r.mudadaPor}</div>}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </>
+                )}
+
+                <button className="btn block ghost" onClick={async () => {
+                  setDocumento(await api<DocumentoWord>(
+                    `/alignments/statute/folha?houseId=${houseId}&publico=acolhidos`));
+                }}>
+                  Folha para a parede — só o que é das crianças
+                </button>
+              </>
+            );
+          })()}
+        </>
+      )}
+
+      {escrevendo && estatuto && (
+        <FolhaEscreverRegra
+          substitui={escrevendo.substitui} publicos={estatuto.publicos}
+          podeDaInstituicao={estatuto.podeEscreverDaInstituicao}
+          onFechar={() => setEscrevendo(null)}
+          onEnviar={async (corpo) => {
+            const ok = await acao(() => api('/alignments/statute', {
+              method: 'POST',
+              body: JSON.stringify({ houseId, ...corpo,
+                substituiId: escrevendo.substitui?.id }),
+            }));
+            if (ok) setEscrevendo(null);
+            return ok;
+          }} />
+      )}
+
+      {revogando && (
+        <FolhaRevogarRegra
+          regra={revogando} onFechar={() => setRevogando(null)}
+          onRevogar={async (motivo) => {
+            const ok = await acao(() => api(`/alignments/statute/${revogando.id}/revoke`, {
+              method: 'POST', body: JSON.stringify({ motivo }),
+            }));
+            if (ok) setRevogando(null);
+            return ok;
+          }} />
       )}
 
       {/*
@@ -713,6 +854,114 @@ function FolhaResponderPauta({ pauta, onFechar, onResponder }: {
           <button className="btn" disabled={enviando || (exige && resposta.trim().length < 15)}
                   onClick={async () => { setEnviando(true); await onResponder(situacao, resposta); setEnviando(false); }}>
             Responder
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * ESCREVER UMA REGRA — ou substituir uma que existe.
+ *
+ * Quando substitui, a anterior aparece no alto: é o que se está mudando, e
+ * quem escreve precisa ver o texto velho enquanto escreve o novo. O texto
+ * antigo não vem preenchido de propósito — copiar e emendar é como se
+ * reescreve uma regra sem reparar no que mudou.
+ */
+function FolhaEscreverRegra({ substitui, publicos, podeDaInstituicao, onFechar, onEnviar }: {
+  substitui: Regra | null;
+  publicos: { code: string; label: string }[];
+  podeDaInstituicao: boolean;
+  onFechar: () => void;
+  onEnviar: (corpo: { texto: string; publico: string; desde: string; daInstituicao: boolean }) => Promise<boolean>;
+}) {
+  const [texto, setTexto] = useState('');
+  const [publico, setPublico] = useState(substitui?.publico ?? 'todos');
+  const [desde, setDesde] = useState('');
+  const [daInstituicao, setDaInstituicao] = useState(!!substitui?.daInstituicao);
+  const [enviando, setEnviando] = useState(false);
+
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-regra"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet modal">
+        <h3 id="t-regra">{substitui ? 'Mudar esta regra' : 'Escrever uma regra'}</h3>
+        {substitui && (
+          <div className="notice c-info">
+            <b>O que vale hoje:</b> {substitui.texto}
+            <div className="mutetxt">
+              Ela vai ficar marcada como substituída, e continua legível para quem precisar
+              saber o que valia antes.
+            </div>
+          </div>
+        )}
+
+        <label className="f" htmlFor="regra-txt">A regra</label>
+        <textarea id="regra-txt" rows={3} value={texto}
+                  onChange={(e) => setTexto(e.target.value)}
+                  placeholder="Escrita por inteiro — quem chegar depois de você lê sem ninguém do lado para explicar." />
+
+        <label className="f" htmlFor="regra-pub">Para quem é</label>
+        <select id="regra-pub" value={publico} onChange={(e) => setPublico(e.target.value)}>
+          {publicos.map((p) => <option key={p.code} value={p.code}>{p.label}</option>)}
+        </select>
+
+        <label className="f" htmlFor="regra-desde">
+          A partir de <small>— em branco, vale já</small>
+        </label>
+        <input id="regra-desde" type="date" value={desde}
+               onChange={(e) => setDesde(e.target.value)} />
+
+        {podeDaInstituicao && (
+          <label className="f">
+            <input type="checkbox" checked={daInstituicao}
+                   onChange={(e) => setDaInstituicao(e.target.checked)} />
+            {' '}Vale para as oito casas
+          </label>
+        )}
+
+        <div className="acoes">
+          <button className="btn ghost" onClick={onFechar}>Cancelar</button>
+          <button className="btn" disabled={enviando || texto.trim().length < 15}
+                  onClick={async () => {
+                    setEnviando(true);
+                    await onEnviar({ texto, publico, desde, daInstituicao });
+                    setEnviando(false);
+                  }}>
+            {substitui ? 'Substituir' : 'Escrever'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Revogar exige motivo — quem ler daqui a seis meses precisa saber por quê. */
+function FolhaRevogarRegra({ regra, onFechar, onRevogar }: {
+  regra: Regra; onFechar: () => void; onRevogar: (motivo: string) => Promise<boolean>;
+}) {
+  const [motivo, setMotivo] = useState('');
+  const [enviando, setEnviando] = useState(false);
+
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-revoga"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet modal">
+        <h3 id="t-revoga">Esta regra deixou de valer</h3>
+        <p className="ff">{regra.texto}</p>
+        <p className="mutetxt">
+          Ela não é apagada: continua legível no estatuto, com o motivo e a data. Se o que você
+          quer é <b>mudar</b> a regra, volte e use “Mudar esta regra”.
+        </p>
+        <label className="f" htmlFor="revoga-motivo">Por que deixou de valer?</label>
+        <textarea id="revoga-motivo" rows={3} value={motivo}
+                  onChange={(e) => setMotivo(e.target.value)} />
+        <div className="acoes">
+          <button className="btn ghost" onClick={onFechar}>Cancelar</button>
+          <button className="btn" disabled={enviando || motivo.trim().length < 15}
+                  onClick={async () => { setEnviando(true); await onRevogar(motivo); setEnviando(false); }}>
+            Revogar
           </button>
         </div>
       </div>

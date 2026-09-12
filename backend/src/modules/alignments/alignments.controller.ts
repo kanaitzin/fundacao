@@ -50,6 +50,36 @@ export class AlignmentsController {
     return this.alinhamentos.registrarReuniao(user, body);
   }
 
+  /* ---------------- O estatuto: regras de convivência (1150) ---------------- */
+  @Get('statute')
+  estatuto(@CurrentUser() user: AuthenticatedUser,
+           @Query('houseId', ParseUUIDPipe) houseId: string) {
+    return this.alinhamentos.estatuto(user, houseId);
+  }
+
+  @Post('statute')
+  escreverEstatuto(@CurrentUser() user: AuthenticatedUser, @Body() body: any) {
+    return this.alinhamentos.escreverEstatuto(user, body ?? {});
+  }
+
+  @Post('statute/:id/revoke')
+  revogarEstatuto(@CurrentUser() user: AuthenticatedUser,
+                  @Param('id', ParseUUIDPipe) id: string, @Body() body: any) {
+    return this.alinhamentos.revogarEstatuto(user, id, body ?? {});
+  }
+
+  @Get('statute/folha')
+  folhaDoEstatuto(@CurrentUser() user: AuthenticatedUser,
+                  @Query('houseId', ParseUUIDPipe) houseId: string,
+                  @Query('publico') publico?: string) {
+    return this.alinhamentos.folhaDoEstatuto(user, houseId, publico ?? 'todos');
+  }
+
+  @Post('statute/export')
+  exportarEstatuto(@CurrentUser() user: AuthenticatedUser, @Body() body: any) {
+    return this.alinhamentos.exportarEstatuto(user, body ?? {});
+  }
+
   /* ---------------- A pauta que o educador propõe (1140) ---------------- */
   @Get('agenda')
   pautas(@CurrentUser() user: AuthenticatedUser,

@@ -17,8 +17,8 @@
 >
 > Última atualização: 11/09/2026 — as doze entregas de 09/09 no **§0.8**
 > (as mais novas são a **folha da portaria**, **o que o plantão vê no perfil**
-> e **a pauta que o educador propõe**), dezessete tarefas novas nas seções dos
-> cargos, a **§7 mudou de dono** (a
+> **a pauta que o educador propõe** e **o estatuto**), dezoito tarefas novas nas
+> seções dos cargos, a **§7 mudou de dono** (a
 > cozinha não entra no sistema, e quem pede o lanche é quem está no turno), e a
 > **§8** trocou uma pergunta que tinha deixado de existir pelas que ainda
 > esperam resposta.
@@ -227,7 +227,7 @@ no vínculo da casa, em vez de fingir que sabe.
 
 ## §0.8 — O que mudou depois de 09/09 (a conversa longa, e é bastante coisa)
 
-Treze coisas que o Marcelo pediu em 09/09 já estão no protótipo. **Dezessete
+Catorze coisas que o Marcelo pediu em 09/09 já estão no protótipo. **Dezoito
 tarefas novas** deste roteiro existem por causa delas, e estão marcadas nas seções dos
 cargos. O que vale saber antes de aplicar:
 
@@ -659,6 +659,18 @@ Responde pela casa. É quem vai usar as telas de decisão.
     levaria o azul e a distinção viraria ordem de chegada) e *"você usaria a
     cor para achar quem escreveu, ou o nome ao lado já basta?"*
 
+16.1. **Uma regra de convivência mudou: a TV agora desliga às 21h30. Registre
+    — e depois gere a folha que vai para a parede das crianças.**
+    Observar: ela acha as **regras de convivência** na tela de combinados? Ela
+    usa **"Mudar esta regra"**, ou escreve uma nova e deixa as duas valendo?
+    Ao gerar a folha das crianças, ela repara que a regra da **equipe** ("não
+    se fala do processo judicial na frente dela") **não está** na folha?
+    ⚠️ Pergunte três coisas: *"quem hoje decide uma regra dessas na casa?"*;
+    *"quais dessas regras vêm da Fundação e não da casa?"* — é o que separa as
+    duas listas; e *"o que você faria se uma criança discordasse de uma
+    regra?"*. A última é a pergunta 8 da §8: o estatuto hoje é escrito só pela
+    coordenação, e as crianças não têm onde responder.
+
 17. **Gere a folha da portaria para a guarita.**
     Observar: ela acha **Portaria** em "Mais"? Antes de gerar, ela lê quem está
     **sem ninguém autorizado**, sem foto ou sem CPF — e faz alguma coisa com
@@ -757,7 +769,7 @@ que falta lanche para a saída de sábado é quem está no turno.*
 
 ---
 
-## 8. Sete perguntas para o Marcelo, no fim
+## 8. Oito perguntas para o Marcelo, no fim
 
 1. **A escala 12×36 vigente** — sem ela o aviso de "fora da escala" ao marcar
    compromisso não funciona (§2 do plano do piloto).
@@ -813,6 +825,19 @@ que falta lanche para a saída de sábado é quem está no turno.*
    oito casas. **A pergunta:** o educador em plantão deve passar a ver os
    compromissos das crianças da casa dele? Se sim, isso vale para **todas** as
    casas, decidido uma vez — e não casa a casa.
+
+---
+
+8. **O estatuto é escrito só pela coordenação — e as crianças não têm onde
+   responder.** As regras de convivência agora moram no sistema, com público
+   (todos, equipe, crianças) e folha para a parede. Quem escreve é a
+   coordenação da casa; o que vale para as oito é da gestão geral. Mas uma
+   regra de convivência que a criança não pôde discutir é uma regra imposta, e
+   o sistema hoje não tem lugar para ela discordar — nem para a assembleia da
+   casa, se houver uma. **A pergunta:** existe hoje algum momento em que as
+   crianças opinam sobre as regras? Se existe, o estatuto precisa mostrar que a
+   regra passou por ali; se não existe, isso é conversa da Fundação, e o
+   sistema não deve fingir que houve participação.
 
 ---
 

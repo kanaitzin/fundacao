@@ -725,7 +725,39 @@ próxima, que ainda não existe.
 * **`app_responder_pauta` põe o estado no `UPDATE`** (regra 11): duas pessoas
   respondendo ao mesmo tempo não se sobrescrevem.
 
-## Inventário — 108 tabelas por partição
+**`house_statute` é O ESTATUTO — as regras de convivência** (migração 1150,
+fase 95). Permanente, ao contrário do combinado, que é operacional e datado:
+"ninguém entra no quarto sem bater" vale para quem chegar depois, e na mesma
+lista de "a saída para a fono passa a ser com a educadora da tarde"
+envelheceria.
+
+* **dois alcances.** `house_id` nulo é a regra da INSTITUIÇÃO — vale para as
+  oito casas e só o Gestor Geral escreve; com casa, é a regra daquela casa, da
+  coordenação. Sem isso, ou cada casa reescreve a regra da Fundação com
+  palavras diferentes, ou a Fundação decide o horário do silêncio de oito
+  casas com rotinas diferentes;
+* **`audience`** — todos, equipe, acolhidos. É o que permite afixar na parede
+  só o que é das crianças: uma folha com "não se fala do processo judicial na
+  frente da criança" pregada no corredor é o oposto do que ela existe para
+  fazer;
+* **o texto é imutável**, e mudar é escrever outra que substitui
+  (`replaces_id`). A anterior fica 'substituida' e legível — quem foi
+  advertido em março tem direito a ler a regra de março. Revogar exige motivo
+  (`ck_estatuto_revoga_explica`); nada se apaga;
+* **`since`**: "a partir de segunda" é como uma casa combina regra nova, e sem
+  data a regra valeria desde sempre, inclusive para trás;
+* **`app_mudar_estatuto` é `SECURITY DEFINER`, e por isso confere cargo e
+  alcance por dentro** — sem esse bloco a coordenação de uma casa revogava
+  regra da instituição, passando por cima da policy. Achado pela suíte, na
+  fase 95.
+
+**O que a tabela NÃO guarda, e não vai guardar:** quem descumpriu, contagem de
+descumprimento, consequência prevista. O sistema já tem onde registrar o que
+aconteceu — a ocorrência, com revisão técnica. Um histórico de "quantas vezes a
+Alice quebrou a regra 4" é exatamente o documento que ninguém deveria poder
+gerar sobre uma criança de 12 anos.
+
+## Inventário — 109 tabelas por partição
 
 | Partição | Tabelas |
 |---|---|
@@ -740,7 +772,7 @@ próxima, que ainda não existe.
 | checks (4) | collective_check, check_result, check_result_amendment, check_bulk |
 | notifications (3) | notification, escalation, escalation_level |
 | archive (2) | archive_item, archive_attempt |
-| alignments (4) | team_meeting, team_agreement, agreement_change, meeting_agenda_item |
+| alignments (5) | team_meeting, team_agreement, agreement_change, meeting_agenda_item, house_statute |
 | routine (2) | routine_version, routine_item |
 | statements (3) | witness_option, statement, statement_request |
 | sync (2) | offline_operation, sync_conflict |

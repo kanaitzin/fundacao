@@ -9,6 +9,7 @@ import { AuthenticatedUser } from '../../kernel/contracts';
 import { DocumentosService } from '../../kernel/documentos/documentos.service';
 import { cargoNoDocumento } from '../../kernel/documentos/folha';
 import { folhaDosCombinados } from './combinados-folha';
+import { folhaDoEstatuto } from './estatuto-folha';
 
 /**
  * REUNIÕES DE EQUIPE E COMBINADOS (§9.4).
@@ -46,6 +47,13 @@ const ESCREVE = ['equipe_tecnica', 'coordenador', 'gestor_geral'];
  * pediu. O líder conduz o turno, e é a ele que o educador da noite chega.
  */
 const RESPONDE_PAUTA = [...ESCREVE, 'lider_diurno', 'lider_noturno_geral'];
+
+/** Quem escreve o estatuto da casa (fase 95). A instituição é só do gestor. */
+const ESCREVE_ESTATUTO = ['coordenador', 'gestor_geral'];
+
+const PUBLICO: Record<string, string> = {
+  todos: 'Todos', equipe: 'Equipe', acolhidos: 'Crianças e adolescentes',
+};
 
 /** O que cada desfecho de uma proposta significa para quem propôs. */
 const DESFECHO: Record<string, { rotulo: string; aviso: string }> = {
@@ -527,6 +535,190 @@ export class AlignmentsService {
       }, { actorId: user.id, houseId: r.out_house });
     }
     return { ok: true, situacao, aviso: DESFECHO[situacao].aviso };
+  }
+
+
+  // ============================================================
+  // O ESTATUTO — as regras de convivência (fase 95, migração 1150)
+  // ============================================================
+
+  /**
+   * As regras que valem nesta casa: as dela e as da instituição, juntas.
+   *
+   * Juntas de propósito. Quem lê quer saber o que vale aqui — se a regra veio
+   * da Fundação ou da coordenação é informação de origem, não duas listas para
+   * procurar. A origem aparece em cada uma.
+   */
+  async estatuto(user: AuthenticatedUser, houseId: string) {
+    const linhas = await this.db.asUser(user.id, async (c) => {
+      const { rows: [casa] } = await c.query(
+        `SELECT app_house_in_scope($1) AS alcance, app_house_label($1) AS rotulo`, [houseId]);
+      if (!casa?.alcance) return null;
+      /* rls-join-ok: `house_statute` responde a `estatuto_select` — regra da
+         casa por alcance, regra da instituição pela instituição de quem lê. */
+      const { rows } = await c.query(
+        `SELECT s.id, s.body, s.audience, s.since, s.status, s.status_reason,
+                s.house_id IS NULL AS da_instituicao, s.replaces_id,
+                s.since::text AS desde_texto,
+                app_user_display_name(s.created_by) AS por, s.created_at,
+                app_user_display_name(s.status_by) AS mudada_por, s.status_at
+           FROM house_statute s
+          WHERE s.house_id = $1 OR s.house_id IS NULL
+          ORDER BY (s.status = 'vigente') DESC, s.house_id IS NULL, s.since DESC,
+                   s.created_at DESC`, [houseId]);
+      return { rotulo: casa.rotulo as string, rows };
+    });
+    if (!linhas) throw new NotFoundException('Casa não encontrada — ou fora do seu alcance.');
+
+    const hoje = new Date().toISOString().slice(0, 10);
+    return {
+      casa: linhas.rotulo,
+      podeEscrever: ESCREVE_ESTATUTO.includes(user.role),
+      podeEscreverDaInstituicao: user.role === 'gestor_geral',
+      publicos: Object.entries(PUBLICO).map(([code, label]) => ({ code, label })),
+      regras: linhas.rows.map((r: any) => ({
+        id: r.id, texto: r.body,
+        publico: r.audience, publicoRotulo: PUBLICO[r.audience],
+        /* `since` como TEXTO: vindo como Date, `String(...)` dava
+           "Fri Sep 12 2026…" e a comparação com hoje virava lixo — uma regra
+           escrita hoje aparecia como "ainda não vale" (fase 95). */
+        desde: r.desde_texto, daInstituicao: r.da_instituicao,
+        origem: r.da_instituicao ? 'Regra da instituição' : 'Regra desta casa',
+        /* Regra com início no futuro já aparece — e diz que ainda não vale. */
+        aindaNaoVale: r.status === 'vigente' && r.desde_texto > hoje,
+        situacao: r.status, motivoDaSituacao: r.status_reason,
+        mudadaPor: r.mudada_por, mudadaEm: r.status_at,
+        substitui: r.replaces_id,
+        por: r.por, em: r.created_at,
+      })),
+    };
+  }
+
+  /**
+   * Escrever uma regra. `substituiId` encerra a anterior na mesma transação:
+   * mudar uma regra é escrever a nova e aposentar a velha, nunca reescrever o
+   * texto — quem foi advertido em março tem direito a ler a regra de março.
+   */
+  async escreverEstatuto(user: AuthenticatedUser, input: {
+    houseId?: string; texto?: string; publico?: string; desde?: string;
+    daInstituicao?: boolean; substituiId?: string;
+  }) {
+    if (!ESCREVE_ESTATUTO.includes(user.role)) {
+      throw new ForbiddenException(
+        'Escrever o estatuto é da coordenação da casa. Ler é de todo mundo que trabalha nela.');
+    }
+    if (input.daInstituicao && user.role !== 'gestor_geral') {
+      throw new ForbiddenException(
+        'Regra que vale para as oito casas é da gestão geral. Nesta tela você escreve a regra '
+        + 'desta casa.');
+    }
+    const texto = String(input.texto ?? '').trim();
+    if (texto.length < 15) {
+      throw new BadRequestException(
+        'Escreva a regra por inteiro — ela vai ser lida por quem chegar depois de você, '
+        + 'sem ninguém do lado para explicar.');
+    }
+    const publico = String(input.publico ?? 'todos');
+    if (!PUBLICO[publico]) {
+      throw new BadRequestException('Diga para quem é esta regra: todos, equipe, ou crianças e adolescentes.');
+    }
+    const desde = String(input.desde ?? '').trim() || null;
+    if (desde && !/^\d{4}-\d{2}-\d{2}$/.test(desde)) {
+      throw new BadRequestException('A data a partir da qual a regra vale deve ser um dia do calendário.');
+    }
+
+    const id = await this.db.asUser(user.id, async (c) => {
+      const { rows: [casa] } = await c.query(
+        `SELECT app_house_in_scope($1) AS alcance`, [input.houseId]);
+      if (!casa?.alcance) return null;
+      const { rows: [novo] } = await c.query(
+        `INSERT INTO house_statute (house_id, institution_id, body, audience, since,
+                                    replaces_id, created_by)
+         VALUES ($1, app_minha_instituicao(), $2, $3, coalesce($4::date, current_date), $5, $6)
+         RETURNING id`,
+        [input.daInstituicao ? null : input.houseId, texto, publico, desde,
+         input.substituiId ?? null, user.id]);
+      if (input.substituiId) {
+        await c.query(`SELECT * FROM app_mudar_estatuto($1,'substituida',NULL,$2)`,
+          [input.substituiId, novo.id]);
+      }
+      return novo.id as string;
+    }).catch((e: any) => {
+      if (String(e?.message ?? '').includes('estatuto_ja_encerrado')) {
+        throw new ConflictException(
+          'A regra que você ia substituir já tinha sido encerrada por outra pessoa. '
+          + 'Abra o estatuto de novo antes de escrever.');
+      }
+      throw e;
+    });
+    if (!id) throw new NotFoundException('Casa não encontrada — ou fora do seu alcance.');
+
+    await this.audit.log({
+      action: 'estatuto.escrito', actorId: user.id, institutionId: user.institutionId,
+      houseId: input.houseId, entity: 'house_statute', entityId: id,
+      detail: { publico, daInstituicao: !!input.daInstituicao, substitui: input.substituiId ?? null },
+    });
+    return {
+      id, ok: true,
+      aviso: input.substituiId
+        ? 'Regra nova no estatuto. A anterior ficou marcada como substituída e continua legível — '
+          + 'quem precisar saber o que valia antes consegue ler.'
+        : 'Regra escrita no estatuto. Ela vale para quem chegar depois, e está na folha que '
+          + 'pode ir para a parede.',
+    };
+  }
+
+  /** Revogar: exige motivo, como encerrar combinado. */
+  async revogarEstatuto(user: AuthenticatedUser, id: string, input: { motivo?: string }) {
+    if (!ESCREVE_ESTATUTO.includes(user.role)) {
+      throw new ForbiddenException('Revogar regra do estatuto é da coordenação da casa.');
+    }
+    const motivo = String(input.motivo ?? '').trim();
+    if (motivo.length < 15) {
+      throw new BadRequestException(
+        'Escreva por que esta regra deixou de valer. Sem isso, quem ler o estatuto daqui a seis '
+        + 'meses não sabe se a regra caiu ou se alguém apagou por engano.');
+    }
+    await this.db.asUser(user.id, async (c) =>
+      c.query(`SELECT * FROM app_mudar_estatuto($1,'revogada',$2,NULL)`, [id, motivo]))
+      .catch((e: any) => {
+        const m = String(e?.message ?? '');
+        if (m.includes('estatuto_inexistente')) {
+          throw new NotFoundException('Regra não encontrada — ou fora do seu alcance.');
+        }
+        if (m.includes('estatuto_ja_encerrado')) {
+          throw new ConflictException('Esta regra já tinha sido encerrada por outra pessoa.');
+        }
+        throw e;
+      });
+
+    await this.audit.log({
+      action: 'estatuto.revogado', actorId: user.id, institutionId: user.institutionId,
+      entity: 'house_statute', entityId: id, purpose: motivo,
+    });
+    return { ok: true, aviso: 'Regra revogada. Ela continua legível no estatuto, com o motivo.' };
+  }
+
+  /** A folha do estatuto — ver não registra nada. */
+  async folhaDoEstatuto(user: AuthenticatedUser, houseId: string, publico = 'todos') {
+    if (!PUBLICO[publico]) {
+      throw new BadRequestException('Público inválido para a folha do estatuto.');
+    }
+    const e = await this.estatuto(user, houseId);
+    return folhaDoEstatuto(e.casa, e.regras, publico,
+      { nome: user.fullName, cargo: cargoNoDocumento(user.role) });
+  }
+
+  /** Exportar em Word: exige finalidade e registra a saída. */
+  async exportarEstatuto(user: AuthenticatedUser, input: {
+    houseId?: string; publico?: string; finalidade?: string;
+  }) {
+    const folha = await this.folhaDoEstatuto(user, String(input.houseId ?? ''),
+      String(input.publico ?? 'todos'));
+    return this.documentos.exportar(user, folha, {
+      entidade: 'estatuto', houseId: input.houseId ?? null,
+      finalidade: input.finalidade ?? '',
+    });
   }
 
 }

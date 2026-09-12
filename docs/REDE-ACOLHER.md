@@ -20,7 +20,7 @@ começava escolhendo em qual acreditar.*
 
 | Arquivo | Por que sobreviveu |
 |---|---|
-| `der.md` | as 108 tabelas com o que cada coluna guarda. É referência de dado, não narrativa, e o `documentacao.spec.ts` cobra que toda tabela apareça lá |
+| `der.md` | as 109 tabelas com o que cada coluna guarda. É referência de dado, não narrativa, e o `documentacao.spec.ts` cobra que toda tabela apareça lá |
 | `roteiro-marcelo.md` (+ `.docx`) | é entregue à Casa 03, escrito para quem não conhece o sistema. O `.docx` é GERADO do `.md` por `scripts/roteiro-em-word.mjs` — não editar o Word à mão |
 
 ---
@@ -82,7 +82,7 @@ aplicação e no banco. §7 tem a matriz inteira.
 
 ## 2. O ESTADO HOJE
 
-**Fases 0 a 94.** Estes números **saem do código**, não da memória — e são
+**Fases 0 a 95.** Estes números **saem do código**, não da memória — e são
 cobrados por `test/numeros-da-documentacao.spec.ts`, que existe porque em 08/09
 seis afirmações estavam erradas ao mesmo tempo em três documentos, e duas delas
 discordavam entre si.
@@ -90,14 +90,14 @@ discordavam entre si.
 | Quanto | De onde sai |
 |---|---|
 | **17 partições** isoladas | pastas em `backend/src/modules/` |
-| **100 migrações** | `.sql` dentro das partições |
-| **108 tabelas** | `CREATE TABLE` nas migrações |
-| **67 suítes** | `backend/test/*.spec.ts` |
-| **649 testes** | `it(` / `test(` nas suítes |
+| **101 migrações** | `.sql` dentro das partições |
+| **109 tabelas** | `CREATE TABLE` nas migrações |
+| **68 suítes** | `backend/test/*.spec.ts` |
+| **656 testes** | `it(` / `test(` nas suítes |
 | **33 telas React** | `frontend/src/screens/*.tsx` |
 | **14 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **6 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
-| protótipo com **≈1024 KB** | `prototipo/rede-acolher-prototipo.html` |
+| protótipo com **≈1035 KB** | `prototipo/rede-acolher-prototipo.html` |
 
 *A frase importa: o conferidor lê o NÚMERO colado ao substantivo. Escrever
 "Telas React … 31" numa coluna separada faz o teste passar sem conferir nada —
@@ -109,28 +109,27 @@ foi assim que "30 telas" sobreviveu à fase que existiu para acabar com isso.*
 |---|---|
 | `npm run ensaio` | 123 telas nos **sete** cargos oferecidos — Coordenação 26, Técnica 23, Gestor 23, Líder Diurno 15, Líder Noturno 14, Educador 13, Enfermagem 9. A Cozinha saiu do seletor em 09/09: o cargo continua no banco, oculto |
 | `npm run ensaio:acessibilidade` | 130 telas, **nenhuma violação de WCAG 2.1 AA** |
-| `npm run ensaio:roteiro` | 46 tarefas do roteiro, **todas com porta no cargo certo** |
+| `npm run ensaio:roteiro` | 47 tarefas do roteiro, **todas com porta no cargo certo** |
 | `npm run ensaio:uso` | 149 cobranças em 13 blocos, **todas passando** — e todos os cargos completando o percurso |
 
 ### A última verificação inteira
 
-**12/09/2026, fase 94.** `tsc` limpo nos dois lados. A suíte **duas rodadas
-inteiras**: uma às 01h01 de Porto Alegre, **no relógio real**, com o UTC já em
-12/09, e outra com banco e processo sob `faketime +8h` — 09h04, de manhã nos
-dois relógios —, 67 suítes e 649 testes nas duas. Os **seis** ensaios de
-navegador, verdes com o protótipo reconstruído: 123 telas, 130 sem violação de
-acessibilidade, fila, folhas, as 46 tarefas do roteiro e o `ensaio:uso`. O
-`ensaio:producao` aplicou as 100 migrações pelo binário num banco virgem; o
+**12/09/2026, fase 95.** `tsc` limpo nos dois lados. A suíte **duas rodadas
+inteiras**: uma às 02h13 de Porto Alegre, **no relógio real**, com o UTC já em
+12/09, e outra com banco e processo sob `faketime +9h` — 11h16, de dia nos dois
+relógios —, 68 suítes e 656 testes nas duas. Os **seis** ensaios de navegador,
+verdes com o protótipo reconstruído: 123 telas, 130 sem violação de
+acessibilidade, fila, folhas, as 47 tarefas do roteiro e o `ensaio:uso`. O
+`ensaio:producao` aplicou as 101 migrações pelo binário num banco virgem; o
 `ensaio:restauracao` rodou com credencial fictícia no cofre, abrindo com a
 chave certa e reprovando com a errada. Dois builds seguidos do protótipo saíram
 idênticos.
 
-*A sonda de navegador achou de novo o que os ensaios não achariam: uma data
-inválida na semente do servidor de mentira — `emHoras` é hora do dia, e eu
-passei 30 — derrubava **a página inteira** no arranque, com `RangeError` antes
-de qualquer tela. O `ensaio` teria falhado no primeiro cargo, mas o protótipo
-ainda não tinha sido reconstruído; a sonda pegou antes. **Semente nova no mock
-se abre no navegador antes de qualquer outra coisa.***
+*A sonda de navegador achou o que o `ensaio:acessibilidade` não acha: a
+pré-visualização de folha rolava sem foco de teclado
+(`scrollable-region-focusable`) quando a folha passava da altura da tela — e a
+do estatuto foi a primeira a passar. Valia para TODA folha longa. **O ensaio de
+acessibilidade não abre folha; folha nova se confere com sonda.***
 
 *Dois cuidados que as rodadas ensinam: o `pg_ctl start` sob `faketime` trava
 esperando o arranque — use `-W` e confira com `pg_isready`; e processo em
@@ -171,6 +170,7 @@ arqueologia.
 | 92 | **A portaria.** O primeiro item da fila de 09/09: quem pode visitar cada criança, marcado no contato pela técnica ou pela coordenação — estar no cadastro não é estar autorizado —, com CPF e foto 3×4, e a folha em Word, em paisagem, para a guarita. No caminho, um defeito que o protótipo escondia: **contra o servidor real, a seção de contatos do perfil saía vazia**, e com ela o botão da experiência familiar |
 | 93 | **O que o plantão vê no perfil.** O segundo item da fila de 09/09: a coordenação liga e desliga, na própria casa, campos do perfil para o educador — sobre uma **lista fechada no código e no banco**, que é o que impede isso de virar a tela de alcance de cargo recusada em 27/08. Padrão ligado; desligar pede motivo; e o campo desligado continua aparecendo para o educador **como desligado, com o motivo** |
 | 94 | **A pauta que o educador propõe.** O último item da fila de 09/09: quem trabalha na casa propõe assunto para a reunião, e **recusar ou adiar exige resposta escrita** — no serviço e no banco —, que quem propôs lê e é avisado. E o que foi decidido na reunião passou a ser **disparado** a quem não estava: o plantão e o Líder Noturno |
+| 95 | **O estatuto.** As regras de convivência, que a fase 94 deixou de fora por serem outra coisa: permanentes, por casa ou da instituição, com público — o que permite afixar na parede só o que é das crianças. A suíte achou a função `SECURITY DEFINER` deixando a coordenação revogar regra da instituição, por cima do RLS |
 
 ---
 
@@ -217,7 +217,7 @@ cd frontend && npm run prototipo
 # sai em prototipo/rede-acolher-prototipo.html
 ```
 
-O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as 100
+O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as 101
 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
 
 ### Os ensaios — e por que cada um existe
@@ -229,7 +229,7 @@ migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.
 | `npm run ensaio` | percorre as 123 telas dos sete cargos oferecidos num navegador de verdade, cobrando que nenhuma deixe erro no console, que escreva alguma coisa e que não mostre `undefined` para quem lê. **Tela nova entra neste percurso.** |
 | `npm run ensaio:fila` | corta o sinal, marca a chamada, fecha e abre o aplicativo, religa, e confere que **só o que o servidor confirmou** saiu do aparelho |
 | `npm run ensaio:folhas` | os caminhos de documento até o arquivo baixar: abre a folha, tenta baixar com finalidade curta demais, baixa com frase válida, confere que o `.docx` chegou |
-| `npm run ensaio:roteiro` | cobra que as 46 tarefas do roteiro do Marcelo tenham porta no cargo certo. Não simula a procura de uma pessoa — mas impede o fracasso barato: a tarefa não ter porta, e isso aparecer diante da equipe |
+| `npm run ensaio:roteiro` | cobra que as 47 tarefas do roteiro do Marcelo tenham porta no cargo certo. Não simula a procura de uma pessoa — mas impede o fracasso barato: a tarefa não ter porta, e isso aparecer diante da equipe |
 | `npm run ensaio:acessibilidade` | axe-core (WCAG 2.1 AA) nas 130 telas — sete a mais que o `ensaio` porque confere também a folha do "Mais" de cada cargo, aberta dezenas de vezes por turno. **Cor nova passa por ele antes de entrar** |
 | `npm run ensaio:uso` | percorre os **sete** cargos **apertando os botões até o fim** — chamada, exceção, passagem, armário, cofre, internação, diário, pedido de lanche — e **lê de volta o que ficou gravado**. É o que pega o defeito que a tela não denuncia: a folha abriu, o botão salvou, e só o número estava errado. *Dizia "oito" aqui, e o roteiro dele também: era a Cozinha, que saiu do seletor na fase 83 — e por isso ele morria no meio* |
 
@@ -283,7 +283,7 @@ rede-acolher/
 │   │   │   ├── documentos/     o contrato da folha e o gerador de .docx
 │   │   │   └── common/         CPF, criptografia, segredo, fuso da instituição
 │   │   └── modules/       17 partições, cada uma dona das próprias migrações
-│   ├── test/              67 suítes (e2e contra PostgreSQL real + estáticas)
+│   ├── test/              68 suítes (e2e contra PostgreSQL real + estáticas)
 │   ├── scripts/           ensaio-carga.ts, migrador compilado
 │   └── assets/timbre.png  a marca da Fundação, usada no documento em Word
 ├── frontend/
@@ -924,6 +924,37 @@ aqui o combinado ficava *visível* para todos, que não é a mesma coisa que
 avisar. Quem conduziu a reunião **não** recebe: avisar quem acabou de decidir é
 ruído, e ruído ensina a ignorar aviso. Reunião sem combinado não dispara nada.
 
+### 8.2.3 O estatuto: as regras de convivência
+
+Última parte do pedido de 09/09, e a que ficou de fora da fase 94 de propósito.
+**O combinado é operacional e datado**; a regra de convivência é permanente e
+vale para quem chegar depois. Juntas, o estatuto envelheceria entre decisões de
+terça, e a casa perderia o lugar onde se lê o que vale sempre.
+
+**Dois alcances:** a regra da casa, que a coordenação escreve, e a regra da
+instituição, que só a gestão geral escreve e que aparece nas oito casas sem que
+nenhuma a edite. **Um público por regra** — todos, equipe, ou crianças e
+adolescentes —, que é o que permite afixar no corredor só o que é delas.
+**Mudar é escrever outra que substitui**, e a anterior continua legível:
+quem foi advertido em março tem direito a ler a regra de março. **Revogar exige
+motivo**, e nada se apaga. A regra pode valer **a partir de uma data**, e até
+lá aparece na tela dizendo que ainda não vale — mas não vai para a folha
+afixada, porque uma parede não tem como dizer "vale a partir de segunda" sem
+confundir quem lê na sexta.
+
+**O que o estatuto não guarda, e não vai guardar:** quem descumpriu, contagem
+de descumprimento, e consequência prevista. Isso já tem lugar — a ocorrência,
+com revisão técnica. Uma lista de infrações ao lado da regra transforma o
+estatuto num instrumento disciplinar, e um histórico de "quantas vezes a Alice
+quebrou a regra 4" é exatamente o documento que ninguém deveria poder gerar
+sobre uma criança de 12 anos.
+
+**O que ele ainda não tem, e é pergunta para a casa:** lugar para a criança
+discordar. O estatuto é escrito pela coordenação; se existe assembleia ou
+qualquer momento em que as crianças opinam, o sistema não mostra que a regra
+passou por ali. É a pergunta 8 do roteiro, e é da Fundação — o sistema não deve
+fingir que houve participação.
+
 ### 8.3 O turno
 
 O **Dia** com a rotina versionada da casa e quatro filtros, entre eles **"Por
@@ -1537,7 +1568,7 @@ número**.
 
 ## 10.5 A FILA DO MARCELO — o que ele pediu em 09/09/2026
 
-Da conversa longa de 09/09: **treze pedidos estão entregues** e **três estão
+Da conversa longa de 09/09: **catorze pedidos estão entregues** e **três estão
 travados por resposta da casa**. A fila de código acabou. *Até a fase 88 esta
 frase começava com "treze pedidos" e somava dezesseis desde a fase 86; ninguém
 soube dizer de onde vinha o treze, e ele saiu daqui. O conferidor de números só
@@ -1560,6 +1591,7 @@ lê o §2 — número fora dele envelhece sem que nada reclame.*
 | 11 | **A folha da portaria** — quem pode visitar, com CPF e foto 3×4 (§8.9.2) | 92 |
 | 12 | **O que o plantão vê no perfil** — a coordenação liga e desliga, sobre lista fechada (§8.2.1) | 93 |
 | 13 | **A pauta que o educador propõe**, com resposta obrigatória, e o decidido disparado a quem não estava (§8.2.2) | 94 |
+| 14 | **O estatuto** — regras de convivência, por casa ou da instituição, com folha para a parede (§8.2.3) | 95 |
 
 ⚠️ **Entregue não era o mesmo que visível.** Até a fase 87, **cinco** dos nove
 não apareciam — ou apareciam errados — no protótipo, que é a única coisa que o
@@ -1576,12 +1608,7 @@ fase 88 só apareceu no protótipo na 89 (§6.14).*
 *A fila acabou: os três pedidos que esperavam código foram entregues nas fases
 92, 93 e 94.*
 
-**O que a reunião com pauta NÃO fez, e virou fase própria:** as *regras de
-convivência como estatuto*, que ele citou junto. São outra coisa — regra
-permanente da casa, que vale para as crianças e para a equipe, e não combinado
-operacional de uma reunião. Misturá-las com o combinado faria o estatuto
-envelhecer na mesma lista em que "a saída para a fono passa a ser com a
-educadora da tarde".
+*O estatuto, que a fase 94 deixou anotado aqui, foi construído na 95 (§8.2.3).*
 
 ### Travadas — esperam a casa, não código
 
@@ -1720,7 +1747,7 @@ ele continua dizendo que o arquivo existe.
 npm run ensaio:producao
 ```
 
-Constrói, cria um banco virgem, aplica as 100 migrações **pelo binário
+Constrói, cria um banco virgem, aplica as 101 migrações **pelo binário
 compilado**, sobe o serviço e confere `/health`. Não publica nada e não toca no
 banco de trabalho.
 
@@ -1987,7 +2014,7 @@ outras; mudança pedida por uma casa só é conversa antes de virar código.
 
 ### O roteiro do Marcelo
 
-`roteiro-marcelo.md` (e o `.docx` gerado dele) leva 46 tarefas do roteiro à Casa 03, cargo a
+`roteiro-marcelo.md` (e o `.docx` gerado dele) leva 47 tarefas do roteiro à Casa 03, cargo a
 cargo — dez delas nasceram na fase 87, uma na 88 e uma na 89, para o roteiro alcançar as entregas de
 09/09. **Ele ficou longo: aplique por cargo, e pare onde o tempo acabar.**
 Como se aplica:

@@ -33,6 +33,7 @@ import { folhaDaOcorrencia } from '../../backend/src/modules/incidents/ocorrenci
 import { folhaDeSaude } from '../../backend/src/modules/nursing/saude-folha';
 import { folhaDaGrade } from '../../backend/src/modules/medications/grade-folha';
 import { folhaDosCombinados } from '../../backend/src/modules/alignments/combinados-folha';
+import { folhaDoEstatuto } from '../../backend/src/modules/alignments/estatuto-folha';
 import { folhaDaEscala } from '../../backend/src/modules/identity/escala-folha';
 import { folhaDoImpacto, folhaDaTrajetoria }
   from '../../backend/src/modules/reports/impacto-folha';
@@ -245,6 +246,50 @@ let eu = USUARIOS['educador.ai3@paodospobres.dev'];
  * conteúdo: a notificação chega na tela de bloqueio do aparelho da casa, que
  * fica em cima da mesa.
  */
+const ESCREVE_ESTATUTO = ['coordenador', 'gestor_geral'];
+const PUBLICO_ESTATUTO: Record<string, string> = {
+  todos: 'Todos', equipe: 'Equipe', acolhidos: 'Crianças e adolescentes',
+};
+/** O protótipo abre com o estatuto escrito: bloco vazio esconde a entrega (§6.14). */
+const ESTATUTO: {
+  id: string; texto: string; publico: string; desde: string; daInstituicao: boolean;
+  situacao: 'vigente' | 'revogada' | 'substituida';
+  motivoDaSituacao: string | null; mudadaPor: string | null; substitui: string | null;
+  por: string; em: string;
+}[] = [
+  { id: 'es1', texto: 'Nenhuma criança é chamada por apelido que ela não escolheu.',
+    publico: 'todos', desde: '2026-03-02', daInstituicao: true, situacao: 'vigente',
+    motivoDaSituacao: null, mudadaPor: null, substitui: null,
+    por: 'Gestor Geral (fictício)', em: emHoras(10, 0) },
+  { id: 'es2', texto: 'Ninguém entra no quarto sem bater — inclusive quem trabalha na casa.',
+    publico: 'todos', desde: '2026-04-15', daInstituicao: false, situacao: 'vigente',
+    motivoDaSituacao: null, mudadaPor: null, substitui: null,
+    por: 'Carla Coordenadora (fictícia)', em: emHoras(10, 0) },
+  { id: 'es3', texto: 'O silêncio no corredor começa às 22h, para quem dorme cedo.',
+    publico: 'acolhidos', desde: '2026-04-15', daInstituicao: false, situacao: 'vigente',
+    motivoDaSituacao: null, mudadaPor: null, substitui: null,
+    por: 'Carla Coordenadora (fictícia)', em: emHoras(10, 0) },
+  { id: 'es4', texto: 'Não se fala do processo judicial da criança na frente dela.',
+    publico: 'equipe', desde: '2026-03-02', daInstituicao: false, situacao: 'vigente',
+    motivoDaSituacao: null, mudadaPor: null, substitui: null,
+    por: 'Carla Coordenadora (fictícia)', em: emHoras(10, 0) },
+  { id: 'es5', texto: 'A TV da sala desliga às 21h nos dias de aula.',
+    publico: 'acolhidos', desde: '2026-02-10', daInstituicao: false, situacao: 'substituida',
+    motivoDaSituacao: null, mudadaPor: 'Carla Coordenadora (fictícia)', substitui: null,
+    por: 'Carla Coordenadora (fictícia)', em: emHoras(10, 0) },
+];
+
+function regrasParaTela() {
+  return ESTATUTO.slice()
+    .sort((a, z) => Number(z.situacao === 'vigente') - Number(a.situacao === 'vigente'))
+    .map((r) => ({
+      ...r,
+      publicoRotulo: PUBLICO_ESTATUTO[r.publico],
+      origem: r.daInstituicao ? 'Regra da instituição' : 'Regra desta casa',
+      aindaNaoVale: r.situacao === 'vigente' && r.desde > HOJE,
+    }));
+}
+
 const RESPONDE_PAUTA = ['equipe_tecnica', 'coordenador', 'gestor_geral',
   'lider_diurno', 'lider_noturno_geral'];
 const DESFECHO_PAUTA: Record<string, string> = {
@@ -6951,6 +6996,93 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         : 'Aqui está o que a equipe combinou. Quem registra é a equipe técnica e a '
           + 'coordenação; ler é de todo mundo da casa, e é para isso que existe.',
     };
+  }
+
+  /* -------- O estatuto: regras de convivência (fase 95) -------- */
+  if (rota.startsWith('/alignments/statute/folha')) {
+    const publico = q.get('publico') ?? 'todos';
+    if (!PUBLICO_ESTATUTO[publico]) return new Recusa(400, 'Público inválido para a folha do estatuto.');
+    return folhaDoEstatuto(`${CASA.code} — ${CASA.name}`, regrasParaTela(), publico,
+      { nome: eu.fullName, cargo: cargoNoDocumento(eu.role) });
+  }
+  if (rota === '/alignments/statute/export' && metodo === 'POST') {
+    const publico = String(b.publico ?? 'todos');
+    if (!PUBLICO_ESTATUTO[publico]) return new Recusa(400, 'Público inválido para a folha do estatuto.');
+    if (String(b.finalidade ?? '').trim().length < 10) {
+      return new Recusa(400, 'Descreva a finalidade da exportação (mínimo 10 caracteres).');
+    }
+    const f = folhaDoEstatuto(`${CASA.code} — ${CASA.name}`, regrasParaTela(), publico,
+      { nome: eu.fullName, cargo: cargoNoDocumento(eu.role) });
+    return { nomeArquivo: nomeDaFolha(f.titulo), conteudoBase64: gerarDocx(f as any, timbreEmBytes()),
+      aviso: 'Documento gerado em Word, com timbre. Exportação registrada com o seu nome, a '
+        + 'finalidade e o horário.' };
+  }
+  if (rota.startsWith('/alignments/statute') && metodo === 'GET') {
+    return {
+      casa: `${CASA.code} — ${CASA.name}`,
+      podeEscrever: ESCREVE_ESTATUTO.includes(eu.role),
+      podeEscreverDaInstituicao: eu.role === 'gestor_geral',
+      publicos: Object.entries(PUBLICO_ESTATUTO).map(([code, label]) => ({ code, label })),
+      regras: regrasParaTela(),
+    };
+  }
+  if (rota === '/alignments/statute' && metodo === 'POST') {
+    if (!ESCREVE_ESTATUTO.includes(eu.role)) {
+      return new Recusa(403, 'Escrever o estatuto é da coordenação da casa. Ler é de todo mundo '
+        + 'que trabalha nela.');
+    }
+    if (b.daInstituicao && eu.role !== 'gestor_geral') {
+      return new Recusa(403, 'Regra que vale para as oito casas é da gestão geral. Nesta tela '
+        + 'você escreve a regra desta casa.');
+    }
+    if (String(b.texto ?? '').trim().length < 15) {
+      return new Recusa(400, 'Escreva a regra por inteiro — ela vai ser lida por quem chegar '
+        + 'depois de você, sem ninguém do lado para explicar.');
+    }
+    const publico = String(b.publico ?? 'todos');
+    if (!PUBLICO_ESTATUTO[publico]) {
+      return new Recusa(400, 'Diga para quem é esta regra: todos, equipe, ou crianças e adolescentes.');
+    }
+    if (b.substituiId) {
+      const velha = ESTATUTO.find((r) => r.id === b.substituiId);
+      if (!velha) return new Recusa(404, 'Regra não encontrada — ou fora do seu alcance.');
+      if (velha.situacao !== 'vigente') {
+        return new Recusa(409, 'A regra que você ia substituir já tinha sido encerrada por outra '
+          + 'pessoa. Abra o estatuto de novo antes de escrever.');
+      }
+      velha.situacao = 'substituida'; velha.mudadaPor = eu.fullName;
+    }
+    const id = uid();
+    ESTATUTO.unshift({
+      id, texto: String(b.texto).trim(), publico,
+      desde: String(b.desde ?? '').trim() || HOJE,
+      daInstituicao: !!b.daInstituicao, situacao: 'vigente',
+      motivoDaSituacao: null, mudadaPor: null, substitui: (b.substituiId as string) ?? null,
+      por: eu.fullName, em: new Date().toISOString(),
+    });
+    return { id, ok: true, aviso: b.substituiId
+      ? 'Regra nova no estatuto. A anterior ficou marcada como substituída e continua legível — '
+        + 'quem precisar saber o que valia antes consegue ler.'
+      : 'Regra escrita no estatuto. Ela vale para quem chegar depois, e está na folha que pode '
+        + 'ir para a parede.' };
+  }
+  if (seg[0] === 'alignments' && seg[1] === 'statute' && seg[3] === 'revoke' && metodo === 'POST') {
+    if (!ESCREVE_ESTATUTO.includes(eu.role)) {
+      return new Recusa(403, 'Revogar regra do estatuto é da coordenação da casa.');
+    }
+    const r = ESTATUTO.find((x) => x.id === seg[2]);
+    /* Regra da instituição não é da coordenação da casa — e responde como
+       inexistente, igual ao servidor (regra 8). */
+    if (!r || (r.daInstituicao && eu.role !== 'gestor_geral')) {
+      return new Recusa(404, 'Regra não encontrada — ou fora do seu alcance.');
+    }
+    if (String(b.motivo ?? '').trim().length < 15) {
+      return new Recusa(400, 'Escreva por que esta regra deixou de valer. Sem isso, quem ler o '
+        + 'estatuto daqui a seis meses não sabe se a regra caiu ou se alguém apagou por engano.');
+    }
+    if (r.situacao !== 'vigente') return new Recusa(409, 'Esta regra já tinha sido encerrada por outra pessoa.');
+    r.situacao = 'revogada'; r.motivoDaSituacao = String(b.motivo).trim(); r.mudadaPor = eu.fullName;
+    return { ok: true, aviso: 'Regra revogada. Ela continua legível no estatuto, com o motivo.' };
   }
 
   /* -------- A pauta que quem trabalha na casa propõe (fase 94) -------- */

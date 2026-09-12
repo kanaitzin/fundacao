@@ -404,6 +404,14 @@ const TAREFAS = [
     caminho: [{ mais: 'O que o plantão vê' }],
     procurar: [/O que o plantão vê no perfil/, /Escola/, /Tirar da vista do plantão/, /não alcança/],
   },
+  /* O estatuto (fase 95): a porta, o conteúdo e a folha para a parede. */
+  {
+    cargo: 'coordenador', secao: '5.16.1',
+    nome: 'Mude uma regra de convivência e gere a folha das crianças',
+    caminho: [{ mais: 'Combinados' }],
+    procurar: [/Regras de convivência/i, /sem bater/, /Mudar esta regra/,
+               /Folha para a parede/],
+  },
   {
     cargo: 'coordenador', secao: '5.17',
     nome: 'Gere a folha da portaria para a guarita',
