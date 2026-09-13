@@ -11,3 +11,4 @@
 export { PeopleModule } from './people.module';
 export { PeopleService } from './people.service';
 export type { PersonSummary } from './people.service';
+export { AniversariosService } from './aniversarios.service';

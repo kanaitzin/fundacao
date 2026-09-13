@@ -1,0 +1,15 @@
+{
+  "name": "relogio",
+  "descricao": "O que roda sozinho, todo dia, em todas as casas (§12.6): doses geradas da prescrição, atividades da rotina, escalonamento do que atrasou, aviso de aniversário. Sem ele, o dia amanhece vazio.",
+  "depends": [
+    "identity",
+    "medications",
+    "activities",
+    "people"
+  ],
+  "publica": [
+    "RelogioModule",
+    "RelogioService"
+  ],
+  "tabelas": []
+}

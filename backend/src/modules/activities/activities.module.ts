@@ -21,6 +21,9 @@ import { AgendaService } from './agenda.service';
   imports: [IdentityModule, SyncModule],
   controllers: [ActivitiesController],
   providers: [ActivitiesService, AgendaService, ActivitiesTimelineProvider, ActivitiesOfflineHandlers],
-  exports: [ActivitiesService],
+  /* `AgendaService` é exportado desde a fase 103: o relógio gera as
+     ocorrências dos compromissos recorrentes, e alcançar o arquivo interno
+     seria furar a fronteira que o `arquitetura.spec` cobra. */
+  exports: [ActivitiesService, AgendaService],
 })
 export class ActivitiesModule {}

@@ -21,6 +21,9 @@ import { CredentialsService } from './credentials.service';
     CozinhaService, PortariaService, CamposDoPerfilService, AniversariosService,
     ContatosService, BenefitsService, TransfersService, AdmissionService, CredentialsService,
     DossieService],
-  exports: [PeopleService],
+  /* `AniversariosService` sai pela porta desde a fase 103: é o relógio que
+     dispara o aviso de aniversário, e nenhum módulo alcança arquivo interno
+     de outro. */
+  exports: [PeopleService, AniversariosService],
 })
 export class PeopleModule {}

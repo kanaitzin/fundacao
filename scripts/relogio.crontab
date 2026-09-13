@@ -1,0 +1,28 @@
+# ============================================================
+# O relógio do Rede Acolher — exemplo para o servidor
+#
+#   sudo crontab -u rede-acolher scripts/relogio.crontab
+#
+# É isto que faz o dia da casa existir: as doses saem das prescrições
+# assinadas, as atividades saem da rotina, o que atrasou é escalonado, e os
+# aniversários da semana são avisados. Sem esta linha, o sistema funciona e
+# NADA acontece sozinho (§12.7).
+# ============================================================
+
+# O fuso da máquina não é palpite: num servidor em UTC, 05h00 são 02h00 em
+# Porto Alegre — e o dia gerado seria o de ontem (§6, armadilha 2).
+CRON_TZ=America/Sao_Paulo
+
+# Em nome de quem o relógio escreve. Tudo o que ele gerar fica na auditoria com
+# este nome, então NÃO use a conta de uma pessoa: quem ler seis meses depois
+# precisa distinguir "o sistema gerou" de "a enfermeira gerou".
+RELOGIO_USER_EMAIL=relogio@paodospobres.org.br
+
+# Para onde vai o erro. Sem isto, o dia incompleto só aparece quando a casa
+# disser que "o remédio sumiu da tela".
+MAILTO=ti@paodospobres.org.br
+
+# 05h00, e não a virada do dia: à meia-noite a equipe da noite está
+# trabalhando, o backup está rodando e não há ninguém acordado para ver um
+# erro. Às 5h o plantão noturno ainda percebe se algo não veio.
+0 5 * * * cd /opt/rede-acolher/backend && npm run --silent relogio >> /var/log/rede-acolher/relogio.log 2>&1

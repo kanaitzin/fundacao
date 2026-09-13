@@ -13,7 +13,8 @@
     "lint": "tsc --noEmit",
     "seed:fase2": "tsx scripts/seed-fase2.ts",
     "migrate:prod": "node dist/migrate.js",
-    "postbuild": "node scripts/copiar-migracoes.mjs"
+    "postbuild": "node scripts/copiar-migracoes.mjs",
+    "relogio": "tsx src/relogio.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.4.15",

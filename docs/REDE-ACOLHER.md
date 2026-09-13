@@ -82,18 +82,18 @@ aplicação e no banco. §7 tem a matriz inteira.
 
 ## 2. O ESTADO HOJE
 
-**Fases 0 a 102.** Estes números **saem do código**, não da memória — e são
+**Fases 0 a 103.** Estes números **saem do código**, não da memória — e são
 cobrados por `test/numeros-da-documentacao.spec.ts`, que existe porque em 08/09
 seis afirmações estavam erradas ao mesmo tempo em três documentos, e duas delas
 discordavam entre si.
 
 | Quanto | De onde sai |
 |---|---|
-| **17 partições** isoladas | pastas em `backend/src/modules/` |
-| **106 migrações** | `.sql` dentro das partições |
+| **18 partições** isoladas | pastas em `backend/src/modules/` |
+| **107 migrações** | `.sql` dentro das partições |
 | **110 tabelas** | `CREATE TABLE` nas migrações |
-| **69 suítes** | `backend/test/*.spec.ts` |
-| **673 testes** | `it(` / `test(` nas suítes |
+| **70 suítes** | `backend/test/*.spec.ts` |
+| **677 testes** | `it(` / `test(` nas suítes |
 | **33 telas React** | `frontend/src/screens/*.tsx` |
 | **15 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **6 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
@@ -114,26 +114,24 @@ foi assim que "30 telas" sobreviveu à fase que existiu para acabar com isso.*
 
 ### A última verificação inteira
 
-**13/09/2026, fase 102.** `tsc` limpo nos dois lados. A suíte **duas rodadas
-inteiras**, 69 suítes e 673 testes em cada: às 12h39 de Porto Alegre no relógio
-real, e sob `faketime +11h` às **23h43, com o servidor já em 14/09 e a
-instituição em 13/09**. O `ensaio:producao` aplicou as 106 migrações, subiu o
-serviço compilado e ele respondeu ao `/health` — a fase mexeu em 151 funções de
-uma vez, e é aí que se vê se alguma parou de achar o que usa. O
-`ensaio:restauracao` rodou com credencial no cofre.
+**13/09/2026, fase 103.** `tsc` limpo nos dois lados. A suíte **duas rodadas
+inteiras**, 70 suítes e 677 testes em cada: às 16h51 de Porto Alegre no relógio
+real, e sob `faketime +7h` às **23h53, com o servidor já em 14/09 e a
+instituição em 13/09**. O `ensaio:producao` aplicou as 107 migrações e o serviço
+compilado respondeu ao `/health`; o `ensaio:restauracao` rodou com credencial no
+cofre.
+
+**E o relógio foi rodado como o cron vai rodar**, pela linha de comando: 8
+casas, 48 rotinas, código de saída 0 — e código **1** com uma conta inexistente,
+que é o que faz o cron avisar. Testar só pelo serviço teria deixado a CLI e o
+código de saída sem prova, e é a CLI que o servidor chama.
 
 **Não rodaram, de propósito:** os seis ensaios de navegador. Nenhuma linha do
 `frontend/` mudou, e o protótipo é o da fase 98.
 
-*A conferência foi vista reprovando, e o conferidor de números pegou um teste a
-mais que escrevi de cabeça — dois testes novos, e eu contei três.*
-
-**O que esta fase NÃO é.** O risco era teórico e continua sendo: a aplicação não
-pode criar schema nem objeto, e agora isso é conferido pela conexão dela. Não se
-fechou uma porta aberta; tirou-se a dependência de uma condição que **um
-`GRANT` numa pressa derruba** — e que, derrubada, valeria para 151 funções que
-rodam como dona do banco. *Dizer "corrigi uma falha de segurança" aqui seria
-mais bonito e menos verdadeiro.*
+*O conferidor de implantação pegou o que eu tinha esquecido: `RELOGIO_USER_EMAIL`
+lida pelo código e ausente do `.env.example`. **Variável nova que só existe no
+código é variável que ninguém configura no dia da instalação.***
 
 *Dois cuidados que as rodadas ensinam: o `pg_ctl start` sob `faketime` trava
 esperando o arranque — use `-W` e confira com `pg_isready`; e **os dois
@@ -182,6 +180,7 @@ arqueologia.
 | 100 | **O que a aplicação não precisa poder.** Das 110 tabelas, quatro estavam sem RLS e a aplicação tinha INSERT e UPDATE em todas — inclusive nas duas em que ela nunca escreve. `institution` ganhou RLS, e a escrita em `institution` e `schema_migration` foi revogada. As duas de autenticação ficaram, com o risco escrito |
 | 101 | **A sessão fechada.** O risco que a 100 anotou: a aplicação lia e escrevia `user_session` e `login_attempt` direto — uma consulta sem `WHERE user_id` lia o hash de sessão e o IP de todo mundo. As operações viraram funções `SECURITY DEFINER`, o acesso direto foi revogado, e **a lista de exceções encolheu** — foi a própria conferência que exigiu tirá-las |
 | 102 | **O caminho das funções privilegiadas.** 150 das 151 funções que rodam como dona do banco não fixavam `search_path`. O risco é **teórico hoje** — a aplicação não pode criar schema nem objeto, e isso passou a ser conferido —, mas basta um `GRANT` concedido numa pressa para deixar de ser, em 151 funções de uma vez |
+| 103 | **O relógio, que não existia.** Seis rotas de máquina tinham o motivo escrito de não ter tela — "roda por relógio" — e **nada as chamava**. No piloto, a casa abriria o sistema e acharia o dia vazio: sem doses geradas da prescrição, sem as atividades da rotina, sem aviso de aniversário. Nenhum teste pegava, porque cada rota tem a sua suíte e todas passam — chamadas pelo teste |
 
 ---
 
@@ -228,7 +227,7 @@ cd frontend && npm run prototipo
 # sai em prototipo/rede-acolher-prototipo.html
 ```
 
-O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as 106
+O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as 107
 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
 
 ### Os ensaios — e por que cada um existe
@@ -293,8 +292,8 @@ rede-acolher/
 │   │   │   ├── events/         barramento + registro da linha do tempo
 │   │   │   ├── documentos/     o contrato da folha e o gerador de .docx
 │   │   │   └── common/         CPF, criptografia, segredo, fuso da instituição
-│   │   └── modules/       17 partições, cada uma dona das próprias migrações
-│   ├── test/              69 suítes (e2e contra PostgreSQL real + estáticas)
+│   │   └── modules/       18 partições, cada uma dona das próprias migrações
+│   ├── test/              70 suítes (e2e contra PostgreSQL real + estáticas)
 │   ├── scripts/           ensaio-carga.ts, migrador compilado
 │   └── assets/timbre.png  a marca da Fundação, usada no documento em Word
 ├── frontend/
@@ -316,7 +315,7 @@ rede-acolher/
 └── docs/                  este arquivo, der.md, roteiro-marcelo, historico/
 ```
 
-**As 17 partições:** activities, alignments, archive, checks, houses, identity,
+**As 18 partições:** activities, alignments, archive, checks, houses, identity,
 incidents, medications, notifications, nursing, people, reports, routine,
 shifts, statements, sync, timeline.
 
@@ -1836,7 +1835,7 @@ ele continua dizendo que o arquivo existe.
 npm run ensaio:producao
 ```
 
-Constrói, cria um banco virgem, aplica as 106 migrações **pelo binário
+Constrói, cria um banco virgem, aplica as 107 migrações **pelo binário
 compilado**, sobe o serviço e confere `/health`. Não publica nada e não toca no
 banco de trabalho.
 
@@ -1914,7 +1913,7 @@ erros iguais se leem como acordo — a conferência passava sem conferir nada. E
 conferência do cofre foi provada **falhando**, com uma chave errada: um
 conferidor que só foi visto dizendo "sim" não foi visto.*
 
-### 12.6 O relógio
+### 12.6 As duas fontes de hora
 
 Duas fontes de hora: o servidor e o banco. As migrações usam `app_hoje()`
 justamente para não dependerem do relógio de quem executa — mas o serviço também
@@ -1930,7 +1929,45 @@ quando vier, vai parecer qualquer outra coisa.
 
 Ative NTP nos dois. Se só um puder ser confiável, que seja o **banco**.
 
-### 12.7 O SMTP institucional
+### 12.7 O relógio — o que roda sozinho, e que não existia
+
+*Não confundir com a §12.6, que é sobre as duas fontes de HORA. Esta é sobre
+quem CHAMA o que roda sozinho.*
+
+Seis rotas de máquina existem desde as primeiras fases, cada uma com o motivo
+escrito de não ter tela: "roda por relógio, e não por alguém apertando um
+botão". **Até a fase 103 não havia relógio.** Nenhum cron, nenhum script,
+ninguém as chamava — nem em desenvolvimento, nem no roteiro de implantação.
+
+No dia em que o piloto começasse, a Casa 03 abriria o sistema e encontraria o
+dia **vazio**: sem as doses geradas a partir das prescrições assinadas, sem as
+atividades da rotina, sem escalonamento de dose atrasada, sem aviso de
+aniversário. Tudo funcionando, e nada acontecendo. *Nenhum teste pegava: cada
+rota tem a sua suíte, e todas passam — chamadas pelo teste.*
+
+**Como funciona agora:** `npm run relogio`, no servidor, uma vez ao dia. Ele
+roda as seis rotinas em todas as casas que a conta alcança, registra
+`relogio.dia` na auditoria com o número de casas e de falhas, e sai com código
+1 se alguma falhar. Uma casa que falha **não derruba as outras** — numa
+instituição de oito, parar na segunda deixaria seis sem o dia gerado.
+
+**Não é uma rota HTTP, e isso é decisão.** Uma rota exigiria guardar no
+`crontab` uma credencial com alcance nas oito casas, capaz de gerar dose e
+disparar aviso. Rodando no servidor, como o migrador, não há credencial: quem
+consegue executar já está dentro.
+
+**O que a Fundação precisa decidir antes do piloto:**
+
+| # | Pergunta | Por que importa |
+|---|---|---|
+| 1 | **Qual conta é a do relógio** (`RELOGIO_USER_EMAIL`) | Tudo o que ele gera fica na auditoria com esse nome. **Não deve ser a conta de uma pessoa:** quem ler seis meses depois precisa distinguir "o sistema gerou" de "a enfermeira gerou". O sugerido é uma conta de serviço, com alcance nas oito casas |
+| 2 | **Que horas** | O exemplo em `scripts/relogio.crontab` usa 05h00, com o motivo escrito: a virada do dia é o pior horário — equipe da noite trabalhando, backup rodando, ninguém acordado para ver um erro. Às 5h o plantão noturno ainda percebe se algo não veio |
+| 3 | **Quem olha quando falha** | O comando sai com código 1 e o cron manda e-mail, se estiver configurado. Sem alguém para ler, o dia incompleto só aparece quando a casa disser que "o remédio sumiu da tela" |
+
+**Confira o fuso da máquina.** O exemplo traz `CRON_TZ=America/Sao_Paulo`: num
+servidor em UTC, 05h00 são 02h00 em Porto Alegre e o dia gerado é o errado.
+
+### 12.8 O SMTP institucional
 
 Hoje o `MailGateway` escreve numa **caixa local** (`EMAIL_DIR`). Nada sai para a
 rede, de propósito: um envio real ligado durante o desenvolvimento é exatamente

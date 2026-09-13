@@ -22,6 +22,7 @@ import { ChecksModule } from './modules/checks';
 import { TimelineModule } from './modules/timeline';
 import { NotificationsModule } from './modules/notifications';
 import { SyncModule } from './modules/sync';
+import { RelogioModule } from './modules/relogio';
 import { MedicationsModule } from './modules/medications';
 import { NursingModule } from './modules/nursing';
 import { StatementsModule } from './modules/statements';
@@ -48,6 +49,7 @@ import { ArchiveModule } from './modules/archive';
     TimelineModule,
     NotificationsModule,
     SyncModule,
+    RelogioModule,
     MedicationsModule,
     NursingModule,
     StatementsModule,

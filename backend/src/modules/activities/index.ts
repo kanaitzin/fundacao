@@ -4,3 +4,4 @@
  */
 export { ActivitiesModule } from './activities.module';
 export { ActivitiesService, ESTADO_LABEL } from './activities.service';
+export { AgendaService } from './agenda.service';
