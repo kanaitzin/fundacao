@@ -141,6 +141,16 @@ relógios andam juntos, ou nenhum anda**.*
 última verificação. Quando a próxima fase terminar, esta seção é reescrita, não
 acrescida.*
 
+### Para a conversa com a Fundação
+
+**`docs/PARA-A-REUNIAO.md`** reúne num lugar só o que está espalhado pelas §9,
+§10, §10.5, §11 e §12: as nove perguntas do roteiro, as decisões que são do
+Marcelo, o que depende da Fundação, os seis formulários que faltam, as três
+decisões novas do relógio, e as decisões que tomei sozinho — todas reversíveis,
+com onde mudar. É o documento para levar à reunião; este continua sendo o de
+retomar o trabalho. *Os números dele saem do código, cobrados pelo mesmo
+conferidor.*
+
 ### Como retomar, em três linhas
 
 Anexe **este arquivo** e o **`rede-acolher-atualizado.zip`**, e cole o bloco do

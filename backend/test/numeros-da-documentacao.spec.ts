@@ -40,7 +40,10 @@ const DOCS = join(RAIZ, 'docs');
  * retomada viraram `REDE-ACOLHER.md`, e os antigos foram para
  * `docs/historico/`.
  */
-const DOCUMENTOS = ['REDE-ACOLHER.md'];
+/* `PARA-A-REUNIAO.md` entra aqui desde a fase 104: ele repete números do
+   sistema para a conversa não ter de caçá-los, e número repetido em dois
+   lugares envelhece no primeiro que ninguém conferir. */
+const DOCUMENTOS = ['REDE-ACOLHER.md', 'PARA-A-REUNIAO.md'];
 
 /*
  * `docs/historico/` fica de fora de propósito: é registro histórico, e a frase
