@@ -20,7 +20,7 @@ começava escolhendo em qual acreditar.*
 
 | Arquivo | Por que sobreviveu |
 |---|---|
-| `der.md` | as 109 tabelas com o que cada coluna guarda. É referência de dado, não narrativa, e o `documentacao.spec.ts` cobra que toda tabela apareça lá |
+| `der.md` | as 110 tabelas com o que cada coluna guarda. É referência de dado, não narrativa, e o `documentacao.spec.ts` cobra que toda tabela apareça lá |
 | `roteiro-marcelo.md` (+ `.docx`) | é entregue à Casa 03, escrito para quem não conhece o sistema. O `.docx` é GERADO do `.md` por `scripts/roteiro-em-word.mjs` — não editar o Word à mão |
 
 ---
@@ -82,7 +82,7 @@ aplicação e no banco. §7 tem a matriz inteira.
 
 ## 2. O ESTADO HOJE
 
-**Fases 0 a 97.** Estes números **saem do código**, não da memória — e são
+**Fases 0 a 98.** Estes números **saem do código**, não da memória — e são
 cobrados por `test/numeros-da-documentacao.spec.ts`, que existe porque em 08/09
 seis afirmações estavam erradas ao mesmo tempo em três documentos, e duas delas
 discordavam entre si.
@@ -90,14 +90,14 @@ discordavam entre si.
 | Quanto | De onde sai |
 |---|---|
 | **17 partições** isoladas | pastas em `backend/src/modules/` |
-| **101 migrações** | `.sql` dentro das partições |
-| **109 tabelas** | `CREATE TABLE` nas migrações |
-| **68 suítes** | `backend/test/*.spec.ts` |
-| **658 testes** | `it(` / `test(` nas suítes |
+| **102 migrações** | `.sql` dentro das partições |
+| **110 tabelas** | `CREATE TABLE` nas migrações |
+| **69 suítes** | `backend/test/*.spec.ts` |
+| **663 testes** | `it(` / `test(` nas suítes |
 | **33 telas React** | `frontend/src/screens/*.tsx` |
-| **14 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
+| **15 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **6 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
-| protótipo com **≈1153 KB** | `prototipo/rede-acolher-prototipo.html` |
+| protótipo com **≈1155 KB** | `prototipo/rede-acolher-prototipo.html` |
 
 *A frase importa: o conferidor lê o NÚMERO colado ao substantivo. Escrever
 "Telas React … 31" numa coluna separada faz o teste passar sem conferir nada —
@@ -109,25 +109,31 @@ foi assim que "30 telas" sobreviveu à fase que existiu para acabar com isso.*
 |---|---|
 | `npm run ensaio` | 123 telas nos **sete** cargos oferecidos — Coordenação 26, Técnica 23, Gestor 23, Líder Diurno 15, Líder Noturno 14, Educador 13, Enfermagem 9. A Cozinha saiu do seletor em 09/09: o cargo continua no banco, oculto |
 | `npm run ensaio:acessibilidade` | 130 telas, **nenhuma violação de WCAG 2.1 AA** |
-| `npm run ensaio:roteiro` | 47 tarefas do roteiro, **todas com porta no cargo certo** |
+| `npm run ensaio:roteiro` | 49 tarefas do roteiro, **todas com porta no cargo certo** |
 | `npm run ensaio:uso` | 149 cobranças em 13 blocos, **todas passando** — e todos os cargos completando o percurso |
 
 ### A última verificação inteira
 
-**12/09/2026, fase 97.** `tsc` limpo nos dois lados. A suíte **duas rodadas
-inteiras**: uma às 13h53 de Porto Alegre, no relógio real, e outra com banco e
-processo sob `faketime +9h` — 22h55, com o UTC já em 13/09 —, 68 suítes e 658
-testes nas duas. Os **seis** ensaios de navegador, verdes com o protótipo
-reconstruído. O `ensaio:producao` aplicou as 101 migrações pelo binário num
-banco virgem; o `ensaio:restauracao` rodou com credencial fictícia no cofre. Dois
-builds seguidos do protótipo saíram **idênticos** — a geração das fontes é
-reprodutível.
+**12/09/2026, fase 98.** `tsc` limpo nos dois lados. A suíte **duas rodadas
+inteiras**: uma às 23h28 de Porto Alegre, **no relógio real**, com o UTC já em
+13/09, e outra com banco e processo sob `faketime -13h` — 10h26 —, 69 suítes e
+663 testes nas duas. Os **seis** ensaios de navegador, verdes com o protótipo
+reconstruído: 123 telas, 130 sem violação de acessibilidade, as 49 tarefas do
+roteiro, fila, folhas e o `ensaio:uso`. O `ensaio:producao` aplicou as 102
+migrações pelo binário; o `ensaio:restauracao` rodou com credencial no cofre.
+Dois builds do protótipo saíram idênticos.
 
-*E o que a fase 97 exigia por ser o que é: o protótipo foi aberto num navegador
-**com toda a rede bloqueada**, que é como ele chega à casa. As cinco fontes em
-uso carregaram, nenhum pedido saiu do arquivo, e o console ficou limpo. Antes,
-sem rede, a letra caía para a do sistema — e nenhum ensaio via isso, porque
-ensaio não repara em tipografia.*
+**A rodada das 23h pagou-se nesta fase.** A suíte dos aniversários passava de
+dia e reprovava à noite: ela montava as datas de nascimento em **UTC**, e o
+banco conta no fuso da instituição — às 23h de Porto Alegre "daqui a 7 dias"
+virava 8 para o banco, e a criança saía da janela. É a armadilha 2 do §6
+cometida DENTRO do teste. *Regra que existe há semanas só prova o seu valor no
+dia em que reprova algo.*
+
+**E o seed tem aniversariante em 12/09.** O mesmo teste contava o TOTAL de
+avisos da casa e esperava 2; em 12/09, a Vitória entra e são 3. Um teste de
+aniversário que conta o total passa em 362 dias do ano e reprova em três, por
+motivo que ninguém entende na hora — agora ele conta só as crianças que criou.
 
 *Dois cuidados que as rodadas ensinam: o `pg_ctl start` sob `faketime` trava
 esperando o arranque — use `-W` e confira com `pg_isready`; e processo em
@@ -171,6 +177,7 @@ arqueologia.
 | 95 | **O estatuto.** As regras de convivência, que a fase 94 deixou de fora por serem outra coisa: permanentes, por casa ou da instituição, com público — o que permite afixar na parede só o que é das crianças. A suíte achou a função `SECURITY DEFINER` deixando a coordenação revogar regra da instituição, por cima do RLS |
 | 96 | **As fronteiras que ninguém conferia.** Os dois achados de passagem viraram conferência: o SQL entre partições — **dez** liam tabelas de outra sem declarar, e o "removível" do §4.3 era falso — e as colunas de fechamento que não se chamam `status`. Nenhum defeito novo; o que havia era garantia que ninguém garantia |
 | 97 | **As fontes, embutidas.** A decisão §10.10 estava parada por um custo estimado em 300 KB; medido com o subconjunto latino e só os pesos usados, são **116 KB**. O protótipo deixou de buscar letra no Google: offline — que é como ele é entregue — a letra agora é a que a equipe vai ver, e nenhum IP de quem abre vai para um terceiro |
+| 98 | **O bloco de notas recuperado.** Dois pedidos do Marcelo achados em 12/09: **as casas pelo nome** — os cartões das unidades não abriam, e quem tem alcance em várias ficava preso à primeira — e **os aniversários avisados antes**, com ciência da casa. O terceiro, a visão de cima do gestor, ficou anotado por não ser adivinhável |
 
 ---
 
@@ -217,7 +224,7 @@ cd frontend && npm run prototipo
 # sai em prototipo/rede-acolher-prototipo.html
 ```
 
-O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as 101
+O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as 102
 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
 
 ### Os ensaios — e por que cada um existe
@@ -229,7 +236,7 @@ migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.
 | `npm run ensaio` | percorre as 123 telas dos sete cargos oferecidos num navegador de verdade, cobrando que nenhuma deixe erro no console, que escreva alguma coisa e que não mostre `undefined` para quem lê. **Tela nova entra neste percurso.** |
 | `npm run ensaio:fila` | corta o sinal, marca a chamada, fecha e abre o aplicativo, religa, e confere que **só o que o servidor confirmou** saiu do aparelho |
 | `npm run ensaio:folhas` | os caminhos de documento até o arquivo baixar: abre a folha, tenta baixar com finalidade curta demais, baixa com frase válida, confere que o `.docx` chegou |
-| `npm run ensaio:roteiro` | cobra que as 47 tarefas do roteiro do Marcelo tenham porta no cargo certo. Não simula a procura de uma pessoa — mas impede o fracasso barato: a tarefa não ter porta, e isso aparecer diante da equipe |
+| `npm run ensaio:roteiro` | cobra que as 49 tarefas do roteiro do Marcelo tenham porta no cargo certo. Não simula a procura de uma pessoa — mas impede o fracasso barato: a tarefa não ter porta, e isso aparecer diante da equipe |
 | `npm run ensaio:acessibilidade` | axe-core (WCAG 2.1 AA) nas 130 telas — sete a mais que o `ensaio` porque confere também a folha do "Mais" de cada cargo, aberta dezenas de vezes por turno. **Cor nova passa por ele antes de entrar** |
 | `npm run ensaio:uso` | percorre os **sete** cargos **apertando os botões até o fim** — chamada, exceção, passagem, armário, cofre, internação, diário, pedido de lanche — e **lê de volta o que ficou gravado**. É o que pega o defeito que a tela não denuncia: a folha abriu, o botão salvou, e só o número estava errado. *Dizia "oito" aqui, e o roteiro dele também: era a Cozinha, que saiu do seletor na fase 83 — e por isso ele morria no meio* |
 
@@ -283,7 +290,7 @@ rede-acolher/
 │   │   │   ├── documentos/     o contrato da folha e o gerador de .docx
 │   │   │   └── common/         CPF, criptografia, segredo, fuso da instituição
 │   │   └── modules/       17 partições, cada uma dona das próprias migrações
-│   ├── test/              68 suítes (e2e contra PostgreSQL real + estáticas)
+│   ├── test/              69 suítes (e2e contra PostgreSQL real + estáticas)
 │   ├── scripts/           ensaio-carga.ts, migrador compilado
 │   └── assets/timbre.png  a marca da Fundação, usada no documento em Word
 ├── frontend/
@@ -967,6 +974,34 @@ qualquer momento em que as crianças opinam, o sistema não mostra que a regra
 passou por ali. É a pergunta 8 do roteiro, e é da Fundação — o sistema não deve
 fingir que houve participação.
 
+### 8.2.4 Os aniversários, e as casas pelo nome
+
+Dois pedidos do Marcelo, anotados num bloco de notas e recuperados em 12/09.
+
+**As casas pelo nome.** Ele foi literal: "só é que ele tivesse uma forma de
+poder olhar as casas pelo nome, simples assim". A tela de unidades mostrava as
+oito e os cartões **não abriam**; quem tem alcance em várias — o Gestor Geral,
+a Enfermagem — ficava preso à primeira da lista. Agora o cartão abre o Dia
+daquela casa, com uma faixa dizendo qual se está olhando e o caminho de volta.
+
+**Os aniversários.** A data de nascimento já estava no perfil, mas o
+aniversário só aparecia DEPOIS, como memória no álbum. Agora a casa é avisada a
+sete dias, a três e no dia, e a faixa fica no alto do Dia — ele pediu
+exatamente para ninguém ter de procurar, "pra não ter que ler papel na parede".
+O botão **"A casa está ciente"** faz o aviso parar; sem isso o sistema repetiria
+até o dia, e aviso que não para ensina a ignorar aviso. A lista aceita janela
+maior, para a casa que junta os aniversariantes do mês — ele não sabia se é
+assim, e as duas leituras cabem na mesma tela.
+
+**O sistema não pergunta se houve festa**, e não vai perguntar. Uma casa com
+crianças pequenas e uma de adolescentes fazem isso de formas diferentes, e "fez
+festa" como campo é o primeiro passo para alguém cobrar o número depois.
+
+**O que NÃO foi construído, e está na §10:** a visão de cima do gestor — "como
+está o andamento da vida das crianças" em cada casa, com vários parâmetros, sem
+entrar criança por criança. Ele foi explícito: **nada de competição**. Construir
+isso adivinhando já deu errado uma vez, e virou a pergunta 9 do roteiro.
+
 ### 8.3 O turno
 
 O **Dia** com a rotina versionada da casa e quatro filtros, entre eles **"Por
@@ -1451,12 +1486,13 @@ Nenhuma está parada por falta de código.
    (`PATCH /shifts/general-ata/:id/house/:houseId`) espera a resposta sobre quem
    lê a ATA Geral de dia. Ver §10.2.
 
-### Grupo 3 — as 14 rotas sem porta
+### Grupo 3 — as 15 rotas sem porta
 
 O número **não é contagem à mão**: é o tamanho da lista de exceções do
 `rotas-sem-porta.spec.ts`, onde cada linha traz o motivo por extenso. Eram 34 em
-01/09. Onze são rota de máquina que não deve ter tela — geração das doses e do
-dia, geração da agenda, escalonamento de dose vencida, marcação de atividade não
+01/09. Doze são rota de máquina que não deve ter tela — geração das doses e do
+dia, geração da agenda, o aviso de aniversário, escalonamento de dose vencida,
+marcação de atividade não
 confirmada, health check, `GET /medications/alert-offsets` e
 `/can-administer` (o aparelho pergunta; quem decide continua sendo o servidor),
 `GET /activities` e `GET /transfers/pending` (leituras cruas que a tela já
@@ -1762,7 +1798,7 @@ ele continua dizendo que o arquivo existe.
 npm run ensaio:producao
 ```
 
-Constrói, cria um banco virgem, aplica as 101 migrações **pelo binário
+Constrói, cria um banco virgem, aplica as 102 migrações **pelo binário
 compilado**, sobe o serviço e confere `/health`. Não publica nada e não toca no
 banco de trabalho.
 
@@ -2029,7 +2065,7 @@ outras; mudança pedida por uma casa só é conversa antes de virar código.
 
 ### O roteiro do Marcelo
 
-`roteiro-marcelo.md` (e o `.docx` gerado dele) leva 47 tarefas do roteiro à Casa 03, cargo a
+`roteiro-marcelo.md` (e o `.docx` gerado dele) leva 49 tarefas do roteiro à Casa 03, cargo a
 cargo — dez delas nasceram na fase 87, uma na 88 e uma na 89, para o roteiro alcançar as entregas de
 09/09. **Ele ficou longo: aplique por cargo, e pare onde o tempo acabar.**
 Como se aplica:

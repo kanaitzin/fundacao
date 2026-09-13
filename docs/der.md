@@ -757,12 +757,33 @@ aconteceu — a ocorrência, com revisão técnica. Um histórico de "quantas ve
 Alice quebrou a regra 4" é exatamente o documento que ninguém deveria poder
 gerar sobre uma criança de 12 anos.
 
-## Inventário — 109 tabelas por partição
+**`birthday_ack` é A CIÊNCIA DO ANIVERSÁRIO** (migração 1160, fase 98). Uma
+linha por criança e por ano, quando alguém da casa diz "estamos cientes".
+
+* **é o que faz o aviso PARAR.** Sem ela, ou o sistema repete até o dia — e
+  vira ruído, que ensina a ignorar aviso —, ou para sozinho e ninguém sabe se
+  alguém viu;
+* **a data de nascimento já existia** no perfil desde a 0010. O que faltava era
+  a casa saber ANTES: até aqui o aniversário só aparecia DEPOIS, como memória
+  no álbum, que é o registro da festa que já houve;
+* **`app_aniversarios_proximos` atravessa a virada do ano** — em 28/12, a lista
+  de sete dias inclui quem nasceu em 3/1 — e trata 29/02 como 28/02 **só em ano
+  comum**; no bissexto, o aniversário é no próprio dia 29;
+* **quem dá ciência é a casa, inclusive o educador:** quem prepara aniversário
+  na prática é quem está com a criança.
+
+**O que a tabela NÃO guarda:** se a festa aconteceu. O sistema não cobra festa
+de ninguém — uma casa com crianças pequenas e uma de adolescentes fazem isso de
+formas diferentes, e "fez festa" como campo é o primeiro passo para alguém
+cobrar o número depois. O que se registra depois, se a casa quiser, é a memória
+no álbum, que é da criança.
+
+## Inventário — 110 tabelas por partição
 
 | Partição | Tabelas |
 |---|---|
 | identity (13) | institution, house, app_user, user_house_assignment, work_schedule, shift_assignment, user_session, login_attempt, audit_event, institutional_device, staff_role_grant, house_capacity_change, user_invite |
-| people (22) | person, care_episode, house_stay, profile_detail, health_condition, food_restriction, document, document_version, benefit_record, memory_record, transfer_request, transfer_message, admission_record, judicial_record, person_credential, person_correction, profile_detail_change, person_contact, family_stay, outing_permission, kitchen_request, house_field_permission |
+| people (23) | person, care_episode, house_stay, profile_detail, health_condition, food_restriction, document, document_version, benefit_record, memory_record, transfer_request, transfer_message, admission_record, judicial_record, person_credential, person_correction, profile_detail_change, person_contact, family_stay, outing_permission, kitchen_request, house_field_permission, birthday_ack |
 | shifts (11) | shift, handover, handover_receipt, handover_note, ata, ata_note, ata_addendum, ata_episode, ata_episode_ack, general_night_ata, general_night_house_entry |
 | incidents (7) | incident, incident_person, incident_protected, incident_restraint, incident_synthesis, external_communication, incident_attachment |
 | medications (12) | prescription, medication_schedule, medication_administration, medication_stock, medication_stock_movement, medication_protocol, medication_authorization, medication_protocol_change, prescription_restriction_change, medication_purchase, prescription_document, family_stay_medication |

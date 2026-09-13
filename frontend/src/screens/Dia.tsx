@@ -41,6 +41,12 @@ interface Evento {
   actions?: { command: string; label: string }[];
 }
 
+interface Aniversariante {
+  personId: string; nome: string; dia: string; idadeQueFaz: number;
+  faltam: number; quando: string; ciente: boolean;
+  cientePor: string | null; cienteEm: string | null;
+}
+
 interface Resposta {
   data: string;
   incompleta: boolean;
@@ -196,6 +202,8 @@ export function Dia({ houseId, casaLabel, papel, irPara }: {
   /** Qual atividade está com as ações do líder abertas — uma por vez. */
   const [maisAcoes, setMaisAcoes] = useState<string | null>(null);
   const [excecao, setExcecao] = useState<Evento | null>(null);
+  /* Os aniversários da semana (fase 98). */
+  const [festas, setFestas] = useState<Aniversariante[]>([]);
   /*
    * A DOSE CONFIRMADA AQUI (0930 + decisão de 08/09/2026).
    *
@@ -240,6 +248,12 @@ export function Dia({ houseId, casaLabel, papel, irPara }: {
   }, [houseId, filtro]);
 
   useEffect(() => { carregar(); }, [carregar]);
+  useEffect(() => {
+    api<{ aniversariantes: Aniversariante[] }>(`/people/birthdays?houseId=${houseId}`)
+      .then((r) => setFestas(r.aniversariantes))
+      /* A festa não pode derrubar o Dia: se falhar, o turno continua. */
+      .catch(() => setFestas([]));
+  }, [houseId]);
 
   /**
    * "Agora" mostra a janela do momento: o que ainda não foi resolvido e o que
@@ -343,8 +357,40 @@ export function Dia({ houseId, casaLabel, papel, irPara }: {
     }
   }
 
+  const proximaFesta = festas.filter((f) => !f.ciente);
+
   return (
     <>
+      {/*
+        * ANIVERSÁRIO NA SEMANA (fase 98, pedido do Marcelo).
+        *
+        * Fica no alto do Dia, e não numa tela própria: ele pediu justamente
+        * para ninguém precisar ir procurar — "pra não ter que ler papel na
+        * parede". Some quando a casa se dá por ciente, porque aviso que não
+        * some ensina a ignorar aviso. Quem já está ciente continua na lista
+        * de quem abre a semana, mas sem a faixa.
+        */}
+      {proximaFesta.length > 0 && (
+        <div className="notice c-brand" role="status">
+          {proximaFesta.map((f) => (
+            <div className="row" key={f.personId}>
+              <span className="grow">
+                <b className="ff">{f.nome}</b> faz {f.idadeQueFaz} anos <b>{f.quando}</b>.
+              </span>
+              <button className="btn sm ghost" onClick={async () => {
+                await api(`/people/birthdays/${f.personId}/ack`, { method: 'POST', body: '{}' })
+                  .catch(() => undefined);
+                setFestas(await api<{ aniversariantes: Aniversariante[] }>(
+                  `/people/birthdays?houseId=${houseId}`).then((r) => r.aniversariantes)
+                  .catch(() => festas));
+              }}>
+                A casa está ciente
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
       <div className="diahead">
         <div>
           <div className="eyebrow" style={{ margin: 0 }}>{casaLabel}</div>

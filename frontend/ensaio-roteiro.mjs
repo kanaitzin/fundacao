@@ -404,6 +404,27 @@ const TAREFAS = [
     caminho: [{ mais: 'O que o plantão vê' }],
     procurar: [/O que o plantão vê no perfil/, /Escola/, /Tirar da vista do plantão/, /não alcança/],
   },
+  /* Os aniversários e as casas pelo nome (fase 98). */
+  {
+    cargo: 'educador', secao: '4.2',
+    nome: 'Tem aniversário na casa esta semana',
+    caminho: [{ aba: 'Dia' }],
+    procurar: [/faz \d+ anos/, /A casa está ciente/],
+  },
+  {
+    cargo: 'gestor_geral', secao: '16.2',
+    nome: 'Chegue à Casa 04 pelo nome',
+    /*
+     * O rótulo EXATO, e ancorado. Duas armadilhas seguidas aqui (fase 98):
+     * "Casas" casava com o "8 CASAS" do cabeçalho do trabalho social, e
+     * "Unidades" casa com TRÊS itens do menu do gestor — "O dia, em ordem",
+     * "Painel das unidades" e "Unidades". O ensaio entrava na tela errada e
+     * reprovava por texto ausente, que é o sintoma certo pelo motivo errado.
+     */
+    caminho: [{ mais: /^Unidades$/ }],
+    procurar: [/Unidades no seu alcance/i, /Casa 0/, /olhando/],
+  },
+
   /* O estatuto (fase 95): a porta, o conteúdo e a folha para a parede. */
   {
     cargo: 'coordenador', secao: '5.16.1',
@@ -471,7 +492,14 @@ async function andar(passo) {
     if (!(await aba.count())) return 'este cargo não tem o menu "Mais"';
     await aba.first().click();
     await pg.waitForTimeout(400);
-    const porta = pg.locator('.overlay .sheet button.card.row', { hasText: passo.mais });
+    /*
+     * Casa pelo TÍTULO do cartão (`b.ff`), não pelo texto inteiro: a descrição
+     * embaixo repete palavras e faz o ensaio entrar na tela errada — "Unidades"
+     * aparece em três itens do menu do gestor. Com o título, `/^Unidades$/`
+     * escolhe um só (fase 98).
+     */
+    const porta = pg.locator('.overlay .sheet button.card.row')
+      .filter({ has: pg.locator('b.ff', { hasText: passo.mais }) });
     if (!(await porta.count())) {
       await pg.locator('.overlay .sheet button', { hasText: /^Fechar$/ }).click();
       return `"${passo.mais}" não está em "Mais" para este cargo`;

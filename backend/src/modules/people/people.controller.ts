@@ -8,6 +8,7 @@ import { PeopleService } from './people.service';
 import { CozinhaService } from './cozinha.service';
 import { PortariaService } from './portaria.service';
 import { CamposDoPerfilService } from './campos.service';
+import { AniversariosService } from './aniversarios.service';
 import { ProfileService } from './profile.service';
 import { ContatosService } from './contatos.service';
 import { BenefitsService } from './benefits.service';
@@ -24,6 +25,7 @@ export class PeopleController {
     @Inject(CozinhaService) private readonly cozinha: CozinhaService,
     @Inject(PortariaService) private readonly portaria: PortariaService,
     @Inject(CamposDoPerfilService) private readonly campos: CamposDoPerfilService,
+    @Inject(AniversariosService) private readonly aniversarios: AniversariosService,
     @Inject(BenefitsService) private readonly benefits: BenefitsService,
     @Inject(TransfersService) private readonly transfers: TransfersService,
     @Inject(AdmissionService) private readonly admission: AdmissionService,
@@ -185,6 +187,26 @@ export class PeopleController {
   @Post('kitchen-requests/export/cestas')
   exportCestas(@CurrentUser() user: AuthenticatedUser, @Body() body: any) {
     return this.cozinha.exportarCestas(user, body);
+  }
+
+  /* ---------------- Os aniversários (1160) ---------------- */
+  @Get('birthdays')
+  listarAniversarios(@CurrentUser() user: AuthenticatedUser,
+               @Query('houseId', ParseUUIDPipe) houseId: string,
+               @Query('dias') dias?: string) {
+    return this.aniversarios.proximos(user, houseId, dias ? Number(dias) : 7);
+  }
+
+  @Post('birthdays/:personId/ack')
+  cienteDoAniversario(@CurrentUser() user: AuthenticatedUser,
+                      @Param('personId', ParseUUIDPipe) personId: string, @Body() body: any) {
+    return this.aniversarios.darCiencia(user, personId, body ?? {});
+  }
+
+  /* Rota de máquina, como a geração das doses e do dia: chamada por cron. */
+  @Post('birthdays/notify')
+  avisarAniversarios(@CurrentUser() user: AuthenticatedUser, @Body() body: any) {
+    return this.aniversarios.avisarDaCasa(user, body?.houseId ?? '');
   }
 
   /* ---------------- O que a coordenação liga e desliga (1130) ---------------- */

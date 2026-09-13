@@ -121,6 +121,11 @@ const SEM_TELA_DE_PROPOSITO: Record<string, string> = {
     'Gera as atividades do dia a partir da rotina da casa. Roda por relógio, na virada '
     + 'do dia — se dependesse de alguém apertar, o dia começaria vazio na primeira vez '
     + 'que a pessoa esquecesse.',
+  'POST /people/birthdays/notify':
+    'rota de máquina: o relógio chama uma vez ao dia para avisar a casa dos aniversários '
+    + 'que estão a sete, três e zero dias. Não tem tela porque ninguém dispara aviso à mão — '
+    + 'quem usa isto é o cron, e a tela é a faixa no Dia, que lê a lista.',
+
   'POST /activities/agenda/generate':
     'Gera as ocorrências dos compromissos recorrentes, também por relógio.',
   'POST /activities/mark-unconfirmed':

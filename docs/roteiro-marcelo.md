@@ -227,8 +227,8 @@ no vínculo da casa, em vez de fingir que sabe.
 
 ## §0.8 — O que mudou depois de 09/09 (a conversa longa, e é bastante coisa)
 
-Catorze coisas que o Marcelo pediu em 09/09 já estão no protótipo. **Dezoito
-tarefas novas** deste roteiro existem por causa delas, e estão marcadas nas seções dos
+Catorze coisas que o Marcelo pediu em 09/09 já estão no protótipo, mais duas de
+um bloco de notas recuperado em 12/09. **Vinte tarefas novas** deste roteiro existem por causa delas, e estão marcadas nas seções dos
 cargos. O que vale saber antes de aplicar:
 
 - **A cozinha não entra no sistema** — decisão da Fundação. Não existe mais
@@ -414,6 +414,14 @@ Marcelo descreveu, e ninguém da equipe as viu ainda.
     não entrar, ela lê o motivo ali mesmo? ⚠️ Pergunte: *"e se ninguém
     responder?"* — a resposta dela diz se o aviso que o sistema manda é
     suficiente, ou se ela esperaria alguém falar com ela.
+
+4.2. **Tem aniversário na casa esta semana. O que o sistema te diz?**
+    Observar: ela vê a faixa no alto do **Dia**, sem procurar em lugar nenhum —
+    era o pedido ("pra não ter que ler papel na parede"). Ela entende que o
+    botão **"A casa está ciente"** faz o sistema parar de avisar aquele
+    aniversário? ⚠️ Pergunte duas coisas: *"a casa faz festa no dia de cada um,
+    ou junta os do mês?"* — se for por mês, a janela de sete dias é a errada, e
+    isso é uma linha —; e *"uma semana antes é cedo ou tarde para vocês?"*.
 
 5. **Pergunte depois:** "o que você faria com o caderno de plantão depois de
    usar isto por uma semana?"
@@ -671,6 +679,15 @@ Responde pela casa. É quem vai usar as telas de decisão.
     regra?"*. A última é a pergunta 8 da §8: o estatuto hoje é escrito só pela
     coordenação, e as crianças não têm onde responder.
 
+16.2. **Você quer saber como está a Casa 04. Chegue lá.**
+    *(Tarefa para o Gestor Geral; a coordenação de uma casa só não a faz.)*
+    Observar: ela acha **Unidades** em "Mais", e percebe que agora os cartões
+    **abrem**? Ao entrar, ela repara na faixa dizendo qual casa está olhando, e
+    acha o caminho de volta? ⚠️ Pergunte: *"o que você precisaria ver aqui para
+    saber como vai a casa sem entrar criança por criança?"* — **anote a
+    resposta inteira, nas palavras dela**. É o pedido que ainda não foi
+    construído, e é a pergunta 9 da §8.
+
 17. **Gere a folha da portaria para a guarita.**
     Observar: ela acha **Portaria** em "Mais"? Antes de gerar, ela lê quem está
     **sem ninguém autorizado**, sem foto ou sem CPF — e faz alguma coisa com
@@ -769,7 +786,7 @@ que falta lanche para a saída de sábado é quem está no turno.*
 
 ---
 
-## 8. Oito perguntas para o Marcelo, no fim
+## 8. Nove perguntas para o Marcelo, no fim
 
 1. **A escala 12×36 vigente** — sem ela o aviso de "fora da escala" ao marcar
    compromisso não funciona (§2 do plano do piloto).
@@ -838,6 +855,21 @@ que falta lanche para a saída de sábado é quem está no turno.*
    crianças opinam sobre as regras? Se existe, o estatuto precisa mostrar que a
    regra passou por ali; se não existe, isso é conversa da Fundação, e o
    sistema não deve fingir que houve participação.
+
+---
+
+9. **A visão de cima do Gestor Geral — o que ele precisa ver.** Num bloco de
+   notas recuperado em 12/09 ele disse duas coisas. A primeira já está feita:
+   poder olhar as casas pelo nome, "simples assim" — os cartões das unidades
+   abrem. A segunda não: uma forma **prática** de o guardião saber "como está o
+   andamento da vida das crianças" em cada casa, "não só num olhar de número",
+   sem entrar criança por criança e sem ver o trabalho do dia a dia, que é da
+   coordenação e da equipe técnica. **E ele foi explícito: nada de competição
+   entre casas.** *(A tela "O trabalho social", com os marcos de vida, nasceu de
+   OUTRO pedido, de 04/09, e responde outra pergunta.)* **A pergunta:** que
+   parâmetros dizem isso a ele? Escola e frequência? Saúde em acompanhamento?
+   Convivência familiar? O que está parado esperando alguém? **Anote nas
+   palavras dele** — construir isto adivinhando já deu errado uma vez.
 
 ---
 

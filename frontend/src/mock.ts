@@ -109,6 +109,14 @@ interface Kid {
   foto?: string; fotoEm?: string;
 }
 
+/** Um nascimento que cai daqui a `dias`, de quem tem `idade` hoje. */
+function aniversarioDaquiA(dias: number, idade: number) {
+  const d = new Date(`${HOJE}T12:00:00-03:00`);
+  d.setUTCDate(d.getUTCDate() + dias);
+  const ano = d.getUTCFullYear() - (idade + 1);
+  return `${ano}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
+}
+
 const KIDS: Kid[] = [
   { id: 'p01', nome: 'Alice', civil: 'Alice Ribeiro (fictícia)', idade: 7, nascimento: '2019-03-14',
     rg: '1234567890', cns: '700000000000000',
@@ -118,7 +126,16 @@ const KIDS: Kid[] = [
                  substitution: 'Sobremesa de frutas', guidance: 'Conferir rótulos antes de servir.' },
     cuidado: 'Usa inalador em crise; a bombinha fica na sala da técnica.',
     serie: '2º ano', turno: 'manhã' },
-  { id: 'p02', nome: 'Bruno', civil: 'Bruno Santos (fictício)', idade: 9, nascimento: '2017-01-22',
+  /*
+   * BRUNO faz aniversário NESTA SEMANA, sempre (fase 98).
+   *
+   * Com data fixa, a faixa de aniversário só apareceria na semana certa do
+   * ano — e o Marcelo abriria o arquivo em setembro sem ver a entrega, que é
+   * a armadilha da §6.14. `aniversarioDaquiA` mantém a idade coerente: o ano
+   * é escolhido para a criança fazer `idade + 1` no dia que falta.
+   */
+  { id: 'p02', nome: 'Bruno', civil: 'Bruno Santos (fictício)', idade: 9,
+    nascimento: aniversarioDaquiA(2, 9),
     serie: '4º ano', turno: 'manhã' },
   { id: 'p03', nome: 'Caio', civil: 'Caio Martins (fictício)', idade: 11, nascimento: '2015-07-02',
     serie: '6º ano', turno: 'tarde' },
@@ -246,6 +263,32 @@ let eu = USUARIOS['educador.ai3@paodospobres.dev'];
  * conteúdo: a notificação chega na tela de bloqueio do aparelho da casa, que
  * fica em cima da mesa.
  */
+/**
+ * Os aniversários (fase 98). A data sai do PERFIL, como no servidor — não há
+ * cadastro novo. A ciência vive só enquanto a demonstração estiver aberta.
+ */
+const CIENTES: Record<string, { por: string; em: string }> = {};
+
+function aniversariantes(dias: number) {
+  const hoje = new Date(`${HOJE}T12:00:00-03:00`);
+  return todosKids().map((k) => {
+    const [, m, d] = String(k.nascimento).split('-').map(Number);
+    /* 29/02 em ano comum cai em 28/02, como a função do banco. */
+    const dia = m === 2 && d === 29 ? 28 : d;
+    let proximo = new Date(Date.UTC(hoje.getUTCFullYear(), m - 1, dia, 12));
+    if (proximo < hoje) proximo = new Date(Date.UTC(hoje.getUTCFullYear() + 1, m - 1, dia, 12));
+    const faltam = Math.round((proximo.getTime() - hoje.getTime()) / 86400000);
+    const c = CIENTES[k.id];
+    return {
+      personId: k.id, nome: k.nome, dia: proximo.toISOString().slice(0, 10),
+      idadeQueFaz: proximo.getUTCFullYear() - Number(String(k.nascimento).slice(0, 4)),
+      faltam,
+      quando: faltam === 0 ? 'hoje' : faltam === 1 ? 'amanhã' : `em ${faltam} dias`,
+      ciente: !!c, cientePor: c?.por ?? null, cienteEm: c?.em ?? null,
+    };
+  }).filter((a) => a.faltam <= dias).sort((a, z) => a.faltam - z.faltam);
+}
+
 const ESCREVE_ESTATUTO = ['coordenador', 'gestor_geral'];
 const PUBLICO_ESTATUTO: Record<string, string> = {
   todos: 'Todos', equipe: 'Equipe', acolhidos: 'Crianças e adolescentes',
@@ -3336,7 +3379,15 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       assignments: [{ code: CASA.code, name: CASA.name, role: eu.role }],
     };
   }
-  if (rota === '/houses') return [CASA];
+  /*
+   * AS CASAS DO ALCANCE (fase 98). Devolvia SEMPRE uma só, e por isso o
+   * seletor de casas do Gestor Geral nascia com um cartão — a entrega ficava
+   * invisível no protótipo, que é a armadilha da §6.14. Quem é transversal
+   * (gestor, enfermagem) enxerga as oito, como no servidor.
+   */
+  if (rota === '/houses') {
+    return ['gestor_geral', 'enfermagem'].includes(eu.role) ? CASAS : [CASA];
+  }
   /**
    * `GET /houses/directory` no formato do servidor: código, nome, tipo e se é
    * a casa da pessoa. O mock devolvia `CASAS` cru (id/code/name/kind), e a
@@ -5300,6 +5351,25 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
   /* ATUALIZAR O QUE É DESCRIÇÃO (§6.4). Vem ANTES do ramo de leitura, que casa
      com o mesmo caminho: o verbo é o que separa os dois. Não pede motivo — o
      que fica é o rastro do que estava escrito antes. */
+  /*
+   * OS ANIVERSÁRIOS ANTES DO PERFIL (fase 98).
+   *
+   * `/people/birthdays` tem de ser lido ANTES de `/people/:id`, senão
+   * "birthdays" é tratado como id de criança e a rota nunca chega aqui — foi o
+   * que aconteceu: a faixa do Dia nascia vazia e nada acusava, porque o Dia
+   * engole o erro de propósito (a festa não pode derrubar o turno).
+   */
+  if (rota.startsWith('/people/birthdays') && metodo === 'GET') {
+    const dias = Math.min(Math.max(Number(q.get('dias') ?? 7), 0), 366);
+    return { dias, aniversariantes: aniversariantes(dias) };
+  }
+
+  if (seg[0] === 'people' && seg[1] === 'birthdays' && seg[3] === 'ack' && metodo === 'POST') {
+    const k = todosKids().find((x) => x.id === seg[2]);
+    if (!k) return new Recusa(404, 'Criança não encontrada, sem data de nascimento, ou fora do seu alcance.');
+    CIENTES[k.id] = { por: eu.fullName, em: new Date().toISOString() };
+    return { ok: true, aviso: `Ciente do aniversário de ${k.nome}. A casa para de ser avisada.` };
+  }
   if (seg[0] === 'people' && seg.length === 2 && metodo === 'PATCH') {
     const k = kid(seg[1]);
     if (!k) return new Recusa(404, 'Perfil não encontrado — ou fora do seu alcance.');
@@ -6997,6 +7067,9 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
           + 'coordenação; ler é de todo mundo da casa, e é para isso que existe.',
     };
   }
+
+  /* -------- Os aniversários (fase 98) -------- */
+
 
   /* -------- O estatuto: regras de convivência (fase 95) -------- */
   if (rota.startsWith('/alignments/statute/folha')) {

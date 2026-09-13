@@ -172,6 +172,7 @@ export function App() {
   const [sugerirSenha, setSugerirSenha] = useState(false);
   const [trocarSenha, setTrocarSenha] = useState(false);
   const [mais, setMais] = useState(false);
+  const [escolhida, setEscolhida] = useState<string | null>(null);
   /*
    * Quantos avisos esperam a pessoa. O sino fica na barra de cima, ao lado do
    * nome: o escalonamento existe desde a fase 3 e não tinha onde chegar.
@@ -272,6 +273,17 @@ export function App() {
   }
 
   const casa = me.assignments[0];
+  /*
+   * A CASA QUE SE ESTÁ OLHANDO (fase 98, pedido do Marcelo).
+   *
+   * Antes, quem tem alcance em várias — o Gestor Geral, a Enfermagem — ficava
+   * preso à PRIMEIRA da lista, sem nenhum jeito de dizer "quero olhar a Casa
+   * 05": a tela de unidades mostrava os nomes e os cartões não clicavam. Ele
+   * pediu uma coisa simples, e era isso: poder olhar as casas pelo nome.
+   *
+   * Nulo significa "a minha" — o vínculo, ou a primeira do alcance. Quem tem
+   * uma casa só nunca vê nada disto.
+   */
   const ve = (area: string) => alcanca(me.role, area);
   const administra = ve('equipe');
   const veSaude = ve('saude');
@@ -310,7 +322,9 @@ export function App() {
     ? aba : (abasDoTurno[0]?.aba ?? doMais[0] ?? 'casas')) as typeof aba;
   // A casa de trabalho: o vínculo do usuário quando existe; senão, a primeira
   // do alcance — que é o caso das funções transversais (§5.13).
-  const casaAtual = houses.find((h) => h.code === casa?.code) ?? houses[0] ?? null;
+  const casaAtual = (escolhida ? houses.find((h) => h.id === escolhida) : undefined)
+    ?? houses.find((h) => h.code === casa?.code) ?? houses[0] ?? null;
+  const olhandoOutra = !!casaAtual && !!casa && casaAtual.code !== casa.code;
 
   return (
     <div className="app">
@@ -403,6 +417,14 @@ export function App() {
               definirQuemAssina(quem.fullName, role);
             }
           } catch { /* o seletor é de demonstração; falhar aqui não trava a tela */ }
+          /*
+           * E RECARREGA AS CASAS: o alcance muda com o cargo — o Gestor Geral
+           * enxerga as oito, o educador só a dele. Sem isto, quem trocasse
+           * para gestor continuava com a lista de uma casa só, e o seletor de
+           * casas nascia com um cartão (fase 98).
+           */
+          try { setHouses(await api<House[]>('/houses')); } catch { /* idem */ }
+          setEscolhida(null);
         }
       }} />
 
@@ -441,6 +463,25 @@ export function App() {
         * sobrevive à mudança de alcance.
         */}
       <main className="conteudo" key={`${me.role}:${casaAtual?.id ?? 'sem-casa'}`}>
+        {/*
+          * Olhando uma casa que não é a sua: a faixa diz qual, e devolve. Sem
+          * ela, quem trocou de casa lê a tela inteira achando que é a dele — e
+          * um turno de outra casa é exatamente o tipo de coisa que se confunde.
+          */}
+        {olhandoOutra && casaAtual && (
+          <div className="notice c-info" role="status">
+            <b>Você está olhando {casaAtual.code} · {casaAtual.name}.</b>{' '}
+            Não é a sua casa de trabalho.{' '}
+            {import.meta.env.VITE_PROTOTIPO === '1' && (
+              <>Nesta demonstração só a Casa 03 tem dados; as outras aparecem para você poder
+              escolher.{' '}</>
+            )}
+            <button className="btn sm ghost" onClick={() => setEscolhida(null)}>
+              Voltar para a minha
+            </button>
+          </div>
+        )}
+
         {abaEfetiva === 'dia' && ve('dia') && (
           casaAtual
             ? <Dia houseId={casaAtual.id} casaLabel={`${casaAtual.code} · ${casaAtual.name}`}
@@ -574,15 +615,18 @@ export function App() {
             <div className="eyebrow">Unidades no seu alcance</div>
             <div className="stack">
               {houses.map((h) => (
-                <div className="card row" key={h.id}>
-                  <div className="grow">
+                <button className="card row" key={h.id}
+                        aria-current={casaAtual?.id === h.id ? 'true' : undefined}
+                        onClick={() => { setEscolhida(h.id); setAba('dia'); }}>
+                  <div className="grow" style={{ textAlign: 'left' }}>
                     <b className="ff">{h.code}</b>
                     <div className="mutetxt">{h.name}</div>
                   </div>
+                  {casaAtual?.id === h.id && <span className="pill c-ok">olhando</span>}
                   <span className={`pill ${KIND_TONE[h.kind] ?? 'c-mute'}`}>
                     {h.kind === 'casa_lar' ? 'Casa-lar' : 'Abrigo institucional'}
                   </span>
-                </div>
+                </button>
               ))}
               {houses.length === 0 && (
                 <div className="card">
