@@ -82,7 +82,7 @@ aplicação e no banco. §7 tem a matriz inteira.
 
 ## 2. O ESTADO HOJE
 
-**Fases 0 a 101.** Estes números **saem do código**, não da memória — e são
+**Fases 0 a 102.** Estes números **saem do código**, não da memória — e são
 cobrados por `test/numeros-da-documentacao.spec.ts`, que existe porque em 08/09
 seis afirmações estavam erradas ao mesmo tempo em três documentos, e duas delas
 discordavam entre si.
@@ -90,10 +90,10 @@ discordavam entre si.
 | Quanto | De onde sai |
 |---|---|
 | **17 partições** isoladas | pastas em `backend/src/modules/` |
-| **105 migrações** | `.sql` dentro das partições |
+| **106 migrações** | `.sql` dentro das partições |
 | **110 tabelas** | `CREATE TABLE` nas migrações |
 | **69 suítes** | `backend/test/*.spec.ts` |
-| **671 testes** | `it(` / `test(` nas suítes |
+| **673 testes** | `it(` / `test(` nas suítes |
 | **33 telas React** | `frontend/src/screens/*.tsx` |
 | **15 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **6 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
@@ -114,25 +114,26 @@ foi assim que "30 telas" sobreviveu à fase que existiu para acabar com isso.*
 
 ### A última verificação inteira
 
-**13/09/2026, fase 101.** `tsc` limpo nos dois lados. A suíte **duas rodadas
-inteiras**, 69 suítes e 671 testes em cada: às 11h35 de Porto Alegre no relógio
-real, e sob `faketime +12h` às **23h37, com o servidor já em 14/09 e a
-instituição em 13/09**. O `ensaio:producao` aplicou as 105 migrações pelo
-binário, subiu o serviço compilado e ele **respondeu ao `/health`** — numa fase
-que mexeu no login, é essa a conferência que importa: se a autenticação
-quebrasse, nada subiria. O `ensaio:restauracao` rodou com credencial no cofre.
+**13/09/2026, fase 102.** `tsc` limpo nos dois lados. A suíte **duas rodadas
+inteiras**, 69 suítes e 673 testes em cada: às 12h39 de Porto Alegre no relógio
+real, e sob `faketime +11h` às **23h43, com o servidor já em 14/09 e a
+instituição em 13/09**. O `ensaio:producao` aplicou as 106 migrações, subiu o
+serviço compilado e ele respondeu ao `/health` — a fase mexeu em 151 funções de
+uma vez, e é aí que se vê se alguma parou de achar o que usa. O
+`ensaio:restauracao` rodou com credencial no cofre.
 
 **Não rodaram, de propósito:** os seis ensaios de navegador. Nenhuma linha do
 `frontend/` mudou, e o protótipo é o da fase 98.
 
-*A lista de exceções ENCOLHEU, e foi a própria conferência que exigiu: com as
-tabelas fechadas, as três exceções deixaram de ser usadas e o teste reprovou
-até saírem. **Lista de exceção que só cresce vira documento morto** — esta sabe
-cobrar a própria limpeza.*
+*A conferência foi vista reprovando, e o conferidor de números pegou um teste a
+mais que escrevi de cabeça — dois testes novos, e eu contei três.*
 
-*E o teste novo usa a conexão da APLICAÇÃO, não a de dono. Com a de dono tudo
-passaria, e ele diria o contrário do que se quer saber: a pergunta é o que a
-aplicação pode, não o que o banco permite a quem tem tudo.*
+**O que esta fase NÃO é.** O risco era teórico e continua sendo: a aplicação não
+pode criar schema nem objeto, e agora isso é conferido pela conexão dela. Não se
+fechou uma porta aberta; tirou-se a dependência de uma condição que **um
+`GRANT` numa pressa derruba** — e que, derrubada, valeria para 151 funções que
+rodam como dona do banco. *Dizer "corrigi uma falha de segurança" aqui seria
+mais bonito e menos verdadeiro.*
 
 *Dois cuidados que as rodadas ensinam: o `pg_ctl start` sob `faketime` trava
 esperando o arranque — use `-W` e confira com `pg_isready`; e **os dois
@@ -180,6 +181,7 @@ arqueologia.
 | 99 | **A data que nascia em UTC.** Duas colunas ainda usavam `current_date`: uma regra de convivência escrita às 22h nascia valendo **amanhã** e sumia da folha da parede, e a escala criada à noite passava a valer um dia depois. Achado por uma sabotagem que não reprovou — o defeito estava um degrau abaixo de onde eu procurava, no `DEFAULT` da tabela |
 | 100 | **O que a aplicação não precisa poder.** Das 110 tabelas, quatro estavam sem RLS e a aplicação tinha INSERT e UPDATE em todas — inclusive nas duas em que ela nunca escreve. `institution` ganhou RLS, e a escrita em `institution` e `schema_migration` foi revogada. As duas de autenticação ficaram, com o risco escrito |
 | 101 | **A sessão fechada.** O risco que a 100 anotou: a aplicação lia e escrevia `user_session` e `login_attempt` direto — uma consulta sem `WHERE user_id` lia o hash de sessão e o IP de todo mundo. As operações viraram funções `SECURITY DEFINER`, o acesso direto foi revogado, e **a lista de exceções encolheu** — foi a própria conferência que exigiu tirá-las |
+| 102 | **O caminho das funções privilegiadas.** 150 das 151 funções que rodam como dona do banco não fixavam `search_path`. O risco é **teórico hoje** — a aplicação não pode criar schema nem objeto, e isso passou a ser conferido —, mas basta um `GRANT` concedido numa pressa para deixar de ser, em 151 funções de uma vez |
 
 ---
 
@@ -226,7 +228,7 @@ cd frontend && npm run prototipo
 # sai em prototipo/rede-acolher-prototipo.html
 ```
 
-O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as 105
+O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as 106
 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
 
 ### Os ensaios — e por que cada um existe
@@ -332,6 +334,15 @@ caminho de entrada), `module.json` (manifesto com `depends` e tabelas) e
 
 Nada disso é promessa: `test/arquitetura.spec.ts` lê os imports de todo arquivo
 e falha o build se alguma regra cair.
+
+**E o `search_path` das funções privilegiadas, desde a fase 102.** Toda função
+`SECURITY DEFINER` — que roda como dona do banco — precisa dizer onde procurar
+os objetos que usa. A conferência pergunta ao catálogo, e não ao texto das
+migrações, por um motivo específico: **`CREATE OR REPLACE FUNCTION` apaga o
+`SET` de uma função que já o tinha**, então quem olhasse só a migração que
+fixou não veria a que redefiniu depois. Ao lado dela, a conferência de que a
+aplicação **não pode criar schema nem objeto** — é essa condição que mantém o
+risco teórico, e ela é uma concessão de distância.
 
 **E o RLS, desde a fase 100.** `arquivo-tem-saida.spec.ts` pergunta ao catálogo
 se alguma tabela está sem RLS — a garantia central do sistema, a que faz a casa
@@ -1825,7 +1836,7 @@ ele continua dizendo que o arquivo existe.
 npm run ensaio:producao
 ```
 
-Constrói, cria um banco virgem, aplica as 105 migrações **pelo binário
+Constrói, cria um banco virgem, aplica as 106 migrações **pelo binário
 compilado**, sobe o serviço e confere `/health`. Não publica nada e não toca no
 banco de trabalho.
 

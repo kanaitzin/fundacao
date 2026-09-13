@@ -265,6 +265,22 @@ describe('A conexão da aplicação não alcança as tabelas de sessão', () => 
       .rejects.toThrow(/permission denied|permissão negada/i);
   });
 
+  /*
+   * E NÃO PODE CRIAR NADA (fase 102).
+   *
+   * É isto que faz o `search_path` das funções `SECURITY DEFINER` ser um risco
+   * teórico e não uma porta aberta: sem poder criar schema nem objeto, não há
+   * o que sombrear. Fica conferido porque é uma condição, não uma verdade
+   * permanente — um `GRANT` concedido numa pressa a derruba, e aí 151 funções
+   * que rodam como dona do banco passam a depender dela.
+   */
+  it('não pode criar schema nem objeto — a condição que segura o search_path', async () => {
+    await expect(app.query('CREATE SCHEMA sombra_de_teste'))
+      .rejects.toThrow(/permission denied|permissão negada/i);
+    await expect(app.query('CREATE TABLE public.sombra_de_teste (id int)'))
+      .rejects.toThrow(/permission denied|permissão negada/i);
+  });
+
   it('mas alcança as funções de que precisa — e elas trazem o WHERE junto', async () => {
     /* Se as funções também estivessem fechadas, o login não funcionaria e o
        teste de cima passaria por motivo errado. */
@@ -275,5 +291,44 @@ describe('A conexão da aplicação não alcança as tabelas de sessão', () => 
     /* Token que não existe não valida — o WHERE mora na função. */
     const { rows } = await app.query(`SELECT * FROM auth_validar_sessao($1)`, ['hash-que-nao-existe']);
     expect(rows).toHaveLength(0);
+  });
+});
+
+/**
+ * TODA FUNÇÃO QUE RODA COMO DONA DIZ ONDE PROCURAR (fase 102).
+ *
+ * `SECURITY DEFINER` roda com os privilégios da dona do banco. Sem
+ * `search_path` fixo, um objeto de mesmo nome num schema procurado antes de
+ * `public` seria executado no lugar do certo — com esses privilégios.
+ *
+ * A conferência é aqui e não numa varredura de texto porque `CREATE OR REPLACE
+ * FUNCTION` APAGA o `SET` de uma função que já o tinha: quem só olhasse a
+ * migração que fixou não veria a que redefiniu depois. O catálogo vê.
+ */
+describe('As funções privilegiadas dizem onde procurar', () => {
+  let c: Client;
+
+  beforeAll(async () => { c = new Client({ connectionString: url }); await c.connect(); });
+  afterAll(async () => { await c.end(); });
+
+  it('nenhuma função SECURITY DEFINER fica sem search_path', async () => {
+    const { rows } = await c.query(
+      `SELECT p.oid::regprocedure::text AS funcao
+         FROM pg_proc p
+         JOIN pg_namespace n ON n.oid = p.pronamespace AND n.nspname = 'public'
+        WHERE p.prosecdef
+          AND (p.proconfig IS NULL
+               OR NOT EXISTS (SELECT 1 FROM unnest(p.proconfig) cfg
+                               WHERE cfg LIKE 'search\\_path=%'))
+        ORDER BY 1`);
+    expect(rows.map((r: any) => r.funcao)).toEqual([]);
+
+    /* E precisa haver função SECURITY DEFINER para conferir: se um dia não
+       houver, o teste acima passaria sem ter olhado nada. */
+    const { rows: [{ n }] } = await c.query(
+      `SELECT count(*)::int AS n FROM pg_proc p
+         JOIN pg_namespace ns ON ns.oid = p.pronamespace AND ns.nspname = 'public'
+        WHERE p.prosecdef`);
+    expect(n).toBeGreaterThan(100);
   });
 });
