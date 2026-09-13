@@ -7,6 +7,7 @@ import { AuditService } from '../../kernel/audit/audit.service';
 import { DocumentosService } from '../../kernel/documentos/documentos.service';
 import { Folha, diaBR, cargoNoDocumento } from '../../kernel/documentos/folha';
 import { AuthenticatedUser } from '../../kernel/contracts';
+import { hojeNaInstituicao } from '../../kernel/common/tempo';
 
 /**
  * A COZINHA — três documentos que saem da casa e vão para outro setor.
@@ -230,7 +231,8 @@ export class CozinhaService {
       titulo: 'Restrições alimentares',
       subtitulo: casa,
       identificacao: [
-        { rotulo: 'Emitida em', valor: diaBR(new Date().toISOString().slice(0, 10)) },
+        /* A folha impressa às 22h chegava à cozinha datada de AMANHÃ (fase 99). */
+        { rotulo: 'Emitida em', valor: diaBR(hojeNaInstituicao()) },
         { rotulo: 'Crianças com restrição', valor: String(rows.length) },
       ],
       secoes: [{

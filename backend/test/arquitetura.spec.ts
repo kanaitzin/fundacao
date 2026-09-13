@@ -360,6 +360,42 @@ describe('Estado e concorrência nas funções do banco', () => {
       + '(`contato_restrito_nao_visita`)',
   };
 
+  /*
+   * "HOJE" EM UTC É O DIA ERRADO DEPOIS DAS 21H (fase 99).
+   *
+   * O defeito mais caro deste projeto é o do fuso: às 22h de Porto Alegre o
+   * UTC já é o dia seguinte, e o sistema é usado justamente à noite. O kernel
+   * tem `hojeNaInstituicao()` para isso desde a fase 4 — e mesmo assim dois
+   * serviços calculavam o dia com `new Date().toISOString().slice(0, 10)`,
+   * que é UTC:
+   *
+   *   * o estatuto marcava como "ainda não vale" uma regra que passou a valer
+   *     hoje, durante três horas toda noite;
+   *   * a folha de restrições da cozinha saía datada de amanhã — impressa às
+   *     22h, chega à cozinha dizendo um dia que não chegou.
+   *
+   * A fase 98 achou o mesmo erro DENTRO de um teste, e foi a rodada das 23h
+   * que reprovou. Uma rodada só acha o que ela toca; esta conferência lê o
+   * código todo, a qualquer hora.
+   */
+  it('nenhum serviço calcula o dia de hoje em UTC', () => {
+    const arquivos = [...tsFiles(join(SRC, 'modules')), ...tsFiles(join(SRC, 'kernel'))];
+    const violacoes: string[] = [];
+    for (const arq of arquivos) {
+      const rel = relative(SRC, arq);
+      /* O kernel do tempo é quem define o fuso — é lá que a conversão mora. */
+      if (rel === 'kernel/common/tempo.ts') continue;
+      const src = readFileSync(arq, 'utf8');
+      src.split('\n').forEach((linha, i) => {
+        if (/new Date\(\)\.toISOString\(\)\.slice\(0, ?10\)/.test(linha)
+            || /new Date\(\)\.getUTCFullYear\(\)/.test(linha)) {
+          violacoes.push(`${rel}:${i + 1}: o dia de hoje sai em UTC — use hojeNaInstituicao()`);
+        }
+      });
+    }
+    expect(violacoes).toEqual([]);
+  });
+
   it('nenhum serviço grava coluna de fechamento sem guarda, salvo exceção declarada', () => {
     const COLS = /(signed_at|closed_at|decided_at|decided_by|approved_at|confirmed_at|returned_at|revoked_at|ended_at|resolved_at|answered_at|status_at|visit_authorized_at|acknowledged_at|read_at|received_at)/;
     const arquivos = [...tsFiles(join(SRC, 'modules')), ...tsFiles(join(SRC, 'kernel'))];

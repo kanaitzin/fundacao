@@ -8,6 +8,7 @@ import { EventBus } from '../../kernel/events/event-bus.service';
 import { AuthenticatedUser } from '../../kernel/contracts';
 import { DocumentosService } from '../../kernel/documentos/documentos.service';
 import { cargoNoDocumento } from '../../kernel/documentos/folha';
+import { hojeNaInstituicao } from '../../kernel/common/tempo';
 import { folhaDosCombinados } from './combinados-folha';
 import { folhaDoEstatuto } from './estatuto-folha';
 
@@ -570,7 +571,9 @@ export class AlignmentsService {
     });
     if (!linhas) throw new NotFoundException('Casa não encontrada — ou fora do seu alcance.');
 
-    const hoje = new Date().toISOString().slice(0, 10);
+    /* No FUSO DA INSTITUIÇÃO: em UTC, das 21h à meia-noite, uma regra que
+       passou a valer hoje aparecia como "ainda não vale" (fase 99). */
+    const hoje = hojeNaInstituicao();
     return {
       casa: linhas.rotulo,
       podeEscrever: ESCREVE_ESTATUTO.includes(user.role),
@@ -634,7 +637,7 @@ export class AlignmentsService {
       const { rows: [novo] } = await c.query(
         `INSERT INTO house_statute (house_id, institution_id, body, audience, since,
                                     replaces_id, created_by)
-         VALUES ($1, app_minha_instituicao(), $2, $3, coalesce($4::date, current_date), $5, $6)
+         VALUES ($1, app_minha_instituicao(), $2, $3, coalesce($4::date, app_hoje()), $5, $6)
          RETURNING id`,
         [input.daInstituicao ? null : input.houseId, texto, publico, desde,
          input.substituiId ?? null, user.id]);

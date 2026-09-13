@@ -124,3 +124,48 @@ describe('Todo arquivo guardado tem por onde sair', () => {
     expect(sobrando).toEqual([]);
   });
 });
+
+/**
+ * NENHUMA COLUNA NASCE COM A DATA DO SERVIDOR (fase 99).
+ *
+ * `current_date` e `now()::date` devolvem o dia do fuso da SESSÃO. O servidor
+ * roda em UTC, e das 21h à meia-noite de Porto Alegre lá já é o dia seguinte —
+ * que é justamente quando o sistema é usado. A 0630 criou `app_hoje()` para
+ * isso, e mesmo assim duas colunas continuavam nascendo com a data errada:
+ * `house_statute.since`, que fazia uma regra escrita às 22h valer só amanhã e
+ * sumir da folha da parede, e `work_schedule.valid_from`.
+ *
+ * Pergunta ao CATÁLOGO, e não ao texto das migrações: um `DEFAULT` antigo
+ * corrigido por `ALTER` depois some de `pg_attrdef` e não some do `grep`. É a
+ * diferença entre conferir o que o banco faz e conferir o que está escrito.
+ */
+describe('A data que nasce no banco é a do fuso da instituição', () => {
+  let c: Client;
+
+  beforeAll(async () => {
+    c = new Client({ connectionString: url });
+    await c.connect();
+  });
+  afterAll(async () => { await c.end(); });
+
+  it('nenhuma coluna tem DEFAULT com a data do servidor', async () => {
+    const { rows } = await c.query(
+      `SELECT cl.relname || '.' || a.attname AS coluna,
+              pg_get_expr(d.adbin, d.adrelid) AS padrao
+         FROM pg_attrdef d
+         JOIN pg_class cl ON cl.oid = d.adrelid
+         JOIN pg_namespace n ON n.oid = cl.relnamespace AND n.nspname = 'public'
+         JOIN pg_attribute a ON a.attrelid = cl.oid AND a.attnum = d.adnum
+        WHERE pg_get_expr(d.adbin, d.adrelid) ~* '(current_date|now\\(\\)::date)'`);
+    expect(rows.map((r: any) => `${r.coluna} → ${r.padrao}`)).toEqual([]);
+  });
+
+  it('e app_hoje() e current_date discordam quando devem — o teste tem valor', async () => {
+    /* Sem esta conferência, a de cima passaria num banco onde os dois são
+       iguais por acaso, e ninguém saberia que ela não prova nada. */
+    const { rows: [r] } = await c.query(
+      `SELECT app_hoje() AS instituicao,
+              (timezone('America/Sao_Paulo', now()))::date AS esperado`);
+    expect(String(r.instituicao)).toBe(String(r.esperado));
+  });
+});

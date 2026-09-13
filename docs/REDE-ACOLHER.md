@@ -82,7 +82,7 @@ aplicação e no banco. §7 tem a matriz inteira.
 
 ## 2. O ESTADO HOJE
 
-**Fases 0 a 98.** Estes números **saem do código**, não da memória — e são
+**Fases 0 a 99.** Estes números **saem do código**, não da memória — e são
 cobrados por `test/numeros-da-documentacao.spec.ts`, que existe porque em 08/09
 seis afirmações estavam erradas ao mesmo tempo em três documentos, e duas delas
 discordavam entre si.
@@ -90,10 +90,10 @@ discordavam entre si.
 | Quanto | De onde sai |
 |---|---|
 | **17 partições** isoladas | pastas em `backend/src/modules/` |
-| **102 migrações** | `.sql` dentro das partições |
+| **103 migrações** | `.sql` dentro das partições |
 | **110 tabelas** | `CREATE TABLE` nas migrações |
 | **69 suítes** | `backend/test/*.spec.ts` |
-| **663 testes** | `it(` / `test(` nas suítes |
+| **667 testes** | `it(` / `test(` nas suítes |
 | **33 telas React** | `frontend/src/screens/*.tsx` |
 | **15 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **6 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
@@ -114,26 +114,29 @@ foi assim que "30 telas" sobreviveu à fase que existiu para acabar com isso.*
 
 ### A última verificação inteira
 
-**12/09/2026, fase 98.** `tsc` limpo nos dois lados. A suíte **duas rodadas
-inteiras**: uma às 23h28 de Porto Alegre, **no relógio real**, com o UTC já em
-13/09, e outra com banco e processo sob `faketime -13h` — 10h26 —, 69 suítes e
-663 testes nas duas. Os **seis** ensaios de navegador, verdes com o protótipo
-reconstruído: 123 telas, 130 sem violação de acessibilidade, as 49 tarefas do
-roteiro, fila, folhas e o `ensaio:uso`. O `ensaio:producao` aplicou as 102
-migrações pelo binário; o `ensaio:restauracao` rodou com credencial no cofre.
-Dois builds do protótipo saíram idênticos.
+**13/09/2026, fase 99.** `tsc` limpo nos dois lados. A suíte **três rodadas
+inteiras**, 69 suítes e 667 testes em cada: à 00h34 de Porto Alegre no relógio
+real; sob `faketime -4h` (20h37); e — a que esta fase pedia — sob `faketime
+-1h`, às **23h39, com o servidor já em 13/09 e a instituição ainda em 12/09**,
+que é a faixa de três horas em que o defeito desta fase existia. O
+`ensaio:producao` aplicou as 103 migrações pelo binário; o `ensaio:restauracao`
+rodou com credencial no cofre.
 
-**A rodada das 23h pagou-se nesta fase.** A suíte dos aniversários passava de
-dia e reprovava à noite: ela montava as datas de nascimento em **UTC**, e o
-banco conta no fuso da instituição — às 23h de Porto Alegre "daqui a 7 dias"
-virava 8 para o banco, e a criança saía da janela. É a armadilha 2 do §6
-cometida DENTRO do teste. *Regra que existe há semanas só prova o seu valor no
-dia em que reprova algo.*
+**Não rodaram, de propósito:** os seis ensaios de navegador. Nenhuma linha do
+`frontend/` mudou — a fase inteira foi banco e serviço —, e o protótipo é o
+mesmo da fase 98.
 
-**E o seed tem aniversariante em 12/09.** O mesmo teste contava o TOTAL de
-avisos da casa e esperava 2; em 12/09, a Vitória entra e são 3. Um teste de
-aniversário que conta o total passa em 362 dias do ano e reprova em três, por
-motivo que ninguém entende na hora — agora ele conta só as crianças que criou.
+**A lição da fase, e ela é sobre método.** A sabotagem do teste do estatuto
+**não reprovou**, e quase passou por prova suficiente: à meia-noite, UTC e o dia
+de Porto Alegre coincidem, e o defeito não aparece. Só ao pôr o relógio nas 22h
+é que ele apareceu — e não onde eu procurava. Não estava no serviço, estava um
+degrau abaixo, no `DEFAULT` da tabela. **Sabotagem que passa não prova que o
+teste é bom; prova que a condição do defeito não foi reproduzida.**
+
+*Um cuidado novo, aprendido caro: deixar o banco sob `faketime` e rodar a suíte
+com o processo no relógio real derruba treze suítes de uma vez, por motivo que
+não tem nada a ver com o que se está fazendo. **Os dois relógios andam juntos,
+ou nenhum anda.***
 
 *Dois cuidados que as rodadas ensinam: o `pg_ctl start` sob `faketime` trava
 esperando o arranque — use `-W` e confira com `pg_isready`; e processo em
@@ -178,6 +181,7 @@ arqueologia.
 | 96 | **As fronteiras que ninguém conferia.** Os dois achados de passagem viraram conferência: o SQL entre partições — **dez** liam tabelas de outra sem declarar, e o "removível" do §4.3 era falso — e as colunas de fechamento que não se chamam `status`. Nenhum defeito novo; o que havia era garantia que ninguém garantia |
 | 97 | **As fontes, embutidas.** A decisão §10.10 estava parada por um custo estimado em 300 KB; medido com o subconjunto latino e só os pesos usados, são **116 KB**. O protótipo deixou de buscar letra no Google: offline — que é como ele é entregue — a letra agora é a que a equipe vai ver, e nenhum IP de quem abre vai para um terceiro |
 | 98 | **O bloco de notas recuperado.** Dois pedidos do Marcelo achados em 12/09: **as casas pelo nome** — os cartões das unidades não abriam, e quem tem alcance em várias ficava preso à primeira — e **os aniversários avisados antes**, com ciência da casa. O terceiro, a visão de cima do gestor, ficou anotado por não ser adivinhável |
+| 99 | **A data que nascia em UTC.** Duas colunas ainda usavam `current_date`: uma regra de convivência escrita às 22h nascia valendo **amanhã** e sumia da folha da parede, e a escala criada à noite passava a valer um dia depois. Achado por uma sabotagem que não reprovou — o defeito estava um degrau abaixo de onde eu procurava, no `DEFAULT` da tabela |
 
 ---
 
@@ -224,7 +228,7 @@ cd frontend && npm run prototipo
 # sai em prototipo/rede-acolher-prototipo.html
 ```
 
-O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as 102
+O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as 103
 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
 
 ### Os ensaios — e por que cada um existe
@@ -330,6 +334,15 @@ caminho de entrada), `module.json` (manifesto com `depends` e tabelas) e
 
 Nada disso é promessa: `test/arquitetura.spec.ts` lê os imports de todo arquivo
 e falha o build se alguma regra cair.
+
+**E a data que nasce no banco (fase 99).** `arquivo-tem-saida.spec.ts` pergunta
+ao CATÁLOGO (`pg_attrdef`) se alguma coluna ainda tem `DEFAULT current_date` ou
+`now()::date` — o dia do fuso do servidor, que depois das 21h em Porto Alegre já
+é o dia seguinte. Pergunta ao catálogo, e não ao texto das migrações, porque um
+`DEFAULT` antigo corrigido por `ALTER` some de `pg_attrdef` e não some do
+`grep`. Vem com uma segunda conferência ao lado, que falha se `app_hoje()` e o
+dia de Porto Alegre discordarem: sem ela, a primeira passaria num banco onde os
+dois coincidem por acaso e ninguém saberia que não prova nada.
 
 **E o SQL, desde a fase 96, num campo próprio.** As conferências acima leem
 `import`. As migrações escapavam: **dez partições** liam tabelas de outras sem
@@ -1798,7 +1811,7 @@ ele continua dizendo que o arquivo existe.
 npm run ensaio:producao
 ```
 
-Constrói, cria um banco virgem, aplica as 102 migrações **pelo binário
+Constrói, cria um banco virgem, aplica as 103 migrações **pelo binário
 compilado**, sobe o serviço e confere `/health`. Não publica nada e não toca no
 banco de trabalho.
 

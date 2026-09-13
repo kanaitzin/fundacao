@@ -183,6 +183,31 @@ describe('O estatuto — regras de convivência', () => {
     expect(JSON.stringify(f.body)).not.toContain('sentinela F9');
   });
 
+  /*
+   * ÀS 23H, "HOJE" AINDA É HOJE (fase 99).
+   *
+   * O serviço comparava a vigência com `new Date().toISOString()`, que é UTC:
+   * das 21h à meia-noite de Porto Alegre, uma regra que passou a valer HOJE
+   * aparecia como "ainda não vale" — e some da folha que vai para a parede.
+   * O teste força a comparação no fuso, sem depender da hora em que roda.
+   */
+  it('uma regra que passa a valer hoje já vale, mesmo às 23h', async () => {
+    const hojeNaCasa = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit',
+    }).format(new Date());
+    const r = await escrever(tokens.coord, {
+      houseId: AI3, texto: 'A chave do armário da despensa fica com o plantão (teste).',
+      publico: 'equipe', desde: hojeNaCasa });
+    expect(r.status).toBe(201);
+
+    const regra = regraDe((await ler(tokens.coord)).body, r.body.id);
+    expect(regra.desde.slice(0, 10)).toBe(hojeNaCasa);
+    expect(regra.aindaNaoVale).toBe(false);
+    /* E entra na folha da equipe, que é o que a parede recebe. */
+    expect(JSON.stringify((await folha(tokens.coord, 'equipe')).body))
+      .toContain('chave do armário');
+  });
+
   it('a folha das crianças não leva regra da equipe — conferido no Word aberto', async () => {
     const daCrianca = await folha(tokens.coord, 'acolhidos');
     expect(daCrianca.status).toBe(200);
