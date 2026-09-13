@@ -167,20 +167,13 @@ describe('A data que nasce no banco é a do fuso da instituição', () => {
    * BANCO recusa, não porque o serviço lembrou de filtrar. Uma tabela sem RLS
    * é um buraco nessa garantia, e ninguém notaria — nada quebra.
    *
-   * As duas exceções são de autenticação, e a razão é estrutural: o login
-   * acontece ANTES de haver identidade na sessão, e uma política baseada em
-   * `app_current_user()` negaria o próprio login. Fechá-las exige mover a
-   * autenticação para funções `SECURITY DEFINER` — está na §9, com o risco
-   * escrito. Exceção que deixa de ser usada reprova.
+   * Sobrou UMA exceção. `user_session` e `login_attempt` estavam aqui até a
+   * fase 101, quando a autenticação passou a falar com o banco por funções
+   * `SECURITY DEFINER` e as duas foram fechadas — e foi esta conferência que
+   * exigiu que saíssem da lista, porque exceção que deixa de ser usada
+   * reprova. Lista de exceção que só cresce vira documento morto.
    */
   const SEM_RLS_COM_MOTIVO: Record<string, string> = {
-    user_session:
-      'o login cria a sessão antes de existir `app.user_id`; política por usuário negaria o '
-      + 'próprio login. Risco anotado na §9: quem alcançar a conexão da aplicação lê o hash de '
-      + 'sessão e o IP de qualquer pessoa',
-    login_attempt:
-      'gravada antes de haver usuário — é o contador que barra força bruta. Risco: a lista diz '
-      + 'quais e-mails existem',
     schema_migration:
       'metadado do migrador, que roda como dono do banco. Desde a 1180 a aplicação não escreve '
       + 'nela, e não há dado de pessoa',
@@ -237,5 +230,50 @@ describe('A data que nasce no banco é a do fuso da instituição', () => {
       `SELECT app_hoje() AS instituicao,
               (timezone('America/Sao_Paulo', now()))::date AS esperado`);
     expect(String(r.instituicao)).toBe(String(r.esperado));
+  });
+});
+
+/**
+ * A CONEXÃO DA APLICAÇÃO NÃO ALCANÇA A SESSÃO (fase 101).
+ *
+ * Até a fase 100, `user_session` e `login_attempt` eram as duas tabelas com
+ * dado de pessoa sem RLS, e a aplicação lia e escrevia nelas direto: uma
+ * consulta sem `WHERE user_id` lia o hash de sessão e o IP de todo mundo.
+ * Ligar RLS não bastava — o login acontece antes de existir identidade na
+ * sessão —, então as operações viraram funções `SECURITY DEFINER` e o acesso
+ * direto foi revogado.
+ *
+ * Este teste usa a MESMA conexão que o serviço usa (`rede_app`), e não a de
+ * dono: é a única forma de provar o que a aplicação pode. Com a de dono, tudo
+ * passaria e o teste diria o contrário do que se quer saber.
+ */
+describe('A conexão da aplicação não alcança as tabelas de sessão', () => {
+  const appUrl = process.env.DATABASE_APP_URL
+    ?? 'postgres://rede_app:dev-only-change-me-app@127.0.0.1:5432/rede_acolher';
+  let app: Client;
+
+  beforeAll(async () => { app = new Client({ connectionString: appUrl }); await app.connect(); });
+  afterAll(async () => { await app.end(); });
+
+  it('não lê nem escreve user_session e login_attempt direto', async () => {
+    for (const tabela of ['user_session', 'login_attempt']) {
+      await expect(app.query(`SELECT * FROM ${tabela} LIMIT 1`))
+        .rejects.toThrow(/permission denied|permissão negada/i);
+    }
+    await expect(app.query(
+      `UPDATE user_session SET revoked_at = now()`))
+      .rejects.toThrow(/permission denied|permissão negada/i);
+  });
+
+  it('mas alcança as funções de que precisa — e elas trazem o WHERE junto', async () => {
+    /* Se as funções também estivessem fechadas, o login não funcionaria e o
+       teste de cima passaria por motivo errado. */
+    const { rows: [r] } = await app.query(
+      `SELECT auth_tentativas_recentes('ninguem@exemplo.invalido', 15) AS n`);
+    expect(Number(r.n)).toBe(0);
+
+    /* Token que não existe não valida — o WHERE mora na função. */
+    const { rows } = await app.query(`SELECT * FROM auth_validar_sessao($1)`, ['hash-que-nao-existe']);
+    expect(rows).toHaveLength(0);
   });
 });

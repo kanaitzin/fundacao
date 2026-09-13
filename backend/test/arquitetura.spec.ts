@@ -340,16 +340,13 @@ describe('Estado e concorrência nas funções do banco', () => {
    * `signed_at`, `decided_at`, `revoked_at`, `answered_at`. Na fase 91 isso foi
    * lido UMA VEZ, à mão, e a §9 anotou que não tinha virado conferência.
    *
-   * As quatro ocorrências de hoje estão abaixo com o motivo, e nenhuma é
-   * defeito: três são idempotentes — reescrever "revogada", "lida" e "ciente"
-   * com os mesmos valores não muda nada — e uma é edição de formulário, em que
-   * vale a última, como em todo formulário. Exceção que deixa de ser usada
-   * reprova, como na lista da fase 91.
+   * As ocorrências de hoje estão abaixo com o motivo, e nenhuma é defeito: são
+   * idempotentes — reescrever "lida" e "ciente" com os mesmos valores não muda
+   * nada — ou edição de formulário, em que vale a última. A de `user_session`
+   * saiu na fase 101, quando a revogação virou função no banco: exceção que
+   * deixa de ser usada reprova.
    */
   const FECHAMENTO_SEM_GUARDA: Record<string, string> = {
-    'modules/identity/auth.service.ts::user_session':
-      'revogar sessão é idempotente: a segunda revogação grava o mesmo estado, e a sessão '
-      + 'continua revogada. Reescrever a hora não muda o que importa',
     'modules/notifications/notifications.service.ts::notification':
       'marcar aviso como lido e como ciente é idempotente, e é do próprio dono '
       + '(`WHERE user_id`): duas abas do mesmo aparelho gravam o mesmo',

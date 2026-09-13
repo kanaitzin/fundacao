@@ -82,7 +82,7 @@ aplicação e no banco. §7 tem a matriz inteira.
 
 ## 2. O ESTADO HOJE
 
-**Fases 0 a 100.** Estes números **saem do código**, não da memória — e são
+**Fases 0 a 101.** Estes números **saem do código**, não da memória — e são
 cobrados por `test/numeros-da-documentacao.spec.ts`, que existe porque em 08/09
 seis afirmações estavam erradas ao mesmo tempo em três documentos, e duas delas
 discordavam entre si.
@@ -90,10 +90,10 @@ discordavam entre si.
 | Quanto | De onde sai |
 |---|---|
 | **17 partições** isoladas | pastas em `backend/src/modules/` |
-| **104 migrações** | `.sql` dentro das partições |
+| **105 migrações** | `.sql` dentro das partições |
 | **110 tabelas** | `CREATE TABLE` nas migrações |
 | **69 suítes** | `backend/test/*.spec.ts` |
-| **669 testes** | `it(` / `test(` nas suítes |
+| **671 testes** | `it(` / `test(` nas suítes |
 | **33 telas React** | `frontend/src/screens/*.tsx` |
 | **15 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **6 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
@@ -114,33 +114,29 @@ foi assim que "30 telas" sobreviveu à fase que existiu para acabar com isso.*
 
 ### A última verificação inteira
 
-**13/09/2026, fase 100.** `tsc` limpo nos dois lados. A suíte **duas rodadas
-inteiras**, 69 suítes e 669 testes em cada: às 04h35 de Porto Alegre no relógio
-real, e sob `faketime +19h` às **23h36, com o servidor já em 14/09 e a
-instituição em 13/09**. O `ensaio:producao` aplicou as 104 migrações pelo
-binário; o `ensaio:restauracao` rodou com credencial no cofre.
+**13/09/2026, fase 101.** `tsc` limpo nos dois lados. A suíte **duas rodadas
+inteiras**, 69 suítes e 671 testes em cada: às 11h35 de Porto Alegre no relógio
+real, e sob `faketime +12h` às **23h37, com o servidor já em 14/09 e a
+instituição em 13/09**. O `ensaio:producao` aplicou as 105 migrações pelo
+binário, subiu o serviço compilado e ele **respondeu ao `/health`** — numa fase
+que mexeu no login, é essa a conferência que importa: se a autenticação
+quebrasse, nada subiria. O `ensaio:restauracao` rodou com credencial no cofre.
 
 **Não rodaram, de propósito:** os seis ensaios de navegador. Nenhuma linha do
-`frontend/` mudou — a fase foi banco e privilégio —, e o protótipo é o da 98.
+`frontend/` mudou, e o protótipo é o da fase 98.
 
-*As duas conferências novas foram vistas reprovando nos dois sentidos: tirando
-o RLS de `institution`, e pondo na lista uma exceção que não existe. E a
-segunda delas nasceu ERRADA, acusando `user_invite`: lá a aplicação não tem
-privilégio nenhum e a tabela só é alcançada por função `SECURITY DEFINER`, que
-é mais fechado, não menos. **Conferência nova também precisa ser conferida —
-contra o desenho, não só contra o catálogo.***
+*A lista de exceções ENCOLHEU, e foi a própria conferência que exigiu: com as
+tabelas fechadas, as três exceções deixaram de ser usadas e o teste reprovou
+até saírem. **Lista de exceção que só cresce vira documento morto** — esta sabe
+cobrar a própria limpeza.*
 
-*E o conferidor de números pegou dois exageros meus no próprio texto desta
-fase — uma tabela a mais na contagem, e um punhado de testes a mais. Número no
-documento sai do código, inclusive quando quem escreve é quem acabou de contar.
-E ele os pegou **duas** vezes: a primeira no texto da fase, a segunda na frase
-em que eu contava que tinha errado, porque escrever os números errados de novo,
-mesmo entre aspas, é escrevê-los.*
+*E o teste novo usa a conexão da APLICAÇÃO, não a de dono. Com a de dono tudo
+passaria, e ele diria o contrário do que se quer saber: a pergunta é o que a
+aplicação pode, não o que o banco permite a quem tem tudo.*
 
 *Dois cuidados que as rodadas ensinam: o `pg_ctl start` sob `faketime` trava
 esperando o arranque — use `-W` e confira com `pg_isready`; e **os dois
-relógios andam juntos, ou nenhum anda** — banco deslocado com processo no
-relógio real derruba treze suítes por motivo que não tem a ver com a fase.*
+relógios andam juntos, ou nenhum anda**.*
 
 *Contagem que só cresce não é dado. O que vale é a **data** e a **condição** da
 última verificação. Quando a próxima fase terminar, esta seção é reescrita, não
@@ -183,6 +179,7 @@ arqueologia.
 | 98 | **O bloco de notas recuperado.** Dois pedidos do Marcelo achados em 12/09: **as casas pelo nome** — os cartões das unidades não abriam, e quem tem alcance em várias ficava preso à primeira — e **os aniversários avisados antes**, com ciência da casa. O terceiro, a visão de cima do gestor, ficou anotado por não ser adivinhável |
 | 99 | **A data que nascia em UTC.** Duas colunas ainda usavam `current_date`: uma regra de convivência escrita às 22h nascia valendo **amanhã** e sumia da folha da parede, e a escala criada à noite passava a valer um dia depois. Achado por uma sabotagem que não reprovou — o defeito estava um degrau abaixo de onde eu procurava, no `DEFAULT` da tabela |
 | 100 | **O que a aplicação não precisa poder.** Das 110 tabelas, quatro estavam sem RLS e a aplicação tinha INSERT e UPDATE em todas — inclusive nas duas em que ela nunca escreve. `institution` ganhou RLS, e a escrita em `institution` e `schema_migration` foi revogada. As duas de autenticação ficaram, com o risco escrito |
+| 101 | **A sessão fechada.** O risco que a 100 anotou: a aplicação lia e escrevia `user_session` e `login_attempt` direto — uma consulta sem `WHERE user_id` lia o hash de sessão e o IP de todo mundo. As operações viraram funções `SECURITY DEFINER`, o acesso direto foi revogado, e **a lista de exceções encolheu** — foi a própria conferência que exigiu tirá-las |
 
 ---
 
@@ -229,7 +226,7 @@ cd frontend && npm run prototipo
 # sai em prototipo/rede-acolher-prototipo.html
 ```
 
-O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as 104
+O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as 105
 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
 
 ### Os ensaios — e por que cada um existe
@@ -1526,13 +1523,12 @@ e para a migração da implantação).
 
 ### Achados de passagem, ainda sem conserto
 
-- **`user_session` e `login_attempt` estão sem RLS, e vão continuar até uma
-  fase própria.** O login acontece antes de existir identidade na sessão: uma
-  política por usuário negaria o próprio login. Fechá-las exige mover a
-  autenticação para funções `SECURITY DEFINER`. **O risco, escrito:** quem
-  alcançar a conexão da aplicação lê o hash de sessão e o IP de qualquer
-  pessoa, e a lista de tentativas de login diz quais e-mails existem. Estão
-  declaradas na conferência da fase 100, com este motivo.
+*O risco de `user_session` e `login_attempt`, anotado aqui na fase 100, foi
+fechado na 101: as operações viraram funções `SECURITY DEFINER` e a aplicação
+perdeu o acesso direto às duas tabelas. A conferência prova isso pela conexão
+da APLICAÇÃO, não pela de dono — com a de dono, tudo passaria e o teste diria o
+contrário do que se quer saber.*
+
 *Os dois achados que estavam aqui viraram conferência na fase 96 (§4.3 e
 §4.10). Nenhum era defeito em operação: o que havia era garantia que ninguém
 garantia — a fronteira de SQL não era lida por nada, e as colunas de fechamento
@@ -1829,7 +1825,7 @@ ele continua dizendo que o arquivo existe.
 npm run ensaio:producao
 ```
 
-Constrói, cria um banco virgem, aplica as 104 migrações **pelo binário
+Constrói, cria um banco virgem, aplica as 105 migrações **pelo binário
 compilado**, sobe o serviço e confere `/health`. Não publica nada e não toca no
 banco de trabalho.
 

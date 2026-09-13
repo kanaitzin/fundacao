@@ -22,11 +22,10 @@ export class AuthService {
 
   async login(email: string, password: string, ip?: string, userAgent?: string) {
     // Proteção contra força bruta por conta (persistida: vale entre instâncias)
+    /* Pelas funções `auth_*` (1190): a aplicação não alcança mais as tabelas de
+       sessão e de tentativa, e o `WHERE` que protege mora no banco. */
     const { rows: [attempts] } = await this.db.query(
-      `SELECT count(*)::int AS fails FROM login_attempt
-       WHERE email = lower($1) AND success = false AND at > now() - ($2 || ' minutes')::interval`,
-      [email, this.lockMinutes],
-    );
+      `SELECT auth_tentativas_recentes($1, $2) AS fails`, [email, this.lockMinutes]);
     if (attempts.fails >= this.maxAttempts) {
       await this.audit.log({ action: 'auth.login_locked', detail: { emailHash: hashToken(email.toLowerCase()) } });
       throw new HttpException('Muitas tentativas. Aguarde alguns minutos e tente novamente.', HttpStatus.TOO_MANY_REQUESTS);
@@ -36,7 +35,7 @@ export class AuthService {
     const ok = user && user.active && (await verifyPassword(password, user.password_hash));
 
     await this.db.query(
-      `INSERT INTO login_attempt (email, ip, success) VALUES (lower($1), $2, $3)`,
+      `SELECT auth_registrar_tentativa($1, $2, $3)`,
       [email, ip ?? null, !!ok],
     );
 
@@ -47,8 +46,7 @@ export class AuthService {
 
     const { token, hash } = newSessionToken();
     const { rows: [session] } = await this.db.query(
-      `INSERT INTO user_session (user_id, token_hash, expires_at, user_agent, ip)
-       VALUES ($1, $2, now() + ($3 || ' hours')::interval, $4, $5) RETURNING id`,
+      `SELECT auth_criar_sessao($1, $2, $3, $4, $5) AS id`,
       [user.id, hash, this.ttlHours, userAgent ?? null, ip ?? null],
     );
     await this.audit.log({
@@ -67,11 +65,7 @@ export class AuthService {
 
   async validate(token: string): Promise<AuthenticatedUser> {
     const { rows: [s] } = await this.db.query(
-      `UPDATE user_session SET last_used_at = now()
-       WHERE token_hash = $1 AND revoked_at IS NULL AND expires_at > now()
-       RETURNING id, user_id, last_reauth_at`,
-      [hashToken(token)],
-    );
+      `SELECT * FROM auth_validar_sessao($1)`, [hashToken(token)]);
     if (!s) {
       throw new UnauthorizedException(
         'Sua sessão terminou. Entre de novo para continuar — o que você digitou nesta '
@@ -102,7 +96,7 @@ export class AuthService {
 
   async logout(user: AuthenticatedUser) {
     await this.db.query(
-      `UPDATE user_session SET revoked_at = now(), revoked_reason = 'logout' WHERE id = $1`,
+      `SELECT auth_revogar_sessoes($1, NULL, 'logout', NULL)`,
       [user.sessionId],
     );
     await this.audit.log({ action: 'auth.logout', actorId: user.id, detail: { sessionId: user.sessionId } });
@@ -111,8 +105,7 @@ export class AuthService {
   /** Revoga TODAS as sessões do usuário (aparelho perdido, desligamento). */
   async revokeAll(userId: string, reason: string, actor: AuthenticatedUser) {
     await this.db.query(
-      `UPDATE user_session SET revoked_at = now(), revoked_reason = $2
-       WHERE user_id = $1 AND revoked_at IS NULL`, [userId, reason]);
+      `SELECT auth_revogar_sessoes(NULL, $1, $2, NULL)`, [userId, reason]);
     await this.audit.log({ action: 'auth.revoke_all', actorId: actor.id, entity: 'app_user', entityId: userId, detail: { reason } });
   }
 
@@ -149,9 +142,10 @@ export class AuthService {
       await c.query(
         `UPDATE app_user SET password_hash = $2, must_change_password = false, updated_at = now()
           WHERE id = $1`, [user.id, hash]);
+      /* Todas MENOS a atual: quem trocou a própria senha continua trabalhando. */
       await c.query(
-        `UPDATE user_session SET revoked_at = now(), revoked_reason = 'senha_alterada_pelo_usuario'
-          WHERE user_id = $1 AND id <> $2 AND revoked_at IS NULL`, [user.id, user.sessionId]);
+        `SELECT auth_revogar_sessoes(NULL, $1, 'senha_alterada_pelo_usuario', $2)`,
+        [user.id, user.sessionId]);
     });
     await this.audit.log({
       action: 'auth.password_change', actorId: user.id, entity: 'app_user', entityId: user.id,
@@ -165,7 +159,7 @@ export class AuthService {
       await this.audit.log({ action: 'auth.reauth_failed', actorId: user.id });
       throw new UnauthorizedException('Senha incorreta');
     }
-    await this.db.query(`UPDATE user_session SET last_reauth_at = now() WHERE id = $1`, [user.sessionId]);
+    await this.db.query(`SELECT auth_marcar_reautenticacao($1)`, [user.sessionId]);
     await this.audit.log({ action: 'auth.reauth', actorId: user.id, detail: { sessionId: user.sessionId } });
     return { ok: true };
   }

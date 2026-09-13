@@ -142,9 +142,10 @@ export class InviteService {
     // Entra direto: a pessoa acabou de provar que tem o e-mail e escolheu a
     // senha. Mandá-la digitar tudo de novo agora não protege nada.
     const { token: sessao, hash: sessaoHash } = newSessionToken();
+    /* Pela função `auth_criar_sessao` (1190): a aplicação não escreve mais
+       direto em `user_session`. */
     await this.db.query(
-      `INSERT INTO user_session (user_id, token_hash, expires_at, user_agent, ip)
-       VALUES ($1,$2, now() + ($3 || ' hours')::interval, $4, $5)`,
+      `SELECT auth_criar_sessao($1, $2, $3, $4, $5)`,
       [r.out_user, sessaoHash, Number(process.env.SESSION_TTL_HOURS ?? 14),
        userAgent ?? null, ip ?? null],
     );
