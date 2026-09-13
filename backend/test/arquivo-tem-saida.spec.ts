@@ -160,6 +160,76 @@ describe('A data que nasce no banco é a do fuso da instituição', () => {
     expect(rows.map((r: any) => `${r.coluna} → ${r.padrao}`)).toEqual([]);
   });
 
+  /**
+   * TODA TABELA TEM RLS, OU ESTÁ AQUI COM O MOTIVO (fase 100).
+   *
+   * O RLS é a garantia central deste sistema: a casa 03 não lê a 04 porque o
+   * BANCO recusa, não porque o serviço lembrou de filtrar. Uma tabela sem RLS
+   * é um buraco nessa garantia, e ninguém notaria — nada quebra.
+   *
+   * As duas exceções são de autenticação, e a razão é estrutural: o login
+   * acontece ANTES de haver identidade na sessão, e uma política baseada em
+   * `app_current_user()` negaria o próprio login. Fechá-las exige mover a
+   * autenticação para funções `SECURITY DEFINER` — está na §9, com o risco
+   * escrito. Exceção que deixa de ser usada reprova.
+   */
+  const SEM_RLS_COM_MOTIVO: Record<string, string> = {
+    user_session:
+      'o login cria a sessão antes de existir `app.user_id`; política por usuário negaria o '
+      + 'próprio login. Risco anotado na §9: quem alcançar a conexão da aplicação lê o hash de '
+      + 'sessão e o IP de qualquer pessoa',
+    login_attempt:
+      'gravada antes de haver usuário — é o contador que barra força bruta. Risco: a lista diz '
+      + 'quais e-mails existem',
+    schema_migration:
+      'metadado do migrador, que roda como dono do banco. Desde a 1180 a aplicação não escreve '
+      + 'nela, e não há dado de pessoa',
+  };
+
+  it('toda tabela tem RLS, ou está declarada com o motivo', async () => {
+    const { rows } = await c.query(
+      `SELECT cl.relname AS tabela
+         FROM pg_class cl
+         JOIN pg_namespace n ON n.oid = cl.relnamespace AND n.nspname = 'public'
+        WHERE cl.relkind = 'r' AND NOT cl.relrowsecurity
+        ORDER BY 1`);
+    const semRls = rows.map((r: any) => r.tabela as string);
+    /* Um conferidor que não viu tabela nenhuma passaria dizendo "sim". */
+    const { rows: [{ n: total }] } = await c.query(
+      `SELECT count(*)::int AS n FROM pg_class cl
+         JOIN pg_namespace ns ON ns.oid = cl.relnamespace AND ns.nspname = 'public'
+        WHERE cl.relkind = 'r'`);
+    expect(total).toBeGreaterThan(100);
+
+    const violacoes = semRls.filter((t) => !SEM_RLS_COM_MOTIVO[t])
+      .map((t) => `${t}: sem RLS e sem motivo declarado`);
+    for (const t of Object.keys(SEM_RLS_COM_MOTIVO)) {
+      if (!semRls.includes(t)) violacoes.push(`${t}: já tem RLS — retire da lista`);
+    }
+    expect(violacoes).toEqual([]);
+  });
+
+  /*
+   * RLS ligado sem política nega TUDO. Isso é defeito quando a aplicação tem
+   * privilégio na tabela — a tela fica vazia e ninguém entende por quê — e é
+   * desenho deliberado quando ela NÃO tem: aí a tabela só é alcançada por
+   * função `SECURITY DEFINER`, que é mais fechado ainda. É o caso de
+   * `user_invite`, e foi ele que corrigiu este teste: a primeira versão o
+   * acusava, e o errado era o teste.
+   */
+  it('nenhuma tabela nega tudo em silêncio para a aplicação', async () => {
+    const { rows } = await c.query(
+      `SELECT cl.relname AS tabela
+         FROM pg_class cl
+         JOIN pg_namespace n ON n.oid = cl.relnamespace AND n.nspname = 'public'
+        WHERE cl.relkind = 'r' AND cl.relrowsecurity
+          AND NOT EXISTS (SELECT 1 FROM pg_policy p WHERE p.polrelid = cl.oid)
+          AND EXISTS (SELECT 1 FROM information_schema.role_table_grants g
+                       WHERE g.grantee = 'rede_app' AND g.table_name = cl.relname)
+        ORDER BY 1`);
+    expect(rows.map((r: any) => r.tabela)).toEqual([]);
+  });
+
   it('e app_hoje() e current_date discordam quando devem — o teste tem valor', async () => {
     /* Sem esta conferência, a de cima passaria num banco onde os dois são
        iguais por acaso, e ninguém saberia que ela não prova nada. */

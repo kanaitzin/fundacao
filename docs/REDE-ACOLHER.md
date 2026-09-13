@@ -82,7 +82,7 @@ aplicação e no banco. §7 tem a matriz inteira.
 
 ## 2. O ESTADO HOJE
 
-**Fases 0 a 99.** Estes números **saem do código**, não da memória — e são
+**Fases 0 a 100.** Estes números **saem do código**, não da memória — e são
 cobrados por `test/numeros-da-documentacao.spec.ts`, que existe porque em 08/09
 seis afirmações estavam erradas ao mesmo tempo em três documentos, e duas delas
 discordavam entre si.
@@ -90,10 +90,10 @@ discordavam entre si.
 | Quanto | De onde sai |
 |---|---|
 | **17 partições** isoladas | pastas em `backend/src/modules/` |
-| **103 migrações** | `.sql` dentro das partições |
+| **104 migrações** | `.sql` dentro das partições |
 | **110 tabelas** | `CREATE TABLE` nas migrações |
 | **69 suítes** | `backend/test/*.spec.ts` |
-| **667 testes** | `it(` / `test(` nas suítes |
+| **669 testes** | `it(` / `test(` nas suítes |
 | **33 telas React** | `frontend/src/screens/*.tsx` |
 | **15 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **6 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
@@ -114,33 +114,33 @@ foi assim que "30 telas" sobreviveu à fase que existiu para acabar com isso.*
 
 ### A última verificação inteira
 
-**13/09/2026, fase 99.** `tsc` limpo nos dois lados. A suíte **três rodadas
-inteiras**, 69 suítes e 667 testes em cada: à 00h34 de Porto Alegre no relógio
-real; sob `faketime -4h` (20h37); e — a que esta fase pedia — sob `faketime
--1h`, às **23h39, com o servidor já em 13/09 e a instituição ainda em 12/09**,
-que é a faixa de três horas em que o defeito desta fase existia. O
-`ensaio:producao` aplicou as 103 migrações pelo binário; o `ensaio:restauracao`
-rodou com credencial no cofre.
+**13/09/2026, fase 100.** `tsc` limpo nos dois lados. A suíte **duas rodadas
+inteiras**, 69 suítes e 669 testes em cada: às 04h35 de Porto Alegre no relógio
+real, e sob `faketime +19h` às **23h36, com o servidor já em 14/09 e a
+instituição em 13/09**. O `ensaio:producao` aplicou as 104 migrações pelo
+binário; o `ensaio:restauracao` rodou com credencial no cofre.
 
 **Não rodaram, de propósito:** os seis ensaios de navegador. Nenhuma linha do
-`frontend/` mudou — a fase inteira foi banco e serviço —, e o protótipo é o
-mesmo da fase 98.
+`frontend/` mudou — a fase foi banco e privilégio —, e o protótipo é o da 98.
 
-**A lição da fase, e ela é sobre método.** A sabotagem do teste do estatuto
-**não reprovou**, e quase passou por prova suficiente: à meia-noite, UTC e o dia
-de Porto Alegre coincidem, e o defeito não aparece. Só ao pôr o relógio nas 22h
-é que ele apareceu — e não onde eu procurava. Não estava no serviço, estava um
-degrau abaixo, no `DEFAULT` da tabela. **Sabotagem que passa não prova que o
-teste é bom; prova que a condição do defeito não foi reproduzida.**
+*As duas conferências novas foram vistas reprovando nos dois sentidos: tirando
+o RLS de `institution`, e pondo na lista uma exceção que não existe. E a
+segunda delas nasceu ERRADA, acusando `user_invite`: lá a aplicação não tem
+privilégio nenhum e a tabela só é alcançada por função `SECURITY DEFINER`, que
+é mais fechado, não menos. **Conferência nova também precisa ser conferida —
+contra o desenho, não só contra o catálogo.***
 
-*Um cuidado novo, aprendido caro: deixar o banco sob `faketime` e rodar a suíte
-com o processo no relógio real derruba treze suítes de uma vez, por motivo que
-não tem nada a ver com o que se está fazendo. **Os dois relógios andam juntos,
-ou nenhum anda.***
+*E o conferidor de números pegou dois exageros meus no próprio texto desta
+fase — uma tabela a mais na contagem, e um punhado de testes a mais. Número no
+documento sai do código, inclusive quando quem escreve é quem acabou de contar.
+E ele os pegou **duas** vezes: a primeira no texto da fase, a segunda na frase
+em que eu contava que tinha errado, porque escrever os números errados de novo,
+mesmo entre aspas, é escrevê-los.*
 
 *Dois cuidados que as rodadas ensinam: o `pg_ctl start` sob `faketime` trava
-esperando o arranque — use `-W` e confira com `pg_isready`; e processo em
-segundo plano não sobrevive entre chamadas do ambiente.*
+esperando o arranque — use `-W` e confira com `pg_isready`; e **os dois
+relógios andam juntos, ou nenhum anda** — banco deslocado com processo no
+relógio real derruba treze suítes por motivo que não tem a ver com a fase.*
 
 *Contagem que só cresce não é dado. O que vale é a **data** e a **condição** da
 última verificação. Quando a próxima fase terminar, esta seção é reescrita, não
@@ -182,6 +182,7 @@ arqueologia.
 | 97 | **As fontes, embutidas.** A decisão §10.10 estava parada por um custo estimado em 300 KB; medido com o subconjunto latino e só os pesos usados, são **116 KB**. O protótipo deixou de buscar letra no Google: offline — que é como ele é entregue — a letra agora é a que a equipe vai ver, e nenhum IP de quem abre vai para um terceiro |
 | 98 | **O bloco de notas recuperado.** Dois pedidos do Marcelo achados em 12/09: **as casas pelo nome** — os cartões das unidades não abriam, e quem tem alcance em várias ficava preso à primeira — e **os aniversários avisados antes**, com ciência da casa. O terceiro, a visão de cima do gestor, ficou anotado por não ser adivinhável |
 | 99 | **A data que nascia em UTC.** Duas colunas ainda usavam `current_date`: uma regra de convivência escrita às 22h nascia valendo **amanhã** e sumia da folha da parede, e a escala criada à noite passava a valer um dia depois. Achado por uma sabotagem que não reprovou — o defeito estava um degrau abaixo de onde eu procurava, no `DEFAULT` da tabela |
+| 100 | **O que a aplicação não precisa poder.** Das 110 tabelas, quatro estavam sem RLS e a aplicação tinha INSERT e UPDATE em todas — inclusive nas duas em que ela nunca escreve. `institution` ganhou RLS, e a escrita em `institution` e `schema_migration` foi revogada. As duas de autenticação ficaram, com o risco escrito |
 
 ---
 
@@ -228,7 +229,7 @@ cd frontend && npm run prototipo
 # sai em prototipo/rede-acolher-prototipo.html
 ```
 
-O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as 103
+O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as 104
 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
 
 ### Os ensaios — e por que cada um existe
@@ -334,6 +335,17 @@ caminho de entrada), `module.json` (manifesto com `depends` e tabelas) e
 
 Nada disso é promessa: `test/arquitetura.spec.ts` lê os imports de todo arquivo
 e falha o build se alguma regra cair.
+
+**E o RLS, desde a fase 100.** `arquivo-tem-saida.spec.ts` pergunta ao catálogo
+se alguma tabela está sem RLS — a garantia central do sistema, a que faz a casa
+03 não ler a 04 porque o BANCO recusa, e não porque o serviço lembrou de
+filtrar. Exceção só com motivo escrito, e exceção que deixa de ser usada
+reprova. Ao lado, uma segunda: nenhuma tabela pode **negar tudo em silêncio** —
+RLS ligado sem política, com a aplicação tendo privilégio, deixa a tela vazia
+sem ninguém entender por quê. *A primeira versão desta segunda acusava
+`user_invite`, e o errado era o teste: lá a aplicação não tem privilégio
+nenhum, e a tabela só é alcançada por função `SECURITY DEFINER` — que é mais
+fechado, não menos.*
 
 **E a data que nasce no banco (fase 99).** `arquivo-tem-saida.spec.ts` pergunta
 ao CATÁLOGO (`pg_attrdef`) se alguma coluna ainda tem `DEFAULT current_date` ou
@@ -1514,7 +1526,13 @@ e para a migração da implantação).
 
 ### Achados de passagem, ainda sem conserto
 
-- **O conferidor de fronteiras não lê SQL** (§4.3).
+- **`user_session` e `login_attempt` estão sem RLS, e vão continuar até uma
+  fase própria.** O login acontece antes de existir identidade na sessão: uma
+  política por usuário negaria o próprio login. Fechá-las exige mover a
+  autenticação para funções `SECURITY DEFINER`. **O risco, escrito:** quem
+  alcançar a conexão da aplicação lê o hash de sessão e o IP de qualquer
+  pessoa, e a lista de tentativas de login diz quais e-mails existem. Estão
+  declaradas na conferência da fase 100, com este motivo.
 *Os dois achados que estavam aqui viraram conferência na fase 96 (§4.3 e
 §4.10). Nenhum era defeito em operação: o que havia era garantia que ninguém
 garantia — a fronteira de SQL não era lida por nada, e as colunas de fechamento
@@ -1811,7 +1829,7 @@ ele continua dizendo que o arquivo existe.
 npm run ensaio:producao
 ```
 
-Constrói, cria um banco virgem, aplica as 103 migrações **pelo binário
+Constrói, cria um banco virgem, aplica as 104 migrações **pelo binário
 compilado**, sobe o serviço e confere `/health`. Não publica nada e não toca no
 banco de trabalho.
 
