@@ -1,5 +1,6 @@
 import {
-  BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException,
+  BadRequestException, ConflictException, ForbiddenException,
+  Inject, Injectable, NotFoundException,
 } from '@nestjs/common';
 import { DatabaseService } from '../../kernel/database/database.service';
 import { AuditService } from '../../kernel/audit/audit.service';
@@ -52,8 +53,8 @@ export class EscalaService {
        */
       const { rows } = await c.query(
         `SELECT e.on_date::text AS on_date, e.period, e.assignment_id, e.user_id, e.quem,
-                e.cargo, e.start_time, e.end_time, e.note,
-                e.revoked_at, e.revoke_reason, e.revogou
+                e.cargo, e.cor, e.start_time, e.end_time, e.note,
+                e.revoked_at, e.revoke_reason, e.revogou, e.substituiu
            FROM app_escala_do_periodo($1,$2::date,$3::date) e`, [houseId, inicio, fim]);
       return rows;
     });
@@ -65,8 +66,17 @@ export class EscalaService {
       if (!r.assignment_id) continue;                    // dia/turno sem ninguém
       dias.get(data)[r.period].push({
         id: r.assignment_id, userId: r.user_id, quem: r.quem, cargo: r.cargo,
+        /* A cor da PESSOA (0990), que existia desde 09/09 e só a ATA usava.
+           Ela é apoio: o nome vai escrito ao lado, sempre — e a folha da
+           parede sai em preto e branco na impressora da casa. */
+        cor: r.cor ?? null,
         inicio: r.start_time, fim: r.end_time, nota: r.note,
         revogadaEm: r.revoked_at, motivoRevogacao: r.revoke_reason, revogadaPor: r.revogou,
+        /* De quem é o lugar que ela ocupou. Sem isto, a tela mostraria uma
+           revogação e uma escalação no mesmo dia e turno, sem relação
+           nenhuma, e quem lê teria de deduzir a substituição pela
+           coincidência. */
+        substituiu: r.substituiu ?? null,
       });
     }
 
@@ -162,6 +172,56 @@ export class EscalaService {
     };
   }
 
+
+  /**
+   * SUBSTITUIR NUM GESTO — *"substituir ou deixar a menos"* (fase 123).
+   *
+   * Eram dois atos: Retirar, e depois Escalar outra pessoa. Entre um e outro o
+   * turno ficava vazio na tela de quem estivesse olhando, e os dois não se
+   * sabiam parentes — três meses depois a escala mostrava uma revogação e uma
+   * escalação no mesmo dia, sem relação nenhuma entre si.
+   *
+   * O banco faz os dois numa transação e guarda o parentesco. *"Deixar a
+   * menos" continua existindo* e continua sendo a retirada: uma casa pode
+   * mesmo passar o turno com uma pessoa a menos, e exigir substituto em toda
+   * retirada seria o sistema cobrando da casa uma pessoa que ela não tem.
+   */
+  async substituir(user: AuthenticatedUser, id: string, input: {
+    novoUserId?: string; motivo?: string;
+  }) {
+    if (!input?.novoUserId) {
+      throw new BadRequestException('Escolha quem entra no lugar.');
+    }
+    const r = await this.chamar(user, async (c) => {
+      const { rows: [row] } = await c.query(
+        `SELECT * FROM app_substituir_no_plantao($1,$2,$3)`,
+        [id, input.novoUserId, input.motivo ?? null]);
+      return row;
+    });
+
+    /* Duas linhas na auditoria, e não uma: quem procurar "quem saiu da escala
+       daquela noite" procura por `escala.revoke`, e quem procurar "quem
+       entrou" procura por `escala.set`. Uma ação nova com nome próprio
+       esconderia a substituição das duas buscas. */
+    await this.audit.log({
+      action: 'escala.revoke', actorId: user.id,
+      entity: 'shift_assignment', entityId: id,
+      detail: { substituicao: true },
+    });
+    await this.audit.log({
+      action: 'escala.set', actorId: user.id,
+      entity: 'shift_assignment', entityId: r.novo_id,
+      detail: { substituicao: true, substituiu: id },
+    });
+
+    return {
+      id: r.novo_id, saiu: r.saiu, entrou: r.entrou,
+      aviso: `${r.entrou} entrou no lugar de ${r.saiu}, no mesmo dia e turno. A linha de `
+        + `${r.saiu} continua registrada, revogada e com o seu nome — é ela que responde, `
+        + 'meses depois, quem estava escalado naquela noite.',
+    };
+  }
+
   /** A folha da parede. Ver não é exportar: não gera arquivo e não registra. */
   async folha(user: AuthenticatedUser, houseId: string, de?: string, ate?: string) {
     const dados = await this.periodo(user, houseId, de, ate);
@@ -217,6 +277,23 @@ export class EscalaService {
     } catch (e: any) {
       const m = String(e?.message ?? '');
       if (m.includes('escala_inexistente')) throw new NotFoundException('Plantão não encontrado na escala.');
+      /*
+       * A PESSOA JÁ ESTÁ NESTE TURNO — e a frase é daqui, não do Postgres.
+       *
+       * O índice `uq_shift_assignment_viva` sempre existiu e sempre recusou;
+       * até a fase 123 nada chegava a ele com um chamador humano, porque
+       * `app_escalar` trata o `unique_violation` por dentro e devolve
+       * "já existiam". A substituição não pode fazer isso — pular em silêncio
+       * deixaria a antiga fora e ninguém no lugar —, então a violação sobe. E
+       * subiu crua: "duplicate key value violates unique constraint" na tela
+       * de quem monta a escala às 6h50. Quem pegou foi o teste da própria
+       * fase, pelo log do Nest.
+       */
+      if (m.includes('uq_shift_assignment_viva') || m.includes('duplicate key')) {
+        throw new ConflictException(
+          'Esta pessoa já está escalada neste turno. Escolha outra, ou retire o plantão '
+          + 'dela antes.');
+      }
       if (m.includes('casa_fora_de_escopo')) {
         throw new ForbiddenException('Esta casa está fora do seu alcance.');
       }
@@ -227,7 +304,8 @@ export class EscalaService {
           : new BadRequestException(frase);
       }
       if (m.includes('row-level security')) {
-        throw new ForbiddenException('Quem monta a escala é a coordenação desta casa.');
+        throw new ForbiddenException(
+          'Quem monta a escala é a coordenação, a equipe técnica ou o Líder Diurno desta casa.');
       }
       throw e;
     }

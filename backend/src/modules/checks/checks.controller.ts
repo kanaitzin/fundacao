@@ -27,6 +27,20 @@ export class ChecksController {
   @Get('kinds')
   kinds() { return this.checks.tipos(); }
 
+  /**
+   * A PRESENÇA DE UMA CRIANÇA — palavra fixa, e vem ANTES de `:id`.
+   *
+   * A chamada é coletiva, e o registro de cada criança ficava dentro dela: só
+   * se sabia se a Alice esteve no almoço de terça abrindo a chamada daquele
+   * almoço (§9, item 4). Isto é o mesmo dado, recortado pela vida dela.
+   */
+  @Get('person/:personId')
+  presenca(@CurrentUser() user: AuthenticatedUser,
+           @Param('personId', ParseUUIDPipe) personId: string,
+           @Query('dias') dias?: string) {
+    return this.checks.presencaDoAcolhido(user, personId, Number(dias) || 14);
+  }
+
   @Get(':id')
   get(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.checks.get(user, id);

@@ -2,6 +2,7 @@ import { Body, Controller, Get, Inject, Param, ParseUUIDPipe, Post, Query, UseGu
 import { SessionGuard, CurrentUser } from '../identity';
 import { AuthenticatedUser } from '../../kernel/contracts';
 import { hojeNaInstituicao } from '../../kernel/common/tempo';
+import { EducacaoService } from './educacao.service';
 import { NursingService } from './nursing.service';
 import { InternacaoService } from './internacao.service';
 import { HealthSummaryService } from './health-summary.service';
@@ -13,7 +14,44 @@ export class NursingController {
     @Inject(NursingService) private readonly nursing: NursingService,
     @Inject(HealthSummaryService) private readonly summary: HealthSummaryService,
     @Inject(InternacaoService) private readonly internacao: InternacaoService,
+    @Inject(EducacaoService) private readonly educacao: EducacaoService,
   ) {}
+
+  /* =========================================================================
+   * O PRONTUÁRIO DE EDUCAÇÃO (fase 111).
+   *
+   * Mora na partição `nursing` por acidente de história, e vale dizer por quê:
+   * a migração 0530 trouxe as DUAS evoluções que a Fundação entregou no mesmo
+   * dia — a de saúde e a de educação —, e as tabelas nasceram aqui. Mover
+   * tabela entre partições é migração destrutiva; o caminho da rota é o preço
+   * honesto de não fazer isso.
+   *
+   * Quem escreve não é escolha desta fase: as políticas da 0530 já incluíam o
+   * educador, e o §8.12 diz por quê — *"quem acompanha a tarefa de casa é
+   * ele"*.
+   * ====================================================================== */
+
+  @Get('education/kinds')
+  vocabularioDaEducacao() { return this.educacao.vocabulario(); }
+
+  @Get('education/:personId')
+  educacaoDoAcolhido(@CurrentUser() user: AuthenticatedUser,
+                     @Param('personId', ParseUUIDPipe) personId: string) {
+    return this.educacao.doAcolhido(user, personId);
+  }
+
+  @Post('education/:personId/support')
+  salvarApoio(@CurrentUser() user: AuthenticatedUser,
+              @Param('personId', ParseUUIDPipe) personId: string, @Body() body: any) {
+    return this.educacao.salvarApoio(user, personId, body?.houseId, body ?? {});
+  }
+
+  @Post('education/:personId/evolutions')
+  registrarEvolucaoEducacional(@CurrentUser() user: AuthenticatedUser,
+                               @Param('personId', ParseUUIDPipe) personId: string,
+                               @Body() body: any) {
+    return this.educacao.registrarEvolucao(user, personId, body?.houseId, body ?? {});
+  }
 
   /** Painel da casa: todos os acolhidos, inclusive sem medicação prevista (§7.1). */
   @Get('panel')
@@ -73,6 +111,15 @@ export class NursingController {
    */
   @Get('hospitalizations/kinds')
   vocabularioInternacao() { return this.internacao.vocabulario(); }
+
+  /* As internações de UMA criança (fase 118). Antes de `hospitalizations/:id`
+     porque `person` é palavra literal contra um `:param`, que o
+     `contrato-rotas` reprova quando vem depois. */
+  @Get('hospitalizations/person/:personId')
+  internacoesDoAcolhido(@CurrentUser() user: AuthenticatedUser,
+                        @Param('personId', ParseUUIDPipe) personId: string) {
+    return this.internacao.doAcolhido(user, personId);
+  }
 
   @Get('hospitalizations')
   internacoes(@CurrentUser() user: AuthenticatedUser,

@@ -255,4 +255,153 @@ describe('Estoque, nota fiscal e receita', () => {
 
     await admin.query(`DELETE FROM prescription_document WHERE prescription_id = $1`, [p.id]);
   });
+
+  /* =======================================================================
+   * O MOVIMENTO DO ARMÁRIO ABRE (fase 109).
+   *
+   * A tabela era escrita por três lugares e lida por NENHUM desde a migração
+   * 0200. A fase 85 existiu para gravar o `consumo` que faltava — e o lugar de
+   * abrir nunca tinha sido construído. Este teste é o que garante que a caixa
+   * continua abrindo.
+   * ==================================================================== */
+  it('o movimento do armário ABRE — entrada, consumo e conferência, com autor', async () => {
+    const d = await doseComEstoque();
+
+    /* Uma dose confirmada, que é o `consumo` que a fase 85 passou a gravar. */
+    await request(http).post(`/api/v1/medications/doses/${d.id}/confirm`)
+      .set(auth(tokens.enfermagem)).send({ estado: 'administrado_no_horario' }).expect(201);
+
+    /* E uma conferência do armário, que é o movimento com motivo e nome. */
+    const { rows: [est0] } = await admin.query(
+      `SELECT medication, unit FROM medication_stock WHERE id = $1`, [d.stockId]);
+    await request(http).post('/api/v1/medications/stock').set(auth(tokens.enfermagem))
+      .send({ houseId: AI3, medicamento: est0.medication, tipo: 'contagem',
+              quantidade: 4, unidade: est0.unit,
+              motivo: 'Conferência da gaveta no fim do turno.' }).expect(201);
+
+    const mov = await request(http)
+      .get(`/api/v1/medications/stock/${d.stockId}/movements`)
+      .set(auth(tokens.enfermagem)).expect(200);
+
+    const tipos = (mov.body.linhas as any[]).map((l) => l.tipo);
+    expect(tipos).toContain('consumo');
+    expect(tipos).toContain('ajuste');
+    /* A conferência guarda o MOTIVO: é o que responde "achei quatro a menos". */
+    const conferencia = (mov.body.linhas as any[]).find((l) => l.tipo === 'ajuste');
+    expect(conferencia.motivo).toMatch(/gaveta/i);
+    /* TODA LINHA TEM AUTOR — é a regra 6, e é o que permite perguntar depois
+       quem conferiu a gaveta. O que o sistema NÃO faz é somar por pessoa. */
+    for (const l of mov.body.linhas as any[]) expect(l.por).toBeTruthy();
+
+    /* Fora de alcance responde 404 idêntico a inexistente (§4.5). */
+    const forcaDeFora = await request(http)
+      .get('/api/v1/medications/stock/00000000-0000-0000-0000-000000000000/movements')
+      .set(auth(tokens.enfermagem));
+    expect(forcaDeFora.status).toBe(404);
+  });
+
+  /* =======================================================================
+   * O PAPEL, DE VERDADE (fase 108).
+   *
+   * Até aqui `storage_ref` era `NOT NULL` e guardava um TEXTO: a tela mandava
+   * `receita-${Date.now()}`, uma referência fabricada que não apontava para
+   * lugar nenhum. O §8.6 chamava as duas de "digitalizadas", e nenhuma das
+   * duas tinha por onde ser digitalizada.
+   *
+   * O PNG abaixo é o menor PNG válido que existe — um pixel. Importa que ele
+   * tenha ASSINATURA de imagem: o servidor confere os primeiros bytes, e não a
+   * extensão do nome.
+   * ==================================================================== */
+  const PNG_DE_UM_PIXEL =
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+
+  it('a receita sobe como ARQUIVO, e abrir devolve os bytes', async () => {
+    const d = await doseComEstoque();
+
+    const criada = await request(http)
+      .post(`/api/v1/medications/prescriptions/${d.prescriptionId}/documents`)
+      .set(auth(tokens.enfermagem)).send({
+        nome: 'Receita digitalizada de setembro.',
+        conteudo: PNG_DE_UM_PIXEL, nomeArquivo: 'receita.png',
+        em: dia(-3), prescritor: 'Dra. Fictícia',
+      }).expect(201);
+
+    const lista = await request(http)
+      .get(`/api/v1/medications/prescriptions/${d.prescriptionId}/documents`)
+      .set(auth(tokens.enfermagem)).expect(200);
+    /* A TELA PRECISA SABER ANTES DO CLIQUE se o botão abre um documento ou
+       devolve um caminho de pasta. */
+    expect(lista.body[0].temArquivo).toBe(true);
+
+    const aberta = await request(http)
+      .get(`/api/v1/medications/prescriptions/documents/${criada.body.id}/file`)
+      .set(auth(tokens.enfermagem)).expect(200);
+    expect(aberta.body.arquivo).not.toBeNull();
+    expect(aberta.body.arquivo.tipo).toBe('image/png');
+    expect(aberta.body.arquivo.conteudo).toBe(PNG_DE_UM_PIXEL);
+
+    /* E o educador continua sem alcançar: a receita traz CID. Fora de alcance
+       responde 404 idêntico a inexistente (§4.5). */
+    await request(http)
+      .get(`/api/v1/medications/prescriptions/documents/${criada.body.id}/file`)
+      .set(auth(tokens.educador)).expect(404);
+
+    await admin.query(`DELETE FROM prescription_document WHERE prescription_id = $1`,
+      [d.prescriptionId]);
+  });
+
+  it('a receita por REFERÊNCIA continua valendo — e sem nenhuma das duas, não entra', async () => {
+    const d = await doseComEstoque();
+
+    const porRef = await request(http)
+      .post(`/api/v1/medications/prescriptions/${d.prescriptionId}/documents`)
+      .set(auth(tokens.enfermagem))
+      .send({ nome: 'Receita que está no Drive.', anexoRef: 'ACOLHIMENTO/AI3/receita.pdf' })
+      .expect(201);
+
+    const aberta = await request(http)
+      .get(`/api/v1/medications/prescriptions/documents/${porRef.body.id}/file`)
+      .set(auth(tokens.enfermagem)).expect(200);
+    expect(aberta.body.arquivo).toBeNull();
+    expect(aberta.body.referencia).toMatch(/receita\.pdf/);
+
+    /* NENHUMA DAS DUAS é o que o `NOT NULL` antigo escondia: ele garantia um
+       texto, nunca um documento. */
+    await request(http)
+      .post(`/api/v1/medications/prescriptions/${d.prescriptionId}/documents`)
+      .set(auth(tokens.enfermagem)).send({ nome: 'Receita sem papel nenhum.' })
+      .expect(400);
+
+    await admin.query(`DELETE FROM prescription_document WHERE prescription_id = $1`,
+      [d.prescriptionId]);
+  });
+
+  it('a nota fiscal sobe como arquivo, conta como "com papel" e abre', async () => {
+    const criada = await request(http).post('/api/v1/medications/purchases')
+      .set(auth(tokens.enfermagem)).send({
+        houseId: AI3, em: dia(-1), itens: 'Paracetamol — 1 caixa (fictício).',
+        totalCentavos: 1990, conteudo: PNG_DE_UM_PIXEL, anexoNome: 'nota.png',
+      }).expect(201);
+
+    const resumo = await request(http)
+      .get(`/api/v1/medications/purchases?houseId=${AI3}&de=${dia(-3)}&ate=${dia(0)}`)
+      .set(auth(tokens.enfermagem)).expect(200);
+    const linha = (resumo.body.linhas as any[]).find((l) => l.id === criada.body.id);
+    /* "com nota" passou a querer dizer que HÁ nota — antes queria dizer que
+       alguém tinha digitado alguma coisa no campo. */
+    expect(linha.temAnexo).toBe(true);
+
+    const aberta = await request(http)
+      .get(`/api/v1/medications/purchases/${criada.body.id}/file`)
+      .set(auth(tokens.enfermagem)).expect(200);
+    expect(aberta.body.arquivo.conteudo).toBe(PNG_DE_UM_PIXEL);
+
+    /* O educador não lê nota fiscal: é documento financeiro, e não há nada
+       nela que ajude o turno (§8.6). */
+    await request(http)
+      .get(`/api/v1/medications/purchases/${criada.body.id}/file`)
+      .set(auth(tokens.educador)).expect(404);
+
+    await admin.query(`DELETE FROM medication_purchase WHERE id = $1`, [criada.body.id]);
+  });
 });

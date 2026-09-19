@@ -43,6 +43,17 @@ const JPEG = Buffer.concat([
 const PDF = Buffer.from('%PDF-1.4\n1 0 obj<</Type/Catalog>>endobj\n%%EOF').toString('base64');
 /** Um executável disfarçado: assinatura MZ, nome `.pdf`. */
 const FALSO = Buffer.concat([Buffer.from('MZ'), Buffer.alloc(40, 0)]).toString('base64');
+/**
+ * Um AVI: contêiner RIFF, formato `AVI ` no 9º byte.
+ *
+ * Ele existe para uma linha só, e ela é a da fase 114. `RIFF` sozinho não é
+ * WebP — carrega AVI e WAV também —, e o dossiê dava `image/webp` a qualquer
+ * um dos três desde a fase 82. A cópia da foto de identificação conferia o 9º
+ * byte e estava certa; ao juntar as seis cópias num lugar só, a certa ganhou.
+ */
+const AVI = Buffer.concat([
+  Buffer.from('RIFF'), Buffer.alloc(4, 0), Buffer.from('AVI '), Buffer.alloc(64, 0),
+]).toString('base64');
 
 describe('O dossiê do acolhido', () => {
   let app: INestApplication, http: any, admin: Client;
@@ -110,6 +121,20 @@ describe('O dossiê do acolhido', () => {
     });
     expect(res.status).toBe(400);
     expect(res.body.message).toMatch(/assinatura do arquivo/i);
+  });
+
+  it('um AVI não entra como WebP — `RIFF` sozinho não é imagem', async () => {
+    const res = await anexar(tokens.tecnica, {
+      chave: 'rg', categoria: 'pessoal', titulo: 'RG',
+      nomeArquivo: 'rg.webp', conteudo: AVI,
+    });
+    expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(/assinatura do arquivo/i);
+
+    // E nada foi gravado: a recusa acontece ANTES do disco e antes da tabela.
+    const { rows } = await admin.query(
+      `SELECT count(*)::int AS n FROM document_version WHERE mime = 'image/webp'`);
+    expect(rows[0].n).toBe(0);
   });
 
   it('título com CPF é barrado, e o NOME DO ARQUIVO também', async () => {

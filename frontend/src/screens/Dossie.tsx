@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api';
+import { baixarArquivo } from '../documentos';
 
 /**
  * O DOSSIÊ DO ACOLHIDO (§6.1) e o ÁLBUM DE VIVÊNCIAS (§6.9).
@@ -52,9 +53,14 @@ interface Dossie {
   categorias: CategoriaDoDossie[]; avulsos: DocumentoDoDossie[];
   vence: DocumentoDoDossie[]; aviso: string;
 }
+interface FotoDaVivencia {
+  id: string; nome: string | null; tipo: string | null; autorizacaoRegistrada: boolean;
+}
 interface Vivencia {
   id: string; tipo: string; quando: string; descricao: string;
   temFoto: boolean; autorizacaoRegistrada: boolean;
+  /** Quantas forem (fase 124) — uma festa é UMA vivência, com seis fotos. */
+  fotos: FotoDaVivencia[];
   arquivo: { nome: string; tipo: string } | null;
   registradoPor: string; registradoEm: string;
 }
@@ -230,6 +236,12 @@ export function Dossie({ personId, nome, papel, onVoltar }: {
                               ? ` · conferido por ${d.aceitoPor}`
                               : ' · ainda não conferido'}
                           </div>
+                          {/* DE ONDE ELE VEIO (fase 125). O documento que
+                              nasceu na tela de Saúde chega aqui conferido, e
+                              sem esta linha ele apareceria na pasta da criança
+                              sem ninguém saber quem o pôs ali nem onde
+                              conferi-lo de novo. */}
+                          {d.origem && <div className="mutetxt">{d.origem}</div>}
                           <button className={`btn sm ${d.aceitoEm ? 'ghost' : 'sec'}`}
                                   onClick={() => setConferindo(d)}>
                             {d.aceitoEm ? '👁 Abrir' : 'Conferir agora'}
@@ -246,6 +258,58 @@ export function Dossie({ personId, nome, papel, onVoltar }: {
               </ul>
             </div>
           ))}
+
+          {/*
+            * O QUE NÃO PREENCHE NENHUMA VAGA DA LISTA (fase 125).
+            *
+            * A lista de documentos da tela é a lista do que a casa PRECISA ter:
+            * certidão, cartão do SUS, guia de acolhimento. A bula do colírio e
+            * o laudo que o hospital entregou não têm vaga nenhuma — e a tela
+            * desenhava só as vagas, então eles chegavam ao dossiê e ficavam
+            * invisíveis. O servidor já os devolvia, em `avulsos`; faltava
+            * alguém desenhá-los.
+            *
+            * Não vale inventar vaga para eles: uma vaga de checklist é uma
+            * cobrança, e a casa passaria a ver "falta a bula" de uma criança
+            * que não toma remédio nenhum.
+            */}
+          {dossie.avulsos.length > 0 && (
+            <div className="card raise stack" style={{ marginTop: 12 }}>
+              <div className="row">
+                <div className="grow">
+                  <b className="ff">Outros documentos dela</b>
+                  <div className="mutetxt">
+                    Não preenchem nenhuma vaga da lista acima — são papéis que
+                    chegaram pela criança, e ficam com ela.
+                  </div>
+                </div>
+              </div>
+              <ul className="lista">
+                {dossie.avulsos.map((d) => (
+                  <li key={d.id} className="row">
+                    <div className="grow">
+                      <b className="ff">{d.titulo}</b>
+                      <div className="mutetxt">
+                        {d.arquivo?.nome ?? 'sem arquivo guardado'}
+                        {d.arquivo ? ` · ${tam(d.arquivo.tamanho)}` : ''}
+                      </div>
+                      <div className="mutetxt">
+                        anexado por {d.anexadoPor}
+                        {d.aceitoEm
+                          ? ` · conferido por ${d.aceitoPor}`
+                          : ' · ainda não conferido'}
+                      </div>
+                      {d.origem && <div className="mutetxt">{d.origem}</div>}
+                    </div>
+                    <button className={`btn sm ${d.aceitoEm ? 'ghost' : 'sec'}`}
+                            onClick={() => setConferindo(d)}>
+                      {d.aceitoEm ? '👁 Abrir' : 'Conferir agora'}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </>
       )}
 
@@ -471,6 +535,17 @@ function FolhaConferencia({ personId, documento, onFechar, onAceitar }: {
   const [erro, setErro] = useState('');
   const [nota, setNota] = useState('');
 
+  async function baixar() {
+    setErro('');
+    try {
+      const a = await api<{ nome: string; tipo: string; conteudo: string }>(
+        `/people/${personId}/documents/${documento.id}/download`, { method: 'POST' });
+      baixarArquivo(a.nome, a.tipo, a.conteudo);
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Não foi possível baixar o arquivo.');
+    }
+  }
+
   useEffect(() => {
     api<{ nome: string; tipo: string; conteudo: string }>(
       `/people/${personId}/documents/${documento.id}/file`)
@@ -503,7 +578,17 @@ function FolhaConferencia({ personId, documento, onFechar, onAceitar }: {
               <div className="bloco"><small>O que quem conferiu escreveu</small>
                 {documento.notaDoAceite}</div>
             )}
+            {/*
+              * BAIXAR (fase 124) — *"poder visualizar a hora que eles quiserem
+              * e baixar"*. Passa pelo SERVIDOR, e não salva os bytes que a
+              * prévia já tem: sair com o arquivo é outro ato, e é o que alguém
+              * vai querer rastrear no dia em que uma certidão aparecer onde
+              * não devia.
+              */}
             <div className="row rodape">
+              <button className="btn sec grow" onClick={() => void baixar()}>
+                ⬇️ Baixar
+              </button>
               <button className="btn grow" onClick={onFechar}>Fechar</button>
             </div>
           </>
@@ -534,13 +619,14 @@ function FolhaConferencia({ personId, documento, onFechar, onAceitar }: {
 function FolhaVivencia({ tipos, onFechar, onEnviar }: {
   tipos: { code: string; label: string }[]; onFechar: () => void;
   onEnviar: (d: { tipo: string; quando: string; descricao: string;
-                  conteudo?: string; nomeArquivo?: string;
+                  fotos: { conteudo: string; nomeArquivo?: string;
+                           autorizacaoRegistrada: boolean }[];
                   autorizacaoRegistrada: boolean }) => void;
 }) {
   const [tipo, setTipo] = useState('');
   const [quando, setQuando] = useState('');
   const [descricao, setDescricao] = useState('');
-  const [foto, setFoto] = useState<Escolhido | null>(null);
+  const [fotos, setFotos] = useState<Escolhido[]>([]);
   const [autorizada, setAutorizada] = useState(false);
   const pode = tipo !== '' && quando !== '' && descricao.trim().length >= 5;
 
@@ -574,16 +660,36 @@ function FolhaVivencia({ tipos, onFechar, onEnviar }: {
         <textarea id="viv-desc" value={descricao} onChange={(e) => setDescricao(e.target.value)}
                   placeholder="Ex.: aniversário de 8 anos, com bolo de chocolate feito na casa e a turma toda cantando." />
 
-        <label className="f" htmlFor="viv-foto">Foto <small>— opcional</small></label>
-        <input id="viv-foto" type="file" accept="image/*"
+        {/*
+          * VÁRIAS DE UMA VEZ (fase 124), e a prévia de TODAS antes de confirmar.
+          *
+          * *"Podendo previamente visualizar o que está sendo hospedado e
+          * confirmar."* A educadora que volta da festa com seis fotos
+          * registrava seis vivências — seis vezes a mesma data e a mesma
+          * descrição, e o álbum contando a festa seis vezes.
+          */}
+        <label className="f" htmlFor="viv-foto">
+          Fotos <small>— opcional, e pode escolher várias</small>
+        </label>
+        <input id="viv-foto" type="file" accept="image/*" multiple
                onChange={async (e) => {
-                 const f = e.target.files?.[0];
-                 if (f) setFoto(await lerArquivo(f));
+                 const escolhidos = [...(e.target.files ?? [])];
+                 if (escolhidos.length) {
+                   setFotos(await Promise.all(escolhidos.map((f) => lerArquivo(f))));
+                 }
                }} />
-        {foto && (
+        {fotos.length > 0 && (
           <>
-            <img src={foto.dataUrl} alt="Prévia da foto"
-                 style={{ maxWidth: '100%', borderRadius: 10, display: 'block', marginTop: 8 }} />
+            <p className="mutetxt">
+              {fotos.length === 1 ? 'Uma foto escolhida' : `${fotos.length} fotos escolhidas`}
+              {' '}— confira antes de guardar.
+            </p>
+            <div className="stack">
+              {fotos.map((f) => (
+                <img key={f.nome + f.tamanho} src={f.dataUrl} alt={`Prévia de ${f.nome}`}
+                     style={{ maxWidth: '100%', borderRadius: 10, display: 'block' }} />
+              ))}
+            </div>
             {/* NÃO bloqueia — registra. A decisão da Fundação foi não impedir; o
                 que o sistema faz é dizer a verdade sobre o que ele sabe. */}
             <label className="f" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -604,7 +710,13 @@ function FolhaVivencia({ tipos, onFechar, onEnviar }: {
           <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
           <button className="btn grow" disabled={!pode} onClick={() => onEnviar({
             tipo, quando, descricao: descricao.trim(),
-            conteudo: foto?.dataUrl, nomeArquivo: foto?.nome,
+            /* A autorização vale para as fotos DESTE envio. Ela é por foto no
+               banco — a festa pode ter uma com uma criança de outra casa —, e
+               a tela ainda não pergunta uma a uma: quando perguntar, o campo
+               já está lá. */
+            fotos: fotos.map((f) => ({
+              conteudo: f.dataUrl, nomeArquivo: f.nome, autorizacaoRegistrada: autorizada,
+            })),
             autorizacaoRegistrada: autorizada,
           })}>
             Guardar no álbum
@@ -615,17 +727,41 @@ function FolhaVivencia({ tipos, onFechar, onEnviar }: {
   );
 }
 
-/** A foto de uma vivência, aberta. Cada abertura vira registro no servidor. */
+/**
+ * AS FOTOS de uma vivência, abertas (fase 124).
+ *
+ * Cada abertura vira registro no servidor — e agora são quantas a vivência
+ * tiver. Uma a uma, por rota própria: carregar seis fotos de celular de uma
+ * vez numa conexão de casa é a tela que não abre, e o álbum é justamente o que
+ * a equipe mostra para a criança no meio do plantão.
+ */
 function FolhaFoto({ personId, vivencia, onFechar }: {
   personId: string; vivencia: Vivencia; onFechar: () => void;
 }) {
+  const fotos = vivencia.fotos?.length
+    ? vivencia.fotos
+    : [{ id: '', nome: null, tipo: null,
+         autorizacaoRegistrada: vivencia.autorizacaoRegistrada }];
+  const [i, setI] = useState(0);
   const [url, setUrl] = useState('');
   const [erro, setErro] = useState('');
+  const atual = fotos[Math.min(i, fotos.length - 1)];
+
   useEffect(() => {
-    api<{ tipo: string; conteudo: string }>(`/people/${personId}/memories/${vivencia.id}/file`)
-      .then((a) => setUrl(`data:${a.tipo};base64,${a.conteudo}`))
-      .catch((e) => setErro(e instanceof Error ? e.message : 'Não foi possível abrir a foto.'));
-  }, [vivencia.id]);
+    let vivo = true;
+    setUrl(''); setErro('');
+    /* Rota por extenso nos dois casos, e não uma interpolação condicional: ela
+       esconde a rota do `contrato-rotas.spec` e de quem lê (lição da 120). */
+    const pedido = atual.id
+      ? api<{ tipo: string; conteudo: string }>(
+          `/people/${personId}/memories/${vivencia.id}/photos/${atual.id}`)
+      : api<{ tipo: string; conteudo: string }>(
+          `/people/${personId}/memories/${vivencia.id}/file`);
+    pedido
+      .then((a) => { if (vivo) setUrl(`data:${a.tipo};base64,${a.conteudo}`); })
+      .catch((e) => { if (vivo) setErro(e instanceof Error ? e.message : 'Não foi possível abrir a foto.'); });
+    return () => { vivo = false; };
+  }, [vivencia.id, atual.id, personId]);
 
   return (
     <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-foto"
@@ -633,12 +769,25 @@ function FolhaFoto({ personId, vivencia, onFechar }: {
       <div className="sheet modal">
         <h3 id="t-foto">{dia(vivencia.quando)}</h3>
         <p className="mutetxt">{vivencia.descricao}</p>
+        {fotos.length > 1 && (
+          <p className="mutetxt">Foto {Math.min(i, fotos.length - 1) + 1} de {fotos.length}</p>
+        )}
         {erro && <div className="notice c-crit" role="alert">{erro}</div>}
         {url && <img src={url} alt={vivencia.descricao}
                      style={{ maxWidth: '100%', borderRadius: 10, display: 'block' }} />}
-        {!vivencia.autorizacaoRegistrada && (
+        {/* A autorização é POR FOTO: a festa pode ter uma com uma criança de
+            outra casa, e a autorização dela é outra conversa. */}
+        {!atual.autorizacaoRegistrada && (
           <div className="notice c-warn" style={{ marginTop: 10 }}>
             A autorização de uso de imagem desta criança não está registrada nesta foto.
+          </div>
+        )}
+        {fotos.length > 1 && (
+          <div className="row">
+            <button className="btn sec grow" disabled={i === 0}
+                    onClick={() => setI((n) => Math.max(0, n - 1))}>← Anterior</button>
+            <button className="btn sec grow" disabled={i >= fotos.length - 1}
+                    onClick={() => setI((n) => Math.min(fotos.length - 1, n + 1))}>Próxima →</button>
           </div>
         )}
         <div className="row rodape">

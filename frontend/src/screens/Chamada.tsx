@@ -55,6 +55,9 @@ interface ConferenciaDeMesa {
 interface Opcao { code: string; label: string; excecao: boolean }
 interface Chamada {
   id: string; tipo: string; titulo: string; status: string;
+  /** Quem abriu e quem fechou. Gravados desde a 0120, em tela desde a 113. */
+  abertaPor: string | null; abertaEm: string | null;
+  confirmadaPor: string | null; confirmadaEm: string | null;
   esperados: number; conferidos: number; faltam: number; quemFalta: string[];
   linhas: Linha[]; opcoes: Opcao[];
   aceitaConferenciaDeMesa: boolean;
@@ -290,6 +293,14 @@ export function Chamada({ houseId }: { houseId: string }) {
             ← Chamadas
           </button>
           <h2>{aberta.titulo}</h2>
+          {/* Quem abriu, junto do título. Uma chamada é um ato de alguém, e
+              não um item que apareceu no dia sozinho. */}
+          {aberta.abertaPor && (
+            <p className="mutetxt">
+              Aberta por {aberta.abertaPor}
+              {aberta.abertaEm ? ` às ${hhmm(aberta.abertaEm)}` : ''}
+            </p>
+          )}
         </div>
         <div className="resumo">
           <span className={`pill ${pendentes.length === 0 ? 'c-ok' : 'c-warn'}`}>
@@ -512,9 +523,17 @@ export function Chamada({ houseId }: { houseId: string }) {
       )}
       {confirmada && (
         <p className="mutetxt" style={{ marginTop: 14 }}>
-          Chamada confirmada{pendentes.length > 0
-            ? ` — ${pendentes.length} acolhido(s) entraram na casa depois do fechamento e não estavam nesta chamada.`
-            : '.'}{' '}
+          {/* O fecho, com nome. Confirmar é alguém dizendo que olhou todas as
+              crianças da casa; sem o nome, a frase não tem de quem cobrar nem
+              a quem perguntar. */}
+          <b>
+            Chamada confirmada
+            {aberta.confirmadaPor ? ` por ${aberta.confirmadaPor}` : ''}
+            {aberta.confirmadaEm ? ` às ${hhmm(aberta.confirmadaEm)}` : ''}.
+          </b>{' '}
+          {pendentes.length > 0
+            ? `${pendentes.length} acolhido(s) entraram na casa depois do fechamento e não estavam nesta chamada. `
+            : ''}
           Correção depois disso entra como adendo pela equipe técnica: o que foi registrado
           na hora continua como foi registrado.
         </p>

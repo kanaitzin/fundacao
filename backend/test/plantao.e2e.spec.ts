@@ -534,13 +534,72 @@ describe('Fase 5 — Plantão, ATA e proteção', () => {
     await cliente.query(`SELECT set_config('app.user_id', $1, false)`, [ids.educador]);
     await expect(cliente.query(`SELECT storage_ref FROM incident_attachment LIMIT 1`))
       .rejects.toThrow(/permission denied/i);
+    /* E a CHAVE DO OBJETO entrou com a mesma trava (fase 108): os bytes saem
+       pela função que registra a abertura, nunca por consulta. Escrever
+       `GRANT SELECT, INSERT (mime)` teria concedido SELECT da tabela inteira,
+       e é por isso que esta linha existe — foi o teste acima que pegou. */
+    await expect(cliente.query(`SELECT storage_key FROM incident_attachment LIMIT 1`))
+      .rejects.toThrow(/permission denied/i);
     await cliente.end();
+  });
+
+  /* =========================================================================
+   * O ANEXO COMO ARQUIVO, E NÃO SÓ COMO CAMINHO (fase 108).
+   *
+   * Até aqui a tela dizia, com todas as letras, "o sistema não abre o arquivo:
+   * ele diz ONDE ele está". Quem abrisse um laudo recebia um caminho de pasta,
+   * e o documento continuava a um login de distância — numa pasta
+   * compartilhada, que é onde o sigilo vaza sem ninguém decidir nada.
+   * ====================================================================== */
+  it('o anexo pode ser o ARQUIVO — e abrir devolve os bytes, com o registro feito', async () => {
+    const PNG =
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+
+    const criado = await request(http).post(`/api/v1/incidents/${ocorrencia}/attachments`)
+      .set(auth(tokens.tecnica))
+      .send({ tipo: 'documento_escolar', nome: 'bilhete-da-escola.png',
+              conteudo: PNG, nomeArquivo: 'bilhete-da-escola.png', restrito: false });
+    expect(criado.status).toBe(201);
+
+    /* A LISTA DIZ QUAL DAS DUAS FORMAS É, antes do clique: um botão que às
+       vezes abre um PDF e às vezes devolve um caminho ensina a não confiar. */
+    const detalhe = await request(http).get(`/api/v1/incidents/${ocorrencia}`)
+      .set(auth(tokens.tecnica)).expect(200);
+    const naLista = (detalhe.body.anexos as any[]).find((a) => a.id === criado.body.id);
+    expect(naLista.temArquivo).toBe(true);
+
+    const aberto = await request(http)
+      .post(`/api/v1/incidents/attachments/${criado.body.id}/open`)
+      .set(auth(tokens.tecnica)).send({}).expect(201);
+    expect(aberto.body.arquivo).not.toBeNull();
+    expect(aberto.body.arquivo.tipo).toBe('image/png');
+    expect(aberto.body.arquivo.conteudo).toBe(PNG);
+
+    /* A abertura ficou registrada — e o registro diz por qual das duas formas
+       ela aconteceu, que é o que permite, depois, saber o que a pessoa viu. */
+    const { rows } = await admin.query(
+      `SELECT detail FROM audit_event
+        WHERE action = 'incident.attachment_open' AND entity_id = $1
+        ORDER BY at DESC LIMIT 1`, [criado.body.id]);
+    expect(rows[0].detail.forma).toBe('arquivo');
+  });
+
+  it('anexo sem arquivo E sem referência não entra — era isso que o NOT NULL escondia', async () => {
+    const nenhuma = await request(http).post(`/api/v1/incidents/${ocorrencia}/attachments`)
+      .set(auth(tokens.tecnica))
+      .send({ tipo: 'documento_tecnico', nome: 'anexo-sem-documento.pdf' });
+    expect(nenhuma.status).toBe(400);
+    expect(nenhuma.body.message).toMatch(/promete um documento que ninguém alcança/i);
   });
 
   it('#23 comunicação externa é registrada, revisada e aprovada — nunca enviada pelo sistema', async () => {
     const criada = await request(http).post('/api/v1/incidents/communications')
       .set(auth(tokens.tecnica))
-      .send({ houseId: ids.AI3, incidentId: ocorrencia, orgao: 'conselho_tutelar',
+      /* `acolhidoId` grava `person_id`, que existe desde a migração 0320 e que
+         nenhuma consulta lia até a fase 118: um ofício ao Conselho Tutelar
+         SOBRE uma criança não aparecia em lugar nenhum da vida dela. */
+      .send({ houseId: ids.AI3, incidentId: ocorrencia, acolhidoId: ids.sofia,
+              orgao: 'conselho_tutelar',
               destinatarioFuncional: 'Conselheiro tutelar de plantão',
               canal: 'oficio',
               resumo: 'Comunicação do erro de medicamento interceptado e das medidas adotadas pela equipe.' });
@@ -567,6 +626,31 @@ describe('Fase 5 — Plantão, ATA e proteção', () => {
     const { rows } = await admin.query(
       `SELECT delivered_by IS NOT NULL AS tem_humano FROM external_communication WHERE id = $1`, [comunicacao]);
     expect(rows[0].tem_humano).toBe(true);
+  });
+
+  /**
+   * O OFÍCIO SOBRE UMA CRIANÇA CHEGA À VIDA DELA (fase 118).
+   *
+   * `external_communication.person_id` era gravado desde a migração 0320 e
+   * **nenhuma consulta o lia** — nem o detalhe da ocorrência, nem a lista da
+   * casa. É o tipo de documento que a audiência pergunta se existe, e a
+   * resposta estava no banco sem porta.
+   */
+  it('#23b o ofício sobre a criança aparece na vida dela — e o educador não o lê', async () => {
+    const res = await request(http)
+      .get(`/api/v1/incidents/communications/person/${ids.sofia}`).set(auth(tokens.tecnica));
+    expect(res.status).toBe(200);
+    const nosso = res.body.find((c: any) => c.id === comunicacao);
+    expect(nosso).toBeTruthy();
+    expect(nosso.orgao).toBe('conselho_tutelar');
+    expect(nosso.responsavel).toBeTruthy();
+
+    /* O alcance é o da `ec_select`: o educador de plantão não lê ofício, e o
+       RLS devolve vazio em vez de 403 — dizer 403 já contaria que existe. */
+    const educador = await request(http)
+      .get(`/api/v1/incidents/communications/person/${ids.sofia}`).set(auth(tokens.educador));
+    expect(educador.status).toBe(200);
+    expect(educador.body).toEqual([]);
   });
 
   it('a linha do tempo mostra que houve ocorrência, sem contar o que aconteceu', async () => {

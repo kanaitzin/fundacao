@@ -5,8 +5,13 @@
     "identity"
   ],
   "dependeDoEsquemaDe": [
+    "alignments",
+    "checks",
     "incidents",
-    "people"
+    "medications",
+    "nursing",
+    "people",
+    "shifts"
   ],
   "publica": [
     "ReportsModule",
@@ -20,8 +25,9 @@
     "followup_source",
     "report_document",
     "report_delivery",
-    "export_log"
+    "export_log",
+    "life_milestone"
   ],
   "removivel": true,
-  "observacao": "A automação cria pendência e nunca escreve avaliação. Fonte não entra sozinha: o sistema lista com origem/autor/data/classificação e guarda a REFERÊNCIA escolhida, não a cópia. Aprovado é imutável; correção cria versão. Não existe rota, fila ou integração de ENVIO a órgão externo — a entrega é humana e apenas registrada (§14.6). O painel consulta tabelas de outros módulos de forma opcional (to_regclass): remover um módulo tira o número, não derruba a tela."
+  "observacao": "A automação cria pendência e nunca escreve avaliação. Fonte não entra sozinha: o sistema lista com origem/autor/data/classificação e guarda a REFERÊNCIA escolhida, não a cópia. Aprovado é imutável; correção cria versão. Não existe rota, fila ou integração de ENVIO a órgão externo — a entrega é humana e apenas registrada (§14.6). O painel consulta tabelas de outros módulos de forma opcional (to_regclass): remover um módulo tira o número, não derruba a tela. A migração 1280 (métricas das casas, fase 120) lê, por função SECURITY DEFINER, as tabelas de sete partições: é o painel do Gestor Geral, e ele existe para juntar o que está espalhado. A migração 1290 (o período da casa, fase 121) lê, pelo mesmo caminho, as tabelas de nove partições — é o relatório que junta a semana inteira da casa, e juntar o que está espalhado é a função dele. Texto de acesso restrito não entra: a ocorrência restrita e a nota de ATA restrita saem como CONTAGEM, porque esta folha circula e a tela delas registra cada abertura."
 }

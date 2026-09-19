@@ -3,7 +3,7 @@ import { api } from '../api';
 import { FolhaDocumento } from '../documentos';
 import type { ArquivoGerado } from '../documentos';
 import type { DocumentoWord } from '../docx';
-import { cargo as rotuloCargo } from '../rotulos';
+import { cargo as rotuloCargo, tomDoAutor } from '../rotulos';
 
 /**
  * A ESCALA DE PLANTÃO (§5.12).
@@ -29,8 +29,12 @@ import { cargo as rotuloCargo } from '../rotulos';
 
 interface Pessoa {
   id: string; userId: string; quem: string; cargo: string | null;
+  /** A cor que a pessoa escolheu (0990) — a MESMA que a ATA usa (fase 123). */
+  cor: string | null;
   inicio: string | null; fim: string | null; nota: string | null;
   revogadaEm: string | null; motivoRevogacao: string | null; revogadaPor: string | null;
+  /** De quem é o lugar que ela ocupou, quando entrou por substituição. */
+  substituiu: string | null;
 }
 interface Dia {
   data: string; diurno: Pessoa[]; noturno: Pessoa[];
@@ -77,9 +81,18 @@ export function Escala({ houseId, casaLabel, papel }: {
   const [aviso, setAviso] = useState('');
   const [escalando, setEscalando] = useState<{ data: string; turno: string } | null>(null);
   const [retirando, setRetirando] = useState<{ p: Pessoa; data: string } | null>(null);
+  /* Substituir num gesto (fase 123) — *"substituir ou deixar a menos"*. */
+  const [substituindo, setSubstituindo] = useState<{ p: Pessoa; data: string } | null>(null);
   const [documento, setDocumento] = useState<DocumentoWord | null>(null);
 
-  const monta = ['coordenador', 'gestor_geral'].includes(papel);
+  /*
+   * QUEM MONTA — os três cargos que a Fundação nomeou em 15/09, mais a gestão:
+   * *"pela equipe técnica, o coordenador ou o educador líder"*. O Líder Diurno
+   * é quem descobre às 6h50 que alguém não veio; a técnica é quem remaneja
+   * quando a coordenação está em audiência.
+   */
+  const monta = ['lider_diurno', 'equipe_tecnica', 'coordenador', 'gestor_geral']
+    .includes(papel);
 
   async function carregar() {
     setErro('');
@@ -183,20 +196,39 @@ export function Escala({ houseId, casaLabel, papel }: {
                 ) : (
                   <ul className="lista">
                     {gente.map((p) => (
-                      <li key={p.id} className="row">
+                      /*
+                       * A COR DA PESSOA na borda da linha, e o nome escrito ao
+                       * lado — a mesma regra da ATA (0990): tinta na borda,
+                       * nunca no texto, e a cor é apoio. A folha da parede sai
+                       * na impressora em preto e branco, e continua legível
+                       * porque o nome nunca dependeu da cor.
+                       */
+                      <li key={p.id} className={`row linha-ata ${tomDoAutor(p.userId, p.cor)}`}>
                         <div className="grow">
                           <b className="ff">{p.quem}</b>
                           <div className="mutetxt linhadois">
                             {rotuloCargo(p.cargo ?? '')}
                             {hhmm(p.inicio) ? ` · ${hhmm(p.inicio)}–${hhmm(p.fim)}` : ''}
                           </div>
+                          {/* De quem é o lugar. Sem esta linha, a escala mostra
+                              uma revogação e uma escalação no mesmo turno e
+                              deixa a coincidência para quem lê deduzir. */}
+                          {p.substituiu && (
+                            <div className="mutetxt">entrou no lugar de {p.substituiu}</div>
+                          )}
                           {p.nota && <div className="mutetxt">{p.nota}</div>}
                         </div>
                         {monta && (
-                          <button className="btn sec sm"
-                                  onClick={() => setRetirando({ p, data: d.data })}>
-                            Retirar
-                          </button>
+                          <div className="acoes">
+                            <button className="btn sec sm"
+                                    onClick={() => setSubstituindo({ p, data: d.data })}>
+                              Substituir
+                            </button>
+                            <button className="btn sec sm"
+                                    onClick={() => setRetirando({ p, data: d.data })}>
+                              Retirar
+                            </button>
+                          </div>
                         )}
                       </li>
                     ))}
@@ -259,6 +291,20 @@ export function Escala({ houseId, casaLabel, papel }: {
               method: 'POST', body: JSON.stringify({ motivo }),
             }));
             if (ok) setRetirando(null);
+          }} />
+      )}
+
+      {substituindo && (
+        <FolhaSubstituir
+          pessoa={substituindo.p}
+          equipe={equipe.filter((m) => m.id !== substituindo.p.userId)}
+          exigeMotivo={passado(substituindo.data)}
+          onFechar={() => setSubstituindo(null)}
+          onSubstituir={async (novoUserId, motivo) => {
+            const ok = await acao(() => api(`/escala/${substituindo.p.id}/substituir`, {
+              method: 'POST', body: JSON.stringify({ novoUserId, motivo }),
+            }));
+            if (ok) setSubstituindo(null);
           }} />
       )}
 
@@ -383,6 +429,68 @@ function FolhaEscalar({ equipe, data, turno, passado, onFechar, onEscalar }: {
           })}>
             Escalar
           </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * A FOLHA DE SUBSTITUIR (fase 123) — *"substituir ou deixar a menos"*.
+ *
+ * Eram dois atos: Retirar, e depois Escalar outra pessoa. Entre um e outro o
+ * turno ficava vazio na tela de quem estivesse olhando, e os dois não se
+ * sabiam parentes — três meses depois a escala mostrava uma revogação e uma
+ * escalação no mesmo dia, sem relação nenhuma entre si.
+ *
+ * *"Deixar a menos" continua existindo:* o botão Retirar não saiu do lado. Uma
+ * casa pode mesmo passar o turno com uma pessoa a menos, e transformar toda
+ * retirada numa substituição obrigatória seria o sistema cobrando da casa uma
+ * pessoa que ela não tem.
+ */
+function FolhaSubstituir({ pessoa, equipe, exigeMotivo, onFechar, onSubstituir }: {
+  pessoa: Pessoa; equipe: Membro[]; exigeMotivo: boolean;
+  onFechar: () => void; onSubstituir: (novoUserId: string, motivo: string) => void;
+}) {
+  const [novo, setNovo] = useState('');
+  const [motivo, setMotivo] = useState('');
+  const pode = !!novo && (!exigeMotivo || motivo.trim().length >= 10);
+  return (
+    <div className="folha" role="dialog" aria-modal="true" aria-labelledby="t-sub">
+      <div className="folha-corpo stack">
+        <h3 id="t-sub">Substituir {pessoa.quem}</h3>
+        <p className="mutetxt" style={{ marginTop: 0 }}>
+          Quem entrar assume o mesmo dia, o mesmo turno e o mesmo horário. A linha de{' '}
+          {pessoa.quem} continua registrada, retirada e com o seu nome — é ela que responde,
+          meses depois, quem estava escalado naquela noite.
+        </p>
+
+        <label className="f" htmlFor="sub-quem">Quem entra no lugar</label>
+        <select id="sub-quem" value={novo} onChange={(e) => setNovo(e.target.value)}>
+          <option value="">Escolha…</option>
+          {equipe.map((m) => (
+            <option key={m.id} value={m.id}>{m.nome} — {rotuloCargo(m.cargo)}</option>
+          ))}
+        </select>
+
+        <label className="f" htmlFor="sub-motivo">
+          Motivo {exigeMotivo ? '' : <small className="mutetxt">— opcional</small>}
+        </label>
+        {exigeMotivo && (
+          <div className="notice c-warn" role="status">
+            Este plantão já passou. Substituir alguém nele muda a resposta de "quem estava na
+            casa naquela noite" — escreva por quê.
+          </div>
+        )}
+        <textarea id="sub-motivo" value={motivo} onChange={(e) => setMotivo(e.target.value)}
+                  placeholder="Ex.: atestado médico; troca combinada com a equipe." />
+
+        <div className="row">
+          <button className="btn grow" disabled={!pode}
+                  onClick={() => onSubstituir(novo, motivo.trim())}>
+            Substituir
+          </button>
+          <button className="btn ghost" onClick={onFechar}>Cancelar</button>
         </div>
       </div>
     </div>

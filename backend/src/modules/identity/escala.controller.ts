@@ -8,8 +8,10 @@ import { EscalaService } from './escala.service';
  * A ESCALA DA CASA — quem assume cada plantão (§5.12).
  *
  * Lê quem trabalha na casa: o educador precisa saber quando ele trabalha, e a
- * escala já é pública dentro da casa (ela vai pregada na parede). Monta a
- * coordenação da casa, e a gestão.
+ * escala já é pública dentro da casa (ela vai pregada na parede). Montam a
+ * coordenação, a equipe técnica e o Líder Diurno da casa, mais a gestão — os
+ * três cargos que a Fundação nomeou em 15/09, e são quem está na casa quando a
+ * escala precisa mudar de manhã.
  */
 @UseGuards(SessionGuard)
 @Controller('escala')
@@ -40,6 +42,17 @@ export class EscalaController {
   @Post()
   escalar(@CurrentUser() user: AuthenticatedUser, @Body() body: any) {
     return this.escala.escalar(user, body);
+  }
+
+  /**
+   * SUBSTITUIR NUM GESTO (fase 123) — antes de `:id/revogar` só por ordem de
+   * leitura; os dois segmentos finais são palavras distintas e não se
+   * confundem.
+   */
+  @Post(':id/substituir')
+  substituir(@CurrentUser() user: AuthenticatedUser,
+             @Param('id', ParseUUIDPipe) id: string, @Body() body: any) {
+    return this.escala.substituir(user, id, body ?? {});
   }
 
   @Post(':id/revogar')

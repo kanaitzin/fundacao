@@ -193,6 +193,47 @@ describe('Acolhido em experiência familiar', () => {
     expect(g.fora).toBe(false);
   });
 
+  /**
+   * AS IDAS DELA CHEGAM AO PERFIL DELA (fase 118).
+   *
+   * A convivência é ABERTA de dentro do perfil desde a fase 89, e era lida só
+   * na lista da casa — que mostra quem está fora AGORA. Quem abrisse o perfil
+   * em outubro não via os fins de semana de setembro, nem como ela voltou de
+   * cada um. O histórico ficava no banco, sem porta.
+   */
+  it('o histórico de idas chega ao perfil — com o que ela trouxe e como chegou', async () => {
+    await sair(tokens.tecnica, contato);
+    const abertas_ = await abertas(tokens.tecnica).expect(200);
+    const f = abertas_.body.find((x: any) => x.personId === pessoa);
+
+    await request(http).post(`/api/v1/people/family-stays/${f.id}/return`)
+      .set(auth(tokens.coord))
+      .send({ quando: new Date().toISOString(),
+              nota: 'Chegou quieta e foi direto para o quarto; jantou mais tarde.',
+              trouxe: 'Uma sacola de roupa e o inalador que estava na casa da avó.' })
+      .expect(201);
+
+    const r = await request(http).get(`/api/v1/people/${pessoa}/family-stays`)
+      .set(auth(tokens.tecnica));
+    expect(r.status).toBe(200);
+    expect(r.body.length).toBeGreaterThan(0);
+
+    const ultima = r.body.find((x: any) => x.id === f.id);
+    expect(ultima).toBeTruthy();
+    expect(ultima.status).toBe('encerrada');
+    expect(ultima.comQuem).toBeTruthy();
+    expect(ultima.voltouEm).toBeTruthy();
+    /* O fato observado, como foi escrito. É o campo do §8.14: "chegou quieta e
+       foi para o quarto" e "voltou agressiva" descrevem coisas diferentes. */
+    expect(ultima.comoChegou).toMatch(/direto para o quarto/);
+    expect(ultima.trouxeDeCasa).toMatch(/inalador/);
+    expect(ultima.recebeu).toBeTruthy();
+
+    /* E NÃO conta as idas: um "4 saídas em setembro" no perfil de uma criança
+       é a primeira linha de um julgamento sobre a família dela. */
+    expect(JSON.stringify(r.body)).not.toMatch(/"(total|quantas|idas|contagem)"/i);
+  });
+
   it('registrar o retorno duas vezes é recusado', async () => {
     await sair(tokens.tecnica, contato);
     const r = await abertas(tokens.tecnica).expect(200);

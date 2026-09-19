@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
 import { baixarArquivo } from '../documentos';
+import { BotaoOlho, Escolhido, FolhaArquivo, PreviaEscolhida, base64De, lerArquivo } from '../anexos';
 
 /**
  * INTERNAÇÃO HOSPITALAR.
@@ -242,6 +243,8 @@ function PeriodoNoHospital({ id, papel, onVoltar }: {
   const [medicando, setMedicando] = useState(false);
   const [encerrando, setEncerrando] = useState(false);
   const [designando, setDesignando] = useState(false);
+  /** O anexo que está aberto na tela — nunca mais o download às cegas. */
+  const [vendoAnexo, setVendoAnexo] = useState<{ id: string; nomeDoArquivo: string | null } | null>(null);
   const podeEncerrar = QUEM_ABRE.includes(papel);
 
   const carregar = useCallback(async () => {
@@ -342,21 +345,19 @@ function PeriodoNoHospital({ id, papel, onVoltar }: {
             <div>{n.texto}</div>
             {n.temAnexo && (
               /*
-                * O ANEXO PRECISA SAIR.
+                * O ANEXO PRECISA SAIR — e sair é ABRIR, não baixar.
                 *
-                * Ele era guardado e nunca mais lido — a rota de leitura nem
+                * Ele era guardado e nunca mais lido: a rota de leitura nem
                 * existia. A equipe digitalizaria o exame, devolveria o papel ao
                 * hospital, e no dia em que ele fosse pedido não haveria nada.
+                * Depois disso a rota passou a existir e o botão BAIXAVA direto:
+                * para saber se era o documento certo, a pessoa tinha de tirar
+                * uma cópia do sistema — e é assim que documento de criança vai
+                * parar na pasta de downloads de alguém (fase 106, §9). Agora
+                * abre na tela, e baixar é o segundo gesto, de quem já olhou.
                 */
-              <button className="btn sm ghost" onClick={async () => {
-                try {
-                  const a = await api<{ nome: string; tipo: string; conteudo: string }>(
-                    `/nursing/hospitalizations/${id}/notes/${n.id}/anexo`);
-                  baixarArquivo(a.nome, a.tipo, a.conteudo);
-                } catch (e) {
-                  setAviso(e instanceof Error ? e.message : 'Não foi possível abrir o anexo.');
-                }
-              }}>📎 {n.nomeDoArquivo ?? 'documento do hospital'}</button>
+              <BotaoOlho rotulo={n.nomeDoArquivo ?? 'documento do hospital'}
+                         onClick={() => setVendoAnexo(n)} />
             )}
             <div className="mutetxt">{n.por} · {hhmm(n.em)}</div>
           </div>
@@ -434,6 +435,16 @@ function PeriodoNoHospital({ id, papel, onVoltar }: {
             setEncerrando(false); setAviso(r.aviso); void carregar();
           }} />
       )}
+
+      {vendoAnexo && (
+        <FolhaArquivo
+          titulo={vendoAnexo.nomeDoArquivo ?? 'Documento do hospital'}
+          legenda="Do período de internação. Baixar é o segundo gesto, de quem já olhou."
+          carregar={() => api<{ nome: string; tipo: string; conteudo: string }>(
+            `/nursing/hospitalizations/${id}/notes/${vendoAnexo.id}/anexo`)}
+          onFechar={() => setVendoAnexo(null)}
+          onBaixar={(a) => baixarArquivo(a.nome, a.tipo, a.conteudo)} />
+      )}
     </>
   );
 }
@@ -444,7 +455,7 @@ function FolhaDiario({ tipos, onFechar, onSalvar }: {
 }) {
   const [tipo, setTipo] = useState('relato');
   const [texto, setTexto] = useState('');
-  const [arquivo, setArquivo] = useState<{ nome: string; base64: string } | null>(null);
+  const [arquivo, setArquivo] = useState<Escolhido | null>(null);
   const [erro, setErro] = useState('');
 
   return (
@@ -464,13 +475,18 @@ function FolhaDiario({ tipos, onFechar, onSalvar }: {
         <label className="f">
           Documento do hospital <small>— PDF, JPG ou PNG, opcional</small>
         </label>
-        <input type="file" accept="application/pdf,image/*" onChange={(e) => {
+        <input type="file" accept="application/pdf,image/*" onChange={async (e) => {
           const f = e.target.files?.[0];
           if (!f) { setArquivo(null); return; }
-          const r = new FileReader();
-          r.onload = () => setArquivo({ nome: f.name, base64: String(r.result).split(',')[1] ?? '' });
-          r.readAsDataURL(f);
+          setArquivo(await lerArquivo(f));
         }} />
+
+        {/* A prévia do exame ANTES de ele subir. A equipe digitaliza o papel e
+            o devolve ao hospital: se subiu a página errada, ou a foto saiu
+            ilegível, este é o único momento em que ainda dá para refazer. */}
+        {arquivo && <PreviaEscolhida arquivo={arquivo}
+          pergunta={<>É este o documento do hospital, e está legível? O papel costuma voltar
+            para o hospital — <b>esta cópia é a que fica</b>.</>} />}
         {/*
           * O anexo NÃO substitui o texto: o servidor recusa relato só com
           * arquivo. Um PDF de exame, daqui a um ano, não conta o que foi feito
@@ -484,7 +500,8 @@ function FolhaDiario({ tipos, onFechar, onSalvar }: {
             try {
               await onSalvar({
                 tipo, texto: texto.trim(),
-                conteudo: arquivo?.base64, nomeArquivo: arquivo?.nome,
+                conteudo: arquivo ? base64De(arquivo.dataUrl) : undefined,
+                nomeArquivo: arquivo?.nome,
               });
             } catch (e) {
               setErro(e instanceof Error ? e.message : 'Não foi possível salvar.');

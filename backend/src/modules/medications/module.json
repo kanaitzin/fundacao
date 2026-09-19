@@ -24,7 +24,9 @@
     "medication_authorization",
     "medication_purchase",
     "prescription_document",
-    "family_stay_medication"
+    "family_stay_medication",
+    "medication_protocol_change",
+    "prescription_restriction_change"
   ],
   "removivel": true,
   "observacao": "Provedor da linha do tempo e aplicador offline próprio. A pendência 33.4.1 (quem administra) vive como configuração em medication_protocol, com padrão protetivo."

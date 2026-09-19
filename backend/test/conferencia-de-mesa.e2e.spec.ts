@@ -183,6 +183,62 @@ describe('A conferência de mesa', () => {
       c.linhas.filter((l: any) => l.naConferenciaDeMesa).length + 1);
   });
 
+  /* =======================================================================
+   * A PRESENÇA CHEGA À VIDA DA CRIANÇA (fase 110).
+   *
+   * `check_result` só era lido DENTRO da própria chamada: para saber se a
+   * criança esteve no almoço de terça, alguém abria a chamada daquele almoço
+   * (§9, item 4). E `check_result_amendment` — o que constava antes da
+   * correção, guardado por gatilho desde a 0670 — não era lido por NADA.
+   * ==================================================================== */
+  it('a presença de uma criança abre por ela, com a exceção e a correção', async () => {
+    const p = await request(http)
+      .get(`/api/v1/checks/person/${ids.outro}?dias=14`)
+      .set(auth(tokens.educador));
+    expect(p.status).toBe(200);
+
+    const doAlmoco = (p.body.linhas as any[]).find((l) => l.chamadaId === ids.almoco);
+    expect(doAlmoco).toBeDefined();
+
+    /* O RÓTULO, e não o código: "parcial" na tela de uma criança é uma palavra
+       que ninguém fora do sistema entende. */
+    expect(doAlmoco.resultado).toBe('Parcial');
+    expect(doAlmoco.excecao).toBe(true);
+    /* A EXCEÇÃO VEM COM O QUE FOI ESCRITO: sem a frase, "parcial" é um rótulo
+       que atravessa meses (§8.14). */
+    expect(doAlmoco.justificativa).toMatch(/arroz/i);
+    /* E com o nome de quem registrou — toda ação tem autor (regra 6). */
+    expect(doAlmoco.por).toBeTruthy();
+    /* E com a DATA: sem ela a linha não se situa na vida da criança, e era
+       para isso que este bloco existia. */
+    expect(doAlmoco.quando).toBeTruthy();
+
+    /* A CORREÇÃO VEM JUNTO: antes constava "Normal", da conferência de mesa. */
+    expect(doAlmoco.correcoes.length).toBeGreaterThan(0);
+    expect(doAlmoco.correcoes[0].antes).toBe('Normal');
+    expect(doAlmoco.correcoes[0].corrigidoPor).toBeTruthy();
+  });
+
+  it('a presença NÃO conta nada — nem falta, nem recusa, nem percentual', async () => {
+    const p = await request(http)
+      .get(`/api/v1/checks/person/${ids.outro}`)
+      .set(auth(tokens.educador)).expect(200);
+
+    /*
+     * Um número desses na tela de uma criança de doze anos é o começo de uma
+     * ficha de comportamento (regra 3), e o motivo é o do §8.7.2: o número
+     * viaja, e a frase que o explicava fica para trás. Este teste guarda isso
+     * por FORMA — se alguém acrescentar `totalDeFaltas`, ele reprova.
+     */
+    const chaves = Object.keys(p.body);
+    expect(chaves.sort()).toEqual(['dias', 'linhas']);
+    for (const l of p.body.linhas as any[]) {
+      const proibido = Object.keys(l).filter((k) =>
+        /total|quantidade|percentual|faltas|recusas|contagem|score|pontos/i.test(k));
+      expect(proibido).toEqual([]);
+    }
+  });
+
   // ==================== Onde ela não vale ====================
 
   it('a chamada final do turno é um a um, e a recusa diz por quê', async () => {
@@ -213,6 +269,50 @@ describe('A conferência de mesa', () => {
 
     const c = await ver(ids.almoco);
     expect(c.aceitaConferenciaDeMesa).toBe(false);
+  });
+
+  /**
+   * QUEM ABRIU E QUEM FECHOU A CHAMADA (fase 113).
+   *
+   * `created_by` e `confirmed_by` existiam desde a migração 0120 e nenhuma
+   * consulta os lia — a varredura da fase 106 os listou entre as pontas
+   * soltas (§9, item 5). A tela dizia "Chamada confirmada" e nada mais.
+   *
+   * Confirmar não é ato administrativo: é alguém afirmando que olhou todas as
+   * crianças da casa. Num sistema em que cada MARCAÇÃO tem nome por regra
+   * (§8.2), o fecho sem nome era a única assinatura que faltava — e a
+   * conferência de mesa, que é um ato menor, já trazia a dela.
+   */
+  it('quem abriu e quem fechou a chamada têm nome na resposta', async () => {
+    const { rows: [quem] } = await admin.query(
+      `SELECT app_user_display_name(id) AS nome FROM app_user
+        WHERE email = 'educador.ai3@paodospobres.dev'`);
+
+    const c = await ver(ids.almoco);
+    expect(c.status).toBe('confirmada');
+    expect(c.abertaPor).toBe(quem.nome);
+    expect(c.abertaEm).toBeTruthy();
+    // O fecho é o que faltava: nome e horário de quem disse "está tudo conferido".
+    expect(c.confirmadaPor).toBe(quem.nome);
+    expect(c.confirmadaEm).toBeTruthy();
+
+    // E é o mesmo que o banco guardou — a tela não inventa a autoria.
+    const { rows: [k] } = await admin.query(
+      `SELECT app_user_display_name(created_by)   AS abriu,
+              app_user_display_name(confirmed_by) AS fechou
+         FROM collective_check WHERE id = $1`, [ids.almoco]);
+    expect(k.abriu).toBe(c.abertaPor);
+    expect(k.fechou).toBe(c.confirmadaPor);
+  });
+
+  it('a chamada ainda aberta não inventa quem a fechou', async () => {
+    const nova = await abrir('alimentacao', 'Café do ensaio da autoria');
+    const c = await ver(nova);
+    expect(c.status).toBe('aberta');
+    expect(c.abertaPor).toBeTruthy();
+    // Nem string vazia, nem o nome de quem abriu: ninguém fechou ainda.
+    expect(c.confirmadaPor).toBeNull();
+    expect(c.confirmadaEm).toBeNull();
   });
 
   it('tudo ficou auditado, com autor e com a casa (regra 6)', async () => {

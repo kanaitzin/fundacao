@@ -39,14 +39,20 @@ erDiagram
   MEDICATION_PURCHASE {
     text items "o que foi comprado, em texto: uma nota traz cinco linhas"
     integer total_cents "o gasto, para a prestação de contas mensal"
-    text storage_ref "a nota fiscal digitalizada, em ARQUIVOS_DIR"
-    text _ "sem validade: validade é assunto do armário, que já a tem"
+    text storage_ref "o caminho no Drive, quando o papel está lá"
+    text storage_key "OU os bytes em ARQUIVOS_DIR (1230): a casa escolhe a forma"
+    text _ "nenhuma das duas é obrigatória aqui: a compra pode ser lançada antes"
+    text __ "de o papel aparecer, e é isso que o resumo conta como pendente"
+    text ___ "sem validade: validade é assunto do armário, que já a tem"
   }
   PRESCRIPTION_DOCUMENT {
     text display_name "nome NEUTRO: CPF e diagnóstico nunca em nome de arquivo"
-    text storage_ref "a receita digitalizada"
-    text __ "documento médico: nasce restrito. O educador administra a dose,"
-    text ___ "mas a receita traz CID e prescritor, e isso não muda o que ele faz"
+    text storage_ref "o caminho no Drive, quando o papel está lá"
+    text storage_key "OU os bytes em ARQUIVOS_DIR (1230). UM DOS DOIS, sempre:"
+    text _ "receita_tem_onde_estar. O NOT NULL antigo garantia um texto, e a tela"
+    text __ "mandava receita-<timestamp> — uma referência que não apontava a nada"
+    text ___ "documento médico: nasce restrito. O educador administra a dose,"
+    text ____ "mas a receita traz CID e prescritor, e isso não muda o que ele faz"
   }
   KITCHEN_REQUEST {
     text kind "lanche | cesta_basica"
@@ -618,6 +624,15 @@ erDiagram
     text access_level "equipe | restrito — nasce da categoria"
     bool requires_technical_review "categoria que não fecha sem análise"
   }
+  INCIDENT_ATTACHMENT {
+    text display_name "nome NEUTRO: CPF e diagnóstico nunca em nome de arquivo"
+    text storage_ref "o caminho no Drive, quando o papel está lá"
+    text storage_key "OU os bytes em ARQUIVOS_DIR (1220). UM DOS DOIS, sempre:"
+    text _ "anexo_tem_onde_estar. Nenhum dos dois é uma linha que promete"
+    text __ "um documento que ninguém alcança, e era isso que o NOT NULL escondia"
+    text ___ "as duas colunas NÃO são legíveis pela aplicação: os bytes saem por"
+    text ____ "app_open_attachment, que REGISTRA antes de devolver"
+  }
   INCIDENT_PROTECTED {
     text spontaneous_speech "transcrição; não é devolvida a quem não alcança"
     text observed_signs
@@ -778,12 +793,12 @@ formas diferentes, e "fez festa" como campo é o primeiro passo para alguém
 cobrar o número depois. O que se registra depois, se a casa quiser, é a memória
 no álbum, que é da criança.
 
-## Inventário — 110 tabelas por partição
+## Inventário — 112 tabelas por partição
 
 | Partição | Tabelas |
 |---|---|
 | identity (13) | institution, house, app_user, user_house_assignment, work_schedule, shift_assignment, user_session, login_attempt, audit_event, institutional_device, staff_role_grant, house_capacity_change, user_invite |
-| people (23) | person, care_episode, house_stay, profile_detail, health_condition, food_restriction, document, document_version, benefit_record, memory_record, transfer_request, transfer_message, admission_record, judicial_record, person_credential, person_correction, profile_detail_change, person_contact, family_stay, outing_permission, kitchen_request, house_field_permission, birthday_ack |
+| people (25) | person, care_episode, house_stay, profile_detail, health_condition, food_restriction, document, document_version, benefit_record, memory_record, memory_photo, transfer_request, transfer_message, admission_record, judicial_record, person_credential, person_correction, profile_detail_change, person_contact, family_stay, family_stay_note, outing_permission, kitchen_request, house_field_permission, birthday_ack |
 | shifts (11) | shift, handover, handover_receipt, handover_note, ata, ata_note, ata_addendum, ata_episode, ata_episode_ack, general_night_ata, general_night_house_entry |
 | incidents (7) | incident, incident_person, incident_protected, incident_restraint, incident_synthesis, external_communication, incident_attachment |
 | medications (12) | prescription, medication_schedule, medication_administration, medication_stock, medication_stock_movement, medication_protocol, medication_authorization, medication_protocol_change, prescription_restriction_change, medication_purchase, prescription_document, family_stay_medication |
@@ -818,3 +833,126 @@ motivo e autor. Não apaga nada: a agenda continua mostrando o dia, marcado.
 Índice único parcial por `(commitment_id, on_date) WHERE undone_at IS NULL`:
 uma exceção vigente por data, e o histórico das anteriores fica.
 
+
+### `family_stay_note`
+O relato da convivência familiar. **Uma tabela de linhas, e não de colunas em
+`family_stay`** — e a diferença é a decisão inteira da fase 122.
+
+A Fundação corrigiu o desenho antes de ele existir. O pedido de 15/09 era um
+acompanhamento que *"fica aberto para ser preenchido por algum educador depois
+de uma semana"*, e isso ia virar uma pendência com prazo. Em 16/09 ele voltou:
+
+> *"Acho mais fácil não dar um prazo, mas deixar em aberto para ser registrado
+> quando de fato tivermos uma informação. Assim, quando o jovem sair para a
+> visita em casa, se abre essa pergunta para ser respondida depois — dessa
+> forma não haverá uma pressão para arrancar a informação da criança. Mas isso
+> pode ser registrado quantas vezes for necessário, por qualquer educador, tudo
+> ficando no perfil do jovem."*
+
+Uma coluna só aceita a última versão, e a última versão apaga a primeira. O que
+ela contou na terça não substitui o que se observou no domingo: **soma**.
+
+| Coluna | Tipo | Observação |
+|---|---|---|
+| `id` | uuid | |
+| `family_stay_id` | uuid | a ida a que o relato pertence |
+| `house_id` / `person_id` | uuid | copiados da saída, para a RLS desta tabela ser lida sozinha |
+| `narrative` | text | mínimo 10 caracteres. Fato observado, nunca rótulo (§8.14) |
+| `changed` | boolean | *"se houve alguma alteração, sim, tem que ser notificado"* — o único gatilho de aviso |
+| `created_at` / `created_by` | | quem ouviu, e quando |
+
+**O que a tabela NÃO tem, e é o ponto:** `status`, `prazo`, `vence_em`,
+`fechado_por`. Não há como fechar um relato. Um campo de prazo viraria cobrança
+sobre o educador, e o educador só teria uma forma de baixar uma cobrança dessas
+— perguntar de novo para a criança.
+
+**Quem escreve:** qualquer pessoa da equipe da casa, o educador inclusive.
+`app_relatar_convivencia` não confere cargo, e isso está escrito lá dentro: a
+criança conta para quem ela confia, e quem ela confia quase nunca é quem tem o
+cargo mais alto. Exigir a técnica faria o educador contar para a técnica, que
+escreveria — e o registro perderia o nome de quem ouviu.
+
+**UPDATE e DELETE revogados.** Escreveu errado, escreve de novo: a linha nova
+fica ao lado da antiga, com a hora das duas.
+
+**O aviso sai do SERVIÇO, pelo barramento**, e não de dentro da função. A
+partição `people` não pode depender de `notifications`, que é removível — sem o
+módulo de avisos, ninguém é avisado, e o registro sobre a criança continua
+funcionando.
+
+
+### `memory_photo`
+As fotos de uma vivência — **quantas forem**. Antes, `memory_record` guardava um
+`storage_key`, e a educadora que voltava da festa com seis fotos registrava seis
+vivências: seis vezes a mesma data, seis vezes a mesma descrição, e o álbum da
+criança contando a festa seis vezes.
+
+> *"Eles querem também ter foto das crianças no perfil […] podendo previamente
+> visualizar o que está sendo hospedado e confirmar."*
+
+| Coluna | Tipo | Observação |
+|---|---|---|
+| `id` | uuid | |
+| `memory_id` | uuid | a vivência a que a foto pertence |
+| `person_id` | uuid | copiado da vivência, para a RLS desta tabela ser resolvida sozinha |
+| `storage_key` / `mime` / `sha256` / `file_name` | | o objeto guardado |
+| `photo_authorized` | boolean | **por foto**, e não por vivência: a festa pode ter uma foto com uma criança de outra casa, e a autorização dela é outra conversa |
+| `position` | int | a ordem em que a educadora escolheu. Sem ela, seis fotos saem embaralhadas a cada consulta, e a primeira — que costuma ser a que ela escolheria para mostrar — deixa de ser a primeira |
+| `created_at` / `created_by` | | |
+
+**As fotos que já existiam MUDARAM DE LUGAR.** A migração 1320 move cada
+`memory_record` com foto para uma linha desta tabela; as colunas antigas ficam
+onde estão, com um `COMMENT` dizendo que são origem histórica e não são mais
+lidas. Guardar o mesmo fato em dois lugares é como duas versões da verdade
+começam.
+
+**`UPDATE` e `DELETE` revogados.** Foto do álbum de uma criança não se apaga nem
+se troca por outra (regra 3).
+
+**Sem contador gravado.** Quantas fotos a vivência tem sai de `app_fotos_da_vivencia`
+e de um `count` na leitura: um contador em coluna precisaria de gatilho para
+ficar em dia, e um contador errado é pior do que contador nenhum — a tela diria
+"3 fotos" e abriria duas.
+
+
+### `document.mirror_of` e `prescription_document.kind` — o espelho no dossiê
+Nenhuma tabela nova: a fase 125 é **uma coluna em cada lado** e uma função.
+
+> *"Se elas quiserem botar alguma bula, alguma receita, alguma coisa ali pela
+> enfermagem, que já caia direto no perfil da criança."*
+
+| Coluna | Tipo | Observação |
+|---|---|---|
+| `document.mirror_of` | text | de onde este documento foi espelhado, no formato `"tabela:id"`. **Nulo na maioria** — quase tudo é anexado direto no dossiê. Índice único parcial: **um espelho por origem** |
+| `prescription_document.kind` | text | `receita` ou `bula`. `CHECK` com dois valores |
+
+**`app_espelhar_no_dossie` aponta para o MESMO objeto guardado** — mesmo
+`storage_key`, mesmo sha. Não há cópia do arquivo: duas cópias divergem no dia
+em que alguém substituir uma delas, e a segunda continuaria parecendo verdadeira.
+
+**A idempotência é `mirror_of`, e não é detalhe.** Sem ela, uma fila offline
+reenviada ou um clique duplo no fim de um turno de doze horas criaria um
+documento novo, e a pasta da criança encheria de receitas repetidas que ninguém
+distingue.
+
+**O espelho chega CONFERIDO.** Quem anexou na tela de origem olhou o arquivo, e
+a prescrição já é de uma criança nomeada — o *"é desta criança"* está garantido
+pela estrutura. Deixá-lo aguardando faria o contador de "falta conferir" subir
+sozinho a cada prescrição, e contador que sobe sozinho é contador que a equipe
+aprende a ignorar.
+
+**A função não confere cargo, e está escrito lá dentro:** ela é chamada DEPOIS
+de a tela de origem ter conferido quem pode anexar. Repetir a conferência
+obrigaria esta função a conhecer as regras das outras telas, e é assim que duas
+listas de cargos começam a divergir. O que ela confere é o **alcance da
+criança**, que é dela mesma.
+
+**A bula mora na mesma tabela da receita** porque é o mesmo fato: um papel
+digitalizado preso a uma prescrição. Uma `prescription_leaflet` idêntica com
+outro nome seria a mesma coisa escrita duas vezes, e a segunda esqueceria a
+correção que a primeira recebesse. Ela segue a política restrita da receita por
+razão prática: **o sigilo não está no papel, está no vínculo** — saber QUE bula
+alguém guardou é saber qual remédio a criança toma.
+
+**`medication_purchase` fica de fora.** Ela tem `house_id` e **não tem pessoa**:
+a nota fiscal é compra da CASA, e o remédio serve a quem precisar dele.

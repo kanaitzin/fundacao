@@ -12,7 +12,8 @@
     "team_meeting",
     "team_agreement",
     "agreement_change",
-    "meeting_agenda_item"
+    "meeting_agenda_item",
+    "house_statute"
   ],
   "removivel": true,
   "observacao": "Sem ele a casa não perde nenhum fluxo operacional: os combinados voltam a viver no papel da reunião e na memória de quem estava lá — que é exatamente o problema que ele resolve."

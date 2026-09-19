@@ -79,6 +79,14 @@ export class PeopleController {
     });
   }
 
+  /* As idas dela, no perfil dela (fase 118). Antes de `:id` porque
+     `family-stays` sem id já existe e este tem um id no meio. */
+  @Get(':id/family-stays')
+  convivenciasDoAcolhido(@CurrentUser() user: AuthenticatedUser,
+                         @Param('id', ParseUUIDPipe) id: string) {
+    return this.people.convivenciasDoAcolhido(user, id);
+  }
+
   @Get(':id/admission')
   acolhimento(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.admission.acolhimento(user, id);
@@ -112,6 +120,25 @@ export class PeopleController {
   @Post('family-stays')
   registrarSaida(@CurrentUser() user: AuthenticatedUser, @Body() body: any) {
     return this.people.registrarSaidaFamiliar(user, body);
+  }
+
+  /**
+   * O RELATO DA CONVIVÊNCIA (fase 122) — sem prazo, e quantas vezes precisar.
+   *
+   * *"Deixar em aberto para ser registrado quando de fato tivermos uma
+   * informação […] pode ser registrado quantas vezes for necessário, por
+   * qualquer educador."* Não há rota para fechar nem para apagar: a linha nova
+   * fica ao lado da antiga.
+   */
+  @Get('family-stays/:id/notes')
+  relatos(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.people.relatosDaConvivencia(user, id);
+  }
+
+  @Post('family-stays/:id/notes')
+  relatar(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
+          @Body() body: { relato?: string; houveAlteracao?: boolean }) {
+    return this.people.relatarConvivencia(user, id, body ?? {});
   }
 
   @Post('family-stays/:id/return')
@@ -407,6 +434,32 @@ export class PeopleController {
   fotoDaVivencia(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
                  @Param('memId', ParseUUIDPipe) memId: string) {
     return this.dossie.foto(user, id, memId);
+  }
+
+  /**
+   * UMA foto específica da vivência (fase 124) — a vivência passou a ter
+   * quantas tiver. A rota acima continua valendo e devolve a primeira.
+   */
+  @Get(':id/memories/:memId/photos/:fotoId')
+  umaFotoDaVivencia(@CurrentUser() user: AuthenticatedUser,
+                    @Param('id', ParseUUIDPipe) id: string,
+                    @Param('memId', ParseUUIDPipe) memId: string,
+                    @Param('fotoId', ParseUUIDPipe) fotoId: string) {
+    return this.dossie.foto(user, id, memId, fotoId);
+  }
+
+  /**
+   * BAIXAR o documento do dossiê (fase 124) — *"poder visualizar a hora que
+   * eles quiserem e baixar"*.
+   *
+   * `POST`, e não um `GET` com parâmetro: sair com o arquivo é um ato, e um
+   * verbo que a rede inteira trata como leitura idempotente é o verbo errado
+   * para um ato que deixa linha na auditoria.
+   */
+  @Post(':id/documents/:docId/download')
+  baixarDoc(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
+            @Param('docId', ParseUUIDPipe) docId: string) {
+    return this.dossie.arquivo(user, id, docId, true);
   }
 
   @Get(':id/documents/:docId')

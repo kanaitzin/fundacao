@@ -24,7 +24,9 @@
     "ata_episode",
     "ata_episode_ack",
     "general_night_ata",
-    "general_night_house_entry"
+    "general_night_house_entry",
+    "handover_note",
+    "ata_note"
   ],
   "removivel": true,
   "observacao": "Provedor da linha do tempo e aplicador offline próprio. A narrativa pessoal NÃO mora aqui — mora em `statements`, com política própria; a passagem guarda apenas conteúdo operacional. `ata_episode.incident_id` é ligação sem chave estrangeira, de propósito: `incidents` pode ser removido sem levar a ATA junto."

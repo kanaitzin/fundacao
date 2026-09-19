@@ -3,6 +3,7 @@ import { IdentityModule } from '../identity';
 import { SyncModule } from '../sync';
 import { NursingController } from './nursing.controller';
 import { NursingService } from './nursing.service';
+import { EducacaoService } from './educacao.service';
 import { InternacaoService } from './internacao.service';
 import { HealthSummaryService } from './health-summary.service';
 import { NursingOfflineHandlers } from './nursing.offline';
@@ -18,7 +19,8 @@ import { NursingOfflineHandlers } from './nursing.offline';
 @Module({
   imports: [IdentityModule, SyncModule],
   controllers: [NursingController],
-  providers: [NursingService, InternacaoService, HealthSummaryService, NursingOfflineHandlers],
+  providers: [NursingService, InternacaoService,
+    EducacaoService, HealthSummaryService, NursingOfflineHandlers],
   exports: [NursingService, HealthSummaryService],
 })
 export class NursingModule {}

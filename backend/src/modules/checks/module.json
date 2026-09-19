@@ -16,7 +16,8 @@
   "tabelas": [
     "collective_check",
     "check_result",
-    "check_result_amendment"
+    "check_result_amendment",
+    "check_bulk"
   ],
   "removivel": true,
   "observacao": "Provedor da linha do tempo. Removê-lo retira as chamadas da timeline sem afetar atividades. Registra também o aplicador das próprias operações offline."

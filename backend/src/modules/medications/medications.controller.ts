@@ -169,9 +169,41 @@ export class MedicationsController {
     return this.meds.anexarReceita(user, id, body);
   }
 
+  /*
+   * ABRIR A RECEITA E ABRIR A NOTA (fase 108).
+   *
+   * As duas passam por função que registra a abertura ANTES de devolver, como
+   * o anexo da ocorrência. Quando o documento foi anexado por REFERÊNCIA, elas
+   * devolvem o caminho no Drive e nenhum arquivo — a tela escreve uma coisa
+   * diferente em cada caso, e é por isso que a resposta diz qual das duas é.
+   */
+  @Get('prescriptions/documents/:docId/file')
+  abrirReceita(@CurrentUser() user: AuthenticatedUser,
+               @Param('docId', ParseUUIDPipe) docId: string) {
+    return this.meds.abrirReceita(user, docId);
+  }
+
+  @Get('purchases/:compraId/file')
+  abrirNota(@CurrentUser() user: AuthenticatedUser,
+            @Param('compraId', ParseUUIDPipe) compraId: string) {
+    return this.meds.abrirNotaFiscal(user, compraId);
+  }
+
   @Get('stock')
   stock(@CurrentUser() user: AuthenticatedUser, @Query('houseId', ParseUUIDPipe) houseId: string) {
     return this.meds.stock(user, houseId);
+  }
+
+  /*
+   * O MOVIMENTO DE UM ITEM DO ARMÁRIO (fase 109).
+   *
+   * `stock` devolve o saldo; isto devolve a história. A tabela era escrita por
+   * três lugares e lida por nenhum desde a migração 0200 — a fase 85 gravou o
+   * `consumo` que faltava, e o lugar de abrir nunca existiu.
+   */
+  @Get('stock/:id/movements')
+  movimento(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.meds.movimentoDoArmario(user, id);
   }
 
   /**

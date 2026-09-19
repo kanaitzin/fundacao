@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api';
+import { BotaoOlho, Escolhido, PreviaEscolhida, base64De, lerArquivo } from '../anexos';
 import { FolhaDocumento } from '../documentos';
 import type { ArquivoGerado } from '../documentos';
 import type { DocumentoWord } from '../docx';
@@ -97,7 +98,8 @@ interface Detalhe {
              relatos: { id: string; autor: string; meu: boolean; testemunho: string;
                         relato: string; restrito: boolean; quando: string }[] };
   avisoAnaliseTecnica: string | null;
-  anexos: { id: string; tipo: string; nome: string; restrito: boolean; autor: string }[];
+  anexos: { id: string; tipo: string; nome: string; restrito: boolean; autor: string;
+            temArquivo: boolean; nomeDoArquivo: string | null }[];
   comunicacoesExternas: { id: string; orgao: string; canal: string; status: string }[];
 }
 
@@ -163,7 +165,10 @@ export function Ocorrencias({ houseId, papel }: { houseId: string; papel: string
   /* O registro em folha: a técnica leva para a rede, a coordenação arquiva. */
   const [documento, setDocumento] = useState<DocumentoWord | null>(null);
   const [abrindoAnexo, setAbrindoAnexo] = useState<{ id: string; nome: string } | null>(null);
-  const [anexoAberto, setAnexoAberto] = useState<{ nome: string; referencia: string } | null>(null);
+  const [anexoAberto, setAnexoAberto] = useState<{
+    nome: string; referencia: string | null;
+    arquivo: { nome: string; tipo: string; conteudo: string } | null;
+  } | null>(null);
   const [aberta, setAberta] = useState<string | null>(null);
   const [encerrando, setEncerrando] = useState<ItemLista | null>(null);
   /* As cobranças de relato: as MINHAS, e quem falta em cada ocorrência. */
@@ -541,18 +546,24 @@ export function Ocorrencias({ houseId, papel }: { houseId: string; papel: string
                           </div>
                         </div>
                         {a.restrito && <span className="pill c-warn">Restrito</span>}
-                        <button className="btn sm ghost"
+                        {/* A pílula diz onde o documento está ANTES do clique:
+                            um botão que às vezes abre um PDF e às vezes devolve
+                            um caminho de pasta ensina a não confiar nele. */}
+                        <span className={`pill ${a.temArquivo ? 'c-ok' : 'c-mute'}`}>
+                          {a.temArquivo ? 'no sistema' : 'no Drive'}
+                        </span>
+                        <BotaoOlho rotulo={a.temArquivo ? 'Abrir' : 'Onde está'}
                                 onClick={() => (a.restrito
                                   ? setAbrindoAnexo({ id: a.id, nome: a.nome })
-                                  : acao(async () => {
-                                      const r = await api<{ nome: string; referencia: string }>(
-                                        `/incidents/attachments/${a.id}/open`,
-                                        { method: 'POST', body: '{}' });
+                                  : void acao(async () => {
+                                      const r = await api<{
+                                        nome: string; referencia: string | null;
+                                        arquivo: { nome: string; tipo: string; conteudo: string } | null;
+                                      }>(`/incidents/attachments/${a.id}/open`,
+                                         { method: 'POST', body: '{}' });
                                       setAnexoAberto(r);
                                       return r;
-                                    }))}>
-                          Abrir
-                        </button>
+                                    }))} />
                       </div>
                     );
                   })}
@@ -844,8 +855,10 @@ export function Ocorrencias({ houseId, papel }: { houseId: string; papel: string
           onFechar={() => setAbrindoAnexo(null)}
           onAbrir={async (finalidade) => {
             const ok = await acao(async () => {
-              const r = await api<{ nome: string; referencia: string; aviso?: string }>(
-                `/incidents/attachments/${abrindoAnexo.id}/open`,
+              const r = await api<{
+                nome: string; referencia: string | null; aviso?: string;
+                arquivo: { nome: string; tipo: string; conteudo: string } | null;
+              }>(`/incidents/attachments/${abrindoAnexo.id}/open`,
                 { method: 'POST', body: JSON.stringify({ finalidade }) });
               setAnexoAberto(r);
               return r;
@@ -859,13 +872,22 @@ export function Ocorrencias({ houseId, papel }: { houseId: string; papel: string
              onClick={(e) => { if (e.target === e.currentTarget) setAnexoAberto(null); }}>
           <div className="sheet modal">
             <h3>{anexoAberto.nome}</h3>
-            {/* O sistema não abre o arquivo: ele diz ONDE ele está, no Drive
-                da instituição, e registra que você perguntou. */}
+            {/* DUAS RESPOSTAS, e a tela diz qual é (fase 108). Com o documento
+                aqui dentro ele ABRE; por referência, o sistema diz onde ele
+                está — e nos dois casos a abertura ficou registrada. */}
             <div className="notice c-info">
-              A abertura foi registrada com o seu nome e o horário. O arquivo está no Drive
-              da instituição, no caminho abaixo.
+              A abertura foi registrada com o seu nome e o horário.
+              {!anexoAberto.arquivo && ' O arquivo está no Drive da instituição, no caminho abaixo.'}
             </div>
-            <div className="bloco"><small>Onde está</small>{anexoAberto.referencia}</div>
+            {anexoAberto.arquivo ? (
+              anexoAberto.arquivo.tipo.startsWith('image')
+                ? <img className="previa-img" alt={anexoAberto.nome}
+                       src={`data:${anexoAberto.arquivo.tipo};base64,${anexoAberto.arquivo.conteudo}`} />
+                : <iframe className="previa-quadro" title={anexoAberto.nome}
+                          src={`data:${anexoAberto.arquivo.tipo};base64,${anexoAberto.arquivo.conteudo}`} />
+            ) : (
+              <div className="bloco"><small>Onde está</small>{anexoAberto.referencia}</div>
+            )}
             <div className="row rodape">
               <button className="btn block" onClick={() => setAnexoAberto(null)}>Fechar</button>
             </div>
@@ -1118,12 +1140,17 @@ function FolhaAnexo({ tipos, aviso, onFechar, onEnviar }: {
   const [nome, setNome] = useState('');
   const [referencia, setReferencia] = useState('');
   const [justificativa, setJustificativa] = useState('');
+  /* AS DUAS FORMAS (fase 108). `forma` é escolha explícita e não adivinhação
+     pelo campo preenchido: um campo que muda de sentido conforme o outro está
+     vazio é o tipo de tela que a pessoa cansada erra às 23h. */
+  const [forma, setForma] = useState<'arquivo' | 'referencia'>('arquivo');
+  const [arquivo, setArquivo] = useState<Escolhido | null>(null);
   const escolhido = tipos.find((t) => t.cod === tipo);
   // A mesma checagem do servidor, para o aviso chegar antes da recusa.
   const nomeSuspeito = /\d{11}|\d{3}\.?\d{3}\.?\d{3}-?\d{2}|hiv|aids|autis|esquizo|depress|transtorn|psiquiatr|cid[\s-]?\d/i
     .test(nome);
-  const pode = tipo !== '' && nome.trim().length >= 3 && !nomeSuspeito
-    && referencia.trim().length >= 3
+  const temOnde = forma === 'arquivo' ? arquivo != null : referencia.trim().length >= 3;
+  const pode = tipo !== '' && nome.trim().length >= 3 && !nomeSuspeito && temOnde
     && (!escolhido?.exigeJustificativa || justificativa.trim().length >= 15);
 
   return (
@@ -1158,12 +1185,47 @@ function FolhaAnexo({ tipos, aviso, onFechar, onEnviar }: {
           </div>
         )}
 
-        <label className="f" htmlFor="anx-ref">
-          Onde o arquivo está <small>— a pasta ou o link no Drive da instituição</small>
-        </label>
-        <input id="anx-ref" className="field" value={referencia}
-               onChange={(e) => setReferencia(e.target.value)}
-               placeholder="Ex.: ACOLHIMENTO/AI3/2026/08/saude/receita-3108.pdf" />
+        <label className="f">O documento</label>
+        <div className="opts">
+          <button type="button" className="opt c-ok" aria-pressed={forma === 'arquivo'}
+                  onClick={() => setForma('arquivo')}>
+            Anexar o arquivo
+          </button>
+          <button type="button" className="opt c-info" aria-pressed={forma === 'referencia'}
+                  onClick={() => setForma('referencia')}>
+            Está no Drive
+          </button>
+        </div>
+
+        {forma === 'arquivo' ? (
+          <>
+            <label className="f" htmlFor="anx-arq">
+              O papel digitalizado <small>— foto ou PDF</small>
+            </label>
+            <input id="anx-arq" type="file" accept="image/*,application/pdf"
+                   onChange={async (e) => {
+                     const f = e.target.files?.[0];
+                     setArquivo(f ? await lerArquivo(f) : null);
+                   }} />
+            {arquivo && <PreviaEscolhida arquivo={arquivo}
+              pergunta={<>É este o documento? Quem abrir depois vai ver <b>isto</b> — e a
+                abertura fica registrada com o nome de quem abriu.</>} />}
+          </>
+        ) : (
+          <>
+            <label className="f" htmlFor="anx-ref">
+              Onde o arquivo está <small>— a pasta ou o link no Drive da instituição</small>
+            </label>
+            <input id="anx-ref" className="field" value={referencia}
+                   onChange={(e) => setReferencia(e.target.value)}
+                   placeholder="Ex.: ACOLHIMENTO/AI3/2026/08/saude/receita-3108.pdf" />
+            <p className="mutetxt">
+              Por referência, o sistema guarda o caminho e não o documento: quem abrir recebe
+              o endereço e ainda precisa do Drive. <b>Anexar o arquivo é o caminho curto</b> —
+              e é o único em que o documento sobrevive a uma pasta reorganizada.
+            </p>
+          </>
+        )}
 
         {escolhido?.exigeJustificativa && (
           <>
@@ -1187,10 +1249,14 @@ function FolhaAnexo({ tipos, aviso, onFechar, onEnviar }: {
           <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
           <button className="btn grow" disabled={!pode}
                   onClick={() => onEnviar({
-                    tipo, nome: nome.trim(), referencia: referencia.trim(),
+                    tipo, nome: nome.trim(),
+                    referencia: forma === 'referencia' ? referencia.trim() : undefined,
+                    conteudo: forma === 'arquivo' && arquivo
+                      ? base64De(arquivo.dataUrl) : undefined,
+                    nomeArquivo: forma === 'arquivo' ? arquivo?.nome : undefined,
                     justificativa: justificativa.trim() || undefined,
                   })}>
-            Registrar anexo
+            {forma === 'arquivo' ? 'Anexar o documento' : 'Registrar a referência'}
           </button>
         </div>
       </div>

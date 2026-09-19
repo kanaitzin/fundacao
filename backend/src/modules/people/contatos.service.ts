@@ -1,11 +1,10 @@
 import {
   BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException,
 } from '@nestjs/common';
-import { createHash, randomUUID } from 'node:crypto';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { createHash } from 'node:crypto';
 import { DatabaseService } from '../../kernel/database/database.service';
 import { AuditService } from '../../kernel/audit/audit.service';
+import { ArquivosService, RegraDoArquivo } from '../../kernel/arquivos/arquivos.service';
 import { AuthenticatedUser } from '../../kernel/contracts';
 import { formatCpf, isValidCpf, maskCpf, normalizeCpf } from '../../kernel/common/cpf';
 
@@ -87,13 +86,31 @@ export function rotuloDoVinculo(bond: string, outro?: string | null): string {
  * quem está com a criança precisa saber quem é a madrinha que aparece no
  * portão. Escrever no cadastro continua sendo da técnica e da coordenação.
  */
+/**
+ * AS DUAS FOTOS — 4 MB, e SÓ IMAGEM.
+ *
+ * A regra é mais estreita que a do kernel de propósito, e a diferença tem
+ * motivo: um PDF como retrato de uma criança não é documento, é engano — e a
+ * folha da portaria desenha a foto num quadro 3×4, onde um PDF não entra.
+ * Quatro megabytes é o que uma foto de celular pesa; o dossiê aceita quinze
+ * porque lá cabe uma certidão digitalizada de dez páginas.
+ */
+const A_FOTO: RegraDoArquivo = {
+  aceita: ['image/jpeg', 'image/png', 'image/webp'],
+  maximo: 4 * 1024 * 1024,
+  recusas: {
+    vazio: 'A foto chegou vazia.',
+    grande: 'A foto passa de 4 MB. A do celular costuma resolver.',
+    tipo: 'Envie uma foto em JPG, PNG ou WEBP.',
+  },
+};
+
 @Injectable()
 export class ContatosService {
-  private readonly dir = process.env.ARQUIVOS_DIR ?? join(process.cwd(), '.arquivos');
-
   constructor(
     @Inject(DatabaseService) private readonly db: DatabaseService,
     @Inject(AuditService) private readonly audit: AuditService,
+    @Inject(ArquivosService) private readonly arquivos: ArquivosService,
   ) {}
 
   private readonly VINCULOS = VINCULOS_DO_CONTATO;
@@ -276,22 +293,16 @@ export class ContatosService {
 
   // ----------------------------------------------------------------- Foto
 
-  /** A mesma conferência para as duas fotos: tamanho e assinatura do arquivo. */
-  private fotoValida(input: { conteudo?: string }): { bytes: Buffer; tipo: string } {
-    const limpo = String(input.conteudo ?? '').replace(/^data:[^;]+;base64,/, '');
-    if (!limpo) throw new BadRequestException('Nenhuma foto foi enviada.');
-    const bytes = Buffer.from(limpo, 'base64');
-    if (!bytes.length) throw new BadRequestException('A foto chegou vazia.');
-    if (bytes.length > 4 * 1024 * 1024) {
-      throw new BadRequestException('A foto passa de 4 MB. A do celular costuma resolver.');
-    }
-    const hex = bytes.subarray(0, 12).toString('hex');
-    const tipo = hex.startsWith('ffd8ff') ? 'image/jpeg'
-      : hex.startsWith('89504e47') ? 'image/png'
-      : hex.startsWith('52494646') && bytes.subarray(8, 12).toString() === 'WEBP' ? 'image/webp'
-      : null;
-    if (!tipo) throw new BadRequestException('Envie uma foto em JPG, PNG ou WEBP.');
-    return { bytes, tipo };
+  /**
+   * A mesma conferência para as duas fotos — hoje feita pelo kernel, com a
+   * regra deste lugar (fase 114). A decodificação, a medida, a leitura da
+   * assinatura e a gravação moram num arquivo só; o que continua sendo daqui
+   * é O QUE se aceita, e a frase com que se recusa.
+   */
+  private async guardarAFoto(input: { conteudo?: string }) {
+    const guardado = await this.arquivos.guardar(input.conteudo, A_FOTO);
+    if (!guardado) throw new BadRequestException('Nenhuma foto foi enviada.');
+    return guardado;
   }
 
   /**
@@ -302,10 +313,7 @@ export class ContatosService {
     if (!ESCREVE_CONTATO.includes(user.role)) {
       throw new ForbiddenException('A foto do visitante é cadastrada pela técnica ou pela coordenação.');
     }
-    const { bytes, tipo } = this.fotoValida(input);
-    const chave = randomUUID();
-    await mkdir(this.dir, { recursive: true });
-    await writeFile(join(this.dir, chave), bytes);
+    const { chave, mime: tipo, tamanho } = await this.guardarAFoto(input);
     await this.db.asUser(user.id, async (c) => {
       const { rowCount } = await c.query(
         `UPDATE person_contact SET photo_key = $2, photo_mime = $3, photo_at = now(), photo_by = $4
@@ -314,7 +322,7 @@ export class ContatosService {
     });
     await this.audit.log({
       action: 'foto.contato.guardada', actorId: user.id, institutionId: user.institutionId,
-      entity: 'person_contact', entityId: contatoId, detail: { tipo, bytes: bytes.length },
+      entity: 'person_contact', entityId: contatoId, detail: { tipo, bytes: tamanho },
     });
     return { ok: true, aviso: tipo === 'image/webp'
       ? 'Foto guardada. Ela está em WEBP, que o Word não imprime: na folha da portaria sai o '
@@ -330,7 +338,7 @@ export class ContatosService {
     });
     if (!r) throw new NotFoundException('Contato não encontrado — ou fora do seu alcance.');
     if (!r.photo_key) throw new NotFoundException('Este contato ainda não tem foto.');
-    const bytes = await readFile(join(this.dir, r.photo_key)).catch(() => null);
+    const bytes = await this.arquivos.ler(r.photo_key);
     if (!bytes) throw new NotFoundException('A foto não está no armazenamento.');
     return { nome: 'visitante', tipo: r.photo_mime, conteudo: bytes.toString('base64') };
   }
@@ -338,7 +346,7 @@ export class ContatosService {
   /** Bytes de uma foto guardada — só para quem monta a folha, dentro do módulo. */
   async bytesDaFoto(chave: string | null): Promise<Buffer | null> {
     if (!chave) return null;
-    return readFile(join(this.dir, chave)).catch(() => null);
+    return this.arquivos.ler(chave);
   }
 
   async guardarFoto(user: AuthenticatedUser, personId: string, input: {
@@ -351,11 +359,7 @@ export class ContatosService {
      * O tipo vem da ASSINATURA do arquivo, e não da extensão: renomear é um
      * toque, e quem guarda arquivo de criança confere os primeiros bytes.
      */
-    const { bytes, tipo } = this.fotoValida(input);
-
-    const chave = randomUUID();
-    await mkdir(this.dir, { recursive: true });
-    await writeFile(join(this.dir, chave), bytes);
+    const { chave, mime: tipo, tamanho } = await this.guardarAFoto(input);
 
     await this.db.asUser(user.id, async (c) => {
       const { rowCount } = await c.query(
@@ -367,7 +371,7 @@ export class ContatosService {
     await this.audit.log({
       action: 'foto.identificacao.guardada', actorId: user.id,
       institutionId: user.institutionId, entity: 'person', entityId: personId,
-      detail: { tipo, bytes: bytes.length },
+      detail: { tipo, bytes: tamanho },
     });
     return { ok: true, aviso: 'Foto de identificação guardada. Ela aparece no alto do perfil '
       + 'e não entra em documento nenhum por padrão.' };
@@ -381,7 +385,7 @@ export class ContatosService {
     });
     if (!p) throw new NotFoundException('Acolhido não encontrado — ou fora do seu alcance.');
     if (!p.photo_key) throw new NotFoundException('Este acolhido ainda não tem foto.');
-    const bytes = await readFile(join(this.dir, p.photo_key)).catch(() => null);
+    const bytes = await this.arquivos.ler(p.photo_key);
     if (!bytes) throw new NotFoundException('A foto não está no armazenamento.');
     /*
      * Ver a foto NÃO é acesso registrado, e isso é escolha.

@@ -81,17 +81,47 @@ export const AREAS = {
   cozinha: 'Cozinha — pedidos e restrições',
   portaria: 'Portaria — quem pode visitar',
   campos_do_perfil: 'O que o plantão vê no perfil',
+  trabalho: 'O trabalho da equipe',
+  periodo: 'O período da casa',
+  metricas: 'As oito casas, em números',
   casas: 'Unidades',
 } as const;
 
+/**
+ * O QUE NINGUÉM ALCANÇA — e uma linha que precisou mudar em 15/09/2026.
+ *
+ * Esta lista dizia *"ranking de casas, de acolhidos ou de equipe"*, e era
+ * verdade para todo mundo. Deixou de ser: a Fundação decidiu que o Gestor
+ * Geral tem uma visão de **contagens** do trabalho da equipe, por casa, por
+ * setor e por pessoa (fase 119).
+ *
+ * Então a frase mudou em vez de continuar bonita. Esta tela é lida pela
+ * equipe — é onde ela confere o que o sistema diz sobre si mesmo —, e uma
+ * promessa que o código não cumpre mais é pior do que uma verdade
+ * desconfortável: a primeira vez que alguém descobrisse a diferença, tudo o
+ * que está escrito aqui viraria suspeito.
+ *
+ * **O que segue valendo para TODO MUNDO, inclusive para o Gestor Geral:**
+ * criança não entra em contagem nenhuma, não há pontuação de comportamento, e
+ * nenhuma lista do sistema sai ordenada por total.
+ */
 const NUNCA_NINGUEM = [
   'WhatsApp ou envio de dados por WhatsApp',
   'GPS ou rastreamento de pessoa',
   'conta compartilhada',
-  'ranking de casas, de acolhidos ou de equipe',
+  'ranking de acolhidos, ou contagem de qualquer coisa por criança',
   'pontuação de comportamento',
+  'lista ordenada por total — nem de casa, nem de pessoa: a ordem é sempre por nome ou por código',
   'decisão automática sobre diagnóstico, culpa, risco, punição, visita, medicação, destino ou transferência',
   'exclusão de registro — nada some, nem pessoa nem texto',
+];
+
+/**
+ * E o que não alcança quem está NA CASA — separado da lista acima desde a
+ * fase 119, quando a contagem por pessoa passou a existir para um cargo só.
+ */
+const NUNCA_NA_CASA = [
+  'contagem do trabalho por pessoa ou por casa — a leitura mostra o que foi feito, sem somar',
 ];
 
 export const ALCANCE_POR_CARGO: Alcance[] = [
@@ -109,7 +139,7 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
           + 'a razão de uma restrição.' },
       { area: 'escala', titulo: AREAS.escala,
         faz: 'Lê a escala de plantão da casa — quando ele trabalha, e quem está com ele no turno.',
-        servidor: 'Quem monta a escala é a coordenação da casa. A escala informa quem devia estar; ela não impede ninguém de trabalhar — quem cobre um turno fora dela assina a passagem com o aviso de que não constava.' },
+        servidor: 'Quem monta a escala é a coordenação, a equipe técnica ou o Líder Diurno da casa. A escala informa quem devia estar; ela não impede ninguém de trabalhar — quem cobre um turno fora dela assina a passagem com o aviso de que não constava.' },
       { area: 'alinhamentos', titulo: AREAS.alinhamentos,
         faz: 'Lê o que a equipe combinou, inclusive o que foi decidido em reunião em que não esteve.',
         servidor: 'Registrar reunião e combinado é da equipe técnica e da coordenação.' },
@@ -142,6 +172,7 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
       'acompanhamentos e relatórios técnicos',
       'transferências',
       'a equipe (cadastro, senha, desativação)',
+      ...NUNCA_NA_CASA,
       ...NUNCA_NINGUEM,
     ],
   },
@@ -157,8 +188,27 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
           + 'leva nome, data e quantidade. Nunca diagnóstico, CPF, motivo judicial nem '
           + 'a razão de uma restrição.' },
       { area: 'escala', titulo: AREAS.escala,
-        faz: 'Lê a escala do dia e da semana, e vê quem devia estar em cada turno.',
-        servidor: 'Quem monta a escala é a coordenação da casa. A escala informa quem devia estar; ela não impede ninguém de trabalhar — quem cobre um turno fora dela assina a passagem com o aviso de que não constava.' },
+        faz: 'Monta e lê a escala do dia e da semana — lança, substitui num gesto e retira '
+          + 'com registro. É ele quem descobre às 6h50 que alguém não veio.',
+        servidor: 'Passou a montar em 15/09, por decisão da Fundação: *"pela equipe técnica, '
+          + 'o coordenador ou o educador líder"*. Retirar ou substituir num plantão que JÁ '
+          + 'PASSOU exige motivo escrito — é a escala que responde quem estava na casa '
+          + 'naquela noite. A escala informa quem devia estar; ela não impede ninguém de '
+          + 'trabalhar.' },
+      { area: 'trabalho', titulo: AREAS.trabalho,
+        faz: 'Abre o que uma pessoa da equipe ou um setor registrou na casa, no período escolhido.',
+        servidor: 'Nada é somado: nem registros, nem plantões, nem médias. A leitura mostra o '
+          + 'que foi feito, em ordem, com data e hora — somar por pessoa é medir gente. E '
+          + 'abrir exige FINALIDADE escrita, que fica registrada com o nome de quem abriu: '
+          + 'quem consulta também é consultável.' },
+      { area: 'periodo', titulo: AREAS.periodo,
+        faz: 'Tira o relatório do período da casa — um dia, uma semana, um mês, até seis meses.',
+        servidor: 'Traz o que aconteceu EM TEXTO, e a parte boa vem primeiro — conquistas, '
+          + 'memórias e evolução escolar antes de ocorrência e episódio. A ocorrência de '
+          + 'acesso restrito e a nota de ATA restrita entram só como CONTAGEM, com a frase '
+          + 'que manda à tela certa: esta folha circula, e aquela tela registra cada '
+          + 'abertura. Nada é somado por criança, por educador ou por turno. Exportar exige '
+          + 'finalidade escrita.' },
       { area: 'plantao', titulo: AREAS.plantao,
         faz: 'Vê o turno inteiro e delega atividade com motivo.',
         servidor: 'Delegar não apaga a designação anterior, e a atividade volta a aguardar ciência.' },
@@ -195,6 +245,7 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
       'o cofre de acessos e os dados bancários',
       'aprovar acompanhamento',
       'transferências',
+      ...NUNCA_NA_CASA,
       ...NUNCA_NINGUEM,
     ],
   },
@@ -217,8 +268,27 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
           + 'leva nome, data e quantidade. Nunca diagnóstico, CPF, motivo judicial nem '
           + 'a razão de uma restrição.' },
       { area: 'escala', titulo: AREAS.escala,
-        faz: 'Lê a escala da casa para saber quem esteve em cada plantão.',
-        servidor: 'Quem monta a escala é a coordenação da casa. A escala informa quem devia estar; ela não impede ninguém de trabalhar — quem cobre um turno fora dela assina a passagem com o aviso de que não constava.' },
+        faz: 'Monta e lê a escala da casa — lança, substitui num gesto e retira com '
+          + 'registro. É quem remaneja quando a coordenação está em audiência.',
+        servidor: 'Passou a montar em 15/09, por decisão da Fundação: *"pela equipe técnica, '
+          + 'o coordenador ou o educador líder"*. Retirar ou substituir num plantão que JÁ '
+          + 'PASSOU exige motivo escrito — é a escala que responde quem estava na casa '
+          + 'naquela noite. A escala informa quem devia estar; ela não impede ninguém de '
+          + 'trabalhar.' },
+      { area: 'trabalho', titulo: AREAS.trabalho,
+        faz: 'Abre o trabalho de uma pessoa da equipe ou de um setor, para acompanhar um caso.',
+        servidor: 'Nada é somado: nem registros, nem plantões, nem médias. A leitura mostra o '
+          + 'que foi feito, em ordem, com data e hora — somar por pessoa é medir gente. E '
+          + 'abrir exige FINALIDADE escrita, que fica registrada com o nome de quem abriu: '
+          + 'quem consulta também é consultável.' },
+      { area: 'periodo', titulo: AREAS.periodo,
+        faz: 'Tira o relatório do período da casa, no intervalo que escolher, para a reunião de rede e para o acompanhamento do caso.',
+        servidor: 'Traz o que aconteceu EM TEXTO, e a parte boa vem primeiro — conquistas, '
+          + 'memórias e evolução escolar antes de ocorrência e episódio. A ocorrência de '
+          + 'acesso restrito e a nota de ATA restrita entram só como CONTAGEM, com a frase '
+          + 'que manda à tela certa: esta folha circula, e aquela tela registra cada '
+          + 'abertura. Nada é somado por criança, por educador ou por turno. Exportar exige '
+          + 'finalidade escrita.' },
       { area: 'acolhidos', titulo: AREAS.acolhidos,
         faz: 'Perfil completo, histórico, documentos e situação judicial.' },
       { area: 'acompanhamentos', titulo: AREAS.acompanhamentos,
@@ -274,6 +344,7 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
       'o cofre de acessos e os dados bancários',
       'aprovar o próprio acompanhamento',
       'assinar evolução de saúde',
+      ...NUNCA_NA_CASA,
       ...NUNCA_NINGUEM,
     ],
   },
@@ -302,6 +373,7 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
       'ocorrências, ATA, plantão e agenda',
       'saúde além da restrição alimentar',
       'qualquer documento',
+      ...NUNCA_NA_CASA,
       ...NUNCA_NINGUEM,
     ],
   },
@@ -333,6 +405,7 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
       'ATA, transferências e equipe',
       'acompanhamentos técnicos',
       'varrer as oito casas atrás de uma criança — o servidor recusa o modo individual',
+      ...NUNCA_NA_CASA,
       ...NUNCA_NINGUEM,
     ],
   },
@@ -349,7 +422,7 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
           + 'a razão de uma restrição.' },
       { area: 'escala', titulo: AREAS.escala,
         faz: 'Lê a escala das casas que alcança, para saber quem está de plantão à noite.',
-        servidor: 'Quem monta a escala é a coordenação da casa. A escala informa quem devia estar; ela não impede ninguém de trabalhar — quem cobre um turno fora dela assina a passagem com o aviso de que não constava.' },
+        servidor: 'Quem monta a escala é a coordenação, a equipe técnica ou o Líder Diurno da casa. A escala informa quem devia estar; ela não impede ninguém de trabalhar — quem cobre um turno fora dela assina a passagem com o aviso de que não constava.' },
       { area: 'plantao', titulo: AREAS.plantao, faz: 'Acompanha o turno das casas que alcança.' },
       { area: 'ata', titulo: 'ATA Geral Noturna',
         faz: 'Abre, preenche casa a casa e assina.',
@@ -370,6 +443,7 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
       'o cofre de acessos e os dados bancários',
       'aprovar acompanhamento',
       'transferências',
+      ...NUNCA_NA_CASA,
       ...NUNCA_NINGUEM,
     ],
   },
@@ -400,10 +474,26 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
           + 'leva nome, data e quantidade. Nunca diagnóstico, CPF, motivo judicial nem '
           + 'a razão de uma restrição.' },
       { area: 'escala', titulo: AREAS.escala,
-        faz: 'Monta a escala da casa por dia e por turno, repete o padrão até o fim do mês, retira alguém com registro, e gera a folha para a parede.',
+        faz: 'Monta a escala da casa por dia e por turno, repete o padrão até o fim do mês, '
+          + 'substitui alguém num gesto só, retira com registro, e gera a folha para a parede.',
         servidor: 'Retirar alguém de um plantão que JÁ PASSOU exige motivo escrito: é a escala que responde quem estava na casa naquela noite.' },
       { area: 'setores', titulo: AREAS.setores,
         faz: 'Responde "o educador vê isso?" sem entrar com a conta de ninguém.' },
+      { area: 'trabalho', titulo: AREAS.trabalho,
+        faz: 'Abre o trabalho de cada pessoa da equipe e de cada setor da casa, no período escolhido.',
+        servidor: 'Nada é somado: nem registros, nem plantões, nem médias. A leitura mostra o '
+          + 'que foi feito, em ordem, com data e hora — somar por pessoa é medir gente. E '
+          + 'abrir exige FINALIDADE escrita, que fica registrada com o nome de quem abriu: '
+          + 'quem consulta também é consultável.' },
+      { area: 'periodo', titulo: AREAS.periodo,
+        faz: 'Tira o relatório do período da casa — a "ata geral" da semana, ou o recorte '
+          + 'que precisar, até seis meses.',
+        servidor: 'Traz o que aconteceu EM TEXTO, e a parte boa vem primeiro — conquistas, '
+          + 'memórias e evolução escolar antes de ocorrência e episódio. A ocorrência de '
+          + 'acesso restrito e a nota de ATA restrita entram só como CONTAGEM, com a frase '
+          + 'que manda à tela certa: esta folha circula, e aquela tela registra cada '
+          + 'abertura. Nada é somado por criança, por educador ou por turno. Exportar exige '
+          + 'finalidade escrita.' },
       { area: 'equipe', titulo: AREAS.equipe,
         faz: 'Cadastra, convida, desativa e redefine senha. Registra e revoga os aparelhos '
           + 'institucionais da casa.',
@@ -456,6 +546,7 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
       'outra casa',
       'assinar evolução de saúde',
       'ver a senha de alguém da equipe — senha não se lê, se redefine',
+      ...NUNCA_NA_CASA,
       ...NUNCA_NINGUEM,
     ],
   },
@@ -507,6 +598,36 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
       { area: 'acompanhamentos', titulo: AREAS.acompanhamentos, faz: 'Aprova e acompanha.' },
       { area: 'sincronizacao', titulo: AREAS.sincronizacao,
         faz: 'Acompanha e decide conflitos de sincronização.' },
+      { area: 'metricas', titulo: AREAS.metricas,
+        faz: 'A TELA INICIAL dele: as oito casas em números, no período que escolher — '
+          + 'crianças acolhidas, quem passou de ano, conquistas, reuniões, escala, '
+          + 'internações, medicamentos, lanches e cestas, acompanhamentos, ATAs, '
+          + 'ocorrências e o gasto com medicamento.',
+        servidor: 'Decisão da Fundação em 15/09/2026, e ela pediu a comparação entre casas '
+          + 'com a razão escrita: descobrir o que uma casa está fazendo que as outras podem '
+          + 'aprender. As casas saem na ORDEM DO CÓDIGO, nunca por resultado. Nenhuma '
+          + 'contagem é por criança nomeada. O gasto soma só o que foi LANÇADO, e a tela diz '
+          + 'quantas notas estão sem valor — um total incompleto num relatório de prestação '
+          + 'de contas é pior do que nenhum. E não existe nota escolar no sistema: onde se '
+          + 'esperaria "boas notas", o painel mostra apoio educacional e evoluções escritas.' },
+      { area: 'trabalho', titulo: AREAS.trabalho,
+        faz: 'Abre o trabalho de qualquer pessoa da equipe e de qualquer setor, nas oito '
+          + 'casas — e, só ele, a visão de CONTAGENS: por casa, por setor, por pessoa e por '
+          + 'tipo de ação.',
+        servidor: 'Decisão da Fundação em 15/09/2026. As contagens saem sempre por NOME, '
+          + 'nunca por total: ordenar por número é a classificação pronta, e ela tem de ser '
+          + 'decisão de quem lê. Nenhuma contagem é por criança acolhida. E o aviso vai junto '
+          + 'do número, na tela: contam-se REGISTROS, não trabalho — quem passou a noite com '
+          + 'uma criança no colo registrou menos, e fez mais. Abrir exige finalidade escrita, '
+          + 'e a consulta fica auditada com o nome de quem olhou.' },
+      { area: 'periodo', titulo: AREAS.periodo,
+        faz: 'Tira o relatório do período de qualquer uma das oito casas, no intervalo que escolher.',
+        servidor: 'Traz o que aconteceu EM TEXTO, e a parte boa vem primeiro — conquistas, '
+          + 'memórias e evolução escolar antes de ocorrência e episódio. A ocorrência de '
+          + 'acesso restrito e a nota de ATA restrita entram só como CONTAGEM, com a frase '
+          + 'que manda à tela certa: esta folha circula, e aquela tela registra cada '
+          + 'abertura. Nada é somado por criança, por educador ou por turno. Exportar exige '
+          + 'finalidade escrita.' },
       { area: 'painel', titulo: AREAS.painel,
         faz: 'Vê as oito unidades lado a lado, na ordem do código.',
         servidor: 'Não há "melhor casa": nenhuma lista aqui é ordenada por número, porque '
@@ -529,7 +650,12 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
       { area: 'arquivo', titulo: AREAS.arquivo, faz: 'Confere o arquivo das unidades.' },
     ],
     naoAlcanca: [
-      'comparar unidades — não há ranking, e não há modo individual entre casas',
+      /* Esta linha mudou na fase 119, e a mudança está dita em vez de
+         escondida: ele PASSA a contar o trabalho da equipe, por casa e por
+         pessoa. O que continua não existindo é a LISTA ORDENADA por total, e
+         qualquer contagem sobre criança. */
+      'lista de unidades ou de pessoas ordenada por total — a ordem é o código da casa e o nome',
+      'contagem sobre criança acolhida, em qualquer recorte',
       'receber ocorrência automaticamente: quem escalona é a técnica ou a coordenação',
       ...NUNCA_NINGUEM,
     ],

@@ -20,7 +20,7 @@ começava escolhendo em qual acreditar.*
 
 | Arquivo | Por que sobreviveu |
 |---|---|
-| `der.md` | as 110 tabelas com o que cada coluna guarda. É referência de dado, não narrativa, e o `documentacao.spec.ts` cobra que toda tabela apareça lá |
+| `der.md` | as 112 tabelas com o que cada coluna guarda. É referência de dado, não narrativa, e o `documentacao.spec.ts` cobra que toda tabela apareça lá |
 | `roteiro-marcelo.md` (+ `.docx`) | é entregue à Casa 03, escrito para quem não conhece o sistema. O `.docx` é GERADO do `.md` por `scripts/roteiro-em-word.mjs` — não editar o Word à mão |
 
 ---
@@ -82,7 +82,7 @@ aplicação e no banco. §7 tem a matriz inteira.
 
 ## 2. O ESTADO HOJE
 
-**Fases 0 a 103.** Estes números **saem do código**, não da memória — e são
+**Fases 0 a 121.** Estes números **saem do código**, não da memória — e são
 cobrados por `test/numeros-da-documentacao.spec.ts`, que existe porque em 08/09
 seis afirmações estavam erradas ao mesmo tempo em três documentos, e duas delas
 discordavam entre si.
@@ -90,14 +90,14 @@ discordavam entre si.
 | Quanto | De onde sai |
 |---|---|
 | **18 partições** isoladas | pastas em `backend/src/modules/` |
-| **107 migrações** | `.sql` dentro das partições |
-| **110 tabelas** | `CREATE TABLE` nas migrações |
-| **70 suítes** | `backend/test/*.spec.ts` |
-| **677 testes** | `it(` / `test(` nas suítes |
-| **33 telas React** | `frontend/src/screens/*.tsx` |
-| **15 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
+| **120 migrações** | `.sql` dentro das partições |
+| **112 tabelas** | `CREATE TABLE` nas migrações |
+| **77 suítes** | `backend/test/*.spec.ts` |
+| **768 testes** | `it(` / `test(` nas suítes |
+| **36 telas React** | `frontend/src/screens/*.tsx` |
+| **14 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **6 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
-| protótipo com **≈1155 KB** | `prototipo/rede-acolher-prototipo.html` |
+| protótipo com **≈1256 KB** | `prototipo/rede-acolher-prototipo.html` |
 
 *A frase importa: o conferidor lê o NÚMERO colado ao substantivo. Escrever
 "Telas React … 31" numa coluna separada faz o teste passar sem conferir nada —
@@ -107,31 +107,45 @@ foi assim que "30 telas" sobreviveu à fase que existiu para acabar com isso.*
 
 | Ensaio | Resultado |
 |---|---|
-| `npm run ensaio` | 123 telas nos **sete** cargos oferecidos — Coordenação 26, Técnica 23, Gestor 23, Líder Diurno 15, Líder Noturno 14, Educador 13, Enfermagem 9. A Cozinha saiu do seletor em 09/09: o cargo continua no banco, oculto |
-| `npm run ensaio:acessibilidade` | 130 telas, **nenhuma violação de WCAG 2.1 AA** |
+| `npm run ensaio` | 132 telas nos **sete** cargos oferecidos — Coordenação 28, Técnica 25, Gestor 26, Líder Diurno 17, Líder Noturno 14, Educador 13, Enfermagem 9. A Cozinha saiu do seletor em 09/09: o cargo continua no banco, oculto |
+| `npm run ensaio:acessibilidade` | 139 telas, **nenhuma violação de WCAG 2.1 AA** |
 | `npm run ensaio:roteiro` | 49 tarefas do roteiro, **todas com porta no cargo certo** |
-| `npm run ensaio:uso` | 149 cobranças em 13 blocos, **todas passando** — e todos os cargos completando o percurso |
+| `npm run ensaio:uso` | 247 cobranças em 19 blocos, **todas passando** — e todos os cargos completando o percurso. O bloco 14 nasceu na fase 107 e cresceu na 108: abre as prévias e cobra que o olho devolva uma **imagem**, e não o nome de um arquivo — e que a lista diga **antes do clique** se o documento está no sistema ou no Drive |
 
 ### A última verificação inteira
 
-**13/09/2026, fase 103.** `tsc` limpo nos dois lados. A suíte **duas rodadas
-inteiras**, 70 suítes e 677 testes em cada: às 16h51 de Porto Alegre no relógio
-real, e sob `faketime +7h` às **23h53, com o servidor já em 14/09 e a
-instituição em 13/09**. O `ensaio:producao` aplicou as 107 migrações e o serviço
-compilado respondeu ao `/health`; o `ensaio:restauracao` rodou com credencial no
-cofre.
+**19/09/2026, fase 121.** `tsc` limpo nos dois lados. A suíte **duas rodadas
+inteiras**, 77 suítes e 768 testes em cada: às 13h56 de Porto Alegre no relógio
+real, e sob `faketime +9h` às **22h54, com o servidor já em 20/09 e a
+instituição em 19/09** — que é exatamente a condição em que ela vinha
+reprovando.
 
-**E o relógio foi rodado como o cron vai rodar**, pela linha de comando: 8
-casas, 48 rotinas, código de saída 0 — e código **1** com uma conta inexistente,
-que é o que faz o cron avisar. Testar só pelo serviço teria deixado a CLI e o
-código de saída sem prova, e é a CLI que o servidor chama.
+**Como o defeito se escondia, e é a lição da fase.** A suíte inteira ficava
+vermelha e **cada suíte, sozinha, passava** — o pior sintoma possível, porque a
+parte diz que está tudo bem e o todo diz que não. Eram três causas, todas em
+dado de teste:
 
-**Não rodaram, de propósito:** os seis ensaios de navegador. Nenhuma linha do
-`frontend/` mudou, e o protótipo é o da fase 98.
+1. um teste criava uma criança na Casa 03 e não a devolvia;
+2. outro desligava o **Theo, do seed**, e também não o devolvia;
+3. o seed das prescrições gravava `starts_on` com `CURRENT_DATE`.
 
-*O conferidor de implantação pegou o que eu tinha esquecido: `RELOGIO_USER_EMAIL`
-lida pelo código e ausente do `.env.example`. **Variável nova que só existe no
-código é variável que ninguém configura no dia da instalação.***
+**As duas primeiras se cancelavam:** uma somava, a outra subtraía, e a conta dos
+vinte fechava por coincidência. Ao consertar uma, a outra apareceu — e foi
+preciso consertar as duas para chegar à terceira, que estava escondida atrás
+delas. *Dois erros que se anulam são mais difíceis de achar do que um erro
+sozinho, porque o sistema parece certo.*
+
+**E a terceira era a de sempre, num lugar novo.** `CURRENT_DATE` é o dia do
+servidor; depois das 21h em Porto Alegre ele já é o dia seguinte. A prescrição
+nascia começando amanhã, nenhuma dose do dia era gerada, e o piloto reprovava —
+por um motivo que não estava no sistema, e sim no **dado de partida**. A
+conferência da fase 99 lê o catálogo e os serviços; **os seeds ficavam fora do
+alcance dela**, e continuam: está anotado na §9.
+
+*Antes de procurar no sistema, reproduzi pelas rotas com o relógio deslocado e
+com o relógio real, e o comportamento foi IDÊNTICO nos dois — foi isso que
+mostrou que a diferença não estava no servidor. Meia hora perdida procurando no
+lugar errado teria sido meia hora a mais sem essa medição.*
 
 *Dois cuidados que as rodadas ensinam: o `pg_ctl start` sob `faketime` trava
 esperando o arranque — use `-W` e confira com `pg_isready`; e **os dois
@@ -140,16 +154,6 @@ relógios andam juntos, ou nenhum anda**.*
 *Contagem que só cresce não é dado. O que vale é a **data** e a **condição** da
 última verificação. Quando a próxima fase terminar, esta seção é reescrita, não
 acrescida.*
-
-### Para a conversa com a Fundação
-
-**`docs/PARA-A-REUNIAO.md`** reúne num lugar só o que está espalhado pelas §9,
-§10, §10.5, §11 e §12: as nove perguntas do roteiro, as decisões que são do
-Marcelo, o que depende da Fundação, os seis formulários que faltam, as três
-decisões novas do relógio, e as decisões que tomei sozinho — todas reversíveis,
-com onde mudar. É o documento para levar à reunião; este continua sendo o de
-retomar o trabalho. *Os números dele saem do código, cobrados pelo mesmo
-conferidor.*
 
 ### Como retomar, em três linhas
 
@@ -187,10 +191,33 @@ arqueologia.
 | 97 | **As fontes, embutidas.** A decisão §10.10 estava parada por um custo estimado em 300 KB; medido com o subconjunto latino e só os pesos usados, são **116 KB**. O protótipo deixou de buscar letra no Google: offline — que é como ele é entregue — a letra agora é a que a equipe vai ver, e nenhum IP de quem abre vai para um terceiro |
 | 98 | **O bloco de notas recuperado.** Dois pedidos do Marcelo achados em 12/09: **as casas pelo nome** — os cartões das unidades não abriam, e quem tem alcance em várias ficava preso à primeira — e **os aniversários avisados antes**, com ciência da casa. O terceiro, a visão de cima do gestor, ficou anotado por não ser adivinhável |
 | 99 | **A data que nascia em UTC.** Duas colunas ainda usavam `current_date`: uma regra de convivência escrita às 22h nascia valendo **amanhã** e sumia da folha da parede, e a escala criada à noite passava a valer um dia depois. Achado por uma sabotagem que não reprovou — o defeito estava um degrau abaixo de onde eu procurava, no `DEFAULT` da tabela |
-| 100 | **O que a aplicação não precisa poder.** Das 110 tabelas, quatro estavam sem RLS e a aplicação tinha INSERT e UPDATE em todas — inclusive nas duas em que ela nunca escreve. `institution` ganhou RLS, e a escrita em `institution` e `schema_migration` foi revogada. As duas de autenticação ficaram, com o risco escrito |
+| 100 | **O que a aplicação não precisa poder.** Das 112 tabelas, quatro estavam sem RLS e a aplicação tinha INSERT e UPDATE em todas — inclusive nas duas em que ela nunca escreve. `institution` ganhou RLS, e a escrita em `institution` e `schema_migration` foi revogada. As duas de autenticação ficaram, com o risco escrito |
 | 101 | **A sessão fechada.** O risco que a 100 anotou: a aplicação lia e escrevia `user_session` e `login_attempt` direto — uma consulta sem `WHERE user_id` lia o hash de sessão e o IP de todo mundo. As operações viraram funções `SECURITY DEFINER`, o acesso direto foi revogado, e **a lista de exceções encolheu** — foi a própria conferência que exigiu tirá-las |
 | 102 | **O caminho das funções privilegiadas.** 150 das 151 funções que rodam como dona do banco não fixavam `search_path`. O risco é **teórico hoje** — a aplicação não pode criar schema nem objeto, e isso passou a ser conferido —, mas basta um `GRANT` concedido numa pressa para deixar de ser, em 151 funções de uma vez |
 | 103 | **O relógio, que não existia.** Seis rotas de máquina tinham o motivo escrito de não ter tela — "roda por relógio" — e **nada as chamava**. No piloto, a casa abriria o sistema e acharia o dia vazio: sem doses geradas da prescrição, sem as atividades da rotina, sem aviso de aniversário. Nenhum teste pegava, porque cada rota tem a sua suíte e todas passam — chamadas pelo teste |
+| 104 | **O documento da reunião.** `docs/PARA-A-REUNIAO.md` reúne num lugar só o que estava espalhado pelas §9, §10, §10.5, §11 e §12, para a conversa com a Fundação não precisar caçar. Entrou no conferidor de números junto: número repetido em dois lugares envelhece no primeiro que ninguém conferir |
+| 105 | **O que o conferidor não conferia.** Seis desencontros achados lendo, nenhum capaz de quebrar nada — que é o que os põe na família da regra 18. O `.env.example` implantando convite de **72 horas** onde o código e a §7 dizem 24, sem motivo escrito em lugar nenhum; a lista das 18 partições com **17 nomes** (faltava a `relogio`, nascida duas fases antes); **o domínio errado em dois lugares** — no `relogio.crontab`, que alguém copia no dia da instalação, e no `placeholder` do e-mail institucional em Equipe, que é o campo de onde sai a conta para a qual o convite é enviado (`.org.br` onde a Fundação é `.com.br`, e o segundo é de onde o primeiro provavelmente veio); duas remissões do `.env.example` a documentos que foram para `docs/historico/` em 09/09; e o `module.json` da `relogio` apontando para a §12.6, que é a seção que a §12.7 abre pedindo para não confundir com ela. **Nada de novo foi construído.** *A lição que sobra: o conferidor de números conta o que está colado ao substantivo, e ao lado dele viajam listas, exemplos e remissões que ninguém confere — todas lidas por quem instala* |
+| 106 | **A varredura das pontas soltas.** Três varreduras por medição — 112 tabelas, 1236 colunas, 102 colunas de autoria — atrás de informação que não chega a lugar nenhum e de começo que não ficou ligado em nada. **Nada consertado, tudo anotado** no §9. O maior achado é o mais silencioso: a **auditoria** é escrita por todo serviço e não tem rota que a leia, embora a §7 prometa a leitura a dois cargos. Do lado bom, **100 das 102 colunas de autoria chegam a uma tela com o nome escrito** |
+| 107 | **O botão de olho, nos quatro que não tinham.** O primeiro conserto da varredura: `frontend/src/anexos.tsx` virou o lugar único da prévia, e a foto de identificação da criança **deixou de subir no instante em que o arquivo é escolhido**. Com ela, a foto 3×4 do visitante, o documento do hospital e o comprovante do marco. O `ensaio:uso` ganhou o bloco 14, que abre as prévias e cobra que o olho devolva uma **imagem** — porta que abre caixa vazia passaria numa cobrança de porta |
+| 108 | **O anexo que era um caminho passou a poder ser o papel.** Os três que a varredura achou guardando REFERÊNCIA e não documento — o anexo da **ocorrência**, a **receita** e a **nota fiscal** — passaram a aceitar as duas formas, e a casa escolhe uma por anexo. O `storage_ref NOT NULL` garantia um texto, nunca um documento: agora o banco exige **um dos dois** (`anexo_tem_onde_estar`). Os bytes saem pela mesma função que registra a abertura — abrir um laudo de criança não é um SELECT —, e `kernel/arquivos` virou o lugar único de guardar e ler, em vez das cinco cópias espalhadas. *Três lições no caminho: coluna nova não herda privilégio de coluna; `GRANT SELECT, INSERT (x)` concede SELECT da TABELA; e rota guardada em variável escapa do conferidor de contrato* |
+| 109 | **O movimento do armário abre.** O segundo achado da varredura (§9, item 2): `medication_stock_movement` tinha três lugares que escreviam e nenhum que lia, desde a migração 0200. A fase 85 existiu para gravar o `consumo` que faltava, e o lugar de abrir nunca foi construído — a própria 1040 descreve o sintoma que continuava de pé. Agora cada item do armário tem o botão de olho, e a lista é **cronológica e sem contagem por pessoa**: cada linha tem autor, porque toda ação tem autor, e somar movimento por educador é medir gente. *No caminho, o servidor de mentira deixou de prometer o que não guardava: a resposta do POST já dizia "a diferença ficou no histórico", e não havia histórico nenhum* |
+| 110 | **A presença da criança chega à vida dela.** O quarto achado da varredura (§9, item 4): `check_result` só era lido DENTRO da própria chamada, e para saber se a Alice esteve no almoço de terça alguém abria a chamada daquele almoço. O provedor da linha do tempo dizia, num comentário, que *"o registro dele está no perfil"* — e não estava. Agora está, num bloco que mostra **só o que teve exceção** por padrão, com a frase escrita ao lado e com a CORREÇÃO — `check_result_amendment` era guardado por gatilho desde a fase 67 e nunca tinha sido lido por nada. **Sem contar nada**: nem faltas, nem recusas, nem percentual, e um teste guarda isso por FORMA |
+| 111 | **O Prontuário de Educação ganha porta.** O terceiro achado da varredura (§9, item 3): `education_support` e `education_evolution` nasceram na migração 0530, do papel que a Fundação entregou em 28/08, e **o relatório já as lia** — nenhuma rota as escrevia, e o único INSERT do repositório estava dentro de um teste. No piloto, o relatório de desenvolvimento e a audiência concentrada diriam *"não há"* sobre escola e profissionalização **para sempre**, e num documento judicial seção vazia se lê como ausência de trabalho. Quem escreve não foi escolha desta fase: as políticas da 0530 já incluíam o **educador** — *"quem acompanha a tarefa de casa é ele"* (§8.12). A evolução **não se edita**: correção é registro novo, como no caderno |
+| 112 | **A auditoria passa a ter por onde ser lida.** O maior e mais silencioso achado da varredura (§9, item 1): todo serviço escrevia em `audit_event` desde a migração 0010, e **nenhuma rota a lia** — uma capacidade que a §7 promete a dois cargos, sem porta nenhuma. **Duas entradas, e nenhuma terceira:** pela CRIANÇA e pelo REGISTRO. Não existe busca por pessoa da equipe, e a ausência é a decisão — a mesma tabela que responde *"quem abriu o dossiê da Alice"* responderia *"tudo o que a Joana fez ontem"*, e a segunda pergunta é vigilância com outro nome. Sem contar nada, e um teste guarda as duas coisas: que os caminhos por ator devolvem 404, e que a resposta não tem totais |
+| 113 | **A chamada passa a dizer quem a abriu e quem a fechou.** `created_by` e `confirmed_by` estão em `collective_check` desde a migração **0120** e nenhuma consulta os lia (§9, item 5): a tela escrevia *"Chamada confirmada"* e mais nada. Confirmar não é ato administrativo — é alguém afirmando que **olhou todas as crianças da casa**, e num sistema em que cada marcação tem nome por regra (§8.2) era a última assinatura sem dono; a conferência de mesa, que é um ato menor, já trazia a dela desde a fase 91. Nenhuma migração: as duas colunas já eram legíveis, faltava a pergunta. Dois testes, um deles para a chamada ainda **aberta** — o campo do fecho precisa vir vazio, e não com o nome de quem abriu |
+| 114 | **O acervo passa a ter um dono só.** Cinco serviços traziam a mesma linha de `ARQUIVOS_DIR` e cada um decodificava, media, lia a assinatura e gravava do seu jeito — a última dívida do item 5 da §9, anotada como arrumação. **Não era arrumação:** ao juntá-las, as cinco não faziam a mesma conferência, e uma delas dava `image/webp` a um arquivo **AVI** (`RIFF` sozinho não é WebP; o formato fica no 9º byte). As diferenças legítimas viraram `RegraDoArquivo`, declarada ao lado de cada método — 15 MB e seis tipos no dossiê, 10 MB e três na internação e no marco de vida, 4 MB e só imagem nas duas fotos, *porque um PDF como retrato de uma criança não é documento, é engano*. Um conferidor novo no `arquitetura.spec` impede a sexta cópia |
+| 115 | **A auditoria passa a falar português — e o conferidor mantém isso verdade.** Varredura sobre a própria fase 112: o mapa de rótulos que escrevi com ela tinha dezoito entradas, cobria **treze das 170 ações** que o sistema grava, e **cinco das suas dezoito não casavam com ação nenhuma** — `person.update` quando a real é `person.profile_update`, `credential.open` quando é `credential.reveal`. Todas **próximas** de uma ação real e nenhuma igual: a assinatura de quem escreveu de memória. Nada acusava, porque `Record` que devolve `undefined` cai no `?? r.action` e a tela mostra o código cru, em inglês, no rastro de uma criança. **E vinte e cinco ações não saem do TypeScript: saem do SQL**, de funções `SECURITY DEFINER` — `credential.reveal`, `incident.attachment_open`, `staff.create` —, as mais sensíveis justamente porque estão no banco para que nenhum caminho escape delas; a primeira versão do conferidor não as via e dava tudo verde. O vocabulário mudou para o kernel, ao lado de quem ESCREVE a auditoria, e `vocabulario-da-auditoria.spec.ts` reprova nas duas direções: ação sem frase, e **frase sem ação** — rótulo que sobra é a prova de que ninguém conferiu |
+| 116 | **O que o cadastro pede passa a ter fim.** Varredura pedida pela Fundação em 15/09 — *"veja se o perfil dos atendidos está ok e se tudo está conectado com as opções de cadastro dos jovens"*. Três achados. **(1) O motivo do ingresso urgente era exigido e jogado fora:** a tela pede a frase com o mínimo de dez caracteres, o serviço recusa o cadastro sem ela, e **não havia coluna** — o `INSERT` da 0480 não a listava, e a porta curta (`app_admit_person`) **nem criava ficha de entrada**. Quem entrava pela urgência, que é exatamente quem entra sem documento de madrugada, era quem ficava sem nada escrito; o que sobrava era `PROV-M4X7K2`. **(2) Cinco campos lidos por nada:** `gender`, `race`, `birthplace`, `nis` e `civil_registry` são pedidos no cadastro e gravados desde a 0480, e nenhum `SELECT` do sistema os nomeava — a **cor/raça autodeclarada**, que é como a política pública se mede, e o **NIS**, que abre o CadÚnico, invisíveis justamente para quem monta o relatório. **(3) A ficha de entrada sem tela:** `admission_record` tinha rota de leitura desde a 0480 e **nenhuma tela a chamava**; a exceção do `rotas-sem-porta` dizia *"o perfil mostra o motivo e os dados judiciais nas suas próprias seções"* — e confundia duas tabelas diferentes, que é por que ninguém percebeu em 76 fases. A trava do motivo desceu para o banco, nas DUAS portas de cadastro |
+| 117 | **O trabalho da equipe passa a ser visível para quem coordena — e isto desfaz uma recusa minha.** Pedido da Fundação em 15/09: *"quero que seja possível ver todo o trabalho e ações de cada educador e setor para a visão do coordenador"*. A fase 112 tinha recusado a busca por pessoa da equipe e escrito a recusa no código — *"'tudo o que a Joana fez ontem' é vigilância"* —, terminando assim: *"se a Fundação quiser, isso é decisão dela e vira OUTRO CAMINHO, com finalidade escrita e registro da própria consulta."* A decisão veio, e o outro caminho cumpre as três condições que eu tinha posto, mais a que importa: **não conta nada.** Nenhum total, nenhuma média, nenhuma lista de pessoas lado a lado — ela responde *"o que a Joana fez na terça"* e não *"quem fez mais"*. A leitura é `audit_event` filtrada por ator, e não uma consulta nova sobre as oitenta e cinco tabelas que guardam autoria: tudo o que ela mostra já era gravado, e desde a 115 já tinha frase em português. **Quem lê são os três que a Fundação nomeou** — equipe técnica, Líder Diurno e coordenação, cada um nas casas em que trabalha. **O Gestor Geral não está na lista**, e a ausência é decisão escrita: ele não foi nomeado, e é dele a visão das oito casas, que é onde a comparação entre equipes ficaria mais fácil de fazer. Um teste guarda a forma da resposta, para o total não voltar de carona |
+| 118 | **Três coisas que aconteciam com a criança e não chegavam à vida dela.** Fecho da varredura de 15/09. **(1) O ofício a órgão externo:** `external_communication.person_id` é gravado desde a migração 0320 e **nenhuma consulta o lia** — nem o detalhe da ocorrência, nem a lista da casa. Um ofício ao Judiciário, ao Conselho Tutelar ou ao MP **sobre a Alice** não aparecia em lugar nenhum da vida da Alice, e é o tipo de documento que a audiência pergunta se existe. **(2) A convivência familiar:** aberta de DENTRO do perfil desde a fase 89, e lida só na lista da casa — que mostra quem está fora *agora*. Quem abrisse o perfil em outubro não via os fins de semana de setembro nem como ela voltou de cada um. **(3) A internação:** lida pela casa, e uma internação **encerrada** é exatamente a que some da tela e fica na vida. Nenhuma migração: as três colunas já eram legíveis e o RLS já dizia quem alcança cada uma — faltavam as perguntas. Os três blocos **somem quando não há o que mostrar**, e nenhum conta nada: *"4 saídas em setembro"* no perfil de uma criança é a primeira linha de um julgamento sobre a família dela |
+| 119 | **O Gestor Geral passa a ver as oito casas — e a contar.** Decisão da Fundação em 15/09, nas palavras dele: *"o gestor vê tudo o que ele quiser, em uma visão apenas contagens e métricas, na visão total ele vê tudo, afinal ele é o chefe de todas as casas."* A fase 117 o tinha deixado de fora e escrito a ausência **como decisão minha, sujeita à dele**; ele decidiu. Duas visões: a leitura detalhada, agora nas oito casas (o recorte não precisou mudar — `app_casas_no_alcance()` já devolvia as oito para o cargo dele desde a 0920), e **a primeira contagem por pessoa que este sistema faz**, por casa, setor, pessoa e tipo de ação. **O que NÃO mudou, e não é teimosia:** criança não entra em contagem nenhuma — a regra 3 protege quem é cuidado, e não foi o que a Fundação revisou; a ordem é sempre por NOME, nunca por total, porque a lista ordenada por número já É a classificação e ela apareceria sem ninguém ter decidido fazê-la; e nada de média ou meta, que é juízo disfarçado de fato. **O aviso vai junto do número, na tela e na resposta:** contam-se REGISTROS, não trabalho — quem passou a noite com uma criança no colo registrou menos, e fez mais. A promessa da §7 *"ranking de casas, de acolhidos ou de equipe"* mudou de texto em vez de continuar bonita: o que segue valendo para todos é *"ranking de acolhidos, contagem por criança, pontuação de comportamento e lista ordenada por total"* |
+| 120 | **O painel das oito casas, e os manifestos que voltaram a dizer a verdade.** A pergunta 1 — aberta desde 09/09, respondida em 15/09 — virou tela: as oito casas em números, no período escolhido, com as métricas que ele nomeou. **A tela INICIAL do Gestor Geral passou a ser ela**, porque ele pediu exatamente isso: *"como o dia a dia é controlado pelos coordenadores, ele não vai querer que a tela inicial dele seja essa de controle total."* Antes, a aba inicial era `'dia'` para todo cargo, escrita em dois lugares; agora nasce vazia e cai na **primeira aba do cargo** — uma regra a menos, e não uma a mais. **Barras, e não pizza, apesar de ele ter pedido pizza:** oito fatias vizinhas de tamanho parecido são um borrão, e a pergunta dele é comparar. A rosca ficou onde é verdade — duas fatias, um mesmo total. **A primeira cor deste sistema que não é estado:** verde numa barra alta diria *"esta casa está bem"*, um juízo que ninguém assinou; o gráfico tem tinta própria, validada nos dois temas contra as superfícies reais da folha. **E ao construir apareceu outro achado:** 26 das 112 tabelas não estavam declaradas em manifesto nenhum — `hospitalization`, `person_contact`, `person_credential`, `shift_assignment` —, e por isso o conferidor de fronteiras entre partições **não as enxergava**. Um quarto do esquema fora da única regra que guarda as partições, sem nada quebrar. Declaradas, e com conferidor novo nas duas direções |
+| 121 | **A suíte que só era verde de dia.** Ao retomar o trabalho noutra conversa, a suíte inteira reprovava — e cada suíte, sozinha, passava. Três causas, todas em DADO DE TESTE e nenhuma no sistema: dois vazamentos de fixture que **se cancelavam** (um deixava uma criança a mais na casa, o outro tirava o Theo do seed, e a conta fechava por coincidência), e o seed das prescrições usando `CURRENT_DATE` — o dia do SERVIDOR —, que depois das 21h em Porto Alegre semeava o dia seguinte e deixava o dia de hoje sem dose nenhuma |
+| 121 | **O período da casa — *"uma ata geral de toda semana"*, com o período livre.** Resposta da Fundação em 15/09 à pergunta R1 do roteiro: *"acompanhamento semanal é um bom caminho: ver como foi a casa toda aquela semana, tipo uma ata geral de toda semana, tanto manhã quanto noite"*, e o recorte escolhido por quem lê — *"se é um dia, dois, três, uma semana, um mês, seis meses […] esse controle tem que ser livre para eles poderem brincar ali dentro"*. Não é o painel do Gestor (1280): lá o leitor é o chefe das oito casas e a pergunta é *"como estão as oito"*; **aqui o leitor responde por vinte crianças e a pergunta é "como foi a nossa semana"** — e essa não se responde com número nenhum sem o que foi escrito ao lado. Três funções: os números do período, *"quem não está comendo o quê"* criança por criança, e o que aconteceu em texto. **A parte boa vem primeiro, e isso é a frase dele:** *"as observações que os educadores botam têm que ser ponderadas para ser trazido coisas boas e negativas"* — conquistas, memórias e evolução escolar abrem o relatório, antes de ocorrência e episódio. Um resumo que abre pela lista de falhas ensina a equipe a ler a própria semana assim, e a criança some dele. **Texto de acesso restrito NÃO entra**, e não por permissão — os quatro cargos que abrem são o círculo estreito que ele desenhou: é que este documento tem folha, e folha se imprime, se anexa e se esquece em cima de uma mesa. A ocorrência restrita sai como CONTAGEM, com a frase que manda o leitor à tela onde cada abertura fica registrada. **O único número comparado é o de doses** — *"aumento de medicamentos"* foi o pedido —, e a comparação é da casa consigo mesma, no período anterior de igual duração; nunca com outra casa, e sem dividir um pelo outro. **E o `npm run prototipo` morreu de "Killed" no meio disto:** dois níveis de recursão dentro do `responder` do servidor de mentira — nove mil linhas — levaram o transformador a 5,7 GB. O sintoma era memória; a causa era desenho, e o conserto foi o tratador em função própria, como o `responderImpacto` já era pelo mesmo motivo |
+| 122 | **O relato da convivência familiar — a porta que não fecha, e uma correção da Fundação.** A resposta de 15/09 pedia um acompanhamento que *"fica aberto para ser preenchido por algum educador depois de uma semana"*, e eu ia construir isso como **pendência com prazo**. Em 16/09 ele voltou: *"acho mais fácil não dar um prazo, mas deixar em aberto para ser registrado quando de fato tivermos uma informação. Assim, quando o jovem sair para a visita em casa, se abre essa pergunta para ser respondida depois — dessa forma não haverá uma pressão para arrancar a informação da criança. Mas isso pode ser registrado quantas vezes for necessário, por qualquer educador, tudo ficando no perfil do jovem."* **A correção dele é melhor que o meu desenho, e por um motivo que vale escrever:** uma pendência de sete dias vira, na prática, cobrança sobre o educador — e o educador só tem uma forma de baixar uma cobrança dessas, que é perguntar de novo para a criança. O campo com prazo transformaria o adolescente que voltou calado numa tarefa vencida. **O que isso impôs ao código:** `family_stay_note` é tabela de LINHAS e não coluna em `family_stay` (uma coluna só aceita a última versão, e a última versão apaga a primeira — o que ela contou na terça não substitui o que se observou no domingo: soma); não existe `status`, `prazo` nem quem feche, e o teste reprova se algum aparecer; **não há conferência de cargo** — quem alcança a casa escreve, porque a criança conta para quem ela confia, e quem ela confia quase nunca é quem tem o cargo mais alto; e a porta abre na **SAÍDA**, não no retorno, então dá para registrar o telefonema de sábado. `UPDATE` e `DELETE` revogados: escreveu errado, escreve de novo. **O único aviso do sistema aqui** é o de *"houve alteração"*, opcional e desmarcado por padrão — se todo relato avisasse, a equipe aprenderia a ignorar o sino, e aí o aviso que importa some junto. Ele sai pelo BARRAMENTO e não de dentro da função: `people` não pode depender de `notifications`, que é removível |
+| 123 | **A escala como ele descreveu: quem monta, a cor, e a substituição num gesto.** Em 15/09 ele descreveu a escala que quer, e **a maior parte já existia** — lançamento por data e turno, repetição de padrão, preparação com meses de antecedência, retirada que some do turno na hora, nada apagado. Antes de construir eu MEDI a diferença (§9, Grupo 2.5), e ela eram quatro coisas; esta fase fecha três. **(1) Quem monta:** entram a equipe técnica e o Líder Diurno — *"pela equipe técnica, o coordenador ou o educador líder"* —, que são exatamente quem está na casa quando a escala precisa mudar: o Líder Diurno é quem descobre às 6h50 que alguém não veio. A RLS mudou junto com a função, e não só a função: mexer numa só deixaria a porta do banco aberta por um lado e fechada por outro. **(2) A cor:** `app_user.line_color` existe desde a 0990, é escolhida pela pessoa, não repete na casa — e era usada **só na ATA**. Agora a escala a carrega e a desenha na borda da linha, com o nome escrito ao lado, sempre: a folha da parede sai em preto e branco na impressora da casa. O hash que decide o tom automático saiu da tela da ATA e foi para `rotulos.ts`, porque uma segunda cópia faria a mesma educadora sair de um tom na ATA e de outro na escala — é a lição do mapa `VINCULO`. **(3) Substituir num gesto:** eram dois atos, e entre um e outro o turno ficava vazio na tela de quem estivesse olhando; pior, os dois não se sabiam parentes, e três meses depois a escala mostrava uma revogação e uma escalação sem relação nenhuma. `app_substituir_no_plantao` faz os dois numa transação, **com a pessoa nova entrando ANTES de a antiga sair** — se ela já estivesse no turno, o erro estoura com a casa ainda intacta. *"Deixar a menos" continua existindo*: o botão Retirar não saiu do lado, porque uma casa pode mesmo passar o turno com uma pessoa a menos. **A quarta não foi feita, e a razão está escrita na migração:** *"a gente não vai deduzir a escala"* — retirar a dedução deixa a passagem de plantão sem ninguém para assinar no primeiro dia de uso, com a escala real ainda não digitada. É consequência que a Fundação precisa escolher (§4.5). **E o teste da própria fase pegou um defeito:** a recusa "esta pessoa já está escalada neste turno" subia CRUA, em inglês de Postgres, na tela de quem monta a escala às 6h50 — o índice sempre existiu, mas até aqui nenhum chamador humano batia nele, porque `app_escalar` trata o conflito por dentro |
+| 124 | **Várias fotos numa vivência, e o baixar no dossiê.** Dois dos três pedidos que a equipe fez e a Fundação repassou em 15/09 (§9, Grupo 2.5) — e os dois eram diferenças pequenas, o que não quer dizer pouca coisa. **(1) As fotos:** o álbum já aceitava fotos sem limite, mas não mais de uma **da mesma vivência** — `memory_record` guardava um `storage_key`, e a educadora que voltava da festa com seis fotos registrava seis vivências: seis vezes a mesma data, seis vezes a mesma descrição, e o álbum da criança contando a festa seis vezes. A saída errada seria `storage_key_2`, `storage_key_3`; a certa é dizer o que é verdade — **uma vivência é um acontecimento, e um acontecimento tem quantas fotos tiver**. As que já existiam **mudaram de lugar** para `memory_photo`, e as colunas antigas ficaram como origem histórica, com um `COMMENT` dizendo que não são mais lidas: guardar o mesmo fato em dois lugares é como duas versões da verdade começam, e um teste confere que elas nascem nulas. **A autorização de imagem continua POR FOTO** — a festa pode ter uma foto com uma criança de outra casa, e a autorização dela é outra conversa —, e a vivência só aparece autorizada quando todas as fotos dela estão. A `position` guarda a ordem da escolha: sem ela, seis fotos saem embaralhadas a cada consulta e a primeira deixa de ser a primeira. E o envio tem teto de doze, que **não é limite do álbum**: é o tamanho de um envio que cabe numa conexão de casa, e a recusa diz o que fazer no lugar. **(2) O baixar:** a folha do dossiê abria a prévia e não oferecia baixar — o botão existe na biblioteca de anexos desde a fase 47 e é usado em quatro telas; faltava justamente onde a equipe pediu. Ele passa por **rota própria, que registra**: salvar no navegador os bytes que a prévia já tem funcionaria e não deixaria linha nenhuma. Abrir é `document.open` desde a 47; sair com o arquivo é `document.download`, e é o que alguém vai querer rastrear no dia em que uma certidão aparecer onde não devia. A conferência do sha vale para os dois: **um arquivo trocado por baixo não sai do sistema nem para a tela, nem para o disco de ninguém** |
+| 125 | **O que é da criança chega ao dossiê dela.** O terceiro pedido do Grupo 2.5, e o mais fundo, porque a Fundação tirou dele uma regra para o sistema inteiro: *"se a enfermagem já faz isso cair no perfil da criança, todos os outros lugares onde a gente preenche […] têm que ir individual para cada um no seu registro"*. **O defeito, medido:** a receita digitalizada vive em `prescription_document`, presa à prescrição, na tela de Saúde; o anexo do diário de internação vive em `hospitalization_note`. **Nenhuma das duas cria linha em `document`** — e o dossiê só lê `document`. O dado não estava perdido: estava guardado, com autor e hora, na tela onde nasceu. Faltava ele **chegar onde a criança é procurada**. **O espelho** (`app_espelhar_no_dossie`) cria a linha em `document` apontando para o **mesmo objeto guardado** — mesmo `storage_key`, mesmo sha: não há cópia do arquivo, porque duas cópias divergem no dia em que alguém substituir uma delas e a segunda continua parecendo verdadeira. É **idempotente por `mirror_of`**, e sem isso cada reprocessamento — uma fila offline reenviada, um clique duplo no fim de um turno de doze horas — encheria a pasta da criança de receitas repetidas que ninguém distingue. **Ele chega conferido, e isto é decisão escrita:** o rito do aceite é *"eu olhei e digo que é este documento, desta criança, e que está legível"*, e quem anexou à prescrição fez exatamente isso — o *"é desta criança"* está garantido pela estrutura, porque a prescrição já é de uma criança nomeada. Deixá-lo aguardando conferência faria o contador de *"falta conferir"* da casa subir sozinho a cada prescrição, e contador que sobe sozinho é contador que a equipe aprende a ignorar — e aí o documento que **realmente** falta conferir some no meio. **Só quando há arquivo:** a receita pode ser anexada como referência (*"está na pasta tal do Drive"*), e um espelho sem arquivo seria um documento no dossiê que não abre. **A bula, que não existia em lugar nenhum**, entra pela mesma porta — `prescription_document.kind` —, e na mesma tabela porque é o mesmo fato: um papel digitalizado preso a uma prescrição. Uma tabela idêntica com outro nome seria a mesma coisa escrita duas vezes, e a segunda esqueceria a correção que a primeira recebesse. Ela segue a política restrita da receita por uma razão prática: **o sigilo não está no papel, está no vínculo** — saber QUE bula alguém guardou é saber qual remédio a criança toma. As receitas **já guardadas** são espelhadas na migração, senão a casa abriria a pasta no dia seguinte sem entender por que a receita de ontem não está lá. E a tela mostrou um defeito que a fase descobriu: o dossiê desenhava **só as vagas da lista de obrigatórios**, então a bula e o laudo — que não preenchem vaga nenhuma — chegavam e ficavam **invisíveis**; o servidor já os devolvia em `avulsos`, e faltava alguém desenhá-los. Inventar vaga para eles seria pior: vaga de checklist é cobrança, e a casa passaria a ver *"falta a bula"* de uma criança que não toma remédio nenhum |
 
 ---
 
@@ -237,8 +264,8 @@ cd frontend && npm run prototipo
 # sai em prototipo/rede-acolher-prototipo.html
 ```
 
-O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as 107
-migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
+O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as
+120 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
 
 ### Os ensaios — e por que cada um existe
 
@@ -303,12 +330,12 @@ rede-acolher/
 │   │   │   ├── documentos/     o contrato da folha e o gerador de .docx
 │   │   │   └── common/         CPF, criptografia, segredo, fuso da instituição
 │   │   └── modules/       18 partições, cada uma dona das próprias migrações
-│   ├── test/              70 suítes (e2e contra PostgreSQL real + estáticas)
+│   ├── test/              77 suítes (e2e contra PostgreSQL real + estáticas)
 │   ├── scripts/           ensaio-carga.ts, migrador compilado
 │   └── assets/timbre.png  a marca da Fundação, usada no documento em Word
 ├── frontend/
 │   ├── src/
-│   │   ├── screens/       33 telas React
+│   │   ├── screens/       36 telas React
 │   │   ├── mock.ts        o "servidor de mentira" do protótipo
 │   │   ├── docx.ts        monta o .docx NO NAVEGADOR — só para o protótipo, que
 │   │   │                  roda sem servidor. No sistema real quem gera é o
@@ -326,8 +353,13 @@ rede-acolher/
 ```
 
 **As 18 partições:** activities, alignments, archive, checks, houses, identity,
-incidents, medications, notifications, nursing, people, reports, routine,
-shifts, statements, sync, timeline.
+incidents, medications, notifications, nursing, people, relogio, reports,
+routine, shifts, statements, sync, timeline.
+
+*A `relogio` nasceu na fase 103 e ficou fora desta lista até a 105: o conferidor
+lê o NÚMERO colado ao substantivo — "18 partições" — e não os nomes ao lado.
+**Lista escrita à mão ao lado de número conferido envelhece sozinha**, e é a
+lista que alguém lê para saber o que existe.*
 
 ### 4.3 As quatro regras de fronteira
 
@@ -675,6 +707,21 @@ acha **pela frase que ela escreveu**, nunca pela posição. Uma suíte que conta
 em números absolutos passava sozinha e derrubava uma rodada em três, conforme a
 ordem dos arquivos.
 
+**E um degrau acima, achado na fase 107: teste não guarda o resultado de uma
+pergunta sobre AGORA.** `regressao-autoria.e2e.spec.ts` tinha
+`const HOJE = hojeNaInstituicao()` no topo do arquivo, avaliado ao CARREGAR — e
+a suíte inteira leva um minuto e meio. Numa rodada que começou às **23h58** e
+terminou depois da meia-noite, dois testes reprovaram: um comparou o dia do
+banco, já no dia seguinte, com um texto capturado no dia anterior; o outro pediu
+a lista de um dia que tinha acabado. **Os dois relógios estavam certos e em
+dia** — o que envelheceu foi a constante. Nenhum dos dois era defeito do
+sistema, e os dois pareciam um, na única condição de relógio em que a suíte é
+rodada de propósito. Agora é `hoje()`, lido na hora do uso: a janela de erro
+passou de noventa segundos para alguns milissegundos. *A prova definitiva é a
+próxima rodada que atravessar a meia-noite com os dois relógios reais — no
+relógio real de agora ela passa, e isto está escrito porque a falha, quando
+voltar, vai parecer qualquer outra coisa.*
+
 **14. O `mock.ts` é o servidor de mentira, e precisa responder o que o servidor
 responde** — não o que a tela quer. `GET /reports` servia sete campos e a tela
 lia onze; `r.entregas.map(...)` derrubava a aba inteira, e no protótipo
@@ -851,6 +898,12 @@ cobrando pela terceira vez o mesmo pedágio: **cargo, como número, sai do
 | Aceitar ou recusar transferência | — | — | ✅ destino | ✅ destino | — | — | ✅ |
 | Aprovar comunicação externa | — | — | ✅ | ✅ | — | — | ✅ |
 | Auditoria (leitura) | — | — | — | própria casa | — | — | ✅ |
+| Auditoria: entra-se pela CRIANÇA ou pelo REGISTRO — **nunca por pessoa da equipe**, e sem contagem (fase 112) | — | — | — | ✅ | — | — | ✅ |
+| **O trabalho da equipe** — o que uma pessoa ou um setor registrou, com finalidade escrita e a consulta auditada; **sem contar nada** (fase 117, pedido da Fundação) | — | ✅ própria casa | ✅ própria casa | ✅ própria casa | — | — | ✅ as oito |
+| **O painel das oito casas** — crianças, quem passou de ano, conquistas, reuniões, escala, internações, medicamentos, lanches, cestas, acompanhamentos, ATAs, ocorrências e gasto. É a TELA INICIAL dele (fase 120) | — | — | — | — | — | — | ✅ |
+| **O relato da convivência familiar** — sem prazo, sem estado e quantas vezes for preciso; a porta abre na saída e não fecha nunca. *"Houve alteração"* é opcional e avisa a técnica e a coordenação (fase 122, correção da Fundação). **Quem alcança a casa escreve** — não há conferência de cargo, e é decisão escrita: a criança conta para quem ela confia | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **O período da casa** — *"uma ata geral de toda semana"*, de um dia a seis meses: o que aconteceu em texto, com a parte boa primeiro, *"quem não está comendo o quê"* e os números no fim. Texto de acesso restrito sai só como CONTAGEM, porque esta folha circula (fase 121, pedido da Fundação) | — | ✅ própria casa | ✅ própria casa | ✅ própria casa | — | — | ✅ as oito |
+| **As contagens do trabalho** — por casa, setor, pessoa e tipo de ação. Ordem por NOME, nunca por total; **nenhuma contagem por criança**; aviso junto do número (fase 119, decisão da Fundação) | — | — | — | — | — | — | ✅ |
 | Registrar conclusão **pelo colega** | — | ✅ | — | ✅ | — | ✅ | ✅ |
 | Delegar atividade em aberto | — | ✅ | — | ✅ | — | ✅ | ✅ |
 | Autorizar ou **recusar** substituição | — | ✅ | ✅ | ✅ | — | ✅ | — |
@@ -860,7 +913,7 @@ cobrando pela terceira vez o mesmo pedágio: **cargo, como número, sai do
 | Ler a ATA do turno anterior | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ |
 | Escrever linha na ATA do turno | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Ler e escrever a linha RESTRITA da ATA | — | ✅ | ✅ | ✅ | — | ✅ | ✅ |
-| Montar a escala (escalar, retirar, folha) | — | — | — | ✅ própria casa | — | — | ✅ |
+| Montar a escala — escalar, **substituir num gesto**, retirar, folha. Decisão da Fundação em 15/09: *"pela equipe técnica, o coordenador ou o educador líder"* (fase 123) | — | ✅ própria casa | ✅ própria casa | ✅ própria casa | — | — | ✅ |
 
 ### As regras invariantes
 
@@ -1051,8 +1104,12 @@ criança"** — uma linha por acolhido, em **ordem alfabética**, com o alerta
 essencial primeiro. *Não é ordenado por pendência de propósito: se fosse, as
 mesmas crianças ficariam no topo todo dia.*
 
-Chamadas coletivas com conferência de mesa; **painel do plantão** (quem está em
-quê agora); delegação e substituição, que são coisas diferentes — delegar é
+Chamadas coletivas com conferência de mesa — e, no perfil de cada criança, o
+bloco **Presença**, que mostra o que foi registrado dela nas chamadas dos
+últimos catorze dias: só o que teve exceção por padrão, com a frase escrita ao
+lado e com a correção, se houve. **Sem contar falta, recusa nem percentual** —
+número na tela de uma criança é o começo de uma ficha de comportamento;
+**painel do plantão** (quem está em quê agora); delegação e substituição, que são coisas diferentes — delegar é
 passar adiante, substituição é quem vai sair pedindo.
 
 **Desmarcar uma data sem cancelar a série.** O acompanhamento da Ana é toda
@@ -1136,9 +1193,13 @@ como consumo faria o histórico dizer que ela administrou o que ninguém viu
 ninguém tomar. A contagem arredonda **para cima** no dia do retorno, e a folha
 diz isso: mandar um comprimido a mais é barato, faltar um não é.
 
-**A dose confirmada registra `consumo` no histórico do armário.** O número já
-caía desde a fase 6; o que faltava era o histórico dizer por quê — ele mostrava
-caixas chegando e nenhuma saindo. Recusada, não administrada e indisponível não
+**A dose confirmada registra `consumo` no histórico do armário, e o histórico
+ABRE.** O número já caía desde a fase 6; faltava o histórico dizer por quê — ele
+mostrava caixas chegando e nenhuma saindo — e, até a fase 109, faltava o lugar
+de olhar: cada item do armário tem agora o botão de olho, com o que entrou, o
+que saiu pela dose, o que foi com a criança e o que a conferência ajustou, cada
+linha com motivo e com o nome de quem a fez. **Sem contagem por pessoa**: somar
+movimento por educador é medir gente. Recusada, não administrada e indisponível não
 consomem nada, que é para isso que esses estados existem separados.
 
 **A nota fiscal** fica junto do armário, com o que foi comprado, o gasto e o
@@ -1430,7 +1491,7 @@ referência de campo e fluxo. O que cada um ensinou, e que está no código:
 | **LIVRO ATA – AI 03** (Google Forms, por turno) | as seções da ATA da casa. Faltavam duas: **acolhido em experiência familiar** (diferente de visita domiciliar — a criança está fora por um período e a casa continua responsável) e a **organização da casa por ambiente** (`checklist_ambientes`, os seis ambientes do papel). *O registro é do ambiente, nunca de quem arrumou — manter assim evita que a ATA vire ficha de comportamento* |
 | **ATA – LÍDERES NOTURNO** (as oito casas) | virou **grade**, não lista: para cada casa, sempre as mesmas perguntas. A forma mudou o uso — a noite inteira numa tela, e **o que ficou em branco fica evidente**. Uma diferença em relação ao papel: **"sim" sem descrição não é registro**; o banco recusa, porque quem lê de manhã precisa do fato |
 | **Modelo de Evolução de Saúde** | **acompanhante em texto** (quem leva à consulta às vezes é motorista ou familiar autorizado, e exigir usuário cadastrado obrigava a mentir no campo), comportamento ao chegar e ao sair, ocorrências no trajeto, data da reconsulta. O rodapé com duas assinaturas virou duas confirmações datadas, cada uma com seu dono |
-| **Prontuário Individual de Evolução – Educação** | **sala de recursos** (motivo e professor), **equipe multiprofissional** (fono, pedagoga, psicopedagoga), **aprendizagem profissional** (curso, turno, unidade, local de trabalho) e a evolução educacional datada — que o educador também escreve, porque quem acompanha a tarefa de casa é ele |
+| **Prontuário Individual de Evolução – Educação** | **sala de recursos** (motivo e professor), **equipe multiprofissional** (fono, pedagoga, psicopedagoga), **aprendizagem profissional** (curso, turno, unidade, local de trabalho) e a evolução educacional datada — que o educador também escreve, porque quem acompanha a tarefa de casa é ele. *Até a fase 111 isso existia só no banco: o relatório lia as duas tabelas e nenhuma rota as escrevia. Hoje o bloco **Educação** no perfil preenche as duas* |
 | **Audiência Concentrada** | **quatro blocos por criança, não onze.** O documento que a Fundação levou à audiência tem Acompanhamento, Saúde, Educação e Profissionalização, Contexto Sociofamiliar — é mais curto porque foi escrito por quem redige de verdade, na véspera, para vinte crianças. As outras sete seções ficaram **opcionais**: onze títulos obrigatórios criariam campos vazios que, num documento judicial, são lidos como ausência de trabalho. E os quatro blocos são os mesmos eixos do acompanhamento mensal |
 | **Planilha de dados bancários** | número do benefício, operação, agência, **pendência bancária** (a coluna que é o motivo de a planilha existir) e observação |
 
@@ -1528,7 +1589,56 @@ Nenhuma está parada por falta de código.
    (`PATCH /shifts/general-ata/:id/house/:houseId`) espera a resposta sobre quem
    lê a ATA Geral de dia. Ver §10.2.
 
-### Grupo 3 — as 15 rotas sem porta
+### Grupo 2.5 — o que as respostas de 15/09 abriram, medido
+
+*Ele descreveu como quer três coisas. Antes de construir, eu medi o que já
+existe — e a maior parte existe. O que segue é só a diferença, com prova.*
+
+**A escala (§8.4).** Funciona quase exatamente como ele descreveu: lançamento
+por data e turno, repetição de padrão a cada 1 a 7 dias, até um ano à frente,
+retirada que some do turno na hora, nada apagado, e a folha para a parede.
+Faltam **três**:
+
+| O que ele disse | O que existe | O que falta |
+|---|---|---|
+| *"a equipe técnica, o coordenador ou o educador líder"* lançam | só coordenação e gestão montavam | ✅ **fase 123** — os dois entraram, na RLS e na função |
+| *"cada um com a sua cor diferente"* | a cor existia (`0990`) e era usada só **na ATA** | ✅ **fase 123** — a escala carrega e desenha, com o nome ao lado; o hash foi para `rotulos.ts`, para não haver duas cópias |
+| *"a gente não vai deduzir a escala"* | quando a escala do dia existe, ela manda; quando **não** existe, o sistema ainda cai para a escala semanal e depois para o vínculo da casa (`0960`) — declarando a fonte | *isto eu não retiro sem ele saber o que acontece no lugar:* sem escala lançada e sem dedução, a passagem de plantão fica **sem ninguém** para assinar. Ver §10 |
+| *"substituir"* num gesto | eram dois atos: Retirar, e depois Escalar alguém | ✅ **fase 123** — uma transação, com o parentesco guardado; *"deixar a menos"* continua sendo a retirada |
+
+**As fotos e os documentos da criança.** O dossiê já guarda documento
+digitalizado com prévia, aceite e abertura registrada; o álbum de vivências já
+guarda fotos **sem limite de quantidade**, uma por vivência, com prévia antes
+de confirmar. Faltam **três**:
+
+| O que ele disse | O que existe | O que falta |
+|---|---|---|
+| *"tirar VÁRIAS fotos"* da criança | o **perfil** tem UMA foto de identificação, e a nova sobrescreve a anterior; o **álbum** aceitava quantas quisesse, mas **uma por vivência** | ✅ **fase 124** — `memory_photo`: uma vivência tem quantas fotos tiver, com prévia de todas antes de confirmar e a autorização por foto |
+| *"poder visualizar a hora que quiserem e BAIXAR"* | o dossiê abria a prévia e **não oferecia baixar** | ✅ **fase 124** — por rota própria, que registra `document.download`: abrir é ler na tela, sair com o arquivo é outro ato |
+| a foto de identificação | **não baixa, por decisão minha escrita** — *"a foto não é botão de download"* | é uma decisão dele desfazer, e vale perguntar em vez de presumir |
+
+**A Enfermagem anexando no perfil.** Ela já alcança o perfil, escreve saúde
+(condições, restrição alimentar, evolução) e pode anexar no dossiê. Falta
+**uma coisa, e ela é a frase dele inteira**:
+
+| O que ele disse | O que existe | O que falta |
+|---|---|---|
+| *"se quiserem botar alguma receita, que já caia direto no perfil da criança"* | a receita da prescrição vivia em `prescription_document`, presa à prescrição, na tela de Saúde — **não** criava linha em `document`, e o dossiê só lê `document` | ✅ **fase 125** — a receita e a **bula** chegam ao dossiê por espelho, apontando para o mesmo arquivo guardado, idempotente pela origem |
+| *"gerenciar os dados dela"* | a Enfermagem **não** edita cadastro nem escola — só saúde | perguntar se ele quis dizer isso mesmo, ou só a parte de saúde |
+
+*E o **anexo do diário de internação** não chegava ao perfil pelo mesmo motivo:
+ele grava em `hospitalization_note`, tabela própria. ✅ **fase 125** — chega
+também, e é o laudo que o hospital entregou.*
+
+*Este levantamento dizia **"é o mesmo defeito, três vezes"**, contando a **nota
+fiscal** do medicamento junto. Ao construir a fase 125 eu medi de novo, e ela
+não entra: `medication_purchase` tem `house_id` e **não tem pessoa**. A nota
+fiscal é uma compra da CASA — o remédio comprado serve a quem precisar dele —, e
+espelhá-la no dossiê de uma criança seria inventar um vínculo que o dado não tem
+e pôr uma despesa da casa no prontuário de alguém. **São duas vezes, não três**,
+e um teste guarda a diferença.*
+
+### Grupo 3 — as 14 rotas sem porta
 
 O número **não é contagem à mão**: é o tamanho da lista de exceções do
 `rotas-sem-porta.spec.ts`, onde cada linha traz o motivo por extenso. Eram 34 em
@@ -1556,6 +1666,260 @@ tinham sido lidas uma vez, à mão, na fase 91.*
 
 *As quatro funções que gravavam só pelo id, anotadas aqui na fase 89, foram
 provadas e consertadas na 90 (§6.11).*
+
+### A varredura de 14/09 (fase 106): o que não vai a lugar nenhum
+
+*Pedido do Leonardo: procurar ponta solta, informação que não chega a lugar
+nenhum, e coisa começada que não ficou ligada em nada. Feito por medição — três
+varreduras sobre as 112 tabelas, as 1236 colunas e as 102 colunas de autoria —,
+e não por leitura de memória. **Nada foi consertado ainda**: cada item abaixo é
+um achado com o caminho conferido.*
+
+*O que a varredura NÃO achou também é resultado: das 102 colunas de autoria,
+**100 chegam a uma tela com o nome escrito**. A regra 6 está de pé onde importa,
+e as duas exceções estão listadas abaixo.*
+
+**1. A auditoria inteira é escrita e não tem por onde ser lida.** ✅ **Resolvido
+na fase 112.** Todo serviço
+grava em `audit_event` — é o lastro do "toda ação tem autor e histórico" — e
+**não existe rota**, em controller nenhum, que leia essa tabela. Só duas fatias
+saem: quem abriu o **cofre** (migração 0560) e quem abriu os **benefícios**
+(0830). Tudo o mais — cada exportação com a sua finalidade, cada abertura de
+área restrita, cada escalonamento, cada correção — é gravado e não tem tela.
+E a §7 promete a linha **"Auditoria (leitura)"** à coordenação na própria casa e
+ao Gestor Geral: é uma capacidade da matriz **sem porta nenhuma**. O
+`rotas-sem-porta.spec.ts` não pega isto, e não é defeito dele: ele confere rota
+sem tela, e aqui não há nem rota.
+
+**O que a fase 112 fez, e a decisão que a desenha.** `GET /audit/person/:id` e
+`GET /audit/entity/:entidade/:id`, com o bloco **"Quem mexeu no registro desta
+criança"** no perfil — que nem aparece para quem não alcança, porque oferecer
+uma porta que o servidor vai recusar ensina a não confiar na tela.
+
+**Duas entradas, e nenhuma terceira.** A diferença entre auditoria e vigilância
+da equipe não é técnica: é a pergunta que a tela deixa fazer. *"Quem abriu o
+dossiê da Alice"* protege a criança; *"tudo o que a Joana fez ontem"* mede a
+pessoa — e as duas leem a mesma tabela. Por isso **não existe busca por ator**,
+e não vai existir: entra-se pela criança ou pelo registro, e o nome de quem
+agiu aparece na linha, como aparece em toda tela deste sistema, sem nunca ser o
+filtro. **E não conta nada** — nem acessos, nem aberturas por pessoa, pela
+mesma razão que proíbe somar plantão por nome (§7), pedido de lanche por
+educador (§8.9.1) e movimento de armário por quem o fez (fase 109).
+
+*Um teste guarda as duas coisas: que `/audit/actor/:id`, `/audit/user/:id` e
+`?actorId=` devolvem 404, e que a resposta não tem nenhuma chave de total. É o
+mesmo cuidado que guarda a pontuação de comportamento por expressão regular —
+o que se quer impedir não é o defeito de hoje, é a refatoração distraída de
+daqui a um ano.*
+
+*O recorte é do BANCO:* a policy `audit_select` (0920) já dizia exatamente o
+que a §7 promete. A fase acrescentou índices, e por um motivo que a própria
+0920 escreveu: **uma tela de auditoria que demora é uma tela que não se
+consulta** — e isso é a mesma coisa que não poder consultá-la, que era o
+defeito. Os dois índices que existiam serviam a quem não vai perguntar: um por
+**ator**, que é a busca recusada, e um por casa inteira, largo demais.
+
+*Se a Fundação quiser a busca por pessoa — numa apuração formal —, isso é
+decisão dela, e vira outro caminho: com finalidade escrita e registro da
+própria consulta. Não se acrescenta um filtro desses numa tela que quarenta
+pessoas abrem todo dia.*
+
+**2. O histórico do armário não abre.** ✅ **Resolvido na fase 109.**
+`medication_stock_movement` tinha três lugares que escreviam e **nenhum que
+lia** — a rota `GET /medications/stock` devolve o saldo, não o movimento. A
+fase 85 existiu para gravar o `consumo` que faltava, e o comentário da migração
+1040 descrevia o sintoma com todas as letras: *"quem abrisse o movimento para
+entender uma diferença veria as caixas chegando e nenhuma saindo"*. As caixas
+passaram a sair no banco, e continuava sem existir o lugar de abrir. *Era o
+exemplo mais limpo de dado certo em gaveta fechada: a suíte lê a tabela por SQL
+de dono e passa, o que prova que a linha existe — nunca que alguém a vê.*
+
+**O que a fase 109 fez:** `GET /medications/stock/:id/movements`, e um botão de
+olho em cada item do armário. A lista é **cronológica e não conta por pessoa** —
+cada linha traz o nome de quem a fez, porque toda ação tem autor (regra 6), e
+somar movimento por educador é medir gente, que é o que o painel do plantão já
+proíbe (§7). Ela abre para **quem alcança o armário**, e não só para quem o
+movimenta: ver a história não é mexer nele, e quem confere a gaveta e acha dois
+a menos nem sempre é quem dá entrada. Corta em 200 linhas **e diz que cortou**.
+*No caminho, o servidor de mentira deixou de prometer o que não guardava: a
+resposta dele já dizia "a diferença ficou no histórico, com o motivo e o seu
+nome", e não havia histórico nenhum.*
+
+**3. O Prontuário de Educação não tem por onde ser preenchido.** ✅ **Resolvido
+na fase 111.**
+`education_support` (sala de recursos, equipe multiprofissional, aprendizagem
+profissional) e `education_evolution` (a evolução educacional datada, que o §8.12
+diz que *"o educador também escreve, porque quem acompanha a tarefa de casa é
+ele"*) são **lidos pelo relatório e não têm nenhuma rota de escrita**. O único
+INSERT do repositório está dentro de um teste. No piloto, as duas nascem vazias e
+ficam: o relatório de desenvolvimento e a audiência concentrada dirão "não há"
+sobre escola e profissionalização **para sempre**, e ninguém vai entender por
+quê — a seção existe, o texto sai, e o vazio se lê como ausência de trabalho
+(§8.12, o motivo de as onze seções terem virado quatro).
+
+**O que a fase 111 fez:** `GET/POST /nursing/education/:personId` e o bloco
+**Educação** no perfil — o apoio (sala de recursos, equipe multiprofissional,
+aprendizagem profissional) e a evolução datada. **Quem escreve não foi escolha
+desta fase:** as políticas da 0530 já incluíam o educador, e o §8.12 diz por
+quê. Duas recusas vêm do papel, não da tela: sala de recursos **exige o
+motivo** — é ele que a escola e a audiência perguntam —, e aprendizagem
+profissional exige o **nome do curso**. A evolução **não se edita**: correção é
+registro novo, como no caderno, e a policy nem oferece UPDATE. Atualizar o
+apoio **não apaga o anterior**: a linha antiga é desativada com autor e data,
+porque mudar de escola é história da criança.
+
+*Mora na partição `nursing` por acidente de história, e está escrito no
+controlador: a 0530 trouxe as DUAS evoluções que a Fundação entregou no mesmo
+dia — a de saúde e a de educação —, e as tabelas nasceram ali. Mover tabela
+entre partições é migração destrutiva; o caminho da rota é o preço honesto de
+não fazer isso.*
+
+**4. A presença da criança não chega à vida dela.** ✅ **Resolvido na fase 110.**
+`check_result` só era lido **dentro da própria chamada**. O provedor de linha do tempo das chamadas devolve
+vazio na visão de um acolhido — com o comentário *"o registro dele está no
+perfil"* — e **não está**: nem no perfil, nem no relatório, nem na trajetória.
+Quem quiser saber se a Alice esteve no almoço de terça precisa abrir a chamada
+daquele almoço. Junto disso, `check_result_amendment` — a correção de uma
+chamada, guardada por gatilho com autor e com o que constava antes — **nunca
+era lida por nada**, e `collective_check.confirmed_by` guarda quem fechou a
+chamada sem que nenhuma tela diga o nome.
+
+**O que a fase 110 fez:** `GET /checks/person/:personId` e o bloco **Presença**
+no perfil, com os últimos catorze dias. A chamada continua coletiva — é assim
+que ela é feita —, e o que faltava era o recorte pela vida da criança: a mesma
+pergunta que o filtro "Por criança" do Dia responde para hoje, e ninguém
+respondia para a semana passada.
+
+Três escolhas, e nenhuma é de tela. **Só o que teve exceção aparece por
+padrão**, com "ver tudo" ao lado: quatro refeições por dia viram paisagem, pelo
+mesmo motivo que a lista de quem sai sozinho mostra só quem não está
+simplesmente liberado (§8.7.2). **A exceção vem com o que foi escrito** —
+"recusou" sozinho é um rótulo que atravessa meses, e o §8.14 inteiro é sobre
+isso. E **a correção vem junto**, com o que constava antes e quem trocou, o que
+finalmente dá leitura ao `check_result_amendment`.
+
+**E ela não conta nada:** nem faltas, nem recusas, nem percentual de presença.
+Um número desses na tela de uma criança de doze anos é o começo de uma ficha de
+comportamento (regra 3). *Um teste guarda isso pela FORMA da resposta: se
+alguém acrescentar `totalDeFaltas`, ele reprova — o mesmo cuidado que o teste
+da pontuação de comportamento já tinha.*
+
+~~*Fica de fora ainda o `collective_check.confirmed_by`: quem fechou a chamada
+continua sem nome em tela.*~~ ✅ **Resolvido na fase 113**, junto com o
+`created_by` da mesma tabela: a chamada diz **quem a abriu** e, depois de
+fechada, **quem a fechou e a que horas**.
+
+**4.1 E o que a varredura de 15/09 achou, fechado nas fases 116 a 118.** ✅ A
+Fundação pediu a conferência do perfil e do cadastro, e ela achou **seis
+coisas**: o motivo do ingresso urgente exigido e não gravado; cinco campos de
+cadastro lidos por nada; a ficha de entrada sem tela; o ofício externo, a
+convivência familiar e a internação sem caminho de volta à criança.
+
+*Fica de fora, e por decisão: **os relatos** (`statement.person_id`, gravado e
+nunca lido por pessoa). Listar por criança tudo o que se escreveu **sobre** ela
+é justamente a narrativa que o §26.2 gateia com leitura excepcional e
+finalidade — e o item 6 do §10 ainda espera a resposta do Marcelo sobre o que
+se vê antes de abrir um relato restrito. **Enquanto não houver resposta, não
+construo**: inventar isso é decidir quanto da narrativa de uma criança vaza
+antes da justificativa.*
+
+**5. Cinco começos que não ficaram ligados em nada.**
+
+| O quê | Onde | O que se perde |
+|---|---|---|
+| `work_schedule` | migração **0010** | Zero leitura e zero escrita, desde a fundação. É o desenho anterior à escala por DATA (§8.4) e não foi retirado |
+| `health_evolution.companion_name` | 0530 | O **acompanhante em texto** — o §8.12 o lista como o que o papel ensinou, porque quem leva à consulta às vezes é motorista ou familiar autorizado. A coluna existe, nada escreve |
+| `medication_administration.prn_reason` / `prn_outcome` | 0200 | O "se necessário": **por que se deu** e **o que aconteceu depois**. É o registro que a Enfermagem lê para decidir se aquilo vira prescrição |
+| `handover_receipt.opened_handover` | 0310 | Nasce `true` e nunca é lido |
+| `medication_authorization` | 0200 | Lida e nunca escrita. A dormência está explicada no §8.6 — mas num banco novo ela nasce vazia **para sempre**, e a consulta que a lê é peso morto |
+
+*E `export_log`: escrita uma vez, lida nunca. Aqui o dano é pequeno e vale
+dizer por quê — as outras quinze rotas de exportação passam pelo kernel, que
+grava a finalidade no `audit_event`. A finalidade não se perde; ela vai parar no
+mesmo lugar do item 1.*
+
+✅ **E as cinco cópias do acervo entraram no kernel na fase 114.** A varredura
+as listou como dívida de arrumação — cinco serviços com a mesma linha de
+`ARQUIVOS_DIR` — e **não era só arrumação**: ao juntá-las, as cinco não faziam
+a mesma conferência. O dossiê aceitava 15 MB e seis tipos, com sha256; a nota
+de internação e o marco de vida, 10 MB e três tipos, sem sha; a foto de
+identificação, 4 MB e só imagem. **Nenhuma dessas diferenças era defeito**, e
+nenhuma foi apagada: o que era acidente virou `RegraDoArquivo`, declarada ao
+lado de cada método. **Uma diferença ERA defeito:** o dossiê dava `image/webp`
+a qualquer arquivo começando com `RIFF` — que é o cabeçalho de um AVI também —
+enquanto a cópia da foto conferia o 9º byte, como manda o formato. Ao juntar,
+a correta ganhou, e um teste guarda o AVI recusado. *É o argumento da fase
+inteira, e ele apareceu sozinho.*
+
+**6. Os anexos, e a prévia antes de confirmar.** ✅ **Os quatro que guardavam
+bytes sem prévia foram resolvidos na fase 107** — o que segue é o estado em que
+a varredura os encontrou, e vale ler porque explica o desenho. Dez lugares
+recebem documento.
+**Três guardam uma referência de texto e não o arquivo** — o anexo da
+**ocorrência** (que ao abrir mostra o caminho no Drive, e diz isso na tela), a
+**receita** da prescrição e a **nota fiscal** do armário. Nesses três não há
+prévia porque não há arquivo, e o §8.6 os descreve como *"digitalizada"*. Dos
+sete que guardam bytes de verdade, três têm a prévia inteira — o **dossiê**
+(👁 Abrir, e "Conferir agora" enquanto o aceite não saiu), as **memórias** e as
+**folhas em Word** — e quatro não têm nenhuma: a **foto de identificação do
+acolhido**, que é enviada **no instante em que o arquivo é escolhido**, sem
+confirmação e sem ninguém ver o que subiu; a **foto 3×4 do visitante**, lida
+para a memória e nunca desenhada; o **documento do hospital**, que só baixa; e o
+**comprovante do marco**, idem. *As duas fotos são as que mais pesam: as duas
+saem impressas na folha da guarita (§8.9.2), e a da criança é a que "não entra
+em documento nenhum por padrão".*
+
+**O que a fase 107 fez com isso.** `frontend/src/anexos.tsx` passou a ser o
+lugar único das duas prévias — a de antes de enviar, que acontece **no
+aparelho**, e a do arquivo guardado, que é o que o botão de olho abre. Os cinco
+lugares agora se parecem: cinco prévias escritas cinco vezes divergiriam no
+primeiro ajuste, e a pessoa aprenderia um gesto que não vale na tela ao lado.
+
+- **a foto da criança não sobe mais sozinha**: escolher abre uma folha que
+  mostra a imagem e pergunta as duas coisas que dão errado — *é esta foto, e é
+  desta criança?* Só o "✓ É esta foto" envia. E a foto guardada abre em tamanho
+  de olhar, **sem botão de baixar**: a decisão de tirar uma foto de criança do
+  sistema é de quem pede, e fica com o nome dele;
+- **a foto 3×4 do visitante** ganha prévia ao escolher e olho para ver a que já
+  está lá — e ela abre **no lugar** da folha, não por cima: duas caixas
+  empilhadas no celular fazem quem fecha uma fechar a errada;
+- **o documento do hospital e o comprovante do marco** abrem na tela, e
+  **baixar virou o segundo gesto**, de quem já olhou. Antes, para saber se era
+  o documento certo era preciso tirar uma cópia do sistema — que é como
+  documento de criança vai parar na pasta de downloads de alguém.
+
+*Dois cuidados que a fase pagou.* O protótipo **não tinha foto nenhuma
+guardada** — nem de criança, nem de visitante —, então os dois botões novos
+nasceriam invisíveis no único arquivo que o Marcelo abre, pela quarta vez
+(§6.19). Entrou um retrato fictício de 494 bytes, duas formas geométricas em
+cinza. E o servidor de mentira **recusava** ler a foto do visitante, enquanto o
+servidor de verdade a devolve: era o §6.14 ao contrário, e com o olho no lugar
+a demonstração diria que o sistema não guarda o que ele guarda.
+
+**E os três de referência, na fase 108: as duas formas, e a casa escolhe.**
+Obrigar o arquivo apagaria o caso real de quem já tem o documento no Drive
+institucional; obrigar a referência mantinha o defeito. Então o anexo da
+**ocorrência**, a **receita** e a **nota fiscal** passaram a aceitar o papel
+digitalizado *ou* o caminho — com **uma das duas obrigatória** no banco, que é
+o que o `storage_ref NOT NULL` só fingia garantir: ele exigia um texto, e a
+tela mandava `receita-${Date.now()}`, uma referência fabricada que não apontava
+para lugar nenhum.
+
+Três cuidados ficaram de pé no caminho dos bytes. **Abrir continua sendo um
+ato**: os três saem pela função `SECURITY DEFINER` que registra ANTES de
+devolver, e o registro agora diz por qual das duas formas — quem ler seis meses
+depois precisa saber se a pessoa viu o documento ou um caminho de pasta. **A
+chave do objeto não é legível por consulta**, como já não era a referência.
+E a tela **diz qual das duas é antes do clique**, com uma pílula: um botão que
+às vezes abre um PDF e às vezes devolve o endereço de uma pasta ensina a não
+confiar nele.
+
+*No caminho, `kernel/arquivos` virou o lugar único de guardar e ler documento —
+eram cinco cópias da mesma linha, cada uma decodificando e conferindo
+assinatura do seu jeito, e a fase precisava de mais três. Os cinco serviços
+antigos continuam com a cópia deles: trocá-los é mexer em caminho de arquivo de
+dado que já existe, e isso não se faz na mesma fase em que se constrói coisa
+nova. Fica anotado aqui.*
 
 ### O que é meu e ficou pequeno
 
@@ -1634,6 +1998,35 @@ número**.
     e retorno. *Ganhou apoio na resposta de 08/09: se a Enfermagem atende das 9h
     às 17h, é ela quem recebe a criança de volta na alta.* Desfaz-se numa linha
     em `app_pode_ver_internacao`.
+
+### As respostas de 15/09/2026 — a rodada que destravou o piloto
+
+*O Leonardo respondeu, de uma vez, as três perguntas que mais travavam (§2 do
+`PARA-A-REUNIAO`) e quatro do roteiro. Está tudo aqui **com as palavras dele**,
+porque a paráfrase é onde a decisão se perde. O que virou código está marcado;
+o que ainda é decisão de construção está no §9.*
+
+| # | Pergunta | A resposta dele | Situação |
+|---|---|---|---|
+| 1 | **O que o Gestor Geral precisa ver de cada casa** (aberta desde 09/09; eu tinha recusado adivinhar) | **Duas visões.** A inicial é *"quantitativa, com métricas […] só gráficos, dashboards, bem como aquele de pizza, bem bonitinho, colorido, profissional"*, para ele *"gerar os relatórios dele de impacto do Pão dos Pobres na vida das crianças"*. As métricas que ele nomeou: crianças que passaram de ano, crianças com boas notas, quais casas têm bom acompanhamento e bom desenvolvimento educacional, crianças por casa, reuniões por casa, pessoas na escala de cada casa, internações por casa, medicamentos saindo por casa, **preço total das notas fiscais**, alimentos e lanches por semana e por mês, gasto com cuidado médico. A segunda visão é o acesso total, casa por casa. | **Fase 120** |
+| 1b | **E isso não é competição** — ele respondeu à minha objeção, por escrito | *"Não interessa se para ti parece uma competição. Ele precisa ter os dados reais. Qual é a casa que está dando mais resultado? Tem um motivo? Tem algum relatório? Tem alguma coisa que ele possa melhorar nas outras? […] não é uma competição entre elas, mas é uma forma de ele poder melhorar o acompanhamento das outras casas para as outras crianças que não atingiram o tamanho dos resultados."* | **Aceita.** A §7 mudou de texto na fase 119, e o painel da 120 nasce com o comparativo que ele pediu |
+| 1c | **Por que o acesso total importa** | *"Caso algum coordenador saia, o gestor tem que ter acesso completo para montar uma nova equipe. Ou se ele quiser fazer uma casa nove — quem define isso? É o gestor. Se ele não tiver acesso total para entender o sistema, não vai conseguir abrir uma nova casa."* E: *"como o dia a dia é controlado pelos coordenadores, ele não vai querer que a tela inicial dele seja essa de controle total."* | **Fase 119** deu o acesso; a **120** dá a tela inicial certa |
+| 2 | **A escala 12x36** (travava o aviso de fim de plantão desde 08/09) | *"Quando cadastrar com o coordenador quem é o quadro da equipe, quero que abra para ele a escala, onde ele possa lançar as pessoas, cada um com a sua cor diferente. Preparar semanas, meses antes. **A gente não vai deduzir a escala** — ela já vai ter sido lançada. Quando faltar alguém, eles só vão na escala e tiram aquela pessoa, e ela automaticamente já sai. Substituir ou deixar a menos."* | **Quase tudo já existe** (§8.4). Faltam três coisas, medidas e listadas no §9 |
+| 2b | **Quem lança a escala** | *"pela equipe técnica, o coordenador ou o educador líder"* — hoje só a coordenação e a gestão montam | **Muda:** técnica e Líder Diurno passam a montar |
+| 3 | **LGPD** (travava o piloto inteiro) | *"Como o sistema é interno para o Pão dos Pobres, a gente pode deixar os dados bem tranquilos para o pessoal poder ler. Porque tanto os educadores, equipe técnica, educador líder, coordenador ou gestor, eles estão ali para proteger as crianças e têm a guarda delas."* Fotos das crianças — no acolhimento e no perfil — **liberadas para a equipe**. *"Apenas os dados mais sigilosos é que têm esse olhar mais carinhoso entre o educador líder, o coordenador, a equipe técnica e o gestor: a questão judicial, acompanhamento socioeducativo, internação, questões comportamentais de agressividade, e a ocorrência grave, vermelha."* | **Destrava o dado real.** *E continua faltando o resto da LGPD: quem responde formalmente, por quanto tempo se guarda, e o que se apaga — ver §11* |
+
+### As quatro do roteiro, respondidas no mesmo dia
+
+| # | Pergunta | A resposta dele | Situação |
+|---|---|---|---|
+| R1 | **Como a casa quer receber os relatórios obrigatórios** | *"Acompanhamento semanal é um bom caminho: ver como foi a casa toda aquela semana, tipo uma ata geral de toda semana, tanto manhã quanto noite."* E o conteúdo: ocorrências, desorganização, **aumento de medicamentos**, quem não está comendo o quê, desenvolvimento, e *"as observações que os educadores botam têm que ser ponderadas para ser trazido coisas boas e negativas"*. **Período livre:** *"se é um dia, dois, três, uma semana, um mês, seis meses […] esse controle tem que ser livre para eles poderem brincar ali dentro"* | **Fase 121** ✅ |
+| R1b | **A inteligência que ele quer no futuro** | *"A gente tem que criar uma inteligência dentro desse sistema que depois pode vir a ser uma inteligência artificial que ajude em tudo […] dar esse conhecimento lá dentro com uma pessoa que é um psicólogo, um pedagogo, um assistente social, para dar esse auxílio para as pessoas reais que têm esse diploma"* | **Anotado, não construído.** É desenho de produto novo, e a frase dele já diz o limite certo: **auxílio a quem tem o diploma**, não substituição |
+| R2 | **O convite de primeiro acesso para 40 pessoas** | *"Pode botar ilimitado. A gente não precisa se preocupar com essa questão de número — o coordenador só vai cadastrando conforme as pessoas são contratadas."* E o primeiro acesso: *"todas elas vão sair como teste, e no primeiro acesso eles trocam. Ele vai poder mandar por e-mail, ou só manda o link, eles botam ali o institucional deles, e já sai funcionando."* | **Já é assim.** Não há limite de número em lugar nenhum; senha inicial trocada no primeiro acesso existe desde a fase 9. *Fica de pé só a pergunta do §11 item 13: 24 horas de validade do convite é pouco?* |
+| R3 | **"Se houve alteração" na volta da família** | *"Esses dados são extremamente sensíveis e têm que ser armazenados. Se houve alguma alteração, sim, tem que ser notificado."* E a parte que muda o desenho: *"a criança, quando entrar de volta, tem que ter um relato com ela. Mesmo que não tenha sido preenchido no dia, porque a criança não quis falar, esse acompanhamento pode ficar ABERTO para ser preenchido por algum educador depois de uma semana."* E: *"que isso fique também registrado no perfil"* | **Fase 122** ✅ — e ele CORRIGIU o desenho em 16/09: *"acho mais fácil não dar um prazo […] dessa forma não haverá uma pressão para arrancar a informação da criança. Mas isso pode ser registrado quantas vezes for necessário, por qualquer educador"*. Sem prazo, sem estado, sem cobrança |
+| R4 | **O que a equipe pediu a mais** | Portaria com foto e anexo ✅ (fase 92); **várias fotos da criança** no perfil, com prévia antes de confirmar; **documentos reais digitalizados** no perfil, para ver e **baixar**; e a Enfermagem podendo anexar **bula e receita** direto no perfil | **Parcialmente pronto** — o que falta está medido no §9 |
+| R4b | **A frase que vale para o sistema inteiro** | *"Se a enfermagem já faz isso cair no perfil da criança, todos os outros lugares onde a gente preenche, seja almoço, seja outras coisas, os dados individuais de cada criança mesmo no coletivo, têm que ir individual para cada um no seu registro e vivência na casa."* | **É a regra que as fases 110, 116 e 118 vinham seguindo sem ter o nome.** Passa a ser regra escrita: *nada que é lançado no coletivo pode ficar só no coletivo* |
+
+---
 
 ### As que já foram respondidas — e o que mudou
 
@@ -1758,18 +2151,19 @@ desacoplada** — nenhuma pendência virou regra inventada.
 
 | # | O que | Como está tratado |
 |---|---|---|
-| 1 | **A escala 12x36 vigente da Casa 03** | A TELA existe desde 08/09. Falta o **conteúdo** — quem trabalha quando —, e ele é da casa |
+| 1 | ~~**A escala 12x36 vigente da Casa 03**~~ ✅ **Respondida em 15/09** | A tela existe desde 08/09 e ele descreveu o funcionamento que quer — *"a gente não vai deduzir a escala"*, lançada semanas antes, cor por pessoa, retirar e substituir. **Quase tudo já existe** (§8.4); as três diferenças estão no §9. O conteúdo real — quem trabalha quando — continua sendo da casa, e entra na implantação |
 | 2 | **A janela de acesso por plantão (T-10/T+10)** | **Não implementada.** Com a escala por data ela passou a ser possível; ligá-la é decidir que alguém fica sem abrir o sistema fora do horário |
 | 3 | **Os códigos e nomes reais das oito unidades** | AI1–AI4 / ARM1–ARM4 são preliminares e aparecem em tela, relatório e nome de arquivo. Trocar é um `UPDATE` de `house.code` — os IDs internos são UUID |
 | 4 | **O SMTP institucional** | Ver §12.7. Sem ele não há convite, e sem convite não há primeiro acesso para 40 pessoas sem distribuir senha por mensagem |
 | 5 | **O prazo de triagem da Enfermagem** | Será parâmetro |
 | 6 | **O horário oficial do Líder Noturno Geral** | `NIGHT_SHIFT_END_HOUR` no `.env` (7h como hipótese). A hora de INÍCIO não é lida por ninguém: quem abre a ATA Geral é uma pessoa, não um relógio |
 | 7 | **Relatórios obrigatórios no piloto** | Todos marcados como candidatos; seleção com o Marcelo |
-| 8 | **Permissões de fotos em memórias** | Modelo planejado; upload desabilitado por flag até confirmação |
+| 8 | ~~**Permissões de fotos em memórias**~~ ✅ **Respondida em 15/09** | *"Fotos das crianças, tanto delas vivendo no acolhimento como no perfil — eles têm que ter esse acesso."* A equipe da casa vê; o upload deixa de esperar confirmação. *A autorização de imagem POR CRIANÇA continua sendo registrada por vivência (`photo_authorized`), que é outra coisa: ela não governa quem vê dentro da casa, e sim o que pode sair dela* |
 | 9 | **Os dados de partida** | Equipe, acolhidos já na casa, e a decisão de quanto do histórico em papel entra no sistema |
-| 10 | **LGPD** | Quem responde, por quanto tempo se guarda, o que se apaga |
+| 10 | **LGPD** | ✅ **Metade respondida em 15/09**, e é a metade que destravava o piloto: *"como o sistema é interno para o Pão dos Pobres, a gente pode deixar os dados bem tranquilos para o pessoal poder ler […] eles estão ali para proteger as crianças e têm a guarda delas."* O círculo estreito fica com **judicial, socioeducativo, internação, comportamento e ocorrência grave** — educador líder, coordenação, técnica e gestão. **Continua faltando:** quem responde formalmente pela LGPD, por quanto tempo se guarda cada coisa, e o que se apaga. *Isso não trava mais o dado real; trava a resposta a um pedido de titular* |
 | 11 | **Critérios de aceite do piloto e autoridade** | O §13 tem a proposta; falta a Fundação assinar embaixo |
 | 12 | **A folha da portaria com CPF e foto impressos** | Decisão do Marcelo em 09/09, construída na fase 92. É dado pessoal de TERCEIRO (familiares) — CPF, telefone e, quando cadastrada, a foto 3×4 do visitante —, e a foto de identificação da criança, numa folha que fica na guarita, o lugar menos controlado da instituição. O DPO precisa ver antes do piloto, junto com a pergunta de uma segunda lista, de quem NÃO entra |
+| 13 | **O prazo do convite de primeiro acesso** | **24 horas**, escrito no código com o motivo — *convite parado é porta aberta* — e afirmado na §7. O `.env.example` dizia **72** desde a fase do backup, sem motivo em lugar nenhum, e quem copiasse o exemplo implantaria três dias acreditando estar em um; alinhado na fase 105. **A pergunta é da Fundação:** com quarenta pessoas convidadas na implantação, 24 horas pode ser curto — quem não abrir o e-mail no dia precisa de convite novo, e emitir convite embaralha a senha atual e derruba as sessões. Alongar é **uma linha**, e a escolha precisa ser consciente |
 
 ### Os seis formulários de papel que ainda faltam
 
@@ -1845,7 +2239,7 @@ ele continua dizendo que o arquivo existe.
 npm run ensaio:producao
 ```
 
-Constrói, cria um banco virgem, aplica as 107 migrações **pelo binário
+Constrói, cria um banco virgem, aplica as 120 migrações **pelo binário
 compilado**, sobe o serviço e confere `/health`. Não publica nada e não toca no
 banco de trabalho.
 

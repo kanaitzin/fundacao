@@ -3,7 +3,10 @@ import { FolhaDocumento } from '../documentos';
 import { Dossie } from './Dossie';
 import { api, ErroApi } from '../api';
 import { Cadastro } from './Cadastro';
-import { VINCULO } from '../convivencias';
+import { VINCULO, FolhaDoRelato, RelatoDaConvivencia } from '../convivencias';
+import {
+  BotaoOlho, Escolhido, FolhaArquivo, PreviaEscolhida, base64De, lerArquivo,
+} from '../anexos';
 
 /**
  * OS ACOLHIDOS DA CASA e o PERFIL (§6, §13).
@@ -70,6 +73,14 @@ interface Perfil {
   rg: string | null;
   cns: string | null;
   filiacao: string | null;
+  /* Pedidos no cadastro desde a fase 40, lidos por nada até a 116. */
+  identificacaoComplementar: {
+    genero: string | null; raca: string | null; naturalidade: string | null;
+    nis: string | null; registroCivil: string | null;
+  };
+  /* O servidor mandava desde a fase 0 e a tela não tinha o campo (fase 116). */
+  episodios: { number: number; started_at: string; ended_at: string | null;
+               end_reason: string | null; status: string }[];
   foto: { rota: string; em: string } | null;
   contatos: Contato[];
   /* O que a coordenação desligou para o plantão (fase 93). */
@@ -89,6 +100,22 @@ interface NoAcervo {
   saiuEm: string | null; motivoDaSaida: string | null; episodios: number;
 }
 interface Acervo { aviso: string; pessoas: NoAcervo[] }
+/**
+ * COMO ELA CHEGOU — a ficha de entrada (§6.1).
+ *
+ * `admission_record` nasceu na migração 0480, tem rota de leitura desde
+ * então, e **nenhuma tela a chamava**: o que se preenchia no cadastro só
+ * reaparecia dentro de um relatório gerado meses depois (fase 116).
+ */
+interface Acolhimento {
+  ingressoEm: string; conduzidoPor: string | null; municipioOrigem: string | null;
+  acolhimentoAnterior: string | null; irmaos: string | null;
+  referenciaFamiliar: string | null; chegada: string | null;
+  acimaDoLimite: boolean; justificativaLimite: string | null;
+  /** Só para quem abre a área restrita — pode carregar a razão da retirada. */
+  motivoProvisorio?: string | null;
+  cadastradoPor: string | null; cadastradoEm: string | null;
+}
 interface Judicial {
   motivo: string; detalhe: string | null; medida: string; orgao: string;
   vara: string | null; processo: string | null; guia: string | null;
@@ -235,6 +262,8 @@ export function Acolhidos({ houseId, casaLabel, papel }: {
   const [fora, setFora] = useState<Convivencia[]>([]);
   const [recebendo, setRecebendo] = useState<Convivencia | null>(null);
   const [remedios, setRemedios] = useState<Convivencia | null>(null);
+  /* A porta que não fecha (1300): o relato da convivência, sem prazo. */
+  const [relatando, setRelatando] = useState<Convivencia | null>(null);
   /* Quem sai acompanhado ou não sai. Quem está liberado NÃO vem: a lista
      inteira todo dia vira paisagem. */
   const [observar, setObservar] = useState<SaidaSozinho[]>([]);
@@ -485,6 +514,19 @@ export function Acolhidos({ houseId, casaLabel, papel }: {
                     💊 Remédios
                   </button>
                 )}
+                {/*
+                  * O RELATO, DISPONÍVEL DESDE A SAÍDA (fase 122).
+                  *
+                  * *"Quando o jovem sair para a visita em casa, se abre essa
+                  * pergunta para ser respondida depois."* O botão existe
+                  * enquanto ela está fora e continua existindo depois que ela
+                  * volta — no perfil. Não há prazo, não há tarja de pendente e
+                  * não há contador: um campo que cobra faz o educador
+                  * perguntar de novo para a criança.
+                  */}
+                <button className="btn sec sm" onClick={() => setRelatando(c)}>
+                  📝 Relato
+                </button>
                 <button className="btn sec sm"
                         onClick={() => { setRecebendo(c); setNotaRetorno(''); setTrouxeRetorno(''); }}>
                   Chegou
@@ -498,6 +540,12 @@ export function Acolhidos({ houseId, casaLabel, papel }: {
       {remedios && (
         <FolhaRemedios convivencia={remedios} houseId={houseId}
                        onFechar={() => setRemedios(null)} />
+      )}
+
+      {relatando && (
+        <FolhaDoRelato saidaId={relatando.id} quem={relatando.quem}
+                       onFechar={() => setRelatando(null)}
+                       onGravou={(msg) => setAviso(msg)} />
       )}
 
       {recebendo && (
@@ -651,6 +699,8 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
   /** Atualizar o que é descrição (§6.4): não pede motivo, mas deixa rastro. */
   const [editandoDetalhe, setEditandoDetalhe] = useState(false);
   const [alteracoes, setAlteracoes] = useState<Alteracao[]>([]);
+  /** A ficha de entrada: existia, tinha rota, e nenhuma tela a pedia (fase 116). */
+  const [acolhimento, setAcolhimento] = useState<Acolhimento | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -665,6 +715,11 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
         setCorrecoes(await api<Correcao[]>(`/people/${personId}/correcoes`).catch(() => []));
         setAlteracoes(
           await api<Alteracao[]>(`/people/${personId}/detalhe-historico`).catch(() => []));
+        /* A ficha de entrada. Cai em silêncio quando não há: cadastro antigo,
+           feito antes do cadastro completo, não tem — e isso não é erro de
+           quem está abrindo o perfil agora. */
+        setAcolhimento(
+          await api<Acolhimento>(`/people/${personId}/admission`).catch(() => null));
       } catch (e) {
         setErro(e instanceof Error ? e.message : 'Não foi possível abrir o perfil.');
       }
@@ -737,6 +792,33 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
                 )}
               </div>
             )}
+            {/*
+              * A IDENTIFICAÇÃO COMPLEMENTAR (fase 116).
+              *
+              * Cinco campos que o cadastro pede, que o banco grava desde a
+              * migração 0480, e que NENHUM `SELECT` do sistema nomeava. Quem
+              * preenchia escrevia num campo que não ia a lugar nenhum.
+              *
+              * Dois deles não são detalhe: a **cor/raça autodeclarada** é como
+              * a política pública se mede, e o **NIS** é o que abre o CadÚnico
+              * para o benefício dela. Ficavam invisíveis exatamente para quem
+              * monta o relatório que precisa dos dois.
+              */}
+            {(() => {
+              const ic = p.identificacaoComplementar;
+              const linha = [
+                ic?.genero, ic?.raca,
+                ic?.naturalidade && `natural de ${ic.naturalidade}`,
+                ic?.nis && `NIS ${ic.nis}`,
+              ].filter(Boolean).join(' · ');
+              if (!linha && !ic?.registroCivil) return null;
+              return (
+                <div className="mutetxt" style={{ marginTop: 4 }}>
+                  {linha}
+                  {ic?.registroCivil && <div>Registro civil: {ic.registroCivil}</div>}
+                </div>
+              );
+            })()}
           </div>
         </div>
       </div>
@@ -761,6 +843,52 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
         */}
       <SairSozinho perfil={p} papel={papel} onMudou={recarregar} />
       <Contatos perfil={p} papel={papel} onMudou={recarregar} />
+
+      {/*
+        * A PRESENÇA, NA VIDA DELA (fase 110).
+        *
+        * A chamada é coletiva e o registro de cada criança ficava DENTRO dela:
+        * para saber se a Alice esteve no almoço de terça, alguém abria a
+        * chamada daquele almoço. O provedor da linha do tempo dizia, num
+        * comentário, que "o registro dele está no perfil" — e não estava.
+        */}
+      <Presenca personId={p.id} nome={p.nome} />
+
+      {/*
+        * O PRONTUÁRIO DE EDUCAÇÃO (fase 111).
+        *
+        * As duas tabelas existiam desde a migração 0530 e o relatório as lia;
+        * NENHUMA rota as escrevia (§9, item 3). No piloto, o relatório de
+        * desenvolvimento e a audiência diriam "não há" sobre escola e
+        * profissionalização para sempre.
+        */}
+      <Educacao personId={p.id} houseId={houseId} papel={papel} />
+
+      {/*
+        * QUEM MEXEU NO REGISTRO DESTA CRIANÇA (fase 112).
+        *
+        * A auditoria era escrita por todo serviço e não tinha por onde ser
+        * lida (§9, item 1). Entra-se por AQUI — pela criança — e não pela
+        * pessoa da equipe: a mesma tabela que responde "quem abriu o dossiê da
+        * Alice" responderia "tudo o que a Joana fez ontem", e a segunda
+        * pergunta é vigilância com outro nome.
+        */}
+      {/*
+        * O QUE ACONTECEU COM ELA, E QUE NÃO CHEGAVA AQUI (fase 118).
+        *
+        * Três informações eram gravadas com o id dela e lidas só de fora: a
+        * convivência familiar (aberta DAQUI desde a fase 89, e lida só na lista
+        * da casa), a internação (lida pela casa) e o ofício a órgão externo
+        * (`person_id` gravado desde a 0320 e por nenhuma consulta lido).
+        *
+        * Os três somem quando não há o que mostrar: um perfil com três blocos
+        * vazios ensina a passar o olho por cima deles.
+        */}
+      <ConvivenciaFamiliar personId={p.id} quem={p.nome} />
+      <InternacoesDoAcolhido personId={p.id} />
+      <OficiosDoAcolhido personId={p.id} />
+
+      <AuditoriaDoAcolhido personId={p.id} papel={papel} />
 
       {/* A pasta da criança: o que a casa precisa ter, e o álbum dela. */}
       <button className="btn sec block" style={{ marginBottom: 12 }} onClick={() => setDossie(true)}>
@@ -1081,6 +1209,97 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
               setErro(e instanceof Error ? e.message : 'Não foi possível registrar o atendimento.');
             }
           }} />
+      )}
+
+      {/*
+        * COMO ELA CHEGOU (fase 116).
+        *
+        * A ficha de entrada existe desde a migração 0480 e tinha rota de
+        * leitura desde então; **nenhuma tela a chamava**. O que a técnica
+        * preenchia no cadastro — quem trouxe, de onde veio, se há irmãos
+        * acolhidos, como ela chegou — só reaparecia dentro de um relatório
+        * gerado meses depois, se alguém gerasse.
+        *
+        * Não é área restrita: quem alcança a criança alcança esta ficha, e o
+        * RLS já diz isso (`adm_select`). É informação de CUIDADO — a educadora
+        * que recebe a criança no primeiro plantão precisa saber que ela tem
+        * uma irmã na Casa 01 e que chegou sem nada além da roupa do corpo.
+        */}
+      {acolhimento && (
+        <Secao titulo="Como ela chegou">
+          <ul className="lista">
+            <li>
+              <b className="ff">{dia(acolhimento.ingressoEm)}</b>
+              <div className="mutetxt">entrada na unidade</div>
+            </li>
+            {acolhimento.conduzidoPor && (
+              <li><b className="ff">{acolhimento.conduzidoPor}</b><div className="mutetxt">quem trouxe</div></li>
+            )}
+            {acolhimento.municipioOrigem && (
+              <li><b className="ff">{acolhimento.municipioOrigem}</b><div className="mutetxt">município de origem</div></li>
+            )}
+            {acolhimento.acolhimentoAnterior && (
+              <li><b className="ff">{acolhimento.acolhimentoAnterior}</b><div className="mutetxt">acolhimento anterior</div></li>
+            )}
+          </ul>
+          {/* Os irmãos vêm em bloco, e não em item de lista: "tem uma irmã na
+              Casa 01, e elas se veem aos domingos" é uma frase, não um dado. */}
+          {acolhimento.irmaos && <p className="bloco"><small>Irmãos</small>{acolhimento.irmaos}</p>}
+          {acolhimento.referenciaFamiliar && (
+            <p className="bloco"><small>Referência familiar</small>{acolhimento.referenciaFamiliar}</p>
+          )}
+          {acolhimento.chegada && <p className="bloco"><small>Como chegou</small>{acolhimento.chegada}</p>}
+          {/* Entrada acima do limite é FATO REGISTRADO, nunca escondido: o
+              banco exige a justificativa e ela aparece onde a decisão foi
+              tomada, não num relatório de gestão. */}
+          {acolhimento.acimaDoLimite && (
+            <div className="notice c-warn" role="status">
+              <b>Entrou com a casa no limite de vagas.</b>
+              {acolhimento.justificativaLimite && <div>{acolhimento.justificativaLimite}</div>}
+            </div>
+          )}
+          {acolhimento.motivoProvisorio && (
+            <p className="bloco destaque">
+              <small>Ingresso sem CPF — o que foi escrito na hora</small>
+              {acolhimento.motivoProvisorio}
+            </p>
+          )}
+          {acolhimento.cadastradoPor && (
+            <p className="mutetxt" style={{ marginBottom: 0 }}>
+              Cadastro feito por {acolhimento.cadastradoPor}
+              {acolhimento.cadastradoEm ? ` em ${dia(String(acolhimento.cadastradoEm).slice(0, 10))}` : ''}.
+            </p>
+          )}
+        </Secao>
+      )}
+
+      {/*
+        * OS EPISÓDIOS DE ACOLHIMENTO.
+        *
+        * O servidor devolvia `episodios` desde a fase 0 e a interface da tela
+        * nem tinha o campo — ele só era desenhado no Acervo, para quem já
+        * saiu. Uma criança que voltou é a informação mais importante do alto
+        * de um perfil, e era justamente onde não aparecia (fase 116).
+        */}
+      {p.episodios && p.episodios.length > 1 && (
+        <Secao titulo="Episódios de acolhimento">
+          <p className="mutetxt" style={{ marginTop: 0 }}>
+            Esta criança já esteve acolhida antes. O que aconteceu em cada passagem continua
+            no registro dela — reacolhimento não recomeça a história do zero.
+          </p>
+          <ul className="lista">
+            {p.episodios.map((e) => (
+              <li key={e.number}>
+                <b className="ff">{e.number}º episódio</b>
+                <div className="mutetxt">
+                  {dia(String(e.started_at).slice(0, 10))}
+                  {e.ended_at ? ` — ${dia(String(e.ended_at).slice(0, 10))}` : ' — em curso'}
+                  {e.end_reason ? ` · ${e.end_reason}` : ''}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </Secao>
       )}
 
       {VE_JUDICIAL.includes(papel) && (
@@ -1762,6 +1981,11 @@ function FotoDoAcolhido({ perfil, papel, onTrocou }: {
   const [src, setSrc] = useState<string | null>(null);
   const [erro, setErro] = useState('');
   const [ocupado, setOcupado] = useState(false);
+  /* O arquivo escolhido e AINDA NÃO ENVIADO. Até a fase 106 este estado não
+     existia: escolher o arquivo já o enviava, e ninguém via o que tinha subido
+     — numa foto que sai impressa na folha da guarita (§8.9.2). */
+  const [escolhida, setEscolhida] = useState<Escolhido | null>(null);
+  const [vendoMaior, setVendoMaior] = useState(false);
   const podeTrocar = QUEM_CADASTRA.includes(papel);
 
   useEffect(() => {
@@ -1776,18 +2000,15 @@ function FotoDoAcolhido({ perfil, papel, onTrocou }: {
   const iniciais = perfil.nome.split(' ').filter(Boolean).slice(0, 2)
     .map((n) => n[0]).join('').toUpperCase();
 
-  async function enviar(arquivo: File) {
+  /** Só depois de a pessoa dizer "é esta" é que a foto sai do aparelho. */
+  async function enviar(escolha: Escolhido) {
     setErro(''); setOcupado(true);
     try {
-      const base64 = await new Promise<string>((ok, falhou) => {
-        const r = new FileReader();
-        r.onload = () => ok(String(r.result).split(',')[1] ?? '');
-        r.onerror = () => falhou(new Error('Não foi possível ler o arquivo.'));
-        r.readAsDataURL(arquivo);
-      });
       await api(`/people/${perfil.id}/photo`, {
-        method: 'POST', body: JSON.stringify({ conteudo: base64, nomeArquivo: arquivo.name }),
+        method: 'POST',
+        body: JSON.stringify({ conteudo: base64De(escolha.dataUrl), nomeArquivo: escolha.nome }),
       });
+      setEscolhida(null);
       onTrocou();
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Não foi possível guardar a foto.');
@@ -1801,14 +2022,67 @@ function FotoDoAcolhido({ perfil, papel, onTrocou }: {
       <div className="retrato" aria-label={src ? `Foto de ${perfil.nome}` : 'Sem foto'}>
         {src ? <img src={src} alt={`Foto de identificação de ${perfil.nome}`} /> : <span>{iniciais}</span>}
       </div>
+
+      {src && (
+        <div style={{ marginTop: 6 }}>
+          <BotaoOlho rotulo="Ver a foto" onClick={() => setVendoMaior(true)} />
+        </div>
+      )}
+
       {podeTrocar && (
         <label className="btn sm ghost" style={{ marginTop: 6, display: 'inline-block' }}>
           {ocupado ? 'Enviando…' : (src ? 'Trocar foto' : 'Pôr foto')}
           <input type="file" accept="image/*" style={{ display: 'none' }}
-                 onChange={(e) => { const f = e.target.files?.[0]; if (f) void enviar(f); }} />
+                 onChange={async (e) => {
+                   const f = e.target.files?.[0];
+                   if (!f) return;
+                   setErro('');
+                   setEscolhida(await lerArquivo(f));
+                   /* Limpa o campo: sem isto, escolher o MESMO arquivo depois
+                      de cancelar não dispara `change`, e a folha não reabre. */
+                   e.target.value = '';
+                 }} />
         </label>
       )}
       {erro && <div className="mutetxt">{erro}</div>}
+
+      {/* A foto GUARDADA, em tamanho de olhar. Sem botão de baixar: ela é vista
+          aqui, e quem precisar dela num documento pede — a decisão é de quem
+          pede, e fica com o nome dele. */}
+      {vendoMaior && src && (
+        <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-foto-id"
+             onClick={(e) => { if (e.target === e.currentTarget) setVendoMaior(false); }}>
+          <div className="sheet modal">
+            <h3 id="t-foto-id">Foto de identificação · {perfil.nome}</h3>
+            <img src={src} alt={`Foto de identificação de ${perfil.nome}`} className="previa-img" />
+            <div className="row rodape">
+              <button className="btn grow" onClick={() => setVendoMaior(false)}>Fechar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* A CONFIRMAÇÃO. O texto pergunta as duas coisas que dão errado: é a
+          foto certa, e é desta criança. */}
+      {escolhida && (
+        <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-foto-nova"
+             onClick={(e) => { if (e.target === e.currentTarget) setEscolhida(null); }}>
+          <div className="sheet modal" style={{ textAlign: 'left' }}>
+            <h3 id="t-foto-nova">A foto de {perfil.nome}</h3>
+            <PreviaEscolhida arquivo={escolhida}
+              pergunta={<>Esta foto vai identificar a criança na tela e sai impressa na{' '}
+                <b>folha da portaria</b>. É esta foto, e é <b>desta</b> criança?</>} />
+            {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+            <div className="row rodape">
+              <button className="btn sec grow" onClick={() => setEscolhida(null)}>Cancelar</button>
+              <button className="btn grow" disabled={ocupado}
+                      onClick={() => void enviar(escolhida)}>
+                {ocupado ? 'Enviando…' : '✓ É esta foto'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -2198,7 +2472,8 @@ function FolhaVisita({ contato, crianca, onFechar, onSalvou }: {
 }) {
   const [autorizado, setAutorizado] = useState(!!contato.autorizadoAVisitar);
   const [cpf, setCpf] = useState(/\*/.test(contato.cpf ?? '') ? '' : (contato.cpf ?? ''));
-  const [foto, setFoto] = useState<string | null>(null);
+  const [foto, setFoto] = useState<Escolhido | null>(null);
+  const [vendoFoto, setVendoFoto] = useState(false);
   const [erro, setErro] = useState('');
   const [aviso, setAviso] = useState('');
   const [salvando, setSalvando] = useState(false);
@@ -2211,7 +2486,7 @@ function FolhaVisita({ contato, crianca, onFechar, onSalvou }: {
       });
       if (foto) {
         await api(`/people/contacts/${contato.id}/photo`, {
-          method: 'POST', body: JSON.stringify({ conteudo: foto }),
+          method: 'POST', body: JSON.stringify({ conteudo: foto.dataUrl }),
         });
       }
       setAviso(r.aviso);
@@ -2221,6 +2496,26 @@ function FolhaVisita({ contato, crianca, onFechar, onSalvou }: {
     } finally {
       setSalvando(false);
     }
+  }
+
+  /*
+   * A FOTO ABRE NO LUGAR DA FOLHA, E NÃO POR CIMA DELA.
+   *
+   * Duas caixas empilhadas é o que a tela de Saúde já tinha aprendido a evitar:
+   * no celular a segunda cobre a primeira pela metade, e quem fecha uma fecha
+   * a errada. Aqui a folha some enquanto a foto está aberta e volta inteira
+   * depois — o que já foi digitado vive no estado deste componente, e não na
+   * tela.
+   */
+  if (vendoFoto) {
+    return (
+      <FolhaArquivo
+        titulo={`Foto 3×4 · ${contato.nome}`}
+        legenda="É esta a foto que a portaria vai receber na próxima folha."
+        carregar={() => api<{ nome: string; tipo: string; conteudo: string }>(
+          `/people/contacts/${contato.id}/photo`)}
+        onFechar={() => setVendoFoto(false)} />
+    );
   }
 
   return (
@@ -2248,14 +2543,26 @@ function FolhaVisita({ contato, crianca, onFechar, onSalvou }: {
           Foto 3×4 <small>— opcional; sem ela a portaria pede documento com foto</small>
         </label>
         <input id="vis-foto" type="file" accept="image/jpeg,image/png"
-               onChange={(e) => {
+               onChange={async (e) => {
                  const arquivo = e.target.files?.[0];
                  if (!arquivo) { setFoto(null); return; }
-                 const r = new FileReader();
-                 r.onload = () => setFoto(String(r.result));
-                 r.readAsDataURL(arquivo);
+                 setFoto(await lerArquivo(arquivo));
                }} />
-        {contato.temFoto && !foto && <p className="mutetxt">Já tem foto cadastrada.</p>}
+
+        {/* A prévia, pelo mesmo motivo da foto da criança: esta imagem vai
+            IMPRESSA na folha da guarita, ao lado do nome de um familiar. A
+            foto errada aqui é a pessoa errada entrando — ou a certa ficando
+            do lado de fora. */}
+        {foto && <PreviaEscolhida arquivo={foto}
+          pergunta={<>Esta foto sai impressa na <b>folha da portaria</b>, ao lado do nome de{' '}
+            {contato.nome}. É esta pessoa?</>} />}
+
+        {contato.temFoto && !foto && (
+          <p className="mutetxt">
+            Já tem foto cadastrada.{' '}
+            <BotaoOlho rotulo="Ver a foto de agora" onClick={() => setVendoFoto(true)} />
+          </p>
+        )}
 
         {erro && <div className="notice c-crit" role="alert">{erro}</div>}
         {aviso && <div className="notice c-ok" role="status">{aviso}</div>}
@@ -2466,7 +2773,7 @@ function FolhaConquistaDoPerfil({ perfil, onFechar, onSalvou }: {
   const [d, setD] = useState({
     tipo: 'aprovacao_escolar', tipoOutro: '', quando: '', descricao: '', instituicao: '',
   });
-  const [arquivo, setArquivo] = useState<{ nome: string; base64: string } | null>(null);
+  const [arquivo, setArquivo] = useState<Escolhido | null>(null);
   const [erro, setErro] = useState('');
   const [ocupado, setOcupado] = useState(false);
 
@@ -2516,13 +2823,15 @@ function FolhaConquistaDoPerfil({ perfil, onFechar, onSalvou }: {
         <label className="f">
           Comprovante <small>— diploma, certificado, carteira. PDF, JPG ou PNG, opcional</small>
         </label>
-        <input type="file" accept="application/pdf,image/*" onChange={(e) => {
+        <input type="file" accept="application/pdf,image/*" onChange={async (e) => {
           const f = e.target.files?.[0];
           if (!f) { setArquivo(null); return; }
-          const r = new FileReader();
-          r.onload = () => setArquivo({ nome: f.name, base64: String(r.result).split(',')[1] ?? '' });
-          r.readAsDataURL(f);
+          setArquivo(await lerArquivo(f));
         }} />
+
+        {arquivo && <PreviaEscolhida arquivo={arquivo}
+          pergunta={<>É este o comprovante? Ele fica na trajetória da criança — é{' '}
+            <b>o documento que ela leva</b> quando sair daqui.</>} />}
 
         {erro && <div className="notice c-crit" role="alert">{erro}</div>}
         <div className="row rodape">
@@ -2535,7 +2844,8 @@ function FolhaConquistaDoPerfil({ perfil, onFechar, onSalvou }: {
                 body: JSON.stringify({
                   ...d, personId: perfil.id, quando: d.quando || undefined,
                   descricao: d.descricao.trim(),
-                  conteudo: arquivo?.base64, nomeArquivo: arquivo?.nome,
+                  conteudo: arquivo ? base64De(arquivo.dataUrl) : undefined,
+                  nomeArquivo: arquivo?.nome,
                 }),
               });
               onSalvou();
@@ -2666,5 +2976,724 @@ function FolhaRemedios({ convivencia, houseId, onFechar }: {
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * O QUE FOI REGISTRADO DESTA CRIANÇA NAS CHAMADAS.
+ *
+ * Duas semanas, em ordem, com o que ficou escrito. **Sem contar nada**: nem
+ * faltas, nem recusas, nem percentual de presença. Um número desses na tela de
+ * uma criança de doze anos é o começo de uma ficha de comportamento (regra 3),
+ * e o motivo continua sendo o do §8.7.2 — o número viaja, e a frase que o
+ * explicava fica para trás.
+ *
+ * A EXCEÇÃO VEM COM O QUE FOI ESCRITO, e a correção também: `recusou` sozinho
+ * é um rótulo; "recusou o jantar, comeu a fruta depois" é um fato. E quem
+ * corrigiu um registro aparece, porque o histórico da chamada era guardado por
+ * gatilho desde a fase 67 e nunca tinha sido lido por nada.
+ */
+
+/**
+ * AS IDAS PARA A FAMÍLIA, NA VIDA DELA (fase 118).
+ *
+ * A convivência familiar é ABERTA de dentro do perfil desde a fase 89, e lida
+ * só na lista da casa — que mostra quem está fora AGORA. Quem abrisse o perfil
+ * da Alice em outubro não via que ela passou quatro fins de semana com a avó
+ * em setembro, nem como voltou de cada um.
+ *
+ * **Sem contar as idas.** Um "4 saídas em setembro" no alto do perfil de uma
+ * criança é a primeira linha de um julgamento sobre a família dela — e o
+ * número atravessaria meses sem o motivo ao lado (§8.14).
+ */
+function ConvivenciaFamiliar({ personId, quem }: { personId: string; quem: string }) {
+  const [linhas, setLinhas] = useState<{
+    id: string; comQuem: string; vinculo: string | null; finalidade: string | null;
+    saiuEm: string; retornoPrevisto: string; voltouEm: string | null; status: string;
+    comoChegou: string | null; trouxeDeCasa: string | null;
+    liberou: string | null; recebeu: string | null;
+    relatos: RelatoDaConvivencia[];
+  }[] | null>(null);
+  /* A porta que não fecha (fase 122) — aqui ela é a mesma de meses atrás. */
+  const [relatando, setRelatando] = useState<string | null>(null);
+
+  const carregar = useCallback(() => {
+    api<any[]>(`/people/${personId}/family-stays`)
+      .then(setLinhas)
+      .catch(() => setLinhas([]));
+  }, [personId]);
+
+  useEffect(() => { carregar(); }, [carregar]);
+
+  if (!linhas || linhas.length === 0) return null;
+  return (
+    <Secao titulo="Convivência familiar">
+      <div className="stack">
+        {linhas.map((f) => (
+          <div className="card" key={f.id}>
+            <div className="row">
+              <span className={`pill ${f.status === 'em_andamento' ? 'c-warn' : 'c-ok'}`}>
+                {f.status === 'em_andamento' ? 'Está fora' : 'Voltou'}
+              </span>
+              <b className="ff grow">{f.comQuem}{f.vinculo ? ` · ${f.vinculo}` : ''}</b>
+            </div>
+            <div className="mutetxt">
+              Saiu {dia(String(f.saiuEm).slice(0, 10))}
+              {f.voltouEm ? ` · voltou ${dia(String(f.voltouEm).slice(0, 10))}` : ''}
+              {f.liberou ? ` · liberou: ${f.liberou}` : ''}
+              {f.recebeu ? ` · recebeu: ${f.recebeu}` : ''}
+            </div>
+            {f.finalidade && <div>{f.finalidade}</div>}
+            {/* Como ela chegou, COMO FOI ESCRITO. Sem rótulo e sem resumo: é o
+                campo em que "voltou agressiva" e "chegou sem falar e foi para
+                o quarto" são coisas diferentes, e só a segunda é um fato. */}
+            {f.comoChegou && (
+              <p className="bloco" style={{ marginBottom: 0 }}>
+                <small>Como chegou</small>{f.comoChegou}
+              </p>
+            )}
+            {f.trouxeDeCasa && (
+              <p className="bloco" style={{ marginBottom: 0 }}>
+                <small>Trouxe de casa</small>{f.trouxeDeCasa}
+              </p>
+            )}
+
+            {/*
+              * OS RELATOS DESTA IDA (fase 122).
+              *
+              * *"Pode ser registrado quantas vezes for necessário, por
+              * qualquer educador, tudo ficando no perfil do jovem."* Aqui é o
+              * "tudo ficando no perfil": o que ela contou no domingo, e o que
+              * ela contou na terça, um debaixo do outro, com quem ouviu.
+              *
+              * Nenhuma contagem — nem "3 relatos", nem "sem relato há 12
+              * dias". A ausência de um número é o que impede esta seção de
+              * virar uma cobrança sobre o educador, que foi a correção que a
+              * Fundação fez ao pedido original.
+              */}
+            {f.relatos?.length > 0 && (
+              <>
+              {/* Um rótulo, porque "como chegou" e "o que foi registrado
+                  depois" são coisas diferentes: o primeiro é da chegada, estes
+                  podem ser de meses depois. Sem a linha, a terceira caixa
+                  cinza parecia mais um campo da volta. */}
+              <div className="mutetxt" style={{ marginTop: 8 }}>
+                O que foi sendo registrado depois
+              </div>
+              <ul className="lista">
+                {f.relatos.map((n) => (
+                  <li key={n.id}>
+                    {n.houveAlteracao && (
+                      <span className="pill c-warn">alteração observada</span>
+                    )}
+                    <div className="bloco" style={{ marginBottom: 0 }}>{n.relato}</div>
+                    <div className="mutetxt">
+                      {n.por ?? '—'} · {dia(String(n.quando).slice(0, 10))}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              </>
+            )}
+
+            {/* Aberto para sempre: a ida de setembro aceita um relato em
+                março, e é justamente esse o que mais importa. */}
+            <button className="btn sec sm" onClick={() => setRelatando(f.id)}>
+              📝 Registrar o que ela contou
+            </button>
+          </div>
+        ))}
+      </div>
+
+      {relatando && (
+        <FolhaDoRelato saidaId={relatando} quem={quem}
+                       onFechar={() => setRelatando(null)}
+                       onGravou={() => carregar()} />
+      )}
+    </Secao>
+  );
+}
+
+/**
+ * AS INTERNAÇÕES, NA VIDA DELA (fase 118).
+ *
+ * A internação era lida pela CASA — quem está no hospital agora. O perfil não
+ * dizia que ela esteve quinze dias internada em agosto: para saber, alguém
+ * tinha de abrir a tela de internação e pedir também as encerradas.
+ */
+function InternacoesDoAcolhido({ personId }: { personId: string }) {
+  const [linhas, setLinhas] = useState<{
+    id: string; hospital: string; motivo: string | null;
+    desde: string; ate: string | null; status: string; desfecho: string | null;
+    abriu: string | null; encerrou: string | null;
+  }[] | null>(null);
+
+  useEffect(() => {
+    let vivo = true;
+    api<any[]>(`/nursing/hospitalizations/person/${personId}`)
+      .then((d) => { if (vivo) setLinhas(d); })
+      .catch(() => { if (vivo) setLinhas([]); });
+    return () => { vivo = false; };
+  }, [personId]);
+
+  if (!linhas || linhas.length === 0) return null;
+  return (
+    <Secao titulo="Internações hospitalares">
+      <ul className="lista">
+        {linhas.map((h) => (
+          <li key={h.id}>
+            <div className="grow">
+              <b className="ff">{h.hospital}</b>
+              <div className="mutetxt linhadois">
+                {dia(String(h.desde).slice(0, 10))}
+                {h.ate ? ` — ${dia(String(h.ate).slice(0, 10))}` : ' — em andamento'}
+                {h.desfecho ? ` · ${h.desfecho}` : ''}
+                {h.abriu ? ` · abriu: ${h.abriu}` : ''}
+              </div>
+              {h.motivo && <div>{h.motivo}</div>}
+            </div>
+          </li>
+        ))}
+      </ul>
+    </Secao>
+  );
+}
+
+/**
+ * OS OFÍCIOS SOBRE ELA (fase 118).
+ *
+ * `external_communication.person_id` era gravado desde a migração 0320 e
+ * **nenhuma consulta o lia** — nem o detalhe da ocorrência, nem a lista da
+ * casa. Um ofício ao Judiciário, ao Conselho Tutelar ou ao Ministério Público
+ * SOBRE a Alice não aparecia em lugar nenhum da vida da Alice. É o tipo de
+ * documento que a audiência pergunta se existe.
+ *
+ * O alcance é o da `ec_select`, e o educador de plantão continua sem ler
+ * ofício: quando não há nada a mostrar, o bloco não existe.
+ */
+function OficiosDoAcolhido({ personId }: { personId: string }) {
+  const [linhas, setLinhas] = useState<{
+    id: string; orgao: string; destinatarioFuncional: string | null;
+    canal: string | null; status: string; resumo: string | null;
+    quando: string | null; entregueEm: string | null; responsavel: string | null;
+  }[] | null>(null);
+
+  useEffect(() => {
+    let vivo = true;
+    api<any[]>(`/incidents/communications/person/${personId}`)
+      .then((d) => { if (vivo) setLinhas(d); })
+      .catch(() => { if (vivo) setLinhas([]); });
+    return () => { vivo = false; };
+  }, [personId]);
+
+  if (!linhas || linhas.length === 0) return null;
+  return (
+    <Secao titulo="Comunicações a órgãos externos">
+      <p className="mutetxt" style={{ marginTop: 0 }}>
+        Ofícios redigidos sobre esta criança. O sistema <b>não despacha nada</b>: a entrega é
+        feita pelo canal que a instituição decidir, e fica registrada aqui com o responsável.
+      </p>
+      <ul className="lista">
+        {linhas.map((o) => (
+          <li key={o.id}>
+            <div className="grow">
+              <b className="ff">{o.orgao}</b>
+              {o.destinatarioFuncional ? <> · {o.destinatarioFuncional}</> : null}
+              <div className="mutetxt linhadois">
+                {o.quando ? dia(String(o.quando).slice(0, 10)) : '—'}
+                {o.entregueEm ? ` · entregue ${dia(String(o.entregueEm).slice(0, 10))}` : ''}
+                {o.responsavel ? ` · responsável: ${o.responsavel}` : ''}
+              </div>
+              {o.resumo && <div>{o.resumo}</div>}
+            </div>
+            <span className={`pill ${o.status === 'entregue_manualmente' ? 'c-ok' : 'c-warn'}`}>
+              {o.status === 'entregue_manualmente' ? 'entregue'
+                : o.status === 'aprovado' ? 'aprovado'
+                : o.status === 'em_revisao' ? 'em revisão' : 'rascunho'}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </Secao>
+  );
+}
+
+function Presenca({ personId, nome }: { personId: string; nome: string }) {
+  const [dados, setDados] = useState<{
+    dias: number;
+    linhas: { id: string; tipo: string; titulo: string; quando: string;
+              resultado: string; excecao: boolean; justificativa: string | null;
+              por: string; offline: boolean;
+              correcoes: { antes: string; justificativaAntes: string | null;
+                           eraDe: string; corrigidoPor: string; em: string }[] }[];
+  } | null>(null);
+  const [aberto, setAberto] = useState(false);
+  const [erro, setErro] = useState('');
+
+  useEffect(() => {
+    let vivo = true;
+    api<typeof dados>(`/checks/person/${personId}?dias=14`)
+      .then((d) => { if (vivo) setDados(d); })
+      .catch((e) => { if (vivo) setErro(e instanceof Error ? e.message : ''); });
+    return () => { vivo = false; };
+  }, [personId]);
+
+  if (erro) return null;
+  const linhas = dados?.linhas ?? [];
+
+  return (
+    <>
+      <div className="eyebrow">Presença nas chamadas · últimos {dados?.dias ?? 14} dias</div>
+      {dados && linhas.length === 0 && (
+        <p className="mutetxt">
+          Nada registrado para {nome} nas chamadas deste período. A lista vazia quer dizer que
+          ninguém registrou — não que ela não esteve.
+        </p>
+      )}
+      {!dados && <p className="mutetxt">Abrindo…</p>}
+
+      {/* Só as exceções por padrão: a lista inteira, com quatro refeições por
+          dia, vira paisagem — e é o mesmo motivo pelo qual a lista de quem sai
+          sozinho mostra só quem NÃO está simplesmente liberado (§8.7.2). */}
+      <div className="stack">
+        {linhas.filter((l) => aberto || l.excecao || l.correcoes.length).map((l) => (
+          <div className="card" key={l.id}>
+            <div className="row">
+              <span className={`pill ${l.excecao ? 'c-warn' : 'c-ok'}`}>{l.resultado}</span>
+              <b className="ff grow">{l.titulo}</b>
+              <span className="mutetxt">{dia(l.quando)}</span>
+            </div>
+            {l.justificativa && <div>{l.justificativa}</div>}
+            <div className="mutetxt">
+              Registrado por {l.por}{l.offline ? ' · registrado sem sinal' : ''}
+            </div>
+            {l.correcoes.map((c, n) => (
+              <div className="notice c-info" key={n}>
+                Antes constava <b>{c.antes}</b>
+                {c.justificativaAntes ? ` — "${c.justificativaAntes}"` : ''}, de {c.eraDe}.
+                Corrigido por {c.corrigidoPor} em {dia(c.em)}.
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+
+      {linhas.length > 0 && (
+        <button className="btn sec block" style={{ marginBottom: 12 }}
+                onClick={() => setAberto(!aberto)}>
+          {aberto
+            ? 'Mostrar só o que teve exceção'
+            : `Ver tudo o que foi registrado (${linhas.length})`}
+        </button>
+      )}
+    </>
+  );
+}
+
+/**
+ * O PRONTUÁRIO DE EDUCAÇÃO.
+ *
+ * Veio do "Prontuário Individual de Evolução — Educação" que a Fundação
+ * entregou em 28/08 (§8.12): sala de recursos, equipe multiprofissional,
+ * aprendizagem profissional, e a evolução datada. As tabelas existiam desde a
+ * migração 0530 e o RELATÓRIO já as lia — só não havia por onde escrever
+ * (§9, item 3). No piloto, a audiência concentrada diria "não há" sobre escola
+ * e profissionalização para sempre, e num documento judicial seção vazia se lê
+ * como ausência de trabalho.
+ *
+ * A EVOLUÇÃO NÃO SE EDITA: correção é registro novo, como no caderno. E quem
+ * escreve inclui o EDUCADOR — quem acompanha a tarefa de casa é ele.
+ */
+interface ApoioEducacional {
+  salaDeRecursos: boolean; motivoDaSala: string | null; professorDaSala: string | null;
+  servico: string | null; servicoOutro: string | null; servicoLocal: string | null;
+  servicoProfissional: string | null;
+  aprendiz: boolean; modo: string | null; curso: string | null;
+  cursoInicio: string | null; cursoFim: string | null; turno: string | null;
+  unidade: string | null; empresa: string | null; enderecoDaEmpresa: string | null;
+  atualizadoEm: string; atualizadoPor: string | null;
+}
+interface EvolucaoEducacional {
+  id: string; em: string; texto: string; por: string | null; escritoEm: string;
+}
+
+const ESCREVEM_EDUCACAO = ['educador', 'lider_diurno', 'equipe_tecnica', 'coordenador', 'gestor_geral'];
+
+function Educacao({ personId, houseId, papel }: {
+  personId: string; houseId: string; papel: string;
+}) {
+  const [dados, setDados] = useState<{ apoio: ApoioEducacional | null;
+                                       evolucoes: EvolucaoEducacional[] } | null>(null);
+  const [erro, setErro] = useState('');
+  const [editando, setEditando] = useState(false);
+  const [escrevendo, setEscrevendo] = useState(false);
+  const pode = ESCREVEM_EDUCACAO.includes(papel);
+
+  const carregar = useCallback(async () => {
+    try {
+      setDados(await api(`/nursing/education/${personId}`));
+    } catch (e) { setErro(e instanceof Error ? e.message : ''); }
+  }, [personId]);
+  useEffect(() => { void carregar(); }, [carregar]);
+
+  if (erro) return null;
+  const a = dados?.apoio ?? null;
+
+  return (
+    <>
+      <div className="eyebrow">Educação</div>
+      {!dados && <p className="mutetxt">Abrindo…</p>}
+
+      {dados && (
+        <div className="card stack">
+          {!a && (
+            <p className="mutetxt" style={{ margin: 0 }}>
+              Nada registrado sobre apoio educacional. <b>O que fica em branco aqui sai como
+              "não há"</b> no relatório de desenvolvimento e na audiência concentrada.
+            </p>
+          )}
+          {a && (
+            <>
+              <div className="row">
+                <span className={`pill ${a.salaDeRecursos ? 'c-info' : 'c-mute'}`}>
+                  {a.salaDeRecursos ? 'Sala de recursos' : 'Sem sala de recursos'}
+                </span>
+                {a.servico && <span className="pill c-info">
+                  {a.servico === 'outro' ? (a.servicoOutro ?? 'Outro serviço') : a.servico}
+                </span>}
+                {a.aprendiz && <span className="pill c-ok">Aprendizagem profissional</span>}
+              </div>
+              {a.salaDeRecursos && a.motivoDaSala && (
+                <div className="mutetxt">
+                  {a.motivoDaSala}{a.professorDaSala ? ` · ${a.professorDaSala}` : ''}
+                </div>
+              )}
+              {a.servico && (
+                <div className="mutetxt">
+                  {a.servicoProfissional ?? 'Profissional não informado'}
+                  {a.servicoLocal ? ` · ${a.servicoLocal}` : ''}
+                </div>
+              )}
+              {a.aprendiz && (
+                <div className="mutetxt">
+                  {a.curso}{a.turno ? ` · turno da ${a.turno}` : ''}
+                  {a.unidade ? ` · ${a.unidade}` : ''}
+                  {a.empresa ? ` · trabalha em ${a.empresa}` : ''}
+                  {/* O endereço é logística — quem leva a criança precisa dele.
+                      Nunca rastreamento: ninguém é seguido por aqui (§7.5). */}
+                  {a.enderecoDaEmpresa ? ` (${a.enderecoDaEmpresa})` : ''}
+                </div>
+              )}
+              <div className="mutetxt">
+                Atualizado por {a.atualizadoPor ?? '—'} em {dia(a.atualizadoEm)}.
+              </div>
+            </>
+          )}
+          {pode && (
+            <button className="btn sm ghost" onClick={() => setEditando(true)}>
+              {a ? 'Atualizar o apoio educacional' : 'Registrar o apoio educacional'}
+            </button>
+          )}
+        </div>
+      )}
+
+      {dados && (
+        <>
+          <div className="eyebrow">Evolução educacional</div>
+          {dados.evolucoes.length === 0 && (
+            <p className="mutetxt">
+              Nenhuma evolução escrita. A lista vazia quer dizer que ninguém escreveu — não que
+              não houve nada. <b>Quem acompanha a tarefa de casa é quem tem o que contar aqui.</b>
+            </p>
+          )}
+          <div className="stack">
+            {dados.evolucoes.slice(0, 6).map((e) => (
+              <div className="card" key={e.id}>
+                <div className="row">
+                  <span className="pill c-info">{dia(e.em)}</span>
+                  <span className="mutetxt grow">{e.por ?? '—'}</span>
+                </div>
+                <div>{e.texto}</div>
+              </div>
+            ))}
+          </div>
+          {pode && (
+            <button className="btn sec block" style={{ marginBottom: 12 }}
+                    onClick={() => setEscrevendo(true)}>
+              Escrever uma evolução
+            </button>
+          )}
+        </>
+      )}
+
+      {editando && (
+        <FolhaApoioEducacional
+          atual={a} onFechar={() => setEditando(false)}
+          onSalvar={async (corpo) => {
+            await api(`/nursing/education/${personId}/support`, {
+              method: 'POST', body: JSON.stringify({ ...corpo, houseId }),
+            });
+            setEditando(false); await carregar();
+          }} />
+      )}
+
+      {escrevendo && (
+        <FolhaEvolucaoEducacional
+          onFechar={() => setEscrevendo(false)}
+          onSalvar={async (corpo) => {
+            await api(`/nursing/education/${personId}/evolutions`, {
+              method: 'POST', body: JSON.stringify({ ...corpo, houseId }),
+            });
+            setEscrevendo(false); await carregar();
+          }} />
+      )}
+    </>
+  );
+}
+
+/** O apoio. Substituir NÃO apaga: o anterior fica no histórico, com autor. */
+function FolhaApoioEducacional({ atual, onFechar, onSalvar }: {
+  atual: ApoioEducacional | null; onFechar: () => void;
+  onSalvar: (c: Record<string, unknown>) => Promise<void>;
+}) {
+  const [sala, setSala] = useState(atual?.salaDeRecursos ?? false);
+  const [motivo, setMotivo] = useState(atual?.motivoDaSala ?? '');
+  const [professor, setProfessor] = useState(atual?.professorDaSala ?? '');
+  const [servico, setServico] = useState(atual?.servico ?? '');
+  const [profissional, setProfissional] = useState(atual?.servicoProfissional ?? '');
+  const [local, setLocal] = useState(atual?.servicoLocal ?? '');
+  const [aprendiz, setAprendiz] = useState(atual?.aprendiz ?? false);
+  const [curso, setCurso] = useState(atual?.curso ?? '');
+  const [turno, setTurno] = useState(atual?.turno ?? '');
+  const [unidade, setUnidade] = useState(atual?.unidade ?? '');
+  const [empresa, setEmpresa] = useState(atual?.empresa ?? '');
+  const [endereco, setEndereco] = useState(atual?.enderecoDaEmpresa ?? '');
+  const [erro, setErro] = useState('');
+
+  /* As mesmas recusas do servidor, para o aviso chegar antes dele. */
+  const problema = sala && !motivo.trim()
+    ? 'Sala de recursos exige o motivo: é ele que a escola e a audiência perguntam.'
+    : aprendiz && !curso.trim()
+      ? 'Aprendizagem profissional sem o nome do curso não diz nada a quem ler o relatório.'
+      : '';
+
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-edu"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet modal">
+        <h3 id="t-edu">Apoio educacional</h3>
+        <div className="notice c-info">
+          O que ficar em branco aqui sai como <b>"não há"</b> no relatório e na audiência — e num
+          documento judicial, seção vazia se lê como ausência de trabalho.
+        </div>
+
+        <label className="f">
+          <input type="checkbox" checked={sala} onChange={(e) => setSala(e.target.checked)} />
+          {' '}Frequenta sala de recursos
+        </label>
+        {sala && (
+          <>
+            <label className="f" htmlFor="edu-mot">Por quê</label>
+            <textarea id="edu-mot" value={motivo} onChange={(e) => setMotivo(e.target.value)}
+                      placeholder="Ex.: apoio em leitura e escrita, duas vezes por semana." />
+            <label className="f" htmlFor="edu-prof">Professor ou professora</label>
+            <input id="edu-prof" value={professor} onChange={(e) => setProfessor(e.target.value)} />
+          </>
+        )}
+
+        <label className="f" htmlFor="edu-serv">Equipe multiprofissional</label>
+        <select id="edu-serv" value={servico} onChange={(e) => setServico(e.target.value)}>
+          <option value="">— nenhum —</option>
+          <option value="fono">Fonoaudiologia</option>
+          <option value="pedagoga">Pedagogia</option>
+          <option value="psicopedagoga">Psicopedagogia</option>
+          <option value="outro">Outro serviço</option>
+        </select>
+        {servico && (
+          <>
+            <label className="f" htmlFor="edu-pro2">Quem atende</label>
+            <input id="edu-pro2" value={profissional}
+                   onChange={(e) => setProfissional(e.target.value)} />
+            <label className="f" htmlFor="edu-loc">Onde</label>
+            <input id="edu-loc" value={local} onChange={(e) => setLocal(e.target.value)} />
+          </>
+        )}
+
+        <label className="f">
+          <input type="checkbox" checked={aprendiz}
+                 onChange={(e) => setAprendiz(e.target.checked)} />
+          {' '}Aprendizagem profissional (Jovem Aprendiz)
+        </label>
+        {aprendiz && (
+          <>
+            <label className="f" htmlFor="edu-cur">Curso</label>
+            <input id="edu-cur" value={curso} onChange={(e) => setCurso(e.target.value)} />
+            <label className="f" htmlFor="edu-tur">Turno</label>
+            <input id="edu-tur" value={turno} onChange={(e) => setTurno(e.target.value)}
+                   placeholder="manhã / tarde / noite" />
+            <label className="f" htmlFor="edu-uni">Unidade de formação</label>
+            <input id="edu-uni" value={unidade} onChange={(e) => setUnidade(e.target.value)} />
+            <label className="f" htmlFor="edu-emp">Onde trabalha</label>
+            <input id="edu-emp" value={empresa} onChange={(e) => setEmpresa(e.target.value)} />
+            <label className="f" htmlFor="edu-end">
+              Endereço <small>— para quem leva; o sistema não rastreia ninguém</small>
+            </label>
+            <input id="edu-end" value={endereco} onChange={(e) => setEndereco(e.target.value)} />
+          </>
+        )}
+
+        {problema && <div className="notice c-crit" role="alert">{problema}</div>}
+        {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+
+        <div className="row rodape">
+          <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
+          <button className="btn grow" disabled={!!problema} onClick={async () => {
+            try {
+              await onSalvar({
+                salaDeRecursos: sala, motivoDaSala: motivo.trim() || null,
+                professorDaSala: professor.trim() || null,
+                servico: servico || null, servicoProfissional: profissional.trim() || null,
+                servicoLocal: local.trim() || null,
+                aprendiz, curso: curso.trim() || null, turno: turno.trim() || null,
+                unidade: unidade.trim() || null, empresa: empresa.trim() || null,
+                enderecoDaEmpresa: endereco.trim() || null,
+              });
+            } catch (e) {
+              setErro(e instanceof Error ? e.message : 'Não foi possível salvar.');
+            }
+          }}>Salvar</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** A evolução do dia. Não se edita — correção é registro novo. */
+function FolhaEvolucaoEducacional({ onFechar, onSalvar }: {
+  onFechar: () => void; onSalvar: (c: Record<string, unknown>) => Promise<void>;
+}) {
+  const [texto, setTexto] = useState('');
+  const [em, setEm] = useState('');
+  const [erro, setErro] = useState('');
+
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-evo"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet modal">
+        <h3 id="t-evo">Evolução educacional</h3>
+        <div className="notice c-info">
+          Escreva o que aconteceu, e não o que a criança "é". Isto entra no relatório de
+          desenvolvimento — e um documento judicial acompanha a pessoa por anos.
+        </div>
+
+        <label className="f" htmlFor="evo-dia">Quando</label>
+        <input id="evo-dia" type="date" value={em} onChange={(e) => setEm(e.target.value)} />
+
+        <label className="f" htmlFor="evo-txt">O que aconteceu</label>
+        <textarea id="evo-txt" value={texto} onChange={(e) => setTexto(e.target.value)}
+                  placeholder="Ex.: entregou o trabalho de ciências sem lembrete; a professora mandou bilhete elogiando." />
+
+        {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+        <div className="row rodape">
+          <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
+          <button className="btn grow" disabled={texto.trim().length < 10} onClick={async () => {
+            try { await onSalvar({ texto: texto.trim(), em: em || undefined }); }
+            catch (e) { setErro(e instanceof Error ? e.message : 'Não foi possível salvar.'); }
+          }}>Registrar</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * O RASTRO DO REGISTRO DESTA CRIANÇA.
+ *
+ * Quem lê está na §7 e na policy `audit_select`: a coordenação na própria
+ * casa, e o Gestor Geral nas oito. O bloco nem aparece para quem não alcança —
+ * e não é por discrição: oferecer uma porta que o servidor vai recusar ensina
+ * a pessoa a não confiar na tela.
+ *
+ * O NOME DE QUEM AGIU aparece em cada linha, como aparece em toda tela deste
+ * sistema. O que não existe é o caminho inverso: não há busca por pessoa da
+ * equipe, e não há contagem de nada. Um total ao lado de um nome é uma
+ * avaliação que ninguém assinou.
+ */
+const LEEM_AUDITORIA = ['coordenador', 'gestor_geral', 'admin_tecnico'];
+
+function AuditoriaDoAcolhido({ personId, papel }: { personId: string; papel: string }) {
+  const [linhas, setLinhas] = useState<{
+    id: string; acao: string; codigo: string; quando: string; por: string;
+    finalidade: string | null; detalhe: Record<string, unknown> }[] | null>(null);
+  const [aberto, setAberto] = useState(false);
+  const [erro, setErro] = useState('');
+
+  useEffect(() => {
+    if (!aberto || linhas) return;
+    let vivo = true;
+    api<{ linhas: any[] }>(`/audit/person/${personId}?dias=90`)
+      .then((d) => { if (vivo) setLinhas(d.linhas); })
+      .catch((e) => { if (vivo) setErro(e instanceof Error ? e.message : 'Não foi possível abrir.'); });
+    return () => { vivo = false; };
+  }, [aberto, personId]);
+
+  if (!LEEM_AUDITORIA.includes(papel)) return null;
+
+  return (
+    <>
+      <div className="eyebrow">Quem mexeu no registro desta criança</div>
+      {!aberto && (
+        <p className="mutetxt">
+          Últimos 90 dias, com o nome de quem agiu e a finalidade declarada, quando houve.{' '}
+          <b>Abrir a auditoria também é um ato</b> — e ela não responde "o que fulano fez": a
+          pergunta aqui é sobre a criança.
+        </p>
+      )}
+      {!aberto && (
+        <button className="btn sec block" style={{ marginBottom: 12 }}
+                onClick={() => setAberto(true)}>
+          Ver o rastro dos últimos 90 dias
+        </button>
+      )}
+
+      {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+      {aberto && !linhas && !erro && <p className="mutetxt">Abrindo…</p>}
+
+      {aberto && linhas && linhas.length === 0 && (
+        <p className="mutetxt">
+          Nada registrado nos últimos 90 dias. A lista vazia quer dizer que ninguém abriu nem
+          alterou o registro dela no período — não que a auditoria esteja desligada.
+        </p>
+      )}
+
+      {aberto && linhas && linhas.length > 0 && (
+        <>
+          <div className="stack">
+            {linhas.slice(0, 40).map((l) => (
+              <div className="card" key={l.id}>
+                <div className="row">
+                  {/* A finalidade é o que separa "abriu" de "abriu e disse
+                      para quê": ela pinta a linha, porque é o que alguém vai
+                      procurar seis meses depois. */}
+                  <span className={`pill ${l.finalidade ? 'c-med' : 'c-info'}`}>{l.acao}</span>
+                  <span className="mutetxt grow">{l.por}</span>
+                  <span className="mutetxt">{dia(l.quando)} {horaCurta(l.quando)}</span>
+                </div>
+                {l.finalidade && (
+                  <div className="bloco"><small>Finalidade declarada</small>{l.finalidade}</div>
+                )}
+              </div>
+            ))}
+          </div>
+          {linhas.length > 40 && (
+            <p className="mutetxt">
+              Mostrando as 40 mais recentes de {linhas.length}. Há mais atrás delas.
+            </p>
+          )}
+          <button className="btn sec block" style={{ marginBottom: 12 }}
+                  onClick={() => setAberto(false)}>Fechar o rastro</button>
+        </>
+      )}
+    </>
   );
 }

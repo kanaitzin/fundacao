@@ -5,6 +5,7 @@ import { EventBus } from '../../kernel/events/event-bus.service';
 import { AuthenticatedUser, DocumentClosed, EscalationRequest } from '../../kernel/contracts';
 import { StatementsService } from '../statements';
 import { DocumentosService } from '../../kernel/documentos/documentos.service';
+import { ArquivosService } from '../../kernel/arquivos/arquivos.service';
 import { cargoNoDocumento } from '../../kernel/documentos/folha';
 import { folhaDaOcorrencia } from './ocorrencia-folha';
 
@@ -131,6 +132,7 @@ export class IncidentsService {
     @Inject(EventBus) private readonly bus: EventBus,
     @Inject(StatementsService) private readonly statements: StatementsService,
     @Inject(DocumentosService) private readonly documentos: DocumentosService,
+    @Inject(ArquivosService) private readonly arquivos: ArquivosService,
   ) {}
 
   catalogo() {
@@ -310,10 +312,14 @@ export class IncidentsService {
       const { rows: sinteses } = await c.query(
         `SELECT s.id, s.body, s.at, app_user_display_name(s.author_id) AS autor
          FROM incident_synthesis s WHERE s.incident_id = $1 ORDER BY s.at`, [id]);
-      // `storage_ref` nem é pedido: o papel da aplicação não tem privilégio
-      // de leitura nessa coluna (migração 0320).
+      /* `storage_ref` e `storage_key` não são pedidos: o papel da aplicação não
+       * tem privilégio de leitura em nenhuma das duas (migrações 0320 e 1220).
+       * Quem diz que há arquivo é o `mime`, que é metadado e não porta — a
+       * tela precisa saber se o botão abre um documento ou um caminho, e
+       * descobrir isso só ao clicar seria oferecer o que pode não existir. */
       const { rows: anexos } = await c.query(
         `SELECT a.id, a.kind, a.display_name, a.justification, a.restricted, a.at,
+                a.mime IS NOT NULL AS tem_arquivo, a.file_name, a.size_bytes,
                 app_user_display_name(a.author_id) AS autor
          FROM incident_attachment a WHERE a.incident_id = $1 ORDER BY a.at`, [id]);
       const { rows: comunicacoes } = await c.query(
@@ -373,6 +379,10 @@ export class IncidentsService {
         restrito: a.restricted, autor: a.autor, quando: a.at,
         // O líder vê que existe; abrir é outro ato, com finalidade.
         podeAbrirDireto: !a.restricted,
+        // Arquivo aqui dentro, ou caminho no Drive? A tela escreve uma coisa
+        // diferente em cada caso, e só uma das duas abre uma prévia.
+        temArquivo: a.tem_arquivo === true,
+        nomeDoArquivo: a.file_name, tamanho: a.size_bytes,
       })),
       comunicacoesExternas: dados.comunicacoes.map((e: any) => ({
         id: e.id, orgao: e.organ, destinatarioFuncional: e.recipient_role,
@@ -582,19 +592,29 @@ export class IncidentsService {
   // Anexos (§13.7)
   // ------------------------------------------------------------------
 
+  /**
+   * AS DUAS FORMAS DE ANEXAR, e a casa escolhe uma delas por anexo (fase 108).
+   *
+   * `conteudo` em base64 sobe o papel digitalizado; `referencia` aponta o
+   * caminho no Drive institucional. **Uma das duas, e não nenhuma** — é o que o
+   * CHECK `anexo_tem_onde_estar` cobra no banco, e é o que faltava: o
+   * `storage_ref NOT NULL` garantia um texto, nunca um documento.
+   */
   async addAttachment(user: AuthenticatedUser, id: string, input: {
-    tipo: string; nome: string; referencia: string; justificativa?: string;
-    restrito?: boolean; checksum?: string;
+    tipo: string; nome: string; referencia?: string; justificativa?: string;
+    restrito?: boolean; checksum?: string; conteudo?: string; nomeArquivo?: string;
   }) {
     const tipo = TIPOS_ANEXO.find((t) => t.cod === input.tipo);
     if (!tipo) {
       throw new BadRequestException(
         `Escolha o tipo do anexo: ${TIPOS_ANEXO.map((t) => t.label).join('; ')}.`);
     }
-    if (!(input.referencia ?? '').trim()) {
+    const referencia = (input.referencia ?? '').trim();
+    if (!referencia && !(input.conteudo ?? '').trim()) {
       throw new BadRequestException(
-        'Informe onde o arquivo está — a pasta ou o link no Drive da instituição. '
-        + 'O sistema guarda a referência, não o arquivo.');
+        'Anexe o documento digitalizado, ou informe onde ele está — a pasta ou o link no '
+        + 'Drive da instituição. Uma das duas: anexo sem nenhuma das duas é uma linha que '
+        + 'promete um documento que ninguém alcança.');
     }
     // §13.7: foto exige justificativa. Sem ela, não entra.
     if (input.tipo === 'foto_autorizada' && (input.justificativa ?? '').trim().length < 15) {
@@ -610,21 +630,44 @@ export class IncidentsService {
         + 'Use um nome neutro; o conteúdo fica protegido dentro do anexo.');
     }
 
+    /* O nome do ARQUIVO passa pela mesma regra do nome de exibição: ele viaja
+     * junto com os bytes, aparece em download e em pasta compartilhada. */
+    const nomeArquivo = (input.nomeArquivo ?? '').trim();
+    if (nomeArquivo && PROIBIDO_NO_NOME.some((re) => re.test(nomeArquivo))) {
+      throw new BadRequestException(
+        'O NOME DO ARQUIVO tem o mesmo problema: nada de CPF, diagnóstico ou referência '
+        + 'judicial. Renomeie antes de anexar.');
+    }
+
+    // Guardado ANTES da transação: se o disco recusar, nenhuma linha nasce
+    // apontando para um objeto que não existe.
+    const guardado = await this.arquivos.guardar(input.conteudo);
+
     const casa = await this.casa(user, id);
     const attId = await this.db.asUser(user.id, async (c) => {
       const { rows: [r] } = await c.query(
         `INSERT INTO incident_attachment (incident_id, house_id, kind, display_name,
-           justification, restricted, storage_ref, checksum, author_id)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id`,
+           justification, restricted, storage_ref, checksum, author_id,
+           storage_key, mime, file_name, size_bytes, sha256)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING id`,
         [id, casa, input.tipo, nome, input.justificativa ?? null,
          input.restrito ?? tipo.restritoPorPadrao,
-         input.referencia, input.checksum ?? null, user.id]);
+         referencia || null, input.checksum ?? null, user.id,
+         guardado?.chave ?? null, guardado?.mime ?? null,
+         guardado ? (nomeArquivo || nome) : null,
+         guardado?.tamanho ?? null, guardado?.sha256 ?? null]);
       return r.id as string;
     });
 
     await this.audit.log({ action: 'incident.attachment_add', actorId: user.id, houseId: casa,
-      entity: 'incident_attachment', entityId: attId, detail: { tipo: input.tipo } });
-    return { id: attId, aviso: 'Anexo registrado. Fotos não aparecem na linha do tempo.' };
+      entity: 'incident_attachment', entityId: attId,
+      detail: { tipo: input.tipo, forma: guardado ? 'arquivo' : 'referencia' } });
+    return {
+      id: attId,
+      aviso: guardado
+        ? 'Anexo guardado no sistema. Quem abrir vê o documento, e a abertura fica registrada.'
+        : 'Anexo registrado por referência: o arquivo continua no Drive da instituição.',
+    };
   }
 
   async openAttachment(user: AuthenticatedUser, attachmentId: string, finalidade?: string) {
@@ -634,8 +677,28 @@ export class IncidentsService {
           `SELECT * FROM app_open_attachment($1,$2)`, [attachmentId, finalidade ?? '']);
         return row;
       });
-      return { referencia: r.out_ref, tipo: r.out_kind, nome: r.out_name,
-               aviso: 'Abertura registrada em auditoria.' };
+      /* O ARQUIVO, quando ele está aqui dentro. A leitura do disco vem DEPOIS
+       * da função, que é quem registra — o registro não pode depender de o
+       * objeto ainda estar lá. E se ele não estiver, a frase diz a verdade em
+       * vez de devolver um anexo vazio: o banco continua jurando que o arquivo
+       * existe, e quem perdeu metade do acervo num backup descobre aqui. */
+      const bytes = r.out_key ? await this.arquivos.ler(r.out_key) : null;
+      if (r.out_key && !bytes) {
+        throw new NotFoundException(
+          'O registro deste anexo existe, mas o arquivo não está no acervo. '
+          + 'Avise a TI: é o caso de acervo restaurado pela metade (§12.2).');
+      }
+      return {
+        referencia: r.out_ref, tipo: r.out_kind, nome: r.out_name,
+        arquivo: bytes
+          ? { nome: r.out_file_name ?? r.out_name, tipo: r.out_mime ?? 'application/octet-stream',
+              conteudo: bytes.toString('base64') }
+          : null,
+        aviso: bytes
+          ? 'Abertura registrada em auditoria, com o seu nome e o horário.'
+          : 'Abertura registrada em auditoria. O arquivo está no Drive da instituição, '
+            + 'no caminho abaixo.',
+      };
     } catch (e: any) {
       const m = e?.message ?? '';
       if (m.includes('anexo_restrito')) {
@@ -754,6 +817,39 @@ export class IncidentsService {
     await this.audit.log({ action: 'external_comm.delivered', actorId: user.id,
       entity: 'external_communication', entityId: id });
     return { status: 'entregue_manualmente', aviso: 'Entrega registrada, com responsável e horário.' };
+  }
+
+  /**
+   * OS OFÍCIOS SOBRE UMA CRIANÇA, NA VIDA DELA (fase 118).
+   *
+   * `external_communication.person_id` é gravado desde a migração 0320 e
+   * **nenhuma consulta o lia**: nem o detalhe da ocorrência, nem a lista da
+   * casa. Um ofício ao Judiciário, ao Conselho Tutelar ou ao Ministério
+   * Público SOBRE a Alice não aparecia em lugar nenhum da vida da Alice — e é
+   * o tipo de documento que a audiência pergunta se existe.
+   *
+   * O alcance é o da própria `ec_select`: equipe técnica, coordenação e Gestor
+   * Geral, na casa. O educador de plantão não lê ofício, e continua não lendo.
+   *
+   * Sem contagem: a lista é a lista. "Três ofícios ao MP" no alto do perfil de
+   * uma criança é um número que viaja e um contexto que fica para trás.
+   */
+  async comunicacoesDoAcolhido(user: AuthenticatedUser, personId: string) {
+    return this.db.asUser(user.id, async (c) => {
+      const { rows } = await c.query(
+        `SELECT e.id, e.organ, e.recipient_role, e.channel, e.status, e.summary,
+                e.occurred_at, e.approved_at, e.delivered_at, e.incident_id,
+                app_user_display_name(e.responsible_id) AS responsavel
+         FROM external_communication e
+         WHERE e.person_id = $1
+         ORDER BY e.created_at DESC LIMIT 100`, [personId]);
+      return rows.map((r) => ({
+        id: r.id, orgao: r.organ, destinatarioFuncional: r.recipient_role,
+        canal: r.channel, status: r.status, resumo: r.summary,
+        quando: r.occurred_at, aprovadaEm: r.approved_at, entregueEm: r.delivered_at,
+        ocorrenciaId: r.incident_id, responsavel: r.responsavel,
+      }));
+    });
   }
 
   async listCommunications(user: AuthenticatedUser, houseId: string) {

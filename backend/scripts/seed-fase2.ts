@@ -118,7 +118,7 @@ async function main() {
     if (a.restricao) {
       await c.query(
         `INSERT INTO food_restriction (person_id, restriction, substitution, guidance, source, review_on, created_by)
-         VALUES ($1,$2,$3,'Conferir rótulos antes de servir.','Orientação nutricional (fictícia)', current_date + 180, $4)`,
+         VALUES ($1,$2,$3,'Conferir rótulos antes de servir.','Orientação nutricional (fictícia)', app_hoje() + 180, $4)`,
         [p.id, a.restricao.evitar, a.restricao.subst, tecnica.id]);
     }
 
@@ -131,7 +131,7 @@ async function main() {
     ] as const) {
       const { rows: [d] } = await c.query(
         `INSERT INTO document (person_id, category, title, issued_on, source, created_by)
-         VALUES ($1,$2,$3, current_date - 30, 'Documento fictício', $4) RETURNING id`,
+         VALUES ($1,$2,$3, app_hoje() - 30, 'Documento fictício', $4) RETURNING id`,
         [p.id, cat, titulo, tecnica.id]);
       await c.query(
         `INSERT INTO document_version (document_id, version, storage_key, created_by)
@@ -149,14 +149,14 @@ async function main() {
     // Memórias autorizadas
     await c.query(
       `INSERT INTO memory_record (person_id, event_type, happened_on, description, created_by)
-       VALUES ($1,'aniversário', current_date - 45, 'Comemoração na casa com bolo escolhido pelo grupo.', $2)`,
+       VALUES ($1,'aniversário', app_hoje() - 45, 'Comemoração na casa com bolo escolhido pelo grupo.', $2)`,
       [p.id, tecnica.id]);
   }
 
   // Um perfil no Acervo Histórico, para exercitar o retorno (§15.3)
   const { rows: [ex] } = await c.query(
     `INSERT INTO person (institution_id, cpf, full_name, social_name, birth_date, created_by)
-     VALUES ($1,$2,'Vitória Antunes (fictícia)','Vitória', current_date - interval '14 years', $3) RETURNING id`,
+     VALUES ($1,$2,'Vitória Antunes (fictícia)','Vitória', app_hoje() - interval '14 years', $3) RETURNING id`,
     [inst.id, cpfFicticio(90), tecnica.id]);
   const { rows: [exEp] } = await c.query(
     `INSERT INTO care_episode (person_id, institution_id, number, started_at, ended_at, end_reason, status, created_by)
@@ -171,7 +171,7 @@ async function main() {
   const { rows: [casa4] } = await c.query(`SELECT id FROM house WHERE code = 'AI4'`);
   const { rows: [outro] } = await c.query(
     `INSERT INTO person (institution_id, cpf, full_name, social_name, birth_date, created_by)
-     VALUES ($1,$2,'Lucas Prado (fictício)','Lucas', current_date - interval '12 years', $3) RETURNING id`,
+     VALUES ($1,$2,'Lucas Prado (fictício)','Lucas', app_hoje() - interval '12 years', $3) RETURNING id`,
     [inst.id, cpfFicticio(91), tecnica.id]);
   const { rows: [outroEp] } = await c.query(
     `INSERT INTO care_episode (person_id, institution_id, number, created_by) VALUES ($1,$2,1,$3) RETURNING id`,

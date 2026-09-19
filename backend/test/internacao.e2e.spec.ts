@@ -348,4 +348,33 @@ describe('Internação hospitalar', () => {
       .get(`/api/v1/checks/${nova.body.id ?? nova.body.checkId}`).set(auth(tokens.educador));
     expect(depois.body.linhas.some((l: any) => l.acolhidoId === crianca)).toBe(true);
   });
+
+  /**
+   * A INTERNAÇÃO CHEGA À VIDA DELA (fase 118).
+   *
+   * A internação era lida pela CASA — quem está no hospital agora. O perfil da
+   * criança não dizia que ela esteve internada em agosto: para saber, alguém
+   * tinha de abrir a tela de internação e pedir também as ENCERRADAS. Uma
+   * internação encerrada é exatamente a que some da tela e fica na vida.
+   */
+  it('a internação encerrada continua na vida da criança, e abre pelo perfil', async () => {
+    const r = await request(http)
+      .get(`/api/v1/nursing/hospitalizations/person/${crianca}`).set(auth(tokens.tecnica));
+    expect(r.status).toBe(200);
+
+    const nossa = r.body.find((h: any) => h.id === internacao);
+    expect(nossa).toBeTruthy();
+    expect(nossa.status).toBe('encerrada');
+    expect(nossa.desfecho).toBe('alta');
+    expect(nossa.hospital).toBeTruthy();
+    expect(nossa.abriu).toBeTruthy();
+    expect(nossa.encerrou).toBeTruthy();
+
+    // E o educador que alcança a criança também lê: internação é fato de
+    // cuidado, e quem está no plantão precisa saber que ela esteve fora.
+    const educador = await request(http)
+      .get(`/api/v1/nursing/hospitalizations/person/${crianca}`).set(auth(tokens.educador));
+    expect(educador.status).toBe(200);
+    expect(educador.body.length).toBeGreaterThan(0);
+  });
 });

@@ -476,9 +476,13 @@ function FormCadastro({ setores, casas, membro, onFechar, onSalvo, onErro }: {
           <input id="nome" value={nome} onChange={(e) => setNome(e.target.value)} required autoFocus />
 
           <label className="f" htmlFor="mail">E-mail institucional</label>
+          {/* O domínio é `.com.br`. Dizia `.org.br` até a fase 105 — e é DESTE
+              campo que sai a conta para onde o convite de primeiro acesso é
+              enviado: exemplo errado aqui é convite que não chega, no dia em
+              que quarenta pessoas entram. */}
           <input id="mail" type="email" value={email} disabled={editar}
                  onChange={(e) => setEmail(e.target.value)} required
-                 placeholder="nome@paodospobres.org.br" />
+                 placeholder="nome@paodospobres.com.br" />
           {editar && <p className="mutetxt">O e-mail identifica a conta e não muda.</p>}
 
           <label className="f" htmlFor="setor">Setor</label>

@@ -20,8 +20,17 @@ export class ChecksTimelineProvider implements TimelineProvider, OnModuleInit {
   onModuleInit() { this.registry.register(this); }
 
   async fetch(q: TimelineQuery): Promise<TimelineEvent[]> {
-    // Chamadas são coletivas: na visão de um acolhido individual elas não
-    // aparecem como linha própria — o registro dele está no perfil.
+    /*
+     * Chamadas são coletivas: na visão de um acolhido individual elas não
+     * aparecem como linha própria — quatro refeições por dia encheriam a linha
+     * do tempo dela de rotina, e a linha existe para o que exige alguma coisa.
+     *
+     * Esta linha dizia "o registro dele está no perfil", e até a fase 110 NÃO
+     * estava: `check_result` só era lido dentro da própria chamada (§9, item
+     * 4). Agora está — `GET /checks/person/:personId`, e o bloco "Presença" no
+     * perfil. *Comentário que promete é promessa: ou aponta para algo que
+     * existe, ou vira a única documentação de um defeito.*
+     */
     if (q.personId) return [];
     const lista = await this.checks.listDay(q.user, q.houseId, q.date);
 

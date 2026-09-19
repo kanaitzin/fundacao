@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
 import { FolhaDocumento, baixarArquivo } from '../documentos';
+import { BotaoOlho, FolhaArquivo } from '../anexos';
 import type { ArquivoGerado } from '../documentos';
 import type { DocumentoWord } from '../docx';
 
@@ -343,6 +344,7 @@ function Trajetoria({ personId, onVoltar }: { personId: string; onVoltar: () => 
   const [t, setT] = useState<any>(null);
   const [doc, setDoc] = useState<DocumentoWord | null>(null);
   const [erro, setErro] = useState('');
+  const [vendoComprovante, setVendoComprovante] = useState<{ id: string; o: string } | null>(null);
 
   useEffect(() => {
     api(`/impacto/trajetoria/${personId}`).then(setT)
@@ -401,16 +403,11 @@ function Trajetoria({ personId, onVoltar }: { personId: string; onVoltar: () => 
             {m.temComprovante && (
               /* O comprovante é a prova da conquista — e é o documento que a
                * criança vai querer ter na mão quando sair do acolhimento.
-               * Guardar sem poder ler seria guardar nada. */
-              <button className="btn sm ghost" onClick={async () => {
-                try {
-                  const a = await api<{ nome: string; tipo: string; conteudo: string }>(
-                    `/impacto/marcos/${m.id}/comprovante`);
-                  baixarArquivo(a.nome, a.tipo, a.conteudo);
-                } catch (e) {
-                  setErro(e instanceof Error ? e.message : 'Não foi possível abrir o comprovante.');
-                }
-              }}>📎 comprovante</button>
+               * Guardar sem poder ler seria guardar nada; e só baixar, sem
+               * abrir, obriga a tirar uma cópia do sistema para descobrir se é
+               * o diploma certo (fase 106, §9). Abre aqui, e baixa depois. */
+              <BotaoOlho rotulo="Ver o comprovante"
+                         onClick={() => setVendoComprovante({ id: m.id, o: m.tipoRotulo })} />
             )}
             <div className="mutetxt">registrado por {m.por}</div>
           </div>
@@ -423,6 +420,16 @@ function Trajetoria({ personId, onVoltar }: { personId: string; onVoltar: () => 
                         exportar={(finalidade) => api<ArquivoGerado>(
                           `/impacto/trajetoria/${personId}/export`,
                           { method: 'POST', body: JSON.stringify({ finalidade }) })} />
+      )}
+
+      {vendoComprovante && (
+        <FolhaArquivo
+          titulo={`Comprovante · ${vendoComprovante.o}`}
+          legenda="A prova da conquista. É o documento que ela leva quando sair daqui."
+          carregar={() => api<{ nome: string; tipo: string; conteudo: string }>(
+            `/impacto/marcos/${vendoComprovante.id}/comprovante`)}
+          onFechar={() => setVendoComprovante(null)}
+          onBaixar={(a) => baixarArquivo(a.nome, a.tipo, a.conteudo)} />
       )}
     </>
   );

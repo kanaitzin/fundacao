@@ -211,16 +211,102 @@ describe('Fase 2 — Perfil, benefícios, transferência e acervo', () => {
     ]);
   });
 
-  it('cadastro sem CPF exige motivo e gera ID provisório com pendência', async () => {
+  /**
+   * O MOTIVO DO INGRESSO URGENTE — exigido desde sempre, gravado desde a 1250.
+   *
+   * A tela pedia a frase com o mínimo de dez caracteres, o serviço recusava o
+   * cadastro sem ela, e o banco **não tinha coluna para ela**: o `INSERT` da
+   * 0480 não a listava, e a porta curta (`app_admit_person`) nem criava ficha
+   * de entrada. Quem entrava pela urgência — que é exatamente quem entra sem
+   * documento — era quem ficava sem nada escrito.
+   *
+   * A trava mudou de lugar junto: estava só no serviço, e serviço é um caminho
+   * entre vários. Este teste chama a função do BANCO por baixo da aplicação
+   * para provar que ela recusa sozinha.
+   */
+  it('cadastro sem CPF exige motivo, gera ID provisório — e o motivo é GRAVADO', async () => {
     const semMotivo = await request(http).post('/api/v1/people').set(auth(tokens.tecnica))
       .send({ houseId: AI3, fullName: 'Ingresso urgente (fictício)', birthDate: '2012-03-04' });
     expect(semMotivo.status).toBe(400);
 
+    const MOTIVO = 'Acolhimento de urgência à noite, sem documentos';
     const ok = await request(http).post('/api/v1/people').set(auth(tokens.tecnica))
       .send({ houseId: AI3, fullName: 'Ingresso urgente (fictício)', birthDate: '2012-03-04',
-              provisionalReason: 'Acolhimento de urgência à noite, sem documentos' });
+              provisionalReason: MOTIVO });
     expect(ok.status).toBe(201);
     expect(ok.body.cpfPendente).toBe(true);
+
+    // A frase está no banco, e não só na validação que a deixava passar reto.
+    const { rows: [a] } = await admin.query(
+      `SELECT provisional_reason, admitted_on FROM admission_record WHERE person_id = $1`,
+      [ok.body.personId]);
+    expect(a?.provisional_reason).toBe(MOTIVO);
+    // E a ficha de entrada existe: a porta curta não criava nenhuma.
+    expect(a?.admitted_on).toBeTruthy();
+
+    // E ela sai pela rota que o perfil lê.
+    const ficha = await request(http).get(`/api/v1/people/${ok.body.personId}/admission`)
+      .set(auth(tokens.tecnica));
+    expect(ficha.status).toBe(200);
+    expect(ficha.body.motivoProvisorio).toBe(MOTIVO);
+    expect(ficha.body.cadastradoPor).toBeTruthy();
+
+    /*
+     * E a criança sai da casa no fim (regra 13).
+     *
+     * Sem isto, cada rodada deixava MAIS UMA criança ativa na AI3. A casa tem
+     * capacidade 20; quando ela lota, duas outras suítes — a do cadastro e a da
+     * regressão de estado, que testam justamente o LIMITE — reprovam por 400,
+     * e o motivo aparece a três arquivos de distância de onde está a causa.
+     * Isoladas elas passam, o que é o pior sintoma possível: a suíte inteira
+     * fica vermelha e cada parte, sozinha, diz que está tudo bem.
+     */
+    await request(http).post(`/api/v1/people/${ok.body.personId}/discharge`)
+      .set(auth(tokens.tecnica)).send({ motivo: 'Encerramento de fixture de teste' });
+  });
+
+  it('a trava do motivo é do BANCO, não do serviço', async () => {
+    /*
+     * Chamando a função direto, com a conexão da aplicação e o papel da
+     * técnica: se a regra vivesse só no NestJS, este caminho passaria — e um
+     * script de implantação, ou uma rota nova, entraria sem a frase.
+     */
+    const { rows: [u] } = await admin.query(
+      `SELECT id FROM app_user WHERE email = 'tecnica.ai3@paodospobres.dev'`);
+    const app_ = new Client({
+      connectionString: process.env.DATABASE_APP_URL
+        ?? 'postgres://rede_app:dev-only-change-me-app@127.0.0.1:5432/rede_acolher',
+    });
+    await app_.connect();
+    try {
+      await app_.query('BEGIN');
+      await app_.query(`SELECT set_config('app.user_id', $1, true)`, [u.id]);
+      await expect(app_.query(
+        `SELECT * FROM app_admit_person($1,$2,$3,$4,$5,$6,$7)`,
+        [AI3, 'Sem motivo (fictício)', null, '2013-01-01', null, 'PROV-TESTE', '   '])
+      ).rejects.toThrow(/ingresso_sem_cpf_sem_motivo/);
+      await app_.query('ROLLBACK');
+    } finally { await app_.end(); }
+  });
+
+  it('o perfil devolve a identificação complementar que o cadastro pede', async () => {
+    /*
+     * `gender`, `race`, `birthplace`, `nis` e `civil_registry` são pedidos na
+     * tela de cadastro e gravados desde a migração 0480 — e NENHUM `SELECT`
+     * do sistema os nomeava. Quem preenchia escrevia num campo que não ia a
+     * lugar nenhum; a cor/raça autodeclarada, que é como a política pública se
+     * mede, era invisível para quem monta o relatório.
+     */
+    await admin.query(
+      `UPDATE person SET race = 'parda', gender = 'menina', birthplace = 'Viamão / RS',
+              nis = '000.00000.00-0', civil_registry = 'Termo 1, livro A-1, folha 1'
+        WHERE id = $1`, [otavio]);
+    const perfil = await request(http).get(`/api/v1/people/${otavio}`).set(auth(tokens.tecnica));
+    expect(perfil.status).toBe(200);
+    expect(perfil.body.identificacaoComplementar).toEqual({
+      genero: 'menina', raca: 'parda', naturalidade: 'Viamão / RS',
+      nis: '000.00000.00-0', registroCivil: 'Termo 1, livro A-1, folha 1',
+    });
   });
 
   // ---------- Benefícios ----------
@@ -445,7 +531,21 @@ describe('Fase 2 — Perfil, benefícios, transferência e acervo', () => {
   // ---------- Acervo ----------
 
   it('saída leva o perfil ao acervo: educador perde acesso, equipe técnica mantém continuidade', async () => {
-    const { rows: [theo] } = await admin.query(`SELECT id FROM person WHERE social_name='Theo'`);
+    /*
+     * A criança é DESTA suíte, e não o Theo do seed.
+     *
+     * Até aqui o teste desligava o Theo e nunca o devolvia: cada rodada tirava
+     * uma criança da Casa 03, e a suíte do piloto — que cobra os vinte — só não
+     * reprovava porque o teste do ingresso urgente, alguns casos acima,
+     * deixava OUTRA criança a mais. **Dois vazamentos que se cancelavam**, e a
+     * conta fechava por coincidência. Ao consertar um, o outro apareceu.
+     */
+    const nova = await request(http).post('/api/v1/people').set(auth(tokens.tecnica))
+      .send({ houseId: AI3, fullName: 'Acervo Fictício da Saída', socialName: 'AcervoTeste',
+              birthDate: '2011-11-11', provisionalReason: 'Ingresso de teste automatizado' });
+    expect(nova.status).toBe(201);
+    const theo = { id: nova.body.personId as string };
+
     await request(http).post(`/api/v1/people/${theo.id}/discharge`)
       .set(auth(tokens.tecnica)).send({ motivo: 'reintegração familiar' }).expect(201);
 
@@ -467,5 +567,167 @@ describe('Fase 2 — Perfil, benefícios, transferência e acervo', () => {
     await appClient.connect();
     await expect(appClient.query(`DELETE FROM person`)).rejects.toThrow(/permission denied|permissão negada/i);
     await appClient.end();
+  });
+
+  /* =========================================================================
+   * O PRONTUÁRIO DE EDUCAÇÃO TEM POR ONDE SER PREENCHIDO (fase 111).
+   *
+   * `education_support` e `education_evolution` nasceram na migração 0530, do
+   * papel que a Fundação entregou em 28/08, e o RELATÓRIO já as lia. Nenhuma
+   * rota as escrevia: o único INSERT do repositório estava dentro de um teste
+   * (§9, item 3). No piloto, o relatório de desenvolvimento e a audiência
+   * concentrada diriam "não há" sobre escola e profissionalização para sempre.
+   * ====================================================================== */
+
+  /* A criança é resolvida NA HORA, e não no começo do arquivo: os testes de
+     transferência acima movem a Alice entre casas, e quem pega uma referência
+     guardada testa outra coisa. É a mesma lição da §6.13, um degrau adiante. */
+  async function criancaDaCasa(): Promise<string> {
+    const { rows: [r] } = await admin.query(
+      `SELECT person_id FROM house_stay
+        WHERE house_id = $1 AND status = 'ativa' ORDER BY started_at LIMIT 1`, [AI3]);
+    return r.person_id as string;
+  }
+
+  it('a educação abre vazia, e a técnica registra o apoio — que o relatório lê', async () => {
+    const quem = await criancaDaCasa();
+    const vazio = await request(http).get(`/api/v1/nursing/education/${quem}`)
+      .set(auth(tokens.tecnica)).expect(200);
+    expect(vazio.body.apoio).toBeNull();
+
+    /* Sala de recursos SEM o motivo é recusada: é o motivo que a escola e a
+       audiência perguntam, e um "sim" sozinho não responde nada. */
+    const semMotivo = await request(http)
+      .post(`/api/v1/nursing/education/${quem}/support`)
+      .set(auth(tokens.tecnica)).send({ houseId: AI3, salaDeRecursos: true });
+    expect(semMotivo.status).toBe(400);
+
+    /* Aprendizagem profissional sem o nome do curso, idem. */
+    const semCurso = await request(http)
+      .post(`/api/v1/nursing/education/${quem}/support`)
+      .set(auth(tokens.tecnica)).send({ houseId: AI3, aprendiz: true });
+    expect(semCurso.status).toBe(400);
+
+    const ok = await request(http)
+      .post(`/api/v1/nursing/education/${quem}/support`)
+      .set(auth(tokens.tecnica)).send({
+        houseId: AI3, salaDeRecursos: true,
+        motivoDaSala: 'Apoio em leitura e escrita, duas vezes por semana (fictício).',
+        servico: 'fono', servicoProfissional: 'Fga. fictícia',
+      });
+    expect(ok.status).toBe(201);
+
+    const depois = await request(http).get(`/api/v1/nursing/education/${quem}`)
+      .set(auth(tokens.tecnica)).expect(200);
+    expect(depois.body.apoio.salaDeRecursos).toBe(true);
+    expect(depois.body.apoio.servico).toBe('fono');
+    /* Toda ação tem autor (regra 6). */
+    expect(depois.body.apoio.atualizadoPor).toBeTruthy();
+
+    await admin.query(`DELETE FROM education_support WHERE person_id = $1`, [quem]);
+  });
+
+  it('a evolução educacional é do EDUCADOR também — quem acompanha a tarefa é ele', async () => {
+    const quem = await criancaDaCasa();
+    /* O §8.12 é explícito, e a policy da 0530 já dizia o mesmo. Este teste
+       existe porque, até a fase 111, não havia rota nenhuma para provar. */
+    const curta = await request(http)
+      .post(`/api/v1/nursing/education/${quem}/evolutions`)
+      .set(auth(tokens.educador)).send({ houseId: AI3, texto: 'ok' });
+    expect(curta.status).toBe(400);
+
+    const escrita = await request(http)
+      .post(`/api/v1/nursing/education/${quem}/evolutions`)
+      .set(auth(tokens.educador)).send({
+        houseId: AI3,
+        texto: 'Entregou o trabalho de ciências sem lembrete (registro fictício de teste).',
+      });
+    expect(escrita.status).toBe(201);
+
+    const lida = await request(http).get(`/api/v1/nursing/education/${quem}`)
+      .set(auth(tokens.tecnica)).expect(200);
+    const minha = (lida.body.evolucoes as any[]).find((e) => e.id === escrita.body.id);
+    expect(minha.texto).toMatch(/ciências/i);
+    expect(minha.por).toBeTruthy();
+
+    /* E NÃO SE EDITA: a policy da 0530 não oferece UPDATE, e correção é
+       registro novo — como no caderno. */
+    await expect(admin.query(
+      `UPDATE education_evolution SET narrative = 'reescrito' WHERE id = $1`,
+      [escrita.body.id])).resolves.toBeTruthy();   // o DONO do banco pode; a aplicação, não
+
+    await admin.query(`DELETE FROM education_evolution WHERE person_id = $1`, [quem]);
+  });
+
+  /* =========================================================================
+   * A AUDITORIA PASSA A TER POR ONDE SER LIDA (fase 112).
+   *
+   * Todo serviço escreve em `audit_event` desde a migração 0010, e NENHUMA
+   * rota a lia (§9, item 1) — uma capacidade que a §7 promete a dois cargos,
+   * sem porta nenhuma. A policy `audit_select` (0920) já dizia exatamente
+   * quem pode: a coordenação na própria casa, e a gestão geral.
+   * ====================================================================== */
+
+  it('a auditoria de uma criança abre para a coordenação — e traz a finalidade', async () => {
+    const quem = await criancaDaCasa();
+
+    /* Um ato que DECLARA finalidade: é a metade das linhas que alguém vai
+       querer ler seis meses depois. */
+    await request(http).post(`/api/v1/nursing/education/${quem}/evolutions`)
+      .set(auth(tokens.educador))
+      .send({ houseId: AI3, texto: 'Registro fictício para a auditoria deste teste.' })
+      .expect(201);
+
+    const vista = await request(http).get(`/api/v1/audit/person/${quem}`)
+      .set(auth(tokens.coord3)).expect(200);
+    expect(vista.body.linhas.length).toBeGreaterThan(0);
+
+    const linha = (vista.body.linhas as any[])[0];
+    /* A AÇÃO EM PORTUGUÊS, e o código ao lado: quem lê uma auditoria não tem
+       de decorar `education.evolution`. */
+    expect(linha.acao).toBeTruthy();
+    expect(linha.codigo).toBeTruthy();
+    expect(linha.por).toBeTruthy();
+
+    await admin.query(`DELETE FROM education_evolution WHERE person_id = $1`, [quem]);
+  });
+
+  it('o educador e a técnica NÃO leem a auditoria — a §7 dá isso a dois cargos', async () => {
+    const quem = await criancaDaCasa();
+    await request(http).get(`/api/v1/audit/person/${quem}`)
+      .set(auth(tokens.educador)).expect(403);
+    await request(http).get(`/api/v1/audit/person/${quem}`)
+      .set(auth(tokens.tecnica)).expect(403);
+  });
+
+  it('NÃO existe busca por pessoa da equipe — e a ausência é a decisão', async () => {
+    /*
+     * A MESMA TABELA responde "quem abriu o dossiê da Alice" e "tudo o que a
+     * Joana fez ontem". A primeira pergunta protege a criança; a segunda mede
+     * a pessoa. Este teste existe para que a segunda não apareça numa
+     * refatoração distraída — é o mesmo cuidado que guarda a pontuação de
+     * comportamento (§8.7.2) por expressão regular.
+     */
+    const { rows: [alguem] } = await admin.query(
+      `SELECT id FROM app_user WHERE email = 'educador.ai3@paodospobres.dev'`);
+    for (const caminho of [`/api/v1/audit/actor/${alguem.id}`,
+                           `/api/v1/audit/user/${alguem.id}`,
+                           `/api/v1/audit?actorId=${alguem.id}`]) {
+      const r = await request(http).get(caminho).set(auth(tokens.gestor ?? tokens.coord3));
+      expect(r.status).toBe(404);
+    }
+
+    /* E a resposta que existe não conta NADA: nem acessos, nem aberturas por
+       pessoa. Um total ao lado de um nome é uma avaliação que ninguém
+       assinou. */
+    const quem = await criancaDaCasa();
+    const vista = await request(http).get(`/api/v1/audit/person/${quem}`)
+      .set(auth(tokens.coord3)).expect(200);
+    expect(Object.keys(vista.body).sort()).toEqual(['cortado', 'dias', 'linhas']);
+    for (const l of vista.body.linhas as any[]) {
+      const proibido = Object.keys(l).filter((k) =>
+        /total|quantidade|contagem|acessos|ranking|score/i.test(k));
+      expect(proibido).toEqual([]);
+    }
   });
 });

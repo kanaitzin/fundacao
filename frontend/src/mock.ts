@@ -37,6 +37,8 @@ import { folhaDoEstatuto } from '../../backend/src/modules/alignments/estatuto-f
 import { folhaDaEscala } from '../../backend/src/modules/identity/escala-folha';
 import { folhaDoImpacto, folhaDaTrajetoria }
   from '../../backend/src/modules/reports/impacto-folha';
+import { folhaDoPeriodo, SECOES_DO_PERIODO }
+  from '../../backend/src/modules/reports/periodo-folha';
 import { SECOES_ATA, AMBIENTES_CASA, CLASSIFICACOES_EPISODIO }
   from '../../backend/src/modules/shifts/ata-secoes';
 import { TIPOS_ROTINA, DIAS_DA_SEMANA }
@@ -64,6 +66,14 @@ const HOJE = new Intl.DateTimeFormat('en-CA',
 const emHoras = (h: number, m = 0) =>
   new Date(`${HOJE}T${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00-03:00`)
     .toISOString();
+/** O mesmo, `d` dias atrás — para a história que a tela de presença olha. */
+const emDias = (d: number, h = 12, m = 0) =>
+  new Date(new Date(`${HOJE}T${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00-03:00`)
+    .getTime() + d * 86400_000).toISOString();
+/** N dias ANTES de uma data qualquer — e não de hoje (fase 121). */
+const diasAntesDe = (dia: string, n: number) =>
+  new Date(new Date(`${dia}T12:00:00-03:00`).getTime() - n * 86400_000)
+    .toISOString().slice(0, 10);
 /**
  * Relógio RELATIVO. Suspender um esquema tira da grade a dose que AINDA NÃO
  * chegou a hora — e "ainda não chegou" depende da hora em que a demonstração
@@ -107,7 +117,52 @@ interface Kid {
   /* Os campos que vieram da lista que a equipe técnica mantinha à mão. */
   rg?: string; cns?: string; filiacao?: string;
   foto?: string; fotoEm?: string;
+  /* Pedidos no cadastro desde a fase 40, lidos por nada até a 116. */
+  genero?: string; raca?: string; naturalidade?: string; nis?: string; registroCivil?: string;
+  /* Quantos episódios de acolhimento — mais de um é reacolhimento (fase 116). */
+  episodios?: { number: number; started_at: string; ended_at: string | null;
+                end_reason: string | null; status: string }[];
 }
+
+/**
+ * A FICHA DE ENTRADA — `admission_record` (fase 116).
+ *
+ * Ela existe no banco desde a migração 0480 e tem rota de leitura desde
+ * então; nenhuma tela a chamava, e por isso o servidor de mentira também não
+ * a tinha. Bloco que só existe com dado precisa de dado aqui (§6.19) — sem
+ * isto, "Como ela chegou" nasceria invisível no protótipo.
+ */
+const ACOLHIMENTOS: Record<string, {
+  ingressoEm: string; conduzidoPor: string; municipioOrigem: string;
+  acolhimentoAnterior: string | null; irmaos: string | null;
+  referenciaFamiliar: string | null; chegada: string;
+  acimaDoLimite: boolean; justificativaLimite: string | null;
+  motivoProvisorio?: string; cadastradoPor: string; cadastradoEm: string;
+}> = {
+  p01: {
+    ingressoEm: '2026-02-28', conduzidoPor: 'Conselho Tutelar (fictício)',
+    municipioOrigem: 'Porto Alegre / RS', acolhimentoAnterior: null,
+    irmaos: 'Tem uma irmã acolhida na Casa 01 (fictícia). Elas se veem aos domingos.',
+    referenciaFamiliar: 'Avó materna (fictícia) — autorizada a visitar, consta nos contatos.',
+    chegada: 'Chegou às 23h40 com a roupa do corpo e uma mochila da escola. '
+      + 'Estava com fome e aceitou comer antes de subir.',
+    acimaDoLimite: false, justificativaLimite: null,
+    cadastradoPor: 'Equipe técnica (fictícia)', cadastradoEm: '2026-02-28T23:55:00-03:00',
+  },
+  p11: {
+    ingressoEm: '2026-06-12', conduzidoPor: 'Brigada Militar (fictícia)',
+    municipioOrigem: 'Viamão / RS', acolhimentoAnterior: 'Abrigo Municipal (fictício), até 05/2026',
+    irmaos: null, referenciaFamiliar: null,
+    chegada: 'Chegou de madrugada, sem documento nenhum.',
+    acimaDoLimite: true,
+    justificativaLimite: 'A casa estava com 20 de 20 e não havia vaga na rede naquela noite.',
+    /* O campo que a fase 116 fez existir: exigido pela tela desde sempre, e
+       gravado em coluna nenhuma até a migração 1250. */
+    motivoProvisorio: 'Entrou sem CPF e sem certidão. A mãe ficou de trazer os documentos, '
+      + 'e a busca no CadÚnico não achou registro com o nome informado.',
+    cadastradoPor: 'Coordenadora Fictícia', cadastradoEm: '2026-06-12T04:20:00-03:00',
+  },
+};
 
 /** Um nascimento que cai daqui a `dias`, de quem tem `idade` hoje. */
 function aniversarioDaquiA(dias: number, idade: number) {
@@ -117,15 +172,42 @@ function aniversarioDaquiA(dias: number, idade: number) {
   return `${ano}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
 }
 
+/**
+ * UM RETRATO FICTÍCIO, DE 494 BYTES.
+ *
+ * Não é foto de ninguém: são duas formas geométricas em cinza-ardósia, do
+ * tamanho de uma 3×4. Existe porque o protótipo nascia SEM nenhuma foto
+ * guardada — e a fase 107 pôs botão de olho na foto da criança e na do
+ * visitante. Bloco que some quando vazio precisa de dado no servidor de
+ * mentira (§6.19): sem isto, os dois botões novos nunca apareceriam no único
+ * arquivo que o Marcelo abre, e a entrega seria invisível pela quarta vez.
+ */
+/**
+ * UMA FOLHA DIGITALIZADA FICTÍCIA, DE 659 BYTES.
+ *
+ * Linhas cinza numa página branca: não é documento de ninguém, e é o bastante
+ * para a prévia mostrar uma PÁGINA e não um retângulo vazio. A fase 108 deu às
+ * três formas de anexo que eram só referência — ocorrência, receita e nota — a
+ * possibilidade de guardar o papel; sem um papel no servidor de mentira, o
+ * botão de olho nasceria apontando para o nada (§6.19).
+ */
+const FOLHA_FICTICIA = 'iVBORw0KGgoAAAANSUhEUgAAALQAAADwCAIAAAAmZtkfAAACWklEQVR42u3dsZEiURBEwfFfxgOcwAdkDMAEBAQkMKBhAongV+WLsmA3lf0dc7fd7g+zt9v8CAwOg8PgMDgMDoPD4DA4rBzHU+nBITgEhxbAcTiewgYHHHDAAQcccMABBxxwwAEHHHB4BBMcguNbHOfL1X4wOAwOg8Pg8JuDAw444IDDO4fgEByCQ3AIDsEhOASH4IADDjjktuIuA4fBYXAYHAaHwWFwyDsHHHDAAQccgkNwCA7BITgEh+AQHJ9yufiTL+XhgAMOOOCAAw6Dw+CAAw7vHN454BAcgkNwCA7BITgEh+AQHHDA4bbSfPGBw+AwOAwOg8PgsC4c8s4hOOCAAw7BITgEh+AQHIJDcAiOkdvEEt/RwwEHHHDAAQcccMABBxxwwCHvHHDAAQcccAgOwSE4BIfgEByCQ3Ds5J4ScNOBAw444IDD4DA4DA7rwiHvHIIDDjjgEByCQ3AIDsEhOASH4Bi5awR8oQ8HHHDAAQcccMABh8FhXTjknUNwwAEHHIJDcAgOwSE4BIfgEBwjNw444IADDjjggAMOOOCAAw44vHMIDsEhOASH4IADDjgEh+AQHIJDq+PwdXzA8QgOg8PgMDgMDoPDunDIO4fggAMOOASH4BAcgkNwCA7BIThGThUB/xQAHHDAAQcccMBhcBgc1oVD3jkEBxxwwCE4BIfgEByCQ3AIDsExcuYI+F9g4IADDjjggAMOg8MiccifsoIDDjjgEByCQ3AIDsEhOASH4BAccMABh+AQHIJDcAgOwSE4VIXDmgeHwWFwGBwGh8FhcBgclrIX2qSYxntcSQsAAAAASUVORK5CYII=';
+
+const RETRATO_FICTICIO = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAHgAAACgCAIAAABIaz/HAAABtUlEQVR42u3csW3DUAwEUO6/WmoPkBFcpHDnFQLZIvnJB9wAwoOgwuZdPP9ekpBAABq0gAYNmgJo0AIaNGgKoEELaNCgBTRoAQ0atIAGLaBBgxbQoAvz8/gF/X3T/wf0vb5HiMck387iMVi5lXUMJm7FHeOJm3DHHuVa61ilXGgd25SrrGOhcol17FTOt461ysnWoMdBN1TOtAY9C7qtcpp1UM6xBg0a9DzlBGvQoEGPVL7bGjRo0KBBgwYN+njo45RvtfZG+3SABg0aNGjQoEH7PRo0aND+BXduABq027vNt3euSUFPhHbxD1orSytLz1BzVnNWF9y6gb0Oex0WaGwq2VSyEmb3zpKjJcdi/eOe2douaNACGjRoBKBBC2jQoCmABi2gQYOmABq0gAYNWkBvhT50j6rDSR9o0KAFNGjQoNtBY/3E2hvt0wFaQIMGDRo0aAENGjRo0HuhWV+unoMGDVpAD4JmfW2EBTRo0JSToFnnne2CBj0LerN19sU/aNCzoHda15SFQOe1siiDngW9x7q+0Ak6rzlLGfQs6NnWvUr3oPPWDSjnzUhQBj0LepL1d1neTlpb2EV9oykAAAAASUVORK5CYII=';
+
 const KIDS: Kid[] = [
   { id: 'p01', nome: 'Alice', civil: 'Alice Ribeiro (fictícia)', idade: 7, nascimento: '2019-03-14',
     rg: '1234567890', cns: '700000000000000',
     filiacao: 'Rosângela Ribeiro (fictícia)',
+    genero: 'menina', raca: 'branca', naturalidade: 'Porto Alegre / RS',
+    nis: '000.00000.00-0', registroCivil: 'Termo 00000, livro A-00, folha 000 (fictício)',
     alerta: { tipo: 'alergia', descricao: 'Alergia a Amendoim e derivados', gravidade: 'grave' },
     restricao: { restriction: 'Amendoim, pasta de amendoim, doces com traços',
                  substitution: 'Sobremesa de frutas', guidance: 'Conferir rótulos antes de servir.' },
     cuidado: 'Usa inalador em crise; a bombinha fica na sala da técnica.',
-    serie: '2º ano', turno: 'manhã' },
+    serie: '2º ano', turno: 'manhã',
+    /* A única com foto guardada: é ela que mostra o botão de olho do perfil. */
+    foto: RETRATO_FICTICIO.replace(/^data:[^;]+;base64,/, ''), fotoEm: emHoras(9, 0) },
   /*
    * BRUNO faz aniversário NESTA SEMANA, sempre (fase 98).
    *
@@ -160,6 +242,16 @@ const KIDS: Kid[] = [
     alerta: { tipo: 'alergia', descricao: 'Alergia a Dipirona', gravidade: 'grave' },
     cuidado: 'Nunca administrar dipirona. Em dor ou febre, acionar a Enfermagem.',
     serie: '4º ano', turno: 'manhã',
+    /* Ela entrou sem CPF e já esteve acolhida antes: é a criança que mostra o
+       motivo do ingresso urgente e o bloco de episódios (§6.19, fase 116). */
+    semCpf: true, provisorio: 'PROV-M4X7K2',
+    genero: 'menina', raca: 'parda', naturalidade: 'Viamão / RS',
+    nis: '000.00000.00-0',
+    episodios: [
+      { number: 1, started_at: '2024-03-02', ended_at: '2025-11-20',
+        end_reason: 'Reintegração familiar', status: 'encerrado' },
+      { number: 2, started_at: '2026-06-12', ended_at: null, end_reason: null, status: 'ativo' },
+    ],
     judicial: { motivo: 'Negligência', detalhe: 'Determinação por negligência reiterada (fictício).',
                 medida: 'Acolhimento institucional', orgao: 'Vara da Infância e Juventude',
                 vara: '1ª Vara da Infância (fictícia)', processo: '0000000-00.2026.8.21.0001',
@@ -228,6 +320,224 @@ const EQUIPE_CASA = [
   { id: 'u2', nome: 'Lúcia Líder Diurna (fictícia)', cargo: 'lider_diurno' },
   { id: 'u3', nome: 'Tatiane Técnica (fictícia)', cargo: 'equipe_tecnica' },
   { id: 'u4', nome: 'Carla Coordenadora (fictícia)', cargo: 'coordenador' },
+];
+
+/**
+ * OS RELATOS DA CONVIVÊNCIA, semeados (fase 122).
+ *
+ * Dois sobre a MESMA ida da Alice, e é esse o ponto: *"pode ser registrado
+ * quantas vezes for necessário, por qualquer educador"*. O primeiro é do dia da
+ * chegada; o segundo é de quatro dias depois, quando ela falou — e é o que a
+ * Fundação descreveu ao tirar o prazo: *"dessa forma não haverá uma pressão
+ * para arrancar a informação da criança"*.
+ *
+ * Sem os dois, o bloco nasceria invisível no protótipo (§6.19) e ninguém veria
+ * que o espaço aceita mais de uma linha, que é a entrega inteira desta fase.
+ */
+const RELATOS_DA_CONVIVENCIA: {
+  id: string; saidaId: string; personId: string; relato: string;
+  houveAlteracao: boolean; por: string; quando: string;
+}[] = [
+  {
+    id: 'rel-1', saidaId: 'fs-semente-3', personId: 'p01',
+    relato: 'Perguntei como tinha sido o fim de semana e ela disse que não queria falar '
+      + 'agora. Ficou no quarto até a hora do jantar e depois assistiu TV com os outros.',
+    houveAlteracao: false, por: 'Mário Silva (fictício)', quando: emDias(-21, 20, 15),
+  },
+  {
+    id: 'rel-2', saidaId: 'fs-semente-3', personId: 'p01',
+    relato: 'Hoje, lavando a louça, ela contou por conta própria que a avó passou mal no '
+      + 'sábado e que ela ficou com medo. Disse que quer voltar mesmo assim.',
+    houveAlteracao: true, por: 'Joana Lima (fictícia)', quando: emDias(-17, 15, 40),
+  },
+];
+
+/**
+ * O TRABALHO DA EQUIPE, semeado (fase 117).
+ *
+ * A tela só existe com dado: sem isto, a coordenação abriria o período e leria
+ * "nenhum registro", e concluiria que a tela não funciona (§6.19). O que está
+ * semeado conta o caso que a fez existir — trabalho de gente, em ordem, com a
+ * finalidade que cada um declarou NA HORA, e **sem um único total**.
+ */
+/**
+ * O PERÍODO DA CASA, semeado (fase 121).
+ *
+ * A tela só existe com dado. Sem isto, a coordenação abriria "7 dias" e leria
+ * uma tela sem seção nenhuma — e concluiria que o relatório não funciona, que
+ * é exatamente a armadilha do §6.19.
+ *
+ * As datas são RELATIVAS: cada linha diz há quantos dias aconteceu, e o
+ * servidor de mentira filtra pelo período pedido, como o de verdade. Escolher
+ * "Hoje" e escolher "6 meses" precisam devolver coisas diferentes — senão o
+ * ensaio testa uma tela que não existe (§6.14).
+ *
+ * E a semeadura carrega a decisão do relatório: as CONQUISTAS e as MEMÓRIAS
+ * estão lá, junto com as ocorrências. *"As observações que os educadores botam
+ * têm que ser ponderadas para ser trazido coisas boas e negativas."*
+ */
+const EVENTOS_DO_PERIODO: {
+  secao: string; ha: number; quem: string | null;
+  titulo: string | null; texto: string; autor: string;
+}[] = [
+  { secao: 'conquista', ha: 3, quem: 'Gabi', titulo: 'Aprovação escolar',
+    texto: 'Passou de ano com média em todas as disciplinas. A escola mandou bilhete.',
+    autor: 'Carla Souza (fictícia)' },
+  { secao: 'conquista', ha: 21, quem: 'Kauã', titulo: 'Primeiro emprego',
+    texto: 'Assinou a primeira carteira como jovem aprendiz.', autor: 'Carla Souza (fictícia)' },
+  { secao: 'memoria', ha: 1, quem: 'Helena', titulo: 'aniversário',
+    texto: 'Bolo de cenoura feito por ela com a educadora. Cantaram na cozinha.',
+    autor: 'Joana Lima (fictícia)' },
+  { secao: 'memoria', ha: 5, quem: 'Alice', titulo: 'passeio',
+    texto: 'Primeira vez na piscina. Entrou na parte rasa e não quis sair.',
+    autor: 'Joana Lima (fictícia)' },
+  { secao: 'memoria', ha: 40, quem: 'Bruno', titulo: 'esporte',
+    texto: 'Marcou o primeiro gol no campeonato do bairro.', autor: 'Pedro Alves (fictício)' },
+  { secao: 'educacao', ha: 2, quem: 'Davi',
+    titulo: null, texto: 'Está lendo frases inteiras. A professora pediu para continuar o '
+      + 'reforço duas vezes por semana.', autor: 'Carla Souza (fictícia)' },
+  { secao: 'educacao', ha: 9, quem: 'Nina',
+    titulo: null, texto: 'Faltou três dias por conta da consulta; a escola enviou as tarefas '
+      + 'e ela fez todas.', autor: 'Carla Souza (fictícia)' },
+  { secao: 'observacao', ha: 0, quem: null, titulo: null,
+    texto: 'Turno tranquilo. Jantar às 19h com todos à mesa; a Lara ajudou a servir.',
+    autor: 'Joana Lima (fictícia)' },
+  { secao: 'observacao', ha: 2, quem: null, titulo: null,
+    texto: 'Chuveiro do banheiro de cima pingando desde a manhã. Manutenção avisada.',
+    autor: 'Pedro Alves (fictício)' },
+  { secao: 'observacao', ha: 6, quem: null, titulo: null,
+    texto: 'Noite com duas crianças acordadas até tarde por causa do temporal.',
+    autor: 'Marcos Dias (fictício)' },
+  { secao: 'episodio', ha: 4, quem: 'Enzo', titulo: 'Briga ou conflito',
+    texto: 'Discussão com o Igor na sala de estudos por causa do controle da TV. Separados '
+      + 'pela educadora; conversaram depois e pediram desculpa.', autor: 'Joana Lima (fictícia)' },
+  { secao: 'episodio', ha: 11, quem: 'Igor', titulo: 'Desorganização',
+    texto: 'Recusou-se a arrumar o quarto e saiu batendo a porta. Voltou em vinte minutos e '
+      + 'arrumou.', autor: 'Pedro Alves (fictício)' },
+  { secao: 'ocorrencia', ha: 4, quem: null, titulo: 'Conflito ou agressão',
+    texto: 'Desentendimento entre dois acolhidos na sala de estudos, sem lesão. Separados de '
+      + 'imediato; equipe técnica avisada no mesmo turno.', autor: 'Joana Lima (fictícia)' },
+  { secao: 'ocorrencia', ha: 18, quem: null, titulo: 'Desorganização com repercussão relevante',
+    texto: 'Porta do armário da cozinha danificada durante a tarde. Manutenção acionada e '
+      + 'orçamento pedido.', autor: 'Pedro Alves (fictício)' },
+];
+
+/**
+ * *"QUEM NÃO ESTÁ COMENDO O QUÊ"*, semeado — e com o caso que a seção existe
+ * para mostrar: a Nina recusou o jantar três dias, e a frase ao lado diz que
+ * era dor de barriga. Sem a frase, "recusou, recusou, recusou" viraria um
+ * traço dela. Com a frase, é um sintoma — e é isso que a técnica precisa ver.
+ */
+const REFEICOES_DO_PERIODO: {
+  personId: string; quem: string; ha: number; refeicao: string;
+  opcao: string; nota: string | null; por: string;
+}[] = [
+  { personId: 'p13', quem: 'Nina', ha: 2, refeicao: 'Jantar', opcao: 'Recusou',
+    nota: 'Disse que estava com dor de barriga. Aceitou chá.', por: 'Joana Lima (fictícia)' },
+  { personId: 'p13', quem: 'Nina', ha: 3, refeicao: 'Jantar', opcao: 'Recusou',
+    nota: 'Mesma queixa de ontem. Enfermagem avisada.', por: 'Pedro Alves (fictício)' },
+  { personId: 'p13', quem: 'Nina', ha: 4, refeicao: 'Almoço', opcao: 'Parcial',
+    nota: 'Comeu só o arroz.', por: 'Joana Lima (fictícia)' },
+  { personId: 'p05', quem: 'Enzo', ha: 1, refeicao: 'Café da manhã', opcao: 'Parcial',
+    nota: 'Levantou atrasado e saiu para a escola com o pão na mão.',
+    por: 'Marcos Dias (fictício)' },
+  { personId: 'p01', quem: 'Alice', ha: 5, refeicao: 'Jantar', opcao: 'Desconforto',
+    nota: 'Reclamou de enjoo depois do prato. Sem febre.', por: 'Joana Lima (fictícia)' },
+];
+
+/**
+ * AS OITO CASAS EM NÚMEROS (fase 120).
+ *
+ * Desiguais de propósito: a pergunta dele é *"qual casa está dando mais
+ * resultado? tem um motivo?"*, e um painel com oito números iguais não
+ * responde nem à primeira metade. A AI3 é a casa do protótipo, e os números
+ * dela batem com os das outras telas.
+ */
+const METRICAS_DAS_CASAS = [
+  { id: 'h1', codigo: 'AI1', nome: 'Acolhimento Institucional 1',
+    acolhidos: 18, capacidade: 20, entradas: 2, saidas: 1,
+    passouDeAno: 11, marcos: 14, apoioEducacional: 6, evolucoesEducacionais: 22,
+    internacoes: 1, medicamentosSaidos: 84, notasCentavos: 128_40 * 10, notasSemValor: 0,
+    lanches: 540, cestas: 4, reunioes: 4, acompanhamentosAprovados: 16,
+    acompanhamentosAbertos: 2, relatorios: 5, atasFechadas: 29, atasComPendencia: 1,
+    ocorrencias: 6, ocorrenciasRestritas: 1, pessoasNaEscala: 9 },
+  { id: 'h2', codigo: 'AI2', nome: 'Acolhimento Institucional 2',
+    acolhidos: 20, capacidade: 20, entradas: 3, saidas: 2,
+    passouDeAno: 7, marcos: 9, apoioEducacional: 9, evolucoesEducacionais: 11,
+    internacoes: 3, medicamentosSaidos: 156, notasCentavos: 214_90 * 10, notasSemValor: 2,
+    lanches: 610, cestas: 6, reunioes: 2, acompanhamentosAprovados: 11,
+    acompanhamentosAbertos: 7, relatorios: 3, atasFechadas: 24, atasComPendencia: 6,
+    ocorrencias: 14, ocorrenciasRestritas: 4, pessoasNaEscala: 8 },
+  { id: 'h3', codigo: 'AI3', nome: 'Acolhimento Institucional 3',
+    acolhidos: 20, capacidade: 20, entradas: 1, saidas: 0,
+    passouDeAno: 9, marcos: 12, apoioEducacional: 5, evolucoesEducacionais: 18,
+    internacoes: 1, medicamentosSaidos: 97, notasCentavos: 163_20 * 10, notasSemValor: 1,
+    lanches: 585, cestas: 5, reunioes: 3, acompanhamentosAprovados: 14,
+    acompanhamentosAbertos: 3, relatorios: 4, atasFechadas: 28, atasComPendencia: 2,
+    ocorrencias: 8, ocorrenciasRestritas: 2, pessoasNaEscala: 9 },
+  { id: 'h4', codigo: 'AI4', nome: 'Acolhimento Institucional 4',
+    acolhidos: 16, capacidade: 20, entradas: 0, saidas: 3,
+    passouDeAno: 10, marcos: 15, apoioEducacional: 4, evolucoesEducacionais: 25,
+    internacoes: 0, medicamentosSaidos: 61, notasCentavos: 89_70 * 10, notasSemValor: 0,
+    lanches: 470, cestas: 3, reunioes: 4, acompanhamentosAprovados: 15,
+    acompanhamentosAbertos: 1, relatorios: 6, atasFechadas: 30, atasComPendencia: 0,
+    ocorrencias: 4, ocorrenciasRestritas: 0, pessoasNaEscala: 10 },
+  { id: 'h5', codigo: 'ARM1', nome: 'Acolhimento Republicano Masculino 1',
+    acolhidos: 12, capacidade: 15, entradas: 1, saidas: 2,
+    passouDeAno: 6, marcos: 11, apoioEducacional: 7, evolucoesEducacionais: 14,
+    internacoes: 2, medicamentosSaidos: 110, notasCentavos: 176_50 * 10, notasSemValor: 3,
+    lanches: 390, cestas: 4, reunioes: 3, acompanhamentosAprovados: 9,
+    acompanhamentosAbertos: 4, relatorios: 3, atasFechadas: 26, atasComPendencia: 3,
+    ocorrencias: 11, ocorrenciasRestritas: 3, pessoasNaEscala: 7 },
+  { id: 'h6', codigo: 'ARM2', nome: 'Acolhimento Republicano Masculino 2',
+    acolhidos: 14, capacidade: 15, entradas: 2, saidas: 1,
+    passouDeAno: 8, marcos: 10, apoioEducacional: 5, evolucoesEducacionais: 16,
+    internacoes: 1, medicamentosSaidos: 73, notasCentavos: 121_30 * 10, notasSemValor: 0,
+    lanches: 430, cestas: 3, reunioes: 4, acompanhamentosAprovados: 12,
+    acompanhamentosAbertos: 2, relatorios: 4, atasFechadas: 29, atasComPendencia: 1,
+    ocorrencias: 5, ocorrenciasRestritas: 1, pessoasNaEscala: 8 },
+  { id: 'h7', codigo: 'ARM3', nome: 'Acolhimento Republicano Masculino 3',
+    acolhidos: 15, capacidade: 15, entradas: 4, saidas: 2,
+    passouDeAno: 5, marcos: 7, apoioEducacional: 8, evolucoesEducacionais: 9,
+    internacoes: 2, medicamentosSaidos: 132, notasCentavos: 198_00 * 10, notasSemValor: 4,
+    lanches: 455, cestas: 6, reunioes: 1, acompanhamentosAprovados: 7,
+    acompanhamentosAbertos: 9, relatorios: 2, atasFechadas: 21, atasComPendencia: 8,
+    ocorrencias: 17, ocorrenciasRestritas: 5, pessoasNaEscala: 7 },
+  { id: 'h8', codigo: 'ARM4', nome: 'Acolhimento Republicano Masculino 4',
+    acolhidos: 13, capacidade: 15, entradas: 1, saidas: 1,
+    passouDeAno: 9, marcos: 13, apoioEducacional: 3, evolucoesEducacionais: 20,
+    internacoes: 0, medicamentosSaidos: 58, notasCentavos: 94_10 * 10, notasSemValor: 0,
+    lanches: 405, cestas: 2, reunioes: 4, acompanhamentosAprovados: 13,
+    acompanhamentosAbertos: 1, relatorios: 5, atasFechadas: 30, atasComPendencia: 0,
+    ocorrencias: 3, ocorrenciasRestritas: 0, pessoasNaEscala: 9 },
+];
+
+const TRABALHO_DA_EQUIPE: {
+  id: string; userId: string; quando: string; acao: string; codigo: string;
+  entidade: string; finalidadeDeclarada?: string;
+}[] = [
+  { id: 't1', userId: 'u6', quando: emHoras(7, 42), acao: 'Chamada aberta',
+    codigo: 'check.open', entidade: 'collective_check' },
+  { id: 't2', userId: 'u6', quando: emHoras(8, 5), acao: 'Conferência de mesa registrada',
+    codigo: 'check.bulk', entidade: 'collective_check' },
+  { id: 't3', userId: 'u6', quando: emHoras(8, 20), acao: 'Dose confirmada',
+    codigo: 'medication.confirm', entidade: 'medication_administration' },
+  { id: 't4', userId: 'u1', quando: emHoras(9, 10), acao: 'Registro escrito na ATA',
+    codigo: 'ata.note', entidade: 'ata_note' },
+  { id: 't5', userId: 'u1', quando: emHoras(11, 2), acao: 'Pedido à cozinha registrado',
+    codigo: 'kitchen.request', entidade: 'kitchen_request' },
+  { id: 't6', userId: 'u2', quando: emHoras(13, 30), acao: 'ATA fechada',
+    codigo: 'ata.close', entidade: 'ata' },
+  { id: 't7', userId: 'u3', quando: emDias(-1, 15, 20), acao: 'Relatório exportado',
+    codigo: 'report.export', entidade: 'report_document',
+    finalidadeDeclarada: 'Audiência concentrada de outubro — cópia para a Defensoria.' },
+  { id: 't8', userId: 'u3', quando: emDias(-2, 10, 5), acao: 'Anexo de ocorrência aberto',
+    codigo: 'incident.attachment_open', entidade: 'incident_attachment',
+    finalidadeDeclarada: 'Conferir a orientação da consulta antes da reunião de equipe.' },
+  { id: 't9', userId: 'u7', quando: emDias(-3, 19, 40), acao: 'Evolução educacional escrita',
+    codigo: 'education.evolution', entidade: 'education_evolution' },
+  { id: 't10', userId: 'u1', quando: emDias(-4, 21, 15), acao: 'Passagem de plantão assinada',
+    codigo: 'handover.sign', entidade: 'handover' },
 ];
 
 /**
@@ -677,16 +987,147 @@ interface Chamada {
   resultados: Record<string, { opcao: string; nota?: string; mesa?: string }>;
   /** As conferências de mesa desta chamada — o ato, com nome e horário. */
   mesas?: { id: string; opcao: string; quantos: number; por: string; quando: string }[];
+  /* Quem abriu e quem fechou (fase 113). O café já vem confirmado por alguém:
+     o nome do fecho é um bloco que só existe com dado, e sem uma chamada
+     confirmada semeada ele nunca apareceria no protótipo (§6.19). */
+  abertaPor?: string; abertaEm?: string;
+  confirmadaPor?: string; confirmadaEm?: string;
 }
 let CHAMADAS: Chamada[] = [
   { id: 'k1', tipo: 'alimentacao', titulo: 'Café da manhã', status: 'confirmada',
-    horario: emHoras(7, 30), resultados: Object.fromEntries(KIDS.map((k) => [k.id, { opcao: 'normal' }])) },
+    horario: emHoras(7, 30), resultados: Object.fromEntries(KIDS.map((k) => [k.id, { opcao: 'normal' }])),
+    abertaPor: 'Educadora Fictícia', abertaEm: emHoras(7, 25),
+    confirmadaPor: 'Líder Diurno Fictício', confirmadaEm: emHoras(8, 5) },
   { id: 'k2', tipo: 'alimentacao', titulo: 'Almoço', status: 'aberta', horario: emHoras(11, 30),
+    abertaPor: 'Educadora Fictícia', abertaEm: emHoras(11, 25),
     resultados: { p02: { opcao: 'normal' }, p04: { opcao: 'normal' },
                   p11: { opcao: 'parcial', nota: 'Comeu metade e disse que estava sem fome.' } } },
   { id: 'k3', tipo: 'alimentacao', titulo: 'Janta', status: 'aberta', horario: emHoras(18, 30),
-    resultados: {} },
+    resultados: {}, abertaPor: 'Educadora Fictícia', abertaEm: emHoras(18, 25) },
 ];
+
+/**
+ * A PRESENÇA DE DIAS ANTERIORES.
+ *
+ * As chamadas do mock são só as de HOJE — é o que a tela da chamada precisa. O
+ * bloco "Presença" do perfil (fase 110) olha duas semanas, e sem história ele
+ * nasceria mostrando o dia de hoje e mais nada: bloco que só existe com dado
+ * precisa de dado no servidor de mentira (§6.19).
+ *
+ * O que está semeado conta o caso que fez a tela existir: uma recusa com o
+ * FATO escrito ao lado, e um registro CORRIGIDO — o histórico da chamada era
+ * guardado por gatilho desde a fase 67 e nunca tinha sido lido por nada.
+ */
+interface PresencaAnterior {
+  id: string; personId: string; tipo: string; titulo: string; quando: string;
+  opcao: string; nota: string | null; por: string;
+  correcoes?: { antes: string; justificativaAntes: string | null;
+                eraDe: string; corrigidoPor: string; em: string }[];
+}
+const PRESENCA_ANTERIOR: PresencaAnterior[] = [
+  { id: 'pa1', personId: 'p01', tipo: 'alimentacao', titulo: 'Janta',
+    quando: emDias(-2, 18, 30), opcao: 'recusou', por: 'Educadora Fictícia',
+    nota: 'Recusou o jantar; comeu a fruta depois, na cozinha, com a educadora.' },
+  { id: 'pa2', personId: 'p01', tipo: 'escola', titulo: 'Saída para a escola',
+    quando: emDias(-3, 7, 10), opcao: 'atraso', por: 'Educador Fictício',
+    nota: 'O transporte atrasou vinte minutos; a escola foi avisada por telefone.',
+    correcoes: [{ antes: 'Ausência por saúde',
+                  justificativaAntes: 'Marquei ausência, mas ela foi — chegou atrasada.',
+                  eraDe: 'Educador Fictício', corrigidoPor: 'Líder Diurno (fictício)',
+                  em: emDias(-3, 9, 40) }] },
+  { id: 'pa3', personId: 'p01', tipo: 'alimentacao', titulo: 'Almoço',
+    quando: emDias(-5, 11, 30), opcao: 'normal', por: 'Educadora Fictícia', nota: null },
+  { id: 'pa4', personId: 'p11', tipo: 'lazer', titulo: 'Tarde no pátio',
+    quando: emDias(-1, 15, 0), opcao: 'preferiu_nao', por: 'Educadora Fictícia',
+    nota: 'Preferiu ficar lendo na sala; disse que estava cansada.' },
+];
+
+/**
+ * O PRONTUÁRIO DE EDUCAÇÃO no servidor de mentira (fase 111).
+ *
+ * As duas tabelas existiam no banco desde a migração 0530 e o relatório as
+ * lia; nenhuma rota as escrevia. Aqui elas nascem COM conteúdo porque o bloco
+ * some quando vazio — e bloco que some precisa de dado, senão a entrega nasce
+ * invisível no único arquivo que o Marcelo abre (§6.19).
+ */
+interface ApoioEdu {
+  personId: string; salaDeRecursos: boolean; motivoDaSala: string | null;
+  professorDaSala: string | null; servico: string | null; servicoOutro: string | null;
+  servicoLocal: string | null; servicoProfissional: string | null;
+  aprendiz: boolean; modo: string | null; curso: string | null;
+  cursoInicio: string | null; cursoFim: string | null; turno: string | null;
+  unidade: string | null; empresa: string | null; enderecoDaEmpresa: string | null;
+  atualizadoEm: string; atualizadoPor: string | null;
+}
+const APOIO_EDU: Record<string, ApoioEdu> = {
+  p01: {
+    personId: 'p01', salaDeRecursos: true,
+    motivoDaSala: 'Apoio em leitura e escrita, duas vezes por semana, pedido pela escola.',
+    professorDaSala: 'Professora Fictícia', servico: 'fono', servicoOutro: null,
+    servicoLocal: 'UBS Fictícia', servicoProfissional: 'Fonoaudióloga Fictícia',
+    aprendiz: false, modo: null, curso: null, cursoInicio: null, cursoFim: null,
+    turno: null, unidade: null, empresa: null, enderecoDaEmpresa: null,
+    atualizadoEm: emDias(-12), atualizadoPor: 'Equipe técnica (fictícia)',
+  },
+};
+const EVOLUCOES_EDU: Record<string, { id: string; em: string; texto: string;
+                                      por: string; escritoEm: string }[]> = {
+  p01: [
+    { id: 'ee1', em: emDias(-1).slice(0, 10),
+      texto: 'Entregou o trabalho de ciências sem precisar de lembrete. A professora mandou '
+        + 'bilhete elogiando a apresentação em grupo.',
+      por: 'Educadora Fictícia', escritoEm: emDias(-1) },
+    { id: 'ee2', em: emDias(-9).slice(0, 10),
+      texto: 'Começou na sala de recursos. Voltou dizendo que gostou da professora e que quer '
+        + 'levar o livro dela para casa.',
+      por: 'Equipe técnica (fictícia)', escritoEm: emDias(-9) },
+  ],
+};
+
+/**
+ * O RASTRO DE UMA CRIANÇA no servidor de mentira (fase 112).
+ *
+ * A auditoria era escrita por todo serviço e não tinha por onde ser lida, e é
+ * por isso que ela nunca precisou de fixture aqui. Agora precisa: bloco que
+ * some quando vazio nasce invisível no único arquivo que o Marcelo abre
+ * (§6.19).
+ *
+ * As linhas foram escolhidas para mostrar as DUAS naturezas que a tela separa
+ * por cor: o que alguém fez, e o que alguém fez **dizendo para quê**.
+ */
+const AUDITORIA: Record<string, { id: string; acao: string; codigo: string;
+                                  quando: string; por: string;
+                                  finalidade: string | null;
+                                  detalhe: Record<string, unknown> }[]> = {
+  p01: [
+    { id: 'au1', acao: 'Relatório exportado', codigo: 'report.export',
+      quando: emDias(-2, 15, 20), por: 'Equipe técnica (fictícia)',
+      finalidade: 'Audiência concentrada de outubro — cópia para a Defensoria.',
+      detalhe: { formato: 'docx' } },
+    { id: 'au2', acao: 'Documento do dossiê aberto', codigo: 'document.open',
+      quando: emDias(-2, 14, 5), por: 'Coordenadora Fictícia',
+      finalidade: null, detalhe: {} },
+    { id: 'au3', acao: 'Evolução educacional escrita', codigo: 'education.evolution',
+      quando: emDias(-1, 19, 40), por: 'Educadora Fictícia',
+      finalidade: null, detalhe: {} },
+    /* `incident.attachment_open` sai de dentro de `app_open_attachment`, no
+       SQL — é uma das vinte e cinco ações que o banco escreve por conta
+       própria justamente para que nenhum caminho da aplicação escape delas
+       (fase 115). A frase é a do vocabulário do kernel, palavra por palavra. */
+    { id: 'au4', acao: 'Anexo de ocorrência aberto', codigo: 'incident.attachment_open',
+      quando: emDias(-6, 10, 15), por: 'Equipe técnica (fictícia)',
+      finalidade: 'Conferir a orientação da consulta antes da reunião de equipe.',
+      detalhe: { restrito: true, forma: 'arquivo' } },
+    /* Uma linha de ação SENSÍVEL, e vinda do SQL: sem ela o protótipo mostraria
+       só rastro de leitura, e a coordenação não veria como a tela apresenta o
+       que mais importa ver. */
+    { id: 'au5', acao: 'Leitura excepcional de relato, com finalidade escrita',
+      codigo: 'statement.read_exceptional',
+      quando: emDias(-9, 16, 30), por: 'Gestor Geral (fictício)',
+      finalidade: 'Pedido da Defensoria sobre o episódio de 02/09 — leitura única.',
+      detalhe: { relatos: 2 } },
+  ],
+};
 
 interface Passagem {
   id: string; quem: string; cargo: string; userId: string;
@@ -751,9 +1192,29 @@ interface Compromisso {
    COMPROMISSOS porque desmarcar uma quarta não altera o combinado. */
 const DESMARCADAS = new Map<string, string>();
 
-/* A cor da linha de cada pessoa. Vazio no começo: sem escolha, a ATA cai no
-   tom automático — que é como o sistema se comportava antes da 0990. */
-const CORES_DA_LINHA = new Map<string, string>();
+/*
+ * A COR DA LINHA DE CADA PESSOA (0990), e por que duas já vêm escolhidas.
+ *
+ * O mapa nascia VAZIO, e a ATA caía no tom automático — que é como o sistema
+ * se comportava ANTES da 0990. Funcionava para a ATA, onde a cor automática
+ * também pinta; deixou de funcionar na fase 123, quando a escala passou a
+ * carregar a cor: uma demonstração em que nenhuma cor foi ESCOLHIDA não mostra
+ * o que a Fundação pediu — *"cada um com a sua cor diferente"* — e é o §6.19
+ * outra vez.
+ *
+ * TRÊS, e não todas: a tarefa 5.16 do roteiro é escolher a cor de uma
+ * EDUCADORA e depois tentar repetir. Das três educadoras, a Tainá fica livre —
+ * é ela que a coordenação vai pintar na demonstração —, e as outras duas já
+ * ocupam tons, que é o que faz a recusa da repetição ter o que recusar. A
+ * Lúcia entrou porque é Líder Diurna, e não educadora: sem ela, a escala abria
+ * com duas linhas na mesma cor automática (que colide — é o defeito que a 0990
+ * corrigiu) bem na tela que existe para mostrar o contrário.
+ */
+const CORES_DA_LINHA = new Map<string, string>([
+  ['u1', 'c-brand'],   // Mário Silva
+  ['u6', 'c-ok'],      // Joana Lima
+  ['u2', 'c-info'],    // Lúcia Líder Diurna
+]);
 
 /* As cobranças de relato de uma ocorrência grave já aberta na casa fictícia:
    quatro pessoas do turno, duas ainda sem escrever. */
@@ -811,11 +1272,15 @@ const COMPRAS_MED: {
   id: string; em: string; itens: string; fornecedor: string | null;
   totalCentavos: number | null; nota: string | null; observacao: string | null;
   temAnexo: boolean; nomeDoAnexo: string | null; compradoPor: string;
+  /* As duas formas do papel (fase 108): guardado aqui, ou no Drive. */
+  arquivo?: string | null; mime?: string | null; referencia?: string | null;
 }[] = [
   { id: 'cm1', em: new Date(Date.now() - 6 * 86400_000).toISOString().slice(0, 10),
     itens: 'Dipirona 500mg — 2 caixas; Amoxicilina suspensão — 1 frasco.',
     fornecedor: 'Farmácia Fictícia', totalCentavos: 8790, nota: '00123',
-    observacao: null, temAnexo: true, nomeDoAnexo: 'Nota fiscal',
+    observacao: null, temAnexo: true, nomeDoAnexo: 'nota-00123.png',
+    /* A primeira tem o papel GUARDADO: é ela que mostra o botão de olho. */
+    arquivo: FOLHA_FICTICIA, mime: 'image/png', referencia: null,
     compradoPor: 'Fernanda Alves (fictícia)' },
   { id: 'cm2', em: new Date(Date.now() - 2 * 86400_000).toISOString().slice(0, 10),
     itens: 'Soro fisiológico — 4 frascos.',
@@ -868,7 +1333,42 @@ const PEDIDOS_COZINHA: {
 const SAIDAS_DE_REMEDIO = new Map<string, string>();
 
 const RECEITAS: Record<string, { id: string; nome: string; em: string | null;
-  prescritor: string | null; anexadoPor: string; anexadoEm: string }[]> = {};
+  /* Receita ou BULA (fase 125). A mesma tabela no servidor, porque é o mesmo
+     fato — um papel digitalizado preso a uma prescrição. */
+  tipo?: string;
+  prescritor: string | null; anexadoPor: string; anexadoEm: string;
+  /* As duas formas (fase 108). `temArquivo` é o que a tela lê antes do clique. */
+  temArquivo?: boolean; nomeDoArquivo?: string | null;
+  arquivo?: string | null; mime?: string | null; referencia?: string | null;
+  /* O espelho no dossiê da criança (fase 125). Nulo quando é referência: um
+     documento na pasta que não abre é uma linha a mais e nada a mais. */
+  noDossie?: string | null }[]> = {
+  /* Uma receita JÁ GUARDADA, no esquema do colírio: sem ela, o botão de olho
+     desta tela nasceria sem nada para abrir, e a entrega seria invisível no
+     único arquivo que o Marcelo abre (§6.19). */
+  esq1: [{
+    id: 'rc-fic-1', nome: 'Receita da consulta de oftalmologia',
+    em: new Date(Date.now() - 20 * 86400_000).toISOString().slice(0, 10),
+    prescritor: 'Dra. Fictícia (CRM 00000)', anexadoPor: 'Enfermeira Fictícia',
+    anexadoEm: new Date(Date.now() - 19 * 86400_000).toISOString(),
+    tipo: 'receita',
+    temArquivo: true, nomeDoArquivo: 'receita-oftalmo.png',
+    arquivo: FOLHA_FICTICIA, mime: 'image/png', referencia: null,
+    noDossie: 'doc-espelho-receita',
+  }, {
+    /* E uma BULA (fase 125), porque ela não existia em lugar nenhum — e sem a
+       semente a pílula que separa um papel do outro nasceria invisível no
+       protótipo (§6.19). */
+    id: 'rc-fic-2', nome: 'Bula do colírio',
+    em: new Date(Date.now() - 20 * 86400_000).toISOString().slice(0, 10),
+    tipo: 'bula',
+    prescritor: null, anexadoPor: 'Enfermeira Fictícia',
+    anexadoEm: new Date(Date.now() - 19 * 86400_000).toISOString(),
+    temArquivo: true, nomeDoArquivo: 'bula-colirio.png',
+    arquivo: FOLHA_FICTICIA, mime: 'image/png', referencia: null,
+    noDossie: 'doc-espelho-bula',
+  }],
+};
 
 const CONVIVENCIAS: { id: string; personId: string; quem: string; comQuem: string;
                       vinculo: string; saiuEm: string; retornoPrevisto: string;
@@ -907,6 +1407,27 @@ const CONVIVENCIAS: { id: string; personId: string; quem: string; comQuem: strin
    * não aparece em nenhum ensaio; ele sai da chamada como no servidor.
    */
   ...foraDeSemente(),
+  /*
+   * E UMA IDA ANTIGA DA ALICE, encerrada há semanas (fase 118).
+   *
+   * O bloco "Convivência familiar" do perfil só existe com dado, e as duas
+   * sementes acima são de outras crianças — o percurso dos ensaios abre o
+   * perfil da Alice. Sem esta linha, o bloco nasceria invisível no protótipo
+   * (§6.19), que é o mesmo defeito que a fase 89 corrigiu na lista da casa.
+   *
+   * Encerrada e no passado de propósito: uma ida ABERTA tiraria a Alice da
+   * chamada, e é nela que metade dos ensaios entra.
+   */
+  {
+    id: 'fs-semente-3', personId: 'p01', quem: 'Alice',
+    comQuem: 'Avó Terezinha (fictícia)', vinculo: 'avo',
+    saiuEm: emDias(-23, 10, 0), retornoPrevisto: emDias(-21, 18, 0),
+    finalidade: 'Fim de semana com a avó materna (fictício).',
+    voltouEm: emDias(-21, 17, 30), recebidaPor: 'Mário Silva (fictício)',
+    comoChegou: 'Chegou quieta e foi direto para o quarto; jantou mais tarde, com a educadora.',
+    trouxe: 'Uma sacola de roupa e a bombinha que tinha ficado na casa da avó.',
+    status: 'encerrada' as const,
+  },
 ];
 
 /**
@@ -1201,6 +1722,8 @@ interface EscalaMock {
   data: string; turno: 'diurno' | 'noturno';
   inicio: string | null; fim: string | null; nota: string | null;
   revogadaEm: string | null; motivoRevogacao: string | null; revogadaPor: string | null;
+  /* De quem é o lugar, quando a pessoa entrou por substituição (fase 123). */
+  substituiu?: string | null;
 }
 
 function diaRelativo(n: number): string {
@@ -1316,12 +1839,20 @@ function escalaDoPeriodo(de: string, ate: string) {
        d.setDate(d.getDate() + 1)) {
     const data = d.toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
     const doDia = ESCALA.filter((x) => x.data === data);
-    const vivos = (t: string) => doDia.filter((x) => x.turno === t && !x.revogadaEm);
+    /* A COR vem do mesmo mapa que a ATA usa (0990), como no servidor: ela é da
+       PESSOA, e não do plantão. Um segundo mapa aqui faria a mesma educadora
+       sair de um tom na ATA e de outro na escala (§6.14). */
+    const comCor = (x: EscalaMock) => ({
+      ...x, cor: CORES_DA_LINHA.get(x.userId) ?? null,
+      substituiu: x.substituiu ?? null,
+    });
+    const vivos = (t: string) =>
+      doDia.filter((x) => x.turno === t && !x.revogadaEm).map(comCor);
     dias.push({
       data,
       diurno: vivos('diurno'),
       noturno: vivos('noturno'),
-      revogadas: doDia.filter((x) => x.revogadaEm),
+      revogadas: doDia.filter((x) => x.revogadaEm).map(comCor),
       semNinguem: [
         ...(vivos('diurno').length ? [] : ['diurno']),
         ...(vivos('noturno').length ? [] : ['noturno']),
@@ -1504,6 +2035,47 @@ const ESTOQUE: ItemEstoque[] = [
 ];
 
 /**
+ * O MOVIMENTO DO ARMÁRIO — o que o protótipo prometia e não guardava.
+ *
+ * A resposta do POST já dizia "a diferença ficou no histórico, com o motivo e
+ * o seu nome", e não havia histórico nenhum: nem aqui, nem numa tela do
+ * sistema (§9, item 2). Agora as duas coisas existem, e o servidor de mentira
+ * guarda o que o servidor guarda (§6.14).
+ *
+ * As linhas semeadas contam a história que a fase 85 tornou possível: entrada,
+ * dose administrada e conferência do armário. Sem elas o botão novo abriria
+ * uma lista vazia, e a entrega nasceria invisível (§6.19).
+ */
+interface MovimentoEstoque {
+  id: string; tipo: string; quantidade: number; motivo: string | null;
+  quando: string; por: string | null;
+}
+const MOVIMENTOS: Record<string, MovimentoEstoque[]> = {
+  e1: [
+    { id: 'mv1', tipo: 'entrada', quantidade: 3, motivo: null,
+      quando: emHoras(9, 15), por: 'Enfermeira Fictícia' },
+    { id: 'mv2', tipo: 'consumo', quantidade: -1, motivo: 'Dose das 08:00 confirmada.',
+      quando: emHoras(8, 5), por: 'Educadora Fictícia' },
+  ],
+  e2: [
+    { id: 'mv3', tipo: 'entrada', quantidade: 6, motivo: null,
+      quando: emHoras(9, 20), por: 'Enfermeira Fictícia' },
+    { id: 'mv4', tipo: 'consumo', quantidade: -1, motivo: 'Dose das 20:00 confirmada.',
+      quando: emHoras(20, 10), por: 'Educadora Fictícia' },
+  ],
+  e3: [
+    { id: 'mv5', tipo: 'entrada', quantidade: 20, motivo: null,
+      quando: emHoras(9, 0), por: 'Enfermeira Fictícia' },
+    /* A CONFERÊNCIA QUE NÃO FECHOU: é exatamente o caso que fez esta tela
+       existir — quem abriu a gaveta achou menos do que o sistema dizia, e o
+       movimento é o único lugar onde a diferença tem motivo e nome. */
+    { id: 'mv6', tipo: 'ajuste', quantidade: -4, motivo: 'Conferência da gaveta: achei 8, o '
+      + 'sistema dizia 12. Não achei registro das quatro.',
+      quando: emHoras(20, 30), por: 'Coordenadora Fictícia' },
+  ],
+};
+
+/**
  * Triagem de enfermagem: evoluções escritas pelo educador que acompanhou o
  * atendimento. A Enfermagem tria, complementa e assina — e a coordenação
  * cobra a pendência, mas nunca assina no lugar dela.
@@ -1639,13 +2211,26 @@ const TIPOS_ANEXO = [
 ];
 interface AnexoMock {
   id: string; ocorrenciaId: string; tipo: string; nome: string;
-  referencia: string; restrito: boolean; autor: string;
+  /* Uma das duas, nunca nenhuma: ou o papel está aqui (`arquivo`), ou ele está
+     no Drive (`referencia`). É o CHECK `anexo_tem_onde_estar` da migração 1220
+     escrito no servidor de mentira. */
+  referencia: string | null; restrito: boolean; autor: string;
+  arquivo: string | null; nomeDoArquivo: string | null; mime: string | null;
 }
 let ANEXOS: AnexoMock[] = [
   { id: 'ax1', ocorrenciaId: 'o2', tipo: 'documento_medico',
     nome: 'orientação da consulta de 31-08',
     referencia: 'RESTRITO/AI3/2026/08/saude/orientacao-3108.pdf',
-    restrito: true, autor: 'Enfermeira Fictícia' },
+    restrito: true, autor: 'Enfermeira Fictícia',
+    arquivo: null, nomeDoArquivo: null, mime: null },
+  /* O MESMO TIPO DE ANEXO, NA OUTRA FORMA (fase 108): este está guardado no
+     sistema, e o botão de olho abre a folha. Os dois convivem de propósito —
+     é assim que a casa vai encontrá-los, e a tela tem de dizer qual é qual. */
+  { id: 'ax2', ocorrenciaId: 'o2', tipo: 'documento_escolar',
+    nome: 'bilhete da escola sobre a semana',
+    referencia: null,
+    restrito: false, autor: 'Equipe técnica (fictícia)',
+    arquivo: FOLHA_FICTICIA, nomeDoArquivo: 'bilhete-da-escola.png', mime: 'image/png' },
 ];
 /** A contenção registrada por ocorrência (§13.3). */
 const CONTENCOES: Record<string, Record<string, unknown>> = {};
@@ -1672,6 +2257,10 @@ interface ComunicacaoMock {
   resumo: string; quando: string | null; aprovadaEm: string | null;
   entregueEm: string | null; ocorrenciaId: string | null;
   responsavel: string; autorId: string;
+  /* `person_id` existe na tabela desde a migração 0320 e nenhuma consulta o
+     lia (fase 118). O mock tinha o mesmo buraco: sem este campo, o bloco de
+     ofícios do perfil nasceria vazio no protótipo. */
+  personId?: string | null;
 }
 let COMUNICACOES: ComunicacaoMock[] = [
   { id: 'c1', orgao: 'conselho_tutelar',
@@ -1680,14 +2269,16 @@ let COMUNICACOES: ComunicacaoMock[] = [
     resumo: 'Comunicamos a saída não autorizada ocorrida em 31/08, o retorno às 23h15 '
       + 'acompanhado e as medidas adotadas pela unidade.',
     quando: emHoras(9, 20), aprovadaEm: emHoras(11, 5), entregueEm: null,
-    ocorrenciaId: 'o1', responsavel: 'Tatiane Técnica (fictícia)', autorId: 'u3' },
+    ocorrenciaId: 'o1', responsavel: 'Tatiane Técnica (fictícia)', autorId: 'u3',
+    personId: 'p01' },
   { id: 'c2', orgao: 'judiciario',
     destinatarioFuncional: 'Vara da Infância e Juventude — 1ª Vara', canal: 'oficio',
     status: 'entregue_manualmente',
     resumo: 'Encaminhamento do relatório semestral de acompanhamento, conforme determinação.',
     quando: emHoras(8, 0), aprovadaEm: emHoras(8, 40),
     entregueEm: new Date(Date.now() - 3 * 86_400_000).toISOString(),
-    ocorrenciaId: null, responsavel: 'Carla Coordenadora (fictícia)', autorId: 'u4' },
+    ocorrenciaId: null, responsavel: 'Carla Coordenadora (fictícia)', autorId: 'u4',
+    personId: 'p01' },
 ];
 
 /**
@@ -2531,10 +3122,15 @@ interface DocumentoMock {
   versao: number; conteudo: string;
   arquivo: { nome: string; tipo: string; tamanho: number; sha256: string };
 }
+interface FotoMock {
+  id: string; nome: string; tipo: string; conteudo: string; autorizacaoRegistrada: boolean;
+}
 interface VivenciaMock {
   id: string; personId: string; tipo: string; quando: string; descricao: string;
-  temFoto: boolean; autorizacaoRegistrada: boolean;
-  arquivo: { nome: string; tipo: string } | null; conteudo: string | null;
+  /* QUANTAS FOREM (fase 124). `temFoto`, `autorizacaoRegistrada` e `arquivo`
+     saem DAQUI na resposta, como no servidor: um contador guardado ao lado da
+     lista é a segunda versão da verdade esperando divergir. */
+  fotos: FotoMock[];
   registradoPor: string; registradoEm: string;
 }
 /* alcance:judicial — quem lê a área restrita. O educador não entra. */
@@ -2548,6 +3144,11 @@ function tipoDoDataUrl(dataUrl: string): string | null {
   const hex = [...bin].map((c) => c.charCodeAt(0).toString(16).padStart(2, '0')).join('');
   if (hex.slice(8, 16) === '66747970') return 'image/heic';
   const achado = TIPOS_DE_ARQUIVO.find((t) => hex.startsWith(t.assinatura));
+  /* `RIFF` sozinho não é WebP — carrega AVI e WAV também, e o formato fica no
+     9º byte. O servidor passou a conferir isso na fase 114, e aqui confere o
+     mesmo: o mock não recusa nem aceita o que o de verdade não recusaria nem
+     aceitaria (§6.14). */
+  if (achado?.tipo === 'image/webp' && bin.slice(8, 12) !== 'WEBP') return null;
   return achado ? achado.tipo : null;
 }
 
@@ -2642,22 +3243,58 @@ function semearDossie() {
     versao: 1, conteudo: jpegFicticio(titulo),
     arquivo: { nome: `${chave}.jpg`, tipo: 'image/jpeg', tamanho: 48_000, sha256: uid() },
   });
+  /*
+   * OS ESPELHOS (fase 125) — a receita e o laudo da internação, que nasceram
+   * em outras telas e agora CHEGAM ao dossiê.
+   *
+   * Sem eles, a entrega da fase seria invisível no único arquivo que o Marcelo
+   * abre: a pasta da Alice mostraria a mesma coisa de antes, e a frase *"que
+   * já caia direto no perfil da criança"* não teria como ser conferida (§6.19).
+   *
+   * Chegam CONFERIDOS, por quem anexou na tela de origem, e com a origem
+   * escrita — é o que impede alguém de achar que apareceram do nada.
+   */
+  const espelho = (id: string, chave: string | null, titulo: string,
+                   origem: string): DocumentoMock => ({
+    id, personId: 'p01', chave, categoria: 'saude', titulo,
+    emitidoEm: null, validoAte: null, origem,
+    anexadoEm: emHoras(10, 5), anexadoPor: 'Enfermeira Fictícia',
+    aceitoEm: emHoras(10, 5), aceitoPor: 'Enfermeira Fictícia',
+    notaDoAceite: `Conferida na tela de origem, por quem anexou: ${origem}`,
+    versao: 1, conteudo: jpegFicticio(titulo),
+    arquivo: { nome: `${titulo}.jpg`, tipo: 'image/jpeg', tamanho: 41_000, sha256: uid() },
+  });
   DOSSIE_DOCS.push(
+    espelho('doc-espelho-receita', 'receita', 'Receita da consulta de oftalmologia',
+            'Receita anexada à prescrição de Colírio'),
+    espelho('doc-espelho-bula', null, 'Bula do colírio',
+            'Bula anexada à prescrição de Colírio'),
+    espelho('doc-espelho-laudo', null, 'Laudo da radiografia de tórax',
+            'Anexo do diário de internação'),
     doc('certidao_nascimento', 'pessoal', 'Certidão de nascimento', true),
     doc('cartao_sus', 'pessoal', 'Cartão SUS', false),
     doc('caderneta_vacinacao', 'pessoal', 'Caderneta de vacinação', true, diasAtras(-120)),
     doc('guia_acolhimento', 'judicial_socioassistencial', 'Guia de acolhimento', true),
   );
   VIVENCIAS.push(
+    /* TRÊS FOTOS numa vivência só (fase 124): é a festa que antes virava três
+       vivências com a mesma data e a mesma descrição. Sem a semente, o "Foto 1
+       de 3" e as setas nasceriam invisíveis no protótipo (§6.19).
+       E a do meio está SEM autorização, porque a autorização é POR FOTO. */
     { id: uid(), personId: 'p01', tipo: 'aniversario', quando: diasAtras(110),
       descricao: 'Aniversário de 7 anos, com bolo de chocolate feito na casa e a turma toda cantando.',
-      temFoto: true, autorizacaoRegistrada: false,
-      arquivo: { nome: 'aniversario.jpg', tipo: 'image/jpeg' },
-      conteudo: jpegFicticio('Foto do aniversário'),
+      fotos: [
+        { id: uid(), nome: 'aniversario-1.jpg', tipo: 'image/jpeg',
+          conteudo: jpegFicticio('Foto do aniversário'), autorizacaoRegistrada: true },
+        { id: uid(), nome: 'aniversario-2.jpg', tipo: 'image/jpeg',
+          conteudo: jpegFicticio('O bolo, na cozinha'), autorizacaoRegistrada: false },
+        { id: uid(), nome: 'aniversario-3.jpg', tipo: 'image/jpeg',
+          conteudo: jpegFicticio('A turma cantando'), autorizacaoRegistrada: true },
+      ],
       registradoPor: 'Tainá Souza (fictícia)', registradoEm: emHoras(20, 0) },
     { id: uid(), personId: 'p01', tipo: 'conquista', quando: diasAtras(30),
       descricao: 'Aprendeu a andar de bicicleta sem rodinhas no pátio, num sábado de manhã.',
-      temFoto: false, autorizacaoRegistrada: false, arquivo: null, conteudo: null,
+      fotos: [],
       registradoPor: 'Lúcia Líder Diurna (fictícia)', registradoEm: emHoras(11, 30) },
   );
 }
@@ -2827,7 +3464,23 @@ interface InternacaoMock {
   abertaPor: string; encerradaPor: string | null; observacaoDoDesfecho: string | null;
   diario: any[]; medicacaoNoHospital: any[]; acompanhantes: any[];
 }
-const INTERNACOES: InternacaoMock[] = [];
+const INTERNACOES: InternacaoMock[] = [
+  /*
+   * UMA INTERNAÇÃO JÁ ENCERRADA (fase 118).
+   *
+   * A lista nascia VAZIA, e por isso o bloco de internações do perfil nunca
+   * apareceria no protótipo (§6.19). Encerrada de propósito: a em andamento
+   * tiraria a criança da chamada e da grade de medicação — que é o que o
+   * servidor faz, e não é o que este dado existe para demonstrar.
+   */
+  { id: 'int1', acolhidoId: 'p01', hospital: 'Hospital Fictício da Criança',
+    motivo: 'Crise respiratória; ficou em observação e recebeu alta com receita.',
+    desde: emDias(-40, 14, 30), ate: emDias(-36, 11, 0),
+    status: 'encerrada', desfecho: 'alta',
+    abertaPor: 'Enfermeira Fictícia', encerradaPor: 'Enfermeira Fictícia',
+    observacaoDoDesfecho: 'Alta com receita de corticoide por cinco dias.',
+    diario: [], medicacaoNoHospital: [], acompanhantes: [] },
+];
 let proximaInternacao = 1;
 
 /** A regra do dia: o dia da ALTA é dia de casa. */
@@ -3007,7 +3660,9 @@ function contatosDe(id: string) {
         observacao: 'Busca na escola às sextas.',
         restrito: false, motivoDaRestricao: null, ativo: true, motivoDoEncerramento: null,
         /* CPF de exemplo com dígitos válidos — não é de ninguém. */
-        cpf: '52998224725', autorizadoAVisitar: true, temFoto: false,
+        /* A única com foto 3×4 guardada, para o botão de olho ter o que abrir. */
+        cpf: '52998224725', autorizadoAVisitar: true, temFoto: true,
+        foto: RETRATO_FICTICIO as string | null,
         autorizacao: { por: 'Equipe técnica (fictícia)', em: emHoras(9, 5) },
         por: 'Equipe técnica (fictícia)', em: emHoras(9, 0) },
       { id: `ct-${id}-3`, nome: 'Tio Fictício', vinculo: 'tio', vinculoRotulo: 'Tia ou tio',
@@ -3107,6 +3762,183 @@ const ACOLHIDOS_POR_CASA: Record<string, number> = {
  * folha a partir das MESMAS rotas que a tela usa, e não de uma segunda versão
  * dos dados.
  */
+
+/**
+ * O PERÍODO DA CASA (fase 121) — num tratador SEPARADO, como o trabalho social.
+ *
+ * Não é organização por gosto. Este bloco nasceu dentro de `responder`, que já
+ * tem nove mil linhas, e o `npm run prototipo` passou a morrer com "Killed"
+ * depois de subir a 5,7 GB: o transformador não dá conta da função quando ela
+ * cresce e ganha chamadas a si mesma. `responderImpacto` existe pela mesma
+ * razão, e o comentário dele diz o mesmo.
+ *
+ * `chamar` é o próprio `responder`, passado de fora: a folha é montada a
+ * partir da MESMA rota que a tela usa, e não de uma segunda versão dos dados.
+ */
+function responderPeriodo(
+  rota: string, q: URLSearchParams, b: any, metodo: string,
+  ctx: {
+    eu: any;
+    chamar: (rota: string, seg: string[], q: URLSearchParams, b: any, metodo: string) => unknown;
+    exportarFolha: (folha: any) => unknown;
+    autorDaFolha: () => { nome: string; cargo: string };
+  },
+): unknown {
+  const { eu, chamar: responder, exportarFolha, autorDaFolha } = ctx;
+  /*
+   * O PERÍODO DA CASA (fase 121) — *"uma ata geral de toda semana"*.
+   *
+   * Recusa pelos MESMOS motivos e com as MESMAS frases do servidor: cargo fora
+   * do círculo, data invertida, janela maior que seis meses. E filtra pelo
+   * período de verdade — escolher "Hoje" e escolher "6 meses" devolvem coisas
+   * diferentes, porque uma tela ensaiada contra um mock que ignora o filtro é
+   * uma tela que ninguém testou (§6.14).
+   */
+  if (rota === '/reports/period/options') {
+    return { secoes: SECOES_DO_PERIODO, janelaMaximaDias: 184 };
+  }
+  if (rota === '/reports/period' || rota.startsWith('/reports/period?')) {
+    if (!['lider_diurno', 'equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403,
+        'O relatório do período é da coordenação, da equipe técnica, do Líder Diurno e da '
+        + 'gestão. O que você registrou continua inteiro na sua tela, com o seu nome.');
+    }
+    const ate = q.get('ate') || HOJE;
+    const de = q.get('de') || emDias(-6).slice(0, 10);
+    if (de > ate) {
+      return new Recusa(400, 'A data inicial vem depois da final. Confira o período.');
+    }
+    const diaN = (s: string) => Math.round(new Date(`${s}T12:00:00-03:00`).getTime() / 86400_000);
+    const dias = diaN(ate) - diaN(de) + 1;
+    if (dias > 184) {
+      return new Recusa(400,
+        'O período vai até seis meses. Para um recorte maior, tire dois relatórios: '
+        + 'um resumo de um ano inteiro deixa de ser leitura e vira arquivo.');
+    }
+    const dentro = (ha: number) => {
+      const d = emDias(-ha).slice(0, 10);
+      return d >= de && d <= ate;
+    };
+    /* Contagem POR TAXA, e não número fixo: um total que não muda com o
+       período ensinaria que o filtro não faz nada. */
+    const porDia = (taxa: number) => Math.round(taxa * dias);
+    const excecoes = REFEICOES_DO_PERIODO.filter((r) => dentro(r.ha));
+    const porCrianca = new Map<string, any>();
+    for (const r of excecoes) {
+      if (!porCrianca.has(r.personId)) {
+        porCrianca.set(r.personId, { personId: r.personId, quem: r.quem, linhas: [] });
+      }
+      porCrianca.get(r.personId).linhas.push({
+        quando: emDias(-r.ha).slice(0, 10), refeicao: r.refeicao,
+        opcao: r.opcao, nota: r.nota, por: r.por,
+      });
+    }
+    const numeros = {
+      acolhidos: KIDS.length, capacidade: LIMITE.valor,
+      entradas: dias > 20 ? 1 : 0, saidas: dias > 60 ? 1 : 0,
+      chamadas: porDia(6), chamadasConfirmadas: porDia(6) - (dias > 2 ? 1 : 0),
+      chamadasAbertas: dias > 2 ? 1 : 0,
+      refeicoesConferidas: porDia(3 * KIDS.length),
+      refeicoesComExcecao: excecoes.length, criancasComExcecao: porCrianca.size,
+      ocorrencias: EVENTOS_DO_PERIODO.filter((e) => e.secao === 'ocorrencia' && dentro(e.ha)).length,
+      ocorrenciasRestritas: dias > 25 ? 1 : 0,
+      desorganizacao: EVENTOS_DO_PERIODO
+        .filter((e) => e.secao === 'ocorrencia' && dentro(e.ha)
+          && String(e.titulo).startsWith('Desorganização')).length,
+      atas: porDia(2), atasFechadas: porDia(2) - (dias > 3 ? 2 : 0),
+      atasComPendencia: dias > 3 ? 1 : 0, atasAbertas: dias > 3 ? 1 : 0,
+      passagens: porDia(2), passagensSemRecibo: dias > 10 ? 1 : 0,
+      /* O par que responde a *"aumento de medicamentos"*: os dois números lado
+         a lado, e a conta é de quem lê. */
+      doses: porDia(9), dosesConfirmadas: porDia(9) - (dias > 1 ? 2 : 0),
+      dosesSemResposta: dias > 1 ? 2 : 0, dosesAnterior: Math.round(porDia(9) * 0.78),
+      internacoes: dias > 45 ? 1 : 0,
+      idasAFamilia: Math.max(1, Math.round(dias / 14)),
+      marcos: EVENTOS_DO_PERIODO.filter((e) => e.secao === 'conquista' && dentro(e.ha)).length,
+      evolucoesEducacionais: EVENTOS_DO_PERIODO
+        .filter((e) => e.secao === 'educacao' && dentro(e.ha)).length,
+      evolucoesDeSaude: Math.max(0, Math.round(dias / 9)),
+      memorias: EVENTOS_DO_PERIODO.filter((e) => e.secao === 'memoria' && dentro(e.ha)).length,
+      reunioes: Math.max(0, Math.round(dias / 7)),
+      lanches: porDia(20), cestas: Math.round(dias / 7),
+      acompanhamentosAprovados: Math.round(dias / 10),
+      acompanhamentosAbertos: dias > 5 ? 2 : 0,
+      notasRestritas: dias > 25 ? 1 : 0,
+    };
+    const ressalvas: string[] = [];
+    if (numeros.ocorrenciasRestritas > 0 || numeros.notasRestritas > 0) {
+      ressalvas.push(
+        `${numeros.ocorrenciasRestritas} ocorrência(s) de acesso restrito e `
+        + `${numeros.notasRestritas} nota(s) de ATA restrita existem no período e NÃO estão `
+        + 'escritas aqui — só contadas. Elas se leem na tela da ocorrência e na ATA, onde '
+        + 'cada abertura fica registrada. Este relatório tem folha, e folha circula.');
+    }
+    if (numeros.atasAbertas > 0 || numeros.chamadasAbertas > 0 || numeros.passagensSemRecibo > 0) {
+      ressalvas.push(
+        'Há registro do período ainda em aberto — ATA, chamada ou passagem sem recibo. '
+        + 'O que está aberto pode mudar depois que este relatório for tirado.');
+    }
+    ressalvas.push(
+      'Ausência de registro não é ausência de trabalho. Um período sem linhas diz que '
+      + 'ninguém escreveu — não diz que nada aconteceu.');
+    ressalvas.push(
+      'Nada aqui é somado por criança, por educador ou por turno, e nenhuma lista sai '
+      + 'ordenada por quantidade: as crianças aparecem por nome, e os fatos por data.');
+    return {
+      casa: { id: CASA.id, codigo: CASA.code, nome: CASA.name },
+      periodo: { de, ate, dias },
+      periodoAnterior: { de: diasAntesDe(de, dias), ate: diasAntesDe(de, 1) },
+      numeros,
+      /* Por NOME, em português — a mesma ordem do serviço. Um mock com outra
+         ordem ensaiaria uma tela que não existe (§6.14). */
+      alimentacao: [...porCrianca.values()]
+        .sort((a, b) => String(a.quem).localeCompare(String(b.quem), 'pt-BR')),
+      secoes: SECOES_DO_PERIODO.map((s) => ({
+        cod: s.cod, label: s.label, ajuda: s.ajuda,
+        linhas: EVENTOS_DO_PERIODO
+          .filter((e) => e.secao === s.cod && dentro(e.ha))
+          .map((e) => ({
+            quando: emDias(-e.ha).slice(0, 10), quem: e.quem,
+            titulo: e.titulo, texto: e.texto, autor: e.autor,
+          })),
+        truncada: false,
+      })),
+      ressalvas,
+    };
+  }
+  /*
+   * A FOLHA DO PERÍODO (fase 121) — por um AJUDANTE, e não por duas recursões.
+   *
+   * A primeira versão fazia `/export` chamar `responder('/…/preview')`, que
+   * chamava `responder('/…/period')`. Compilava, e o `npm run prototipo`
+   * passou a morrer com "Killed" depois de subir a 5,7 GB: dois níveis de
+   * recursão dentro desta função de nove mil linhas estouram o transformador.
+   *
+   * O ajudante local é o padrão que `folhaDoPlantao`, `folhaDaGradeMock` e
+   * `folhaDosCombinadosMock` já usam aqui — um nível de chamada, como as
+   * outras. O sintoma era de memória; a causa era desenho.
+   */
+  const folhaDoPeriodoMock = () => {
+    const d: any = responder(
+      `/reports/period?houseId=${b.houseId ?? ''}&de=${b.de ?? ''}&ate=${b.ate ?? ''}`,
+      ['reports', 'period'],
+      new URLSearchParams({ houseId: String(b.houseId ?? ''),
+                            de: String(b.de ?? ''), ate: String(b.ate ?? '') }),
+      {}, 'GET');
+    return d instanceof Recusa ? d : folhaDoPeriodo(d, autorDaFolha());
+  };
+  if (rota === '/reports/period/preview' && metodo === 'POST') {
+    /* A MESMA folha do servidor, montada pela MESMA função compartilhada. */
+    return folhaDoPeriodoMock();
+  }
+  if (rota === '/reports/period/export' && metodo === 'POST') {
+    const f = folhaDoPeriodoMock();
+    return f instanceof Recusa ? f : exportarFolha(f);
+  }
+
+  return undefined;
+}
+
 function responderImpacto(
   rota: string, seg: string[], q: URLSearchParams, b: any, metodo: string,
   ctx: {
@@ -3681,6 +4513,173 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       aviso: 'Decisão registrada. As versões originais permanecem preservadas.' };
   }
 
+  /*
+   * O TRABALHO DA EQUIPE (fase 117) — antes do ramo `/staff`, porque
+   * `/staff/work` cairia nele por prefixo.
+   *
+   * O mock recusa pelos MESMOS motivos e com as MESMAS frases do servidor
+   * (§6.14): cargo fora da lista, finalidade curta, pessoa e setor juntos.
+   * Demonstrar uma tela que aceita tudo é pior do que não demonstrar: quem
+   * ensaia com ela aprende uma regra que não existe.
+   */
+  /* As internações de UMA criança, e os ofícios sobre ela (fase 118). */
+  if (seg[0] === 'nursing' && seg[1] === 'hospitalizations' && seg[2] === 'person') {
+    return INTERNACOES.filter((i) => i.acolhidoId === seg[3]).map((i) => ({
+      id: i.id, hospital: i.hospital, motivo: i.motivo,
+      desde: i.desde, ate: i.ate, status: i.status, desfecho: i.desfecho,
+      abriu: i.abertaPor, encerrou: i.encerradaPor,
+    }));
+  }
+  if (seg[0] === 'incidents' && seg[1] === 'communications' && seg[2] === 'person') {
+    if (!['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)) return [];
+    return COMUNICACOES.filter((c) => c.personId === seg[3]).map((c) => ({
+      id: c.id, orgao: ORGAOS_EXTERNOS.find((o) => o.cod === c.orgao)?.label ?? c.orgao,
+      destinatarioFuncional: c.destinatarioFuncional, canal: c.canal,
+      status: c.status, resumo: c.resumo, quando: c.quando,
+      aprovadaEm: c.aprovadaEm, entregueEm: c.entregueEm,
+      ocorrenciaId: c.ocorrenciaId, responsavel: c.responsavel,
+    }));
+  }
+  /*
+   * O PAINEL DAS OITO CASAS (fase 120).
+   *
+   * Semeado com OITO casas de verdade, e não com a Casa 03 sozinha: a tela
+   * existe para comparar, e um painel de uma casa só não demonstra nada
+   * (§6.19). Os números são fictícios e DESIGUAIS de propósito — um painel em
+   * que todas as casas têm o mesmo número não mostra o que ele quer ver.
+   *
+   * E a Casa 03, que é a do protótipo, traz os números das outras telas: quem
+   * conferir a tabela de lanches na Cozinha encontra o mesmo total aqui.
+   */
+  if (rota.startsWith('/reports/metrics')) {
+    if (eu.role !== 'gestor_geral') {
+      return new Recusa(403,
+        'O painel das oito casas é do Gestor Geral, que responde pela instituição.');
+    }
+    const casas = METRICAS_DAS_CASAS;
+    const soma = (f: (c: typeof casas[number]) => number) =>
+      casas.reduce((t, c) => t + f(c), 0);
+    const total: Record<string, number> = { casas: casas.length };
+    for (const k of Object.keys(casas[0]) as (keyof typeof casas[number])[]) {
+      if (typeof casas[0][k] === 'number') total[k as string] = soma((c) => Number(c[k]));
+    }
+    return {
+      de: emDias(-29, 0, 0).slice(0, 10), ate: HOJE,
+      casas, total,
+      ressalvas: [
+        `${soma((c) => c.notasSemValor)} nota(s) fiscal(is) sem valor lançado — o total `
+        + 'gasto é MAIOR do que o número acima. Lançar o valor é o que fecha a conta.',
+        'Não existe campo de nota escolar no sistema. Onde você esperaria "boas notas", '
+        + 'o painel mostra apoio educacional registrado e evoluções escritas — duas coisas '
+        + 'verdadeiras, em vez de uma estimada.',
+        'As casas saem na ordem do código, nunca por resultado: ordenar por número é a '
+        + 'classificação pronta, e ela precisa ser decisão de quem lê.',
+      ],
+    };
+  }
+  if (rota === '/staff/work/options') {
+    return {
+      setores: TIPOS_SETOR.map((t) => ({ cod: t.code, label: t.label, descricao: t.descricao })),
+      janelaMaximaDias: 92,
+      /* Só o Gestor Geral tem a aba de contagens (fase 119). Quem decide é o
+         servidor: uma aba que responde 403 ensina que o sistema é caprichoso. */
+      temMetricas: eu.role === 'gestor_geral',
+      aviso: 'Esta leitura não conta nada — ela mostra o que foi feito, em ordem, com data '
+        + 'e hora.',
+      sobreAFinalidade: 'Escreva por que está abrindo. A frase fica no registro desta consulta, '
+        + 'com o seu nome — quem consulta também é consultável.',
+    };
+  }
+  /*
+   * AS CONTAGENS (fase 119). Antes de `/staff/work`, que casaria por prefixo.
+   *
+   * Recusa pelos MESMOS motivos e com as MESMAS frases do servidor, e devolve
+   * os quatro recortes ORDENADOS POR NOME — a ordem é parte da regra, não do
+   * capricho da tela (§6.14).
+   */
+  if (rota === '/staff/work/metrics' && metodo === 'POST') {
+    if (eu.role !== 'gestor_geral') {
+      return new Recusa(403,
+        'A visão de contagens é do Gestor Geral, que responde pelas oito casas.');
+    }
+    if (String(b.finalidade ?? '').trim().length < 10) {
+      return new Recusa(400,
+        'Escreva a finalidade desta consulta — ela fica registrada com o seu nome.');
+    }
+    const cargoDe = (id: string) => EQUIPE_CASA.find((x) => x.id === id)?.cargo ?? '—';
+    const rotuloDoCargo = (c: string) => TIPOS_SETOR.find((t) => t.code === c)?.label ?? c;
+    const somar = <T,>(chave: (l: typeof TRABALHO_DA_EQUIPE[number]) => T) => {
+      const mapa = new Map<T, number>();
+      for (const l of TRABALHO_DA_EQUIPE) mapa.set(chave(l), (mapa.get(chave(l)) ?? 0) + 1);
+      return [...mapa.entries()];
+    };
+    /* Em PORTUGUÊS, como o servidor (fase 119): a colação do banco punha
+       "Cátia" depois de "Cida", e quem ordena para a tela é o serviço. Um mock
+       com outra ordem ensaiaria uma tela que não existe (§6.14). */
+    const porNome = <T extends { rotulo: string }>(xs: T[]) =>
+      xs.slice().sort((x, y) => x.rotulo.localeCompare(y.rotulo, 'pt-BR'));
+    return {
+      de: emDias(-29, 0, 0).slice(0, 10), ate: HOJE,
+      porCasa: [{ casa: CASA.code, quantos: TRABALHO_DA_EQUIPE.length }],
+      porSetor: porNome(somar((l) => rotuloDoCargo(cargoDe(l.userId)))
+        .map(([rotulo, quantos]) => ({ rotulo, quantos })))
+        .map((x) => ({ setor: x.rotulo, quantos: x.quantos })),
+      porPessoa: porNome(somar((l) => l.userId)
+        .map(([id, quantos]) => ({
+          rotulo: EQUIPE_CASA.find((x) => x.id === id)?.nome ?? '—',
+          cargo: rotuloDoCargo(cargoDe(id)), quantos,
+        })))
+        .map((x) => ({ quem: x.rotulo, cargo: x.cargo, quantos: x.quantos })),
+      porAcao: porNome(somar((l) => l.acao)
+        .map(([rotulo, quantos]) => ({ rotulo, quantos })))
+        .map((x) => ({ acao: x.rotulo, codigo: '', quantos: x.quantos })),
+      aviso: 'Estes números contam REGISTROS, não trabalho. Quem passou a noite com uma '
+        + 'criança no colo registrou menos, e fez mais. A lista sai por nome, nunca por '
+        + 'total: ordenar por número é uma classificação, e ela precisa ser decisão de '
+        + 'quem lê, não desenho da tela.',
+      sobreCriancas: 'Nenhuma contagem aqui é por criança acolhida. O que se conta são atos '
+        + 'de trabalho — chamadas abertas, doses confirmadas, linhas de ATA.',
+    };
+  }
+  if (rota === '/staff/work' && metodo === 'POST') {
+    if (!['equipe_tecnica', 'lider_diurno', 'coordenador', 'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403,
+        'O trabalho da equipe é lido pela equipe técnica, pelo Líder Diurno, pela coordenação e '
+        + 'pelo Gestor Geral, nas casas que alcançam.');
+    }
+    const pessoaId = b.pessoaId || null;
+    const setor = b.setor || null;
+    if (!pessoaId === !setor) {
+      return new Recusa(400,
+        'Escolha uma pessoa da equipe OU um setor — a busca é por um dos dois, nunca pelos dois.');
+    }
+    if (String(b.finalidade ?? '').trim().length < 10) {
+      return new Recusa(400,
+        'Escreva a finalidade desta consulta — por exemplo, "apuração do episódio de 12/09" ou '
+        + '"preparação da avaliação semestral". Ela fica registrada com o seu nome.');
+    }
+    const linhas = TRABALHO_DA_EQUIPE.filter((l) =>
+      (pessoaId ? l.userId === pessoaId : true)
+      && (setor ? EQUIPE_CASA.find((m) => m.id === l.userId)?.cargo === setor : true));
+    return {
+      de: emDias(-13, 0, 0).slice(0, 10), ate: HOJE,
+      cortado: false,
+      linhas: linhas.map((l) => {
+        const m = EQUIPE_CASA.find((x) => x.id === l.userId)!;
+        return {
+          id: l.id, quando: l.quando, acao: l.acao, codigo: l.codigo,
+          quem: m.nome, cargo: TIPOS_SETOR.find((t) => t.code === m.cargo)?.label ?? m.cargo,
+          casa: CASA.code, entidade: l.entidade, entidadeId: null,
+          finalidadeDeclarada: l.finalidadeDeclarada ?? null,
+        };
+      }),
+      aviso: linhas.length
+        ? 'O que aparece aqui é o que foi feito, em ordem. Nada está somado: a pergunta é '
+          + '"o que foi feito", e não "quem fez mais".'
+        : 'Nenhum registro no período, nas casas que você alcança. Isso não quer dizer que '
+          + 'ninguém trabalhou — quer dizer que nada deste período chega até aqui.',
+    };
+  }
   if (rota === '/staff') {
     const podeEditar = ['coordenador', 'gestor_geral', 'equipe_tecnica'].includes(eu.role);
     return EQUIPE_CASA.map((m) => ({
@@ -4169,12 +5168,154 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         'Dê um nome à chamada — é o que a próxima pessoa lê na lista do dia.');
     }
     const nova: Chamada = { id: uid(), tipo: tipo.cod, titulo,
-                            status: 'aberta', horario: new Date().toISOString(), resultados: {} };
+                            status: 'aberta', horario: new Date().toISOString(), resultados: {},
+                            /* Quem abre assina, como no servidor (`created_by`). */
+                            abertaPor: eu.fullName, abertaEm: new Date().toISOString() };
     CHAMADAS = [...CHAMADAS, nova];
     return { id: nova.id,
              esperados: todosKids().filter((p) => !estaInternado(p.id) && !estaComAFamilia(p.id)).length,
              opcoes: opcoesDoTipo(tipo.cod) };
   }
+  /**
+   * `GET /checks/person/:personId` — a presença de UMA criança (fase 110).
+   *
+   * Mesmo dado da chamada, recortado pela vida dela. Sem contar nada: nem
+   * faltas, nem recusas, nem percentual — um número desses na tela de uma
+   * criança é o começo de uma ficha de comportamento (regra 3).
+   */
+  /**
+   * A AUDITORIA, LIDA (fase 112).
+   *
+   * Duas entradas e nenhuma terceira: pela CRIANÇA e pelo REGISTRO. Não há
+   * `/audit/actor/:id` aqui porque não há no servidor — e a ausência é a
+   * decisão, não um esquecimento.
+   *
+   * Quem lê é a coordenação (própria casa) e o Gestor Geral, como a policy
+   * `audit_select` já dizia desde a migração 0920.
+   */
+  if (seg[0] === 'audit') {
+    if (!['coordenador', 'gestor_geral', 'admin_tecnico'].includes(eu.role)) {
+      return new Recusa(403,
+        'A auditoria é lida pela coordenação, na própria casa, e pela gestão geral. '
+        + 'Quem age no sistema tem o nome em cada registro — mas ler o rastro é outro ato.');
+    }
+    if (seg[1] === 'person') {
+      return { dias: 90, cortado: false, linhas: AUDITORIA[seg[2]] ?? [] };
+    }
+    if (seg[1] === 'entity') {
+      /* O rastro de um relatório: a segunda entrada, pelo DOCUMENTO. Com
+         conteúdo, porque bloco vazio nasce invisível (§6.19) — e porque é aqui
+         que a FINALIDADE aparece, que é a razão de a tela existir. */
+      const doRelatorio = seg[2] === 'report' ? [
+        { id: 'ar1', acao: 'Relatório exportado', codigo: 'report.export',
+          quando: emDias(-2, 15, 20), por: 'Equipe técnica (fictícia)',
+          finalidade: 'Audiência concentrada de outubro — cópia para a Defensoria.',
+          detalhe: { formato: 'docx' } },
+        { id: 'ar2', acao: 'Relatório aprovado', codigo: 'report.approve',
+          quando: emDias(-3, 9, 10), por: 'Coordenadora Fictícia',
+          finalidade: null, detalhe: {} },
+      ] : [];
+      return { entidade: seg[2], entidadeId: seg[3], linhas: doRelatorio };
+    }
+  }
+
+  /* O prontuário de educação (fase 111) — leitura e as duas escritas. */
+  if (seg[0] === 'nursing' && seg[1] === 'education' && seg[2] === 'kinds') {
+    return {
+      servicos: [{ cod: 'fono', label: 'Fonoaudiologia' },
+                 { cod: 'pedagoga', label: 'Pedagogia' },
+                 { cod: 'psicopedagoga', label: 'Psicopedagogia' },
+                 { cod: 'outro', label: 'Outro serviço' }],
+      modos: [{ cod: 'presencial', label: 'Presencial' }, { cod: 'online', label: 'Online' }],
+      aviso: 'O que ficar em branco aqui sai como "não há" no relatório e na audiência.',
+    };
+  }
+  if (seg[0] === 'nursing' && seg[1] === 'education' && seg.length === 3 && metodo === 'GET') {
+    return { apoio: APOIO_EDU[seg[2]] ?? null, evolucoes: EVOLUCOES_EDU[seg[2]] ?? [] };
+  }
+  if (seg[0] === 'nursing' && seg[1] === 'education' && seg[3] === 'support'
+      && metodo === 'POST') {
+    if (!['educador', 'lider_diurno', 'equipe_tecnica', 'coordenador',
+          'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403, 'Quem escreve o apoio educacional é a equipe da casa: '
+        + 'educador, líder, técnica ou coordenação.');
+    }
+    if (b.salaDeRecursos && !String(b.motivoDaSala ?? '').trim()) {
+      return new Recusa(400,
+        'Sala de recursos exige o motivo: é ele que a escola e a audiência perguntam.');
+    }
+    if (b.aprendiz && !String(b.curso ?? '').trim()) {
+      return new Recusa(400,
+        'Aprendizagem profissional sem o nome do curso não diz nada a quem ler o relatório.');
+    }
+    APOIO_EDU[seg[2]] = {
+      personId: seg[2],
+      salaDeRecursos: b.salaDeRecursos === true, motivoDaSala: b.motivoDaSala ?? null,
+      professorDaSala: b.professorDaSala ?? null, servico: b.servico ?? null,
+      servicoOutro: b.servicoOutro ?? null, servicoLocal: b.servicoLocal ?? null,
+      servicoProfissional: b.servicoProfissional ?? null,
+      aprendiz: b.aprendiz === true, modo: b.modo ?? null, curso: b.curso ?? null,
+      cursoInicio: b.cursoInicio ?? null, cursoFim: b.cursoFim ?? null,
+      turno: b.turno ?? null, unidade: b.unidade ?? null, empresa: b.empresa ?? null,
+      enderecoDaEmpresa: b.enderecoDaEmpresa ?? null,
+      atualizadoEm: new Date().toISOString(), atualizadoPor: eu.fullName,
+    };
+    return { id: uid(), aviso: 'Apoio educacional registrado. O anterior continua no histórico.' };
+  }
+  if (seg[0] === 'nursing' && seg[1] === 'education' && seg[3] === 'evolutions'
+      && metodo === 'POST') {
+    if (!['educador', 'lider_diurno', 'equipe_tecnica', 'coordenador',
+          'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403, 'Quem escreve a evolução educacional é a equipe da casa.');
+    }
+    const texto = String(b.texto ?? '').trim();
+    if (texto.length < 10) {
+      return new Recusa(400, 'Escreva o que aconteceu — o que a criança fez, ou o que a escola '
+        + 'disse. Uma linha curta demais não conta nada a quem ler daqui a um ano.');
+    }
+    EVOLUCOES_EDU[seg[2]] = [
+      { id: uid(), em: String(b.em ?? '').slice(0, 10) || HOJE, texto,
+        por: eu.fullName, escritoEm: new Date().toISOString() },
+      ...(EVOLUCOES_EDU[seg[2]] ?? []),
+    ];
+    return { id: uid(), aviso: 'Evolução registrada com o seu nome e a data. Ela não se edita — '
+      + 'correção é um registro novo, como no caderno.' };
+  }
+
+  if (seg[0] === 'checks' && seg[1] === 'person' && metodo === 'GET') {
+    const pid = seg[2];
+    const rotulo = (tipo: string, code: string) =>
+      opcoesDoTipo(tipo).find((o: any) => o.code === code);
+    const deHoje = CHAMADAS
+      .filter((k) => k.resultados[pid])
+      .map((k) => {
+        const r = k.resultados[pid];
+        const o = rotulo(k.tipo, r.opcao);
+        return {
+          id: `${k.id}:${pid}`, chamadaId: k.id, tipo: k.tipo, titulo: k.titulo,
+          quando: k.horario, registradoEm: k.horario,
+          resultado: o?.label ?? r.opcao, excecao: o?.excecao ?? false,
+          justificativa: r.nota ?? null, por: eu.fullName, offline: false,
+          correcoes: [] as unknown[],
+        };
+      });
+    const anteriores = PRESENCA_ANTERIOR.filter((a) => a.personId === pid).map((a) => {
+      const o = rotulo(a.tipo, a.opcao);
+      return {
+        id: a.id, chamadaId: a.id, tipo: a.tipo, titulo: a.titulo,
+        quando: a.quando, registradoEm: a.quando,
+        resultado: o?.label ?? a.opcao, excecao: o?.excecao ?? false,
+        justificativa: a.nota, por: a.por, offline: false,
+        correcoes: a.correcoes ?? [],
+      };
+    });
+    return {
+      dias: 14,
+      linhas: [...deHoje, ...anteriores]
+        .sort((x, y) => (x.quando < y.quando ? 1 : -1)),
+    };
+  }
+
   if (seg[0] === 'checks' && seg.length === 2) {
     const k = CHAMADAS.find((x) => x.id === seg[1])!;
     /*
@@ -4202,6 +5343,8 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     const comum = opcoesDoTipo(k.tipo).find((o) => !o.excecao) ?? null;
     return {
       id: k.id, tipo: k.tipo, titulo: k.titulo, status: k.status,
+      abertaPor: k.abertaPor ?? null, abertaEm: k.abertaEm ?? null,
+      confirmadaPor: k.confirmadaPor ?? null, confirmadaEm: k.confirmadaEm ?? null,
       esperados: linhas.length, conferidos, faltam: linhas.length - conferidos,
       quemFalta: linhas.filter((l) => !l.resultado).map((l) => l.nome),
       linhas, opcoes: opcoesDoTipo(k.tipo),
@@ -4270,6 +5413,9 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         + `${faltam.length > 5 ? ' e outros' : ''}. Ninguém é dado como conferido sem registro.`);
     }
     k.status = 'confirmada';
+    /* E quem fecha assina (`confirmed_by`, fase 113). */
+    k.confirmadaPor = eu.fullName;
+    k.confirmadaEm = new Date().toISOString();
     return { aviso: 'Chamada confirmada. O que foi registrado na hora continua como foi registrado.' };
   }
 
@@ -4424,6 +5570,16 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     d.notaDoAceite = b.nota ? String(b.nota) : null;
     return { ok: true, aviso: 'Conferido, com o seu nome e o horário.' };
   }
+  /* BAIXAR (fase 124). Mesma leitura, outro ato — e é o servidor que registra
+     a saída, e não o navegador salvando os bytes que a prévia já tem. */
+  if (seg[0] === 'people' && seg[2] === 'documents' && seg[4] === 'download'
+      && metodo === 'POST') {
+    const d = DOSSIE_DOCS.find((x) => x.id === seg[3]);
+    if (!d) return new Recusa(404, 'Documento não encontrado.');
+    const [cab, dados] = d.conteudo.split(',');
+    return { nome: d.arquivo.nome, tipo: (cab.match(/data:([^;]+)/) ?? [])[1] ?? 'image/jpeg',
+             conteudo: dados ?? '' };
+  }
   if (seg[0] === 'people' && seg[2] === 'documents' && seg[4] === 'file' && metodo === 'GET') {
     const d = DOSSIE_DOCS.find((x) => x.id === seg[3]);
     if (!d) return new Recusa(404, 'Documento não encontrado.');
@@ -4433,8 +5589,22 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
   }
   if (seg[0] === 'people' && seg[2] === 'memories' && seg.length === 3 && metodo === 'GET') {
     semearDossie();
-    const itens = VIVENCIAS.filter((v) => v.personId === seg[1]);
-    const semAutorizacao = itens.filter((v) => v.temFoto && !v.autorizacaoRegistrada).length;
+    const itens = VIVENCIAS.filter((v) => v.personId === seg[1]).map((v) => ({
+      id: v.id, tipo: v.tipo, quando: v.quando, descricao: v.descricao,
+      /* Derivados das fotos que EXISTEM, como no servidor (fase 124). */
+      temFoto: v.fotos.length > 0,
+      autorizacaoRegistrada: v.fotos.length > 0
+        && v.fotos.every((f) => f.autorizacaoRegistrada),
+      fotos: v.fotos.map((f) => ({
+        id: f.id, nome: f.nome, tipo: f.tipo,
+        autorizacaoRegistrada: f.autorizacaoRegistrada,
+      })),
+      arquivo: v.fotos.length ? { nome: v.fotos[0].nome, tipo: v.fotos[0].tipo } : null,
+      registradoPor: v.registradoPor, registradoEm: v.registradoEm,
+    }));
+    /* Conta FOTOS sem autorização, e não vivências: a autorização é por foto. */
+    const semAutorizacao = itens
+      .reduce((n, v) => n + v.fotos.filter((f) => !f.autorizacaoRegistrada).length, 0);
     return { itens, tipos: TIPOS_DE_VIVENCIA, semAutorizacao,
       aviso: 'Este álbum é da criança. É o que ela leva quando sai, e costuma ser a única '
         + 'coisa do acolhimento que ela vai querer rever.',
@@ -4452,26 +5622,50 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       return new Recusa(400,
         'Escreva o que aconteceu. A foto sozinha, daqui a dez anos, não diz de que dia foi.');
     }
-    if (b.conteudo && !String(b.conteudo).startsWith('data:image')) {
-      return new Recusa(400, 'A vivência recebe FOTO. Documento vai para o dossiê.');
+    /* Uma lista só, venha ela do campo antigo ou do novo — como no servidor.
+       Duas maneiras de receber a mesma coisa é como as duas divergem depois. */
+    const pedidas: any[] = [
+      ...(b.conteudo ? [{ conteudo: b.conteudo, nomeArquivo: b.nomeArquivo,
+                          autorizacaoRegistrada: b.autorizacaoRegistrada }] : []),
+      ...(Array.isArray(b.fotos) ? b.fotos : []),
+    ];
+    for (const f of pedidas) {
+      if (!String(f.conteudo ?? '').startsWith('data:image')) {
+        return new Recusa(400, 'A vivência recebe FOTO. Documento vai para o dossiê.');
+      }
+    }
+    if (pedidas.length > 12) {
+      return new Recusa(400,
+        'Envie até 12 fotos por vez. Não é limite do álbum — é o tamanho de um envio que cabe '
+        + 'numa conexão de casa; registre outra vivência, ou mande em duas levas.');
     }
     const id = uid();
+    const fotos: FotoMock[] = pedidas.map((f) => ({
+      id: uid(), nome: String(f.nomeArquivo ?? 'foto'), tipo: 'image/jpeg',
+      conteudo: String(f.conteudo), autorizacaoRegistrada: f.autorizacaoRegistrada === true,
+    }));
     VIVENCIAS.unshift({ id, personId: String(seg[1]), tipo: String(b.tipo),
-      quando: String(b.quando), descricao: String(b.descricao).trim(),
-      temFoto: !!b.conteudo, autorizacaoRegistrada: b.autorizacaoRegistrada === true,
-      arquivo: b.conteudo ? { nome: String(b.nomeArquivo ?? 'foto'), tipo: 'image/jpeg' } : null,
-      conteudo: b.conteudo ? String(b.conteudo) : null,
+      quando: String(b.quando), descricao: String(b.descricao).trim(), fotos,
       registradoPor: eu.fullName, registradoEm: new Date().toISOString() });
-    return { id, aviso: b.conteudo && b.autorizacaoRegistrada !== true
-      ? 'Vivência registrada. A autorização de uso de imagem NÃO está registrada nesta foto — '
-        + 'fica anotado assim, e o álbum mostra.'
-      : 'Vivência registrada no álbum da criança.' };
+    return { id, fotos: fotos.length,
+      aviso: fotos.length && !fotos.every((f) => f.autorizacaoRegistrada)
+        ? 'Vivência registrada. A autorização de uso de imagem NÃO está registrada nesta foto — '
+          + 'fica anotado assim, e o álbum mostra.'
+        : 'Vivência registrada no álbum da criança.' };
+  }
+  /* UMA foto específica (fase 124). Antes do ramo `/file`, que casaria por
+     posição se a ordem se invertesse — é a falha 3 do `contrato-rotas`. */
+  if (seg[0] === 'people' && seg[2] === 'memories' && seg[4] === 'photos' && metodo === 'GET') {
+    const v = VIVENCIAS.find((x) => x.id === seg[3]);
+    const f = v?.fotos.find((x) => x.id === seg[5]);
+    if (!f) return new Recusa(404, 'Esta vivência não tem foto.');
+    return { nome: f.nome, tipo: f.tipo, conteudo: f.conteudo.split(',')[1] ?? '' };
   }
   if (seg[0] === 'people' && seg[2] === 'memories' && seg[4] === 'file' && metodo === 'GET') {
     const v = VIVENCIAS.find((x) => x.id === seg[3]);
-    if (!v?.conteudo) return new Recusa(404, 'Esta vivência não tem foto.');
-    return { nome: v.arquivo?.nome ?? 'foto', tipo: 'image/jpeg',
-             conteudo: v.conteudo.split(',')[1] ?? '' };
+    const f = v?.fotos[0];
+    if (!f) return new Recusa(404, 'Esta vivência não tem foto.');
+    return { nome: f.nome, tipo: f.tipo, conteudo: f.conteudo.split(',')[1] ?? '' };
   }
 
   if (seg[0] === 'routine' && seg.length === 1 && metodo === 'GET') {
@@ -4639,8 +5833,8 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     return escalaDoPeriodo(de, ate);
   }
   if (rota === '/escala' && metodo === 'POST') {
-    if (!['coordenador', 'gestor_geral'].includes(eu.role)) {
-      return new Recusa(403, 'Quem monta a escala da casa é a coordenação dela.');
+    if (!['lider_diurno', 'equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403, 'Quem monta a escala é a coordenação, a equipe técnica ou o Líder Diurno desta casa.');
     }
     if (b.repetirACada && !b.ate) {
       return new Recusa(400, 'Para repetir, diga até quando — uma repetição sem fim escreveria '
@@ -4674,9 +5868,60 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
           + 'está(vam) — escalar de novo não duplica.'
         : `${criadas} plantão(ões) escalado(s).` };
   }
+  /*
+   * SUBSTITUIR NUM GESTO (fase 123) — antes de `revogar` na ordem de leitura.
+   *
+   * Recusa pelos MESMOS motivos e com as MESMAS frases do servidor, e faz os
+   * dois atos na mesma passada: a pessoa nova entra ANTES de a antiga sair,
+   * porque é assim que a função do banco faz — se a nova já estivesse no
+   * turno, o erro chega com o turno ainda intacto.
+   */
+  if (seg[0] === 'escala' && seg[2] === 'substituir' && metodo === 'POST') {
+    if (!['lider_diurno', 'equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403, 'Quem monta a escala é a coordenação, a equipe técnica ou o Líder Diurno desta casa.');
+    }
+    const alvo = ESCALA.find((x) => x.id === seg[1]);
+    if (!alvo) return new Recusa(404, 'Plantão não encontrado na escala.');
+    if (alvo.revogadaEm) {
+      return new Recusa(400, 'Este plantão já tinha sido retirado da escala. Escale a pessoa '
+        + 'nova direto.');
+    }
+    const novo = EQUIPE_CASA.find((m) => m.id === String(b.novoUserId ?? ''));
+    if (!novo) return new Recusa(400, 'Esta pessoa não está ativa no sistema.');
+    if (novo.id === alvo.userId) {
+      return new Recusa(400, 'A pessoa que entra é a mesma que sai. Para só mudar o horário, '
+        + 'retire e escale de novo.');
+    }
+    const motivoSub = String(b.motivo ?? '').trim();
+    if (alvo.data < HOJE && motivoSub.length < 10) {
+      return new Recusa(400, 'Este plantão já passou. Escreva por que a escala dele muda — é ela '
+        + 'que responde quem estava na casa naquela noite.');
+    }
+    if (ESCALA.some((x) => x.data === alvo.data && x.turno === alvo.turno
+                           && x.userId === novo.id && !x.revogadaEm)) {
+      return new Recusa(409, 'Esta pessoa já está escalada neste turno.');
+    }
+    const novoId = uid();
+    ESCALA.push({
+      id: novoId, userId: novo.id, quem: novo.nome, cargo: novo.cargo,
+      data: alvo.data, turno: alvo.turno,
+      inicio: alvo.inicio, fim: alvo.fim, nota: alvo.nota,
+      revogadaEm: null, motivoRevogacao: null, revogadaPor: null,
+      substituiu: alvo.quem,
+    });
+    alvo.revogadaEm = new Date().toISOString();
+    alvo.motivoRevogacao = motivoSub || `Substituído(a) por ${novo.nome}.`;
+    alvo.revogadaPor = eu.fullName;
+    return {
+      id: novoId, saiu: alvo.quem, entrou: novo.nome,
+      aviso: `${novo.nome} entrou no lugar de ${alvo.quem}, no mesmo dia e turno. A linha de `
+        + `${alvo.quem} continua registrada, revogada e com o seu nome — é ela que responde, `
+        + 'meses depois, quem estava escalado naquela noite.',
+    };
+  }
   if (seg[0] === 'escala' && seg[2] === 'revogar' && metodo === 'POST') {
-    if (!['coordenador', 'gestor_geral'].includes(eu.role)) {
-      return new Recusa(403, 'Quem monta a escala da casa é a coordenação dela.');
+    if (!['lider_diurno', 'equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403, 'Quem monta a escala é a coordenação, a equipe técnica ou o Líder Diurno desta casa.');
     }
     const alvo = ESCALA.find((x) => x.id === seg[1]);
     if (!alvo) return new Recusa(404, 'Plantão não encontrado na escala.');
@@ -4984,6 +6229,21 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         : null,
     };
   }
+  /* Abrir a nota fiscal (fase 108). Antes da rota de lista, que é mais larga. */
+  if (seg[0] === 'medications' && seg[1] === 'purchases' && seg[3] === 'file'
+      && metodo === 'GET') {
+    if (!['enfermagem', 'equipe_tecnica', 'lider_diurno', 'coordenador',
+          'gestor_geral'].includes(eu.role)) {
+      return new Recusa(404, 'Esta nota fiscal não foi encontrada — ou está fora do seu alcance.');
+    }
+    const c: any = COMPRAS_MED.find((x: any) => x.id === seg[2]);
+    if (!c) return new Recusa(404, 'Esta nota fiscal não foi encontrada.');
+    return c.arquivo
+      ? { arquivo: { nome: c.nomeDoAnexo || 'Nota fiscal', tipo: c.mime ?? 'image/png',
+                     conteudo: c.arquivo }, referencia: null, nome: c.nomeDoAnexo ?? 'Nota fiscal' }
+      : { arquivo: null, referencia: c.referencia ?? null, nome: c.nomeDoAnexo ?? 'Nota fiscal' };
+  }
+
   if (rota.startsWith('/medications/purchases') && metodo === 'GET') {
     if (!['enfermagem', 'equipe_tecnica', 'lider_diurno', 'coordenador',
           'gestor_geral'].includes(eu.role)) {
@@ -5009,24 +6269,71 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       id: `cm${COMPRAS_MED.length + 1}`, em: b.em, itens: String(b.itens).trim(),
       fornecedor: b.fornecedor || null, totalCentavos: b.totalCentavos ?? null,
       nota: b.nota || null, observacao: null,
-      temAnexo: !!b.anexoRef, nomeDoAnexo: b.anexoNome ?? null,
+      temAnexo: !!(b.anexoRef || b.conteudo), nomeDoAnexo: b.anexoNome ?? null,
+      arquivo: String(b.conteudo ?? '').trim() || null,
+      mime: b.conteudo ? 'image/png' : null,
+      referencia: b.conteudo ? null : (b.anexoRef ?? null),
       compradoPor: eu.fullName,
     });
     return { id: `cm${COMPRAS_MED.length}` };
   }
+  /* Abrir a receita: as duas formas, como o servidor (fase 108). */
+  if (seg[0] === 'medications' && seg[1] === 'prescriptions' && seg[2] === 'documents'
+      && seg[4] === 'file' && metodo === 'GET') {
+    if (!['enfermagem', 'equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)) {
+      return new Recusa(404, 'Esta receita não foi encontrada — ou está fora do seu alcance.');
+    }
+    for (const lista of Object.values(RECEITAS)) {
+      const r: any = (lista as any[]).find((x) => x.id === seg[3]);
+      if (!r) continue;
+      return r.arquivo
+        ? { arquivo: { nome: r.nomeDoArquivo || r.nome, tipo: r.mime ?? 'image/png',
+                       conteudo: r.arquivo }, referencia: null, nome: r.nome }
+        : { arquivo: null, referencia: r.referencia ?? null, nome: r.nome };
+    }
+    return new Recusa(404, 'Esta receita não foi encontrada — ou está fora do seu alcance.');
+  }
+
   if (seg[0] === 'medications' && seg[1] === 'prescriptions' && seg[3] === 'documents') {
     if (!['enfermagem', 'equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)) {
       throw new ErroApi(403, 'Anexam e leem receita a Enfermagem, a equipe técnica e a '
         + 'coordenação.');
     }
     if (metodo === 'GET') return RECEITAS[seg[2]] ?? [];
+    const conteudo = String(b.conteudo ?? '').trim();
+    if (!conteudo && !String(b.anexoRef ?? '').trim()) {
+      return new Recusa(400, 'Anexe a receita digitalizada, ou informe onde ela está no '
+        + 'Drive da instituição. Uma das duas — a receita é o que autoriza a prescrição.');
+    }
+    if (b.tipo && !['receita', 'bula'].includes(String(b.tipo))) {
+      return new Recusa(400, 'O papel é receita ou bula.');
+    }
+    const idR = `rc${Date.now()}`;
+    /*
+     * E CAI NO PERFIL DA CRIANÇA (fase 125) — só quando há ARQUIVO.
+     *
+     * O servidor espelha em `document`, apontando para o mesmo objeto. Aqui o
+     * espelho é um id: o que importa para a tela é que ele EXISTE, porque é o
+     * que decide a frase que a Enfermagem lê. Um mock que devolvesse sempre
+     * nulo ensaiaria uma tela que não existe (§6.14).
+     */
+    const espelho = conteudo ? `doc-espelho-${idR}` : null;
     RECEITAS[seg[2]] = [
-      { id: `rc${Date.now()}`, nome: String(b.nome ?? 'Receita'), em: b.em ?? null,
+      { id: idR, nome: String(b.nome ?? 'Receita'), em: b.em ?? null,
+        tipo: b.tipo === 'bula' ? 'bula' : 'receita',
         prescritor: b.prescritor ?? null, anexadoPor: eu.fullName,
-        anexadoEm: new Date().toISOString() },
+        anexadoEm: new Date().toISOString(),
+        temArquivo: !!conteudo, nomeDoArquivo: conteudo ? String(b.nomeArquivo ?? '') : null,
+        arquivo: conteudo || null, mime: conteudo ? 'image/png' : null,
+        referencia: conteudo ? null : String(b.anexoRef ?? '').trim(),
+        noDossie: espelho },
       ...(RECEITAS[seg[2]] ?? []),
     ];
-    return { id: `rc${Date.now()}` };
+    return { id: idR, noDossie: espelho,
+      aviso: espelho
+        ? 'Guardado, e também no dossiê da criança — é o mesmo arquivo, não uma cópia.'
+        : 'Guardado na prescrição. Como veio por referência, e não como arquivo, ele não '
+          + 'entra no dossiê: uma linha na pasta que não abre não ajuda ninguém.' };
   }
   if (rota.startsWith('/people/kitchen-requests/folha/lanches')) return folhaDaCozinha('lanches', eu);
   if (rota.startsWith('/people/kitchen-requests/folha/cestas')) return folhaDaCozinha('cestas', eu);
@@ -5119,6 +6426,55 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     ];
     return { definida: true };
   }
+  /*
+   * O RELATO DA CONVIVÊNCIA (fase 122) — sem prazo, e quantas vezes precisar.
+   *
+   * Recusa pelos MESMOS motivos e com as MESMAS frases do servidor. E NÃO há
+   * conferência de cargo: *"pode ser registrado quantas vezes for necessário,
+   * por qualquer educador"* — quem alcança a casa escreve. Um mock que
+   * recusasse ao educador ensaiaria uma tela que não existe (§6.14).
+   */
+  if (seg[0] === 'people' && seg[1] === 'family-stays' && seg[3] === 'notes'
+      && metodo === 'GET') {
+    return RELATOS_DA_CONVIVENCIA.filter((n) => n.saidaId === seg[2])
+      .map((n) => ({ id: n.id, relato: n.relato, houveAlteracao: n.houveAlteracao,
+                     por: n.por, quando: n.quando }));
+  }
+  if (seg[0] === 'people' && seg[1] === 'family-stays' && seg[3] === 'notes'
+      && metodo === 'POST') {
+    const f = CONVIVENCIAS.find((x) => x.id === seg[2]);
+    if (!f) throw new ErroApi(404, 'Saída para convivência familiar não encontrada.');
+    const relato = String(b.relato ?? '').trim();
+    if (relato.length < 10) {
+      throw new ErroApi(400,
+        'Escreva o que foi observado ou o que ela contou (pelo menos 10 caracteres). '
+        + 'Não há prazo nenhum aqui: se ainda não há o que registrar, deixe para depois.');
+    }
+    const alteracao = b.houveAlteracao === true;
+    RELATOS_DA_CONVIVENCIA.push({
+      id: `rel-${RELATOS_DA_CONVIVENCIA.length + 1}`, saidaId: f.id, personId: f.personId,
+      relato, houveAlteracao: alteracao, por: eu.fullName, quando: new Date().toISOString(),
+    });
+    return {
+      id: `rel-${RELATOS_DA_CONVIVENCIA.length}`,
+      aviso: alteracao
+        ? 'Registrado. A equipe técnica e a coordenação foram avisadas de que há alteração '
+          + 'a olhar — o aviso não leva o texto, só diz onde ele está.'
+        : 'Registrado no perfil dela. Este espaço continua aberto: se ela contar mais '
+          + 'alguma coisa daqui a um mês, é só escrever de novo.',
+    };
+  }
+  /*
+   * ATENÇÃO À ORDEM: este `startsWith` é um CURINGA, e ele casa também com
+   * `/people/family-stays/<id>/notes`. As rotas do relato vêm ACIMA por isso.
+   *
+   * Com elas embaixo, a folha do relato abria com uma linha fantasma — "—
+   * Invalid Date" —, porque recebia a lista de quem está fora no lugar dos
+   * relatos. É exatamente a falha 3 do `contrato-rotas.spec` ("a rota casa por
+   * CURINGA"), acontecendo dentro do servidor de mentira: não dá 404, dá
+   * resposta errada. O servidor de verdade não erra isso, e o mock respondendo
+   * DIFERENTE dele é o §6.14.
+   */
   if (rota.startsWith('/people/family-stays') && metodo === 'GET') {
     /* O servidor de mentira responde o que o servidor responde: as duas
        janelas de aviso saem do relógio, não de um campo gravado. */
@@ -5325,6 +6681,43 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
      criança — inclusive o educador, que é quem age sobre o texto novo. */
   if (seg[0] === 'people' && seg[2] === 'detalhe-historico' && metodo === 'GET') {
     return ALTERACOES.filter((a) => a.personId === seg[1]);
+  }
+  /*
+   * A FICHA DE ENTRADA (fase 116).
+   *
+   * Antes do ramo `:id`, como o judicial. O `motivoProvisorio` sai SÓ para
+   * quem abre a área restrita — o servidor decide igual, e o mock não pode
+   * mostrar mais nem menos do que ele (§6.14).
+   */
+  /*
+   * AS IDAS DELA (fase 118). Antes do ramo `:id`, como a ficha de entrada.
+   * O servidor devolve a lista inteira, encerradas inclusive — é justamente o
+   * histórico que faltava.
+   */
+  if (seg[0] === 'people' && seg[2] === 'family-stays' && metodo === 'GET') {
+    return CONVIVENCIAS.filter((f) => f.personId === seg[1])
+      .slice().reverse()
+      .map((f) => ({
+        id: f.id, comQuem: f.comQuem, vinculo: f.vinculo, finalidade: f.finalidade,
+        saiuEm: f.saiuEm, retornoPrevisto: f.retornoPrevisto,
+        voltouEm: f.voltouEm ?? null,
+        status: f.status ?? 'em_andamento',
+        comoChegou: f.comoChegou ?? null, trouxeDeCasa: f.trouxe ?? null,
+        liberou: 'Equipe técnica (fictícia)', recebeu: f.recebidaPor ?? null,
+        /* Junto, numa consulta só, como o servidor (fase 122): a alternativa
+           era a tela pedir um por saída, e o perfil de quem passou oito fins de
+           semana com a avó faria nove chamadas para desenhar um bloco. */
+        relatos: RELATOS_DA_CONVIVENCIA.filter((n) => n.saidaId === f.id)
+          .map((n) => ({ id: n.id, relato: n.relato, houveAlteracao: n.houveAlteracao,
+                         por: n.por, quando: n.quando })),
+      }));
+  }
+  if (seg[0] === 'people' && seg[2] === 'admission' && metodo === 'GET') {
+    const a = ACOLHIMENTOS[seg[1]];
+    if (!a) return new Recusa(404, 'Cadastro de acolhimento não encontrado.');
+    const { motivoProvisorio, ...resto } = a;
+    return ['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)
+      ? a : resto;
   }
   if (seg[0] === 'people' && seg[2] === 'judicial' && metodo === 'PATCH') {
     const k = kid(seg[1]);
@@ -5639,14 +7032,30 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       if (!ESCREVE_CONTATO.includes(eu.role)) return new Recusa(403, 'A foto do visitante é cadastrada pela técnica ou pela coordenação.');
       if (!String(b.conteudo ?? '')) return new Recusa(400, 'Nenhuma foto foi enviada.');
       c.temFoto = true;
+      /* A foto FICA. Até a fase 107 o protótipo guardava só o "sim, tem foto" e
+       * recusava a leitura — e o servidor de verdade devolve a imagem
+       * (`lerFotoDoContato`). Servidor de mentira que responde PIOR que o
+       * servidor esconde um sistema que existe (§6.14): com o botão de olho,
+       * quem abrisse a foto na demonstração receberia um erro, e a conclusão
+       * seria que o sistema não guarda a foto. Guarda. */
+      c.foto = String(b.conteudo ?? '');
       return { ok: true, aviso: 'Foto guardada. Ela entra na próxima folha da portaria.' };
     }
-    return new Recusa(404, 'No protótipo as fotos dos visitantes não ficam guardadas.');
+    if (!c.foto) return new Recusa(404, 'Este contato ainda não tem foto 3×4.');
+    return {
+      nome: 'visitante',
+      tipo: /^data:([^;]+)/.exec(c.foto)?.[1] ?? 'image/png',
+      conteudo: c.foto.replace(/^data:[^;]+;base64,/, ''),
+    };
   }
 
   if (seg[0] === 'people' && seg[2] === 'contacts' && metodo === 'GET') {
-    /* Na forma do servidor: CPF inteiro só para quem escreve no cadastro. */
-    return contatosDe(seg[1]).map((c) => ({ ...c, cpf: cpfParaTela(c.cpf, eu.role) }));
+    /* Na forma do servidor: CPF inteiro só para quem escreve no cadastro. E a
+     * FOTO não viaja na lista — o servidor devolve `temFoto`, e os bytes só
+     * saem pela rota da foto, uma de cada vez. Mandá-la aqui encheria a lista
+     * de base64 e faria o protótipo mentir sobre o tamanho da resposta. */
+    return contatosDe(seg[1]).map(({ foto: _foto, ...c }: any) =>
+      ({ ...c, cpf: cpfParaTela(c.cpf, eu.role) }));
   }
 
   if (seg[0] === 'people' && seg[2] === 'contacts' && metodo === 'POST') {
@@ -5716,7 +7125,8 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
      * confere o mesmo: um PDF renomeado para .png é recusado nos dois. */
     const cabeca = atob(limpo.slice(0, 24));
     const ehImagem = cabeca.startsWith('\x89PNG') || cabeca.startsWith('\xFF\xD8\xFF')
-      || cabeca.slice(0, 4) === 'RIFF';
+      /* RIFF é o contêiner; WebP é o formato, no 9º byte (fase 114). */
+      || (cabeca.slice(0, 4) === 'RIFF' && cabeca.slice(8, 12) === 'WEBP');
     if (!ehImagem) return new Recusa(400, 'Envie uma foto em JPG, PNG ou WEBP.');
     k.foto = limpo;
     k.fotoEm = new Date().toISOString();
@@ -5753,7 +7163,8 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       // some do JSON, e é assim que a tela sabe que não deve desenhar a seção.
       observacoes: ['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)
         ? detalheDe(k).observacoes : undefined,
-      episodios: [{ number: 1, started_at: '2026-02-28', ended_at: null, end_reason: null, status: 'ativo' }],
+      episodios: k.episodios
+        ?? [{ number: 1, started_at: '2026-02-28', ended_at: null, end_reason: null, status: 'ativo' }],
       documentos: podeDoc ? [
         { id: 'doc1', category: 'saude', title: 'Receita em vigência', issued_on: '2026-08-01', valid_until: null },
         { id: 'doc2', category: 'escolar', title: 'Boletim do semestre', issued_on: '2026-07-15', valid_until: null },
@@ -5766,6 +7177,12 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       rg: k.rg ?? null,
       cns: k.cns ?? null,
       filiacao: k.filiacao ?? null,
+      /* Cinco campos que o cadastro pede e que nenhum SELECT lia (fase 116). */
+      identificacaoComplementar: {
+        genero: k.genero ?? null, raca: k.raca ?? null,
+        naturalidade: k.naturalidade ?? null, nis: k.nis ?? null,
+        registroCivil: k.registroCivil ?? null,
+      },
       foto: k.foto ? { rota: `/people/${k.id}/photo`, em: k.fotoEm } : null,
       /* Na forma do servidor, inclusive o CPF por cargo (fase 92) e o que a
          coordenação desligou para o plantão (fase 93). */
@@ -6226,12 +7643,43 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     }
     item.atualizadoEm = new Date().toISOString();
     const diferenca = tipo === 'entrada' ? q : item.quantidade - anterior;
+    /* E A DIFERENÇA FICA MESMO NO HISTÓRICO. A frase abaixo dizia isso desde
+       sempre, e não havia histórico: o servidor de mentira prometia melhor do
+       que entregava, que é a outra metade do §6.14. */
+    MOVIMENTOS[item.id] = [
+      { id: uid(), tipo: tipo === 'entrada' ? 'entrada' : 'ajuste',
+        quantidade: diferenca, motivo: motivo || null,
+        quando: new Date().toISOString(), por: eu.fullName },
+      ...(MOVIMENTOS[item.id] ?? []),
+    ];
     return {
       id: item.id, ok: true, tipo, anterior, quantidade: item.quantidade, diferenca,
       aviso: tipo === 'entrada'
         ? `Entrada registrada: ${anterior} + ${q} = ${item.quantidade} ${item.unidade}(s).`
         : `Contagem registrada: de ${anterior} para ${item.quantidade} ${item.unidade}(s). `
           + 'A diferença ficou no histórico, com o motivo e o seu nome.',
+    };
+  }
+
+  /**
+   * `GET /medications/stock/:id/movements` — a história, e não o saldo.
+   *
+   * Cronológico e SEM contagem por pessoa: cada linha tem autor, e somar
+   * movimento por educador é medir gente.
+   */
+  if (seg[0] === 'medications' && seg[1] === 'stock' && seg[3] === 'movements'
+      && metodo === 'GET') {
+    const item = ESTOQUE.find((x) => x.id === seg[2]);
+    if (!item) {
+      return new Recusa(404,
+        'Este item do armário não foi encontrado — ou está fora do seu alcance.');
+    }
+    const linhas = MOVIMENTOS[item.id] ?? [];
+    return {
+      medicamento: item.medicamento, unidade: item.unidade,
+      quantidadeAgora: item.quantidade,
+      cortado: linhas.length >= 200,
+      linhas: linhas.slice(0, 200),
     };
   }
 
@@ -6507,8 +7955,19 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     if (a.restrito && String(b.finalidade ?? '').trim().length < 15) {
       return new Recusa(400, 'Descreva a finalidade da abertura (mínimo 15 caracteres).');
     }
-    return { referencia: a.referencia, tipo: a.tipo, nome: a.nome,
-             aviso: 'Abertura registrada em auditoria.' };
+    /* AS DUAS FORMAS, como o servidor (fase 108): com o papel guardado aqui
+       dentro vem `arquivo`; por referência vem o caminho no Drive. */
+    return {
+      referencia: a.arquivo ? null : a.referencia, tipo: a.tipo, nome: a.nome,
+      arquivo: a.arquivo
+        ? { nome: a.nomeDoArquivo ?? a.nome, tipo: a.mime ?? 'application/pdf',
+            conteudo: a.arquivo }
+        : null,
+      aviso: a.arquivo
+        ? 'Abertura registrada em auditoria, com o seu nome e o horário.'
+        : 'Abertura registrada em auditoria. O arquivo está no Drive da instituição, '
+          + 'no caminho abaixo.',
+    };
   }
 
   if (seg[0] === 'incidents' && seg[2] === 'attachments' && metodo === 'POST') {
@@ -6527,21 +7986,30 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       return new Recusa(400, 'O nome do arquivo não pode conter CPF, diagnóstico ou '
         + 'referência judicial. Use um nome neutro; o conteúdo fica protegido dentro do anexo.');
     }
-    if (!String(b.referencia ?? '').trim()) {
-      return new Recusa(400, 'Informe onde o arquivo está — a pasta ou o link no Drive da '
-        + 'instituição. O sistema guarda a referência, não o arquivo.');
+    if (!String(b.referencia ?? '').trim() && !String(b.conteudo ?? '').trim()) {
+      return new Recusa(400, 'Anexe o documento digitalizado, ou informe onde ele está — a '
+        + 'pasta ou o link no Drive da instituição. Uma das duas: anexo sem nenhuma das duas '
+        + 'é uma linha que promete um documento que ninguém alcança.');
     }
     if (tipo.exigeJustificativa && String(b.justificativa ?? '').trim().length < 15) {
       return new Recusa(400,
         'Foto exige justificativa: para que ela é necessária e qual autorização a ampara.');
     }
+    const conteudo = String(b.conteudo ?? '').trim();
     ANEXOS = [...ANEXOS, {
       id: uid(), ocorrenciaId: o.id, tipo: tipo.cod, nome,
-      referencia: String(b.referencia).trim(),
+      referencia: conteudo ? null : String(b.referencia ?? '').trim(),
       restrito: b.restrito ?? tipo.restritoPorPadrao, autor: eu.fullName,
+      /* O protótipo guarda o base64 em memória, que é o que ele tem. O
+         servidor guarda os bytes em `ARQUIVOS_DIR` e só a chave no banco. */
+      arquivo: conteudo || null,
+      nomeDoArquivo: conteudo ? (String(b.nomeArquivo ?? '').trim() || nome) : null,
+      mime: conteudo ? 'application/pdf' : null,
     }];
     return { id: ANEXOS[ANEXOS.length - 1].id,
-      aviso: 'Anexo registrado. Fotos não aparecem na linha do tempo.' };
+      aviso: conteudo
+        ? 'Anexo guardado no sistema. Quem abrir vê o documento, e a abertura fica registrada.'
+        : 'Anexo registrado por referência: o arquivo continua no Drive da instituição.' };
   }
 
   /*
@@ -6769,6 +8237,8 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
           + 'equipe técnica e à coordenação.',
       anexos: ANEXOS.filter((a) => a.ocorrenciaId === o.id).map((a) => ({
         id: a.id, tipo: a.tipo, nome: a.nome, restrito: a.restrito, autor: a.autor,
+        /* A tela escreve "no sistema" ou "no Drive" ANTES do clique. */
+        temArquivo: !!a.arquivo, nomeDoArquivo: a.nomeDoArquivo ?? null,
       })),
       comunicacoesExternas: COMUNICACOES
         .filter((c) => c.ocorrenciaId === o.id)
@@ -7974,6 +9444,10 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       eu, chamar: responder, exportarFolha,
     });
     if (doImpacto !== undefined) return doImpacto;
+    const doPeriodo = responderPeriodo(rota, q, b, metodo, {
+      eu, chamar: responder, exportarFolha, autorDaFolha,
+    });
+    if (doPeriodo !== undefined) return doPeriodo;
   }
 
   if (seg[0] === 'shifts' && seg[2] === 'folha' && metodo === 'GET') {

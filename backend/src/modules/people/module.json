@@ -10,22 +10,31 @@
     "PersonSummary"
   ],
   "tabelas": [
-    "person",
+    "admission_record",
+    "benefit_record",
+    "birthday_ack",
     "care_episode",
-    "house_stay",
-    "profile_detail",
-    "health_condition",
-    "food_restriction",
     "document",
     "document_version",
-    "benefit_record",
-    "memory_record",
-    "transfer_request",
-    "transfer_message",
     "family_stay",
-    "outing_permission",
+    "family_stay_note",
+    "food_restriction",
+    "health_condition",
+    "house_field_permission",
+    "house_stay",
+    "judicial_record",
     "kitchen_request",
-    "birthday_ack"
+    "memory_photo",
+    "memory_record",
+    "outing_permission",
+    "person",
+    "person_contact",
+    "person_correction",
+    "person_credential",
+    "profile_detail",
+    "profile_detail_change",
+    "transfer_message",
+    "transfer_request"
   ],
-  "observacao": "Base do domínio: routine, activities, checks e timeline dependem da noção de acolhido ativo numa casa. A transferência tem duas caixas (recebidas/da casa) e conversa entre as coordenações — a decisão é do destino, e a única escrita que cruza a fronteira entre casas é o comando app_accept_transfer."
+  "observacao": "Base do domínio: routine, activities, checks e timeline dependem da noção de acolhido ativo numa casa. A transferência tem duas caixas (recebidas/da casa) e conversa entre as coordenações — a decisão é do destino, e a única escrita que cruza a fronteira entre casas é o comando app_accept_transfer. A migração 1300 (fase 122) acrescenta `family_stay_note`: o relato da convivência familiar, sem prazo e sem estado, escrito por qualquer pessoa da equipe da casa e quantas vezes for preciso. Ela não tem UPDATE nem DELETE — a linha nova fica ao lado da antiga. O aviso de \"houve alteração\" sai pelo BARRAMENTO, e não de dentro da função: `people` não pode depender de `notifications`, que é removível. A migração 1320 (fase 124) acrescenta `memory_photo`: a vivência passou a ter quantas fotos tiver, e as que já existiam MUDARAM DE LUGAR — as colunas de arquivo de `memory_record` ficam como origem histórica e não são mais lidas, porque guardar o mesmo fato em dois lugares é como duas versões da verdade começam. A autorização de imagem é POR FOTO: a festa pode ter uma com uma criança de outra casa."
 }

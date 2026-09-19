@@ -10,17 +10,20 @@
 # ============================================================
 
 # O fuso da máquina não é palpite: num servidor em UTC, 05h00 são 02h00 em
-# Porto Alegre — e o dia gerado seria o de ontem (§6, armadilha 2).
+# Porto Alegre — e o dia gerado seria o de ontem (§12.7).
 CRON_TZ=America/Sao_Paulo
 
 # Em nome de quem o relógio escreve. Tudo o que ele gerar fica na auditoria com
 # este nome, então NÃO use a conta de uma pessoa: quem ler seis meses depois
 # precisa distinguir "o sistema gerou" de "a enfermeira gerou".
-RELOGIO_USER_EMAIL=relogio@paodospobres.org.br
+# O domínio é `.com.br` — este arquivo dizia `.org.br` até a fase 105, e é ele
+# que alguém copia no dia da instalação. Conta errada aqui é o relógio saindo
+# com código 1 todo dia às 5h, com a casa achando que o remédio sumiu da tela.
+RELOGIO_USER_EMAIL=relogio@paodospobres.com.br
 
 # Para onde vai o erro. Sem isto, o dia incompleto só aparece quando a casa
 # disser que "o remédio sumiu da tela".
-MAILTO=ti@paodospobres.org.br
+MAILTO=ti@paodospobres.com.br
 
 # 05h00, e não a virada do dia: à meia-noite a equipe da noite está
 # trabalhando, o backup está rodando e não há ninguém acordado para ver um

@@ -38,8 +38,14 @@ const url = process.env.DATABASE_URL
 const POR_ONDE_SAI: Record<string, string> = {
   'document_version.storage_key':
     ':id/documents/:docId/file',
+  /* A ORIGEM HISTÓRICA. Desde a 1320 a foto da vivência vive em
+     `memory_photo` — a coluna ficou, porque nada se apaga, e a rota continua
+     valendo: ela devolve a PRIMEIRA foto da vivência, para quem chamava antes. */
   'memory_record.storage_key':
     ':id/memories/:memId/file',
+  /* Várias fotos numa vivência só (fase 124). A rota nomeia a foto. */
+  'memory_photo.storage_key':
+    ':id/memories/:memId/photos/:fotoId',
   'person.photo_key':
     ':id/photo',
   /* A foto 3×4 do visitante, que vai para a folha da portaria (fase 92). */
@@ -49,7 +55,29 @@ const POR_ONDE_SAI: Record<string, string> = {
     'hospitalizations/:id/notes/:notaId/anexo',
   'life_milestone.storage_key':
     'marcos/:id/comprovante',
+  /* Os três que a fase 108 tirou da forma de REFERÊNCIA e passaram a poder
+     guardar o papel: o anexo da ocorrência, a receita e a nota fiscal. */
+  'incident_attachment.storage_key':
+    'attachments/:id/open',
+  'prescription_document.storage_key':
+    'prescriptions/documents/:docId/file',
+  'medication_purchase.storage_key':
+    'purchases/:compraId/file',
 };
+
+/**
+ * A EXCEÇÃO DO @Get, escrita por extenso.
+ *
+ * A regra abaixo existe porque uma rota de ESCRITA com o mesmo caminho
+ * satisfaria a conferência e não devolveria arquivo nenhum. O anexo da
+ * ocorrência é a exceção honesta: abrir um anexo restrito EXIGE uma finalidade
+ * escrita, que viaja no corpo, e o ato REGISTRA antes de devolver (§13.7). Uma
+ * leitura que muda o estado do mundo — porque deixa rastro — não é um @Get.
+ *
+ * É uma linha só, e ela só vale enquanto for usada: se a rota deixar de
+ * existir, a conferência de cima reprova primeiro.
+ */
+const ABRE_POR_POST = new Set(['incident_attachment.storage_key']);
 
 function arquivos(dir: string): string[] {
   const out: string[] = [];
@@ -111,6 +139,7 @@ describe('Todo arquivo guardado tem por onde sair', () => {
      */
     const controladores = arquivos(SRC).map((f) => readFileSync(f, 'utf8')).join('\n');
     const naoSaoLeitura = Object.entries(POR_ONDE_SAI)
+      .filter(([chave]) => !ABRE_POR_POST.has(chave))
       .filter(([, rota]) => !controladores.includes(`@Get('${rota}')`))
       .map(([chave, rota]) => `${chave} → ${rota}`);
     expect(naoSaoLeitura).toEqual([]);

@@ -157,6 +157,27 @@ cobrar('a exceção escrita fica visível na chamada',
   /Recusou o jantar/.test(chamadaDepois) || /conferid/i.test(chamadaDepois),
   chamadaDepois.slice(0, 120));
 
+/*
+ * QUEM ABRIU E QUEM FECHOU (fase 113).
+ *
+ * `created_by` e `confirmed_by` eram gravados desde a migração 0120 e nunca
+ * lidos: a tela dizia "Chamada confirmada" e mais nada. Confirmar é alguém
+ * afirmando que olhou todas as crianças da casa — num sistema em que cada
+ * marcação tem nome por regra, era a única assinatura sem dono.
+ */
+cobrar('a chamada aberta diz quem a abriu',
+  /Aberta por/i.test(chamadaDepois), chamadaDepois.slice(0, 160));
+
+await clicar(/← Chamadas/);
+await clicar(/Café da manhã/);
+const cafe = await conteudo();
+cobrar('e a chamada confirmada diz quem a fechou, e a que horas',
+  /Chamada confirmada por .+ às \d{2}:\d{2}/.test(cafe), cafe.slice(0, 200));
+cobrar('o fecho não é a mesma pessoa que abriu — são dois atos',
+  /Aberta por Educadora/.test(cafe) && /confirmada por Líder/.test(cafe),
+  cafe.slice(0, 200));
+await clicar(/← Chamadas/);
+
 await aba('Dia');
 /*
  * AS AÇÕES QUE LEVAM A OUTRA TELA.
@@ -228,10 +249,92 @@ await aba('Acolhidos');
 await clicar(/Alice/);
 const perfil = await conteudo();
 cobrar('o perfil traz a identificação nova', /RG|SUS|Filiação/.test(perfil));
+/*
+ * O QUE O CADASTRO PEDE CHEGA AO PERFIL (fase 116).
+ *
+ * Cinco campos — gênero, raça/cor autodeclarada, naturalidade, NIS e registro
+ * civil — eram pedidos na tela de cadastro, gravados pelo banco, e lidos por
+ * NENHUM `SELECT`. E a ficha de entrada (`admission_record`) tinha rota desde
+ * a migração 0480 e nenhuma tela a chamava: quem trouxe a criança, de onde ela
+ * veio, se tem irmãos acolhidos, como ela chegou — tudo isso só reaparecia
+ * dentro de um relatório, se alguém o gerasse.
+ */
+cobrar('e a identificação complementar, que o cadastro pedia e ninguém lia',
+  /natural de|NIS|Registro civil/i.test(perfil),
+  'raça/cor autodeclarada e NIS são o que o relatório de política pública precisa');
+/*
+ * O QUE ACONTECEU COM ELA, E QUE NÃO CHEGAVA AQUI (fase 118).
+ *
+ * Três informações eram gravadas com o id dela e lidas só de fora: a
+ * convivência familiar (aberta DAQUI desde a fase 89 e lida só na lista da
+ * casa), a internação (lida pela casa) e o ofício a órgão externo, cujo
+ * `person_id` existia desde a migração 0320 e que **nenhuma consulta lia**.
+ */
+cobrar('o perfil traz as idas para a família, e como ela voltou de cada uma',
+  /Convivência familiar/i.test(perfil),
+  'a convivência era aberta DAQUI e lida só na lista de quem está fora agora');
+/*
+ * O RELATO DA CONVIVÊNCIA (fase 122) — *"tudo ficando no perfil do jovem"*.
+ *
+ * A Fundação tirou o prazo de propósito: *"dessa forma não haverá uma pressão
+ * para arrancar a informação da criança."* As cobranças abaixo são essa frase
+ * na tela — a porta aberta, os dois relatos da MESMA ida, e nenhum contador.
+ */
+cobrar('o perfil traz os relatos da ida, e mais de um da mesma ida',
+  /não queria falar agora/i.test(perfil) && /por conta própria/i.test(perfil),
+  'o que ela contou na terça não substitui o que se observou no domingo: soma');
+cobrar('a porta continua aberta numa ida de semanas atrás',
+  /Registrar o que ela contou/i.test(perfil),
+  'uma ida de setembro aceita um relato em março, e é esse o que mais importa');
+cobrar('e NENHUM contador de relatos, nem "sem relato há tantos dias"',
+  !/\b\d+\s*relatos?\b/i.test(perfil) && !/sem relato h[áa]/i.test(perfil),
+  'um número aqui é a cobrança voltando pela porta dos fundos');
+cobrar('o perfil traz as internações — inclusive as encerradas',
+  /Internações hospitalares/i.test(perfil),
+  'uma internação encerrada some da tela da casa e fica na vida da criança');
+cobrar('e os ofícios a órgãos externos SOBRE ela',
+  /Comunicações a órgãos externos/i.test(perfil),
+  'um ofício ao Judiciário sobre a Alice não aparecia em lugar nenhum da vida da Alice');
+cobrar('o perfil diz COMO ELA CHEGOU',
+  /como ela chegou/i.test(perfil),
+  'a ficha de entrada tinha rota desde a 0480 e nenhuma tela a chamava');
+cobrar('e a ficha traz quem a trouxe e os irmãos acolhidos',
+  /quem trouxe/i.test(perfil) && /irmãos/i.test(perfil),
+  'a educadora do primeiro plantão precisa saber que ela tem uma irmã na Casa 01');
 /* `text-transform: uppercase` no CSS: o texto que volta da tela é
  * "QUEM APARECE POR ALICE". Comparação sensível a maiúsculas reprova uma
  * tela certa — é a mesma armadilha anotada no `ensaio.mjs`. */
 cobrar('o perfil traz os contatos de quem aparece', /quem aparece por/i.test(perfil));
+/* A PRESENÇA, NA VIDA DELA (fase 110). O registro de cada criança ficava
+   DENTRO da chamada; o provedor da linha do tempo dizia, num comentário, que
+   "o registro dele está no perfil" — e não estava. A cobrança é pelo CONTEÚDO:
+   a exceção com a frase escrita, e a correção com quem corrigiu. */
+cobrar('o perfil traz a presença nas chamadas',
+  /Presença nas chamadas/i.test(perfil),
+  'era preciso abrir a chamada daquele almoço para saber se ela esteve');
+cobrar('e a exceção vem com o FATO escrito, não só com o rótulo',
+  /comeu a fruta depois|recusou o jantar/i.test(perfil),
+  '"recusou" sozinho é um rótulo que atravessa meses (§8.14)');
+cobrar('a correção de uma chamada aparece, com quem corrigiu',
+  /Antes constava/i.test(perfil),
+  'o histórico era guardado por gatilho desde a fase 67 e não era lido por nada');
+/* O PRONTUÁRIO DE EDUCAÇÃO (fase 111): as tabelas existiam desde a 0530 e o
+   relatório as lia — nenhuma rota as escrevia. */
+cobrar('o perfil traz a educação',
+  /Sala de recursos|Apoio educacional|Educação/i.test(perfil),
+  'o relatório leria "não há" sobre escola e profissionalização para sempre');
+cobrar('e a evolução educacional, com quem escreveu',
+  /Evolução educacional/i.test(perfil) && /ciências|sala de recursos/i.test(perfil));
+cobrar('há por onde escrever uma evolução — inclusive para o educador',
+  (await pg.locator('main.conteudo button')
+     .filter({ hasText: /Escrever uma evolução/ }).count()) > 0,
+  'o único INSERT do repositório estava dentro de um teste');
+/* A AUDITORIA (fase 112) não aparece para a técnica: a §7 dá a leitura à
+   coordenação e à gestão geral. Oferecer uma porta que o servidor vai recusar
+   ensina a pessoa a não confiar na tela. */
+cobrar('a auditoria NÃO aparece para a equipe técnica',
+  !/Quem mexeu no registro/i.test(perfil),
+  'a §7 dá a leitura da auditoria a dois cargos, e a tela não oferece o que o servidor recusa');
 cobrar('há como acrescentar contato', await clicar(/Acrescentar contato/));
 await fechar();
 cobrar('os acompanhamentos abrem', await doMais('Acompanhamentos'));
@@ -670,6 +773,64 @@ if (await retirar.count()) {
   await fechar();
 }
 
+/*
+ * OS TRÊS AJUSTES DA FASE 123 — *"cada um com a sua cor diferente"*,
+ * *"substituir ou deixar a menos"*, e os dois cargos que passaram a montar.
+ */
+/* A COR na linha, e o nome ao lado dela sempre. */
+const linhaComCor = pg.locator('main.conteudo li.linha-ata').first();
+cobrar('a linha de cada pessoa na escala carrega a cor dela',
+  (await linhaComCor.count()) > 0,
+  'a cor existe desde a 0990 e era usada só na ATA');
+if (await linhaComCor.count()) {
+  cobrar('e o nome continua escrito ao lado da cor',
+    (await linhaComCor.innerText()).trim().length > 3,
+    'a folha da parede sai em preto e branco — a cor é apoio, nunca a informação');
+}
+
+/* SUBSTITUIR num gesto, com "Retirar" continuando ao lado. */
+const substituir = pg.locator('main.conteudo button').filter({ hasText: /^Substituir$/ });
+cobrar('a escala tem o botão de substituir num gesto',
+  (await substituir.count()) > 0,
+  'eram dois atos, e entre um e outro o turno ficava vazio na tela');
+cobrar('e "Retirar" continua ao lado — *"substituir ou deixar a menos"*',
+  (await pg.locator('main.conteudo button').filter({ hasText: /^Retirar$/ }).count()) > 0,
+  'uma casa pode passar o turno com uma pessoa a menos, e o sistema não cobra substituto');
+if (await substituir.count()) {
+  await substituir.first().click();
+  await pg.waitForTimeout(800);
+  const folhaSub = await corpo();
+  cobrar('a folha de substituir diz que a linha de quem sai continua registrada',
+    /continua registrada/i.test(folhaSub), folhaSub.slice(0, 200));
+  const quemEntra = pg.locator(`${CAIXA} select#sub-quem`);
+  cobrar('e traz a equipe para escolher quem entra',
+    (await quemEntra.locator('option').count()) > 1);
+  const botaoSub = pg.locator(`${CAIXA} button`).filter({ hasText: /^Substituir$/ }).first();
+  cobrar('sem escolher quem entra, não substitui', await botaoSub.isDisabled());
+  const quantasOpcoes = await quemEntra.locator('option').count();
+  if (quantasOpcoes > 1) {
+    /*
+     * A ÚLTIMA opção, e não a primeira — e o motivo é uma recusa legítima.
+     *
+     * Escolhendo `nth(1)` o ensaio caiu num 409: a primeira pessoa da lista já
+     * estava escalada naquele mesmo turno, e o sistema recusou com a frase
+     * certa ("esta pessoa já está escalada neste turno"). O defeito era do
+     * ensaio, não da tela. A última da lista é a coordenação, que a semeadura
+     * nunca põe em plantão nenhum — é a única escolha que não depende do que
+     * os blocos anteriores deixaram montado.
+     */
+    await quemEntra.selectOption(
+      await quemEntra.locator('option').nth(quantasOpcoes - 1).getAttribute('value'));
+    await botaoSub.click();
+    await pg.waitForTimeout(1500);
+    const depoisDoClique = await corpo();
+    await fechar();
+    cobrar('quem entrou aparece com o lugar de quem saiu',
+      /entrou no lugar de/i.test(await conteudo()),
+      depoisDoClique.replace(/\s+/g, ' ').slice(0, 400));
+  }
+}
+
 await clicar(/Mês passado/);
 const mesPassado = await conteudo();
 cobrar('o mês passado abre — é o recorte de quem investiga um evento',
@@ -691,7 +852,23 @@ const escalaDoEducador = (await doMais('escala de plantão')) ? await conteudo()
 cobrar('o educador também lê a escala', /Escala de plantão/i.test(escalaDoEducador));
 cobrar('mas não tem como escalar ninguém',
   !/Escalar alguém/.test(escalaDoEducador),
-  'montar a escala é da coordenação');
+  'montar a escala é da coordenação, da técnica ou do Líder Diurno');
+
+/*
+ * E OS DOIS CARGOS QUE PASSARAM A MONTAR (fase 123).
+ *
+ * *"Pela equipe técnica, o coordenador ou o educador líder."* O Líder Diurno é
+ * quem descobre às 6h50 que alguém não veio; a técnica é quem remaneja quando
+ * a coordenação está em audiência. Sem esta cobrança, a decisão da Fundação
+ * viveria só no comentário da migração.
+ */
+for (const cargo of ['lider_diurno', 'equipe_tecnica']) {
+  await trocar(cargo);
+  const daEquipe = (await doMais('escala de plantão')) ? await conteudo() : '';
+  cobrar(`${cargo} monta a escala, como a Fundação decidiu em 15/09`,
+    /Escalar alguém/i.test(daEquipe),
+    'os dois leem a escala desde a 0950; montar é o que a fase 123 abriu');
+}
 cobrar('nenhuma exceção na escala', erros.length === 0, erros[0]);
 
 // ====================================================== 11. A passagem com remédio
@@ -851,6 +1028,31 @@ const linhaDaAlice = pg.locator('main .card .row').filter({ hasText: /Alice/ })
 cobrar('o educador vê a Alice entre quem está com a família',
   /Com a família/i.test(await conteudo()) && (await linhaDaAlice.count()) > 0,
   'ele precisa saber por que a cadeira vai ficar vazia no jantar');
+/*
+ * O RELATO ABRE NA SAÍDA, e não no retorno (fase 122).
+ *
+ * *"Quando o jovem sair para a visita em casa, se abre essa pergunta para ser
+ * respondida depois."* O botão existe enquanto ela ainda está com a família —
+ * é o que permite registrar o telefonema de sábado.
+ */
+if (await linhaDaAlice.count()) {
+  await linhaDaAlice.locator('button', { hasText: /Relato/ }).first().click();
+  await pg.waitForTimeout(800);
+  const folhaDoRelato = await pg.locator('.overlay .sheet').innerText();
+  cobrar('o relato abre enquanto ela ainda está com a família',
+    /A volta de Alice/i.test(folhaDoRelato), folhaDoRelato.slice(0, 160));
+  cobrar('e a tela diz, antes do campo, que NÃO há prazo nem cobrança',
+    /não há prazo e não há cobrança/i.test(folhaDoRelato),
+    'era isto que a Fundação corrigiu: um campo que cobra faz perguntar de novo para a criança');
+  cobrar('e ensina a escrever o FATO, não o rótulo',
+    /voltou agressiva/i.test(folhaDoRelato),
+    '§8.14 — o fato pode mudar amanhã, o rótulo atravessa anos de prontuário');
+  cobrar('"houve alteração" é opcional, e sai DESMARCADO',
+    !(await pg.locator('.overlay .sheet input[type=checkbox]').first().isChecked()),
+    'se todo relato avisasse, a equipe aprenderia a ignorar o sino');
+  await fechar();
+}
+
 let chegouDaAlice = false;
 if (await linhaDaAlice.count()) {
   await linhaDaAlice.locator('button', { hasText: /^Chegou$/ }).first().click();
@@ -934,6 +1136,505 @@ if (await clicar(new RegExp(`Turno ${outroTurno}`, 'i'))) {
     'o mesmo bloco não pode dizer "voltou" no turno em que ela ainda estava fora');
 }
 cobrar('nenhuma exceção no caminho do retorno', erros.length === 0, erros[0]);
+
+// ====================================== 14. A prévia dos anexos (fase 107)
+/*
+ * O BOTÃO DE OLHO PRECISA ABRIR UMA IMAGEM, E NÃO UM NOME DE ARQUIVO.
+ *
+ * Este bloco existe por causa da §6.19: a fase 107 pôs prévia em quatro
+ * lugares, e três deles só aparecem depois de um clique, dentro de uma folha.
+ * O `ensaio` percorre telas e o `ensaio:acessibilidade` mede cor — nenhum dos
+ * dois abriria estas caixas, e a entrega poderia nascer quebrada com tudo
+ * verde ao lado, que foi o que aconteceu nas fases 87, 89 e 92.
+ *
+ * A cobrança é pelo CONTEÚDO: procura a `img` da prévia, e não o botão. Botão
+ * que abre uma caixa vazia passaria numa cobrança de porta.
+ */
+console.log('\n👁 A prévia dos anexos');
+await trocar('equipe_tecnica');
+erros.length = 0;
+await aba('Acolhidos');
+await clicar(/Alice/);
+
+cobrar('a foto de identificação tem botão de olho', await clicar(/Ver a foto/));
+cobrar('e o olho abre a IMAGEM, não o nome do arquivo',
+  (await pg.locator('.overlay img.previa-img').count()) > 0,
+  'um retângulo cinza escrito "foto.png" não deixa ninguém conferir se é a criança certa');
+await fechar();
+
+/* O contato PELO NOME, e não o primeiro da lista: dois contatos oferecem o
+ * mesmo botão, e só a madrinha tem foto guardada — a genitora existe
+ * justamente para a folha da guarita mostrar os espaços em branco. Um ensaio
+ * que clica no `.first()` mede outra coisa e reprova uma tela certa. */
+const cartaoDaMadrinha = pg.locator('main.conteudo .card').filter({ hasText: /Simoni/ });
+const portaria = cartaoDaMadrinha.locator('button').filter({ hasText: /Portaria/ });
+const achouPortaria = (await portaria.count()) > 0;
+cobrar('o contato com foto abre a folha da portaria', achouPortaria);
+if (achouPortaria) {
+  await portaria.first().click();
+  await pg.waitForTimeout(900);
+  const olho = pg.locator('.overlay button.olho');
+  const temOlho = (await olho.count()) > 0;
+  cobrar('a foto 3×4 já guardada tem botão de olho', temOlho,
+    'até a fase 107 o protótipo dizia "já tem foto cadastrada" e não deixava ver qual');
+  if (temOlho) {
+    await olho.first().click();
+    await pg.waitForTimeout(900);
+    cobrar('e ela abre — o servidor de mentira guarda a foto, como o de verdade',
+      (await pg.locator('.overlay img.previa-img').count()) > 0,
+      'servidor de mentira que responde PIOR que o servidor esconde um sistema que existe (§6.14)');
+  }
+}
+await fechar();
+/*
+ * E OS TRÊS QUE ERAM SÓ REFERÊNCIA (fase 108).
+ *
+ * A cobrança aqui é dupla: que a tela diga QUAL DAS DUAS formas é antes do
+ * clique — a pílula "no sistema" / "no Drive" —, e que o olho abra mesmo uma
+ * imagem quando o papel está guardado. O servidor de mentira traz um de cada,
+ * nas duas formas, porque bloco que só existe com dado nasce invisível (§6.19).
+ */
+await fechar();
+if (await doMais('Ocorrências')) {
+  const cartaoComAnexo = pg.locator('main.conteudo .card')
+    .filter({ hasText: /anexo\(s\)/i }).first();
+  if (await cartaoComAnexo.count()) {
+    await cartaoComAnexo.locator('button').filter({ hasText: /Abrir detalhes/ }).first().click();
+    await pg.waitForTimeout(900);
+    const texto = await conteudo();
+    cobrar('a lista de anexos diz onde o documento está, antes do clique',
+      /no sistema/i.test(texto) && /no Drive/i.test(texto),
+      'as duas formas convivem, e a pílula é o que separa uma da outra');
+    const olho = pg.locator('main.conteudo button.olho').filter({ hasText: /Abrir/ }).first();
+    if (await olho.count()) {
+      await olho.click();
+      await pg.waitForTimeout(900);
+      cobrar('o anexo guardado no sistema ABRE — não devolve um caminho de pasta',
+        (await pg.locator('.overlay img.previa-img, .overlay iframe.previa-quadro').count()) > 0,
+        'era isto que a tela dizia não fazer: "o sistema não abre o arquivo"');
+      await fechar();
+    }
+  }
+}
+
+/* A NOTA FISCAL, na Enfermagem. Nada de `if` que pula em silêncio: uma
+   cobrança que só roda quando encontra a porta é uma cobrança desligada que
+   ninguém desligou (§6.19). Se a porta não estiver lá, isto REPROVA. */
+await fechar();
+await trocar('enfermagem');
+erros.length = 0;
+cobrar('a Saúde abre para a Enfermagem', await doMais('Saúde'));
+cobrar('a aba Compras existe', await clicar(/^Compras$/));
+const verNota = pg.locator('main.conteudo button.olho').filter({ hasText: /nota/i }).first();
+cobrar('a compra com papel guardado tem botão de olho',
+  (await verNota.count()) > 0,
+  '"com nota" passou a querer dizer que HÁ nota, e não que alguém digitou algo no campo');
+if (await verNota.count()) {
+  await verNota.click();
+  await pg.waitForTimeout(900);
+  cobrar('e a nota fiscal abre na tela',
+    (await pg.locator('.overlay img.previa-img, .overlay iframe.previa-quadro').count()) > 0);
+  await fechar();
+}
+/* O MOVIMENTO DO ARMÁRIO (fase 109) — a caixa que ninguém podia abrir.
+   A cobrança é pelo CONTEÚDO: procura a conferência que não fechou, que é o
+   caso que fez esta tela existir. */
+await fechar();
+cobrar('a aba Estoque existe', await clicar(/^Estoque$/));
+const verMovimento = pg.locator('main.conteudo button.olho')
+  .filter({ hasText: /movimento/i }).first();
+cobrar('cada item do armário oferece o movimento', (await verMovimento.count()) > 0,
+  'a tabela era escrita por três lugares e lida por nenhum desde a migração 0200');
+if (await verMovimento.count()) {
+  await verMovimento.click();
+  await pg.waitForTimeout(900);
+  const folha = await pg.locator('.overlay .sheet').innerText();
+  cobrar('e o movimento conta a história: o que entrou, e o que saiu',
+    /Chegou remédio/i.test(folha) && /Dose administrada/i.test(folha),
+    'o histórico mostrava caixas chegando e nenhuma saindo — era esse o defeito');
+  cobrar('cada linha do movimento tem o nome de quem a fez',
+    /Fictícia|Fictício/.test(folha));
+  await fechar();
+}
+
+/* E A AUDITORIA, na coordenação (fase 112). Ela era escrita por todo serviço
+   e não tinha rota que a lesse — a maior das pontas soltas da varredura. */
+await fechar();
+await trocar('coordenador');
+erros.length = 0;
+await aba('Acolhidos');
+await clicar(/Alice/);
+const perfilCoord = await conteudo();
+cobrar('a coordenação vê o rastro do registro da criança',
+  /Quem mexeu no registro/i.test(perfilCoord),
+  'a §7 promete "Auditoria (leitura)" à coordenação na própria casa');
+cobrar('e o rastro abre', await clicar(/Ver o rastro/));
+const rastro = await conteudo();
+cobrar('com o nome de quem agiu e a FINALIDADE declarada',
+  /Finalidade declarada/i.test(rastro) && /Fictícia|Fictício/.test(rastro),
+  'a finalidade é a razão de metade destas linhas existirem');
+/*
+ * O TRABALHO DA EQUIPE (fase 117).
+ *
+ * A Fundação pediu em 15/09; a fase 112 tinha recusado, e a recusa dizia que,
+ * se ela pedisse, viraria outro caminho **com finalidade escrita e registro da
+ * própria consulta**. As cobranças abaixo são as três condições, na tela.
+ */
+/* A folha do rastro ficou aberta no passo anterior; sem fechá-la, o clique em
+ * "Mais" acontece por baixo dela e o percurso segue na tela errada. */
+await fechar();
+await doMais('trabalho da equipe');
+await pg.waitForTimeout(700);
+const trabalhoVazio = await conteudo();
+cobrar('a coordenação alcança o trabalho da equipe',
+  /trabalho da equipe/i.test(trabalhoVazio),
+  'a §7 passou a prometer isto a três cargos');
+cobrar('e a tela diz, antes de tudo, que não conta nada',
+  /não conta nada|somar por pessoa é medir gente/i.test(trabalhoVazio),
+  'um total ao lado de um nome é uma avaliação que ninguém assinou');
+/* Abrir sem finalidade tem de ser recusado NA TELA, e não só no servidor: a
+ * recusa que só aparece depois do clique ensina que o campo é decorativo. A
+ * pessoa é escolhida ANTES, senão a recusa que volta é a outra. */
+const alvo = pg.locator('#tr-alvo');
+if (await alvo.count()) await alvo.selectOption({ index: 1 });
+await clicar(/Abrir o período/);
+const semFinalidade = await conteudo();
+cobrar('abrir sem escrever a finalidade é recusado',
+  /finalidade/i.test(semFinalidade), semFinalidade.slice(0, 200));
+const motivo = pg.locator('#tr-fim');
+if (await motivo.count()) await motivo.fill('Apuração do episódio da noite de ontem.');
+await clicar(/Abrir o período/);
+await pg.waitForTimeout(900);
+const trabalho = await conteudo();
+cobrar('com a finalidade escrita, o período abre e mostra o que foi feito',
+  /Chamada aberta|ATA|Dose confirmada|Pedido à cozinha/i.test(trabalho),
+  trabalho.slice(0, 200));
+cobrar('cada linha tem o nome de quem fez, e a hora',
+  /fict[íi]ci[ao]/i.test(trabalho) && /\d{2}:\d{2}/.test(trabalho),
+  trabalho.slice(0, 200));
+cobrar('e NENHUM total aparece — nem registros, nem plantões, nem média',
+  !/\b\d+\s*(registros|plantões|a[çc][õo]es|doses no per[íi]odo)\b/i.test(trabalho),
+  'a tela responde "o que foi feito", e não "quem fez mais"');
+await aba('Acolhidos');
+await clicar(/Alice/);
+const perfilDeNovo = await conteudo();
+cobrar('e a auditoria da CRIANÇA continua no lugar, sem filtro por pessoa da equipe',
+  /Quem mexeu no registro/i.test(perfilDeNovo),
+  'a recusa da fase 112 fica de pé: o outro caminho é outro, e não um filtro nesta tela');
+await clicar(/Ver o rastro/);
+const rastroDeNovo = await conteudo();
+cobrar('e sem contar nada — nem acessos, nem aberturas por pessoa',
+  !/\b\d+\s*(acessos|aberturas|vezes)\b/i.test(rastroDeNovo),
+  'um total ao lado de um nome é uma avaliação que ninguém assinou');
+
+/*
+ * E EM PORTUGUÊS (fase 115).
+ *
+ * O mapa de rótulos da fase 112 cobria treze das 170 ações que o sistema
+ * grava: o resto chegava aqui como o código cru, em inglês. A cobrança é pela
+ * FORMA — se sobrar um `algo.algo_assim` na tela, é rótulo que faltou.
+ */
+cobrar('e em português: nenhuma linha mostra o código cru da ação',
+  !/\b[a-z][a-z_]{2,}\.[a-z_]{3,}\b/.test(rastroDeNovo.replace(/\S+@\S+/g, '')),
+  rastroDeNovo.slice(0, 200));
+cobrar('inclusive a leitura excepcional, que o BANCO escreve e não o serviço',
+  /Leitura excepcional de relato/.test(rastroDeNovo),
+  'as 25 ações mais sensíveis saem de dentro de funções SECURITY DEFINER');
+
+/*
+ * ====================================================== O PERÍODO DA CASA
+ *
+ * Fase 121, resposta da Fundação em 15/09: *"acompanhamento semanal é um bom
+ * caminho: ver como foi a casa toda aquela semana, tipo uma ata geral de toda
+ * semana"*, com o período livre — *"um dia, dois, três, uma semana, um mês,
+ * seis meses"*.
+ *
+ * As cobranças são as decisões do relatório, na tela: o período é de fato
+ * livre, a parte boa vem primeiro, a criança não é contada, e o texto de
+ * acesso restrito não aparece.
+ */
+await fechar();
+await doMais('período da casa');
+await pg.waitForTimeout(900);
+const oPeriodo = await conteudo();
+cobrar('a coordenação alcança o período da casa',
+  /per[íi]odo da casa/i.test(oPeriodo),
+  'é o relatório que ele descreveu como "uma ata geral de toda semana"');
+cobrar('e os atalhos de período estão lá — de um dia a seis meses',
+  /Hoje/.test(oPeriodo) && /7 dias/.test(oPeriodo) && /6 meses/.test(oPeriodo),
+  'o período livre foi o pedido, com estas palavras');
+
+/* A PARTE BOA VEM PRIMEIRO. É a frase dele — *"as observações que os
+ * educadores botam têm que ser ponderadas para ser trazido coisas boas e
+ * negativas"* —, e a ordem da tela é o que a cumpre. */
+const iConquistas = oPeriodo.toLowerCase().indexOf('conquistas');
+const iOcorrencias = oPeriodo.toLowerCase().indexOf('ocorrências');
+cobrar('as conquistas vêm ANTES das ocorrências',
+  iConquistas >= 0 && iOcorrencias >= 0 && iConquistas < iOcorrencias,
+  'um resumo que abre pela lista de falhas ensina a equipe a ler a semana assim');
+cobrar('e as memórias da criança estão no relatório da casa',
+  /Mem[óo]rias/i.test(oPeriodo),
+  'a parte boa não é um apêndice: ela é metade do que ele pediu');
+
+/* QUEM NÃO ESTÁ COMENDO O QUÊ — com a frase ao lado, e sem número nenhum. */
+cobrar('"quem não está comendo o quê" aparece, com o que foi escrito ao lado',
+  /Refei[çc][õo]es com exce[çc][ãa]o/i.test(oPeriodo) && /dor de barriga/i.test(oPeriodo),
+  '"recusou" três vezes sem a frase viraria um traço da criança');
+/* A cobrança é pela FORMA do que seria uma contagem, e não pela vizinhança
+ * do nome: a primeira versão procurava "nome seguido de número" e acusava a
+ * própria DATA que vem ao lado do nome em cada linha. Três linhas embaixo de
+ * um nome são três fatos; "3 recusas" é uma ficha. */
+cobrar('e nenhuma contagem por criança — nem "vezes", nem "recusas"',
+  !/\b\d+\s*(vezes|recusas|exce[çc][õo]es de|faltas)\b/i.test(oPeriodo),
+  'o que a seção mostra é o que foi escrito, e não quantas vezes aconteceu');
+
+/* O QUE NÃO SAI. A ocorrência de acesso restrito entra como contagem, e a
+ * ressalva manda o leitor à tela certa. */
+cobrar('a ressalva diz o que NÃO está escrito aqui, e onde se lê',
+  /Aus[êe]ncia de registro n[ãa]o [ée] aus[êe]ncia de trabalho/i.test(oPeriodo),
+  'quem lê de fora conclui o contrário se ninguém escrever');
+cobrar('o par de doses aparece com o período anterior, e não como porcentagem',
+  /contra \d+ em \d{2}\/\d{2}/.test(oPeriodo),
+  '"aumento de medicamentos" foi o pedido; a conta é de quem lê');
+
+/* E a folha, que é o que sai da casa. */
+await clicar(/Ver a folha antes de baixar/);
+await pg.waitForTimeout(700);
+const folhaDoPeriodo = await conteudo();
+cobrar('a folha do período abre em pré-visualização',
+  /Pr[ée]-visualiza[çc][ãa]o/i.test(folhaDoPeriodo),
+  folhaDoPeriodo.slice(0, 200));
+cobrar('e ela carrega a ressalva, e não só a tabela',
+  /aus[êe]ncia de trabalho|ordenada por quantidade/i.test(folhaDoPeriodo),
+  'a folha circula sem ninguém por perto para explicar o contexto');
+await fechar();
+
+
+/*
+ * ====================================================== A visão do Gestor Geral
+ *
+ * Decisão da Fundação em 15/09: *"o gestor vê tudo o que ele quiser, em uma
+ * visão apenas contagens e métricas, na visão total ele vê tudo."* A fase 117
+ * o tinha deixado de fora, e a ausência estava escrita como decisão minha.
+ *
+ * O que estas cobranças guardam não é que a tela existe — é o que ficou de
+ * fora dela: a ordem por NOME e o aviso ANTES do número.
+ */
+console.log('\n🏛️ Gestor Geral — o painel e as contagens');
+await trocar('gestor_geral');
+erros.length = 0;
+
+/*
+ * O PAINEL DAS OITO CASAS (fase 120) — a tela INICIAL dele.
+ *
+ * Ele pediu isto com todas as letras: *"como o dia a dia é controlado pelos
+ * coordenadores, ele não vai querer que a tela inicial dele seja essa de
+ * controle total."* A primeira cobrança é justamente essa: o que aparece sem
+ * ninguém tocar em nada.
+ */
+const inicial = await conteudo();
+cobrar('o Gestor Geral ABRE no painel, e não na linha do dia',
+  /oito casas, em números/i.test(inicial),
+  inicial.slice(0, 160));
+cobrar('e o painel abre pelo que a INSTITUIÇÃO fez, antes das casas',
+  inicial.toLowerCase().indexOf('o que o pão dos pobres fez') >= 0
+  && inicial.toLowerCase().indexOf('o que o pão dos pobres fez')
+     < inicial.toLowerCase().indexOf('casa a casa'),
+  'a pergunta é "o que o Pão dos Pobres fez", e comparar casas é o segundo olhar');
+cobrar('o gasto vem com a ressalva colada, e não em nota de rodapé',
+  /sem valor lançado/i.test(inicial) && /MAIOR do que este número/i.test(inicial),
+  'um total incompleto num relatório de prestação de contas é pior que nenhum');
+cobrar('a tela diz que NÃO existe nota escolar no sistema',
+  /não existe campo de nota escolar/i.test(inicial),
+  'estimar "boas notas" a partir de texto livre seria inventar um número');
+cobrar('e diz que a ordem é o código da casa, nunca o resultado',
+  /nunca por resultado/i.test(inicial),
+  'ordenar por número é a classificação pronta');
+/* O gráfico existe, e cada barra traz o NÚMERO por extenso: quem não enxerga a
+ * barra lê a lista, e num celular não há "passar o mouse". */
+const barras = await pg.locator('main.conteudo figure.gr svg rect.gr-barra').count();
+cobrar('as oito casas viram barras, uma por casa', barras >= 8, `vieram ${barras}`);
+cobrar('e a tabela inteira continua na tela, dobrada',
+  await pg.locator('main.conteudo details.dobra').count() > 0,
+  'o gráfico é o ponto; a tabela é o que se copia para o relatório');
+cobrar('nenhuma exceção no painel', erros.length === 0, erros[0]);
+erros.length = 0;
+await doMais('trabalho da equipe');
+await pg.waitForTimeout(700);
+const gestorTrabalho = await conteudo();
+cobrar('o Gestor Geral alcança o trabalho da equipe',
+  /trabalho da equipe/i.test(gestorTrabalho),
+  'a fase 117 o deixava de fora; a Fundação decidiu o contrário em 15/09');
+cobrar('e tem a aba de CONTAGENS, que os outros cargos não têm',
+  /Contagens/.test(gestorTrabalho), gestorTrabalho.slice(0, 200));
+await clicar(/^Contagens$/);
+const motivoG = pg.locator('#tr-fim');
+if (await motivoG.count()) await motivoG.fill('Preparação da reunião mensal com a diretoria.');
+await clicar(/Contar o período/);
+await pg.waitForTimeout(900);
+const contagens = await conteudo();
+cobrar('as contagens abrem, por unidade, setor, pessoa e tipo de registro',
+  /Por unidade/i.test(contagens) && /Por pessoa/i.test(contagens)
+  && /Por tipo de registro/i.test(contagens), contagens.slice(0, 250));
+/* Minúsculas dos dois lados: `text-transform: uppercase` no CSS faz o
+ * `eyebrow` voltar como "POR UNIDADE", e comparar posição de texto sensível a
+ * caixa reprova uma tela certa — é a armadilha anotada no `ensaio.mjs`. */
+const min = contagens.toLowerCase();
+cobrar('e o aviso vem ANTES do número, não em nota de rodapé',
+  min.indexOf('contam registros') >= 0
+  && min.indexOf('contam registros') < min.indexOf('por unidade'),
+  'é a razão de a tela não existir antes da decisão, e ela não deixou de valer');
+cobrar('a tela diz que nenhuma contagem é por criança',
+  /Nenhuma contagem aqui é por criança/i.test(contagens),
+  'a regra 3 protege quem é cuidado, e não foi o que a Fundação revisou');
+/* A ordem é a regra: por NOME, nunca por total. Uma lista ordenada por número
+ * JÁ É a classificação, e ela apareceria sem ninguém ter decidido fazê-la. */
+const nomesNaTela = [...contagens.matchAll(/^(.+?) \(fictíci[ao]\)$/gim)].map((x) => x[1]);
+cobrar('e a ordem é por nome, nunca por total',
+  nomesNaTela.length === 0
+  || JSON.stringify(nomesNaTela) === JSON.stringify([...nomesNaTela].sort((a, b) => a.localeCompare(b))),
+  `veio ${JSON.stringify(nomesNaTela)}`);
+cobrar('nenhuma exceção na visão do Gestor Geral', erros.length === 0, erros[0]);
+
+
+/*
+ * ====================== O DOSSIÊ E O ÁLBUM (fase 124)
+ *
+ * Os dois pedidos que a equipe fez e a Fundação repassou em 15/09: *"ter foto
+ * das crianças no perfil […] podendo previamente visualizar o que está sendo
+ * hospedado e confirmar"* e *"poder visualizar a hora que eles quiserem e
+ * baixar"*.
+ *
+ * O bloco abre a pasta da criança, e cobra as duas entregas onde elas moram.
+ */
+await fechar();
+await aba('Acolhidos');
+await clicar(/Alice/);
+if (await clicar(/Dossiê e vivências/)) {
+  await pg.waitForTimeout(900);
+
+  /* O BAIXAR, na folha do documento já conferido.
+   *
+   * O botão da tela é "👁 Abrir", e não o título do documento: quem abre uma
+   * pasta de papel clica no olho, não no nome. A primeira versão deste bloco
+   * procurava por "Certidão" e não achava nada — e passava calada, porque o
+   * `if` não entrava. Cobrança que vive dentro de um `if` que nunca é
+   * verdadeiro é cobrança que não existe. */
+  const conferido = pg.locator('main.conteudo button').filter({ hasText: /Abrir/ }).first();
+  cobrar('o dossiê tem documento com arquivo para abrir', (await conferido.count()) > 0,
+    'sem documento guardado, o botão de baixar não teria onde aparecer (§6.19)');
+  if (await conferido.count()) {
+    await conferido.click();
+    await pg.waitForTimeout(900);
+    const folhaDoc = await corpo();
+    cobrar('o documento do dossiê tem o botão de baixar',
+      /Baixar/i.test(folhaDoc),
+      'o botão existe na biblioteca de anexos desde a fase 47, e faltava justamente aqui');
+    await fechar();
+  }
+
+  /*
+   * O QUE NASCEU EM OUTRA TELA E CHEGOU AQUI (fase 125).
+   *
+   * *"Se elas quiserem botar alguma bula, alguma receita, alguma coisa ali pela
+   * enfermagem, que já caia direto no perfil da criança."* A receita vivia presa
+   * à prescrição, na tela de Saúde, e o dossiê — que só lê `document` — não sabia
+   * que ela existia.
+   */
+  const pastaDaAlice = await conteudo();
+  cobrar('a receita anexada na tela de Saúde aparece no dossiê da criança',
+  /Receita anexada à prescrição/i.test(pastaDaAlice), pastaDaAlice.slice(0, 250));
+  cobrar('a bula também — e ela não existia em lugar nenhum',
+  /Bula anexada à prescrição/i.test(pastaDaAlice),
+  'ele pediu "alguma bula, alguma receita", e só a receita existia');
+  cobrar('e o anexo do diário de internação, que sumia com a internação encerrada',
+  /Anexo do diário de internação/i.test(pastaDaAlice),
+  'é o laudo que o hospital entregou, e ele é da criança');
+
+  /* AS VÁRIAS FOTOS, no álbum. */
+  const abaAlbum = pg.locator('main.conteudo button').filter({ hasText: /Vivências/i });
+  if (await abaAlbum.count()) {
+    await abaAlbum.first().click();
+    await pg.waitForTimeout(900);
+  }
+  const album = await conteudo();
+  cobrar('o álbum abre com a vivência semeada',
+    /Aniversário de 7 anos|bolo de chocolate/i.test(album), album.slice(0, 200));
+
+  const verFoto = pg.locator('main.conteudo button').filter({ hasText: /Abrir|Ver/i });
+  if (await verFoto.count()) {
+    await verFoto.first().click();
+    await pg.waitForTimeout(1000);
+    const folhaFoto = await corpo();
+    cobrar('uma vivência com VÁRIAS fotos diz quantas são',
+      /Foto 1 de 3/i.test(folhaFoto), folhaFoto.slice(0, 300));
+    cobrar('e dá para passar de uma para a outra',
+      (await pg.locator('.overlay button').filter({ hasText: /Próxima/ }).count()) > 0,
+      'a festa é UMA vivência, e antes virava três — três vezes a mesma data e a mesma descrição');
+    const proxima = pg.locator('.overlay button').filter({ hasText: /Próxima/ }).first();
+    if (await proxima.count()) {
+      await proxima.click();
+      await pg.waitForTimeout(900);
+      const segunda = await corpo();
+      cobrar('a segunda foto abre, e o aviso de autorização é DELA',
+        /Foto 2 de 3/i.test(segunda) && /autorização de uso de imagem/i.test(segunda),
+        'a autorização é por foto: a festa pode ter uma com uma criança de outra casa');
+    }
+    await fechar();
+  }
+
+  /* E o campo aceita VÁRIAS de uma vez, com prévia antes de confirmar. */
+  if (await clicar(/Registrar uma vivência|Nova vivência/i)) {
+    await pg.waitForTimeout(800);
+    const campo = pg.locator('.overlay input#viv-foto');
+    cobrar('o campo de foto aceita várias de uma vez',
+      (await campo.count()) > 0 && (await campo.getAttribute('multiple')) !== null,
+      'o campo não tinha `multiple`, e a educadora registrava seis vivências');
+    cobrar('e a folha diz que dá para escolher várias',
+      /pode escolher várias/i.test(await corpo()),
+      'quem não sabe que pode, manda uma de cada vez');
+    await fechar();
+  }
+}
+cobrar('nenhuma exceção no dossiê e no álbum', erros.length === 0, erros[0]);
+
+/*
+ * E NA TELA DE SAÚDE, O OUTRO LADO (fase 125).
+ *
+ * É a Enfermagem quem anexa o papel — e a aba de Esquemas, onde o botão vive,
+ * só existe para quem cadastra esquema. A primeira versão deste bloco rodou
+ * como Gestor Geral, não achou a porta, e passou calada: os dois `if` sem
+ * `cobrar` nenhum fizeram a tela inteira sumir do ensaio sem uma linha de
+ * saída. É a mesma lição da fase 124 — cobrança dentro de um `if` que nunca
+ * entra é cobrança que não existe —, e por isso aqui cada passo cobra.
+ */
+await fechar();
+await trocar('enfermagem');
+cobrar('a Enfermagem alcança a tela de Saúde', await doMais('Saúde'),
+  'é ela quem anexa a receita; sem a porta, o resto do bloco não teria onde acontecer');
+const abaEsquemas = pg.locator('main.conteudo [role="tab"]').filter({ hasText: /^Esquemas$/ });
+cobrar('e a aba dos esquemas, onde o papel do médico fica junto da prescrição',
+  (await abaEsquemas.count()) > 0, await conteudo().catch(() => ''));
+if (await abaEsquemas.count()) {
+  await abaEsquemas.first().click();
+  await pg.waitForTimeout(900);
+}
+const receitas = pg.locator('main.conteudo button').filter({ hasText: /Receitas/ }).first();
+cobrar('o esquema tem a porta das receitas', (await receitas.count()) > 0,
+  (await conteudo()).slice(0, 250));
+if (await receitas.count()) {
+  await receitas.click();
+  await pg.waitForTimeout(1000);
+  const folhaRec = await corpo();
+  cobrar('a tela de Saúde separa a receita da bula',
+    /bula/i.test(folhaRec) && /receita/i.test(folhaRec), folhaRec.slice(0, 250));
+  cobrar('e diz que o papel também está no dossiê da criança',
+    /dossiê da criança/i.test(folhaRec),
+    'sem a frase, a Enfermagem fica na dúvida sobre se o papel "caiu no perfil"');
+  await fechar();
+}
+
+cobrar('nenhuma exceção ao abrir as prévias', erros.length === 0, erros[0]);
 
 await navegador.close();
 console.log(achados.length

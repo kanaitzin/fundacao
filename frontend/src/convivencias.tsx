@@ -1,3 +1,6 @@
+import { useEffect, useState } from 'react';
+import { api } from './api';
+
 /**
  * O RETORNO DA EXPERIÊNCIA FAMILIAR, na Passagem e na ATA (1070).
  *
@@ -157,6 +160,157 @@ export function ConvivenciasDoTurno({ lista, titulo }: {
         A vaga na casa continua ocupada em todos os casos acima. Quem está fora não
         entra na chamada, na rotina nem na grade de medicamentos — e o remédio que foi
         com a criança está na folha do perfil dela.
+      </div>
+    </div>
+  );
+}
+
+/**
+ * ============================================================================
+ * O RELATO DA CONVIVÊNCIA (fase 122) — a porta que não fecha.
+ *
+ * A Fundação corrigiu o desenho antes de ele existir. O pedido de 15/09 era um
+ * acompanhamento que *"fica aberto para ser preenchido por algum educador
+ * depois de uma semana"*, e isso ia virar uma pendência com prazo. Ele voltou:
+ *
+ *   *"Acho mais fácil não dar um prazo, mas deixar em aberto para ser
+ *   registrado quando de fato tivermos uma informação. Assim, quando o jovem
+ *   sair para a visita em casa, se abre essa pergunta para ser respondida
+ *   depois — dessa forma não haverá uma pressão para arrancar a informação da
+ *   criança. Mas isso pode ser registrado quantas vezes for necessário, por
+ *   qualquer educador, tudo ficando no perfil do jovem."*
+ *
+ * O QUE ISSO IMPÕE A ESTA TELA:
+ *
+ *  * **nenhum prazo, nenhum contador, nenhuma tarja de "pendente".** Um campo
+ *    que cobra é um campo que faz o educador perguntar de novo para a criança,
+ *    e é exatamente isso que ele quis evitar. A tela diz o contrário, por
+ *    escrito: *"se ainda não há o que registrar, feche esta folha"*;
+ *  * **o que já foi escrito aparece ANTES do campo em branco.** Quem vai
+ *    escrever precisa ver o que o colega do turno da manhã observou — senão
+ *    pergunta tudo de novo, para a criança;
+ *  * **"houve alteração" é opcional e sai desmarcado.** É o único gatilho de
+ *    aviso do sistema aqui, e ele não classifica a criança: diz *"há coisa
+ *    para a técnica ver"*. Se todo relato avisasse, a equipe aprenderia a
+ *    ignorar o sino — e aí o aviso que importa some junto.
+ * ============================================================================
+ */
+export interface RelatoDaConvivencia {
+  id: string;
+  relato: string;
+  houveAlteracao: boolean;
+  por: string | null;
+  quando: string;
+}
+
+export function FolhaDoRelato({ saidaId, quem, onFechar, onGravou }: {
+  saidaId: string;
+  quem: string;
+  onFechar: () => void;
+  onGravou?: (aviso: string) => void;
+}) {
+  const [linhas, setLinhas] = useState<RelatoDaConvivencia[] | null>(null);
+  const [texto, setTexto] = useState('');
+  const [alteracao, setAlteracao] = useState(false);
+  const [erro, setErro] = useState('');
+  const [ocupado, setOcupado] = useState(false);
+
+  useEffect(() => {
+    let vivo = true;
+    api<RelatoDaConvivencia[]>(`/people/family-stays/${saidaId}/notes`)
+      .then((d) => { if (vivo) setLinhas(d); })
+      .catch(() => { if (vivo) setLinhas([]); });
+    return () => { vivo = false; };
+  }, [saidaId]);
+
+  async function gravar() {
+    setErro(''); setOcupado(true);
+    try {
+      const r = await api<{ aviso: string }>(`/people/family-stays/${saidaId}/notes`, {
+        method: 'POST',
+        body: JSON.stringify({ relato: texto.trim(), houveAlteracao: alteracao }),
+      });
+      setTexto(''); setAlteracao(false);
+      setLinhas(await api<RelatoDaConvivencia[]>(`/people/family-stays/${saidaId}/notes`)
+        .catch(() => linhas ?? []));
+      onGravou?.(r.aviso);
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Não foi possível registrar.');
+    } finally {
+      setOcupado(false);
+    }
+  }
+
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-relato"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet modal">
+        <h3 id="t-relato">A volta de {quem}</h3>
+        {/* A frase que tira a pressão, no alto e não em rodapé: é ela que
+            diferencia este campo de uma tarefa vencida. */}
+        <p className="mutetxt" style={{ marginTop: 0 }}>
+          Este espaço fica aberto. Não há prazo e não há cobrança: se ela ainda não quis
+          falar, feche esta folha e volte quando houver o que registrar — hoje, na semana
+          que vem ou daqui a um mês. Pode ser escrito quantas vezes for preciso, por
+          qualquer pessoa da equipe.
+        </p>
+
+        {linhas === null && <p className="mutetxt">Abrindo…</p>}
+        {linhas !== null && linhas.length > 0 && (
+          <>
+            <div className="eyebrow">O que já foi escrito</div>
+            <ul className="lista">
+              {linhas.map((n) => (
+                <li key={n.id}>
+                  {n.houveAlteracao && (
+                    <span className="pill c-warn">alteração observada</span>
+                  )}
+                  <div className="bloco" style={{ marginBottom: 0 }}>{n.relato}</div>
+                  <div className="mutetxt">
+                    {n.por ?? '—'} · {new Date(n.quando).toLocaleString('pt-BR', {
+                      day: '2-digit', month: '2-digit', year: 'numeric',
+                      hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo',
+                    })}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+
+        <label className="f" htmlFor="rl-texto">
+          O que foi observado, ou o que ela contou
+        </label>
+        <textarea id="rl-texto" value={texto} onChange={(e) => setTexto(e.target.value)}
+                  placeholder="Ex.: chegou quieta e foi direto para o quarto; jantou às 20h com os outros." />
+        {/* §8.14, e é a regra desta caixa inteira: o fato muda, o rótulo gruda. */}
+        <p className="mutetxt">
+          Escreva o que aconteceu, não como ela é. "Chegou sem falar e foi para o quarto"
+          e "voltou agressiva" descrevem coisas diferentes — a primeira pode mudar amanhã,
+          a segunda atravessa anos de prontuário.
+        </p>
+
+        <label className="check">
+          <input type="checkbox" checked={alteracao}
+                 onChange={(e) => setAlteracao(e.target.checked)} />
+          <span>
+            Houve alteração que a equipe técnica precisa ver
+            <small className="mutetxt linhadois">
+              Marca o registro e avisa a técnica e a coordenação da casa. O aviso não leva
+              o texto — ele diz que existe e onde está.
+            </small>
+          </span>
+        </label>
+
+        {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+
+        <div className="row">
+          <button className="btn grow" disabled={ocupado || texto.trim().length < 10}
+                  onClick={() => void gravar()}>
+            {ocupado ? 'Registrando…' : 'Registrar'}
+          </button>
+          <button className="btn ghost" onClick={onFechar}>Fechar</button>
+        </div>
       </div>
     </div>
   );

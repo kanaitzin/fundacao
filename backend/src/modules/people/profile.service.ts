@@ -158,6 +158,28 @@ export class ProfileService {
       rg: data.p.rg ?? null,
       cns: data.p.cns ?? null,
       filiacao: data.p.filiation ?? null,
+      /*
+       * A IDENTIFICAÇÃO COMPLEMENTAR — pedida no cadastro desde a fase 40, e
+       * até a 116 lida por NADA.
+       *
+       * Cinco colunas que a tela de cadastro pede, que a função de admissão
+       * grava, e que nenhum `SELECT` do sistema nomeava: quem preenchia
+       * escrevia num campo que não ia a lugar nenhum. Duas delas não são
+       * detalhe: `race` é a cor/raça AUTODECLARADA, que é como a política
+       * pública se mede, e `nis` é o que abre o CadÚnico para o benefício
+       * dela. Ficavam invisíveis exatamente para quem monta o relatório.
+       *
+       * Saem inteiras, como RG e CNS e pelo mesmo motivo: são o que se dita no
+       * balcão. O CPF continua mascarado — ele é a chave que abre cadastro em
+       * serviço de fora.
+       */
+      identificacaoComplementar: {
+        genero: data.p.gender ?? null,
+        raca: data.p.race ?? null,
+        naturalidade: data.p.birthplace ?? null,
+        nis: data.p.nis ?? null,
+        registroCivil: data.p.civil_registry ?? null,
+      },
       /* A foto é de identificação: a tela recebe a rota, não o binário. */
       foto: data.p.photo_key
         ? { rota: `/people/${personId}/photo`, em: data.p.photo_at }

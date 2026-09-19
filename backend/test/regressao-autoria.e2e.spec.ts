@@ -25,7 +25,22 @@ import { hojeNaInstituicao, janelaDoMes, dataNaInstituicao } from '../src/kernel
 
 const SENHA = 'senha-dev-123';
 const adminUrl = process.env.DATABASE_URL ?? 'postgres://rede_admin:dev-only-change-me@127.0.0.1:5432/rede_acolher';
-const HOJE = hojeNaInstituicao();
+/**
+ * O DIA LIDO NA HORA, E NUNCA GUARDADO.
+ *
+ * Isto era `const HOJE = hojeNaInstituicao()`, avaliado ao CARREGAR o arquivo
+ * — e a suíte inteira leva um minuto e meio. Numa rodada que começou às 23h58
+ * de 13/09 e terminou depois da meia-noite, dois testes reprovaram: o #10
+ * comparou o dia do banco (já 14/09) com um texto capturado no dia anterior, e
+ * o #11 pediu a lista de um dia que tinha acabado. Nenhum dos dois era defeito
+ * do sistema, e os dois pareciam um.
+ *
+ * A regra que sobra é a mesma da 13, um degrau acima: **teste não guarda o
+ * resultado de uma pergunta sobre AGORA.** Guardar o dia numa constante é
+ * guardar uma resposta que envelhece sozinha — e ela envelhece uma vez a cada
+ * 24 horas, que é a frequência com que ninguém está olhando.
+ */
+const hoje = () => hojeNaInstituicao();
 
 describe('Regressão — escopo, autoria e primeiro acesso', () => {
   let app: INestApplication, http: any, admin: Client;
@@ -216,7 +231,7 @@ describe('Regressão — escopo, autoria e primeiro acesso', () => {
 
     try {
       const lista = await request(http)
-        .get(`/api/v1/checks?houseId=${AI3}&date=${HOJE}`).set(auth(tokens.educador));
+        .get(`/api/v1/checks?houseId=${AI3}&date=${hoje()}`).set(auth(tokens.educador));
       const linha = (lista.body as any[]).find((c) => c.id === checkId);
       expect(linha).toBeDefined();
       expect(linha.esperadosNaAbertura).toBe(naAbertura);
@@ -311,7 +326,7 @@ describe('Regressão — escopo, autoria e primeiro acesso', () => {
     const { rows } = await admin.query(
       `SELECT to_char(app_hoje(),'YYYY-MM-DD') AS instituicao,
               to_char(current_date,'YYYY-MM-DD') AS servidor`);
-    expect(rows[0].instituicao).toBe(HOJE);
+    expect(rows[0].instituicao).toBe(hoje());
 
     // E a virada é a de lá: 21h30 do dia 28 é dia 28 na instituição, mesmo com
     // o servidor em UTC já no dia 29. Era esta diferença que fazia a dose da
@@ -455,7 +470,7 @@ describe('Regressão — escopo, autoria e primeiro acesso', () => {
     // Véspera calculada a partir do dia da INSTITUIÇÃO, não do dia UTC: às 22h
     // de Porto Alegre o UTC já virou, e "ontem em UTC" seria hoje aqui.
     const ontem = dataNaInstituicao(
-      new Date(new Date(`${HOJE}T12:00:00-03:00`).getTime() - 86400000));
+      new Date(new Date(`${hoje()}T12:00:00-03:00`).getTime() - 86400000));
     const p = await request(http).get(`/api/v1/nursing/panel?houseId=${AI3}&date=${ontem}`)
       .set(auth(tokens.enfermagem));
     expect(p.status).toBe(200);

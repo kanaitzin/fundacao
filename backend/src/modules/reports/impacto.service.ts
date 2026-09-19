@@ -1,11 +1,10 @@
 import {
   BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException,
 } from '@nestjs/common';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { randomUUID } from 'node:crypto';
 import { join } from 'node:path';
 import { DatabaseService } from '../../kernel/database/database.service';
 import { AuditService } from '../../kernel/audit/audit.service';
+import { ArquivosService, RegraDoArquivo } from '../../kernel/arquivos/arquivos.service';
 import { AuthenticatedUser } from '../../kernel/contracts';
 import { hojeNaInstituicao } from '../../kernel/common/tempo';
 import { DocumentosService } from '../../kernel/documentos/documentos.service';
@@ -38,13 +37,32 @@ import { folhaDoImpacto, folhaDaTrajetoria } from './impacto-folha';
  *
  * O marco é da CRIANÇA. A casa é onde ela estava.
  */
+/**
+ * O COMPROVANTE DO MARCO DE VIDA — 10 MB, PDF, JPG ou PNG.
+ *
+ * O diploma, a carteira de trabalho, a foto da formatura: é o que a casa
+ * fotografa com o celular ou digitaliza na hora. A regra é a da nota de
+ * internação, e ficou igual por coincidência — as duas nasceram da mesma
+ * cópia. A fase 114 deixou as duas explícitas, cada uma ao lado do seu método,
+ * para que a próxima mudança seja uma decisão e não um efeito.
+ */
+const O_COMPROVANTE: RegraDoArquivo = {
+  aceita: ['application/pdf', 'image/jpeg', 'image/png'],
+  maximo: 10 * 1024 * 1024,
+  recusas: {
+    vazio: 'O comprovante chegou vazio.',
+    grande: 'O comprovante passa de 10 MB.',
+    tipo: 'O comprovante precisa ser PDF, JPG ou PNG.',
+  },
+};
+
 @Injectable()
 export class ImpactoService {
-  private readonly dir = process.env.ARQUIVOS_DIR ?? join(process.cwd(), '.arquivos');
 
   constructor(
     @Inject(DatabaseService) private readonly db: DatabaseService,
     @Inject(AuditService) private readonly audit: AuditService,
+    @Inject(ArquivosService) private readonly arquivos: ArquivosService,
     @Inject(DocumentosService) private readonly documentos: DocumentosService,
   ) {}
 
@@ -371,24 +389,9 @@ export class ImpactoService {
         'Escreva o que aconteceu. O tipo já diz a categoria — esta linha é a história.');
     }
 
-    let chave: string | null = null;
-    let mime: string | null = null;
-    if (input.conteudo) {
-      const bytes = Buffer.from(
-        String(input.conteudo).replace(/^data:[^;]+;base64,/, ''), 'base64');
-      if (!bytes.length) throw new BadRequestException('O comprovante chegou vazio.');
-      if (bytes.length > 10 * 1024 * 1024) {
-        throw new BadRequestException('O comprovante passa de 10 MB.');
-      }
-      const hex = bytes.subarray(0, 8).toString('hex');
-      mime = hex.startsWith('25504446') ? 'application/pdf'
-        : hex.startsWith('ffd8ff') ? 'image/jpeg'
-        : hex.startsWith('89504e47') ? 'image/png' : null;
-      if (!mime) throw new BadRequestException('O comprovante precisa ser PDF, JPG ou PNG.');
-      chave = randomUUID();
-      await mkdir(this.dir, { recursive: true });
-      await writeFile(join(this.dir, chave), bytes);
-    }
+    const guardado = await this.arquivos.guardar(input.conteudo, O_COMPROVANTE);
+    const chave = guardado?.chave ?? null;
+    const mime = guardado?.mime ?? null;
 
     return this.db.asUser(user.id, async (c) => {
       try {
@@ -444,7 +447,7 @@ export class ImpactoService {
     });
     if (!m) throw new NotFoundException('Marco não encontrado — ou fora do seu alcance.');
     if (!m.storage_key) throw new NotFoundException('Este marco não tem comprovante.');
-    const bytes = await readFile(join(this.dir, m.storage_key)).catch(() => null);
+    const bytes = await this.arquivos.ler(m.storage_key);
     if (!bytes) {
       throw new NotFoundException(
         'O comprovante está registrado mas não foi encontrado no armazenamento. '

@@ -204,6 +204,58 @@ describe('Fronteiras entre partições', () => {
   });
 
   /**
+   * O MANIFESTO DIZ O QUE O MÓDULO TEM — e isto faltava (fase 120).
+   *
+   * O `dependeDoEsquemaDe` é conferido nas duas direções desde cedo: módulo que
+   * usa tabela de outro precisa declarar, e módulo que declara e não usa é
+   * mandado retirar. **Mas o conferidor só enxerga uma tabela se algum
+   * manifesto disser de quem ela é** — e ninguém verificava isso.
+   *
+   * Medido em 15/09: **26 das 110 tabelas não estavam declaradas em manifesto
+   * nenhum.** `hospitalization`, `person_contact`, `admission_record`,
+   * `person_credential`, `shift_assignment`, `life_milestone` — um quarto do
+   * esquema, invisível para a única regra que guarda as fronteiras entre as
+   * partições. Um módulo que lesse `person_credential` de outro passaria no
+   * teste, porque o teste não sabia que a tabela existia.
+   *
+   * Nada quebrava. É a marca destes defeitos: a regra continuava verde, e
+   * estava olhando menos do que dizia.
+   *
+   * *Por que `CREATE TABLE` e não o catálogo do banco: o catálogo traria também
+   * o que uma extensão criou, e o manifesto é sobre o que ESTE repositório
+   * escreveu. Quem cria a tabela é quem responde por ela.*
+   */
+  it('toda tabela criada por um módulo está declarada no manifesto dele', () => {
+    const violacoes: string[] = [];
+    for (const m of manifests.values()) {
+      const dir = join(MODULES_DIR, m.name, 'migrations');
+      if (!existsSync(dir)) continue;
+      const declaradas = new Set((m as any).tabelas ?? []);
+      const criadas = new Set<string>();
+      for (const arq of readdirSync(dir).filter((f) => f.endsWith('.sql'))) {
+        const src = readFileSync(join(dir, arq), 'utf8');
+        for (const achado of src.matchAll(/CREATE TABLE (?:IF NOT EXISTS )?([a-z_]+)/g)) {
+          criadas.add(achado[1]);
+        }
+      }
+      for (const t of criadas) {
+        if (!declaradas.has(t)) {
+          violacoes.push(`${m.name}: cria "${t}" e não a declara em module.json`);
+        }
+      }
+      /* E o contrário: declarar tabela que o módulo não cria é dizer que ela é
+         sua quando ela é de outro — e o conferidor de fronteiras passaria a
+         permitir o que devia recusar. */
+      for (const t of declaradas as Set<string>) {
+        if (!criadas.has(t)) {
+          violacoes.push(`${m.name}: declara "${t}" e não a cria — ela é de outro módulo`);
+        }
+      }
+    }
+    expect(violacoes).toEqual([]);
+  });
+
+  /**
    * JOIN com tabela protegida por RLS não filtra coluna — ele ELIMINA A LINHA,
    * em silêncio. Uma auditoria encontrou oito lugares com esse defeito, todos
    * com o mesmo efeito: o registro deixado numa casa desaparecia no dia em que
@@ -387,6 +439,42 @@ describe('Estado e concorrência nas funções do banco', () => {
         if (/new Date\(\)\.toISOString\(\)\.slice\(0, ?10\)/.test(linha)
             || /new Date\(\)\.getUTCFullYear\(\)/.test(linha)) {
           violacoes.push(`${rel}:${i + 1}: o dia de hoje sai em UTC — use hojeNaInstituicao()`);
+        }
+      });
+    }
+    expect(violacoes).toEqual([]);
+  });
+
+  /**
+   * O ACERVO TEM UM DONO SÓ (fase 114).
+   *
+   * Seis serviços traziam `process.env.ARQUIVOS_DIR ?? join(process.cwd(),
+   * '.arquivos')` e cada um decodificava o base64, conferia a assinatura e
+   * gravava do seu jeito. Ao juntá-los apareceu o que a repetição escondia:
+   * eles NÃO faziam a mesma conferência, e uma das cópias dava `image/webp` a
+   * um arquivo AVI.
+   *
+   * A regra não é estética. Cópia de regra de segurança diverge no primeiro
+   * ajuste, e a que divergir vai ser a que ninguém olhou — e aqui o que se
+   * guarda é documento de criança. Quem precisar de outra regra declara uma
+   * `RegraDoArquivo`; quem precisar de outro ACERVO — como o `DriveGateway`,
+   * que arquiva cópia documental em `ARQUIVO_DRIVE_DIR` — usa outra variável,
+   * e é por isso que a busca abaixo é pelo nome exato.
+   */
+  it('só o kernel conhece o acervo de documentos', () => {
+    const arquivos = [...tsFiles(join(SRC, 'modules')), ...tsFiles(join(SRC, 'kernel'))];
+    const violacoes: string[] = [];
+    for (const arq of arquivos) {
+      const rel = relative(SRC, arq);
+      if (rel === 'kernel/arquivos/arquivos.service.ts') continue;
+      const src = readFileSync(arq, 'utf8');
+      src.split('\n').forEach((linha, i) => {
+        /* Comentário não abre pasta. O `DriveGateway` CITA o nome para
+           explicar por que o dele difere por uma letra — e essa frase é
+           justamente o que impede a próxima confusão. */
+        if (/^\s*(\*|\/\/|\/\*)/.test(linha)) return;
+        if (/\bARQUIVOS_DIR\b/.test(linha)) {
+          violacoes.push(`${rel}:${i + 1}: o acervo é do kernel — injete ArquivosService`);
         }
       });
     }

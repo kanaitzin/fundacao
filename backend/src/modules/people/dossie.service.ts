@@ -1,11 +1,10 @@
 import {
   BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException,
 } from '@nestjs/common';
-import { createHash, randomUUID } from 'node:crypto';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { createHash } from 'node:crypto';
 import { DatabaseService } from '../../kernel/database/database.service';
 import { AuditService } from '../../kernel/audit/audit.service';
+import { ArquivosService, RegraDoArquivo } from '../../kernel/arquivos/arquivos.service';
 import { AuthenticatedUser } from '../../kernel/contracts';
 import {
   CATEGORIAS_DOSSIE, DOSSIE_EXIGIDO, TAMANHO_MAXIMO, TIPOS_DE_ARQUIVO,
@@ -39,14 +38,62 @@ import {
  * continua, e a tela MOSTRA quando ela não está registrada — não impede, avisa.
  * Ausência é informação, e ninguém é pego de surpresa quando alguém perguntar.
  */
+/**
+ * O DOCUMENTO DO DOSSIÊ — o mais largo dos seis lugares, e com razão: aqui
+ * cabe uma certidão digitalizada de dez páginas. 15 MB, imagem ou PDF.
+ *
+ * A frase da recusa é a que dois testes cobram desde a fase 82 — *"a
+ * conferência é pela assinatura do arquivo, não pela extensão do nome"* —, e
+ * ela continua palavra por palavra: é o que a técnica lê quando um `.exe`
+ * renomeado para `.pdf` é recusado.
+ */
+const O_DOCUMENTO: RegraDoArquivo = {
+  aceita: [...TIPOS_DE_ARQUIVO.map((t) => t.tipo), 'image/heic'],
+  maximo: TAMANHO_MAXIMO,
+  recusas: {
+    vazio: 'O arquivo chegou vazio.',
+    grande: `O arquivo passa de ${Math.round(TAMANHO_MAXIMO / 1024 / 1024)} MB. Digitalize em `
+      + 'qualidade menor — a foto do celular costuma resolver.',
+    tipo: 'Este arquivo não é imagem nem PDF. O dossiê guarda documento digitalizado — e a '
+      + 'conferência é pela assinatura do arquivo, não pela extensão do nome.',
+  },
+};
+
+/**
+ * A FOTO DA VIVÊNCIA — o mesmo tamanho, sem PDF.
+ *
+ * Era uma conferência a mais depois do tipo (`!tipo.startsWith('image/')`);
+ * virou a lista, que é a mesma coisa dita onde se lê (fase 114).
+ */
+/**
+ * QUANTAS FOTOS POR ENVIO (fase 124).
+ *
+ * Não é limite do álbum — ele nunca teve um. É o tamanho de um envio que cabe
+ * numa conexão de casa: doze fotos de celular já passam de trinta megabytes,
+ * e quem aperta "guardar" com vinte no meio de um plantão fica olhando uma
+ * barra que não anda e desiste. A recusa diz isso, e diz o que fazer.
+ */
+const MAXIMO_DE_FOTOS = 12;
+
+const A_FOTO_DA_VIVENCIA: RegraDoArquivo = {
+  aceita: TIPOS_DE_ARQUIVO.filter((t) => t.tipo.startsWith('image/'))
+    .map((t) => t.tipo).concat('image/heic'),
+  maximo: TAMANHO_MAXIMO,
+  recusas: {
+    vazio: 'O arquivo chegou vazio.',
+    grande: `O arquivo passa de ${Math.round(TAMANHO_MAXIMO / 1024 / 1024)} MB. Digitalize em `
+      + 'qualidade menor — a foto do celular costuma resolver.',
+    tipo: 'A vivência recebe FOTO. Documento vai para o dossiê.',
+  },
+};
+
 @Injectable()
 export class DossieService {
   /** Onde os objetos moram. Fora do repositório, e configurável. */
-  private readonly dir = process.env.ARQUIVOS_DIR ?? join(process.cwd(), '.arquivos');
-
   constructor(
     @Inject(DatabaseService) private readonly db: DatabaseService,
     @Inject(AuditService) private readonly audit: AuditService,
+    @Inject(ArquivosService) private readonly arquivos: ArquivosService,
   ) {}
 
   /** O vocabulário: a lista exigida, as categorias e os tipos de vivência. */
@@ -164,13 +211,9 @@ export class DossieService {
       throw new BadRequestException('Categoria de documento inválida.');
     }
 
-    const bytes = this.decodifica(input.conteudo);
-    const tipo = this.tipoReal(bytes);
-
-    const sha = createHash('sha256').update(bytes).digest('hex');
-    const chaveObjeto = randomUUID();
-    await mkdir(this.dir, { recursive: true });
-    await writeFile(join(this.dir, chaveObjeto), bytes);
+    const guardado = await this.arquivos.guardar(input.conteudo, O_DOCUMENTO);
+    if (!guardado) throw new BadRequestException('Nenhum arquivo foi enviado.');
+    const { chave: chaveObjeto, mime, rotulo, sha256: sha, tamanho } = guardado;
 
     const id = await this.db.asUser(user.id, async (c) => {
       const { rows: [d] } = await c.query(
@@ -183,18 +226,18 @@ export class DossieService {
         `INSERT INTO document_version (document_id, version, storage_key, sha256,
            mime, file_name, size_bytes, created_by)
          VALUES ($1, 1, $2, $3, $4, $5, $6, $7)`,
-        [d.id, chaveObjeto, sha, tipo.tipo, input.nomeArquivo, bytes.length, user.id]);
+        [d.id, chaveObjeto, sha, mime, input.nomeArquivo, tamanho, user.id]);
       return d.id as string;
     });
 
     await this.audit.log({
       action: 'document.attach', actorId: user.id, entity: 'document', entityId: id,
-      detail: { categoria: input.categoria, chave: input.chave ?? null, tipo: tipo.tipo,
-                bytes: bytes.length },
+      detail: { categoria: input.categoria, chave: input.chave ?? null, tipo: mime,
+                bytes: tamanho },
     });
 
     return {
-      id, tipo: tipo.rotulo, sha256: sha, tamanho: bytes.length,
+      id, tipo: rotulo, sha256: sha, tamanho,
       aviso: 'Arquivo guardado — e ainda NÃO conferido. Abra a prévia e confirme que é este '
         + 'documento e que está legível; o aceite fica com o seu nome e o horário.',
     };
@@ -231,7 +274,20 @@ export class DossieService {
    * mesma transação (§20) — e o sha256 é conferido: um objeto trocado por
    * baixo não passa como se fosse o que foi aceito.
    */
-  async arquivo(user: AuthenticatedUser, personId: string, documentId: string) {
+  /**
+   * O documento do dossiê, aberto — ou BAIXADO (fase 124).
+   *
+   * *"Poder visualizar a hora que eles quiserem e baixar."* Sair com o arquivo
+   * é outro ato, e é o que alguém vai querer rastrear no dia em que uma
+   * certidão aparecer onde não devia. Por isso o download passa por uma rota
+   * própria em vez de salvar no navegador os bytes que a prévia já tem: duas
+   * ações distintas, dois nomes distintos na auditoria.
+   *
+   * A CONFERÊNCIA DO SHA VALE PARA AS DUAS. Um arquivo trocado por baixo não
+   * sai do sistema nem para a tela, nem para o disco de ninguém.
+   */
+  async arquivo(user: AuthenticatedUser, personId: string, documentId: string,
+                baixando = false) {
     const v = await this.db.asUser(user.id, async (c) => {
       const { rows: [row] } = await c.query(
         `SELECT d.category, d.title, v.storage_key, v.sha256, v.mime, v.file_name
@@ -241,7 +297,8 @@ export class DossieService {
           ORDER BY v.version DESC LIMIT 1`, [documentId, personId]);
       if (row) {
         await this.audit.log({
-          action: 'document.open', actorId: user.id, entity: 'document', entityId: documentId,
+          action: baixando ? 'document.download' : 'document.open',
+          actorId: user.id, entity: 'document', entityId: documentId,
           detail: { categoria: row.category },
         }, c);
       }
@@ -251,7 +308,7 @@ export class DossieService {
     // de um documento que não existe. Dizer 403 já contaria que ele existe.
     if (!v) throw new NotFoundException('Documento não encontrado.');
 
-    const bytes = await readFile(join(this.dir, v.storage_key)).catch(() => null);
+    const bytes = await this.arquivos.ler(v.storage_key);
     if (!bytes) {
       throw new NotFoundException(
         'O arquivo não está no armazenamento. O registro do documento continua — o que sumiu '
@@ -273,20 +330,42 @@ export class DossieService {
   async vivencias(user: AuthenticatedUser, personId: string) {
     const rows = await this.db.asUser(user.id, async (c) => {
       const { rows: r } = await c.query(
-        `SELECT m.id, m.event_type, m.happened_on, m.description, m.has_photo,
-                m.photo_authorized, m.storage_key, m.mime, m.file_name,
+        `SELECT m.id, m.event_type, m.happened_on, m.description,
                 m.created_at, app_user_display_name(m.created_by) AS por
            FROM memory_record m WHERE m.person_id = $1
           ORDER BY m.happened_on DESC, m.created_at DESC`, [personId]);
-      return r;
+      /* AS FOTOS, numa consulta só (fase 124). A alternativa era a tela pedir
+         uma chamada por vivência, e um álbum de quarenta vivências faria
+         quarenta e uma. `memory_photo` já é filtrada pela RLS da criança. */
+      const { rows: fotos } = await c.query(
+        `SELECT p.id, p.memory_id, p.mime, p.file_name, p.photo_authorized, p.position
+           FROM memory_photo p WHERE p.person_id = $1
+          ORDER BY p.memory_id, p.position, p.created_at`, [personId]);
+      return { r, fotos };
     });
-    const itens = rows.map((m: any) => ({
-      id: m.id, tipo: m.event_type, quando: m.happened_on, descricao: m.description,
-      temFoto: m.has_photo, autorizacaoRegistrada: m.photo_authorized,
-      arquivo: m.storage_key ? { nome: m.file_name, tipo: m.mime } : null,
-      registradoPor: m.por, registradoEm: m.created_at,
-    }));
-    const semAutorizacao = itens.filter((i) => i.temFoto && !i.autorizacaoRegistrada).length;
+    const itens = rows.r.map((m: any) => {
+      const dela = rows.fotos.filter((f: any) => f.memory_id === m.id);
+      return {
+        id: m.id, tipo: m.event_type, quando: m.happened_on, descricao: m.description,
+        /* Derivado das fotos que EXISTEM, e não de `has_photo`: um contador
+           gravado precisa de gatilho para ficar em dia, e um contador errado é
+           pior do que contador nenhum — a tela diria "3 fotos" e abriria duas. */
+        temFoto: dela.length > 0,
+        /* A vivência está autorizada quando TODAS as fotos dela estão. A
+           autorização é por foto: a festa pode ter uma com uma criança de
+           outra casa, e a autorização dela é outra conversa. */
+        autorizacaoRegistrada: dela.length > 0 && dela.every((f: any) => f.photo_authorized),
+        fotos: dela.map((f: any) => ({
+          id: f.id, nome: f.file_name, tipo: f.mime,
+          autorizacaoRegistrada: f.photo_authorized === true,
+        })),
+        /* Mantido para quem já lia `arquivo`: é a primeira foto. */
+        arquivo: dela.length ? { nome: dela[0].file_name, tipo: dela[0].mime } : null,
+        registradoPor: m.por, registradoEm: m.created_at,
+      };
+    });
+    const semAutorizacao = itens
+      .reduce((n, i) => n + i.fotos.filter((f: any) => !f.autorizacaoRegistrada).length, 0);
     return {
       itens, tipos: TIPOS_DE_VIVENCIA, semAutorizacao,
       aviso: 'Este álbum é da criança. É o que ela leva quando sai, e costuma ser a única '
@@ -299,9 +378,24 @@ export class DossieService {
     };
   }
 
+  /**
+   * Registrar uma vivência — com QUANTAS FOTOS forem (fase 124).
+   *
+   * *"Eles querem também ter foto das crianças no perfil […] podendo
+   * previamente visualizar o que está sendo hospedado e confirmar."*
+   *
+   * O álbum já aceitava fotos sem limite; o que faltava era mais de uma DA
+   * MESMA vivência. A educadora que voltava da festa com seis fotos registrava
+   * seis vivências — seis vezes a mesma data, seis vezes a mesma descrição, e
+   * o álbum da criança contando a festa seis vezes.
+   *
+   * `conteudo` e `nomeArquivo` continuam aceitos, e por isso o corpo antigo
+   * não quebra: é o caminho de quem manda uma só.
+   */
   async registrarVivencia(user: AuthenticatedUser, personId: string, input: {
     tipo: string; quando: string; descricao: string;
     conteudo?: string; nomeArquivo?: string; autorizacaoRegistrada?: boolean;
+    fotos?: { conteudo: string; nomeArquivo?: string; autorizacaoRegistrada?: boolean }[];
   }) {
     if (!TIPOS_DE_VIVENCIA.some((t) => t.code === input.tipo)) {
       throw new BadRequestException('Tipo de vivência inválido.');
@@ -314,100 +408,113 @@ export class DossieService {
       throw new BadRequestException('Informe a data da vivência.');
     }
 
-    let chave: string | null = null; let tipoArq: string | null = null; let sha: string | null = null;
-    if (input.conteudo) {
-      const nome = input.nomeArquivo ?? 'foto';
+    /* Uma lista só, venha ela do campo antigo ou do novo. Duas maneiras de
+       receber a mesma coisa é como as duas divergem depois. */
+    const pedidas = [
+      ...(input.conteudo
+        ? [{ conteudo: input.conteudo, nomeArquivo: input.nomeArquivo,
+             autorizacaoRegistrada: input.autorizacaoRegistrada }]
+        : []),
+      ...(input.fotos ?? []),
+    ];
+    if (pedidas.length > MAXIMO_DE_FOTOS) {
+      throw new BadRequestException(
+        `Envie até ${MAXIMO_DE_FOTOS} fotos por vez. Não é limite do álbum — é o tamanho de `
+        + 'um envio que cabe numa conexão de casa; registre outra vivência, ou mande em duas '
+        + 'levas.');
+    }
+
+    const guardadas: { chave: string; mime: string | null; sha: string | null;
+                       nome: string | null; autorizada: boolean }[] = [];
+    for (const f of pedidas) {
+      const nome = f.nomeArquivo ?? 'foto';
       const proibido = tituloProibido(nome);
       if (proibido) throw new BadRequestException(`O nome do arquivo: ${proibido}`);
-      const bytes = this.decodifica(input.conteudo);
-      const t = this.tipoReal(bytes);
-      if (!t.tipo.startsWith('image/')) {
-        throw new BadRequestException('A vivência recebe FOTO. Documento vai para o dossiê.');
-      }
-      sha = createHash('sha256').update(bytes).digest('hex');
-      chave = randomUUID(); tipoArq = t.tipo;
-      await mkdir(this.dir, { recursive: true });
-      await writeFile(join(this.dir, chave), bytes);
+      const foto = await this.arquivos.guardar(f.conteudo, A_FOTO_DA_VIVENCIA);
+      if (!foto) throw new BadRequestException('Nenhum arquivo foi enviado.');
+      guardadas.push({
+        chave: foto.chave, mime: foto.mime, sha: foto.sha256,
+        nome: f.nomeArquivo ?? null,
+        /* POR FOTO. A festa pode ter uma com uma criança de outra casa. */
+        autorizada: f.autorizacaoRegistrada === true,
+      });
     }
 
     const id = await this.db.asUser(user.id, async (c) => {
       const { rows: [m] } = await c.query(
         `INSERT INTO memory_record (person_id, event_type, happened_on, description,
-           has_photo, photo_authorized, storage_key, mime, sha256, file_name, created_by)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id`,
-        [personId, input.tipo, input.quando, input.descricao.trim(), chave != null,
-         input.autorizacaoRegistrada === true, chave, tipoArq, sha,
-         input.nomeArquivo ?? null, user.id]);
+           has_photo, photo_authorized, created_by)
+         VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id`,
+        [personId, input.tipo, input.quando, input.descricao.trim(),
+         guardadas.length > 0,
+         guardadas.length > 0 && guardadas.every((g) => g.autorizada), user.id]);
+      /* As colunas de arquivo de `memory_record` NÃO são mais escritas: a foto
+         vive em `memory_photo` desde a 1320, e guardar o mesmo fato em dois
+         lugares é como duas versões da verdade começam. */
+      let posicao = 0;
+      for (const g of guardadas) {
+        posicao += 1;
+        await c.query(
+          `INSERT INTO memory_photo (memory_id, person_id, storage_key, mime, sha256,
+             file_name, photo_authorized, position, created_by)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+          [m.id, personId, g.chave, g.mime, g.sha, g.nome, g.autorizada, posicao, user.id]);
+      }
       return m.id as string;
     });
+    const chave = guardadas.length ? guardadas[0].chave : null;
 
     await this.audit.log({
       action: 'memory.record', actorId: user.id, entity: 'memory_record', entityId: id,
-      detail: { tipo: input.tipo, comFoto: chave != null,
-                autorizacaoRegistrada: input.autorizacaoRegistrada === true },
+      detail: { tipo: input.tipo, comFoto: chave != null, fotos: guardadas.length,
+                autorizacaoRegistrada: guardadas.every((g) => g.autorizada) },
     });
 
     return {
       id,
-      aviso: chave && input.autorizacaoRegistrada !== true
+      fotos: guardadas.length,
+      aviso: chave && !guardadas.every((g) => g.autorizada)
         ? 'Vivência registrada. A autorização de uso de imagem NÃO está registrada nesta foto — '
           + 'fica anotado assim, e o álbum mostra.'
         : 'Vivência registrada no álbum da criança.',
     };
   }
 
-  async foto(user: AuthenticatedUser, personId: string, memoryId: string) {
+  /**
+   * UMA foto de uma vivência (fase 124).
+   *
+   * `fotoId` é opcional por compatibilidade: sem ele, a primeira. A vivência
+   * passou a ter quantas fotos tiver — uma festa com seis fotos era, antes,
+   * seis vivências com a mesma data e a mesma descrição.
+   */
+  async foto(user: AuthenticatedUser, personId: string, memoryId: string, fotoId?: string) {
     const m = await this.db.asUser(user.id, async (c) => {
+      /* rls-join-ok: `mp_select` já filtra `memory_photo` pelo alcance da
+         criança; o `person_id` no WHERE é conferência da rota, não da RLS. */
       const { rows: [row] } = await c.query(
-        `SELECT storage_key, mime, file_name, sha256 FROM memory_record
-          WHERE id = $1 AND person_id = $2`, [memoryId, personId]);
+        `SELECT p.id, p.storage_key, p.mime, p.file_name, p.sha256
+           FROM memory_photo p
+          WHERE p.memory_id = $1 AND p.person_id = $2
+            AND ($3::uuid IS NULL OR p.id = $3)
+          ORDER BY p.position, p.created_at LIMIT 1`,
+        [memoryId, personId, fotoId ?? null]);
       if (row) {
+        /* A abertura é da FOTO, e a entidade continua sendo a vivência: quem
+           procura "quem abriu o álbum da Alice" procura por `memory_record`,
+           e um segundo nome de entidade esconderia metade das aberturas. */
         await this.audit.log({
           action: 'memory.open', actorId: user.id,
-          entity: 'memory_record', entityId: memoryId, detail: {},
+          entity: 'memory_record', entityId: memoryId, detail: { fotoId: row.id },
         }, c);
       }
       return row;
     });
     if (!m?.storage_key) throw new NotFoundException('Esta vivência não tem foto.');
-    const bytes = await readFile(join(this.dir, m.storage_key)).catch(() => null);
+    const bytes = await this.arquivos.ler(m.storage_key);
     if (!bytes) throw new NotFoundException('A foto não está no armazenamento.');
     return { nome: m.file_name, tipo: m.mime, conteudo: bytes.toString('base64') };
   }
 
   // ------------------------------------------------------------------
 
-  private decodifica(base64: string): Buffer {
-    const limpo = String(base64 ?? '').replace(/^data:[^;]+;base64,/, '');
-    if (!limpo) throw new BadRequestException('Nenhum arquivo foi enviado.');
-    const bytes = Buffer.from(limpo, 'base64');
-    if (!bytes.length) throw new BadRequestException('O arquivo chegou vazio.');
-    if (bytes.length > TAMANHO_MAXIMO) {
-      throw new BadRequestException(
-        `O arquivo passa de ${Math.round(TAMANHO_MAXIMO / 1024 / 1024)} MB. Digitalize em `
-        + 'qualidade menor — a foto do celular costuma resolver.');
-    }
-    return bytes;
-  }
-
-  /**
-   * O tipo REAL, pela assinatura do arquivo.
-   *
-   * Extensão não é prova de nada: renomear é um toque. Quem guarda documento de
-   * criança confere os primeiros bytes.
-   */
-  private tipoReal(bytes: Buffer) {
-    const hex = bytes.subarray(0, 12).toString('hex');
-    // HEIC não tem assinatura no começo: o marcador `ftyp` fica no 5º byte.
-    if (hex.slice(8, 16) === '66747970') {
-      return { tipo: 'image/heic', rotulo: 'Foto do celular (HEIC)' };
-    }
-    const achado = TIPOS_DE_ARQUIVO.find((t) => hex.startsWith(t.assinatura));
-    if (!achado) {
-      throw new BadRequestException(
-        'Este arquivo não é imagem nem PDF. O dossiê guarda documento digitalizado — e a '
-        + 'conferência é pela assinatura do arquivo, não pela extensão do nome.');
-    }
-    return { tipo: achado.tipo, rotulo: achado.rotulo };
-  }
 }

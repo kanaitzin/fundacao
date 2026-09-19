@@ -78,6 +78,79 @@ export class ChecksService {
     @Inject(EventBus) private readonly bus: EventBus,
   ) {}
 
+  /**
+   * A PRESENÇA DE UMA CRIANÇA, NA VIDA DELA.
+   *
+   * O provedor de linha do tempo das chamadas devolve vazio na visão de um
+   * acolhido, com o comentário *"o registro dele está no perfil"* — e a
+   * varredura da fase 106 (§9, item 4) mostrou que **não estava**: `check_result`
+   * só era lido DENTRO da própria chamada. Para saber se a Alice esteve no
+   * almoço de terça, alguém tinha de abrir a chamada daquele almoço.
+   *
+   * A chamada continua coletiva, e é assim que ela é feita. O que faltava era
+   * o recorte por criança — a mesma pergunta que o filtro "Por criança" do Dia
+   * responde para hoje, e ninguém respondia para a semana passada.
+   *
+   * **A exceção vem com o que foi escrito.** "Recusou o jantar" sem a frase ao
+   * lado é um rótulo que atravessa meses; o §8.14 inteiro é sobre isso. E a
+   * CORREÇÃO vem junto: `check_result_amendment` guardava, por gatilho, o que
+   * constava antes e quem trocou — e **nunca era lido por nada**.
+   *
+   * O que ela NÃO faz: contar. Nem faltas, nem recusas, nem percentual de
+   * presença. Um número desses na tela de uma criança de 12 anos é o começo de
+   * uma ficha de comportamento (regra 3) — e o §8.7.2 já explicou por que o
+   * número viaja e o motivo fica para trás.
+   */
+  async presencaDoAcolhido(user: AuthenticatedUser, personId: string, dias = 14) {
+    const janela = Math.min(Math.max(dias, 1), 60);
+    return this.db.asUser(user.id, async (c) => {
+      /* rls-join-ok: `cr_select` já exige a chamada visível, e `cc_select`
+         filtra a chamada por casa. O recorte é do banco, não do serviço. */
+      const { rows } = await c.query(
+        `SELECT r.id, r.option_code, r.note, r.happened_at, r.offline,
+                k.id AS chamada_id, k.kind, k.title, k.reference_at,
+                app_user_display_name(r.recorded_by) AS por
+           FROM check_result r
+           JOIN collective_check k ON k.id = r.check_id
+          WHERE r.person_id = $1
+            AND k.reference_at >= app_hoje() - ($2::int - 1)
+          ORDER BY k.reference_at DESC, k.id DESC`, [personId, janela]);
+
+      const { rows: correcoes } = await c.query(
+        `SELECT a.check_result_id, a.option_code, a.note, a.replaced_at,
+                app_user_display_name(a.recorded_by) AS era_de,
+                app_user_display_name(a.replaced_by) AS corrigido_por
+           FROM check_result_amendment a
+          WHERE a.person_id = $1
+            AND a.replaced_at >= app_hoje() - ($2::int - 1)
+          ORDER BY a.replaced_at`, [personId, janela]);
+
+      const rotulo = (kind: string, code: string) =>
+        (OPCOES[kind] ?? PADRAO).find((o) => o.code === code);
+
+      return {
+        dias: janela,
+        linhas: rows.map((r) => {
+          const o = rotulo(r.kind, r.option_code);
+          return {
+            id: r.id, chamadaId: r.chamada_id, tipo: r.kind, titulo: r.title,
+            quando: r.reference_at, registradoEm: r.happened_at,
+            resultado: o?.label ?? r.option_code,
+            excecao: o?.excecao ?? false,
+            justificativa: r.note, por: r.por, offline: r.offline,
+            correcoes: correcoes
+              .filter((a) => a.check_result_id === r.id)
+              .map((a) => ({
+                antes: rotulo(r.kind, a.option_code)?.label ?? a.option_code,
+                justificativaAntes: a.note, eraDe: a.era_de,
+                corrigidoPor: a.corrigido_por, em: a.replaced_at,
+              })),
+          };
+        }),
+      };
+    });
+  }
+
   opcoes(kind: string) {
     return OPCOES[kind] ?? PADRAO;
   }
@@ -132,8 +205,25 @@ export class ChecksService {
   /** Estado da chamada: quem já foi conferido e quem falta. */
   async get(user: AuthenticatedUser, checkId: string) {
     const data = await this.db.asUser(user.id, async (c) => {
+      /*
+       * QUEM ABRIU E QUEM FECHOU.
+       *
+       * `created_by` e `confirmed_by` são gravados desde a migração 0120 e
+       * **nunca eram lidos** — a varredura da fase 106 (§9, item 5) os
+       * registrou entre as pontas soltas. A tela dizia "Chamada confirmada" e
+       * mais nada: quem abrisse a mesma chamada um mês depois via o ato sem o
+       * autor, num sistema onde cada MARCAÇÃO tem nome por regra (§8.2).
+       *
+       * Confirmar uma chamada não é detalhe administrativo: é alguém dizendo
+       * que olhou todas as crianças da casa e que está tudo conferido. Esse
+       * "alguém" precisa ter nome — é o mesmo motivo pelo qual a conferência
+       * de mesa já trazia o dela.
+       */
       const { rows: [k] } = await c.query(
-        `SELECT * FROM collective_check WHERE id = $1`, [checkId]);
+        `SELECT k.*,
+                app_user_display_name(k.created_by)   AS aberta_por,
+                app_user_display_name(k.confirmed_by) AS confirmada_por
+           FROM collective_check k WHERE k.id = $1`, [checkId]);
       if (!k) return null;
       // A lista é a UNIÃO de quem está ativo agora com quem já foi conferido:
       // uma criança que chegou depois da abertura precisa aparecer para ser
@@ -212,6 +302,8 @@ export class ChecksService {
     return {
       id: data.k.id, tipo: data.k.kind, titulo: data.k.title,
       status: data.k.status,
+      abertaPor: data.k.aberta_por, abertaEm: data.k.created_at,
+      confirmadaPor: data.k.confirmada_por, confirmadaEm: data.k.confirmed_at,
       esperados: linhas.filter((l: any) => l.ativo).length,
       esperadosNaAbertura: data.k.expected,
       conferidos,

@@ -6,6 +6,7 @@ import { DatabaseModule } from './kernel/database/database.module';
 import { AuditModule } from './kernel/audit/audit.module';
 import { EventsModule } from './kernel/events/events.module';
 import { DocumentosModule } from './kernel/documentos/documentos.module';
+import { ArquivosModule } from './kernel/arquivos/arquivos.module';
 import { HealthController } from './kernel/health/health.controller';
 
 // ---------- Módulos de domínio: partições independentes ----------
@@ -38,6 +39,7 @@ import { ArchiveModule } from './modules/archive';
     AuditModule,
     EventsModule,
     DocumentosModule,
+    ArquivosModule,
 
     IdentityModule,
     HousesModule,

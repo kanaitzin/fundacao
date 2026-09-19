@@ -966,3 +966,82 @@ textarea{
 }
 .retrato img{ width:100%; height:100%; object-fit:cover; display:block }
 .retrato span{ font-weight:700; font-size:22px; color:var(--muted) }
+
+/* ---------------------------------------------------------------------------
+ * A PRÉVIA DO ANEXO, E O BOTÃO DE OLHO (fase 107)
+ *
+ * Cinco lugares recebem arquivo, e até a fase 106 só o dossiê deixava olhar
+ * antes de confirmar. Estas três classes são o que faz os cinco se parecerem.
+ *
+ * O olho NUNCA vai sozinho: o `.olho` só desenha o espaçamento entre o ícone e
+ * a palavra que vem ao lado dele. Ícone sem palavra é adivinhação, e some no
+ * leitor de tela — a mesma razão pela qual nenhuma cor deste sistema comunica
+ * sozinha (§4.9).
+ * ------------------------------------------------------------------------- */
+.olho{ display:inline-flex; align-items:center; gap:6px }
+
+/* O fundo rebaixado separa a prévia do formulário à volta: o que está aqui
+   dentro ainda NÃO foi enviado, e a pessoa precisa ver essa fronteira. */
+.previa{ background:var(--sunken) }
+.previa small{ display:block; margin-bottom:6px }
+
+/* A imagem ocupa a largura e nunca estoura a folha no celular. `object-fit`
+   não entra: recortar a prévia esconderia justamente a borda cortada que a
+   pessoa está aqui para ver. */
+.previa-img{
+  max-width:100%; height:auto; display:block;
+  border-radius:10px; border:1px solid var(--line);
+}
+
+/* O PDF em quadro. Fundo branco fixo porque a folha digitalizada é branca —
+   no tema escuro, um quadro transparente devolve texto preto sobre preto. */
+.previa-quadro{
+  width:100%; height:46vh; border:0; border-radius:10px;
+  background:#fff; display:block;
+}
+
+/* ============================================================
+   GRÁFICOS (fase 120) — a primeira cor deste sistema que NÃO é estado.
+
+   A regra da casa é que a cor comunica estado operacional: verde é feito,
+   âmbar espera, vermelho cobra. Um gráfico com barra verde diria "esta casa
+   está bem" — um juízo que ninguém assinou.
+
+   Então o gráfico tem tinta própria, e ela é uma só. O comprimento da barra é
+   a comparação; a cor não compara nada. Os dois tons — claro e escuro — foram
+   validados contra as superfícies reais desta folha (#FFFFFF e #151E28) nas
+   seis conferências de paleta: faixa de luminosidade, piso de croma, separação
+   para daltonismo e contraste. Não são escolha de gosto.
+   ============================================================ */
+:root {
+  --gr-tinta: #2a78d6;      /* azul 450 — passa em #FFFFFF */
+  --gr-tinta-2: #eb6834;    /* laranja — só para a segunda fatia da rosca */
+  --gr-trilho: var(--sunken);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --gr-tinta: #3987e5;    /* azul 400 — passa em #151E28 */
+    --gr-tinta-2: #d95926;
+  }
+}
+:root[data-theme="dark"] {
+  --gr-tinta: #3987e5;
+  --gr-tinta-2: #d95926;
+}
+
+.gr { margin: 0 0 14px; }
+.gr figcaption { margin-bottom: 6px; }
+.gr-trilho { fill: var(--gr-trilho); }
+.gr-barra  { fill: var(--gr-tinta); }
+/* O texto do gráfico usa tinta de TEXTO, nunca a cor da série: o rótulo não é
+   um dado, é a legenda dele. */
+.gr-rot    { fill: var(--ink-2); font: 600 13px var(--ff, inherit); }
+.gr-num    { fill: var(--ink); font: 700 13px var(--ff, inherit); }
+.gr-centro { fill: var(--ink); font: 700 20px var(--ff, inherit); }
+.gr-fatia-1 { stroke: var(--gr-tinta); }
+.gr-fatia-2 { stroke: var(--gr-tinta-2); }
+.gr-chip-1, .gr-chip-2 {
+  width: 12px; height: 12px; border-radius: 3px; flex: none; margin-right: 8px;
+}
+.gr-chip-1 { background: var(--gr-tinta); }
+.gr-chip-2 { background: var(--gr-tinta-2); }

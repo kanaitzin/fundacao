@@ -1,21 +1,27 @@
 # PARA A REUNIÃO — o que falta, e o que eu preciso perguntar
 
-> Gerado em 13/09/2026, na fase 103. Reúne num lugar só o que está espalhado
+> Gerado em 13/09/2026 na fase 104, revisto em 15/09 na fase 120. Reúne num lugar só o que está espalhado
 > pelo `REDE-ACOLHER.md` (§9, §10, §10.5, §11, §12) — para a conversa não
 > precisar caçar. **Cada item diz onde está a versão completa.**
 >
 > Nada aqui é problema de código. O sistema está construído e verificado; o que
 > falta é decisão de gente, e é por isso que este documento existe.
+>
+> **15/09 — a rodada que destravou o piloto.** O Leonardo respondeu as TRÊS
+> perguntas do §2 e QUATRO do roteiro, de uma vez. O que estava travado por
+> decisão de gente encolheu de treze itens para seis, e o dado real deixou de
+> esperar a LGPD. As respostas estão nas seções a que pertencem, **com as
+> palavras dele** — e o que sobrou está no §5.
 
 ---
 
 ## 1. Onde o sistema está, em cinco linhas
 
-- **103 fases.** 70 suítes e 677 testes, verdes em duas condições de relógio
-  (de dia, e às 23h com o servidor já no dia seguinte).
+- **125 fases.** 77 suítes e 768 testes, verdes em duas condições de relógio —
+  antes e depois da virada do UTC, que em Porto Alegre é às 21h.
 - O sistema **sobe compilado num banco virgem**, o backup restaura e o cofre
   abre com a chave certa — e reprova com a errada.
-- O **protótipo** é um arquivo só, abre sem internet, e percorre 123 telas nos
+- O **protótipo** é um arquivo só, abre sem internet, e percorre 132 telas nos
   sete cargos sem violação de acessibilidade.
 - O **roteiro do Marcelo** tem 49 tarefas, todas com porta conferida.
 - **A fila de pedidos de 09/09 acabou:** os catorze estão entregues.
@@ -25,31 +31,72 @@ entregas das últimas semanas foi vista por quem vai usar.
 
 ---
 
-## 2. As três perguntas que mais destravam
+## 2. As três perguntas que mais destravavam — ✅ RESPONDIDAS EM 15/09
 
-Se a reunião só der tempo para três, que sejam estas.
+*Ficam aqui com as palavras dele, e não em paráfrase: é assim que a decisão não
+se perde na próxima reunião.*
 
-**1. O que o Gestor Geral precisa ver de cada casa?** *(roteiro §8, pergunta 9)*
+**1. O que o Gestor Geral precisa ver de cada casa.** *(aberta desde 09/09)*
 
-Ele pediu uma forma prática de saber "como está o andamento da vida das
-crianças" em cada casa, sem entrar criança por criança, e foi explícito: **nada
-de competição**. Não construí, porque adivinhar isso já deu errado uma vez — a
-tela do trabalho social, com os marcos de vida, nasceu de *outro* pedido, de
-04/09, e não responde a esta pergunta.
+**Duas visões.** A inicial é *"quantitativa, com métricas […] só gráficos,
+dashboards, bem como aquele de pizza, bem bonitinho, colorido, profissional"* —
+para ele **gerar relatórios de impacto** do Pão dos Pobres na vida das
+crianças. As métricas que ele nomeou: crianças que passaram de ano, crianças
+com boas notas, quais casas têm bom acompanhamento e bom desenvolvimento
+educacional, crianças por casa, reuniões por casa, pessoas na escala,
+internações, medicamentos saindo, **preço total das notas fiscais**, alimentos
+e lanches por semana e por mês.
 
-*O que eu preciso:* que parâmetros dizem isso a ele. Escola e frequência? Saúde
-em acompanhamento? Convivência familiar? O que está parado esperando alguém?
-**Nas palavras dele**, mesmo que desorganizadas.
+A segunda é o **acesso total**, casa por casa — rotina, ATAs, perfis,
+educadores, coordenadores. E o motivo dele importa: *"caso algum coordenador
+saia, o gestor tem que ter acesso completo para montar uma nova equipe. Ou se
+ele quiser fazer uma casa nove."*
 
-**2. A escala 12x36 vigente da Casa 03.** *(§11, item 1)*
+*Ele também respondeu à minha objeção, por escrito:* **não é competição.**
+*"Ele precisa ter os dados reais. Qual é a casa que está dando mais resultado?
+Tem um motivo? […] é uma forma de ele poder melhorar o acompanhamento das
+outras casas para as outras crianças que não atingiram o tamanho dos
+resultados."*
 
-A tela existe desde 08/09; falta o conteúdo — quem trabalha quando. Sem isso o
-sistema não sabe quando o plantão termina, e **o aviso de meia hora antes do
-fim do plantão não pode existir**, que foi pedido dele.
+⚠️ **Uma das métricas não tem dado:** *"quantas crianças tiveram boas notas"*.
+Não existe campo de nota, boletim ou conceito no sistema — o que existe é a
+SÉRIE (`4º ano`) e a evolução educacional em texto livre. **Para contar nota é
+preciso passar a registrar nota**, e isso é decisão dele: boletim por bimestre?
+aprovado/reprovado por disciplina? só o conceito geral? *A aprovação de ano,
+essa sim, já é contável hoje — é um marco de vida.*
 
-**3. Quem responde pela LGPD, e o que se apaga.** *(§11, item 10)*
+**2. A escala 12x36.** *(travava o aviso de fim de plantão desde 08/09)*
 
-Trava o piloto inteiro, porque decide o que pode entrar de dado real.
+Ele descreveu como quer: lançada com semanas ou meses de antecedência pela
+equipe técnica, coordenação ou educador líder; **cada pessoa com a sua cor**;
+quando alguém falta, tiram da escala e ela sai na hora; substituir ou deixar a
+menos. E a frase que decide o desenho: **"a gente não vai deduzir a escala."**
+
+**Quase tudo já existe.** Medido antes de construir: lançamento por data e
+turno, repetição de padrão, até um ano à frente, retirada que some na hora,
+nada apagado, folha para a parede. Faltam quatro coisas pequenas, listadas no
+`REDE-ACOLHER.md` §9 — e **uma delas precisa de resposta dele** antes de eu
+mexer: hoje, quando a escala do dia **não** foi lançada, o sistema cai para a
+escala semanal e depois para o vínculo da casa, declarando a fonte. Se eu
+tirar a dedução como ele pediu, **um dia sem escala lançada fica sem ninguém
+para assinar a passagem**. Ver a pergunta 1 do §5.
+
+**3. LGPD.** *(travava o piloto inteiro)*
+
+*"Como o sistema é interno para o Pão dos Pobres, a gente pode deixar os dados
+bem tranquilos para o pessoal poder ler. Porque tanto os educadores, equipe
+técnica, educador líder, coordenador ou gestor, eles estão ali para proteger as
+crianças e têm a guarda delas."* **Fotos das crianças liberadas para a equipe**
+— no acolhimento e no perfil.
+
+O círculo estreito fica com o que ele nomeou: **judicial, acompanhamento
+socioeducativo, internação, questões comportamentais de agressividade e
+ocorrência grave** — educador líder, coordenação, equipe técnica e gestão.
+
+⚠️ **Isto destrava o dado real, e não fecha a LGPD.** Continua sem resposta:
+**quem responde formalmente**, **por quanto tempo se guarda cada coisa** e **o
+que se apaga** quando alguém pede. Sem isso o sistema funciona; o que não
+funciona é a resposta a um pedido de titular — e ela chega com nome e prazo.
 
 ---
 
@@ -59,15 +106,15 @@ Estas têm de ser respondidas **depois** de a equipe usar o protótipo, não ant
 
 | # | Pergunta |
 |---|---|
-| 1 | Como a casa quer receber os relatórios obrigatórios |
-| 2 | O convite de primeiro acesso para 40 pessoas, sem senha por mensagem |
-| 3 | "Se houve alteração" na volta da família **não virou** sim/não — ele pode discordar |
-| 4 | O que a equipe pediu a mais durante a aplicação |
+| ~~1~~ | ✅ **Relatórios obrigatórios.** *"Acompanhamento semanal […] tipo uma ata geral de toda semana, manhã e noite."* Conteúdo: ocorrências, desorganização, aumento de medicamentos, quem não está comendo, desenvolvimento, e as observações dos educadores *"ponderadas para trazer coisas boas e negativas"*. **Período livre** — de um dia a seis meses |
+| ~~2~~ | ✅ **Convite de primeiro acesso.** *"Pode botar ilimitado."* **Já é assim:** não há limite de número em lugar nenhum, a senha inicial é trocada no primeiro acesso, e o convite vai por e-mail ou como link. *Continua de pé só o prazo de 24h do convite — ver §6, item 13* |
+| ~~3~~ | ✅ **A volta da família.** *"Esses dados são extremamente sensíveis e têm que ser armazenados."* E o que muda o desenho: **o acompanhamento fica ABERTO** para ser preenchido depois — *"porque a criança pode não querer falar na hora"* — e fica registrado no perfil |
+| ~~4~~ | ✅ **O que a equipe pediu a mais.** Várias fotos da criança no perfil; documentos digitalizados para ver **e baixar**; a Enfermagem anexando bula e receita direto no perfil. **Medido, e feito:** uma vivência passou a ter quantas fotos tiver (fase 124), o dossiê ganhou o botão de baixar por rota que registra (fase 124), e a receita e a bula chegam ao perfil da criança (fase 125). A nota fiscal **não** entra: é compra da casa, e não tem pessoa |
 | 5 | O lembrete de prazo e o pente-fino semanal (ver §4 abaixo) |
 | 6 | A folha da portaria **não lista quem não entra**. A casa quer uma segunda lista, só com nome e foto, sem motivo? Decisão dele **com o DPO** |
 | 7 | A agenda de consulta não entrou no que a coordenação liga e desliga: o educador em plantão deve ver os compromissos da casa dele? Se sim, vale para as **oito**, decidido uma vez |
 | 8 | O estatuto é escrito só pela coordenação, e **as crianças não têm onde discordar**. Existe assembleia? Se não existe, o sistema não deve fingir que houve participação |
-| 9 | A visão de cima do Gestor Geral (é a pergunta 1 da §2 acima) |
+| ~~9~~ | ✅ **A visão de cima do Gestor Geral** — respondida em 15/09, ver §2 acima |
 
 ---
 
@@ -75,9 +122,58 @@ Estas têm de ser respondidas **depois** de a equipe usar o protótipo, não ant
 
 | # | O que falta saber | O que trava |
 |---|---|---|
-| 1 | A escala 12x36 vigente | O aviso de meia hora antes do fim do plantão |
+| ~~1~~ | ✅ **Respondida em 15/09.** Ele descreveu o funcionamento; quase tudo já existe. O que falta são quatro ajustes pequenos e **uma decisão** — ver a pergunta 1 do §5 |
 | 2 | O lembrete de prazo: vencendo **o quê**, e com quantos dias? | Atividade, documento, PIA, receita? A antecedência muda o desenho |
 | 3 | O pente-fino semanal: **em que dia**? | Ele o quer semanal; falta o dia |
+
+---
+
+## 4.5 As QUATRO perguntas novas que as respostas de 15/09 abriram
+
+*São curtas, e cada uma muda uma linha de código. Todas nasceram de eu medir o
+que já existe antes de construir o que ele pediu.*
+
+**1. Tirar a dedução da escala deixa o dia sem ninguém.** ⚠️
+
+Ele disse: *"a gente não vai deduzir a escala."* Hoje, quando a escala do dia
+**não** foi lançada, o sistema cai para a escala semanal e depois para o
+vínculo da casa — **e diz qual fonte usou**. Se eu tirar isso, um dia sem
+escala lançada fica **sem ninguém** para assinar a passagem de plantão, e a
+cobrança de relato não sabe a quem perguntar.
+
+*O que eu preciso saber:* num dia sem escala lançada, o sistema deve (a) ficar
+vazio e avisar em vermelho que ninguém lançou, (b) continuar deduzindo e
+avisando que deduziu, como hoje, ou (c) deduzir só nos primeiros meses do
+piloto, até a casa pegar o hábito de lançar?
+
+**2. "Quantas crianças tiveram boas notas" não tem onde sair.** ⚠️
+
+Não existe campo de nota, boletim ou conceito. O que existe é a **série** (`4º
+ano`) e a evolução educacional em **texto livre** — que não se conta. A
+**aprovação de ano**, essa sim, já é contável hoje.
+
+*O que eu preciso saber:* o que a casa vai passar a registrar? Boletim por
+bimestre, com as notas? Aprovado/reprovado por disciplina? Só um conceito geral
+por período? **A métrica que ele quer começa por alguém digitar isso todo mês**
+— e é bom decidir agora quem, e em que tela.
+
+**3. A foto de identificação não baixa — decisão minha, a confirmar.**
+
+Ele pediu documentos para *"visualizar a hora que quiserem e baixar"*, e eu vou
+pôr o baixar no dossiê. Mas a **foto do rosto da criança** eu deixei sem baixar
+de propósito, e está escrito na tela: *"a foto não é botão de download"*. Ela é
+vista no perfil por quem cuida; baixar cria uma cópia que sai do sistema e
+ninguém mais acompanha.
+
+*Desfaz-se numa linha, se ele quiser.*
+
+**4. A Enfermagem "gerenciar os dados" da criança — até onde?**
+
+Hoje ela escreve **saúde**: condições, restrição alimentar, evolução, e pode
+anexar no dossiê. Ela **não** edita cadastro, escola nem cuidados essenciais.
+
+*O que eu preciso saber:* ele quis dizer só a parte de saúde — que já é assim
+— ou a enfermeira deve poder corrigir cadastro também?
 
 ---
 
@@ -119,6 +215,7 @@ reunião.)*
 | 10 | **LGPD** | Quem responde, por quanto tempo se guarda, o que se apaga |
 | 11 | Critérios de aceite do piloto | A proposta está no §13; falta assinar |
 | 12 | **A folha da portaria com CPF e foto impressos** | Decisão dele de 09/09, já construída. **O DPO precisa ver antes do piloto** |
+| 13 | **O prazo do convite de primeiro acesso** | 24 horas. Com quarenta pessoas convidadas na implantação, pode ser curto — quem não abrir o e-mail no dia precisa de convite novo. Alongar é uma linha |
 
 ### Os seis formulários de papel que faltam
 
@@ -177,13 +274,50 @@ Estão no código com o motivo escrito. **Se a casa discordar, muda.**
 
 ---
 
-## 9. O que eu faria a seguir, se a reunião não mudar nada
+## 9. O que eu faria a seguir — reescrito depois de 15/09
 
-1. **Aplicar o roteiro com a equipe** — é o único item que não posso fazer
-   sozinho e o que mais muda o sistema.
-2. Levar a folha da portaria ao **DPO**.
-3. Resolver o **SMTP**, sem o qual não há primeiro acesso.
-4. Pedir a **folha real de medicamentos**, que é o módulo mais arriscado.
-
-Enquanto isso, sigo achando defeitos por varredura — as últimas fases acharam
-seis reais —, mas o retorno está caindo, e nada disso muda a vida da Casa 03.
+1. ~~**O painel de métricas do Gestor Geral** (fase 120)~~ ✅ **feito** — é a
+   pergunta 1, e ele descreveu com detalhe suficiente para construir. Quase
+   todo o dado existia; só "boas notas" não tinha onde sair, e essa pergunta
+   foi para o §4.5.
+2. ~~**O relatório de período livre** (fase 121)~~ ✅ **feito** — *"uma ata geral
+   de toda semana"*, de um dia a seis meses, com a parte boa vindo primeiro e
+   *"quem não está comendo o quê"* sem contar nada. O texto de acesso restrito
+   sai só como contagem: esta folha circula, e a tela da ocorrência registra
+   cada abertura.
+3. ~~**O relato da volta da família** (fase 122)~~ ✅ **feito — e ele corrigiu o
+   desenho.** Eu ia construir uma pendência com prazo de sete dias; ele voltou:
+   *"acho mais fácil não dar um prazo, mas deixar em aberto para ser registrado
+   quando de fato tivermos uma informação […] dessa forma não haverá uma pressão
+   para arrancar a informação da criança. Mas isso pode ser registrado quantas
+   vezes for necessário, por qualquer educador, tudo ficando no perfil do
+   jovem."* A correção é melhor: uma pendência com prazo vira cobrança sobre o
+   educador, e o educador só tem uma forma de baixá-la — perguntar de novo para
+   a criança. Ficou sem prazo, sem estado, sem cobrança e sem limite de quantos.
+4. ~~Os **quatro ajustes da escala**~~ ✅ **três feitos (fase 123)** — entram a
+   equipe técnica e o Líder Diurno em quem monta, a cor de cada pessoa chega à
+   escala, e substituir virou um gesto só, com quem entrou sabendo de quem é o
+   lugar. O quarto — *"a gente não vai deduzir a escala"* — espera resposta:
+   sem dedução e sem escala lançada, a passagem de plantão fica sem ninguém
+   para assinar no primeiro dia de uso (§4.5).
+5. ~~Os **três ajustes dos anexos**~~ ✅ **dois feitos (fase 124)** — uma
+   vivência passou a ter quantas fotos tiver, com prévia de todas antes de
+   confirmar e a autorização por foto; e o documento do dossiê ganhou o botão
+   de baixar, por rota própria que registra a saída.
+6. ~~A **receita, a bula e o anexo do diário** chegando ao dossiê~~ ✅ **fase
+   125** — cada uma vivia presa à tela que a criou, e o dossiê só lê `document`.
+   Agora o espelho aponta para o **mesmo arquivo guardado**, chega conferido por
+   quem anexou, e não se repete se a fila offline for reenviada. **Uma correção
+   ao que eu escrevi aqui:** a **nota fiscal** do medicamento não entra.
+   `medication_purchase` tem casa e **não tem pessoa** — a nota é uma compra da
+   CASA, e pô-la no prontuário de uma criança seria inventar um vínculo que o
+   dado não tem. **São duas vezes, não três**, e um teste guarda a diferença. A
+   regra que ele tirou dali — *"todos os outros lugares onde a gente preenche […]
+   têm que ir individual para cada um no seu registro"* — vale para o resto do
+   sistema, e é por ela que existe uma função só para espelhar.
+7. **Aplicar o roteiro com a equipe.** Continua sendo o único item que eu não
+   posso fazer sozinho, e o que mais muda o sistema.
+8. Levar a folha da portaria ao **DPO**, e fechar a outra metade da LGPD.
+9. Resolver o **SMTP**, sem o qual não há primeiro acesso.
+10. Pedir a **folha real de medicamentos** — o módulo mais arriscado, e o único
+   desenhado a partir do documento em vez do papel que a casa usa.

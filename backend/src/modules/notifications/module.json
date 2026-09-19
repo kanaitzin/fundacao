@@ -1,9 +1,18 @@
 {
   "name": "notifications",
   "descricao": "Central de notificações e escalonamento (§19), reagindo a eventos do barramento.",
-  "depends": ["identity"],
-  "publica": ["NotificationsModule", "NotificationsService"],
-  "tabelas": ["notification", "escalation"],
+  "depends": [
+    "identity"
+  ],
+  "publica": [
+    "NotificationsModule",
+    "NotificationsService"
+  ],
+  "tabelas": [
+    "notification",
+    "escalation",
+    "escalation_level"
+  ],
   "removivel": true,
   "observacao": "Assina eventos por nome. Sem ele, nada quebra — apenas ninguém é avisado."
 }

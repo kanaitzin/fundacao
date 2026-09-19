@@ -9,6 +9,7 @@ import { AuthenticatedUser } from '../../kernel/contracts';
 import { hojeNaInstituicao } from '../../kernel/common/tempo';
 import { DocumentosService } from '../../kernel/documentos/documentos.service';
 import { Folha, diaBR, cargoNoDocumento } from '../../kernel/documentos/folha';
+import { ArquivosService } from '../../kernel/arquivos/arquivos.service';
 import { folhaDaGrade } from './grade-folha';
 
 /** Estados que exigem observação obrigatória (§11.4). */
@@ -39,6 +40,7 @@ export class MedicationsService {
     @Inject(AuditService) private readonly audit: AuditService,
     @Inject(EventBus) private readonly bus: EventBus,
     @Inject(DocumentosService) private readonly documentos: DocumentosService,
+    @Inject(ArquivosService) private readonly arquivos: ArquivosService,
   ) {}
 
   // ---------- Prescrição (Enfermagem) ----------
@@ -483,6 +485,59 @@ export class MedicationsService {
 
   // ---------- Estoque: só quantidade e validade (§11.6) ----------
 
+  /**
+   * O MOVIMENTO DO ARMÁRIO — o que entrou, o que saiu, e por quê.
+   *
+   * A tabela existia desde a migração 0200, três lugares escreviam nela e
+   * **nenhum lia**: a varredura da fase 106 (§9, item 2) encontrou a caixa
+   * fechada. A fase 85 tinha existido justamente para gravar o `consumo` que
+   * faltava — o comentário da 1040 descreve o sintoma com todas as letras,
+   * *"quem abrisse o movimento para entender uma diferença veria as caixas
+   * chegando e nenhuma saindo"* — e o lugar de abrir nunca foi construído.
+   *
+   * `GET /medications/stock` devolve o SALDO. Isto devolve a HISTÓRIA, que é a
+   * pergunta de quem conferiu a gaveta e achou dois a menos.
+   *
+   * **Não conta por pessoa, e não vai contar.** Cada linha tem o nome de quem
+   * a fez, porque toda ação tem autor (regra 6); somar movimento por educador
+   * é medir gente, como o painel do plantão já proíbe (§7). A lista é
+   * cronológica, e é só isso.
+   *
+   * Sem `SECURITY DEFINER`: a policy `mov_select` já exige que o estoque seja
+   * visível, e o estoque é filtrado por casa. O RLS faz o recorte, e não o
+   * serviço lembrando de filtrar.
+   */
+  async movimentoDoArmario(user: AuthenticatedUser, stockId: string) {
+    return this.db.asUser(user.id, async (c) => {
+      const { rows: [estoque] } = await c.query(
+        `SELECT s.id, s.medication, s.unit, s.quantity
+           FROM medication_stock s WHERE s.id = $1`, [stockId]);
+      /* Fora de alcance responde 404 idêntico a inexistente (§4.5). */
+      if (!estoque) {
+        throw new NotFoundException('Este item do armário não foi encontrado — ou está fora do seu alcance.');
+      }
+      const { rows } = await c.query(
+        `SELECT m.id, m.kind, m.quantity, m.reason, m.at,
+                app_user_display_name(m.by_user) AS por
+           FROM medication_stock_movement m
+          WHERE m.stock_id = $1
+          ORDER BY m.at DESC, m.id DESC
+          LIMIT 200`, [stockId]);
+      return {
+        medicamento: estoque.medication,
+        unidade: estoque.unit,
+        quantidadeAgora: Number(estoque.quantity),
+        /* Corta em 200 e AVISA que cortou, como a linha do tempo corrida
+           (§8.13): lista que some sem dizer vira conta que não fecha. */
+        cortado: rows.length === 200,
+        linhas: rows.map((m) => ({
+          id: m.id, tipo: m.kind, quantidade: Number(m.quantity),
+          motivo: m.reason, quando: m.at, por: m.por,
+        })),
+      };
+    });
+  }
+
   async stock(user: AuthenticatedUser, houseId: string) {
     return this.db.asUser(user.id, async (c) => {
       const { rows } = await c.query(
@@ -846,23 +901,35 @@ export class MedicationsService {
     });
   }
 
+  /**
+   * A nota entra digitalizada (`conteudo`), por referência no Drive
+   * (`anexoRef`), ou sem papel nenhum — este último é o caso que o resumo conta
+   * como pendente, e ele existe porque quem lança o gasto no fim do mês muitas
+   * vezes ainda vai atrás da nota.
+   */
   async registrarCompra(user: AuthenticatedUser, input: {
     houseId: string; em: string; itens: string; fornecedor?: string;
     totalCentavos?: number | null; nota?: string; observacao?: string;
-    anexoRef?: string; anexoNome?: string;
+    anexoRef?: string; anexoNome?: string; conteudo?: string;
   }) {
     try {
+      const guardado = await this.arquivos.guardar(input.conteudo);
       const id = await this.db.asUser(user.id, async (c) => {
         const { rows: [row] } = await c.query(
-          `SELECT * FROM app_registrar_compra_medicamento($1,$2::date,$3,$4,$5,$6,$7,$8,$9)`,
+          `SELECT * FROM app_registrar_compra_medicamento(
+             $1,$2::date,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
           [input.houseId, input.em, input.itens, input.fornecedor ?? null,
            input.totalCentavos ?? null, input.nota ?? null, input.observacao ?? null,
-           input.anexoRef ?? null, input.anexoNome ?? null]);
+           input.anexoRef ?? null,
+           guardado ? (input.anexoNome || 'Nota fiscal') : (input.anexoNome ?? null),
+           guardado?.chave ?? null, guardado?.mime ?? null,
+           guardado?.tamanho ?? null, guardado?.sha256 ?? null]);
         return row.compra_id as string;
       });
       await this.audit.log({
         action: 'medication.purchase', actorId: user.id, institutionId: user.institutionId,
-        houseId: input.houseId, entity: 'medication_purchase', entityId: id, detail: {},
+        houseId: input.houseId, entity: 'medication_purchase', entityId: id,
+        detail: { forma: guardado ? 'arquivo' : (input.anexoRef ? 'referencia' : 'sem_papel') },
       });
       return { id };
     } catch (e: any) {
@@ -885,28 +952,60 @@ export class MedicationsService {
       const { rows } = await c.query(
         `SELECT * FROM app_receitas_da_prescricao($1)`, [prescriptionId]);
       return rows.map((r) => ({
-        id: r.id, nome: r.nome, em: r.em, prescritor: r.prescritor,
+        id: r.id, nome: r.nome, tipo: r.tipo ?? 'receita', em: r.em, prescritor: r.prescritor,
         anexadoPor: r.anexado_por, anexadoEm: r.anexado_em,
+        temArquivo: r.tem_arquivo === true, nomeDoArquivo: r.nome_do_arquivo,
+        /* Se chegou ao dossiê da criança. A tela diz isso à Enfermagem em vez
+           de deixá-la na dúvida sobre se o papel "caiu no perfil" (fase 125). */
+        noDossie: r.no_dossie ?? null,
       }));
     });
   }
 
+  /**
+   * ANEXAR A RECEITA — ou a BULA (fase 125).
+   *
+   * *"Se elas quiserem botar alguma bula, alguma receita, alguma coisa ali pela
+   * enfermagem, que já caia direto no perfil da criança."*
+   *
+   * O papel continua guardado onde estava, preso à prescrição — e agora
+   * ESPELHA no dossiê da criança: o mesmo objeto, a mesma soma de verificação,
+   * uma linha em `document` que o dossiê enxerga. Só quando há arquivo: um
+   * espelho de uma REFERÊNCIA ("está no Drive") seria um documento na pasta que
+   * não abre.
+   */
   async anexarReceita(user: AuthenticatedUser, prescriptionId: string, input: {
-    nome: string; anexoRef: string; em?: string | null; prescritor?: string;
+    nome: string; anexoRef?: string; em?: string | null; prescritor?: string;
+    conteudo?: string; nomeArquivo?: string; tipo?: string;
   }) {
     try {
-      const id = await this.db.asUser(user.id, async (c) => {
+      const guardado = await this.arquivos.guardar(input.conteudo);
+      const r = await this.db.asUser(user.id, async (c) => {
         const { rows: [row] } = await c.query(
-          `SELECT * FROM app_anexar_receita($1,$2,$3,$4::date,$5)`,
-          [prescriptionId, input.nome, input.anexoRef, input.em || null,
-           input.prescritor ?? null]);
-        return row.documento_id as string;
+          `SELECT * FROM app_anexar_receita($1,$2,$3,$4::date,$5,$6,$7,$8,$9,$10,$11)`,
+          [prescriptionId, input.nome, input.anexoRef ?? null, input.em || null,
+           input.prescritor ?? null,
+           guardado?.chave ?? null, guardado?.mime ?? null,
+           guardado ? ((input.nomeArquivo ?? '').trim() || input.nome) : null,
+           guardado?.tamanho ?? null, guardado?.sha256 ?? null,
+           input.tipo === 'bula' ? 'bula' : 'receita']);
+        return row as { documento_id: string; no_dossie: string | null };
       });
+      const id = r.documento_id;
       await this.audit.log({
         action: 'prescription.document', actorId: user.id, institutionId: user.institutionId,
-        entity: 'prescription_document', entityId: id, detail: { prescriptionId },
+        entity: 'prescription_document', entityId: id,
+        detail: { prescriptionId, forma: guardado ? 'arquivo' : 'referencia',
+                  tipo: input.tipo === 'bula' ? 'bula' : 'receita',
+                  noDossie: !!r.no_dossie },
       });
-      return { id };
+      return {
+        id, noDossie: r.no_dossie,
+        aviso: r.no_dossie
+          ? 'Guardado, e também no dossiê da criança — é o mesmo arquivo, não uma cópia.'
+          : 'Guardado na prescrição. Como veio por referência, e não como arquivo, ele não '
+            + 'entra no dossiê: uma linha na pasta que não abre não ajuda ninguém.',
+      };
     } catch (e: any) {
       const m = String(e?.message ?? '');
       if (m.includes('sem_permissao_receita')) {
@@ -916,8 +1015,72 @@ export class MedicationsService {
       if (m.includes('prescricao_fora_de_escopo')) {
         throw new NotFoundException('Prescrição não encontrada.');
       }
+      if (m.includes('tipo_de_papel_invalido')) {
+        throw new BadRequestException('O papel é receita ou bula.');
+      }
+      if (m.includes('receita_sem_papel')) {
+        throw new BadRequestException(
+          'Anexe a receita digitalizada, ou informe onde ela está no Drive da instituição. '
+          + 'Uma das duas — a receita é o que autoriza a prescrição.');
+      }
       throw e;
     }
+  }
+
+  /**
+   * ABRIR A RECEITA, E ABRIR A NOTA.
+   *
+   * As duas passam por função que REGISTRA ANTES de devolver — a receita
+   * porque nasce restrita (traz CID e o nome de quem prescreveu), a nota
+   * porque é documento financeiro. Quem guarda a chave do objeto é o banco; a
+   * aplicação não a lê da tabela, só a recebe aqui e vai ao disco com ela.
+   */
+  async abrirReceita(user: AuthenticatedUser, id: string) {
+    return this.abrirDocumento(user, 'app_abrir_receita', id, 'receita');
+  }
+
+  async abrirNotaFiscal(user: AuthenticatedUser, id: string) {
+    return this.abrirDocumento(user, 'app_abrir_nota_fiscal', id, 'nota fiscal');
+  }
+
+  private async abrirDocumento(
+    user: AuthenticatedUser, funcao: 'app_abrir_receita' | 'app_abrir_nota_fiscal',
+    id: string, oQue: string,
+  ) {
+    let linha: any;
+    try {
+      linha = await this.db.asUser(user.id, async (c) => {
+        const { rows: [row] } = await c.query(`SELECT * FROM ${funcao}($1)`, [id]);
+        return row;
+      });
+    } catch (e: any) {
+      const m = String(e?.message ?? '');
+      /* Fora de alcance devolve 404 idêntico a inexistente (§4.5): negar de um
+       * jeito diferente vazaria a existência do registro. */
+      if (m.includes('inexistente')) {
+        throw new NotFoundException(`Esta ${oQue} não foi encontrada — ou está fora do seu alcance.`);
+      }
+      throw e;
+    }
+    if (!linha) throw new NotFoundException(`Esta ${oQue} não foi encontrada.`);
+
+    if (!linha.out_key) {
+      // A forma de referência: não há arquivo, e a tela diz onde ele está.
+      return { arquivo: null, referencia: linha.out_ref, nome: linha.out_name };
+    }
+    const bytes = await this.arquivos.ler(linha.out_key);
+    if (!bytes) {
+      throw new NotFoundException(
+        `O registro desta ${oQue} existe, mas o arquivo não está no acervo. `
+        + 'Avise a TI: é o caso de acervo restaurado pela metade (§12.2).');
+    }
+    return {
+      arquivo: {
+        nome: linha.out_name, tipo: linha.out_mime ?? 'application/octet-stream',
+        conteudo: bytes.toString('base64'),
+      },
+      referencia: null, nome: linha.out_name,
+    };
   }
 
 

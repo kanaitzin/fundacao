@@ -24,7 +24,10 @@
     "login_attempt",
     "audit_event",
     "institutional_device",
-    "user_invite"
+    "user_invite",
+    "staff_role_grant",
+    "house_capacity_change",
+    "shift_assignment"
   ],
   "observacao": "Contém a migração de fundação (instituição, casas, usuários e auditoria), da qual todo o resto depende. Não é removível."
 }

@@ -7,6 +7,9 @@ import { Login } from './screens/Login';
 import { PrimeiroAcesso } from './screens/PrimeiroAcesso';
 import { SenhaPessoal } from './screens/SenhaPessoal';
 import { Equipe } from './screens/Equipe';
+import { Trabalho } from './screens/Trabalho';
+import { Periodo } from './screens/Periodo';
+import { Metricas } from './screens/Metricas';
 import { Dia } from './screens/Dia';
 import { PainelPlantao } from './screens/PainelPlantao';
 import { DiaDasUnidades } from './screens/DiaDasUnidades';
@@ -51,7 +54,7 @@ const KIND_TONE: Record<string, string> = { casa_lar: 'c-move', abrigo_instituci
 
 /** As telas que não são do turno; a aba "Mais" fica acesa quando uma delas está aberta. */
 const OUTRAS = new Set(['agenda', 'equipe', 'casas', 'saude', 'internacao', 'impacto', 'ocorrencias', 'ata',
-  'cofre', 'transferencias', 'acompanhamentos', 'arquivo', 'setores', 'unidades', 'plantao',
+  'cofre', 'transferencias', 'acompanhamentos', 'arquivo', 'setores', 'unidades', 'plantao', 'trabalho', 'periodo', 'metricas',
   'rotina', 'escala', 'alinhamentos', 'painel', 'sincronizacao']);
 /* O sino é de todo mundo: não há cargo que não receba escalonamento. */
 
@@ -167,8 +170,9 @@ export function App() {
     'dia' | 'chamada' | 'passagem' | 'acolhidos' | 'agenda' | 'casas' | 'equipe'
     | 'saude' | 'internacao' | 'impacto' | 'ocorrencias' | 'ata' | 'cofre' | 'transferencias'
     | 'acompanhamentos' | 'arquivo' | 'plantao' | 'unidades' | 'setores' | 'cozinha' | 'portaria' | 'campos_do_perfil'
+    | 'trabalho' | 'periodo' | 'metricas'
     | 'alinhamentos' | 'painel' | 'sincronizacao'
-    | 'rotina' | 'escala' | 'avisos'>('dia');
+    | 'rotina' | 'escala' | 'avisos' | null>(null);
   const [sugerirSenha, setSugerirSenha] = useState(false);
   const [trocarSenha, setTrocarSenha] = useState(false);
   const [mais, setMais] = useState(false);
@@ -219,10 +223,20 @@ export function App() {
        * ficou do turno anterior antes de a pessoa tocar em qualquer coisa
        * (§17.1). Sem sessão não há para quem enviar. */
       void ligarFilaAoServidor();
-      // Quem trabalha no plantão abre no DIA. É a tela que ele veio usar; a
-      // lista de unidades é consulta, não trabalho. Quem não alcança o Dia —
-      // a cozinha — abre na tela que tem.
-      setAba(alcanca(eu.role, 'dia') ? 'dia' : (alcanca(eu.role, 'cozinha') ? 'cozinha' : 'casas'));
+      /*
+       * ABRE NA PRIMEIRA TELA DO CARGO — e não em "Dia" por padrão (fase 120).
+       *
+       * Quem trabalha no plantão continua abrindo no DIA, porque é a primeira
+       * aba dele; quem não alcança o Dia — a cozinha — abre na tela que tem; e
+       * o Gestor Geral passa a abrir no PAINEL, que ele pediu com todas as
+       * letras: *"como o dia a dia é controlado pelos coordenadores, ele não
+       * vai querer que a tela inicial dele seja essa de controle total."*
+       *
+       * Deixar `null` faz a tela cair na primeira aba do cargo. Era uma
+       * decisão escrita em DOIS lugares — aqui e no `abaEfetiva` —, e agora é
+       * um só: duas cópias da mesma regra divergem no primeiro ajuste.
+       */
+      setAba(null);
       if (eu.semSenha || eu.mustChangePassword) setSugerirSenha(true);
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Não foi possível entrar. Tente novamente.');
@@ -241,7 +255,7 @@ export function App() {
       definirQuemAssina(eu.fullName, eu.role);
       setHouses(await api<House[]>('/houses'));
       void ligarFilaAoServidor();
-      setAba(alcanca(eu.role, 'dia') ? 'dia' : (alcanca(eu.role, 'cozinha') ? 'cozinha' : 'casas'));
+      setAba(null);           // a primeira tela do cargo, como no login
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Senha criada, mas não foi possível entrar. Tente pela tela de entrada.');
     } finally {
@@ -251,7 +265,7 @@ export function App() {
 
   async function sair() {
     try { await api('/auth/logout', { method: 'POST' }); } catch { /* sessão pode já ter expirado */ }
-    setToken(null); setMe(null); setHouses([]); setAba('dia'); setSugerirSenha(false);
+    setToken(null); setMe(null); setHouses([]); setAba(null); setSugerirSenha(false);
   }
 
   if (!me && convite) {
@@ -297,12 +311,22 @@ export function App() {
 
   /** As abas do turno que este cargo alcança, na ordem de quem trabalha na casa. */
   const abasDoTurno = [
+    /*
+     * O PAINEL VEM PRIMEIRO — e só para quem o alcança (fase 120).
+     *
+     * Ele pediu isto com todas as letras: *"como o dia a dia é controlado
+     * pelos coordenadores, ele não vai querer que a tela inicial dele seja
+     * essa de controle total."* Estar em primeiro nesta lista é o que faz o
+     * painel ser a tela inicial do Gestor Geral, porque `abaEfetiva` cai na
+     * primeira aba do cargo. O acesso total continua inteiro, uma aba adiante.
+     */
+    { aba: 'metricas', icone: '📊', label: 'Painel' },
     { aba: 'dia', icone: '📋', label: 'Dia' },
     { aba: 'chamada', icone: '✅', label: 'Chamada' },
     { aba: 'acolhidos', icone: '🧒', label: 'Acolhidos' },
     { aba: 'passagem', icone: '🔁', label: 'Passagem' },
   ].filter((t) => ve(t.aba));
-  const doMais = ['unidades', 'plantao', 'agenda', 'cozinha', 'portaria', 'campos_do_perfil', 'equipe', 'setores', 'ocorrencias',
+  const doMais = ['unidades', 'plantao', 'agenda', 'cozinha', 'portaria', 'campos_do_perfil', 'equipe', 'trabalho', 'periodo', 'setores', 'ocorrencias',
     'ata', 'saude', 'internacao', 'impacto', 'alinhamentos', 'acompanhamentos', 'painel', 'arquivo', 'transferencias',
     'cofre', 'sincronizacao', 'casas']
     .filter((a) => ve(a));
@@ -318,8 +342,22 @@ export function App() {
    * tem: para a cozinha, as restrições; para o Gestor Geral, o dia das
    * unidades.
    */
-  const abaEfetiva = ((aba === 'avisos' || ve(aba))
-    ? aba : (abasDoTurno[0]?.aba ?? doMais[0] ?? 'casas')) as typeof aba;
+  /*
+   * E a aba começa VAZIA, e não em "Dia" (fase 120).
+   *
+   * Antes ela nascia `'dia'`, que todo cargo alcança — e por isso o Gestor
+   * Geral abria o sistema na linha do tempo de uma casa. Ele pediu o
+   * contrário, com todas as letras: *"como o dia a dia é controlado pelos
+   * coordenadores, ele não vai querer que a tela inicial dele seja essa de
+   * controle total."*
+   *
+   * Começando vazia, a primeira tela é a PRIMEIRA ABA DO CARGO — o que para
+   * todo mundo continua sendo "Dia", porque é o primeiro item da lista, e para
+   * quem tem o painel passa a ser o painel. Uma regra a menos, e não uma a
+   * mais.
+   */
+  const abaEfetiva = ((aba && (aba === 'avisos' || ve(aba)))
+    ? aba : (abasDoTurno[0]?.aba ?? doMais[0] ?? 'casas')) as Exclude<typeof aba, null>;
   // A casa de trabalho: o vínculo do usuário quando existe; senão, a primeira
   // do alcance — que é o caso das funções transversais (§5.13).
   const casaAtual = (escolhida ? houses.find((h) => h.id === escolhida) : undefined)
@@ -544,6 +582,11 @@ export function App() {
 
         {abaEfetiva === 'equipe' && administra && <Equipe papel={me.role} />}
 
+        {abaEfetiva === 'metricas' && ve('metricas') && <Metricas />}
+        {abaEfetiva === 'trabalho' && ve('trabalho') && <Trabalho />}
+        {abaEfetiva === 'periodo' && ve('periodo') && (
+          <Periodo casaId={casaAtual?.id ?? null} />
+        )}
         {abaEfetiva === 'setores' && administra && <Setores papel={me.role} />}
 
         {abaEfetiva === 'rotina' && veRotina && casaAtual && (
@@ -591,7 +634,8 @@ export function App() {
 
         {abaEfetiva === 'acompanhamentos' && veAcompanhamentos && casaAtual && (
           <Acompanhamentos houseId={casaAtual.id}
-                           casaLabel={`${casaAtual.code} — ${casaAtual.name}`} />
+                           casaLabel={`${casaAtual.code} — ${casaAtual.name}`}
+                           papel={me.role} />
         )}
 
         {abaEfetiva === 'painel' && vePainel && casaAtual && (
@@ -710,6 +754,34 @@ export function App() {
                   <div className="grow" style={{ textAlign: 'left' }}>
                     <b className="ff">Equipe</b>
                     <div className="mutetxt">Quem trabalha nesta casa, por setor.</div>
+                  </div>
+                </button>
+              )}
+              {/* A porta do trabalho da equipe (fase 117). Fica ao lado de
+                  "Equipe", e não dentro dela: são cargos diferentes — o Líder
+                  Diurno lê o trabalho e não cadastra conta nenhuma. */}
+              {ve('trabalho') && (
+                <button className="card row" onClick={() => { setAba('trabalho'); setMais(false); }}>
+                  <span aria-hidden="true">🧭</span>
+                  <div className="grow" style={{ textAlign: 'left' }}>
+                    <b className="ff">O trabalho da equipe</b>
+                    <div className="mutetxt">
+                      O que cada pessoa e cada setor registrou, em ordem. Sem contar nada.
+                    </div>
+                  </div>
+                </button>
+              )}
+              {/* O período da casa (fase 121). Vizinho do trabalho da equipe
+                  porque as duas leituras são da mesma pessoa e do mesmo tipo:
+                  um recorte de tempo sobre o que já foi registrado. */}
+              {ve('periodo') && (
+                <button className="card row" onClick={() => { setAba('periodo'); setMais(false); }}>
+                  <span aria-hidden="true">🗓️</span>
+                  <div className="grow" style={{ textAlign: 'left' }}>
+                    <b className="ff">O período da casa</b>
+                    <div className="mutetxt">
+                      Como foi a casa na semana, no mês ou no intervalo que você escolher.
+                    </div>
                   </div>
                 </button>
               )}

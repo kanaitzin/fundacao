@@ -115,15 +115,22 @@ async function main() {
       [pessoa.id, r.medicamento]);
     if (ja) { existentes++; continue; }
 
+    /*
+     * `app_hoje()` em vez de `CURRENT_DATE`, aqui e em todo o seed: o segundo é
+     * o dia do SERVIDOR, e depois das 21h em Porto Alegre ele já é o dia
+     * seguinte. A prescrição nascia começando AMANHÃ, nenhuma dose do dia era
+     * gerada, e a suíte do piloto reprovava toda noite — por um motivo que não
+     * estava no sistema, e sim no dado de partida (fase 121).
+     */
     const fim = r.duracaoDias
-      ? `CURRENT_DATE + ${r.duracaoDias}`
+      ? `app_hoje() + ${r.duracaoDias}`
       : 'NULL';
 
     const { rows: [presc] } = await c.query(
       `INSERT INTO prescription (person_id, house_id, kind, medication, purpose, dose, route,
                                  instructions, use_condition, prescriber, prescribed_on,
                                  starts_on, ends_on, status, signed_by, signed_at, created_by)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10, CURRENT_DATE, CURRENT_DATE, ${fim},
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10, app_hoje(), app_hoje(), ${fim},
                'ativa', $11, now(), $11)
        RETURNING id`,
       [pessoa.id, casa.id, r.kind, r.medicamento, r.finalidade, r.dose, r.via,
@@ -141,7 +148,7 @@ async function main() {
       await c.query(
         `INSERT INTO medication_stock (house_id, person_id, medication, quantity, unit, expires_on)
          VALUES ($1,$2,$3,$4,$5, ${r.estoque.venceEmDias
-           ? `CURRENT_DATE + ${r.estoque.venceEmDias}` : 'NULL'})`,
+           ? `app_hoje() + ${r.estoque.venceEmDias}` : 'NULL'})`,
         [casa.id, pessoa.id, r.medicamento, r.estoque.quantidade, r.estoque.unidade]);
     }
 

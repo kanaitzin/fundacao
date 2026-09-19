@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
+import { BotaoOlho, Escolhido, PreviaEscolhida, base64De, lerArquivo } from '../anexos';
 import { FolhaDocumento } from '../documentos';
 import type { ArquivoGerado } from '../documentos';
 import type { DocumentoWord } from '../docx';
@@ -256,6 +257,9 @@ export function Saude({ houseId, casaLabel, papel }: {
   const [compras, setCompras] = useState<Compras | null>(null);
   const [comprando, setComprando] = useState(false);
   const [vendoReceitas, setVendoReceitas] = useState<any | null>(null);
+  const [vendoNota, setVendoNota] = useState<{ id: string; nome: string } | null>(null);
+  const [vendoMovimento, setVendoMovimento] =
+    useState<{ id: string; medicamento: string } | null>(null);
 
   async function carregarCompras() {
     setCompras(await api<Compras>(
@@ -590,6 +594,19 @@ export function Saude({ houseId, casaLabel, papel }: {
                        onFechar={() => setVendoReceitas(null)} />
       )}
 
+      {vendoMovimento && (
+        <FolhaMovimento item={vendoMovimento} onFechar={() => setVendoMovimento(null)} />
+      )}
+
+      {vendoNota && (
+        <FolhaDocumentoGuardado
+          titulo={vendoNota.nome}
+          legenda="Documento financeiro. A abertura fica registrada com o seu nome."
+          carregar={() => api<DocumentoOuCaminho>(
+            `/medications/purchases/${vendoNota.id}/file`)}
+          onFechar={() => setVendoNota(null)} />
+      )}
+
       {aba === 'compras' && VE_COMPRAS.includes(papel) && (
         <>
           <div className="card raise stack">
@@ -645,7 +662,15 @@ export function Saude({ houseId, casaLabel, papel }: {
                         { style: 'currency', currency: 'BRL' })}` : ''}
                 </div>
                 {c.nota && <div className="mutetxt">Nota {c.nota}</div>}
-                <div className="mutetxt">Registrado por {c.compradoPor}.</div>
+                <div className="row">
+                  <span className="mutetxt grow">Registrado por {c.compradoPor}.</span>
+                  {/* O papel abre aqui. Antes dele existir, "com nota" queria
+                      dizer que alguém tinha digitado alguma coisa no campo. */}
+                  {c.temAnexo && (
+                    <BotaoOlho rotulo="Ver a nota"
+                               onClick={() => setVendoNota({ id: c.id, nome: c.nomeDoAnexo ?? 'Nota fiscal' })} />
+                  )}
+                </div>
               </div>
             ))}
           </div>
@@ -681,6 +706,17 @@ export function Saude({ houseId, casaLabel, papel }: {
                     {i.validadeProxima && <span className="pill c-warn">Validade próxima</span>}
                     {i.estoqueBaixo && <span className="pill c-info">Sinalizado como baixo</span>}
                   </div>
+                </div>
+                {/*
+                  * O MOVIMENTO ABRE PARA QUEM ALCANÇA O ARMÁRIO (fase 109).
+                  *
+                  * Ver a história não é mexer no armário: quem conferiu a
+                  * gaveta e achou dois a menos precisa saber para onde eles
+                  * foram, e essa pessoa nem sempre é a que dá entrada.
+                  */}
+                <div className="row" style={{ marginTop: 10 }}>
+                  <BotaoOlho rotulo="Ver o movimento"
+                             onClick={() => setVendoMovimento(i)} />
                 </div>
                 {movimenta && (
                   <div className="row" style={{ marginTop: 10, gap: 8 }}>
@@ -1881,6 +1917,7 @@ function FolhaCompra({ houseId, onFechar, onPronto }: {
   const [valor, setValor] = useState('');
   const [nota, setNota] = useState('');
   const [anexo, setAnexo] = useState('');
+  const [arquivo, setArquivo] = useState<Escolhido | null>(null);
   const [erro, setErro] = useState('');
 
   async function salvar() {
@@ -1894,10 +1931,11 @@ function FolhaCompra({ houseId, onFechar, onPronto }: {
           houseId, em, itens: itens.trim(),
           fornecedor: fornecedor.trim(), totalCentavos: centavos,
           nota: nota.trim(),
-          /* O anexo entra pelo mesmo caminho dos outros documentos: aqui vai a
-             referência, e o arquivo é guardado fora do banco. */
+          /* As duas formas, e nenhuma delas é obrigatória: a compra pode ser
+             lançada antes de o papel aparecer, e é isso que o resumo conta. */
+          conteudo: arquivo ? base64De(arquivo.dataUrl) : undefined,
           anexoRef: anexo.trim() || undefined,
-          anexoNome: anexo.trim() ? 'Nota fiscal' : undefined,
+          anexoNome: arquivo ? arquivo.nome : (anexo.trim() ? 'Nota fiscal' : undefined),
         }),
       });
       onPronto();
@@ -1936,10 +1974,25 @@ function FolhaCompra({ houseId, onFechar, onPronto }: {
         <input id="cp-nota" value={nota} maxLength={40}
                onChange={(e) => setNota(e.target.value)} />
 
-        <label className="f" htmlFor="cp-anexo">Nota fiscal digitalizada (opcional)</label>
+        {/* A NOTA, DE VERDADE (fase 108). Este campo era um texto onde a pessoa
+            digitava uma referência qualquer: a nota "digitalizada" nunca teve
+            por onde ser digitalizada. Agora sobe o papel — e quem só tem o
+            caminho no Drive continua podendo escrevê-lo. */}
+        <label className="f" htmlFor="cp-arq">Nota fiscal digitalizada (opcional)</label>
+        <input id="cp-arq" type="file" accept="image/*,application/pdf"
+               onChange={async (e) => {
+                 const f = e.target.files?.[0];
+                 setArquivo(f ? await lerArquivo(f) : null);
+               }} />
+        {arquivo && <PreviaEscolhida arquivo={arquivo}
+          pergunta={<>É esta a nota? Ela é o que a prestação de contas pede no fim do mês.</>} />}
+
+        <label className="f" htmlFor="cp-anexo">
+          Ou onde ela está <small>— o caminho no Drive, se o papel já estiver lá</small>
+        </label>
         <input id="cp-anexo" value={anexo} maxLength={200}
                onChange={(e) => setAnexo(e.target.value)}
-               placeholder="Referência do arquivo enviado." />
+               placeholder="Ex.: ADMINISTRATIVO/AI3/2026/09/notas/nota-1234.pdf" />
         <div className="mutetxt">
           Pode registrar agora e anexar depois — mas a lista mostra quantas ainda
           estão sem o papel, porque no fim do mês ninguém lembra qual foi.
@@ -1966,9 +2019,23 @@ function FolhaCompra({ houseId, onFechar, onPronto }: {
 function FolhaReceitas({ esquema, papel, onFechar }: {
   esquema: { id: string; medicamento: string }; papel: string; onFechar: () => void;
 }) {
-  const [lista, setLista] = useState<{ id: string; nome: string; em: string | null;
-    prescritor: string | null; anexadoPor: string; anexadoEm: string }[]>([]);
+  const [lista, setLista] = useState<{ id: string; nome: string; tipo: string;
+    em: string | null;
+    prescritor: string | null; anexadoPor: string; anexadoEm: string;
+    temArquivo: boolean; nomeDoArquivo: string | null;
+    /** O espelho no dossiê da criança (fase 125). Nulo quando é referência. */
+    noDossie: string | null }[]>([]);
   const [nome, setNome] = useState('');
+  /* Receita ou BULA (fase 125) — *"se elas quiserem botar alguma bula, alguma
+     receita […] que já caia direto no perfil da criança"*. */
+  const [tipo, setTipo] = useState<'receita' | 'bula'>('receita');
+  /* O PAPEL, e não um texto inventado (fase 108). Até aqui esta tela mandava
+     `anexoRef: 'receita-' + Date.now()`: uma referência fabricada, que não
+     apontava para lugar nenhum — a receita "digitalizada" do §8.6 nunca teve
+     por onde ser digitalizada. */
+  const [arquivo, setArquivo] = useState<Escolhido | null>(null);
+  const [referencia, setReferencia] = useState('');
+  const [vendo, setVendo] = useState<{ id: string; nome: string } | null>(null);
   const [prescritor, setPrescritor] = useState('');
   const [em, setEm] = useState('');
   const [erro, setErro] = useState('');
@@ -1987,11 +2054,15 @@ function FolhaReceitas({ esquema, papel, onFechar }: {
       await api(`/medications/prescriptions/${esquema.id}/documents`, {
         method: 'POST',
         body: JSON.stringify({
-          nome: nome.trim(), anexoRef: `receita-${Date.now()}`,
-          em: em || null, prescritor: prescritor.trim(),
+          nome: nome.trim(),
+          conteudo: arquivo ? base64De(arquivo.dataUrl) : undefined,
+          nomeArquivo: arquivo?.nome,
+          anexoRef: referencia.trim() || undefined,
+          em: em || null, prescritor: prescritor.trim(), tipo,
         }),
       });
-      setNome(''); setPrescritor(''); setEm('');
+      setNome(''); setPrescritor(''); setEm(''); setArquivo(null); setReferencia('');
+      setTipo('receita');
       await carregar();
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Não foi possível anexar.');
@@ -2002,7 +2073,7 @@ function FolhaReceitas({ esquema, papel, onFechar }: {
     <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-rec"
          onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
       <div className="sheet">
-        <h3 id="t-rec">Receitas — {esquema.medicamento}</h3>
+        <h3 id="t-rec">Receitas e bulas — {esquema.medicamento}</h3>
         {erro && <div className="notice c-crit" role="alert">{erro}</div>}
 
         {lista.length === 0 && (
@@ -2019,14 +2090,43 @@ function FolhaReceitas({ esquema, papel, onFechar }: {
                 {r.em ? new Date(`${r.em}T12:00:00-03:00`).toLocaleDateString('pt-BR') : 'sem data'}
                 {r.prescritor ? ` · ${r.prescritor}` : ''}
               </div>
-              <div className="mutetxt">Anexada por {r.anexadoPor}.</div>
+              <div className="row">
+                <span className="pill c-info">{r.tipo === 'bula' ? 'bula' : 'receita'}</span>
+                <span className={`pill ${r.temArquivo ? 'c-ok' : 'c-mute'}`}>
+                  {r.temArquivo ? 'no sistema' : 'no Drive'}
+                </span>
+                <span className="mutetxt grow">Anexada por {r.anexadoPor}.</span>
+                <BotaoOlho rotulo={r.temArquivo ? 'Ver o papel' : 'Onde está'}
+                           onClick={() => setVendo({ id: r.id, nome: r.nome })} />
+              </div>
+              {/*
+                * CHEGOU AO PERFIL DELA (fase 125) — e a tela diz, em vez de
+                * deixar a Enfermagem na dúvida. O que veio por REFERÊNCIA não
+                * chega, e a frase explica por quê: um documento na pasta da
+                * criança que não abre é uma linha a mais e nada a mais.
+                */}
+              <div className="mutetxt">
+                {r.noDossie
+                  ? 'Também está no dossiê da criança — é o mesmo arquivo, não uma cópia.'
+                  : 'Não entra no dossiê da criança: só o papel guardado no sistema entra, '
+                    + 'porque um documento que não abre não ajuda ninguém.'}
+              </div>
             </div>
           ))}
         </div>
 
         {podeAnexar && (
           <>
-            <div className="eyebrow">Anexar receita</div>
+            <div className="eyebrow">Anexar</div>
+            <label className="f">Que papel é este</label>
+            <div className="opts">
+              {([['receita', 'Receita'], ['bula', 'Bula']] as const).map(([cod, rot]) => (
+                <button type="button" key={cod} className="opt c-other"
+                        aria-pressed={tipo === cod} onClick={() => setTipo(cod)}>
+                  {rot}
+                </button>
+              ))}
+            </div>
             <label className="f" htmlFor="rc-nome">Como chamar este documento</label>
             {/* Nome NEUTRO: CPF e diagnóstico nunca em nome de arquivo. */}
             <input id="rc-nome" value={nome} maxLength={80}
@@ -2037,7 +2137,29 @@ function FolhaReceitas({ esquema, papel, onFechar }: {
             <label className="f" htmlFor="rc-presc">Quem receitou</label>
             <input id="rc-presc" value={prescritor} maxLength={80}
                    onChange={(e) => setPrescritor(e.target.value)} />
-            <button className="btn block" disabled={nome.trim().length < 3} onClick={anexar}>
+
+            <label className="f" htmlFor="rc-arq">
+              A receita digitalizada <small>— foto ou PDF</small>
+            </label>
+            <input id="rc-arq" type="file" accept="image/*,application/pdf"
+                   onChange={async (e) => {
+                     const f = e.target.files?.[0];
+                     setArquivo(f ? await lerArquivo(f) : null);
+                   }} />
+            {arquivo && <PreviaEscolhida arquivo={arquivo}
+              pergunta={<>É esta a receita deste esquema? Ela é o que autoriza a
+                prescrição — e é contra ela que a Enfermagem confere o que está na grade.</>} />}
+
+            <label className="f" htmlFor="rc-ref">
+              Ou onde ela está <small>— o caminho no Drive</small>
+            </label>
+            <input id="rc-ref" value={referencia} maxLength={200}
+                   onChange={(e) => setReferencia(e.target.value)}
+                   placeholder="Ex.: ACOLHIMENTO/AI3/2026/09/saude/receita.pdf" />
+
+            <button className="btn block"
+                    disabled={nome.trim().length < 3 || (!arquivo && !referencia.trim())}
+                    onClick={anexar}>
               Anexar
             </button>
           </>
@@ -2046,6 +2168,167 @@ function FolhaReceitas({ esquema, papel, onFechar }: {
         <button className="btn sec block" style={{ marginTop: 12 }} onClick={onFechar}>
           Fechar
         </button>
+      </div>
+
+      {vendo && (
+        <FolhaDocumentoGuardado
+          titulo={vendo.nome}
+          legenda="A abertura fica registrada com o seu nome e o horário."
+          carregar={() => api<DocumentoOuCaminho>(
+            `/medications/prescriptions/documents/${vendo.id}/file`)}
+          onFechar={() => setVendo(null)} />
+      )}
+    </div>
+  );
+}
+
+/**
+ * O QUE O OLHO ABRE, NAS DUAS FORMAS.
+ *
+ * A rota devolve `arquivo` quando o papel está guardado aqui, e `referencia`
+ * quando ele está no Drive. A tela diz qual das duas é — um botão que às vezes
+ * mostra um PDF e às vezes um caminho de pasta, sem avisar, ensina a não
+ * confiar nele.
+ */
+/* `carregar` é uma FUNÇÃO, e não o caminho da rota: rota guardada em variável
+   escapa do `contrato-rotas.spec`, que confere se toda rota chamada pela tela
+   existe no servidor. Quem pega isso é o próprio conferidor — e pegou. */
+interface DocumentoOuCaminho {
+  arquivo: { nome: string; tipo: string; conteudo: string } | null;
+  referencia: string | null;
+}
+function FolhaDocumentoGuardado({ titulo, legenda, carregar, onFechar }: {
+  titulo: string; legenda: string;
+  carregar: () => Promise<DocumentoOuCaminho>; onFechar: () => void;
+}) {
+  const [r, setR] = useState<DocumentoOuCaminho | null>(null);
+  const [erro, setErro] = useState('');
+  useEffect(() => {
+    let vivo = true;
+    carregar()
+      .then((x) => { if (vivo) setR(x); })
+      .catch((e) => { if (vivo) setErro(e instanceof Error ? e.message : 'Não foi possível abrir.'); });
+    return () => { vivo = false; };
+  }, []);
+
+  const url = r?.arquivo ? `data:${r.arquivo.tipo};base64,${r.arquivo.conteudo}` : '';
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-docg"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet modal">
+        <h3 id="t-docg">{titulo}</h3>
+        <p className="mutetxt">{legenda}</p>
+        {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+        {!r && !erro && <p className="mutetxt">Abrindo…</p>}
+        {r?.arquivo && (r.arquivo.tipo.startsWith('image')
+          ? <img className="previa-img" src={url} alt={titulo} />
+          : <iframe className="previa-quadro" src={url} title={titulo} />)}
+        {r && !r.arquivo && (
+          <div className="bloco"><small>Onde está</small>{r.referencia ?? '—'}</div>
+        )}
+        <div className="row rodape">
+          <button className="btn grow" onClick={onFechar}>Fechar</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * O MOVIMENTO DE UM ITEM DO ARMÁRIO.
+ *
+ * O saldo responde "quanto tem". Isto responde "para onde foram" — que é a
+ * pergunta de quem conferiu a gaveta e achou dois a menos. A tabela existia
+ * desde a migração 0200 e NINGUÉM a lia: três lugares escreviam, e o lugar de
+ * abrir nunca tinha sido construído (§9, item 2).
+ *
+ * A lista é cronológica e **não conta por pessoa**. Cada linha traz o nome de
+ * quem a fez, porque toda ação tem autor; somar movimento por educador é medir
+ * gente, e o painel do plantão já proíbe isso pelo mesmo motivo.
+ */
+const MOVIMENTO_ROTULO: Record<string, string> = {
+  entrada: 'Chegou remédio',
+  ajuste: 'Conferência do armário',
+  consumo: 'Dose administrada',
+  descarte: 'Descarte',
+  saida_com_acolhido: 'Foi com a criança',
+};
+/* A cor diz o ESTADO OPERACIONAL, nunca julgamento (§4.9): o que entrou, o que
+   saiu pela dose, o que saiu com a criança, o que foi ajustado na contagem. */
+const MOVIMENTO_TOM: Record<string, string> = {
+  entrada: 'c-ok', ajuste: 'c-info', consumo: 'c-med',
+  descarte: 'c-crit', saida_com_acolhido: 'c-move',
+};
+
+function FolhaMovimento({ item, onFechar }: {
+  item: { id: string; medicamento: string }; onFechar: () => void;
+}) {
+  const [dados, setDados] = useState<{
+    medicamento: string; unidade: string; quantidadeAgora: number; cortado: boolean;
+    linhas: { id: string; tipo: string; quantidade: number; motivo: string | null;
+              quando: string; por: string | null }[];
+  } | null>(null);
+  const [erro, setErro] = useState('');
+
+  useEffect(() => {
+    let vivo = true;
+    api<typeof dados>(`/medications/stock/${item.id}/movements`)
+      .then((d) => { if (vivo) setDados(d); })
+      .catch((e) => {
+        if (vivo) setErro(e instanceof Error ? e.message : 'Não foi possível abrir o movimento.');
+      });
+    return () => { vivo = false; };
+  }, [item.id]);
+
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-mov"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet modal">
+        <h3 id="t-mov">Movimento · {item.medicamento}</h3>
+        {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+        {!dados && !erro && <p className="mutetxt">Abrindo…</p>}
+
+        {dados && (
+          <>
+            <p className="mutetxt">
+              No armário agora: <b>{dados.quantidadeAgora} {dados.unidade}
+              {dados.quantidadeAgora === 1 ? '' : 's'}</b>.
+            </p>
+            {dados.linhas.length === 0 && (
+              <p className="mutetxt">
+                Nenhum movimento registrado neste item. A lista vazia quer dizer que ninguém
+                deu entrada nem conferiu — não que nada aconteceu.
+              </p>
+            )}
+            <div className="stack">
+              {dados.linhas.map((m) => (
+                <div className="card" key={m.id}>
+                  <div className="row">
+                    <span className={`pill ${MOVIMENTO_TOM[m.tipo] ?? 'c-mute'}`}>
+                      {MOVIMENTO_ROTULO[m.tipo] ?? m.tipo}
+                    </span>
+                    <b className="ff grow">
+                      {m.quantidade > 0 ? '+' : ''}{m.quantidade} {dados.unidade}
+                      {Math.abs(m.quantidade) === 1 ? '' : 's'}
+                    </b>
+                    <span className="mutetxt">{hhmm(m.quando)}</span>
+                  </div>
+                  {m.motivo && <div className="mutetxt">{m.motivo}</div>}
+                  <div className="mutetxt">{m.por ?? '—'} · {dia(m.quando)}</div>
+                </div>
+              ))}
+            </div>
+            {dados.cortado && (
+              <p className="mutetxt">
+                Mostrando os 200 movimentos mais recentes. Há mais atrás deles.
+              </p>
+            )}
+          </>
+        )}
+
+        <div className="row rodape">
+          <button className="btn grow" onClick={onFechar}>Fechar</button>
+        </div>
       </div>
     </div>
   );

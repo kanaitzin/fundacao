@@ -27,6 +27,15 @@ export class IncidentsController {
   // Não existe rota de envio. Procurar por ela é a forma mais rápida de
   // verificar o §13.6: não há POST que despache nada para fora.
 
+  /* Os ofícios SOBRE uma criança (fase 118). Antes da lista da casa porque
+     `communications/person/:id` cairia no `:id` de outra rota se viesse
+     depois — e `person` é palavra literal, que o contrato-rotas exige. */
+  @Get('communications/person/:personId')
+  comunicacoesDoAcolhido(@CurrentUser() user: AuthenticatedUser,
+                         @Param('personId', ParseUUIDPipe) personId: string) {
+    return this.incidents.comunicacoesDoAcolhido(user, personId);
+  }
+
   @Get('communications')
   listCommunications(@CurrentUser() user: AuthenticatedUser,
                      @Query('houseId', ParseUUIDPipe) houseId: string) {

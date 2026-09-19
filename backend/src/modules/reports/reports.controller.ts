@@ -7,6 +7,8 @@ import { FollowupsService } from './followups.service';
 import { ReportsService } from './reports.service';
 import { ImpactoService } from './impacto.service';
 import { PanelService } from './panel.service';
+import { MetricasService } from './metricas.service';
+import { PeriodoService } from './periodo.service';
 
 @Controller('followups')
 @UseGuards(SessionGuard)
@@ -161,10 +163,58 @@ export class ReportsController {
   constructor(
     @Inject(ReportsService) private readonly reports: ReportsService,
     @Inject(PanelService) private readonly panel: PanelService,
+    @Inject(MetricasService) private readonly metricas_: MetricasService,
+    @Inject(PeriodoService) private readonly periodo: PeriodoService,
   ) {}
 
   @Get('kinds')
   tipos(@CurrentUser() user: AuthenticatedUser) { return this.reports.tipos(user); }
+
+  /**
+   * AS MÉTRICAS DAS OITO CASAS (fase 120) — a resposta à pergunta 1.
+   *
+   * GET com período por query, e sem finalidade escrita, ao contrário da
+   * leitura do trabalho da equipe: aqui não há o nome de pessoa nenhuma, e
+   * exigir uma frase para o Gestor Geral ver o próprio painel de gestão seria
+   * burocracia sem quem proteger. A abertura fica auditada mesmo assim.
+   */
+  @Get('metrics')
+  metricas(@CurrentUser() user: AuthenticatedUser,
+           @Query('de') de?: string, @Query('ate') ate?: string) {
+    return this.metricas_.porCasa(user, de, ate);
+  }
+
+  /**
+   * O PERÍODO DA CASA (fase 121) — *"uma ata geral de toda semana"*, com o
+   * período escolhido por quem lê: de um dia a seis meses.
+   *
+   * As quatro rotas vêm ANTES de `@Get(':id')` por obrigação e não por gosto:
+   * `period` casaria com `:id` e o servidor tentaria ler "period" como um
+   * UUID. O `ParseUUIDPipe` devolveria 400 — não 404 —, e o erro que a tela
+   * mostraria não teria relação nenhuma com o que aconteceu.
+   */
+  @Get('period/options')
+  periodoVocabulario() { return this.periodo.vocabulario(); }
+
+  @Get('period')
+  periodoDaCasa(@CurrentUser() user: AuthenticatedUser,
+                @Query('houseId', ParseUUIDPipe) houseId: string,
+                @Query('de') de?: string, @Query('ate') ate?: string) {
+    return this.periodo.daCasa(user, houseId, de, ate);
+  }
+
+  /** A folha ANTES de baixar: ver não é exportar, e não gera arquivo. */
+  @Post('period/preview')
+  periodoPrevia(@CurrentUser() user: AuthenticatedUser,
+                @Body() body: { houseId?: string; de?: string; ate?: string }) {
+    return this.periodo.folha(user, body?.houseId ?? '', body?.de, body?.ate);
+  }
+
+  /** Exportar deixa rastro: quem, finalidade, período e hora (§18.4). */
+  @Post('period/export')
+  periodoExportar(@CurrentUser() user: AuthenticatedUser, @Body() body: any) {
+    return this.periodo.exportar(user, body ?? {});
+  }
 
   /** Painel do gestor: um cartão por casa, na ordem do código. Sem ranking. */
   @Get('panel')

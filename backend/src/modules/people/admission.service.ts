@@ -162,7 +162,8 @@ export class AdmissionService {
       const { rows: [r] } = await c.query(
         `SELECT a.admitted_on, a.brought_by, a.origin_city, a.previous_shelter,
                 a.siblings_note, a.family_reference, a.arrival_note,
-                a.over_capacity, a.capacity_reason
+                a.over_capacity, a.capacity_reason, a.provisional_reason,
+                app_user_display_name(a.created_by) AS cadastrado_por, a.created_at
            FROM admission_record a
            -- rls-join-ok: care_episode não tem policy própria; quem filtra é adm_select.
            JOIN care_episode e ON e.id = a.episode_id AND e.status = 'ativo'
@@ -176,6 +177,24 @@ export class AdmissionService {
       acolhimentoAnterior: row.previous_shelter, irmaos: row.siblings_note,
       referenciaFamiliar: row.family_reference, chegada: row.arrival_note,
       acimaDoLimite: row.over_capacity, justificativaLimite: row.capacity_reason,
+      /*
+       * O MOTIVO DO INGRESSO SEM CPF — exigido pela tela desde a fase 40 e
+       * gravado só a partir da 1250. Até então, a frase escrita às três da
+       * manhã por quem recebeu a criança não chegava a coluna nenhuma.
+       *
+       * E ele vai SÓ para quem abre a área restrita, ao contrário do resto
+       * desta ficha. A diferença não é de sigilo do campo, é do que cabe
+       * dentro dele: "chegou sem documento, a mãe ficou de trazer a certidão"
+       * é uma frase de rotina, mas quem escreve às três da manhã escreve o que
+       * viu — e o que viu costuma ser a razão da retirada. O §8.14 inteiro é
+       * sobre narrativa de criança que atravessa meses.
+       *
+       * *É uma decisão minha, e reversível numa linha: se a casa disser que
+       * quem está de plantão precisa ler isso, o campo desce para todos.*
+       */
+      motivoProvisorio: CARGOS_AREA_RESTRITA.includes(user.role)
+        ? row.provisional_reason : undefined,
+      cadastradoPor: row.cadastrado_por, cadastradoEm: row.created_at,
     };
   }
 

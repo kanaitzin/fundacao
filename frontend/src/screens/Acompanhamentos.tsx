@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api';
+import { BotaoOlho } from '../anexos';
 import { FolhaDocumento } from '../documentos';
 import { Alinhamentos } from './Alinhamentos';
 import type { DocumentoWord } from '../docx';
@@ -82,8 +83,8 @@ const soDia = (d: string) => {
 const periodo = (p: { de: string; ate: string } | null | undefined) =>
   p ? `${soDia(p.de)} a ${soDia(p.ate)}` : '—';
 
-export function Acompanhamentos({ houseId, casaLabel }: {
-  houseId: string; casaLabel: string;
+export function Acompanhamentos({ houseId, casaLabel, papel }: {
+  houseId: string; casaLabel: string; papel: string;
 }) {
   const [aba, setAba] = useState<'acomp' | 'relat' | 'alinha'>('acomp');
   const [eixos, setEixos] = useState<Eixo[]>([]);
@@ -98,6 +99,7 @@ export function Acompanhamentos({ houseId, casaLabel }: {
   const [aviso, setAviso] = useState('');
   const [editando, setEditando] = useState<Acompanhamento | null>(null);
   const [entregando, setEntregando] = useState<Relatorio | null>(null);
+  const [rastro, setRastro] = useState<Relatorio | null>(null);
 
   async function carregar() {
     setErro('');
@@ -336,6 +338,18 @@ export function Acompanhamentos({ houseId, casaLabel }: {
                     {r.autor ? ` · ${r.autor}` : ''}
                   </div>
                   <div className="bloco"><small>Finalidade</small>{r.finalidade}</div>
+                  {/*
+                    * POR ONDE ESTA CÓPIA SAIU (fase 112).
+                    *
+                    * A segunda entrada da auditoria, e a razão de ela existir:
+                    * relatório circula — vai por e-mail, é impresso, fica em
+                    * cima de uma mesa (§8.13). A pergunta é sobre o DOCUMENTO,
+                    * e não sobre quem estava de plantão.
+                    */}
+                  {LEEM_AUDITORIA.includes(papel) && (
+                    <BotaoOlho rotulo="Quem exportou este relatório"
+                               onClick={() => setRastro(r)} />
+                  )}
                   {(r.entregas ?? []).map((e) => (
                     <div className="mutetxt" key={e.id}>
                       📎 Entregue a {e.destino} · {e.meio} · {quando(e.em)} · por {e.por}
@@ -434,6 +448,14 @@ export function Acompanhamentos({ houseId, casaLabel }: {
                           method: 'POST', body: JSON.stringify(corpo) }));
                         if (ok) setEntregando(null);
                       }} />
+      )}
+
+      {rastro && (
+        <FolhaRastroDoRegistro
+          titulo={`${rastro.tipo}${rastro.acolhido ? ` · ${rastro.acolhido}` : ''}`}
+          carregar={() => api<{ linhas: LinhaDeRastro[] }>(
+            `/audit/report/${rastro.id}`)}
+          onFechar={() => setRastro(null)} />
       )}
 
       {previa && (
@@ -642,6 +664,73 @@ function FolhaEntrega({ relatorio, onFechar, onRegistrar }: {
                   onClick={() => onRegistrar({ destino, meio, protocolo })}>
             Registrar entrega
           </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * O RASTRO DE UM REGISTRO — a segunda entrada da auditoria (fase 112).
+ *
+ * Entra-se pelo DOCUMENTO, e não por quem agiu. A finalidade é o que essa tela
+ * existe para mostrar: exportar um relatório exige dizer para quê, e é isso
+ * que alguém vai querer ler quando a cópia aparecer onde não devia.
+ *
+ * Lista vazia não é erro, e a frase diz isso: pode não ter saído nenhuma cópia.
+ */
+const LEEM_AUDITORIA = ['coordenador', 'gestor_geral', 'admin_tecnico'];
+
+interface LinhaDeRastro {
+  id: string; acao: string; codigo: string; quando: string; por: string;
+  finalidade: string | null;
+}
+
+function FolhaRastroDoRegistro({ titulo, carregar, onFechar }: {
+  titulo: string; carregar: () => Promise<{ linhas: LinhaDeRastro[] }>; onFechar: () => void;
+}) {
+  const [linhas, setLinhas] = useState<LinhaDeRastro[] | null>(null);
+  const [erro, setErro] = useState('');
+  useEffect(() => {
+    let vivo = true;
+    carregar()
+      .then((d) => { if (vivo) setLinhas(d.linhas); })
+      .catch((e) => { if (vivo) setErro(e instanceof Error ? e.message : 'Não foi possível abrir.'); });
+    return () => { vivo = false; };
+  }, []);
+
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-rastro"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet modal">
+        <h3 id="t-rastro">Quem mexeu · {titulo}</h3>
+        <p className="mutetxt">
+          O rastro é do documento. <b>Não existe busca por pessoa</b> — a mesma tabela que
+          responde "por onde esta cópia saiu" responderia "tudo o que fulano fez ontem".
+        </p>
+        {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+        {!linhas && !erro && <p className="mutetxt">Abrindo…</p>}
+        {linhas && linhas.length === 0 && (
+          <p className="mutetxt">
+            Nenhuma cópia saiu, e nada foi aberto. A lista vazia é informação — não é erro.
+          </p>
+        )}
+        <div className="stack">
+          {(linhas ?? []).map((l) => (
+            <div className="card" key={l.id}>
+              <div className="row">
+                <span className={`pill ${l.finalidade ? 'c-med' : 'c-info'}`}>{l.acao}</span>
+                <span className="mutetxt grow">{l.por}</span>
+                <span className="mutetxt">{quando(l.quando)}</span>
+              </div>
+              {l.finalidade && (
+                <div className="bloco"><small>Finalidade declarada</small>{l.finalidade}</div>
+              )}
+            </div>
+          ))}
+        </div>
+        <div className="row rodape">
+          <button className="btn grow" onClick={onFechar}>Fechar</button>
         </div>
       </div>
     </div>

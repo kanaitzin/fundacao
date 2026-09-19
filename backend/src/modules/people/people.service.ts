@@ -5,7 +5,8 @@ import {
 import { PoolClient } from 'pg';
 import { DatabaseService } from '../../kernel/database/database.service';
 import { AuditService } from '../../kernel/audit/audit.service';
-import { AuthenticatedUser } from '../../kernel/contracts';
+import { EventBus } from '../../kernel/events/event-bus.service';
+import { AuthenticatedUser, EscalationRequest } from '../../kernel/contracts';
 import { isValidCpf, normalizeCpf, maskCpf } from '../../kernel/common/cpf';
 
 export type CpfSituacao = 'livre' | 'ativo_mesma_casa' | 'no_acervo' | 'ativo_outra_casa';
@@ -29,6 +30,7 @@ export class PeopleService {
   constructor(
     @Inject(DatabaseService) private readonly db: DatabaseService,
     @Inject(AuditService) private readonly audit: AuditService,
+    @Inject(EventBus) private readonly bus: EventBus,
   ) {}
 
   /**
@@ -79,8 +81,12 @@ export class PeopleService {
       let r: { person_id: string; episode_id: string; episode_number: number };
       try {
         const { rows: [row] } = await c.query(
-          `SELECT * FROM app_admit_person($1,$2,$3,$4,$5,$6)`,
-          [input.houseId, input.fullName, input.socialName ?? null, input.birthDate, cpf, provisorio]);
+          /* Sete parâmetros desde a 1250: o sétimo é o MOTIVO do ingresso sem
+             CPF, que esta porta exigia e jogava fora — ela nem criava ficha de
+             entrada, e quem entrava pela urgência ficava sem nenhuma. */
+          `SELECT * FROM app_admit_person($1,$2,$3,$4,$5,$6,$7)`,
+          [input.houseId, input.fullName, input.socialName ?? null, input.birthDate, cpf,
+           provisorio, input.provisionalReason ?? null]);
         r = row;
       } catch (e: any) {
         if (e?.message?.includes('cpf_ja_cadastrado')) {
@@ -290,6 +296,62 @@ export class PeopleService {
 
   /* ---------------- Acolhido em experiência familiar (1010) ---------------- */
 
+  /**
+   * AS IDAS DELA, NA VIDA DELA (fase 118).
+   *
+   * A convivência familiar é ABERTA de dentro do perfil desde a fase 89 — e
+   * lida só na lista da casa, que mostra quem está fora AGORA. Quem abrisse o
+   * perfil da Alice em outubro não via que ela passou quatro fins de semana
+   * com a avó em setembro, nem como voltou de cada um.
+   *
+   * *"Como ela chegou" é o campo mais delicado desta tabela, e o §8.14 é sobre
+   * ele: "chegou sem falar e foi direto para o quarto" e "voltou agressiva"
+   * descrevem coisas diferentes, e a segunda gruda. Ele aparece aqui como foi
+   * escrito, sem rótulo e sem soma — e SEM contagem de idas, que num perfil de
+   * criança seria a primeira linha de um julgamento sobre a família dela.*
+   */
+  async convivenciasDoAcolhido(user: AuthenticatedUser, personId: string) {
+    return this.db.asUser(user.id, async (c) => {
+      /* rls-join-ok: `fs_select` filtra family_stay pela casa em alcance, e o
+         contato é lido pelo id que a própria linha aponta. */
+      const { rows } = await c.query(
+        `SELECT f.id, f.purpose, f.started_at, f.expected_return_at, f.returned_at,
+                f.return_note, f.brought_back, f.status,
+                c2.name AS com_quem, c2.bond,
+                app_user_display_name(f.opened_by) AS liberou,
+                app_user_display_name(f.closed_by) AS recebeu
+           FROM family_stay f
+           JOIN person_contact c2 ON c2.id = f.contact_id
+          WHERE f.person_id = $1
+          ORDER BY f.started_at DESC
+          LIMIT 50`, [personId]);
+
+      /* Os relatos vêm JUNTO, numa consulta só (fase 122).
+         A alternativa era a tela pedir um por saída, e o perfil de quem passou
+         oito fins de semana com a avó faria nove chamadas para desenhar um
+         bloco. `family_stay_note` já é filtrada pela RLS da casa. */
+      const { rows: relatos } = await c.query(
+        `SELECT n.id, n.family_stay_id, n.narrative, n.changed, n.created_at,
+                app_user_display_name(n.created_by) AS por
+           FROM family_stay_note n
+          WHERE n.person_id = $1
+          ORDER BY n.created_at`, [personId]);
+
+      return rows.map((r) => ({
+        id: r.id, comQuem: r.com_quem, vinculo: r.bond, finalidade: r.purpose,
+        saiuEm: r.started_at, retornoPrevisto: r.expected_return_at,
+        voltouEm: r.returned_at, status: r.status,
+        /* Fato observado, como foi escrito. A tela não resume nem rotula. */
+        comoChegou: r.return_note, trouxeDeCasa: r.brought_back,
+        liberou: r.liberou, recebeu: r.recebeu,
+        relatos: relatos.filter((n) => n.family_stay_id === r.id).map((n) => ({
+          id: n.id, relato: n.narrative, houveAlteracao: n.changed === true,
+          por: n.por, quando: n.created_at,
+        })),
+      }));
+    });
+  }
+
   /** Quem está com a família agora, e quem já devia ter voltado. */
   async convivenciasAbertas(user: AuthenticatedUser, houseId: string) {
     return this.db.asUser(user.id, async (c) => {
@@ -397,6 +459,109 @@ export class PeopleService {
       detail: { quando, comNota: !!nota?.trim(), comTrouxe: !!trouxe?.trim() },
     });
     return { encerrada: true };
+  }
+
+
+  /* ---------------- O relato da convivência (1300) ---------------- */
+
+  /**
+   * ESCREVER UM RELATO DA CONVIVÊNCIA FAMILIAR (fase 122).
+   *
+   * A Fundação corrigiu o desenho antes de ele existir. O pedido de 15/09 era
+   * um acompanhamento que *"fica aberto para ser preenchido por algum educador
+   * depois de uma semana"*, e eu ia construir isso como pendência com prazo.
+   * Ele voltou:
+   *
+   *   *"Acho mais fácil não dar um prazo, mas deixar em aberto para ser
+   *   registrado quando de fato tivermos uma informação. […] Dessa forma não
+   *   haverá uma pressão para arrancar a informação da criança. Mas isso pode
+   *   ser registrado quantas vezes for necessário, por qualquer educador, tudo
+   *   ficando no perfil do jovem."*
+   *
+   * Então: **sem prazo, sem estado, sem limite, e qualquer pessoa da equipe da
+   * casa escreve.** Uma pendência de sete dias viraria cobrança sobre o
+   * educador, e o educador só teria uma forma de baixá-la — perguntar de novo
+   * para a criança.
+   *
+   * O ÚNICO aviso é o de alteração, e ele sai pelo barramento: a partição
+   * `people` não pode depender de `notifications`, que é removível.
+   */
+  async relatarConvivencia(user: AuthenticatedUser, id: string, input: {
+    relato?: string; houveAlteracao?: boolean;
+  }) {
+    const relato = (input?.relato ?? '').trim();
+    const alteracao = input?.houveAlteracao === true;
+
+    let r: { relato_id: string; de_quem: string; na_casa: string };
+    try {
+      r = await this.db.asUser(user.id, async (c) => {
+        const { rows: [row] } = await c.query(
+          `SELECT * FROM app_relatar_convivencia($1,$2,$3)`, [id, relato, alteracao]);
+        return row;
+      });
+    } catch (e: any) {
+      const m = String(e?.message ?? '');
+      if (m.includes('relato_curto_demais')) {
+        throw new BadRequestException(
+          'Escreva o que foi observado ou o que ela contou (pelo menos 10 caracteres). '
+          + 'Não há prazo nenhum aqui: se ainda não há o que registrar, deixe para depois.');
+      }
+      if (m.includes('saida_inexistente')) {
+        throw new NotFoundException('Saída para convivência familiar não encontrada.');
+      }
+      throw e;
+    }
+
+    /* Sem o conteúdo no log: o relato descreve uma criança e a família dela, e
+       o log da aplicação guarda ID e metadado (regra 2). */
+    await this.audit.log({
+      action: 'family_stay.note', actorId: user.id, institutionId: user.institutionId,
+      houseId: r.na_casa, entity: 'family_stay', entityId: id,
+      detail: { personId: r.de_quem, houveAlteracao: alteracao },
+    });
+
+    if (alteracao) {
+      /* *"Se houve alguma alteração, sim, tem que ser notificado."* O aviso não
+         carrega o texto: ele diz que existe e onde está (§19). E a chave de
+         agrupamento é a SAÍDA, não o relato — três observações sobre o mesmo
+         fim de semana são um assunto, e não três sinos. */
+      const pedido: EscalationRequest = {
+        level: 'tecnica_coordenacao', entity: 'family_stay', entityId: id,
+        reason: 'relato de convivência familiar com alteração observada',
+        title: 'Relato de convivência familiar com alteração',
+        body: 'Alguém da equipe registrou que observou alteração depois de uma convivência '
+          + 'familiar. O que foi escrito está no perfil da criança.',
+        priority: 'alta',
+        groupKey: `family_stay:${id}:alteracao`,
+      };
+      await this.bus.publish('escalation.requested', pedido,
+        { actorId: user.id, houseId: r.na_casa });
+    }
+
+    return {
+      id: r.relato_id,
+      aviso: alteracao
+        ? 'Registrado. A equipe técnica e a coordenação foram avisadas de que há alteração '
+          + 'a olhar — o aviso não leva o texto, só diz onde ele está.'
+        : 'Registrado no perfil dela. Este espaço continua aberto: se ela contar mais '
+          + 'alguma coisa daqui a um mês, é só escrever de novo.',
+    };
+  }
+
+  /** Os relatos de uma saída, em ordem de escrita. Nada some, nada se reescreve. */
+  async relatosDaConvivencia(user: AuthenticatedUser, id: string) {
+    return this.db.asUser(user.id, async (c) => {
+      const { rows } = await c.query(
+        `SELECT n.id, n.narrative, n.changed, n.created_at,
+                app_user_display_name(n.created_by) AS por
+           FROM family_stay_note n
+          WHERE n.family_stay_id = $1
+          ORDER BY n.created_at`, [id]);
+      return rows.map((n) => ({
+        id: n.id, relato: n.narrative, houveAlteracao: n.changed === true,
+        por: n.por, quando: n.created_at,
+      }));
+    });
   }
 
   /* ---------------- Sair sozinho (1020) ---------------- */

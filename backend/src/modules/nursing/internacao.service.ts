@@ -1,11 +1,9 @@
 import {
   BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException,
 } from '@nestjs/common';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { randomUUID } from 'node:crypto';
-import { join } from 'node:path';
 import { DatabaseService } from '../../kernel/database/database.service';
 import { AuditService } from '../../kernel/audit/audit.service';
+import { ArquivosService, RegraDoArquivo } from '../../kernel/arquivos/arquivos.service';
 import { AuthenticatedUser } from '../../kernel/contracts';
 
 /**
@@ -23,13 +21,30 @@ import { AuthenticatedUser } from '../../kernel/contracts';
  * ninguém da casa. Quem escreveu no sistema e quem administrou são pessoas
  * diferentes, e o registro diz as duas coisas.
  */
+/**
+ * O ANEXO DA NOTA DE INTERNAÇÃO — 10 MB, PDF, JPG ou PNG.
+ *
+ * Mais estreito que o dossiê porque o que chega aqui é o papel que o hospital
+ * entrega na hora: receita, resultado de exame, alta. Foi escrito assim na
+ * fase 96 e continua assim — a fase 114 mudou só ONDE a regra mora.
+ */
+const O_ANEXO_DA_INTERNACAO: RegraDoArquivo = {
+  aceita: ['application/pdf', 'image/jpeg', 'image/png'],
+  maximo: 10 * 1024 * 1024,
+  recusas: {
+    vazio: 'O anexo chegou vazio.',
+    grande: 'O anexo passa de 10 MB. Digitalize em qualidade menor.',
+    tipo: 'O anexo precisa ser PDF, JPG ou PNG.',
+  },
+};
+
 @Injectable()
 export class InternacaoService {
-  private readonly dir = process.env.ARQUIVOS_DIR ?? join(process.cwd(), '.arquivos');
 
   constructor(
     @Inject(DatabaseService) private readonly db: DatabaseService,
     @Inject(AuditService) private readonly audit: AuditService,
+    @Inject(ArquivosService) private readonly arquivos: ArquivosService,
   ) {}
 
   private readonly TIPOS_DE_NOTA = [
@@ -158,6 +173,35 @@ export class InternacaoService {
   // --------------------------------------------------------------- Listar
 
   /** As internações de uma casa — abertas primeiro. */
+  /**
+   * AS INTERNAÇÕES DELA, NA VIDA DELA (fase 118).
+   *
+   * A internação é lida pela CASA — quem está no hospital agora —, e a tela de
+   * internação abre por ali. O perfil da criança não dizia que ela esteve
+   * quinze dias internada em agosto: para saber, alguém tinha de ir à tela de
+   * internação e pedir também as encerradas.
+   *
+   * O alcance é o da `hosp_select`: quem alcança a criança. A Enfermagem vê
+   * nas oito casas, e isso é decisão de 03/09 registrada no §10, item 11 —
+   * internação é primeiro um fato de saúde.
+   */
+  async doAcolhido(user: AuthenticatedUser, personId: string) {
+    return this.db.asUser(user.id, async (c) => {
+      const { rows } = await c.query(
+        `SELECT h.id, h.hospital, h.reason, h.started_at, h.ended_at, h.status, h.outcome,
+                app_user_display_name(h.opened_by)  AS abriu,
+                app_user_display_name(h.closed_by)  AS encerrou
+           FROM hospitalization h
+          WHERE h.person_id = $1
+          ORDER BY h.started_at DESC LIMIT 50`, [personId]);
+      return rows.map((r) => ({
+        id: r.id, hospital: r.hospital, motivo: r.reason,
+        desde: r.started_at, ate: r.ended_at, status: r.status, desfecho: r.outcome,
+        abriu: r.abriu, encerrou: r.encerrou,
+      }));
+    });
+  }
+
   async daCasa(user: AuthenticatedUser, houseId: string, incluirEncerradas = false) {
     return this.db.asUser(user.id, async (c) => {
       const { rows } = await c.query(
@@ -260,26 +304,9 @@ export class InternacaoService {
       throw new BadRequestException('Tipo de registro desconhecido.');
     }
 
-    let chave: string | null = null;
-    let tipoArq: string | null = null;
-    if (input.conteudo) {
-      const limpo = String(input.conteudo).replace(/^data:[^;]+;base64,/, '');
-      const bytes = Buffer.from(limpo, 'base64');
-      if (!bytes.length) throw new BadRequestException('O anexo chegou vazio.');
-      if (bytes.length > 10 * 1024 * 1024) {
-        throw new BadRequestException('O anexo passa de 10 MB. Digitalize em qualidade menor.');
-      }
-      const hex = bytes.subarray(0, 8).toString('hex');
-      tipoArq = hex.startsWith('25504446') ? 'application/pdf'
-        : hex.startsWith('ffd8ff') ? 'image/jpeg'
-        : hex.startsWith('89504e47') ? 'image/png' : null;
-      if (!tipoArq) {
-        throw new BadRequestException('O anexo precisa ser PDF, JPG ou PNG.');
-      }
-      chave = randomUUID();
-      await mkdir(this.dir, { recursive: true });
-      await writeFile(join(this.dir, chave), bytes);
-    }
+    const guardado = await this.arquivos.guardar(input.conteudo, O_ANEXO_DA_INTERNACAO);
+    const chave = guardado?.chave ?? null;
+    const tipoArq = guardado?.mime ?? null;
 
     return this.db.asUser(user.id, async (c) => {
       try {
@@ -290,6 +317,33 @@ export class InternacaoService {
                    $5, $6, $7, $8) RETURNING id`,
           [id, input.dia ?? null, input.tipo ?? null, input.texto!.trim(),
            chave, tipoArq, input.nomeArquivo ?? null, user.id]);
+
+        /*
+         * E O ANEXO CAI NO PERFIL DA CRIANÇA (fase 125).
+         *
+         * *"Todos os outros lugares onde a gente preenche […] têm que ir
+         * individual para cada um no seu registro."* O laudo que o hospital
+         * entregou é documento DELA, e ficava só no diário da internação —
+         * que some da tela da casa quando a internação encerra.
+         *
+         * Espelho, e não cópia: o mesmo objeto guardado, a mesma soma de
+         * verificação. E na MESMA transação do registro: se o espelho falhar,
+         * o diário também volta, e a equipe reescreve uma vez em vez de
+         * descobrir meses depois que metade dos laudos chegou ao dossiê.
+         */
+        if (chave) {
+          const { rows: [h] } = await c.query(
+            `SELECT person_id FROM hospitalization WHERE id = $1`, [id]);
+          if (h?.person_id) {
+            await c.query(
+              `SELECT * FROM app_espelhar_no_dossie($1,'saude',NULL,$2,$3,$4,$5,$6,$7,$8,NULL)`,
+              [h.person_id,
+               (input.nomeArquivo ?? '').trim() || 'Anexo do diário de internação',
+               'Anexo do diário de internação',
+               `hospitalization_note:${r.id}`,
+               chave, guardado?.sha256 ?? null, tipoArq, input.nomeArquivo ?? null]);
+          }
+        }
         return { id: r.id, ok: true };
       } catch (e: any) {
         if (String(e?.message ?? '').includes('row-level security')) {
@@ -325,7 +379,7 @@ export class InternacaoService {
       throw new NotFoundException('Registro não encontrado — ou fora do seu alcance.');
     }
     if (!nota.storage_key) throw new NotFoundException('Este registro não tem anexo.');
-    const bytes = await readFile(join(this.dir, nota.storage_key)).catch(() => null);
+    const bytes = await this.arquivos.ler(nota.storage_key);
     if (!bytes) {
       /* O banco diz que existe e o disco não tem: é falha de armazenamento, e
        * precisa soar diferente de "não tem anexo". */
