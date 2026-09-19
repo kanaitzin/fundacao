@@ -1,23 +1,23 @@
 # PARA A REUNIÃO — o que falta, e o que eu preciso perguntar
 
-> Gerado em 13/09/2026 na fase 104, revisto em 15/09 na fase 120. Reúne num lugar só o que está espalhado
-> pelo `REDE-ACOLHER.md` (§9, §10, §10.5, §11, §12) — para a conversa não
-> precisar caçar. **Cada item diz onde está a versão completa.**
->
-> Nada aqui é problema de código. O sistema está construído e verificado; o que
-> falta é decisão de gente, e é por isso que este documento existe.
->
-> **15/09 — a rodada que destravou o piloto.** O Leonardo respondeu as TRÊS
-> perguntas do §2 e QUATRO do roteiro, de uma vez. O que estava travado por
-> decisão de gente encolheu de treze itens para seis, e o dado real deixou de
-> esperar a LGPD. As respostas estão nas seções a que pertencem, **com as
-> palavras dele** — e o que sobrou está no §5.
+> Gerado em 13/09/2026 na fase 104, revisto em 15/09 na fase 120 e em 19/09 na
+> fase 126.
 
 ---
 
 ## 1. Onde o sistema está, em cinco linhas
 
-- **125 fases.** 77 suítes e 768 testes, verdes em duas condições de relógio —
+> **19/09, fase 126 — o que mudou desde a última revisão deste documento.**
+> Nenhuma decisão nova, nenhuma funcionalidade nova: as fases 105 a 125 voltaram
+> de outra conversa como pacote sem histórico, e foram aceitas **rodando**. A
+> suíte inteira reprovava, e cada suíte sozinha passava — três causas, todas em
+> dado de teste. Duas **se cancelavam** (uma deixava uma criança a mais na Casa
+> 03, a outra tirava o Theo do seed), e a terceira era o defeito de fuso de
+> sempre num lugar novo: o seed das prescrições usava a data do SERVIDOR, e
+> depois das 21h em Porto Alegre semeava o dia seguinte — o dia de hoje nascia
+> sem dose nenhuma. **Nada no sistema; tudo no dado de partida.**
+
+- **126 fases.** 77 suítes e 768 testes, verdes em duas condições de relógio —
   antes e depois da virada do UTC, que em Porto Alegre é às 21h.
 - O sistema **sobe compilado num banco virgem**, o backup restaura e o cofre
   abre com a chave certa — e reprova com a errada.

@@ -120,7 +120,7 @@ async function main() {
      * o dia do SERVIDOR, e depois das 21h em Porto Alegre ele já é o dia
      * seguinte. A prescrição nascia começando AMANHÃ, nenhuma dose do dia era
      * gerada, e a suíte do piloto reprovava toda noite — por um motivo que não
-     * estava no sistema, e sim no dado de partida (fase 121).
+     * estava no sistema, e sim no dado de partida (fase 126).
      */
     const fim = r.duracaoDias
       ? `app_hoje() + ${r.duracaoDias}`
