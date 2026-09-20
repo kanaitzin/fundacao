@@ -241,14 +241,14 @@ export class ChecksService {
          * foi internada no meio da manhã, depois de marcada no café, não some
          * do registro daquela chamada.
          */
+        /* As duas exclusões moravam AQUI, em linha, e só aqui: o lote, o
+           fechamento e o "quem falta" do banco não as conheciam. O lote
+           marcava a criança internada como tendo almoçado, e o fechamento
+           cobrava pelo nome quem esta tela se recusava a listar — a chamada
+           final não fechava. Agora a lista é uma só, `app_efetivo_da_chamada`
+           (1350), e regra nova de presença se escreve lá dentro, uma vez. */
         `WITH efetivo AS (
-           SELECT s.person_id FROM house_stay s
-            WHERE s.house_id = $2 AND s.status = 'ativa'
-              AND NOT app_esta_internado(s.person_id)
-              /* E quem está com a família (1010): mesma razão. Cobrar a
-                 confirmação do café de quem passou o fim de semana com a mãe é
-                 pedir que a educadora minta. */
-              AND NOT app_em_convivencia_familiar(s.person_id)
+           SELECT person_id FROM app_efetivo_da_chamada($1)
            UNION
            SELECT r.person_id FROM check_result r WHERE r.check_id = $1
          )
