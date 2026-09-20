@@ -29,8 +29,13 @@ discordavam entre si sobre fatos verificáveis.
 bash scripts/preparar-ambiente.sh    # dependências, PostgreSQL e Chromium
 ```
 
+**No Claude Code na web isto já foi feito:** o `.claude/hooks/session-start.sh`
+roda antes de a sessão começar e deixa a máquina pronta, com o banco migrado e a
+semente fictícia. Ver §14 do documento único.
+
 Depois, o §3 do documento único tem os comandos: `tsc`, a suíte, o protótipo e
-os ensaios de navegador.
+os ensaios de navegador. **A suíte é `npm test`** — nunca `npx jest` pelado: há
+um banco só, e em paralelo as suítes se contaminam.
 
 ## Estrutura
 
@@ -39,5 +44,6 @@ os ensaios de navegador.
 | `backend/` | API NestJS em partições isoladas, cada uma com as próprias migrações |
 | `frontend/` | PWA React + TypeScript (Vite), e os ensaios de navegador |
 | `prototipo/` | o `.html` único que a Fundação abre, sem servidor |
-| `scripts/` | preparo do ambiente, backup, restauração, ensaio de produção |
+| `scripts/` | preparo do ambiente, o relógio adiantado, backup, restauração, ensaio de produção |
+| `.claude/` | o hook que prepara a sessão na web, e os comandos de verificação pré-aprovados |
 | `docs/` | o documento único, o DER, o roteiro do Marcelo — e `historico/`, que é arquivo morto |
