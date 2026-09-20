@@ -2052,15 +2052,18 @@ número**.
    1º. Um quarto recorte, "últimos 30 dias", resolveria.
 5. **A grade de medicação "para colar na parede"** saiu sem diagnóstico e com o
    aviso na própria folha. Se a casa quiser diferente, é decisão dela.
-6. **O que o Gestor Geral vê ANTES de abrir um relato restrito.** O precedente
-   dos documentos mostra a contagem e nada mais: "existem 2 documentos em área
-   restrita". A pergunta é se aqui vale o mesmo, ou se ele precisa também da
-   data e do autor para saber o que está pedindo. **Enquanto não houver
-   resposta, a tela não será construída** — inventar isso sozinho seria decidir
-   quanto da narrativa de uma criança vaza antes da justificativa.
-7. **De onde a equipe técnica escolhe as fontes de um acompanhamento** — a linha
-   do tempo da criança no período, as ocorrências, ou as evoluções de saúde?
-   Cada opção desenha uma tela diferente.
+6. ~~**O que o Gestor Geral vê ANTES de abrir um relato restrito.**~~
+   ✅ **RESPONDIDA em 20/09/2026: só a contagem.** Vale o mesmo precedente dos
+   documentos — *"existem 2 relatos em área restrita"*, e nada mais. Ele sabe
+   que há o que pedir; não sabe de quê nem de quando antes de escrever a
+   finalidade. **Destrava duas telas:** a leitura excepcional
+   (`POST /statements/:id/exceptional-read`) e a listagem por criança do
+   `statement.person_id`, que o §9 mantinha fechada por esta pergunta.
+7. ~~**De onde a equipe técnica escolhe as fontes de um acompanhamento**~~
+   ✅ **RESPONDIDA em 20/09/2026: as três, numa lista só.** Linha do tempo,
+   ocorrências e evoluções de saúde do período, numa lista única com filtro por
+   tipo. É mais trabalho de uma vez, e é a única que não obriga a técnica a
+   adivinhar em qual aba está o que ela lembra.
 8. **"Administrado com atraso"** é informação útil para a Enfermagem, ou
    cobrança injusta com quem estava com uma criança no colo? Hoje o sistema
    marca; mudar é trocar o rótulo por um que descreva o fato sem julgar quem
@@ -2087,6 +2090,34 @@ número**.
     e retorno. *Ganhou apoio na resposta de 08/09: se a Enfermagem atende das 9h
     às 17h, é ela quem recebe a criança de volta na alta.* Desfaz-se numa linha
     em `app_pode_ver_internacao`.
+
+### As respostas de 20/09/2026 — a rodada que destravou três telas
+
+*Quatro respostas, na noite em que o repositório ficou pronto no Code. Guardadas
+com as palavras dele onde ele escreveu por extenso, porque a paráfrase é onde a
+decisão se perde.*
+
+| # | Pergunta | A resposta | Situação |
+|---|---|---|---|
+| §10.6 | **O que o Gestor Geral vê antes de abrir um relato restrito** | **Só a contagem** — o mesmo precedente dos documentos | **Destrava duas telas:** a leitura excepcional, e a listagem de relatos por criança |
+| §10.7 | **De onde a técnica escolhe as fontes do acompanhamento** | **As três numa lista só** — linha do tempo, ocorrências e evoluções de saúde do período, com filtro por tipo | Destrava `POST /followups/:id/sources`: falta a rota que lista os candidatos |
+| §9 2.5 | **A dedução da escala** | *"na vida real as escalas já são montadas com antecedência, apenas irão cadastrar aqui, caso alguém não possa vir eles podem cancelar a pessoa da escala daquele plantão, podendo se quiser também incluir outro funcionário a qualquer momento, tudo fica em registro, mas **não cabe a nós deduzir**"* | **A dedução sai.** Ver o parágrafo abaixo: a consequência foi levantada e ele reafirmou |
+| novo | **As notas escolares** — a métrica *"quantas crianças tiveram boas notas"* não tinha de onde sair | **Um conceito geral por período**, por bimestre, com espaço para o porquê. Não boletim com notas por disciplina | Contável, rápido de digitar, e não vira nota colada no nome da criança |
+
+**A dedução da escala, e a consequência que fica registrada.** Hoje, sem escala
+lançada, o sistema cai para a escala semanal e depois para o vínculo da casa
+(`0960`), declarando a fonte. Tirando isso, **num dia sem escala lançada ninguém
+é apontado para assinar a passagem de plantão**, e a cobrança de relato não sabe
+a quem perguntar. A objeção foi levantada e ele reafirmou: a escala é a verdade,
+e o sistema não inventa quem estava lá.
+
+*O desenho que sai disso, e ele é reversível:* a escala do dia sem lançamento
+fica **vazia e diz que ninguém lançou** — em vermelho, porque é uma pendência da
+casa e não um estado normal. E a passagem passa a ser assinada por **quem está
+ali** — quem abre o plantão —, com o registro guardando que não havia escala
+lançada naquele dia. O sistema deixa de afirmar um nome que não foi escalado; a
+educadora das 23h não fica sem poder assinar. *Preferir que a passagem também
+trave é uma linha, e é decisão dele.*
 
 ### As respostas de 15/09/2026 — a rodada que destravou o piloto
 

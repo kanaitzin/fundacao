@@ -1,7 +1,8 @@
 # PARA A REUNIÃO — o que falta, e o que eu preciso perguntar
 
-> Gerado em 13/09/2026 na fase 104, revisto em 15/09 na fase 120 e em 19/09 na
-> fase 126.
+> Gerado em 13/09/2026 na fase 104, revisto em 15/09 na fase 120, em 19/09 na
+> fase 126 e em **20/09**, quando quatro perguntas foram respondidas de uma vez
+> (§4.5 e §5).
 
 ---
 
@@ -58,12 +59,11 @@ Tem um motivo? […] é uma forma de ele poder melhorar o acompanhamento das
 outras casas para as outras crianças que não atingiram o tamanho dos
 resultados."*
 
-⚠️ **Uma das métricas não tem dado:** *"quantas crianças tiveram boas notas"*.
-Não existe campo de nota, boletim ou conceito no sistema — o que existe é a
-SÉRIE (`4º ano`) e a evolução educacional em texto livre. **Para contar nota é
-preciso passar a registrar nota**, e isso é decisão dele: boletim por bimestre?
-aprovado/reprovado por disciplina? só o conceito geral? *A aprovação de ano,
-essa sim, já é contável hoje — é um marco de vida.*
+~~⚠️ **Uma das métricas não tem dado:** *"quantas crianças tiveram boas
+notas"*.~~ ✅ **RESPONDIDA EM 20/09: um conceito geral por período**, por
+bimestre, com espaço para o porquê — e não boletim com notas por disciplina, que
+ninguém digitaria por 20 crianças em oito casas. Ver a pergunta 2 do §4.5. *A
+aprovação de ano, essa sim, já era contável — é um marco de vida.*
 
 **2. A escala 12x36.** *(travava o aviso de fim de plantão desde 08/09)*
 
@@ -74,12 +74,11 @@ menos. E a frase que decide o desenho: **"a gente não vai deduzir a escala."**
 
 **Quase tudo já existe.** Medido antes de construir: lançamento por data e
 turno, repetição de padrão, até um ano à frente, retirada que some na hora,
-nada apagado, folha para a parede. Faltam quatro coisas pequenas, listadas no
-`REDE-ACOLHER.md` §9 — e **uma delas precisa de resposta dele** antes de eu
-mexer: hoje, quando a escala do dia **não** foi lançada, o sistema cai para a
-escala semanal e depois para o vínculo da casa, declarando a fonte. Se eu
-tirar a dedução como ele pediu, **um dia sem escala lançada fica sem ninguém
-para assinar a passagem**. Ver a pergunta 1 do §5.
+nada apagado, folha para a parede. Três dos quatro ajustes saíram na fase 123.
+✅ **O quarto foi respondido em 20/09: a dedução sai.** Ele reafirmou com a
+rotina real pela frente — *"não cabe a nós deduzir"* —, e o desenho que sai
+disso está na pergunta 1 do §4.5: escala vazia que diz em vermelho que ninguém
+lançou, e a passagem assinada por quem está ali.
 
 **3. LGPD.** *(travava o piloto inteiro)*
 
@@ -133,18 +132,22 @@ Estas têm de ser respondidas **depois** de a equipe usar o protótipo, não ant
 *São curtas, e cada uma muda uma linha de código. Todas nasceram de eu medir o
 que já existe antes de construir o que ele pediu.*
 
-**1. Tirar a dedução da escala deixa o dia sem ninguém.** ⚠️
+**1. ~~Tirar a dedução da escala deixa o dia sem ninguém.~~** ✅ **RESPONDIDA
+EM 20/09 — a dedução sai.**
 
-Ele disse: *"a gente não vai deduzir a escala."* Hoje, quando a escala do dia
-**não** foi lançada, o sistema cai para a escala semanal e depois para o
-vínculo da casa — **e diz qual fonte usou**. Se eu tirar isso, um dia sem
-escala lançada fica **sem ninguém** para assinar a passagem de plantão, e a
-cobrança de relato não sabe a quem perguntar.
+Ele reafirmou, com a rotina real pela frente: *"na vida real as escalas já são
+montadas com antecedência, apenas irão cadastrar aqui, caso alguém não possa vir
+eles podem cancelar a pessoa da escala daquele plantão, podendo se quiser também
+incluir outro funcionário a qualquer momento, tudo fica em registro, mas **não
+cabe a nós deduzir**."*
 
-*O que eu preciso saber:* num dia sem escala lançada, o sistema deve (a) ficar
-vazio e avisar em vermelho que ninguém lançou, (b) continuar deduzindo e
-avisando que deduziu, como hoje, ou (c) deduzir só nos primeiros meses do
-piloto, até a casa pegar o hábito de lançar?
+Eu levantei a consequência — sem dedução e sem escala lançada, ninguém é
+apontado para assinar a passagem — e ele decidiu de novo pelo mesmo caminho. O
+desenho que sai disso está no §10 do `REDE-ACOLHER.md`: a escala do dia sem
+lançamento fica **vazia e diz em vermelho que ninguém lançou**, e a passagem
+passa a ser assinada por **quem está ali**, com o registro guardando que não
+havia escala. *O sistema deixa de afirmar um nome que não foi escalado, e não
+deixa a educadora das 23h sem poder assinar.*
 
 **2. "Quantas crianças tiveram boas notas" não tem onde sair.** ⚠️
 
@@ -152,10 +155,21 @@ Não existe campo de nota, boletim ou conceito. O que existe é a **série** (`4
 ano`) e a evolução educacional em **texto livre** — que não se conta. A
 **aprovação de ano**, essa sim, já é contável hoje.
 
-*O que eu preciso saber:* o que a casa vai passar a registrar? Boletim por
-bimestre, com as notas? Aprovado/reprovado por disciplina? Só um conceito geral
-por período? **A métrica que ele quer começa por alguém digitar isso todo mês**
-— e é bom decidir agora quem, e em que tela.
+✅ **RESPONDIDA EM 20/09: um conceito geral por período.** Por bimestre, um
+conceito por criança, com espaço para o porquê. **Não** boletim com as notas por
+disciplina — são 20 crianças, quatro vezes por ano, em oito casas, e a métrica
+que ninguém consegue digitar não existe. **Não** aprovado/reprovado por
+disciplina, que só fala uma vez por ano, tarde para a casa agir.
+
+*O que isso desenha:* o conceito é contável, então a caixa *"crianças com bom
+acompanhamento educacional"* do painel do Gestor passa a ter de onde sair. E ele
+é curto de digitar, o que é a condição de existir. **O conceito não vira número
+colado no nome da criança** — é estado do acompanhamento num período, com o
+motivo escrito ao lado, pela mesma razão que a pontuação de comportamento foi
+recusada (§7 do `REDE-ACOLHER.md`).
+
+*Ainda meu, e vou perguntar quando construir:* quem digita — o educador, que
+acompanha a tarefa de casa, ou a equipe técnica?
 
 **3. A foto de identificação não baixa — decisão minha, a confirmar.**
 
@@ -188,8 +202,8 @@ Nenhuma é problema de código. Duas têm consequência maior e estão marcadas.
 | 3 | "Concluí tudo até agora" na linha do dia — a versão segura exclui medicação |
 | 4 | O Arquivo das ATAS abre no mês de calendário e fica vazio todo dia 1º. Criar "últimos 30 dias"? |
 | 5 | A grade de medicação para colar na parede saiu sem diagnóstico. A casa quer diferente? |
-| **6** | ⚠️ **O que o Gestor Geral vê ANTES de abrir um relato restrito.** Só a contagem, como nos documentos, ou também data e autor? **Enquanto não houver resposta, a tela não será construída** — inventar isso é decidir quanto da narrativa de uma criança vaza antes da justificativa |
-| 7 | De onde a técnica escolhe as fontes de um acompanhamento — linha do tempo, ocorrências, ou evoluções de saúde? Cada opção é uma tela diferente |
+| ~~6~~ | ✅ **RESPONDIDA EM 20/09: só a contagem** — *"existem 2 relatos em área restrita"*, o mesmo precedente dos documentos. **Destrava duas telas:** a leitura excepcional, e a listagem de relatos por criança |
+| ~~7~~ | ✅ **RESPONDIDA EM 20/09: as três numa lista só**, com filtro por tipo — é a única que não obriga a técnica a adivinhar em qual aba está o que ela lembra |
 | 8 | "Administrado com atraso" é informação útil, ou cobrança injusta com quem estava com uma criança no colo? |
 | **9** | ⚠️ **O PIA.** Nas vinte crianças, as duas datas são iguais (18/06 e 18/09), o que sugere controle por data única na planilha e não por criança. São mesmo iguais? O sistema deve avisar por criança, 30 dias antes? |
 | 11 | **A Enfermagem vê a internação — decisão MINHA, a confirmar.** A resposta de 03/09 não a listou; incluí porque internação é primeiro um fato de saúde. Desfaz-se numa linha |
