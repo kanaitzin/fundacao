@@ -1,0 +1,110 @@
+RASCUNHO — não é suíte. Guardado como .txt de propósito: dentro de backend/test/
+ele entraria na contagem e mudaria os números do §2 sem ninguém decidir.
+Foi o repro que achou o defeito da chamada em 20/09/2026. Se virar teste de
+verdade, é preciso lê-lo antes, dar-lhe nome e pô-lo em backend/test/.
+----------------------------------------------------------------------
+/**
+ * REPRODUÇÃO TEMPORÁRIA — não fica no repositório.
+ *
+ * Mostra, com o relógio normal, que a conferência de mesa marca a criança que
+ * está no hospital: a lista da chamada a exclui, e o lote não.
+ */
+import { Test } from '@nestjs/testing';
+import { INestApplication, ValidationPipe } from '@nestjs/common';
+import request from 'supertest';
+import { Client } from 'pg';
+import { AppModule } from '../src/app.module';
+
+const SENHA = 'senha-dev-123';
+const adminUrl = process.env.DATABASE_URL
+  ?? 'postgres://rede_admin:dev-only-change-me@127.0.0.1:5432/rede_acolher';
+
+describe('reprodução', () => {
+  let app: INestApplication, http: any, admin: Client;
+  const tokens: Record<string, string> = {};
+  let AI3 = '', crianca = '';
+
+  beforeAll(async () => {
+    admin = new Client({ connectionString: adminUrl });
+    await admin.connect();
+    const mod = await Test.createTestingModule({ imports: [AppModule] }).compile();
+    app = mod.createNestApplication();
+    app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
+    app.setGlobalPrefix('api/v1');
+    await app.init();
+    http = app.getHttpServer();
+    for (const [k, email] of Object.entries({
+      educador: 'educador.ai3@paodospobres.dev',
+      tecnica: 'tecnica.ai3@paodospobres.dev',
+    })) {
+      const r = await request(http).post('/api/v1/auth/login').send({ email, password: SENHA });
+      tokens[k] = r.body.token;
+    }
+    ({ rows: [{ id: AI3 }] } = await admin.query(`SELECT id FROM house WHERE code='AI3'`));
+    ({ rows: [{ id: crianca }] } = await admin.query(
+      `SELECT hs.person_id AS id FROM house_stay hs JOIN person p ON p.id = hs.person_id
+        WHERE hs.house_id = $1 AND hs.status = 'ativa' ORDER BY p.full_name DESC LIMIT 1`, [AI3]));
+  });
+
+  afterAll(async () => { await app.close(); await admin.end(); });
+
+  it('a mesa marca quem está no hospital', async () => {
+    const abrindo = await request(http).post('/api/v1/checks').set({ Authorization: `Bearer ${tokens.educador}` })
+      .send({ houseId: AI3, kind: 'alimentacao', titulo: 'Almoço da reprodução' });
+    const chamada = abrindo.body.id;
+
+    const r = await request(http).post('/api/v1/nursing/hospitalizations')
+      .set({ Authorization: `Bearer ${tokens.tecnica}` })
+      .send({ personId: crianca, houseId: AI3, hospital: 'Hospital Fictício da Reprodução',
+              motivo: 'Internação fictícia para reproduzir o defeito da mesa.' });
+    expect(r.status).toBe(201);
+
+    const antes = await request(http).get(`/api/v1/checks/${chamada}`)
+      .set({ Authorization: `Bearer ${tokens.educador}` });
+    const faltam = antes.body.faltam;
+
+    const lote = await request(http).post(`/api/v1/checks/${chamada}/bulk`)
+      .set({ Authorization: `Bearer ${tokens.educador}` }).send({});
+    expect(lote.status).toBe(201);
+
+    const { rows } = await admin.query(
+      `SELECT option_code, bulk_id FROM check_result WHERE check_id = $1 AND person_id = $2`,
+      [chamada, crianca]);
+
+    console.log(JSON.stringify({
+      faltam, marcados: lote.body.marcados,
+      linhaDaCriancaInternada: rows[0] ?? null,
+    }, null, 2));
+
+    expect(rows.length).toBe(0);
+    expect(lote.body.marcados).toBe(faltam);
+  });
+
+  it('e a chamada não fecha: o fechamento cobra a criança que está no hospital', async () => {
+    const abrindo = await request(http).post('/api/v1/checks').set({ Authorization: `Bearer ${tokens.educador}` })
+      .send({ houseId: AI3, kind: 'chamada_final', titulo: 'Chamada final da reprodução' });
+    const chamada = abrindo.body.id;
+
+    /* A educadora marca TODAS as crianças que a tela lhe oferece. */
+    const lista = await request(http).get(`/api/v1/checks/${chamada}`)
+      .set({ Authorization: `Bearer ${tokens.educador}` });
+    for (const l of lista.body.linhas) {
+      await request(http).post(`/api/v1/checks/${chamada}/mark`)
+        .set({ Authorization: `Bearer ${tokens.educador}` })
+        .send({ personId: l.acolhidoId, opcao: lista.body.opcoes[0].code });
+    }
+    const depois = await request(http).get(`/api/v1/checks/${chamada}`)
+      .set({ Authorization: `Bearer ${tokens.educador}` });
+
+    const fechou = await request(http).post(`/api/v1/checks/${chamada}/confirm`)
+      .set({ Authorization: `Bearer ${tokens.educador}` });
+
+    console.log(JSON.stringify({
+      faltamNaTela: depois.body.faltam,
+      statusDoFechamento: fechou.status,
+      mensagem: fechou.body.message ?? null,
+    }, null, 2));
+
+    expect(fechou.status).toBe(201);
+  });
+});
