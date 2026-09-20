@@ -51,22 +51,34 @@ uma criança chorando ao lado**. Elegância que atrapalha o turno não serve.
 bash scripts/preparar-ambiente.sh        # dependências, PostgreSQL, Chromium
 cd backend  && npx tsc --noEmit -p tsconfig.json
 cd frontend && npx tsc --noEmit
-cd backend  && npx jest                  # a suíte inteira
+npm test                                 # a suíte inteira (é `jest --runInBand`)
 cd frontend && npm run prototipo         # sai em prototipo/*.html
 ```
 
 **Não diga que passou sem ter rodado. Se não puder rodar, diga que não rodou.**
 
+**Nunca `npx jest` pelado.** Há um banco só e um schema `public` só: em paralelo
+as suítes se contaminam, e o verde passa a depender de o cache do `ts-jest`
+estar quente. Medido numa máquina de 4 CPUs: cache quente passa, **cache frio
+reprova três testes** — 20 acolhidos que viram 21, a chamada que devolve 400, a
+dose vencida que avisa uma vez só. O `npm test` já traz o `--runInBand`; quem
+chama o `jest` na mão põe o `--runInBand` na mão.
+
 **A suíte roda DUAS vezes, e uma delas com o relógio depois das 21h de Porto
-Alegre** — é quando o UTC já virou, e é a única condição em que aparecem as
-datas calculadas em UTC e a contaminação de estado entre suítes:
+Alegre** — é quando o UTC já virou o dia e a instituição não, e é a única
+condição em que aparecem as datas calculadas em UTC:
 
 ```bash
-faketime -f '+7h' npx jest --runInBand   # e o PostgreSQL sob o MESMO faketime
+bash scripts/relogio-adiantado.sh --rodar
 ```
 
-Os dois relógios andam juntos, ou nenhum anda. Sob `faketime`, o `pg_ctl start`
-trava esperando o arranque: use `-W` e confirme com `pg_isready`.
+O script existe porque a receita na mão erra de três maneiras. **O deslocamento
+não pode ser número fixo:** às 19h de Porto Alegre, `+7h` cai em 02h da manhã
+seguinte, com UTC e instituição na MESMA data — a condição não é exercitada, e a
+suíte fica verde dizendo que passou onde nunca esteve. **O `pg_ctl` não retorna
+sob `faketime`, nem com `-W`** — fica pendurado com o banco já aceitando
+conexões; sobe-se o `postgres` direto e confirma-se com `pg_isready`. E **os
+dois relógios andam juntos, ou nenhum anda**: o `app_hoje()` é do banco.
 
 **Tela nova você ABRE.** `tsc` diz que compila; nunca disse que renderiza. Há
 Chromium e Playwright; percorra a tela e ponha-a no percurso do `npm run ensaio`
@@ -118,7 +130,16 @@ documento, com o defeito medido pelas rotas em 20/09/2026. A correção está
 **começada e não terminada** no branch `fase-127-quem-a-chamada-cobra`, e ela
 ainda fere a §6: quatro funções `SECURITY DEFINER` sem `search_path`.
 
-Ordem sugerida: ler o branch, terminar a migração `1350`, tirar o rascunho
-`tmp-repro` (guardado em `docs/historico/`), rodar as duas condições de relógio,
-atualizar o §2 com os números saídos do código, e só então abrir a próxima
-fase.
+**O defeito é real, e não é do relógio.** Conferido nesta máquina: o rascunho
+`docs/historico/fase-127-repro-da-chamada.e2e.spec.ts.txt` reprova em dois
+segundos no relógio normal — o lote marca a criança internada, e a chamada final
+devolve 400. O que ele NÃO é: coberto pela suíte. `hospitalization` e
+`family_stay` chegam **vazias do seed**, então nenhuma suíte encontra alguém fora
+da casa; as "3 falhas em `conferencia-de-mesa`" que o §2 registrou eram o próprio
+rascunho, que morava em `backend/test/` e contaminava o banco compartilhado.
+
+Ordem sugerida: **primeiro** dar nome ao rascunho e pô-lo em `backend/test/` —
+sem ele a correção não tem como provar que corrigiu. Depois ler o branch,
+terminar a migração `1350` com `search_path` nas quatro funções, rodar as duas
+condições de relógio, atualizar o §2 com os números saídos do código (a suíte
+passa a ter um teste a mais), e só então abrir a próxima fase.

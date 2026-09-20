@@ -128,6 +128,41 @@ porta, os 19 blocos do ensaio de uso, a fila offline e as folhas), e o protótip
 | real (13h de Porto Alegre) | 77 suítes, 768 testes, **tudo verde** |
 | deslocado para as **22h** (`faketime -f '+7h'`, banco e processo juntos) | **3 falhas** em `conferencia-de-mesa.e2e.spec.ts` |
 
+> **20/09/2026, à noite, no repositório aberto no Code — esta linha do relógio
+> estava errada, e é preciso dizer como.** O defeito da chamada **é real**, e foi
+> reproduzido aqui: o lote marca a criança internada (uma linha em
+> `check_result` onde deviam ser zero) e a chamada final devolve **400** em vez
+> de fechar. Mas ele **não depende do relógio**, e **nenhuma suíte o cobre.**
+>
+> Quem o mostra é o rascunho guardado em
+> `docs/historico/fase-127-repro-da-chamada.e2e.spec.ts.txt`, e o cabeçalho dele
+> já dizia: *"com o relógio normal"*. Ele **cria a própria internação**. É por
+> isso que nenhuma suíte o pega sozinha: `hospitalization` e `family_stay`
+> **chegam VAZIAS do seed** — no dado de partida ninguém está fora da casa.
+>
+> As "3 falhas em `conferencia-de-mesa`" foram o rascunho, que naquela hora
+> morava em `backend/test/`, contaminando o banco compartilhado para as suítes
+> que rodaram depois dele. Medido nesta máquina, com o rascunho fora: **77
+> suítes e 768 testes verdes nas duas condições** — relógio real, e às 22h30 de
+> Porto Alegre com o banco sob o mesmo `faketime` (UTC já em 21/09, instituição
+> ainda em 20/09), cache do `ts-jest` quente e frio, em série. Posto de volta em
+> `backend/test/`, ele reprova sozinho, no relógio normal, em dois segundos.
+>
+> **E uma segunda coisa medida aqui:** `npx jest` **pelado** não serve. Há um
+> banco só e um schema `public` só, e as suítes não limpam o que deixam — em
+> paralelo elas se contaminam. Nesta máquina, de 4 CPUs: cache quente passa,
+> **cache frio reprova três testes** (20 acolhidos que viram 21, a chamada que
+> devolve 400, a dose vencida que avisa uma vez só). O `npm test` já traz o
+> `--runInBand`; é por ele que se roda. É o mesmo mecanismo da linha acima, e o
+> mesmo da lição da fase 126: um banco compartilhado, e a ordem decidindo o
+> resultado.
+>
+> **O que isso muda no primeiro trabalho a fazer:** antes de mexer na migração
+> `1350`, o rascunho precisa virar teste de verdade com nome próprio em
+> `backend/test/` — senão a correção não tem como provar que corrigiu, e o
+> defeito volta sem ninguém ver. O §2 passa a ter um número a mais quando isso
+> acontecer, e é para isso que existe o `numeros-da-documentacao.spec.ts`.
+
 O que as três dizem: **o lote da conferência marca 19 crianças e a tela lista
 18.** Quem a chamada cobra está escrito em quatro lugares — `checks.service.ts`,
 `app_bulk_check` (0780), `app_confirm_check` e `app_check_missing` (0440) — e só

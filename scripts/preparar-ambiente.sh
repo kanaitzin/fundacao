@@ -77,6 +77,13 @@ fi
 # não está.
 achar_chromium() {
   [[ -n "${ENSAIO_CHROMIUM:-}" && -x "${ENSAIO_CHROMIUM}" ]] && { echo "$ENSAIO_CHROMIUM"; return; }
+  # Alguns ambientes já trazem o Chromium instalado e apontam PLAYWRIGHT_BROWSERS_PATH
+  # para ele. Procurar aqui ANTES do resto evita sair à rede atrás do que já está
+  # na máquina — e a rede é justamente o que costuma estar fechado.
+  for c in "${PLAYWRIGHT_BROWSERS_PATH:-}/chromium" \
+           "${PLAYWRIGHT_BROWSERS_PATH:-}"/chromium-*/chrome-linux/chrome; do
+    [[ -n "${PLAYWRIGHT_BROWSERS_PATH:-}" && -x "$c" ]] && { echo "$c"; return; }
+  done
   for c in /usr/bin/chromium /usr/bin/chromium-browser /usr/bin/google-chrome; do
     [[ -x "$c" ]] && { echo "$c"; return; }
   done
