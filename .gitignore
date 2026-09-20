@@ -8,3 +8,8 @@ coverage/
 .pgdata/
 .DS_Store
 frontend/src/fontes.css
+
+# Ajuste de máquina/pessoa no Claude Code. O que é DA CASA — o hook de início de
+# sessão e o settings.json — é versionado de propósito: é ele que faz a sessão
+# nova subir com banco, dependências e Chromium prontos.
+.claude/settings.local.json

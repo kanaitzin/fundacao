@@ -2675,6 +2675,22 @@ O `CLAUDE.md` da raiz é lido sozinho a cada sessão: ele tem as regras, o
 preparo, o que se roda antes de entregar e o que nunca se faz. Não é um segundo
 documento vivo — é um cartão de entrada, e aponta para cá.
 
+**Na web, o ambiente já sobe pronto.** O `.claude/hooks/session-start.sh` roda
+antes da sessão começar e deixa a máquina com dependências, PostgreSQL 16,
+`faketime`, Chromium, o `fontes.css` gerado, e o banco migrado com a semente
+FICTÍCIA — mais `DATABASE_URL`, `ARQUIVOS_DIR` e `ENSAIO_CHROMIUM` já na sessão.
+Sete segundos em container aquecido. Ele não repete o trabalho: chama o mesmo
+`scripts/preparar-ambiente.sh` que a pessoa roda na mão, porque dois lugares
+dizendo a mesma coisa é como um deles fica errado. Ele só age no ambiente remoto
+(`$CLAUDE_CODE_REMOTE`) — numa máquina da pessoa, quem decide subir banco é ela.
+
+*Por que ele existe: o container é novo a cada sessão e cai inteiro no fim. Sem
+o hook, a primeira coisa que qualquer sessão faz é descobrir, uma a uma, que
+faltam dependências, que o PostgreSQL não é serviço, que o `faketime` não está
+instalado e que o `fontes.css` não vem no repositório. A descoberta mais cara é
+a do relógio, porque ela não falha: fica verde dizendo que passou onde nunca
+esteve.*
+
 Comece a sessão pedindo o que você quer. Se quiser dar o contexto de uma vez:
 
 ```

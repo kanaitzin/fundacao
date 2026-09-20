@@ -47,6 +47,11 @@ uma criança chorando ao lado**. Elegância que atrapalha o turno não serve.
 
 ## Antes de entregar qualquer coisa
 
+Na web, o `.claude/hooks/session-start.sh` já fez o preparo antes de a sessão
+começar — dependências, PostgreSQL, `faketime`, Chromium, `fontes.css` e o banco
+migrado com semente fictícia, com as variáveis na sessão. Rode o
+`preparar-ambiente.sh` na mão só se algo não estiver de pé.
+
 ```bash
 bash scripts/preparar-ambiente.sh        # dependências, PostgreSQL, Chromium
 cd backend  && npx tsc --noEmit -p tsconfig.json
@@ -122,6 +127,7 @@ e qual é o caminho certo.
 | `backend/test/` | a suíte |
 | `frontend/src/screens/` | as telas |
 | `prototipo/` | o arquivo único que o Marcelo abre |
+| `.claude/hooks/session-start.sh` | o preparo que roda antes de a sessão na web começar |
 
 ## O primeiro trabalho desta máquina
 

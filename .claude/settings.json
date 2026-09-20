@@ -1,0 +1,29 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/session-start.sh"
+          }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "allow": [
+      "Bash(bash scripts/preparar-ambiente.sh:*)",
+      "Bash(bash scripts/relogio-adiantado.sh:*)",
+      "Bash(npm test:*)",
+      "Bash(npx tsc --noEmit:*)",
+      "Bash(npx jest:*)",
+      "Bash(npm run prototipo:*)",
+      "Bash(npm run ensaio:*)",
+      "Bash(pg_isready:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)"
+    ]
+  }
+}
