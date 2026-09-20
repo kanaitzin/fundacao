@@ -41,7 +41,7 @@ começava escolhendo em qual acreditar.*
 11. [O que depende da Fundação](#11-o-que-depende-da-fundação)
 12. [Implantação](#12-implantação)
 13. [O piloto da Casa 03](#13-o-piloto-da-casa-03)
-14. [Como começar uma conversa nova](#14-como-começar-uma-conversa-nova)
+14. [Como começar uma sessão nova](#14-como-começar-uma-sessão-nova)
 
 ---
 
@@ -113,6 +113,43 @@ foi assim que "30 telas" sobreviveu à fase que existiu para acabar com isso.*
 | `npm run ensaio:uso` | 247 cobranças em 19 blocos, **todas passando** — e todos os cargos completando o percurso. O bloco 14 nasceu na fase 107 e cresceu na 108: abre as prévias e cobra que o olho devolva uma **imagem**, e não o nome de um arquivo — e que a lista diga **antes do clique** se o documento está no sistema ou no Drive |
 
 ### A última verificação inteira
+
+**20/09/2026 — a verificação da mudança para o Claude Code.** Nada foi
+construído; o repositório foi conferido inteiro antes de mudar de casa. `tsc`
+limpo nos dois lados, **os seis ensaios de navegador limpos** (132 telas nos
+sete cargos, 139 sem violação de WCAG 2.1 AA, as 49 tarefas do roteiro com
+porta, os 19 blocos do ensaio de uso, a fila offline e as folhas), e o protótipo
+**reconstrói byte a byte igual** ao arquivo entregue — mesmo md5.
+
+**E a suíte não é verde nas duas condições de relógio.**
+
+| Relógio | Resultado |
+|---|---|
+| real (13h de Porto Alegre) | 77 suítes, 768 testes, **tudo verde** |
+| deslocado para as **22h** (`faketime -f '+7h'`, banco e processo juntos) | **3 falhas** em `conferencia-de-mesa.e2e.spec.ts` |
+
+O que as três dizem: **o lote da conferência marca 19 crianças e a tela lista
+18.** Quem a chamada cobra está escrito em quatro lugares — `checks.service.ts`,
+`app_bulk_check` (0780), `app_confirm_check` e `app_check_missing` (0440) — e só
+o serviço sabe que a criança pode estar **internada** (0890) ou **em casa com a
+família** (1010). As três funções do banco nasceram antes dessas duas situações
+existirem, e ninguém voltou para lhes contar. O efeito, medido pelas rotas: a
+conferência de mesa grava `normal` para quem está no HOSPITAL — um registro
+dizendo que a criança almoçou na casa — e a chamada final **não fecha**, porque
+o fechamento cobra pelo nome alguém que a tela se recusa a listar. A educadora
+das 22h não tem por onde sair: marcar é impossível, e fechar também.
+
+*Por que só agora, se a fase 126 rodou verde nas duas condições em 19/09: a
+janela da criança que está fora da casa depende do DIA, e no dia 19 ela não caía
+onde cai no dia 20. Um defeito que aparece em alguns dias é pior do que um que
+aparece sempre.*
+
+**A correção está começada e não terminada**, no branch
+`fase-127-quem-a-chamada-cobra`: a migração `1350` cria `app_efetivo_da_chamada`
+como resposta única para "de quem esta chamada trata", por DIA e não por agora.
+Ela derruba as 3 falhas — e abre **sete outras, em cinco arquivos de teste**, porque as quatro
+funções novas estão **sem `search_path`** (fere a §6) e os números do §2 ficaram
+para trás. É o primeiro trabalho a fazer.
 
 **19/09/2026, fase 126.** `tsc` limpo nos dois lados. A suíte **duas rodadas
 inteiras**, 77 suítes e 768 testes em cada: às 13h56 de Porto Alegre no relógio
@@ -273,11 +310,11 @@ O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as
 
 | Comando | O que ele faz |
 |---|---|
-| `npm run ensaio` | percorre as 123 telas dos sete cargos oferecidos num navegador de verdade, cobrando que nenhuma deixe erro no console, que escreva alguma coisa e que não mostre `undefined` para quem lê. **Tela nova entra neste percurso.** |
+| `npm run ensaio` | percorre as 132 telas dos sete cargos oferecidos num navegador de verdade, cobrando que nenhuma deixe erro no console, que escreva alguma coisa e que não mostre `undefined` para quem lê. **Tela nova entra neste percurso.** |
 | `npm run ensaio:fila` | corta o sinal, marca a chamada, fecha e abre o aplicativo, religa, e confere que **só o que o servidor confirmou** saiu do aparelho |
 | `npm run ensaio:folhas` | os caminhos de documento até o arquivo baixar: abre a folha, tenta baixar com finalidade curta demais, baixa com frase válida, confere que o `.docx` chegou |
 | `npm run ensaio:roteiro` | cobra que as 49 tarefas do roteiro do Marcelo tenham porta no cargo certo. Não simula a procura de uma pessoa — mas impede o fracasso barato: a tarefa não ter porta, e isso aparecer diante da equipe |
-| `npm run ensaio:acessibilidade` | axe-core (WCAG 2.1 AA) nas 130 telas — sete a mais que o `ensaio` porque confere também a folha do "Mais" de cada cargo, aberta dezenas de vezes por turno. **Cor nova passa por ele antes de entrar** |
+| `npm run ensaio:acessibilidade` | axe-core (WCAG 2.1 AA) nas 139 telas — sete a mais que o `ensaio` porque confere também a folha do "Mais" de cada cargo, aberta dezenas de vezes por turno. **Cor nova passa por ele antes de entrar** |
 | `npm run ensaio:uso` | percorre os **sete** cargos **apertando os botões até o fim** — chamada, exceção, passagem, armário, cofre, internação, diário, pedido de lanche — e **lê de volta o que ficou gravado**. É o que pega o defeito que a tela não denuncia: a folha abriu, o botão salvou, e só o número estava errado. *Dizia "oito" aqui, e o roteiro dele também: era a Cozinha, que saiu do seletor na fase 83 — e por isso ele morria no meio* |
 
 **Fora do navegador:**
@@ -1567,9 +1604,26 @@ curta com a equipe técnica no treinamento do piloto.
 
 ## 9. O QUE FALTA
 
-### Grupo 1 — falta para o piloto: **VAZIO**
+### Grupo 1 — falta para o piloto: **UM, e é de código** ⚠️
 
-Tudo o que a educadora de plantão precisa fazer às 23h tem porta.
+*Esteve VAZIO da fase 100 até 20/09/2026, e a frase que ficava aqui era: "tudo o
+que a educadora de plantão precisa fazer às 23h tem porta". Ela deixou de ser
+verdade em alguns dias do mês.*
+
+**A chamada não fecha quando alguém da casa está fora dela.** Medido em 20/09
+com o relógio nas 22h de Porto Alegre, pelas rotas, não por leitura de código:
+com uma criança internada ou em casa com a família, o lote da conferência marca
+19 e a tela lista 18; a conferência de mesa grava `normal` para quem está no
+hospital; e o fechamento da chamada cobra pelo nome alguém que a tela não
+lista — **a educadora das 22h não tem por onde sair**. Três testes de
+`conferencia-de-mesa.e2e.spec.ts` guardam isso. A causa e o caminho da correção
+estão no §2, e o começo dela no branch `fase-127-quem-a-chamada-cobra`, que
+ainda **fere a §6** (quatro funções `SECURITY DEFINER` sem `search_path`).
+
+**É o primeiro trabalho da próxima sessão, e ele tem ordem:** terminar a
+migração `1350` com `search_path` em todas as funções, tirar o
+`tmp-repro.e2e.spec.ts` (rascunho, guardado em `docs/historico/`), rodar as duas
+condições de relógio, e só então atualizar o §2 com os números saídos do código.
 
 ### Grupo 2 — o que espera decisão de gente (3)
 
@@ -2569,10 +2623,56 @@ sem aviso. É isso que o piloto tem de medir.
 
 ---
 
-## 14. COMO COMEÇAR UMA CONVERSA NOVA
+## 14. COMO COMEÇAR UMA SESSÃO NOVA
 
-Anexe **este arquivo** e o **`rede-acolher-atualizado.zip`**, e cole o bloco
-abaixo como primeira mensagem, trocando só a última linha.
+**Desde 20/09/2026 o projeto mora num repositório git, aberto no Claude Code.**
+O documento continua sendo este; o que mudou é que ele não viaja mais como
+anexo, e o estado não é mais um zip — é o que o `git log` diz.
+
+### No Claude Code (o caminho normal)
+
+```bash
+cd rede-acolher
+claude
+```
+
+O `CLAUDE.md` da raiz é lido sozinho a cada sessão: ele tem as regras, o
+preparo, o que se roda antes de entregar e o que nunca se faz. Não é um segundo
+documento vivo — é um cartão de entrada, e aponta para cá.
+
+Comece a sessão pedindo o que você quer. Se quiser dar o contexto de uma vez:
+
+```
+Leia o CLAUDE.md e o docs/REDE-ACOLHER.md antes de responder. Depois me diga em
+até dez linhas o que você entendeu que falta, em ordem, e espere eu confirmar
+antes de mexer em qualquer arquivo.
+
+=== O QUE EU QUERO AGORA ===
+
+[troque esta linha]
+```
+
+**O que muda em relação ao chat, e vale dizer em voz alta:**
+
+- **`git status` responde "algum arquivo mudou?"** — a pergunta que em 20/09
+  custou uma comparação arquivo por arquivo contra o zip, e que descobriu
+  trabalho de outra conversa misturado ao repositório.
+- **Trabalho começado vive em branch**, com autor e motivo, e não solto no
+  disco.
+- **O relógio é o de verdade.** A segunda rodada da suíte deixa de precisar de
+  `faketime`: basta rodá-la depois das 21h. O `faketime` continua servindo para
+  não esperar.
+- **A suíte roda até o fim** — não há teto de cinco minutos por comando.
+- **Uma sessão de cada vez sobre o mesmo repositório.** Duas conversas escrevendo
+  no mesmo disco foi exatamente o acidente de 20/09.
+
+### No chat (quando não houver máquina)
+
+Anexe **este arquivo** e um zip do repositório, e diga que o estado é o do
+`git log`. O bloco acima serve igual, trocando a primeira frase por "Anexei o
+repositório e o documento único".
+
+### As quatro cabeças, que não mudam com a ferramenta
 
 ```
 Você é minha equipe digital no projeto REDE ACOLHER — plataforma interna de
@@ -2587,46 +2687,6 @@ discordam:
 - ANALISTA DE SISTEMAS — o dado certo, no lugar certo, com autoria e histórico
 - COORDENADOR DE ACOLHIMENTO — a rotina real da casa, o plantão, a audiência
 - PSICÓLOGO — o efeito do registro sobre a criança e sobre quem cuida dela
-
-Anexei o repositório (zip) e o REDE-ACOLHER.md, que é o documento ÚNICO do
-projeto: o que é, como rodar, a arquitetura, as regras, o que existe, o que
-falta, as decisões paradas e a implantação. Leia-o antes de responder e não me
-peça para reexplicar o que está lá. Se você sentir falta de história anterior,
-ela está em docs/historico/ — mas ela está ARQUIVADA de propósito, e o que vale
-é o documento único.
-
-REGRAS: as §5 (não se negociam) e §6 (nasceram de defeito) do documento valem
-como escritas. Quando eu pedir algo que fere uma delas, não faça e me diga qual
-regra e qual é o caminho certo.
-
-COMO QUERO QUE VOCÊ TRABALHE:
-- Interface, código, comentário e commit em PORTUGUÊS DO BRASIL.
-- Comece a sessão por `bash scripts/preparar-ambiente.sh`.
-- Antes de construir, diga em duas linhas o que vai fazer. Depois faça.
-- Termine sempre com `npx tsc --noEmit` (frontend e backend) e
-  `npm run prototipo` passando. Não me entregue build quebrado, e não diga que
-  passou sem ter rodado. Se não puder rodar, diga que não rodou.
-- Rode a suíte DUAS vezes, e uma delas depois das 21h de Porto Alegre — a
-  contaminação de estado entre suítes e as datas calculadas em UTC só aparecem
-  ali.
-- Tela nova você ABRE. `tsc` diz que compila, não diz que renderiza. Há Chromium
-  e Playwright no ambiente; percorra a tela antes de me entregar, e ponha a tela
-  nova no percurso do `npm run ensaio`.
-- Número que descreve o sistema sai do CÓDIGO, nunca da memória nem do documento
-  anterior. Ao terminar, atualize o §2 do REDE-ACOLHER.md e rode
-  `numeros-da-documentacao.spec.ts`.
-- Quando a decisão for de produto e houver dois caminhos defensáveis, me pergunte
-  antes — não escolha sozinho.
-- Prefira a solução que a educadora de plantão consegue usar às 23h com uma
-  criança chorando ao lado.
-- Não repita para mim o que já está no documento. Não recapitule passos.
-- Se encontrar um defeito enquanto faz outra coisa, anote e me avise no fim —
-  não desvie a tarefa sem falar.
-- Se algum arquivo do repositório mudar sem você ter mudado, me avise.
-
-=== O QUE EU QUERO AGORA ===
-
-[troque esta linha]
 ```
 
 ### A regra deste documento
