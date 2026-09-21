@@ -440,36 +440,6 @@ export class ProfileService {
   }
 
   /** Abertura de documento: registra acesso a conteúdo sensível (§20). */
-  async openDocument(user: AuthenticatedUser, personId: string, documentId: string) {
-    const doc = await this.db.asUser(user.id, async (c) => {
-      const { rows: [d] } = await c.query(
-        `SELECT d.id, d.category, d.title, d.valid_until,
-                v.version, v.storage_key
-         FROM document d
-         LEFT JOIN LATERAL (SELECT version, storage_key FROM document_version
-                            WHERE document_id = d.id ORDER BY version DESC LIMIT 1) v ON true
-         WHERE d.id = $1 AND d.person_id = $2`, [documentId, personId]);
-      if (d) {
-        // Abertura de documento sensível: o registro do acesso nasce junto com
-        // o acesso, na mesma transação (§20).
-        await this.audit.log({
-          action: 'document.open', actorId: user.id, entity: 'document', entityId: documentId,
-          detail: { categoria: d.category, versao: d.version },
-        }, c);
-      }
-      return d;
-    });
-    // Categoria fora do papel: o RLS já filtrou — resposta idêntica a inexistente.
-    if (!doc) throw new NotFoundException('Documento não encontrado');
-
-    return {
-      id: doc.id, categoria: doc.category, titulo: doc.title,
-      validoAte: doc.valid_until, versao: doc.version,
-      // URL assinada de curta duração é gerada na camada de objetos (Fase 3).
-      download: { pronto: false, motivo: 'Armazenamento de objetos entra na Fase 3' },
-    };
-  }
-
   /** Relatório mínimo para a cozinha (§7): sem CPF, diagnóstico ou caso. */
   async kitchenReport(user: AuthenticatedUser, houseId: string) {
     if (!['cozinha', 'coordenador', 'equipe_tecnica', 'gestor_geral'].includes(user.role)) {

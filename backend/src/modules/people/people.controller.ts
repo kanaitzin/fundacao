@@ -462,11 +462,21 @@ export class PeopleController {
     return this.dossie.arquivo(user, id, docId, true);
   }
 
-  @Get(':id/documents/:docId')
-  openDoc(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
-          @Param('docId', ParseUUIDPipe) docId: string) {
-    return this.profile.openDocument(user, id, docId);
-  }
+  /*
+   * A ROTA CURTA DO DOSSIÊ SAIU NA FASE 130.
+   *
+   * `GET :id/documents/:docId` devolvia o metadado de um documento e registrava
+   * `document.open` — **sem nada ser aberto**. Ela era restolho de um plano que
+   * não aconteceu: a resposta anunciava
+   * `download: { pronto: false, motivo: 'Armazenamento de objetos entra na Fase 3' }`,
+   * e o baixar chegou na fase 124 por OUTRA rota (`/download`).
+   *
+   * Nenhuma tela a chamava, e o servidor de mentira nem a atendia. O que ela
+   * provava — o educador levando 404 no documento judicial, idêntico a
+   * inexistente — passou a ser provado no `/file`, que é por onde a tela passa
+   * de verdade. Fronteira provada em rota que ninguém abre é fronteira que
+   * ninguém confere.
+   */
 
   // ---- Benefícios: comandos específicos, nunca update genérico (§25) ----
 

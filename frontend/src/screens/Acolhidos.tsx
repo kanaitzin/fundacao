@@ -3434,12 +3434,40 @@ function Educacao({ personId, houseId, papel }: {
   const [escrevendo, setEscrevendo] = useState(false);
   const pode = ESCREVEM_EDUCACAO.includes(papel);
 
+  /*
+   * A LISTA VEM DO SERVIDOR (fase 130) — a tela não inventa a sua lista (§12.2).
+   *
+   * Até aqui os serviços estavam escritos no HTML, em `<option value="fono">`,
+   * enquanto `GET /nursing/education/kinds` existia e ninguém a chamava. O dia
+   * em que a Fundação acrescentar um serviço, o servidor saberia e a tela não —
+   * e é a mesma classe de defeito que fez as opções de testemunho virarem rota
+   * em vez de constante.
+   *
+   * *Achado ao apertar o `rotas-sem-porta`, que até 20/09 dava porta a esta
+   * rota por engano: o casamento aceitava que o `:x` de uma chamada casasse com
+   * uma PALAVRA da rota.*
+   */
+  const [vocabulario, setVocabulario] = useState<{
+    servicos: { cod: string; label: string }[];
+    modos: { cod: string; label: string }[];
+    aviso?: string;
+  } | null>(null);
+
   const carregar = useCallback(async () => {
     try {
       setDados(await api(`/nursing/education/${personId}`));
     } catch (e) { setErro(e instanceof Error ? e.message : ''); }
   }, [personId]);
   useEffect(() => { void carregar(); }, [carregar]);
+  useEffect(() => {
+    let vivo = true;
+    api<typeof vocabulario>('/nursing/education/kinds')
+      .then((v) => { if (vivo) setVocabulario(v); })
+      /* Sem a lista, o formulário não abre — e é melhor assim do que abrir com
+         uma lista inventada que divergiu da do servidor. */
+      .catch(() => { if (vivo) setVocabulario(null); });
+    return () => { vivo = false; };
+  }, []);
 
   if (erro) return null;
   const a = dados?.apoio ?? null;
@@ -3533,6 +3561,7 @@ function Educacao({ personId, houseId, papel }: {
 
       {editando && (
         <FolhaApoioEducacional
+          servicos={vocabulario?.servicos ?? []}
           atual={a} onFechar={() => setEditando(false)}
           onSalvar={async (corpo) => {
             await api(`/nursing/education/${personId}/support`, {
@@ -3557,8 +3586,11 @@ function Educacao({ personId, houseId, papel }: {
 }
 
 /** O apoio. Substituir NÃO apaga: o anterior fica no histórico, com autor. */
-function FolhaApoioEducacional({ atual, onFechar, onSalvar }: {
-  atual: ApoioEducacional | null; onFechar: () => void;
+function FolhaApoioEducacional({ atual, servicos, onFechar, onSalvar }: {
+  atual: ApoioEducacional | null;
+  /** Os serviços que o SERVIDOR oferece, por `GET /nursing/education/kinds`. */
+  servicos: { cod: string; label: string }[];
+  onFechar: () => void;
   onSalvar: (c: Record<string, unknown>) => Promise<void>;
 }) {
   const [sala, setSala] = useState(atual?.salaDeRecursos ?? false);
@@ -3607,13 +3639,22 @@ function FolhaApoioEducacional({ atual, onFechar, onSalvar }: {
         )}
 
         <label className="f" htmlFor="edu-serv">Equipe multiprofissional</label>
-        <select id="edu-serv" value={servico} onChange={(e) => setServico(e.target.value)}>
-          <option value="">— nenhum —</option>
-          <option value="fono">Fonoaudiologia</option>
-          <option value="pedagoga">Pedagogia</option>
-          <option value="psicopedagoga">Psicopedagogia</option>
-          <option value="outro">Outro serviço</option>
-        </select>
+        {/* A lista é a do servidor. Vazia quer dizer que ela não chegou — e aí a
+            tela diz isso, em vez de oferecer uma lista escrita à mão que pode
+            já estar diferente da do servidor. */}
+        {servicos.length === 0 ? (
+          <p className="mutetxt" style={{ marginTop: 0 }}>
+            A lista de serviços não chegou do servidor. Recarregue a tela para escolher um
+            serviço — o resto da folha continua podendo ser salvo.
+          </p>
+        ) : (
+          <select id="edu-serv" value={servico} onChange={(e) => setServico(e.target.value)}>
+            <option value="">— nenhum —</option>
+            {servicos.map((sv) => (
+              <option key={sv.cod} value={sv.cod}>{sv.label}</option>
+            ))}
+          </select>
+        )}
         {servico && (
           <>
             <label className="f" htmlFor="edu-pro2">Quem atende</label>

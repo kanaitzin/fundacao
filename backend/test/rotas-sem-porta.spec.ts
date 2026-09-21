@@ -157,26 +157,20 @@ const SEM_TELA_DE_PROPOSITO: Record<string, string> = {
     + 'criança sai junto. A rota existe e é auditada; a porta espera essa resposta.',
 
   /*
-   * AS DUAS ABAIXO NÃO SÃO "DE PROPÓSITO" — SÃO LACUNAS, E ESTÃO AQUI PARA NÃO
-   * FICAREM INVISÍVEIS.
+   * AS DUAS LACUNAS QUE ESTAVAM AQUI FORAM CONSERTADAS NA FASE 130.
    *
-   * As duas apareceram em 20/09/2026 quando o `temPorta` deixou de aceitar que
-   * o `:x` de uma chamada casasse com uma PALAVRA da rota. Enquanto ele
-   * aceitava, as duas tinham porta no papel e nenhuma na tela. Estão anotadas
-   * no §9 do REDE-ACOLHER, em "achados de passagem, ainda sem conserto", e
-   * cada uma pede a sua fase — foram achadas fazendo outra coisa, e desviar a
-   * tarefa para consertá-las é o que o CLAUDE.md manda não fazer.
+   * Elas apareceram em 20/09/2026, quando o `temPorta` deixou de aceitar que o
+   * `:x` de uma chamada casasse com uma PALAVRA da rota — enquanto ele
+   * aceitava, as duas tinham porta no papel e nenhuma na tela. Ficaram
+   * declaradas aqui como LACUNAS, com essa palavra escrita, e não como decisão:
+   * a lista de exceções só serve se cada linha convencer quem a lê daqui a um
+   * ano, e "não construí ainda" não convence ninguém de nada.
+   *
+   * A de EDUCAÇÃO virou chamada: a tela pede `GET /nursing/education/kinds` em
+   * vez de trazer "Fonoaudiologia" escrito no HTML. A do DOSSIÊ virou remoção:
+   * a rota curta era restolho de um plano que não aconteceu, e o que ela provava
+   * passou a ser provado no `/file`, que é por onde a tela passa.
    */
-  'GET /nursing/education/kinds':
-    'LACUNA, não decisão. O servidor oferece a lista de serviços e modos do prontuário de '
-    + 'educação, e a tela NÃO a pede: ela traz "Fonoaudiologia" e "Psicopedagogia" escritos '
-    + 'no HTML. É a §12.2 ao contrário — "a tela não inventa a sua lista" —, e o dia em que '
-    + 'a Fundação acrescentar um serviço, o servidor saberá e a tela não.',
-  'GET /people/:id/documents/:docId':
-    'LACUNA, não decisão. A leitura de UM documento do dossiê não tem tela: o que a tela '
-    + 'chama são as rotas de cinco segmentos (`/accept`, `/download`, `/file`). A rota curta '
-    + 'não é chamada por ninguém, e precisa ou ganhar uso ou sair — uma rota que ninguém '
-    + 'abre é superfície que ninguém confere.',
 };
 
 describe('Rotas sem porta', () => {

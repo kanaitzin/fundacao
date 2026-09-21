@@ -329,6 +329,33 @@ cobrar('há por onde escrever uma evolução — inclusive para o educador',
   (await pg.locator('main.conteudo button')
      .filter({ hasText: /Escrever uma evolução/ }).count()) > 0,
   'o único INSERT do repositório estava dentro de um teste');
+
+/*
+ * A LISTA DE SERVIÇOS VEM DO SERVIDOR (fase 130) — a tela não inventa a sua
+ * lista (§12.2).
+ *
+ * Até a 130 os serviços estavam escritos no HTML, em `<option value="fono">`,
+ * enquanto `GET /nursing/education/kinds` existia e ninguém a chamava. A guarda
+ * de REGRESSÃO é o `rotas-sem-porta`: se a chamada sair, a rota volta a ser
+ * órfã e a suíte fica vermelha. O que este percurso cobra é a outra metade —
+ * que a lista CHEGUE, e que a tela diga quando ela não chega em vez de abrir um
+ * campo vazio sem explicação.
+ */
+const folhaDoApoio = pg.locator('main.conteudo button')
+  .filter({ hasText: /apoio educacional/i });
+if (!(await folhaDoApoio.count())) {
+  cobrar('a folha do apoio educacional tem porta', false, 'não achei o botão');
+} else {
+  await folhaDoApoio.first().click();
+  await pg.waitForTimeout(1000);
+  const opcoes = await pg.locator('#edu-serv option').allInnerTexts();
+  cobrar('a lista de serviços do prontuário chega do servidor',
+    opcoes.length > 1, `veio ${JSON.stringify(opcoes)}`);
+  cobrar('e ela não é a lista escrita à mão que existia antes',
+    !(await corpo()).includes('não chegou do servidor'),
+    'a tela avisa quando a lista não chega — e aqui ela deveria ter chegado');
+  await fechar();
+}
 /* A AUDITORIA (fase 112) não aparece para a técnica: a §7 dá a leitura à
    coordenação e à gestão geral. Oferecer uma porta que o servidor vai recusar
    ensina a pessoa a não confiar na tela. */

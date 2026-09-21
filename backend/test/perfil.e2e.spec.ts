@@ -19,6 +19,16 @@ import { AppModule } from '../src/app.module';
 const SENHA = 'senha-dev-123';
 const adminUrl = process.env.DATABASE_URL ?? 'postgres://rede_admin:dev-only-change-me@127.0.0.1:5432/rede_acolher';
 
+/*
+ * Um JPEG mínimo e VÁLIDO: a conferência do dossiê é pela assinatura dos
+ * primeiros bytes, não pela extensão do nome (§6.8). Usado pelo cenário #24,
+ * que precisa de um documento com arquivo para provar a fronteira no `/file`.
+ */
+const JPEG_DE_TESTE = `data:image/jpeg;base64,${Buffer.from([
+  0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01,
+  ...new Array(64).fill(0x20), 0xff, 0xd9,
+]).toString('base64')}`;
+
 describe('Fase 2 — Perfil, benefícios, transferência e acervo', () => {
   let app: INestApplication, http: any, admin: Client;
   const tokens: Record<string, string> = {};
@@ -129,18 +139,39 @@ describe('Fase 2 — Perfil, benefícios, transferência e acervo', () => {
     expect(new Set(cats)).toEqual(new Set(['saude', 'escolar']));
     expect(perfil.body.documentosRestritos).toBe(2);           // pessoais/judiciais contados, não listados
 
+    /*
+     * A FRONTEIRA É PROVADA NO `/file` — a rota por onde a TELA passa (fase 130).
+     *
+     * Até aqui este cenário usava `GET :id/documents/:docId`, uma rota curta que
+     * nenhuma tela chamava e que o servidor de mentira nem atendia. Ela devolvia
+     * metadado e registrava `document.open` sem nada ser aberto, e era restolho
+     * de um plano que não aconteceu — anunciava um download que chegou na fase
+     * 124 por outra rota. Provar a fronteira nela era provar onde ninguém passa.
+     */
     const { rows: [judicial] } = await admin.query(
       `SELECT id FROM document WHERE person_id=$1 AND category='judicial_socioassistencial'`, [alice]);
-    await request(http).get(`/api/v1/people/${alice}/documents/${judicial.id}`)
+    await request(http).get(`/api/v1/people/${alice}/documents/${judicial.id}/file`)
       .set(auth(tokens.educador)).expect(404);                 // idêntico a inexistente
 
-    const { rows: [saude] } = await admin.query(
-      `SELECT id FROM document WHERE person_id=$1 AND category='saude'`, [alice]);
-    const ok = await request(http).get(`/api/v1/people/${alice}/documents/${saude.id}`)
+    /*
+     * E o de SAÚDE abre. Ele é anexado aqui, com arquivo, pela via normal da
+     * tela: o documento de saúde do seed não tem bytes, e o `/file` recusa por
+     * FALTA DE ARQUIVO antes de chegar à questão da política — o que faria este
+     * cenário passar por motivo errado. A rota curta antiga não mostrava isso
+     * porque devolvia só metadado, com `LEFT JOIN`.
+     */
+    const anexo = await request(http).post(`/api/v1/people/${alice}/documents`)
+      .set(auth(tokens.tecnica))
+      .send({ chave: 'caderneta_vacinacao', categoria: 'saude',
+              titulo: 'Caderneta de vacinação (fictícia)',
+              conteudo: JPEG_DE_TESTE, nomeArquivo: 'caderneta.jpg' });
+    expect(anexo.status).toBe(201);
+
+    const ok = await request(http).get(`/api/v1/people/${alice}/documents/${anexo.body.id}/file`)
       .set(auth(tokens.educador));
     expect(ok.status).toBe(200);
     const { rows } = await admin.query(
-      `SELECT 1 FROM audit_event WHERE action='document.open' AND entity_id=$1`, [saude.id]);
+      `SELECT 1 FROM audit_event WHERE action='document.open' AND entity_id=$1`, [anexo.body.id]);
     expect(rows.length).toBeGreaterThan(0);                    // abertura auditada
   });
 

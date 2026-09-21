@@ -82,7 +82,7 @@ aplicação e no banco. §7 tem a matriz inteira.
 
 ## 2. O ESTADO HOJE
 
-**Fases 0 a 129.** Estes números **saem do código**, não da memória — e são
+**Fases 0 a 130.** Estes números **saem do código**, não da memória — e são
 cobrados por `test/numeros-da-documentacao.spec.ts`, que existe porque em 08/09
 seis afirmações estavam erradas ao mesmo tempo em três documentos, e duas delas
 discordavam entre si.
@@ -95,7 +95,7 @@ discordavam entre si.
 | **79 suítes** | `backend/test/*.spec.ts` |
 | **785 testes** | `it(` / `test(` nas suítes |
 | **36 telas React** | `frontend/src/screens/*.tsx` |
-| **16 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
+| **14 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **6 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
 | protótipo com **≈1256 KB** | `prototipo/rede-acolher-prototipo.html` |
 
@@ -335,6 +335,7 @@ arqueologia.
 | 127 | **A chamada fecha quando alguém da casa está fora dela.** A educadora das 22h tinha uma casa de vinte crianças, uma delas no hospital, e nenhuma saída: marcar era impossível, e fechar também. **Quem a chamada cobra estava escrito em QUATRO lugares**, e só a tela sabia que a criança pode não estar na casa — `app_bulk_check` (0780), `app_confirm_check` e `app_check_missing` (0440) nasceram antes de a internação (0890) e a convivência familiar (1010) existirem, e ninguém voltou para lhes contar. As duas metades do defeito: a conferência de mesa **gravava "normal" para a criança que estava no HOSPITAL** — um fato inventado sobre uma criança, e silencioso, porque a tela dizia `faltam: 0` —, e o fechamento **cobrava pelo nome** quem a tela se recusava a listar. A correção não repete a regra em três lugares: `app_efetivo_da_chamada` (1350) passa a ser a resposta única para "de quem esta chamada trata", e regra nova de presença — escola em turno integral, acampamento, hospital-dia — se escreve uma vez, lá dentro. **E POR DIA, não por "agora":** a chamada de ontem, reaberta hoje para correção, precisa saber como a casa estava ontem; as duas funções de presença já respondiam por dia e estavam sendo chamadas SEM dia. **O teste veio primeiro**, e era o que faltava: `quem-a-chamada-cobra.e2e.spec.ts`, cinco testes, e medida sem a correção ela reprova — o lote marca 20 onde a tela mostra 19. *O que o documento afirmava e não era verdade: **nenhuma suíte guardava este defeito.** `hospitalization` e `family_stay` chegam vazias do seed, então nenhuma encontrava alguém fora da casa; as "3 falhas em `conferencia-de-mesa`" eram o eco de um rascunho que morava em `backend/test/` e deixava uma internação aberta no banco compartilhado. O defeito era real; a prova de que ele existia, não. Por isso a suíte nova **fecha o que abre**, com rede de segurança no `afterAll`* |
 | 128 | **O que se escreveu sobre a criança, e o que este papel não pode abrir.** `statement.person_id` era gravado desde a 0300 e **nunca lido por pessoa**: a varredura de 15/09 o achou, e o §9 o manteve fechado **de propósito**, porque listar por criança tudo o que se escreveu SOBRE ela é exatamente a narrativa que o §26.2 protege atrás de finalidade declarada. A resposta chegou em 20/09 e é de uma linha — **só a contagem** —, e ela desenha a fase inteira: **quem alcança lê; quem não alcança recebe um NÚMERO**, nem data, nem autor, nem trecho. Vale o mesmo precedente do dossiê: *"o que este papel não pode ver aparece como contagem, não some"*, porque esconder que existem faria a equipe procurar noutro lugar. **A regra de quem lê passou a morar num lugar só** (`app_pode_ler_relato`), com dois leitores — a policy, que decide quais linhas existem, e a contagem, que conta as que não existem para quem pergunta. Foi a lição da 127 aplicada antes de doer: a regra já estava escrita duas vezes (a 0300 a criou, a 0730 a reescreveu inteira só para acrescentar dois cargos) e esta fase precisaria de uma terceira cópia. **A contagem é frase, não selo:** *"Existe 1 relato em área restrita sobre esta criança"* é informação; um `2` vermelho ao lado do nome de uma criança de doze anos começa a parecer nota de comportamento (regra 3). E a resposta **não soma nada** além disso — nem relatos por mês, nem por autor —, guardado pela FORMA da resposta. *No caminho, dois achados que não são desta fase e ficaram anotados no §9: a tela de Educação **inventa a própria lista** em vez de pedir `/nursing/education/kinds`, e a leitura de um documento do dossiê não tem quem a chame. Os dois apareceram porque o `rotas-sem-porta` **deixou de dar porta a quem não tem**: o `temPorta` aceitava que o `:x` de uma chamada casasse com uma PALAVRA da rota, e uma chamada nova desta fase revelou o defeito declarando que a leitura excepcional tinha ganhado tela — ela não tinha* |
 | 129 | **A escala não se deduz.** Decisão da Fundação reafirmada em 20/09 depois de eu levantar a consequência: *"não cabe a nós deduzir."* O que saiu: quando a escala do dia não tinha ninguém, a `0960` caía para a escala SEMANAL e, não achando, para o **vínculo da casa** — e cobrava a passagem de todo educador vinculado, **de folga ou não**. Era o defeito que a `0420` existiu para corrigir, sobrevivendo com nome novo: a ATA fechava "com pendência" nomeando quem não estava lá. Agora a escala é a única fonte, e **sem escala lançada ninguém é nomeado** — a tela diz em vermelho que ninguém a lançou, que é pendência da CASA e não de uma pessoa. **O que isto NÃO muda, e é o que segura a educadora das 23h:** assinar nunca dependeu da escala e continua não dependendo — há teste disso desde a 0960, *"escala que trava é escala que a casa contorna"*. A escala decide quem é **cobrado**, nunca quem **pode**. **E o buraco que a decisão abre, que esta fase fecha:** sem dedução, `app_missing_handovers` devolve zero num turno sem escala, e a ATA fecharia **limpa** ainda que ninguém tivesse assinado nada — "zero pendências" e "ninguém registrou o turno" passariam a ser a mesma resposta, e o dia em que a casa esquecesse as duas coisas a ATA sairia impecável. O fechamento passou a olhar as duas: alguém cobrado que não assinou, **ou** um turno sem escala e sem nenhuma passagem. A contagem `missing_signatures` continua contando só GENTE, porque é o que ela diz; o outro caso é a casa, e a tela o escreve por extenso. *De passagem, um defeito da 0960 que ninguém tinha visto: ela dizia em comentário que a `fonte` sai na resposta "porque ela muda o que a tela diz", e o serviço **nunca a leu** — da 0960 até agora a tela não pôde distinguir "faltou assinar" de "escala não cadastrada", que era a razão de a coluna existir. E a `work_schedule` perdeu o último leitor: o §9 a listava como morta e a frase estava errada pela metade — a 0960 a lia* |
+| 130 | **Os dois achados da 128, consertados — e um deles mudou de lugar em vez de sair.** *(1) A tela de Educação inventava a própria lista:* o servidor oferecia `GET /nursing/education/kinds` com os serviços do prontuário e a tela trazia `Fonoaudiologia` e `Psicopedagogia` **escritos no HTML**, em `<option>`. Era a §12.2 ao contrário — *"a tela não inventa a sua lista"* —, e o dia em que a Fundação acrescentasse um serviço o servidor saberia e a tela não. Agora a lista vem do servidor, e **quando ela não chega a tela DIZ isso** em vez de oferecer uma escrita à mão que pode já estar diferente. *(2) A rota curta do dossiê SAIU:* `GET /people/:id/documents/:docId` era restolho de um plano que não aconteceu — devolvia metadado, anunciava `download: { pronto: false, motivo: 'Armazenamento de objetos entra na Fase 3' }` quando o baixar já havia chegado na fase 124 por outra rota, e **registrava `document.open` sem nada ser aberto**. Nenhuma tela a chamava, e o servidor de mentira nem a atendia. **O que fez a decisão ser "sai" e não "ganha uso"** foi ela ser o sujeito do cenário #24, que prova a fronteira mais importante do dossiê: o educador levando 404 no documento judicial, idêntico a inexistente. Medi antes de remover — o `/file`, que é por onde a tela passa, segura a MESMA fronteira —, e o cenário mudou de rota. **Fronteira provada em rota que ninguém abre é fronteira que ninguém confere.** *E o cenário ficou mais honesto: o documento de saúde do seed não tem bytes, e o `/file` recusa por FALTA DE ARQUIVO antes de chegar à política — ele passaria por motivo errado. Agora anexa um documento com arquivo pela via normal da tela, e só então cobra a fronteira.* **A lista de exceções do `rotas-sem-porta` voltou de 16 para 14 sem que nenhuma linha fosse afrouxada**, que é o único jeito honesto de ela encolher. *Fica um terceiro achado, anotado e não construído: o `kinds` oferece também os **modos** (presencial, online) e a tela não tem esse campo. Campo que ninguém pediu é campo que ninguém preenche* |
 
 ---
 
@@ -1784,7 +1785,7 @@ espelhá-la no dossiê de uma criança seria inventar um vínculo que o dado nã
 e pôr uma despesa da casa no prontuário de alguém. **São duas vezes, não três**,
 e um teste guarda a diferença.*
 
-### Grupo 3 — as 16 rotas sem porta
+### Grupo 3 — as 14 rotas sem porta
 
 O número **não é contagem à mão**: é o tamanho da lista de exceções do
 `rotas-sem-porta.spec.ts`, onde cada linha traz o motivo por extenso. Eram 34 em
@@ -1797,39 +1798,58 @@ confirmada, health check, `GET /medications/alert-offsets` e
 recebe juntas) e `GET /people/:id/admission` (a ficha inteira, para o documento
 e para a migração da implantação).
 
-**Subiu de 14 para 16 na fase 128, e não porque nasceram duas rotas novas: porque
-o conferidor parou de dar porta a quem não tinha.** O `temPorta` aceitava que o
-`:x` de uma chamada da tela casasse com uma PALAVRA da rota, e com isso qualquer
-chamada nova de três segmentos dava porta a qualquer rota de três segmentos. Foi
-uma chamada nova desta fase que revelou o defeito: `/statements/person/:x`
-declarou que `POST /statements/:id/exceptional-read` tinha ganhado tela — ela não
-tinha. **Um conferidor que dá porta a quem não tem é pior do que não existir:**
-ele apaga a única lista onde o motivo de uma rota não ter tela está escrito.
+**Subiu para 16 na fase 128 e voltou a 14 na 130, e a ida e a volta contam a
+mesma história.** Na 128 o conferidor **parou de dar porta a quem não tinha**: o
+`temPorta` aceitava que o `:x` de uma chamada da tela casasse com uma PALAVRA da
+rota, e com isso qualquer chamada nova de três segmentos dava porta a qualquer
+rota de três segmentos. Foi uma chamada nova daquela fase que revelou o defeito —
+`/statements/person/:x` declarou que `POST /statements/:id/exceptional-read`
+tinha ganhado tela, e ela não tinha. **Um conferidor que dá porta a quem não tem
+é pior do que não existir:** ele apaga a única lista onde o motivo de uma rota
+não ter tela está escrito.
 
-*As duas que apareceram estão em "achados de passagem, ainda sem conserto",
-abaixo. Nenhuma das duas é decisão: são lacunas, e estão na lista do conferidor
-com essa palavra escrita.*
+As duas que apareceram ficaram declaradas como **LACUNAS**, com essa palavra
+escrita, e não como decisão — e **as duas foram consertadas na fase 130**: a de
+Educação virou chamada, a do dossiê virou remoção. *A lista voltou ao tamanho de
+antes sem que nenhuma linha dela tenha sido afrouxada, que é o único jeito
+honesto de uma lista de exceções encolher.*
 
 ### Achados de passagem, ainda sem conserto
 
-**1. A tela de Educação inventa a própria lista.** *(fase 128, achado ao
-apertar o `rotas-sem-porta`)* O servidor oferece `GET /nursing/education/kinds`
-com os serviços e os modos do prontuário, e **a tela não a pede**: ela traz
-`Fonoaudiologia` e `Psicopedagogia` escritos no HTML, em `<option>`. É a §12.2
-ao contrário — *"a tela não inventa a sua lista"* —, e o dia em que a Fundação
-acrescentar um serviço, o servidor vai saber e a tela não. É a mesma classe de
-defeito que fez as opções de testemunho virarem rota em vez de constante.
-*Conserto pequeno, e de uma fase própria: são duas listas e um `useEffect`.*
+~~**1. A tela de Educação inventa a própria lista.**~~ ✅ **CONSERTADO NA FASE
+130.** O servidor oferecia `GET /nursing/education/kinds` com os serviços do
+prontuário e **a tela não a pedia**: trazia `Fonoaudiologia` e `Psicopedagogia`
+escritos no HTML, em `<option>`. Era a §12.2 ao contrário — *"a tela não inventa
+a sua lista"* —, e o dia em que a Fundação acrescentasse um serviço o servidor
+saberia e a tela não. Agora a lista vem do servidor, e **quando ela não chega a
+tela DIZ isso** em vez de oferecer uma escrita à mão que pode já estar diferente.
 
-**2. A leitura de UM documento do dossiê não tem quem a chame.** *(fase 128,
-mesmo achado)* `GET /people/:id/documents/:docId` existe e ninguém abre: o que a
-tela chama são as rotas de cinco segmentos (`/accept`, `/download`, `/file`).
-**Ou ela ganha uso, ou sai** — rota que ninguém abre é superfície que ninguém
-confere, e o `arquivo-tem-saida` só cobra o que está declarado.
+~~**2. A leitura de UM documento do dossiê não tem quem a chame.**~~ ✅
+**REMOVIDA NA FASE 130**, e o que ela provava mudou de lugar.
+`GET /people/:id/documents/:docId` era **restolho de um plano que não
+aconteceu**: devolvia metadado e anunciava
+`download: { pronto: false, motivo: 'Armazenamento de objetos entra na Fase 3' }`
+— e o baixar chegou na fase 124 por outra rota. Pior: **registrava
+`document.open` sem nada ser aberto.** Nenhuma tela a chamava, e o servidor de
+mentira nem a atendia.
 
-*Os dois foram achados fazendo outra coisa. Ficam anotados em vez de
-consertados, que é o que o CLAUDE.md manda: desviar a tarefa para consertar o
-que apareceu no caminho é como uma fase de duas linhas vira uma de duzentas.*
+*O que fez a decisão ser "sai" e não "ganha uso":* ela era o sujeito do **cenário
+#24**, que prova a fronteira mais importante do dossiê — o educador levando 404
+no documento judicial, idêntico a inexistente. Medi antes de remover: o `/file`,
+que é por onde a tela passa, **segura a mesma fronteira** (RLS filtra, 404
+idêntico, abertura auditada). Então o cenário mudou de rota, e a fronteira passou
+a ser provada onde alguém de verdade passa. **Fronteira provada em rota que
+ninguém abre é fronteira que ninguém confere.**
+
+*E o cenário ficou mais honesto no caminho:* o documento de saúde do seed não tem
+bytes, e o `/file` recusa por FALTA DE ARQUIVO antes de chegar à política — o
+teste passaria por motivo errado. Agora ele anexa um documento com arquivo pela
+via normal da tela, e só então cobra a fronteira.
+
+*Fica um terceiro achado, pequeno, e anotado em vez de construído: o
+`GET /nursing/education/kinds` oferece também os **modos** (presencial, online) e
+a tela **não tem esse campo**. Não inventei um: campo que ninguém pediu é campo
+que ninguém preenche, e o prontuário já tem catorze.*
 
 *O risco de `user_session` e `login_attempt`, anotado aqui na fase 100, foi
 fechado na 101: as operações viraram funções `SECURITY DEFINER` e a aplicação
