@@ -715,6 +715,23 @@ versões substituídas continuam na tabela — são elas que provam que houve
 correção. Lê quem alcança a criança, **o educador de plantão inclusive**: é ele
 quem senta ao lado na lição de casa.
 
+### `general_night_house_amendment`
+**O que constava ANTES numa linha da ATA Geral** (migração 1440, fase 138), da
+decisão da Fundação em 21/09/2026: *"quem corrige a ata é o educador líder,
+equipe técnica ou coordenador, tudo ficando registrado para esses 3"*.
+
+É o mesmo desenho da `check_result_amendment` (0670), na linha da casa: o
+`INSERT` é de **gatilho**, e `UPDATE`/`DELETE` são revogados do papel da
+aplicação — o passado não se edita nem se apaga. Guarda os campos que a folha
+mostra (situação, contato, chegada, saída, motivo, pessoas, ação, categoria,
+pendências, evento de saúde), mais **quem corrigiu, quando e por quê**.
+
+Duas regras moram no gatilho, e não na aplicação: **enquanto a ATA é rascunho não
+há histórico** — é o autor montando a própria folha, e guardar cada tecla encheria
+a ATA de *"antes constava"* sobre algo que ninguém leu —, e **reenvio idêntico não
+é correção**, para que quem abrir daqui a um ano distinga "corrigido três vezes"
+de "alguém clicou três vezes". Depois de assinada, o **motivo é obrigatório**.
+
 ### `statement_request`
 A cobrança de relato aberta quando uma ocorrência grave nasce. Guarda
 entity/entity_id genéricos como o próprio relato — é isso que permite remover
@@ -812,13 +829,13 @@ formas diferentes, e "fez festa" como campo é o primeiro passo para alguém
 cobrar o número depois. O que se registra depois, se a casa quiser, é a memória
 no álbum, que é da criança.
 
-## Inventário — 113 tabelas por partição
+## Inventário — 114 tabelas por partição
 
 | Partição | Tabelas |
 |---|---|
 | identity (13) | institution, house, app_user, user_house_assignment, work_schedule, shift_assignment, user_session, login_attempt, audit_event, institutional_device, staff_role_grant, house_capacity_change, user_invite |
 | people (25) | person, care_episode, house_stay, profile_detail, health_condition, food_restriction, document, document_version, benefit_record, memory_record, memory_photo, transfer_request, transfer_message, admission_record, judicial_record, person_credential, person_correction, profile_detail_change, person_contact, family_stay, family_stay_note, outing_permission, kitchen_request, house_field_permission, birthday_ack |
-| shifts (11) | shift, handover, handover_receipt, handover_note, ata, ata_note, ata_addendum, ata_episode, ata_episode_ack, general_night_ata, general_night_house_entry |
+| shifts (12) | shift, handover, handover_receipt, handover_note, ata, ata_note, ata_addendum, ata_episode, ata_episode_ack, general_night_ata, general_night_house_entry, general_night_house_amendment |
 | incidents (7) | incident, incident_person, incident_protected, incident_restraint, incident_synthesis, external_communication, incident_attachment |
 | medications (12) | prescription, medication_schedule, medication_administration, medication_stock, medication_stock_movement, medication_protocol, medication_authorization, medication_protocol_change, prescription_restriction_change, medication_purchase, prescription_document, family_stay_medication |
 | activities (7) | activity, activity_assignment, activity_acknowledgement, activity_execution, substitution_request, commitment, commitment_exception |

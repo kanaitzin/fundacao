@@ -924,7 +924,25 @@ export class ShiftsService {
          FROM general_night_house_entry e
          WHERE e.general_ata_id = $1
          ORDER BY app_house_label(e.house_id)`, [id, g.on_date]);
-      return { g, rows };
+      /*
+       * O HISTÓRICO DAS CORREÇÕES (1440), junto da leitura.
+       *
+       * Registrar a correção e não mostrá-la seria pior do que não registrar:
+       * criaria a impressão de rastro onde ninguém vê rastro nenhum. Vem na
+       * mesma resposta porque é a mesma folha — quem lê a ATA Geral precisa ver
+       * "antes constava" na linha, e não noutra tela.
+       */
+      const { rows: correcoes } = await c.query(
+        `SELECT a.house_id, h.*
+           FROM general_night_house_amendment a
+           CROSS JOIN LATERAL app_gn_house_history($1, a.house_id) h
+          WHERE a.general_ata_id = $1
+          GROUP BY a.house_id, h.por, h.corrigido_em, h.motivo, h.antes_situacao,
+                   h.antes_houve_contato, h.antes_chegada, h.antes_saida,
+                   h.antes_motivo, h.antes_pessoas, h.antes_acao, h.antes_categoria,
+                   h.antes_pendencias, h.antes_evento_de_saude, h.antes_nota_de_saude
+          ORDER BY h.corrigido_em DESC`, [id]);
+      return { g, rows, correcoes };
     });
     if (!dados) throw new NotFoundException('ATA Geral não encontrada.');
 
@@ -940,6 +958,20 @@ export class ShiftsService {
         ataNoturnaConfirmada: e.house_ata_confirmed,
         // Agora NULL significa mesmo 'não existe', e não 'não posso ver'.
         situacaoAtaDaCasa: e.ata_casa ?? 'ATA noturna ainda não aberta',
+        /* O que constava antes, se alguém corrigiu depois da assinatura. */
+        correcoes: (dados.correcoes ?? [])
+          .filter((k: any) => k.house_id === e.house_id)
+          .map((k: any) => ({
+            por: k.por, em: k.corrigido_em, motivo: k.motivo,
+            antes: {
+              situacao: k.antes_situacao, houveContato: k.antes_houve_contato,
+              chegada: k.antes_chegada, saida: k.antes_saida,
+              motivo: k.antes_motivo, pessoas: k.antes_pessoas,
+              acao: k.antes_acao, categoria: k.antes_categoria,
+              pendencias: k.antes_pendencias,
+              eventoDeSaude: k.antes_evento_de_saude, notaDeSaude: k.antes_nota_de_saude,
+            },
+          })),
       })),
       confirmadas: dados.rows.filter((e: any) => e.house_ata_confirmed).length,
       total: dados.rows.length,
@@ -950,6 +982,18 @@ export class ShiftsService {
     houveContato?: boolean; contatoEm?: string; chegada?: string; saida?: string;
     motivo?: string; pessoas?: string; acao?: string; categoria?: string;
     pendencias?: string; confirmarAtaNoturna?: boolean;
+    /**
+     * POR QUE ESTÁ SENDO CORRIGIDO (1440, decisão de 21/09).
+     *
+     * Só é exigido depois de a ATA Geral ser ASSINADA: antes é rascunho, e
+     * rascunho se escreve sem justificar. Depois, a linha já foi lida por
+     * alguém — mudá-la sem dizer por quê deixa o leitor de amanhã com duas
+     * versões e nenhuma explicação.
+     *
+     * Chega ao banco por `set_config`, e não como coluna: o motivo é da
+     * CORREÇÃO, não da linha. É o gatilho que o guarda, junto do que constava.
+     */
+    motivoDaCorrecao?: string;
   }) {
     // Confirmar o fechamento da ATA da casa exige que ela ESTEJA fechada. O
     // Líder Noturno Geral confirma um fato, não o produz — e em nenhum momento
@@ -970,7 +1014,54 @@ export class ShiftsService {
       }
     }
 
+    /*
+     * A ATA JÁ ASSINADA É CORRIGIDA PELOS TRÊS (1440). A conferência de cargo
+     * mora na policy — esta daqui existe para a recusa chegar em português a
+     * quem está corrigindo, e não em código de Postgres (é a lição da fase 123).
+     */
+    /*
+     * O CARGO VEM ANTES DO ESTADO, e a ordem é a lição do teste desta fase.
+     *
+     * Eu havia lido o `status` primeiro, para só então conferir o cargo. Quem
+     * não alcança a ATA Geral recebe NULO do RLS — e nulo era lido como
+     * "rascunho", então o educador caía numa recusa por alcance em vez da recusa
+     * por cargo, e a mensagem não dizia a verdade. Perguntar o cargo primeiro
+     * não depende de leitura nenhuma.
+     */
+    const CORRIGEM = ['lider_diurno', 'equipe_tecnica', 'coordenador'];
+    const AUTOR = 'lider_noturno_geral';
+    if (!CORRIGEM.includes(user.role) && user.role !== AUTOR && user.role !== 'gestor_geral') {
+      throw new ForbiddenException(
+        'A linha de uma casa na ATA Geral é preenchida pelo Líder Noturno Geral e corrigida '
+        + 'pelo Líder Diurno, pela equipe técnica ou pela coordenação — a correção fica '
+        + 'registrada com o nome de quem a fez.');
+    }
+
+    const assinada = await this.db.asUser(user.id, async (c) => {
+      const { rows: [g] } = await c.query(
+        `SELECT status FROM general_night_ata WHERE id = $1`, [id]);
+      return g != null && g.status !== 'rascunho';
+    });
+    if (assinada) {
+      if (!CORRIGEM.includes(user.role)) {
+        throw new ForbiddenException(
+          'A ATA Geral já foi assinada. Depois disso, quem corrige a linha de uma casa é o '
+          + 'Líder Diurno, a equipe técnica ou a coordenação — e a correção fica registrada '
+          + 'com o nome de quem a fez.');
+      }
+      if (String(input.motivoDaCorrecao ?? '').trim().length < 10) {
+        throw new BadRequestException(
+          'Esta ATA Geral já foi assinada: descreva por que a linha está sendo corrigida '
+          + '(mínimo 10 caracteres). O que constava antes continua legível, e o motivo fica '
+          + 'ao lado — é o que explica as duas versões a quem ler depois.');
+      }
+    }
+
     const ok = await this.db.asUser(user.id, async (c) => {
+      /* O motivo vai para a sessão ANTES do UPDATE: é o gatilho que o lê, e ele
+         roda dentro desta mesma transação. */
+      await c.query(`SELECT set_config('app.motivo_correcao', $1, true)`,
+        [String(input.motivoDaCorrecao ?? '').trim()]);
       const { rowCount } = await c.query(
         `UPDATE general_night_house_entry SET
            had_contact = coalesce($3, had_contact),
@@ -992,9 +1083,50 @@ export class ShiftsService {
       return (rowCount ?? 0) > 0;
     });
     if (!ok) {
-      throw new BadRequestException('ATA Geral fechada ou fora do seu alcance — não é possível alterar.');
+      throw new BadRequestException(
+        assinada
+          ? 'Esta casa não está no seu alcance — a linha dela não é sua para corrigir.'
+          : 'ATA Geral fechada ou fora do seu alcance — não é possível alterar.');
     }
-    return { ok: true };
+
+    if (assinada) {
+      await this.audit.log({
+        action: 'ata_geral.house_amend', actorId: user.id, houseId,
+        entity: 'general_night_house_entry', entityId: id,
+        /* Metadado, nunca o texto do motivo nem o conteúdo da linha (§20). */
+        detail: { casa: houseId },
+      });
+    }
+
+    return {
+      ok: true,
+      aviso: assinada
+        ? 'Corrigido. O que constava antes continua legível na ATA, com o seu nome e o motivo '
+          + 'ao lado — nada se apaga.'
+        : undefined,
+    };
+  }
+
+  /**
+   * CORRIGIR A LINHA DESTA CASA PELA DATA (1440).
+   *
+   * Existe para que **o id da folha das oito casas não precise sair do servidor**:
+   * quem corrige diz o dia e a casa. A ATA é encontrada aqui dentro, e daí em
+   * diante é o mesmo caminho — as mesmas guardas, o mesmo gatilho, o mesmo
+   * registro.
+   */
+  async updateGeneralHouseByDate(user: AuthenticatedUser, data: string, houseId: string,
+                                 input: Parameters<ShiftsService['updateGeneralHouse']>[3]) {
+    const id = await this.db.asUser(user.id, async (c) => {
+      const { rows: [g] } = await c.query(
+        `SELECT id FROM general_night_ata WHERE on_date = $1::date`, [data]);
+      return g?.id as string | undefined;
+    });
+    if (!id) {
+      throw new NotFoundException(
+        'Não há ATA Geral Noturna nesta data — não há linha para corrigir.');
+    }
+    return this.updateGeneralHouse(user, id, houseId, input);
   }
 
   async closeGeneral(user: AuthenticatedUser, id: string, pendencias?: string) {
@@ -1076,6 +1208,30 @@ export class ShiftsService {
                 escala: 'dia' | 'semana' | 'mes', data: string) {
     const { de, ate } = janelaDeConsulta(escala, data || hojeNaInstituicao());
 
+    /*
+     * AS CORREÇÕES DA LINHA DESTA CASA (1440), no mesmo recorte.
+     *
+     * Elas vêm aqui, e não só na folha das oito, porque o Arquivo é onde a
+     * coordenação e a equipe técnica OLHAM a linha da casa delas — a folha
+     * completa das oito é de quem responde pela instituição. Corrigir sem ver o
+     * que se corrigiu não é corrigir.
+     */
+    const correcoes = await this.db.asUser(user.id, async (c) => {
+      const { rows } = await c.query(
+        `SELECT a.general_ata_id, g.on_date,
+                app_user_display_name(a.replaced_by) AS por, a.replaced_at, a.motivo,
+                a.reason AS antes_motivo, a.action_taken AS antes_acao,
+                a.pendencies AS antes_pendencias, a.arrived_at AS antes_chegada,
+                a.left_at AS antes_saida, a.had_contact AS antes_houve_contato
+           FROM general_night_house_amendment a
+           -- rls-join-ok: a política do adendo já exige a linha, e a linha exige
+           -- a casa no escopo; o cabeçalho vem só pela data.
+           JOIN general_night_ata g ON g.id = a.general_ata_id
+          WHERE a.house_id = $1 AND g.on_date BETWEEN $2::date AND $3::date
+          ORDER BY a.replaced_at DESC`, [houseId, de, ate]);
+      return rows;
+    });
+
     const linhas = await this.db.asUser(user.id, async (c) => {
       const { rows } = await c.query(
         `SELECT * FROM app_arquivo_atas($1, $2::date, $3::date)`, [houseId, de, ate]);
@@ -1139,20 +1295,50 @@ export class ShiftsService {
      * produto ainda aberta — não mudei sozinho o que já foi aprovado.)
      */
     const veFolhaCompleta = user.role === 'gestor_geral' || user.role === 'lider_noturno_geral';
+    /* Quem corrige a linha depois de assinada — decisão de 21/09/2026 (1440). */
+    const podeCorrigir = ['lider_diurno', 'equipe_tecnica', 'coordenador'].includes(user.role);
+    const diaDe = (l: any) => (typeof l.na_data === 'string' ? l.na_data
+      : new Date(l.na_data).toISOString().slice(0, 10));
 
     return {
       de, ate, escala,
-      dias: [...dias.values()].map((d) => ({
-        ...d,
-        geral: d.geral && {
-          ...d.geral,
-          id: veFolhaCompleta
-            ? linhas.find((l: any) => l.geral_id
-                && (typeof l.na_data === 'string' ? l.na_data
-                    : new Date(l.na_data).toISOString().slice(0, 10)) === d.data)?.geral_id ?? null
-            : null,
-        },
-      })),
+      dias: [...dias.values()].map((d) => {
+        const ataId = linhas.find((l: any) => l.geral_id && diaDe(l) === d.data)?.geral_id ?? null;
+        return {
+          ...d,
+          geral: d.geral && {
+            ...d.geral,
+            id: veFolhaCompleta ? ataId : null,
+            /*
+             * **O ID NÃO SAI DAQUI, e isto é conserto de um erro meu.**
+             *
+             * Eu havia devolvido o id da ATA Geral para quem pode corrigir, e a
+             * suíte do Arquivo me pegou com a frase que já estava escrita nela:
+             * *"nem o identificador da folha completa: com ele em mãos, a linha
+             * das outras sete está a uma chamada de distância"*. Está certa — a
+             * política das linhas entrega as oito à coordenação desde a 0310, e é
+             * a TELA que decide não mostrá-las; entregar o id desfaria isso pela
+             * porta dos fundos.
+             *
+             * Então a correção não passa por id: a rota
+             * `PATCH /shifts/general-night-line/:data/house/:houseId` resolve a
+             * ATA pela DATA, no servidor. Quem corrige diz o dia e a casa — que é
+             * como a pessoa pensa —, e nunca fica com o endereço da folha inteira.
+             */
+            podeCorrigir: podeCorrigir && ataId != null,
+            correcoes: correcoes
+              .filter((k: any) => k.general_ata_id === ataId)
+              .map((k: any) => ({
+                por: k.por, em: k.replaced_at, motivo: k.motivo,
+                antes: {
+                  motivo: k.antes_motivo, acao: k.antes_acao,
+                  pendencias: k.antes_pendencias, chegada: k.antes_chegada,
+                  saida: k.antes_saida, houveContato: k.antes_houve_contato,
+                },
+              })),
+          },
+        };
+      }),
       /*
        * A tela diz por que a folha das oito casas não está ali. Esconder sem
        * explicar faz a pessoa achar que o sistema perdeu o registro — e o

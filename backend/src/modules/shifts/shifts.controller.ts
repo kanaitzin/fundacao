@@ -60,6 +60,21 @@ export class ShiftsController {
     return this.shifts.updateGeneralHouse(user, id, houseId, body);
   }
 
+  /**
+   * A correção da linha desta casa, PELA DATA (1440).
+   *
+   * Caminho próprio, e não `general-ata/:id/...`, porque o id da folha das oito
+   * casas não deve sair do servidor para quem só corrige a linha da casa dele —
+   * com ele em mãos, a linha das outras sete está a uma chamada de distância.
+   */
+  @Patch('general-night-line/:data/house/:houseId')
+  corrigirLinhaPelaData(@CurrentUser() user: AuthenticatedUser,
+                        @Param('data') data: string,
+                        @Param('houseId', ParseUUIDPipe) houseId: string,
+                        @Body() body: any) {
+    return this.shifts.updateGeneralHouseByDate(user, data, houseId, body);
+  }
+
   @Post('general-ata/:id/sign')
   closeGeneral(@CurrentUser() user: AuthenticatedUser,
                @Param('id', ParseUUIDPipe) id: string, @Body() body: any) {

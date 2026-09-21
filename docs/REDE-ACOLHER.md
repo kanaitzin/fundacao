@@ -20,7 +20,7 @@ começava escolhendo em qual acreditar.*
 
 | Arquivo | Por que sobreviveu |
 |---|---|
-| `der.md` | as 113 tabelas com o que cada coluna guarda. É referência de dado, não narrativa, e o `documentacao.spec.ts` cobra que toda tabela apareça lá |
+| `der.md` | as 114 tabelas com o que cada coluna guarda. É referência de dado, não narrativa, e o `documentacao.spec.ts` cobra que toda tabela apareça lá |
 | `roteiro-marcelo.md` (+ `.docx`) | é entregue à Casa 03, escrito para quem não conhece o sistema. O `.docx` é GERADO do `.md` por `scripts/roteiro-em-word.mjs` — não editar o Word à mão |
 
 ---
@@ -90,12 +90,12 @@ discordavam entre si.
 | Quanto | De onde sai |
 |---|---|
 | **18 partições** isoladas | pastas em `backend/src/modules/` |
-| **129 migrações** | `.sql` dentro das partições |
-| **113 tabelas** | `CREATE TABLE` nas migrações |
-| **84 suítes** | `backend/test/*.spec.ts` |
-| **829 testes** | `it(` / `test(` nas suítes |
+| **130 migrações** | `.sql` dentro das partições |
+| **114 tabelas** | `CREATE TABLE` nas migrações |
+| **85 suítes** | `backend/test/*.spec.ts` |
+| **837 testes** | `it(` / `test(` nas suítes |
 | **36 telas React** | `frontend/src/screens/*.tsx` |
-| **12 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
+| **11 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **6 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
 | protótipo com **≈1297 KB** | `prototipo/rede-acolher-prototipo.html` |
 
@@ -343,6 +343,7 @@ arqueologia.
 | 135 | **A data passou a ser uma conta só — e uma tela mostrava o prazo um dia mais cedo.** Fui fechar as pendências e o achado anotado na 134 (*"a data está escrita em oito telas"*) era maior e pior do que eu havia escrito: eram **TREZE** cópias, e elas **não eram iguais**. **O defeito, medido e provado:** a cópia de `Ocorrencias.tsx` fazia `new Date(iso)` sem ancorar a hora, e o `deadline` da ocorrência é `date` no banco — dia puro nasce à meia-noite **UTC**, que em Porto Alegre é 21h do dia ANTERIOR. Então *"Pendência até 30/09"* aparecia na tela como **29/09**, e um prazo de **01/01 aparecia como 31/12**, com o ano errado. **Um dia a menos em toda pendência de ocorrência, desde sempre.** Outras duas cópias formatavam **sem `timeZone`**, isto é, no fuso de quem abre a página, e uma montava o meio-dia **sem informar o deslocamento**, o que dá no mesmo. *Ninguém desconfiaria olhando: as treze devolviam uma data com cara de certa.* Agora há **uma** conta, no `rotulos.ts`, com o meio-dia da instituição ancorado por extenso e o `timeZone` declarado — e ela aceita dia puro e instante, porque cortar a string era outra forma de perder o fuso. A versão curta (sem o ano) fica para a grade da escala, onde a semana cabe numa linha. **E há teste**: `a-data-numa-conta-so.spec.ts` prega os casos que quebravam — o prazo de 30/09, a virada do ano, as 22h de Porto Alegre — e cobra que **nenhuma tela declare a sua própria conta**. *Medido contra o commit anterior: o conferidor acha as treze.* É a lição do mapa `VINCULO` e do hash da cor de autor (fase 123) aplicada onde ela já tinha custado: **correção numa cópia não alcança as outras.** **E uma correção minha, sobre o que eu havia relatado:** eu disse que havia deixado duas ocorrências fictícias no banco de desenvolvimento e que o conserto seria recriar o banco. **Medi, e era falso** — o `globalSetup` do Jest derruba o schema e recria o banco do zero antes de CADA execução, então elas já não estavam lá. O comentário que eu havia escrito na fixture da suíte de fontes (*"dez execuções deixariam vinte ocorrências"*) estava errado pela mesma razão, e foi reescrito: comentário errado é pior do que comentário nenhum. O que continua verdade é a isolação DENTRO de uma execução, e é por isso que o `afterAll` apaga o que pode apagar. *Também medido: o prazo de triagem da Enfermagem, que o §9 dizia que "ainda não tem valor", **já é parâmetro** (`NURSING_TRIAGE_SLA_HOURS`, 24h de padrão) — o que falta é a Fundação dizer se 24h é o prazo dela* |
 | 136 | **O Gestor Geral passou a escolher qual relato restrito abrir — uma porta por relato.** A decisão de 21/09 é de quatro palavras: *"gestor abrir o que quiser"*. Era a metade que faltava do §10.6: a resposta de 20/09 (**só a contagem**) virou a fase 128, e abriu uma pergunta nova — **com só a contagem ele não tem por onde escolher**. Os dois caminhos eram um botão que abrisse os N de uma vez, ou N portas opacas. A Fundação escolheu a segunda, que é a que expõe menos: **cada abertura é um ato, com a sua própria finalidade escrita e o seu próprio registro.** Um botão que abrisse os três de uma vez faria uma finalidade valer por três narrativas, e quem lesse a auditoria depois não saberia dizer de qual delas ele precisava. **A porta devolve número de ordem e identificador, e nada mais** — nem data, nem autor, nem contexto, nem a primeira linha; o identificador é o endereço da porta, e a porta continua sendo a `app_read_statement`, que exige finalidade de quinze caracteres e **registra antes de devolver o conteúdo**. **A ordem sai do IDENTIFICADOR, não da data**, e esta é a parte pensada: ordenar por data faria o "relato 1" ser sempre o mais antigo, e aí a lista opaca deixaria de ser opaca — ele saberia a cronologia dos relatos sobre a criança sem abrir nenhum, e **cronologia já é narrativa**. Para a equipe técnica, a coordenação e o líder a lista volta **vazia**, porque elas já leem o relato na lista normal: oferecer-lhes um botão de "abrir excepcionalmente" transformaria leitura de rotina em ato excepcional, que é o contrário do que o §26.2 protege. *A rota existia desde a migração 0300 e nunca teve quem a chamasse — a exceção do `rotas-sem-porta` caiu, e as rotas sem porta foram de 13 para 12.* **E o protótipo mostrava a porta sem mostrar a ESCOLHA:** havia um só relato restrito sobre o Kauã, então o caso que a decisão desenha — abrir um, ler, parar quando achar — nascia invisível no único arquivo que o Marcelo abre (§6.19 pela sexta vez). Agora há dois, de autores e dias diferentes, e o ensaio percorre a escolha inteira: a porta opaca, a finalidade curta recusada, o relato aberto com a finalidade escrita ao lado, **e as outras portas continuando fechadas** |
 | 137 | **O conceito educacional do bimestre — o lugar de onde "boas notas" pode sair sem virar nota.** Duas respostas se juntaram aqui: em 20/09 a Fundação disse COMO a métrica pode existir — *"um conceito geral por período, por bimestre, com espaço para o porquê"*, e **não** boletim por disciplina (*"são 20 crianças, quatro vezes por ano, em oito casas, e a métrica que ninguém consegue digitar não existe"*) —, e em 21/09 disse **quem digita**: *"a equipe técnica, coordenador e educador líder"*. É o mesmo trio que monta a escala, e pela mesma razão prática: são os três que estão na casa quando alguém precisa escrever. **O que isto NÃO é, e é a parte que mais importa:** não é nota colada no nome da criança. É estado do ACOMPANHAMENTO num período, e é por isso que **o motivo é obrigatório** — conceito sozinho atravessa meses e vira característica da pessoa, que é o argumento que recusou a pontuação de comportamento (§7) e que fez a exceção da chamada exigir o fato em vez do rótulo. São três estados, e eles descrevem o que a casa faz a seguir: quem acompanha, quem acompanha COM apoio, e quem não está acompanhando — o único que pede providência. *O conjunto dos três é escolha MINHA, escrita na migração para não passar por decisão da Fundação: ela disse "um conceito geral, com espaço para o porquê", e os nomes são a minha leitura do que é contável e digitável em vinte crianças quatro vezes por ano. Trocar é uma linha.* **O bimestre é ESCRITO, não deduzido da data:** o conceito do 3º bimestre pode ser digitado em novembro, quando a escola entregou o retorno atrasado — deduzir gravaria o 4º, que é o mesmo erro que a fase 127 corrigiu na chamada. E **o bimestre que ainda não terminou é recusado**, porque escrevê-lo seria escrever sobre o que não houve. **Corrigir não sobrescreve:** registrar de novo o mesmo período insere outra linha apontando para a anterior, e as duas ficam legíveis, com o nome de quem escreveu cada uma — índice único PARCIAL garante um vigente por período e deixa as versões substituídas na tabela, que são elas que provam que houve correção. **Quem LÊ é quem alcança a criança, o educador de plantão inclusive:** esconder dele o conceito faria a casa ter uma informação sobre a escola que justamente quem senta ao lado na lição de casa não vê. *E uma frase do painel do Gestor deixou de ser verdade no instante em que esta fase entrou: ela dizia "não existe campo de nota, boletim ou conceito". Agora diz que nota continua não existindo, que o conceito existe no perfil, e que **o painel ainda não o conta** — contá-lo é a próxima fase. Deixar o gestor supor que conta seria pior do que dizer que não; e a cobrança do ensaio que guardava a frase antiga foi atualizada junto, senão ela guardaria uma mentira* |
+| 138 | **A linha de uma casa na ATA Geral passou a se corrigir, com registro — e o protótipo tinha a folha das oito casas QUEBRADA.** A decisão de 21/09: *"quem corrige a ata é o educador líder, equipe técnica ou coordenador, tudo ficando registrado para esses 3"*. Era o último item do Grupo 2 do §9 — a rota existia e **só o autor da ATA Geral a alcançava, e só enquanto ela fosse rascunho**; depois de assinada, um horário digitado errado às 3h da manhã ficava errado para sempre. **Corrigir não é sobrescrever, e a diferença é o histórico:** o §6 proíbe sobrescrita de registro fechado, e o que ele proíbe é a sobrescrita SEM RASTRO — o sistema já resolveu isso na chamada (0670), guardando por gatilho o que constava antes. Este arquivo é o mesmo desenho: o `INSERT` do histórico é do gatilho, `UPDATE` e `DELETE` são revogados da aplicação (**o passado não se edita nem se apaga**), reenvio idêntico não vira linha de histórico, e **o motivo é obrigatório depois da assinatura** — antes é rascunho, e rascunho se escreve sem justificar. **Três achados no caminho, e os três são de medição, não de opinião.** *(1)* **O Líder Diurno podia corrigir e não podia LER a ATA Geral:** a política de leitura da 0310 não o inclui, então o comando lia `status`, recebia nulo do RLS e concluía "rascunho" — o defeito seria silencioso e ao contrário, ele corrigindo sem o motivo ser exigido. A §10.2 (*"quem lê a ATA Geral de dia"*) continua aberta para os outros cargos; esta fase responde só o que a decisão implica: **quem corrige, lê.** *(2)* **O botão estava no lugar errado:** eu o pus na folha das oito casas, e a tela diz, com estas palavras, que ela *"fica com quem responde pela instituição"* — a coordenação olha a linha da casa dela no **Arquivo**, e é lá que a porta tem de estar. Botão onde a pessoa não passa é botão que não existe. *(3)* **E a folha das oito casas não abria no protótipo, desde sempre:** o casamento de rota do servidor de mentira tinha `if (seg[0] === 'shifts' && seg.length === 2)` e mais nada, então `POST /shifts/general-ata` caía ali — "general-ata" é palavra literal na posição de `:id`; o `find(...)!` devolvia `undefined` e a tela do Líder Noturno Geral mostrava *"Cannot read properties of undefined"* em vez da ATA. **Ninguém viu porque a cobrança do ensaio olhava o TÍTULO**, que aparece também na linha desta casa; passei a cobrar os códigos das oito casas e o defeito apareceu. É a mesma família do achado da fase 128 — casamento de rota que aceita palavra onde espera parâmetro |
 
 ---
 
@@ -390,7 +391,7 @@ cd frontend && npm run prototipo
 ```
 
 O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as
-129 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
+130 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
 
 ### Os ensaios — e por que cada um existe
 
@@ -455,7 +456,7 @@ rede-acolher/
 │   │   │   ├── documentos/     o contrato da folha e o gerador de .docx
 │   │   │   └── common/         CPF, criptografia, segredo, fuso da instituição
 │   │   └── modules/       18 partições, cada uma dona das próprias migrações
-│   ├── test/              84 suítes (e2e contra PostgreSQL real + estáticas)
+│   ├── test/              85 suítes (e2e contra PostgreSQL real + estáticas)
 │   ├── scripts/           ensaio-carga.ts, migrador compilado
 │   └── assets/timbre.png  a marca da Fundação, usada no documento em Word
 ├── frontend/
@@ -1714,7 +1715,7 @@ encontrava alguém fora da casa. As três falhas eram o eco de um rascunho que
 morava em `backend/test/` e deixava uma internação aberta no banco
 compartilhado. O defeito era real; a prova de que ele existia, não.*
 
-### Grupo 2 — o que espera decisão de gente (1, e as outras caíram nas fases 134 e 136)
+### Grupo 2 — o que esperava decisão de gente: **vazio** (as três caíram nas fases 134, 136 e 138)
 
 Nenhuma está parada por falta de código.
 
@@ -1737,9 +1738,12 @@ Nenhuma está parada por falta de código.
    três origens numa lista só, como a resposta §10.7 de 20/09 pediu — e a folha
    de escrever o acompanhamento passou a oferecê-los. **O conteúdo da ocorrência
    restrita não sai na lista**, só a referência: esta folha se imprime.
-3. **A correção da linha de uma casa na ATA Geral**
-   (`PATCH /shifts/general-ata/:id/house/:houseId`) espera a resposta sobre quem
-   lê a ATA Geral de dia. Ver §10.2.
+3. ~~**A correção da linha de uma casa na ATA Geral**~~ ✅ **feito na fase 138.**
+   A resposta de 21/09 foi *"o educador líder, equipe técnica ou coordenador, tudo
+   ficando registrado para esses 3"*. O que constava antes fica guardado por
+   gatilho e aparece na folha, com quem corrigiu e por quê. **A §10.2 continua
+   aberta para os OUTROS cargos** — esta fase respondeu só o que a decisão
+   implica: quem corrige, lê.
 
 ### Grupo 2.5 — o que as respostas de 15/09 abriram, medido
 
@@ -1798,7 +1802,7 @@ uma tabela de colunas fixas, e acrescentar uma exige derrubar e recriar a funç�
 inteira. Não fiz de passagem no fim de uma fase. A tela **diz** que não conta, em
 vez de deixar o gestor supor que conta.
 
-### Grupo 3 — as 12 rotas sem porta
+### Grupo 3 — as 11 rotas sem porta
 
 O número **não é contagem à mão**: é o tamanho da lista de exceções do
 `rotas-sem-porta.spec.ts`, onde cada linha traz o motivo por extenso. Eram 34 em
@@ -2491,7 +2495,7 @@ ele continua dizendo que o arquivo existe.
 npm run ensaio:producao
 ```
 
-Constrói, cria um banco virgem, aplica as 129 migrações **pelo binário
+Constrói, cria um banco virgem, aplica as 130 migrações **pelo binário
 compilado**, sobe o serviço e confere `/health`. Não publica nada e não toca no
 banco de trabalho.
 

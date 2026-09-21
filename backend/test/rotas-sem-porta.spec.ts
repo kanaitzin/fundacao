@@ -141,10 +141,6 @@ const SEM_TELA_DE_PROPOSITO: Record<string, string> = {
   'GET /transfers/pending':
     'Contagem de transferências à espera, para aviso. As duas caixas que a tela mostra '
     + 'são `GET /transfers/inbox` e `GET /transfers/outbox`.',
-  'PATCH /shifts/general-ata/:id/house/:houseId':
-    'Correção da linha de uma casa na ATA Geral. Espera a decisão institucional sobre '
-    + 'quem lê a ATA Geral de dia (§10.2 do REDE-ACOLHER) — sem ela, não se sabe quem '
-    + 'deveria ter o botão.',
 
   /*
    * AS DUAS LACUNAS QUE ESTAVAM AQUI FORAM CONSERTADAS NA FASE 130.

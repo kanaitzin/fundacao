@@ -615,6 +615,89 @@ cobrar('a ATA Geral abre', await doMais('ATA'));
 cobrar('a ATA da noite fala das casas', /casa|noite|noturna/i.test(await conteudo()));
 cobrar('nenhuma exceção no turno da noite', erros.length === 0, erros[0]);
 
+/* ======================================================================== */
+/* A LINHA DA CASA SE CORRIGE, COM REGISTRO (fase 138) — decisão de 21/09.   */
+/*                                                                          */
+/* Este bloco roda como COORDENAÇÃO, que é um dos três cargos que corrigem.  */
+/* O que ele cobra, além de a porta existir: que o Líder Noturno Geral — que  */
+/* PREENCHE a folha — não veja a porta de corrigir o que já assinou, e que o  */
+/* "antes constava" apareça na folha com o nome de quem corrigiu.            */
+/* ======================================================================== */
+console.log('\n📝 A linha da casa na ATA Geral se corrige (fase 138)');
+await fechar();
+const abaGeral = pg.locator('main.conteudo [role="tab"]')
+  .filter({ hasText: /^ATA Geral Noturna$/ });
+if (await abaGeral.count()) {
+  await abaGeral.first().click();
+  await pg.waitForTimeout(1200);
+}
+const folhaOito = await conteudo();
+/* A folha das OITO é dele: a cobrança é pelos códigos das casas, e não pelo
+   título — o título aparece também na linha desta casa, no Arquivo. */
+cobrar('a folha das oito casas abre para quem preenche',
+  (folhaOito.match(/\b(AI[1-4]|ARM[1-4])\b/g) ?? []).length >= 6,
+  folhaOito.slice(0, 300));
+cobrar('e ela mostra as correções que alguém fez, com o motivo',
+  /Correções desta folha/i.test(folhaOito) && /Antes constava/i.test(folhaOito),
+  'registrar e não mostrar cria a impressão de rastro onde ninguém vê rastro');
+
+/*
+ * AGORA A COORDENAÇÃO, QUE É QUEM CORRIGE — e ela corrige no ARQUIVO.
+ *
+ * Isto apareceu ao escrever o percurso, e é achado de desenho: a folha das oito
+ * casas **não é da coordenação** — a tela diz, com estas palavras, que ela "fica
+ * com quem responde pela instituição". O lugar onde a coordenação olha a linha da
+ * casa dela é o Arquivo, e é lá que a porta de corrigir tem de estar. Botão no
+ * lugar onde a pessoa não passa é botão que não existe.
+ */
+await fechar();
+await trocar('coordenador');
+erros.length = 0;
+cobrar('a coordenação alcança a ATA', await doMais('ATA'));
+const abaArquivo = pg.locator('main.conteudo [role="tab"]').filter({ hasText: /Arquivo/ });
+cobrar('e alcança o Arquivo, onde a linha desta casa fica',
+  (await abaArquivo.count()) > 0);
+if (await abaArquivo.count()) {
+  await abaArquivo.first().click();
+  await pg.waitForTimeout(1400);
+}
+const arquivoTxt = await conteudo();
+cobrar('o Arquivo mostra a linha desta casa na ATA Geral',
+  /ATA Geral Noturna/i.test(arquivoTxt), arquivoTxt.slice(0, 300));
+cobrar('e mostra o que constava ANTES, com quem corrigiu e o motivo',
+  /Antes constava/i.test(arquivoTxt) && /registro da portaria/i.test(arquivoTxt),
+  'registrar e não mostrar cria a impressão de rastro onde ninguém vê rastro');
+cobrar('há a porta de corrigir esta linha',
+  (await pg.locator('main.conteudo button').filter({ hasText: /Corrigir esta linha/ })
+     .count()) > 0,
+  'a decisão de 21/09 pôs a coordenação a corrigir; sem porta, a decisão não existe');
+cobrar('e a tela diz, antes de abrir, que o anterior não se apaga',
+  /não se apaga/i.test(arquivoTxt));
+
+if (await clicar(/Corrigir esta linha/)) {
+  const folhaCor = await corpo();
+  cobrar('a folha abre com o que está escrito hoje, e não em branco',
+    /Motivo do chamado/i.test(folhaCor) && /Por que está sendo corrigido/i.test(folhaCor),
+    folhaCor.slice(0, 300));
+  const btCor = pg.locator('.overlay .sheet button')
+    .filter({ hasText: /Corrigir com o meu nome/ }).first();
+  cobrar('sem dizer por quê, não corrige', await btCor.isDisabled().catch(() => false));
+  await pg.locator('#cor-porque').fill(
+    'A ação registrada estava incompleta: faltou dizer que conferi o registro da dose.');
+  await pg.waitForTimeout(250);
+  cobrar('com o porquê escrito, a correção libera',
+    !(await btCor.isDisabled().catch(() => true)));
+  await pg.locator('#cor-acao').fill(
+    'Fui à casa, acompanhei a medicação e conferi o registro da dose com a Enfermagem.');
+  await btCor.click();
+  await pg.waitForTimeout(1600);
+  const corrigida = await conteudo();
+  cobrar('a correção entra na folha, com o motivo escrito',
+    /conferi o registro da dose/i.test(corrigida), corrigida.slice(0, 600));
+}
+
+cobrar('nenhuma exceção ao corrigir a linha', erros.length === 0, erros[0]);
+
 // ====================================================== 7. Cozinha
 /*
  * QUEM PEDE O LANCHE É QUEM ESTÁ NO TURNO.

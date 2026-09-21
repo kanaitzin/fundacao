@@ -141,13 +141,29 @@ interface DiaDoArquivo {
   /** A LINHA desta casa na ATA Geral Noturna — nunca a folha das oito. */
   geral: { id: string | null; status: string; houveContato: boolean;
            categoria: string | null; motivo: string | null; acao: string | null;
-           pendencias: string | null; chegada: string | null; saida: string | null } | null;
+           pendencias: string | null; chegada: string | null; saida: string | null;
+           /* Fase 138: **o id da folha das oito não vem para quem só corrige a
+              linha desta casa** — com ele, a linha das outras sete estaria a uma
+              chamada de distância. A correção vai pela DATA. */
+           podeCorrigir?: boolean;
+           correcoes?: CorrecaoDaLinha[] } | null;
 }
 interface Arquivo { de: string; ate: string; escala: string; dias: DiaDoArquivo[]; notaAtaGeral: string }
+/** O que constava ANTES numa linha da ATA Geral, e quem corrigiu (fase 138). */
+interface CorrecaoDaLinha {
+  por: string | null; em: string; motivo: string | null;
+  antes: { motivo: string | null; acao: string | null; pendencias: string | null;
+           chegada: string | null; saida: string | null; houveContato: boolean | null };
+}
 interface CasaGeral {
   casaId: string; codigo: string; nome: string;
+  /** De que DIA esta linha é, quando ela vem do Arquivo (fase 138). */
+  naData?: string;
   houveContato: boolean; motivo: string | null; acao: string | null;
   pendencias: string | null; ataNoturnaConfirmada: boolean;
+  chegada?: string | null; saida?: string | null;
+  /** O que constava ANTES, se alguém corrigiu depois da assinatura (fase 138). */
+  correcoes?: CorrecaoDaLinha[];
 }
 interface AtaGeral {
   id: string; data: string; status: string;
@@ -160,6 +176,16 @@ const hhmm = (iso: string) => new Date(iso).toLocaleTimeString('pt-BR',
 
 /** Quem fecha a ATA da casa (§12.4) — o mesmo alcance do servidor. */
 const FECHA_ATA = ['lider_diurno', 'lider_noturno_geral', 'equipe_tecnica', 'coordenador', 'gestor_geral'];
+
+/**
+ * Quem CORRIGE a linha de uma casa na ATA Geral depois de assinada (fase 138).
+ *
+ * Decisão da Fundação em 21/09/2026, por extenso: *"quem corrige a ata é o
+ * educador líder, equipe técnica ou coordenador, tudo ficando registrado para
+ * esses 3"*. O Líder Noturno Geral preenche a folha; **corrigir o que já foi
+ * assinado é dos três que respondem pela casa.**
+ */
+const CORRIGEM_GERAL = ['lider_diurno', 'equipe_tecnica', 'coordenador'];
 
 /**
  * Quem dá CIÊNCIA de um episódio (§12.5).
@@ -209,6 +235,13 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
   const [erro, setErro] = useState('');
   const [aviso, setAviso] = useState('');
   const [fechando, setFechando] = useState<'casa' | 'geral' | null>(null);
+  /**
+   * Qual LINHA DA ATA GERAL está com a folha de correção aberta (fase 138).
+   *
+   * Nome próprio de propósito: esta tela já tem um `corrigindo`, que é a correção
+   * da ATA DA CASA — outra coisa, outro alcance, outro registro.
+   */
+  const [corrigindoLinha, setCorrigindoLinha] = useState<CasaGeral | null>(null);
   /*
    * Abre no MÊS, e não na semana. A semana de calendário começa vazia toda
    * segunda-feira: quem abrisse o arquivo na manhã de segunda veria "nenhuma
@@ -957,12 +990,71 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
                 ))}
               </ul>
 
+              {/*
+                * O QUE CONSTAVA ANTES (fase 138).
+                *
+                * Fica na folha, e não noutra tela: quem lê a ATA Geral precisa ver
+                * a correção ao lado do que foi corrigido. **Registrar e não
+                * mostrar seria pior do que não registrar** — criaria a impressão
+                * de rastro onde ninguém vê rastro nenhum.
+                */}
+              {geral.casas.some((c) => (c.correcoes?.length ?? 0) > 0) && (
+                <>
+                  <div className="eyebrow">Correções desta folha</div>
+                  <div className="stack">
+                    {geral.casas.flatMap((c) => (c.correcoes ?? []).map((k, i) => (
+                      <div className="card" key={`${c.casaId}-${i}`}>
+                        <div className="row">
+                          <b className="ff code">{c.codigo}</b>
+                          <span className="mutetxt grow">
+                            corrigido por {k.por ?? '—'} às {hhmm(k.em)}
+                          </span>
+                        </div>
+                        <div><b>Por que:</b> {k.motivo ?? '—'}</div>
+                        <div className="mutetxt">
+                          <b>Antes constava:</b>{' '}
+                          {[k.antes.motivo && `motivo — ${k.antes.motivo}`,
+                            k.antes.acao && `o que foi feito — ${k.antes.acao}`,
+                            k.antes.pendencias && `pendência — ${k.antes.pendencias}`,
+                            k.antes.chegada && `chegada às ${hhmm(k.antes.chegada)}`,
+                            k.antes.saida && `saída às ${hhmm(k.antes.saida)}`,
+                          ].filter(Boolean).join(' · ') || 'nada preenchido nestes campos'}
+                        </div>
+                      </div>
+                    )))}
+                  </div>
+                </>
+              )}
+
               {geral.status === 'fechada' ? (
-                <div className={`notice ${geral.pendencias ? 'c-warn' : 'c-ok'}`}>
-                  Assinada e fechada{geral.assinadaEm ? ` às ${hhmm(geral.assinadaEm)}` : ''}.
-                  {geral.pendencias && <> Pendência: {geral.pendencias}</>}
-                  {' '}Cada educador assinou apenas a própria passagem.
-                </div>
+                <>
+                  <div className={`notice ${geral.pendencias ? 'c-warn' : 'c-ok'}`}>
+                    Assinada e fechada{geral.assinadaEm ? ` às ${hhmm(geral.assinadaEm)}` : ''}.
+                    {geral.pendencias && <> Pendência: {geral.pendencias}</>}
+                    {' '}Cada educador assinou apenas a própria passagem.
+                  </div>
+                  {/*
+                    * A CORREÇÃO DEPOIS DA ASSINATURA (fase 138) — decisão de
+                    * 21/09: *"quem corrige a ata é o educador líder, equipe
+                    * técnica ou coordenador, tudo ficando registrado"*.
+                    *
+                    * Antes disto, um horário digitado errado às 3h da manhã ficava
+                    * errado para sempre. O botão só aparece para os três, porque
+                    * oferecer uma porta que o servidor recusa ensina a pessoa a
+                    * não confiar na tela (fase 112).
+                    */}
+                  {CORRIGEM_GERAL.includes(papel) && (
+                    <>
+                      <button className="btn sec block" onClick={() => setCorrigindoLinha(geral.casas[0] ?? null)}>
+                        Corrigir a linha de uma casa
+                      </button>
+                      <p className="mutetxt" style={{ margin: 0 }}>
+                        O que constava antes <b>não se apaga</b>: fica na folha, com o seu nome e o
+                        motivo ao lado.
+                      </p>
+                    </>
+                  )}
+                </>
               ) : (
                 <>
                   {casasAguardando > 0 && (
@@ -979,6 +1071,30 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
             </div>
           )}
         </>
+      )}
+
+      {corrigindoLinha && (
+        <FolhaCorrigirLinha
+          /* Na folha das oito, dá para trocar de casa; no Arquivo, a linha é a
+             desta casa e a escolha não existe — é o que a pessoa alcança. */
+          casas={corrigindoLinha.naData ? [corrigindoLinha] : (geral?.casas ?? [corrigindoLinha])}
+          inicial={corrigindoLinha}
+          onFechar={() => setCorrigindoLinha(null)}
+          onCorrigir={async (casaId, corpo) => {
+            /* Do Arquivo, pela DATA — o id da folha das oito não chega a esta
+               tela. Da folha das oito, pelo id, que quem a abriu já tem. */
+            if (corrigindoLinha.naData) {
+              await api(`/shifts/general-night-line/${corrigindoLinha.naData}/house/${casaId}`,
+                { method: 'PATCH', body: JSON.stringify(corpo) });
+              setCorrigindoLinha(null);
+              await consultar();
+            } else {
+              await api(`/shifts/general-ata/${geral?.id}/house/${casaId}`,
+                { method: 'PATCH', body: JSON.stringify(corpo) });
+              setCorrigindoLinha(null);
+              if (geral) setGeral(await api<AtaGeral>(`/shifts/general-ata/${geral.id}`));
+            }
+          }} />
       )}
 
       {aba === 'arquivo' && (
@@ -1101,6 +1217,59 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
                         Sem chamado nesta noite. A ausência de demanda fica registrada.
                       </div>
                     )}
+                    {/*
+                      * O QUE CONSTAVA ANTES, NA LINHA DESTA CASA (fase 138).
+                      *
+                      * Aqui, e não só na folha das oito: **o Arquivo é onde a
+                      * coordenação e a equipe técnica olham a linha da casa
+                      * delas** — a folha completa é de quem responde pela
+                      * instituição. Corrigir sem ver o que se corrigiu não é
+                      * corrigir.
+                      */}
+                    {(d.geral.correcoes ?? []).map((k, i) => (
+                      <div className="notice c-info" style={{ marginTop: 8 }} key={i}>
+                        <b>Corrigido por {k.por ?? '—'}</b> às {hhmm(k.em)} — {k.motivo ?? '—'}
+                        <div className="mutetxt">
+                          Antes constava:{' '}
+                          {[k.antes.motivo && `motivo — ${k.antes.motivo}`,
+                            k.antes.acao && `o que foi feito — ${k.antes.acao}`,
+                            k.antes.pendencias && `pendência — ${k.antes.pendencias}`,
+                            k.antes.chegada && `chegada às ${hhmm(k.antes.chegada)}`,
+                            k.antes.saida && `saída às ${hhmm(k.antes.saida)}`,
+                          ].filter(Boolean).join(' · ') || 'nada preenchido nestes campos'}
+                        </div>
+                      </div>
+                    ))}
+
+                    {/*
+                      * A PORTA DE CORRIGIR (fase 138) — decisão de 21/09:
+                      * *"quem corrige a ata é o educador líder, equipe técnica ou
+                      * coordenador, tudo ficando registrado para esses 3"*. Só
+                      * aparece quando a folha já foi FECHADA: antes disso, quem
+                      * escreve é o Líder Noturno Geral, montando a dele.
+                      */}
+                    {d.geral.podeCorrigir && d.geral.status === 'fechada' && (
+                      <>
+                        <button className="btn sm sec" style={{ marginTop: 8 }}
+                                onClick={() => setCorrigindoLinha({
+                                  casaId: houseId, codigo: casaLabel, nome: casaLabel,
+                                  houveContato: d.geral!.houveContato,
+                                  motivo: d.geral!.motivo, acao: d.geral!.acao,
+                                  pendencias: d.geral!.pendencias,
+                                  ataNoturnaConfirmada: false,
+                                  /* A DATA, e não o id: é por ela que o servidor
+                                     acha a ATA, e assim o id nunca chega aqui. */
+                                  naData: d.data,
+                                })}>
+                          Corrigir esta linha
+                        </button>
+                        <p className="mutetxt" style={{ margin: '4px 0 0' }}>
+                          O que constava antes <b>não se apaga</b>: fica aqui, com o seu nome e o
+                          motivo ao lado.
+                        </p>
+                      </>
+                    )}
+
                     {d.geral.id && (
                       <button className="btn sm ghost" style={{ marginTop: 8 }}
                               onClick={async () => {
@@ -1437,6 +1606,110 @@ function FolhaCiencia({ episodio, onFechar, onEnviar }: {
             Registrar ciência
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * CORRIGIR A LINHA DE UMA CASA NA ATA GERAL (fase 138).
+ *
+ * A folha abre com o que está escrito hoje, e não em branco: corrigir é mexer no
+ * que existe, e um formulário vazio faria a pessoa apagar sem querer o que
+ * estava certo — os campos em branco chegam como `null` e o servidor mantém o
+ * valor anterior, mas quem digita não sabe disso, e tela que depende de o usuário
+ * saber de uma regra invisível é tela que erra às 3h da manhã.
+ *
+ * O MOTIVO É OBRIGATÓRIO, e a folha diz por quê: a linha já foi lida por alguém.
+ * Mudá-la sem dizer por quê deixa o leitor de amanhã com duas versões e nenhuma
+ * explicação.
+ */
+function FolhaCorrigirLinha({ casas, inicial, onFechar, onCorrigir }: {
+  casas: CasaGeral[];
+  inicial: CasaGeral;
+  onFechar: () => void;
+  onCorrigir: (casaId: string, corpo: Record<string, unknown>) => Promise<void>;
+}) {
+  const [casaId, setCasaId] = useState(inicial.casaId);
+  const casa = casas.find((c) => c.casaId === casaId) ?? inicial;
+  const [motivo, setMotivo] = useState(casa.motivo ?? '');
+  const [acao, setAcao] = useState(casa.acao ?? '');
+  const [pendencias, setPendencias] = useState(casa.pendencias ?? '');
+  const [porQue, setPorQue] = useState('');
+  const [erro, setErro] = useState('');
+  const [salvando, setSalvando] = useState(false);
+  const pode = porQue.trim().length >= 10 && !salvando;
+
+  /* Trocar de casa recarrega os campos com o que ESTÁ escrito nela. */
+  function trocarCasa(id: string) {
+    const nova = casas.find((c) => c.casaId === id);
+    setCasaId(id);
+    setMotivo(nova?.motivo ?? '');
+    setAcao(nova?.acao ?? '');
+    setPendencias(nova?.pendencias ?? '');
+  }
+
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-cor"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet modal">
+        <h3 id="t-cor">Corrigir a linha de uma casa</h3>
+        <div className="notice c-info">
+          Esta ATA Geral já foi assinada. <b>O que constava antes não se apaga</b>: fica na folha,
+          com o seu nome e o motivo ao lado.
+        </div>
+        {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+
+        <label className="f" htmlFor="cor-casa">Casa</label>
+        <select id="cor-casa" value={casaId} onChange={(e) => trocarCasa(e.target.value)}>
+          {casas.map((c) => (
+            <option key={c.casaId} value={c.casaId}>{c.codigo} — {c.nome}</option>
+          ))}
+        </select>
+
+        <label className="f" htmlFor="cor-mot">Motivo do chamado</label>
+        <textarea id="cor-mot" value={motivo} onChange={(e) => setMotivo(e.target.value)} />
+
+        <label className="f" htmlFor="cor-acao">O que foi feito</label>
+        <textarea id="cor-acao" value={acao} onChange={(e) => setAcao(e.target.value)} />
+
+        <label className="f" htmlFor="cor-pend">Ficou pendente</label>
+        <textarea id="cor-pend" value={pendencias}
+                  onChange={(e) => setPendencias(e.target.value)} />
+
+        <label className="f" htmlFor="cor-porque">
+          Por que está sendo corrigido <small>— obrigatório, e fica na folha</small>
+        </label>
+        <textarea id="cor-porque" value={porQue} onChange={(e) => setPorQue(e.target.value)}
+                  placeholder="Ex.: o horário de chegada estava 03:40; o registro da portaria mostra 03:10." />
+
+        <div className="row rodape">
+          <button type="button" className="btn sec grow" onClick={onFechar}>Cancelar</button>
+          <button type="button" className="btn grow" disabled={!pode}
+                  onClick={async () => {
+                    setSalvando(true); setErro('');
+                    try {
+                      await onCorrigir(casaId, {
+                        motivo: motivo.trim() || null,
+                        acao: acao.trim() || null,
+                        pendencias: pendencias.trim() || null,
+                        motivoDaCorrecao: porQue.trim(),
+                      });
+                    } catch (e) {
+                      setErro(e instanceof Error ? e.message : 'Não foi possível corrigir.');
+                    } finally {
+                      setSalvando(false);
+                    }
+                  }}>
+            {salvando ? 'Corrigindo…' : 'Corrigir com o meu nome'}
+          </button>
+        </div>
+        {!pode && !salvando && (
+          <p className="mutetxt" style={{ marginBottom: 0 }}>
+            Escreva por que a linha está sendo corrigida. É o que explica as duas versões a quem
+            ler esta folha depois.
+          </p>
+        )}
       </div>
     </div>
   );

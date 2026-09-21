@@ -25,6 +25,7 @@
     "ata_episode_ack",
     "general_night_ata",
     "general_night_house_entry",
+    "general_night_house_amendment",
     "handover_note",
     "ata_note"
   ],

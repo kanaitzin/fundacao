@@ -147,6 +147,7 @@ export const VOCABULARIO_DA_AUDITORIA: Record<string, string> = {
   'ata.amend': 'Adendo escrito em ATA fechada',
   'ata_geral.close': 'ATA Geral fechada',
   'ata_geral.close_pending': 'ATA Geral fechada com pendência',
+  'ata_geral.house_amend': 'Linha de uma casa corrigida na ATA Geral, depois de assinada',
   'ata.arquivo.consulta': 'Arquivo das ATAS consultado',
   'escala.set': 'Escala definida',
   'escala.revoke': 'Escala revogada',

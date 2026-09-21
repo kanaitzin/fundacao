@@ -2513,6 +2513,26 @@ let ATA_GERAL = {
           : i === 5 ? 'Visita de rotina às 01h20; sem intercorrência.' : null,
     acao: null as string | null, pendencias: null as string | null,
     ataNoturnaConfirmada: i !== 2,
+    chegada: null as string | null, saida: null as string | null,
+    /*
+     * O QUE CONSTAVA ANTES (fase 138). A casa 6 já tem uma correção, e de
+     * propósito: sem ela o bloco "Correções desta folha" nasceria invisível no
+     * único arquivo que o Marcelo abre (§6.19), e a coisa que a decisão de 21/09
+     * mais precisa mostrar é que **nada se apaga** ao corrigir.
+     */
+    correcoes: i === 5 ? [{
+      por: 'Carla Coordenadora (fictícia)', em: emHoras(9, 40),
+      motivo: 'O horário da visita estava 01h20; o registro da portaria mostra 00h50.',
+      antes: {
+        motivo: 'Visita de rotina às 01h20; sem intercorrência.',
+        acao: null as string | null, pendencias: null as string | null,
+        chegada: null as string | null, saida: null as string | null,
+        houveContato: true as boolean | null,
+      },
+    }] : [] as { por: string; em: string; motivo: string;
+                 antes: { motivo: string | null; acao: string | null;
+                          pendencias: string | null; chegada: string | null;
+                          saida: string | null; houveContato: boolean | null } }[],
   })),
 };
 
@@ -2567,7 +2587,22 @@ const ARQUIVO_ATAS: AtaArquivada[] = [
     geral: { id: null, status: 'fechada', houveContato: true, categoria: 'saude',
              motivo: 'Chamado às 02h10 — Bruno com febre; enfermagem orientada por telefone.',
              acao: 'Fui à casa, acompanhei a medicação e conferi o registro.',
-             pendencias: null, chegada: emHoras(2, 25), saida: emHoras(3, 40) } },
+             pendencias: null, chegada: emHoras(2, 25), saida: emHoras(3, 40),
+             /*
+              * UMA CORREÇÃO JÁ FEITA (fase 138), na linha desta casa e no lugar
+              * onde a coordenação a lê. Sem ela, o "Antes constava" nasceria
+              * invisível no único arquivo que o Marcelo abre (§6.19).
+              */
+             correcoes: [{
+               por: 'Lúcia Líder Diurna (fictícia)', em: emHoras(8, 15),
+               motivo: 'O horário da saída estava 04h10; o registro da portaria mostra 03h40.',
+               antes: {
+                 motivo: 'Chamado às 02h10 — Bruno com febre; enfermagem orientada por telefone.',
+                 acao: 'Fui à casa e acompanhei a medicação.',
+                 pendencias: null, chegada: emHoras(2, 25), saida: emHoras(4, 10),
+                 houveContato: true,
+               },
+             }] } },
   { data: diasAtras(2),
     diurno: capa({ fechadaEm: emHoras(19, 5), fechadaPor: 'Lúcia Líder Diurna (fictícia)' }),
     noturno: capa({ fechadaEm: emHoras(7, 5), fechadaPor: 'Nélio Noturno (fictício)', passagens: 2 }),
@@ -5831,7 +5866,13 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     ].filter((d) => d.data >= de && d.data <= ate)
      .filter((d) => d.diurno || d.noturno || d.geral)
      .map((d) => ({ ...d,
-       geral: d.geral && { ...d.geral, id: veFolhaCompleta ? ATA_GERAL.id : null } }));
+       geral: d.geral && { ...d.geral,
+         id: veFolhaCompleta ? ATA_GERAL.id : null,
+         /* Fase 138: **o id da folha das oito não sai daqui** para quem só
+            corrige a linha desta casa — com ele, a linha das outras sete estaria a
+            uma chamada de distância. A tela corrige pela DATA. */
+         podeCorrigir: ['lider_diurno', 'equipe_tecnica', 'coordenador'].includes(eu.role),
+         correcoes: (d.geral as any).correcoes ?? [] } }));
 
     return { de, ate, escala, dias,
       notaAtaGeral: veFolhaCompleta
@@ -6287,7 +6328,23 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         + 'horário — é ela que responde, meses depois, quem estava escalado naquela noite.' };
   }
 
-  if (seg[0] === 'shifts' && seg.length === 2) {
+  /*
+   * `GET /shifts/:id` — UM plantão.
+   *
+   * **A guarda do método e da existência não é zelo: é conserto.** Esta condição
+   * era `seg.length === 2` e mais nada, e por isso ela capturava
+   * `POST /shifts/general-ata`: "general-ata" é palavra literal caindo na posição
+   * de `:id`. O `find(...)!` devolvia `undefined`, o `s.id` estourava, e a tela do
+   * Líder Noturno Geral mostrava *"Cannot read properties of undefined"* em vez da
+   * folha das oito casas — **a tela dele simplesmente não abria no protótipo.**
+   *
+   * Ninguém viu porque a cobrança do ensaio olhava o TÍTULO, que aparece também na
+   * linha desta casa; a fase 138 passou a cobrar os códigos das oito casas e o
+   * defeito apareceu. É a mesma família do achado da fase 128 — casamento de rota
+   * que aceita palavra onde espera parâmetro.
+   */
+  if (seg[0] === 'shifts' && seg.length === 2 && metodo === 'GET'
+      && PLANTOES.some((x) => x.id === seg[1])) {
     semearEpisodio();
     const s = PLANTOES.find((x) => x.id === seg[1])!;
     return {
@@ -8967,6 +9024,84 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
   if (seg[0] === 'shifts' && seg[1] === 'general-ata' && seg.length === 3 && metodo === 'GET') {
     if (seg[2] !== ATA_GERAL.id) return new Recusa(404, 'ATA Geral não encontrada.');
     return ATA_GERAL;
+  }
+
+  /**
+   * `PATCH /shifts/general-ata/:id/house/:houseId` — a linha da casa (fase 138).
+   *
+   * Depois de ASSINADA, corrigem o Líder Diurno, a equipe técnica e a coordenação
+   * (decisão de 21/09), **com motivo obrigatório**, e o que constava antes fica na
+   * folha. Antes da assinatura é o autor montando a própria ATA, e aí não há
+   * histórico: guardar cada tecla dele encheria a folha de "antes constava" sobre
+   * algo que ninguém leu ainda.
+   */
+  if (seg[0] === 'shifts'
+      && ((seg[1] === 'general-ata' && seg[2] === ATA_GERAL.id && seg[3] === 'house')
+          // Pela DATA (1440): o caminho que não exige o id da folha das oito.
+          || (seg[1] === 'general-night-line' && seg[3] === 'house'))
+      && metodo === 'PATCH') {
+    /*
+     * DUAS LINHAS POSSÍVEIS, e a diferença é onde a pessoa está olhando.
+     *
+     * Da folha das oito casas (Líder Noturno Geral, Gestor Geral) vem a linha de
+     * hoje, em `ATA_GERAL`. Do **Arquivo** — que é onde a coordenação e a equipe
+     * técnica olham a linha da casa delas — vem a de um dia anterior, em
+     * `ARQUIVO_ATAS`. No servidor é a mesma tabela e o id da ATA distingue; aqui
+     * o servidor de mentira tem uma folha viva e um arquivo semeado, então quem
+     * distingue é a PRESENÇA do motivo da correção: corrigir só existe depois de
+     * assinada, e o arquivo é todo de folhas assinadas.
+     */
+    const corrigindoNoArquivo = seg[1] === 'general-night-line'
+      || (String(b.motivoDaCorrecao ?? '').trim() !== '' && ATA_GERAL.status !== 'fechada');
+    const doArquivo: any = corrigindoNoArquivo
+      ? ARQUIVO_ATAS.find((d) => d.geral && d.geral.status === 'fechada')
+      : null;
+    const linha: any = corrigindoNoArquivo
+      ? doArquivo?.geral
+      : ATA_GERAL.casas.find((c) => c.casaId === seg[4]);
+    if (!linha) return new Recusa(404, 'Casa não encontrada nesta ATA Geral.');
+    const assinada = corrigindoNoArquivo || ATA_GERAL.status === 'fechada';
+
+    if (!assinada) {
+      if (eu.role !== 'lider_noturno_geral') {
+        return new Recusa(403, 'Enquanto é rascunho, a ATA Geral é preenchida por quem a abriu.');
+      }
+    } else {
+      if (!['lider_diurno', 'equipe_tecnica', 'coordenador'].includes(eu.role)) {
+        return new Recusa(403, 'A ATA Geral já foi assinada. Depois disso, quem corrige a linha '
+          + 'de uma casa é o Líder Diurno, a equipe técnica ou a coordenação — e a correção fica '
+          + 'registrada com o nome de quem a fez.');
+      }
+      if (String(b.motivoDaCorrecao ?? '').trim().length < 10) {
+        return new Recusa(400, 'Esta ATA Geral já foi assinada: descreva por que a linha está '
+          + 'sendo corrigida (mínimo 10 caracteres). O que constava antes continua legível, e o '
+          + 'motivo fica ao lado — é o que explica as duas versões a quem ler depois.');
+      }
+    }
+
+    const antes = { motivo: linha.motivo, acao: linha.acao, pendencias: linha.pendencias,
+                    chegada: linha.chegada, saida: linha.saida,
+                    houveContato: linha.houveContato as boolean | null };
+    const novo = {
+      motivo: b.motivo !== undefined ? (b.motivo as string | null) : linha.motivo,
+      acao: b.acao !== undefined ? (b.acao as string | null) : linha.acao,
+      pendencias: b.pendencias !== undefined ? (b.pendencias as string | null) : linha.pendencias,
+    };
+    /* Reenvio idêntico não é correção — não polui o histórico com linhas iguais. */
+    const mudou = novo.motivo !== linha.motivo || novo.acao !== linha.acao
+      || novo.pendencias !== linha.pendencias;
+    linha.motivo = novo.motivo; linha.acao = novo.acao; linha.pendencias = novo.pendencias;
+    if (b.confirmarAtaNoturna === true) linha.ataNoturnaConfirmada = true;
+
+    if (assinada && mudou) {
+      linha.correcoes = [{ por: eu.fullName, em: new Date().toISOString(),
+        motivo: String(b.motivoDaCorrecao ?? '').trim(), antes }, ...(linha.correcoes ?? [])];
+    }
+    return { ok: true,
+      aviso: assinada
+        ? 'Corrigido. O que constava antes continua legível na ATA, com o seu nome e o motivo '
+          + 'ao lado — nada se apaga.'
+        : undefined };
   }
 
   if (seg[0] === 'shifts' && seg[1] === 'general-ata' && seg[3] === 'sign' && metodo === 'POST') {
