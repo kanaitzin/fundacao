@@ -1851,6 +1851,76 @@ if (await receitas.count()) {
   await fechar();
 }
 
+/* ======================================================================== */
+/* O REMÉDIO "SE NECESSÁRIO" — quem dá é o educador, e é no Dia (fase 132).  */
+/*                                                                          */
+/* Este percurso roda como EDUCADOR de propósito: o caso inteiro é a dose da */
+/* madrugada, dada por quem não alcança a tela de Saúde (§7). Se o bloco     */
+/* aparecesse só para a Enfermagem, o defeito que a 1390 corrigiu continuaria */
+/* de pé com outra roupa.                                                    */
+/* ======================================================================== */
+console.log('\n💊 O remédio "se necessário" — o educador registra no Dia');
+await fechar();
+await trocar('educador');
+erros.length = 0;
+await aba('Dia');
+const dia132 = await conteudo();
+cobrar('o Dia traz o bloco "Se necessário"', /Se necessário/i.test(dia132),
+  dia132.slice(0, 300));
+cobrar('com a condição escrita pela Enfermagem na frente de quem decide',
+  /Só se:/i.test(dia132) && /37,8/.test(dia132),
+  'sem a condição, quem decide às 2h precisaria de outra tela');
+cobrar('e com o que já foi dado hoje, com o motivo e o nome de quem deu',
+  /Dadas hoje/i.test(dia132) && /Acordou às 2h/i.test(dia132)
+    && /Tainá Souza/i.test(dia132), dia132.slice(0, 400));
+cobrar('o desfecho é dito como sem prazo, em palavra e não em cor',
+  /não há prazo/i.test(dia132) && /ninguém vai cobrar/i.test(dia132),
+  'pendência com prazo sobre quem cuidou de madrugada tem uma só forma de ser baixada');
+
+/* O registro em si: o motivo curto NÃO passa, e é essa recusa que faz a folha
+ * valer. "Febre" sozinho não diz à Enfermagem se aquilo vira prescrição. */
+cobrar('há por onde registrar que foi dado', await clicar(/Registrar que foi dado/),
+  'sem o botão, o remédio da madrugada volta a não ficar em lugar nenhum');
+const folha132 = await corpo();
+cobrar('a folha repete a orientação da Enfermagem enquanto se escreve',
+  /A orientação diz/i.test(folha132), folha132.slice(0, 300));
+const btRegistrar = pg.locator('.overlay .sheet button')
+  .filter({ hasText: /Registrar com o meu nome/ }).first();
+cobrar('o botão nasce desabilitado, sem motivo escrito',
+  await btRegistrar.isDisabled().catch(() => false));
+await pg.locator('#prn-mot').fill('febre');
+cobrar('e continua desabilitado com "febre" sozinho',
+  await btRegistrar.isDisabled().catch(() => false),
+  'o piso de dez caracteres é o mesmo do relato (0300)');
+await pg.locator('#prn-mot').fill(
+  'Acordou às 4h com 38,2 °C, dizendo que o corpo doía; ofereci água antes.');
+cobrar('com o fato escrito, o registro libera',
+  !(await btRegistrar.isDisabled().catch(() => true)));
+await btRegistrar.click();
+await pg.waitForTimeout(1100);
+const depois132 = await conteudo();
+cobrar('a dose registrada aparece na hora, com o nome de quem deu',
+  /Acordou às 4h/i.test(depois132), depois132.slice(0, 400));
+cobrar('e a contagem do dia diz quantas vezes já foi preciso',
+  /dada 2× hoje/i.test(depois132), depois132.slice(0, 400));
+
+/* O desfecho, escrito depois — e uma vez. */
+cobrar('há por onde escrever o que aconteceu depois',
+  await clicar(/Escrever o que aconteceu depois/));
+const folhaDesf = await corpo();
+cobrar('a folha do desfecho mostra por que a dose foi dada',
+  /Foi dado porque/i.test(folhaDesf), folhaDesf.slice(0, 300));
+cobrar('e avisa que se escreve uma vez e não se reescreve',
+  /não se reescreve/i.test(folhaDesf), folhaDesf.slice(0, 300));
+await pg.locator('#prn-desf').fill(
+  'A febre cedeu em cerca de 40 minutos; dormiu até as 7h e não voltou.');
+await pg.locator('.overlay .sheet button').filter({ hasText: /^Registrar$/ }).first().click();
+await pg.waitForTimeout(1100);
+const comDesfecho = await conteudo();
+cobrar('o desfecho fica na dose, e o botão de escrever sai dela',
+  /Depois:/i.test(comDesfecho) && /cedeu em cerca de 40 minutos/i.test(comDesfecho),
+  comDesfecho.slice(0, 400));
+
 cobrar('nenhuma exceção ao abrir as prévias', erros.length === 0, erros[0]);
 
 await navegador.close();

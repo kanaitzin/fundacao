@@ -85,6 +85,14 @@ const haMinutos = (min: number) => new Date(Date.now() - min * 60000).toISOStrin
 const diasAtras = (n: number) => new Intl.DateTimeFormat('en-CA',
   { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' })
   .format(new Date(Date.now() - n * 86_400_000));
+/**
+ * A HORA DA INSTITUIÇÃO a partir de um instante — como o `to_char(... AT TIME
+ * ZONE app_fuso())` do servidor faz (1390). `slice(11,16)` daria a hora em UTC,
+ * e a dose das 2h da manhã apareceria como 05:00 na tela de quem deu.
+ */
+const hhmmDe = (iso: string) => new Intl.DateTimeFormat('pt-BR',
+  { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit', hour12: false })
+  .format(new Date(iso));
 const uid = () => Math.random().toString(36).slice(2, 10);
 
 // ---------------------------------------------------------------- pessoas
@@ -1554,6 +1562,9 @@ interface DoseMock {
   via: string; tipo: string; condicaoUso: string | null;
   estado: string; rotulo: string; pendente: boolean;
   confirmadaPor: string | null; administradaEm: string | null; observacao: string | null;
+  /* As duas colunas da 1390: por que foi preciso, e o que aconteceu depois. */
+  motivoQuandoNecessario?: string | null;
+  desfechoQuandoNecessario?: string | null;
 }
 /**
  * Os ESQUEMAS de medicamento da casa (§11.1), semeados com os três estados:
@@ -1611,6 +1622,23 @@ const ESQUEMAS: EsquemaMock[] = [
     soEnfermagem: true,
     motivoSoEnfermagem: 'Aplicação subcutânea com ajuste de dose pela glicemia; a Enfermagem '
       + 'orientou que a aplicação seja feita por ela, conforme a consulta de 15/07.' },
+  /*
+   * O ESQUEMA "QUANDO NECESSÁRIO" (1390), que faltava no catálogo.
+   *
+   * Sem ele o bloco do Dia nasceria vazio no único arquivo que o Marcelo abre
+   * (§6.19) — e é justamente o remédio da madrugada, o caso que a fase 132
+   * existe para resolver. Sem horário, de propósito: quem diz quando dar é a
+   * condição escrita pela Enfermagem, não a grade.
+   */
+  { id: 'esq5', medicamento: 'Paracetamol (fictício) 500 mg', dose: '1 comprimido',
+    via: 'oral', tipo: 'quando_necessario', status: 'ativa', rotulo: 'Se necessário',
+    acolhido: { id: 'p10', nome: 'Kauã' },
+    condicaoUso: 'Dor de cabeça referida ou temperatura acima de 37,8 °C. Intervalo mínimo '
+      + 'de 6 horas.',
+    prescritor: 'Pediatria — UBS Fictícia', inicio: '2026-09-01', fim: null,
+    horarios: [], assinadaPor: 'Enfermeira Fictícia',
+    assinadaEm: '2026-09-01T09:10:00-03:00', motivoDaSuspensao: null,
+    soEnfermagem: false, motivoSoEnfermagem: null },
 ];
 
 /** Quem está nominalmente autorizado a administrar (§11.3). */
@@ -1723,11 +1751,27 @@ let DOSES: DoseMock[] = [
     dose: '8 unidades', via: 'subcutânea', tipo: 'uso_continuo', condicaoUso: null,
     estado: 'aguardando_confirmacao', rotulo: 'Aguardando confirmação', pendente: true,
     confirmadaPor: null, administradaEm: null, observacao: null },
-  { id: 'd5', personId: 'p10', horario: emHoras(0, 0), medicamento: 'Paracetamol (fictício) 500 mg',
+  /*
+   * A DOSE "QUANDO NECESSÁRIO" DA MADRUGADA (1390) — e o que ela era antes.
+   *
+   * Esta linha vinha aqui `pendente: true`, "Aguardando confirmação". **O
+   * servidor nunca produz isso**: prescrição "quando necessário" não tem
+   * horário, então `app_generate_doses` não a alcança e ela não gera dose
+   * nenhuma. O protótipo mostrava, todo dia, um remédio pendente que ninguém
+   * deve dar — e a demonstração ensinava o contrário do sistema (regra 14).
+   *
+   * Agora ela é o que de fato existe: a dose que o educador DEU às 2h, com o
+   * motivo escrito, esperando só o desfecho. O `s/n` na coluna da hora continua
+   * exercitado, que é o caminho da folha da parede.
+   */
+  { id: 'd5', personId: 'p10', horario: emHoras(2, 10), medicamento: 'Paracetamol (fictício) 500 mg',
     dose: '1 comprimido', via: 'oral', tipo: 'quando_necessario',
     condicaoUso: 'Dor de cabeça referida ou temperatura acima de 37,8 °C. Intervalo mínimo de 6 horas.',
-    estado: 'aguardando_confirmacao', rotulo: 'Se necessário', pendente: true,
-    confirmadaPor: null, administradaEm: null, observacao: null },
+    estado: 'administrado_no_horario', rotulo: 'Administrado no horário', pendente: false,
+    confirmadaPor: 'Tainá Souza (fictícia)', administradaEm: emHoras(2, 10), observacao: null,
+    motivoQuandoNecessario: 'Acordou às 2h dizendo que a cabeça doía muito; 37,9 °C na aferição. '
+      + 'Ofereci água e ele não conseguiu voltar a dormir.',
+    desfechoQuandoNecessario: null },
 ];
 
 /**
@@ -7306,6 +7350,10 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         alergias: kid(d.personId)?.alerta?.tipo === 'alergia'
           ? kid(d.personId)!.alerta!.descricao : null,
         ...excecaoDaDose(d.medicamento),
+        /* `mapDose` as devolve desde a 1390 — o `...d` já as traz, e isto só
+           garante que a chave EXISTA mesmo na dose que não é "se necessário". */
+        motivoQuandoNecessario: d.motivoQuandoNecessario ?? null,
+        desfechoQuandoNecessario: d.desfechoQuandoNecessario ?? null,
       }));
   }
 
@@ -7461,6 +7509,116 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
   // `/nursing/*` e `/medications/*`, com os mesmos campos, os mesmos códigos
   // de estado e as mesmas recusas — é o que impede protótipo e aplicativo de
   // divergirem de novo.
+
+  /**
+   * `GET /medications/prn?houseId=` — o "se necessário" (1390).
+   *
+   * Duas metades da mesma pergunta, como no servidor: o que se PODE dar, com a
+   * condição escrita na frente de quem decide de madrugada; e o que JÁ foi dado
+   * hoje, com o motivo e o nome de quem deu.
+   */
+  if (rota === '/medications/prn' || rota.startsWith('/medications/prn?')) {
+    const pid = q.get('personId');
+    const disponiveis = ESQUEMAS
+      .filter((e) => e.tipo === 'quando_necessario' && e.status === 'ativa' && e.assinadaPor
+        && (!pid || e.acolhido.id === pid)
+        /* Quem está no hospital ou em casa com a família não recebe dose da
+           casa — a mesma regra da grade (0890 e 1010). */
+        && !estaInternado(e.acolhido.id))
+      .map((e) => ({
+        prescricaoId: e.id,
+        acolhido: e.acolhido,
+        medicamento: e.medicamento, dose: e.dose, via: e.via,
+        condicao: e.condicaoUso,
+        soEnfermagem: e.soEnfermagem, motivoSoEnfermagem: e.motivoSoEnfermagem,
+        vezesHoje: DOSES.filter((d) => d.medicamento === e.medicamento
+          && d.personId === e.acolhido.id && d.motivoQuandoNecessario).length,
+      }));
+    const dadasHoje = DOSES
+      .filter((d) => d.motivoQuandoNecessario && (!pid || d.personId === pid))
+      .map((d) => ({
+        doseId: d.id,
+        prescricaoId: ESQUEMAS.find((e) => e.medicamento === d.medicamento)?.id ?? '',
+        acolhido: kid(d.personId)?.nome ?? '—',
+        medicamento: d.medicamento, dose: d.dose,
+        hora: hhmmDe(d.administradaEm ?? d.horario),
+        motivo: d.motivoQuandoNecessario,
+        desfecho: d.desfechoQuandoNecessario ?? null,
+        quemDeu: d.confirmadaPor,
+      }))
+      .sort((x, y) => y.hora.localeCompare(x.hora));
+    return { disponiveis, dadasHoje };
+  }
+
+  /**
+   * `POST /medications/prescriptions/:id/prn` — a dose nasce DESTE ato (1390).
+   *
+   * As recusas são as do servidor, e é isso que impede o protótipo de ensinar o
+   * contrário: motivo de dez caracteres, orientação válida, e a exceção por
+   * medicamento (0930) valendo aqui igual — "quando necessário" não é atalho.
+   */
+  if (seg[0] === 'medications' && seg[1] === 'prescriptions' && seg[3] === 'prn'
+      && metodo === 'POST') {
+    const e = ESQUEMAS.find((x) => x.id === seg[2]);
+    if (!e) return new Recusa(404, 'Esquema não encontrado.');
+    if (e.tipo !== 'quando_necessario') {
+      return new Recusa(400, 'Este esquema tem horário — a dose dele se confirma na grade do dia.');
+    }
+    if (e.status !== 'ativa' || !e.assinadaPor) {
+      return new Recusa(400, 'Este esquema não está com orientação válida: ele foi suspenso ou '
+        + 'ainda não foi assinado pela Enfermagem.');
+    }
+    const motivo = String(b.motivo ?? '').trim();
+    if (motivo.length < 10) {
+      return new Recusa(400, 'Escreva por que foi preciso dar agora (mínimo 10 caracteres). '
+        + '"Febre" sozinho não diz à Enfermagem se aquilo deve virar prescrição.');
+    }
+    if (e.soEnfermagem && eu.role !== 'enfermagem') {
+      return new Recusa(403, `${e.medicamento} está marcado como exclusivo da Enfermagem: `
+        + `${e.motivoSoEnfermagem ?? 'sem motivo registrado'}. Acione a Enfermagem e registre a `
+        + 'dose com ela.');
+    }
+    const quando = b.quando ? new Date(String(b.quando)) : new Date();
+    if (quando.getTime() > Date.now() + 5 * 60000) {
+      return new Recusa(400, 'A hora está no futuro: dose que "será dada" não é dose dada.');
+    }
+    const id = uid();
+    DOSES = [...DOSES, {
+      id, personId: e.acolhido.id, horario: quando.toISOString(),
+      medicamento: e.medicamento, dose: e.dose, via: e.via, tipo: 'quando_necessario',
+      condicaoUso: e.condicaoUso,
+      /* Dose sem hora marcada não pode atrasar (1390). */
+      estado: 'administrado_no_horario', rotulo: ESTADO_DOSE['administrado_no_horario'],
+      pendente: false, confirmadaPor: eu.fullName, administradaEm: quando.toISOString(),
+      observacao: String(b.nota ?? '').trim() || null,
+      motivoQuandoNecessario: motivo, desfechoQuandoNecessario: null,
+    }];
+    return { id,
+      aviso: 'Registrado com o seu nome e o horário. O que aconteceu depois pode ser escrito '
+        + 'quando se souber — não há prazo, e ninguém vai cobrar.' };
+  }
+
+  /** `POST /medications/doses/:id/prn-outcome` — escrito depois, e uma vez (1390). */
+  if (seg[0] === 'medications' && seg[1] === 'doses' && seg[3] === 'prn-outcome'
+      && metodo === 'POST') {
+    const d = DOSES.find((x) => x.id === seg[2]);
+    if (!d) return new Recusa(404, 'Dose não encontrada.');
+    if (!d.motivoQuandoNecessario) {
+      return new Recusa(400, 'Esta dose não é "quando necessário" — o desfecho é o que se '
+        + 'observou depois de dar um remédio que dependia da condição do momento.');
+    }
+    if (d.desfechoQuandoNecessario) {
+      return new Recusa(409, 'O desfecho desta dose já foi registrado, e não se reescreve. Se '
+        + 'houve outra observação depois, ela precisa de lugar próprio — fale com a coordenação.');
+    }
+    const t = String(b.desfecho ?? '').trim();
+    if (t.length < 10) {
+      return new Recusa(400, 'Escreva o que aconteceu depois (mínimo 10 caracteres). "Melhorou" '
+        + 'sozinho não diz à Enfermagem em quanto tempo, nem se voltou.');
+    }
+    d.desfechoQuandoNecessario = t;
+    return { ok: true, aviso: 'Desfecho registrado com o seu nome.' };
+  }
 
   /** `POST /medications/doses/:id/confirm` — uma dose, uma confirmação (§11.2). */
   if (seg[0] === 'medications' && seg[1] === 'doses' && seg[3] === 'confirm' && metodo === 'POST') {

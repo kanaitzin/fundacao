@@ -22,6 +22,7 @@
  */
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+import { execSync } from 'node:child_process';
 import { Client } from 'pg';
 
 const SRC = join(__dirname, '..', 'src');
@@ -405,7 +406,60 @@ describe('As funções privilegiadas dizem onde procurar', () => {
             AND pg_get_functiondef(p.oid) ~ ('\\m' || $1 || '\\M')
           ORDER BY 1`, [tabela]);
       for (const r of rows) achados.push(`${tabela} é lida por ${r.funcao}`);
+
+      /*
+       * O LIMITE QUE ESTE TESTE TINHA, E QUE A FASE 132 FECHOU.
+       *
+       * A versão de ontem olhava só o `pg_proc` — e função não é o único lugar
+       * de onde uma tabela é lida. Uma POLÍTICA de RLS pode consultá-la no
+       * `USING`, uma VISÃO pode selecioná-la, e o servidor pode lê-la em
+       * TypeScript, que nenhuma consulta ao catálogo alcança. Foi exatamente
+       * por TypeScript que a `medication_authorization` sobreviveu à varredura
+       * de ontem: a consulta que a lê mora no serviço, não no banco.
+       *
+       * Declarar uma tabela morta é uma afirmação sobre o repositório inteiro,
+       * então é o repositório inteiro que responde.
+       */
+      const { rows: pols } = await c.query(
+        `SELECT schemaname || '.' || tablename || ' / ' || policyname AS politica
+           FROM pg_policies
+          WHERE schemaname = 'public'
+            AND (coalesce(qual, '') || ' ' || coalesce(with_check, '')) ~ ('\\m' || $1 || '\\M')
+          ORDER BY 1`, [tabela]);
+      for (const r of pols) achados.push(`${tabela} é lida pela política ${r.politica}`);
+
+      const { rows: vistas } = await c.query(
+        `SELECT c.relname AS visao
+           FROM pg_class c
+           JOIN pg_namespace n ON n.oid = c.relnamespace AND n.nspname = 'public'
+          WHERE c.relkind IN ('v', 'm')
+            AND pg_get_viewdef(c.oid) ~ ('\\m' || $1 || '\\M')
+          ORDER BY 1`, [tabela]);
+      for (const r of vistas) achados.push(`${tabela} é lida pela visão ${r.visao}`);
     }
+
+    /*
+     * E o código do servidor. Linha de comentário não conta — é lá que a
+     * história da tabela morta fica escrita de propósito, inclusive por este
+     * teste; o que conta é linha que o programa executa.
+     */
+    const raiz = join(__dirname, '..', '..');
+    const fontes = execSync(
+      `find ${raiz}/backend/src ${raiz}/frontend/src -name '*.ts' -o -name '*.tsx'`,
+      { encoding: 'utf8' }).trim().split('\n').filter(Boolean);
+    for (const { tabela } of mortas) {
+      for (const arq of fontes) {
+        const linhas = readFileSync(arq, 'utf8').split('\n');
+        linhas.forEach((linha, i) => {
+          const limpa = linha.trim();
+          if (limpa.startsWith('*') || limpa.startsWith('//') || limpa.startsWith('/*')) return;
+          if (new RegExp(`\\b${tabela}\\b`).test(linha)) {
+            achados.push(`${tabela} aparece em ${arq.replace(raiz + '/', '')}:${i + 1}`);
+          }
+        });
+      }
+    }
+
     expect(achados).toEqual([]);
   });
 });

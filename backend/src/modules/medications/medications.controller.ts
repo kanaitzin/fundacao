@@ -67,6 +67,39 @@ export class MedicationsController {
     return this.meds.confirmDose(user, id, body);
   }
 
+  /**
+   * O que está disponível "quando necessário" (1390).
+   *
+   * Palavra fixa, e por isso vem ANTES de `prescriptions/:id/...` na ordem do
+   * arquivo — palavra literal caindo num `:param` é falha silenciosa.
+   */
+  @Get('prn')
+  prnDisponivel(@CurrentUser() user: AuthenticatedUser,
+                @Query('houseId', ParseUUIDPipe) houseId: string,
+                @Query('personId') personId?: string) {
+    return this.meds.quandoNecessarioDisponivel(user, houseId, personId || undefined);
+  }
+
+  /**
+   * A DOSE "QUANDO NECESSÁRIO" (1390).
+   *
+   * `prescriptions/:id/prn` e não `doses/:id/...`: aqui não há dose ainda. Ela
+   * nasce deste ato, porque uma prescrição sem horário não gera dose na virada
+   * do dia — e era por isso que o remédio das 2h da manhã não tinha onde ficar.
+   */
+  @Post('prescriptions/:id/prn')
+  registrarPrn(@CurrentUser() user: AuthenticatedUser,
+               @Param('id', ParseUUIDPipe) id: string, @Body() body: any) {
+    return this.meds.registrarQuandoNecessario(user, id, body ?? {});
+  }
+
+  /** O que aconteceu depois — sem prazo, e uma vez (1390). */
+  @Post('doses/:id/prn-outcome')
+  desfechoPrn(@CurrentUser() user: AuthenticatedUser,
+              @Param('id', ParseUUIDPipe) id: string, @Body() body: any) {
+    return this.meds.desfechoQuandoNecessario(user, id, body?.desfecho);
+  }
+
   @Post('escalate-overdue')
   overdue(@CurrentUser() user: AuthenticatedUser, @Body() body: { houseId: string; minutos?: number }) {
     return this.meds.escalateOverdue(user, body.houseId, body.minutos ?? 30);

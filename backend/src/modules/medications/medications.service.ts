@@ -301,6 +301,13 @@ export class MedicationsService {
                 -- confirmar e só então lê "só a Enfermagem". Às 22h, com a
                 -- criança esperando, isso é uma tela que mente por omissão.
                 pr.nurse_only, pr.nurse_only_reason,
+                -- O "QUANDO NECESSÁRIO" VIAJA COM A DOSE (1390).
+                --
+                -- Sem estas duas, a dose registrada de madrugada apareceria na
+                -- grade sem dizer POR QUE foi preciso — e era exatamente o dado
+                -- que não existia em lugar nenhum até esta fase. Ele é o que a
+                -- Enfermagem lê às 9h para decidir se aquilo vira dose fixa.
+                a.prn_reason, a.prn_outcome,
                 app_user_display_name(a.administered_by) AS confirmado_por,
                 -- Ao lado de uma dose, "Dipirona" sozinha se lê como o que
                 -- dar. Aqui sai "Alergia a Dipirona" (§6.4, migração 0600).
@@ -434,6 +441,208 @@ export class MedicationsService {
         { administrationId, estado: input.estado }, { actorId: user.id });
     }
     return { ok: true, estado: input.estado, rotulo: ESTADO_DOSE[input.estado] };
+  }
+
+  /**
+   * O QUE ESTÁ DISPONÍVEL "QUANDO NECESSÁRIO" (1390).
+   *
+   * Rota própria, e não um campo da grade: a grade do dia é a lista de DOSES, e
+   * uma prescrição "quando necessário" não tem dose até alguém precisar dela.
+   * Misturar as duas faria a contagem de pendências da casa incluir remédio que
+   * ninguém deve dar — e tela cheia de pendência impossível é tela que a equipe
+   * aprende a não olhar.
+   *
+   * Por que ela existe: **quem dá a dose das 2h é o educador, e o educador não
+   * alcança a tela de Saúde** (§7). Sem esta lista no Dia, o registro que a fase
+   * 1390 criou teria porta só para quem não está lá na hora.
+   */
+  async quandoNecessarioDisponivel(user: AuthenticatedUser, houseId: string, personId?: string) {
+    return this.db.asUser(user.id, async (c) => {
+      const { rows } = await c.query(
+        `SELECT pr.id, pr.person_id, pr.medication, pr.dose, pr.route, pr.use_condition,
+                pr.nurse_only, pr.nurse_only_reason,
+                coalesce(nullif(p.social_name,''), p.full_name) AS pessoa,
+                -- Quantas vezes JÁ foi preciso hoje. É o número que faz alguém
+                -- parar e pensar antes da terceira dose da mesma noite.
+                (SELECT count(*)::int FROM medication_administration a
+                  WHERE a.prescription_id = pr.id
+                    AND a.prn_reason IS NOT NULL
+                    AND (a.administered_at AT TIME ZONE app_fuso())::date = app_hoje()) AS hoje
+           FROM prescription pr
+           -- rls-join-ok: adm_select e a política de person são a mesma
+           -- (app_person_in_scope) — quem lê a prescrição lê a pessoa.
+           JOIN person p ON p.id = pr.person_id
+          WHERE pr.house_id = $1
+            AND pr.kind = 'quando_necessario'
+            AND pr.status = 'ativa'
+            AND pr.signed_by IS NOT NULL
+            AND ($2::uuid IS NULL OR pr.person_id = $2)
+            -- Quem está no hospital ou em casa com a família não recebe dose da
+            -- casa, pela mesma razão da grade do dia (0890 e 1010).
+            AND NOT app_esta_internado(pr.person_id, app_hoje())
+            AND NOT app_em_convivencia_familiar(pr.person_id, app_hoje())
+          ORDER BY pessoa, pr.medication`, [houseId, personId ?? null]);
+      const disponiveis = rows.map((r) => ({
+        prescricaoId: r.id,
+        acolhido: { id: r.person_id, nome: r.pessoa },
+        medicamento: r.medication, dose: r.dose, via: r.route,
+        /* A condição diz QUANDO se pode dar. Ela vem junto do botão de propósito:
+           quem decide às 2h precisa dela na frente, e não noutra tela. */
+        condicao: r.use_condition,
+        soEnfermagem: r.nurse_only ?? false,
+        motivoSoEnfermagem: r.nurse_only_reason ?? null,
+        vezesHoje: r.hoje as number,
+      }));
+
+      /*
+       * O QUE JÁ FOI DADO HOJE, e por que vem na mesma resposta.
+       *
+       * Sem isto a dose registrada às 2h desaparece da tela no instante em que é
+       * salva — quem deu não vê que ficou, e o desfecho não tem por onde ser
+       * escrito, porque escrever o desfecho exige o ID da dose. A grade de Saúde
+       * tem esse dado desde a 1390, mas o educador não alcança a tela de Saúde
+       * (§7), e é ele quem dá a dose da madrugada.
+       *
+       * O horário é o da instituição, não o do navegador: a linha nasceu no fuso
+       * do banco e é assim que a Enfermagem a lê na manhã seguinte.
+       */
+      const { rows: dadas } = await c.query(
+        `SELECT a.id, a.prescription_id, a.prn_reason, a.prn_outcome,
+                to_char(a.administered_at AT TIME ZONE app_fuso(), 'HH24:MI') AS hora,
+                pr.medication, pr.dose,
+                coalesce(nullif(p.social_name,''), p.full_name) AS pessoa,
+                u.full_name AS quem
+           FROM medication_administration a
+           -- rls-join-ok: adm_select e prescription têm a mesma política de casa.
+           JOIN prescription pr ON pr.id = a.prescription_id
+           JOIN person p ON p.id = a.person_id
+           LEFT JOIN app_user u ON u.id = a.administered_by
+          WHERE a.house_id = $1
+            AND a.prn_reason IS NOT NULL
+            AND ($2::uuid IS NULL OR a.person_id = $2)
+            AND (a.administered_at AT TIME ZONE app_fuso())::date = app_hoje()
+          ORDER BY a.administered_at DESC`, [houseId, personId ?? null]);
+
+      return {
+        disponiveis,
+        dadasHoje: dadas.map((r) => ({
+          doseId: r.id,
+          prescricaoId: r.prescription_id,
+          acolhido: r.pessoa,
+          medicamento: r.medication, dose: r.dose,
+          hora: r.hora,
+          motivo: r.prn_reason,
+          desfecho: r.prn_outcome as string | null,
+          quemDeu: r.quem ?? null,
+        })),
+      };
+    });
+  }
+
+  /**
+   * A DOSE "QUANDO NECESSÁRIO", REGISTRADA (1390).
+   *
+   * Ela não nasce da geração do dia — uma prescrição "quando necessário" não tem
+   * horário, então `app_generate_doses` não a alcança, e a única porta que
+   * existia (`confirmDose`) confirma uma dose QUE JÁ EXISTE. O resultado é que o
+   * remédio "se necessário" — o que o educador dá às 2h quando a criança acorda
+   * com febre — era dado e não ficava em lugar nenhum.
+   *
+   * As guardas são as da confirmação, e moram no banco: casa no alcance,
+   * protocolo do período, e a exceção `nurse_only` por medicamento (0930). Este
+   * método não as repete; ele traduz a recusa para português.
+   */
+  async registrarQuandoNecessario(user: AuthenticatedUser, prescricaoId: string, input: {
+    motivo?: string; quando?: string; nota?: string;
+  }) {
+    let id: string;
+    try {
+      id = await this.db.asUser(user.id, async (c) => {
+        const { rows: [row] } = await c.query(
+          `SELECT * FROM app_registrar_quando_necessario($1,$2,$3::timestamptz,$4)`,
+          [prescricaoId, input.motivo ?? '', input.quando ?? null, input.nota ?? null]);
+        return row.out_id as string;
+      });
+    } catch (e: any) {
+      const msg = e?.message ?? '';
+      if (msg.includes('prescricao_inexistente') || msg.includes('casa_fora_de_escopo')) {
+        throw new NotFoundException('Prescrição não encontrada.');
+      }
+      if (msg.includes('nao_e_quando_necessario')) {
+        throw new BadRequestException(
+          'Esta prescrição tem horário marcado. A dose dela é confirmada na grade do dia, e não '
+          + 'registrada como "quando necessário".');
+      }
+      if (msg.includes('prescricao_sem_orientacao_valida')) {
+        throw new BadRequestException(
+          'Esta prescrição não está ativa e assinada. Dar remédio "se necessário" depende de uma '
+          + 'orientação válida — se ela foi suspensa, fale com a Enfermagem antes.');
+      }
+      if (msg.includes('motivo_insuficiente')) {
+        throw new BadRequestException(
+          'Escreva por que o remédio foi preciso agora (mínimo 10 caracteres). A condição da '
+          + 'prescrição diz quando se PODE dar; isto diz o que aconteceu — e é o que a Enfermagem '
+          + 'lê para decidir se este remédio deve virar dose fixa.');
+      }
+      if (msg.includes('quando_no_futuro')) {
+        throw new BadRequestException('A hora informada está no futuro. Dose que será dada não é dose dada.');
+      }
+      if (msg.startsWith('protocolo:')) throw new ForbiddenException(msg.replace('protocolo: ', ''));
+      throw e;
+    }
+
+    await this.audit.log({
+      action: 'medication.prn_registered', actorId: user.id,
+      entity: 'medication_administration', entityId: id,
+      // Metadado, nunca o motivo: o conteúdo não vai para o log (§20).
+      detail: { prescricaoId },
+    });
+    return {
+      id,
+      aviso: 'Registrado com o seu nome e o horário. O que aconteceu depois pode ser escrito '
+        + 'quando se souber — não há prazo, e ninguém vai cobrar.',
+    };
+  }
+
+  /**
+   * O DESFECHO, escrito depois (1390) — e uma vez.
+   *
+   * *"O que aconteceu depois"* não se sabe na hora de dar o remédio. Nasce nulo
+   * e se escreve quando se souber, **sem prazo e sem pendência**, aplicando a
+   * correção que a Fundação fez em 16/09 sobre o relato da convivência.
+   */
+  async desfechoQuandoNecessario(user: AuthenticatedUser, administrationId: string,
+                                 desfecho?: string) {
+    try {
+      await this.db.asUser(user.id, async (c) => {
+        await c.query(`SELECT * FROM app_desfecho_quando_necessario($1,$2)`,
+          [administrationId, desfecho ?? '']);
+      });
+    } catch (e: any) {
+      const msg = e?.message ?? '';
+      if (msg.includes('dose_inexistente')) throw new NotFoundException('Dose não encontrada.');
+      if (msg.includes('nao_e_quando_necessario')) {
+        throw new BadRequestException(
+          'Esta dose não é "quando necessário" — o desfecho é o que se observou depois de dar um '
+          + 'remédio que dependia da condição do momento.');
+      }
+      if (msg.includes('desfecho_ja_registrado')) {
+        throw new ConflictException(
+          'O desfecho desta dose já foi registrado, e não se reescreve. Se houve outra observação '
+          + 'depois, ela precisa de lugar próprio — fale com a coordenação.');
+      }
+      if (msg.includes('desfecho_insuficiente')) {
+        throw new BadRequestException(
+          'Escreva o que aconteceu depois (mínimo 10 caracteres). "Melhorou" sozinho não diz à '
+          + 'Enfermagem em quanto tempo, nem se voltou.');
+      }
+      throw e;
+    }
+    await this.audit.log({
+      action: 'medication.prn_outcome', actorId: user.id,
+      entity: 'medication_administration', entityId: administrationId, detail: {},
+    });
+    return { ok: true, aviso: 'Desfecho registrado com o seu nome.' };
   }
 
   /**
@@ -1254,6 +1463,13 @@ function mapDose(r: any) {
     soEnfermagem: r.nurse_only ?? false,
     motivoSoEnfermagem: r.nurse_only_reason ?? null,
     pendente: r.state === 'aguardando_confirmacao',
+    /*
+     * O "quando necessário", registrado (1390). `motivoQuandoNecessario` não
+     * nulo é o que diz que esta dose NÃO veio da grade: ela foi dada porque
+     * precisou, e alguém escreveu por quê.
+     */
+    motivoQuandoNecessario: r.prn_reason ?? null,
+    desfechoQuandoNecessario: r.prn_outcome ?? null,
   };
 
 }

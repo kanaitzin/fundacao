@@ -691,6 +691,20 @@ export function Dia({ houseId, casaLabel, papel, irPara }: {
       )}
 
       {/*
+        * O "SE NECESSÁRIO" (fase 132).
+        *
+        * Fica DEPOIS da linha do tempo e não dentro dela, e por uma razão: a
+        * prescrição "quando necessário" NÃO É uma dose marcada. Pô-la na linha
+        * faria a casa ver, todo dia, um remédio pendente que ninguém deve dar —
+        * e tela cheia de pendência impossível é tela que a equipe aprende a não
+        * olhar (é o mesmo argumento da dose da criança internada).
+        *
+        * E fica NO DIA, e não na tela de Saúde, porque quem dá a dose das 2h é o
+        * educador — e o educador não alcança a tela de Saúde (§7).
+        */}
+      <SeNecessario houseId={houseId} />
+
+      {/*
         * OS PEDIDOS DE SUBSTITUIÇÃO EM ABERTO.
         *
         * Ficam DEPOIS da linha do tempo e não dentro dela: o pedido não é uma
@@ -1293,6 +1307,324 @@ function FolhaUrgente({ houseId, onFechar, onCriar }: {
             Registrar atividade urgente
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* O "SE NECESSÁRIO" (fase 132).                                              */
+/* -------------------------------------------------------------------------- */
+
+interface PrnDisponivel {
+  prescricaoId: string;
+  acolhido: { id: string; nome: string };
+  medicamento: string; dose: string; via: string;
+  condicao: string | null;
+  soEnfermagem: boolean; motivoSoEnfermagem: string | null;
+  vezesHoje: number;
+}
+interface PrnDada {
+  doseId: string; prescricaoId: string; acolhido: string;
+  medicamento: string; dose: string; hora: string;
+  motivo: string; desfecho: string | null; quemDeu: string | null;
+}
+
+/**
+ * A MEDICAÇÃO "QUANDO NECESSÁRIO", REGISTRADA POR QUEM DÁ (1390).
+ *
+ * Esta é a dose que o educador dá às 2h da manhã, sozinho, quando a criança
+ * acorda com febre — e que até a fase 132 era dada e **não ficava em lugar
+ * nenhum**: a prescrição "quando necessário" não tem horário, então não gera
+ * dose, e a única porta de confirmação exigia uma dose que já existisse.
+ *
+ * O bloco é um só e mostra as duas metades da mesma pergunta:
+ *
+ *  * **o que se pode dar** — com a condição escrita pela Enfermagem na frente
+ *    de quem decide ("se a febre passar de 38°C"), porque quem decide de
+ *    madrugada não vai a outra tela conferir;
+ *  * **o que já foi dado hoje** — com o motivo e o nome de quem deu. É o número
+ *    que faz alguém parar antes da terceira dose da mesma noite, e é o registro
+ *    de que a Enfermagem precisa às 9h para decidir se aquilo vira prescrição.
+ *
+ * O desfecho ("o que aconteceu depois") **não tem prazo e não gera pendência** —
+ * é a correção que a Fundação fez em 16/09 sobre o relato da convivência.
+ * Cobrança com prazo sobre quem cuidou da criança de madrugada tem uma só forma
+ * de ser baixada, e não é a boa.
+ */
+function SeNecessario({ houseId }: { houseId: string }) {
+  const [disponiveis, setDisponiveis] = useState<PrnDisponivel[]>([]);
+  const [dadasHoje, setDadasHoje] = useState<PrnDada[]>([]);
+  const [dando, setDando] = useState<PrnDisponivel | null>(null);
+  const [contando, setContando] = useState<PrnDada | null>(null);
+  const [erro, setErro] = useState('');
+  const [aviso, setAviso] = useState('');
+
+  const carregar = useCallback(async () => {
+    try {
+      const r = await api<{ disponiveis: PrnDisponivel[]; dadasHoje: PrnDada[] }>(
+        `/medications/prn?houseId=${houseId}`);
+      setDisponiveis(r.disponiveis); setDadasHoje(r.dadasHoje);
+    } catch {
+      /* Sem a lista, o resto do Dia continua servindo o turno. */
+      setDisponiveis([]); setDadasHoje([]);
+    }
+  }, [houseId]);
+  useEffect(() => { carregar(); }, [carregar]);
+
+  /* Casa sem prescrição "quando necessário" não vê bloco vazio: o Dia é a tela
+     mais usada do sistema, e espaço gasto aqui é rolagem no meio do turno. */
+  if (disponiveis.length === 0 && dadasHoje.length === 0) return null;
+
+  async function registrar(p: PrnDisponivel, dados: { motivo: string; quando?: string; nota?: string }) {
+    setErro(''); setAviso('');
+    try {
+      const r = await api<{ aviso?: string }>(
+        `/medications/prescriptions/${p.prescricaoId}/prn`,
+        { method: 'POST', body: JSON.stringify(dados) });
+      setDando(null);
+      if (r?.aviso) setAviso(r.aviso);
+      await carregar();
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Não foi possível registrar a dose.');
+    }
+  }
+
+  async function contar(d: PrnDada, desfecho: string) {
+    setErro(''); setAviso('');
+    try {
+      const r = await api<{ aviso?: string }>(`/medications/doses/${d.doseId}/prn-outcome`,
+        { method: 'POST', body: JSON.stringify({ desfecho }) });
+      setContando(null);
+      if (r?.aviso) setAviso(r.aviso);
+      await carregar();
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Não foi possível registrar o desfecho.');
+    }
+  }
+
+  return (
+    <>
+      <div className="eyebrow">Se necessário · {disponiveis.length}</div>
+      {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+      {aviso && <div className="notice c-ok" role="status">{aviso}</div>}
+
+      <div className="stack">
+        {disponiveis.map((p) => (
+          <article className="card" key={p.prescricaoId}>
+            <div className="row" style={{ justifyContent: 'space-between', gap: 8 }}>
+              <div>
+                <strong>{p.acolhido.nome}</strong>
+                <div className="mutetxt">{p.medicamento} · {p.dose} · {p.via}</div>
+              </div>
+              {/* Contagem, não julgamento: o número diz quantas vezes foi preciso,
+                  e é da Enfermagem a leitura do que isso significa. */}
+              {p.vezesHoje > 0 && (
+                <span className="pill c-info">
+                  {p.vezesHoje === 1 ? 'dada 1× hoje' : `dada ${p.vezesHoje}× hoje`}
+                </span>
+              )}
+            </div>
+
+            {p.condicao && (
+              <p style={{ margin: '8px 0 0' }}>
+                <span className="mutetxt">Só se: </span>{p.condicao}
+              </p>
+            )}
+            {p.soEnfermagem && (
+              <p style={{ margin: '8px 0 0' }}>
+                <span className="pill c-warn">Só a Enfermagem administra</span>
+                {p.motivoSoEnfermagem && <span className="mutetxt"> — {p.motivoSoEnfermagem}</span>}
+              </p>
+            )}
+
+            <div className="row" style={{ marginTop: 12 }}>
+              <button type="button" className="btn grow" onClick={() => setDando(p)}>
+                Registrar que foi dado
+              </button>
+            </div>
+          </article>
+        ))}
+      </div>
+
+      {dadasHoje.length > 0 && (
+        <>
+          <div className="eyebrow">Dadas hoje · {dadasHoje.length}</div>
+          <div className="stack">
+            {dadasHoje.map((d) => (
+              <article className="card" key={d.doseId}>
+                <div>
+                  <strong>{d.hora} · {d.acolhido}</strong>
+                  <div className="mutetxt">
+                    {d.medicamento} · {d.dose}{d.quemDeu ? ` · por ${d.quemDeu}` : ''}
+                  </div>
+                </div>
+                <p style={{ margin: '8px 0 0' }}>
+                  <span className="mutetxt">Motivo: </span>{d.motivo}
+                </p>
+                {d.desfecho ? (
+                  <p style={{ margin: '8px 0 0' }}>
+                    <span className="mutetxt">Depois: </span>{d.desfecho}
+                  </p>
+                ) : (
+                  <div className="row" style={{ marginTop: 12 }}>
+                    <button type="button" className="btn sec grow" onClick={() => setContando(d)}>
+                      Escrever o que aconteceu depois
+                    </button>
+                  </div>
+                )}
+              </article>
+            ))}
+          </div>
+          {dadasHoje.some((d) => !d.desfecho) && (
+            /* Dito em palavra, e não em cor: não é pendência, e a tela não deve
+               deixar dúvida sobre isso para quem vai dormir depois do plantão. */
+            <p className="mutetxt">
+              O que aconteceu depois pode ser escrito quando se souber — não há prazo,
+              e ninguém vai cobrar.
+            </p>
+          )}
+        </>
+      )}
+
+      {dando && (
+        <FolhaSeNecessario prescricao={dando} onFechar={() => setDando(null)}
+                           onRegistrar={(dados) => registrar(dando, dados)} />
+      )}
+      {contando && (
+        <FolhaDesfecho dose={contando} onFechar={() => setContando(null)}
+                       onRegistrar={(t) => contar(contando, t)} />
+      )}
+    </>
+  );
+}
+
+/**
+ * A FOLHA DE REGISTRO DA DOSE "QUANDO NECESSÁRIO".
+ *
+ * O motivo é obrigatório com dez caracteres, o mesmo piso do relato (0300), e
+ * ele existe porque *"febre"* não diz à Enfermagem das 9h o que ela precisa
+ * saber. A condição da prescrição fica visível enquanto se escreve: quem decide
+ * às 2h precisa dela na frente.
+ */
+function FolhaSeNecessario({ prescricao, onFechar, onRegistrar }: {
+  prescricao: PrnDisponivel;
+  onFechar: () => void;
+  onRegistrar: (dados: { motivo: string; quando?: string; nota?: string }) => void;
+}) {
+  const [motivo, setMotivo] = useState('');
+  const [hora, setHora] = useState('');
+  const [nota, setNota] = useState('');
+  const pode = motivo.trim().length >= 10;
+
+  /**
+   * A HORA, quando não é agora — e a virada da meia-noite.
+   *
+   * O plantão noturno atravessa o dia: quem registra às 00h30 a dose que deu às
+   * 23h50 está falando de ANTES, não de daqui a 23 horas. Por isso, hora que
+   * cairia no futuro é lida como a de ontem — e o servidor recusa futuro de
+   * qualquer forma, porque dose que "será dada" não é dose dada.
+   */
+  function quandoISO(): string | undefined {
+    if (!hora) return undefined;
+    const [h, m] = hora.split(':').map(Number);
+    const d = new Date();
+    d.setHours(h, m, 0, 0);
+    if (d.getTime() > Date.now()) d.setDate(d.getDate() - 1);
+    return d.toISOString();
+  }
+
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-prn"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet">
+        <h3 id="t-prn">Registrar {prescricao.medicamento}</h3>
+        <p className="mutetxt">
+          {prescricao.acolhido.nome} · {prescricao.dose} · {prescricao.via}
+        </p>
+        {prescricao.condicao && (
+          <p><span className="mutetxt">A orientação diz: </span>{prescricao.condicao}</p>
+        )}
+
+        <label className="f" htmlFor="prn-mot">
+          Por que foi preciso agora <small>— é o que a Enfermagem vai ler amanhã</small>
+        </label>
+        <textarea id="prn-mot" value={motivo} onChange={(e) => setMotivo(e.target.value)}
+                  placeholder="Ex.: acordou às 2h com 38,4°C, queixando dor de cabeça; ofereci água antes." />
+
+        <label className="f" htmlFor="prn-hora">
+          A hora <small>— em branco, fica a de agora</small>
+        </label>
+        <input id="prn-hora" type="time" value={hora} onChange={(e) => setHora(e.target.value)} />
+
+        <label className="f" htmlFor="prn-nota">
+          Observação <small>— opcional</small>
+        </label>
+        <textarea id="prn-nota" value={nota} onChange={(e) => setNota(e.target.value)}
+                  placeholder="Ex.: tomou com suco; voltou a dormir em 20 minutos." />
+
+        <div className="row rodape">
+          <button type="button" className="btn sec grow" onClick={onFechar}>Cancelar</button>
+          <button type="button" className="btn grow" disabled={!pode}
+                  onClick={() => onRegistrar({
+                    motivo: motivo.trim(), quando: quandoISO(),
+                    nota: nota.trim() || undefined,
+                  })}>
+            Registrar com o meu nome
+          </button>
+        </div>
+        {!pode && (
+          <p className="mutetxt" style={{ marginBottom: 0 }}>
+            Escreva o que aconteceu — "febre" sozinho não diz à Enfermagem se deve virar
+            prescrição.
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * O DESFECHO, escrito depois — e uma vez (1390).
+ *
+ * Escrito uma vez porque nada se sobrescreve (§5.1): a primeira observação é
+ * justamente a que a Enfermagem compara. A folha diz isso antes de salvar.
+ */
+function FolhaDesfecho({ dose, onFechar, onRegistrar }: {
+  dose: PrnDada;
+  onFechar: () => void;
+  onRegistrar: (desfecho: string) => void;
+}) {
+  const [texto, setTexto] = useState('');
+  const pode = texto.trim().length >= 10;
+
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-prn-d"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet">
+        <h3 id="t-prn-d">O que aconteceu depois?</h3>
+        <p className="mutetxt">
+          {dose.hora} · {dose.acolhido} · {dose.medicamento}
+        </p>
+        <p><span className="mutetxt">Foi dado porque: </span>{dose.motivo}</p>
+
+        <label className="f" htmlFor="prn-desf">
+          O que se observou <small>— em quanto tempo, e se voltou</small>
+        </label>
+        <textarea id="prn-desf" value={texto} onChange={(e) => setTexto(e.target.value)}
+                  placeholder="Ex.: a febre cedeu em cerca de 40 minutos; dormiu até as 7h e não voltou." />
+
+        <div className="row rodape">
+          <button type="button" className="btn sec grow" onClick={onFechar}>Cancelar</button>
+          <button type="button" className="btn grow" disabled={!pode}
+                  onClick={() => onRegistrar(texto.trim())}>
+            Registrar
+          </button>
+        </div>
+        <p className="mutetxt" style={{ marginBottom: 0 }}>
+          Escreve-se uma vez e não se reescreve: é esta observação que a Enfermagem compara
+          com a próxima.
+        </p>
       </div>
     </div>
   );

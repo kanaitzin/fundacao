@@ -191,6 +191,8 @@ export const VOCABULARIO_DA_AUDITORIA: Record<string, string> = {
   'medication.invoice_open': 'Nota fiscal de compra aberta',
   'medication.generate_doses': 'Doses do dia geradas a partir das prescrições',
   'medication.confirm': 'Dose confirmada',
+  'medication.prn_registered': 'Dose "quando necessário" registrada, com o motivo',
+  'medication.prn_outcome': 'Desfecho da dose "quando necessário" registrado',
   'medication.nurse_only': 'Medicamento marcado como exclusivo da Enfermagem',
   'medication.leave_with_child': 'Medicamento entregue para a criança levar',
   'medication.purchase': 'Compra de medicamento registrada',
