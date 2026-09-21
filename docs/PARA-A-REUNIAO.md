@@ -18,7 +18,7 @@
 > depois das 21h em Porto Alegre semeava o dia seguinte — o dia de hoje nascia
 > sem dose nenhuma. **Nada no sistema; tudo no dado de partida.**
 
-- **130 fases.** 79 suítes e 785 testes, verdes em duas condições de relógio —
+- **131 fases.** 79 suítes e 786 testes, verdes em duas condições de relógio —
   antes e depois da virada do UTC, que em Porto Alegre é às 21h.
 - **A chamada fecha.** O único item de código que faltava ao piloto — a chamada
   que travava quando uma criança estava internada ou em casa com a família —
@@ -29,7 +29,11 @@
   desde a varredura de 15/09.
 - **A escala não se deduz mais** (fase 129). Sem escala lançada, o sistema deixou
   de nomear quem devia estar — e a tela diz em vermelho que ninguém a lançou.
-  Assinar continua aberto a quem esteve.
+  Assinar continua aberto a quem esteve. **E a fase 131 achou o mesmo
+  defeito num segundo lugar:** a tela de marcar compromisso dizia *"(fora da
+  escala deste horário)"* em todo nome, para sempre, porque lia a escala semanal
+  que nenhuma casa nunca preencheu. Agora o aviso distingue quem está de quem
+  não está.
 - O sistema **sobe compilado num banco virgem**, o backup restaura e o cofre
   abre com a chave certa — e reprova com a errada.
 - O **protótipo** é um arquivo só, abre sem internet, e percorre 132 telas nos

@@ -96,7 +96,13 @@ describe('Agenda — marcar na linha do tempo com data, hora e repetição', () 
      * causa deste teste. Suíte que muta estado compartilhado desfaz o que criou.
      */
     if (escalasCriadas.length) {
-      await admin.query(`DELETE FROM work_schedule WHERE id = ANY($1::uuid[])`, [escalasCriadas]);
+      /* A escala por DATA não se apaga — a tabela recusa DELETE até do dono do
+         banco, e é o teste da imutabilidade que prova isso. Revogar tira a linha
+         do cálculo sem tirá-la do registro (1380). */
+      await admin.query(
+        `UPDATE shift_assignment SET revoked_at = now(), revoked_by = created_by,
+                revoke_reason = 'Escala criada pela suíte da agenda.'
+          WHERE id = ANY($1::uuid[]) AND revoked_at IS NULL`, [escalasCriadas]);
     }
     if (criados.length) {
       await admin.query(
@@ -307,15 +313,25 @@ describe('Agenda — marcar na linha do tempo com data, hora e repetição', () 
   });
 
   /**
-   * Casa SEM escala cadastrada não tem ninguém "fora da escala".
+   * Casa SEM escala LANÇADA não tem ninguém "fora da escala".
    *
    * A tela de marcar mostrava "(fora da escala deste horário)" nos oito nomes
    * da casa — não porque todos estivessem de folga, mas porque não havia
    * escala nenhuma. Aviso que aparece em todo nome deixa de ser aviso, e
    * ensina a equipe a ignorá-lo justamente antes do dia em que ele acerta.
+   *
+   * **A escala olhada é a `shift_assignment`, desde a 1380.** Até ali a função
+   * lia a `work_schedule` — a escala SEMANAL, do desenho anterior à escala por
+   * data —, e **nenhuma casa nunca a preencheu**: a resposta era "esta casa não
+   * registrou a escala" em toda casa e em todo horário, para sempre, enquanto a
+   * coordenação lançava escala por data desde a 0950. Este teste passava, e
+   * passava por um motivo que não era o dele.
    */
-  it('sem escala cadastrada, ninguém é marcado como fora dela', async () => {
-    await admin.query(`DELETE FROM work_schedule WHERE house_id = $1`, [AI3]);
+  it('sem escala LANÇADA, ninguém é marcado como fora dela', async () => {
+    await admin.query(
+      `UPDATE shift_assignment SET revoked_at = now(), revoked_by = created_by,
+              revoke_reason = 'Limpeza da suíte da agenda.'
+        WHERE house_id = $1 AND revoked_at IS NULL`, [AI3]);
 
     const equipe = await request(http)
       .get(`/api/v1/activities/agenda/staff?houseId=${AI3}&data=${hoje}&hora=03:00`)
@@ -337,27 +353,44 @@ describe('Agenda — marcar na linha do tempo com data, hora e repetição', () 
   });
 
   it('nomear quem está fora da escala avisa, mas não impede', async () => {
-    // Com escala DE VERDADE cadastrada, o aviso volta a significar algo. Sem
-    // este cadastro o teste passava sem provar nada: saía pelo `return` na
-    // primeira linha, num ambiente onde ninguém estava em escala alguma.
+    // Com escala DE VERDADE lançada, o aviso volta a significar algo. Sem este
+    // lançamento o teste passava sem provar nada, num ambiente onde ninguém
+    // estava em escala alguma.
     const { rows: [outro] } = await admin.query(
       `SELECT u.id FROM app_user u
          JOIN user_house_assignment a ON a.user_id = u.id AND a.house_id = $1
         WHERE u.role = 'educador' AND u.active LIMIT 1`, [AI3]);
-    // `app_hoje()`, não `current_date`: o dia da semana da escala tem de ser o
-    // de Porto Alegre. Com o servidor em UTC, depois das 21h a escala nascia
-    // para o dia seguinte e a consulta de hoje não a encontrava.
+    /*
+     * A ESCALA É POR DATA (1380), e `app_hoje()` e não `current_date`: com o
+     * servidor em UTC, depois das 21h em Porto Alegre a escala nascia para o dia
+     * seguinte e a consulta de hoje não a encontrava.
+     */
     const { rows: [escala] } = await admin.query(
-      `INSERT INTO work_schedule (user_id, house_id, weekday, start_time, end_time, valid_from)
-       VALUES ($1, $2, extract(dow from app_hoje())::smallint, '07:00', '19:00', app_hoje())
+      `INSERT INTO shift_assignment
+         (house_id, user_id, on_date, period, start_time, end_time, created_by)
+       VALUES ($2, $1, app_hoje(), 'diurno', '07:00', '19:00', $1)
        RETURNING id`,
       [outro.id, AI3]);
     escalasCriadas.push(escala.id);
+
+    /*
+     * ÀS 15H ELE ESTÁ NA ESCALA — e é esta ponta que prova que o sinal significa
+     * algo. Só cobrar o "fora dela" passaria com uma função que respondesse
+     * `na_escala = false` para todo mundo, que é exatamente o que a versão
+     * anterior fazia.
+     */
+    const noHorario = await request(http)
+      .get(`/api/v1/activities/agenda/staff?houseId=${AI3}&data=${hoje}&hora=15:00`)
+      .set(auth(tokens.coord));
+    expect(noHorario.body.haEscala).toBe(true);
+    expect(noHorario.body.equipe.find((e: any) => e.id === outro.id)?.naEscala).toBe(true);
 
     const equipe = await request(http)
       .get(`/api/v1/activities/agenda/staff?houseId=${AI3}&data=${hoje}&hora=03:00`)
       .set(auth(tokens.coord));
     expect(equipe.body.haEscala).toBe(true);
+    /* Às 3h da manhã, o escalado do DIURNO está fora do horário dele. */
+    expect(equipe.body.equipe.find((e: any) => e.id === outro.id)?.naEscala).toBe(false);
     const foraDaEscala = equipe.body.equipe.find((e: any) => !e.naEscala && e.cargo === 'educador');
     expect(foraDaEscala).toBeTruthy();
 

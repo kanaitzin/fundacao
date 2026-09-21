@@ -1657,6 +1657,59 @@ if ((await aba('ATA')) || (await doMais('ATA'))) {
 }
 cobrar('nenhuma exceção nas telas da escala não lançada', erros.length === 0, erros[0]);
 
+
+/*
+ * ============ O COMPROMISSO OLHA A ESCALA LANÇADA (fase 131) ============
+ *
+ * `app_staff_for_commitment` lia a `work_schedule`, a escala SEMANAL do desenho
+ * anterior à escala por data — e **nenhuma casa nunca a preencheu**. A tela
+ * dizia *"(fora da escala deste horário)"* em TODO nome, para sempre; era a
+ * mesma dedução que a fase 129 tirou da passagem, num lugar que ela não
+ * alcançou.
+ *
+ * A cobrança que vale é a que prova que o sinal **DISTINGUE**: alguns nomes com
+ * o aviso e outros sem. Só cobrar "há aviso" passaria com a função velha, que
+ * o punha em todos — e foi assim que o defeito viveu da 0610 até aqui.
+ */
+console.log('\n📆 O compromisso olha a escala lançada (fase 131)');
+await trocar('equipe_tecnica');
+erros.length = 0;
+
+if (!((await aba('Agenda')) || (await doMais('Agenda')))) {
+  cobrar('a Agenda tem porta para a equipe técnica', false, 'não achei a aba nem o Mais');
+} else {
+  const marcar = pg.locator('main.conteudo button').filter({ hasText: /Marcar compromisso/i });
+  if (!(await marcar.count())) {
+    cobrar('a Agenda tem o botão de marcar compromisso', false, (await conteudo()).slice(0, 200));
+  } else {
+    await marcar.first().click();
+    await pg.waitForTimeout(1200);
+    /* A lista de pessoas só aparece ao escolher "um educador com nome". */
+    const comNome = pg.locator('button, label').filter({ hasText: /educador com nome/i });
+    if (await comNome.count()) { await comNome.first().click(); await pg.waitForTimeout(1200); }
+
+    const folha = await corpo();
+    const comAviso = (folha.match(/\(fora da escala deste horário\)/g) ?? []).length;
+    /* Os nomes da lista: as linhas do select de responsável. */
+    const nomes = (await pg.locator('select option').allInnerTexts())
+      .filter((t) => /\(fict/i.test(t));
+
+    cobrar('a lista de responsáveis traz nomes', nomes.length > 1,
+      `veio ${JSON.stringify(nomes)}`);
+    cobrar('alguém aparece FORA da escala do horário', comAviso > 0,
+      'sem isto o sinal não avisa nada');
+    cobrar('e alguém aparece DENTRO dela — o sinal distingue pessoas',
+      comAviso < nomes.length,
+      'o aviso em TODO nome é o defeito que viveu da 0610 até a 131: a função lia a '
+      + 'work_schedule, que nenhuma casa preencheu, e respondia o mesmo para todos');
+    await fechar();
+  }
+}
+cobrar('nenhuma exceção na tela de marcar compromisso', erros.length === 0, erros[0]);
+
+/* Devolve o cargo: o percurso é sequencial. */
+await trocar('equipe_tecnica');
+
 /* Devolve o cargo, outra vez: o percurso é sequencial. */
 await trocar('equipe_tecnica');
 

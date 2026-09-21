@@ -103,18 +103,33 @@ export class AgendaService {
    * nomear quem está de folga — escala muda, e troca de plantão existe.
    */
   async equipeDisponivel(user: AuthenticatedUser, houseId: string, data: string, hora: string) {
-    const diaSemana = new Date(`${data}T12:00:00Z`).getUTCDay();
     const rows = await this.db.asUser(user.id, async (c) => {
+      /*
+       * A DATA VAI INTEIRA (1380).
+       *
+       * Havia aqui um `new Date(...).getUTCDay()`: a data era convertida em dia
+       * da SEMANA só para poder perguntar à `work_schedule`, a escala semanal do
+       * desenho anterior à escala por data. Nenhuma casa nunca preencheu a
+       * `work_schedule`, então a resposta era sempre "esta casa não registrou a
+       * escala" — em toda casa, em todo horário, para sempre.
+       *
+       * Agora a pergunta é feita à `shift_assignment`, que é a escala que a
+       * coordenação lança de verdade, e a conversão deixou de existir. *De
+       * passagem, ela também calculava o dia da semana em UTC a partir de um
+       * meio-dia fixo — o truque do `T12:00:00Z` era o que a segurava de errar o
+       * dia, e truque que segura defeito é defeito esperando mudar de lugar.*
+       */
       const { rows } = await c.query(
-        `SELECT * FROM app_staff_for_commitment($1,$2::smallint,$3::time)`,
-        [houseId, diaSemana, hora]);
+        `SELECT * FROM app_staff_for_commitment($1,$2::date,$3::time)`,
+        [houseId, data, hora]);
       return rows;
     });
     return {
-      // `haEscala` false significa que a CASA não tem escala cadastrada para
-      // aquele dia — e não que todo mundo está de folga. Sem essa distinção, a
-      // tela marcava "fora da escala" nos oito nomes, e um aviso que aparece
-      // sempre deixa de ser aviso (migração 0610).
+      // `haEscala` false significa que a escala DAQUELE DIA não foi lançada — e
+      // não que todo mundo está de folga. Sem essa distinção, a tela marcava
+      // "fora da escala" nos oito nomes, e um aviso que aparece sempre deixa de
+      // ser aviso (0610). Desde a 1380 a resposta é verdadeira: num compromisso
+      // marcado para o mês que vem, "não foi lançada" é o que se espera ler.
       haEscala: rows.length > 0 ? !!rows[0].ha_escala : false,
       equipe: rows.map((r) => ({
         id: r.user_id, nome: r.nome, cargo: r.cargo, naEscala: r.na_escala,

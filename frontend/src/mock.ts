@@ -7331,16 +7331,41 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     };
   }
   if (rota === '/activities/agenda/staff') {
-    // O protótipo tem escala cadastrada: das 7h às 19h, de segunda a sexta.
+    /*
+     * A ESCALA LANÇADA DAQUELE DIA (1380) — e não uma regra de dia da semana.
+     *
+     * Havia aqui "das 7h às 19h, de segunda a sexta", uma escala inventada pelo
+     * servidor de mentira. No servidor de verdade a pergunta era feita à
+     * `work_schedule`, que nenhuma casa nunca preencheu — então o mock mostrava
+     * uma escala que o servidor nunca teria, e a demonstração escondia o defeito
+     * em vez de mostrá-lo. É a regra 14 nos dois sentidos de uma vez.
+     *
+     * Agora os dois olham a escala POR DATA, e o protótipo passa a mostrar os
+     * DOIS BURACOS que a `ESCALA` tem de propósito — a noite de depois de amanhã
+     * e o dia do sábado seguinte. É justamente a coisa que o Marcelo pediu para
+     * ver: o turno sem gente, antes de virar noite sem educador.
+     */
     const hora = Number((q.get('hora') ?? '12:00').slice(0, 2));
-    const diaSemana = new Date(`${q.get('data')}T12:00:00`).getDay();
-    const haEscala = diaSemana >= 1 && diaSemana <= 5;
+    const data = String(q.get('data') ?? HOJE);
+    const doDia = ESCALA.filter((e) => e.data === data && !e.revogadaEm);
+    const haEscala = doDia.length > 0;
+    /* A janela: o que a escala gravou, ou a do turno — diurno 7h–19h, noturno
+       19h–7h. A mesma conta que a 1380 faz no banco. */
+    const noHorario = (e: EscalaMock) => {
+      if (e.inicio && e.fim) {
+        const i = Number(e.inicio.slice(0, 2)); const f = Number(e.fim.slice(0, 2));
+        return f > i ? hora >= i && hora < f : hora >= i || hora < f;
+      }
+      return e.turno === 'noturno' ? hora >= 19 || hora < 7 : hora >= 7 && hora < 19;
+    };
     return {
       haEscala,
       equipe: EQUIPE_CASA.map((m) => ({
         id: m.id, nome: m.nome, cargo: m.cargo,
-        naEscala: haEscala && hora >= 7 && hora < 19,
-      })),
+        naEscala: doDia.some((e) => e.userId === m.id && noHorario(e)),
+      }))
+        /* Quem está na escala do horário primeiro, como o servidor ordena. */
+        .sort((a, b2) => Number(b2.naEscala) - Number(a.naEscala) || a.nome.localeCompare(b2.nome)),
     };
   }
   if (rota === '/activities/agenda/commitments') {

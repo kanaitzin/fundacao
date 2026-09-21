@@ -158,7 +158,17 @@ piloto.** O que há pela frente, em ordem de quem já pode ser feito:
    ninguém é nomeado; a tela diz em vermelho que ninguém a lançou; e a ATA sem
    escala E sem nenhuma passagem fecha COM pendência, que é o buraco que a
    decisão abria.
-3. **As cinco pontas dormentes** do §9 item 5 — três são retirada, duas são tela
-   pequena.
+3. **As pontas dormentes** do §9 item 5. A `work_schedule` foi medida e morreu de
+   verdade nas fases 129 e 131 — e há teste que cobra a afirmação pelo catálogo.
+   Sobram QUATRO, e as quatro foram medidas: `health_evolution.companion_name`,
+   `medication_administration.prn_reason` e `prn_outcome`,
+   `handover_receipt.opened_handover` e `medication_authorization`. Cada uma
+   aparece num arquivo só — a migração que a criou.
+
+   **A lição das 129 e 131, que vale para elas:** eu disse duas vezes que a
+   `work_schedule` estava morta antes de estar, porque procurei os leitores nas
+   migrações do módulo em que estava mexendo. **Ponta dormente se mede pelo
+   catálogo, nunca por leitura de migração** — `CREATE OR REPLACE` espalha a
+   verdade por vários arquivos.
 4. **Aplicar o roteiro com a equipe.** Continua sendo o que mais muda o sistema,
    e o único que não se faz daqui.

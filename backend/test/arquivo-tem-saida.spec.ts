@@ -360,4 +360,52 @@ describe('As funções privilegiadas dizem onde procurar', () => {
         WHERE p.prosecdef`);
     expect(n).toBeGreaterThan(100);
   });
+
+  /**
+   * TABELA QUE O DOCUMENTO CHAMA DE MORTA NÃO TEM LEITOR — E QUEM DIZ É O
+   * CATÁLOGO (fase 131).
+   *
+   * Este teste existe porque eu errei a mesma conta DUAS vezes seguidas.
+   *
+   * O §9 dizia, desde a varredura de 15/09, que a `work_schedule` tinha "zero
+   * leitura e zero escrita desde a fundação". Era falso: ela tinha DOIS
+   * leitores. Na fase 129 eu achei um deles, tirei-o, e escrevi na tabela um
+   * `COMMENT` dizendo "MORTA desde a 1370" — errando a segunda metade, porque
+   * procurei os leitores só nas migrações do módulo em que estava mexendo, e o
+   * outro leitor morava noutro módulo.
+   *
+   * **Um comentário errado no banco é pior do que comentário nenhum:** quem
+   * abrir a tabela amanhã acredita nele. Ler migração por migração não serve —
+   * `CREATE OR REPLACE` espalha a verdade por vários arquivos, e a única cópia
+   * que vale é a que está no catálogo. Então a pergunta passa a ser feita ao
+   * `pg_get_functiondef`, que é o que o banco realmente executa.
+   *
+   * A lista é de tabelas que um `COMMENT` declara MORTAS. Cada linha aqui é uma
+   * afirmação do documento que passou a ser conferível.
+   */
+  it('nenhuma função do banco lê tabela declarada MORTA', async () => {
+    const { rows: mortas } = await c.query(
+      `SELECT c.relname AS tabela
+         FROM pg_class c
+         JOIN pg_namespace n ON n.oid = c.relnamespace AND n.nspname = 'public'
+        WHERE c.relkind = 'r'
+          AND obj_description(c.oid, 'pg_class') LIKE 'MORTA %'
+        ORDER BY 1`);
+    /* Se nenhuma tabela estiver declarada morta, o teste não olhou nada — e
+       hoje há uma, a `work_schedule`. */
+    expect(mortas.length).toBeGreaterThan(0);
+
+    const achados: string[] = [];
+    for (const { tabela } of mortas) {
+      const { rows } = await c.query(
+        `SELECT p.oid::regprocedure::text AS funcao
+           FROM pg_proc p
+           JOIN pg_namespace ns ON ns.oid = p.pronamespace AND ns.nspname = 'public'
+          WHERE p.prokind = 'f'
+            AND pg_get_functiondef(p.oid) ~ ('\\m' || $1 || '\\M')
+          ORDER BY 1`, [tabela]);
+      for (const r of rows) achados.push(`${tabela} é lida por ${r.funcao}`);
+    }
+    expect(achados).toEqual([]);
+  });
 });
