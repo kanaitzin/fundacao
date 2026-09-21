@@ -172,9 +172,10 @@ export class MetricasService {
           ? `${soma((c) => c.notasSemValor)} nota(s) fiscal(is) sem valor lançado — o total `
             + 'gasto é MAIOR do que o número acima. Lançar o valor é o que fecha a conta.'
           : null,
-        'Não existe campo de nota escolar no sistema. Onde você esperaria "boas notas", '
-        + 'o painel mostra apoio educacional registrado e evoluções escritas — duas coisas '
-        + 'verdadeiras, em vez de uma estimada.',
+        'Não existe nota escolar neste sistema, e não vai existir: o que existe desde a fase '
+        + '137 é o CONCEITO por bimestre, com o porquê escrito ao lado, no perfil de cada '
+        + 'criança. Este painel ainda não o conta — contá-lo é a próxima fase, e está no §9. '
+        + 'Por enquanto ele mostra apoio educacional registrado e evoluções escritas.',
         'As casas saem na ordem do código, nunca por resultado: ordenar por número é a '
         + 'classificação pronta, e ela precisa ser decisão de quem lê.',
       ].filter(Boolean) as string[],

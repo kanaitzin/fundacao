@@ -3582,6 +3582,13 @@ interface ApoioEducacional {
 interface EvolucaoEducacional {
   id: string; em: string; texto: string; por: string | null; escritoEm: string;
 }
+/** O conceito do bimestre (fase 137). Substituído NÃO é apagado: fica em cinza. */
+interface ConceitoEducacional {
+  id: string; ano: number; bimestre: number;
+  conceito: string; rotulo: string; motivo: string;
+  por: string | null; escritoEm: string;
+  substituido: boolean; corrigeUmAnterior: boolean;
+}
 
 const ESCREVEM_EDUCACAO = ['educador', 'lider_diurno', 'equipe_tecnica', 'coordenador', 'gestor_geral'];
 
@@ -3589,11 +3596,24 @@ function Educacao({ personId, houseId, papel }: {
   personId: string; houseId: string; papel: string;
 }) {
   const [dados, setDados] = useState<{ apoio: ApoioEducacional | null;
-                                       evolucoes: EvolucaoEducacional[] } | null>(null);
+                                       evolucoes: EvolucaoEducacional[];
+                                       conceitos: ConceitoEducacional[] } | null>(null);
   const [erro, setErro] = useState('');
   const [editando, setEditando] = useState(false);
   const [escrevendo, setEscrevendo] = useState(false);
+  /* O conceito do bimestre (fase 137). */
+  const [conceituando, setConceituando] = useState(false);
+  const [avisoConceito, setAvisoConceito] = useState('');
   const pode = ESCREVEM_EDUCACAO.includes(papel);
+  /*
+   * QUEM DIGITA O CONCEITO é a equipe técnica, a coordenação e o Líder Diurno —
+   * decisão da Fundação em 21/09/2026, e NÃO é o mesmo conjunto de quem escreve
+   * a evolução: o educador de plantão escreve a evolução, porque é ele quem
+   * senta ao lado na lição de casa; o conceito do bimestre é leitura do
+   * acompanhamento, e é dos três. O servidor recusa igual — isto aqui só evita
+   * oferecer um botão que ele vai recusar (fase 112).
+   */
+  const podeConceito = ['equipe_tecnica', 'coordenador', 'lider_diurno'].includes(papel);
 
   /*
    * A LISTA VEM DO SERVIDOR (fase 130) — a tela não inventa a sua lista (§12.2).
@@ -3611,6 +3631,8 @@ function Educacao({ personId, houseId, papel }: {
   const [vocabulario, setVocabulario] = useState<{
     servicos: { cod: string; label: string }[];
     modos: { cod: string; label: string }[];
+    conceitos: { cod: string; label: string }[];
+    bimestres: { cod: number; label: string }[];
     aviso?: string;
   } | null>(null);
 
@@ -3718,6 +3740,67 @@ function Educacao({ personId, houseId, papel }: {
             </button>
           )}
         </>
+      )}
+
+      {/*
+        * O CONCEITO DO BIMESTRE (fase 137).
+        *
+        * Fica DEPOIS da evolução, e não antes: a evolução é o que se escreve
+        * durante o bimestre, e o conceito é a leitura dele — ler antes do que se
+        * escreveu inverteria a ordem do trabalho. E cada conceito aparece **com
+        * o motivo ao lado**, sempre: um conceito sozinho numa lista é a nota
+        * colada no nome da criança que a Fundação recusou.
+        */}
+      {dados && (
+        <>
+          <div className="eyebrow">Conceito por bimestre</div>
+          {avisoConceito && <div className="notice c-ok" role="status">{avisoConceito}</div>}
+          {dados.conceitos.length === 0 && (
+            <p className="mutetxt">
+              Nenhum conceito registrado. <b>Ele fala do acompanhamento no bimestre</b> — não é
+              nota, e o porquê é obrigatório.
+            </p>
+          )}
+          <div className="stack">
+            {dados.conceitos.map((k) => (
+              <div className="card" key={k.id} style={k.substituido ? { opacity: 0.65 } : undefined}>
+                <div className="row">
+                  <span className={`pill ${k.conceito === 'nao_acompanha' ? 'c-warn' : 'c-info'}`}>
+                    {k.ano} · {k.bimestre}º bimestre
+                  </span>
+                  <b className="ff grow">{k.rotulo}</b>
+                </div>
+                <div>{k.motivo}</div>
+                <div className="mutetxt">
+                  {k.por ?? '—'}
+                  {k.corrigeUmAnterior ? ' · corrige um registro anterior' : ''}
+                  {k.substituido ? ' · substituído por um registro posterior' : ''}
+                </div>
+              </div>
+            ))}
+          </div>
+          {podeConceito && (
+            <button className="btn sec block" style={{ marginBottom: 12 }}
+                    onClick={() => { setAvisoConceito(''); setConceituando(true); }}>
+              Registrar o conceito de um bimestre
+            </button>
+          )}
+        </>
+      )}
+
+      {conceituando && (
+        <FolhaConceito
+          conceitos={vocabulario?.conceitos ?? []}
+          bimestres={vocabulario?.bimestres ?? []}
+          onFechar={() => setConceituando(false)}
+          onSalvar={async (corpo) => {
+            const r = await api<{ aviso?: string }>(
+              `/nursing/education/${personId}/concepts`,
+              { method: 'POST', body: JSON.stringify(corpo) });
+            setConceituando(false);
+            if (r?.aviso) setAvisoConceito(r.aviso);
+            await carregar();
+          }} />
       )}
 
       {editando && (
@@ -4002,5 +4085,119 @@ function AuditoriaDoAcolhido({ personId, papel }: { personId: string; papel: str
         </>
       )}
     </>
+  );
+}
+
+/**
+ * A FOLHA DO CONCEITO DO BIMESTRE (fase 137).
+ *
+ * Três campos e nada mais: o período, o conceito e o porquê. **O porquê é
+ * obrigatório**, e a folha diz por quê em vez de só barrar o botão — um conceito
+ * sozinho atravessa meses e vira característica da criança, que é exatamente o
+ * que a Fundação recusou ao dizer *"não boletim com notas por disciplina"*.
+ *
+ * A lista de conceitos vem do SERVIDOR (§12.2). Se ela não chegar, a folha diz
+ * isso em vez de oferecer uma lista escrita à mão que pode já estar diferente —
+ * é a lição da fase 130.
+ */
+function FolhaConceito({ conceitos, bimestres, onFechar, onSalvar }: {
+  conceitos: { cod: string; label: string }[];
+  bimestres: { cod: number; label: string }[];
+  onFechar: () => void;
+  onSalvar: (c: Record<string, unknown>) => Promise<void>;
+}) {
+  const hoje = new Date();
+  const [ano, setAno] = useState(hoje.getFullYear());
+  /* Abre no bimestre CORRENTE, que é o que quase sempre se digita; quem for
+     lançar o retorno atrasado da escola troca num toque. */
+  const [bimestre, setBimestre] = useState(
+    Math.min(4, Math.max(1, Math.ceil((hoje.getMonth() + 1) / 3))));
+  const [conceito, setConceito] = useState('');
+  const [motivo, setMotivo] = useState('');
+  const [erro, setErro] = useState('');
+  const [salvando, setSalvando] = useState(false);
+  const pode = conceito !== '' && motivo.trim().length >= 10 && !salvando;
+
+  if (!conceitos.length) {
+    return (
+      <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-cnc"
+           onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+        <div className="sheet">
+          <h3 id="t-cnc">Conceito do bimestre</h3>
+          <div className="notice c-warn">
+            A lista de conceitos não chegou do servidor. Tente de novo em instantes — a tela não
+            inventa a própria lista, porque ela pode já estar diferente da do sistema.
+          </div>
+          <button type="button" className="btn sec block" onClick={onFechar}>Fechar</button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-cnc"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet modal">
+        <h3 id="t-cnc">Conceito do bimestre</h3>
+        <div className="notice c-info">
+          Ele fala do <b>acompanhamento neste bimestre</b>, e não da criança. Registrar de novo o
+          mesmo bimestre corrige — e o anterior continua legível, com o nome de quem o escreveu.
+        </div>
+        {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+
+        <label className="f" htmlFor="cnc-ano">Ano</label>
+        <input id="cnc-ano" type="number" value={ano}
+               onChange={(e) => setAno(Number(e.target.value))} />
+
+        <label className="f">Bimestre</label>
+        <div className="opts">
+          {bimestres.map((b) => (
+            <button type="button" key={b.cod} className="opt c-med"
+                    aria-pressed={bimestre === b.cod} onClick={() => setBimestre(b.cod)}>
+              {b.label}
+            </button>
+          ))}
+        </div>
+
+        <label className="f">Como foi o acompanhamento</label>
+        <div className="opts">
+          {conceitos.map((c) => (
+            <button type="button" key={c.cod} className="opt c-med"
+                    aria-pressed={conceito === c.cod} onClick={() => setConceito(c.cod)}>
+              {c.label}
+            </button>
+          ))}
+        </div>
+
+        <label className="f" htmlFor="cnc-mot">
+          Por quê <small>— obrigatório, e é o que impede o conceito de virar rótulo</small>
+        </label>
+        <textarea id="cnc-mot" value={motivo} onChange={(e) => setMotivo(e.target.value)}
+                  placeholder="Ex.: entregou os trabalhos do bimestre; a professora relatou melhora em leitura depois do reforço às terças." />
+
+        <div className="row rodape">
+          <button type="button" className="btn sec grow" onClick={onFechar}>Cancelar</button>
+          <button type="button" className="btn grow" disabled={!pode}
+                  onClick={async () => {
+                    setSalvando(true); setErro('');
+                    try {
+                      await onSalvar({ ano, bimestre, conceito, motivo: motivo.trim() });
+                    } catch (e) {
+                      setErro(e instanceof Error ? e.message : 'Não foi possível registrar.');
+                    } finally {
+                      setSalvando(false);
+                    }
+                  }}>
+            {salvando ? 'Registrando…' : 'Registrar com o meu nome'}
+          </button>
+        </div>
+        {!pode && !salvando && (
+          <p className="mutetxt" style={{ marginBottom: 0 }}>
+            Escolha o conceito e escreva o porquê. Sem o porquê, o conceito atravessa meses e
+            passa a ser lido como característica da criança.
+          </p>
+        )}
+      </div>
+    </div>
   );
 }

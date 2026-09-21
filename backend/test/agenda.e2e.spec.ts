@@ -356,10 +356,28 @@ describe('Agenda — marcar na linha do tempo com data, hora e repetição', () 
     // Com escala DE VERDADE lançada, o aviso volta a significar algo. Sem este
     // lançamento o teste passava sem provar nada, num ambiente onde ninguém
     // estava em escala alguma.
+    /*
+     * O VÍNCULO TEM DE ESTAR VIGENTE, e é o mesmo predicado da função (1380):
+     * `valid_from <= now()` e `valid_to` nulo ou no futuro.
+     *
+     * **Sem isto o teste era frágil, e ficou provado.** Ele escolhia o primeiro
+     * educador com QUALQUER linha de vínculo, enquanto a função só lista quem tem
+     * vínculo VIGENTE — então, quando outra suíte encerrava um vínculo (a
+     * transferência encerra), este teste escalava alguém que a função não devolve,
+     * e o `find` voltava `undefined`. Passava sozinho e reprovava na suíte
+     * inteira; a fase 137 mudou a ordem das suítes e o defeito apareceu. É a
+     * lição da fase 126: escolher fixture por consulta mais frouxa que a do
+     * sistema é depender da ordem de execução.
+     */
     const { rows: [outro] } = await admin.query(
       `SELECT u.id FROM app_user u
          JOIN user_house_assignment a ON a.user_id = u.id AND a.house_id = $1
-        WHERE u.role = 'educador' AND u.active LIMIT 1`, [AI3]);
+                AND a.valid_from <= now() AND (a.valid_to IS NULL OR a.valid_to > now())
+        WHERE u.role = 'educador' AND u.active
+        ORDER BY u.full_name LIMIT 1`, [AI3]);
+    /* E se não houver nenhum, o teste diz isso em vez de reprovar numa
+       comparação que não explica nada. */
+    expect(outro?.id).toBeDefined();
     /*
      * A ESCALA É POR DATA (1380), e `app_hoje()` e não `current_date`: com o
      * servidor em UTC, depois das 21h em Porto Alegre a escala nascia para o dia

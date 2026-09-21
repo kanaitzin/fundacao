@@ -696,6 +696,25 @@ desenvolvimento** (fase 15): a criança não é só o que deu problema. Sala de
 recursos, curso, aprendizagem e a evolução escrita pela equipe entram no
 documento que segue para a audiência e para a escola.
 
+### `education_concept`
+**O conceito educacional do bimestre** (migração 1430, fase 137), da resposta da
+Fundação em 20/09/2026 — *"um conceito geral por período, por bimestre, com
+espaço para o porquê"* — e da de 21/09, que disse quem digita: **equipe técnica,
+coordenação e Líder Diurno**.
+
+| coluna | o que é |
+|---|---|
+| `ano`, `bimestre` | o período, **escrito** e não deduzido da data: o conceito do 3º bimestre pode ser digitado em novembro, quando a escola entregou o retorno atrasado |
+| `conceito` | três estados — `acompanha`, `acompanha_com_apoio`, `nao_acompanha`. **Não é nota**: é estado do acompanhamento, e só o terceiro pede providência |
+| `motivo` | obrigatório, dez caracteres no mínimo. Conceito sem o porquê atravessa meses e vira característica da pessoa — é o argumento que recusou a pontuação de comportamento |
+| `substitui_id`, `substituido_em` | corrigir **não altera a linha**: insere outra, apontando para a anterior, que continua legível com o nome de quem a escreveu |
+
+Índice único **parcial** em (`person_id`, `ano`, `bimestre`) onde
+`substituido_em IS NULL`: um conceito vigente por criança e período, e as
+versões substituídas continuam na tabela — são elas que provam que houve
+correção. Lê quem alcança a criança, **o educador de plantão inclusive**: é ele
+quem senta ao lado na lição de casa.
+
 ### `statement_request`
 A cobrança de relato aberta quando uma ocorrência grave nasce. Guarda
 entity/entity_id genéricos como o próprio relato — é isso que permite remover
@@ -793,7 +812,7 @@ formas diferentes, e "fez festa" como campo é o primeiro passo para alguém
 cobrar o número depois. O que se registra depois, se a casa quiser, é a memória
 no álbum, que é da criança.
 
-## Inventário — 112 tabelas por partição
+## Inventário — 113 tabelas por partição
 
 | Partição | Tabelas |
 |---|---|
@@ -803,7 +822,7 @@ no álbum, que é da criança.
 | incidents (7) | incident, incident_person, incident_protected, incident_restraint, incident_synthesis, external_communication, incident_attachment |
 | medications (12) | prescription, medication_schedule, medication_administration, medication_stock, medication_stock_movement, medication_protocol, medication_authorization, medication_protocol_change, prescription_restriction_change, medication_purchase, prescription_document, family_stay_medication |
 | activities (7) | activity, activity_assignment, activity_acknowledgement, activity_execution, substitution_request, commitment, commitment_exception |
-| nursing (10) | health_encounter, health_evolution, nursing_triage, health_summary_issue, education_support, education_evolution, hospitalization, hospitalization_note, hospitalization_medication, hospitalization_companion |
+| nursing (11) | health_encounter, health_evolution, nursing_triage, health_summary_issue, education_support, education_evolution, education_concept, hospitalization, hospitalization_note, hospitalization_medication, hospitalization_companion |
 | reports (6) | followup, followup_source, report_document, report_delivery, export_log, life_milestone |
 | checks (4) | collective_check, check_result, check_result_amendment, check_bulk |
 | notifications (3) | notification, escalation, escalation_level |

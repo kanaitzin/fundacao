@@ -212,6 +212,7 @@ export const VOCABULARIO_DA_AUDITORIA: Record<string, string> = {
   'report.kitchen': 'Folha de restrições alimentares gerada para a cozinha',
   'education.support': 'Apoio educacional registrado',
   'education.evolution': 'Evolução educacional escrita',
+  'education.concept': 'Conceito educacional do bimestre registrado',
 
   // -------------------------------------------------------------------- Cozinha
   'kitchen.request': 'Pedido à cozinha registrado',

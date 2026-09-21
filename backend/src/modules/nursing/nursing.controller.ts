@@ -46,6 +46,19 @@ export class NursingController {
     return this.educacao.salvarApoio(user, personId, body?.houseId, body ?? {});
   }
 
+  /**
+   * O conceito do bimestre (1430) — a decisão de 20 e 21/09.
+   *
+   * `concepts` e não `concept`: corrigir cria uma versão nova, então o verbo é
+   * sempre acrescentar. Não existe `PUT` aqui, e é de propósito.
+   */
+  @Post('education/:personId/concepts')
+  registrarConceito(@CurrentUser() user: AuthenticatedUser,
+                    @Param('personId', ParseUUIDPipe) personId: string,
+                    @Body() body: any) {
+    return this.educacao.registrarConceito(user, personId, body ?? {});
+  }
+
   @Post('education/:personId/evolutions')
   registrarEvolucaoEducacional(@CurrentUser() user: AuthenticatedUser,
                                @Param('personId', ParseUUIDPipe) personId: string,

@@ -331,6 +331,54 @@ cobrar('há por onde escrever uma evolução — inclusive para o educador',
   'o único INSERT do repositório estava dentro de um teste');
 
 /*
+ * O CONCEITO DO BIMESTRE (fase 137) — decisão de 20 e 21/09.
+ *
+ * Este bloco roda como EQUIPE TÉCNICA, que é um dos três cargos que digitam. O
+ * que ele cobra, além de a tela existir: que o conceito **nunca apareça sozinho**
+ * (o motivo vem ao lado, sempre), e que a versão corrigida continue legível — as
+ * duas coisas são o que separa "conceito do bimestre" de "nota colada no nome da
+ * criança".
+ */
+cobrar('o perfil traz o conceito por bimestre',
+  /Conceito por bimestre/i.test(perfil), perfil.slice(0, 300));
+cobrar('e cada conceito vem COM o motivo ao lado',
+  /ficou para trás em matemática|entregou os trabalhos/i.test(perfil),
+  'conceito sozinho numa lista é a nota colada no nome da criança');
+cobrar('a versão corrigida continua legível, dizendo que foi substituída',
+  /substituído por um registro posterior/i.test(perfil)
+    && /corrige um registro anterior/i.test(perfil),
+  'nada se sobrescreve — e quem lê precisa ver que houve correção');
+cobrar('há por onde registrar o conceito de um bimestre',
+  await clicar(/Registrar o conceito de um bimestre/));
+const folhaCnc = await corpo();
+cobrar('a folha diz que o conceito fala do acompanhamento, e não da criança',
+  /acompanhamento neste bimestre/i.test(folhaCnc), folhaCnc.slice(0, 300));
+cobrar('a folha oferece os três conceitos que o servidor manda',
+  /Está acompanhando o ano/i.test(folhaCnc)
+    && /Acompanha, com apoio em curso/i.test(folhaCnc)
+    && /pede providência/i.test(folhaCnc), folhaCnc.slice(0, 400));
+const btCnc = pg.locator('.overlay .sheet button')
+  .filter({ hasText: /Registrar com o meu nome/ }).first();
+cobrar('sem escolher o conceito, não registra',
+  await btCnc.isDisabled().catch(() => false));
+await pg.locator('.overlay .sheet .opt').filter({ hasText: /Está acompanhando o ano/ })
+  .first().click();
+await pg.waitForTimeout(250);
+cobrar('e com o conceito escolhido e SEM o porquê, ainda não registra',
+  await btCnc.isDisabled().catch(() => false),
+  'o porquê é o que impede o conceito de atravessar meses como rótulo');
+await pg.locator('#cnc-mot').fill(
+  'A escola devolveu o retorno do bimestre: entregou os trabalhos e melhorou em leitura.');
+await pg.waitForTimeout(250);
+cobrar('com o porquê escrito, o conceito pode ser registrado',
+  !(await btCnc.isDisabled().catch(() => true)));
+await btCnc.click();
+await pg.waitForTimeout(1300);
+const depoisCnc = await conteudo();
+cobrar('e a tela diz que corrigir não apaga o anterior',
+  /nada se apaga|não da criança/i.test(depoisCnc), depoisCnc.slice(0, 400));
+
+/*
  * A LISTA DE SERVIÇOS VEM DO SERVIDOR (fase 130) — a tela não inventa a sua
  * lista (§12.2).
  *
@@ -1583,9 +1631,16 @@ cobrar('e o painel abre pelo que a INSTITUIÇÃO fez, antes das casas',
 cobrar('o gasto vem com a ressalva colada, e não em nota de rodapé',
   /sem valor lançado/i.test(inicial) && /MAIOR do que este número/i.test(inicial),
   'um total incompleto num relatório de prestação de contas é pior que nenhum');
-cobrar('a tela diz que NÃO existe nota escolar no sistema',
-  /não existe campo de nota escolar/i.test(inicial),
-  'estimar "boas notas" a partir de texto livre seria inventar um número');
+/* A frase mudou na fase 137, e a cobrança mudou com ela: nota continua não
+   existindo, mas o CONCEITO do bimestre passou a existir — e o painel diz que
+   ainda não o conta, em vez de deixar o gestor achar que conta. Estimar "boas
+   notas" a partir de texto livre continua sendo inventar um número. */
+cobrar('a tela diz que não existe NOTA, e que o conceito do bimestre existe',
+  /não existe nota escolar/i.test(inicial) && /conceito por bimestre/i.test(inicial),
+  'depois da fase 137 a frase antiga seria falsa: o conceito existe no perfil');
+cobrar('e é honesta em dizer que o painel ainda não conta o conceito',
+  /ainda não o conta/i.test(inicial),
+  'deixar o gestor supor que conta é pior do que dizer que não');
 cobrar('e diz que a ordem é o código da casa, nunca o resultado',
   /nunca por resultado/i.test(inicial),
   'ordenar por número é a classificação pronta');

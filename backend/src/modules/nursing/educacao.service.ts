@@ -1,4 +1,6 @@
-import { BadRequestException, ForbiddenException, Inject, Injectable } from '@nestjs/common';
+import {
+  BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException,
+} from '@nestjs/common';
 import { DatabaseService } from '../../kernel/database/database.service';
 import { AuditService } from '../../kernel/audit/audit.service';
 import { AuthenticatedUser } from '../../kernel/contracts';
@@ -38,6 +40,28 @@ export const SERVICOS_EDUCACAO = [
 
 const ESCREVEM = ['educador', 'lider_diurno', 'equipe_tecnica', 'coordenador', 'gestor_geral'];
 
+/**
+ * O CONCEITO DO BIMESTRE (1430) — três estados, e o que cada um manda fazer.
+ *
+ * *"Um conceito geral por período, com espaço para o porquê"* (20/09). **Não é
+ * nota**: é estado do acompanhamento, e o motivo escrito ao lado é obrigatório
+ * justamente para que ele não atravesse meses virando característica da pessoa.
+ *
+ * O rótulo fala do ACOMPANHAMENTO e nunca da criança: *"não está acompanhando"*
+ * é uma frase sobre a escola dela neste bimestre; *"aluno fraco"* seria uma
+ * frase sobre ela, e é a fronteira do §7.
+ */
+export const CONCEITOS_EDUCACAO = [
+  { cod: 'acompanha', label: 'Está acompanhando o ano' },
+  { cod: 'acompanha_com_apoio', label: 'Acompanha, com apoio em curso' },
+  { cod: 'nao_acompanha', label: 'Não está acompanhando — pede providência' },
+];
+const ROTULO_CONCEITO: Record<string, string> =
+  Object.fromEntries(CONCEITOS_EDUCACAO.map((c) => [c.cod, c.label]));
+
+/** Quem digita o conceito — decisão da Fundação em 21/09/2026, por extenso. */
+const DIGITAM_CONCEITO = ['equipe_tecnica', 'coordenador', 'lider_diurno'];
+
 @Injectable()
 export class EducacaoService {
   constructor(
@@ -49,6 +73,10 @@ export class EducacaoService {
     return {
       servicos: SERVICOS_EDUCACAO,
       modos: [{ cod: 'presencial', label: 'Presencial' }, { cod: 'online', label: 'Online' }],
+      /* A lista do conceito vem do SERVIDOR, como a dos serviços — §12.2: a tela
+         não inventa a sua lista, e foi por inventar uma que a fase 130 existiu. */
+      conceitos: CONCEITOS_EDUCACAO,
+      bimestres: [1, 2, 3, 4].map((n) => ({ cod: n, label: `${n}º bimestre` })),
       aviso: 'O que ficar em branco aqui sai como "não há" no relatório e na audiência — e num '
         + 'documento judicial, seção vazia se lê como ausência de trabalho.',
     };
@@ -74,7 +102,34 @@ export class EducacaoService {
           ORDER BY on_date DESC, created_at DESC
           LIMIT 60`, [personId]);
 
+      /*
+       * O CONCEITO POR BIMESTRE (1430, decisão de 20 e 21/09).
+       *
+       * Vem junto do apoio e da evolução porque é a mesma pergunta da casa —
+       * *"como está a escola dele?"* —, e fazer três chamadas para responder uma
+       * pergunta é o que faz a tela demorar no meio do turno.
+       *
+       * As versões SUBSTITUÍDAS vêm também, e de propósito: quem lê precisa ver
+       * que houve correção e quem a fez. Esconder a anterior seria sobrescrever
+       * com outro nome.
+       */
+      const { rows: conceitos } = await c.query(
+        `SELECT id, ano, bimestre, conceito, motivo, created_at, substituido_em,
+                substitui_id, app_user_display_name(created_by) AS por
+           FROM education_concept
+          WHERE person_id = $1
+          ORDER BY ano DESC, bimestre DESC, created_at DESC
+          LIMIT 40`, [personId]);
+
       return {
+        conceitos: conceitos.map((k) => ({
+          id: k.id, ano: k.ano, bimestre: k.bimestre,
+          conceito: k.conceito, rotulo: ROTULO_CONCEITO[k.conceito] ?? k.conceito,
+          motivo: k.motivo, por: k.por, escritoEm: k.created_at,
+          /* Substituído não é apagado: a tela mostra em cinza, como histórico. */
+          substituido: k.substituido_em != null,
+          corrigeUmAnterior: k.substitui_id != null,
+        })),
         apoio: apoio ? {
           id: apoio.id,
           salaDeRecursos: apoio.resource_room,
@@ -176,5 +231,84 @@ export class EducacaoService {
     });
     return { id, aviso: 'Evolução registrada com o seu nome e a data. Ela não se edita — '
       + 'correção é um registro novo, como no caderno.' };
+  }
+
+  /**
+   * O CONCEITO DO BIMESTRE (1430).
+   *
+   * Quem digita é a equipe técnica, a coordenação e o Líder Diurno — decisão da
+   * Fundação em 21/09/2026. A conferência de cargo mora no BANCO (a função
+   * recusa), e a daqui existe para a recusa chegar em português à pessoa que
+   * está digitando às 19h; as duas dizem a mesma coisa de propósito.
+   *
+   * Corrigir não altera a linha anterior: insere outra, apontando para ela. As
+   * duas ficam legíveis, com o nome de quem escreveu cada uma.
+   */
+  async registrarConceito(user: AuthenticatedUser, personId: string, input: {
+    ano?: number; bimestre?: number; conceito?: string; motivo?: string;
+  }) {
+    if (!DIGITAM_CONCEITO.includes(user.role)) {
+      throw new ForbiddenException(
+        'Quem escreve o conceito do bimestre é a equipe técnica, a coordenação ou o Líder '
+        + 'Diurno. Quem acompanha a lição de casa registra a evolução educacional, logo acima.');
+    }
+    const conceito = String(input?.conceito ?? '');
+    if (!CONCEITOS_EDUCACAO.some((c) => c.cod === conceito)) {
+      throw new BadRequestException('Escolha um dos conceitos da lista.');
+    }
+    const motivo = String(input?.motivo ?? '').trim();
+    if (motivo.length < 10) {
+      throw new BadRequestException(
+        'Escreva por que o conceito é esse. Um conceito sozinho atravessa meses e vira '
+        + 'característica da criança — o motivo é o que o mantém sendo sobre o bimestre.');
+    }
+    const ano = Number(input?.ano);
+    const bimestre = Number(input?.bimestre);
+    if (!Number.isInteger(ano) || !Number.isInteger(bimestre) || bimestre < 1 || bimestre > 4) {
+      throw new BadRequestException('Informe o ano e o bimestre (1 a 4).');
+    }
+
+    let r: any;
+    try {
+      r = await this.db.asUser(user.id, async (c) => {
+        const { rows: [row] } = await c.query(
+          `SELECT * FROM app_registrar_conceito_educacional($1,$2,$3,$4,$5)`,
+          [personId, ano, bimestre, conceito, motivo]);
+        return row;
+      });
+    } catch (e: any) {
+      const m = e?.message ?? '';
+      if (m.includes('somente_tecnica_coordenacao_ou_lider')) {
+        throw new ForbiddenException(
+          'Quem escreve o conceito do bimestre é a equipe técnica, a coordenação ou o Líder Diurno.');
+      }
+      if (m.includes('acolhido_fora_de_escopo')) throw new NotFoundException('Acolhido não encontrado.');
+      if (m.includes('bimestre_no_futuro')) {
+        throw new BadRequestException(
+          'Este bimestre ainda não terminou de acontecer. Escrever o conceito dele agora seria '
+          + 'escrever sobre o que não houve — e o painel contaria.');
+      }
+      if (m.includes('motivo_insuficiente')) {
+        throw new BadRequestException('Escreva por que o conceito é esse (mínimo 10 caracteres).');
+      }
+      throw e;
+    }
+
+    await this.audit.log({
+      action: 'education.concept', actorId: user.id,
+      entity: 'education_concept', entityId: r.out_id,
+      /* Metadado, nunca o motivo: o conteúdo não vai para o log (§20). */
+      detail: { personId, ano, bimestre, corrigiu: r.out_substituiu != null },
+    });
+
+    return {
+      id: r.out_id,
+      substituiu: r.out_substituiu ?? null,
+      aviso: r.out_substituiu
+        ? 'Conceito corrigido. O anterior continua legível, com o nome de quem o escreveu — '
+          + 'nada se apaga.'
+        : 'Conceito registrado com o seu nome. Ele fala do acompanhamento neste bimestre, '
+          + 'e não da criança.',
+    };
   }
 }

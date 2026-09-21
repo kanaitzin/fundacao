@@ -1115,6 +1115,43 @@ const EVOLUCOES_EDU: Record<string, { id: string; em: string; texto: string;
       por: 'Equipe técnica (fictícia)', escritoEm: emDias(-9) },
   ],
 };
+/**
+ * O CONCEITO POR BIMESTRE (fase 137).
+ *
+ * Três linhas de propósito, e são três casos diferentes: o bimestre que foi bem,
+ * o que pediu providência — com o motivo escrito, que é o que impede o conceito
+ * de virar rótulo — e **um par que mostra a CORREÇÃO**: a versão substituída fica
+ * legível, em cinza, com o nome de quem a escreveu. Sem o par, a demonstração
+ * mostraria só o caminho fácil, e a coisa que a Fundação mais precisa ver aqui é
+ * que nada se sobrescreve.
+ */
+const CONCEITOS_EDU: Record<string, { id: string; ano: number; bimestre: number;
+                                      conceito: string; rotulo: string; motivo: string;
+                                      por: string; escritoEm: string;
+                                      substituido: boolean;
+                                      corrigeUmAnterior: boolean }[]> = {
+  p01: [
+    { id: 'ce3', ano: 2026, bimestre: 2, conceito: 'acompanha',
+      rotulo: 'Está acompanhando o ano',
+      motivo: 'A escola devolveu o retorno do bimestre em 10/09: entregou os trabalhos e '
+        + 'melhorou em leitura depois do reforço às terças. O registro anterior foi feito antes '
+        + 'desse retorno.',
+      por: 'Tatiane Técnica (fictícia)', escritoEm: emDias(-3),
+      substituido: false, corrigeUmAnterior: true },
+    { id: 'ce2', ano: 2026, bimestre: 2, conceito: 'acompanha_com_apoio',
+      rotulo: 'Acompanha, com apoio em curso',
+      motivo: 'Estava na sala de recursos duas vezes por semana e ainda sem retorno da escola '
+        + 'sobre o bimestre.',
+      por: 'Carla Coordenadora (fictícia)', escritoEm: emDias(-20),
+      substituido: true, corrigeUmAnterior: false },
+    { id: 'ce1', ano: 2026, bimestre: 1, conceito: 'nao_acompanha',
+      rotulo: 'Não está acompanhando — pede providência',
+      motivo: 'Faltou sete dias por causa das consultas e ficou para trás em matemática. '
+        + 'Combinado reforço às terças com a escola a partir de abril.',
+      por: 'Tatiane Técnica (fictícia)', escritoEm: emDias(-120),
+      substituido: false, corrigeUmAnterior: false },
+  ],
+};
 
 /**
  * O RASTRO DE UMA CRIANÇA no servidor de mentira (fase 112).
@@ -4814,9 +4851,10 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       ressalvas: [
         `${soma((c) => c.notasSemValor)} nota(s) fiscal(is) sem valor lançado — o total `
         + 'gasto é MAIOR do que o número acima. Lançar o valor é o que fecha a conta.',
-        'Não existe campo de nota escolar no sistema. Onde você esperaria "boas notas", '
-        + 'o painel mostra apoio educacional registrado e evoluções escritas — duas coisas '
-        + 'verdadeiras, em vez de uma estimada.',
+        'Não existe nota escolar neste sistema, e não vai existir: o que existe desde a fase '
+        + '137 é o CONCEITO por bimestre, com o porquê escrito ao lado, no perfil de cada '
+        + 'criança. Este painel ainda não o conta — contá-lo é a próxima fase, e está no §9. '
+        + 'Por enquanto ele mostra apoio educacional registrado e evoluções escritas.',
         'As casas saem na ordem do código, nunca por resultado: ordenar por número é a '
         + 'classificação pronta, e ela precisa ser decisão de quem lê.',
       ],
@@ -5472,11 +5510,74 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
                  { cod: 'psicopedagoga', label: 'Psicopedagogia' },
                  { cod: 'outro', label: 'Outro serviço' }],
       modos: [{ cod: 'presencial', label: 'Presencial' }, { cod: 'online', label: 'Online' }],
+      /* A lista do conceito vem do servidor, como a dos serviços (§12.2). */
+      conceitos: [{ cod: 'acompanha', label: 'Está acompanhando o ano' },
+                  { cod: 'acompanha_com_apoio', label: 'Acompanha, com apoio em curso' },
+                  { cod: 'nao_acompanha', label: 'Não está acompanhando — pede providência' }],
+      bimestres: [1, 2, 3, 4].map((n) => ({ cod: n, label: `${n}º bimestre` })),
       aviso: 'O que ficar em branco aqui sai como "não há" no relatório e na audiência.',
     };
   }
   if (seg[0] === 'nursing' && seg[1] === 'education' && seg.length === 3 && metodo === 'GET') {
-    return { apoio: APOIO_EDU[seg[2]] ?? null, evolucoes: EVOLUCOES_EDU[seg[2]] ?? [] };
+    return { apoio: APOIO_EDU[seg[2]] ?? null, evolucoes: EVOLUCOES_EDU[seg[2]] ?? [],
+      conceitos: CONCEITOS_EDU[seg[2]] ?? [] };
+  }
+
+  /**
+   * `POST /nursing/education/:personId/concepts` — o conceito do bimestre (1430).
+   *
+   * As recusas são as do servidor: **só a equipe técnica, a coordenação e o
+   * Líder Diurno** (decisão de 21/09), o porquê obrigatório, e o bimestre que
+   * ainda não aconteceu recusado. E registrar de novo o mesmo bimestre CORRIGE:
+   * a versão anterior fica, marcada como substituída.
+   */
+  if (seg[0] === 'nursing' && seg[1] === 'education' && seg[3] === 'concepts'
+      && metodo === 'POST') {
+    if (!['equipe_tecnica', 'coordenador', 'lider_diurno'].includes(eu.role)) {
+      return new Recusa(403, 'Quem escreve o conceito do bimestre é a equipe técnica, a '
+        + 'coordenação ou o Líder Diurno. Quem acompanha a lição de casa registra a evolução '
+        + 'educacional, logo acima.');
+    }
+    const ROT: Record<string, string> = {
+      acompanha: 'Está acompanhando o ano',
+      acompanha_com_apoio: 'Acompanha, com apoio em curso',
+      nao_acompanha: 'Não está acompanhando — pede providência',
+    };
+    const conceito = String(b.conceito ?? '');
+    if (!ROT[conceito]) return new Recusa(400, 'Escolha um dos conceitos da lista.');
+    const motivo = String(b.motivo ?? '').trim();
+    if (motivo.length < 10) {
+      return new Recusa(400, 'Escreva por que o conceito é esse. Um conceito sozinho atravessa '
+        + 'meses e vira característica da criança — o motivo é o que o mantém sendo sobre o '
+        + 'bimestre.');
+    }
+    const ano = Number(b.ano); const bim = Number(b.bimestre);
+    if (!Number.isInteger(ano) || !Number.isInteger(bim) || bim < 1 || bim > 4) {
+      return new Recusa(400, 'Informe o ano e o bimestre (1 a 4).');
+    }
+    /* O bimestre no futuro não existe — a mesma conta do banco, com o relógio
+       da instituição e não o do navegador. */
+    const agoraBR = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+    const bimAgora = Math.min(4, Math.max(1, Math.ceil((agoraBR.getMonth() + 1) / 3)));
+    if (ano * 10 + bim > agoraBR.getFullYear() * 10 + bimAgora) {
+      return new Recusa(400, 'Este bimestre ainda não terminou de acontecer. Escrever o conceito '
+        + 'dele agora seria escrever sobre o que não houve — e o painel contaria.');
+    }
+    const lista = CONCEITOS_EDU[seg[2]] ?? [];
+    const anterior = lista.find((k) => k.ano === ano && k.bimestre === bim && !k.substituido);
+    if (anterior) anterior.substituido = true;
+    CONCEITOS_EDU[seg[2]] = [
+      { id: uid(), ano, bimestre: bim, conceito, rotulo: ROT[conceito], motivo,
+        por: eu.fullName, escritoEm: new Date().toISOString(),
+        substituido: false, corrigeUmAnterior: anterior != null },
+      ...lista,
+    ];
+    return { id: uid(), substituiu: anterior?.id ?? null,
+      aviso: anterior
+        ? 'Conceito corrigido. O anterior continua legível, com o nome de quem o escreveu — '
+          + 'nada se apaga.'
+        : 'Conceito registrado com o seu nome. Ele fala do acompanhamento neste bimestre, '
+          + 'e não da criança.' };
   }
   if (seg[0] === 'nursing' && seg[1] === 'education' && seg[3] === 'support'
       && metodo === 'POST') {
