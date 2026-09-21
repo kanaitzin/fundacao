@@ -45,6 +45,9 @@ interface Plantao {
   ata: { id: string; status: string } | null;
   passagens: PassagemFeita[];
   assinaturasPendentes: { quem: string; cargo: string }[];
+  /** A escala deste turno foi lançada? (1370) */
+  escalaLancada?: boolean;
+  nenhumaPassagemAssinada?: boolean;
   minhaPassagemEsperada: boolean;
   recebimentos: Recebimento[];
   /** As doses do turno, lidas de volta (0940). Nunca um botão que marque tudo. */
@@ -301,6 +304,11 @@ export function Passagem({ houseId }: { houseId: string }) {
             <span className="pill c-ok">Sua passagem assinada</span>
           ) : aberto.minhaPassagemEsperada ? (
             <span className="pill c-warn">Sua passagem falta</span>
+          ) : aberto.escalaLancada === false ? (
+            /* "Você não estava na escala" num turno em que escala NÃO EXISTE
+               sugere que havia uma e você ficou de fora. O que é verdade é
+               outra coisa, e é a decisão de 20/09 (1370). */
+            <span className="pill c-mute">Escala não lançada</span>
           ) : (
             <span className="pill c-mute">Você não estava na escala</span>
           )}
@@ -330,6 +338,35 @@ export function Passagem({ houseId }: { houseId: string }) {
           <div className="mutetxt" style={{ marginTop: 4 }}>
             Cada pessoa assina a sua. Se alguém não puder assinar, a ATA fecha com pendência
             e o nome fica registrado — ninguém assina no lugar de ninguém.
+          </div>
+        </div>
+      )}
+
+      {/*
+        * A ESCALA DESTE TURNO NÃO FOI LANÇADA (1370).
+        *
+        * *"Não cabe a nós deduzir"* — decisão da Fundação, 20/09/2026. Até aqui o
+        * sistema caía para a escala semanal e depois para o VÍNCULO da casa, e
+        * cobrava a passagem de todo educador vinculado, de folga ou não.
+        *
+        * No lugar do nome errado, o fato: **ninguém lançou a escala deste
+        * turno**. É pendência da CASA, e é por isso que não há nome nenhum
+        * nesta caixa — inventar um seria voltar ao defeito.
+        *
+        * E a frase seguinte é a que segura a educadora das 23h: **assinar
+        * continua aberto**. A escala decide quem é cobrado, nunca quem pode.
+        */}
+      {aberto.escalaLancada === false && (
+        <div className="notice c-crit" role="status">
+          <b>Ninguém lançou a escala deste turno.</b>
+          <div className="mutetxt" style={{ marginTop: 4 }}>
+            {aberto.nenhumaPassagemAssinada
+              ? 'Sem escala lançada, o sistema não diz quem devia estar — e nenhuma passagem foi '
+                + 'assinada ainda. Quem esteve na casa assina a sua abaixo; a escala é lançada na '
+                + 'tela da Escala, e vale para os próximos turnos.'
+              : 'Sem escala lançada, o sistema não diz quem devia estar — então não há nome a '
+                + 'cobrar aqui. Quem esteve na casa assina a sua, e a escala é lançada na tela da '
+                + 'Escala.'}
           </div>
         </div>
       )}

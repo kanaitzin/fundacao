@@ -154,9 +154,10 @@ piloto.** O que há pela frente, em ordem de quem já pode ser feito:
 1. **As três telas que as respostas de 20/09 destravaram** (§10.6, §10.7, e o
    conceito educacional por período). Estavam paradas esperando gente, e não
    estão mais.
-2. **A dedução da escala sai** — decisão reafirmada em 20/09. Ver o §10: a
-   escala vazia diz em vermelho que ninguém lançou, e a passagem é assinada por
-   quem está ali.
+2. ~~**A dedução da escala sai**~~ ✅ **feito na fase 129.** Sem escala lançada,
+   ninguém é nomeado; a tela diz em vermelho que ninguém a lançou; e a ATA sem
+   escala E sem nenhuma passagem fecha COM pendência, que é o buraco que a
+   decisão abria.
 3. **As cinco pontas dormentes** do §9 item 5 — três são retirada, duas são tela
    pequena.
 4. **Aplicar o roteiro com a equipe.** Continua sendo o que mais muda o sistema,

@@ -126,6 +126,21 @@ export class ShiftsService {
          FROM handover_receipt r WHERE r.shift_id = $1 ORDER BY r.received_at`, [shiftId]);
       const { rows: faltam } = await c.query(
         `SELECT user_id, full_name, role FROM app_missing_handovers($1)`, [shiftId]);
+      /*
+       * A ESCALA DESTE TURNO FOI LANÇADA? (1370)
+       *
+       * Pergunta separada porque a resposta precisa existir quando a LISTA não
+       * existe: sem escala lançada, `app_missing_handovers` devolve vazio, e
+       * "ninguém deve assinar" e "ninguém foi escalado" não podem chegar à tela
+       * como a mesma coisa.
+       *
+       * A 0960 prometia isso numa coluna `fonte` de cada linha, e este serviço
+       * nunca a leu — a tela passou de 0960 até 20/09/2026 sem poder distinguir
+       * "faltou assinar" de "escala não cadastrada", que era a razão de a coluna
+       * existir.
+       */
+      const { rows: [fonte] } = await c.query(
+        `SELECT app_fonte_da_escala($1) AS f`, [shiftId]);
       const { rows: episodios } = await c.query(
         // Sem `JOIN person`: a ATA pertence à CASA e é imutável, mas a pessoa
         // é visível pela permanência ATIVA. Um episódio de contenção sumia da
@@ -150,7 +165,7 @@ export class ShiftsService {
           WHERE e.ata_id = $1 ORDER BY k.at`, [a?.id ?? null]);
       return { s, a, passagens, complementos, recebimentos, faltam, episodios, ciencias,
                doses, jaEscrito: (jaEscrito?.n ?? 0) > 0, convivencias,
-               notas, restritas: restritas?.n ?? 0 };
+               notas, restritas: restritas?.n ?? 0, fonteDaEscala: fonte?.f ?? null };
     });
     if (!dados) throw new NotFoundException('Plantão não encontrado.');
 
@@ -184,6 +199,19 @@ export class ShiftsService {
       // A lista de quem falta é parte da tela, não um detalhe de fechamento:
       // é o que permite ir atrás da pessoa antes de fechar com pendência.
       assinaturasPendentes: dados.faltam.map((f: any) => ({ quem: f.full_name, cargo: f.role })),
+      /**
+       * A ESCALA DESTE TURNO FOI LANÇADA (1370).
+       *
+       * *"Não cabe a nós deduzir"* — decisão da Fundação de 20/09/2026. Sem
+       * escala lançada, o sistema deixou de nomear quem devia estar, e a tela
+       * precisa dizer o que ficou no lugar: **ninguém lançou a escala deste
+       * turno**, que é pendência da CASA e não de uma pessoa.
+       *
+       * Assinar continua aberto a quem está ali — a escala decide quem é
+       * cobrado, nunca quem pode.
+       */
+      escalaLancada: dados.fonteDaEscala === 'escala_do_dia',
+      nenhumaPassagemAssinada: dados.passagens.length === 0,
       /**
        * Se a passagem de QUEM ESTÁ OLHANDO é esperada neste plantão.
        *
@@ -686,16 +714,36 @@ export class ShiftsService {
     });
 
     const faltam = Number(r.out_missing);
+    const semEscala = r.out_fonte === 'escala_nao_lancada';
     const casa = await this.casaDaAta(user, ataId);
 
-    if (faltam > 0) {
+    /*
+     * DUAS PENDÊNCIAS DIFERENTES, E A SEGUNDA NÃO TEM NOME (1370).
+     *
+     * `faltam > 0` é gente: alguém escalado não assinou, e quem lê pode ir
+     * atrás dela. O outro caso é a CASA — a escala não foi lançada e ninguém
+     * registrou o turno —, e ele só existe porque a dedução saiu: antes, o
+     * vínculo da casa preenchia a lista, e a pendência saía com o nome de quem
+     * estava de folga.
+     *
+     * O aviso precisa dizer QUAL das duas é, porque o que se faz a seguir é
+     * diferente: uma se resolve falando com uma pessoa, a outra lançando a
+     * escala.
+     */
+    const pendencia = faltam > 0 || r.out_status === 'fechada_com_pendencia';
+    if (pendencia) {
       // §12.4: falta passagem → avisar equipe técnica/coordenação. O aviso sai
       // pelo contrato genérico do kernel; este módulo não conhece notificações.
       const pedido: EscalationRequest = {
         level: 'tecnica_coordenacao', entity: 'ata', entityId: ataId,
         reason: 'ata_fechada_com_pendencia',
-        title: 'ATA fechada com assinatura pendente',
-        body: `${faltam} passagem(ns) não assinada(s) no plantão. A ATA foi fechada com pendência registrada.`,
+        title: faltam > 0
+          ? 'ATA fechada com assinatura pendente'
+          : 'ATA fechada sem escala lançada e sem nenhuma passagem',
+        body: faltam > 0
+          ? `${faltam} passagem(ns) não assinada(s) no plantão. A ATA foi fechada com pendência registrada.`
+          : 'A escala deste turno não foi lançada, e nenhuma passagem foi assinada. O sistema não '
+            + 'deduz quem devia estar — então não há nome a cobrar, e o turno ficou sem registro.',
         priority: 'alta', groupKey: `ata:${ataId}`,
       };
       await this.bus.publish('escalation.requested', pedido, { actorId: user.id, houseId: casa });
@@ -717,10 +765,18 @@ export class ShiftsService {
     return {
       status: r.out_status,
       assinaturasFaltantes: faltam,
+      /** A escala deste turno foi lançada? (1370) */
+      escalaLancada: !semEscala,
       aviso: faltam > 0
         ? `Fechada com pendência: ${faltam} passagem(ns) sem assinatura. Nenhuma assinatura foi presumida; `
           + 'a equipe técnica e a coordenação foram avisadas.'
-        : 'Fechada com todas as passagens assinadas.',
+        : r.out_status === 'fechada_com_pendencia'
+          ? 'Fechada com pendência: a escala deste turno não foi lançada e nenhuma passagem foi '
+            + 'assinada. O sistema não deduz quem devia estar — a equipe técnica e a coordenação '
+            + 'foram avisadas.'
+          : semEscala
+            ? 'Fechada. A escala deste turno não foi lançada, e quem esteve na casa assinou.'
+            : 'Fechada com todas as passagens assinadas.',
     };
   }
 

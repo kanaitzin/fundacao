@@ -1565,6 +1565,76 @@ await trocar('equipe_tecnica');
 
 
 /*
+ * ============ A ESCALA NÃO SE DEDUZ (fase 129) ============
+ *
+ * *"Não cabe a nós deduzir"* — decisão da Fundação, 20/09/2026. O turno NOTURNO
+ * do protótipo é o que está sem escala lançada, e é ele que mostra as duas
+ * metades: o sistema não diz quem devia estar, e diz quem esteve.
+ *
+ * O turno DIURNO tem escala, e o percurso confere que ele fica CALADO — aviso
+ * que aparece em todo turno é aviso que a equipe aprende a não ler.
+ */
+console.log('\n📋 A escala não se deduz (fase 129)');
+await trocar('lider_diurno');
+erros.length = 0;
+
+if (await aba('Passagem')) {
+  const noturno = pg.locator('main.conteudo button').filter({ hasText: /Plantão noturno/ });
+  if (!(await noturno.count())) {
+    cobrar('a lista de plantões traz o turno noturno', false, (await conteudo()).slice(0, 200));
+  } else {
+    await noturno.first().click();
+    await pg.waitForTimeout(1000);
+    const semEscala = (await conteudo()).toLowerCase();
+    cobrar('a passagem do turno sem escala diz que ninguém a lançou',
+      semEscala.includes('ninguém lançou a escala'),
+      'sem isto, a tela cala sobre o motivo de não haver nome a cobrar');
+    cobrar('e diz que o sistema não deduz quem devia estar',
+      semEscala.includes('não diz quem devia estar'),
+      'é a decisão da Fundação, e a tela precisa dizê-la em voz alta');
+    cobrar('e que quem esteve na casa assina do mesmo jeito',
+      semEscala.includes('quem esteve na casa') || semEscala.includes('quem esteve'),
+      'é isto que segura a educadora das 23h: a escala decide quem é COBRADO, nunca quem PODE');
+    cobrar('e NÃO nomeia ninguém como faltando',
+      !semEscala.includes('sem passagem até agora'),
+      'nomear alguém sem escala lançada é o defeito que a 0420 existiu para corrigir');
+    cobrar('a pílula do cargo não diz "você não estava na escala" onde escala não há',
+      !semEscala.includes('você não estava na escala'),
+      'sugeriria que havia uma escala e a pessoa ficou de fora');
+  }
+}
+
+/* A ATA está na barra de alguns cargos e atrás do "Mais" noutros. */
+if ((await aba('ATA')) || (await doMais('ATA'))) {
+  const doDiurno = pg.locator('main.conteudo button').filter({ hasText: /^Turno diurno$/ });
+  if (await doDiurno.count()) {
+    await doDiurno.first().click();
+    await pg.waitForTimeout(1000);
+    const comEscala = (await conteudo()).toLowerCase();
+    cobrar('a ATA do turno COM escala fica calada sobre a escala',
+      !comEscala.includes('ninguém lançou a escala'),
+      'aviso que aparece em todo turno é aviso que a equipe aprende a não ler');
+    cobrar('e nomeia quem não passou o plantão, que é a cobrança com nome',
+      comEscala.includes('não passou o plantão'),
+      'com escala lançada, a pendência TEM nome — e é o que permite ir atrás da pessoa');
+  }
+  const doNoturno = pg.locator('main.conteudo button').filter({ hasText: /^Turno noturno$/ });
+  if (await doNoturno.count()) {
+    await doNoturno.first().click();
+    await pg.waitForTimeout(1000);
+    const semEscala = (await conteudo()).toLowerCase();
+    cobrar('a ATA do turno SEM escala diz que ninguém a lançou',
+      semEscala.includes('ninguém lançou a escala'),
+      'é o líder que fecha a ATA, e é ele quem precisa saber por que não há nome');
+  }
+}
+cobrar('nenhuma exceção nas telas da escala não lançada', erros.length === 0, erros[0]);
+
+/* Devolve o cargo, outra vez: o percurso é sequencial. */
+await trocar('equipe_tecnica');
+
+
+/*
  * ====================== O DOSSIÊ E O ÁLBUM (fase 124)
  *
  * Os dois pedidos que a equipe fez e a Fundação repassou em 15/09: *"ter foto

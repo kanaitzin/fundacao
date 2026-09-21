@@ -246,32 +246,113 @@ describe('A escala de plantão', () => {
 
   // ==================== A passagem olha a escala (0960) ====================
 
-  it('quem devia assinar a passagem passa a vir da escala do dia', async () => {
+  it('quem devia assinar a passagem vem da escala do dia — e SÓ dela (1370)', async () => {
     const { rows: [{ d: depois }] } = await admin.query(`SELECT (app_hoje()-3)::text AS d`);
     // Um plantão num dia sem disputa com outras suítes.
     const aberto = await request(http).post('/api/v1/shifts').set(auth(tokens.coord))
       .send({ houseId: ids.AI4, data: depois, turno: 'diurno' });
     const plantao = aberto.body.plantaoId;
 
+    /*
+     * SEM ESCALA LANÇADA, NINGUÉM É NOMEADO (1370).
+     *
+     * *"Não cabe a nós deduzir"* — decisão da Fundação, 20/09/2026. Até a 1370 o
+     * sistema caía para a escala semanal e depois para o VÍNCULO da casa, e
+     * cobrava a passagem de todo educador vinculado, de folga ou não: era o
+     * defeito que a 0420 existiu para corrigir, sobrevivendo com nome novo.
+     */
     const semEscala = await admin.query(
       `SELECT * FROM app_missing_handovers($1)`, [plantao]);
-    expect(semEscala.rows[0].fonte).toBe('vinculo_da_casa');
+    expect(semEscala.rows).toHaveLength(0);
+    const { rows: [f1] } = await admin.query(`SELECT app_fonte_da_escala($1) AS f`, [plantao]);
+    expect(f1.f).toBe('escala_nao_lancada');
 
     await escalar(tokens.coord, { userId: ids.educadorId, data: depois, turno: 'diurno' });
 
     const comEscala = await admin.query(
       `SELECT * FROM app_missing_handovers($1)`, [plantao]);
     expect(comEscala.rows.every((r: any) => r.fonte === 'escala_do_dia')).toBe(true);
-    // A cobrança passou a ser de quem estava escalado — e só dele.
+    // A cobrança é de quem estava escalado — e só dele.
     expect(comEscala.rows.map((r: any) => r.user_id)).toEqual([ids.educadorId]);
+    const { rows: [f2] } = await admin.query(`SELECT app_fonte_da_escala($1) AS f`, [plantao]);
+    expect(f2.f).toBe('escala_do_dia');
 
     /*
      * E a escala NÃO é porta: quem cobriu o turno sem constar assina do mesmo
-     * jeito. Escala que trava é escala que a casa contorna.
+     * jeito. Escala que trava é escala que a casa contorna — e é ISTO que
+     * segura a educadora das 23h no dia em que ninguém lançou a escala. A
+     * escala decide quem é COBRADO, nunca quem PODE.
      */
     const assinou = await request(http).post(`/api/v1/shifts/${plantao}/handover`)
       .set(auth(tokens.coord))
       .send({ contribuicoes: 'Cobri o fim do turno; não constava na escala.' });
     expect(assinou.status).toBe(201);
+  });
+
+  /*
+   * O BURACO QUE A DECISÃO ABRE, E QUE A 1370 FECHA.
+   *
+   * Sem dedução, `app_missing_handovers` devolve zero num turno sem escala — e a
+   * ATA fecharia como `fechada`, LIMPA, ainda que ninguém tivesse assinado nada.
+   * "Zero pendências" e "ninguém registrou o turno" passariam a ser a mesma
+   * resposta, que é a pior troca possível: o dia em que a casa esquecer de
+   * lançar a escala E esquecer de assinar, a ATA sai impecável.
+   */
+  it('a ATA sem escala lançada e sem NENHUMA passagem fecha COM pendência', async () => {
+    const { rows: [{ d: dia }] } = await admin.query(`SELECT (app_hoje()-5)::text AS d`);
+    const aberto = await request(http).post('/api/v1/shifts').set(auth(tokens.coord))
+      .send({ houseId: ids.AI4, data: dia, turno: 'diurno' });
+    const plantao = aberto.body.plantaoId;
+
+    const { rows: [f] } = await admin.query(`SELECT app_fonte_da_escala($1) AS f`, [plantao]);
+    expect(f.f).toBe('escala_nao_lancada');
+
+    const vendo = await request(http).get(`/api/v1/shifts/${plantao}`).set(auth(tokens.coord));
+    expect(vendo.status).toBe(200);
+    /* A tela sabe as duas coisas — e é isto que ela escreve em vermelho. */
+    expect(vendo.body.escalaLancada).toBe(false);
+    expect(vendo.body.nenhumaPassagemAssinada).toBe(true);
+    /* E NÃO nomeia ninguém: a pendência é da casa. */
+    expect(vendo.body.assinaturasPendentes).toHaveLength(0);
+
+    const ataId = vendo.body.ata?.id;
+    expect(ataId).toBeTruthy();
+    const fechou = await request(http).post(`/api/v1/shifts/ata/${ataId}/close`)
+      .set(auth(tokens.coord)).send({ pendencias: 'Turno sem escala lançada (fictício).' });
+    expect(fechou.status).toBe(201);
+    expect(fechou.body.status).toBe('fechada_com_pendencia');
+    /* A contagem continua contando GENTE, e não há gente a contar. */
+    expect(fechou.body.assinaturasFaltantes).toBe(0);
+    expect(fechou.body.escalaLancada).toBe(false);
+    expect(fechou.body.aviso).toMatch(/escala deste turno não foi lançada/);
+  });
+
+  it('e com alguém assinando, a mesma ATA sem escala fecha LIMPA', async () => {
+    const { rows: [{ d: dia }] } = await admin.query(`SELECT (app_hoje()-6)::text AS d`);
+    const aberto = await request(http).post('/api/v1/shifts').set(auth(tokens.coord))
+      .send({ houseId: ids.AI4, data: dia, turno: 'diurno' });
+    const plantao = aberto.body.plantaoId;
+
+    /* Quem estava ali assina, sem constar em escala nenhuma. */
+    const assinou = await request(http).post(`/api/v1/shifts/${plantao}/handover`)
+      .set(auth(tokens.coord))
+      .send({ contribuicoes: 'Eu estava na casa; a escala não foi lançada (fictício).' });
+    expect(assinou.status).toBe(201);
+
+    const vendo = await request(http).get(`/api/v1/shifts/${plantao}`).set(auth(tokens.coord));
+    expect(vendo.body.escalaLancada).toBe(false);
+    expect(vendo.body.nenhumaPassagemAssinada).toBe(false);
+
+    const fechou = await request(http).post(`/api/v1/shifts/ata/${vendo.body.ata.id}/close`)
+      .set(auth(tokens.coord)).send({ pendencias: 'Assinada por quem estava (fictício).' });
+    expect(fechou.status).toBe(201);
+    /*
+     * FECHA LIMPA, e é o desenho inteiro numa linha: o sistema não sabe quem
+     * DEVIA estar, e sabe quem ESTEVE. Cobrar uma pendência aqui seria cobrar a
+     * casa por não ter lançado a escala de um turno que foi registrado — e a
+     * cobrança que não tem o que pedir é a que a equipe aprende a ignorar.
+     */
+    expect(fechou.body.status).toBe('fechada');
+    expect(fechou.body.aviso).toMatch(/quem esteve na casa assinou/);
   });
 });

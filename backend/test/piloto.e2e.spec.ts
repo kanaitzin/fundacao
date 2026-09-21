@@ -90,6 +90,17 @@ describe('Piloto da Casa 03 — ensaio geral do dia', () => {
       await admin.query(`DELETE FROM archive_attempt WHERE item_id = ANY($1::uuid[])`, [lixo.archive]);
       await admin.query(`DELETE FROM archive_item WHERE id = ANY($1::uuid[])`, [lixo.archive]);
     }
+    /*
+     * A escala que este ensaio lançou é revogada (1370): outras suítes fecham
+     * ATA na Casa 03, e deixá-la montada mudaria quem elas esperam assinar.
+     * REVOGAR e não apagar — a tabela recusa DELETE até do dono do banco, e a
+     * linha revogada sai do cálculo sem sair do registro.
+     */
+    await admin.query(
+      `UPDATE shift_assignment SET revoked_at = now(), revoked_by = created_by,
+              revoke_reason = 'Escala criada pelo ensaio do piloto.'
+        WHERE house_id = $1 AND on_date = $2::date AND revoked_at IS NULL`,
+      [AI3, diaDoEnsaio]);
     await app.close(); await admin.end();
   });
 
@@ -211,6 +222,27 @@ describe('Piloto da Casa 03 — ensaio geral do dia', () => {
       pendencias: 'Nada pendente do meu turno.',
       orientacoes: 'Seguir o combinado do videogame (fictício).',
     };
+    /*
+     * A ESCALA DO TURNO É LANÇADA — dois educadores (1370).
+     *
+     * O ensaio do piloto é um DIA REAL da casa, e num dia real a escala foi
+     * lançada com antecedência: *"na vida real as escalas já são montadas com
+     * antecedência, apenas irão cadastrar aqui"*. Desde que a dedução saiu, é
+     * daqui que sai "quem devia assinar" — e é isto que faz a pendência do fim
+     * deste teste ser verdadeira em vez de deduzida do vínculo da casa.
+     *
+     * DOIS, porque a pendência que este teste declara é exatamente esta: *"falta
+     * a assinatura de um educador que saiu antes do fim do turno"*. Um assina, o
+     * outro não — e a ATA fecha com pendência, com nome.
+     */
+    for (const email of ['educador.ai3@paodospobres.dev', 'educador2.ai3@paodospobres.dev']) {
+      const { rows: [u] } = await admin.query(
+        `SELECT id FROM app_user WHERE email = $1`, [email]);
+      const r = await request(http).post('/api/v1/escala').set(auth(t.coord))
+        .send({ houseId: AI3, userId: u.id, data: diaDoEnsaio, turno: 'diurno' });
+      expect([201, 409]).toContain(r.status);
+    }
+
     let passagem = await request(http).post(`/api/v1/shifts/${shiftId}/handover`)
       .set(auth(t.educador)).send(corpo);
 

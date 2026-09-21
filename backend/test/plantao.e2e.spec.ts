@@ -69,9 +69,29 @@ describe('Fase 5 — Plantão, ATA e proteção', () => {
       `SELECT id FROM app_user WHERE email='educador.ai3@paodospobres.dev'`));
     ({ rows: [{ id: ids.educador2 }] } = await admin.query(
       `SELECT id FROM app_user WHERE email='educador2.ai3@paodospobres.dev'`));
+    ({ rows: [{ id: ids.lider }] } = await admin.query(
+      `SELECT id FROM app_user WHERE email='lider.ai3@paodospobres.dev'`));
   });
 
-  afterAll(async () => { await app.close(); await admin.end(); });
+  afterAll(async () => {
+    /*
+     * Suíte que muta estado compartilhado desfaz o que criou (1370).
+     *
+     * Esta suíte LANÇA a escala do diurno de hoje na Casa 03 — é ela que faz
+     * "quem era esperado" existir, desde que a dedução saiu. Outras suítes
+     * fecham ATA no mesmo plantão, e deixar a escala montada mudaria quem elas
+     * esperam assinar. É a lição da fase 127 escrita em código: um banco só, e
+     * nada se apaga.
+     *
+     * Desfazer é REVOGAR, não apagar: a tabela não aceita DELETE nem do dono do
+     * banco. Revogada, a linha some do cálculo e não do registro.
+     */
+    await admin.query(
+      `UPDATE shift_assignment SET revoked_at = now(), revoked_by = created_by,
+              revoke_reason = 'Escala criada pela suíte de teste do plantão.'
+        WHERE house_id = $1 AND revoked_at IS NULL`, [ids.AI3]);
+    await app.close(); await admin.end();
+  });
 
   // ==================== Plantão e passagem ====================
 
@@ -101,6 +121,23 @@ describe('Fase 5 — Plantão, ATA e proteção', () => {
       .send({ houseId: ids.AI3, data: HOJE, turno: 'diurno' });
     expect(outra.body.plantaoId).toBe(plantaoDiurno);
     expect(outra.body.novo).toBe(false);
+
+    /*
+     * E A ESCALA DESTE TURNO É LANÇADA AQUI (1370).
+     *
+     * Desde que a Fundação decidiu que **não se deduz escala**, "quem era
+     * esperado neste plantão" é *quem foi escalado*, e mais ninguém. Antes, o
+     * vínculo da casa preenchia a lista — e era por isso que a ATA fechava
+     * "com pendência" nomeando quem estava de folga.
+     *
+     * Os três que este arquivo usa: o educador que assina, o que NÃO assina, e
+     * o Líder Diurno. É daqui que saem os DOIS que faltam no teste #19.
+     */
+    for (const quem of [ids.educador, ids.educador2, ids.lider]) {
+      const r = await request(http).post('/api/v1/escala').set(auth(tokens.coord))
+        .send({ houseId: ids.AI3, userId: quem, data: HOJE, turno: 'diurno' });
+      expect([201, 409]).toContain(r.status);
+    }
   });
 
   it('#18 cada educador assina a PRÓPRIA passagem — e o banco recusa a assinatura alheia', async () => {

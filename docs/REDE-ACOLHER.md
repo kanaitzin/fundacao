@@ -82,7 +82,7 @@ aplicação e no banco. §7 tem a matriz inteira.
 
 ## 2. O ESTADO HOJE
 
-**Fases 0 a 128.** Estes números **saem do código**, não da memória — e são
+**Fases 0 a 129.** Estes números **saem do código**, não da memória — e são
 cobrados por `test/numeros-da-documentacao.spec.ts`, que existe porque em 08/09
 seis afirmações estavam erradas ao mesmo tempo em três documentos, e duas delas
 discordavam entre si.
@@ -90,10 +90,10 @@ discordavam entre si.
 | Quanto | De onde sai |
 |---|---|
 | **18 partições** isoladas | pastas em `backend/src/modules/` |
-| **122 migrações** | `.sql` dentro das partições |
+| **123 migrações** | `.sql` dentro das partições |
 | **112 tabelas** | `CREATE TABLE` nas migrações |
 | **79 suítes** | `backend/test/*.spec.ts` |
-| **783 testes** | `it(` / `test(` nas suítes |
+| **785 testes** | `it(` / `test(` nas suítes |
 | **36 telas React** | `frontend/src/screens/*.tsx` |
 | **16 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **6 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
@@ -334,6 +334,7 @@ arqueologia.
 | 126 | **A suíte que só era verde de dia.** Ao retomar o trabalho noutra conversa, a suíte inteira reprovava — e cada suíte, sozinha, passava. Três causas, todas em DADO DE TESTE e nenhuma no sistema: dois vazamentos de fixture que **se cancelavam** (um deixava uma criança a mais na casa, o outro tirava o Theo do seed, e a conta fechava por coincidência), e o seed das prescrições usando `CURRENT_DATE` — o dia do SERVIDOR —, que depois das 21h em Porto Alegre semeava o dia seguinte e deixava o dia de hoje sem dose nenhuma |
 | 127 | **A chamada fecha quando alguém da casa está fora dela.** A educadora das 22h tinha uma casa de vinte crianças, uma delas no hospital, e nenhuma saída: marcar era impossível, e fechar também. **Quem a chamada cobra estava escrito em QUATRO lugares**, e só a tela sabia que a criança pode não estar na casa — `app_bulk_check` (0780), `app_confirm_check` e `app_check_missing` (0440) nasceram antes de a internação (0890) e a convivência familiar (1010) existirem, e ninguém voltou para lhes contar. As duas metades do defeito: a conferência de mesa **gravava "normal" para a criança que estava no HOSPITAL** — um fato inventado sobre uma criança, e silencioso, porque a tela dizia `faltam: 0` —, e o fechamento **cobrava pelo nome** quem a tela se recusava a listar. A correção não repete a regra em três lugares: `app_efetivo_da_chamada` (1350) passa a ser a resposta única para "de quem esta chamada trata", e regra nova de presença — escola em turno integral, acampamento, hospital-dia — se escreve uma vez, lá dentro. **E POR DIA, não por "agora":** a chamada de ontem, reaberta hoje para correção, precisa saber como a casa estava ontem; as duas funções de presença já respondiam por dia e estavam sendo chamadas SEM dia. **O teste veio primeiro**, e era o que faltava: `quem-a-chamada-cobra.e2e.spec.ts`, cinco testes, e medida sem a correção ela reprova — o lote marca 20 onde a tela mostra 19. *O que o documento afirmava e não era verdade: **nenhuma suíte guardava este defeito.** `hospitalization` e `family_stay` chegam vazias do seed, então nenhuma encontrava alguém fora da casa; as "3 falhas em `conferencia-de-mesa`" eram o eco de um rascunho que morava em `backend/test/` e deixava uma internação aberta no banco compartilhado. O defeito era real; a prova de que ele existia, não. Por isso a suíte nova **fecha o que abre**, com rede de segurança no `afterAll`* |
 | 128 | **O que se escreveu sobre a criança, e o que este papel não pode abrir.** `statement.person_id` era gravado desde a 0300 e **nunca lido por pessoa**: a varredura de 15/09 o achou, e o §9 o manteve fechado **de propósito**, porque listar por criança tudo o que se escreveu SOBRE ela é exatamente a narrativa que o §26.2 protege atrás de finalidade declarada. A resposta chegou em 20/09 e é de uma linha — **só a contagem** —, e ela desenha a fase inteira: **quem alcança lê; quem não alcança recebe um NÚMERO**, nem data, nem autor, nem trecho. Vale o mesmo precedente do dossiê: *"o que este papel não pode ver aparece como contagem, não some"*, porque esconder que existem faria a equipe procurar noutro lugar. **A regra de quem lê passou a morar num lugar só** (`app_pode_ler_relato`), com dois leitores — a policy, que decide quais linhas existem, e a contagem, que conta as que não existem para quem pergunta. Foi a lição da 127 aplicada antes de doer: a regra já estava escrita duas vezes (a 0300 a criou, a 0730 a reescreveu inteira só para acrescentar dois cargos) e esta fase precisaria de uma terceira cópia. **A contagem é frase, não selo:** *"Existe 1 relato em área restrita sobre esta criança"* é informação; um `2` vermelho ao lado do nome de uma criança de doze anos começa a parecer nota de comportamento (regra 3). E a resposta **não soma nada** além disso — nem relatos por mês, nem por autor —, guardado pela FORMA da resposta. *No caminho, dois achados que não são desta fase e ficaram anotados no §9: a tela de Educação **inventa a própria lista** em vez de pedir `/nursing/education/kinds`, e a leitura de um documento do dossiê não tem quem a chame. Os dois apareceram porque o `rotas-sem-porta` **deixou de dar porta a quem não tem**: o `temPorta` aceitava que o `:x` de uma chamada casasse com uma PALAVRA da rota, e uma chamada nova desta fase revelou o defeito declarando que a leitura excepcional tinha ganhado tela — ela não tinha* |
+| 129 | **A escala não se deduz.** Decisão da Fundação reafirmada em 20/09 depois de eu levantar a consequência: *"não cabe a nós deduzir."* O que saiu: quando a escala do dia não tinha ninguém, a `0960` caía para a escala SEMANAL e, não achando, para o **vínculo da casa** — e cobrava a passagem de todo educador vinculado, **de folga ou não**. Era o defeito que a `0420` existiu para corrigir, sobrevivendo com nome novo: a ATA fechava "com pendência" nomeando quem não estava lá. Agora a escala é a única fonte, e **sem escala lançada ninguém é nomeado** — a tela diz em vermelho que ninguém a lançou, que é pendência da CASA e não de uma pessoa. **O que isto NÃO muda, e é o que segura a educadora das 23h:** assinar nunca dependeu da escala e continua não dependendo — há teste disso desde a 0960, *"escala que trava é escala que a casa contorna"*. A escala decide quem é **cobrado**, nunca quem **pode**. **E o buraco que a decisão abre, que esta fase fecha:** sem dedução, `app_missing_handovers` devolve zero num turno sem escala, e a ATA fecharia **limpa** ainda que ninguém tivesse assinado nada — "zero pendências" e "ninguém registrou o turno" passariam a ser a mesma resposta, e o dia em que a casa esquecesse as duas coisas a ATA sairia impecável. O fechamento passou a olhar as duas: alguém cobrado que não assinou, **ou** um turno sem escala e sem nenhuma passagem. A contagem `missing_signatures` continua contando só GENTE, porque é o que ela diz; o outro caso é a casa, e a tela o escreve por extenso. *De passagem, um defeito da 0960 que ninguém tinha visto: ela dizia em comentário que a `fonte` sai na resposta "porque ela muda o que a tela diz", e o serviço **nunca a leu** — da 0960 até agora a tela não pôde distinguir "faltou assinar" de "escala não cadastrada", que era a razão de a coluna existir. E a `work_schedule` perdeu o último leitor: o §9 a listava como morta e a frase estava errada pela metade — a 0960 a lia* |
 
 ---
 
@@ -381,7 +382,7 @@ cd frontend && npm run prototipo
 ```
 
 O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as
-122 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
+123 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
 
 ### Os ensaios — e por que cada um existe
 
@@ -1748,7 +1749,7 @@ Faltam **três**:
 |---|---|---|
 | *"a equipe técnica, o coordenador ou o educador líder"* lançam | só coordenação e gestão montavam | ✅ **fase 123** — os dois entraram, na RLS e na função |
 | *"cada um com a sua cor diferente"* | a cor existia (`0990`) e era usada só **na ATA** | ✅ **fase 123** — a escala carrega e desenha, com o nome ao lado; o hash foi para `rotulos.ts`, para não haver duas cópias |
-| *"a gente não vai deduzir a escala"* | quando a escala do dia existe, ela manda; quando **não** existe, o sistema ainda cai para a escala semanal e depois para o vínculo da casa (`0960`) — declarando a fonte | *isto eu não retiro sem ele saber o que acontece no lugar:* sem escala lançada e sem dedução, a passagem de plantão fica **sem ninguém** para assinar. Ver §10 |
+| *"a gente não vai deduzir a escala"* | caía para a escala semanal e depois para o vínculo da casa (`0960`), declarando a fonte | ✅ **fase 129** — a dedução saiu. Sem escala lançada, **ninguém é nomeado**, e a tela diz em vermelho que ninguém a lançou. Assinar continua aberto a quem esteve: a escala decide quem é **cobrado**, nunca quem **pode** |
 | *"substituir"* num gesto | eram dois atos: Retirar, e depois Escalar alguém | ✅ **fase 123** — uma transação, com o parentesco guardado; *"deixar a menos"* continua sendo a retirada |
 
 **As fotos e os documentos da criança.** O dossiê já guarda documento
@@ -2006,7 +2007,7 @@ escolher.*
 
 | O quê | Onde | O que se perde |
 |---|---|---|
-| `work_schedule` | migração **0010** | Zero leitura e zero escrita, desde a fundação. É o desenho anterior à escala por DATA (§8.4) e não foi retirado |
+| `work_schedule` | migração **0010** | ~~Zero leitura e zero escrita, desde a fundação.~~ **A frase estava errada pela metade, e virou verdade na fase 129:** a `0960` A LIA, e era o único lugar — era ela que deduzia quem devia assinar a passagem. Com a dedução fora, a tabela perdeu o último leitor e ganhou um `COMMENT` dizendo isso. Continua de pé: `DROP TABLE` é migração destrutiva, e não se faz de passagem |
 | `health_evolution.companion_name` | 0530 | O **acompanhante em texto** — o §8.12 o lista como o que o papel ensinou, porque quem leva à consulta às vezes é motorista ou familiar autorizado. A coluna existe, nada escreve |
 | `medication_administration.prn_reason` / `prn_outcome` | 0200 | O "se necessário": **por que se deu** e **o que aconteceu depois**. É o registro que a Enfermagem lê para decidir se aquilo vira prescrição |
 | `handover_receipt.opened_handover` | 0310 | Nasce `true` e nunca é lido |
@@ -2449,7 +2450,7 @@ ele continua dizendo que o arquivo existe.
 npm run ensaio:producao
 ```
 
-Constrói, cria um banco virgem, aplica as 122 migrações **pelo binário
+Constrói, cria um banco virgem, aplica as 123 migrações **pelo binário
 compilado**, sobe o serviço e confere `/health`. Não publica nada e não toca no
 banco de trabalho.
 

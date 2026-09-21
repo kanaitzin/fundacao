@@ -1164,7 +1164,23 @@ let PLANTOES: Plantao[] = [
         complementoTardio: false, offline: false, complementos: [] },
     ],
     recebimentos: [],
-    esperados: [{ quem: 'Nélio Noturno (fictício)', cargo: 'educador', userId: 'u8' }] },
+    /*
+     * A NOITE SEM ESCALA LANÇADA (1370) — e ela está aqui de propósito.
+     *
+     * A Fundação decidiu em 20/09/2026 que **não se deduz escala**. O aviso que
+     * nasceu disso — *"ninguém lançou a escala deste turno"* — só aparece num
+     * turno sem escala, e sem um aqui ele nasceria invisível no único arquivo
+     * que o Marcelo abre: o §6.19 pela sexta vez.
+     *
+     * É o caso REAL dos primeiros dias do piloto: a casa ainda não pegou o
+     * hábito de lançar, e o Nélio, que ESTEVE, assinou. A tela mostra a metade
+     * calma da decisão — o sistema não diz quem devia estar, e diz quem esteve.
+     * A outra metade (sem escala E sem ninguém assinando, que fecha a ATA com
+     * pendência) tem teste de servidor e não entra no protótipo: um turno sem
+     * passagem nenhuma faria a demonstração abrir numa casa que não registrou
+     * nada.
+     */
+    esperados: [] },
   { id: 's1', turno: 'diurno', status: 'aberto', abertoEm: emHoras(7, 0), fechadoEm: null,
     passagens: [
       { id: 'h1', quem: 'Tainá Souza (fictícia)', cargo: 'educador', userId: 'u7',
@@ -6013,6 +6029,16 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       assinaturasPendentes: s.esperados
         .filter((e) => !s.passagens.some((p) => p.userId === e.userId))
         .map((e) => ({ quem: e.quem, cargo: e.cargo })),
+      /*
+       * A ESCALA DESTE TURNO FOI LANÇADA? (1370)
+       *
+       * Aqui `esperados` É a escala — no servidor é `shift_assignment`, e quem
+       * responde é `app_fonte_da_escala`. As duas bandeiras existem porque a
+       * tela precisa distinguir "ninguém deve assinar" de "ninguém foi
+       * escalado", e no servidor a lista vem vazia nos dois casos.
+       */
+      escalaLancada: s.esperados.length > 0,
+      nenhumaPassagemAssinada: s.passagens.length === 0,
       minhaPassagemEsperada: s.esperados.some((e) => e.userId === eu.id)
         && !s.passagens.some((p) => p.userId === eu.id),
       recebimentos: s.recebimentos.map((r) => ({ ...r, propria: r.userId === eu.id })),

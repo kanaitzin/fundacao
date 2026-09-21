@@ -68,6 +68,9 @@ interface Plantao {
   passagens: { id: string; quem: string; cargo: string; assinadaEm: string | null;
                propria: boolean }[];
   assinaturasPendentes: { quem: string; cargo: string }[];
+  /** A escala deste turno foi lançada? (1370) */
+  escalaLancada?: boolean;
+  nenhumaPassagemAssinada?: boolean;
   episodios: Episodio[];
   /** As convivências familiares do turno (1070) — a mesma fonte da passagem. */
   convivencias?: ConvivenciaDoTurno[];
@@ -484,10 +487,42 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
                       <span className="pill c-warn">Não passou o plantão</span>
                     </li>
                   ))}
-                  {plantao.passagens.length === 0 && plantao.assinaturasPendentes.length === 0 && (
+                  {/*
+                    * SEM ESCALA LANÇADA, A LISTA NÃO TEM NOME NENHUM (1370).
+                    *
+                    * A linha que ficava aqui dizia "Ninguém escalado para este
+                    * turno" e só aparecia quando NÃO havia passagem nenhuma —
+                    * então no turno em que alguém assinou sem escala lançada, o
+                    * líder que vai fechar a ATA não era avisado de nada.
+                    *
+                    * As duas frases são diferentes de propósito: "a escala não
+                    * foi lançada" é pendência da CASA; "ninguém assinou" é o
+                    * turno sem registro. As duas juntas é o que faz a ATA
+                    * fechar com pendência sem nome.
+                    */}
+                  {plantao.escalaLancada === false && (
+                    <li className="mutetxt">
+                      A escala deste turno não foi lançada — o sistema não diz quem devia estar.
+                    </li>
+                  )}
+                  {plantao.passagens.length === 0 && plantao.assinaturasPendentes.length === 0
+                    && plantao.escalaLancada !== false && (
                     <li className="mutetxt">Ninguém escalado para este turno.</li>
                   )}
                 </ul>
+
+                {plantao.escalaLancada === false && (
+                  <div className="notice c-crit" role="status">
+                    <b>Ninguém lançou a escala deste turno.</b>
+                    <div className="mutetxt" style={{ marginTop: 4 }}>
+                      {plantao.passagens.length === 0
+                        ? 'E nenhuma passagem foi assinada. Fechar assim registra a ATA COM '
+                          + 'PENDÊNCIA: não há nome a cobrar, e o turno ficou sem registro.'
+                        : 'Quem esteve na casa assinou, e é isso que a ATA leva. Não há nome a '
+                          + 'cobrar — o sistema não deduz quem devia estar.'}
+                    </div>
+                  </div>
+                )}
 
                 {/*
                   * O CORPO DA ATA — as dezesseis seções do LIVRO ATA da Casa 03.
