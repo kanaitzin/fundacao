@@ -66,52 +66,51 @@ describe('De onde vem a fonte do acompanhamento', () => {
         ORDER BY p.full_name OFFSET 9 LIMIT 1`, [ids.AI3]));
 
     /*
-     * A OCORRÊNCIA É FIXTURE **IDEMPOTENTE**, e a razão é dura: `incident` tem
-     * `incident_guard_trg`, que proíbe `DELETE`. **Ocorrência não se apaga** —
-     * é regra do sistema, e vale para a suíte também.
+     * A OCORRÊNCIA É CRIADA E **NÃO É LIMPA NO FIM**, e a razão tem duas metades.
      *
-     * Então esta suíte não pode criar uma ocorrência por execução: em dez
-     * execuções seriam vinte ocorrências no banco compartilhado, e a contagem de
-     * outra suíte passaria a depender de quantas vezes esta rodou (é a lição da
-     * fase 127, e ela custou três falhas fantasma). A saída é criar UMA VEZ,
-     * marcada por um texto fixo, e reaproveitar — `ON CONFLICT` não serve porque
-     * não há chave natural, então a procura é pelo marcador.
+     * A primeira: `incident` tem o `incident_guard_trg`, que proíbe `DELETE`.
+     * **Ocorrência não se apaga** — é regra do sistema, e vale para a suíte.
+     *
+     * A segunda: ela não precisa ser limpa, porque o `globalSetup` do Jest
+     * (`test/setup/reset-db.ts`) **derruba o schema e recria o banco do zero
+     * antes de cada execução**. O que esta suíte deixa morre na execução
+     * seguinte, e não acumula.
+     *
+     * *Escrevi aqui, antes de medir, que "dez execuções deixariam vinte
+     * ocorrências". Era falso, e eu conferi depois: o banco é recriado. Fica a
+     * anotação porque comentário errado é pior do que comentário nenhum.*
+     *
+     * O que continua sendo verdade é a isolação DENTRO de uma execução: as
+     * suítes dividem o banco, e por isso o `afterAll` apaga tudo o que pode
+     * apagar. As duas ocorrências ficam — medido: a suíte inteira passa com
+     * elas, porque nenhuma outra conta ocorrência da casa.
      */
     const MARCA_OPERACIONAL = '[fixture de-onde-vem-a-fonte] fato operacional fictício.';
     const MARCA_RESTRITA = '[fixture de-onde-vem-a-fonte] NARRATIVA RESTRITA FICTÍCIA.';
-    for (const [fato, nivel, categoria] of [
-      [MARCA_OPERACIONAL, 'equipe', 'desorganizacao_relevante'],
-      [MARCA_RESTRITA, 'restrito', 'violencia_ou_suspeita'],
-    ] as const) {
-      const { rows } = await admin.query(
-        `SELECT id FROM incident WHERE objective_fact = $1 LIMIT 1`, [fato]);
-      const id = rows[0]?.id ?? (await admin.query(
-        `INSERT INTO incident (house_id, category, happened_at, objective_fact, access_level,
-                               opened_by)
-         VALUES ($1, $2, app_hoje()::timestamptz + interval '20 hours', $3, $4,
-                 (SELECT id FROM app_user WHERE email='tecnica.ai3@paodospobres.dev'))
-         RETURNING id`, [ids.AI3, categoria, fato, nivel])).rows[0].id;
-      /* O vínculo com a criança faz parte da fixture e fica: sem ele, a próxima
-         execução recriaria a ocorrência por não achar o marcador ligado. */
-      await admin.query(
-        `INSERT INTO incident_person (incident_id, person_id) VALUES ($1,$2)
-         ON CONFLICT DO NOTHING`, [id, ids.crianca]);
-      ids[nivel === 'restrito' ? 'incRestrita' : 'incOperacional'] = id;
+    const inc = await admin.query(
+      `INSERT INTO incident (house_id, category, happened_at, objective_fact, access_level,
+                             opened_by)
+       VALUES ($1, 'desorganizacao_relevante',
+               app_hoje()::timestamptz + interval '20 hours', $2, 'equipe',
+               (SELECT id FROM app_user WHERE email='tecnica.ai3@paodospobres.dev')),
+              ($1, 'violencia_ou_suspeita',
+               app_hoje()::timestamptz + interval '21 hours', $3, 'restrito',
+               (SELECT id FROM app_user WHERE email='tecnica.ai3@paodospobres.dev'))
+       RETURNING id, access_level`,
+      [ids.AI3, MARCA_OPERACIONAL, MARCA_RESTRITA]);
+    for (const r of inc.rows) {
+      await admin.query(`INSERT INTO incident_person (incident_id, person_id) VALUES ($1,$2)`,
+        [r.id, ids.crianca]);
+      ids[r.access_level === 'restrito' ? 'incRestrita' : 'incOperacional'] = r.id;
     }
 
     /*
-     * O PERÍODO DO ACOMPANHAMENTO SAI DA FIXTURE, e não do relógio: a ocorrência
-     * foi criada num dia que já passou e não pode ser movida (não há `UPDATE`
-     * por aqui tampouco). Ancorar o período nela é o que faz esta suíte passar
-     * hoje e no mês que vem.
+     * O PERÍODO É O DIA DA INSTITUIÇÃO, e sai do `app_hoje()` — nunca do relógio
+     * do processo. Depois das 21h em Porto Alegre o UTC já virou o dia, e um
+     * período calculado em UTC deixaria as duas ocorrências de fora do próprio
+     * recorte que esta suíte acabou de montar. É a condição que o segundo
+     * relógio da casa exercita.
      */
-    const { rows: [janela] } = await admin.query(
-      `SELECT min((happened_at AT TIME ZONE app_fuso())::date) AS de,
-              max((happened_at AT TIME ZONE app_fuso())::date) AS ate
-         FROM incident WHERE id = ANY($1::uuid[])`,
-      [[ids.incOperacional, ids.incRestrita]]);
-    ids.de = janela.de; ids.ate = janela.ate;
-
     ({ rows: [{ id: ids.followup }] } = await admin.query(
       `INSERT INTO followup (person_id, house_id, episode_id, kind,
                              period_start, period_end, status)
@@ -121,17 +120,17 @@ describe('De onde vem a fonte do acompanhamento', () => {
                -- por cima da primeira.
                (SELECT id FROM care_episode WHERE person_id = $1
                  ORDER BY started_at DESC LIMIT 1),
-               'semanal', $3::date, $4::date, 'pendente')
-       RETURNING id`, [ids.crianca, ids.AI3, ids.de, ids.ate]));
+               'semanal', app_hoje(), app_hoje(), 'pendente')
+       RETURNING id`, [ids.crianca, ids.AI3]));
 
     /* Uma atividade DENTRO e outra bem FORA do período — estas se apagam. */
     const ativ = await admin.query(
       `INSERT INTO activity (house_id, person_id, kind, title, scheduled_at, state)
        VALUES ($1, $2, 'saude', 'Consulta fictícia da suíte de fontes',
-               $3::timestamptz + interval '14 hours', 'concluida_no_horario'),
+               app_hoje()::timestamptz + interval '14 hours', 'concluida_no_horario'),
               ($1, $2, 'saude', 'Consulta fictícia FORA do período',
-               $3::timestamptz - interval '60 days', 'concluida_no_horario')
-       RETURNING id`, [ids.AI3, ids.crianca, ids.de]);
+               app_hoje()::timestamptz - interval '60 days', 'concluida_no_horario')
+       RETURNING id`, [ids.AI3, ids.crianca]);
     criados.atividades = ativ.rows.map((r: any) => r.id);
   });
 

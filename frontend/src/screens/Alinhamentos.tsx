@@ -4,6 +4,7 @@ import { FolhaDocumento } from '../documentos';
 import type { ArquivoGerado } from '../documentos';
 import type { DocumentoWord } from '../docx';
 import { quemAssina } from '../quem-assina';
+import { dia } from '../rotulos';
 
 /**
  * REUNIÕES E COMBINADOS DA EQUIPE (§9.4).
@@ -74,8 +75,6 @@ const TOM_PAUTA: Record<string, string> = {
   proposta: 'c-warn', aceita: 'c-ok', recusada: 'c-mute', adiada: 'c-brand',
 };
 
-const dia = (iso: string) => new Date(`${String(iso).slice(0, 10)}T12:00:00-03:00`)
-  .toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 const quando = (iso: string) => new Date(iso).toLocaleString('pt-BR',
   { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
     timeZone: 'America/Sao_Paulo' });

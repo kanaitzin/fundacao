@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api';
+import { dia } from '../rotulos';
 
 /**
  * ============================================================================
@@ -59,8 +60,6 @@ interface Painel {
 
 const reais = (centavos: number) =>
   (centavos / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-const dia = (iso: string) =>
-  new Date(`${iso}T12:00:00-03:00`).toLocaleDateString('pt-BR');
 
 /** Os recortes que o Gestor Geral pediu, na ordem em que ele os falou. */
 const RECORTES: { chave: keyof Casa; titulo: string; nota?: string }[] = [

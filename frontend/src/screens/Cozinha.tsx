@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { api } from '../api';
 import { FolhaDocumento, ArquivoGerado } from '../documentos';
 import type { DocumentoWord } from '../docx';
+import { dia } from '../rotulos';
 
 /**
  * COZINHA — uma tela só, e é isso que a torna certa.
@@ -34,8 +35,6 @@ interface Restricao {
   revisarEm: string | null;
 }
 
-const dia = (iso: string) => new Date(`${iso}T12:00:00-03:00`).toLocaleDateString('pt-BR',
-  { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'America/Sao_Paulo' });
 
 interface Pedido {
   id: string; tipo: string; personId: string | null; paraQuem: string;

@@ -3,7 +3,7 @@ import { api } from '../api';
 import { FolhaDocumento } from '../documentos';
 import type { ArquivoGerado } from '../documentos';
 import type { DocumentoWord } from '../docx';
-import { cargo as rotuloCargo, tomDoAutor } from '../rotulos';
+import { cargo as rotuloCargo, diaCurto as dia, tomDoAutor } from '../rotulos';
 
 /**
  * A ESCALA DE PLANTÃO (§5.12).
@@ -52,9 +52,6 @@ const TURNOS = [
   { cod: 'noturno' as const, label: 'Noturno', horas: '19h–7h' },
 ];
 
-const dia = (iso: string) =>
-  new Date(`${iso}T12:00:00-03:00`).toLocaleDateString('pt-BR',
-    { day: '2-digit', month: '2-digit' });
 const diaSemana = (iso: string) =>
   new Date(`${iso}T12:00:00-03:00`).toLocaleDateString('pt-BR', { weekday: 'short' });
 const hhmm = (t: string | null) => (t ? String(t).slice(0, 5) : null);

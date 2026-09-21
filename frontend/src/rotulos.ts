@@ -54,3 +54,59 @@ export function tomDoAutor(id: string, escolhida?: string | null): string {
   for (const ch of id) n = (n * 31 + ch.charCodeAt(0)) % 997;
   return TONS_DE_AUTOR[n % TONS_DE_AUTOR.length];
 }
+
+/* -------------------------------------------------------------------------- */
+/* A DATA, NUM LUGAR SÓ (fase 135).                                            */
+/* -------------------------------------------------------------------------- */
+/**
+ * O DIA, ESCRITO COMO A CASA LÊ — e por que isto virou função exportada.
+ *
+ * Esta conta estava escrita **nove vezes**, uma por tela, e o problema não era
+ * a repetição: era que as cópias **não eram iguais**. Duas delas formatavam sem
+ * `timeZone`, isto é, no fuso de QUEM ABRE a página — e uma delas montava o
+ * meio-dia sem informar o deslocamento, o que dá no mesmo. Num navegador
+ * configurado noutro fuso, a mesma data aparecia num dia diferente em telas
+ * diferentes do mesmo sistema; e quem olhasse não desconfiaria, porque as duas
+ * pareciam certas.
+ *
+ * É a lição do mapa `VINCULO` e do hash da cor de autor (fase 123): correção
+ * numa cópia não alcança as outras, e a segunda cópia esquece a correção que a
+ * primeira recebeu.
+ *
+ * O MEIO-DIA COM DESLOCAMENTO EXPLÍCITO é o miolo da função. Um dia puro
+ * (`2026-09-21`) lido como data JavaScript nasce à meia-noite **UTC**, que em
+ * Porto Alegre é 21h do dia ANTERIOR: a audiência do dia 21 apareceria como 20.
+ * Ancorar no meio-dia da instituição põe a leitura longe das duas viradas.
+ *
+ * Aceita dia puro e instante completo: quem passa `created_at` não precisa
+ * lembrar de cortar a string, e cortar errado era outra forma de perder o fuso.
+ */
+const NOMES_DO_DIA = { day: '2-digit', month: '2-digit', year: 'numeric' } as const;
+const FUSO = 'America/Sao_Paulo';
+
+function instanteDoDia(iso: string): Date {
+  const texto = String(iso);
+  /* Dez caracteres é dia puro; mais do que isso já é instante, e instante já
+     traz o próprio fuso. */
+  return new Date(texto.length <= 10 ? `${texto}T12:00:00-03:00` : texto);
+}
+
+/** `21/09/2026`. Devolve `—` para vazio e para data que não existe. */
+export function dia(iso: string | null | undefined): string {
+  if (!iso) return '—';
+  const d = instanteDoDia(iso);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString('pt-BR', { ...NOMES_DO_DIA, timeZone: FUSO });
+}
+
+/**
+ * `21/09`, sem o ano — para a grade da escala, onde a semana inteira cabe numa
+ * linha e o ano repetido sete vezes só rouba espaço.
+ */
+export function diaCurto(iso: string | null | undefined): string {
+  if (!iso) return '—';
+  const d = instanteDoDia(iso);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString('pt-BR',
+    { day: '2-digit', month: '2-digit', timeZone: FUSO });
+}

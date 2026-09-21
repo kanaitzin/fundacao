@@ -4,6 +4,7 @@ import { FolhaDocumento, baixarArquivo } from '../documentos';
 import { BotaoOlho, FolhaArquivo } from '../anexos';
 import type { ArquivoGerado } from '../documentos';
 import type { DocumentoWord } from '../docx';
+import { dia } from '../rotulos';
 
 /**
  * O TRABALHO SOCIAL — a outra leitura das oito casas.
@@ -50,9 +51,6 @@ interface Marco {
   temComprovante: boolean; por: string;
 }
 
-const dia = (iso: string) =>
-  new Date(String(iso).length <= 10 ? `${iso}T12:00:00-03:00` : iso)
-    .toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
 
 export function TrabalhoSocial({ papel }: { papel: string }) {
   const [p, setP] = useState<Panorama | null>(null);

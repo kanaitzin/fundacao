@@ -5,6 +5,7 @@ import { FolhaDocumento } from '../documentos';
 import type { ArquivoGerado } from '../documentos';
 import type { DocumentoWord } from '../docx';
 import { quemAssina } from '../quem-assina';
+import { diaCurto as dia } from '../rotulos';
 
 /**
  * OCORRÊNCIAS (§13).
@@ -126,8 +127,6 @@ const OPERACIONAL_ENCERRADA = ['encerrada_operacional', 'aguardando_revisao_tecn
 
 const hhmm = (iso: string) => new Date(iso).toLocaleTimeString('pt-BR',
   { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' });
-const dia = (iso: string) => new Date(iso).toLocaleDateString('pt-BR',
-  { day: '2-digit', month: '2-digit', timeZone: 'America/Sao_Paulo' });
 
 const ANALISA = ['equipe_tecnica', 'coordenador', 'gestor_geral'];
 

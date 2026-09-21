@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
 import { baixarArquivo } from '../documentos';
 import { BotaoOlho, Escolhido, FolhaArquivo, PreviaEscolhida, base64De, lerArquivo } from '../anexos';
+import { dia } from '../rotulos';
 
 /**
  * INTERNAÇÃO HOSPITALAR.
@@ -61,9 +62,6 @@ interface Vocabulario {
 
 const QUEM_ABRE = ['equipe_tecnica', 'coordenador', 'gestor_geral'];
 
-const dia = (iso: string) =>
-  new Date(String(iso).length <= 10 ? `${iso}T12:00:00-03:00` : iso)
-    .toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
 const hhmm = (iso: string) =>
   new Date(iso).toLocaleTimeString('pt-BR',
     { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' });

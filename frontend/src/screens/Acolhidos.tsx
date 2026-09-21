@@ -7,6 +7,7 @@ import { VINCULO, FolhaDoRelato, RelatoDaConvivencia } from '../convivencias';
 import {
   BotaoOlho, Escolhido, FolhaArquivo, PreviaEscolhida, base64De, lerArquivo,
 } from '../anexos';
+import { dia } from '../rotulos';
 
 /**
  * OS ACOLHIDOS DA CASA e o PERFIL (§6, §13).
@@ -212,13 +213,6 @@ const hhmm = (iso: string) => new Date(iso).toLocaleTimeString('pt-BR',
  * uma criança. Corta em dez caracteres e monta ao meio-dia, que é o que
  * impede o fuso de recuar um dia.
  */
-const dia = (d: string) => {
-  const iso = String(d).slice(0, 10);
-  const data = new Date(`${iso}T12:00:00`);
-  return Number.isNaN(data.getTime())
-    ? '—'
-    : data.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-};
 
 interface SaidaSozinho {
   personId: string; quem: string; status: string; motivo: string;

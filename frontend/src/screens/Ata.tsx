@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { cargo } from '../rotulos';
+import { dia, cargo } from '../rotulos';
 import { ConvivenciasDoTurno, ConvivenciaDoTurno } from '../convivencias';
 import { api } from '../api';
 import { tomDoAutor } from '../rotulos';
@@ -157,8 +157,6 @@ interface AtaGeral {
 
 const hhmm = (iso: string) => new Date(iso).toLocaleTimeString('pt-BR',
   { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' });
-const dia = (iso: string) => new Date(`${iso}T12:00:00-03:00`).toLocaleDateString('pt-BR',
-  { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'America/Sao_Paulo' });
 
 /** Quem fecha a ATA da casa (§12.4) — o mesmo alcance do servidor. */
 const FECHA_ATA = ['lider_diurno', 'lider_noturno_geral', 'equipe_tecnica', 'coordenador', 'gestor_geral'];

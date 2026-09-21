@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api';
 import { baixarArquivo } from '../documentos';
+import { dia } from '../rotulos';
 
 /**
  * O DOSSIÊ DO ACOLHIDO (§6.1) e o ÁLBUM DE VIVÊNCIAS (§6.9).
@@ -75,10 +76,6 @@ interface Catalogo {
 /** O que a prévia precisa saber sobre um arquivo escolhido, antes de enviar. */
 interface Escolhido { nome: string; tipo: string; tamanho: number; dataUrl: string }
 
-const dia = (iso: string | null) => (iso
-  ? new Date(`${String(iso).slice(0, 10)}T12:00:00-03:00`).toLocaleDateString('pt-BR',
-      { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'America/Sao_Paulo' })
-  : '—');
 const tam = (b: number) => (b > 1048576 ? `${(b / 1048576).toFixed(1)} MB`
                                         : `${Math.max(1, Math.round(b / 1024))} KB`);
 const TOM_SITUACAO: Record<string, string> = {

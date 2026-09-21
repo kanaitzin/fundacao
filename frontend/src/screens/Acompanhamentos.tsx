@@ -4,6 +4,7 @@ import { BotaoOlho } from '../anexos';
 import { FolhaDocumento } from '../documentos';
 import { Alinhamentos } from './Alinhamentos';
 import type { DocumentoWord } from '../docx';
+import { dia } from '../rotulos';
 
 /**
  * ACOMPANHAMENTOS E RELATÓRIOS.
@@ -546,8 +547,6 @@ function FolhaEixos({ acompanhamento, eixos, onFechar, onSalvar }: {
 /* A data em português, no fuso da instituição — `slice` daria o dia em UTC, e
    depois das 21h a fonte de ontem apareceria com a data de hoje.
    *Nota: esta função está escrita em oito telas; ver o achado da fase 134.* */
-const dia = (iso: string) => new Date(`${iso}T12:00:00-03:00`).toLocaleDateString('pt-BR',
-  { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'America/Sao_Paulo' });
 
 interface Candidato {
   entidade: string; id: string; tipo: string; origem: string;

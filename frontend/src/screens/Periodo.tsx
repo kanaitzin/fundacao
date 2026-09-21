@@ -3,6 +3,7 @@ import { api } from '../api';
 import { FolhaDocumento } from '../documentos';
 import type { ArquivoGerado } from '../documentos';
 import type { DocumentoWord } from '../docx';
+import { dia } from '../rotulos';
 
 /**
  * ============================================================================
@@ -75,8 +76,6 @@ interface Periodo {
   ressalvas: string[];
 }
 
-const dia = (iso: string) => new Date(`${iso}T12:00:00-03:00`)
-  .toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
 /**
  * OS ATALHOS DE PERÍODO — e por que "hoje" é lido na hora do clique.

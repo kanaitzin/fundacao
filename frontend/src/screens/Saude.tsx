@@ -5,6 +5,7 @@ import { FolhaDocumento } from '../documentos';
 import type { ArquivoGerado } from '../documentos';
 import type { DocumentoWord } from '../docx';
 import { quemAssina } from '../quem-assina';
+import { dia } from '../rotulos';
 
 /**
  * SAÚDE — MEDICAMENTOS E ENFERMAGEM.
@@ -93,8 +94,6 @@ interface Evolucao {
 
 const hhmm = (iso: string) => new Date(iso).toLocaleTimeString('pt-BR',
   { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' });
-const dia = (iso: string) => new Date(`${iso}T12:00:00-03:00`).toLocaleDateString('pt-BR',
-  { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'America/Sao_Paulo' });
 
 /**
  * Um instante para ler. O `dia` acima recebe dia puro ("2026-09-01") e monta a
