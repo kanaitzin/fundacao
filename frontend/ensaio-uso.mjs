@@ -365,6 +365,57 @@ cobrar('a auditoria NÃO aparece para a equipe técnica',
 cobrar('há como acrescentar contato', await clicar(/Acrescentar contato/));
 await fechar();
 cobrar('os acompanhamentos abrem', await doMais('Acompanhamentos'));
+
+/*
+ * DE ONDE VEM A FONTE DO ACOMPANHAMENTO (fase 134) — resposta §10.7 de 20/09.
+ *
+ * O `POST /followups/:id/sources` existia desde a migração 0490 e NUNCA teve
+ * quem o chamasse: ele pedia `entidade` e `entityId` digitados à mão. O que este
+ * percurso cobra é a lista que faltava — uma só, com filtro por tipo — e, sobre
+ * tudo, a regra que a folha impõe: **o conteúdo da ocorrência restrita não sai
+ * por aqui**, só a referência.
+ */
+/* O acompanhamento do BRUNO, e não o primeiro da lista: é o que tem período com
+   registro dentro dele. Clicar no primeiro abriria um acompanhamento sem fonte
+   nenhuma e o percurso mediria uma lista vazia dizendo que a tela está errada. */
+const cartaoBruno = pg.locator('main.conteudo .card').filter({ hasText: /Bruno/ }).first();
+cobrar('a lista traz o acompanhamento do Bruno', (await cartaoBruno.count()) > 0,
+  (await conteudo()).slice(0, 300));
+if (await cartaoBruno.count()) {
+  await cartaoBruno.locator('button').filter({ hasText: /^(Abrir|Preencher)$/ }).first().click();
+  await pg.waitForTimeout(1100);
+}
+const folha134 = await corpo();
+cobrar('a folha traz as fontes do período', /Fontes do período/i.test(folha134),
+  folha134.slice(0, 400));
+cobrar('e diz que guarda a REFERÊNCIA, não a cópia',
+  /refer[êe]ncia/i.test(folha134) && /nunca a c[óo]pia/i.test(folha134));
+cobrar('as três origens vêm na MESMA lista, com filtro por tipo',
+  /Linha do tempo/i.test(folha134) && /Ocorrências/i.test(folha134)
+    && /Evoluções de saúde/i.test(folha134), folha134.slice(0, 500));
+/* A ocorrência restrita: aparece, marcada, e SEM o texto. */
+cobrar('a ocorrência restrita aparece marcada',
+  /Acesso restrito/i.test(folha134),
+  'esconder que existe faria a técnica procurar noutro lugar');
+cobrar('e o conteúdo dela NÃO está na folha',
+  /fica na tela da ocorrência/i.test(folha134),
+  'esta folha se imprime, se anexa e se esquece em cima de uma mesa');
+cobrar('a fonte já escolhida vem marcada, e não oferece o botão de novo',
+  /Já é fonte deste acompanhamento/i.test(folha134),
+  'sem isso quem escreve não sabe o que já citou');
+const btFonte = pg.locator('.overlay .sheet button').filter({ hasText: /^Usar como fonte$/ });
+cobrar('e há por onde escolher uma fonte nova', (await btFonte.count()) > 0);
+if (await btFonte.count()) {
+  await btFonte.first().click();
+  await pg.waitForTimeout(1100);
+  const depois134 = await corpo();
+  const antes = (folha134.match(/Já é fonte deste acompanhamento/gi) ?? []).length;
+  const agora = (depois134.match(/Já é fonte deste acompanhamento/gi) ?? []).length;
+  cobrar('escolher acrescenta a fonte, e ela passa a vir marcada', agora > antes,
+    `antes ${antes}, agora ${agora}`);
+}
+await fechar();
+
 cobrar('nenhuma exceção no turno da técnica', erros.length === 0, erros[0]);
 
 // ====================================================== 4. Enfermagem

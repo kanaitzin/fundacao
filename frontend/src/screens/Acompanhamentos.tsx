@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
 import { BotaoOlho } from '../anexos';
 import { FolhaDocumento } from '../documentos';
@@ -510,6 +510,15 @@ function FolhaEixos({ acompanhamento, eixos, onFechar, onSalvar }: {
           </div>
         ))}
 
+        {/*
+          * AS FONTES (§14.4, resposta de 20/09).
+          *
+          * Ficam DEPOIS dos eixos e não antes: quem escreve começa escrevendo, e
+          * a fonte é o que ele referencia enquanto escreve. Antes dos eixos, a
+          * folha abriria numa lista para ler em vez de num campo para escrever.
+          */}
+        <FontesDoAcompanhamento id={acompanhamento.id} bloqueado={bloqueado} />
+
         {!bloqueado && (
           <div className="row rodape">
             <button className="btn sec grow" onClick={() => onSalvar(valores, false)}>
@@ -527,6 +536,156 @@ function FolhaEixos({ acompanhamento, eixos, onFechar, onSalvar }: {
         )}
       </div>
     </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* AS FONTES DO ACOMPANHAMENTO (fase 134).                                     */
+/* -------------------------------------------------------------------------- */
+
+/* A data em português, no fuso da instituição — `slice` daria o dia em UTC, e
+   depois das 21h a fonte de ontem apareceria com a data de hoje.
+   *Nota: esta função está escrita em oito telas; ver o achado da fase 134.* */
+const dia = (iso: string) => new Date(`${iso}T12:00:00-03:00`).toLocaleDateString('pt-BR',
+  { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'America/Sao_Paulo' });
+
+interface Candidato {
+  entidade: string; id: string; tipo: string; origem: string;
+  titulo: string; quando: string; autor: string | null;
+  classificacao: 'operacional' | 'restrito';
+  resumo: string | null; jaEscolhida: boolean;
+}
+
+/**
+ * O QUE PODE VIRAR FONTE — as três numa lista só.
+ *
+ * A pergunta §10.7 era de onde a técnica escolhe, e a resposta de 20/09 foi
+ * **uma lista só**, com filtro por tipo. Três listas separadas obrigariam quem
+ * escreve a lembrar de visitar as três; uma lista ordenada por data é a semana
+ * da criança na ordem em que ela aconteceu.
+ *
+ * O `POST /followups/:id/sources` existia desde a migração 0490 e **nunca teve
+ * quem o chamasse** — ele pedia `entidade` e `entityId` digitados à mão, que
+ * ninguém tem.
+ *
+ * O conteúdo de ocorrência restrita NÃO aparece aqui, só a referência: este
+ * documento vira folha, e folha se imprime, se anexa e se esquece em cima de uma
+ * mesa (é o precedente da fase 121). Quem precisa do texto o lê na tela da
+ * ocorrência, onde cada abertura fica registrada — e vê aqui que ela existe, que
+ * é o bastante para decidir referenciá-la. Esconder que existe faria a técnica
+ * procurar noutro lugar.
+ */
+function FontesDoAcompanhamento({ id, bloqueado }: { id: string; bloqueado: boolean }) {
+  const [dados, setDados] = useState<{
+    periodo: { de: string; ate: string };
+    tipos: { cod: string; label: string }[];
+    candidatos: Candidato[]; aviso: string;
+  } | null>(null);
+  const [filtro, setFiltro] = useState('');
+  const [erro, setErro] = useState('');
+  const [ocupado, setOcupado] = useState('');
+
+  const carregar = useCallback(async () => {
+    try {
+      setDados(await api(`/followups/${id}/sources`));
+    } catch (e) {
+      /* Sem as fontes, o texto continua sendo escrito: a folha não trava. */
+      setErro(e instanceof Error ? e.message : 'Não foi possível listar as fontes.');
+    }
+  }, [id]);
+  useEffect(() => { carregar(); }, [carregar]);
+
+  if (!dados) {
+    return erro
+      ? <p className="mutetxt">{erro}</p>
+      : <p className="mutetxt">Carregando o que pode virar fonte…</p>;
+  }
+
+  const lista = dados.candidatos.filter((c) => !filtro || c.tipo === filtro);
+  const escolhidas = dados.candidatos.filter((c) => c.jaEscolhida);
+
+  async function escolher(c: Candidato) {
+    setOcupado(c.id); setErro('');
+    try {
+      await api(`/followups/${id}/sources`, {
+        method: 'POST',
+        body: JSON.stringify({
+          entidade: c.entidade, entityId: c.id, origem: c.origem,
+          autor: c.autor, registradoEm: c.quando, classificacao: c.classificacao,
+        }),
+      });
+      await carregar();
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Não foi possível guardar a fonte.');
+    } finally {
+      setOcupado('');
+    }
+  }
+
+  return (
+    <>
+      <div className="eyebrow">
+        Fontes do período · {escolhidas.length} escolhida(s)
+      </div>
+      <p className="mutetxt">{dados.aviso}</p>
+      {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+
+      <div className="opts">
+        <button type="button" className="opt c-med" aria-pressed={filtro === ''}
+                onClick={() => setFiltro('')}>
+          Tudo
+        </button>
+        {dados.tipos.map((t) => (
+          <button type="button" key={t.cod} className="opt c-med"
+                  aria-pressed={filtro === t.cod} onClick={() => setFiltro(t.cod)}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {!lista.length && (
+        <p className="mutetxt">
+          Nada registrado neste recorte. <b>Sem registro é sem registro</b> — não é
+          período ruim, e o texto não deve dizer que foi.
+        </p>
+      )}
+
+      <div className="stack">
+        {lista.map((c) => (
+          <article className="card" key={`${c.entidade}:${c.id}`}>
+            <div className="row" style={{ justifyContent: 'space-between', gap: 8 }}>
+              <div className="grow">
+                <b className="ff">{c.titulo}</b>
+                <div className="mutetxt">
+                  {c.origem} · {dia(String(c.quando).slice(0, 10))}
+                  {c.autor ? ` · ${c.autor}` : ''}
+                </div>
+              </div>
+              {c.classificacao === 'restrito' && (
+                <span className="pill c-warn">Acesso restrito</span>
+              )}
+            </div>
+            {c.resumo && <p style={{ margin: '8px 0 0' }}>{c.resumo}</p>}
+            {c.classificacao === 'restrito' && (
+              <p className="mutetxt" style={{ margin: '8px 0 0' }}>
+                O conteúdo fica na tela da ocorrência, onde cada abertura é registrada.
+                Aqui entra a referência.
+              </p>
+            )}
+            <div className="row" style={{ marginTop: 12 }}>
+              {c.jaEscolhida ? (
+                <span className="pill c-ok">Já é fonte deste acompanhamento</span>
+              ) : (
+                <button type="button" className="btn sm sec" disabled={bloqueado || ocupado === c.id}
+                        onClick={() => escolher(c)}>
+                  {ocupado === c.id ? 'Guardando…' : 'Usar como fonte'}
+                </button>
+              )}
+            </div>
+          </article>
+        ))}
+      </div>
+    </>
   );
 }
 

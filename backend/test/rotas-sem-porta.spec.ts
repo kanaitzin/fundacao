@@ -145,10 +145,6 @@ const SEM_TELA_DE_PROPOSITO: Record<string, string> = {
     'Correção da linha de uma casa na ATA Geral. Espera a decisão institucional sobre '
     + 'quem lê a ATA Geral de dia (§10.2 do REDE-ACOLHER) — sem ela, não se sabe quem '
     + 'deveria ter o botão.',
-  'POST /followups/:id/sources':
-    'Escolha das fontes do acompanhamento. É a decisão de produto §7.7, em aberto: de '
-    + 'onde a técnica escolhe as fontes é justamente o que a Fundação não respondeu '
-    + 'ainda, e construir a tela antes seria inventar o fluxo.',
   'POST /statements/:id/exceptional-read':
     'Leitura excepcional de relato protegido. A Fundação respondeu em 20/09/2026 O QUE ele '
     + 'vê antes de abrir — só a contagem —, e isso virou a fase 128. O que continua em '

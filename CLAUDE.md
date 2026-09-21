@@ -151,9 +151,19 @@ ausência fecha a ausência** — um banco só, e nada se apaga. A
 O §9 do documento manda, e o Grupo 1 está vazio: **não falta código para o
 piloto.** O que há pela frente, em ordem de quem já pode ser feito:
 
-1. **As três telas que as respostas de 20/09 destravaram** (§10.6, §10.7, e o
-   conceito educacional por período). Estavam paradas esperando gente, e não
-   estão mais.
+1. **As telas que as respostas de 20/09 destravaram.** Eram três:
+
+   * ~~**§10.7 — de onde a técnica escolhe as fontes**~~ ✅ **feita na fase 134.**
+     A lista dos candidatos existe, e o `POST` que morava sem porta desde a 0490
+     ganhou quem o chame.
+   * **§10.6 — a leitura excepcional de relato restrito.** A contagem virou a
+     fase 128; o que falta é **COMO o Gestor Geral escolhe o que abrir**. Com só
+     a contagem ele não tem por onde, e um botão que abrisse os N de uma vez
+     seria eu decidindo quanto da narrativa de uma criança sai junto. **É
+     pergunta para o Marcelo, e está no `PARA-A-REUNIAO.md`** — não escolha
+     sozinho.
+   * **O conceito educacional por período.** Também esperando uma resposta: quem
+     digita — o educador que acompanha a lição de casa, ou a equipe técnica.
 2. ~~**A dedução da escala sai**~~ ✅ **feito na fase 129.** Sem escala lançada,
    ninguém é nomeado; a tela diz em vermelho que ninguém a lançou; e a ATA sem
    escala E sem nenhuma passagem fecha COM pendência, que é o buraco que a

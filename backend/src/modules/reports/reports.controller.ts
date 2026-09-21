@@ -43,6 +43,19 @@ export class FollowupsController {
     return this.fu.salvar(user, id, body);
   }
 
+  /**
+   * O que PODE virar fonte (§14.4, resposta de 20/09) — as três numa lista só.
+   *
+   * Sem esta rota, a escolha de fonte pedia `entidade` e `entityId` digitados à
+   * mão: o `POST` abaixo existia desde a 0490 e não tinha como ser chamado por
+   * gente nenhuma.
+   */
+  @Get(':id/sources')
+  fontes(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
+         @Query('tipo') tipo?: string) {
+    return this.fu.fontesCandidatas(user, id, tipo || undefined);
+  }
+
   /** Escolha humana de fonte (§14.4) — guarda a referência, não a cópia. */
   @Post(':id/sources')
   fonte(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,

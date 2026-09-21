@@ -157,6 +157,137 @@ export class FollowupsService {
   }
 
   /**
+   * O QUE PODE VIRAR FONTE DESTE ACOMPANHAMENTO (§14.4, resposta de 20/09).
+   *
+   * A pergunta §10.7 era de onde a técnica escolhe, e a resposta foi **as três
+   * numa lista só** — linha do tempo, ocorrências e evoluções de saúde do
+   * período —, com filtro por tipo. Três listas separadas obrigariam quem
+   * escreve a lembrar de visitar as três; uma lista só, ordenada por data, é a
+   * semana da criança na ordem em que ela aconteceu.
+   *
+   * O `POST /followups/:id/sources` existe desde a 0490 e **nunca teve quem o
+   * chamasse**: a escolha de fonte pedia `entidade` e `entityId` digitados à
+   * mão, que ninguém tem. Era um dos casos do §9 — rota pronta sem porta.
+   *
+   * O TEXTO RESTRITO NÃO ENTRA NA LISTA, só a referência. É o precedente da
+   * fase 121, e a razão é a mesma: **este documento tem folha, e folha se
+   * imprime, se anexa e se esquece em cima de uma mesa.** Quem precisa ler a
+   * ocorrência restrita a lê na tela dela, onde cada abertura fica registrada —
+   * e aqui vê que ela existe, com data e autor, o bastante para decidir
+   * referenciá-la. Esconder que existe faria a técnica procurar noutro lugar.
+   *
+   * O período é o do ACOMPANHAMENTO, e não o de hoje: um acompanhamento de
+   * agosto aberto em setembro precisa das fontes de agosto.
+   *
+   * Cada fonte é opcional por `to_regclass`, como o painel: o módulo dono pode
+   * ser removido, e aí aquela origem some da lista em vez de derrubar a tela.
+   */
+  async fontesCandidatas(user: AuthenticatedUser, id: string, tipo?: string) {
+    /* alcance:acompanhamentos — quem redige. Conferido contra `alcance.ts`. */
+    if (!['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(user.role)) {
+      throw new ForbiddenException('Somente equipe técnica e coordenação redigem acompanhamentos.');
+    }
+    return this.db.asUser(user.id, async (c) => {
+      const { rows: [f] } = await c.query(
+        `SELECT person_id, period_start, period_end, status FROM followup WHERE id = $1`, [id]);
+      if (!f) throw new NotFoundException('Acompanhamento não encontrado.');
+
+      const { rows: existe } = await c.query(
+        `SELECT t AS tabela FROM unnest($1::text[]) t
+          WHERE to_regclass('public.' || t) IS NOT NULL`,
+        [['activity', 'incident', 'health_evolution']]);
+      const tem = new Set(existe.map((r: any) => r.tabela));
+
+      const { rows: escolhidas } = await c.query(
+        `SELECT entity, entity_id FROM followup_source WHERE followup_id = $1`, [id]);
+      const jaEscolhida = new Set(escolhidas.map((r: any) => `${r.entity}:${r.entity_id}`));
+
+      const candidatos: any[] = [];
+
+      if (tem.has('activity')) {
+        const { rows } = await c.query(
+          `SELECT a.id, a.title, a.scheduled_at AS quando, a.state,
+                  app_user_display_name(a.created_by) AS autor
+             FROM activity a
+            WHERE a.person_id = $1
+              AND (a.scheduled_at AT TIME ZONE app_fuso())::date BETWEEN $2 AND $3
+            ORDER BY a.scheduled_at DESC LIMIT 200`, [f.person_id, f.period_start, f.period_end]);
+        for (const r of rows) {
+          candidatos.push({
+            entidade: 'activity', id: r.id, tipo: 'atividade',
+            origem: 'Linha do tempo', titulo: r.title, quando: r.quando,
+            autor: r.autor, classificacao: 'operacional',
+            /* O estado é o resumo: "não aconteceu" é informação de acompanhamento
+               tanto quanto "aconteceu", e é o que a técnica procura. */
+            resumo: r.state,
+          });
+        }
+      }
+
+      if (tem.has('incident')) {
+        const { rows } = await c.query(
+          `SELECT i.id, i.category, i.happened_at AS quando, i.access_level,
+                  i.objective_fact, app_user_display_name(i.opened_by) AS autor
+             FROM incident i
+             -- rls-join-ok: incident_person não tem política própria; quem lê a
+             -- ocorrência é quem decide, e é a política de incident que decide.
+             JOIN incident_person ip ON ip.incident_id = i.id
+            WHERE ip.person_id = $1
+              AND (i.happened_at AT TIME ZONE app_fuso())::date BETWEEN $2 AND $3
+            ORDER BY i.happened_at DESC LIMIT 200`, [f.person_id, f.period_start, f.period_end]);
+        for (const r of rows) {
+          const restrito = r.access_level === 'restrito';
+          candidatos.push({
+            entidade: 'incident', id: r.id, tipo: 'ocorrencia',
+            origem: 'Ocorrências', titulo: r.category, quando: r.quando,
+            autor: r.autor, classificacao: restrito ? 'restrito' : 'operacional',
+            // O fato objetivo não sai daqui quando é restrito: esta folha circula.
+            resumo: restrito ? null : r.objective_fact,
+          });
+        }
+      }
+
+      if (tem.has('health_evolution')) {
+        const { rows } = await c.query(
+          `SELECT e.id, e.kind, e.happened_at AS quando, e.state_return, e.status,
+                  app_user_display_name(e.accompanied_by) AS autor
+             FROM health_evolution e
+            WHERE e.person_id = $1
+              AND (e.happened_at AT TIME ZONE app_fuso())::date BETWEEN $2 AND $3
+            ORDER BY e.happened_at DESC LIMIT 200`, [f.person_id, f.period_start, f.period_end]);
+        for (const r of rows) {
+          candidatos.push({
+            entidade: 'health_evolution', id: r.id, tipo: 'saude',
+            origem: 'Evoluções de saúde', titulo: r.kind, quando: r.quando,
+            autor: r.autor, classificacao: 'operacional', resumo: r.state_return,
+          });
+        }
+      }
+
+      const lista = candidatos
+        .filter((x) => !tipo || x.tipo === tipo)
+        .map((x) => ({ ...x, jaEscolhida: jaEscolhida.has(`${x.entidade}:${x.id}`) }))
+        .sort((a, b) => String(b.quando).localeCompare(String(a.quando)));
+
+      return {
+        periodo: { de: f.period_start, ate: f.period_end },
+        /* Aprovado não recebe fonte nova — a tela precisa saber antes de
+           oferecer o botão, e não depois da recusa. */
+        aberto: f.status !== 'aprovado',
+        tipos: [
+          { cod: 'atividade', label: 'Linha do tempo' },
+          { cod: 'ocorrencia', label: 'Ocorrências' },
+          { cod: 'saude', label: 'Evoluções de saúde' },
+        ],
+        candidatos: lista,
+        aviso: 'O acompanhamento guarda a REFERÊNCIA ao registro, nunca a cópia. '
+          + 'O conteúdo de ocorrência restrita não aparece aqui: esta folha se imprime, '
+          + 'e quem precisa lê na tela da ocorrência, onde cada abertura fica registrada.',
+      };
+    });
+  }
+
+  /**
    * Escolher uma fonte (§14.4). Guarda a referência ao original, com origem,
    * autor, data e classificação — nunca a cópia do texto restrito.
    */

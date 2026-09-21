@@ -2817,6 +2817,59 @@ interface Acompanhamento {
   devolucao: string | null;
   historico: { id: string; quem: string; acao: string; em: string; nota: string | null }[];
 }
+/**
+ * O QUE PODE VIRAR FONTE DE UM ACOMPANHAMENTO (§14.4, fase 134).
+ *
+ * No servidor isto é uma consulta a três tabelas dentro do período do
+ * acompanhamento; aqui é dado de demonstração, porque o servidor de mentira não
+ * tem as três tabelas. O que TEM de ser igual — e é o que a regra 14 cobra — é a
+ * FORMA da resposta e as recusas: uma lista só, com tipo, origem, autor, data e
+ * classificação, e **sem o conteúdo da ocorrência restrita**.
+ *
+ * A ocorrência restrita está aqui de propósito: é o caso que a decisão de 20/09
+ * desenha, e sem ela a demonstração mostraria só a metade fácil.
+ */
+interface FonteMock {
+  entidade: string; id: string; tipo: string; origem: string;
+  titulo: string; quando: string; autor: string | null;
+  classificacao: 'operacional' | 'restrito'; resumo: string | null;
+}
+const FONTES_CANDIDATAS: Record<string, FonteMock[]> = {
+  f2: [
+    { entidade: 'activity', id: 'fc1', tipo: 'atividade', origem: 'Linha do tempo',
+      titulo: 'Consulta odontológica', quando: emDias(-9, 14, 0),
+      autor: 'Joana Lima (fictícia)', classificacao: 'operacional', resumo: 'Realizada' },
+    { entidade: 'health_evolution', id: 'fc2', tipo: 'saude', origem: 'Evoluções de saúde',
+      titulo: 'Consulta', quando: emDias(-9, 16, 30), autor: 'Joana Lima (fictícia)',
+      classificacao: 'operacional',
+      resumo: 'Voltou tranquilo, sem dor referida; comeu bem no jantar.' },
+    { entidade: 'incident', id: 'fc3', tipo: 'ocorrencia', origem: 'Ocorrências',
+      titulo: 'conflito_agressao', quando: emDias(-6, 21, 10),
+      autor: 'Mário Silva (fictício)', classificacao: 'operacional',
+      resumo: 'Discussão por causa do revezamento do videogame; separados e conversados '
+        + 'na mesma noite, sem ferimento.' },
+    /* A RESTRITA: aparece, e sem o texto. Esconder que ela existe faria a
+       técnica procurar noutro lugar; mostrar o texto poria conteúdo sensível
+       numa folha que se imprime (precedente da fase 121). */
+    { entidade: 'incident', id: 'fc4', tipo: 'ocorrencia', origem: 'Ocorrências',
+      titulo: 'violencia_ou_suspeita', quando: emDias(-4, 19, 45),
+      autor: 'Tatiane Técnica (fictícia)', classificacao: 'restrito', resumo: null },
+    { entidade: 'activity', id: 'fc5', tipo: 'atividade', origem: 'Linha do tempo',
+      titulo: 'Reunião de responsáveis na escola', quando: emDias(-2, 9, 0),
+      autor: 'Tatiane Técnica (fictícia)', classificacao: 'operacional', resumo: 'Realizada' },
+  ],
+  f3: [
+    { entidade: 'activity', id: 'fc6', tipo: 'atividade', origem: 'Linha do tempo',
+      titulo: 'Entrega do trabalho de ciências', quando: emDias(-3, 10, 0),
+      autor: 'Mário Silva (fictício)', classificacao: 'operacional',
+      resumo: 'Realizada com atraso combinado' },
+  ],
+};
+/** As já escolhidas — o POST acrescenta aqui, e a lista volta marcada. */
+const FONTES_ESCOLHIDAS: { followupId: string; entidade: string; id: string }[] = [
+  { followupId: 'f2', entidade: 'health_evolution', id: 'fc2' },
+];
+
 let ACOMPANHAMENTOS: Acompanhamento[] = [
   { id: 'f1', personId: 'p01', tipo: 'mensal', periodo: 'agosto de 2026', situacao: 'pendente',
     versao: 1, redator: null, aprovador: null, eixos: {}, devolucao: null, historico: [] },
@@ -9418,6 +9471,64 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       podeAprovar: ['coordenador', 'gestor_geral'].includes(eu.role),
     }));
   }
+  /**
+   * `GET /followups/:id/sources` — o que PODE virar fonte (fase 134).
+   *
+   * Palavra fixa depois do `:id`, e por isso vem ANTES dos ramos que tratam
+   * `followups/:id` — palavra literal caindo num `:param` é falha silenciosa.
+   */
+  if (seg[0] === 'followups' && seg[2] === 'sources' && metodo === 'GET') {
+    const f = ACOMPANHAMENTOS.find((x) => x.id === seg[1]);
+    if (!f) return new Recusa(404, 'Acompanhamento não encontrado.');
+    if (!['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403, 'Somente equipe técnica e coordenação redigem acompanhamentos.');
+    }
+    const tipo = q.get('tipo');
+    const candidatos = (FONTES_CANDIDATAS[f.id] ?? [])
+      .filter((c) => !tipo || c.tipo === tipo)
+      .map((c) => ({ ...c,
+        jaEscolhida: FONTES_ESCOLHIDAS.some((e) =>
+          e.followupId === f.id && e.entidade === c.entidade && e.id === c.id) }))
+      .sort((a, x) => (a.quando < x.quando ? 1 : -1));
+    return {
+      periodo: { de: null, ate: null },
+      aberto: f.situacao !== 'aprovado',
+      tipos: [
+        { cod: 'atividade', label: 'Linha do tempo' },
+        { cod: 'ocorrencia', label: 'Ocorrências' },
+        { cod: 'saude', label: 'Evoluções de saúde' },
+      ],
+      candidatos,
+      aviso: 'O acompanhamento guarda a REFERÊNCIA ao registro, nunca a cópia. '
+        + 'O conteúdo de ocorrência restrita não aparece aqui: esta folha se imprime, '
+        + 'e quem precisa lê na tela da ocorrência, onde cada abertura fica registrada.',
+    };
+  }
+
+  /** `POST /followups/:id/sources` — a escolha humana, guardada por referência. */
+  if (seg[0] === 'followups' && seg[2] === 'sources' && metodo === 'POST') {
+    const f = ACOMPANHAMENTOS.find((x) => x.id === seg[1]);
+    if (!f) return new Recusa(404, 'Acompanhamento não encontrado.');
+    if (f.situacao === 'aprovado') {
+      return new Recusa(409, 'Acompanhamento aprovado não recebe fonte nova. Corrigir cria a '
+        + 'versão seguinte — a aprovada continua sendo o retrato daquele momento.');
+    }
+    if (!b.entidade || !b.entityId) {
+      return new Recusa(400, 'Informe a fonte que está sendo escolhida.');
+    }
+    const ja = FONTES_ESCOLHIDAS.some((e) => e.followupId === f.id
+      && e.entidade === b.entidade && e.id === b.entityId);
+    if (!ja) {
+      FONTES_ESCOLHIDAS.push({ followupId: f.id, entidade: String(b.entidade),
+        id: String(b.entityId) });
+    }
+    return { escolhida: true,
+      aviso: b.classificacao === 'restrito'
+        ? 'Fonte restrita: o acompanhamento guarda a referência, não a narrativa. Copiar o '
+          + 'texto é decisão sua, feita à mão.'
+        : null };
+  }
+
   if (rota === '/followups/generate') {
     return { criadas: 0, aviso: 'Pendências da semana e do mês criadas para os acolhidos '
       + 'ativos. Os eixos nascem vazios: a automação cria a pendência e nunca escreve a '
