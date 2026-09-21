@@ -81,7 +81,10 @@ interface Item {
 interface Evolucao {
   id: string; acolhidoId: string; acolhido: string; casa: string;
   tipo: string; quando: string; local: string | null; especialidade: string | null;
-  acompanhante: string | null; estadoRetorno: string | null;
+  acompanhante: string | null;
+  /** Quem LEVOU, quando não foi quem escreveu (1400). */
+  quemLevou?: string | null;
+  estadoRetorno: string | null;
   receita: string | null; orientacoes: string | null; restricoes: string | null;
   prazoRetorno: string | null; offline: boolean;
   status: string; pedidoComplemento: string | null;
@@ -210,7 +213,7 @@ interface Historico {
   }[];
   evolucoes: {
     id: string; tipoRotulo: string; quando: string; estadoRetorno: string | null;
-    orientacoes: string | null; acompanhante: string | null;
+    orientacoes: string | null; acompanhante: string | null; quemLevou?: string | null;
     status: string; statusRotulo: string; complementoEnfermagem: string | null;
   }[];
   administracoes: {
@@ -550,7 +553,9 @@ export function Saude({ houseId, casaLabel, papel }: {
                 <div className="mutetxt">
                   {t.casa} · atendimento em {hhmm(t.quando)}
                   {t.local ? ` · ${t.local}` : ''}{t.especialidade ? ` · ${t.especialidade}` : ''}
-                  {t.acompanhante ? ` · acompanhou: ${t.acompanhante}` : ''}
+                  {t.quemLevou
+                    ? ` · levou: ${t.quemLevou}${t.acompanhante ? ` · registrou: ${t.acompanhante}` : ''}`
+                    : t.acompanhante ? ` · acompanhou: ${t.acompanhante}` : ''}
                 </div>
                 {t.estadoRetorno && (
                   <div className="bloco"><small>Estado no retorno</small>{t.estadoRetorno}</div>
@@ -1308,7 +1313,10 @@ function FolhaTriagem({ evolucao, onFechar, onEnviar }: {
         <h3 id="t-tri">Revisar · {evolucao.acolhido}</h3>
         <p className="mutetxt">
           {evolucao.tipo}
-          {evolucao.acompanhante ? ` · acompanhou: ${evolucao.acompanhante}` : ''}
+          {evolucao.quemLevou
+            ? ` · levou: ${evolucao.quemLevou}${evolucao.acompanhante
+                ? ` · registrou: ${evolucao.acompanhante}` : ''}`
+            : evolucao.acompanhante ? ` · acompanhou: ${evolucao.acompanhante}` : ''}
           {' '}· {evolucao.horasNaFila}h na fila.
         </p>
         {evolucao.estadoRetorno && (
@@ -1473,7 +1481,10 @@ function FolhaHistorico({ pessoa, dados, emissoes, onFechar, onBaixar, onDocumen
                     <b className="ff">{e.tipoRotulo}</b>
                     <div className="mutetxt linhadois">
                       {dia(String(e.quando).slice(0, 10))}
-                      {e.acompanhante ? ` · acompanhou: ${e.acompanhante}` : ''}
+                      {e.quemLevou
+                        ? ` · levou: ${e.quemLevou}${e.acompanhante
+                            ? ` · registrou: ${e.acompanhante}` : ''}`
+                        : e.acompanhante ? ` · acompanhou: ${e.acompanhante}` : ''}
                     </div>
                   </div>
                   <span className={`pill ${e.status === 'assinada' ? 'c-ok'

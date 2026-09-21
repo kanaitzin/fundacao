@@ -135,6 +135,14 @@ export class NursingService {
     receita?: string; orientacoes?: string; restricoes?: string; prazoRetorno?: string;
     encaminhamentos?: string; intercorrenciasDeslocamento?: string; observacoes?: string;
     offline?: boolean; clientOpId?: string;
+    /**
+     * Quem LEVOU a criança, quando não foi quem escreve (1400).
+     *
+     * Opcional, e o normal é vir vazio: `accompanied_by` já é o autor. Isto é
+     * para o motorista da Fundação e para a tia autorizada — que não têm conta
+     * no sistema, e não devem ter uma só para caber num `uuid`.
+     */
+    acompanhanteNome?: string;
   }) {
     if (!input.quandoAconteceu) {
       throw new BadRequestException('Informe o horário real do atendimento.');
@@ -152,7 +160,7 @@ export class NursingService {
       ids = await this.db.asUser(user.id, async (c) => {
         const { rows: [r] } = await c.query(
           `SELECT * FROM app_submit_evolution($1,$2,$3,$4::timestamptz,$5,$6,$7,$8,$9,$10,$11,
-             $12,$13,$14,$15,$16,$17,$18::date,$19,$20,$21,$22,$23)`,
+             $12,$13,$14,$15,$16,$17,$18::date,$19,$20,$21,$22,$23,$24)`,
           [input.personId, input.houseId, input.tipo, input.quandoAconteceu,
            input.local ?? null, input.especialidade ?? null, input.servicoProfissional ?? null,
            input.motivo ?? null, input.estadoSaida ?? null, input.estadoDurante ?? null,
@@ -160,7 +168,8 @@ export class NursingService {
            input.examesResultados ?? null, input.receita ?? null, input.orientacoes ?? null,
            input.restricoes ?? null, input.prazoRetorno ?? null, input.encaminhamentos ?? null,
            input.intercorrenciasDeslocamento ?? null, input.observacoes ?? null,
-           input.offline ?? false, input.clientOpId ?? null]);
+           input.offline ?? false, input.clientOpId ?? null,
+           input.acompanhanteNome?.trim() || null]);
         return r;
       });
     } catch (e: any) {
@@ -210,6 +219,9 @@ export class NursingService {
                 app_house_label(e.house_id) AS casa,
                 app_person_display_name(e.person_id) AS pessoa, e.person_id,
                 app_user_display_name(e.accompanied_by) AS acompanhante,
+                -- Quem LEVOU, quando não foi quem escreveu (1400). Vem ao lado
+                -- e não NO LUGAR: a Enfermagem que tria precisa saber os dois.
+                e.companion_name,
                 (SELECT t.request_note FROM nursing_triage t
                   WHERE t.evolution_id = e.id ORDER BY t.at DESC LIMIT 1) AS pedido_complemento
          FROM health_evolution e
@@ -224,7 +236,11 @@ export class NursingService {
       return {
         id: r.id, acolhidoId: r.person_id, acolhido: r.pessoa, casa: r.casa,
         tipo: r.kind, quando: r.happened_at, local: r.place, especialidade: r.specialty,
-        acompanhante: r.acompanhante, estadoRetorno: r.state_return,
+        acompanhante: r.acompanhante,
+        /* Vem AO LADO do autor, nunca no lugar dele: quem escreveu responde
+           pelo que escreveu, e quem levou é outra pergunta (1400). */
+        quemLevou: r.companion_name ?? null,
+        estadoRetorno: r.state_return,
         receita: r.prescription_note, orientacoes: r.guidance, restricoes: r.restrictions,
         prazoRetorno: r.return_deadline, offline: r.offline,
         status: r.status, pedidoComplemento: r.pedido_complemento,
@@ -336,6 +352,9 @@ export class NursingService {
       const { rows: evolucoes } = await c.query(
         `SELECT e.id, e.kind, e.happened_at, e.state_return, e.guidance, e.status,
                 app_user_display_name(e.accompanied_by) AS acompanhante,
+                -- Quem LEVOU, quando não foi quem escreveu (1400). Vem ao lado
+                -- e não NO LUGAR: a Enfermagem que tria precisa saber os dois.
+                e.companion_name,
                 (SELECT t.complement FROM nursing_triage t
                   WHERE t.evolution_id = e.id AND t.action = 'assinada' ORDER BY t.at DESC LIMIT 1) AS complemento
          FROM health_evolution e
@@ -393,7 +412,8 @@ export class NursingService {
       const evolucoesMap = evolucoes.map((e) => ({
         id: e.id, tipo: e.kind, tipoRotulo: TIPO_ATENDIMENTO[e.kind] ?? e.kind,
         quando: e.happened_at, estadoRetorno: e.state_return,
-        orientacoes: e.guidance, acompanhante: e.acompanhante, status: e.status,
+        orientacoes: e.guidance, acompanhante: e.acompanhante,
+        quemLevou: e.companion_name ?? null, status: e.status,
         statusRotulo: ESTADO_EVOLUCAO[e.status] ?? e.status,
         complementoEnfermagem: e.complemento,
       }));

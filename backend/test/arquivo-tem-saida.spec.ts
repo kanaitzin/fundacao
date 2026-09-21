@@ -462,4 +462,82 @@ describe('As funções privilegiadas dizem onde procurar', () => {
 
     expect(achados).toEqual([]);
   });
+
+  /**
+   * COLUNA DECLARADA MORTA TAMBÉM NÃO TEM LEITOR (fase 133).
+   *
+   * O guarda de cima olha TABELAS, e a `handover_receipt.opened_handover` não é
+   * uma tabela: é uma coluna que nasce `true`, que nenhum `INSERT` nomeia, que
+   * nenhum `SELECT` lê, e cuja tabela proíbe `UPDATE`. Coluna que só tem um
+   * valor não informa nada — e convida a uma conclusão errada, porque quem ler
+   * "abriu a passagem: sim" para todo mundo vai acreditar que o sistema confere.
+   *
+   * A regra é a mesma, e a razão também: **um comentário errado no banco é pior
+   * do que comentário nenhum**. A `work_schedule` passou meses com um porque
+   * ninguém tinha como cobrar a frase.
+   *
+   * A conferência é por OPÇÃO — só entram colunas cujo comentário começa com
+   * `MORTA `. Sem isso, uma coluna de nome comum (`note`, `status`) apareceria em
+   * todo lugar e o teste viveria reprovando por engano.
+   */
+  it('nenhuma coluna declarada MORTA tem quem a leia', async () => {
+    const { rows: mortas } = await c.query(
+      `SELECT c.relname AS tabela, a.attname AS coluna
+         FROM pg_attribute a
+         JOIN pg_class c ON c.oid = a.attrelid
+         JOIN pg_namespace n ON n.oid = c.relnamespace AND n.nspname = 'public'
+        WHERE a.attnum > 0 AND NOT a.attisdropped
+          AND col_description(c.oid, a.attnum) LIKE 'MORTA %'
+        ORDER BY 1, 2`);
+    /* Hoje há uma: a `opened_handover`. Se não houver nenhuma, este teste não
+       olhou nada — e passaria calado, que é o defeito da fase 124. */
+    expect(mortas.length).toBeGreaterThan(0);
+
+    const achados: string[] = [];
+    const raiz = join(__dirname, '..', '..');
+    const fontes = execSync(
+      `find ${raiz}/backend/src ${raiz}/frontend/src -name '*.ts' -o -name '*.tsx'`,
+      { encoding: 'utf8' }).trim().split('\n').filter(Boolean);
+    const lidos = new Map<string, string[]>();
+    for (const arq of fontes) lidos.set(arq, readFileSync(arq, 'utf8').split('\n'));
+
+    for (const { tabela, coluna } of mortas) {
+      const { rows: fn } = await c.query(
+        `SELECT p.oid::regprocedure::text AS funcao
+           FROM pg_proc p
+           JOIN pg_namespace ns ON ns.oid = p.pronamespace AND ns.nspname = 'public'
+          WHERE p.prokind = 'f'
+            AND pg_get_functiondef(p.oid) ~ ('\\m' || $1 || '\\M')
+          ORDER BY 1`, [coluna]);
+      for (const r of fn) achados.push(`${tabela}.${coluna} é lida por ${r.funcao}`);
+
+      const { rows: pols } = await c.query(
+        `SELECT tablename || ' / ' || policyname AS politica
+           FROM pg_policies
+          WHERE schemaname = 'public'
+            AND (coalesce(qual, '') || ' ' || coalesce(with_check, '')) ~ ('\\m' || $1 || '\\M')
+          ORDER BY 1`, [coluna]);
+      for (const r of pols) achados.push(`${tabela}.${coluna} é lida pela política ${r.politica}`);
+
+      const { rows: vistas } = await c.query(
+        `SELECT c2.relname AS visao
+           FROM pg_class c2
+           JOIN pg_namespace n2 ON n2.oid = c2.relnamespace AND n2.nspname = 'public'
+          WHERE c2.relkind IN ('v', 'm')
+            AND pg_get_viewdef(c2.oid) ~ ('\\m' || $1 || '\\M')
+          ORDER BY 1`, [coluna]);
+      for (const r of vistas) achados.push(`${tabela}.${coluna} é lida pela visão ${r.visao}`);
+
+      for (const [arq, linhas] of lidos) {
+        linhas.forEach((linha, i) => {
+          const limpa = linha.trim();
+          if (limpa.startsWith('*') || limpa.startsWith('//') || limpa.startsWith('/*')) return;
+          if (new RegExp(`\\b${coluna}\\b`).test(linha)) {
+            achados.push(`${tabela}.${coluna} aparece em ${arq.replace(raiz + '/', '')}:${i + 1}`);
+          }
+        });
+      }
+    }
+    expect(achados).toEqual([]);
+  });
 });

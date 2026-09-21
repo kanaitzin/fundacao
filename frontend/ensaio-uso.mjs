@@ -1921,6 +1921,67 @@ cobrar('o desfecho fica na dose, e o botão de escrever sai dela',
   /Depois:/i.test(comDesfecho) && /cedeu em cerca de 40 minutos/i.test(comDesfecho),
   comDesfecho.slice(0, 400));
 
+/* ======================================================================== */
+/* QUEM LEVOU A CRIANÇA NA CONSULTA (fase 133).                             */
+/*                                                                          */
+/* A pergunta é um BOTÃO e não um campo, e o percurso cobra as duas metades  */
+/* disso: "Fui eu" não pede nome nenhum — senão a Enfermagem digitaria o     */
+/* próprio nome vinte vezes por semana —, e "Outra pessoa" exige o nome.     */
+/* ======================================================================== */
+console.log('\n🚗 Quem levou a criança na consulta');
+await fechar();
+await trocar('educador');
+erros.length = 0;
+await aba('Acolhidos');
+await clicar(/Alice/);
+cobrar('o perfil tem por onde registrar o atendimento de saúde',
+  await clicar(/Registrar atendimento de saúde/),
+  'quem acompanhou é quem escreve, e o educador tem de alcançar esta folha');
+const folha133 = await corpo();
+cobrar('a folha pergunta quem levou a criança', /Quem levou a criança/i.test(folha133),
+  folha133.slice(0, 300));
+cobrar('e nasce em "Fui eu", sem pedir nome nenhum',
+  (await pg.locator('.overlay .sheet #evo-quem').count()) === 0,
+  'campo de nome sempre aberto é campo preenchido por obrigação');
+
+/* "Outra pessoa": o nome passa a ser exigido, e é o caso do motorista. */
+await pg.locator('.overlay .sheet button').filter({ hasText: /^Outra pessoa$/ }).first().click();
+await pg.waitForTimeout(350);
+cobrar('escolhendo "Outra pessoa", o nome é pedido',
+  (await pg.locator('.overlay .sheet #evo-quem').count()) === 1);
+await pg.locator('#evo-ret').fill(
+  'Voltou tranquila, sem dor referida; comeu bem no jantar.');
+const btEnviar = pg.locator('.overlay .sheet button')
+  .filter({ hasText: /Enviar para a Enfermagem/ }).first();
+cobrar('e sem o nome não se envia',
+  await btEnviar.isDisabled().catch(() => false),
+  'dizer "foi outra pessoa" e não dizer quem é pior do que não perguntar');
+await pg.locator('#evo-quem').fill('Seu Jorge, motorista da Fundação (fictício)');
+cobrar('com o nome escrito, o envio libera',
+  !(await btEnviar.isDisabled().catch(() => true)));
+await btEnviar.click();
+await pg.waitForTimeout(1200);
+
+/* A leitura, do outro lado: a Enfermagem que tria vê os DOIS nomes. */
+await fechar();
+await trocar('enfermagem');
+cobrar('a Enfermagem alcança a tela de Saúde para triar', await doMais('Saúde'));
+/* A tela de Saúde abre em "Doses do dia": a fila de triagem é outra aba, e sem
+   este clique o percurso mediria a grade e diria que o campo não aparece. */
+const abaTriagem = pg.locator('main.conteudo [role="tab"]').filter({ hasText: /^Triagem$/ });
+cobrar('e a aba da triagem existe', (await abaTriagem.count()) > 0);
+if (await abaTriagem.count()) {
+  await abaTriagem.first().click();
+  await pg.waitForTimeout(900);
+}
+const triagem133 = await conteudo();
+cobrar('a fila de triagem diz quem LEVOU a criança',
+  /levou: Seu Jorge/i.test(triagem133) || /levou: .*motorista/i.test(triagem133),
+  triagem133.slice(0, 500));
+cobrar('e diz também quem REGISTROU — ao lado, não no lugar',
+  /registrou:/i.test(triagem133),
+  'quem levou e quem responde pelo que está escrito são duas perguntas');
+
 cobrar('nenhuma exceção ao abrir as prévias', erros.length === 0, erros[0]);
 
 await navegador.close();

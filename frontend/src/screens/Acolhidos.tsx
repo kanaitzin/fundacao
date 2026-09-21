@@ -1640,7 +1640,20 @@ function FolhaEvolucao({ nome, onFechar, onEnviar }: {
   const [orientacoes, setOrientacoes] = useState('');
   const [receita, setReceita] = useState('');
   const [prazoRetorno, setPrazoRetorno] = useState('');
-  const pode = quando.length >= 16 && estadoRetorno.trim().length >= 5;
+  /*
+   * QUEM LEVOU A CRIANÇA (1400).
+   *
+   * Nasce "fui eu", que é o caso comum — e por isso a pergunta é um botão e não
+   * um campo: perguntar sempre o nome faria a Enfermagem digitar o próprio nome
+   * vinte vezes por semana, e campo que se digita por obrigação vira campo
+   * preenchido de qualquer jeito. O nome só aparece quando foi OUTRA pessoa, que
+   * é justamente quando ele não tem outro lugar onde caber: o motorista da
+   * Fundação, a tia autorizada, o educador de outra casa que estava com o carro.
+   */
+  const [foiOutro, setFoiOutro] = useState(false);
+  const [quemLevou, setQuemLevou] = useState('');
+  const pode = quando.length >= 16 && estadoRetorno.trim().length >= 5
+    && (!foiOutro || quemLevou.trim().length >= 3);
 
   return (
     <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-evo"
@@ -1676,6 +1689,27 @@ function FolhaEvolucao({ nome, onFechar, onEnviar }: {
         <input id="evo-esp" value={especialidade} onChange={(e) => setEspecialidade(e.target.value)}
                placeholder="Ex.: pediatria, odontologia" />
 
+        <label className="f">Quem levou a criança</label>
+        <div className="opts">
+          <button type="button" className="opt c-med" aria-pressed={!foiOutro}
+                  onClick={() => { setFoiOutro(false); setQuemLevou(''); }}>
+            Fui eu
+          </button>
+          <button type="button" className="opt c-med" aria-pressed={foiOutro}
+                  onClick={() => setFoiOutro(true)}>
+            Outra pessoa
+          </button>
+        </div>
+        {foiOutro && (
+          <>
+            <label className="f" htmlFor="evo-quem">
+              Quem <small>— o nome, como se escreve no papel</small>
+            </label>
+            <input id="evo-quem" value={quemLevou} onChange={(e) => setQuemLevou(e.target.value)}
+                   placeholder="Ex.: motorista da Fundação, Seu Jorge; a tia Cláudia (autorizada)" />
+          </>
+        )}
+
         <label className="f" htmlFor="evo-ret">
           Como a criança voltou <small>— obrigatório: é o que o próximo plantão mais precisa</small>
         </label>
@@ -1708,6 +1742,7 @@ function FolhaEvolucao({ nome, onFechar, onEnviar }: {
                     orientacoes: orientacoes || undefined,
                     receita: receita || undefined,
                     prazoRetorno: prazoRetorno || undefined,
+                    acompanhanteNome: foiOutro ? quemLevou.trim() : undefined,
                   })}>
             Enviar para a Enfermagem
           </button>

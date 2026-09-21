@@ -2151,13 +2151,20 @@ interface Triagem {
   assinada: boolean; assinadaPor: string | null; complemento: string | null;
   /** Devolvida pedindo o que falta — o pedido fica escrito para quem acompanhou. */
   pedidoComplemento?: string | null;
+  /** Quem LEVOU a criança, quando não foi quem escreveu (1400). */
+  quemLevou?: string | null;
 }
 let TRIAGENS: Triagem[] = [
   { id: 't1', personId: 'p08', tipo: 'Consulta de pediatria', enviadaPor: 'Mário Silva (fictício)',
     enviadaEm: emHoras(10, 40), assinada: false, assinadaPor: null, complemento: null,
     resumo: 'Consulta de rotina. Pediatra pediu exame de sangue e retorno em 30 dias. '
       + 'Receita anexada; vitamina D mantida.' },
+  /* A URGÊNCIA QUE O MOTORISTA LEVOU (1400). Sem uma linha assim, o campo que
+     esta fase ligou nasceria invisível no único arquivo que o Marcelo abre: é o
+     caso real — quem levou não tem conta no sistema, e o nome dele não tinha
+     onde caber a não ser no meio das observações, onde ninguém procura. */
   { id: 't2', personId: 'p09', tipo: 'Urgência odontológica', enviadaPor: 'Joana Lima (fictícia)',
+    quemLevou: 'Seu Jorge, motorista da Fundação (fictício)',
     enviadaEm: emHoras(16, 20), assinada: false, assinadaPor: null, complemento: null,
     resumo: 'Dor de dente referida depois do almoço. Atendido na unidade fictícia; '
       + 'prescrita amoxicilina 500 mg 8/8h por 7 dias.' },
@@ -8019,6 +8026,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         id: t.id, acolhidoId: t.personId, acolhido: kid(t.personId)?.nome ?? '—',
         casa: 'AI3 · Casa 03', tipo: t.tipo, quando: t.enviadaEm,
         local: null, especialidade: null, acompanhante: t.enviadaPor,
+        quemLevou: t.quemLevou ?? null,
         estadoRetorno: t.resumo, receita: t.receita ?? null,
         orientacoes: t.orientacoes ?? null, restricoes: null,
         prazoRetorno: null, offline: false,
@@ -8053,6 +8061,8 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       id: uid(), personId: String(b.personId ?? ''),
       tipo: `${TIPO[String(b.tipo)] ?? 'Atendimento'}${b.especialidade ? ` de ${b.especialidade}` : ''}`,
       enviadaPor: eu.fullName, enviadaEm: String(b.quandoAconteceu),
+      /* Nas duas direções (regra 14): o que a tela manda, o mock guarda. */
+      quemLevou: String(b.acompanhanteNome ?? '').trim() || null,
       resumo: String(b.estadoRetorno),
       receita: (b.receita as string) ?? null,
       orientacoes: (b.orientacoes as string) ?? null,
@@ -8136,6 +8146,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     const evolucoes = TRIAGENS.filter((t) => t.personId === pid).map((t) => ({
       id: t.id, tipoRotulo: t.tipo, quando: t.enviadaEm,
       estadoRetorno: t.resumo, orientacoes: null, acompanhante: t.enviadaPor,
+      quemLevou: t.quemLevou ?? null,
       status: t.assinada ? 'assinada'
         : t.pedidoComplemento ? 'complemento_solicitado' : 'aguardando_triagem',
       statusRotulo: EST_EV[t.assinada ? 'assinada'
