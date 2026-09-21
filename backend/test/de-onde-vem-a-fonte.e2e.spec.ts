@@ -177,14 +177,22 @@ describe('De onde vem a fonte do acompanhamento', () => {
 
   it('a ocorrência restrita APARECE, e o texto dela não', async () => {
     const r = await listar('ocorrencia');
-    const restrita = r.body.candidatos.find((c: any) => c.classificacao === 'restrito');
+    /*
+     * Procura pelo ID, e não pela classificação. Procurar "a primeira restrita"
+     * pegava a ocorrência de OUTRA suíte — no banco compartilhado, o período
+     * desta suíte é o dia de hoje, e o que as outras abrem no mesmo dia cai
+     * dentro dele. **Reprovou só no relógio adiantado**, que é quando outra suíte
+     * grava na mesma data da instituição, e é exatamente para isso que o segundo
+     * relógio existe.
+     */
+    const restrita = r.body.candidatos.find((c: any) => c.id === ids.incRestrita);
     /* Esconder que existe faria a técnica procurar noutro lugar. */
     expect(restrita).toBeDefined();
     expect(restrita.resumo).toBeNull();
     /* E a narrativa não sai por lugar nenhum da resposta — esta folha circula. */
     expect(JSON.stringify(r.body)).not.toContain('NARRATIVA RESTRITA');
-    /* A operacional, sim: ela é o que o plantão já lê. */
-    const operacional = r.body.candidatos.find((c: any) => c.classificacao === 'operacional');
+    /* A operacional, sim: ela é o que o plantão já lê — e é a DESTA suíte. */
+    const operacional = r.body.candidatos.find((c: any) => c.id === ids.incOperacional);
     expect(operacional.resumo).toMatch(/fato operacional fictício/i);
   });
 

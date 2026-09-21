@@ -689,6 +689,67 @@ cobrar('a tela diz em voz alta que não compara casas',
   /não compara casas/.test(impacto));
 cobrar('a lista de quem conquistou é por data, e não por quem tem mais',
   /por data, e não por criança/i.test(impacto));
+/* ======================================================================== */
+/* O GESTOR ABRE O QUE QUISER (fase 136) — decisão de 21/09.                 */
+/*                                                                          */
+/* Com só a contagem ele não tinha por onde escolher. Agora há uma porta por */
+/* relato, opaca, e ele abre a que quiser — uma por vez, cada uma com a sua  */
+/* finalidade escrita. O que este percurso cobra é justamente o que NÃO se   */
+/* pode ver antes de abrir.                                                 */
+/* ======================================================================== */
+await fechar();
+/* Volta ao modo normal: a chave do trabalho social ficou ligada acima. */
+const chaveVolta = pg.locator('header button').filter({ hasText: /🌱/ });
+if (await chaveVolta.count()) {
+  await chaveVolta.first().click();
+  await pg.waitForTimeout(1200);
+}
+if (await aba('Acolhidos')) {
+  const cartaoKaua = pg.locator('main.conteudo button').filter({ hasText: /Kauã/ }).first();
+  cobrar('o gestor alcança o perfil do Kauã', (await cartaoKaua.count()) > 0);
+  if (await cartaoKaua.count()) {
+    await cartaoKaua.click();
+    await pg.waitForTimeout(1400);
+    const perfilG = await conteudo();
+    cobrar('o perfil diz que existem relatos em área restrita',
+      /área restrita/i.test(perfilG), perfilG.slice(0, 300));
+    cobrar('e há uma porta POR RELATO, numerada',
+      /Relato 1 de \d+/i.test(perfilG), perfilG.slice(0, 400));
+    cobrar('a porta não traz data, autor nem trecho',
+      !/Escrito por/i.test(perfilG.split(/Relato 1 de/)[1] ?? ''),
+      'a porta é opaca de propósito: o que ela diz é que existe');
+    cobrar('a tela diz que não há como abrir todos de uma vez',
+      /pare quando encontrar/i.test(perfilG),
+      'é a decisão de 21/09 escrita onde quem abre lê');
+
+    cobrar('há por onde abrir com finalidade escrita',
+      await clicar(/Abrir com finalidade escrita/));
+    const folhaFin = await corpo();
+    cobrar('a folha diz que ele ainda não sabe de que trata',
+      /não sabe ainda de que ela trata/i.test(folhaFin), folhaFin.slice(0, 300));
+    const btAbrir = pg.locator('.overlay .sheet button')
+      .filter({ hasText: /Registrar a finalidade e abrir/ }).first();
+    cobrar('sem finalidade, não abre', await btAbrir.isDisabled().catch(() => false));
+    await pg.locator('#fin').fill('para ver');
+    cobrar('e uma finalidade curta também não abre',
+      await btAbrir.isDisabled().catch(() => false),
+      'o piso de quinze caracteres é o do servidor');
+    await pg.locator('#fin').fill(
+      'Preparar a resposta ao ofício fictício do MP sobre a situação familiar.');
+    cobrar('com a finalidade escrita, o botão libera',
+      !(await btAbrir.isDisabled().catch(() => true)));
+    await btAbrir.click();
+    await pg.waitForTimeout(1300);
+    const depoisAbrir = await conteudo();
+    cobrar('o relato aparece, com a finalidade declarada ao lado',
+      /Aberto por você agora, com a finalidade/i.test(depoisAbrir),
+      depoisAbrir.slice(0, 400));
+    cobrar('e as outras portas continuam fechadas',
+      /Abrir com finalidade escrita/i.test(depoisAbrir),
+      'abrir uma não é uma chave que destranca a criança');
+  }
+}
+
 cobrar('nenhuma exceção no gestor', erros.length === 0, erros[0]);
 
 /* A caixa, seja qual for: a folha que sobe de baixo ou o cartão que cobre. */

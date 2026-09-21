@@ -145,12 +145,6 @@ const SEM_TELA_DE_PROPOSITO: Record<string, string> = {
     'Correção da linha de uma casa na ATA Geral. Espera a decisão institucional sobre '
     + 'quem lê a ATA Geral de dia (§10.2 do REDE-ACOLHER) — sem ela, não se sabe quem '
     + 'deveria ter o botão.',
-  'POST /statements/:id/exceptional-read':
-    'Leitura excepcional de relato protegido. A Fundação respondeu em 20/09/2026 O QUE ele '
-    + 'vê antes de abrir — só a contagem —, e isso virou a fase 128. O que continua em '
-    + 'aberto é COMO ele escolhe o que abrir: com só a contagem ele não tem por onde, e um '
-    + 'botão que abrisse tudo de uma vez seria eu decidindo quanto da narrativa de uma '
-    + 'criança sai junto. A rota existe e é auditada; a porta espera essa resposta.',
 
   /*
    * AS DUAS LACUNAS QUE ESTAVAM AQUI FORAM CONSERTADAS NA FASE 130.

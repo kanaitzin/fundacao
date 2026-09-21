@@ -753,6 +753,25 @@ const RELATOS: RelatoMock[] = [
     relato: 'Estava sozinha com os outros seis quando percebi a ausência. Fiquei com medo '
       + 'de sair para procurar e deixar a casa, e por isso chamei antes de ir.',
     restrito: true, quando: emHoras(21, 50), personId: 'p10' },
+  /*
+   * O SEGUNDO RESTRITO SOBRE A MESMA CRIANÇA (fase 136).
+   *
+   * Ele existe por causa da decisão de 21/09 — *"gestor abrir o que quiser"*.
+   * Com UM relato restrito só, o protótipo mostrava a porta e não mostrava a
+   * ESCOLHA, que é a coisa que a decisão desenha: ele abre uma, lê, e para quando
+   * achar o que procurava. É o §6.19 pela sexta vez — o caso que a decisão cria
+   * nasceria invisível no único arquivo que o Marcelo abre.
+   *
+   * De outro autor e de outro dia, de propósito: a lista de portas não diz nem
+   * autor nem data, e tem de continuar não dizendo com dois.
+   */
+  { id: 'r4', entity: 'incident', entityId: 'o1', autor: 'Tatiane Técnica (fictícia)',
+    autorId: 'u3',
+    testemunho: 'Soube depois', codigoTestemunho: 'soube_depois',
+    relato: 'Conversei com ele no dia seguinte. Contou que saiu porque combinou de encontrar '
+      + 'a irmã, e que não pediu autorização por achar que seria negada. Chorou ao falar da '
+      + 'irmã e pediu para que ninguém da casa soubesse.',
+    restrito: true, quando: emDias(-1, 15, 30), personId: 'p10' },
 ];
 function relatosDe(entity: string, entityId: string) {
   const ladoALado = ['equipe_tecnica', 'coordenador', 'lider_diurno', 'lider_noturno_geral']
@@ -4496,6 +4515,20 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         })),
       /* NÚMERO, e só. Nem data, nem autor, nem trecho. */
       restritos,
+      /*
+       * AS PORTAS OPACAS (fase 136) — *"gestor abrir o que quiser"*.
+       *
+       * Só para o Gestor Geral, como a `app_relatos_restritos_para_abrir`: para
+       * os outros cargos a lista volta vazia, porque ou eles já leem o relato
+       * acima, ou não alcançam a criança. Ordem pelo ID, e não pela data — no
+       * servidor é `ORDER BY s.id` pela mesma razão: ordenar por data entregaria
+       * a cronologia dos relatos sem abrir nenhum, e cronologia já é narrativa.
+       */
+      paraAbrir: eu.role === 'gestor_geral'
+        ? dela.filter((r) => r.restrito && r.autorId !== eu.id)
+            .slice().sort((a, b2) => a.id.localeCompare(b2.id))
+            .map((r, i) => ({ ordem: i + 1, id: r.id }))
+        : [],
       nota: restritos
         ? (restritos === 1
             ? 'Existe 1 relato em área restrita sobre esta criança. '
@@ -4503,6 +4536,45 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
           + 'Abrir exige finalidade escrita, e o acesso fica registrado com o seu nome.'
         : 'Todos os relatos que existem sobre esta criança estão nesta lista.',
     };
+  }
+
+  /**
+   * `POST /statements/:id/exceptional-read` — a leitura excepcional (§26.2 #29).
+   *
+   * A rota existia no servidor desde a 0300 e **nunca teve quem a chamasse**; o
+   * servidor de mentira nem a atendia. As recusas são as de lá, e por inteiro: só
+   * o Gestor Geral, finalidade de quinze caracteres, e **o registro acontece
+   * antes de o conteúdo ser devolvido** — sem isso a demonstração ensinaria que
+   * abrir é grátis.
+   */
+  if (seg[0] === 'statements' && seg[2] === 'exceptional-read' && metodo === 'POST') {
+    const r = RELATOS.find((x) => x.id === seg[1]);
+    if (!r) return new Recusa(404, 'Relato não encontrado.');
+    const finalidade = String(b.finalidade ?? '').trim();
+    if (finalidade.length < 15) {
+      return new Recusa(400, 'Descreva a finalidade da leitura (mínimo 15 caracteres). Ela fica '
+        + 'registrada junto com o acesso.');
+    }
+    if (eu.role !== 'gestor_geral') {
+      return new Recusa(403, 'Narrativa pessoal não é dado de gestão. A leitura lado a lado cabe '
+        + 'à equipe técnica e à coordenação.');
+    }
+    /* O REGISTRO ANTES DO CONTEÚDO, como no banco (a 0300 insere o
+       `audit_event` e só então faz o `RETURN QUERY`). A ação é a do vocabulário
+       do kernel, palavra por palavra — `statement.read_exceptional` —, senão a
+       tela da auditoria mostraria um código que o servidor nunca escreve. */
+    /* `personId` é opcional no relato (há relato de fato, sem criança nomeada);
+       a auditoria da demonstração é por criança, então sem criança não há onde
+       pendurar a linha — e a leitura continua acontecendo. */
+    if (r.personId) (AUDITORIA[r.personId] ??= []).unshift({
+      id: uid(), acao: 'Leitura excepcional de relato, com finalidade escrita',
+      codigo: 'statement.read_exceptional', quando: new Date().toISOString(),
+      por: eu.fullName, finalidade, detalhe: { restrito: r.restrito },
+    });
+
+    return { id: r.id, relato: r.relato, testemunho: r.testemunho, quando: r.quando,
+      finalidadeRegistrada: finalidade,
+      aviso: 'Leitura excepcional registrada em auditoria, com a finalidade informada.' };
   }
 
   // ---- avisos (§19): a caixa do escalonamento

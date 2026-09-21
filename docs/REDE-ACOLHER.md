@@ -90,14 +90,14 @@ discordavam entre si.
 | Quanto | De onde sai |
 |---|---|
 | **18 partições** isoladas | pastas em `backend/src/modules/` |
-| **127 migrações** | `.sql` dentro das partições |
+| **128 migrações** | `.sql` dentro das partições |
 | **112 tabelas** | `CREATE TABLE` nas migrações |
 | **83 suítes** | `backend/test/*.spec.ts` |
-| **812 testes** | `it(` / `test(` nas suítes |
+| **819 testes** | `it(` / `test(` nas suítes |
 | **36 telas React** | `frontend/src/screens/*.tsx` |
-| **13 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
+| **12 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **6 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
-| protótipo com **≈1256 KB** | `prototipo/rede-acolher-prototipo.html` |
+| protótipo com **≈1297 KB** | `prototipo/rede-acolher-prototipo.html` |
 
 *A frase importa: o conferidor lê o NÚMERO colado ao substantivo. Escrever
 "Telas React … 31" numa coluna separada faz o teste passar sem conferir nada —
@@ -341,6 +341,7 @@ arqueologia.
 | 133 | **Quem levou a criança na consulta passou a caber na evolução — e uma coluna morta foi declarada morta.** Duas pontas dormentes fechadas, e as duas eram do mesmo tipo: campo previsto no papel que nunca ganhou nem escrita nem leitura. **(1) `health_evolution.companion_name`**, criada na 0530 com o comentário *"quem acompanhou, como no papel"*. Ela **não é duplicata do `accompanied_by`**: a política da 0210 exige `accompanied_by = app_current_user()`, então esse campo é, por construção, **quem enviou a evolução**. Quem LEVOU a criança muitas vezes não é usuário do sistema — é o motorista da Fundação, é a tia autorizada, é o educador de outra casa que estava com o carro —, e o nome dessa pessoa não tinha para onde ir: a equipe o escrevia no meio das observações, onde ninguém procura seis meses depois, quando a pergunta é *"quem estava com ele quando o médico falou isso?"*. **A pergunta na tela é um BOTÃO, não um campo** — nasce em "Fui eu", que é o caso comum, e o nome só aparece quando foi outra pessoa: perguntar sempre faria a Enfermagem digitar o próprio nome vinte vezes por semana, e campo que se preenche por obrigação vira campo preenchido de qualquer jeito. Ele **não é seletor de pessoa do sistema**, de propósito: transformar o motorista num usuário para caber num `uuid` seria criar conta para quem não usa o sistema — e conta que existe é conta que alguém empresta. E vem **ao lado** de quem escreveu, nunca no lugar: quem levou e quem responde pelo que está escrito são duas perguntas, e a Enfermagem que tria precisa das duas. *A assinatura do `app_submit_evolution` mudou, então a função foi DERRUBADA e recriada — acrescentar parâmetro num `CREATE OR REPLACE` cria uma SEGUNDA função com o mesmo nome, e aí a chamada passa a depender de qual delas o Postgres escolhe; e o parâmetro novo entrou no FIM da lista, porque parâmetro no meio reordena os posicionais de quem chama e o erro disso é silencioso.* **(2) `handover_receipt.opened_handover` foi declarada MORTA, e não apagada.** Medida sobre o repositório inteiro: nenhum `INSERT` a nomeia, nenhum `SELECT` a lê, e o trigger da tabela proíbe `UPDATE` — logo ela é `true` em toda linha que existe e em toda que vier. **Coluna que só tem um valor não informa nada, e pior: convida à conclusão errada**, porque quem abrir a tabela daqui a um ano vai ler *"abriu a passagem: sim"* para todo mundo e acreditar que o sistema confere isso. Quem responde *"a pessoa leu a orientação?"* é o `read_guidance`, que nasce `false` e é escolha de quem recebe o plantão. Não foi apagada porque `DROP COLUMN` é migração destrutiva e nada se apaga de passagem — **o que mudou é que a afirmação passou a ser conferível**: o guarda do `arquivo-tem-saida.spec.ts` ganhou um irmão para COLUNAS declaradas MORTAS, e ele reprova se alguém ligar um leitor sem tirar o comentário. *Medido: a mesma varredura acha os três leitores do `read_guidance` e nenhum do `opened_handover` — é o contrário do que aconteceu com a `work_schedule`, que passou meses com um comentário errado porque ninguém tinha como cobrar a frase.* **Sobra UMA ponta dormente**, a `medication_authorization`, e ela é dormência por decisão escrita (§8.6), não por esquecimento |
 | 134 | **A técnica passou a ter de onde escolher as fontes do acompanhamento.** A resposta §10.7 de 20/09 foi **as três numa lista só** — linha do tempo, ocorrências e evoluções de saúde do período —, com filtro por tipo. O que faltava para ela virar tela era a lista: o `POST /followups/:id/sources` existe desde a migração **0490** e **nunca teve quem o chamasse**, porque pedia `entidade` e `entityId` digitados à mão, que ninguém tem. O acompanhamento ia sendo escrito sem referência nenhuma ao original — e a referência é a coisa inteira que a `followup_source` existe para guardar. **Uma lista só, e não três:** três listas obrigariam quem escreve a lembrar de visitar as três; uma lista ordenada por data é a semana da criança na ordem em que ela aconteceu. **O recorte é o período DO ACOMPANHAMENTO, não o de hoje** — um acompanhamento de agosto aberto em setembro precisa das fontes de agosto. **E o conteúdo da ocorrência restrita NÃO sai por aqui**, só a referência com data e autor: é o precedente da fase 121, e a razão é a mesma — este documento vira folha, e folha se imprime, se anexa e se esquece em cima de uma mesa. Quem precisa do texto o lê na tela da ocorrência, onde cada abertura fica registrada; e vê aqui que ela existe, que é o bastante para decidir referenciá-la. *Esconder que existe faria a técnica procurar noutro lugar.* Cada origem é opcional por `to_regclass`, como o painel: remover o módulo dono tira aquela origem da lista em vez de derrubar a tela. **E dois conferidores me pegaram no caminho, os dois com razão:** declarei `activities` no `dependeDoEsquemaDe` do `reports` por causa de uma consulta em TypeScript, e essa declaração é sobre tabela usada no SQL das MIGRAÇÕES — o conferidor de fronteiras cobrou e a declaração saiu; e o `rotas-sem-porta` acusou a exceção do `POST`, que existia dizendo *"espera a decisão §7.7"* — a decisão chegou, a tela existe, a exceção saiu. *A suíte nova também ensinou uma coisa sobre teste: `incident` tem trigger que PROÍBE `DELETE`, e ocorrência não se apaga — então a fixture dela é idempotente, criada uma vez e reaproveitada por marcador, e o período do acompanhamento é ancorado NELA em vez de no relógio. Criar uma ocorrência por execução encheria o banco compartilhado e faria o verde de outra suíte depender de quantas vezes esta rodou* |
 | 135 | **A data passou a ser uma conta só — e uma tela mostrava o prazo um dia mais cedo.** Fui fechar as pendências e o achado anotado na 134 (*"a data está escrita em oito telas"*) era maior e pior do que eu havia escrito: eram **TREZE** cópias, e elas **não eram iguais**. **O defeito, medido e provado:** a cópia de `Ocorrencias.tsx` fazia `new Date(iso)` sem ancorar a hora, e o `deadline` da ocorrência é `date` no banco — dia puro nasce à meia-noite **UTC**, que em Porto Alegre é 21h do dia ANTERIOR. Então *"Pendência até 30/09"* aparecia na tela como **29/09**, e um prazo de **01/01 aparecia como 31/12**, com o ano errado. **Um dia a menos em toda pendência de ocorrência, desde sempre.** Outras duas cópias formatavam **sem `timeZone`**, isto é, no fuso de quem abre a página, e uma montava o meio-dia **sem informar o deslocamento**, o que dá no mesmo. *Ninguém desconfiaria olhando: as treze devolviam uma data com cara de certa.* Agora há **uma** conta, no `rotulos.ts`, com o meio-dia da instituição ancorado por extenso e o `timeZone` declarado — e ela aceita dia puro e instante, porque cortar a string era outra forma de perder o fuso. A versão curta (sem o ano) fica para a grade da escala, onde a semana cabe numa linha. **E há teste**: `a-data-numa-conta-so.spec.ts` prega os casos que quebravam — o prazo de 30/09, a virada do ano, as 22h de Porto Alegre — e cobra que **nenhuma tela declare a sua própria conta**. *Medido contra o commit anterior: o conferidor acha as treze.* É a lição do mapa `VINCULO` e do hash da cor de autor (fase 123) aplicada onde ela já tinha custado: **correção numa cópia não alcança as outras.** **E uma correção minha, sobre o que eu havia relatado:** eu disse que havia deixado duas ocorrências fictícias no banco de desenvolvimento e que o conserto seria recriar o banco. **Medi, e era falso** — o `globalSetup` do Jest derruba o schema e recria o banco do zero antes de CADA execução, então elas já não estavam lá. O comentário que eu havia escrito na fixture da suíte de fontes (*"dez execuções deixariam vinte ocorrências"*) estava errado pela mesma razão, e foi reescrito: comentário errado é pior do que comentário nenhum. O que continua verdade é a isolação DENTRO de uma execução, e é por isso que o `afterAll` apaga o que pode apagar. *Também medido: o prazo de triagem da Enfermagem, que o §9 dizia que "ainda não tem valor", **já é parâmetro** (`NURSING_TRIAGE_SLA_HOURS`, 24h de padrão) — o que falta é a Fundação dizer se 24h é o prazo dela* |
+| 136 | **O Gestor Geral passou a escolher qual relato restrito abrir — uma porta por relato.** A decisão de 21/09 é de quatro palavras: *"gestor abrir o que quiser"*. Era a metade que faltava do §10.6: a resposta de 20/09 (**só a contagem**) virou a fase 128, e abriu uma pergunta nova — **com só a contagem ele não tem por onde escolher**. Os dois caminhos eram um botão que abrisse os N de uma vez, ou N portas opacas. A Fundação escolheu a segunda, que é a que expõe menos: **cada abertura é um ato, com a sua própria finalidade escrita e o seu próprio registro.** Um botão que abrisse os três de uma vez faria uma finalidade valer por três narrativas, e quem lesse a auditoria depois não saberia dizer de qual delas ele precisava. **A porta devolve número de ordem e identificador, e nada mais** — nem data, nem autor, nem contexto, nem a primeira linha; o identificador é o endereço da porta, e a porta continua sendo a `app_read_statement`, que exige finalidade de quinze caracteres e **registra antes de devolver o conteúdo**. **A ordem sai do IDENTIFICADOR, não da data**, e esta é a parte pensada: ordenar por data faria o "relato 1" ser sempre o mais antigo, e aí a lista opaca deixaria de ser opaca — ele saberia a cronologia dos relatos sobre a criança sem abrir nenhum, e **cronologia já é narrativa**. Para a equipe técnica, a coordenação e o líder a lista volta **vazia**, porque elas já leem o relato na lista normal: oferecer-lhes um botão de "abrir excepcionalmente" transformaria leitura de rotina em ato excepcional, que é o contrário do que o §26.2 protege. *A rota existia desde a migração 0300 e nunca teve quem a chamasse — a exceção do `rotas-sem-porta` caiu, e as rotas sem porta foram de 13 para 12.* **E o protótipo mostrava a porta sem mostrar a ESCOLHA:** havia um só relato restrito sobre o Kauã, então o caso que a decisão desenha — abrir um, ler, parar quando achar — nascia invisível no único arquivo que o Marcelo abre (§6.19 pela sexta vez). Agora há dois, de autores e dias diferentes, e o ensaio percorre a escolha inteira: a porta opaca, a finalidade curta recusada, o relato aberto com a finalidade escrita ao lado, **e as outras portas continuando fechadas** |
 
 ---
 
@@ -388,7 +389,7 @@ cd frontend && npm run prototipo
 ```
 
 O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as
-127 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
+128 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
 
 ### Os ensaios — e por que cada um existe
 
@@ -1712,7 +1713,7 @@ encontrava alguém fora da casa. As três falhas eram o eco de um rascunho que
 morava em `backend/test/` e deixava uma internação aberta no banco
 compartilhado. O defeito era real; a prova de que ele existia, não.*
 
-### Grupo 2 — o que espera decisão de gente (3, e duas encolheram na fase 128)
+### Grupo 2 — o que espera decisão de gente (1, e as outras caíram nas fases 134 e 136)
 
 Nenhuma está parada por falta de código.
 
@@ -1723,16 +1724,12 @@ Nenhuma está parada por falta de código.
    o relato existe — e isso acabou: a resposta de 20/09 foi **só a contagem**, e
    o perfil da criança passou a dizer *"existem N relatos em área restrita"*.
 
-   ⚠️ **O que sobrou é menor, e é uma pergunta nova que a resposta abriu: COMO
-   ele escolhe o que abrir.** Com só a contagem, ele não tem por onde: não há
-   data, autor nem trecho para escolher por. Os dois caminhos são defensáveis e
-   nenhum é meu — **(a)** um botão só, que abre os N de uma vez com uma
-   finalidade escrita, um ato e um registro; ou **(b)** N botões opacos
-   ("relato 1 de 3"), em que ele abre um, lê, e para quando achar o que
-   procurava — menos narrativa exposta, e mais registros com a mesma
-   justificativa. *Enquanto não houver resposta, a tela de abrir não será
-   construída, pela mesma razão de sempre: escolher sozinho aqui é decidir
-   quanto da narrativa de uma criança sai junto.*
+   ✅ **A outra metade chegou em 21/09 e virou a fase 136:** *"gestor abrir o que
+   quiser"* — o caminho **(b)**, N portas opacas, e não um botão que abrisse
+   todas. Cada abertura leva a sua própria finalidade e o seu próprio registro; a
+   porta não diz data, autor nem trecho; e **a ordem sai do identificador, não da
+   data**, porque ordenar por data entregaria a cronologia sem abrir nada — e
+   cronologia já é narrativa.
 2. ~~**Fontes do acompanhamento**~~ ✅ **feito na fase 134.** A rota que gravava
    a referência existia desde a 0490 e pedia `entidade` e `entityId` digitados à
    mão; agora o `GET /followups/:id/sources` lista os candidatos do período — as
@@ -1792,7 +1789,7 @@ espelhá-la no dossiê de uma criança seria inventar um vínculo que o dado nã
 e pôr uma despesa da casa no prontuário de alguém. **São duas vezes, não três**,
 e um teste guarda a diferença.*
 
-### Grupo 3 — as 13 rotas sem porta
+### Grupo 3 — as 12 rotas sem porta
 
 O número **não é contagem à mão**: é o tamanho da lista de exceções do
 `rotas-sem-porta.spec.ts`, onde cada linha traz o motivo por extenso. Eram 34 em
@@ -2485,7 +2482,7 @@ ele continua dizendo que o arquivo existe.
 npm run ensaio:producao
 ```
 
-Constrói, cria um banco virgem, aplica as 127 migrações **pelo binário
+Constrói, cria um banco virgem, aplica as 128 migrações **pelo binário
 compilado**, sobe o serviço e confere `/health`. Não publica nada e não toca no
 banco de trabalho.
 

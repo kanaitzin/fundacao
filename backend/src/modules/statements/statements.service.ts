@@ -182,7 +182,19 @@ export class StatementsService {
           ORDER BY s.happened_at DESC, s.created_at DESC`, [personId]);
       const { rows: [r] } = await c.query(
         `SELECT app_count_restricted_statements($1) AS n`, [personId]);
-      return { pessoa, rows, restritos: r.n as number };
+      /*
+       * O QUE O GESTOR GERAL PODE ABRIR (1420, decisão de 21/09).
+       *
+       * Número de ordem e identificador, e nada mais — a função se recusa a
+       * devolver data, autor ou trecho, e devolve VAZIO para qualquer outro
+       * cargo. Para a equipe técnica e a coordenação a lista volta vazia porque
+       * elas já leem o relato acima, na lista normal: oferecer-lhes um botão de
+       * "abrir excepcionalmente" transformaria leitura de rotina em ato
+       * excepcional, que é o contrário do que o §26.2 protege.
+       */
+      const { rows: aAbrir } = await c.query(
+        `SELECT * FROM app_relatos_restritos_para_abrir($1)`, [personId]);
+      return { pessoa, rows, restritos: r.n as number, aAbrir };
     });
     if (!data) throw new NotFoundException('Criança não encontrada.');
 
@@ -208,6 +220,16 @@ export class StatementsService {
       })),
       /** Número, e só. A tela escreve "existem N relatos em área restrita". */
       restritos: data.restritos,
+      /*
+       * E, para quem pode abrir, POR ONDE (1420). Uma entrada por relato, em vez
+       * de um botão que abrisse todos: cada abertura leva a sua própria
+       * finalidade e o seu próprio registro, e quem ler a auditoria depois sabe
+       * de qual narrativa ele precisava. *"Gestor abrir o que quiser"* —
+       * 21/09/2026.
+       */
+      paraAbrir: (data.aAbrir ?? []).map((r: any) => ({
+        ordem: r.out_ordem as number, id: r.out_id as string,
+      })),
       /* Uma frase, e não "N relato(s)": quem lê isto às 23h merece português,
          e a parte que importa — que abrir é um ato com o nome dela — vem
          depois do número, onde ela ainda lê. */

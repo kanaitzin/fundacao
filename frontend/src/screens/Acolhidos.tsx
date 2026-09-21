@@ -3344,11 +3344,15 @@ function Presenca({ personId, nome }: { personId: string; nome: string }) {
  *  * **a contagem é uma frase, não um número num selo.** "Existem 2 relatos em
  *    área restrita" é informação; um `2` vermelho ao lado do nome de uma
  *    criança de doze anos começa a parecer nota de comportamento (regra 3);
- *  * **não existe botão de abrir aqui.** A leitura excepcional é o comando do
- *    §26.2, e COMO ele escolhe o que abrir é a pergunta que ficou aberta em
- *    20/09 — com só a contagem, ele não tem por onde escolher. Oferecer um
- *    botão que abrisse tudo, ou uma lista de relatos opacos numerados, seria eu
- *    decidindo quanto da narrativa dela sai de uma vez. Não decido.
+ *  * **o botão de abrir existe, e é UM POR RELATO** (fase 136). A pergunta que
+ *    ficou aberta em 20/09 era COMO ele escolhe o que abrir, e a Fundação
+ *    respondeu em 21/09: *"gestor abrir o que quiser"*. Então não há um botão
+ *    que abra os N de uma vez — há N portas opacas, e ele abre uma, lê, e para
+ *    quando achar o que procurava. **Cada abertura leva a sua própria
+ *    finalidade escrita e o seu próprio registro**, e quem ler a auditoria
+ *    depois sabe de qual narrativa ele precisava; uma finalidade valendo por
+ *    três relatos não diria isso. As portas não trazem data, autor nem trecho —
+ *    nem a ordem diz algo, porque ela sai do identificador, que é aleatório.
  */
 function Relatos({ personId, nome }: { personId: string; nome: string }) {
   const [dados, setDados] = useState<{
@@ -3356,8 +3360,15 @@ function Relatos({ personId, nome }: { personId: string; nome: string }) {
                testemunho: string; relato: string; restrito: boolean; quando: string }[];
     restritos: number;
     nota: string;
+    /** As portas opacas, para quem pode abrir (fase 136). */
+    paraAbrir: { ordem: number; id: string }[];
   } | null>(null);
   const [erro, setErro] = useState('');
+  /** Qual porta está com a folha da finalidade aberta — uma por vez. */
+  const [abrindo, setAbrindo] = useState<{ ordem: number; id: string } | null>(null);
+  /** O que já foi aberto NESTA visita, com a finalidade que foi escrita. */
+  const [abertos, setAbertos] = useState<Record<string, { relato: string; finalidade: string }>>({});
+  const [erroAbrir, setErroAbrir] = useState('');
 
   useEffect(() => {
     let vivo = true;
@@ -3414,13 +3425,134 @@ function Relatos({ personId, nome }: { personId: string; nome: string }) {
         ))}
       </div>
 
-      {dados && !relatos.length && !!dados.restritos && (
+      {dados && !relatos.length && !!dados.restritos && !dados.paraAbrir?.length && (
         <p className="mutetxt">
           Você não alcança nenhum destes relatos. A contagem acima existe para você saber que
           eles existem, e não para saber o que dizem.
         </p>
       )}
+
+      {/*
+        * AS PORTAS OPACAS (fase 136) — *"gestor abrir o que quiser"*.
+        *
+        * Uma por relato, sem data, sem autor e sem trecho. O que já foi aberto
+        * nesta visita fica na tela COM a finalidade escrita ao lado: quem abriu
+        * precisa ver, na mesma tela, o que declarou — é a única forma de a
+        * declaração não virar formalidade.
+        */}
+      {!!dados?.paraAbrir?.length && (
+        <>
+          <p className="mutetxt">
+            Abrir é um ato: cada um destes exige uma finalidade escrita, e o acesso fica
+            registrado com o seu nome e a finalidade. <b>Abra o que precisar, e pare quando
+            encontrar</b> — não há como abrir todos de uma vez, de propósito.
+          </p>
+          {erroAbrir && <div className="notice c-crit" role="alert">{erroAbrir}</div>}
+          <div className="stack">
+            {dados.paraAbrir.map((porta) => {
+              const aberto = abertos[porta.id];
+              return (
+                <div className="card" key={porta.id}>
+                  <div className="row">
+                    <span className="pill c-warn">área restrita</span>
+                    <b className="ff grow">
+                      Relato {porta.ordem} de {dados.paraAbrir.length}
+                    </b>
+                  </div>
+                  {aberto ? (
+                    <>
+                      <div>{aberto.relato}</div>
+                      <div className="mutetxt">
+                        Aberto por você agora, com a finalidade: “{aberto.finalidade}”.
+                        O acesso está registrado.
+                      </div>
+                    </>
+                  ) : (
+                    <div className="row">
+                      <button type="button" className="btn sm sec"
+                              onClick={() => { setErroAbrir(''); setAbrindo(porta); }}>
+                        Abrir com finalidade escrita
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      {abrindo && (
+        <FolhaFinalidade
+          ordem={abrindo.ordem} total={dados?.paraAbrir?.length ?? 0} nome={nome}
+          onFechar={() => setAbrindo(null)}
+          onAbrir={async (finalidade) => {
+            setErroAbrir('');
+            try {
+              const r = await api<{ relato: string }>(
+                `/statements/${abrindo.id}/exceptional-read`,
+                { method: 'POST', body: JSON.stringify({ finalidade }) });
+              setAbertos((a) => ({ ...a, [abrindo.id]: { relato: r.relato, finalidade } }));
+              setAbrindo(null);
+            } catch (e) {
+              setErroAbrir(e instanceof Error ? e.message : 'Não foi possível abrir.');
+            }
+          }} />
+      )}
     </>
+  );
+}
+
+/**
+ * A FINALIDADE, ESCRITA ANTES DE ABRIR (§26.2 #29).
+ *
+ * Quinze caracteres é o piso do servidor, e a folha o cobra antes de mandar —
+ * mas o que faz a finalidade valer não é o tamanho: é ela ficar registrada com o
+ * nome de quem abriu e **ser lida por quem auditar depois**. A folha diz isso
+ * com as palavras que a pessoa vai ler, e não em letra pequena.
+ *
+ * A folha NÃO diz de que relato se trata, porque ela não sabe: o número de
+ * ordem é tudo o que existe antes de abrir.
+ */
+function FolhaFinalidade({ ordem, total, nome, onFechar, onAbrir }: {
+  ordem: number; total: number; nome: string;
+  onFechar: () => void;
+  onAbrir: (finalidade: string) => void;
+}) {
+  const [texto, setTexto] = useState('');
+  const pode = texto.trim().length >= 15;
+
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-fin"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet">
+        <h3 id="t-fin">Abrir o relato {ordem} de {total}</h3>
+        <p className="mutetxt">
+          Uma narrativa pessoal sobre {nome}, em área restrita. Você não sabe ainda de que ela
+          trata — e é assim de propósito.
+        </p>
+
+        <label className="f" htmlFor="fin">
+          Para que você precisa ler <small>— fica registrado junto com o acesso</small>
+        </label>
+        <textarea id="fin" value={texto} onChange={(e) => setTexto(e.target.value)}
+                  placeholder="Ex.: preparar a resposta ao ofício do Ministério Público de 18/09 sobre a situação familiar." />
+
+        <div className="row rodape">
+          <button type="button" className="btn sec grow" onClick={onFechar}>Cancelar</button>
+          <button type="button" className="btn grow" disabled={!pode}
+                  onClick={() => onAbrir(texto.trim())}>
+            Registrar a finalidade e abrir
+          </button>
+        </div>
+        <p className="mutetxt" style={{ marginBottom: 0 }}>
+          {pode
+            ? 'Ao abrir, o seu nome, o horário e esta finalidade ficam gravados.'
+            : 'Escreva a finalidade (mínimo 15 caracteres). Ela é o que justifica a leitura '
+              + 'para quem auditar depois.'}
+        </p>
+      </div>
+    </div>
   );
 }
 

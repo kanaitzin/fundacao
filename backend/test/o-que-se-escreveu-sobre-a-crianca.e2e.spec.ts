@@ -241,4 +241,106 @@ describe('O que se escreveu sobre esta criança', () => {
     }
     expect(chaves.filter((k) => /^(total|media|percentual|pontua)/i.test(k))).toEqual([]);
   });
+
+  // ============ E COMO ELE ESCOLHE O QUE ABRIR (fase 136) ============
+  /*
+   * A DECISÃO DE 21/09/2026: *"gestor abrir o que quiser"*.
+   *
+   * Era a metade que faltava do §10.6. Com só a contagem ele não tinha por onde
+   * escolher; agora há **uma porta por relato**, e ele abre a que quiser, uma por
+   * vez. O caminho que NÃO foi escolhido era um botão que abrisse os N de uma
+   * vez — e é por isso que estes testes cobram que abrir um **não** abra o outro.
+   */
+
+  it('o gestor recebe UMA PORTA POR RELATO — e a porta não diz nada', async () => {
+    const r = await sobre(tokens.gestor);
+    expect(r.body.paraAbrir).toHaveLength(2);
+    for (const porta of r.body.paraAbrir) {
+      /* Número de ordem e identificador. Mais nada: uma chave a mais aqui é
+         narrativa saindo sem finalidade escrita. */
+      expect(Object.keys(porta).sort()).toEqual(['id', 'ordem']);
+    }
+    expect(r.body.paraAbrir.map((p: any) => p.ordem)).toEqual([1, 2]);
+  });
+
+  it('a ordem sai do IDENTIFICADOR, e não da data — cronologia já é narrativa', async () => {
+    const r = await sobre(tokens.gestor);
+    const { rows } = await admin.query(
+      `SELECT id FROM statement WHERE person_id = $1 AND restricted ORDER BY id`,
+      [ids.crianca]);
+    expect(r.body.paraAbrir.map((p: any) => p.id)).toEqual(rows.map((x: any) => x.id));
+  });
+
+  it('a técnica NÃO recebe portas: ela já lê o relato na lista', async () => {
+    /* Oferecer-lhe "abrir excepcionalmente" transformaria leitura de rotina em
+       ato excepcional — o contrário do que o §26.2 protege. */
+    for (const cargo of ['tecnica', 'coord', 'lider', 'educador'] as const) {
+      const r = await sobre(tokens[cargo]);
+      expect(r.body.paraAbrir).toEqual([]);
+    }
+  });
+
+  it('abrir exige finalidade escrita, e a recusa diz para que ela serve', async () => {
+    const porta = (await sobre(tokens.gestor)).body.paraAbrir[0];
+    const curta = await request(http)
+      .post(`/api/v1/statements/${porta.id}/exceptional-read`)
+      .set(auth(tokens.gestor)).send({ finalidade: 'preciso ver' });
+    expect(curta.status).toBe(400);
+    expect(curta.body.message).toMatch(/finalidade/i);
+    expect(curta.body.message).toMatch(/registrada/i);
+  });
+
+  it('abrir devolve o texto E grava a finalidade — o registro vem antes', async () => {
+    const porta = (await sobre(tokens.gestor)).body.paraAbrir[0];
+    const finalidade = 'Preparar a resposta ao ofício fictício do MP sobre a situação familiar.';
+    const r = await request(http).post(`/api/v1/statements/${porta.id}/exceptional-read`)
+      .set(auth(tokens.gestor)).send({ finalidade });
+    expect(r.status).toBe(201);
+    /* Comparação insensível a maiúsculas: a ordem das portas sai do ID, que é
+       aleatório, então a porta 1 pode ser qualquer um dos dois relatos — e um
+       deles começa a frase com minúscula. Fixar o texto exato faria este teste
+       passar ou reprovar por sorteio. */
+    expect(r.body.relato.toLowerCase()).toContain('narrativa técnica fictícia');
+
+    const { rows: [ev] } = await admin.query(
+      `SELECT action, purpose FROM audit_event
+        WHERE entity = 'statement' AND entity_id = $1
+          AND action = 'statement.read_exceptional'
+        ORDER BY at DESC LIMIT 1`, [porta.id]);
+    expect(ev.action).toBe('statement.read_exceptional');
+    /* A finalidade fica por extenso: é ela que justifica a leitura para quem
+       auditar depois, e um código não justificaria nada. */
+    expect(ev.purpose).toBe(finalidade);
+  });
+
+  it('abrir UM não abre o outro — é o caminho que a Fundação escolheu', async () => {
+    const portas = (await sobre(tokens.gestor)).body.paraAbrir;
+    await request(http).post(`/api/v1/statements/${portas[0].id}/exceptional-read`)
+      .set(auth(tokens.gestor))
+      .send({ finalidade: 'Conferir o histórico fictício antes da audiência concentrada.' });
+
+    /* A lista continua com as DUAS portas, e o perfil continua sem os textos:
+       abrir é um ato por relato, e não uma chave que destranca a criança. */
+    const depois = await sobre(tokens.gestor);
+    expect(depois.body.paraAbrir).toHaveLength(2);
+    expect(depois.body.relatos.filter((x: any) => x.restrito)).toHaveLength(0);
+    expect(JSON.stringify(depois.body)).not.toContain('Narrativa técnica fictícia');
+
+    /* E cada abertura tem o seu próprio registro, com a sua própria finalidade:
+       uma finalidade valendo por dois relatos não diria de qual ele precisava. */
+    const { rows } = await admin.query(
+      `SELECT DISTINCT entity_id FROM audit_event
+        WHERE action = 'statement.read_exceptional' AND entity_id = ANY($1::uuid[])`,
+      [portas.map((p: any) => p.id)]);
+    expect(rows.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('quem não é Gestor Geral não abre, mesmo escrevendo finalidade', async () => {
+    const { rows: [algum] } = await admin.query(
+      `SELECT id FROM statement WHERE person_id = $1 AND restricted LIMIT 1`, [ids.crianca]);
+    const r = await request(http).post(`/api/v1/statements/${algum.id}/exceptional-read`)
+      .set(auth(tokens.coord))
+      .send({ finalidade: 'Finalidade fictícia suficientemente longa para passar do piso.' });
+    expect(r.status).toBe(403);
+  });
 });
