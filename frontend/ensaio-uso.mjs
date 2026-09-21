@@ -1498,6 +1498,73 @@ cobrar('nenhuma exceção na visão do Gestor Geral', erros.length === 0, erros[
 
 
 /*
+ * ============ O QUE SE ESCREVEU SOBRE A CRIANÇA (fase 128) ============
+ *
+ * A decisão de 20/09 é de uma linha — **o Gestor Geral vê só a contagem** —, e o
+ * percurso só prova isso se percorrer os DOIS lados: a técnica, que lê a
+ * narrativa, e o gestor, que vê o número e não o texto. Um teste de servidor diz
+ * que a rota recorta; isto diz que a TELA mostra o recorte.
+ *
+ * O Kauã é a criança de quem a ocorrência `o1` fala, e dela são os três relatos
+ * do protótipo — dois abertos e um restrito, a narrativa em que a educadora diz
+ * que ficou com medo de sair e deixar a casa.
+ */
+console.log('\n🗣️ O que se escreveu sobre a criança (fase 128)');
+
+async function abrirOKaua() {
+  await aba('Acolhidos');
+  const cartao = pg.locator('main.conteudo button').filter({ hasText: /Kauã/ });
+  if (!(await cartao.count())) return false;
+  await cartao.first().click();
+  await pg.waitForTimeout(1100);
+  return true;
+}
+
+await trocar('equipe_tecnica');
+erros.length = 0;
+if (!(await abrirOKaua())) {
+  cobrar('o perfil do Kauã abre para a equipe técnica', false, 'não achei o cartão dele');
+} else {
+  /* `.eyebrow` tem text-transform: uppercase, e o innerText devolve o texto
+     TRANSFORMADO: comparar sensível a maiúsculas passa por engano. */
+  const dela = (await conteudo()).toLowerCase();
+  cobrar('o perfil traz o bloco do que se escreveu sobre ela',
+    dela.includes('o que se escreveu sobre'), dela.slice(0, 200));
+  cobrar('e a equipe técnica LÊ a narrativa restrita — é o acompanhamento dela',
+    dela.includes('fiquei com medo'),
+    'sem o texto, a técnica volta a abrir a ocorrência para ler o que já é dela');
+  cobrar('a narrativa restrita chega marcada como restrita, e não solta',
+    dela.includes('área restrita'),
+    'sem a marca, quem lê não sabe que aquilo não circula pelo plantão');
+  cobrar('e para ela não há contagem — ela alcança tudo o que existe',
+    !/existe[m]? \d+ relatos? em área restrita/.test(dela),
+    'a contagem é para quem NÃO alcança; para quem alcança, ela é ruído');
+}
+
+await trocar('gestor_geral');
+if (!(await abrirOKaua())) {
+  cobrar('o perfil do Kauã abre para o Gestor Geral', false, 'não achei o cartão dele');
+} else {
+  const dele = (await conteudo()).toLowerCase();
+  cobrar('o Gestor Geral vê que EXISTE relato em área restrita',
+    /existe[m]? \d+ relatos? em área restrita/.test(dele),
+    'esconder que existem faria a equipe procurar noutro lugar');
+  cobrar('e NÃO vê o texto da narrativa — é a decisão de 20/09',
+    !dele.includes('fiquei com medo'),
+    'a leitura é o comando do §26.2, com finalidade escrita e registro');
+  cobrar('a frase da contagem está em português, e não "N relato(s)"',
+    !dele.includes('relato(s)'),
+    'quem lê isto às 23h merece a frase certa');
+  cobrar('nenhuma exceção no bloco dos relatos', erros.length === 0, erros[0]);
+}
+
+/* Devolve o cargo que as seções de baixo esperam. O percurso é SEQUENCIAL: quem
+   troca de cargo no meio e não devolve faz a próxima seção reprovar por um
+   motivo que não é dela — e foi o que esta linha custou para eu aprender. */
+await trocar('equipe_tecnica');
+
+
+/*
  * ====================== O DOSSIÊ E O ÁLBUM (fase 124)
  *
  * Os dois pedidos que a equipe fez e a Fundação repassou em 15/09: *"ter foto

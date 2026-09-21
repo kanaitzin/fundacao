@@ -719,18 +719,23 @@ interface RelatoMock {
   id: string; entity: string; entityId: string; autor: string; autorId: string;
   testemunho: string; codigoTestemunho: string; relato: string;
   restrito: boolean; quando: string;
+  /* SOBRE QUEM (fase 128). Era `null` em todos, e por isso o bloco novo do
+     perfil nasceria vazio no único arquivo que o Marcelo abre — o §6.19 pela
+     quinta vez. Os três relatos da ocorrência `o1` são sobre o Kauã (`p10`),
+     que é de quem a ocorrência fala. */
+  personId: string | null;
 }
 const RELATOS: RelatoMock[] = [
   { id: 'r1', entity: 'incident', entityId: 'o1', autor: 'Joana Lima (fictícia)', autorId: 'u6',
     testemunho: 'Presenciei parcialmente', codigoTestemunho: 'presenciei_parcialmente',
     relato: 'Por volta das 21h40 vi o portão dos fundos aberto e o Kauã não estava na sala. '
       + 'Avisei o Líder Noturno Geral na hora e conferi os quartos.',
-    restrito: false, quando: emHoras(21, 45) },
+    restrito: false, quando: emHoras(21, 45), personId: 'p10' },
   { id: 'r2', entity: 'incident', entityId: 'o1', autor: 'Nélio Noturno (fictício)', autorId: 'u8',
     testemunho: 'Intervim', codigoTestemunho: 'intervim',
     relato: 'Recebi o aviso às 21h45 e segui o protocolo da casa. O acolhido retornou às '
       + '23h15, acompanhado, sem lesão referida.',
-    restrito: false, quando: emHoras(23, 20) },
+    restrito: false, quando: emHoras(23, 20), personId: 'p10' },
   // Narrativa pessoal (§26.2 #11): fala do que a pessoa sentiu. Não circula
   // pelo plantão — a equipe técnica, a coordenação e o líder do turno abrem;
   // o colega educador não. Está aqui no protótipo justamente para que a
@@ -739,7 +744,7 @@ const RELATOS: RelatoMock[] = [
     testemunho: 'Presenciei parcialmente', codigoTestemunho: 'presenciei_parcialmente',
     relato: 'Estava sozinha com os outros seis quando percebi a ausência. Fiquei com medo '
       + 'de sair para procurar e deixar a casa, e por isso chamei antes de ir.',
-    restrito: true, quando: emHoras(21, 50) },
+    restrito: true, quando: emHoras(21, 50), personId: 'p10' },
 ];
 function relatosDe(entity: string, entityId: string) {
   const ladoALado = ['equipe_tecnica', 'coordenador', 'lider_diurno', 'lider_noturno_geral']
@@ -757,7 +762,7 @@ function relatosDe(entity: string, entityId: string) {
       .map((r) => ({
         id: r.id, autor: r.autor, meu: r.autorId === eu.id,
         testemunho: r.testemunho, codigoTestemunho: r.codigoTestemunho,
-        relato: r.relato, restrito: r.restrito, acolhidoId: null,
+        relato: r.relato, restrito: r.restrito, acolhidoId: r.personId,
         quando: r.quando, registradoEm: r.quando, complementaId: null,
       })),
   };
@@ -4322,6 +4327,10 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       autor: eu.fullName, autorId: eu.id, testemunho: op.label, codigoTestemunho: op.code,
       relato: String(b.body ?? ''), restrito: b.restrito === true,
       quando: String(b.happenedAt ?? new Date().toISOString()),
+      /* Sem isto, o relato escrito na demonstração não chegaria ao perfil da
+         criança, e o bloco da fase 128 diria que não há nada escrito sobre ela
+         um segundo depois de alguém escrever. */
+      personId: b.personId ? String(b.personId) : null,
     });
     return { ok: true,
       aviso: 'Relato registrado com o seu nome. Ninguém edita o relato de ninguém — se '
@@ -4330,6 +4339,50 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
 
   if (rota === '/statements' && metodo === 'GET') {
     return relatosDe(String(q.get('entity') ?? ''), String(q.get('entityId') ?? ''));
+  }
+
+  /*
+   * `GET /statements/person/:personId` — o que se escreveu SOBRE ela (fase 128).
+   *
+   * A decisão de 20/09 desenha isto: quem ALCANÇA lê o texto; quem não alcança
+   * recebe a CONTAGEM, e nada mais. Aqui o recorte é em TypeScript porque não há
+   * banco; no servidor de verdade é a policy `st_select` que o faz, por
+   * `app_pode_ler_relato`. O perímetro é o mesmo de propósito — mock que
+   * responde diferente do servidor é a regra 14 ao contrário, e já custou seis
+   * defeitos de uma vez.
+   */
+  if (seg[0] === 'statements' && seg[1] === 'person' && metodo === 'GET') {
+    const pessoa = todosKids().find((k) => k.id === seg[2]);
+    if (!pessoa) return new Recusa(404, 'Criança não encontrada.');
+    const dela = RELATOS.filter((r) => r.personId === seg[2]);
+    const alcanca = (r: RelatoMock) =>
+      r.autorId === eu.id
+      || ['equipe_tecnica', 'coordenador', 'lider_diurno', 'lider_noturno_geral'].includes(eu.role)
+      || !r.restrito;
+    const meus = dela.filter(alcanca);
+    const restritos = dela.length - meus.length;
+    return {
+      acolhidoId: pessoa.id,
+      nome: pessoa.nome,
+      relatos: meus
+        .slice()
+        .sort((a, b2) => b2.quando.localeCompare(a.quando))
+        .map((r) => ({
+          id: r.id, contexto: r.entity === 'incident' ? 'ocorrencia' : r.entity,
+          entidade: r.entity, entidadeId: r.entityId,
+          autor: r.autor, meu: r.autorId === eu.id,
+          testemunho: r.testemunho, codigoTestemunho: r.codigoTestemunho,
+          relato: r.relato, restrito: r.restrito, quando: r.quando,
+        })),
+      /* NÚMERO, e só. Nem data, nem autor, nem trecho. */
+      restritos,
+      nota: restritos
+        ? (restritos === 1
+            ? 'Existe 1 relato em área restrita sobre esta criança. '
+            : `Existem ${restritos} relatos em área restrita sobre esta criança. `)
+          + 'Abrir exige finalidade escrita, e o acesso fica registrado com o seu nome.'
+        : 'Todos os relatos que existem sobre esta criança estão nesta lista.',
+    };
   }
 
   // ---- avisos (§19): a caixa do escalonamento

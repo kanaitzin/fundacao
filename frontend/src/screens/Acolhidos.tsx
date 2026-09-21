@@ -855,6 +855,17 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
       <Presenca personId={p.id} nome={p.nome} />
 
       {/*
+        * O QUE SE ESCREVEU SOBRE ELA (fase 128).
+        *
+        * `statement.person_id` era gravado desde a 0300 e nunca lido por
+        * pessoa. Ficou fechado de propósito até 20/09, esperando a resposta do
+        * §10 item 6: listar por criança tudo o que se escreveu SOBRE ela é
+        * exatamente a narrativa que o §26.2 protege. A resposta foi "só a
+        * contagem", e é ela que desenha este bloco.
+        */}
+      <Relatos personId={p.id} nome={p.nome} />
+
+      {/*
         * O PRONTUÁRIO DE EDUCAÇÃO (fase 111).
         *
         * As duas tabelas existiam desde a migração 0530 e o relatório as lia;
@@ -3285,6 +3296,100 @@ function Presenca({ personId, nome }: { personId: string; nome: string }) {
             ? 'Mostrar só o que teve exceção'
             : `Ver tudo o que foi registrado (${linhas.length})`}
         </button>
+      )}
+    </>
+  );
+}
+
+/**
+ * O QUE SE ESCREVEU SOBRE ESTA CRIANÇA (fase 128, migração 1360).
+ *
+ * A decisão de 20/09 desenha esta tela inteira, e ela é de uma linha: **o
+ * Gestor Geral vê só a contagem.** Nem data, nem autor, nem trecho.
+ *
+ * Três cuidados que não são de tela, e é aqui que eles aparecem:
+ *
+ *  * **o que este papel não pode ver aparece como CONTAGEM, não some.** É o
+ *    mesmo que o dossiê faz com o documento restrito: esconder que existem
+ *    faria a equipe procurar noutro lugar;
+ *  * **a contagem é uma frase, não um número num selo.** "Existem 2 relatos em
+ *    área restrita" é informação; um `2` vermelho ao lado do nome de uma
+ *    criança de doze anos começa a parecer nota de comportamento (regra 3);
+ *  * **não existe botão de abrir aqui.** A leitura excepcional é o comando do
+ *    §26.2, e COMO ele escolhe o que abrir é a pergunta que ficou aberta em
+ *    20/09 — com só a contagem, ele não tem por onde escolher. Oferecer um
+ *    botão que abrisse tudo, ou uma lista de relatos opacos numerados, seria eu
+ *    decidindo quanto da narrativa dela sai de uma vez. Não decido.
+ */
+function Relatos({ personId, nome }: { personId: string; nome: string }) {
+  const [dados, setDados] = useState<{
+    relatos: { id: string; contexto: string; autor: string; meu: boolean;
+               testemunho: string; relato: string; restrito: boolean; quando: string }[];
+    restritos: number;
+    nota: string;
+  } | null>(null);
+  const [erro, setErro] = useState('');
+
+  useEffect(() => {
+    let vivo = true;
+    api<typeof dados>(`/statements/person/${personId}`)
+      .then((d) => { if (vivo) setDados(d); })
+      .catch((e) => { if (vivo) setErro(e instanceof Error ? e.message : ''); });
+    return () => { vivo = false; };
+  }, [personId]);
+
+  /* Quem não alcança a criança não vê o bloco — oferecer uma seção que o
+     servidor vai recusar ensina a não confiar na tela (fase 112). */
+  if (erro) return null;
+  const relatos = dados?.relatos ?? [];
+
+  /* Nada escrito e nada restrito: o bloco não aparece. Uma seção vazia no
+     perfil de uma criança se lê como ausência de trabalho (§8.12). */
+  if (dados && !relatos.length && !dados.restritos) return null;
+
+  return (
+    <>
+      <div className="eyebrow">O que se escreveu sobre {nome}</div>
+      {!dados && <p className="mutetxt">Abrindo…</p>}
+
+      {/*
+        * A CONTAGEM VEM PRIMEIRO, e em frase.
+        *
+        * Quem chega aqui sem alcançar o restrito precisa saber que ele existe
+        * ANTES de ler a lista curta — senão a lista curta parece ser tudo, e é
+        * assim que alguém conclui que não há nada escrito sobre a criança.
+        */}
+      {!!dados?.restritos && (
+        <div className="notice c-info">
+          {dados.nota}
+        </div>
+      )}
+
+      <div className="stack">
+        {relatos.map((r) => (
+          <div className="card" key={r.id}>
+            <div className="row">
+              <span className={`pill ${r.restrito ? 'c-warn' : 'c-ok'}`}>
+                {r.restrito ? 'área restrita' : 'aberto à equipe'}
+              </span>
+              <b className="ff grow">{r.testemunho}</b>
+              <span className="mutetxt">{dia(r.quando)}</span>
+            </div>
+            <div>{r.relato}</div>
+            {/* O nome de quem escreveu aparece na linha, como em toda tela
+                deste sistema — e nunca é o filtro (fase 112). */}
+            <div className="mutetxt">
+              {r.meu ? 'Escrito por você' : `Escrito por ${r.autor}`} · {r.contexto}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {dados && !relatos.length && !!dados.restritos && (
+        <p className="mutetxt">
+          Você não alcança nenhum destes relatos. A contagem acima existe para você saber que
+          eles existem, e não para saber o que dizem.
+        </p>
       )}
     </>
   );

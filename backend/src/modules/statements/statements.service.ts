@@ -140,6 +140,87 @@ export class StatementsService {
   }
 
   /**
+   * O QUE SE ESCREVEU SOBRE ESTA CRIANÇA — e o que este papel não pode abrir.
+   *
+   * `statement.person_id` era gravado desde a 0300 e **nunca lido por pessoa**.
+   * A varredura de 15/09 o listou como ponta solta e o §9 o manteve fechado de
+   * propósito, esperando uma resposta: listar por criança tudo o que se
+   * escreveu SOBRE ela é exatamente a narrativa que o §26.2 protege.
+   *
+   * A resposta veio em 20/09 e é **só a contagem** (§10 item 6). Então:
+   *
+   *  * quem ALCANÇA lê — e quem alcança é a policy que diz, não este método.
+   *    A consulta abaixo não tem cláusula de cargo nenhuma; ela pergunta pelos
+   *    relatos da criança e recebe de volta os que existem para quem perguntou.
+   *    É o banco que faz o recorte, e é por isso que ele não pode vazar aqui;
+   *  * quem NÃO alcança recebe um NÚMERO — nem data, nem autor, nem trecho. Ele
+   *    sabe que há o que pedir, e não sabe de quê antes de escrever a
+   *    finalidade.
+   *
+   * E ela NÃO CONTA NADA sobre a criança além disso: nem relatos por mês, nem
+   * quantos autores, nem tendência. Um número desses na tela de uma criança de
+   * doze anos é o começo de uma ficha de comportamento (regra 3), e a contagem
+   * de restritos só existe porque esconder que existem faria a equipe procurar
+   * noutro lugar.
+   */
+  async porPessoa(user: AuthenticatedUser, personId: string) {
+    const data = await this.db.asUser(user.id, async (c) => {
+      /* Fora do escopo o RLS não devolve a linha, e 404 é a resposta certa:
+         "não encontrei" e "não é da sua casa" precisam ser indistinguíveis
+         para quem pergunta de fora. */
+      const { rows: [pessoa] } = await c.query(
+        `SELECT id, coalesce(nullif(social_name,''), full_name) AS nome FROM person WHERE id = $1`,
+        [personId]);
+      if (!pessoa) return null;
+      const { rows } = await c.query(
+        `SELECT s.id, s.context, s.entity, s.entity_id, s.witness, w.label AS testemunho,
+                s.body, s.restricted, s.happened_at, s.created_at,
+                app_user_display_name(s.author_id) AS autor,
+                (s.author_id = app_current_user()) AS meu
+           FROM statement s JOIN witness_option w ON w.code = s.witness
+          WHERE s.person_id = $1
+          ORDER BY s.happened_at DESC, s.created_at DESC`, [personId]);
+      const { rows: [r] } = await c.query(
+        `SELECT app_count_restricted_statements($1) AS n`, [personId]);
+      return { pessoa, rows, restritos: r.n as number };
+    });
+    if (!data) throw new NotFoundException('Criança não encontrada.');
+
+    /* Ler o que a equipe técnica escreveu sobre uma criança é ato, e fica com
+       nome — a mesma razão que faz a leitura lado a lado da `listFor` ser
+       registrada. Só registra se havia o que ler. */
+    if (data.rows.some((r: any) => r.restricted && !r.meu)) {
+      await this.audit.log({
+        action: 'statement.read_by_person', actorId: user.id, institutionId: user.institutionId,
+        entity: 'person', entityId: personId, detail: { relatos: data.rows.length },
+      });
+    }
+
+    return {
+      acolhidoId: data.pessoa.id,
+      nome: data.pessoa.nome,
+      relatos: data.rows.map((r: any) => ({
+        id: r.id, contexto: r.context, entidade: r.entity, entidadeId: r.entity_id,
+        autor: r.autor, meu: r.meu,
+        testemunho: r.testemunho, codigoTestemunho: r.witness,
+        relato: r.body, restrito: r.restricted,
+        quando: r.happened_at, registradoEm: r.created_at,
+      })),
+      /** Número, e só. A tela escreve "existem N relatos em área restrita". */
+      restritos: data.restritos,
+      /* Uma frase, e não "N relato(s)": quem lê isto às 23h merece português,
+         e a parte que importa — que abrir é um ato com o nome dela — vem
+         depois do número, onde ela ainda lê. */
+      nota: data.restritos
+        ? (data.restritos === 1
+            ? 'Existe 1 relato em área restrita sobre esta criança. '
+            : `Existem ${data.restritos} relatos em área restrita sobre esta criança. `)
+          + 'Abrir exige finalidade escrita, e o acesso fica registrado com o seu nome.'
+        : 'Todos os relatos que existem sobre esta criança estão nesta lista.',
+    };
+  }
+
+  /**
    * Leitura excepcional pelo Gestor Geral, com finalidade declarada (§26.2 #29).
    * A checagem e o registro acontecem dentro do comando: não há rota que
    * devolva o conteúdo sem antes gravar quem leu, o quê e para quê.

@@ -58,6 +58,22 @@ export class StatementsController {
     return this.statements.cobrancasDa(user, 'incident', id);
   }
 
+  /**
+   * O que se escreveu SOBRE esta criança (1360).
+   *
+   * `person` é segmento FIXO antes do id, e não `:id`, pela mesma razão que a
+   * `requests/incident/:id`: palavra literal caindo num `:param` é falha
+   * silenciosa, e o conferidor de contrato já pegou isso uma vez.
+   *
+   * Quem alcança lê; quem não alcança recebe a CONTAGEM dos restritos — nem
+   * data, nem autor. É a decisão do §10 item 6, de 20/09.
+   */
+  @Get('person/:personId')
+  porPessoa(@CurrentUser() user: AuthenticatedUser,
+            @Param('personId', ParseUUIDPipe) personId: string) {
+    return this.statements.porPessoa(user, personId);
+  }
+
   @Post(':id/exceptional-read')
   exceptional(@CurrentUser() user: AuthenticatedUser,
               @Param('id', ParseUUIDPipe) id: string,

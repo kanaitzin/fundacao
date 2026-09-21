@@ -150,21 +150,62 @@ const SEM_TELA_DE_PROPOSITO: Record<string, string> = {
     + 'onde a técnica escolhe as fontes é justamente o que a Fundação não respondeu '
     + 'ainda, e construir a tela antes seria inventar o fluxo.',
   'POST /statements/:id/exceptional-read':
-    'Leitura excepcional de relato protegido. É a decisão §7.6, em aberto: o que o '
-    + 'Gestor Geral vê ANTES de abrir. A rota existe e é auditada; a porta espera a '
-    + 'resposta da Fundação.',
+    'Leitura excepcional de relato protegido. A Fundação respondeu em 20/09/2026 O QUE ele '
+    + 'vê antes de abrir — só a contagem —, e isso virou a fase 128. O que continua em '
+    + 'aberto é COMO ele escolhe o que abrir: com só a contagem ele não tem por onde, e um '
+    + 'botão que abrisse tudo de uma vez seria eu decidindo quanto da narrativa de uma '
+    + 'criança sai junto. A rota existe e é auditada; a porta espera essa resposta.',
+
+  /*
+   * AS DUAS ABAIXO NÃO SÃO "DE PROPÓSITO" — SÃO LACUNAS, E ESTÃO AQUI PARA NÃO
+   * FICAREM INVISÍVEIS.
+   *
+   * As duas apareceram em 20/09/2026 quando o `temPorta` deixou de aceitar que
+   * o `:x` de uma chamada casasse com uma PALAVRA da rota. Enquanto ele
+   * aceitava, as duas tinham porta no papel e nenhuma na tela. Estão anotadas
+   * no §9 do REDE-ACOLHER, em "achados de passagem, ainda sem conserto", e
+   * cada uma pede a sua fase — foram achadas fazendo outra coisa, e desviar a
+   * tarefa para consertá-las é o que o CLAUDE.md manda não fazer.
+   */
+  'GET /nursing/education/kinds':
+    'LACUNA, não decisão. O servidor oferece a lista de serviços e modos do prontuário de '
+    + 'educação, e a tela NÃO a pede: ela traz "Fonoaudiologia" e "Psicopedagogia" escritos '
+    + 'no HTML. É a §12.2 ao contrário — "a tela não inventa a sua lista" —, e o dia em que '
+    + 'a Fundação acrescentar um serviço, o servidor saberá e a tela não.',
+  'GET /people/:id/documents/:docId':
+    'LACUNA, não decisão. A leitura de UM documento do dossiê não tem tela: o que a tela '
+    + 'chama são as rotas de cinco segmentos (`/accept`, `/download`, `/file`). A rota curta '
+    + 'não é chamada por ninguém, e precisa ou ganhar uso ou sair — uma rota que ninguém '
+    + 'abre é superfície que ninguém confere.',
 };
 
 describe('Rotas sem porta', () => {
   const rotas = rotasDoServidor();
   const chamadas = chamadasDaTela();
 
+  /*
+   * O CASAMENTO É SEGMENTO A SEGMENTO, E O CURINGA NÃO COME PALAVRA.
+   *
+   * A primeira versão aceitava `p[i] === ':x'` contra QUALQUER segmento da
+   * rota, inclusive um literal. Com isso, uma chamada nova de três segmentos
+   * dava porta a uma rota de três segmentos que ninguém abre: em 20/09/2026 a
+   * tela passou a chamar `/statements/person/:x`, e o conferidor declarou que
+   * `POST /statements/:id/exceptional-read` tinha ganhado tela — ela não tinha,
+   * e a exceção dela é justamente o que guarda uma decisão em aberto.
+   *
+   * O conferidor que dá porta a quem não tem é pior do que não existir: ele
+   * apaga a única lista onde o motivo de uma rota não ter tela está escrito.
+   *
+   * Agora: um `:param` da ROTA aceita qualquer coisa (é o que ele é), e o `:x`
+   * da CHAMADA — que é o `${...}` interpolado — só casa com um `:param` da
+   * rota. Palavra literal casa com palavra literal igual.
+   */
   const temPorta = (r: Rota) => {
     const partes = r.caminho.replace(/^\/|\/$/g, '').split('/');
     for (const c of chamadas) {
       const p = c.replace(/^\/|\/$/g, '').split('/');
       if (p.length !== partes.length) continue;
-      if (partes.every((seg, i) => seg.startsWith(':') || p[i] === ':x' || seg === p[i])) {
+      if (partes.every((seg, i) => (seg.startsWith(':') ? true : seg === p[i]))) {
         return true;
       }
     }

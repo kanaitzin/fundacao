@@ -82,7 +82,7 @@ aplicação e no banco. §7 tem a matriz inteira.
 
 ## 2. O ESTADO HOJE
 
-**Fases 0 a 127.** Estes números **saem do código**, não da memória — e são
+**Fases 0 a 128.** Estes números **saem do código**, não da memória — e são
 cobrados por `test/numeros-da-documentacao.spec.ts`, que existe porque em 08/09
 seis afirmações estavam erradas ao mesmo tempo em três documentos, e duas delas
 discordavam entre si.
@@ -90,12 +90,12 @@ discordavam entre si.
 | Quanto | De onde sai |
 |---|---|
 | **18 partições** isoladas | pastas em `backend/src/modules/` |
-| **121 migrações** | `.sql` dentro das partições |
+| **122 migrações** | `.sql` dentro das partições |
 | **112 tabelas** | `CREATE TABLE` nas migrações |
-| **78 suítes** | `backend/test/*.spec.ts` |
-| **773 testes** | `it(` / `test(` nas suítes |
+| **79 suítes** | `backend/test/*.spec.ts` |
+| **783 testes** | `it(` / `test(` nas suítes |
 | **36 telas React** | `frontend/src/screens/*.tsx` |
-| **14 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
+| **16 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **6 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
 | protótipo com **≈1256 KB** | `prototipo/rede-acolher-prototipo.html` |
 
@@ -332,6 +332,8 @@ arqueologia.
 | 124 | **Várias fotos numa vivência, e o baixar no dossiê.** Dois dos três pedidos que a equipe fez e a Fundação repassou em 15/09 (§9, Grupo 2.5) — e os dois eram diferenças pequenas, o que não quer dizer pouca coisa. **(1) As fotos:** o álbum já aceitava fotos sem limite, mas não mais de uma **da mesma vivência** — `memory_record` guardava um `storage_key`, e a educadora que voltava da festa com seis fotos registrava seis vivências: seis vezes a mesma data, seis vezes a mesma descrição, e o álbum da criança contando a festa seis vezes. A saída errada seria `storage_key_2`, `storage_key_3`; a certa é dizer o que é verdade — **uma vivência é um acontecimento, e um acontecimento tem quantas fotos tiver**. As que já existiam **mudaram de lugar** para `memory_photo`, e as colunas antigas ficaram como origem histórica, com um `COMMENT` dizendo que não são mais lidas: guardar o mesmo fato em dois lugares é como duas versões da verdade começam, e um teste confere que elas nascem nulas. **A autorização de imagem continua POR FOTO** — a festa pode ter uma foto com uma criança de outra casa, e a autorização dela é outra conversa —, e a vivência só aparece autorizada quando todas as fotos dela estão. A `position` guarda a ordem da escolha: sem ela, seis fotos saem embaralhadas a cada consulta e a primeira deixa de ser a primeira. E o envio tem teto de doze, que **não é limite do álbum**: é o tamanho de um envio que cabe numa conexão de casa, e a recusa diz o que fazer no lugar. **(2) O baixar:** a folha do dossiê abria a prévia e não oferecia baixar — o botão existe na biblioteca de anexos desde a fase 47 e é usado em quatro telas; faltava justamente onde a equipe pediu. Ele passa por **rota própria, que registra**: salvar no navegador os bytes que a prévia já tem funcionaria e não deixaria linha nenhuma. Abrir é `document.open` desde a 47; sair com o arquivo é `document.download`, e é o que alguém vai querer rastrear no dia em que uma certidão aparecer onde não devia. A conferência do sha vale para os dois: **um arquivo trocado por baixo não sai do sistema nem para a tela, nem para o disco de ninguém** |
 | 125 | **O que é da criança chega ao dossiê dela.** O terceiro pedido do Grupo 2.5, e o mais fundo, porque a Fundação tirou dele uma regra para o sistema inteiro: *"se a enfermagem já faz isso cair no perfil da criança, todos os outros lugares onde a gente preenche […] têm que ir individual para cada um no seu registro"*. **O defeito, medido:** a receita digitalizada vive em `prescription_document`, presa à prescrição, na tela de Saúde; o anexo do diário de internação vive em `hospitalization_note`. **Nenhuma das duas cria linha em `document`** — e o dossiê só lê `document`. O dado não estava perdido: estava guardado, com autor e hora, na tela onde nasceu. Faltava ele **chegar onde a criança é procurada**. **O espelho** (`app_espelhar_no_dossie`) cria a linha em `document` apontando para o **mesmo objeto guardado** — mesmo `storage_key`, mesmo sha: não há cópia do arquivo, porque duas cópias divergem no dia em que alguém substituir uma delas e a segunda continua parecendo verdadeira. É **idempotente por `mirror_of`**, e sem isso cada reprocessamento — uma fila offline reenviada, um clique duplo no fim de um turno de doze horas — encheria a pasta da criança de receitas repetidas que ninguém distingue. **Ele chega conferido, e isto é decisão escrita:** o rito do aceite é *"eu olhei e digo que é este documento, desta criança, e que está legível"*, e quem anexou à prescrição fez exatamente isso — o *"é desta criança"* está garantido pela estrutura, porque a prescrição já é de uma criança nomeada. Deixá-lo aguardando conferência faria o contador de *"falta conferir"* da casa subir sozinho a cada prescrição, e contador que sobe sozinho é contador que a equipe aprende a ignorar — e aí o documento que **realmente** falta conferir some no meio. **Só quando há arquivo:** a receita pode ser anexada como referência (*"está na pasta tal do Drive"*), e um espelho sem arquivo seria um documento no dossiê que não abre. **A bula, que não existia em lugar nenhum**, entra pela mesma porta — `prescription_document.kind` —, e na mesma tabela porque é o mesmo fato: um papel digitalizado preso a uma prescrição. Uma tabela idêntica com outro nome seria a mesma coisa escrita duas vezes, e a segunda esqueceria a correção que a primeira recebesse. Ela segue a política restrita da receita por uma razão prática: **o sigilo não está no papel, está no vínculo** — saber QUE bula alguém guardou é saber qual remédio a criança toma. As receitas **já guardadas** são espelhadas na migração, senão a casa abriria a pasta no dia seguinte sem entender por que a receita de ontem não está lá. E a tela mostrou um defeito que a fase descobriu: o dossiê desenhava **só as vagas da lista de obrigatórios**, então a bula e o laudo — que não preenchem vaga nenhuma — chegavam e ficavam **invisíveis**; o servidor já os devolvia em `avulsos`, e faltava alguém desenhá-los. Inventar vaga para eles seria pior: vaga de checklist é cobrança, e a casa passaria a ver *"falta a bula"* de uma criança que não toma remédio nenhum |
 | 126 | **A suíte que só era verde de dia.** Ao retomar o trabalho noutra conversa, a suíte inteira reprovava — e cada suíte, sozinha, passava. Três causas, todas em DADO DE TESTE e nenhuma no sistema: dois vazamentos de fixture que **se cancelavam** (um deixava uma criança a mais na casa, o outro tirava o Theo do seed, e a conta fechava por coincidência), e o seed das prescrições usando `CURRENT_DATE` — o dia do SERVIDOR —, que depois das 21h em Porto Alegre semeava o dia seguinte e deixava o dia de hoje sem dose nenhuma |
+| 127 | **A chamada fecha quando alguém da casa está fora dela.** A educadora das 22h tinha uma casa de vinte crianças, uma delas no hospital, e nenhuma saída: marcar era impossível, e fechar também. **Quem a chamada cobra estava escrito em QUATRO lugares**, e só a tela sabia que a criança pode não estar na casa — `app_bulk_check` (0780), `app_confirm_check` e `app_check_missing` (0440) nasceram antes de a internação (0890) e a convivência familiar (1010) existirem, e ninguém voltou para lhes contar. As duas metades do defeito: a conferência de mesa **gravava "normal" para a criança que estava no HOSPITAL** — um fato inventado sobre uma criança, e silencioso, porque a tela dizia `faltam: 0` —, e o fechamento **cobrava pelo nome** quem a tela se recusava a listar. A correção não repete a regra em três lugares: `app_efetivo_da_chamada` (1350) passa a ser a resposta única para "de quem esta chamada trata", e regra nova de presença — escola em turno integral, acampamento, hospital-dia — se escreve uma vez, lá dentro. **E POR DIA, não por "agora":** a chamada de ontem, reaberta hoje para correção, precisa saber como a casa estava ontem; as duas funções de presença já respondiam por dia e estavam sendo chamadas SEM dia. **O teste veio primeiro**, e era o que faltava: `quem-a-chamada-cobra.e2e.spec.ts`, cinco testes, e medida sem a correção ela reprova — o lote marca 20 onde a tela mostra 19. *O que o documento afirmava e não era verdade: **nenhuma suíte guardava este defeito.** `hospitalization` e `family_stay` chegam vazias do seed, então nenhuma encontrava alguém fora da casa; as "3 falhas em `conferencia-de-mesa`" eram o eco de um rascunho que morava em `backend/test/` e deixava uma internação aberta no banco compartilhado. O defeito era real; a prova de que ele existia, não. Por isso a suíte nova **fecha o que abre**, com rede de segurança no `afterAll`* |
+| 128 | **O que se escreveu sobre a criança, e o que este papel não pode abrir.** `statement.person_id` era gravado desde a 0300 e **nunca lido por pessoa**: a varredura de 15/09 o achou, e o §9 o manteve fechado **de propósito**, porque listar por criança tudo o que se escreveu SOBRE ela é exatamente a narrativa que o §26.2 protege atrás de finalidade declarada. A resposta chegou em 20/09 e é de uma linha — **só a contagem** —, e ela desenha a fase inteira: **quem alcança lê; quem não alcança recebe um NÚMERO**, nem data, nem autor, nem trecho. Vale o mesmo precedente do dossiê: *"o que este papel não pode ver aparece como contagem, não some"*, porque esconder que existem faria a equipe procurar noutro lugar. **A regra de quem lê passou a morar num lugar só** (`app_pode_ler_relato`), com dois leitores — a policy, que decide quais linhas existem, e a contagem, que conta as que não existem para quem pergunta. Foi a lição da 127 aplicada antes de doer: a regra já estava escrita duas vezes (a 0300 a criou, a 0730 a reescreveu inteira só para acrescentar dois cargos) e esta fase precisaria de uma terceira cópia. **A contagem é frase, não selo:** *"Existe 1 relato em área restrita sobre esta criança"* é informação; um `2` vermelho ao lado do nome de uma criança de doze anos começa a parecer nota de comportamento (regra 3). E a resposta **não soma nada** além disso — nem relatos por mês, nem por autor —, guardado pela FORMA da resposta. *No caminho, dois achados que não são desta fase e ficaram anotados no §9: a tela de Educação **inventa a própria lista** em vez de pedir `/nursing/education/kinds`, e a leitura de um documento do dossiê não tem quem a chame. Os dois apareceram porque o `rotas-sem-porta` **deixou de dar porta a quem não tem**: o `temPorta` aceitava que o `:x` de uma chamada casasse com uma PALAVRA da rota, e uma chamada nova desta fase revelou o defeito declarando que a leitura excepcional tinha ganhado tela — ela não tinha* |
 
 ---
 
@@ -379,7 +381,7 @@ cd frontend && npm run prototipo
 ```
 
 O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as
-121 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
+122 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
 
 ### Os ensaios — e por que cada um existe
 
@@ -444,7 +446,7 @@ rede-acolher/
 │   │   │   ├── documentos/     o contrato da folha e o gerador de .docx
 │   │   │   └── common/         CPF, criptografia, segredo, fuso da instituição
 │   │   └── modules/       18 partições, cada uma dona das próprias migrações
-│   ├── test/              78 suítes (e2e contra PostgreSQL real + estáticas)
+│   ├── test/              79 suítes (e2e contra PostgreSQL real + estáticas)
 │   ├── scripts/           ensaio-carga.ts, migrador compilado
 │   └── assets/timbre.png  a marca da Fundação, usada no documento em Word
 ├── frontend/
@@ -1703,16 +1705,27 @@ encontrava alguém fora da casa. As três falhas eram o eco de um rascunho que
 morava em `backend/test/` e deixava uma internação aberta no banco
 compartilhado. O defeito era real; a prova de que ele existia, não.*
 
-### Grupo 2 — o que espera decisão de gente (3)
+### Grupo 2 — o que espera decisão de gente (3, e duas encolheram na fase 128)
 
 Nenhuma está parada por falta de código.
 
 1. **Leitura excepcional de relato** (`POST /statements/:id/exceptional-read`).
-   A regra está pronta: o Gestor Geral só abre uma narrativa pessoal declarando
-   a finalidade, e o comando registra **antes** de devolver o conteúdo. **O que
-   trava é outra coisa:** pela política comum, o relato restrito é INVISÍVEL ao
-   gestor — ele não tem como saber que existe para pedir a leitura. Dar-lhe a
-   porta exige decidir o que ele vê ANTES de abrir. Ver §10.6.
+   ✅ **Metade resolvida na fase 128.** A regra já estava pronta: o Gestor Geral
+   só abre uma narrativa pessoal declarando a finalidade, e o comando registra
+   **antes** de devolver o conteúdo. O que travava era ele não ter como saber que
+   o relato existe — e isso acabou: a resposta de 20/09 foi **só a contagem**, e
+   o perfil da criança passou a dizer *"existem N relatos em área restrita"*.
+
+   ⚠️ **O que sobrou é menor, e é uma pergunta nova que a resposta abriu: COMO
+   ele escolhe o que abrir.** Com só a contagem, ele não tem por onde: não há
+   data, autor nem trecho para escolher por. Os dois caminhos são defensáveis e
+   nenhum é meu — **(a)** um botão só, que abre os N de uma vez com uma
+   finalidade escrita, um ato e um registro; ou **(b)** N botões opacos
+   ("relato 1 de 3"), em que ele abre um, lê, e para quando achar o que
+   procurava — menos narrativa exposta, e mais registros com a mesma
+   justificativa. *Enquanto não houver resposta, a tela de abrir não será
+   construída, pela mesma razão de sempre: escolher sozinho aqui é decidir
+   quanto da narrativa de uma criança sai junto.*
 2. **Fontes do acompanhamento** (`POST /followups/:id/sources`). A rota grava a
    referência de um registro que embasou a avaliação, e **não existe rota que
    liste os candidatos**. De onde a técnica escolhe é decisão de produto. Ver
@@ -1770,7 +1783,7 @@ espelhá-la no dossiê de uma criança seria inventar um vínculo que o dado nã
 e pôr uma despesa da casa no prontuário de alguém. **São duas vezes, não três**,
 e um teste guarda a diferença.*
 
-### Grupo 3 — as 14 rotas sem porta
+### Grupo 3 — as 16 rotas sem porta
 
 O número **não é contagem à mão**: é o tamanho da lista de exceções do
 `rotas-sem-porta.spec.ts`, onde cada linha traz o motivo por extenso. Eram 34 em
@@ -1783,7 +1796,39 @@ confirmada, health check, `GET /medications/alert-offsets` e
 recebe juntas) e `GET /people/:id/admission` (a ficha inteira, para o documento
 e para a migração da implantação).
 
+**Subiu de 14 para 16 na fase 128, e não porque nasceram duas rotas novas: porque
+o conferidor parou de dar porta a quem não tinha.** O `temPorta` aceitava que o
+`:x` de uma chamada da tela casasse com uma PALAVRA da rota, e com isso qualquer
+chamada nova de três segmentos dava porta a qualquer rota de três segmentos. Foi
+uma chamada nova desta fase que revelou o defeito: `/statements/person/:x`
+declarou que `POST /statements/:id/exceptional-read` tinha ganhado tela — ela não
+tinha. **Um conferidor que dá porta a quem não tem é pior do que não existir:**
+ele apaga a única lista onde o motivo de uma rota não ter tela está escrito.
+
+*As duas que apareceram estão em "achados de passagem, ainda sem conserto",
+abaixo. Nenhuma das duas é decisão: são lacunas, e estão na lista do conferidor
+com essa palavra escrita.*
+
 ### Achados de passagem, ainda sem conserto
+
+**1. A tela de Educação inventa a própria lista.** *(fase 128, achado ao
+apertar o `rotas-sem-porta`)* O servidor oferece `GET /nursing/education/kinds`
+com os serviços e os modos do prontuário, e **a tela não a pede**: ela traz
+`Fonoaudiologia` e `Psicopedagogia` escritos no HTML, em `<option>`. É a §12.2
+ao contrário — *"a tela não inventa a sua lista"* —, e o dia em que a Fundação
+acrescentar um serviço, o servidor vai saber e a tela não. É a mesma classe de
+defeito que fez as opções de testemunho virarem rota em vez de constante.
+*Conserto pequeno, e de uma fase própria: são duas listas e um `useEffect`.*
+
+**2. A leitura de UM documento do dossiê não tem quem a chame.** *(fase 128,
+mesmo achado)* `GET /people/:id/documents/:docId` existe e ninguém abre: o que a
+tela chama são as rotas de cinco segmentos (`/accept`, `/download`, `/file`).
+**Ou ela ganha uso, ou sai** — rota que ninguém abre é superfície que ninguém
+confere, e o `arquivo-tem-saida` só cobra o que está declarado.
+
+*Os dois foram achados fazendo outra coisa. Ficam anotados em vez de
+consertados, que é o que o CLAUDE.md manda: desviar a tarefa para consertar o
+que apareceu no caminho é como uma fase de duas linhas vira uma de duzentas.*
 
 *O risco de `user_session` e `login_attempt`, anotado aqui na fase 100, foi
 fechado na 101: as operações viraram funções `SECURITY DEFINER` e a aplicação
@@ -1947,13 +1992,15 @@ coisas**: o motivo do ingresso urgente exigido e não gravado; cinco campos de
 cadastro lidos por nada; a ficha de entrada sem tela; o ofício externo, a
 convivência familiar e a internação sem caminho de volta à criança.
 
-*Fica de fora, e por decisão: **os relatos** (`statement.person_id`, gravado e
-nunca lido por pessoa). Listar por criança tudo o que se escreveu **sobre** ela
-é justamente a narrativa que o §26.2 gateia com leitura excepcional e
-finalidade — e o item 6 do §10 ainda espera a resposta do Marcelo sobre o que
-se vê antes de abrir um relato restrito. **Enquanto não houver resposta, não
-construo**: inventar isso é decidir quanto da narrativa de uma criança vaza
-antes da justificativa.*
+~~*Fica de fora, e por decisão: **os relatos** (`statement.person_id`, gravado e
+nunca lido por pessoa).*~~ ✅ **FEITO NA FASE 128**, quando a resposta chegou.
+Listar por criança tudo o que se escreveu **sobre** ela é a narrativa que o
+§26.2 protege, e era o item 6 do §10 que travava. Com *"só a contagem"*
+respondido, a lista pôde existir: **quem alcança lê, quem não alcança vê o
+número** — e a migração `1360` pôs a regra de quem alcança num lugar só, com dois
+leitores, a policy e a contagem. *O que eu me recusei a inventar por sete dias levou
+uma frase para ser decidido, e é o argumento inteiro de perguntar em vez de
+escolher.*
 
 **5. Cinco começos que não ficaram ligados em nada.**
 
@@ -2402,7 +2449,7 @@ ele continua dizendo que o arquivo existe.
 npm run ensaio:producao
 ```
 
-Constrói, cria um banco virgem, aplica as 121 migrações **pelo binário
+Constrói, cria um banco virgem, aplica as 122 migrações **pelo binário
 compilado**, sobe o serviço e confere `/health`. Não publica nada e não toca no
 banco de trabalho.
 

@@ -18,11 +18,15 @@
 > depois das 21h em Porto Alegre semeava o dia seguinte — o dia de hoje nascia
 > sem dose nenhuma. **Nada no sistema; tudo no dado de partida.**
 
-- **127 fases.** 78 suítes e 773 testes, verdes em duas condições de relógio —
+- **128 fases.** 79 suítes e 783 testes, verdes em duas condições de relógio —
   antes e depois da virada do UTC, que em Porto Alegre é às 21h.
 - **A chamada fecha.** O único item de código que faltava ao piloto — a chamada
   que travava quando uma criança estava internada ou em casa com a família —
   saiu na fase 127, com suíte própria que guarda o defeito.
+- **O perfil da criança passou a dizer o que se escreveu sobre ela** (fase 128),
+  com o restrito aparecendo como CONTAGEM para quem não o alcança. Era a
+  resposta de 20/09, e ela destravou uma ponta que estava fechada de propósito
+  desde a varredura de 15/09.
 - O sistema **sobe compilado num banco virgem**, o backup restaura e o cofre
   abre com a chave certa — e reprova com a errada.
 - O **protótipo** é um arquivo só, abre sem internet, e percorre 132 telas nos

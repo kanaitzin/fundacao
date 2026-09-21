@@ -227,6 +227,7 @@ export const VOCABULARIO_DA_AUDITORIA: Record<string, string> = {
   'estatuto.revogado': 'Estatuto revogado',
   'statement.create': 'Relato individual escrito',
   'statement.read_side_by_side': 'Relatos lidos lado a lado',
+  'statement.read_by_person': 'Relatos de uma criança lidos no perfil dela',
   'statement.read_exceptional': 'Leitura excepcional de relato, com finalidade escrita',
 
   // ------------------------------------------------------------------ Benefícios
