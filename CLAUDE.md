@@ -129,23 +129,35 @@ e qual é o caminho certo.
 | `prototipo/` | o arquivo único que o Marcelo abre |
 | `.claude/hooks/session-start.sh` | o preparo que roda antes de a sessão na web começar |
 
-## O primeiro trabalho desta máquina
+## O primeiro trabalho desta máquina — FEITO
 
-**A chamada não fecha quando alguém da casa está fora dela** — §2 e §9 do
-documento, com o defeito medido pelas rotas em 20/09/2026. A correção está
-**começada e não terminada** no branch `fase-127-quem-a-chamada-cobra`, e ela
-ainda fere a §6: quatro funções `SECURITY DEFINER` sem `search_path`.
+**A chamada não fecha quando alguém da casa está fora dela.** ✅ **Corrigido na
+fase 127**, em 20/09/2026. A migração `1350` pôs num lugar só a resposta para "de
+quem esta chamada trata" (`app_efetivo_da_chamada`, por DIA e não por agora); as
+três funções `SECURITY DEFINER` ganharam o `search_path` por extenso; e a suíte
+`quem-a-chamada-cobra.e2e.spec.ts` guarda o defeito com cinco testes — medida
+sem a correção, ela reprova. O relato está no §2 e no §9 do documento.
 
-**O defeito é real, e não é do relógio.** Conferido nesta máquina: o rascunho
-`docs/historico/fase-127-repro-da-chamada.e2e.spec.ts.txt` reprova em dois
-segundos no relógio normal — o lote marca a criança internada, e a chamada final
-devolve 400. O que ele NÃO é: coberto pela suíte. `hospitalization` e
-`family_stay` chegam **vazias do seed**, então nenhuma suíte encontra alguém fora
-da casa; as "3 falhas em `conferencia-de-mesa`" que o §2 registrou eram o próprio
-rascunho, que morava em `backend/test/` e contaminava o banco compartilhado.
+**A lição que vale para a próxima sessão, e não é sobre a chamada.** O defeito
+existia e **nenhuma suíte o cobria**: `hospitalization` e `family_stay` chegam
+vazias do seed, então nenhuma encontrava alguém fora da casa. As "3 falhas em
+`conferencia-de-mesa`" que o documento registrou eram o eco de um rascunho que
+morava em `backend/test/` e deixava uma internação aberta. **Suíte que abre
+ausência fecha a ausência** — um banco só, e nada se apaga. A
+`quem-a-chamada-cobra` tem rede de segurança no `afterAll` por isso.
 
-Ordem sugerida: **primeiro** dar nome ao rascunho e pô-lo em `backend/test/` —
-sem ele a correção não tem como provar que corrigiu. Depois ler o branch,
-terminar a migração `1350` com `search_path` nas quatro funções, rodar as duas
-condições de relógio, atualizar o §2 com os números saídos do código (a suíte
-passa a ter um teste a mais), e só então abrir a próxima fase.
+## O que fazer agora
+
+O §9 do documento manda, e o Grupo 1 está vazio: **não falta código para o
+piloto.** O que há pela frente, em ordem de quem já pode ser feito:
+
+1. **As três telas que as respostas de 20/09 destravaram** (§10.6, §10.7, e o
+   conceito educacional por período). Estavam paradas esperando gente, e não
+   estão mais.
+2. **A dedução da escala sai** — decisão reafirmada em 20/09. Ver o §10: a
+   escala vazia diz em vermelho que ninguém lançou, e a passagem é assinada por
+   quem está ali.
+3. **As cinco pontas dormentes** do §9 item 5 — três são retirada, duas são tela
+   pequena.
+4. **Aplicar o roteiro com a equipe.** Continua sendo o que mais muda o sistema,
+   e o único que não se faz daqui.

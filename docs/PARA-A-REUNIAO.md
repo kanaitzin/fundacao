@@ -18,8 +18,11 @@
 > depois das 21h em Porto Alegre semeava o dia seguinte — o dia de hoje nascia
 > sem dose nenhuma. **Nada no sistema; tudo no dado de partida.**
 
-- **126 fases.** 77 suítes e 768 testes, verdes em duas condições de relógio —
+- **127 fases.** 78 suítes e 773 testes, verdes em duas condições de relógio —
   antes e depois da virada do UTC, que em Porto Alegre é às 21h.
+- **A chamada fecha.** O único item de código que faltava ao piloto — a chamada
+  que travava quando uma criança estava internada ou em casa com a família —
+  saiu na fase 127, com suíte própria que guarda o defeito.
 - O sistema **sobe compilado num banco virgem**, o backup restaura e o cofre
   abre com a chave certa — e reprova com a errada.
 - O **protótipo** é um arquivo só, abre sem internet, e percorre 132 telas nos

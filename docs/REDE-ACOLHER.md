@@ -82,7 +82,7 @@ aplicação e no banco. §7 tem a matriz inteira.
 
 ## 2. O ESTADO HOJE
 
-**Fases 0 a 126.** Estes números **saem do código**, não da memória — e são
+**Fases 0 a 127.** Estes números **saem do código**, não da memória — e são
 cobrados por `test/numeros-da-documentacao.spec.ts`, que existe porque em 08/09
 seis afirmações estavam erradas ao mesmo tempo em três documentos, e duas delas
 discordavam entre si.
@@ -90,10 +90,10 @@ discordavam entre si.
 | Quanto | De onde sai |
 |---|---|
 | **18 partições** isoladas | pastas em `backend/src/modules/` |
-| **120 migrações** | `.sql` dentro das partições |
+| **121 migrações** | `.sql` dentro das partições |
 | **112 tabelas** | `CREATE TABLE` nas migrações |
-| **77 suítes** | `backend/test/*.spec.ts` |
-| **768 testes** | `it(` / `test(` nas suítes |
+| **78 suítes** | `backend/test/*.spec.ts` |
+| **773 testes** | `it(` / `test(` nas suítes |
 | **36 telas React** | `frontend/src/screens/*.tsx` |
 | **14 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **6 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
@@ -102,6 +102,16 @@ discordavam entre si.
 *A frase importa: o conferidor lê o NÚMERO colado ao substantivo. Escrever
 "Telas React … 31" numa coluna separada faz o teste passar sem conferir nada —
 foi assim que "30 telas" sobreviveu à fase que existiu para acabar com isso.*
+
+*E o outro lado da mesma regra, que apareceu na fase 127: **registro histórico
+de uma rodada antiga não pode colar o número no substantivo**, senão o
+conferidor o lê como afirmação sobre hoje e reprova com razão — e está certo,
+porque uma frase sobre o passado com o número colado é indistinguível de uma
+mentira sobre o presente. A saída é separá-los: em vez de `N suítes e M testes,
+em tal dia`, escreva "todas as suítes e todos os testes — N e M, os números de
+então". O conferidor continua cobrando o que descreve o sistema, e para de
+cobrar o que descreve um dia. **Este parágrafo obedece à própria regra:** ele
+fala de contagens sem colar nenhuma, de propósito.*
 
 **Medidos rodando, e por isso fora do conferidor:**
 
@@ -125,7 +135,7 @@ porta, os 19 blocos do ensaio de uso, a fila offline e as folhas), e o protótip
 
 | Relógio | Resultado |
 |---|---|
-| real (13h de Porto Alegre) | 77 suítes, 768 testes, **tudo verde** |
+| real (13h de Porto Alegre) | **tudo verde** — suítes e testes, 77 e 768, que eram os números daquele dia |
 | deslocado para as **22h** (`faketime -f '+7h'`, banco e processo juntos) | **3 falhas** em `conferencia-de-mesa.e2e.spec.ts` |
 
 > **20/09/2026, à noite, no repositório aberto no Code — esta linha do relógio
@@ -143,7 +153,7 @@ porta, os 19 blocos do ensaio de uso, a fila offline e as folhas), e o protótip
 > As "3 falhas em `conferencia-de-mesa`" foram o rascunho, que naquela hora
 > morava em `backend/test/`, contaminando o banco compartilhado para as suítes
 > que rodaram depois dele. Medido nesta máquina, com o rascunho fora: **77
-> suítes e 768 testes verdes nas duas condições** — relógio real, e às 22h30 de
+> suítes e todos os testes verdes nas duas condições** — relógio real, e às 22h30 de
 > Porto Alegre com o banco sob o mesmo `faketime` (UTC já em 21/09, instituição
 > ainda em 20/09), cache do `ts-jest` quente e frio, em série. Posto de volta em
 > `backend/test/`, ele reprova sozinho, no relógio normal, em dois segundos.
@@ -163,6 +173,42 @@ porta, os 19 blocos do ensaio de uso, a fila offline e as folhas), e o protótip
 > defeito volta sem ninguém ver. O §2 passa a ter um número a mais quando isso
 > acontecer, e é para isso que existe o `numeros-da-documentacao.spec.ts`.
 
+### 20/09/2026, fase 127 — a chamada fecha
+
+**A migração `1350` entrou, e o rascunho virou suíte com nome:
+`quem-a-chamada-cobra.e2e.spec.ts`, cinco testes.** A ordem foi essa, e importa:
+o teste primeiro, porque correção que não pode provar que corrigiu é promessa.
+
+*Medido sem a correção, para saber que a suíte guarda alguma coisa:* o lote marca
+**20** onde a tela mostra **19**. Com ela, os cinco passam.
+
+**O que a suíte cobra**, além das duas metades do defeito (a criança internada
+que o lote marcava como tendo almoçado, e a chamada final que não fechava):
+
+- a **convivência familiar** pela mesma porta — era a segunda ausência que as
+  três funções do banco não conheciam;
+- a **alta devolve a criança no mesmo dia**, porque *o dia da alta é dia de
+  casa* (0890) — quem recebe alta às dez almoça aqui;
+- e a promessa central da `1350`: a chamada responde **pelo DIA a que se
+  refere**, não por "agora". A chamada de ontem, reaberta hoje, sabe como a casa
+  estava ontem.
+
+**As quatro funções `SECURITY DEFINER` sem `search_path` eram três, e estão
+fechadas** — `app_bulk_check`, `app_confirm_check` e `app_check_missing`, com o
+`SET` por extenso em cada uma. `app_efetivo_da_chamada` **não** é definer, de
+propósito: chamada de dentro das outras lê como dona; chamada pelo serviço, lê
+sob o RLS do educador, que é o que a consulta em linha fazia antes.
+
+**E as "sete outras falhas, em cinco arquivos" que o branch anunciava não
+existem.** Com o `search_path` no lugar e o rascunho virado suíte que **fecha o
+que abre**, a suíte inteira passa. As sete eram do mesmo mecanismo de sempre: um
+banco compartilhado e um rascunho que deixava uma internação aberta.
+
+*A suíte nova tem uma rede de segurança no `afterAll`, por SQL de dono, que
+encerra qualquer internação ou saída que um teste falho tenha deixado aberta. É
+a lição do dia escrita em código: nada se apaga neste sistema, e uma ausência
+esquecida tira uma criança da Casa 03 para todas as suítes seguintes.*
+
 O que as três dizem: **o lote da conferência marca 19 crianças e a tela lista
 18.** Quem a chamada cobra está escrito em quatro lugares — `checks.service.ts`,
 `app_bulk_check` (0780), `app_confirm_check` e `app_check_missing` (0440) — e só
@@ -177,17 +223,13 @@ das 22h não tem por onde sair: marcar é impossível, e fechar também.
 *Por que só agora, se a fase 126 rodou verde nas duas condições em 19/09: a
 janela da criança que está fora da casa depende do DIA, e no dia 19 ela não caía
 onde cai no dia 20. Um defeito que aparece em alguns dias é pior do que um que
-aparece sempre.*
+aparece sempre.* **E esta explicação estava errada — ver a nota da fase 127
+abaixo: o defeito não depende do dia nenhum, e nenhuma suíte o cobria.**
 
-**A correção está começada e não terminada**, no branch
-`fase-127-quem-a-chamada-cobra`: a migração `1350` cria `app_efetivo_da_chamada`
-como resposta única para "de quem esta chamada trata", por DIA e não por agora.
-Ela derruba as 3 falhas — e abre **sete outras, em cinco arquivos de teste**, porque as quatro
-funções novas estão **sem `search_path`** (fere a §6) e os números do §2 ficaram
-para trás. É o primeiro trabalho a fazer.
+~~**A correção está começada e não terminada**~~ ✅ **TERMINADA NA FASE 127.**
 
 **19/09/2026, fase 126.** `tsc` limpo nos dois lados. A suíte **duas rodadas
-inteiras**, 77 suítes e 768 testes em cada: às 13h56 de Porto Alegre no relógio
+inteiras**, todas as suítes e todos os testes em cada — 77 e 768, os números de então: às 13h56 de Porto Alegre no relógio
 real, e sob `faketime +9h` às **22h54, com o servidor já em 20/09 e a
 instituição em 19/09** — que é exatamente a condição em que ela vinha
 reprovando.
@@ -337,7 +379,7 @@ cd frontend && npm run prototipo
 ```
 
 O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as
-120 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
+121 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
 
 ### Os ensaios — e por que cada um existe
 
@@ -402,7 +444,7 @@ rede-acolher/
 │   │   │   ├── documentos/     o contrato da folha e o gerador de .docx
 │   │   │   └── common/         CPF, criptografia, segredo, fuso da instituição
 │   │   └── modules/       18 partições, cada uma dona das próprias migrações
-│   ├── test/              77 suítes (e2e contra PostgreSQL real + estáticas)
+│   ├── test/              78 suítes (e2e contra PostgreSQL real + estáticas)
 │   ├── scripts/           ensaio-carga.ts, migrador compilado
 │   └── assets/timbre.png  a marca da Fundação, usada no documento em Word
 ├── frontend/
@@ -1639,26 +1681,27 @@ curta com a equipe técnica no treinamento do piloto.
 
 ## 9. O QUE FALTA
 
-### Grupo 1 — falta para o piloto: **UM, e é de código** ⚠️
+### Grupo 1 — falta para o piloto: **NADA de código** ✅
 
-*Esteve VAZIO da fase 100 até 20/09/2026, e a frase que ficava aqui era: "tudo o
-que a educadora de plantão precisa fazer às 23h tem porta". Ela deixou de ser
-verdade em alguns dias do mês.*
+*Esteve VAZIO da fase 100 até 20/09/2026, quando a chamada que não fecha o
+ocupou por um dia. **Voltou a estar vazio na fase 127.** A frase que fica aqui é
+a de sempre, e ela é a medida do piloto:* **tudo o que a educadora de plantão
+precisa fazer às 23h tem porta.**
 
-**A chamada não fecha quando alguém da casa está fora dela.** Medido em 20/09
-com o relógio nas 22h de Porto Alegre, pelas rotas, não por leitura de código:
-com uma criança internada ou em casa com a família, o lote da conferência marca
-19 e a tela lista 18; a conferência de mesa grava `normal` para quem está no
-hospital; e o fechamento da chamada cobra pelo nome alguém que a tela não
-lista — **a educadora das 22h não tem por onde sair**. Três testes de
-`conferencia-de-mesa.e2e.spec.ts` guardam isso. A causa e o caminho da correção
-estão no §2, e o começo dela no branch `fase-127-quem-a-chamada-cobra`, que
-ainda **fere a §6** (quatro funções `SECURITY DEFINER` sem `search_path`).
+~~**A chamada não fecha quando alguém da casa está fora dela.**~~ ✅
+**CORRIGIDO NA FASE 127.** A migração `1350` pôs num lugar só a resposta para "de
+quem esta chamada trata" — `app_efetivo_da_chamada`, por DIA e não por agora —, e
+as três funções do banco e o serviço passaram a perguntar a ela em vez de repetir
+a regra cada um do seu jeito. As três `SECURITY DEFINER` ganharam o `search_path`
+por extenso, e a suíte `quem-a-chamada-cobra.e2e.spec.ts` guarda o defeito com
+cinco testes. O relato inteiro está no §2.
 
-**É o primeiro trabalho da próxima sessão, e ele tem ordem:** terminar a
-migração `1350` com `search_path` em todas as funções, tirar o
-`tmp-repro.e2e.spec.ts` (rascunho, guardado em `docs/historico/`), rodar as duas
-condições de relógio, e só então atualizar o §2 com os números saídos do código.
+*E uma coisa que este item afirmava e não era verdade: **não eram três testes de
+`conferencia-de-mesa` que guardavam o defeito.** Nenhuma suíte o guardava —
+`hospitalization` e `family_stay` chegam vazias do seed, então nenhuma
+encontrava alguém fora da casa. As três falhas eram o eco de um rascunho que
+morava em `backend/test/` e deixava uma internação aberta no banco
+compartilhado. O defeito era real; a prova de que ele existia, não.*
 
 ### Grupo 2 — o que espera decisão de gente (3)
 
@@ -2359,7 +2402,7 @@ ele continua dizendo que o arquivo existe.
 npm run ensaio:producao
 ```
 
-Constrói, cria um banco virgem, aplica as 120 migrações **pelo binário
+Constrói, cria um banco virgem, aplica as 121 migrações **pelo binário
 compilado**, sobe o serviço e confere `/health`. Não publica nada e não toca no
 banco de trabalho.
 
