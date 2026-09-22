@@ -149,10 +149,14 @@ ausência fecha a ausência** — um banco só, e nada se apaga. A
 
 ## O que fazer agora
 
-O §9 do documento manda, e **os Grupos 1 e 2 estão vazios**: não falta código
-para o piloto, e **não há nada esperando resposta de gente.** As três decisões
-que estavam paradas foram respondidas em 21/09/2026 e viraram código nas fases
-134, 136, 137, 138 e 139.
+O §9 do documento manda. **O Grupo 1 está vazio** — não falta código para o
+piloto —, e as três decisões que estavam paradas viraram código nas fases 134,
+136, 137, 138 e 139. **Mas a conferência de 22/09 reabriu a lista**, e ela está
+no §9, na seção *"A conferência de 22/09"*: três coisas que a Fundação pediu e
+não existem (dia e horário de visita na portaria; motivo ao retirar autorização
+de visita; o educador no Arquivo de ATAS) e **duas decisões que são dela e não se
+escolhem daqui** (motivo obrigatório ao retirar de plantão FUTURO; se o Líder
+Diurno lê ocorrência protegida). Leia a seção antes de escolher o que fazer.
 
 1. ~~**As telas que as respostas de 20/09 destravaram**~~ ✅ **as três, feitas.**
    §10.7 — de onde a técnica escolhe as fontes — na **134**; §10.6 — *"gestor
@@ -184,9 +188,21 @@ que estavam paradas foram respondidas em 21/09/2026 e viraram código nas fases
    RLS, visões e o código do servidor (`arquivo-tem-saida.spec.ts`).
 4. **Aplicar o roteiro com a equipe.** Continua sendo o que mais muda o sistema,
    e o único que não se faz daqui.
-5. **O que sobra para fazer daqui, e nada disso trava o piloto:** a **§10.2** —
-   quem lê a ATA Geral de dia, para os cargos além de quem corrige (a 138
-   respondeu só o que a decisão implicava: quem corrige, lê).
+5. **O que sobra para fazer daqui, e nada disso trava o piloto:** os três da
+   conferência de 22/09 (dia e horário de visita; motivo ao retirar autorização; o
+   educador no Arquivo de ATAS) e a **§10.2** — quem lê a ATA Geral de dia, para
+   os cargos além de quem corrige (a 138 respondeu só o que a decisão implicava:
+   quem corrige, lê). **O terceiro deles é a §10.2 chegando por outro lado**, e a
+   Fundação já respondeu esse lado em 22/09: *"cada educador pode ver uma ata
+   unificada da passagem dos dias anteriores"*.
+
+   **E a lição da 141, que é a da 127 de novo e por isso importa:** *"quem está na
+   casa hoje"* era uma pergunta feita em quatro lugares; a 1350 juntou três e
+   **esqueceu a grade do dia**, porque `routine_item` chega vazia do seed e
+   nenhuma suíte gerava item individual. **Superfície sem dado de partida é
+   superfície sem teste** — quando uma tabela chega vazia do seed, a pergunta não é
+   "passa?", é "o que nunca foi exercitado?". Hoje a resposta mora num lugar só,
+   `app_ausente_da_casa(pessoa, dia)`, e regra nova de ausência se escreve lá.
 
    **A varredura de pontas virou script na fase 140** (`varredura-de-pontas.mjs`)
    e a última medição não tem candidato novo: 1352 colunas, 539 nomes. Rode-o

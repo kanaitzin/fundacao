@@ -363,6 +363,36 @@ describe('As funções privilegiadas dizem onde procurar', () => {
   });
 
   /**
+   * E O CAMINHO É O DA CASA, POR EXTENSO (fase 141).
+   *
+   * O teste acima cobrava que a função DECLARASSE `search_path`; não cobrava O
+   * QUE ela declara. `search_path = public` passava — e uma passava: a
+   * `app_arquivo_atas`, achada na varredura de 22/09.
+   *
+   * POR QUE ISSO IMPORTA, e não é estilo. Quando o `pg_temp` NÃO É NOMEADO, o
+   * Postgres o procura PRIMEIRO, antes de tudo. Uma função que roda como dona do
+   * banco e resolve nomes com o esquema temporário à frente pode acabar
+   * chamando um objeto criado pela sessão de quem a invocou. Nomear `pg_temp`
+   * por último é o que fecha a porta; declarar só `public` a deixa aberta com a
+   * aparência de fechada, que é o pior dos dois estados.
+   *
+   * A lista é EXATA de propósito. "Contém pg_temp" aceitaria uma ordem errada,
+   * e ordem é o que esta linha decide.
+   */
+  it('e o caminho é o da casa, na ordem da casa — pg_temp por último', async () => {
+    const { rows } = await c.query(
+      `SELECT p.oid::regprocedure::text AS funcao,
+              array_to_string(p.proconfig, ' | ') AS declarado
+         FROM pg_proc p
+         JOIN pg_namespace n ON n.oid = p.pronamespace AND n.nspname = 'public'
+        WHERE p.prosecdef
+          AND NOT EXISTS (SELECT 1 FROM unnest(p.proconfig) cfg
+                           WHERE cfg = 'search_path=pg_catalog, public, pg_temp')
+        ORDER BY 1`);
+    expect(rows.map((r: any) => `${r.funcao} → ${r.declarado}`)).toEqual([]);
+  });
+
+  /**
    * TABELA QUE O DOCUMENTO CHAMA DE MORTA NÃO TEM LEITOR — E QUEM DIZ É O
    * CATÁLOGO (fase 131).
    *

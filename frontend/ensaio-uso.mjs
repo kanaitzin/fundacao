@@ -566,6 +566,20 @@ console.log('\n🏥 Internação — o caminho inteiro');
 erros.length = 0;
 cobrar('a internação abre em "Mais"', await doMais('Internação'));
 await clicar(/Registrar internação/);
+/*
+ * A CRIANÇA É ESCOLHIDA, e não deixada no primeiro nome da lista (fase 141).
+ *
+ * Tem de ser a Lara: ela é a única com item INDIVIDUAL na grade do dia do
+ * protótipo — a Fonoaudiologia das 15h — e é esse item que a migração 1470 faz
+ * sair da grade quando a criança não está na casa. Com qualquer outro nome, o
+ * percurso registraria a internação e não exercitaria nada do que a fase
+ * corrigiu.
+ */
+const quemInternar = await pg.locator('.overlay select#int-p')
+  .evaluate((s) => Array.from(s.options).find((o) => /Lara/.test(o.textContent))?.value ?? '');
+cobrar('a Lara está na lista de quem se pode internar', quemInternar !== '',
+  'sem ela o percurso não exercita a grade do dia');
+await pg.locator('.overlay select#int-p').selectOption(quemInternar);
 await pg.locator('.overlay input#int-h').fill('Hospital Fictício');
 await pg.locator('.overlay textarea').fill('Crise respiratória fictícia; internada para observação.');
 await clicar(/^Registrar$/, '.overlay');
@@ -604,6 +618,41 @@ await trocar('educador');
 await aba('Acolhidos');
 cobrar('o educador vê que a criança está no hospital', /no hospital/.test(await conteudo()));
 cobrar('e não vê a porta da internação', !(await doMais('Internação')));
+
+/*
+ * E A GRADE DO DIA PERDE O HORÁRIO INDIVIDUAL DELA (migração 1470).
+ *
+ * Era o defeito medido em 22/09: a criança internada continuava com o horário
+ * pré-programado só dela pedindo "Estou ciente" ao plantão, e o aviso de "sem
+ * confirmação" escalava aquilo para a coordenação de hora em hora. A cobrança é
+ * nos DOIS sentidos, porque metade da correção é o que ela NÃO faz: o item
+ * individual sai, e a refeição da casa fica — o almoço acontece com dezenove
+ * crianças do mesmo jeito que com vinte.
+ */
+/*
+ * A aba chama-se "Dia", e não "No dia" — eu escrevi o nome errado na primeira
+ * versão desta cobrança, `aba()` devolveu `false` sem navegar, e a checagem da
+ * Fonoaudiologia PASSOU pelo motivo errado: ela não estava na tela porque a tela
+ * era a lista de acolhidos. Cobrança que passa sem ter olhado é pior do que
+ * cobrança que falta, e por isso a navegação agora é cobrada também.
+ */
+cobrar('a aba do Dia abre para o educador', await aba('Dia'));
+/*
+ * O FILTRO PRECISA VOLTAR PARA "Tudo" ANTES DE COBRAR — e isto é um achado do
+ * próprio percurso. O bloco do educador, muito acima, deixou a tela em "Por
+ * criança", que **não é um filtro da linha do tempo**: é a Visão dos 20, outra
+ * rota, que agrupa por criança e onde a ausência é INFORMAÇÃO ("no hospital") e
+ * não pendência. Cobrar a linha do dia sem voltar o filtro media a tela errada.
+ */
+await clicar(/^Tudo$/);
+await pg.waitForTimeout(900);
+const dia141 = await conteudo();
+cobrar('a grade do dia perde o horário individual de quem está no hospital',
+  !/Fonoaudiologia/.test(dia141),
+  'a Fonoaudiologia da Lara continuou na linha do dia com ela internada');
+cobrar('e a refeição da casa fica — internação não apaga a rotina de todos',
+  /Almoço|Janta|Café da manhã/.test(dia141),
+  'a linha do dia perdeu a atividade coletiva junto');
 await fechar();
 cobrar('nenhuma exceção no caminho da internação', erros.length === 0, erros[0]);
 

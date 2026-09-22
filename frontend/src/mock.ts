@@ -1488,10 +1488,15 @@ const CONVIVENCIAS: { id: string; personId: string; quem: string; comQuem: strin
    *
    * Por que um retorno ENCERRADO, e não uma criança ainda fora: quem está fora
    * ganha o botão "Chegou" na lista da casa, e o bloco 13 do `ensaio:uso`
-   * registra a chegada da Alice clicando nesse botão. E este servidor de
-   * mentira não tira da chamada quem está com a família — uma criança "fora"
-   * semeada apareceria na chamada e em "Com a família" ao mesmo tempo, na
-   * frente de quem aplica o roteiro.
+   * registra a chegada da Alice clicando nesse botão.
+   *
+   * O SEGUNDO MOTIVO QUE ESTAVA AQUI VENCEU, e a frase ficou mentindo. Ela
+   * dizia que este servidor de mentira não tirava da chamada quem está com a
+   * família; ele tira, desde a fase 89, e as duas consultas da chamada aqui
+   * embaixo trazem o filtro com o comentário. Corrigida na fase 141, que é
+   * quando a grade do dia passou a filtrar também. Frase de código que
+   * envelhece é frase que mente — e esta explicava uma decisão de semente por
+   * um defeito que já não existia.
    */
   retornoDeSemente(),
   /*
@@ -5287,7 +5292,20 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
 
   if (rota === '/timeline') {
     const so = q.get('mode') === 'minhas';
-    const eventos = so ? LINHA.filter((e) => e.responsible === eu.fullName) : LINHA;
+    /*
+     * QUEM NÃO ESTÁ NA CASA SAI DA GRADE DO DIA (migração 1470, regra 14).
+     *
+     * O servidor de verdade filtra a grade por `app_ausente_da_casa`: a criança
+     * internada ou em convivência familiar não aparece com item individual, e a
+     * atividade COLETIVA não muda. Sem esta linha, abrir uma internação no
+     * protótipo deixaria a Fonoaudiologia da Lara pedindo "Estou ciente" com a
+     * Lara no hospital — a demonstração ensinando o contrário do sistema.
+     *
+     * A dose já era filtrada aqui desde a 1010; o item da agenda não era.
+     */
+    const naCasa = LINHA.filter((e) => !e.personId
+      || !(estaInternado(e.personId) || estaComAFamilia(e.personId)));
+    const eventos = so ? naCasa.filter((e) => e.responsible === eu.fullName) : naCasa;
     const criticos = eventos.filter((e) => e.severity === 'critico').length;
     const atencao = eventos.filter((e) => e.severity === 'atencao').length;
     return {

@@ -122,8 +122,13 @@ describe('Quem a chamada cobra', () => {
     await admin.query(
       `UPDATE hospitalization SET status='encerrada', ended_at=now(), outcome='alta'
         WHERE status='em_andamento' AND house_id = $1`, [ids.AI3]);
+    /* `encerrada`, e não `retornou`: são os dois únicos valores que a
+       `family_stay_status_check` aceita, e esta rede de segurança passou da
+       fase 127 até a 141 com o valor errado — ela só nunca estourou porque o
+       teste do retorno fechava a saída antes, pela rota. Rede que só funciona
+       quando nada deu errado não é rede (achado de passagem, fase 141). */
     await admin.query(
-      `UPDATE family_stay SET status='retornou', returned_at=now()
+      `UPDATE family_stay SET status='encerrada', returned_at=now()
         WHERE returned_at IS NULL AND house_id = $1`, [ids.AI3]);
     /* Contato NÃO se apaga — `contato_nao_e_apagado`, e a regra está certa: um
        contato encerrado guarda o motivo, e apagar levaria o motivo junto.

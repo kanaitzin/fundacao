@@ -90,10 +90,10 @@ discordavam entre si.
 | Quanto | De onde sai |
 |---|---|
 | **18 partições** isoladas | pastas em `backend/src/modules/` |
-| **132 migrações** | `.sql` dentro das partições |
+| **135 migrações** | `.sql` dentro das partições |
 | **114 tabelas** | `CREATE TABLE` nas migrações |
-| **87 suítes** | `backend/test/*.spec.ts` |
-| **851 testes** | `it(` / `test(` nas suítes |
+| **88 suítes** | `backend/test/*.spec.ts` |
+| **861 testes** | `it(` / `test(` nas suítes |
 | **36 telas React** | `frontend/src/screens/*.tsx` |
 | **11 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **6 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
@@ -346,6 +346,7 @@ arqueologia.
 | 138 | **A linha de uma casa na ATA Geral passou a se corrigir, com registro — e o protótipo tinha a folha das oito casas QUEBRADA.** A decisão de 21/09: *"quem corrige a ata é o educador líder, equipe técnica ou coordenador, tudo ficando registrado para esses 3"*. Era o último item do Grupo 2 do §9 — a rota existia e **só o autor da ATA Geral a alcançava, e só enquanto ela fosse rascunho**; depois de assinada, um horário digitado errado às 3h da manhã ficava errado para sempre. **Corrigir não é sobrescrever, e a diferença é o histórico:** o §6 proíbe sobrescrita de registro fechado, e o que ele proíbe é a sobrescrita SEM RASTRO — o sistema já resolveu isso na chamada (0670), guardando por gatilho o que constava antes. Este arquivo é o mesmo desenho: o `INSERT` do histórico é do gatilho, `UPDATE` e `DELETE` são revogados da aplicação (**o passado não se edita nem se apaga**), reenvio idêntico não vira linha de histórico, e **o motivo é obrigatório depois da assinatura** — antes é rascunho, e rascunho se escreve sem justificar. **Três achados no caminho, e os três são de medição, não de opinião.** *(1)* **O Líder Diurno podia corrigir e não podia LER a ATA Geral:** a política de leitura da 0310 não o inclui, então o comando lia `status`, recebia nulo do RLS e concluía "rascunho" — o defeito seria silencioso e ao contrário, ele corrigindo sem o motivo ser exigido. A §10.2 (*"quem lê a ATA Geral de dia"*) continua aberta para os outros cargos; esta fase responde só o que a decisão implica: **quem corrige, lê.** *(2)* **O botão estava no lugar errado:** eu o pus na folha das oito casas, e a tela diz, com estas palavras, que ela *"fica com quem responde pela instituição"* — a coordenação olha a linha da casa dela no **Arquivo**, e é lá que a porta tem de estar. Botão onde a pessoa não passa é botão que não existe. *(3)* **E a folha das oito casas não abria no protótipo, desde sempre:** o casamento de rota do servidor de mentira tinha `if (seg[0] === 'shifts' && seg.length === 2)` e mais nada, então `POST /shifts/general-ata` caía ali — "general-ata" é palavra literal na posição de `:id`; o `find(...)!` devolvia `undefined` e a tela do Líder Noturno Geral mostrava *"Cannot read properties of undefined"* em vez da ATA. **Ninguém viu porque a cobrança do ensaio olhava o TÍTULO**, que aparece também na linha desta casa; passei a cobrar os códigos das oito casas e o defeito apareceu. É a mesma família do achado da fase 128 — casamento de rota que aceita palavra onde espera parâmetro |
 | 139 | **O painel do Gestor passou a contar o conceito do bimestre — e a frase da tela está na terceira versão.** A caixa pedida em 09/09/2026 era *"quantas crianças tiveram boas notas"*, e o painel (1280) respondeu com a verdade da época: **nota não existe neste sistema**, e no lugar dela apoio educacional e evoluções escritas — *"duas coisas verdadeiras, em vez de uma estimada"*. A fase 137 criou o conceito por bimestre; esta o conta. **São DUAS caixas, e a segunda é a que importa:** quem está acompanhando o ano, e **quem não está** — porque um painel que mostrasse só quem vai bem ensinaria a olhar para o lado bom, e a criança que precisa de reforço não apareceria em lugar nenhum. **"Acompanha com apoio" NÃO vira caixa**, de propósito: é uma criança que ESTÁ acompanhando, e o apoio já tem a caixa dele desde a 1280 — contá-la aqui faria a mesma criança aparecer em duas caixas que somam coisas diferentes. **A conta é pelo BIMESTRE que encosta na janela, nunca pela data de digitação:** o conceito do 3º bimestre lançado em novembro conta no 3º, e o retorno atrasado da escola é o caso comum. **E só o vigente conta** — somar a versão corrigida faria a criança contar duas vezes, uma pelo que se pensava dela em agosto e outra pelo que se soube em setembro. *A função do painel devolve colunas fixas, então ela foi DERRUBADA e recriada; e o corpo dela foi COPIADO do arquivo da 1280 em vez de redigitado — na primeira tentativa eu o reescrevi de memória e errei um nome de coluna (`m.happened_at`), que o Postgres recusou na hora. Copiar o que já está certo é mais honesto do que confiar na minha lembrança de nove sub-consultas.* **A frase da tela está na terceira versão, e isso é o método funcionando:** a primeira dizia que não existia campo de nota, boletim ou conceito (verdade até a 137); a segunda, que o conceito existia e o painel não o contava (verdade até aqui); agora ela diz o que o painel conta e como conta. **Frase de tela que envelhece é frase que mente**, e a cobrança do ensaio que a guardava foi reescrita junto — senão ela guardaria a mentira. *E um erro meu no teste, que vale anotar: chamei a função de registro pela conexão de DONO e recebi `acolhido_fora_de_escopo`, porque a conexão de dono não tem `app.user_id` e o RLS não sabe quem pergunta. O caminho certo é a rota — e teste que escreve por fora da rota testa uma coisa que ninguém faz* |
 | 140 | **A varredura virou script, e achou um 500 que a tela causava todo dia.** A varredura de pontas da fase 106 foi feita À MÃO, uma vez — e desde então entraram outras vinte e sete sem ninguém refazer a conta. Agora é o `scripts/varredura-de-pontas.mjs`: **1352 colunas, 539 nomes distintos**, conferidos contra as funções do banco, as políticas de RLS, as visões e o TypeScript inteiro. *Ele não é teste, e é decisão: o resultado precisa de julgamento — `synced_at` existe para o dia em que a fila falhar, e um teste que reprovasse por isso seria desligado na primeira pressa.* Devolveu CINCO candidatos, e conferidos um a um eram TRÊS coisas diferentes. **(1) O que faltava ligar:** `behavior_before` e `behavior_after`, as quatro opções do modelo de papel da Fundação, paradas desde a 0530. Elas **não** são duplicata dos `state_*`, que são texto livre — são marcação FECHADA para a Enfermagem COMPARAR dois momentos, que é o que texto livre não deixa fazer. **E não são contadas em painel nenhum, de propósito:** quatro opções sobre como a criança estava são exatamente o material de que se faz pontuação de comportamento, e o §6 proíbe. Ligada também a `prescription.prescribed_on` — a data do papel do médico, que não é `starts_on`: uma receita escrita no dia 10 e digitada no 12 gravava só o 12, e a Enfermagem perdia que a receita já tinha dois dias. **(2) Duas duplicatas, declaradas MORTAS:** `trip_incidents` é a mesma coisa que `transport_notes` (a usada), e `reconsult_on` a mesma que `return_deadline` — esta última criada com uma premissa errada, porque a 0530 disse *"o sistema tinha prazo de retorno e o papel marca a data"* e o `return_deadline` **já era `date`**. Não se apaga: `DROP COLUMN` é destrutivo, e o guarda do catálogo passa a cobrar que ninguém volte a lê-las. **(3) E o que a varredura não procurava, mas revelou: a folha da Evolução tinha a lista de tipos escrita à mão, e ela DISCORDAVA DO BANCO.** A tela oferecia `vacina`, que o `encounter_kind` não tem — **medido: 500, "Internal server error", para quem registrasse uma vacina** —, e o enum tinha `emergencia` e `terapia`, que a tela nunca ofereceu: dois tipos de atendimento sem como registrar. Agora a lista vem de `GET /nursing/evolutions/options`, que **lê o enum**: lista daqui empata com a de lá e as duas envelhecem juntas; lendo o catálogo, valor novo aparece sem ninguém lembrar de nada. É a §12.2 outra vez, a mesma classe da fase 130 — com a diferença de que aqui ela estava quebrando. *E o tipo que o banco não conhece passou a ser recusado com FRASE: a tela já não oferece, mas uma fila offline gravada antes desta fase ainda vai subir com o valor antigo, e quem a vê subir é quem está de plantão.* **A guarda é ida e volta:** todo tipo que a rota oferece é aceito pelo servidor, e todo valor do enum é oferecido — é o teste que teria pegado o `vacina` |
+| 141 | **A internação tirava a criança da chamada e não dos horários dela.** Pergunta da Fundação em 22/09: *"veja se está funcionando a internação removendo temporariamente a criança da linha do tempo comum da casa e seus horários pré-programados, assim como a remoção temporária por visitas domiciliares."* **Não estava, e a medição é curta:** com o Bruno internado desde o dia anterior, `app_generate_day` criou para ele o "Reforço escolar" das 10h em `aguardando_ciencia` — uma pendência pedindo que o plantão dê ciência da atividade de uma criança que está no hospital. **É o defeito da fase 127 na superfície que faltou.** A chamada aprendeu na 1350; a Enfermagem já sabia desde a 0200, com o argumento escrito — *"uma tela cheia de pendência impossível é uma tela que a equipe aprende a não olhar"*. A grade do dia não sabia: ela nasceu antes da internação (0890) e da convivência familiar (1010) e pergunta só se o acolhido está ATIVO na casa — e a criança internada **continua ativa**, que é justamente o ponto, porque a ausência é temporária e não mexe no vínculo. **Eram TRÊS pontas, e a terceira chegava a uma pessoa:** o item não nascia filtrado, o item já nascido continuava sendo cobrado, e `app_mark_unconfirmed_ids` marcava-o como "sem confirmação" e ESCALAVA em prioridade alta para a coordenação — de hora em hora, sobre uma criança internada. Aviso falso repetido é pior do que aviso nenhum, porque ensina a fechar a caixa sem ler. **A decisão não é nova e a fase não inventa frase nenhuma:** é a de 0200 aplicada onde faltou. O item **não é apagado nem marcado como não realizado** — o sistema não conclui que ele não aconteceu, porque não sabe —, a atividade **coletiva não muda** (o café da casa acontece com dezenove crianças do mesmo jeito que com vinte) e o **compromisso com profissional de fora também não**: alguém precisa desmarcar, e esconder faria a casa perder a consulta em silêncio. **E a resposta passou a ter um lugar só** — `app_ausente_da_casa(pessoa, dia)`, que a chamada agora também usa: regra nova de ausência — acampamento, turno integral, hospital-dia — se escreve uma vez. *Por que nenhuma suíte pegava: `routine_item` chega **vazia do seed**, então em quarenta fases ninguém nunca gerou uma grade com item INDIVIDUAL — `app_generate_day` era exercitada só no pedaço coletivo, que é exatamente o que a correção não muda. É o mesmo desenho da 127, em que `hospitalization` e `family_stay` chegavam vazias.* A suíte nova monta a rotina que vai medir, trabalha num dia a quarenta dias daqui para não mexer na grade que as outras leem, e **fecha o que abre**; medida sem a correção, **seis dos nove reprovam**, e os três que passam são exatamente os que a correção não podia quebrar. **Dois achados de passagem, os dois em guardas.** A `app_arquivo_atas` era a única das 172 funções `SECURITY DEFINER` a declarar `search_path = public` em vez do caminho da casa — e quando o `pg_temp` não é nomeado o Postgres o procura PRIMEIRO, o que deixa uma função que roda como dona do banco resolvendo nomes pelo esquema temporário de quem a chamou; o teste não pegava porque cobrava que houvesse `search_path`, não O QUE ele diz, e passou a cobrar a lista exata. E a rede de segurança da `quem-a-chamada-cobra` fechava a convivência com `status='retornou'`, valor que a tabela não aceita: ela nunca estourou porque o teste do retorno fechava a saída antes, pela rota — rede que só funciona quando nada deu errado não é rede. *E no protótipo o percurso passou a ESCOLHER a Lara ao internar, em vez de aceitar o primeiro nome da lista: ela é a única com horário individual na grade do dia, e com qualquer outro nome o ensaio registrava a internação sem exercitar nada do que a fase corrigiu.*
 
 ---
 
@@ -393,7 +394,7 @@ cd frontend && npm run prototipo
 ```
 
 O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as
-132 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
+135 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
 
 ### Os ensaios — e por que cada um existe
 
@@ -458,7 +459,7 @@ rede-acolher/
 │   │   │   ├── documentos/     o contrato da folha e o gerador de .docx
 │   │   │   └── common/         CPF, criptografia, segredo, fuso da instituição
 │   │   └── modules/       18 partições, cada uma dona das próprias migrações
-│   ├── test/              87 suítes (e2e contra PostgreSQL real + estáticas)
+│   ├── test/              88 suítes (e2e contra PostgreSQL real + estáticas)
 │   ├── scripts/           ensaio-carga.ts, migrador compilado
 │   └── assets/timbre.png  a marca da Fundação, usada no documento em Word
 ├── frontend/
@@ -1747,6 +1748,73 @@ Nenhuma está parada por falta de código.
    aberta para os OUTROS cargos** — esta fase respondeu só o que a decisão
    implica: quem corrige, lê.
 
+### A conferência de 22/09 — item por item, e o que ela deixou aberto
+
+*A Fundação pediu a conferência inteira: **"quero que você teste tudo para
+arrumar tudo e ver se o sistema funciona, simule ser todos os membros e setores"**.
+O que segue é o resultado medido, e ele tem três colunas de verdade: o que já
+funciona, o que eu consertei na 141, e o que falta — com o nome de quem decide.*
+
+**O que foi conferido e responde:** o perfil do acolhido com os cinco campos que
+a política pública mede (fase 116), os documentos com versão e conferência, as
+fotos por vivência (124) e a de identificação, os relatos com a área restrita, as
+internações com diário e medicação do hospital, os lanches e as restrições
+alimentares pela conferência de mesa e pelas três folhas da cozinha, as
+atividades coletivas, os atendimentos individuais nas quatro origens, a auditoria
+com **cento e oitenta e três ações** em vocabulário próprio, a leitura do que
+cada educador fez (117), a vivência por períodos (1290), o cadastro de visitantes
+com foto e CPF e a folha da portaria (1120), a escala com retirada e substituição
+registradas, e as ATAS de dias anteriores no Arquivo.
+
+**A confidencialidade do relato está como a Fundação descreveu** — quem escreveu,
+mais equipe técnica, coordenação e Líder Diurno, cada um nas casas em que
+trabalha; educador e Enfermagem ficam fora, e a regra está no banco
+(`app_pode_ler_relato`), não na tela.
+
+**O que a 141 consertou está no §2.** O que sobra é isto, e nada disso trava o
+piloto:
+
+1. **A portaria não tem DIA nem HORÁRIO de visita.** A Fundação pediu em 22/09
+   que *"todos devem ter horários e dias de visitação"* e que a portaria veja *"os
+   dias de visita de cada um deles"*. Medido: `person_contact` guarda a
+   autorização, a foto, o CPF e o telefone — e **nenhuma coluna de quando**. A
+   folha da guarita sai dizendo quem pode entrar e não dizendo quando, o que
+   transfere para a guarita uma decisão que é da casa.
+2. **Retirar a autorização de visita não pede motivo.** *"Caso alguém seja
+   removido que tenha motivos para tal escrito para registro."* Medido:
+   `definirVisita(autorizado: false)` registra QUEM retirou e QUANDO na auditoria,
+   e **não tem onde escrever por quê** — `ended_reason` só existe para encerrar o
+   contato inteiro, que é outro ato. Quem chega ao portão seis meses depois ouve
+   "não está na folha" sem que ninguém na casa saiba a razão.
+3. **O educador não alcança o Arquivo de ATAS.** A Fundação disse em 22/09 que
+   *"as atas de dias passados podem ser vistas por todos, menos os registros e
+   situações marcadas como confidencial"* e que *"cada educador pode ver uma ata
+   unificada da passagem dos dias anteriores para poder controlar e ajustar o
+   comportamento ou a dinâmica da casa"*. Medido: `app_arquivo_atas` recusa com
+   `cargo_nao_consulta_arquivo`, e a frase da tela é *"o arquivo das ATAS é da
+   coordenação, da equipe técnica e dos líderes"*. O educador lê a ATA do turno
+   ANTERIOR (`GET shifts/anterior`) e mais nada — a janela de vários dias, que é
+   justamente o que ela descreveu, não é dele.
+
+**E duas coisas que são decisão, não conserto — elas não se escolhem daqui:**
+
+* **Retirar alguém de um plantão FUTURO pede motivo?** Hoje `app_desescalar`
+  exige dez caracteres só quando o plantão **já passou**, e a migração explica por
+  quê: *"mudar o futuro é organização; mudar o passado é dizer que a pessoa não
+  estava lá"*. A instrução de 22/09 — *"colocar ou remover como quiserem,
+  deixando registro do porquê"* — pode querer o motivo sempre. Os dois lados são
+  defensáveis: pedir sempre dá história completa e atrasa quem remonta a escala às
+  6h50; pedir só no passado mantém o gesto rápido e deixa sem explicação a
+  remoção que alguém vai perguntar na semana seguinte. **Quem responde é a
+  Fundação.**
+* **O Líder Diurno lê ocorrência protegida?** A regra do RELATO o inclui; a da
+  `incident_protected` não — lá são o autor, a equipe técnica, a coordenação e a
+  Enfermagem quando o registro é de saúde. A instrução de 22/09 nomeia os três
+  (*"equipe técnica, coordenador e educador líder"*) para a confidencialidade do
+  acolhido, e por isso a diferença precisa ser confirmada ou desfeita: ocorrência
+  protegida é material mais pesado que relato — violência, suspeita de abuso —, e
+  ampliar quem a lê não é conserto de simetria.
+
 ### Grupo 2.5 — o que as respostas de 15/09 abriram, medido
 
 *Ele descreveu como quer três coisas. Antes de construir, eu medi o que já
@@ -2519,7 +2587,7 @@ ele continua dizendo que o arquivo existe.
 npm run ensaio:producao
 ```
 
-Constrói, cria um banco virgem, aplica as 132 migrações **pelo binário
+Constrói, cria um banco virgem, aplica as 135 migrações **pelo binário
 compilado**, sobe o serviço e confere `/health`. Não publica nada e não toca no
 banco de trabalho.
 

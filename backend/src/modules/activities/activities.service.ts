@@ -116,6 +116,26 @@ export class ActivitiesService {
            -- seguinte.
            AND a.scheduled_at >= ($2::date::timestamp AT TIME ZONE 'America/Sao_Paulo')
            AND a.scheduled_at <  (($2::date + 1)::timestamp AT TIME ZONE 'America/Sao_Paulo')
+           /*
+            * QUEM NÃO ESTÁ NA CASA NESTE DIA SAI DA GRADE (1470).
+            *
+            * A 1470 faz o item individual não NASCER para a criança internada
+            * ou em convivência familiar. Isto aqui é a outra metade: o item que
+            * JÁ tinha nascido quando a ausência começou — a criança internada
+            * às 15h tem o item das 18h criado desde a madrugada.
+            *
+            * É a mesma decisão da 0200 para a dose, e a frase de lá vale
+            * inteira: a atividade continua existindo no banco, não foi apagada
+            * nem marcada como não realizada — o sistema não conclui que ela não
+            * aconteceu, porque não sabe. Ela deixa de ser COBRADA de quem não
+            * tem como cumpri-la.
+            *
+            * O relatório e o período NÃO filtram isto, de propósito: lá a
+            * pergunta é o que houve, e o que houve antes da ausência é
+            * história da criança.
+            */
+           AND (a.person_id IS NULL
+                OR NOT app_ausente_da_casa(a.person_id, $2::date))
            AND ($4::uuid IS NULL OR a.person_id = $4)
          ORDER BY a.scheduled_at, a.title`,
         [houseId, date, user.id, opts.personId ?? null]);
