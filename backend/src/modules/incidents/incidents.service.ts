@@ -333,6 +333,32 @@ export class IncidentsService {
     const relatos = await this.statements.listFor(user, 'incident', id);
     const i = dados.i;
 
+    /*
+     * A LEITURA DO BLOCO PROTEGIDO DEIXA LINHA (1530).
+     *
+     * Não deixava, para ninguém: a auditoria registrava quem ESCREVEU
+     * (`incident.protected`) e não quem abriu. Quando a Fundação incluiu o Líder
+     * Diurno entre quem lê, em 22/09, ampliar o acesso ao material mais pesado do
+     * sistema sem rastro nenhum passou a ser a única coisa desta fase que eu não
+     * saberia defender numa audiência — e a casa já tinha o precedente:
+     * `person.judicial_view`, desde a fase 112.
+     *
+     * NÃO É a porta com finalidade escrita, que a Fundação recusou para este
+     * caso: nada é perguntado a quem abre o caso para trabalhar. É uma linha.
+     *
+     * Só quando o bloco EXISTE e VEIO: registrar a abertura de uma ocorrência que
+     * não tem bloco protegido encheria a auditoria de leituras de nada, e é assim
+     * que uma trilha deixa de ser legível. E o log leva o ID e o cargo — nunca a
+     * fala da criança (§5).
+     */
+    if (dados.prot) {
+      await this.audit.log({
+        action: 'incident.protected_view', actorId: user.id, houseId: i.house_id,
+        entity: 'incident_protected', entityId: id,
+        detail: { categoria: i.category, cargo: user.role },
+      });
+    }
+
     return {
       id: i.id, casaId: i.house_id,
       categoria: CATEGORIAS.find((c) => c.code === i.category)?.label ?? i.category,
@@ -356,8 +382,12 @@ export class IncidentsService {
         ? { falaEspontanea: dados.prot.spontaneous_speech,
             sinaisObservados: dados.prot.observed_signs, registradoEm: dados.prot.at }
         : null,
+      /* A frase nomeava só dois cargos e envelheceu na 1530, quando a Fundação
+         incluiu o Líder Diurno. Frase de tela que envelhece é frase que mente. */
       avisoProtegido: dados.prot ? null
-        : 'Fala espontânea e sinais observados, quando existem, são acessíveis à equipe técnica e à coordenação.',
+        : 'Fala espontânea e sinais observados, quando existem, são acessíveis a quem os '
+          + 'escreveu, à equipe técnica, à coordenação e ao Líder Diurno da casa — e à '
+          + 'Enfermagem quando o registro é de saúde.',
       contencao: dados.cont ? {
         antecedentes: dados.cont.antecedents, local: dados.cont.place,
         presentes: dados.cont.people_present, tentativasAnteriores: dados.cont.previous_attempts,

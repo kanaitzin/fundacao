@@ -176,8 +176,12 @@ describe('A escala como a Fundação a descreveu', () => {
     const antes = await periodo(tokens.coord, dia, dia);
     const alvo = antes.body.dias[0].diurno.find((x: any) => x.userId === ids.uEducador);
 
+    /* O MOTIVO PASSOU A SER OBRIGATÓRIO TAMBÉM NA SUBSTITUIÇÃO (1520, decisão da
+       Fundação de 22/09): "a Joana entrou no lugar" não explica por que a Marta
+       saiu — isso o `replaces_assignment_id` já diz sozinho. */
     const r = await request(http).post(`/api/v1/escala/${alvo.id}/substituir`)
-      .set(auth(tokens.lider)).send({ novoUserId: ids.uTecnica });
+      .set(auth(tokens.lider))
+      .send({ novoUserId: ids.uTecnica, motivo: 'Consulta médica marcada no mesmo horário.' });
     expect(r.status).toBe(201);
     expect(r.body.saiu).toBeTruthy();
     expect(r.body.entrou).toBeTruthy();
@@ -195,7 +199,10 @@ describe('A escala como a Fundação a descreveu', () => {
        um id, uma frase: é ela que responde quem estava escalado naquela noite. */
     const saiu = turno.revogadas.find((x: any) => x.userId === ids.uEducador);
     expect(saiu).toBeDefined();
-    expect(saiu.motivoRevogacao).toMatch(/substitu/i);
+    /* Desde a 1520 a frase é a que a pessoa ESCREVEU, e não mais o
+       "Substituído(a) por …" que o banco montava quando o motivo vinha vazio —
+       aquele texto dizia o que o parentesco já diz, e nunca por quê. */
+    expect(saiu.motivoRevogacao).toMatch(/Consulta médica/i);
   });
 
   it('se quem entra já está no turno, NADA muda — o turno não fica vazio', async () => {
@@ -209,8 +216,11 @@ describe('A escala como a Fundação a descreveu', () => {
     const antes = await periodo(tokens.coord, dia, dia);
     const alvo = antes.body.dias[0].diurno.find((x: any) => x.userId === ids.uEducador);
 
+    /* O motivo vai junto (1520): sem ele a recusa seria a do motivo, e este
+       teste mede OUTRA coisa — o conflito de quem já está no turno. */
     const r = await request(http).post(`/api/v1/escala/${alvo.id}/substituir`)
-      .set(auth(tokens.coord)).send({ novoUserId: ids.uTecnica });
+      .set(auth(tokens.coord))
+      .send({ novoUserId: ids.uTecnica, motivo: 'Troca pedida pela educadora do turno.' });
     expect(r.status).toBe(409);
     /* A recusa chega EM PORTUGUÊS e diz o que fazer. Na primeira execução
        desta suíte ela subiu crua — "duplicate key value violates unique
@@ -237,13 +247,17 @@ describe('A escala como a Fundação a descreveu', () => {
     const alvo = antes.body.dias[0].noturno.find((x: any) => x.userId === ids.uEducador);
 
     const r = await request(http).post(`/api/v1/escala/${alvo.id}/revogar`)
-      .set(auth(tokens.tecnica)).send({});
+      .set(auth(tokens.tecnica))
+      .send({ motivo: 'A casa passa o turno com uma pessoa a menos; ninguém para cobrir.' });
     expect(r.status).toBe(201);
     expect(r.body.mudou).toBe(true);
 
     /* Uma casa pode mesmo passar o turno com uma pessoa a menos. Exigir
        substituto em toda retirada seria o sistema cobrando da casa uma pessoa
-       que ela não tem — e o buraco continua aparecendo, que é o pedido. */
+       que ela não tem — e o buraco continua aparecendo, que é o pedido.
+
+       *O que a 1520 passou a exigir é o MOTIVO, e não o substituto: são duas
+       coisas diferentes, e a decisão de 22/09 mexeu só na primeira.* */
     const depois = await periodo(tokens.coord, dia, dia);
     expect(depois.body.dias[0].semNinguem).toContain('noturno');
   });
@@ -259,7 +273,7 @@ describe('A escala como a Fundação a descreveu', () => {
     const sem = await request(http).post(`/api/v1/escala/${alvo.id}/substituir`)
       .set(auth(tokens.coord)).send({ novoUserId: ids.uTecnica });
     expect(sem.status).toBe(400);
-    expect(sem.body.message).toMatch(/já passou/i);
+    expect(sem.body.message).toMatch(/já passou|vai perguntar/i);
 
     const com = await request(http).post(`/api/v1/escala/${alvo.id}/substituir`)
       .set(auth(tokens.coord))

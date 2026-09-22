@@ -160,6 +160,12 @@ export const VOCABULARIO_DA_AUDITORIA: Record<string, string> = {
   'incident.open': 'Ocorrência registrada',
   'incident.restraint': 'Contenção registrada',
   'incident.protected': 'Relato restrito registrado',
+  /* A LEITURA, e não só a escrita (1530). Quando a Fundação incluiu o Líder
+     Diurno entre quem lê o bloco protegido, em 22/09, a leitura passou a deixar
+     linha — para todos os cargos, e não só para ele. O precedente é o
+     `person.judicial_view`: no material mais pesado do sistema, quem consulta é
+     consultável. */
+  'incident.protected_view': 'Fala espontânea e sinais observados consultados',
   'incident.synthesis': 'Síntese de ocorrência escrita',
   'incident.attachment_add': 'Anexo de ocorrência registrado',
   'incident.attachment_open': 'Anexo de ocorrência aberto',

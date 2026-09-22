@@ -2476,6 +2476,35 @@ let OCORRENCIAS: Ocorrencia[] = [
     status: 'aguardando_revisao_tecnica',
     avisados: ['Líder Diurno', 'equipe técnica', 'coordenação', 'Enfermagem'],
     sinteses: [] },
+  /*
+   * UMA OCORRÊNCIA COM BLOCO PROTEGIDO — §6.19 pela oitava vez, e desta vez a
+   * lacuna ficou visível porque a Fundação decidiu QUEM o lê (fase 144).
+   *
+   * As duas ocorrências acima são de categorias não restritas e nasciam com
+   * `falaEspontanea: null`: no único arquivo que o Marcelo abre, **o bloco
+   * protegido não existia**. A regra mais cuidadosa do sistema — quem lê a fala
+   * espontânea de uma criança — não tinha como ser mostrada a ninguém, e a
+   * decisão de 22/09 chegaria à casa sem que o efeito dela aparecesse.
+   *
+   * O texto é curto e contido de propósito. Ele existe para a equipe ver COMO o
+   * registro se comporta — quem alcança, quem não alcança, e a frase que a tela
+   * dá a quem não alcança —, e não para ilustrar um caso. Dado fictício, como
+   * todo o resto deste arquivo.
+   */
+  { id: 'o3', categoria: 'violencia_ou_suspeita', personId: 'p07',
+    fato: 'Durante a arrumação do quarto, a acolhida falou sozinha sobre a casa da tia e '
+      + 'pediu para não voltar no fim de semana. Nada foi perguntado.',
+    medidas: 'Equipe técnica avisada na hora. Visita do fim de semana suspensa até a conversa '
+      + 'com a técnica. Nenhuma pergunta feita à acolhida.',
+    falaEspontanea: '"eu não quero ir pra casa da tia, lá tem um moço que fica no meu quarto."',
+    sinaisObservados: 'Chorou ao falar e pediu para ficar perto da educadora o resto da tarde. '
+      + 'Sem lesão visível.',
+    protegidoPor: 'Joana Lima (fictícia)', protegidoPorCargo: 'educador',
+    protegidoEm: emHoras(16, 20),
+    abertaPor: 'Joana Lima (fictícia)', abertaEm: emHoras(16, 15),
+    status: 'aguardando_revisao_tecnica',
+    avisados: ['Líder Diurno', 'equipe técnica', 'coordenação'],
+    sinteses: [] },
 ];
 
 /**
@@ -6415,10 +6444,17 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       return new Recusa(400, 'A pessoa que entra é a mesma que sai. Para só mudar o horário, '
         + 'retire e escale de novo.');
     }
+    /* O MOTIVO É OBRIGATÓRIO SEMPRE desde a fase 144 (decisão da Fundação de
+       22/09), e a frase muda com o tempo do plantão porque o motivo é outro: no
+       passado ela responde "quem estava na casa naquela noite"; no futuro,
+       responde à pessoa que vai perguntar. Regra 14: as duas frases são as do
+       servidor, palavra por palavra. */
     const motivoSub = String(b.motivo ?? '').trim();
-    if (alvo.data < HOJE && motivoSub.length < 10) {
-      return new Recusa(400, 'Este plantão já passou. Escreva por que a escala dele muda — é ela '
-        + 'que responde quem estava na casa naquela noite.');
+    if (motivoSub.length < 10) {
+      return new Recusa(400, alvo.data < HOJE
+        ? 'Este plantão já passou. Escreva por que a escala dele muda — é ela que responde '
+          + 'quem estava na casa naquela noite.'
+        : 'Escreva por que esta troca acontece. Quem sai vai perguntar, e é esta frase que responde.');
     }
     if (ESCALA.some((x) => x.data === alvo.data && x.turno === alvo.turno
                            && x.userId === novo.id && !x.revogadaEm)) {
@@ -6433,7 +6469,9 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       substituiu: alvo.quem,
     });
     alvo.revogadaEm = new Date().toISOString();
-    alvo.motivoRevogacao = motivoSub || `Substituído(a) por ${novo.nome}.`;
+    /* Desde a 144 a frase é sempre a que a pessoa escreveu: o "Substituído(a) por…"
+       dizia o que o parentesco já diz, e nunca por quê. */
+    alvo.motivoRevogacao = motivoSub;
     alvo.revogadaPor = eu.fullName;
     return {
       id: novoId, saiu: alvo.quem, entrou: novo.nome,
@@ -6452,12 +6490,15 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       return { ok: true, mudou: false, aviso: 'Este plantão já havia sido retirado da escala.' };
     }
     const motivo = String(b.motivo ?? '').trim();
-    if (alvo.data < HOJE && motivo.length < 10) {
-      return new Recusa(400, 'Este plantão já passou. Escreva por que a escala dele muda — é ela '
-        + 'que responde quem estava na casa naquela noite.');
+    if (motivo.length < 10) {
+      return new Recusa(400, alvo.data < HOJE
+        ? 'Este plantão já passou. Escreva por que a escala dele muda — é ela que responde '
+          + 'quem estava na casa naquela noite.'
+        : 'Escreva por que esta pessoa sai do plantão. Ela vai perguntar, e é esta frase que '
+          + 'responde — a escala já guarda quem retirou e quando.');
     }
     alvo.revogadaEm = new Date().toISOString();
-    alvo.motivoRevogacao = motivo || null;
+    alvo.motivoRevogacao = motivo;
     alvo.revogadaPor = eu.fullName;
     return { ok: true, mudou: true,
       aviso: 'Plantão retirado da escala. A linha continua registrada, com o seu nome e o '
@@ -9016,7 +9057,16 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
      */
     const souAutorDoProtegido = o.protegidoPor === eu.fullName
       && o.protegidoPorCargo === eu.role;
+    /*
+     * O LÍDER DIURNO ENTROU NA FASE 144 (decisão da Fundação de 22/09) — a mesma
+     * lista da política `iprot_select`. A assimetria que existia era real: o
+     * RELATO restrito o incluía desde a 0730 e o BLOCO PROTEGIDO não.
+     *
+     * A SÍNTESE técnica continua fora dele (`tecnica`), e é outra coisa: ela é a
+     * leitura que a equipe técnica faz do caso, não o registro do que houve.
+     */
     const podeProtegido = tecnica || souAutorDoProtegido
+      || eu.role === 'lider_diurno'
       || (eu.role === 'enfermagem' && /saude|medicamento/.test(cat.cod));
     return {
       id: o.id, casaId: 'AI3', categoria: cat.label, codigoCategoria: cat.cod,
@@ -9033,9 +9083,12 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         ? { falaEspontanea: o.falaEspontanea, sinaisObservados: o.sinaisObservados ?? null,
             registradoEm: o.protegidoEm ?? o.abertaEm }
         : null,
+      /* A frase nomeava dois cargos e envelheceu na 144: quem lê o aviso precisa
+         saber a quem pedir (regra 14 — é a frase do servidor). */
       avisoProtegido: podeProtegido ? null
-        : 'Fala espontânea e sinais observados, quando existem, são acessíveis à equipe '
-          + 'técnica e à coordenação.',
+        : 'Fala espontânea e sinais observados, quando existem, são acessíveis a quem os '
+          + 'escreveu, à equipe técnica, à coordenação e ao Líder Diurno da casa — e à '
+          + 'Enfermagem quando o registro é de saúde.',
       contencao: CONTENCOES[o.id] ?? null,
       sinteses: tecnica ? o.sinteses : [],
       relatos: relatosDe('incident', o.id),

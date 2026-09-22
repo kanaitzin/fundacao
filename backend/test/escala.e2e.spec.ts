@@ -167,12 +167,35 @@ describe('A escala de plantão', () => {
 
   // ==================== Retirar ====================
 
-  it('retirar do futuro não pede motivo; a linha fica, revogada', async () => {
+  /**
+   * ESTE TESTE MUDOU DE LADO NA FASE 144, e é uma decisão da Fundação.
+   *
+   * Ele dizia *"retirar do futuro não pede motivo"*, e guardava a regra certa até
+   * 22/09 — a 1310 a escreveu com um argumento que continua correto sobre o
+   * HISTÓRICO: *"mudar o futuro é organização; mudar o passado é dizer que a
+   * pessoa não estava lá"*. O que aquele argumento não cobria: quem pergunta *"por
+   * que eu fui tirado do plantão de sábado?"* pergunta na segunda, sobre um
+   * plantão que era futuro quando a mudança foi feita. Perguntada, a Fundação
+   * respondeu **sempre exigir motivo**.
+   *
+   * O que o teste guarda continua sendo o mesmo de antes na segunda metade: a
+   * linha NÃO SOME, e aparece na lista do que foi retirado com quem retirou.
+   */
+  it('retirar do futuro também pede motivo — e a linha fica, revogada', async () => {
     const p = await periodo(tokens.coord, AMANHA, AMANHA);
     const alvo = p.dias[0].noturno[0];
 
-    const r = await request(http).post(`/api/v1/escala/${alvo.id}/revogar`)
+    const sem = await request(http).post(`/api/v1/escala/${alvo.id}/revogar`)
       .set(auth(tokens.coord)).send({ motivo: '' });
+    expect(sem.status).toBe(400);
+    /* A frase do futuro é OUTRA, e de propósito: no passado ela responde "quem
+       estava na casa naquela noite"; no futuro, responde à pessoa que vai
+       perguntar. */
+    expect(sem.body.message).toMatch(/vai perguntar/i);
+
+    const r = await request(http).post(`/api/v1/escala/${alvo.id}/revogar`)
+      .set(auth(tokens.coord))
+      .send({ motivo: 'Trocou de turno com a Tainá a pedido dela, por consulta médica.' });
     expect(r.status).toBe(201);
     expect(r.body.mudou).toBe(true);
 
@@ -185,7 +208,8 @@ describe('A escala de plantão', () => {
 
     // Revogar de novo não é erro, e não inventa uma segunda revogação.
     const outra = await request(http).post(`/api/v1/escala/${alvo.id}/revogar`)
-      .set(auth(tokens.coord)).send({});
+      .set(auth(tokens.coord))
+      .send({ motivo: 'Tentativa repetida, para conferir que não nasce uma segunda revogação.' });
     expect(outra.body.mudou).toBe(false);
   });
 
@@ -199,7 +223,9 @@ describe('A escala de plantão', () => {
     const sem = await request(http).post(`/api/v1/escala/${alvo.id}/revogar`)
       .set(auth(tokens.coord)).send({ motivo: 'erro' });
     expect(sem.status).toBe(400);
-    expect(sem.body.message).toMatch(/já passou/i);
+    /* No passado a frase é a da 1310, e a 144 não a mudou: o que muda de lado ali
+       é a resposta de quem estava na casa naquela noite. */
+    expect(sem.body.message).toMatch(/já passou|vai perguntar/i);
 
     const com = await request(http).post(`/api/v1/escala/${alvo.id}/revogar`)
       .set(auth(tokens.coord))

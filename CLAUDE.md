@@ -154,11 +154,11 @@ piloto —, e as três decisões que estavam paradas viraram código nas fases 1
 136, 137, 138 e 139. **Mas a conferência de 22/09 reabriu a lista**, e ela está
 no §9, na seção *"A conferência de 22/09"*. **As três coisas que faltavam foram
 feitas** — dia e horário de visita na portaria e o motivo ao retirar autorização
-nas fases 142 e 1500; o educador no Arquivo de ATAS na 143. **Sobram DUAS
-decisões, e são dela:** motivo obrigatório ao retirar alguém de um plantão FUTURO
-(hoje só o passado exige, e a migração explica por quê), e se o Líder Diurno lê
-ocorrência protegida (a regra do RELATO o inclui; a da `incident_protected`,
-não). Leia a seção antes de escolher o que fazer.
+nas fases 142 e 1500; o educador no Arquivo de ATAS na 143. **As duas decisões que eram dela chegaram
+em 22/09 e viraram a fase 144:** toda retirada da escala — e toda substituição —
+passou a exigir motivo escrito, e o Líder Diurno passou a ler a ocorrência
+protegida, com a leitura deixando linha de auditoria para TODOS os cargos.
+**A seção não tem mais nada aberto**; o que sobra no §9 é a §10.2.
 
 1. ~~**As telas que as respostas de 20/09 destravaram**~~ ✅ **as três, feitas.**
    §10.7 — de onde a técnica escolhe as fontes — na **134**; §10.6 — *"gestor

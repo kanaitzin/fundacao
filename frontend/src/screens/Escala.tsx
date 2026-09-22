@@ -281,7 +281,7 @@ export function Escala({ houseId, casaLabel, papel }: {
       {retirando && (
         <FolhaRetirar
           pessoa={retirando.p}
-          exigeMotivo={passado(retirando.data)}
+          jaPassou={passado(retirando.data)}
           onFechar={() => setRetirando(null)}
           onRetirar={async (motivo) => {
             const ok = await acao(() => api(`/escala/${retirando.p.id}/revogar`, {
@@ -295,7 +295,7 @@ export function Escala({ houseId, casaLabel, papel }: {
         <FolhaSubstituir
           pessoa={substituindo.p}
           equipe={equipe.filter((m) => m.id !== substituindo.p.userId)}
-          exigeMotivo={passado(substituindo.data)}
+          jaPassou={passado(substituindo.data)}
           onFechar={() => setSubstituindo(null)}
           onSubstituir={async (novoUserId, motivo) => {
             const ok = await acao(() => api(`/escala/${substituindo.p.id}/substituir`, {
@@ -445,13 +445,16 @@ function FolhaEscalar({ equipe, data, turno, passado, onFechar, onEscalar }: {
  * retirada numa substituição obrigatória seria o sistema cobrando da casa uma
  * pessoa que ela não tem.
  */
-function FolhaSubstituir({ pessoa, equipe, exigeMotivo, onFechar, onSubstituir }: {
-  pessoa: Pessoa; equipe: Membro[]; exigeMotivo: boolean;
+function FolhaSubstituir({ pessoa, equipe, jaPassou, onFechar, onSubstituir }: {
+  pessoa: Pessoa; equipe: Membro[]; jaPassou: boolean;
   onFechar: () => void; onSubstituir: (novoUserId: string, motivo: string) => void;
 }) {
   const [novo, setNovo] = useState('');
   const [motivo, setMotivo] = useState('');
-  const pode = !!novo && (!exigeMotivo || motivo.trim().length >= 10);
+  /* Motivo obrigatório também aqui, desde a 144: "a Joana entrou no lugar" não
+     explica por que a Marta saiu — e deixar só a substituição sem a frase faria
+     quem não quisesse escrever substituir em vez de retirar. */
+  const pode = !!novo && motivo.trim().length >= 10;
   return (
     <div className="folha" role="dialog" aria-modal="true" aria-labelledby="t-sub">
       <div className="folha-corpo stack">
@@ -470,15 +473,14 @@ function FolhaSubstituir({ pessoa, equipe, exigeMotivo, onFechar, onSubstituir }
           ))}
         </select>
 
-        <label className="f" htmlFor="sub-motivo">
-          Motivo {exigeMotivo ? '' : <small className="mutetxt">— opcional</small>}
-        </label>
-        {exigeMotivo && (
-          <div className="notice c-warn" role="status">
-            Este plantão já passou. Substituir alguém nele muda a resposta de "quem estava na
-            casa naquela noite" — escreva por quê.
-          </div>
-        )}
+        <label className="f" htmlFor="sub-motivo">Motivo</label>
+        <div className={`notice ${jaPassou ? 'c-warn' : 'c-info'}`} role="status">
+          {jaPassou
+            ? 'Este plantão já passou. Substituir alguém nele muda a resposta de "quem estava '
+              + 'na casa naquela noite" — escreva por quê.'
+            : 'Escreva por que esta troca acontece. Quem sai vai perguntar, e é esta frase que '
+              + 'responde — o parentesco entre as duas linhas o sistema já guarda sozinho.'}
+        </div>
         <textarea id="sub-motivo" value={motivo} onChange={(e) => setMotivo(e.target.value)}
                   placeholder="Ex.: atestado médico; troca combinada com a equipe." />
 
@@ -494,26 +496,40 @@ function FolhaSubstituir({ pessoa, equipe, exigeMotivo, onFechar, onSubstituir }
   );
 }
 
-function FolhaRetirar({ pessoa, exigeMotivo, onFechar, onRetirar }: {
-  pessoa: Pessoa; exigeMotivo: boolean;
+/**
+ * A FOLHA DE RETIRAR.
+ *
+ * O MOTIVO É OBRIGATÓRIO SEMPRE desde a fase 144 — decisão da Fundação em 22/09,
+ * respondendo à pergunta que a conferência daquele dia abriu. Até aqui só o
+ * plantão JÁ PASSADO exigia, com o argumento da 1310: *"mudar o futuro é
+ * organização; mudar o passado é dizer que a pessoa não estava lá"*. O argumento
+ * continua correto sobre o histórico, e não era o único em jogo: quem pergunta
+ * *"por que eu fui tirado do plantão de sábado?"* pergunta na segunda, sobre um
+ * plantão que era futuro quando a mudança foi feita.
+ *
+ * `jaPassou` deixou de decidir SE o motivo é exigido e passou a decidir QUAL
+ * frase aparece — porque o motivo é outro nos dois casos, e uma frase só
+ * explicaria mal os dois.
+ */
+function FolhaRetirar({ pessoa, jaPassou, onFechar, onRetirar }: {
+  pessoa: Pessoa; jaPassou: boolean;
   onFechar: () => void; onRetirar: (motivo: string) => void;
 }) {
   const [motivo, setMotivo] = useState('');
-  const pode = !exigeMotivo || motivo.trim().length >= 10;
+  const pode = motivo.trim().length >= 10;
   return (
     <div className="folha" role="dialog" aria-modal="true" aria-labelledby="t-ret">
       <div className="folha-corpo stack">
         <h3 id="t-ret">Retirar {pessoa.quem} da escala</h3>
-        <div className={`notice ${exigeMotivo ? 'c-warn' : 'c-info'}`}>
-          {exigeMotivo
+        <div className={`notice ${jaPassou ? 'c-warn' : 'c-info'}`}>
+          {jaPassou
             ? 'Este plantão já passou. Retirar alguém dele muda a resposta de "quem estava na '
-              + 'casa naquela noite" — por isso o motivo é obrigatório.'
+              + 'casa naquela noite" — escreva por quê.'
             : 'A linha não é apagada: ela fica registrada como retirada, com o seu nome e o '
-              + 'horário.'}
+              + 'horário. Escreva por que esta pessoa sai — ela vai perguntar, e é esta frase '
+              + 'que responde.'}
         </div>
-        <label className="f" htmlFor="ret-motivo">
-          Motivo {exigeMotivo ? '' : <small>— opcional</small>}
-        </label>
+        <label className="f" htmlFor="ret-motivo">Motivo</label>
         <input id="ret-motivo" className="field" value={motivo} maxLength={200}
                onChange={(e) => setMotivo(e.target.value)}
                placeholder="Ex.: trocou o plantão com a Tainá." />

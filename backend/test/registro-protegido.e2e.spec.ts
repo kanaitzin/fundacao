@@ -109,17 +109,58 @@ describe('Registro protegido depois da abertura', () => {
     expect(autor.body.protegido.sinaisObservados).toBe(SINAIS);
   });
 
-  it('o colega do plantão não lê — e o líder também não, mesmo alcançando a ocorrência',
-     async () => {
-    for (const quem of ['educador', 'lider'] as const) {
-      const r = await request(http).get(`/api/v1/incidents/${ids.oc}`).set(auth(tokens[quem]));
-      expect(r.status).toBe(200);                       // alcança a ocorrência
-      expect(r.body.protegido).toBeNull();              // e não o conteúdo
-      expect(r.body.avisoProtegido).toMatch(/equipe técnica/i);
-      expect(JSON.stringify(r.body)).not.toContain('grita comigo');
-    }
+  /**
+   * O LÍDER MUDOU DE LADO NA FASE 144, e é decisão da Fundação — não conserto meu.
+   *
+   * O teste dizia *"o colega do plantão não lê — e o líder também não"*, e
+   * guardava a regra certa até 22/09. A conferência daquele dia levou à Fundação
+   * uma assimetria que o sistema tinha: o RELATO restrito inclui o Líder Diurno
+   * desde a 0730, com a razão escrita — *"quem está com a criança às 23h precisa
+   * saber o que já foi registrado sobre ela, para não repetir uma pergunta que já
+   * feriu"* —, e o BLOCO PROTEGIDO da ocorrência não incluía. **Eu não desfiz a
+   * assimetria sozinho**, porque ocorrência protegida é material mais pesado que
+   * relato; perguntada, ela respondeu: incluir o Líder Diurno.
+   *
+   * O EDUCADOR continua fora, e é a metade que este teste passa a guardar
+   * sozinho — junto com a que não mudou: a fala da criança não aparece em
+   * lugar nenhum da resposta de quem não a alcança.
+   */
+  it('o colega do plantão não lê — o Líder Diurno passou a ler, desde 22/09', async () => {
+    const dele = await request(http).get(`/api/v1/incidents/${ids.oc}`).set(auth(tokens.educador));
+    expect(dele.status).toBe(200);                      // alcança a ocorrência
+    expect(dele.body.protegido).toBeNull();             // e não o conteúdo
+    expect(dele.body.avisoProtegido).toMatch(/equipe técnica/i);
+    /* E a frase passou a NOMEAR o Líder Diurno: quem lê o aviso precisa saber a
+       quem pedir. Uma frase que envelhece é uma frase que mente. */
+    expect(dele.body.avisoProtegido).toMatch(/Líder Diurno/i);
+    expect(JSON.stringify(dele.body)).not.toContain('grita comigo');
+
+    const lider = await request(http).get(`/api/v1/incidents/${ids.oc}`).set(auth(tokens.lider));
+    expect(lider.status).toBe(200);
+    expect(lider.body.protegido.falaEspontanea).toBe(FALA);
+
     const tecnica = await request(http).get(`/api/v1/incidents/${ids.oc}`).set(auth(tokens.tecnica));
     expect(tecnica.body.protegido.falaEspontanea).toBe(FALA);
+  });
+
+  it('e a leitura do bloco protegido deixa linha — para todos, não só para ele', async () => {
+    /*
+     * Não deixava, para ninguém: a auditoria registrava quem ESCREVEU e não quem
+     * abriu. Ampliar quem lê o material mais pesado do sistema sem rastro nenhum
+     * seria a única coisa desta fase indefensável numa audiência — e a casa já
+     * tinha o precedente (`person.judicial_view`, fase 112).
+     *
+     * NÃO é a porta com finalidade escrita, que a Fundação recusou para este
+     * caso: nada é perguntado a quem abre o caso para trabalhar.
+     */
+    const { rows } = await admin.query(
+      `SELECT actor_id, detail FROM audit_event
+        WHERE action = 'incident.protected_view' AND entity_id = $1`, [ids.oc]);
+    expect(rows.length).toBeGreaterThanOrEqual(2);      // o líder e a técnica
+
+    /* E o log leva metadado, nunca a fala da criança (§5). */
+    expect(JSON.stringify(rows)).not.toContain('grita comigo');
+    expect(JSON.stringify(rows)).toMatch(/cargo/);
   });
 
   it('a recusa do segundo registro NÃO conta o que já está no primeiro', async () => {

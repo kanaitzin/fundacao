@@ -1123,7 +1123,24 @@ if (await retirar.count()) {
   await pg.waitForTimeout(800);
   cobrar('retirar diz que a linha não é apagada',
     /não é apagada|fica registrada como retirada/i.test(await corpo()));
-  await pg.locator(`${CAIXA} button`).filter({ hasText: /^Retirar$/ }).first().click();
+  /*
+   * O MOTIVO É OBRIGATÓRIO SEMPRE (fase 144, decisão da Fundação de 22/09).
+   *
+   * Até aqui só o plantão JÁ PASSADO exigia, e o ensaio clicava "Retirar" sem
+   * escrever nada — agora o botão nasce desabilitado, e a frase diz para quem a
+   * explicação serve: a pessoa que foi tirada vai perguntar.
+   */
+  const botaoRet = pg.locator(`${CAIXA} button`).filter({ hasText: /^Retirar$/ }).first();
+  cobrar('e sem motivo escrito o botão de retirar nasce desabilitado',
+    await botaoRet.isDisabled(),
+    'a decisão de 22/09 foi "sempre exigir motivo", e não só no plantão que já passou');
+  cobrar('a folha diz para quem a frase serve',
+    /vai perguntar/i.test(await corpo()),
+    'quem foi tirado do plantão de sábado pergunta na segunda');
+  await pg.locator(`${CAIXA} input#ret-motivo`)
+    .fill('Trocou o plantão com a Tainá, a pedido dela.');
+  cobrar('com o motivo escrito, retirar libera', !(await botaoRet.isDisabled()));
+  await botaoRet.click();
   await pg.waitForTimeout(1400);
   await fechar();
 }
@@ -1162,6 +1179,13 @@ if (await substituir.count()) {
     (await quemEntra.locator('option').count()) > 1);
   const botaoSub = pg.locator(`${CAIXA} button`).filter({ hasText: /^Substituir$/ }).first();
   cobrar('sem escolher quem entra, não substitui', await botaoSub.isDisabled());
+  /* E a substituição pede motivo desde a 144, pelo mesmo motivo da retirada:
+     "a Joana entrou no lugar" não explica por que a Marta saiu. */
+  cobrar('a folha de substituir também pede por que a troca acontece',
+    /por que esta troca acontece|escreva por quê/i.test(folhaSub),
+    'deixar só a substituição sem a frase faria quem não quer escrever substituir em vez de retirar');
+  await pg.locator(`${CAIXA} textarea#sub-motivo`)
+    .fill('Consulta médica marcada no mesmo horário; troca combinada com a equipe.');
   const quantasOpcoes = await quemEntra.locator('option').count();
   if (quantasOpcoes > 1) {
     /*
@@ -1634,6 +1658,58 @@ if (await doMais('Ocorrências')) {
     }
   }
 }
+
+/*
+ * QUEM LÊ A FALA ESPONTÂNEA DA CRIANÇA (fase 144, decisão da Fundação de 22/09).
+ *
+ * A conferência de 22/09 levou à Fundação uma assimetria real: o RELATO restrito
+ * inclui o Líder Diurno desde a 0730, e o BLOCO PROTEGIDO da ocorrência não
+ * incluía. Ela respondeu: incluir. Aqui se cobram os DOIS lados — porque uma
+ * regra de acesso só está certa quando o que ela fecha também está fechado.
+ *
+ * *E o protótipo não tinha o que mostrar: as duas ocorrências semeadas nasciam
+ * sem bloco protegido, então a regra mais cuidadosa do sistema não aparecia no
+ * único arquivo que o Marcelo abre (§6.19).*
+ */
+await fechar();
+await trocar('lider_diurno');
+erros.length = 0;
+if (await doMais('Ocorrências')) {
+  const restrita = pg.locator('main.conteudo .card')
+    .filter({ hasText: /Violência ou suspeita/i }).first();
+  cobrar('a ocorrência com bloco protegido aparece na lista',
+    (await restrita.count()) > 0,
+    'sem ela semeada, a regra de quem lê a fala da criança não se demonstra');
+  if (await restrita.count()) {
+    await restrita.locator('button').filter({ hasText: /Abrir detalhes/ }).first().click();
+    await pg.waitForTimeout(900);
+    cobrar('o Líder Diurno lê a fala espontânea — entrou em 22/09',
+      /não quero ir pra casa da tia/i.test(await conteudo()),
+      'a regra do relato restrito já o incluía; a da ocorrência protegida, não');
+  }
+}
+cobrar('nenhuma exceção na leitura do Líder Diurno', erros.length === 0, erros[0]);
+
+await fechar();
+await trocar('educador');
+erros.length = 0;
+if (await doMais('Ocorrências')) {
+  const restrita = pg.locator('main.conteudo .card')
+    .filter({ hasText: /Violência ou suspeita/i }).first();
+  if (await restrita.count()) {
+    await restrita.locator('button').filter({ hasText: /Abrir detalhes/ }).first().click();
+    await pg.waitForTimeout(900);
+    const oQueEleVe = await conteudo();
+    cobrar('o educador do plantão NÃO lê a fala espontânea',
+      !/não quero ir pra casa da tia/i.test(oQueEleVe),
+      'o educador ficou fora de propósito — a decisão de 22/09 nomeou três cargos');
+    cobrar('e a tela diz a quem ele pode pedir, em vez de só omitir',
+      /Líder Diurno/i.test(oQueEleVe),
+      'a frase nomeava dois cargos e envelheceu na 144');
+  }
+}
+cobrar('nenhuma exceção na leitura do educador', erros.length === 0, erros[0]);
+await fechar();
 
 /* A NOTA FISCAL, na Enfermagem. Nada de `if` que pula em silêncio: uma
    cobrança que só roda quando encontra a porta é uma cobrança desligada que

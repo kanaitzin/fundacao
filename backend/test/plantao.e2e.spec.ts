@@ -532,11 +532,23 @@ describe('Fase 5 — Plantão, ATA e proteção', () => {
     expect(tecnica.status).toBe(200);
     expect(tecnica.body.protegido.falaEspontanea).toMatch(/Transcrição literal/);
 
-    // O líder encerra a etapa operacional sem ler o conteúdo protegido.
+    /*
+     * O LÍDER PASSOU A LER, NA FASE 144 — decisão da Fundação em 22/09.
+     *
+     * Este trecho dizia *"o líder encerra a etapa operacional sem ler o conteúdo
+     * protegido"*, e guardava a regra certa até então. A conferência de 22/09
+     * levou à Fundação a assimetria que o sistema tinha — o relato restrito
+     * incluía o Líder Diurno desde a 0730, o bloco protegido não — e ela
+     * respondeu incluir. **O colega do plantão continua fora, e é o que este
+     * teste guarda junto**: ele não alcança nem a ocorrência.
+     */
     const lider = await request(http).get(`/api/v1/incidents/${aberta.body.id}`).set(auth(tokens.lider));
     expect(lider.status).toBe(200);
-    expect(lider.body.protegido).toBeNull();
-    expect(lider.body.avisoProtegido).toMatch(/equipe técnica/i);
+    expect(lider.body.protegido.falaEspontanea).toMatch(/Transcrição literal/);
+    /* E o aviso vem NULO para quem lê: ele é a frase de quem NÃO alcança, e
+       dizer "isto é da equipe técnica" a quem está lendo o conteúdo seria a tela
+       explicando ao leitor que ele não podia ler. */
+    expect(lider.body.avisoProtegido).toBeNull();
   });
 
   it('anexo: foto exige justificativa, nome de arquivo não carrega CPF nem diagnóstico', async () => {

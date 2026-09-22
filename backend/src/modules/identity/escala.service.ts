@@ -154,6 +154,18 @@ export class EscalaService {
 
   /** Tira alguém do plantão. Nada é apagado: a linha fica, revogada. */
   async desescalar(user: AuthenticatedUser, id: string, motivo?: string) {
+    /*
+     * O MOTIVO É OBRIGATÓRIO SEMPRE (1520, decisão da Fundação de 22/09).
+     *
+     * A conferência confere ANTES de chamar o banco só para a frase chegar em
+     * português a quem clicou; quem garante é a `app_desescalar`, e ela recusa de
+     * qualquer jeito — inclusive para uma fila offline gravada antes desta fase.
+     */
+    if ((motivo ?? '').trim().length < 10) {
+      throw new BadRequestException(
+        'Escreva por que esta pessoa sai do plantão. Ela vai perguntar, e é esta frase '
+        + 'que responde — a escala já guarda quem retirou e quando.');
+    }
     const mudou = await this.chamar(user, async (c) => {
       const { rows: [r] } = await c.query(`SELECT app_desescalar($1,$2) AS ok`, [id, motivo ?? null]);
       return !!r?.ok;
@@ -191,6 +203,13 @@ export class EscalaService {
   }) {
     if (!input?.novoUserId) {
       throw new BadRequestException('Escolha quem entra no lugar.');
+    }
+    /* O mesmo piso da retirada (1520): a substituição é uma retirada com uma
+       entrada em cima, e "a Joana entrou no lugar" não explica por que a Marta
+       saiu — isso o `replaces_assignment_id` já diz sozinho. */
+    if ((input.motivo ?? '').trim().length < 10) {
+      throw new BadRequestException(
+        'Escreva por que esta troca acontece. Quem sai vai perguntar, e é esta frase que responde.');
     }
     const r = await this.chamar(user, async (c) => {
       const { rows: [row] } = await c.query(
