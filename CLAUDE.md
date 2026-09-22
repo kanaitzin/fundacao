@@ -129,6 +129,7 @@ e qual é o caminho certo.
 | `prototipo/` | o arquivo único que o Marcelo abre |
 | `.claude/hooks/session-start.sh` | o preparo que roda antes de a sessão na web começar |
 | `scripts/varredura-de-pontas.mjs` | acha coluna que é gravada e não chega a lugar nenhum, medindo contra funções, políticas, visões e o TypeScript. **Não é teste**: devolve candidato, e quem confirma olha |
+| `scripts/superficies-sem-teste.mjs` | acha tabela que **nenhum teste jamais escreveu** — a lição da fase 141 medida em vez de lembrada. Roda DEPOIS do `npm test`, na mesma rodada, e usa o `n_tup_ins` do banco porque contar linhas no fim não distingue "ninguém escreveu" de "a suíte limpou". **Não é teste**, e recusa concluir se a rodada foi parcial |
 
 ## O primeiro trabalho desta máquina — FEITO
 
@@ -194,6 +195,19 @@ cuida dos acolhidos, e criou o **pedido de leitura** da observação restrita �
    RLS, visões e o código do servidor (`arquivo-tem-saida.spec.ts`).
 4. **Aplicar o roteiro com a equipe.** Continua sendo o que mais muda o sistema,
    e o único que não se faz daqui.
+
+   **E COM O §9 VAZIO, a pergunta mudou (fase 146):** deixou de ser *"o que
+   falta?"* e passou a ser **"o que nunca foi exercitado?"** — que tem resposta
+   medível. Rode a suíte inteira e depois o
+   `scripts/superficies-sem-teste.mjs`, na mesma rodada. Foi assim que apareceu
+   que a **contenção física** podia ser escrita na ocorrência de outra casa: a
+   tabela chegava vazia da semente e nenhum dos 892 testes jamais inseriu uma, e
+   a política só exigia que quem assina fosse quem está logado.
+
+   **A lição, e ela vale para toda guarda nova:** a chave estrangeira NÃO confere
+   alcance — ela é verificada como dona da tabela, por fora do RLS. Apontar para
+   uma linha de outra casa passa. Quem confere é a política, com
+   `app_house_in_scope`, e o serviço, para a recusa chegar em português.
 5. ~~**A §10.2**~~ ✅ **respondida em 22/09 e feita na fase 145.** A 143 tinha
    deixado a ATA Geral fora de quem não a lia **de propósito**, para não responder
    de carona uma pergunta da Fundação — e a resposta veio: *"todos leem a ata

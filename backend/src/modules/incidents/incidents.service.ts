@@ -501,6 +501,17 @@ export class IncidentsService {
       throw new BadRequestException(
         `Registro de contenção exige: ${faltando.map(([, l]) => l).join(', ')}.`);
     }
+    /*
+     * A CASA, ANTES DE ESCREVER (1550).
+     *
+     * Este era o único dos irmãos que não conferia — `addSynthesis`,
+     * `addProtected` e os anexos chamam `this.casa`. Sem ela, a recusa vinha da
+     * política do banco, e em inglês de Postgres, na tela de quem registra uma
+     * contenção às 3h. A política agora também recusa (é ela que vale para
+     * qualquer caminho novo); aqui a resposta é a frase da regra 8 — fora do
+     * alcance responde igual a inexistente.
+     */
+    const casa = await this.casa(user, id);
     try {
       await this.db.asUser(user.id, async (c) => {
         await c.query(
@@ -517,7 +528,7 @@ export class IncidentsService {
       if (e?.code === '23505') throw new BadRequestException('Esta contenção já foi registrada e não é reescrita.');
       throw e;
     }
-    await this.audit.log({ action: 'incident.restraint', actorId: user.id,
+    await this.audit.log({ action: 'incident.restraint', actorId: user.id, houseId: casa,
       entity: 'incident', entityId: id, detail: { duracao: input.duracaoMinutos ?? null } });
     return {
       ok: true,
