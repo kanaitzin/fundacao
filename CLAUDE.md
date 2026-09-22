@@ -130,6 +130,7 @@ e qual é o caminho certo.
 | `.claude/hooks/session-start.sh` | o preparo que roda antes de a sessão na web começar |
 | `scripts/varredura-de-pontas.mjs` | acha coluna que é gravada e não chega a lugar nenhum, medindo contra funções, políticas, visões e o TypeScript. **Não é teste**: devolve candidato, e quem confirma olha |
 | `scripts/superficies-sem-teste.mjs` | acha tabela que **nenhum teste jamais escreveu** — a lição da fase 141 medida em vez de lembrada. Roda DEPOIS do `npm test`, na mesma rodada, e usa o `n_tup_ins` do banco porque contar linhas no fim não distingue "ninguém escreveu" de "a suíte limpou". **Não é teste**, e recusa concluir se a rodada foi parcial |
+| `scripts/rotas-sem-teste.mjs` | acha **rota** que nenhum teste chamou — o outro lado da mesma pergunta. Separa *candidata forte* (a URL não aparece em suíte nenhuma) de *par incerto* (a suíte chama por auxiliar e o método fica noutra linha). **Não é teste** |
 
 ## O primeiro trabalho desta máquina — FEITO
 
@@ -208,6 +209,18 @@ cuida dos acolhidos, e criou o **pedido de leitura** da observação restrita �
    alcance — ela é verificada como dona da tabela, por fora do RLS. Apontar para
    uma linha de outra casa passa. Quem confere é a política, com
    `app_house_in_scope`, e o serviço, para a recusa chegar em português.
+
+   **E o irmão dessa medição, na fase 147:** `scripts/rotas-sem-teste.mjs`, que
+   pergunta o mesmo pelo lado da PORTA. Das 342 rotas, 28 nunca tinham sido
+   chamadas por teste nenhum; a 147 fechou a família do vocabulário (as oito que
+   entregam à tela a lista que ela oferece — a família do defeito da fase 140) e
+   os dois atos mais sensíveis, e **deixou catorze escritas no §9**, em ordem de
+   valor, para não ter de medir de novo.
+
+   *O medidor teve de ser consertado pela minha própria suíte:* ele só via a
+   chamada com o método colado à URL, e suíte que chama por auxiliar ficava
+   invisível para ele. Hoje separa **candidata forte** de **par incerto** — sem
+   essa separação, catorze das vinte e cinco eram ruído.
 5. ~~**A §10.2**~~ ✅ **respondida em 22/09 e feita na fase 145.** A 143 tinha
    deixado a ATA Geral fora de quem não a lia **de propósito**, para não responder
    de carona uma pergunta da Fundação — e a resposta veio: *"todos leem a ata
