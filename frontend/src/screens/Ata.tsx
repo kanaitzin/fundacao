@@ -206,8 +206,25 @@ const TIPO_ADENDO: Record<string, string> = {
 };
 
 /* alcance:ata — quem folheia o arquivo. Conferido contra app_consulta_arquivo_ata(). */
+/**
+ * QUEM FOLHEIA O LIVRO PARA TRÁS (1510).
+ *
+ * O EDUCADOR ENTROU EM 22/09, e a Fundação deu a razão junto: *"cada educador
+ * pode ver uma ata unificada da passagem dos dias anteriores para poder controlar
+ * e ajustar se necessário o comportamento ou a dinâmica da casa"*. O turno
+ * anterior responde "o que houve ontem à noite"; a pergunta dela é outra — "esta
+ * criança está comendo mal desde quando?" —, e quem passa doze horas com a casa é
+ * quem primeiro percebe o padrão.
+ *
+ * A confidencialidade não depende desta lista: a linha restrita é filtrada pela
+ * política `note_select` no banco, para todo cargo, e sempre foi.
+ */
 const CONSULTA_ARQUIVO = ['coordenador', 'equipe_tecnica', 'lider_diurno',
-                          'lider_noturno_geral', 'gestor_geral'];
+  'lider_noturno_geral', 'gestor_geral', 'educador'];
+
+/** Quem lê a ATA Geral Noturna — a mesma lista de `app_le_ata_geral` no banco. */
+const LE_ATA_GERAL = ['lider_noturno_geral', 'equipe_tecnica', 'coordenador',
+  'gestor_geral', 'admin_tecnico', 'lider_diurno'];
 
 /** Rótulo do que o Líder Noturno Geral registrou sobre a casa. */
 const CATEGORIA_GERAL: Record<string, string> = {
@@ -308,9 +325,24 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
   async function carregarGeral() {
     setErro(''); setSemGeral('');
     if (papel !== 'lider_noturno_geral') {
-      setSemGeral('A ATA Geral Noturna do dia é aberta pelo Líder Noturno Geral. Para consultar '
-        + 'o que ele registrou sobre ESTA casa, em qualquer data, use o Arquivo — a folha '
-        + 'completa das oito casas fica com quem responde pela instituição.');
+      /*
+       * ESTA FRASE MENTIU POR MEIA FASE, e a correção é da 1510.
+       *
+       * Ela mandava "use o Arquivo" para todo cargo que não é o Líder Noturno
+       * Geral. Até a 1510 o educador não tinha Arquivo, então a frase apontava
+       * para uma porta que ele não via; depois da 1510 ele TEM o Arquivo, e a
+       * Geral continua fora dele de propósito — então a frase passou a apontar
+       * para uma porta que existe e não responde, que é pior. É a lição
+       * transversal do repositório: frase de tela que envelhece é frase que
+       * mente, e quem muda a regra reescreve a frase junto.
+       */
+      setSemGeral(LE_ATA_GERAL.includes(papel)
+        ? 'A ATA Geral Noturna do dia é aberta pelo Líder Noturno Geral. Para consultar '
+          + 'o que ele registrou sobre ESTA casa, em qualquer data, use o Arquivo — a folha '
+          + 'completa das oito casas fica com quem responde pela instituição.'
+        : 'A ATA Geral Noturna é o que a instituição registra sobre as oito casas à noite, e '
+          + 'quem a lê é a coordenação, a equipe técnica e os líderes. O que houve NESTA casa, '
+          + 'dia a dia, você folheia no Arquivo.');
       return;
     }
     try {

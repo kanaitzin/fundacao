@@ -118,13 +118,38 @@ describe('Arquivo das ATAS', () => {
     }
   });
 
-  it('o educador e a enfermagem não folheiam o arquivo', async () => {
-    for (const quem of ['educador', 'enfermagem']) {
-      const res = await arquivo(tokens[quem], ids.AI3);
-      expect([quem, res.status]).toEqual([quem, 403]);
-      // A recusa diz de quem é o arquivo, e não "acesso negado".
-      expect(res.body.message).toMatch(/coordenação|equipe técnica|líderes/i);
-    }
+  /**
+   * ESTE TESTE MUDOU DE LADO NA FASE 143, e a mudança é uma decisão da Fundação,
+   * não uma correção minha.
+   *
+   * Ele dizia *"o educador e a enfermagem não folheiam o arquivo"*, e guardava a
+   * regra certa até 22/09 — quando a Fundação escreveu: *"cada educador pode ver
+   * uma ata unificada da passagem dos dias anteriores para poder controlar e
+   * ajustar se necessário o comportamento ou a dinâmica da casa"*. O educador
+   * entrou; a Enfermagem não, porque ela não trabalha na casa: alcança as
+   * crianças pela saúde, e o livro do plantão é de quem passa as doze horas.
+   *
+   * Um teste que guarda uma regra revogada é pior do que teste nenhum: ele
+   * impede a mudança que alguém decidiu, e a frase que ele cobra vira a
+   * justificativa para não fazer.
+   */
+  it('o educador folheia o arquivo desde 22/09 — a Enfermagem, não', async () => {
+    const dele = await arquivo(tokens.educador, ids.AI3);
+    expect(dele.status).toBe(200);
+
+    const enf = await arquivo(tokens.enfermagem, ids.AI3);
+    expect(enf.status).toBe(403);
+    // A recusa diz de quem é o arquivo, e não "acesso negado".
+    expect(enf.body.message).toMatch(/quem trabalha nesta casa/i);
+  });
+
+  it('e para o educador a ATA Geral Noturna não vem — a §10.2 é da Fundação', async () => {
+    const dele = await arquivo(tokens.educador, ids.AI3);
+    expect(dele.status).toBe(200);
+    for (const d of dele.body.dias as any[]) expect(d.geral).toBeNull();
+    /* A tela DIZ que ela existe e é de outro cargo. Omitir em silêncio faz quem
+       abre concluir que o sistema não a tem. */
+    expect(dele.body.notaAtaGeral).toMatch(/não\s+aparece aqui/i);
   });
 
   it('não se folheia o arquivo de uma casa fora do alcance', async () => {

@@ -228,6 +228,42 @@ await clicar(/Plantão diurno|Plantão noturno/);
 const dentroDoPlantao = await conteudo();
 cobrar('o plantão aberto oferece assinar a passagem',
   /Assinar|passagem/i.test(dentroDoPlantao), dentroDoPlantao.slice(0, 100));
+/*
+ * E O EDUCADOR FOLHEIA OS DIAS ANTERIORES (1510).
+ *
+ * A Fundação pediu em 22/09: *"cada educador pode ver uma ata unificada da
+ * passagem dos dias anteriores para poder controlar e ajustar se necessário o
+ * comportamento ou a dinâmica da casa"*. O turno anterior ele já lia; a janela de
+ * vários dias — a que responde "desde quando?" — não era dele.
+ *
+ * E a outra metade, que é a que eu podia ter errado sem ninguém ver: a ATA Geral
+ * Noturna continua FORA, porque a §10.2 é pergunta da Fundação. A tela tem de
+ * DIZER isso, e não apenas omitir — quem não encontra a Geral e não lê a frase
+ * conclui que o sistema não a tem.
+ */
+if ((await aba('ATA')) || (await doMais('ATA'))) {
+  await pg.waitForTimeout(900);
+  const temArquivo = await pg.locator('[role="tab"]', { hasText: /Arquivo/ }).count();
+  cobrar('o educador tem a aba do Arquivo das ATAS', temArquivo > 0,
+    'era a lista de cargos de app_consulta_arquivo_ata que o barrava');
+  if (temArquivo) {
+    await clicar(/Arquivo/);
+    await pg.waitForTimeout(1200);
+    const arq = await conteudo();
+    cobrar('e a janela de vários dias abre para ele',
+      /semana|mês|Arquivo/i.test(arq), arq.slice(0, 90));
+    cobrar('a tela diz que a ATA Geral Noturna não é dele — e de quem é',
+      /não aparece aqui/i.test(arq) || /coordenação, a equipe técnica e os líderes/i.test(arq),
+      'omitir sem dizer faz o educador concluir que o sistema não tem a ATA Geral');
+  }
+  await clicar(/ATA Geral Noturna/);
+  await pg.waitForTimeout(700);
+  cobrar('e a aba da Geral explica de quem ela é, em vez de mandá-lo ao Arquivo',
+    /quem a lê é a coordenação/i.test(await conteudo()),
+    'a frase mandava "use o Arquivo" — e a Geral não aparece lá (1510)');
+  await aba('Passagem');
+}
+
 cobrar('nenhuma exceção no turno do educador', erros.length === 0, erros[0]);
 
 // ====================================================== 2. Líder Diurno

@@ -22,6 +22,10 @@ import { folhaDaAta } from './ata-folha';
  *    o serviço opinar (§26.2 #18);
  *  * reescrever ATA fechada — correção é adendo com antes e depois (§12.7).
  */
+/** Quem lê a ATA Geral Noturna — a mesma lista de `app_le_ata_geral` (1510). */
+const LE_ATA_GERAL = ['lider_noturno_geral', 'equipe_tecnica', 'coordenador',
+  'gestor_geral', 'admin_tecnico', 'lider_diurno'];
+
 @Injectable()
 export class ShiftsService {
   constructor(
@@ -1243,7 +1247,10 @@ export class ShiftsService {
       }
       if (msg.includes('cargo_nao_consulta_arquivo')) {
         throw new ForbiddenException(
-          'O arquivo das ATAS é da coordenação, da equipe técnica e dos líderes.');
+          // 1510: o educador entrou. A frase deixou de nomear cargos porque a
+          // lista mudou duas vezes e a frase ficou mentindo na segunda.
+          'O arquivo das ATAS é de quem trabalha nesta casa. Se você está vendo isto, '
+          + 'fale com a coordenação — pode ser que o seu vínculo com a casa não esteja lançado.');
       }
       if (msg.includes('periodo_invalido')) {
         throw new BadRequestException('Escolha um período de até um mês.');
@@ -1345,7 +1352,25 @@ export class ShiftsService {
        * caminho seguinte costuma ser pedir por fora, que é o que a regra 2
        * proíbe.
        */
-      notaAtaGeral: user.role === 'gestor_geral'
+      /*
+       * A FRASE SEGUE QUEM LÊ A GERAL (1510).
+       *
+       * Para o educador a Geral não vem, e a frase DIZ isso em vez de o campo
+       * simplesmente faltar: quem abre a tela e não a encontra tem de saber que
+       * ela existe e é de outro cargo — senão conclui que o sistema não a tem, e
+       * essa conclusão é a que chega à Fundação como "falta".
+       *
+       * A lista é a mesma da `app_le_ata_geral` no banco, e isto é uma repetição
+       * que eu preferiria não ter: aqui ela escolhe a FRASE, lá ela decide o
+       * DADO. A que vale é a do banco. *Foi o teste desta fase que pegou a
+       * metade que faltava: eu corrigi a frase no servidor de mentira e esqueci
+       * a do servidor — a regra 14 ao contrário.*
+       */
+      notaAtaGeral: !LE_ATA_GERAL.includes(user.role)
+        ? 'A ATA Geral Noturna — o que a instituição registrou sobre as oito casas — não '
+          + 'aparece aqui. Quem lê a linha desta casa na Geral é a coordenação, a equipe '
+          + 'técnica e os líderes.'
+        : user.role === 'gestor_geral'
         ? 'Da ATA Geral Noturna aparece aqui a linha desta casa. A folha completa '
           + 'das oito casas você abre pela ATA Geral do dia.'
         : 'Da ATA Geral Noturna aparece a linha desta casa — o que o Líder Noturno '

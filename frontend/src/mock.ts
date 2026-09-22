@@ -5968,12 +5968,21 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
    * a folha das oito só para quem responde por ela).
    */
   if (rota === '/shifts/ata-archive' && metodo === 'GET') {
+    /* O EDUCADOR ENTROU NA 1510 — "cada educador pode ver uma ata unificada da
+       passagem dos dias anteriores" (22/09). Regra 14: a lista aqui é a mesma da
+       `app_consulta_arquivo_ata`. */
     const folheia = ['coordenador', 'equipe_tecnica', 'lider_diurno',
-                     'lider_noturno_geral', 'gestor_geral'].includes(eu.role);
+                     'lider_noturno_geral', 'gestor_geral', 'educador'].includes(eu.role);
     if (!folheia) {
       return new Recusa(403,
-        'O arquivo das ATAS é da coordenação, da equipe técnica e dos líderes.');
+        'O arquivo das ATAS é de quem trabalha nesta casa. Se você está vendo isto, '
+        + 'fale com a coordenação — pode ser que o seu vínculo com a casa não esteja lançado.');
     }
+    /* E A ATA GERAL NOTURNA CONTINUA FORA para quem não a lê (1510): abrir a
+       Geral ao educador de carona responderia à §10.2, que é pergunta da
+       Fundação. A lista é a da política `gna_select`. */
+    const leGeral = ['lider_noturno_geral', 'equipe_tecnica', 'coordenador',
+                     'gestor_geral', 'lider_diurno'].includes(eu.role);
     const escala = String(q.get('escala') ?? 'dia');
     const base = String(q.get('data') || HOJE);
     const { de, ate } = janelaDeConsulta(escala, base);
@@ -5989,7 +5998,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     ].filter((d) => d.data >= de && d.data <= ate)
      .filter((d) => d.diurno || d.noturno || d.geral)
      .map((d) => ({ ...d,
-       geral: d.geral && { ...d.geral,
+       geral: leGeral && d.geral && { ...d.geral,
          id: veFolhaCompleta ? ATA_GERAL.id : null,
          /* Fase 138: **o id da folha das oito não sai daqui** para quem só
             corrige a linha desta casa — com ele, a linha das outras sete estaria a
@@ -5998,7 +6007,11 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
          correcoes: (d.geral as any).correcoes ?? [] } }));
 
     return { de, ate, escala, dias,
-      notaAtaGeral: veFolhaCompleta
+      notaAtaGeral: !leGeral
+        ? 'A ATA Geral Noturna — o que a instituição registrou sobre as oito casas — não '
+          + 'aparece aqui. Quem lê a linha desta casa na Geral é a coordenação, a equipe '
+          + 'técnica e os líderes.'
+        : veFolhaCompleta
         ? 'Da ATA Geral Noturna aparece aqui a linha desta casa. A folha completa das oito '
           + 'casas você abre pela ATA Geral do dia.'
         : 'Da ATA Geral Noturna aparece a linha desta casa — o que o Líder Noturno Geral '

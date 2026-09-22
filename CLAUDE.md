@@ -152,11 +152,13 @@ ausência fecha a ausência** — um banco só, e nada se apaga. A
 O §9 do documento manda. **O Grupo 1 está vazio** — não falta código para o
 piloto —, e as três decisões que estavam paradas viraram código nas fases 134,
 136, 137, 138 e 139. **Mas a conferência de 22/09 reabriu a lista**, e ela está
-no §9, na seção *"A conferência de 22/09"*: três coisas que a Fundação pediu e
-não existem (dia e horário de visita na portaria; motivo ao retirar autorização
-de visita; o educador no Arquivo de ATAS) e **duas decisões que são dela e não se
-escolhem daqui** (motivo obrigatório ao retirar de plantão FUTURO; se o Líder
-Diurno lê ocorrência protegida). Leia a seção antes de escolher o que fazer.
+no §9, na seção *"A conferência de 22/09"*. **As três coisas que faltavam foram
+feitas** — dia e horário de visita na portaria e o motivo ao retirar autorização
+nas fases 142 e 1500; o educador no Arquivo de ATAS na 143. **Sobram DUAS
+decisões, e são dela:** motivo obrigatório ao retirar alguém de um plantão FUTURO
+(hoje só o passado exige, e a migração explica por quê), e se o Líder Diurno lê
+ocorrência protegida (a regra do RELATO o inclui; a da `incident_protected`,
+não). Leia a seção antes de escolher o que fazer.
 
 1. ~~**As telas que as respostas de 20/09 destravaram**~~ ✅ **as três, feitas.**
    §10.7 — de onde a técnica escolhe as fontes — na **134**; §10.6 — *"gestor
@@ -188,13 +190,12 @@ Diurno lê ocorrência protegida). Leia a seção antes de escolher o que fazer.
    RLS, visões e o código do servidor (`arquivo-tem-saida.spec.ts`).
 4. **Aplicar o roteiro com a equipe.** Continua sendo o que mais muda o sistema,
    e o único que não se faz daqui.
-5. **O que sobra para fazer daqui, e nada disso trava o piloto:** os três da
-   conferência de 22/09 (dia e horário de visita; motivo ao retirar autorização; o
-   educador no Arquivo de ATAS) e a **§10.2** — quem lê a ATA Geral de dia, para
-   os cargos além de quem corrige (a 138 respondeu só o que a decisão implicava:
-   quem corrige, lê). **O terceiro deles é a §10.2 chegando por outro lado**, e a
-   Fundação já respondeu esse lado em 22/09: *"cada educador pode ver uma ata
-   unificada da passagem dos dias anteriores"*.
+5. **O que sobra para fazer daqui, e nada disso trava o piloto:** a **§10.2** —
+   quem lê a ATA Geral de dia, para os cargos além de quem corrige. A 143
+   encostou nela de novo e **não a respondeu de propósito**: o arquivo abriu para
+   o educador e a ATA Geral saiu vazia para quem não a lê, porque responder de
+   carona uma pergunta da Fundação é decidir por ela. A lista de quem lê a Geral
+   está em `app_le_ata_geral()`, num lugar só, para o dia em que a resposta vier.
 
    **E a lição da 141, que é a da 127 de novo e por isso importa:** *"quem está na
    casa hoje"* era uma pergunta feita em quatro lugares; a 1350 juntou três e
