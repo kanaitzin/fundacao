@@ -8,6 +8,34 @@ import { quemAssina } from '../quem-assina';
 import { dia } from '../rotulos';
 
 /**
+ * COMO ELA ESTAVA, nas quatro opções do papel (1460).
+ *
+ * O rótulo mora aqui porque é texto de tela; o CÓDIGO vem do servidor, e um
+ * código sem rótulo aparece como ele mesmo em vez de sumir — feio uma vez é
+ * melhor do que invisível para sempre.
+ */
+const COMPORTAMENTO: Record<string, string> = {
+  tranquila: 'tranquila',
+  ansiosa_temerosa_chorosa: 'ansiosa, temerosa ou chorosa',
+  agressiva: 'agressiva',
+  apatica: 'apática',
+};
+/**
+ * OS DOIS MOMENTOS, numa frase — e só quando há os DOIS.
+ *
+ * Um sozinho é um rótulo solto sobre a criança; o que a Enfermagem lê é a
+ * COMPARAÇÃO, e foi para isso que a 0530 criou as duas colunas. Com um só, a
+ * frase diz qual momento é, para não passar por avaliação geral dela.
+ */
+function comoEstava(antes?: string | null, depois?: string | null): string | null {
+  const a = antes ? (COMPORTAMENTO[antes] ?? antes) : null;
+  const d = depois ? (COMPORTAMENTO[depois] ?? depois) : null;
+  if (a && d) return `Chegou ${a} e saiu ${d}.`;
+  if (a) return `Chegou ${a}.`;
+  if (d) return `Saiu ${d}.`;
+  return null;
+}
+/**
  * SAÚDE — MEDICAMENTOS E ENFERMAGEM.
  *
  * Três coisas que esta tela faz de propósito:
@@ -85,6 +113,9 @@ interface Evolucao {
   acompanhante: string | null;
   /** Quem LEVOU, quando não foi quem escreveu (1400). */
   quemLevou?: string | null;
+  /** Como ela estava ao chegar e ao sair (1460) — os dois, ou nenhum. */
+  comportamentoAoChegar?: string | null;
+  comportamentoAoSair?: string | null;
   estadoRetorno: string | null;
   receita: string | null; orientacoes: string | null; restricoes: string | null;
   prazoRetorno: string | null; offline: boolean;
@@ -156,6 +187,8 @@ interface Esquema {
   status: string; rotulo: string;
   acolhido: { id: string; nome: string };
   condicaoUso: string | null; prescritor: string | null;
+  /** A data do papel do médico (1460), ao lado do início na casa. */
+  prescritaEm?: string | null;
   inicio: string; fim: string | null; horarios: string[];
   assinadaPor: string | null; assinadaEm: string | null;
   motivoDaSuspensao: string | null;
@@ -213,6 +246,7 @@ interface Historico {
   evolucoes: {
     id: string; tipoRotulo: string; quando: string; estadoRetorno: string | null;
     orientacoes: string | null; acompanhante: string | null; quemLevou?: string | null;
+    comportamentoAoChegar?: string | null; comportamentoAoSair?: string | null;
     status: string; statusRotulo: string; complementoEnfermagem: string | null;
   }[];
   administracoes: {
@@ -559,6 +593,11 @@ export function Saude({ houseId, casaLabel, papel }: {
                 {t.estadoRetorno && (
                   <div className="bloco"><small>Estado no retorno</small>{t.estadoRetorno}</div>
                 )}
+                {comoEstava(t.comportamentoAoChegar, t.comportamentoAoSair) && (
+                  <div className="bloco"><small>Como ela estava</small>
+                    {comoEstava(t.comportamentoAoChegar, t.comportamentoAoSair)}
+                  </div>
+                )}
                 {t.orientacoes && (
                   <div className="bloco"><small>Orientações recebidas</small>{t.orientacoes}</div>
                 )}
@@ -791,7 +830,14 @@ export function Saude({ houseId, casaLabel, papel }: {
                 {e.condicaoUso && (
                   <div className="mutetxt">Condição de uso: {e.condicaoUso}</div>
                 )}
-                {e.prescritor && <div className="mutetxt">Prescrito por {e.prescritor}</div>}
+                {e.prescritor && (
+                  <div className="mutetxt">
+                    Prescrito por {e.prescritor}
+                    {/* "receita de 10/09, na grade desde 12/09" é a frase que a
+                        Enfermagem lê — as duas datas, e não uma. */}
+                    {e.prescritaEm ? ` · receita de ${dia(e.prescritaEm)}` : ''}
+                  </div>
+                )}
                 {e.assinadaPor && (
                   <div className="mutetxt">Assinado por {e.assinadaPor}</div>
                 )}
@@ -1321,6 +1367,11 @@ function FolhaTriagem({ evolucao, onFechar, onEnviar }: {
         {evolucao.estadoRetorno && (
           <div className="bloco"><small>Estado no retorno</small>{evolucao.estadoRetorno}</div>
         )}
+        {comoEstava(evolucao.comportamentoAoChegar, evolucao.comportamentoAoSair) && (
+          <div className="bloco"><small>Como ela estava</small>
+            {comoEstava(evolucao.comportamentoAoChegar, evolucao.comportamentoAoSair)}
+          </div>
+        )}
         {evolucao.orientacoes && (
           <div className="bloco"><small>Orientações recebidas</small>{evolucao.orientacoes}</div>
         )}
@@ -1631,6 +1682,8 @@ function FolhaPrescricao({ acolhidos, onFechar, onGravar }: {
   const [horarios, setHorarios] = useState<string[]>(['08:00']);
   const [condicaoUso, setCondicaoUso] = useState('');
   const [prescritor, setPrescritor] = useState('');
+  /** A data em que o profissional prescreveu — não é o início na casa (1460). */
+  const [prescritaEm, setPrescritaEm] = useState('');
   const [fim, setFim] = useState('');
 
   const seNecessario = tipo === 'quando_necessario';
@@ -1720,6 +1773,19 @@ function FolhaPrescricao({ acolhidos, onFechar, onGravar }: {
         <input id="pr-quem" value={prescritor} onChange={(e) => setPrescritor(e.target.value)}
                placeholder="Ex.: Dra. Fulana, UBS do bairro" />
 
+        {/*
+          * A DATA DO PAPEL DO MÉDICO (fase 140), que não é a data em que a casa
+          * começa a dar. A coluna existe desde a 0200 e nunca foi escrita — a
+          * varredura de pontas a achou. Uma receita escrita no dia 10 e digitada
+          * no 12 gravava só o 12, e a Enfermagem perdia a informação de que a
+          * receita já tinha dois dias. Opcional, porque o papel às vezes não traz.
+          */}
+        <label className="f" htmlFor="pr-em">
+          Data da receita <small>— a do papel, se ela estiver lá</small>
+        </label>
+        <input id="pr-em" type="date" value={prescritaEm}
+               onChange={(e) => setPrescritaEm(e.target.value)} />
+
         {tipo === 'tratamento' && (
           <>
             <label className="f" htmlFor="pr-fim">Até quando</label>
@@ -1739,6 +1805,7 @@ function FolhaPrescricao({ acolhidos, onFechar, onGravar }: {
                     horarios: seNecessario ? [] : horarios.filter(Boolean),
                     condicaoUso: seNecessario ? condicaoUso : undefined,
                     prescritor: prescritor || undefined,
+                    prescritaEm: prescritaEm || undefined,
                     fim: fim || undefined,
                   })}>
             Salvar como rascunho

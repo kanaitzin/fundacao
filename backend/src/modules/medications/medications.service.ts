@@ -60,6 +60,8 @@ export class MedicationsService {
     personId: string; houseId: string; tipo: string; medicamento: string; dose: string;
     via: string; horarios?: string[]; diasSemana?: number[]; finalidade?: string;
     instrucoes?: string; condicaoUso?: string; prescritor?: string; inicio?: string; fim?: string;
+    /** A data em que o profissional prescreveu — não é `inicio` (1460). */
+    prescritaEm?: string;
   }) {
     if (!['enfermagem', 'coordenador', 'equipe_tecnica', 'gestor_geral'].includes(user.role)) {
       throw new ForbiddenException(
@@ -73,14 +75,26 @@ export class MedicationsService {
 
     const id = await this.db.asUser(user.id, async (c) => {
       const { rows: [p] } = await c.query(
+        /*
+         * `prescribed_on` É A DATA EM QUE O PROFISSIONAL PRESCREVEU (1460), e não
+         * é a mesma coisa que `starts_on`.
+         *
+         * A coluna existe desde a 0200 e nunca foi escrita — a varredura de pontas
+         * a achou. `starts_on` é quando a CASA começa a dar, e cai em `app_hoje()`
+         * quando ninguém diz: uma receita escrita no dia 10 e digitada no 12
+         * gravava só o 12, e a Enfermagem perdia a informação de que a receita já
+         * tinha dois dias. Fica opcional, porque o papel às vezes não traz a data.
+         */
         `INSERT INTO prescription (person_id, house_id, kind, medication, purpose, dose, route,
-           instructions, use_condition, prescriber, starts_on, ends_on, status, created_by)
-         VALUES ($1,$2,$3::prescription_kind,$4,$5,$6,$7,$8,$9,$10,
+           instructions, use_condition, prescriber, prescribed_on, starts_on, ends_on,
+           status, created_by)
+         VALUES ($1,$2,$3::prescription_kind,$4,$5,$6,$7,$8,$9,$10, $14::date,
                  coalesce($11::date, app_hoje()), $12::date, 'rascunho', $13)
          RETURNING id`,
         [input.personId, input.houseId, input.tipo, input.medicamento, input.finalidade ?? null,
          input.dose, input.via, input.instrucoes ?? null, input.condicaoUso ?? null,
-         input.prescritor ?? null, input.inicio ?? null, input.fim ?? null, user.id]);
+         input.prescritor ?? null, input.inicio ?? null, input.fim ?? null, user.id,
+         input.prescritaEm ?? null]);
 
       for (const h of input.horarios ?? []) {
         await c.query(
@@ -148,7 +162,8 @@ export class MedicationsService {
       const { rows: r } = await c.query(
         // rls-join-ok: a policy de prescription já filtra por casa e pessoa.
         `SELECT p.id, p.medication, p.dose, p.route, p.kind, p.status, p.use_condition,
-                p.prescriber, p.starts_on, p.ends_on, p.suspended_reason, p.signed_at,
+                p.prescriber, p.prescribed_on, p.starts_on, p.ends_on,
+                p.suspended_reason, p.signed_at,
                 p.nurse_only, p.nurse_only_reason,
                 p.person_id, app_person_display_name(p.person_id) AS acolhido,
                 app_user_display_name(p.signed_by) AS assinada_por,
@@ -168,6 +183,9 @@ export class MedicationsService {
         status: r.status, rotulo: ROTULO[r.status] ?? r.status,
         acolhido: { id: r.person_id, nome: r.acolhido ?? '(fora do seu alcance)' },
         condicaoUso: r.use_condition, prescritor: r.prescriber,
+        /* A data do papel do médico, ao lado da data em que a casa começa a dar:
+           são duas coisas, e a diferença entre elas é informação (1460). */
+        prescritaEm: r.prescribed_on ?? null,
         inicio: r.starts_on, fim: r.ends_on,
         horarios: r.horarios ?? [], assinadaPor: r.assinada_por, assinadaEm: r.signed_at,
         motivoDaSuspensao: r.suspended_reason,

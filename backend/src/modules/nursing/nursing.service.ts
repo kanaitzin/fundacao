@@ -27,6 +27,21 @@ const TIPO_ATENDIMENTO: Record<string, string> = {
   emergencia: 'Emergência', internacao: 'Internação', retorno: 'Retorno',
   terapia: 'Terapia',
 };
+/**
+ * COMO A CRIANÇA ESTAVA, nas quatro opções do modelo de papel da Fundação (1460).
+ *
+ * **Não é avaliação de personalidade**, e a 0530 já tinha escrito isso: é estado
+ * observado em dois momentos, e a comparação entre eles é o que a Enfermagem lê.
+ * Por isso são opções FECHADAS, ao lado do texto livre que já existe — e por isso
+ * elas não são contadas em painel nenhum (§6: pontuação de comportamento não).
+ */
+const COMPORTAMENTO: Record<string, string> = {
+  tranquila: 'Tranquila',
+  ansiosa_temerosa_chorosa: 'Ansiosa, temerosa ou chorosa',
+  agressiva: 'Agressiva',
+  apatica: 'Apática',
+};
+
 const ESTADO_ATENDIMENTO: Record<string, string> = {
   em_andamento: 'Em andamento', concluido: 'Concluído',
   retorno_pendente: 'Retorno marcado',
@@ -127,6 +142,41 @@ export class NursingService {
    * a Enfermagem — e a receita citada aqui não altera a grade de medicamentos
    * antes da revisão dela.
    */
+  /**
+   * AS OPÇÕES DA EVOLUÇÃO DE SAÚDE — e por que o tipo vem do ENUM do banco.
+   *
+   * **Isto conserta um defeito de 500.** A tela tinha a própria lista escrita à
+   * mão, com um `vacina` que **não existe** no `encounter_kind`: quem registrasse
+   * uma vacina recebia *"Internal server error"* — medido em 22/09/2026. E o
+   * enum tinha `emergencia` e `terapia`, que a tela nunca ofereceu, então dois
+   * tipos de atendimento não tinham como ser registrados.
+   *
+   * A lista vem do CATÁLOGO, e não de uma constante daqui: constante daqui
+   * empata com a da tela e as duas envelhecem juntas. Lendo o enum, um valor novo
+   * aparece na tela sem ninguém lembrar de nada — e um valor que a tela oferece
+   * mas o banco não aceita deixa de ser possível.
+   *
+   * O RÓTULO é daqui, porque nome de gente não mora em enum. Valor sem rótulo cai
+   * no próprio código em vez de sumir: a tela mostra `terapia` feio uma vez, e
+   * alguém escreve o rótulo — melhor do que o botão não existir.
+   */
+  async opcoesDaEvolucao(user: AuthenticatedUser) {
+    const tipos = await this.db.asUser(user.id, async (c) => {
+      const { rows } = await c.query(
+        `SELECT e.enumlabel AS cod FROM pg_enum e
+           JOIN pg_type t ON t.oid = e.enumtypid
+          WHERE t.typname = 'encounter_kind' ORDER BY e.enumsortorder`);
+      return rows.map((r) => ({ cod: r.cod as string,
+        label: TIPO_ATENDIMENTO[r.cod] ?? r.cod }));
+    });
+    return {
+      tipos,
+      comportamentos: Object.entries(COMPORTAMENTO).map(([cod, label]) => ({ cod, label })),
+      aviso: 'Como a criança estava ao chegar e ao sair é observação de dois momentos, para a '
+        + 'Enfermagem comparar. Não é avaliação da criança, e não é contada em painel nenhum.',
+    };
+  }
+
   async submitEvolution(user: AuthenticatedUser, input: {
     personId: string; houseId: string; tipo: string; quandoAconteceu: string;
     local?: string; especialidade?: string; servicoProfissional?: string; motivo?: string;
@@ -143,6 +193,19 @@ export class NursingService {
      * no sistema, e não devem ter uma só para caber num `uuid`.
      */
     acompanhanteNome?: string;
+    /**
+     * COMO A CRIANÇA ESTAVA AO CHEGAR E AO SAIR (1460).
+     *
+     * As quatro opções do modelo de papel da Fundação. **Não é avaliação de
+     * personalidade**: é estado observado em dois momentos, e a comparação entre
+     * eles é o que a Enfermagem lê — foi assim que a 0530 escreveu, e é a razão
+     * de serem opções fechadas em vez de texto livre (que já existe ao lado).
+     *
+     * **Não são contadas em painel nenhum**, de propósito: contar quatro opções
+     * sobre como a criança estava é pontuação de comportamento, e o §6 proíbe.
+     */
+    comportamentoAoChegar?: string;
+    comportamentoAoSair?: string;
   }) {
     if (!input.quandoAconteceu) {
       throw new BadRequestException('Informe o horário real do atendimento.');
@@ -160,7 +223,7 @@ export class NursingService {
       ids = await this.db.asUser(user.id, async (c) => {
         const { rows: [r] } = await c.query(
           `SELECT * FROM app_submit_evolution($1,$2,$3,$4::timestamptz,$5,$6,$7,$8,$9,$10,$11,
-             $12,$13,$14,$15,$16,$17,$18::date,$19,$20,$21,$22,$23,$24)`,
+             $12,$13,$14,$15,$16,$17,$18::date,$19,$20,$21,$22,$23,$24,$25,$26)`,
           [input.personId, input.houseId, input.tipo, input.quandoAconteceu,
            input.local ?? null, input.especialidade ?? null, input.servicoProfissional ?? null,
            input.motivo ?? null, input.estadoSaida ?? null, input.estadoDurante ?? null,
@@ -169,12 +232,29 @@ export class NursingService {
            input.restricoes ?? null, input.prazoRetorno ?? null, input.encaminhamentos ?? null,
            input.intercorrenciasDeslocamento ?? null, input.observacoes ?? null,
            input.offline ?? false, input.clientOpId ?? null,
-           input.acompanhanteNome?.trim() || null]);
+           input.acompanhanteNome?.trim() || null,
+           input.comportamentoAoChegar || null, input.comportamentoAoSair || null]);
         return r;
       });
     } catch (e: any) {
       if (e?.message?.includes('acolhido_fora_de_escopo')) {
         throw new NotFoundException('Acolhido não encontrado.');
+      }
+      /*
+       * TIPO QUE O BANCO NÃO CONHECE VIRA FRASE, E NÃO 500 (fase 140).
+       *
+       * O `p_kind::encounter_kind` estoura cru quando o valor não está no enum, e
+       * o educador via *"Internal server error"* — foi exatamente o que a tela
+       * causava ao oferecer `vacina`, que não existe. A tela já não oferece, mas a
+       * recusa tem de falar português de qualquer forma: **uma fila offline
+       * gravada antes desta fase ainda vai subir com o valor antigo**, e quem a
+       * vê subir é quem está de plantão.
+       */
+      if (String(e?.message ?? '').includes('invalid input value for enum encounter_kind')) {
+        const { tipos } = await this.opcoesDaEvolucao(user);
+        throw new BadRequestException(
+          'Este tipo de atendimento não existe no sistema. Os que existem são: '
+          + `${tipos.map((t) => t.label).join(', ')}.`);
       }
       throw e;
     }
@@ -222,6 +302,10 @@ export class NursingService {
                 -- Quem LEVOU, quando não foi quem escreveu (1400). Vem ao lado
                 -- e não NO LUGAR: a Enfermagem que tria precisa saber os dois.
                 e.companion_name,
+                -- Os dois momentos do papel (1460). Vêm JUNTOS ou não vêm: é a
+                -- comparação entre eles que a Enfermagem lê, e um sozinho é um
+                -- rótulo solto sobre a criança.
+                e.behavior_before, e.behavior_after,
                 (SELECT t.request_note FROM nursing_triage t
                   WHERE t.evolution_id = e.id ORDER BY t.at DESC LIMIT 1) AS pedido_complemento
          FROM health_evolution e
@@ -240,6 +324,8 @@ export class NursingService {
         /* Vem AO LADO do autor, nunca no lugar dele: quem escreveu responde
            pelo que escreveu, e quem levou é outra pergunta (1400). */
         quemLevou: r.companion_name ?? null,
+        comportamentoAoChegar: r.behavior_before ?? null,
+        comportamentoAoSair: r.behavior_after ?? null,
         estadoRetorno: r.state_return,
         receita: r.prescription_note, orientacoes: r.guidance, restricoes: r.restrictions,
         prazoRetorno: r.return_deadline, offline: r.offline,
@@ -355,6 +441,10 @@ export class NursingService {
                 -- Quem LEVOU, quando não foi quem escreveu (1400). Vem ao lado
                 -- e não NO LUGAR: a Enfermagem que tria precisa saber os dois.
                 e.companion_name,
+                -- Os dois momentos do papel (1460). Vêm JUNTOS ou não vêm: é a
+                -- comparação entre eles que a Enfermagem lê, e um sozinho é um
+                -- rótulo solto sobre a criança.
+                e.behavior_before, e.behavior_after,
                 (SELECT t.complement FROM nursing_triage t
                   WHERE t.evolution_id = e.id AND t.action = 'assinada' ORDER BY t.at DESC LIMIT 1) AS complemento
          FROM health_evolution e
@@ -413,7 +503,10 @@ export class NursingService {
         id: e.id, tipo: e.kind, tipoRotulo: TIPO_ATENDIMENTO[e.kind] ?? e.kind,
         quando: e.happened_at, estadoRetorno: e.state_return,
         orientacoes: e.guidance, acompanhante: e.acompanhante,
-        quemLevou: e.companion_name ?? null, status: e.status,
+        quemLevou: e.companion_name ?? null,
+        comportamentoAoChegar: e.behavior_before ?? null,
+        comportamentoAoSair: e.behavior_after ?? null,
+        status: e.status,
         statusRotulo: ESTADO_EVOLUCAO[e.status] ?? e.status,
         complementoEnfermagem: e.complemento,
       }));

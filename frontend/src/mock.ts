@@ -807,6 +807,8 @@ function relatosDe(entity: string, entityId: string) {
 const RASCUNHOS = new Map<string, {
   medicamento: string; dose: string; via: string; tipo: string; personId: string;
   horarios: string[]; condicaoUso: string | null;
+  /** A data do papel do médico (fase 140). */
+  prescritaEm?: string | null;
 }>();
 
 /** Quem foi desativado no protótipo — some da escala, nunca do histórico. */
@@ -1640,6 +1642,8 @@ interface EsquemaMock {
   status: string; rotulo: string;
   acolhido: { id: string; nome: string };
   condicaoUso: string | null; prescritor: string | null;
+  /** A data do papel do médico (fase 140) — não é o início na casa. */
+  prescritaEm?: string | null;
   inicio: string; fim: string | null; horarios: string[];
   assinadaPor: string | null; assinadaEm: string | null; motivoDaSuspensao: string | null;
   /** A exceção do 0930: o padrão é o educador de plantão poder dar. */
@@ -1652,7 +1656,11 @@ const ESQUEMAS: EsquemaMock[] = [
   { id: 'esq1', medicamento: 'Colírio lubrificante (fictício)', dose: '1 gota em cada olho',
     via: 'oftálmica', tipo: 'uso_continuo', status: 'ativa', rotulo: 'Na grade',
     acolhido: { id: 'p11', nome: 'Lara' }, condicaoUso: null,
-    prescritor: 'Oftalmologia — Clínica Fictícia', inicio: '2026-06-01', fim: null,
+    prescritor: 'Oftalmologia — Clínica Fictícia',
+    /* A data do PAPEL, três dias antes de a casa começar a dar (fase 140): é a
+       diferença entre as duas que a Enfermagem lê. */
+    prescritaEm: '2026-05-29',
+    inicio: '2026-06-01', fim: null,
     horarios: ['07:30', '19:30'], assinadaPor: 'Enfermeira Fictícia',
     assinadaEm: '2026-06-01T10:00:00-03:00', motivoDaSuspensao: null,
     soEnfermagem: false, motivoSoEnfermagem: null },
@@ -2217,6 +2225,9 @@ interface Triagem {
   pedidoComplemento?: string | null;
   /** Quem LEVOU a criança, quando não foi quem escreveu (1400). */
   quemLevou?: string | null;
+  /** Como ela estava ao chegar e ao sair (fase 140). */
+  comportamentoAoChegar?: string | null;
+  comportamentoAoSair?: string | null;
 }
 let TRIAGENS: Triagem[] = [
   { id: 't1', personId: 'p08', tipo: 'Consulta de pediatria', enviadaPor: 'Mário Silva (fictício)',
@@ -2229,6 +2240,10 @@ let TRIAGENS: Triagem[] = [
      onde caber a não ser no meio das observações, onde ninguém procura. */
   { id: 't2', personId: 'p09', tipo: 'Urgência odontológica', enviadaPor: 'Joana Lima (fictícia)',
     quemLevou: 'Seu Jorge, motorista da Fundação (fictício)',
+    /* Os dois momentos do papel (fase 140): chegou ansiosa e saiu tranquila. É a
+       COMPARAÇÃO que a Enfermagem lê, e sem uma linha assim ela nasceria
+       invisível no único arquivo que o Marcelo abre (§6.19). */
+    comportamentoAoChegar: 'ansiosa_temerosa_chorosa', comportamentoAoSair: 'tranquila',
     enviadaEm: emHoras(16, 20), assinada: false, assinadaPor: null, complemento: null,
     resumo: 'Dor de dente referida depois do almoço. Atendido na unidade fictícia; '
       + 'prescrita amoxicilina 500 mg 8/8h por 7 dias.' },
@@ -7978,7 +7993,8 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     RASCUNHOS.set(id, { medicamento: String(b.medicamento ?? ''), dose: String(b.dose ?? ''),
       via: String(b.via ?? 'oral'), tipo: String(b.tipo ?? 'uso_continuo'),
       personId: String(b.personId ?? ''), horarios: (b.horarios as string[]) ?? [],
-      condicaoUso: (b.condicaoUso as string) ?? null });
+      condicaoUso: (b.condicaoUso as string) ?? null,
+      prescritaEm: (b.prescritaEm as string) ?? null });
     return { id, status: 'rascunho',
       aviso: 'Esquema registrado como rascunho. Ele só começa a gerar dose quando alguém o '
         + 'ativar — e o nome de quem ativou fica ao lado de cada dose.' };
@@ -8140,7 +8156,11 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     ESQUEMAS.unshift({ id: seg[2], medicamento: r.medicamento, dose: r.dose, via: r.via,
       tipo: r.tipo, status: 'ativa', rotulo: 'Na grade',
       acolhido: { id: r.personId, nome: KIDS.find((k) => k.id === r.personId)?.nome ?? '—' },
-      condicaoUso: r.condicaoUso, prescritor: null, inicio: HOJE, fim: null,
+      condicaoUso: r.condicaoUso, prescritor: null,
+      /* A data do papel atravessa o rascunho até o esquema (fase 140): perdê-la
+         na assinatura seria pedir a informação e jogá-la fora. */
+      prescritaEm: r.prescritaEm ?? null,
+      inicio: HOJE, fim: null,
       horarios: r.horarios, assinadaPor: eu.fullName, assinadaEm: new Date().toISOString(),
       motivoDaSuspensao: null, soEnfermagem: false, motivoSoEnfermagem: null });
     return { ok: true, status: 'ativa',
@@ -8323,6 +8343,8 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         casa: 'AI3 · Casa 03', tipo: t.tipo, quando: t.enviadaEm,
         local: null, especialidade: null, acompanhante: t.enviadaPor,
         quemLevou: t.quemLevou ?? null,
+        comportamentoAoChegar: t.comportamentoAoChegar ?? null,
+        comportamentoAoSair: t.comportamentoAoSair ?? null,
         estadoRetorno: t.resumo, receita: t.receita ?? null,
         orientacoes: t.orientacoes ?? null, restricoes: null,
         prazoRetorno: null, offline: false,
@@ -8341,6 +8363,37 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
    * A fila de triagem existia e não era alimentada por tela nenhuma: a criança
    * ia ao médico e o sistema não ficava sabendo.
    */
+  /**
+   * `GET /nursing/evolutions/options` — o tipo sai do ENUM, e as quatro opções do
+   * papel (fase 140).
+   *
+   * **A lista aqui é a do `encounter_kind`, palavra por palavra.** A tela tinha a
+   * própria e oferecia `vacina`, que o enum não tem: no servidor de verdade isso
+   * era 500, e aqui o servidor de mentira nem sabia da rota. Se estas duas listas
+   * divergirem de novo, o `contrato-rotas` e o teste do enum reprovam.
+   */
+  if (rota === '/nursing/evolutions/options' && metodo === 'GET') {
+    return {
+      tipos: [
+        { cod: 'consulta', label: 'Consulta' },
+        { cod: 'exame', label: 'Exame' },
+        { cod: 'urgencia', label: 'Urgência' },
+        { cod: 'emergencia', label: 'Emergência' },
+        { cod: 'internacao', label: 'Internação' },
+        { cod: 'retorno', label: 'Retorno' },
+        { cod: 'terapia', label: 'Terapia' },
+      ],
+      comportamentos: [
+        { cod: 'tranquila', label: 'Tranquila' },
+        { cod: 'ansiosa_temerosa_chorosa', label: 'Ansiosa, temerosa ou chorosa' },
+        { cod: 'agressiva', label: 'Agressiva' },
+        { cod: 'apatica', label: 'Apática' },
+      ],
+      aviso: 'Como a criança estava ao chegar e ao sair é observação de dois momentos, para a '
+        + 'Enfermagem comparar. Não é avaliação da criança, e não é contada em painel nenhum.',
+    };
+  }
+
   if (rota === '/nursing/evolutions' && metodo === 'POST') {
     if (!String(b.quandoAconteceu ?? '')) {
       return new Recusa(400, 'Informe o horário real do atendimento.');
@@ -8359,6 +8412,9 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       enviadaPor: eu.fullName, enviadaEm: String(b.quandoAconteceu),
       /* Nas duas direções (regra 14): o que a tela manda, o mock guarda. */
       quemLevou: String(b.acompanhanteNome ?? '').trim() || null,
+      /* Os dois momentos do papel (fase 140). */
+      comportamentoAoChegar: (b.comportamentoAoChegar as string) || null,
+      comportamentoAoSair: (b.comportamentoAoSair as string) || null,
       resumo: String(b.estadoRetorno),
       receita: (b.receita as string) ?? null,
       orientacoes: (b.orientacoes as string) ?? null,
@@ -8443,6 +8499,8 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       id: t.id, tipoRotulo: t.tipo, quando: t.enviadaEm,
       estadoRetorno: t.resumo, orientacoes: null, acompanhante: t.enviadaPor,
       quemLevou: t.quemLevou ?? null,
+      comportamentoAoChegar: t.comportamentoAoChegar ?? null,
+      comportamentoAoSair: t.comportamentoAoSair ?? null,
       status: t.assinada ? 'assinada'
         : t.pedidoComplemento ? 'complemento_solicitado' : 'aguardando_triagem',
       statusRotulo: EST_EV[t.assinada ? 'assinada'

@@ -2194,12 +2194,48 @@ await trocar('educador');
 erros.length = 0;
 await aba('Acolhidos');
 await clicar(/Alice/);
+/*
+ * A LISTA DE TIPOS VEM DO SERVIDOR (fase 140) — e o botão que dava 500 saiu.
+ *
+ * A folha tinha a lista escrita à mão, com um "Vacina" que o enum do banco não
+ * tem: registrar vacina devolvia *Internal server error*. E o enum tinha
+ * "Emergência" e "Terapia", que a tela nunca ofereceu. O percurso cobra as duas
+ * pontas: o que saiu e o que entrou.
+ */
 cobrar('o perfil tem por onde registrar o atendimento de saúde',
   await clicar(/Registrar atendimento de saúde/),
   'quem acompanhou é quem escreve, e o educador tem de alcançar esta folha');
 const folha133 = await corpo();
 cobrar('a folha pergunta quem levou a criança', /Quem levou a criança/i.test(folha133),
   folha133.slice(0, 300));
+cobrar('a lista de tipos NÃO oferece mais "Vacina"',
+  !/\bVacina\b/i.test(folha133),
+  'a tela oferecia um tipo que o enum não tem, e o servidor devolvia 500');
+cobrar('e passou a oferecer Emergência e Terapia, que o banco aceita',
+  /Emergência/i.test(folha133) && /Terapia/i.test(folha133),
+  'dois tipos de atendimento existiam no banco e não tinham como ser registrados');
+cobrar('a folha pergunta como ela estava ao CHEGAR e ao SAIR',
+  /ao CHEGAR/i.test(folha133) && /ao SAIR/i.test(folha133),
+  'as quatro opções são as do modelo de papel da Fundação (0530)');
+cobrar('e diz, na tela, que isso não é avaliação da criança',
+  /não é avaliação da criança/i.test(folha133),
+  'quem preenche às 19h precisa saber para que serve — e para que NÃO serve');
+
+/*
+ * O TIPO PASSOU A SER ESCOLHIDO (fase 140), e não vem mais preenchido.
+ *
+ * Antes a folha nascia em "consulta", porque a lista era local. Agora ela nasce
+ * VAZIA e espera o servidor — e enquanto ninguém escolhe, o envio fica barrado.
+ * É de propósito: escolher por quem preenche era o que deixava a lista errada
+ * passar sem ninguém olhar.
+ */
+const btEnviaEvo = pg.locator('.overlay .sheet button')
+  .filter({ hasText: /Enviar para a Enfermagem/ }).first();
+cobrar('sem escolher o tipo, não se envia',
+  await btEnviaEvo.isDisabled().catch(() => false),
+  'a folha nasce sem tipo porque a lista vem do servidor');
+await pg.locator('.overlay .sheet .opt').filter({ hasText: /^Consulta$/ }).first().click();
+await pg.waitForTimeout(250);
 cobrar('e nasce em "Fui eu", sem pedir nome nenhum',
   (await pg.locator('.overlay .sheet #evo-quem').count()) === 0,
   'campo de nome sempre aberto é campo preenchido por obrigação');

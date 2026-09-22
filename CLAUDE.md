@@ -128,6 +128,7 @@ e qual é o caminho certo.
 | `frontend/src/screens/` | as telas |
 | `prototipo/` | o arquivo único que o Marcelo abre |
 | `.claude/hooks/session-start.sh` | o preparo que roda antes de a sessão na web começar |
+| `scripts/varredura-de-pontas.mjs` | acha coluna que é gravada e não chega a lugar nenhum, medindo contra funções, políticas, visões e o TypeScript. **Não é teste**: devolve candidato, e quem confirma olha |
 
 ## O primeiro trabalho desta máquina — FEITO
 
@@ -185,9 +186,14 @@ que estavam paradas foram respondidas em 21/09/2026 e viraram código nas fases
    e o único que não se faz daqui.
 5. **O que sobra para fazer daqui, e nada disso trava o piloto:** a **§10.2** —
    quem lê a ATA Geral de dia, para os cargos além de quem corrige (a 138
-   respondeu só o que a decisão implicava: quem corrige, lê) — e **varredura de
-   medição**, do tipo da fase 106: dado que é gravado e não chega a tela nenhuma,
-   rota que ninguém chama. As fases 132 a 139 nasceram todas de achados assim.
+   respondeu só o que a decisão implicava: quem corrige, lê).
+
+   **A varredura de pontas virou script na fase 140** (`varredura-de-pontas.mjs`)
+   e a última medição não tem candidato novo: 1352 colunas, 539 nomes. Rode-o
+   antes de afirmar que algo está morto — e leia a saída sabendo que ela diz
+   *candidato*, porque `SELECT *` devolve a coluna sem nomeá-la. *Foi ele que
+   revelou, de passagem, que a folha da Evolução oferecia um tipo que o banco não
+   aceita: quem registrasse vacina recebia 500.*
 
 **E uma coisa que é do Marcelo e não é código:** o branch padrão do repositório
 ainda é o `claude/work-system-code-ready-0e3hh2`. O `master` está em dia, com

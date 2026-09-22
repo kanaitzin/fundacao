@@ -75,6 +75,17 @@ export class NursingController {
   }
 
   // ---- Evolução de Saúde (§7.2) ----
+  /**
+   * As opções da Evolução de Saúde (1460) — o tipo sai do ENUM do banco.
+   *
+   * Antes disto a tela tinha a própria lista, com um `vacina` que o enum não
+   * tem: registrar vacina devolvia 500. Ver o serviço.
+   */
+  @Get('evolutions/options')
+  opcoesDaEvolucao(@CurrentUser() user: AuthenticatedUser) {
+    return this.nursing.opcoesDaEvolucao(user);
+  }
+
   @Post('evolutions')
   submit(@CurrentUser() user: AuthenticatedUser, @Body() body: any) {
     return this.nursing.submitEvolution(user, body);

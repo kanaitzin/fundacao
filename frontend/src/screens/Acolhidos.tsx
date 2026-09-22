@@ -184,14 +184,18 @@ const REGISTRA_EVOLUCAO = ['educador', 'lider_diurno', 'lider_noturno_geral',
   'equipe_tecnica', 'coordenador', 'enfermagem', 'gestor_geral'];
 
 /** Tipos de atendimento, nos códigos do servidor. */
-const TIPOS_ATENDIMENTO = [
-  { cod: 'consulta', label: 'Consulta' },
-  { cod: 'exame', label: 'Exame' },
-  { cod: 'urgencia', label: 'Urgência ou emergência' },
-  { cod: 'internacao', label: 'Internação' },
-  { cod: 'retorno', label: 'Retorno' },
-  { cod: 'vacina', label: 'Vacina' },
-];
+/*
+ * A LISTA DE TIPOS SAIU DAQUI (fase 140), e é conserto de um DEFEITO DE 500.
+ *
+ * Ela estava escrita à mão e **discordava do banco**: oferecia `vacina`, que o
+ * `encounter_kind` não tem — quem registrasse uma vacina recebia *"Internal
+ * server error"*, medido em 22/09/2026. E o enum tem `emergencia` e `terapia`,
+ * que esta lista nunca ofereceu: dois tipos de atendimento sem como registrar.
+ *
+ * Agora vem de `GET /nursing/evolutions/options`, que lê o ENUM. É a §12.2 — a
+ * tela não inventa a sua lista —, e é a mesma classe de defeito que a fase 130
+ * consertou na Educação. A diferença é que aqui ela estava quebrando de verdade.
+ */
 
 const CATEGORIA: Record<string, string> = {
   saude: 'Saúde', escolar: 'Escolar', pessoal: 'Pessoal',
@@ -1624,7 +1628,7 @@ function FolhaEvolucao({ nome, onFechar, onEnviar }: {
 }) {
   const agora = new Date();
   const local2 = (n: number) => String(n).padStart(2, '0');
-  const [tipo, setTipo] = useState('consulta');
+  const [tipo, setTipo] = useState('');
   const [quando, setQuando] = useState(
     `${agora.getFullYear()}-${local2(agora.getMonth() + 1)}-${local2(agora.getDate())}`
     + `T${local2(agora.getHours())}:${local2(agora.getMinutes())}`);
@@ -1634,6 +1638,28 @@ function FolhaEvolucao({ nome, onFechar, onEnviar }: {
   const [orientacoes, setOrientacoes] = useState('');
   const [receita, setReceita] = useState('');
   const [prazoRetorno, setPrazoRetorno] = useState('');
+  /*
+   * AS OPÇÕES VÊM DO SERVIDOR (fase 140), e não de uma lista escrita aqui.
+   *
+   * A lista à mão discordava do banco e devolvia 500 em "Vacina". Enquanto ela
+   * não chega, a folha **não oferece tipo nenhum** em vez de adivinhar: oferecer
+   * uma lista que pode estar diferente da do servidor é como o defeito nasceu.
+   */
+  const [opcoes, setOpcoes] = useState<{
+    tipos: { cod: string; label: string }[];
+    comportamentos: { cod: string; label: string }[];
+    aviso?: string;
+  } | null>(null);
+  useEffect(() => {
+    let vivo = true;
+    api<typeof opcoes>('/nursing/evolutions/options')
+      .then((o) => { if (vivo) setOpcoes(o); })
+      .catch(() => { if (vivo) setOpcoes(null); });
+    return () => { vivo = false; };
+  }, []);
+  /* Como a criança estava, na chegada e na saída (1460). */
+  const [aoChegar, setAoChegar] = useState('');
+  const [aoSair, setAoSair] = useState('');
   /*
    * QUEM LEVOU A CRIANÇA (1400).
    *
@@ -1646,7 +1672,7 @@ function FolhaEvolucao({ nome, onFechar, onEnviar }: {
    */
   const [foiOutro, setFoiOutro] = useState(false);
   const [quemLevou, setQuemLevou] = useState('');
-  const pode = quando.length >= 16 && estadoRetorno.trim().length >= 5
+  const pode = tipo !== '' && quando.length >= 16 && estadoRetorno.trim().length >= 5
     && (!foiOutro || quemLevou.trim().length >= 3);
 
   return (
@@ -1660,8 +1686,15 @@ function FolhaEvolucao({ nome, onFechar, onEnviar }: {
         </div>
 
         <label className="f">Tipo de atendimento</label>
+        {!opcoes && (
+          <div className="notice c-warn">
+            A lista de tipos não chegou do servidor. Tente de novo em instantes — a tela não
+            inventa a própria lista, porque foi assim que ela passou a oferecer um tipo que o
+            sistema não aceita.
+          </div>
+        )}
         <div className="opts">
-          {TIPOS_ATENDIMENTO.map((t) => (
+          {(opcoes?.tipos ?? []).map((t) => (
             <button type="button" key={t.cod} className="opt c-med"
                     aria-pressed={tipo === t.cod} onClick={() => setTipo(t.cod)}>
               {t.label}
@@ -1710,6 +1743,43 @@ function FolhaEvolucao({ nome, onFechar, onEnviar }: {
         <textarea id="evo-ret" value={estadoRetorno} onChange={(e) => setEstadoRetorno(e.target.value)}
                   placeholder="Ex.: voltou tranquila, sem dor referida; comeu bem no jantar." />
 
+        {/*
+          * COMO ELA ESTAVA, NA CHEGADA E NA SAÍDA (fase 140, colunas da 0530).
+          *
+          * As quatro opções são as do modelo de papel da Fundação. **Não é
+          * avaliação da criança**: é estado observado em dois momentos, e a
+          * comparação entre eles é o que a Enfermagem lê — está escrito na tela,
+          * porque quem preenche às 19h precisa saber para que serve.
+          *
+          * Opcional, os dois: o papel também deixa em branco quando ninguém
+          * observou, e campo obrigatório que ninguém observou vira chute.
+          */}
+        {!!opcoes?.comportamentos?.length && (
+          <>
+            <label className="f">Como ela estava ao CHEGAR <small>— opcional</small></label>
+            <div className="opts">
+              {opcoes.comportamentos.map((c) => (
+                <button type="button" key={`ch-${c.cod}`} className="opt c-med"
+                        aria-pressed={aoChegar === c.cod}
+                        onClick={() => setAoChegar(aoChegar === c.cod ? '' : c.cod)}>
+                  {c.label}
+                </button>
+              ))}
+            </div>
+            <label className="f">E ao SAIR <small>— opcional</small></label>
+            <div className="opts">
+              {opcoes.comportamentos.map((c) => (
+                <button type="button" key={`sa-${c.cod}`} className="opt c-med"
+                        aria-pressed={aoSair === c.cod}
+                        onClick={() => setAoSair(aoSair === c.cod ? '' : c.cod)}>
+                  {c.label}
+                </button>
+              ))}
+            </div>
+            {opcoes.aviso && <p className="mutetxt">{opcoes.aviso}</p>}
+          </>
+        )}
+
         <label className="f" htmlFor="evo-ori">Orientações recebidas</label>
         <textarea id="evo-ori" value={orientacoes} onChange={(e) => setOrientacoes(e.target.value)}
                   placeholder="Ex.: repouso hoje; retornar se a febre passar de 38°C." />
@@ -1737,6 +1807,8 @@ function FolhaEvolucao({ nome, onFechar, onEnviar }: {
                     receita: receita || undefined,
                     prazoRetorno: prazoRetorno || undefined,
                     acompanhanteNome: foiOutro ? quemLevou.trim() : undefined,
+                    comportamentoAoChegar: aoChegar || undefined,
+                    comportamentoAoSair: aoSair || undefined,
                   })}>
             Enviar para a Enfermagem
           </button>

@@ -90,10 +90,10 @@ discordavam entre si.
 | Quanto | De onde sai |
 |---|---|
 | **18 partições** isoladas | pastas em `backend/src/modules/` |
-| **131 migrações** | `.sql` dentro das partições |
+| **132 migrações** | `.sql` dentro das partições |
 | **114 tabelas** | `CREATE TABLE` nas migrações |
-| **86 suítes** | `backend/test/*.spec.ts` |
-| **843 testes** | `it(` / `test(` nas suítes |
+| **87 suítes** | `backend/test/*.spec.ts` |
+| **851 testes** | `it(` / `test(` nas suítes |
 | **36 telas React** | `frontend/src/screens/*.tsx` |
 | **11 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **6 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
@@ -345,6 +345,7 @@ arqueologia.
 | 137 | **O conceito educacional do bimestre — o lugar de onde "boas notas" pode sair sem virar nota.** Duas respostas se juntaram aqui: em 20/09 a Fundação disse COMO a métrica pode existir — *"um conceito geral por período, por bimestre, com espaço para o porquê"*, e **não** boletim por disciplina (*"são 20 crianças, quatro vezes por ano, em oito casas, e a métrica que ninguém consegue digitar não existe"*) —, e em 21/09 disse **quem digita**: *"a equipe técnica, coordenador e educador líder"*. É o mesmo trio que monta a escala, e pela mesma razão prática: são os três que estão na casa quando alguém precisa escrever. **O que isto NÃO é, e é a parte que mais importa:** não é nota colada no nome da criança. É estado do ACOMPANHAMENTO num período, e é por isso que **o motivo é obrigatório** — conceito sozinho atravessa meses e vira característica da pessoa, que é o argumento que recusou a pontuação de comportamento (§7) e que fez a exceção da chamada exigir o fato em vez do rótulo. São três estados, e eles descrevem o que a casa faz a seguir: quem acompanha, quem acompanha COM apoio, e quem não está acompanhando — o único que pede providência. *O conjunto dos três é escolha MINHA, escrita na migração para não passar por decisão da Fundação: ela disse "um conceito geral, com espaço para o porquê", e os nomes são a minha leitura do que é contável e digitável em vinte crianças quatro vezes por ano. Trocar é uma linha.* **O bimestre é ESCRITO, não deduzido da data:** o conceito do 3º bimestre pode ser digitado em novembro, quando a escola entregou o retorno atrasado — deduzir gravaria o 4º, que é o mesmo erro que a fase 127 corrigiu na chamada. E **o bimestre que ainda não terminou é recusado**, porque escrevê-lo seria escrever sobre o que não houve. **Corrigir não sobrescreve:** registrar de novo o mesmo período insere outra linha apontando para a anterior, e as duas ficam legíveis, com o nome de quem escreveu cada uma — índice único PARCIAL garante um vigente por período e deixa as versões substituídas na tabela, que são elas que provam que houve correção. **Quem LÊ é quem alcança a criança, o educador de plantão inclusive:** esconder dele o conceito faria a casa ter uma informação sobre a escola que justamente quem senta ao lado na lição de casa não vê. *E uma frase do painel do Gestor deixou de ser verdade no instante em que esta fase entrou: ela dizia "não existe campo de nota, boletim ou conceito". Agora diz que nota continua não existindo, que o conceito existe no perfil, e que **o painel ainda não o conta** — contá-lo é a próxima fase. Deixar o gestor supor que conta seria pior do que dizer que não; e a cobrança do ensaio que guardava a frase antiga foi atualizada junto, senão ela guardaria uma mentira* |
 | 138 | **A linha de uma casa na ATA Geral passou a se corrigir, com registro — e o protótipo tinha a folha das oito casas QUEBRADA.** A decisão de 21/09: *"quem corrige a ata é o educador líder, equipe técnica ou coordenador, tudo ficando registrado para esses 3"*. Era o último item do Grupo 2 do §9 — a rota existia e **só o autor da ATA Geral a alcançava, e só enquanto ela fosse rascunho**; depois de assinada, um horário digitado errado às 3h da manhã ficava errado para sempre. **Corrigir não é sobrescrever, e a diferença é o histórico:** o §6 proíbe sobrescrita de registro fechado, e o que ele proíbe é a sobrescrita SEM RASTRO — o sistema já resolveu isso na chamada (0670), guardando por gatilho o que constava antes. Este arquivo é o mesmo desenho: o `INSERT` do histórico é do gatilho, `UPDATE` e `DELETE` são revogados da aplicação (**o passado não se edita nem se apaga**), reenvio idêntico não vira linha de histórico, e **o motivo é obrigatório depois da assinatura** — antes é rascunho, e rascunho se escreve sem justificar. **Três achados no caminho, e os três são de medição, não de opinião.** *(1)* **O Líder Diurno podia corrigir e não podia LER a ATA Geral:** a política de leitura da 0310 não o inclui, então o comando lia `status`, recebia nulo do RLS e concluía "rascunho" — o defeito seria silencioso e ao contrário, ele corrigindo sem o motivo ser exigido. A §10.2 (*"quem lê a ATA Geral de dia"*) continua aberta para os outros cargos; esta fase responde só o que a decisão implica: **quem corrige, lê.** *(2)* **O botão estava no lugar errado:** eu o pus na folha das oito casas, e a tela diz, com estas palavras, que ela *"fica com quem responde pela instituição"* — a coordenação olha a linha da casa dela no **Arquivo**, e é lá que a porta tem de estar. Botão onde a pessoa não passa é botão que não existe. *(3)* **E a folha das oito casas não abria no protótipo, desde sempre:** o casamento de rota do servidor de mentira tinha `if (seg[0] === 'shifts' && seg.length === 2)` e mais nada, então `POST /shifts/general-ata` caía ali — "general-ata" é palavra literal na posição de `:id`; o `find(...)!` devolvia `undefined` e a tela do Líder Noturno Geral mostrava *"Cannot read properties of undefined"* em vez da ATA. **Ninguém viu porque a cobrança do ensaio olhava o TÍTULO**, que aparece também na linha desta casa; passei a cobrar os códigos das oito casas e o defeito apareceu. É a mesma família do achado da fase 128 — casamento de rota que aceita palavra onde espera parâmetro |
 | 139 | **O painel do Gestor passou a contar o conceito do bimestre — e a frase da tela está na terceira versão.** A caixa pedida em 09/09/2026 era *"quantas crianças tiveram boas notas"*, e o painel (1280) respondeu com a verdade da época: **nota não existe neste sistema**, e no lugar dela apoio educacional e evoluções escritas — *"duas coisas verdadeiras, em vez de uma estimada"*. A fase 137 criou o conceito por bimestre; esta o conta. **São DUAS caixas, e a segunda é a que importa:** quem está acompanhando o ano, e **quem não está** — porque um painel que mostrasse só quem vai bem ensinaria a olhar para o lado bom, e a criança que precisa de reforço não apareceria em lugar nenhum. **"Acompanha com apoio" NÃO vira caixa**, de propósito: é uma criança que ESTÁ acompanhando, e o apoio já tem a caixa dele desde a 1280 — contá-la aqui faria a mesma criança aparecer em duas caixas que somam coisas diferentes. **A conta é pelo BIMESTRE que encosta na janela, nunca pela data de digitação:** o conceito do 3º bimestre lançado em novembro conta no 3º, e o retorno atrasado da escola é o caso comum. **E só o vigente conta** — somar a versão corrigida faria a criança contar duas vezes, uma pelo que se pensava dela em agosto e outra pelo que se soube em setembro. *A função do painel devolve colunas fixas, então ela foi DERRUBADA e recriada; e o corpo dela foi COPIADO do arquivo da 1280 em vez de redigitado — na primeira tentativa eu o reescrevi de memória e errei um nome de coluna (`m.happened_at`), que o Postgres recusou na hora. Copiar o que já está certo é mais honesto do que confiar na minha lembrança de nove sub-consultas.* **A frase da tela está na terceira versão, e isso é o método funcionando:** a primeira dizia que não existia campo de nota, boletim ou conceito (verdade até a 137); a segunda, que o conceito existia e o painel não o contava (verdade até aqui); agora ela diz o que o painel conta e como conta. **Frase de tela que envelhece é frase que mente**, e a cobrança do ensaio que a guardava foi reescrita junto — senão ela guardaria a mentira. *E um erro meu no teste, que vale anotar: chamei a função de registro pela conexão de DONO e recebi `acolhido_fora_de_escopo`, porque a conexão de dono não tem `app.user_id` e o RLS não sabe quem pergunta. O caminho certo é a rota — e teste que escreve por fora da rota testa uma coisa que ninguém faz* |
+| 140 | **A varredura virou script, e achou um 500 que a tela causava todo dia.** A varredura de pontas da fase 106 foi feita À MÃO, uma vez — e desde então entraram outras vinte e sete sem ninguém refazer a conta. Agora é o `scripts/varredura-de-pontas.mjs`: **1352 colunas, 539 nomes distintos**, conferidos contra as funções do banco, as políticas de RLS, as visões e o TypeScript inteiro. *Ele não é teste, e é decisão: o resultado precisa de julgamento — `synced_at` existe para o dia em que a fila falhar, e um teste que reprovasse por isso seria desligado na primeira pressa.* Devolveu CINCO candidatos, e conferidos um a um eram TRÊS coisas diferentes. **(1) O que faltava ligar:** `behavior_before` e `behavior_after`, as quatro opções do modelo de papel da Fundação, paradas desde a 0530. Elas **não** são duplicata dos `state_*`, que são texto livre — são marcação FECHADA para a Enfermagem COMPARAR dois momentos, que é o que texto livre não deixa fazer. **E não são contadas em painel nenhum, de propósito:** quatro opções sobre como a criança estava são exatamente o material de que se faz pontuação de comportamento, e o §6 proíbe. Ligada também a `prescription.prescribed_on` — a data do papel do médico, que não é `starts_on`: uma receita escrita no dia 10 e digitada no 12 gravava só o 12, e a Enfermagem perdia que a receita já tinha dois dias. **(2) Duas duplicatas, declaradas MORTAS:** `trip_incidents` é a mesma coisa que `transport_notes` (a usada), e `reconsult_on` a mesma que `return_deadline` — esta última criada com uma premissa errada, porque a 0530 disse *"o sistema tinha prazo de retorno e o papel marca a data"* e o `return_deadline` **já era `date`**. Não se apaga: `DROP COLUMN` é destrutivo, e o guarda do catálogo passa a cobrar que ninguém volte a lê-las. **(3) E o que a varredura não procurava, mas revelou: a folha da Evolução tinha a lista de tipos escrita à mão, e ela DISCORDAVA DO BANCO.** A tela oferecia `vacina`, que o `encounter_kind` não tem — **medido: 500, "Internal server error", para quem registrasse uma vacina** —, e o enum tinha `emergencia` e `terapia`, que a tela nunca ofereceu: dois tipos de atendimento sem como registrar. Agora a lista vem de `GET /nursing/evolutions/options`, que **lê o enum**: lista daqui empata com a de lá e as duas envelhecem juntas; lendo o catálogo, valor novo aparece sem ninguém lembrar de nada. É a §12.2 outra vez, a mesma classe da fase 130 — com a diferença de que aqui ela estava quebrando. *E o tipo que o banco não conhece passou a ser recusado com FRASE: a tela já não oferece, mas uma fila offline gravada antes desta fase ainda vai subir com o valor antigo, e quem a vê subir é quem está de plantão.* **A guarda é ida e volta:** todo tipo que a rota oferece é aceito pelo servidor, e todo valor do enum é oferecido — é o teste que teria pegado o `vacina` |
 
 ---
 
@@ -392,7 +393,7 @@ cd frontend && npm run prototipo
 ```
 
 O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as
-131 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
+132 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
 
 ### Os ensaios — e por que cada um existe
 
@@ -457,7 +458,7 @@ rede-acolher/
 │   │   │   ├── documentos/     o contrato da folha e o gerador de .docx
 │   │   │   └── common/         CPF, criptografia, segredo, fuso da instituição
 │   │   └── modules/       18 partições, cada uma dona das próprias migrações
-│   ├── test/              86 suítes (e2e contra PostgreSQL real + estáticas)
+│   ├── test/              87 suítes (e2e contra PostgreSQL real + estáticas)
 │   ├── scripts/           ensaio-carga.ts, migrador compilado
 │   └── assets/timbre.png  a marca da Fundação, usada no documento em Word
 ├── frontend/
@@ -1881,6 +1882,30 @@ tinham sido lidas uma vez, à mão, na fase 91.*
 *As quatro funções que gravavam só pelo id, anotadas aqui na fase 89, foram
 provadas e consertadas na 90 (§6.11).*
 
+### A varredura, agora medida por script (fase 140)
+
+A varredura da fase 106 foi feita **à mão**, e valeu para o dia em que foi feita:
+Vinte e sete migrações depois, ninguém tinha refeito a conta. Ela virou
+`scripts/varredura-de-pontas.mjs`, e a última medição é esta:
+
+| o que ele mediu | número |
+|---|---|
+| colunas conferidas | **1352** — todas as do banco, inclusive a tabela de controle das migrações |
+| nomes distintos (fora `id` e `created_at`) | **539** |
+| já declaradas MORTAS, guardadas por teste | 3 |
+| candidatos novos | **0**, depois da 1460 |
+
+**Ele não é teste, e isso é decisão escrita.** O resultado precisa de julgamento:
+`synced_at` existe para o dia em que a fila offline falhar, e coluna de auditoria
+que ninguém lê hoje é a que salva a instituição numa inspeção. Um teste que
+reprovasse por isso seria desligado na primeira pressa — e aí a varredura pararia
+de existir de novo. O que ele diz é **candidato**; quem confirma abre o caminho de
+leitura e olha, porque `SELECT *` devolve a coluna sem nomeá-la.
+
+*A fase 140 rodou-o e conferiu os cinco candidatos um a um: dois eram ponta
+solta de verdade (ligadas), dois eram duplicata (declaradas MORTAS) e o quinto
+— `prescribed_on` — era informação que a Enfermagem perdia todo dia.*
+
 ### A varredura de 14/09 (fase 106): o que não vai a lugar nenhum
 
 *Pedido do Leonardo: procurar ponta solta, informação que não chega a lugar
@@ -2494,7 +2519,7 @@ ele continua dizendo que o arquivo existe.
 npm run ensaio:producao
 ```
 
-Constrói, cria um banco virgem, aplica as 131 migrações **pelo binário
+Constrói, cria um banco virgem, aplica as 132 migrações **pelo binário
 compilado**, sobe o serviço e confere `/health`. Não publica nada e não toca no
 banco de trabalho.
 
