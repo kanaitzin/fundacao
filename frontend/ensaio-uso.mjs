@@ -258,9 +258,18 @@ if ((await aba('ATA')) || (await doMais('ATA'))) {
   }
   await clicar(/ATA Geral Noturna/);
   await pg.waitForTimeout(700);
-  cobrar('e a aba da Geral explica de quem ela é, em vez de mandá-lo ao Arquivo',
-    /quem a lê é a coordenação/i.test(await conteudo()),
-    'a frase mandava "use o Arquivo" — e a Geral não aparece lá (1510)');
+  /*
+   * ESTA COBRANÇA MUDOU DE LADO NA FASE 145, um dia depois de eu a escrever.
+   *
+   * Na 1510 a frase da aba mandava "use o Arquivo" e isso era uma MENTIRA para o
+   * educador: o Arquivo não mostrava a Geral para ele. A 1540 fez a Geral aparecer
+   * lá — *"todos leem a ata coletiva, seja manhã ou noite"* —, e a frase voltou a
+   * ser verdadeira. É a lição transversal do repositório em dois dias seguidos:
+   * quem muda a regra reescreve a frase, e a cobrança junto.
+   */
+  cobrar('a aba da Geral manda ao Arquivo — e agora a Geral está lá para ele',
+    /use o Arquivo/i.test(await conteudo()),
+    'a 1540 fez a linha desta casa na Geral aparecer no Arquivo para todo cargo da casa');
   await aba('Passagem');
 }
 
@@ -1709,6 +1718,92 @@ if (await doMais('Ocorrências')) {
   }
 }
 cobrar('nenhuma exceção na leitura do educador', erros.length === 0, erros[0]);
+
+/*
+ * O PEDIDO PARA LER A OBSERVAÇÃO RESTRITA (1540, decisão da Fundação de 22/09).
+ *
+ * *"Todos leem a ata coletiva, seja manhã ou noite […] menos as restritas, que
+ * são apenas para quem tem autorização. A pessoa pode solicitar ler alguma coisa,
+ * e cabe à equipe deixar ou não."*
+ *
+ * O percurso cobra o caminho inteiro e nos DOIS sentidos, porque metade desta
+ * regra é o que ela NÃO abre: o educador pede, a coordenação decide, e a porta de
+ * pedir fica colada na frase que diz que existe algo que ele não lê.
+ */
+await fechar();
+erros.length = 0;
+if ((await aba('ATA')) || (await doMais('ATA'))) {
+  await pg.waitForTimeout(900);
+  /*
+   * O TURNO NOTURNO, e não o que a tela escolhe sozinha.
+   *
+   * A linha restrita semeada é da ATA da NOITE — é onde ela faz sentido: a
+   * observação que a coordenação guarda é sobre a visita remarcada pela Vara. A
+   * tela abre no plantão aberto, que é o diurno, e ali não há linha restrita
+   * nenhuma; cobrar sem trocar de turno mediria uma ATA sem o que a fase trata.
+   */
+  const noturno = pg.locator('main.conteudo [role="tab"]').filter({ hasText: /Turno noturno/ });
+  if (await noturno.count()) { await noturno.first().click(); await pg.waitForTimeout(1100); }
+  const ataDoEducador = await conteudo();
+  cobrar('a ATA diz quantas observações restritas existem, sem o conteúdo',
+    /observaç(ão|ões) restrita/i.test(ataDoEducador),
+    'quem não lê o texto precisa saber que ele existe, senão conclui que não existe');
+  const pedir = pg.locator('main.conteudo button').filter({ hasText: /Pedir para ler/ });
+  cobrar('e traz a porta de pedir, colada nessa frase', (await pedir.count()) > 0,
+    'botão longe do lugar onde a falta aparece é botão que não existe');
+  if (await pedir.count()) {
+    await pedir.first().click();
+    await pg.waitForTimeout(700);
+    const folha = await corpo();
+    cobrar('a folha do pedido diz para que a frase serve',
+      /quem decide lê esta frase/i.test(folha));
+    const botaoPedir = pg.locator('.overlay button').filter({ hasText: /^Pedir$/ }).first();
+    cobrar('e sem motivo o botão nasce desabilitado', await botaoPedir.isDisabled());
+    await pg.locator('.overlay textarea#mot-txt')
+      .fill('Preciso saber como a criança passou a noite antes do café.');
+    cobrar('com o motivo escrito, pedir libera', !(await botaoPedir.isDisabled()));
+    await botaoPedir.click();
+    await pg.waitForTimeout(1200);
+    cobrar('o pedido fica esperando resposta, e a tela diz isso',
+      /esperando resposta/i.test(await conteudo()),
+      'um pedido que some é um pedido que se refaz');
+  }
+}
+cobrar('nenhuma exceção no pedido do educador', erros.length === 0, erros[0]);
+
+/* E A COORDENAÇÃO DECIDE — é o outro lado, e é onde a fila tem de aparecer. */
+await fechar();
+await trocar('coordenador');
+erros.length = 0;
+if ((await aba('ATA')) || (await doMais('ATA'))) {
+  await pg.waitForTimeout(900);
+  const fila = await conteudo();
+  cobrar('a fila de pedidos aparece para quem decide, no topo da aba da casa',
+    /Pedidos para ler observação restrita/i.test(fila),
+    'pedido esperando numa aba que ninguém visita é pedido que morre');
+  cobrar('e ela mostra o motivo escrito por quem pediu',
+    /passou a noite/i.test(fila) || /dose das 9h/i.test(fila));
+  const liberar = pg.locator('main.conteudo button').filter({ hasText: /^Liberar$/ });
+  cobrar('a fila oferece liberar e negar', (await liberar.count()) > 0
+    && (await pg.locator('main.conteudo button').filter({ hasText: /^Negar$/ }).count()) > 0);
+  if (await liberar.count()) {
+    await liberar.first().click();
+    await pg.waitForTimeout(700);
+    cobrar('liberar pede motivo, e diz por quem a frase responde',
+      /vai perguntar pela criança/i.test(await corpo()));
+    await pg.locator('.overlay textarea#mot-txt')
+      .fill('A observação é sobre o sono, e quem dá a dose precisa dela.');
+    await pg.locator('.overlay button').filter({ hasText: /^Liberar$/ }).first().click();
+    await pg.waitForTimeout(1200);
+    cobrar('liberado, a tela diz que a liberação é DESTA ATA e é retirável',
+      /desta ata/i.test(await conteudo()) || /retirar a liberação/i.test(await conteudo()));
+    cobrar('e a liberação viva aparece para poder ser retirada',
+      /Leituras liberadas agora/i.test(await conteudo()),
+      'liberação que não se retira é ampliação permanente de acesso pela porta dos fundos');
+  }
+}
+cobrar('nenhuma exceção na decisão da coordenação', erros.length === 0, erros[0]);
+await fechar();
 await fechar();
 
 /* A NOTA FISCAL, na Enfermagem. Nada de `if` que pula em silêncio: uma

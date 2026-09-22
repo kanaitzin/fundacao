@@ -31,6 +31,36 @@ export class ShiftsController {
    * casa na ordem de declaração, e `ata-archive` cairia em `:id` — que exige
    * uuid e devolveria erro de formato em vez da tela.
    */
+  /**
+   * O PEDIDO DE LEITURA DA OBSERVAÇÃO RESTRITA (1540).
+   *
+   * Palavras fixas, e por isso antes de `@Get(':id')` — "ata-read-requests"
+   * cairia no `:id`, que exige uuid, e a tela receberia erro de formato.
+   */
+  @Get('ata-read-requests')
+  pedidosDeLeitura(@CurrentUser() user: AuthenticatedUser,
+                   @Query('houseId', ParseUUIDPipe) houseId: string) {
+    return this.shifts.pedidosDeLeitura(user, houseId);
+  }
+
+  @Post('ata/:ataId/read-request')
+  pedirLeitura(@CurrentUser() user: AuthenticatedUser,
+               @Param('ataId', ParseUUIDPipe) ataId: string, @Body() body: any) {
+    return this.shifts.pedirLeituraDaAta(user, ataId, body?.motivo ?? '');
+  }
+
+  @Post('ata-read-requests/:id/decide')
+  decidirLeitura(@CurrentUser() user: AuthenticatedUser,
+                 @Param('id', ParseUUIDPipe) id: string, @Body() body: any) {
+    return this.shifts.decidirLeituraDaAta(user, id, body?.liberar, body?.motivo ?? '');
+  }
+
+  @Post('ata-read-requests/:id/revoke')
+  revogarLeitura(@CurrentUser() user: AuthenticatedUser,
+                 @Param('id', ParseUUIDPipe) id: string, @Body() body: any) {
+    return this.shifts.revogarLeituraDaAta(user, id, body?.motivo ?? '');
+  }
+
   @Get('ata-archive')
   archive(@CurrentUser() user: AuthenticatedUser,
           @Query('houseId', ParseUUIDPipe) houseId: string,

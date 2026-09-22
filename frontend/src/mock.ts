@@ -1953,11 +1953,44 @@ const LINHAS_ATA: LinhaAtaMock[] = [
 const LE_RESTRITA = ['coordenador', 'equipe_tecnica', 'lider_diurno',
                      'lider_noturno_geral', 'gestor_geral'];
 
+/**
+ * OS PEDIDOS DE LEITURA (1540) — *"a pessoa pode solicitar ler alguma coisa, e
+ * cabe à equipe deixar ou não"* (22/09).
+ *
+ * Nasce com UM pedido esperando resposta, e é §6.19: sem ele, quem aplica o
+ * roteiro abriria a tela da coordenação e não veria a fila — a decisão chegaria à
+ * casa sem que o gesto de decidir aparecesse na demonstração.
+ */
+interface PedidoLeituraMock {
+  id: string; ataId: string; quem: string; quemId: string; cargo: string;
+  motivo: string; em: string;
+  liberado: boolean | null; decidiuQuem: string | null; decidiuEm: string | null;
+  motivoDaDecisao: string | null;
+  retiradoEm: string | null; retiradoPor: string | null; motivoDaRetirada: string | null;
+}
+const PEDIDOS_DE_LEITURA: PedidoLeituraMock[] = [
+  { id: 'pl1', ataId: 'ata-noturna', quem: 'Tainá Souza (fictícia)', quemId: 'u9',
+    cargo: 'enfermagem',
+    motivo: 'Preciso saber como a Alice passou a noite antes de dar a dose das 9h.',
+    em: emHoras(8, 10),
+    liberado: null, decidiuQuem: null, decidiuEm: null, motivoDaDecisao: null,
+    retiradoEm: null, retiradoPor: null, motivoDaRetirada: null },
+];
+const DECIDE_LEITURA = ['equipe_tecnica', 'coordenador', 'lider_diurno'];
+
+/** A liberação VIVA desta pessoa para esta ATA. */
+function temLiberacao(ataId: string, quemId: string) {
+  return PEDIDOS_DE_LEITURA.some((x) => x.ataId === ataId && x.quemId === quemId
+    && x.liberado === true && !x.retiradoEm);
+}
+
 /** As linhas de uma ATA, já filtradas pelo que o cargo alcança. */
-function linhasDaAta(ataId: string, papel: string) {
+function linhasDaAta(ataId: string, papel: string, quemId = '') {
   const todas = LINHAS_ATA.filter((l) => l.ataId === ataId);
   const restritas = todas.filter((l) => l.restrita).length;
-  const visiveis = LE_RESTRITA.includes(papel) ? todas : todas.filter((l) => !l.restrita);
+  /* A terceira porta (1540): a liberação por ATA e por pessoa, revogável. */
+  const alcanca = LE_RESTRITA.includes(papel) || temLiberacao(ataId, quemId);
+  const visiveis = alcanca ? todas : todas.filter((l) => !l.restrita);
   return {
     notas: visiveis.map((l) => ({
       id: l.id, autorId: l.autorId, quem: l.quem, cargo: l.cargo,
@@ -1969,6 +2002,7 @@ function linhasDaAta(ataId: string, papel: string) {
     })),
     restritas,
     restritasOcultas: restritas - visiveis.filter((l) => l.restrita).length,
+    /* ESCREVER restrita continua sendo dos cargos — a liberação é para LER. */
     podeEscreverRestrita: LE_RESTRITA.includes(papel),
   };
 }
@@ -5996,6 +6030,107 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
    * não), e o que sai da ATA Geral Noturna (a linha desta casa; o caminho para
    * a folha das oito só para quem responde por ela).
    */
+  // ---------- O PEDIDO DE LEITURA DA OBSERVAÇÃO RESTRITA (1540) ----------
+  if (rota.startsWith('/shifts/ata-read-requests') && metodo === 'GET') {
+    /* Uma rota para os dois lados, como no servidor: quem pediu vê os seus, quem
+       decide vê a fila da casa. No servidor é a RLS que decide; aqui é este
+       filtro, e ele tem de dizer a MESMA coisa (regra 14). */
+    const decide = DECIDE_LEITURA.includes(eu.role);
+    return {
+      podeDecidir: decide,
+      pedidos: PEDIDOS_DE_LEITURA
+        .filter((x) => decide || x.quemId === eu.id)
+        .map((x) => ({
+          id: x.id, ataId: x.ataId, meu: x.quemId === eu.id,
+          quem: x.quem, cargo: x.cargo,
+          data: HOJE, turno: 'noturno',
+          motivo: x.motivo, em: x.em,
+          situacao: x.retiradoEm ? 'retirada'
+            : x.liberado === null ? 'esperando' : x.liberado ? 'liberado' : 'negado',
+          decididoPor: x.decidiuQuem, decididoEm: x.decidiuEm,
+          motivoDaDecisao: x.motivoDaDecisao,
+          retiradoPor: x.retiradoPor, retiradoEm: x.retiradoEm,
+          motivoDaRetirada: x.motivoDaRetirada,
+        })),
+    };
+  }
+  if (seg[0] === 'shifts' && seg[1] === 'ata' && seg[3] === 'read-request'
+      && metodo === 'POST') {
+    const motivo = String(b.motivo ?? '').trim();
+    if (LE_RESTRITA.includes(eu.role)) {
+      return new Recusa(400, 'Você já lê as observações restritas desta casa.');
+    }
+    if (motivo.length < 10) {
+      return new Recusa(400, 'Escreva o que você precisa saber. Quem decide lê esta frase, e é '
+        + 'por ela que decide.');
+    }
+    if (!LINHAS_ATA.some((l) => l.ataId === seg[2] && l.restrita)) {
+      return new Recusa(400, 'Esta ATA não tem observação restrita nenhuma.');
+    }
+    if (PEDIDOS_DE_LEITURA.some((x) => x.ataId === seg[2] && x.quemId === eu.id
+                                       && x.liberado === null)) {
+      return new Recusa(400, 'O seu pedido para esta ATA já está esperando resposta.');
+    }
+    if (temLiberacao(seg[2], eu.id)) {
+      return new Recusa(400, 'Você já foi liberado para ler as observações restritas desta ATA.');
+    }
+    const id = uid();
+    PEDIDOS_DE_LEITURA.push({
+      id, ataId: seg[2], quem: eu.fullName, quemId: eu.id, cargo: eu.role,
+      motivo, em: new Date().toISOString(),
+      liberado: null, decidiuQuem: null, decidiuEm: null, motivoDaDecisao: null,
+      retiradoEm: null, retiradoPor: null, motivoDaRetirada: null });
+    return { id, aviso: 'Pedido registrado, com o seu motivo. A equipe técnica, a coordenação '
+      + 'ou o Líder Diurno responde — e a resposta aparece aqui, liberada ou negada, com o '
+      + 'motivo dela.' };
+  }
+  if (seg[0] === 'shifts' && seg[1] === 'ata-read-requests' && seg[3] === 'decide'
+      && metodo === 'POST') {
+    if (!DECIDE_LEITURA.includes(eu.role)) {
+      return new Recusa(403, 'Quem decide sobre a observação restrita é a equipe técnica, a '
+        + 'coordenação ou o Líder Diurno da casa.');
+    }
+    const pedido = PEDIDOS_DE_LEITURA.find((x) => x.id === seg[2]);
+    if (!pedido) return new Recusa(404, 'Não encontrado — ou fora do seu alcance.');
+    if (pedido.liberado !== null) return new Recusa(400, 'Este pedido já foi respondido.');
+    if (pedido.quemId === eu.id) return new Recusa(400, 'Ninguém libera o próprio pedido.');
+    const motivo = String(b.motivo ?? '').trim();
+    if (motivo.length < 10) {
+      return new Recusa(400, 'Escreva por que você libera ou nega. Negar é o que a pessoa vai '
+        + 'perguntar; liberar é o que alguém vai perguntar pela criança.');
+    }
+    pedido.liberado = !!b.liberar;
+    pedido.decidiuQuem = eu.fullName;
+    pedido.decidiuEm = new Date().toISOString();
+    pedido.motivoDaDecisao = motivo;
+    return { ok: true, aviso: b.liberar
+      ? 'Liberado, com o seu nome e o seu motivo. A pessoa passa a ler as observações '
+        + 'restritas DESTA ATA, e de mais nenhuma. Você pode retirar a liberação depois.'
+      : 'Negado, com o seu nome e o seu motivo. Quem pediu lê a sua resposta.' };
+  }
+  if (seg[0] === 'shifts' && seg[1] === 'ata-read-requests' && seg[3] === 'revoke'
+      && metodo === 'POST') {
+    if (!DECIDE_LEITURA.includes(eu.role)) {
+      return new Recusa(403, 'Quem decide sobre a observação restrita é a equipe técnica, a '
+        + 'coordenação ou o Líder Diurno da casa.');
+    }
+    const pedido = PEDIDOS_DE_LEITURA.find((x) => x.id === seg[2]);
+    if (!pedido) return new Recusa(404, 'Não encontrado — ou fora do seu alcance.');
+    if (pedido.liberado !== true || pedido.retiradoEm) {
+      return { ok: true, mudou: false, aviso: 'Esta liberação já não estava valendo.' };
+    }
+    const motivo = String(b.motivo ?? '').trim();
+    if (motivo.length < 10) {
+      return new Recusa(400, 'Escreva por que a liberação sai. Quem foi liberado vai perguntar.');
+    }
+    pedido.retiradoEm = new Date().toISOString();
+    pedido.retiradoPor = eu.fullName;
+    pedido.motivoDaRetirada = motivo;
+    return { ok: true, mudou: true,
+      aviso: 'Liberação retirada, com o motivo. O pedido e a liberação continuam registrados '
+        + '— é a história que responde depois.' };
+  }
+
   if (rota === '/shifts/ata-archive' && metodo === 'GET') {
     /* O EDUCADOR ENTROU NA 1510 — "cada educador pode ver uma ata unificada da
        passagem dos dias anteriores" (22/09). Regra 14: a lista aqui é a mesma da
@@ -6564,7 +6699,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       convivencias: convivenciasDoTurno(s.turno),
       /* As linhas da ATA, com autor — e a restrita filtrada pelo CARGO, como o
          servidor filtra pela política (regra 14). */
-      linhas: linhasDaAta(ataDo(s.id).id, eu.role),
+      linhas: linhasDaAta(ataDo(s.id).id, eu.role, eu.id),
       episodios: EPISODIOS.filter((e) => e.ataId === ataDo(s.id).id).map((e) => ({
         id: e.id, acolhidoId: e.acolhidoId,
         acolhido: KIDS.find((k) => k.id === e.acolhidoId)?.nome ?? '—',

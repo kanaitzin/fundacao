@@ -85,51 +85,69 @@ describe('O educador folheia os dias anteriores', () => {
     expect(r.body.escala).toBe('mes');
   });
 
-  it('a ATA GERAL NOTURNA continua fora para ele — a §10.2 é da Fundação', async () => {
+  /**
+   * ESTES TESTES MUDARAM DE LADO NA FASE 145, e a mudança é da Fundação.
+   *
+   * A 1510 deixou a ATA Geral fora de quem não a lia, e a razão era boa: abrir de
+   * carona responderia à §10.2 — *"quem lê a ATA Geral de dia"* —, que era
+   * pergunta ABERTA. Ela respondeu em 22/09: *"todos leem a ata coletiva, seja
+   * manhã ou noite, para consultar informações de como os atendidos estavam"*. O
+   * registro da noite é metade disso.
+   *
+   * O que continua fechado é a FOLHA COMPLETA das oito casas — outro documento,
+   * outra rota, e o argumento da fase 136: o que o Líder Noturno Geral escreveu
+   * sobre as outras sete é assunto delas.
+   */
+  it('a linha DESTA casa na ATA Geral vem para o educador — e só a desta casa', async () => {
     const dele = await arquivo(tokens.educador);
     expect(dele.status).toBe(200);
+    expect(dele.body.notaAtaGeral).not.toMatch(/não\s+aparece aqui/i);
+    /* A folha das oito não vem por aqui: o identificador dela não sai para quem
+       só vê a linha desta casa (fase 138). */
     for (const d of dele.body.dias as any[]) {
-      expect(d.geral).toBeNull();
+      if (d.geral) expect(d.geral.id ?? null).toBeNull();
     }
-    /* E a frase DIZ isso, em vez de o campo simplesmente faltar: quem abre a
-       tela e não encontra a Geral tem de saber que ela existe e é de outro
-       cargo — senão conclui que o sistema não a tem. */
-    expect(dele.body.notaAtaGeral).toMatch(/não\s+aparece aqui/i);
   });
 
-  it('para a coordenação a linha da casa na Geral continua aparecendo', async () => {
-    if (!tokens.coord) return;
-    const dela = await arquivo(tokens.coord);
-    expect(dela.status).toBe(200);
-    /* Não se cobra que HAJA linha — isso depende do dia; cobra-se que a Geral não
-       tenha sido zerada para quem a lê, que é o defeito que a 1510 poderia
-       introduzir. */
-    expect(dela.body.notaAtaGeral).not.toMatch(/não\s+aparece aqui/i);
-  });
-
-  it('a Enfermagem, que não trabalha na casa, continua fora', async () => {
+  it('a Enfermagem folheia também — ela chega às 9h e precisa saber da noite', async () => {
     if (!tokens.enfermagem) return;
     const r = await arquivo(tokens.enfermagem);
-    expect([403, 404]).toContain(r.status);
+    expect(r.status).toBe(200);
   });
 
-  it('a lista de quem folheia e a de quem lê a Geral são DUAS, e o banco sabe', async () => {
-    /* O teste olha o catálogo, e não o texto da migração: `CREATE OR REPLACE`
-       espalha a verdade por vários arquivos e a única cópia que vale é a que o
-       banco executa (a lição da fase 131). */
+  it('as três listas de quem lê a Geral dizem a MESMA coisa — banco, serviço e tela', async () => {
+    /*
+     * A lista existe em TRÊS lugares, e isto é uma repetição que eu preferiria
+     * não ter: no banco ela decide o DADO (`app_le_ata_geral`), no serviço ela
+     * escolhe a FRASE, e na tela ela escolhe o que a aba diz. A que vale é a do
+     * banco — e é por isso que este teste existe: é o mapa `VINCULO` outra vez, e
+     * duas listas com a mesma verdade divergem na primeira correção.
+     *
+     * *Medido nesta fase: eu ampliei a do banco e esqueci as duas de TypeScript,
+     * e o protótipo passou a dizer a verdade enquanto o produto dizia o
+     * contrário.*
+     */
+    const cargos = (texto: string) =>
+      new Set((texto.match(/'([a-z_]+)'/g) ?? []).map((s) => s.replace(/'/g, ''))
+        .filter((c) => /^(gestor_geral|coordenador|equipe_tecnica|educador|lider_diurno|lider_noturno_geral|enfermagem|cozinha|admin_tecnico)$/.test(c)));
+
     const { rows: [f] } = await admin.query(
-      `SELECT pg_get_functiondef(oid) AS d FROM pg_proc WHERE proname='app_consulta_arquivo_ata'`);
-    expect(f.d).toContain('educador');
+      `SELECT prosrc AS s FROM pg_proc WHERE proname = 'app_le_ata_geral'`);
+    const noBanco = cargos(f.s);
+    expect(noBanco.size).toBeGreaterThan(5);
 
-    const { rows: [g] } = await admin.query(
-      `SELECT pg_get_functiondef(oid) AS d FROM pg_proc WHERE proname='app_le_ata_geral'`);
-    expect(g.d).not.toMatch(/'educador'/);
-
-    /* E a função do arquivo pergunta a ela — senão a separação existe e ninguém
-       a usa, que é o jeito silencioso de este defeito voltar. */
-    const { rows: [a] } = await admin.query(
-      `SELECT pg_get_functiondef(oid) AS d FROM pg_proc WHERE proname='app_arquivo_atas'`);
-    expect(a.d).toContain('app_le_ata_geral()');
+    const fs = require('node:fs');
+    const pega = (arquivoTs: string, nome: string) => {
+      const txt = fs.readFileSync(arquivoTs, 'utf8');
+      const i = txt.indexOf(`const ${nome} = [`);
+      expect(i).toBeGreaterThan(-1);
+      return cargos(txt.slice(i, txt.indexOf('];', i)));
+    };
+    const ordenado = (s: Set<string>) => [...s].sort();
+    expect(ordenado(pega('src/modules/shifts/shifts.service.ts', 'LE_ATA_GERAL')))
+      .toEqual(ordenado(noBanco));
+    expect(ordenado(pega('../frontend/src/screens/Ata.tsx', 'LE_ATA_GERAL')))
+      .toEqual(ordenado(noBanco));
   });
 
   it('a linha RESTRITA da ATA nunca sai para quem não a alcança — e quem garante é o banco', async () => {

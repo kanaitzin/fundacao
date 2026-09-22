@@ -74,6 +74,7 @@ describe('Arquivo das ATAS', () => {
       coord: 'coord.ai3@paodospobres.dev',
       gestor: 'gestor@paodospobres.dev',
       enfermagem: 'enfermagem@paodospobres.dev',
+      cozinha: 'cozinha.ai3@paodospobres.dev',
     })) tokens[k] = await login(email);
 
     ({ rows: [{ id: ids.AI3 }] } = await admin.query(`SELECT id FROM house WHERE code='AI3'`));
@@ -119,37 +120,51 @@ describe('Arquivo das ATAS', () => {
   });
 
   /**
-   * ESTE TESTE MUDOU DE LADO NA FASE 143, e a mudança é uma decisão da Fundação,
-   * não uma correção minha.
+   * ESTE TESTE MUDOU DE LADO DUAS VEZES, e as duas foram decisão da Fundação.
    *
-   * Ele dizia *"o educador e a enfermagem não folheiam o arquivo"*, e guardava a
-   * regra certa até 22/09 — quando a Fundação escreveu: *"cada educador pode ver
-   * uma ata unificada da passagem dos dias anteriores para poder controlar e
-   * ajustar se necessário o comportamento ou a dinâmica da casa"*. O educador
-   * entrou; a Enfermagem não, porque ela não trabalha na casa: alcança as
-   * crianças pela saúde, e o livro do plantão é de quem passa as doze horas.
+   * Ele nasceu dizendo *"o educador e a enfermagem não folheiam o arquivo"*, e
+   * guardava a regra certa até 22/09. Naquele dia ela escreveu que *"cada
+   * educador pode ver uma ata unificada da passagem dos dias anteriores"* — e o
+   * educador entrou (fase 143). Ainda em 22/09, respondendo a outra pergunta,
+   * ela foi mais longe: *"todos leem a ata coletiva, seja manhã ou noite, para
+   * consultar informações de como os atendidos estavam"* — e a **Enfermagem**
+   * entrou também (fase 145).
    *
-   * Um teste que guarda uma regra revogada é pior do que teste nenhum: ele
-   * impede a mudança que alguém decidiu, e a frase que ele cobra vira a
-   * justificativa para não fazer.
+   * O caso dela é o melhor exemplo do que a decisão resolve: ela chega às 9h e
+   * precisa saber como a criança passou a noite — se dormiu, se comeu, se
+   * vomitou a dose. Esse dado está na ATA do turno noturno.
+   *
+   * **A cozinha continua fora, e não por esquecimento:** ela recebe papel, como
+   * a portaria, e a ATA traz o dia inteiro de vinte crianças para responder a uma
+   * pergunta sobre restrição alimentar que as três folhas da cozinha já
+   * respondem.
    */
-  it('o educador folheia o arquivo desde 22/09 — a Enfermagem, não', async () => {
-    const dele = await arquivo(tokens.educador, ids.AI3);
-    expect(dele.status).toBe(200);
-
-    const enf = await arquivo(tokens.enfermagem, ids.AI3);
-    expect(enf.status).toBe(403);
-    // A recusa diz de quem é o arquivo, e não "acesso negado".
-    expect(enf.body.message).toMatch(/quem trabalha nesta casa/i);
+  it('todo cargo que cuida da casa folheia o arquivo — a cozinha, não', async () => {
+    for (const quem of ['educador', 'enfermagem'] as const) {
+      const r = await arquivo(tokens[quem], ids.AI3);
+      expect([quem, r.status]).toEqual([quem, 200]);
+    }
+    if (tokens.cozinha) {
+      const r = await arquivo(tokens.cozinha, ids.AI3);
+      expect(r.status).toBe(403);
+      expect(r.body.message).toMatch(/quem trabalha nesta casa/i);
+    }
   });
 
-  it('e para o educador a ATA Geral Noturna não vem — a §10.2 é da Fundação', async () => {
+  it('e a linha DESTA casa na ATA Geral vem junto — "seja manhã ou noite"', async () => {
+    /*
+     * A 1510 tinha deixado a Geral fora para quem não a lia, porque responder de
+     * carona uma pergunta da Fundação é decidir por ela. Em 22/09 ela respondeu:
+     * todos leem a ata coletiva, manhã ou noite — e o registro da noite é metade
+     * disso.
+     *
+     * O que continua fechado é a FOLHA COMPLETA das oito casas, que é outro
+     * documento e outra rota.
+     */
     const dele = await arquivo(tokens.educador, ids.AI3);
     expect(dele.status).toBe(200);
-    for (const d of dele.body.dias as any[]) expect(d.geral).toBeNull();
-    /* A tela DIZ que ela existe e é de outro cargo. Omitir em silêncio faz quem
-       abre concluir que o sistema não a tem. */
-    expect(dele.body.notaAtaGeral).toMatch(/não\s+aparece aqui/i);
+    expect(dele.body.notaAtaGeral).not.toMatch(/não\s+aparece aqui/i);
+    expect(JSON.stringify(dele.body)).not.toContain('SEGREDO DA OUTRA CASA');
   });
 
   it('não se folheia o arquivo de uma casa fora do alcance', async () => {

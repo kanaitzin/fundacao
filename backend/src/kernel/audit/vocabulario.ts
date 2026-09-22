@@ -149,6 +149,14 @@ export const VOCABULARIO_DA_AUDITORIA: Record<string, string> = {
   'ata_geral.close_pending': 'ATA Geral fechada com pendência',
   'ata_geral.house_amend': 'Linha de uma casa corrigida na ATA Geral, depois de assinada',
   'ata.arquivo.consulta': 'Arquivo das ATAS consultado',
+  /* O PEDIDO DE LEITURA (1540) — *"a pessoa pode solicitar ler alguma coisa, e
+     cabe à equipe deixar ou não"*. Os motivos NÃO vêm para cá: eles dizem o que
+     alguém precisa saber sobre uma criança, e log não copia conteúdo sensível
+     (§5). Ficam na tabela, com RLS. Aqui fica o ATO, e quem o fez. */
+  'ata.leitura.pedida': 'Pedido para ler observação restrita de ATA',
+  'ata.leitura.liberada': 'Leitura de observação restrita liberada',
+  'ata.leitura.negada': 'Leitura de observação restrita negada',
+  'ata.leitura.revogada': 'Liberação de leitura de observação restrita retirada',
   'escala.set': 'Escala definida',
   'escala.revoke': 'Escala revogada',
   'substitution.request': 'Substituição pedida',

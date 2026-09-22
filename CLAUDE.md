@@ -158,7 +158,11 @@ nas fases 142 e 1500; o educador no Arquivo de ATAS na 143. **As duas decisões 
 em 22/09 e viraram a fase 144:** toda retirada da escala — e toda substituição —
 passou a exigir motivo escrito, e o Líder Diurno passou a ler a ocorrência
 protegida, com a leitura deixando linha de auditoria para TODOS os cargos.
-**A seção não tem mais nada aberto**; o que sobra no §9 é a §10.2.
+**A seção não tem mais nada aberto — e a §10.2 também caiu**, respondida em
+22/09 por um lado que eu não previra: *"todos leem a ata coletiva, seja manhã ou
+noite"*. A fase 145 abriu a linha desta casa na ATA Geral para todo cargo que
+cuida dos acolhidos, e criou o **pedido de leitura** da observação restrita —
+*"a pessoa pode solicitar ler alguma coisa, e cabe à equipe deixar ou não"*.
 
 1. ~~**As telas que as respostas de 20/09 destravaram**~~ ✅ **as três, feitas.**
    §10.7 — de onde a técnica escolhe as fontes — na **134**; §10.6 — *"gestor
@@ -190,12 +194,24 @@ protegida, com a leitura deixando linha de auditoria para TODOS os cargos.
    RLS, visões e o código do servidor (`arquivo-tem-saida.spec.ts`).
 4. **Aplicar o roteiro com a equipe.** Continua sendo o que mais muda o sistema,
    e o único que não se faz daqui.
-5. **O que sobra para fazer daqui, e nada disso trava o piloto:** a **§10.2** —
-   quem lê a ATA Geral de dia, para os cargos além de quem corrige. A 143
-   encostou nela de novo e **não a respondeu de propósito**: o arquivo abriu para
-   o educador e a ATA Geral saiu vazia para quem não a lê, porque responder de
-   carona uma pergunta da Fundação é decidir por ela. A lista de quem lê a Geral
-   está em `app_le_ata_geral()`, num lugar só, para o dia em que a resposta vier.
+5. ~~**A §10.2**~~ ✅ **respondida em 22/09 e feita na fase 145.** A 143 tinha
+   deixado a ATA Geral fora de quem não a lia **de propósito**, para não responder
+   de carona uma pergunta da Fundação — e a resposta veio: *"todos leem a ata
+   coletiva, seja manhã ou noite"*. Com ela vieram o **pedido de leitura** da
+   observação restrita (liberação por ATA e por pessoa, revogável, com motivo dos
+   dois lados) e a Enfermagem no arquivo.
+
+   **A lição da 145, e ela é de contagem de cópias:** a lista de quem lê a ATA
+   Geral existia em TRÊS lugares — o banco, o serviço e a tela — e eu ampliei só a
+   do banco. Por meia hora o protótipo dizia a verdade e o produto dizia o
+   contrário. **Antes de ampliar uma lista de cargos, conte quantas cópias dela
+   existem** — há teste que cobra as três iguais, lendo o catálogo e os dois
+   arquivos de TypeScript.
+
+   **E a outra, que é sobre limpar teste:** a `ata` tem gatilho que recusa DELETE
+   e a `ata_note` é IMUTÁVEL. Quando a suíte não tem como desfazer o que cria, a
+   saída **não** é desligar o gatilho — é pôr a fixação onde ninguém olha (a de
+   145 mora quatrocentos dias atrás, fora de toda janela de consulta).
 
    **E a lição da 141, que é a da 127 de novo e por isso importa:** *"quem está na
    casa hoje"* era uma pergunta feita em quatro lugares; a 1350 juntou três e

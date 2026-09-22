@@ -224,7 +224,11 @@ const CONSULTA_ARQUIVO = ['coordenador', 'equipe_tecnica', 'lider_diurno',
 
 /** Quem lê a ATA Geral Noturna — a mesma lista de `app_le_ata_geral` no banco. */
 const LE_ATA_GERAL = ['lider_noturno_geral', 'equipe_tecnica', 'coordenador',
-  'gestor_geral', 'admin_tecnico', 'lider_diurno'];
+  'gestor_geral', 'admin_tecnico', 'lider_diurno',
+  /* 1540 — *"todos leem a ata coletiva, seja manhã ou noite"*. Aqui é só a LINHA
+     DESTA CASA; a folha completa das oito é outra rota e continua com quem
+     responde pela instituição. */
+  'educador', 'enfermagem'];
 
 /** Rótulo do que o Líder Noturno Geral registrou sobre a casa. */
 const CATEGORIA_GERAL: Record<string, string> = {
@@ -238,6 +242,22 @@ const SITUACAO: Record<string, { rotulo: string; tom: string }> = {
   fechada: { rotulo: 'Fechada', tom: 'c-ok' },
   fechada_com_pendencia: { rotulo: 'Fechada com pendência', tom: 'c-warn' },
 };
+
+/**
+ * O PEDIDO DE LEITURA (1540). `situacao` tem QUATRO valores e não um booleano:
+ * "esperando" não é "negado", e a tela precisa dizer as duas — quem pediu ontem e
+ * ainda não teve resposta não pode ler "negado".
+ */
+interface PedidoDeLeitura {
+  id: string; ataId: string; meu: boolean;
+  quem: string; cargo: string;
+  data: string; turno: string;
+  motivo: string; em: string;
+  situacao: 'esperando' | 'liberado' | 'negado' | 'retirada';
+  decididoPor: string | null; decididoEm: string | null; motivoDaDecisao: string | null;
+  retiradoPor: string | null; retiradoEm: string | null; motivoDaRetirada: string | null;
+}
+interface Leituras { podeDecidir: boolean; pedidos: PedidoDeLeitura[] }
 
 export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
   houseId: string; papel: string; casaLabel?: string;
@@ -259,6 +279,36 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
    * da ATA DA CASA — outra coisa, outro alcance, outro registro.
    */
   const [corrigindoLinha, setCorrigindoLinha] = useState<CasaGeral | null>(null);
+  /*
+   * O PEDIDO DE LEITURA DA OBSERVAÇÃO RESTRITA (1540) — *"a pessoa pode
+   * solicitar ler alguma coisa, e cabe à equipe deixar ou não"* (22/09).
+   *
+   * A lista serve os DOIS lados com a mesma consulta, e é a RLS do banco que
+   * decide o que cada um vê: quem pediu vê os seus, quem decide vê a fila da
+   * casa. Duas consultas seriam duas chances de uma delas esquecer um filtro.
+   */
+  const [pedindo, setPedindo] = useState<string | null>(null);
+  const [decidindo, setDecidindo] = useState<{ p: PedidoDeLeitura; liberar: boolean } | null>(null);
+  const [retirando, setRetirando] = useState<PedidoDeLeitura | null>(null);
+  const [leituras, setLeituras] = useState<Leituras | null>(null);
+
+  const meuPedido = (ataId: string) =>
+    leituras?.pedidos.find((x) => x.meu && x.ataId === ataId && x.situacao !== 'negado');
+
+  async function agir(fn: () => Promise<any>) {
+    setErro(''); setAviso('');
+    try {
+      const r = await fn();
+      if (r?.aviso) setAviso(r.aviso);
+      /* `carregar` já recarrega as leituras — e recarregar a ATA importa porque a
+         liberação faz a linha restrita APARECER. */
+      await carregar();
+      return true;
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Não foi possível concluir.');
+      return false;
+    }
+  }
   /*
    * Abre no MÊS, e não na semana. A semana de calendário começa vazia toda
    * segunda-feira: quem abrisse o arquivo na manhã de segunda veria "nenhuma
@@ -286,8 +336,17 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
   const [registrandoEpisodio, setRegistrandoEpisodio] = useState(false);
   const [dandoCiencia, setDandoCiencia] = useState<Episodio | null>(null);
 
+  async function carregarLeituras() {
+    /* Falha silenciosa é de propósito: se esta consulta cair, a ATA continua
+       abrindo. O pedido de leitura é um caminho lateral, e derrubar a tela do
+       plantão por causa dele seria trocar o essencial pelo acessório. */
+    setLeituras(await api<Leituras>(`/shifts/ata-read-requests?houseId=${houseId}`)
+      .catch(() => null));
+  }
+
   async function carregar() {
     setErro('');
+    void carregarLeituras();
     try {
       // A lista da casa é do módulo `people` e chega junto: o episódio é de UM
       // acolhido, e escolher pelo nome é o que evita o registro no perfil
@@ -452,6 +511,63 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
 
       {aba === 'casa' && (
         <>
+          {/*
+            * A FILA DE QUEM DECIDE (1540). Fica no TOPO da aba da casa, e não
+            * numa aba própria: quem decide abre esta tela todo dia por outro
+            * motivo, e um pedido esperando numa aba que ninguém visita é um
+            * pedido que morre — e aí a pessoa vai à coordenação pelo corredor,
+            * que é o caminho que este sistema existe para aposentar.
+            */}
+          {leituras?.podeDecidir
+            && leituras.pedidos.some((x) => x.situacao === 'esperando') && (
+            <div className="card stack">
+              <b className="ff">Pedidos para ler observação restrita</b>
+              {leituras.pedidos.filter((x) => x.situacao === 'esperando').map((x) => (
+                <div key={x.id} className="card">
+                  <div className="row">
+                    <b className="ff grow">{x.quem}</b>
+                    <span className="pill c-info">{cargo(x.cargo)}</span>
+                  </div>
+                  <div className="mutetxt">ATA de {dia(x.data)} · {x.turno}</div>
+                  <div>{x.motivo}</div>
+                  <div className="acoes">
+                    <button className="btn sm" onClick={() => setDecidindo({ p: x, liberar: true })}>
+                      Liberar
+                    </button>
+                    <button className="btn sm ghost"
+                            onClick={() => setDecidindo({ p: x, liberar: false })}>
+                      Negar
+                    </button>
+                  </div>
+                </div>
+              ))}
+              <p className="mutetxt">
+                As duas respostas pedem motivo. Negar é o que a pessoa vai perguntar; liberar é
+                o que alguém vai perguntar pela criança.
+              </p>
+            </div>
+          )}
+
+          {/* E AS LIBERAÇÕES VIVAS, para quem decide poder retirá-las. Liberação
+              que não se retira é ampliação permanente de acesso pela porta dos
+              fundos — seis meses depois aquela pessoa continua lendo, e ninguém
+              decidiu isso. */}
+          {leituras?.podeDecidir
+            && leituras.pedidos.some((x) => x.situacao === 'liberado') && (
+            <div className="card stack">
+              <b className="ff">Leituras liberadas agora</b>
+              {leituras.pedidos.filter((x) => x.situacao === 'liberado').map((x) => (
+                <div key={x.id} className="row">
+                  <span className="grow">
+                    <b>{x.quem}</b> — ATA de {dia(x.data)} · {x.turno}
+                    <span className="mutetxt">{' '}· liberado por {x.decididoPor}</span>
+                  </span>
+                  <button className="btn sm ghost" onClick={() => setRetirando(x)}>Retirar</button>
+                </div>
+              ))}
+            </div>
+          )}
+
           {/*
             * O TURNO ANTERIOR fica ao lado dos turnos de hoje, e não numa tela
             * à parte: quem chega às 19h abre a ATA para saber o que houve, e a
@@ -742,6 +858,31 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
                       ? 'Há 1 observação restrita à coordenação, à equipe técnica e aos líderes.'
                       : `Há ${plantao.linhas!.restritasOcultas} observações restritas à coordenação, à equipe técnica e aos líderes.`}
                     {' '}O conteúdo delas não aparece aqui.
+                    {/*
+                      * E A PORTA DE PEDIR (1540) — *"a pessoa pode solicitar ler
+                      * alguma coisa, e cabe à equipe deixar ou não"* (22/09).
+                      *
+                      * Ela fica AQUI, colada na frase que diz que existe algo que
+                      * não se lê, e não numa aba à parte: é neste instante que a
+                      * pessoa sente falta do conteúdo. Botão longe do lugar onde
+                      * a falta aparece é botão que não existe.
+                      *
+                      * O pedido é pela ATA e não pela linha, e não é economia: quem
+                      * não alcança a linha não sabe qual é, e uma lista de linhas
+                      * restritas para escolher seria o vazamento que a restrição
+                      * existe para impedir.
+                      */}
+                    {plantao.ata && (
+                      <div style={{ marginTop: 8 }}>
+                        {meuPedido(plantao.ata.id) ? (
+                          <SituacaoDoPedido pedido={meuPedido(plantao.ata.id)!} />
+                        ) : (
+                          <button className="btn sm ghost" onClick={() => setPedindo(plantao.ata!.id)}>
+                            Pedir para ler
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -1386,6 +1527,63 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
           }} />
       )}
 
+      {/*
+        * AS TRÊS FOLHAS DO PEDIDO DE LEITURA (1540). Uma folha só, com três
+        * textos: pedir, decidir e retirar são atos diferentes e o gesto é o
+        * mesmo — escrever por quê. Três componentes iguais divergiriam na
+        * primeira correção.
+        */}
+      {pedindo && (
+        <FolhaMotivo
+          titulo="Pedir para ler as observações restritas"
+          explicacao={'Escreva o que você precisa saber. Quem decide lê esta frase, e é por ela '
+            + 'que decide. O pedido é desta ATA — e de mais nenhuma.'}
+          exemplo="Ex.: preciso saber como a Maria passou a noite antes de dar a dose das 9h."
+          minimo={10} rotulo="O que você precisa saber" botao="Pedir"
+          onFechar={() => setPedindo(null)}
+          onEnviar={async (motivo) => {
+            if (await agir(() => api(`/shifts/ata/${pedindo}/read-request`, {
+              method: 'POST', body: JSON.stringify({ motivo }),
+            }))) setPedindo(null);
+          }} />
+      )}
+      {decidindo && (
+        <FolhaMotivo
+          titulo={decidindo.liberar
+            ? `Liberar a leitura para ${decidindo.p.quem}`
+            : `Negar o pedido de ${decidindo.p.quem}`}
+          explicacao={decidindo.liberar
+            ? 'Escreva por que você libera. Alguém vai perguntar pela criança — quem abriu o '
+              + 'registro dela, e por quê. A liberação vale para esta ATA, e você pode '
+              + 'retirá-la depois.'
+            : 'Escreva por que você nega. Quem pediu lê esta frase.'}
+          exemplo={decidindo.liberar
+            ? 'Ex.: a observação é sobre o sono, e a Enfermagem precisa dela para a dose.'
+            : 'Ex.: a observação é da conversa com a Vara; a técnica fala com você hoje.'}
+          minimo={10} rotulo="Motivo" botao={decidindo.liberar ? 'Liberar' : 'Negar'}
+          onFechar={() => setDecidindo(null)}
+          onEnviar={async (motivo) => {
+            if (await agir(() => api(`/shifts/ata-read-requests/${decidindo.p.id}/decide`, {
+              method: 'POST',
+              body: JSON.stringify({ liberar: decidindo.liberar, motivo }),
+            }))) setDecidindo(null);
+          }} />
+      )}
+      {retirando && (
+        <FolhaMotivo
+          titulo={`Retirar a liberação de ${retirando.quem}`}
+          explicacao={'Escreva por que a liberação sai. Quem foi liberado vai perguntar — e o '
+            + 'pedido, a liberação e a retirada continuam todos registrados.'}
+          exemplo="Ex.: a dúvida foi resolvida na reunião de equipe de hoje."
+          minimo={10} rotulo="Motivo" botao="Retirar"
+          onFechar={() => setRetirando(null)}
+          onEnviar={async (motivo) => {
+            if (await agir(() => api(`/shifts/ata-read-requests/${retirando.id}/revoke`, {
+              method: 'POST', body: JSON.stringify({ motivo }),
+            }))) setRetirando(null);
+          }} />
+      )}
+
       {fechando && (
         <FolhaFechar
           qual={fechando}
@@ -1426,12 +1624,23 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
  * que o adendo existe para servir. O servidor recusa abaixo disso; a tela
  * segura o botão antes, para a recusa não chegar depois de escrever.
  */
-function FolhaMotivo({ titulo, explicacao, rotulo, botao, onFechar, onEnviar }: {
+function FolhaMotivo({ titulo, explicacao, rotulo, botao, minimo = 15, exemplo,
+                      onFechar, onEnviar }: {
   titulo: string; explicacao: string; rotulo: string; botao: string;
+  /*
+   * O PISO E O EXEMPLO VIRARAM PARÂMETRO na fase 145, e não por gosto de
+   * generalizar: o pedido de leitura da observação restrita (1540) usa esta mesma
+   * folha e o piso dele é DEZ — o do relato, do "se necessário" e da retirada da
+   * portaria —, enquanto a reabertura da ATA pede QUINZE. Escrever um segundo
+   * componente igual seria o mapa `VINCULO` outra vez: dois lugares com a mesma
+   * verdade divergem na primeira correção. Os padrões são os da reabertura, que
+   * é quem já usava a folha.
+   */
+  minimo?: number; exemplo?: string;
   onFechar: () => void; onEnviar: (motivo: string) => void;
 }) {
   const [motivo, setMotivo] = useState('');
-  const pode = motivo.trim().length >= 15;
+  const pode = motivo.trim().length >= minimo;
 
   return (
     <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-mot"
@@ -1440,10 +1649,11 @@ function FolhaMotivo({ titulo, explicacao, rotulo, botao, onFechar, onEnviar }: 
         <h3 id="t-mot">{titulo}</h3>
         <div className="notice c-info">{explicacao}</div>
         <label className="f" htmlFor="mot-txt">
-          {rotulo} <small>— pelo menos 15 caracteres</small>
+          {rotulo} <small>— pelo menos {minimo} caracteres</small>
         </label>
         <textarea id="mot-txt" value={motivo} onChange={(e) => setMotivo(e.target.value)}
-                  placeholder="Ex.: o horário do acionamento da Enfermagem foi anotado como 21h e o correto é 23h10." />
+                  placeholder={exemplo
+                    ?? 'Ex.: o horário do acionamento da Enfermagem foi anotado como 21h e o correto é 23h10.'} />
         <div className="row rodape">
           <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
           <button className="btn grow" disabled={!pode} onClick={() => onEnviar(motivo.trim())}>
@@ -1743,6 +1953,37 @@ function FolhaCorrigirLinha({ casas, inicial, onFechar, onCorrigir }: {
           </p>
         )}
       </div>
+    </div>
+  );
+}
+
+/**
+ * A SITUAÇÃO DO MEU PEDIDO (1540).
+ *
+ * Quatro situações e não um booleano: *esperando* não é *negado*, e quem pediu
+ * ontem e ainda não teve resposta não pode ler "negado". A cor é de ESTADO
+ * OPERACIONAL — o que exige ação, o que está resolvido —, nunca juízo sobre
+ * quem pediu ou sobre quem decidiu.
+ */
+function SituacaoDoPedido({ pedido }: { pedido: PedidoDeLeitura }) {
+  if (pedido.situacao === 'esperando') {
+    return (
+      <div className="notice c-info" role="status">
+        O seu pedido está esperando resposta, com o motivo que você escreveu.
+      </div>
+    );
+  }
+  if (pedido.situacao === 'liberado') {
+    return (
+      <div className="notice c-ok" role="status">
+        <b>Liberado</b> por {pedido.decididoPor}: {pedido.motivoDaDecisao}
+        {' '}As observações restritas desta ATA aparecem acima.
+      </div>
+    );
+  }
+  return (
+    <div className="notice c-warn" role="status">
+      A liberação foi retirada por {pedido.retiradoPor}: {pedido.motivoDaRetirada}
     </div>
   );
 }

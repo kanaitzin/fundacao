@@ -865,13 +865,47 @@ sobre por que um familiar saiu dela. Espalhar essa frase pelo plantão inteiro
 muda o que a técnica se sente à vontade para escrever, e frase que não se escreve
 não protege ninguém.
 
-## Inventário — 115 tabelas por partição
+**`ata_read_request` é O PEDIDO PARA LER A OBSERVAÇÃO RESTRITA** (migração 1540).
+Decisão da Fundação em 22/09: *"todos leem a ata coletiva, seja manhã ou noite,
+para consultar informações de como os atendidos estavam — menos as restritas, que
+são apenas para quem tem autorização. A pessoa pode solicitar ler alguma coisa, e
+cabe à equipe deixar ou não."*
+
+Quatro coisas que ela decide:
+
+* **o pedido é pela ATA, e não pela linha.** Quem não alcança a linha restrita
+  **não sabe qual linha é** — a tela lhe diz apenas *"há N observações
+  restritas"*. Oferecer uma lista de linhas para escolher seria o vazamento que a
+  restrição existe para impedir;
+* **a liberação é por ATA e por pessoa, e é REVOGÁVEL.** Liberação que não se
+  retira é ampliação permanente de acesso pela porta dos fundos: seis meses depois
+  aquela pessoa continua lendo, e ninguém decidiu isso;
+* **as duas respostas pedem motivo**, com dez caracteres. Negar é o que a pessoa
+  vai perguntar; **liberar é o que alguém vai perguntar pela criança** — quem
+  abriu o registro dela, e por quê. E **ninguém libera o próprio pedido**;
+* **nada se sobrescreve.** O pedido fica com a liberação, a retirada e os três
+  motivos; depois de uma retirada, pedir de novo cria uma linha nova, porque a
+  situação muda.
+
+**A aplicação não escreve nesta tabela:** `INSERT`, `UPDATE` e `DELETE` são
+revogados de `rede_app`, e os três atos passam por função com guarda. Um `UPDATE`
+solto liberaria leitura sem motivo, sem autor e sem registro.
+
+**Os motivos não vão para o log.** Eles dizem o que alguém precisa saber sobre uma
+criança, e log não copia conteúdo sensível (§5). A auditoria guarda o ato —
+`ata.leitura.pedida`, `liberada`, `negada`, `revogada` — e quem o fez.
+
+**Quem lê a linha do pedido** são quem o fez e quem decide (equipe técnica,
+coordenação, Líder Diurno). Mais ninguém: a lista de quem pediu para ler o quê é,
+ela mesma, informação sobre o caso.
+
+## Inventário — 116 tabelas por partição
 
 | Partição | Tabelas |
 |---|---|
 | identity (13) | institution, house, app_user, user_house_assignment, work_schedule, shift_assignment, user_session, login_attempt, audit_event, institutional_device, staff_role_grant, house_capacity_change, user_invite |
 | people (26) | person, care_episode, house_stay, profile_detail, health_condition, food_restriction, document, document_version, benefit_record, memory_record, memory_photo, transfer_request, transfer_message, admission_record, judicial_record, person_credential, person_correction, profile_detail_change, person_contact, family_stay, family_stay_note, outing_permission, kitchen_request, house_field_permission, birthday_ack, contact_visit_change |
-| shifts (12) | shift, handover, handover_receipt, handover_note, ata, ata_note, ata_addendum, ata_episode, ata_episode_ack, general_night_ata, general_night_house_entry, general_night_house_amendment |
+| shifts (13) | shift, handover, handover_receipt, handover_note, ata, ata_note, ata_addendum, ata_episode, ata_episode_ack, general_night_ata, general_night_house_entry, general_night_house_amendment, ata_read_request |
 | incidents (7) | incident, incident_person, incident_protected, incident_restraint, incident_synthesis, external_communication, incident_attachment |
 | medications (12) | prescription, medication_schedule, medication_administration, medication_stock, medication_stock_movement, medication_protocol, medication_authorization, medication_protocol_change, prescription_restriction_change, medication_purchase, prescription_document, family_stay_medication |
 | activities (7) | activity, activity_assignment, activity_acknowledgement, activity_execution, substitution_request, commitment, commitment_exception |

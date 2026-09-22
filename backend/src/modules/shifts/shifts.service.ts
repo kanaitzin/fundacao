@@ -24,7 +24,11 @@ import { folhaDaAta } from './ata-folha';
  */
 /** Quem lê a ATA Geral Noturna — a mesma lista de `app_le_ata_geral` (1510). */
 const LE_ATA_GERAL = ['lider_noturno_geral', 'equipe_tecnica', 'coordenador',
-  'gestor_geral', 'admin_tecnico', 'lider_diurno'];
+  'gestor_geral', 'admin_tecnico', 'lider_diurno',
+  /* 1540 — *"todos leem a ata coletiva, seja manhã ou noite"*. Aqui é só a LINHA
+     DESTA CASA; a folha completa das oito é outra rota e continua com quem
+     responde pela instituição. */
+  'educador', 'enfermagem'];
 
 @Injectable()
 export class ShiftsService {
@@ -1208,6 +1212,166 @@ export class ShiftsService {
    *  * consultar deixa rastro. O que fica registrado é o recorte — casa e
    *     período —, nunca o conteúdo das ATAS lidas (§20).
    */
+  // ==================================================================
+  // O PEDIDO DE LEITURA DA OBSERVAÇÃO RESTRITA (1540)
+  //
+  // Decisão da Fundação em 22/09: *"a pessoa pode solicitar ler alguma coisa, e
+  // cabe à equipe deixar ou não."*
+  //
+  // O PEDIDO É PELA ATA, e não pela linha, e isto decide o resto: quem não
+  // alcança a linha restrita NÃO SABE QUAL LINHA É — a tela lhe diz apenas "há 2
+  // observações restritas". Oferecer uma lista de linhas para escolher seria o
+  // vazamento que a restrição existe para impedir.
+  // ==================================================================
+
+  /** Pedir para ler as observações restritas de uma ATA. */
+  async pedirLeituraDaAta(user: AuthenticatedUser, ataId: string, motivo: string) {
+    const id = await this.db.asUser(user.id, async (c) => {
+      const { rows: [r] } = await c.query(
+        `SELECT app_pedir_leitura_da_ata($1,$2) AS id`, [ataId, motivo ?? null]);
+      return r.id as string;
+    }).catch((e: any) => { throw this.emPortugues(e); });
+
+    const casa = await this.casaDaAta(user, ataId);
+    await this.audit.log({
+      action: 'ata.leitura.pedida', actorId: user.id, houseId: casa,
+      entity: 'ata_read_request', entityId: id,
+      // Metadado. O motivo diz o que alguém precisa saber sobre uma criança, e
+      // log não copia conteúdo sensível (§5) — ele fica na tabela, com RLS.
+      detail: { ataId, cargo: user.role },
+    });
+    /*
+     * A EQUIPE PRECISA VER O PEDIDO. Um pedido que só existe numa lista que
+     * ninguém abre é um pedido que morre — e quem pediu vai à coordenação pelo
+     * corredor, que é o caminho que este sistema existe para aposentar.
+     *
+     * Não há aviso POR PESSOA no contrato do kernel (os níveis são 'equipe',
+     * 'lider', 'tecnica_coordenacao' e 'enfermagem'), então a RESPOSTA volta na
+     * lista de quem pediu — e a tela a mostra sem precisar de botão.
+     */
+    await this.bus.publish('escalation.requested', {
+      level: 'tecnica_coordenacao',
+      entity: 'ata_read_request', entityId: id,
+      reason: 'pedido para ler observação restrita de ATA',
+      title: 'Pedido para ler observação restrita',
+      body: `${user.fullName} pediu para ler as observações restritas de uma ATA desta casa. `
+        + 'O motivo escrito está no pedido. Liberar ou negar é da equipe técnica, da '
+        + 'coordenação ou do Líder Diurno — e as duas respostas pedem motivo.',
+      priority: 'media', groupKey: `ata-read:${id}`,
+    }, { houseId: casa });
+
+    return { id, aviso: 'Pedido registrado, com o seu motivo. A equipe técnica, a coordenação '
+      + 'ou o Líder Diurno responde — e a resposta aparece aqui, liberada ou negada, com o '
+      + 'motivo dela.' };
+  }
+
+  /** Liberar ou negar — as duas com motivo. */
+  async decidirLeituraDaAta(user: AuthenticatedUser, pedidoId: string,
+                            liberar: boolean, motivo: string) {
+    if (typeof liberar !== 'boolean') {
+      throw new BadRequestException('Diga se o pedido está liberado ou negado.');
+    }
+    const casa = await this.db.asUser(user.id, async (c) => {
+      await c.query(`SELECT app_decidir_leitura_da_ata($1,$2,$3)`,
+        [pedidoId, liberar, motivo ?? null]);
+      const { rows: [r] } = await c.query(
+        `SELECT house_id FROM ata_read_request WHERE id = $1`, [pedidoId]);
+      return r?.house_id as string | undefined;
+    }).catch((e: any) => { throw this.emPortugues(e); });
+
+    await this.audit.log({
+      action: liberar ? 'ata.leitura.liberada' : 'ata.leitura.negada',
+      actorId: user.id, houseId: casa ?? null,
+      entity: 'ata_read_request', entityId: pedidoId,
+      detail: { cargo: user.role },
+    });
+    return {
+      ok: true,
+      aviso: liberar
+        ? 'Liberado, com o seu nome e o seu motivo. A pessoa passa a ler as observações '
+          + 'restritas DESTA ATA, e de mais nenhuma. Você pode retirar a liberação depois.'
+        : 'Negado, com o seu nome e o seu motivo. Quem pediu lê a sua resposta.',
+    };
+  }
+
+  /** Retirar uma liberação. O pedido não se apaga: fica com a história inteira. */
+  async revogarLeituraDaAta(user: AuthenticatedUser, pedidoId: string, motivo: string) {
+    const r = await this.db.asUser(user.id, async (c) => {
+      const { rows: [row] } = await c.query(
+        `SELECT app_revogar_leitura_da_ata($1,$2) AS ok`, [pedidoId, motivo ?? null]);
+      const { rows: [p] } = await c.query(
+        `SELECT house_id FROM ata_read_request WHERE id = $1`, [pedidoId]);
+      return { ok: !!row?.ok, casa: p?.house_id as string | undefined };
+    }).catch((e: any) => { throw this.emPortugues(e); });
+
+    if (!r.ok) {
+      return { ok: true, mudou: false,
+        aviso: 'Esta liberação já não estava valendo.' };
+    }
+    await this.audit.log({
+      action: 'ata.leitura.revogada', actorId: user.id, houseId: r.casa ?? null,
+      entity: 'ata_read_request', entityId: pedidoId, detail: { cargo: user.role },
+    });
+    return { ok: true, mudou: true,
+      aviso: 'Liberação retirada, com o motivo. O pedido e a liberação continuam registrados '
+        + '— é a história que responde depois.' };
+  }
+
+  /**
+   * A LISTA. Uma rota só para os dois lados, e a RLS decide o que cada um vê:
+   * quem pediu vê os seus; quem decide vê os da casa. Duas rotas com a mesma
+   * consulta seriam duas chances de uma delas esquecer um filtro.
+   */
+  async pedidosDeLeitura(user: AuthenticatedUser, houseId: string) {
+    return this.db.asUser(user.id, async (c) => {
+      const { rows } = await c.query(
+        `SELECT r.id, r.ata_id, r.request_reason, r.requested_at, r.granted,
+                r.decided_at, r.decision_reason, r.revoked_at, r.revoke_reason,
+                app_user_display_name(r.requested_by) AS quem,
+                (SELECT u.role::text FROM app_user u WHERE u.id = r.requested_by) AS cargo,
+                app_user_display_name(r.decided_by) AS decidiuQuem,
+                app_user_display_name(r.revoked_by) AS revogouQuem,
+                r.requested_by = app_current_user() AS meu,
+                a.on_date, a.period
+           FROM ata_read_request r
+           -- rls-join-ok: a política do pedido já exige a casa no alcance, e a
+           -- ATA é a do próprio pedido; daqui sai só a data e o turno.
+           JOIN ata a ON a.id = r.ata_id
+          WHERE r.house_id = $1
+          ORDER BY r.requested_at DESC`, [houseId]);
+      return {
+        podeDecidir: ['equipe_tecnica', 'coordenador', 'lider_diurno'].includes(user.role),
+        pedidos: rows.map((r) => ({
+          id: r.id, ataId: r.ata_id, meu: r.meu,
+          quem: r.quem, cargo: r.cargo,
+          data: r.on_date, turno: r.period,
+          motivo: r.request_reason, em: r.requested_at,
+          /* `null` é "esperando resposta", e não "negado": a tela precisa dizer
+             as três situações, e um booleano diria duas. */
+          situacao: r.revoked_at ? 'retirada'
+            : r.granted === null ? 'esperando' : r.granted ? 'liberado' : 'negado',
+          decididoPor: r.decidiuquem, decididoEm: r.decided_at,
+          motivoDaDecisao: r.decision_reason,
+          retiradoPor: r.revogouquem, retiradoEm: r.revoked_at,
+          motivoDaRetirada: r.revoke_reason,
+        })),
+      };
+    });
+  }
+
+  /** As recusas do banco em português, num lugar só. */
+  private emPortugues(e: any): Error {
+    const m = String(e?.message ?? '');
+    if (m.includes('fora_de_escopo')) {
+      return new ForbiddenException('Esta casa não está no seu alcance.');
+    }
+    if (m.includes('ata_inexistente') || m.includes('pedido_inexistente')) {
+      return new NotFoundException('Não encontrado — ou fora do seu alcance.');
+    }
+    if (m.startsWith('ata: ')) return new BadRequestException(m.slice(5));
+    return e;
+  }
+
   async arquivo(user: AuthenticatedUser, houseId: string,
                 escala: 'dia' | 'semana' | 'mes', data: string) {
     const { de, ate } = janelaDeConsulta(escala, data || hojeNaInstituicao());
