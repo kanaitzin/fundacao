@@ -148,22 +148,17 @@ ausência fecha a ausência** — um banco só, e nada se apaga. A
 
 ## O que fazer agora
 
-O §9 do documento manda, e o Grupo 1 está vazio: **não falta código para o
-piloto.** O que há pela frente, em ordem de quem já pode ser feito:
+O §9 do documento manda, e **os Grupos 1 e 2 estão vazios**: não falta código
+para o piloto, e **não há nada esperando resposta de gente.** As três decisões
+que estavam paradas foram respondidas em 21/09/2026 e viraram código nas fases
+134, 136, 137, 138 e 139.
 
-1. **As telas que as respostas de 20/09 destravaram.** Eram três:
-
-   * ~~**§10.7 — de onde a técnica escolhe as fontes**~~ ✅ **feita na fase 134.**
-     A lista dos candidatos existe, e o `POST` que morava sem porta desde a 0490
-     ganhou quem o chame.
-   * **§10.6 — a leitura excepcional de relato restrito.** A contagem virou a
-     fase 128; o que falta é **COMO o Gestor Geral escolhe o que abrir**. Com só
-     a contagem ele não tem por onde, e um botão que abrisse os N de uma vez
-     seria eu decidindo quanto da narrativa de uma criança sai junto. **É
-     pergunta para o Marcelo, e está no `PARA-A-REUNIAO.md`** — não escolha
-     sozinho.
-   * **O conceito educacional por período.** Também esperando uma resposta: quem
-     digita — o educador que acompanha a lição de casa, ou a equipe técnica.
+1. ~~**As telas que as respostas de 20/09 destravaram**~~ ✅ **as três, feitas.**
+   §10.7 — de onde a técnica escolhe as fontes — na **134**; §10.6 — *"gestor
+   abrir o que quiser"*, uma porta opaca por relato, com finalidade e registro
+   próprios — na **136**; e o conceito educacional por bimestre, digitado pela
+   equipe técnica, pela coordenação e pelo Líder Diurno, na **137**, contado no
+   painel do Gestor na **139**.
 2. ~~**A dedução da escala sai**~~ ✅ **feito na fase 129.** Sem escala lançada,
    ninguém é nomeado; a tela diz em vermelho que ninguém a lançou; e a ATA sem
    escala E sem nenhuma passagem fecha COM pendência, que é o buraco que a
@@ -188,3 +183,21 @@ piloto.** O que há pela frente, em ordem de quem já pode ser feito:
    RLS, visões e o código do servidor (`arquivo-tem-saida.spec.ts`).
 4. **Aplicar o roteiro com a equipe.** Continua sendo o que mais muda o sistema,
    e o único que não se faz daqui.
+5. **O que sobra para fazer daqui, e nada disso trava o piloto:** a **§10.2** —
+   quem lê a ATA Geral de dia, para os cargos além de quem corrige (a 138
+   respondeu só o que a decisão implicava: quem corrige, lê) — e **varredura de
+   medição**, do tipo da fase 106: dado que é gravado e não chega a tela nenhuma,
+   rota que ninguém chama. As fases 132 a 139 nasceram todas de achados assim.
+
+**E uma coisa que é do Marcelo e não é código:** o branch padrão do repositório
+ainda é o `claude/work-system-code-ready-0e3hh2`. O `master` está em dia, com
+tudo; trocar é um clique em *Settings → General → Default branch*, e não há
+ferramenta nesta sessão que o faça.
+
+**A lição transversal das últimas fases, e vale para qualquer frase deste
+repositório:** a ressalva do painel sobre nota escolar já foi reescrita TRÊS
+vezes — *"não existe conceito"*, depois *"existe e o painel não conta"*, depois
+*"o painel conta assim"*. **Frase de tela que envelhece é frase que mente**, e a
+cobrança do ensaio que a guarda tem de ser reescrita junto, senão ela passa a
+guardar a mentira. Isto inclui este arquivo: ele voltou desatualizado numa sessão
+e dizia que duas decisões estavam paradas quando já eram código.
