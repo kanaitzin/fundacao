@@ -110,3 +110,19 @@ export function diaCurto(iso: string | null | undefined): string {
   return d.toLocaleDateString('pt-BR',
     { day: '2-digit', month: '2-digit', timeZone: FUSO });
 }
+
+/**
+ * A HORA DE UMA FAIXA, como a tela e a folha a escrevem (fase 142).
+ *
+ * O `time` do Postgres chega "14:00:00", e o segundo não diz nada a ninguém num
+ * portão. Mora aqui, e não em cada tela, pela razão de sempre: o helper de data
+ * estava copiado em treze lugares e dois deles erravam o dia (fase 135).
+ *
+ * E o nome é este, e não `hhmm`, porque a tela dos Acolhidos JÁ TEM um `hhmm` —
+ * que recebe um instante e formata a hora local, coisa diferente. Duas funções
+ * com o mesmo nome e entradas diferentes é como um `new Date('14:00:00')` chega
+ * à tela valendo "Invalid Date".
+ */
+export function horaSemSegundos(t: string | null | undefined): string {
+  return String(t ?? '').slice(0, 5);
+}

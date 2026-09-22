@@ -58,8 +58,22 @@ describe('A folha da portaria — quem pode visitar', () => {
     expect(r.status).toBe(201);
     return r.body.id as string;
   };
+  /*
+   * O DIA E A HORA ENTRAM POR PADRÃO (1500, fase 142).
+   *
+   * Desde a 1500, autorizar exige que o contato TERMINE com dia e faixa de
+   * horário — a folha da guarita sai com isso, e sem ele quem está no portão às
+   * 21h de uma terça tem de decidir por conta própria. Esta suíte é de 92 e trata
+   * de OUTRA coisa (quem entra na folha, o CPF, o contato restrito), então o
+   * horário vem de graça aqui em vez de aparecer em sete chamadas: quem lê um
+   * teste desta suíte não deveria ter de pensar em horário nenhum.
+   *
+   * A suíte que cobra o horário em si é a `quando-o-visitante-pode-vir`.
+   */
+  const AGENDA_PADRAO = { dias: [0, 6], de: '09:00', ate: '11:30' };
   const visita = (token: string, id: string, corpo: Record<string, unknown>) =>
-    request(http).post(`/api/v1/people/contacts/${id}/visit`).set(auth(token)).send(corpo);
+    request(http).post(`/api/v1/people/contacts/${id}/visit`).set(auth(token))
+      .send(corpo.autorizado ? { ...AGENDA_PADRAO, ...corpo } : corpo);
   const folha = (token: string, casa = AI3) =>
     request(http).get(`/api/v1/people/portaria/folha?houseId=${casa}`).set(auth(token));
   /** As linhas da folha que são desta criança — a casa tem outras. */
@@ -130,12 +144,21 @@ describe('A folha da portaria — quem pode visitar', () => {
     expect(nomes).not.toContain('Vizinha Não Autorizada (fictícia)');
     expect(nomes).not.toContain('Genitor Restrito (fictício)');
 
+    /*
+     * A LINHA SE LÊ PELO CONTEÚDO, e não pela POSIÇÃO — corrigido na fase 142.
+     *
+     * Estava `madrinha[5] === CPF`, e a 1500 inseriu a coluna "Quando pode vir"
+     * antes do CPF: o teste passou a comparar o CPF com "dom e sáb, das 09:00 às
+     * 11:30" e reprovou uma folha certa. Índice fixo em tabela que cresce é um
+     * teste que cobra o desenho de ontem — e a coluna nova era exatamente o que a
+     * Fundação pediu.
+     */
     const madrinha = depois.find((l) => l[3] === 'Madrinha Autorizada (fictícia)')!;
-    expect(madrinha[4]).toBe('Madrinha');
-    expect(madrinha[5]).toBe(CPF_MADRINHA);
-    expect(madrinha[6]).toBe('(51) 99999-0001');
+    expect(madrinha).toContain('Madrinha');
+    expect(madrinha).toContain(CPF_MADRINHA);
+    expect(madrinha).toContain('(51) 99999-0001');
     const tio = depois.find((l) => l[3] === 'Tio Sem CPF (fictício)')!;
-    expect(tio[5]).toMatch(/não cadastrado — pedir documento com foto/);
+    expect(tio.join(' | ')).toMatch(/não cadastrado — pedir documento com foto/);
 
     const { rows: [a] } = await admin.query(
       `SELECT u.email FROM person_contact c JOIN app_user u ON u.id = c.visit_authorized_by WHERE c.id=$1`,

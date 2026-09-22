@@ -5,6 +5,7 @@ import { AuthenticatedUser } from '../../kernel/contracts';
 import { formatCpf } from '../../kernel/common/cpf';
 import { Folha, FotoNaCelula, cargoNoDocumento, diaBR, hhmmBR } from '../../kernel/documentos/folha';
 import { ContatosService, ESCREVE_CONTATO, rotuloDoVinculo } from './contatos.service';
+import { diasEmPortugues } from '../../kernel/common/semana';
 
 /**
  * A FOLHA DA PORTARIA — quem pode visitar cada acolhido (fase 92).
@@ -28,6 +29,15 @@ import { ContatosService, ESCREVE_CONTATO, rotuloDoVinculo } from './contatos.se
  * folha é o pedido, feito pelo Marcelo, e a ressalva diz isso por escrito.
  * A pré-visualização não carrega imagem; só o arquivo exportado leva as fotos.
  */
+/**
+ * A hora como a guarita lê. O `time` do Postgres chega "14:00:00", e o segundo
+ * não diz nada a ninguém num portão — mas ocupa espaço numa folha em paisagem
+ * com oito colunas.
+ */
+function hhmm(t: string | null): string {
+  return String(t ?? '').slice(0, 5);
+}
+
 @Injectable()
 export class PortariaService {
   constructor(
@@ -66,6 +76,7 @@ export class PortariaService {
                 p.photo_key AS foto_crianca, p.photo_mime AS tipo_crianca,
                 ct.id AS contato_id, ct.name AS visitante, ct.bond, ct.bond_other,
                 ct.cpf, ct.phone,
+                ct.visit_weekdays, ct.visit_from, ct.visit_to, ct.visit_note,
                 ct.photo_key AS foto_visitante, ct.photo_mime AS tipo_visitante
            FROM person p
            JOIN house_stay s ON s.person_id = p.id AND s.status = 'ativa'
@@ -84,6 +95,7 @@ export class PortariaService {
     let visitantes = 0;
     let semVisitante = 0;
     let visitantesSemFoto = 0;
+    let semHorario = 0;
 
     const foto = async (chave: string | null, tipo: string | null): Promise<FotoNaCelula | null> => {
       if (!comFotos || !chave || !tipo) return null;
@@ -103,21 +115,35 @@ export class PortariaService {
 
       if (!r.contato_id) {
         semVisitante++;
-        linhas.push([...colunaCrianca, '', 'Nenhum visitante autorizado', '—', '—', '—']);
-        fotos.push([fotoCrianca, null, null, null, null, null, null]);
+        linhas.push([...colunaCrianca, '', 'Nenhum visitante autorizado', '—', '—', '—', '—']);
+        fotos.push([fotoCrianca, null, null, null, null, null, null, null]);
         continue;
       }
       visitantes++;
       if (!r.foto_visitante) visitantesSemFoto++;
+      /*
+       * O QUANDO (1500). Sem ele a folha transfere para a guarita uma decisão que
+       * é da casa: quem está no portão às 21h de uma terça teria de escolher
+       * entre barrar um familiar autorizado e deixar entrar fora da hora. E a
+       * frase para quem AINDA não combinou não é um vazio — é uma instrução,
+       * porque um traço na coluna faz o porteiro adivinhar.
+       */
+      if (!r.visit_weekdays || !r.visit_from) semHorario++;
+      const quando = r.visit_weekdays && r.visit_from
+        ? `${diasEmPortugues(r.visit_weekdays)}, das ${hhmm(r.visit_from)} às ${hhmm(r.visit_to)}`
+          + (r.visit_note ? ` · ${r.visit_note}` : '')
+        : 'sem dia combinado — confirme com a casa antes de deixar entrar';
       linhas.push([
         ...colunaCrianca,
         r.foto_visitante ? 'foto' : 'sem foto — pedir documento com foto',
         r.visitante,
         rotuloDoVinculo(r.bond, r.bond_other),
+        quando,
         r.cpf ? formatCpf(r.cpf) : 'não cadastrado — pedir documento com foto',
         r.phone ?? '—',
       ]);
-      fotos.push([fotoCrianca, null, await foto(r.foto_visitante, r.tipo_visitante), null, null, null, null]);
+      fotos.push([fotoCrianca, null, await foto(r.foto_visitante, r.tipo_visitante),
+                  null, null, null, null, null]);
     }
 
     const agora = new Date();
@@ -133,11 +159,14 @@ export class PortariaService {
           ? [{ rotulo: 'Crianças sem visitante autorizado', valor: String(semVisitante) }] : []),
         ...(visitantesSemFoto
           ? [{ rotulo: 'Visitantes sem foto cadastrada', valor: String(visitantesSemFoto) }] : []),
+        ...(semHorario
+          ? [{ rotulo: 'Visitantes sem dia e hora combinados', valor: String(semHorario) }] : []),
       ],
       secoes: [{
         titulo: 'Visitantes autorizados, por criança',
         tabela: {
-          cabecalho: ['Foto', 'Criança', 'Foto', 'Quem pode visitar', 'Vínculo', 'CPF', 'Telefone'],
+          cabecalho: ['Foto', 'Criança', 'Foto', 'Quem pode visitar', 'Vínculo',
+                      'Quando pode vir', 'CPF', 'Telefone'],
           linhas,
           ...(comFotos ? { fotos } : {}),
         },
@@ -147,7 +176,10 @@ export class PortariaService {
       geradoPor: user.fullName,
       cargo: cargoNoDocumento(user.role),
       assinatura: true,
-      ressalva: 'Quem não está nesta folha não entra sem confirmação da equipe técnica ou da '
+      ressalva: 'Quem chegar FORA do dia ou da hora desta folha também não entra sem '
+        + 'confirmação da casa — o horário é combinado com cada família, e mudá-lo é da '
+        + 'equipe técnica, não da guarita. '
+        + 'Quem não está nesta folha não entra sem confirmação da equipe técnica ou da '
         + 'coordenação, inclusive familiar — ligue para a casa. A folha não diz por que alguém '
         + 'não está nela, de propósito. Ela vale até ser substituída: descarte a anterior quando '
         + 'receber esta. Contém fotos, CPF e telefone de crianças e de familiares: guarde longe '

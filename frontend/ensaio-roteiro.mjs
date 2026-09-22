@@ -437,6 +437,9 @@ const TAREFAS = [
     cargo: 'coordenador', secao: '5.17',
     nome: 'Gere a folha da portaria para a guarita',
     caminho: [{ mais: 'Portaria' }],
+    /* O "Quando pode vir" entra na cobrança na fase 142: a folha que diz QUEM
+       pode entrar e não diz QUANDO deixa a decisão na guarita, e a tarefa do
+       roteiro é justamente gerar a folha que vai para o portão. */
     procurar: [/Portaria — quem pode visitar/, /Madrinha Simoni/, /Ver a folha da portaria/],
   },
   {

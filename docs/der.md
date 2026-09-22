@@ -260,6 +260,14 @@ Três coisas que a tabela decide:
 * **o educador LÊ** (decisão da coordenação, 03/09/2026): quem está com a
   criança precisa saber quem é a pessoa que apareceu no portão. Escrever
   continua sendo da técnica e da coordenação;
+* **quando ele pode vir é dele, e não da casa** (migração 1500):
+  `visit_weekdays`, `visit_from`, `visit_to` e `visit_note`. A avó que vem de
+  ônibus de outra cidade vem no sábado de manhã; o padrinho que trabalha até as
+  18h vem à noite. Uma regra única de horário de visita seria mais simples e
+  estaria errada. **São opcionais no banco** — a mesma decisão da foto 3×4: travar
+  a autorização em quem ainda não combinou deixaria o visitante de verdade do
+  lado de fora. Quem cobra é a tela, no momento de autorizar, e a folha da guarita
+  diz por extenso quando não há: *"sem dia combinado — confirme com a casa"*;
 * **contato não se apaga, encerra-se com motivo** — gatilho
   `app_contato_nao_e_apagado`. O telefone que deixou de valer é informação:
   alguém tentou por ele e não conseguiu. E há a marca `restricted`, para o
@@ -829,12 +837,40 @@ formas diferentes, e "fez festa" como campo é o primeiro passo para alguém
 cobrar o número depois. O que se registra depois, se a casa quiser, é a memória
 no álbum, que é da criança.
 
-## Inventário — 114 tabelas por partição
+**`contact_visit_change` é POR QUE ALGUÉM ENTROU NA FOLHA DA PORTARIA, E POR QUE
+SAIU** (migração 1500). Pedido da Fundação em 22/09: *"caso alguém seja removido
+que tenha motivos para tal escrito para registro"*.
+
+Antes dela, retirar alguém da folha registrava QUEM retirou e QUANDO — na
+auditoria — e nada mais. Seis meses depois a família chega ao portão, ouve *"não
+está na folha"*, e não há ninguém na casa que saiba responder por quê.
+
+Três coisas que ela decide:
+
+* **é tabela, e não coluna.** Uma coluna em `person_contact` guardaria só a
+  última retirada, e um contato pode ser retirado, reautorizado e retirado de
+  novo — a segunda apagaria a primeira, que é justamente a que explica a
+  história. Append-only: a aplicação insere e lê, e não altera nem apaga;
+* **o motivo não é metadado, e por isso não vai para o log.** *"A genitora
+  apareceu alterada na última visita"* conta algo sobre uma família, e log nunca
+  copia conteúdo sensível (§5). Ele vive aqui, com RLS própria;
+* **autorizar não pede justificativa; retirar pede, com dez caracteres.** A
+  autorização já é o ato, e a 1120 guarda quem a deu. A retirada é a que alguém
+  vai perguntar depois — e *"mudou"* não socorre quem está no portão.
+
+**Quem lê são os três que respondem por quem entra** — equipe técnica,
+coordenação e Gestor Geral. O educador continua lendo a LISTA de contatos, porque
+precisa saber quem é a madrinha que aparece no portão; o que ele não lê é o juízo
+sobre por que um familiar saiu dela. Espalhar essa frase pelo plantão inteiro
+muda o que a técnica se sente à vontade para escrever, e frase que não se escreve
+não protege ninguém.
+
+## Inventário — 115 tabelas por partição
 
 | Partição | Tabelas |
 |---|---|
 | identity (13) | institution, house, app_user, user_house_assignment, work_schedule, shift_assignment, user_session, login_attempt, audit_event, institutional_device, staff_role_grant, house_capacity_change, user_invite |
-| people (25) | person, care_episode, house_stay, profile_detail, health_condition, food_restriction, document, document_version, benefit_record, memory_record, memory_photo, transfer_request, transfer_message, admission_record, judicial_record, person_credential, person_correction, profile_detail_change, person_contact, family_stay, family_stay_note, outing_permission, kitchen_request, house_field_permission, birthday_ack |
+| people (26) | person, care_episode, house_stay, profile_detail, health_condition, food_restriction, document, document_version, benefit_record, memory_record, memory_photo, transfer_request, transfer_message, admission_record, judicial_record, person_credential, person_correction, profile_detail_change, person_contact, family_stay, family_stay_note, outing_permission, kitchen_request, house_field_permission, birthday_ack, contact_visit_change |
 | shifts (12) | shift, handover, handover_receipt, handover_note, ata, ata_note, ata_addendum, ata_episode, ata_episode_ack, general_night_ata, general_night_house_entry, general_night_house_amendment |
 | incidents (7) | incident, incident_person, incident_protected, incident_restraint, incident_synthesis, external_communication, incident_attachment |
 | medications (12) | prescription, medication_schedule, medication_administration, medication_stock, medication_stock_movement, medication_protocol, medication_authorization, medication_protocol_change, prescription_restriction_change, medication_purchase, prescription_document, family_stay_medication |

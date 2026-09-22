@@ -25,13 +25,11 @@ export const TIPOS_ROTINA = [
   { code: 'outro', label: 'Outro' },
 ];
 
-/** Domingo a sábado, na ordem em que o `weekdays` do banco os numera. */
-export const DIAS_DA_SEMANA = [
-  { n: 0, curto: 'dom', label: 'Domingo' },
-  { n: 1, curto: 'seg', label: 'Segunda' },
-  { n: 2, curto: 'ter', label: 'Terça' },
-  { n: 3, curto: 'qua', label: 'Quarta' },
-  { n: 4, curto: 'qui', label: 'Quinta' },
-  { n: 5, curto: 'sex', label: 'Sexta' },
-  { n: 6, curto: 'sáb', label: 'Sábado' },
-];
+/*
+ * Domingo a sábado — a lista MUDOU DE CASA na fase 142 e mora no kernel
+ * (`common/tempo.ts`), porque a folha da portaria passou a precisar dela e a
+ * numeração da semana não é um assunto da rotina. Reexportada daqui para quem já
+ * a importava: uma cópia com os mesmos nomes seria a maneira de a numeração
+ * divergir sem ninguém notar.
+ */
+export { DIAS_DA_SEMANA } from '../../kernel/common/semana';

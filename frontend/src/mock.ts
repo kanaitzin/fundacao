@@ -3834,9 +3834,21 @@ function cpfParaTela(cpf: string | null, papel: string) {
  * As fotos saem como a marca "foto"/"sem foto": o gerador de Word do protótipo
  * não embute imagem, e as pessoas daqui são fictícias.
  */
+/**
+ * O HISTÓRICO DA FOLHA DA PORTARIA (1500) — append-only, como no servidor.
+ *
+ * Nasce com DUAS linhas sobre o Tio Fictício, e isto é §6.19: sem elas o bloco
+ * do histórico nasceria invisível no único arquivo que o Marcelo abre, e a coisa
+ * que a Fundação pediu em 22/09 — *"caso alguém seja removido que tenha motivos
+ * para tal escrito"* — não apareceria na demonstração. Duas, e não uma, porque o
+ * que importa é que a retirada de hoje NÃO APAGA a de antes.
+ */
+const HISTORICO_DA_VISITA: { contatoId: string; autorizado: boolean; motivo: string | null;
+                             por: string; em: string }[] = [];
+
 function folhaDaPortaria(eu: { fullName: string; role: string }) {
   const linhas: string[][] = [];
-  let visitantes = 0, sem = 0, semFoto = 0;
+  let visitantes = 0, sem = 0, semFoto = 0, semHorario = 0;
   const criancas = todosKids().slice().sort((a, z) => a.nome.localeCompare(z.nome));
   for (const k of criancas) {
     const autorizados = contatosDe(k.id)
@@ -3845,7 +3857,7 @@ function folhaDaPortaria(eu: { fullName: string; role: string }) {
     const col = [k.foto ? 'foto' : 'sem foto', k.nome];
     if (!autorizados.length) {
       sem++;
-      linhas.push([...col, '', 'Nenhum visitante autorizado', '—', '—', '—']);
+      linhas.push([...col, '', 'Nenhum visitante autorizado', '—', '—', '—', '—']);
       continue;
     }
     autorizados.forEach((c, i) => {
@@ -3855,9 +3867,11 @@ function folhaDaPortaria(eu: { fullName: string; role: string }) {
         ...(i === 0 ? col : ['', '']),
         c.temFoto ? 'foto' : 'sem foto — pedir documento com foto',
         c.nome, c.vinculoRotulo,
+        quandoPodeVir(c),
         c.cpf ? cpfParaTela(c.cpf, 'coordenador')! : 'não cadastrado — pedir documento com foto',
         c.telefone ?? '—',
       ]);
+      if (!c.visita?.dias?.length) semHorario++;
     });
   }
   const agora = new Date();
@@ -3871,20 +3885,44 @@ function folhaDaPortaria(eu: { fullName: string; role: string }) {
       { rotulo: 'Visitantes autorizados', valor: String(visitantes) },
       ...(sem ? [{ rotulo: 'Crianças sem visitante autorizado', valor: String(sem) }] : []),
       ...(semFoto ? [{ rotulo: 'Visitantes sem foto cadastrada', valor: String(semFoto) }] : []),
+      ...(semHorario ? [{ rotulo: 'Visitantes sem dia e hora combinados', valor: String(semHorario) }] : []),
     ],
     secoes: [{
       titulo: 'Visitantes autorizados, por criança',
-      tabela: { cabecalho: ['Foto', 'Criança', 'Foto', 'Quem pode visitar', 'Vínculo', 'CPF', 'Telefone'], linhas },
+      tabela: { cabecalho: ['Foto', 'Criança', 'Foto', 'Quem pode visitar', 'Vínculo',
+                            'Quando pode vir', 'CPF', 'Telefone'], linhas },
       procedencia: 'Cadastro de contatos da casa. Só aparece quem a equipe técnica ou a '
         + 'coordenação marcou como autorizado a visitar — estar no cadastro não basta.',
     }],
     geradoPor: eu.fullName, cargo: cargoNoDocumento(eu.role), assinatura: true,
-    ressalva: 'Quem não está nesta folha não entra sem confirmação da equipe técnica ou da '
+    ressalva: 'Quem chegar FORA do dia ou da hora desta folha também não entra sem '
+      + 'confirmação da casa — o horário é combinado com cada família, e mudá-lo é da '
+      + 'equipe técnica, não da guarita. '
+      + 'Quem não está nesta folha não entra sem confirmação da equipe técnica ou da '
       + 'coordenação, inclusive familiar — ligue para a casa. A folha não diz por que alguém '
       + 'não está nela, de propósito. Ela vale até ser substituída: descarte a anterior quando '
       + 'receber esta. Contém fotos, CPF e telefone de crianças e de familiares: guarde longe '
       + 'da vista de quem passa pela guarita e não fotografe.',
   };
+}
+
+/** Como a guarita lê o quando. A frase do "ainda não combinado" é INSTRUÇÃO: um
+ *  traço na coluna faria o porteiro adivinhar. */
+function quandoPodeVir(c: { visita?: { dias: number[]; de: string; ate: string;
+                                       observacao: string | null } | null }) {
+  const v = c.visita;
+  if (!v?.dias?.length || !v.de) return 'sem dia combinado — confirme com a casa antes de deixar entrar';
+  return `${diasEscritos(v.dias)}, das ${v.de} às ${v.ate}`
+    + (v.observacao ? ` · ${v.observacao}` : '');
+}
+
+/** "seg, ter e qui" — a mesma forma do servidor (`diasEmPortugues`). */
+function diasEscritos(dias: number[]) {
+  const ord = [...new Set(dias)].sort((a, b) => a - b);
+  if (ord.length === 7) return 'todos os dias';
+  const nomes = ord.map((n) => DIAS_DA_SEMANA.find((d) => d.n === n)?.curto ?? String(n));
+  return nomes.length === 1 ? nomes[0]
+    : `${nomes.slice(0, -1).join(', ')} e ${nomes[nomes.length - 1]}`;
 }
 
 function contatosDe(id: string) {
@@ -3897,6 +3935,10 @@ function contatosDe(id: string) {
         /* A portaria (fase 92): autorizada, sem CPF nem foto — a folha mostra os
            dois espaços marcados. */
         cpf: null as string | null, autorizadoAVisitar: true, temFoto: false,
+        /* A genitora vem no domingo de manhã — é o horário que ela combinou com
+           a casa, e é o que sai impresso na guarita (1500). */
+        visita: { dias: [0], de: '09:00', ate: '11:30', observacao: null } as
+          { dias: number[]; de: string; ate: string; observacao: string | null } | null,
         autorizacao: { por: 'Equipe técnica (fictícia)', em: emHoras(9, 5) } as { por: string; em: string } | null,
         por: 'Equipe técnica (fictícia)', em: emHoras(9, 0) },
       { id: `ct-${id}-2`, nome: 'Madrinha Simoni (fictícia)', vinculo: 'madrinha',
@@ -3906,6 +3948,12 @@ function contatosDe(id: string) {
         /* CPF de exemplo com dígitos válidos — não é de ninguém. */
         /* A única com foto 3×4 guardada, para o botão de olho ter o que abrir. */
         cpf: '52998224725', autorizadoAVisitar: true, temFoto: true,
+        /* A madrinha busca na escola às sextas, e a guarita precisa saber que ela
+           entra pelo portão dos fundos — é o campo da observação servindo para o
+           que ele existe. */
+        visita: { dias: [5], de: '16:00', ate: '18:00',
+                  observacao: 'Entra pelo portão dos fundos' } as
+          { dias: number[]; de: string; ate: string; observacao: string | null } | null,
         foto: RETRATO_FICTICIO as string | null,
         autorizacao: { por: 'Equipe técnica (fictícia)', em: emHoras(9, 5) },
         por: 'Equipe técnica (fictícia)', em: emHoras(9, 0) },
@@ -3916,8 +3964,37 @@ function contatosDe(id: string) {
           + 'Antes de qualquer contato, falar com a equipe técnica.',
         ativo: true, motivoDoEncerramento: null,
         cpf: null, autorizadoAVisitar: false, temFoto: false, autorizacao: null,
-        por: 'Equipe técnica (fictícia)', em: emHoras(10, 30) },
+        visita: null, por: 'Equipe técnica (fictícia)', em: emHoras(10, 30) },
     ];
+    /*
+     * E O HISTÓRICO DA FOLHA nasce cheio — §6.19 pela sétima vez, e eu errei o
+     * alvo na primeira tentativa.
+     *
+     * Sem linhas semeadas o bloco nasceria invisível no único arquivo que o
+     * Marcelo abre, e o que a Fundação pediu em 22/09 — *"caso alguém seja
+     * removido que tenha motivos para tal escrito para registro"* — não
+     * apareceria na demonstração. **Semeei primeiro no Tio Fictício, e o ensaio
+     * reprovou com razão:** ele tem aproximação restrita, e a folha de autorizar
+     * dele não abre de propósito — o histórico ficava num lugar onde ninguém pode
+     * chegar. É a §6.19 cobrando a si mesma: não basta o dado existir, ele tem de
+     * estar onde alguém passa.
+     *
+     * Então mora na GENITORA, que está autorizada e cuja folha abre. São TRÊS
+     * linhas porque o que importa demonstrar é que nada se sobrescreve: ela foi
+     * autorizada, a visita foi suspensa pela Vara, e depois liberada de novo — e
+     * a linha da suspensão continua lá, que é justamente a que explica a história
+     * a quem ler em março.
+     */
+    HISTORICO_DA_VISITA.push(
+      { contatoId: `ct-${id}-1`, autorizado: true, motivo: null,
+        por: 'Equipe técnica (fictícia)', em: emDias(-210, 10, 0) },
+      { contatoId: `ct-${id}-1`, autorizado: false,
+        motivo: 'A Vara suspendeu as visitas até a audiência de julho. A folha da portaria foi '
+          + 'refeita no mesmo dia e a guarita recebeu a nova.',
+        por: 'Carla Coordenadora (fictícia)', em: emDias(-150, 15, 20) },
+      { contatoId: `ct-${id}-1`, autorizado: true, motivo: null,
+        por: 'Equipe técnica (fictícia)', em: emDias(-80, 11, 10) },
+    );
   }
   return CONTATOS[id];
 }
@@ -7402,6 +7479,16 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         { code: 'servico_da_rede', label: 'Serviço da rede' },
         { code: 'outro', label: 'Outro' },
       ],
+      /* Os dias e a nota da visita, como o servidor os manda (1500, regra 14). A
+         lista vem do MESMO vocabulário do backend, e não de uma cópia: a
+         numeração da semana errada aqui faria a demonstração ensinar terça no
+         lugar de quarta. */
+      dias: DIAS_DA_SEMANA,
+      notaDaVisita: 'O dia e a hora são deste visitante, e não da casa: a avó que vem de '
+        + 'ônibus vem no sábado de manhã, e o padrinho que trabalha vem à noite. Sai '
+        + 'impresso na folha da guarita — quem está no portão às 21h de uma terça precisa '
+        + 'dele para não ter de escolher entre barrar um familiar autorizado e deixar '
+        + 'entrar quem não é da hora.',
       nota: 'O vínculo diz quem é, não quem vale mais. Contato com aproximação suspensa '
         + 'entra marcado, com o motivo — quem descobre isso às 23h descobre tarde.',
     };
@@ -7477,12 +7564,74 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         + 'Se a restrição deixou de valer, isso se resolve com a equipe técnica antes.');
     }
     if (b.autorizado && !c.ativo) return new Recusa(400, 'Este contato foi encerrado. Um contato encerrado não visita.');
+
+    /*
+     * O QUANDO E O MOTIVO (1500, regra 14 nos dois sentidos).
+     *
+     * As recusas são as MESMAS do servidor, com as mesmas frases. Um servidor de
+     * mentira que aceitasse autorizar sem horário ensinaria que o campo é
+     * decorativo, e quem aplicasse o roteiro descobriria o contrário na frente da
+     * equipe.
+     */
+    const motivo = String(b.motivo ?? '').trim();
+    if (!b.autorizado && motivo.length < 10) {
+      return new Recusa(400, 'Escreva por que este contato sai da folha da portaria. Quem chegar ao '
+        + 'portão daqui a seis meses vai ouvir "não está na folha", e é esta frase que responde.');
+    }
+    const dias: number[] = Array.isArray(b.dias)
+      ? [...new Set((b.dias as any[]).map(Number))].sort((x, y) => x - y) : [];
+    const informouJanela = b.dias !== undefined || b.de !== undefined
+      || b.ate !== undefined || b.observacao !== undefined;
+    if (dias.some((d) => !Number.isInteger(d) || d < 0 || d > 6)) {
+      return new Recusa(400, 'Dia de visita fora da semana — escolha de domingo a sábado.');
+    }
+    const de = String(b.de ?? '').trim(); const ate = String(b.ate ?? '').trim();
+    if ((de === '') !== (ate === '')) {
+      return new Recusa(400, 'A faixa de visita é inteira: hora de início E de fim. Só o começo '
+        + 'não diz nada a quem está na guarita.');
+    }
+    if (de && ate && de >= ate) {
+      return new Recusa(400, 'A visita termina depois de começar — confira as duas horas.');
+    }
+    if (dias.length > 0 && !de) return new Recusa(400, 'Escolha também a faixa de horário desses dias.');
+    if (dias.length === 0 && de) return new Recusa(400, 'Escolha em que dias vale essa faixa de horário.');
+    /* A regra é sobre o RESULTADO: reautorizar não pede o horário de novo se ele
+       já está guardado. */
+    const ficaComHorario = informouJanela ? dias.length > 0 : Boolean(c.visita?.dias?.length);
+    if (b.autorizado && !ficaComHorario) {
+      return new Recusa(400, 'Escolha em que dias este visitante pode vir, e a faixa de horário. '
+        + 'A folha da guarita sai com isso — sem ele, quem está no portão às 21h de uma terça tem '
+        + 'de escolher entre barrar um familiar autorizado e deixar entrar fora da hora.');
+    }
+
     c.autorizadoAVisitar = !!b.autorizado;
     c.autorizacao = b.autorizado ? { por: eu.fullName, em: new Date().toISOString() } : null;
     if (b.cpf !== undefined) c.cpf = cpf || null;
+    if (informouJanela) {
+      c.visita = dias.length
+        ? { dias, de, ate, observacao: String(b.observacao ?? '').trim() || null }
+        : null;
+    }
+    /* Append-only, como no servidor: a retirada de hoje não apaga a de março. */
+    HISTORICO_DA_VISITA.push({
+      contatoId: c.id, autorizado: !!b.autorizado, motivo: motivo || null,
+      por: eu.fullName, em: new Date().toISOString(),
+    });
     return { ok: true, aviso: b.autorizado
-      ? 'Autorizado a visitar. Ele entra na próxima folha da portaria que for gerada — a que está na guarita não muda sozinha.'
-      : 'Autorização retirada. Gere uma folha nova para a portaria: a impressa ainda tem o nome.' };
+      ? 'Autorizado a visitar, com o dia e a hora combinados. Ele entra na próxima folha da '
+        + 'portaria que for gerada — a que está na guarita não muda sozinha.'
+      : 'Autorização retirada, com o motivo registrado. Gere uma folha nova para a portaria: '
+        + 'a impressa ainda tem o nome.' };
+  }
+  if (seg[0] === 'people' && seg[1] === 'contacts' && seg[3] === 'visit-history'
+      && metodo === 'GET') {
+    /* Para o educador a lista volta VAZIA, como no servidor: ele lê a lista de
+       contatos, e não o juízo sobre por que um familiar saiu dela. */
+    if (!ESCREVE_CONTATO.includes(eu.role)) return [];
+    return HISTORICO_DA_VISITA.filter((h) => h.contatoId === seg[2])
+      .slice().reverse()
+      .map((h, i) => ({ id: `cvc-${i}`, autorizado: h.autorizado, motivo: h.motivo,
+                        por: h.por, em: h.em }));
   }
   if (seg[0] === 'people' && seg[1] === 'contacts' && seg[3] === 'photo') {
     const c = acharContato(seg[2]);

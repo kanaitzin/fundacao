@@ -1502,7 +1502,70 @@ if (achouPortaria) {
     cobrar('e ela abre — o servidor de mentira guarda a foto, como o de verdade',
       (await pg.locator('.overlay img.previa-img').count()) > 0,
       'servidor de mentira que responde PIOR que o servidor esconde um sistema que existe (§6.14)');
+    await fechar();
+    await portaria.first().click();
+    await pg.waitForTimeout(700);
   }
+
+  /*
+   * O DIA E A HORA DA VISITA (1500).
+   *
+   * A folha da guarita dizia QUEM podia entrar e não dizia QUANDO — e assim ela
+   * transferia para o porteiro uma decisão que é da casa. Aqui se cobra a porta e
+   * os DOIS sentidos da recusa: autorizar sem horário é barrado, e retirar sem
+   * motivo também. As duas recusas existem para quem está no portão.
+   */
+  const folhaVisita = await corpo();
+  cobrar('a folha de autorizar tem os dias da semana',
+    /Quando pode vir/.test(folhaVisita) && /sáb/.test(folhaVisita));
+  cobrar('e a faixa de horário', /Das/.test(folhaVisita));
+  cobrar('a madrinha já tem o horário combinado, e ele vem preenchido',
+    (await pg.locator('.overlay input#vis-de').inputValue()) !== '',
+    'reautorizar alguém não pode pedir à técnica que digite de novo o que ela já combinou');
+}
+await fechar();
+
+/*
+ * E A RETIRADA PEDE MOTIVO — no contato que TEM autorização para perder.
+ */
+const cartaoDaGenitora = pg.locator('main.conteudo .card').filter({ hasText: /Rosângela/ });
+const portariaDela = cartaoDaGenitora.locator('button').filter({ hasText: /Portaria/ });
+if (await portariaDela.count()) {
+  await portariaDela.first().click();
+  await pg.waitForTimeout(800);
+  cobrar('o cartão mostra quando a genitora pode vir',
+    /dom/.test(await conteudo()) || /09:00/.test(await corpo()));
+  /*
+   * O HISTÓRICO DA FOLHA, e ele é cobrado AQUI e não no cartão da madrinha.
+   *
+   * Eu cobrei primeiro na madrinha, e o ensaio reprovou com razão: o histórico
+   * dela está vazio. O semeado é o da genitora — autorizada, suspensa pela Vara,
+   * liberada de novo —, e é aqui que a propriedade que importa se vê: a linha da
+   * suspensão continua lá depois da liberação.
+   */
+  const folhaDela = await corpo();
+  cobrar('o histórico da folha aparece sem precisar de botão',
+    /O que já aconteceu com esta autorização/.test(folhaDela));
+  cobrar('e a retirada antiga continua lá depois de a visita ser liberada de novo',
+    /Saiu da folha/.test(folhaDela) && /Vara suspendeu/.test(folhaDela),
+    'nada se sobrescreve: a linha da suspensão é a que explica a história');
+  /* Desmarca "Autorizado a visitar": o campo do motivo tem de aparecer. */
+  const marca = pg.locator('.overlay input[type="checkbox"]').first();
+  await marca.uncheck();
+  await pg.waitForTimeout(400);
+  cobrar('desmarcar a autorização abre o campo do motivo',
+    /sai da folha da portaria/.test(await corpo()),
+    'sem ele a família ouve "não está na folha" e ninguém sabe por quê');
+  await clicar(/^Salvar$/, '.overlay');
+  await pg.waitForTimeout(900);
+  cobrar('e salvar sem motivo é recusado, com a frase do portão',
+    /por que este contato sai da folha/i.test(await corpo()));
+  await pg.locator('.overlay textarea#vis-motivo')
+    .fill('A Vara suspendeu as visitas até a próxima audiência.');
+  await clicar(/^Salvar$/, '.overlay');
+  await pg.waitForTimeout(1100);
+  cobrar('com o motivo escrito, a retirada é registrada',
+    /motivo registrado/i.test(await corpo()) || !/sai da folha da portaria/.test(await corpo()));
 }
 await fechar();
 /*

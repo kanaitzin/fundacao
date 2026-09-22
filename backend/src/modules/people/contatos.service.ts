@@ -7,6 +7,7 @@ import { AuditService } from '../../kernel/audit/audit.service';
 import { ArquivosService, RegraDoArquivo } from '../../kernel/arquivos/arquivos.service';
 import { AuthenticatedUser } from '../../kernel/contracts';
 import { formatCpf, isValidCpf, maskCpf, normalizeCpf } from '../../kernel/common/cpf';
+import { DIAS_DA_SEMANA, diasEmPortugues } from '../../kernel/common/semana';
 
 /** Quem ESCREVE no cadastro de contatos — e quem autoriza visita (fase 92). */
 export const ESCREVE_CONTATO = ['equipe_tecnica', 'coordenador', 'gestor_geral'];
@@ -34,6 +35,7 @@ export const VINCULOS_DO_CONTATO = [
  */
 export const COLUNAS_DO_CONTATO = `id, name, bond, bond_other, phone, note, restricted, restriction_note,
        active, ended_reason, cpf, visit_authorized, visit_authorized_at,
+       visit_weekdays, visit_from, visit_to, visit_note,
        app_user_display_name(visit_authorized_by) AS autorizado_por,
        photo_key IS NOT NULL AS tem_foto,
        app_user_display_name(created_by) AS por, created_at`;
@@ -55,6 +57,22 @@ export function contatoParaTela(r: any, papel: string) {
     cpf: r.cpf ? (inteiro ? formatCpf(r.cpf) : maskCpf(r.cpf)) : null,
     autorizadoAVisitar: r.visit_authorized,
     autorizacao: r.visit_authorized ? { por: r.autorizado_por, em: r.visit_authorized_at } : null,
+    /*
+     * QUANDO ELE PODE VIR (1500).
+     *
+     * Sai para TODO contato, e não só para o autorizado, porque a técnica combina
+     * o horário ANTES de marcar a autorização — e se o campo só aparecesse depois
+     * ela teria de autorizar primeiro para poder combinar, o que inverte a ordem
+     * dos atos. `dias` vem também escrito em português: quem lê a lista no
+     * celular às 20h não conta números de dia da semana.
+     */
+    visita: {
+      dias: (r.visit_weekdays ?? null) as number[] | null,
+      diasEscritos: diasEmPortugues(r.visit_weekdays),
+      de: r.visit_from, ate: r.visit_to,
+      observacao: r.visit_note,
+      combinado: Boolean(r.visit_weekdays && r.visit_from),
+    },
     temFoto: r.tem_foto,
     por: r.por, em: r.created_at,
   };
@@ -125,6 +143,13 @@ export class ContatosService {
        */
       nota: 'O vínculo diz quem é, não quem vale mais. Contato com aproximação '
         + 'suspensa entra marcado, com o motivo — quem descobre isso às 23h descobre tarde.',
+      /* Os dias vêm do kernel: a mesma numeração da rotina da casa (1500). */
+      dias: DIAS_DA_SEMANA,
+      notaDaVisita: 'O dia e a hora são deste visitante, e não da casa: a avó que vem de '
+        + 'ônibus vem no sábado de manhã, e o padrinho que trabalha vem à noite. Sai '
+        + 'impresso na folha da guarita — quem está no portão às 21h de uma terça precisa '
+        + 'dele para não ter de escolher entre barrar um familiar autorizado e deixar '
+        + 'entrar quem não é da hora.',
     };
   }
 
@@ -235,7 +260,8 @@ export class ContatosService {
    * casa por causa da folha da guarita.
    */
   async definirVisita(user: AuthenticatedUser, contatoId: string, input: {
-    autorizado?: boolean; cpf?: string;
+    autorizado?: boolean; cpf?: string; motivo?: string;
+    dias?: number[]; de?: string; ate?: string; observacao?: string;
   }) {
     if (!ESCREVE_CONTATO.includes(user.role)) {
       throw new ForbiddenException(
@@ -245,10 +271,28 @@ export class ContatosService {
       throw new BadRequestException('Diga se este contato está autorizado a visitar ou não.');
     }
     const cpf = input.cpf === undefined ? undefined : this.cpfOuNulo(input.cpf);
+    const janela = this.janelaDaVisita(input);
+
+    /*
+     * RETIRAR PEDE MOTIVO (1500), e AUTORIZAR não pede.
+     *
+     * A autorização já é o ato, e a 1120 guarda quem a deu. A retirada é o que
+     * alguém vai perguntar depois: a família chega ao portão, ouve "não está na
+     * folha", e se ninguém escreveu o porquê não há quem responda. Dez
+     * caracteres é o mesmo piso do relato e do "se necessário" — "mudou" não
+     * socorre a pessoa que está no portão.
+     */
+    const motivo = (input.motivo ?? '').trim();
+    if (!input.autorizado && motivo.length < 10) {
+      throw new BadRequestException(
+        'Escreva por que este contato sai da folha da portaria. Quem chegar ao portão '
+        + 'daqui a seis meses vai ouvir "não está na folha", e é esta frase que responde.');
+    }
 
     const r = await this.db.asUser(user.id, async (c) => {
       const { rows: [antes] } = await c.query(
-        `SELECT id, person_id, bond, restricted, active FROM person_contact WHERE id = $1`, [contatoId]);
+        `SELECT id, person_id, bond, restricted, active, visit_authorized, visit_weekdays
+           FROM person_contact WHERE id = $1`, [contatoId]);
       if (!antes) return null;
       /*
        * A leitura DIAGNOSTICA, com a frase certa; quem garante é o banco — a
@@ -262,15 +306,60 @@ export class ContatosService {
       if (input.autorizado && !antes.active) {
         throw new BadRequestException('Este contato foi encerrado. Um contato encerrado não visita.');
       }
+      /*
+       * E AUTORIZAR PEDE O QUANDO — mas DEPOIS da restrição e do encerramento, e
+       * a regra é sobre o RESULTADO, não sobre o que veio no pedido.
+       *
+       * A ordem importa e eu a escrevi errada primeiro: para um contato com
+       * aproximação restrita, a resposta certa é a restrição, não "falta combinar
+       * o horário". Quem lê a segunda frase vai combinar o horário e tentar de
+       * novo — e a recusa que interessa é a que diz que isto se resolve com a
+       * equipe técnica antes. Foi a suíte da portaria, escrita na fase 92, que
+       * pegou a inversão.
+       *
+       * Escrevi isto ao contrário na primeira versão e o teste pegou: eu exigia o
+       * horário no corpo da chamada, e então REAUTORIZAR alguém pedia à técnica
+       * que digitasse de novo um horário que já estava guardado — justamente o
+       * caso da família cuja visita a Vara suspendeu e voltou a liberar. O que
+       * tem de ser verdade é que o contato TERMINE autorizado com dia e hora, e
+       * ele termina se o pedido trouxe ou se o cadastro já tinha.
+       *
+       * O banco continua aceitando autorização sem horário de propósito — é a
+       * decisão da FOTO, na 1120: travar deixaria de fora o visitante de verdade
+       * que ainda não combinou. Quem cobra é este lugar, no momento do ato.
+       */
+      const ficaComHorario = janela.informada ? Boolean(janela.dias) : Boolean(antes.visit_weekdays);
+      if (input.autorizado && !ficaComHorario) {
+        throw new BadRequestException(
+          'Escolha em que dias este visitante pode vir, e a faixa de horário. '
+          + 'A folha da guarita sai com isso — sem ele, quem está no portão às 21h de uma '
+          + 'terça tem de escolher entre barrar um familiar autorizado e deixar entrar fora da hora.');
+      }
       await c.query(
         `UPDATE person_contact
             SET visit_authorized = $2,
                 visit_authorized_by = CASE WHEN $2 THEN $3::uuid ELSE NULL END,
                 visit_authorized_at = CASE WHEN $2 THEN now() ELSE NULL END,
                 cpf = CASE WHEN $4::boolean THEN $5 ELSE cpf END,
+                visit_weekdays = CASE WHEN $6::boolean THEN $7::smallint[] ELSE visit_weekdays END,
+                visit_from     = CASE WHEN $6::boolean THEN $8::time     ELSE visit_from END,
+                visit_to       = CASE WHEN $6::boolean THEN $9::time     ELSE visit_to END,
+                visit_note     = CASE WHEN $6::boolean THEN $10          ELSE visit_note END,
                 updated_at = now(), updated_by = $3
           WHERE id = $1`,
-        [contatoId, input.autorizado, user.id, cpf !== undefined, cpf ?? null]);
+        [contatoId, input.autorizado, user.id, cpf !== undefined, cpf ?? null,
+         janela.informada, janela.dias, janela.de, janela.ate, janela.observacao]);
+      /*
+       * A LINHA DO HISTÓRICO, e ela é o coração desta fase. Append-only: a
+       * retirada de hoje não apaga a de março, e um contato pode ser retirado,
+       * reautorizado e retirado de novo — a primeira é justamente a que explica
+       * a história. O motivo NÃO vai para a auditoria: ele conta algo sobre uma
+       * família, e log não copia conteúdo sensível (§5).
+       */
+      await c.query(
+        `INSERT INTO contact_visit_change (contact_id, person_id, authorized, reason, changed_by)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [contatoId, antes.person_id, input.autorizado, motivo || null, user.id]);
       return antes;
     });
     if (!r) throw new NotFoundException('Contato não encontrado — ou fora do seu alcance.');
@@ -279,16 +368,95 @@ export class ContatosService {
       action: input.autorizado ? 'contato.visita.autorizada' : 'contato.visita.retirada',
       actorId: user.id, institutionId: user.institutionId,
       entity: 'person_contact', entityId: contatoId,
-      // Metadado: o vínculo e se o CPF mudou — nunca o CPF.
-      detail: { vinculo: r.bond, cpfInformado: cpf !== undefined && cpf !== null },
+      // Metadado: o vínculo, se o CPF mudou e se o horário foi combinado. Nunca
+      // o CPF, e nunca o MOTIVO — a frase é sobre uma família.
+      detail: { vinculo: r.bond, cpfInformado: cpf !== undefined && cpf !== null,
+                horarioCombinado: janela.informada },
     });
     return {
       ok: true,
       aviso: input.autorizado
-        ? 'Autorizado a visitar. Ele entra na próxima folha da portaria que for gerada — '
-          + 'a que está na guarita não muda sozinha.'
-        : 'Autorização retirada. Gere uma folha nova para a portaria: a impressa ainda tem o nome.',
+        ? 'Autorizado a visitar, com o dia e a hora combinados. Ele entra na próxima folha '
+          + 'da portaria que for gerada — a que está na guarita não muda sozinha.'
+        : 'Autorização retirada, com o motivo registrado. Gere uma folha nova para a '
+          + 'portaria: a impressa ainda tem o nome.',
     };
+  }
+
+  /**
+   * O DIA E A HORA, conferidos antes de chegarem ao banco.
+   *
+   * `informada` distingue "não mexeu no horário" de "apagou o horário" — sem
+   * isso, retirar a autorização de alguém limparia o horário que a técnica
+   * combinou, e reautorizar amanhã pediria tudo de novo.
+   */
+  private janelaDaVisita(input: { dias?: number[]; de?: string; ate?: string; observacao?: string }) {
+    const informada = input.dias !== undefined || input.de !== undefined
+      || input.ate !== undefined || input.observacao !== undefined;
+    if (!informada) {
+      return { informada: false, dias: null as number[] | null, de: null, ate: null, observacao: null };
+    }
+    const dias = Array.isArray(input.dias)
+      ? [...new Set(input.dias.map((d) => Number(d)))].sort((a, b) => a - b) : [];
+    if (dias.some((d) => !Number.isInteger(d) || d < 0 || d > 6)) {
+      throw new BadRequestException('Dia de visita fora da semana — escolha de domingo a sábado.');
+    }
+    const hora = (v?: string) => {
+      const s = String(v ?? '').trim();
+      if (!s) return null;
+      if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(s)) {
+        throw new BadRequestException('Escreva a hora como 14:00.');
+      }
+      return s;
+    };
+    const de = hora(input.de); const ate = hora(input.ate);
+    if ((de === null) !== (ate === null)) {
+      throw new BadRequestException(
+        'A faixa de visita é inteira: hora de início E de fim. Só o começo não diz nada a '
+        + 'quem está na guarita.');
+    }
+    if (de && ate && de >= ate) {
+      throw new BadRequestException('A visita termina depois de começar — confira as duas horas.');
+    }
+    if (dias.length > 0 && !de) {
+      throw new BadRequestException('Escolha também a faixa de horário desses dias.');
+    }
+    if (dias.length === 0 && de) {
+      throw new BadRequestException('Escolha em que dias vale essa faixa de horário.');
+    }
+    return {
+      informada: true,
+      dias: dias.length ? dias : null,
+      de, ate,
+      observacao: (input.observacao ?? '').trim() || null,
+    };
+  }
+
+  /**
+   * O HISTÓRICO DA FOLHA — quem entrou, quem saiu e por quê (1500).
+   *
+   * Lido pelos três que respondem por quem entra na casa; a RLS da tabela é que
+   * decide, e não esta função. Para o educador a lista volta vazia, e é decisão:
+   * o motivo de alguém ter saído da folha é um juízo sobre um familiar, e
+   * espalhá-lo pelo plantão inteiro muda o que a técnica se sente à vontade
+   * para escrever — frase que não se escreve não protege ninguém.
+   */
+  async historicoDaVisita(user: AuthenticatedUser, contatoId: string) {
+    return this.db.asUser(user.id, async (c) => {
+      const { rows } = await c.query(
+        `SELECT v.id, v.authorized, v.reason, v.changed_at,
+                app_user_display_name(v.changed_by) AS por
+           FROM contact_visit_change v
+          WHERE v.contact_id = $1
+          ORDER BY v.changed_at DESC`, [contatoId]);
+      return rows.map((r) => ({
+        id: r.id,
+        autorizado: r.authorized,
+        motivo: r.reason,
+        por: r.por,
+        em: r.changed_at,
+      }));
+    });
   }
 
   // ----------------------------------------------------------------- Foto

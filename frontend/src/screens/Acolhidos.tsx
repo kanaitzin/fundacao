@@ -7,7 +7,7 @@ import { VINCULO, FolhaDoRelato, RelatoDaConvivencia } from '../convivencias';
 import {
   BotaoOlho, Escolhido, FolhaArquivo, PreviaEscolhida, base64De, lerArquivo,
 } from '../anexos';
-import { dia } from '../rotulos';
+import { dia, horaSemSegundos } from '../rotulos';
 
 /**
  * OS ACOLHIDOS DA CASA e o PERFIL (§6, §13).
@@ -56,6 +56,11 @@ interface Contato {
   /* A portaria (fase 92). CPF inteiro só para quem escreve no cadastro. */
   cpf?: string | null; autorizadoAVisitar?: boolean;
   autorizacao?: { por: string; em: string } | null; temFoto?: boolean;
+  /* QUANDO ele pode vir (1500) — o servidor manda os dias já escritos em
+     português, porque quem lê isto no celular não conta números da semana. */
+  visita?: { dias: number[] | null; diasEscritos: string | null;
+             de: string | null; ate: string | null;
+             observacao: string | null; combinado: boolean } | null;
 }
 interface Perfil {
   id: string; nome: string; nomeCivil: string; idade: number; nascimento: string;
@@ -2464,10 +2469,22 @@ function Contatos({ perfil, papel, onMudou }: {
             {c.cpf && <div className="mutetxt">CPF {c.cpf}</div>}
             {c.observacao && <div className="mutetxt">{c.observacao}</div>}
             {c.autorizadoAVisitar && (
-              <div className="row">
-                <span className="pill c-ok">Autorizado a visitar</span>
-                {!c.temFoto && <span className="pill c-warn">sem foto 3×4</span>}
-              </div>
+              <>
+                <div className="row">
+                  <span className="pill c-ok">Autorizado a visitar</span>
+                  {!c.temFoto && <span className="pill c-warn">sem foto 3×4</span>}
+                  {/* Sem dia combinado é estado OPERACIONAL, e não juízo sobre a
+                      pessoa: é a casa que ainda não combinou, e é a casa que
+                      resolve. Sem este aviso, a falha só aparece na guarita. */}
+                  {!c.visita?.combinado && <span className="pill c-warn">sem dia e hora</span>}
+                </div>
+                {c.visita?.combinado && (
+                  <div className="mutetxt">
+                    Visita: {c.visita.diasEscritos}, das {horaSemSegundos(c.visita.de)} às {horaSemSegundos(c.visita.ate)}
+                    {c.visita.observacao ? ` · ${c.visita.observacao}` : ''}
+                  </div>
+                )}
+              </>
             )}
             {c.restrito && (
               <div className="notice c-crit" role="alert">
@@ -2584,17 +2601,56 @@ function FolhaVisita({ contato, crianca, onFechar, onSalvou }: {
 }) {
   const [autorizado, setAutorizado] = useState(!!contato.autorizadoAVisitar);
   const [cpf, setCpf] = useState(/\*/.test(contato.cpf ?? '') ? '' : (contato.cpf ?? ''));
+  /* O QUANDO (1500). Nasce com o que já está combinado — reautorizar alguém não
+     pode pedir à técnica que digite de novo o horário que ela já combinou. */
+  const [dias, setDias] = useState<number[]>(contato.visita?.dias ?? []);
+  const [de, setDe] = useState(horaSemSegundos(contato.visita?.de));
+  const [ate, setAte] = useState(horaSemSegundos(contato.visita?.ate));
+  const [obsVisita, setObsVisita] = useState(contato.visita?.observacao ?? '');
+  const [motivo, setMotivo] = useState('');
+  /*
+   * OS DIAS VÊM DO SERVIDOR (§12.2), e não de uma lista escrita aqui.
+   *
+   * Não é cerimônia: a numeração da semana tem de ser a MESMA do banco — 0 é
+   * domingo, como no `dow` do Postgres e no `weekdays` da rotina da casa. Uma
+   * lista local que começasse na segunda faria a folha impressa trocar terça por
+   * quarta, e ninguém descobriria isso numa tela.
+   */
+  const [vocabVisita, setVocabVisita] =
+    useState<{ n: number; curto: string; label: string }[] | null>(null);
+  const [notaVisita, setNotaVisita] = useState('');
   const [foto, setFoto] = useState<Escolhido | null>(null);
   const [vendoFoto, setVendoFoto] = useState(false);
   const [erro, setErro] = useState('');
   const [aviso, setAviso] = useState('');
   const [salvando, setSalvando] = useState(false);
 
+  /*
+   * O HISTÓRICO DA FOLHA (1500) — quem entrou, quem saiu e por quê.
+   *
+   * Carregado junto, e não num botão: a técnica que abre esta folha para retirar
+   * alguém precisa ver se ele já saiu antes e por quê. Botão que ninguém aperta é
+   * informação que não existe. Para o educador a rota devolve lista vazia, e o
+   * bloco simplesmente não aparece.
+   */
+  const [passado, setPassado] = useState<
+    { id: string; autorizado: boolean; motivo: string | null; por: string; em: string }[]>([]);
+
+  useEffect(() => {
+    api<{ dias: { n: number; curto: string; label: string }[]; notaDaVisita: string }>(
+      '/people/contacts/kinds')
+      .then((v) => { setVocabVisita(v.dias ?? null); setNotaVisita(v.notaDaVisita ?? ''); })
+      .catch(() => setVocabVisita(null));
+    api<typeof passado>(`/people/contacts/${contato.id}/visit-history`)
+      .then(setPassado).catch(() => setPassado([]));
+  }, [contato.id]);
+
   async function salvar() {
     setErro(''); setSalvando(true);
     try {
       const r = await api<{ aviso: string }>(`/people/contacts/${contato.id}/visit`, {
-        method: 'POST', body: JSON.stringify({ autorizado, cpf }),
+        method: 'POST',
+        body: JSON.stringify({ autorizado, cpf, dias, de, ate, observacao: obsVisita, motivo }),
       });
       if (foto) {
         await api(`/people/contacts/${contato.id}/photo`, {
@@ -2645,6 +2701,82 @@ function FolhaVisita({ contato, crianca, onFechar, onSalvou }: {
           {' '}Autorizado a visitar
         </label>
 
+        {/*
+          * QUANDO ELE PODE VIR (1500), e por que este bloco existe.
+          *
+          * A folha da guarita dizia QUEM podia entrar e não dizia QUANDO — e
+          * assim ela transferia para o porteiro uma decisão que é da casa: às 21h
+          * de uma terça ele só tinha duas saídas, barrar um familiar autorizado
+          * ou deixar entrar fora da hora, e nenhuma das duas é dele.
+          *
+          * O dia e a hora são deste visitante, e não da casa: a avó que vem de
+          * ônibus de outra cidade vem no sábado de manhã; o padrinho que trabalha
+          * vem à noite. Uma regra única seria mais simples e estaria errada.
+          *
+          * Os campos aparecem MESMO SEM a autorização marcada, porque a técnica
+          * combina o horário antes de autorizar — e se eles só aparecessem depois,
+          * ela teria de autorizar primeiro para poder combinar.
+          */}
+        <label className="f">
+          Quando pode vir <small>— sai impresso na folha da guarita</small>
+        </label>
+        {/* O MESMO desenho da rotina da casa (`Rotina.tsx`): `opts` com `opt` e
+            `aria-pressed`. Não é economia de CSS — é a mesma pergunta ("em que
+            dias?") feita do mesmo jeito em duas telas, e a educadora que aprendeu
+            numa não reaprende na outra. */}
+        <div className="opts">
+          {(vocabVisita ?? []).map((d) => (
+            <button type="button" key={d.n} className="opt c-move"
+                    aria-pressed={dias.includes(d.n)}
+                    onClick={() => setDias(dias.includes(d.n)
+                      ? dias.filter((x) => x !== d.n)
+                      : [...dias, d.n].sort((a, b) => a - b))}>
+              {d.curto}
+            </button>
+          ))}
+        </div>
+        <div className="row">
+          <label className="f" htmlFor="vis-de">Das</label>
+          <input id="vis-de" type="time" className="field" value={de}
+                 onChange={(e) => setDe(e.target.value)} />
+          <label className="f" htmlFor="vis-ate">às</label>
+          <input id="vis-ate" type="time" className="field" value={ate}
+                 onChange={(e) => setAte(e.target.value)} />
+        </div>
+
+        <label className="f" htmlFor="vis-obs">
+          O que a guarita precisa saber <small>— opcional</small>
+        </label>
+        <input id="vis-obs" value={obsVisita} maxLength={120}
+               placeholder="Sempre acompanhada pela técnica"
+               onChange={(e) => setObsVisita(e.target.value)} />
+        {notaVisita && <p className="mutetxt">{notaVisita}</p>}
+
+        {/*
+          * O MOTIVO DA RETIRADA (1500) — só quando ela está sendo retirada.
+          *
+          * A autorização já é o ato, e não precisa de justificativa. A retirada é
+          * o que alguém vai perguntar depois: a família chega ao portão, ouve
+          * "não está na folha", e se ninguém escreveu o porquê não há quem
+          * responda. Fica registrado para a equipe técnica e a coordenação, e
+          * NÃO vai para o log — a frase conta algo sobre uma família.
+          */}
+        {contato.autorizadoAVisitar && !autorizado && (
+          <>
+            <label className="f" htmlFor="vis-motivo">
+              Por que {contato.nome.split(' ')[0]} sai da folha da portaria
+            </label>
+            <textarea id="vis-motivo" rows={3} value={motivo} maxLength={500}
+                      placeholder="A Vara suspendeu as visitas até a próxima audiência."
+                      onChange={(e) => setMotivo(e.target.value)} />
+            <p className="mutetxt">
+              Quem chegar ao portão daqui a seis meses vai ouvir “não está na folha”. É esta
+              frase que responde — e ela fica com a equipe técnica e a coordenação, não no
+              plantão inteiro.
+            </p>
+          </>
+        )}
+
         <label className="f" htmlFor="vis-cpf">
           CPF <small>— sai impresso na folha da guarita</small>
         </label>
@@ -2674,6 +2806,28 @@ function FolhaVisita({ contato, crianca, onFechar, onSalvou }: {
             Já tem foto cadastrada.{' '}
             <BotaoOlho rotulo="Ver a foto de agora" onClick={() => setVendoFoto(true)} />
           </p>
+        )}
+
+        {passado.length > 0 && (
+          <div className="bloco">
+            <h4>O que já aconteceu com esta autorização</h4>
+            <div className="stack">
+              {passado.map((h) => (
+                <div key={h.id} className="card">
+                  <div className="row">
+                    <span className={`pill ${h.autorizado ? 'c-ok' : 'c-warn'}`}>
+                      {h.autorizado ? 'Entrou na folha' : 'Saiu da folha'}
+                    </span>
+                    <span className="mutetxt grow">{h.por} · {dia(h.em)}</span>
+                  </div>
+                  {h.motivo && <div>{h.motivo}</div>}
+                </div>
+              ))}
+            </div>
+            <p className="mutetxt">
+              Nada aqui se apaga: a retirada de hoje não substitui a de antes.
+            </p>
+          </div>
         )}
 
         {erro && <div className="notice c-crit" role="alert">{erro}</div>}

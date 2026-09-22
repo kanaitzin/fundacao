@@ -271,6 +271,18 @@ export class PeopleController {
     return this.contatos.definirVisita(user, contactId, body ?? {});
   }
 
+  /**
+   * O HISTÓRICO DA FOLHA DA PORTARIA (1500) — quem entrou, quem saiu, por quê.
+   *
+   * Fica antes de `contacts/:contactId/photo` só por ordem de leitura; as duas
+   * são palavras fixas em posições diferentes e não se confundem.
+   */
+  @Get('contacts/:contactId/visit-history')
+  historicoDaVisita(@CurrentUser() user: AuthenticatedUser,
+                    @Param('contactId', ParseUUIDPipe) contactId: string) {
+    return this.contatos.historicoDaVisita(user, contactId);
+  }
+
   @Get('contacts/:contactId/photo')
   fotoDoContato(@CurrentUser() user: AuthenticatedUser,
                 @Param('contactId', ParseUUIDPipe) contactId: string) {
