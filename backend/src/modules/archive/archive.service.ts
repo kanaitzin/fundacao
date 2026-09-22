@@ -223,6 +223,7 @@ export class ArchiveService {
     await this.bus.publish('escalation.requested', pedido, { actorId: user.id });
     await this.audit.log({
       action: 'archive.failure_escalated', actorId: user.id, institutionId: user.institutionId,
+      houseId: await this.audit.casaDoRegistro(user.id, 'archive_item', itemId),
       entity: 'archive_item', entityId: itemId, detail: { erro: erro.slice(0, 120) },
     });
   }

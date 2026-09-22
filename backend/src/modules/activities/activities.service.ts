@@ -313,6 +313,7 @@ export class ActivitiesService {
 
     await this.audit.log({
       action: 'activity.delegate', actorId: user.id,
+      houseId: await this.audit.casaDoRegistro(user.id, 'activity', activityId),
       entity: 'activity', entityId: activityId, detail: { para: paraId },
     });
     await this.bus.publish('notice.requested', {

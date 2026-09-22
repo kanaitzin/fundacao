@@ -386,6 +386,7 @@ export class FollowupsService {
     });
     await this.audit.log({
       action: 'followup.approve', actorId: user.id, institutionId: user.institutionId,
+      houseId: await this.audit.casaDoRegistro(user.id, 'followup', id),
       entity: 'followup', entityId: id, detail: { versao: r.versao },
     });
     /*
@@ -432,6 +433,7 @@ export class FollowupsService {
     });
     await this.audit.log({
       action: 'followup.amend', actorId: user.id, institutionId: user.institutionId,
+      houseId: await this.audit.casaDoRegistro(user.id, 'followup', id),
       entity: 'followup', entityId: id, detail: { novaVersao: r.versao },
     });
     return {

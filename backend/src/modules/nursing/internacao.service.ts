@@ -147,17 +147,19 @@ export class InternacaoService {
       throw new BadRequestException('Informe como a internação terminou.');
     }
     return this.db.asUser(user.id, async (c) => {
-      const { rowCount } = await c.query(
+      const { rowCount, rows } = await c.query(
         `UPDATE hospitalization
             SET status = 'encerrada', ended_at = coalesce($3::timestamptz, now()),
                 outcome = $2, outcome_note = $4, closed_by = $5, closed_at = now()
-          WHERE id = $1 AND status = 'em_andamento'`,
+          WHERE id = $1 AND status = 'em_andamento'
+        RETURNING house_id`,
         [id, input.desfecho, input.ate ?? null, (input.observacao ?? '').trim() || null, user.id]);
       if (!rowCount) {
         throw new NotFoundException('Internação não encontrada — ou já encerrada.');
       }
       await this.audit.log({
         action: 'internacao.encerrada', actorId: user.id, institutionId: user.institutionId,
+        houseId: (rows[0].house_id as string | null) ?? null,
         entity: 'hospitalization', entityId: id, detail: { desfecho: input.desfecho },
       });
       return {
@@ -370,9 +372,13 @@ export class InternacaoService {
    */
   async lerAnexo(user: AuthenticatedUser, internacaoId: string, notaId: string) {
     const nota = await this.db.asUser(user.id, async (c) => {
+      /* rls-join-ok: `hospitalization_note` já é filtrada pela internação; a
+         casa vem da internação porque a nota não a guarda (fase 149). */
       const { rows: [r] } = await c.query(
-        `SELECT storage_key, mime, file_name FROM hospitalization_note
-          WHERE id = $1 AND hospitalization_id = $2`, [notaId, internacaoId]);
+        `SELECT n.storage_key, n.mime, n.file_name, i.house_id
+           FROM hospitalization_note n
+           JOIN hospitalization i ON i.id = n.hospitalization_id
+          WHERE n.id = $1 AND n.hospitalization_id = $2`, [notaId, internacaoId]);
       return r;
     });
     if (!nota) {
@@ -389,6 +395,7 @@ export class InternacaoService {
     }
     await this.audit.log({
       action: 'internacao.anexo.lido', actorId: user.id, institutionId: user.institutionId,
+      houseId: (nota.house_id as string | null) ?? null,
       entity: 'hospitalization_note', entityId: notaId,
       detail: { tipo: nota.mime },
     });

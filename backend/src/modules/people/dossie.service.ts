@@ -231,7 +231,9 @@ export class DossieService {
     });
 
     await this.audit.log({
-      action: 'document.attach', actorId: user.id, entity: 'document', entityId: id,
+      action: 'document.attach', actorId: user.id,
+      houseId: await this.audit.casaDoAcolhido(user.id, personId),
+      entity: 'document', entityId: id,
       detail: { categoria: input.categoria, chave: input.chave ?? null, tipo: mime,
                 bytes: tamanho },
     });
@@ -263,7 +265,9 @@ export class DossieService {
         + 'errado, anexe a versão certa — o que foi aceito antes continua registrado.');
     }
     await this.audit.log({
-      action: 'document.accept', actorId: user.id, entity: 'document', entityId: documentId,
+      action: 'document.accept', actorId: user.id,
+      houseId: await this.audit.casaDoAcolhido(user.id, personId),
+      entity: 'document', entityId: documentId,
       detail: { comNota: !!nota },
     });
     return { ok: true, aviso: 'Conferido, com o seu nome e o horário.' };
@@ -288,6 +292,10 @@ export class DossieService {
    */
   async arquivo(user: AuthenticatedUser, personId: string, documentId: string,
                 baixando = false) {
+    /* A casa vem ANTES da transação: o registro da abertura nasce dentro dela
+       (§20 — quem viu não se separa do ato de ver), e a consulta da casa é de
+       outra conexão. */
+    const casa = await this.audit.casaDoAcolhido(user.id, personId);
     const v = await this.db.asUser(user.id, async (c) => {
       const { rows: [row] } = await c.query(
         `SELECT d.category, d.title, v.storage_key, v.sha256, v.mime, v.file_name
@@ -298,7 +306,7 @@ export class DossieService {
       if (row) {
         await this.audit.log({
           action: baixando ? 'document.download' : 'document.open',
-          actorId: user.id, entity: 'document', entityId: documentId,
+          actorId: user.id, houseId: casa, entity: 'document', entityId: documentId,
           detail: { categoria: row.category },
         }, c);
       }
@@ -465,7 +473,9 @@ export class DossieService {
     const chave = guardadas.length ? guardadas[0].chave : null;
 
     await this.audit.log({
-      action: 'memory.record', actorId: user.id, entity: 'memory_record', entityId: id,
+      action: 'memory.record', actorId: user.id,
+      houseId: await this.audit.casaDoAcolhido(user.id, personId),
+      entity: 'memory_record', entityId: id,
       detail: { tipo: input.tipo, comFoto: chave != null, fotos: guardadas.length,
                 autorizacaoRegistrada: guardadas.every((g) => g.autorizada) },
     });
@@ -488,6 +498,7 @@ export class DossieService {
    * seis vivências com a mesma data e a mesma descrição.
    */
   async foto(user: AuthenticatedUser, personId: string, memoryId: string, fotoId?: string) {
+    const casa = await this.audit.casaDoAcolhido(user.id, personId);
     const m = await this.db.asUser(user.id, async (c) => {
       /* rls-join-ok: `mp_select` já filtra `memory_photo` pelo alcance da
          criança; o `person_id` no WHERE é conferência da rota, não da RLS. */
@@ -503,7 +514,7 @@ export class DossieService {
            procura "quem abriu o álbum da Alice" procura por `memory_record`,
            e um segundo nome de entidade esconderia metade das aberturas. */
         await this.audit.log({
-          action: 'memory.open', actorId: user.id,
+          action: 'memory.open', actorId: user.id, houseId: casa,
           entity: 'memory_record', entityId: memoryId, detail: { fotoId: row.id },
         }, c);
       }

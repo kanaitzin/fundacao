@@ -199,7 +199,10 @@ export class ReportsService {
 
     await this.audit.log({
       action: 'report.generate', actorId: user.id, institutionId: user.institutionId,
-      houseId: input.houseId ?? null, entity: 'report', entityId: r.id,
+      /* Relatório de pessoa não tem unidade no formulário — a casa vem de quem
+         ele fala, ou a coordenação da casa não vê nem que ele foi criado. */
+      houseId: input.houseId ?? await this.casaDoRelatorio(r.id, user),
+      entity: 'report', entityId: r.id,
       detail: { tipo: input.kind, de: input.de, ate: input.ate, secoes: secoes.length },
     });
 
@@ -210,6 +213,27 @@ export class ReportsService {
         ? 'Rascunho criado. Este relatório só vale depois de aprovado por outra pessoa — e o sistema não envia nada a ninguém: a entrega é sua, e fica registrada.'
         : 'Rascunho criado.',
     };
+  }
+
+  /**
+   * A CASA DE UM RELATÓRIO — e por que ela não é só `house_id` (fase 149).
+   *
+   * Relatório de CASA traz a unidade no formulário; relatório de CRIANÇA não
+   * traz nenhuma, e é o segundo que vai à audiência. A auditoria de um
+   * documento sem casa é invisível para a coordenação da casa (`audit_select`
+   * compara `house_id` com o alcance, e NULL não é igual a nada), e era assim
+   * que o judiciário de uma criança da Casa 03 era gerado, aprovado, exportado
+   * e entregue sem que a coordenadora dela pudesse ver um único desses atos.
+   *
+   * Então a casa do relatório é a dele OU a de quem ele fala.
+   */
+  private async casaDoRelatorio(id: string, user: AuthenticatedUser): Promise<string | null> {
+    return this.db.asUser(user.id, async (c) => {
+      const { rows: [r] } = await c.query(
+        `SELECT coalesce(house_id, app_person_house(person_id)) AS casa
+           FROM report_document WHERE id = $1`, [id]);
+      return (r?.casa as string | null) ?? null;
+    });
   }
 
   async abrir(user: AuthenticatedUser, id: string) {
@@ -374,7 +398,7 @@ export class ReportsService {
 
     await this.audit.log({
       action: 'report.submit', actorId: user.id, institutionId: user.institutionId,
-      entity: 'report', entityId: id, detail: { tipo: r.kind },
+      houseId: await this.casaDoRelatorio(id, user), entity: 'report', entityId: id, detail: { tipo: r.kind },
     });
     return { situacao: 'em_aprovacao',
       aviso: 'Enviado para aprovação. Quem redigiu não aprova o próprio relatório: a '
@@ -405,7 +429,7 @@ export class ReportsService {
     });
     await this.audit.log({
       action: 'report.approve', actorId: user.id, institutionId: user.institutionId,
-      entity: 'report', entityId: id, detail: { versao: r.versao },
+      houseId: await this.casaDoRelatorio(id, user), entity: 'report', entityId: id, detail: { versao: r.versao },
     });
     return {
       aprovado: true, versao: r.versao,
@@ -492,7 +516,14 @@ export class ReportsService {
     });
     await this.audit.log({
       action: 'report.export', actorId: user.id, institutionId: user.institutionId,
-      entity: 'report', entityId: id, detail: { formato, tipo: doc.tipo },
+      houseId: await this.casaDoRelatorio(id, user),
+      entity: 'report', entityId: id,
+      /* A FINALIDADE ESCRITA VEM PARA A LINHA. Ela ficava só no `export_log`,
+         numa tabela que a leitura da auditoria não consulta — e a auditoria
+         devolvia a exportação sem o para quê, que é a única pergunta que
+         alguém faz seis meses depois. */
+      purpose: finalidade.trim(),
+      detail: { formato, tipo: doc.tipo },
     });
     /*
      * Word, e não PDF, por uso e não por tecnologia: quem assina precisa poder
@@ -571,7 +602,7 @@ export class ReportsService {
 
     await this.audit.log({
       action: 'report.delivery_registered', actorId: user.id, institutionId: user.institutionId,
-      entity: 'report', entityId: id, detail: { meio: entrega.meio },
+      houseId: await this.casaDoRelatorio(id, user), entity: 'report', entityId: id, detail: { meio: entrega.meio },
     });
     return { id: r.id, registrado: true };
   }

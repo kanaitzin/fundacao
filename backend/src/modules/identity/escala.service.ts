@@ -175,6 +175,7 @@ export class EscalaService {
     }
     await this.audit.log({
       action: 'escala.revoke', actorId: user.id,
+      houseId: await this.audit.casaDoRegistro(user.id, 'shift_assignment', id),
       entity: 'shift_assignment', entityId: id,
     });
     return {
@@ -224,11 +225,13 @@ export class EscalaService {
        esconderia a substituição das duas buscas. */
     await this.audit.log({
       action: 'escala.revoke', actorId: user.id,
+      houseId: await this.audit.casaDoRegistro(user.id, 'shift_assignment', id),
       entity: 'shift_assignment', entityId: id,
       detail: { substituicao: true },
     });
     await this.audit.log({
       action: 'escala.set', actorId: user.id,
+      houseId: await this.audit.casaDoRegistro(user.id, 'shift_assignment', r.novo_id),
       entity: 'shift_assignment', entityId: r.novo_id,
       detail: { substituicao: true, substituiu: id },
     });

@@ -82,7 +82,9 @@ export class BenefitsService {
 
   private async negar(user: AuthenticatedUser, personId: string, motivo: string): Promise<never> {
     await this.audit.log({
-      action: 'benefits.denied', actorId: user.id, entity: 'person', entityId: personId,
+      action: 'benefits.denied', actorId: user.id,
+      houseId: await this.audit.casaDoAcolhido(user.id, personId),
+      entity: 'person', entityId: personId,
       detail: { papel: user.role, motivo },
     });
     throw new ForbiddenException(
@@ -93,7 +95,9 @@ export class BenefitsService {
     if (!['coordenador', 'gestor_geral'].includes(user.role)) {
       // Auditar a tentativa: acesso negado a dado sensível é informação relevante.
       await this.audit.log({
-        action: 'benefits.denied', actorId: user.id, entity: 'person', entityId: personId,
+        action: 'benefits.denied', actorId: user.id,
+        houseId: await this.audit.casaDoAcolhido(user.id, personId),
+        entity: 'person', entityId: personId,
         detail: { papel: user.role },
       });
       throw new ForbiddenException('Somente a coordenação da casa atual e o Gestor Geral acessam esta área.');
@@ -284,7 +288,8 @@ export class BenefitsService {
 
     await this.audit.log({
       action: res.criado ? 'benefits.create' : 'benefits.update',
-      actorId: user.id, entity: 'benefit_record', entityId: res.id,
+      actorId: user.id, houseId: await this.audit.casaDoAcolhido(user.id, personId),
+      entity: 'benefit_record', entityId: res.id,
       purpose: input.finalidade,
       detail: { personId, campos: res.mudouCampos },   // quais campos, nunca os valores
     });
@@ -300,7 +305,9 @@ export class BenefitsService {
     this.exigirReauth(user);
     if (!(await this.podeVer(user, personId))) await this.negar(user, personId, 'fora_da_casa_atual');
     await this.audit.log({
-      action: 'benefits.export', actorId: user.id, entity: 'person', entityId: personId,
+      action: 'benefits.export', actorId: user.id,
+      houseId: await this.audit.casaDoAcolhido(user.id, personId),
+      entity: 'person', entityId: personId,
       purpose: finalidade, detail: { formato },
     });
     return { ok: true, formato, aviso: 'Exportação registrada em auditoria com finalidade declarada.' };

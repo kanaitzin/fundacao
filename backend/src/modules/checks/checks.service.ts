@@ -485,7 +485,9 @@ export class ChecksService {
         return row;
       });
       await this.audit.log({
-        action: 'check.confirm', actorId: user.id, entity: 'collective_check', entityId: checkId,
+        action: 'check.confirm', actorId: user.id,
+        houseId: await this.audit.casaDoRegistro(user.id, 'collective_check', checkId),
+        entity: 'collective_check', entityId: checkId,
         detail: { conferidos: r.conferidos, esperados: r.esperados },
       });
       await this.bus.publish('check.confirmed',

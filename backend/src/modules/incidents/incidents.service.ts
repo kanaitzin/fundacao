@@ -831,6 +831,7 @@ export class IncidentsService {
     });
     if (!ok) throw new BadRequestException('Só se aprova comunicação em rascunho ou em revisão.');
     await this.audit.log({ action: 'external_comm.approve', actorId: user.id,
+      houseId: await this.audit.casaDoRegistro(user.id, 'external_communication', id),
       entity: 'external_communication', entityId: id });
     return {
       status: 'aprovado',
@@ -856,6 +857,7 @@ export class IncidentsService {
     });
     if (!ok) throw new BadRequestException('A entrega só é registrada depois da aprovação.');
     await this.audit.log({ action: 'external_comm.delivered', actorId: user.id,
+      houseId: await this.audit.casaDoRegistro(user.id, 'external_communication', id),
       entity: 'external_communication', entityId: id });
     return { status: 'entregue_manualmente', aviso: 'Entrega registrada, com responsável e horário.' };
   }
@@ -920,7 +922,9 @@ export class IncidentsService {
       return (rowCount ?? 0) > 0;
     });
     if (!ok) throw new BadRequestException('Transição não permitida a partir do estado atual.');
-    await this.audit.log({ action: acao, actorId: user.id, entity: 'external_communication', entityId: id });
+    await this.audit.log({ action: acao, actorId: user.id,
+      houseId: await this.audit.casaDoRegistro(user.id, 'external_communication', id),
+      entity: 'external_communication', entityId: id });
     return { status: novo, aviso };
   }
 

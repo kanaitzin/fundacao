@@ -405,7 +405,7 @@ export class ImpactoService {
                    (SELECT house_id FROM house_stay
                      WHERE person_id = $1 AND status = 'ativa' LIMIT 1),
                    $2, $3, coalesce($4::date, app_hoje()), $5, $6, $7, $8, $9, $10)
-           RETURNING id`,
+           RETURNING id, house_id`,
           [input.personId, input.tipo,
            input.tipo === 'outro' ? input.tipoOutro!.trim() : null,
            input.quando ?? null, input.descricao!.trim(),
@@ -414,6 +414,10 @@ export class ImpactoService {
 
         await this.audit.log({
           action: 'marco.registrado', actorId: user.id, institutionId: user.institutionId,
+          /* A casa vem do `RETURNING`, e não de outra consulta: a linha ainda
+             não foi confirmada, e outra conexão não a veria. É a casa GRAVADA no
+             marco — ela muda de casa, e o marco não muda de lugar junto. */
+          houseId: (r.house_id as string | null) ?? null,
           entity: 'life_milestone', entityId: r.id,
           // Metadado: o tipo, nunca a descrição — que fala de uma criança.
           detail: { tipo: input.tipo },
@@ -442,7 +446,7 @@ export class ImpactoService {
   async lerComprovante(user: AuthenticatedUser, marcoId: string) {
     const m = await this.db.asUser(user.id, async (c) => {
       const { rows: [r] } = await c.query(
-        `SELECT storage_key, mime, file_name FROM life_milestone WHERE id = $1`, [marcoId]);
+        `SELECT storage_key, mime, file_name, house_id FROM life_milestone WHERE id = $1`, [marcoId]);
       return r;
     });
     if (!m) throw new NotFoundException('Marco não encontrado — ou fora do seu alcance.');
@@ -455,6 +459,7 @@ export class ImpactoService {
     }
     await this.audit.log({
       action: 'marco.comprovante.lido', actorId: user.id, institutionId: user.institutionId,
+      houseId: (m.house_id as string | null) ?? null,
       entity: 'life_milestone', entityId: marcoId, detail: { tipo: m.mime },
     });
     return {

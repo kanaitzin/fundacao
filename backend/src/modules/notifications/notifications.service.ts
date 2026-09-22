@@ -128,7 +128,9 @@ export class NotificationsService implements OnModuleInit {
          WHERE id=$1 AND user_id=$2`, [id, user.id]);
     });
     await this.audit.log({
-      action: 'notification.ack', actorId: user.id, entity: 'notification', entityId: id,
+      action: 'notification.ack', actorId: user.id,
+      houseId: await this.audit.casaDoRegistro(user.id, 'notification', id),
+      entity: 'notification', entityId: id,
     });
     return { ok: true };
   }

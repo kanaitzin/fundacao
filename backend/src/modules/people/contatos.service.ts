@@ -205,6 +205,7 @@ export class ContatosService {
            user.id, cpf]);
         await this.audit.log({
           action: 'contato.criado', actorId: user.id, institutionId: user.institutionId,
+          houseId: await this.audit.casaDoAcolhido(user.id, personId, c),
           entity: 'person_contact', entityId: r.id,
           // Metadado, nunca conteúdo: o vínculo, e não o nome nem o telefone.
           detail: { vinculo: input.vinculo, restrito: !!input.restrito },
@@ -367,6 +368,7 @@ export class ContatosService {
     await this.audit.log({
       action: input.autorizado ? 'contato.visita.autorizada' : 'contato.visita.retirada',
       actorId: user.id, institutionId: user.institutionId,
+      houseId: await this.audit.casaDoAcolhido(user.id, r.person_id),
       entity: 'person_contact', entityId: contatoId,
       // Metadado: o vínculo, se o CPF mudou e se o horário foi combinado. Nunca
       // o CPF, e nunca o MOTIVO — a frase é sobre uma família.
@@ -482,14 +484,17 @@ export class ContatosService {
       throw new ForbiddenException('A foto do visitante é cadastrada pela técnica ou pela coordenação.');
     }
     const { chave, mime: tipo, tamanho } = await this.guardarAFoto(input);
-    await this.db.asUser(user.id, async (c) => {
-      const { rowCount } = await c.query(
+    /* De quem é este visitante: a casa da linha de auditoria vem da criança. */
+    const deQuem = await this.db.asUser(user.id, async (c) => {
+      const { rowCount, rows } = await c.query(
         `UPDATE person_contact SET photo_key = $2, photo_mime = $3, photo_at = now(), photo_by = $4
-          WHERE id = $1 AND active`, [contatoId, chave, tipo, user.id]);
+          WHERE id = $1 AND active RETURNING person_id`, [contatoId, chave, tipo, user.id]);
       if (!rowCount) throw new NotFoundException('Contato não encontrado, encerrado, ou fora do seu alcance.');
+      return rows[0].person_id as string;
     });
     await this.audit.log({
       action: 'foto.contato.guardada', actorId: user.id, institutionId: user.institutionId,
+      houseId: await this.audit.casaDoAcolhido(user.id, deQuem),
       entity: 'person_contact', entityId: contatoId, detail: { tipo, bytes: tamanho },
     });
     return { ok: true, aviso: tipo === 'image/webp'
@@ -538,7 +543,9 @@ export class ContatosService {
 
     await this.audit.log({
       action: 'foto.identificacao.guardada', actorId: user.id,
-      institutionId: user.institutionId, entity: 'person', entityId: personId,
+      institutionId: user.institutionId,
+      houseId: await this.audit.casaDoAcolhido(user.id, personId),
+      entity: 'person', entityId: personId,
       detail: { tipo, bytes: tamanho },
     });
     return { ok: true, aviso: 'Foto de identificação guardada. Ela aparece no alto do perfil '

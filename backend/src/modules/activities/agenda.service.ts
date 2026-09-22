@@ -363,6 +363,7 @@ export class AgendaService {
     });
     await this.audit.log({
       action: 'commitment.cancel', actorId: user.id, institutionId: user.institutionId,
+      houseId: await this.audit.casaDoRegistro(user.id, 'commitment', id),
       entity: 'commitment', entityId: id, detail: { futurasRemovidas: r.futuras_removidas },
     });
     return {
@@ -386,6 +387,7 @@ export class AgendaService {
     });
     await this.audit.log({
       action: 'commitment.skip', actorId: user.id, institutionId: user.institutionId,
+      houseId: await this.audit.casaDoRegistro(user.id, 'commitment', compromissoId),
       entity: 'commitment', entityId: compromissoId,
       detail: { em: data, atividadeCancelada: r.atividade_cancelada },
     });
@@ -399,6 +401,7 @@ export class AgendaService {
     });
     await this.audit.log({
       action: 'commitment.unskip', actorId: user.id, institutionId: user.institutionId,
+      houseId: await this.audit.casaDoRegistro(user.id, 'commitment', compromissoId),
       entity: 'commitment', entityId: compromissoId, detail: { em: data },
     });
     return { remarcada: true };

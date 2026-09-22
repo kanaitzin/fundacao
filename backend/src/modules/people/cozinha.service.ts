@@ -86,8 +86,14 @@ export class CozinhaService {
   }
 
   async cancelar(user: AuthenticatedUser, id: string, motivo: string) {
+    /* A casa do pedido, lida ANTES do cancelamento: a linha de auditoria sem
+       casa é linha que a coordenação da casa não lê (fase 149). */
+    let casa: string | null = null;
     try {
       await this.db.asUser(user.id, async (c) => {
+        const { rows: [r] } = await c.query(
+          `SELECT house_id FROM kitchen_request WHERE id = $1`, [id]);
+        casa = (r?.house_id as string | null) ?? null;
         await c.query(`SELECT * FROM app_cancelar_pedido_cozinha($1,$2)`, [id, motivo]);
       });
     } catch (e: any) {
@@ -106,7 +112,7 @@ export class CozinhaService {
     }
     await this.audit.log({
       action: 'kitchen.cancel', actorId: user.id, institutionId: user.institutionId,
-      entity: 'kitchen_request', entityId: id, detail: { motivo },
+      houseId: casa, entity: 'kitchen_request', entityId: id, detail: { motivo },
     });
     return { cancelado: true };
   }

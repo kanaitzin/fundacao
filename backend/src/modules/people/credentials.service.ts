@@ -87,6 +87,7 @@ export class CredentialsService {
     if (!['coordenador', 'gestor_geral'].includes(user.role)) {
       await this.audit.log({
         action: 'credential.denied', actorId: user.id, institutionId: user.institutionId,
+        houseId: await this.audit.casaDoAcolhido(user.id, personId),
         entity: 'person', entityId: personId, detail: { papel: user.role },
       });
       throw new ForbiddenException('Somente a coordenação da casa acessa o cofre de acessos.');
@@ -104,6 +105,7 @@ export class CredentialsService {
 
     await this.audit.log({
       action: 'credential.list', actorId: user.id, institutionId: user.institutionId,
+      houseId: await this.audit.casaDoAcolhido(user.id, personId),
       entity: 'person', entityId: personId, detail: { registros: rows.length },
     });
 
@@ -172,6 +174,7 @@ export class CredentialsService {
     await this.audit.log({
       action: r.substituiu ? 'credential.replace' : 'credential.create',
       actorId: user.id, institutionId: user.institutionId,
+      houseId: await this.audit.casaDoAcolhido(user.id, personId),
       entity: 'person_credential', entityId: r.id, detail: { tipo: input.tipo },
     });
 

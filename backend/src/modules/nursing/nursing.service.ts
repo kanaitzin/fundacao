@@ -346,8 +346,13 @@ export class NursingService {
     notaClinica?: string; pedido?: string;
   }) {
     if (!['enfermagem', 'gestor_geral'].includes(user.role)) {
+      /* A casa da evolução vem do banco, lida como dona: a recusa tem de ficar
+         no rastro da casa, e quem foi recusado não alcança a linha (fase 149). */
+      const { rows: [ev] } = await this.db.query(
+        `SELECT house_id FROM health_evolution WHERE id = $1`, [evolutionId]);
       await this.audit.log({
         action: 'health.triage_denied', actorId: user.id,
+        houseId: (ev?.house_id as string | null) ?? null,
         entity: 'health_evolution', entityId: evolutionId, detail: { papel: user.role },
       });
       throw new ForbiddenException(

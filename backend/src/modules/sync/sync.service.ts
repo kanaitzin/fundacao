@@ -243,6 +243,7 @@ export class SyncService {
 
     await this.audit.log({
       action: 'sync.conflict_resolve', actorId: user.id,
+      houseId: await this.audit.casaDoRegistro(user.id, 'sync_conflict', conflictId),
       entity: 'sync_conflict', entityId: conflictId, detail: { decisao: resolution },
     });
     return { ok: true, aviso: 'Decisão registrada. As versões originais permanecem preservadas.' };

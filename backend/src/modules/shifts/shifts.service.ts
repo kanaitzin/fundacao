@@ -892,7 +892,9 @@ export class ShiftsService {
       throw e;
     }
     await this.audit.log({
-      action: 'ata.episode_ack', actorId: user.id, entity: 'ata_episode', entityId: episodeId,
+      action: 'ata.episode_ack', actorId: user.id,
+      houseId: await this.audit.casaDoRegistro(user.id, 'ata_episode', episodeId),
+      entity: 'ata_episode', entityId: episodeId,
       detail: { comentou: !!comentario },
     });
     return { ok: true, aviso: 'Ciência registrada. O relato original permanece como foi escrito.' };

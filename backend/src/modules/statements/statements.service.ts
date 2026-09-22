@@ -118,6 +118,9 @@ export class StatementsService {
     if (ladoALado && rows.length) {
       await this.audit.log({
         action: 'statement.read_side_by_side', actorId: user.id,
+        /* A casa vem do PRIMEIRO relato: todos os relatos de um mesmo fato são
+           da mesma casa, e a leitura lado a lado é um ato dela (fase 149). */
+        houseId: await this.audit.casaDoRegistro(user.id, 'statement', rows[0].id),
         entity, entityId, detail: { relatos: rows.length },
       });
     }
@@ -204,6 +207,7 @@ export class StatementsService {
     if (data.rows.some((r: any) => r.restricted && !r.meu)) {
       await this.audit.log({
         action: 'statement.read_by_person', actorId: user.id, institutionId: user.institutionId,
+        houseId: await this.audit.casaDoAcolhido(user.id, personId),
         entity: 'person', entityId: personId, detail: { relatos: data.rows.length },
       });
     }

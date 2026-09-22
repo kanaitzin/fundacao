@@ -43,6 +43,34 @@ export class MedicationsService {
     @Inject(ArquivosService) private readonly arquivos: ArquivosService,
   ) {}
 
+  /**
+   * A CASA DE UM ESQUEMA E A DE UMA DOSE, para a linha de auditoria (fase 149).
+   *
+   * A `audit_select` (0920) só entrega à coordenação o que tem casa, e quase
+   * tudo o que este módulo audita é sobre a criança de uma casa — a dose
+   * confirmada, o esquema suspenso, a receita anexada. Sem isto, a coordenadora
+   * lia o rastro do remédio da casa dela como uma lista vazia.
+   *
+   * Lê como DONA, e nada daqui volta para a tela: o valor entra na coluna
+   * `house_id` e só. A recusa também é auditada, e recusa acontece justamente
+   * quando quem pediu não alcança a linha.
+   */
+  private async casaDoEsquema(user: AuthenticatedUser, prescriptionId: string) {
+    return this.db.asUser(user.id, async (c) => {
+      const { rows: [r] } = await c.query(
+        `SELECT house_id FROM prescription WHERE id = $1`, [prescriptionId]);
+      return (r?.house_id as string | null) ?? null;
+    });
+  }
+
+  private async casaDaDose(user: AuthenticatedUser, administrationId: string) {
+    return this.db.asUser(user.id, async (c) => {
+      const { rows: [r] } = await c.query(
+        `SELECT house_id FROM medication_administration WHERE id = $1`, [administrationId]);
+      return (r?.house_id as string | null) ?? null;
+    });
+  }
+
   // ---------- Prescrição (Enfermagem) ----------
 
   /**
@@ -136,6 +164,7 @@ export class MedicationsService {
 
     await this.audit.log({
       action: 'prescription.sign', actorId: user.id,
+      houseId: await this.casaDoEsquema(user, prescriptionId),
       entity: 'prescription', entityId: prescriptionId,
     });
     await this.bus.publish('prescription.signed', { prescriptionId }, { actorId: user.id });
@@ -276,6 +305,7 @@ export class MedicationsService {
     }
     await this.audit.log({
       action: 'prescription.suspend', actorId: user.id,
+      houseId: await this.casaDoEsquema(user, prescriptionId),
       entity: 'prescription', entityId: prescriptionId,
       detail: { motivo, dosesRetiradasDaGrade: suspensa.doses },
     });
@@ -451,6 +481,7 @@ export class MedicationsService {
 
     await this.audit.log({
       action: 'medication.confirm', actorId: user.id,
+      houseId: await this.casaDaDose(user, administrationId),
       entity: 'medication_administration', entityId: administrationId,
       detail: { estado: input.estado, offline: input.offline ?? false },
     });
@@ -611,6 +642,7 @@ export class MedicationsService {
 
     await this.audit.log({
       action: 'medication.prn_registered', actorId: user.id,
+      houseId: await this.casaDoEsquema(user, prescricaoId),
       entity: 'medication_administration', entityId: id,
       // Metadado, nunca o motivo: o conteúdo não vai para o log (§20).
       detail: { prescricaoId },
@@ -658,6 +690,7 @@ export class MedicationsService {
     }
     await this.audit.log({
       action: 'medication.prn_outcome', actorId: user.id,
+      houseId: await this.casaDaDose(user, administrationId),
       entity: 'medication_administration', entityId: administrationId, detail: {},
     });
     return { ok: true, aviso: 'Desfecho registrado com o seu nome.' };
@@ -981,6 +1014,7 @@ export class MedicationsService {
     }
     await this.audit.log({
       action: 'medication.nurse_only', actorId: user.id,
+      houseId: await this.casaDoEsquema(user, prescriptionId),
       entity: 'prescription', entityId: prescriptionId,
       detail: { soEnfermagem: input.soEnfermagem },
     });
@@ -1221,6 +1255,7 @@ export class MedicationsService {
       const id = r.documento_id;
       await this.audit.log({
         action: 'prescription.document', actorId: user.id, institutionId: user.institutionId,
+        houseId: await this.casaDoEsquema(user, prescriptionId),
         entity: 'prescription_document', entityId: id,
         detail: { prescriptionId, forma: guardado ? 'arquivo' : 'referencia',
                   tipo: input.tipo === 'bula' ? 'bula' : 'receita',
@@ -1432,8 +1467,13 @@ export class MedicationsService {
         'A saída dos medicamentos desta ida já foi registrada. '
         + 'A folha pode ser gerada de novo sem dar baixa outra vez.');
     }
+    /* A casa da ida, para a linha de auditoria (fase 149). */
+    let casa: string | null = null;
     try {
       await this.db.asUser(user.id, async (c) => {
+        const { rows: [s] } = await c.query(
+          `SELECT house_id FROM family_stay WHERE id = $1`, [familyStayId]);
+        casa = (s?.house_id as string | null) ?? null;
         await c.query(`SELECT * FROM app_registrar_saida_de_medicamentos($1,$2::jsonb)`,
           [familyStayId, JSON.stringify(calculo.itens)]);
       });
@@ -1453,7 +1493,8 @@ export class MedicationsService {
     }
     await this.audit.log({
       action: 'medication.leave_with_child', actorId: user.id,
-      institutionId: user.institutionId, entity: 'family_stay', entityId: familyStayId,
+      institutionId: user.institutionId, houseId: casa,
+      entity: 'family_stay', entityId: familyStayId,
       detail: { itens: calculo.itens.length },
     });
     return { registrada: true };

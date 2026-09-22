@@ -296,6 +296,7 @@ export class EducacaoService {
 
     await this.audit.log({
       action: 'education.concept', actorId: user.id,
+      houseId: await this.audit.casaDoAcolhido(user.id, personId),
       entity: 'education_concept', entityId: r.out_id,
       /* Metadado, nunca o motivo: o conteúdo não vai para o log (§20). */
       detail: { personId, ano, bimestre, corrigiu: r.out_substituiu != null },

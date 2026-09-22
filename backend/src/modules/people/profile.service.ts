@@ -290,7 +290,9 @@ export class ProfileService {
         aviso: 'Nada mudou: o que você enviou é igual ao que já estava.' };
     }
     await this.audit.log({
-      action: 'person.profile_update', actorId: user.id, entity: 'person', entityId: personId,
+      action: 'person.profile_update', actorId: user.id,
+      houseId: await this.audit.casaDoAcolhido(user.id, personId),
+      entity: 'person', entityId: personId,
       detail: { campos: Object.keys(enviados), alterados: n },  // nomes, nunca o conteúdo (§20)
     });
     return { ok: true, alterado: n,
@@ -382,7 +384,9 @@ export class ProfileService {
     }
 
     await this.audit.log({
-      action: 'person.correct_identity', actorId: user.id, entity: 'person', entityId: personId,
+      action: 'person.correct_identity', actorId: user.id,
+      houseId: await this.audit.casaDoAcolhido(user.id, personId),
+      entity: 'person', entityId: personId,
       // Nomes dos campos, nunca o conteúdo (§20): o que mudou fica em
       // `person_correction`, que tem alcance próprio.
       detail: { campos: Object.keys(campos), corrigidos: n },

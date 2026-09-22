@@ -194,15 +194,16 @@ export class HealthSummaryService {
 
   /** Registro do download — evento distinto da geração (§7.4). */
   async registerDownload(user: AuthenticatedUser, emissaoId: string) {
-    const ok = await this.db.asUser(user.id, async (c) => {
-      const { rowCount } = await c.query(
+    const casa = await this.db.asUser(user.id, async (c) => {
+      const { rowCount, rows } = await c.query(
         `UPDATE health_summary_issue SET downloaded_at = now()
-         WHERE id = $1 AND issued_by = $2`, [emissaoId, user.id]);
-      return (rowCount ?? 0) > 0;
+         WHERE id = $1 AND issued_by = $2 RETURNING house_id`, [emissaoId, user.id]);
+      if (!rowCount) return undefined;
+      return (rows[0].house_id as string | null) ?? null;
     });
-    if (!ok) throw new NotFoundException('Emissão não encontrada.');
+    if (casa === undefined) throw new NotFoundException('Emissão não encontrada.');
     await this.audit.log({
-      action: 'health.summary_download', actorId: user.id,
+      action: 'health.summary_download', actorId: user.id, houseId: casa,
       entity: 'health_summary_issue', entityId: emissaoId,
     });
     return { ok: true };

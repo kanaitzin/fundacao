@@ -320,6 +320,7 @@ export class AlignmentsService {
           [agreementId, situacao, motivo.trim(), substitutoId ?? null]);
         await this.audit.log({
           action: 'alignment.agreement_status', actorId: user.id,
+          houseId: await this.audit.casaDoRegistro(user.id, 'team_agreement', agreementId, c),
           entity: 'team_agreement', entityId: agreementId,
           detail: { situacao },
         }, c);
@@ -697,6 +698,7 @@ export class AlignmentsService {
 
     await this.audit.log({
       action: 'estatuto.revogado', actorId: user.id, institutionId: user.institutionId,
+      houseId: await this.audit.casaDoRegistro(user.id, 'house_statute', id),
       entity: 'house_statute', entityId: id, purpose: motivo,
     });
     return { ok: true, aviso: 'Regra revogada. Ela continua legível no estatuto, com o motivo.' };

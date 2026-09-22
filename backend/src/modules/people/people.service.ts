@@ -382,6 +382,7 @@ export class PeopleService {
       });
       await this.audit.log({
         action: 'family_stay.open', actorId: user.id, institutionId: user.institutionId,
+        houseId: await this.audit.casaDoAcolhido(user.id, input.personId),
         entity: 'family_stay', entityId: id, detail: { personId: input.personId },
       });
       return { id };
@@ -430,8 +431,13 @@ export class PeopleService {
    */
   async registrarRetornoFamiliar(user: AuthenticatedUser, id: string,
                                  quando: string, nota?: string, trouxe?: string) {
+    /* A casa da saída, para a linha de auditoria (fase 149). */
+    let casa: string | null = null;
     try {
       await this.db.asUser(user.id, async (c) => {
+        const { rows: [s] } = await c.query(
+          `SELECT house_id FROM family_stay WHERE id = $1`, [id]);
+        casa = (s?.house_id as string | null) ?? null;
         await c.query(
           `SELECT * FROM app_registrar_retorno_familiar($1,$2::timestamptz,$3,$4)`,
           [id, quando, nota ?? null, trouxe ?? null]);
@@ -455,7 +461,7 @@ export class PeopleService {
        da aplicação guarda ID e metadado (regra 2). */
     await this.audit.log({
       action: 'family_stay.close', actorId: user.id, institutionId: user.institutionId,
-      entity: 'family_stay', entityId: id,
+      houseId: casa, entity: 'family_stay', entityId: id,
       detail: { quando, comNota: !!nota?.trim(), comTrouxe: !!trouxe?.trim() },
     });
     return { encerrada: true };
@@ -636,6 +642,7 @@ export class PeopleService {
     }
     await this.audit.log({
       action: 'outing_permission.set', actorId: user.id, institutionId: user.institutionId,
+      houseId: await this.audit.casaDoAcolhido(user.id, personId),
       entity: 'person', entityId: personId, detail: { status: input.status },
     });
     return { definida: true };

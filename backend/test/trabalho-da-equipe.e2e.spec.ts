@@ -286,9 +286,26 @@ describe('O trabalho da equipe', () => {
     /* Só os DADOS: as duas frases da resposta falam de criança de propósito —
        é nelas que o sistema diz o que não conta. O conferidor olha os quatro
        recortes, que é onde um número por criança apareceria. */
-    const dados = JSON.stringify([r.body.porCasa, r.body.porSetor,
-                                  r.body.porPessoa, r.body.porAcao]);
-    expect(dados).not.toMatch(/acolhid|crian[çc]a|personId|person_id/i);
+    const recortes = [r.body.porCasa, r.body.porSetor, r.body.porPessoa, r.body.porAcao];
+    /*
+     * A CONFERÊNCIA É DA DIMENSÃO, E NÃO DA PALAVRA — corrigido na fase 149.
+     *
+     * Ela lia o JSON inteiro à procura de "acolhido" ou "criança", e passou a
+     * acusar o que não é defeito: o NOME de uma ação pode falar de criança —
+     * *"Cadastro do acolhido alterado"*, *"Relatos de uma criança lidos no perfil
+     * dela"* —, porque a ação É sobre uma criança, e o vocabulário da auditoria
+     * existe justamente para dizer isso em português. **O que a regra 3 proíbe é
+     * CONTAR por criança**, e isso aparece na DIMENSÃO do recorte: nos campos, não
+     * nos rótulos. *Ela só passava porque as linhas que nomeiam criança não
+     * chegavam aqui — e a 149 fez com que chegassem, que é o conserto dela.*
+     *
+     * Fixar os campos por extenso é mais forte do que procurar palavra: recorte
+     * novo por criança reprova mesmo que ninguém o chame de criança.
+     */
+    const campos = [...new Set(recortes.flat().flatMap((x: any) => Object.keys(x)))].sort();
+    expect(campos).toEqual(['acao', 'cargo', 'casa', 'codigo', 'quantos', 'quem', 'setor']);
+    /* E nenhum identificador de criança viaja nos dados, com nome ou sem ele. */
+    expect(JSON.stringify(recortes)).not.toMatch(/personId|person_id|[0-9a-f]{8}-[0-9a-f]{4}-/i);
     expect(r.body.sobreCriancas).toMatch(/Nenhuma contagem aqui é por criança/);
     /* E o aviso sobre o que o número é vai JUNTO da resposta, não numa nota de
        rodapé da tela: ele é a razão de eu ter recusado esta visão antes. */

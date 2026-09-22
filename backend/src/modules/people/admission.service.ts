@@ -226,6 +226,7 @@ export class AdmissionService {
 
     await this.audit.log({
       action: 'person.judicial_view', actorId: user.id, institutionId: user.institutionId,
+      houseId: await this.audit.casaDoAcolhido(user.id, personId),
       entity: 'person', entityId: personId, detail: {},   // metadado; conteúdo não vai ao log
     });
 
@@ -287,6 +288,7 @@ export class AdmissionService {
 
     await this.audit.log({
       action: 'person.judicial_update', actorId: user.id, institutionId: user.institutionId,
+      houseId: await this.audit.casaDoAcolhido(user.id, personId),
       entity: 'person', entityId: personId, detail: { campos: Object.keys(campos) },
     });
     return { atualizado: true };
