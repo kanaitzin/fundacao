@@ -1714,16 +1714,26 @@ cobrar('e o painel abre pelo que a INSTITUIÇÃO fez, antes das casas',
 cobrar('o gasto vem com a ressalva colada, e não em nota de rodapé',
   /sem valor lançado/i.test(inicial) && /MAIOR do que este número/i.test(inicial),
   'um total incompleto num relatório de prestação de contas é pior que nenhum');
-/* A frase mudou na fase 137, e a cobrança mudou com ela: nota continua não
-   existindo, mas o CONCEITO do bimestre passou a existir — e o painel diz que
-   ainda não o conta, em vez de deixar o gestor achar que conta. Estimar "boas
-   notas" a partir de texto livre continua sendo inventar um número. */
-cobrar('a tela diz que não existe NOTA, e que o conceito do bimestre existe',
-  /não existe nota escolar/i.test(inicial) && /conceito por bimestre/i.test(inicial),
-  'depois da fase 137 a frase antiga seria falsa: o conceito existe no perfil');
-cobrar('e é honesta em dizer que o painel ainda não conta o conceito',
-  /ainda não o conta/i.test(inicial),
-  'deixar o gestor supor que conta é pior do que dizer que não');
+/*
+ * A FRASE E AS CAIXAS DO CONCEITO (fase 139) — terceira versão desta cobrança.
+ *
+ * Ela já disse "não existe campo de nota, boletim ou conceito" (verdade até a
+ * 137), depois "o conceito existe e o painel não o conta" (verdade até a 139).
+ * Agora o painel conta. **Cobrança que não muda com o sistema guarda uma
+ * mentira**, e é por isso que ela é reescrita junto.
+ */
+cobrar('a tela diz que não existe NOTA, e que o que ela conta é o CONCEITO',
+  /não existe nota escolar/i.test(inicial) && /CONCEITO do bimestre/i.test(inicial),
+  'estimar "boas notas" a partir de texto livre continuaria sendo inventar um número');
+cobrar('o painel tem a caixa de quem está acompanhando o ano',
+  /Acompanhando o ano/i.test(inicial),
+  'é a caixa que ele pediu em 09/09, e ela passou a ter de onde sair');
+cobrar('e a caixa de quem NÃO está — a que faz a casa agir',
+  /pede providência/i.test(inicial),
+  'painel que mostra só quem vai bem ensina a olhar para o lado bom');
+cobrar('e diz que o conceito conta pelo BIMESTRE, não pela data de digitação',
+  /conta pelo BIMESTRE/i.test(inicial),
+  'o retorno atrasado da escola é o caso comum, e ele não pode cair no bimestre errado');
 cobrar('e diz que a ordem é o código da casa, nunca o resultado',
   /nunca por resultado/i.test(inicial),
   'ordenar por número é a classificação pronta');

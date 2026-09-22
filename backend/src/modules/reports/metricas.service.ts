@@ -102,6 +102,9 @@ export class MetricasService {
       passouDeAno: Number(r.passou_de_ano), marcos: Number(r.marcos),
       apoioEducacional: Number(r.apoio_educacional),
       evolucoesEducacionais: Number(r.evolucoes_educacionais),
+      /* O conceito do bimestre (1450), por intersecção de período. */
+      conceitoAcompanha: Number(r.conceito_acompanha),
+      conceitoNaoAcompanha: Number(r.conceito_nao_acompanha),
       internacoes: Number(r.internacoes),
       medicamentosSaidos: Number(r.medicamentos_saidos),
       notasCentavos: Number(r.notas_centavos),
@@ -143,6 +146,8 @@ export class MetricasService {
         marcos: soma((c) => c.marcos),
         apoioEducacional: soma((c) => c.apoioEducacional),
         evolucoesEducacionais: soma((c) => c.evolucoesEducacionais),
+        conceitoAcompanha: soma((c) => c.conceitoAcompanha),
+        conceitoNaoAcompanha: soma((c) => c.conceitoNaoAcompanha),
         internacoes: soma((c) => c.internacoes),
         medicamentosSaidos: soma((c) => c.medicamentosSaidos),
         notasCentavos: soma((c) => c.notasCentavos),
@@ -172,10 +177,23 @@ export class MetricasService {
           ? `${soma((c) => c.notasSemValor)} nota(s) fiscal(is) sem valor lançado — o total `
             + 'gasto é MAIOR do que o número acima. Lançar o valor é o que fecha a conta.'
           : null,
-        'Não existe nota escolar neste sistema, e não vai existir: o que existe desde a fase '
-        + '137 é o CONCEITO por bimestre, com o porquê escrito ao lado, no perfil de cada '
-        + 'criança. Este painel ainda não o conta — contá-lo é a próxima fase, e está no §9. '
-        + 'Por enquanto ele mostra apoio educacional registrado e evoluções escritas.',
+        /*
+         * A FRASE MUDA COM O SISTEMA, e é a terceira versão dela.
+         *
+         * A primeira dizia que não existia campo de nota, boletim ou conceito — era
+         * verdade até a fase 137. A segunda dizia que o conceito existia e o painel
+         * não o contava — era verdade até esta. **Frase de tela que envelhece é
+         * frase que mente**, e é por isso que ela é reescrita junto do código.
+         */
+        'Não existe nota escolar neste sistema, e não vai existir. O que o painel conta é o '
+        + 'CONCEITO do bimestre, escrito pela equipe com o porquê ao lado — quem está '
+        + 'acompanhando o ano e quem não está. "Acompanha com apoio" não vira caixa: é uma '
+        + 'criança que ESTÁ acompanhando, e o apoio já tem a caixa dele.',
+        /* O número contado é do BIMESTRE que encosta na janela, e não da data em que
+           alguém digitou: o retorno atrasado da escola é o caso comum. */
+        'O conceito conta pelo BIMESTRE, não pela data em que foi digitado — o conceito do 3º '
+        + 'bimestre lançado em novembro conta no 3º. E conta uma vez por criança: a versão '
+        + 'corrigida é história, e não soma.',
         'As casas saem na ordem do código, nunca por resultado: ordenar por número é a '
         + 'classificação pronta, e ela precisa ser decisão de quem lê.',
       ].filter(Boolean) as string[],

@@ -465,6 +465,7 @@ const METRICAS_DAS_CASAS = [
   { id: 'h1', codigo: 'AI1', nome: 'Acolhimento Institucional 1',
     acolhidos: 18, capacidade: 20, entradas: 2, saidas: 1,
     passouDeAno: 11, marcos: 14, apoioEducacional: 6, evolucoesEducacionais: 22,
+    conceitoAcompanha: 12, conceitoNaoAcompanha: 2,
     internacoes: 1, medicamentosSaidos: 84, notasCentavos: 128_40 * 10, notasSemValor: 0,
     lanches: 540, cestas: 4, reunioes: 4, acompanhamentosAprovados: 16,
     acompanhamentosAbertos: 2, relatorios: 5, atasFechadas: 29, atasComPendencia: 1,
@@ -472,6 +473,7 @@ const METRICAS_DAS_CASAS = [
   { id: 'h2', codigo: 'AI2', nome: 'Acolhimento Institucional 2',
     acolhidos: 20, capacidade: 20, entradas: 3, saidas: 2,
     passouDeAno: 7, marcos: 9, apoioEducacional: 9, evolucoesEducacionais: 11,
+    conceitoAcompanha: 10, conceitoNaoAcompanha: 1,
     internacoes: 3, medicamentosSaidos: 156, notasCentavos: 214_90 * 10, notasSemValor: 2,
     lanches: 610, cestas: 6, reunioes: 2, acompanhamentosAprovados: 11,
     acompanhamentosAbertos: 7, relatorios: 3, atasFechadas: 24, atasComPendencia: 6,
@@ -479,6 +481,7 @@ const METRICAS_DAS_CASAS = [
   { id: 'h3', codigo: 'AI3', nome: 'Acolhimento Institucional 3',
     acolhidos: 20, capacidade: 20, entradas: 1, saidas: 0,
     passouDeAno: 9, marcos: 12, apoioEducacional: 5, evolucoesEducacionais: 18,
+    conceitoAcompanha: 14, conceitoNaoAcompanha: 1,
     internacoes: 1, medicamentosSaidos: 97, notasCentavos: 163_20 * 10, notasSemValor: 1,
     lanches: 585, cestas: 5, reunioes: 3, acompanhamentosAprovados: 14,
     acompanhamentosAbertos: 3, relatorios: 4, atasFechadas: 28, atasComPendencia: 2,
@@ -486,6 +489,7 @@ const METRICAS_DAS_CASAS = [
   { id: 'h4', codigo: 'AI4', nome: 'Acolhimento Institucional 4',
     acolhidos: 16, capacidade: 20, entradas: 0, saidas: 3,
     passouDeAno: 10, marcos: 15, apoioEducacional: 4, evolucoesEducacionais: 25,
+    conceitoAcompanha: 14, conceitoNaoAcompanha: 2,
     internacoes: 0, medicamentosSaidos: 61, notasCentavos: 89_70 * 10, notasSemValor: 0,
     lanches: 470, cestas: 3, reunioes: 4, acompanhamentosAprovados: 15,
     acompanhamentosAbertos: 1, relatorios: 6, atasFechadas: 30, atasComPendencia: 0,
@@ -493,6 +497,7 @@ const METRICAS_DAS_CASAS = [
   { id: 'h5', codigo: 'ARM1', nome: 'Acolhimento Republicano Masculino 1',
     acolhidos: 12, capacidade: 15, entradas: 1, saidas: 2,
     passouDeAno: 6, marcos: 11, apoioEducacional: 7, evolucoesEducacionais: 14,
+    conceitoAcompanha: 12, conceitoNaoAcompanha: 1,
     internacoes: 2, medicamentosSaidos: 110, notasCentavos: 176_50 * 10, notasSemValor: 3,
     lanches: 390, cestas: 4, reunioes: 3, acompanhamentosAprovados: 9,
     acompanhamentosAbertos: 4, relatorios: 3, atasFechadas: 26, atasComPendencia: 3,
@@ -500,6 +505,7 @@ const METRICAS_DAS_CASAS = [
   { id: 'h6', codigo: 'ARM2', nome: 'Acolhimento Republicano Masculino 2',
     acolhidos: 14, capacidade: 15, entradas: 2, saidas: 1,
     passouDeAno: 8, marcos: 10, apoioEducacional: 5, evolucoesEducacionais: 16,
+    conceitoAcompanha: 14, conceitoNaoAcompanha: 1,
     internacoes: 1, medicamentosSaidos: 73, notasCentavos: 121_30 * 10, notasSemValor: 0,
     lanches: 430, cestas: 3, reunioes: 4, acompanhamentosAprovados: 12,
     acompanhamentosAbertos: 2, relatorios: 4, atasFechadas: 29, atasComPendencia: 1,
@@ -507,6 +513,7 @@ const METRICAS_DAS_CASAS = [
   { id: 'h7', codigo: 'ARM3', nome: 'Acolhimento Republicano Masculino 3',
     acolhidos: 15, capacidade: 15, entradas: 4, saidas: 2,
     passouDeAno: 5, marcos: 7, apoioEducacional: 8, evolucoesEducacionais: 9,
+    conceitoAcompanha: 10, conceitoNaoAcompanha: 2,
     internacoes: 2, medicamentosSaidos: 132, notasCentavos: 198_00 * 10, notasSemValor: 4,
     lanches: 455, cestas: 6, reunioes: 1, acompanhamentosAprovados: 7,
     acompanhamentosAbertos: 9, relatorios: 2, atasFechadas: 21, atasComPendencia: 8,
@@ -514,6 +521,7 @@ const METRICAS_DAS_CASAS = [
   { id: 'h8', codigo: 'ARM4', nome: 'Acolhimento Republicano Masculino 4',
     acolhidos: 13, capacidade: 15, entradas: 1, saidas: 1,
     passouDeAno: 9, marcos: 13, apoioEducacional: 3, evolucoesEducacionais: 20,
+    conceitoAcompanha: 16, conceitoNaoAcompanha: 1,
     internacoes: 0, medicamentosSaidos: 58, notasCentavos: 94_10 * 10, notasSemValor: 0,
     lanches: 405, cestas: 2, reunioes: 4, acompanhamentosAprovados: 13,
     acompanhamentosAbertos: 1, relatorios: 5, atasFechadas: 30, atasComPendencia: 0,
@@ -4886,10 +4894,15 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       ressalvas: [
         `${soma((c) => c.notasSemValor)} nota(s) fiscal(is) sem valor lançado — o total `
         + 'gasto é MAIOR do que o número acima. Lançar o valor é o que fecha a conta.',
-        'Não existe nota escolar neste sistema, e não vai existir: o que existe desde a fase '
-        + '137 é o CONCEITO por bimestre, com o porquê escrito ao lado, no perfil de cada '
-        + 'criança. Este painel ainda não o conta — contá-lo é a próxima fase, e está no §9. '
-        + 'Por enquanto ele mostra apoio educacional registrado e evoluções escritas.',
+        /* Terceira versão desta frase: ela é reescrita junto do código, porque
+           frase de tela que envelhece é frase que mente (fase 139). */
+        'Não existe nota escolar neste sistema, e não vai existir. O que o painel conta é o '
+        + 'CONCEITO do bimestre, escrito pela equipe com o porquê ao lado — quem está '
+        + 'acompanhando o ano e quem não está. "Acompanha com apoio" não vira caixa: é uma '
+        + 'criança que ESTÁ acompanhando, e o apoio já tem a caixa dele.',
+        'O conceito conta pelo BIMESTRE, não pela data em que foi digitado — o conceito do 3º '
+        + 'bimestre lançado em novembro conta no 3º. E conta uma vez por criança: a versão '
+        + 'corrigida é história, e não soma.',
         'As casas saem na ordem do código, nunca por resultado: ordenar por número é a '
         + 'classificação pronta, e ela precisa ser decisão de quem lê.',
       ],

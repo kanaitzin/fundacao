@@ -43,6 +43,8 @@ interface Casa {
   acolhidos: number; capacidade: number; entradas: number; saidas: number;
   passouDeAno: number; marcos: number;
   apoioEducacional: number; evolucoesEducacionais: number;
+  /* O conceito do bimestre (fase 139) — a caixa que ele pediu, e a que age. */
+  conceitoAcompanha: number; conceitoNaoAcompanha: number;
   internacoes: number; medicamentosSaidos: number;
   notasCentavos: number; notasSemValor: number;
   lanches: number; cestas: number;
@@ -66,6 +68,22 @@ const RECORTES: { chave: keyof Casa; titulo: string; nota?: string }[] = [
   { chave: 'acolhidos', titulo: 'Crianças acolhidas hoje' },
   { chave: 'passouDeAno', titulo: 'Passaram de ano', nota: 'marco de vida registrado por quem acompanhou' },
   { chave: 'marcos', titulo: 'Conquistas registradas', nota: 'curso, emprego, documento, esporte, arte' },
+  /*
+    * AS DUAS CAIXAS DO CONCEITO (fase 139) — e a segunda é a que importa.
+    *
+    * *"Quantas crianças tiveram boas notas"* era o pedido de 09/09; a resposta de
+    * 20/09 foi o conceito por bimestre, e a fase 137 o construiu. A primeira caixa
+    * é a que ele pediu; **a segunda existe porque um painel que mostra só quem vai
+    * bem ensina a olhar para o lado bom** — e a criança que precisa de reforço não
+    * apareceria em lugar nenhum.
+    *
+    * A nota diz "no bimestre", e não "no período": o número é do bimestre que
+    * encosta na janela, não da data em que alguém digitou.
+    */
+  { chave: 'conceitoAcompanha', titulo: 'Acompanhando o ano',
+    nota: 'conceito do bimestre, escrito pela equipe com o porquê ao lado' },
+  { chave: 'conceitoNaoAcompanha', titulo: 'Não acompanhando — pede providência',
+    nota: 'é a caixa que faz a casa agir; o motivo está no perfil da criança' },
   { chave: 'apoioEducacional', titulo: 'Crianças com apoio educacional' },
   { chave: 'evolucoesEducacionais', titulo: 'Evoluções educacionais escritas' },
   { chave: 'reunioes', titulo: 'Reuniões de equipe' },
