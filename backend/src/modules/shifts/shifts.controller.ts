@@ -3,6 +3,7 @@ import { SessionGuard, CurrentUser } from '../identity';
 import { AuthenticatedUser } from '../../kernel/contracts';
 import { hojeNaInstituicao } from '../../kernel/common/tempo';
 import { ShiftsService } from './shifts.service';
+import { DataDoDia } from '../../kernel/common/data-do-dia.pipe';
 
 @Controller('shifts')
 @UseGuards(SessionGuard)
@@ -65,7 +66,7 @@ export class ShiftsController {
   archive(@CurrentUser() user: AuthenticatedUser,
           @Query('houseId', ParseUUIDPipe) houseId: string,
           @Query('escala') escala?: string,
-          @Query('data') data?: string) {
+          @Query('data', DataDoDia) data?: string) {
     const janela = escala === 'semana' || escala === 'mes' ? escala : 'dia';
     return this.shifts.arquivo(user, houseId, janela, data ?? hojeNaInstituicao());
   }
@@ -99,7 +100,7 @@ export class ShiftsController {
    */
   @Patch('general-night-line/:data/house/:houseId')
   corrigirLinhaPelaData(@CurrentUser() user: AuthenticatedUser,
-                        @Param('data') data: string,
+                        @Param('data', DataDoDia) data: string,
                         @Param('houseId', ParseUUIDPipe) houseId: string,
                         @Body() body: any) {
     return this.shifts.updateGeneralHouseByDate(user, data, houseId, body);

@@ -4,6 +4,7 @@ import { AuthenticatedUser } from '../../kernel/contracts';
 import { hojeNaInstituicao } from '../../kernel/common/tempo';
 import { ActivitiesService } from './activities.service';
 import { AgendaService } from './agenda.service';
+import { DataDoDia } from '../../kernel/common/data-do-dia.pipe';
 
 @Controller('activities')
 @UseGuards(SessionGuard)
@@ -23,7 +24,7 @@ export class ActivitiesController {
   @Get('agenda')
   verAgenda(@CurrentUser() user: AuthenticatedUser,
             @Query('houseId', ParseUUIDPipe) houseId: string,
-            @Query('de') de: string, @Query('ate') ate: string,
+            @Query('de', DataDoDia) de: string, @Query('ate', DataDoDia) ate: string,
             @Query('personId') personId?: string) {
     return this.agenda.agenda(user, houseId, de ?? hojeNaInstituicao(),
       ate ?? hojeNaInstituicao(), personId || undefined);
@@ -40,7 +41,7 @@ export class ActivitiesController {
   @Get('agenda/staff')
   equipeDaAgenda(@CurrentUser() user: AuthenticatedUser,
                  @Query('houseId', ParseUUIDPipe) houseId: string,
-                 @Query('data') data: string, @Query('hora') hora: string) {
+                 @Query('data', DataDoDia) data: string, @Query('hora') hora: string) {
     return this.agenda.equipeDisponivel(user, houseId, data ?? hojeNaInstituicao(), hora ?? '12:00');
   }
 

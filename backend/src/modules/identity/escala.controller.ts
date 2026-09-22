@@ -3,6 +3,7 @@ import { SessionGuard } from './session.guard';
 import { CurrentUser } from './current-user.decorator';
 import { AuthenticatedUser } from '../../kernel/contracts';
 import { EscalaService } from './escala.service';
+import { DataDoDia } from '../../kernel/common/data-do-dia.pipe';
 
 /**
  * A ESCALA DA CASA — quem assume cada plantão (§5.12).
@@ -23,7 +24,7 @@ export class EscalaController {
   @Get('folha')
   folha(@CurrentUser() user: AuthenticatedUser,
         @Query('houseId', ParseUUIDPipe) houseId: string,
-        @Query('de') de?: string, @Query('ate') ate?: string) {
+        @Query('de', DataDoDia) de?: string, @Query('ate', DataDoDia) ate?: string) {
     return this.escala.folha(user, houseId, de, ate);
   }
 
@@ -35,7 +36,7 @@ export class EscalaController {
   @Get()
   periodo(@CurrentUser() user: AuthenticatedUser,
           @Query('houseId', ParseUUIDPipe) houseId: string,
-          @Query('de') de?: string, @Query('ate') ate?: string) {
+          @Query('de', DataDoDia) de?: string, @Query('ate', DataDoDia) ate?: string) {
     return this.escala.periodo(user, houseId, de, ate);
   }
 

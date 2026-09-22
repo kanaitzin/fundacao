@@ -9,6 +9,7 @@ import { ImpactoService } from './impacto.service';
 import { PanelService } from './panel.service';
 import { MetricasService } from './metricas.service';
 import { PeriodoService } from './periodo.service';
+import { DataDoDia } from '../../kernel/common/data-do-dia.pipe';
 
 @Controller('followups')
 @UseGuards(SessionGuard)
@@ -102,14 +103,14 @@ export class ImpactoController {
 
   @Get('panorama')
   panorama(@CurrentUser() user: AuthenticatedUser,
-           @Query('de') de?: string, @Query('ate') ate?: string) {
+           @Query('de', DataDoDia) de?: string, @Query('ate', DataDoDia) ate?: string) {
     return this.impacto.panorama(user, de, ate);
   }
 
   @Get('marcos')
   marcos(@CurrentUser() user: AuthenticatedUser,
          @Query('houseId') houseId?: string, @Query('personId') personId?: string,
-         @Query('de') de?: string, @Query('ate') ate?: string,
+         @Query('de', DataDoDia) de?: string, @Query('ate', DataDoDia) ate?: string,
          @Query('tipo') tipo?: string) {
     return this.impacto.marcos(user, { houseId, personId, de, ate, tipo });
   }
@@ -133,7 +134,7 @@ export class ImpactoController {
    */
   @Get('folha')
   folhaDoImpacto(@CurrentUser() user: AuthenticatedUser,
-                 @Query('de') de?: string, @Query('ate') ate?: string,
+                 @Query('de', DataDoDia) de?: string, @Query('ate', DataDoDia) ate?: string,
                  @Query('houseId') houseId?: string) {
     return this.impacto.folha(user, de, ate, houseId || undefined);
   }
@@ -193,7 +194,7 @@ export class ReportsController {
    */
   @Get('metrics')
   metricas(@CurrentUser() user: AuthenticatedUser,
-           @Query('de') de?: string, @Query('ate') ate?: string) {
+           @Query('de', DataDoDia) de?: string, @Query('ate', DataDoDia) ate?: string) {
     return this.metricas_.porCasa(user, de, ate);
   }
 
@@ -212,7 +213,7 @@ export class ReportsController {
   @Get('period')
   periodoDaCasa(@CurrentUser() user: AuthenticatedUser,
                 @Query('houseId', ParseUUIDPipe) houseId: string,
-                @Query('de') de?: string, @Query('ate') ate?: string) {
+                @Query('de', DataDoDia) de?: string, @Query('ate', DataDoDia) ate?: string) {
     return this.periodo.daCasa(user, houseId, de, ate);
   }
 

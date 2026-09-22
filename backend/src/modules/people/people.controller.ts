@@ -15,6 +15,7 @@ import { BenefitsService } from './benefits.service';
 import { TransfersService } from './transfers.service';
 import { AdmissionService } from './admission.service';
 import { CredentialsService } from './credentials.service';
+import { DataDoDia } from '../../kernel/common/data-do-dia.pipe';
 
 @Controller('people')
 @UseGuards(SessionGuard)
@@ -154,14 +155,14 @@ export class PeopleController {
   @Get('kitchen-requests')
   pedidosCozinha(@CurrentUser() user: AuthenticatedUser,
                  @Query('houseId', ParseUUIDPipe) houseId: string,
-                 @Query('de') de: string, @Query('ate') ate: string) {
+                 @Query('de', DataDoDia) de: string, @Query('ate', DataDoDia) ate: string) {
     return this.cozinha.pedidos(user, houseId, de, ate);
   }
 
   @Get('kitchen-requests/summary')
   resumoCozinha(@CurrentUser() user: AuthenticatedUser,
                 @Query('houseId', ParseUUIDPipe) houseId: string,
-                @Query('de') de: string, @Query('ate') ate: string) {
+                @Query('de', DataDoDia) de: string, @Query('ate', DataDoDia) ate: string) {
     return this.cozinha.resumo(user, houseId, de, ate);
   }
 
@@ -184,7 +185,7 @@ export class PeopleController {
   @Get('kitchen-requests/folha/lanches')
   folhaLanches(@CurrentUser() user: AuthenticatedUser,
                @Query('houseId', ParseUUIDPipe) houseId: string,
-               @Query('de') de: string, @Query('ate') ate: string) {
+               @Query('de', DataDoDia) de: string, @Query('ate', DataDoDia) ate: string) {
     return this.cozinha.folhaDeLanches(user, houseId, de, ate);
   }
 
@@ -207,7 +208,7 @@ export class PeopleController {
   @Get('kitchen-requests/folha/cestas')
   folhaCestas(@CurrentUser() user: AuthenticatedUser,
               @Query('houseId', ParseUUIDPipe) houseId: string,
-              @Query('de') de: string, @Query('ate') ate: string) {
+              @Query('de', DataDoDia) de: string, @Query('ate', DataDoDia) ate: string) {
     return this.cozinha.folhaDeCestas(user, houseId, de, ate);
   }
 

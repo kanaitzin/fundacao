@@ -3,6 +3,7 @@ import { SessionGuard, CurrentUser } from '../identity';
 import { AuthenticatedUser } from '../../kernel/contracts';
 import { hojeNaInstituicao } from '../../kernel/common/tempo';
 import { MedicationsService, ALERTAS_MIN } from './medications.service';
+import { DataDoDia } from '../../kernel/common/data-do-dia.pipe';
 
 @Controller('medications')
 @UseGuards(SessionGuard)
@@ -180,7 +181,7 @@ export class MedicationsController {
   @Get('purchases')
   compras(@CurrentUser() user: AuthenticatedUser,
           @Query('houseId', ParseUUIDPipe) houseId: string,
-          @Query('de') de: string, @Query('ate') ate: string) {
+          @Query('de', DataDoDia) de: string, @Query('ate', DataDoDia) ate: string) {
     return this.meds.compras(user, houseId, de, ate);
   }
 
