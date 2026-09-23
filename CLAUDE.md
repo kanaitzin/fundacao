@@ -44,6 +44,17 @@ uma criança chorando ao lado**. Elegância que atrapalha o turno não serve.
   história vai para `docs/historico/`.
 - Commit no fim de cada fase, com o título dizendo o que mudou para quem usa —
   não o que mudou no código. Veja o `git log`: é o padrão da casa.
+- **E FECHE A FASE NESTE ARQUIVO, sempre.** Decisão da Fundação em 23/09: toda
+  fase termina atualizando o *"O que fazer agora"* daqui — o que ficou feito, o
+  que falta e qual é a próxima etapa. **A razão é operacional, e vale mais que a
+  arrumação:** esta sessão é compactada quando cresce, e o que não estiver
+  escrito no repositório se perde com ela. Com este arquivo em dia, o humano
+  escreve **"continue"** e a sessão nova sabe onde pisa sem ele reexplicar nada.
+  *Continua valendo que aqui é cartão de entrada, não segundo documento vivo:* o
+  relato longo vai para a tabela de fases do §2 do documento, e aqui fica a linha
+  curta com o número da fase e o link mental para ela. **Arquivo desatualizado é
+  pior que arquivo nenhum** — ele já voltou mentindo uma vez, dizendo que duas
+  decisões estavam paradas quando já eram código.
 
 ## Antes de entregar qualquer coisa
 
@@ -132,139 +143,101 @@ e qual é o caminho certo.
 | `scripts/superficies-sem-teste.mjs` | acha tabela que **nenhum teste jamais escreveu** — a lição da fase 141 medida em vez de lembrada. Roda DEPOIS do `npm test`, na mesma rodada, e usa o `n_tup_ins` do banco porque contar linhas no fim não distingue "ninguém escreveu" de "a suíte limpou". **Não é teste**, e recusa concluir se a rodada foi parcial |
 | `scripts/rotas-sem-teste.mjs` | acha **rota** que nenhum teste chamou — o outro lado da mesma pergunta. Separa *candidata forte* (a URL não aparece em suíte nenhuma) de *par incerto* (a suíte chama por auxiliar e o método fica noutra linha). **Não é teste** |
 | `backend/src/kernel/common/data-do-dia.pipe.ts` | **toda data que vem da URL passa por aqui** (fase 148). Sete de dez rotas de data devolviam 500 para uma data que não é data; a conferência mora num lugar só, e há teste estático que cobra que todo `@Query('de')` e `@Param('data')` use o pipe |
-
-## O primeiro trabalho desta máquina — FEITO
-
-**A chamada não fecha quando alguém da casa está fora dela.** ✅ **Corrigido na
-fase 127**, em 20/09/2026. A migração `1350` pôs num lugar só a resposta para "de
-quem esta chamada trata" (`app_efetivo_da_chamada`, por DIA e não por agora); as
-três funções `SECURITY DEFINER` ganharam o `search_path` por extenso; e a suíte
-`quem-a-chamada-cobra.e2e.spec.ts` guarda o defeito com cinco testes — medida
-sem a correção, ela reprova. O relato está no §2 e no §9 do documento.
-
-**A lição que vale para a próxima sessão, e não é sobre a chamada.** O defeito
-existia e **nenhuma suíte o cobria**: `hospitalization` e `family_stay` chegam
-vazias do seed, então nenhuma encontrava alguém fora da casa. As "3 falhas em
-`conferencia-de-mesa`" que o documento registrou eram o eco de um rascunho que
-morava em `backend/test/` e deixava uma internação aberta. **Suíte que abre
-ausência fecha a ausência** — um banco só, e nada se apaga. A
-`quem-a-chamada-cobra` tem rede de segurança no `afterAll` por isso.
+| `backend/src/kernel/audit/audit.service.ts` | quem ESCREVE a auditoria, e as três respostas sobre a casa de uma linha (fase 149). **Linha de auditoria sem casa é linha que a coordenação da casa não lê** — a policy compara `house_id` com o alcance, e NULL não é igual a nada. O `auditoria-tem-casa.spec.ts` cobra `houseId` em toda chamada, com a lista ESCRITA das poucas ações que não têm casa |
 
 ## O que fazer agora
 
-O §9 do documento manda. **O Grupo 1 está vazio** — não falta código para o
-piloto —, e as três decisões que estavam paradas viraram código nas fases 134,
-136, 137, 138 e 139. **Mas a conferência de 22/09 reabriu a lista**, e ela está
-no §9, na seção *"A conferência de 22/09"*. **As três coisas que faltavam foram
-feitas** — dia e horário de visita na portaria e o motivo ao retirar autorização
-nas fases 142 e 1500; o educador no Arquivo de ATAS na 143. **As duas decisões que eram dela chegaram
-em 22/09 e viraram a fase 144:** toda retirada da escala — e toda substituição —
-passou a exigir motivo escrito, e o Líder Diurno passou a ler a ocorrência
-protegida, com a leitura deixando linha de auditoria para TODOS os cargos.
-**A seção não tem mais nada aberto — e a §10.2 também caiu**, respondida em
-22/09 por um lado que eu não previra: *"todos leem a ata coletiva, seja manhã ou
-noite"*. A fase 145 abriu a linha desta casa na ATA Geral para todo cargo que
-cuida dos acolhidos, e criou o **pedido de leitura** da observação restrita —
-*"a pessoa pode solicitar ler alguma coisa, e cabe à equipe deixar ou não"*.
+> **Esta seção é o estado da corda.** Ela é reescrita ao fim de cada fase — feito,
+> falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
+> discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-1. ~~**As telas que as respostas de 20/09 destravaram**~~ ✅ **as três, feitas.**
-   §10.7 — de onde a técnica escolhe as fontes — na **134**; §10.6 — *"gestor
-   abrir o que quiser"*, uma porta opaca por relato, com finalidade e registro
-   próprios — na **136**; e o conceito educacional por bimestre, digitado pela
-   equipe técnica, pela coordenação e pelo Líder Diurno, na **137**, contado no
-   painel do Gestor na **139**.
-2. ~~**A dedução da escala sai**~~ ✅ **feito na fase 129.** Sem escala lançada,
-   ninguém é nomeado; a tela diz em vermelho que ninguém a lançou; e a ATA sem
-   escala E sem nenhuma passagem fecha COM pendência, que é o buraco que a
-   decisão abria.
-3. ~~**As pontas dormentes**~~ ✅ **fechadas nas fases 132 e 133.** Eram cinco; a
-   `work_schedule` morreu nas 129 e 131, o "se necessário"
-   (`prn_reason`/`prn_outcome`) ganhou porta de registro na 132, e a 133 ligou a
-   `health_evolution.companion_name` e declarou MORTA a
-   `handover_receipt.opened_handover`. **Sobra a `medication_authorization`**, e
-   ela é dormência por DECISÃO escrita (§8.6) — a de 08/09 trocou autorização de
-   pessoa por marcação de medicamento —, não por esquecimento. Removê-la é
-   migração destrutiva, e não se faz de passagem.
+### Onde estamos — 23/09/2026, fase 149
 
-   **A lição das 129 e 131, que continua valendo para qualquer afirmação sobre
-   dado morto:** eu disse duas vezes que a `work_schedule` estava morta antes de
-   estar, porque procurei os leitores nas migrações do módulo em que estava
-   mexendo. **Ponta dormente se mede pelo repositório INTEIRO, nunca por leitura
-   de migração** — `CREATE OR REPLACE` espalha a verdade por vários arquivos, e
-   um leitor em TypeScript não aparece em consulta ao catálogo nenhuma. Foi assim
-   que a `medication_authorization` sobreviveu a uma varredura minha. Hoje há
-   teste que cobra a frase por tabela E por coluna, olhando funções, políticas de
-   RLS, visões e o código do servidor (`arquivo-tem-saida.spec.ts`).
-4. **Aplicar o roteiro com a equipe.** Continua sendo o que mais muda o sistema,
-   e o único que não se faz daqui.
+**Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139, e
+todas as decisões que estavam paradas viraram código. Desde a 146 a pergunta mudou
+de *"o que falta?"* para **"o que nunca foi exercitado?"**, que tem resposta
+medível — e foram essas medições que acharam os últimos quatro defeitos, todos em
+código que compilava e passava.
 
-   **E COM O §9 VAZIO, a pergunta mudou (fase 146):** deixou de ser *"o que
-   falta?"* e passou a ser **"o que nunca foi exercitado?"** — que tem resposta
-   medível. Rode a suíte inteira e depois o
-   `scripts/superficies-sem-teste.mjs`, na mesma rodada. Foi assim que apareceu
-   que a **contenção física** podia ser escrita na ocorrência de outra casa: a
-   tabela chegava vazia da semente e nenhum dos 892 testes jamais inseriu uma, e
-   a política só exigia que quem assina fosse quem está logado.
+| Fase | O que ela achou e consertou |
+|---|---|
+| 146 | a **contenção física** podia ser escrita na ocorrência de outra casa |
+| 147 | das 342 rotas, **28 nunca foram chamadas por teste** — a família do vocabulário estava correta, e agora tem garantia |
+| 148 | **sete de dez rotas de data** devolviam 500 para uma data que não é data |
+| 149 | **79 das 152 linhas de auditoria nasciam sem casa** — e a coordenação não lê linha sem casa |
 
-   **A lição, e ela vale para toda guarda nova:** a chave estrangeira NÃO confere
-   alcance — ela é verificada como dona da tabela, por fora do RLS. Apontar para
-   uma linha de outra casa passa. Quem confere é a política, com
-   `app_house_in_scope`, e o serviço, para a recusa chegar em português.
+**Medido no fim da 149:** 141 migrações, 116 tabelas, 97 suítes, 934 testes,
+verdes nas DUAS condições de relógio; os seis ensaios de navegador verdes; 139
+telas sem violação de WCAG 2.1 AA; ensaio de produção verde.
 
-   **E o irmão dessa medição, na fase 147:** `scripts/rotas-sem-teste.mjs`, que
-   pergunta o mesmo pelo lado da PORTA. Das 342 rotas, 28 nunca tinham sido
-   chamadas por teste nenhum; a 147 fechou a família do vocabulário (as oito que
-   entregam à tela a lista que ela oferece — a família do defeito da fase 140) e
-   os dois atos mais sensíveis, e **deixou catorze escritas no §9**, em ordem de
-   valor, para não ter de medir de novo.
+### A próxima etapa — siga o §9, na ordem dele
 
-   *O medidor teve de ser consertado pela minha própria suíte:* ele só via a
-   chamada com o método colado à URL, e suíte que chama por auxiliar ficava
-   invisível para ele. Hoje separa **candidata forte** de **par incerto** — sem
-   essa separação, catorze das vinte e cinco eram ruído.
-5. ~~**A §10.2**~~ ✅ **respondida em 22/09 e feita na fase 145.** A 143 tinha
-   deixado a ATA Geral fora de quem não a lia **de propósito**, para não responder
-   de carona uma pergunta da Fundação — e a resposta veio: *"todos leem a ata
-   coletiva, seja manhã ou noite"*. Com ela vieram o **pedido de leitura** da
-   observação restrita (liberação por ATA e por pessoa, revogável, com motivo dos
-   dois lados) e a Enfermagem no arquivo.
+1. **`GET /medications/prn`** — a lista do remédio *"se necessário"*, que é o que o
+   educador dá às 2h da manhã. A rota de ESCREVER tem teste; a de LER, não. Era o
+   item 2 da lista da 147 e ficou porque o item 1 virou a fase 149 inteira.
+2. **As outras onze rotas medidas e sem teste**, escritas em ordem de valor no §9:
+   `GET /timeline/all`, `GET /transfers/pending`, as cinco exportações, as três
+   folhas, e a autorização nominal — que é dormente por decisão escrita (§8.6) e
+   talvez não mereça teste, porque testar o que a Fundação aposentou é guardar o
+   passado.
+3. **Aplicar o roteiro com a equipe.** Continua sendo o que mais muda o sistema, e
+   o único que não se faz daqui.
 
-   **A lição da 145, e ela é de contagem de cópias:** a lista de quem lê a ATA
-   Geral existia em TRÊS lugares — o banco, o serviço e a tela — e eu ampliei só a
-   do banco. Por meia hora o protótipo dizia a verdade e o produto dizia o
-   contrário. **Antes de ampliar uma lista de cargos, conte quantas cópias dela
-   existem** — há teste que cobra as três iguais, lendo o catálogo e os dois
-   arquivos de TypeScript.
+**Anotado na 149 e não mexido** (achado fazendo outra coisa, como a casa manda):
+em `medications.service.ts` a ausência da criança ainda é perguntada como PAR —
+`app_esta_internado` **e** `app_em_convivencia_familiar` — em dois lugares, em vez
+de `app_ausente_da_casa`. Hoje o efeito é idêntico; o risco é a lição da 141 de
+novo — regra nova de ausência escrita no lugar único não chegaria à grade do
+remédio.
 
-   **E a outra, que é sobre limpar teste:** a `ata` tem gatilho que recusa DELETE
-   e a `ata_note` é IMUTÁVEL. Quando a suíte não tem como desfazer o que cria, a
-   saída **não** é desligar o gatilho — é pôr a fixação onde ninguém olha (a de
-   145 mora quatrocentos dias atrás, fora de toda janela de consulta).
+### As lições que não se repetem de graça
 
-   **E a lição da 141, que é a da 127 de novo e por isso importa:** *"quem está na
-   casa hoje"* era uma pergunta feita em quatro lugares; a 1350 juntou três e
-   **esqueceu a grade do dia**, porque `routine_item` chega vazia do seed e
-   nenhuma suíte gerava item individual. **Superfície sem dado de partida é
-   superfície sem teste** — quando uma tabela chega vazia do seed, a pergunta não é
-   "passa?", é "o que nunca foi exercitado?". Hoje a resposta mora num lugar só,
-   `app_ausente_da_casa(pessoa, dia)`, e regra nova de ausência se escreve lá.
+São as que já custaram uma fase cada. Leia antes de afirmar qualquer uma delas de
+novo.
 
-   **A varredura de pontas virou script na fase 140** (`varredura-de-pontas.mjs`)
-   e a última medição não tem candidato novo: 1352 colunas, 539 nomes. Rode-o
-   antes de afirmar que algo está morto — e leia a saída sabendo que ela diz
-   *candidato*, porque `SELECT *` devolve a coluna sem nomeá-la. *Foi ele que
-   revelou, de passagem, que a folha da Evolução oferecia um tipo que o banco não
-   aceita: quem registrasse vacina recebia 500.*
+- **Ponta dormente se mede pelo repositório INTEIRO**, nunca por leitura de
+  migração: `CREATE OR REPLACE` espalha a verdade por vários arquivos, e leitor em
+  TypeScript não aparece em consulta ao catálogo. Foi assim que eu disse duas vezes
+  que a `work_schedule` estava morta antes de estar. Hoje há teste que cobra a
+  frase por tabela E por coluna (`arquivo-tem-saida.spec.ts`).
+- **Superfície sem dado de partida é superfície sem teste** (127 e 141). Quando uma
+  tabela chega vazia da semente, a pergunta não é *"passa?"*, é *"o que nunca foi
+  exercitado?"*. A `app_ausente_da_casa(pessoa, dia)` existe por isso: regra nova
+  de ausência se escreve num lugar só.
+- **Antes de ampliar uma lista de cargos, conte quantas cópias dela existem**
+  (145). A de quem lê a ATA Geral vivia em TRÊS — banco, serviço e tela — e eu
+  ampliei uma: por meia hora o protótipo dizia a verdade e o produto dizia o
+  contrário.
+- **A chave estrangeira NÃO confere alcance** (146): ela é verificada como dona da
+  tabela, por fora do RLS. Quem confere é a política, com `app_house_in_scope`, e o
+  serviço, para a recusa chegar em português.
+- **Conferidor estático e teste de ponta a ponta podem estar os dois verdes sobre
+  uma resposta que devolve `null`** (149). O que os separa é um teste que lê o dado
+  DE VOLTA pelo caminho de quem pergunta. A resposta nova que eu escrevi lia o
+  banco pelo `db.query`, que é a consulta SEM identidade — e sem identidade o RLS
+  devolve zero linhas. *Quem escreve resposta nova confere que ela responde, e não
+  que ela compila.*
+- **Suíte que abre ausência fecha a ausência** (127): um banco só, e nada se apaga.
+  E quando a suíte NÃO tem como desfazer — a `ata` recusa DELETE, a `ata_note` é
+  imutável —, a saída não é desligar o gatilho: é pôr a fixação fora de toda janela
+  de consulta (145).
+- **Frase de tela que envelhece é frase que mente**, e a cobrança do ensaio que a
+  guarda tem de ser reescrita junto. A ressalva do painel sobre nota escolar já foi
+  reescrita três vezes. **Isto inclui este arquivo.**
 
-**E uma coisa que é do Marcelo e não é código:** o branch padrão do repositório
-ainda é o `claude/work-system-code-ready-0e3hh2`. O `master` está em dia, com
-tudo; trocar é um clique em *Settings → General → Default branch*, e não há
-ferramenta nesta sessão que o faça.
+### O que é do Marcelo, e não é código
 
-**A lição transversal das últimas fases, e vale para qualquer frase deste
-repositório:** a ressalva do painel sobre nota escolar já foi reescrita TRÊS
-vezes — *"não existe conceito"*, depois *"existe e o painel não conta"*, depois
-*"o painel conta assim"*. **Frase de tela que envelhece é frase que mente**, e a
-cobrança do ensaio que a guarda tem de ser reescrita junto, senão ela passa a
-guardar a mentira. Isto inclui este arquivo: ele voltou desatualizado numa sessão
-e dizia que duas decisões estavam paradas quando já eram código.
+- **O branch padrão do repositório** ainda é o `claude/work-system-code-ready-0e3hh2`.
+  Trocar é um clique em *Settings → General → Default branch*, e não há ferramenta
+  nesta sessão que o faça.
+- **O `master` está um commit atrás** desde a fase 149 — eu não empurro para outro
+  branch sem ele pedir.
+- **Para abrir o sistema:** o protótipo é um arquivo só,
+  `prototipo/rede-acolher-prototipo.html`. Baixar do GitHub em *Download raw file*
+  e dar dois cliques; não instala nada, não precisa de banco, dados fictícios. O
+  sistema de verdade está no §12.3 do documento.
+- **Para dar corda por outra conta do Claude:** nada mora na conta — está tudo no
+  repositório, inclusive o `.claude/hooks/session-start.sh`. Na outra conta,
+  conecte o GitHub, instale o app do Claude no `kanaitzin/fundacao`, abra a sessão
+  no branch acima e escreva *"leia o `docs/REDE-ACOLHER.md` e siga o §9"*. **Empurre
+  antes de trocar:** o contêiner é descartado com a sessão.

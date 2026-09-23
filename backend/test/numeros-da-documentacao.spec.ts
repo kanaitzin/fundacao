@@ -46,6 +46,20 @@ const DOCS = join(RAIZ, 'docs');
 const DOCUMENTOS = ['REDE-ACOLHER.md', 'PARA-A-REUNIAO.md'];
 
 /*
+ * E O `CLAUDE.md`, desde 23/09 (fase 149) — pelo mesmo motivo do
+ * `PARA-A-REUNIAO.md`, e com uma razão a mais.
+ *
+ * Ele passou a ser o ESTADO DA CORDA: a Fundação pediu que toda fase termine
+ * atualizando ali o que ficou feito e o que falta, porque a sessão é compactada
+ * quando cresce e o que não está escrito no repositório se perde com ela. Um
+ * cartão de entrada que carrega número é um cartão que pode mentir — e ele é
+ * justamente a PRIMEIRA coisa que a próxima sessão lê.
+ *
+ * Ele mora na raiz, e não em `docs/`, então entra pelo caminho e não pelo nome.
+ */
+const CARTAO = join(RAIZ, 'CLAUDE.md');
+
+/*
  * `docs/historico/` fica de fora de propósito: é registro histórico, e a frase
  * "107 telas em 02/09" continua verdadeira depois de a tela 108 nascer.
  * Reescrever história para o teste passar seria apagar o que cada fase
@@ -144,7 +158,7 @@ function protótipoEmKB(): number {
 /** Cada afirmação numérica dos documentos vivos, e de onde sai a verdade dela. */
 function conferir(padrao: RegExp, esperado: number): string[] {
   const erros: string[] = [];
-  for (const doc of DOCUMENTOS) {
+  for (const doc of [...DOCUMENTOS, CARTAO]) {
     /*
      * O ESPAÇO EM BRANCO É NORMALIZADO ANTES DA BUSCA.
      *
@@ -154,11 +168,13 @@ function conferir(padrao: RegExp, esperado: number): string[] {
      * para guardar. O conferidor que só pega o caso fácil ensina a confiar
      * nele.
      */
-    const texto = readFileSync(join(DOCS, doc), 'utf8').replace(/\s+/g, ' ');
+    const caminho = doc === CARTAO ? doc : join(DOCS, doc);
+    const nome = doc === CARTAO ? 'CLAUDE.md' : doc;
+    const texto = readFileSync(caminho, 'utf8').replace(/\s+/g, ' ');
     for (const m of texto.matchAll(padrao)) {
       const dito = Number(m[1].replace(/[^\d]/g, ''));
       if (dito !== esperado) {
-        erros.push(`${doc}: diz "${m[0].trim()}" — são ${esperado}`);
+        erros.push(`${nome}: diz "${m[0].trim()}" — são ${esperado}`);
       }
     }
   }
