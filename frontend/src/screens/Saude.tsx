@@ -6,6 +6,7 @@ import type { ArquivoGerado } from '../documentos';
 import type { DocumentoWord } from '../docx';
 import { quemAssina } from '../quem-assina';
 import { dia } from '../rotulos';
+import { Icone } from '../icones';
 
 /**
  * COMO ELA ESTAVA, nas quatro opções do papel (1460).
@@ -503,7 +504,7 @@ export function Saude({ houseId, casaLabel, papel }: {
                           : 'Não foi possível montar a grade em folha.');
                       }
                     }}>
-              🖨️ Grade do dia em Word
+              <Icone nome="imprimir" /> Grade do dia em Word
             </button>
           </div>
           <div className="eyebrow">Doses de hoje</div>
@@ -521,7 +522,7 @@ export function Saude({ houseId, casaLabel, papel }: {
                   )}
                   <div className="row" style={{ marginTop: 5 }}>
                     <span className={`pill ${TOM_DOSE[d.estado] ?? 'c-mute'}`}>{d.rotulo}</span>
-                    {d.alergias && <span className="pill c-crit">⚠ {d.alergias}</span>}
+                    {d.alergias && <span className="pill c-crit"><Icone nome="alerta" /> {d.alergias}</span>}
                     {d.soEnfermagem && (
                       <span className="pill c-warn">Só a Enfermagem administra</span>
                     )}
@@ -678,7 +679,7 @@ export function Saude({ houseId, casaLabel, papel }: {
           </div>
 
           <button className="btn block" onClick={() => setComprando(true)}>
-            🧾 Registrar compra
+            <Icone nome="nota" /> Registrar compra
           </button>
 
           <div className="eyebrow">Compras do período · {compras?.linhas.length ?? 0}</div>
@@ -880,7 +881,7 @@ export function Saude({ houseId, casaLabel, papel }: {
                   * confere o esquema é quem quer ver o papel do médico.
                   */}
                 <button className="btn sm ghost" onClick={() => setVendoReceitas(e)}>
-                  📄 Receitas
+                  <Icone nome="documento" /> Receitas
                 </button>
               </article>
             ))}
@@ -1028,7 +1029,7 @@ export function Saude({ houseId, casaLabel, papel }: {
               <div className="card row" key={k.acolhidoId}>
                 <div className="grow">
                   <b className="ff">{k.nome}</b> <span className="mutetxt">{k.idade} anos</span>
-                  {k.alergias && <div><span className="pill c-crit">⚠ Alergia a {k.alergias}</span></div>}
+                  {k.alergias && <div><span className="pill c-crit"><Icone nome="alerta" /> Alergia a {k.alergias}</span></div>}
                   {k.restricoes && <div className="mutetxt">Restrição alimentar: {k.restricoes}</div>}
                   {k.condicoes && <div className="mutetxt">Condições: {k.condicoes}</div>}
                   <div className="row" style={{ marginTop: 5 }}>
@@ -1296,7 +1297,7 @@ export function FolhaDose({ dose, onFechar, onConfirmar }: {
           {dose.medicamento} {dose.dose} · {dose.via} · previsto para {hhmm(dose.horario)}
         </p>
         {dose.alergias && (
-          <div className="notice c-crit">⚠ Alerta essencial registrado: <b>{dose.alergias}</b></div>
+          <div className="notice c-crit"><Icone nome="alerta" /> Alerta essencial registrado: <b>{dose.alergias}</b></div>
         )}
         <div className="notice c-info">
           A confirmação é individual e intransferível: <b>só confirma quem administrou</b>.

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api, ErroApi } from '../api';
+import { Icone } from '../icones';
 
 /**
  * COFRE DE ACESSOS DO ACOLHIDO (§6.10).
@@ -191,7 +192,7 @@ export function Cofre({ houseId, papel }: { houseId: string; papel: string }) {
       )}
 
       <div className="notice c-med">
-        🔒 <b>Área auditada.</b> Cada visualização, abertura, cadastro e exportação gera
+        <Icone nome="cadeado" /> <b>Área auditada.</b> Cada visualização, abertura, cadastro e exportação gera
         registro próprio, com o seu nome e o horário. Nada daqui aparece na linha do
         tempo, na ATA, em notificação ou em busca ampla.
       </div>
@@ -212,11 +213,11 @@ export function Cofre({ houseId, papel }: { houseId: string; papel: string }) {
       <div className="filtros" role="tablist">
         <button role="tab" aria-selected={aba === 'acessos'}
                 className={aba === 'acessos' ? 'on' : ''} onClick={() => setAba('acessos')}>
-          🔑 Acessos
+          <Icone nome="chave" /> Acessos
         </button>
         <button role="tab" aria-selected={aba === 'beneficios'}
                 className={aba === 'beneficios' ? 'on' : ''} onClick={() => setAba('beneficios')}>
-          🏦 Benefícios
+          <Icone nome="banco" /> Benefícios
         </button>
       </div>
 
@@ -225,7 +226,7 @@ export function Cofre({ houseId, papel }: { houseId: string; papel: string }) {
       <div className="eyebrow">Cofre de acessos do acolhido</div>
       <div className="card raise stack">
         <div className="row">
-          <span aria-hidden="true" style={{ fontSize: 20 }}>🔑</span>
+          <Icone nome="chave" tamanho={22} />
           <h3 className="grow" style={{ fontSize: 16, margin: 0 }}>
             gov.br, INSS, CTPS, banco e escola
           </h3>
@@ -324,7 +325,7 @@ export function Cofre({ houseId, papel }: { houseId: string; papel: string }) {
       {pessoa && beneficios === null && (
         <div className="card raise stack">
           <div className="notice c-med">
-            🏦 Para ver os benefícios de <b>{pessoa.nome}</b> você precisa dizer para quê.
+            <Icone nome="banco" /> Para ver os benefícios de <b>{pessoa.nome}</b> você precisa dizer para quê.
             A finalidade fica registrada com o seu nome e o horário — é o que separa
             "consultei porque precisava" de "abri porque estava ali".
           </div>
@@ -408,7 +409,7 @@ export function Cofre({ houseId, papel }: { houseId: string; papel: string }) {
           )}
           <button className="btn sec block" style={{ marginTop: 8 }}
                   onClick={() => setExportando(true)}>
-            🖨️ Imprimir ou exportar
+            <Icone nome="imprimir" /> Imprimir ou exportar
           </button>
 
           <div className="eyebrow">Quem abriu, quando e para quê</div>
@@ -574,7 +575,7 @@ function Reautenticar({ erro, onErro, onLiberado }: {
         pode virar acesso ao gov.br de ninguém.
       </p>
       <div className="notice c-med">
-        🔒 Este acesso é <b>auditado</b>: a entrada, cada senha aberta e a finalidade
+        <Icone nome="cadeado" /> Este acesso é <b>auditado</b>: a entrada, cada senha aberta e a finalidade
         ficam registradas com o seu nome.
       </div>
 
@@ -763,7 +764,7 @@ function FolhaBeneficio({ vocab, nome, registro, onFechar, onSalvar }: {
             <input id="ben-onde" value={ondeGov} onChange={(e) => setOndeGov(e.target.value)}
                    placeholder="Ex.: guardada no cofre de acessos deste sistema" />
             <div className="notice c-med">
-              🔒 <b>A senha não vai aqui.</b> Ela tem lugar próprio e cifrado, na aba
+              <Icone nome="cadeado" /> <b>A senha não vai aqui.</b> Ela tem lugar próprio e cifrado, na aba
               Acessos, onde cada abertura pede finalidade e fica com nome e hora.
             </div>
           </>

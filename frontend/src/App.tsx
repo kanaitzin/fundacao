@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ROTULO_CARGO } from './rotulos';
 import { Icone } from './icones';
+import { Cargo } from './cargos';
 import { PORTAS, GRUPOS } from './portas';
 import { api, setToken, ligarFilaAoServidor } from './api';
 import logo from './assets/logo.png';
@@ -379,6 +380,9 @@ export function App() {
         <div className="top">
           <span className="logochip"><img src={logo} alt="Fundação O Pão dos Pobres" /></span>
           <span className="wordmark">Rede Acolher</span>
+          {/* Quem está usando o sistema, com o círculo do cargo (fase 151). O
+              nome do cargo continua escrito ao lado: o círculo é apoio. */}
+          <Cargo nome={me.fullName} cargo={me.role} tamanho="sm" />
           <span className="rolechip">{ROLE_LABEL[me.role] ?? me.role}</span>
           <span className="grow" />
           {import.meta.env.VITE_PROTOTIPO === '1' && (

@@ -5,6 +5,7 @@ import { BotaoOlho, FolhaArquivo } from '../anexos';
 import type { ArquivoGerado } from '../documentos';
 import type { DocumentoWord } from '../docx';
 import { dia } from '../rotulos';
+import { Icone } from '../icones';
 
 /**
  * O TRABALHO SOCIAL — a outra leitura das oito casas.
@@ -100,7 +101,7 @@ export function TrabalhoSocial({ papel }: { papel: string }) {
       <div className="acoes">
         {podeRegistrar && (
           <button className="btn sm" onClick={() => setRegistrando(true)}>
-            ✨ Registrar conquista
+            <Icone nome="conquista" /> Registrar conquista
           </button>
         )}
         <button className="btn sm sec" onClick={async () => {
@@ -112,7 +113,7 @@ export function TrabalhoSocial({ papel }: { papel: string }) {
           } catch (e) {
             setErro(e instanceof Error ? e.message : 'Não foi possível montar a folha.');
           }
-        }}>📄 Relatório em Word</button>
+        }}><Icone nome="documento" /> Relatório em Word</button>
       </div>
 
       <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
@@ -150,7 +151,7 @@ export function TrabalhoSocial({ papel }: { papel: string }) {
         {p.marcosPorTipo.map((t) => (
           <button key={t.cod} className="card row"
                   onClick={() => setTipo(tipo === t.cod ? '' : t.cod)}>
-            <span aria-hidden="true">{t.icone}</span>
+            <span className="ic"><Icone nome={t.icone} /></span>
             <b className="ff grow" style={{ textAlign: 'left' }}>{t.label}</b>
             <span className={`pill ${tipo === t.cod ? 'c-ok' : 'c-info'}`}>{t.n}</span>
           </button>
@@ -189,7 +190,7 @@ export function TrabalhoSocial({ papel }: { papel: string }) {
           <button key={m.id} className="card" style={{ textAlign: 'left' }}
                   onClick={() => setPessoa(m.acolhidoId)}>
             <div className="row">
-              <span aria-hidden="true">{m.icone}</span>
+              <span className="ic"><Icone nome={m.icone} /></span>
               <b className="ff grow">{m.acolhido}</b>
               <span className="pill c-info">{m.casa}</span>
             </div>
@@ -266,7 +267,7 @@ function FolhaConquista({ onFechar, onSalvou }: {
         <label className="f" htmlFor="cq-t">O que foi</label>
         <select id="cq-t" value={d.tipo} onChange={(e) => setD({ ...d, tipo: e.target.value })}>
           {tipos.map((t) => (
-            <option key={t.cod} value={t.cod}>{t.icone} {t.label}</option>
+            <option key={t.cod} value={t.cod}>{t.label}</option>
           ))}
         </select>
         {d.tipo === 'outro' && (
@@ -372,7 +373,7 @@ function Trajetoria({ personId, onVoltar }: { personId: string; onVoltar: () => 
           } catch (e) {
             setErro(e instanceof Error ? e.message : 'Não foi possível montar a folha.');
           }
-        }}>📄 A trajetória em Word</button>
+        }}><Icone nome="documento" /> A trajetória em Word</button>
       </div>
       <div className="mutetxt">
         Acolhida desde {dia(t.acolhidoDesde)} ·{' '}
@@ -392,7 +393,7 @@ function Trajetoria({ personId, onVoltar }: { personId: string; onVoltar: () => 
         {t.marcos.map((m: any) => (
           <div key={m.id} className="card">
             <div className="row">
-              <span aria-hidden="true">{m.icone}</span>
+              <span className="ic"><Icone nome={m.icone} /></span>
               <b className="ff grow">{m.tipoRotulo}</b>
               <span className="pill c-info">{dia(m.quando)}</span>
             </div>

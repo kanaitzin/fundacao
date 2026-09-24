@@ -5,6 +5,7 @@ import { FolhaDocumento } from '../documentos';
 import { Alinhamentos } from './Alinhamentos';
 import type { DocumentoWord } from '../docx';
 import { dia } from '../rotulos';
+import { Icone } from '../icones';
 
 /**
  * ACOMPANHAMENTOS E RELATÓRIOS.
@@ -353,7 +354,7 @@ export function Acompanhamentos({ houseId, casaLabel, papel }: {
                   )}
                   {(r.entregas ?? []).map((e) => (
                     <div className="mutetxt" key={e.id}>
-                      📎 Entregue a {e.destino} · {e.meio} · {quando(e.em)} · por {e.por}
+                      <Icone nome="anexo" /> Entregue a {e.destino} · {e.meio} · {quando(e.em)} · por {e.por}
                       {e.protocolo ? ` · protocolo ${e.protocolo}` : ''}
                     </div>
                   ))}

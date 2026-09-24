@@ -146,6 +146,7 @@ e qual é o caminho certo.
 | `backend/src/kernel/audit/audit.service.ts` | quem ESCREVE a auditoria, e as três respostas sobre a casa de uma linha (fase 149). **Linha de auditoria sem casa é linha que a coordenação da casa não lê** — a policy compara `house_id` com o alcance, e NULL não é igual a nada. O `auditoria-tem-casa.spec.ts` cobra `houseId` em toda chamada, com a lista ESCRITA das poucas ações que não têm casa |
 | `frontend/src/portas.ts` | **as vinte e cinco telas do sistema, numa lista só** (fase 150). A folha "Mais" do celular, a coluna do monitor e a conferência leem dela. A lista existia em DOIS lugares e as duas discordavam — `as-portas-e-os-icones.spec.ts` é o que impede a divergência voltar |
 | `frontend/src/icones.tsx` | **os desenhos da moldura**, em traço e `currentColor`, no lugar dos emoji (fase 150). Emoji muda de cara conforme o aparelho, não herda a cor e carrega significado que ninguém pediu. Nenhum ícone é o único portador do sentido: ao lado há sempre a palavra |
+| `frontend/src/cargos.tsx` | **a cor de cada cargo e o círculo de iniciais** (fase 151). Ela convive com DUAS outras: a cor de ESTADO (crítico/atenção — não se toca, e o cargo não usa a família dela) e a cor de AUTOR (`tomDoAutor`, qual colega escreveu — a coordenação escolhe, 0990). Três perguntas diferentes; o dia em que duas responderem à mesma, a cor deixa de informar |
 
 ## O que fazer agora
 
@@ -153,13 +154,12 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 24/09/2026, fase 150
+### Onde estamos — 24/09/2026, fase 151
 
-**Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139, e
-todas as decisões que estavam paradas viraram código. Da 146 à 149 a pergunta foi
-*"o que nunca foi exercitado?"* — que tem resposta medível, e foi ela que achou os
-quatro últimos defeitos, todos em código que compilava e passava. **A 150 abriu
-uma frente nova, e ela é da Fundação:** o visual.
+**Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
+Da 146 à 149 a pergunta foi *"o que nunca foi exercitado?"* — que tem resposta
+medível, e achou quatro defeitos em código que compilava e passava. **As 150 e 151
+foram a frente do visual, pedida pela Fundação, e ela está FEITA.**
 
 | Fase | O que ela achou e consertou |
 |---|---|
@@ -167,34 +167,36 @@ uma frente nova, e ela é da Fundação:** o visual.
 | 147 | das 342 rotas, **28 nunca foram chamadas por teste** |
 | 148 | **sete de dez rotas de data** devolviam 500 para uma data que não é data |
 | 149 | **79 das 152 linhas de auditoria nasciam sem casa** — e a coordenação não lê linha sem casa |
-| 150 | a **moldura** era um bloco navy de 190px e emoji; virou clara, com desenhos e coluna no monitor |
+| 150 | a **moldura**: barra clara, coluna no monitor, desenhos no lugar dos emoji |
+| 151 | a **cor por cargo** e os **107 emoji** que ainda estavam dentro das telas |
 
-**Medido no fim da 150:** 141 migrações, 116 tabelas, 98 suítes, 941 testes,
-verdes nas DUAS condições de relógio; os **sete** ensaios de navegador verdes; 139
-telas sem violação de WCAG 2.1 AA.
+**Medido no fim da 151:** 141 migrações, 116 tabelas, 98 suítes, 943 testes,
+verdes nas DUAS condições de relógio; os sete ensaios de navegador verdes; 139
+telas sem violação de WCAG 2.1 AA; **zero emoji no frontend fora de comentário**,
+e há conferidor que cobra.
+
+**As TRÊS cores do sistema, porque confundi-las é o pior que esta tela pode
+fazer** — está escrito por extenso em `frontend/src/cargos.tsx`:
+
+| A cor | Responde | Onde |
+|---|---|---|
+| **estado** | *isto ainda precisa de alguém?* | pílula clara, letra colorida |
+| **autor** | *qual colega escreveu?* | borda da linha; a coordenação escolhe (0990) |
+| **cargo** | *de que setor é esta pessoa?* | círculo cheio com iniciais |
 
 ### A próxima etapa
 
-**1. Terminar o visual — é a fase 151, e a Fundação está esperando.** A 150 fez a
-MOLDURA; faltam duas coisas que ela deixou escritas de propósito para não virarem
-promessa:
+**1. A lista do §9** — `GET /medications/prn` primeiro (o remédio "se necessário",
+que é o que o educador dá às 2h da manhã; a rota de ESCREVER tem teste, a de LER
+não), e as outras onze rotas medidas e sem teste, na ordem escrita lá.
 
-  * **os 107 emoji que continuam nas TELAS** — o 💊 do botão "Remédios", o 📝 do
-    "Relato", o 🔒 do cofre. São 44 desenhos distintos em vinte arquivos, e a
-    conferência da 150 só guarda a moldura (`App.tsx`, `portas.ts`, `icones.tsx`);
-  * **a cor por CARGO**, que foi a escolha da Fundação em 23/09 — coordenação,
-    educador, técnica e enfermagem com cor própria, num círculo de iniciais como o
-    do exemplo. *Ela NÃO é por pessoa:* a decisão foi por cargo, e a barra colorida
-    do cartão continua sendo a CATEGORIA da atividade — uma coisa, um significado,
-    porque quem olha às 23h não pode ter de aprender dois códigos de cor.
-    **Cor nova passa pelo `ensaio:acessibilidade` antes de entrar.**
-
-**2. Depois, a lista do §9** — `GET /medications/prn` primeiro (o remédio "se
-necessário", que é o que o educador dá às 2h; a rota de escrever tem teste, a de
-ler não), e as outras onze rotas medidas e sem teste, na ordem escrita lá.
-
-**3. Aplicar o roteiro com a equipe.** Continua sendo o que mais muda o sistema, e
+**2. Aplicar o roteiro com a equipe.** Continua sendo o que mais muda o sistema, e
 o único que não se faz daqui.
+
+**3. Se a Fundação quiser mais visual**, o que sobrou é menor e é escolha dela: a
+barra do topo ainda repete o nome de quem está usando em `h1` grande (herança de
+quando ela era o bloco navy), e o painel do plantão e a linha do dia ainda não
+mostram o círculo do cargo — hoje ele está na escala e na barra.
 
 **Anotado e não mexido** (achado fazendo outra coisa, como a casa manda): em
 `medications.service.ts` a ausência da criança ainda é perguntada como PAR —
@@ -233,6 +235,10 @@ novo.
   E quando a suíte NÃO tem como desfazer — a `ata` recusa DELETE, a `ata_note` é
   imutável —, a saída não é desligar o gatilho: é pôr a fixação fora de toda janela
   de consulta (145).
+- **Frase de tela que aponta para um DESENHO** (151). A tela da senha dizia
+  *"troque pelo botão 🔑 na barra"*. Trocado o emoji por desenho, a frase passou a
+  apontar para nada. **Texto nomeia o botão pela palavra dele**, nunca pelo
+  símbolo — o símbolo é a decisão mais volátil da tela.
 - **Ensaio preso ao DESENHO de um botão** (150). O `ensaio:uso` achava a chave do
   trabalho social procurando o emoji dentro do botão; sem o emoji ele não achava a
   chave, a tela nunca abria, e três cobranças reprovaram sem ter nada de errado.

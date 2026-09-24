@@ -3,6 +3,7 @@ import { api } from '../api';
 import { FolhaDocumento } from '../documentos';
 import type { ArquivoGerado } from '../documentos';
 import type { DocumentoWord } from '../docx';
+import { Icone } from '../icones';
 
 /**
  * O PAINEL DAS UNIDADES (§18.1–§18.3).
@@ -200,7 +201,7 @@ export function Painel({ houseId, casaLabel, papel }: {
           } catch (e) {
             setErro(e instanceof Error ? e.message : 'Não foi possível montar o relatório.');
           }
-        }}>🌱 Relatório do trabalho desta casa</button>
+        }}><Icone nome="impacto" /> Relatório do trabalho desta casa</button>
       </div>
 
       {aviso && <div className="notice c-ok" role="status">{aviso}</div>}

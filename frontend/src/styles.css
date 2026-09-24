@@ -1146,3 +1146,38 @@ textarea{
      Ele fica do tamanho do que escreve. */
   .filtros{ max-width:560px }
 }
+
+/* ---------- O círculo de iniciais, na cor do cargo (fase 151) ----------
+   Fundo CHEIO e letra branca, de propósito: as pílulas de estado são o
+   contrário — fundo claro, letra colorida —, e é a forma que separa as duas
+   de relance. Cor de cargo diz "de que setor é esta pessoa"; cor de estado diz
+   "isto ainda precisa de alguém". Confundir as duas é o pior que esta tela
+   pode fazer às onze da noite. */
+.cargo-chip{
+  display:inline-flex; align-items:center; justify-content:center; flex:none;
+  width:32px; height:32px; border-radius:999px;
+  font-family:"Plus Jakarta Sans",system-ui,sans-serif;
+  font-size:12px; font-weight:800; letter-spacing:.01em;
+  color:#FFFFFF; line-height:1; user-select:none;
+  /* O anel é o que separa o círculo do fundo quando os dois são escuros — no
+     tema escuro, sem ele, o cinza do Gestor Geral encosta na superfície. */
+  box-shadow:0 0 0 2px var(--surface);
+}
+.cargo-chip.sm{ width:26px; height:26px; font-size:10.5px }
+/* Em fila, eles se sobrepõem um pouco — é a convenção que diz "estas pessoas
+   estão juntas neste turno", e economiza a largura que o celular não tem. */
+.cargo-fila{ display:inline-flex; align-items:center }
+.cargo-fila .cargo-chip + .cargo-chip{ margin-left:-8px }
+
+/* ---------- O desenho ao lado da palavra (fase 151) ----------
+   O ícone é `inline` no meio de um texto — "Remédios", "Ver em folha" — e
+   sem isto ele encosta na primeira letra e senta na linha de base, o que o
+   deixa alto demais. `-0.18em` alinha o miolo do desenho com o miolo da letra.
+
+   Onde o ícone é SOZINHO (o botão redondo da barra, a aba, a porta da coluna,
+   o círculo do cargo) o respiro é do próprio recipiente, e a margem sai. */
+.icone{ vertical-align:-.18em; margin-right:.35em }
+.iconbtn .icone, .tabbar .icone, .portas-lateral .icone,
+.cargo-chip .icone, .ic .icone, .pill .icone, .sheet .porta-icone .icone{
+  margin-right:0; vertical-align:middle;
+}

@@ -5,6 +5,7 @@ import type { ArquivoGerado } from '../documentos';
 import type { DocumentoWord } from '../docx';
 import { quemAssina } from '../quem-assina';
 import { dia } from '../rotulos';
+import { Icone } from '../icones';
 
 /**
  * REUNIÕES E COMBINADOS DA EQUIPE (§9.4).
@@ -188,7 +189,7 @@ export function Alinhamentos({ houseId, casaLabel }: { houseId: string; casaLabe
                       : 'Não foi possível montar a folha dos combinados.');
                   }
                 }}>
-          📄 Ver em folha / baixar
+          <Icone nome="documento" /> Ver em folha / baixar
         </button>
       </div>
 

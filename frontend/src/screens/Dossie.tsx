@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { api } from '../api';
 import { baixarArquivo } from '../documentos';
 import { dia } from '../rotulos';
+import { Icone } from '../icones';
 
 /**
  * O DOSSIÊ DO ACOLHIDO (§6.1) e o ÁLBUM DE VIVÊNCIAS (§6.9).
@@ -165,9 +166,9 @@ export function Dossie({ personId, nome, papel, onVoltar }: {
 
       <div className="filtros" role="tablist" aria-label="Dossiê">
         <button role="tab" aria-selected={aba === 'dossie'} className={aba === 'dossie' ? 'on' : ''}
-                onClick={() => setAba('dossie')}>📂 Documentos</button>
+                onClick={() => setAba('dossie')}><Icone nome="pasta" /> Documentos</button>
         <button role="tab" aria-selected={aba === 'album'} className={aba === 'album' ? 'on' : ''}
-                onClick={() => setAba('album')}>📷 Vivências</button>
+                onClick={() => setAba('album')}><Icone nome="foto" /> Vivências</button>
       </div>
 
       {aba === 'dossie' && dossie && (
@@ -241,7 +242,7 @@ export function Dossie({ personId, nome, papel, onVoltar }: {
                           {d.origem && <div className="mutetxt">{d.origem}</div>}
                           <button className={`btn sm ${d.aceitoEm ? 'ghost' : 'sec'}`}
                                   onClick={() => setConferindo(d)}>
-                            {d.aceitoEm ? '👁 Abrir' : 'Conferir agora'}
+                            {d.aceitoEm ? <><Icone nome="olhar" /> Abrir</> : 'Conferir agora'}
                           </button>
                         </div>
                       ))}
@@ -249,7 +250,7 @@ export function Dossie({ personId, nome, papel, onVoltar }: {
                     <span className={`pill ${TOM_SITUACAO[i.situacao]}`}>
                       {ROTULO_SITUACAO[i.situacao]}
                     </span>
-                    <button className="btn sm sec" onClick={() => setAnexando(i)}>📎 Anexar</button>
+                    <button className="btn sm sec" onClick={() => setAnexando(i)}><Icone nome="anexo" /> Anexar</button>
                   </li>
                 ))}
               </ul>
@@ -300,7 +301,7 @@ export function Dossie({ personId, nome, papel, onVoltar }: {
                     </div>
                     <button className={`btn sm ${d.aceitoEm ? 'ghost' : 'sec'}`}
                             onClick={() => setConferindo(d)}>
-                      {d.aceitoEm ? '👁 Abrir' : 'Conferir agora'}
+                      {d.aceitoEm ? <><Icone nome="olhar" /> Abrir</> : 'Conferir agora'}
                     </button>
                   </li>
                 ))}
@@ -344,7 +345,7 @@ export function Dossie({ personId, nome, papel, onVoltar }: {
                 <p style={{ margin: '8px 0 0' }}>{v.descricao}</p>
                 {v.temFoto && (
                   <div className="row" style={{ marginTop: 8 }}>
-                    <button className="btn sm sec" onClick={() => setVendoFoto(v)}>📷 Ver a foto</button>
+                    <button className="btn sm sec" onClick={() => setVendoFoto(v)}><Icone nome="foto" /> Ver a foto</button>
                     {!v.autorizacaoRegistrada && (
                       <span className="pill c-warn">autorização de imagem não registrada</span>
                     )}
@@ -584,7 +585,7 @@ function FolhaConferencia({ personId, documento, onFechar, onAceitar }: {
               */}
             <div className="row rodape">
               <button className="btn sec grow" onClick={() => void baixar()}>
-                ⬇️ Baixar
+                <Icone nome="baixar" /> Baixar
               </button>
               <button className="btn grow" onClick={onFechar}>Fechar</button>
             </div>
@@ -602,7 +603,7 @@ function FolhaConferencia({ personId, documento, onFechar, onAceitar }: {
               <button className="btn sec grow" onClick={onFechar}>Ainda não</button>
               <button className="btn grow" disabled={!arquivo}
                       onClick={() => onAceitar(nota.trim() || undefined)}>
-                ✓ Conferi — é este e está legível
+                <Icone nome="conferido" /> Conferi — é este e está legível
               </button>
             </div>
           </>

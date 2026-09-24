@@ -21,7 +21,7 @@
  *  4. **nenhum grupo da barra lateral fica órfão.** Porta num grupo que a barra
  *     não desenha é porta que só existe no celular, e ninguém descobriria.
  */
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 const FRONT = join(__dirname, '..', '..', 'frontend', 'src');
@@ -107,6 +107,60 @@ describe('As portas do sistema e os desenhos delas', () => {
     expect(grupos.size).toBeGreaterThan(2);
     const fora = [...new Set(lista.map((p) => p.grupo))].filter((g) => !grupos.has(g));
     expect(fora).toEqual([]);
+  });
+
+  it('NENHUMA tela tem emoji — o desenho é o padrão do sistema inteiro (fase 151)', () => {
+    /*
+     * A 150 guardou a MOLDURA; esta guarda as TELAS, e a diferença é 107
+     * ocorrências em vinte arquivos: o remédio do botão "Remédios", o lápis do
+     * "Relato", o cadeado do cofre, a bandeja da cozinha.
+     *
+     * A razão é a mesma e não é gosto: emoji muda de desenho conforme o
+     * aparelho, não herda a cor do tema e diz coisas que ninguém escolheu. E a
+     * razão de ser CONFERIDOR é que a volta é fácil — escrever um emoji custa
+     * um toque, e ninguém repara numa tela entre trinta e seis.
+     *
+     * Os COMENTÁRIOS ficam de fora (a lição da 150: proibir a palavra no texto
+     * que explica a proibição é como se apaga a explicação), e o `mock.ts`
+     * também é conferido: ele é dado que a tela desenha.
+     */
+    const emoji = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}]/u;
+    const semComentario = (fonte: string) => fonte
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/\/\/[^\n]*/g, '');
+    const arquivos: string[] = [];
+    const varrer = (dir: string) => {
+      for (const e of readdirSync(dir, { withFileTypes: true })) {
+        const cheio = join(dir, e.name);
+        if (e.isDirectory()) varrer(cheio);
+        else if (/\.tsx?$/.test(e.name)) arquivos.push(cheio);
+      }
+    };
+    varrer(FRONT);
+    expect(arquivos.length).toBeGreaterThan(30);
+    const comEmoji = arquivos
+      .filter((a) => emoji.test(semComentario(readFileSync(a, 'utf8'))))
+      .map((a) => a.slice(FRONT.length + 1));
+    expect(comEmoji).toEqual([]);
+  });
+
+  it('o ícone do marco de vida é o MESMO no servidor e no protótipo', () => {
+    /*
+     * REGRA 14, e ela pegou esta fase no flagrante: o ícone de cada conquista
+     * (passou de ano, primeiro emprego) vem do SERVIDOR, e o `mock.ts` o
+     * espelha. Trocar emoji por desenho num lado só faria a tela desenhar certo
+     * no protótipo que o Marcelo abre e errado no sistema de verdade — que é o
+     * pior jeito de errar, porque a demonstração fica bonita.
+     */
+    const doServidor = readFileSync(
+      join(__dirname, '..', 'src', 'modules', 'reports', 'impacto.service.ts'), 'utf8');
+    const mock = readFileSync(join(FRONT, 'mock.ts'), 'utf8');
+    const marcos = (fonte: string) =>
+      [...fonte.matchAll(/cod: '([a-z_]+)', label: '[^']*', icone: '([a-z_]+)'/g)]
+        .map((m) => `${m[1]}=${m[2]}`);
+    const dele = marcos(doServidor);
+    expect(dele.length).toBeGreaterThan(10);
+    expect(marcos(mock)).toEqual(dele);
   });
 
   it('a navegação não voltou a ter emoji — o desenho é o padrão agora', () => {

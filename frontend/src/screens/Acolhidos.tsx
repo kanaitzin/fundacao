@@ -8,6 +8,7 @@ import {
   BotaoOlho, Escolhido, FolhaArquivo, PreviaEscolhida, base64De, lerArquivo,
 } from '../anexos';
 import { dia, horaSemSegundos } from '../rotulos';
+import { Icone } from '../icones';
 
 /**
  * OS ACOLHIDOS DA CASA e o PERFIL (§6, §13).
@@ -514,7 +515,7 @@ export function Acolhidos({ houseId, casaLabel, papel }: {
                   */}
                 {VE_REMEDIO.includes(papel) && (
                   <button className="btn sec sm" onClick={() => setRemedios(c)}>
-                    💊 Remédios
+                    <Icone nome="medicamento" /> Remédios
                   </button>
                 )}
                 {/*
@@ -528,7 +529,7 @@ export function Acolhidos({ houseId, casaLabel, papel }: {
                   * perguntar de novo para a criança.
                   */}
                 <button className="btn sec sm" onClick={() => setRelatando(c)}>
-                  📝 Relato
+                  <Icone nome="escrever" /> Relato
                 </button>
                 <button className="btn sec sm"
                         onClick={() => { setRecebendo(c); setNotaRetorno(''); setTrouxeRetorno(''); }}>
@@ -617,7 +618,7 @@ export function Acolhidos({ houseId, casaLabel, papel }: {
       {REGISTRA_SAIDA.includes(papel) && (
         <button className="btn block sec" style={{ marginTop: 8 }}
                 onClick={() => { setVendoAcervo(true); carregarAcervo(); }}>
-          🗄️ Acervo histórico — quem saiu, e registrar retorno
+          <Icone nome="arquivo" /> Acervo histórico — quem saiu, e registrar retorno
         </button>
       )}
 
@@ -650,16 +651,16 @@ export function Acolhidos({ houseId, casaLabel, papel }: {
                 </div>
               </div>
               {p.noHospital && (
-                <span className="pill c-info" title={`No ${p.noHospital}`}>🏥</span>
+                <span className="pill c-info" title={`No ${p.noHospital}`}><Icone nome="internacao" tamanho={14} /></span>
               )}
               {p.alertasEssenciais > 0 && (
                 <span className="pill c-crit" title="Alertas essenciais">
-                  ⚠ {p.alertasEssenciais}
+                  <Icone nome="alerta" /> {p.alertasEssenciais}
                 </span>
               )}
               {p.restricoesAlimentares > 0 && (
                 <span className="pill c-warn" title="Restrições alimentares">
-                  🍽 {p.restricoesAlimentares}
+                  <Icone nome="refeicao" /> {p.restricoesAlimentares}
                 </span>
               )}
             </button>
@@ -906,7 +907,7 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
 
       {/* A pasta da criança: o que a casa precisa ter, e o álbum dela. */}
       <button className="btn sec block" style={{ marginBottom: 12 }} onClick={() => setDossie(true)}>
-        📂 Dossiê e vivências
+        <Icone nome="pasta" /> Dossiê e vivências
       </button>
 
       {/*
@@ -920,7 +921,7 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
       {QUEM_CADASTRA.includes(papel) && (
         <button className="btn ghost block" style={{ marginBottom: 12 }}
                 onClick={() => setCorrigindo(true)}>
-          ✏️ Corrigir o cadastro
+          <Icone nome="escrever" /> Corrigir o cadastro
         </button>
       )}
 
@@ -938,7 +939,7 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
       {QUEM_CADASTRA.includes(papel) && (
         <button className="btn ghost block" style={{ marginBottom: 12 }}
                 onClick={() => setEditandoDetalhe(true)}>
-          📝 Atualizar escola, cuidados e equipe
+          <Icone nome="escrever" /> Atualizar escola, cuidados e equipe
         </button>
       )}
 
@@ -992,13 +993,13 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
       {/* PRIMEIRO, e sem precisar rolar: o que machuca hoje se for ignorado. */}
       {p.alertasEssenciais.map((a, i) => (
         <div key={i} className="notice c-crit" role="alert">
-          <b>⚠ {a.descricao}</b>
+          <b><Icone nome="alerta" /> {a.descricao}</b>
           <div className="mutetxt">{a.tipo}{a.gravidade ? ` · ${a.gravidade}` : ''}</div>
         </div>
       ))}
       {p.restricoesAlimentares.map((r) => (
         <div key={r.id} className="notice c-warn" role="status">
-          <b>🍽 {r.restriction}</b>
+          <b><Icone nome="refeicao" /> {r.restriction}</b>
           {r.substitution && <div>No lugar: {r.substitution}</div>}
           {r.guidance && <div className="mutetxt">{r.guidance}</div>}
         </div>
@@ -1089,7 +1090,7 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
         {REGISTRA_EVOLUCAO.includes(papel) && (
           <>
             <button className="btn sec block" onClick={() => setEvolucao(true)}>
-              🩺 Registrar atendimento de saúde
+              <Icone nome="saude_ic" /> Registrar atendimento de saúde
             </button>
             <p className="mutetxt">
               Voltou de consulta, exame, urgência ou internação? Quem acompanhou escreve o
@@ -2194,7 +2195,7 @@ function FotoDoAcolhido({ perfil, papel, onTrocou }: {
               <button className="btn sec grow" onClick={() => setEscolhida(null)}>Cancelar</button>
               <button className="btn grow" disabled={ocupado}
                       onClick={() => void enviar(escolhida)}>
-                {ocupado ? 'Enviando…' : '✓ É esta foto'}
+                {ocupado ? 'Enviando…' : <><Icone nome="conferido" /> É esta foto</>}
               </button>
             </div>
           </div>
@@ -2366,7 +2367,7 @@ function SairSozinho({ perfil, papel, onMudou }: {
       {podeDecidir && !decidindo && (
         <button className="btn sec block" style={{ marginBottom: 12 }}
                 onClick={() => { setStatus(v?.status === 'liberada' ? 'suspensa' : 'liberada'); setDecidindo(true); }}>
-          🚪 Registrar decisão sobre sair sozinho
+          <Icone nome="portaria" /> Registrar decisão sobre sair sozinho
         </button>
       )}
 
@@ -2529,7 +2530,7 @@ function Contatos({ perfil, papel, onMudou }: {
       </div>
       {podeEscrever && (
         <button className="btn sec block" style={{ marginBottom: 12 }} onClick={() => setNovo(true)}>
-          ☎️ Acrescentar contato
+          <Icone nome="telefone" /> Acrescentar contato
         </button>
       )}
 
@@ -3006,7 +3007,7 @@ function Conquistas({ perfil, papel }: { perfil: Perfil; papel: string }) {
         {(lista ?? []).slice(0, 3).map((m) => (
           <div key={m.id} className="card">
             <div className="row">
-              <span aria-hidden="true">{m.icone}</span>
+              <span className="ic"><Icone nome={m.icone} /></span>
               <b className="ff grow">{m.tipoRotulo}</b>
               <span className="pill c-ok">{dia(m.quando)}</span>
             </div>
@@ -3018,7 +3019,7 @@ function Conquistas({ perfil, papel }: { perfil: Perfil; papel: string }) {
       {podeEscrever && (
         <button className="btn sec block" style={{ marginBottom: 12 }}
                 onClick={() => setRegistrando(true)}>
-          ✨ Registrar conquista
+          <Icone nome="conquista" /> Registrar conquista
         </button>
       )}
 
@@ -3061,7 +3062,7 @@ function FolhaConquistaDoPerfil({ perfil, onFechar, onSalvou }: {
 
         <label className="f" htmlFor="cp-t">O que foi</label>
         <select id="cp-t" value={d.tipo} onChange={(e) => setD({ ...d, tipo: e.target.value })}>
-          {tipos.map((t) => <option key={t.cod} value={t.cod}>{t.icone} {t.label}</option>)}
+          {tipos.map((t) => <option key={t.cod} value={t.cod}>{t.label}</option>)}
         </select>
         {d.tipo === 'outro' && (
           <>
@@ -3231,7 +3232,7 @@ function FolhaRemedios({ convivencia, houseId, onFechar }: {
               setErro(e instanceof Error ? e.message : 'Não foi possível montar a folha.');
             }
           }}>
-            📄 Folha para levar
+            <Icone nome="documento" /> Folha para levar
           </button>
           {!dados?.jaRegistrada && itens.length > 0 && (
             <button className="btn block" onClick={registrar}>
@@ -3365,7 +3366,7 @@ function ConvivenciaFamiliar({ personId, quem }: { personId: string; quem: strin
             {/* Aberto para sempre: a ida de setembro aceita um relato em
                 março, e é justamente esse o que mais importa. */}
             <button className="btn sec sm" onClick={() => setRelatando(f.id)}>
-              📝 Registrar o que ela contou
+              <Icone nome="escrever" /> Registrar o que ela contou
             </button>
           </div>
         ))}

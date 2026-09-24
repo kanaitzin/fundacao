@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { api } from '../api';
 import marca from '../assets/logo-marca.png';
+import { Icone } from '../icones';
 
 /**
  * ENTRADA NO SISTEMA.
@@ -131,7 +132,7 @@ export function Login({ onSubmit, erro, ocupado }: {
                 placeholder="Sua senha"
               />
               <p className="loginhint">
-                🔒 Esqueceu? A coordenação reenvia o primeiro acesso — ninguém, nem ela,
+                <Icone nome="cadeado" /> Esqueceu? A coordenação reenvia o primeiro acesso — ninguém, nem ela,
                 consegue ver a sua senha.
               </p>
             </>
@@ -139,7 +140,7 @@ export function Login({ onSubmit, erro, ocupado }: {
 
           {passo === '' && (
             <p className="loginhint">
-              🔒 No primeiro acesso, a senha quem cria é você — pelo link que a
+              <Icone nome="cadeado" /> No primeiro acesso, a senha quem cria é você — pelo link que a
               coordenação envia para o seu e-mail institucional.
             </p>
           )}

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api';
+import { Icone } from '../icones';
 
 /**
  * O QUE CADA SETOR ENXERGA (§8.3).
@@ -106,7 +107,7 @@ export function Setores({ papel }: { papel: string }) {
                 <div>{ar.faz}</div>
                 {ar.servidor && (
                   <div className="notice c-med" style={{ margin: 0 }}>
-                    🔒 <b>O servidor recusa por baixo:</b> {ar.servidor}
+                    <Icone nome="cadeado" /> <b>O servidor recusa por baixo:</b> {ar.servidor}
                   </div>
                 )}
               </div>

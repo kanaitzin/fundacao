@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { api } from '../api';
+import { Icone } from '../icones';
 
 /**
  * PRIMEIRO ACESSO — sugestão de senha pessoal.
@@ -48,14 +49,14 @@ export function SenhaPessoal({ email, primeiroAcesso, semSenhaAinda, onPronto, o
     <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-senha">
       <div className="sheet modal">
         <h3 id="t-senha">
-          🔑 {semSenhaAinda ? 'Crie a sua senha'
+          <Icone nome="chave" /> {semSenhaAinda ? 'Crie a sua senha'
              : primeiroAcesso ? 'Que tal criar uma senha pessoal?' : 'Trocar minha senha'}
         </h3>
         <p className="mutetxt">
           {semSenhaAinda
             ? 'Esta conta ainda não tem senha. A que você escrever agora é só sua: nem a coordenação, nem a Fundação, nem quem fez o sistema consegue vê-la. O que você registrar daqui em diante vai com o seu nome.'
             : primeiroAcesso
-              ? 'Você está usando a senha inicial entregue pela coordenação. Uma senha só sua protege o que você registra — e o que você registra tem o seu nome. Se preferir, pode continuar com a atual e trocar quando quiser pelo botão 🔑 na barra.'
+              ? 'Você está usando a senha inicial entregue pela coordenação. Uma senha só sua protege o que você registra — e o que você registra tem o seu nome. Se preferir, pode continuar com a atual e trocar quando quiser pelo botão "Trocar minha senha", no alto da tela.'
               : 'Trocar a senha encerra as outras sessões abertas em seu nome. A sua, aqui, continua.'}
         </p>
         <p className="mutetxt"><b className="ff">{email}</b></p>

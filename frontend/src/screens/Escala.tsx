@@ -4,6 +4,8 @@ import { FolhaDocumento } from '../documentos';
 import type { ArquivoGerado } from '../documentos';
 import type { DocumentoWord } from '../docx';
 import { cargo as rotuloCargo, diaCurto as dia, tomDoAutor } from '../rotulos';
+import { Cargo } from '../cargos';
+import { Icone } from '../icones';
 
 /**
  * A ESCALA DE PLANTÃO (§5.12).
@@ -165,7 +167,7 @@ export function Escala({ houseId, casaLabel, papel }: {
             setErro(e instanceof Error ? e.message : 'Não foi possível montar a folha.');
           }
         }}>
-          📄 Folha para a parede
+          <Icone nome="documento" /> Folha para a parede
         </button>
       </div>
 
@@ -201,6 +203,17 @@ export function Escala({ houseId, casaLabel, papel }: {
                        * porque o nome nunca dependeu da cor.
                        */
                       <li key={p.id} className={`row linha-ata ${tomDoAutor(p.userId, p.cor)}`}>
+                        {/*
+                          * O CÍRCULO É DO CARGO, a borda é da PESSOA (fase 151).
+                          *
+                          * São duas perguntas e por isso são duas marcas: a borda
+                          * responde *"qual colega é este"* — e a coordenação
+                          * escolhe a cor dela, para dois educadores do mesmo
+                          * plantão não caírem no mesmo tom (0990) —, e o círculo
+                          * responde *"há técnica neste turno?"*, que é o que se
+                          * pergunta olhando a escala da semana de longe.
+                          */}
+                        <Cargo nome={p.quem} cargo={p.cargo} />
                         <div className="grow">
                           <b className="ff">{p.quem}</b>
                           <div className="mutetxt linhadois">

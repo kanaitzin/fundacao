@@ -7,6 +7,7 @@ import { FolhaDocumento } from '../documentos';
 import type { ArquivoGerado } from '../documentos';
 import type { DocumentoWord } from '../docx';
 import { quemAssina } from '../quem-assina';
+import { Icone } from '../icones';
 
 /**
  * ATAS — a da casa e a Geral Noturna.
@@ -504,7 +505,7 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
         {CONSULTA_ARQUIVO.includes(papel) && (
           <button role="tab" aria-selected={aba === 'arquivo'} className={aba === 'arquivo' ? 'on' : ''}
                   onClick={() => { setAba('arquivo'); if (!arquivo) consultar(); }}>
-            📚 Arquivo
+            <Icone nome="livros" /> Arquivo
           </button>
         )}
       </div>
@@ -756,7 +757,7 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
                                             [sec.chave]: secoes.ambientes
                                               .map((a) => `${a.label}: organizado`).join('\n'),
                                           }))}>
-                                    ✓ Todos organizados
+                                    <Icone nome="conferido" /> Todos organizados
                                   </button>
                                   {/* Os ambientes do formulário de papel, como
                                       atalho de escrita. O registro é do
@@ -1029,7 +1030,7 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
                                 : 'Não foi possível montar a folha da ATA.');
                             }
                           }}>
-                    📄 Ver em folha / baixar em Word
+                    <Icone nome="documento" /> Ver em folha / baixar em Word
                   </button>
                 )}
 
@@ -1043,7 +1044,7 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
                   */}
                 {fechada && CORRIGE_ATA.includes(papel) && (
                   <button className="btn sec sm" onClick={() => setReabrindo(true)}>
-                    ✏️ Reabrir para corrigir
+                    <Icone nome="escrever" /> Reabrir para corrigir
                   </button>
                 )}
                 {ata?.status === 'reaberta' && CORRIGE_ATA.includes(papel) && (
@@ -1237,7 +1238,7 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
                     </div>
                   )}
                   <button className="btn block" onClick={() => setFechando('geral')}>
-                    ✍️ Assinar e fechar a ATA Geral
+                    <Icone nome="escrever" /> Assinar e fechar a ATA Geral
                   </button>
                 </>
               )}

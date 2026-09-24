@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api';
+import { Icone } from '../icones';
 
 /**
  * ARQUIVO DOCUMENTAL (Drive institucional).
@@ -195,7 +196,7 @@ export function Arquivo({ houseId, papel }: { houseId: string; papel: string }) 
               <b className="ff mono" style={{ fontSize: 13 }}>{a.arquivo}</b>
               <div className="mutetxt mono">{a.caminho}</div>
               {a.areaRestrita && (
-                <div className="mutetxt">🔒 Área restrita — outra raiz, outra permissão.</div>
+                <div className="mutetxt"><Icone nome="cadeado" /> Área restrita — outra raiz, outra permissão.</div>
               )}
               {a.situacao === 'falhou' && (
                 <div className="notice c-crit">

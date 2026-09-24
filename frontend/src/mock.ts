@@ -4076,18 +4076,18 @@ function contatosDe(id: string) {
  *    ninguém escreveu, e não que nada aconteceu.
  */
 const TIPOS_DE_MARCO = [
-  { cod: 'aprovacao_escolar', label: 'Passou de ano', icone: '📚' },
-  { cod: 'conclusao_ensino_fundamental', label: 'Terminou o Fundamental', icone: '🎓' },
-  { cod: 'conclusao_ensino_medio', label: 'Terminou o Ensino Médio', icone: '🎓' },
-  { cod: 'curso_profissionalizante', label: 'Curso profissionalizante', icone: '🛠️' },
-  { cod: 'certificado', label: 'Certificado', icone: '📜' },
-  { cod: 'ingresso_faculdade', label: 'Entrou na faculdade', icone: '🏛️' },
-  { cod: 'primeiro_emprego', label: 'Primeiro emprego', icone: '💼' },
-  { cod: 'estagio', label: 'Estágio', icone: '💼' },
-  { cod: 'documento_conquistado', label: 'Documento conquistado', icone: '🪪' },
-  { cod: 'esporte_ou_arte', label: 'Esporte, arte ou cultura', icone: '⚽' },
-  { cod: 'reinsercao_familiar', label: 'Reinserção familiar', icone: '🏠' },
-  { cod: 'outro', label: 'Outro', icone: '✨' },
+  { cod: 'aprovacao_escolar', label: 'Passou de ano', icone: 'livros' },
+  { cod: 'conclusao_ensino_fundamental', label: 'Terminou o Fundamental', icone: 'formatura' },
+  { cod: 'conclusao_ensino_medio', label: 'Terminou o Ensino Médio', icone: 'formatura' },
+  { cod: 'curso_profissionalizante', label: 'Curso profissionalizante', icone: 'ferramenta' },
+  { cod: 'certificado', label: 'Certificado', icone: 'certificado' },
+  { cod: 'ingresso_faculdade', label: 'Entrou na faculdade', icone: 'instituicao' },
+  { cod: 'primeiro_emprego', label: 'Primeiro emprego', icone: 'maleta' },
+  { cod: 'estagio', label: 'Estágio', icone: 'maleta' },
+  { cod: 'documento_conquistado', label: 'Documento conquistado', icone: 'identidade' },
+  { cod: 'esporte_ou_arte', label: 'Esporte, arte ou cultura', icone: 'bola' },
+  { cod: 'reinsercao_familiar', label: 'Reinserção familiar', icone: 'casas' },
+  { cod: 'outro', label: 'Outro', icone: 'conquista' },
 ];
 
 const MARCOS: any[] = [
@@ -4416,7 +4416,7 @@ function responderImpacto(
       .map((m) => ({
         ...m,
         tipoRotulo: TIPOS_DE_MARCO.find((t) => t.cod === m.tipo)?.label ?? m.tipo,
-        icone: TIPOS_DE_MARCO.find((t) => t.cod === m.tipo)?.icone ?? '✨',
+        icone: TIPOS_DE_MARCO.find((t) => t.cod === m.tipo)?.icone ?? 'conquista',
       }));
     }
 
@@ -4444,7 +4444,7 @@ function responderImpacto(
       marcos: MARCOS.filter((m) => m.acolhidoId === k.id).map((m) => ({
         ...m,
         tipoRotulo: TIPOS_DE_MARCO.find((t) => t.cod === m.tipo)?.label ?? m.tipo,
-        icone: TIPOS_DE_MARCO.find((t) => t.cod === m.tipo)?.icone ?? '✨',
+        icone: TIPOS_DE_MARCO.find((t) => t.cod === m.tipo)?.icone ?? 'conquista',
       })),
       aviso: 'Esta é a linha do que foi conquistado. Saúde, ocorrências e conteúdo '
         + 'judicial não entram aqui — eles ficam nas telas do caso, com quem cuida dele.',

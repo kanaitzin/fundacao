@@ -26,6 +26,7 @@
  * página saiu cortada, ou se é a criança certa.
  */
 import { ReactNode, useEffect, useState } from 'react';
+import { Icone } from './icones';
 
 /** O que a prévia precisa saber sobre um arquivo escolhido, antes de enviar. */
 export interface Escolhido { nome: string; tipo: string; tamanho: number; dataUrl: string }
@@ -63,7 +64,7 @@ export function BotaoOlho({ rotulo, onClick, titulo }: {
 }) {
   return (
     <button type="button" className="btn sm ghost olho" onClick={onClick} title={titulo}>
-      <span aria-hidden="true">👁</span> {rotulo}
+      <Icone nome="olhar" /> {rotulo}
     </button>
   );
 }

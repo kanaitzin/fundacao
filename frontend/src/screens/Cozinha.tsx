@@ -3,6 +3,7 @@ import { api } from '../api';
 import { FolhaDocumento, ArquivoGerado } from '../documentos';
 import type { DocumentoWord } from '../docx';
 import { dia } from '../rotulos';
+import { Icone } from '../icones';
 
 /**
  * COZINHA — uma tela só, e é isso que a torna certa.
@@ -243,10 +244,10 @@ export function Cozinha({ houseId, casaLabel, papel }: {
           {podePedir && (
             <div className="row" style={{ gap: 8, marginBottom: 12 }}>
               <button className="btn grow" onClick={() => setPedindo('lanche')}>
-                🥪 Pedir lanche
+                <Icone nome="lanche" /> Pedir lanche
               </button>
               <button className="btn sec grow" onClick={() => setPedindo('cesta_basica')}>
-                🧺 Pedir cesta básica
+                <Icone nome="cesta" /> Pedir cesta básica
               </button>
             </div>
           )}
@@ -264,7 +265,9 @@ export function Cozinha({ houseId, casaLabel, papel }: {
                    style={p.status === 'cancelado' ? { background: 'var(--sunken)' } : undefined}>
                 <div className="row">
                   <b className="ff grow">
-                    {p.tipo === 'lanche' ? '🥪 Lanche' : '🧺 Cesta básica'} · {p.paraQuem}
+                    {p.tipo === 'lanche'
+                        ? <><Icone nome="lanche" /> Lanche</>
+                        : <><Icone nome="cesta" /> Cesta básica</>} · {p.paraQuem}
                   </b>
                   <span className={`pill ${p.status === 'cancelado' ? 'c-crit' : 'c-warn'}`}>
                     {p.status === 'cancelado' ? 'cancelado' : dia(p.em)}
@@ -293,13 +296,13 @@ export function Cozinha({ houseId, casaLabel, papel }: {
           <div className="eyebrow">Folhas para a cozinha</div>
           <div className="stack" style={{ marginBottom: 12 }}>
             <button className="btn sec block" onClick={() => abrirFolha('lanches')}>
-              📄 Solicitação de lanche — do período
+              <Icone nome="documento" /> Solicitação de lanche — do período
             </button>
             <button className="btn sec block" onClick={() => abrirFolha('cestas')}>
-              📄 Solicitação de cesta básica — do período
+              <Icone nome="documento" /> Solicitação de cesta básica — do período
             </button>
             <button className="btn sec block" onClick={() => abrirFolha('restricoes')}>
-              📄 Restrições alimentares — da casa
+              <Icone nome="documento" /> Restrições alimentares — da casa
             </button>
           </div>
 

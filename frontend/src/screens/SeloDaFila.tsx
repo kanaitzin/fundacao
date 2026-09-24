@@ -4,6 +4,7 @@ import {
   type EstadoDaFila, type OperacaoLocal,
 } from '../fila-offline';
 import { tipoOffline } from '../../../backend/src/modules/sync/tipos-offline';
+import { Icone } from '../icones';
 
 /**
  * O QUE ESTE APARELHO AINDA NÃO MANDOU (§17.1, §17.2).
@@ -45,7 +46,7 @@ export function SeloDaFila() {
         }
         onClick={() => setAberta(true)}
       >
-        {estado.online ? '📤' : '📴'}
+        <Icone nome={estado.online ? 'enviar' : 'sem_sinal'} />
         {total > 0 && <span className="badge">{total > 9 ? '9+' : total}</span>}
       </button>
       {aberta && <FolhaDaFila estado={estado} onFechar={() => setAberta(false)} />}

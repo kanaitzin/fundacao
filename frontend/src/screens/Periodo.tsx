@@ -4,6 +4,7 @@ import { FolhaDocumento } from '../documentos';
 import type { ArquivoGerado } from '../documentos';
 import type { DocumentoWord } from '../docx';
 import { dia } from '../rotulos';
+import { Icone } from '../icones';
 
 /**
  * ============================================================================
@@ -236,7 +237,7 @@ export function Periodo({ casaId }: { casaId: string | null }) {
           </div>
 
           <button className="btn sec block" onClick={() => void verFolha()}>
-            📄 Ver a folha antes de baixar
+            <Icone nome="documento" /> Ver a folha antes de baixar
           </button>
 
           {/* AS SEÇÕES, NA ORDEM DO SERVIDOR — a parte boa primeiro. */}

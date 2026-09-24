@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api';
 import marca from '../assets/logo-marca.png';
+import { Icone } from '../icones';
 
 /**
  * PRIMEIRO ACESSO PELO CONVITE (§8.2).
@@ -99,7 +100,7 @@ export function PrimeiroAcesso({ convite, onEntrou }: {
             />
 
             <p className="loginhint">
-              🔒 Ninguém da Fundação vê a sua senha — nem a coordenação, nem o suporte.
+              <Icone nome="cadeado" /> Ninguém da Fundação vê a sua senha — nem a coordenação, nem o suporte.
               Se alguém pedir a sua senha, não é do sistema.
             </p>
 

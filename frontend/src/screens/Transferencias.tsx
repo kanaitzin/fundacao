@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api';
+import { Icone } from '../icones';
 
 /**
  * TRANSFERÊNCIAS ENTRE UNIDADES (§15.6).
@@ -113,7 +114,7 @@ export function Transferencias({ houseId }: { houseId: string }) {
       <>
         <button className="btn ghost sm" onClick={() => abrirConversa(id)}>
           {aberta ? 'Fechar conversa'
-            : `💬 Conversar com a outra coordenação${quantas ? ` (${quantas})` : ''}`}
+            : <><Icone nome="alinhamentos" /> Conversar com a outra coordenação{quantas ? ` (${quantas})` : ''}</>}
         </button>
         {aberta && (
           <>
@@ -190,7 +191,7 @@ export function Transferencias({ houseId }: { houseId: string }) {
                 <div className="row">
                   <button className="btn sm grow"
                           onClick={() => setDecidindo({ id: t.id, nome: t.nomeCompleto, modo: 'aceitar' })}>
-                    ✓ Aceitar
+                    <Icone nome="conferido" /> Aceitar
                   </button>
                   <button className="btn sec sm grow"
                           onClick={() => setDecidindo({ id: t.id, nome: t.nomeCompleto, modo: 'recusar' })}>

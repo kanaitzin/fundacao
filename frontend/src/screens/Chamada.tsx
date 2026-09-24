@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api, apiOuFila } from '../api';
+import { Icone } from '../icones';
 
 /**
  * CHAMADA COLETIVA (§10).
@@ -215,7 +216,7 @@ export function Chamada({ houseId }: { houseId: string }) {
         {tipos && (
           <button className="btn block" style={{ marginBottom: 12 }}
                   onClick={() => setAbrindo(true)}>
-            ✅ Abrir uma chamada
+            <Icone nome="conferido" /> Abrir uma chamada
           </button>
         )}
 
@@ -413,8 +414,8 @@ export function Chamada({ houseId }: { houseId: string }) {
                 <b className="ff grow">{l.nome}{l.idade ? ` · ${l.idade}` : ''}</b>
               </div>
               {/* Onde o alerta importa: na hora de marcar, com a bandeja na mão. */}
-              {l.alertas && <div className="alerta">⚠ {l.alertas}</div>}
-              {l.restricoes && <div className="alerta rest">🍽 {l.restricoes}</div>}
+              {l.alertas && <div className="alerta"><Icone nome="alerta" /> {l.alertas}</div>}
+              {l.restricoes && <div className="alerta rest"><Icone nome="refeicao" /> {l.restricoes}</div>}
               {!confirmada && (
                 <div className="acoes">
                   <button className="btn sm" disabled={ocupado === l.acolhidoId}
@@ -485,8 +486,8 @@ export function Chamada({ houseId }: { houseId: string }) {
                   </button>
                   {aberto && (
                     <div className="corpo">
-                      {l.alertas && <div className="alerta">⚠ {l.alertas}</div>}
-                      {l.restricoes && <div className="alerta rest">🍽 {l.restricoes}</div>}
+                      {l.alertas && <div className="alerta"><Icone nome="alerta" /> {l.alertas}</div>}
+                      {l.restricoes && <div className="alerta rest"><Icone nome="refeicao" /> {l.restricoes}</div>}
                       {l.justificativa && <div className="mutetxt">{l.justificativa}</div>}
                       <div className="mutetxt">
                         {l.registradoPor ? `Por ${l.registradoPor}` : 'Sem registro'}
@@ -632,8 +633,8 @@ function FolhaOpcao({ linha, opcoes, onFechar, onMarcar }: {
          onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
       <div className="sheet">
         <h3>{linha.nome}</h3>
-        {linha.alertas && <div className="alerta">⚠ {linha.alertas}</div>}
-        {linha.restricoes && <div className="alerta rest">🍽 {linha.restricoes}</div>}
+        {linha.alertas && <div className="alerta"><Icone nome="alerta" /> {linha.alertas}</div>}
+        {linha.restricoes && <div className="alerta rest"><Icone nome="refeicao" /> {linha.restricoes}</div>}
 
         <div className="opts">
           {opcoes.map((o) => (

@@ -3,6 +3,7 @@ import { api } from '../api';
 import { baixarArquivo } from '../documentos';
 import { BotaoOlho, Escolhido, FolhaArquivo, PreviaEscolhida, base64De, lerArquivo } from '../anexos';
 import { dia } from '../rotulos';
+import { Icone } from '../icones';
 
 /**
  * INTERNAÇÃO HOSPITALAR.
@@ -108,7 +109,7 @@ export function Internacao({ houseId, casaLabel, papel }: {
 
       {podeAbrir && (
         <button className="btn block" onClick={() => setAbrindoNova(true)}>
-          🏥 Registrar internação
+          <Icone nome="internacao" /> Registrar internação
         </button>
       )}
 
@@ -297,7 +298,7 @@ function PeriodoNoHospital({ id, papel, onVoltar }: {
         */}
       {p.status === 'em_andamento' && podeEncerrar && (
         <button className="btn sec block" onClick={() => setDesignando(true)}>
-          👤 Designar quem acompanha
+          <Icone nome="pessoa" /> Designar quem acompanha
         </button>
       )}
       {!p.acompanhantes.length && (
@@ -325,9 +326,9 @@ function PeriodoNoHospital({ id, papel, onVoltar }: {
       {vocab && <p className="mutetxt">{vocab.nota}</p>}
       {p.status === 'em_andamento' && (
         <div className="acoes">
-          <button className="btn sm" onClick={() => setEscrevendo(true)}>✍️ Escrever no diário</button>
+          <button className="btn sm" onClick={() => setEscrevendo(true)}><Icone nome="escrever" /> Escrever no diário</button>
           <button className="btn sm sec" onClick={() => setMedicando(true)}>
-            💊 Medicação dada no hospital
+            <Icone nome="medicamento" /> Medicação dada no hospital
           </button>
         </div>
       )}

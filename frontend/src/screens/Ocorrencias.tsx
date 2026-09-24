@@ -6,6 +6,7 @@ import type { ArquivoGerado } from '../documentos';
 import type { DocumentoWord } from '../docx';
 import { quemAssina } from '../quem-assina';
 import { diaCurto as dia } from '../rotulos';
+import { Icone } from '../icones';
 
 /**
  * OCORRÊNCIAS (§13).
@@ -310,7 +311,7 @@ export function Ocorrencias({ houseId, papel }: { houseId: string; papel: string
           <button role="tab" aria-selected={aba === 'comunicacoes'}
                   className={aba === 'comunicacoes' ? 'on' : ''}
                   onClick={() => { setAba('comunicacoes'); carregarComunicacoes(); }}>
-            📨 Comunicações externas
+            <Icone nome="enviar" /> Comunicações externas
           </button>
         )}
       </div>
@@ -329,7 +330,7 @@ export function Ocorrencias({ houseId, papel }: { houseId: string; papel: string
             + 'de saúde ou o protocolo da instituição.'}
         </div>
         <button className="btn block" onClick={() => setAbrindo(true)}>
-          🚨 Registrar ocorrência
+          <Icone nome="ocorrencias" /> Registrar ocorrência
         </button>
       </div>
 
@@ -428,12 +429,12 @@ export function Ocorrencias({ houseId, papel }: { houseId: string; papel: string
                                 : 'Não foi possível montar a folha da ocorrência.');
                             }
                           }}>
-                    📄 Ver em folha / baixar em Word
+                    <Icone nome="documento" /> Ver em folha / baixar em Word
                   </button>
 
                   {!d.protegido && d.status !== 'fechada' && (
                     <button className="btn sec sm" onClick={() => setProtegendo(o)}>
-                      🔒 Registrar fala espontânea ou sinais observados
+                      <Icone nome="cadeado" /> Registrar fala espontânea ou sinais observados
                     </button>
                   )}
 
@@ -499,7 +500,7 @@ export function Ocorrencias({ houseId, papel }: { houseId: string; papel: string
                     */}
                   {d.status !== 'fechada' && (
                     <button className="btn sec sm" onClick={() => setRelatando(o)}>
-                      ✍️ Escrever o meu relato
+                      <Icone nome="escrever" /> Escrever o meu relato
                     </button>
                   )}
 
@@ -568,7 +569,7 @@ export function Ocorrencias({ houseId, papel }: { houseId: string; papel: string
                   })}
                   {d.status !== 'fechada' && (
                     <button className="btn sec sm" onClick={() => setAnexando(o)}>
-                      📎 Registrar anexo
+                      <Icone nome="anexo" /> Registrar anexo
                     </button>
                   )}
 
@@ -598,7 +599,7 @@ export function Ocorrencias({ houseId, papel }: { houseId: string; papel: string
                           </p>
                           {d.status !== 'fechada' && (
                             <button className="btn sec sm" onClick={() => setContendo(o)}>
-                              ✋ Registrar a contenção
+                              <Icone nome="mao" /> Registrar a contenção
                             </button>
                           )}
                         </>
@@ -626,7 +627,7 @@ export function Ocorrencias({ houseId, papel }: { houseId: string; papel: string
                         </p>
                       )}
                       <button className="btn sec sm" onClick={() => setComunicando(o)}>
-                        📨 Comunicar a um órgão externo
+                        <Icone nome="enviar" /> Comunicar a um órgão externo
                       </button>
                     </>
                   )}
@@ -710,7 +711,7 @@ export function Ocorrencias({ houseId, papel }: { houseId: string; papel: string
                  + 'revisou, quem aprovou e quem entregou — a entrega é sempre de uma pessoa.'}
             </div>
             <button className="btn block" onClick={() => setComunicando('avulsa')}>
-              📨 Registrar comunicação externa
+              <Icone nome="enviar" /> Registrar comunicação externa
             </button>
           </div>
 

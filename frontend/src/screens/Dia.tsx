@@ -674,7 +674,7 @@ export function Dia({ houseId, casaLabel, papel, irPara }: {
                     {/* O alerta essencial primeiro: é o que muda o que a
                         pessoa vai fazer nos próximos minutos. */}
                     {a.alertaEssencial && (
-                      <div className="notice c-crit" role="alert">⚠ {a.alertaEssencial}</div>
+                      <div className="notice c-crit" role="alert"><Icone nome="alerta" /> {a.alertaEssencial}</div>
                     )}
 
                     <div className="mutetxt">{a.situacaoAtual}</div>

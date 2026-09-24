@@ -71,18 +71,18 @@ export class ImpactoService {
    * e não "aprovação escolar computada".
    */
   private readonly TIPOS = [
-    { cod: 'aprovacao_escolar', label: 'Passou de ano', icone: '📚' },
-    { cod: 'conclusao_ensino_fundamental', label: 'Terminou o Fundamental', icone: '🎓' },
-    { cod: 'conclusao_ensino_medio', label: 'Terminou o Ensino Médio', icone: '🎓' },
-    { cod: 'curso_profissionalizante', label: 'Curso profissionalizante', icone: '🛠️' },
-    { cod: 'certificado', label: 'Certificado', icone: '📜' },
-    { cod: 'ingresso_faculdade', label: 'Entrou na faculdade', icone: '🏛️' },
-    { cod: 'primeiro_emprego', label: 'Primeiro emprego', icone: '💼' },
-    { cod: 'estagio', label: 'Estágio', icone: '💼' },
-    { cod: 'documento_conquistado', label: 'Documento conquistado', icone: '🪪' },
-    { cod: 'esporte_ou_arte', label: 'Esporte, arte ou cultura', icone: '⚽' },
-    { cod: 'reinsercao_familiar', label: 'Reinserção familiar', icone: '🏠' },
-    { cod: 'outro', label: 'Outro', icone: '✨' },
+    { cod: 'aprovacao_escolar', label: 'Passou de ano', icone: 'livros' },
+    { cod: 'conclusao_ensino_fundamental', label: 'Terminou o Fundamental', icone: 'formatura' },
+    { cod: 'conclusao_ensino_medio', label: 'Terminou o Ensino Médio', icone: 'formatura' },
+    { cod: 'curso_profissionalizante', label: 'Curso profissionalizante', icone: 'ferramenta' },
+    { cod: 'certificado', label: 'Certificado', icone: 'certificado' },
+    { cod: 'ingresso_faculdade', label: 'Entrou na faculdade', icone: 'instituicao' },
+    { cod: 'primeiro_emprego', label: 'Primeiro emprego', icone: 'maleta' },
+    { cod: 'estagio', label: 'Estágio', icone: 'maleta' },
+    { cod: 'documento_conquistado', label: 'Documento conquistado', icone: 'identidade' },
+    { cod: 'esporte_ou_arte', label: 'Esporte, arte ou cultura', icone: 'bola' },
+    { cod: 'reinsercao_familiar', label: 'Reinserção familiar', icone: 'casas' },
+    { cod: 'outro', label: 'Outro', icone: 'conquista' },
   ];
 
   vocabulario() {
@@ -312,7 +312,7 @@ export class ImpactoService {
         tipoRotulo: r.kind === 'outro'
           ? r.kind_other
           : (this.TIPOS.find((t) => t.cod === r.kind)?.label ?? r.kind),
-        icone: this.TIPOS.find((t) => t.cod === r.kind)?.icone ?? '✨',
+        icone: this.TIPOS.find((t) => t.cod === r.kind)?.icone ?? 'conquista',
         quando: r.happened_on, descricao: r.description, instituicao: r.institution,
         temComprovante: r.temcomprovante, nomeDoArquivo: r.file_name,
         por: r.por, em: r.registered_at,
