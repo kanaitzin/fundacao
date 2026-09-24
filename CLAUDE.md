@@ -154,11 +154,12 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 24/09/2026, fase 152
+### Onde estamos — 24/09/2026, fase 153
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
-A frente do visual (150 e 151) está FEITA. A 152 voltou à lista do §9 e achou,
-de novo, defeito em código que compilava e passava.
+A frente do visual (150 e 151) está FEITA. As 152 e 153 voltaram à lista do §9, e
+as duas acharam defeito em código que compilava e passava — a 153, num defeito
+que eu mesmo tinha dado por consertado na 148.
 
 | Fase | O que ela achou e consertou |
 |---|---|
@@ -169,8 +170,9 @@ de novo, defeito em código que compilava e passava.
 | 150 | a **moldura**: barra clara, coluna no monitor, desenhos no lugar dos emoji |
 | 151 | a **cor por cargo** e os **107 emoji** que ainda estavam dentro das telas |
 | 152 | o **nome de quem deu o remédio** e o **cargo de quem escreveu a linha da ATA** voltavam nulos para educador, líder e Enfermagem |
+| 153 | **dez `@Query('date')`** que a 148 não viu (ela procurava só nomes em português): a chamada, o plantão, as atividades e a grade do remédio davam 500 |
 
-**Medido no fim da 152:** 142 migrações, 116 tabelas, 100 suítes, 952 testes,
+**Medido no fim da 153:** 142 migrações, 116 tabelas, 100 suítes, 956 testes,
 verdes nas DUAS condições de relógio; os sete ensaios de navegador verdes; 139
 telas sem violação de WCAG 2.1 AA; zero emoji no frontend fora de comentário.
 
@@ -185,9 +187,8 @@ fazer** — está escrito por extenso em `frontend/src/cargos.tsx`:
 
 ### A próxima etapa
 
-**1. O resto da lista do §9** — são onze rotas medidas e sem teste, em ordem de
-valor lá: `GET /timeline/all`, `GET /transfers/pending`, as cinco exportações, as
-três folhas, e a autorização nominal (dormente por decisão escrita, §8.6 — talvez
+**1. O resto da lista do §9** — são nove rotas medidas e sem teste, em ordem de
+valor lá: as cinco exportações, as três folhas, e a autorização nominal (dormente por decisão escrita, §8.6 — talvez
 não mereça teste, porque testar o que a Fundação aposentou é guardar o passado).
 **Leia antes de testar**: foi a leitura, e não o teste, que achou os defeitos da
 149 e da 152.
@@ -230,6 +231,12 @@ novo.
   E quando a suíte NÃO tem como desfazer — a `ata` recusa DELETE, a `ata_note` é
   imutável —, a saída não é desligar o gatilho: é pôr a fixação fora de toda janela
   de consulta (145).
+- **O CONFERIDOR também tem lista escrita à mão** (153). O da 148 cobrava o
+  pipe de data nos nomes `data|dia|de|ate` e deixou passar dez `date`, em inglês
+  — nas quatro telas mais abertas do turno. **Conferidor de nomes nega por
+  padrão**: todo nome tem de estar classificado, e o novo reprova até alguém
+  dizer o que ele é. E a sondagem da 148 passava chamando `?data=` numa rota que
+  lê `date`: **confira que o parâmetro que o teste manda é o que a rota LÊ.**
 - **`JOIN app_user` é o nome que some** (152). `app_user` tem RLS por linha:
   educador, líder e Enfermagem só leem a PRÓPRIA. Nome ou cargo de OUTRA pessoa
   sai por função — `app_user_display_name`, `app_user_cargo` —, nunca por JOIN

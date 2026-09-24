@@ -86,21 +86,49 @@ describe('A data que vem da URL', () => {
 
   it('todo parâmetro de data passa pelo DataDoDia — e a lista sai do código', async () => {
     /*
-     * A cobrança ESTÁTICA, que é a que pega a rota nova. Sem ela, quem escrever
-     * amanhã um `@Query('de') de: string` cru reabre o defeito, e a suíte só
-     * perceberia se alguém se lembrasse de sondar aquela rota.
+     * A cobrança ESTÁTICA, que é a que pega a rota nova.
+     *
+     * ELA NEGA POR PADRÃO desde a fase 153, e o motivo é um defeito meu. A
+     * primeira versão procurava só os nomes `data`, `dia`, `de` e `ate` — em
+     * português — e deixou passar DEZ `@Query('date')`, em inglês, nas rotas
+     * mais abertas do turno: a chamada, o plantão, as atividades e a grade do
+     * remédio devolviam 500 para uma data que não é data, e a linha do tempo
+     * respondia 200 sobre um dia qualquer. Era a lição que eu mesmo escrevi
+     * nesta suíte: lista escrita à mão envelhece — e a lista era a DO CONFERIDOR.
+     *
+     * Agora todo parâmetro de URL do servidor tem de estar CLASSIFICADO. Nome
+     * novo que ninguém classificou reprova, com a frase dizendo o que fazer:
+     * `dataInicio` não passa por fora só porque ninguém lembrou de acrescentá-lo.
+     * Os que terminam em `Id` ficam de fora: têm a sua própria conferência.
      */
+    const DIA = new Set(['data', 'dia', 'de', 'ate', 'date']);
+    const HORA = new Set(['hora']);
+    /* Conferência própria, no serviço, e MEDIDA: `mes` devolve "Informe o mês
+       no formato AAAA-MM" para lixo (sondado na fase 153). */
+    const PROPRIA = new Set(['mes']);
+    /* Não são data nem hora: números, filtros e palavras de um conjunto fechado
+       que o serviço resolve sem mandar ao banco como tempo. */
+    const OUTROS = new Set(['tipo', 'dias', 'mode', 'unread', 'publico', 'periodo', 'mine',
+      'limite', 'escala', 'entity', 'encerradas', 'abertas']);
+
     const sem: string[] = [];
+    const semClasse: string[] = [];
     for (const arquivo of controladores()) {
       const texto = readFileSync(arquivo, 'utf8');
       for (const m of texto.matchAll(
-        /@(Query|Param)\(\s*'(data|dia|de|ate)'\s*(,\s*[A-Za-z]+\s*)?\)/g)) {
-        if (!m[3] || !m[3].includes('DataDoDia')) {
-          sem.push(`${arquivo.split('/modules/')[1]} → @${m[1]}('${m[2]}')`);
-        }
+        /@(Query|Param)\(\s*'([A-Za-z]+)'\s*(,\s*[A-Za-z]+\s*)?\)/g)) {
+        const [, onde, nome, pipe = ''] = m;
+        const aqui = `${arquivo.split('/modules/')[1]} → @${onde}('${nome}')`;
+        if (/Id$/.test(nome) || nome === 'id') continue;
+        if (DIA.has(nome)) { if (!pipe.includes('DataDoDia')) sem.push(aqui); continue; }
+        if (HORA.has(nome)) { if (!pipe.includes('HoraDoDia')) sem.push(aqui); continue; }
+        if (PROPRIA.has(nome) || OUTROS.has(nome)) continue;
+        semClasse.push(`${aqui} — é data? use DataDoDia; é hora? HoraDoDia; `
+          + 'não é tempo? acrescente o nome em OUTROS, nesta suíte, dizendo por quê');
       }
     }
     expect(sem).toEqual([]);
+    expect(semClasse).toEqual([]);
   });
 
   // ============ E nenhuma delas responde com 500 ============
@@ -116,13 +144,28 @@ describe('A data que vem da URL', () => {
       [`/api/v1/people/kitchen-requests/summary?houseId=${ids.AI3}&de=${RUIM}&ate=${RUIM}`,
         tokens.coord],
       [`/api/v1/reports/period?personId=${ids.crianca}&de=${RUIM}&ate=${RUIM}`, tokens.tecnica],
-      [`/api/v1/shifts?houseId=${ids.AI3}&data=${RUIM}`, tokens.coord],
+      /* ERA `data=` AQUI, e a rota lê `date`: ela ignorava o parâmetro,
+         respondia sobre hoje com 200, e esta linha passava sobre um parâmetro
+         que ninguém lia — o falso verde da fase 148, achado na 153. */
+      [`/api/v1/shifts?houseId=${ids.AI3}&date=${RUIM}`, tokens.coord],
+      /* As quatro que devolviam 500 na fase 153, e são as mais abertas do
+         turno: a chamada, as atividades, a grade do remédio e o painel da
+         casa. E a linha do tempo, que respondia 200 sobre um dia qualquer. */
+      [`/api/v1/checks?houseId=${ids.AI3}&date=${RUIM}`, tokens.coord],
+      [`/api/v1/activities?houseId=${ids.AI3}&date=${RUIM}`, tokens.coord],
+      [`/api/v1/medications?houseId=${ids.AI3}&date=${RUIM}`, tokens.coord],
+      [`/api/v1/timeline?houseId=${ids.AI3}&date=${RUIM}`, tokens.coord],
+      [`/api/v1/timeline/all?date=${RUIM}`, tokens.coord],
+      [`/api/v1/timeline/house-panel?houseId=${ids.AI3}&date=${RUIM}`, tokens.coord],
       [`/api/v1/shifts/ata-archive?houseId=${ids.AI3}&escala=dia&data=${RUIM}`, tokens.coord],
     ];
     for (const [rota, tok] of rotas) {
       const r = await request(http).get(rota).set(auth(tok));
-      expect([rota, r.status]).not.toEqual([rota, 500]);
-      if (r.status === 400) {
+      /* 400, e não "qualquer coisa menos 500": a linha do tempo respondia 200
+         para lixo, sobre um dia que ninguém pediu, e uma cobrança que só
+         proibisse o 500 teria passado por ela. */
+      expect([rota, r.status]).toEqual([rota, 400]);
+      {
         /* E a frase é em português e diz o que fazer — "Bad Request" sozinho não
            socorre quem está de plantão. */
         expect([rota, String(r.body.message)]).toEqual([rota, expect.stringMatching(/data precisa vir como/i)]);
@@ -162,6 +205,20 @@ describe('A data que vem da URL', () => {
       expect([data, String(r.body.message)])
         .toEqual([data, expect.stringMatching(/não existe o dia/i)]);
     }
+  });
+
+  it('a HORA também: a agenda perguntava "quem está às 14h" e 14h virava 500 (fase 153)', async () => {
+    for (const hora of ['14h', '25:00', '12:60']) {
+      const r = await request(http)
+        .get(`/api/v1/activities/agenda/staff?houseId=${ids.AI3}&data=2026-09-20&hora=${hora}`)
+        .set(auth(tokens.coord));
+      expect([hora, r.status]).toEqual([hora, 400]);
+      expect(String(r.body.message)).toMatch(/hora precisa vir como/i);
+    }
+    const boa = await request(http)
+      .get(`/api/v1/activities/agenda/staff?houseId=${ids.AI3}&data=2026-09-20&hora=14:00`)
+      .set(auth(tokens.coord));
+    expect(boa.status).toBe(200);
   });
 
   it('a data BOA continua passando — a conferência não pode fechar a porta certa', async () => {

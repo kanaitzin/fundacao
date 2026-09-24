@@ -52,6 +52,7 @@ describe('Fase 3 — Rotina, atividades, chamadas, linha do tempo e offline', ()
       lider: 'lider.ai3@paodospobres.dev',
       tecnica: 'tecnica.ai3@paodospobres.dev',
       coord: 'coord.ai3@paodospobres.dev',
+      gestor: 'gestor@paodospobres.dev',
     })) tokens[k] = await login(email);
 
     ({ rows: [{ id: AI3 }] } = await admin.query(`SELECT id FROM house WHERE code='AI3'`));
@@ -524,5 +525,42 @@ describe('Fase 3 — Rotina, atividades, chamadas, linha do tempo e offline', ()
     });
     expect(r.body.podeLimpar).toContain('op-ok-002');
     expect(r.body.podeLimpar).not.toContain('op-desconhecida');
+  });
+
+  // ---------- O dia das unidades (fase 153) ----------
+  /*
+   * `GET /timeline/all` estava na lista das rotas medidas-e-nunca-chamadas do
+   * §9. A leitura dela levantou uma pergunta antes do teste: a lista de casas
+   * sai de `SELECT ... FROM house` sob o RLS de quem pergunta, e se `house` não
+   * filtrasse por alcance o educador da Casa 03 receberia as oito casas com
+   * "0 eventos" — o que diria "nada aconteceu lá hoje" sobre casas que ele não
+   * alcança. Medido: `house_select` é `app_house_in_scope(id)`, e não há
+   * defeito. O que estas cobranças guardam é que continue assim.
+   */
+  it('o dia das unidades: o Gestor Geral vê as oito, e cada evento diz de que casa é', async () => {
+    const r = await request(http).get(`/api/v1/timeline/all?date=${HOJE}`)
+      .set(auth(tokens.gestor));
+    expect(r.status).toBe(200);
+    expect(r.body.unidades.length).toBe(8);
+    /* Numa lista de oito casas, QUANDO sem ONDE não ajuda ninguém. */
+    expect(r.body.eventos.every((e: any) => typeof e.casa === 'string' && e.casa)).toBe(true);
+    /* E a ordem é do dia, não por casa: a madrugada da AI1 vem antes da manhã da AI3. */
+    const horas = r.body.eventos.map((e: any) => new Date(e.at).getTime());
+    expect(horas).toEqual([...horas].sort((a, b) => a - b));
+  });
+
+  it('e o educador da Casa 03 vê a casa dele — e só ela, sem "0 eventos" das outras', async () => {
+    const r = await request(http).get(`/api/v1/timeline/all?date=${HOJE}`)
+      .set(auth(tokens.educador));
+    expect(r.status).toBe(200);
+    expect(r.body.unidades.map((u: any) => u.casa)).toEqual(['AI3']);
+    expect(r.body.eventos.every((e: any) => e.casa === 'AI3')).toBe(true);
+  });
+
+  it('a visão de todas as unidades não é de uma pessoa — e a recusa diz onde ir', async () => {
+    const r = await request(http).get(`/api/v1/timeline/all?date=${HOJE}&mode=individual`)
+      .set(auth(tokens.gestor));
+    expect(r.status).toBe(400);
+    expect(r.body.message).toMatch(/linha do tempo da casa dele/i);
   });
 });

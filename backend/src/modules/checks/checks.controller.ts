@@ -3,6 +3,7 @@ import { SessionGuard, CurrentUser } from '../identity';
 import { AuthenticatedUser } from '../../kernel/contracts';
 import { hojeNaInstituicao } from '../../kernel/common/tempo';
 import { ChecksService } from './checks.service';
+import { DataDoDia } from '../../kernel/common/data-do-dia.pipe';
 
 @Controller('checks')
 @UseGuards(SessionGuard)
@@ -11,7 +12,7 @@ export class ChecksController {
 
   @Get()
   list(@CurrentUser() user: AuthenticatedUser,
-       @Query('houseId', ParseUUIDPipe) houseId: string, @Query('date') date?: string) {
+       @Query('houseId', ParseUUIDPipe) houseId: string, @Query('date', DataDoDia) date?: string) {
     return this.checks.listDay(user, houseId, date ?? hojeNaInstituicao());
   }
 

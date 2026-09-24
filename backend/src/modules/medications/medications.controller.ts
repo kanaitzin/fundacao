@@ -14,7 +14,7 @@ export class MedicationsController {
   @Get()
   grid(@CurrentUser() user: AuthenticatedUser,
        @Query('houseId', ParseUUIDPipe) houseId: string,
-       @Query('date') date?: string,
+       @Query('date', DataDoDia) date?: string,
        @Query('personId') personId?: string) {
     return this.meds.dayGrid(user, houseId, date ?? hojeNaInstituicao(), personId || undefined);
   }
@@ -29,7 +29,7 @@ export class MedicationsController {
   @Get('folha')
   folha(@CurrentUser() user: AuthenticatedUser,
         @Query('houseId', ParseUUIDPipe) houseId: string,
-        @Query('date') date?: string) {
+        @Query('date', DataDoDia) date?: string) {
     return this.meds.folhaDaGrade(user, houseId, date ?? hojeNaInstituicao());
   }
 

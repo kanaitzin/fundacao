@@ -6,6 +6,7 @@ import { EducacaoService } from './educacao.service';
 import { NursingService } from './nursing.service';
 import { InternacaoService } from './internacao.service';
 import { HealthSummaryService } from './health-summary.service';
+import { DataDoDia } from '../../kernel/common/data-do-dia.pipe';
 
 @Controller('nursing')
 @UseGuards(SessionGuard)
@@ -70,7 +71,7 @@ export class NursingController {
   @Get('panel')
   panel(@CurrentUser() user: AuthenticatedUser,
         @Query('houseId', ParseUUIDPipe) houseId: string,
-        @Query('date') date?: string) {
+        @Query('date', DataDoDia) date?: string) {
     return this.nursing.panel(user, houseId, date ?? hojeNaInstituicao());
   }
 

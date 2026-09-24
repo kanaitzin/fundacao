@@ -56,3 +56,30 @@ export class DataDoDia implements PipeTransform<string | undefined, string | und
     return texto;
   }
 }
+
+/**
+ * A HORA QUE VEM DA URL — a irmã do `DataDoDia` (fase 153).
+ *
+ * Mora no mesmo arquivo pela mesma razão da data: é a conferência do que chega
+ * pela URL, e regra sobre o que chega pela URL se escreve num lugar só. A
+ * agenda pergunta *"quem está na escala às 14h?"* com `?hora=14:00`, e o valor
+ * ia direto para um `::time` do Postgres — `?hora=14h` devolvia 500 a quem
+ * estava marcando uma consulta.
+ *
+ * Aceita `HH:MM` de 00:00 a 23:59, e só. Vazio passa como vazio, pelo mesmo
+ * motivo da data: quem decide o padrão é quem chama, não a conferência.
+ */
+@Injectable()
+export class HoraDoDia implements PipeTransform<string | undefined, string | undefined> {
+  transform(valor: string | undefined): string | undefined {
+    const texto = (valor ?? '').trim();
+    if (!texto) return undefined;
+    const m = /^(\d{2}):(\d{2})$/.exec(texto);
+    if (!m || Number(m[1]) > 23 || Number(m[2]) > 59) {
+      throw new BadRequestException(
+        'A hora precisa vir como 14:30 — horas e minutos, de 00:00 a 23:59. '
+        + 'Se você chegou aqui por um link antigo, abra a tela pelo menu.');
+    }
+    return texto;
+  }
+}

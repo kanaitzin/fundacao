@@ -16,7 +16,7 @@ export class ShiftsController {
 
   @Get()
   list(@CurrentUser() user: AuthenticatedUser,
-       @Query('houseId', ParseUUIDPipe) houseId: string, @Query('date') date?: string) {
+       @Query('houseId', ParseUUIDPipe) houseId: string, @Query('date', DataDoDia) date?: string) {
     return this.shifts.listDay(user, houseId, date ?? hojeNaInstituicao());
   }
 

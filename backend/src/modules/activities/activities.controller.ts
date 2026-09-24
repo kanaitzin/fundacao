@@ -4,7 +4,7 @@ import { AuthenticatedUser } from '../../kernel/contracts';
 import { hojeNaInstituicao } from '../../kernel/common/tempo';
 import { ActivitiesService } from './activities.service';
 import { AgendaService } from './agenda.service';
-import { DataDoDia } from '../../kernel/common/data-do-dia.pipe';
+import { DataDoDia, HoraDoDia } from '../../kernel/common/data-do-dia.pipe';
 
 @Controller('activities')
 @UseGuards(SessionGuard)
@@ -41,7 +41,7 @@ export class ActivitiesController {
   @Get('agenda/staff')
   equipeDaAgenda(@CurrentUser() user: AuthenticatedUser,
                  @Query('houseId', ParseUUIDPipe) houseId: string,
-                 @Query('data', DataDoDia) data: string, @Query('hora') hora: string) {
+                 @Query('data', DataDoDia) data: string, @Query('hora', HoraDoDia) hora: string) {
     return this.agenda.equipeDisponivel(user, houseId, data ?? hojeNaInstituicao(), hora ?? '12:00');
   }
 
@@ -83,7 +83,7 @@ export class ActivitiesController {
   @Get()
   list(@CurrentUser() user: AuthenticatedUser,
        @Query('houseId', ParseUUIDPipe) houseId: string,
-       @Query('date') date?: string,
+       @Query('date', DataDoDia) date?: string,
        @Query('personId') personId?: string,
        @Query('mine') mine?: string) {
     return this.activities.listDay(user, houseId, date ?? hojeNaInstituicao(), {
@@ -124,7 +124,7 @@ export class ActivitiesController {
   /** Painel do plantão — visível a toda a equipe do turno. */
   @Get('shift-board')
   shiftBoard(@CurrentUser() user: AuthenticatedUser,
-             @Query('houseId') houseId: string, @Query('date') date?: string) {
+             @Query('houseId') houseId: string, @Query('date', DataDoDia) date?: string) {
     return this.activities.shiftBoard(user, houseId, date);
   }
 

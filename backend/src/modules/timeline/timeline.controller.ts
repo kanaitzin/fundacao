@@ -3,6 +3,7 @@ import { SessionGuard, CurrentUser } from '../identity';
 import { AuthenticatedUser } from '../../kernel/contracts';
 import { hojeNaInstituicao } from '../../kernel/common/tempo';
 import { TimelineService, TimelineMode } from './timeline.service';
+import { DataDoDia } from '../../kernel/common/data-do-dia.pipe';
 
 @Controller('timeline')
 @UseGuards(SessionGuard)
@@ -17,7 +18,7 @@ export class TimelineController {
    */
   @Get('all')
   todas(@CurrentUser() user: AuthenticatedUser,
-        @Query('date') date?: string,
+        @Query('date', DataDoDia) date?: string,
         @Query('mode') mode?: TimelineMode) {
     return this.timeline.dayAllHouses(user, { date: date ?? hojeNaInstituicao(), mode });
   }
@@ -26,7 +27,7 @@ export class TimelineController {
   @Get()
   day(@CurrentUser() user: AuthenticatedUser,
       @Query('houseId', ParseUUIDPipe) houseId: string,
-      @Query('date') date?: string,
+      @Query('date', DataDoDia) date?: string,
       @Query('mode') mode?: TimelineMode,
       @Query('personId') personId?: string) {
     return this.timeline.day(user, { houseId, date: date ?? hojeNaInstituicao(), mode, personId });
@@ -36,7 +37,7 @@ export class TimelineController {
   @Get('house-panel')
   panel(@CurrentUser() user: AuthenticatedUser,
         @Query('houseId', ParseUUIDPipe) houseId: string,
-        @Query('date') date?: string) {
+        @Query('date', DataDoDia) date?: string) {
     return this.timeline.housePanel(user, houseId, date ?? hojeNaInstituicao());
   }
 }

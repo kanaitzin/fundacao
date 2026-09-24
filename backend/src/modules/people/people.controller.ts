@@ -579,11 +579,6 @@ export class TransfersController {
     return this.transfers.outbox(user, houseId);
   }
 
-  @Get('pending')
-  pending(@CurrentUser() user: AuthenticatedUser, @Query('houseId', ParseUUIDPipe) houseId: string) {
-    return this.transfers.pendingFor(user, houseId);
-  }
-
   /** Conversa entre as duas coordenações sobre a solicitação (§3.3: no sistema). */
   @Get(':id/messages')
   messages(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {

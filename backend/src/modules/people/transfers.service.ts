@@ -332,12 +332,6 @@ export class TransfersService {
     return { ok: true, status: 'cancelada' };
   }
 
-  /** Compatível com a chamada antiga: a caixa de entrada de uma casa. */
-  async pendingFor(user: AuthenticatedUser, houseId: string) {
-    const r = await this.inbox(user, houseId);
-    return r.solicitacoes;
-  }
-
   // ------------------------------------------------------------------
 
   private async avisar(user: AuthenticatedUser, houseId: string, p: {

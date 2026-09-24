@@ -138,9 +138,14 @@ const SEM_TELA_DE_PROPOSITO: Record<string, string> = {
     'Lista crua das atividades do dia. A tela do Dia usa `GET /timeline`, que junta '
     + 'atividades, doses, chamadas e ocorrências numa linha só — esta fica para consulta '
     + 'de máquina e para a geração da agenda.',
-  'GET /transfers/pending':
-    'Contagem de transferências à espera, para aviso. As duas caixas que a tela mostra '
-    + 'são `GET /transfers/inbox` e `GET /transfers/outbox`.',
+  /*
+   * `GET /transfers/pending` SAIU NA FASE 153. A frase que o justificava aqui
+   * dizia "contagem de transferências à espera, para aviso" — e a rota devolvia
+   * a LISTA, não uma contagem, e ninguém a chamava: nem tela, nem aviso, nem
+   * teste. Era um invólucro "compatível com a chamada antiga" sobre a caixa de
+   * entrada, e a chamada antiga não existia mais. Frase de exceção que envelhece
+   * é frase que mente, e porta sem ninguém do outro lado é superfície sem teste.
+   */
 
   /*
    * AS DUAS LACUNAS QUE ESTAVAM AQUI FORAM CONSERTADAS NA FASE 130.
