@@ -220,7 +220,7 @@ export class PeopleService {
            -- As duas políticas concordam aqui: app_person_in_scope olha
            -- QUALQUER permanência, e não só a ativa — é o que faz quem já
            -- saiu continuar alcançável pela técnica e pela coordenação.
-           -- rls-join-ok: permanência sem pessoa não é criada.
+           -- rls-join-ok (person): permanência sem pessoa não é criada.
            JOIN person p ON p.id = s.person_id
            LEFT JOIN LATERAL (
              SELECT ce.end_reason FROM care_episode ce

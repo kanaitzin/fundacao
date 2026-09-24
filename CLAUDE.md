@@ -154,12 +154,11 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 24/09/2026, fase 151
+### Onde estamos — 24/09/2026, fase 152
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
-Da 146 à 149 a pergunta foi *"o que nunca foi exercitado?"* — que tem resposta
-medível, e achou quatro defeitos em código que compilava e passava. **As 150 e 151
-foram a frente do visual, pedida pela Fundação, e ela está FEITA.**
+A frente do visual (150 e 151) está FEITA. A 152 voltou à lista do §9 e achou,
+de novo, defeito em código que compilava e passava.
 
 | Fase | O que ela achou e consertou |
 |---|---|
@@ -169,11 +168,11 @@ foram a frente do visual, pedida pela Fundação, e ela está FEITA.**
 | 149 | **79 das 152 linhas de auditoria nasciam sem casa** — e a coordenação não lê linha sem casa |
 | 150 | a **moldura**: barra clara, coluna no monitor, desenhos no lugar dos emoji |
 | 151 | a **cor por cargo** e os **107 emoji** que ainda estavam dentro das telas |
+| 152 | o **nome de quem deu o remédio** e o **cargo de quem escreveu a linha da ATA** voltavam nulos para educador, líder e Enfermagem |
 
-**Medido no fim da 151:** 141 migrações, 116 tabelas, 98 suítes, 943 testes,
+**Medido no fim da 152:** 142 migrações, 116 tabelas, 100 suítes, 952 testes,
 verdes nas DUAS condições de relógio; os sete ensaios de navegador verdes; 139
-telas sem violação de WCAG 2.1 AA; **zero emoji no frontend fora de comentário**,
-e há conferidor que cobra.
+telas sem violação de WCAG 2.1 AA; zero emoji no frontend fora de comentário.
 
 **As TRÊS cores do sistema, porque confundi-las é o pior que esta tela pode
 fazer** — está escrito por extenso em `frontend/src/cargos.tsx`:
@@ -186,23 +185,19 @@ fazer** — está escrito por extenso em `frontend/src/cargos.tsx`:
 
 ### A próxima etapa
 
-**1. A lista do §9** — `GET /medications/prn` primeiro (o remédio "se necessário",
-que é o que o educador dá às 2h da manhã; a rota de ESCREVER tem teste, a de LER
-não), e as outras onze rotas medidas e sem teste, na ordem escrita lá.
+**1. O resto da lista do §9** — são onze rotas medidas e sem teste, em ordem de
+valor lá: `GET /timeline/all`, `GET /transfers/pending`, as cinco exportações, as
+três folhas, e a autorização nominal (dormente por decisão escrita, §8.6 — talvez
+não mereça teste, porque testar o que a Fundação aposentou é guardar o passado).
+**Leia antes de testar**: foi a leitura, e não o teste, que achou os defeitos da
+149 e da 152.
 
 **2. Aplicar o roteiro com a equipe.** Continua sendo o que mais muda o sistema, e
 o único que não se faz daqui.
 
 **3. Se a Fundação quiser mais visual**, o que sobrou é menor e é escolha dela: a
-barra do topo ainda repete o nome de quem está usando em `h1` grande (herança de
-quando ela era o bloco navy), e o painel do plantão e a linha do dia ainda não
-mostram o círculo do cargo — hoje ele está na escala e na barra.
-
-**Anotado e não mexido** (achado fazendo outra coisa, como a casa manda): em
-`medications.service.ts` a ausência da criança ainda é perguntada como PAR —
-`app_esta_internado` **e** `app_em_convivencia_familiar` — em dois lugares, em vez
-de `app_ausente_da_casa`. Hoje o efeito é idêntico; o risco é a lição da 141 de
-novo.
+barra do topo ainda repete o nome de quem está usando em `h1` grande, e o painel
+do plantão e a linha do dia ainda não mostram o círculo do cargo.
 
 ### As lições que não se repetem de graça
 
@@ -235,6 +230,15 @@ novo.
   E quando a suíte NÃO tem como desfazer — a `ata` recusa DELETE, a `ata_note` é
   imutável —, a saída não é desligar o gatilho: é pôr a fixação fora de toda janela
   de consulta (145).
+- **`JOIN app_user` é o nome que some** (152). `app_user` tem RLS por linha:
+  educador, líder e Enfermagem só leem a PRÓPRIA. Nome ou cargo de OUTRA pessoa
+  sai por função — `app_user_display_name`, `app_user_cargo` —, nunca por JOIN
+  nem subconsulta. O defeito é triplamente silencioso: o JOIN devolve vazio sem
+  erro, a tela apaga a frase quando o nome falta, e o `mock.ts` preenche sempre.
+  **Quem escreve sempre vê o próprio nome**; o teste tem de ler como OUTRO cargo.
+  E o conferidor não pegou porque um `rls-join-ok` isentava QUALQUER JOIN nas
+  quatro linhas abaixo: **justificativa vale só para a tabela que ela nomeia**
+  (`-- rls-join-ok (house): ...`), e a regra hoje olha subconsulta também.
 - **Frase de tela que aponta para um DESENHO** (151). A tela da senha dizia
   *"troque pelo botão 🔑 na barra"*. Trocado o emoji por desenho, a frase passou a
   apontar para nada. **Texto nomeia o botão pela palavra dele**, nunca pelo

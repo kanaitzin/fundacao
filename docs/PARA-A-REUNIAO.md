@@ -18,7 +18,7 @@
 > depois das 21h em Porto Alegre semeava o dia seguinte — o dia de hoje nascia
 > sem dose nenhuma. **Nada no sistema; tudo no dado de partida.**
 
-- **146 fases.** 98 suítes e 943 testes, verdes em duas condições de relógio —
+- **146 fases.** 100 suítes e 952 testes, verdes em duas condições de relógio —
   antes e depois da virada do UTC, que em Porto Alegre é às 21h.
 - **A chamada fecha.** O único item de código que faltava ao piloto — a chamada
   que travava quando uma criança estava internada ou em casa com a família —

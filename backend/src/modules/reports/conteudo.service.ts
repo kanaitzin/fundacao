@@ -158,7 +158,7 @@ export class ConteudoService {
              FROM person p
              LEFT JOIN care_episode e ON e.person_id = p.id AND e.status = 'ativo'
              LEFT JOIN house_stay s ON s.episode_id = e.id AND s.status = 'ativa'
-             -- rls-join-ok: a casa vem da permanência ATIVA da criança que
+             -- rls-join-ok (house): a casa vem da permanência ATIVA da criança que
              -- este usuário já alcança; sem alcance, a linha nem chega aqui.
              LEFT JOIN house h ON h.id = s.house_id
             WHERE p.id = $1`, [pessoa]);
@@ -429,7 +429,7 @@ export class ConteudoService {
              SELECT ma.scheduled_at, 'Medicação',
                     concat_ws(' ', pr.medication, pr.dose), ma.state::text
                FROM medication_administration ma
-               -- rls-join-ok: a prescrição segue a mesma política da
+               -- rls-join-ok (prescription): a prescrição segue a mesma política da
                -- administração; sem alcance à dose, a linha nem aparece.
                JOIN prescription pr ON pr.id = ma.prescription_id
               WHERE ma.scheduled_at >= $1 AND ma.scheduled_at < $2

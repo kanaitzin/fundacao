@@ -271,17 +271,50 @@ describe('Fronteiras entre partições', () => {
    */
   it('todo JOIN com tabela protegida por RLS está justificado', () => {
     const PROTEGIDAS = ['person', 'house', 'app_user', 'incident', 'ata', 'prescription', 'statement'];
-    const re = new RegExp(`\\bJOIN\\s+(${PROTEGIDAS.join('|')})\\b`, 'i');
+    /*
+     * JOIN, e também SUBCONSULTA (fase 152). O defeito da ATA não era um JOIN:
+     * era `(SELECT u.role FROM app_user u WHERE u.id = n.author_id)`, e esta
+     * regra só olhava JOIN — o cargo de quem escreveu cada linha voltava nulo
+     * para a educadora que lia, e nada acusava. É a mesma pergunta com outra
+     * sintaxe: ler uma tabela protegida sob o RLS de quem pergunta.
+     */
+    const re = new RegExp(
+      `(?:\\bJOIN\\s+|\\(\\s*SELECT\\b[^)]*\\bFROM\\s+)(${PROTEGIDAS.join('|')})\\b`, 'i');
     const violacoes: string[] = [];
 
     for (const file of [...tsFiles(MODULES_DIR), ...tsFiles(join(SRC, 'kernel'))]) {
       const linhas = readFileSync(file, 'utf8').split('\n');
       linhas.forEach((linha, i) => {
-        // Comentários que apenas MENCIONAM um JOIN não contam.
+        // Comentários que apenas MENCIONAM um JOIN não contam — nem os de
+        // bloco, cujas linhas começam por `*` (a fase 152 escreveu um que dizia
+        // "era LEFT JOIN app_user" e esta regra o tomou por código).
+        if (/^\s*(\*|\/\*)/.test(linha)) return;
         const semComentario = linha.replace(/--.*$/, '').replace(/\/\/.*$/, '');
-        if (!re.test(semComentario)) return;
+        const achado = re.exec(semComentario);
+        if (!achado) return;
+        const tabela = achado[1].toLowerCase();
         const contexto = linhas.slice(Math.max(0, i - 4), i).join('\n');
-        if (!contexto.includes('rls-join-ok')) {
+        /*
+         * A JUSTIFICATIVA TEM DE NOMEAR A TABELA QUE ELA JUSTIFICA (fase 152).
+         *
+         * Antes bastava existir um `rls-join-ok` nas quatro linhas de cima — e
+         * foi assim que o defeito da 152 passou por esta regra. A lista do
+         * remédio "se necessário" tinha:
+         *
+         *     -- rls-join-ok: adm_select e prescription têm a mesma política de casa.
+         *     JOIN prescription pr ...
+         *     JOIN person p ...
+         *     LEFT JOIN app_user u ...
+         *
+         * A frase justificava a PRESCRIÇÃO, e isentava o `app_user` três linhas
+         * abaixo — para o qual ela era falsa: app_user tem RLS por linha, e o
+         * nome de quem deu a dose voltava nulo para a Enfermagem. Uma
+         * justificativa vale para o JOIN de que ela fala, e para nenhum outro.
+         */
+        const justificou = contexto.includes('rls-join-ok')
+          && new RegExp(`\\b${tabela}\\b`, 'i').test(
+            contexto.slice(contexto.lastIndexOf('rls-join-ok')));
+        if (!justificou) {
           violacoes.push(`${relative(SRC, file)}:${i + 1} — ${semComentario.trim()}`);
         }
       });

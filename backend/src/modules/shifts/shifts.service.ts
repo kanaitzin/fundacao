@@ -115,7 +115,10 @@ export class ShiftsService {
       const { rows: notas } = await c.query(
         `SELECT n.id, n.author_id, n.body, n.restricted, n.happened_at, n.created_at,
                 app_user_display_name(n.author_id) AS quem,
-                (SELECT u.role::text FROM app_user u WHERE u.id = n.author_id) AS cargo,
+                /* O CARGO por função, como o nome (1560). Por subconsulta ele
+                   voltava NULO para educador, líder e Enfermagem, que só leem a
+                   própria linha de app_user: a linha da colega aparecia "— · 02:10". */
+                app_user_cargo(n.author_id) AS cargo,
                 /* A cor ESCOLHIDA do autor (0990). Sai por função porque quem lê
                    a ATA não gere equipe — o educador não alcança app_staff_list.
                    NULL: a tela cai no tom automático, como antes. */
@@ -1330,7 +1333,7 @@ export class ShiftsService {
         `SELECT r.id, r.ata_id, r.request_reason, r.requested_at, r.granted,
                 r.decided_at, r.decision_reason, r.revoked_at, r.revoke_reason,
                 app_user_display_name(r.requested_by) AS quem,
-                (SELECT u.role::text FROM app_user u WHERE u.id = r.requested_by) AS cargo,
+                app_user_cargo(r.requested_by) AS cargo,
                 app_user_display_name(r.decided_by) AS decidiuQuem,
                 app_user_display_name(r.revoked_by) AS revogouQuem,
                 r.requested_by = app_current_user() AS meu,

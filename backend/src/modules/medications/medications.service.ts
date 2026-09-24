@@ -400,17 +400,23 @@ export class MedicationsService {
             * marcada como não administrada: o sistema não conclui que ela não
             * aconteceu, porque não sabe.
             */
-           AND NOT app_esta_internado(a.person_id, $2::date)
            /*
             * E quem está com a família (1010).
             *
-            * Aqui a razão é DIFERENTE da internação, e é por isso que os dois
-            * predicados são separados: no hospital outro profissional dá a
-            * dose; com a mãe, ninguém da casa dá — e é justamente por isso que
-            * a casa manda o remédio junto, com as doses do período listadas
-            * para a técnica conferir na saída.
+            * Aqui a razão é DIFERENTE da internação: no hospital outro
+            * profissional dá a dose; com a mãe, ninguém da casa dá — e é
+            * justamente por isso que a casa manda o remédio junto, com as doses
+            * do período listadas para a técnica conferir na saída.
+            *
+            * AS DUAS RAZÕES CONTINUAM ESCRITAS, MAS A PERGUNTA É UMA SÓ (fase
+            * 152). Eram dois predicados aqui, e a separação servia ao comentário,
+            * não ao filtro: os dois tiravam a criança da grade do mesmo jeito. O
+            * risco era o da 141 — acampamento, escola em turno integral, a
+            * próxima ausência que alguém escrever no lugar único não chegaria à
+            * grade do remédio, e a dose de quem não está na casa voltaria a
+            * aparecer como "aguardando confirmação".
             */
-           AND NOT app_em_convivencia_familiar(a.person_id, $2::date)
+           AND NOT app_ausente_da_casa(a.person_id, $2::date)
            AND ($3::uuid IS NULL OR a.person_id = $3)
          ORDER BY a.scheduled_at, pessoa`, [houseId, date, personId ?? null]);
       return rows.map(mapDose);
@@ -527,9 +533,10 @@ export class MedicationsService {
             AND pr.signed_by IS NOT NULL
             AND ($2::uuid IS NULL OR pr.person_id = $2)
             -- Quem está no hospital ou em casa com a família não recebe dose da
-            -- casa, pela mesma razão da grade do dia (0890 e 1010).
-            AND NOT app_esta_internado(pr.person_id, app_hoje())
-            AND NOT app_em_convivencia_familiar(pr.person_id, app_hoje())
+            -- casa, pela mesma razão da grade do dia (0890 e 1010). A pergunta é
+            -- a do LUGAR ÚNICO desde a fase 152: regra nova de ausência escrita
+            -- em app_ausente_da_casa chega aqui sem ninguém lembrar (lição da 141).
+            AND NOT app_ausente_da_casa(pr.person_id, app_hoje())
           ORDER BY pessoa, pr.medication`, [houseId, personId ?? null]);
       const disponiveis = rows.map((r) => ({
         prescricaoId: r.id,
@@ -560,12 +567,26 @@ export class MedicationsService {
                 to_char(a.administered_at AT TIME ZONE app_fuso(), 'HH24:MI') AS hora,
                 pr.medication, pr.dose,
                 coalesce(nullif(p.social_name,''), p.full_name) AS pessoa,
-                u.full_name AS quem
+                /*
+                 * O NOME DE QUEM DEU VEM POR FUNÇÃO, e não por JOIN (fase 152).
+                 *
+                 * Era LEFT JOIN app_user, e app_user tem RLS por linha:
+                 * educador, líder e Enfermagem só leem a PRÓPRIA. A dose que a
+                 * educadora da noite deu às 2h chegava à Enfermagem, de manhã,
+                 * sem nome — e a tela, que escreve "por Fulana" só quando o nome
+                 * vem, apagava a frase em silêncio. O mock.ts preenchia sempre,
+                 * então o protótipo mostrava o que o produto escondia.
+                 *
+                 * app_user_display_name é a resposta que a casa já usa para
+                 * isto (relatórios, entregas): devolve o NOME e nada mais, e é
+                 * por isso que pode atravessar o recorte sem abrir o cadastro.
+                 */
+                app_user_display_name(a.administered_by) AS quem
            FROM medication_administration a
-           -- rls-join-ok: adm_select e prescription têm a mesma política de casa.
+           -- rls-join-ok (prescription, person): adm_select, a prescrição e a pessoa
+           -- seguem a mesma política de casa (app_person_in_scope).
            JOIN prescription pr ON pr.id = a.prescription_id
            JOIN person p ON p.id = a.person_id
-           LEFT JOIN app_user u ON u.id = a.administered_by
           WHERE a.house_id = $1
             AND a.prn_reason IS NOT NULL
             AND ($2::uuid IS NULL OR a.person_id = $2)
@@ -708,7 +729,8 @@ export class MedicationsService {
         `SELECT a.id, a.scheduled_at, pr.medication,
                 coalesce(nullif(p.social_name,''), p.full_name) AS pessoa
          FROM medication_administration a
-         -- rls-join-ok: mesma política (app_person_in_scope) nas três tabelas.
+         -- rls-join-ok (prescription, person): mesma política (app_person_in_scope)
+         -- nas três tabelas.
          JOIN prescription pr ON pr.id = a.prescription_id
          JOIN person p ON p.id = a.person_id
          WHERE a.house_id = $1 AND a.state = 'aguardando_confirmacao'

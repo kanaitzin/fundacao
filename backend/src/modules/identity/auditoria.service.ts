@@ -120,6 +120,8 @@ export class AuditoriaService {
       const { rows } = await c.query(
         `SELECT a.id, a.action, a.at, a.entity, a.entity_id, a.purpose, a.detail,
                 app_user_display_name(a.actor_id) AS por,
+                -- rls-join-ok (house): a linha só chega aqui se a audit_select
+                -- a entregou, e ela exige a casa no alcance de quem lê.
                 (SELECT h.code FROM house h WHERE h.id = a.house_id) AS casa
            FROM audit_event a
           WHERE (a.entity_id = $1 OR a.detail->>'personId' = $1::text)
@@ -143,6 +145,8 @@ export class AuditoriaService {
       const { rows } = await c.query(
         `SELECT a.id, a.action, a.at, a.entity, a.entity_id, a.purpose, a.detail,
                 app_user_display_name(a.actor_id) AS por,
+                -- rls-join-ok (house): a linha só chega aqui se a audit_select
+                -- a entregou, e ela exige a casa no alcance de quem lê.
                 (SELECT h.code FROM house h WHERE h.id = a.house_id) AS casa
            FROM audit_event a
           WHERE a.entity = $1 AND a.entity_id = $2

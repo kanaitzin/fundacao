@@ -61,7 +61,7 @@ export class ProfileService {
       const [stay, detail, conditions, restrictions, episodes, docs, memories,
              contacts, desligados] = await seq([
         () => c.query(`SELECT s.house_id, h.code, h.name, s.started_at
-                 -- rls-join-ok: permanência ATIVA — a casa é a atual do acolhido.
+                 -- rls-join-ok (house): permanência ATIVA — a casa é a atual do acolhido.
                  FROM house_stay s JOIN house h ON h.id = s.house_id
                  WHERE s.person_id = $1 AND s.status = 'ativa'`, [personId]),
         () => c.query(`SELECT * FROM profile_detail WHERE person_id = $1`, [personId]),

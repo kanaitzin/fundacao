@@ -14,7 +14,7 @@ export class UsersController {
     const assignments = await this.db.asUser(user.id, async (c) => {
       const { rows } = await c.query(
         `SELECT a.house_id, h.code, h.name, a.role
-         -- rls-join-ok: o vínculo listado é sempre de uma casa do próprio
+         -- rls-join-ok (house): o vínculo listado é sempre de uma casa do próprio
          -- escopo (uha_select exige app_house_in_scope), então o par existe.
          FROM user_house_assignment a JOIN house h ON h.id = a.house_id
          WHERE a.user_id = $1 AND a.valid_to IS NULL`, [user.id]);
