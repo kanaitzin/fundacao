@@ -95,6 +95,33 @@ async function conferir(pg, cargo, tela) {
 }
 
 /** As portas de "Mais" que este cargo tem, na ordem em que aparecem. */
+/**
+ * AS PORTAS, DE ONDE ELAS ESTIVEREM (fase 150).
+ *
+ * No celular vêm da folha "Mais"; no monitor, da coluna à esquerda, onde estão
+ * todas abertas e o "Mais" nem aparece. As duas leem a MESMA tabela
+ * (`src/portas.ts`), e é por isso que o ensaio pode perguntar assim: ele não
+ * decide por largura — ele olha o que está na tela.
+ */
+async function portasDaTela(pg) {
+  const coluna = pg.locator('nav.portas-lateral button');
+  if (await coluna.first().isVisible().catch(() => false)) {
+    const nomes = await coluna.locator('.rotulo').allInnerTexts();
+    return nomes.map((t) => t.trim()).filter(Boolean);
+  }
+  return portasDoMais(pg);
+}
+
+async function abrirPorta(pg, indice) {
+  const coluna = pg.locator('nav.portas-lateral button');
+  if (await coluna.first().isVisible().catch(() => false)) {
+    await coluna.nth(indice).click();
+    await assentar(pg);
+    return;
+  }
+  await abrirDoMais(pg, indice);
+}
+
 async function portasDoMais(pg) {
   const aba = pg.locator('nav.tabbar button', { hasText: 'Mais' });
   /* `.first()` de propósito: o "⋯" de uma linha de atividade também tem "Mais"
@@ -120,9 +147,19 @@ const navegador = await chromium.launch({
   executablePath: EXECUTAVEL,
   args: ['--no-sandbox', '--disable-dev-shm-usage'],
 });
-/* Largura de celular: é onde o sistema é usado. Uma tela que só cabe no
- * monitor da coordenação não serve para quem registra no corredor. */
-const pg = await navegador.newPage({ viewport: { width: 420, height: 900 } });
+/*
+ * A LARGURA É PARÂMETRO desde a fase 150, e o padrão continua sendo o celular:
+ * é onde o sistema é usado, e uma tela que só cabe no monitor da coordenação
+ * não serve para quem registra no corredor.
+ *
+ * O que mudou é que passou a existir uma SEGUNDA forma da navegação — a coluna
+ * à esquerda, a partir de 1080px. Superfície sem ensaio é superfície sem teste
+ * (a lição da 141), e ela nasceria sem nenhum: o ensaio inteiro rodava a 420px,
+ * onde a coluna não existe. `npm run ensaio:largo` roda o mesmo percurso a
+ * 1440px, e é lá que a coluna é percorrida.
+ */
+const [LARG, ALT] = (process.env.ENSAIO_VIEWPORT ?? '420x900').split('x').map(Number);
+const pg = await navegador.newPage({ viewport: { width: LARG, height: ALT } });
 
 let ondeEstou = { cargo: 'entrada', tela: 'login' };
 pg.on('pageerror', (e) => anota(ondeEstou.cargo, ondeEstou.tela, `exceção na página: ${e.message}`));
@@ -171,10 +208,10 @@ for (const cargo of aEnsaiar) {
     telas.push(doTurno[i]);
   }
 
-  const portas = await portasDoMais(pg);
+  const portas = await portasDaTela(pg);
   for (let i = 0; i < portas.length; i++) {
     ondeEstou = { cargo: cargo.valor, tela: portas[i] };
-    await abrirDoMais(pg, i);
+    await abrirPorta(pg, i);
     await conferir(pg, cargo.valor, portas[i]);
     telas.push(portas[i]);
   }

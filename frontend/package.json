@@ -10,6 +10,7 @@
     "preview": "vite preview",
     "prototipo": "npm run fontes && VITE_PROTOTIPO=1 vite build --mode prototipo && mv ../prototipo/index.html ../prototipo/rede-acolher-prototipo.html && rm -rf ../prototipo/icons",
     "ensaio": "node ensaio.mjs",
+    "ensaio:largo": "ENSAIO_VIEWPORT=1440x900 node ensaio.mjs",
     "ensaio:fila": "node ensaio-fila.mjs",
     "ensaio:folhas": "node ensaio-folhas.mjs",
     "ensaio:roteiro": "node ensaio-roteiro.mjs",

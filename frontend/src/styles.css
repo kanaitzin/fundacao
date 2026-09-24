@@ -128,9 +128,20 @@ h1, h2, h3, .ff {
 
 /* ---------- Layout ---------- */
 .wrap { max-width: 468px; margin: 0 auto; min-height: 100dvh; display: flex; flex-direction: column; }
+/*
+ * A BARRA DO TOPO FICOU CLARA (fase 150, decisão da Fundação em 23/09).
+ *
+ * Ela era um bloco navy de ponta a ponta com o nome, o e-mail e sete botões
+ * dentro. Medido no celular: 190px — quase um terço da tela — gastos antes da
+ * primeira linha do dia, e a criança de quem a educadora precisa saber está
+ * abaixo disso. A marca não sumiu: ela está no logotipo, no item ativo da
+ * navegação, nos títulos e nos botões principais, que é onde marca se vê sem
+ * atrapalhar o turno.
+ */
 .appbar {
-  background: linear-gradient(168deg, var(--navy) 0%, var(--navy-2) 100%);
-  color: var(--on-navy); padding: 16px 16px 20px;
+  background: var(--surface); color: var(--ink);
+  border-bottom: 1px solid var(--line);
+  padding: 12px 16px 14px;
 }
 .appbar .top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 @media (max-width:379px){
@@ -140,15 +151,15 @@ h1, h2, h3, .ff {
 .logochip img { height: 26px; width: auto; display: block; }
 .appbar .wordmark {
   font-family: "Plus Jakarta Sans", sans-serif; font-weight: 800; font-size: 16px;
-  color: #fff; letter-spacing: -.02em;
+  color: var(--titulo); letter-spacing: -.02em;
 }
 .appbar .rolechip {
-  flex: none; background: rgba(255,255,255,.13); border: 1px solid rgba(255,255,255,.2);
+  flex: none; background: var(--brand-soft); border: 1px solid var(--line);
   border-radius: 999px; padding: 4px 11px; font-size: 11.5px; font-weight: 700;
-  font-family: "Plus Jakarta Sans", sans-serif; color: #fff; white-space: nowrap;
+  font-family: "Plus Jakarta Sans", sans-serif; color: var(--titulo); white-space: nowrap;
 }
-.appbar h1 { font-size: 23px; font-weight: 800; color: #fff; margin-top: 14px; }
-.appbar .sub { font-size: 13px; opacity: .92; margin-top: 3px; }
+.appbar h1 { font-size: 22px; font-weight: 800; color: var(--titulo); margin-top: 10px; letter-spacing:-.02em }
+.appbar .sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
 main { flex: 1; padding: 16px 14px 40px; }
 
 /* ---------- Componentes ---------- */
@@ -309,15 +320,18 @@ input {
 /* "Sair" é um botão fantasma, e fantasma usa tinta escura — que sobre o azul
    da barra vira um botão vazio. Na barra ele tem a tinta da barra. */
 .appbar .btn.ghost{
-  color:#fff; border-color:rgba(255,255,255,.34); background:rgba(255,255,255,.10);
+  color:var(--ink-2); border-color:var(--line); background:var(--raised);
 }
 .appbar .btn.ghost:hover{ background:rgba(255,255,255,.2); border-color:rgba(255,255,255,.55) }
+/* Os botões da barra viraram tinta sobre claro: sobre o navy eles precisavam de
+   um véu branco por trás, e esse véu é que dava o ar de adesivo. */
 .iconbtn{
-  border:1px solid rgba(255,255,255,.28); background:rgba(255,255,255,.10);
-  color:#fff; border-radius:10px; width:34px; height:34px; font-size:15px;
+  border:1px solid var(--line); background:var(--raised);
+  color:var(--ink-2); border-radius:10px; width:34px; height:34px; font-size:15px;
   cursor:pointer; line-height:1;
+  display:inline-flex; align-items:center; justify-content:center;
 }
-.iconbtn:hover{ background:rgba(255,255,255,.2) }
+.iconbtn:hover{ background:var(--brand-soft); border-color:var(--brand); color:var(--titulo) }
 /*
  * O sino conta o que espera a pessoa. O número fica NO botão, e não numa
  * frase: quem está no corredor com uma criança pelo braço lê um número.
@@ -327,7 +341,7 @@ input {
   position:absolute; top:-6px; right:-6px; min-width:18px; height:18px;
   padding:0 4px; border-radius:9px; background:var(--crit,#c0392b); color:#fff;
   font-size:11px; font-weight:700; line-height:18px; text-align:center;
-  border:2px solid var(--brand);
+  border:2px solid var(--surface);
 }
 /* ---------- Barra de seções ----------
    As cinco abas PRECISAM caber na largura do celular. Com `padding:10px 18px`
@@ -343,18 +357,22 @@ input {
 }
 .tabbar button{
   flex:1 1 0; min-width:0;
-  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
-  border:1px solid var(--line); background:var(--surface); color:var(--ink-2);
-  border-radius:12px 12px 0 0; padding:8px 6px 9px; font-size:12px; font-weight:700;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
+  border:1px solid transparent; background:transparent; color:var(--muted);
+  border-radius:var(--r-md); padding:8px 6px 9px; font-size:12px; font-weight:700;
   line-height:1.15; cursor:pointer; font-family:"Plus Jakarta Sans",inherit;
-  border-bottom:none; min-height:52px;
+  min-height:54px;
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
-.tabbar button > span[aria-hidden]{ font-size:17px; line-height:1 }
+.tabbar button .icone{ flex:none }
+.tabbar button:hover{ color:var(--titulo); background:var(--raised) }
+/* O item ativo é PREENCHIDO, e não sublinhado: sublinhado some num celular
+   segurado de lado, com a tela inclinada, que é como ela é lida no corredor. */
 .tabbar button.on{
   background:var(--brand); border-color:var(--brand); color:var(--on-solid);
-  box-shadow:0 -2px 0 0 var(--brand-2) inset;
 }
+.tabbar button.on:hover{ color:var(--on-solid) }
+.tabbar .rotulo{ overflow:hidden; text-overflow:ellipsis; max-width:100% }
 @media (max-width:359px){
   .tabbar button{ font-size:11px; padding:7px 3px 8px }
 }
@@ -1045,3 +1063,86 @@ textarea{
 }
 .gr-chip-1 { background: var(--gr-tinta); }
 .gr-chip-2 { background: var(--gr-tinta-2); }
+
+/* ============================================================
+   A NAVEGAÇÃO EM DUAS FORMAS — barra no celular, coluna no monitor
+   (fase 150)
+
+   É a MESMA navegação, e isso não é economia de código: é o motivo de ela
+   funcionar. A coordenadora abre o sistema no monitor da sala e a educadora
+   abre no celular do corredor, e as duas precisam conversar sobre "a tela da
+   ATA" sem descobrir que são telas diferentes.
+
+   O ponto de virada é 1080px, e ele tem razão: abaixo disso uma coluna de
+   264px come um quarto da largura útil, e o que sobra para o conteúdo fica
+   mais estreito do que a própria tela do celular.
+   ============================================================ */
+.marca-lateral{ display:none }
+.portas-lateral{ display:none }
+
+@media (min-width:1080px){
+  .app{ padding-left:264px; max-width:1440px }
+
+  .navegacao{
+    position:fixed; left:0; top:0; bottom:0; width:264px; z-index:6;
+    display:flex; flex-direction:column; gap:2px;
+    background:var(--surface); border-right:1px solid var(--line);
+    padding:14px 12px 20px; overflow-y:auto; overscroll-behavior:contain;
+  }
+
+  .marca-lateral{
+    display:flex; align-items:center; gap:10px; padding:4px 8px 14px;
+    margin-bottom:8px; border-bottom:1px solid var(--line);
+  }
+  .marca-lateral b{
+    display:block; font-family:"Plus Jakarta Sans",sans-serif; font-weight:800;
+    font-size:15px; color:var(--titulo); letter-spacing:-.02em; line-height:1.2;
+  }
+  .marca-lateral small{
+    display:block; font-size:11.5px; color:var(--muted); margin-top:1px;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:170px;
+  }
+
+  /* As abas do turno viram a primeira lista da coluna: mesmo elemento, outro
+     eixo. Quem entra por `nav.tabbar` — os ensaios, o leitor de tela — entra
+     igual nos dois. */
+  .tabbar{ display:flex; flex-direction:column; gap:2px; padding:0 }
+  .tabbar button{
+    flex:0 0 auto; flex-direction:row; justify-content:flex-start; gap:10px;
+    min-height:40px; padding:9px 11px; font-size:13.5px; text-align:left;
+  }
+  /* No monitor a folha "Mais" some: as portas estão todas abertas abaixo, e um
+     botão que abre uma lista já visível é um clique cobrado à toa. */
+  .tabbar button.so-no-celular{ display:none }
+
+  .portas-lateral{ display:block; margin-top:10px }
+  .portas-lateral .grupo + .grupo{ margin-top:12px }
+  .portas-lateral h2{
+    font-family:"Plus Jakarta Sans",sans-serif;
+    font-size:10.5px; font-weight:800; letter-spacing:.09em; text-transform:uppercase;
+    color:var(--muted); padding:0 11px; margin:0 0 5px;
+  }
+  .portas-lateral button{
+    display:flex; align-items:center; gap:10px; width:100%;
+    border:1px solid transparent; background:transparent; color:var(--ink-2);
+    border-radius:var(--r-sm); padding:8px 11px; font-size:13.5px; font-weight:600;
+    line-height:1.2; cursor:pointer; font-family:"Plus Jakarta Sans",inherit;
+    text-align:left;
+  }
+  .portas-lateral button .icone{ flex:none; color:var(--muted) }
+  .portas-lateral button:hover{ background:var(--raised); color:var(--titulo) }
+  .portas-lateral button:hover .icone{ color:var(--brand) }
+  .portas-lateral button.on{
+    background:var(--brand-soft); color:var(--titulo); font-weight:800;
+  }
+  .portas-lateral button.on .icone{ color:var(--brand) }
+  .portas-lateral .rotulo{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
+
+  /* A marca já está na coluna; repeti-la no alto do conteúdo é ruído. */
+  .appbar .logochip, .appbar .wordmark{ display:none }
+
+  /* O controle segmentado não acompanha a largura do monitor: quatro botões
+     esticados por 1100px viram quatro faixas, e a escolhida parece um banner.
+     Ele fica do tamanho do que escreve. */
+  .filtros{ max-width:560px }
+}

@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ROTULO_CARGO } from './rotulos';
+import { Icone } from './icones';
+import { PORTAS, GRUPOS } from './portas';
 import { api, setToken, ligarFilaAoServidor } from './api';
 import logo from './assets/logo.png';
 import { definirQuemAssina } from './quem-assina';
@@ -101,13 +103,13 @@ function Tarja() {
  * Permite alternar entre funções sem sair do sistema, para avaliação do design.
  */
 const CARGOS_DEMO = [
-  { value: 'coordenador',         label: '👩‍💼 Coordenação' },
-  { value: 'equipe_tecnica',      label: '🧠 Equipe técnica' },
-  { value: 'educador',            label: '🏫 Educador social' },
-  { value: 'lider_diurno',        label: '☀️ Líder Diurno' },
-  { value: 'lider_noturno_geral', label: '🌙 Líder Noturno' },
-  { value: 'enfermagem',          label: '🩺 Enfermagem' },
-  { value: 'gestor_geral',        label: '🏛️ Gestor Geral' },
+  { value: 'coordenador',         label: 'Coordenação' },
+  { value: 'equipe_tecnica',      label: 'Equipe técnica' },
+  { value: 'educador',            label: 'Educador social' },
+  { value: 'lider_diurno',        label: 'Líder Diurno' },
+  { value: 'lider_noturno_geral', label: 'Líder Noturno' },
+  { value: 'enfermagem',          label: 'Enfermagem' },
+  { value: 'gestor_geral',        label: 'Gestor Geral' },
   /*
    * A COZINHA SAIU DAQUI em 09/09/2026, por decisão da Fundação: ela não entra
    * no sistema por enquanto. O cargo continua existindo no banco — ocultar é
@@ -123,7 +125,7 @@ function TrocaCargo({ cargoAtual, onChange }: { cargoAtual: string; onChange: (r
   if (import.meta.env.VITE_PROTOTIPO !== '1') return null;
   return (
     <div className="troca-cargo">
-      <span className="troca-cargo-label">👁 Ver como:</span>
+      <span className="troca-cargo-label"><Icone nome="olhar" tamanho={16} /> Ver como:</span>
       <select
         value={cargoAtual}
         onChange={(e) => onChange(e.target.value)}
@@ -156,7 +158,7 @@ function BotaoSemSinal() {
               simularSemSinal(!sem);
               setSem(!sem);
             }}>
-      {sem ? '🚫' : '📶'}
+      <Icone nome={sem ? 'sem_sinal' : 'com_sinal'} />
     </button>
   );
 }
@@ -320,16 +322,22 @@ export function App() {
      * painel ser a tela inicial do Gestor Geral, porque `abaEfetiva` cai na
      * primeira aba do cargo. O acesso total continua inteiro, uma aba adiante.
      */
-    { aba: 'metricas', icone: '📊', label: 'Painel' },
-    { aba: 'dia', icone: '📋', label: 'Dia' },
-    { aba: 'chamada', icone: '✅', label: 'Chamada' },
-    { aba: 'acolhidos', icone: '🧒', label: 'Acolhidos' },
-    { aba: 'passagem', icone: '🔁', label: 'Passagem' },
+    { aba: 'metricas', icone: 'painel_numeros', label: 'Painel' },
+    { aba: 'dia', icone: 'dia', label: 'Dia' },
+    { aba: 'chamada', icone: 'chamada', label: 'Chamada' },
+    { aba: 'acolhidos', icone: 'acolhidos', label: 'Acolhidos' },
+    { aba: 'passagem', icone: 'passagem', label: 'Passagem' },
   ].filter((t) => ve(t.aba));
-  const doMais = ['unidades', 'plantao', 'agenda', 'cozinha', 'portaria', 'campos_do_perfil', 'equipe', 'trabalho', 'periodo', 'setores', 'ocorrencias',
-    'ata', 'saude', 'internacao', 'impacto', 'alinhamentos', 'acompanhamentos', 'painel', 'arquivo', 'transferencias',
-    'cofre', 'sincronizacao', 'casas']
-    .filter((a) => ve(a));
+  /*
+   * AS PORTAS QUE ESTE CARGO ALCANÇA — da tabela, e não de uma lista à parte.
+   *
+   * Esta linha era um vetor de vinte e três chaves escrito aqui, ao lado de
+   * uma folha com vinte e cinco botões: a rotina da casa e a escala de plantão
+   * estavam na folha e fora da contagem. Ninguém percebia porque o efeito era
+   * só no `temMais`, que outra porta já deixava verdadeiro — até o dia em que
+   * fosse a única do cargo, e aí a pessoa ficaria sem o botão que abre a tela.
+   */
+  const doMais = PORTAS.map((porta) => porta.aba).filter((a) => ve(a));
   const temMais = doMais.length > 0;
 
   /*
@@ -380,7 +388,7 @@ export function App() {
                       const root = document.documentElement;
                       root.setAttribute('data-theme',
                         root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
-                    }}>🌓</button>
+                    }}><Icone nome="tema" /></button>
           )}
           {/*
             * A CHAVE DO GESTOR — operação ou trabalho social.
@@ -402,7 +410,7 @@ export function App() {
                       ? 'Voltar para a operação das casas'
                       : 'Ver o trabalho social das oito casas'}
                     onClick={() => setAba(aba === 'impacto' ? 'casas' : 'impacto')}>
-              {aba === 'impacto' ? '🏠' : '🌱'}
+              <Icone nome={aba === 'impacto' ? 'casas' : 'impacto'} />
             </button>
           )}
           {import.meta.env.VITE_PROTOTIPO === '1' && <BotaoSemSinal />}
@@ -410,10 +418,11 @@ export function App() {
           <button className="iconbtn" title="Avisos"
                   aria-label={naoLidos ? `Avisos: ${naoLidos} não lidos` : 'Avisos'}
                   onClick={() => setAba('avisos')}>
-            🔔{naoLidos > 0 && <span className="badge">{naoLidos > 9 ? '9+' : naoLidos}</span>}
+            <Icone nome="sino" />
+            {naoLidos > 0 && <span className="badge">{naoLidos > 9 ? '9+' : naoLidos}</span>}
           </button>
           <button className="iconbtn" title="Trocar minha senha" aria-label="Trocar minha senha"
-                  onClick={() => setTrocarSenha(true)}>🔑</button>
+                  onClick={() => setTrocarSenha(true)}><Icone nome="chave" /></button>
           <button className="btn sm ghost" onClick={sair}>Sair</button>
         </div>
         <h1>{me.fullName}</h1>
@@ -470,20 +479,70 @@ export function App() {
         * A barra carrega o TURNO, e só o que o cargo alcança. Quem tem uma
         * tela só não recebe barra nenhuma: cinco botões para uma tela é ruído.
         */}
+      {/*
+        * A NAVEGAÇÃO TEM DUAS FORMAS, e é a MESMA navegação (fase 150).
+        *
+        * No celular ela é a barra de abas de sempre, com o "Mais" abrindo a
+        * folha — é o que cabe no polegar de quem está no corredor às 23h, e
+        * mudar isso seria trocar o que funciona por um menu bonito.
+        *
+        * No monitor ela vira COLUNA À ESQUERDA, com as portas todas abertas e
+        * agrupadas: quem usa a coordenação passa o dia numa tela grande, e
+        * esconder vinte e cinco telas atrás de um "Mais" ali é desperdiçar
+        * metade do monitor para depois pedir dois cliques.
+        *
+        * O `nav.tabbar` continua existindo nos dois — ele só muda de eixo. Foi
+        * decisão consciente: os seis ensaios de navegador entram por ele, e
+        * trocar o elemento por outro deixaria a navegação sem conferência
+        * exatamente na fase que a reescreve.
+        */}
       {(abasDoTurno.length > 1 || temMais) && (
+        <div className="navegacao">
+        <div className="marca-lateral" aria-hidden="true">
+          <span className="logochip"><img src={logo} alt="" /></span>
+          <div>
+            <b>Rede Acolher</b>
+            <small>{casa ? `${casa.code} · ${casa.name}` : 'Escopo institucional'}</small>
+          </div>
+        </div>
         <nav className="tabbar" aria-label="Seções">
           {abasDoTurno.map((t) => (
             <button key={t.aba} className={abaEfetiva === t.aba ? 'on' : ''}
                     onClick={() => setAba(t.aba as typeof aba)}>
-              <span aria-hidden="true">{t.icone}</span> {t.label}
+              <Icone nome={t.icone} /> <span className="rotulo">{t.label}</span>
             </button>
           ))}
           {temMais && (
-            <button className={OUTRAS.has(abaEfetiva) ? 'on' : ''} onClick={() => setMais(true)}>
-              <span aria-hidden="true">⋯</span> Mais
+            <button className={`so-no-celular ${OUTRAS.has(abaEfetiva) ? 'on' : ''}`}
+                    onClick={() => setMais(true)}>
+              <Icone nome="mais" /> <span className="rotulo">Mais</span>
             </button>
           )}
         </nav>
+        {/*
+          * As portas, agrupadas — só no monitor. No celular este bloco não é
+          * desenhado (o CSS o esconde) e quem procura usa a folha "Mais", que
+          * lê a MESMA tabela. Uma lista, duas formas.
+          */}
+        <nav className="portas-lateral" aria-label="Todas as telas">
+          {GRUPOS.map((grupo) => {
+            const dele = PORTAS.filter((porta) => porta.grupo === grupo.cod && ve(porta.aba));
+            if (!dele.length) return null;
+            return (
+              <div key={grupo.cod} className="grupo">
+                <h2>{grupo.titulo}</h2>
+                {dele.map((porta) => (
+                  <button key={porta.aba} className={aba === porta.aba ? 'on' : ''}
+                          title={porta.descricao}
+                          onClick={() => setAba(porta.aba as typeof aba)}>
+                    <Icone nome={porta.icone} /> <span className="rotulo">{porta.titulo}</span>
+                  </button>
+                ))}
+              </div>
+            );
+          })}
+        </nav>
+        </div>
       )}
 
       {/*
@@ -693,291 +752,27 @@ export function App() {
              onClick={(e) => { if (e.target === e.currentTarget) setMais(false); }}>
           <div className="sheet">
             <h3 id="t-mais">Mais</h3>
+            {/*
+              * A FOLHA LÊ A TABELA DE PORTAS (fase 150), e antes eram vinte e
+              * cinco blocos escritos um a um aqui dentro. Lista escrita à mão ao
+              * lado de outra lista com as mesmas chaves é como uma tela nasce
+              * sem porta: quem acrescenta a tela mexe numa e esquece a outra.
+              *
+              * No celular ela continua CORRIDA, sem os grupos da barra lateral:
+              * rolar o polegar é mais barato do que decidir em qual seção olhar,
+              * e quem abre o "Mais" às 23h já sabe o nome do que procura.
+              */}
             <div className="stack">
-              {ve('unidades') && (
-                <button className="card row" onClick={() => { setAba('unidades'); setMais(false); }}>
-                  <span aria-hidden="true">🗓️</span>
+              {PORTAS.filter((porta) => ve(porta.aba)).map((porta) => (
+                <button key={porta.aba} className="card row"
+                        onClick={() => { setAba(porta.aba as typeof aba); setMais(false); }}>
+                  <span className="porta-icone"><Icone nome={porta.icone} /></span>
                   <div className="grow" style={{ textAlign: 'left' }}>
-                    <b className="ff">O dia, em ordem</b>
-                    <div className="mutetxt">
-                      Todas as unidades que você acompanha, das 00h às 23h59.
-                    </div>
+                    <b className="ff">{porta.titulo}</b>
+                    <div className="mutetxt">{porta.descricao}</div>
                   </div>
                 </button>
-              )}
-              {ve('plantao') && (
-              <button className="card row" onClick={() => { setAba('plantao'); setMais(false); }}>
-                <span aria-hidden="true">🧭</span>
-                <div className="grow" style={{ textAlign: 'left' }}>
-                  <b className="ff">Painel do plantão</b>
-                  <div className="mutetxt">Quem está em quê agora, neste turno.</div>
-                </div>
-              </button>
-              )}
-              {ve('agenda') && (
-              <button className="card row" onClick={() => { setAba('agenda'); setMais(false); }}>
-                <span aria-hidden="true">📅</span>
-                <div className="grow" style={{ textAlign: 'left' }}>
-                  <b className="ff">Agenda</b>
-                  <div className="mutetxt">O que está marcado e o que vem pela frente.</div>
-                </div>
-              </button>
-              )}
-              {veRotina && (
-                <button className="card row" onClick={() => { setAba('rotina'); setMais(false); }}>
-                  <span aria-hidden="true">🕰️</span>
-                  <div className="grow" style={{ textAlign: 'left' }}>
-                    <b className="ff">A rotina da casa</b>
-                    <div className="mutetxt">
-                      O molde do dia — e as versões que a casa já seguiu.
-                    </div>
-                  </div>
-                </button>
-              )}
-              {/* A escala fica ao lado da rotina: as duas respondem "como esta
-                  casa funciona" — uma pelo relógio do dia, a outra pelo
-                  calendário de quem trabalha nele. */}
-              {ve('escala') && (
-                <button className="card row" onClick={() => { setAba('escala'); setMais(false); }}>
-                  <span aria-hidden="true">🗓️</span>
-                  <div className="grow" style={{ textAlign: 'left' }}>
-                    <b className="ff">A escala de plantão</b>
-                    <div className="mutetxt">
-                      Quem assume cada dia e cada turno — e o que já passou.
-                    </div>
-                  </div>
-                </button>
-              )}
-              {administra && (
-                <button className="card row" onClick={() => { setAba('equipe'); setMais(false); }}>
-                  <span aria-hidden="true">👥</span>
-                  <div className="grow" style={{ textAlign: 'left' }}>
-                    <b className="ff">Equipe</b>
-                    <div className="mutetxt">Quem trabalha nesta casa, por setor.</div>
-                  </div>
-                </button>
-              )}
-              {/* A porta do trabalho da equipe (fase 117). Fica ao lado de
-                  "Equipe", e não dentro dela: são cargos diferentes — o Líder
-                  Diurno lê o trabalho e não cadastra conta nenhuma. */}
-              {ve('trabalho') && (
-                <button className="card row" onClick={() => { setAba('trabalho'); setMais(false); }}>
-                  <span aria-hidden="true">🧭</span>
-                  <div className="grow" style={{ textAlign: 'left' }}>
-                    <b className="ff">O trabalho da equipe</b>
-                    <div className="mutetxt">
-                      O que cada pessoa e cada setor registrou, em ordem. Sem contar nada.
-                    </div>
-                  </div>
-                </button>
-              )}
-              {/* O período da casa (fase 121). Vizinho do trabalho da equipe
-                  porque as duas leituras são da mesma pessoa e do mesmo tipo:
-                  um recorte de tempo sobre o que já foi registrado. */}
-              {ve('periodo') && (
-                <button className="card row" onClick={() => { setAba('periodo'); setMais(false); }}>
-                  <span aria-hidden="true">🗓️</span>
-                  <div className="grow" style={{ textAlign: 'left' }}>
-                    <b className="ff">O período da casa</b>
-                    <div className="mutetxt">
-                      Como foi a casa na semana, no mês ou no intervalo que você escolher.
-                    </div>
-                  </div>
-                </button>
-              )}
-              {ve('cozinha') && (
-                <button className="card row" onClick={() => { setAba('cozinha'); setMais(false); }}>
-                  <span aria-hidden="true">🍽️</span>
-                  <div className="grow" style={{ textAlign: 'left' }}>
-                    <b className="ff">Cozinha</b>
-                    <div className="mutetxt">
-                      Pedir lanche e cesta básica, e gerar as folhas para a cozinha.
-                    </div>
-                  </div>
-                </button>
-              )}
-              {ve('campos_do_perfil') && (
-                <button className="card row" onClick={() => { setAba('campos_do_perfil'); setMais(false); }}>
-                  <span aria-hidden="true">👁️</span>
-                  <div className="grow" style={{ textAlign: 'left' }}>
-                    <b className="ff">O que o plantão vê</b>
-                    <div className="mutetxt">
-                      Liga e desliga campos do perfil para quem está no turno.
-                    </div>
-                  </div>
-                </button>
-              )}
-              {ve('portaria') && (
-                <button className="card row" onClick={() => { setAba('portaria'); setMais(false); }}>
-                  <span aria-hidden="true">🚪</span>
-                  <div className="grow" style={{ textAlign: 'left' }}>
-                    <b className="ff">Portaria</b>
-                    <div className="mutetxt">
-                      Quem pode visitar cada criança, e a folha em Word para a guarita.
-                    </div>
-                  </div>
-                </button>
-              )}
-              {administra && (
-                <button className="card row" onClick={() => { setAba('setores'); setMais(false); }}>
-                  <span aria-hidden="true">🔎</span>
-                  <div className="grow" style={{ textAlign: 'left' }}>
-                    <b className="ff">O que cada setor enxerga</b>
-                    <div className="mutetxt">
-                      A resposta escrita, sem entrar com a conta de ninguém.
-                    </div>
-                  </div>
-                </button>
-              )}
-              {ve('ocorrencias') && (
-              <button className="card row" onClick={() => { setAba('ocorrencias'); setMais(false); }}>
-                <span aria-hidden="true">🚨</span>
-                <div className="grow" style={{ textAlign: 'left' }}>
-                  <b className="ff">Ocorrências</b>
-                  <div className="mutetxt">Abrir, acompanhar e encerrar com análise — nunca sozinha.</div>
-                </div>
-              </button>
-              )}
-              {ve('ata') && (
-              <button className="card row" onClick={() => { setAba('ata'); setMais(false); }}>
-                <span aria-hidden="true">📔</span>
-                <div className="grow" style={{ textAlign: 'left' }}>
-                  <b className="ff">ATA</b>
-                  <div className="mutetxt">A da casa e a Geral Noturna, com pendência quando for o caso.</div>
-                </div>
-              </button>
-              )}
-              {/*
-                * DUAS PORTAS PARA A MESMA TELA, e é de propósito.
-                *
-                * A chave 🌱 no alto é a que o Gestor Geral vai usar todo dia —
-                * é troca de MODO, e o modo não mora no menu. Mas quem não
-                * reparar nela precisa achar a tela onde acha todas as outras;
-                * e, do lado prático, tela que só existe atrás de um botão do
-                * cabeçalho fica de fora dos ensaios de navegador, que
-                * percorrem as abas e o "Mais".
-                */}
-              {ve('impacto') && (
-                <button className="card row"
-                        onClick={() => { setAba('impacto'); setMais(false); }}>
-                  <span aria-hidden="true">🌱</span>
-                  <div className="grow" style={{ textAlign: 'left' }}>
-                    <b className="ff">O trabalho social</b>
-                    <div className="mutetxt">
-                      As oito casas pelo que o acolhimento produziu, e não pelo turno de hoje.
-                    </div>
-                  </div>
-                </button>
-              )}
-              {ve('internacao') && (
-                <button className="card row"
-                        onClick={() => { setAba('internacao'); setMais(false); }}>
-                  <span aria-hidden="true">🏥</span>
-                  <div className="grow" style={{ textAlign: 'left' }}>
-                    <b className="ff">Internação hospitalar</b>
-                    <div className="mutetxt">
-                      Quem está no hospital, o diário do período e a medicação de lá.
-                    </div>
-                  </div>
-                </button>
-              )}
-              {veSaude && (
-                <button className="card row" onClick={() => { setAba('saude'); setMais(false); }}>
-                  <span aria-hidden="true">🩺</span>
-                  <div className="grow" style={{ textAlign: 'left' }}>
-                    <b className="ff">Saúde</b>
-                    <div className="mutetxt">Doses do dia, estoque, triagem e resumo de saúde.</div>
-                  </div>
-                </button>
-              )}
-              {/*
-                * OS COMBINADOS TÊM PORTA PRÓPRIA.
-                *
-                * Eles também vivem numa aba dentro de Acompanhamentos, onde a
-                * técnica e a coordenação trabalham. Mas quem mais precisa do
-                * combinado é o educador do turno da noite — e ele não alcança
-                * Acompanhamentos. Um combinado que a equipe do turno não pode
-                * abrir não é combinado: é recado que ninguém recebeu.
-                */}
-              {ve('alinhamentos') && (
-                <button className="card row" onClick={() => { setAba('alinhamentos'); setMais(false); }}>
-                  <span aria-hidden="true">🤝</span>
-                  <div className="grow" style={{ textAlign: 'left' }}>
-                    <b className="ff">Combinados da equipe</b>
-                    <div className="mutetxt">
-                      O que ficou estabelecido nas reuniões, e o que está valendo agora.
-                    </div>
-                  </div>
-                </button>
-              )}
-              {veAcompanhamentos && (
-                <button className="card row" onClick={() => { setAba('acompanhamentos'); setMais(false); }}>
-                  <span aria-hidden="true">📝</span>
-                  <div className="grow" style={{ textAlign: 'left' }}>
-                    <b className="ff">Acompanhamentos</b>
-                    <div className="mutetxt">Eixos obrigatórios, aprovação e relatórios.</div>
-                  </div>
-                </button>
-              )}
-              {vePainel && (
-                <button className="card row" onClick={() => { setAba('painel'); setMais(false); }}>
-                  <span aria-hidden="true">🏠</span>
-                  <div className="grow" style={{ textAlign: 'left' }}>
-                    <b className="ff">Painel das unidades</b>
-                    <div className="mutetxt">
-                      Ocupação, entradas e saídas, e o quadro de cada mês. Sem ranking.
-                    </div>
-                  </div>
-                </button>
-              )}
-              {veSync && (
-                <button className="card row" onClick={() => { setAba('sincronizacao'); setMais(false); }}>
-                  <span aria-hidden="true">🔄</span>
-                  <div className="grow" style={{ textAlign: 'left' }}>
-                    <b className="ff">Sincronização</b>
-                    <div className="mutetxt">
-                      O que ficou pendurado entre o aparelho e o servidor, e o que espera
-                      decisão da equipe.
-                    </div>
-                  </div>
-                </button>
-              )}
-              {veArquivo && (
-                <button className="card row" onClick={() => { setAba('arquivo'); setMais(false); }}>
-                  <span aria-hidden="true">🗄️</span>
-                  <div className="grow" style={{ textAlign: 'left' }}>
-                    <b className="ff">Arquivo documental</b>
-                    <div className="mutetxt">Cópia do que fechou, com versões e fila de envio.</div>
-                  </div>
-                </button>
-              )}
-              {veTransferencias && (
-                <button className="card row" onClick={() => { setAba('transferencias'); setMais(false); }}>
-                  <span aria-hidden="true">🔁</span>
-                  <div className="grow" style={{ textAlign: 'left' }}>
-                    <b className="ff">Transferências</b>
-                    <div className="mutetxt">Pedidos enviados e recebidos, com conversa entre coordenações.</div>
-                  </div>
-                </button>
-              )}
-              {veCofre && (
-                <button className="card row" onClick={() => { setAba('cofre'); setMais(false); }}>
-                  <span aria-hidden="true">🔑</span>
-                  <div className="grow" style={{ textAlign: 'left' }}>
-                    <b className="ff">Cofre de acessos</b>
-                    <div className="mutetxt">Contas do acolhido. Pede a sua senha de novo e é auditado.</div>
-                  </div>
-                </button>
-              )}
-              {ve('casas') && (
-              <button className="card row" onClick={() => { setAba('casas'); setMais(false); }}>
-                <span aria-hidden="true">🏠</span>
-                <div className="grow" style={{ textAlign: 'left' }}>
-                  <b className="ff">Unidades</b>
-                  <div className="mutetxt">As unidades no seu alcance.</div>
-                </div>
-              </button>
-              )}
+              ))}
             </div>
             <button className="btn sec block" style={{ marginTop: 16 }} onClick={() => setMais(false)}>
               Fechar

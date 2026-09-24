@@ -890,11 +890,20 @@ cobrar('o painel mostra as oito casas', (await conteudo()).length > 200);
 /*
  * A OUTRA LEITURA DAS OITO CASAS.
  *
- * A chave 🌱 no alto é troca de modo — e o teste que importa aqui não é que a
+ * A chave no alto é troca de modo — e o teste que importa aqui não é que a
  * tela abre: é que ela NÃO ordena por resultado. Ordenar por conquistas parece
  * mais útil e é um ranking com outro nome.
+ *
+ * ELA É ACHADA PELO NOME ACESSÍVEL, e não pelo desenho (corrigido na fase 150).
+ * Este percurso procurava o emoji 🌱 dentro do botão, e quando a moldura trocou
+ * os emoji por desenhos ele deixou de achar a chave: **as três cobranças
+ * seguintes passaram a reprovar sem que nada estivesse errado com elas** — a
+ * tela nunca chegava a abrir. Prender um ensaio ao DESENHO de um botão é prendê-lo
+ * à decisão mais volátil que existe numa tela; o nome acessível é o contrato de
+ * verdade, é o que muda quando a função muda, e é o que a pessoa com leitor de
+ * tela ouve.
  */
-const chave = pg.locator('header button').filter({ hasText: /🌱/ });
+const chave = pg.getByRole('button', { name: /trabalho social das oito casas/i });
 cobrar('o gestor tem a chave do trabalho social no alto', await chave.count() > 0);
 if (await chave.count()) {
   await chave.first().click();
@@ -923,8 +932,9 @@ cobrar('a lista de quem conquistou é por data, e não por quem tem mais',
 /* pode ver antes de abrir.                                                 */
 /* ======================================================================== */
 await fechar();
-/* Volta ao modo normal: a chave do trabalho social ficou ligada acima. */
-const chaveVolta = pg.locator('header button').filter({ hasText: /🌱/ });
+/* Volta ao modo normal: a chave do trabalho social ficou ligada acima. O nome
+   acessível dela MUDA com o modo, e é por isso que ele serve de contrato. */
+const chaveVolta = pg.getByRole('button', { name: /Voltar para a operação/i });
 if (await chaveVolta.count()) {
   await chaveVolta.first().click();
   await pg.waitForTimeout(1200);

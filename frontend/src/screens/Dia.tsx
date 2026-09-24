@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api, apiOuFila } from '../api';
+import { Icone } from '../icones';
 import type { AoEnfileirar } from '../fila-offline';
 import { FolhaDose } from './Saude';
 import type { Dose } from './Saude';
@@ -90,9 +91,23 @@ const EXCECOES = [
 const TOM_SEVERIDADE: Record<string, string> = {
   normal: 'c-info', atencao: 'c-warn', critico: 'c-crit',
 };
+/*
+ * O DESENHO DE CADA CATEGORIA (fase 150) — e antes eram emoji.
+ *
+ * Os emoji tinham um problema além do visual: o 🛏️ da rotina virava uma cama
+ * de hotel num aparelho e um travesseiro noutro, e o 🎯 de "lazer e atividade"
+ * é um alvo — a coisa mais distante do que uma tarde de futebol significa para
+ * um adolescente desta casa. Desenho de traço não carrega piada nem cultura de
+ * outro lugar: é a forma mínima que diz "isto é remédio", "isto é comida".
+ *
+ * A COR CONTINUA SENDO A CATEGORIA, na borda do cartão, e o desenho a repete —
+ * quem não distingue as cores lê o mesmo pela forma, e é para isso que ele
+ * existe (a §6 diz que cor nunca é o único canal).
+ */
 const ICONE: Record<string, string> = {
-  rotina: '🛏️', refeicao: '🍽️', atividade: '🎯', saida: '🚌', medicamento: '💊',
-  chamada: '✅', plantao: '🔁', ocorrencia: '⚠️', saude: '🩺',
+  rotina: 'cama', refeicao: 'refeicao', atividade: 'atividade', saida: 'saida',
+  medicamento: 'medicamento', chamada: 'chamada', plantao: 'passagem',
+  ocorrencia: 'alerta', saude: 'saude_ic',
 };
 
 /**
@@ -459,7 +474,7 @@ export function Dia({ houseId, casaLabel, papel, irPara }: {
             <div className="hora">{hhmm(ev.at)}</div>
             <div className="corpo">
               <div className="tit">
-                <span aria-hidden="true" className="ic">{ICONE[ev.kind] ?? '•'}</span>
+                <span className="ic"><Icone nome={ICONE[ev.kind] ?? 'ponto'} /></span>
                 <b className="ff">{ev.title}</b>
               </div>
               {/* A categoria por EXTENSO. A borda colorida é o atalho; esta

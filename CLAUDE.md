@@ -144,6 +144,8 @@ e qual é o caminho certo.
 | `scripts/rotas-sem-teste.mjs` | acha **rota** que nenhum teste chamou — o outro lado da mesma pergunta. Separa *candidata forte* (a URL não aparece em suíte nenhuma) de *par incerto* (a suíte chama por auxiliar e o método fica noutra linha). **Não é teste** |
 | `backend/src/kernel/common/data-do-dia.pipe.ts` | **toda data que vem da URL passa por aqui** (fase 148). Sete de dez rotas de data devolviam 500 para uma data que não é data; a conferência mora num lugar só, e há teste estático que cobra que todo `@Query('de')` e `@Param('data')` use o pipe |
 | `backend/src/kernel/audit/audit.service.ts` | quem ESCREVE a auditoria, e as três respostas sobre a casa de uma linha (fase 149). **Linha de auditoria sem casa é linha que a coordenação da casa não lê** — a policy compara `house_id` com o alcance, e NULL não é igual a nada. O `auditoria-tem-casa.spec.ts` cobra `houseId` em toda chamada, com a lista ESCRITA das poucas ações que não têm casa |
+| `frontend/src/portas.ts` | **as vinte e cinco telas do sistema, numa lista só** (fase 150). A folha "Mais" do celular, a coluna do monitor e a conferência leem dela. A lista existia em DOIS lugares e as duas discordavam — `as-portas-e-os-icones.spec.ts` é o que impede a divergência voltar |
+| `frontend/src/icones.tsx` | **os desenhos da moldura**, em traço e `currentColor`, no lugar dos emoji (fase 150). Emoji muda de cara conforme o aparelho, não herda a cor e carrega significado que ninguém pediu. Nenhum ícone é o único portador do sentido: ao lado há sempre a palavra |
 
 ## O que fazer agora
 
@@ -151,44 +153,54 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 23/09/2026, fase 149
+### Onde estamos — 24/09/2026, fase 150
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139, e
-todas as decisões que estavam paradas viraram código. Desde a 146 a pergunta mudou
-de *"o que falta?"* para **"o que nunca foi exercitado?"**, que tem resposta
-medível — e foram essas medições que acharam os últimos quatro defeitos, todos em
-código que compilava e passava.
+todas as decisões que estavam paradas viraram código. Da 146 à 149 a pergunta foi
+*"o que nunca foi exercitado?"* — que tem resposta medível, e foi ela que achou os
+quatro últimos defeitos, todos em código que compilava e passava. **A 150 abriu
+uma frente nova, e ela é da Fundação:** o visual.
 
 | Fase | O que ela achou e consertou |
 |---|---|
 | 146 | a **contenção física** podia ser escrita na ocorrência de outra casa |
-| 147 | das 342 rotas, **28 nunca foram chamadas por teste** — a família do vocabulário estava correta, e agora tem garantia |
+| 147 | das 342 rotas, **28 nunca foram chamadas por teste** |
 | 148 | **sete de dez rotas de data** devolviam 500 para uma data que não é data |
 | 149 | **79 das 152 linhas de auditoria nasciam sem casa** — e a coordenação não lê linha sem casa |
+| 150 | a **moldura** era um bloco navy de 190px e emoji; virou clara, com desenhos e coluna no monitor |
 
-**Medido no fim da 149:** 141 migrações, 116 tabelas, 97 suítes, 934 testes,
-verdes nas DUAS condições de relógio; os seis ensaios de navegador verdes; 139
-telas sem violação de WCAG 2.1 AA; ensaio de produção verde.
+**Medido no fim da 150:** 141 migrações, 116 tabelas, 98 suítes, 941 testes,
+verdes nas DUAS condições de relógio; os **sete** ensaios de navegador verdes; 139
+telas sem violação de WCAG 2.1 AA.
 
-### A próxima etapa — siga o §9, na ordem dele
+### A próxima etapa
 
-1. **`GET /medications/prn`** — a lista do remédio *"se necessário"*, que é o que o
-   educador dá às 2h da manhã. A rota de ESCREVER tem teste; a de LER, não. Era o
-   item 2 da lista da 147 e ficou porque o item 1 virou a fase 149 inteira.
-2. **As outras onze rotas medidas e sem teste**, escritas em ordem de valor no §9:
-   `GET /timeline/all`, `GET /transfers/pending`, as cinco exportações, as três
-   folhas, e a autorização nominal — que é dormente por decisão escrita (§8.6) e
-   talvez não mereça teste, porque testar o que a Fundação aposentou é guardar o
-   passado.
-3. **Aplicar o roteiro com a equipe.** Continua sendo o que mais muda o sistema, e
-   o único que não se faz daqui.
+**1. Terminar o visual — é a fase 151, e a Fundação está esperando.** A 150 fez a
+MOLDURA; faltam duas coisas que ela deixou escritas de propósito para não virarem
+promessa:
 
-**Anotado na 149 e não mexido** (achado fazendo outra coisa, como a casa manda):
-em `medications.service.ts` a ausência da criança ainda é perguntada como PAR —
+  * **os 107 emoji que continuam nas TELAS** — o 💊 do botão "Remédios", o 📝 do
+    "Relato", o 🔒 do cofre. São 44 desenhos distintos em vinte arquivos, e a
+    conferência da 150 só guarda a moldura (`App.tsx`, `portas.ts`, `icones.tsx`);
+  * **a cor por CARGO**, que foi a escolha da Fundação em 23/09 — coordenação,
+    educador, técnica e enfermagem com cor própria, num círculo de iniciais como o
+    do exemplo. *Ela NÃO é por pessoa:* a decisão foi por cargo, e a barra colorida
+    do cartão continua sendo a CATEGORIA da atividade — uma coisa, um significado,
+    porque quem olha às 23h não pode ter de aprender dois códigos de cor.
+    **Cor nova passa pelo `ensaio:acessibilidade` antes de entrar.**
+
+**2. Depois, a lista do §9** — `GET /medications/prn` primeiro (o remédio "se
+necessário", que é o que o educador dá às 2h; a rota de escrever tem teste, a de
+ler não), e as outras onze rotas medidas e sem teste, na ordem escrita lá.
+
+**3. Aplicar o roteiro com a equipe.** Continua sendo o que mais muda o sistema, e
+o único que não se faz daqui.
+
+**Anotado e não mexido** (achado fazendo outra coisa, como a casa manda): em
+`medications.service.ts` a ausência da criança ainda é perguntada como PAR —
 `app_esta_internado` **e** `app_em_convivencia_familiar` — em dois lugares, em vez
 de `app_ausente_da_casa`. Hoje o efeito é idêntico; o risco é a lição da 141 de
-novo — regra nova de ausência escrita no lugar único não chegaria à grade do
-remédio.
+novo.
 
 ### As lições que não se repetem de graça
 
@@ -221,6 +233,16 @@ novo.
   E quando a suíte NÃO tem como desfazer — a `ata` recusa DELETE, a `ata_note` é
   imutável —, a saída não é desligar o gatilho: é pôr a fixação fora de toda janela
   de consulta (145).
+- **Ensaio preso ao DESENHO de um botão** (150). O `ensaio:uso` achava a chave do
+  trabalho social procurando o emoji dentro do botão; sem o emoji ele não achava a
+  chave, a tela nunca abria, e três cobranças reprovaram sem ter nada de errado.
+  **Ensaio entra pelo NOME ACESSÍVEL** — é o contrato que muda quando a função
+  muda, e é o que a pessoa com leitor de tela ouve.
+- **Opinar sobre tela sem ABRIR a tela** (150). O pedido foi *"o layout está
+  amador"*, e a primeira coisa foi fotografar o que temos, no Chromium, nas duas
+  larguras. Foi a foto que mostrou os 190px de barra navy antes da primeira linha
+  do dia — e foi ela que mostrou o que NÃO precisava mudar: o sistema de cores já
+  era sério, e mexer nele teria sido estragar o que funciona por parecer trabalho.
 - **Frase de tela que envelhece é frase que mente**, e a cobrança do ensaio que a
   guarda tem de ser reescrita junto. A ressalva do painel sobre nota escolar já foi
   reescrita três vezes. **Isto inclui este arquivo.**
@@ -230,7 +252,7 @@ novo.
 - **O branch padrão do repositório** ainda é o `claude/work-system-code-ready-0e3hh2`.
   Trocar é um clique em *Settings → General → Default branch*, e não há ferramenta
   nesta sessão que o faça.
-- **O `master` está um commit atrás** desde a fase 149 — eu não empurro para outro
+- **O `master` está atrás** desde a fase 149 — eu não empurro para outro
   branch sem ele pedir.
 - **Para abrir o sistema:** o protótipo é um arquivo só,
   `prototipo/rede-acolher-prototipo.html`. Baixar do GitHub em *Download raw file*
