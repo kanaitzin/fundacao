@@ -154,7 +154,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 25/09/2026, fase 155
+### Onde estamos — 25/09/2026, fase 156
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -173,11 +173,13 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 153 | **dez `@Query('date')`** que a 148 não viu (ela procurava só nomes em português): a chamada, o plantão, as atividades e a grade do remédio davam 500 |
 | 154 | a **ficha de saúde e a trajetória** exportadas sem casa na auditoria; **sete exportações** com 500 por corpo inválido (`CorpoConferido`); as **folhas da cozinha** dizendo "0 restrições" a quem é de fora; e o **pedido de leitura da ATA restrita que nunca avisava ninguém** (`priority: 'media'`) — o `publish` do barramento agora tem o tipo pelo nome do evento |
 | 155 | **28 das 174 rotas de escrita** davam 500 a corpo vazio ou com lixo — o filtro `FalhasEmPortugues` não conhecia a classe "formato" e **só era ligado no `main.ts`: as suítes rodavam sem ele**; a **marca de estoque baixo** dizia ok sem mudar nada; e **ouvinte que falha agora reprova a suíte** |
+| 156 | **a coordenação de uma casa redefinia a senha de educador de OUTRA casa e recebia a senha nova** (tomada de conta); quem SAIU de uma casa era administrável por todas; ciência em episódio e acompanhante de internação cruzavam de casa; aviso inexistente "ciente" com auditoria falsa |
 
-**Medido no fim da 155:** 142 migrações, 116 tabelas, 102 suítes, 974 testes, verdes nas
+**Medido no fim da 156:** 145 migrações, 116 tabelas, 103 suítes, 984 testes, verdes nas
 DUAS condições de relógio; os sete ensaios de navegador verdes (154 e 155 não
-mexeram em tela); 139 telas sem violação de WCAG 2.1 AA; nenhuma rota sem teste;
-nenhuma rota de escrita com 500; nenhum ouvinte falhando.
+mexeram em tela; a 156 também não); 139 telas sem violação de WCAG 2.1 AA; nenhuma
+rota sem teste; nenhuma rota — escrita ou leitura — com 500; nenhum ouvinte
+falhando; nenhuma escrita da Casa 04 aceita sobre registro real da Casa 03.
 
 **As TRÊS cores do sistema, porque confundi-las é o pior que esta tela pode
 fazer** — está escrito por extenso em `frontend/src/cargos.tsx`:
@@ -190,16 +192,15 @@ fazer** — está escrito por extenso em `frontend/src/cargos.tsx`:
 
 ### A próxima etapa
 
-**1. As duas medições que a 154 apontou estão FEITAS** (155). As que existem hoje —
-tabela sem exercício, rota sem teste, escrita que cai, ouvinte que falha — estão
-todas zeradas e três delas são cobrança da suíte. **Ainda não medido, se houver
-fase de código:**
-- **As LEITURAS com lixo.** A 155 passou por toda escrita; as `@Get` com
-  `?houseId=lixo` ou `:id` inventado não foram varridas assim (a 153 cobriu só as
-  datas). É a mesma suíte, com `get`.
-- **O sucesso que não acontece**, em outras formas além do `UPDATE`: o
-  `flagLow` foi achado por acaso, na sondagem de corpo. Uma medição direta seria
-  chamar cada escrita com o id de OUTRA casa e cobrar 403/404 — e não 2xx.
+**1. A medição de alcance da 156 foi de ESCRITA.** A mesma pergunta falta para a
+**LEITURA**: toda `GET` com um identificador REAL da Casa 03, pedida pela Casa 04,
+tem de voltar 403/404 — e não 200 com dado. A sondagem da 156 está descrita na
+linha dela no §2 (o mapa parâmetro→tabela e o `idDaCasa` pelo catálogo); ela
+roda sobre o banco que a suíte deixa povoado, com um `globalSetup` vazio, porque
+a semente não tem ATA, episódio nem pedido. **Cinco tipos de parâmetro ainda
+ficaram sem dado mesmo assim** — pedido da cozinha, credencial do cofre,
+acompanhamento, pedido de leitura da ATA e a ATA Geral. **Isto é segurança, e é
+o que eu faria primeiro.**
 
 **2. Aplicar o roteiro com a equipe.** Continua sendo o que mais muda o sistema, e
 o único que não se faz daqui.
@@ -265,6 +266,15 @@ novo.
 - **Pare de escolher a porta** (155). A 148, a 153 e a 154 conferiram cada uma
   uma porta de entrada, e cada uma achou a seguinte. A 155 passou por TODAS as
   rotas de escrita de uma vez, lidas do código, e achou 28.
+- **Cargo não é casa** (156). As funções da equipe conferiam se o CARGO de quem
+  pede administra o cargo do alvo — e duas esqueciam a CASA. A coordenação de
+  outra casa recebia a senha de um educador que não é dela. **Toda conferência
+  de permissão tem as duas perguntas: o que você pode fazer, e ONDE.** E "sem
+  vínculo atual" não é "institucional": é quem saiu, e responde pela última casa.
+- **Sondagem sobre registro REAL, não inventado** (156). Com identificador
+  inventado, a sondagem de alcance voltou limpa; com o registro de verdade da
+  outra casa, achou seis defeitos. O RLS esconde o que não existe e o que não é
+  seu do mesmo jeito — e o defeito mora onde ele NÃO esconde.
 - **`JOIN app_user` é o nome que some** (152). `app_user` tem RLS por linha:
   educador, líder e Enfermagem só leem a PRÓPRIA. Nome ou cargo de OUTRA pessoa
   sai por função — `app_user_display_name`, `app_user_cargo` —, nunca por JOIN

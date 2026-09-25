@@ -441,6 +441,11 @@ export class InternacaoService {
     this.soTecnicaOuCoordenacao(user);
     if (!input.userId) throw new BadRequestException('Informe quem vai acompanhar.');
     return this.db.asUser(user.id, async (c) => {
+      /* A internação é lida ANTES, sob o alcance de quem pede (fase 156): o
+         `UPDATE` abaixo filtrava calado, e a política só conferia o cargo — a
+         coordenação de outra casa trocava quem acompanha a criança internada. */
+      const { rows: [h] } = await c.query(`SELECT id FROM hospitalization WHERE id = $1`, [id]);
+      if (!h) throw new NotFoundException('Internação não encontrada — ou fora do seu alcance.');
       /*
        * Fecha o período de quem estava antes. Sem isto, a lista responderia
        * que três pessoas acompanham ao mesmo tempo — e a pergunta "quem

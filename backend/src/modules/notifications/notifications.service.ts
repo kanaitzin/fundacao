@@ -1,4 +1,4 @@
-import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { DatabaseService } from '../../kernel/database/database.service';
 import { AuditService } from '../../kernel/audit/audit.service';
 import { EventBus } from '../../kernel/events/event-bus.service';
@@ -113,20 +113,28 @@ export class NotificationsService implements OnModuleInit {
   }
 
   async markRead(user: AuthenticatedUser, id: string) {
-    await this.db.asUser(user.id, async (c) => {
-      await c.query(`UPDATE notification SET read_at = coalesce(read_at, now()) WHERE id=$1 AND user_id=$2`,
+    const mudou = await this.db.asUser(user.id, async (c) => {
+      const { rowCount } = await c.query(
+        `UPDATE notification SET read_at = coalesce(read_at, now()) WHERE id=$1 AND user_id=$2`,
         [id, user.id]);
+      return rowCount ?? 0;
     });
+    /* Aviso que não é seu, ou que não existe, não fica "lido" (fase 156). */
+    if (!mudou) throw new NotFoundException('Aviso não encontrado.');
     return { ok: true };
   }
 
   /** Ciência explícita — diferente de "li" (§19). */
   async acknowledge(user: AuthenticatedUser, id: string) {
-    await this.db.asUser(user.id, async (c) => {
-      await c.query(
+    const mudou = await this.db.asUser(user.id, async (c) => {
+      const { rowCount } = await c.query(
         `UPDATE notification SET read_at = coalesce(read_at, now()), acknowledged_at = now()
          WHERE id=$1 AND user_id=$2`, [id, user.id]);
+      return rowCount ?? 0;
     });
+    /* Sem isto, a ciência de um aviso que não existe respondia ok E gravava a
+       linha de auditoria "tomou ciência" — um rastro de algo que não houve. */
+    if (!mudou) throw new NotFoundException('Aviso não encontrado.');
     await this.audit.log({
       action: 'notification.ack', actorId: user.id,
       houseId: await this.audit.casaDoRegistro(user.id, 'notification', id),

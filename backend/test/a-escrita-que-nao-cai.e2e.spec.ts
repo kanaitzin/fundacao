@@ -127,6 +127,40 @@ describe('Nenhuma escrita cai com 500', () => {
     expect(caidas).toEqual([]);
   }, 180000);
 
+  it('e nenhuma LEITURA cai com lixo na URL (fase 156)', async () => {
+    /* As 160 rotas `GET`, lidas do código, com identificador inventado em todo
+       `:param` e casa, pessoa, número e palavra de lixo na consulta. Medido em
+       25/09: nenhuma caía — o filtro da 155 já as cobria. A cobrança fica para
+       que a próxima rota de leitura entre medida sem ninguém lembrar dela. */
+    const raiz = join(__dirname, '..', 'src', 'modules');
+    const leituras: string[] = [];
+    for (const mod of readdirSync(raiz)) {
+      for (const f of readdirSync(join(raiz, mod))) {
+        if (!f.endsWith('.controller.ts')) continue;
+        const t = readFileSync(join(raiz, mod, f), 'utf8');
+        const re = /@Controller\('([^']*)'\)|@Get\((?:'([^']*)')?\)/g;
+        let prefixo = '';
+        let m: RegExpExecArray | null;
+        while ((m = re.exec(t))) {
+          if (m[1] !== undefined) { prefixo = m[1]; continue; }
+          leituras.push(`/${prefixo}${m[2] ? `/${m[2]}` : ''}`);
+        }
+      }
+    }
+    expect(leituras.length).toBeGreaterThanOrEqual(150);
+    const consulta = ['houseId', 'personId', 'userId', 'id', 'limite', 'dias', 'tipo', 'mes',
+      'periodo', 'escala', 'entity', 'mode', 'publico'].map((k) => `${k}=nao-e-isso`).join('&');
+    const caidas: string[] = [];
+    for (const r of leituras) {
+      const base = `/api/v1${r.replace(/:[A-Za-z]+/g, () => randomUUID())}`;
+      for (const url of [base, `${base}?${consulta}`]) {
+        const x = await request(http).get(url).set(auth(tokens.coord));
+        if (x.status >= 500) caidas.push(`GET ${r}: ${x.status}`);
+      }
+    }
+    expect(caidas).toEqual([]);
+  }, 180000);
+
   it('e o formato errado chega como frase em português, sem o texto do banco', async () => {
     const r = await request(http).post('/api/v1/escala').set(auth(tokens.coord))
       .send({ houseId: 'nao-e-isso', userId: randomUUID(), data: '2026-10-01', turno: 'diurno' });

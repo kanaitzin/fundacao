@@ -241,9 +241,16 @@ export class CredentialsService {
       throw new ForbiddenException('Somente a coordenação da casa acessa o cofre de acessos.');
     }
     const rows = await this.db.asUser(user.id, async (c) => {
+      /* Fora do alcance responde como inexistente, e não com lista vazia
+         (fase 156): vazia se lê "ninguém abriu o cofre desta criança". */
+      const { rows: [p] } = await c.query(
+        `SELECT app_can_see_credentials($1) OR app_current_role() = 'gestor_geral' AS pode`,
+        [personId]);
+      if (!p?.pode) return null;
       const { rows } = await c.query(`SELECT * FROM app_credential_history($1)`, [personId]);
       return rows;
     });
+    if (!rows) throw new NotFoundException('Acolhido não encontrado — ou fora do seu alcance.');
     return rows.map((r) => ({
       quando: r.quando, quem: r.quem, finalidade: r.finalidade,
       acao: r.acao === 'credential.reveal_exceptional' ? 'abertura excepcional'

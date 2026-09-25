@@ -886,6 +886,11 @@ export class ShiftsService {
   async ackEpisode(user: AuthenticatedUser, episodeId: string, comentario?: string) {
     try {
       await this.db.asUser(user.id, async (c) => {
+        /* O episódio é lido ANTES, sob o alcance (fase 156): a política só
+           conferia "a ciência é sua", e a coordenação de outra casa gravava
+           ciência com comentário num episódio que ela nem lê. */
+        const { rows: [ep] } = await c.query(`SELECT id FROM ata_episode WHERE id = $1`, [episodeId]);
+        if (!ep) throw new NotFoundException('Episódio não encontrado — ou fora do seu alcance.');
         await c.query(
           `INSERT INTO ata_episode_ack (episode_id, user_id, comment) VALUES ($1,$2,$3)`,
           [episodeId, user.id, comentario ?? null]);

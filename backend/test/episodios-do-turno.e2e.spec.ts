@@ -70,6 +70,7 @@ describe('Episódios do turno', () => {
       lider: 'lider.ai3@paodospobres.dev',
       tecnica: 'tecnica.ai3@paodospobres.dev',
       coord: 'coord.ai3@paodospobres.dev',
+      deOutraCasa: 'coord.ai4@paodospobres.dev',
     })) tokens[k] = await login(email);
 
     ({ rows: [{ id: ids.AI3 }] } = await admin.query(`SELECT id FROM house WHERE code='AI3'`));
@@ -190,6 +191,22 @@ describe('Episódios do turno', () => {
       .set(auth(tokens.tecnica)).send({ comentario: 'De novo.' });
     expect(res.status).toBe(400);
     expect(res.body.message).toMatch(/já registrou/i);
+  });
+
+  it('a coordenação de OUTRA casa não dá ciência — nem com comentário (fase 156)', async () => {
+    /*
+     * A política conferia só "a ciência é sua", e a chave estrangeira não
+     * confere alcance (146): a coordenação da Casa 04 gravava ciência, com
+     * comentário escrito, num episódio da ATA da Casa 03 que ela nem lê — e a
+     * Casa 03 lia o comentário. Achado pela sondagem de alcance de 25/09.
+     */
+    const res = await request(http).post(`/api/v1/shifts/episodes/${ids.episodio}/ack`)
+      .set(auth(tokens.deOutraCasa)).send({ comentario: 'Comentário de fora da casa.' });
+    expect(res.status).toBe(404);
+    const { rows: [{ n }] } = await admin.query(
+      `SELECT count(*)::int AS n FROM ata_episode_ack WHERE episode_id = $1 AND comment = $2`,
+      [ids.episodio, 'Comentário de fora da casa.']);
+    expect(n).toBe(0);
   });
 
   it('para quem NÃO deu ciência, a tela sabe que ainda falta a dele', async () => {

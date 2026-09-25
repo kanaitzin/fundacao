@@ -67,6 +67,11 @@ export class InviteService {
       if (m.includes('cargo_nao_pode_editar')) {
         throw new ForbiddenException('Você não gerencia contas deste cargo.');
       }
+      /* A casa da pessoa, conferida no banco desde a 1570 (fase 156): antes a
+         coordenação de outra casa embaralhava a senha de quem não é da equipe dela. */
+      if (m.includes('fora_de_escopo')) {
+        throw new ForbiddenException('Esta pessoa trabalha numa casa fora do seu alcance.');
+      }
       throw e;
     });
 
