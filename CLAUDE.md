@@ -187,6 +187,21 @@ fazer** — está escrito por extenso em `frontend/src/cargos.tsx`:
 
 ### A próxima etapa
 
+**0. A conferência de 25/09 achou três defeitos nas exportações — são a fase 154.**
+Tudo o mais passou: 956 testes nas duas condições de relógio, sete ensaios, 139
+telas, protótipo idêntico, nenhuma tabela sem exercício. Medido por sondagem:
+- **A exportação do histórico de saúde e a da trajetória gravam a auditoria SEM
+  CASA** (`nursing.service.ts` `exportarSaude`, `impacto.service.ts`
+  `exportarTrajetoria`) — o defeito da 149, pela porta do `documentos.exportar`,
+  que o `auditoria-tem-casa.spec.ts` não olha. Conserto: `casaDoAcolhido`, e o
+  conferidor passa a cobrar `houseId` em toda chamada a `documentos.exportar`.
+- **`escala/export`, `medications/export` e `alignments/export` devolvem 500**
+  com casa ou data inválida no CORPO — o defeito da 153 pela porta do corpo.
+- **`to-take/export` acredita na casa que a tela manda** e não grava qual ida
+  exportou (`entidadeId` vazio); a casa tem de sair da `family_stay`. A semente
+  não tem `family_stay`: o teste cria a sua.
+- O `docs/PARA-A-REUNIAO.md` ainda abre com *"146 fases"*.
+
 **1. O resto da lista do §9** — são nove rotas medidas e sem teste, em ordem de
 valor lá: as cinco exportações, as três folhas, e a autorização nominal (dormente por decisão escrita, §8.6 — talvez
 não mereça teste, porque testar o que a Fundação aposentou é guardar o passado).
