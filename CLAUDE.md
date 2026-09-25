@@ -192,6 +192,24 @@ fazer** — está escrito por extenso em `frontend/src/cargos.tsx`:
 
 ### A próxima etapa
 
+**0. EM ANDAMENTO — o "PROMPT MESTRE" de 25/09** (auditoria total, simulação e
+expansão; o texto está na conversa, e o essencial está aqui). Ele DECIDE uma
+regra que era hipótese: **ATA diurna 08:00–20:00, noturna 20:01–07:59, com a
+data do dia em que o noturno começou** — substitui o 7h–19h preliminar (pendência
+#4). As fases, na ordem, e o inventário que as justifica:
+- **157** regra nova da ATA, num lugar só (banco `app_*`, `tempo.ts`, telas, folha da escala);
+- **158** alcance de LEITURA entre casas (a medição que a 156 deixou) + sessão de desativado;
+- **159** VISITAS: não existe registro de entrada/saída (só a autorização do contato);
+  não existe o cargo `portaria` no enum; faltam RG, nome social e validade da autorização;
+  métricas no perfil **sem ranking de visitante** (§6: ranking de pessoas é proibido);
+- **160** estoque (lote, origem, perda/devolução, sem negativo calado), nota fiscal
+  (CNPJ, itens com valor unitário, duplicidade), métricas e relatórios em DOCX;
+- **161** cozinha: "Selecionar todos", editar pedido com histórico; métricas de refeições;
+- **162** câmera/galeria com prévia, tipo real do arquivo, DOCX da internação com
+  imagens e páginas de PDF, "repetir escala do mês anterior" como rascunho, e o
+  **cargo da época** nos registros antigos (`app_user_cargo` devolve o ATUAL);
+- **163** simulação de vários dias (§38) como teste, e o relatório final com a matriz.
+
 **1. A medição de alcance da 156 foi de ESCRITA.** A mesma pergunta falta para a
 **LEITURA**: toda `GET` com um identificador REAL da Casa 03, pedida pela Casa 04,
 tem de voltar 403/404 — e não 200 com dado. A sondagem da 156 está descrita na
