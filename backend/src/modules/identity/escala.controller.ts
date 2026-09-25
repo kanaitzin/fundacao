@@ -3,7 +3,7 @@ import { SessionGuard } from './session.guard';
 import { CurrentUser } from './current-user.decorator';
 import { AuthenticatedUser } from '../../kernel/contracts';
 import { EscalaService } from './escala.service';
-import { DataDoDia } from '../../kernel/common/data-do-dia.pipe';
+import { DataDoDia, CorpoConferido } from '../../kernel/common/data-do-dia.pipe';
 
 /**
  * A ESCALA DA CASA — quem assume cada plantão (§5.12).
@@ -29,7 +29,7 @@ export class EscalaController {
   }
 
   @Post('export')
-  exportar(@CurrentUser() user: AuthenticatedUser, @Body() body: any) {
+  exportar(@CurrentUser() user: AuthenticatedUser, @Body(CorpoConferido) body: any) {
     return this.escala.exportar(user, body?.houseId, body?.finalidade ?? '', body?.de, body?.ate);
   }
 

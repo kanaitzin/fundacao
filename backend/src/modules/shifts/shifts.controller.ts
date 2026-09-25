@@ -3,7 +3,7 @@ import { SessionGuard, CurrentUser } from '../identity';
 import { AuthenticatedUser } from '../../kernel/contracts';
 import { hojeNaInstituicao } from '../../kernel/common/tempo';
 import { ShiftsService } from './shifts.service';
-import { DataDoDia } from '../../kernel/common/data-do-dia.pipe';
+import { DataDoDia, CorpoConferido } from '../../kernel/common/data-do-dia.pipe';
 
 @Controller('shifts')
 @UseGuards(SessionGuard)
@@ -139,7 +139,7 @@ export class ShiftsController {
 
   @Post(':id/export')
   exportar(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
-           @Body() body: { finalidade?: string }) {
+           @Body(CorpoConferido) body: { finalidade?: string }) {
     return this.shifts.exportarAta(user, id, body?.finalidade ?? '');
   }
 

@@ -131,6 +131,32 @@ describe('A data que vem da URL', () => {
     expect(semClasse).toEqual([]);
   });
 
+  it('e o CORPO de toda exportação passa pelo CorpoConferido (fase 154)', () => {
+    /*
+     * A terceira porta. A 148 cobrou `@Param`, a 153 `@Query`, e sete
+     * exportações devolviam 500 para casa ou data inválida no CORPO — medido em
+     * 25/09. A cobrança é por ROTA de exportação, e não por nome de campo: estas
+     * rotas passam o corpo inteiro ao serviço, e o nome que ele lê não aparece
+     * no controlador.
+     */
+    const sem: string[] = [];
+    let rotas = 0;
+    for (const arq of controladores()) {
+      const linhas = readFileSync(arq, 'utf8').split('\n');
+      linhas.forEach((l, i) => {
+        if (!/@Post\('[^']*export[^']*'\)/.test(l)) return;
+        const assinatura = linhas.slice(i + 1, i + 6).join(' ');
+        if (!/@Body\(/.test(assinatura)) return;
+        rotas++;
+        if (!/@Body\(CorpoConferido\)/.test(assinatura)) {
+          sem.push(`${arq.split('/modules/')[1]}:${i + 1}`);
+        }
+      });
+    }
+    expect(rotas).toBeGreaterThanOrEqual(17);
+    expect(sem).toEqual([]);
+  });
+
   // ============ E nenhuma delas responde com 500 ============
 
   it('data que não é data devolve FRASE, e nunca 500', async () => {

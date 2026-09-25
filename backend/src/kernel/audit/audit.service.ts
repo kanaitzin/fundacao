@@ -31,7 +31,7 @@ export interface AuditEntry {
  */
 export const TABELAS_COM_CASA = new Set([
   'activity', 'archive_item', 'ata_episode', 'collective_check', 'commitment',
-  'external_communication', 'followup', 'house_statute',
+  'external_communication', 'family_stay', 'followup', 'house_statute',
   'notification', 'shift_assignment', 'statement', 'sync_conflict', 'team_agreement',
 ]);
 

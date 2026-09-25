@@ -15,7 +15,7 @@ import { BenefitsService } from './benefits.service';
 import { TransfersService } from './transfers.service';
 import { AdmissionService } from './admission.service';
 import { CredentialsService } from './credentials.service';
-import { DataDoDia } from '../../kernel/common/data-do-dia.pipe';
+import { DataDoDia, CorpoConferido } from '../../kernel/common/data-do-dia.pipe';
 
 @Controller('people')
 @UseGuards(SessionGuard)
@@ -190,7 +190,7 @@ export class PeopleController {
   }
 
   @Post('kitchen-requests/export/lanches')
-  exportLanches(@CurrentUser() user: AuthenticatedUser, @Body() body: any) {
+  exportLanches(@CurrentUser() user: AuthenticatedUser, @Body(CorpoConferido) body: any) {
     return this.cozinha.exportarLanches(user, body);
   }
 
@@ -201,7 +201,7 @@ export class PeopleController {
   }
 
   @Post('kitchen-requests/export/restricoes')
-  exportRestricoes(@CurrentUser() user: AuthenticatedUser, @Body() body: any) {
+  exportRestricoes(@CurrentUser() user: AuthenticatedUser, @Body(CorpoConferido) body: any) {
     return this.cozinha.exportarRestricoes(user, body);
   }
 
@@ -213,7 +213,7 @@ export class PeopleController {
   }
 
   @Post('kitchen-requests/export/cestas')
-  exportCestas(@CurrentUser() user: AuthenticatedUser, @Body() body: any) {
+  exportCestas(@CurrentUser() user: AuthenticatedUser, @Body(CorpoConferido) body: any) {
     return this.cozinha.exportarCestas(user, body);
   }
 
@@ -262,7 +262,7 @@ export class PeopleController {
   }
 
   @Post('portaria/export')
-  exportarPortaria(@CurrentUser() user: AuthenticatedUser, @Body() body: any) {
+  exportarPortaria(@CurrentUser() user: AuthenticatedUser, @Body(CorpoConferido) body: any) {
     return this.portaria.exportar(user, body ?? {});
   }
 
@@ -551,7 +551,7 @@ export class PeopleController {
 
   @Post(':id/benefits/export')
   benefitsExport(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
-                 @Body() body: { formato: string; finalidade: string }) {
+                 @Body(CorpoConferido) body: { formato: string; finalidade: string }) {
     return this.benefits.export(user, id, body.formato ?? 'pdf', body.finalidade ?? '');
   }
 }

@@ -1,5 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { DomainEvent } from '../contracts';
+import { DirectNotice, DomainEvent, EscalationRequest } from '../contracts';
+
+/**
+ * Os eventos cujo corpo tem contrato escrito. O nome do evento escolhe o tipo
+ * do corpo, e o compilador recusa o que o contrato não aceita (fase 154).
+ */
+type EventosComContrato = {
+  'escalation.requested': EscalationRequest;
+  'notice.requested': DirectNotice;
+};
 
 type Handler = (e: DomainEvent<any>) => void | Promise<void>;
 
@@ -27,12 +36,23 @@ export class EventBus {
     this.handlers.set(eventName, list);
   }
 
-  async publish<T extends Record<string, unknown>>(
-    name: string,
-    payload: T,
+  /*
+   * O PEDIDO DE ACIONAMENTO TEM CONTRATO, e o compilador o cobra (fase 154).
+   *
+   * `EscalationRequest` sempre disse que a prioridade é normal, alta ou
+   * crítica; mas o `publish` genérico aceitava qualquer objeto, e o pedido para
+   * ler a observação restrita de uma ATA publicava `priority: 'media'`. O banco
+   * recusava a notificação, o ouvinte registrava o erro no log — que ninguém lê —
+   * e a técnica e a coordenação nunca ficavam sabendo do pedido. Com a
+   * o nome do evento escolhendo o tipo do corpo, evento com contrato só publica
+   * o contrato — e o compilador achou esta chamada, e só ela, entre dezesseis.
+   */
+  async publish<N extends string>(
+    name: N,
+    payload: N extends keyof EventosComContrato ? EventosComContrato[N] : Record<string, unknown>,
     ctx: { actorId?: string | null; houseId?: string | null } = {},
   ): Promise<{ falhas: string[] }> {
-    const event: DomainEvent<T> = { name, at: new Date(), payload, ...ctx };
+    const event: DomainEvent<Record<string, unknown>> = { name, at: new Date(), payload, ...ctx };
     const falhas: string[] = [];
     for (const handler of this.handlers.get(name) ?? []) {
       try {

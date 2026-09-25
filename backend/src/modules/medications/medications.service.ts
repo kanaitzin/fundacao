@@ -1441,11 +1441,18 @@ export class MedicationsService {
   }
 
   async exportarMedicamentosDaSaida(user: AuthenticatedUser, input: {
-    familyStayId: string; houseId: string; finalidade: string;
+    familyStayId: string; finalidade: string;
   }) {
     const folha = await this.folhaDosMedicamentos(user, input.familyStayId);
+    /*
+     * A CASA SAI DA IDA, e não do que a tela manda (fase 154). Até aqui a linha
+     * de auditoria gravava o `houseId` do corpo da requisição: a folha era de uma
+     * casa e o rastro podia dizer outra — ou nenhuma, e aí a coordenação não lia.
+     * E a linha passou a dizer QUAL ida saiu, que é a pergunta de quem apura.
+     */
     return this.documentos.exportar(user, folha, {
-      entidade: 'medicamento_saida_familiar', houseId: input.houseId,
+      entidade: 'medicamento_saida_familiar', entidadeId: input.familyStayId,
+      houseId: await this.audit.casaDoRegistro(user.id, 'family_stay', input.familyStayId),
       finalidade: input.finalidade ?? '',
     });
   }

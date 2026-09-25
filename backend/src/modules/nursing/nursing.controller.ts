@@ -6,7 +6,7 @@ import { EducacaoService } from './educacao.service';
 import { NursingService } from './nursing.service';
 import { InternacaoService } from './internacao.service';
 import { HealthSummaryService } from './health-summary.service';
-import { DataDoDia } from '../../kernel/common/data-do-dia.pipe';
+import { DataDoDia, CorpoConferido } from '../../kernel/common/data-do-dia.pipe';
 
 @Controller('nursing')
 @UseGuards(SessionGuard)
@@ -122,7 +122,7 @@ export class NursingController {
   @Post('history/:personId/export')
   exportar(@CurrentUser() user: AuthenticatedUser,
            @Param('personId', ParseUUIDPipe) personId: string,
-           @Body() body: { finalidade?: string }) {
+           @Body(CorpoConferido) body: { finalidade?: string }) {
     return this.nursing.exportarSaude(user, personId, body?.finalidade ?? '');
   }
 

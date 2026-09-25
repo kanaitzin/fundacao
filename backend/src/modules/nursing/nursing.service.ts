@@ -597,8 +597,12 @@ export class NursingService {
 
   async exportarSaude(user: AuthenticatedUser, personId: string, finalidade: string) {
     const folha = await this.folhaDeSaude(user, personId);
+    /* A casa da criança, lida pelo alcance de quem exporta (fase 154). Sem ela a
+     * linha nascia sem casa, e a coordenação não sabia quem tirou do sistema a
+     * ficha de saúde de uma criança dela — a exportação mais sensível que há. */
     return this.documentos.exportar(user, folha, {
       entidade: 'health_history', entidadeId: personId, finalidade,
+      houseId: await this.audit.casaDoAcolhido(user.id, personId),
     });
   }
 

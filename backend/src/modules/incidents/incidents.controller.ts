@@ -2,6 +2,7 @@ import { Body, Controller, Get, Inject, Param, ParseUUIDPipe, Post, Query, UseGu
 import { SessionGuard, CurrentUser } from '../identity';
 import { AuthenticatedUser } from '../../kernel/contracts';
 import { IncidentsService } from './incidents.service';
+import { CorpoConferido } from '../../kernel/common/data-do-dia.pipe';
 
 @Controller('incidents')
 @UseGuards(SessionGuard)
@@ -93,7 +94,7 @@ export class IncidentsController {
 
   @Post(':id/export')
   exportar(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
-           @Body() body: { finalidade?: string }) {
+           @Body(CorpoConferido) body: { finalidade?: string }) {
     return this.incidents.exportar(user, id, body?.finalidade ?? '');
   }
 

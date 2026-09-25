@@ -83,3 +83,47 @@ export class HoraDoDia implements PipeTransform<string | undefined, string | und
     return texto;
   }
 }
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+/** Os nomes de dia que um corpo de requisição usa neste servidor. */
+const DIAS_DO_CORPO = ['de', 'ate', 'date', 'data', 'dia'];
+
+/**
+ * O CORPO QUE TRAZ CASA OU DATA — a terceira porta (fase 154).
+ *
+ * A 148 conferiu o `@Param`, a 153 o `@Query`, e as duas deixaram o `@Body` de
+ * fora. Medido em 25/09: **sete exportações devolviam 500** para casa ou data
+ * inválida no corpo — a escala, os combinados, o estatuto, a grade do remédio,
+ * o relatório de período e as três folhas da cozinha. A tela manda valor bom; o
+ * que manda valor ruim é a fila offline que sobe um campo truncado, e quem vê o
+ * 500 é quem precisava do papel impresso para o turno.
+ *
+ * É um pipe do corpo INTEIRO, e não de um campo, porque estas rotas passam o
+ * corpo adiante ao serviço. Confere só o que VEIO: casa ausente continua sendo
+ * pergunta do serviço (ele responde "casa não encontrada", em português), e dia
+ * ausente continua sendo "hoje" decidido pela instituição, como no `DataDoDia`.
+ */
+@Injectable()
+export class CorpoConferido implements PipeTransform<any, any> {
+  private readonly dia = new DataDoDia();
+
+  transform(corpo: any): any {
+    if (corpo == null || typeof corpo !== 'object') return corpo;
+    const casa = corpo.houseId;
+    if (casa != null && casa !== '' && (typeof casa !== 'string' || !UUID.test(casa))) {
+      throw new BadRequestException(
+        'A casa veio num formato que o sistema não reconhece. '
+        + 'Abra a tela pelo menu e tente de novo.');
+    }
+    for (const campo of DIAS_DO_CORPO) {
+      const valor = corpo[campo];
+      if (valor == null) continue;
+      if (typeof valor !== 'string') {
+        throw new BadRequestException(
+          'A data precisa vir como 2026-09-22 — ano, mês e dia.');
+      }
+      corpo[campo] = this.dia.transform(valor);
+    }
+    return corpo;
+  }
+}

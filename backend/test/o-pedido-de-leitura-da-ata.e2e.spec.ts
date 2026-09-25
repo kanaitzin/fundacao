@@ -173,6 +173,23 @@ describe('O pedido de leitura da observação restrita', () => {
     expect(dela.pedidos.find((x: any) => x.id === ids.pedido).meu).toBe(true);
   });
 
+  it('e o pedido CHEGA a quem decide, como aviso — não só na lista da ATA', async () => {
+    /*
+     * O defeito que esta cobrança guarda (fase 154): o pedido publicava
+     * `priority: 'media'`, que o banco não aceita. A notificação era recusada, o
+     * ouvinte escrevia o erro no log, e o pedido acima — 201, com a lista certa —
+     * nunca virava aviso para a técnica nem para a coordenação. Um pedido que
+     * ninguém abre é um pedido que morre, diz o próprio serviço; e ele morria
+     * aqui, sem nenhuma suíte ver, porque todas liam a LISTA e nenhuma o AVISO.
+     */
+    const r = await request(http).get('/api/v1/notifications').set(auth(tokens.tecnica));
+    expect(r.status).toBe(200);
+    const aviso = r.body.find((n: any) =>
+      n.entidade === 'ata_read_request' && n.entidadeId === ids.pedido);
+    expect(aviso).toBeTruthy();
+    expect(aviso.titulo).toMatch(/Pedido para ler/);
+  });
+
   it('o mesmo pedido duas vezes não vira dois', async () => {
     const r = await pedir(tokens.enfermagem, 'Outra tentativa fictícia, no mesmo dia.');
     expect(r.status).toBe(400);

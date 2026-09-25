@@ -521,8 +521,10 @@ export class ImpactoService {
 
   async exportarTrajetoria(user: AuthenticatedUser, personId: string, finalidade: string) {
     const folha = await this.folhaDaTrajetoria(user, personId);
+    /* A casa da criança, pela mesma razão da ficha de saúde (fase 154). */
     return this.documentos.exportar(user, folha, {
       entidade: 'trajetoria', entidadeId: personId, finalidade,
+      houseId: await this.audit.casaDoAcolhido(user.id, personId),
     });
   }
 

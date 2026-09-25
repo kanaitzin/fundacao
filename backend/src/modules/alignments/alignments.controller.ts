@@ -4,6 +4,7 @@ import {
 import { SessionGuard, CurrentUser } from '../identity';
 import { AuthenticatedUser } from '../../kernel/contracts';
 import { AlignmentsService } from './alignments.service';
+import { CorpoConferido } from '../../kernel/common/data-do-dia.pipe';
 
 /**
  * O que a equipe combinou (§9.4).
@@ -41,7 +42,7 @@ export class AlignmentsController {
 
   @Post('export')
   exportar(@CurrentUser() user: AuthenticatedUser,
-           @Body() body: { houseId: string; finalidade?: string }) {
+           @Body(CorpoConferido) body: { houseId: string; finalidade?: string }) {
     return this.alinhamentos.exportarCombinados(user, body?.houseId, body?.finalidade ?? '');
   }
 
@@ -76,7 +77,7 @@ export class AlignmentsController {
   }
 
   @Post('statute/export')
-  exportarEstatuto(@CurrentUser() user: AuthenticatedUser, @Body() body: any) {
+  exportarEstatuto(@CurrentUser() user: AuthenticatedUser, @Body(CorpoConferido) body: any) {
     return this.alinhamentos.exportarEstatuto(user, body ?? {});
   }
 

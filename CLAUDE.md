@@ -154,12 +154,12 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 24/09/2026, fase 153
+### Onde estamos — 25/09/2026, fase 154
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
-A frente do visual (150 e 151) está FEITA. As 152 e 153 voltaram à lista do §9, e
-as duas acharam defeito em código que compilava e passava — a 153, num defeito
-que eu mesmo tinha dado por consertado na 148.
+A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
+ACABOU na 154**: o `rotas-sem-teste.mjs` não aponta nenhuma candidata forte. E
+as quatro últimas fases acharam defeito em código que compilava e passava.
 
 | Fase | O que ela achou e consertou |
 |---|---|
@@ -171,10 +171,11 @@ que eu mesmo tinha dado por consertado na 148.
 | 151 | a **cor por cargo** e os **107 emoji** que ainda estavam dentro das telas |
 | 152 | o **nome de quem deu o remédio** e o **cargo de quem escreveu a linha da ATA** voltavam nulos para educador, líder e Enfermagem |
 | 153 | **dez `@Query('date')`** que a 148 não viu (ela procurava só nomes em português): a chamada, o plantão, as atividades e a grade do remédio davam 500 |
+| 154 | a **ficha de saúde e a trajetória** exportadas sem casa na auditoria; **sete exportações** com 500 por corpo inválido (`CorpoConferido`); as **folhas da cozinha** dizendo "0 restrições" a quem é de fora; e o **pedido de leitura da ATA restrita que nunca avisava ninguém** (`priority: 'media'`) — o `publish` do barramento agora tem o tipo pelo nome do evento |
 
-**Medido no fim da 153:** 142 migrações, 116 tabelas, 100 suítes, 956 testes,
-verdes nas DUAS condições de relógio; os sete ensaios de navegador verdes; 139
-telas sem violação de WCAG 2.1 AA; zero emoji no frontend fora de comentário.
+**Medido no fim da 154:** 142 migrações, 116 tabelas, 101 suítes, 969 testes, verdes nas
+DUAS condições de relógio; os sete ensaios de navegador verdes (a 154 não mexeu
+em tela); 139 telas sem violação de WCAG 2.1 AA; nenhuma rota sem teste.
 
 **As TRÊS cores do sistema, porque confundi-las é o pior que esta tela pode
 fazer** — está escrito por extenso em `frontend/src/cargos.tsx`:
@@ -187,26 +188,16 @@ fazer** — está escrito por extenso em `frontend/src/cargos.tsx`:
 
 ### A próxima etapa
 
-**0. A conferência de 25/09 achou três defeitos nas exportações — são a fase 154.**
-Tudo o mais passou: 956 testes nas duas condições de relógio, sete ensaios, 139
-telas, protótipo idêntico, nenhuma tabela sem exercício. Medido por sondagem:
-- **A exportação do histórico de saúde e a da trajetória gravam a auditoria SEM
-  CASA** (`nursing.service.ts` `exportarSaude`, `impacto.service.ts`
-  `exportarTrajetoria`) — o defeito da 149, pela porta do `documentos.exportar`,
-  que o `auditoria-tem-casa.spec.ts` não olha. Conserto: `casaDoAcolhido`, e o
-  conferidor passa a cobrar `houseId` em toda chamada a `documentos.exportar`.
-- **`escala/export`, `medications/export` e `alignments/export` devolvem 500**
-  com casa ou data inválida no CORPO — o defeito da 153 pela porta do corpo.
-- **`to-take/export` acredita na casa que a tela manda** e não grava qual ida
-  exportou (`entidadeId` vazio); a casa tem de sair da `family_stay`. A semente
-  não tem `family_stay`: o teste cria a sua.
-- O `docs/PARA-A-REUNIAO.md` ainda abre com *"146 fases"*.
-
-**1. O resto da lista do §9** — são nove rotas medidas e sem teste, em ordem de
-valor lá: as cinco exportações, as três folhas, e a autorização nominal (dormente por decisão escrita, §8.6 — talvez
-não mereça teste, porque testar o que a Fundação aposentou é guardar o passado).
-**Leia antes de testar**: foi a leitura, e não o teste, que achou os defeitos da
-149 e da 152.
+**1. Não há mais lista medida.** As medições que existem — tabela sem exercício,
+rota sem teste — estão as duas zeradas. **O próximo passo útil de código é uma
+MEDIÇÃO nova, e a 154 aponta duas:**
+- **O corpo das rotas que NÃO exportam.** O `CorpoConferido` cobre as dezessete
+  exportações; as outras `@Post`/`@Patch` com data ou casa no corpo não foram
+  sondadas. É a mesma pergunta da 153, na porta que sobrou.
+- **Os erros que só vão para o log.** O pedido de leitura da ATA morreu por meses
+  num `log.error` do barramento que nenhuma suíte lia. Vale uma cobrança que
+  reprove a suíte quando um ouvinte falha — hoje há zero falhas, então ela nasce
+  verde e passa a guardar.
 
 **2. Aplicar o roteiro com a equipe.** Continua sendo o que mais muda o sistema, e
 o único que não se faz daqui.
@@ -252,6 +243,19 @@ novo.
   padrão**: todo nome tem de estar classificado, e o novo reprova até alguém
   dizer o que ele é. E a sondagem da 148 passava chamando `?data=` numa rota que
   lê `date`: **confira que o parâmetro que o teste manda é o que a rota LÊ.**
+- **O caminho comum certo não prova a rota** (154). O §9 dizia das exportações
+  *"o caminho de exportar é testado noutras rotas"* — e o `documentos.exportar`
+  estava mesmo certo. O erro morava no que cada rota PASSAVA a ele: a casa que
+  faltava, a casa que vinha da tela, o corpo sem conferência. **Conferidor de
+  chamada olha TODA porta de entrada**: o da 149 olhava `audit.log` e não o
+  `documentos.exportar`; os da 148 e 153 olhavam `@Param` e `@Query` e não o
+  `@Body`.
+- **Erro que só vai para o log é erro que ninguém vê** (154). O pedido para ler a
+  observação restrita da ATA nunca avisou ninguém: `priority: 'media'`, recusado
+  pelo banco, escrito no log duas vezes por rodada durante meses. **Contrato
+  escrito que o compilador não compara é comentário** — o `publish` hoje escolhe
+  o tipo do corpo pelo nome do evento. E a suíte lia a LISTA de pedidos, nunca o
+  AVISO: **teste o efeito que a pessoa recebe**, não só o registro.
 - **`JOIN app_user` é o nome que some** (152). `app_user` tem RLS por linha:
   educador, líder e Enfermagem só leem a PRÓPRIA. Nome ou cargo de OUTRA pessoa
   sai por função — `app_user_display_name`, `app_user_cargo` —, nunca por JOIN

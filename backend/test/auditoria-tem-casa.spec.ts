@@ -64,9 +64,8 @@ function arquivos(dir: string): string[] {
 }
 
 /** O bloco `{...}` da chamada, casando as chaves — regex não casa chave. */
-function blocos(texto: string): { inicio: number; corpo: string }[] {
+function blocos(texto: string, re: RegExp = /audit\.log\(\s*\{/g): { inicio: number; corpo: string }[] {
   const out: { inicio: number; corpo: string }[] = [];
-  const re = /audit\.log\(\s*\{/g;
   let m: RegExpExecArray | null;
   while ((m = re.exec(texto))) {
     const i = texto.indexOf('{', m.index);
@@ -127,6 +126,30 @@ describe('Toda linha de auditoria que tem casa diz qual é', () => {
     expect([...TABELAS_COM_CASA].filter((x) => !pedidas.has(x))).toEqual([]);
     /* E o outro sentido: tabela pedida e fora da lista devolveria `null` calado. */
     expect([...pedidas].filter((x) => !TABELAS_COM_CASA.has(x))).toEqual([]);
+  });
+
+  /*
+   * A OUTRA PORTA DA AUDITORIA (fase 154). Toda exportação grava a sua linha por
+   * dentro do `documentos.exportar`, que passa adiante a casa que RECEBE — e a
+   * conferência acima só olhava `audit.log`. A ficha de saúde e a trajetória da
+   * criança saíam sem casa, e a coordenação não sabia quem as tinha tirado do
+   * sistema. Aqui não há lista de exceção: todo documento que sai é de alguma
+   * casa, e o relatório das oito passa `houseId: null` por escrito.
+   */
+  it('todo documento exportado diz de que casa é', () => {
+    const exportacoes: string[] = [];
+    const semCasa: string[] = [];
+    for (const arq of arquivos(SRC)) {
+      const t = readFileSync(arq, 'utf8');
+      for (const { inicio, corpo } of blocos(t, /documentos\.exportar\([^{;]*\{/g)) {
+        const onde = `${arq.slice(SRC.length + 1)}:${t.slice(0, inicio).split('\n').length}`;
+        exportacoes.push(onde);
+        if (!/\bhouseId\b/.test(corpo)) semCasa.push(onde);
+      }
+    }
+    /* Senão o conferidor passa por não olhar: eram catorze em 25/09. */
+    expect(exportacoes.length).toBeGreaterThanOrEqual(14);
+    expect(semCasa).toEqual([]);
   });
 
   it('a lista de exceção não envelhece: toda ação dela ainda existe no código', () => {

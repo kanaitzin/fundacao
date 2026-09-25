@@ -9,7 +9,7 @@ import { ImpactoService } from './impacto.service';
 import { PanelService } from './panel.service';
 import { MetricasService } from './metricas.service';
 import { PeriodoService } from './periodo.service';
-import { DataDoDia } from '../../kernel/common/data-do-dia.pipe';
+import { DataDoDia, CorpoConferido } from '../../kernel/common/data-do-dia.pipe';
 
 @Controller('followups')
 @UseGuards(SessionGuard)
@@ -140,7 +140,7 @@ export class ImpactoController {
   }
 
   @Post('export')
-  exportarImpacto(@CurrentUser() user: AuthenticatedUser, @Body() body: any) {
+  exportarImpacto(@CurrentUser() user: AuthenticatedUser, @Body(CorpoConferido) body: any) {
     return this.impacto.exportar(user, body ?? {});
   }
 
@@ -154,7 +154,7 @@ export class ImpactoController {
   @Post('trajetoria/:personId/export')
   exportarTrajetoria(@CurrentUser() user: AuthenticatedUser,
                      @Param('personId', ParseUUIDPipe) personId: string,
-                     @Body() body: { finalidade?: string }) {
+                     @Body(CorpoConferido) body: { finalidade?: string }) {
     return this.impacto.exportarTrajetoria(user, personId, body?.finalidade ?? '');
   }
 
@@ -226,7 +226,7 @@ export class ReportsController {
 
   /** Exportar deixa rastro: quem, finalidade, período e hora (§18.4). */
   @Post('period/export')
-  periodoExportar(@CurrentUser() user: AuthenticatedUser, @Body() body: any) {
+  periodoExportar(@CurrentUser() user: AuthenticatedUser, @Body(CorpoConferido) body: any) {
     return this.periodo.exportar(user, body ?? {});
   }
 
@@ -279,7 +279,7 @@ export class ReportsController {
   /** Exportar deixa rastro: quem, finalidade, formato, filtros, hora (§18.4). */
   @Post(':id/export')
   exportar(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
-           @Body() body: { formato?: string; finalidade: string; filtros?: Record<string, unknown> }) {
+           @Body(CorpoConferido) body: { formato?: string; finalidade: string; filtros?: Record<string, unknown> }) {
     return this.reports.exportar(user, id, body?.formato ?? 'pdf', body?.finalidade ?? '', body?.filtros ?? {});
   }
 

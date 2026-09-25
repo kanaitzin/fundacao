@@ -3,7 +3,7 @@ import { SessionGuard, CurrentUser } from '../identity';
 import { AuthenticatedUser } from '../../kernel/contracts';
 import { hojeNaInstituicao } from '../../kernel/common/tempo';
 import { MedicationsService, ALERTAS_MIN } from './medications.service';
-import { DataDoDia } from '../../kernel/common/data-do-dia.pipe';
+import { DataDoDia, CorpoConferido } from '../../kernel/common/data-do-dia.pipe';
 
 @Controller('medications')
 @UseGuards(SessionGuard)
@@ -35,7 +35,7 @@ export class MedicationsController {
 
   @Post('export')
   exportar(@CurrentUser() user: AuthenticatedUser,
-           @Body() body: { houseId: string; date?: string; finalidade?: string }) {
+           @Body(CorpoConferido) body: { houseId: string; date?: string; finalidade?: string }) {
     return this.meds.exportarGrade(
       user, body?.houseId, body?.date ?? hojeNaInstituicao(), body?.finalidade ?? '');
   }
@@ -161,8 +161,9 @@ export class MedicationsController {
 
   @Post('family-stays/:id/to-take/export')
   exportarMedicamentos(@CurrentUser() user: AuthenticatedUser,
-                       @Param('id', ParseUUIDPipe) id: string, @Body() body: any) {
-    return this.meds.exportarMedicamentosDaSaida(user, { ...body, familyStayId: id });
+                       @Param('id', ParseUUIDPipe) id: string, @Body(CorpoConferido) body: any) {
+    return this.meds.exportarMedicamentosDaSaida(user, {
+      familyStayId: id, finalidade: body?.finalidade ?? '' });
   }
 
   /**

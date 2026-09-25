@@ -1262,7 +1262,7 @@ export class ShiftsService {
       body: `${user.fullName} pediu para ler as observações restritas de uma ATA desta casa. `
         + 'O motivo escrito está no pedido. Liberar ou negar é da equipe técnica, da '
         + 'coordenação ou do Líder Diurno — e as duas respostas pedem motivo.',
-      priority: 'media', groupKey: `ata-read:${id}`,
+      priority: 'normal', groupKey: `ata-read:${id}`,
     }, { houseId: casa });
 
     return { id, aviso: 'Pedido registrado, com o seu motivo. A equipe técnica, a coordenação '

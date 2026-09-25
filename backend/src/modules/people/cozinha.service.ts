@@ -329,10 +329,25 @@ export class CozinhaService {
     });
   }
 
+  /*
+   * O ALCANCE É CONFERIDO ANTES, e não deduzido do rótulo (fase 154).
+   *
+   * `app_house_label` filtra por instituição, não por alcance. As três folhas
+   * leem as crianças sob o RLS de quem pede, e fora do alcance o RLS devolve
+   * zero linhas: a folha da Casa 03 pedida pela Casa 04 saía com o título certo
+   * e *"Crianças com restrição: 0"* — que se lê como "ninguém aqui tem
+   * restrição", e não como "não é sua". Numa folha que vai para a cozinha, é a
+   * pior leitura possível. É a mesma conferência da escala e da grade do remédio
+   * (regra 12), e todas as folhas daqui passam por este ponto.
+   */
   private async rotuloDaCasa(user: AuthenticatedUser, houseId: string) {
-    return this.db.asUser(user.id, async (c) => {
+    const rotulo = await this.db.asUser(user.id, async (c) => {
+      const { rows: [e] } = await c.query(`SELECT app_house_in_scope($1) AS pode`, [houseId]);
+      if (!e?.pode) return null;
       const { rows: [r] } = await c.query(`SELECT app_house_label($1) AS r`, [houseId]);
-      return r?.r ?? '';
+      return (r?.r as string | null) ?? '';
     });
+    if (rotulo === null) throw new NotFoundException('Unidade não encontrada — ou fora do seu alcance.');
+    return rotulo;
   }
 }

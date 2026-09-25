@@ -263,6 +263,18 @@ describe('A criança fora da casa sai da grade do dia', () => {
   it('o aviso de "sem confirmação" não cobra plantão de quem não está na casa', async () => {
     /* Um item individual vencido, no PASSADO, com a criança internada: é o caso
        exato que escalava de hora em hora para a coordenação. */
+
+    /*
+     * A INTERNAÇÃO COMEÇA ONTEM, e não agora (fase 154). A ausência conta por
+     * DIA, e o item é de "três horas atrás": entre 0h e 3h de Porto Alegre isso
+     * cai no dia ANTERIOR à internação, e o sistema — certo — cobra o plantão. A
+     * suíte reprovou assim às 00h52 de 25/09: nenhum dos dois relógios dela (o
+     * real, de dia; o adiantado, às 22h30) tinha caído naquela janela. O teste
+     * dependia da hora em que rodava; o que ele cobra, não.
+     */
+    await admin.query(
+      `UPDATE hospitalization SET started_at = started_at - interval '1 day' WHERE id = $1`,
+      [ids.internacao]);
     const { rows: [novo] } = await admin.query(
       `INSERT INTO activity (house_id, person_id, kind, title, scheduled_at,
                              requires_ack, state, created_by)
