@@ -51,6 +51,9 @@
     "globalSetup": "<rootDir>/test/setup/reset-db.ts",
     "testPathIgnorePatterns": [
       "<rootDir>/test/setup/"
+    ],
+    "setupFilesAfterEnv": [
+      "<rootDir>/test/setup/ouvinte-nao-falha-calado.ts"
     ]
   }
 }

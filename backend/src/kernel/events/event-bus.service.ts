@@ -5,6 +5,19 @@ import { DirectNotice, DomainEvent, EscalationRequest } from '../contracts';
  * Os eventos cujo corpo tem contrato escrito. O nome do evento escolhe o tipo
  * do corpo, e o compilador recusa o que o contrato não aceita (fase 154).
  */
+/**
+ * AS FALHAS DE OUVINTE DESTE PROCESSO — para a suíte poder reprovar (fase 155).
+ *
+ * O barramento engole o erro do ouvinte de propósito: um aviso com defeito não
+ * pode desfazer a ocorrência que o publicou. Mas o que ele engolia ia só para o
+ * log, e o pedido de leitura da ATA restrita morreu ali por meses — o banco
+ * recusava a notificação, duas vezes por rodada, e nenhuma suíte via. Aqui fica
+ * a mesma falha em memória; `test/setup/ouvinte-nao-falha-calado.ts` confere a
+ * lista ao fim de cada suíte e reprova se houver alguma. Em produção a lista
+ * é esvaziada a cada cem entradas: não é registro, é só o que a suíte lê.
+ */
+export const falhasDeOuvinte: { evento: string; erro: string }[] = [];
+
 type EventosComContrato = {
   'escalation.requested': EscalationRequest;
   'notice.requested': DirectNotice;
@@ -61,6 +74,8 @@ export class EventBus {
         // Um ouvinte com defeito não pode derrubar a operação que publicou.
         this.log.error(`ouvinte de "${name}" falhou: ${(err as Error).message}`);
         falhas.push((err as Error).message);
+        if (falhasDeOuvinte.length >= 100) falhasDeOuvinte.length = 0;
+        falhasDeOuvinte.push({ evento: name, erro: (err as Error).message });
       }
     }
     // Mas quem publicou PRECISA poder saber que falhou.

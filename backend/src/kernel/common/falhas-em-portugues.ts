@@ -26,6 +26,14 @@ import type { Request, Response } from 'express';
  * "esta criança já tem uma internação aberta" é melhor do que qualquer coisa
  * que se possa escrever aqui. O filtro existe para o que ninguém previu.
  */
+const FORMATO = 'Um dos campos veio num formato que o sistema não reconhece — uma data, '
+  + 'uma hora, um número ou um item da lista. Confira o que foi preenchido e tente de novo.';
+
+/*
+ * REGISTRADO NO `AppModule`, e não só no `main.ts` (fase 155). Enquanto morava
+ * no `main.ts`, as suítes — que montam o app pelo módulo — rodavam SEM ele: a
+ * suíte testava um servidor e a produção servia outro.
+ */
 @Catch()
 export class FalhasEmPortugues implements ExceptionFilter {
   private readonly log = new Logger('Falha');
@@ -60,6 +68,27 @@ export class FalhasEmPortugues implements ExceptionFilter {
     '23502': {
       status: HttpStatus.BAD_REQUEST,
       frase: 'Falta preencher um campo obrigatório.',
+    },
+    /*
+     * O FORMATO QUE O BANCO NÃO RECONHECE (fase 155): um identificador que não
+     * é identificador, uma data que não é data, uma hora, um número. Medido em
+     * 25/09 passando corpo vazio e corpo com lixo por TODA rota de escrita: 28
+     * das 174 respondiam 500 em 35 casos, e 29 deles eram esta classe. Era a
+     * frase "alguma coisa falhou aqui dentro" para quem só preencheu um campo
+     * errado — e isso é culpa do campo, não do sistema.
+     */
+    '22P02': { status: HttpStatus.BAD_REQUEST, frase: FORMATO },
+    '22007': { status: HttpStatus.BAD_REQUEST, frase: FORMATO },
+    '22008': { status: HttpStatus.BAD_REQUEST, frase: FORMATO },
+    '22003': { status: HttpStatus.BAD_REQUEST, frase: FORMATO },
+    /*
+     * `no_data_found` — as funções do banco o usam para "não existe": o
+     * compromisso, a dose, a saída, a escala. É a regra 8: fora do alcance
+     * responde igual a inexistente.
+     */
+    'P0002': {
+      status: HttpStatus.NOT_FOUND,
+      frase: 'Não encontrado — ou fora do seu alcance. Recarregue a tela e tente de novo.',
     },
     // RLS: fora do alcance. Nunca dizer QUAL tabela.
     '42501': {

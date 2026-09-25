@@ -154,7 +154,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 25/09/2026, fase 154
+### Onde estamos — 25/09/2026, fase 155
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -172,10 +172,12 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 152 | o **nome de quem deu o remédio** e o **cargo de quem escreveu a linha da ATA** voltavam nulos para educador, líder e Enfermagem |
 | 153 | **dez `@Query('date')`** que a 148 não viu (ela procurava só nomes em português): a chamada, o plantão, as atividades e a grade do remédio davam 500 |
 | 154 | a **ficha de saúde e a trajetória** exportadas sem casa na auditoria; **sete exportações** com 500 por corpo inválido (`CorpoConferido`); as **folhas da cozinha** dizendo "0 restrições" a quem é de fora; e o **pedido de leitura da ATA restrita que nunca avisava ninguém** (`priority: 'media'`) — o `publish` do barramento agora tem o tipo pelo nome do evento |
+| 155 | **28 das 174 rotas de escrita** davam 500 a corpo vazio ou com lixo — o filtro `FalhasEmPortugues` não conhecia a classe "formato" e **só era ligado no `main.ts`: as suítes rodavam sem ele**; a **marca de estoque baixo** dizia ok sem mudar nada; e **ouvinte que falha agora reprova a suíte** |
 
-**Medido no fim da 154:** 142 migrações, 116 tabelas, 101 suítes, 969 testes, verdes nas
-DUAS condições de relógio; os sete ensaios de navegador verdes (a 154 não mexeu
-em tela); 139 telas sem violação de WCAG 2.1 AA; nenhuma rota sem teste.
+**Medido no fim da 155:** 142 migrações, 116 tabelas, 102 suítes, 974 testes, verdes nas
+DUAS condições de relógio; os sete ensaios de navegador verdes (154 e 155 não
+mexeram em tela); 139 telas sem violação de WCAG 2.1 AA; nenhuma rota sem teste;
+nenhuma rota de escrita com 500; nenhum ouvinte falhando.
 
 **As TRÊS cores do sistema, porque confundi-las é o pior que esta tela pode
 fazer** — está escrito por extenso em `frontend/src/cargos.tsx`:
@@ -188,16 +190,16 @@ fazer** — está escrito por extenso em `frontend/src/cargos.tsx`:
 
 ### A próxima etapa
 
-**1. Não há mais lista medida.** As medições que existem — tabela sem exercício,
-rota sem teste — estão as duas zeradas. **O próximo passo útil de código é uma
-MEDIÇÃO nova, e a 154 aponta duas:**
-- **O corpo das rotas que NÃO exportam.** O `CorpoConferido` cobre as dezessete
-  exportações; as outras `@Post`/`@Patch` com data ou casa no corpo não foram
-  sondadas. É a mesma pergunta da 153, na porta que sobrou.
-- **Os erros que só vão para o log.** O pedido de leitura da ATA morreu por meses
-  num `log.error` do barramento que nenhuma suíte lia. Vale uma cobrança que
-  reprove a suíte quando um ouvinte falha — hoje há zero falhas, então ela nasce
-  verde e passa a guardar.
+**1. As duas medições que a 154 apontou estão FEITAS** (155). As que existem hoje —
+tabela sem exercício, rota sem teste, escrita que cai, ouvinte que falha — estão
+todas zeradas e três delas são cobrança da suíte. **Ainda não medido, se houver
+fase de código:**
+- **As LEITURAS com lixo.** A 155 passou por toda escrita; as `@Get` com
+  `?houseId=lixo` ou `:id` inventado não foram varridas assim (a 153 cobriu só as
+  datas). É a mesma suíte, com `get`.
+- **O sucesso que não acontece**, em outras formas além do `UPDATE`: o
+  `flagLow` foi achado por acaso, na sondagem de corpo. Uma medição direta seria
+  chamar cada escrita com o id de OUTRA casa e cobrar 403/404 — e não 2xx.
 
 **2. Aplicar o roteiro com a equipe.** Continua sendo o que mais muda o sistema, e
 o único que não se faz daqui.
@@ -256,6 +258,13 @@ novo.
   escrito que o compilador não compara é comentário** — o `publish` hoje escolhe
   o tipo do corpo pelo nome do evento. E a suíte lia a LISTA de pedidos, nunca o
   AVISO: **teste o efeito que a pessoa recebe**, não só o registro.
+- **A suíte tem de testar o servidor que SOBE** (155). O filtro das falhas em
+  português era ligado no `main.ts`, e as suítes montam o app pelo `AppModule`:
+  rodavam sem ele. Um teste sabia disso e ligava o filtro à mão só para si. **O
+  que o `main.ts` liga, a suíte não vê** — o que vale para os dois mora no módulo.
+- **Pare de escolher a porta** (155). A 148, a 153 e a 154 conferiram cada uma
+  uma porta de entrada, e cada uma achou a seguinte. A 155 passou por TODAS as
+  rotas de escrita de uma vez, lidas do código, e achou 28.
 - **`JOIN app_user` é o nome que some** (152). `app_user` tem RLS por linha:
   educador, líder e Enfermagem só leem a PRÓPRIA. Nome ou cargo de OUTRA pessoa
   sai por função — `app_user_display_name`, `app_user_cargo` —, nunca por JOIN

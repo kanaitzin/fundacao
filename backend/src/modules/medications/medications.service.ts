@@ -958,11 +958,22 @@ export class MedicationsService {
     if (!['enfermagem', 'equipe_tecnica', 'coordenador'].includes(user.role)) {
       throw new ForbiddenException('Somente Enfermagem ou equipe técnica sinalizam estoque baixo.');
     }
-    await this.db.asUser(user.id, async (c) => {
-      await c.query(
+    /*
+     * QUANTAS LINHAS MUDARAM (fase 155). A resposta era `ok: true` sempre: para
+     * um item que não existe, e para o item de OUTRA casa — o RLS filtra o
+     * `UPDATE` calado, zero linhas mudam, e a Enfermagem lia "sinalizado" sobre
+     * uma sinalização que não aconteceu. É esta marca que põe o remédio na
+     * lista de compra.
+     */
+    const mudou = await this.db.asUser(user.id, async (c) => {
+      const { rowCount } = await c.query(
         `UPDATE medication_stock SET low_flag=$2, low_flagged_by=$3, updated_at=now() WHERE id=$1`,
         [stockId, baixo, user.id]);
+      return rowCount ?? 0;
     });
+    if (!mudou) {
+      throw new NotFoundException('Item do estoque não encontrado — ou fora do seu alcance.');
+    }
     return { ok: true, estoqueBaixo: baixo };
   }
 

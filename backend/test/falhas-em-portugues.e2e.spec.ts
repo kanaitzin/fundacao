@@ -22,7 +22,6 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { Client } from 'pg';
 import { AppModule } from '../src/app.module';
-import { FalhasEmPortugues } from '../src/kernel/common/falhas-em-portugues';
 
 const SENHA = 'senha-dev-123';
 const adminUrl = process.env.DATABASE_URL
@@ -46,9 +45,8 @@ describe('Nenhuma falha chega em jargão à pessoa', () => {
     const mod = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = mod.createNestApplication();
     app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
-    /* O mesmo filtro do `main.ts`. Sem isto, a suíte testaria um servidor que
-     * não é o que sobe. */
-    app.useGlobalFilters(new FalhasEmPortugues());
+    /* O filtro vem do AppModule desde a fase 155 — antes ele era ligado aqui à
+     * mão, e as outras suítes rodavam sem ele. */
     app.setGlobalPrefix('api/v1');
     await app.init();
     http = app.getHttpServer();
