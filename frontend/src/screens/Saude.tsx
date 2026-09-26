@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
 import { BotaoOlho, Escolhido, PreviaEscolhida, base64De, lerArquivo } from '../anexos';
-import { FolhaDocumento } from '../documentos';
+import { FolhaDocumento, entregarArquivo } from '../documentos';
 import type { ArquivoGerado } from '../documentos';
 import type { DocumentoWord } from '../docx';
 import { quemAssina } from '../quem-assina';
@@ -106,6 +106,9 @@ interface Item {
   /** Sinalizado À MÃO, com autor (§11.6). O sistema não calcula o que é pouco. */
   estoqueBaixo: boolean;
   atualizadoEm: string;
+  /* Fase 161: a dose nunca é bloqueada, e o saldo conta a verdade — negativo
+     quer dizer que saiu mais do que o registrado. */
+  saldoNegativo?: boolean; aviso?: string | null;
 }
 
 interface Evolucao {
@@ -270,6 +273,9 @@ interface Compra {
   id: string; em: string; itens: string; fornecedor: string | null;
   totalCentavos: number | null; nota: string | null; observacao: string | null;
   temAnexo: boolean; nomeDoAnexo: string | null; compradoPor: string;
+  cnpj?: string | null;
+  itensDaNota?: { medicamento: string; quantidade: number; unidade: string;
+                  valorUnitarioCentavos: number | null; lote: string | null; validade: string | null }[];
 }
 interface Compras { linhas: Compra[]; gastoCentavos: number; semAnexo: number }
 
@@ -341,6 +347,8 @@ export function Saude({ houseId, casaLabel, papel }: {
   const [excecao, setExcecao] = useState<Esquema | null>(null);
   const [decisoes, setDecisoes] = useState<DecisaoProtocolo[]>([]);
   const [movendo, setMovendo] = useState<{ item: Item; tipo: 'entrada' | 'contagem' } | null>(null);
+  /* Descarte, perda e devolução (fase 161) — a saída que não é dose. */
+  const [tirando, setTirando] = useState<Item | null>(null);
   const [historico, setHistorico] = useState<
     { pessoa: { id: string; nome: string }; dados: Historico; emissoes: Emissao[] } | null>(null);
   /* A folha de papel: o que se vê aqui é o que sai no Word. */
@@ -681,6 +689,9 @@ export function Saude({ houseId, casaLabel, papel }: {
           <button className="btn block" onClick={() => setComprando(true)}>
             <Icone nome="nota" /> Registrar compra
           </button>
+          <GerarEmWord rotulo="Gerar as notas do mês em Word" id="exp-notas"
+                       gerarCom={(finalidade) => api('/medications/purchases/export', {
+                         method: 'POST', body: JSON.stringify({ houseId, de: inicioDoMes, ate: hoje, finalidade }) })} />
 
           <div className="eyebrow">Compras do período · {compras?.linhas.length ?? 0}</div>
           <div className="stack">
@@ -705,7 +716,23 @@ export function Saude({ houseId, casaLabel, papel }: {
                     ? ` · ${(c.totalCentavos / 100).toLocaleString('pt-BR',
                         { style: 'currency', currency: 'BRL' })}` : ''}
                 </div>
-                {c.nota && <div className="mutetxt">Nota {c.nota}</div>}
+                {(c.nota || c.cnpj) && (
+                  <div className="mutetxt">
+                    {c.nota ? `Nota ${c.nota}` : 'Nota sem número'}{c.cnpj ? ` · CNPJ ${c.cnpj}` : ''}
+                  </div>
+                )}
+                {(c.itensDaNota ?? []).length > 0 && (
+                  <ul className="lista">
+                    {c.itensDaNota!.map((it, k) => (
+                      <li key={k} className="mutetxt">
+                        {it.quantidade} {it.unidade} · {it.medicamento}
+                        {it.valorUnitarioCentavos != null ? ` · ${reaisDe(it.valorUnitarioCentavos)} cada` : ''}
+                        {it.lote ? ` · lote ${it.lote}` : ''}
+                        {it.validade ? ` · validade ${dia(it.validade)}` : ''}
+                      </li>
+                    ))}
+                  </ul>
+                )}
                 <div className="row">
                   <span className="mutetxt grow">Registrado por {c.compradoPor}.</span>
                   {/* O papel abre aqui. Antes dele existir, "com nota" queria
@@ -721,13 +748,14 @@ export function Saude({ houseId, casaLabel, papel }: {
 
           {comprando && (
             <FolhaCompra houseId={houseId} onFechar={() => setComprando(false)}
-                         onPronto={() => { setComprando(false); carregarCompras(); }} />
+                         onPronto={(msg) => { setComprando(false); setAviso(msg ?? ''); carregarCompras(); }} />
           )}
         </>
       )}
 
       {aba === 'estoque' && (
         <>
+          {VE_COMPRAS.includes(papel) && <NumerosDoArmario houseId={houseId} />}
           <div className="eyebrow">Armário de medicamentos da casa</div>
           <div className="stack">
             {estoque.map((i) => (
@@ -745,8 +773,10 @@ export function Saude({ houseId, casaLabel, papel }: {
                         ? `Estoque nominal de ${i.acolhido ?? '—'} — não é do uso comum da casa.`
                         : 'Uso comum da casa.'}
                     </div>
+                    {i.aviso && <div className="mutetxt"><b>{i.aviso}</b></div>}
                   </div>
                   <div className="stack">
+                    {i.saldoNegativo && <span className="pill c-warn">Saldo negativo — conferir</span>}
                     {i.validadeProxima && <span className="pill c-warn">Validade próxima</span>}
                     {i.estoqueBaixo && <span className="pill c-info">Sinalizado como baixo</span>}
                   </div>
@@ -769,6 +799,9 @@ export function Saude({ houseId, casaLabel, papel }: {
                     </button>
                     <button className="btn sm ghost" onClick={() => setMovendo({ item: i, tipo: 'contagem' })}>
                       Conferi o armário
+                    </button>
+                    <button className="btn sm ghost" onClick={() => setTirando(i)}>
+                      Descarte, perda ou devolução
                     </button>
                     <button className="btn sm ghost"
                             onClick={() => acao(() => api(`/medications/stock/${i.id}/flag-low`, {
@@ -1184,14 +1217,23 @@ export function Saude({ houseId, casaLabel, papel }: {
       {movendo && (
         <FolhaEstoque
           item={movendo.item} tipo={movendo.tipo} onFechar={() => setMovendo(null)}
-          onGravar={async (quantidade, motivo) => {
+          onGravar={async (quantidade, motivo, extra) => {
             const ok = await acao(() => api('/medications/stock', {
               method: 'POST',
               body: JSON.stringify({
                 tipo: movendo.tipo, houseId, medicamento: movendo.item.medicamento,
-                unidade: movendo.item.unidade, quantidade, motivo,
+                unidade: movendo.item.unidade, quantidade, motivo, ...extra,
               }) }));
             if (ok) setMovendo(null);
+          }} />
+      )}
+
+      {tirando && (
+        <FolhaSaidaDoArmario item={tirando} onFechar={() => setTirando(null)}
+          onGravar={async (tipo, quantidade, motivo) => {
+            const ok = await acao(() => api(`/medications/stock/${tirando.id}/saida`, {
+              method: 'POST', body: JSON.stringify({ tipo, quantidade, motivo }) }));
+            if (ok) setTirando(null);
           }} />
       )}
     </>
@@ -1208,10 +1250,16 @@ export function Saude({ houseId, casaLabel, papel }: {
  */
 function FolhaEstoque({ item, tipo, onFechar, onGravar }: {
   item: Item; tipo: 'entrada' | 'contagem';
-  onFechar: () => void; onGravar: (quantidade: number, motivo: string) => void;
+  onFechar: () => void;
+  onGravar: (quantidade: number, motivo: string,
+             extra: { origem?: string; lote?: string; validade?: string }) => void;
 }) {
   const [valor, setValor] = useState('');
   const [motivo, setMotivo] = useState('');
+  /* Fase 161: de onde veio, o lote e a validade — só na entrada, e opcionais. */
+  const [origem, setOrigem] = useState('');
+  const [lote, setLote] = useState('');
+  const [validade, setValidade] = useState('');
   const entrada = tipo === 'entrada';
   const q = Number(valor);
   const valido = valor.trim() !== '' && Number.isFinite(q) && q >= 0 && (!entrada || q > 0);
@@ -1248,6 +1296,26 @@ function FolhaEstoque({ item, tipo, onFechar, onGravar }: {
           </p>
         )}
 
+        {entrada && (
+          <>
+            <label className="f" htmlFor="o-est">De onde veio <small>— opcional</small></label>
+            <select id="o-est" value={origem} onChange={(e) => setOrigem(e.target.value)}>
+              <option value="">Não informar</option>
+              {Object.entries(ORIGENS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+            </select>
+            <div className="row">
+              <span className="grow">
+                <label className="f" htmlFor="l-est">Lote <small>— opcional</small></label>
+                <input id="l-est" value={lote} maxLength={40} onChange={(e) => setLote(e.target.value)} />
+              </span>
+              <span className="grow">
+                <label className="f" htmlFor="v-est">Validade <small>— da caixa</small></label>
+                <input id="v-est" type="date" value={validade} onChange={(e) => setValidade(e.target.value)} />
+              </span>
+            </div>
+          </>
+        )}
+
         <label className="f" htmlFor="m-est">
           Motivo {entrada
             ? <small>— opcional: nota de compra, doação</small>
@@ -1261,7 +1329,9 @@ function FolhaEstoque({ item, tipo, onFechar, onGravar }: {
         <div className="row rodape">
           <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
           <button className="btn grow" disabled={!podeGravar}
-                  onClick={() => onGravar(q, motivo)}>
+                  onClick={() => onGravar(q, motivo, entrada
+                    ? { origem: origem || undefined, lote: lote.trim() || undefined, validade: validade || undefined }
+                    : {})}>
             {entrada ? 'Registrar entrada' : 'Registrar contagem'}
           </button>
         </div>
@@ -1985,30 +2055,47 @@ function FolhaSoEnfermagem({ esquema, onFechar, onMarcar }: {
  * Enfermagem, e ela faz isso pelo armário.
  */
 function FolhaCompra({ houseId, onFechar, onPronto }: {
-  houseId: string; onFechar: () => void; onPronto: () => void;
+  houseId: string; onFechar: () => void; onPronto: (aviso?: string | null) => void;
 }) {
   const hoje = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo',
     year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
   const [em, setEm] = useState(hoje);
   const [itens, setItens] = useState('');
   const [fornecedor, setFornecedor] = useState('');
+  const [cnpj, setCnpj] = useState('');
   const [valor, setValor] = useState('');
   const [nota, setNota] = useState('');
   const [anexo, setAnexo] = useState('');
   const [arquivo, setArquivo] = useState<Escolhido | null>(null);
   const [erro, setErro] = useState('');
+  /*
+   * OS ITENS DA NOTA (fase 161), um por linha: remédio, quantidade, valor
+   * unitário, lote e validade. A nota é SEPARADA do armário (decisão de 26/09):
+   * lançar a nota não dá entrada em nada — quem guarda a caixa lança a entrada.
+   */
+  const [linhas, setLinhas] = useState<{ medicamento: string; quantidade: string; unidade: string;
+    valor: string; lote: string; validade: string }[]>([]);
+  const centavos = (v: string) => (v.trim()
+    ? Math.round(Number(v.replace(/\./g, '').replace(',', '.')) * 100) : null);
+  const itensValidos = linhas.filter((l) => l.medicamento.trim().length >= 2 && Number(l.quantidade) > 0);
+  const soma = itensValidos.reduce((n, l) => n + (centavos(l.valor) ?? 0) * Number(l.quantidade), 0);
+  const muda = (k: number, campo: string, v: string) =>
+    setLinhas(linhas.map((l, x) => (x === k ? { ...l, [campo]: v } : l)));
 
   async function salvar() {
     setErro('');
     try {
-      const centavos = valor.trim()
-        ? Math.round(Number(valor.replace(/\./g, '').replace(',', '.')) * 100) : null;
-      await api('/medications/purchases', {
+      const r = await api<{ aviso?: string | null }>('/medications/purchases', {
         method: 'POST',
         body: JSON.stringify({
           houseId, em, itens: itens.trim(),
-          fornecedor: fornecedor.trim(), totalCentavos: centavos,
+          fornecedor: fornecedor.trim(), cnpj: cnpj.trim() || undefined,
+          totalCentavos: centavos(valor),
           nota: nota.trim(),
+          itensDaNota: itensValidos.map((l) => ({
+            medicamento: l.medicamento.trim(), quantidade: Number(l.quantidade),
+            unidade: l.unidade.trim() || undefined, valorUnitarioCentavos: centavos(l.valor),
+            lote: l.lote.trim() || undefined, validade: l.validade || undefined })),
           /* As duas formas, e nenhuma delas é obrigatória: a compra pode ser
              lançada antes de o papel aparecer, e é isso que o resumo conta. */
           conteudo: arquivo ? base64De(arquivo.dataUrl) : undefined,
@@ -2016,7 +2103,7 @@ function FolhaCompra({ houseId, onFechar, onPronto }: {
           anexoNome: arquivo ? arquivo.nome : (anexo.trim() ? 'Nota fiscal' : undefined),
         }),
       });
-      onPronto();
+      onPronto(r?.aviso);
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Não foi possível registrar a compra.');
     }
@@ -2032,19 +2119,75 @@ function FolhaCompra({ houseId, onFechar, onPronto }: {
         <label className="f" htmlFor="cp-em">Comprado em</label>
         <input id="cp-em" type="date" value={em} onChange={(e) => setEm(e.target.value)} />
 
-        <label className="f" htmlFor="cp-itens">O que foi comprado</label>
-        <textarea id="cp-itens" rows={3} value={itens}
+        <div className="eyebrow">Os itens da nota</div>
+        {linhas.map((l, k) => (
+          <div key={k} className="card stack">
+            <label className="f" htmlFor={`cpi-med-${k}`}>Remédio</label>
+            <input id={`cpi-med-${k}`} value={l.medicamento} onChange={(e) => muda(k, 'medicamento', e.target.value)}
+                   placeholder="Ex.: Dipirona 500mg" />
+            <div className="row">
+              <span className="grow">
+                <label className="f" htmlFor={`cpi-qtd-${k}`}>Quantidade</label>
+                <input id={`cpi-qtd-${k}`} inputMode="decimal" value={l.quantidade}
+                       onChange={(e) => muda(k, 'quantidade', e.target.value)} />
+              </span>
+              <span className="grow">
+                <label className="f" htmlFor={`cpi-un-${k}`}>Unidade</label>
+                <input id={`cpi-un-${k}`} value={l.unidade} placeholder="caixa"
+                       onChange={(e) => muda(k, 'unidade', e.target.value)} />
+              </span>
+              <span className="grow">
+                <label className="f" htmlFor={`cpi-val-${k}`}>Valor unitário</label>
+                <input id={`cpi-val-${k}`} inputMode="decimal" value={l.valor} placeholder="0,00"
+                       onChange={(e) => muda(k, 'valor', e.target.value)} />
+              </span>
+            </div>
+            <div className="row">
+              <span className="grow">
+                <label className="f" htmlFor={`cpi-lote-${k}`}>Lote</label>
+                <input id={`cpi-lote-${k}`} value={l.lote} onChange={(e) => muda(k, 'lote', e.target.value)} />
+              </span>
+              <span className="grow">
+                <label className="f" htmlFor={`cpi-vld-${k}`}>Validade</label>
+                <input id={`cpi-vld-${k}`} type="date" value={l.validade}
+                       onChange={(e) => muda(k, 'validade', e.target.value)} />
+              </span>
+            </div>
+            <button type="button" className="btn sm ghost"
+                    onClick={() => setLinhas(linhas.filter((_, x) => x !== k))}>
+              Tirar este item
+            </button>
+          </div>
+        ))}
+        <button type="button" className="btn sm sec"
+                onClick={() => setLinhas([...linhas, { medicamento: '', quantidade: '1', unidade: '',
+                  valor: '', lote: '', validade: '' }])}>
+          Acrescentar item da nota
+        </button>
+        {soma > 0 && <div className="mutetxt">Soma dos itens: <b>{reaisDe(soma)}</b></div>}
+
+        <label className="f" htmlFor="cp-itens">
+          {linhas.length ? 'Observação sobre os itens' : 'O que foi comprado'}
+          {linhas.length ? <small> — opcional</small> : null}
+        </label>
+        <textarea id="cp-itens" rows={2} value={itens}
                   onChange={(e) => setItens(e.target.value)}
                   placeholder="Ex.: Dipirona 500mg — 2 caixas; Amoxicilina suspensão — 1 frasco." />
         <div className="mutetxt">
-          Escreva como está na nota. Uma nota sem itens não presta contas de nada.
+          A nota NÃO dá entrada no armário: quem guarda a caixa lança a entrada, em "Chegou remédio".
         </div>
 
         <label className="f" htmlFor="cp-forn">Onde (opcional)</label>
         <input id="cp-forn" value={fornecedor} maxLength={80}
                onChange={(e) => setFornecedor(e.target.value)} />
 
-        <label className="f" htmlFor="cp-valor">Valor total (opcional)</label>
+        <label className="f" htmlFor="cp-cnpj">
+          CNPJ do fornecedor <small>— com o número da nota, impede lançar a mesma nota duas vezes</small>
+        </label>
+        <input id="cp-cnpj" inputMode="numeric" value={cnpj} maxLength={18}
+               onChange={(e) => setCnpj(e.target.value)} placeholder="00.000.000/0000-00" />
+
+        <label className="f" htmlFor="cp-valor">Valor total da nota (opcional)</label>
         <input id="cp-valor" inputMode="decimal" value={valor}
                onChange={(e) => setValor(e.target.value)} placeholder="0,00" />
 
@@ -2052,10 +2195,7 @@ function FolhaCompra({ houseId, onFechar, onPronto }: {
         <input id="cp-nota" value={nota} maxLength={40}
                onChange={(e) => setNota(e.target.value)} />
 
-        {/* A NOTA, DE VERDADE (fase 108). Este campo era um texto onde a pessoa
-            digitava uma referência qualquer: a nota "digitalizada" nunca teve
-            por onde ser digitalizada. Agora sobe o papel — e quem só tem o
-            caminho no Drive continua podendo escrevê-lo. */}
+        {/* A NOTA, DE VERDADE (fase 108). */}
         <label className="f" htmlFor="cp-arq">Nota fiscal digitalizada (opcional)</label>
         <input id="cp-arq" type="file" accept="image/*,application/pdf"
                onChange={async (e) => {
@@ -2078,10 +2218,150 @@ function FolhaCompra({ houseId, onFechar, onPronto }: {
 
         <div className="row" style={{ gap: 8, marginTop: 16 }}>
           <button type="button" className="btn sec grow" onClick={onFechar}>Cancelar</button>
-          <button type="button" className="btn grow" disabled={itens.trim().length < 3}
+          <button type="button" className="btn grow"
+                  disabled={itens.trim().length < 3 && itensValidos.length === 0}
                   onClick={salvar}>Registrar</button>
         </div>
       </div>
+    </div>
+  );
+}
+
+/** De onde veio o remédio — o mesmo vocabulário de `ORIGENS_DO_REMEDIO` no servidor. */
+const ORIGENS: Record<string, string> = {
+  compra: 'Compra', doacao: 'Doação', farmacia_publica: 'Farmácia pública (SUS)',
+  familia: 'Trazido pela família', hospital: 'Hospital', outro: 'Outro',
+};
+/** As saídas que não são dose — o mesmo vocabulário de `SAIDAS_DO_ARMARIO`. */
+const SAIDAS: Record<string, string> = {
+  descarte: 'Descarte (vencido ou impróprio)', perda: 'Perda (quebrou, caiu, sumiu)',
+  devolucao: 'Devolução (à farmácia, à família ou ao hospital)',
+};
+const reaisDe = (c: number) => (c / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+/** Descarte, perda ou devolução: cada uma com o seu nome, a quantidade e o motivo. */
+function FolhaSaidaDoArmario({ item, onFechar, onGravar }: {
+  item: Item; onFechar: () => void; onGravar: (tipo: string, quantidade: number, motivo: string) => void;
+}) {
+  const [tipo, setTipo] = useState('');
+  const [valor, setValor] = useState('');
+  const [motivo, setMotivo] = useState('');
+  const q = Number(valor);
+  const pode = !!tipo && q > 0 && motivo.trim().length >= 10;
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-saida-arm"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet modal">
+        <h3 id="t-saida-arm">Saiu do armário sem ser dose · {item.medicamento}</h3>
+        <p className="mutetxt">Registrado agora: <b>{item.quantidade} {item.unidade}(s)</b>. Não sai mais do
+          que há — se a gaveta não bate, faça a contagem antes.</p>
+        <label className="f" htmlFor="ts-tipo">O que houve</label>
+        <select id="ts-tipo" value={tipo} onChange={(e) => setTipo(e.target.value)}>
+          <option value="">Escolha…</option>
+          {Object.entries(SAIDAS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+        </select>
+        <label className="f" htmlFor="ts-qtd">Quanto saiu <small>— em {item.unidade}(s)</small></label>
+        <input id="ts-qtd" type="number" min={1} inputMode="numeric" value={valor}
+               onChange={(e) => setValor(e.target.value)} />
+        <label className="f" htmlFor="ts-mot">Motivo <small>— obrigatório</small></label>
+        <textarea id="ts-mot" value={motivo} onChange={(e) => setMotivo(e.target.value)}
+                  placeholder="Ex.: frasco venceu em 08/2026, levado ao descarte da UBS." />
+        <div className="row rodape">
+          <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
+          <button className="btn grow" disabled={!pode} onClick={() => onGravar(tipo, q, motivo.trim())}>
+            Registrar a saída
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Gerar um relatório em Word com finalidade escrita — a exportação fica registrada. */
+function GerarEmWord({ rotulo, gerarCom, id }: {
+  rotulo: string; id: string;
+  /* A rota vem ESCRITA em quem chama (contrato-rotas.spec): aqui só a finalidade. */
+  gerarCom: (finalidade: string) => Promise<{ nomeArquivo: string; conteudoBase64: string; aviso: string }>;
+}) {
+  const [finalidade, setFinalidade] = useState('');
+  const [msg, setMsg] = useState('');
+  const [ocupado, setOcupado] = useState(false);
+  async function gerar() {
+    setMsg(''); setOcupado(true);
+    try {
+      const r = await gerarCom(finalidade.trim());
+      entregarArquivo(r.nomeArquivo, r.conteudoBase64);
+      setMsg(r.aviso); setFinalidade('');
+    } catch (e) { setMsg(e instanceof Error ? e.message : 'Não foi possível gerar o documento.'); }
+    finally { setOcupado(false); }
+  }
+  return (
+    <div className="stack">
+      <label className="f" htmlFor={id}>{rotulo} <small>— para quê (fica registrado)</small></label>
+      <input id={id} value={finalidade} onChange={(e) => setFinalidade(e.target.value)}
+             placeholder="Ex.: prestação de contas do mês" />
+      <button className="btn sec block" disabled={finalidade.trim().length < 10 || ocupado} onClick={gerar}>
+        {rotulo}
+      </button>
+      {msg && <div className="mutetxt" role="status">{msg}</div>}
+    </div>
+  );
+}
+
+/**
+ * OS NÚMEROS DO ARMÁRIO NO MÊS (fase 161) — da CASA, nunca de uma criança nem
+ * de quem deu a dose. A lista por remédio vem em ordem alfabética.
+ */
+function NumerosDoArmario({ houseId }: { houseId: string }) {
+  const hoje = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo',
+    year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+  const de = `${hoje.slice(0, 7)}-01`;
+  const [m, setM] = useState<{
+    doses: { administradas: number; comAtraso: number; recusadas: number; naoAdministradas: number };
+    armario: { itens: number; negativos: number; baixos: number; vencidos: number; vencendo: number };
+    compras: { notas: number; totalCentavos: number; semPapel: number };
+    porRemedio: { remedio: string; entrada: number; consumo: number; descarte: number; perda: number;
+                  devolucao: number; saidaComAcolhido: number }[];
+    aviso: string;
+  } | null>(null);
+  useEffect(() => {
+    let vivo = true;
+    api<NonNullable<typeof m>>(`/medications/metrics?houseId=${houseId}&de=${de}&ate=${hoje}`)
+      .then((d) => { if (vivo) setM(d); }).catch(() => { if (vivo) setM(null); });
+    return () => { vivo = false; };
+  }, [houseId]);
+  if (!m) return null;
+  return (
+    <div className="card raise stack">
+      <h3 style={{ fontSize: 17, margin: 0 }}>O armário no mês</h3>
+      <div className="mutetxt">
+        {m.doses.administradas} doses dadas ({m.doses.comAtraso} com atraso) · {m.doses.recusadas} recusadas ·{' '}
+        {m.doses.naoAdministradas} não dadas
+      </div>
+      <div className="mutetxt">
+        {m.armario.itens} itens no armário · {m.armario.negativos} com saldo negativo ·{' '}
+        {m.armario.vencidos} vencidos · {m.armario.vencendo} vencem em 30 dias
+      </div>
+      <div className="mutetxt">
+        {m.compras.notas} notas de compra · {reaisDe(m.compras.totalCentavos)}
+        {m.compras.semPapel ? ` · ${m.compras.semPapel} sem o papel` : ''}
+      </div>
+      {m.porRemedio.length > 0 && (
+        <ul className="lista">
+          {m.porRemedio.map((r) => (
+            <li key={r.remedio} className="mutetxt">
+              <b>{r.remedio}</b>: entrou {r.entrada}, dose {r.consumo}
+              {r.descarte ? `, descarte ${r.descarte}` : ''}{r.perda ? `, perda ${r.perda}` : ''}
+              {r.devolucao ? `, devolução ${r.devolucao}` : ''}
+              {r.saidaComAcolhido ? `, foi com a criança ${r.saidaComAcolhido}` : ''}
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="mutetxt">{m.aviso}</p>
+      <GerarEmWord rotulo="Gerar o relatório do armário do mês" id="exp-armario"
+                   gerarCom={(finalidade) => api('/medications/stock/report/export', {
+                     method: 'POST', body: JSON.stringify({ houseId, de, ate: hoje, finalidade }) })} />
     </div>
   );
 }
@@ -2329,13 +2609,15 @@ const MOVIMENTO_ROTULO: Record<string, string> = {
   ajuste: 'Conferência do armário',
   consumo: 'Dose administrada',
   descarte: 'Descarte',
+  perda: 'Perda',
+  devolucao: 'Devolução',
   saida_com_acolhido: 'Foi com a criança',
 };
 /* A cor diz o ESTADO OPERACIONAL, nunca julgamento (§4.9): o que entrou, o que
    saiu pela dose, o que saiu com a criança, o que foi ajustado na contagem. */
 const MOVIMENTO_TOM: Record<string, string> = {
   entrada: 'c-ok', ajuste: 'c-info', consumo: 'c-med',
-  descarte: 'c-crit', saida_com_acolhido: 'c-move',
+  descarte: 'c-crit', saida_com_acolhido: 'c-move', perda: 'c-warn', devolucao: 'c-mute',
 };
 
 function FolhaMovimento({ item, onFechar }: {
@@ -2344,7 +2626,8 @@ function FolhaMovimento({ item, onFechar }: {
   const [dados, setDados] = useState<{
     medicamento: string; unidade: string; quantidadeAgora: number; cortado: boolean;
     linhas: { id: string; tipo: string; quantidade: number; motivo: string | null;
-              quando: string; por: string | null }[];
+              quando: string; por: string | null;
+              lote?: string | null; validadeDoLote?: string | null; origem?: string | null }[];
   } | null>(null);
   const [erro, setErro] = useState('');
 
@@ -2392,6 +2675,12 @@ function FolhaMovimento({ item, onFechar }: {
                     <span className="mutetxt">{hhmm(m.quando)}</span>
                   </div>
                   {m.motivo && <div className="mutetxt">{m.motivo}</div>}
+                  {(m.origem || m.lote) && (
+                    <div className="mutetxt">
+                      {[m.origem, m.lote ? `lote ${m.lote}` : null,
+                        m.validadeDoLote ? `validade ${dia(m.validadeDoLote)}` : null].filter(Boolean).join(' · ')}
+                    </div>
+                  )}
                   <div className="mutetxt">{m.por ?? '—'} · {dia(m.quando)}</div>
                 </div>
               ))}

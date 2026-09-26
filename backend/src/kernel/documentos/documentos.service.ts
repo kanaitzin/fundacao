@@ -289,6 +289,27 @@ export class DocumentosService {
       saida.push(new Paragraph({ text: '', spacing: { after: 120 } }));
     }
 
+    for (const im of s.imagens ?? []) {
+      const tipo = im.foto?.tipo === 'image/jpeg' ? 'jpg' : im.foto?.tipo === 'image/png' ? 'png' : null;
+      const medida = im.foto && tipo ? dimensoesDaImagem(im.foto.dados) : null;
+      if (im.foto && tipo && medida) {
+        /* Cabe na largura útil da página (cerca de 16 cm) sem deformar: a nota
+           fiscal torta ou esticada não se lê, e é para ser lida. */
+        const escala = Math.min(1, 560 / medida.largura, 720 / medida.altura);
+        saida.push(new Paragraph({
+          alignment: AlignmentType.CENTER,
+          children: [new ImageRun({ type: tipo, data: im.foto.dados, transformation: {
+            width: Math.round(medida.largura * escala), height: Math.round(medida.altura * escala) } })],
+        }));
+      }
+      saida.push(new Paragraph({
+        spacing: { after: 200 },
+        children: [new TextRun({ text: medida ? im.legenda
+          : `${im.legenda} — o arquivo não é imagem (PDF ou outro formato): está guardado no sistema.`,
+          size: 18, italics: true })],
+      }));
+    }
+
     if (s.aPreencher) {
       /* O vazio precisa PARECER vazio. Um campo em branco que passa
        * despercebido vira documento entregue pela metade. */
@@ -315,4 +336,29 @@ export class DocumentosService {
 
     return saida;
   }
+}
+
+/**
+ * A largura e a altura de um PNG ou JPEG, lidas do cabeçalho — o Word precisa
+ * do tamanho para não deformar a imagem, e não há biblioteca de imagem aqui.
+ */
+export function dimensoesDaImagem(b: Uint8Array): { largura: number; altura: number } | null {
+  if (b.length > 24 && b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) {
+    const v = new DataView(b.buffer, b.byteOffset, b.byteLength);
+    return { largura: v.getUint32(16), altura: v.getUint32(20) };
+  }
+  if (b.length > 4 && b[0] === 0xff && b[1] === 0xd8) {
+    let i = 2;
+    while (i + 9 < b.length) {
+      if (b[i] !== 0xff) { i++; continue; }
+      const marca = b[i + 1];
+      const tam = (b[i + 2] << 8) + b[i + 3];
+      /* SOF0..SOF15, menos DHT (C4), JPG (C8) e DAC (CC). */
+      if (marca >= 0xc0 && marca <= 0xcf && ![0xc4, 0xc8, 0xcc].includes(marca)) {
+        return { altura: (b[i + 5] << 8) + b[i + 6], largura: (b[i + 7] << 8) + b[i + 8] };
+      }
+      i += 2 + tam;
+    }
+  }
+  return null;
 }

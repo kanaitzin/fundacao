@@ -63,6 +63,8 @@ export const ACOES_MONTADAS = [
      ARGUMENTO, e hoje há um único chamador; se aparecer um segundo, o valor
      dele entra nesta lista, e o conferidor cobra a frase. */
   'external_comm.submit',
+  // `stock.${tipo}` — medications.service.ts, as três saídas que não são dose (fase 161).
+  'stock.descarte', 'stock.perda', 'stock.devolucao',
 ];
 
 /** Cada ação que o sistema grava, e a frase que a pessoa lê. */
@@ -217,6 +219,9 @@ export const VOCABULARIO_DA_AUDITORIA: Record<string, string> = {
   'medication.purchase': 'Compra de medicamento registrada',
   'stock.entrada': 'Entrada no armário registrada',
   'stock.contagem': 'Contagem do armário registrada',
+  'stock.descarte': 'Descarte no armário registrado',
+  'stock.perda': 'Perda no armário registrada',
+  'stock.devolucao': 'Devolução do armário registrada',
 
   // ------------------------------------------------------------- Trabalho social
   'followup.generate': 'Acompanhamento montado',

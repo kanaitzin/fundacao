@@ -899,7 +899,7 @@ criança, e log não copia conteúdo sensível (§5). A auditoria guarda o ato �
 coordenação, Líder Diurno). Mais ninguém: a lista de quem pediu para ler o quê é,
 ela mesma, informação sobre o caso.
 
-## Inventário — 119 tabelas por partição
+## Inventário — 120 tabelas por partição
 
 | Partição | Tabelas |
 |---|---|
@@ -907,7 +907,7 @@ ela mesma, informação sobre o caso.
 | people (28) | person, care_episode, house_stay, profile_detail, health_condition, food_restriction, document, document_version, benefit_record, memory_record, memory_photo, transfer_request, transfer_message, admission_record, judicial_record, person_credential, person_correction, profile_detail_change, person_contact, family_stay, family_stay_note, outing_permission, kitchen_request, house_field_permission, birthday_ack, contact_visit_change, visit, visit_correction |
 | shifts (13) | shift, handover, handover_receipt, handover_note, ata, ata_note, ata_addendum, ata_episode, ata_episode_ack, general_night_ata, general_night_house_entry, general_night_house_amendment, ata_read_request |
 | incidents (7) | incident, incident_person, incident_protected, incident_restraint, incident_synthesis, external_communication, incident_attachment |
-| medications (12) | prescription, medication_schedule, medication_administration, medication_stock, medication_stock_movement, medication_protocol, medication_authorization, medication_protocol_change, prescription_restriction_change, medication_purchase, prescription_document, family_stay_medication |
+| medications (13) | prescription, medication_schedule, medication_administration, medication_stock, medication_stock_movement, medication_protocol, medication_authorization, medication_protocol_change, prescription_restriction_change, medication_purchase, medication_purchase_item, prescription_document, family_stay_medication |
 | activities (7) | activity, activity_assignment, activity_acknowledgement, activity_execution, substitution_request, commitment, commitment_exception |
 | nursing (11) | health_encounter, health_evolution, nursing_triage, health_summary_issue, education_support, education_evolution, education_concept, hospitalization, hospitalization_note, hospitalization_medication, hospitalization_companion |
 | reports (6) | followup, followup_source, report_document, report_delivery, export_log, life_milestone |
@@ -942,6 +942,33 @@ Só cresce: cada mudança é uma linha, e a que vale num dia é a de maior
 `valid_from` até ele — no empate, a mais recente. Quem grava é
 `app_definir_horario_da_casa` (coordenação, Líder Diurno e equipe técnica da
 casa), que também escreve a auditoria com a casa.
+
+### `medication_purchase_item` — e o que a fase 161 mudou no armário
+OS ITENS DA NOTA FISCAL (medications/1600): `purchase_id`, `house_id`,
+`medication`, `quantity` (> 0), `unit`, `unit_cents` (valor unitário, em
+centavos), `lot`, `expires_on`. Só cresce, como a nota. Sem total informado, o
+total da nota é a soma dos itens com valor; com os dois, a diferença é AVISADA
+(frete, desconto) e não recusada. **A nota é separada do armário** (decisão de
+26/09): lançar a nota não dá entrada em nada.
+
+Na mesma migração:
+* `medication_purchase.supplier_cnpj` — 14 dígitos, conferidos pelos dígitos
+  verificadores no serviço. Com o número da nota (`invoice_ref`, sem caixa nem
+  espaço), é a chave de **nota repetida**: `uq_nota_da_casa` recusa a segunda na
+  mesma casa, e `app_registrar_nota_de_compra` recusa antes, dizendo quando e por
+  quem a primeira entrou. A versão de 13 argumentos da função antiga saiu.
+* `medication_stock_movement` ganhou `lot`, `lot_expires_on` e `origin` (compra,
+  doação, farmácia pública, família, hospital, outro) — só na entrada — e dois
+  tipos: `perda` e `devolucao`, ao lado do `descarte`. Cada saída que não é dose
+  tem motivo de pelo menos 10 caracteres e não tira mais do que há.
+* **O saldo pode ficar NEGATIVO** (decisão de 26/09): a dose confirmada tirava 1
+  com `greatest(quantidade - 1, 0)`, e com o armário em zero o saldo ficava em 0
+  enquanto o movimento `consumo` era gravado — duas contas que discordavam sem
+  ninguém saber. Agora o saldo desce, e a tela diz *"saiu mais do que havia
+  registrado — conferir o armário"*. A dose nunca é bloqueada.
+* As políticas `mov_insert` e `stock_update` eram `WITH CHECK (true)`: a chave
+  estrangeira não confere alcance, e uma consulta direta escrevia movimento no
+  armário de outra casa. As duas passam a conferir a casa.
 
 ### `visit` e `visit_correction`
 QUEM VISITOU, e não só quem podia (fase 160, people/1592). Até aqui o sistema

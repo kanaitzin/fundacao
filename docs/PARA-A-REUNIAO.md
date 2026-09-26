@@ -18,7 +18,7 @@
 > depois das 21h em Porto Alegre semeava o dia seguinte — o dia de hoje nascia
 > sem dose nenhuma. **Nada no sistema; tudo no dado de partida.**
 
-- **160 fases.** 107 suítes e 1024 testes, verdes em duas condições de relógio —
+- **161 fases.** 108 suítes e 1039 testes, verdes em duas condições de relógio —
   antes e depois da virada do UTC, que em Porto Alegre é às 21h.
 - **A chamada fecha.** O único item de código que faltava ao piloto — a chamada
   que travava quando uma criança estava internada ou em casa com a família —
@@ -224,6 +224,16 @@ anexar no dossiê. Ela **não** edita cadastro, escola nem cuidados essenciais.
   precisa confirmar:** quem cria a conta da portaria hoje é a coordenação, a
   equipe técnica ou o Gestor Geral — e o **DPO** deve saber que o CPF e o RG do
   visitante aparecem mascarados para a portaria (do CPF, só os dígitos do meio; do RG, os três finais).
+
+## 4.10 O armário e a nota fiscal (fase 161, decidido em 26/09)
+
+- **O saldo do armário pode ficar negativo**, com o aviso *"conferir o
+  armário"*: a dose nunca é bloqueada, e o número passa a contar a verdade.
+- **A nota fiscal não dá entrada no armário** — ela presta contas; a entrada
+  continua sendo lançada por quem guarda a caixa.
+- **Nota repetida é recusada** (mesmo CNPJ e número, na mesma casa).
+- *O que o Marcelo pode querer rever:* hoje a lista de origens do remédio é
+  compra, doação, farmácia pública, família, hospital e outro.
 
 ## 5. As decisões que são do Marcelo *(§10 — responda pelo número)*
 

@@ -254,6 +254,31 @@ export class MedicationsController {
     return this.meds.upsertStock(user, body);
   }
 
+  /* Descarte, perda e devolução — cada uma com o seu motivo (fase 161). */
+  @Post('stock/:id/saida')
+  saidaDoArmario(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
+                 @Body() body: { tipo?: string; quantidade?: number; motivo?: string }) {
+    return this.meds.saidaDoArmario(user, id, body ?? {});
+  }
+
+  /* As métricas do remédio, da CASA, num período (fase 161). */
+  @Get('metrics')
+  metricas(@CurrentUser() user: AuthenticatedUser,
+           @Query('houseId', ParseUUIDPipe) houseId: string,
+           @Query('de', DataDoDia) de: string, @Query('ate', DataDoDia) ate: string) {
+    return this.meds.metricas(user, houseId, de, ate);
+  }
+
+  @Post('stock/report/export')
+  exportarArmario(@CurrentUser() user: AuthenticatedUser, @Body(CorpoConferido) body: any) {
+    return this.meds.exportarArmario(user, body ?? {});
+  }
+
+  @Post('purchases/export')
+  exportarCompras(@CurrentUser() user: AuthenticatedUser, @Body(CorpoConferido) body: any) {
+    return this.meds.exportarCompras(user, body ?? {});
+  }
+
   @Post('stock/:id/flag-low')
   flagLow(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
           @Body() body: { baixo: boolean }) {

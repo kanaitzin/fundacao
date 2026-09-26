@@ -23,6 +23,7 @@
     "medication_protocol",
     "medication_authorization",
     "medication_purchase",
+    "medication_purchase_item",
     "prescription_document",
     "family_stay_medication",
     "medication_protocol_change",

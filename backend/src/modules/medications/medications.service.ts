@@ -11,6 +11,20 @@ import { DocumentosService } from '../../kernel/documentos/documentos.service';
 import { Folha, diaBR, cargoNoDocumento } from '../../kernel/documentos/folha';
 import { ArquivosService } from '../../kernel/arquivos/arquivos.service';
 import { folhaDaGrade } from './grade-folha';
+import { cnpjConfere, formatarCnpj, normalizarCnpj } from '../../kernel/common/cnpj';
+
+/** De onde veio o remédio que entrou no armário (fase 161). */
+export const ORIGENS_DO_REMEDIO: Record<string, string> = {
+  compra: 'Compra', doacao: 'Doação', farmacia_publica: 'Farmácia pública (SUS)',
+  familia: 'Trazido pela família', hospital: 'Hospital', outro: 'Outro',
+};
+/** As saídas do armário que não são dose: cada uma com o seu nome e motivo. */
+export const SAIDAS_DO_ARMARIO: Record<string, string> = {
+  descarte: 'Descarte (vencido ou impróprio)', perda: 'Perda (quebrou, caiu, sumiu)',
+  devolucao: 'Devolução (à farmácia, à família ou ao hospital)',
+};
+/** Quem lê as métricas e o relatório do armário — o mesmo alcance das compras. */
+const LE_O_ARMARIO = ['enfermagem', 'equipe_tecnica', 'lider_diurno', 'coordenador', 'gestor_geral'];
 
 /** Estados que exigem observação obrigatória (§11.4). */
 const EXIGEM_NOTA = new Set([
@@ -799,7 +813,7 @@ export class MedicationsService {
         throw new NotFoundException('Este item do armário não foi encontrado — ou está fora do seu alcance.');
       }
       const { rows } = await c.query(
-        `SELECT m.id, m.kind, m.quantity, m.reason, m.at,
+        `SELECT m.id, m.kind, m.quantity, m.reason, m.at, m.lot, m.lot_expires_on::text AS lot_exp, m.origin,
                 app_user_display_name(m.by_user) AS por
            FROM medication_stock_movement m
           WHERE m.stock_id = $1
@@ -815,6 +829,8 @@ export class MedicationsService {
         linhas: rows.map((m) => ({
           id: m.id, tipo: m.kind, quantidade: Number(m.quantity),
           motivo: m.reason, quando: m.at, por: m.por,
+          lote: m.lot, validadeDoLote: m.lot_exp,
+          origem: m.origin ? ORIGENS_DO_REMEDIO[m.origin] ?? m.origin : null,
         })),
       };
     });
@@ -845,6 +861,12 @@ export class MedicationsService {
           // pessoa, não calculado: só a equipe sabe o que é pouco para cada caso.
           validadeProxima: dias !== null && dias <= 30,
           estoqueBaixo: r.low_flag,
+          /* SALDO NEGATIVO (fase 161, decisão de 26/09): a dose nunca é
+             bloqueada, e o número conta a verdade. Negativo quer dizer que saiu
+             mais do que o registrado — a caixa que chegou e ninguém lançou. */
+          saldoNegativo: Number(r.quantity) < 0,
+          aviso: Number(r.quantity) < 0
+            ? 'Saiu mais do que havia registrado — conferir o armário e fazer a contagem.' : null,
           atualizadoEm: r.updated_at,
         };
       });
@@ -880,6 +902,7 @@ export class MedicationsService {
     tipo?: 'entrada' | 'contagem';
     houseId: string; medicamento: string; quantidade: number; unidade?: string;
     validade?: string; personId?: string; motivo?: string;
+    lote?: string; origem?: string;
   }) {
     /* alcance:saude — quem movimenta o armário. Conferido contra `alcance.ts`. */
     if (!['enfermagem', 'equipe_tecnica', 'coordenador', 'gestor_geral'].includes(user.role)) {
@@ -899,6 +922,13 @@ export class MedicationsService {
       throw new BadRequestException('Entrada de zero não é entrada.');
     }
     const motivo = (input.motivo ?? '').trim();
+    /* O lote e a origem (fase 161): só na entrada, e só se quem lança sabe. */
+    const origem = tipo === 'entrada' && input.origem ? String(input.origem) : null;
+    if (origem && !ORIGENS_DO_REMEDIO[origem]) {
+      throw new BadRequestException(
+        `De onde veio o remédio: ${Object.values(ORIGENS_DO_REMEDIO).join(', ')}.`);
+    }
+    const lote = tipo === 'entrada' ? (String(input.lote ?? '').trim() || null) : null;
     if (tipo === 'contagem' && motivo.length < 3) {
       throw new BadRequestException('A contagem exige motivo: o que foi conferido, e por quê.');
     }
@@ -937,9 +967,11 @@ export class MedicationsService {
       // conferência encontrou. Nunca o total do armário.
       const delta = tipo === 'entrada' ? quantidade : depois - anterior;
       await c.query(
-        `INSERT INTO medication_stock_movement (stock_id, kind, quantity, reason, by_user)
-         VALUES ($1,$2,$3,$4,$5)`,
-        [s.id, tipo === 'entrada' ? 'entrada' : 'ajuste', delta, motivo || null, user.id]);
+        `INSERT INTO medication_stock_movement (stock_id, kind, quantity, reason, by_user,
+                                                lot, lot_expires_on, origin)
+         VALUES ($1,$2,$3,$4,$5,$6,$7::date,$8)`,
+        [s.id, tipo === 'entrada' ? 'entrada' : 'ajuste', delta, motivo || null, user.id,
+         lote, tipo === 'entrada' ? (input.validade ?? null) : null, origem]);
       return { id: s.id as string, anterior, depois, delta };
     });
 
@@ -1184,6 +1216,11 @@ export class MedicationsService {
         totalCentavos: r.total_cents, nota: r.nota, observacao: r.observacao,
         temAnexo: r.tem_anexo === true, nomeDoAnexo: r.nome_do_anexo,
         compradoPor: r.comprado_por,
+        cnpj: r.cnpj ? formatarCnpj(r.cnpj) : null,
+        itensDaNota: (r.itens_nf ?? []).map((i: any) => ({
+          medicamento: i.medicamento, quantidade: Number(i.quantidade), unidade: i.unidade,
+          valorUnitarioCentavos: i.valorUnitarioCentavos, lote: i.lote, validade: i.validade,
+        })),
       }));
       return {
         linhas,
@@ -1202,32 +1239,84 @@ export class MedicationsService {
    * vezes ainda vai atrás da nota.
    */
   async registrarCompra(user: AuthenticatedUser, input: {
-    houseId: string; em: string; itens: string; fornecedor?: string;
+    houseId: string; em: string; itens?: string; fornecedor?: string; cnpj?: string;
     totalCentavos?: number | null; nota?: string; observacao?: string;
     anexoRef?: string; anexoNome?: string; conteudo?: string;
+    itensDaNota?: { medicamento?: string; quantidade?: number; unidade?: string;
+                    valorUnitarioCentavos?: number | null; lote?: string; validade?: string }[];
   }) {
+    /* O CNPJ, conferido pelos dígitos: é ele que, com o número da nota, impede
+       a mesma nota de entrar duas vezes na prestação de contas. */
+    let cnpj: string | null = null;
+    if (input.cnpj != null && String(input.cnpj).trim() !== '') {
+      cnpj = normalizarCnpj(String(input.cnpj));
+      if (!cnpjConfere(cnpj)) {
+        throw new BadRequestException('Este CNPJ não confere — os dígitos verificadores não batem. Confira na nota.');
+      }
+    }
+    if (input.totalCentavos != null
+        && (!Number.isInteger(Number(input.totalCentavos)) || Number(input.totalCentavos) < 0)) {
+      throw new BadRequestException('O total da nota vem em centavos, sem sinal (ex.: 4590 para R$ 45,90).');
+    }
+    const itens = Array.isArray(input.itensDaNota) ? input.itensDaNota : [];
+    for (const [n, it] of itens.entries()) {
+      const onde = `Item ${n + 1} da nota`;
+      if (String(it?.medicamento ?? '').trim().length < 2) {
+        throw new BadRequestException(`${onde}: escreva o nome do remédio.`);
+      }
+      if (!(Number(it.quantidade) > 0)) throw new BadRequestException(`${onde}: a quantidade é maior que zero.`);
+      if (it.valorUnitarioCentavos != null
+          && (!Number.isInteger(Number(it.valorUnitarioCentavos)) || Number(it.valorUnitarioCentavos) < 0)) {
+        throw new BadRequestException(`${onde}: o valor unitário vem em centavos, sem sinal.`);
+      }
+      if (it.validade && (!/^\d{4}-\d{2}-\d{2}$/.test(it.validade) || Number.isNaN(Date.parse(`${it.validade}T12:00:00Z`)))) {
+        throw new BadRequestException(`${onde}: a validade precisa vir como 2026-09-26.`);
+      }
+    }
     try {
       const guardado = await this.arquivos.guardar(input.conteudo);
-      const id = await this.db.asUser(user.id, async (c) => {
+      const r = await this.db.asUser(user.id, async (c) => {
         const { rows: [row] } = await c.query(
-          `SELECT * FROM app_registrar_compra_medicamento(
-             $1,$2::date,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
-          [input.houseId, input.em, input.itens, input.fornecedor ?? null,
+          `SELECT * FROM app_registrar_nota_de_compra(
+             $1,$2::date,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15::jsonb)`,
+          [input.houseId, input.em, input.itens ?? '', input.fornecedor ?? null, cnpj,
            input.totalCentavos ?? null, input.nota ?? null, input.observacao ?? null,
            input.anexoRef ?? null,
            guardado ? (input.anexoNome || 'Nota fiscal') : (input.anexoNome ?? null),
            guardado?.chave ?? null, guardado?.mime ?? null,
-           guardado?.tamanho ?? null, guardado?.sha256 ?? null]);
-        return row.compra_id as string;
+           guardado?.tamanho ?? null, guardado?.sha256 ?? null,
+           JSON.stringify(itens.map((it) => ({
+             medicamento: String(it.medicamento).trim(), quantidade: Number(it.quantidade),
+             unidade: it.unidade ?? null, valorUnitarioCentavos: it.valorUnitarioCentavos ?? null,
+             lote: it.lote ?? null, validade: it.validade || null })))]);
+        return row as { compra_id: string; total_dos_itens: number | null };
       });
       await this.audit.log({
         action: 'medication.purchase', actorId: user.id, institutionId: user.institutionId,
-        houseId: input.houseId, entity: 'medication_purchase', entityId: id,
-        detail: { forma: guardado ? 'arquivo' : (input.anexoRef ? 'referencia' : 'sem_papel') },
+        houseId: input.houseId, entity: 'medication_purchase', entityId: r.compra_id,
+        detail: { forma: guardado ? 'arquivo' : (input.anexoRef ? 'referencia' : 'sem_papel'),
+                  itens: itens.length },
       });
-      return { id };
+      /* A soma dos itens não é o total da nota quando há frete ou desconto —
+         por isso não recusa: diz, e quem lançou confere. */
+      const soma = r.total_dos_itens;
+      const total = input.totalCentavos ?? null;
+      return {
+        id: r.compra_id, totalDosItensCentavos: soma,
+        aviso: soma != null && total != null && soma !== total
+          ? `A soma dos itens dá ${reais(soma)} e o total da nota é ${reais(total)}. Se há frete ou `
+            + 'desconto, está certo; senão, confira a nota.'
+          : null,
+      };
     } catch (e: any) {
       const m = String(e?.message ?? '');
+      if (m.includes('nota_repetida:')) {
+        throw new ConflictException(`Nota repetida: ${m.split('nota_repetida:')[1].trim()} `
+          + 'O mesmo CNPJ e o mesmo número não entram duas vezes — dobraria o gasto da prestação de contas.');
+      }
+      if (e?.code === '23505' && m.includes('uq_nota_da_casa')) {
+        throw new ConflictException('Nota repetida: o mesmo CNPJ e o mesmo número já foram lançados nesta casa.');
+      }
       if (m.includes('itens_obrigatorios')) {
         throw new BadRequestException(
           'Escreva o que foi comprado. Uma nota sem itens não presta contas de nada.');
@@ -1236,8 +1325,264 @@ export class MedicationsService {
         throw new ForbiddenException(
           'Registram compra a Enfermagem, a equipe técnica, o líder e a coordenação.');
       }
+      if (m.includes('casa_fora_de_escopo')) {
+        throw new NotFoundException('Unidade não encontrada — ou fora do seu alcance.');
+      }
       throw e;
     }
+  }
+
+  /* ---------------- O armário: saída que não é dose, métricas e relatórios (fase 161) ---------------- */
+
+  /**
+   * DESCARTE, PERDA E DEVOLUÇÃO — cada uma com o seu nome e o seu motivo.
+   *
+   * Até aqui o único jeito de tirar remédio do armário sem ser dose era a
+   * CONTAGEM, que grava um "ajuste" sem dizer o que houve. O frasco que quebrou
+   * e o vencido que foi para o descarte são coisas diferentes, e a prestação de
+   * contas pergunta por elas separadamente.
+   *
+   * Não tira mais do que há: descartar o que não está na gaveta é o registro
+   * que depois não fecha. Quem acha diferença faz a contagem antes.
+   */
+  async saidaDoArmario(user: AuthenticatedUser, stockId: string, input: {
+    tipo?: string; quantidade?: number; motivo?: string;
+  }) {
+    if (!['enfermagem', 'equipe_tecnica', 'coordenador', 'gestor_geral'].includes(user.role)) {
+      throw new ForbiddenException('Sem permissão para movimentar estoque.');
+    }
+    const tipo = String(input.tipo ?? '');
+    if (!SAIDAS_DO_ARMARIO[tipo]) {
+      throw new BadRequestException(`Diga que saída é: ${Object.values(SAIDAS_DO_ARMARIO).join('; ')}.`);
+    }
+    const quantidade = Number(input.quantidade);
+    if (!Number.isFinite(quantidade) || quantidade <= 0) {
+      throw new BadRequestException('A quantidade que saiu é maior que zero.');
+    }
+    const motivo = String(input.motivo ?? '').trim();
+    if (motivo.length < 10) {
+      throw new BadRequestException('Escreva o motivo (pelo menos 10 caracteres): é ele que a prestação de contas lê.');
+    }
+    const r = await this.db.asUser(user.id, async (c) => {
+      const { rows: [s] } = await c.query(
+        `SELECT id, house_id, medication, quantity FROM medication_stock WHERE id = $1 FOR UPDATE`, [stockId]);
+      if (!s) throw new NotFoundException('Item do estoque não encontrado — ou fora do seu alcance.');
+      if (Number(s.quantity) < quantidade) {
+        throw new BadRequestException(`O armário registra ${Number(s.quantity)} e a saída é de ${quantidade}. `
+          + 'Faça a contagem antes — ela corrige o saldo com o motivo.');
+      }
+      const { rowCount } = await c.query(
+        `UPDATE medication_stock SET quantity = quantity - $2, updated_at = now() WHERE id = $1`,
+        [stockId, quantidade]);
+      if (!rowCount) throw new ForbiddenException('Sem permissão para movimentar estoque.');
+      await c.query(
+        `INSERT INTO medication_stock_movement (stock_id, kind, quantity, reason, by_user)
+         VALUES ($1,$2,$3,$4,$5)`, [stockId, tipo, quantidade, motivo, user.id]);
+      return { casa: s.house_id as string, medicamento: s.medication as string,
+               depois: Number(s.quantity) - quantidade };
+    });
+    await this.audit.log({
+      /* Montada: as três estão em `ACOES_MONTADAS`, e o conferidor cobra a frase. */
+      action: `stock.${tipo}`, actorId: user.id, houseId: r.casa,
+      entity: 'medication_stock', entityId: stockId,
+      detail: { medicamento: r.medicamento, quantidade, depois: r.depois },
+    });
+    return { ok: true, quantidade: r.depois,
+             aviso: `${SAIDAS_DO_ARMARIO[tipo].split(' (')[0]} registrada, com o motivo. O armário fica com ${r.depois}.` };
+  }
+
+  /**
+   * AS MÉTRICAS DO REMÉDIO, DA CASA, NUM PERÍODO.
+   *
+   * Tudo por CASA e por REMÉDIO — nunca por criança nem por quem deu (§7 e a
+   * decisão de 26/09: nenhuma comparação entre crianças; somar dose por
+   * educador é medir gente). A lista por remédio sai em ordem ALFABÉTICA.
+   */
+  async metricas(user: AuthenticatedUser, houseId: string, de: string, ate: string) {
+    if (!LE_O_ARMARIO.includes(user.role)) {
+      throw new ForbiddenException('As métricas do armário são da Enfermagem, da técnica, do líder e da coordenação.');
+    }
+    ate = ate || hojeNaInstituicao();
+    de = de || `${ate.slice(0, 7)}-01`;
+    if (de > ate) throw new BadRequestException('O início do período vem antes do fim.');
+    return this.db.asUser(user.id, async (c) => {
+      const { rows: [dentro] } = await c.query(`SELECT app_house_in_scope($1) AS ok`, [houseId]);
+      if (!dentro?.ok) throw new NotFoundException('Unidade não encontrada — ou fora do seu alcance.');
+      const { rows: doses } = await c.query(
+        `SELECT state::text AS estado, count(*)::int AS n FROM medication_administration
+          WHERE house_id = $1 AND (scheduled_at AT TIME ZONE app_fuso())::date BETWEEN $2::date AND $3::date
+          GROUP BY 1`, [houseId, de, ate]);
+      const { rows: movs } = await c.query(
+        `SELECT s.medication AS remedio, m.kind AS tipo, count(*)::int AS n, sum(abs(m.quantity))::float AS qtd
+           -- rls-join-ok (medication_stock): o movimento é do armário da própria casa, filtrado por ela.
+           FROM medication_stock_movement m JOIN medication_stock s ON s.id = m.stock_id
+          WHERE s.house_id = $1 AND (m.at AT TIME ZONE app_fuso())::date BETWEEN $2::date AND $3::date
+          GROUP BY 1, 2`, [houseId, de, ate]);
+      const { rows: [compras] } = await c.query(
+        `SELECT count(*)::int AS n, coalesce(sum(total_cents), 0)::int AS total,
+                count(*) FILTER (WHERE storage_ref IS NULL AND mime IS NULL)::int AS sem_papel
+           FROM medication_purchase WHERE house_id = $1 AND bought_on BETWEEN $2::date AND $3::date`,
+        [houseId, de, ate]);
+      const { rows: [armario] } = await c.query(
+        `SELECT count(*)::int AS itens,
+                count(*) FILTER (WHERE quantity < 0)::int AS negativos,
+                count(*) FILTER (WHERE low_flag)::int AS baixos,
+                count(*) FILTER (WHERE expires_on < app_hoje())::int AS vencidos,
+                count(*) FILTER (WHERE expires_on BETWEEN app_hoje() AND app_hoje() + 30)::int AS vencendo
+           FROM medication_stock WHERE house_id = $1`, [houseId]);
+      const porEstado = Object.fromEntries(doses.map((d: any) => [d.estado, d.n]));
+      const soma = (f: (k: string) => boolean) =>
+        doses.filter((d: any) => f(d.estado)).reduce((n: number, d: any) => n + d.n, 0);
+      const porRemedio = new Map<string, Record<string, number>>();
+      for (const m of movs) {
+        const x = porRemedio.get(m.remedio) ?? {};
+        x[m.tipo] = (x[m.tipo] ?? 0) + Number(m.qtd);
+        porRemedio.set(m.remedio, x);
+      }
+      return {
+        periodo: { de, ate },
+        doses: {
+          administradas: soma((e) => e.startsWith('administrado')),
+          comAtraso: porEstado.administrado_com_atraso ?? 0,
+          recusadas: soma((e) => e.startsWith('recus')),
+          naoAdministradas: soma((e) => e.startsWith('nao_administrado') || e === 'indisponivel'),
+          aguardando: porEstado.aguardando_confirmacao ?? 0,
+          porEstado,
+        },
+        armario: { ...armario },
+        compras: { notas: compras.n, totalCentavos: compras.total, semPapel: compras.sem_papel },
+        porRemedio: [...porRemedio.entries()]
+          .sort((a, b) => a[0].localeCompare(b[0], 'pt-BR'))
+          .map(([remedio, t]) => ({
+            remedio, entrada: t.entrada ?? 0, consumo: t.consumo ?? 0,
+            descarte: t.descarte ?? 0, perda: t.perda ?? 0, devolucao: t.devolucao ?? 0,
+            saidaComAcolhido: t.saida_com_acolhido ?? 0,
+          })),
+        aviso: 'Contam-se doses e caixas da CASA, nunca de uma criança nem de quem deu. Recusa é '
+          + 'direito da criança e informação clínica, não falha de ninguém.',
+      };
+    });
+  }
+
+  /** O relatório do armário num período — em Word, com finalidade. */
+  async exportarArmario(user: AuthenticatedUser, input: { houseId?: string; de?: string; ate?: string; finalidade?: string }) {
+    const { houseId, de, ate } = this.periodoDoCorpo(input);
+    const m = await this.metricas(user, houseId, de, ate);
+    const casa = await this.rotuloDaCasa(user, houseId);
+    const folha: Folha = {
+      titulo: 'Relatório do armário de medicamentos',
+      subtitulo: casa,
+      identificacao: [
+        { rotulo: 'Período', valor: `${diaBR(de)} a ${diaBR(ate)}` },
+        { rotulo: 'Doses administradas', valor: String(m.doses.administradas) },
+        { rotulo: 'Doses recusadas', valor: String(m.doses.recusadas) },
+        { rotulo: 'Doses não administradas', valor: String(m.doses.naoAdministradas) },
+        { rotulo: 'Itens no armário hoje', valor: String(m.armario.itens) },
+        { rotulo: 'Itens com saldo negativo (conferir)', valor: String(m.armario.negativos) },
+        { rotulo: 'Vencidos / vencendo em 30 dias', valor: `${m.armario.vencidos} / ${m.armario.vencendo}` },
+        { rotulo: 'Notas de compra no período', valor: `${m.compras.notas} — ${reais(m.compras.totalCentavos)}` },
+      ],
+      secoes: [{
+        titulo: 'Movimento por remédio, em ordem alfabética',
+        tabela: {
+          cabecalho: ['Remédio', 'Entrada', 'Consumo', 'Descarte', 'Perda', 'Devolução', 'Saiu com o acolhido'],
+          linhas: m.porRemedio.map((r) => [r.remedio, String(r.entrada), String(r.consumo), String(r.descarte),
+            String(r.perda), String(r.devolucao), String(r.saidaComAcolhido)]),
+        },
+        procedencia: 'Movimentos do armário registrados no sistema, com autor em cada linha.',
+      }],
+      geradoPor: user.fullName, cargo: cargoNoDocumento(user.role), assinatura: true,
+      ressalva: m.aviso,
+    };
+    return this.documentos.exportar(user, folha, {
+      entidade: 'medication_stock_report', houseId, finalidade: input.finalidade ?? '',
+    });
+  }
+
+  /**
+   * AS NOTAS DO PERÍODO — em Word, com os itens e a imagem de cada nota
+   * digitalizada. PDF não vira imagem: a legenda diz que está no sistema.
+   */
+  async exportarCompras(user: AuthenticatedUser, input: { houseId?: string; de?: string; ate?: string; finalidade?: string }) {
+    const { houseId, de, ate } = this.periodoDoCorpo(input);
+    if (!LE_O_ARMARIO.includes(user.role)) {
+      throw new ForbiddenException('As notas de compra são da Enfermagem, da técnica, do líder e da coordenação.');
+    }
+    const casa = await this.rotuloDaCasa(user, houseId);
+    const d = await this.compras(user, houseId, de, ate);
+    /* A chave do arquivo não é lida direto (a coluna nem é concedida): ela sai
+       pela MESMA função que abre a nota na tela, e que registra a abertura. A
+       nota embutida no Word é uma nota aberta, e fica escrito que foi. */
+    const imagens: NonNullable<Folha['secoes'][number]['imagens']> = [];
+    for (const l of d.linhas) {
+      if (!l.temAnexo) continue;
+      const a: any = await this.db.asUser(user.id, async (c) => {
+        const { rows: [row] } = await c.query(`SELECT * FROM app_abrir_nota_fiscal($1)`, [l.id]);
+        return row;
+      });
+      if (!a?.out_key) continue;
+      const bytes = /^image\/(png|jpeg)$/.test(a.out_mime ?? '') ? await this.arquivos.ler(a.out_key) : null;
+      imagens.push({
+        legenda: `Nota ${l.nota ?? 'sem número'} — ${l.fornecedor ?? 'fornecedor não informado'}, ${diaBR(String(l.em).slice(0, 10))}`,
+        foto: bytes ? { tipo: a.out_mime, dados: new Uint8Array(bytes) } : null,
+      });
+    }
+    const folha: Folha = {
+      titulo: 'Notas de compra de medicamentos',
+      subtitulo: casa,
+      identificacao: [
+        { rotulo: 'Período', valor: `${diaBR(de)} a ${diaBR(ate)}` },
+        { rotulo: 'Notas', valor: String(d.linhas.length) },
+        { rotulo: 'Gasto no período', valor: reais(d.gastoCentavos) },
+        ...(d.semAnexo ? [{ rotulo: 'Notas ainda sem o papel', valor: String(d.semAnexo) }] : []),
+      ],
+      secoes: [
+        {
+          titulo: 'As notas',
+          tabela: {
+            cabecalho: ['Data', 'Fornecedor', 'CNPJ', 'Nota', 'Total', 'Lançou'],
+            linhas: d.linhas.map((l) => [diaBR(String(l.em).slice(0, 10)), l.fornecedor ?? '—', l.cnpj ?? '—',
+              l.nota ?? '—', l.totalCentavos != null ? reais(l.totalCentavos) : '—', l.compradoPor ?? '—']),
+          },
+        },
+        {
+          titulo: 'Os itens de cada nota',
+          tabela: {
+            cabecalho: ['Nota', 'Remédio', 'Qtd.', 'Valor unit.', 'Lote', 'Validade'],
+            linhas: d.linhas.flatMap((l) => l.itensDaNota.map((i: any) => [l.nota ?? '—', i.medicamento,
+              `${i.quantidade} ${i.unidade}`, i.valorUnitarioCentavos != null ? reais(i.valorUnitarioCentavos) : '—',
+              i.lote ?? '—', i.validade ? diaBR(i.validade) : '—'])),
+          },
+        },
+        ...(imagens.length ? [{ titulo: 'As notas digitalizadas', imagens }] : []),
+      ],
+      geradoPor: user.fullName, cargo: cargoNoDocumento(user.role), assinatura: true,
+      ressalva: 'A soma é da CASA e do período — nunca por quem comprou.',
+    };
+    return this.documentos.exportar(user, folha, {
+      entidade: 'medication_purchase_report', houseId, finalidade: input.finalidade ?? '',
+    });
+  }
+
+  private periodoDoCorpo(input: { houseId?: string; de?: string; ate?: string }) {
+    const houseId = String(input.houseId ?? '');
+    if (!houseId) throw new BadRequestException('Diga de que casa é o relatório.');
+    const ate = input.ate || hojeNaInstituicao();
+    const de = input.de || `${ate.slice(0, 7)}-01`;
+    if (de > ate) throw new BadRequestException('O início do período vem antes do fim.');
+    return { houseId, de, ate };
+  }
+
+  private async rotuloDaCasa(user: AuthenticatedUser, houseId: string) {
+    const casa = await this.db.asUser(user.id, async (c) => {
+      const { rows: [e] } = await c.query(`SELECT app_house_in_scope($1) AS pode`, [houseId]);
+      if (!e?.pode) return null;
+      const { rows: [h] } = await c.query(
+        `SELECT app_house_label($1) AS code, app_house_name($1) AS name`, [houseId]);
+      return [h?.code, h?.name].filter(Boolean).join(' — ');
+    });
+    if (!casa) throw new NotFoundException('Unidade não encontrada — ou fora do seu alcance.');
+    return casa;
   }
 
   /** As receitas digitalizadas de uma prescrição. */
@@ -1571,4 +1916,9 @@ function mapDose(r: any) {
     desfechoQuandoNecessario: r.prn_outcome ?? null,
   };
 
+}
+
+/** Centavos em reais, como a nota escreve. */
+function reais(centavos: number): string {
+  return (centavos / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }

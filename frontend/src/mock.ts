@@ -1383,12 +1383,23 @@ const COMPRAS_MED: {
   id: string; em: string; itens: string; fornecedor: string | null;
   totalCentavos: number | null; nota: string | null; observacao: string | null;
   temAnexo: boolean; nomeDoAnexo: string | null; compradoPor: string;
+  /* Fase 161: o CNPJ e os itens da nota. */
+  cnpj?: string | null; itensDaNota?: { medicamento: string; quantidade: number; unidade: string;
+    valorUnitarioCentavos: number | null; lote: string | null; validade: string | null }[];
   /* As duas formas do papel (fase 108): guardado aqui, ou no Drive. */
   arquivo?: string | null; mime?: string | null; referencia?: string | null;
 }[] = [
   { id: 'cm1', em: new Date(Date.now() - 6 * 86400_000).toISOString().slice(0, 10),
     itens: 'Dipirona 500mg — 2 caixas; Amoxicilina suspensão — 1 frasco.',
     fornecedor: 'Farmácia Fictícia', totalCentavos: 8790, nota: '00123',
+    /* CNPJ de exemplo com dígitos válidos — não é de empresa nenhuma. */
+    cnpj: '11.222.333/0001-81',
+    itensDaNota: [
+      { medicamento: 'Amoxicilina (fictícia) 250 mg/5 mL', quantidade: 1, unidade: 'frasco',
+        valorUnitarioCentavos: 3790, lote: 'AMX2291', validade: '2027-01-31' },
+      { medicamento: 'Dipirona (fictícia) 500 mg', quantidade: 2, unidade: 'caixa',
+        valorUnitarioCentavos: 2500, lote: 'DP7710', validade: '2027-06-30' },
+    ],
     observacao: null, temAnexo: true, nomeDoAnexo: 'nota-00123.png',
     /* A primeira tem o papel GUARDADO: é ela que mostra o botão de olho. */
     arquivo: FOLHA_FICTICIA, mime: 'image/png', referencia: null,
@@ -2209,6 +2220,50 @@ interface ItemEstoque {
   personId: string | null; validade: string | null; estoqueBaixo: boolean;
   atualizadoEm: string;
 }
+/** Os vocabulários do armário — os mesmos de `medications.service.ts` (fase 161). */
+const ORIGENS_MOCK: Record<string, string> = {
+  compra: 'Compra', doacao: 'Doação', farmacia_publica: 'Farmácia pública (SUS)',
+  familia: 'Trazido pela família', hospital: 'Hospital', outro: 'Outro',
+};
+const SAIDAS_MOCK: Record<string, string> = {
+  descarte: 'Descarte (vencido ou impróprio)', perda: 'Perda (quebrou, caiu, sumiu)',
+  devolucao: 'Devolução (à farmácia, à família ou ao hospital)',
+};
+const reaisMock = (c: number) => (c / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+function cnpjConfereMock(c: string) {
+  if (c.length !== 14 || /^(\d)\1{13}$/.test(c)) return false;
+  const dv = (n: number) => {
+    const pesos = n === 12 ? [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2] : [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+    const r = pesos.reduce((t, p, i) => t + p * Number(c[i]), 0) % 11;
+    return r < 2 ? 0 : 11 - r;
+  };
+  return dv(12) === Number(c[12]) && dv(13) === Number(c[13]);
+}
+/** As métricas do armário, na forma de `medications.service.ts#metricas`. */
+function metricasDoArmario() {
+  const por = new Map<string, Record<string, number>>();
+  for (const i of ESTOQUE) {
+    const t: Record<string, number> = {};
+    for (const m of MOVIMENTOS[i.id] ?? []) t[m.tipo] = (t[m.tipo] ?? 0) + Math.abs(m.quantidade);
+    por.set(i.medicamento, t);
+  }
+  const hojeMs = new Date(`${HOJE}T12:00:00-03:00`).getTime();
+  const diasAte = (v: string | null) => (v ? (new Date(`${v}T12:00:00-03:00`).getTime() - hojeMs) / 86_400_000 : null);
+  return {
+    doses: { administradas: 38, comAtraso: 3, recusadas: 2, naoAdministradas: 1, aguardando: 0 },
+    armario: { itens: ESTOQUE.length, negativos: ESTOQUE.filter((i) => i.quantidade < 0).length,
+               baixos: ESTOQUE.filter((i) => i.estoqueBaixo).length,
+               vencidos: ESTOQUE.filter((i) => (diasAte(i.validade) ?? 1) < 0).length,
+               vencendo: ESTOQUE.filter((i) => { const d = diasAte(i.validade); return d !== null && d >= 0 && d <= 30; }).length },
+    compras: { notas: COMPRAS_MED.length, totalCentavos: COMPRAS_MED.reduce((n, c) => n + (c.totalCentavos ?? 0), 0),
+               semPapel: COMPRAS_MED.filter((c) => !c.temAnexo).length },
+    porRemedio: [...por.entries()].sort((a, z) => a[0].localeCompare(z[0], 'pt-BR')).map(([remedio, t]) => ({
+      remedio, entrada: t.entrada ?? 0, consumo: t.consumo ?? 0, descarte: t.descarte ?? 0,
+      perda: t.perda ?? 0, devolucao: t.devolucao ?? 0, saidaComAcolhido: t.saida_com_acolhido ?? 0 })),
+    aviso: 'Contam-se doses e caixas da CASA, nunca de uma criança nem de quem deu. Recusa é '
+      + 'direito da criança e informação clínica, não falha de ninguém.',
+  };
+}
 const ESTOQUE: ItemEstoque[] = [
   { id: 'e1', medicamento: 'Amoxicilina (fictícia) 250 mg/5 mL', unidade: 'frasco',
     quantidade: 2, personId: null, validade: '2027-01-31', estoqueBaixo: false,
@@ -2222,6 +2277,12 @@ const ESTOQUE: ItemEstoque[] = [
   { id: 'e4', medicamento: 'Insulina (fictícia) — caneta', unidade: 'caneta',
     quantidade: 3, personId: 'p11', validade: '2026-10-05', estoqueBaixo: false,
     atualizadoEm: emHoras(9, 25) },
+  /* O SALDO NEGATIVO (fase 161, §6.19): a dose nunca é bloqueada, e o frasco
+     que chegou e ninguém lançou aparece assim — o número conta a verdade, e o
+     aviso pede a contagem. Sem esta linha a entrega nasceria invisível. */
+  { id: 'e5', medicamento: 'Ibuprofeno (fictício) gotas', unidade: 'frasco',
+    quantidade: -1, personId: null, validade: '2027-03-31', estoqueBaixo: false,
+    atualizadoEm: emHoras(21, 10) },
 ];
 
 /**
@@ -2239,8 +2300,17 @@ const ESTOQUE: ItemEstoque[] = [
 interface MovimentoEstoque {
   id: string; tipo: string; quantidade: number; motivo: string | null;
   quando: string; por: string | null;
+  lote?: string | null; validadeDoLote?: string | null; origem?: string | null;
 }
 const MOVIMENTOS: Record<string, MovimentoEstoque[]> = {
+  e5: [
+    { id: 'mv7', tipo: 'consumo', quantidade: -1, motivo: 'Dose das 21:00 confirmada.',
+      quando: emHoras(21, 10), por: 'Educadora Fictícia' },
+    { id: 'mv8', tipo: 'consumo', quantidade: -1, motivo: 'Dose das 13:00 confirmada.',
+      quando: emHoras(13, 5), por: 'Educadora Fictícia' },
+    { id: 'mv9', tipo: 'entrada', quantidade: 1, motivo: null, origem: 'Doação', lote: 'IBU0042',
+      validadeDoLote: '2027-03-31', quando: emHoras(8, 0), por: 'Enfermeira Fictícia' },
+  ],
   e1: [
     { id: 'mv1', tipo: 'entrada', quantidade: 3, motivo: null,
       quando: emHoras(9, 15), por: 'Enfermeira Fictícia' },
@@ -7148,13 +7218,36 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       throw new ErroApi(403, 'Registram compra a Enfermagem, a equipe técnica, o líder '
         + 'e a coordenação.');
     }
-    if (String(b.itens ?? '').trim().length < 3) {
+    const itensNf = Array.isArray(b.itensDaNota) ? (b.itensDaNota as any[]) : [];
+    if (String(b.itens ?? '').trim().length < 3 && itensNf.length === 0) {
       throw new ErroApi(400, 'Escreva o que foi comprado. Uma nota sem itens não presta '
         + 'contas de nada.');
     }
+    const cnpj = String(b.cnpj ?? '').replace(/\D/g, '');
+    if (cnpj && !cnpjConfereMock(cnpj)) {
+      throw new ErroApi(400, 'Este CNPJ não confere — os dígitos verificadores não batem. Confira na nota.');
+    }
+    const cnpjFmt = cnpj ? `${cnpj.slice(0, 2)}.${cnpj.slice(2, 5)}.${cnpj.slice(5, 8)}/${cnpj.slice(8, 12)}-${cnpj.slice(12)}` : null;
+    const numero = String(b.nota ?? '').trim();
+    const repetida = cnpjFmt && numero
+      ? COMPRAS_MED.find((c) => c.cnpj === cnpjFmt && (c.nota ?? '').toUpperCase() === numero.toUpperCase()) : null;
+    if (repetida) {
+      throw new ErroApi(409, `Nota repetida: esta nota já foi lançada por ${repetida.compradoPor}. `
+        + 'O mesmo CNPJ e o mesmo número não entram duas vezes — dobraria o gasto da prestação de contas.');
+    }
+    const soma = itensNf.reduce((n, i) => n + (i.valorUnitarioCentavos != null
+      ? Math.round(Number(i.quantidade) * Number(i.valorUnitarioCentavos)) : 0), 0);
+    const temValor = itensNf.some((i) => i.valorUnitarioCentavos != null);
     COMPRAS_MED.unshift({
-      id: `cm${COMPRAS_MED.length + 1}`, em: b.em, itens: String(b.itens).trim(),
-      fornecedor: b.fornecedor || null, totalCentavos: b.totalCentavos ?? null,
+      cnpj: cnpjFmt,
+      itensDaNota: itensNf.map((i) => ({ medicamento: String(i.medicamento), quantidade: Number(i.quantidade),
+        unidade: i.unidade ?? 'unidade', valorUnitarioCentavos: i.valorUnitarioCentavos ?? null,
+        lote: i.lote ?? null, validade: i.validade ?? null })),
+      id: `cm${COMPRAS_MED.length + 1}`, em: b.em,
+      itens: String(b.itens ?? '').trim()
+        || itensNf.map((i) => `${i.quantidade} × ${i.medicamento}`).join('; '),
+      fornecedor: b.fornecedor || null,
+      totalCentavos: b.totalCentavos ?? (temValor ? soma : null),
       nota: b.nota || null, observacao: null,
       temAnexo: !!(b.anexoRef || b.conteudo), nomeDoAnexo: b.anexoNome ?? null,
       arquivo: String(b.conteudo ?? '').trim() || null,
@@ -7162,7 +7255,11 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       referencia: b.conteudo ? null : (b.anexoRef ?? null),
       compradoPor: eu.fullName,
     });
-    return { id: `cm${COMPRAS_MED.length}` };
+    const total = b.totalCentavos ?? null;
+    return { id: `cm${COMPRAS_MED.length}`, totalDosItensCentavos: temValor ? soma : null,
+             aviso: temValor && total != null && soma !== total
+               ? `A soma dos itens dá ${reaisMock(soma)} e o total da nota é ${reaisMock(total)}. Se há frete `
+                 + 'ou desconto, está certo; senão, confira a nota.' : null };
   }
   /* Abrir a receita: as duas formas, como o servidor (fase 108). */
   if (seg[0] === 'medications' && seg[1] === 'prescriptions' && seg[2] === 'documents'
@@ -8834,6 +8931,9 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         validade: i.validade, diasParaVencer: dias,
         validadeProxima: dias !== null && dias <= 30,
         estoqueBaixo: i.estoqueBaixo, atualizadoEm: i.atualizadoEm,
+        saldoNegativo: i.quantidade < 0,
+        aviso: i.quantidade < 0
+          ? 'Saiu mais do que havia registrado — conferir o armário e fazer a contagem.' : null,
       };
     });
   }
@@ -8862,6 +8962,10 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     if (tipo === 'contagem' && motivo.length < 3) {
       return new Recusa(400, 'A contagem exige motivo: o que foi conferido, e por quê.');
     }
+    const origem = tipo === 'entrada' && b.origem ? String(b.origem) : null;
+    if (origem && !ORIGENS_MOCK[origem]) {
+      return new Recusa(400, `De onde veio o remédio: ${Object.values(ORIGENS_MOCK).join(', ')}.`);
+    }
     const nome = String(b.medicamento ?? '');
     const pid = (b.personId as string | undefined) ?? null;
     let item = ESTOQUE.find((x) => x.medicamento === nome && x.personId === pid);
@@ -8887,7 +8991,10 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     MOVIMENTOS[item.id] = [
       { id: uid(), tipo: tipo === 'entrada' ? 'entrada' : 'ajuste',
         quantidade: diferenca, motivo: motivo || null,
-        quando: new Date().toISOString(), por: eu.fullName },
+        quando: new Date().toISOString(), por: eu.fullName,
+        origem: origem ? ORIGENS_MOCK[origem] : null,
+        lote: tipo === 'entrada' ? (String(b.lote ?? '').trim() || null) : null,
+        validadeDoLote: tipo === 'entrada' ? ((b.validade as string | undefined) ?? null) : null },
       ...(MOVIMENTOS[item.id] ?? []),
     ];
     return {
@@ -8919,6 +9026,77 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       cortado: linhas.length >= 200,
       linhas: linhas.slice(0, 200),
     };
+  }
+
+  /** `POST /medications/stock/:id/saida` — descarte, perda e devolução (fase 161). */
+  if (seg[0] === 'medications' && seg[1] === 'stock' && seg[3] === 'saida' && metodo === 'POST') {
+    if (!['enfermagem', 'equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403, 'Sem permissão para movimentar estoque.');
+    }
+    const tipo = String(b.tipo ?? '');
+    if (!SAIDAS_MOCK[tipo]) {
+      return new Recusa(400, `Diga que saída é: ${Object.values(SAIDAS_MOCK).join('; ')}.`);
+    }
+    const qtd = Number(b.quantidade);
+    if (!Number.isFinite(qtd) || qtd <= 0) return new Recusa(400, 'A quantidade que saiu é maior que zero.');
+    const motivo = String(b.motivo ?? '').trim();
+    if (motivo.length < 10) {
+      return new Recusa(400, 'Escreva o motivo (pelo menos 10 caracteres): é ele que a prestação de contas lê.');
+    }
+    const item = ESTOQUE.find((x) => x.id === seg[2]);
+    if (!item) return new Recusa(404, 'Item do estoque não encontrado — ou fora do seu alcance.');
+    if (item.quantidade < qtd) {
+      return new Recusa(400, `O armário registra ${item.quantidade} e a saída é de ${qtd}. `
+        + 'Faça a contagem antes — ela corrige o saldo com o motivo.');
+    }
+    item.quantidade -= qtd; item.atualizadoEm = new Date().toISOString();
+    MOVIMENTOS[item.id] = [{ id: uid(), tipo, quantidade: -qtd, motivo, quando: new Date().toISOString(),
+                             por: eu.fullName }, ...(MOVIMENTOS[item.id] ?? [])];
+    return { ok: true, quantidade: item.quantidade,
+             aviso: `${SAIDAS_MOCK[tipo].split(' (')[0]} registrada, com o motivo. O armário fica com ${item.quantidade}.` };
+  }
+
+  /** `GET /medications/metrics` — da CASA, por remédio em ordem alfabética (fase 161). */
+  if (rota === '/medications/metrics' && metodo === 'GET') {
+    if (!['enfermagem', 'equipe_tecnica', 'lider_diurno', 'coordenador', 'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403, 'As métricas do armário são da Enfermagem, da técnica, do líder e da coordenação.');
+    }
+    return metricasDoArmario();
+  }
+  if ((rota === '/medications/stock/report/export' || rota === '/medications/purchases/export')
+      && metodo === 'POST') {
+    if (!['enfermagem', 'equipe_tecnica', 'lider_diurno', 'coordenador', 'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403, 'Os relatórios do armário são da Enfermagem, da técnica, do líder e da coordenação.');
+    }
+    if (String(b.finalidade ?? '').trim().length < 10) {
+      return new Recusa(400, 'Descreva a finalidade da exportação (mínimo 10 caracteres).');
+    }
+    const m = metricasDoArmario();
+    const armario = rota.includes('stock');
+    const f = armario ? {
+      titulo: 'Relatório do armário de medicamentos', subtitulo: `${CASA.code} — ${CASA.name}`,
+      identificacao: [
+        { rotulo: 'Doses administradas', valor: String(m.doses.administradas) },
+        { rotulo: 'Itens com saldo negativo (conferir)', valor: String(m.armario.negativos) },
+      ],
+      secoes: [{ titulo: 'Movimento por remédio, em ordem alfabética', tabela: {
+        cabecalho: ['Remédio', 'Entrada', 'Consumo', 'Descarte', 'Perda', 'Devolução', 'Saiu com o acolhido'],
+        linhas: m.porRemedio.map((r) => [r.remedio, String(r.entrada), String(r.consumo), String(r.descarte),
+          String(r.perda), String(r.devolucao), String(r.saidaComAcolhido)]) } }],
+      geradoPor: eu.fullName, cargo: cargoNoDocumento(eu.role), assinatura: true, ressalva: m.aviso,
+    } : {
+      titulo: 'Notas de compra de medicamentos', subtitulo: `${CASA.code} — ${CASA.name}`,
+      identificacao: [{ rotulo: 'Notas', valor: String(COMPRAS_MED.length) }],
+      secoes: [{ titulo: 'As notas', tabela: {
+        cabecalho: ['Data', 'Fornecedor', 'CNPJ', 'Nota', 'Total'],
+        linhas: COMPRAS_MED.map((c) => [c.em.split('-').reverse().join('/'), c.fornecedor ?? '—',
+          c.cnpj ?? '—', c.nota ?? '—', c.totalCentavos != null ? reaisMock(c.totalCentavos) : '—']) } }],
+      geradoPor: eu.fullName, cargo: cargoNoDocumento(eu.role), assinatura: true,
+      ressalva: 'A soma é da CASA e do período — nunca por quem comprou.',
+    };
+    return { nomeArquivo: nomeDaFolha(f.titulo), conteudoBase64: gerarDocx(f as any, timbreEmBytes()),
+             aviso: 'Documento gerado em Word, com timbre. Exportação registrada com o seu nome, a finalidade '
+               + 'e o horário. (No protótipo a imagem da nota não entra no arquivo.)' };
   }
 
   /** `POST /medications/stock/:id/flag-low` — estoque baixo é sinalizado à mão (§11.6). */

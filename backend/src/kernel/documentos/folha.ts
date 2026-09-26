@@ -45,6 +45,13 @@ export interface SecaoDaFolha {
      */
     fotos?: (FotoNaCelula | null)[][];
   };
+  /**
+   * Imagens inteiras, uma abaixo da outra, com legenda (fase 161: a nota
+   * fiscal digitalizada; 163: a internação). Só o arquivo exportado leva a
+   * imagem — a tela mostra a legenda. PDF não entra como imagem: a legenda diz
+   * que o arquivo está no sistema.
+   */
+  imagens?: { legenda: string; foto: FotoNaCelula | null }[];
   /** Campo que só uma pessoa preenche: sai com a marca e o espaço em branco. */
   aPreencher?: string;
   /** De onde a informação veio. Sai em letra menor, abaixo da seção. */

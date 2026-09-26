@@ -532,9 +532,12 @@ cobrar('o armário tem as duas ações', /Chegou remédio/.test(estoque) && /Con
  * ------------------------------------------------------------------------
  */
 const quantidadeDe = async (medicamento) => {
-  const texto = await conteudo();
-  const linha = texto.split('\n').findIndex((l) => l.includes(medicamento));
-  const m = /(\d+)\s+(frasco|comprimido)/.exec(texto.split('\n')[linha + 1] ?? '');
+  /* Dentro da LISTA do armário: desde a fase 161 o nome do remédio aparece
+     antes, nos números do mês, e a primeira linha com ele não é a do saldo. */
+  const linhas = (await conteudo()).split('\n');
+  const inicio = linhas.findIndex((l) => /Armário de medicamentos da casa/i.test(l));
+  const linha = linhas.findIndex((l, i) => i > inicio && l.includes(medicamento));
+  const m = /(-?\d+)\s+(frasco|comprimido)/.exec(linhas[linha + 1] ?? '');
   return m ? Number(m[1]) : null;
 };
 
@@ -2687,6 +2690,51 @@ cobrar('o perfil tem as visitas dela', /visitas/i.test(perfilVisitas) && /visita
 cobrar('os visitantes vêm por nome, com o número ao lado', /Quem visitou, por nome/i.test(perfilVisitas));
 cobrar('e a frase de que número não é avaliação da família', /não é avaliação da família/.test(perfilVisitas));
 cobrar('nenhuma exceção no portão', erros.length === 0, erros[0]);
+
+// ====================================================== O armário (fase 161)
+/*
+ * O SALDO CONTA A VERDADE, E A NOTA PRESTA CONTAS. O que se cobra: o item com
+ * saldo negativo aparece com o aviso de conferir; descarte, perda e devolução
+ * pedem motivo; os números do mês são da CASA, por remédio em ordem alfabética;
+ * e a nota repetida é recusada dizendo quem já lançou.
+ */
+await fechar();
+console.log('\n💊 O armário e a nota fiscal (fase 161)');
+await trocar('enfermagem');
+erros.length = 0;
+cobrar('a Enfermagem abre a Saúde', await doMais('Saúde'));
+await clicar(/^Estoque$/, 'main.conteudo [role="tablist"], main.conteudo');
+const armario = await conteudo();
+cobrar('o item com saldo negativo pede a contagem', /Saldo negativo — conferir/i.test(armario)
+  && /Saiu mais do que havia registrado/.test(armario));
+cobrar('os números do mês são da casa, e dizem que não são de criança',
+  /O armário no mês/i.test(armario) && /nunca de uma criança/.test(armario));
+cobrar('a saída que não é dose tem porta', await clicar(/^Descarte, perda ou devolução$/));
+const folhaSaida = pg.locator('.overlay .sheet');
+const botaoSaida = folhaSaida.getByRole('button', { name: /^Registrar a saída$/ });
+await folhaSaida.locator('#ts-tipo').selectOption('perda');
+await folhaSaida.locator('#ts-qtd').fill('1');
+await folhaSaida.locator('#ts-mot').fill('caiu');
+cobrar('sem motivo de verdade, não registra', await botaoSaida.isDisabled());
+await folhaSaida.locator('#ts-mot').fill('A cartela caiu na pia e molhou.');
+await botaoSaida.click();
+await pg.waitForTimeout(900);
+cobrar('a perda fica registrada', /Perda registrada/.test(await conteudo()));
+await fechar();
+await clicar(/^Compras$/, 'main.conteudo [role="tablist"], main.conteudo');
+cobrar('as notas têm o relatório em Word', /Gerar as notas do mês em Word/.test(await conteudo()));
+await clicar(/Registrar compra/);
+const folhaNota = pg.locator('.overlay .sheet');
+await folhaNota.getByRole('button', { name: 'Acrescentar item da nota' }).click();
+await folhaNota.locator('#cpi-med-0').fill('Dipirona (fictícia)');
+await folhaNota.locator('#cpi-val-0').fill('12,50');
+await folhaNota.locator('#cp-cnpj').fill('11.222.333/0001-81');
+await folhaNota.locator('#cp-nota').fill('00123');
+await folhaNota.getByRole('button', { name: /^Registrar$/ }).click();
+await pg.waitForTimeout(800);
+cobrar('a nota repetida é recusada, dizendo quem já lançou',
+  /Nota repetida: esta nota já foi lançada por /.test((await folhaNota.innerText())));
+cobrar('nenhuma exceção no armário', erros.length === 0, erros[0]);
 
 await navegador.close();
 console.log(achados.length

@@ -154,7 +154,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 26/09/2026, fase 160
+### Onde estamos — 26/09/2026, fase 161
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -178,10 +178,11 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 158 | **24 leituras respondiam 200 VAZIO a quem é de fora** — o dossiê listando todo documento como faltando, a saúde "sem atendimento"; nada vazava, mas o vazio mentia. Conserto na porta: `@RegistroDaRota` + guarda `RegistroNoAlcance`, em 39 leituras, com cobrança estática |
 | 159 | **cada casa define o horário dos seus turnos** (pedido de 26/09): coordenação, Líder Diurno e técnica dizem o DIURNO, o noturno é o resto; vale a partir de amanhã; `house_shift_hours` só cresce; a regra (`app_turno_de` etc.) pergunta PELA CASA e as versões sem casa saíram; cartão na Escala |
 | 160 | **quem visitou, e a portaria no sistema** (decisões de 26/09): cargo `portaria` com login mínimo — `app_house_in_scope` diz NÃO a ela e ela vê só pelo portão; `visit`/`visit_correction`; fora do combinado RECUSA, exceção com motivo só de coordenação/técnica/líder; visitas no perfil DA criança, visitantes por nome; RG, nome social e validade no visitante |
+| 161 | **o armário diz a verdade** (decisões de 26/09): saldo NEGATIVO com aviso (a dose nunca é bloqueada); lote, validade e origem na entrada; descarte/perda/devolução com motivo; nota com CNPJ e itens, SEPARADA do armário, repetida RECUSADA; métricas da casa por remédio; relatórios em Word com a imagem da nota; `mov_insert`/`stock_update` eram `WITH CHECK (true)` |
 
-**Medido no fim da 160:** 157 migrações, 119 tabelas, 107 suítes, 1024 testes, verdes nas
+**Medido no fim da 161:** 158 migrações, 120 tabelas, 108 suítes, 1039 testes, verdes nas
 DUAS condições de relógio; os sete ensaios de navegador verdes, com a portaria e o
-portão no percurso do `ensaio:uso`; 144 telas sem violação de WCAG 2.1 AA; nenhuma
+portão e o armário no percurso do `ensaio:uso`; 144 telas sem violação de WCAG 2.1 AA; nenhuma
 rota sem teste; nenhuma rota — escrita ou leitura — com 500; nenhum ouvinte
 falhando; nenhuma escrita da Casa 04 aceita sobre registro real da Casa 03.
 
@@ -210,8 +211,8 @@ data do dia em que o noturno começou** — substitui o 7h–19h preliminar (pen
   crianças"** — a contagem de uma criança existe só no perfil dela e nos
   relatórios filtrados por ela (vale para refeições e remédios na 161 e 162);
   nunca crianças lado a lado, nunca ordenadas por total. Visitantes por NOME.
-- **161** estoque (lote, origem, perda/devolução, sem negativo calado), nota fiscal
-  (CNPJ, itens com valor unitário, duplicidade), métricas e relatórios em DOCX;
+- ~~**161** armário e nota fiscal~~ ✅ feita. A folha do Word ganhou `imagens`
+  (tamanho lido do PNG/JPEG) — a 163 usa para a internação;
 - **162** cozinha: "Selecionar todos", editar pedido com histórico; métricas de refeições;
 - **163** câmera/galeria com prévia, tipo real do arquivo, DOCX da internação com
   imagens e páginas de PDF, "repetir escala do mês anterior" como rascunho, e o
