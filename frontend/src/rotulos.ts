@@ -17,6 +17,7 @@ export const ROTULO_CARGO: Record<string, string> = {
   lider_noturno_geral: 'Líder Noturno Geral',
   enfermagem: 'Enfermagem',
   cozinha: 'Cozinha',
+  portaria: 'Portaria',
 };
 
 /** O código cru só aparece quando o cargo é desconhecido — e aí ele é a pista. */

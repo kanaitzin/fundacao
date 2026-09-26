@@ -331,6 +331,8 @@ const USUARIOS: Record<string, { id: string; fullName: string; role: string; sen
   'lider.noturno@paodospobres.dev': { id: 'u8', fullName: 'Nélio Noturno (fictício)', role: 'lider_noturno_geral', senha: 'senha-dev-123' },
   'cozinha@paodospobres.dev': { id: 'u9', fullName: 'Cida da Cozinha (fictícia)', role: 'cozinha', senha: 'senha-dev-123' },
   'gestor@paodospobres.dev': { id: 'u11', fullName: 'Gilberto Gestor (fictício)', role: 'gestor_geral', senha: 'senha-dev-123' },
+  /* A portaria entra com login mínimo desde a fase 160 (decisão de 26/09). */
+  'portaria.ai3@paodospobres.dev': { id: 'u12', fullName: 'Paulo da Portaria (fictício)', role: 'portaria', senha: 'senha-dev-123' },
 };
 const EQUIPE_CASA = [
   { id: 'u1', nome: 'Mário Silva (fictício)', cargo: 'educador' },
@@ -591,6 +593,7 @@ const PESSOA_DO_CARGO: Record<string, { id: string; fullName: string; role: stri
   enfermagem: USUARIOS['enfermagem@paodospobres.dev'],
   lider_noturno_geral: USUARIOS['lider.noturno@paodospobres.dev'],
   cozinha: USUARIOS['cozinha@paodospobres.dev'],
+  portaria: USUARIOS['portaria.ai3@paodospobres.dev'],
   gestor_geral: USUARIOS['gestor@paodospobres.dev'],
 };
 
@@ -835,6 +838,8 @@ const TIPOS_SETOR = [
     descricao: 'Perfil do acolhido, acompanhamentos e revisão técnica' },
   { code: 'cozinha', label: 'Cozinha', transversal: false,
     descricao: 'Somente o relatório de restrições alimentares' },
+  { code: 'portaria', label: 'Portaria', transversal: false,
+    descricao: 'Somente quem pode visitar hoje, e a entrada e a saída das visitas — sem acesso a perfil' },
   { code: 'enfermagem', label: 'Enfermagem', transversal: true,
     descricao: 'Saúde das oito casas' },
   { code: 'lider_noturno_geral', label: 'Líder Noturno Geral', transversal: true,
@@ -3978,6 +3983,110 @@ function folhaDaPortaria(eu: { fullName: string; role: string }) {
   };
 }
 
+/*
+ * AS VISITAS (fase 160) — quem visitou, e não só quem podia.
+ *
+ * Nascem com uma HISTÓRIA na primeira criança da lista (§6.19: dado que nasce
+ * vazio é tela que ninguém vê na demonstração) e com UMA visita aberta: a
+ * madrinha entrou há quarenta minutos por exceção — é o que mostra, na tela do
+ * portão, o botão da saída e a linha da exceção com o motivo.
+ */
+/** Quem registra visita — o mesmo que `app_registra_visita` (people/1592). */
+const REGISTRA_VISITA = ['portaria', 'educador', 'lider_diurno', 'lider_noturno_geral',
+  'equipe_tecnica', 'coordenador', 'gestor_geral'];
+/** Quem abre exceção e corrige — o mesmo que `app_abre_excecao_de_visita`. */
+const ABRE_EXCECAO = ['coordenador', 'equipe_tecnica', 'lider_diurno', 'lider_noturno_geral'];
+const VISITAS: { id: string; kidId: string; contatoId: string; documento: string; entrou: string;
+  saiu: string | null; por: string; saidaPor: string | null; nota: string | null;
+  excecao: string | null; corrigida: boolean }[] = [];
+let visitasSemeadas = false;
+function semearVisitas() {
+  if (visitasSemeadas) return;
+  visitasSemeadas = true;
+  const k = todosKids().slice().sort((a, z) => a.nome.localeCompare(z.nome))[0];
+  if (!k) return;
+  const [mae, madrinha] = contatosDe(k.id);
+  const passadas: [number, typeof mae, number][] = [
+    [-70, madrinha, 16], [-40, mae, 9], [-17, mae, 9], [-10, madrinha, 16], [-3, mae, 9]];
+  for (const [d, c, h] of passadas) {
+    const entrou = emDias(d, h, 10);
+    VISITAS.push({ id: `vis-${uid()}`, kidId: k.id, contatoId: c.id, documento: c.cpf ? 'CPF' : 'RG',
+      entrou, saiu: new Date(Date.parse(entrou) + 95 * 60000).toISOString(),
+      por: 'Paulo da Portaria (fictício)', saidaPor: 'Paulo da Portaria (fictício)',
+      nota: null, excecao: null, corrigida: false });
+  }
+  VISITAS.push({ id: `vis-${uid()}`, kidId: k.id, contatoId: madrinha.id, documento: 'CPF',
+    entrou: haMinutos(40), saiu: null, por: 'Tatiane Técnica (fictícia)', saidaPor: null,
+    nota: 'Trouxe o material da escola.',
+    excecao: 'Visita remarcada por telefone com a equipe técnica, por causa da consulta de sexta.',
+    corrigida: false });
+}
+/** A visita cabe no combinado agora? A mesma ordem e as mesmas frases do servidor. */
+function foraDoCombinado(c: { ativo: boolean; autorizadoAVisitar: boolean;
+                              visita?: { dias: number[]; de: string; ate: string } | null }) {
+  if (!c.ativo || !c.autorizadoAVisitar) return 'Este visitante não está autorizado a visitar.';
+  const val = c as { validoDe?: string | null; validoAte?: string | null };
+  if (val.validoDe && HOJE < val.validoDe) {
+    return `A autorização deste visitante começa em ${val.validoDe.split('-').reverse().join('/')}.`;
+  }
+  if (val.validoAte && HOJE > val.validoAte) {
+    return `A autorização deste visitante terminou em ${val.validoAte.split('-').reverse().join('/')}.`;
+  }
+  const v = c.visita;
+  if (!v?.dias?.length) {
+    return 'Este visitante não tem dias de visita combinados. A equipe técnica precisa combinar.';
+  }
+  const dow = new Date(`${HOJE}T12:00:00-03:00`).getUTCDay();
+  if (!v.dias.includes(dow)) return 'Hoje não é dia de visita combinado para este visitante.';
+  const agora = hhmmDe(new Date().toISOString());
+  if (agora < v.de) return `Ainda não é o horário de visita deste visitante (a partir das ${v.de}).`;
+  if (agora > v.ate) return `Já passou o horário de visita deste visitante (até as ${v.ate}).`;
+  return null;
+}
+function duracaoDaVisita(min: number) {
+  if (!min) return '0 min';
+  const h = Math.floor(min / 60); const m = min % 60;
+  return h ? `${h} h${m ? ` ${m} min` : ''}` : `${m} min`;
+}
+/** As visitas de uma criança — a mesma forma de `visitas.service.ts#daCrianca`. */
+function visitasDaCrianca(kidId: string, de?: string, ate?: string) {
+  const fim = ate || HOJE;
+  const inicio = de || `${fim.slice(0, 4)}-01-01`;
+  const diaDe = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo',
+    year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(iso));
+  const minutos = (v: { entrou: string; saiu: string | null }) =>
+    (v.saiu ? Math.round((Date.parse(v.saiu) - Date.parse(v.entrou)) / 60000) : null);
+  const linhas = VISITAS.filter((v) => v.kidId === kidId)
+    .sort((a, z) => z.entrou.localeCompare(a.entrou));
+  const conta = (a: string, z: string) => linhas.filter((v) => diaDe(v.entrou) >= a && diaDe(v.entrou) <= z).length;
+  const noPeriodo = linhas.filter((v) => diaDe(v.entrou) >= inicio && diaDe(v.entrou) <= fim);
+  const ano = HOJE.slice(0, 4);
+  const semestre = Number(HOJE.slice(5, 7)) <= 6 ? [`${ano}-01-01`, `${ano}-06-30`] : [`${ano}-07-01`, `${ano}-12-31`];
+  const porVisitante = new Map<string, { nome: string; vinculo: string; visitas: number; minutos: number }>();
+  for (const v of noPeriodo) {
+    const c = acharContato(v.contatoId)!;
+    const x = porVisitante.get(c.id) ?? { nome: c.nome, vinculo: c.vinculoRotulo, visitas: 0, minutos: 0 };
+    x.visitas += 1; x.minutos += minutos(v) ?? 0;
+    porVisitante.set(c.id, x);
+  }
+  return {
+    periodo: { de: inicio, ate: fim },
+    contagem: { noPeriodo: noPeriodo.length, noMes: conta(`${HOJE.slice(0, 7)}-01`, HOJE),
+                noSemestre: conta(semestre[0], semestre[1]), noAno: conta(`${ano}-01-01`, `${ano}-12-31`),
+                total: linhas.length },
+    visitantes: [...porVisitante.values()].sort((a, z) => a.nome.localeCompare(z.nome, 'pt-BR')),
+    visitas: noPeriodo.map((v) => {
+      const c = acharContato(v.contatoId)!;
+      return { id: v.id, visitante: c.nome, vinculoRotulo: c.vinculoRotulo, entrouEm: v.entrou,
+               saiuEm: v.saiu, minutos: minutos(v), documento: v.documento, entradaPor: v.por,
+               saidaPor: v.saidaPor, observacaoEntrada: v.nota, observacaoSaida: null,
+               excecao: v.excecao, corrigida: v.corrigida, aberta: !v.saiu };
+    }),
+    aviso: 'Quantidade de visitas não é avaliação da família: o número diz o que houve, '
+      + 'e não o que isso quer dizer.',
+  };
+}
+
 /** Como a guarita lê o quando. A frase do "ainda não combinado" é INSTRUÇÃO: um
  *  traço na coluna faria o porteiro adivinhar. */
 function quandoPodeVir(c: { visita?: { dias: number[]; de: string; ate: string;
@@ -5376,9 +5485,9 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
    */
   if (rota === '/staff/sectors') {
     const podeCadastrar: Record<string, string[]> = {
-      coordenador: ['educador', 'lider_diurno', 'equipe_tecnica', 'cozinha', 'enfermagem'],
+      coordenador: ['educador', 'lider_diurno', 'equipe_tecnica', 'cozinha', 'portaria', 'enfermagem'],
       gestor_geral: TIPOS_SETOR.map((t) => t.code),
-      equipe_tecnica: ['educador', 'lider_diurno', 'equipe_tecnica', 'cozinha', 'enfermagem'],
+      equipe_tecnica: ['educador', 'lider_diurno', 'equipe_tecnica', 'cozinha', 'portaria', 'enfermagem'],
     };
     const meus = podeCadastrar[eu.role] ?? [];
     return TIPOS_SETOR.filter((t) => meus.includes(t.code))
@@ -7770,6 +7879,130 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         + 'desligou, e o motivo — o campo não some sem explicação.' };
   }
 
+  /* ---------------- As visitas (fase 160) — o portão e o perfil, com as recusas do servidor ---------------- */
+  if (rota === '/people/portaria/hoje' && metodo === 'GET') {
+    if (!REGISTRA_VISITA.includes(eu.role)) return new Recusa(404, 'Visitante não encontrado — ou fora do seu alcance.');
+    semearVisitas();
+    const inteiro = ESCREVE_CONTATO.includes(eu.role);
+    const visitantes = todosKids().slice().sort((a, z) => a.nome.localeCompare(z.nome)).flatMap((k) =>
+      contatosDe(k.id).filter((c) => c.ativo && c.autorizadoAVisitar && !c.restrito).map((c) => {
+        const aberta = VISITAS.find((v) => v.contatoId === c.id && !v.saiu);
+        return {
+          contatoId: c.id, nome: c.nome, nomeSocial: (c as any).nomeSocial ?? null,
+          vinculoRotulo: c.vinculoRotulo,
+          cpf: c.cpf ? (inteiro ? cpfParaTela(c.cpf, 'coordenador') : cpfParaTela(c.cpf, 'educador')) : null,
+          rg: (c as any).rg ? (inteiro ? (c as any).rg : `•••${String((c as any).rg).slice(-3)}`) : null,
+          temFoto: c.temFoto, acolhido: k.nome,
+          dias: c.visita?.dias?.length ? diasEscritos(c.visita.dias) : null,
+          de: c.visita?.de ?? null, ate: c.visita?.ate ?? null,
+          validoDe: (c as any).validoDe ?? null, validoAte: (c as any).validoAte ?? null, observacao: c.visita?.observacao ?? null,
+          foraDoCombinado: foraDoCombinado(c),
+          visitaAberta: aberta ? { id: aberta.id, entrouEm: aberta.entrou } : null,
+        };
+      }));
+    return { podeAbrirExcecao: ABRE_EXCECAO.includes(eu.role),
+             podeGerarFolha: ESCREVE_CONTATO.includes(eu.role), visitantes };
+  }
+  if (seg[0] === 'people' && seg[1] === 'portaria' && seg[2] === 'visitante' && seg[4] === 'foto') {
+    const c = REGISTRA_VISITA.includes(eu.role) ? acharContato(seg[3]) : null;
+    if (!c || !c.autorizadoAVisitar) return new Recusa(404, 'Visitante não encontrado — ou fora do seu alcance.');
+    if (!c.foto) return new Recusa(404, 'Este visitante ainda não tem foto.');
+    return { nome: 'visitante', tipo: /^data:([^;]+)/.exec(c.foto)?.[1] ?? 'image/png',
+             conteudo: c.foto.replace(/^data:[^;]+;base64,/, '') };
+  }
+  if (rota === '/people/portaria/visitas' && metodo === 'POST') {
+    const c = REGISTRA_VISITA.includes(eu.role) ? acharContato(String(b.contatoId ?? '')) : null;
+    if (!c || !c.autorizadoAVisitar) return new Recusa(404, 'Visitante não encontrado — ou fora do seu alcance.');
+    if (String(b.documento ?? '').trim().length < 2) {
+      return new Recusa(400, 'Diga qual documento foi conferido no portão (ex.: RG, CPF).');
+    }
+    if (VISITAS.some((v) => v.contatoId === c.id && !v.saiu)) {
+      return new Recusa(409, 'Este visitante já está com uma visita aberta. Registre a saída antes.');
+    }
+    const fora = foraDoCombinado(c);
+    const excecao = String(b.excecao ?? '').trim();
+    if (fora && !ABRE_EXCECAO.includes(eu.role)) {
+      return new Recusa(403, `${fora} A entrada fora do combinado só com exceção da coordenação, `
+        + 'da equipe técnica ou do líder.');
+    }
+    if (fora && excecao.length < 10) {
+      return new Recusa(400, `${fora} Para abrir a exceção, escreva o motivo (pelo menos 10 `
+        + 'caracteres) — ele fica registrado.');
+    }
+    const kidId = todosKids().find((k) => contatosDe(k.id).includes(c))?.id ?? '';
+    const v = { id: `vis-${uid()}`, kidId, contatoId: c.id, documento: String(b.documento).trim(),
+                entrou: new Date().toISOString(), saiu: null as string | null, por: eu.fullName,
+                saidaPor: null as string | null, nota: String(b.nota ?? '').trim() || null,
+                excecao: fora ? excecao : null, corrigida: false };
+    VISITAS.push(v);
+    return { id: v.id, excecao: !!fora, aviso: fora
+      ? 'Entrada registrada como EXCEÇÃO, com o seu motivo. Fica no histórico da visita.'
+      : 'Entrada registrada, com o documento conferido e o horário.' };
+  }
+  if (seg[0] === 'people' && seg[1] === 'portaria' && seg[2] === 'visitas' && seg[4] === 'saida'
+      && metodo === 'POST') {
+    const v = REGISTRA_VISITA.includes(eu.role) ? VISITAS.find((x) => x.id === seg[3]) : undefined;
+    if (!v) return new Recusa(404, 'Visita não encontrada.');
+    if (v.saiu) return new Recusa(409, 'Esta visita já foi encerrada.');
+    v.saiu = new Date().toISOString(); v.saidaPor = eu.fullName;
+    const min = Math.round((Date.parse(v.saiu) - Date.parse(v.entrou)) / 60000);
+    return { saiuEm: v.saiu, minutos: min, aviso: `Saída registrada. A visita durou ${duracaoDaVisita(min)}.` };
+  }
+  if (seg[0] === 'people' && seg[1] === 'portaria' && seg[2] === 'visitas' && seg[4] === 'correcao'
+      && metodo === 'POST') {
+    if (!ABRE_EXCECAO.includes(eu.role)) {
+      return new Recusa(403, 'Corrigir uma visita é da coordenação, da equipe técnica ou do líder.');
+    }
+    const v = VISITAS.find((x) => x.id === seg[3]);
+    if (!v) return new Recusa(404, 'Visita não encontrada.');
+    const e = Date.parse(String(b.entrada ?? '')); const s = Date.parse(String(b.saida ?? ''));
+    if (Number.isNaN(e) || Number.isNaN(s)) return new Recusa(400, 'Informe a entrada e a saída, com dia e hora.');
+    if (String(b.motivo ?? '').trim().length < 10) {
+      return new Recusa(400, 'Escreva o motivo da correção (pelo menos 10 caracteres).');
+    }
+    if (s < e) return new Recusa(400, 'A saída não pode ser antes da entrada.');
+    if (s > Date.now()) return new Recusa(400, 'A saída não pode estar no futuro.');
+    v.entrou = new Date(e).toISOString(); v.saiu = new Date(s).toISOString();
+    v.saidaPor = v.saidaPor ?? eu.fullName; v.corrigida = true;
+    return { ok: true, aviso: 'Visita corrigida. O horário anterior e o motivo ficam no histórico dela.' };
+  }
+  if (seg[0] === 'people' && seg[2] === 'visitas' && seg.length === 3 && metodo === 'GET') {
+    if (eu.role === 'portaria' || eu.role === 'cozinha') {
+      return new Recusa(404, 'Acolhido não encontrado — ou fora do seu alcance.');
+    }
+    semearVisitas();
+    return visitasDaCrianca(seg[1], q.get('de') ?? undefined, q.get('ate') ?? undefined);
+  }
+  if (seg[0] === 'people' && seg[2] === 'visitas' && seg[3] === 'export' && metodo === 'POST') {
+    if (eu.role === 'portaria' || eu.role === 'cozinha') {
+      return new Recusa(404, 'Acolhido não encontrado — ou fora do seu alcance.');
+    }
+    if (String(b.finalidade ?? '').trim().length < 10) {
+      return new Recusa(400, 'Descreva a finalidade da exportação (mínimo 10 caracteres).');
+    }
+    const d = visitasDaCrianca(seg[1], b.de, b.ate);
+    const k = todosKids().find((x) => x.id === seg[1]);
+    const f = {
+      titulo: 'Relatório de visitas', subtitulo: k?.nome ?? '',
+      identificacao: [
+        { rotulo: 'Período', valor: `${d.periodo.de.split('-').reverse().join('/')} a ${d.periodo.ate.split('-').reverse().join('/')}` },
+        { rotulo: 'Visitas no período', valor: String(d.contagem.noPeriodo) },
+      ],
+      secoes: [
+        { titulo: 'Quem visitou', tabela: { cabecalho: ['Visitante', 'Vínculo', 'Visitas', 'Tempo somado'],
+          linhas: d.visitantes.map((v) => [v.nome, v.vinculo, String(v.visitas), duracaoDaVisita(v.minutos)]) } },
+        { titulo: 'As visitas, uma a uma', tabela: { cabecalho: ['Visitante', 'Entrada', 'Saída', 'Duração', 'Registrou'],
+          linhas: d.visitas.slice().reverse().map((v) => [v.visitante, new Date(v.entrouEm).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }),
+            v.saiuEm ? new Date(v.saiuEm).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }) : '—',
+            v.minutos == null ? 'aberta' : duracaoDaVisita(v.minutos), v.entradaPor]) } },
+      ],
+      geradoPor: eu.fullName, cargo: cargoNoDocumento(eu.role), assinatura: true, ressalva: d.aviso,
+    };
+    return { nomeArquivo: nomeDaFolha(f.titulo), conteudoBase64: gerarDocx(f as any, timbreEmBytes()),
+             aviso: 'Documento gerado em Word, com timbre. Exportação registrada com o seu nome, a '
+               + 'finalidade e o horário.' };
+  }
+
   /* ---------------- A portaria (fase 92) — as mesmas recusas do servidor ---------------- */
   if (rota.startsWith('/people/portaria/folha') && metodo === 'GET') {
     if (!ESCREVE_CONTATO.includes(eu.role)) {
@@ -7849,6 +8082,15 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     c.autorizadoAVisitar = !!b.autorizado;
     c.autorizacao = b.autorizado ? { por: eu.fullName, em: new Date().toISOString() } : null;
     if (b.cpf !== undefined) c.cpf = cpf || null;
+    /* Fase 160 — como no servidor, só muda o que veio. */
+    if (b.validoDe && b.validoAte && String(b.validoAte) < String(b.validoDe)) {
+      return new Recusa(400, 'O fim da validade não pode ser antes do início.');
+    }
+    const cx = c as any;
+    if (b.rg !== undefined) cx.rg = String(b.rg).trim() || null;
+    if (b.nomeSocial !== undefined) cx.nomeSocial = String(b.nomeSocial).trim() || null;
+    if (b.validoDe !== undefined) cx.validoDe = b.validoDe || null;
+    if (b.validoAte !== undefined) cx.validoAte = b.validoAte || null;
     if (informouJanela) {
       c.visita = dias.length
         ? { dias, de, ate, observacao: String(b.observacao ?? '').trim() || null }
@@ -7904,8 +8146,10 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
      * FOTO não viaja na lista — o servidor devolve `temFoto`, e os bytes só
      * saem pela rota da foto, uma de cada vez. Mandá-la aqui encheria a lista
      * de base64 e faria o protótipo mentir sobre o tamanho da resposta. */
-    return contatosDe(seg[1]).map(({ foto: _foto, ...c }: any) =>
-      ({ ...c, cpf: cpfParaTela(c.cpf, eu.role) }));
+    return contatosDe(seg[1]).map(({ foto: _foto, validoDe, validoAte, ...c }: any) =>
+      ({ ...c, cpf: cpfParaTela(c.cpf, eu.role),
+         /* A validade viaja DENTRO da visita, como no servidor (fase 160). */
+         visita: c.visita ? { ...c.visita, validoDe: validoDe ?? null, validoAte: validoAte ?? null } : c.visita }));
   }
 
   if (seg[0] === 'people' && seg[2] === 'contacts' && metodo === 'POST') {

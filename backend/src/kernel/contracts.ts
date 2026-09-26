@@ -22,6 +22,9 @@ export type RoleCode =
   | 'gestor_geral' | 'coordenador' | 'equipe_tecnica' | 'educador'
   | 'lider_diurno' | 'lider_noturno_geral' | 'enfermagem'
   | 'cozinha'
+  /* A portaria (fase 160): login mínimo — a lista do portão e a entrada e a
+     saída das visitas, e nada mais. `app_house_in_scope` diz NÃO a ela. */
+  | 'portaria'
   /*
    * APOSENTADO em 01/09/2026 (migração 0770). O cargo não existe na Fundação;
    * as funções dele passaram para a equipe técnica e a coordenação. O valor

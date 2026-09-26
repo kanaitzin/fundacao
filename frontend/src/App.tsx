@@ -111,6 +111,10 @@ const CARGOS_DEMO = [
   { value: 'lider_noturno_geral', label: 'Líder Noturno' },
   { value: 'enfermagem',          label: 'Enfermagem' },
   { value: 'gestor_geral',        label: 'Gestor Geral' },
+  /* A PORTARIA ENTROU em 26/09 (fase 160), com login mínimo: uma tela só, o
+     portão. É o caminho inverso do da cozinha, abaixo — e pela mesma razão
+     está aqui: quem decide precisa ver com os olhos de quem vai usar. */
+  { value: 'portaria',            label: 'Portaria' },
   /*
    * A COZINHA SAIU DAQUI em 09/09/2026, por decisão da Fundação: ela não entra
    * no sistema por enquanto. O cargo continua existindo no banco — ocultar é

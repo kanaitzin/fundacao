@@ -36,6 +36,7 @@ export const VINCULOS_DO_CONTATO = [
 export const COLUNAS_DO_CONTATO = `id, name, bond, bond_other, phone, note, restricted, restriction_note,
        active, ended_reason, cpf, visit_authorized, visit_authorized_at,
        visit_weekdays, visit_from, visit_to, visit_note,
+       rg, social_name, visit_valid_from::text AS visit_valid_from, visit_valid_to::text AS visit_valid_to,
        app_user_display_name(visit_authorized_by) AS autorizado_por,
        photo_key IS NOT NULL AS tem_foto,
        app_user_display_name(created_by) AS por, created_at`;
@@ -55,6 +56,10 @@ export function contatoParaTela(r: any, papel: string) {
     restrito: r.restricted, motivoDaRestricao: r.restriction_note,
     ativo: r.active, motivoDoEncerramento: r.ended_reason,
     cpf: r.cpf ? (inteiro ? formatCpf(r.cpf) : maskCpf(r.cpf)) : null,
+    /* RG e nome social (fase 160): o RG segue a regra do CPF — inteiro só para
+       quem escreve no cadastro. */
+    rg: r.rg ? (inteiro ? r.rg : `${'•'.repeat(Math.max(String(r.rg).length - 3, 0))}${String(r.rg).slice(-3)}`) : null,
+    nomeSocial: r.social_name ?? null,
     autorizadoAVisitar: r.visit_authorized,
     autorizacao: r.visit_authorized ? { por: r.autorizado_por, em: r.visit_authorized_at } : null,
     /*
@@ -72,6 +77,8 @@ export function contatoParaTela(r: any, papel: string) {
       de: r.visit_from, ate: r.visit_to,
       observacao: r.visit_note,
       combinado: Boolean(r.visit_weekdays && r.visit_from),
+      /* A validade da autorização (fase 160): de/até, por data. */
+      validoDe: r.visit_valid_from ?? null, validoAte: r.visit_valid_to ?? null,
     },
     temFoto: r.tem_foto,
     por: r.por, em: r.created_at,
@@ -263,6 +270,7 @@ export class ContatosService {
   async definirVisita(user: AuthenticatedUser, contatoId: string, input: {
     autorizado?: boolean; cpf?: string; motivo?: string;
     dias?: number[]; de?: string; ate?: string; observacao?: string;
+    rg?: string; nomeSocial?: string; validoDe?: string; validoAte?: string;
   }) {
     if (!ESCREVE_CONTATO.includes(user.role)) {
       throw new ForbiddenException(
@@ -272,6 +280,23 @@ export class ContatosService {
       throw new BadRequestException('Diga se este contato está autorizado a visitar ou não.');
     }
     const cpf = input.cpf === undefined ? undefined : this.cpfOuNulo(input.cpf);
+    /* Os campos da fase 160 — só mudam quando vêm no pedido. */
+    const data = (s?: string) => {
+      if (s === undefined) return undefined;
+      if (s === '' || s === null) return null;
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(s) || Number.isNaN(Date.parse(`${s}T12:00:00Z`))) {
+        throw new BadRequestException('A validade precisa vir como 2026-09-26 — ano, mês e dia.');
+      }
+      return s;
+    };
+    const validoDe = data(input.validoDe);
+    const validoAte = data(input.validoAte);
+    if (validoDe && validoAte && validoAte < validoDe) {
+      throw new BadRequestException('O fim da validade não pode ser antes do início.');
+    }
+    const texto = (s?: string) => (s === undefined ? undefined : (String(s).trim() || null));
+    const rg = texto(input.rg);
+    const nomeSocial = texto(input.nomeSocial);
     const janela = this.janelaDaVisita(input);
 
     /*
@@ -346,10 +371,16 @@ export class ContatosService {
                 visit_from     = CASE WHEN $6::boolean THEN $8::time     ELSE visit_from END,
                 visit_to       = CASE WHEN $6::boolean THEN $9::time     ELSE visit_to END,
                 visit_note     = CASE WHEN $6::boolean THEN $10          ELSE visit_note END,
+                rg          = CASE WHEN $11::boolean THEN $12 ELSE rg END,
+                social_name = CASE WHEN $13::boolean THEN $14 ELSE social_name END,
+                visit_valid_from = CASE WHEN $15::boolean THEN $16::date ELSE visit_valid_from END,
+                visit_valid_to   = CASE WHEN $17::boolean THEN $18::date ELSE visit_valid_to END,
                 updated_at = now(), updated_by = $3
           WHERE id = $1`,
         [contatoId, input.autorizado, user.id, cpf !== undefined, cpf ?? null,
-         janela.informada, janela.dias, janela.de, janela.ate, janela.observacao]);
+         janela.informada, janela.dias, janela.de, janela.ate, janela.observacao,
+         rg !== undefined, rg ?? null, nomeSocial !== undefined, nomeSocial ?? null,
+         validoDe !== undefined, validoDe ?? null, validoAte !== undefined, validoAte ?? null]);
       /*
        * A LINHA DO HISTÓRICO, e ela é o coração desta fase. Append-only: a
        * retirada de hoje não apaga a de março, e um contato pode ser retirado,

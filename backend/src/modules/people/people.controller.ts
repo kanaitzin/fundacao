@@ -7,6 +7,7 @@ import { AuthenticatedUser } from '../../kernel/contracts';
 import { DossieService } from './dossie.service';
 import { PeopleService } from './people.service';
 import { CozinhaService } from './cozinha.service';
+import { VisitasService } from './visitas.service';
 import { PortariaService } from './portaria.service';
 import { CamposDoPerfilService } from './campos.service';
 import { AniversariosService } from './aniversarios.service';
@@ -25,6 +26,7 @@ export class PeopleController {
     @Inject(PeopleService) private readonly people: PeopleService,
     @Inject(ProfileService) private readonly profile: ProfileService,
     @Inject(CozinhaService) private readonly cozinha: CozinhaService,
+    @Inject(VisitasService) private readonly visitas: VisitasService,
     @Inject(PortariaService) private readonly portaria: PortariaService,
     @Inject(CamposDoPerfilService) private readonly campos: CamposDoPerfilService,
     @Inject(AniversariosService) private readonly aniversarios: AniversariosService,
@@ -260,6 +262,41 @@ export class PeopleController {
    * `export` exige finalidade e registra a saída. Rotas de palavra fixa,
    * antes de `:id`.
    */
+  /* ---------------- A visita que entra e sai (fase 160) ---------------- */
+  /*
+   * O portão: a portaria (login mínimo) e a casa usam estas rotas. Palavras
+   * fixas, antes de `:id`. A portaria não alcança nada fora delas — o banco diz
+   * não a ela em `app_house_in_scope` (identity/1591).
+   */
+  @Get('portaria/hoje')
+  portaoDeHoje(@CurrentUser() user: AuthenticatedUser,
+               @Query('houseId', ParseUUIDPipe) houseId: string) {
+    return this.visitas.doPortao(user, houseId);
+  }
+
+  @Get('portaria/visitante/:contactId/foto')
+  fotoNoPortao(@CurrentUser() user: AuthenticatedUser,
+               @Param('contactId', ParseUUIDPipe) contactId: string) {
+    return this.visitas.fotoDoVisitante(user, contactId);
+  }
+
+  @Post('portaria/visitas')
+  entrarVisita(@CurrentUser() user: AuthenticatedUser, @Body() body: any) {
+    return this.visitas.entrar(user, body ?? {});
+  }
+
+  @Post('portaria/visitas/:id/saida')
+  sairVisita(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
+             @Body() body: any) {
+    return this.visitas.sair(user, id, body?.nota);
+  }
+
+  @Post('portaria/visitas/:id/correcao')
+  corrigirVisita(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
+                 @Body() body: any) {
+    return this.visitas.corrigir(user, id, body ?? {});
+  }
+
   @Get('portaria/folha')
   folhaDaPortaria(@CurrentUser() user: AuthenticatedUser,
                   @Query('houseId', ParseUUIDPipe) houseId: string) {
@@ -332,6 +369,21 @@ export class PeopleController {
   discharge(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
             @Body() body: { motivo: string }) {
     return this.people.discharge(user, id, body.motivo);
+  }
+
+  /* As visitas de UMA criança, no perfil dela (fase 160). A contagem é dela e
+     de mais ninguém — a regra de 26/09 é "nenhuma comparação entre crianças". */
+  @RegistroDaRota('id', 'person')
+  @Get(':id/visitas')
+  visitasDaCrianca(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
+                   @Query('de', DataDoDia) de?: string, @Query('ate', DataDoDia) ate?: string) {
+    return this.visitas.daCrianca(user, id, de, ate);
+  }
+
+  @Post(':id/visitas/export')
+  exportarVisitas(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
+                  @Body(CorpoConferido) body: any) {
+    return this.visitas.exportar(user, id, body ?? {});
   }
 
   @RegistroDaRota('id', 'person')

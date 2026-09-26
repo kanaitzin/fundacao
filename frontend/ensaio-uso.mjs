@@ -2631,6 +2631,63 @@ cobrar('e diz também quem REGISTROU — ao lado, não no lugar',
 
 cobrar('nenhuma exceção ao abrir as prévias', erros.length === 0, erros[0]);
 
+// ====================================================== O portão (fase 160)
+/*
+ * A PORTARIA ENTRA COM LOGIN MÍNIMO (decisão de 26/09). O que se cobra é o que
+ * a decisão disse: uma tela só; a lista com o combinado de cada visitante; a
+ * saída de quem está dentro; e, fora do combinado, a portaria vê o porquê e
+ * NÃO tem o botão da exceção — quem tem é a coordenação, com motivo escrito.
+ * E a contagem da criança aparece no perfil DELA, por nome, sem ranking.
+ */
+await fechar();
+console.log('\n🚪 O portão — a portaria com login mínimo (fase 160)');
+await trocar('portaria');
+/* A portaria não tem aba do turno: a primeira da barra é o "Mais", e o
+   `trocar` a abriu. Fecha-se, e fica o portão, que é a tela dela. */
+await fechar();
+erros.length = 0;
+const portao = await conteudo();
+cobrar('a portaria abre direto no portão', /Portaria — quem pode visitar/.test(portao), portao.slice(0, 300));
+cobrar('e não tem as abas do turno',
+  (await pg.locator('nav.tabbar button', { hasText: /^(Dia|Chamada|Acolhidos|Passagem)$/ }).count()) === 0);
+cobrar('a lista diz quem está na casa agora', /Na casa agora/i.test(portao));
+cobrar('e diz por que alguém está fora do combinado',
+  /não é dia de visita|horário de visita|autorização deste visitante/i.test(portao));
+cobrar('a portaria não abre exceção',
+  (await pg.getByRole('button', { name: /Entrada com exceção/ }).count()) === 0);
+cobrar('a folha em papel não é dela', !/Ver a folha da portaria/.test(portao));
+await pg.locator('#port-busca').fill('Simoni');
+await pg.waitForTimeout(300);
+cobrar('a busca pelo nome encurta a lista', /Simoni/.test(await conteudo()) && !/Rosângela/.test(await conteudo()));
+await pg.locator('#port-busca').fill('');
+cobrar('registra a saída de quem está dentro',
+  await clicar(/^Registrar a saída de /));
+await pg.waitForTimeout(600);
+cobrar('e diz quanto tempo a visita durou', /A visita durou/.test(await conteudo()));
+
+await trocar('coordenador');
+cobrar('a coordenação abre o portão em "Mais"', await doMais('Portaria'));
+cobrar('e tem a entrada com exceção', await clicar(/Entrada com exceção/));
+const folhaEntrada = pg.locator('.overlay .sheet');
+const botaoEntrada = folhaEntrada.getByRole('button', { name: /^Registrar entrada$/ });
+await folhaEntrada.locator('#ent-doc').fill('RG');
+cobrar('sem o motivo da exceção, não registra', await botaoEntrada.isDisabled());
+await folhaEntrada.locator('#ent-exc').fill('Visita remarcada com a técnica por telefone.');
+await botaoEntrada.click();
+await pg.waitForTimeout(900);
+cobrar('a entrada por exceção fica registrada', /registrada como EXCEÇÃO/.test(await conteudo()));
+cobrar('e ainda gera a folha em papel', /Ver a folha da portaria/.test(await conteudo()));
+
+cobrar('o perfil da criança abre', await aba('Acolhidos'));
+await clicar(/^Alice/);
+await pg.waitForTimeout(900);
+const perfilVisitas = await conteudo();
+cobrar('o perfil tem as visitas dela', /visitas/i.test(perfilVisitas) && /visitas? no período/i.test(perfilVisitas),
+  perfilVisitas.slice(0, 300));
+cobrar('os visitantes vêm por nome, com o número ao lado', /Quem visitou, por nome/i.test(perfilVisitas));
+cobrar('e a frase de que número não é avaliação da família', /não é avaliação da família/.test(perfilVisitas));
+cobrar('nenhuma exceção no portão', erros.length === 0, erros[0]);
+
 await navegador.close();
 console.log(achados.length
   ? `\n${achados.length} ACHADO(S):\n  ${achados.join('\n  ')}`

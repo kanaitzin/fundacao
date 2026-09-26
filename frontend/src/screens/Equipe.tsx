@@ -43,7 +43,7 @@ const quando = (iso: string | null) => {
 
 const TOM: Record<string, string> = {
   educador: 'c-info', lider_diurno: 'c-ok', equipe_tecnica: 'c-other',
-  cozinha: 'c-warn', enfermagem: 'c-med', lider_noturno_geral: 'c-move',
+  cozinha: 'c-warn', portaria: 'c-mute', enfermagem: 'c-med', lider_noturno_geral: 'c-move',
   coordenador: 'c-brand', gestor_geral: 'c-brand',
 };
 

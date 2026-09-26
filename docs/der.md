@@ -899,12 +899,12 @@ criança, e log não copia conteúdo sensível (§5). A auditoria guarda o ato �
 coordenação, Líder Diurno). Mais ninguém: a lista de quem pediu para ler o quê é,
 ela mesma, informação sobre o caso.
 
-## Inventário — 117 tabelas por partição
+## Inventário — 119 tabelas por partição
 
 | Partição | Tabelas |
 |---|---|
 | identity (14) | institution, house, app_user, user_house_assignment, work_schedule, shift_assignment, user_session, login_attempt, audit_event, institutional_device, staff_role_grant, house_capacity_change, user_invite, house_shift_hours |
-| people (26) | person, care_episode, house_stay, profile_detail, health_condition, food_restriction, document, document_version, benefit_record, memory_record, memory_photo, transfer_request, transfer_message, admission_record, judicial_record, person_credential, person_correction, profile_detail_change, person_contact, family_stay, family_stay_note, outing_permission, kitchen_request, house_field_permission, birthday_ack, contact_visit_change |
+| people (28) | person, care_episode, house_stay, profile_detail, health_condition, food_restriction, document, document_version, benefit_record, memory_record, memory_photo, transfer_request, transfer_message, admission_record, judicial_record, person_credential, person_correction, profile_detail_change, person_contact, family_stay, family_stay_note, outing_permission, kitchen_request, house_field_permission, birthday_ack, contact_visit_change, visit, visit_correction |
 | shifts (13) | shift, handover, handover_receipt, handover_note, ata, ata_note, ata_addendum, ata_episode, ata_episode_ack, general_night_ata, general_night_house_entry, general_night_house_amendment, ata_read_request |
 | incidents (7) | incident, incident_person, incident_protected, incident_restraint, incident_synthesis, external_communication, incident_attachment |
 | medications (12) | prescription, medication_schedule, medication_administration, medication_stock, medication_stock_movement, medication_protocol, medication_authorization, medication_protocol_change, prescription_restriction_change, medication_purchase, prescription_document, family_stay_medication |
@@ -942,6 +942,33 @@ Só cresce: cada mudança é uma linha, e a que vale num dia é a de maior
 `valid_from` até ele — no empate, a mais recente. Quem grava é
 `app_definir_horario_da_casa` (coordenação, Líder Diurno e equipe técnica da
 casa), que também escreve a auditoria com a casa.
+
+### `visit` e `visit_correction`
+QUEM VISITOU, e não só quem podia (fase 160, people/1592). Até aqui o sistema
+sabia quem estava autorizado (1120, 1500) e não sabia quem veio.
+
+`visit` — uma linha por visita: `house_id`, `person_id`, `contact_id` (o
+visitante autorizado, nunca nome digitado), `document_checked` (que documento
+foi conferido no portão — obrigatório), `started_at`/`started_by`,
+`start_note`, `exception_reason` (preenchido só quando a entrada foi fora do
+combinado, com o motivo de quem abriu a exceção), `ended_at`/`ended_by`,
+`end_note`. Índice único parcial por `contact_id WHERE ended_at IS NULL`: uma
+visita aberta por visitante — o toque duplo no portão não conta duas.
+
+`visit_correction` — a visita esquecida aberta, ou com a hora errada:
+`before_start`/`before_end`, `after_start`/`after_end`, `reason` (mínimo 10
+caracteres), `corrected_by`/`corrected_at`. Só cresce.
+
+Quem grava são as funções `app_iniciar_visita`, `app_encerrar_visita` e
+`app_corrigir_visita`, e todas escrevem a auditoria com a casa. Fora do dia, da
+hora ou da **validade** (`person_contact.visit_valid_from`/`visit_valid_to`,
+também da 1592, junto com `rg` e `social_name`), ou com a criança fora da casa,
+a entrada é recusada — salvo exceção com motivo da coordenação, da técnica ou
+do líder (`app_abre_excecao_de_visita`). A PORTARIA registra só na casa em que
+tem vínculo (`app_registra_visita`), e não lê `visit` pela tabela:
+`app_house_in_scope` responde NÃO a ela (identity/1591), e o que ela vê vem de
+`app_portaria_da_casa`. A contagem por criança existe só no perfil dela
+(decisão de 26/09): nenhuma consulta compara crianças.
 
 ### `commitment_exception`
 Uma ocorrência desmarcada de um compromisso que continua valendo. Por DATA, com

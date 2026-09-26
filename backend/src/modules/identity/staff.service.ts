@@ -20,6 +20,8 @@ export const SETORES: Array<{
     descricao: 'Perfil do acolhido, acompanhamentos, relatos lado a lado e revisão técnica' },
   { code: 'cozinha', label: 'Cozinha', transversal: false,
     descricao: 'Somente o relatório de restrições alimentares — sem acesso a perfil' },
+  { code: 'portaria', label: 'Portaria', transversal: false,
+    descricao: 'Somente quem pode visitar hoje, e a entrada e a saída das visitas — sem acesso a perfil' },
   { code: 'enfermagem', label: 'Enfermagem', transversal: true,
     descricao: 'Saúde das oito casas: prescrições, triagem de evoluções e Resumo de Saúde' },
   { code: 'lider_noturno_geral', label: 'Líder Noturno Geral', transversal: true,

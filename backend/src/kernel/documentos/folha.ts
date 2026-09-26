@@ -140,6 +140,7 @@ export const CARGO_NO_DOCUMENTO: Record<string, string> = {
   lider_noturno_geral: 'Líder Noturno Geral',
   educador: 'Educador social',
   cozinha: 'Cozinha',
+  portaria: 'Portaria',
 };
 
 /** O código cru só aparece quando o cargo é desconhecido — e aí ele é a pista. */

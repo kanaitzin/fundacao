@@ -84,6 +84,9 @@ export const VOCABULARIO_DA_AUDITORIA: Record<string, string> = {
   'house.open': 'Unidade aberta',
   'house.capacity_change': 'Capacidade da unidade alterada',
   'house.shift_hours': 'Horário dos turnos da casa alterado',
+  'visita.entrada': 'Entrada de visita registrada',
+  'visita.saida': 'Saída de visita registrada',
+  'visita.correcao': 'Horário de visita corrigido',
 
   // ------------------------------------------------------------- Dossiê e fotos
   'document.attach': 'Documento anexado ao dossiê',

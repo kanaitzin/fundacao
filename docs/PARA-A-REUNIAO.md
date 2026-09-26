@@ -18,7 +18,7 @@
 > depois das 21h em Porto Alegre semeava o dia seguinte — o dia de hoje nascia
 > sem dose nenhuma. **Nada no sistema; tudo no dado de partida.**
 
-- **159 fases.** 106 suítes e 1007 testes, verdes em duas condições de relógio —
+- **160 fases.** 107 suítes e 1024 testes, verdes em duas condições de relógio —
   antes e depois da virada do UTC, que em Porto Alegre é às 21h.
 - **A chamada fecha.** O único item de código que faltava ao piloto — a chamada
   que travava quando uma criança estava internada ou em casa com a família —
@@ -211,9 +211,19 @@ anexar no dossiê. Ela **não** edita cadastro, escola nem cuidados essenciais.
   pelo Líder Diurno ou pela equipe técnica; vale a partir do dia seguinte. **O
   Gestor Geral não foi incluído**, porque o pedido nomeou os três — se ele deve
   poder, é uma linha.
-- **A portaria vai ganhar login mínimo** (fase 160, decidido em 26/09): ela verá
-  só quem pode visitar hoje e registrará entrada e saída. **Isto revê o pedido
-  de 09/09**, em que a portaria ficava só com a folha em papel.
+- **A portaria ganhou login mínimo** (fase 160, FEITA, decidido em 26/09): ela vê
+  só quem pode visitar a casa dela e registra entrada e saída — não abre perfil,
+  saúde, relato nem ATA. **Isto revê o pedido de 09/09**, em que a portaria
+  ficava só com a folha em papel; a folha continua, para o dia sem sinal.
+- **Fora do dia, do horário ou da validade combinados, a entrada é recusada.**
+  A exceção é da coordenação, da técnica ou do líder, com motivo escrito, e fica
+  na visita. A portaria não abre exceção.
+- **As visitas de cada criança aparecem no perfil DELA, e só nele**, com os
+  visitantes por nome e o número ao lado. A regra que era *"nenhuma contagem por
+  criança"* passou a ser *"nenhuma comparação entre crianças"*. **O que o Marcelo
+  precisa confirmar:** quem cria a conta da portaria hoje é a coordenação, a
+  equipe técnica ou o Gestor Geral — e o **DPO** deve saber que o CPF e o RG do
+  visitante aparecem mascarados para a portaria (do CPF, só os dígitos do meio; do RG, os três finais).
 
 ## 5. As decisões que são do Marcelo *(§10 — responda pelo número)*
 

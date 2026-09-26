@@ -102,14 +102,18 @@ export const AREAS = {
  * que está escrito aqui viraria suspeito.
  *
  * **O que segue valendo para TODO MUNDO, inclusive para o Gestor Geral:**
- * criança não entra em contagem nenhuma, não há pontuação de comportamento, e
- * nenhuma lista do sistema sai ordenada por total.
+ * nenhuma criança é comparada com outra (a contagem de uma criança existe só no
+ * perfil dela, desde 26/09), não há pontuação de comportamento, e nenhuma
+ * lista do sistema sai ordenada por total.
  */
 const NUNCA_NINGUEM = [
   'WhatsApp ou envio de dados por WhatsApp',
   'GPS ou rastreamento de pessoa',
   'conta compartilhada',
-  'ranking de acolhidos, ou contagem de qualquer coisa por criança',
+  /* A regra mudou em 26/09 (fase 160): era "nenhuma contagem por criança". A
+     contagem de UMA criança passou a existir no perfil dela (as visitas que
+     recebeu); o que continua proibido é pôr crianças lado a lado. */
+  'ranking de acolhidos, ou comparação entre crianças — a contagem de uma criança mora só no perfil dela',
   'pontuação de comportamento',
   'lista ordenada por total — nem de casa, nem de pessoa: a ordem é sempre por nome ou por código',
   'decisão automática sobre diagnóstico, culpa, risco, punição, visita, medicação, destino ou transferência',
@@ -137,6 +141,10 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
         servidor: 'A folha vai para a cozinha em PAPEL, e papel não tem alcance: ela '
           + 'leva nome, data e quantidade. Nunca diagnóstico, CPF, motivo judicial nem '
           + 'a razão de uma restrição.' },
+      { area: 'portaria', titulo: AREAS.portaria,
+        faz: 'Registra a entrada e a saída da visita quando a casa recebe no portão.',
+        servidor: 'Fora do dia, do horário ou da validade combinados, a entrada é recusada — a '
+          + 'exceção, com motivo escrito, é da coordenação, da equipe técnica ou do líder.' },
       { area: 'escala', titulo: AREAS.escala,
         faz: 'Lê a escala de plantão da casa — quando ele trabalha, e quem está com ele no turno.',
         servidor: 'Quem monta a escala é a coordenação, a equipe técnica ou o Líder Diurno da casa. A escala informa quem devia estar; ela não impede ninguém de trabalhar — quem cobre um turno fora dela assina a passagem com o aviso de que não constava.' },
@@ -187,6 +195,10 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
         servidor: 'A folha vai para a cozinha em PAPEL, e papel não tem alcance: ela '
           + 'leva nome, data e quantidade. Nunca diagnóstico, CPF, motivo judicial nem '
           + 'a razão de uma restrição.' },
+      { area: 'portaria', titulo: AREAS.portaria,
+        faz: 'Registra a entrada e a saída da visita, e abre a exceção de dia ou de horário com '
+          + 'motivo escrito.',
+        servidor: 'A exceção fica na visita, com o motivo e o nome de quem abriu.' },
       { area: 'escala', titulo: AREAS.escala,
         faz: 'Monta e lê a escala do dia e da semana — lança, substitui num gesto e retira '
           + 'com registro. É ele quem descobre às 6h50 que alguém não veio.',
@@ -378,6 +390,32 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
     ],
   },
   {
+    cargo: 'portaria',
+    transversal: false,
+    /*
+     * LOGIN MÍNIMO (fase 160, decisão de 26/09). A portaria tem vínculo com a
+     * casa e mesmo assim NÃO alcança a casa: `app_house_in_scope` diz não a ela.
+     * O que ela vê vem de três funções feitas para ela — a lista do portão, a
+     * foto do visitante e a entrada e a saída.
+     */
+    resumo: 'Vê quem pode visitar hoje, com foto, documento e horário combinado, e registra a '
+      + 'entrada e a saída. Não abre perfil, saúde, relato, ocorrência nem ATA.',
+    areas: [
+      { area: 'portaria', titulo: AREAS.portaria,
+        faz: 'Confere quem chega pela foto e pelo documento, e registra a entrada e a saída da visita.',
+        servidor: 'Fora do dia, do horário ou da validade combinados, a entrada é recusada — a '
+          + 'exceção é da coordenação, da equipe técnica ou do líder, com motivo escrito.' },
+    ],
+    naoAlcanca: [
+      'o perfil do acolhido',
+      'saúde, relatos, ocorrências, ATA, plantão e agenda',
+      'o histórico de visitas da criança',
+      'abrir exceção de dia ou de horário',
+      ...NUNCA_NA_CASA,
+      ...NUNCA_NINGUEM,
+    ],
+  },
+  {
     cargo: 'enfermagem',
     transversal: true,
     resumo: 'Saúde das oito unidades. Alcança mais de uma casa por FUNÇÃO — é uma das três '
@@ -420,6 +458,10 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
         servidor: 'A folha vai para a cozinha em PAPEL, e papel não tem alcance: ela '
           + 'leva nome, data e quantidade. Nunca diagnóstico, CPF, motivo judicial nem '
           + 'a razão de uma restrição.' },
+      { area: 'portaria', titulo: AREAS.portaria,
+        faz: 'Registra a entrada e a saída da visita, e abre a exceção de dia ou de horário com '
+          + 'motivo escrito.',
+        servidor: 'A exceção fica na visita, com o motivo e o nome de quem abriu.' },
       { area: 'escala', titulo: AREAS.escala,
         faz: 'Lê a escala das casas que alcança, para saber quem está de plantão à noite.',
         servidor: 'Quem monta a escala é a coordenação, a equipe técnica ou o Líder Diurno da casa. A escala informa quem devia estar; ela não impede ninguém de trabalhar — quem cobre um turno fora dela assina a passagem com o aviso de que não constava.' },

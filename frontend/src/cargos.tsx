@@ -55,6 +55,7 @@ export const COR_DO_CARGO: Record<string, string> = {
   educador:            '#047857',   /* verde    — quem está com a criança */
   enfermagem:          '#0E7490',   /* turquesa */
   cozinha:             '#9D174D',   /* vinho    */
+  portaria:            '#4D5B0E',   /* oliva    — o portão (fase 160) */
   gestor_geral:        '#334155',   /* ardósia  — institucional, sem cor de casa */
   admin_tecnico:       '#52525B',   /* cinza    — conta técnica */
 };

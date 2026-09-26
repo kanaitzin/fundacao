@@ -1,3 +1,4 @@
+import { ROTULO_CARGO } from '../rotulos';
 import { useEffect, useState } from 'react';
 import { api } from '../api';
 import { Icone } from '../icones';
@@ -27,12 +28,9 @@ interface Alcance {
   areas: Area[]; naoAlcanca: string[];
 }
 
-const ROTULO: Record<string, string> = {
-  educador: 'Educador social', lider_diurno: 'Líder Diurno',
-  equipe_tecnica: 'Equipe técnica', cozinha: 'Cozinha', enfermagem: 'Enfermagem',
-  lider_noturno_geral: 'Líder Noturno Geral', coordenador: 'Coordenação',
-  gestor_geral: 'Gestor Geral',
-};
+/* Os nomes dos cargos moram em `rotulos.ts` — uma cópia aqui ficou sem a portaria
+   na fase 160, que é a lição da 145. */
+const ROTULO = ROTULO_CARGO;
 
 export function Setores({ papel }: { papel: string }) {
   const [cargos, setCargos] = useState<Alcance[]>([]);

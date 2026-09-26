@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { FolhaDocumento } from '../documentos';
+import { FolhaDocumento, entregarArquivo } from '../documentos';
 import { Dossie } from './Dossie';
 import { api, ErroApi } from '../api';
 import { Cadastro } from './Cadastro';
@@ -56,12 +56,15 @@ interface Contato {
   ativo: boolean; motivoDoEncerramento: string | null;
   /* A portaria (fase 92). CPF inteiro só para quem escreve no cadastro. */
   cpf?: string | null; autorizadoAVisitar?: boolean;
+  /* Fase 160: o RG (inteiro só para quem escreve), o nome social, e a validade. */
+  rg?: string | null; nomeSocial?: string | null;
   autorizacao?: { por: string; em: string } | null; temFoto?: boolean;
   /* QUANDO ele pode vir (1500) — o servidor manda os dias já escritos em
      português, porque quem lê isto no celular não conta números da semana. */
   visita?: { dias: number[] | null; diasEscritos: string | null;
              de: string | null; ate: string | null;
-             observacao: string | null; combinado: boolean } | null;
+             observacao: string | null; combinado: boolean;
+             validoDe?: string | null; validoAte?: string | null } | null;
 }
 interface Perfil {
   id: string; nome: string; nomeCivil: string; idade: number; nascimento: string;
@@ -847,6 +850,7 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
         */}
       <SairSozinho perfil={p} papel={papel} onMudou={recarregar} />
       <Contatos perfil={p} papel={papel} onMudou={recarregar} />
+      <VisitasDoAcolhido personId={p.id} />
 
       {/*
         * A PRESENÇA, NA VIDA DELA (fase 110).
@@ -2608,6 +2612,11 @@ function FolhaVisita({ contato, crianca, onFechar, onSalvou }: {
   const [de, setDe] = useState(horaSemSegundos(contato.visita?.de));
   const [ate, setAte] = useState(horaSemSegundos(contato.visita?.ate));
   const [obsVisita, setObsVisita] = useState(contato.visita?.observacao ?? '');
+  /* Fase 160: com que nome a pessoa é chamada, o RG, e até quando vale. */
+  const [nomeSocial, setNomeSocial] = useState(contato.nomeSocial ?? '');
+  const [rg, setRg] = useState(/•/.test(contato.rg ?? '') ? '' : (contato.rg ?? ''));
+  const [validoDe, setValidoDe] = useState(contato.visita?.validoDe ?? '');
+  const [validoAte, setValidoAte] = useState(contato.visita?.validoAte ?? '');
   const [motivo, setMotivo] = useState('');
   /*
    * OS DIAS VÊM DO SERVIDOR (§12.2), e não de uma lista escrita aqui.
@@ -2651,7 +2660,8 @@ function FolhaVisita({ contato, crianca, onFechar, onSalvou }: {
     try {
       const r = await api<{ aviso: string }>(`/people/contacts/${contato.id}/visit`, {
         method: 'POST',
-        body: JSON.stringify({ autorizado, cpf, dias, de, ate, observacao: obsVisita, motivo }),
+        body: JSON.stringify({ autorizado, cpf, dias, de, ate, observacao: obsVisita, motivo,
+                               rg, nomeSocial, validoDe, validoAte }),
       });
       if (foto) {
         await api(`/people/contacts/${contato.id}/photo`, {
@@ -2783,6 +2793,29 @@ function FolhaVisita({ contato, crianca, onFechar, onSalvou }: {
         </label>
         <input id="vis-cpf" inputMode="numeric" value={cpf} maxLength={14}
                placeholder="000.000.000-00" onChange={(e) => setCpf(e.target.value)} />
+
+        <label className="f" htmlFor="vis-rg">RG <small>— opcional</small></label>
+        <input id="vis-rg" value={rg} maxLength={20} onChange={(e) => setRg(e.target.value)} />
+
+        <label className="f" htmlFor="vis-social">
+          Nome social <small>— como a pessoa é chamada; a portaria vê este primeiro</small>
+        </label>
+        <input id="vis-social" value={nomeSocial} maxLength={120}
+               onChange={(e) => setNomeSocial(e.target.value)} />
+
+        {/* A VALIDADE (fase 160): a autorização provisória, a que vale até a
+            próxima audiência. Fora dela, o portão recusa — e a exceção é da
+            coordenação, da técnica ou do líder. Em branco, vale sem prazo. */}
+        <div className="row">
+          <span className="grow">
+            <label className="f" htmlFor="vis-valde">Autorização vale de <small>— opcional</small></label>
+            <input id="vis-valde" type="date" value={validoDe} onChange={(e) => setValidoDe(e.target.value)} />
+          </span>
+          <span className="grow">
+            <label className="f" htmlFor="vis-valate">até</label>
+            <input id="vis-valate" type="date" value={validoAte} onChange={(e) => setValidoAte(e.target.value)} />
+          </span>
+        </div>
 
         <label className="f" htmlFor="vis-foto">
           Foto 3×4 <small>— opcional; sem ela a portaria pede documento com foto</small>
@@ -3388,6 +3421,136 @@ function ConvivenciaFamiliar({ personId, quem }: { personId: string; quem: strin
  * dizia que ela esteve quinze dias internada em agosto: para saber, alguém
  * tinha de abrir a tela de internação e pedir também as encerradas.
  */
+/**
+ * AS VISITAS DELA (fase 160) — no perfil, e SÓ no perfil.
+ *
+ * Decisão de 26/09: a contagem de uma criança mora aqui e em nenhum outro lugar
+ * — nunca ao lado da de outra criança. Os visitantes saem por NOME, com o
+ * número ao lado, em ordem alfabética: mostra quem vem sem montar um ranking da
+ * família. E a frase de baixo não é enfeite: quantidade de visitas não é
+ * avaliação de ninguém.
+ */
+function VisitasDoAcolhido({ personId }: { personId: string }) {
+  const [dados, setDados] = useState<{
+    periodo: { de: string; ate: string };
+    contagem: { noPeriodo: number; noMes: number; noSemestre: number; noAno: number; total: number };
+    visitantes: { nome: string; vinculo: string; visitas: number; minutos: number }[];
+    visitas: { id: string; visitante: string; vinculoRotulo: string; entrouEm: string;
+               saiuEm: string | null; minutos: number | null; entradaPor: string | null;
+               excecao: string | null; corrigida: boolean; aberta: boolean }[];
+    aviso: string;
+  } | null>(null);
+  const [de, setDe] = useState('');
+  const [ate, setAte] = useState('');
+  const [todas, setTodas] = useState(false);
+  const [finalidade, setFinalidade] = useState('');
+  const [exportando, setExportando] = useState(false);
+  const [msg, setMsg] = useState('');
+
+  useEffect(() => {
+    let vivo = true;
+    const q = [de && `de=${de}`, ate && `ate=${ate}`].filter(Boolean).join('&');
+    api<NonNullable<typeof dados>>(`/people/${personId}/visitas${q ? `?${q}` : ''}`)
+      .then((d) => { if (vivo) setDados(d); })
+      .catch(() => { if (vivo) setDados(null); });
+    return () => { vivo = false; };
+  }, [personId, de, ate]);
+
+  if (!dados) return null;
+  const tempo = (min: number) => {
+    if (!min) return '0 min';
+    const h = Math.floor(min / 60); const m = min % 60;
+    return h ? `${h} h${m ? ` ${m} min` : ''}` : `${m} min`;
+  };
+  const quando = (iso: string) => new Date(iso).toLocaleString('pt-BR', {
+    timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  const mostradas = todas ? dados.visitas : dados.visitas.slice(0, 5);
+
+  async function exportar() {
+    setMsg(''); setExportando(true);
+    try {
+      const r = await api<{ nomeArquivo: string; conteudoBase64: string; aviso: string }>(
+        `/people/${personId}/visitas/export`, {
+          method: 'POST',
+          body: JSON.stringify({ de: dados!.periodo.de, ate: dados!.periodo.ate, finalidade: finalidade.trim() }),
+        });
+      entregarArquivo(r.nomeArquivo, r.conteudoBase64);
+      setMsg(r.aviso); setFinalidade('');
+    } catch (e) { setMsg(e instanceof Error ? e.message : 'Não foi possível gerar o relatório.'); }
+    finally { setExportando(false); }
+  }
+
+  return (
+    <Secao titulo="Visitas">
+      <div className="row">
+        <span className="grow">
+          <label className="f" htmlFor="visp-de">De</label>
+          <input id="visp-de" type="date" value={de || dados.periodo.de} onChange={(e) => setDe(e.target.value)} />
+        </span>
+        <span className="grow">
+          <label className="f" htmlFor="visp-ate">Até</label>
+          <input id="visp-ate" type="date" value={ate || dados.periodo.ate} onChange={(e) => setAte(e.target.value)} />
+        </span>
+      </div>
+      <p>
+        <b>{dados.contagem.noPeriodo}</b> {dados.contagem.noPeriodo === 1 ? 'visita' : 'visitas'} no período
+        <span className="mutetxt"> · no mês: {dados.contagem.noMes} · no semestre: {dados.contagem.noSemestre}
+          {' '}· no ano: {dados.contagem.noAno} · desde o início: {dados.contagem.total}</span>
+      </p>
+      {dados.visitantes.length > 0 && (
+        <>
+          <div className="eyebrow">Quem visitou, por nome</div>
+          <ul className="lista">
+            {dados.visitantes.map((v) => (
+              <li key={`${v.nome}|${v.vinculo}`}>
+                <span className="grow">{v.nome} <span className="mutetxt">({v.vinculo})</span></span>
+                <span className="mutetxt">{v.visitas} {v.visitas === 1 ? 'visita' : 'visitas'} · {tempo(v.minutos)}</span>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+      {mostradas.length > 0 && (
+        <>
+          <div className="eyebrow">As visitas, da mais recente</div>
+          <ul className="lista">
+            {mostradas.map((v) => (
+              <li key={v.id}>
+                <div className="grow">
+                  <b>{v.visitante}</b> <span className="mutetxt">({v.vinculoRotulo})</span>
+                  <div className="mutetxt linhadois">
+                    {quando(v.entrouEm)}
+                    {v.aberta ? ' — na casa agora' : ` — ${v.saiuEm ? quando(v.saiuEm) : ''} (${tempo(v.minutos ?? 0)})`}
+                    {v.entradaPor ? ` · registrou: ${v.entradaPor}` : ''}
+                    {v.corrigida ? ' · horário corrigido, com motivo' : ''}
+                  </div>
+                  {v.excecao && <div className="mutetxt">Entrada por exceção: {v.excecao}</div>}
+                </div>
+              </li>
+            ))}
+          </ul>
+          {dados.visitas.length > 5 && !todas && (
+            <button className="btn sm ghost" onClick={() => setTodas(true)}>
+              Ver as {dados.visitas.length} visitas do período
+            </button>
+          )}
+        </>
+      )}
+      <p className="mutetxt">{dados.aviso}</p>
+      <label className="f" htmlFor="visp-fin">
+        Relatório de visitas em Word <small>— para quê (fica registrado)</small>
+      </label>
+      <input id="visp-fin" value={finalidade} onChange={(e) => setFinalidade(e.target.value)}
+             placeholder="Ex.: relatório para a audiência concentrada" />
+      <button className="btn sec block" disabled={finalidade.trim().length < 10 || exportando}
+              onClick={exportar}>
+        Gerar o relatório de visitas do período
+      </button>
+      {msg && <div className="mutetxt" role="status">{msg}</div>}
+    </Secao>
+  );
+}
+
 function InternacoesDoAcolhido({ personId }: { personId: string }) {
   const [linhas, setLinhas] = useState<{
     id: string; hospital: string; motivo: string | null;

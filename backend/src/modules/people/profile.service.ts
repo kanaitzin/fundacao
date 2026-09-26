@@ -16,6 +16,7 @@ const DOCS_POR_PAPEL: Record<string, string[]> = {
   coordenador: ['saude', 'escolar', 'pessoal', 'judicial_socioassistencial'],
   gestor_geral: ['saude', 'escolar', 'pessoal', 'judicial_socioassistencial'],
   cozinha: [],
+  portaria: [],
 };
 
 /**
