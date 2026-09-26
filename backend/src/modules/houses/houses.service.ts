@@ -114,6 +114,85 @@ export class HousesService {
   }
 
   /** Histórico de mudanças de limite — a decisão precisa continuar visível. */
+  /**
+   * O HORÁRIO DOS TURNOS DA CASA (fase 159).
+   *
+   * Devolve o horário de HOJE, o de AMANHÃ quando alguém já mudou (a mudança
+   * vale a partir do dia seguinte), o turno de agora — que é o que a tela da
+   * passagem usa para saber qual plantão abrir — e quem mudou o quê. O noturno
+   * é o resto do dia: começa um minuto depois do fim do diurno.
+   */
+  async turnos(user: AuthenticatedUser, houseId: string) {
+    return this.db.asUser(user.id, async (c) => {
+      const { rows: [r] } = await c.query(
+        `SELECT to_char(h.diurno_de, 'HH24:MI') AS de, to_char(h.diurno_ate, 'HH24:MI') AS ate,
+                to_char(a.diurno_de, 'HH24:MI') AS de_amanha, to_char(a.diurno_ate, 'HH24:MI') AS ate_amanha,
+                (app_hoje() + 1)::text AS amanha,
+                t.dia::text AS dia_agora, t.periodo AS periodo_agora
+           FROM app_horario_da_casa($1, app_hoje()) h,
+                app_horario_da_casa($1, app_hoje() + 1) a,
+                app_turno_de($1, now()) t`, [houseId]);
+      const { rows: hist } = await c.query(
+        `SELECT to_char(diurno_de, 'HH24:MI') AS de, to_char(diurno_ate, 'HH24:MI') AS ate,
+                valid_from::text AS desde, reason, set_at, app_user_display_name(set_by) AS autor
+           FROM house_shift_hours WHERE house_id = $1
+          ORDER BY set_at DESC LIMIT 30`, [houseId]);
+      const turno = (de: string, ate: string) => ({
+        diurno: { de, ate },
+        noturno: { de: minutos(ate, 1), ate: minutos(de, -1) },
+      });
+      const mudaAmanha = r.de_amanha !== r.de || r.ate_amanha !== r.ate;
+      return {
+        hoje: turno(r.de, r.ate),
+        amanha: mudaAmanha ? { ...turno(r.de_amanha, r.ate_amanha), desde: r.amanha } : null,
+        agora: { dia: r.dia_agora, turno: r.periodo_agora },
+        podeMudar: ['coordenador', 'lider_diurno', 'equipe_tecnica'].includes(user.role),
+        historico: hist.map((h) => ({
+          diurno: { de: h.de, ate: h.ate }, desde: h.desde, motivo: h.reason,
+          autor: h.autor, em: h.set_at,
+        })),
+        aviso: 'A mudança vale a partir do dia seguinte. As ATAs que já passaram '
+          + 'continuam com o horário que tinham.',
+      };
+    });
+  }
+
+  async definirTurnos(user: AuthenticatedUser, houseId: string,
+                      input: { diurnoDe?: string; diurnoAte?: string; motivo?: string }) {
+    if (!['coordenador', 'lider_diurno', 'equipe_tecnica'].includes(user.role)) {
+      throw new ForbiddenException(
+        'O horário dos turnos é definido pela coordenação, pela equipe técnica ou pelo Líder Diurno da casa.');
+    }
+    const hora = /^([01]\d|2[0-3]):[0-5]\d$/;
+    if (!hora.test(input?.diurnoDe ?? '') || !hora.test(input?.diurnoAte ?? '')) {
+      throw new BadRequestException('Informe o início e o fim do diurno como 08:00 e 20:00.');
+    }
+    const r = await this.db.asUser(user.id, async (c) => {
+      const { rows: [row] } = await c.query(
+        `SELECT vigente_desde::text AS desde FROM app_definir_horario_da_casa($1, $2::time, $3::time, $4)`,
+        [houseId, input.diurnoDe, input.diurnoAte, input.motivo ?? null]);
+      return row;
+    }).catch((e: any) => {
+      const m = String(e?.message ?? '');
+      if (m.includes('fora_de_escopo')) throw new NotFoundException('Casa não encontrada — ou fora do seu alcance.');
+      if (m.includes('sem_permissao_horario')) {
+        throw new ForbiddenException('Seu cargo não define o horário dos turnos.');
+      }
+      if (m.includes('horario_invalido')) {
+        throw new BadRequestException(
+          'O diurno precisa começar depois da meia-noite e terminar antes das 23:59, e o '
+          + 'início vem antes do fim. O noturno é o resto do dia.');
+      }
+      throw e;
+    });
+    return {
+      vigenteDesde: r.desde,
+      aviso: `Horário gravado. Vale a partir de ${r.desde.split('-').reverse().join('/')}: `
+        + `diurno das ${input.diurnoDe} às ${input.diurnoAte}, noturno das `
+        + `${minutos(input.diurnoAte!, 1)} às ${minutos(input.diurnoDe!, -1)}.`,
+    };
+  }
+
   async capacityHistory(user: AuthenticatedUser, houseId: string) {
     return this.db.asUser(user.id, async (c) => {
       const { rows } = await c.query(
@@ -154,4 +233,11 @@ export class HousesService {
     }
     return house;
   }
+}
+
+/** Soma minutos a um HH:MM, dando a volta na meia-noite. */
+function minutos(hhmm: string, delta: number): string {
+  const [h, m] = hhmm.split(':').map(Number);
+  const t = ((h * 60 + m + delta) % 1440 + 1440) % 1440;
+  return `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`;
 }

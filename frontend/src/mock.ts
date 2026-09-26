@@ -104,6 +104,14 @@ const CASA = { id: 'casa-ai3', code: 'AI3', name: 'Casa 03 (piloto)', kind: 'abr
 /** O limite da unidade. Objeto, e não `let`, para a demonstração poder mudá-lo. */
 const LIMITE = { valor: 20 };
 /** As mudanças de limite feitas nesta sessão da demonstração. */
+/** As mudanças de horário dos turnos, a mais recente primeiro (fase 159). */
+const HORARIOS_DA_CASA: { diurno: { de: string; ate: string }; desde: string;
+  motivo: string | null; autor: string; em: string }[] = [];
+function somaMinutosMock(hhmm: string, delta: number): string {
+  const [h, m] = hhmm.split(':').map(Number);
+  const x = ((h * 60 + m + delta) % 1440 + 1440) % 1440;
+  return `${String(Math.floor(x / 60)).padStart(2, '0')}:${String(x % 60).padStart(2, '0')}`;
+}
 const MUDANCAS_DE_LIMITE: {
   de: number; para: number; motivo: string; autor: string; em: string;
 }[] = [];
@@ -4655,6 +4663,50 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     return { capacidade: nova, anterior,
       aviso: `Limite da unidade alterado de ${anterior} para ${nova}. A mudança fica `
         + 'registrada com o seu nome.' };
+  }
+
+  /*
+   * O HORÁRIO DOS TURNOS DA CASA (fase 159) — o mesmo contrato do servidor.
+   *
+   * A mudança vale a partir de AMANHÃ, e a demonstração é sempre de hoje: por
+   * isso o horário de hoje continua o padrão, e o cartão mostra "a partir de
+   * amanhã" com o que foi gravado. É o que o servidor faz, e não um atalho.
+   */
+  if (/^\/houses\/[^/]+\/turnos$/.test(rota) && metodo === 'GET') {
+    const ultima = HORARIOS_DA_CASA[0];
+    const turno = (de: string, ate: string) => ({
+      diurno: { de, ate }, noturno: { de: somaMinutosMock(ate, 1), ate: somaMinutosMock(de, -1) } });
+    return {
+      hoje: turno(INICIO_DO_DIURNO, somaMinutosMock(INICIO_DO_NOTURNO, -1)),
+      amanha: ultima ? { ...turno(ultima.diurno.de, ultima.diurno.ate), desde: ultima.desde } : null,
+      agora: { dia: HOJE, turno: periodoDaHora(horaDaTurnoNaInstituicao(new Date())) },
+      podeMudar: ['coordenador', 'lider_diurno', 'equipe_tecnica'].includes(eu.role),
+      historico: HORARIOS_DA_CASA,
+      aviso: 'A mudança vale a partir do dia seguinte. As ATAs que já passaram '
+        + 'continuam com o horário que tinham.',
+    };
+  }
+  if (/^\/houses\/[^/]+\/turnos$/.test(rota) && metodo === 'POST') {
+    if (!['coordenador', 'lider_diurno', 'equipe_tecnica'].includes(eu.role)) {
+      return new Recusa(403,
+        'O horário dos turnos é definido pela coordenação, pela equipe técnica ou pelo Líder Diurno da casa.');
+    }
+    const de = String(b.diurnoDe ?? ''); const ate = String(b.diurnoAte ?? '');
+    const hora = /^([01]\d|2[0-3]):[0-5]\d$/;
+    if (!hora.test(de) || !hora.test(ate)) {
+      return new Recusa(400, 'Informe o início e o fim do diurno como 08:00 e 20:00.');
+    }
+    if (!(de > '00:00' && de < ate && ate < '23:59')) {
+      return new Recusa(400, 'O diurno precisa começar depois da meia-noite e terminar antes das 23:59, '
+        + 'e o início vem antes do fim. O noturno é o resto do dia.');
+    }
+    const desde = new Date(new Date(`${HOJE}T12:00:00-03:00`).getTime() + 86400_000)
+      .toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
+    HORARIOS_DA_CASA.unshift({ diurno: { de, ate }, desde,
+      motivo: String(b.motivo ?? '').trim() || null, autor: eu.fullName, em: new Date().toISOString() });
+    return { vigenteDesde: desde,
+      aviso: `Horário gravado. Vale a partir de ${desde.split('-').reverse().join('/')}: diurno das ${de} `
+        + `às ${ate}, noturno das ${somaMinutosMock(ate, 1)} às ${somaMinutosMock(de, -1)}.` };
   }
 
   // ---- relatos independentes (§12.2)

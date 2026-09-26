@@ -18,7 +18,7 @@
 > depois das 21h em Porto Alegre semeava o dia seguinte — o dia de hoje nascia
 > sem dose nenhuma. **Nada no sistema; tudo no dado de partida.**
 
-- **158 fases.** 105 suítes e 999 testes, verdes em duas condições de relógio —
+- **159 fases.** 106 suítes e 1007 testes, verdes em duas condições de relógio —
   antes e depois da virada do UTC, que em Porto Alegre é às 21h.
 - **A chamada fecha.** O único item de código que faltava ao piloto — a chamada
   que travava quando uma criança estava internada ou em casa com a família —
@@ -204,6 +204,16 @@ anexar no dossiê. Ela **não** edita cadastro, escola nem cuidados essenciais.
 — ou a enfermeira deve poder corrigir cadastro também?
 
 ---
+
+## 4.9 Duas coisas de 26/09 que o Marcelo precisa saber
+
+- **Cada casa define o horário dos seus turnos** (fase 159), pela coordenação,
+  pelo Líder Diurno ou pela equipe técnica; vale a partir do dia seguinte. **O
+  Gestor Geral não foi incluído**, porque o pedido nomeou os três — se ele deve
+  poder, é uma linha.
+- **A portaria vai ganhar login mínimo** (fase 160, decidido em 26/09): ela verá
+  só quem pode visitar hoje e registrará entrada e saída. **Isto revê o pedido
+  de 09/09**, em que a portaria ficava só com a folha em papel.
 
 ## 5. As decisões que são do Marcelo *(§10 — responda pelo número)*
 

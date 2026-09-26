@@ -47,10 +47,15 @@ const FRONTEIRAS: [string, string, 'diurno' | 'noturno'][] = [
 
 describe('A ATA das oito às oito', () => {
   let admin: Client;
+  /* Uma casa SEM horário próprio: é nela que o padrão da Fundação vale. */
+  let casa = '';
 
   beforeAll(async () => {
     admin = new Client({ connectionString: adminUrl });
     await admin.connect();
+    ({ rows: [{ id: casa }] } = await admin.query(
+      `SELECT id FROM house h WHERE NOT EXISTS (SELECT 1 FROM house_shift_hours x WHERE x.house_id = h.id)
+        ORDER BY code LIMIT 1`));
   });
   afterAll(async () => { await admin.end(); });
 
@@ -58,7 +63,7 @@ describe('A ATA das oito às oito', () => {
     const erradas: string[] = [];
     for (const [instante, dia, periodo] of FRONTEIRAS) {
       const { rows: [r] } = await admin.query(
-        `SELECT dia::text, periodo FROM app_turno_de($1::timestamptz)`, [instante]);
+        `SELECT dia::text, periodo FROM app_turno_de($2::uuid, $1::timestamptz)`, [instante, casa]);
       if (r.dia !== dia || r.periodo !== periodo) {
         erradas.push(`${instante}: banco diz ${r.periodo} ${r.dia}, a regra diz ${periodo} ${dia}`);
       }
@@ -88,12 +93,12 @@ describe('A ATA das oito às oito', () => {
     const { rows: [d] } = await admin.query(
       `SELECT to_char(de AT TIME ZONE app_fuso(), 'YYYY-MM-DD HH24:MI') AS de,
               to_char(ate AT TIME ZONE app_fuso(), 'YYYY-MM-DD HH24:MI') AS ate
-         FROM app_janela_do_turno('2026-09-11', 'diurno')`);
+         FROM app_janela_do_turno($1::uuid, '2026-09-11', 'diurno')`, [casa]);
     expect(d).toEqual({ de: '2026-09-11 08:00', ate: '2026-09-11 20:01' });
     const { rows: [n] } = await admin.query(
       `SELECT to_char(de AT TIME ZONE app_fuso(), 'YYYY-MM-DD HH24:MI') AS de,
               to_char(ate AT TIME ZONE app_fuso(), 'YYYY-MM-DD HH24:MI') AS ate
-         FROM app_janela_do_turno('2026-09-11', 'noturno')`);
+         FROM app_janela_do_turno($1::uuid, '2026-09-11', 'noturno')`, [casa]);
     /* Até 08:00 exclusive: o último minuto da Noturna 11 é 07:59 de 12/09. */
     expect(n).toEqual({ de: '2026-09-11 20:01', ate: '2026-09-12 08:00' });
   });
@@ -107,7 +112,7 @@ describe('A ATA das oito às oito', () => {
   it('a hora do compromisso e da dose segue a mesma fronteira no banco e no servidor', async () => {
     for (const [hora, periodo] of [['07:59', 'noturno'], ['08:00', 'diurno'], ['19:30', 'diurno'],
       ['20:00', 'diurno'], ['20:01', 'noturno'], ['23:00', 'noturno']] as const) {
-      const { rows: [r] } = await admin.query(`SELECT app_periodo_da_hora($1::time) AS p`, [hora]);
+      const { rows: [r] } = await admin.query(`SELECT app_periodo_da_hora($2::uuid, '2026-09-11', $1::time) AS p`, [hora, casa]);
       expect([hora, r.p]).toEqual([hora, periodo]);
       expect([hora, periodoDaHora(hora)]).toEqual([hora, periodo]);
     }
@@ -123,6 +128,34 @@ describe('A ATA das oito às oito', () => {
           AND (p.prosrc ~ $$TIME '07:00'$$ OR p.prosrc ~ $$TIME '19:00'$$)
         ORDER BY 1`);
     expect(rows.map((r) => r.proname)).toEqual([]);
+  });
+
+  it('e toda chamada à regra passa a CASA — a versão sem casa saiu (fase 159)', async () => {
+    /*
+     * Cada casa define o seu horário desde a 159, e a regra sem casa foi
+     * removida: uma função que esquecesse a casa responderia o padrão calado, e
+     * a casa que mudou o horário teria a tela dizendo uma coisa e a ATA outra.
+     * Aqui se conta, em cada chamada que está no banco, quantos argumentos ela
+     * passa. A pergunta é ao catálogo, pela lição da 157.
+     */
+    const ARIDADE: Record<string, number> = { app_turno_de: 2, app_janela_do_turno: 3, app_periodo_da_hora: 3 };
+    const { rows } = await admin.query(
+      `SELECT p.proname, p.prosrc FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+        WHERE n.nspname = 'public' AND p.prosrc ~ 'app_(turno_de|janela_do_turno|periodo_da_hora)\\(' `);
+    const erradas: string[] = [];
+    for (const r of rows) {
+      for (const m of (r.prosrc as string).matchAll(/(app_turno_de|app_janela_do_turno|app_periodo_da_hora)\(/g)) {
+        /* Os argumentos até o parêntese que fecha, contando só as vírgulas do nível de cima. */
+        let nivel = 1, virgulas = 0, i = m.index! + m[0].length;
+        for (; i < r.prosrc.length && nivel > 0; i++) {
+          const ch = r.prosrc[i];
+          if (ch === '(') nivel++; else if (ch === ')') nivel--; else if (ch === ',' && nivel === 1) virgulas++;
+        }
+        if (virgulas + 1 !== ARIDADE[m[1]]) erradas.push(`${r.proname} chama ${m[1]} com ${virgulas + 1}`);
+      }
+    }
+    expect(rows.length).toBeGreaterThanOrEqual(6);
+    expect(erradas).toEqual([]);
   });
 });
 
@@ -169,8 +202,8 @@ describe('O registro feito sem internet fica na ATA de quando aconteceu', () => 
 
     const { rows: [e] } = await admin.query(
       `SELECT t.dia::text AS dia, t.periodo
-         FROM activity_execution x, app_turno_de(x.happened_at) t
-        WHERE x.activity_id = $1`, [a.id]);
+         FROM activity_execution x, app_turno_de($2::uuid, x.happened_at) t
+        WHERE x.activity_id = $1`, [a.id, AI3]);
     expect(e).toEqual({ dia: d.anteontem, periodo: 'noturno' });
   });
 });

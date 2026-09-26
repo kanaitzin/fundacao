@@ -154,7 +154,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 26/09/2026, fase 158
+### Onde estamos — 26/09/2026, fase 159
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -176,8 +176,9 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 156 | **a coordenação de uma casa redefinia a senha de educador de OUTRA casa e recebia a senha nova** (tomada de conta); quem SAIU de uma casa era administrável por todas; ciência em episódio e acompanhante de internação cruzavam de casa; aviso inexistente "ciente" com auditoria falsa |
 | 157 | **a ATA das oito às oito** (decisão de 25/09): a regra 7h–19h estava escrita à mão em SEIS funções, no servidor, na passagem, na escala e no mock; agora mora em `app_turno_de`/`app_janela_do_turno`, com espelho em `tempo.ts` e `frontend/src/turno.ts` e teste que obriga os três a concordar |
 | 158 | **24 leituras respondiam 200 VAZIO a quem é de fora** — o dossiê listando todo documento como faltando, a saúde "sem atendimento"; nada vazava, mas o vazio mentia. Conserto na porta: `@RegistroDaRota` + guarda `RegistroNoAlcance`, em 39 leituras, com cobrança estática |
+| 159 | **cada casa define o horário dos seus turnos** (pedido de 26/09): coordenação, Líder Diurno e técnica dizem o DIURNO, o noturno é o resto; vale a partir de amanhã; `house_shift_hours` só cresce; a regra (`app_turno_de` etc.) pergunta PELA CASA e as versões sem casa saíram; cartão na Escala |
 
-**Medido no fim da 158:** 149 migrações, 116 tabelas, 105 suítes, 999 testes, verdes nas
+**Medido no fim da 159:** 153 migrações, 117 tabelas, 106 suítes, 1007 testes, verdes nas
 DUAS condições de relógio; os sete ensaios de navegador verdes (154 e 155 não
 mexeram em tela; a 156 também não); 139 telas sem violação de WCAG 2.1 AA; nenhuma
 rota sem teste; nenhuma rota — escrita ou leitura — com 500; nenhum ouvinte
@@ -201,7 +202,9 @@ data do dia em que o noturno começou** — substitui o 7h–19h preliminar (pen
 #4). As fases, na ordem, e o inventário que as justifica:
 - ~~**157** regra nova da ATA~~ ✅ feita;
 - ~~**158** alcance de LEITURA entre casas~~ ✅ feita;
-- **159** VISITAS: não existe registro de entrada/saída (só a autorização do contato);
+- ~~**159** (fora do plano original, pedido de 26/09) horário dos turnos por casa~~ ✅ feita —
+  **as fases abaixo andaram um número**;
+- **160** VISITAS: não existe registro de entrada/saída (só a autorização do contato);
   faltam RG, nome social e validade da autorização; métricas no perfil **sem ranking
   de visitante** (§6: ranking de pessoas é proibido). **DECIDIDO pelo humano em
   26/09:** (a) **cargo `portaria` COM login mínimo** — vê só a lista de quem pode
@@ -211,13 +214,13 @@ data do dia em que o noturno começou** — substitui o 7h–19h preliminar (pen
   vínculo — para a portaria ela tem de responder NÃO, e a portaria só enxerga por
   funções próprias. (b) **Fora do dia/horário autorizado: recusa**, salvo exceção
   com motivo escrito por coordenação, técnica ou líder; a portaria não abre exceção.
-- **160** estoque (lote, origem, perda/devolução, sem negativo calado), nota fiscal
+- **161** estoque (lote, origem, perda/devolução, sem negativo calado), nota fiscal
   (CNPJ, itens com valor unitário, duplicidade), métricas e relatórios em DOCX;
-- **161** cozinha: "Selecionar todos", editar pedido com histórico; métricas de refeições;
-- **162** câmera/galeria com prévia, tipo real do arquivo, DOCX da internação com
+- **162** cozinha: "Selecionar todos", editar pedido com histórico; métricas de refeições;
+- **163** câmera/galeria com prévia, tipo real do arquivo, DOCX da internação com
   imagens e páginas de PDF, "repetir escala do mês anterior" como rascunho, e o
   **cargo da época** nos registros antigos (`app_user_cargo` devolve o ATUAL);
-- **163** simulação de vários dias (§38) como teste, e o relatório final com a matriz.
+- **164** simulação de vários dias (§38) como teste, e o relatório final com a matriz.
 
 **1. As medições de alcance estão feitas** — escrita (156) e leitura (158). A
 sondagem roda sobre o banco povoado pela suíte, com `globalSetup` vazio; o mapa

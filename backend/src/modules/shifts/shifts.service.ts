@@ -59,10 +59,20 @@ export class ShiftsService {
     // A noite pertence ao dia em que COMEÇOU: às 02h de quinta ainda é o
     // plantão de quarta. Sem isso, quem abre antes e quem abre depois da
     // meia-noite criam dois plantões para a mesma noite.
-    const data = input.data ?? dataDoPlantao(input.turno);
     if (!['diurno', 'noturno'].includes(input.turno)) {
       throw new BadRequestException('Turno deve ser "diurno" ou "noturno".');
     }
+    /* A madrugada é da noite de ontem até o início do DIURNO DA CASA — que cada
+       casa define (fase 159). Por isso a data sai do banco, e não do relógio do
+       servidor com um horário fixo. */
+    const data = input.data ?? await this.db.asUser(user.id, async (c) => {
+      const { rows: [r] } = await c.query(
+        `SELECT (CASE WHEN $2 = 'noturno'
+                       AND (now() AT TIME ZONE app_fuso())::time < app_inicio_do_diurno($1::uuid, app_hoje())
+                      THEN app_hoje() - 1 ELSE app_hoje() END)::text AS d`,
+        [input.houseId, input.turno]);
+      return r.d as string;
+    });
     const r = await this.comando(user, 'app_open_shift($1,$2,$3)', [input.houseId, data, input.turno]);
     if (r.out_created) {
       await this.audit.log({

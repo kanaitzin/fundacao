@@ -899,11 +899,11 @@ criança, e log não copia conteúdo sensível (§5). A auditoria guarda o ato �
 coordenação, Líder Diurno). Mais ninguém: a lista de quem pediu para ler o quê é,
 ela mesma, informação sobre o caso.
 
-## Inventário — 116 tabelas por partição
+## Inventário — 117 tabelas por partição
 
 | Partição | Tabelas |
 |---|---|
-| identity (13) | institution, house, app_user, user_house_assignment, work_schedule, shift_assignment, user_session, login_attempt, audit_event, institutional_device, staff_role_grant, house_capacity_change, user_invite |
+| identity (14) | institution, house, app_user, user_house_assignment, work_schedule, shift_assignment, user_session, login_attempt, audit_event, institutional_device, staff_role_grant, house_capacity_change, user_invite, house_shift_hours |
 | people (26) | person, care_episode, house_stay, profile_detail, health_condition, food_restriction, document, document_version, benefit_record, memory_record, memory_photo, transfer_request, transfer_message, admission_record, judicial_record, person_credential, person_correction, profile_detail_change, person_contact, family_stay, family_stay_note, outing_permission, kitchen_request, house_field_permission, birthday_ack, contact_visit_change |
 | shifts (13) | shift, handover, handover_receipt, handover_note, ata, ata_note, ata_addendum, ata_episode, ata_episode_ack, general_night_ata, general_night_house_entry, general_night_house_amendment, ata_read_request |
 | incidents (7) | incident, incident_person, incident_protected, incident_restraint, incident_synthesis, external_communication, incident_attachment |
@@ -921,6 +921,27 @@ ela mesma, informação sobre o caso.
 
 Cada partição guarda as próprias migrações. Remover um módulo é remover a
 pasta dele — e é por isso que a lista acima é por partição, e não por assunto.
+
+### `house_shift_hours`
+O horário dos turnos de CADA CASA (fase 159, identity/1580). A casa diz o
+**diurno**; o noturno é o resto do dia, e é isso que impede buraco e
+sobreposição entre os dois. Quem não configurou nada fica no padrão da
+Fundação (08:00–20:00), e a regra inteira — `app_turno_de`,
+`app_janela_do_turno`, `app_periodo_da_hora` — pergunta por aqui, com a casa.
+
+| Coluna | Tipo | Observação |
+|---|---|---|
+| `id` | uuid | |
+| `house_id` | uuid | |
+| `diurno_de` / `diurno_ate` | time | minuto cheio; `00:00 < de < ate < 23:59` |
+| `valid_from` | date | sempre o dia SEGUINTE ao da mudança: ATA que passou não muda |
+| `reason` | text | opcional |
+| `set_by` / `set_at` | | quem mudou e quando |
+
+Só cresce: cada mudança é uma linha, e a que vale num dia é a de maior
+`valid_from` até ele — no empate, a mais recente. Quem grava é
+`app_definir_horario_da_casa` (coordenação, Líder Diurno e equipe técnica da
+casa), que também escreve a auditoria com a casa.
 
 ### `commitment_exception`
 Uma ocorrência desmarcada de um compromisso que continua valendo. Por DATA, com

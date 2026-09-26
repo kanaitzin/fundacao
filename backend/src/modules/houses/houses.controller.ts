@@ -35,6 +35,19 @@ export class HousesController {
     return this.houses.capacityHistory(user, id);
   }
 
+  /* O horário dos turnos da casa (fase 159). Palavra fixa depois de `:id`. */
+  @RegistroDaRota('id', 'house')
+  @Get(':id/turnos')
+  turnos(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.houses.turnos(user, id);
+  }
+
+  @Post(':id/turnos')
+  definirTurnos(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
+                @Body() body: { diurnoDe?: string; diurnoAte?: string; motivo?: string }) {
+    return this.houses.definirTurnos(user, id, body ?? {});
+  }
+
   @Post(':id/capacity')
   setCapacity(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
               @Body() body: { capacidade: number; motivo: string }) {

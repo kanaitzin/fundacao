@@ -97,10 +97,19 @@ export function Passagem({ houseId }: { houseId: string }) {
   const [recebendo, setRecebendo] = useState(false);
   const [complementando, setComplementando] = useState(false);
 
+  /* O turno de agora PELO HORÁRIO DA CASA (fase 159): cada casa define o seu.
+     Sem resposta do servidor, vale o padrão da Fundação, e a data do plantão
+     quem decide é o servidor de qualquer jeito. */
+  const [turnoDaCasa, setTurnoDaCasa] = useState<'diurno' | 'noturno' | null>(null);
+  const turnoDeAgora = () => turnoDaCasa ?? turnoAgora();
+
   const carregarLista = useCallback(async () => {
     setErro('');
     try { setLista(await api<Resumo[]>(`/shifts?houseId=${houseId}`)); }
     catch (e) { setErro(e instanceof Error ? e.message : 'Não foi possível carregar os plantões.'); }
+    const h = await api<{ agora: { turno: 'diurno' | 'noturno' } }>(`/houses/${houseId}/turnos`)
+      .catch(() => null);
+    setTurnoDaCasa(h?.agora?.turno ?? null);
   }, [houseId]);
 
   useEffect(() => { carregarLista(); }, [carregarLista]);
@@ -120,7 +129,7 @@ export function Passagem({ houseId }: { houseId: string }) {
     setErro(''); setAviso(''); setOcupado(true);
     try {
       const r = await api<{ plantaoId: string; novo: boolean }>('/shifts', {
-        method: 'POST', body: JSON.stringify({ houseId, turno: turnoAgora() }),
+        method: 'POST', body: JSON.stringify({ houseId, turno: turnoDeAgora() }),
       });
       if (r.novo) setAviso('Plantão aberto. A ATA do turno nasceu junto, em rascunho.');
       await carregarLista();
@@ -217,7 +226,7 @@ export function Passagem({ houseId }: { houseId: string }) {
   // ---------- lista dos plantões do dia ----------
 
   if (!aberto) {
-    const jaTemDoTurno = lista.some((p) => p.turno === turnoAgora());
+    const jaTemDoTurno = lista.some((p) => p.turno === turnoDeAgora());
     return (
       <>
         <div className="diahead"><div><h2>Passagem de plantão</h2></div></div>
@@ -268,7 +277,7 @@ export function Passagem({ houseId }: { houseId: string }) {
 
         {!jaTemDoTurno && (
           <button className="btn block" style={{ marginTop: 14 }} disabled={ocupado} onClick={abrirTurno}>
-            Abrir o {turnoAgora() === 'diurno' ? 'plantão diurno' : 'plantão noturno'}
+            Abrir o {turnoDeAgora() === 'diurno' ? 'plantão diurno' : 'plantão noturno'}
           </button>
         )}
       </>

@@ -27,6 +27,7 @@
     "user_invite",
     "staff_role_grant",
     "house_capacity_change",
+    "house_shift_hours",
     "shift_assignment"
   ],
   "observacao": "Contém a migração de fundação (instituição, casas, usuários e auditoria), da qual todo o resto depende. Não é removível."

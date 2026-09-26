@@ -1102,6 +1102,27 @@ cobrar('a escala diz em voz alta o turno que está sem ninguém',
 cobrar('os dois turnos aparecem com o horário',
   /08:00–20:00/.test(escala) && /20:01–07:59/.test(escala));
 
+/* O HORÁRIO DOS TURNOS DA CASA (fase 159): a coordenação muda, e vale amanhã.
+ * Entra pelo nome acessível do botão e dos campos — nunca pelo desenho. */
+cobrar('o horário dos turnos da casa aparece na escala', /Horário dos turnos/i.test(escala));
+const mudar = pg.getByRole('button', { name: /Mudar o horário dos turnos/i });
+cobrar('a coordenação pode mudar o horário dos turnos', (await mudar.count()) > 0);
+if (await mudar.count()) {
+  await mudar.click();
+  await pg.getByLabel('O diurno começa às').fill('07:00');
+  await pg.getByLabel('e termina às').fill('19:00');
+  const previa = await conteudo();
+  cobrar('a tela mostra como o noturno fica ANTES de gravar',
+    /noturno fica das 19:01 às 06:59/i.test(previa), previa.slice(0, 200));
+  await pg.getByRole('button', { name: /Gravar — vale a partir de amanhã/i }).click();
+  await pg.waitForTimeout(400);
+  const depois = await conteudo();
+  cobrar('a mudança vale a partir de amanhã, e a tela diz isso',
+    /A partir de \d{2}\/\d{2}\/\d{4}: diurno das 07:00 às 19:00/i.test(depois), depois.slice(0, 240));
+  cobrar('o horário de HOJE não mudou',
+    /08:00–20:00/.test(depois) && /20:01–07:59/.test(depois));
+}
+
 const linhasEscaladas = () =>
   pg.locator('main.conteudo button').filter({ hasText: /^Retirar$/ }).count();
 const escalados = await linhasEscaladas();

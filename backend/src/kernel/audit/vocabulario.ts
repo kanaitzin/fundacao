@@ -83,6 +83,7 @@ export const VOCABULARIO_DA_AUDITORIA: Record<string, string> = {
   'perfil.campo.desligado': 'Campo do perfil desligado para a casa',
   'house.open': 'Unidade aberta',
   'house.capacity_change': 'Capacidade da unidade alterada',
+  'house.shift_hours': 'Horário dos turnos da casa alterado',
 
   // ------------------------------------------------------------- Dossiê e fotos
   'document.attach': 'Documento anexado ao dossiê',

@@ -50,10 +50,34 @@ interface Periodo {
 }
 interface Membro { id: string; nome: string; cargo: string; ativo: boolean }
 
-const TURNOS = [
-  { cod: 'diurno' as const, label: 'Diurno', horas: HORAS_DO_TURNO.diurno },
-  { cod: 'noturno' as const, label: 'Noturno', horas: HORAS_DO_TURNO.noturno },
-];
+/** O horário dos turnos da casa (fase 159), como o servidor o devolve. */
+interface Janela { de: string; ate: string }
+interface Turnos {
+  hoje: { diurno: Janela; noturno: Janela };
+  amanha: { diurno: Janela; noturno: Janela; desde: string } | null;
+  podeMudar: boolean;
+  historico: { diurno: Janela; desde: string; motivo: string | null; autor: string; em: string }[];
+  aviso: string;
+}
+
+/** Os dois turnos com o horário DA CASA; sem resposta, o padrão da Fundação. */
+function turnosDaCasa(t: Turnos | null) {
+  const h = t?.hoje;
+  return [
+    { cod: 'diurno' as const, label: 'Diurno',
+      horas: h ? `${h.diurno.de}–${h.diurno.ate}` : HORAS_DO_TURNO.diurno },
+    { cod: 'noturno' as const, label: 'Noturno',
+      horas: h ? `${h.noturno.de}–${h.noturno.ate}` : HORAS_DO_TURNO.noturno },
+  ];
+}
+
+/** Soma minutos a um HH:MM, para a prévia do noturno. */
+function somaMinutos(hhmm: string, delta: number): string {
+  const [h, m] = hhmm.split(':').map(Number);
+  const x = ((h * 60 + m + delta) % 1440 + 1440) % 1440;
+  return `${String(Math.floor(x / 60)).padStart(2, '0')}:${String(x % 60).padStart(2, '0')}`;
+}
+const diaBR = (iso: string) => iso.split('-').reverse().join('/');
 
 const diaSemana = (iso: string) =>
   new Date(`${iso}T12:00:00-03:00`).toLocaleDateString('pt-BR', { weekday: 'short' });
@@ -84,6 +108,8 @@ export function Escala({ houseId, casaLabel, papel }: {
   /* Substituir num gesto (fase 123) — *"substituir ou deixar a menos"*. */
   const [substituindo, setSubstituindo] = useState<{ p: Pessoa; data: string } | null>(null);
   const [documento, setDocumento] = useState<DocumentoWord | null>(null);
+  const [turnos, setTurnos] = useState<Turnos | null>(null);
+  const TURNOS = turnosDaCasa(turnos);
 
   /*
    * QUEM MONTA — os três cargos que a Fundação nomeou em 15/09, mais a gestão:
@@ -98,6 +124,7 @@ export function Escala({ houseId, casaLabel, papel }: {
     setErro('');
     try {
       setDados(await api<Periodo>(`/escala?houseId=${houseId}&de=${de}&ate=${ate}`));
+      setTurnos(await api<Turnos>(`/houses/${houseId}/turnos`).catch(() => null));
       if (monta) {
         /* `GET /staff` devolve a LISTA crua, como o servidor a serve — e não um
            objeto com `equipe` dentro. Ler o formato errado aqui daria uma lista
@@ -171,6 +198,11 @@ export function Escala({ houseId, casaLabel, papel }: {
           <Icone nome="documento" /> Folha para a parede
         </button>
       </div>
+
+      {turnos && (
+        <HorarioDosTurnos houseId={houseId} turnos={turnos}
+                          onMudou={async (msg) => { setAviso(msg); await carregar(); }} />
+      )}
 
       {dados?.dias.map((d) => (
         <article className={`card stack ${d.data === hoje ? 'raise' : ''}`} key={d.data}>
@@ -555,5 +587,115 @@ function FolhaRetirar({ pessoa, jaPassou, onFechar, onRetirar }: {
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * O HORÁRIO DOS TURNOS DA CASA (fase 159) — pedido da Fundação em 26/09.
+ *
+ * Quem muda: coordenação, Líder Diurno e equipe técnica da casa. A casa diz o
+ * DIURNO; o noturno é o resto do dia, e a tela mostra como ele fica antes de
+ * gravar — é a conta que evita buraco e sobreposição. A mudança vale a partir
+ * de amanhã, e a tela diz isso duas vezes: no formulário e no aviso de "amanhã
+ * muda", que fica até o dia virar.
+ */
+function HorarioDosTurnos({ houseId, turnos, onMudou }: {
+  houseId: string; turnos: Turnos; onMudou: (aviso: string) => void;
+}) {
+  const [editando, setEditando] = useState(false);
+  const [de, setDe] = useState(turnos.hoje.diurno.de);
+  const [ate, setAte] = useState(turnos.hoje.diurno.ate);
+  const [motivo, setMotivo] = useState('');
+  const [erro, setErro] = useState('');
+  const [salvando, setSalvando] = useState(false);
+  const valido = !!de && !!ate && de > '00:00' && de < ate && ate < '23:59';
+
+  async function salvar() {
+    setErro(''); setSalvando(true);
+    try {
+      const r = await api<{ aviso: string }>(`/houses/${houseId}/turnos`, {
+        method: 'POST', body: JSON.stringify({ diurnoDe: de, diurnoAte: ate, motivo: motivo.trim() || undefined }),
+      });
+      setEditando(false); setMotivo('');
+      onMudou(r.aviso);
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Não foi possível gravar o horário.');
+    } finally { setSalvando(false); }
+  }
+
+  return (
+    <section className="card stack" aria-labelledby="h-turnos">
+      <h3 id="h-turnos" style={{ margin: 0 }}><Icone nome="agenda" /> Horário dos turnos</h3>
+      <p style={{ margin: 0 }}>
+        Diurno das <strong>{turnos.hoje.diurno.de}</strong> às <strong>{turnos.hoje.diurno.ate}</strong>
+        {' · '}Noturno das <strong>{turnos.hoje.noturno.de}</strong> às <strong>{turnos.hoje.noturno.ate}</strong>
+      </p>
+      {turnos.amanha && (
+        <div className="notice c-warn" role="status">
+          A partir de {diaBR(turnos.amanha.desde)}: diurno das {turnos.amanha.diurno.de} às{' '}
+          {turnos.amanha.diurno.ate}, noturno das {turnos.amanha.noturno.de} às {turnos.amanha.noturno.ate}.
+        </div>
+      )}
+
+      {turnos.podeMudar && !editando && (
+        <button className="btn sec block" onClick={() => { setEditando(true); setErro(''); }}>
+          Mudar o horário dos turnos
+        </button>
+      )}
+
+      {editando && (
+        <div className="stack">
+          <p className="mutetxt" style={{ margin: 0 }}>{turnos.aviso}</p>
+          <div className="row">
+            <label className="f grow" htmlFor="turno-de">
+              O diurno começa às
+              <input id="turno-de" type="time" className="field" value={de}
+                     onChange={(e) => setDe(e.target.value)} />
+            </label>
+            <label className="f grow" htmlFor="turno-ate">
+              e termina às
+              <input id="turno-ate" type="time" className="field" value={ate}
+                     onChange={(e) => setAte(e.target.value)} />
+            </label>
+          </div>
+          {valido ? (
+            <p style={{ margin: 0 }}>
+              O noturno fica das <strong>{somaMinutos(ate, 1)}</strong> às <strong>{somaMinutos(de, -1)}</strong>.
+            </p>
+          ) : (
+            <div className="notice c-warn" role="alert">
+              O diurno precisa começar antes de terminar, depois da meia-noite e antes das 23:59.
+            </div>
+          )}
+          <label className="f" htmlFor="turno-motivo">
+            Motivo (opcional)
+            <input id="turno-motivo" className="field" value={motivo}
+                   onChange={(e) => setMotivo(e.target.value)}
+                   placeholder="Ex.: a troca de equipe desta casa é às 7h" />
+          </label>
+          {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+          <div className="row">
+            <button className="btn grow" disabled={!valido || salvando} onClick={salvar}>
+              Gravar — vale a partir de amanhã
+            </button>
+            <button className="btn sec grow" onClick={() => setEditando(false)}>Cancelar</button>
+          </div>
+        </div>
+      )}
+
+      {turnos.historico.length > 0 && (
+        <details>
+          <summary>Quem mudou o horário ({turnos.historico.length})</summary>
+          <ul>
+            {turnos.historico.map((h, i) => (
+              <li key={i}>
+                Diurno {h.diurno.de}–{h.diurno.ate}, a partir de {diaBR(h.desde)} — {h.autor}
+                {h.motivo ? ` · ${h.motivo}` : ''}
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+    </section>
   );
 }
