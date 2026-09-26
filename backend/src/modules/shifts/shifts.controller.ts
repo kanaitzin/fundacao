@@ -1,3 +1,4 @@
+import { RegistroDaRota } from '../../kernel/common/registro-da-rota.guard';
 import { Body, Controller, Get, Inject, Param, ParseUUIDPipe, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { SessionGuard, CurrentUser } from '../identity';
 import { AuthenticatedUser } from '../../kernel/contracts';
@@ -161,6 +162,7 @@ export class ShiftsController {
     return this.shifts.amendAta(user, ataId, body?.motivo ?? '', body?.conteudo ?? {});
   }
 
+  @RegistroDaRota('ataId', 'ata')
   @Get('ata/:ataId/addenda')
   addenda(@CurrentUser() user: AuthenticatedUser, @Param('ataId', ParseUUIDPipe) ataId: string) {
     return this.shifts.addenda(user, ataId);

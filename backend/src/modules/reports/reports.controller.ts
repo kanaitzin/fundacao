@@ -1,3 +1,4 @@
+import { RegistroDaRota } from '../../kernel/common/registro-da-rota.guard';
 import {
   Body, Controller, Get, Inject, Param, ParseUUIDPipe, Post, Query, UseGuards,
 } from '@nestjs/common';
@@ -145,6 +146,7 @@ export class ImpactoController {
   }
 
   /** A história de uma criança, para levar a uma audiência. */
+  @RegistroDaRota('personId', 'person')
   @Get('trajetoria/:personId/folha')
   folhaDaTrajetoria(@CurrentUser() user: AuthenticatedUser,
                     @Param('personId', ParseUUIDPipe) personId: string) {
@@ -164,6 +166,7 @@ export class ImpactoController {
     return this.impacto.lerComprovante(user, id);
   }
 
+  @RegistroDaRota('personId', 'person')
   @Get('trajetoria/:personId')
   trajetoria(@CurrentUser() user: AuthenticatedUser,
              @Param('personId', ParseUUIDPipe) personId: string) {
@@ -295,6 +298,7 @@ export class ReportsController {
     return this.reports.registrarEntrega(user, id, body);
   }
 
+  @RegistroDaRota('id', 'report_document')
   @Get(':id/delivery')
   entregas(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.reports.entregas(user, id);

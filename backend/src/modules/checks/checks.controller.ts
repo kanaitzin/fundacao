@@ -1,3 +1,4 @@
+import { RegistroDaRota } from '../../kernel/common/registro-da-rota.guard';
 import { Body, Controller, Get, Inject, Param, ParseUUIDPipe, Post, Query, UseGuards } from '@nestjs/common';
 import { SessionGuard, CurrentUser } from '../identity';
 import { AuthenticatedUser } from '../../kernel/contracts';
@@ -35,6 +36,7 @@ export class ChecksController {
    * se sabia se a Alice esteve no almoço de terça abrindo a chamada daquele
    * almoço (§9, item 4). Isto é o mesmo dado, recortado pela vida dela.
    */
+  @RegistroDaRota('personId', 'person')
   @Get('person/:personId')
   presenca(@CurrentUser() user: AuthenticatedUser,
            @Param('personId', ParseUUIDPipe) personId: string,

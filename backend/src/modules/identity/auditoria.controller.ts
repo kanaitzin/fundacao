@@ -1,3 +1,4 @@
+import { RegistroDaRota } from '../../kernel/common/registro-da-rota.guard';
 import { Controller, Get, Inject, Param, ParseUUIDPipe, Query, UseGuards } from '@nestjs/common';
 import { SessionGuard } from './session.guard';
 import { CurrentUser } from './current-user.decorator';
@@ -20,6 +21,7 @@ import { AuditoriaService } from './auditoria.service';
 export class AuditoriaController {
   constructor(@Inject(AuditoriaService) private readonly auditoria: AuditoriaService) {}
 
+  @RegistroDaRota('personId', 'person')
   @Get('person/:personId')
   doAcolhido(@CurrentUser() user: AuthenticatedUser,
              @Param('personId', ParseUUIDPipe) personId: string,

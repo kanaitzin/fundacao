@@ -245,13 +245,13 @@ describe('O rastro que a coordenação não lia', () => {
   it('a coordenação de OUTRA casa não lê o rastro desta', async () => {
     const r = await rastro(tokens.deOutraCasa, ids.daCasa);
     /*
-     * 200 com lista vazia, e não 404: o serviço não tem como distinguir *"nada
-     * aconteceu"* de *"não é sua casa"* sem olhar a linha que o RLS já esconde —
-     * e olhar por fora do RLS para poder devolver 404 seria abrir o caminho que
-     * o recorte fecha. O que importa, e é o que se mede aqui, é que NADA vaze.
+     * 404, e não mais 200 com lista vazia (fase 158). A frase que estava aqui
+     * dizia que distinguir "nada aconteceu" de "não é sua casa" exigiria olhar
+     * por fora do RLS. Não exige: a pergunta "você enxerga este relatório?" é
+     * feita COM a identidade de quem lê, e o RLS de `report_document` responde.
+     * A lista vazia se lia "ninguém abriu este relatório" — a regra 12.
      */
-    expect(r.status).toBe(200);
-    expect(r.body.linhas).toHaveLength(0);
+    expect(r.status).toBe(404);
   });
 
   it('educador e Enfermagem recebem a recusa escrita, e não uma lista vazia', async () => {
@@ -270,9 +270,8 @@ describe('O rastro que a coordenação não lia', () => {
     expect(r.body.linhas.length).toBeGreaterThan(0);
   });
 
-  it('registro sem rastro responde lista vazia, e não erro', async () => {
+  it('relatório que não existe responde que não foi encontrado — e não lista vazia', async () => {
     const r = await rastro(tokens.gestor, '00000000-0000-4000-8000-000000000000');
-    expect(r.status).toBe(200);
-    expect(r.body.linhas).toHaveLength(0);
+    expect(r.status).toBe(404);
   });
 });

@@ -1,3 +1,4 @@
+import { RegistroDaRota } from '../../kernel/common/registro-da-rota.guard';
 import { Body, Controller, Get, Inject, Param, ParseUUIDPipe, Post, Query, UseGuards } from '@nestjs/common';
 import { SessionGuard, CurrentUser } from '../identity';
 import { AuthenticatedUser } from '../../kernel/contracts';
@@ -35,6 +36,7 @@ export class NursingController {
   @Get('education/kinds')
   vocabularioDaEducacao() { return this.educacao.vocabulario(); }
 
+  @RegistroDaRota('personId', 'person')
   @Get('education/:personId')
   educacaoDoAcolhido(@CurrentUser() user: AuthenticatedUser,
                      @Param('personId', ParseUUIDPipe) personId: string) {
@@ -103,6 +105,7 @@ export class NursingController {
     return this.nursing.triage(user, id, body);
   }
 
+  @RegistroDaRota('personId', 'person')
   @Get('history/:personId')
   history(@CurrentUser() user: AuthenticatedUser, @Param('personId', ParseUUIDPipe) personId: string) {
     return this.nursing.history(user, personId);
@@ -114,6 +117,7 @@ export class NursingController {
    * Vem do MESMO histórico que a tela mostra: quem alcança o histórico alcança
    * a folha dele, e é o RLS de `history` que decide isso.
    */
+  @RegistroDaRota('personId', 'person')
   @Get('history/:personId/folha')
   folha(@CurrentUser() user: AuthenticatedUser, @Param('personId', ParseUUIDPipe) personId: string) {
     return this.nursing.folhaDeSaude(user, personId);
@@ -140,6 +144,7 @@ export class NursingController {
   /* As internações de UMA criança (fase 118). Antes de `hospitalizations/:id`
      porque `person` é palavra literal contra um `:param`, que o
      `contrato-rotas` reprova quando vem depois. */
+  @RegistroDaRota('personId', 'person')
   @Get('hospitalizations/person/:personId')
   internacoesDoAcolhido(@CurrentUser() user: AuthenticatedUser,
                         @Param('personId', ParseUUIDPipe) personId: string) {
@@ -207,6 +212,7 @@ export class NursingController {
     return this.summary.registerDownload(user, id);
   }
 
+  @RegistroDaRota('personId', 'person')
   @Get('summary/:personId/issues')
   issues(@CurrentUser() user: AuthenticatedUser, @Param('personId', ParseUUIDPipe) personId: string) {
     return this.summary.issues(user, personId);

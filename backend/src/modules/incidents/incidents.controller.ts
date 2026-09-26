@@ -1,3 +1,4 @@
+import { RegistroDaRota } from '../../kernel/common/registro-da-rota.guard';
 import { Body, Controller, Get, Inject, Param, ParseUUIDPipe, Post, Query, UseGuards } from '@nestjs/common';
 import { SessionGuard, CurrentUser } from '../identity';
 import { AuthenticatedUser } from '../../kernel/contracts';
@@ -31,6 +32,7 @@ export class IncidentsController {
   /* Os ofícios SOBRE uma criança (fase 118). Antes da lista da casa porque
      `communications/person/:id` cairia no `:id` de outra rota se viesse
      depois — e `person` é palavra literal, que o contrato-rotas exige. */
+  @RegistroDaRota('personId', 'person')
   @Get('communications/person/:personId')
   comunicacoesDoAcolhido(@CurrentUser() user: AuthenticatedUser,
                          @Param('personId', ParseUUIDPipe) personId: string) {

@@ -1,3 +1,4 @@
+import { RegistroDaRota } from '../../kernel/common/registro-da-rota.guard';
 import { Body, Controller, Get, Inject, Param, ParseUUIDPipe, Post, Query, UseGuards } from '@nestjs/common';
 import { SessionGuard, CurrentUser } from '../identity';
 import { AuthenticatedUser } from '../../kernel/contracts';
@@ -52,6 +53,7 @@ export class StatementsController {
    * conferidor de contrato pegou isto, e estava certo. Quando houver cobrança
    * de outro contexto, nasce outra rota.
    */
+  @RegistroDaRota('id', 'incident')
   @Get('requests/incident/:id')
   cobrancasDa(@CurrentUser() user: AuthenticatedUser,
               @Param('id', ParseUUIDPipe) id: string) {
@@ -68,6 +70,7 @@ export class StatementsController {
    * Quem alcança lê; quem não alcança recebe a CONTAGEM dos restritos — nem
    * data, nem autor. É a decisão do §10 item 6, de 20/09.
    */
+  @RegistroDaRota('personId', 'person')
   @Get('person/:personId')
   porPessoa(@CurrentUser() user: AuthenticatedUser,
             @Param('personId', ParseUUIDPipe) personId: string) {

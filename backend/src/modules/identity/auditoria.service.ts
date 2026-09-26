@@ -141,7 +141,19 @@ export class AuditoriaService {
    */
   async doRegistro(user: AuthenticatedUser, entidade: string, entidadeId: string) {
     this.podeLer(user);
-    return this.db.asUser(user.id, async (c) => {
+    const r = await this.db.asUser(user.id, async (c) => {
+      /*
+       * O RELATÓRIO ESTÁ NO SEU ALCANCE? — perguntado DEPOIS do cargo (fase 158).
+       *
+       * A resposta a quem é de fora era lista vazia, que se lê "ninguém abriu
+       * este relatório" (regra 12). A pergunta é feita COM a identidade de quem
+       * lê — o RLS de `report_document` responde —, e não por fora dele. Vem
+       * depois do `podeLer` para o educador continuar recebendo a frase que diz
+       * quem lê o rastro, e não um "não encontrado" que não ensina nada.
+       */
+      const { rows: [v] } = await c.query(
+        `SELECT EXISTS (SELECT 1 FROM report_document WHERE id = $1) AS ve`, [entidadeId]);
+      if (!v?.ve) return null;
       const { rows } = await c.query(
         `SELECT a.id, a.action, a.at, a.entity, a.entity_id, a.purpose, a.detail,
                 app_user_display_name(a.actor_id) AS por,
@@ -157,5 +169,7 @@ export class AuditoriaService {
          quem pergunta achando que procurou no lugar errado. */
       return { entidade, entidadeId, linhas: rows.map((r) => this.linha(r)) };
     });
+    if (!r) throw new NotFoundException('Relatório não encontrado — ou fora do seu alcance.');
+    return r;
   }
 }

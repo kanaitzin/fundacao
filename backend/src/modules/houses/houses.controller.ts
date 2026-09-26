@@ -1,3 +1,4 @@
+import { RegistroDaRota } from '../../kernel/common/registro-da-rota.guard';
 import {
   Body, Controller, Get, Inject, Param, ParseUUIDPipe, Post, UseGuards,
 } from '@nestjs/common';
@@ -22,11 +23,13 @@ export class HousesController {
   }
 
   /** Ocupação e limite da unidade. */
+  @RegistroDaRota('id', 'house')
   @Get(':id/occupancy')
   occupancy(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.houses.occupancy(user, id);
   }
 
+  @RegistroDaRota('id', 'house')
   @Get(':id/capacity-history')
   capacityHistory(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.houses.capacityHistory(user, id);
@@ -38,6 +41,7 @@ export class HousesController {
     return this.houses.setCapacity(user, id, Number(body?.capacidade), body?.motivo ?? '');
   }
 
+  @RegistroDaRota('id', 'house')
   @Get(':id')
   open(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.houses.open(user, id);

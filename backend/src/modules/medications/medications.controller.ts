@@ -1,3 +1,4 @@
+import { RegistroDaRota } from '../../kernel/common/registro-da-rota.guard';
 import { Body, Controller, Get, Inject, Param, ParseUUIDPipe, Post, Query, UseGuards } from '@nestjs/common';
 import { SessionGuard, CurrentUser } from '../identity';
 import { AuthenticatedUser } from '../../kernel/contracts';
@@ -146,6 +147,7 @@ export class MedicationsController {
   /* ---------------- O remédio que vai junto (1050) ---------------- */
 
   /** Calcula e mostra. Não muda nada — pode ser chamado quantas vezes for. */
+  @RegistroDaRota('id', 'family_stay')
   @Get('family-stays/:id/to-take')
   medicamentosParaLevar(@CurrentUser() user: AuthenticatedUser,
                         @Param('id', ParseUUIDPipe) id: string) {
@@ -192,6 +194,7 @@ export class MedicationsController {
   }
 
   /* A receita digitalizada fica junto da prescrição que ela autoriza. */
+  @RegistroDaRota('id', 'prescription')
   @Get('prescriptions/:id/documents')
   receitas(@CurrentUser() user: AuthenticatedUser,
            @Param('id', ParseUUIDPipe) id: string) {
@@ -282,6 +285,7 @@ export class MedicationsController {
     return this.meds.setNurseOnly(user, id, body);
   }
 
+  @RegistroDaRota('id', 'prescription')
   @Get('prescriptions/:id/nurse-only-history')
   nurseOnlyHistory(@CurrentUser() user: AuthenticatedUser,
                    @Param('id', ParseUUIDPipe) id: string) {

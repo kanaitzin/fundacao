@@ -1,3 +1,4 @@
+import { RegistroDaRota } from '../../kernel/common/registro-da-rota.guard';
 import {
   Body, Controller, Get, Inject, Param, ParseUUIDPipe, Patch, Post, Query, UseGuards,
 } from '@nestjs/common';
@@ -82,18 +83,21 @@ export class PeopleController {
 
   /* As idas dela, no perfil dela (fase 118). Antes de `:id` porque
      `family-stays` sem id já existe e este tem um id no meio. */
+  @RegistroDaRota('id', 'person')
   @Get(':id/family-stays')
   convivenciasDoAcolhido(@CurrentUser() user: AuthenticatedUser,
                          @Param('id', ParseUUIDPipe) id: string) {
     return this.people.convivenciasDoAcolhido(user, id);
   }
 
+  @RegistroDaRota('id', 'person')
   @Get(':id/admission')
   acolhimento(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.admission.acolhimento(user, id);
   }
 
   /** Área restrita: motivo do acolhimento, guia, processo e vara (§13.1). */
+  @RegistroDaRota('id', 'person')
   @Get(':id/judicial')
   judicial(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.admission.judicial(user, id);
@@ -131,6 +135,7 @@ export class PeopleController {
    * qualquer educador."* Não há rota para fechar nem para apagar: a linha nova
    * fica ao lado da antiga.
    */
+  @RegistroDaRota('id', 'family_stay')
   @Get('family-stays/:id/notes')
   relatos(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.people.relatosDaConvivencia(user, id);
@@ -278,12 +283,14 @@ export class PeopleController {
    * Fica antes de `contacts/:contactId/photo` só por ordem de leitura; as duas
    * são palavras fixas em posições diferentes e não se confundem.
    */
+  @RegistroDaRota('contactId', 'person_contact')
   @Get('contacts/:contactId/visit-history')
   historicoDaVisita(@CurrentUser() user: AuthenticatedUser,
                     @Param('contactId', ParseUUIDPipe) contactId: string) {
     return this.contatos.historicoDaVisita(user, contactId);
   }
 
+  @RegistroDaRota('contactId', 'person_contact')
   @Get('contacts/:contactId/photo')
   fotoDoContato(@CurrentUser() user: AuthenticatedUser,
                 @Param('contactId', ParseUUIDPipe) contactId: string) {
@@ -303,6 +310,7 @@ export class PeopleController {
     return this.people.saidasAObservar(user, houseId);
   }
 
+  @RegistroDaRota('id', 'person')
   @Get(':id/outing-permission')
   saidaSozinho(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.people.saidaSozinho(user, id);
@@ -326,6 +334,7 @@ export class PeopleController {
     return this.people.discharge(user, id, body.motivo);
   }
 
+  @RegistroDaRota('id', 'person')
   @Get(':id')
   get(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.profile.get(user, id);
@@ -351,6 +360,7 @@ export class PeopleController {
    * o corpo é JSON e o protótipo, que roda sem servidor, precisa do mesmo
    * formato.
    */
+  @RegistroDaRota('id', 'person')
   @Get(':id/photo')
   foto(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.contatos.lerFoto(user, id);
@@ -366,6 +376,7 @@ export class PeopleController {
   @Get('contacts/kinds')
   vinculos() { return this.contatos.vocabulario(); }
 
+  @RegistroDaRota('id', 'person')
   @Get(':id/contacts')
   contatosDo(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.contatos.listar(user, id);
@@ -384,12 +395,14 @@ export class PeopleController {
     return this.contatos.encerrar(user, contactId, body?.motivo ?? '');
   }
 
+  @RegistroDaRota('id', 'person')
   @Get(':id/correcoes')
   correcoes(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.profile.correcoes(user, id);
   }
 
   /** O que os campos descritivos do perfil diziam antes (migração 0850). */
+  @RegistroDaRota('id', 'person')
   @Get(':id/detalhe-historico')
   detalheHistorico(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.profile.detalheHistorico(user, id);
@@ -407,6 +420,7 @@ export class PeopleController {
   @Get('dossie/catalogo')
   catalogo() { return this.dossie.catalogo(); }
 
+  @RegistroDaRota('id', 'person')
   @Get(':id/dossie')
   dossieDo(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.dossie.dossie(user, id);
@@ -426,12 +440,14 @@ export class PeopleController {
   }
 
   /** Os bytes, para a prévia. Cada abertura vira registro (§20). */
+  @RegistroDaRota('id', 'person')
   @Get(':id/documents/:docId/file')
   arquivoDo(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
             @Param('docId', ParseUUIDPipe) docId: string) {
     return this.dossie.arquivo(user, id, docId);
   }
 
+  @RegistroDaRota('id', 'person')
   @Get(':id/memories')
   vivencias(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.dossie.vivencias(user, id);
@@ -443,6 +459,7 @@ export class PeopleController {
     return this.dossie.registrarVivencia(user, id, body);
   }
 
+  @RegistroDaRota('id', 'person')
   @Get(':id/memories/:memId/file')
   fotoDaVivencia(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
                  @Param('memId', ParseUUIDPipe) memId: string) {
@@ -453,6 +470,7 @@ export class PeopleController {
    * UMA foto específica da vivência (fase 124) — a vivência passou a ter
    * quantas tiver. A rota acima continua valendo e devolve a primeira.
    */
+  @RegistroDaRota('id', 'person')
   @Get(':id/memories/:memId/photos/:fotoId')
   umaFotoDaVivencia(@CurrentUser() user: AuthenticatedUser,
                     @Param('id', ParseUUIDPipe) id: string,
@@ -580,6 +598,7 @@ export class TransfersController {
   }
 
   /** Conversa entre as duas coordenações sobre a solicitação (§3.3: no sistema). */
+  @RegistroDaRota('id', 'transfer_request')
   @Get(':id/messages')
   messages(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.transfers.messages(user, id);

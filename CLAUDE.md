@@ -154,7 +154,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 25/09/2026, fase 157
+### Onde estamos — 26/09/2026, fase 158
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -175,8 +175,9 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 155 | **28 das 174 rotas de escrita** davam 500 a corpo vazio ou com lixo — o filtro `FalhasEmPortugues` não conhecia a classe "formato" e **só era ligado no `main.ts`: as suítes rodavam sem ele**; a **marca de estoque baixo** dizia ok sem mudar nada; e **ouvinte que falha agora reprova a suíte** |
 | 156 | **a coordenação de uma casa redefinia a senha de educador de OUTRA casa e recebia a senha nova** (tomada de conta); quem SAIU de uma casa era administrável por todas; ciência em episódio e acompanhante de internação cruzavam de casa; aviso inexistente "ciente" com auditoria falsa |
 | 157 | **a ATA das oito às oito** (decisão de 25/09): a regra 7h–19h estava escrita à mão em SEIS funções, no servidor, na passagem, na escala e no mock; agora mora em `app_turno_de`/`app_janela_do_turno`, com espelho em `tempo.ts` e `frontend/src/turno.ts` e teste que obriga os três a concordar |
+| 158 | **24 leituras respondiam 200 VAZIO a quem é de fora** — o dossiê listando todo documento como faltando, a saúde "sem atendimento"; nada vazava, mas o vazio mentia. Conserto na porta: `@RegistroDaRota` + guarda `RegistroNoAlcance`, em 39 leituras, com cobrança estática |
 
-**Medido no fim da 157:** 149 migrações, 116 tabelas, 104 suítes, 992 testes, verdes nas
+**Medido no fim da 158:** 149 migrações, 116 tabelas, 105 suítes, 999 testes, verdes nas
 DUAS condições de relógio; os sete ensaios de navegador verdes (154 e 155 não
 mexeram em tela; a 156 também não); 139 telas sem violação de WCAG 2.1 AA; nenhuma
 rota sem teste; nenhuma rota — escrita ou leitura — com 500; nenhum ouvinte
@@ -199,10 +200,17 @@ regra que era hipótese: **ATA diurna 08:00–20:00, noturna 20:01–07:59, com 
 data do dia em que o noturno começou** — substitui o 7h–19h preliminar (pendência
 #4). As fases, na ordem, e o inventário que as justifica:
 - ~~**157** regra nova da ATA~~ ✅ feita;
-- **158** alcance de LEITURA entre casas (a medição que a 156 deixou) + sessão de desativado;
+- ~~**158** alcance de LEITURA entre casas~~ ✅ feita;
 - **159** VISITAS: não existe registro de entrada/saída (só a autorização do contato);
-  não existe o cargo `portaria` no enum; faltam RG, nome social e validade da autorização;
-  métricas no perfil **sem ranking de visitante** (§6: ranking de pessoas é proibido);
+  faltam RG, nome social e validade da autorização; métricas no perfil **sem ranking
+  de visitante** (§6: ranking de pessoas é proibido). **DECIDIDO pelo humano em
+  26/09:** (a) **cargo `portaria` COM login mínimo** — vê só a lista de quem pode
+  visitar hoje e registra entrada e saída; não abre perfil, saúde, relato nem ATA;
+  a casa também registra. Isto REVÊ a decisão de 09/09 (portaria só com a folha em
+  papel). **Cuidado:** `app_house_in_scope` dá a casa INTEIRA a qualquer cargo com
+  vínculo — para a portaria ela tem de responder NÃO, e a portaria só enxerga por
+  funções próprias. (b) **Fora do dia/horário autorizado: recusa**, salvo exceção
+  com motivo escrito por coordenação, técnica ou líder; a portaria não abre exceção.
 - **160** estoque (lote, origem, perda/devolução, sem negativo calado), nota fiscal
   (CNPJ, itens com valor unitário, duplicidade), métricas e relatórios em DOCX;
 - **161** cozinha: "Selecionar todos", editar pedido com histórico; métricas de refeições;
@@ -211,15 +219,11 @@ data do dia em que o noturno começou** — substitui o 7h–19h preliminar (pen
   **cargo da época** nos registros antigos (`app_user_cargo` devolve o ATUAL);
 - **163** simulação de vários dias (§38) como teste, e o relatório final com a matriz.
 
-**1. A medição de alcance da 156 foi de ESCRITA.** A mesma pergunta falta para a
-**LEITURA**: toda `GET` com um identificador REAL da Casa 03, pedida pela Casa 04,
-tem de voltar 403/404 — e não 200 com dado. A sondagem da 156 está descrita na
-linha dela no §2 (o mapa parâmetro→tabela e o `idDaCasa` pelo catálogo); ela
-roda sobre o banco que a suíte deixa povoado, com um `globalSetup` vazio, porque
-a semente não tem ATA, episódio nem pedido. **Cinco tipos de parâmetro ainda
-ficaram sem dado mesmo assim** — pedido da cozinha, credencial do cofre,
-acompanhamento, pedido de leitura da ATA e a ATA Geral. **Isto é segurança, e é
-o que eu faria primeiro.**
+**1. As medições de alcance estão feitas** — escrita (156) e leitura (158). A
+sondagem roda sobre o banco povoado pela suíte, com `globalSetup` vazio; o mapa
+parâmetro→tabela e o `idDaCasa` pelo catálogo estão descritos nas linhas 156 e
+158 do §2. Ficaram sem dado: pedido da cozinha, credencial do cofre,
+acompanhamento e foto de memória.
 
 **2. Aplicar o roteiro com a equipe.** Continua sendo o que mais muda o sistema, e
 o único que não se faz daqui.

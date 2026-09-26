@@ -242,15 +242,15 @@ describe('O histórico de saúde do acolhido', () => {
   it('quem não alcança a criança não lê a saúde dela', async () => {
     const fora = await request(http)
       .get(`/api/v1/nursing/history/${ids.acolhido}`).set(auth(tokens.deOutraCasa));
-    // O RLS não devolve linha nenhuma — e a resposta não é um erro de sistema,
-    // é um histórico vazio para quem não alcança a pessoa.
-    expect(fora.status).toBe(200);
-    expect(fora.body.atendimentos).toEqual([]);
-    expect(fora.body.evolucoes).toEqual([]);
-    expect(fora.body.administracoes).toEqual([]);
+    // 404, e não mais um histórico vazio (fase 158): vazio se lia "esta
+    // criança não teve atendimento nenhum" para quem nem alcança a criança —
+    // a regra 12. A recusa vem na porta da rota (`@RegistroDaRota`).
+    expect(fora.status).toBe(404);
 
     const emissoes = await request(http)
       .get(`/api/v1/nursing/summary/${ids.acolhido}/issues`).set(auth(tokens.deOutraCasa));
-    expect(emissoes.body).toEqual([]);
+    /* As emissões da folha de saúde também: 404, e não uma lista vazia que se
+       leria "ninguém emitiu a folha desta criança" (fase 158). */
+    expect(emissoes.status).toBe(404);
   });
 });
