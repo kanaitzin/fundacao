@@ -87,7 +87,7 @@ export function folhaDaEscala(input: {
       return {
         titulo: `Semana de ${diaBR(segunda)}`,
         tabela: {
-          cabecalho: ['Dia', 'Plantão diurno (7h–19h)', 'Plantão noturno (19h–7h)'],
+          cabecalho: ['Dia', 'Plantão diurno (08:00–20:00)', 'Plantão noturno (20:01–07:59)'],
           linhas: linhasDoQuadro,
         },
       };

@@ -23,6 +23,9 @@
  * primeira correção — e divergiria justamente na demonstração para a equipe.
  * O arquivo é dado puro, sem dependência nenhuma, e por isso atravessa.
  */
+import {
+  periodoDaHora, horaNaInstituicao as horaDaTurnoNaInstituicao, INICIO_DO_DIURNO, INICIO_DO_NOTURNO,
+} from './turno';
 import { SemConexao, ErroApi } from './api';
 import { ALCANCE_POR_CARGO } from '../../backend/src/modules/identity/alcance';
 import { TIPOS_OFFLINE, TIPOS_OFFLINE_KINDS } from '../../backend/src/modules/sync/tipos-offline';
@@ -1551,19 +1554,18 @@ function foraDeSemente() {
 }
 
 function retornoDeSemente() {
-  const partes = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo',
-    year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', hour12: false,
-  }).formatToParts(new Date());
-  const hora = Number(partes.find((x) => x.type === 'hour')?.value ?? 12) % 24;
   const naInstituicao = (dias: number, hh: string) => {
     const base = new Date(`${HOJE}T12:00:00-03:00`).getTime() + dias * 86400_000;
     const dia = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo',
       year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(base));
     return new Date(`${dia}T${hh}:00-03:00`).toISOString();
   };
-  const diaDaChegada = hora < 7 ? -1 : 0;
-  const chegada = hora >= 7 && hora < 19
-    ? new Date(Math.max(new Date(naInstituicao(0, '07:00')).getTime(),
+  /* A chegada cai no diurno mais recente, pela regra de 25/09 (fase 157) —
+     esta era a OITAVA cópia do 7h–19h. */
+  const hhmm = horaDaTurnoNaInstituicao(new Date());
+  const diaDaChegada = hhmm < INICIO_DO_DIURNO ? -1 : 0;
+  const chegada = periodoDaHora(hhmm) === 'diurno'
+    ? new Date(Math.max(new Date(naInstituicao(0, INICIO_DO_DIURNO)).getTime(),
                         Date.now() - 40 * 60000)).toISOString()
     : naInstituicao(diaDaChegada, '17:40');
   return {
@@ -2059,7 +2061,7 @@ function linhasDaEscalaParaFolha(de: string, ate: string) {
 /**
  * OS REMÉDIOS DE UM TURNO (0940), para a passagem ler de volta.
  *
- * O recorte é o mesmo do servidor: 07h–19h no diurno, o resto no noturno. Ele
+ * O recorte é o mesmo do servidor: 08:00–20:00 no diurno, 20:01–07:59 no noturno (157). Ele
  * lê a MESMA grade que a tela da Saúde mostra — se fosse uma lista à parte, a
  * demonstração poderia dizer "tudo confirmado" na passagem enquanto a Saúde
  * mostrava dose pendente, e o protótipo ensinaria a não olhar nem uma nem
@@ -2080,15 +2082,8 @@ function linhasDaEscalaParaFolha(de: string, ate: string) {
  * motivo que vale no servidor: quem decide o dia e o turno é o fuso da
  * instituição. No servidor isso é `app_fuso()`; aqui é isto.
  */
-const horaNaInstituicao = (iso: string) => Number(
-  new Intl.DateTimeFormat('en-GB', {
-    timeZone: 'America/Sao_Paulo', hour: '2-digit', hour12: false,
-  }).format(new Date(iso)));
-
-const horaNoTurno = (iso: string, turno: string) => {
-  const h = horaNaInstituicao(iso);
-  return turno === 'diurno' ? h >= 7 && h < 19 : h >= 19 || h < 7;
-};
+const horaNoTurno = (iso: string, turno: string) =>
+  periodoDaHora(horaDaTurnoNaInstituicao(new Date(iso))) === turno;
 
 function remediosDoTurno(turno: string) {
   const noTurno = (iso: string) => horaNoTurno(iso, turno);
@@ -2130,14 +2125,20 @@ function remediosDoTurno(turno: string) {
  * que os dois cartões do protótipo representam.
  */
 function janelaDoTurno(turno: string): [number, number] {
-  const partes = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo',
-    year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', hour12: false,
-  }).formatToParts(new Date());
-  const hora = Number(partes.find((x) => x.type === 'hour')?.value ?? 12) % 24;
-  const em = (dias: number, hh: number) =>
-    new Date(`${HOJE}T${String(hh).padStart(2, '0')}:00:00-03:00`).getTime() + dias * 86400_000;
-  if (turno === 'diurno') return hora < 7 ? [em(-1, 7), em(-1, 19)] : [em(0, 7), em(0, 19)];
-  return hora < 7 ? [em(-1, 19), em(0, 7)] : [em(0, 19), em(1, 7)];
+  /* A regra de 25/09 (fase 157), pelos horários de `turno.ts`: diurno
+     [08:00, 20:01), noturno [20:01, 08:00 do dia seguinte). Antes das 08:00
+     ainda é a noite de ontem. Esta era a SÉTIMA cópia do 7h–19h, escrita como
+     `em(0, 7)` — a busca pela hora escrita não a achou; achou o ensaio. */
+  const agora = horaDaTurnoNaInstituicao(new Date());
+  const em = (dias: number, hhmm: string) =>
+    new Date(`${HOJE}T${hhmm}:00-03:00`).getTime() + dias * 86400_000;
+  const madrugada = agora < INICIO_DO_DIURNO;
+  if (turno === 'diurno') {
+    return madrugada ? [em(-1, INICIO_DO_DIURNO), em(-1, INICIO_DO_NOTURNO)]
+      : [em(0, INICIO_DO_DIURNO), em(0, INICIO_DO_NOTURNO)];
+  }
+  return madrugada ? [em(-1, INICIO_DO_NOTURNO), em(0, INICIO_DO_DIURNO)]
+    : [em(0, INICIO_DO_NOTURNO), em(1, INICIO_DO_DIURNO)];
 }
 
 function convivenciasDoTurno(turno: string) {
@@ -8071,14 +8072,14 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     const data = String(q.get('data') ?? HOJE);
     const doDia = ESCALA.filter((e) => e.data === data && !e.revogadaEm);
     const haEscala = doDia.length > 0;
-    /* A janela: o que a escala gravou, ou a do turno — diurno 7h–19h, noturno
-       19h–7h. A mesma conta que a 1380 faz no banco. */
+    /* A janela: o que a escala gravou, ou a do turno — diurno 08:00–20:00,
+       noturno 20:01–07:59 (157). A mesma conta que a 1575 faz no banco. */
     const noHorario = (e: EscalaMock) => {
       if (e.inicio && e.fim) {
         const i = Number(e.inicio.slice(0, 2)); const f = Number(e.fim.slice(0, 2));
         return f > i ? hora >= i && hora < f : hora >= i || hora < f;
       }
-      return e.turno === 'noturno' ? hora >= 19 || hora < 7 : hora >= 7 && hora < 19;
+      return periodoDaHora(String(q.get('hora') ?? '12:00').slice(0, 5)) === e.turno;
     };
     return {
       haEscala,

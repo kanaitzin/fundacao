@@ -1094,12 +1094,13 @@ erros.length = 0;
 cobrar('a escala abre em "Mais"', await doMais('escala de plantão'));
 const escala = await conteudo();
 /* De novo o `text-transform: uppercase`: na tela sai "ESCALA DE PLANTÃO",
- * "DIURNO 7H–19H". Toda cobrança desta tela é insensível a maiúsculas. */
+ * "DIURNO 08:00–20:00". Toda cobrança desta tela é insensível a maiúsculas.
+ * O horário é o da decisão de 25/09 (fase 157), que substituiu o 7h–19h. */
 cobrar('a escala abre nos próximos trinta dias', /Escala de plantão/i.test(escala));
 cobrar('a escala diz em voz alta o turno que está sem ninguém',
   /sem ninguém|sem escala|ninguém escalado/i.test(escala), escala.slice(0, 160));
 cobrar('os dois turnos aparecem com o horário',
-  /7h–19h/i.test(escala) && /19h–7h/i.test(escala));
+  /08:00–20:00/.test(escala) && /20:01–07:59/.test(escala));
 
 const linhasEscaladas = () =>
   pg.locator('main.conteudo button').filter({ hasText: /^Retirar$/ }).count();

@@ -1,3 +1,4 @@
+import { turnoAgora } from '../turno';
 import { useCallback, useEffect, useState } from 'react';
 import { ConvivenciasDoTurno, ConvivenciaDoTurno } from '../convivencias';
 import { api, apiOuFila } from '../api';
@@ -86,12 +87,6 @@ function paraCampo(iso: string | null): string {
        + `T${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
-/** O turno de agora, pela hora da instituição: 7h–19h é diurno. */
-function turnoAgora(): 'diurno' | 'noturno' {
-  const h = Number(new Intl.DateTimeFormat('pt-BR',
-    { hour: '2-digit', hour12: false, timeZone: 'America/Sao_Paulo' }).format(new Date()));
-  return h >= 7 && h < 19 ? 'diurno' : 'noturno';
-}
 
 export function Passagem({ houseId }: { houseId: string }) {
   const [lista, setLista] = useState<Resumo[]>([]);

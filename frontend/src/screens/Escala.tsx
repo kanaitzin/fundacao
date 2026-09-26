@@ -1,3 +1,4 @@
+import { HORAS_DO_TURNO } from '../turno';
 import { useEffect, useState } from 'react';
 import { api } from '../api';
 import { FolhaDocumento } from '../documentos';
@@ -50,8 +51,8 @@ interface Periodo {
 interface Membro { id: string; nome: string; cargo: string; ativo: boolean }
 
 const TURNOS = [
-  { cod: 'diurno' as const, label: 'Diurno', horas: '7h–19h' },
-  { cod: 'noturno' as const, label: 'Noturno', horas: '19h–7h' },
+  { cod: 'diurno' as const, label: 'Diurno', horas: HORAS_DO_TURNO.diurno },
+  { cod: 'noturno' as const, label: 'Noturno', horas: HORAS_DO_TURNO.noturno },
 ];
 
 const diaSemana = (iso: string) =>

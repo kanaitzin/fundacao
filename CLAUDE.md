@@ -154,7 +154,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 25/09/2026, fase 156
+### Onde estamos — 25/09/2026, fase 157
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -174,8 +174,9 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 154 | a **ficha de saúde e a trajetória** exportadas sem casa na auditoria; **sete exportações** com 500 por corpo inválido (`CorpoConferido`); as **folhas da cozinha** dizendo "0 restrições" a quem é de fora; e o **pedido de leitura da ATA restrita que nunca avisava ninguém** (`priority: 'media'`) — o `publish` do barramento agora tem o tipo pelo nome do evento |
 | 155 | **28 das 174 rotas de escrita** davam 500 a corpo vazio ou com lixo — o filtro `FalhasEmPortugues` não conhecia a classe "formato" e **só era ligado no `main.ts`: as suítes rodavam sem ele**; a **marca de estoque baixo** dizia ok sem mudar nada; e **ouvinte que falha agora reprova a suíte** |
 | 156 | **a coordenação de uma casa redefinia a senha de educador de OUTRA casa e recebia a senha nova** (tomada de conta); quem SAIU de uma casa era administrável por todas; ciência em episódio e acompanhante de internação cruzavam de casa; aviso inexistente "ciente" com auditoria falsa |
+| 157 | **a ATA das oito às oito** (decisão de 25/09): a regra 7h–19h estava escrita à mão em SEIS funções, no servidor, na passagem, na escala e no mock; agora mora em `app_turno_de`/`app_janela_do_turno`, com espelho em `tempo.ts` e `frontend/src/turno.ts` e teste que obriga os três a concordar |
 
-**Medido no fim da 156:** 145 migrações, 116 tabelas, 103 suítes, 984 testes, verdes nas
+**Medido no fim da 157:** 149 migrações, 116 tabelas, 104 suítes, 992 testes, verdes nas
 DUAS condições de relógio; os sete ensaios de navegador verdes (154 e 155 não
 mexeram em tela; a 156 também não); 139 telas sem violação de WCAG 2.1 AA; nenhuma
 rota sem teste; nenhuma rota — escrita ou leitura — com 500; nenhum ouvinte
@@ -197,7 +198,7 @@ expansão; o texto está na conversa, e o essencial está aqui). Ele DECIDE uma
 regra que era hipótese: **ATA diurna 08:00–20:00, noturna 20:01–07:59, com a
 data do dia em que o noturno começou** — substitui o 7h–19h preliminar (pendência
 #4). As fases, na ordem, e o inventário que as justifica:
-- **157** regra nova da ATA, num lugar só (banco `app_*`, `tempo.ts`, telas, folha da escala);
+- ~~**157** regra nova da ATA~~ ✅ feita;
 - **158** alcance de LEITURA entre casas (a medição que a 156 deixou) + sessão de desativado;
 - **159** VISITAS: não existe registro de entrada/saída (só a autorização do contato);
   não existe o cargo `portaria` no enum; faltam RG, nome social e validade da autorização;
@@ -293,6 +294,12 @@ novo.
   inventado, a sondagem de alcance voltou limpa; com o registro de verdade da
   outra casa, achou seis defeitos. O RLS esconde o que não existe e o que não é
   seu do mesmo jeito — e o defeito mora onde ele NÃO esconde.
+- **Pergunte ao CATÁLOGO, não à sua lista de arquivos** (157). A varredura da
+  regra 7h–19h achou cinco funções numa lista que eu montei; a pergunta ao
+  `pg_proc` achou a sexta. O que roda é o que está no banco. **E a cópia que
+  não tem a hora escrita** (`em(0, 7)`, `hora < 7`) só aparece rodando na hora
+  em que ela erra: o ensaio de 00h11 achou a sétima e a oitava, que às 22h
+  concordavam com a regra nova por coincidência.
 - **`JOIN app_user` é o nome que some** (152). `app_user` tem RLS por linha:
   educador, líder e Enfermagem só leem a PRÓPRIA. Nome ou cargo de OUTRA pessoa
   sai por função — `app_user_display_name`, `app_user_cargo` —, nunca por JOIN

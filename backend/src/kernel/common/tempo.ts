@@ -41,14 +41,46 @@ export function horaNaInstituicao(instante: Date = new Date()): string {
 }
 
 /**
- * Hora de virada do plantão noturno, na instituição. Preliminar (pendência
- * institucional #4): 19h–7h. Configurável por variável de ambiente para que a
- * confirmação do Marcelo seja uma troca de valor, não de código.
+ * A REGRA DA ATA — decisão da Fundação em 25/09/2026 (fase 157).
+ *
+ *   * ATA DIURNA  — das 08:00 às 20:00;
+ *   * ATA NOTURNA — das 20:01 às 07:59 do dia seguinte, e ela pertence ao dia
+ *     em que COMEÇOU: a madrugada do dia 12 é da ATA Noturna 11.
+ *
+ * Substitui a hipótese 7h–19h (pendência institucional #4), que vivia aqui
+ * numa variável de ambiente — e uma variável de ambiente é o jeito certo de o
+ * servidor discordar do banco em silêncio. A regra mora no banco
+ * (`app_turno_de`, `app_janela_do_turno`, identity/1573); estes dois horários
+ * são o espelho dela, e `a-ata-das-oito-as-oito.e2e.spec.ts` obriga os dois
+ * lados a responderem igual nos sete instantes de fronteira.
+ *
+ * A fronteira é por MINUTO, como a pessoa lê o relógio: 20:00 ainda é diurno,
+ * 20:01 já é noturno, 07:59 ainda é noturno, 08:00 é diurno.
  */
-export const FIM_DO_PLANTAO_NOTURNO = Number(process.env.NIGHT_SHIFT_END_HOUR ?? 7);
+export const INICIO_DO_DIURNO = '08:00';
+export const INICIO_DO_NOTURNO = '20:01';
+
+/** O turno de uma hora do relógio (HH:mm), sem data. */
+export function periodoDaHora(hhmm: string): 'diurno' | 'noturno' {
+  return hhmm >= INICIO_DO_DIURNO && hhmm < INICIO_DO_NOTURNO ? 'diurno' : 'noturno';
+}
 
 /**
- * A qual DIA pertence um plantão.
+ * De que ATA é um INSTANTE: o dia operacional e o turno.
+ *
+ * O instante que conta é o do ACONTECIMENTO, não o da sincronização: o registro
+ * feito offline às 02h e enviado às 09h pertence à Noturna do dia anterior.
+ */
+export function turnoDe(instante: Date = new Date()): { dia: string; periodo: 'diurno' | 'noturno' } {
+  const hhmm = horaNaInstituicao(instante);
+  const periodo = periodoDaHora(hhmm);
+  if (hhmm >= INICIO_DO_DIURNO) return { dia: dataNaInstituicao(instante), periodo };
+  // Madrugada: ainda é a noite de ontem.
+  return { dia: dataNaInstituicao(new Date(instante.getTime() - 24 * 3600_000)), periodo };
+}
+
+/**
+ * A qual DIA pertence um plantão de um turno pedido.
  *
  * O plantão noturno atravessa a meia-noite, e a data é a do dia em que ele
  * COMEÇOU. Sem essa normalização acontecia o seguinte, todo dia:
@@ -65,11 +97,9 @@ export const FIM_DO_PLANTAO_NOTURNO = Number(process.env.NIGHT_SHIFT_END_HOUR ??
  */
 export function dataDoPlantao(turno: string, agora: Date = new Date()): string {
   if (turno !== 'noturno') return dataNaInstituicao(agora);
-  const hora = Number(horaNaInstituicao(agora).slice(0, 2));
-  if (hora >= FIM_DO_PLANTAO_NOTURNO) return dataNaInstituicao(agora);
+  if (horaNaInstituicao(agora) >= INICIO_DO_DIURNO) return dataNaInstituicao(agora);
   // Ainda é a noite de ontem: 02h do dia 4 pertence ao plantão do dia 3.
-  const ontem = new Date(agora.getTime() - 24 * 3600_000);
-  return dataNaInstituicao(ontem);
+  return dataNaInstituicao(new Date(agora.getTime() - 24 * 3600_000));
 }
 
 /**
