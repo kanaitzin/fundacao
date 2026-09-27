@@ -47,24 +47,23 @@ export function folhaDeSaude(
   const pend: string[] = [];
   if (h.pendencias.internacaoEmAndamento) pend.push('Internação em andamento.');
   if (h.pendencias.retornosVencidos) {
-    pend.push(`${h.pendencias.retornosVencidos} retorno(s) com a data já passada.`);
+    pend.push(`${h.pendencias.retornosVencidos} retorno(s) com data vencida, a reagendar.`);
   }
   if (h.pendencias.retornosMarcados) {
     pend.push(`${h.pendencias.retornosMarcados} retorno(s) marcado(s).`);
   }
   if (h.pendencias.evolucoesAguardandoTriagem) {
-    pend.push(`${h.pendencias.evolucoesAguardandoTriagem} evolução(ões) aguardando a `
-      + 'conferência da Enfermagem.');
+    pend.push(`${h.pendencias.evolucoesAguardandoTriagem} evolução(ões) aguardando `
+      + 'triagem da Enfermagem.');
   }
   secoes.push({
-    titulo: 'O que está esperando alguém',
-    itens: pend.length ? pend : ['Nada pendente registrado nesta data.'],
-    procedencia: 'contagem feita sobre os registros, sem ordenação por gravidade.',
+    titulo: 'Pendências',
+    itens: pend.length ? pend : ['Sem pendências registradas nesta data.'],
   });
 
   secoes.push({
-    titulo: 'Atendimentos',
-    paragrafos: h.atendimentos.length ? [] : ['Nenhum atendimento registrado.'],
+    titulo: 'Atendimentos de saúde',
+    paragrafos: h.atendimentos.length ? [] : ['Não há atendimentos registrados.'],
     tabela: h.atendimentos.length ? {
       cabecalho: ['Data', 'Atendimento', 'Serviço / especialidade', 'Situação'],
       linhas: h.atendimentos.map((a) => [
@@ -73,23 +72,24 @@ export function folhaDeSaude(
         /* O retorno com a data já passada é marcado como tal: sem essa marca,
          * uma data antiga se lê como história e não como pendência. */
         a.retornoVencido && a.retornoEm
-          ? `Retorno em ${diaBR(a.retornoEm)} — data já passada`
-          : a.retornoEm ? `Retorno em ${diaBR(a.retornoEm)}` : a.statusRotulo,
+          ? `Retorno previsto para ${diaBR(a.retornoEm)} (vencido)`
+          : a.retornoEm ? `Retorno previsto para ${diaBR(a.retornoEm)}` : a.statusRotulo,
       ]),
     } : undefined,
-    procedencia: 'atendimentos registrados no módulo de Enfermagem.',
+    procedencia: 'Atendimentos registrados pela Enfermagem.',
   });
 
   if (h.evolucoes.length) {
     secoes.push({
-      titulo: 'Evoluções de quem acompanhou',
+      titulo: 'Evoluções dos atendimentos',
       itens: h.evolucoes.map((e) => [
-        `${diaBR(e.quando)} — ${e.tipoRotulo}`,
-        e.acompanhante ? `acompanhou: ${e.acompanhante}` : null,
+        `${diaBR(e.quando)}, ${e.tipoRotulo}`,
+        e.acompanhante ? `acompanhante: ${e.acompanhante}` : null,
         e.estadoRetorno ? `estado no retorno: ${e.estadoRetorno}` : null,
         e.complementoEnfermagem ? `complemento da Enfermagem: ${e.complementoEnfermagem}` : null,
       ].filter(Boolean).join(' · ')),
-      procedencia: 'evolução assinada por quem acompanhou, com o complemento da Enfermagem.',
+      procedencia: 'Evolução registrada pelo profissional que acompanhou o atendimento, com o '
+        + 'complemento da Enfermagem.',
     });
   }
 
@@ -109,15 +109,14 @@ export function folhaDeSaude(
       tabela: {
         cabecalho: ['Período', 'Hospital', 'Situação'],
         linhas: h.internacoes!.map((i) => [
-          `${diaBR(i.desde)}${i.ate ? ` a ${diaBR(i.ate)}` : ' — em andamento'}`,
+          `${diaBR(i.desde)}${i.ate ? ` a ${diaBR(i.ate)}` : ', em andamento'}`,
           i.hospital,
-          i.status === 'em_andamento' ? 'Internada agora'
+          i.status === 'em_andamento' ? 'Em internação'
             : i.desfecho === 'alta' ? 'Alta'
             : i.desfecho === 'obito' ? 'Óbito' : 'Transferência hospitalar',
         ]),
       },
-      procedencia: 'registro de internação aberto e encerrado pela equipe técnica ou '
-        + 'pela coordenação.',
+      procedencia: 'Registro de internação feito pela equipe técnica ou pela coordenação.',
     });
   }
 
@@ -125,7 +124,7 @@ export function folhaDeSaude(
     secoes.push({
       titulo: 'Medicação administrada durante a internação',
       tabela: {
-        cabecalho: ['Data e hora', 'Medicamento', 'Via', 'Quem administrou'],
+        cabecalho: ['Data e hora', 'Medicamento', 'Via', 'Administrado por'],
         linhas: h.medicacaoNoHospital!.slice(0, 40).map((m) => [
           `${diaBR(m.quando)} ${hhmmBR(m.quando)}`,
           [m.medicamento, m.dose].filter(Boolean).join(' '),
@@ -135,8 +134,8 @@ export function folhaDeSaude(
           m.origem,
         ]),
       },
-      procedencia: 'registrada por quem acompanhou a internação; quem administrou foi o '
-        + 'hospital, e não a casa.',
+      procedencia: 'Medicação administrada pela equipe do hospital, registrada pelo '
+        + 'acompanhante da internação.',
     });
   }
 
@@ -150,13 +149,13 @@ export function folhaDeSaude(
           `${d.medicamento} ${d.dose}`, d.estadoRotulo, d.por ?? '—',
         ]),
       },
-      procedencia: 'grade de medicamentos; cada dose é confirmada por quem a administrou.',
+      procedencia: 'Grade de medicação da casa; cada dose é confirmada por quem a administrou.',
     });
   }
 
   return {
-    titulo: `Situação de saúde — ${pessoa.nome}`,
-    subtitulo: 'Documento de acompanhamento em saúde',
+    titulo: 'Acompanhamento de saúde',
+    subtitulo: pessoa.nome,
     identificacao: [
       { rotulo: 'Acolhido', valor: pessoa.nome + (pessoa.idade ? ` (${pessoa.idade} anos)` : '') },
       { rotulo: 'Unidade', valor: unidade },
@@ -165,8 +164,8 @@ export function folhaDeSaude(
     secoes,
     geradoPor: autor.nome,
     cargo: autor.cargo,
-    ressalva: 'Este documento reúne o que está registrado. Ele não conclui, não avalia e não '
-      + 'substitui o parecer de quem atende. Conteúdo de saúde é dado sensível: ele circula '
-      + 'entre quem cuida, e não em local de passagem.',
+    ressalva: 'Documento de acompanhamento, elaborado a partir dos registros da equipe. Não '
+      + 'substitui avaliação ou parecer de profissional de saúde. Contém dados sensíveis: '
+      + 'deve circular apenas entre os profissionais responsáveis pelo cuidado.',
   };
 }

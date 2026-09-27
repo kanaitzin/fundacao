@@ -296,7 +296,7 @@ export class CozinhaService {
         {
           titulo: 'Lanches solicitados',
           tabela: {
-            cabecalho: ['Dia', 'Para quem', 'Qtd.', 'Para quê', 'Entregar a', 'Pediu'],
+            cabecalho: ['Data', 'Para', 'Qtd.', 'Finalidade', 'Entregar a', 'Solicitado por'],
             linhas: abertos.map((p) => [
               diaBR(p.em), p.paraQuem, String(p.quantidade),
               p.finalidade, p.entregarA ?? '—', p.pedidoPor,
@@ -309,20 +309,19 @@ export class CozinhaService {
         ...(linhas.some((p) => p.status === 'cancelado') ? [{
           titulo: 'Cancelados no período',
           tabela: {
-            cabecalho: ['Dia', 'Para quem', 'Qtd.', 'Motivo do cancelamento'],
+            cabecalho: ['Data', 'Para', 'Qtd.', 'Motivo do cancelamento'],
             linhas: linhas.filter((p) => p.status === 'cancelado').map((p) => [
               diaBR(p.em), p.paraQuem, String(p.quantidade), p.motivoCancelamento ?? '—',
             ]),
           },
-          procedencia: 'Cancelamentos registrados no sistema, com o motivo escrito.',
+          procedencia: 'Pedidos cancelados, com o motivo informado por quem cancelou.',
         }] : []),
       ],
       geradoPor: user.fullName,
       cargo: cargoNoDocumento(user.role),
       assinatura: true,
       ...(abertos.length === 0
-        ? { ressalva: 'Não há lanche solicitado para este período. A folha vazia significa '
-            + 'que ninguém pediu — não que o pedido se perdeu.' }
+        ? { ressalva: 'Não há lanches solicitados para o período.' }
         : {}),
     };
   }
@@ -359,25 +358,24 @@ export class CozinhaService {
       identificacao: [
         /* A folha impressa às 22h chegava à cozinha datada de AMANHÃ (fase 99). */
         { rotulo: 'Emitida em', valor: diaBR(hojeNaInstituicao()) },
-        { rotulo: 'Crianças com restrição', valor: String(rows.length) },
+        { rotulo: 'Acolhidos com restrição', valor: String(rows.length) },
       ],
       secoes: [{
-        titulo: 'O que não pode ser servido',
+        titulo: 'Restrições por acolhido',
         tabela: {
-          cabecalho: ['Criança', 'Evitar', 'Servir no lugar', 'Orientação'],
+          cabecalho: ['Acolhido', 'Não servir', 'Substituir por', 'Orientação'],
           linhas: rows.map((r) => [
             r.nome, r.restriction, r.substitution ?? '—', r.guidance ?? '—',
           ]),
         },
-        procedencia: 'Prontuário de saúde da casa, escrito pela equipe técnica e pela '
-          + 'Enfermagem. Esta folha é uma vista dele — não uma cópia editável.',
+        procedencia: 'Restrições registradas pela equipe técnica e pela Enfermagem no prontuário '
+          + 'de cada acolhido.',
       }],
       geradoPor: user.fullName,
       cargo: cargoNoDocumento(user.role),
       assinatura: true,
-      ressalva: 'Esta folha não traz o motivo médico de nenhuma restrição, de propósito. '
-        + 'Ela vale até ser substituída: em caso de dúvida, confirme com a Enfermagem antes '
-        + 'de servir.',
+      ressalva: 'O motivo clínico das restrições não é informado nesta relação. Esta folha '
+        + 'substitui a anterior; em caso de dúvida, confirme com a Enfermagem antes de servir.',
     };
   }
 
@@ -404,7 +402,7 @@ export class CozinhaService {
       secoes: [{
         titulo: 'Cestas para acompanhamento familiar',
         tabela: {
-          cabecalho: ['Dia', 'Acolhido', 'Qtd.', 'Finalidade', 'Entregar a', 'Pediu'],
+          cabecalho: ['Data', 'Acolhido', 'Qtd.', 'Finalidade', 'Entregar a', 'Solicitado por'],
           linhas: abertos.map((p) => [
             diaBR(p.em), p.paraQuem, String(p.quantidade),
             p.finalidade, p.entregarA ?? '—', p.pedidoPor,
@@ -415,8 +413,8 @@ export class CozinhaService {
       geradoPor: user.fullName,
       cargo: cargoNoDocumento(user.role),
       assinatura: true,
-      ressalva: 'Esta folha registra a saída da cesta. Ela não descreve a situação da '
-        + 'família, e não deve ser usada para isso.',
+      ressalva: 'Registro de entrega de cestas básicas para acompanhamento familiar. Não '
+        + 'descreve a situação socioeconômica da família.',
     };
   }
 

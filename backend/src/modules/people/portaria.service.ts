@@ -132,14 +132,14 @@ export class PortariaService {
       const quando = r.visit_weekdays && r.visit_from
         ? `${diasEmPortugues(r.visit_weekdays)}, das ${hhmm(r.visit_from)} às ${hhmm(r.visit_to)}`
           + (r.visit_note ? ` · ${r.visit_note}` : '')
-        : 'sem dia combinado — confirme com a casa antes de deixar entrar';
+                : 'sem dia definido; confirmar com a unidade antes da entrada';
       linhas.push([
         ...colunaCrianca,
-        r.foto_visitante ? 'foto' : 'sem foto — pedir documento com foto',
+        r.foto_visitante ? 'foto' : 'sem foto; solicitar documento com foto',
         r.visitante,
         rotuloDoVinculo(r.bond, r.bond_other),
         quando,
-        r.cpf ? formatCpf(r.cpf) : 'não cadastrado — pedir documento com foto',
+        r.cpf ? formatCpf(r.cpf) : 'não cadastrado; solicitar documento com foto',
         r.phone ?? '—',
       ]);
       fotos.push([fotoCrianca, null, await foto(r.foto_visitante, r.tipo_visitante),
@@ -148,42 +148,39 @@ export class PortariaService {
 
     const agora = new Date();
     return {
-      titulo: 'Quem pode visitar',
+      titulo: 'Relação de visitantes autorizados',
       subtitulo: dados.rotulo,
       paisagem: true,
       identificacao: [
         { rotulo: 'Emitida em', valor: `${diaBR(agora)}, às ${hhmmBR(agora)}` },
-        { rotulo: 'Crianças na casa', valor: String(criancas.size) },
+        { rotulo: 'Acolhidos na unidade', valor: String(criancas.size) },
         { rotulo: 'Visitantes autorizados', valor: String(visitantes) },
         ...(semVisitante
-          ? [{ rotulo: 'Crianças sem visitante autorizado', valor: String(semVisitante) }] : []),
+          ? [{ rotulo: 'Acolhidos sem visitante autorizado', valor: String(semVisitante) }] : []),
         ...(visitantesSemFoto
           ? [{ rotulo: 'Visitantes sem foto cadastrada', valor: String(visitantesSemFoto) }] : []),
         ...(semHorario
-          ? [{ rotulo: 'Visitantes sem dia e hora combinados', valor: String(semHorario) }] : []),
+          ? [{ rotulo: 'Visitantes sem dia e horário definidos', valor: String(semHorario) }] : []),
       ],
       secoes: [{
-        titulo: 'Visitantes autorizados, por criança',
+        titulo: 'Visitantes autorizados, por acolhido',
         tabela: {
-          cabecalho: ['Foto', 'Criança', 'Foto', 'Quem pode visitar', 'Vínculo',
-                      'Quando pode vir', 'CPF', 'Telefone'],
+          cabecalho: ['Foto', 'Acolhido', 'Foto', 'Visitante', 'Vínculo',
+                      'Dias e horários', 'CPF', 'Telefone'],
           linhas,
           ...(comFotos ? { fotos } : {}),
         },
-        procedencia: 'Cadastro de contatos da casa. Só aparece quem a equipe técnica ou a '
-          + 'coordenação marcou como autorizado a visitar — estar no cadastro não basta.',
+        procedencia: 'Visitantes autorizados pela equipe técnica ou pela coordenação, conforme o '
+          + 'cadastro de contatos de cada acolhido.',
       }],
       geradoPor: user.fullName,
       cargo: cargoNoDocumento(user.role),
       assinatura: true,
-      ressalva: 'Quem chegar FORA do dia ou da hora desta folha também não entra sem '
-        + 'confirmação da casa — o horário é combinado com cada família, e mudá-lo é da '
-        + 'equipe técnica, não da guarita. '
-        + 'Quem não está nesta folha não entra sem confirmação da equipe técnica ou da '
-        + 'coordenação, inclusive familiar — ligue para a casa. A folha não diz por que alguém '
-        + 'não está nela, de propósito. Ela vale até ser substituída: descarte a anterior quando '
-        + 'receber esta. Contém fotos, CPF e telefone de crianças e de familiares: guarde longe '
-        + 'da vista de quem passa pela guarita e não fotografe.',
+      ressalva: 'Visitas fora do dia e do horário indicados dependem de autorização da equipe '
+        + 'técnica ou da coordenação. Pessoas que não constam nesta relação, inclusive '
+        + 'familiares, só podem entrar após contato com a unidade. Esta relação substitui a '
+        + 'anterior, que deve ser descartada. Por conter fotos, CPF e telefone de acolhidos e '
+        + 'familiares, deve ser mantida em local reservado da portaria e não pode ser fotografada.',
     };
   }
 

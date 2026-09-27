@@ -28,17 +28,17 @@ import { Folha, SecaoDaFolha, AutorDaFolha, diaBR } from '../../kernel/documento
 /** As seções de texto, na ordem em que a casa lê — a parte boa primeiro. */
 export const SECOES_DO_PERIODO: { cod: string; label: string; ajuda: string }[] = [
   { cod: 'conquista', label: 'Conquistas',
-    ajuda: 'Marcos de vida registrados: aprovação escolar, curso, documento conquistado.' },
+    ajuda: 'Marcos registrados no período, como aprovação escolar, conclusão de curso e emissão de documentos.' },
   { cod: 'memoria', label: 'Memórias',
-    ajuda: 'O que a casa guardou da vida dela no período.' },
+    ajuda: 'Registros de memória da vida do acolhido na casa: passeios, datas especiais, fotos.' },
   { cod: 'educacao', label: 'Evolução escolar',
-    ajuda: 'O que foi escrito sobre a escola e o aprendizado, em texto livre.' },
+    ajuda: 'Evoluções sobre a vida escolar e o aprendizado, registradas pela equipe.' },
   { cod: 'observacao', label: 'Observações do turno',
-    ajuda: 'As notas que a equipe escreveu na ATA. A nota restrita não entra aqui.' },
-  { cod: 'episodio', label: 'Episódios da ATA',
-    ajuda: 'O fato do turno, com a criança nomeada. A classificação descreve o fato.' },
+    ajuda: 'Observações registradas nas ATAs do período. Observações de acesso restrito não são incluídas.' },
+  { cod: 'episodio', label: 'Intercorrências registradas em ATA',
+    ajuda: 'Intercorrências dos turnos, com o acolhido envolvido e a classificação do fato.' },
   { cod: 'ocorrencia', label: 'Ocorrências',
-    ajuda: 'As ocorrências do período. As de acesso restrito aparecem só como contagem.' },
+    ajuda: 'Ocorrências do período. As de acesso restrito constam apenas na contagem.' },
 ];
 
 export interface RefeicaoDoPeriodo {
@@ -99,7 +99,7 @@ export function folhaDoPeriodo(d: PeriodoDaCasa, autor: AutorDaFolha): Folha {
     secoes.push({
       titulo: s.label,
       tabela: {
-        cabecalho: ['Quando', 'Quem', 'O que foi escrito'],
+        cabecalho: ['Data', 'Acolhido', 'Registro'],
         linhas: s.linhas.map((l) => [
           diaBR(l.quando),
           l.quem ?? '—',
@@ -108,8 +108,8 @@ export function folhaDoPeriodo(d: PeriodoDaCasa, autor: AutorDaFolha): Folha {
         ]),
       },
       procedencia: s.truncada
-        ? `${s.ajuda} ESTA SEÇÃO FOI CORTADA no limite de ${s.linhas.length} linhas — `
-          + 'há mais no período. Reduza o intervalo para ver o resto.'
+        ? `${s.ajuda} Seção limitada a ${s.linhas.length} registros; há outros no período. `
+          + 'Para vê-los, emita o relatório para um intervalo menor.'
         : s.ajuda,
     });
   }
@@ -128,35 +128,33 @@ export function folhaDoPeriodo(d: PeriodoDaCasa, autor: AutorDaFolha): Folha {
     secoes.push({
       titulo: 'Refeições com exceção registrada',
       tabela: {
-        cabecalho: ['Quem', 'Quando', 'Refeição', 'O que foi marcado', 'O que foi escrito'],
+        cabecalho: ['Acolhido', 'Data', 'Refeição', 'Situação', 'Observação'],
         linhas,
       },
-      procedencia: 'as crianças aparecem em ordem de NOME e os fatos em ordem de data. '
-        + 'Nada aqui é somado: nem recusas, nem percentual, nem "quem mais recusou". '
-        + 'Uma criança que recusa o jantar três dias seguidos é um sinal de saúde, e é '
-        + 'para a conversa com ela que esta lista existe.',
+      procedencia: 'Acolhidos em ordem alfabética e registros em ordem cronológica. A recusa '
+        + 'alimentar repetida merece atenção da equipe e escuta do acolhido.',
     });
   }
 
   /* ---- 3. Os números ---- */
   secoes.push({
-    titulo: 'O período em números',
+    titulo: 'Síntese do período',
     tabela: {
-      cabecalho: ['O quê', 'No período'],
+      cabecalho: ['Indicador', 'No período'],
       linhas: [
-        ['Acolhidos ao fim do período', `${n.acolhidos} de ${n.capacidade} vagas`],
-        ['Entradas e saídas', `${n.entradas} entrada(s), ${n.saidas} saída(s)`],
+        ['Acolhidos ao final do período', `${n.acolhidos} de ${n.capacidade} vagas`],
+        ['Acolhimentos e desligamentos', `${n.entradas} acolhimento(s), ${n.saidas} desligamento(s)`],
         ['Chamadas', `${n.chamadas}, sendo ${n.chamadasConfirmadas} confirmada(s)`
-          + (n.chamadasAbertas ? ` e ${n.chamadasAbertas} ainda aberta(s)` : '')],
+          + (n.chamadasAbertas ? ` e ${n.chamadasAbertas} em aberto` : '')],
         ['Refeições conferidas', `${n.refeicoesConferidas}, com ${n.refeicoesComExcecao} exceção(ões) `
           + `registrada(s), de ${n.criancasComExcecao} criança(s)`],
         ['Ocorrências', `${n.ocorrencias}`
           + (n.ocorrenciasRestritas ? `, sendo ${n.ocorrenciasRestritas} de acesso restrito` : '')],
         ['Desorganização com repercussão relevante', `${n.desorganizacao}`],
         ['ATAs', `${n.atas}: ${n.atasFechadas} fechada(s), ${n.atasComPendencia} com pendência, `
-          + `${n.atasAbertas} ainda aberta(s)`],
+          + `${n.atasAbertas} em aberto`],
         ['Passagens de plantão', `${n.passagens}`
-          + (n.passagensSemRecibo ? `, sendo ${n.passagensSemRecibo} sem recibo de quem recebeu` : '')],
+          + (n.passagensSemRecibo ? `, sendo ${n.passagensSemRecibo} sem confirmação de recebimento` : '')],
         /* A frase que ele pediu quando falou em "aumento de medicamentos".
            Os dois números lado a lado, e a conta é do leitor — que é quem
            sabe o que mudou na casa naquelas semanas. */
@@ -167,26 +165,26 @@ export function folhaDoPeriodo(d: PeriodoDaCasa, autor: AutorDaFolha): Folha {
         ['Internações hospitalares', `${n.internacoes}`],
         ['Idas para convivência familiar', `${n.idasAFamilia}`],
         ['Conquistas registradas', `${n.marcos}`],
-        ['Evoluções escolares escritas', `${n.evolucoesEducacionais}`],
-        ['Evoluções de saúde escritas', `${n.evolucoesDeSaude}`],
-        ['Memórias guardadas', `${n.memorias}`],
+        ['Evoluções escolares', `${n.evolucoesEducacionais}`],
+        ['Evoluções de saúde', `${n.evolucoesDeSaude}`],
+        ['Registros de memória', `${n.memorias}`],
         ['Reuniões de equipe', `${n.reunioes}`],
-        ['Lanches e cestas pedidos à cozinha', `${n.lanches} lanche(s), ${n.cestas} cesta(s)`],
+        ['Lanches e cestas básicas solicitados', `${n.lanches} lanche(s), ${n.cestas} cesta(s)`],
         ['Acompanhamentos', `${n.acompanhamentosAprovados} aprovado(s), `
           + `${n.acompanhamentosAbertos} em aberto`],
       ],
     },
-    procedencia: 'contagem sobre os registros do próprio sistema, no período indicado. '
-      + 'Nenhum número é média, meta ou projeção, e nenhum é somado por pessoa.',
+    procedencia: 'Contagem dos registros da casa no período. Os números não representam '
+      + 'metas nem desempenho individual.',
   });
 
   return {
     paisagem: true,
-    titulo: `Período da casa — ${d.casa.codigo}`,
-    subtitulo: `${d.casa.nome} · ${diaBR(d.periodo.de)} a ${diaBR(d.periodo.ate)} `
+    titulo: 'Relatório do período da casa',
+    subtitulo: `${d.casa.codigo} · ${d.casa.nome} · ${diaBR(d.periodo.de)} a ${diaBR(d.periodo.ate)} `
       + `(${d.periodo.dias} dia${d.periodo.dias === 1 ? '' : 's'})`,
     identificacao: [
-      { rotulo: 'Unidade', valor: `${d.casa.codigo} — ${d.casa.nome}` },
+      { rotulo: 'Unidade', valor: `${d.casa.codigo} · ${d.casa.nome}` },
       { rotulo: 'Período', valor: `${diaBR(d.periodo.de)} a ${diaBR(d.periodo.ate)}` },
       { rotulo: 'Período anterior, de igual duração',
         valor: `${diaBR(d.periodoAnterior.de)} a ${diaBR(d.periodoAnterior.ate)}` },

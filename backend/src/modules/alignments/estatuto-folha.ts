@@ -34,13 +34,13 @@ export function folhaDoEstatuto(
     ? vigentes
     : vigentes.filter((r) => r.publico === publico || r.publico === 'todos');
 
-  const rotuloPublico = publico === 'acolhidos' ? 'Para as crianças e adolescentes'
-    : publico === 'equipe' ? 'Para quem trabalha na casa'
-    : 'Todas as regras';
+  const rotuloPublico = publico === 'acolhidos' ? 'Para as crianças e os adolescentes'
+    : publico === 'equipe' ? 'Para a equipe da casa'
+    : 'Para todos na casa';
 
   return {
-    titulo: `Regras de convivência — ${casa}`,
-    subtitulo: rotuloPublico,
+    titulo: 'Regras de convivência',
+    subtitulo: `${casa} · ${rotuloPublico.toLowerCase()}`,
     identificacao: [
       { rotulo: 'Unidade', valor: casa },
       { rotulo: 'Emitido em', valor: diaBR(new Date()) },
@@ -48,23 +48,22 @@ export function folhaDoEstatuto(
     ],
     secoes: [
       {
-        titulo: 'O que vale aqui',
+        titulo: 'Regras em vigor',
         paragrafos: daFolha.length ? [] : [
-          'Nenhuma regra de convivência escrita para este público ainda.',
+          'Ainda não há regras de convivência registradas para este público.',
         ],
         itens: daFolha.map((r) => [
           r.texto,
-          r.daInstituicao ? 'regra da instituição' : null,
-          `desde ${diaBR(new Date(`${String(r.desde).slice(0, 10)}T12:00:00-03:00`))}`,
+          r.daInstituicao ? 'norma da Fundação' : null,
+          `em vigor desde ${diaBR(new Date(`${String(r.desde).slice(0, 10)}T12:00:00-03:00`))}`,
         ].filter(Boolean).join(' · ')),
-        procedencia: 'Estatuto da casa, no sistema. Regra revogada ou substituída sai desta '
-          + 'folha, mas continua legível no sistema, com o motivo e a data.',
+        procedencia: 'Estatuto da casa. Regras revogadas ou substituídas ficam registradas '
+          + 'no histórico, com a data e o motivo.',
       },
     ],
     geradoPor: autor.nome,
     cargo: autor.cargo,
-    ressalva: 'Esta folha vale até ser substituída — troque a da parede quando receber uma nova. '
-      + 'Quem quiser mudar uma regra fala com a coordenação: o estatuto se muda escrevendo, '
-      + 'não riscando.',
+    ressalva: 'Esta relação substitui a anterior; retire do mural a versão antiga. Propostas de '
+      + 'mudança devem ser levadas à coordenação, que registra a alteração no estatuto.',
   };
 }

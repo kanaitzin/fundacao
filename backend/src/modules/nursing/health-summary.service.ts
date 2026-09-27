@@ -125,7 +125,7 @@ export class HealthSummaryService {
     const agora = new Date();
     return {
       emissaoId,
-      classificacao: 'CONFIDENCIAL — USO EM SAÚDE',
+      classificacao: 'Confidencial. Uso restrito ao atendimento de saúde.',
       finalidade: input.finalidade,
       geradoEm: agora.toISOString(),
       geradoPor: user.fullName,
@@ -187,8 +187,8 @@ export class HealthSummaryService {
         'narrativas pessoais de profissionais',
         'informações familiares sem pertinência clínica',
       ],
-      rodape: 'Documento gerado pela Rede Acolher para uso exclusivo em atendimento de saúde. ' +
-              'A geração, a visualização e o download foram registrados em auditoria.',
+      rodape: 'Documento de uso exclusivo em atendimento de saúde. A emissão, a consulta e o '
+        + 'download ficam registrados, com o nome do profissional responsável.',
     };
   }
 

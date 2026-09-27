@@ -121,9 +121,9 @@ describe('Folhas em Word — do servidor, com a saída registrada', () => {
     const rotulos = r.body.identificacao.map((i: any) => i.rotulo);
     expect(rotulos).toContain('Unidade');
     expect(rotulos).toContain('Turno');
-    // Seção vazia diz "não há" — ela não some.
+    // Seção vazia diz que não houve registro — ela não some.
     const vazias = r.body.secoes.filter((s: any) =>
-      (s.paragrafos ?? []).some((p: string) => /Nada registrado/.test(p)));
+      (s.paragrafos ?? []).some((p: string) => /Sem registro para este item/.test(p)));
     expect(vazias.length).toBeGreaterThan(0);
   });
 
@@ -188,7 +188,7 @@ describe('Folhas em Word — do servidor, com a saída registrada', () => {
     expect(inteiro).not.toContain(fala);
     expect(inteiro).not.toContain(sinais);
     // E a folha DIZ que não leva, em vez de simplesmente omitir.
-    expect(folha.body.ressalva).toMatch(/Fala espontânea/);
+    expect(folha.body.ressalva).toMatch(/não inclui fala espontânea nem sinais observados/);
 
     // Nem no arquivo gerado.
     const arq = await request(http).post(`/api/v1/incidents/${ocorrencia}/export`)
@@ -204,9 +204,9 @@ describe('Folhas em Word — do servidor, com a saída registrada', () => {
     const r = await request(http).get(`/api/v1/nursing/history/${acolhido}/folha`)
       .set(auth(tokens.coord));
     expect(r.status).toBe(200);
-    expect(r.body.titulo).toMatch(/^Situação de saúde/);
-    expect(r.body.secoes[0].titulo).toBe('O que está esperando alguém');
-    expect(r.body.ressalva).toMatch(/não conclui, não avalia/);
+    expect(r.body.titulo).toMatch(/^Acompanhamento de saúde/);
+    expect(r.body.secoes[0].titulo).toBe('Pendências');
+    expect(r.body.ressalva).toMatch(/Não substitui avaliação ou parecer de profissional de saúde/);
   });
 
   // --------------------------------------------------------------- Grade
@@ -219,7 +219,7 @@ describe('Folhas em Word — do servidor, com a saída registrada', () => {
     const cabecalho = r.body.secoes[0].tabela?.cabecalho ?? [];
     // Hora, nome e medicamento — e nada de diagnóstico ou alergia.
     expect(cabecalho.join(' ')).not.toMatch(/diagn|alergia/i);
-    expect(r.body.ressalva).toMatch(/FOLHA DE SERVIÇO/);
+    expect(r.body.ressalva).toMatch(/Documento de uso interno da equipe/);
     // O campo que só uma pessoa preenche sai visível como pendência.
     expect(r.body.secoes.some((s: any) => s.aPreencher)).toBe(true);
   });
@@ -237,12 +237,12 @@ describe('Folhas em Word — do servidor, com a saída registrada', () => {
 
   // ---------------------------------------------------------- Combinados
 
-  it('a folha dos combinados leva só os vigentes, e diz que o sistema é quem manda', async () => {
+  it('a folha dos combinados leva só os vigentes, e diz que podem ser revistos', async () => {
     const r = await request(http).get(`/api/v1/alignments/folha?houseId=${AI3}`)
       .set(auth(tokens.coord));
     expect(r.status).toBe(200);
-    expect(r.body.titulo).toMatch(/^Combinados vigentes/);
-    expect(r.body.ressalva).toMatch(/O que manda é o sistema/);
+    expect(r.body.titulo).toMatch(/^Combinados da equipe/);
+    expect(r.body.ressalva).toMatch(/Relação válida na data de emissão/);
   });
 
   // ------------------------------------------------------------- Alcance

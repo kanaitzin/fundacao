@@ -43,7 +43,7 @@ function segundaDa(iso: string): string {
 
 function horario(l: LinhaDaEscala): string {
   if (!l.inicio && !l.fim) return '';
-  return ` (${(l.inicio ?? '').slice(0, 5)}–${(l.fim ?? '').slice(0, 5)})`;
+  return ` (${(l.inicio ?? '').slice(0, 5)} às ${(l.fim ?? '').slice(0, 5)})`;
 }
 
 export function folhaDaEscala(input: {
@@ -51,9 +51,29 @@ export function folhaDaEscala(input: {
   de: string;
   ate: string;
   linhas: LinhaDaEscala[];
+  /** O horário do diurno da casa no primeiro e no último dia do período. */
+  turnos?: { dia: string; de: string; ate: string }[];
   autor: AutorDaFolha;
 }): Folha {
   const { casa, de, ate, linhas, autor } = input;
+  /* O noturno é o resto do dia: começa um minuto depois do fim do diurno. */
+  const umMinutoDepois = (hhmm: string) => {
+    const [h, m] = hhmm.split(':').map(Number);
+    const t = h * 60 + m + 1;
+    return `${String(Math.floor(t / 60) % 24).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`;
+  };
+  const umMinutoAntes = (hhmm: string) => {
+    const [h, m] = hhmm.split(':').map(Number);
+    const t = (h * 60 + m + 1439) % 1440;
+    return `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`;
+  };
+  const horarioDoDia = (t: { de: string; ate: string }) =>
+    `diurno das ${t.de} às ${t.ate}; noturno das ${umMinutoDepois(t.ate)} às ${umMinutoAntes(t.de)}`;
+  const [primeiro, ultimo] = input.turnos ?? [];
+  const horarios = !primeiro ? []
+    : ultimo && (ultimo.de !== primeiro.de || ultimo.ate !== primeiro.ate)
+      ? [{ rotulo: 'Horário dos turnos', valor: `${horarioDoDia(primeiro)} (alterado no período; em ${diaBR(ultimo.dia)}: ${horarioDoDia(ultimo)})` }]
+      : [{ rotulo: 'Horário dos turnos', valor: horarioDoDia(primeiro) }];
 
   // Um quadro por semana. As semanas saem na ordem do calendário, e o dia
   // aparece mesmo quando ninguém está escalado nele.
@@ -74,7 +94,7 @@ export function folhaDaEscala(input: {
           const gente = doDia.filter((l) => l.turno === turno && l.quem);
           return gente.length
             ? gente.map((l) => `${l.quem}${horario(l)}`).join(' · ')
-            : '— sem escala —';
+            : 'sem profissional escalado';
         };
         const base = new Date(`${dia}T12:00:00-03:00`);
         return [
@@ -87,7 +107,7 @@ export function folhaDaEscala(input: {
       return {
         titulo: `Semana de ${diaBR(segunda)}`,
         tabela: {
-          cabecalho: ['Dia', 'Plantão diurno (08:00–20:00)', 'Plantão noturno (20:01–07:59)'],
+          cabecalho: ['Dia', 'Plantão diurno', 'Plantão noturno'],
           linhas: linhasDoQuadro,
         },
       };
@@ -101,20 +121,18 @@ export function folhaDaEscala(input: {
     identificacao: [
       { rotulo: 'Casa', valor: casa },
       { rotulo: 'Período', valor: `${diaBR(de)} a ${diaBR(ate)}` },
+      ...horarios,
       { rotulo: 'Emitida em', valor: diaBR(new Date()) },
     ],
     secoes: secoes.length ? secoes : [{
-      titulo: 'Nenhum plantão escalado neste período',
-      paragrafos: ['A escala deste período ainda não foi montada.'],
+      titulo: 'Escala não definida',
+      paragrafos: ['Não há profissionais escalados para o período.'],
     }],
     geradoPor: autor.nome,
     cargo: autor.cargo,
-    ressalva: buracos > 0
-      ? 'Os turnos marcados "sem escala" ainda não têm ninguém designado. A escala '
-        + 'informa quem devia estar na casa; ela não impede ninguém de trabalhar, e quem '
-        + 'cobrir um turno fora dela registra a passagem normalmente.'
-      : 'A escala informa quem devia estar na casa. Ela não impede ninguém de trabalhar: '
-        + 'quem cobrir um turno fora dela registra a passagem normalmente, com o aviso de '
-        + 'que não constava.',
+    ressalva: (buracos > 0
+      ? 'Há turnos ainda sem profissional escalado; a coordenação deve completá-los. ' : '')
+      + 'Em caso de substituição ou cobertura de plantão, o profissional que assumir o '
+      + 'turno registra a passagem normalmente, com a observação de que não constava na escala.',
   };
 }

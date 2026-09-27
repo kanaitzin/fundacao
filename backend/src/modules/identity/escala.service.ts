@@ -256,9 +256,19 @@ export class EscalaService {
       if (!e?.pode) return null;
       const { rows: [h] } = await c.query(
         `SELECT app_house_label($1) AS code, app_house_name($1) AS name`, [houseId]);
-      return [h?.code, h?.name].filter(Boolean).join(' — ');
+      return [h?.code, h?.name].filter(Boolean).join(' · ');
     });
     if (!casa) throw new NotFoundException('Unidade não encontrada — ou fora do seu alcance.');
+    /* O HORÁRIO DOS TURNOS DA CASA (fase 159). A folha imprimia "08:00–20:00"
+       fixo, e a casa que mudou o horário recebia a escala impressa errada. */
+    const turnos = await this.db.asUser(user.id, async (c) => {
+      const { rows } = await c.query(
+        `SELECT d::date::text AS dia, to_char(h.diurno_de, 'HH24:MI') AS de,
+                to_char(h.diurno_ate, 'HH24:MI') AS ate
+           FROM unnest(ARRAY[$2::date, $3::date]) d, app_horario_da_casa($1, d) h`,
+        [houseId, dados.de, dados.ate]);
+      return rows as { dia: string; de: string; ate: string }[];
+    });
 
     const linhas = dados.dias.flatMap((d: any) => {
       const dos = (turno: 'diurno' | 'noturno') => (d[turno].length
@@ -271,7 +281,7 @@ export class EscalaService {
     });
 
     return folhaDaEscala({
-      casa, de: dados.de, ate: dados.ate, linhas,
+      casa, de: dados.de, ate: dados.ate, linhas, turnos,
       autor: { nome: user.fullName, cargo: cargoNoDocumento(user.role) },
     });
   }

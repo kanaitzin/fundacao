@@ -214,7 +214,7 @@ describe('O estatuto — regras de convivência', () => {
     const texto = JSON.stringify(daCrianca.body);
     expect(texto).toContain('silêncio no corredor');
     expect(texto).not.toContain('sentinela E7');
-    expect(daCrianca.body.subtitulo).toMatch(/crianças e adolescentes/i);
+    expect(daCrianca.body.subtitulo).toMatch(/crianças e os adolescentes/i);
     /* A regra da instituição, que é para todos, entra na folha das crianças. */
     expect(texto).toContain('apelido que ela não escolheu');
 

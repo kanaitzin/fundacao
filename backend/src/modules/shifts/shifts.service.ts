@@ -1650,7 +1650,7 @@ export class ShiftsService {
     const casa = await this.db.asUser(user.id, async (c) => {
       const { rows: [h] } = await c.query(
         `SELECT app_house_label($1) AS code, app_house_name($1) AS name`, [p.casaId]);
-      return [h?.code, h?.name].filter(Boolean).join(' — ') || 'Unidade';
+      return [h?.code, h?.name].filter(Boolean).join(' · ') || 'Unidade';
     });
     return folhaDaAta(
       {

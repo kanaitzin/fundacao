@@ -211,8 +211,8 @@ export class ConteudoService {
             `Concluídas: ${t.concluidas}`,
             t.nao_realizadas > 0 ? `Não realizadas, com justificativa: ${t.nao_realizadas}` : null,
             t.sem_confirmacao > 0
-              ? `Sem confirmação: ${t.sem_confirmacao}. O sistema constata ausência de registro; `
-                + 'não afirma que a atividade deixou de acontecer.'
+              ? `Sem registro de conclusão: ${t.sem_confirmacao}. A falta de registro não `
+                + 'significa, por si, que a atividade deixou de acontecer.'
               : null,
           ].filter(Boolean);
 
@@ -458,8 +458,8 @@ export class ConteudoService {
             return `${dataHora(e.quando)} · ${e.tipo}: ${rotulo}${sit}`;
           });
           if (cortou) {
-            linhas.push('', 'A lista foi cortada em 120 registros. O período tem mais do que '
-              + 'isto; consulte a linha do tempo no sistema para ver o restante.');
+            linhas.push('', 'Relação limitada aos 120 primeiros registros do período. Os demais '
+              + 'podem ser consultados na linha do tempo do registro eletrônico.');
           }
           secoes.push({
             titulo: 'Linha do tempo do período',

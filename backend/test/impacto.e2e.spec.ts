@@ -246,21 +246,21 @@ describe('Painel de impacto — o trabalho social nas oito casas', () => {
   it('a folha do impacto não vira placar de casas, e diz por quê', async () => {
     const r = await request(http).get('/api/v1/impacto/folha').set(auth(tokens.gestor));
     expect(r.status).toBe(200);
-    expect(r.body.titulo).toMatch(/^O trabalho social/);
+    expect(r.body.titulo).toMatch(/^Relatório do trabalho social/);
 
-    const casaACasa = r.body.secoes.find((s: any) => s.titulo === 'Casa a casa');
-    const codigos = casaACasa.tabela.linhas.map((l: string[]) => l[0].split(' —')[0]);
+    const casaACasa = r.body.secoes.find((s: any) => s.titulo === 'Por unidade');
+    const codigos = casaACasa.tabela.linhas.map((l: string[]) => l[0].split(' ·')[0]);
     expect(codigos).toEqual([...codigos].sort());
     expect(casaACasa.procedencia).toMatch(/ordem do cadastro/);
-    expect(casaACasa.procedencia).toMatch(/não compara casas/);
+    expect(casaACasa.procedencia).toMatch(/não servem para comparação entre unidades/);
 
     /*
      * A ressalva é o que impede a folha de virar outra coisa quando ela sair
      * da instituição. Quem lê de fora não sabe que parte do trabalho não cabe
      * em categoria, e vai concluir o contrário se ninguém escrever.
      */
-    expect(r.body.ressalva).toMatch(/Ausência de registro não é ausência de trabalho/);
-    expect(r.body.ressalva).toMatch(/não são comparáveis entre si/);
+    expect(r.body.ressalva).toMatch(/não se traduz em números/);
+    expect(r.body.ressalva).toMatch(/não devem ser comparadas entre si/);
   });
 
   it('exportar o relatório exige finalidade e registra a saída', async () => {
@@ -292,9 +292,9 @@ describe('Painel de impacto — o trabalho social nas oito casas', () => {
     const daPropria = await request(http)
       .get(`/api/v1/impacto/folha?houseId=${AI3}`).set(auth(tokens.coord));
     expect(daPropria.status).toBe(200);
-    expect(daPropria.body.titulo).toMatch(/AI3/);
+    expect(daPropria.body.subtitulo).toMatch(/AI3/);
     /* Uma casa só: não há quadro comparativo nenhum. */
-    expect(daPropria.body.secoes.some((x: any) => x.titulo === 'Casa a casa')).toBe(false);
+    expect(daPropria.body.secoes.some((x: any) => x.titulo === 'Por unidade')).toBe(false);
 
     const { rows: [ai4] } = await admin.query(`SELECT id FROM house WHERE code='AI4'`);
     const deOutra = await request(http)
@@ -312,14 +312,14 @@ describe('Painel de impacto — o trabalho social nas oito casas', () => {
       .get(`/api/v1/impacto/trajetoria/${crianca}/folha`).set(auth(tokens.tecnica));
     expect(r.status).toBe(200);
     expect(r.body.titulo).toMatch(/^Trajetória no acolhimento/);
-    expect(r.body.secoes.map((x: any) => x.titulo)).toContain('O que ela conquistou');
+    expect(r.body.secoes.map((x: any) => x.titulo)).toContain('Conquistas');
 
     /*
      * Quem recebe uma folha timbrada numa audiência não tem obrigação de saber
      * a diferença entre isto e o relatório técnico. A folha diz.
      */
-    expect(r.body.ressalva).toMatch(/não é o relatório técnico/i);
-    expect(r.body.ressalva).toMatch(/não entram aqui/);
+    expect(r.body.ressalva).toMatch(/Não substitui o relatório técnico/);
+    expect(r.body.ressalva).toMatch(/não inclui informações de saúde, ocorrências/);
 
     const arq = await request(http)
       .post(`/api/v1/impacto/trajetoria/${crianca}/export`).set(auth(tokens.tecnica))

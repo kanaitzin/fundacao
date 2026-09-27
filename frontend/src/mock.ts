@@ -3301,7 +3301,7 @@ function documentoDoRelatorio(
 
   secoes.push({
     titulo: 'Avaliação técnica',
-    aPreencher: 'escrito por quem assina o documento; o sistema não avalia',
+    aPreencher: 'avaliação técnica, a ser redigida pelo profissional que assina',
   });
   secoes.push({
     titulo: 'Encaminhamentos',
@@ -3314,19 +3314,19 @@ function documentoDoRelatorio(
     identificacao: [
       ...(crianca
         ? [{ rotulo: 'Acolhido', valor: `${crianca.nome} (${crianca.idade} anos)` }]
-        : [{ rotulo: 'Abrangência', valor: 'Unidade — todos os acolhidos' }]),
-      { rotulo: 'Unidade', valor: 'AI3 — Casa 03 (piloto)' },
+        : [{ rotulo: 'Abrangência', valor: 'Unidade' }]),
+      { rotulo: 'Unidade', valor: 'AI3 · Casa 03' },
       { rotulo: 'Período', valor: periodoEscrito },
       { rotulo: 'Finalidade declarada', valor: finalidade },
-      { rotulo: 'Situação do documento', valor: rascunho ? 'Rascunho — sem aprovação' : 'Aprovado' },
+      { rotulo: 'Situação do documento', valor: rascunho ? 'Rascunho, ainda não aprovado' : 'Aprovado' },
     ],
     secoes,
     rascunho,
     geradoPor: eu.fullName,
     cargo: ROTULO_CARGO[eu.role] ?? eu.role,
-    ressalva: 'Documento gerado pelo protótipo do Rede Acolher com DADOS FICTÍCIOS, para '
-      + 'demonstração. A parte factual é escrita pelo sistema a partir dos registros; a '
-      + 'avaliação e os encaminhamentos são escritos por pessoas.',
+    ressalva: 'Documento de demonstração, com dados fictícios. As seções descritivas foram '
+      + 'elaboradas a partir dos registros da equipe, com a origem indicada em cada uma. A '
+      + 'avaliação técnica e os encaminhamentos são de autoria do profissional que assina.',
   };
 }
 
@@ -4024,10 +4024,10 @@ function folhaDaPortaria(eu: { fullName: string; role: string }) {
       if (!c.temFoto) semFoto++;
       linhas.push([
         ...(i === 0 ? col : ['', '']),
-        c.temFoto ? 'foto' : 'sem foto — pedir documento com foto',
+        c.temFoto ? 'foto' : 'sem foto; solicitar documento com foto',
         c.nome, c.vinculoRotulo,
         quandoPodeVir(c),
-        c.cpf ? cpfParaTela(c.cpf, 'coordenador')! : 'não cadastrado — pedir documento com foto',
+        c.cpf ? cpfParaTela(c.cpf, 'coordenador')! : 'não cadastrado; solicitar documento com foto',
         c.telefone ?? '—',
       ]);
       if (!c.visita?.dias?.length) semHorario++;
@@ -4035,33 +4035,30 @@ function folhaDaPortaria(eu: { fullName: string; role: string }) {
   }
   const agora = new Date();
   return {
-    titulo: 'Quem pode visitar',
-    subtitulo: `${CASA.code} — ${CASA.name}`,
+    titulo: 'Relação de visitantes autorizados',
+    subtitulo: `${CASA.code} · ${CASA.name}`,
     paisagem: true,
     identificacao: [
       { rotulo: 'Emitida em', valor: `${agora.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })}, às ${agora.toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' })}` },
-      { rotulo: 'Crianças na casa', valor: String(criancas.length) },
+      { rotulo: 'Acolhidos na unidade', valor: String(criancas.length) },
       { rotulo: 'Visitantes autorizados', valor: String(visitantes) },
-      ...(sem ? [{ rotulo: 'Crianças sem visitante autorizado', valor: String(sem) }] : []),
+      ...(sem ? [{ rotulo: 'Acolhidos sem visitante autorizado', valor: String(sem) }] : []),
       ...(semFoto ? [{ rotulo: 'Visitantes sem foto cadastrada', valor: String(semFoto) }] : []),
-      ...(semHorario ? [{ rotulo: 'Visitantes sem dia e hora combinados', valor: String(semHorario) }] : []),
+      ...(semHorario ? [{ rotulo: 'Visitantes sem dia e horário definidos', valor: String(semHorario) }] : []),
     ],
     secoes: [{
-      titulo: 'Visitantes autorizados, por criança',
-      tabela: { cabecalho: ['Foto', 'Criança', 'Foto', 'Quem pode visitar', 'Vínculo',
-                            'Quando pode vir', 'CPF', 'Telefone'], linhas },
-      procedencia: 'Cadastro de contatos da casa. Só aparece quem a equipe técnica ou a '
-        + 'coordenação marcou como autorizado a visitar — estar no cadastro não basta.',
+      titulo: 'Visitantes autorizados, por acolhido',
+      tabela: { cabecalho: ['Foto', 'Acolhido', 'Foto', 'Visitante', 'Vínculo',
+                            'Dias e horários', 'CPF', 'Telefone'], linhas },
+      procedencia: 'Visitantes autorizados pela equipe técnica ou pela coordenação, conforme o '
+        + 'cadastro de contatos de cada acolhido.',
     }],
     geradoPor: eu.fullName, cargo: cargoNoDocumento(eu.role), assinatura: true,
-    ressalva: 'Quem chegar FORA do dia ou da hora desta folha também não entra sem '
-      + 'confirmação da casa — o horário é combinado com cada família, e mudá-lo é da '
-      + 'equipe técnica, não da guarita. '
-      + 'Quem não está nesta folha não entra sem confirmação da equipe técnica ou da '
-      + 'coordenação, inclusive familiar — ligue para a casa. A folha não diz por que alguém '
-      + 'não está nela, de propósito. Ela vale até ser substituída: descarte a anterior quando '
-      + 'receber esta. Contém fotos, CPF e telefone de crianças e de familiares: guarde longe '
-      + 'da vista de quem passa pela guarita e não fotografe.',
+    ressalva: 'Visitas fora do dia e do horário indicados dependem de autorização da equipe '
+      + 'técnica ou da coordenação. Pessoas que não constam nesta relação, inclusive '
+      + 'familiares, só podem entrar após contato com a unidade. Esta relação substitui a '
+      + 'anterior, que deve ser descartada. Por conter fotos, CPF e telefone de acolhidos e '
+      + 'familiares, deve ser mantida em local reservado da portaria e não pode ser fotografada.',
   };
 }
 
@@ -4470,21 +4467,21 @@ function responderPeriodo(
     if (numeros.ocorrenciasRestritas > 0 || numeros.notasRestritas > 0) {
       ressalvas.push(
         `${numeros.ocorrenciasRestritas} ocorrência(s) de acesso restrito e `
-        + `${numeros.notasRestritas} nota(s) de ATA restrita existem no período e NÃO estão `
-        + 'escritas aqui — só contadas. Elas se leem na tela da ocorrência e na ATA, onde '
-        + 'cada abertura fica registrada. Este relatório tem folha, e folha circula.');
+        + `${numeros.notasRestritas} observação(ões) restrita(s) de ATA foram registradas no `
+        + 'período e constam apenas na contagem. O conteúdo pode ser consultado no registro '
+        + 'eletrônico, pelos profissionais autorizados.');
     }
     if (numeros.atasAbertas > 0 || numeros.chamadasAbertas > 0 || numeros.passagensSemRecibo > 0) {
       ressalvas.push(
-        'Há registro do período ainda em aberto — ATA, chamada ou passagem sem recibo. '
-        + 'O que está aberto pode mudar depois que este relatório for tirado.');
+        'Há registros do período ainda em aberto (ATA, chamada ou passagem de plantão sem '
+        + 'confirmação). Os números podem mudar após a emissão deste relatório.');
     }
     ressalvas.push(
-      'Ausência de registro não é ausência de trabalho. Um período sem linhas diz que '
-      + 'ninguém escreveu — não diz que nada aconteceu.');
+      'Este relatório reúne o que foi registrado pela equipe. A ausência de registro não '
+      + 'significa ausência de acontecimentos ou de trabalho no período.');
     ressalvas.push(
-      'Nada aqui é somado por criança, por educador ou por turno, e nenhuma lista sai '
-      + 'ordenada por quantidade: as crianças aparecem por nome, e os fatos por data.');
+      'Os acolhidos aparecem em ordem alfabética e os fatos em ordem cronológica. Os números '
+      + 'não são somados por acolhido, por profissional ou por turno.');
     return {
       casa: { id: CASA.id, codigo: CASA.code, nome: CASA.name },
       periodo: { de, ate, dias },
@@ -6750,7 +6747,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     const de = String(q.get('de') ?? HOJE);
     const ate = String(q.get('ate') ?? HOJE);
     return folhaDaEscala({
-      casa: `${CASA.code} — ${CASA.name}`,
+      casa: `${CASA.code} · ${CASA.name}`,
       de, ate,
       linhas: linhasDaEscalaParaFolha(de, ate),
       autor: { nome: eu.fullName, cargo: cargoNoDocumento(eu.role) },
@@ -6764,7 +6761,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     const de = String(b.de ?? HOJE);
     const ate = String(b.ate ?? HOJE);
     const folha = folhaDaEscala({
-      casa: `${CASA.code} — ${CASA.name}`, de, ate,
+      casa: `${CASA.code} · ${CASA.name}`, de, ate,
       linhas: linhasDaEscalaParaFolha(de, ate),
       autor: { nome: eu.fullName, cargo: cargoNoDocumento(eu.role) },
     });
@@ -7150,7 +7147,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     if (seg[4] === 'folha') {
       return {
         titulo: 'Medicamentos para o período fora da casa',
-        subtitulo: `${CASA.code} — ${CASA.name}`,
+        subtitulo: `${CASA.code} · ${CASA.name}`,
         identificacao: [
           { rotulo: 'Acolhido', valor: 'Ana Paula (fictícia)' },
           { rotulo: 'Com', valor: 'Rosângela (fictícia)' },
@@ -7162,8 +7159,8 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
             linhas: itens.map((i) => [i.medicamento, i.dose, i.horarios,
                                       String(i.doses), i.orientacoes]),
           },
-          procedencia: 'Esquemas ativos da criança, com os horários da bula registrados '
-            + 'no sistema.',
+          procedencia: 'Prescrições em vigor do acolhido, com os horários registrados pela '
+            + 'Enfermagem.',
         }],
         geradoPor: eu.fullName, cargo: cargoNoDocumento(eu.role), assinatura: true,
         ressalva: 'A contagem inclui a dose do dia do retorno, se houver: mandar um '
@@ -7176,7 +7173,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
          porque o servidor de mentira não é um cliente de si mesmo. */
       const f: any = {
         titulo: 'Medicamentos para o período fora da casa',
-        subtitulo: `${CASA.code} — ${CASA.name}`,
+        subtitulo: `${CASA.code} · ${CASA.name}`,
         identificacao: [
           { rotulo: 'Acolhido', valor: 'Ana Paula (fictícia)' },
           { rotulo: 'Com', valor: 'Rosângela (fictícia)' },
@@ -8168,14 +8165,16 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         { rotulo: 'Visitas no período', valor: String(d.contagem.noPeriodo) },
       ],
       secoes: [
-        { titulo: 'Quem visitou', tabela: { cabecalho: ['Visitante', 'Vínculo', 'Visitas', 'Tempo somado'],
+        { titulo: 'Visitantes no período', tabela: { cabecalho: ['Visitante', 'Vínculo', 'Visitas', 'Tempo total'],
           linhas: d.visitantes.map((v) => [v.nome, v.vinculo, String(v.visitas), duracaoDaVisita(v.minutos)]) } },
-        { titulo: 'As visitas, uma a uma', tabela: { cabecalho: ['Visitante', 'Entrada', 'Saída', 'Duração', 'Registrou'],
+        { titulo: 'Registro das visitas', tabela: { cabecalho: ['Visitante', 'Entrada', 'Saída', 'Duração', 'Registrado por'],
           linhas: d.visitas.slice().reverse().map((v) => [v.visitante, new Date(v.entrouEm).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }),
             v.saiuEm ? new Date(v.saiuEm).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }) : '—',
-            v.minutos == null ? 'aberta' : duracaoDaVisita(v.minutos), v.entradaPor]) } },
+            v.minutos == null ? 'em andamento' : duracaoDaVisita(v.minutos), v.entradaPor]) } },
       ],
-      geradoPor: eu.fullName, cargo: cargoNoDocumento(eu.role), assinatura: true, ressalva: d.aviso,
+      geradoPor: eu.fullName, cargo: cargoNoDocumento(eu.role), assinatura: true,
+      ressalva: 'O número de visitas registra a convivência no período e deve ser lido junto '
+        + 'ao acompanhamento da equipe técnica com a família.',
     };
     return { nomeArquivo: nomeDaFolha(f.titulo), conteudoBase64: gerarDocx(f as any, timbreEmBytes()),
              aviso: 'Documento gerado em Word, com timbre. Exportação registrada com o seu nome, a '
@@ -9156,25 +9155,28 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     const m = metricasDoArmario();
     const armario = rota.includes('stock');
     const f = armario ? {
-      titulo: 'Relatório do armário de medicamentos', subtitulo: `${CASA.code} — ${CASA.name}`,
+      titulo: 'Relatório do armário de medicamentos', subtitulo: `${CASA.code} · ${CASA.name}`,
       identificacao: [
         { rotulo: 'Doses administradas', valor: String(m.doses.administradas) },
-        { rotulo: 'Itens com saldo negativo (conferir)', valor: String(m.armario.negativos) },
+        { rotulo: 'Itens a conferir (saldo negativo)', valor: String(m.armario.negativos) },
       ],
-      secoes: [{ titulo: 'Movimento por remédio, em ordem alfabética', tabela: {
-        cabecalho: ['Remédio', 'Entrada', 'Consumo', 'Descarte', 'Perda', 'Devolução', 'Saiu com o acolhido'],
+      secoes: [{ titulo: 'Movimentação por medicamento', tabela: {
+        cabecalho: ['Medicamento', 'Entrada', 'Administrado', 'Descarte', 'Perda', 'Devolução', 'Levado pelo acolhido'],
         linhas: m.porRemedio.map((r) => [r.remedio, String(r.entrada), String(r.consumo), String(r.descarte),
           String(r.perda), String(r.devolucao), String(r.saidaComAcolhido)]) } }],
-      geradoPor: eu.fullName, cargo: cargoNoDocumento(eu.role), assinatura: true, ressalva: m.aviso,
+      geradoPor: eu.fullName, cargo: cargoNoDocumento(eu.role), assinatura: true,
+      ressalva: 'Números referentes à unidade no período, sem identificação de acolhido ou de '
+        + 'profissional. Itens com saldo negativo indicam medicação administrada sem entrada '
+        + 'correspondente e devem ser conferidos no armário.',
     } : {
-      titulo: 'Notas de compra de medicamentos', subtitulo: `${CASA.code} — ${CASA.name}`,
+      titulo: 'Notas de compra de medicamentos', subtitulo: `${CASA.code} · ${CASA.name}`,
       identificacao: [{ rotulo: 'Notas', valor: String(COMPRAS_MED.length) }],
-      secoes: [{ titulo: 'As notas', tabela: {
-        cabecalho: ['Data', 'Fornecedor', 'CNPJ', 'Nota', 'Total'],
+      secoes: [{ titulo: 'Notas fiscais', tabela: {
+        cabecalho: ['Data', 'Fornecedor', 'CNPJ', 'Número', 'Total'],
         linhas: COMPRAS_MED.map((c) => [c.em.split('-').reverse().join('/'), c.fornecedor ?? '—',
           c.cnpj ?? '—', c.nota ?? '—', c.totalCentavos != null ? reaisMock(c.totalCentavos) : '—']) } }],
       geradoPor: eu.fullName, cargo: cargoNoDocumento(eu.role), assinatura: true,
-      ressalva: 'A soma é da CASA e do período — nunca por quem comprou.',
+      ressalva: 'Valores referentes às compras da unidade no período.',
     };
     return { nomeArquivo: nomeDaFolha(f.titulo), conteudoBase64: gerarDocx(f as any, timbreEmBytes()),
              aviso: 'Documento gerado em Word, com timbre. Exportação registrada com o seu nome, a finalidade '
@@ -10175,7 +10177,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
   if (rota.startsWith('/alignments/statute/folha')) {
     const publico = q.get('publico') ?? 'todos';
     if (!PUBLICO_ESTATUTO[publico]) return new Recusa(400, 'Público inválido para a folha do estatuto.');
-    return folhaDoEstatuto(`${CASA.code} — ${CASA.name}`, regrasParaTela(), publico,
+    return folhaDoEstatuto(`${CASA.code} · ${CASA.name}`, regrasParaTela(), publico,
       { nome: eu.fullName, cargo: cargoNoDocumento(eu.role) });
   }
   if (rota === '/alignments/statute/export' && metodo === 'POST') {
@@ -10184,7 +10186,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     if (String(b.finalidade ?? '').trim().length < 10) {
       return new Recusa(400, 'Descreva a finalidade da exportação (mínimo 10 caracteres).');
     }
-    const f = folhaDoEstatuto(`${CASA.code} — ${CASA.name}`, regrasParaTela(), publico,
+    const f = folhaDoEstatuto(`${CASA.code} · ${CASA.name}`, regrasParaTela(), publico,
       { nome: eu.fullName, cargo: cargoNoDocumento(eu.role) });
     return { nomeArquivo: nomeDaFolha(f.titulo), conteudoBase64: gerarDocx(f as any, timbreEmBytes()),
       aviso: 'Documento gerado em Word, com timbre. Exportação registrada com o seu nome, a '
@@ -10192,7 +10194,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
   }
   if (rota.startsWith('/alignments/statute') && metodo === 'GET') {
     return {
-      casa: `${CASA.code} — ${CASA.name}`,
+      casa: `${CASA.code} · ${CASA.name}`,
       podeEscrever: ESCREVE_ESTATUTO.includes(eu.role),
       podeEscreverDaInstituicao: eu.role === 'gestor_geral',
       publicos: Object.entries(PUBLICO_ESTATUTO).map(([code, label]) => ({ code, label })),
@@ -11048,7 +11050,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
   const autorDaFolha = () => ({
     nome: eu.fullName, cargo: cargoNoDocumento(eu.role),
   });
-  const casaDaFolha = `${CASA.code} — ${CASA.name}`;
+  const casaDaFolha = `${CASA.code} · ${CASA.name}`;
 
   /** Exportar exige a finalidade escrita — a mesma recusa do servidor. */
   const exportarFolha = (folha: any) => {
@@ -11318,7 +11320,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
  */
 function folhaDaCozinha(qual: string, eu: { fullName: string; role: string }) {
   const autor = { nome: eu.fullName, cargo: cargoNoDocumento(eu.role) };
-  const casa = `${CASA.code} — ${CASA.name}`;
+  const casa = `${CASA.code} · ${CASA.name}`;
   const diaBR = (iso: string) => new Date(`${iso}T12:00:00-03:00`)
     .toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
   const hoje = diaBR(new Date().toISOString().slice(0, 10));
@@ -11332,18 +11334,17 @@ function folhaDaCozinha(qual: string, eu: { fullName: string; role: string }) {
       titulo: 'Restrições alimentares', subtitulo: casa,
       identificacao: [
         { rotulo: 'Emitida em', valor: hoje },
-        { rotulo: 'Crianças com restrição', valor: String(linhas.length) },
+        { rotulo: 'Acolhidos com restrição', valor: String(linhas.length) },
       ],
       secoes: [{
-        titulo: 'O que não pode ser servido',
-        tabela: { cabecalho: ['Criança', 'Evitar', 'Servir no lugar', 'Orientação'], linhas },
-        procedencia: 'Prontuário de saúde da casa, escrito pela equipe técnica e pela '
-          + 'Enfermagem. Esta folha é uma vista dele — não uma cópia editável.',
+        titulo: 'Restrições por acolhido',
+        tabela: { cabecalho: ['Acolhido', 'Não servir', 'Substituir por', 'Orientação'], linhas },
+        procedencia: 'Restrições registradas pela equipe técnica e pela Enfermagem no prontuário '
+          + 'de cada acolhido.',
       }],
       geradoPor: autor.nome, cargo: autor.cargo, assinatura: true,
-      ressalva: 'Esta folha não traz o motivo médico de nenhuma restrição, de propósito. '
-        + 'Ela vale até ser substituída: em caso de dúvida, confirme com a Enfermagem antes '
-        + 'de servir.',
+      ressalva: 'O motivo clínico das restrições não é informado nesta relação. Esta folha '
+        + 'substitui a anterior; em caso de dúvida, confirme com a Enfermagem antes de servir.',
     };
   }
 
@@ -11385,13 +11386,12 @@ function folhaDaCozinha(qual: string, eu: { fullName: string; role: string }) {
             diaBR(p.em), p.paraQuem, String(p.quantidade), p.motivoCancelamento ?? '—',
           ]),
         },
-        procedencia: 'Cancelamentos registrados no sistema, com o motivo escrito.',
+        procedencia: 'Pedidos cancelados, com o motivo informado por quem cancelou.',
       }] : []),
     ],
     geradoPor: autor.nome, cargo: autor.cargo, assinatura: true,
     ...(abertos.length === 0 && lanche
-      ? { ressalva: 'Não há lanche solicitado para este período. A folha vazia significa '
-          + 'que ninguém pediu — não que o pedido se perdeu.' }
+      ? { ressalva: 'Não há lanches solicitados para o período.' }
       : {}),
   };
 }

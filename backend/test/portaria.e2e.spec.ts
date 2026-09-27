@@ -158,7 +158,7 @@ describe('A folha da portaria — quem pode visitar', () => {
     expect(madrinha).toContain(CPF_MADRINHA);
     expect(madrinha).toContain('(51) 99999-0001');
     const tio = depois.find((l) => l[3] === 'Tio Sem CPF (fictício)')!;
-    expect(tio.join(' | ')).toMatch(/não cadastrado — pedir documento com foto/);
+    expect(tio.join(' | ')).toMatch(/não cadastrado; solicitar documento com foto/);
 
     const { rows: [a] } = await admin.query(
       `SELECT u.email FROM person_contact c JOIN app_user u ON u.id = c.visit_authorized_by WHERE c.id=$1`,

@@ -374,7 +374,7 @@ export class AlignmentsService {
       if (!e?.pode) return null;
       const { rows: [h] } = await c.query(
         `SELECT app_house_label($1) AS code, app_house_name($1) AS name`, [houseId]);
-      return [h?.code, h?.name].filter(Boolean).join(' — ');
+      return [h?.code, h?.name].filter(Boolean).join(' · ');
     });
     /* Casa sem rótulo é casa fora do alcance — e o RLS teria devolvido lista
      * vazia, que se lê como "esta equipe não combinou nada". */

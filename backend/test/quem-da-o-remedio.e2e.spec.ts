@@ -344,7 +344,7 @@ describe('Quem dá o remédio nesta casa', () => {
        aberta com as mãos ocupadas. */
     const folha = await request(http).get(`/api/v1/medications/folha?houseId=${ids.AI3}`)
       .set(auth(tokens.enfermagem));
-    expect(JSON.stringify(folha.body)).toMatch(/SÓ A ENFERMAGEM ADMINISTRA/);
+    expect(JSON.stringify(folha.body)).toMatch(/administração exclusiva da Enfermagem/);
   });
 
   // ==================== O que valia antes ====================

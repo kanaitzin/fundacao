@@ -32,8 +32,8 @@ export function folhaDaGrade(casa: string, doses: DoseDaGrade[], autor: AutorDaF
   const ordenadas = [...doses].sort((a, b) => String(a.horario).localeCompare(String(b.horario)));
 
   return {
-    titulo: `Grade de medicação do dia — ${casa}`,
-    subtitulo: 'Folha de conferência da equipe',
+    titulo: 'Grade de medicação do dia',
+    subtitulo: `${casa} · conferência da equipe`,
     identificacao: [
       { rotulo: 'Unidade', valor: casa },
       { rotulo: 'Data', valor: diaBR(new Date()) },
@@ -42,32 +42,30 @@ export function folhaDaGrade(casa: string, doses: DoseDaGrade[], autor: AutorDaF
     secoes: [
       {
         titulo: 'Doses do dia',
-        paragrafos: ordenadas.length ? [] : ['Nenhuma dose prevista para hoje nesta casa.'],
+        paragrafos: ordenadas.length ? [] : ['Não há doses previstas para hoje.'],
         tabela: ordenadas.length ? {
-          cabecalho: ['Hora', 'Acolhido', 'Medicamento e dose', 'Situação'],
+          cabecalho: ['Horário', 'Acolhido', 'Medicamento e dose', 'Situação'],
           linhas: ordenadas.map((d) => [
             d.tipo === 'quando_necessario' ? 's/n' : hhmmBR(d.horario),
             d.acolhido?.nome ?? '—',
             /* A folha é lida com as mãos ocupadas, de porta aberta: se a
                exceção não estiver NESTA célula, ela não é lida. */
             `${d.medicamento} ${d.dose} · ${d.via}`
-              + (d.soEnfermagem ? ' · SÓ A ENFERMAGEM ADMINISTRA' : ''),
+              + (d.soEnfermagem ? ' · administração exclusiva da Enfermagem' : ''),
             d.rotulo,
           ]),
         } : undefined,
-        procedencia: 'grade do dia da unidade, na data da emissão.',
+        procedencia: 'Grade de medicação da unidade na data da emissão.',
       },
       {
         titulo: 'Conferência do plantão',
-        aPreencher: 'quem conferiu a grade no início e no fim do turno, e o que faltou',
+        aPreencher: 'nome de quem conferiu a grade no início e no fim do turno, e as intercorrências',
       },
     ],
     geradoPor: autor.nome,
     cargo: autor.cargo,
-    ressalva: 'FOLHA DE SERVIÇO. Ela traz horário, nome e medicamento porque é isso que a '
-      + 'equipe confere no armário — e não traz diagnóstico nem condição de saúde. Mantenha-a '
-      + 'em área restrita à equipe: corredor, sala de visitas e mural aberto não são lugar '
-      + 'para o nome de uma criança ao lado do remédio que ela toma. Papel impresso sai do '
-      + 'sistema e não volta.',
+    ressalva: 'Documento de uso interno da equipe. Manter em local de acesso restrito, fora de '
+      + 'corredores, salas de visita e murais, por conter o nome dos acolhidos junto à medicação '
+      + 'em uso. Descartar ao final do dia.',
   };
 }

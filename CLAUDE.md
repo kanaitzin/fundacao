@@ -117,6 +117,12 @@ de leitura:
   culpa, risco, punição, medicação ou destino, exclusão silenciosa, sobrescrita
   de registro fechado, CPF ou diagnóstico em nome de arquivo.
 - **Cor comunica estado operacional** — nunca julgamento sobre a pessoa.
+- **Documento para baixar fala como a equipe de acolhimento** (decisão de 27/09,
+  §5 item 10). Relatório, folha, ressalva e roteiro: linguagem institucional de
+  quem trabalha no acolhimento. Sem travessão, sem maiúscula de ênfase, sem
+  aspas, sem falar do sistema, sem defender a regra (*de propósito*). A
+  ressalva é escrita para o papel, nunca o aviso da tela. O
+  `a-voz-dos-documentos.spec.ts` cobra; **a tela pode explicar, o papel não**.
 - **Migração nova NUNCA usa `current_date`.** Use `app_hoje()`.
 - **Função `SECURITY DEFINER` desliga o RLS:** confira sempre
   `app_house_in_scope()` quando houver `p_house`, e **declare `search_path`** —
@@ -154,7 +160,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 27/09/2026, fase 163
+### Onde estamos — 27/09/2026, fase 164
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -181,8 +187,9 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 161 | **o armário diz a verdade** (decisões de 26/09): saldo NEGATIVO com aviso (a dose nunca é bloqueada); lote, validade e origem na entrada; descarte/perda/devolução com motivo; nota com CNPJ e itens, SEPARADA do armário, repetida RECUSADA; métricas da casa por remédio; relatórios em Word com a imagem da nota; `mov_insert`/`stock_update` eram `WITH CHECK (true)` |
 | 162 | **a cozinha recebe a lista** (decisões de 26/09): "Selecionar todos" = um pedido por criança, tudo ou nada (`batch_id`); editar até o dia, por quem pediu/coordenação/técnica/líder, com `kitchen_request_change`; refeições da casa por refeição; e o **relatório do período perdia o último dia** (`reference_at BETWEEN` datas) |
 | 163 | **três temas, Portaria em cartões com a foto 3×4, botões na coluna** (pedido de 27/09): tema **alto contraste** (decisão), no sistema de verdade, lembrado no aparelho (`frontend/src/tema.ts`); o **ensaio de acessibilidade só media o claro** — hoje mede os três, 432 telas; foto 3×4 anexada por técnica/coordenação no próprio portão; ícone do Período |
+| 164 | **a voz dos documentos** (pedido de 27/09): toda folha, relatório e o roteiro da Casa 03 reescritos na linguagem da equipe de acolhimento, e a regra virou teste (`a-voz-dos-documentos.spec.ts`); de passagem, a **folha da escala imprimia 08:00–20:00 fixos** apesar do horário por casa da 159, e o **relatório de visitas imprimia o aviso da tela** como ressalva |
 
-**Medido no fim da 163:** 160 migrações, 121 tabelas, 109 suítes, 1050 testes, verdes nas
+**Medido no fim da 164:** 160 migrações, 121 tabelas, 110 suítes, 1054 testes, verdes nas
 DUAS condições de relógio; os sete ensaios de navegador verdes, com a portaria e o
 portão, o armário, a cozinha, os temas e a foto no percurso do `ensaio:uso`; **432 telas (144 × três
 temas) sem violação de WCAG 2.1 AA**; nenhuma
@@ -222,10 +229,13 @@ data do dia em que o noturno começou** — substitui o 7h–19h preliminar (pen
 - ~~**162** cozinha e refeições~~ ✅ feita;
 - ~~**163** (fora do plano, pedido de 27/09) temas, Portaria em cartões, coluna~~ ✅ feita —
   **as fases abaixo andaram um número**;
-- **164** câmera/galeria com prévia, tipo real do arquivo, DOCX da internação com
+- ~~**164** (fora do plano, pedido de 27/09) a voz dos documentos~~ ✅ feita —
+  **as fases abaixo andaram mais um número**. Todo documento novo destas
+  fases (o DOCX da internação, sobretudo) nasce na voz da equipe;
+- **165** câmera/galeria com prévia, tipo real do arquivo, DOCX da internação com
   imagens e páginas de PDF, "repetir escala do mês anterior" como rascunho, e o
   **cargo da época** nos registros antigos (`app_user_cargo` devolve o ATUAL);
-- **165** simulação de vários dias (§38) como teste, e o relatório final com a matriz.
+- **166** simulação de vários dias (§38) como teste, e o relatório final com a matriz.
 
 **1. As medições de alcance estão feitas** — escrita (156) e leitura (158). A
 sondagem roda sobre o banco povoado pela suíte, com `globalSetup` vazio; o mapa
@@ -347,6 +357,13 @@ novo.
   Chromium no tema claro e nunca trocava: o escuro existia desde a fase 50 e
   nunca tinha sido conferido. "Passou" vale para as condições em que rodou —
   pergunte sempre QUAIS foram.
+- **O papel não é a tela** (164). O aviso da tela explica a regra para quem
+  está usando; o documento vai para juiz, conselho e família, e ali a mesma
+  frase soa como defesa. `ressalva: d.aviso` imprimiu *"quantidade de visitas
+  não é avaliação da família"* num relatório. E a conferência de estilo achou
+  um defeito de conteúdo: a escala impressa dizia 08:00–20:00 numa casa que
+  tinha mudado o horário. **Reler o documento como quem o recebe acha o que o
+  teste de quem o gera não acha.**
 - **Frase de tela que envelhece é frase que mente**, e a cobrança do ensaio que a
   guarda tem de ser reescrita junto. A ressalva do painel sobre nota escolar já foi
   reescrita três vezes. **Isto inclui este arquivo.**

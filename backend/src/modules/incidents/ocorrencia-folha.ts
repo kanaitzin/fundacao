@@ -25,23 +25,22 @@ export interface DadosDaOcorrencia {
 export function folhaDaOcorrencia(d: DadosDaOcorrencia, autor: AutorDaFolha): Folha {
   const secoes: SecaoDaFolha[] = [
     {
-      titulo: 'Fato objetivo',
+      titulo: 'Descrição do fato',
       paragrafos: [d.fato],
-      procedencia: 'escrito por quem abriu a ocorrência, sem alteração posterior.',
+      procedencia: 'Redação de quem registrou a ocorrência, sem alteração posterior.',
     },
   ];
 
   if (d.medidasImediatas) {
-    secoes.push({ titulo: 'Medidas imediatas', paragrafos: [d.medidasImediatas] });
+    secoes.push({ titulo: 'Providências imediatas', paragrafos: [d.medidasImediatas] });
   }
 
   if ((d.relatos?.relatos ?? []).length) {
     secoes.push({
-      titulo: 'Relatos',
+      titulo: 'Relatos da equipe',
       itens: d.relatos!.relatos!.map((r) =>
         `${r.autor} · ${r.testemunho} · ${hhmmBR(r.quando)}: ${r.relato}`),
-      procedencia: 'cada relato é de quem o escreveu, na ordem em que foram registrados; '
-        + 'nenhum foi alterado.',
+      procedencia: 'Relatos na ordem em que foram registrados, na redação de cada autor.',
     });
   }
 
@@ -53,20 +52,21 @@ export function folhaDaOcorrencia(d: DadosDaOcorrencia, autor: AutorDaFolha): Fo
   }
 
   return {
-    titulo: `Registro de ocorrência — ${d.categoria}`,
+    titulo: 'Registro de ocorrência',
+    subtitulo: d.categoria,
     identificacao: [
       { rotulo: 'Categoria', valor: d.categoria },
-      { rotulo: 'Quando', valor: `${diaBR(d.quando)} às ${hhmmBR(d.quando)}` },
+      { rotulo: 'Data e hora', valor: `${diaBR(d.quando)}, às ${hhmmBR(d.quando)}` },
       {
-        rotulo: 'Acolhidos',
-        valor: (d.acolhidos ?? []).map((a) => a.nome).join(', ') || 'não se aplica a uma pessoa',
+        rotulo: 'Acolhidos envolvidos',
+        valor: (d.acolhidos ?? []).map((a) => a.nome).join(', ') || 'ocorrência sem acolhido identificado',
       },
       { rotulo: 'Situação', valor: String(d.status) },
     ],
     secoes,
     geradoPor: autor.nome,
     cargo: autor.cargo,
-    ressalva: 'Fala espontânea e sinais observados, quando existem, NÃO entram nesta cópia: '
-      + 'eles têm política própria e mais estreita, e não circulam em papel.',
+    ressalva: 'Esta cópia não inclui fala espontânea nem sinais observados, que têm acesso '
+      + 'restrito à equipe técnica e à coordenação e não são impressos.',
   };
 }

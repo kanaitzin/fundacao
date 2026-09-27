@@ -18,8 +18,14 @@
 > depois das 21h em Porto Alegre semeava o dia seguinte — o dia de hoje nascia
 > sem dose nenhuma. **Nada no sistema; tudo no dado de partida.**
 
-- **162 fases.** 109 suítes e 1050 testes, verdes em duas condições de relógio —
+- **164 fases.** 110 suítes e 1054 testes, verdes em duas condições de relógio —
   antes e depois da virada do UTC, que em Porto Alegre é às 21h.
+- **Os documentos foram reescritos na voz da equipe** (fase 164, pedido de
+  27/09). Toda folha, relatório e o **roteiro da Casa 03** saem agora em
+  linguagem institucional de acolhimento, e há teste que cobra a regra. **O
+  roteiro mudou de texto, não de tarefas:** a numeração é a mesma, e o Word
+  (`docs/roteiro-marcelo.docx`) foi gerado de novo. Quem já imprimiu a versão
+  anterior pode descartá-la.
 - **A chamada fecha.** O único item de código que faltava ao piloto — a chamada
   que travava quando uma criança estava internada ou em casa com a família —
   saiu na fase 127, com suíte própria que guarda o defeito.

@@ -6,7 +6,7 @@
  * Só os VIGENTES entram. O encerrado não some da lista dentro do sistema,
  * porque "mas ficou combinado que..." é uma discussão que só o registro
  * encerra — mas numa folha impressa ele viraria instrução em vigor, e é por
- * isso que a ressalva diz, em voz alta, que quem manda é o sistema.
+ * isso que a ressalva diz que a relação vale na data de emissão e pode ser revista.
  */
 import { Folha, AutorDaFolha, diaBR } from '../../kernel/documentos/folha';
 
@@ -34,8 +34,8 @@ export function folhaDosCombinados(
   const vigentes = combinados.filter((c) => c.situacao === 'vigente');
 
   return {
-    titulo: `Combinados vigentes — ${casa}`,
-    subtitulo: 'O que a equipe estabeleceu e está valendo',
+    titulo: 'Combinados da equipe',
+    subtitulo: `${casa} · combinados em vigor`,
     identificacao: [
       { rotulo: 'Unidade', valor: casa },
       { rotulo: 'Emitido em', valor: diaBR(new Date()) },
@@ -44,18 +44,18 @@ export function folhaDosCombinados(
     secoes: [
       {
         titulo: 'Combinados em vigor',
-        paragrafos: vigentes.length ? [] : ['Nenhum combinado vigente registrado.'],
+        paragrafos: vigentes.length ? [] : ['Não há combinados em vigor registrados.'],
         itens: vigentes.map((c) => [
           c.texto,
           c.responsavel ? `responsável: ${c.responsavel}` : null,
           c.prazo ? `até ${diaBR(c.prazo)}` : null,
           `registrado por ${c.por} em ${diaBR(c.criadoEm)}`,
         ].filter(Boolean).join(' · ')),
-        procedencia: 'combinados registrados pela equipe técnica e pela coordenação.',
+        procedencia: 'Combinados definidos pela equipe técnica e pela coordenação.',
       },
       {
-        titulo: 'Reuniões do período',
-        paragrafos: reunioes.length ? [] : ['Nenhuma reunião registrada.'],
+        titulo: 'Reuniões de equipe',
+        paragrafos: reunioes.length ? [] : ['Não há reuniões registradas.'],
         tabela: reunioes.length ? {
           cabecalho: ['Data', 'Reunião', 'Registrada por'],
           linhas: reunioes.slice(0, 20).map((r) => [diaBR(r.data), r.titulo, r.por]),
@@ -64,8 +64,7 @@ export function folhaDosCombinados(
     ],
     geradoPor: autor.nome,
     cargo: autor.cargo,
-    ressalva: 'Esta folha vale na data em que foi emitida. O que manda é o sistema: um '
-      + 'combinado encerrado depois desta impressão continua encerrado, e o papel não sabe '
-      + 'disso.',
+    ressalva: 'Relação válida na data de emissão. Combinados podem ser revistos ou encerrados '
+      + 'em reunião posterior; em caso de dúvida, consulte a coordenação.',
   };
 }

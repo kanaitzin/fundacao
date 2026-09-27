@@ -171,7 +171,7 @@ export class ReportsService {
     const secoes = [
       ...doSistema.map((s) => ({
         titulo: s.titulo, texto: s.texto,
-        fonte: s.fonte ?? 'registros do sistema',
+        fonte: s.fonte ?? 'registros da equipe',
         aPreencher: s.aPreencher ?? false,
         autor: s.aPreencher ? null : 'Rede Acolher',
         em: new Date().toISOString(),
@@ -467,11 +467,11 @@ export class ReportsService {
         { rotulo: 'Período', valor: `${dia(doc.periodo.de)} a ${dia(doc.periodo.ate)}` },
         { rotulo: 'Finalidade declarada', valor: doc.finalidade },
         { rotulo: 'Situação do documento',
-          valor: rascunho ? 'Rascunho — sem aprovação' : 'Aprovado' },
+          valor: rascunho ? 'Rascunho, ainda não aprovado' : 'Aprovado' },
       ],
       secoes: (doc.corpo?.secoes ?? []).map((x: any) => (
         x.aPreencher
-          ? { titulo: x.titulo, aPreencher: 'escrito por quem assina; o sistema não avalia' }
+          ? { titulo: x.titulo, aPreencher: 'avaliação técnica, a ser redigida pelo profissional que assina' }
           : { titulo: x.titulo,
               paragrafos: String(x.texto ?? '').split('\n').map((l: string) => l.trim())
                 .filter(Boolean),
@@ -480,8 +480,9 @@ export class ReportsService {
       rascunho,
       geradoPor: user.fullName,
       cargo: CARGO_LABEL[user.role] ?? user.role,
-      ressalva: 'A parte factual é escrita pelo sistema a partir dos registros, e cada seção '
-        + 'diz de onde veio. A avaliação e os encaminhamentos são escritos por pessoas.',
+      ressalva: 'As seções descritivas foram elaboradas a partir dos registros da equipe, com a '
+        + 'origem indicada em cada uma. A avaliação técnica e os encaminhamentos são de autoria '
+        + 'do profissional que assina.',
     };
   }
 

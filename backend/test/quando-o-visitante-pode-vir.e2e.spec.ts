@@ -147,10 +147,10 @@ describe('Quando o visitante pode vir', () => {
 
   it('a folha traz a coluna do quando, e a ressalva fala do horário', async () => {
     const f = await folha();
-    expect(f.secoes[0].tabela.cabecalho).toContain('Quando pode vir');
-    expect(f.ressalva).toMatch(/FORA do dia ou da hora/);
-    /* A ressalva diz de quem é a decisão de mudar — a guarita não muda horário. */
-    expect(f.ressalva).toMatch(/equipe técnica, não da guarita/);
+    expect(f.secoes[0].tabela.cabecalho).toContain('Dias e horários');
+    expect(f.ressalva).toMatch(/fora do dia e do horário indicados/);
+    /* A ressalva diz de quem é a decisão de mudar — a portaria não muda horário. */
+    expect(f.ressalva).toMatch(/autorização da equipe técnica ou da coordenação/);
   });
 
   // ================== A retirada, e o motivo ==================

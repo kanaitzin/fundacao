@@ -260,19 +260,19 @@ export class VisitasService {
       ],
       secoes: [
         {
-          titulo: 'Quem visitou',
+          titulo: 'Visitantes no período',
           tabela: {
-            cabecalho: ['Visitante', 'Vínculo', 'Visitas', 'Tempo somado'],
+            cabecalho: ['Visitante', 'Vínculo', 'Visitas', 'Tempo total'],
             linhas: d.visitantes.map((v) => [v.nome, v.vinculo, String(v.visitas), duracao(v.minutos)]),
           },
         },
         {
-          titulo: 'As visitas, uma a uma',
+          titulo: 'Registro das visitas',
           tabela: {
-            cabecalho: ['Visitante', 'Entrada', 'Saída', 'Duração', 'Registrou'],
+            cabecalho: ['Visitante', 'Entrada', 'Saída', 'Duração', 'Registrado por'],
             linhas: d.visitas.slice().reverse().map((v) => [
               v.visitante, hora(v.entrouEm), hora(v.saiuEm),
-              v.minutos == null ? 'aberta' : duracao(v.minutos), v.entradaPor ?? '—',
+              v.minutos == null ? 'em andamento' : duracao(v.minutos), v.entradaPor ?? '—',
             ]),
           },
         },
@@ -280,7 +280,8 @@ export class VisitasService {
       geradoPor: user.fullName,
       cargo: cargoNoDocumento(user.role),
       assinatura: true,
-      ressalva: d.aviso,
+      ressalva: 'O número de visitas registra a convivência no período e deve ser lido junto '
+        + 'ao acompanhamento da equipe técnica com a família.',
     };
     return this.documentos.exportar(user, folha, {
       entidade: 'visit_report', entidadeId: personId, houseId: casa,

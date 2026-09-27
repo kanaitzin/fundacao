@@ -277,22 +277,22 @@ export class PeriodoService {
     const r: string[] = [];
     if (n.ocorrenciasRestritas > 0 || n.notasRestritas > 0) {
       r.push(
-        `${n.ocorrenciasRestritas} ocorrência(s) de acesso restrito e ${n.notasRestritas} nota(s) `
-        + 'de ATA restrita existem no período e NÃO estão escritas aqui — só contadas. '
-        + 'Elas se leem na tela da ocorrência e na ATA, onde cada abertura fica registrada. '
-        + 'Este relatório tem folha, e folha circula.');
+        `${n.ocorrenciasRestritas} ocorrência(s) de acesso restrito e ${n.notasRestritas} `
+        + 'observação(ões) restrita(s) de ATA foram registradas no período e constam apenas na '
+        + 'contagem. O conteúdo pode ser consultado no registro eletrônico, pelos profissionais '
+        + 'autorizados.');
     }
     if (n.atasAbertas > 0 || n.chamadasAbertas > 0 || n.passagensSemRecibo > 0) {
       r.push(
-        'Há registro do período ainda em aberto — ATA, chamada ou passagem sem recibo. '
-        + 'O que está aberto pode mudar depois que este relatório for tirado.');
+        'Há registros do período ainda em aberto (ATA, chamada ou passagem de plantão sem '
+        + 'confirmação). Os números podem mudar após a emissão deste relatório.');
     }
     r.push(
-      'Ausência de registro não é ausência de trabalho. Um período sem linhas diz que '
-      + 'ninguém escreveu — não diz que nada aconteceu.');
+      'Este relatório reúne o que foi registrado pela equipe. A ausência de registro não '
+      + 'significa ausência de acontecimentos ou de trabalho no período.');
     r.push(
-      'Nada aqui é somado por criança, por educador ou por turno, e nenhuma lista sai '
-      + 'ordenada por quantidade: as crianças aparecem por nome, e os fatos por data.');
+      'Os acolhidos aparecem em ordem alfabética e os fatos em ordem cronológica. Os números '
+      + 'não são somados por acolhido, por profissional ou por turno.');
     return r;
   }
 

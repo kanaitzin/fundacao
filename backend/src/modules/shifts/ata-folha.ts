@@ -39,17 +39,17 @@ export function folhaDaAta(
        * quem lê a ATA um ano depois. */
       paragrafos: texto
         ? texto.split('\n').map((l) => l.trim()).filter(Boolean)
-        : ['Nada registrado nesta seção.'],
+        : ['Sem registro para este item no turno.'],
     });
   }
 
   if ((a.episodios ?? []).length) {
     corpo.push({
-      titulo: 'Episódios do turno',
+      titulo: 'Intercorrências do turno',
       itens: a.episodios!.map((e) =>
-        `${hhmmBR(e.quando)} — ${e.classificacao ?? ''}: ${e.relato}`
-        + (e.por ? ` (registrado por ${e.por})` : '')),
-      procedencia: 'episódios registrados durante o turno; o relato não se altera.',
+        `${hhmmBR(e.quando)}${e.classificacao ? `, ${e.classificacao}` : ''}: ${e.relato}`
+        + (e.por ? ` (registro de ${e.por})` : '')),
+      procedencia: 'Relatos registrados pela equipe ao longo do turno, na redação original.',
     });
   }
 
@@ -57,21 +57,21 @@ export function folhaDaAta(
     corpo.push({
       titulo: 'Passagens de plantão',
       tabela: {
-        cabecalho: ['Quem', 'Função', 'Assinatura'],
+        cabecalho: ['Profissional', 'Função', 'Assinatura'],
         linhas: a.passagens!.map((p) => [
           p.quem, p.cargo,
           p.assinadaEm ? `assinada às ${hhmmBR(p.assinadaEm)}` : 'sem assinatura']),
       },
-      procedencia: 'cada pessoa assina a própria passagem; o sistema não assina por ninguém.',
+      procedencia: 'Cada profissional assina a própria passagem de plantão.',
     });
   }
 
   if (a.pendencias) {
-    corpo.push({ titulo: 'Pendências registradas no fechamento', paragrafos: [a.pendencias] });
+    corpo.push({ titulo: 'Pendências para o próximo turno', paragrafos: [a.pendencias] });
   }
 
   return {
-    titulo: `ATA do turno — ${diaBR(a.data)}`,
+    titulo: `ATA do turno de ${diaBR(a.data)}`,
     subtitulo: `${casa} · ${a.turno}`,
     identificacao: [
       { rotulo: 'Unidade', valor: casa },
@@ -86,7 +86,7 @@ export function folhaDaAta(
     rascunho: a.status !== 'fechada',
     geradoPor: autor.nome,
     cargo: autor.cargo,
-    ressalva: 'Cópia da ATA como ela está registrada no sistema, na data desta emissão. '
-      + 'Correção não se faz nesta folha: faz-se no sistema, que guarda o que constava antes.',
+    ressalva: 'Cópia da ATA conforme registrada na data da emissão. Correções e complementos '
+      + 'devem ser feitos no registro eletrônico, onde fica preservada a redação anterior.',
   };
 }

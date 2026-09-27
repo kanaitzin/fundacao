@@ -305,7 +305,7 @@ export class DocumentosService {
       saida.push(new Paragraph({
         spacing: { after: 200 },
         children: [new TextRun({ text: medida ? im.legenda
-          : `${im.legenda} — o arquivo não é imagem (PDF ou outro formato): está guardado no sistema.`,
+          : `${im.legenda}. Documento em PDF ou outro formato, disponível no registro eletrônico.`,
           size: 18, italics: true })],
       }));
     }
@@ -318,7 +318,7 @@ export class DocumentosService {
         shading: { fill: 'F7F7F7' },
         border: { left: { style: BorderStyle.SINGLE, size: 12, color: 'BFBFBF', space: 8 } },
         children: [new TextRun({
-          text: `A preencher: ${s.aPreencher}. Escreva aqui antes de imprimir ou enviar.`,
+          text: `A preencher: ${s.aPreencher}.`,
           italics: true, size: 20, color: '808080',
         })],
       }));

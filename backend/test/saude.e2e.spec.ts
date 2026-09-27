@@ -518,7 +518,7 @@ describe('Fase 4 — Medicamentos e Enfermagem', () => {
     const r = await request(http).post(`/api/v1/nursing/summary/${sofia}`)
       .set(auth(tokens.educador)).send({ finalidade: 'consulta', incluirUltimaEvolucao: true });
     expect(r.status).toBe(201);
-    expect(r.body.classificacao).toBe('CONFIDENCIAL — USO EM SAÚDE');
+    expect(r.body.classificacao).toBe('Confidencial. Uso restrito ao atendimento de saúde.');
 
     // Contém o que serve ao atendimento
     expect(r.body.identificacao.nome).toBe('Sofia');

@@ -486,7 +486,7 @@ export class ImpactoService {
         quando: m.quando, descricao: m.descricao, instituicao: m.instituicao,
       })),
       { nome: user.fullName, cargo: cargoNoDocumento(user.role) },
-      houseId ? `${p.casas[0].codigo} — ${p.casas[0].nome}` : undefined,
+      houseId ? `${p.casas[0].codigo} · ${p.casas[0].nome}` : undefined,
     );
   }
 

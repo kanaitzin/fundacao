@@ -198,7 +198,7 @@ function corpoDoDocumento(d: DocumentoWord): string {
   const partes: string[] = [];
 
   if (d.rascunho) {
-    partes.push(par('RASCUNHO — documento sem aprovação. Não deve ser entregue.', {
+    partes.push(par('RASCUNHO. Documento ainda não aprovado, não deve ser entregue.', {
       alinhamento: 'center', negrito: true, cor: 'B45309', espacoDepois: 200 }));
   }
 
@@ -231,7 +231,7 @@ function corpoDoDocumento(d: DocumentoWord): string {
     if (s.aPreencher) {
       // O campo que só uma pessoa pode escrever sai VAZIO e marcado. Um
       // documento que chega preenchido sozinho é decisão automática.
-      partes.push(par(`[a preencher — ${s.aPreencher}]`, {
+      partes.push(par(`[a preencher: ${s.aPreencher}]`, {
         italico: true, cor: '5B6B7B', alinhamento: 'left', espacoDepois: 60 }));
       partes.push(par('____________________________________________________________',
                       { alinhamento: 'left', cor: '9AA7B4', espacoDepois: 60 }));
@@ -321,7 +321,7 @@ function cabecalho(temImagem: boolean): string {
     + `<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:after="0"/></w:pPr>${imagem}</w:p>`
     + linha('FUNDAÇÃO O PÃO DOS POBRES DE SANTO ANTÔNIO', {
         negrito: true, tamanho: MENOR, espacoDepois: 0 })
-    + linha('Programa de Acolhimento Institucional · Porto Alegre — RS', {
+    + linha('Programa de Acolhimento Institucional · Porto Alegre, RS', {
         tamanho: 18, cor: '5B6B7B', espacoDepois: 120 })
     + '</w:hdr>';
 }

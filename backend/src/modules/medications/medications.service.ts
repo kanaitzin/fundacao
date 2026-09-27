@@ -1173,7 +1173,7 @@ export class MedicationsService {
       if (!e?.pode) return null;
       const { rows: [h] } = await c.query(
         `SELECT app_house_label($1) AS code, app_house_name($1) AS name`, [houseId]);
-      return [h?.code, h?.name].filter(Boolean).join(' — ');
+      return [h?.code, h?.name].filter(Boolean).join(' · ');
     });
     /*
      * Casa sem rótulo é casa fora do alcance. Sem esta recusa, a grade de
@@ -1478,21 +1478,25 @@ export class MedicationsService {
         { rotulo: 'Doses recusadas', valor: String(m.doses.recusadas) },
         { rotulo: 'Doses não administradas', valor: String(m.doses.naoAdministradas) },
         { rotulo: 'Itens no armário hoje', valor: String(m.armario.itens) },
-        { rotulo: 'Itens com saldo negativo (conferir)', valor: String(m.armario.negativos) },
-        { rotulo: 'Vencidos / vencendo em 30 dias', valor: `${m.armario.vencidos} / ${m.armario.vencendo}` },
-        { rotulo: 'Notas de compra no período', valor: `${m.compras.notas} — ${reais(m.compras.totalCentavos)}` },
+        { rotulo: 'Itens a conferir (saldo negativo)', valor: String(m.armario.negativos) },
+        { rotulo: 'Itens vencidos', valor: String(m.armario.vencidos) },
+        { rotulo: 'Itens com vencimento em até 30 dias', valor: String(m.armario.vencendo) },
+        { rotulo: 'Notas de compra no período', valor: `${m.compras.notas}, total de ${reais(m.compras.totalCentavos)}` },
       ],
       secoes: [{
-        titulo: 'Movimento por remédio, em ordem alfabética',
+        titulo: 'Movimentação por medicamento',
         tabela: {
-          cabecalho: ['Remédio', 'Entrada', 'Consumo', 'Descarte', 'Perda', 'Devolução', 'Saiu com o acolhido'],
+          cabecalho: ['Medicamento', 'Entrada', 'Administrado', 'Descarte', 'Perda', 'Devolução', 'Levado pelo acolhido'],
           linhas: m.porRemedio.map((r) => [r.remedio, String(r.entrada), String(r.consumo), String(r.descarte),
             String(r.perda), String(r.devolucao), String(r.saidaComAcolhido)]),
         },
-        procedencia: 'Movimentos do armário registrados no sistema, com autor em cada linha.',
+        procedencia: 'Medicamentos em ordem alfabética. Movimentação registrada pela equipe, com '
+          + 'identificação de quem fez cada lançamento.',
       }],
       geradoPor: user.fullName, cargo: cargoNoDocumento(user.role), assinatura: true,
-      ressalva: m.aviso,
+      ressalva: 'Números referentes à unidade no período, sem identificação de acolhido ou de '
+        + 'profissional. Itens com saldo negativo indicam medicação administrada sem entrada '
+        + 'correspondente e devem ser conferidos no armário.',
     };
     return this.documentos.exportar(user, folha, {
       entidade: 'medication_stock_report', houseId, finalidade: input.finalidade ?? '',
@@ -1523,7 +1527,7 @@ export class MedicationsService {
       if (!a?.out_key) continue;
       const bytes = /^image\/(png|jpeg)$/.test(a.out_mime ?? '') ? await this.arquivos.ler(a.out_key) : null;
       imagens.push({
-        legenda: `Nota ${l.nota ?? 'sem número'} — ${l.fornecedor ?? 'fornecedor não informado'}, ${diaBR(String(l.em).slice(0, 10))}`,
+        legenda: `Nota ${l.nota ?? 'sem número'}, ${l.fornecedor ?? 'fornecedor não informado'}, ${diaBR(String(l.em).slice(0, 10))}`,
         foto: bytes ? { tipo: a.out_mime, dados: new Uint8Array(bytes) } : null,
       });
     }
@@ -1534,30 +1538,30 @@ export class MedicationsService {
         { rotulo: 'Período', valor: `${diaBR(de)} a ${diaBR(ate)}` },
         { rotulo: 'Notas', valor: String(d.linhas.length) },
         { rotulo: 'Gasto no período', valor: reais(d.gastoCentavos) },
-        ...(d.semAnexo ? [{ rotulo: 'Notas ainda sem o papel', valor: String(d.semAnexo) }] : []),
+        ...(d.semAnexo ? [{ rotulo: 'Notas sem documento anexado', valor: String(d.semAnexo) }] : []),
       ],
       secoes: [
         {
-          titulo: 'As notas',
+          titulo: 'Notas fiscais',
           tabela: {
-            cabecalho: ['Data', 'Fornecedor', 'CNPJ', 'Nota', 'Total', 'Lançou'],
+            cabecalho: ['Data', 'Fornecedor', 'CNPJ', 'Número', 'Total', 'Lançada por'],
             linhas: d.linhas.map((l) => [diaBR(String(l.em).slice(0, 10)), l.fornecedor ?? '—', l.cnpj ?? '—',
               l.nota ?? '—', l.totalCentavos != null ? reais(l.totalCentavos) : '—', l.compradoPor ?? '—']),
           },
         },
         {
-          titulo: 'Os itens de cada nota',
+          titulo: 'Itens das notas',
           tabela: {
-            cabecalho: ['Nota', 'Remédio', 'Qtd.', 'Valor unit.', 'Lote', 'Validade'],
+            cabecalho: ['Nota', 'Medicamento', 'Qtd.', 'Valor unit.', 'Lote', 'Validade'],
             linhas: d.linhas.flatMap((l) => l.itensDaNota.map((i: any) => [l.nota ?? '—', i.medicamento,
               `${i.quantidade} ${i.unidade}`, i.valorUnitarioCentavos != null ? reais(i.valorUnitarioCentavos) : '—',
               i.lote ?? '—', i.validade ? diaBR(i.validade) : '—'])),
           },
         },
-        ...(imagens.length ? [{ titulo: 'As notas digitalizadas', imagens }] : []),
+        ...(imagens.length ? [{ titulo: 'Notas digitalizadas', imagens }] : []),
       ],
       geradoPor: user.fullName, cargo: cargoNoDocumento(user.role), assinatura: true,
-      ressalva: 'A soma é da CASA e do período — nunca por quem comprou.',
+      ressalva: 'Valores referentes às compras da unidade no período.',
     };
     return this.documentos.exportar(user, folha, {
       entidade: 'medication_purchase_report', houseId, finalidade: input.finalidade ?? '',
@@ -1579,7 +1583,7 @@ export class MedicationsService {
       if (!e?.pode) return null;
       const { rows: [h] } = await c.query(
         `SELECT app_house_label($1) AS code, app_house_name($1) AS name`, [houseId]);
-      return [h?.code, h?.name].filter(Boolean).join(' — ');
+      return [h?.code, h?.name].filter(Boolean).join(' · ');
     });
     if (!casa) throw new NotFoundException('Unidade não encontrada — ou fora do seu alcance.');
     return casa;
@@ -1760,15 +1764,15 @@ export class MedicationsService {
     const soEnfermagem = itens.filter((i) => i.soEnfermagem);
 
     return {
-      titulo: 'Medicamentos para o período fora da casa',
+      titulo: 'Medicação para o período em convivência familiar',
       subtitulo: dados.casa,
       identificacao: [
         { rotulo: 'Acolhido', valor: dados.quem },
-        { rotulo: 'Com', valor: dados.com_quem },
+        { rotulo: 'Responsável no período', valor: dados.com_quem },
         { rotulo: 'Período', valor: `${diaBR(dados.de)} a ${diaBR(dados.ate)}` },
       ],
       secoes: [{
-        titulo: 'O que vai junto',
+        titulo: 'Medicamentos entregues',
         tabela: {
           cabecalho: ['Medicamento', 'Dose', 'Horários', 'Quantidade', 'Orientação'],
           linhas: itens.map((i) => [
@@ -1776,23 +1780,20 @@ export class MedicationsService {
             String(i.doses), i.orientacoes ?? '—',
           ]),
         },
-        procedencia: 'Esquemas ativos da criança, com os horários da bula registrados '
-          + 'no sistema.',
+        procedencia: 'Prescrições em uso, com os horários definidos pela Enfermagem.',
       }],
       geradoPor: user.fullName,
       cargo: cargoNoDocumento(user.role),
       assinatura: true,
       ressalva: itens.length === 0
-        ? 'Esta criança não tem medicamento em uso registrado no sistema para o período. '
-          + 'A folha vazia significa que não há esquema ativo — não que a conferência foi '
-          + 'dispensada.'
-        : 'A contagem inclui a dose do dia do retorno, se houver: mandar um comprimido a '
-          + 'mais é barato, faltar um não é. '
+        ? 'Não há medicação em uso prescrita para o acolhido no período.'
+        : 'A quantidade inclui as doses do dia do retorno. '
           + (soEnfermagem.length
-              ? 'ATENÇÃO: há medicamento que, na casa, só a Enfermagem administra — '
-                + 'converse com ela antes da saída. '
+              ? 'Há medicamento de administração exclusiva da Enfermagem; a Enfermagem deve '
+                + 'orientar o responsável antes da saída. '
               : '')
-          + 'Em caso de dúvida, procure a casa antes de dar qualquer dose.',
+          + 'Em caso de dúvida sobre qualquer dose, o responsável deve entrar em contato com a '
+          + 'unidade antes de administrá-la.',
     };
   }
 

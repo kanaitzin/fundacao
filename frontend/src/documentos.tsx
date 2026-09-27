@@ -145,12 +145,12 @@ export function FolhaDocumento({ doc, onFechar, onBaixar, exportar }: {
         <div className="papel" tabIndex={0} role="region" aria-label={`Folha: ${doc.titulo}`}>
           <div className="papel-timbre">
             <b>FUNDAÇÃO O PÃO DOS POBRES DE SANTO ANTÔNIO</b>
-            <span>Programa de Acolhimento Institucional · Porto Alegre — RS</span>
+            <span>Programa de Acolhimento Institucional · Porto Alegre, RS</span>
           </div>
 
           {doc.rascunho && (
             <p className="papel-rascunho">
-              RASCUNHO — documento sem aprovação. Não deve ser entregue.
+              RASCUNHO. Documento ainda não aprovado, não deve ser entregue.
             </p>
           )}
 
@@ -202,7 +202,7 @@ export function FolhaDocumento({ doc, onFechar, onBaixar, exportar }: {
               )}
               {s.aPreencher && (
                 <>
-                  <p className="papel-preencher">[a preencher — {s.aPreencher}]</p>
+                  <p className="papel-preencher">[a preencher: {s.aPreencher}]</p>
                   <div className="papel-linha" /><div className="papel-linha" />
                 </>
               )}

@@ -237,7 +237,7 @@ for (const bruto of blocos) {
 
 const doc = new Document({
   creator: 'Rede Acolher',
-  title: 'Roteiro de retorno — Casa 03',
+  title: 'Roteiro de observação do uso · Casa 03',
   styles: { default: { document: { run: { font: 'Calibri', size: 20 } } } },
   sections: [{
     properties: { page: { margin: { top: 900, bottom: 900, left: 1000, right: 1000 } } },
@@ -247,7 +247,7 @@ const doc = new Document({
           alignment: AlignmentType.RIGHT,
           border: { bottom: { style: BorderStyle.SINGLE, size: 4, color: 'BFBFBF', space: 4 } },
           children: [new TextRun({
-            text: 'REDE ACOLHER · roteiro de retorno · Casa 03 (piloto)',
+            text: 'Rede Acolher · roteiro de observação do uso · Casa 03',
             size: 16, color: CINZA,
           })],
         })],

@@ -256,7 +256,7 @@ describe('A escala de plantão', () => {
     expect(r.body.secoes[0].tabela.cabecalho).toHaveLength(3);
 
     const corpo = JSON.stringify(r.body.secoes);
-    expect(corpo).toContain('— sem escala —');
+    expect(corpo).toContain('sem profissional escalado');
     // Nenhuma contagem por pessoa: somar plantão por nome é medição de gente.
     expect(corpo).not.toMatch(/total de plantões|plantões no mês/i);
   });
