@@ -194,7 +194,7 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 166 | **a simulação de um ciclo completo** na Casa 03 (dois dias e hoje, conferindo os relatórios contra os fatos); achou que **não havia como cadastrar alergia nem restrição alimentar**, que a política dessas tabelas **não conferia a casa**, e que **a ATA em Word não trazia as linhas da equipe**; e o **relatório final** do pedido de 25/09 |
 | 167 | **dois anos de casa** no `ensaio-carga.ts 24`, agora com portão, armário, notas, cozinha, escala e ATA: **as métricas do remédio num ano levavam 15 s** porque 119 políticas perguntavam o alcance LINHA POR LINHA. A 1624 troca todas pelo conjunto (`app_casas_no_alcance`, `app_pessoas_no_alcance`), com equivalência cobrada pessoa a pessoa e cargo a cargo; ATA anterior (605 ms), auditoria da criança (377 ms), armário e painel da Enfermagem consertados. Nenhuma rota acima de 300 ms |
 
-**Medido no fim da 167:** 167 migrações, 124 tabelas, 116 suítes, @@TESTES@@ testes, verdes nas
+**Medido no fim da 167:** 167 migrações, 124 tabelas, 116 suítes, 1107 testes, verdes nas
 DUAS condições de relógio; os sete ensaios de navegador verdes, com a portaria e o
 portão, o armário, a cozinha, os temas e a foto no percurso do `ensaio:uso`; **432 telas (144 × três
 temas) sem violação de WCAG 2.1 AA**; nenhuma
