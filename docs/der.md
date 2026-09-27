@@ -953,6 +953,15 @@ encaminhamento, foto de documento, outro; só onde há anexo), `sha256` e
 `size_bytes`. O mesmo arquivo duas vezes na mesma internação é recusado
 (`uq_anexo_da_internacao`), conferido antes de gravar no disco.
 
+### `health_condition` e `food_restriction` — a porta que faltava (fase 166, people/1623)
+As duas tabelas existiam desde a 0020 e só a semente de dados as escrevia.
+Ganharam `ended_at`, `ended_by` e `end_reason`: encerrar é marcar, com quem e
+por quê, e a linha continua no banco. Quem escreve é
+`SaudeDoPerfilService` (`POST /people/:id/health-conditions`,
+`POST /people/:id/food-restrictions` e os dois `.../end`), para Enfermagem,
+equipe técnica, coordenação e gestão; as políticas `hc_insert`/`fr_insert`
+passaram a conferir também `app_person_in_scope` (antes só o cargo).
+
 ### `house_shift_hours`
 O horário dos turnos de CADA CASA (fase 159, identity/1580). A casa diz o
 **diurno**; o noturno é o resto do dia, e é isso que impede buraco e

@@ -1,3 +1,4 @@
+import { SaudeDoPerfilService } from './saude-do-perfil.service';
 import { RegistroDaRota } from '../../kernel/common/registro-da-rota.guard';
 import {
   Body, Controller, Get, Inject, Param, ParseUUIDPipe, Patch, Post, Query, UseGuards,
@@ -36,6 +37,7 @@ export class PeopleController {
     @Inject(CredentialsService) private readonly credentials: CredentialsService,
     @Inject(DossieService) private readonly dossie: DossieService,
     @Inject(ContatosService) private readonly contatos: ContatosService,
+    @Inject(SaudeDoPerfilService) private readonly saude: SaudeDoPerfilService,
   ) {}
 
   /** Visão da casa — “os 20”. */
@@ -450,6 +452,31 @@ export class PeopleController {
   novoContato(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
               @Body() body: any) {
     return this.contatos.criar(user, id, body ?? {});
+  }
+
+  /* ALERGIA, CONDIÇÃO E RESTRIÇÃO ALIMENTAR (fase 166): registrar e encerrar. */
+  @Post(':id/health-conditions')
+  novaCondicao(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
+               @Body() body: any) {
+    return this.saude.registrarCondicao(user, id, body ?? {});
+  }
+
+  @Post('health-conditions/:conditionId/end')
+  encerrarCondicao(@CurrentUser() user: AuthenticatedUser,
+                   @Param('conditionId', ParseUUIDPipe) conditionId: string, @Body() body: any) {
+    return this.saude.encerrar(user, 'condicao', conditionId, body?.motivo);
+  }
+
+  @Post(':id/food-restrictions')
+  novaRestricao(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
+                @Body() body: any) {
+    return this.saude.registrarRestricao(user, id, body ?? {});
+  }
+
+  @Post('food-restrictions/:restrictionId/end')
+  encerrarRestricao(@CurrentUser() user: AuthenticatedUser,
+                    @Param('restrictionId', ParseUUIDPipe) restrictionId: string, @Body() body: any) {
+    return this.saude.encerrar(user, 'restricao', restrictionId, body?.motivo);
   }
 
   @Post('contacts/:contactId/end')

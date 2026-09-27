@@ -1665,6 +1665,14 @@ export class ShiftsService {
         passagens: p.passagens.map((h: any) => ({
           quem: h.quem, cargo: cargoNoDocumento(h.cargo), assinadaEm: h.assinadaEm,
         })),
+        linhas: (p.linhas?.notas ?? []).map((n: any) => ({
+          quando: n.quando, texto: n.texto, quem: n.quem,
+          cargo: n.cargo ? cargoNoDocumento(n.cargo) : null, restrita: !!n.restrita,
+        })),
+        restritas: p.linhas?.restritas ?? 0,
+        adendos: p.ata?.id ? (await this.addenda(user, p.ata.id)).map((d) => ({
+          quando: d.quando, tipo: d.tipo, motivo: d.motivo, quem: d.autor,
+        })) : [],
       },
       SECOES_ATA.map((s) => ({ chave: s.chave, titulo: s.titulo })),
       casa,

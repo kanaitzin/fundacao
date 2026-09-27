@@ -131,6 +131,9 @@ interface Kid {
   id: string; nome: string; civil: string; idade: number; nascimento: string;
   alerta?: { tipo: string; descricao: string; gravidade: string };
   restricao?: { restriction: string; substitution: string; guidance: string };
+  /** O que a equipe registrou nesta sessão (fase 166). */
+  condicoesExtras?: any[];
+  restricoesExtras?: any[];
   cuidado?: string; serie: string; turno: string;
   semCpf?: boolean; provisorio?: string;
   judicial?: Record<string, string>;
@@ -7986,6 +7989,51 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       aviso: `${n} campo(s) atualizado(s). O que estava antes continua registrado, com o seu `
         + 'nome e o horário, e aparece no perfil para quem cuida da criança.' };
   }
+  /* ALERGIA, CONDIÇÃO E RESTRIÇÃO (fase 166), com as regras do servidor. */
+  if (seg[0] === 'people' && (seg[2] === 'health-conditions' || seg[2] === 'food-restrictions')
+      && seg.length === 3 && metodo === 'POST') {
+    if (!['enfermagem', 'equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403, 'Alergias, condições de saúde e restrições alimentares são registradas pela '
+        + 'Enfermagem, pela equipe técnica e pela coordenação.');
+    }
+    const k = kid(seg[1]);
+    if (!k) return new Recusa(404, 'Acolhido não encontrado, ou fora do seu alcance.');
+    if (seg[2] === 'health-conditions') {
+      if (!['alergia', 'intolerancia', 'condicao'].includes(String(b.tipo))) {
+        return new Recusa(400, 'Diga se é alergia, intolerância ou outra condição de saúde.');
+      }
+      const desc = String(b.descricao ?? '').trim();
+      if (desc.length < 3) return new Recusa(400, 'Escreva a que a criança é alérgica, ou qual é a condição.');
+      const rotulo = b.tipo === 'alergia' ? `Alergia a ${desc}` : b.tipo === 'intolerancia' ? `Intolerância a ${desc}` : desc;
+      k.condicoesExtras = [...(k.condicoesExtras ?? []), { id: uid(), kind: b.tipo, description: desc, rotulo,
+        severity: b.gravidade || null, essential_alert: !!b.alertaEssencial, source: null, review_on: null }];
+      return { ok: true, aviso: 'Registrado. Aparece no perfil e no resumo de saúde.' };
+    }
+    const rest = String(b.restricao ?? '').trim();
+    if (rest.length < 2) return new Recusa(400, 'Escreva o que a criança não pode comer.');
+    k.restricoesExtras = [...(k.restricoesExtras ?? []), { id: uid(), restriction: rest,
+      substitution: b.substituicao || null, guidance: b.orientacao || null, review_on: null }];
+    return { ok: true, aviso: 'Registrado. A restrição aparece na chamada do almoço e na folha da cozinha.' };
+  }
+  if (seg[0] === 'people' && (seg[1] === 'health-conditions' || seg[1] === 'food-restrictions')
+      && seg[3] === 'end' && metodo === 'POST') {
+    if (String(b.motivo ?? '').trim().length < 5) return new Recusa(400, 'Escreva por que isto deixou de valer.');
+    for (const k of todosKids()) {
+      if (seg[1] === 'health-conditions') {
+        if (seg[2] === `h1-${k.id}`) { k.alerta = undefined; return { ok: true, aviso: 'Encerrado. O registro continua no histórico, com o motivo.' }; }
+        const antes = (k.condicoesExtras ?? []).length;
+        k.condicoesExtras = (k.condicoesExtras ?? []).filter((c: any) => c.id !== seg[2]);
+        if (k.condicoesExtras.length < antes) return { ok: true, aviso: 'Encerrado. O registro continua no histórico, com o motivo.' };
+      } else {
+        if (seg[2] === `r1-${k.id}`) { k.restricao = undefined; return { ok: true, aviso: 'Encerrado. O registro continua no histórico, com o motivo.' }; }
+        const antes = (k.restricoesExtras ?? []).length;
+        k.restricoesExtras = (k.restricoesExtras ?? []).filter((c: any) => c.id !== seg[2]);
+        if (k.restricoesExtras.length < antes) return { ok: true, aviso: 'Encerrado. O registro continua no histórico, com o motivo.' };
+      }
+    }
+    return new Recusa(404, 'Registro não encontrado, ou já encerrado.');
+  }
+
   if (rota === '/nursing/hospitalizations/kinds') {
     return {
       tiposDeNota: TIPOS_DE_NOTA_INT,
@@ -8585,10 +8633,11 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       noAcervo: false,
       alertasEssenciais: k.alerta ? [{ tipo: k.alerta.tipo, descricao: k.alerta.descricao,
                                        gravidade: k.alerta.gravidade }] : [],
-      condicoesSaude: k.alerta ? [{ id: 'h1', kind: k.alerta.tipo, description: k.alerta.descricao,
+      condicoesSaude: [...(k.alerta ? [{ id: `h1-${k.id}`, kind: k.alerta.tipo, description: k.alerta.descricao,
         rotulo: k.alerta.descricao, severity: k.alerta.gravidade, essential_alert: true,
-        source: 'Relatório médico (fictício)', review_on: null }] : [],
-      restricoesAlimentares: k.restricao ? [{ id: 'r1', ...k.restricao, review_on: null }] : [],
+        source: 'Relatório médico (fictício)', review_on: null }] : []), ...(k.condicoesExtras ?? [])],
+      restricoesAlimentares: [...(k.restricao ? [{ id: `r1-${k.id}`, ...k.restricao, review_on: null }] : []),
+        ...(k.restricoesExtras ?? [])],
       cuidadosEssenciais: campoLiberado('cuidados_essenciais', eu.role)
         ? detalheDe(k).cuidadosEssenciais : null,
       escola: campoLiberado('escola', eu.role)
@@ -11251,6 +11300,12 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         passagens: (p.passagens ?? []).map((h: any) => ({
           quem: h.quem, cargo: cargoNoDocumento(h.cargo), assinadaEm: h.assinadaEm,
         })),
+        /* As linhas da equipe, como o servidor passa desde a fase 166. */
+        linhas: (p.linhas?.notas ?? []).map((n: any) => ({
+          quando: n.quando, texto: n.texto, quem: n.quem,
+          cargo: n.cargo ? cargoNoDocumento(n.cargo) : null, restrita: !!n.restrita,
+        })),
+        restritas: p.linhas?.restritas ?? 0,
       },
       SECOES_ATA.map((x) => ({ chave: x.chave, titulo: x.titulo })),
       casaDaFolha, autorDaFolha());
@@ -11492,10 +11547,9 @@ function folhaDaCozinha(qual: string, eu: { fullName: string; role: string }) {
   const hoje = diaBR(new Date().toISOString().slice(0, 10));
 
   if (qual === 'restricoes') {
-    const linhas = todosKids().filter((k) => k.restricao).map((k) => [
-      k.nome, k.restricao!.restriction,
-      k.restricao!.substitution ?? '—', k.restricao!.guidance ?? '—',
-    ]);
+    const linhas = todosKids().flatMap((k) => [
+      ...(k.restricao ? [k.restricao] : []), ...(k.restricoesExtras ?? []),
+    ].map((r: any) => [k.nome, r.restriction, r.substitution ?? '—', r.guidance ?? '—']));
     return {
       titulo: 'Restrições alimentares', subtitulo: casa,
       identificacao: [

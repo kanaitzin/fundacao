@@ -695,6 +695,9 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
   const [erroJudicial, setErroJudicial] = useState('');
   const [semJudicial, setSemJudicial] = useState(false);
   const [evolucao, setEvolucao] = useState(false);
+  /* Alergia, condição e restrição (fase 166): registrar e encerrar. */
+  const [registrandoSaude, setRegistrandoSaude] = useState<'condicao' | 'restricao' | null>(null);
+  const [encerrandoSaude, setEncerrandoSaude] = useState<{ qual: 'condicao' | 'restricao'; id: string; nome: string } | null>(null);
   const [aviso, setAviso] = useState('');
   const [saindo, setSaindo] = useState(false);
   /** O dossiê é tela própria: a pasta da criança não cabe dentro do perfil. */
@@ -1103,15 +1106,49 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
             </p>
           </>
         )}
+        {ESCREVE_SAUDE.includes(papel) && (
+          <div className="acoes">
+            <button className="btn sm sec" onClick={() => setRegistrandoSaude('condicao')}>
+              <Icone nome="alerta" /> Registrar alergia ou condição
+            </button>
+            <button className="btn sm sec" onClick={() => setRegistrandoSaude('restricao')}>
+              <Icone nome="refeicao" /> Registrar restrição alimentar
+            </button>
+          </div>
+        )}
         {p.condicoesSaude.length > 0 && (
           <ul className="lista">
             {p.condicoesSaude.map((c) => (
-              <li key={c.id}>
-                <b className="ff">{c.rotulo ?? c.description}</b>
-                <div className="mutetxt">
-                  {c.kind}{c.severity ? ` · ${c.severity}` : ''}
-                  {c.source ? ` · ${c.source}` : ''}
-                </div>
+              <li key={c.id} className="row">
+                <span className="grow">
+                  <b className="ff">{c.rotulo ?? c.description}</b>
+                  <span className="mutetxt linhadois">
+                    {c.kind}{c.severity ? ` · ${c.severity}` : ''}
+                    {c.source ? ` · ${c.source}` : ''}
+                  </span>
+                </span>
+                {ESCREVE_SAUDE.includes(papel) && (
+                  <button className="btn sm ghost" aria-label={`Encerrar ${c.rotulo ?? c.description}`}
+                          onClick={() => setEncerrandoSaude({ qual: 'condicao', id: c.id, nome: c.rotulo ?? c.description })}>
+                    Encerrar
+                  </button>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+        {ESCREVE_SAUDE.includes(papel) && p.restricoesAlimentares.length > 0 && (
+          <ul className="lista">
+            {p.restricoesAlimentares.map((r) => (
+              <li key={r.id} className="row">
+                <span className="grow">
+                  <b className="ff">Não servir: {r.restriction}</b>
+                  {r.substitution && <span className="mutetxt linhadois">No lugar: {r.substitution}</span>}
+                </span>
+                <button className="btn sm ghost" aria-label={`Encerrar a restrição ${r.restriction}`}
+                        onClick={() => setEncerrandoSaude({ qual: 'restricao', id: r.id, nome: r.restriction })}>
+                  Encerrar
+                </button>
               </li>
             ))}
           </ul>
@@ -1430,6 +1467,32 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
             } catch (e) {
               setErro(e instanceof Error ? e.message : 'Não foi possível corrigir o cadastro.');
             }
+          }} />
+      )}
+
+      {registrandoSaude && (
+        <FolhaRegistroDeSaude qual={registrandoSaude} onFechar={() => setRegistrandoSaude(null)}
+          onSalvar={async (dados) => {
+            const r = await api<{ aviso?: string }>(
+              registrandoSaude === 'condicao'
+                ? `/people/${personId}/health-conditions`
+                : `/people/${personId}/food-restrictions`,
+              { method: 'POST', body: JSON.stringify(dados) });
+            setRegistrandoSaude(null); setAviso(r?.aviso ?? 'Registrado.');
+            await recarregar();
+          }} />
+      )}
+
+      {encerrandoSaude && (
+        <FolhaEncerrarSaude nome={encerrandoSaude.nome} onFechar={() => setEncerrandoSaude(null)}
+          onEncerrar={async (motivo) => {
+            const r = await api<{ aviso?: string }>(
+              encerrandoSaude.qual === 'condicao'
+                ? `/people/health-conditions/${encerrandoSaude.id}/end`
+                : `/people/food-restrictions/${encerrandoSaude.id}/end`,
+              { method: 'POST', body: JSON.stringify({ motivo }) });
+            setEncerrandoSaude(null); setAviso(r?.aviso ?? 'Encerrado.');
+            await recarregar();
           }} />
       )}
 
@@ -4587,6 +4650,109 @@ function FolhaConceito({ conceitos, bimestres, onFechar, onSalvar }: {
             passa a ser lido como característica da criança.
           </p>
         )}
+      </div>
+    </div>
+  );
+}
+
+/** Quem registra alergia, condição e restrição (fase 166): o mesmo que o banco. */
+const ESCREVE_SAUDE = ['enfermagem', 'equipe_tecnica', 'coordenador', 'gestor_geral'];
+
+function FolhaRegistroDeSaude({ qual, onFechar, onSalvar }: {
+  qual: 'condicao' | 'restricao'; onFechar: () => void;
+  onSalvar: (d: Record<string, unknown>) => Promise<void>;
+}) {
+  const [d, setD] = useState({ tipo: 'alergia', descricao: '', gravidade: '', alertaEssencial: false,
+    restricao: '', substituicao: '', orientacao: '' });
+  const [erro, setErro] = useState('');
+  const [ocupado, setOcupado] = useState(false);
+  const pronto = qual === 'condicao' ? d.descricao.trim().length >= 3 : d.restricao.trim().length >= 2;
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-saude-reg"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet modal">
+        <h3 id="t-saude-reg">{qual === 'condicao' ? 'Alergia ou condição de saúde' : 'Restrição alimentar'}</h3>
+        {qual === 'condicao' ? (
+          <>
+            <label className="f" htmlFor="sr-tipo">O que é</label>
+            <select id="sr-tipo" value={d.tipo} onChange={(e) => setD({ ...d, tipo: e.target.value })}>
+              <option value="alergia">Alergia</option>
+              <option value="intolerancia">Intolerância</option>
+              <option value="condicao">Outra condição de saúde</option>
+            </select>
+            <label className="f" htmlFor="sr-desc">{d.tipo === 'condicao' ? 'Qual condição' : 'A quê'}</label>
+            <input id="sr-desc" className="field" value={d.descricao}
+                   onChange={(e) => setD({ ...d, descricao: e.target.value })}
+                   placeholder={d.tipo === 'condicao' ? 'Ex.: asma' : 'Ex.: dipirona'} />
+            <label className="f" htmlFor="sr-grav">Gravidade</label>
+            <select id="sr-grav" value={d.gravidade} onChange={(e) => setD({ ...d, gravidade: e.target.value })}>
+              <option value="">Não informada</option>
+              <option value="leve">Leve</option>
+              <option value="moderada">Moderada</option>
+              <option value="grave">Grave</option>
+            </select>
+            <label className="f">
+              <input id="sr-alerta" type="checkbox" checked={d.alertaEssencial}
+                     onChange={(e) => setD({ ...d, alertaEssencial: e.target.checked })} />
+              {' '}Alerta essencial <small>(aparece no alto do perfil, na chamada e no resumo de saúde)</small>
+            </label>
+          </>
+        ) : (
+          <>
+            <label className="f" htmlFor="sr-rest">O que não pode ser servido</label>
+            <input id="sr-rest" className="field" value={d.restricao}
+                   onChange={(e) => setD({ ...d, restricao: e.target.value })} placeholder="Ex.: leite e derivados" />
+            <label className="f" htmlFor="sr-subs">O que servir no lugar</label>
+            <input id="sr-subs" className="field" value={d.substituicao}
+                   onChange={(e) => setD({ ...d, substituicao: e.target.value })} placeholder="Ex.: bebida vegetal" />
+            <label className="f" htmlFor="sr-ori">Orientação para a cozinha</label>
+            <input id="sr-ori" className="field" value={d.orientacao}
+                   onChange={(e) => setD({ ...d, orientacao: e.target.value })} />
+            <p className="mutetxt">A folha da cozinha mostra a restrição e a substituição, e nunca o motivo clínico.</p>
+          </>
+        )}
+        {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+        <div className="row rodape">
+          <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
+          <button className="btn grow" disabled={!pronto || ocupado} onClick={async () => {
+            setErro(''); setOcupado(true);
+            try {
+              await onSalvar(qual === 'condicao'
+                ? { tipo: d.tipo, descricao: d.descricao.trim(), gravidade: d.gravidade || undefined,
+                    alertaEssencial: d.alertaEssencial }
+                : { restricao: d.restricao.trim(), substituicao: d.substituicao.trim() || undefined,
+                    orientacao: d.orientacao.trim() || undefined });
+            } catch (e) { setErro(e instanceof Error ? e.message : 'Não foi possível registrar.'); }
+            finally { setOcupado(false); }
+          }}>Registrar</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FolhaEncerrarSaude({ nome, onFechar, onEncerrar }: {
+  nome: string; onFechar: () => void; onEncerrar: (motivo: string) => Promise<void>;
+}) {
+  const [motivo, setMotivo] = useState('');
+  const [erro, setErro] = useState('');
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-saude-fim"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet modal">
+        <h3 id="t-saude-fim">Encerrar: {nome}</h3>
+        <p className="mutetxt">O registro sai do perfil e continua no histórico, com o motivo e o seu nome.</p>
+        <label className="f" htmlFor="sf-motivo">Por que deixou de valer</label>
+        <input id="sf-motivo" className="field" value={motivo} onChange={(e) => setMotivo(e.target.value)}
+               placeholder="Ex.: exame novo descartou a alergia" />
+        {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+        <div className="row rodape">
+          <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
+          <button className="btn grow" disabled={motivo.trim().length < 5} onClick={async () => {
+            try { await onEncerrar(motivo.trim()); }
+            catch (e) { setErro(e instanceof Error ? e.message : 'Não foi possível encerrar.'); }
+          }}>Encerrar</button>
+        </div>
       </div>
     </div>
   );

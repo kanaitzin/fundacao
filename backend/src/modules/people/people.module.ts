@@ -1,3 +1,4 @@
+import { SaudeDoPerfilService } from './saude-do-perfil.service';
 import { Module } from '@nestjs/common';
 import { IdentityModule } from '../identity';
 import { PeopleController, TransfersController, ReportsController } from './people.controller';
@@ -21,7 +22,7 @@ import { CredentialsService } from './credentials.service';
   providers: [PeopleService, ProfileService,
     CozinhaService, VisitasService, PortariaService, CamposDoPerfilService, AniversariosService,
     ContatosService, BenefitsService, TransfersService, AdmissionService, CredentialsService,
-    DossieService],
+    DossieService, SaudeDoPerfilService],
   /* `AniversariosService` sai pela porta desde a fase 103: é o relógio que
      dispara o aviso de aniversário, e nenhum módulo alcança arquivo interno
      de outro. */

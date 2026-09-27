@@ -18,8 +18,16 @@
 > depois das 21h em Porto Alegre semeava o dia seguinte — o dia de hoje nascia
 > sem dose nenhuma. **Nada no sistema; tudo no dado de partida.**
 
-- **165 fases.** 113 suítes e 1076 testes, verdes em duas condições de relógio —
+- **166 fases.** 115 suítes e 1100 testes, verdes em duas condições de relógio —
   antes e depois da virada do UTC, que em Porto Alegre é às 21h.
+- **O pedido de 25/09 está fechado** (fase 166). Uma simulação de dois dias e
+  do dia de hoje na Casa 03 conferiu os relatórios contra os fatos, e achou
+  três coisas: **não havia como cadastrar alergia nem restrição alimentar**
+  (agora há, no perfil, pela Enfermagem, técnica e coordenação), a regra dessas
+  tabelas não conferia a casa da criança, e **a ATA em Word não trazia o que a
+  equipe escreveu no turno** (agora traz, com nome e hora). O relatório final,
+  com a matriz de tudo o que foi pedido e do que ficou para depois, está em
+  `docs/historico/relatorio-final-da-auditoria-25-09.md`.
 - **A internação tem relatório completo em Word** (fase 165): capa, os dias em
   ordem, e os anexos dentro do documento, inclusive as páginas dos PDFs do
   hospital. O anexo agora se tira pela câmera do celular, pela galeria ou pelo

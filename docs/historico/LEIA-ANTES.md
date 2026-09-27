@@ -37,3 +37,11 @@ raciocínio longo que o documento único comprime em uma linha.
 
 Se você precisar de um deles, cite a data. A frase "107 telas em 02/09" continua
 verdadeira depois de a tela 108 nascer — o erro é lê-la como se fosse hoje.
+
+## Relatório final da auditoria de 25/09
+
+`relatorio-final-da-auditoria-25-09.md` é o fechamento do pedido de auditoria
+de 25/09 (fases 157 a 166): os achados por gravidade e a matriz de
+funcionalidades, como estavam em 27/09/2026. Ele é datado de propósito; o
+estado de hoje está no `REDE-ACOLHER.md`.
+

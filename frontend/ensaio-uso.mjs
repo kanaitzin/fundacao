@@ -2886,6 +2886,39 @@ cobrar('e baixa em Word, com finalidade', (await pg.getByRole('button', { name: 
 await fechar();
 cobrar('nenhuma exceção no rascunho e na internação', erros.length === 0, erros[0]);
 
+/*
+ * A ALERGIA E A RESTRIÇÃO TÊM PORTA (fase 166). A simulação do ciclo achou que
+ * não havia como cadastrar nenhuma das duas; a técnica registra e encerra no
+ * perfil, e o educador lê sem os botões.
+ */
+console.log('\n🥛 A alergia e a restrição alimentar no perfil (fase 166)');
+await trocar('equipe_tecnica');
+erros.length = 0;
+await aba('Acolhidos');
+await clicar(/Alice/);
+cobrar('a técnica tem como registrar restrição alimentar',
+  (await pg.getByRole('button', { name: /Registrar restrição alimentar/ }).count()) > 0);
+await pg.getByRole('button', { name: /Registrar restrição alimentar/ }).click();
+await pg.waitForTimeout(400);
+await pg.locator('#sr-rest').fill('Amendoim do ensaio');
+await pg.locator('#sr-subs').fill('Castanha de caju');
+await pg.locator('.overlay button', { hasText: /^Registrar$/ }).click();
+await pg.waitForTimeout(900);
+cobrar('a restrição registrada aparece no perfil', /Amendoim do ensaio/.test(await conteudo()));
+await pg.getByRole('button', { name: /Encerrar a restrição Amendoim do ensaio/ }).click();
+await pg.waitForTimeout(400);
+cobrar('encerrar pede o motivo antes', await pg.locator('.overlay button', { hasText: /^Encerrar$/ }).isDisabled());
+await pg.locator('#sf-motivo').fill('Registrada só para o ensaio.');
+await pg.locator('.overlay button', { hasText: /^Encerrar$/ }).click();
+await pg.waitForTimeout(900);
+cobrar('encerrada, sai do perfil', !/Amendoim do ensaio/.test(await conteudo()));
+await trocar('educador');
+await aba('Acolhidos');
+await clicar(/Alice/);
+cobrar('o educador não tem os botões de registrar',
+  (await pg.getByRole('button', { name: /Registrar alergia ou condição|Registrar restrição alimentar/ }).count()) === 0);
+cobrar('nenhuma exceção na alergia e na restrição', erros.length === 0, erros[0]);
+
 await navegador.close();
 console.log(achados.length
   ? `\n${achados.length} ACHADO(S):\n  ${achados.join('\n  ')}`

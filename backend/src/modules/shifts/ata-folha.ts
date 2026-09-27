@@ -20,7 +20,17 @@ export interface DadosDaAta {
   pendencias?: string | null;
   episodios?: Array<{ quando: string; classificacao?: string; relato: string; por?: string }>;
   passagens?: Array<{ quem: string; cargo: string; assinadaEm: string | null }>;
+  /** As linhas escritas pela equipe ao longo do turno (fase 166). */
+  linhas?: Array<{ quando: string; texto: string; quem: string | null; cargo: string | null; restrita: boolean }>;
+  /** Quantas observações restritas o turno tem, inclusive as que quem imprime não lê. */
+  restritas?: number;
+  /** Reaberturas, correções e complementos feitos depois do fechamento. */
+  adendos?: Array<{ quando: string; tipo: string; motivo: string | null; quem: string | null }>;
 }
+
+const TIPO_DO_ADENDO: Record<string, string> = {
+  reabertura: 'Reabertura', correcao: 'Correção', complemento_tardio: 'Complemento posterior',
+};
 
 export function folhaDaAta(
   a: DadosDaAta,
@@ -40,6 +50,35 @@ export function folhaDaAta(
       paragrafos: texto
         ? texto.split('\n').map((l) => l.trim()).filter(Boolean)
         : ['Sem registro para este item no turno.'],
+    });
+  }
+
+  /*
+   * AS LINHAS DA EQUIPE (fase 166). A folha levava o corpo por tópicos e as
+   * intercorrências, e deixava de fora o que cada profissional escreveu ao
+   * longo do turno, com nome e hora: exatamente o que a próxima equipe e a
+   * audiência leem. A observação restrita não vai ao papel, que circula: ela
+   * entra como contagem, e o conteúdo é consultado no registro eletrônico.
+   */
+  const abertas = [...(a.linhas ?? [])].filter((l) => !l.restrita)
+    .sort((x, y) => new Date(x.quando).getTime() - new Date(y.quando).getTime());
+  const restritas = a.restritas ?? (a.linhas ?? []).filter((l) => l.restrita).length;
+  if (abertas.length || restritas) {
+    corpo.push({
+      titulo: 'Registros da equipe no turno',
+      paragrafos: [
+        ...abertas.map((l) => {
+          const texto = l.texto.trim().replace(/[.!?]?$/, (m) => m || '.');
+          const autoria = l.quem ? ` ${l.quem}${l.cargo ? `, ${l.cargo}` : ''}.` : '';
+          return `${hhmmBR(l.quando)}. ${texto}${autoria}`;
+        }),
+        ...(restritas
+          ? [`${restritas === 1 ? 'Há 1 observação' : `Há ${restritas} observações`} de acesso restrito `
+            + 'registrada' + (restritas === 1 ? '' : 's') + ' no turno. O conteúdo é consultado no '
+            + 'registro eletrônico, pelos profissionais autorizados.']
+          : []),
+      ],
+      procedencia: 'Registros escritos pela equipe ao longo do turno, em ordem de horário, na redação original.',
     });
   }
 
@@ -63,6 +102,18 @@ export function folhaDaAta(
           p.assinadaEm ? `assinada às ${hhmmBR(p.assinadaEm)}` : 'sem assinatura']),
       },
       procedencia: 'Cada profissional assina a própria passagem de plantão.',
+    });
+  }
+
+  if ((a.adendos ?? []).length) {
+    corpo.push({
+      titulo: 'Correções e complementos posteriores',
+      itens: a.adendos!.map((d) =>
+        `${diaBR(d.quando)}, às ${hhmmBR(d.quando)}. ${TIPO_DO_ADENDO[d.tipo] ?? d.tipo}`
+        + `${d.motivo ? `: ${d.motivo.trim().replace(/[.!?]?$/, (m) => m || '.')}` : '.'}`
+        + (d.quem ? ` Registrado por ${d.quem}.` : '')),
+      procedencia: 'Alterações feitas depois do fechamento da ATA. A redação anterior fica preservada no '
+        + 'registro eletrônico.',
     });
   }
 

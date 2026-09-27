@@ -162,7 +162,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 27/09/2026, fase 165
+### Onde estamos — 27/09/2026, fase 166
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -191,8 +191,9 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 163 | **três temas, Portaria em cartões com a foto 3×4, botões na coluna** (pedido de 27/09): tema **alto contraste** (decisão), no sistema de verdade, lembrado no aparelho (`frontend/src/tema.ts`); o **ensaio de acessibilidade só media o claro** — hoje mede os três, 432 telas; foto 3×4 anexada por técnica/coordenação no próprio portão; ícone do Período |
 | 164 | **a voz dos documentos** (pedido de 27/09): toda folha, relatório e o roteiro da Casa 03 reescritos na linguagem da equipe de acolhimento, e a regra virou teste (`a-voz-dos-documentos.spec.ts`); de passagem, a **folha da escala imprimia 08:00–20:00 fixos** apesar do horário por casa da 159, e o **relatório de visitas imprimia o aviso da tela** como ressalva |
 | 165 | **o relatório da internação em Word** (capa, os dias, e os anexos com as páginas dos PDFs do hospital), **a câmera no anexo** (`EscolherAnexo`), o anexo cortado e o repetido recusados, **o mês como rascunho** e **o cargo da época**; o papel do servidor virou A4/Arial 12/margens 3 e 2 cm como o do protótipo; e o **colírio das 07:30 era dose da noite** no protótipo desde a 157 |
+| 166 | **a simulação de um ciclo completo** na Casa 03 (dois dias e hoje, conferindo os relatórios contra os fatos); achou que **não havia como cadastrar alergia nem restrição alimentar**, que a política dessas tabelas **não conferia a casa**, e que **a ATA em Word não trazia as linhas da equipe**; e o **relatório final** do pedido de 25/09 |
 
-**Medido no fim da 165:** 163 migrações, 124 tabelas, 113 suítes, 1076 testes, verdes nas
+**Medido no fim da 166:** 164 migrações, 124 tabelas, 115 suítes, 1100 testes, verdes nas
 DUAS condições de relógio; os sete ensaios de navegador verdes, com a portaria e o
 portão, o armário, a cozinha, os temas e a foto no percurso do `ensaio:uso`; **432 telas (144 × três
 temas) sem violação de WCAG 2.1 AA**; nenhuma
@@ -213,8 +214,9 @@ nova passa pelo `ensaio:acessibilidade`, que desde a 163 mede os TRÊS.
 
 ### A próxima etapa
 
-**0. EM ANDAMENTO — o "PROMPT MESTRE" de 25/09** (auditoria total, simulação e
-expansão; o texto está na conversa, e o essencial está aqui). Ele DECIDE uma
+**0. FEITO — o "PROMPT MESTRE" de 25/09** (auditoria total, simulação e
+expansão). **O fechamento está em `docs/historico/relatorio-final-da-auditoria-25-09.md`**:
+os achados por gravidade e a matriz de funcionalidades, com o que NÃO foi testado. Ele DECIDE uma
 regra que era hipótese: **ATA diurna 08:00–20:00, noturna 20:01–07:59, com a
 data do dia em que o noturno começou** — substitui o 7h–19h preliminar (pendência
 #4). As fases, na ordem, e o inventário que as justifica:
@@ -240,7 +242,15 @@ data do dia em que o noturno começou** — substitui o 7h–19h preliminar (pen
   feita. Decisões de 27/09: PDF desenhado no SERVIDOR; rascunho só para quem
   monta; cópia pelo mesmo dia da semana. **Aberto no §10, item 12:** a
   Enfermagem lê a internação mas não baixa o relatório (segui a lista do pedido);
-- **166** simulação de vários dias (§38) como teste, e o relatório final com a matriz.
+- ~~**166** simulação de vários dias (§38) como teste, e o relatório final com a matriz~~ ✅
+  feita (`um-ciclo-completo-da-casa.e2e.spec.ts`). Achou três defeitos (§2, linha 166).
+
+**0.1 O que o pedido de 25/09 deixou para depois** (está na matriz do relatório):
+o diário da internação com os campos do §12 um a um (hoje é texto por tipo);
+medir desempenho com volume de anos (§41); e do §39, sessão expirada com
+formulário aberto, várias abas, botão voltar, armazenamento cheio, virada de ano
+e fevereiro. **Pergunta aberta ao Marcelo:** a Enfermagem baixa o relatório da
+internação? (§10, item 12).
 
 **1. As medições de alcance estão feitas** — escrita (156) e leitura (158). A
 sondagem roda sobre o banco povoado pela suíte, com `globalSetup` vazio; o mapa
