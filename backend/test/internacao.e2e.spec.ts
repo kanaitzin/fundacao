@@ -285,12 +285,14 @@ describe('Internação hospitalar', () => {
      * tinham rota de leitura. A equipe digitalizaria o exame, devolveria o
      * papel ao hospital, e no dia em que ele fosse pedido não haveria nada.
      */
-    const pdf = Buffer.from('%PDF-1.7 laudo fictício do hospital');
+    /* Um PDF inteiro, com o fim de arquivo: desde a fase 165 o anexo da
+       internação que chega cortado é recusado. */
+    const pdf = Buffer.from('%PDF-1.7\n% laudo fictício do hospital\n%%EOF\n');
     const nota = await request(http)
       .post(`/api/v1/nursing/hospitalizations/${internacao}/notes`)
       .set(auth(tokens.tecnica))
       .send({ tipo: 'exame', texto: 'Raio-X do tórax; laudo anexado.',
-              conteudo: pdf.toString('base64'), nomeArquivo: 'raio-x.pdf' });
+              conteudo: pdf.toString('base64'), nomeArquivo: 'raio-x.pdf', categoria: 'exame' });
     expect(nota.status).toBe(201);
 
     const lido = await request(http)

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api';
-import { Escolhido, PreviaEscolhida, lerArquivo } from '../anexos';
+import { EscolherAnexo, Escolhido } from '../anexos';
 import { Icone } from '../icones';
 import { FolhaDocumento, ArquivoGerado } from '../documentos';
 import type { DocumentoWord } from '../docx';
@@ -504,14 +504,11 @@ function FolhaFotoDoVisitante({ v, onFechar, onFeito }: {
         <h3 id="t-foto-anexar">Foto 3×4 de {nome}</h3>
         <p className="mutetxt">Rosto de frente, sem boné nem óculos escuros. É esta foto que o portão
           confere com o documento, e ela sai na folha impressa da guarita.</p>
-        <label className="f" htmlFor="foto-vis-arq">Tirar a foto ou escolher da galeria</label>
-        <input id="foto-vis-arq" type="file" accept="image/jpeg,image/png" capture="user"
-               onChange={async (e) => {
-                 const f = e.target.files?.[0];
-                 setArquivo(f ? await lerArquivo(f) : null);
-               }} />
-        {arquivo && <PreviaEscolhida arquivo={arquivo}
-          pergunta={<>É {nome}? A foto fica guardada com o seu nome e a hora.</>} />}
+        {/* Câmera, galeria ou arquivo (fase 165): o pedido de 25/09 quer a foto da
+            galeria do celular, e o `capture` sozinho abria só a câmera. */}
+        <EscolherAnexo id="foto-vis" arquivo={arquivo} onEscolher={setArquivo}
+          aceita="image/jpeg,image/png" maximoMb={4}
+          pergunta={<>É {nome}? A foto fica guardada com o seu nome e a hora.</>} />
         {erro && <div className="notice c-crit" role="alert">{erro}</div>}
         <div className="row rodape">
           <button className="btn sec grow" onClick={onFechar}>Cancelar</button>

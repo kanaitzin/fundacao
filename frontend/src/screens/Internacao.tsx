@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
 import { baixarArquivo } from '../documentos';
-import { BotaoOlho, Escolhido, FolhaArquivo, PreviaEscolhida, base64De, lerArquivo } from '../anexos';
+import { BotaoOlho, EscolherAnexo, Escolhido, FolhaArquivo, base64De } from '../anexos';
+import { FolhaDocumento } from '../documentos';
+import type { DocumentoWord } from '../docx';
 import { dia } from '../rotulos';
 import { Icone } from '../icones';
 
@@ -39,6 +41,7 @@ interface Internacao {
 interface Nota {
   id: string; dia: string; tipo: string; tipoRotulo: string; texto: string;
   temAnexo: boolean; nomeDoArquivo: string | null; por: string; em: string;
+  categoriaRotulo?: string | null;
 }
 
 interface Periodo extends Internacao {
@@ -58,10 +61,13 @@ interface Periodo extends Internacao {
 interface Vocabulario {
   tiposDeNota: { cod: string; label: string }[];
   desfechos: { cod: string; label: string }[];
+  categoriasDoAnexo?: { cod: string; label: string }[];
   nota: string;
 }
 
 const QUEM_ABRE = ['equipe_tecnica', 'coordenador', 'gestor_geral'];
+/** Quem baixa o relatório completo (fase 165): a lista do pedido de 25/09. */
+const QUEM_BAIXA = ['equipe_tecnica', 'coordenador', 'lider_diurno', 'lider_noturno_geral', 'gestor_geral'];
 
 const hhmm = (iso: string) =>
   new Date(iso).toLocaleTimeString('pt-BR',
@@ -244,7 +250,9 @@ function PeriodoNoHospital({ id, papel, onVoltar }: {
   const [designando, setDesignando] = useState(false);
   /** O anexo que está aberto na tela — nunca mais o download às cegas. */
   const [vendoAnexo, setVendoAnexo] = useState<{ id: string; nomeDoArquivo: string | null } | null>(null);
+  const [relatorio, setRelatorio] = useState<DocumentoWord | null>(null);
   const podeEncerrar = QUEM_ABRE.includes(papel);
+  const podeBaixar = QUEM_BAIXA.includes(papel);
 
   const carregar = useCallback(async () => {
     try {
@@ -262,6 +270,16 @@ function PeriodoNoHospital({ id, papel, onVoltar }: {
   if (erro) return (<><button className="btn sm ghost" onClick={onVoltar}>← Internações</button>
     <div className="notice c-crit" role="alert">{erro}</div></>);
   if (!p) return <p className="mutetxt">Carregando…</p>;
+
+  if (relatorio) {
+    return (
+      <FolhaDocumento doc={relatorio} onFechar={() => setRelatorio(null)}
+        exportar={(finalidade: string) =>
+          api(`/nursing/hospitalizations/${id}/export`, {
+            method: 'POST', body: JSON.stringify({ finalidade }),
+          })} />
+    );
+  }
 
   return (
     <>
@@ -285,6 +303,17 @@ function PeriodoNoHospital({ id, papel, onVoltar }: {
         </div>
       )}
       {aviso && <div className="notice c-ok" role="status">{aviso}</div>}
+
+      {/* O RELATÓRIO COMPLETO (fase 165): capa, os dias em ordem e os anexos
+          dentro do Word, inclusive as páginas dos PDFs do hospital. */}
+      {podeBaixar && (
+        <button className="btn sec block" onClick={async () => {
+          try { setRelatorio(await api<DocumentoWord>(`/nursing/hospitalizations/${id}/folha`)); }
+          catch (e) { setErro(e instanceof Error ? e.message : 'Não foi possível montar o relatório.'); }
+        }}>
+          <Icone nome="documento" /> Relatório completo da internação
+        </button>
+      )}
 
       {/* ------------------------------------------------------ acompanhantes */}
       <div className="eyebrow">Quem esteve com ela</div>
@@ -358,6 +387,7 @@ function PeriodoNoHospital({ id, papel, onVoltar }: {
               <BotaoOlho rotulo={n.nomeDoArquivo ?? 'documento do hospital'}
                          onClick={() => setVendoAnexo(n)} />
             )}
+            {n.categoriaRotulo && <div className="mutetxt">Anexo: {n.categoriaRotulo}</div>}
             <div className="mutetxt">{n.por} · {hhmm(n.em)}</div>
           </div>
         ))}
@@ -394,7 +424,8 @@ function PeriodoNoHospital({ id, papel, onVoltar }: {
       )}
 
       {escrevendo && vocab && (
-        <FolhaDiario tipos={vocab.tiposDeNota} onFechar={() => setEscrevendo(false)}
+        <FolhaDiario tipos={vocab.tiposDeNota} categorias={vocab.categoriasDoAnexo ?? []}
+          onFechar={() => setEscrevendo(false)}
           onSalvar={async (d) => {
             await api(`/nursing/hospitalizations/${id}/notes`, {
               method: 'POST', body: JSON.stringify(d),
@@ -448,13 +479,15 @@ function PeriodoNoHospital({ id, papel, onVoltar }: {
   );
 }
 
-function FolhaDiario({ tipos, onFechar, onSalvar }: {
-  tipos: { cod: string; label: string }[]; onFechar: () => void;
+function FolhaDiario({ tipos, categorias, onFechar, onSalvar }: {
+  tipos: { cod: string; label: string }[]; categorias: { cod: string; label: string }[];
+  onFechar: () => void;
   onSalvar: (d: Record<string, unknown>) => Promise<void>;
 }) {
   const [tipo, setTipo] = useState('relato');
   const [texto, setTexto] = useState('');
   const [arquivo, setArquivo] = useState<Escolhido | null>(null);
+  const [categoria, setCategoria] = useState('');
   const [erro, setErro] = useState('');
 
   return (
@@ -472,20 +505,23 @@ function FolhaDiario({ tipos, onFechar, onSalvar }: {
                   placeholder="Ex.: visita da tarde; acordada, comeu bem, pediu o urso." />
 
         <label className="f">
-          Documento do hospital <small>— PDF, JPG ou PNG, opcional</small>
+          Documento do hospital <small>(PDF, JPG ou PNG, até 10 MB, opcional)</small>
         </label>
-        <input type="file" accept="application/pdf,image/*" onChange={async (e) => {
-          const f = e.target.files?.[0];
-          if (!f) { setArquivo(null); return; }
-          setArquivo(await lerArquivo(f));
-        }} />
-
         {/* A prévia do exame ANTES de ele subir. A equipe digitaliza o papel e
             o devolve ao hospital: se subiu a página errada, ou a foto saiu
             ilegível, este é o único momento em que ainda dá para refazer. */}
-        {arquivo && <PreviaEscolhida arquivo={arquivo}
+        <EscolherAnexo id="dia-anexo" arquivo={arquivo} onEscolher={setArquivo}
           pergunta={<>É este o documento do hospital, e está legível? O papel costuma voltar
-            para o hospital — <b>esta cópia é a que fica</b>.</>} />}
+            para o hospital — <b>esta cópia é a que fica</b>.</>} />
+        {arquivo && (
+          <>
+            <label className="f" htmlFor="dia-cat">Que documento é</label>
+            <select id="dia-cat" value={categoria} onChange={(e) => setCategoria(e.target.value)}>
+              <option value="">Escolha…</option>
+              {categorias.map((c) => <option key={c.cod} value={c.cod}>{c.label}</option>)}
+            </select>
+          </>
+        )}
         {/*
           * O anexo NÃO substitui o texto: o servidor recusa relato só com
           * arquivo. Um PDF de exame, daqui a um ano, não conta o que foi feito
@@ -495,12 +531,14 @@ function FolhaDiario({ tipos, onFechar, onSalvar }: {
         {erro && <div className="notice c-crit" role="alert">{erro}</div>}
         <div className="row rodape">
           <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
-          <button className="btn grow" disabled={texto.trim().length < 3} onClick={async () => {
+          <button className="btn grow" disabled={texto.trim().length < 3 || (!!arquivo && !categoria)}
+                  onClick={async () => {
             try {
               await onSalvar({
                 tipo, texto: texto.trim(),
                 conteudo: arquivo ? base64De(arquivo.dataUrl) : undefined,
                 nomeArquivo: arquivo?.nome,
+                categoria: arquivo ? categoria : undefined,
               });
             } catch (e) {
               setErro(e instanceof Error ? e.message : 'Não foi possível salvar.');

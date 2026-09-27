@@ -78,7 +78,15 @@ export interface RegraDoArquivo {
   /** O limite em bytes. Omitir usa `TAMANHO_MAXIMO_ARQUIVO`. */
   maximo?: number;
   /** As três recusas, com a palavra que o lugar usa. Omitir usa a genérica. */
-  recusas?: { vazio?: string; grande?: string; tipo?: string };
+  recusas?: { vazio?: string; grande?: string; tipo?: string; incompleto?: string };
+  /**
+   * Confere que o arquivo CHEGOU INTEIRO (fase 165): o PDF termina em `%%EOF`,
+   * o PNG no bloco `IEND`, o JPEG na marca de fim `FFD9`. A assinatura diz o
+   * que o arquivo diz ser; o fim diz se ele chegou todo. É o caso do envio que
+   * caiu no meio, no celular do hospital: a assinatura passa, e o exame não
+   * abre nunca mais. Ligado onde o pedido nomeou, nos anexos da internação.
+   */
+  conferirInteireza?: boolean;
 }
 
 @Injectable()
@@ -108,11 +116,27 @@ export class ArquivosService {
     }
 
     const { tipo, rotulo } = this.tipoReal(bytes, regra);
+    if (regra.conferirInteireza && !inteiro(bytes, tipo)) {
+      throw new BadRequestException(regra.recusas?.incompleto
+        ?? 'O arquivo chegou incompleto ou danificado. Envie de novo; se repetir, '
+           + 'fotografe ou digitalize outra vez.');
+    }
     const sha256 = createHash('sha256').update(bytes).digest('hex');
     const chave = randomUUID();
     await mkdir(this.dir, { recursive: true });
     await writeFile(join(this.dir, chave), bytes);
     return { chave, mime: tipo, rotulo, sha256, tamanho: bytes.length };
+  }
+
+  /**
+   * A soma de verificação de um conteúdo ANTES de guardar (fase 165): quem
+   * precisa recusar o arquivo repetido confere primeiro, e não deixa no disco
+   * um objeto que nenhum registro aponta.
+   */
+  somaDe(conteudo?: string | null): string | null {
+    const limpo = String(conteudo ?? '').replace(/^data:[^;]+;base64,/, '').trim();
+    if (!limpo) return null;
+    return createHash('sha256').update(Buffer.from(limpo, 'base64')).digest('hex');
   }
 
   /**
@@ -161,4 +185,16 @@ export class ArquivosService {
     if (!achado || !passa(achado.tipo)) recusa();
     return { tipo: achado!.tipo, rotulo: achado!.rotulo };
   }
+}
+
+/**
+ * O fim de cada formato, procurado nos últimos bytes: há leitores e câmeras
+ * que acrescentam zeros ou metadados depois da marca, e isso não é defeito.
+ */
+export function inteiro(bytes: Buffer, tipo: string): boolean {
+  const cauda = bytes.subarray(Math.max(0, bytes.length - 1024));
+  if (tipo === 'application/pdf') return cauda.includes('%%EOF');
+  if (tipo === 'image/png') return cauda.includes(Buffer.from('IEND'));
+  if (tipo === 'image/jpeg') return cauda.includes(Buffer.from([0xff, 0xd9]));
+  return true;
 }

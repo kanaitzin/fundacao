@@ -2015,7 +2015,7 @@ cobrar('e nenhuma contagem por criança — nem "vezes", nem "recusas"',
 /* O QUE NÃO SAI. A ocorrência de acesso restrito entra como contagem, e a
  * ressalva manda o leitor à tela certa. */
 cobrar('a ressalva diz o que NÃO está escrito aqui, e onde se lê',
-  /Aus[êe]ncia de registro n[ãa]o [ée] aus[êe]ncia de trabalho/i.test(oPeriodo),
+  /aus[êe]ncia de registro n[ãa]o significa aus[êe]ncia/i.test(oPeriodo),
   'quem lê de fora conclui o contrário se ninguém escrever');
 cobrar('o par de doses aparece com o período anterior, e não como porcentagem',
   /contra \d+ em \d{2}\/\d{2}/.test(oPeriodo),
@@ -2029,7 +2029,7 @@ cobrar('a folha do período abre em pré-visualização',
   /Pr[ée]-visualiza[çc][ãa]o/i.test(folhaDoPeriodo),
   folhaDoPeriodo.slice(0, 200));
 cobrar('e ela carrega a ressalva, e não só a tabela',
-  /aus[êe]ncia de trabalho|ordenada por quantidade/i.test(folhaDoPeriodo),
+  /aus[êe]ncia de acontecimentos ou de trabalho|n[ãa]o s[ãa]o somados por acolhido/i.test(folhaDoPeriodo),
   'a folha circula sem ninguém por perto para explicar o contexto');
 await fechar();
 
@@ -2802,7 +2802,7 @@ cobrar('o visitante sem foto oferece anexar', semFoto > 0);
 await pg.getByRole('button', { name: 'Anexar foto 3×4' }).first().click();
 await pg.waitForTimeout(300);
 const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/58BAwAI/AL+hc2rNAAAAABJRU5ErkJggg==', 'base64');
-await pg.locator('#foto-vis-arq').setInputFiles({ name: 'rosto.png', mimeType: 'image/png', buffer: png });
+await pg.locator('#foto-vis-arquivo').setInputFiles({ name: 'rosto.png', mimeType: 'image/png', buffer: png });
 await pg.waitForTimeout(400);
 await pg.getByRole('button', { name: 'Guardar a foto' }).click();
 await pg.waitForTimeout(1200);
@@ -2815,6 +2815,76 @@ cobrar('a portaria vê a foto, e não tem como anexar',
   (await pg.getByRole('button', { name: /Ver a foto 3×4 de/ }).count()) > 0
   && (await pg.getByRole('button', { name: /Anexar foto|Trocar a foto/ }).count()) === 0);
 cobrar('nenhuma exceção nos temas e no portão', erros.length === 0, erros[0]);
+
+/*
+ * O MÊS COMO RASCUNHO E O RELATÓRIO DA INTERNAÇÃO (fase 165).
+ *
+ * A escala do mês seguinte começa pela do mês anterior, como rascunho que só
+ * quem monta vê; e a internação ganhou a escolha do anexo com prévia e
+ * categoria, e o relatório completo em Word. Os botões são procurados pelo
+ * NOME ACESSÍVEL (lição da 150).
+ */
+console.log('\n🗓️ O mês como rascunho e o relatório da internação (fase 165)');
+await trocar('coordenador');
+erros.length = 0;
+cobrar('a escala abre', await doMais('escala de plantão'));
+cobrar('quem monta a escala tem como repetir o mês anterior',
+  (await pg.getByRole('button', { name: 'Repetir a escala do mês anterior' }).count()) > 0);
+await pg.getByRole('button', { name: 'Repetir a escala do mês anterior' }).click();
+await pg.waitForTimeout(900);
+const rascunho = await conteudo();
+cobrar('a cópia nasce como rascunho, e diz que ainda não vale',
+  /ainda não publicado/.test(rascunho) && /A equipe não vê este rascunho/.test(rascunho),
+  rascunho.slice(0, 200));
+cobrar('cada linha do rascunho se retira sozinha',
+  (await pg.getByRole('button', { name: /^Retirar .* do (diurno|noturno) de/ }).count()) > 0);
+await pg.getByRole('button', { name: /^Publicar a escala de/ }).click();
+await pg.waitForTimeout(900);
+cobrar('publicar leva o rascunho para a escala, e diz quantos',
+  /plantão\(ões\) publicado\(s\)/.test(await conteudo()));
+
+await trocar('educador');
+await doMais('escala de plantão');
+cobrar('o educador não monta o mês', (await pg.getByRole('button', { name: 'Repetir a escala do mês anterior' }).count()) === 0);
+
+await trocar('coordenador');
+cobrar('a internação abre', await doMais('Internação hospitalar'));
+await pg.getByRole('button', { name: /Registrar internação/ }).click();
+await pg.waitForTimeout(400);
+await pg.locator('#int-p').selectOption({ index: 1 });
+await pg.locator('#int-h').fill('Hospital Fictício do Ensaio');
+await pg.locator('#int-m').fill('Observação por febre persistente (fictícia).');
+await pg.locator('.overlay button').last().click();
+await pg.waitForTimeout(900);
+await pg.locator('main.conteudo').getByText('Hospital Fictício do Ensaio').first().click();
+await pg.waitForTimeout(900);
+await pg.getByRole('button', { name: /Escrever no diário/ }).click();
+await pg.waitForTimeout(400);
+cobrar('o diário oferece selecionar arquivo',
+  (await pg.getByRole('button', { name: 'Selecionar arquivo' }).count()) > 0);
+await pg.locator('#dia-x').fill('Visita da manhã; dormiu bem e aceitou o café.');
+await pg.locator('#dia-anexo-arquivo').setInputFiles({ name: 'receita.png', mimeType: 'image/png', buffer: png });
+await pg.waitForTimeout(500);
+cobrar('a foto aparece em prévia antes de sair do aparelho, com ampliar e descartar',
+  /Confira antes de enviar/i.test(await corpo())
+  && (await pg.getByRole('button', { name: 'Ampliar' }).count()) > 0
+  && (await pg.getByRole('button', { name: 'Descartar' }).count()) > 0);
+cobrar('sem dizer que documento é, não salva',
+  await pg.locator('.overlay button', { hasText: /^Salvar$/ }).isDisabled());
+await pg.locator('#dia-cat').selectOption('receita');
+await pg.locator('.overlay button', { hasText: /^Salvar$/ }).click();
+await pg.waitForTimeout(900);
+cobrar('o registro diz que documento veio junto', /Anexo: Receita/.test(await conteudo()));
+await pg.getByRole('button', { name: /Relatório completo da internação/ }).click();
+await pg.waitForTimeout(900);
+const relatorio = await corpo();
+cobrar('o relatório tem o motivo, os registros do dia e os anexos',
+  /Relatório de internação hospitalar/i.test(relatorio) && /Motivo da internação/i.test(relatorio)
+  && /Registros de/i.test(relatorio) && /Anexo 1\. Receita, receita\.png/.test(relatorio),
+  relatorio.slice(0, 300));
+cobrar('e baixa em Word, com finalidade', (await pg.getByRole('button', { name: 'Baixar em Word' }).count()) > 0);
+await fechar();
+cobrar('nenhuma exceção no rascunho e na internação', erros.length === 0, erros[0]);
 
 await navegador.close();
 console.log(achados.length

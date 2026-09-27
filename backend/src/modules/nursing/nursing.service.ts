@@ -567,7 +567,7 @@ export class NursingService {
     const quem = await this.db.asUser(user.id, async (c) => {
       const { rows: [r] } = await c.query(
         `SELECT app_person_display_name($1) AS nome,
-                (SELECT app_house_label(hs.house_id) || ' — ' || app_house_name(hs.house_id)
+                (SELECT app_house_label(hs.house_id) || ' · ' || app_house_name(hs.house_id)
                    FROM house_stay hs
                   WHERE hs.person_id = $1 AND hs.status = 'ativa' LIMIT 1) AS unidade`,
         [personId]);

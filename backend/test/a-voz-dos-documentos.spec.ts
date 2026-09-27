@@ -118,6 +118,14 @@ function textosDeDocumento(): { onde: string; texto: string }[] {
            mora em auxiliares FORA da folha, como o rótulo da casa, e chegava ao
            subtítulo de sete documentos. No servidor, ele é conferido no arquivo
            inteiro. */
+        /* E dentro do SQL: `app_house_label(...) || ' — ' || app_house_name(...)`
+           montava a unidade da folha de saúde, e SQL é texto técnico para o
+           resto desta conferência. */
+        if (literal && servidor && /\|\|\s*' — '\s*\|\|/.test(partes(no, src).join(''))) {
+          const l = src.getLineAndCharacterOfPosition(no.getStart()).line + 1;
+          saida.push({ onde: `${relative(RAIZ, f)}:${l}`, texto: "consulta com || ' — ' ||" });
+          return;
+        }
         if (literal && !agora && !inteiro && servidor && !ehTecnico(no, partes(no, src).join(''))) {
           const t = partes(no, src).join('');
           if (!/[a-zà-ú]{3,}/i.test(t) && / — /.test(t)) {

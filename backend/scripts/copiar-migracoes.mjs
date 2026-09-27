@@ -46,6 +46,13 @@ if (existsSync(timbre)) {
   console.warn('⚠ assets/timbre.png não encontrado: os documentos sairão sem a marca.');
 }
 
+/* O desenho das páginas de PDF roda num processo à parte (fase 165), e o
+ * `tsc` não copia `.mjs`. Sem ele, o relatório da internação sai sem as
+ * páginas dos exames, e diz só que não pôde reproduzi-las. */
+const desenhista = join(RAIZ, 'src', 'kernel', 'documentos', 'desenhar-paginas.mjs');
+await mkdir(join(RAIZ, 'dist', 'kernel', 'documentos'), { recursive: true });
+await cp(desenhista, join(RAIZ, 'dist', 'kernel', 'documentos', 'desenhar-paginas.mjs'));
+
 if (!copiados) {
   console.error('Nenhuma migração copiada. A construção está errada — não publique isto.');
   process.exit(1);

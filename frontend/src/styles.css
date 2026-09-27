@@ -1006,6 +1006,8 @@ textarea{
 /* A imagem ocupa a largura e nunca estoura a folha no celular. `object-fit`
    não entra: recortar a prévia esconderia justamente a borda cortada que a
    pessoa está aqui para ver. */
+.so-leitor{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+.previa-img.ampliada{max-height:80vh;width:100%;object-fit:contain}
 .previa-img{
   max-width:100%; height:auto; display:block;
   border-radius:10px; border:1px solid var(--line);

@@ -899,11 +899,11 @@ criança, e log não copia conteúdo sensível (§5). A auditoria guarda o ato �
 coordenação, Líder Diurno). Mais ninguém: a lista de quem pediu para ler o quê é,
 ela mesma, informação sobre o caso.
 
-## Inventário — 121 tabelas por partição
+## Inventário — 124 tabelas por partição
 
 | Partição | Tabelas |
 |---|---|
-| identity (14) | institution, house, app_user, user_house_assignment, work_schedule, shift_assignment, user_session, login_attempt, audit_event, institutional_device, staff_role_grant, house_capacity_change, user_invite, house_shift_hours |
+| identity (17) | institution, house, app_user, user_house_assignment, work_schedule, shift_assignment, user_session, login_attempt, audit_event, institutional_device, staff_role_grant, house_capacity_change, user_invite, house_shift_hours, app_user_role_period, shift_draft, shift_draft_item |
 | people (29) | person, care_episode, house_stay, profile_detail, health_condition, food_restriction, document, document_version, benefit_record, memory_record, memory_photo, transfer_request, transfer_message, admission_record, judicial_record, person_credential, person_correction, profile_detail_change, person_contact, family_stay, family_stay_note, outing_permission, kitchen_request, house_field_permission, birthday_ack, contact_visit_change, visit, visit_correction, kitchen_request_change |
 | shifts (13) | shift, handover, handover_receipt, handover_note, ata, ata_note, ata_addendum, ata_episode, ata_episode_ack, general_night_ata, general_night_house_entry, general_night_house_amendment, ata_read_request |
 | incidents (7) | incident, incident_person, incident_protected, incident_restraint, incident_synthesis, external_communication, incident_attachment |
@@ -921,6 +921,37 @@ ela mesma, informação sobre o caso.
 
 Cada partição guarda as próprias migrações. Remover um módulo é remover a
 pasta dele — e é por isso que a lista acima é por partição, e não por assunto.
+
+### `app_user_role_period` — o cargo da época
+O CARGO DE CADA PESSOA, POR PERÍODO (fase 165, identity/1620): `user_id`,
+`role`, `from_at`, `to_at` (nulo no período vigente), `changed_by`. Quem
+escreve é o gatilho `trg_cargo_da_epoca` de `app_user`, em qualquer caminho que
+troque o cargo: o período anterior é fechado, e um novo começa. Antes da
+migração não havia histórico, e o cargo conhecido vale desde `-infinity`.
+Quem lê é `app_user_cargo_em(pessoa, instante)`: a linha da ATA, o pedido de
+leitura, a escala, o trabalho da equipe e o relatório da internação mostram o
+cargo de QUANDO o registro foi feito. RLS ligado e nenhuma política: só as
+funções leem.
+
+### `shift_draft` e `shift_draft_item` — o mês como rascunho
+REPETIR A ESCALA DO MÊS ANTERIOR (fase 165, identity/1621). `shift_draft`: a
+casa, o `month` (primeiro dia), quem criou, e `published_*` ou `discarded_*`
+(com `discard_reason`); um rascunho aberto por casa e mês. `shift_draft_item`:
+`user_id`, `on_date`, `period`, horários, `note`, `source_assignment_id` (o
+plantão copiado; nulo quando incluído à mão), `added_by`, e `removed_*` (retirar
+marca, não apaga). Mora FORA de `shift_assignment` de propósito: nove funções
+leem a escala, e nenhuma delas pode cobrar um plantão que ainda é rascunho.
+Cada dia copia o mesmo dia da semana 28 dias antes (56, se cair no próprio mês).
+Só quem monta a escala vê e edita; publicar leva as linhas vivas para
+`shift_assignment`. Funções: `app_repetir_escala`, `app_rascunho_da_escala`,
+`app_rascunho_incluir`, `app_rascunho_retirar`, `app_publicar_rascunho`,
+`app_descartar_rascunho`.
+
+### `hospitalization_note` — o anexo da internação (fase 165, nursing/1622)
+Ganhou `doc_category` (receita, atestado, relatório médico, exame,
+encaminhamento, foto de documento, outro; só onde há anexo), `sha256` e
+`size_bytes`. O mesmo arquivo duas vezes na mesma internação é recusado
+(`uq_anexo_da_internacao`), conferido antes de gravar no disco.
 
 ### `house_shift_hours`
 O horário dos turnos de CADA CASA (fase 159, identity/1580). A casa diz o

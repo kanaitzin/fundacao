@@ -38,6 +38,7 @@ import { folhaDaGrade } from '../../backend/src/modules/medications/grade-folha'
 import { folhaDosCombinados } from '../../backend/src/modules/alignments/combinados-folha';
 import { folhaDoEstatuto } from '../../backend/src/modules/alignments/estatuto-folha';
 import { folhaDaEscala } from '../../backend/src/modules/identity/escala-folha';
+import { folhaDaInternacao } from '../../backend/src/modules/nursing/internacao-folha';
 import { folhaDoImpacto, folhaDaTrajetoria }
   from '../../backend/src/modules/reports/impacto-folha';
 import { folhaDoPeriodo, SECOES_DO_PERIODO }
@@ -925,7 +926,7 @@ let LINHA: Ev[] = [
   /* O ID DA LINHA CARREGA O ID DA DOSE, como no servidor (`dose:<uuid>`): a
      tela do Dia busca a dose na grade por ele para abrir a folha com a
      alergia e a via. Com um id inventado ('m1'), a folha não abriria. */
-  { id: 'medication:d1', source: 'medicamento', at: emHoras(7, 30), kind: 'medicamento',
+  { id: 'medication:d1', source: 'medicamento', at: emHoras(8, 30), kind: 'medicamento',
     title: 'Colírio lubrificante (fictício) — 1 gota em cada olho', personId: 'p11', personName: 'Lara',
     state: 'Aguardando confirmação', severity: 'atencao' },
   { id: 'activity:a3', source: 'rotina', at: emHoras(8, 0), kind: 'saida', title: 'Saída para a escola',
@@ -1843,7 +1844,12 @@ function excecaoDaDose(medicamento: string) {
 }
 
 let DOSES: DoseMock[] = [
-  { id: 'd1', personId: 'p11', horario: emHoras(7, 30), medicamento: 'Colírio lubrificante (fictício)',
+  /* 08:30, e não 07:30 (fase 165): desde a regra de 25/09 o diurno começa às
+     08:00, e às 07:30 esta dose era da NOITE. Durante o dia as doses "há 45
+     minutos" e "daqui a 2 horas" caíam no diurno por coincidência; entre a
+     meia-noite e as 6h o plantão diurno aberto ficava sem dose nenhuma, e o
+     ensaio da passagem reprovava só nessa hora. */
+  { id: 'd1', personId: 'p11', horario: emHoras(8, 30), medicamento: 'Colírio lubrificante (fictício)',
     dose: '1 gota em cada olho', via: 'oftálmica', tipo: 'uso_continuo', condicaoUso: null,
     estado: 'aguardando_confirmacao', rotulo: 'Aguardando confirmação', pendente: true,
     confirmadaPor: null, administradaEm: null, observacao: null },
@@ -1897,6 +1903,16 @@ let DOSES: DoseMock[] = [
  * completa esconderia justamente a coisa que o Marcelo pediu para ver: o turno
  * sem gente, antes de virar noite sem educador.
  */
+/** O rascunho do mês (fase 165), fora da escala publicada, como no servidor. */
+interface RascunhoMock {
+  id: string; mes: string; criadoPor: string; criadoEm: string;
+  status: 'aberto' | 'publicado' | 'descartado'; motivo?: string;
+  itens: { id: string; userId: string; quem: string; cargo: string; data: string; turno: string;
+           inicio: string | null; fim: string | null; nota: string | null; incluidoAMao: boolean;
+           conflito: string | null; conflitoCasa: string | null; retirado: boolean }[];
+}
+const RASCUNHOS_DA_ESCALA: RascunhoMock[] = [];
+
 interface EscalaMock {
   id: string; userId: string; quem: string; cargo: string;
   data: string; turno: 'diurno' | 'noturno';
@@ -3906,6 +3922,34 @@ const TIPOS_DE_NOTA_INT = [
 ];
 
 const QUEM_ABRE_INT = ['equipe_tecnica', 'coordenador', 'gestor_geral'];
+const QUEM_BAIXA_INT = ['equipe_tecnica', 'coordenador', 'lider_diurno', 'lider_noturno_geral', 'gestor_geral'];
+const CATEGORIAS_DO_ANEXO_INT = [
+  { cod: 'receita', label: 'Receita' }, { cod: 'atestado', label: 'Atestado' },
+  { cod: 'relatorio_medico', label: 'Relatório médico' }, { cod: 'exame', label: 'Exame' },
+  { cod: 'encaminhamento', label: 'Encaminhamento' },
+  { cod: 'foto_de_documento', label: 'Foto de documento' }, { cod: 'outro', label: 'Outro documento' },
+];
+
+/** A folha do relatório da internação, pelo MESMO montador do servidor (fase 165). */
+function folhaDaInternacaoMock(i: InternacaoMock, eu: { fullName: string; role: string }) {
+  const comAnexo = [...i.diario].filter((n: any) => n.temAnexo).reverse();
+  const numero = new Map(comAnexo.map((n: any, k: number) => [n.id, k + 1]));
+  return folhaDaInternacao({
+    acolhido: kid(i.acolhidoId)?.nome ?? '—', unidade: `${CASA.code} · ${CASA.name}`,
+    hospital: i.hospital, motivo: i.motivo, desde: i.desde, ate: i.ate, status: i.status,
+    desfecho: i.desfecho, observacaoDoDesfecho: i.observacaoDoDesfecho,
+    abertaPor: i.abertaPor, encerradaPor: i.encerradaPor,
+    acompanhantes: [...i.acompanhantes].reverse().map((a: any) => ({
+      quem: a.quem, cargo: 'educador', de: a.de, ate: a.ate, designadoPor: a.designadoPor })),
+    diario: i.diario.map((n: any) => ({ dia: n.dia, em: n.em, tipoRotulo: n.tipoRotulo, texto: n.texto,
+      por: n.por, cargo: n.cargo ?? null, anexo: numero.get(n.id) ?? null, categoria: n.categoriaRotulo ?? null })),
+    medicacao: i.medicacaoNoHospital.map((m: any) => ({ quando: m.quando, medicamento: m.medicamento,
+      dose: m.dose, via: m.via, observacao: m.observacao })),
+  }, comAnexo.map((n: any) => ({
+    numero: numero.get(n.id)!, categoria: n.categoriaRotulo ?? 'Documento', nomeDoArquivo: n.nomeDoArquivo,
+    registradoEm: n.em, registradoPor: n.por, paginas: [],
+  })), { nome: eu.fullName, cargo: cargoNoDocumento(eu.role) });
+}
 const QUEM_VE_INT = [...QUEM_ABRE_INT, 'lider_diurno', 'lider_noturno_geral', 'enfermagem'];
 
 function resumoInternacao(i: InternacaoMock) {
@@ -6772,6 +6816,97 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         + 'o horário.',
     };
   }
+  /*
+   * O RASCUNHO DO MÊS (fase 165), com as regras do servidor: cópia do mesmo
+   * dia da semana quatro semanas antes (oito, se cair no próprio mês), um
+   * rascunho aberto por mês, só quem monta a escala vê, e nada se apaga.
+   */
+  if (rota.startsWith('/escala/rascunho')) {
+    if (!['lider_diurno', 'equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403, 'Quem monta a escala da casa é a coordenação, a equipe técnica ou o Líder Diurno dela.');
+    }
+    const mesDe = (m: string) => { const r = /^(\d{4})-(\d{2})/.exec(m); return r ? `${r[1]}-${r[2]}-01` : null; };
+    const aberto = (mes: string) => RASCUNHOS_DA_ESCALA.find((r) => r.mes === mes && r.status === 'aberto');
+    if (rota === '/escala/rascunho' && metodo === 'GET') {
+      const mes = mesDe(String(q.get('mes') ?? ''));
+      if (!mes) return new Recusa(400, 'Informe o mês no formato 2026-10.');
+      const r = aberto(mes);
+      if (!r) return { mes, rascunho: null };
+      const itens = r.itens.filter((i) => !i.retirado).sort((x, y) => (x.data + x.turno).localeCompare(y.data + y.turno));
+      return { mes, rascunho: { id: r.id, criadoPor: r.criadoPor, criadoEm: r.criadoEm, itens, conflitos: 0 } };
+    }
+    if (rota === '/escala/rascunho' && metodo === 'POST') {
+      const mes = mesDe(String(b.mes ?? ''));
+      if (!mes) return new Recusa(400, 'Informe o mês no formato 2026-10.');
+      if (mes < `${HOJE.slice(0, 7)}-01`) {
+        return new Recusa(400, 'O rascunho é para o mês atual ou os próximos; mês que já passou não se remonta.');
+      }
+      if (aberto(mes)) return new Recusa(400, 'Já existe um rascunho aberto para este mês. Publique ou descarte o anterior.');
+      const somar = (iso: string, n: number) => {
+        const d = new Date(`${iso}T12:00:00-03:00`); d.setDate(d.getDate() + n);
+        return d.toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
+      };
+      const r: RascunhoMock = { id: uid(), mes, criadoPor: eu.fullName, criadoEm: new Date().toISOString(),
+        status: 'aberto', itens: [] };
+      for (let d = mes; d.slice(0, 7) === mes.slice(0, 7); d = somar(d, 1)) {
+        const origem = somar(d, -28) < mes ? somar(d, -28) : somar(d, -56);
+        for (const x of ESCALA.filter((e) => e.data === origem && !e.revogadaEm)) {
+          r.itens.push({ id: uid(), userId: x.userId, quem: x.quem, cargo: x.cargo, data: d, turno: x.turno,
+            inicio: x.inicio, fim: x.fim, nota: x.nota, incluidoAMao: false, conflito: null,
+            conflitoCasa: null, retirado: false });
+        }
+      }
+      RASCUNHOS_DA_ESCALA.push(r);
+      return { rascunhoId: r.id, copiados: r.itens.length, foraPorInativo: [],
+        aviso: `Rascunho criado com ${r.itens.length} plantão(ões), copiados do mesmo dia da semana `
+          + 'quatro semanas antes. Ele ainda não vale: revise e publique quando estiver certo.' };
+    }
+    if (seg[2] === 'itens' && seg[4] === 'retirar' && metodo === 'POST') {
+      const it = RASCUNHOS_DA_ESCALA.flatMap((r) => r.status === 'aberto' ? r.itens : []).find((i) => i.id === seg[3] && !i.retirado);
+      if (!it) return new Recusa(404, 'Rascunho não encontrado.');
+      it.retirado = true;
+      return { ok: true };
+    }
+    const r = RASCUNHOS_DA_ESCALA.find((x) => x.id === seg[2]);
+    if (!r) return new Recusa(404, 'Rascunho não encontrado.');
+    if (r.status !== 'aberto') return new Recusa(400, 'Este rascunho já foi publicado ou descartado.');
+    if (seg[3] === 'itens' && metodo === 'POST') {
+      const quem = EQUIPE_CASA.find((m) => m.id === String(b.userId ?? ''));
+      if (!quem) return new Recusa(400, 'Esta pessoa não está ativa no sistema.');
+      if (String(b.data ?? '').slice(0, 7) !== r.mes.slice(0, 7)) {
+        return new Recusa(400, 'O dia precisa ser do mês deste rascunho.');
+      }
+      if (r.itens.some((i) => !i.retirado && i.userId === quem.id && i.data === b.data && i.turno === b.turno)) {
+        return new Recusa(400, 'Esta pessoa já está neste turno no rascunho.');
+      }
+      const id = uid();
+      r.itens.push({ id, userId: quem.id, quem: quem.nome, cargo: quem.cargo, data: String(b.data),
+        turno: b.turno === 'noturno' ? 'noturno' : 'diurno', inicio: b.inicio || null, fim: b.fim || null,
+        nota: b.nota || null, incluidoAMao: true, conflito: null, conflitoCasa: null, retirado: false });
+      return { id, ok: true };
+    }
+    if (seg[3] === 'publicar' && metodo === 'POST') {
+      let publicados = 0; let jaEscalados = 0;
+      for (const i of r.itens.filter((x) => !x.retirado)) {
+        if (ESCALA.some((x) => x.data === i.data && x.turno === i.turno && x.userId === i.userId && !x.revogadaEm)) {
+          jaEscalados++; continue;
+        }
+        ESCALA.push({ id: uid(), userId: i.userId, quem: i.quem, cargo: i.cargo, data: i.data,
+          turno: i.turno as 'diurno' | 'noturno', inicio: i.inicio, fim: i.fim, nota: i.nota,
+          revogadaEm: null, motivoRevogacao: null, revogadaPor: null });
+        publicados++;
+      }
+      r.status = 'publicado';
+      return { publicados, jaEscalados, foraPorInativo: 0,
+        aviso: `${publicados} plantão(ões) publicado(s) na escala da casa.`
+          + (jaEscalados ? ` ${jaEscalados} já estava(m) na escala e ficou(aram) como estava(m).` : '') };
+    }
+    if (seg[3] === 'descartar' && metodo === 'POST') {
+      if (String(b.motivo ?? '').trim().length < 5) return new Recusa(400, 'Escreva por que o rascunho foi descartado.');
+      r.status = 'descartado'; r.motivo = String(b.motivo).trim();
+      return { ok: true, aviso: 'Rascunho descartado. Ele continua registrado, com o motivo.' };
+    }
+  }
   if (rota.startsWith('/escala') && metodo === 'GET') {
     const de = String(q.get('de') ?? HOJE);
     const ate = String(q.get('ate') ?? HOJE);
@@ -7854,6 +7989,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
   if (rota === '/nursing/hospitalizations/kinds') {
     return {
       tiposDeNota: TIPOS_DE_NOTA_INT,
+      categoriasDoAnexo: CATEGORIAS_DO_ANEXO_INT,
       desfechos: [
         { cod: 'alta', label: 'Alta — volta para a casa' },
         { cod: 'transferencia_hospitalar', label: 'Transferência para outro hospital' },
@@ -7927,11 +8063,24 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
           'Escreva o que aconteceu. O anexo sozinho, daqui a um ano, não diz o que foi feito.');
       }
       const tipo = String(b.tipo ?? 'relato');
+      if (b.conteudo && !CATEGORIAS_DO_ANEXO_INT.some((c) => c.cod === b.categoria)) {
+        return new Recusa(400, 'Diga que documento é o anexo: receita, atestado, relatório médico, '
+          + 'exame, encaminhamento, foto de documento ou outro.');
+      }
+      /* O mesmo arquivo duas vezes é recusado, como no servidor (1622). */
+      const repetido = b.conteudo && i.diario.find((n: any) => n.conteudo === b.conteudo);
+      if (repetido) {
+        return new Recusa(409, `Este mesmo arquivo já foi anexado a esta internação, no registro de `
+          + `${String(repetido.dia).split('-').reverse().join('/')}, por ${repetido.por}. Não é preciso enviar de novo.`);
+      }
       i.diario.unshift({
         id: `nota-${i.diario.length + 1}`, dia: HOJE, tipo,
         tipoRotulo: TIPOS_DE_NOTA_INT.find((t) => t.cod === tipo)?.label ?? tipo,
         texto: String(b.texto).trim(), temAnexo: !!b.conteudo,
-        nomeDoArquivo: b.nomeArquivo ?? null, por: eu.fullName,
+        nomeDoArquivo: b.nomeArquivo ?? null, por: eu.fullName, cargo: eu.role,
+        categoria: b.conteudo ? b.categoria : null,
+        categoriaRotulo: b.conteudo ? CATEGORIAS_DO_ANEXO_INT.find((c) => c.cod === b.categoria)?.label : null,
+        conteudo: b.conteudo ?? null, tipoDoArquivo: b.conteudo ? (String(b.conteudo).startsWith('JVBER') ? 'application/pdf' : 'image/jpeg') : null,
         em: new Date().toISOString(),
       });
       return { ok: true };
@@ -7939,8 +8088,25 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     if (seg[3] === 'notes' && seg[5] === 'anexo' && metodo === 'GET') {
       const n = i.diario.find((x: any) => x.id === seg[4]);
       if (!n?.temAnexo) return new Recusa(404, 'Este registro não tem anexo.');
-      return { nome: n.nomeDoArquivo ?? 'documento.pdf', tipo: 'application/pdf',
-               conteudo: btoa('%PDF-1.7 documento do hospital, fictício') };
+      /* O que foi anexado nesta sessão volta como entrou; o que não tem conteúdo
+         guardado volta como PDF fictício. */
+      return { nome: n.nomeDoArquivo ?? 'documento.pdf', tipo: n.tipoDoArquivo ?? 'application/pdf',
+               conteudo: n.conteudo ?? btoa('%PDF-1.7 documento do hospital, fictício') };
+    }
+    if ((seg[3] === 'folha' && metodo === 'GET') || (seg[3] === 'export' && metodo === 'POST')) {
+      if (!QUEM_BAIXA_INT.includes(eu.role)) {
+        return new Recusa(403, 'O relatório da internação é baixado pela equipe técnica, pela '
+          + 'coordenação e pelos líderes. Quem acompanha a internação consulta o diário na tela.');
+      }
+      const f = folhaDaInternacaoMock(i, eu);
+      if (seg[3] === 'folha') return f;
+      if (String(b.finalidade ?? '').trim().length < 10) {
+        return new Recusa(400, 'Descreva a finalidade da exportação (mínimo 10 caracteres).');
+      }
+      return { nomeArquivo: nomeDaFolha(f.titulo), conteudoBase64: gerarDocx(f as any, timbreEmBytes()),
+               aviso: 'Documento gerado em Word, com timbre. Exportação registrada com o seu nome, a '
+                 + 'finalidade e o horário. No sistema de verdade, as imagens e as páginas dos PDFs '
+                 + 'anexados entram dentro do documento.' };
     }
 
     if (seg[3] === 'medications' && metodo === 'POST') {

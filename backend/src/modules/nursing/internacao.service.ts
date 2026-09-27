@@ -1,10 +1,14 @@
 import {
-  BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException,
+  BadRequestException, ConflictException, ForbiddenException, Inject, Injectable, NotFoundException,
 } from '@nestjs/common';
 import { DatabaseService } from '../../kernel/database/database.service';
 import { AuditService } from '../../kernel/audit/audit.service';
 import { ArquivosService, RegraDoArquivo } from '../../kernel/arquivos/arquivos.service';
 import { AuthenticatedUser } from '../../kernel/contracts';
+import { DocumentosService } from '../../kernel/documentos/documentos.service';
+import { cargoNoDocumento } from '../../kernel/documentos/folha';
+import { paginasDoPdf } from '../../kernel/documentos/paginas-do-pdf';
+import { folhaDaInternacao, AnexoDaInternacao } from './internacao-folha';
 
 /**
  * A INTERNAÇÃO HOSPITALAR (migração 0890).
@@ -31,12 +35,26 @@ import { AuthenticatedUser } from '../../kernel/contracts';
 const O_ANEXO_DA_INTERNACAO: RegraDoArquivo = {
   aceita: ['application/pdf', 'image/jpeg', 'image/png'],
   maximo: 10 * 1024 * 1024,
+  conferirInteireza: true,
   recusas: {
     vazio: 'O anexo chegou vazio.',
     grande: 'O anexo passa de 10 MB. Digitalize em qualidade menor.',
     tipo: 'O anexo precisa ser PDF, JPG ou PNG.',
+    incompleto: 'O anexo chegou incompleto, provavelmente porque o sinal caiu durante o envio. '
+      + 'Envie de novo.',
   },
 };
+
+/** O que o papel anexado é (1622). A lista é a do pedido de 25/09. */
+export const CATEGORIAS_DO_ANEXO = [
+  { cod: 'receita', label: 'Receita' },
+  { cod: 'atestado', label: 'Atestado' },
+  { cod: 'relatorio_medico', label: 'Relatório médico' },
+  { cod: 'exame', label: 'Exame' },
+  { cod: 'encaminhamento', label: 'Encaminhamento' },
+  { cod: 'foto_de_documento', label: 'Foto de documento' },
+  { cod: 'outro', label: 'Outro documento' },
+];
 
 @Injectable()
 export class InternacaoService {
@@ -45,6 +63,7 @@ export class InternacaoService {
     @Inject(DatabaseService) private readonly db: DatabaseService,
     @Inject(AuditService) private readonly audit: AuditService,
     @Inject(ArquivosService) private readonly arquivos: ArquivosService,
+    @Inject(DocumentosService) private readonly documentos: DocumentosService,
   ) {}
 
   private readonly TIPOS_DE_NOTA = [
@@ -67,6 +86,7 @@ export class InternacaoService {
     return {
       tiposDeNota: this.TIPOS_DE_NOTA,
       desfechos: this.DESFECHOS,
+      categoriasDoAnexo: CATEGORIAS_DO_ANEXO,
       nota: 'O relato diário não é obrigatório e não vira pendência de ninguém. '
         + 'Ele existe porque a equipe visita todo dia, e o que foi visto lá se perde '
         + 'se não for escrito no mesmo dia.',
@@ -248,8 +268,10 @@ export class InternacaoService {
       if (!h) throw new NotFoundException('Internação não encontrada — ou fora do seu alcance.');
 
       const { rows: notas } = await c.query(
-        `SELECT n.id, n.on_date, n.kind, n.body, n.file_name, n.storage_key IS NOT NULL AS temAnexo,
-                app_user_display_name(n.written_by) AS por, n.written_at
+        `SELECT n.id, n.on_date::text AS on_date, n.kind, n.body, n.file_name, n.storage_key IS NOT NULL AS temAnexo,
+                n.doc_category, n.mime,
+                app_user_display_name(n.written_by) AS por,
+                app_user_cargo_em(n.written_by, n.written_at) AS cargo, n.written_at
            FROM hospitalization_note n WHERE n.hospitalization_id = $1
           ORDER BY n.on_date DESC, n.written_at DESC`, [id]);
 
@@ -260,7 +282,9 @@ export class InternacaoService {
           ORDER BY m.given_at DESC`, [id]);
 
       const { rows: acomp } = await c.query(
-        `SELECT a.id, app_user_display_name(a.user_id) AS quem, a.from_date, a.to_date, a.note,
+        `SELECT a.id, app_user_display_name(a.user_id) AS quem, a.from_date::text AS from_date,
+                a.to_date::text AS to_date, a.note,
+                app_user_cargo_em(a.user_id, (a.from_date + time '12:00') AT TIME ZONE 'America/Sao_Paulo') AS cargo,
                 app_user_display_name(a.assigned_by) AS designadoPor
            FROM hospitalization_companion a WHERE a.hospitalization_id = $1
           ORDER BY a.from_date DESC`, [id]);
@@ -275,7 +299,10 @@ export class InternacaoService {
           id: n.id, dia: n.on_date, tipo: n.kind,
           tipoRotulo: this.TIPOS_DE_NOTA.find((t) => t.cod === n.kind)?.label ?? n.kind,
           texto: n.body, temAnexo: n.temanexo, nomeDoArquivo: n.file_name,
-          por: n.por, em: n.written_at,
+          categoria: n.doc_category ?? null,
+          categoriaRotulo: CATEGORIAS_DO_ANEXO.find((c) => c.cod === n.doc_category)?.label ?? null,
+          tipoDoArquivo: n.mime ?? null,
+          por: n.por, cargo: n.cargo, em: n.written_at,
         })),
         /* A medicação do hospital sai SEMPRE com a origem escrita. Sem essa
          * frase, a linha se leria como dose da casa — e a casa apareceria
@@ -286,7 +313,7 @@ export class InternacaoService {
           origem: 'Administrada pelo hospital', registradoPor: m.registradopor,
         })),
         acompanhantes: acomp.map((a) => ({
-          id: a.id, quem: a.quem, de: a.from_date, ate: a.to_date,
+          id: a.id, quem: a.quem, cargo: a.cargo, de: a.from_date, ate: a.to_date,
           observacao: a.note, designadoPor: a.designadopor,
         })),
       };
@@ -297,6 +324,7 @@ export class InternacaoService {
 
   async registrar(user: AuthenticatedUser, id: string, input: {
     dia?: string; tipo?: string; texto?: string; conteudo?: string; nomeArquivo?: string;
+    categoria?: string;
   }) {
     if (!(input.texto ?? '').trim()) {
       throw new BadRequestException(
@@ -304,6 +332,34 @@ export class InternacaoService {
     }
     if (input.tipo && !this.TIPOS_DE_NOTA.some((t) => t.cod === input.tipo)) {
       throw new BadRequestException('Tipo de registro desconhecido.');
+    }
+
+    const temAnexo = !!String(input.conteudo ?? '').trim();
+    if (temAnexo && !CATEGORIAS_DO_ANEXO.some((c) => c.cod === input.categoria)) {
+      throw new BadRequestException(
+        'Diga que documento é o anexo: receita, atestado, relatório médico, exame, '
+        + 'encaminhamento, foto de documento ou outro.');
+    }
+    if (!temAnexo && input.categoria) {
+      throw new BadRequestException('A categoria é do anexo, e este registro não tem anexo.');
+    }
+
+    /* O MESMO ARQUIVO DUAS VEZES (1622): conferido ANTES de gravar, para não
+       deixar no disco um objeto que nenhum registro aponta. */
+    const soma = this.arquivos.somaDe(input.conteudo);
+    if (soma) {
+      const repetido = await this.db.asUser(user.id, async (c) => {
+        const { rows: [r] } = await c.query(
+          `SELECT on_date::text AS dia, app_user_display_name(written_by) AS quem
+             FROM hospitalization_note WHERE hospitalization_id = $1 AND sha256 = $2`, [id, soma]);
+        return r;
+      });
+      if (repetido) {
+        const [a, m, d] = String(repetido.dia).split('-');
+        throw new ConflictException(
+          `Este mesmo arquivo já foi anexado a esta internação, no registro de ${d}/${m}/${a}`
+          + (repetido.quem ? `, por ${repetido.quem}` : '') + '. Não é preciso enviar de novo.');
+      }
     }
 
     const guardado = await this.arquivos.guardar(input.conteudo, O_ANEXO_DA_INTERNACAO);
@@ -314,11 +370,13 @@ export class InternacaoService {
       try {
         const { rows: [r] } = await c.query(
           `INSERT INTO hospitalization_note (hospitalization_id, on_date, kind, body,
-                                             storage_key, mime, file_name, written_by)
+                                             storage_key, mime, file_name, written_by,
+                                             doc_category, sha256, size_bytes)
            VALUES ($1, coalesce($2::date, app_hoje()), coalesce($3,'relato'), $4,
-                   $5, $6, $7, $8) RETURNING id`,
+                   $5, $6, $7, $8, $9, $10, $11) RETURNING id`,
           [id, input.dia ?? null, input.tipo ?? null, input.texto!.trim(),
-           chave, tipoArq, input.nomeArquivo ?? null, user.id]);
+           chave, tipoArq, input.nomeArquivo ?? null, user.id,
+           chave ? input.categoria : null, guardado?.sha256 ?? null, guardado?.tamanho ?? null]);
 
         /*
          * E O ANEXO CAI NO PERFIL DA CRIANÇA (fase 125).
@@ -461,5 +519,101 @@ export class InternacaoService {
         [id, input.userId, input.de ?? null, (input.observacao ?? '').trim() || null, user.id]);
       return { id: r.id, ok: true };
     });
+  }
+
+  // ------------------------------------------------------------------
+  // O relatório completo, em Word (fase 165)
+  // ------------------------------------------------------------------
+
+  /** Quem baixa o relatório: a lista do pedido de 25/09, e a gestão. */
+  private readonly QUEM_BAIXA = ['equipe_tecnica', 'coordenador', 'lider_diurno',
+    'lider_noturno_geral', 'gestor_geral'];
+
+  private podeBaixar(user: AuthenticatedUser) {
+    if (!this.QUEM_BAIXA.includes(user.role)) {
+      throw new ForbiddenException(
+        'O relatório da internação é baixado pela equipe técnica, pela coordenação e pelos '
+        + 'líderes. Quem acompanha a internação consulta o diário na tela.');
+    }
+  }
+
+  /**
+   * A folha do relatório. `desenhar` decide se os anexos entram como imagem:
+   * ver na tela não desenha PDF nenhum (é pesado e a tela não precisa); o
+   * arquivo em Word desenha tudo.
+   */
+  async folha(user: AuthenticatedUser, id: string, desenhar = false) {
+    this.podeBaixar(user);
+    const p = await this.abrirPeriodo(user, id);
+    const casa = await this.db.asUser(user.id, async (c) => {
+      const { rows: [r] } = await c.query(
+        `SELECT h.house_id, app_house_label(h.house_id) || ' · ' || app_house_name(h.house_id) AS unidade
+           FROM hospitalization h WHERE h.id = $1`, [id]);
+      return r;
+    });
+
+    /* Os anexos em ordem de registro: é a ordem em que o diário os cita. */
+    const comAnexo = [...p.diario].filter((n) => n.temAnexo)
+      .sort((a, b) => new Date(a.em).getTime() - new Date(b.em).getTime());
+    const numero = new Map(comAnexo.map((n, i) => [n.id, i + 1]));
+
+    const anexos: AnexoDaInternacao[] = [];
+    for (const n of comAnexo) {
+      const base = {
+        numero: numero.get(n.id)!, categoria: n.categoriaRotulo ?? 'Documento',
+        nomeDoArquivo: n.nomeDoArquivo, registradoEm: n.em, registradoPor: n.por,
+      };
+      if (!desenhar) { anexos.push({ ...base, paginas: [] }); continue; }
+      const bytes = await this.lerChave(user, id, n.id);
+      if (!bytes) { anexos.push({ ...base, paginas: [], naoReproduzido: true }); continue; }
+      if (n.tipoDoArquivo === 'application/pdf') {
+        const r = await paginasDoPdf(bytes);
+        anexos.push({
+          ...base, totalDePaginas: r.total, naoReproduzido: r.falhou || !r.paginas.length,
+          paginas: r.paginas.map((pg) => ({ tipo: 'image/png', dados: new Uint8Array(pg) })),
+        });
+      } else {
+        anexos.push({ ...base, paginas: [{ tipo: n.tipoDoArquivo ?? '', dados: new Uint8Array(bytes) }] });
+      }
+    }
+
+    const folha = folhaDaInternacao({
+      acolhido: p.acolhido, unidade: casa?.unidade ?? '', hospital: p.hospital,
+      motivo: p.motivo, desde: p.desde, ate: p.ate, status: p.status,
+      desfecho: p.desfecho, observacaoDoDesfecho: p.observacaoDoDesfecho,
+      abertaPor: p.abertaPor, encerradaPor: p.encerradaPor,
+      acompanhantes: [...p.acompanhantes].reverse().map((a: any) => ({
+        quem: a.quem, cargo: a.cargo, de: a.de, ate: a.ate, designadoPor: a.designadoPor,
+      })),
+      diario: p.diario.map((n: any) => ({
+        dia: String(n.dia).slice(0, 10),
+        em: new Date(n.em).toISOString(), tipoRotulo: n.tipoRotulo, texto: n.texto,
+        por: n.por, cargo: n.cargo, anexo: numero.get(n.id) ?? null, categoria: n.categoriaRotulo,
+      })),
+      medicacao: p.medicacaoNoHospital.map((m: any) => ({
+        quando: new Date(m.quando).toISOString(), medicamento: m.medicamento,
+        dose: m.dose, via: m.via, observacao: m.observacao,
+      })),
+    }, anexos, { nome: user.fullName, cargo: cargoNoDocumento(user.role) });
+    return { folha, houseId: casa?.house_id as string | undefined };
+  }
+
+  async exportar(user: AuthenticatedUser, id: string, finalidade?: string) {
+    const { folha, houseId } = await this.folha(user, id, true);
+    return this.documentos.exportar(user, folha, {
+      entidade: 'hospitalization', entidadeId: id, houseId: houseId ?? null,
+      finalidade: finalidade ?? '',
+    });
+  }
+
+  /** Os bytes de um anexo, sob o alcance de quem pede (a mesma leitura do diário). */
+  private async lerChave(user: AuthenticatedUser, internacaoId: string, notaId: string) {
+    const chave = await this.db.asUser(user.id, async (c) => {
+      const { rows: [r] } = await c.query(
+        `SELECT storage_key FROM hospitalization_note WHERE id = $1 AND hospitalization_id = $2`,
+        [notaId, internacaoId]);
+      return r?.storage_key as string | undefined;
+    });
+    return chave ? this.arquivos.ler(chave) : null;
   }
 }

@@ -296,6 +296,126 @@ export class EscalaService {
 
   // ------------------------------------------------------------------
 
+  // ------------------------------------------------------------------
+  // O RASCUNHO DO MÊS (fase 165)
+  // ------------------------------------------------------------------
+
+  /**
+   * Repete a escala do mês anterior como RASCUNHO. Nada é publicado aqui: a
+   * cópia espera a revisão de quem monta a escala, e a equipe não a vê.
+   */
+  async repetirMesAnterior(user: AuthenticatedUser, input: { houseId?: string; mes?: string }) {
+    const mes = this.mesConferido(input.mes);
+    if (!input.houseId) throw new BadRequestException('Informe a casa.');
+    const r = await this.chamar(user, async (c) => {
+      const { rows: [row] } = await c.query(
+        `SELECT * FROM app_repetir_escala($1, $2::date)`, [input.houseId, mes]);
+      return row;
+    });
+    await this.audit.log({
+      action: 'escala.rascunho.criado', actorId: user.id, houseId: input.houseId,
+      entity: 'shift_draft', entityId: r.rascunho_id,
+      detail: { mes, copiados: r.copiados, foraPorInativo: r.fora_por_inativo.length },
+    });
+    const inativos: string[] = r.fora_por_inativo ?? [];
+    return {
+      rascunhoId: r.rascunho_id, copiados: r.copiados, foraPorInativo: inativos,
+      aviso: `Rascunho criado com ${r.copiados} plantão(ões), copiados do mesmo dia da semana `
+        + 'quatro semanas antes. Ele ainda não vale: revise e publique quando estiver certo.'
+        + (inativos.length
+          ? ` Não foram copiados os plantões de quem não está mais ativo: ${inativos.join(', ')}.`
+          : ''),
+    };
+  }
+
+  /** O rascunho aberto do mês, com os conflitos de cada linha. */
+  async rascunho(user: AuthenticatedUser, houseId: string, mes?: string) {
+    const m = this.mesConferido(mes);
+    const linhas: any[] = await this.chamar(user, async (c) => {
+      const { rows } = await c.query(
+        `SELECT r.*, r.on_date::text AS dia FROM app_rascunho_da_escala($1, $2::date) r`, [houseId, m]);
+      return rows;
+    });
+    if (!linhas.length) return { mes: m, rascunho: null };
+    const primeira = linhas[0];
+    const itens = linhas.filter((l) => l.item_id).map((l) => ({
+      id: l.item_id, userId: l.user_id, quem: l.quem, cargo: l.cargo,
+      data: l.dia, turno: l.period, inicio: l.start_time, fim: l.end_time, nota: l.note,
+      incluidoAMao: l.incluido_a_mao,
+      conflito: l.conflito ?? null, conflitoCasa: l.conflito_casa ?? null,
+    }));
+    return {
+      mes: m,
+      rascunho: {
+        id: primeira.rascunho_id, criadoPor: primeira.criado_por, criadoEm: primeira.criado_em,
+        itens,
+        conflitos: itens.filter((i: any) => i.conflito).length,
+      },
+    };
+  }
+
+  async incluirNoRascunho(user: AuthenticatedUser, rascunhoId: string, input: {
+    userId?: string; data?: string; turno?: string; inicio?: string; fim?: string; nota?: string;
+  }) {
+    if (!input.userId || !input.data || !input.turno) {
+      throw new BadRequestException('Informe a pessoa, o dia e o turno.');
+    }
+    const id = await this.chamar(user, async (c) => {
+      const { rows: [r] } = await c.query(
+        `SELECT app_rascunho_incluir($1,$2,$3::date,$4,$5::time,$6::time,$7) AS id`,
+        [rascunhoId, input.userId, input.data, input.turno,
+         input.inicio || null, input.fim || null, input.nota ?? null]);
+      return r.id as string;
+    });
+    return { id, ok: true };
+  }
+
+  async retirarDoRascunho(user: AuthenticatedUser, itemId: string) {
+    await this.chamar(user, (c) => c.query(`SELECT app_rascunho_retirar($1)`, [itemId]));
+    return { ok: true };
+  }
+
+  async publicarRascunho(user: AuthenticatedUser, rascunhoId: string) {
+    const r = await this.chamar(user, async (c) => {
+      const { rows: [row] } = await c.query(`SELECT * FROM app_publicar_rascunho($1)`, [rascunhoId]);
+      return row;
+    });
+    await this.audit.log({
+      action: 'escala.rascunho.publicado', actorId: user.id, houseId: r.house_id,
+      entity: 'shift_draft', entityId: rascunhoId,
+      detail: { publicados: r.publicados, foraPorInativo: r.fora_por_inativo, jaEscalados: r.ja_escalados },
+    });
+    const partes = [`${r.publicados} plantão(ões) publicado(s) na escala da casa.`];
+    if (r.ja_escalados) partes.push(`${r.ja_escalados} já estava(m) na escala e ficou(aram) como estava(m).`);
+    if (r.fora_por_inativo) partes.push(`${r.fora_por_inativo} não entrou(aram): a pessoa não está mais ativa.`);
+    return { publicados: r.publicados, jaEscalados: r.ja_escalados, foraPorInativo: r.fora_por_inativo,
+             aviso: partes.join(' ') };
+  }
+
+  async descartarRascunho(user: AuthenticatedUser, rascunhoId: string, motivo?: string) {
+    if ((motivo ?? '').trim().length < 5) {
+      throw new BadRequestException('Escreva por que o rascunho foi descartado.');
+    }
+    const houseId = await this.chamar(user, async (c) => {
+      const { rows: [r] } = await c.query(`SELECT app_descartar_rascunho($1,$2) AS h`, [rascunhoId, motivo]);
+      return r.h as string;
+    });
+    await this.audit.log({
+      action: 'escala.rascunho.descartado', actorId: user.id, houseId,
+      entity: 'shift_draft', entityId: rascunhoId, detail: {},
+    });
+    return { ok: true, aviso: 'Rascunho descartado. Ele continua registrado, com o motivo.' };
+  }
+
+  /** `2026-10` ou `2026-10-01` → `2026-10-01`. */
+  private mesConferido(mes?: string): string {
+    const m = /^(\d{4})-(\d{2})(-\d{2})?$/.exec(String(mes ?? ''));
+    if (!m || Number(m[2]) < 1 || Number(m[2]) > 12) {
+      throw new BadRequestException('Informe o mês no formato 2026-10.');
+    }
+    return `${m[1]}-${m[2]}-01`;
+  }
+
   /**
    * As recusas do banco viram frase.
    *
@@ -309,6 +429,7 @@ export class EscalaService {
     } catch (e: any) {
       const m = String(e?.message ?? '');
       if (m.includes('escala_inexistente')) throw new NotFoundException('Plantão não encontrado na escala.');
+      if (m.includes('rascunho_inexistente')) throw new NotFoundException('Rascunho não encontrado.');
       /*
        * A PESSOA JÁ ESTÁ NESTE TURNO — e a frase é daqui, não do Postgres.
        *

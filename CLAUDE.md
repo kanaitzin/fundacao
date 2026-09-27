@@ -152,6 +152,8 @@ e qual é o caminho certo.
 | `backend/src/kernel/audit/audit.service.ts` | quem ESCREVE a auditoria, e as três respostas sobre a casa de uma linha (fase 149). **Linha de auditoria sem casa é linha que a coordenação da casa não lê** — a policy compara `house_id` com o alcance, e NULL não é igual a nada. O `auditoria-tem-casa.spec.ts` cobra `houseId` em toda chamada, com a lista ESCRITA das poucas ações que não têm casa |
 | `frontend/src/portas.ts` | **as vinte e cinco telas do sistema, numa lista só** (fase 150). A folha "Mais" do celular, a coluna do monitor e a conferência leem dela. A lista existia em DOIS lugares e as duas discordavam — `as-portas-e-os-icones.spec.ts` é o que impede a divergência voltar |
 | `frontend/src/icones.tsx` | **os desenhos da moldura**, em traço e `currentColor`, no lugar dos emoji (fase 150). Emoji muda de cara conforme o aparelho, não herda a cor e carrega significado que ninguém pediu. Nenhum ícone é o único portador do sentido: ao lado há sempre a palavra |
+| `frontend/src/anexos.tsx` | **o `EscolherAnexo`** (fase 165): câmera, galeria, arquivo e a câmera do computador, com prévia, ampliar, descartar e tirar outra. Todo lugar novo que recebe foto ou documento usa este, e não um `<input type="file">` solto |
+| `backend/src/kernel/documentos/paginas-do-pdf.ts` | **as páginas de um PDF como imagem** (fase 165), num processo à parte (`desenhar-paginas.mjs`, nome diferente de propósito: com o mesmo nome o Jest importava o `.mjs`). Nunca lança: PDF que não desenha volta marcado, e o documento sai assim mesmo |
 | `frontend/src/cargos.tsx` | **a cor de cada cargo e o círculo de iniciais** (fase 151). Ela convive com DUAS outras: a cor de ESTADO (crítico/atenção — não se toca, e o cargo não usa a família dela) e a cor de AUTOR (`tomDoAutor`, qual colega escreveu — a coordenação escolhe, 0990). Três perguntas diferentes; o dia em que duas responderem à mesma, a cor deixa de informar |
 
 ## O que fazer agora
@@ -160,7 +162,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 27/09/2026, fase 164
+### Onde estamos — 27/09/2026, fase 165
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -188,8 +190,9 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 162 | **a cozinha recebe a lista** (decisões de 26/09): "Selecionar todos" = um pedido por criança, tudo ou nada (`batch_id`); editar até o dia, por quem pediu/coordenação/técnica/líder, com `kitchen_request_change`; refeições da casa por refeição; e o **relatório do período perdia o último dia** (`reference_at BETWEEN` datas) |
 | 163 | **três temas, Portaria em cartões com a foto 3×4, botões na coluna** (pedido de 27/09): tema **alto contraste** (decisão), no sistema de verdade, lembrado no aparelho (`frontend/src/tema.ts`); o **ensaio de acessibilidade só media o claro** — hoje mede os três, 432 telas; foto 3×4 anexada por técnica/coordenação no próprio portão; ícone do Período |
 | 164 | **a voz dos documentos** (pedido de 27/09): toda folha, relatório e o roteiro da Casa 03 reescritos na linguagem da equipe de acolhimento, e a regra virou teste (`a-voz-dos-documentos.spec.ts`); de passagem, a **folha da escala imprimia 08:00–20:00 fixos** apesar do horário por casa da 159, e o **relatório de visitas imprimia o aviso da tela** como ressalva |
+| 165 | **o relatório da internação em Word** (capa, os dias, e os anexos com as páginas dos PDFs do hospital), **a câmera no anexo** (`EscolherAnexo`), o anexo cortado e o repetido recusados, **o mês como rascunho** e **o cargo da época**; o papel do servidor virou A4/Arial 12/margens 3 e 2 cm como o do protótipo; e o **colírio das 07:30 era dose da noite** no protótipo desde a 157 |
 
-**Medido no fim da 164:** 160 migrações, 121 tabelas, 110 suítes, 1054 testes, verdes nas
+**Medido no fim da 165:** 163 migrações, 124 tabelas, 113 suítes, 1076 testes, verdes nas
 DUAS condições de relógio; os sete ensaios de navegador verdes, com a portaria e o
 portão, o armário, a cozinha, os temas e a foto no percurso do `ensaio:uso`; **432 telas (144 × três
 temas) sem violação de WCAG 2.1 AA**; nenhuma
@@ -232,9 +235,11 @@ data do dia em que o noturno começou** — substitui o 7h–19h preliminar (pen
 - ~~**164** (fora do plano, pedido de 27/09) a voz dos documentos~~ ✅ feita —
   **as fases abaixo andaram mais um número**. Todo documento novo destas
   fases (o DOCX da internação, sobretudo) nasce na voz da equipe;
-- **165** câmera/galeria com prévia, tipo real do arquivo, DOCX da internação com
-  imagens e páginas de PDF, "repetir escala do mês anterior" como rascunho, e o
-  **cargo da época** nos registros antigos (`app_user_cargo` devolve o ATUAL);
+- ~~**165** câmera/galeria com prévia, anexo inteiro e não repetido, DOCX da
+  internação com as páginas dos PDFs, o mês como rascunho, o cargo da época~~ ✅
+  feita. Decisões de 27/09: PDF desenhado no SERVIDOR; rascunho só para quem
+  monta; cópia pelo mesmo dia da semana. **Aberto no §10, item 12:** a
+  Enfermagem lê a internação mas não baixa o relatório (segui a lista do pedido);
 - **166** simulação de vários dias (§38) como teste, e o relatório final com a matriz.
 
 **1. As medições de alcance estão feitas** — escrita (156) e leitura (158). A
@@ -364,6 +369,14 @@ novo.
   um defeito de conteúdo: a escala impressa dizia 08:00–20:00 numa casa que
   tinha mudado o horário. **Reler o documento como quem o recebe acha o que o
   teste de quem o gera não acha.**
+- **Data como texto não ordena** (165). `String(new Date())` não tem
+  milissegundos: dois anexos no mesmo segundo saíam na ordem inversa no
+  relatório, e o teste passava ou não conforme o relógio. Instante se compara
+  pelo número (`getTime()`), nunca pelo texto.
+- **A regra nova do turno vale para o DADO DE DEMONSTRAÇÃO também** (165). A
+  157 mudou o diurno para 08:00, e o colírio do protótipo continuou às 07:30:
+  virou dose da noite, e só a rodada da madrugada viu. Quando a regra muda,
+  confira o dado fixo que ela classifica.
 - **Frase de tela que envelhece é frase que mente**, e a cobrança do ensaio que a
   guarda tem de ser reescrita junto. A ressalva do painel sobre nota escolar já foi
   reescrita três vezes. **Isto inclui este arquivo.**

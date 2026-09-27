@@ -20,7 +20,7 @@ começava escolhendo em qual acreditar.*
 
 | Arquivo | Por que sobreviveu |
 |---|---|
-| `der.md` | as 121 tabelas com o que cada coluna guarda. É referência de dado, não narrativa, e o `documentacao.spec.ts` cobra que toda tabela apareça lá |
+| `der.md` | as 124 tabelas com o que cada coluna guarda. É referência de dado, não narrativa, e o `documentacao.spec.ts` cobra que toda tabela apareça lá |
 | `roteiro-marcelo.md` (+ `.docx`) | é entregue à Casa 03, escrito para quem não conhece o sistema. O `.docx` é GERADO do `.md` por `scripts/roteiro-em-word.mjs` — não editar o Word à mão |
 
 ---
@@ -90,14 +90,14 @@ discordavam entre si.
 | Quanto | De onde sai |
 |---|---|
 | **18 partições** isoladas | pastas em `backend/src/modules/` |
-| **160 migrações** | `.sql` dentro das partições |
-| **121 tabelas** | `CREATE TABLE` nas migrações |
-| **110 suítes** | `backend/test/*.spec.ts` |
-| **1054 testes** | `it(` / `test(` nas suítes |
+| **163 migrações** | `.sql` dentro das partições |
+| **124 tabelas** | `CREATE TABLE` nas migrações |
+| **113 suítes** | `backend/test/*.spec.ts` |
+| **1076 testes** | `it(` / `test(` nas suítes |
 | **36 telas React** | `frontend/src/screens/*.tsx` |
 | **10 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **7 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
-| protótipo com **≈1409 KB** | `prototipo/rede-acolher-prototipo.html` |
+| protótipo com **≈1434 KB** | `prototipo/rede-acolher-prototipo.html` |
 
 *A frase importa: o conferidor lê o NÚMERO colado ao substantivo. Escrever
 "Telas React … 31" numa coluna separada faz o teste passar sem conferir nada —
@@ -370,6 +370,7 @@ arqueologia.
 | 162 | **A cozinha recebe a lista, o pedido se edita com histórico — e o relatório do período passa a contar o último dia.** **Duas decisões do humano em 26/09:** (1) **"Selecionar todos" grava UM PEDIDO POR CRIANÇA** — marcou doze, são doze pedidos com a mesma data, quantidade e finalidade, gravados juntos e **tudo ou nada** (`app_pedir_a_cozinha_em_lote`): uma criança de outra casa na lista recusa o lote inteiro, com a frase *"Nada foi registrado — confira a lista"*, em vez de gravar onze. O `batch_id` liga os do mesmo gesto, e cancelar um não mexe nos outros. O lanche continua podendo ser da casa toda, num pedido só; a cesta é sempre por criança. (2) **Editar** é de quem pediu, da coordenação, da técnica e do líder, **enquanto o pedido estiver aberto e a data não tiver passado** — depois do dia, só cancelar, porque a cozinha já serviu; a nova data também não vai para o passado. O antes e o depois ficam em `kitchen_request_change`, com motivo e autor, e *"nada mudou"* não vira histórico. Na tela, a escolha das crianças usa os botões de marcar da casa (os mesmos dos dias da visita) — **a primeira versão, com caixas de marcar dentro de `label`, saiu torta na FOTO**: o `label` do sistema é rótulo de campo. **As refeições da casa** (`GET /reports/period/meals`, aba nova na Cozinha): por refeição — chamadas, quantas vezes a criança comeu, parcial, recusa, ausência, dieta adaptada —, **nunca por criança**, com o aviso de que recusa é direito da criança. **E o defeito achado ao escrever essas métricas:** o relatório do período comparava o INSTANTE da chamada com DATAS (`k.reference_at BETWEEN j.de AND j.ate`), e a data vira meia-noite do COMEÇO do dia — **tudo o que aconteceu no último dia do período ficava de fora**, e a meia-noite era a do fuso da sessão. A pergunta foi ao catálogo: seis vezes em `app_periodo_da_casa`, uma em `app_periodo_da_casa_alimentacao`, e em mais nenhuma função. *Medido nos dois sentidos, com o arquivo da migração inteiro:* com a comparação antiga, o teste reprova; com a nova, passa — e a primeira tentativa de medir, com `-t`, reprovou nos dois lados, porque a chamada de refeição é criada no teste anterior. **Provado:** `a-cozinha-recebe-a-lista.e2e.spec.ts` — onze testes; a chamada de refeição dele mora 400 dias atrás, fechada, fora de toda janela das outras suítes (145). |
 | 163 | **Três temas, a Portaria em cartões com a foto 3×4, e botões de verdade na coluna.** Pedido da Fundação em 27/09: *"quero mais temas além de claro e escuro, confira se tudo fica legível"*, *"as informações estão apertadas"* na Portaria, *"não vi a foto 3×4 de cada visitante"*, *"quero botões mais bonitos"* na coluna, e *"o período da casa parece um traço"*. **Duas decisões do humano:** o tema novo é o **alto contraste** (preto sobre branco, bordas de 2px, foco grosso — para quem enxerga pouco e para o celular no sol); e a foto 3×4 é anexada pela **técnica e pela coordenação**, e a portaria só a vê grande para conferir com o documento. **O tema** deixou de ser coisa do protótipo: vale no sistema de verdade, gira claro → escuro → alto contraste num botão só, e fica lembrado NO APARELHO (nunca na conta — o celular da casa passa de mão em mão). O alto contraste ganha do "escuro do sistema operacional", porque quem o escolhe escolhe por necessidade. **A conferência de legibilidade achou o buraco que ninguém tinha visto: o `ensaio:acessibilidade` media SÓ o tema claro** — o Chromium sem tela abre claro —, e o escuro, que existe desde a fase 50, nunca tinha sido medido. Hoje ele roda os três: **432 telas, nenhuma violação de WCAG 2.1 AA**. **A Portaria** virou um cartão por visitante: a foto 3×4 à esquerda (vem sozinha, sem botão; toque para ver grande), o nome grande, os dados em linhas com rótulo — vínculo, documento, quando pode vir, atenção —, o aviso de "fora do combinado" em destaque, e as ações na largura toda; a busca "Quem chegou?" subiu para o alto; no monitor os cartões ficam lado a lado. Sem foto, o cartão diz *"peça um documento COM FOTO"*, e técnica e coordenação têm ali mesmo **"Anexar foto 3×4"**, com a câmera do celular e a prévia antes de sair do aparelho. **A coluna do monitor** ganhou botões: cada porta com o desenho num azulejo, o item aberto preenchido na cor da marca (como a aba do celular), movimento curto ao passar o mouse — desligado para quem pediu menos movimento no sistema. **O "Período da casa" era um traço com duas barrinhas**; virou um calendário com o intervalo marcado. Tudo fotografado no Chromium nas duas larguras e nos três temas antes de entrar; o `ensaio:uso` troca o tema e anexa uma foto pela tela. |
 | 164 | **A voz dos documentos.** Pedido da Fundação em 27/09: *"vários [documentos] possuem travessão do seu raciocínio; confira todos os documentos que geramos e conserte; todos têm que parecer escritos por humanos com experiência em acolhimento; fique como regra para todos os futuros relatórios ou documentos para baixar"*. Os documentos saíam com a voz de quem construiu o sistema: travessões, maiúsculas de ênfase, aspas, e ressalvas que defendiam a regra (*"a folha não diz por que alguém não está nela, de propósito"*, *"o sistema não avalia"*). **Reescritos, no servidor e no protótipo:** a ATA, a escala, os combinados e as regras de convivência, a ocorrência, a saúde, a grade e a folha da medicação para a convivência familiar, o armário e as notas fiscais, a cozinha (lanche, cesta, restrições), a relação de visitantes da portaria, o relatório de visitas, o relatório do período, o relatório técnico e o do trabalho social, o timbre e a marca de rascunho do Word. **E o roteiro da Casa 03**, que era um diário de mudanças com a minha voz: reescrito como roteiro de observação, com a numeração das tarefas mantida (o `ensaio:roteiro` as procura por número); o anterior foi para `docs/historico/`. **A conferência achou dois defeitos que não eram de estilo:** a **folha da escala imprimia 08:00 e 20:00 fixos**, quando desde a 159 cada casa define o horário dos turnos (hoje ela pergunta `app_horario_da_casa` para o primeiro e o último dia, e diz se o horário mudou no período); e o **relatório de visitas imprimia como ressalva o aviso da TELA** (*"quantidade de visitas não é avaliação da família"*), reaproveitado por `ressalva: d.aviso` — o armário no protótipo fazia o mesmo. **A regra virou teste:** o `a-voz-dos-documentos.spec.ts` lê pelo compilador do TypeScript todo texto que entra num objeto de folha, nos `*-folha.ts` e no relatório técnico e do período, e recusa travessão, maiúscula que não seja sigla, aspas, *sistema*, *de propósito* e *não é avaliação*; recusa `ressalva:` alimentada por `.aviso`/`.message`; e confere o roteiro. Medido nos dois sentidos: o roteiro antigo dá 335 recusas, e a ressalva emprestada volta a reprovar. É o item 10 do §5. |
+| 165 | **O relatório da internação em um Word só, a câmera no anexo, o mês como rascunho, e o cargo da época.** Do pedido de 25/09, seções 12 a 16, 18, 21, 22 e 32; três decisões de 27/09 (§10). **O relatório da internação** (`internacao-folha.ts`): capa com o timbre, identificação com entrada, saída e tempo de internação, o motivo, quem acompanhou (com o cargo da época), os registros de cada dia em ordem, a medicação dada pelo hospital, o encerramento, e a seção de **anexos em página nova**, com as fotos e **as páginas dos PDFs do hospital como imagem**, desenhadas no servidor por `pdfjs-dist` e `@napi-rs/canvas` num processo à parte. Baixam a técnica, a coordenação, os líderes e a gestão; o acompanhante consulta na tela. **O anexo:** `EscolherAnexo` (`anexos.tsx`) oferece *Tirar foto agora* e *Escolher da galeria* no celular, *Usar a câmera do computador* quando o navegador tem câmera e a pessoa autoriza, e *Selecionar arquivo* sempre; a permissão negada vira frase, e não tela quebrada; prévia, ampliar, descartar e tirar outra antes de enviar. Serve à internação e à foto 3×4 do visitante, que só abria a câmera. No servidor: **categoria do documento** (receita, atestado, relatório médico, exame, encaminhamento, foto de documento, outro), o **arquivo cortado** recusado pela marca de fim (`conferirInteireza`, ligada na internação), e o **mesmo arquivo duas vezes** recusado pela soma, antes de gravar no disco. **O mês como rascunho** (`shift_draft`, fora de `shift_assignment` para nenhuma das nove leituras da escala o cobrar): repetir copia o mesmo dia da semana quatro semanas antes; quem saiu da Fundação fica de fora, pelo nome; o rascunho mostra quem já está escalado noutra casa no mesmo turno; incluir, retirar, publicar e descartar com motivo; só quem monta vê. **O cargo da época** (`app_user_role_period`, gatilho em `app_user`, `app_user_cargo_em`): a linha da ATA, o pedido de leitura, a escala, o trabalho da equipe e o relatório da internação mostram o cargo de quando o registro foi feito. **O papel mudou para todos os documentos do servidor:** A4, margens de 3 e 2 cm, Arial 12, entrelinha 1,5 (§4.8); o servidor saía em Calibri 11 e margem de 1,9 cm, diferente do protótipo aprovado. **Três defeitos achados no caminho:** os anexos eram numerados comparando a data como texto, sem milissegundos, e dois anexos no mesmo segundo saíam em ordem trocada; a folha de saúde montava a unidade com travessão dentro do SQL, onde o conferidor da 164 não olhava (agora olha); e **o colírio das 07:30 do protótipo era dose da NOITE desde a regra de 25/09**, e entre a meia-noite e as 6h o plantão diurno aberto ficava sem dose, reprovando o ensaio da passagem só nessa hora (lição da 157). |
 
 ---
 
@@ -417,7 +418,7 @@ cd frontend && npm run prototipo
 ```
 
 O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as
-160 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
+163 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
 
 ### Os ensaios — e por que cada um existe
 
@@ -482,7 +483,7 @@ rede-acolher/
 │   │   │   ├── documentos/     o contrato da folha e o gerador de .docx
 │   │   │   └── common/         CPF, criptografia, segredo, fuso da instituição
 │   │   └── modules/       18 partições, cada uma dona das próprias migrações
-│   ├── test/              110 suítes (e2e contra PostgreSQL real + estáticas)
+│   ├── test/              113 suítes (e2e contra PostgreSQL real + estáticas)
 │   ├── scripts/           ensaio-carga.ts, migrador compilado
 │   └── assets/timbre.png  a marca da Fundação, usada no documento em Word
 ├── frontend/
@@ -654,8 +655,16 @@ documento do sistema é outro ato, e tem nome de quem tirou e para quê.
 
 A folha da tela e o `.docx` saem da **mesma estrutura** — duas versões
 divergiriam no primeiro ajuste, e a pessoa conferiria uma coisa e entregaria
-outra. A4, margens ABNT de 3 cm, Times 12, entrelinha 1,5, timbre do Pão dos
-Pobres.
+outra. **O papel (fase 165):** A4, margem de 3 cm no topo e à esquerda e de 2 cm
+embaixo e à direita, **Arial 12**, texto justificado, entrelinha 1,5, timbre do
+Pão dos Pobres com "Rede Acolher". *Até a 165 o protótipo saía assim (em Times)
+e o servidor saía em Calibri 11 com margens de 1,9 cm: a folha aprovada não era
+a entregue. O pedido de 25/09 pediu Arial 12, e os dois saem iguais.* A folha
+pode ter `capa` (o timbre grande e a identificação, sem cabeçalho na primeira
+página) e seção com `quebraAntes`. **As páginas de PDF** anexado viram imagem
+por `kernel/documentos/paginas-do-pdf.ts`, que chama `desenhar-paginas.mjs`
+num processo à parte (até 20 páginas por PDF, 30 s); PDF que não desenha sai
+com a legenda dizendo que não foi reproduzido, e o relatório sai mesmo assim.
 
 **A voz do documento** (fase 164): o que está escrito numa folha é lido por
 juiz, conselheiro, família e equipe de outra casa. Ele diz o que houve e orienta
@@ -2443,6 +2452,23 @@ número**.
     às 17h, é ela quem recebe a criança de volta na alta.* Desfaz-se numa linha
     em `app_pode_ver_internacao`.
 
+12. **A Enfermagem não baixa o relatório completo da internação.** Ela lê a
+    internação (item 11), mas o pedido de 25/09 nomeou quem baixa o Word:
+    equipe técnica, coordenação e líder. Segui a lista; a gestão também baixa.
+    Se a Enfermagem deve baixar, é uma linha em `QUEM_BAIXA`
+    (`internacao.service.ts`) e no protótipo.
+
+### As respostas de 27/09/2026 — a fase 165
+
+- **O PDF do hospital vira imagem no SERVIDOR**, e não no celular: vale para o
+  PDF já anexado, e o aparelho da casa não faz esforço. Custa duas bibliotecas
+  livres na instalação (`pdfjs-dist` e `@napi-rs/canvas`, cerca de 25 MB), que
+  rodam num processo à parte com 30 segundos de limite.
+- **O rascunho da escala só é visto por quem monta a escala.** A equipe vê o
+  mês depois de publicado, e a passagem só cobra pela escala publicada.
+- **Repetir o mês anterior copia o mesmo dia da semana**, quatro semanas antes
+  (oito, se quatro caírem no próprio mês novo): a 12x36 continua alternando.
+
 ### As respostas de 20/09/2026 — a rodada que destravou três telas
 
 *Quatro respostas, na noite em que o repositório ficou pronto no Code. Guardadas
@@ -2711,7 +2737,7 @@ ele continua dizendo que o arquivo existe.
 npm run ensaio:producao
 ```
 
-Constrói, cria um banco virgem, aplica as 160 migrações **pelo binário
+Constrói, cria um banco virgem, aplica as 163 migrações **pelo binário
 compilado**, sobe o serviço e confere `/health`. Não publica nada e não toca no
 banco de trabalho.
 

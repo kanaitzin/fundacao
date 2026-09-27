@@ -168,6 +168,19 @@ export class NursingController {
     return this.internacao.abrirPeriodo(user, id);
   }
 
+  /* O RELATÓRIO COMPLETO DA INTERNAÇÃO (fase 165): ver, e exportar em Word. */
+  @Get('hospitalizations/:id/folha')
+  async folhaDaInternacao(@CurrentUser() user: AuthenticatedUser,
+                          @Param('id', ParseUUIDPipe) id: string) {
+    return (await this.internacao.folha(user, id, false)).folha;
+  }
+
+  @Post('hospitalizations/:id/export')
+  exportarInternacao(@CurrentUser() user: AuthenticatedUser,
+                     @Param('id', ParseUUIDPipe) id: string, @Body(CorpoConferido) body: any) {
+    return this.internacao.exportar(user, id, body?.finalidade);
+  }
+
   @Post('hospitalizations/:id/close')
   encerrarInternacao(@CurrentUser() user: AuthenticatedUser,
                      @Param('id', ParseUUIDPipe) id: string, @Body() body: any) {

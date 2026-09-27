@@ -28,6 +28,41 @@ export class EscalaController {
     return this.escala.folha(user, houseId, de, ate);
   }
 
+  /* O RASCUNHO DO MÊS (fase 165), com as palavras fixas antes de `:id`. */
+  @Get('rascunho')
+  rascunho(@CurrentUser() user: AuthenticatedUser,
+           @Query('houseId', ParseUUIDPipe) houseId: string, @Query('mes') mes?: string) {
+    return this.escala.rascunho(user, houseId, mes);
+  }
+
+  @Post('rascunho')
+  repetirMesAnterior(@CurrentUser() user: AuthenticatedUser, @Body(CorpoConferido) body: any) {
+    return this.escala.repetirMesAnterior(user, body ?? {});
+  }
+
+  @Post('rascunho/itens/:itemId/retirar')
+  retirarDoRascunho(@CurrentUser() user: AuthenticatedUser,
+                    @Param('itemId', ParseUUIDPipe) itemId: string) {
+    return this.escala.retirarDoRascunho(user, itemId);
+  }
+
+  @Post('rascunho/:id/itens')
+  incluirNoRascunho(@CurrentUser() user: AuthenticatedUser,
+                    @Param('id', ParseUUIDPipe) id: string, @Body(CorpoConferido) body: any) {
+    return this.escala.incluirNoRascunho(user, id, body ?? {});
+  }
+
+  @Post('rascunho/:id/publicar')
+  publicarRascunho(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.escala.publicarRascunho(user, id);
+  }
+
+  @Post('rascunho/:id/descartar')
+  descartarRascunho(@CurrentUser() user: AuthenticatedUser,
+                    @Param('id', ParseUUIDPipe) id: string, @Body(CorpoConferido) body: any) {
+    return this.escala.descartarRascunho(user, id, body?.motivo);
+  }
+
   @Post('export')
   exportar(@CurrentUser() user: AuthenticatedUser, @Body(CorpoConferido) body: any) {
     return this.escala.exportar(user, body?.houseId, body?.finalidade ?? '', body?.de, body?.ate);

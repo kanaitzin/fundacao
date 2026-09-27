@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import {
   Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType,
   Header, Footer, ImageRun, PageNumber, PageOrientation, BorderStyle, Table, TableRow, TableCell,
-  WidthType,
+    WidthType, PageBreak,
 } from 'docx';
 import { AuditService } from '../audit/audit.service';
 import { AuthenticatedUser } from '../contracts';
@@ -32,6 +32,21 @@ import { Folha, SecaoDaFolha, diaBR, nomeDoArquivo } from './folha';
 
 const AZUL = '1F3864';
 const CINZA = '595959';
+
+/*
+ * O PADRÃO DO PAPEL (fase 165). O pedido de 25/09 descreve o documento
+ * institucional: A4, margem de 3 cm no topo e à esquerda e de 2 cm embaixo e à
+ * direita, Arial 12, texto justificado, entrelinha de 1,5. O protótipo já saía
+ * no padrão da ABNT; o servidor saía em Calibri 11 com margens de 1,9 cm, e a
+ * folha que o Marcelo aprovou não era a que o sistema de verdade entregava.
+ */
+const FONTE = 'Arial';
+const CORPO = 24;         // 12 pt, em meios-pontos
+const MENOR = 20;         // 10 pt: tabela, identificação
+const NOTA = 18;          // 9 pt: legenda, procedência, ressalva
+const ENTRELINHA = 360;   // 1,5
+const CM = 567;           // um centímetro, em twips
+const A4 = { width: 11906, height: 16838 };
 
 @Injectable()
 export class DocumentosService {
@@ -108,7 +123,7 @@ export class DocumentosService {
           spacing: { after: 120 },
           border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: AZUL, space: 6 } },
           children: [new TextRun({
-            text: 'Programa de Acolhimento Institucional', size: 20, color: CINZA,
+            text: 'Programa de Acolhimento Institucional · Rede Acolher', size: 20, color: CINZA,
           })],
         }),
       ],
@@ -150,6 +165,8 @@ export class DocumentosService {
       }));
     }
 
+        if (f.capa) filhos.push(...this.capa(f, img));
+
     filhos.push(new Paragraph({
       heading: HeadingLevel.HEADING_1,
       alignment: AlignmentType.CENTER,
@@ -173,10 +190,10 @@ export class DocumentosService {
             new TableCell({
               width: { size: 28, type: WidthType.PERCENTAGE },
               shading: { fill: 'F2F2F2' },
-              children: [new Paragraph({ children: [new TextRun({ text: l.rotulo, bold: true, size: 20 })] })],
+              children: [new Paragraph({ children: [new TextRun({ text: l.rotulo, bold: true, size: MENOR })] })],
             }),
             new TableCell({
-              children: [new Paragraph({ children: [new TextRun({ text: l.valor, size: 20 })] })],
+              children: [new Paragraph({ children: [new TextRun({ text: l.valor, size: MENOR })] })],
             }),
           ],
         })),
@@ -190,7 +207,8 @@ export class DocumentosService {
       filhos.push(new Paragraph({
         spacing: { before: 300, after: 120 },
         shading: { fill: 'F7F7F7' },
-        children: [new TextRun({ text: f.ressalva, italics: true, size: 18, color: CINZA })],
+                alignment: AlignmentType.JUSTIFIED,
+        children: [new TextRun({ text: f.ressalva, italics: true, size: NOTA, color: CINZA })],
       }));
     }
 
@@ -212,13 +230,20 @@ export class DocumentosService {
     const doc = new Document({
       creator: 'Rede Acolher',
       title: f.titulo,
-      styles: { default: { document: { run: { font: 'Calibri', size: 22 } } } },
+            styles: { default: { document: {
+        run: { font: FONTE, size: CORPO },
+        paragraph: { spacing: { line: ENTRELINHA } },
+      } } },
       sections: [{
-        properties: { page: {
-          margin: { top: 1000, bottom: 1000, left: 1100, right: 1100 },
-          ...(f.paisagem ? { size: { orientation: PageOrientation.LANDSCAPE } } : {}),
-        } },
-        headers: { default: cabecalho },
+        properties: {
+          /* Na capa não vai cabeçalho: o timbre já está nela, grande. */
+          titlePage: !!f.capa,
+          page: {
+            size: f.paisagem ? { ...A4, orientation: PageOrientation.LANDSCAPE } : A4,
+            margin: { top: 3 * CM, left: 3 * CM, bottom: 2 * CM, right: 2 * CM },
+          },
+        },
+        headers: { default: cabecalho, ...(f.capa ? { first: new Header({ children: [] }) } : {}) },
         footers: { default: rodape },
         children: filhos,
       }],
@@ -227,10 +252,44 @@ export class DocumentosService {
     return Packer.toBuffer(doc);
   }
 
+    /**
+   * A CAPA (fase 165): o timbre centralizado e grande, a Fundação e a Rede
+   * Acolher, o título e a identificação em linhas centralizadas. Termina em
+   * quebra de página, e o corpo recomeça pelo título, como num relatório
+   * impresso.
+   */
+  private capa(f: Folha, img: Buffer | null): Paragraph[] {
+    const centro = (text: string, o: { size?: number; bold?: boolean; color?: string; after?: number } = {}) =>
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { after: o.after ?? 80 },
+        children: [new TextRun({ text, size: o.size ?? CORPO, bold: o.bold, color: o.color })],
+      });
+    return [
+      new Paragraph({ text: '', spacing: { before: 1200 } }),
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 300 },
+        children: img
+          ? [new ImageRun({ type: 'png', data: img, transformation: { width: 150, height: 150 } })]
+          : [],
+      }),
+      centro('FUNDAÇÃO O PÃO DOS POBRES DE SANTO ANTÔNIO', { bold: true, color: AZUL }),
+      centro('Programa de Acolhimento Institucional', { size: MENOR, color: CINZA }),
+      centro('Rede Acolher', { size: MENOR, color: CINZA, after: 1600 }),
+      centro(f.titulo.toUpperCase(), { size: 32, bold: true, color: AZUL, after: 200 }),
+      ...(f.subtitulo ? [centro(f.subtitulo, { color: CINZA, after: 600 })] : []),
+      ...f.identificacao.map((l) => centro(`${l.rotulo}: ${l.valor}`, { size: MENOR })),
+      new Paragraph({ children: [new PageBreak()] }),
+    ];
+  }
+
   private secao(s: SecaoDaFolha): (Paragraph | Table)[] {
     const saida: (Paragraph | Table)[] = [
       new Paragraph({
-        heading: HeadingLevel.HEADING_2,
+                heading: HeadingLevel.HEADING_2,
+        pageBreakBefore: !!s.quebraAntes,
+        keepNext: true,
         spacing: { before: 240, after: 60 },
         children: [new TextRun({ text: s.titulo, bold: true, size: 24, color: AZUL })],
       }),
@@ -242,8 +301,8 @@ export class DocumentosService {
        * naquele dia. */
       saida.push(new Paragraph({
         alignment: AlignmentType.JUSTIFIED,
-        spacing: { after: 60, line: 300 },
-        children: [new TextRun({ text: p, size: 22 })],
+                spacing: { after: 60, line: ENTRELINHA },
+        children: [new TextRun({ text: p, size: CORPO })],
       }));
     }
 
@@ -251,7 +310,8 @@ export class DocumentosService {
       saida.push(new Paragraph({
         bullet: { level: 0 },
         spacing: { after: 40 },
-        children: [new TextRun({ text: i, size: 22 })],
+                alignment: AlignmentType.JUSTIFIED,
+        children: [new TextRun({ text: i, size: CORPO })],
       }));
     }
 

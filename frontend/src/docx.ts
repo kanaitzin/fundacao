@@ -54,7 +54,7 @@ const esc = (s: string) => String(s ?? '')
   .replace(/"/g, '&quot;');
 
 /** Times New Roman 12 = 24 meios-pontos; a ABNT conta em pontos. */
-const FONTE = 'Times New Roman';
+const FONTE = 'Arial';
 const CORPO = 24;
 const MENOR = 20;
 
@@ -197,6 +197,21 @@ function tabela(cabecalho: string[], linhas: string[][]): string {
 function corpoDoDocumento(d: DocumentoWord): string {
   const partes: string[] = [];
 
+  /* A capa (fase 165): o protótipo não leva imagem, e a capa dele é só o
+     texto, centralizado, seguido de quebra de página. */
+  if (d.capa) {
+    partes.push(par('', { espacoDepois: 1600 }));
+    partes.push(par('FUNDAÇÃO O PÃO DOS POBRES DE SANTO ANTÔNIO', { alinhamento: 'center', negrito: true, espacoDepois: 60 }));
+    partes.push(par('Programa de Acolhimento Institucional', { alinhamento: 'center', tamanho: MENOR, espacoDepois: 40 }));
+    partes.push(par('Rede Acolher', { alinhamento: 'center', tamanho: MENOR, espacoDepois: 1600 }));
+    partes.push(par(d.titulo, { alinhamento: 'center', negrito: true, caixaAlta: true, espacoDepois: 200 }));
+    if (d.subtitulo) partes.push(par(d.subtitulo, { alinhamento: 'center', espacoDepois: 600 }));
+    for (const i of d.identificacao) {
+      partes.push(par(`${i.rotulo}: ${i.valor}`, { alinhamento: 'center', tamanho: MENOR, espacoDepois: 40 }));
+    }
+    partes.push('<w:p><w:r><w:br w:type="page"/></w:r></w:p>');
+  }
+
   if (d.rascunho) {
     partes.push(par('RASCUNHO. Documento ainda não aprovado, não deve ser entregue.', {
       alinhamento: 'center', negrito: true, cor: 'B45309', espacoDepois: 200 }));
@@ -217,6 +232,7 @@ function corpoDoDocumento(d: DocumentoWord): string {
 
   d.secoes.forEach((s, i) => {
     const n = d.identificacao.length ? i + 2 : i + 1;
+    if (s.quebraAntes) partes.push('<w:p><w:r><w:br w:type="page"/></w:r></w:p>');
     partes.push(par(`${n}  ${s.titulo.toUpperCase()}`, {
       alinhamento: 'left', negrito: true, espacoDepois: 80 }));
 
@@ -227,6 +243,10 @@ function corpoDoDocumento(d: DocumentoWord): string {
       partes.push(par(`•  ${it}`, { alinhamento: 'left', espacoDepois: 40 }));
     }
     if (s.tabela) partes.push(tabela(s.tabela.cabecalho, s.tabela.linhas));
+    for (const im of s.imagens ?? []) {
+      partes.push(par(`${im.legenda}. Documento disponível no registro eletrônico.`, {
+        italico: true, tamanho: MENOR, alinhamento: 'left', espacoDepois: 80 }));
+    }
 
     if (s.aPreencher) {
       // O campo que só uma pessoa pode escrever sai VAZIO e marcado. Um
@@ -239,7 +259,7 @@ function corpoDoDocumento(d: DocumentoWord): string {
                       { alinhamento: 'left', cor: '9AA7B4', espacoDepois: 160 }));
     }
     if (s.procedencia) {
-      partes.push(par(`Fonte: ${s.procedencia}`, {
+      partes.push(par(`Procedência: ${s.procedencia}`, {
         tamanho: MENOR, cor: '5B6B7B', alinhamento: 'left', espacoDepois: 160 }));
     }
   });
@@ -321,7 +341,7 @@ function cabecalho(temImagem: boolean): string {
     + `<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:after="0"/></w:pPr>${imagem}</w:p>`
     + linha('FUNDAÇÃO O PÃO DOS POBRES DE SANTO ANTÔNIO', {
         negrito: true, tamanho: MENOR, espacoDepois: 0 })
-    + linha('Programa de Acolhimento Institucional · Porto Alegre, RS', {
+    + linha('Programa de Acolhimento Institucional · Rede Acolher', {
         tamanho: 18, cor: '5B6B7B', espacoDepois: 120 })
     + '</w:hdr>';
 }

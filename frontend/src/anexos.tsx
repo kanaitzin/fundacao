@@ -25,7 +25,7 @@
  * retângulo cinza: um nome de arquivo não diz se a foto está tremida, se a
  * página saiu cortada, ou se é a criança certa.
  */
-import { ReactNode, useEffect, useState } from 'react';
+import { ReactNode, useEffect, useRef, useState } from 'react';
 import { Icone } from './icones';
 
 /** O que a prévia precisa saber sobre um arquivo escolhido, antes de enviar. */
@@ -153,6 +153,203 @@ export function FolhaArquivo({ titulo, legenda, carregar, onFechar, onBaixar }: 
               Baixar
             </button>
           )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ====================================================================== */
+
+/**
+ * ESCOLHER O ANEXO: CÂMERA, GALERIA OU ARQUIVO (fase 165).
+ *
+ * Pedido de 25/09, para a internação: *"quando o navegador e o dispositivo
+ * permitirem, oferecer: tirar foto agora, escolher da galeria, selecionar
+ * arquivo; no computador, escolher arquivo e utilizar webcam quando disponível
+ * e autorizado. Nunca presumir que a câmera estará disponível. Se a permissão
+ * for negada, oferecer upload normal sem quebrar a tela."* E depois da foto:
+ * prévia, ampliar, descartar, tirar de novo, e enviar só depois de confirmar.
+ *
+ * O ENVIO É DE QUEM CHAMA: este componente escolhe e mostra; o botão de salvar
+ * da folha é a confirmação. A foto nunca sai do aparelho antes disso.
+ *
+ * O celular e o computador pedem gestos diferentes, e a pergunta é o
+ * PONTEIRO, e não o tamanho da tela: `pointer: coarse` é dedo. No celular, o
+ * `capture` do próprio navegador abre a câmera traseira; no computador, a
+ * webcam só aparece se o navegador tiver `getUserMedia`, e a recusa da
+ * permissão vira frase, e não tela quebrada.
+ */
+export function EscolherAnexo({ arquivo, onEscolher, aceita = 'application/pdf,image/jpeg,image/png',
+                                maximoMb = 10, pergunta, id }: {
+  arquivo: Escolhido | null;
+  onEscolher: (a: Escolhido | null) => void;
+  aceita?: string;
+  maximoMb?: number;
+  pergunta?: ReactNode;
+  id: string;
+}) {
+  const [erro, setErro] = useState('');
+  const [origem, setOrigem] = useState<'camera' | 'webcam' | 'arquivo' | null>(null);
+  const [webcam, setWebcam] = useState(false);
+  const [ampliada, setAmpliada] = useState(false);
+  const campo = useRef<Record<string, HTMLInputElement | null>>({});
+  const abrir = (qual: string) => campo.current[qual]?.click();
+  const dedo = typeof window !== 'undefined' && !!window.matchMedia?.('(pointer: coarse)').matches;
+  const temWebcam = !dedo && typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getUserMedia;
+  const aceitos = aceita.split(',').map((t) => t.trim());
+
+  async function receber(f: File | undefined, de: 'camera' | 'arquivo') {
+    setErro('');
+    if (!f) return;
+    /* A mesma conferência do servidor, adiantada: recusar aqui poupa o envio
+       de 10 MB pelo sinal fraco do hospital. O servidor confere de novo. */
+    if (f.size > maximoMb * 1024 * 1024) {
+      setErro(`O arquivo tem ${tamanhoLegivel(f.size)} e o limite é ${maximoMb} MB. `
+        + 'Fotografe de novo em qualidade menor, ou digitalize a página.');
+      return;
+    }
+    if (f.type && !aceitos.includes(f.type)) {
+      setErro('Este tipo de arquivo não é aceito aqui. Envie PDF, JPG ou PNG.');
+      return;
+    }
+    setOrigem(de);
+    onEscolher(await lerArquivo(f));
+  }
+
+  if (arquivo) {
+    const ehImagem = arquivo.dataUrl.startsWith('data:image');
+    return (
+      <div className="stack">
+        <PreviaEscolhida arquivo={arquivo} pergunta={pergunta} />
+        <div className="acoes">
+          {ehImagem && (
+            <button type="button" className="btn sm sec" onClick={() => setAmpliada(true)}>
+              <Icone nome="olhar" /> Ampliar
+            </button>
+          )}
+          {origem === 'webcam' && (
+            <button type="button" className="btn sm sec" onClick={() => { onEscolher(null); setWebcam(true); }}>
+              Tirar outra
+            </button>
+          )}
+          {origem === 'camera' && (
+            <button type="button" className="btn sm sec" onClick={() => abrir('camera')}>Tirar outra</button>
+          )}
+          <button type="button" className="btn sm ghost" onClick={() => { onEscolher(null); setOrigem(null); }}>
+            Descartar
+          </button>
+        </div>
+        {origem === 'camera' && (
+          <input id={`${id}-camera`} ref={(el) => { campo.current.camera = el; }} className="so-leitor"
+                 type="file" accept="image/*" capture="environment" tabIndex={-1} aria-hidden="true"
+                 onChange={(e) => { void receber(e.target.files?.[0], 'camera'); e.target.value = ''; }} />
+        )}
+        {ampliada && (
+          <div className="overlay" role="dialog" aria-modal="true" aria-label="Foto ampliada"
+               onClick={() => setAmpliada(false)}>
+            <div className="sheet modal">
+              <img src={arquivo.dataUrl} alt={`Ampliação de ${arquivo.nome}`} className="previa-img ampliada" />
+              <button className="btn sec block" onClick={() => setAmpliada(false)}>Fechar</button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="stack">
+      <div className="acoes">
+        {dedo && (
+          <button type="button" className="btn sm" onClick={() => abrir('camera')}>
+            <Icone nome="foto" /> Tirar foto agora
+          </button>
+        )}
+        {temWebcam && (
+          <button type="button" className="btn sm" onClick={() => setWebcam(true)}>
+            <Icone nome="foto" /> Usar a câmera do computador
+          </button>
+        )}
+        {dedo && (
+          <button type="button" className="btn sm sec" onClick={() => abrir('galeria')}>Escolher da galeria</button>
+        )}
+        <button type="button" className="btn sm sec" onClick={() => abrir('arquivo')}>Selecionar arquivo</button>
+      </div>
+      {/* Os campos de arquivo ficam escondidos: quem os aciona são os botões
+          acima, que recebem foco de teclado e têm nome. */}
+      <input id={`${id}-camera`} ref={(el) => { campo.current.camera = el; }} className="so-leitor"
+             type="file" accept="image/*" capture="environment" tabIndex={-1} aria-hidden="true"
+             onChange={(e) => { void receber(e.target.files?.[0], 'camera'); e.target.value = ''; }} />
+      <input id={`${id}-galeria`} ref={(el) => { campo.current.galeria = el; }} className="so-leitor"
+             type="file" accept="image/*" tabIndex={-1} aria-hidden="true"
+             onChange={(e) => { void receber(e.target.files?.[0], 'arquivo'); e.target.value = ''; }} />
+      <input id={`${id}-arquivo`} ref={(el) => { campo.current.arquivo = el; }} className="so-leitor"
+             type="file" accept={aceita} tabIndex={-1} aria-hidden="true"
+             onChange={(e) => { void receber(e.target.files?.[0], 'arquivo'); e.target.value = ''; }} />
+      {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+      {webcam && (
+        <FolhaWebcam onFechar={() => setWebcam(false)}
+          onFoto={(a) => { setWebcam(false); setOrigem('webcam'); onEscolher(a); }}
+          onSemCamera={(frase) => { setWebcam(false); setErro(frase); }} />
+      )}
+    </div>
+  );
+}
+
+/**
+ * A WEBCAM DO COMPUTADOR. Abre só depois do gesto de quem pediu, e a câmera
+ * é desligada ao fechar: luz de câmera acesa sem ninguém fotografando é
+ * pergunta que ninguém na sala sabe responder.
+ */
+function FolhaWebcam({ onFechar, onFoto, onSemCamera }: {
+  onFechar: () => void; onFoto: (a: Escolhido) => void; onSemCamera: (frase: string) => void;
+}) {
+  const video = useRef<HTMLVideoElement | null>(null);
+  const [fluxo, setFluxo] = useState<MediaStream | null>(null);
+
+  useEffect(() => {
+    let vivo = true; let aberto: MediaStream | null = null;
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false })
+      .then((s) => {
+        if (!vivo) { s.getTracks().forEach((t) => t.stop()); return; }
+        aberto = s; setFluxo(s);
+        if (video.current) { video.current.srcObject = s; void video.current.play().catch(() => undefined); }
+      })
+      .catch((e: any) => {
+        const nome = String(e?.name ?? '');
+        onSemCamera(nome === 'NotAllowedError' || nome === 'SecurityError'
+          ? 'A permissão da câmera foi negada neste navegador. Use Selecionar arquivo.'
+          : 'Nenhuma câmera disponível neste aparelho. Use Selecionar arquivo.');
+      });
+    return () => { vivo = false; aberto?.getTracks().forEach((t) => t.stop()); };
+  }, []);
+
+  function fotografar() {
+    const v = video.current;
+    if (!v || !v.videoWidth) return;
+    const tela = document.createElement('canvas');
+    tela.width = v.videoWidth; tela.height = v.videoHeight;
+    tela.getContext('2d')!.drawImage(v, 0, 0);
+    const dataUrl = tela.toDataURL('image/jpeg', 0.9);
+    const agora = new Date();
+    const nome = `foto-${agora.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })}`
+      + `-${agora.toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' }).replace(':', 'h')}.jpg`;
+    fluxo?.getTracks().forEach((t) => t.stop());
+    onFoto({ nome, tipo: 'image/jpeg', tamanho: Math.round((dataUrl.length - 23) * 0.75), dataUrl });
+  }
+
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-webcam">
+      <div className="sheet modal">
+        <h3 id="t-webcam">Fotografar o documento</h3>
+        <p className="mutetxt">Segure o papel de frente para a câmera, com boa luz, e fotografe.</p>
+        <video ref={video} className="previa-img" playsInline muted aria-label="Imagem da câmera" />
+        <div className="row rodape">
+          <button className="btn sec grow" onClick={() => { fluxo?.getTracks().forEach((t) => t.stop()); onFechar(); }}>
+            Cancelar
+          </button>
+          <button className="btn grow" disabled={!fluxo} onClick={fotografar}>Fotografar</button>
         </div>
       </div>
     </div>

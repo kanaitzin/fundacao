@@ -196,7 +196,7 @@ describe('O que é da criança chega ao dossiê dela', () => {
       .post(`/api/v1/nursing/hospitalizations/${int.body.id}/notes`)
       .set(auth(tokens.enfermagem))
       .send({ texto: 'O hospital entregou o laudo da radiografia de tórax.',
-              conteudo: PDF, nomeArquivo: 'laudo-torax.pdf' });
+              conteudo: PDF, nomeArquivo: 'laudo-torax.pdf', categoria: 'exame' });
     expect(nota.status).toBe(201);
 
     const depois = await dossie();

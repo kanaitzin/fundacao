@@ -18,8 +18,16 @@
 > depois das 21h em Porto Alegre semeava o dia seguinte — o dia de hoje nascia
 > sem dose nenhuma. **Nada no sistema; tudo no dado de partida.**
 
-- **164 fases.** 110 suítes e 1054 testes, verdes em duas condições de relógio —
+- **165 fases.** 113 suítes e 1076 testes, verdes em duas condições de relógio —
   antes e depois da virada do UTC, que em Porto Alegre é às 21h.
+- **A internação tem relatório completo em Word** (fase 165): capa, os dias em
+  ordem, e os anexos dentro do documento, inclusive as páginas dos PDFs do
+  hospital. O anexo agora se tira pela câmera do celular, pela galeria ou pelo
+  computador, com prévia antes de enviar. A escala do mês seguinte pode começar
+  pela do mês anterior, como rascunho que só quem monta vê. E um registro antigo
+  mostra o cargo que a pessoa tinha quando escreveu. **Uma pergunta ficou (§10,
+  item 12): a Enfermagem deve baixar o relatório da internação?** Hoje ela lê,
+  mas não baixa, porque o pedido listou técnica, coordenação e líder.
 - **Os documentos foram reescritos na voz da equipe** (fase 164, pedido de
   27/09). Toda folha, relatório e o **roteiro da Casa 03** saem agora em
   linguagem institucional de acolhimento, e há teste que cobra a regra. **O

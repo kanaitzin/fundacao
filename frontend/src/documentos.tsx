@@ -145,7 +145,7 @@ export function FolhaDocumento({ doc, onFechar, onBaixar, exportar }: {
         <div className="papel" tabIndex={0} role="region" aria-label={`Folha: ${doc.titulo}`}>
           <div className="papel-timbre">
             <b>FUNDAÇÃO O PÃO DOS POBRES DE SANTO ANTÔNIO</b>
-            <span>Programa de Acolhimento Institucional · Porto Alegre, RS</span>
+            <span>Programa de Acolhimento Institucional · Rede Acolher</span>
           </div>
 
           {doc.rascunho && (
@@ -206,7 +206,11 @@ export function FolhaDocumento({ doc, onFechar, onBaixar, exportar }: {
                   <div className="papel-linha" /><div className="papel-linha" />
                 </>
               )}
-              {s.procedencia && <p className="papel-fonte">Fonte: {s.procedencia}</p>}
+              {(s.imagens ?? []).map((im, i) => (
+                /* Na tela, a legenda: a imagem entra no arquivo em Word. */
+                <p className="papel-fonte" key={`im${i}`}><i>{im.legenda}.</i></p>
+              ))}
+              {s.procedencia && <p className="papel-fonte">Procedência: {s.procedencia}</p>}
             </div>
           ))}
 

@@ -52,6 +52,8 @@ export interface SecaoDaFolha {
    * que o arquivo está no sistema.
    */
   imagens?: { legenda: string; foto: FotoNaCelula | null }[];
+  /** Começa em página nova: a seção de anexos do relatório da internação. */
+  quebraAntes?: boolean;
   /** Campo que só uma pessoa preenche: sai com a marca e o espaço em branco. */
   aPreencher?: string;
   /** De onde a informação veio. Sai em letra menor, abaixo da seção. */
@@ -67,6 +69,12 @@ export interface FotoNaCelula {
 export interface Folha {
   /** Página deitada — para quadro largo, como a folha da portaria. */
   paisagem?: boolean;
+  /**
+   * Capa institucional na primeira página (fase 165): o timbre grande,
+   * centralizado, o nome da Fundação e da Rede Acolher, o título e a
+   * identificação. O relatório da internação tem capa; a folha de serviço não.
+   */
+  capa?: boolean;
   /** Vira o título na primeira folha e a base do nome do arquivo. */
   titulo: string;
   subtitulo?: string;

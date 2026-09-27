@@ -204,6 +204,11 @@ export function Escala({ houseId, casaLabel, papel }: {
                           onMudou={async (msg) => { setAviso(msg); await carregar(); }} />
       )}
 
+      {monta && (
+        <RascunhoDoMes houseId={houseId} equipe={equipe} hoje={hoje}
+                       onPublicado={async (msg) => { setAviso(msg); await carregar(); }} />
+      )}
+
       {dados?.dias.map((d) => (
         <article className={`card stack ${d.data === hoje ? 'raise' : ''}`} key={d.data}>
           <div className="row">
@@ -697,5 +702,168 @@ function HorarioDosTurnos({ houseId, turnos, onMudou }: {
         </details>
       )}
     </section>
+  );
+}
+
+/* ====================================================================== */
+
+interface ItemDoRascunho {
+  id: string; userId: string; quem: string; cargo: string; data: string; turno: string;
+  incluidoAMao: boolean; conflito: string | null; conflitoCasa: string | null;
+}
+
+const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto',
+  'setembro', 'outubro', 'novembro', 'dezembro'];
+const nomeDoMes = (mes: string) => `${MESES[Number(mes.slice(5, 7)) - 1]} de ${mes.slice(0, 4)}`;
+
+/**
+ * O MÊS SEGUINTE, COMO RASCUNHO (fase 165).
+ *
+ * *"Repetir escala do mês anterior: copiar para o novo mês como rascunho
+ * editável; não publique automaticamente sem revisão."* O rascunho só aparece
+ * para quem monta a escala; a equipe vê o mês quando ele é publicado. Cada dia
+ * copia o mesmo dia da semana de quatro semanas antes.
+ */
+function RascunhoDoMes({ houseId, equipe, hoje, onPublicado }: {
+  houseId: string; equipe: Membro[]; hoje: string; onPublicado: (msg: string) => Promise<void>;
+}) {
+  const proximo = somaDias(`${hoje.slice(0, 7)}-01`, 32).slice(0, 7);
+  const [mes, setMes] = useState(proximo);
+  const [r, setR] = useState<{ id: string; criadoPor: string; itens: ItemDoRascunho[] } | null | undefined>(undefined);
+  const [erro, setErro] = useState('');
+  const [aviso, setAviso] = useState('');
+  const [incluindo, setIncluindo] = useState(false);
+  const [descartando, setDescartando] = useState(false);
+  const [motivo, setMotivo] = useState('');
+  const [novo, setNovo] = useState({ userId: '', data: `${proximo}-01`, turno: 'diurno' });
+
+  async function carregar() {
+    setErro('');
+    try {
+      const d = await api<{ rascunho: any }>(`/escala/rascunho?houseId=${houseId}&mes=${mes}`);
+      setR(d.rascunho);
+    } catch (e) { setErro(e instanceof Error ? e.message : 'Não foi possível abrir o rascunho.'); }
+  }
+  useEffect(() => { void carregar(); setNovo((n) => ({ ...n, data: `${mes}-01` })); }, [houseId, mes]);
+
+  async function acao(fn: () => Promise<any>) {
+    setErro(''); setAviso('');
+    try { const x = await fn(); if (x?.aviso) setAviso(x.aviso); await carregar(); return x; }
+    catch (e) { setErro(e instanceof Error ? e.message : 'Não foi possível concluir.'); return null; }
+  }
+
+  const conflito = (i: ItemDoRascunho) =>
+    i.conflito === 'outra_casa' ? `também escalada na ${i.conflitoCasa}`
+      : i.conflito === 'inativo' ? 'não está mais ativa'
+      : i.conflito === 'ja_escalada' ? 'já está na escala publicada' : null;
+
+  const dias = r ? [...new Set(r.itens.map((i) => i.data))].sort() : [];
+
+  return (
+    <div className="card stack">
+      <b className="ff">Montar um mês</b>
+      <label className="f" htmlFor="rasc-mes">Mês</label>
+      <input id="rasc-mes" type="month" className="field" value={mes} min={hoje.slice(0, 7)}
+             onChange={(e) => e.target.value && setMes(e.target.value)} />
+      {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+      {aviso && <div className="notice c-ok" role="status">{aviso}</div>}
+
+      {r === null && (
+        <>
+          <p className="mutetxt">
+            A escala de {nomeDoMes(mes)} pode começar pela do mês anterior: cada dia copia o mesmo
+            dia da semana de quatro semanas antes. A cópia fica como rascunho, visível só para quem
+            monta a escala, até ser publicada.
+          </p>
+          <button className="btn block" onClick={() => acao(() => api('/escala/rascunho', {
+            method: 'POST', body: JSON.stringify({ houseId, mes }) }))}>
+            Repetir a escala do mês anterior
+          </button>
+        </>
+      )}
+
+      {r && (
+        <>
+          <div className="notice c-warn" role="status">
+            Rascunho de {nomeDoMes(mes)}, ainda não publicado. A equipe não vê este rascunho, e a
+            passagem continua cobrando pela escala publicada. Criado por {r.criadoPor}.
+          </div>
+          {!r.itens.length && <p className="mutetxt">O rascunho está vazio.</p>}
+          {dias.map((d) => (
+            <div className="bloco" key={d}>
+              <small>{dia(d)} · {diaSemana(d)}</small>
+              <ul className="lista">
+                {r.itens.filter((i) => i.data === d).map((i) => (
+                  <li key={i.id} className="row">
+                    <span className="grow">
+                      {i.turno === 'noturno' ? 'Noturno' : 'Diurno'}: <b>{i.quem}</b>
+                      {' '}<span className="mutetxt">{rotuloCargo(i.cargo)}</span>
+                    </span>
+                    {conflito(i) && <span className="pill c-warn">{conflito(i)}</span>}
+                    <button className="btn sm ghost" aria-label={`Retirar ${i.quem} do ${i.turno} de ${dia(d)}`}
+                            onClick={() => acao(() => api(`/escala/rascunho/itens/${i.id}/retirar`, {
+                              method: 'POST', body: '{}' }))}>
+                      Retirar
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+
+          {incluindo ? (
+            <div className="bloco stack">
+              <label className="f" htmlFor="rasc-pessoa">Quem</label>
+              <select id="rasc-pessoa" value={novo.userId} onChange={(e) => setNovo({ ...novo, userId: e.target.value })}>
+                <option value="">Escolha…</option>
+                {equipe.map((m) => <option key={m.id} value={m.id}>{m.nome}</option>)}
+              </select>
+              <label className="f" htmlFor="rasc-dia">Dia</label>
+              <input id="rasc-dia" type="date" className="field" value={novo.data}
+                     min={`${mes}-01`} max={somaDias(somaDias(`${mes}-01`, 32).slice(0, 8) + '01', -1)}
+                     onChange={(e) => setNovo({ ...novo, data: e.target.value })} />
+              <label className="f" htmlFor="rasc-turno">Turno</label>
+              <select id="rasc-turno" value={novo.turno} onChange={(e) => setNovo({ ...novo, turno: e.target.value })}>
+                <option value="diurno">Diurno</option>
+                <option value="noturno">Noturno</option>
+              </select>
+              <div className="row">
+                <button className="btn sec grow" onClick={() => setIncluindo(false)}>Cancelar</button>
+                <button className="btn grow" disabled={!novo.userId} onClick={async () => {
+                  if (await acao(() => api(`/escala/rascunho/${r.id}/itens`, {
+                    method: 'POST', body: JSON.stringify(novo) }))) setIncluindo(false);
+                }}>Incluir no rascunho</button>
+              </div>
+            </div>
+          ) : (
+            <button className="btn sec block" onClick={() => setIncluindo(true)}>Incluir alguém no rascunho</button>
+          )}
+
+          <button className="btn block" onClick={async () => {
+            const x = await acao(() => api(`/escala/rascunho/${r.id}/publicar`, { method: 'POST', body: '{}' }));
+            if (x?.aviso) await onPublicado(x.aviso);
+          }}>
+            Publicar a escala de {nomeDoMes(mes)}
+          </button>
+
+          {descartando ? (
+            <div className="bloco stack">
+              <label className="f" htmlFor="rasc-motivo">Por que descartar</label>
+              <input id="rasc-motivo" className="field" value={motivo} onChange={(e) => setMotivo(e.target.value)}
+                     placeholder="Ex.: a escala foi refeita na reunião de equipe" />
+              <div className="row">
+                <button className="btn sec grow" onClick={() => setDescartando(false)}>Voltar</button>
+                <button className="btn grow" disabled={motivo.trim().length < 5} onClick={async () => {
+                  if (await acao(() => api(`/escala/rascunho/${r.id}/descartar`, {
+                    method: 'POST', body: JSON.stringify({ motivo }) }))) { setDescartando(false); setMotivo(''); }
+                }}>Descartar o rascunho</button>
+              </div>
+            </div>
+          ) : (
+            <button className="btn ghost block" onClick={() => setDescartando(true)}>Descartar o rascunho</button>
+          )}
+        </>
+      )}
+    </div>
   );
 }
