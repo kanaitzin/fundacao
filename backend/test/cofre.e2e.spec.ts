@@ -198,7 +198,11 @@ describe('Cofre de acessos — gov.br, INSS, CTPS e banco', () => {
     await reauth(tokens.coord4);
     const deOutraCasa = await request(http).post(`/api/v1/people/${pessoa}/credentials/view`)
       .set(auth(tokens.coord4)).send({});
-    expect(deOutraCasa.body).toEqual([]);
+    /* 404 com a frase de sempre, igual à criança que não existe (fase 169).
+       Era lista vazia, que se lê "esta criança não tem nada no cofre", e a
+       auditoria registrava a abertura. */
+    expect(deOutraCasa.status).toBe(404);
+    expect(deOutraCasa.body.message).toMatch(/fora do seu alcance/);
 
     const abrirDeOutraCasa = await request(http)
       .post(`/api/v1/people/${pessoa}/credentials/${credencial}/reveal`)
