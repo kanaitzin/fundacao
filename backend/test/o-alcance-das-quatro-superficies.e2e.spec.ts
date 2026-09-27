@@ -92,10 +92,16 @@ describe('O alcance das quatro superfícies que ficaram sem dado', () => {
     ({ rows: [{ id: ids.foto }] } = await admin.query(
       `SELECT id FROM memory_photo WHERE memory_id = $1 LIMIT 1`, [ids.vivencia]));
 
-    await request(http).post('/api/v1/followups/generate').set(auth(t.tecnica)).send({ houseId: ids.AI3 });
+    /* Um período antigo, que nenhuma outra suíte gera: a geração é por casa
+       e idempotente, e gerar o mês corrente aqui tirava da suíte dos
+       relatórios as pendências que ela cria e confere (a ordem das suítes
+       decidia quem passava). */
+    const g = await request(http).post('/api/v1/followups/generate').set(auth(t.tecnica))
+      .send({ houseId: ids.AI3, data: '2020-03-15' });
+    expect(g.status).toBe(201);
     ({ rows: [{ id: ids.acompanhamento }] } = await admin.query(
-      `SELECT id FROM followup WHERE house_id = $1 AND status NOT IN ('aprovado') ORDER BY created_at DESC LIMIT 1`,
-      [ids.AI3]));
+      `SELECT id FROM followup WHERE house_id = $1 AND person_id = $2 ORDER BY created_at DESC LIMIT 1`,
+      [ids.AI3, ids.crianca]));
   });
 
   afterAll(async () => {
