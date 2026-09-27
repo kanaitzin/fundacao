@@ -173,6 +173,64 @@ describe('A ATA que a próxima equipe lê', () => {
     expect(inicio.getTime()).toBeLessThan(new Date(agora).getTime());
   });
 
+  it('a busca pelos quatro plantões mais recentes diz o mesmo que a busca pela história inteira', async () => {
+    /*
+     * A 1626 (fase 167) parou de calcular a janela de TODOS os plantões da
+     * casa: com dois anos, 605 ms na tela que a equipe abre primeiro. A troca
+     * se apoia numa propriedade da regra, os dois turnos de um dia começam
+     * dentro dele. Esta comparação é a prova: casa temporária, plantões com
+     * buracos de semanas, troca do horário no meio, e a resposta nova contra
+     * a antiga EM CADA HORA de 45 dias, com madrugada, manhã e noite.
+     *
+     * Tudo dentro de uma transação desfeita no fim: `ata` não se apaga, e a
+     * casa temporária não pode sobrar para as outras suítes contarem.
+     */
+    await admin.query('BEGIN');
+    try {
+      const { rows: [{ id: casa }] } = await admin.query(
+        `INSERT INTO house (institution_id, code, name, kind)
+         SELECT institution_id, 'TMP2', 'Casa temporária da comparação', kind FROM house WHERE code='AI4'
+         RETURNING id`);
+      const { rows: [{ id: gestor }] } = await admin.query(
+        `SELECT id FROM app_user WHERE email='gestor@paodospobres.dev'`);
+      /* Horário mudado cinco dias atrás: o diurno passa a ser das 06h às 18h. */
+      await admin.query(
+        `INSERT INTO house_shift_hours (house_id, diurno_de, diurno_ate, valid_from, reason, set_by)
+         VALUES ($1, '06:00', '17:59', app_hoje() - 5, 'Comparação da suíte', $2)`, [casa, gestor]);
+      for (const [dias, periodo] of [[40, 'diurno'], [10, 'diurno'], [10, 'noturno'], [6, 'noturno'],
+                                     [5, 'diurno'], [3, 'noturno'], [1, 'diurno'], [0, 'diurno'],
+                                     [0, 'noturno']] as const) {
+        await admin.query(
+          `WITH s AS (
+             INSERT INTO shift (house_id, on_date, period, status, opened_by)
+             VALUES ($1, app_hoje() - $2::int, $3, 'fechado', $4) RETURNING id, house_id, on_date, period)
+           INSERT INTO ata (shift_id, house_id, on_date, period, status)
+           SELECT id, house_id, on_date, period, 'fechada' FROM s`, [casa, dias, periodo, gestor]);
+      }
+      await admin.query('SET LOCAL ROLE rede_app');
+      await admin.query(`SELECT set_config('app.user_id', $1, true)`, [gestor]);
+      const { rows } = await admin.query(`
+        WITH instantes AS (
+          SELECT (app_hoje() - 45)::timestamp AT TIME ZONE app_fuso() + h * interval '1 hour' AS ref
+            FROM generate_series(0, 47 * 24) AS h)
+        SELECT i.ref,
+               (SELECT shift_id FROM app_ata_anterior($1, i.ref)) AS nova,
+               (SELECT s.id FROM shift s JOIN ata a ON a.shift_id = s.id
+                 WHERE s.house_id = $1
+                   AND (SELECT j.de FROM app_janela_do_turno(s.house_id, s.on_date, s.period) j) < i.ref
+                 ORDER BY (SELECT j.de FROM app_janela_do_turno(s.house_id, s.on_date, s.period) j) DESC
+                 LIMIT 1) AS pela_historia
+          FROM instantes i`, [casa]);
+      const divergentes = rows.filter((r) => r.nova !== r.pela_historia);
+      expect(divergentes).toEqual([]);
+      /* A comparação exercitou os dois lados: instantes sem anterior e com. */
+      expect(rows.some((r) => r.nova === null)).toBe(true);
+      expect(new Set(rows.map((r) => r.nova).filter(Boolean)).size).toBe(9);
+    } finally {
+      await admin.query('ROLLBACK');
+    }
+  });
+
   it('a casa sem plantão anterior recebe a frase, e não um erro', async () => {
     /*
      * Casa recém-cadastrada: a resposta honesta é "ainda não há", com a frase

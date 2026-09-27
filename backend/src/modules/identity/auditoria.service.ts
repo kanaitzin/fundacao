@@ -124,7 +124,10 @@ export class AuditoriaService {
                 -- a entregou, e ela exige a casa no alcance de quem lê.
                 (SELECT h.code FROM house h WHERE h.id = a.house_id) AS casa
            FROM audit_event a
-          WHERE (a.entity_id = $1 OR a.detail->>'personId' = $1::text)
+          -- O detail ? 'personId' repete a condição do índice parcial
+          -- idx_audit_detalhe_pessoa; sem ela o Postgres não o usa, e com
+          -- dois anos de casa a leitura ia de 0,05 ms a 377 ms (fase 167).
+          WHERE (a.entity_id = $1 OR (a.detail ? 'personId' AND a.detail->>'personId' = $1::text))
             AND a.at >= now() - ($2::int * interval '1 day')
           ORDER BY a.at DESC
           LIMIT 300`, [personId, janela]);

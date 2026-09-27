@@ -226,8 +226,11 @@ describe('Painel de impacto — o trabalho social nas oito casas', () => {
       `SELECT pg_get_expr(polqual, polrelid) AS regra
          FROM pg_policy WHERE polrelid = 'life_milestone'::regclass AND polname = 'marco_select'`);
     expect(rows[0].regra).toMatch(/CASE/);
+    /* Desde a 1624 o escopo por pessoa é o conjunto (`app_pessoas_no_alcance`),
+       e o papel continua sendo perguntado antes dele. */
+    expect(rows[0].regra).toMatch(/app_pessoas_no_alcance/);
     expect(rows[0].regra.indexOf('app_current_role'))
-      .toBeLessThan(rows[0].regra.indexOf('app_person_in_scope'));
+      .toBeLessThan(rows[0].regra.indexOf('app_pessoas_no_alcance'));
   });
 
   it('a lista tem teto, e diz quando cortou', async () => {

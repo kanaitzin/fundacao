@@ -90,9 +90,9 @@ discordavam entre si.
 | Quanto | De onde sai |
 |---|---|
 | **18 partições** isoladas | pastas em `backend/src/modules/` |
-| **164 migrações** | `.sql` dentro das partições |
+| **167 migrações** | `.sql` dentro das partições |
 | **124 tabelas** | `CREATE TABLE` nas migrações |
-| **115 suítes** | `backend/test/*.spec.ts` |
+| **116 suítes** | `backend/test/*.spec.ts` |
 | **1100 testes** | `it(` / `test(` nas suítes |
 | **36 telas React** | `frontend/src/screens/*.tsx` |
 | **10 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
@@ -372,6 +372,7 @@ arqueologia.
 | 164 | **A voz dos documentos.** Pedido da Fundação em 27/09: *"vários [documentos] possuem travessão do seu raciocínio; confira todos os documentos que geramos e conserte; todos têm que parecer escritos por humanos com experiência em acolhimento; fique como regra para todos os futuros relatórios ou documentos para baixar"*. Os documentos saíam com a voz de quem construiu o sistema: travessões, maiúsculas de ênfase, aspas, e ressalvas que defendiam a regra (*"a folha não diz por que alguém não está nela, de propósito"*, *"o sistema não avalia"*). **Reescritos, no servidor e no protótipo:** a ATA, a escala, os combinados e as regras de convivência, a ocorrência, a saúde, a grade e a folha da medicação para a convivência familiar, o armário e as notas fiscais, a cozinha (lanche, cesta, restrições), a relação de visitantes da portaria, o relatório de visitas, o relatório do período, o relatório técnico e o do trabalho social, o timbre e a marca de rascunho do Word. **E o roteiro da Casa 03**, que era um diário de mudanças com a minha voz: reescrito como roteiro de observação, com a numeração das tarefas mantida (o `ensaio:roteiro` as procura por número); o anterior foi para `docs/historico/`. **A conferência achou dois defeitos que não eram de estilo:** a **folha da escala imprimia 08:00 e 20:00 fixos**, quando desde a 159 cada casa define o horário dos turnos (hoje ela pergunta `app_horario_da_casa` para o primeiro e o último dia, e diz se o horário mudou no período); e o **relatório de visitas imprimia como ressalva o aviso da TELA** (*"quantidade de visitas não é avaliação da família"*), reaproveitado por `ressalva: d.aviso` — o armário no protótipo fazia o mesmo. **A regra virou teste:** o `a-voz-dos-documentos.spec.ts` lê pelo compilador do TypeScript todo texto que entra num objeto de folha, nos `*-folha.ts` e no relatório técnico e do período, e recusa travessão, maiúscula que não seja sigla, aspas, *sistema*, *de propósito* e *não é avaliação*; recusa `ressalva:` alimentada por `.aviso`/`.message`; e confere o roteiro. Medido nos dois sentidos: o roteiro antigo dá 335 recusas, e a ressalva emprestada volta a reprovar. É o item 10 do §5. |
 | 165 | **O relatório da internação em um Word só, a câmera no anexo, o mês como rascunho, e o cargo da época.** Do pedido de 25/09, seções 12 a 16, 18, 21, 22 e 32; três decisões de 27/09 (§10). **O relatório da internação** (`internacao-folha.ts`): capa com o timbre, identificação com entrada, saída e tempo de internação, o motivo, quem acompanhou (com o cargo da época), os registros de cada dia em ordem, a medicação dada pelo hospital, o encerramento, e a seção de **anexos em página nova**, com as fotos e **as páginas dos PDFs do hospital como imagem**, desenhadas no servidor por `pdfjs-dist` e `@napi-rs/canvas` num processo à parte. Baixam a técnica, a coordenação, os líderes e a gestão; o acompanhante consulta na tela. **O anexo:** `EscolherAnexo` (`anexos.tsx`) oferece *Tirar foto agora* e *Escolher da galeria* no celular, *Usar a câmera do computador* quando o navegador tem câmera e a pessoa autoriza, e *Selecionar arquivo* sempre; a permissão negada vira frase, e não tela quebrada; prévia, ampliar, descartar e tirar outra antes de enviar. Serve à internação e à foto 3×4 do visitante, que só abria a câmera. No servidor: **categoria do documento** (receita, atestado, relatório médico, exame, encaminhamento, foto de documento, outro), o **arquivo cortado** recusado pela marca de fim (`conferirInteireza`, ligada na internação), e o **mesmo arquivo duas vezes** recusado pela soma, antes de gravar no disco. **O mês como rascunho** (`shift_draft`, fora de `shift_assignment` para nenhuma das nove leituras da escala o cobrar): repetir copia o mesmo dia da semana quatro semanas antes; quem saiu da Fundação fica de fora, pelo nome; o rascunho mostra quem já está escalado noutra casa no mesmo turno; incluir, retirar, publicar e descartar com motivo; só quem monta vê. **O cargo da época** (`app_user_role_period`, gatilho em `app_user`, `app_user_cargo_em`): a linha da ATA, o pedido de leitura, a escala, o trabalho da equipe e o relatório da internação mostram o cargo de quando o registro foi feito. **O papel mudou para todos os documentos do servidor:** A4, margens de 3 e 2 cm, Arial 12, entrelinha 1,5 (§4.8); o servidor saía em Calibri 11 e margem de 1,9 cm, diferente do protótipo aprovado. **Três defeitos achados no caminho:** os anexos eram numerados comparando a data como texto, sem milissegundos, e dois anexos no mesmo segundo saíam em ordem trocada; a folha de saúde montava a unidade com travessão dentro do SQL, onde o conferidor da 164 não olhava (agora olha); e **o colírio das 07:30 do protótipo era dose da NOITE desde a regra de 25/09**, e entre a meia-noite e as 6h o plantão diurno aberto ficava sem dose, reprovando o ensaio da passagem só nessa hora (lição da 157). |
 | 166 | **A simulação de um ciclo completo, e o que ela achou.** A seção 38 do pedido de 25/09, como suíte: `um-ciclo-completo-da-casa.e2e.spec.ts` passa dois dias e o dia de hoje na Casa 03 pelas rotas de verdade, cada ato com o cargo de quem o faz, e no fim confere cada relatório contra os fatos (as duas ATAs, a internação, as visitas, as refeições, o armário e as notas). As crianças são da própria suíte, cadastradas e desligadas por ela; o que só acontece no instante presente (portaria, cozinha) acontece hoje, e a virada 20:00/20:01/06:00/07:59/08:00 é conferida pela mesma regra que os relatórios usam. **Três defeitos, todos invisíveis teste por teste:** (1) **não havia como cadastrar alergia, condição de saúde nem restrição alimentar** — as duas tabelas eram lidas pelo perfil, pela chamada do almoço, pela folha da cozinha e pelo resumo de saúde que vai ao hospital, e só a semente as escrevia; agora há rota, tela no perfil e encerramento com motivo (`saude-do-perfil.service.ts`, people/1623); (2) **as políticas de escrita dessas tabelas conferiam o cargo e não a casa** (lição da 156) — pela rota a recusa vinha por coincidência, porque o `RETURNING` exige poder ler a linha, e o teste exercita a política sem esse atalho, medido nos dois sentidos; (3) **a ATA em Word não trazia as linhas que a equipe escreveu no turno**, nem os adendos: saía o corpo por tópicos, e o que cada profissional escreveu, com nome e hora, ficava fora do papel. Agora sai em ordem de horário, com o cargo da época; a observação restrita vai só como contagem. **E o relatório final do pedido** (§42 e §43): `docs/historico/relatorio-final-da-auditoria-25-09.md`, com os achados por gravidade e a matriz de funcionalidades, dizendo também o que não foi testado. |
+| 167 | **Dois anos de casa, e a tela que levava 15 segundos.** O que o pedido de 25/09 deixou sem medir (§41). O `ensaio-carga.ts` era da fase 51 e não conhecia nada das últimas trinta fases: passou a semear o portão (familiares e duas visitas por semana), o armário (trinta remédios por casa com baixa diária), a nota da semana, os lanches do dia, a escala, os dois turnos com ATA e seis linhas de equipe em cada, e a medir 31 rotas pelo HTTP com a conta que usa cada tela. **Com 24 meses: as métricas do remédio num ano, 15 310 ms.** A consulta era simples; a causa estava na política `adm_select`, que perguntava `app_person_in_scope(person_id)` a cada dose lida (0,26 ms por chamada, 52 mil doses). A regra 15 do §5 já mandava trocar a pergunta por linha por um conjunto desde a 0920, e só quinze políticas a seguiam. **A 1624 troca as 172 chamadas restantes, em 119 políticas, lidas do catálogo**: casa por `= ANY (ARRAY(SELECT app_casas_no_alcance()))`, pessoa por `IN (SELECT app_pessoas_no_alcance())`, função nova. A equivalência está escrita na migração (a única coluna de pessoa anulável já pergunta `IS NULL` antes; nenhuma política usa as funções sob `NOT`) e é cobrada pessoa por pessoa e cargo por cargo, e o catálogo reprova política nova que volte à pergunta por linha. Achou também: **a ATA do turno anterior** calculava a janela de todos os plantões da história (605 ms; a 1626 olha os quatro mais recentes, porque os dois turnos de um dia começam dentro dele, e a suíte compara com a busca antiga em cada hora de 45 dias com troca de horário no meio); **a auditoria de uma criança** não usava o índice parcial por faltar a condição dele (377 ms para 10 ms); **o movimento do armário** sem índice em `stock_id` e **a última dose** do painel da Enfermagem lendo a história inteira (1625). Depois: nenhuma rota acima de 300 ms, três entre 100 e 130 (os relatórios de seis meses e de um ano, e a lista das internações). De passagem, o `EscalaController` era o único sem `@Inject`, e fora do `tsc` (no `tsx` do ensaio) respondia 500 |
 
 ---
 
@@ -419,7 +420,7 @@ cd frontend && npm run prototipo
 ```
 
 O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as
-164 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
+167 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
 
 ### Os ensaios — e por que cada um existe
 
@@ -440,7 +441,7 @@ O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as
 |---|---|
 | `npm run ensaio:producao` | que o sistema sobe **compilado** num banco virgem, com as migrações aplicadas pelo binário. O projeto passou 62 fases sem nunca rodar assim |
 | `npm run ensaio:restauracao` | o ciclo inteiro num banco descartável: backup, restaura, confere as contagens e **abre o cofre com a chave do ambiente** |
-| `npx tsx backend/scripts/ensaio-carga.ts` | escreve doze meses da Fundação inteira e mede as rotas com RLS. Foi ele que achou as três telas mais abertas respondendo em 8,5 s |
+| `npx tsx backend/scripts/ensaio-carga.ts 24` | escreve dois anos da Fundação inteira, portão, armário, notas, cozinha, escala e ATA incluídos, e mede 31 rotas com RLS. Foi ele que achou as três telas mais abertas respondendo em 8,5 s (fase 51) e as métricas do remédio em 15 s (fase 167). Pede banco recém-recriado |
 
 ### Contas do ambiente de teste
 
@@ -484,7 +485,7 @@ rede-acolher/
 │   │   │   ├── documentos/     o contrato da folha e o gerador de .docx
 │   │   │   └── common/         CPF, criptografia, segredo, fuso da instituição
 │   │   └── modules/       18 partições, cada uma dona das próprias migrações
-│   ├── test/              115 suítes (e2e contra PostgreSQL real + estáticas)
+│   ├── test/              116 suítes (e2e contra PostgreSQL real + estáticas)
 │   ├── scripts/           ensaio-carga.ts, migrador compilado
 │   └── assets/timbre.png  a marca da Fundação, usada no documento em Word
 ├── frontend/
@@ -960,7 +961,13 @@ vez de acusar é um conferidor desligado que ninguém desligou.**
 `house_id = ANY (ARRAY(SELECT app_casas_no_alcance()))`. Chamar
 `app_house_in_scope` por linha custou **1 096 ms** na auditoria com 173 mil
 linhas; o conjunto, 122 ms. E toda troca dessas vem com a prova de que o alcance
-não mudou, **cargo a cargo** — ganho que muda regra é vazamento.
+não mudou, **cargo a cargo** — ganho que muda regra é vazamento. **Desde a fase
+167 vale para TODA política**, e o `alcance-como-conjunto.spec.ts` reprova a que
+chamar `app_house_in_scope` ou `app_person_in_scope`: a regra existia havia
+sessenta fases e só quinze políticas a seguiam, e as métricas do remédio num
+ano levavam **15 segundos**. Para pessoa, `person_id IN (SELECT
+app_pessoas_no_alcance())`, que vira tabela de hash; o arranjo serve às casas,
+que são oito.
 
 **16. Política de RLS pergunta o PAPEL antes do escopo por linha, e com `CASE`**
 — o `OR` do SQL não garante a ordem, e o Postgres avalia a consulta por linha
@@ -2738,7 +2745,7 @@ ele continua dizendo que o arquivo existe.
 npm run ensaio:producao
 ```
 
-Constrói, cria um banco virgem, aplica as 164 migrações **pelo binário
+Constrói, cria um banco virgem, aplica as 167 migrações **pelo binário
 compilado**, sobe o serviço e confere `/health`. Não publica nada e não toca no
 banco de trabalho.
 

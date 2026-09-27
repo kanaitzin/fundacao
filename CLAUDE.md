@@ -162,7 +162,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 27/09/2026, fase 166
+### Onde estamos — 27/09/2026, fase 167
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -192,8 +192,9 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 164 | **a voz dos documentos** (pedido de 27/09): toda folha, relatório e o roteiro da Casa 03 reescritos na linguagem da equipe de acolhimento, e a regra virou teste (`a-voz-dos-documentos.spec.ts`); de passagem, a **folha da escala imprimia 08:00–20:00 fixos** apesar do horário por casa da 159, e o **relatório de visitas imprimia o aviso da tela** como ressalva |
 | 165 | **o relatório da internação em Word** (capa, os dias, e os anexos com as páginas dos PDFs do hospital), **a câmera no anexo** (`EscolherAnexo`), o anexo cortado e o repetido recusados, **o mês como rascunho** e **o cargo da época**; o papel do servidor virou A4/Arial 12/margens 3 e 2 cm como o do protótipo; e o **colírio das 07:30 era dose da noite** no protótipo desde a 157 |
 | 166 | **a simulação de um ciclo completo** na Casa 03 (dois dias e hoje, conferindo os relatórios contra os fatos); achou que **não havia como cadastrar alergia nem restrição alimentar**, que a política dessas tabelas **não conferia a casa**, e que **a ATA em Word não trazia as linhas da equipe**; e o **relatório final** do pedido de 25/09 |
+| 167 | **dois anos de casa** no `ensaio-carga.ts 24`, agora com portão, armário, notas, cozinha, escala e ATA: **as métricas do remédio num ano levavam 15 s** porque 119 políticas perguntavam o alcance LINHA POR LINHA. A 1624 troca todas pelo conjunto (`app_casas_no_alcance`, `app_pessoas_no_alcance`), com equivalência cobrada pessoa a pessoa e cargo a cargo; ATA anterior (605 ms), auditoria da criança (377 ms), armário e painel da Enfermagem consertados. Nenhuma rota acima de 300 ms |
 
-**Medido no fim da 166:** 164 migrações, 124 tabelas, 115 suítes, 1100 testes, verdes nas
+**Medido no fim da 167:** 167 migrações, 124 tabelas, 116 suítes, @@TESTES@@ testes, verdes nas
 DUAS condições de relógio; os sete ensaios de navegador verdes, com a portaria e o
 portão, o armário, a cozinha, os temas e a foto no percurso do `ensaio:uso`; **432 telas (144 × três
 temas) sem violação de WCAG 2.1 AA**; nenhuma
@@ -246,10 +247,11 @@ data do dia em que o noturno começou** — substitui o 7h–19h preliminar (pen
   feita (`um-ciclo-completo-da-casa.e2e.spec.ts`). Achou três defeitos (§2, linha 166).
 
 **0.1 O que o pedido de 25/09 deixou para depois** (está na matriz do relatório):
-o diário da internação com os campos do §12 um a um (hoje é texto por tipo);
-medir desempenho com volume de anos (§41); e do §39, sessão expirada com
+o diário da internação com os campos do §12 um a um (hoje é texto por tipo,
+e os campos e quais são obrigatórios são decisão da Fundação); ~~medir
+desempenho com volume de anos (§41)~~ ✅ **167**; e do §39, sessão expirada com
 formulário aberto, várias abas, botão voltar, armazenamento cheio, virada de ano
-e fevereiro. **Pergunta aberta ao Marcelo:** a Enfermagem baixa o relatório da
+e fevereiro. **A próxima etapa de código é o §39**, que não depende de ninguém. **Pergunta aberta ao Marcelo:** a Enfermagem baixa o relatório da
 internação? (§10, item 12).
 
 **1. As medições de alcance estão feitas** — escrita (156) e leitura (158). A
@@ -387,6 +389,13 @@ novo.
   157 mudou o diurno para 08:00, e o colírio do protótipo continuou às 07:30:
   virou dose da noite, e só a rodada da madrugada viu. Quando a regra muda,
   confira o dado fixo que ela classifica.
+- **Regra escrita que o catálogo não cobra é conselho** (167). A regra 15 do §5
+  mandava perguntar o alcance como conjunto desde a 0920; sessenta fases depois,
+  quinze políticas a seguiam e 119 não, e as métricas do remédio levavam 15 s.
+  Hoje o `alcance-como-conjunto.spec.ts` reprova política que chame
+  `app_house_in_scope`/`app_person_in_scope`. **E o ensaio de carga mede o
+  sistema do dia em que foi escrito**: era da fase 51 e não conhecia as trinta
+  fases seguintes. Superfície nova entra no ensaio junto com a tela.
 - **Frase de tela que envelhece é frase que mente**, e a cobrança do ensaio que a
   guarda tem de ser reescrita junto. A ressalva do painel sobre nota escolar já foi
   reescrita três vezes. **Isto inclui este arquivo.**

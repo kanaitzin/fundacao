@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Inject, Param, ParseUUIDPipe, Post, Query, UseGuards } from '@nestjs/common';
 import { SessionGuard } from './session.guard';
 import { CurrentUser } from './current-user.decorator';
 import { AuthenticatedUser } from '../../kernel/contracts';
@@ -17,7 +17,7 @@ import { DataDoDia, CorpoConferido } from '../../kernel/common/data-do-dia.pipe'
 @UseGuards(SessionGuard)
 @Controller('escala')
 export class EscalaController {
-  constructor(private readonly escala: EscalaService) {}
+  constructor(@Inject(EscalaService) private readonly escala: EscalaService) {}
 
   /* Palavra fixa ANTES de qualquer `:id` — a lição que o roteador já cobrou
    * duas vezes neste projeto, no servidor e no mock. */

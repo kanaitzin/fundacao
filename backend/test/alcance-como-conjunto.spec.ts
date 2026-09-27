@@ -22,6 +22,7 @@ describe('app_casas_no_alcance diz o mesmo que app_house_in_scope', () => {
   let c: Client;
   let usuarios: Array<{ id: string; email: string; role: string }> = [];
   let casas: Array<{ id: string; code: string }> = [];
+  let pessoas: string[] = [];
 
   beforeAll(async () => {
     c = new Client({ connectionString: url });
@@ -29,6 +30,7 @@ describe('app_casas_no_alcance diz o mesmo que app_house_in_scope', () => {
     ({ rows: usuarios } = await c.query(
       `SELECT id, email, role::text AS role FROM app_user WHERE active ORDER BY role, email`));
     ({ rows: casas } = await c.query(`SELECT id, code FROM house ORDER BY code`));
+    pessoas = (await c.query(`SELECT id FROM person ORDER BY id`)).rows.map((r) => r.id);
   });
 
   afterAll(async () => { await c.end(); });
@@ -84,6 +86,71 @@ describe('app_casas_no_alcance diz o mesmo que app_house_in_scope', () => {
     expect(p.regra).toMatch(/app_casas_no_alcance/);
     expect(p.regra.indexOf('app_current_role'))
       .toBeLessThan(p.regra.indexOf('app_casas_no_alcance'));
+  });
+
+  /*
+   * AS PESSOAS (fase 167, 1624). Toda política que perguntava
+   * `app_person_in_scope(person_id)` por linha passou a perguntar se a pessoa
+   * está em `app_pessoas_no_alcance()`. Para cada conta ativa, e para CADA
+   * pessoa do banco — com acolhimento ativo, desligada, transferida —, as
+   * duas formas têm de dizer a mesma coisa.
+   */
+  it('para TODO cargo e TODA pessoa, as duas formas do alcance da pessoa concordam', async () => {
+    const divergencias: string[] = [];
+    let comparadas = 0;
+    for (const u of usuarios) {
+      await c.query('BEGIN');
+      await c.query('SET LOCAL ROLE rede_app');
+      await c.query(`SELECT set_config('app.user_id', $1, true)`, [u.id]);
+      /* `person` é lida pelo dono (a função é SECURITY DEFINER), e por isso
+         a lista das pessoas vem de uma função que também é: como rede_app,
+         o RLS esconderia justamente as que interessam. */
+      const { rows } = await c.query(`
+        SELECT x.id::text AS id, app_person_in_scope(x.id) AS pela_funcao,
+               x.id IN (SELECT app_pessoas_no_alcance()) AS pelo_conjunto
+          FROM unnest($1::uuid[]) AS x(id)`, [pessoas]);
+      await c.query('ROLLBACK');
+      for (const r of rows) {
+        comparadas++;
+        if (r.pela_funcao !== r.pelo_conjunto) {
+          divergencias.push(`${u.role} (${u.email}) · pessoa ${r.id}: função=${r.pela_funcao} conjunto=${r.pelo_conjunto}`);
+        }
+      }
+    }
+    expect(divergencias).toEqual([]);
+    expect(comparadas).toBe(usuarios.length * pessoas.length);
+  });
+
+  it('há pessoa de cada situação para comparar: com casa hoje, e sem casa hoje', async () => {
+    /* Sem a pessoa desligada, o ramo "sem acolhimento ativo" nunca seria
+       exercitado, e a comparação acima passaria sem dizer nada sobre ele. */
+    const { rows: [n] } = await c.query(`
+      SELECT count(*) FILTER (WHERE EXISTS (SELECT 1 FROM house_stay s
+                                             WHERE s.person_id = p.id AND s.status = 'ativa'))::int AS com_casa,
+             count(*) FILTER (WHERE NOT EXISTS (SELECT 1 FROM house_stay s
+                                                 WHERE s.person_id = p.id AND s.status = 'ativa'))::int AS sem_casa
+        FROM person p`);
+    expect(n.com_casa).toBeGreaterThan(0);
+    expect(n.sem_casa).toBeGreaterThan(0);
+  });
+
+  it('nenhuma política pergunta o alcance linha por linha', async () => {
+    /*
+     * Guarda a FORMA (fase 167). `app_house_in_scope(x)` e
+     * `app_person_in_scope(x)` são SECURITY DEFINER com search_path, e o
+     * Postgres não as desdobra: numa política, custam uma chamada por linha
+     * lida. Com dois anos de casa, as métricas do remédio levavam 15 s.
+     * Política nova escreve `x = ANY (ARRAY(SELECT app_casas_no_alcance()))`
+     * ou `x IN (SELECT app_pessoas_no_alcance())`.
+     */
+    const { rows } = await c.query(`
+      SELECT polrelid::regclass::text || '.' || polname AS politica
+        FROM pg_policy
+       WHERE coalesce(pg_get_expr(polqual, polrelid), '')
+             || coalesce(pg_get_expr(polwithcheck, polrelid), '')
+             ~ 'app_(house|person)_in_scope\\('
+       ORDER BY 1`);
+    expect(rows.map((r) => r.politica)).toEqual([]);
   });
 
   it('quem não é coordenação nem gestão não lê auditoria nenhuma', async () => {

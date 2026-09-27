@@ -15,7 +15,14 @@
  * linha por vez; quem sofre com volume é quem LÊ — o painel da coordenação, a
  * grade da enfermagem, o dia da casa.
  *
+ * Fase 167: passou a semear também o portão, o armário, a nota, a cozinha, a
+ * escala e a ATA com as linhas da equipe, e a medir as telas delas. Rodado
+ * com 24 meses, achou as métricas do remédio num ano em 15 s, e a causa não
+ * era a consulta: era o alcance perguntado linha por linha em toda política
+ * (ver a migração 1624).
+ *
  * Uso:  DATABASE_URL=... npx tsx scripts/ensaio-carga.ts [meses]
+ *       (o de referência é 24; o banco tem de estar recém-recriado)
  */
 import { Client } from 'pg';
 
@@ -245,6 +252,125 @@ async function main() {
      WHERE h.reason LIKE 'Internação fictícia%'
   `, [autor]);
 
+  /*
+   * AS SUPERFÍCIES DAS FASES 157 A 166 (fase 167).
+   *
+   * O portão, o armário, a nota, a cozinha, a escala e a ATA com as linhas da
+   * equipe nasceram depois de o ensaio ser escrito, e nenhuma delas tinha sido
+   * medida com volume. Os números seguem a rotina de uma casa: duas visitas
+   * por semana para cada familiar autorizado, trinta remédios no armário com
+   * baixa diária, uma nota por semana, cinco pedidos de lanche por dia, cinco
+   * pessoas escaladas por dia, dois turnos com ATA e seis linhas de equipe em
+   * cada um.
+   */
+  const { rows: equipe } = await c.query(
+    `SELECT id FROM app_user WHERE role IN ('educador','lider_diurno','coordenador','equipe_tecnica')
+      ORDER BY email LIMIT 5`);
+  const ids = equipe.map((u) => u.id);
+
+  console.log('→ familiares e visitas…');
+  await c.query(`
+    INSERT INTO person_contact (person_id, name, bond, visit_authorized, visit_authorized_by,
+                                visit_authorized_at, active, restricted, created_by)
+    SELECT hs.person_id, 'Familiar fictício ' || n, 'genitora', true, $1, now(), true, false, $1
+      FROM house_stay hs CROSS JOIN generate_series(1, 2) AS n
+     WHERE hs.status = 'ativa'
+  `, [autor]);
+  await c.query(`
+    INSERT INTO visit (house_id, person_id, contact_id, document_checked, started_at, started_by,
+                       ended_at, ended_by)
+    SELECT hs.house_id, hs.person_id, pc.id, 'RG conferido',
+           (app_hoje() - d)::timestamptz + interval '15 hours',
+           $1, (app_hoje() - d)::timestamptz + interval '16 hours', $1
+      FROM house_stay hs
+      JOIN person_contact pc ON pc.person_id = hs.person_id AND pc.name LIKE 'Familiar fictício%'
+      CROSS JOIN generate_series(1, $2) AS d
+     WHERE hs.status = 'ativa' AND extract(dow FROM app_hoje() - d) IN (3, 6)
+  `, [autor, dias]);
+
+  console.log('→ armário, movimentos e notas…');
+  for (const casa of casas) {
+    await c.query(`
+      INSERT INTO medication_stock (house_id, medication, quantity, unit)
+      SELECT $1, 'Remédio fictício do armário ' || n, 100, 'comprimido'
+        FROM generate_series(1, 30) AS n
+      ON CONFLICT DO NOTHING
+    `, [casa.id]);
+  }
+  await c.query(`
+    INSERT INTO medication_stock_movement (stock_id, kind, quantity, reason, at, by_user)
+    SELECT s.id, 'consumo', -1, NULL, (app_hoje() - d)::timestamptz + interval '9 hours', $1
+      FROM medication_stock s CROSS JOIN generate_series(1, $2) AS d
+     WHERE s.medication LIKE 'Remédio fictício do armário%'
+  `, [autor, dias]);
+  await c.query(`
+    INSERT INTO medication_stock_movement (stock_id, kind, quantity, at, by_user, lot, origin)
+    SELECT s.id, 'entrada', 30, (app_hoje() - d)::timestamptz + interval '10 hours', $1,
+           'L' || d, 'compra'
+      FROM medication_stock s CROSS JOIN generate_series(1, $2, 30) AS d
+     WHERE s.medication LIKE 'Remédio fictício do armário%'
+  `, [autor, dias]);
+  for (const casa of casas) {
+    await c.query(`
+      INSERT INTO medication_purchase (house_id, bought_on, supplier, items, total_cents,
+                                       invoice_ref, bought_by)
+      SELECT $1, app_hoje() - d, 'Farmácia fictícia', 'Cinco itens fictícios', 12000,
+             'NF-' || d, $2
+        FROM generate_series(1, $3, 7) AS d
+    `, [casa.id, autor, dias]);
+  }
+  await c.query(`
+    INSERT INTO medication_purchase_item (purchase_id, house_id, medication, quantity, unit_cents)
+    SELECT p.id, p.house_id, 'Remédio fictício do armário ' || n, 30, 80
+      FROM medication_purchase p CROSS JOIN generate_series(1, 5) AS n
+     WHERE p.supplier = 'Farmácia fictícia'
+  `);
+
+  console.log('→ pedidos da cozinha…');
+  await c.query(`
+    INSERT INTO kitchen_request (house_id, kind, person_id, on_date, quantity, purpose, requested_by,
+                                 requested_at)
+    SELECT hs.house_id, 'lanche', hs.person_id, app_hoje() - d, 1, 'Lanche fictício para a escola',
+           $1, (app_hoje() - d)::timestamptz + interval '7 hours'
+      FROM (SELECT DISTINCT ON (house_id, rn) house_id, person_id, rn
+              FROM (SELECT house_id, person_id,
+                           row_number() OVER (PARTITION BY house_id ORDER BY person_id) AS rn
+                      FROM house_stay WHERE status = 'ativa') x
+             WHERE rn <= 5) hs
+      CROSS JOIN generate_series(0, $2) AS d
+  `, [autor, dias]);
+
+  console.log('→ escala, turnos, ATAs e linhas da equipe…');
+  for (const casa of casas) {
+    await c.query(`
+      INSERT INTO shift_assignment (house_id, user_id, on_date, period, created_by)
+      SELECT $1, u, app_hoje() - d, CASE WHEN i <= 3 THEN 'diurno' ELSE 'noturno' END, $2
+        FROM generate_series(1, $3) AS d
+        CROSS JOIN unnest($4::uuid[]) WITH ORDINALITY AS e(u, i)
+      ON CONFLICT DO NOTHING
+    `, [casa.id, autor, dias, ids]);
+    await c.query(`
+      INSERT INTO shift (house_id, on_date, period, status, opened_by, opened_at, closed_by, closed_at)
+      SELECT $1, app_hoje() - d, p, 'fechado', $2,
+             (app_hoje() - d)::timestamptz, $2, (app_hoje() - d)::timestamptz + interval '12 hours'
+        FROM generate_series(1, $3) AS d CROSS JOIN unnest(ARRAY['diurno','noturno']) AS p
+      ON CONFLICT DO NOTHING
+    `, [casa.id, autor, dias]);
+  }
+  await c.query(`
+    INSERT INTO ata (shift_id, house_id, on_date, period, status, closed_by, closed_at, created_at)
+    SELECT s.id, s.house_id, s.on_date, s.period, 'fechada', s.closed_by, s.closed_at, s.opened_at
+      FROM shift s WHERE s.opened_by = $1 AND s.status = 'fechado'
+       AND NOT EXISTS (SELECT 1 FROM ata a WHERE a.shift_id = s.id)
+  `, [autor]);
+  await c.query(`
+    INSERT INTO ata_note (ata_id, house_id, author_id, body, restricted, created_at, happened_at)
+    SELECT a.id, a.house_id, $1, 'Linha fictícia número ' || n || ' da equipe no turno.', n = 6,
+           a.created_at + (n || ' hours')::interval, a.created_at + (n || ' hours')::interval
+      FROM ata a CROSS JOIN generate_series(1, 6) AS n
+     WHERE a.closed_by = $1 AND a.on_date < app_hoje()
+  `, [autor]);
+
   console.log('→ auditoria…');
   for (const casa of casas) {
     await c.query(`
@@ -264,7 +390,7 @@ async function main() {
            pg_size_pretty(pg_total_relation_size(relid)) AS tamanho
       FROM pg_stat_user_tables
      WHERE n_live_tup > 500
-     ORDER BY n_live_tup DESC LIMIT 8
+     ORDER BY n_live_tup DESC LIMIT 16
   `);
   for (const t of tamanhos) {
     console.log(`  ${String(t.n_live_tup).padStart(9)} linhas  ${String(t.tamanho).padStart(8)}  ${t.relname}`);
@@ -347,27 +473,74 @@ async function main() {
     .send({ email: 'gestor@paodospobres.dev', password: 'senha-dev-123' });
   const auth = { Authorization: `Bearer ${sessao.token}` };
 
-  const rotas: Array<[string, string]> = [
-    ['Dia — painel da casa', `/api/v1/timeline/house-panel?houseId=${ai3}`],
-    ['Dia — a linha do dia', `/api/v1/timeline?houseId=${ai3}`],
-    ['Chamada — as de hoje', `/api/v1/checks?houseId=${ai3}`],
-    ['Saúde — grade do dia', `/api/v1/medications?houseId=${ai3}`],
-    ['Saúde — painel da enfermagem', `/api/v1/nursing/panel?houseId=${ai3}`],
-    ['Passagem — plantões da casa', `/api/v1/shifts?houseId=${ai3}`],
-    ['Acolhidos — a lista', `/api/v1/people?houseId=${ai3}`],
+  const { body: sessaoCoord } = await request(http).post('/api/v1/auth/login')
+    .send({ email: 'coord.ai3@paodospobres.dev', password: 'senha-dev-123' });
+  const authCoord = { Authorization: `Bearer ${sessaoCoord.token}` };
+
+  /* O que as telas das fases 157 a 166 pedem, com dois anos embaixo. */
+  const { rows: [amostra] } = await c.query(`
+    SELECT (SELECT id FROM medication_stock WHERE house_id = $1
+             AND medication LIKE 'Remédio fictício do armário%' LIMIT 1) AS estoque,
+           (SELECT pc.id FROM person_contact pc JOIN house_stay hs ON hs.person_id = pc.person_id
+             WHERE hs.house_id = $1 AND hs.status = 'ativa' AND pc.name LIKE 'Familiar fictício%'
+             LIMIT 1) AS contato,
+           (SELECT hs.person_id FROM house_stay hs JOIN person_contact pc ON pc.person_id = hs.person_id
+             WHERE hs.house_id = $1 AND hs.status = 'ativa' AND pc.name LIKE 'Familiar fictício%'
+             LIMIT 1) AS crianca,
+           (SELECT id FROM shift WHERE house_id = $1 AND on_date = app_hoje() - 1
+             AND period = 'diurno') AS turno,
+           to_char(app_hoje() - 365, 'YYYY-MM-DD') AS um_ano,
+           to_char(app_hoje() - 180, 'YYYY-MM-DD') AS seis_meses,
+           to_char(app_hoje() - 30, 'YYYY-MM-DD') AS um_mes,
+           to_char(app_hoje(), 'YYYY-MM-DD') AS hoje,
+           to_char(app_hoje() - 30, 'YYYY-MM') AS mes_passado,
+           to_char(app_hoje() + 31, 'YYYY-MM') AS proximo_mes`, [ai3]);
+  const a = amostra;
+  const ano = `de=${a.um_ano}&ate=${a.hoje}`;
+
+  const rotas: Array<[string, string, 'gestor' | 'coord']> = [
+    ['Dia — painel da casa', `/api/v1/timeline/house-panel?houseId=${ai3}`, 'gestor'],
+    ['Dia — a linha do dia', `/api/v1/timeline?houseId=${ai3}`, 'gestor'],
+    ['Chamada — as de hoje', `/api/v1/checks?houseId=${ai3}`, 'gestor'],
+    ['Saúde — grade do dia', `/api/v1/medications?houseId=${ai3}`, 'gestor'],
+    ['Saúde — painel da enfermagem', `/api/v1/nursing/panel?houseId=${ai3}`, 'gestor'],
+    ['Passagem — plantões da casa', `/api/v1/shifts?houseId=${ai3}`, 'gestor'],
+    ['Acolhidos — a lista', `/api/v1/people?houseId=${ai3}`, 'gestor'],
     /* As que nasceram depois da fase 51. A do trabalho social atravessa as
      * OITO casas — é o pior caso do sistema. */
-    ['Trabalho social — as oito casas', '/api/v1/impacto/panorama'],
-    ['Trabalho social — quem conquistou', '/api/v1/impacto/marcos'],
-    ['Internação — as da casa', `/api/v1/nursing/hospitalizations?houseId=${ai3}&encerradas=1`],
-    ['Perfil — com contatos e conquistas', `/api/v1/people/${primeiroAcolhido}`],
+    ['Trabalho social — as oito casas', '/api/v1/impacto/panorama', 'gestor'],
+    ['Trabalho social — quem conquistou', '/api/v1/impacto/marcos', 'gestor'],
+    ['Internação — as da casa', `/api/v1/nursing/hospitalizations?houseId=${ai3}&encerradas=1`, 'gestor'],
+    ['Perfil — com contatos e conquistas', `/api/v1/people/${primeiroAcolhido}`, 'gestor'],
+    ['Painel do gestor — as oito casas', '/api/v1/reports/panel', 'gestor'],
+    /* Fases 157 a 166. */
+    ['Portão — as visitas de hoje', `/api/v1/people/portaria/hoje?houseId=${ai3}`, 'coord'],
+    ['Perfil — as visitas de um ano', `/api/v1/people/${a.crianca}/visitas?${ano}`, 'coord'],
+    ['Contato — o histórico de visitas', `/api/v1/people/contacts/${a.contato}/visit-history`, 'coord'],
+    ['Armário — o saldo da casa', `/api/v1/medications/stock?houseId=${ai3}`, 'coord'],
+    ['Armário — a história de um item', `/api/v1/medications/stock/${a.estoque}/movements`, 'coord'],
+    ['Remédio — as métricas de um ano', `/api/v1/medications/metrics?houseId=${ai3}&${ano}`, 'coord'],
+    ['Notas — as de um ano', `/api/v1/medications/purchases?houseId=${ai3}&${ano}`, 'coord'],
+    ['Cozinha — os pedidos do mês', `/api/v1/people/kitchen-requests?houseId=${ai3}&de=${a.um_mes}&ate=${a.hoje}`, 'coord'],
+    ['Cozinha — o resumo de um ano', `/api/v1/people/kitchen-requests/summary?houseId=${ai3}&${ano}`, 'coord'],
+    ['Período — seis meses da casa', `/api/v1/reports/period?houseId=${ai3}&de=${a.seis_meses}&ate=${a.hoje}`, 'coord'],
+    ['Período — as refeições de seis meses', `/api/v1/reports/period/meals?houseId=${ai3}&de=${a.seis_meses}&ate=${a.hoje}`, 'coord'],
+    ['Painel — o mês da casa', `/api/v1/reports/house-monthly?houseId=${ai3}&mes=${a.mes_passado}`, 'coord'],
+    ['Escala — o mês', `/api/v1/escala?houseId=${ai3}&de=${a.um_mes}&ate=${a.hoje}`, 'coord'],
+    ['Escala — o rascunho do mês', `/api/v1/escala/rascunho?houseId=${ai3}&mes=${a.proximo_mes}`, 'coord'],
+    ['ATA — o arquivo do mês', `/api/v1/shifts/ata-archive?houseId=${ai3}&escala=mes`, 'coord'],
+    ['ATA — o turno de ontem', `/api/v1/shifts/${a.turno}`, 'coord'],
+    ['ATA — a folha de ontem', `/api/v1/shifts/${a.turno}/folha`, 'coord'],
+    ['ATA — o turno anterior', `/api/v1/shifts/anterior?houseId=${ai3}`, 'coord'],
+    ['Auditoria — a de uma criança', `/api/v1/audit/person/${a.crianca}`, 'coord'],
   ];
 
   const pelaRede: Array<{ nome: string; ms: number; status: number }> = [];
-  for (const [nome, rota] of rotas) {
-    await request(http).get(rota).set(auth);              // aquece
+  for (const [nome, rota, quem] of rotas) {
+    const cab = quem === 'coord' ? authCoord : auth;
+    await request(http).get(rota).set(cab);               // aquece
     const t = process.hrtime.bigint();
-    const r = await request(http).get(rota).set(auth);
+    const r = await request(http).get(rota).set(cab);
     pelaRede.push({ nome, ms: Number(process.hrtime.bigint() - t) / 1e6, status: r.status });
   }
 

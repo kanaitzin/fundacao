@@ -210,3 +210,13 @@ armazenamento do aparelho cheio, virada de ano e fevereiro, e volume de meses
 ou anos de registros (§41). Os arquivos Word foram conferidos por dentro
 (página, margens, fonte, imagens, texto); nesta máquina não há programa que os
 abra, e a abertura no Word fica para a aplicação na Casa 03.
+
+## Depois deste relatório
+
+A linha do desempenho com volume de anos (§41) foi medida na fase 167, e a
+linha acima fica como estava no fechamento, de propósito. O ensaio de carga
+com dois anos das oito casas achou as métricas do remédio num ano levando 15
+segundos, a ATA do turno anterior 605 ms, a auditoria de uma criança 377 ms e
+o painel da Enfermagem 368 ms. Depois das migrações 1624, 1625 e 1626, as 31
+rotas medidas respondem abaixo de 300 ms. O relato está na linha 167 do §2 do
+`REDE-ACOLHER.md`. Continua sem teste próprio o resto do §39.
