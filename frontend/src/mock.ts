@@ -3811,6 +3811,18 @@ class Recusa extends Error {
  */
 let semSinal = false;
 export function simularSemSinal(ligado: boolean) { semSinal = ligado; }
+
+/*
+ * A SESSÃO QUE TERMINA — só para o ensaio (fase 168). O servidor de verdade
+ * encerra a sessão depois de algumas horas; o protótipo não tem relógio de
+ * sessão, e sem isto a entrada por cima da tela nunca seria vista nem
+ * cobrada. Entrar de novo desfaz.
+ */
+let sessaoVencida = false;
+if (typeof window !== 'undefined') {
+  (window as unknown as { __ensaioVencerSessao?: () => void }).__ensaioVencerSessao =
+    () => { sessaoVencida = true; };
+}
 export function estaSemSinal() { return semSinal; }
 
 export async function mockApi<T>(path: string, init?: RequestInit): Promise<T> {
@@ -3824,6 +3836,10 @@ export async function mockApi<T>(path: string, init?: RequestInit): Promise<T> {
   const q = new URLSearchParams(busca ?? '');
   const corpo = init?.body ? JSON.parse(String(init.body)) : {};
   const seg = rota.split('/').filter(Boolean);
+  if (sessaoVencida && rota !== '/auth/login') {
+    throw new Recusa(401, 'Sua sessão terminou. Entre de novo para continuar — o que você digitou '
+      + 'nesta tela não foi salvo.');
+  }
 
   const r = responder(rota, seg, q, corpo, init?.method ?? 'GET');
   if (r instanceof Recusa) throw r;
@@ -4807,6 +4823,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       return new Recusa(401, 'E-mail ou senha inválidos.');
     }
     eu = u;
+    sessaoVencida = false;
     return { token: 'prototipo' };
   }
   if (rota === '/auth/logout') return { ok: true };
@@ -4841,7 +4858,8 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     const pessoa = PESSOA_DO_CARGO[alvo];
     if (pessoa) eu = pessoa;
     cofreLiberado = false;   // trocar de cargo fecha o cofre: a porta é por pessoa.
-    return { ok: true, id: eu.id, fullName: eu.fullName, role: eu.role };
+    return { ok: true, id: eu.id, fullName: eu.fullName, role: eu.role,
+             email: Object.keys(USUARIOS).find((e) => USUARIOS[e].id === eu.id) };
   }
   if (rota === '/auth/password') {
     // Vale enquanto a página estiver aberta: a partir daqui a conta pede senha.
@@ -5263,6 +5281,11 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       const tipo = TIPOS_OFFLINE.find((t) => t.kind === op.kind);
       if (!tipo) {
         return { clientOpId: op.clientOpId, status: 'rejeitada', motivo: 'tipo de operação desconhecido' };
+      }
+      // Fase 168: registro de outra pessoa espera por ela, como no servidor.
+      if (op.autorId && op.autorId !== eu.id) {
+        return { clientOpId: op.clientOpId, status: 'aguardando_autor',
+                 motivo: 'Registrado por outra pessoa neste aparelho. Entra quando ela entrar.' };
       }
       // 0930: confirmação de dose não se guarda sem sinal, em aparelho nenhum.
       if (tipo.foraDaFilaOffline) {

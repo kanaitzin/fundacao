@@ -133,6 +133,15 @@ for (const cargo0 of cargos) {
   const meus = [...achados.values()].filter((a) => a.ondes.some((o) => o.startsWith(`${tema} · ${cargo.valor}`)));
   console.log(`  ${meus.length ? '✗' : '✓'} ${cargo.rotulo}`);
 }
+/* A folha de entrar de novo quando a sessão termina (fase 168): aparece por
+ * cima de qualquer tela, a qualquer cargo, e é lida às pressas. */
+await pg.evaluate(() => window.__ensaioVencerSessao());
+await seletor.selectOption('coordenador');       // qualquer chamada ao servidor serve
+await pg.waitForTimeout(900);
+await conferir(`${tema} · folha "Sua sessão terminou"`); telas++;
+await pg.locator('#sessao-senha').fill('senha-dev-123');
+await pg.getByRole('button', { name: /Entrar e continuar/ }).click();
+await pg.waitForTimeout(700);
 }
 
 await navegador.close();

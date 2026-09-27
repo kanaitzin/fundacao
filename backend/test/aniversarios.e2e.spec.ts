@@ -134,31 +134,62 @@ describe('Os aniversários', () => {
   });
 
   it('a conta atravessa a virada do ano e não perde quem nasceu em 29 de fevereiro', async () => {
-    const { rows: [r] } = await admin.query(
-      `SELECT (make_date(2026,1,3) - make_date(2025,12,28))::int AS dias`);
-    expect(r.dias).toBe(6);
-
-    /* Com o relógio do banco em 28/12, quem nasceu em 3/1 tem de estar na
-       lista de sete dias — e a conta é sobre a PRÓXIMA ocorrência, não sobre
-       a data crua, que daria um número negativo. */
-    const { rows: [v] } = await admin.query(
-      `WITH b AS (SELECT make_date(2015,1,3) AS nasc, make_date(2025,12,28) AS hoje)
-       SELECT (CASE WHEN make_date(extract(year FROM hoje)::int, 1, 3) >= hoje
-                    THEN make_date(extract(year FROM hoje)::int, 1, 3)
-                    ELSE make_date(extract(year FROM hoje)::int + 1, 1, 3) END - hoje)::int AS faltam
-         FROM b`);
-    expect(v.faltam).toBe(6);
-
-    /* 29/02 em ano comum: a função trata como 28/02 em vez de falhar. */
+    /*
+     * A FUNÇÃO de verdade, com o dia de referência escolhido (fase 168). A
+     * versão anterior deste teste refazia a fórmula no próprio SQL do teste e
+     * perguntava ao banco uma vez, em 2026 — ano comum antes de ano comum. Por
+     * isso não viu os dois defeitos do 29/02: a lista inteira da casa dando
+     * erro de março a dezembro de 2028, e 28/02/2028 num ano que tem o 29.
+     */
+    const janeiro = await nova('AniversarioTresDeJaneiro', '2015-01-03', AI3);
     const bissexto = await nova('AniversarioBissexto', '2016-02-29', AI3);
-    kids.bissexto = bissexto;
-    const { rows: [b] } = await admin.query(
-      /* `dia::text`: vindo como Date, a comparação vira "Sun Feb 28 2027…" — o
-         mesmo tropeço da fase 95, e por isso a data sai como texto. */
-      `SELECT dia::text AS dia FROM app_aniversarios_proximos($1, 366) WHERE person_id = $2`,
-      [AI3, bissexto]);
-    expect(b).toBeTruthy();
-    expect(String(b.dia)).toMatch(/-02-28$/);
+    kids.janeiro = janeiro; kids.bissexto = bissexto;
+    const { rows: [{ id: coord }] } = await admin.query(
+      `SELECT id FROM app_user WHERE email = 'coord.ai3@paodospobres.dev'`);
+    const em = async (hoje: string, quem: string) => {
+      await admin.query('BEGIN');
+      try {
+        await admin.query('SET LOCAL ROLE rede_app');
+        await admin.query(`SELECT set_config('app.user_id', $1, true)`, [coord]);
+        const { rows } = await admin.query(
+          `SELECT dia::text AS dia, faltam, idade_que_faz AS idade
+             FROM app_aniversarios_em($1, 366, $2::date) WHERE person_id = $3`, [AI3, hoje, quem]);
+        return rows[0];
+      } finally { await admin.query('ROLLBACK'); }
+    };
+
+    /* A virada: em 28/12 quem nasceu em 3/1 faz aniversário daqui a seis dias,
+       no ano seguinte, e com a idade do ano seguinte. */
+    expect(await em('2025-12-28', janeiro)).toEqual({ dia: '2026-01-03', faltam: 6, idade: 11 });
+    expect(await em('2026-01-03', janeiro)).toEqual({ dia: '2026-01-03', faltam: 0, idade: 11 });
+    expect(await em('2026-01-04', janeiro)).toEqual({ dia: '2027-01-03', faltam: 364, idade: 12 });
+
+    /* 29/02: comemorado em 28/02 no ano comum, no próprio 29 no bissexto. */
+    expect((await em('2026-09-27', bissexto)).dia).toBe('2027-02-28');
+    expect((await em('2027-09-27', bissexto)).dia).toBe('2028-02-29');
+    expect((await em('2028-02-29', bissexto))).toEqual({ dia: '2028-02-29', faltam: 0, idade: 12 });
+    /* O que derrubava a tela: bissexto, depois de fevereiro. */
+    expect((await em('2028-03-05', bissexto)).dia).toBe('2029-02-28');
+    /* A lista da casa inteira responde nesse dia, e não só a da criança. */
+    await admin.query('BEGIN');
+    try {
+      await admin.query('SET LOCAL ROLE rede_app');
+      await admin.query(`SELECT set_config('app.user_id', $1, true)`, [coord]);
+      await expect(admin.query(`SELECT count(*) FROM app_aniversarios_em($1, 366, '2028-03-05')`, [AI3]))
+        .resolves.toBeTruthy();
+    } finally { await admin.query('ROLLBACK'); }
+  });
+
+  it('a lista de aniversários pergunta o alcance no banco, e não só no serviço', async () => {
+    const { rows: [{ id: coord4 }] } = await admin.query(
+      `SELECT id FROM app_user WHERE email = 'coord.ai4@paodospobres.dev'`);
+    await admin.query('BEGIN');
+    try {
+      await admin.query('SET LOCAL ROLE rede_app');
+      await admin.query(`SELECT set_config('app.user_id', $1, true)`, [coord4]);
+      const { rows } = await admin.query(`SELECT * FROM app_aniversarios_proximos($1, 366)`, [AI3]);
+      expect(rows).toEqual([]);
+    } finally { await admin.query('ROLLBACK'); }
   });
 
   it('a ciência é do educador também, e faz o aviso parar', async () => {

@@ -31,6 +31,16 @@
  *    não passa vira CONFLITO para decisão humana (§17.4) — nunca gravação
  *    silenciosa por baixo da validação, nunca descarte.
  *
+ * 5. **Cada registro leva quem o escreveu, e só sobe com a sessão dessa
+ *    pessoa** (fase 168). A fila mora no aparelho, e não na sessão: no
+ *    computador da casa, a educadora escrevia sem sinal e saía, o colega
+ *    entrava, e o registro dela subia com o nome DELE. Registro de outra
+ *    pessoa fica guardado e é contado à parte, até ela entrar.
+ *
+ * 6. **Duas abas não enviam juntas.** O envio pede a trava do navegador
+ *    (`navigator.locks`) e relê a fila do banco local antes de mandar: a
+ *    outra aba pode ter acabado de enviar e apagar.
+ *
  * E uma recusa que acontece AQUI, antes de guardar: confirmação de dose exige
  * a fila offline (0930). Enfileirar uma dose num aparelho pessoal
  * seria deixar a educadora acreditar por horas que registrou algo que vai
@@ -58,11 +68,15 @@ export interface OperacaoLocal {
   motivo?: string;
   tentativas: number;
   ultimaTentativa?: string;
+  /** Quem escreveu (fase 168). Registro sem autor é de antes da 168. */
+  autorId?: string;
 }
 
 export interface EstadoDaFila {
   pendentes: number;
   paradas: number;          // conflito ou recusa: esperam gente
+  /** Registros de outra pessoa guardados neste aparelho: sobem quando ela entrar. */
+  deOutraPessoa: number;
   enviando: boolean;
   online: boolean;
   ultimoEnvio?: string;
@@ -110,11 +124,17 @@ let enviando = false;
 let ultimoEnvio: string | undefined;
 let ultimoErro: string | undefined;
 let cache: OperacaoLocal[] = [];
+let autorAtual: string | null = null;
+
+/** O registro é de quem está entrado? O sem autor (anterior à 168) é de quem estiver. */
+const minha = (o: OperacaoLocal) => !o.autorId || o.autorId === autorAtual;
 
 function estado(): EstadoDaFila {
+  const minhas = cache.filter(minha);
   return {
-    pendentes: cache.filter((o) => o.status === 'pendente').length,
-    paradas: cache.filter((o) => o.status !== 'pendente').length,
+    pendentes: minhas.filter((o) => o.status === 'pendente').length,
+    paradas: minhas.filter((o) => o.status !== 'pendente').length,
+    deOutraPessoa: cache.length - minhas.length,
     enviando,
     online: typeof navigator === 'undefined' ? true : navigator.onLine,
     ultimoEnvio,
@@ -140,8 +160,20 @@ export function observarFila(o: Ouvinte): () => void {
   return () => { ouvintes.delete(o); };
 }
 
+/** Os registros de quem está entrado. Os de outra pessoa não se mostram nem se descartam daqui. */
 export function filaAtual(): OperacaoLocal[] {
-  return [...cache];
+  return cache.filter(minha);
+}
+
+/**
+ * Quem está entrado neste aparelho (fase 168). Chamado ao entrar, ao sair e,
+ * no protótipo, ao trocar de cargo, que troca de pessoa. Ao entrar, a fila
+ * tenta enviar na hora o que é dessa pessoa.
+ */
+export function definirAutor(id: string | null) {
+  autorAtual = id;
+  avisar();
+  if (id) void sincronizar();
 }
 
 /* ------------------------------------------------------------------ Enfileirar */
@@ -179,6 +211,7 @@ export async function enfileirar(op: AoEnfileirar): Promise<OperacaoLocal> {
 
   const agora = new Date().toISOString();
   const registro: OperacaoLocal = {
+    autorId: autorAtual ?? undefined,
     clientOpId: novoId(),
     kind: op.kind,
     houseId: op.houseId,
@@ -188,7 +221,21 @@ export async function enfileirar(op: AoEnfileirar): Promise<OperacaoLocal> {
     status: 'pendente',
     tentativas: 0,
   };
-  await comLoja('readwrite', (l) => l.put(registro) as IDBRequest<IDBValidKey>);
+  try {
+    await comLoja('readwrite', (l) => l.put(registro) as IDBRequest<IDBValidKey>);
+  } catch {
+    /*
+     * O APARELHO NÃO GUARDOU (fase 168). Armazenamento cheio, navegação
+     * privada, dados do site bloqueados. Antes, a falha subia como "sem
+     * conexão" e a tela dizia "o que você registrar fica guardado neste
+     * aparelho", sobre um registro que não estava em lugar nenhum.
+     */
+    throw new RecusaDaFila(
+      'Sem internet, e este aparelho não conseguiu guardar o registro: ele NÃO foi salvo. '
+      + 'Anote no papel o que aconteceu e a hora, e registre quando o sinal voltar. '
+      + 'Se acontecer de novo, o celular pode estar sem espaço.',
+    );
+  }
   await recarregar();
   return registro;
 }
@@ -251,8 +298,23 @@ const LOTE = 100;   // o servidor recusa acima de 500; 100 cabe em rede ruim
  * é erro de quem está trabalhando.
  */
 export async function sincronizar(): Promise<{ aplicadas: number; paradas: number }> {
-  if (enviando || !enviador) return { aplicadas: 0, paradas: 0 };
-  const pendentes = cache.filter((o) => o.status === 'pendente');
+  if (enviando || !enviador || !autorAtual) return { aplicadas: 0, paradas: 0 };
+  /* A trava do navegador vale para todas as abas do aparelho; sem ela (navegador
+     antigo), cada aba se trava sozinha, como antes. */
+  const travas = typeof navigator !== 'undefined'
+    ? (navigator as Navigator & { locks?: LockManager }).locks : undefined;
+  if (travas?.request) {
+    return travas.request('rede-acolher-fila', () => enviarAgora());
+  }
+  return enviarAgora();
+}
+
+async function enviarAgora(): Promise<{ aplicadas: number; paradas: number }> {
+  if (enviando || !enviador || !autorAtual) return { aplicadas: 0, paradas: 0 };
+  /* Relê do banco local: a outra aba pode ter enviado e apagado enquanto esta
+     esperava a trava, e o que está em memória já não vale. */
+  await recarregar();
+  const pendentes = cache.filter((o) => o.status === 'pendente' && minha(o));
   if (!pendentes.length) return { aplicadas: 0, paradas: 0 };
 
   enviando = true; ultimoErro = undefined; avisar();
@@ -268,6 +330,8 @@ export async function sincronizar(): Promise<{ aplicadas: number; paradas: numbe
         payload: o.payload,
         happenedAt: o.happenedAt,
         queuedAt: o.queuedAt,
+        /* Quem escreveu. O servidor não aplica com a sessão de outra pessoa. */
+        autorId: o.autorId ?? autorAtual ?? undefined,
         /* O aparelho DIZ o código; quem decide se ele é institucional é o
          * servidor, contra o cadastro da casa. O cliente não afirma nada
          * sobre si (fase 43). */

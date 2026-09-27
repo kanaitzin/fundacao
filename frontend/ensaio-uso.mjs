@@ -2919,6 +2919,49 @@ cobrar('o educador não tem os botões de registrar',
   (await pg.getByRole('button', { name: /Registrar alergia ou condição|Registrar restrição alimentar/ }).count()) === 0);
 cobrar('nenhuma exceção na alergia e na restrição', erros.length === 0, erros[0]);
 
+/*
+ * O §39 NA TELA (fase 168): a sessão que termina com texto escrito, e o
+ * botão voltar. Antes, o único caminho depois do 401 era Sair, que desmonta a
+ * tela; e o voltar do celular saía da página, levando a sessão e o texto.
+ */
+console.log('\n⏳ A sessão que termina com a tela aberta, e o botão voltar (fase 168)');
+const TEXTO_168 = 'Escrito antes de a sessão terminar';
+await trocar('equipe_tecnica');
+await aba('Acolhidos');
+await clicar(/Alice/);
+await pg.getByRole('button', { name: /Registrar restrição alimentar/ }).click();
+await pg.waitForTimeout(400);
+await pg.locator('#sr-rest').fill(TEXTO_168);
+await pg.evaluate(() => history.back());
+await pg.waitForTimeout(600);
+cobrar('o voltar com uma folha aberta não fecha a folha nem perde o texto',
+  (await pg.locator('#sr-rest').count()) > 0 && (await pg.locator('#sr-rest').inputValue()) === TEXTO_168);
+await pg.evaluate(() => window.__ensaioVencerSessao());
+await pg.locator('.overlay button', { hasText: /^Registrar$/ }).click();
+await pg.waitForTimeout(900);
+cobrar('a sessão que termina abre a entrada por cima da tela',
+  (await pg.getByRole('heading', { name: /Sua sessão terminou/ }).count()) > 0);
+cobrar('e o texto escrito continua na tela', (await pg.locator('#sr-rest').inputValue()) === TEXTO_168);
+cobrar('entra-se de novo na MESMA conta',
+  (await pg.locator('#sessao-email').inputValue()) === 'tecnica.ai3@paodospobres.dev',
+  await pg.locator('#sessao-email').inputValue());
+await pg.locator('#sessao-senha').fill('senha-dev-123');
+await pg.getByRole('button', { name: /Entrar e continuar/ }).click();
+await pg.waitForTimeout(900);
+cobrar('depois de entrar, a folha de entrada sai',
+  (await pg.getByRole('heading', { name: /Sua sessão terminou/ }).count()) === 0);
+await pg.locator('.overlay button', { hasText: /^Registrar$/ }).click();
+await pg.waitForTimeout(900);
+cobrar('e o registro que tinha ficado para trás é salvo', new RegExp(TEXTO_168).test(await conteudo()));
+
+await aba('Dia');
+await aba('Acolhidos');
+await pg.evaluate(() => history.back());
+await pg.waitForTimeout(700);
+cobrar('o voltar do navegador volta de tela, sem sair do sistema',
+  /Dia/.test(await pg.locator('nav.tabbar button.on').first().innerText().catch(() => '')));
+cobrar('nenhuma exceção na sessão e no voltar', erros.length === 0, erros[0]);
+
 await navegador.close();
 console.log(achados.length
   ? `\n${achados.length} ACHADO(S):\n  ${achados.join('\n  ')}`

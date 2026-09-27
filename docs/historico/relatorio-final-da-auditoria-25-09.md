@@ -220,3 +220,9 @@ segundos, a ATA do turno anterior 605 ms, a auditoria de uma criança 377 ms e
 o painel da Enfermagem 368 ms. Depois das migrações 1624, 1625 e 1626, as 31
 rotas medidas respondem abaixo de 300 ms. O relato está na linha 167 do §2 do
 `REDE-ACOLHER.md`. Continua sem teste próprio o resto do §39.
+
+Os casos do §39 foram testados na fase 168: sessão terminada com a tela
+aberta, várias abas, botão voltar, armazenamento cheio, virada de ano e
+fevereiro. Foram achados e consertados cinco defeitos, e o mais grave era o
+registro guardado sem sinal subir com a identidade de quem estivesse entrado
+quando o sinal voltasse. O relato está na linha 168 do §2.

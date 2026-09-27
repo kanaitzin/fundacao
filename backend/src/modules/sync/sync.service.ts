@@ -17,6 +17,8 @@ export interface OfflineOp {
   device?: string;
   /** Código do aparelho institucional (§11.7). O servidor confere; o cliente não afirma. */
   deviceToken?: string;
+  /** Quem ESCREVEU a operação no aparelho (fase 168). */
+  autorId?: string;
   /** Preenchido pelo SERVIDOR a partir de `deviceToken`. Ignorado se vier do cliente. */
   institutionalDevice?: boolean;
 }
@@ -70,6 +72,24 @@ export class SyncService {
     for (const op of ops) {
       if (!op.clientOpId || !op.kind || !op.happenedAt) {
         resultados.push({ clientOpId: op.clientOpId ?? '?', status: 'rejeitada', motivo: 'operação incompleta' });
+        continue;
+      }
+
+      /*
+       * 0) QUEM ESCREVEU É QUEM ENVIA (fase 168).
+       *
+       * A fila mora no aparelho, e não na sessão. No computador da casa, a
+       * educadora escrevia sem sinal e saía; o colega entrava, o sinal
+       * voltava, e o registro dela era aplicado com a identidade DELE. O
+       * aparelho já não manda a operação de outra pessoa; isto é a segunda
+       * trava. A resposta não é recusa nem conflito: a operação fica no
+       * aparelho, esperando quem a escreveu entrar.
+       */
+      if (op.autorId && op.autorId !== user.id) {
+        resultados.push({
+          clientOpId: op.clientOpId, status: 'aguardando_autor',
+          motivo: 'Registrado por outra pessoa neste aparelho. Entra quando ela entrar.',
+        });
         continue;
       }
 
@@ -135,6 +155,19 @@ export class SyncService {
           motivo: retentativa ? 'aplicada em nova tentativa' : undefined,
         });
       } catch (e: any) {
+        /* A OUTRA ABA chegou primeiro (fase 168). Se, depois da falha, a
+           operação consta aplicada, a falha foi a corrida — a execução já
+           existe —, e a resposta certa é "duplicada": o aparelho pode limpar,
+           e nenhum conflito falso vai para a coordenação resolver. */
+        const agora = await this.db.asUser(user.id, async (c) => {
+          const { rows: [r] } = await c.query(
+            `SELECT status FROM offline_operation WHERE client_op_id = $1`, [op.clientOpId]);
+          return r?.status as string | undefined;
+        });
+        if (agora === 'aplicada') {
+          resultados.push({ clientOpId: op.clientOpId, status: 'duplicada', motivo: 'já aplicada' });
+          continue;
+        }
         // Falha de aplicação vira conflito para revisão humana, não descarte.
         await this.registrar(user, op, 'conflito', e?.message ?? 'erro ao aplicar');
         if (op.houseId) {
@@ -182,7 +215,13 @@ export class SyncService {
            SET status = EXCLUDED.status,
                applied_at = EXCLUDED.applied_at,
                error = EXCLUDED.error,
-               payload = EXCLUDED.payload`,
+               payload = EXCLUDED.payload
+         -- O que foi APLICADO não é rebaixado (fase 168). Duas abas do mesmo
+         -- aparelho mandando a fila juntas: uma aplica, a outra encontra a
+         -- execução já gravada e volta "duplicada" — e gravava isso por cima,
+         -- apagando o applied_at. O servidor passava a dizer que a operação
+         -- nunca tinha sido aplicada.
+         WHERE offline_operation.status <> 'aplicada'`,
         [op.clientOpId, user.id, op.houseId ?? null, op.kind, JSON.stringify(op.payload ?? {}),
          op.happenedAt, op.queuedAt ?? op.happenedAt, status, op.device ?? null,
          op.institutionalDevice ?? false, error ?? null]);

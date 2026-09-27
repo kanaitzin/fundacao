@@ -131,13 +131,28 @@ await pg.waitForTimeout(900);
 fila = await lerFila(pg);
 cobrar('a fila sobreviveu ao aplicativo fechar', fila.length >= 1, `fila com ${fila.length}`);
 
-console.log('\nCom o sinal de volta');
-/* Entrar liga a fila, que tenta sozinha: é o que acontece quando a pessoa
- * chega na casa e o wi-fi pega. */
+console.log('\nCom o sinal de volta, e outra pessoa entrando');
+/*
+ * FASE 168. O protótipo abre como coordenação (Marcelo), e quem marcou foi o
+ * educador (Mário). O registro é de quem o escreveu: com a sessão do Marcelo
+ * ele NÃO sobe — fica guardado, contado como de outra pessoa —, e sobe quando
+ * o Mário entra. Antes, subia com o nome de quem estivesse entrado.
+ */
 await pg.getByRole('button', { name: /Entrar no sistema/i }).click();
 await pg.waitForTimeout(2500);
 fila = await lerFila(pg);
-cobrar('o que o servidor confirmou saiu do aparelho', fila.length === 0, `restaram ${fila.length}`);
+cobrar('o registro do educador não sobe com a sessão da coordenação', fila.length >= 1,
+  `restaram ${fila.length}`);
+cobrar('e leva quem o escreveu', !!fila[0]?.autorId, JSON.stringify(fila[0] ?? {}).slice(0, 120));
+await pg.locator('header .iconbtn.fila').click();
+await pg.waitForTimeout(400);
+cobrar('a folha da fila diz que é de outra pessoa',
+  /registro de outra pessoa guardado neste aparelho/.test(await pg.locator('.overlay').innerText()));
+await pg.locator('.overlay button', { hasText: /^Fechar$/ }).click();
+await pg.locator('select.troca-cargo-sel').selectOption('educador');
+await pg.waitForTimeout(2500);
+fila = await lerFila(pg);
+cobrar('quando o educador entra, o registro dele sobe', fila.length === 0, `restaram ${fila.length}`);
 cobrar('o selo sumiu quando não há mais nada guardado',
   await pg.locator('header .iconbtn.fila .badge').count() === 0);
 
@@ -174,6 +189,33 @@ if (restou) {
   cobrar('e com o motivo do servidor ao lado', !!a?.motivo, a?.motivo ?? 'sem motivo');
   cobrar('marcada como parada, não como pendente', a?.status === 'rejeitada', a?.status);
 }
+
+console.log('\nO aparelho que não consegue guardar');
+/*
+ * FASE 168. Armazenamento cheio, navegação privada: o IndexedDB recusa a
+ * gravação. Antes a tela dizia "fica guardado neste aparelho" sobre um
+ * registro que não estava em lugar nenhum.
+ */
+await pg.locator('select.troca-cargo-sel').selectOption('educador');
+await pg.waitForTimeout(900);
+await pg.locator('nav.tabbar button', { hasText: 'Chamada' }).click();
+await pg.waitForTimeout(1000);
+await pg.locator('main.conteudo button').filter({ hasText: /Janta|Almoço|Café/ }).last().click();
+await pg.waitForTimeout(1000);
+await pg.getByRole('button', { name: /Simular sem sinal/i }).click();
+await pg.waitForTimeout(300);
+await pg.evaluate(() => {
+  IDBObjectStore.prototype.put = function () {
+    throw new DOMException('O armazenamento do aparelho está cheio.', 'QuotaExceededError');
+  };
+});
+const antesCheio = (await lerFila(pg)).length;
+await pg.locator('main.conteudo .ev button').filter({ hasText: /^Normal$/ }).first().click();
+await pg.waitForTimeout(1500);
+const telaCheia = await pg.locator('main.conteudo').innerText();
+cobrar('a tela diz que o registro NÃO foi salvo', /NÃO foi salvo/.test(telaCheia), telaCheia.slice(0, 160));
+cobrar('e não diz que ficou guardado', !/fica guardado neste aparelho/.test(telaCheia));
+cobrar('e de fato nada entrou na fila', (await lerFila(pg)).length === antesCheio);
 
 cobrar('nenhuma exceção na página durante o ensaio', erros.length === 0, erros.join(' | '));
 

@@ -56,10 +56,32 @@ function mensagem(status: number, doServidor?: string): string {
  */
 const PROTOTIPO = import.meta.env.VITE_PROTOTIPO === '1';
 
+/*
+ * A SESSÃO TERMINOU COM A TELA ABERTA (fase 168).
+ *
+ * O servidor recusa com 401 e diz que o que foi digitado não foi salvo. O
+ * único caminho era Sair e entrar de novo, e sair desmonta a tela: o relato
+ * escrito às onze da noite ia junto. Agora o 401 de quem TINHA sessão avisa
+ * o aplicativo, que abre a entrada por cima da tela, na mesma conta; a tela
+ * fica como estava, e a pessoa salva outra vez. Nada é guardado no aparelho
+ * para isso: o token continua só em memória (§17.2).
+ */
+type AoVencer = () => void;
+let aoVencer: AoVencer | null = null;
+export function quandoASessaoTerminar(f: AoVencer | null) { aoVencer = f; }
+function talvezVenceu(status: number, path: string) {
+  if (status === 401 && token && !path.startsWith('/auth/')) aoVencer?.();
+}
+
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   if (PROTOTIPO) {
     const { mockApi } = await import('./mock');
-    return mockApi<T>(path, init);
+    try {
+      return await mockApi<T>(path, init);
+    } catch (e) {
+      talvezVenceu((e as { status?: number })?.status ?? 0, path);
+      throw e;
+    }
   }
   let res: Response;
   try {
@@ -82,6 +104,7 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
     // Mensagem do servidor só é exibida quando já vem em linguagem de usuário.
     const doServidor = typeof body.message === 'string' && /[À-ÿ]|senha|tentativas|Sessão/i.test(body.message)
       ? body.message : undefined;
+    talvezVenceu(res.status, path);
     throw new ErroApi(res.status, mensagem(res.status, doServidor));
   }
   return res.json();

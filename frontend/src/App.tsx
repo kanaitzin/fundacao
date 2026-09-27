@@ -4,7 +4,8 @@ import { aplicarTema, nomeDoTema, proximoTema, temaAtual, type Tema } from './te
 import { Icone } from './icones';
 import { Cargo } from './cargos';
 import { PORTAS, GRUPOS } from './portas';
-import { api, setToken, ligarFilaAoServidor } from './api';
+import { api, setToken, ligarFilaAoServidor, quandoASessaoTerminar } from './api';
+import { definirAutor } from './fila-offline';
 import logo from './assets/logo.png';
 import { definirQuemAssina } from './quem-assina';
 import { Login } from './screens/Login';
@@ -194,6 +195,47 @@ export function App() {
     | 'alinhamentos' | 'painel' | 'sincronizacao'
     | 'rotina' | 'escala' | 'avisos' | null>(null);
   const [sugerirSenha, setSugerirSenha] = useState(false);
+  const [sessaoTerminou, setSessaoTerminou] = useState(false);
+
+  /* Fase 168: o 401 de quem tinha sessão abre a entrada por cima da tela. */
+  useEffect(() => {
+    quandoASessaoTerminar(() => setSessaoTerminou(true));
+    return () => quandoASessaoTerminar(null);
+  }, []);
+
+  /*
+   * O BOTÃO VOLTAR (fase 168).
+   *
+   * O aplicativo não registrava nada no histórico do navegador: o voltar do
+   * celular saía da página, a sessão (que mora só na memória) acabava, e o
+   * que estivesse aberto ia junto. Agora cada troca de tela entra no
+   * histórico, e o voltar volta de tela. Com uma folha aberta ele não faz
+   * nada: a folha é onde está o texto que a pessoa escreveu, e ela se fecha
+   * pelo botão dela. Sair da página com a sessão aberta pede confirmação.
+   */
+  useEffect(() => {
+    if (!me) return;
+    if ((window.history.state as { aba?: unknown } | null)?.aba !== aba) {
+      window.history.pushState({ aba }, '');
+    }
+  }, [me, aba]);
+  useEffect(() => {
+    if (!me) return;
+    const voltar = (e: PopStateEvent) => {
+      if (document.querySelector('.overlay[role="dialog"]')) {
+        window.history.pushState({ aba }, '');
+        return;
+      }
+      setAba(((e.state as { aba?: typeof aba } | null)?.aba ?? null) as typeof aba);
+    };
+    const sair = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ''; };
+    window.addEventListener('popstate', voltar);
+    window.addEventListener('beforeunload', sair);
+    return () => {
+      window.removeEventListener('popstate', voltar);
+      window.removeEventListener('beforeunload', sair);
+    };
+  }, [me, aba]);
   const [trocarSenha, setTrocarSenha] = useState(false);
   const [mais, setMais] = useState(false);
   const [escolhida, setEscolhida] = useState<string | null>(null);
@@ -238,6 +280,7 @@ export function App() {
       const eu = await api<Me>('/users/me');
       setMe(eu);
       definirQuemAssina(eu.fullName, eu.role);
+      definirAutor(eu.id);
       setHouses(await api<House[]>('/houses'));
       /* A fila local começa a trabalhar assim que há sessão: ela envia o que
        * ficou do turno anterior antes de a pessoa tocar em qualquer coisa
@@ -273,6 +316,7 @@ export function App() {
       const eu = await api<Me>('/users/me');
       setMe(eu);
       definirQuemAssina(eu.fullName, eu.role);
+      definirAutor(eu.id);
       setHouses(await api<House[]>('/houses'));
       void ligarFilaAoServidor();
       setAba(null);           // a primeira tela do cargo, como no login
@@ -284,8 +328,10 @@ export function App() {
   }
 
   async function sair() {
+    setSessaoTerminou(false);
     try { await api('/auth/logout', { method: 'POST' }); } catch { /* sessão pode já ter expirado */ }
     setToken(null); setMe(null); setHouses([]); setAba(null); setSugerirSenha(false);
+    definirAutor(null);
   }
 
   if (!me && convite) {
@@ -472,11 +518,13 @@ export function App() {
         definirQuemAssina(me.fullName, role);
         if (import.meta.env.VITE_PROTOTIPO === '1') {
           try {
-            const quem = await api<{ fullName?: string; id?: string }>(
+            const quem = await api<{ fullName?: string; id?: string; email?: string }>(
               '/prototipo/cargo', { method: 'POST', body: JSON.stringify({ role }) });
             if (quem?.fullName) {
-              setMe({ ...me, role, fullName: quem.fullName, id: quem.id ?? me.id });
+              setMe({ ...me, role, fullName: quem.fullName, id: quem.id ?? me.id,
+                      email: quem.email ?? me.email });
               definirQuemAssina(quem.fullName, role);
+              definirAutor(quem.id ?? me.id);
             }
           } catch { /* o seletor é de demonstração; falhar aqui não trava a tela */ }
           /*
@@ -762,6 +810,11 @@ export function App() {
         )}
       </main>
 
+      {sessaoTerminou && (
+        <FolhaSessaoTerminou email={me.email} onEntrou={() => setSessaoTerminou(false)}
+                             onOutraConta={() => void sair()} />
+      )}
+
       {mais && (
         <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-mais"
              onClick={(e) => { if (e.target === e.currentTarget) setMais(false); }}>
@@ -808,6 +861,61 @@ export function App() {
           onAdiar={() => { setSugerirSenha(false); setTrocarSenha(false); }}
         />
       )}
+    </div>
+  );
+}
+
+/**
+ * ENTRAR DE NOVO SEM PERDER A TELA (fase 168).
+ *
+ * Na MESMA conta: o e-mail vem da sessão que terminou e não se troca aqui.
+ * Outra pessoa assumindo a tela de quem saiu escreveria em nome de quem
+ * estava; para trocar de pessoa, o caminho é sair, que desmonta a tela de
+ * propósito.
+ */
+function FolhaSessaoTerminou({ email, onEntrou, onOutraConta }: {
+  email: string; onEntrou: () => void; onOutraConta: () => void;
+}) {
+  const [senha, setSenha] = useState('');
+  const [erro, setErro] = useState('');
+  const [ocupado, setOcupado] = useState(false);
+  async function entrar(e: React.FormEvent) {
+    e.preventDefault();
+    setErro(''); setOcupado(true);
+    try {
+      const r = await api<{ token: string }>('/auth/login', {
+        method: 'POST', body: JSON.stringify({ email, password: senha }),
+      });
+      setToken(r.token);
+      onEntrou();
+    } catch (x) {
+      setErro(x instanceof Error ? x.message : 'Não foi possível entrar. Tente de novo.');
+    } finally {
+      setOcupado(false);
+    }
+  }
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-sessao">
+      <form className="sheet" onSubmit={entrar}>
+        <h3 id="t-sessao">Sua sessão terminou</h3>
+        <p>
+          O que você escreveu continua nesta tela. Entre de novo e toque em salvar outra vez.
+        </p>
+        <label className="f" htmlFor="sessao-email">E-mail</label>
+        <input id="sessao-email" className="field" value={email} readOnly />
+        <label className="f" htmlFor="sessao-senha">Senha</label>
+        <input id="sessao-senha" className="field" type="password" autoComplete="current-password"
+               value={senha} onChange={(e) => setSenha(e.target.value)} autoFocus />
+        {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+        <div className="acoes" style={{ marginTop: 16 }}>
+          <button className="btn" type="submit" disabled={ocupado}>
+            {ocupado ? 'Entrando…' : 'Entrar e continuar'}
+          </button>
+          <button className="btn sec" type="button" onClick={onOutraConta}>
+            Sair e entrar com outra conta
+          </button>
+        </div>
+      </form>
     </div>
   );
 }

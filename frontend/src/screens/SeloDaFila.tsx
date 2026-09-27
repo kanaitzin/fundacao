@@ -32,7 +32,7 @@ export function SeloDaFila() {
 
   if (!estado) return null;
   const total = estado.pendentes + estado.paradas;
-  if (!total && estado.online) return null;
+  if (!total && estado.online && !estado.deOutraPessoa) return null;
 
   return (
     <>
@@ -73,6 +73,15 @@ function FolhaDaFila({ estado, onFechar }: { estado: EstadoDaFila; onFechar: () 
           <p className="mutetxt">
             Sem internet agora. O que você registrar continua sendo guardado aqui, com a
             hora em que aconteceu, e sobe sozinho quando a conexão voltar.
+          </p>
+        )}
+
+        {estado.deOutraPessoa > 0 && (
+          /* Fase 168: o registro é de quem o escreveu, e só sobe com a sessão dela. */
+          <p className="mutetxt">
+            {estado.deOutraPessoa === 1
+              ? 'Há 1 registro de outra pessoa guardado neste aparelho. Ele sobe quando ela entrar aqui.'
+              : `Há ${estado.deOutraPessoa} registros de outra pessoa guardados neste aparelho. Eles sobem quando ela entrar aqui.`}
           </p>
         )}
 
