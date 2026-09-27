@@ -90,10 +90,10 @@ discordavam entre si.
 | Quanto | De onde sai |
 |---|---|
 | **18 partições** isoladas | pastas em `backend/src/modules/` |
-| **167 migrações** | `.sql` dentro das partições |
+| **168 migrações** | `.sql` dentro das partições |
 | **124 tabelas** | `CREATE TABLE` nas migrações |
-| **116 suítes** | `backend/test/*.spec.ts` |
-| **1107 testes** | `it(` / `test(` nas suítes |
+| **117 suítes** | `backend/test/*.spec.ts` |
+| **1112 testes** | `it(` / `test(` nas suítes |
 | **36 telas React** | `frontend/src/screens/*.tsx` |
 | **10 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **7 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
@@ -118,7 +118,7 @@ fala de contagens sem colar nenhuma, de propósito.*
 | Ensaio | Resultado |
 |---|---|
 | `npm run ensaio` | 132 telas nos **sete** cargos oferecidos — Coordenação 28, Técnica 25, Gestor 26, Líder Diurno 17, Líder Noturno 14, Educador 13, Enfermagem 9. A Cozinha saiu do seletor em 09/09: o cargo continua no banco, oculto |
-| `npm run ensaio:acessibilidade` | 432 telas — 144 em cada um dos TRÊS temas (claro, escuro, alto contraste) —, **nenhuma violação de WCAG 2.1 AA** |
+| `npm run ensaio:acessibilidade` | 435 telas — 145 em cada um dos TRÊS temas (claro, escuro, alto contraste) —, **nenhuma violação de WCAG 2.1 AA** |
 | `npm run ensaio:roteiro` | 49 tarefas do roteiro, **todas com porta no cargo certo** |
 | `npm run ensaio:uso` | 247 cobranças em 19 blocos, **todas passando** — e todos os cargos completando o percurso. O bloco 14 nasceu na fase 107 e cresceu na 108: abre as prévias e cobra que o olho devolva uma **imagem**, e não o nome de um arquivo — e que a lista diga **antes do clique** se o documento está no sistema ou no Drive |
 
@@ -421,7 +421,7 @@ cd frontend && npm run prototipo
 ```
 
 O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as
-167 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
+168 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
 
 ### Os ensaios — e por que cada um existe
 
@@ -486,7 +486,7 @@ rede-acolher/
 │   │   │   ├── documentos/     o contrato da folha e o gerador de .docx
 │   │   │   └── common/         CPF, criptografia, segredo, fuso da instituição
 │   │   └── modules/       18 partições, cada uma dona das próprias migrações
-│   ├── test/              116 suítes (e2e contra PostgreSQL real + estáticas)
+│   ├── test/              117 suítes (e2e contra PostgreSQL real + estáticas)
 │   ├── scripts/           ensaio-carga.ts, migrador compilado
 │   └── assets/timbre.png  a marca da Fundação, usada no documento em Word
 ├── frontend/
@@ -2746,7 +2746,7 @@ ele continua dizendo que o arquivo existe.
 npm run ensaio:producao
 ```
 
-Constrói, cria um banco virgem, aplica as 167 migrações **pelo binário
+Constrói, cria um banco virgem, aplica as 168 migrações **pelo binário
 compilado**, sobe o serviço e confere `/health`. Não publica nada e não toca no
 banco de trabalho.
 
