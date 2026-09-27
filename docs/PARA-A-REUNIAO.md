@@ -33,9 +33,9 @@
   hospital. O anexo agora se tira pela câmera do celular, pela galeria ou pelo
   computador, com prévia antes de enviar. A escala do mês seguinte pode começar
   pela do mês anterior, como rascunho que só quem monta vê. E um registro antigo
-  mostra o cargo que a pessoa tinha quando escreveu. **Uma pergunta ficou (§10,
-  item 12): a Enfermagem deve baixar o relatório da internação?** Hoje ela lê,
-  mas não baixa, porque o pedido listou técnica, coordenação e líder.
+  mostra o cargo que a pessoa tinha quando escreveu. A pergunta que tinha ficado
+  (§10, item 12) foi respondida em 27/09: **a Enfermagem baixa o relatório da
+  internação**, com finalidade e registro (fase 170).
 - **Os documentos foram reescritos na voz da equipe** (fase 164, pedido de
   27/09). Toda folha, relatório e o **roteiro da Casa 03** saem agora em
   linguagem institucional de acolhimento, e há teste que cobra a regra. **O

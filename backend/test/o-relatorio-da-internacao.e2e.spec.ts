@@ -69,6 +69,7 @@ describe('O relatório da internação', () => {
       coord: 'coord.ai4@paodospobres.dev',
       educador: 'educador.ai4@paodospobres.dev',
       coord3: 'coord.ai3@paodospobres.dev',
+      enfermagem: 'enfermagem@paodospobres.dev',
     })) {
       const r = await request(http).post('/api/v1/auth/login').send({ email, password: SENHA });
       tokens[k] = r.body.token;
@@ -156,6 +157,19 @@ describe('O relatório da internação', () => {
     const fora = await request(http).get(`/api/v1/nursing/hospitalizations/${ids.int}/folha`)
       .set(auth(tokens.coord3));
     expect(fora.status).toBe(404);
+  });
+
+  it('a Enfermagem baixa o relatório, com finalidade (decisão de 27/09, §10 item 12)', async () => {
+    const folha = await request(http).get(`/api/v1/nursing/hospitalizations/${ids.int}/folha`)
+      .set(auth(tokens.enfermagem));
+    expect(folha.status).toBe(200);
+    const semFinalidade = await request(http).post(`/api/v1/nursing/hospitalizations/${ids.int}/export`)
+      .set(auth(tokens.enfermagem)).send({});
+    expect(semFinalidade.status).toBe(400);
+    const r = await request(http).post(`/api/v1/nursing/hospitalizations/${ids.int}/export`)
+      .set(auth(tokens.enfermagem)).send({ finalidade: 'levar à consulta de retorno da criança' });
+    expect(r.status).toBe(201);
+    expect(r.body.conteudoBase64).toBeTruthy();
   });
 
   it('a folha tem capa, identificação, os dias em ordem, o cargo de quem escreveu e os anexos', async () => {

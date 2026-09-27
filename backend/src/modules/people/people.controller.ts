@@ -10,6 +10,7 @@ import { PeopleService } from './people.service';
 import { CozinhaService } from './cozinha.service';
 import { VisitasService } from './visitas.service';
 import { PortariaService } from './portaria.service';
+import { CasaConferidaNoServico } from '../../kernel/common/casa-da-consulta.interceptor';
 import { CamposDoPerfilService } from './campos.service';
 import { AniversariosService } from './aniversarios.service';
 import { ProfileService } from './profile.service';
@@ -282,6 +283,8 @@ export class PeopleController {
    * fixas, antes de `:id`. A portaria não alcança nada fora delas — o banco diz
    * não a ela em `app_house_in_scope` (identity/1591).
    */
+  @CasaConferidaNoServico('A portaria não alcança a casa pela regra geral, de propósito (1591): '
+    + 'o portão confere pela casa em que a portaria trabalha.')
   @Get('portaria/hoje')
   portaoDeHoje(@CurrentUser() user: AuthenticatedUser,
                @Query('houseId', ParseUUIDPipe) houseId: string) {
@@ -311,6 +314,7 @@ export class PeopleController {
     return this.visitas.corrigir(user, id, body ?? {});
   }
 
+  @CasaConferidaNoServico('A folha do portão, pela mesma razão da lista de hoje.')
   @Get('portaria/folha')
   folhaDaPortaria(@CurrentUser() user: AuthenticatedUser,
                   @Query('houseId', ParseUUIDPipe) houseId: string) {

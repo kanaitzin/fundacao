@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
-import { APP_FILTER } from '@nestjs/core';
+import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 import { FalhasEmPortugues } from './kernel/common/falhas-em-portugues';
+import { CasaDaConsulta } from './kernel/common/casa-da-consulta.interceptor';
 import { ConfigModule } from '@nestjs/config';
 
 // ---------- Kernel: infraestrutura compartilhada, não domínio ----------
@@ -65,6 +66,10 @@ import { ArchiveModule } from './modules/archive';
   controllers: [HealthController],
   /* O filtro das falhas em português mora AQUI, e não no `main.ts`: é o que faz
      a suíte, que monta o app por este módulo, testar o servidor que sobe. */
-  providers: [{ provide: APP_FILTER, useClass: FalhasEmPortugues }],
+  providers: [
+    { provide: APP_FILTER, useClass: FalhasEmPortugues },
+    /* E a casa que vem pela consulta, pela mesma razão (fase 170). */
+    { provide: APP_INTERCEPTOR, useClass: CasaDaConsulta },
+  ],
 })
 export class AppModule {}

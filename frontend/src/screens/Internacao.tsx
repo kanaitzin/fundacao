@@ -67,7 +67,9 @@ interface Vocabulario {
 
 const QUEM_ABRE = ['equipe_tecnica', 'coordenador', 'gestor_geral'];
 /** Quem baixa o relatório completo (fase 165): a lista do pedido de 25/09. */
-const QUEM_BAIXA = ['equipe_tecnica', 'coordenador', 'lider_diurno', 'lider_noturno_geral', 'gestor_geral'];
+/* Espelha QUEM_BAIXA do servidor e QUEM_BAIXA_INT do protótipo (Enfermagem desde 27/09). */
+const QUEM_BAIXA = ['equipe_tecnica', 'coordenador', 'lider_diurno', 'lider_noturno_geral', 'gestor_geral',
+                    'enfermagem'];
 
 const hhmm = (iso: string) =>
   new Date(iso).toLocaleTimeString('pt-BR',

@@ -525,15 +525,17 @@ export class InternacaoService {
   // O relatório completo, em Word (fase 165)
   // ------------------------------------------------------------------
 
-  /** Quem baixa o relatório: a lista do pedido de 25/09, e a gestão. */
+  /** Quem baixa o relatório: a lista do pedido de 25/09, a gestão e, desde a
+   *  decisão de 27/09 (§10, item 12), a Enfermagem. A lista mora também no
+   *  protótipo (`QUEM_BAIXA_INT`) e na tela (`Internacao.tsx`). */
   private readonly QUEM_BAIXA = ['equipe_tecnica', 'coordenador', 'lider_diurno',
-    'lider_noturno_geral', 'gestor_geral'];
+    'lider_noturno_geral', 'gestor_geral', 'enfermagem'];
 
   private podeBaixar(user: AuthenticatedUser) {
     if (!this.QUEM_BAIXA.includes(user.role)) {
       throw new ForbiddenException(
-        'O relatório da internação é baixado pela equipe técnica, pela coordenação e pelos '
-        + 'líderes. Quem acompanha a internação consulta o diário na tela.');
+        'O relatório da internação é baixado pela equipe técnica, pela coordenação, pelos '
+        + 'líderes e pela Enfermagem. Quem acompanha a internação consulta o diário na tela.');
     }
   }
 

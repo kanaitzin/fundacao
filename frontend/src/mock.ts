@@ -3941,7 +3941,8 @@ const TIPOS_DE_NOTA_INT = [
 ];
 
 const QUEM_ABRE_INT = ['equipe_tecnica', 'coordenador', 'gestor_geral'];
-const QUEM_BAIXA_INT = ['equipe_tecnica', 'coordenador', 'lider_diurno', 'lider_noturno_geral', 'gestor_geral'];
+const QUEM_BAIXA_INT = ['equipe_tecnica', 'coordenador', 'lider_diurno', 'lider_noturno_geral', 'gestor_geral',
+                        'enfermagem'];
 const CATEGORIAS_DO_ANEXO_INT = [
   { cod: 'receita', label: 'Receita' }, { cod: 'atestado', label: 'Atestado' },
   { cod: 'relatorio_medico', label: 'Relatório médico' }, { cod: 'exame', label: 'Exame' },

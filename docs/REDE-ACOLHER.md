@@ -2462,11 +2462,11 @@ número**.
     às 17h, é ela quem recebe a criança de volta na alta.* Desfaz-se numa linha
     em `app_pode_ver_internacao`.
 
-12. **A Enfermagem não baixa o relatório completo da internação.** Ela lê a
-    internação (item 11), mas o pedido de 25/09 nomeou quem baixa o Word:
-    equipe técnica, coordenação e líder. Segui a lista; a gestão também baixa.
-    Se a Enfermagem deve baixar, é uma linha em `QUEM_BAIXA`
-    (`internacao.service.ts`) e no protótipo.
+12. ~~**A Enfermagem não baixa o relatório completo da internação.**~~ ✅
+    **Respondido em 27/09: baixa** (fase 170). Ela entrou nas três cópias da
+    lista (`QUEM_BAIXA` no servidor, `QUEM_BAIXA_INT` no protótipo e a da tela
+    `Internacao.tsx`) e no mapa de alcance, com finalidade e registro como os
+    demais.
 
 ### As respostas de 27/09/2026 — a fase 165
 

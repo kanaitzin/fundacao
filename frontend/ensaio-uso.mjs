@@ -2884,6 +2884,13 @@ cobrar('o relatório tem o motivo, os registros do dia e os anexos',
   relatorio.slice(0, 300));
 cobrar('e baixa em Word, com finalidade', (await pg.getByRole('button', { name: 'Baixar em Word' }).count()) > 0);
 await fechar();
+/* A Enfermagem baixa o relatório também (decisão de 27/09, §10 item 12). */
+await trocar('enfermagem');
+await doMais('Internação hospitalar');
+await pg.locator('main.conteudo').getByText('Hospital Fictício do Ensaio').first().click();
+await pg.waitForTimeout(900);
+cobrar('a Enfermagem tem o relatório completo da internação',
+  (await pg.getByRole('button', { name: /Relatório completo da internação/ }).count()) > 0);
 cobrar('nenhuma exceção no rascunho e na internação', erros.length === 0, erros[0]);
 
 /*

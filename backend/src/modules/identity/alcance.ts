@@ -422,7 +422,8 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
       + 'exceções previstas.',
     areas: [
       { area: 'internacao', titulo: AREAS.internacao,
-        faz: 'Acompanha a criança internada e registra a medicação que o hospital deu.',
+        faz: 'Acompanha a criança internada, registra a medicação que o hospital deu e baixa o '
+          + 'relatório completo da internação.',
         servidor: 'A medicação do hospital entra com a origem escrita, e não na grade da casa.' },
       { area: 'saude', titulo: AREAS.saude,
         faz: 'Prescreve, tria evoluções, assina e cuida do armário.',
