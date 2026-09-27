@@ -2775,6 +2775,47 @@ cobrar('as refeições vêm por refeição, e dizem que não são de criança',
   /Por refeição/i.test(refeicoes) && /nunca de uma criança/.test(refeicoes));
 cobrar('nenhuma exceção na cozinha nova', erros.length === 0, erros[0]);
 
+// ====================================================== Temas e a foto do portão (27/09)
+/*
+ * O TEMA troca na roda claro → escuro → alto contraste, e o aparelho lembra.
+ * E a FOTO 3×4: a técnica anexa no próprio portão, e o cartão passa a mostrá-la.
+ */
+await fechar();
+console.log('\n🎨 Os temas e a foto do portão (27/09)');
+await trocar('equipe_tecnica');
+erros.length = 0;
+const temaAgora = () => pg.evaluate(() => document.documentElement.getAttribute('data-theme'));
+const botaoTema = pg.getByRole('button', { name: /Trocar o tema/ });
+await pg.evaluate(() => document.documentElement.setAttribute('data-theme', 'light'));
+await botaoTema.click();
+cobrar('o tema vai do claro ao escuro', (await temaAgora()) === 'dark');
+await pg.getByRole('button', { name: /Trocar o tema/ }).click();
+cobrar('e do escuro ao alto contraste', (await temaAgora()) === 'contraste');
+cobrar('e o aparelho lembra a escolha',
+  (await pg.evaluate(() => localStorage.getItem('rede-acolher.tema'))) === 'contraste');
+await pg.getByRole('button', { name: /Trocar o tema/ }).click();
+cobrar('e volta ao claro', (await temaAgora()) === 'light');
+
+cobrar('a técnica abre o portão', await doMais('Portaria'));
+const semFoto = await pg.getByRole('button', { name: 'Anexar foto 3×4' }).count();
+cobrar('o visitante sem foto oferece anexar', semFoto > 0);
+await pg.getByRole('button', { name: 'Anexar foto 3×4' }).first().click();
+await pg.waitForTimeout(300);
+const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/58BAwAI/AL+hc2rNAAAAABJRU5ErkJggg==', 'base64');
+await pg.locator('#foto-vis-arq').setInputFiles({ name: 'rosto.png', mimeType: 'image/png', buffer: png });
+await pg.waitForTimeout(400);
+await pg.getByRole('button', { name: 'Guardar a foto' }).click();
+await pg.waitForTimeout(1200);
+cobrar('a foto guardada aparece no cartão',
+  (await pg.getByRole('button', { name: /Anexar foto 3×4/ }).count()) < semFoto
+  && (await pg.getByRole('button', { name: /Ver a foto 3×4 de .* em tamanho grande/ }).count()) > 0);
+await trocar('portaria');
+await fechar();
+cobrar('a portaria vê a foto, e não tem como anexar',
+  (await pg.getByRole('button', { name: /Ver a foto 3×4 de/ }).count()) > 0
+  && (await pg.getByRole('button', { name: /Anexar foto|Trocar a foto/ }).count()) === 0);
+cobrar('nenhuma exceção nos temas e no portão', erros.length === 0, erros[0]);
+
 await navegador.close();
 console.log(achados.length
   ? `\n${achados.length} ACHADO(S):\n  ${achados.join('\n  ')}`

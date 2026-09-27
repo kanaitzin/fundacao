@@ -8079,7 +8079,8 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         };
       }));
     return { podeAbrirExcecao: ABRE_EXCECAO.includes(eu.role),
-             podeGerarFolha: ESCREVE_CONTATO.includes(eu.role), visitantes };
+             podeGerarFolha: ESCREVE_CONTATO.includes(eu.role),
+             podeAnexarFoto: ESCREVE_CONTATO.includes(eu.role), visitantes };
   }
   if (seg[0] === 'people' && seg[1] === 'portaria' && seg[2] === 'visitante' && seg[4] === 'foto') {
     const c = REGISTRA_VISITA.includes(eu.role) ? acharContato(seg[3]) : null;

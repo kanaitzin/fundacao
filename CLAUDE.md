@@ -154,7 +154,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 26/09/2026, fase 162
+### Onde estamos — 27/09/2026, fase 163
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -180,15 +180,20 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 160 | **quem visitou, e a portaria no sistema** (decisões de 26/09): cargo `portaria` com login mínimo — `app_house_in_scope` diz NÃO a ela e ela vê só pelo portão; `visit`/`visit_correction`; fora do combinado RECUSA, exceção com motivo só de coordenação/técnica/líder; visitas no perfil DA criança, visitantes por nome; RG, nome social e validade no visitante |
 | 161 | **o armário diz a verdade** (decisões de 26/09): saldo NEGATIVO com aviso (a dose nunca é bloqueada); lote, validade e origem na entrada; descarte/perda/devolução com motivo; nota com CNPJ e itens, SEPARADA do armário, repetida RECUSADA; métricas da casa por remédio; relatórios em Word com a imagem da nota; `mov_insert`/`stock_update` eram `WITH CHECK (true)` |
 | 162 | **a cozinha recebe a lista** (decisões de 26/09): "Selecionar todos" = um pedido por criança, tudo ou nada (`batch_id`); editar até o dia, por quem pediu/coordenação/técnica/líder, com `kitchen_request_change`; refeições da casa por refeição; e o **relatório do período perdia o último dia** (`reference_at BETWEEN` datas) |
+| 163 | **três temas, Portaria em cartões com a foto 3×4, botões na coluna** (pedido de 27/09): tema **alto contraste** (decisão), no sistema de verdade, lembrado no aparelho (`frontend/src/tema.ts`); o **ensaio de acessibilidade só media o claro** — hoje mede os três, 432 telas; foto 3×4 anexada por técnica/coordenação no próprio portão; ícone do Período |
 
-**Medido no fim da 162:** 160 migrações, 121 tabelas, 109 suítes, 1050 testes, verdes nas
+**Medido no fim da 163:** 160 migrações, 121 tabelas, 109 suítes, 1050 testes, verdes nas
 DUAS condições de relógio; os sete ensaios de navegador verdes, com a portaria e o
-portão, o armário e a cozinha no percurso do `ensaio:uso`; 144 telas sem violação de WCAG 2.1 AA; nenhuma
+portão, o armário, a cozinha, os temas e a foto no percurso do `ensaio:uso`; **432 telas (144 × três
+temas) sem violação de WCAG 2.1 AA**; nenhuma
 rota sem teste; nenhuma rota — escrita ou leitura — com 500; nenhum ouvinte
 falhando; nenhuma escrita da Casa 04 aceita sobre registro real da Casa 03.
 
 **As TRÊS cores do sistema, porque confundi-las é o pior que esta tela pode
 fazer** — está escrito por extenso em `frontend/src/cargos.tsx`:
+
+**Os TEMAS são três** (claro, escuro, alto contraste — `frontend/src/tema.ts`). Cor
+nova passa pelo `ensaio:acessibilidade`, que desde a 163 mede os TRÊS.
 
 | A cor | Responde | Onde |
 |---|---|---|
@@ -215,10 +220,12 @@ data do dia em que o noturno começou** — substitui o 7h–19h preliminar (pen
 - ~~**161** armário e nota fiscal~~ ✅ feita. A folha do Word ganhou `imagens`
   (tamanho lido do PNG/JPEG) — a 163 usa para a internação;
 - ~~**162** cozinha e refeições~~ ✅ feita;
-- **163** câmera/galeria com prévia, tipo real do arquivo, DOCX da internação com
+- ~~**163** (fora do plano, pedido de 27/09) temas, Portaria em cartões, coluna~~ ✅ feita —
+  **as fases abaixo andaram um número**;
+- **164** câmera/galeria com prévia, tipo real do arquivo, DOCX da internação com
   imagens e páginas de PDF, "repetir escala do mês anterior" como rascunho, e o
   **cargo da época** nos registros antigos (`app_user_cargo` devolve o ATUAL);
-- **164** simulação de vários dias (§38) como teste, e o relatório final com a matriz.
+- **165** simulação de vários dias (§38) como teste, e o relatório final com a matriz.
 
 **1. As medições de alcance estão feitas** — escrita (156) e leitura (158). A
 sondagem roda sobre o banco povoado pela suíte, com `globalSetup` vazio; o mapa
@@ -336,6 +343,10 @@ novo.
 - **Medir com `-t` mede o teste sozinho** (162). Se o dado nasce num teste
   anterior, o `-t` reprova nos dois sentidos e a medida não diz nada: meça com o
   arquivo inteiro.
+- **O que o ensaio não liga, ele não mede** (163). O de acessibilidade abria o
+  Chromium no tema claro e nunca trocava: o escuro existia desde a fase 50 e
+  nunca tinha sido conferido. "Passou" vale para as condições em que rodou —
+  pergunte sempre QUAIS foram.
 - **Frase de tela que envelhece é frase que mente**, e a cobrança do ensaio que a
   guarda tem de ser reescrita junto. A ressalva do painel sobre nota escolar já foi
   reescrita três vezes. **Isto inclui este arquivo.**

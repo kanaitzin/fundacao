@@ -56,7 +56,10 @@ const DESENHOS: Record<string, string[]> = {
              'M16 5.5a3 3 0 0 1 0 6', 'M17 14.5a5.5 5.5 0 0 1 5 5.5'],
   trabalho: ['M4 5h16', 'M4 12h16', 'M4 19h10',
              'M2.5 5h.01', 'M2.5 12h.01', 'M2.5 19h.01'],
-  periodo:  ['M4 12h16', 'M4 8v8', 'M20 8v8', 'M9 12h.01', 'M15 12h.01'],
+  /* Um calendário com um intervalo marcado — era um traço com duas barrinhas,
+     e "parece um traço" foi exatamente o que a Fundação disse em 27/09. */
+  periodo:  ['M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z',
+             'M4 10h16', 'M8 3v4', 'M16 3v4', 'M8 14.5h8', 'M8 14.5v.01', 'M16 14.5v.01'],
   cozinha:  ['M6 3v8a2 2 0 0 0 4 0V3', 'M8 11v10',
              'M17 3c-1.5 1.2-2 3-2 5s.5 3 2 3 2-1 2-3-.5-3.8-2-5z', 'M17 11v10'],
   olho:     ['M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z',

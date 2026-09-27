@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ROTULO_CARGO } from './rotulos';
+import { aplicarTema, nomeDoTema, proximoTema, temaAtual, type Tema } from './tema';
 import { Icone } from './icones';
 import { Cargo } from './cargos';
 import { PORTAS, GRUPOS } from './portas';
@@ -125,6 +126,18 @@ const CARGOS_DEMO = [
    * a quem trabalha na casa, que é quem pede o lanche e gera as folhas.
    */
 ];
+
+function BotaoTema() {
+  const [tema, setTema] = useState<Tema>(() => temaAtual());
+  const proximo = proximoTema(tema);
+  return (
+    <button className="iconbtn" title={`Tema: ${nomeDoTema(tema)}. Trocar para ${nomeDoTema(proximo)}`}
+            aria-label={`Trocar o tema para ${nomeDoTema(proximo)} (agora: ${nomeDoTema(tema)})`}
+            onClick={() => { aplicarTema(proximo); setTema(proximo); }}>
+      <Icone nome="tema" />
+    </button>
+  );
+}
 
 function TrocaCargo({ cargoAtual, onChange }: { cargoAtual: string; onChange: (role: string) => void }) {
   if (import.meta.env.VITE_PROTOTIPO !== '1') return null;
@@ -389,15 +402,9 @@ export function App() {
           <Cargo nome={me.fullName} cargo={me.role} tamanho="sm" />
           <span className="rolechip">{ROLE_LABEL[me.role] ?? me.role}</span>
           <span className="grow" />
-          {import.meta.env.VITE_PROTOTIPO === '1' && (
-            <button className="iconbtn" title="Alternar tema claro/escuro"
-                    aria-label="Alternar tema"
-                    onClick={() => {
-                      const root = document.documentElement;
-                      root.setAttribute('data-theme',
-                        root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
-                    }}><Icone nome="tema" /></button>
-          )}
+          {/* O TEMA (27/09): claro, escuro e alto contraste — no sistema de
+              verdade também, lembrado neste aparelho. O nome diz o PRÓXIMO. */}
+          <BotaoTema />
           {/*
             * A CHAVE DO GESTOR — operação ou trabalho social.
             *

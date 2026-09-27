@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api';
+import { Escolhido, PreviaEscolhida, lerArquivo } from '../anexos';
+import { Icone } from '../icones';
 import { FolhaDocumento, ArquivoGerado } from '../documentos';
 import type { DocumentoWord } from '../docx';
 
@@ -32,7 +34,9 @@ interface Visitante {
   foraDoCombinado: string | null;
   visitaAberta: { id: string; entrouEm: string } | null;
 }
-interface Portao { podeAbrirExcecao: boolean; podeGerarFolha: boolean; visitantes: Visitante[] }
+interface Portao {
+  podeAbrirExcecao: boolean; podeGerarFolha: boolean; podeAnexarFoto?: boolean; visitantes: Visitante[];
+}
 
 const hora = (iso: string) => new Date(iso).toLocaleTimeString('pt-BR', {
   timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' });
@@ -52,6 +56,10 @@ export function Portaria({ houseId, casaLabel }: { houseId: string; casaLabel: s
   const [entrando, setEntrando] = useState<Visitante | null>(null);
   const [corrigindo, setCorrigindo] = useState<Visitante | null>(null);
   const [foto, setFoto] = useState<{ nome: string; src: string } | null>(null);
+  const [anexando, setAnexando] = useState<Visitante | null>(null);
+  /* As fotos que já vieram, por contato: carregadas uma vez e reusadas no
+     cartão e na foto grande. */
+  const [fotos, setFotos] = useState<Record<string, string>>({});
   const [volta, setVolta] = useState(0);
   /* A BUSCA: vinte crianças com dois ou três visitantes cada são uma lista de
      dez telas. Quem chega diz um nome — o dele ou o da criança. */
@@ -75,12 +83,28 @@ export function Portaria({ houseId, casaLabel }: { houseId: string; casaLabel: s
     } catch (e) { setErro(erroDe(e, 'Não foi possível registrar a saída.')); }
   }
 
-  async function verFoto(v: Visitante) {
-    try {
-      const f = await api<{ tipo: string; conteudo: string }>(
-        `/people/portaria/visitante/${v.contatoId}/foto`);
-      setFoto({ nome: v.nomeSocial || v.nome, src: `data:${f.tipo};base64,${f.conteudo}` });
-    } catch (e) { setErro(erroDe(e, 'Não foi possível abrir a foto.')); }
+  /* A foto 3×4 vem sozinha para cada cartão: conferir o rosto com o documento
+     é o trabalho do portão, e um botão para ver a foto seria um toque a mais
+     com a pessoa parada na frente. */
+  useEffect(() => {
+    let vivo = true;
+    (async () => {
+      for (const v of portao?.visitantes ?? []) {
+        if (!v.temFoto || fotos[v.contatoId]) continue;
+        try {
+          const f = await api<{ tipo: string; conteudo: string }>(
+            `/people/portaria/visitante/${v.contatoId}/foto`);
+          if (!vivo) return;
+          setFotos((x) => ({ ...x, [v.contatoId]: `data:${f.tipo};base64,${f.conteudo}` }));
+        } catch { /* sem a foto, o cartão pede documento com foto */ }
+      }
+    })();
+    return () => { vivo = false; };
+  }, [portao]);
+
+  function verFoto(v: Visitante) {
+    const src = fotos[v.contatoId];
+    if (src) setFoto({ nome: v.nomeSocial || v.nome, src });
   }
 
   const lista = portao?.visitantes ?? [];
@@ -108,41 +132,34 @@ export function Portaria({ houseId, casaLabel }: { houseId: string; casaLabel: s
 
       {portao && (
         <>
-          <div className="eyebrow">Na casa agora</div>
+          <label className="f" htmlFor="port-busca">
+            Quem chegou? <small>— procure pelo nome da pessoa ou da criança</small>
+          </label>
+          <input id="port-busca" type="search" className="busca-grande" value={busca}
+                 onChange={(e) => setBusca(e.target.value)} placeholder="Ex.: Simoni, ou Alice" />
+
+          <div className="eyebrow">Na casa agora · {dentro.length}</div>
           {dentro.length === 0
             ? <p className="mutetxt">Nenhum visitante dentro da casa agora.</p>
             : (
-              <ul className="stack lista">
+              <ul className="visitantes">
                 {dentro.map((v) => (
-                  <li key={v.contatoId} className="card">
-                    <div className="row">
-                      <span className="grow">
-                        <b>{v.nomeSocial || v.nome}</b>{' '}
-                        <span className="mutetxt">({v.vinculoRotulo}) — visita a {v.acolhido}</span>
-                      </span>
-                      <span className="pill c-info">entrou às {hora(v.visitaAberta!.entrouEm)}</span>
-                    </div>
-                    <div className="row">
-                      <button className="btn grow" onClick={() => sair(v)}>
-                        Registrar a saída de {v.nomeSocial || v.nome}
+                  <CartaoDoVisitante key={v.contatoId} v={v} foto={fotos[v.contatoId]}
+                    onVerFoto={() => verFoto(v)}>
+                    <button className="btn block" onClick={() => sair(v)}>
+                      Registrar a saída de {v.nomeSocial || v.nome}
+                    </button>
+                    {portao.podeAbrirExcecao && (
+                      <button className="btn sec block" onClick={() => setCorrigindo(v)}>
+                        Corrigir o horário
                       </button>
-                      {portao.podeAbrirExcecao && (
-                        <button className="btn sec sm" onClick={() => setCorrigindo(v)}>
-                          Corrigir horário
-                        </button>
-                      )}
-                    </div>
-                  </li>
+                    )}
+                  </CartaoDoVisitante>
                 ))}
               </ul>
             )}
 
           <div className="eyebrow">Quem pode visitar, por criança</div>
-          <label className="f" htmlFor="port-busca">
-            Procurar <small>— pelo nome de quem chegou ou da criança</small>
-          </label>
-          <input id="port-busca" type="search" value={busca} onChange={(e) => setBusca(e.target.value)}
-                 placeholder="Ex.: Simoni, ou Alice" />
           {termo && achados.length === 0 && lista.length > 0 && (
             <div className="notice c-warn">
               Ninguém com esse nome na lista. <b>Quem não está aqui não entra sem falar com a casa.</b>
@@ -152,50 +169,18 @@ export function Portaria({ houseId, casaLabel }: { houseId: string; casaLabel: s
             <p className="mutetxt">Nenhum visitante autorizado nesta casa. Quem chegar, a portaria
               liga para a casa.</p>
           )}
-          <ul className="stack lista">
-            {[...porCrianca.entries()].map(([crianca, vs]) => (
-              <li key={crianca} className="card">
-                <b className="ff">{crianca}</b>
+          {[...porCrianca.entries()].map(([crianca, vs]) => (
+            <section key={crianca} className="crianca-do-portao" aria-label={`Visitantes de ${crianca}`}>
+              <h3 className="ff">{crianca} <span className="mutetxt">· {vs.length} autorizado{vs.length === 1 ? '' : 's'}</span></h3>
+              <ul className="visitantes">
                 {vs.map((v) => (
-                  <div key={v.contatoId} className="stack">
-                    <div className="row">
-                      <span className="grow">
-                        <b>{v.nomeSocial || v.nome}</b>
-                        {v.nomeSocial && <span className="mutetxt"> — no documento: {v.nome}</span>}
-                        {' '}<span className="mutetxt">({v.vinculoRotulo})</span>
-                      </span>
-                      {v.visitaAberta
-                        ? <span className="pill c-info">na casa</span>
-                        : v.foraDoCombinado
-                          ? <span className="pill c-warn">fora do combinado</span>
-                          : <span className="pill c-ok">pode entrar agora</span>}
-                    </div>
-                    <div className="mutetxt">
-                      {v.dias ? `${v.dias}, das ${v.de} às ${v.ate}` : 'Sem dia combinado'}
-                      {v.validoAte && ` · autorizado até ${dataBR(v.validoAte)}`}
-                      {v.observacao && ` · ${v.observacao}`}
-                    </div>
-                    <div className="mutetxt">
-                      {v.cpf ? `CPF ${v.cpf}` : 'CPF não cadastrado'}
-                      {v.rg && ` · RG ${v.rg}`}
-                    </div>
-                    {v.foraDoCombinado && !v.visitaAberta && (
-                      <div className="mutetxt"><b>{v.foraDoCombinado}</b></div>
-                    )}
-                    {!v.visitaAberta && (
-                      <div className="row">
-                        {v.temFoto
-                          ? <button className="btn sm ghost" onClick={() => verFoto(v)}>
-                              Ver a foto de {v.nomeSocial || v.nome}
-                            </button>
-                          : <span className="pill c-warn">sem foto — peça documento com foto</span>}
-                        <span className="grow" />
-                        {(!v.foraDoCombinado || portao.podeAbrirExcecao) && (
-                          <button className="btn sm" onClick={() => setEntrando(v)}>
-                            {v.foraDoCombinado ? 'Entrada com exceção' : 'Registrar entrada'}
-                          </button>
-                        )}
-                      </div>
+                  <CartaoDoVisitante key={v.contatoId} v={v} foto={fotos[v.contatoId]}
+                    onVerFoto={() => verFoto(v)}
+                    onAnexar={portao.podeAnexarFoto ? () => setAnexando(v) : undefined}>
+                    {!v.visitaAberta && (!v.foraDoCombinado || portao.podeAbrirExcecao) && (
+                      <button className={`btn block${v.foraDoCombinado ? ' sec' : ''}`} onClick={() => setEntrando(v)}>
+                        {v.foraDoCombinado ? 'Entrada com exceção' : 'Registrar entrada'}
+                      </button>
                     )}
                     {v.foraDoCombinado && !v.visitaAberta && !portao.podeAbrirExcecao && (
                       <div className="mutetxt">
@@ -203,11 +188,11 @@ export function Portaria({ houseId, casaLabel }: { houseId: string; casaLabel: s
                         coordenação, da equipe técnica ou do líder.
                       </div>
                     )}
-                  </div>
+                  </CartaoDoVisitante>
                 ))}
-              </li>
-            ))}
-          </ul>
+              </ul>
+            </section>
+          ))}
 
           {portao.podeGerarFolha && <FolhaEmPapel houseId={houseId} />}
         </>
@@ -221,12 +206,20 @@ export function Portaria({ houseId, casaLabel }: { houseId: string; casaLabel: s
         <Correcao v={corrigindo} onFechar={() => setCorrigindo(null)}
                   onFeito={(msg) => { setCorrigindo(null); recarregar(msg); }} />
       )}
+      {anexando && (
+        <FolhaFotoDoVisitante v={anexando} onFechar={() => setAnexando(null)}
+          onFeito={(msg) => {
+            setFotos((x) => { const y = { ...x }; delete y[anexando.contatoId]; return y; });
+            setAnexando(null); recarregar(msg);
+          }} />
+      )}
       {foto && (
         <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-foto-vis"
              onClick={(e) => { if (e.target === e.currentTarget) setFoto(null); }}>
           <div className="sheet">
             <h3 id="t-foto-vis">{foto.nome}</h3>
-            <img src={foto.src} alt={`Foto 3×4 de ${foto.nome}`} style={{ maxWidth: '100%' }} />
+            <img src={foto.src} alt={`Foto 3×4 de ${foto.nome}`} className="foto34-grande" />
+            <p className="mutetxt">Confira o rosto com o documento que a pessoa mostrou.</p>
             <button className="btn sec block" onClick={() => setFoto(null)}>Fechar</button>
           </div>
         </div>
@@ -413,5 +406,118 @@ function FolhaEmPapel({ houseId }: { houseId: string }) {
         </>
       )}
     </>
+  );
+}
+
+/**
+ * O CARTÃO DE UM VISITANTE (27/09): a foto 3×4 à esquerda, porque é ela que o
+ * portão confere primeiro; o nome grande; os dados em linhas com rótulo — antes
+ * eram três frases emendadas, e a Fundação disse que estava apertado; e as
+ * ações embaixo, na largura toda, que é o alvo que o polegar acerta.
+ */
+function CartaoDoVisitante({ v, foto, onVerFoto, onAnexar, children }: {
+  v: Visitante; foto?: string; onVerFoto: () => void; onAnexar?: () => void; children?: React.ReactNode;
+}) {
+  const nome = v.nomeSocial || v.nome;
+  return (
+    <li className="visitante">
+      <div className="visitante-foto">
+        {foto
+          ? (
+            <button type="button" className="foto34" onClick={onVerFoto}
+                    aria-label={`Ver a foto 3×4 de ${nome} em tamanho grande`}>
+              <img src={foto} alt="" />
+            </button>
+          )
+          : (
+            <div className="foto34 vazia" role="img"
+                 aria-label={v.temFoto ? `Carregando a foto de ${nome}` : `${nome} ainda não tem foto 3×4`}>
+              <Icone nome="acolhidos" tamanho={26} />
+              <small>{v.temFoto ? 'carregando' : 'sem foto'}</small>
+            </div>
+          )}
+        {onAnexar && (
+          <button type="button" className="btn sm ghost" onClick={onAnexar}>
+            {v.temFoto ? 'Trocar a foto' : 'Anexar foto 3×4'}
+          </button>
+        )}
+      </div>
+      <div className="visitante-corpo">
+        <div className="visitante-topo">
+          <b className="visitante-nome">{nome}</b>
+          {v.visitaAberta
+            ? <span className="pill c-info">na casa desde {hora(v.visitaAberta.entrouEm)}</span>
+            : v.foraDoCombinado
+              ? <span className="pill c-warn">fora do combinado</span>
+              : <span className="pill c-ok">pode entrar agora</span>}
+        </div>
+        <dl className="visitante-dados">
+          <dt>Vínculo</dt><dd>{v.vinculoRotulo} de {v.acolhido}</dd>
+          {v.nomeSocial && <><dt>No documento</dt><dd>{v.nome}</dd></>}
+          <dt>Documento</dt>
+          <dd>{v.cpf ? `CPF ${v.cpf}` : 'CPF não cadastrado'}{v.rg ? ` · RG ${v.rg}` : ''}</dd>
+          <dt>Quando pode vir</dt>
+          <dd>
+            {v.dias ? `${v.dias}, das ${v.de} às ${v.ate}` : 'Sem dia combinado'}
+            {v.validoAte ? ` · até ${dataBR(v.validoAte)}` : ''}
+          </dd>
+          {v.observacao && <><dt>Atenção</dt><dd>{v.observacao}</dd></>}
+        </dl>
+        {v.foraDoCombinado && !v.visitaAberta && (
+          <div className="notice c-warn visitante-aviso">{v.foraDoCombinado}</div>
+        )}
+        {!v.temFoto && !foto && (
+          <div className="mutetxt">Sem foto: peça um documento COM FOTO antes de deixar entrar.</div>
+        )}
+        <div className="visitante-acoes">{children}</div>
+      </div>
+    </li>
+  );
+}
+
+/**
+ * ANEXAR A FOTO 3×4 — da técnica e da coordenação (decisão de 27/09). A câmera
+ * do celular abre direto (`capture`), e a foto passa pela prévia antes de sair
+ * do aparelho: a foto errada aqui é a pessoa errada entrando.
+ */
+function FolhaFotoDoVisitante({ v, onFechar, onFeito }: {
+  v: Visitante; onFechar: () => void; onFeito: (msg: string) => void;
+}) {
+  const [arquivo, setArquivo] = useState<Escolhido | null>(null);
+  const [erro, setErro] = useState('');
+  const [ocupado, setOcupado] = useState(false);
+  const nome = v.nomeSocial || v.nome;
+  async function enviar() {
+    if (!arquivo) return;
+    setErro(''); setOcupado(true);
+    try {
+      const r = await api<{ aviso?: string }>(`/people/contacts/${v.contatoId}/photo`, {
+        method: 'POST', body: JSON.stringify({ conteudo: arquivo.dataUrl }) });
+      onFeito(`${nome}: ${r?.aviso ?? 'Foto guardada.'}`);
+    } catch (e) { setErro(erroDe(e, 'Não foi possível guardar a foto.')); }
+    finally { setOcupado(false); }
+  }
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-foto-anexar"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet">
+        <h3 id="t-foto-anexar">Foto 3×4 de {nome}</h3>
+        <p className="mutetxt">Rosto de frente, sem boné nem óculos escuros. É esta foto que o portão
+          confere com o documento, e ela sai na folha impressa da guarita.</p>
+        <label className="f" htmlFor="foto-vis-arq">Tirar a foto ou escolher da galeria</label>
+        <input id="foto-vis-arq" type="file" accept="image/jpeg,image/png" capture="user"
+               onChange={async (e) => {
+                 const f = e.target.files?.[0];
+                 setArquivo(f ? await lerArquivo(f) : null);
+               }} />
+        {arquivo && <PreviaEscolhida arquivo={arquivo}
+          pergunta={<>É {nome}? A foto fica guardada com o seu nome e a hora.</>} />}
+        {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+        <div className="row rodape">
+          <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
+          <button className="btn grow" disabled={!arquivo || ocupado} onClick={enviar}>Guardar a foto</button>
+        </div>
+      </div>
+    </div>
   );
 }

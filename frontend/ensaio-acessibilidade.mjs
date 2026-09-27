@@ -81,10 +81,21 @@ const seletor = pg.locator('select.troca-cargo-sel');
 const cargos = await seletor.locator('option').evaluateAll((os) =>
   os.map((o) => ({ valor: o.value, rotulo: o.textContent.trim() })));
 
-console.log(`Acessibilidade — ${cargos.length} cargos\n`);
+/*
+ * OS TRÊS TEMAS (27/09). Até aqui o ensaio conferia SÓ o claro — o Chromium
+ * sem tela abre claro —, e o escuro, que existe desde a fase 50, nunca tinha
+ * sido medido. "Confira se tudo fica legível" é nos três, ou não é conferência.
+ * `ENSAIO_TEMAS=light` roda um só, para quem está mexendo numa tela.
+ */
+const TEMAS = (process.env.ENSAIO_TEMAS ?? 'light,dark,contraste').split(',').filter(Boolean);
+console.log(`Acessibilidade — ${cargos.length} cargos × ${TEMAS.length} temas (${TEMAS.join(', ')})\n`);
 let telas = 0;
 
-for (const cargo of cargos) {
+for (const tema of TEMAS) {
+await pg.evaluate((t) => document.documentElement.setAttribute('data-theme', t), tema);
+console.log(`— tema ${tema}`);
+for (const cargo0 of cargos) {
+  const cargo = { ...cargo0, valor: cargo0.valor, rotulo: cargo0.rotulo, tema };
   await seletor.selectOption(cargo.valor);
   await pg.waitForTimeout(900);
 
@@ -94,7 +105,7 @@ for (const cargo of cargos) {
   for (let i = 0; i < doTurno.length; i++) {
     await pg.locator('nav.tabbar button').nth(i).click();
     await pg.waitForTimeout(700);
-    await conferir(`${cargo.valor} · ${doTurno[i]}`); telas++;
+    await conferir(`${tema} · ${cargo.valor} · ${doTurno[i]}`); telas++;
   }
 
   const temMais = await pg.locator('nav.tabbar button', { hasText: 'Mais' }).count();
@@ -103,7 +114,7 @@ for (const cargo of cargos) {
     await pg.waitForTimeout(350);
     /* A folha do "Mais" também é tela: ela é aberta dezenas de vezes por
      * turno, e é onde metade das funções mora. */
-    await conferir(`${cargo.valor} · folha "Mais"`); telas++;
+    await conferir(`${tema} · ${cargo.valor} · folha "Mais"`); telas++;
     const portas = await pg.locator('.overlay .sheet button.card.row b.ff').allInnerTexts();
     await pg.locator('.overlay .sheet button', { hasText: /^Fechar$/ }).click();
     await pg.waitForTimeout(250);
@@ -113,14 +124,15 @@ for (const cargo of cargos) {
       await pg.waitForTimeout(300);
       await pg.locator('.overlay .sheet button.card.row').nth(i).click();
       await pg.waitForTimeout(800);
-      await conferir(`${cargo.valor} · ${portas[i].trim()}`); telas++;
+      await conferir(`${tema} · ${cargo.valor} · ${portas[i].trim()}`); telas++;
     }
   } else {
-    await conferir(`${cargo.valor} · tela única`); telas++;
+    await conferir(`${tema} · ${cargo.valor} · tela única`); telas++;
   }
 
-  const meus = [...achados.values()].filter((a) => a.ondes.some((o) => o.startsWith(cargo.valor)));
+  const meus = [...achados.values()].filter((a) => a.ondes.some((o) => o.startsWith(`${tema} · ${cargo.valor}`)));
   console.log(`  ${meus.length ? '✗' : '✓'} ${cargo.rotulo}`);
+}
 }
 
 await navegador.close();

@@ -98,6 +98,10 @@ export class VisitasService {
       podeAbrirExcecao: ABRE_EXCECAO.includes(user.role),
       /* A folha em papel continua de quem responde pelo cadastro (fase 92). */
       podeGerarFolha: ESCREVE_CONTATO.includes(user.role),
+      /* A foto 3×4 é anexada por quem responde pelo cadastro (decisão de
+         27/09): a portaria VÊ a foto grande para conferir com o documento, e
+         não anexa nem troca. A rota é a do contato (`/people/contacts/:id/photo`). */
+      podeAnexarFoto: ESCREVE_CONTATO.includes(user.role),
       visitantes: rows.map((r: any) => ({
         contatoId: r.contact_id, nome: r.visitante, nomeSocial: r.nome_social,
         vinculoRotulo: rotuloDoVinculo(r.vinculo, r.vinculo_outro),

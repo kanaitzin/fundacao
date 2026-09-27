@@ -245,6 +245,16 @@ anexar no dossiê. Ela **não** edita cadastro, escola nem cuidados essenciais.
 - *Defeito corrigido que ele pode ter visto:* o relatório do período deixava de
   fora as chamadas do ÚLTIMO dia escolhido.
 
+## 4.12 A tela (fase 163, pedido de 27/09)
+
+- **Três temas**: claro, escuro e **alto contraste**, no botão redondo do alto
+  (o de meia-lua). Vale no sistema de verdade, e cada aparelho lembra o seu.
+- **A Portaria em cartões**, com a foto 3×4 de cada visitante à vista. A foto é
+  anexada pela **técnica e pela coordenação**, ali mesmo no portão; a portaria
+  só vê.
+- **A coluna do monitor** com botões novos, e o "Período da casa" com desenho
+  de calendário.
+
 ## 5. As decisões que são do Marcelo *(§10 — responda pelo número)*
 
 Nenhuma é problema de código. Duas têm consequência maior e estão marcadas.

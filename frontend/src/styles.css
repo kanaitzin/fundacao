@@ -60,7 +60,7 @@
 
 /* ---------- Tema escuro ---------- */
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
+  :root:not([data-theme="light"]):not([data-theme="contraste"]) {
     --ground:#0C1219; --surface:#151E28; --raised:#1C2833; --sunken:#0F1720;
     --ink:#E8EEF5; --ink-2:#C6D3E0; --muted:#8FA1B5; --line:#26333F; --line-2:#3B4C5D;
 
@@ -280,14 +280,14 @@ input {
    precisa reconhecer às 6h da manhã. Centralizada e do tamanho de um selo. */
 .loginlogo img{ display:block; margin:0 auto; width:auto; max-width:132px; height:auto }
 /* No escuro a arte precisa do seu próprio branco para não sumir no fundo. */
-:root[data-theme="dark"] .loginlogo img, :root:not([data-theme="light"]) .loginlogo img{
+:root[data-theme="dark"] .loginlogo img, :root:not([data-theme="light"]):not([data-theme="contraste"]) .loginlogo img{
   background:#fff; border-radius:14px; padding:10px 14px;
 }
 .logincard h1{
   font-size:27px; line-height:1.2; margin:0; color:var(--titulo); letter-spacing:-.01em;
   font-family:"Plus Jakarta Sans",system-ui,sans-serif; font-weight:800;
 }
-:root[data-theme="dark"] .logincard h1, :root:not([data-theme="light"]) .logincard h1{ color:var(--ink) }
+:root[data-theme="dark"] .logincard h1, :root:not([data-theme="light"]):not([data-theme="contraste"]) .logincard h1{ color:var(--ink) }
 .logincard h1 span{
   display:block; font-size:15px; font-weight:600; color:var(--brand);
   margin-top:4px; letter-spacing:0;
@@ -1037,7 +1037,7 @@ textarea{
   --gr-trilho: var(--sunken);
 }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
+  :root:not([data-theme="light"]):not([data-theme="contraste"]) {
     --gr-tinta: #3987e5;    /* azul 400 — passa em #151E28 */
     --gr-tinta-2: #d95926;
   }
@@ -1180,4 +1180,150 @@ textarea{
 .iconbtn .icone, .tabbar .icone, .portas-lateral .icone,
 .cargo-chip .icone, .ic .icone, .pill .icone, .sheet .porta-icone .icone{
   margin-right:0; vertical-align:middle;
+}
+
+/* ============================================================
+   TEMA ALTO CONTRASTE (pedido de 27/09)
+   ------------------------------------------------------------
+   Preto sobre branco, bordas de 2px e foco grosso: para quem enxerga pouco, e
+   para o celular do corredor lido no sol. Ele ganha do "escuro do sistema"
+   (o seletor do escuro diz `:not([data-theme="contraste"])`), porque quem
+   escolheu contraste escolheu por necessidade.
+
+   As cores de ESTADO continuam existindo — só ficam mais escuras, todas com
+   folga sobre o branco (o ensaio de acessibilidade confere o tema inteiro). A
+   cor nunca é a única portadora do sentido: ao lado há sempre a palavra.
+   ============================================================ */
+:root[data-theme="contraste"] {
+  --ground:#FFFFFF; --surface:#FFFFFF; --raised:#FFFFFF; --sunken:#F0F0F0;
+  --ink:#000000; --ink-2:#000000; --muted:#1F1F1F; --line:#000000; --line-2:#000000;
+
+  --navy:#000000; --navy-2:#000000;
+  --titulo:#000000;
+  --brand:#002C80; --brand-2:#002C80; --brand-soft:#E3E9F7; --brand-solid:#002C80;
+  --on-navy:#FFFFFF;
+
+  --emerald:#005C36; --emerald-solid:#005C36;
+  --amber:#6B2E00;   --amber-solid:#6B2E00;
+  --red:#8A0000;     --red-solid:#8A0000;
+  --blue:#002C80;    --blue-solid:#002C80;
+  --violet:#4A0080;  --violet-solid:#4A0080;
+  --cyan:#00505E;    --cyan-solid:#00505E;
+  --pink:#7A0040;    --pink-solid:#7A0040;
+  --slate:#262626;   --slate-solid:#262626;
+  --on-solid:#FFFFFF;
+
+  --shadow-1:none; --shadow-2:none;
+  --focus:#000000;
+  --gr-tinta:#002C80; --gr-tinta-2:#6B2E00;
+}
+:root[data-theme="contraste"] .card,
+:root[data-theme="contraste"] .sheet,
+:root[data-theme="contraste"] .notice,
+:root[data-theme="contraste"] .tile,
+:root[data-theme="contraste"] input,
+:root[data-theme="contraste"] select,
+:root[data-theme="contraste"] textarea{ border:2px solid #000 }
+:root[data-theme="contraste"] .btn{ border:2px solid #000 }
+:root[data-theme="contraste"] .pill{ border:1.5px solid currentColor; font-weight:800 }
+:root[data-theme="contraste"] a{ text-decoration:underline }
+:root[data-theme="contraste"] :focus-visible{ outline:3px solid #000; outline-offset:2px }
+:root[data-theme="contraste"] .tabbar button.on,
+:root[data-theme="contraste"] .portas-lateral button.on{ outline:2px solid #000; outline-offset:1px }
+
+/* ============================================================
+   A COLUNA DO MONITOR, COM BOTÕES DE VERDADE (pedido de 27/09)
+   ------------------------------------------------------------
+   Cada porta ganha um "azulejo" para o desenho — o mesmo raio dos cartões —,
+   e o item aberto fica PREENCHIDO na cor da marca, como a aba do celular. O
+   azulejo é o alvo que o olho acha primeiro numa lista de vinte e cinco; a
+   palavra continua ao lado, e é ela que o leitor de tela anuncia.
+   ============================================================ */
+@media (min-width:1080px){
+  .tabbar button, .portas-lateral button{
+    gap:11px; min-height:44px; padding:6px 10px 6px 6px; border-radius:12px;
+    font-size:13.5px; font-weight:700; color:var(--ink-2);
+    border:1px solid transparent; background:transparent;
+    transition:background .12s ease, transform .12s ease, box-shadow .12s ease;
+  }
+  .tabbar button .icone, .portas-lateral button .icone{
+    box-sizing:content-box; padding:6px; border-radius:9px;
+    background:var(--sunken); color:var(--brand);
+    transition:background .12s ease, color .12s ease;
+  }
+  .tabbar button:hover, .portas-lateral button:hover{
+    background:var(--raised); border-color:var(--line); color:var(--titulo);
+    transform:translateX(2px);
+  }
+  .tabbar button:hover .icone, .portas-lateral button:hover .icone{
+    background:var(--brand-soft); color:var(--brand);
+  }
+  .tabbar button.on, .portas-lateral button.on{
+    background:var(--brand-solid); border-color:var(--brand-solid); color:var(--on-solid);
+    font-weight:800; box-shadow:var(--shadow-1); transform:none;
+  }
+  .tabbar button.on .icone, .portas-lateral button.on .icone{
+    background:color-mix(in srgb, var(--on-solid) 20%, transparent); color:var(--on-solid);
+  }
+  .tabbar button.on:hover, .portas-lateral button.on:hover{ color:var(--on-solid) }
+  .portas-lateral h2{ padding:0 10px; margin:0 0 6px; display:flex; align-items:center; gap:8px }
+  .portas-lateral h2::after{ content:""; flex:1; height:1px; background:var(--line) }
+  .portas-lateral .grupo + .grupo{ margin-top:16px }
+}
+@media (prefers-reduced-motion: reduce){
+  .tabbar button, .portas-lateral button{ transition:none }
+  .tabbar button:hover, .portas-lateral button:hover{ transform:none }
+}
+
+/* ============================================================
+   O PORTÃO (27/09): um cartão por visitante, com a foto 3×4 à vista
+   ------------------------------------------------------------
+   A Fundação disse que a lista estava apertada: eram três frases emendadas
+   por visitante e um botão pequeno para ver a foto. Agora a foto vem no
+   tamanho de um 3×4, os dados em linhas com rótulo, e a ação ocupa a largura
+   — é o alvo que o polegar acerta com a pessoa parada na frente.
+   ============================================================ */
+.busca-grande{ font-size:17px; padding:12px 14px; margin-bottom:14px }
+.crianca-do-portao{ margin:0 0 18px }
+.crianca-do-portao h3{ font-size:17px; margin:0 0 8px; color:var(--titulo) }
+.visitantes{
+  list-style:none; margin:0 0 12px; padding:0;
+  display:grid; gap:12px; grid-template-columns:1fr;
+}
+@media (min-width:900px){
+  .visitantes{ grid-template-columns:repeat(auto-fill, minmax(380px, 1fr)) }
+}
+.visitante{
+  display:grid; grid-template-columns:96px 1fr; gap:14px; align-items:start;
+  background:var(--surface); border:1px solid var(--line); border-radius:var(--r-md);
+  padding:14px; box-shadow:var(--shadow-1);
+}
+.visitante-foto{ display:flex; flex-direction:column; gap:6px; align-items:stretch }
+.foto34{
+  width:96px; height:128px; border-radius:10px; overflow:hidden; padding:0;
+  border:1px solid var(--line-2); background:var(--sunken); cursor:zoom-in;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
+  color:var(--muted);
+}
+.foto34 img{ width:100%; height:100%; object-fit:cover; display:block }
+.foto34.vazia{ cursor:default; border-style:dashed }
+.foto34.vazia small{ font-size:11.5px; font-weight:700 }
+.foto34-grande{ display:block; width:min(100%, 300px); aspect-ratio:3/4; object-fit:cover;
+  margin:8px auto; border-radius:12px; border:1px solid var(--line-2) }
+.visitante-corpo{ display:flex; flex-direction:column; gap:8px; min-width:0 }
+.visitante-topo{ display:flex; flex-wrap:wrap; align-items:center; gap:6px 10px }
+.visitante-nome{ font-family:"Plus Jakarta Sans",sans-serif; font-size:17px; font-weight:800;
+  color:var(--titulo); line-height:1.25 }
+.visitante-dados{ display:grid; grid-template-columns:max-content 1fr; gap:4px 12px; margin:0;
+  font-size:14px }
+.visitante-dados dt{ color:var(--muted); font-weight:700; font-size:12.5px; padding-top:1px }
+.visitante-dados dd{ margin:0; color:var(--ink); overflow-wrap:anywhere }
+.visitante-aviso{ margin:0; font-size:14px }
+.visitante-acoes{ display:flex; flex-direction:column; gap:8px; margin-top:2px }
+.visitante-acoes:empty{ display:none }
+@media (max-width:420px){
+  .visitante{ grid-template-columns:84px 1fr; gap:12px; padding:12px }
+  .foto34{ width:84px; height:112px }
+  .visitante-dados{ grid-template-columns:1fr; gap:0 }
+  .visitante-dados dd{ margin-bottom:4px }
 }
