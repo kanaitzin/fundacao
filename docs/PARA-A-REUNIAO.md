@@ -18,7 +18,7 @@
 > depois das 21h em Porto Alegre semeava o dia seguinte — o dia de hoje nascia
 > sem dose nenhuma. **Nada no sistema; tudo no dado de partida.**
 
-- **161 fases.** 108 suítes e 1039 testes, verdes em duas condições de relógio —
+- **162 fases.** 109 suítes e 1050 testes, verdes em duas condições de relógio —
   antes e depois da virada do UTC, que em Porto Alegre é às 21h.
 - **A chamada fecha.** O único item de código que faltava ao piloto — a chamada
   que travava quando uma criança estava internada ou em casa com a família —
@@ -234,6 +234,16 @@ anexar no dossiê. Ela **não** edita cadastro, escola nem cuidados essenciais.
 - **Nota repetida é recusada** (mesmo CNPJ e número, na mesma casa).
 - *O que o Marcelo pode querer rever:* hoje a lista de origens do remédio é
   compra, doação, farmácia pública, família, hospital e outro.
+
+## 4.11 A cozinha (fase 162, decidido em 26/09)
+
+- **"Selecionar todos" grava um pedido por criança**, juntos: se uma das
+  marcadas não está na casa, nada é gravado e a tela diz por quê.
+- **O pedido se edita** por quem pediu, pela coordenação, pela técnica e pelo
+  líder, **até o dia do pedido**; depois, só cancelar. O antes fica guardado.
+- **As refeições da casa** aparecem por refeição, nunca por criança.
+- *Defeito corrigido que ele pode ter visto:* o relatório do período deixava de
+  fora as chamadas do ÚLTIMO dia escolhido.
 
 ## 5. As decisões que são do Marcelo *(§10 — responda pelo número)*
 

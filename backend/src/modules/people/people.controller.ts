@@ -178,6 +178,18 @@ export class PeopleController {
     return this.cozinha.pedir(user, body);
   }
 
+  /* Editar, com o antes guardado (fase 162). */
+  @Post('kitchen-requests/:id/edit')
+  editarPedido(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
+               @Body() body: any) {
+    return this.cozinha.editar(user, id, body ?? {});
+  }
+
+  @Get('kitchen-requests/:id/history')
+  historicoDoPedido(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.cozinha.historico(user, id);
+  }
+
   @Post('kitchen-requests/:id/cancel')
   cancelarPedido(@CurrentUser() user: AuthenticatedUser,
                  @Param('id', ParseUUIDPipe) id: string,

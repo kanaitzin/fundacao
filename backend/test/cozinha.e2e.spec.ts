@@ -88,11 +88,15 @@ describe('Cozinha — Word com timbre e contabilização', () => {
 
   afterAll(async () => {
     /* Estado VIVO: pedido deixado aqui entraria na contagem de outra suíte. */
+    /* O histórico das edições (fase 162) aponta para o pedido: sai primeiro. */
+    await admin.query(`DELETE FROM kitchen_request_change WHERE house_id = $1`, [AI3]);
     await admin.query(`DELETE FROM kitchen_request WHERE house_id = $1`, [AI3]);
     await app.close(); await admin.end();
   });
 
   beforeEach(async () => {
+    /* O histórico das edições (fase 162) aponta para o pedido: sai primeiro. */
+    await admin.query(`DELETE FROM kitchen_request_change WHERE house_id = $1`, [AI3]);
     await admin.query(`DELETE FROM kitchen_request WHERE house_id = $1`, [AI3]);
   });
 

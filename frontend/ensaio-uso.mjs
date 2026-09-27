@@ -2736,6 +2736,45 @@ cobrar('a nota repetida é recusada, dizendo quem já lançou',
   /Nota repetida: esta nota já foi lançada por /.test((await folhaNota.innerText())));
 cobrar('nenhuma exceção no armário', erros.length === 0, erros[0]);
 
+// ====================================================== A cozinha recebe a lista (fase 162)
+/*
+ * "SELECIONAR TODOS" GRAVA UM PEDIDO POR CRIANÇA, e o pedido se edita até o dia
+ * com o antes guardado. E as refeições da casa contam-se por refeição, nunca
+ * por criança.
+ */
+await fechar();
+console.log('\n🥪 A cozinha recebe a lista (fase 162)');
+await trocar('educador');
+erros.length = 0;
+cobrar('a Cozinha abre em "Mais"', await doMais('Cozinha'));
+cobrar('"Pedir lanche" abre a folha', await clicar(/Pedir lanche/i));
+const folhaLote = pg.locator('.overlay .sheet');
+await folhaLote.getByRole('button', { name: 'Crianças que eu marcar' }).click();
+await folhaLote.getByRole('button', { name: 'Selecionar todos' }).click();
+await folhaLote.locator('#pd-fin').fill('Passeio ao museu na quinta.');
+const botaoLote = folhaLote.getByRole('button', { name: /^Registrar \d+ pedidos$/ });
+cobrar('com todas marcadas, o botão diz quantos pedidos vão sair', (await botaoLote.count()) === 1);
+await botaoLote.click();
+await pg.waitForTimeout(900);
+cobrar('um pedido por criança, e o aviso diz isso', /pedidos registrados, um por criança/.test(await conteudo()));
+cobrar('o pedido editado mostra o histórico', await clicar(/^Ver o histórico deste pedido$/));
+cobrar('e o histórico tem o antes, o depois e o motivo',
+  /Antes:/.test(await folhaLote.innerText()) && /Motivo:/.test(await folhaLote.innerText()));
+await fechar();
+cobrar('o pedido de hoje em diante se edita', await clicar(/^Editar este pedido$/));
+const botaoEditar = pg.locator('.overlay .sheet').getByRole('button', { name: 'Salvar a mudança' });
+cobrar('sem motivo, não se edita', await botaoEditar.isDisabled());
+await pg.locator('#ed-mot').fill('Mais um colega vai junto.');
+await pg.locator('#ed-qtd').fill('2');
+await botaoEditar.click();
+await pg.waitForTimeout(800);
+cobrar('a edição fica registrada', /Pedido editado/.test(await conteudo()));
+cobrar('a aba das refeições abre', await clicar(/^Refeições$/, 'main.conteudo .seg'));
+const refeicoes = await conteudo();
+cobrar('as refeições vêm por refeição, e dizem que não são de criança',
+  /Por refeição/i.test(refeicoes) && /nunca de uma criança/.test(refeicoes));
+cobrar('nenhuma exceção na cozinha nova', erros.length === 0, erros[0]);
+
 await navegador.close();
 console.log(achados.length
   ? `\n${achados.length} ACHADO(S):\n  ${achados.join('\n  ')}`

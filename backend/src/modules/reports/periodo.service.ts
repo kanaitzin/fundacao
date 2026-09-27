@@ -100,6 +100,38 @@ export class PeriodoService {
     return { secoes: SECOES_DO_PERIODO, janelaMaximaDias: JANELA_MAXIMA_DIAS };
   }
 
+  /**
+   * AS REFEIÇÕES DA CASA NUM PERÍODO (fase 162) — por refeição (café, almoço,
+   * janta), e NUNCA por criança: decisão de 26/09, nenhuma comparação entre
+   * crianças. Quem quer saber de uma criança abre o perfil dela.
+   */
+  async refeicoes(user: AuthenticatedUser, houseId: string, de?: string, ate?: string) {
+    const fim = ate || hojeNaInstituicao();
+    const inicio = de || `${fim.slice(0, 7)}-01`;
+    if (inicio > fim) throw new BadRequestException('O início do período vem antes do fim.');
+    return this.db.asUser(user.id, async (c) => {
+      const { rows: [dentro] } = await c.query(`SELECT app_house_in_scope($1) AS ok`, [houseId]);
+      if (!dentro?.ok) throw new NotFoundException('Unidade não encontrada — ou fora do seu alcance.');
+      const { rows } = await c.query(
+        `SELECT * FROM app_refeicoes_da_casa($1::uuid, $2::date, $3::date)`, [houseId, inicio, fim]);
+      const porRefeicao = rows.map((r: any) => ({
+        refeicao: r.refeicao, chamadas: r.chamadas, registros: r.registros, comeram: r.comeram,
+        parcial: r.parcial, recusou: r.recusou, ausente: r.ausente, dietaAdaptada: r.dieta_adaptada,
+        outros: r.outros,
+      }));
+      const soma = (k: keyof (typeof porRefeicao)[number]) =>
+        porRefeicao.reduce((n: number, r: any) => n + Number(r[k]), 0);
+      return {
+        periodo: { de: inicio, ate: fim },
+        total: { chamadas: soma('chamadas'), registros: soma('registros'), comeram: soma('comeram'),
+                 parcial: soma('parcial'), recusou: soma('recusou'), ausente: soma('ausente') },
+        porRefeicao,
+        aviso: 'Contam-se as refeições da CASA, nunca de uma criança. Recusa é direito da criança e '
+          + 'informação de cuidado — não é falha de quem serviu nem de quem comeu.',
+      };
+    });
+  }
+
   async daCasa(user: AuthenticatedUser, houseId: string,
                de?: string, ate?: string): Promise<PeriodoDaCasa> {
     if (!LEEM_O_PERIODO.includes(user.role)) {

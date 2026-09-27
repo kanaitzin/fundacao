@@ -154,7 +154,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 26/09/2026, fase 161
+### Onde estamos — 26/09/2026, fase 162
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -179,10 +179,11 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 159 | **cada casa define o horário dos seus turnos** (pedido de 26/09): coordenação, Líder Diurno e técnica dizem o DIURNO, o noturno é o resto; vale a partir de amanhã; `house_shift_hours` só cresce; a regra (`app_turno_de` etc.) pergunta PELA CASA e as versões sem casa saíram; cartão na Escala |
 | 160 | **quem visitou, e a portaria no sistema** (decisões de 26/09): cargo `portaria` com login mínimo — `app_house_in_scope` diz NÃO a ela e ela vê só pelo portão; `visit`/`visit_correction`; fora do combinado RECUSA, exceção com motivo só de coordenação/técnica/líder; visitas no perfil DA criança, visitantes por nome; RG, nome social e validade no visitante |
 | 161 | **o armário diz a verdade** (decisões de 26/09): saldo NEGATIVO com aviso (a dose nunca é bloqueada); lote, validade e origem na entrada; descarte/perda/devolução com motivo; nota com CNPJ e itens, SEPARADA do armário, repetida RECUSADA; métricas da casa por remédio; relatórios em Word com a imagem da nota; `mov_insert`/`stock_update` eram `WITH CHECK (true)` |
+| 162 | **a cozinha recebe a lista** (decisões de 26/09): "Selecionar todos" = um pedido por criança, tudo ou nada (`batch_id`); editar até o dia, por quem pediu/coordenação/técnica/líder, com `kitchen_request_change`; refeições da casa por refeição; e o **relatório do período perdia o último dia** (`reference_at BETWEEN` datas) |
 
-**Medido no fim da 161:** 158 migrações, 120 tabelas, 108 suítes, 1039 testes, verdes nas
+**Medido no fim da 162:** 160 migrações, 121 tabelas, 109 suítes, 1050 testes, verdes nas
 DUAS condições de relógio; os sete ensaios de navegador verdes, com a portaria e o
-portão e o armário no percurso do `ensaio:uso`; 144 telas sem violação de WCAG 2.1 AA; nenhuma
+portão, o armário e a cozinha no percurso do `ensaio:uso`; 144 telas sem violação de WCAG 2.1 AA; nenhuma
 rota sem teste; nenhuma rota — escrita ou leitura — com 500; nenhum ouvinte
 falhando; nenhuma escrita da Casa 04 aceita sobre registro real da Casa 03.
 
@@ -213,7 +214,7 @@ data do dia em que o noturno começou** — substitui o 7h–19h preliminar (pen
   nunca crianças lado a lado, nunca ordenadas por total. Visitantes por NOME.
 - ~~**161** armário e nota fiscal~~ ✅ feita. A folha do Word ganhou `imagens`
   (tamanho lido do PNG/JPEG) — a 163 usa para a internação;
-- **162** cozinha: "Selecionar todos", editar pedido com histórico; métricas de refeições;
+- ~~**162** cozinha e refeições~~ ✅ feita;
 - **163** câmera/galeria com prévia, tipo real do arquivo, DOCX da internação com
   imagens e páginas de PDF, "repetir escala do mês anterior" como rascunho, e o
   **cargo da época** nos registros antigos (`app_user_cargo` devolve o ATUAL);
@@ -327,6 +328,14 @@ novo.
   larguras. Foi a foto que mostrou os 190px de barra navy antes da primeira linha
   do dia — e foi ela que mostrou o que NÃO precisava mudar: o sistema de cores já
   era sério, e mexer nele teria sido estragar o que funciona por parecer trabalho.
+- **Instante não se compara com data** (162). `reference_at BETWEEN de AND ate`
+  transforma `ate` em meia-noite do COMEÇO do dia, no fuso da sessão: o último
+  dia do período sumia do relatório. Instante vira data antes —
+  `(x AT TIME ZONE app_fuso())::date BETWEEN de AND ate` — e a pergunta de onde
+  mais isso acontece vai ao catálogo (`pg_proc.prosrc`), não à memória.
+- **Medir com `-t` mede o teste sozinho** (162). Se o dado nasce num teste
+  anterior, o `-t` reprova nos dois sentidos e a medida não diz nada: meça com o
+  arquivo inteiro.
 - **Frase de tela que envelhece é frase que mente**, e a cobrança do ensaio que a
   guarda tem de ser reescrita junto. A ressalva do painel sobre nota escolar já foi
   reescrita três vezes. **Isto inclui este arquivo.**

@@ -241,6 +241,8 @@ export const VOCABULARIO_DA_AUDITORIA: Record<string, string> = {
   // -------------------------------------------------------------------- Cozinha
   'kitchen.request': 'Pedido à cozinha registrado',
   'kitchen.cancel': 'Pedido à cozinha cancelado',
+  'kitchen.request_batch': 'Pedidos à cozinha registrados em lote, um por criança',
+  'kitchen.request_edit': 'Pedido à cozinha editado, com o antes guardado',
 
   // ------------------------------------------------------------- Combinados e pauta
   'alignment.meeting': 'Reunião de equipe registrada',

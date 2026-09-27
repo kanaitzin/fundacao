@@ -44,13 +44,31 @@ export class CozinhaService {
         status: r.status, motivoCancelamento: r.motivo_cancelamento,
         pedidoPor: r.pedido_por, pedidoEm: r.pedido_em,
       }));
+    }).then(async (lista) => {
+      /* Fase 162: o lote (quando veio do "Selecionar todos") e se já foi
+         editado — a tela mostra o histórico de quem foi. */
+      if (!lista.length) return lista;
+      const extra = await this.db.asUser(user.id, async (c) => {
+        const { rows } = await c.query(
+          `SELECT k.id, k.batch_id,
+                  (SELECT count(*)::int FROM kitchen_request_change m WHERE m.request_id = k.id) AS edicoes
+             FROM kitchen_request k WHERE k.id = ANY($1::uuid[])`, [lista.map((l) => l.id)]);
+        return new Map(rows.map((r: any) => [r.id, r]));
+      });
+      return lista.map((l) => {
+        const x: any = extra.get(l.id);
+        return { ...l, lote: x?.batch_id ?? null, edicoes: x?.edicoes ?? 0 };
+      });
     });
   }
 
   async pedir(user: AuthenticatedUser, input: {
     houseId: string; tipo: string; personId?: string | null; em: string;
     quantidade: number; finalidade: string; observacao?: string; entregarA?: string;
+    /** "Selecionar todos" (fase 162): um pedido por criança marcada. */
+    pessoas?: string[];
   }) {
+    if (Array.isArray(input.pessoas)) return this.pedirEmLote(user, input as any);
     try {
       const id = await this.db.asUser(user.id, async (c) => {
         const { rows: [row] } = await c.query(
@@ -83,6 +101,108 @@ export class CozinhaService {
       }
       throw e;
     }
+  }
+
+  /**
+   * "SELECIONAR TODOS" — um pedido por criança, gravados juntos (decisão de
+   * 26/09). Tudo ou nada: uma criança que saiu da casa recusa o lote, e a tela
+   * diz por quê, em vez de gravar onze de doze.
+   */
+  private async pedirEmLote(user: AuthenticatedUser, input: {
+    houseId: string; tipo: string; pessoas: unknown[]; em: string; quantidade: number;
+    finalidade: string; observacao?: string; entregarA?: string;
+  }) {
+    const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const pessoas = [...new Set(input.pessoas.map(String))];
+    if (!pessoas.length) throw new BadRequestException('Marque pelo menos uma criança.');
+    if (pessoas.some((p) => !UUID.test(p))) {
+      throw new BadRequestException('Uma das crianças veio num formato que o sistema não reconhece.');
+    }
+    try {
+      const r = await this.db.asUser(user.id, async (c) => {
+        const { rows } = await c.query(
+          `SELECT * FROM app_pedir_a_cozinha_em_lote($1,$2,$3::uuid[],$4::date,$5,$6,$7,$8)`,
+          [input.houseId, input.tipo, pessoas, input.em, input.quantidade, input.finalidade,
+           input.observacao ?? null, input.entregarA ?? null]);
+        return { ids: rows.map((x: any) => x.pedido_id as string), lote: rows[0]?.lote as string };
+      });
+      await this.audit.log({
+        action: 'kitchen.request_batch', actorId: user.id, institutionId: user.institutionId,
+        houseId: input.houseId, entity: 'kitchen_request', entityId: r.lote,
+        detail: { tipo: input.tipo, em: input.em, pedidos: r.ids.length },
+      });
+      return { ids: r.ids, lote: r.lote,
+               aviso: `${r.ids.length} pedidos registrados, um por criança. Cada um pode ser cancelado sozinho.` };
+    } catch (e: any) {
+      const m = String(e?.message ?? '');
+      if (m.includes('ninguem_marcado')) throw new BadRequestException('Marque pelo menos uma criança.');
+      if (m.includes('finalidade_obrigatoria')) {
+        throw new BadRequestException(
+          'Escreva para que serve. "1 lanche" sem finalidade obriga a cozinha a adivinhar.');
+      }
+      if (m.includes('quantidade_invalida')) throw new BadRequestException('A quantidade tem de ser maior que zero.');
+      if (m.includes('pessoa_fora_da_casa')) {
+        throw new NotFoundException('Uma das crianças marcadas não está nesta casa. Nada foi registrado — confira a lista.');
+      }
+      if (m.includes('sem_permissao_pedido_cozinha')) throw new ForbiddenException('Sem acesso aos pedidos da cozinha.');
+      if (m.includes('casa_fora_de_escopo')) throw new NotFoundException('Unidade não encontrada — ou fora do seu alcance.');
+      throw e;
+    }
+  }
+
+  /**
+   * EDITAR O PEDIDO (decisão de 26/09): quem pediu, a coordenação, a técnica e
+   * o líder, enquanto ele estiver aberto e a data não tiver passado. O antes
+   * fica no histórico, com o motivo.
+   */
+  async editar(user: AuthenticatedUser, id: string, input: {
+    em?: string; quantidade?: number; finalidade?: string; observacao?: string;
+    entregarA?: string; motivo?: string;
+  }) {
+    if (input.em != null && (!/^\d{4}-\d{2}-\d{2}$/.test(input.em) || Number.isNaN(Date.parse(`${input.em}T12:00:00Z`)))) {
+      throw new BadRequestException('A data precisa vir como 2026-09-26 — ano, mês e dia.');
+    }
+    if (input.quantidade != null && !Number.isInteger(Number(input.quantidade))) {
+      throw new BadRequestException('A quantidade é um número inteiro.');
+    }
+    /* A auditoria é escrita pela função, com a casa do pedido. */
+    try {
+      await this.db.asUser(user.id, async (c) => {
+        await c.query(`SELECT * FROM app_editar_pedido_cozinha($1,$2::date,$3,$4,$5,$6,$7)`,
+          [id, input.em ?? null, input.quantidade ?? null, input.finalidade ?? null,
+           input.observacao ?? null, input.entregarA ?? null, input.motivo ?? '']);
+      });
+    } catch (e: any) {
+      const m = String(e?.message ?? '');
+      if (m.includes('pedido_inexistente')) throw new NotFoundException('Pedido não encontrado.');
+      if (m.includes('sem_permissao_editar_pedido')) {
+        throw new ForbiddenException('Editar é de quem fez o pedido, da coordenação, da técnica ou do líder.');
+      }
+      if (m.includes('pedido_cancelado')) throw new ConflictException('Este pedido foi cancelado; não se edita.');
+      if (m.includes('pedido_passado')) {
+        throw new ConflictException('A data deste pedido já passou — a cozinha já serviu. Se foi errado, cancele com o motivo.');
+      }
+      if (m.includes('data_no_passado')) throw new BadRequestException('A nova data não pode estar no passado.');
+      if (m.includes('motivo_obrigatorio')) throw new BadRequestException('Escreva o motivo da mudança (pelo menos 5 caracteres).');
+      if (m.includes('quantidade_invalida')) throw new BadRequestException('A quantidade tem de ser maior que zero.');
+      if (m.includes('finalidade_obrigatoria')) throw new BadRequestException('A finalidade precisa dizer para que serve.');
+      if (m.includes('nada_mudou')) throw new BadRequestException('Nada mudou no pedido.');
+      throw e;
+    }
+    return { ok: true, aviso: 'Pedido editado. A versão anterior fica no histórico, com o seu motivo.' };
+  }
+
+  /** O histórico de um pedido: cada mudança, com o antes, o depois, o motivo e quem. */
+  async historico(user: AuthenticatedUser, id: string) {
+    return this.db.asUser(user.id, async (c) => {
+      const { rows: [p] } = await c.query(`SELECT id FROM kitchen_request WHERE id = $1`, [id]);
+      if (!p) throw new NotFoundException('Pedido não encontrado.');
+      const { rows } = await c.query(
+        `SELECT id, before, after, reason, changed_at, app_user_display_name(changed_by) AS por
+           FROM kitchen_request_change WHERE request_id = $1 ORDER BY changed_at`, [id]);
+      return rows.map((r: any) => ({ id: r.id, antes: r.before, depois: r.after, motivo: r.reason,
+                                     em: r.changed_at, por: r.por }));
+    });
   }
 
   async cancelar(user: AuthenticatedUser, id: string, motivo: string) {

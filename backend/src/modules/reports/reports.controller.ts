@@ -213,6 +213,14 @@ export class ReportsController {
   @Get('period/options')
   periodoVocabulario() { return this.periodo.vocabulario(); }
 
+  /* As refeições da CASA num período (fase 162): por refeição, nunca por criança. */
+  @Get('period/meals')
+  refeicoesDaCasa(@CurrentUser() user: AuthenticatedUser,
+                  @Query('houseId', ParseUUIDPipe) houseId: string,
+                  @Query('de', DataDoDia) de?: string, @Query('ate', DataDoDia) ate?: string) {
+    return this.periodo.refeicoes(user, houseId, de, ate);
+  }
+
   @Get('period')
   periodoDaCasa(@CurrentUser() user: AuthenticatedUser,
                 @Query('houseId', ParseUUIDPipe) houseId: string,

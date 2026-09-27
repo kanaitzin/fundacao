@@ -1416,13 +1416,25 @@ const PEDIDOS_COZINHA: {
   em: string; quantidade: number; finalidade: string; observacao: string | null;
   entregarA: string | null; status: string; motivoCancelamento: string | null;
   pedidoPor: string; pedidoEm: string;
+  /* Fase 162: o lote do "Selecionar todos", e o histórico de edições. */
+  lote?: string | null; edicoes?: number;
+  historico?: { id: string; antes: any; depois: any; motivo: string; em: string; por: string }[];
 }[] = [
   { id: 'kr1', tipo: 'lanche', personId: null, paraQuem: 'Casa toda',
     em: new Date(Date.now() + 2 * 86400_000).toISOString().slice(0, 10),
     quantidade: 20, finalidade: 'Saída ao parque no sábado à tarde.',
     observacao: null, entregarA: 'Educador do plantão diurno',
     status: 'aberto', motivoCancelamento: null,
-    pedidoPor: 'Mário Silva (fictício)', pedidoEm: haMinutos(30 * 60) },
+    pedidoPor: 'Mário Silva (fictício)', pedidoEm: haMinutos(30 * 60),
+    /* EDITADO UMA VEZ (fase 162, §6.19): sem esta linha o botão do histórico
+       nasceria invisível no único arquivo que o Marcelo abre. */
+    edicoes: 1,
+    historico: [{ id: 'krh1', motivo: 'Dois colegas da escola vão junto no passeio.',
+      antes: { data: new Date(Date.now() + 2 * 86400_000).toISOString().slice(0, 10), quantidade: 18,
+               finalidade: 'Saída ao parque no sábado à tarde.' },
+      depois: { data: new Date(Date.now() + 2 * 86400_000).toISOString().slice(0, 10), quantidade: 20,
+                finalidade: 'Saída ao parque no sábado à tarde.' },
+      em: haMinutos(29 * 60), por: 'Lúcia Líder Diurna (fictícia)' }] },
   /*
    * O NOME QUE VAI PARA A FOLHA TEM DE SER DE UMA CRIANÇA DA CASA.
    *
@@ -4366,6 +4378,23 @@ function responderPeriodo(
    * diferentes, porque uma tela ensaiada contra um mock que ignora o filtro é
    * uma tela que ninguém testou (§6.14).
    */
+  /* As refeições da CASA (fase 162) — por refeição, nunca por criança. */
+  if (rota === '/reports/period/meals' && metodo === 'GET') {
+    const porRefeicao = [
+      { refeicao: 'Almoço', chamadas: 26, registros: 498, comeram: 471, parcial: 18, recusou: 9, ausente: 18, dietaAdaptada: 26, outros: 0 },
+      { refeicao: 'Café da manhã', chamadas: 26, registros: 501, comeram: 480, parcial: 12, recusou: 6, ausente: 15, dietaAdaptada: 26, outros: 0 },
+      { refeicao: 'Janta', chamadas: 25, registros: 482, comeram: 466, parcial: 10, recusou: 7, ausente: 9, dietaAdaptada: 25, outros: 0 },
+    ];
+    const soma = (k: string) => porRefeicao.reduce((n, r: any) => n + r[k], 0);
+    return {
+      periodo: { de: q.get('de'), ate: q.get('ate') },
+      total: { chamadas: soma('chamadas'), registros: soma('registros'), comeram: soma('comeram'),
+               parcial: soma('parcial'), recusou: soma('recusou'), ausente: soma('ausente') },
+      porRefeicao,
+      aviso: 'Contam-se as refeições da CASA, nunca de uma criança. Recusa é direito da criança e '
+        + 'informação de cuidado — não é falha de quem serviu nem de quem comeu.',
+    };
+  }
   if (rota === '/reports/period/options') {
     return { secoes: SECOES_DO_PERIODO, janelaMaximaDias: 184 };
   }
@@ -7329,8 +7358,8 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
   if (rota.startsWith('/people/kitchen-requests/summary')) {
     return resumoDaCozinha();
   }
-  if (rota.startsWith('/people/kitchen-requests') && metodo === 'GET') {
-    return PEDIDOS_COZINHA;
+  if (rota.startsWith('/people/kitchen-requests') && metodo === 'GET' && seg[3] !== 'history') {
+    return PEDIDOS_COZINHA.map(({ historico: _h, ...p }) => ({ ...p, lote: p.lote ?? null, edicoes: p.edicoes ?? 0 }));
   }
   if (rota === '/people/kitchen-requests' && metodo === 'POST') {
     if (!['educador', 'lider_diurno', 'lider_noturno_geral', 'equipe_tecnica',
@@ -7340,6 +7369,26 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     if (String(b.finalidade ?? '').trim().length < 5) {
       throw new ErroApi(400, 'Escreva para que serve. "1 lanche" sem finalidade obriga '
         + 'a cozinha a adivinhar.');
+    }
+    /* "Selecionar todos" (fase 162): um pedido por criança, tudo ou nada. */
+    if (Array.isArray(b.pessoas)) {
+      const pessoas = [...new Set((b.pessoas as string[]).map(String))];
+      if (!pessoas.length) throw new ErroApi(400, 'Marque pelo menos uma criança.');
+      if (pessoas.some((id) => !todosKids().some((k) => k.id === id))) {
+        throw new ErroApi(404, 'Uma das crianças marcadas não está nesta casa. Nada foi registrado — confira a lista.');
+      }
+      const lote = `lote-${uid()}`;
+      const ids = pessoas.map((pid, i) => {
+        const id = `kr${PEDIDOS_COZINHA.length + 1}-${i}`;
+        PEDIDOS_COZINHA.unshift({
+          id, tipo: b.tipo, personId: pid, paraQuem: todosKids().find((k) => k.id === pid)?.nome ?? '—',
+          em: b.em, quantidade: Number(b.quantidade), finalidade: String(b.finalidade).trim(),
+          observacao: b.observacao || null, entregarA: b.entregarA || null,
+          status: 'aberto', motivoCancelamento: null, pedidoPor: eu.fullName,
+          pedidoEm: new Date().toISOString(), lote, edicoes: 0, historico: [] });
+        return id;
+      });
+      return { ids, lote, aviso: `${ids.length} pedidos registrados, um por criança. Cada um pode ser cancelado sozinho.` };
     }
     PEDIDOS_COZINHA.unshift({
       id: `kr${PEDIDOS_COZINHA.length + 1}`, tipo: b.tipo, personId: b.personId ?? null,
@@ -7351,6 +7400,38 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       pedidoPor: eu.fullName, pedidoEm: new Date().toISOString(),
     });
     return { id: `kr${PEDIDOS_COZINHA.length}` };
+  }
+  /* Editar, até o dia, com o antes guardado (fase 162) — as mesmas recusas do servidor. */
+  if (seg[0] === 'people' && seg[1] === 'kitchen-requests' && seg[3] === 'edit' && metodo === 'POST') {
+    const p = PEDIDOS_COZINHA.find((x) => x.id === seg[2]);
+    if (!p) throw new ErroApi(404, 'Pedido não encontrado.');
+    if (p.pedidoPor !== eu.fullName
+        && !['coordenador', 'equipe_tecnica', 'lider_diurno', 'lider_noturno_geral', 'gestor_geral'].includes(eu.role)) {
+      throw new ErroApi(403, 'Editar é de quem fez o pedido, da coordenação, da técnica ou do líder.');
+    }
+    if (p.status !== 'aberto') throw new ErroApi(409, 'Este pedido foi cancelado; não se edita.');
+    if (p.em < HOJE) {
+      throw new ErroApi(409, 'A data deste pedido já passou — a cozinha já serviu. Se foi errado, cancele com o motivo.');
+    }
+    if (b.em && String(b.em) < HOJE) throw new ErroApi(400, 'A nova data não pode estar no passado.');
+    if (String(b.motivo ?? '').trim().length < 5) {
+      throw new ErroApi(400, 'Escreva o motivo da mudança (pelo menos 5 caracteres).');
+    }
+    const antes = { data: p.em, quantidade: p.quantidade, finalidade: p.finalidade };
+    if (b.em) p.em = String(b.em);
+    if (b.quantidade != null) p.quantidade = Number(b.quantidade);
+    if (b.finalidade) p.finalidade = String(b.finalidade).trim();
+    const depois = { data: p.em, quantidade: p.quantidade, finalidade: p.finalidade };
+    if (JSON.stringify(antes) === JSON.stringify(depois)) throw new ErroApi(400, 'Nada mudou no pedido.');
+    p.historico = [...(p.historico ?? []), { id: uid(), antes, depois, motivo: String(b.motivo).trim(),
+                                             em: new Date().toISOString(), por: eu.fullName }];
+    p.edicoes = p.historico.length;
+    return { ok: true, aviso: 'Pedido editado. A versão anterior fica no histórico, com o seu motivo.' };
+  }
+  if (seg[0] === 'people' && seg[1] === 'kitchen-requests' && seg[3] === 'history' && metodo === 'GET') {
+    const p = PEDIDOS_COZINHA.find((x) => x.id === seg[2]);
+    if (!p) throw new ErroApi(404, 'Pedido não encontrado.');
+    return p.historico ?? [];
   }
   if (seg[0] === 'people' && seg[1] === 'kitchen-requests' && seg[3] === 'cancel') {
     const p = PEDIDOS_COZINHA.find((x) => x.id === seg[2]);

@@ -899,12 +899,12 @@ criança, e log não copia conteúdo sensível (§5). A auditoria guarda o ato �
 coordenação, Líder Diurno). Mais ninguém: a lista de quem pediu para ler o quê é,
 ela mesma, informação sobre o caso.
 
-## Inventário — 120 tabelas por partição
+## Inventário — 121 tabelas por partição
 
 | Partição | Tabelas |
 |---|---|
 | identity (14) | institution, house, app_user, user_house_assignment, work_schedule, shift_assignment, user_session, login_attempt, audit_event, institutional_device, staff_role_grant, house_capacity_change, user_invite, house_shift_hours |
-| people (28) | person, care_episode, house_stay, profile_detail, health_condition, food_restriction, document, document_version, benefit_record, memory_record, memory_photo, transfer_request, transfer_message, admission_record, judicial_record, person_credential, person_correction, profile_detail_change, person_contact, family_stay, family_stay_note, outing_permission, kitchen_request, house_field_permission, birthday_ack, contact_visit_change, visit, visit_correction |
+| people (29) | person, care_episode, house_stay, profile_detail, health_condition, food_restriction, document, document_version, benefit_record, memory_record, memory_photo, transfer_request, transfer_message, admission_record, judicial_record, person_credential, person_correction, profile_detail_change, person_contact, family_stay, family_stay_note, outing_permission, kitchen_request, house_field_permission, birthday_ack, contact_visit_change, visit, visit_correction, kitchen_request_change |
 | shifts (13) | shift, handover, handover_receipt, handover_note, ata, ata_note, ata_addendum, ata_episode, ata_episode_ack, general_night_ata, general_night_house_entry, general_night_house_amendment, ata_read_request |
 | incidents (7) | incident, incident_person, incident_protected, incident_restraint, incident_synthesis, external_communication, incident_attachment |
 | medications (13) | prescription, medication_schedule, medication_administration, medication_stock, medication_stock_movement, medication_protocol, medication_authorization, medication_protocol_change, prescription_restriction_change, medication_purchase, medication_purchase_item, prescription_document, family_stay_medication |
@@ -942,6 +942,19 @@ Só cresce: cada mudança é uma linha, e a que vale num dia é a de maior
 `valid_from` até ele — no empate, a mais recente. Quem grava é
 `app_definir_horario_da_casa` (coordenação, Líder Diurno e equipe técnica da
 casa), que também escreve a auditoria com a casa.
+
+### `kitchen_request_change` — e o que a fase 162 mudou na cozinha
+O HISTÓRICO DE CADA PEDIDO EDITADO (people/1610): `request_id`, `house_id`,
+`before` e `after` (jsonb com data, quantidade, finalidade, observação e a quem
+entregar), `reason` (mínimo 5 caracteres), `changed_by`, `changed_at`. Só cresce.
+Quem grava é `app_editar_pedido_cozinha` — quem pediu, a coordenação, a técnica
+e o líder, enquanto o pedido estiver aberto e a data dele não tiver passado
+(decisão de 26/09); depois do dia, só cancelar. A mesma função escreve a
+auditoria com a casa.
+
+E `kitchen_request.batch_id`: o "Selecionar todos" grava UM PEDIDO POR CRIANÇA
+(decisão de 26/09), juntos e tudo-ou-nada, por `app_pedir_a_cozinha_em_lote`; o
+`batch_id` liga os pedidos do mesmo gesto. Cancelar um não mexe nos outros.
 
 ### `medication_purchase_item` — e o que a fase 161 mudou no armário
 OS ITENS DA NOTA FISCAL (medications/1600): `purchase_id`, `house_id`,

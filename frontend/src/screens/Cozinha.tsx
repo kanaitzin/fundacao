@@ -42,6 +42,8 @@ interface Pedido {
   em: string; quantidade: number; finalidade: string; observacao: string | null;
   entregarA: string | null; status: string; motivoCancelamento: string | null;
   pedidoPor: string; pedidoEm: string;
+  /* Fase 162: o lote do "Selecionar todos", e quantas vezes foi editado. */
+  lote?: string | null; edicoes?: number;
 }
 interface Kid { id: string; nome: string }
 interface Resumo {
@@ -59,7 +61,10 @@ const maisDias = (n: number) => new Intl.DateTimeFormat('en-CA', {
 export function Cozinha({ houseId, casaLabel, papel }: {
   houseId: string; casaLabel: string; papel: string;
 }) {
-  const [aba, setAba] = useState<'pedidos' | 'restricoes'>('pedidos');
+  const [aba, setAba] = useState<'pedidos' | 'refeicoes' | 'restricoes'>('pedidos');
+  const [editando, setEditando] = useState<Pedido | null>(null);
+  const [vendoHistorico, setVendoHistorico] = useState<Pedido | null>(null);
+  const [aviso, setAviso] = useState('');
   const [lista, setLista] = useState<Restricao[]>([]);
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [resumo, setResumo] = useState<Resumo | null>(null);
@@ -101,9 +106,10 @@ export function Cozinha({ houseId, casaLabel, papel }: {
   useEffect(() => { carregarPedidos(); }, [houseId, de, ate]);
 
   async function pedir(corpo: Record<string, unknown>) {
-    setErro('');
+    setErro(''); setAviso('');
     try {
-      await api('/people/kitchen-requests', { method: 'POST', body: JSON.stringify(corpo) });
+      const r = await api<{ aviso?: string }>('/people/kitchen-requests', { method: 'POST', body: JSON.stringify(corpo) });
+      setAviso(r?.aviso ?? '');
       setPedindo(null); await carregarPedidos();
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Não foi possível registrar o pedido.');
@@ -172,11 +178,15 @@ export function Cozinha({ houseId, casaLabel, papel }: {
   return (
     <>
       {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+      {aviso && <div className="notice c-ok" role="status">{aviso}</div>}
 
       <div className="seg" role="tablist">
         <button role="tab" aria-selected={aba === 'pedidos'}
                 className={aba === 'pedidos' ? 'on' : ''}
                 onClick={() => setAba('pedidos')}>Pedidos</button>
+        <button role="tab" aria-selected={aba === 'refeicoes'}
+                className={aba === 'refeicoes' ? 'on' : ''}
+                onClick={() => setAba('refeicoes')}>Refeições</button>
         <button role="tab" aria-selected={aba === 'restricoes'}
                 className={aba === 'restricoes' ? 'on' : ''}
                 onClick={() => setAba('restricoes')}>Restrições</button>
@@ -278,7 +288,21 @@ export function Cozinha({ houseId, casaLabel, papel }: {
                   {p.entregarA ? ` · entregar a ${p.entregarA}` : ''}
                 </div>
                 {p.observacao && <div className="mutetxt">{p.observacao}</div>}
-                <div className="mutetxt">Pedido por {p.pedidoPor}.</div>
+                <div className="mutetxt">
+                  Pedido por {p.pedidoPor}.
+                  {p.edicoes ? ` Editado ${p.edicoes === 1 ? 'uma vez' : `${p.edicoes} vezes`}.` : ''}
+                </div>
+                {!!p.edicoes && (
+                  <button className="btn sm ghost" onClick={() => setVendoHistorico(p)}>
+                    Ver o histórico deste pedido
+                  </button>
+                )}
+                {/* Editar até o dia do pedido (decisão de 26/09); depois, só cancelar. */}
+                {p.status === 'aberto' && podePedir && p.em >= hojeISO() && (
+                  <button className="btn sm ghost" onClick={() => setEditando(p)}>
+                    Editar este pedido
+                  </button>
+                )}
                 {/* Cancelado NÃO some: a cozinha pode já ter comprado. */}
                 {p.status === 'cancelado' && (
                   <div className="mutetxt"><b>Motivo:</b> {p.motivoCancelamento}</div>
@@ -311,6 +335,14 @@ export function Cozinha({ houseId, casaLabel, papel }: {
                          onFechar={() => setPedindo(null)} onPedir={pedir} />
           )}
 
+          {editando && (
+            <FolhaEditarPedido pedido={editando} onFechar={() => setEditando(null)}
+              onPronto={async (msg) => { setEditando(null); setAviso(msg); await carregarPedidos(); }} />
+          )}
+          {vendoHistorico && (
+            <FolhaHistoricoDoPedido pedido={vendoHistorico} onFechar={() => setVendoHistorico(null)} />
+          )}
+
           {cancelando && (
             <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-canc"
                  onClick={(e) => { if (e.target === e.currentTarget) setCancelando(null); }}>
@@ -339,6 +371,8 @@ export function Cozinha({ houseId, casaLabel, papel }: {
           )}
         </>
       )}
+
+      {aba === 'refeicoes' && <RefeicoesDaCasa houseId={houseId} casaLabel={casaLabel} />}
 
       {aba === 'restricoes' && (
       <>
@@ -415,7 +449,17 @@ function FolhaPedido({ tipo, kids, houseId, onFechar, onPedir }: {
   onPedir: (corpo: Record<string, unknown>) => void;
 }) {
   const lanche = tipo === 'lanche';
-  const [personId, setPersonId] = useState('');
+  /*
+   * PARA QUEM (fase 162, decisão de 26/09). O lanche pode ser da casa toda,
+   * num pedido coletivo; ou das crianças MARCADAS — e aí é um pedido por
+   * criança, com "Selecionar todos" para a saída em que vão todas. A cesta é
+   * sempre de uma família, então é sempre por criança.
+   */
+  const [coletivo, setColetivo] = useState(lanche);
+  const [marcadas, setMarcadas] = useState<string[]>([]);
+  const todas = kids.length > 0 && marcadas.length === kids.length;
+  const alterna = (id: string) =>
+    setMarcadas(marcadas.includes(id) ? marcadas.filter((x) => x !== id) : [...marcadas, id]);
   const [em, setEm] = useState(hojeISO());
   const [quantidade, setQuantidade] = useState(1);
   const [finalidade, setFinalidade] = useState('');
@@ -428,14 +472,41 @@ function FolhaPedido({ tipo, kids, houseId, onFechar, onPedir }: {
       <div className="sheet">
         <h3 id="t-ped">{lanche ? 'Pedir lanche' : 'Pedir cesta básica'}</h3>
 
-        <label className="f" htmlFor="pd-quem">Para quem</label>
-        <select id="pd-quem" value={personId} onChange={(e) => setPersonId(e.target.value)}>
-          {/* Coletivo existe porque a saída do grupo pede lanche para todo
-              mundo, e nomear vinte crianças seria pior. */}
-          {lanche && <option value="">Casa toda</option>}
-          {!lanche && <option value="">Selecione o acolhido…</option>}
-          {kids.map((k) => <option key={k.id} value={k.id}>{k.nome}</option>)}
-        </select>
+        <fieldset className="stack" style={{ border: 0, padding: 0, margin: 0 }}>
+          <legend className="f">Para quem</legend>
+          {lanche && (
+            <div className="opts">
+              <button type="button" className="opt c-move" aria-pressed={coletivo}
+                      onClick={() => setColetivo(true)}>Casa toda, um pedido só</button>
+              <button type="button" className="opt c-move" aria-pressed={!coletivo}
+                      onClick={() => setColetivo(false)}>Crianças que eu marcar</button>
+            </div>
+          )}
+          {!coletivo && (
+            <>
+              <div className="row">
+                <span className="mutetxt grow">
+                  {marcadas.length} de {kids.length} marcada{marcadas.length === 1 ? '' : 's'} — um pedido para cada.
+                </span>
+                <button type="button" className="btn sm sec"
+                        onClick={() => setMarcadas(todas ? [] : kids.map((k) => k.id))}>
+                  {todas ? 'Desmarcar todas' : 'Selecionar todos'}
+                </button>
+              </div>
+              {/* O MESMO desenho dos dias da visita e da rotina: `opts` com
+                  `aria-pressed` — alvo grande para o polegar, e o leitor de tela
+                  anuncia "marcado". */}
+              <div className="opts" style={{ maxHeight: 260, overflowY: 'auto' }}>
+                {kids.map((k) => (
+                  <button type="button" key={k.id} className="opt c-move"
+                          aria-pressed={marcadas.includes(k.id)} onClick={() => alterna(k.id)}>
+                    {k.nome}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </fieldset>
 
         <label className="f" htmlFor="pd-dia">Para quando</label>
         <input id="pd-dia" type="date" value={em}
@@ -475,16 +546,167 @@ function FolhaPedido({ tipo, kids, houseId, onFechar, onPedir }: {
           <button type="button" className="btn sec grow" onClick={onFechar}>Cancelar</button>
           <button type="button" className="btn grow"
                   disabled={finalidade.trim().length < 5 || quantidade < 1
-                            || (!lanche && !personId)}
+                            || (!coletivo && marcadas.length === 0)}
                   onClick={() => onPedir({
-                    houseId, tipo, personId: personId || null, em,
-                    quantidade, finalidade: finalidade.trim(),
+                    houseId, tipo, em, quantidade, finalidade: finalidade.trim(),
                     observacao: observacao.trim(), entregarA: entregarA.trim(),
+                    ...(coletivo ? { personId: null } : { pessoas: marcadas }),
                   })}>
-            Registrar pedido
+            {coletivo || marcadas.length <= 1 ? 'Registrar pedido' : `Registrar ${marcadas.length} pedidos`}
           </button>
         </div>
       </div>
     </div>
+  );
+}
+
+/** Editar o pedido: o que muda, e por quê. O antes fica no histórico do servidor. */
+function FolhaEditarPedido({ pedido, onFechar, onPronto }: {
+  pedido: Pedido; onFechar: () => void; onPronto: (aviso: string) => void;
+}) {
+  const [em, setEm] = useState(pedido.em);
+  const [quantidade, setQuantidade] = useState(pedido.quantidade);
+  const [finalidade, setFinalidade] = useState(pedido.finalidade);
+  const [motivo, setMotivo] = useState('');
+  const [erro, setErro] = useState('');
+  async function salvar() {
+    setErro('');
+    try {
+      const r = await api<{ aviso: string }>(`/people/kitchen-requests/${pedido.id}/edit`, {
+        method: 'POST',
+        body: JSON.stringify({
+          em: em !== pedido.em ? em : undefined,
+          quantidade: quantidade !== pedido.quantidade ? quantidade : undefined,
+          finalidade: finalidade.trim() !== pedido.finalidade ? finalidade.trim() : undefined,
+          motivo: motivo.trim(),
+        }),
+      });
+      onPronto(r.aviso);
+    } catch (e) { setErro(e instanceof Error ? e.message : 'Não foi possível editar.'); }
+  }
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-edit-ped"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet">
+        <h3 id="t-edit-ped">Editar o pedido · {pedido.paraQuem}</h3>
+        <p className="mutetxt">O que era antes fica no histórico do pedido, com o seu nome e o motivo.</p>
+        {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+        <label className="f" htmlFor="ed-dia">Para quando</label>
+        <input id="ed-dia" type="date" value={em} min={hojeISO()} onChange={(e) => setEm(e.target.value)} />
+        <label className="f" htmlFor="ed-qtd">Quantidade</label>
+        <input id="ed-qtd" type="number" min={1} value={quantidade}
+               onChange={(e) => setQuantidade(Number(e.target.value))} />
+        <label className="f" htmlFor="ed-fin">Para quê</label>
+        <input id="ed-fin" value={finalidade} maxLength={120} onChange={(e) => setFinalidade(e.target.value)} />
+        <label className="f" htmlFor="ed-mot">Por que mudou</label>
+        <textarea id="ed-mot" rows={2} value={motivo} onChange={(e) => setMotivo(e.target.value)}
+                  placeholder="Ex.: o passeio foi antecipado para sexta." />
+        <div className="row" style={{ gap: 8, marginTop: 16 }}>
+          <button type="button" className="btn sec grow" onClick={onFechar}>Cancelar</button>
+          <button type="button" className="btn grow"
+                  disabled={motivo.trim().length < 5 || quantidade < 1 || finalidade.trim().length < 5}
+                  onClick={salvar}>Salvar a mudança</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** O histórico de um pedido: cada mudança, com o antes, o depois, o motivo e quem. */
+function FolhaHistoricoDoPedido({ pedido, onFechar }: { pedido: Pedido; onFechar: () => void }) {
+  const [linhas, setLinhas] = useState<{ id: string; antes: any; depois: any; motivo: string;
+    em: string; por: string | null }[] | null>(null);
+  useEffect(() => {
+    api<NonNullable<typeof linhas>>(`/people/kitchen-requests/${pedido.id}/history`)
+      .then(setLinhas).catch(() => setLinhas([]));
+  }, [pedido.id]);
+  const resumo = (x: any) => `${dia(x.data)} · ${x.quantidade} · ${x.finalidade}`;
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-hist-ped"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet">
+        <h3 id="t-hist-ped">O que mudou neste pedido</h3>
+        {!linhas && <p className="mutetxt">Abrindo…</p>}
+        <div className="stack">
+          {(linhas ?? []).map((l) => (
+            <div key={l.id} className="card stack">
+              <div className="mutetxt">Antes: {resumo(l.antes)}</div>
+              <div><b>Depois:</b> {resumo(l.depois)}</div>
+              <div className="mutetxt">Motivo: {l.motivo}</div>
+              <div className="mutetxt">{l.por ?? '—'} · {dia(l.em)}</div>
+            </div>
+          ))}
+        </div>
+        <button className="btn sec block" onClick={onFechar}>Fechar</button>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * AS REFEIÇÕES DA CASA (fase 162) — por refeição, nunca por criança (decisão de
+ * 26/09: nenhuma comparação entre crianças). Vêm da chamada de cada refeição.
+ */
+function RefeicoesDaCasa({ houseId, casaLabel }: { houseId: string; casaLabel: string }) {
+  const [de, setDe] = useState(`${hojeISO().slice(0, 7)}-01`);
+  const [ate, setAte] = useState(hojeISO());
+  const [d, setD] = useState<{
+    total: { chamadas: number; registros: number; comeram: number; parcial: number; recusou: number; ausente: number };
+    porRefeicao: { refeicao: string; chamadas: number; registros: number; comeram: number; parcial: number;
+                   recusou: number; ausente: number; dietaAdaptada: number }[];
+    aviso: string;
+  } | null>(null);
+  const [erro, setErro] = useState('');
+  useEffect(() => {
+    setErro('');
+    api<NonNullable<typeof d>>(`/reports/period/meals?houseId=${houseId}&de=${de}&ate=${ate}`)
+      .then(setD).catch((e) => { setD(null); setErro(e instanceof Error ? e.message : 'Não foi possível abrir.'); });
+  }, [houseId, de, ate]);
+  return (
+    <>
+      <div className="card raise stack">
+        <h3 style={{ fontSize: 17, margin: 0 }}>As refeições · {casaLabel}</h3>
+        <div className="mutetxt">Da chamada de cada refeição. Por refeição, e nunca por criança.</div>
+        <div className="row" style={{ gap: 8 }}>
+          <div className="grow">
+            <label className="f" htmlFor="rf-de">De</label>
+            <input id="rf-de" type="date" value={de} onChange={(e) => setDe(e.target.value)} />
+          </div>
+          <div className="grow">
+            <label className="f" htmlFor="rf-ate">Até</label>
+            <input id="rf-ate" type="date" value={ate} onChange={(e) => setAte(e.target.value)} />
+          </div>
+        </div>
+      </div>
+      {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+      {d && (
+        <>
+          <div className="card stack">
+            <div className="eyebrow">No período</div>
+            <div className="mutetxt">
+              {d.total.chamadas} chamadas de refeição · {d.total.comeram} vezes em que a criança comeu ·{' '}
+              {d.total.parcial} parcial · {d.total.recusou} recusa · {d.total.ausente} ausência
+            </div>
+          </div>
+          <div className="eyebrow">Por refeição</div>
+          {d.porRefeicao.length === 0 && (
+            <p className="mutetxt">Nenhuma chamada de refeição no período. A lista vazia quer dizer que
+              ninguém fez a chamada — não que ninguém comeu.</p>
+          )}
+          <ul className="stack lista">
+            {d.porRefeicao.map((r) => (
+              <li key={r.refeicao} className="card">
+                <b className="ff">{r.refeicao}</b>
+                <div className="mutetxt">
+                  {r.chamadas} chamada{r.chamadas === 1 ? '' : 's'} · comeu {r.comeram} · parcial {r.parcial} ·
+                  recusa {r.recusou} · ausente {r.ausente}{r.dietaAdaptada ? ` · dieta adaptada ${r.dietaAdaptada}` : ''}
+                </div>
+              </li>
+            ))}
+          </ul>
+          <p className="mutetxt">{d.aviso}</p>
+        </>
+      )}
+    </>
   );
 }
