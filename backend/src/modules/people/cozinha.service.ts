@@ -34,6 +34,7 @@ export class CozinhaService {
   /* ---------------- Pedidos ---------------- */
 
   async pedidos(user: AuthenticatedUser, houseId: string, de: string, ate: string) {
+    await this.casaNoAlcance(user, houseId);
     return this.db.asUser(user.id, async (c) => {
       const { rows } = await c.query(
         `SELECT * FROM app_pedidos_da_cozinha($1,$2::date,$3::date)`, [houseId, de, ate]);
@@ -245,6 +246,7 @@ export class CozinhaService {
    * comparado mesmo sem tela de comparação.
    */
   async resumo(user: AuthenticatedUser, houseId: string, de: string, ate: string) {
+    await this.casaNoAlcance(user, houseId);
     return this.db.asUser(user.id, async (c) => {
       const { rows: [r] } = await c.query(
         `SELECT * FROM app_resumo_da_cozinha($1,$2::date,$3::date)`, [houseId, de, ate]);
@@ -458,6 +460,16 @@ export class CozinhaService {
    * pior leitura possível. É a mesma conferência da escala e da grade do remédio
    * (regra 12), e todas as folhas daqui passam por este ponto.
    */
+  /** A lista e o resumo dos pedidos passam pela mesma pergunta (fase 169):
+   *  à casa de fora respondiam "nenhum pedido", e não "não é sua". */
+  private async casaNoAlcance(user: AuthenticatedUser, houseId: string) {
+    const pode = await this.db.asUser(user.id, async (c) => {
+      const { rows: [e] } = await c.query(`SELECT app_house_in_scope($1) AS pode`, [houseId]);
+      return !!e?.pode;
+    });
+    if (!pode) throw new NotFoundException('Unidade não encontrada — ou fora do seu alcance.');
+  }
+
   private async rotuloDaCasa(user: AuthenticatedUser, houseId: string) {
     const rotulo = await this.db.asUser(user.id, async (c) => {
       const { rows: [e] } = await c.query(`SELECT app_house_in_scope($1) AS pode`, [houseId]);

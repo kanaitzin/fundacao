@@ -95,6 +95,13 @@ export class CredentialsService {
     this.exigirReauth(user);
 
     const rows = await this.db.asUser(user.id, async (c) => {
+      /* Fora do alcance responde como inexistente (fase 169). A lista vinha
+         vazia, que se lê "esta criança não tem nada no cofre", e a auditoria
+         registrava que a coordenação de OUTRA casa tinha aberto o cofre dela. */
+      const { rows: [p] } = await c.query(
+        `SELECT app_can_see_credentials($1) OR app_current_role() = 'gestor_geral' AS pode`,
+        [personId]);
+      if (!p?.pode) return null;
       // Nunca `SELECT *`: a coluna cifrada não é legível por este papel, e o
       // erro que ela provocaria seria confundido com defeito.
       const { rows } = await c.query(
@@ -102,6 +109,7 @@ export class CredentialsService {
            FROM person_credential WHERE person_id = $1 ORDER BY kind`, [personId]);
       return rows;
     });
+    if (!rows) throw new NotFoundException('Acolhido não encontrado — ou fora do seu alcance.');
 
     await this.audit.log({
       action: 'credential.list', actorId: user.id, institutionId: user.institutionId,

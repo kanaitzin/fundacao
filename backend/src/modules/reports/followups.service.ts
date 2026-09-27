@@ -72,7 +72,11 @@ export class FollowupsService {
 
   /** Pendências abertas da casa, por tipo. */
   async pendentes(user: AuthenticatedUser, houseId: string, kind?: string) {
-    return this.db.asUser(user.id, async (c) => {
+    const linhas = await this.db.asUser(user.id, async (c) => {
+      /* Casa de fora é 404, não lista vazia (fase 169): vazia se lê "esta
+         casa não tem acompanhamento pendente". */
+      const { rows: [casa] } = await c.query(`SELECT app_house_in_scope($1) AS pode`, [houseId]);
+      if (!casa?.pode) return null;
       const { rows } = await c.query(
         `SELECT f.id, f.kind, f.status, f.period_start, f.period_end, f.version,
                 app_person_display_name(f.person_id) AS pessoa, f.person_id,
@@ -87,6 +91,8 @@ export class FollowupsService {
         periodo: { de: r.period_start, ate: r.period_end }, versao: r.version, redator: r.redator,
       }));
     });
+    if (!linhas) throw new NotFoundException('Unidade não encontrada — ou fora do seu alcance.');
+    return linhas;
   }
 
   /** Um acompanhamento com seus eixos e as fontes escolhidas. */

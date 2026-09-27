@@ -162,7 +162,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 27/09/2026, fase 168
+### Onde estamos — 27/09/2026, fase 169
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -194,8 +194,9 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 166 | **a simulação de um ciclo completo** na Casa 03 (dois dias e hoje, conferindo os relatórios contra os fatos); achou que **não havia como cadastrar alergia nem restrição alimentar**, que a política dessas tabelas **não conferia a casa**, e que **a ATA em Word não trazia as linhas da equipe**; e o **relatório final** do pedido de 25/09 |
 | 167 | **dois anos de casa** no `ensaio-carga.ts 24`, agora com portão, armário, notas, cozinha, escala e ATA: **as métricas do remédio num ano levavam 15 s** porque 119 políticas perguntavam o alcance LINHA POR LINHA. A 1624 troca todas pelo conjunto (`app_casas_no_alcance`, `app_pessoas_no_alcance`), com equivalência cobrada pessoa a pessoa e cargo a cargo; ATA anterior (605 ms), auditoria da criança (377 ms), armário e painel da Enfermagem consertados. Nenhuma rota acima de 300 ms |
 | 168 | **o §39**: o **registro guardado sem sinal subia com a identidade de quem estivesse entrado** quando o sinal voltava (agora leva `autorId` e só sobe com a sessão dessa pessoa); **sessão que termina** abre a entrada por cima da tela, na mesma conta; **duas abas** rebaixavam a operação aplicada; o **voltar** saía da página; o **aparelho cheio** dizia "fica guardado"; e a **lista de aniversários daria erro em 2028** depois de fevereiro (1627) |
+| 169 | **a sondagem de alcance das quatro superfícies que ficaram sem dado** (cozinha, cofre, acompanhamento, foto de memória), agora como suíte e com registro real: nenhuma escrita passou, nada vazou, mas **quatro leituras respondiam 200 vazio** à Casa 04, e a do cofre **gravava na auditoria uma abertura que não houve** |
 
-**Medido no fim da 168:** 168 migrações, 124 tabelas, 117 suítes, 1112 testes, verdes nas
+**Medido no fim da 169:** 168 migrações, 124 tabelas, 118 suítes, @@T@@ testes, verdes nas
 DUAS condições de relógio; os sete ensaios de navegador verdes, com a portaria e o
 portão, o armário, a cozinha, os temas e a foto no percurso do `ensaio:uso`; **435 telas (145 × três
 temas) sem violação de WCAG 2.1 AA**; nenhuma
@@ -261,11 +262,10 @@ e duas abas no NAVEGADOR não têm ensaio próprio (a trava é do navegador; a
 corrida no servidor tem teste). **Pergunta aberta ao Marcelo:** a Enfermagem baixa o relatório da
 internação? (§10, item 12).
 
-**1. As medições de alcance estão feitas** — escrita (156) e leitura (158). A
-sondagem roda sobre o banco povoado pela suíte, com `globalSetup` vazio; o mapa
-parâmetro→tabela e o `idDaCasa` pelo catálogo estão descritos nas linhas 156 e
-158 do §2. Ficaram sem dado: pedido da cozinha, credencial do cofre,
-acompanhamento e foto de memória.
+**1. As medições de alcance estão feitas** — escrita (156), leitura (158) e as
+quatro superfícies que tinham ficado sem dado (169, esta como suíte permanente).
+As sondagens da 156 e da 158 foram à mão e não estão no repositório; o método
+está descrito nas linhas 156 e 158 do §2.
 
 **2. Aplicar o roteiro com a equipe.** Continua sendo o que mais muda o sistema, e
 o único que não se faz daqui.
@@ -410,6 +410,11 @@ novo.
   parâmetro** (`app_aniversarios_em`), nunca pelo relógio de hoje. E a fila do
   aparelho: **dado local não tem dono se ninguém o escreve** — o registro
   guardado sem sinal subia com a identidade de quem estivesse entrado.
+- **Sondagem feita à mão se perde com a sessão** (169). As da 156 e da 158
+  acharam dez defeitos e não deixaram nada no repositório; a lista do que
+  ficou sem dado sobreviveu, o instrumento não. A da 169 é suíte. E a classe
+  da 158 (200 vazio para quem é de fora) tinha ficado nas portas que ela não
+  olhou: **casa pela consulta e `POST`**.
 - **Frase de tela que envelhece é frase que mente**, e a cobrança do ensaio que a
   guarda tem de ser reescrita junto. A ressalva do painel sobre nota escolar já foi
   reescrita três vezes. **Isto inclui este arquivo.**
