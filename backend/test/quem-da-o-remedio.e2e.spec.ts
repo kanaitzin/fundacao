@@ -143,8 +143,9 @@ describe('Quem dá o remédio nesta casa', () => {
     const r = await request(http)
       .get(`/api/v1/medications/can-administer?houseId=${ai4.id}&periodo=diurno`)
       .set(auth(tokens.educador));
-    expect(r.body.pode).toBe(false);
-    expect(r.body.motivo).toMatch(/alcance/i);
+    /* Fora do alcance é 404 com a frase, e não lista vazia (fase 170). */
+    expect(r.status).toBe(404);
+    expect(r.body.message).toMatch(/alcance/i);
   });
 
   // ==================== A exceção ====================

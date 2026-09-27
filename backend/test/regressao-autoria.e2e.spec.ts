@@ -547,7 +547,9 @@ describe('Regressão — escopo, autoria e primeiro acesso', () => {
 
     const alheio = await request(http)
       .get(`/api/v1/activities/shift-board?houseId=${AI4}`).set(auth(tokens.educador));
-    expect(alheio.body.linhas.length).toBe(0);
+    /* Fora do alcance é 404 com a frase, e não lista vazia (fase 170). */
+    expect(alheio.status).toBe(404);
+    expect(alheio.body.linhas).toBeUndefined();
   });
 
   it('recusar substituição exige motivo, e o pedido não é decidido duas vezes', async () => {

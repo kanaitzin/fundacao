@@ -87,7 +87,9 @@ describe('Fase 2 — Perfil, benefícios, transferência e acervo', () => {
 
   it('educador da Casa 03 não lista acolhidos da Casa 04', async () => {
     const res = await request(http).get(`/api/v1/people?houseId=${AI4}`).set(auth(tokens.educador));
-    expect(res.body).toEqual([]);   // RLS filtra: casa fora do escopo não existe
+    /* Fora do alcance é 404 com a frase, e não lista vazia (fase 170). */
+    expect(res.status).toBe(404);
+    expect(res.body.message).toMatch(/fora do seu alcance/);
   });
 
   it('perfil abre com alertas essenciais e restrições no topo', async () => {
@@ -463,7 +465,8 @@ describe('Fase 2 — Perfil, benefícios, transferência e acervo', () => {
 
     // O catálogo não amplia nada: a AI4 continua invisível por dentro.
     const outra = await request(http).get(`/api/v1/people?houseId=${AI4}`).set(auth(tokens.coord3));
-    expect(outra.body).toEqual([]);
+    /* Fora do alcance é 404 com a frase, e não lista vazia (fase 170). */
+    expect(outra.status).toBe(404);
     await request(http).get(`/api/v1/houses/${AI4}`).set(auth(tokens.coord3)).expect(404);
 
     // Educador não decide transferência: não recebe o catálogo.

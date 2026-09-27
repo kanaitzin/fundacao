@@ -444,7 +444,8 @@ describe('Piloto da Casa 03 — ensaio geral do dia', () => {
     expect(casas.body.every((c: any) => c.code === 'AI3')).toBe(true);
 
     const daOutra = await request(http).get(`/api/v1/people?houseId=${AI4}`).set(auth(t.educador));
-    expect(daOutra.body).toEqual([]);
+    /* Fora do alcance é 404 com a frase, e não lista vazia (fase 170). */
+    expect(daOutra.status).toBe(404);
 
     // E o dia inteiro deixou rastro de auditoria, como tem de deixar.
     const { rows } = await admin.query(

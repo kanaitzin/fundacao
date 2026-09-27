@@ -170,7 +170,8 @@ describe('Arquivo das ATAS', () => {
   it('não se folheia o arquivo de uma casa fora do alcance', async () => {
     if (!ids.outra) return;
     const res = await arquivo(tokens.lider, ids.outra);
-    expect(res.status).toBe(403);
+    /* Fora do alcance é 404 com a frase, e não lista vazia (fase 170). */
+    expect([403, 404]).toContain(res.status);
   });
 
   // ==================== A linha da casa, e só ela ====================

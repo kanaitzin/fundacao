@@ -244,10 +244,9 @@ describe('Reuniões de equipe e combinados', () => {
 
     const ler4 = await request(http)
       .get(`/api/v1/alignments?houseId=${ids.AI4}`).set(auth(tokens.deOutraCasa));
-    // O RLS não devolve linha nenhuma: a lista vem vazia, e não com erro de sistema.
-    expect(ler4.status).toBe(200);
-    expect(ler4.body.combinados).toEqual([]);
-    expect(ler4.body.reunioes).toEqual([]);
+    /* Fora do alcance é 404 com a frase, e não lista vazia (fase 170). */
+    expect(ler4.status).toBe(404);
+    expect(ler4.body.combinados).toBeUndefined();
 
     const { rows } = await admin.query(
       `SELECT count(*)::int AS n FROM team_agreement WHERE house_id = $1

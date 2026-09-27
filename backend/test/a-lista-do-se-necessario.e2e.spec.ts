@@ -149,9 +149,9 @@ describe('A lista do remédio "se necessário"', () => {
 
   it('a coordenação de outra casa não vê o remédio desta', async () => {
     const r = await lista(tokens.deOutraCasa);
-    expect(r.status).toBe(200);
-    expect(r.body.disponiveis.find((d: any) => d.prescricaoId === ids.prescricao)).toBeFalsy();
-    expect(r.body.dadasHoje.find((d: any) => d.prescricaoId === ids.prescricao)).toBeFalsy();
+    /* Fora do alcance é 404 com a frase, e não lista vazia (fase 170). */
+    expect(r.status).toBe(404);
+    expect(JSON.stringify(r.body)).not.toContain(ids.prescricao);
   });
 
   it('a criança que está com a família sai da lista — a casa não dá a dose dela', async () => {

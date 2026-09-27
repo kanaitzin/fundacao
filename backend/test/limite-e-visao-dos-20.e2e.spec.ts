@@ -212,10 +212,8 @@ describe('O que a equipe da casa consegue ler', () => {
   it('casa fora do alcance não devolve o painel de ninguém', async () => {
     const res = await request(http)
       .get(`/api/v1/timeline/house-panel?houseId=${ids.AI4}`).set(auth(tokens.educador));
-    // Fora de escopo, o RLS não entrega evento nenhum: a lista vem vazia, e
-    // nunca com o dia de outra unidade.
-    expect(res.status).toBe(200);
-    expect(res.body.acolhidos).toEqual([]);
-    expect(res.body.coletivos).toEqual([]);
+    /* Fora do alcance é 404 com a frase, e não lista vazia (fase 170). */
+    expect(res.status).toBe(404);
+    expect(res.body.acolhidos).toBeUndefined();
   });
 });

@@ -192,7 +192,9 @@ describe('A sondagem de alcance — toda leitura, com registro real da Casa 03',
       onde = `person_id IN (SELECT s.person_id FROM house_stay s WHERE s.house_id = $1)
               AND person_id NOT IN (SELECT s.person_id FROM house_stay s WHERE s.house_id = $2)`;
     } else return (await admin.query(`SELECT id::text FROM ${tabela} LIMIT 1`)).rows[0]?.id;
-    const { rows } = await admin.query(`SELECT id::text FROM ${tabela} WHERE ${onde} LIMIT 1`, [AI3, AI4]);
+    const { rows } = await admin.query(
+      `SELECT id::text FROM ${tabela} WHERE (${onde}) AND $1::uuid IS NOT NULL AND $2::uuid IS NOT NULL LIMIT 1`,
+      [AI3, AI4]);
     return rows[0]?.id;
   }
 
