@@ -5635,7 +5635,9 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     };
   }
   if (rota === '/reports/kitchen' && metodo === 'GET') {
-    if (!['cozinha', 'coordenador', 'equipe_tecnica', 'gestor_geral'].includes(eu.role)) {
+    /* A mesma lista de `QUEM_LE_AS_RESTRICOES`, no profile.service (fase 173). */
+    if (!['cozinha', 'coordenador', 'equipe_tecnica', 'gestor_geral', 'educador',
+          'lider_diurno', 'lider_noturno_geral', 'enfermagem'].includes(eu.role)) {
       return new Recusa(403, 'Sem acesso ao relatório de alimentação.');
     }
     return todosKids()
@@ -11086,6 +11088,9 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
   }
 
   if (rota === '/followups/generate') {
+    /* Sem a casa, o servidor recusa (fase 173): o botão mandava corpo vazio,
+       o protótipo aceitava e o sistema de verdade não criava nada. */
+    if (!b.houseId) return new Recusa(400, 'Informe a casa dos acompanhamentos.');
     return { criadas: 0, aviso: 'Pendências da semana e do mês criadas para os acolhidos '
       + 'ativos. Os eixos nascem vazios: a automação cria a pendência e nunca escreve a '
       + 'avaliação — o texto é de quem acompanha o caso.' };

@@ -25,7 +25,9 @@ import { Icone } from '../icones';
 
 interface Eixo { cod: string; label: string }
 interface Acompanhamento {
-  id: string; acolhido: string; tipo: 'semanal' | 'mensal'; periodo: string;
+  id: string; acolhido: string; tipo: 'semanal' | 'mensal';
+  /** Frase no protótipo, `{ de, ate }` no servidor: `periodoDe` lê os dois. */
+  periodo: string | { de: string; ate: string };
   situacao: 'pendente' | 'rascunho' | 'em_aprovacao' | 'aprovado';
   versao: number; redator: string | null; aprovador: string | null;
   eixos: Record<string, string>; devolucao: string | null;
@@ -84,6 +86,7 @@ const soDia = (d: string) => {
 /** O período do relatório. Ele vem do servidor como objeto, não como frase. */
 const periodo = (p: { de: string; ate: string } | null | undefined) =>
   p ? `${soDia(p.de)} a ${soDia(p.ate)}` : '—';
+const periodoDe = (p: Acompanhamento['periodo']) => (typeof p === 'string' ? p : periodo(p));
 
 export function Acompanhamentos({ houseId, casaLabel, papel }: {
   houseId: string; casaLabel: string; papel: string;
@@ -108,7 +111,7 @@ export function Acompanhamentos({ houseId, casaLabel, papel }: {
     try {
       const [e, f, r, t] = await Promise.all([
         api<Eixo[]>('/followups/axes'),
-        api<Acompanhamento[]>('/followups'),
+        api<Acompanhamento[]>(`/followups?houseId=${houseId}`),
         api<Relatorio[]>('/reports'),
         // Os tipos vêm do servidor, e já chegam filtrados pelo cargo: quem não
         // pode ver dado bancário não recebe o tipo de benefícios na lista.
@@ -198,7 +201,7 @@ export function Acompanhamentos({ houseId, casaLabel, papel }: {
           <span className={`pill ${s.tom}`}>{s.label}</span>
         </div>
         <div className="mutetxt">
-          Período: {f.periodo} · versão {f.versao}
+          Período: {periodoDe(f.periodo)} · versão {f.versao}
           {f.redator ? ` · redigido por ${f.redator}` : ''}
           {f.aprovador ? ` · aprovado por ${f.aprovador}` : ''}
         </div>
@@ -243,7 +246,7 @@ export function Acompanhamentos({ houseId, casaLabel, papel }: {
             }}>Corrigir (nova versão)</button>
           )}
         </div>
-        {f.historico.length > 0 && (
+        {(f.historico ?? []).length > 0 && (
           <div className="mutetxt">
             {f.historico.map((h) => (
               <div key={h.id}>{h.quem} · {h.acao} · {quando(h.em)}{h.nota ? ` — ${h.nota}` : ''}</div>
@@ -288,7 +291,7 @@ export function Acompanhamentos({ houseId, casaLabel, papel }: {
                 <div className="mutetxt">Semanal e mensal · eixos obrigatórios</div>
               </div>
               <button className="btn sm" onClick={() => acao(() =>
-                api('/followups/generate', { method: 'POST', body: '{}' }))}>
+                api('/followups/generate', { method: 'POST', body: JSON.stringify({ houseId }) }))}>
                 Gerar pendências
               </button>
             </div>
@@ -475,7 +478,7 @@ function FolhaEixos({ acompanhamento, eixos, onFechar, onSalvar }: {
   onSalvar: (valores: Record<string, string>, enviar: boolean) => void;
 }) {
   const [valores, setValores] = useState<Record<string, string>>(
-    () => ({ ...acompanhamento.eixos }));
+    () => ({ ...(acompanhamento.eixos ?? {}) }));
   const bloqueado = acompanhamento.situacao === 'aprovado';
   const faltam = eixos.filter((e) => !String(valores[e.cod] ?? '').trim()).length;
 
@@ -487,7 +490,7 @@ function FolhaEixos({ acompanhamento, eixos, onFechar, onSalvar }: {
           {acompanhamento.acolhido} · acompanhamento {acompanhamento.tipo}
         </h3>
         <p className="mutetxt">
-          {acompanhamento.periodo} · versão {acompanhamento.versao}
+          {periodoDe(acompanhamento.periodo)} · versão {acompanhamento.versao}
         </p>
 
         {bloqueado ? (

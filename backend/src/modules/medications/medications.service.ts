@@ -748,7 +748,12 @@ export class MedicationsService {
          JOIN prescription pr ON pr.id = a.prescription_id
          JOIN person p ON p.id = a.person_id
          WHERE a.house_id = $1 AND a.state = 'aguardando_confirmacao'
-           AND a.scheduled_at < now() - ($2 || ' minutes')::interval`, [houseId, minutos]);
+           AND a.scheduled_at < now() - ($2 || ' minutes')::interval
+           /* Quem está internado ou com a família não recebe a dose da casa, e
+              a grade a esconde (1010). Avisar dela é pedir o impossível: a
+              simulação da fase 173 viu três doses de um fim de semana com a
+              avó avisadas todo dia, por setenta dias. */
+           AND NOT app_ausente_da_casa(a.person_id, (a.scheduled_at AT TIME ZONE app_fuso())::date)`, [houseId, minutos]);
       return rows;
     });
 

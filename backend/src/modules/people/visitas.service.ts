@@ -248,8 +248,11 @@ export class VisitasService {
     });
     if (!nome) throw new NotFoundException('Acolhido não encontrado — ou fora do seu alcance.');
     const dia = (iso: string) => iso.split('-').reverse().join('/');
+    /* Com o ano (fase 173): um relatório de novembro a fevereiro dizia 30/01 e
+       22/11 lado a lado, e quem lê não sabe de que ano é cada visita. */
     const hora = (iso: string | null) => (iso ? new Date(iso).toLocaleString('pt-BR', {
-      timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
+      timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit',
     }) : '—');
     const folha: Folha = {
       titulo: 'Relatório de visitas',

@@ -50,6 +50,9 @@ export class FollowupsService {
    * e quem chegou hoje entra na conta.
    */
   async gerar(user: AuthenticatedUser, houseId: string, data?: string) {
+    /* A casa é obrigatória (fase 173): sem ela a tela recebia "criou as
+       pendências" e nada tinha sido criado. */
+    if (!houseId) throw new BadRequestException('Informe a casa dos acompanhamentos.');
     const r = await this.db.asUser(user.id, async (c) => {
       const { rows: [row] } = await c.query(
         `SELECT * FROM app_generate_followups($1,$2)`, [houseId, data ?? null]);
@@ -80,15 +83,34 @@ export class FollowupsService {
       const { rows } = await c.query(
         `SELECT f.id, f.kind, f.status, f.period_start, f.period_end, f.version,
                 app_person_display_name(f.person_id) AS pessoa, f.person_id,
-                app_user_display_name(f.written_by) AS redator
+                app_user_display_name(f.written_by) AS redator,
+                app_user_display_name(f.approved_by) AS aprovador,
+                f.axis_health, f.axis_school, f.axis_coexistence, f.axis_family,
+                f.written_by = app_current_user() AS proprio
            FROM followup f
           WHERE f.house_id = $1
-            AND f.status IN ('pendente','rascunho','em_aprovacao')
+            AND (f.status IN ('pendente','rascunho','em_aprovacao')
+                 /* Os aprovados dos últimos sessenta dias, para a tela oferecer a
+                    nova versão; os mais antigos estão na trajetória da criança. */
+                 OR (f.status = 'aprovado' AND f.approved_at >= now() - interval '60 days'))
             AND ($2::text IS NULL OR f.kind = $2)
-          ORDER BY f.kind, f.period_start DESC, pessoa`, [houseId, kind ?? null]);
+          ORDER BY (f.status = 'aprovado'), f.kind, f.period_start DESC, pessoa`, [houseId, kind ?? null]);
+      /*
+       * A FORMA QUE A TELA LÊ (fase 173). A tela dos acompanhamentos foi escrita
+       * olhando o protótipo, que devolvia `acolhido`, os eixos e quem pode
+       * aprovar; o servidor devolvia só a pendência, e a tela de verdade mostrava
+       * o nome vazio e não abria o texto para editar. O ensaio contra o servidor,
+       * depois da simulação de noventa dias, foi quem abriu a tela.
+       */
+      const podeAprovar = ['coordenador', 'gestor_geral'].includes(user.role);
       return rows.map((r) => ({
-        id: r.id, tipo: r.kind, situacao: r.status, pessoa: r.pessoa, personId: r.person_id,
+        id: r.id, tipo: r.kind, situacao: r.status, pessoa: r.pessoa, acolhido: r.pessoa,
+        personId: r.person_id,
         periodo: { de: r.period_start, ate: r.period_end }, versao: r.version, redator: r.redator,
+        aprovador: r.aprovador, devolucao: null, historico: [],
+        eixos: { saude: r.axis_health, escola: r.axis_school,
+                 convivencia: r.axis_coexistence, familia: r.axis_family },
+        proprio: !!r.proprio, podeAprovar,
       }));
     });
     if (!linhas) throw new NotFoundException('Unidade não encontrada — ou fora do seu alcance.');

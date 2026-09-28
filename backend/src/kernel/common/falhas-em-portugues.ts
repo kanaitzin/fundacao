@@ -107,8 +107,22 @@ export class FalhasEmPortugues implements ExceptionFilter {
      * contexto, e nada aqui vai escrever uma frase melhor. */
     if (erro instanceof HttpException) {
       const corpo = erro.getResponse();
-      res.status(erro.getStatus()).json(
-        typeof corpo === 'string' ? { statusCode: erro.getStatus(), message: corpo } : corpo);
+      const status = erro.getStatus();
+      const mensagem = typeof corpo === 'string' ? corpo : (corpo as { message?: unknown })?.message;
+      /*
+       * AS FRASES QUE O NEST ESCREVE EM INGLÊS (fase 173). As recusas dos
+       * serviços são nossas e passam intactas; mas o `ParseUUIDPipe`, a rota
+       * inexistente e a guarda padrão respondem em inglês, e o ensaio contra o
+       * servidor viu a tela dos acompanhamentos receber "The value passed as
+       * UUID is not a string". A tela esconde frase em inglês atrás de uma
+       * genérica; aqui ela vira uma frase em português que diz o que houve.
+       */
+      if (emIngles(mensagem)) {
+        res.status(status).json({ statusCode: status, message: fraseDoStatus(status) });
+        return;
+      }
+      res.status(status).json(
+        typeof corpo === 'string' ? { statusCode: status, message: corpo } : corpo);
       return;
     }
 
@@ -147,4 +161,21 @@ export class FalhasEmPortugues implements ExceptionFilter {
         + 'coordenação e diga o que estava fazendo.',
     });
   }
+}
+
+/** Uma frase (ou lista de frases) que o próprio Nest escreveu, em inglês. */
+function emIngles(m: unknown): boolean {
+  const frases = Array.isArray(m) ? m.map(String) : typeof m === 'string' ? [m] : [];
+  return frases.some((f) => !/[À-ÿ]/.test(f)
+    && /\b(the|is|are|not|failed|expected|should|must|cannot|resource|unauthorized|forbidden|found|request)\b/i.test(f));
+}
+
+function fraseDoStatus(status: number): string {
+  if (status === HttpStatus.UNAUTHORIZED) return 'Sua sessão terminou. Entre de novo para continuar.';
+  if (status === HttpStatus.FORBIDDEN) {
+    return 'Isto está fora do seu alcance. Se você precisa deste acesso para o seu trabalho, fale com a coordenação.';
+  }
+  if (status === HttpStatus.NOT_FOUND) return 'Não encontrado, ou fora do seu alcance. Recarregue a tela e tente de novo.';
+  if (status === HttpStatus.TOO_MANY_REQUESTS) return 'Muitas tentativas seguidas. Espere um pouco e tente de novo.';
+  return FORMATO;
 }

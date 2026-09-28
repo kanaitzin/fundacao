@@ -38,6 +38,10 @@ async function seq<T>(fns: Array<() => Promise<T>>): Promise<T[]> {
   return out;
 }
 
+/** Quem lê as restrições da casa na tela da Cozinha. A mesma lista está no `mock.ts`. */
+export const QUEM_LE_AS_RESTRICOES = ['cozinha', 'coordenador', 'equipe_tecnica', 'gestor_geral',
+  'educador', 'lider_diurno', 'lider_noturno_geral', 'enfermagem'];
+
 @Injectable()
 export class ProfileService {
   constructor(
@@ -455,7 +459,12 @@ export class ProfileService {
   /** Abertura de documento: registra acesso a conteúdo sensível (§20). */
   /** Relatório mínimo para a cozinha (§7): sem CPF, diagnóstico ou caso. */
   async kitchenReport(user: AuthenticatedUser, houseId: string) {
-    if (!['cozinha', 'coordenador', 'equipe_tecnica', 'gestor_geral'].includes(user.role)) {
+    /* Quem está no turno também lê (fase 173). A folha das restrições já era de
+       todos da casa, e o `alcance.ts` diz que o educador a gera; a lista na tela
+       era recusada a ele, e a tela da Cozinha abria com um erro vermelho para
+       o educador, o líder e o líder da noite. A projeção continua a mesma: o
+       que evitar e o que servir no lugar, nunca o motivo. */
+    if (!QUEM_LE_AS_RESTRICOES.includes(user.role)) {
       throw new ForbiddenException('Sem acesso ao relatório de alimentação.');
     }
     const rows = await this.db.asUser(user.id, async (c) => {
