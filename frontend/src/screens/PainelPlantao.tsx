@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
+import { Cargo } from '../cargos';
 
 /**
  * PAINEL DO PLANTÃO — quem está em quê agora.
@@ -29,6 +30,8 @@ interface Pedido {
   motivo: string;
   status: string;
   pedidoPor: string;
+  /* O cargo de quem pediu, para o círculo (fase 172). */
+  pedidoPorCargo?: string | null;
   solicitadoEm: string;
   semEfeito: boolean;
   aviso: string | null;
@@ -41,6 +44,9 @@ interface Linha {
   estado: string;
   rotulo: string;
   responsavel: string;
+  /* O cargo do responsável, para o círculo (fase 172). Nulo quando a
+     atividade é da equipe do plantão, sem pessoa designada. */
+  responsavelCargo?: string | null;
   acolhido: string | null;
 }
 
@@ -120,7 +126,10 @@ export function PainelPlantao({ houseId, casaLabel, papel }: {
             {pedidos.map((p) => (
               <li key={p.id} className="card">
                 <b className="ff">{p.atividade}</b>
-                <div className="mutetxt">{p.pedidoPor} · {p.motivo}</div>
+                <div className="mutetxt com-cargo">
+                  {p.pedidoPorCargo && <Cargo nome={p.pedidoPor} cargo={p.pedidoPorCargo} tamanho="sm" />}
+                  {p.pedidoPor} · {p.motivo}
+                </div>
                 {/*
                   * O pedido que perdeu o sentido enquanto esperava aparece
                   * explicado, não apenas quebrado no clique. O sistema não
@@ -186,9 +195,11 @@ export function PainelPlantao({ houseId, casaLabel, papel }: {
                 </div>
                 <div className="row" style={{ gap: 8, marginTop: 6 }}>
                   <span className="estado">{l.rotulo}</span>
-                  <span className="mutetxt grow" style={{ textAlign: 'right' }}>
-                    {l.responsavel}
-                  </span>
+                  <span className="grow" />
+                  {/* O círculo do cargo ao lado do nome (fase 172): "de que setor",
+                      que é a pergunta do líder às 22h. O nome continua escrito. */}
+                  {l.responsavelCargo && <Cargo nome={l.responsavel} cargo={l.responsavelCargo} tamanho="sm" />}
+                  <span className="mutetxt">{l.responsavel}</span>
                 </div>
               </li>
             ))}
@@ -211,9 +222,11 @@ export function PainelPlantao({ houseId, casaLabel, papel }: {
                 </div>
                 <div className="row" style={{ gap: 8, marginTop: 6 }}>
                   <span className="estado">{l.rotulo}</span>
-                  <span className="mutetxt grow" style={{ textAlign: 'right' }}>
-                    {l.responsavel}
-                  </span>
+                  <span className="grow" />
+                  {/* O círculo do cargo ao lado do nome (fase 172): "de que setor",
+                      que é a pergunta do líder às 22h. O nome continua escrito. */}
+                  {l.responsavelCargo && <Cargo nome={l.responsavel} cargo={l.responsavelCargo} tamanho="sm" />}
+                  <span className="mutetxt">{l.responsavel}</span>
                 </div>
               </li>
             ))}

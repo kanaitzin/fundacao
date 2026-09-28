@@ -486,9 +486,18 @@ export function App() {
                   onClick={() => setTrocarSenha(true)}><Icone nome="chave" /></button>
           <button className="btn sm ghost" onClick={sair}>Sair</button>
         </div>
-        <h1>{me.fullName}</h1>
-        <div className="sub">
-          {casa ? `${casa.code} — ${casa.name}` : 'Escopo institucional'} · {me.email}
+        {/*
+          * QUEM ESTÁ USANDO, numa linha só (fase 172). O nome ocupava um título
+          * grande, e ele já está no círculo do cargo acima; a casa se repete no
+          * rótulo de cada tela. O título continua sendo o principal da página
+          * (é `h1`, para quem navega por títulos), só que do tamanho do que ele
+          * é: a confirmação de qual conta está aberta neste aparelho.
+          */}
+        <div className="quem">
+          <h1>{me.fullName}</h1>
+          <span className="sub">
+            {casa ? `${casa.code} — ${casa.name}` : 'Escopo institucional'} · {me.email}
+          </span>
         </div>
       </header>
 

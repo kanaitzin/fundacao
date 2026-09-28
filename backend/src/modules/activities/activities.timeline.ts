@@ -47,6 +47,9 @@ export class ActivitiesTimelineProvider implements TimelineProvider, OnModuleIni
       responsible: a.registroPorOutro
         ? `${a.registroPorOutro.realizadoPor} — registrado por ${a.registroPorOutro.registradoPor}`
         : a.responsavel ?? (a.urgente ? 'Atividade urgente do plantão' : null),
+      /* O círculo só quando o responsável é uma pessoa: o registro por outro
+         tem DOIS nomes, e um círculo só diria metade (fase 172). */
+      responsibleCargo: !a.registroPorOutro && a.responsavel ? a.responsavelCargo ?? null : null,
       note: a.registroPorOutro
         ? [`Registrado em nome do colega: ${a.registroPorOutro.motivo}`,
            a.justificativa ?? a.instrucoes ?? ''].filter(Boolean).join(' · ')

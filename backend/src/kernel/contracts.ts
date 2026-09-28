@@ -58,6 +58,8 @@ export interface TimelineEvent {
   /** Severidade operacional — cor/destaque na interface, nunca julgamento. */
   severity: 'normal' | 'atencao' | 'critico';
   responsible?: string | null;
+  /** O cargo de quem é responsável, quando é UMA pessoa (fase 172). */
+  responsibleCargo?: string | null;
   note?: string | null;
   /** Ações que este papel pode executar sobre o evento. */
   actions?: TimelineAction[];

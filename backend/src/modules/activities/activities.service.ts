@@ -84,6 +84,11 @@ export class ActivitiesService {
                 (SELECT app_user_display_name(g.user_id) FROM activity_assignment g
                   WHERE g.activity_id = a.id AND g.user_id IS NOT NULL
                   ORDER BY g.assigned_at DESC LIMIT 1) AS responsavel,
+                -- E o cargo dele, para o círculo da linha do dia (fase 172). Por
+                -- função, nunca por JOIN em app_user (lição da fase 152).
+                (SELECT app_user_cargo(g.user_id) FROM activity_assignment g
+                  WHERE g.activity_id = a.id AND g.user_id IS NOT NULL
+                  ORDER BY g.assigned_at DESC LIMIT 1) AS responsavel_cargo,
                 -- Autoria dupla (§8.2): quando o registro foi feito por outra
                 -- pessoa, os DOIS nomes saem daqui, com o motivo. A tela não
                 -- tem escolha de esconder um deles.
@@ -341,7 +346,8 @@ export class ActivitiesService {
       linhas: linhas.map((l) => ({
         atividadeId: l.activity_id, titulo: l.titulo, horario: l.horario,
         estado: l.estado, rotulo: ESTADO_LABEL[l.estado] ?? l.estado,
-        responsavel: l.responsavel, acolhido: l.acolhido,
+        responsavel: l.responsavel, responsavelCargo: l.responsavel_cargo ?? null,
+        acolhido: l.acolhido,
       })),
       nota: 'Quem está em quê neste turno. Não é medição de ninguém: não há contagem '
           + 'por pessoa, ordenação por desempenho nem histórico de deslocamento (§3.3).',
@@ -519,6 +525,7 @@ export class ActivitiesService {
         `SELECT s.id, s.reason, s.status, s.requested_at, s.decision_note,
                 a.title, a.scheduled_at, a.state,
                 app_user_display_name(s.requested_by) AS pedinte,
+                app_user_cargo(s.requested_by) AS pedinte_cargo,
                 app_user_display_name(s.substitute_id) AS substituto
          FROM substitution_request s
          JOIN activity a ON a.id = s.activity_id
@@ -540,7 +547,8 @@ export class ActivitiesService {
         const semEfeito = r.status === 'solicitada' && ESTADOS_FINAIS.has(r.state);
         return {
           id: r.id, atividade: r.title, horario: r.scheduled_at, motivo: r.reason,
-          status: r.status, pedidoPor: r.pedinte, substituto: r.substituto,
+          status: r.status, pedidoPor: r.pedinte, pedidoPorCargo: r.pedinte_cargo ?? null,
+          substituto: r.substituto,
           decidiuNota: r.decision_note, solicitadoEm: r.requested_at,
           semEfeito,
           aviso: semEfeito
@@ -663,6 +671,7 @@ export function mapActivity(r: any) {
     ciencias: r.ciencias,
     minha: r.minha,
     responsavel: r.responsavel,
+    responsavelCargo: r.responsavel_cargo ?? null,
     urgente: r.urgent,
     motivoUrgencia: r.urgent_reason,
     instrucoes: r.instructions,

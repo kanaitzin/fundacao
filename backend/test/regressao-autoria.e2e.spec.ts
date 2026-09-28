@@ -544,6 +544,16 @@ describe('Regressão — escopo, autoria e primeiro acesso', () => {
     expect(meu.status).toBe(200);
     expect(Array.isArray(meu.body.linhas)).toBe(true);
     expect(meu.body.nota).toMatch(/não é medição/i);
+    /* O cargo do responsável chega a quem NÃO é ele (fase 172, lição da 152):
+       a atividade delegada ao segundo educador, lida pelo primeiro. Por JOIN
+       em app_user, o educador leria só a própria linha e o cargo viria nulo. */
+    const delegada = meu.body.linhas.find((l: any) => l.titulo === 'Atividade delegada (fictícia)');
+    expect(delegada?.responsavel).toBeTruthy();
+    expect(delegada?.responsavelCargo).toBe('educador');
+    const linha = await request(http)
+      .get(`/api/v1/timeline?houseId=${AI3}&mode=casa`).set(auth(tokens.educador));
+    const ev = linha.body.eventos.find((e: any) => e.title === 'Atividade delegada (fictícia)');
+    expect(ev?.responsibleCargo).toBe('educador');
 
     const alheio = await request(http)
       .get(`/api/v1/activities/shift-board?houseId=${AI4}`).set(auth(tokens.educador));

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api, apiOuFila } from '../api';
+import { Cargo } from '../cargos';
 import { Icone } from '../icones';
 import type { AoEnfileirar } from '../fila-offline';
 import { FolhaDose } from './Saude';
@@ -38,6 +39,7 @@ interface Evento {
   state: string;
   severity: 'normal' | 'atencao' | 'critico';
   responsible?: string | null;
+  responsibleCargo?: string | null;
   note?: string | null;
   actions?: { command: string; label: string }[];
 }
@@ -480,9 +482,12 @@ export function Dia({ houseId, casaLabel, papel, irPara }: {
               {/* A categoria por EXTENSO. A borda colorida é o atalho; esta
                   linha é o que sobra na impressão em preto e branco. */}
               <div className="catrot">{categoriaDe(ev.kind).rotulo}</div>
-              <div className="mutetxt">
-                {ev.personName ?? 'Casa toda'}
-                {ev.responsible ? ` · ${ev.responsible}` : ''}
+              <div className="mutetxt com-cargo">
+                {ev.personName ?? 'Casa toda'}{ev.responsible ? ' · ' : ''}
+                {/* O círculo do cargo de quem é responsável (fase 172). O nome
+                    continua escrito ao lado: o círculo é apoio, não substituto. */}
+                {ev.responsibleCargo && <Cargo nome={ev.responsible} cargo={ev.responsibleCargo} tamanho="sm" />}
+                {ev.responsible}
               </div>
               <div className="estado">
                 <span className={`pill ${TOM_SEVERIDADE[ev.severity]}`}>{ev.state}</span>

@@ -162,7 +162,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 28/09/2026, fase 171
+### Onde estamos — 28/09/2026, fase 172
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -197,8 +197,9 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 169 | **a sondagem de alcance das quatro superfícies que ficaram sem dado** (cozinha, cofre, acompanhamento, foto de memória), agora como suíte e com registro real: nenhuma escrita passou, nada vazou, mas **quatro leituras respondiam 200 vazio** à Casa 04, e a do cofre **gravava na auditoria uma abertura que não houve** |
 | 170 | **a sondagem de alcance virou suíte permanente** (`zz-a-sondagem-de-alcance`, POR ÚLTIMO pelo `test/setup/sequenciador.js`) e achou **41 leituras com a casa na consulta respondendo 200 vazio** à Casa 04; conserto num lugar só (`CasaDaConsulta`, com `@CasaConferidaNoServico` para a portaria). E a **Enfermagem baixa o relatório da internação** (decisão de 27/09) |
 | 171 | **a sondagem de ESCRITA entre casas virou suíte permanente** (`zz-b-a-sondagem-de-escrita`), com a prova no BANCO (fotografia das linhas da Casa 03 antes e depois de cada rota): cerca de 170 rotas, nenhuma escrita passou; a edição do perfil respondia **ok** à Casa 04 com corpo vazio, e abrir anexo de ocorrência de fora dava **500** |
+| 172 | **os dois ajustes visuais que eram da Fundação** (escolhidos em 28/09): o topo deixa de repetir o nome em título grande (nome, casa e e-mail numa linha, ainda `h1`), e o **círculo do cargo** chega ao painel do plantão e à linha do dia, com o cargo por `app_user_cargo` (1628), lido por OUTRO educador no teste |
 
-**Medido no fim da 171:** 168 migrações, 124 tabelas, 120 suítes, 1120 testes, verdes nas
+**Medido no fim da 172:** 169 migrações, 124 tabelas, 120 suítes, 1120 testes, verdes nas
 DUAS condições de relógio; os sete ensaios de navegador verdes, com a portaria e o
 portão, o armário, a cozinha, os temas e a foto no percurso do `ensaio:uso`; **435 telas (145 × três
 temas) sem violação de WCAG 2.1 AA**; nenhuma
@@ -273,9 +274,8 @@ têm suíte própria. **Não há mais etapa de código que não dependa de algu�
 **2. Aplicar o roteiro com a equipe.** Continua sendo o que mais muda o sistema, e
 o único que não se faz daqui.
 
-**3. Se a Fundação quiser mais visual**, o que sobrou é menor e é escolha dela: a
-barra do topo ainda repete o nome de quem está usando em `h1` grande, e o painel
-do plantão e a linha do dia ainda não mostram o círculo do cargo.
+**3. A frente visual está feita**, inclusive os dois ajustes que eram escolha da
+Fundação (172). O que vier de visual agora é pedido novo.
 
 ### As lições que não se repetem de graça
 

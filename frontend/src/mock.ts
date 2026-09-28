@@ -338,6 +338,14 @@ const USUARIOS: Record<string, { id: string; fullName: string; role: string; sen
   /* A portaria entra com login mínimo desde a fase 160 (decisão de 26/09). */
   'portaria.ai3@paodospobres.dev': { id: 'u12', fullName: 'Paulo da Portaria (fictício)', role: 'portaria', senha: 'senha-dev-123' },
 };
+/** O cargo de uma pessoa do protótipo pelo nome, como o `app_user_cargo` do servidor (fase 172). */
+function cargoPeloNome(nome?: string | null): string | null {
+  if (!nome) return null;
+  const conta = Object.values(USUARIOS).find((u) => u.fullName === nome);
+  if (conta) return conta.role;
+  return EQUIPE_CASA.find((e) => e.nome === nome)?.cargo ?? null;
+}
+
 const EQUIPE_CASA = [
   { id: 'u1', nome: 'Mário Silva (fictício)', cargo: 'educador' },
   { id: 'u6', nome: 'Joana Lima (fictícia)', cargo: 'educador' },
@@ -5784,6 +5792,8 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
                 coletivos: eventos.filter((e) => !e.personId).length },
       eventos: eventos.map((e) => ({
         ...e,
+        /* O cargo do responsável, como o servidor manda (fase 172). */
+        responsibleCargo: cargoPeloNome(e.responsible),
         actions: acoes(e, eu.role),
         note: notaDaLinha(e, eu.role),
       })),
@@ -5887,8 +5897,8 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
    */
   if (rota === '/activities/substitutions' && metodo === 'GET') {
     // Os decididos vêm junto: quem pediu precisa poder ler a recusa e o motivo
-    // dela sem perguntar a ninguém.
-    return PEDIDOS_SUB;
+    // dela sem perguntar a ninguém. O cargo de quem pediu vai junto (fase 172).
+    return PEDIDOS_SUB.map((p) => ({ ...p, pedidoPorCargo: cargoPeloNome(p.pedidoPor) }));
   }
   /* O pedido nasce de QUEM VAI SAIR — e a atividade fica marcada na linha. */
   if (seg[0] === 'activities' && seg[2] === 'substitution' && metodo === 'POST') {
@@ -5962,6 +5972,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         atividadeId: e.id, titulo: e.title, horario: e.at,
         estado: codigoDe(e.state), rotulo: e.state,
         responsavel: e.responsible ?? 'Equipe do plantão',
+        responsavelCargo: e.responsible ? cargoPeloNome(e.responsible) : null,
         acolhido: e.personName,
       })),
       nota: 'Quem está em quê neste turno. Não é medição de ninguém: não há contagem '
