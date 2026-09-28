@@ -312,6 +312,8 @@ export const VOCABULARIO_DA_AUDITORIA: Record<string, string> = {
   'staff.deactivate': 'Pessoa da equipe desativada',
   'staff.reactivate': 'Pessoa da equipe reativada',
   'staff.reset_password': 'Senha de pessoa da equipe redefinida',
+  /* A Coordenação Geral (fase 176): a coordenação que alcança as oito casas. */
+  'staff.coordenacao_geral': 'Coordenação geral definida ou retirada',
   /* Abrir o trabalho de alguém é, ele mesmo, uma ação — e ela aparece aqui,
      com o nome de quem olhou e a finalidade que escreveu (fase 117). Quem
      consulta também é consultável. */

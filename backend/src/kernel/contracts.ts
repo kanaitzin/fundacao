@@ -16,6 +16,8 @@ export interface AuthenticatedUser {
   sessionId: string;
   lastReauthAt: Date | null;
   mustChangePassword: boolean;
+  /** Coordenação Geral: coordenador que alcança as oito casas (1634). */
+  todasAsCasas?: boolean;
 }
 
 export type RoleCode =

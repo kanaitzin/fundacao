@@ -18,7 +18,7 @@
 > depois das 21h em Porto Alegre semeava o dia seguinte — o dia de hoje nascia
 > sem dose nenhuma. **Nada no sistema; tudo no dado de partida.**
 
-- **172 fases.** 122 suítes e 1130 testes, verdes em duas condições de relógio —
+- **172 fases.** 123 suítes e 1135 testes, verdes em duas condições de relógio —
   antes e depois da virada do UTC, que em Porto Alegre é às 21h.
 - **O pedido de 25/09 está fechado** (fase 166). Uma simulação de dois dias e
   do dia de hoje na Casa 03 conferiu os relatórios contra os fatos, e achou
@@ -319,6 +319,24 @@ que ela mostrou e a Fundação decidiu:
   175). A foto grande sai reduzida no próprio aparelho antes de enviar: até 2000
   pixels no lado maior, em JPEG de boa qualidade, perto de 500 KB. A prévia diz
   de quanto era. PDF e imagem que já é pequena vão como vieram.
+
+## 4.15 A Coordenação Geral (fase 176, decidido em 28/09)
+
+- **O cargo novo do Marcelo existe.** A Coordenação Geral faz tudo o que a
+  coordenação de uma casa faz, nas oito: equipe, escala, ATA, visitas,
+  acompanhamentos. O Gestor Geral continua olhando, pelo painel e pelos
+  relatórios. **Quem marca é o Gestor Geral**, na tela da Equipe (*Tornar
+  Coordenação Geral*, ou a caixa *Coordena as oito casas* no cadastro).
+- **Para a conta do Marcelo virar Coordenação Geral**, o Gestor Geral aperta
+  o botão na conta dele. O vínculo com a casa em que estava fecha com a data, e
+  o histórico continua.
+- **O que ela NÃO recebe, de propósito:** os avisos de escalonamento de cada
+  casa (nas oito seria uma enxurrada), e ela não entra na escala nem na
+  passagem de plantão de casa nenhuma. Se a Fundação quiser que algum aviso
+  chegue a ela (por exemplo, ocorrência grave em qualquer casa), é uma decisão
+  a tomar.
+- **Nos documentos**, a assinatura dela sai como *Coordenação*, igual à da
+  coordenação de uma casa.
 
 ## 5. As decisões que são do Marcelo *(§10 — responda pelo número)*
 

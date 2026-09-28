@@ -96,7 +96,18 @@ describe('O que é da criança chega ao dossiê dela', () => {
     ids.prescricao = pr.id;
   });
 
-  afterAll(async () => { await app.close(); await admin.end(); });
+  /* A internação que esta suíte abre, ela encerra (lição da 127). Aberta, a
+     criança ficava fora da chamada para as suítes seguintes, e a que escolhe a
+     última criança da Casa 03 pelo nome caía na mesma: reprovava ou não
+     conforme a ordem em que o Jest punha as duas (achado na fase 176). */
+  afterAll(async () => {
+    if (ids.internacao) {
+      await request(http).post(`/api/v1/nursing/hospitalizations/${ids.internacao}/close`)
+        .set(auth(tokens.tecnica))
+        .send({ desfecho: 'alta', observacao: 'Alta fictícia, encerramento da suíte do dossiê.' });
+    }
+    await app.close(); await admin.end();
+  });
 
   // ==================== A receita e a bula ====================
 
@@ -190,6 +201,7 @@ describe('O que é da criança chega ao dossiê dela', () => {
               hospital: 'Hospital do ensaio (fictício)',
               motivo: 'Crise respiratória.', desde: new Date().toISOString() });
     expect(int.status).toBe(201);
+    ids.internacao = int.body.id;
 
     const antes = (await dossie()).length;
     const nota = await request(http)

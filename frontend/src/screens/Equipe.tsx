@@ -10,6 +10,8 @@ interface Membro {
   corDaLinha?: string | null;
   ativo: boolean; ultimoAcesso: string | null;
   senhaInicialPendente: boolean; editavel: boolean; proprio: boolean;
+  /** A Coordenação Geral (fase 176): coordenação que alcança as oito casas. */
+  todasAsCasas?: boolean;
 }
 interface Casa { id: string; codigo: string; nome: string; propria: boolean; }
 
@@ -201,7 +203,9 @@ export function Equipe({ papel }: { papel: string }) {
                     <span className={`pill ${TOM[m.cargo] ?? 'c-mute'}`}>{m.setor}</span>
                   </td>
                   <td data-rotulo="Casa">
-                    {m.transversal ? <span className="mutetxt">8 casas</span> : (m.casa ?? '—')}
+                    {m.transversal || m.todasAsCasas
+                      ? <span className="mutetxt">8 casas</span> : (m.casa ?? '—')}
+                    {m.todasAsCasas && <> <span className="pill c-move">Coordenação Geral</span></>}
                   </td>
                   <td data-rotulo="Cor da linha">
                     {/* A cor da ATA. Sempre com o NOME do tom escrito: quem não
@@ -243,6 +247,21 @@ export function Equipe({ papel }: { papel: string }) {
                           api(`/staff/${m.id}/convite`, { method: 'POST', body: '{}' }))}>
                           Convidar
                         </button>
+                        {/* A Coordenação Geral (fase 176): só o Gestor Geral põe ou
+                            tira, e só em quem é da coordenação. */}
+                        {ehGestor && m.cargo === 'coordenador' && m.ativo && (
+                          <button className="btn sm ghost" onClick={() => {
+                            const ok = confirm(m.todasAsCasas
+                              ? `${m.nome} deixa de coordenar as oito casas e fica sem casa até receber um vínculo. Continuar?`
+                              : `${m.nome} passa a coordenar as oito casas, e o vínculo com ${m.casa ?? 'a casa atual'} é encerrado. Continuar?`);
+                            if (ok) {
+                              acao(() => api(`/staff/${m.id}/coordenacao-geral`, {
+                                method: 'POST', body: JSON.stringify({ todas: !m.todasAsCasas }) }));
+                            }
+                          }}>
+                            {m.todasAsCasas ? 'Retirar da Coordenação Geral' : 'Tornar Coordenação Geral'}
+                          </button>
+                        )}
                         <button className="btn sm ghost" onClick={() => {
                           const ok = confirm(
                             'Prefira o convite: a senha não passa pela sua mão.\n\n'
@@ -415,7 +434,7 @@ export function Equipe({ papel }: { papel: string }) {
 
       {form && (
         <FormCadastro
-          setores={setores} casas={casas} membro={editando}
+          setores={setores} casas={casas} membro={editando} ehGestor={ehGestor}
           onFechar={() => { setForm(false); setEditando(null); }}
           onSalvo={(r) => {
             setForm(false); setEditando(null);
@@ -429,8 +448,8 @@ export function Equipe({ papel }: { papel: string }) {
   );
 }
 
-function FormCadastro({ setores, casas, membro, onFechar, onSalvo, onErro }: {
-  setores: Setor[]; casas: Casa[]; membro: Membro | null;
+function FormCadastro({ setores, casas, membro, ehGestor, onFechar, onSalvo, onErro }: {
+  setores: Setor[]; casas: Casa[]; membro: Membro | null; ehGestor: boolean;
   onFechar: () => void; onSalvo: (r: any) => void; onErro: (e: string) => void;
 }) {
   const [nome, setNome] = useState(membro?.nome ?? '');
@@ -438,9 +457,12 @@ function FormCadastro({ setores, casas, membro, onFechar, onSalvo, onErro }: {
   const [cargo, setCargo] = useState(membro?.cargo ?? setores[0]?.code ?? '');
   const [casaId, setCasaId] = useState(membro?.casaId ?? casas.find((c) => c.propria)?.id ?? '');
   const [ocupado, setOcupado] = useState(false);
+  const [todas, setTodas] = useState(false);
 
   const setor = setores.find((s) => s.code === cargo);
   const editar = membro != null;
+  /* A Coordenação Geral nasce sem casa, e só pelo Gestor Geral (fase 176). */
+  const geral = !editar && ehGestor && cargo === 'coordenador' && todas;
 
   async function salvar(e: React.FormEvent) {
     e.preventDefault();
@@ -453,7 +475,9 @@ function FormCadastro({ setores, casas, membro, onFechar, onSalvo, onErro }: {
           })
         : await api('/staff', {
             method: 'POST',
-            body: JSON.stringify({ nome, email, cargo, casaId: setor?.exigeCasa ? casaId : null }),
+            body: JSON.stringify(geral
+              ? { nome, email, cargo, todasAsCasas: true }
+              : { nome, email, cargo, casaId: setor?.exigeCasa ? casaId : null }),
           });
       onSalvo(r);
     } catch (e) {
@@ -491,7 +515,19 @@ function FormCadastro({ setores, casas, membro, onFechar, onSalvo, onErro }: {
           </select>
           {setor && <p className="mutetxt">{setor.descricao}</p>}
 
-          {setor?.exigeCasa ? (
+          {!editar && ehGestor && cargo === 'coordenador' && (
+            <label className="row" style={{ gap: 8, marginTop: 12 }}>
+              <input type="checkbox" checked={todas} onChange={(e) => setTodas(e.target.checked)} />
+              <span>Coordena as oito casas (Coordenação Geral)</span>
+            </label>
+          )}
+
+          {geral ? (
+            <div className="notice c-move">
+              A <b>Coordenação Geral</b> faz o que a coordenação de uma casa faz, nas oito, e não
+              tem casa de trabalho: não entra na escala nem nos avisos de uma casa só.
+            </div>
+          ) : setor?.exigeCasa ? (
             <>
               <label className="f" htmlFor="casa">Casa</label>
               <select id="casa" value={casaId} onChange={(e) => setCasaId(e.target.value)} required>

@@ -67,6 +67,13 @@ export class StaffController {
     return this.staff.definirCor(user, id, body?.cor ?? null);
   }
 
+  /** A Coordenação Geral: coordenador das oito casas (decisão de 28/09). Só o gestor. */
+  @Post(':id/coordenacao-geral')
+  coordenacaoGeral(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
+                   @Body() body: any) {
+    return this.staff.marcarCoordenacaoGeral(user, id, body?.todas !== false);
+  }
+
   @Post(':id/deactivate')
   deactivate(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
              @Body() body: any) {

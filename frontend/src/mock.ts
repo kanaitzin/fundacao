@@ -337,7 +337,13 @@ const USUARIOS: Record<string, { id: string; fullName: string; role: string; sen
   'gestor@paodospobres.dev': { id: 'u11', fullName: 'Gilberto Gestor (fictício)', role: 'gestor_geral', senha: 'senha-dev-123' },
   /* A portaria entra com login mínimo desde a fase 160 (decisão de 26/09). */
   'portaria.ai3@paodospobres.dev': { id: 'u12', fullName: 'Paulo da Portaria (fictício)', role: 'portaria', senha: 'senha-dev-123' },
+  /* A Coordenação Geral (fase 176): o cargo coordenador com a marca das oito
+     casas. A conta do Marcelo continua a da Casa 03 no protótipo, porque é por
+     ela que os ensaios entram; a demonstração do cargo novo é esta. */
+  'coordenacao.geral@paodospobres.dev': { id: 'u13', fullName: 'Graça da Coordenação Geral (fictícia)', role: 'coordenador', senha: 'senha-dev-123' },
 };
+/** Quem coordena as oito casas, como a coluna `todas_as_casas` do servidor (1634). */
+const TODAS_AS_CASAS = new Set<string>(['u13']);
 /** O cargo de uma pessoa do protótipo pelo nome, como o `app_user_cargo` do servidor (fase 172). */
 function cargoPeloNome(nome?: string | null): string | null {
   if (!nome) return null;
@@ -4908,7 +4914,9 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       id: eu.id, email: Object.keys(USUARIOS).find((e) => USUARIOS[e].id === eu.id),
       fullName: eu.fullName, role: eu.role,
       mustChangePassword: false, semSenha: eu.senha === null,
-      assignments: [{ code: CASA.code, name: CASA.name, role: eu.role }],
+      /* A Coordenação Geral não tem casa de trabalho (1634). */
+      assignments: TODAS_AS_CASAS.has(eu.id) ? [] : [{ code: CASA.code, name: CASA.name, role: eu.role }],
+      todasAsCasas: TODAS_AS_CASAS.has(eu.id),
     };
   }
   /*
@@ -4918,7 +4926,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
    * (gestor, enfermagem) enxerga as oito, como no servidor.
    */
   if (rota === '/houses') {
-    return ['gestor_geral', 'enfermagem'].includes(eu.role) ? CASAS : [CASA];
+    return ['gestor_geral', 'enfermagem'].includes(eu.role) || TODAS_AS_CASAS.has(eu.id) ? CASAS : [CASA];
   }
   /**
    * `GET /houses/directory` no formato do servidor: código, nome, tipo e se é
@@ -5536,9 +5544,50 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
           + 'ninguém trabalhou — quer dizer que nada deste período chega até aqui.',
     };
   }
+  if (rota === '/staff' && metodo === 'POST') {
+    if (b.todasAsCasas && eu.role !== 'gestor_geral') {
+      return new Recusa(403, 'Só o Gestor Geral define quem é a Coordenação Geral.');
+    }
+    if (b.todasAsCasas && (b.cargo !== 'coordenador' || b.casaId)) {
+      return new Recusa(400, 'A Coordenação Geral é uma coordenação sem casa: escolha o cargo '
+        + 'Coordenação e deixe a casa em branco.');
+    }
+    const senha = `inicial-${uid()}`;
+    return { id: uid(), senhaInicial: senha,
+      aviso: 'Entregue esta senha à pessoa — ela é mostrada uma única vez. No primeiro acesso '
+        + 'o sistema sugere que ela crie uma senha própria. No protótipo, a conta não entra na lista.' };
+  }
+  if (seg[0] === 'staff' && seg[2] === 'coordenacao-geral' && metodo === 'POST') {
+    if (eu.role !== 'gestor_geral') {
+      return new Recusa(403, 'Só o Gestor Geral define quem é a Coordenação Geral.');
+    }
+    const alvo = Object.values(USUARIOS).find((u) => u.id === seg[1])
+      ?? EQUIPE_CASA.map((m) => ({ id: m.id, fullName: m.nome, role: m.cargo })).find((m) => m.id === seg[1]);
+    if (!alvo) return new Recusa(404, 'Pessoa não encontrada.');
+    if (alvo.role !== 'coordenador') {
+      return new Recusa(400, 'A Coordenação Geral é do cargo Coordenação. Troque o cargo antes.');
+    }
+    const todas = b.todas !== false;
+    if (todas) TODAS_AS_CASAS.add(alvo.id); else TODAS_AS_CASAS.delete(alvo.id);
+    return { ok: true, todasAsCasas: todas,
+      aviso: todas
+        ? `${alvo.fullName} passa a coordenar as oito casas. O vínculo com a casa em que estava foi encerrado, e o histórico continua.`
+        : `${alvo.fullName} deixa de coordenar as oito casas. Para voltar a uma casa, lance o vínculo na equipe dela.` };
+  }
   if (rota === '/staff') {
     const podeEditar = ['coordenador', 'gestor_geral', 'equipe_tecnica'].includes(eu.role);
-    return EQUIPE_CASA.map((m) => ({
+    /* A Coordenação Geral aparece para quem cadastra coordenação: o Gestor Geral. */
+    const geral = eu.role === 'gestor_geral'
+      ? [...TODAS_AS_CASAS].map((id) => Object.values(USUARIOS).find((u) => u.id === id)!)
+          .filter(Boolean).map((u) => ({
+            id: u.id, nome: u.fullName, email: Object.keys(USUARIOS).find((e) => USUARIOS[e].id === u.id),
+            cargo: u.role, setor: TIPOS_SETOR.find((t) => t.code === u.role)?.label ?? u.role,
+            transversal: false, casa: null, casaId: null, ativo: !DESATIVADOS.has(u.id),
+            ultimoAcesso: null, senhaInicialPendente: false, editavel: true,
+            proprio: false, corDaLinha: null, todasAsCasas: true,
+          }))
+      : [];
+    return [...EQUIPE_CASA.filter((m) => !TODAS_AS_CASAS.has(m.id)).map((m) => ({
       id: m.id,
       nome: m.nome,
       email: `${m.nome.split(' ')[0].toLowerCase().normalize('NFD').replace(/[^a-z]/g, '')}@paodospobres.dev`,
@@ -5552,7 +5601,8 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       editavel: podeEditar,
       proprio: m.id === eu.id,
       corDaLinha: CORES_DA_LINHA.get(m.id) ?? null,
-    }));
+      todasAsCasas: false,
+    })), ...geral];
   }
   if (rota.startsWith('/staff/line-colors')) {
     return [...CORES_DA_LINHA.entries()].map(([userId, cor]) => ({

@@ -90,21 +90,32 @@ export class StaffService {
       senhaInicialPendente: r.must_change_password,
       editavel: r.editavel,
       proprio: r.id === user.id,
+      todasAsCasas: !!r.todas_as_casas,
     }));
   }
 
   async create(user: AuthenticatedUser, input: {
     nome: string; email: string; cargo: RoleCode; casaId?: string; senhaInicial?: string;
+    todasAsCasas?: boolean;
   }) {
+    if (input.todasAsCasas && (input.cargo !== 'coordenador' || input.casaId)) {
+      throw new BadRequestException(
+        'A Coordenação Geral é uma coordenação sem casa: escolha o cargo Coordenação e deixe a casa em branco.');
+    }
     const senha = (input.senhaInicial ?? '').trim() || senhaInicial();
     if (senha.length < 6) {
       throw new BadRequestException('A senha inicial precisa de pelo menos 6 caracteres.');
     }
     const hash = await hashPassword(senha);
 
-    const id = await this.comando(user, 'app_create_staff($1,$2,$3::role_code,$4,$5)',
-      [input.email ?? '', input.nome ?? '', input.cargo, input.casaId ?? null, hash]);
-
+    /* A Coordenação Geral nasce sem casa, por uma função só dela (1634): o
+       cadastro comum exige casa para coordenador, e inventar uma deixaria no
+       histórico uma passagem que não houve. */
+    const id = input.todasAsCasas
+      ? await this.comando(user, 'app_create_coordenacao_geral($1,$2,$3)',
+          [input.email ?? '', input.nome ?? '', hash])
+      : await this.comando(user, 'app_create_staff($1,$2,$3::role_code,$4,$5)',
+          [input.email ?? '', input.nome ?? '', input.cargo, input.casaId ?? null, hash]);
     return {
       id: id.out_id,
       senhaInicial: senha,
@@ -119,6 +130,38 @@ export class StaffService {
     await this.comando(user, 'app_update_staff($1,$2,$3::role_code,$4)',
       [id, input.nome ?? null, input.cargo ?? null, input.casaId ?? null]);
     return { ok: true };
+  }
+
+  /**
+   * A COORDENAÇÃO GERAL (decisão de 28/09, 1634): coordenador que alcança as
+   * oito casas. Só o Gestor Geral marca ou desmarca, e fica na auditoria.
+   */
+  async marcarCoordenacaoGeral(user: AuthenticatedUser, id: string, todas: boolean) {
+    const r = await this.db.asUser(user.id, async (c) => {
+      const { rows: [row] } = await c.query(
+        `SELECT * FROM app_marcar_coordenacao_geral($1, $2)`, [id, !!todas]);
+      return row;
+    }).catch((e: any) => {
+      const m = String(e?.message ?? '');
+      if (m.includes('so_o_gestor_marca_coordenacao_geral')) {
+        throw new ForbiddenException('Só o Gestor Geral define quem é a Coordenação Geral.');
+      }
+      if (m.includes('coordenacao_geral_so_para_coordenador')) {
+        throw new BadRequestException('A Coordenação Geral é do cargo Coordenação. Troque o cargo antes.');
+      }
+      if (m.includes('usuario_inexistente')) throw new NotFoundException('Pessoa não encontrada.');
+      throw e;
+    });
+    await this.audit.log({
+      action: 'staff.coordenacao_geral', actorId: user.id, institutionId: user.institutionId,
+      entity: 'app_user', entityId: id, detail: { todasAsCasas: !!todas },
+    });
+    return {
+      ok: true, todasAsCasas: !!todas,
+      aviso: todas
+        ? `${r.out_nome} passa a coordenar as oito casas. O vínculo com a casa em que estava foi encerrado, e o histórico continua.`
+        : `${r.out_nome} deixa de coordenar as oito casas. Para voltar a uma casa, lance o vínculo na equipe dela.`,
+    };
   }
 
   async setActive(user: AuthenticatedUser, id: string, ativo: boolean, motivo?: string) {
@@ -184,6 +227,9 @@ export class StaffService {
       }
       if (m.includes('fora_de_escopo')) {
         throw new ForbiddenException('Esta casa não está no seu alcance.');
+      }
+      if (m.includes('so_o_gestor_marca_coordenacao_geral')) {
+        throw new ForbiddenException('Só o Gestor Geral define quem é a Coordenação Geral.');
       }
       if (m.includes('nome_insuficiente')) throw new BadRequestException('Informe o nome completo.');
       if (m.includes('email_invalido')) throw new BadRequestException('E-mail institucional inválido.');

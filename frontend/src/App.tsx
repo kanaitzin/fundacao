@@ -50,6 +50,8 @@ interface Me {
   /** A conta ainda não tem senha nenhuma: o primeiro acesso é criá-la. */
   semSenha?: boolean;
   assignments: { code: string; name: string; role: string }[];
+  /** A Coordenação Geral (fase 176): coordenação que alcança as oito casas. */
+  todasAsCasas?: boolean;
 }
 interface House { id: string; code: string; name: string; kind: string; }
 
@@ -428,8 +430,12 @@ export function App() {
    * quem tem o painel passa a ser o painel. Uma regra a menos, e não uma a
    * mais.
    */
+  /* A Coordenação Geral não tem casa de trabalho: abre nas Unidades, para
+     escolher em qual entra, em vez de cair na primeira da lista (fase 176). */
+  const primeira = me.todasAsCasas && !escolhida && ve('casas')
+    ? 'casas' : (abasDoTurno[0]?.aba ?? doMais[0] ?? 'casas');
   const abaEfetiva = ((aba && (aba === 'avisos' || ve(aba)))
-    ? aba : (abasDoTurno[0]?.aba ?? doMais[0] ?? 'casas')) as Exclude<typeof aba, null>;
+    ? aba : primeira) as Exclude<typeof aba, null>;
   // A casa de trabalho: o vínculo do usuário quando existe; senão, a primeira
   // do alcance — que é o caso das funções transversais (§5.13).
   const casaAtual = (escolhida ? houses.find((h) => h.id === escolhida) : undefined)
@@ -446,7 +452,9 @@ export function App() {
           {/* Quem está usando o sistema, com o círculo do cargo (fase 151). O
               nome do cargo continua escrito ao lado: o círculo é apoio. */}
           <Cargo nome={me.fullName} cargo={me.role} tamanho="sm" />
-          <span className="rolechip">{ROLE_LABEL[me.role] ?? me.role}</span>
+          <span className="rolechip">
+            {me.todasAsCasas ? 'Coordenação Geral' : (ROLE_LABEL[me.role] ?? me.role)}
+          </span>
           <span className="grow" />
           {/* O TEMA (27/09): claro, escuro e alto contraste — no sistema de
               verdade também, lembrado neste aparelho. O nome diz o PRÓXIMO. */}

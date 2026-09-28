@@ -23,6 +23,8 @@ export class UsersController {
     return {
       id: user.id, email: user.email, fullName: user.fullName,
       role: user.role, mustChangePassword: user.mustChangePassword,
+      /* A Coordenação Geral não tem vínculo com uma casa: alcança as oito (1634). */
+      todasAsCasas: !!user.todasAsCasas,
       assignments,
     };
   }

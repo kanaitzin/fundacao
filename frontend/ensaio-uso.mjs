@@ -3077,6 +3077,34 @@ cobrar('o educador folheia o arquivo, sem a leitura em sequência',
   (await pg.getByRole('button', { name: /em sequência/ }).count()) === 0);
 cobrar('nenhuma exceção na leitura em sequência', erros.length === 0, erros[0]);
 
+console.log('\n🏛️ A Coordenação Geral — as oito casas (fase 176)');
+/* O gestor vê, na Equipe, quem é a Coordenação Geral e o botão que a põe ou tira. */
+await trocar('gestor_geral');
+cargoAtual = 'gestor_geral';
+if (!(await aba('Equipe'))) await doMais('Equipe');
+const equipe176 = await conteudo();
+cobrar('a Equipe do gestor mostra a Coordenação Geral, com as oito casas',
+  /Graça da Coordenação Geral/.test(equipe176) && /Coordenação Geral/.test(equipe176));
+cobrar('e oferece tornar Coordenação Geral quem é da coordenação de uma casa',
+  (await pg.getByRole('button', { name: /^Tornar Coordenação Geral$/ }).count()) > 0);
+/* A própria Coordenação Geral entra pela conta dela. Recarregar zera o
+   servidor de mentira, e por isso este é o último passo. */
+erros.length = 0;
+await pg.goto(`file://${ARQUIVO}`);
+await pg.waitForTimeout(900);
+await pg.getByRole('button', { name: /^Coordenação Geral$/ }).click();
+await pg.getByRole('button', { name: /Entrar no sistema/i }).click();
+await pg.waitForTimeout(1400);
+cargoAtual = 'coordenacao_geral';
+cobrar('o topo diz Coordenação Geral', /Coordenação Geral/.test(await pg.locator('header.appbar').innerText()));
+const unidades176 = await conteudo();
+cobrar('ela abre nas unidades, para escolher a casa', /unidades no seu alcance/i.test(unidades176), unidades176.slice(0, 120));
+cobrar('e alcança as oito', (await pg.locator('main.conteudo button.card.row').count()) === 8);
+await pg.locator('main.conteudo button.card.row', { hasText: 'AI3' }).first().click();
+await pg.waitForTimeout(1400);
+cobrar('escolhida a Casa 03, o dia dela abre', /AI3/.test(await conteudo()));
+cobrar('nenhuma exceção na Coordenação Geral', erros.length === 0, erros[0]);
+
 await navegador.close();
 console.log(achados.length
   ? `\n${achados.length} ACHADO(S):\n  ${achados.join('\n  ')}`

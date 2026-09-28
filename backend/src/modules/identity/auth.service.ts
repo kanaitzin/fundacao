@@ -75,7 +75,7 @@ export class AuthService {
     // Identidade aplicada; RLS permite ver o próprio registro
     const user = await this.db.asUser(s.user_id, async (c) => {
       const { rows: [u] } = await c.query(
-        `SELECT id, institution_id, email, full_name, role, active, must_change_password
+        `SELECT id, institution_id, email, full_name, role, active, must_change_password, todas_as_casas
          FROM app_user WHERE id = $1`, [s.user_id]);
       return u;
     });
@@ -91,6 +91,7 @@ export class AuthService {
       id: user.id, institutionId: user.institution_id, email: user.email,
       fullName: user.full_name, role: user.role, sessionId: s.id,
       lastReauthAt: s.last_reauth_at, mustChangePassword: user.must_change_password,
+      todasAsCasas: !!user.todas_as_casas,
     };
   }
 

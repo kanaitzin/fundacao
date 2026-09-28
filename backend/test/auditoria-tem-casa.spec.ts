@@ -48,6 +48,9 @@ const SEM_CASA = new Set([
   'person.cpf_check',
   /* O QUE É DAS OITO CASAS DE UMA VEZ. */
   'relogio.dia', 'painel.metricas', 'ata_geral.close_pending',
+  /* A Coordenação Geral (fase 176) alcança as oito casas: marcá-la não é ato
+     de casa nenhuma. */
+  'staff.coordenacao_geral',
   /* A REMESSA DO APARELHO traz operações de mais de uma casa numa só linha; a
      casa aparece em cada operação aplicada, que tem rastro próprio. */
   'sync.push',

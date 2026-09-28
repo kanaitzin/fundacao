@@ -42,6 +42,7 @@ const CONVIDADO = { nome: 'Marcelo Barbosa', email: 'mbarbosa@paodospobres.com.b
 
 const DEMO = [
   { label: 'Coordenação', email: 'coord.ai3@paodospobres.dev' },
+  { label: 'Coordenação Geral', email: 'coordenacao.geral@paodospobres.dev' },
   { label: 'Equipe técnica', email: 'tecnica.ai3@paodospobres.dev' },
   { label: 'Educador social', email: 'educador.ai3@paodospobres.dev' },
   { label: 'Líder Diurno', email: 'lider.ai3@paodospobres.dev' },
