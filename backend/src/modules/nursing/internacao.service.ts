@@ -5,6 +5,7 @@ import { DatabaseService } from '../../kernel/database/database.service';
 import { AuditService } from '../../kernel/audit/audit.service';
 import { ArquivosService, RegraDoArquivo } from '../../kernel/arquivos/arquivos.service';
 import { AuthenticatedUser } from '../../kernel/contracts';
+import { EventBus } from '../../kernel/events/event-bus.service';
 import { DocumentosService } from '../../kernel/documentos/documentos.service';
 import { cargoNoDocumento } from '../../kernel/documentos/folha';
 import { paginasDoPdf } from '../../kernel/documentos/paginas-do-pdf';
@@ -64,6 +65,7 @@ export class InternacaoService {
     @Inject(AuditService) private readonly audit: AuditService,
     @Inject(ArquivosService) private readonly arquivos: ArquivosService,
     @Inject(DocumentosService) private readonly documentos: DocumentosService,
+    @Inject(EventBus) private readonly bus: EventBus,
   ) {}
 
   private readonly TIPOS_DE_NOTA = [
@@ -121,7 +123,7 @@ export class InternacaoService {
         + 'saber o que aconteceu — "internação" não explica nada.');
     }
 
-    return this.db.asUser(user.id, async (c) => {
+    const aberta = await this.db.asUser(user.id, async (c) => {
       try {
         const { rows: [r] } = await c.query(
           `INSERT INTO hospitalization (person_id, house_id, hospital, reason,
@@ -155,6 +157,17 @@ export class InternacaoService {
         throw e;
       }
     });
+    /* A Coordenação Geral recebe os graves das oito casas (decisão de 28/09, 1635),
+       e internação é um deles. O aviso não diz o motivo nem o hospital: quem
+       precisa saber, abre. */
+    await this.bus.publish('escalation.requested', {
+      level: 'coordenacao_geral', entity: 'hospitalization', entityId: aberta.id,
+      reason: 'internacao_aberta',
+      title: 'Internação aberta',
+      body: 'Uma criança foi internada. Abra na Rede Acolher para ver a casa e o acompanhamento.',
+      priority: 'alta', groupKey: `internacao:${aberta.id}:coordenacao_geral`,
+    }, { actorId: user.id, houseId: input.houseId });
+    return aberta;
   }
 
   // ------------------------------------------------------------- Encerrar

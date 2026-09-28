@@ -61,6 +61,18 @@ describe('A Coordenação Geral', () => {
   });
 
   afterAll(async () => {
+    if (ids.internacao) {
+      await post(t.tecnica2, `/nursing/hospitalizations/${ids.internacao}/close`,
+        { desfecho: 'alta', observacao: 'Alta fictícia, encerramento da suíte da Coordenação Geral.' });
+    }
+    if (ids.crianca) {
+      await post(t.tecnica2, `/people/${ids.crianca}/discharge`,
+        { motivo: 'Encerramento da suíte da Coordenação Geral (dados fictícios).' });
+    }
+    if (ids.ataGeral) {
+      await admin.query(`DELETE FROM general_night_house_entry WHERE general_ata_id = $1`, [ids.ataGeral]);
+      await admin.query(`DELETE FROM general_night_ata WHERE id = $1`, [ids.ataGeral]);
+    }
     for (const id of criados) {
       await post(t.gestor, `/staff/${id}/deactivate`, { motivo: 'Conta fictícia da suíte da Coordenação Geral.' });
     }
@@ -175,5 +187,77 @@ describe('A Coordenação Geral', () => {
       expect(coord.length).toBeGreaterThan(0);
       expect(coord.map((x) => x.user_id)).not.toContain(ids.geral);
     }
+  });
+  /*
+   * OS GRAVES CHEGAM A ELA (fase 178, decisão de 28/09). Ocorrência das
+   * categorias que exigem revisão técnica, internação aberta e ATA Geral assinada
+   * com pendência, de qualquer casa. O resto continua com a coordenação de cada
+   * casa. A suíte usa a ARM2, vazia na semente, com contas e criança dela.
+   */
+  it('recebe os avisos graves das oito casas, e só os graves', async () => {
+    for (const [k, cargo] of [['educador2', 'educador'], ['tecnica2', 'equipe_tecnica']]) {
+      const email = `${k}.cg.${rodada}@paodospobres.dev`;
+      const r = await post(t.gestor, '/staff', { nome: `${k} da ARM2 (fictício)`, email, cargo,
+        casaId: ids.ARM2, senhaInicial: 'senha-arm2-1' });
+      expect(r.status).toBe(201);
+      criados.push(r.body.id);
+      t[k] = await login(email, 'senha-arm2-1');
+    }
+    const chegou = await post(t.educador2, '/people/chegada', { houseId: ids.ARM2,
+      nome: `Criança da Suíte ${rodada} (fictícia)`, idadeAproximada: 10,
+      trazidaPor: 'Conselho Tutelar', chegada: 'Chegou à tarde, com a mochila da escola.' });
+    expect(chegou.status).toBe(201);
+    ids.crianca = chegou.body.personId;
+    const avisos = async () => {
+      const r = await get(t.geral, '/notifications');
+      return (Array.isArray(r.body) ? r.body : r.body.itens) as any[];
+    };
+    const antes = (await avisos()).length;
+
+    /* Conflito sem revisão técnica: não chega. */
+    const comum = await post(t.tecnica2, '/incidents', { houseId: ids.ARM2, categoria: 'conflito_agressao',
+      quando: new Date().toISOString(), acolhidos: [ids.crianca],
+      fato: 'Discussão com um colega por causa da bola; separados na hora.',
+      medidasImediatas: 'Conversa com os dois e combinado do revezamento.' });
+    expect(comum.status).toBe(201);
+    expect((await avisos()).length).toBe(antes);
+
+    /* Emergência de saúde exige revisão técnica: chega. */
+    const grave = await post(t.tecnica2, '/incidents', { houseId: ids.ARM2, categoria: 'emergencia_saude',
+      quando: new Date().toISOString(), acolhidos: [ids.crianca], saude: true,
+      fato: 'Febre alta e vômito durante a tarde; levada ao pronto atendimento.',
+      medidasImediatas: 'Educadora acompanhou a criança e avisou a Enfermagem.' });
+    expect(grave.status).toBe(201);
+    let lista = await avisos();
+    expect(lista.some((a) => a.entidade === 'incident' && a.entidadeId === grave.body.id)).toBe(true);
+    /* O aviso não carrega o fato. */
+    expect(JSON.stringify(lista)).not.toMatch(/Febre alta/);
+
+    /* A internação aberta: chega. */
+    const int = await post(t.tecnica2, '/nursing/hospitalizations', { personId: ids.crianca, houseId: ids.ARM2,
+      hospital: 'Hospital Fictício da Suíte', motivo: 'Observação depois da febre alta da tarde.' });
+    expect(int.status).toBe(201);
+    ids.internacao = int.body.id;
+    lista = await avisos();
+    const daInternacao = lista.find((a) => a.entidade === 'hospitalization' && a.entidadeId === ids.internacao);
+    expect(daInternacao?.titulo).toBe('Internação aberta');
+    expect(JSON.stringify(daInternacao)).not.toMatch(/Hospital Fictício|febre/);
+
+    /* A coordenação de UMA casa não recebe o grave de outra. */
+    const { rows: [outra] } = await admin.query(
+      `SELECT count(*)::int AS n FROM notification n JOIN app_user u ON u.id = n.user_id
+        WHERE u.email = 'coord.ai3@paodospobres.dev' AND n.entity_id = $1`, [ids.internacao]);
+    expect(outra.n).toBe(0);
+
+    /* A ATA Geral assinada com pendência: chega UM aviso, e não um por casa. */
+    const noturno = await login('lider.noturno@paodospobres.dev');
+    const g = await post(noturno, '/shifts/general-ata', { data: '2024-05-11' });
+    expect(g.status).toBe(201);
+    ids.ataGeral = g.body.id;
+    const assinada = await post(noturno, `/shifts/general-ata/${ids.ataGeral}/sign`,
+      { pendencias: 'Casas sem ATA noturna fechada nesta data fictícia da suíte.' });
+    expect(assinada.status).toBe(201);
+    lista = await avisos();
+    expect(lista.filter((a) => a.entidade === 'general_night_ata' && a.entidadeId === ids.ataGeral)).toHaveLength(1);
   });
 });

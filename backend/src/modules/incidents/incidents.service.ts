@@ -248,6 +248,9 @@ export class IncidentsService {
     if (input.saude || input.medicamento || cat.code === 'emergencia_saude' || cat.code === 'erro_medicamento') {
       alvos.push('enfermagem');
     }
+    /* As categorias que exigem revisão técnica são as graves, e o grave das oito
+       casas chega também à Coordenação Geral (decisão de 28/09, 1635). */
+    if (cat.revisaoTecnica) alvos.push('coordenacao_geral');
     for (const level of alvos) {
       const pedido: EscalationRequest = {
         level, entity: 'incident', entityId: id, reason: `ocorrencia:${input.categoria}`,

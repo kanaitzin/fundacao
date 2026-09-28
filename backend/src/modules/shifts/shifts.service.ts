@@ -1204,6 +1204,22 @@ export class ShiftsService {
         entity: 'general_night_ata', entityId: id, detail: { casas: abertas },
       });
     }
+    /* A ATA Geral assinada com pendência é um dos graves que chegam à
+       Coordenação Geral (decisão de 28/09, 1635). Um pedido por casa pendente,
+       e a mesma chave: vira UM aviso, com a última casa, e não oito. */
+    if (abertas.length) {
+      const casas = await this.db.asUser(user.id, async (c) => (await c.query(
+        `SELECT id FROM house WHERE code = ANY($1::text[])`, [abertas])).rows as { id: string }[]);
+      for (const casa of casas) {
+        await this.bus.publish('escalation.requested', {
+          level: 'coordenacao_geral', entity: 'general_night_ata', entityId: id,
+          reason: 'ata_geral_com_pendencia',
+          title: 'ATA Geral Noturna assinada com pendência',
+          body: `A ATA Geral da noite foi assinada com casas sem confirmação de fechamento: ${abertas.join(', ')}.`,
+          priority: 'alta', groupKey: `ata-geral:${id}:coordenacao_geral`,
+        }, { actorId: user.id, houseId: casa.id });
+      }
+    }
     // A Geral Noturna é institucional: vai para a raiz sem casa, e é por isso
     // que `houseId` fica nulo — o caminho no Drive diz INSTITUCIONAL.
     const copia: DocumentClosed = {
