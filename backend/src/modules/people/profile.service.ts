@@ -260,6 +260,14 @@ export class ProfileService {
     for (const [k, v] of Object.entries(patch)) {
       if (campos[k]) enviados[campos[k]] = v;
     }
+    /* O alcance vem antes de tudo (fase 171): sem campo nenhum, a resposta
+       era "ok, nada alterado" também para a criança de outra casa, e a
+       sondagem de escrita a acusou como sucesso que mente. */
+    const noAlcance = await this.db.asUser(user.id, async (c) => {
+      const { rows: [r] } = await c.query(`SELECT app_person_in_scope($1) AS ok`, [personId]);
+      return !!r?.ok;
+    });
+    if (!noAlcance) throw new NotFoundException('Perfil não encontrado — ou fora do seu alcance.');
     if (!Object.keys(enviados).length) return { ok: true, alterado: 0 };
 
     let n = 0;
