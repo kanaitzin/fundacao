@@ -76,6 +76,12 @@ export class PeopleController {
     return this.admission.opcoes();
   }
 
+  /** A chegada de noite, pelo plantão (decisão de 28/09). */
+  @Post('chegada')
+  chegada(@CurrentUser() user: AuthenticatedUser, @Body() body: any) {
+    return this.admission.chegadaProvisoria(user, body ?? {});
+  }
+
   @Post('admission')
   admitFull(@CurrentUser() user: AuthenticatedUser, @Body() body: any) {
     return this.admission.admitFull(user, {

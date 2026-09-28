@@ -167,6 +167,10 @@ const QUEM_CADASTRA = ['equipe_tecnica', 'coordenador', 'gestor_geral'];
  * educador não desliga ninguém: a saída encerra episódio, cancela
  * transferências pendentes e move o perfil para o acervo.
  */
+/* Quem registra a chegada de noite, pelo plantão (decisão de 28/09). A técnica,
+   a coordenação e o gestor usam o cadastro completo. A mesma lista está no banco,
+   em `app_chegada_provisoria` (1633). */
+const REGISTRA_CHEGADA = ['educador', 'lider_diurno', 'lider_noturno_geral'];
 const REGISTRA_SAIDA = ['equipe_tecnica', 'coordenador', 'gestor_geral'];
 
 /**
@@ -268,6 +272,7 @@ export function Acolhidos({ houseId, casaLabel, papel }: {
   /* Quem está com a família (1010), e quem já devia ter voltado. */
   const [fora, setFora] = useState<Convivencia[]>([]);
   const [recebendo, setRecebendo] = useState<Convivencia | null>(null);
+  const [chegando, setChegando] = useState(false);
   const [remedios, setRemedios] = useState<Convivencia | null>(null);
   /* A porta que não fecha (1300): o relato da convivência, sem prazo. */
   const [relatando, setRelatando] = useState<Convivencia | null>(null);
@@ -617,6 +622,15 @@ export function Acolhidos({ houseId, casaLabel, papel }: {
         <button className="btn block" onClick={() => setCadastrando(true)}>
           Cadastrar acolhido
         </button>
+      )}
+      {REGISTRA_CHEGADA.includes(papel) && (
+        <button className="btn block sec" onClick={() => setChegando(true)}>
+          Chegou uma criança agora
+        </button>
+      )}
+      {chegando && (
+        <FolhaChegada houseId={houseId} onFechar={() => setChegando(false)}
+                      onRegistrou={(msg) => { setChegando(false); setAviso(msg); void carregar(); }} />
       )}
       {REGISTRA_SAIDA.includes(papel) && (
         <button className="btn block sec" style={{ marginTop: 8 }}
@@ -4752,6 +4766,73 @@ function FolhaEncerrarSaude({ nome, onFechar, onEncerrar }: {
             try { await onEncerrar(motivo.trim()); }
             catch (e) { setErro(e instanceof Error ? e.message : 'Não foi possível encerrar.'); }
           }}>Encerrar</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * A CHEGADA DE NOITE (decisão de 28/09).
+ *
+ * O Conselho Tutelar chega às 23h40 com uma criança, e a técnica só vem de
+ * manhã. O plantão escreve o mínimo, e a criança entra na chamada, na janta e
+ * na ATA agora; a técnica é avisada e completa o cadastro. Quatro campos, porque
+ * quem preenche está com uma criança assustada ao lado.
+ */
+function FolhaChegada({ houseId, onFechar, onRegistrou }: {
+  houseId: string; onFechar: () => void; onRegistrou: (aviso: string) => void;
+}) {
+  const [nome, setNome] = useState('');
+  const [idade, setIdade] = useState('');
+  const [trazidaPor, setTrazidaPor] = useState('');
+  const [comoChegou, setComoChegou] = useState('');
+  const [erro, setErro] = useState('');
+  const [ocupado, setOcupado] = useState(false);
+
+  async function registrar() {
+    setErro(''); setOcupado(true);
+    try {
+      const r = await api<{ aviso: string }>('/people/chegada', {
+        method: 'POST',
+        body: JSON.stringify({ houseId, nome, idadeAproximada: idade === '' ? null : Number(idade),
+                               trazidaPor, chegada: comoChegou }),
+      });
+      onRegistrou(r.aviso);
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Não foi possível registrar a chegada.');
+    } finally { setOcupado(false); }
+  }
+
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-chegada"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet">
+        <h3 id="t-chegada">Chegou uma criança agora</h3>
+        <p className="mutetxt">
+          Escreva só o que você sabe agora. Ela entra na chamada e na ATA deste turno, e a
+          equipe técnica completa o cadastro de manhã.
+        </p>
+        <label className="f" htmlFor="chegada-nome">Nome, como ela se apresentou</label>
+        <input id="chegada-nome" className="field" value={nome} maxLength={120}
+               onChange={(e) => setNome(e.target.value)} placeholder="Ex.: Pedro, disse que o sobrenome é Silva" />
+        <label className="f" htmlFor="chegada-idade">Idade aproximada, em anos</label>
+        <input id="chegada-idade" className="field" type="number" inputMode="numeric" min={0} max={21}
+               value={idade} onChange={(e) => setIdade(e.target.value)} placeholder="Pode ser um palpite" />
+        <label className="f" htmlFor="chegada-quem">Quem trouxe</label>
+        <input id="chegada-quem" className="field" value={trazidaPor} maxLength={200}
+               onChange={(e) => setTrazidaPor(e.target.value)}
+               placeholder="Ex.: Conselho Tutelar, conselheira Márcia, plantão da zona norte" />
+        <label className="f" htmlFor="chegada-como">Como chegou <small>(opcional)</small></label>
+        <textarea id="chegada-como" rows={3} value={comoChegou}
+                  onChange={(e) => setComoChegou(e.target.value)}
+                  placeholder="O que você observou. Ex.: chegou com a roupa do corpo, com fome, e dormiu logo." />
+        {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+        <div className="row" style={{ gap: 8, marginTop: 16 }}>
+          <button type="button" className="btn sec grow" onClick={onFechar}>Cancelar</button>
+          <button type="button" className="btn grow" disabled={ocupado} onClick={registrar}>
+            {ocupado ? 'Registrando…' : 'Registrar a chegada'}
+          </button>
         </div>
       </div>
     </div>

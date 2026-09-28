@@ -132,6 +132,25 @@ describe('Regressão — estado, concorrência e silêncio', () => {
       `SELECT count(*)::int AS n FROM escalation
         WHERE entity='medication_dose' AND level='enfermagem'`);
     expect(depois[0].n).toBe(rows[0].n);
+
+    /*
+     * E NO DIA SEGUINTE TAMBÉM NÃO (decisão de 28/09). A chave é por dia, e a
+     * simulação de noventa dias viu a mesma dose avisada todo dia, para sempre.
+     * O aviso de ontem é posto à mão, com a data de ontem; a rodada de hoje não
+     * pode avisar de novo a mesma dose.
+     */
+    const { rows: [dose] } = await admin.query(
+      `SELECT entity_id AS id, house_id FROM escalation
+        WHERE entity = 'medication_dose' AND level = 'enfermagem' LIMIT 1`);
+    await admin.query(
+      `UPDATE escalation SET at = at - interval '1 day'
+        WHERE entity = 'medication_dose' AND entity_id = $1`, [dose.id]);
+    await request(http).post('/api/v1/medications/escalate-overdue')
+      .set(auth(tokens.enfermagem)).send({ houseId: AI3, minutos: 1 });
+    const { rows: [hoje] } = await admin.query(
+      `SELECT count(*)::int AS n FROM escalation
+        WHERE entity = 'medication_dose' AND entity_id = $1 AND on_date = app_hoje()`, [dose.id]);
+    expect(hoje.n).toBe(0);
   });
 
   it('ninguém confirma a dose por cima de outro, e o estoque cai uma vez só', async () => {

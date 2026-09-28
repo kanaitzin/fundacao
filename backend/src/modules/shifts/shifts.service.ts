@@ -553,6 +553,36 @@ export class ShiftsService {
    * faltava era a PORTA: a ATA já era legível por toda a equipe da casa, e a
    * tela pedia sempre o plantão de hoje.
    */
+  /** As ATAs cujo turno já terminou e que ninguém fechou, da mais antiga à mais nova. */
+  async atasAbertas(user: AuthenticatedUser, houseId: string) {
+    const linhas = await this.db.asUser(user.id, async (c) => {
+      const { rows: [casa] } = await c.query(`SELECT app_house_in_scope($1) AS pode`, [houseId]);
+      if (!casa?.pode) return null;
+      const { rows } = await c.query(
+        `SELECT s.id AS plantao_id, a.id AS ata_id, s.on_date::text AS data, s.period AS turno,
+                a.status
+           FROM shift s
+           -- rls-join-ok (ata): a ATA é do próprio plantão, e as duas políticas são pela casa.
+           JOIN ata a ON a.shift_id = s.id
+          WHERE s.house_id = $1
+            AND a.status IN ('rascunho','reaberta')
+            AND (SELECT j.ate FROM app_janela_do_turno(s.house_id, s.on_date, s.period) j) < now()
+          ORDER BY s.on_date, s.period`, [houseId]);
+      return rows;
+    });
+    if (!linhas) throw new NotFoundException('Unidade não encontrada — ou fora do seu alcance.');
+    /* A mesma regra de `app_close_ata`: a diurna é do Líder Diurno, a noturna do
+       Líder Noturno Geral, e as duas da equipe técnica e da coordenação. */
+    const fecha: Record<string, string[]> = {
+      diurno: ['lider_diurno', 'equipe_tecnica', 'coordenador'],
+      noturno: ['lider_noturno_geral', 'equipe_tecnica', 'coordenador'],
+    };
+    return linhas.map((l: any) => ({
+      plantaoId: l.plantao_id, ataId: l.ata_id, data: l.data, turno: l.turno,
+      situacao: l.status, podeFechar: fecha[l.turno]?.includes(user.role) ?? false,
+    }));
+  }
+
   async anterior(user: AuthenticatedUser, houseId: string) {
     const linha = await this.db.asUser(user.id, async (c) => {
       const { rows: [r] } = await c.query(

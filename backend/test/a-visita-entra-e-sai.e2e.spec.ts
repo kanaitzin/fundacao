@@ -288,6 +288,11 @@ describe('A visita entra e sai', () => {
     expect(r.status).toBe(200);
     expect(r.body.contagem.noPeriodo).toBeGreaterThanOrEqual(3);
     expect(r.body.contagem.total).toBeGreaterThanOrEqual(r.body.contagem.noAno);
+    /* Sem período, desde o acolhimento, e não desde 1º de janeiro (28/09). */
+    const { rows: [chegou] } = await admin.query(
+      `SELECT min((started_at AT TIME ZONE 'America/Sao_Paulo')::date)::text AS d
+         FROM house_stay WHERE person_id = $1`, [ids.crianca]);
+    expect(r.body.periodo.de).toBe(chegou.d);
     const nomes = r.body.visitantes.map((v: any) => v.nome);
     expect([...nomes].sort((a: string, b: string) => a.localeCompare(b, 'pt-BR'))).toEqual(nomes);
     /* O nome social é o nome com que a pessoa é chamada. */

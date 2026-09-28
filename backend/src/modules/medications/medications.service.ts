@@ -753,7 +753,14 @@ export class MedicationsService {
               a grade a esconde (1010). Avisar dela é pedir o impossível: a
               simulação da fase 173 viu três doses de um fim de semana com a
               avó avisadas todo dia, por setenta dias. */
-           AND NOT app_ausente_da_casa(a.person_id, (a.scheduled_at AT TIME ZONE app_fuso())::date)`, [houseId, minutos]);
+           AND NOT app_ausente_da_casa(a.person_id, (a.scheduled_at AT TIME ZONE app_fuso())::date)
+           /* Cada dose é avisada UMA vez (decisão de 28/09). Ela continua
+              aguardando confirmação na grade e na passagem; o que não se repete
+              é o aviso. Antes, a chave por dia fazia a mesma dose avisar todo dia,
+              para sempre: 319 doses esquecidas viraram 32 mil avisos em noventa
+              dias, e o texto dizia quantas venceram contando as de novembro. */
+           AND NOT EXISTS (SELECT 1 FROM escalation e
+                            WHERE e.entity = 'medication_dose' AND e.entity_id = a.id)`, [houseId, minutos]);
       return rows;
     });
 

@@ -186,6 +186,18 @@ export class ShiftsController {
    * A ATA do turno ANTERIOR — palavra fixa, e por isso antes do `@Get(':id')`.
    * É a porta que faltava para "todos leem a ATA do turno anterior" (0970).
    */
+  /**
+   * As ATAs de dias anteriores que ainda estão abertas (decisão de 28/09).
+   * A simulação de noventa dias deixou as 25 ATAs diurnas de sábado e domingo
+   * abertas para sempre: quem fecha a diurna não trabalha no fim de semana. Na
+   * segunda, o Líder Diurno as vê aqui e as fecha pelo caminho de sempre.
+   */
+  @Get('abertas')
+  abertas(@CurrentUser() user: AuthenticatedUser,
+          @Query('houseId', ParseUUIDPipe) houseId: string) {
+    return this.shifts.atasAbertas(user, houseId);
+  }
+
   @Get('anterior')
   anterior(@CurrentUser() user: AuthenticatedUser,
            @Query('houseId', ParseUUIDPipe) houseId: string) {

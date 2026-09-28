@@ -2969,6 +2969,38 @@ cobrar('o voltar do navegador volta de tela, sem sair do sistema',
   /Dia/.test(await pg.locator('nav.tabbar button.on').first().innerText().catch(() => '')));
 cobrar('nenhuma exceção na sessão e no voltar', erros.length === 0, erros[0]);
 
+/*
+ * AS DECISÕES DE 28/09 (fase 173): a ATA do fim de semana que o Líder Diurno
+ * fecha na segunda, e a criança que chega de noite pelo plantão.
+ */
+console.log('\n🌙 A ATA do fim de semana e a chegada de noite (fase 173)');
+await fechar();
+await trocar('lider_diurno');
+if (!(await aba('ATA'))) await doMais('ATA');
+cobrar('o Líder Diurno vê as ATAs de dias anteriores ainda abertas',
+  (await pg.getByRole('region', { name: /ATAs de dias anteriores ainda abertas/ }).count()) > 0);
+await pg.getByRole('button', { name: /Abrir a ATA diurno de/ }).first().click();
+await pg.waitForTimeout(900);
+cobrar('e abre a de sábado, com o botão de fechar', /ATA diurno/.test(await conteudo())
+  && (await pg.getByRole('button', { name: /Fechar a ATA da casa/ }).count()) > 0);
+await trocar('educador');
+if (!(await aba('ATA'))) await doMais('ATA');
+cobrar('o educador não recebe a lista de fechar',
+  (await pg.getByRole('region', { name: /ATAs de dias anteriores ainda abertas/ }).count()) === 0);
+await aba('Acolhidos');
+await pg.getByRole('button', { name: /Chegou uma criança agora/ }).click();
+await pg.waitForTimeout(400);
+await pg.getByRole('button', { name: /Registrar a chegada/ }).click();
+await pg.waitForTimeout(500);
+cobrar('sem o nome, a chegada diz o que falta', /nome como a criança se apresentou/.test(await corpo()));
+await pg.locator('#chegada-nome').fill('Pedro da Noite (fictício)');
+await pg.locator('#chegada-idade').fill('8');
+await pg.locator('#chegada-quem').fill('Conselho Tutelar, plantão noturno');
+await pg.getByRole('button', { name: /Registrar a chegada/ }).click();
+await pg.waitForTimeout(900);
+cobrar('a criança que chegou entra na lista da casa', /Pedro da Noite/.test(await conteudo()));
+cobrar('nenhuma exceção na ATA do fim de semana e na chegada', erros.length === 0, erros[0]);
+
 await navegador.close();
 console.log(achados.length
   ? `\n${achados.length} ACHADO(S):\n  ${achados.join('\n  ')}`

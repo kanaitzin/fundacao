@@ -176,6 +176,13 @@ const hhmm = (iso: string) => new Date(iso).toLocaleTimeString('pt-BR',
   { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' });
 
 /** Quem fecha a ATA da casa (§12.4) — o mesmo alcance do servidor. */
+interface AtaAberta {
+  plantaoId: string; ataId: string; data: string; turno: string;
+  situacao: string; podeFechar: boolean;
+}
+const diaDaSemana = (iso: string) => ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'][
+  new Date(`${iso.slice(0, 10)}T12:00:00Z`).getUTCDay()];
+
 const FECHA_ATA = ['lider_diurno', 'lider_noturno_geral', 'equipe_tecnica', 'coordenador', 'gestor_geral'];
 
 /**
@@ -324,6 +331,8 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
   const [conteudo, setConteudo] = useState<Record<string, string>>({});
   /** A ATA do turno anterior — o que a equipe que ENTRA abre para ler (0970). */
   const [lendoAnterior, setLendoAnterior] = useState(false);
+  /* As ATAs de dias anteriores que ninguém fechou (decisão de 28/09). */
+  const [abertas, setAbertas] = useState<AtaAberta[]>([]);
   const [semAnterior, setSemAnterior] = useState('');
   const [linha, setLinha] = useState('');
   const [linhaRestrita, setLinhaRestrita] = useState(false);
@@ -348,6 +357,9 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
   async function carregar() {
     setErro('');
     void carregarLeituras();
+    if (FECHA_ATA.includes(papel)) {
+      setAbertas(await api<AtaAberta[]>(`/shifts/abertas?houseId=${houseId}`).catch(() => []));
+    }
     try {
       // A lista da casa é do módulo `people` e chega junto: o episódio é de UM
       // acolhido, e escolher pelo nome é o que evita o registro no perfil
@@ -574,6 +586,39 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
             * à parte: quem chega às 19h abre a ATA para saber o que houve, e a
             * pergunta "o que aconteceu antes de mim" é da mesma tela.
             */}
+          {/*
+            * AS ATAS QUE FICARAM ABERTAS (decisão de 28/09). Quem fecha a diurna
+            * não trabalha no fim de semana; na segunda, o Líder Diurno encontra
+            * aqui as de sábado e domingo, abre e fecha como sempre.
+            */}
+          {abertas.filter((a) => a.podeFechar).length > 0 && (
+            <div className="card stack" role="region" aria-label="ATAs de dias anteriores ainda abertas">
+              <h3 style={{ fontSize: 16, margin: 0 }}>ATAs de dias anteriores ainda abertas</h3>
+              <p className="mutetxt" style={{ margin: 0 }}>
+                O turno já terminou e ninguém fechou. Abra, confira as passagens e feche; o que
+                faltar assinar fica registrado como pendência.
+              </p>
+              {abertas.filter((a) => a.podeFechar).map((a) => (
+                <div key={a.ataId} className="row">
+                  <span className="grow">
+                    ATA {a.turno} · <b>{diaDaSemana(a.data)}, {dia(a.data)}</b>
+                  </span>
+                  <button className="btn sm ghost" onClick={async () => {
+                    setEscolhido(a.plantaoId); setLendoAnterior(false); setSemAnterior('');
+                    const novo = await api<Plantao>(`/shifts/${a.plantaoId}`);
+                    setPlantao(novo);
+                    setConteudo((novo.ata?.conteudo ?? {}) as Record<string, string>);
+                    setAdendos(novo.ata
+                      ? await api<Adendo[]>(`/shifts/ata/${novo.ata.id}/addenda`).catch(() => [])
+                      : []);
+                  }}>
+                    Abrir a ATA {a.turno} de {dia(a.data)}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
           <div className="filtros" role="tablist" aria-label="Turno">
             {doDia.map((p) => (
                 <button key={p.id} role="tab" aria-selected={escolhido === p.id}

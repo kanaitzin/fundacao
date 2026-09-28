@@ -179,7 +179,19 @@ export class VisitasService {
   async daCrianca(user: AuthenticatedUser, personId: string, de?: string, ate?: string) {
     const hoje = hojeNaInstituicao();
     const fim = ate || hoje;
-    const inicio = de || `${fim.slice(0, 4)}-01-01`;
+    /*
+     * SEM PERÍODO, DESDE O ACOLHIMENTO (decisão de 28/09). Começava em 1º de
+     * janeiro: em fevereiro, a Lara da simulação aparecia com 2 visitas quando
+     * tinha 9 desde que chegou em novembro. As contagens do mês, do semestre e
+     * do ano continuam ao lado.
+     */
+    const desdeQuando = de ? null : await this.db.asUser(user.id, async (c) => {
+      const { rows: [r] } = await c.query(
+        `SELECT min((started_at AT TIME ZONE app_fuso())::date)::text AS d
+           FROM house_stay WHERE person_id = $1`, [personId]);
+      return (r?.d as string | null) ?? null;
+    });
+    const inicio = de || desdeQuando || `${fim.slice(0, 4)}-01-01`;
     if (inicio > fim) throw new BadRequestException('O início do período vem antes do fim.');
     const linhas = await this.db.asUser(user.id, async (c) => {
       const { rows } = await c.query(

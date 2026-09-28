@@ -1246,12 +1246,39 @@ interface Passagem {
 }
 interface Plantao {
   id: string; turno: string; status: string; abertoEm: string; fechadoEm: string | null;
+  /** Só nos plantões de dias anteriores; sem ele, o plantão é de hoje. */
+  data?: string;
   passagens: Passagem[];
   recebimentos: { id: string; quem: string; userId: string; recebidoEm: string;
                   leuOrientacoes: boolean; assumiuPendencias: boolean; nota: string | null }[];
   esperados: { quem: string; cargo: string; userId: string }[];
 }
+/* O sábado mais recente antes de hoje: a ATA diurna dele fica aberta (28/09). */
+const SABADO_PASSADO = (() => {
+  const d = new Date(`${HOJE}T12:00:00Z`);
+  do { d.setUTCDate(d.getUTCDate() - 1); } while (d.getUTCDay() !== 6);
+  return d.toISOString().slice(0, 10);
+})();
+
 let PLANTOES: Plantao[] = [
+  /*
+   * A ATA DIURNA DO SÁBADO, AINDA ABERTA (decisão de 28/09). Quem fecha a
+   * diurna não trabalha no fim de semana, e a simulação de noventa dias deixou
+   * vinte e cinco assim. Na segunda o Líder Diurno a vê no alto da tela da ATA
+   * e a fecha; sem ela aqui, a lista nasceria invisível no protótipo (§6.19).
+   */
+  { id: 's-sabado', turno: 'diurno', status: 'aberto', data: SABADO_PASSADO,
+    abertoEm: new Date(`${SABADO_PASSADO}T07:00:00-03:00`).toISOString(), fechadoEm: null,
+    passagens: [
+      { id: 'h-sab', quem: 'Tainá Souza (fictícia)', cargo: 'educador', userId: 'u7',
+        contribuicoes: 'Sábado de pátio e piscina de plástico; almoço com a avó da Alice na visita.',
+        pendencias: 'Nenhuma.', orientacoes: 'Seguir a rotina de domingo.', medicacao: null,
+        assinadaEm: new Date(`${SABADO_PASSADO}T19:05:00-03:00`).toISOString(),
+        horarioReal: new Date(`${SABADO_PASSADO}T19:05:00-03:00`).toISOString(),
+        complementoTardio: false, offline: false, complementos: [] },
+    ],
+    recebimentos: [],
+    esperados: [{ quem: 'Tainá Souza (fictícia)', cargo: 'educador', userId: 'u7' }] },
   /* O turno anterior — a noite que acabou de terminar. É o que a equipe que
      entra abre para ler, e por isso vem fechado, com passagem assinada. */
   { id: 's0', turno: 'noturno', status: 'fechado', abertoEm: emHoras(19, 0),
@@ -2164,7 +2191,7 @@ function remediosDoTurno(turno: string) {
   const semResposta = doses.filter((d) => d.semResposta).length;
   /* "Alguém tem que dizer", e não "cada um tem que dizer": a cobrança é de
      quem assina primeiro. */
-  const jaEscrito = PLANTOES.some((p) => p.turno === turno
+  const jaEscrito = PLANTOES.some((p) => !p.data && p.turno === turno
     && p.passagens.some((h) => (h.medicacao ?? '').trim().length > 0));
   return { doses, total: doses.length, semResposta, jaEscrito,
            exigeFrase: semResposta > 0 && !jaEscrito };
@@ -2831,7 +2858,7 @@ const ARQUIVO_ATAS: AtaArquivada[] = [
 
 /** A capa da ATA de hoje, montada a partir do plantão vivo. */
 function capaDoPlantao(turno: string) {
-  const s = PLANTOES.find((x) => x.turno === turno);
+  const s = PLANTOES.find((x) => !x.data && x.turno === turno);
   if (!s) return null;
   const a = ataDo(s.id);
   const faltam = s.esperados.filter(
@@ -3739,7 +3766,7 @@ const EPISODIOS: EpisodioMock[] = [];
  */
 function semearEpisodio() {
   if (EPISODIOS.length) return;
-  const s = PLANTOES.find((x) => x.turno === 'diurno');
+  const s = PLANTOES.find((x) => !x.data && x.turno === 'diurno');
   if (!s) return;
   EPISODIOS.push({
     id: 'ep1', ataId: ataDo(s.id).id, acolhidoId: 'p01',
@@ -4202,7 +4229,8 @@ function duracaoDaVisita(min: number) {
 /** As visitas de uma criança — a mesma forma de `visitas.service.ts#daCrianca`. */
 function visitasDaCrianca(kidId: string, de?: string, ate?: string) {
   const fim = ate || HOJE;
-  const inicio = de || `${fim.slice(0, 4)}-01-01`;
+  /* Sem período, desde o acolhimento (decisão de 28/09), como no servidor. */
+  const inicio = de || ACOLHIMENTOS[kidId]?.ingressoEm || `${fim.slice(0, 4)}-01-01`;
   const diaDe = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo',
     year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(iso));
   const minutos = (v: { entrou: string; saiu: string | null }) =>
@@ -6337,8 +6365,18 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         + 'nunca de quem arrumou ou deixou de arrumar (§3.3).',
     };
   }
+  if (rota === '/shifts/abertas' && metodo === 'GET') {
+    const fecha: Record<string, string[]> = {
+      diurno: ['lider_diurno', 'equipe_tecnica', 'coordenador'],
+      noturno: ['lider_noturno_geral', 'equipe_tecnica', 'coordenador'],
+    };
+    return PLANTOES.filter((s) => s.data && ataDo(s.id).status === 'aberta').map((s) => ({
+      plantaoId: s.id, ataId: ataDo(s.id).id, data: s.data, turno: s.turno,
+      situacao: 'rascunho', podeFechar: fecha[s.turno]?.includes(eu.role) ?? false,
+    }));
+  }
   if (rota === '/shifts' && metodo === 'GET') {
-    return PLANTOES.map((s) => {
+    return PLANTOES.filter((s) => !s.data).map((s) => {
       const a = ataDo(s.id);
       return {
         id: s.id, turno: s.turno, status: s.status, abertoEm: s.abertoEm, fechadoEm: s.fechadoEm,
@@ -6350,7 +6388,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     });
   }
   if (rota === '/shifts' && metodo === 'POST') {
-    const existente = PLANTOES.find((s) => s.turno === b.turno);
+    const existente = PLANTOES.find((s) => !s.data && s.turno === b.turno);
     if (existente) return { plantaoId: existente.id, novo: false, turno: b.turno };
     const novo: Plantao = {
       id: uid(), turno: b.turno, status: 'aberto', abertoEm: new Date().toISOString(),
@@ -7093,7 +7131,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     semearEpisodio();
     const s = PLANTOES.find((x) => x.id === seg[1])!;
     return {
-      id: s.id, casaId: CASA.id, data: HOJE, turno: s.turno, status: s.status,
+      id: s.id, casaId: CASA.id, data: s.data ?? HOJE, turno: s.turno, status: s.status,
       abertoEm: s.abertoEm, fechadoEm: s.fechadoEm,
       // A ATA vem DENTRO do plantão, como no servidor.
       ata: (() => {
@@ -7818,6 +7856,40 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
                acao: 'Iniciar retorno — novo episódio no mesmo perfil' };
     }
     return { situacao: 'livre', personId: null, acao: 'Cadastrar novo acolhido' };
+  }
+  /* A chegada de noite, pelo plantão (decisão de 28/09): as mesmas recusas do servidor. */
+  if (rota === '/people/chegada' && metodo === 'POST') {
+    if (!['educador', 'lider_diurno', 'lider_noturno_geral', 'equipe_tecnica', 'coordenador',
+          'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403, 'Registram a chegada o educador, os líderes, a equipe técnica e a coordenação da casa.');
+    }
+    if (String(b.nome ?? '').trim().length < 3) {
+      return new Recusa(400, 'Escreva o nome como a criança se apresentou. Se ela não disse, escreva como a chamam.');
+    }
+    const idade = Number(b.idadeAproximada);
+    if (b.idadeAproximada === null || b.idadeAproximada === '' || !Number.isInteger(idade)) {
+      return new Recusa(400, 'Informe a idade aproximada, em anos. Pode ser um palpite: a técnica corrige de manhã.');
+    }
+    if (idade < 0 || idade > 21) return new Recusa(400, 'A idade aproximada vai de 0 a 21 anos.');
+    if (String(b.trazidaPor ?? '').trim().length < 3) {
+      return new Recusa(400, 'Escreva quem trouxe a criança: o Conselho Tutelar, a Brigada, a família.');
+    }
+    const ano = Number(HOJE.slice(0, 4)) - idade;
+    const novo: Kid = {
+      id: uid(), nome: String(b.nome).trim(), civil: String(b.nome).trim(), nascimento: `${ano}-01-01`,
+      idade, cuidado: '', serie: '—', turno: '—',
+      semCpf: true, provisorio: `PROV-${uid().toUpperCase()}`,
+      judicial: { motivo: '—', detalhe: '', medida: 'Acolhimento institucional', orgao: '—',
+                  vara: '', processo: '', guia: '', guiaEm: '' },
+    };
+    NOVOS.push(novo);
+    const acima = todosKids().length > 20;
+    return {
+      personId: novo.id, episodeId: uid(), acimaDoLimite: acima,
+      aviso: 'Chegada registrada. A criança já está na casa, na chamada e na ATA. A equipe técnica '
+        + 'foi avisada para completar o cadastro.'
+        + (acima ? ' A casa está no limite de vagas: a coordenação vai conferir.' : ''),
+    };
   }
   if (rota === '/people/admission') {
     const acima = todosKids().length + 1 > 20;

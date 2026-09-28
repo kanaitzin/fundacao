@@ -72,6 +72,7 @@ export const VOCABULARIO_DA_AUDITORIA: Record<string, string> = {
   // ---------------------------------------------------------------- Acolhido
   'person.admit': 'Acolhimento registrado',
   'person.admit_full': 'Acolhimento registrado com ficha de ingresso',
+  'person.arrival_provisional': 'Chegada registrada pelo plantão, com cadastro provisório',
   'person.readmit': 'Reacolhimento registrado',
   'person.discharge': 'Saída registrada',
   'person.profile_update': 'Cadastro do acolhido alterado',

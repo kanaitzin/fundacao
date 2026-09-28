@@ -3,6 +3,7 @@ import {
   Inject, Injectable, NotFoundException,
 } from '@nestjs/common';
 import { DatabaseService } from '../../kernel/database/database.service';
+import { EventBus } from '../../kernel/events/event-bus.service';
 import { AuditService } from '../../kernel/audit/audit.service';
 import { AuthenticatedUser } from '../../kernel/contracts';
 import { isValidCpf, normalizeCpf } from '../../kernel/common/cpf';
@@ -67,7 +68,68 @@ export class AdmissionService {
   constructor(
     @Inject(DatabaseService) private readonly db: DatabaseService,
     @Inject(AuditService) private readonly audit: AuditService,
+    @Inject(EventBus) private readonly bus: EventBus,
   ) {}
+
+  /**
+   * A CHEGADA DE NOITE (decisão de 28/09, migração 1633).
+   *
+   * O plantão registra o mínimo e a criança entra na casa agora: na chamada, na
+   * refeição, na ATA. A técnica e a coordenação são avisadas para completar de
+   * manhã. O aviso não leva o nome da criança, só diz onde olhar.
+   */
+  async chegadaProvisoria(user: AuthenticatedUser, input: {
+    houseId?: string; nome?: string; idadeAproximada?: number | string;
+    trazidaPor?: string; chegada?: string;
+  }) {
+    if (!input.houseId) throw new BadRequestException('Informe a casa.');
+    const idade = Number(input.idadeAproximada);
+    if (!Number.isInteger(idade)) {
+      throw new BadRequestException('Informe a idade aproximada, em anos. Pode ser um palpite: a técnica corrige de manhã.');
+    }
+    const r = await this.db.asUser(user.id, async (c) => {
+      const { rows: [row] } = await c.query(
+        `SELECT * FROM app_chegada_provisoria($1, $2, $3, $4, $5)`,
+        [input.houseId, input.nome ?? '', idade, input.trazidaPor ?? '', input.chegada ?? null]);
+      return row;
+    }).catch((e: any) => {
+      const m = String(e?.message ?? '');
+      if (m.includes('sem_permissao_chegada')) {
+        throw new ForbiddenException('Registram a chegada o educador, os líderes, a equipe técnica e a coordenação da casa.');
+      }
+      if (m.includes('chegada_sem_nome')) {
+        throw new BadRequestException('Escreva o nome como a criança se apresentou. Se ela não disse, escreva como a chamam.');
+      }
+      if (m.includes('chegada_idade_invalida')) {
+        throw new BadRequestException('A idade aproximada vai de 0 a 21 anos.');
+      }
+      if (m.includes('chegada_sem_quem_trouxe')) {
+        throw new BadRequestException('Escreva quem trouxe a criança: o Conselho Tutelar, a Brigada, a família.');
+      }
+      throw e;
+    });
+
+    await this.audit.log({
+      action: 'person.arrival_provisional', actorId: user.id, institutionId: user.institutionId,
+      houseId: input.houseId, entity: 'person', entityId: r.person_id,
+      detail: { acimaDoLimite: r.acima_do_limite },
+    });
+    await this.bus.publish('escalation.requested', {
+      level: 'tecnica_coordenacao', entity: 'person', entityId: r.person_id,
+      reason: 'chegada provisória pelo plantão',
+      title: 'Chegou uma criança pelo plantão',
+      body: 'O plantão registrou uma chegada com o cadastro provisório. Complete o cadastro: '
+        + 'documentos, dados judiciais e a data de nascimento.',
+      priority: 'alta', groupKey: `chegada:${input.houseId}`,
+    }, { actorId: user.id, houseId: input.houseId });
+
+    return {
+      personId: r.person_id, episodeId: r.episode_id, acimaDoLimite: r.acima_do_limite,
+      aviso: 'Chegada registrada. A criança já está na casa, na chamada e na ATA. A equipe técnica '
+        + 'foi avisada para completar o cadastro.'
+        + (r.acima_do_limite ? ' A casa está no limite de vagas: a coordenação vai conferir.' : ''),
+    };
+  }
 
   /** Listas fechadas do formulário — vêm do servidor para não divergirem do CHECK. */
   opcoes() {
