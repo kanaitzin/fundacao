@@ -16,6 +16,8 @@
 #
 # Uso:  bash scripts/simulacao-da-casa.sh [dias]      (padrão: 90)
 #       SIM_INICIO="2026-11-16 07:00:00" para outro primeiro dia
+#       SIM_CASAS=AI1,AI2,AI3,AI4,ARM1,ARM2,ARM3,ARM4 para as oito casas
+#         viverem o mesmo período, com a instituição junto (fase 177)
 #
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
