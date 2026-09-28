@@ -750,6 +750,11 @@ export class IncidentsService {
         throw new BadRequestException('Descreva a finalidade da abertura (mínimo 15 caracteres).');
       }
       if (m.includes('anexo_inexistente')) throw new NotFoundException('Anexo não encontrado.');
+      /* O anexo de ocorrência de outra casa (fase 171): a função recusava
+         certo, e a recusa chegava como erro 500. Igual a inexistente. */
+      if (m.includes('fora_de_escopo')) {
+        throw new NotFoundException('Anexo não encontrado — ou fora do seu alcance.');
+      }
       throw e;
     }
   }

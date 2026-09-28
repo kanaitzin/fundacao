@@ -162,7 +162,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 27/09/2026, fase 170
+### Onde estamos — 28/09/2026, fase 171
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -196,13 +196,15 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 168 | **o §39**: o **registro guardado sem sinal subia com a identidade de quem estivesse entrado** quando o sinal voltava (agora leva `autorId` e só sobe com a sessão dessa pessoa); **sessão que termina** abre a entrada por cima da tela, na mesma conta; **duas abas** rebaixavam a operação aplicada; o **voltar** saía da página; o **aparelho cheio** dizia "fica guardado"; e a **lista de aniversários daria erro em 2028** depois de fevereiro (1627) |
 | 169 | **a sondagem de alcance das quatro superfícies que ficaram sem dado** (cozinha, cofre, acompanhamento, foto de memória), agora como suíte e com registro real: nenhuma escrita passou, nada vazou, mas **quatro leituras respondiam 200 vazio** à Casa 04, e a do cofre **gravava na auditoria uma abertura que não houve** |
 | 170 | **a sondagem de alcance virou suíte permanente** (`zz-a-sondagem-de-alcance`, POR ÚLTIMO pelo `test/setup/sequenciador.js`) e achou **41 leituras com a casa na consulta respondendo 200 vazio** à Casa 04; conserto num lugar só (`CasaDaConsulta`, com `@CasaConferidaNoServico` para a portaria). E a **Enfermagem baixa o relatório da internação** (decisão de 27/09) |
+| 171 | **a sondagem de ESCRITA entre casas virou suíte permanente** (`zz-b-a-sondagem-de-escrita`), com a prova no BANCO (fotografia das linhas da Casa 03 antes e depois de cada rota): 168 rotas, nenhuma escrita passou; a edição do perfil respondia **ok** à Casa 04 com corpo vazio, e abrir anexo de ocorrência de fora dava **500** |
 
-**Medido no fim da 170:** 168 migrações, 124 tabelas, 119 suítes, 1118 testes, verdes nas
+**Medido no fim da 171:** 168 migrações, 124 tabelas, 120 suítes, 1120 testes, verdes nas
 DUAS condições de relógio; os sete ensaios de navegador verdes, com a portaria e o
 portão, o armário, a cozinha, os temas e a foto no percurso do `ensaio:uso`; **435 telas (145 × três
 temas) sem violação de WCAG 2.1 AA**; nenhuma
 rota sem teste; nenhuma rota — escrita ou leitura — com 500; **250 leituras sondadas
-pela Casa 04 com registro real da Casa 03, sem achado**; nenhum ouvinte
+pela Casa 04 com registro real da Casa 03, sem achado; 168 rotas de escrita, sem linha
+da Casa 03 mudada**; nenhum ouvinte
 falhando; nenhuma escrita da Casa 04 aceita sobre registro real da Casa 03.
 
 **As TRÊS cores do sistema, porque confundi-las é o pior que esta tela pode
@@ -264,11 +266,9 @@ e duas abas no NAVEGADOR não têm ensaio próprio (a trava é do navegador; a
 corrida no servidor tem teste). **Respondido em 27/09:** o voltar com folha aberta
 continua sem fazer nada, e a Enfermagem baixa o relatório da internação (170).
 
-**1. As medições de alcance estão feitas, e a de leitura é permanente** — a
-sondagem de toda leitura roda por último em todo `npm test` (170), e as quatro
-superfícies da 169 têm suíte própria. A de ESCRITA (156) foi à mão e não está no
-repositório: medir escrita entre casas pede corpo de verdade rota a rota, e é o
-que falta se alguém quiser a mesma garantia para as escritas.
+**1. As medições de alcance estão feitas e são permanentes** — leitura (170) e
+escrita (171) rodam por último em todo `npm test`, e as quatro superfícies da 169
+têm suíte própria. **Não há mais etapa de código que não dependa de alguém.**
 
 **2. Aplicar o roteiro com a equipe.** Continua sendo o que mais muda o sistema, e
 o único que não se faz daqui.
@@ -423,6 +423,10 @@ novo.
   *"o RLS filtra"*: o vazio que a 158 chamou de mentira estava escrito como
   regra. **Antes de corrigir o teste que reprova, pergunte o que ele quis dizer**
   — todos queriam "quem é de fora não vê", e a 404 diz isso melhor.
+- **A prova de escrita é o banco, não o status** (171). Com corpo genérico, o
+  400 por formato chega antes da pergunta de alcance e não diz nada; a
+  fotografia das linhas da casa antes e depois de cada rota diz. E ela achou o
+  que o status não acharia: o *"ok, nada alterado"* que saía antes da pergunta.
 - **Frase de tela que envelhece é frase que mente**, e a cobrança do ensaio que a
   guarda tem de ser reescrita junto. A ressalva do painel sobre nota escolar já foi
   reescrita três vezes. **Isto inclui este arquivo.**
