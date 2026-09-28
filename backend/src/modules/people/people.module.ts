@@ -8,6 +8,7 @@ import { VisitasService } from './visitas.service';
 import { PortariaService } from './portaria.service';
 import { CamposDoPerfilService } from './campos.service';
 import { AniversariosService } from './aniversarios.service';
+import { PiaService } from './pia.service';
 import { ProfileService } from './profile.service';
 import { ContatosService } from './contatos.service';
 import { BenefitsService } from './benefits.service';
@@ -22,10 +23,10 @@ import { CredentialsService } from './credentials.service';
   providers: [PeopleService, ProfileService,
     CozinhaService, VisitasService, PortariaService, CamposDoPerfilService, AniversariosService,
     ContatosService, BenefitsService, TransfersService, AdmissionService, CredentialsService,
-    DossieService, SaudeDoPerfilService],
+    DossieService, SaudeDoPerfilService, PiaService],
   /* `AniversariosService` sai pela porta desde a fase 103: é o relógio que
      dispara o aviso de aniversário, e nenhum módulo alcança arquivo interno
-     de outro. */
-  exports: [PeopleService, AniversariosService],
+     de outro. O `PiaService` sai pelo mesmo motivo (fase 178). */
+  exports: [PeopleService, AniversariosService, PiaService],
 })
 export class PeopleModule {}

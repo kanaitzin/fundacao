@@ -7,10 +7,13 @@
   "publica": [
     "PeopleModule",
     "PeopleService",
-    "PersonSummary"
+    "PersonSummary",
+    "AniversariosService",
+    "PiaService"
   ],
   "tabelas": [
     "admission_record",
+    "pia_aviso",
     "benefit_record",
     "birthday_ack",
     "care_episode",

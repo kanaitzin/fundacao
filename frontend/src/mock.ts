@@ -745,6 +745,12 @@ const AVISOS = [
     texto: 'Fonoaudiologia da Lara às 15h, na Clínica Fictícia. Responsável designado.',
     prioridade: 'normal', entidade: 'activity', entidadeId: 'c1',
     lida: true, ciente: true, em: emHoras(8, 0) },
+  /* O PIA que está chegando (fase 178, decisão de 28/09): trinta dias antes, por
+     criança, à técnica e à coordenação. A data é a validade do último PIA. */
+  { id: 'n6', titulo: `O PIA de Alice vence em ${new Date(Date.now() + 18 * 864e5).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit' })}`,
+    texto: 'O próximo PIA de Alice está previsto para daqui a dezoito dias. O plano está no dossiê da criança, na parte restrita.',
+    prioridade: 'normal', entidade: 'pia', entidadeId: 'pia1',
+    lida: false, ciente: false, em: emHoras(5, 0) },
 ];
 
 /**

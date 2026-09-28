@@ -58,8 +58,9 @@ describe('O relógio', () => {
 
     expect(r.dia).toBe(hojeNaInstituicao());
     expect(r.casas).toBeGreaterThanOrEqual(8);
-    /* Seis rotinas por casa. Se alguma sumir, o número cai e o teste avisa. */
-    expect(r.rodadas).toBe(r.casas * 6);
+    /* Sete rotinas por casa (a sétima, o PIA, é da fase 178). Se alguma sumir,
+       o número cai e o teste avisa. */
+    expect(r.rodadas).toBe(r.casas * 7);
     expect(r.falhas).toEqual([]);
 
     const { rows: [ev] } = await admin.query(
@@ -115,5 +116,56 @@ describe('O relógio', () => {
     const { rows: [depois] } = await admin.query(
       `SELECT count(*)::int AS n FROM medication_administration`);
     expect(depois.n).toBe(antes.n);
+  });
+
+  /*
+   * O PIA QUE ESTÁ CHEGANDO (fase 178, decisão de 28/09, §10 item 9): trinta dias
+   * antes, por criança, a técnica e a coordenação da casa são avisadas, uma vez
+   * por PIA. O PIA vencendo em quarenta dias ainda não avisa.
+   */
+  it('avisa a técnica do PIA que vence em até trinta dias, uma vez só', async () => {
+    const tok = async (email: string) =>
+      (await request(http).post('/api/v1/auth/login').send({ email, password: SENHA })).body.token;
+    const auth = (t: string) => ({ Authorization: `Bearer ${t}` });
+    const tecnica = await tok('tecnica.ai3@paodospobres.dev');
+    const PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/58BAwAI/AL+hc2rNAAAAABJRU5ErkJggg==';
+    const somar = (n: number) => {
+      const d = new Date(`${hojeNaInstituicao()}T12:00:00Z`); d.setUTCDate(d.getUTCDate() + n);
+      return d.toISOString().slice(0, 10);
+    };
+    const pessoas: string[] = [];
+    const docs: string[] = [];
+    for (const [nome, dias] of [['PIA Perto', 10], ['PIA Longe', 40]] as const) {
+      const nova = await request(http).post('/api/v1/people').set(auth(tecnica))
+        .send({ houseId: AI3, fullName: `Criança do ${nome} (fictícia)`, socialName: nome,
+                birthDate: '2014-03-03', provisionalReason: 'Ingresso de teste automatizado' });
+      expect(nova.status).toBe(201);
+      pessoas.push(nova.body.personId);
+      const doc = await request(http).post(`/api/v1/people/${nova.body.personId}/documents`).set(auth(tecnica))
+        .send({ chave: 'pia', categoria: 'judicial_socioassistencial', titulo: 'PIA',
+                conteudo: PNG, nomeArquivo: 'pia.png', validoAte: somar(dias) });
+      expect(doc.status).toBe(201);
+      docs.push(doc.body.id);
+    }
+    try {
+      const quem = await relogio.quemSou(enfermagem);
+      await relogio.rodarODia(quem);
+      await relogio.rodarODia(quem);
+      const { rows } = await admin.query(
+        `SELECT n.entity_id, count(*)::int AS n FROM notification n
+           JOIN app_user u ON u.id = n.user_id
+          WHERE u.email = 'tecnica.ai3@paodospobres.dev' AND n.entity = 'pia'
+            AND n.entity_id = ANY($1::uuid[]) GROUP BY 1`, [docs]);
+      /* O de dez dias avisa, uma vez; o de quarenta, não. */
+      expect(rows).toEqual([{ entity_id: docs[0], n: 1 }]);
+      const lista = (await request(http).get('/api/v1/notifications').set(auth(tecnica))).body as any[];
+      const aviso = lista.find((a) => a.entidadeId === docs[0]);
+      expect(aviso.titulo).toMatch(/^O PIA de PIA Perto vence em \d{2}\/\d{2}$/);
+    } finally {
+      for (const p of pessoas) {
+        await request(http).post(`/api/v1/people/${p}/discharge`).set(auth(tecnica))
+          .send({ motivo: 'Encerramento de fixture de teste' });
+      }
+    }
   });
 });
