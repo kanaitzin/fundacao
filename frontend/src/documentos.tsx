@@ -142,88 +142,7 @@ export function FolhaDocumento({ doc, onFechar, onBaixar, exportar }: {
           * rola precisa de foco de teclado. A folha do estatuto foi a primeira
           * a passar da altura da tela e acusar (fase 95); vale para todas.
           */}
-        <div className="papel" tabIndex={0} role="region" aria-label={`Folha: ${doc.titulo}`}>
-          <div className="papel-timbre">
-            <b>FUNDAÇÃO O PÃO DOS POBRES DE SANTO ANTÔNIO</b>
-            <span>Programa de Acolhimento Institucional · Rede Acolher</span>
-          </div>
-
-          {doc.rascunho && (
-            <p className="papel-rascunho">
-              RASCUNHO. Documento ainda não aprovado, não deve ser entregue.
-            </p>
-          )}
-
-          <h4 className="papel-titulo">{doc.titulo}</h4>
-          {doc.subtitulo && <p className="papel-sub">{doc.subtitulo}</p>}
-
-          {doc.identificacao.length > 0 && (
-            <>
-              <h5 className="papel-secao">1  Identificação</h5>
-              {doc.identificacao.map((i) => (
-                <p className="papel-ident" key={i.rotulo}>
-                  <b>{i.rotulo}:</b> {i.valor}
-                </p>
-              ))}
-            </>
-          )}
-
-          {doc.secoes.map((s, n) => (
-            <div key={s.titulo + n}>
-              <h5 className="papel-secao">
-                {(doc.identificacao.length ? n + 2 : n + 1)}  {s.titulo}
-              </h5>
-              {(s.paragrafos ?? []).map((p, i) => <p className="papel-par" key={i}>{p}</p>)}
-              {(s.itens ?? []).length > 0 && (
-                <ul className="papel-itens">
-                  {s.itens!.map((it, i) => <li key={i}>{it}</li>)}
-                </ul>
-              )}
-              {s.tabela && (
-                /*
-                 * O quadro largo rola de lado — e região que rola precisa de foco
-                 * de teclado, senão quem não usa o dedo nunca chega à última
-                 * coluna. Achado na folha da portaria (fase 92), que tem sete, e
-                 * valia para toda folha com quadro. A chave do cabeçalho é a
-                 * posição: a portaria tem duas colunas chamadas "Foto".
-                 */
-                <div className="rolar" tabIndex={0} role="region" aria-label={`Quadro: ${s.titulo}`}>
-                  <table className="papel-tabela">
-                    <thead>
-                      <tr>{s.tabela.cabecalho.map((c, j) => <th key={j}>{c}</th>)}</tr>
-                    </thead>
-                    <tbody>
-                      {s.tabela.linhas.map((l, i) => (
-                        <tr key={i}>{l.map((c, j) => <td key={j}>{c}</td>)}</tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-              {s.aPreencher && (
-                <>
-                  <p className="papel-preencher">[a preencher: {s.aPreencher}]</p>
-                  <div className="papel-linha" /><div className="papel-linha" />
-                </>
-              )}
-              {(s.imagens ?? []).map((im, i) => (
-                /* Na tela, a legenda: a imagem entra no arquivo em Word. */
-                <p className="papel-fonte" key={`im${i}`}><i>{im.legenda}.</i></p>
-              ))}
-              {s.procedencia && <p className="papel-fonte">Procedência: {s.procedencia}</p>}
-            </div>
-          ))}
-
-          {doc.ressalva && <p className="papel-fonte">{doc.ressalva}</p>}
-
-          {doc.assinatura !== false && (
-            <div className="papel-assina">
-              <div className="papel-linha" />
-              <b>{doc.geradoPor}</b>
-              <span>{doc.cargo}</span>
-            </div>
-          )}
-        </div>
+        <PapelDoDocumento doc={doc} />
 
         <div className="row rodape">
           <button className="btn sec grow" onClick={onFechar}>Fechar</button>
@@ -275,3 +194,95 @@ export function FolhaDocumento({ doc, onFechar, onBaixar, exportar }: {
  * saída. A tela pede a folha e a desenha; o download passa pelo servidor e
  * exige a finalidade escrita.
  */
+
+/**
+ * O PAPEL, sem a moldura da pré-visualização (fase 174). É o mesmo desenho que
+ * a pré-visualização mostra e que sai no Word; a leitura das ATAs em sequência
+ * põe vários destes um embaixo do outro.
+ */
+export function PapelDoDocumento({ doc }: { doc: DocumentoWord }) {
+  return (
+    <div className="papel" tabIndex={0} role="region" aria-label={`Folha: ${doc.titulo}`}>
+      <div className="papel-timbre">
+        <b>FUNDAÇÃO O PÃO DOS POBRES DE SANTO ANTÔNIO</b>
+        <span>Programa de Acolhimento Institucional · Rede Acolher</span>
+      </div>
+
+      {doc.rascunho && (
+        <p className="papel-rascunho">
+          RASCUNHO. Documento ainda não aprovado, não deve ser entregue.
+        </p>
+      )}
+
+      <h4 className="papel-titulo">{doc.titulo}</h4>
+      {doc.subtitulo && <p className="papel-sub">{doc.subtitulo}</p>}
+
+      {doc.identificacao.length > 0 && (
+        <>
+          <h5 className="papel-secao">1  Identificação</h5>
+          {doc.identificacao.map((i) => (
+            <p className="papel-ident" key={i.rotulo}>
+              <b>{i.rotulo}:</b> {i.valor}
+            </p>
+          ))}
+        </>
+      )}
+
+      {doc.secoes.map((s, n) => (
+        <div key={s.titulo + n}>
+          <h5 className="papel-secao">
+            {(doc.identificacao.length ? n + 2 : n + 1)}  {s.titulo}
+          </h5>
+          {(s.paragrafos ?? []).map((p, i) => <p className="papel-par" key={i}>{p}</p>)}
+          {(s.itens ?? []).length > 0 && (
+            <ul className="papel-itens">
+              {s.itens!.map((it, i) => <li key={i}>{it}</li>)}
+            </ul>
+          )}
+          {s.tabela && (
+            /*
+             * O quadro largo rola de lado — e região que rola precisa de foco
+             * de teclado, senão quem não usa o dedo nunca chega à última
+             * coluna. Achado na folha da portaria (fase 92), que tem sete, e
+             * valia para toda folha com quadro. A chave do cabeçalho é a
+             * posição: a portaria tem duas colunas chamadas "Foto".
+             */
+            <div className="rolar" tabIndex={0} role="region" aria-label={`Quadro: ${s.titulo}`}>
+              <table className="papel-tabela">
+                <thead>
+                  <tr>{s.tabela.cabecalho.map((c, j) => <th key={j}>{c}</th>)}</tr>
+                </thead>
+                <tbody>
+                  {s.tabela.linhas.map((l, i) => (
+                    <tr key={i}>{l.map((c, j) => <td key={j}>{c}</td>)}</tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          {s.aPreencher && (
+            <>
+              <p className="papel-preencher">[a preencher: {s.aPreencher}]</p>
+              <div className="papel-linha" /><div className="papel-linha" />
+            </>
+          )}
+          {(s.imagens ?? []).map((im, i) => (
+            /* Na tela, a legenda: a imagem entra no arquivo em Word. */
+            <p className="papel-fonte" key={`im${i}`}><i>{im.legenda}.</i></p>
+          ))}
+          {s.procedencia && <p className="papel-fonte">Procedência: {s.procedencia}</p>}
+        </div>
+      ))}
+
+      {doc.ressalva && <p className="papel-fonte">{doc.ressalva}</p>}
+
+      {doc.assinatura !== false && (
+        <div className="papel-assina">
+          <div className="papel-linha" />
+          <b>{doc.geradoPor}</b>
+          <span>{doc.cargo}</span>
+        </div>
+      )}
+    </div>
+  );
+}

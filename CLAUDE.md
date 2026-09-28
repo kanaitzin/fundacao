@@ -163,7 +163,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 28/09/2026, fase 173
+### Onde estamos — 28/09/2026, fase 174
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -200,10 +200,11 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 171 | **a sondagem de ESCRITA entre casas virou suíte permanente** (`zz-b-a-sondagem-de-escrita`), com a prova no BANCO (fotografia das linhas da Casa 03 antes e depois de cada rota): cerca de 170 rotas, nenhuma escrita passou; a edição do perfil respondia **ok** à Casa 04 com corpo vazio, e abrir anexo de ocorrência de fora dava **500** |
 | 172 | **os dois ajustes visuais que eram da Fundação** (escolhidos em 28/09): o topo deixa de repetir o nome em título grande (nome, casa e e-mail numa linha, ainda `h1`), e o **círculo do cargo** chega ao painel do plantão e à linha do dia, com o cargo por `app_user_cargo` (1628), lido por OUTRO educador no teste |
 | 173 | **noventa dias de uma casa, e as telas contra o servidor de verdade** (pedido de 28/09): o relatório do período e o das compras imprimiam **Invalid Date** (a coluna `date` agora volta como texto); **a tela dos Acompanhamentos nunca funcionou no sistema de verdade** (corpo e lista sem a casa, resposta em outra forma) e **`app_house_in_scope(NULL)` deixava passar** (1629); a dose de quem está com a família era cobrada em quatro lugares (1630–1632); a Cozinha abria com erro para educador. E as decisões de 28/09: ATA do fim de semana fechada pelo Líder de segunda, dose avisada uma vez, visitas desde o acolhimento, **chegada de noite pelo plantão** (1633). Relatório em `docs/historico/simulacao-de-90-dias-28-09.md` |
+| 174 | **um ano inteiro de casa, e as ATAs do dia em sequência** (pedidos de 28/09): a simulação vive 365 dias e tudo bate (299 visitas, 6329 refeições, 1055 doses, 730 plantões); nenhuma leitura ou relatório acima de 174 ms; o banco cresce ~22 MB por casa por ano (os anexos em disco é que crescem: foto guardada do tamanho da câmera, pergunta no PARA-A-REUNIAO §4.14). No Arquivo, o filtro **Os dois turnos / Só diurno / Só noturno** e, para coordenação, técnica e líderes, a **leitura em sequência** das folhas (`PapelDoDocumento`). Relatório em `docs/historico/um-ano-de-casa-28-09.md` |
 
-**Medido no fim da 173:** 174 migrações, 124 tabelas, 122 suítes, 1130 testes, verdes nas
+**Medido no fim da 174:** 174 migrações, 124 tabelas, 122 suítes, 1130 testes, verdes nas
 DUAS condições de relógio; os sete ensaios de navegador verdes, com a portaria e o
-portão, o armário, a cozinha, os temas e a foto no percurso do `ensaio:uso`; **435 telas (145 × três
+portão, o armário, a cozinha, os temas e a foto no percurso do `ensaio:uso`; **438 telas (146 × três
 temas) sem violação de WCAG 2.1 AA**; nenhuma
 rota sem teste; nenhuma rota — escrita ou leitura — com 500; **250 leituras sondadas
 pela Casa 04 com registro real da Casa 03, sem achado; cerca de 170 rotas de escrita, sem linha
@@ -211,6 +212,8 @@ da Casa 03 mudada**; nenhum ouvinte
 falhando; nenhuma escrita da Casa 04 aceita sobre registro real da Casa 03. **E a casa de noventa
 dias** (`scripts/simulacao-da-casa.sh 90`): tudo o que ela contou bate com o que o sistema
 devolve, nenhum achado na API, e **12 contas, 179 telas contra o servidor de verdade, sem achado**.
+**E o ano** (`simulacao-da-casa.sh 365`): tudo bate, nenhuma leitura acima de 174 ms, ~22 MB de
+banco por casa por ano.
 
 **As TRÊS cores do sistema, porque confundi-las é o pior que esta tela pode
 fazer** — está escrito por extenso em `frontend/src/cargos.tsx`:
@@ -277,6 +280,9 @@ têm suíte própria. **Não há mais etapa de código que não dependa de algu�
 
 **2. Aplicar o roteiro com a equipe.** Continua sendo o que mais muda o sistema, e
 o único que não se faz daqui.
+
+**2.4 Esperando a Fundação desde a 174:** reduzir as fotos no aparelho antes de
+enviar (§4.14 do PARA-A-REUNIAO). É o que cresce de verdade no armazenamento.
 
 **2.5 O que a fase 173 deixou como caminho** (está no relatório dela):
 **levar a simulação a várias casas vivendo juntas** (só a ARM1 viveu; o que é da

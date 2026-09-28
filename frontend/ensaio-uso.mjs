@@ -3005,6 +3005,50 @@ await pg.waitForTimeout(900);
 cobrar('a criança que chegou entra na lista da casa', /Pedro da Noite/.test(await conteudo()));
 cobrar('nenhuma exceção na ATA do fim de semana e na chegada', erros.length === 0, erros[0]);
 
+/*
+ * AS ATAS DO DIA EM SEQUÊNCIA (pedido de 28/09, fase 174): no arquivo, o filtro
+ * de turno e a leitura das folhas uma depois da outra, para coordenação,
+ * técnica e líderes.
+ */
+console.log('\n📖 As ATAs do dia em sequência, com o filtro de turno (fase 174)');
+await fechar();
+await trocar('coordenador');
+if (!(await aba('ATA'))) await doMais('ATA');
+await pg.getByRole('tab', { name: /^Arquivo/ }).click();
+await pg.waitForTimeout(900);
+/* Ontem, pela data, e não pela posição na lista: a semana de uma segunda-feira só tem hoje. */
+const ONTEM_174 = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' })
+  .format(new Date(Date.now() - 86400000));
+await pg.getByRole('tab', { name: /^Um dia$/ }).click();
+await pg.waitForTimeout(500);
+await pg.locator('#arq-data').fill(ONTEM_174);
+await pg.waitForTimeout(1100);
+await pg.getByRole('button', { name: /^Ler o dia em sequência$/ }).first().click();
+await pg.waitForTimeout(1200);
+const sequencia = await pg.locator('.overlay .sheet').innerText();
+cobrar('a leitura abre o dia com a diurna e depois a noturna',
+  sequencia.indexOf('ATA diurna de') >= 0 && sequencia.indexOf('ATA noturna de') > sequencia.indexOf('ATA diurna de'),
+  sequencia.slice(0, 160));
+cobrar('e cada ATA vem como a folha, com o que a equipe escreveu', /bilhete da professora/.test(sequencia));
+await fechar();
+await pg.getByRole('tab', { name: /^Só noturno$/ }).click();
+await pg.waitForTimeout(400);
+cobrar('só noturno: as capas diurnas saem do arquivo',
+  (await pg.locator('main.conteudo .bloco', { hasText: 'Turno diurno' }).count()) === 0
+  && (await pg.locator('main.conteudo .bloco', { hasText: 'Turno noturno' }).count()) > 0);
+await pg.getByRole('button', { name: /Ler o dia em sequência, só o noturno/ }).click();
+await pg.waitForTimeout(1200);
+const soNoite = await pg.locator('.overlay .sheet').innerText();
+cobrar('e a leitura traz só a noturna', /ATA noturna de/.test(soNoite) && !/ATA diurna de/.test(soNoite));
+await fechar();
+await trocar('educador');
+if (!(await aba('ATA'))) await doMais('ATA');
+await pg.getByRole('tab', { name: /^Arquivo/ }).click();
+await pg.waitForTimeout(900);
+cobrar('o educador folheia o arquivo, sem a leitura em sequência',
+  (await pg.getByRole('button', { name: /em sequência/ }).count()) === 0);
+cobrar('nenhuma exceção na leitura em sequência', erros.length === 0, erros[0]);
+
 await navegador.close();
 console.log(achados.length
   ? `\n${achados.length} ACHADO(S):\n  ${achados.join('\n  ')}`

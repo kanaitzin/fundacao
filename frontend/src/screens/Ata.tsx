@@ -3,7 +3,7 @@ import { dia, cargo } from '../rotulos';
 import { ConvivenciasDoTurno, ConvivenciaDoTurno } from '../convivencias';
 import { api } from '../api';
 import { tomDoAutor } from '../rotulos';
-import { FolhaDocumento } from '../documentos';
+import { FolhaDocumento, PapelDoDocumento } from '../documentos';
 import type { ArquivoGerado } from '../documentos';
 import type { DocumentoWord } from '../docx';
 import { quemAssina } from '../quem-assina';
@@ -183,6 +183,54 @@ interface AtaAberta {
 const diaDaSemana = (iso: string) => ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'][
   new Date(`${iso.slice(0, 10)}T12:00:00Z`).getUTCDay()];
 
+/* Quem lê as ATAs em sequência (pedido de 28/09): coordenação, equipe técnica e líderes.
+   O arquivo continua aberto a toda a casa; a sequência é a leitura de quem acompanha. */
+const LE_EM_SEQUENCIA = ['coordenador', 'equipe_tecnica', 'lider_diurno', 'lider_noturno_geral'];
+
+/**
+ * AS ATAS UMA DEPOIS DA OUTRA (fase 174).
+ *
+ * Quem acompanha a casa lê o dia inteiro: o diurno e, em seguida, a noite que
+ * veio depois dele, como no livro. Cada ATA aparece como a folha que sai no
+ * Word, pela mesma rota, e por isso com as mesmas regras: a linha restrita não
+ * sai, sai a contagem.
+ */
+function LeituraEmSequencia({ titulo, atas, onFechar }: {
+  titulo: string; atas: { plantaoId: string; rotulo: string }[]; onFechar: () => void;
+}) {
+  const [folhas, setFolhas] = useState<({ rotulo: string; doc?: DocumentoWord; erro?: string })[] | null>(null);
+  useEffect(() => {
+    let vivo = true;
+    Promise.all(atas.map(async (a) => {
+      try { return { rotulo: a.rotulo, doc: await api<DocumentoWord>(`/shifts/${a.plantaoId}/folha`) }; }
+      catch (e) { return { rotulo: a.rotulo, erro: e instanceof Error ? e.message : 'Não foi possível abrir esta ATA.' }; }
+    })).then((r) => { if (vivo) setFolhas(r); });
+    return () => { vivo = false; };
+  }, [atas]);
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-sequencia"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet modal">
+        <h3 id="t-sequencia">{titulo}</h3>
+        <p className="mutetxt" style={{ marginTop: 0 }}>
+          {atas.length === 1 ? 'Uma ATA' : `${atas.length} ATAs`}, na ordem em que os turnos aconteceram.
+        </p>
+        {!folhas && <p className="mutetxt">Abrindo as ATAs…</p>}
+        {(folhas ?? []).map((f, i) => (
+          <section key={i} aria-label={f.rotulo} style={{ marginBottom: 16 }}>
+            <h4 style={{ margin: '12px 0 6px' }}>{f.rotulo}</h4>
+            {f.doc ? <PapelDoDocumento doc={f.doc} />
+                   : <div className="notice c-warn">{f.erro}</div>}
+          </section>
+        ))}
+        <div className="row rodape">
+          <button className="btn sec grow" onClick={onFechar}>Fechar</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const FECHA_ATA = ['lider_diurno', 'lider_noturno_geral', 'equipe_tecnica', 'coordenador', 'gestor_geral'];
 
 /**
@@ -325,6 +373,9 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
    * e estreitar é um toque.
    */
   const [escala, setEscala] = useState<'dia' | 'semana' | 'mes'>('mes');
+  /* O turno no arquivo, e a leitura em sequência (pedido de 28/09, fase 174). */
+  const [turnoDoArquivo, setTurnoDoArquivo] = useState<'ambos' | 'diurno' | 'noturno'>('ambos');
+  const [lendo, setLendo] = useState<{ titulo: string; atas: { plantaoId: string; rotulo: string }[] } | null>(null);
   const [quando, setQuando] = useState('');
   const [arquivo, setArquivo] = useState<Arquivo | null>(null);
   const [buscando, setBuscando] = useState(false);
@@ -486,6 +537,13 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
    */
   const fechada = ata?.status === 'fechada' || ata?.status === 'fechada_com_pendencia';
   const podeFechar = FECHA_ATA.includes(papel);
+  /* As ATAs do recorte, na ordem do livro: o dia, e dentro dele o diurno e o noturno. */
+  const atasDoArquivo = (dias: { data: string; diurno: any; noturno: any }[]) =>
+    [...dias].sort((x, y) => x.data.localeCompare(y.data)).flatMap((d) =>
+      ([['diurno', d.diurno], ['noturno', d.noturno]] as const)
+        .filter(([cod, a]) => a && (turnoDoArquivo === 'ambos' || turnoDoArquivo === cod))
+        .map(([cod, a]) => ({ plantaoId: a.plantaoId as string,
+                              rotulo: `ATA ${cod === 'diurno' ? 'diurna' : 'noturna'} de ${diaDaSemana(d.data)}, ${dia(d.data)}` })));
   const faltam = ata?.assinaturasFaltantes ?? plantao?.assinaturasPendentes.length ?? 0;
   const casasAguardando = geral ? geral.casas.filter((c) => !c.ataNoturnaConfirmada).length : 0;
   /*
@@ -1348,6 +1406,17 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
                 ))}
             </div>
 
+            <div className="filtros" role="tablist" aria-label="Turno do arquivo">
+              {([['ambos', 'Os dois turnos'], ['diurno', 'Só diurno'], ['noturno', 'Só noturno']] as const).map(
+                ([cod, label]) => (
+                  <button key={cod} role="tab" aria-selected={turnoDoArquivo === cod}
+                          className={turnoDoArquivo === cod ? 'on' : ''}
+                          onClick={() => setTurnoDoArquivo(cod)}>
+                    {label}
+                  </button>
+                ))}
+            </div>
+
             <label className="f" htmlFor="arq-data">
               Data <small>— a semana e o mês são os DESTA data</small>
             </label>
@@ -1366,17 +1435,36 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
                 De {dia(arquivo.de)} a {dia(arquivo.ate)} · {arquivo.dias.length} dia(s) com ATA.
               </p>
               <div className="notice c-info">{arquivo.notaAtaGeral}</div>
+              {LE_EM_SEQUENCIA.includes(papel) && escala !== 'mes' && atasDoArquivo(arquivo.dias).length > 0 && (
+                <button className="btn block sec" style={{ marginTop: 8 }}
+                        onClick={() => setLendo({
+                          titulo: escala === 'dia' ? `ATAs de ${dia(arquivo.de)}` : `ATAs de ${dia(arquivo.de)} a ${dia(arquivo.ate)}`,
+                          atas: atasDoArquivo(arquivo.dias),
+                        })}>
+                  Ler {escala === 'dia' ? 'o dia' : 'a semana'} em sequência
+                  {turnoDoArquivo === 'diurno' ? ', só o diurno' : turnoDoArquivo === 'noturno' ? ', só o noturno' : ''}
+                </button>
+              )}
             </>
           )}
 
           {buscando && <div className="card"><p className="mutetxt" style={{ margin: 0 }}>Buscando…</p></div>}
 
           <div className="stack" style={{ marginTop: 12 }}>
-            {(arquivo?.dias ?? []).map((d) => (
+            {(arquivo?.dias ?? []).filter((d) => turnoDoArquivo === 'ambos' || d[turnoDoArquivo]).map((d) => (
               <div className="card stack" key={d.data}>
-                <b className="ff">{dia(d.data)}</b>
+                <div className="row">
+                  <b className="ff grow">{dia(d.data)}</b>
+                  {LE_EM_SEQUENCIA.includes(papel) && atasDoArquivo([d]).length > 0 && (
+                    <button className="btn sm ghost"
+                            onClick={() => setLendo({ titulo: `ATAs de ${dia(d.data)}`, atas: atasDoArquivo([d]) })}>
+                      Ler o dia em sequência
+                    </button>
+                  )}
+                </div>
 
                 {([['diurno', 'Turno diurno', d.diurno], ['noturno', 'Turno noturno', d.noturno]] as const)
+                  .filter(([cod]) => turnoDoArquivo === 'ambos' || turnoDoArquivo === cod)
                   .map(([cod, rotulo, a]) => a && (
                     <div className="bloco" key={cod}>
                       <div className="row">
@@ -1629,6 +1717,8 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
             }))) setRetirando(null);
           }} />
       )}
+
+      {lendo && <LeituraEmSequencia titulo={lendo.titulo} atas={lendo.atas} onFechar={() => setLendo(null)} />}
 
       {fechando && (
         <FolhaFechar

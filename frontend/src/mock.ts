@@ -7184,6 +7184,51 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     };
   }
 
+  /*
+   * AS ATAS DO ARQUIVO ABREM (fase 174). As capas do arquivo tinham um
+   * identificador que nenhum plantão tinha, e "Abrir esta ATA" dava 404 no
+   * protótipo. Agora cada capa abre uma ATA fechada, com as linhas da equipe,
+   * e é o que a leitura em sequência mostra.
+   */
+  if (seg[0] === 'shifts' && seg.length === 2 && metodo === 'GET') {
+    for (const d of ARQUIVO_ATAS) {
+      for (const turno of ['diurno', 'noturno'] as const) {
+        const c: any = (d as any)[turno];
+        if (!c || c.plantaoId !== seg[1]) continue;
+        const noite = turno === 'noturno';
+        return {
+          id: c.plantaoId, casaId: CASA.id, data: d.data, turno, status: 'fechado',
+          abertoEm: null, fechadoEm: c.fechadaEm,
+          ata: { id: c.ataId, status: c.status, versao: 1, pendencias: c.pendencias,
+                 assinaturasFaltantes: c.assinaturasFaltantes, fechadaEm: c.fechadaEm,
+                 conteudo: noite
+                   ? { acolhidos: 'Todos dormiram até as 22h; ronda à meia-noite e às 3h. A Alice '
+                         + 'tossiu de madrugada; água e travesseiro alto, e dormiu de novo.' }
+                   : { acolhidos: 'Café, escola e tema de casa no horário; pátio à tarde, sem '
+                         + 'intercorrências de saúde no turno.' } },
+          passagens: [{ id: `${c.plantaoId}-p`, quem: noite ? 'Nélio Noturno (fictício)' : 'Tainá Souza (fictícia)',
+                        cargo: 'educador', userId: noite ? 'u8' : 'u7',
+                        contribuicoes: 'Turno registrado na ATA.', pendencias: null, orientacoes: null,
+                        medicacao: null, assinadaEm: c.fechadaEm ?? new Date(`${d.data}T19:00:00-03:00`).toISOString(),
+                        horarioReal: null, complementoTardio: false, offline: false, complementos: [],
+                        propria: false }],
+          assinaturasPendentes: [], escalaLancada: true, nenhumaPassagemAssinada: false,
+          minhaPassagemEsperada: false, recebimentos: [],
+          remedios: { doses: [], total: 0, semResposta: 0, jaEscrito: false, exigeFrase: false },
+          convivencias: [],
+          linhas: { notas: [{ id: `${c.plantaoId}-n`, texto: noite
+                      ? 'O Bruno pediu para ligar para a avó amanhã cedo; combinado com a técnica.'
+                      : 'A Maria voltou da escola com bilhete da professora; está na mochila dela.',
+                      quem: noite ? 'Nélio Noturno (fictício)' : 'Tainá Souza (fictícia)', cargo: 'educador',
+                      quando: new Date(`${d.data}T${noite ? '23:10' : '15:30'}:00-03:00`).toISOString(),
+                      restrita: false, cor: null }],
+                    restritas: 0, podeEscreverRestrita: false },
+          episodios: [],
+        };
+      }
+    }
+  }
+
   // ---------- Episódio: registrar, e dar ciência ----------
   // Antes dos ramos `:id` do bloco de ATA, pela mesma razão do servidor: um
   // roteador que casa `ata/:id` primeiro engole `ata/:id/episodes`.

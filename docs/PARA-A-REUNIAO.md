@@ -304,6 +304,23 @@ que ela mostrou e a Fundação decidiu:
   alimentares** (o que evitar e o que servir no lugar, nunca o motivo), que
   eles já imprimiam na folha da cozinha. A Enfermagem continua fora dessa lista.
 
+## 4.14 Um ano de casa, e as ATAs em sequência (fase 174, pedido de 28/09)
+
+- **As ATAs do dia em sequência.** No Arquivo das ATAs, o filtro **Os dois
+  turnos / Só diurno / Só noturno** vale para todos que folheiam o arquivo. A
+  **coordenação, a equipe técnica e os líderes** têm também o botão **Ler o dia
+  em sequência** (e ler a semana): as ATAs aparecem uma embaixo da outra, como
+  saem no Word, a diurna e depois a noturna. A linha restrita continua fora;
+  sai a contagem.
+- **Um ano inteiro da ARM1**, simulado e conferido. Os relatórios batem com o
+  que aconteceu, e nenhum levou mais que um quinto de segundo. O banco cresce
+  cerca de 22 MB por casa por ano: oito casas, perto de 175 MB por ano.
+- **Uma pergunta para a Fundação: reduzir o tamanho das fotos.** Hoje a foto da
+  câmera é guardada do tamanho em que foi tirada, de 2 a 5 MB. Oito casas
+  passariam de 6 GB por ano só em documentos e fotos. A proposta é reduzir no
+  próprio celular antes de enviar (a certidão continua legível, e cada foto fica
+  perto de 500 KB). Documento em PDF fica como está. **Reduzimos?**
+
 ## 5. As decisões que são do Marcelo *(§10 — responda pelo número)*
 
 Nenhuma é problema de código. Duas têm consequência maior e estão marcadas.

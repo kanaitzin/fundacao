@@ -142,6 +142,42 @@ await conferir(`${tema} · folha "Sua sessão terminou"`); telas++;
 await pg.locator('#sessao-senha').fill('senha-dev-123');
 await pg.getByRole('button', { name: /Entrar e continuar/ }).click();
 await pg.waitForTimeout(700);
+
+/* A leitura das ATAs em sequência (fase 174): a folha longa com várias ATAs,
+ * lida pela coordenação no arquivo. */
+{
+  /* O cargo de novo, de verdade: depois da folha da sessão, o seletor mostra a
+     coordenação e a identidade volta a ser a do último cargo percorrido. */
+  await seletor.selectOption('equipe_tecnica');
+  await pg.waitForTimeout(600);
+  await seletor.selectOption('coordenador');
+  await pg.waitForTimeout(900);
+  /* Pelo mesmo caminho do `ensaio:uso`: a aba da barra, ou a porta do "Mais". */
+  const naBarra = pg.locator('nav.tabbar button', { hasText: 'ATA' });
+  if (await naBarra.count()) await naBarra.first().click();
+  else {
+    await pg.locator('nav.tabbar button', { hasText: 'Mais' }).first().click();
+    await pg.waitForTimeout(350);
+    await pg.locator('.overlay .sheet button.card.row', { hasText: 'ATA' }).first().click();
+  }
+  await pg.waitForTimeout(900);
+  await pg.getByRole('tab', { name: /^Arquivo/ }).click();
+  await pg.waitForTimeout(700);
+  await pg.getByRole('tab', { name: /^Um dia$/ }).click();
+  await pg.locator('#arq-data').fill(new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' })
+    .format(new Date(Date.now() - 86400000)));
+  await pg.waitForTimeout(1000);
+  const ler = pg.getByRole('button', { name: /^Ler o dia em sequência$/ }).first();
+  if (!(await ler.count())) {
+    await pg.screenshot({ path: '/tmp/ensaio-acessibilidade-sequencia.png', fullPage: true });
+    throw new Error('A leitura em sequência não apareceu no arquivo da coordenação (foto em /tmp).');
+  }
+  await ler.click();
+  await pg.waitForTimeout(1200);
+  await conferir(`${tema} · folha "ATAs do dia em sequência"`); telas++;
+  await pg.locator('.overlay .sheet button', { hasText: /^Fechar$/ }).click();
+  await pg.waitForTimeout(400);
+}
 }
 
 await navegador.close();

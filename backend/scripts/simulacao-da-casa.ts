@@ -59,6 +59,10 @@ function relogio(dia: string, hhmm: string) {
   writeFileSync(RELOGIO, `@${utc}`);
   agoraLocal = `${dia} ${hhmm}`;
 }
+const proximoMes = (dia: string) => {
+  const [a, m] = dia.slice(0, 7).split('-').map(Number);
+  return m === 12 ? `${a + 1}-01` : `${a}-${String(m + 1).padStart(2, '0')}`;
+};
 const somaDias = (dia: string, n: number) => {
   const d = new Date(`${dia}T12:00:00Z`); d.setUTCDate(d.getUTCDate() + n);
   return d.toISOString().slice(0, 10);
@@ -381,7 +385,8 @@ function quemTrabalha(dia: string) {
 }
 async function escalaDoPrimeiroMes() {
   relogio(INICIO, '17:00');
-  const fim = '2026-11-30';
+  /* Novembro e dezembro à mão; de janeiro em diante, o rascunho repete o mês anterior. */
+  const fim = '2026-12-31';
   for (let d = INICIO; d <= fim; d = somaDias(d, 1)) {
     const q = quemTrabalha(d);
     for (const [turno, quem] of [['diurno', q.diurno], ['noturno', q.noturno]]) {
@@ -613,7 +618,7 @@ async function alta(i: { id: string; crianca: string; ate?: string }, dia: strin
 
 async function ocorrencia(dia: string, quem: string) {
   relogio(dia, '21:40');
-  const [a, b] = presentes().filter((c) => ['enzo', 'caio', 'theo'].includes(c.chave));
+  const [a, b] = presentes().filter((c) => ['enzo', 'caio', 'theo', 'davi'].includes(c.chave));
   const o = await post(quem, '/incidents', {
     houseId: ids.ARM1, categoria: 'conflito_agressao', quando: new Date().toISOString(),
     acolhidos: [a.id, b.id], fato: 'Discussão por causa do controle da televisão; Enzo empurrou Caio, que bateu o braço na porta.',
@@ -642,9 +647,9 @@ async function convivenciaFamiliar(chave: string, sai: string, volta: string) {
   if (cesta) fatos.cestas++;
   await get('tecnica', `/medications/family-stays/${r.id}/to-take`, { rotulo: 'ver o remédio que vai junto' });
   fora.add(c.id);
-  saidaAberta = { id: r.id, crianca: c.id };
+  saidaAberta = { id: r.id, crianca: c.id, volta };
 }
-let saidaAberta: { id: string; crianca: string } | null = null;
+let saidaAberta: { id: string; crianca: string; volta: string } | null = null;
 async function voltarDaFamilia(dia: string) {
   if (!saidaAberta) return;
   relogio(dia, '18:10');
@@ -751,29 +756,53 @@ const amanha = (dia: string, f: () => Promise<void>) => { (depois[somaDias(dia, 
 
 async function eventosDoDia(dia: string, n: number, parte: 'manha' | 'tarde' | 'noite') {
   const semana = diaDaSemana(dia);
+  const noMes = dia.slice(8);
   if (parte === 'manha') {
     for (const f of depois[dia] ?? []) await f();
-    if (n === 9) {
-      await internar('sofia', dia, 'Hospital da Criança (fictício)', 'Pneumonia, em observação com antibiótico na veia.');
+    /* O que se repete o ano inteiro (fase 174): a escala do mês seguinte no dia
+       20, a compra do remédio a cada 28 dias, os acompanhamentos no dia 14, o
+       lanche do passeio no dia 10. */
+    if (noMes === '20' && dia >= '2026-12-20') await escalaDoMesSeguinte(dia, proximoMes(dia));
+    if (n > 0 && n % 28 === 0) await comprarRemedio(dia, 1 + n / 28);
+    if (noMes === '14') await acompanhamentosDoMes(dia);
+    if (noMes === '10') await lancheDoPasseio(dia);
+    /* Os acontecimentos, espalhados pelo ano. */
+    const internacao = ({ 9: 'sofia', 200: 'caio', 310: 'yasmin' } as Record<number, string>)[n];
+    if (internacao && presentes().some((c) => c.chave === internacao)) {
+      await internar(internacao, dia, 'Hospital da Criança (fictício)', 'Pneumonia, em observação com antibiótico na veia.');
     }
-    if (n === 10) await escalaDoMesSeguinte(dia, '2026-12');
-    if (n === 14) await lancheDoPasseio(dia);
-    if (n === 14 || n === 44 || n === 74) await acompanhamentosDoMes(dia);
-    if (n === 18) await convivenciaFamiliar('yasmin', dia, somaDias(dia, 2));
-    if (n === 30) await comprarRemedio(dia, 2);
+    const familia = ({ 18: 'yasmin', 130: 'caio', 250: 'sofia' } as Record<number, string>)[n];
+    if (familia && presentes().some((c) => c.chave === familia && c.contatos.length)) {
+      await convivenciaFamiliar(familia, dia, somaDias(dia, 2));
+    }
     if (n === 34) await transferir('enzo', dia);
-    if (n === 40) await escalaDoMesSeguinte(dia, '2027-01');
     if (n === 42) await desligar('lara', dia);
     if (n === 44) await trocaNaEquipe(dia);
-    if (n === 60) await comprarRemedio(dia, 3);
-    if (n === 70) await escalaDoMesSeguinte(dia, '2027-02');
+    if (n === 150 || n === 280) {
+      relogio(dia, '10:00');
+      const nova = n === 150
+        ? { chave: 'bia', nome: 'Beatriz Souza (fictícia)', social: 'Bia', nascimento: '2013-06-18', genero: 'menina' }
+        : { chave: 'davi', nome: 'Davi Rocha (fictício)', social: 'Davi', nascimento: '2015-10-05', genero: 'menino' };
+      const k = await admitir('tecnica', nova, dia);
+      if (k) await completarOPerfil(k);
+    }
   }
   if (parte === 'tarde') {
     if (semana === 0 || semana === 6) await visitasDoFimDeSemana(dia);
-    if (n >= 9 && n <= 11) { const i = internacoes.find((x) => !x.ate); if (i) await diarioDoHospital(i, dia, n === 10 ? 'edu3' : 'edu1', n !== 10); }
-    if (n === 12) { const i = internacoes.find((x) => !x.ate); if (i) await alta(i, dia); }
-    if (n === 20) await voltarDaFamilia(dia);
-    if (n === 23) await visitaForaDoCombinado(dia);
+    const aberta = internacoes.find((x) => !x.ate);
+    if (aberta) {
+      const dias = Math.round((new Date(`${dia}T12:00:00Z`).getTime() - new Date(`${aberta.desde}T12:00:00Z`).getTime()) / 864e5);
+      if (dias <= 2) await diarioDoHospital(aberta, dia, dias === 1 ? 'edu3' : 'edu1', dias !== 1);
+      else await alta(aberta, dia);
+    }
+    if (saidaAberta && saidaAberta.volta === dia) await voltarDaFamilia(dia);
+    /* Uma visita fora do combinado perto do dia 23 e do dia 180, sempre num dia de
+       semana: no sábado e no domingo a avó está no combinado. */
+    const vez = n >= 23 && n <= 27 ? 23 : n >= 180 && n <= 184 ? 180 : 0;
+    if (vez && ![0, 6].includes(semana) && !foraFeitaEm.has(vez)) {
+      foraFeitaEm.add(vez);
+      await visitaForaDoCombinado(dia);
+    }
   }
   if (parte === 'noite') {
     if (n === 2) {
@@ -799,11 +828,14 @@ async function eventosDoDia(dia: string, n: number, parte: 'manha' | 'tarde' | '
         });
       }
     }
-    if (n === 5 || n === 80) await ocorrencia(dia, quemTrabalha(dia).noturno);
+    if (n % 45 === 5 && presentes().filter((c) => ['enzo', 'caio', 'theo', 'davi'].includes(c.chave)).length >= 2) {
+      await ocorrencia(dia, quemTrabalha(dia).noturno);
+    }
     if (n === 70) await reacolher('lara', dia);
   }
 }
 
+const foraFeitaEm = new Set<number>();
 async function visitaForaDoCombinado(dia: string) {
   /* A avó chega numa quarta-feira, fora do combinado. A portaria não abre; a
      coordenação abre a exceção com o motivo, e a visita entra. */
@@ -929,14 +961,29 @@ async function conferir(ultimo: string) {
   }
 
   /* A gestão: o período da casa, e a casa no painel. */
-  const periodo = await baixar('gestor', '/reports/period/export', { houseId: ids.ARM1, de: DE, ate: ATE }, 'relatório do período');
-  if (periodo) {
+  /* O período vai até seis meses (regra do relatório): o ano sai em metades, e a
+     soma das metades tem de ser o que a casa contou. */
+  const metades: [string, string][] = [];
+  for (let de = DE; de <= ATE; ) {
+    const ate = [somaDias(de, 180), ATE].sort()[0];
+    metades.push([de, ate]); de = somaDias(ate, 1);
+  }
+  let chamadasConfirmadas = 0, refeicoes = 0, semResposta = 0, lidas = 0;
+  for (const [de, ate] of metades) {
+    const periodo = await baixar('gestor', '/reports/period/export', { houseId: ids.ARM1, de, ate }, `relatório do período ${de} a ${ate}`);
+    if (!periodo) continue;
+    lidas++;
     const chamadas = periodo.match(/Chamadas\n(\d+), sendo (\d+) confirmada/);
-    if (chamadas) confere('chamadas confirmadas no relatório do período', Number(chamadas[2]), fatos.chamadasConfirmadas);
+    if (chamadas) chamadasConfirmadas += Number(chamadas[2]);
     const doses = periodo.match(/Doses confirmadas\n(\d+), com (\d+) sem resposta/);
-    if (doses) confere('doses sem resposta no relatório do período', Number(doses[2]), 0);
+    if (doses) semResposta += Number(doses[2]);
     const ref = periodo.match(/Refeições conferidas\n(\d+)/);
-    if (ref) confere('refeições no relatório do período', Number(ref[1]), fatos.refeicoes);
+    if (ref) refeicoes += Number(ref[1]);
+  }
+  if (lidas === metades.length) {
+    confere(`chamadas confirmadas nos ${metades.length} relatórios do período`, chamadasConfirmadas, fatos.chamadasConfirmadas);
+    confere(`doses sem resposta nos ${metades.length} relatórios do período`, semResposta, 0);
+    confere(`refeições nos ${metades.length} relatórios do período`, refeicoes, fatos.refeicoes);
   }
   const painel = await get('gestor', '/reports/panel', { rotulo: 'o painel da gestão' });
   if (painel) writeFileSync(join(SAIDA, 'painel.json'), JSON.stringify(painel, null, 2));
@@ -977,10 +1024,90 @@ async function conferir(ultimo: string) {
   console.log('  as maiores tabelas:', tamanho.map((t: any) => `${t.tabela} ${t.linhas}`).join(' · '));
 }
 
+// ================================================================ o que um ano pesa
+
+/** Quanto ocupa a pasta dos anexos, em bytes. */
+function tamanhoDaPasta(dir: string): number {
+  const { readdirSync, statSync } = require('node:fs');
+  if (!existsSync(dir)) return 0;
+  let total = 0;
+  for (const n of readdirSync(dir)) {
+    const c = join(dir, n);
+    const st = statSync(c);
+    total += st.isDirectory() ? tamanhoDaPasta(c) : st.size;
+  }
+  return total;
+}
+let anexosNoInicio = 0;
+
+/**
+ * A MEDIÇÃO (fase 174). O pedido: *"ver se os bancos conseguem armazenar e se
+ * os relatórios dão conta"*. Mede o tempo de cada leitura e relatório sobre o
+ * período inteiro, como a pessoa os abre, e o tamanho do que ficou guardado.
+ */
+async function medir(ultimo: string) {
+  relogio(somaDias(ultimo, 1), '10:00');
+  const DE = INICIO, ATE = ultimo;
+  const crianca = ativas()[0];
+  const tempos: { o_que: string; ms: number; ok: boolean }[] = [];
+  const cronometro = async (o_que: string, quem: string, metodo: 'get' | 'post', rota: string, corpo?: any) => {
+    const t0 = process.hrtime.bigint();
+    const r = await ato(quem, metodo, rota, corpo, { rotulo: o_que });
+    const ms = Math.round(Number(process.hrtime.bigint() - t0) / 1e6);
+    tempos.push({ o_que, ms, ok: r !== null });
+  };
+  const fin = { finalidade: 'Medição do ano inteiro da casa com a coordenação.' };
+  console.log(`\n▸ ${somaDias(ultimo, 1)} · o que ${DIAS} dias pesam`);
+  /* O que abre a tela do turno, com o ano todo por trás. */
+  await cronometro('o dia da casa', 'edu1', 'get', `/activities?houseId=${ids.ARM1}&date=${ATE}`);
+  await cronometro('a grade do remédio', 'edu1', 'get', `/medications?houseId=${ids.ARM1}&date=${ATE}`);
+  await cronometro('a ATA anterior', 'edu1', 'get', `/shifts/anterior?houseId=${ids.ARM1}`);
+  await cronometro('a linha do tempo', 'edu1', 'get', `/timeline?houseId=${ids.ARM1}&date=${ATE}`);
+  await cronometro('a lista da casa', 'edu1', 'get', `/people?houseId=${ids.ARM1}`);
+  await cronometro('o perfil de uma criança', 'tecnica', 'get', `/people/${crianca.id}`);
+  await cronometro('as visitas da criança desde o acolhimento', 'tecnica', 'get', `/people/${crianca.id}/visitas`);
+  await cronometro('a auditoria da criança', 'coord', 'get', `/audit/person/${crianca.id}`);
+  await cronometro('o painel da Enfermagem', 'enfermagem', 'get', `/nursing/panel?houseId=${ids.ARM1}`);
+  await cronometro('o armário', 'enfermagem', 'get', `/medications/stock?houseId=${ids.ARM1}`);
+  await cronometro('o arquivo das ATAs de um mês', 'coord', 'get', `/shifts/ata-archive?houseId=${ids.ARM1}&escala=mes&data=${ATE}`);
+  await cronometro('a portaria do dia', 'portaria', 'get', `/people/portaria/hoje?houseId=${ids.ARM1}`);
+  await cronometro('o painel da gestão', 'gestor', 'get', '/reports/panel');
+  /* Os relatórios do ano inteiro. */
+  const meio = [somaDias(ATE, -180), DE].sort().reverse()[0];
+  await cronometro('o período da casa, os últimos seis meses (tela)', 'gestor', 'get', `/reports/period?houseId=${ids.ARM1}&de=${meio}&ate=${ATE}`);
+  await cronometro('o período da casa, os últimos seis meses (Word)', 'gestor', 'post', '/reports/period/export', { houseId: ids.ARM1, de: meio, ate: ATE, ...fin });
+  await cronometro('as refeições do ano', 'coord', 'get', `/reports/period/meals?houseId=${ids.ARM1}&de=${DE}&ate=${ATE}`);
+  await cronometro('as métricas do remédio no ano', 'enfermagem', 'get', `/medications/metrics?houseId=${ids.ARM1}&de=${DE}&ate=${ATE}`);
+  await cronometro('o armário do ano (Word)', 'enfermagem', 'post', '/medications/stock/report/export', { houseId: ids.ARM1, de: DE, ate: ATE, ...fin });
+  await cronometro('as compras do ano (Word)', 'enfermagem', 'post', '/medications/purchases/export', { houseId: ids.ARM1, de: DE, ate: ATE, ...fin });
+  await cronometro('as visitas da criança no ano (Word)', 'tecnica', 'post', `/people/${crianca.id}/visitas/export`, { de: DE, ate: ATE, ...fin });
+  await cronometro('a trajetória da criança (Word)', 'tecnica', 'post', `/impacto/trajetoria/${crianca.id}/export`, fin);
+
+  for (const t of tempos) console.log(`  ${t.ms > 2000 ? '✗' : '✓'} ${t.o_que}: ${t.ms} ms${t.ok ? '' : ' (recusado)'}`);
+  for (const t of tempos.filter((x) => x.ms > 2000)) achar('lento', 'medição', t.o_que, `${t.ms} ms`);
+
+  /* O tamanho do que ficou. */
+  const { rows: [banco] } = await admin.query(`SELECT pg_database_size(current_database())::bigint AS b`);
+  const { rows: tabelas } = await admin.query(
+    `SELECT relname AS tabela, n_live_tup::int AS linhas, pg_total_relation_size(relid)::bigint AS bytes
+       FROM pg_stat_user_tables ORDER BY pg_total_relation_size(relid) DESC LIMIT 15`);
+  const { rows: [sessoes] } = await admin.query(
+    `SELECT (SELECT count(*) FROM user_session)::int AS sessoes, (SELECT count(*) FROM login_attempt)::int AS tentativas,
+            (SELECT count(*) FROM audit_event)::int AS auditoria, (SELECT count(*) FROM notification)::int AS avisos`);
+  const anexos = tamanhoDaPasta(process.env.ARQUIVOS_DIR ?? '/tmp/arquivos') - anexosNoInicio;
+  const mb = (b: number) => `${(b / 1048576).toFixed(1)} MB`;
+  console.log(`  o banco inteiro: ${mb(Number(banco.b))} (a semente e as outras casas incluídas)`);
+  console.log(`  os anexos desta casa: ${mb(anexos)}`);
+  console.log(`  sessões ${sessoes.sessoes} · tentativas de entrada ${sessoes.tentativas} · auditoria ${sessoes.auditoria} · avisos ${sessoes.avisos}`);
+  for (const t of tabelas) console.log(`    ${t.tabela.padEnd(34)} ${String(t.linhas).padStart(7)} linhas  ${mb(Number(t.bytes))}`);
+  writeFileSync(join(SAIDA, 'medicao.json'), JSON.stringify({ dias: DIAS, tempos, banco: Number(banco.b), anexos, tabelas, sessoes }, null, 2));
+}
+
 // ================================================================ o começo e o fim
 
 async function main() {
   mkdirSync(SAIDA, { recursive: true });
+  anexosNoInicio = tamanhoDaPasta(process.env.ARQUIVOS_DIR ?? "/tmp/arquivos");
   relogio(INICIO, '07:00');
   admin = new Client({ connectionString: adminUrl });
   await admin.connect();
@@ -1009,6 +1136,7 @@ async function main() {
       await umDia(dia, n);
     }
     await conferir(somaDias(INICIO, DIAS - 1));
+    await medir(somaDias(INICIO, DIAS - 1));
   } finally {
     writeFileSync(join(SAIDA, 'achados.json'), JSON.stringify({ fatos, achados, contagem }, null, 2));
     /* As contas para o ensaio de navegador contra o servidor, que roda depois
