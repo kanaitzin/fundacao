@@ -68,7 +68,7 @@ export class ShiftsController {
           @Query('houseId', ParseUUIDPipe) houseId: string,
           @Query('escala') escala?: string,
           @Query('data', DataDoDia) data?: string) {
-    const janela = escala === 'semana' || escala === 'mes' ? escala : 'dia';
+    const janela = escala === 'semana' || escala === 'mes' || escala === '30dias' ? escala : 'dia';
     return this.shifts.arquivo(user, houseId, janela, data ?? hojeNaInstituicao());
   }
 

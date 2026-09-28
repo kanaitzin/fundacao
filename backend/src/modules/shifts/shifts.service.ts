@@ -1439,7 +1439,7 @@ export class ShiftsService {
   }
 
   async arquivo(user: AuthenticatedUser, houseId: string,
-                escala: 'dia' | 'semana' | 'mes', data: string) {
+                escala: 'dia' | 'semana' | 'mes' | '30dias', data: string) {
     const { de, ate } = janelaDeConsulta(escala, data || hojeNaInstituicao());
 
     /*

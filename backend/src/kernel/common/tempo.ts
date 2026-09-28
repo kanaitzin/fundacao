@@ -152,10 +152,16 @@ function deslocamentoEmMinutos(instante: Date): number {
  * relógio local no meio disso é o caminho conhecido para o mês que começa no
  * dia 31 do mês anterior.
  */
-export function janelaDeConsulta(escala: 'dia' | 'semana' | 'mes', data: string):
+export function janelaDeConsulta(escala: 'dia' | 'semana' | 'mes' | '30dias', data: string):
 { de: string; ate: string } {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) throw new Error(`Data inválida: ${data} (use YYYY-MM-DD)`);
   if (escala === 'dia') return { de: data, ate: data };
+  /* Os ÚLTIMOS 30 DIAS até a data, contando com ela (decisão de 28/09, §10 item
+     4): o mês de calendário deixava o Arquivo quase vazio todo dia 1º. */
+  if (escala === '30dias') {
+    const inicio = new Date(Date.parse(`${data}T00:00:00Z`) - 29 * 86_400_000);
+    return { de: inicio.toISOString().slice(0, 10), ate: data };
+  }
 
   if (escala === 'mes') {
     const [ano, mes] = data.split('-').map(Number);

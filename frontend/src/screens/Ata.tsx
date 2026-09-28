@@ -366,13 +366,14 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
     }
   }
   /*
-   * Abre no MÊS, e não na semana. A semana de calendário começa vazia toda
-   * segunda-feira: quem abrisse o arquivo na manhã de segunda veria "nenhuma
-   * ATA neste período" com o livro cheio logo atrás, e a conclusão razoável
-   * seria que o sistema perdeu os registros. O mês sempre tem o que mostrar,
-   * e estreitar é um toque.
+   * Abre nos ÚLTIMOS 30 DIAS (decisão de 28/09, §10 item 4). Abria no mês, que
+   * já era melhor que a semana (a semana de calendário começa vazia toda
+   * segunda-feira), mas o mês de calendário começa vazio todo dia 1º: quem
+   * abrisse o arquivo na manhã do dia 1º veria só a noite anterior, com o
+   * livro cheio logo atrás. Os últimos 30 dias sempre têm o que mostrar, como
+   * já foi decidido para as visitas, e estreitar é um toque.
    */
-  const [escala, setEscala] = useState<'dia' | 'semana' | 'mes'>('mes');
+  const [escala, setEscala] = useState<'30dias' | 'dia' | 'semana' | 'mes'>('30dias');
   /* O turno no arquivo, e a leitura em sequência (pedido de 28/09, fase 174). */
   const [turnoDoArquivo, setTurnoDoArquivo] = useState<'ambos' | 'diurno' | 'noturno'>('ambos');
   const [lendo, setLendo] = useState<{ titulo: string; atas: { plantaoId: string; rotulo: string }[] } | null>(null);
@@ -1392,11 +1393,11 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
           <div className="card raise stack">
             <h3 style={{ fontSize: 17, margin: 0 }}>Arquivo das ATAS</h3>
             <div className="mutetxt">
-              O livro folheado para trás: um dia, uma semana ou um mês desta casa.
+              O livro folheado para trás: os últimos 30 dias, um dia, uma semana ou um mês desta casa.
             </div>
 
             <div className="filtros" role="tablist" aria-label="Recorte">
-              {([['dia', 'Um dia'], ['semana', 'A semana'], ['mes', 'O mês']] as const).map(
+              {([['30dias', 'Últimos 30 dias'], ['dia', 'Um dia'], ['semana', 'A semana'], ['mes', 'O mês']] as const).map(
                 ([cod, label]) => (
                   <button key={cod} role="tab" aria-selected={escala === cod}
                           className={escala === cod ? 'on' : ''}
@@ -1418,7 +1419,7 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
             </div>
 
             <label className="f" htmlFor="arq-data">
-              Data <small>— a semana e o mês são os DESTA data</small>
+              Data <small>— os 30 dias, a semana e o mês são os DESTA data</small>
             </label>
             <div className="row">
               <input id="arq-data" type="date" className="grow" value={quando}
@@ -1435,7 +1436,7 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
                 De {dia(arquivo.de)} a {dia(arquivo.ate)} · {arquivo.dias.length} dia(s) com ATA.
               </p>
               <div className="notice c-info">{arquivo.notaAtaGeral}</div>
-              {LE_EM_SEQUENCIA.includes(papel) && escala !== 'mes' && atasDoArquivo(arquivo.dias).length > 0 && (
+              {LE_EM_SEQUENCIA.includes(papel) && (escala === 'dia' || escala === 'semana') && atasDoArquivo(arquivo.dias).length > 0 && (
                 <button className="btn block sec" style={{ marginTop: 8 }}
                         onClick={() => setLendo({
                           titulo: escala === 'dia' ? `ATAs de ${dia(arquivo.de)}` : `ATAs de ${dia(arquivo.de)} a ${dia(arquivo.ate)}`,

@@ -219,6 +219,17 @@ describe('Arquivo das ATAS', () => {
     expect(janelaDeConsulta('dia', '2026-08-31')).toEqual({ de: '2026-08-31', ate: '2026-08-31' });
   });
 
+  /* O recorte que abre o Arquivo desde 28/09 (§10 item 4): os últimos 30 dias,
+     contando o próprio dia. No dia 1º ele traz o mês que acabou, e não um vazio. */
+  it('os últimos 30 dias contam o próprio dia, e no dia 1º trazem o mês anterior', async () => {
+    expect(janelaDeConsulta('30dias', '2026-03-01')).toEqual({ de: '2026-01-31', ate: '2026-03-01' });
+    expect(janelaDeConsulta('30dias', '2024-03-01')).toEqual({ de: '2024-02-01', ate: '2024-03-01' });
+    expect(janelaDeConsulta('30dias', '2027-01-01')).toEqual({ de: '2026-12-03', ate: '2027-01-01' });
+    const trinta = await arquivo(tokens.coord, ids.AI3, '30dias');
+    expect(trinta.status).toBe(200);
+    expect(trinta.body).toMatchObject(janelaDeConsulta('30dias', ONTEM));
+  });
+
   it('a semana e o mês devolvem a janela que pediram', async () => {
     const semana = await arquivo(tokens.coord, ids.AI3, 'semana');
     expect(semana.status).toBe(200);

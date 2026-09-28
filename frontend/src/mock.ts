@@ -2810,6 +2810,10 @@ const capa = (o: Partial<Record<string, any>> = {}) => ({
  */
 function janelaDeConsulta(escala: string, data: string): { de: string; ate: string } {
   if (escala === 'dia') return { de: data, ate: data };
+  if (escala === '30dias') {
+    const inicio = new Date(Date.parse(`${data}T00:00:00Z`) - 29 * 86_400_000);
+    return { de: inicio.toISOString().slice(0, 10), ate: data };
+  }
   if (escala === 'mes') {
     const [ano, mes] = data.split('-').map(Number);
     const ultimo = new Date(Date.UTC(ano, mes, 0)).getUTCDate();

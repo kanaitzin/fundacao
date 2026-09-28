@@ -3045,6 +3045,8 @@ if (!(await aba('ATA'))) await doMais('ATA');
 await pg.getByRole('tab', { name: /^Arquivo/ }).click();
 await pg.waitForTimeout(900);
 /* Ontem, pela data, e não pela posição na lista: a semana de uma segunda-feira só tem hoje. */
+cobrar('o arquivo abre nos últimos 30 dias (decisão de 28/09)',
+  (await pg.getByRole('tab', { name: /^Últimos 30 dias$/ }).getAttribute('aria-selected')) === 'true');
 const ONTEM_174 = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' })
   .format(new Date(Date.now() - 86400000));
 await pg.getByRole('tab', { name: /^Um dia$/ }).click();
