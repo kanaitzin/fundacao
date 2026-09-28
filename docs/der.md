@@ -906,7 +906,7 @@ criança, e log não copia conteúdo sensível (§5). A auditoria guarda o ato �
 coordenação, Líder Diurno). Mais ninguém: a lista de quem pediu para ler o quê é,
 ela mesma, informação sobre o caso.
 
-## Inventário — 124 tabelas por partição
+## Inventário — 125 tabelas por partição
 
 | Partição | Tabelas |
 |---|---|

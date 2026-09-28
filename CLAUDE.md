@@ -163,7 +163,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 28/09/2026, fase 177
+### Onde estamos — 28/09/2026, fase 178
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -204,8 +204,9 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 175 | **a foto sai reduzida do aparelho** (decisão de 28/09): o `lerArquivo` do `anexos.tsx` reduz antes de enviar (até 2000 px, JPEG 0,85, perto de 500 KB); PDF e imagem já pequena vão como vieram; a prévia diz de quanto era. O Dossiê, o Trabalho Social e a câmera do computador liam o arquivo por conta própria e passaram pela mesma função; e o limite de tamanho, conferido ANTES de reduzir, recusaria a foto que ia ficar pequena |
 | 176 | **a Coordenação Geral** (cargo novo do Marcelo, decisão de 28/09): coordenador com a marca `todas_as_casas` (1634), que `app_user_house_ids` lê — nenhuma das 78 funções, 61 políticas, 76 conferências do servidor e 44 da tela precisou mudar. Só o gestor marca, só coordenador recebe, nasce sem casa (`app_create_coordenacao_geral`), não entra em escala nem escalonamento de casa. Topo diz *Coordenação Geral*, abre nas Unidades; Equipe do gestor tem a caixa e o botão. E a suíte do dossiê **deixava internação aberta** na criança que a da chamada usa: reprovava conforme a ordem do Jest |
 | 177 | **as oito casas vivem um ano juntas** (pedido de 28/09): `SIM_CASAS=AI1,...,ARM4` no `simulacao-da-casa.sh`, com uma agenda que só anda o relógio quando todas as casas pediram a hora; ATA Geral toda manhã, Coordenação Geral lendo as oito, gestor no painel. **Nenhum achado** no ano, 27 contas no navegador sem nada; mais pesada, a equipe das oito (582 ms); ~140 MB de banco por ano para as oito. A Coordenação Geral não recebeu aviso nenhum no ano: pergunta no PARA-A-REUNIAO §4.15. Relatório em `docs/historico/oito-casas-um-ano-28-09.md` |
+| 178 | **as quatro decisões de 28/09**: a Coordenação Geral recebe os GRAVES das oito (nível `coordenacao_geral`, 1635: ocorrência que exige revisão técnica, internação, ATA Geral com pendência); o Arquivo das ATAs abre nos **últimos 30 dias**; a dose fora do horário diz **as duas horas** (`rotuloForaDoHorario`), sem a palavra atraso; o **PIA avisa 30 dias antes**, por criança, uma vez (`app_pia_chegando`, `pia_aviso`, 1636) |
 
-**Medido no fim da 177:** 175 migrações, 124 tabelas, 123 suítes, 1135 testes, verdes nas
+**Medido no fim da 178:** 177 migrações, 125 tabelas, 123 suítes, 1139 testes, verdes nas
 DUAS condições de relógio; os sete ensaios de navegador verdes, com a portaria e o
 portão, o armário, a cozinha, os temas e a foto no percurso do `ensaio:uso`; **438 telas (146 × três
 temas) sem violação de WCAG 2.1 AA**; nenhuma
@@ -292,12 +293,10 @@ olhar do gestor, dos líderes e da Coordenação Geral está no relatório
 sessão é reciclado quando ela fica parada, e a simulação morre junto; rodada longa se
 acompanha até o fim, sem encerrar a vez (a de oito casas leva ~45 min assim).
 
-**2.45 EM ANDAMENTO — fase 178, quatro decisões de 28/09:** (1) a Coordenação Geral
-recebe os avisos GRAVES das oito casas (ocorrência grave, internação, ATA Geral com
-pendência); (2) o Arquivo das ATAs abre nos ÚLTIMOS 30 DIAS; (3) a dose fora do horário
-diz a hora real e a prevista, sem a palavra atraso; (4) aviso do PIA 30 dias antes,
-por criança, na tela da técnica. Decisões registradas no §10 (4, 8, 9) e no
-PARA-A-REUNIAO §4.15.
+**2.45 FEITO — fase 178**: as quatro decisões de 28/09 (§2, linha 178). **As decisões
+que ainda esperam a Fundação** estão no §10: 1 (devolver acompanhamento para correção),
+2 (recorte da ATA Geral do dia corrente), 3 ("concluí tudo até agora"), 5 (grade para a
+parede) e 11 (a Enfermagem vê a internação, a confirmar).
 
 **2.5 O que a fase 173 deixou como caminho** (está no relatório dela):
 ~~levar a simulação a várias casas vivendo juntas~~ ✅ **177**, e rodar a simulação e o ensaio contra o servidor a cada fase, como a

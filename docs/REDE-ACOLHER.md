@@ -20,7 +20,7 @@ começava escolhendo em qual acreditar.*
 
 | Arquivo | Por que sobreviveu |
 |---|---|
-| `der.md` | as 124 tabelas com o que cada coluna guarda. É referência de dado, não narrativa, e o `documentacao.spec.ts` cobra que toda tabela apareça lá |
+| `der.md` | as 125 tabelas com o que cada coluna guarda. É referência de dado, não narrativa, e o `documentacao.spec.ts` cobra que toda tabela apareça lá |
 | `roteiro-marcelo.md` (+ `.docx`) | é entregue à Casa 03, escrito para quem não conhece o sistema. O `.docx` é GERADO do `.md` por `scripts/roteiro-em-word.mjs` — não editar o Word à mão |
 
 ---
@@ -90,10 +90,10 @@ discordavam entre si.
 | Quanto | De onde sai |
 |---|---|
 | **18 partições** isoladas | pastas em `backend/src/modules/` |
-| **175 migrações** | `.sql` dentro das partições |
-| **124 tabelas** | `CREATE TABLE` nas migrações |
+| **177 migrações** | `.sql` dentro das partições |
+| **125 tabelas** | `CREATE TABLE` nas migrações |
 | **123 suítes** | `backend/test/*.spec.ts` |
-| **1135 testes** | `it(` / `test(` nas suítes |
+| **1139 testes** | `it(` / `test(` nas suítes |
 | **36 telas React** | `frontend/src/screens/*.tsx` |
 | **10 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **7 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
@@ -385,6 +385,7 @@ arqueologia.
 | 175 | **A foto sai reduzida do aparelho.** Resposta da Fundação em 28/09 à pergunta que o ano simulado abriu: a foto da câmera era guardada do tamanho em que foi tirada, de 2 a 5 MB, e é isso, e não o banco, o que cresce (oito casas passariam de 6 GB por ano). Agora o `lerArquivo` do `anexos.tsx` reduz **no próprio aparelho, antes de enviar**: até 2000 pixels no lado maior, JPEG com qualidade 0,85, orientação da câmera respeitada, fundo branco para o PNG transparente. **PDF não se toca**, e a imagem que já é pequena (até 2000 pixels e 600 KB) também não, para um print de tela com letra miúda não perder nitidez. Se o navegador não abrir a imagem, ela vai como veio. A prévia diz *"reduzida de 4,8 MB para enviar"*. Três portas liam o arquivo por conta própria e **não reduziriam**: o Dossiê, que tinha uma cópia do `lerArquivo`, a tela do Trabalho Social, com um `FileReader` solto, e a câmera do computador; as três passaram pela mesma função. E uma armadilha no caminho: **o limite de tamanho era conferido ANTES de reduzir**, então a foto de 12 MB que vira 500 KB seria recusada pelo tamanho que não ia ter; a conferência passou a olhar o arquivo reduzido. O `ensaio:uso` fotografa uma imagem de 4000 por 3000 pixels no navegador e cobra que ela chegue à prévia reduzida, e que a pequena vá como veio. |
 | 176 | **A Coordenação Geral, o cargo novo do Marcelo.** Decisão de 28/09: ela faz tudo o que a coordenação de uma casa faz, **nas oito**, e o Gestor Geral continua olhando. **Não é um código de cargo novo**, e é decisão de engenharia medida: a palavra `coordenador` decide permissão em 78 funções e 61 políticas do banco, 76 conferências do servidor e 44 da tela, e um cargo novo teria de entrar em todas (a lição da 145 é que uma cópia fica para trás). É o cargo `coordenador` com a marca **`todas_as_casas`** (1634), e quem responde de quais casas a pessoa é continua sendo **uma função só**, `app_user_house_ids`, lida por `app_house_in_scope` e `app_casas_no_alcance`: as 119 políticas da 167 passam a valer para ela sem uma linha a mais. A marca **só vale para coordenador** (`CHECK` no banco) e **só o Gestor Geral a põe ou tira** (`POST /staff/:id/coordenacao-geral`, auditado como `staff.coordenacao_geral`, sem casa). A Coordenação Geral **nasce sem casa**, por uma função própria (`app_create_coordenacao_geral`): o cadastro comum exige casa para coordenador, e inventar uma para encerrar em seguida deixaria no histórico uma passagem que não houve. A coordenação de uma casa promovida **deixa a equipe dela**, com o vínculo encerrado com data; desmarcada, não alcança casa nenhuma até receber vínculo. Por não ser da equipe de casa nenhuma, ela **não entra na escala, na passagem nem no escalonamento** de uma casa (nas oito seria uma enxurrada de avisos). Na tela: o topo diz *Coordenação Geral*, ela **abre nas Unidades** para escolher a casa, e a Equipe do gestor tem a caixa *Coordena as oito casas* no cadastro e o botão *Tornar Coordenação Geral* em quem é da coordenação. No protótipo há uma conta de demonstração própria (a do Marcelo continua sendo a da Casa 03, porque é por ela que os ensaios entram). Suíte `a-coordenacao-geral`, e o `ensaio:uso` entra pela conta dela. De passagem, um defeito da suíte que **dependia da ordem**: a do dossiê abria internação na criança mais antiga da Casa 03 e nunca encerrava, e a da chamada escolhe a última pelo nome, que é a mesma; a suíte nova mudou a ordem do Jest e a chamada reprovou. Quem abre, encerra. |
 | 177 | **As oito casas vivem um ano juntas, e o olhar da instituição.** Pedido de 28/09. O `simulacao-da-casa` ganhou `SIM_CASAS`: as oito casas vivem o mesmo ano, cada uma com a sua equipe e as suas crianças (a AI3 e a AI4 também com as da semente), com um relógio só e uma **agenda que só o faz andar quando todas as casas pediram a hora seguinte**. A instituição vive junto: o Líder Noturno Geral assina a ATA Geral toda manhã, a Coordenação Geral lê as oito e amplia o limite das casas cheias, o gestor abre o painel todo mês. **Nenhum achado** em um ano: 81.563 refeições, 9.587 doses, 5.840 ATAs das casas, 364 ATAs Gerais sem pendência, 2.392 visitas, tudo batendo casa por casa; 27 contas abriram as telas contra o servidor de verdade sem nada. A leitura mais pesada é a equipe das oito pela Coordenação Geral (89 pessoas, 582 ms); o painel abre em 135 ms e o dia das unidades entre 140 e 265 ms. O banco cresce cerca de **140 MB por ano para as oito casas**. A Coordenação Geral **não recebeu nenhum aviso no ano** (decisão da 176), e isso vira pergunta à Fundação. Relatório em `docs/historico/oito-casas-um-ano-28-09.md` |
+| 178 | **As quatro decisões de 28/09.** (1) **A Coordenação Geral recebe os avisos graves das oito casas**: um nível próprio de escalonamento, `coordenacao_geral` (1635), escolhido pela marca `todas_as_casas`, e não pelo cargo, porque a coordenação de UMA casa não deve receber o grave das outras sete. Chegam a ela a ocorrência das categorias que exigem revisão técnica, a internação aberta e a ATA Geral Noturna assinada com pendência (um aviso só, e não um por casa); o aviso não carrega o fato. (2) **O Arquivo das ATAs abre nos últimos 30 dias**, contando o próprio dia: o mês de calendário deixava o Arquivo quase vazio todo dia 1º. Dia, semana e mês continuam como opção, e a conta mora em `janelaDeConsulta`, com cópia no protótipo. (3) **A dose dada fora do horário diz as duas horas** (*Dada às 20h40, prevista para as 20h00*), sem a palavra atraso: `rotuloForaDoHorario`, no kernel, usada pelo remédio e pela Enfermagem; o código do estado no banco não muda. (4) **O PIA avisa trinta dias antes, por criança**: o relógio do dia pergunta a `app_pia_chegando` (1636), que devolve só a data e o nome, nunca o documento restrito, e grava em `pia_aviso` o que já foi avisado, para sair uma vez só. A tabela mora no `people` porque o módulo de avisos é removível e a regra de fronteira reprovou a primeira versão, que lia o escalonamento. |
 
 ---
 
@@ -432,7 +433,7 @@ cd frontend && npm run prototipo
 ```
 
 O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as
-175 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
+177 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
 
 ### Os ensaios — e por que cada um existe
 
@@ -2758,7 +2759,7 @@ ele continua dizendo que o arquivo existe.
 npm run ensaio:producao
 ```
 
-Constrói, cria um banco virgem, aplica as 175 migrações **pelo binário
+Constrói, cria um banco virgem, aplica as 177 migrações **pelo binário
 compilado**, sobe o serviço e confere `/health`. Não publica nada e não toca no
 banco de trabalho.
 
