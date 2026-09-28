@@ -292,6 +292,13 @@ olhar do gestor, dos líderes e da Coordenação Geral está no relatório
 sessão é reciclado quando ela fica parada, e a simulação morre junto; rodada longa se
 acompanha até o fim, sem encerrar a vez (a de oito casas leva ~45 min assim).
 
+**2.45 EM ANDAMENTO — fase 178, quatro decisões de 28/09:** (1) a Coordenação Geral
+recebe os avisos GRAVES das oito casas (ocorrência grave, internação, ATA Geral com
+pendência); (2) o Arquivo das ATAs abre nos ÚLTIMOS 30 DIAS; (3) a dose fora do horário
+diz a hora real e a prevista, sem a palavra atraso; (4) aviso do PIA 30 dias antes,
+por criança, na tela da técnica. Decisões registradas no §10 (4, 8, 9) e no
+PARA-A-REUNIAO §4.15.
+
 **2.5 O que a fase 173 deixou como caminho** (está no relatório dela):
 ~~levar a simulação a várias casas vivendo juntas~~ ✅ **177**, e rodar a simulação e o ensaio contra o servidor a cada fase, como a
 suíte. **A decisão 4 do §10** (o Arquivo das ATAs abre no mês de calendário e fica

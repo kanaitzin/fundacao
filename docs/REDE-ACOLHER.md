@@ -2429,8 +2429,9 @@ número**.
    do dia contém doses de medicamento, onde "não existe marcação em lote" é
    absoluto. A versão segura ficaria limitada a atividades coletivas que não
    sejam medicação, como ato declarado.
-4. **O Arquivo das ATAS abre no mês de calendário** e fica quase vazio todo dia
-   1º. Um quarto recorte, "últimos 30 dias", resolveria.
+4. ~~**O Arquivo das ATAS abre no mês de calendário**~~ ✅ **RESPONDIDA em
+   28/09/2026: abre nos últimos 30 dias**, como as visitas. Dia, semana e mês
+   continuam como opção (fase 178).
 5. **A grade de medicação "para colar na parede"** saiu sem diagnóstico e com o
    aviso na própria folha. Se a casa quiser diferente, é decisão dela.
 6. ~~**O que o Gestor Geral vê ANTES de abrir um relato restrito.**~~
@@ -2445,15 +2446,15 @@ número**.
    ocorrências e evoluções de saúde do período, numa lista única com filtro por
    tipo. É mais trabalho de uma vez, e é a única que não obriga a técnica a
    adivinhar em qual aba está o que ela lembra.
-8. **"Administrado com atraso"** é informação útil para a Enfermagem, ou
-   cobrança injusta com quem estava com uma criança no colo? Hoje o sistema
-   marca; mudar é trocar o rótulo por um que descreva o fato sem julgar quem
-   estava de plantão.
+8. ~~**"Administrado com atraso"**~~ ✅ **RESPONDIDA em 28/09/2026: descrever o
+   fato.** O rótulo passa a dizer a hora real e a prevista (*dada às 20h40,
+   prevista para as 20h*), sem a palavra atraso (fase 178).
 9. **O PIA — último e próximo.** A lista da casa traz duas colunas de data, e
    nas vinte crianças elas são iguais (18/06 e 18/09), o que sugere controle por
    uma data única na planilha, e não por criança. **A pergunta:** as datas são
    mesmo iguais para todo mundo, e o sistema deve avisar por criança quando o
    próximo PIA está chegando — 30 dias antes, na tela da técnica?
+   ✅ **RESPONDIDA em 28/09/2026: sim, por criança, 30 dias antes** (fase 178).
 10. ~~**As fontes do protótipo.**~~ **Resolvida na fase 97, medindo.** A
     pergunta existia por causa do custo — o documento estimava 300 KB. Com o
     subconjunto **latino** e só os pesos que o CSS usa (400/700 e o itálico na

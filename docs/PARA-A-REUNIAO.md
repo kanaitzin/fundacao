@@ -343,6 +343,8 @@ que ela mostrou e a Fundação decidiu:
   ocorrência grave em qualquer casa, internação, ou ATA Geral assinada com
   pendência. Sem resposta, fica como está: ela sabe pelo dia das unidades e pela
   coordenação de cada casa.
+  ✅ **Respondido em 28/09: só os graves.** Ocorrência grave, internação e ATA
+  Geral assinada com pendência, de qualquer das oito casas (fase 178).
 
 ## 5. As decisões que são do Marcelo *(§10 — responda pelo número)*
 
