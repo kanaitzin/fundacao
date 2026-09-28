@@ -337,6 +337,12 @@ que ela mostrou e a Fundação decidiu:
   a tomar.
 - **Nos documentos**, a assinatura dela sai como *Coordenação*, igual à da
   coordenação de uma casa.
+- **Um ano das oito casas, simulado** (fase 177): tudo bateu, e nenhuma tela deu
+  erro para o gestor, os líderes ou a Coordenação Geral. **Em um ano ela não
+  recebeu nenhum aviso.** Pergunta: algum aviso deve chegar a ela? Por exemplo,
+  ocorrência grave em qualquer casa, internação, ou ATA Geral assinada com
+  pendência. Sem resposta, fica como está: ela sabe pelo dia das unidades e pela
+  coordenação de cada casa.
 
 ## 5. As decisões que são do Marcelo *(§10 — responda pelo número)*
 

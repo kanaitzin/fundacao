@@ -154,7 +154,7 @@ e qual é o caminho certo.
 | `frontend/src/icones.tsx` | **os desenhos da moldura**, em traço e `currentColor`, no lugar dos emoji (fase 150). Emoji muda de cara conforme o aparelho, não herda a cor e carrega significado que ninguém pediu. Nenhum ícone é o único portador do sentido: ao lado há sempre a palavra |
 | `frontend/src/anexos.tsx` | **o `EscolherAnexo`** (fase 165): câmera, galeria, arquivo e a câmera do computador, com prévia, ampliar, descartar e tirar outra. Todo lugar novo que recebe foto ou documento usa este, e não um `<input type="file">` solto. **E o `lerArquivo` daqui é a única leitura de arquivo** (fase 175): é ele que reduz a foto antes de enviar, e leitura por conta própria manda a foto do tamanho da câmera |
 | `backend/src/kernel/documentos/paginas-do-pdf.ts` | **as páginas de um PDF como imagem** (fase 165), num processo à parte (`desenhar-paginas.mjs`, nome diferente de propósito: com o mesmo nome o Jest importava o `.mjs`). Nunca lança: PDF que não desenha volta marcado, e o documento sai assim mesmo |
-| `scripts/simulacao-da-casa.sh` | **uma casa nasce e vive noventa dias** (fase 173): a ARM1 do primeiro acesso a fevereiro, com o relógio andando (`faketime` lendo um arquivo que a simulação reescreve), os relatórios conferidos contra o que ela contou, e no fim o **`frontend/ensaio-servidor.mjs`**, que abre as telas no navegador **contra o servidor de verdade**. Recria o banco: não roda junto com a suíte. `SIM_SO_NAVEGADOR=1` repete só o navegador |
+| `scripts/simulacao-da-casa.sh` | **uma casa nasce e vive noventa dias** (fase 173), **ou as oito vivem juntas** com `SIM_CASAS` (fase 177): a ARM1 do primeiro acesso a fevereiro, com o relógio andando (`faketime` lendo um arquivo que a simulação reescreve), os relatórios conferidos contra o que ela contou, e no fim o **`frontend/ensaio-servidor.mjs`**, que abre as telas no navegador **contra o servidor de verdade**. Recria o banco: não roda junto com a suíte. `SIM_SO_NAVEGADOR=1` repete só o navegador |
 | `frontend/src/cargos.tsx` | **a cor de cada cargo e o círculo de iniciais** (fase 151). Ela convive com DUAS outras: a cor de ESTADO (crítico/atenção — não se toca, e o cargo não usa a família dela) e a cor de AUTOR (`tomDoAutor`, qual colega escreveu — a coordenação escolhe, 0990). Três perguntas diferentes; o dia em que duas responderem à mesma, a cor deixa de informar |
 
 ## O que fazer agora
@@ -163,7 +163,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 28/09/2026, fase 176
+### Onde estamos — 28/09/2026, fase 177
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -203,8 +203,9 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 174 | **um ano inteiro de casa, e as ATAs do dia em sequência** (pedidos de 28/09): a simulação vive 365 dias e tudo bate (299 visitas, 6329 refeições, 1055 doses, 730 plantões); nenhuma leitura ou relatório acima de 174 ms; o banco cresce ~22 MB por casa por ano (os anexos em disco é que crescem: foto guardada do tamanho da câmera, pergunta no PARA-A-REUNIAO §4.14). No Arquivo, o filtro **Os dois turnos / Só diurno / Só noturno** e, para coordenação, técnica e líderes, a **leitura em sequência** das folhas (`PapelDoDocumento`). Relatório em `docs/historico/um-ano-de-casa-28-09.md` |
 | 175 | **a foto sai reduzida do aparelho** (decisão de 28/09): o `lerArquivo` do `anexos.tsx` reduz antes de enviar (até 2000 px, JPEG 0,85, perto de 500 KB); PDF e imagem já pequena vão como vieram; a prévia diz de quanto era. O Dossiê, o Trabalho Social e a câmera do computador liam o arquivo por conta própria e passaram pela mesma função; e o limite de tamanho, conferido ANTES de reduzir, recusaria a foto que ia ficar pequena |
 | 176 | **a Coordenação Geral** (cargo novo do Marcelo, decisão de 28/09): coordenador com a marca `todas_as_casas` (1634), que `app_user_house_ids` lê — nenhuma das 78 funções, 61 políticas, 76 conferências do servidor e 44 da tela precisou mudar. Só o gestor marca, só coordenador recebe, nasce sem casa (`app_create_coordenacao_geral`), não entra em escala nem escalonamento de casa. Topo diz *Coordenação Geral*, abre nas Unidades; Equipe do gestor tem a caixa e o botão. E a suíte do dossiê **deixava internação aberta** na criança que a da chamada usa: reprovava conforme a ordem do Jest |
+| 177 | **as oito casas vivem um ano juntas** (pedido de 28/09): `SIM_CASAS=AI1,...,ARM4` no `simulacao-da-casa.sh`, com uma agenda que só anda o relógio quando todas as casas pediram a hora; ATA Geral toda manhã, Coordenação Geral lendo as oito, gestor no painel. **Nenhum achado** no ano, 27 contas no navegador sem nada; mais pesada, a equipe das oito (582 ms); ~140 MB de banco por ano para as oito. A Coordenação Geral não recebeu aviso nenhum no ano: pergunta no PARA-A-REUNIAO §4.15. Relatório em `docs/historico/oito-casas-um-ano-28-09.md` |
 
-**Medido no fim da 176:** 175 migrações, 124 tabelas, 123 suítes, 1135 testes, verdes nas
+**Medido no fim da 177:** 175 migrações, 124 tabelas, 123 suítes, 1135 testes, verdes nas
 DUAS condições de relógio; os sete ensaios de navegador verdes, com a portaria e o
 portão, o armário, a cozinha, os temas e a foto no percurso do `ensaio:uso`; **438 telas (146 × três
 temas) sem violação de WCAG 2.1 AA**; nenhuma
@@ -216,6 +217,8 @@ dias** (`scripts/simulacao-da-casa.sh 90`): tudo o que ela contou bate com o que
 devolve, nenhum achado na API, e **12 contas, 179 telas contra o servidor de verdade, sem achado**.
 **E o ano** (`simulacao-da-casa.sh 365`): tudo bate, nenhuma leitura acima de 174 ms, ~22 MB de
 banco por casa por ano.
+**E as oito casas num ano** (`SIM_CASAS=AI1,AI2,AI3,AI4,ARM1,ARM2,ARM3,ARM4 … 365`): nenhum
+achado, 27 contas e todas as telas contra o servidor de verdade, nenhuma leitura acima de 582 ms.
 
 **As TRÊS cores do sistema, porque confundi-las é o pior que esta tela pode
 fazer** — está escrito por extenso em `frontend/src/cargos.tsx`:
@@ -283,18 +286,14 @@ têm suíte própria. **Não há mais etapa de código que não dependa de algu�
 **2. Aplicar o roteiro com a equipe.** Continua sendo o que mais muda o sistema, e
 o único que não se faz daqui.
 
-**2.4 EM ANDAMENTO — fase 177, pedido de 28/09:** *"simule várias casas durante um
-ano, analise como o gestor vê tudo isso, assim como o educador líder e a coordenação
-de todas as casas"*. A 176 fez o cargo (Coordenação Geral). A 177 leva o
-`simulacao-da-casa` às OITO casas, cada uma com equipe e crianças, a ATA Geral Noturna
-do Líder Noturno, o relógio das oito, e mede e abre (`ensaio-servidor`) o que veem o
-gestor, o Líder Diurno, o Líder Noturno Geral e a Coordenação Geral. Relatório em
-`docs/historico/`.
+**2.4 FEITO — fase 177** (pedido de 28/09): as oito casas viveram um ano juntas, e o
+olhar do gestor, dos líderes e da Coordenação Geral está no relatório
+`docs/historico/oito-casas-um-ano-28-09.md`. **Lição de ambiente:** o contêiner da
+sessão é reciclado quando ela fica parada, e a simulação morre junto; rodada longa se
+acompanha até o fim, sem encerrar a vez (a de oito casas leva ~45 min assim).
 
 **2.5 O que a fase 173 deixou como caminho** (está no relatório dela):
-**levar a simulação a várias casas vivendo juntas** (só a ARM1 viveu; o que é da
-instituição, a ATA Geral, o painel do gestor, o relógio de oito casas, não foi medido
-com volume), e rodar a simulação e o ensaio contra o servidor a cada fase, como a
+~~levar a simulação a várias casas vivendo juntas~~ ✅ **177**, e rodar a simulação e o ensaio contra o servidor a cada fase, como a
 suíte. **A decisão 4 do §10** (o Arquivo das ATAs abre no mês de calendário e fica
 vazio no dia 1º) é o mesmo defeito que a Fundação já decidiu para as visitas.
 
