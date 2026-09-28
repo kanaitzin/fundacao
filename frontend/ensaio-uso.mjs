@@ -1511,11 +1511,15 @@ await fechar();
  * horário fixo falha em certas horas do dia, e isso NÃO é defeito do sistema.
  * O ensaio calcula o turno como o sistema calcula, e abre o cartão certo.
  */
+/* A regra de 25/09 (fase 157): diurno das 08:00 às 20:00, que é o horário da casa
+ * do protótipo. Esta cópia ficou em 7h–19h até a fase 173, e só errava entre
+ * 07h e 08h e entre 19h e 20h: foi a rodada das 07h37 que a achou. */
 const turnoDeAgora = (() => {
-  const h = Number(new Intl.DateTimeFormat('en-GB', {
-    timeZone: 'America/Sao_Paulo', hour: '2-digit', hour12: false,
-  }).format(new Date()));
-  return h >= 7 && h < 19 ? 'diurno' : 'noturno';
+  const [h, m] = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit', hour12: false,
+  }).format(new Date()).split(':').map(Number);
+  const minutos = h * 60 + m;
+  return minutos >= 8 * 60 && minutos <= 20 * 60 ? 'diurno' : 'noturno';
 })();
 
 cobrar('a lista de plantões abre', await aba('Passagem'));

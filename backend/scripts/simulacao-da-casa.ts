@@ -523,6 +523,13 @@ async function umDia(dia: string, n: number) {
       await post('lider', `/shifts/ata/${p.ataId}/close`, {}, { rotulo: 'fechar a ATA diurna' });
     }
   }
+  if (semana === 1) {
+    /* Segunda: as ATAs diurnas do fim de semana que ninguém fechou (decisão de 28/09). */
+    const abertas = lista(await get('lider', `/shifts/abertas?houseId=${ids.ARM1}`, { rotulo: 'as ATAs que ficaram abertas' }));
+    for (const a of abertas.filter((x: any) => x.podeFechar)) {
+      await post('lider', `/shifts/ata/${a.ataId}/close`, {}, { rotulo: 'fechar a ATA do fim de semana' });
+    }
+  }
   relogio(dia, '20:05');
   await darAsDoses(hoje.noturno, dia);
   await eventosDoDia(dia, n, 'noite');
@@ -772,8 +779,25 @@ async function eventosDoDia(dia: string, n: number, parte: 'manha' | 'tarde' | '
     if (n === 2) {
       /* Chega de noite uma criança nova; a técnica completa o perfil de manhã. */
       relogio(dia, '22:40');
-      const c = await admitir('tecnica', { chave: 'theo', nome: 'Theo Lima (fictício)', social: 'Theo', nascimento: '2019-03-03', genero: 'menino' }, dia, 'Conselho Tutelar, plantão noturno');
-      if (c) amanha(dia, async () => { relogio(somaDias(dia, 1), '09:00'); await completarOPerfil(c); });
+      /* A técnica não está: quem registra é o educador do plantão (decisão de 28/09). */
+      const r = await post(quemTrabalha(dia).noturno, '/people/chegada', { houseId: ids.ARM1, nome: 'Theo (fictício)',
+        idadeAproximada: 7, trazidaPor: 'Conselho Tutelar, plantão noturno',
+        chegada: 'Chegou às 22h30 com a roupa do corpo, com fome; jantou e dormiu.' }, { rotulo: 'registrar a chegada de noite' });
+      if (r?.personId) {
+        fatos.admissoes++;
+        const c: Crianca = { chave: 'theo', id: r.personId, nome: 'Theo (fictício)', social: 'Theo', nascimento: '2019-01-01', contatos: [], ativa: true };
+        criancas.push(c);
+        amanha(dia, async () => {
+          relogio(somaDias(dia, 1), '09:00');
+          const avisos = await get('tecnica', '/notifications', { rotulo: 'a técnica abre os avisos' });
+          if (!lista(avisos, 'itens').some((a: any) => /Chegou uma criança pelo plantão/.test(a.titulo)))
+            achar('chegada', 'tecnica', 'o aviso da chegada de noite', 'a técnica não recebeu');
+          await post('tecnica', `/people/${c.id}/corrigir-identificacao`, { nome: 'Theo Lima (fictício)',
+            nascimento: '2019-03-03', motivo: 'Dados conferidos com a certidão trazida pelo Conselho Tutelar.' },
+            { rotulo: 'completar a identificação da chegada' });
+          await completarOPerfil(c);
+        });
+      }
     }
     if (n === 5 || n === 80) await ocorrencia(dia, quemTrabalha(dia).noturno);
     if (n === 70) await reacolher('lara', dia);
@@ -801,7 +825,7 @@ async function visitaForaDoCombinado(dia: string) {
 // ================================================================ a conferência
 
 const SIGLAS = new Set(['CPF', 'CNPJ', 'RG', 'ATA', 'ATAS', 'SUS', 'UBS', 'PIA', 'ECA', 'CRAS', 'CREAS',
-  'NIS', 'CID', 'CAPS', 'UPA', 'SAMU', 'EJA', 'CEP', 'LGPD', 'MP', 'TJ', 'RS', 'PDF', 'DOCX', 'FASC', 'PAEFI', 'ARM', 'NF']);
+  'NIS', 'CID', 'CAPS', 'UPA', 'SAMU', 'EJA', 'CEP', 'LGPD', 'MP', 'TJ', 'RS', 'PDF', 'DOCX', 'FASC', 'PAEFI', 'ARM', 'NF', 'RASCUNHO']);
 function textoDoDocx(base64: string): string {
   const { dentroDoDocx } = require('../test/setup/dentro-do-docx');
   const { conteudo } = dentroDoDocx(base64);
@@ -811,7 +835,8 @@ function textoDoDocx(base64: string): string {
 }
 function vozDoPapel(nome: string, texto: string) {
   const problemas: string[] = [];
-  if (/—| – /.test(texto)) problemas.push(`travessão: ${texto.match(/.{0,50}(—| – ).{0,30}/)?.[0]}`);
+  /* O traço sozinho numa célula vazia é convenção de tabela; o travessão entre palavras não. */
+  if (/\S[ \t][—–][ \t]\S/.test(texto)) problemas.push(`travessão: ${texto.match(/.{0,50}\S[ \t][—–][ \t]\S.{0,30}/)?.[0]}`);
   /* A linha inteira em maiúsculas é título ou timbre; ênfase é a palavra solta no meio da frase. */
   for (const linha of texto.split('\n').filter((l) => /[a-zà-ú]/.test(l))) {
     for (const m of linha.matchAll(/(?<![\wÀ-ú])[A-ZÁÉÍÓÚÂÊÔÃÕÇ]{3,}(?![\wÀ-ú])/g)) if (!SIGLAS.has(m[0])) problemas.push(`maiúsculas: ${m[0]} em ${linha.slice(0, 80)}`);
@@ -879,6 +904,14 @@ async function conferir(ultimo: string) {
        FROM shift s JOIN ata a ON a.shift_id = s.id WHERE s.house_id = $1 GROUP BY 1, 2 ORDER BY 1, 2`, [ids.ARM1]);
   console.log('  ATAs por turno e situação:', JSON.stringify(atas));
   confere('plantões abertos', atas.reduce((n: number, a: any) => n + a.n, 0), fatos.plantoes);
+  const { rows: [esquecidas] } = await admin.query(
+    `SELECT count(*)::int AS n FROM shift s JOIN ata a ON a.shift_id = s.id
+      WHERE s.house_id = $1 AND a.status = 'rascunho' AND s.on_date < $2::date - 2`, [ids.ARM1, ultimo]);
+  confere('ATAs esquecidas abertas (mais de dois dias)', esquecidas.n, 0);
+  const { rows: [avisosDeDose] } = await admin.query(
+    `SELECT count(*)::int AS avisos, count(DISTINCT entity_id)::int AS doses FROM escalation
+      WHERE entity = 'medication_dose' AND house_id = $1`, [ids.ARM1]);
+  confere('avisos de dose atrasada por dose (uma vez só, em dois níveis)', avisosDeDose.doses ? avisosDeDose.avisos / avisosDeDose.doses : 2, 2);
 
   /* Uma ATA de cada turno, no papel. */
   for (const chave of [`${somaDias(INICIO, 5)}|diurno`, `${somaDias(INICIO, 5)}|noturno`, `2026-12-31|noturno`]) {

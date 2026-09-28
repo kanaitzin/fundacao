@@ -5665,7 +5665,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
   if (rota === '/reports/kitchen' && metodo === 'GET') {
     /* A mesma lista de `QUEM_LE_AS_RESTRICOES`, no profile.service (fase 173). */
     if (!['cozinha', 'coordenador', 'equipe_tecnica', 'gestor_geral', 'educador',
-          'lider_diurno', 'lider_noturno_geral', 'enfermagem'].includes(eu.role)) {
+          'lider_diurno', 'lider_noturno_geral'].includes(eu.role)) {
       return new Recusa(403, 'Sem acesso ao relatório de alimentação.');
     }
     return todosKids()

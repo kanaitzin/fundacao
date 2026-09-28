@@ -18,7 +18,7 @@
 > depois das 21h em Porto Alegre semeava o dia seguinte — o dia de hoje nascia
 > sem dose nenhuma. **Nada no sistema; tudo no dado de partida.**
 
-- **172 fases.** 120 suítes e 1120 testes, verdes em duas condições de relógio —
+- **172 fases.** 122 suítes e 1130 testes, verdes em duas condições de relógio —
   antes e depois da virada do UTC, que em Porto Alegre é às 21h.
 - **O pedido de 25/09 está fechado** (fase 166). Uma simulação de dois dias e
   do dia de hoje na Casa 03 conferiu os relatórios contra os fatos, e achou
@@ -276,6 +276,33 @@ anexar no dossiê. Ela **não** edita cadastro, escola nem cuidados essenciais.
   só vê.
 - **A coluna do monitor** com botões novos, e o "Período da casa" com desenho
   de calendário.
+
+## 4.13 Noventa dias de uma casa (fase 173, decidido em 28/09)
+
+A ARM1 foi simulada do primeiro acesso da coordenação até fevereiro de 2027,
+com todos os setores, e cada relatório foi conferido contra o que aconteceu. O
+que ela mostrou e a Fundação decidiu:
+
+- **A ATA diurna do fim de semana** ficava aberta para sempre, porque quem a
+  fecha não trabalha no sábado e no domingo. **Na segunda, o Líder Diurno vê
+  no alto da ATA as que ficaram abertas e as fecha.**
+- **A dose atrasada é avisada uma vez.** Continua aguardando confirmação na
+  grade e na passagem, mas o aviso não se repete todo dia.
+- **As visitas no perfil da criança começam no acolhimento**, e não mais em
+  1º de janeiro.
+- **A criança que chega de noite** é registrada pelo educador ou pelo líder do
+  plantão com o nome, a idade aproximada e quem trouxe. Ela entra na chamada e
+  na ATA na hora, e a técnica é avisada para completar de manhã (a data de
+  nascimento nasce estimada e se corrige com motivo).
+
+**Duas coisas para o Marcelo saber:**
+- Na chegada de noite, se a criança **já esteve na Fundação**, o plantão não
+  tem como saber, e ela entra como cadastro novo. De manhã, a técnica confere:
+  se era um retorno, o caminho é o Acervo histórico, e o cadastro provisório
+  fica para ser encerrado com o motivo. Juntar dois cadastros não existe.
+- **O educador e os líderes passaram a ler na tela a lista das restrições
+  alimentares** (o que evitar e o que servir no lugar, nunca o motivo), que
+  eles já imprimiam na folha da cozinha. A Enfermagem continua fora dessa lista.
 
 ## 5. As decisões que são do Marcelo *(§10 — responda pelo número)*
 

@@ -197,6 +197,11 @@ describe('Piloto da Casa 03 — ensaio geral do dia', () => {
     const daEnfermagem = await request(http).get(`/api/v1/reports/kitchen?houseId=${AI3}`)
       .set(auth(t.enfermagem));
     expect(daEnfermagem.status).toBe(403);
+    // Quem está no turno lê a mesma lista que imprime na folha (fase 173): a
+    // tela da Cozinha abria com erro vermelho para o educador.
+    const doEducador = await request(http).get(`/api/v1/reports/kitchen?houseId=${AI3}`)
+      .set(auth(t.educador));
+    expect(doEducador.status).toBe(200);
 
     const res = await request(http).get(`/api/v1/reports/kitchen?houseId=${AI3}`)
       .set(auth(t.coord));

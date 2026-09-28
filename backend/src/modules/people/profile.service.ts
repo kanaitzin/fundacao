@@ -40,7 +40,7 @@ async function seq<T>(fns: Array<() => Promise<T>>): Promise<T[]> {
 
 /** Quem lê as restrições da casa na tela da Cozinha. A mesma lista está no `mock.ts`. */
 export const QUEM_LE_AS_RESTRICOES = ['cozinha', 'coordenador', 'equipe_tecnica', 'gestor_geral',
-  'educador', 'lider_diurno', 'lider_noturno_geral', 'enfermagem'];
+  'educador', 'lider_diurno', 'lider_noturno_geral'];
 
 @Injectable()
 export class ProfileService {

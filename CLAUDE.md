@@ -154,6 +154,7 @@ e qual é o caminho certo.
 | `frontend/src/icones.tsx` | **os desenhos da moldura**, em traço e `currentColor`, no lugar dos emoji (fase 150). Emoji muda de cara conforme o aparelho, não herda a cor e carrega significado que ninguém pediu. Nenhum ícone é o único portador do sentido: ao lado há sempre a palavra |
 | `frontend/src/anexos.tsx` | **o `EscolherAnexo`** (fase 165): câmera, galeria, arquivo e a câmera do computador, com prévia, ampliar, descartar e tirar outra. Todo lugar novo que recebe foto ou documento usa este, e não um `<input type="file">` solto |
 | `backend/src/kernel/documentos/paginas-do-pdf.ts` | **as páginas de um PDF como imagem** (fase 165), num processo à parte (`desenhar-paginas.mjs`, nome diferente de propósito: com o mesmo nome o Jest importava o `.mjs`). Nunca lança: PDF que não desenha volta marcado, e o documento sai assim mesmo |
+| `scripts/simulacao-da-casa.sh` | **uma casa nasce e vive noventa dias** (fase 173): a ARM1 do primeiro acesso a fevereiro, com o relógio andando (`faketime` lendo um arquivo que a simulação reescreve), os relatórios conferidos contra o que ela contou, e no fim o **`frontend/ensaio-servidor.mjs`**, que abre as telas no navegador **contra o servidor de verdade**. Recria o banco: não roda junto com a suíte. `SIM_SO_NAVEGADOR=1` repete só o navegador |
 | `frontend/src/cargos.tsx` | **a cor de cada cargo e o círculo de iniciais** (fase 151). Ela convive com DUAS outras: a cor de ESTADO (crítico/atenção — não se toca, e o cargo não usa a família dela) e a cor de AUTOR (`tomDoAutor`, qual colega escreveu — a coordenação escolhe, 0990). Três perguntas diferentes; o dia em que duas responderem à mesma, a cor deixa de informar |
 
 ## O que fazer agora
@@ -162,7 +163,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 28/09/2026, fase 172
+### Onde estamos — 28/09/2026, fase 173
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -198,15 +199,18 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 170 | **a sondagem de alcance virou suíte permanente** (`zz-a-sondagem-de-alcance`, POR ÚLTIMO pelo `test/setup/sequenciador.js`) e achou **41 leituras com a casa na consulta respondendo 200 vazio** à Casa 04; conserto num lugar só (`CasaDaConsulta`, com `@CasaConferidaNoServico` para a portaria). E a **Enfermagem baixa o relatório da internação** (decisão de 27/09) |
 | 171 | **a sondagem de ESCRITA entre casas virou suíte permanente** (`zz-b-a-sondagem-de-escrita`), com a prova no BANCO (fotografia das linhas da Casa 03 antes e depois de cada rota): cerca de 170 rotas, nenhuma escrita passou; a edição do perfil respondia **ok** à Casa 04 com corpo vazio, e abrir anexo de ocorrência de fora dava **500** |
 | 172 | **os dois ajustes visuais que eram da Fundação** (escolhidos em 28/09): o topo deixa de repetir o nome em título grande (nome, casa e e-mail numa linha, ainda `h1`), e o **círculo do cargo** chega ao painel do plantão e à linha do dia, com o cargo por `app_user_cargo` (1628), lido por OUTRO educador no teste |
+| 173 | **noventa dias de uma casa, e as telas contra o servidor de verdade** (pedido de 28/09): o relatório do período e o das compras imprimiam **Invalid Date** (a coluna `date` agora volta como texto); **a tela dos Acompanhamentos nunca funcionou no sistema de verdade** (corpo e lista sem a casa, resposta em outra forma) e **`app_house_in_scope(NULL)` deixava passar** (1629); a dose de quem está com a família era cobrada em quatro lugares (1630–1632); a Cozinha abria com erro para educador. E as decisões de 28/09: ATA do fim de semana fechada pelo Líder de segunda, dose avisada uma vez, visitas desde o acolhimento, **chegada de noite pelo plantão** (1633). Relatório em `docs/historico/simulacao-de-90-dias-28-09.md` |
 
-**Medido no fim da 172:** 169 migrações, 124 tabelas, 120 suítes, 1120 testes, verdes nas
+**Medido no fim da 173:** 174 migrações, 124 tabelas, 122 suítes, 1130 testes, verdes nas
 DUAS condições de relógio; os sete ensaios de navegador verdes, com a portaria e o
 portão, o armário, a cozinha, os temas e a foto no percurso do `ensaio:uso`; **435 telas (145 × três
 temas) sem violação de WCAG 2.1 AA**; nenhuma
 rota sem teste; nenhuma rota — escrita ou leitura — com 500; **250 leituras sondadas
 pela Casa 04 com registro real da Casa 03, sem achado; cerca de 170 rotas de escrita, sem linha
 da Casa 03 mudada**; nenhum ouvinte
-falhando; nenhuma escrita da Casa 04 aceita sobre registro real da Casa 03.
+falhando; nenhuma escrita da Casa 04 aceita sobre registro real da Casa 03. **E a casa de noventa
+dias** (`scripts/simulacao-da-casa.sh 90`): tudo o que ela contou bate com o que o sistema
+devolve, nenhum achado na API, e **12 contas, 179 telas contra o servidor de verdade, sem achado**.
 
 **As TRÊS cores do sistema, porque confundi-las é o pior que esta tela pode
 fazer** — está escrito por extenso em `frontend/src/cargos.tsx`:
@@ -273,6 +277,13 @@ têm suíte própria. **Não há mais etapa de código que não dependa de algu�
 
 **2. Aplicar o roteiro com a equipe.** Continua sendo o que mais muda o sistema, e
 o único que não se faz daqui.
+
+**2.5 O que a fase 173 deixou como caminho** (está no relatório dela):
+**levar a simulação a várias casas vivendo juntas** (só a ARM1 viveu; o que é da
+instituição, a ATA Geral, o painel do gestor, o relógio de oito casas, não foi medido
+com volume), e rodar a simulação e o ensaio contra o servidor a cada fase, como a
+suíte. **A decisão 4 do §10** (o Arquivo das ATAs abre no mês de calendário e fica
+vazio no dia 1º) é o mesmo defeito que a Fundação já decidiu para as visitas.
 
 **3. A frente visual está feita**, inclusive os dois ajustes que eram escolha da
 Fundação (172). O que vier de visual agora é pedido novo.
@@ -427,6 +438,18 @@ novo.
   400 por formato chega antes da pergunta de alcance e não diz nada; a
   fotografia das linhas da casa antes e depois de cada rota diz. E ela achou o
   que o status não acharia: o *"ok, nada alterado"* que saía antes da pergunta.
+- **O protótipo aceita o que o servidor recusa** (173). Todo ensaio de navegador
+  abria o `mock.ts`, e a tela dos Acompanhamentos, escrita olhando o mock, nunca
+  funcionou no sistema de verdade: pedia a lista sem a casa e lia campos que o
+  servidor não devolvia. **Tela nova se abre também contra o servidor**
+  (`ensaio-servidor.mjs`, no fim da simulação). E `NULL` numa guarda
+  `IF NOT app_house_in_scope(x)` passa: **pergunta de alcance sobre nada responde
+  não**, e é a função que garante isso (1629).
+- **Coluna `date` é texto, não instante** (173). O `pg` a devolvia como `Date` à
+  meia-noite do fuso do processo, e `String(v).slice(0, 10)` virava *Sat Feb 13*:
+  dois relatórios imprimiam *Invalid Date* em toda linha. O `DatabaseService`
+  hoje devolve `AAAA-MM-DD`. **Relatório se lê baixado, como quem recebe** — foi
+  a leitura do Word que achou, não o teste de quem gera.
 - **Frase de tela que envelhece é frase que mente**, e a cobrança do ensaio que a
   guarda tem de ser reescrita junto. A ressalva do painel sobre nota escolar já foi
   reescrita três vezes. **Isto inclui este arquivo.**

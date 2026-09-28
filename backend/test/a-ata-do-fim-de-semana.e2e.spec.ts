@@ -9,7 +9,7 @@
  * `GET /shifts/abertas` devolve as ATAs cujo turno JÁ TERMINOU e que ninguém
  * fechou, com quem pode fechar cada uma pela mesma regra de `app_close_ata`.
  *
- * As datas são de quatrocentos dias atrás, fora de toda janela de consulta: a
+ * As datas são de quinhentos dias atrás (quatrocentos é da suíte do pedido de leitura), fora de toda janela de consulta: a
  * `ata` não aceita DELETE, e a suíte não tem como desfazer o que abre (145).
  */
 import { Test } from '@nestjs/testing';
@@ -50,10 +50,10 @@ describe('A ATA do fim de semana', () => {
       educador: 'educador.ai3@paodospobres.dev', coord4: 'coord.ai4@paodospobres.dev',
     })) t[k] = await login(email);
     ({ rows: [{ id: AI3 }] } = await admin.query(`SELECT id FROM house WHERE code = 'AI3'`));
-    /* O sábado de quatrocentos e poucos dias atrás, e o domingo seguinte. */
+    /* O sábado de quinhentos e poucos dias atrás, e o domingo seguinte. */
     ({ rows: [{ sab: SABADO, dom: DOMINGO }] } = await admin.query(
       `SELECT s::text AS sab, (s + 1)::text AS dom
-         FROM (SELECT (app_hoje() - 400) - ((extract(dow FROM app_hoje() - 400)::int + 1) % 7) AS s) x`));
+         FROM (SELECT (app_hoje() - 500) - ((extract(dow FROM app_hoje() - 500)::int + 1) % 7) AS s) x`));
     for (const [k, data, turno] of [['sab', SABADO, 'diurno'], ['dom', DOMINGO, 'noturno']]) {
       const r = await request(http).post('/api/v1/shifts').set(auth(t.lider)).send({ houseId: AI3, data, turno });
       expect(r.status).toBe(201);
