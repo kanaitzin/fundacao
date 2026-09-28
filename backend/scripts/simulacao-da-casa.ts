@@ -140,7 +140,7 @@ function anotar(tipo: string, quem: string, o_que: string, detalhe: string) {
 
 // ================================================================ uma casa
 
-type Destino = { codigo: string; id: string; aceitar: (transferencia: string) => Promise<unknown> };
+type Destino = { codigo: string; id: string; aceitar: (transferencia: string, crianca?: string) => Promise<unknown> };
 type Config = {
   codigo: string; id: string; indice: number;
   /** A casa já tinha crianças na semente (AI3 e AI4): a chamada lista também as dela. */
@@ -163,7 +163,8 @@ function criarCasa(cfg: Config) {
   const daCasa = (nome: string) => nome.replace(/ \((fict[ií]ci[ao])\)$/, ` ${SOBRENOMES[cfg.indice % SOBRENOMES.length]} ($1)`);
   /** A pessoa da equipe leva o nome da casa, para a leitura das oito listas. */
   const daEquipe = (nome: string) => nome.replace(/ \((fict[ií]ci[ao])\)$/, ` da ${COD} ($1)`);
-  const recebidas = { n: 0 };
+  /** Quem chegou transferido de outra casa: a chamada daqui passa a listar. */
+  const recebidas = { n: 0, ids: new Set<string>() };
   const relogio = (dia: string, hhmm: string) => agenda.esperar(COD, dia, hhmm);
   const achar = (tipo: string, quem: string, o_que: string, detalhe: string) => anotar(tipo, `${COD} · ${quem}`, o_que, detalhe);
 
@@ -542,7 +543,7 @@ function criarCasa(cfg: Config) {
       if (!linhas.some((l: any) => l.acolhidoId === c.id)) achar('chamada', quem, 'a chamada da refeição', `não lista ${c.social}, que está em casa`);
     }
     for (const l of linhas) {
-      if (!nossas.has(l.acolhidoId) && !cfg.daSemente) achar('chamada', quem, 'a chamada da refeição', `lista quem não está em casa: ${l.acolhidoId}`);
+      if (!nossas.has(l.acolhidoId) && !recebidas.ids.has(l.acolhidoId) && !cfg.daSemente) achar('chamada', quem, 'a chamada da refeição', `lista quem não está em casa: ${l.acolhidoId}`);
       const lara = criancas.find((c) => c.chave === 'lara');
       const opcao = lara && l.acolhidoId === lara.id ? 'dieta_adaptada' : 'normal';
       const m = await post(quem, `/checks/${id}/mark`, { personId: l.acolhidoId, opcao }, { rotulo: 'marcar na chamada da refeição' });
@@ -751,7 +752,7 @@ function criarCasa(cfg: Config) {
       reason: `Aproximação da escola e da família extensa, que mora perto da ${cfg.destino().codigo}.` }, { rotulo: 'pedir a transferência' });
     if (!t?.id) return;
     await relogio(dia, '11:30');
-    const ok = await cfg.destino().aceitar(t.id);
+    const ok = await cfg.destino().aceitar(t.id, c.id);
     if (ok) { c.ativa = false; fatos.transferencias++; }
     /* Depois de sair, a ARM1 não abre mais o perfil de quem foi. */
     await get('edu1', `/people/${c.id}`, { rotulo: 'abrir o perfil de quem foi transferido', espera: [200, 404, 403] });
@@ -1191,9 +1192,9 @@ function criarCasa(cfg: Config) {
   ids.CASA = cfg.id;
 
   /** A coordenação desta casa aceita a transferência que chega de outra. */
-  async function aceitar(transferencia: string) {
+  async function aceitar(transferencia: string, crianca?: string) {
     const ok = await post('coord', `/transfers/${transferencia}/accept`, {}, { rotulo: 'aceitar a transferência' });
-    if (ok) recebidas.n++;
+    if (ok) { recebidas.n++; if (crianca) recebidas.ids.add(crianca); }
     return ok;
   }
 
@@ -1434,13 +1435,13 @@ async function main() {
   if (VARIAS) {
     for (let i = 0; i < casas.length; i++) {
       const alvo = casas[(i + 1) % casas.length];
-      destinos[i] = { codigo: alvo.codigo, id: alvo.ids.CASA, aceitar: (t) => alvo.aceitar(t) };
+      destinos[i] = { codigo: alvo.codigo, id: alvo.ids.CASA, aceitar: (t, c) => alvo.aceitar(t, c) };
     }
   } else {
     const ai4 = criarCasa({ codigo: 'AI4', id: await idDe('AI4'), indice: 9, daSemente: true, inicial: 0,
       comuns: { ...comuns, coord: { email: 'coord.ai4@paodospobres.dev', senha: SENHA_SEMENTE, cargo: 'coordenador', nome: 'coord4' } },
       destino: () => { throw new Error('a AI4 não transfere'); } });
-    destinos[0] = { codigo: 'AI4', id: ai4.ids.CASA, aceitar: (t) => ai4.aceitar(t) };
+    destinos[0] = { codigo: 'AI4', id: ai4.ids.CASA, aceitar: (t, c) => ai4.aceitar(t, c) };
   }
 
   const relogioSvc = app.get(RelogioService);
