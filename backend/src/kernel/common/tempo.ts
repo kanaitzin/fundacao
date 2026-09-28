@@ -41,6 +41,20 @@ export function horaNaInstituicao(instante: Date = new Date()): string {
 }
 
 /**
+ * A DOSE DADA FORA DO HORÁRIO, descrita pelo fato (decisão de 28/09, §10 item 8).
+ *
+ * O rótulo dizia "Administrado com atraso", e a palavra soava como cobrança de
+ * quem estava com uma criança no colo às 20h. Agora diz as duas horas, a real e
+ * a prevista, e quem lê tira a conclusão. O código do estado no banco não muda:
+ * é o rótulo que descreve. Sem as duas horas, fica a frase geral.
+ */
+export function rotuloForaDoHorario(previsto?: Date | string | null, dada?: Date | string | null): string {
+  if (!previsto || !dada) return 'Dada fora do horário previsto';
+  const h = (x: Date | string) => horaNaInstituicao(new Date(x)).replace(':', 'h');
+  return `Dada às ${h(dada)}, prevista para as ${h(previsto)}`;
+}
+
+/**
  * A REGRA DA ATA — decisão da Fundação em 25/09/2026 (fase 157).
  *
  *   * ATA DIURNA  — das 08:00 às 20:00;

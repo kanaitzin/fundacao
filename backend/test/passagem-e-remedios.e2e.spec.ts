@@ -21,6 +21,7 @@
 import { Test } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
+import { rotuloForaDoHorario } from '../src/kernel/common/tempo';
 import { Client } from 'pg';
 import { AppModule } from '../src/app.module';
 
@@ -34,6 +35,7 @@ describe('A passagem e os remédios do turno', () => {
   const ids: Record<string, string> = {};
   let plantao = '';
   let doseSemResposta = '';
+  let doseDada = '';
 
   const login = async (email: string) => {
     const res = await request(http).post('/api/v1/auth/login').send({ email, password: SENHA });
@@ -96,6 +98,7 @@ describe('A passagem e os remédios do turno', () => {
               ($1,$2,$3, ($4::date + time '23:30') AT TIME ZONE app_fuso())
        RETURNING id`, [ids.esquema, ids.acolhido, ids.AI4, ontem]);
     doseSemResposta = rows[1].id;
+    doseDada = rows[0].id;
     await request(http).post(`/api/v1/medications/doses/${rows[0].id}/confirm`)
       .set(auth(tokens.enfermagem))
       .send({ estado: 'administrado_com_atraso', nota: 'Dada às 22h20, criança já deitada.' })
@@ -123,6 +126,25 @@ describe('A passagem e os remédios do turno', () => {
     expect(esperando.confirmou).toBeNull();
     expect(esperando.acolhido).toBeTruthy();
     expect(p.remedios.exigeFrase).toBe(true);
+  });
+
+  /* §10 item 8, decisão de 28/09: a dose fora do horário diz as duas horas, e não
+     a palavra atraso. */
+  it('a dose dada fora do horário diz a hora em que foi dada e a prevista, sem a palavra atraso', async () => {
+    expect(rotuloForaDoHorario('2026-09-28T23:00:00Z', '2026-09-28T23:40:00Z'))
+      .toBe('Dada às 20h40, prevista para as 20h00');
+    expect(rotuloForaDoHorario(null, null)).toBe('Dada fora do horário previsto');
+    const { rows: [d] } = await admin.query(
+      `SELECT to_char(scheduled_at AT TIME ZONE 'America/Sao_Paulo', 'YYYY-MM-DD') AS dia
+         FROM medication_administration WHERE id = $1`, [doseDada]);
+    const grade = await request(http).get(`/api/v1/medications?houseId=${ids.AI4}&date=${d.dia}`)
+      .set(auth(tokens.enfermagem));
+    expect(grade.status).toBe(200);
+    const doses = Array.isArray(grade.body) ? grade.body : grade.body.doses;
+    const dada = doses.find((x: any) => x.id === doseDada);
+    expect(dada.rotulo).toMatch(/^Dada às \d{2}h\d{2}, prevista para as \d{2}h\d{2}$/);
+    /* O código do estado no banco não muda; o que a pessoa lê, sim. */
+    expect(doses.map((x: any) => x.rotulo).join(' | ')).not.toMatch(/atraso/i);
   });
 
   it('sem a frase, a passagem não é assinada — e a recusa diz QUAIS doses', async () => {

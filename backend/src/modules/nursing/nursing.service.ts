@@ -6,7 +6,7 @@ import { DatabaseService } from '../../kernel/database/database.service';
 import { AuditService } from '../../kernel/audit/audit.service';
 import { EventBus } from '../../kernel/events/event-bus.service';
 import { AuthenticatedUser } from '../../kernel/contracts';
-import { hojeNaInstituicao } from '../../kernel/common/tempo';
+import { hojeNaInstituicao, rotuloForaDoHorario } from '../../kernel/common/tempo';
 import { DocumentosService } from '../../kernel/documentos/documentos.service';
 import { cargoNoDocumento } from '../../kernel/documentos/folha';
 import { folhaDeSaude } from './saude-folha';
@@ -61,7 +61,7 @@ const ESTADO_EVOLUCAO: Record<string, string> = {
 const ESTADO_DA_DOSE: Record<string, string> = {
   aguardando_confirmacao: 'Aguardando confirmação',
   administrado_no_horario: 'Administrado no horário',
-  administrado_com_atraso: 'Administrado com atraso',
+  administrado_com_atraso: 'Dada fora do horário previsto',
   recusado: 'Recusado pelo acolhido',
   nao_administrado: 'Não administrado',
   indisponivel: 'Medicamento indisponível',
@@ -521,7 +521,9 @@ export class NursingService {
         evolucoes: evolucoesMap,
         administracoes: doses.map((d) => ({
           previsto: d.scheduled_at, estado: d.state,
-          estadoRotulo: ESTADO_DA_DOSE[d.state] ?? d.state,
+          estadoRotulo: d.state === 'administrado_com_atraso'
+            ? rotuloForaDoHorario(d.scheduled_at, d.administered_at)
+            : ESTADO_DA_DOSE[d.state] ?? d.state,
           realizado: d.administered_at,
           medicamento: d.medication, dose: d.dose, por: d.por, observacao: d.note,
         })),

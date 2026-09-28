@@ -3817,10 +3817,17 @@ const ESTADO_LABEL: Record<string, string> = {
  * A tela e o protótipo tinham uma lista paralela, no feminino, que o servidor
  * teria recusado com 400 em toda confirmação.
  */
+/** A mesma frase do servidor (`rotuloForaDoHorario`, kernel/common/tempo.ts). */
+function rotuloForaDoHorario(previsto?: string | null, dada?: string | null): string {
+  if (!previsto || !dada) return 'Dada fora do horário previsto';
+  const h = (x: string) => new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_Paulo',
+    hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(x)).replace(':', 'h');
+  return `Dada às ${h(dada)}, prevista para as ${h(previsto)}`;
+}
 const ESTADO_DOSE: Record<string, string> = {
   aguardando_confirmacao: 'Aguardando confirmação',
   administrado_no_horario: 'Administrado no horário',
-  administrado_com_atraso: 'Administrado com atraso',
+  administrado_com_atraso: 'Dada fora do horário previsto',
   recusado: 'Recusado',
   nao_administrado: 'Não administrado',
   indisponivel: 'Indisponível',
@@ -9219,9 +9226,11 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     }
     d.pendente = false;
     d.estado = estado;
-    d.rotulo = ESTADO_DOSE[estado];
     d.confirmadaPor = eu.fullName;
     d.administradaEm = new Date().toISOString();
+    /* A dose fora do horário diz as duas horas, como o servidor (§10 item 8). */
+    d.rotulo = estado === 'administrado_com_atraso'
+      ? rotuloForaDoHorario(d.horario, d.administradaEm) : ESTADO_DOSE[estado];
     d.observacao = String(b.nota ?? '').trim() || null;
     return { ok: true, estado, rotulo: ESTADO_DOSE[estado] };
   }
@@ -9814,7 +9823,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     const EST_DOSE: Record<string, string> = {
       aguardando_confirmacao: 'Aguardando confirmação',
       administrado_no_horario: 'Administrado no horário',
-      administrado_com_atraso: 'Administrado com atraso',
+      administrado_com_atraso: 'Dada fora do horário previsto',
       recusado: 'Recusado pelo acolhido', nao_administrado: 'Não administrado',
       indisponivel: 'Medicamento indisponível',
       suspenso_conforme_orientacao: 'Suspenso conforme orientação',

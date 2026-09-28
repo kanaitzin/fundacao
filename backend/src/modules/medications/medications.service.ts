@@ -6,7 +6,7 @@ import { DatabaseService } from '../../kernel/database/database.service';
 import { AuditService } from '../../kernel/audit/audit.service';
 import { EventBus } from '../../kernel/events/event-bus.service';
 import { AuthenticatedUser } from '../../kernel/contracts';
-import { hojeNaInstituicao } from '../../kernel/common/tempo';
+import { hojeNaInstituicao, rotuloForaDoHorario } from '../../kernel/common/tempo';
 import { DocumentosService } from '../../kernel/documentos/documentos.service';
 import { Folha, diaBR, cargoNoDocumento } from '../../kernel/documentos/folha';
 import { ArquivosService } from '../../kernel/arquivos/arquivos.service';
@@ -35,7 +35,7 @@ const EXIGEM_NOTA = new Set([
 export const ESTADO_DOSE: Record<string, string> = {
   aguardando_confirmacao: 'Aguardando confirmação',
   administrado_no_horario: 'Administrado no horário',
-  administrado_com_atraso: 'Administrado com atraso',
+  administrado_com_atraso: 'Dada fora do horário previsto',
   recusado: 'Recusado',
   nao_administrado: 'Não administrado',
   indisponivel: 'Indisponível',
@@ -1911,7 +1911,9 @@ function mapDose(r: any) {
     tipo: r.kind,
     condicaoUso: r.use_condition,
     estado: r.state,
-    rotulo: ESTADO_DOSE[r.state] ?? r.state,
+    rotulo: r.state === 'administrado_com_atraso'
+      ? rotuloForaDoHorario(r.scheduled_at, r.administered_at)
+      : ESTADO_DOSE[r.state] ?? r.state,
     confirmadaPor: r.confirmado_por,
     administradaEm: r.administered_at,
     offline: r.offline,

@@ -161,7 +161,7 @@ const TOM_DOSE: Record<string, string> = {
  */
 const RESULTADOS: { cod: string; label: string; tom: string; exigeObs: boolean }[] = [
   { cod: 'administrado_no_horario', label: 'Administrada no horário', tom: 'c-ok', exigeObs: false },
-  { cod: 'administrado_com_atraso', label: 'Administrada com atraso', tom: 'c-warn', exigeObs: true },
+  { cod: 'administrado_com_atraso', label: 'Dada fora do horário previsto', tom: 'c-warn', exigeObs: true },
   { cod: 'recusado', label: 'Recusada pelo acolhido', tom: 'c-crit', exigeObs: true },
   { cod: 'nao_administrado', label: 'Não administrada', tom: 'c-crit', exigeObs: true },
   { cod: 'indisponivel', label: 'Medicamento indisponível', tom: 'c-other', exigeObs: true },
@@ -2335,7 +2335,7 @@ function NumerosDoArmario({ houseId }: { houseId: string }) {
     <div className="card raise stack">
       <h3 style={{ fontSize: 17, margin: 0 }}>O armário no mês</h3>
       <div className="mutetxt">
-        {m.doses.administradas} doses dadas ({m.doses.comAtraso} com atraso) · {m.doses.recusadas} recusadas ·{' '}
+        {m.doses.administradas} doses dadas ({m.doses.comAtraso} fora do horário previsto) · {m.doses.recusadas} recusadas ·{' '}
         {m.doses.naoAdministradas} não dadas
       </div>
       <div className="mutetxt">
