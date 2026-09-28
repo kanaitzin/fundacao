@@ -315,11 +315,10 @@ que ela mostrou e a Fundação decidiu:
 - **Um ano inteiro da ARM1**, simulado e conferido. Os relatórios batem com o
   que aconteceu, e nenhum levou mais que um quinto de segundo. O banco cresce
   cerca de 22 MB por casa por ano: oito casas, perto de 175 MB por ano.
-- **Uma pergunta para a Fundação: reduzir o tamanho das fotos.** Hoje a foto da
-  câmera é guardada do tamanho em que foi tirada, de 2 a 5 MB. Oito casas
-  passariam de 6 GB por ano só em documentos e fotos. A proposta é reduzir no
-  próprio celular antes de enviar (a certidão continua legível, e cada foto fica
-  perto de 500 KB). Documento em PDF fica como está. **Reduzimos?**
+- ~~**Reduzir o tamanho das fotos.**~~ ✅ **Respondido em 28/09: reduz** (fase
+  175). A foto grande sai reduzida no próprio aparelho antes de enviar: até 2000
+  pixels no lado maior, em JPEG de boa qualidade, perto de 500 KB. A prévia diz
+  de quanto era. PDF e imagem que já é pequena vão como vieram.
 
 ## 5. As decisões que são do Marcelo *(§10 — responda pelo número)*
 

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
 import { FolhaDocumento, baixarArquivo } from '../documentos';
-import { BotaoOlho, FolhaArquivo } from '../anexos';
+import { BotaoOlho, FolhaArquivo, base64De, lerArquivo } from '../anexos';
 import type { ArquivoGerado } from '../documentos';
 import type { DocumentoWord } from '../docx';
 import { dia } from '../rotulos';
@@ -296,12 +296,12 @@ function FolhaConquista({ onFechar, onSalvou }: {
         <label className="f">
           Comprovante <small>— diploma, certificado, carteira. PDF, JPG ou PNG, opcional</small>
         </label>
-        <input type="file" accept="application/pdf,image/*" onChange={(e) => {
+        <input type="file" accept="application/pdf,image/*" onChange={async (e) => {
           const f = e.target.files?.[0];
           if (!f) { setArquivo(null); return; }
-          const r = new FileReader();
-          r.onload = () => setArquivo({ nome: f.name, base64: String(r.result).split(',')[1] ?? '' });
-          r.readAsDataURL(f);
+          /* Pela mesma leitura das outras telas: a foto grande sai reduzida (fase 175). */
+          const lido = await lerArquivo(f);
+          setArquivo({ nome: lido.nome, base64: base64De(lido.dataUrl) });
         }} />
 
         {erro && <div className="notice c-crit" role="alert">{erro}</div>}

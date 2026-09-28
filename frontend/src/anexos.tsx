@@ -29,16 +29,77 @@ import { ReactNode, useEffect, useRef, useState } from 'react';
 import { Icone } from './icones';
 
 /** O que a prévia precisa saber sobre um arquivo escolhido, antes de enviar. */
-export interface Escolhido { nome: string; tipo: string; tamanho: number; dataUrl: string }
+export interface Escolhido {
+  nome: string; tipo: string; tamanho: number; dataUrl: string;
+  /** O tamanho antes da redução, quando a foto foi reduzida no aparelho. */
+  original?: number;
+}
 
-/** Lê o arquivo escolhido SEM enviar: a prévia acontece no aparelho. */
-export function lerArquivo(f: File): Promise<Escolhido> {
+/*
+ * A FOTO REDUZIDA NO APARELHO (decisão de 28/09, fase 175).
+ *
+ * A foto da câmera era guardada do tamanho em que foi tirada, de 2 a 5 MB, e o
+ * ano simulado da fase 174 mostrou que é isso, e não o banco, o que cresce:
+ * oito casas passariam de 6 GB por ano só em documentos e fotos. A Fundação
+ * decidiu reduzir antes de enviar: 2000 pixels no lado maior, em JPEG de boa
+ * qualidade, o que deixa a certidão legível e a foto perto de 500 KB. Reduzir
+ * aqui, e não no servidor, é também o que poupa o sinal fraco do hospital.
+ *
+ * PDF não se toca. Imagem que já é pequena (até 2000 pixels e 600 KB) também
+ * não: um PNG de tela com letra miúda perderia nitidez para ganhar nada. E se
+ * o navegador não conseguir abrir a imagem, ela vai como veio.
+ */
+const LADO_MAXIMO = 2000;
+const QUALIDADE = 0.85;
+const JA_PEQUENA = 600 * 1024;
+const REDUZIVEIS = ['image/jpeg', 'image/png', 'image/webp'];
+
+function lerComoDataUrl(f: File): Promise<Escolhido> {
   return new Promise((res, rej) => {
     const r = new FileReader();
     r.onload = () => res({ nome: f.name, tipo: f.type, tamanho: f.size, dataUrl: String(r.result) });
     r.onerror = () => rej(r.error ?? new Error('Não foi possível ler o arquivo.'));
     r.readAsDataURL(f);
   });
+}
+
+/** Desenha a imagem numa tela menor e devolve o JPEG, ou null se não couber reduzir. */
+export function reduzirNaTela(fonte: CanvasImageSource, largura: number, altura: number) {
+  const escala = Math.min(1, LADO_MAXIMO / Math.max(largura, altura));
+  const w = Math.max(1, Math.round(largura * escala));
+  const h = Math.max(1, Math.round(altura * escala));
+  const tela = document.createElement('canvas');
+  tela.width = w; tela.height = h;
+  const ctx = tela.getContext('2d');
+  if (!ctx) return null;
+  /* Fundo branco: o PNG transparente viraria preto no JPEG. */
+  ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, w, h);
+  ctx.drawImage(fonte, 0, 0, w, h);
+  const dataUrl = tela.toDataURL('image/jpeg', QUALIDADE);
+  return { dataUrl, tamanho: Math.round((dataUrl.length - 'data:image/jpeg;base64,'.length) * 0.75) };
+}
+
+async function reduzirFoto(f: File): Promise<Escolhido | null> {
+  if (!REDUZIVEIS.includes(f.type) || typeof createImageBitmap !== 'function') return null;
+  /* `from-image` respeita a orientação da câmera: sem ela a certidão deitada
+     sairia deitada. */
+  const img = await createImageBitmap(f, { imageOrientation: 'from-image' });
+  try {
+    if (Math.max(img.width, img.height) <= LADO_MAXIMO && f.size <= JA_PEQUENA) return null;
+    const r = reduzirNaTela(img, img.width, img.height);
+    if (!r || r.tamanho >= f.size) return null;
+    return { nome: f.name.replace(/\.[^./]+$/, '') + '.jpg', tipo: 'image/jpeg',
+             tamanho: r.tamanho, dataUrl: r.dataUrl, original: f.size };
+  } finally { img.close(); }
+}
+
+/** Lê o arquivo escolhido SEM enviar: a prévia acontece no aparelho. A foto grande sai reduzida. */
+export async function lerArquivo(f: File): Promise<Escolhido> {
+  try {
+    const reduzida = await reduzirFoto(f);
+    if (reduzida) return reduzida;
+  } catch { /* a imagem que o navegador não abre vai como veio */ }
+  return lerComoDataUrl(f);
 }
 
 /** O tamanho como a pessoa lê, não como a máquina guarda. */
@@ -93,7 +154,8 @@ export function PreviaEscolhida({ arquivo, pergunta }: {
         </p>
       )}
       <p className="mutetxt" style={{ marginBottom: 0 }}>
-        {arquivo.nome} · {tamanhoLegivel(arquivo.tamanho)}.{' '}
+        {arquivo.nome} · {tamanhoLegivel(arquivo.tamanho)}
+        {arquivo.original ? ` (reduzida de ${tamanhoLegivel(arquivo.original)} para enviar)` : ''}.{' '}
         {pergunta ?? <>O sistema confere o tipo pela assinatura do arquivo;{' '}
           <b>só os seus olhos</b> confirmam que é o documento certo, e desta criança.</>}
       </p>
@@ -202,19 +264,22 @@ export function EscolherAnexo({ arquivo, onEscolher, aceita = 'application/pdf,i
   async function receber(f: File | undefined, de: 'camera' | 'arquivo') {
     setErro('');
     if (!f) return;
-    /* A mesma conferência do servidor, adiantada: recusar aqui poupa o envio
-       de 10 MB pelo sinal fraco do hospital. O servidor confere de novo. */
-    if (f.size > maximoMb * 1024 * 1024) {
-      setErro(`O arquivo tem ${tamanhoLegivel(f.size)} e o limite é ${maximoMb} MB. `
-        + 'Fotografe de novo em qualidade menor, ou digitalize a página.');
-      return;
-    }
     if (f.type && !aceitos.includes(f.type)) {
       setErro('Este tipo de arquivo não é aceito aqui. Envie PDF, JPG ou PNG.');
       return;
     }
+    /* A mesma conferência do servidor, adiantada: recusar aqui poupa o envio
+       de 10 MB pelo sinal fraco do hospital. O servidor confere de novo.
+       Confere-se DEPOIS de reduzir (fase 175): a foto de 12 MB que vira 500 KB
+       não pode ser recusada pelo tamanho que ela não vai ter. */
+    const lido = await lerArquivo(f);
+    if (lido.tamanho > maximoMb * 1024 * 1024) {
+      setErro(`O arquivo tem ${tamanhoLegivel(lido.tamanho)} e o limite é ${maximoMb} MB. `
+        + 'Digitalize a página em qualidade menor, ou divida o documento em partes.');
+      return;
+    }
     setOrigem(de);
-    onEscolher(await lerArquivo(f));
+    onEscolher(lido);
   }
 
   if (arquivo) {
@@ -328,15 +393,15 @@ function FolhaWebcam({ onFechar, onFoto, onSemCamera }: {
   function fotografar() {
     const v = video.current;
     if (!v || !v.videoWidth) return;
-    const tela = document.createElement('canvas');
-    tela.width = v.videoWidth; tela.height = v.videoHeight;
-    tela.getContext('2d')!.drawImage(v, 0, 0);
-    const dataUrl = tela.toDataURL('image/jpeg', 0.9);
+    /* A mesma redução da foto escolhida (fase 175). */
+    const r = reduzirNaTela(v, v.videoWidth, v.videoHeight);
+    if (!r) return;
+    const { dataUrl } = r;
     const agora = new Date();
     const nome = `foto-${agora.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })}`
       + `-${agora.toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' }).replace(':', 'h')}.jpg`;
     fluxo?.getTracks().forEach((t) => t.stop());
-    onFoto({ nome, tipo: 'image/jpeg', tamanho: Math.round((dataUrl.length - 23) * 0.75), dataUrl });
+    onFoto({ nome, tipo: 'image/jpeg', tamanho: r.tamanho, dataUrl });
   }
 
   return (

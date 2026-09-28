@@ -2873,6 +2873,34 @@ cobrar('a foto aparece em prévia antes de sair do aparelho, com ampliar e desca
   /Confira antes de enviar/i.test(await corpo())
   && (await pg.getByRole('button', { name: 'Ampliar' }).count()) > 0
   && (await pg.getByRole('button', { name: 'Descartar' }).count()) > 0);
+cobrar('a imagem pequena vai como veio, sem ser reduzida',
+  !/reduzida de/.test(await corpo()) && /receita\.png/.test(await corpo()));
+/*
+ * A FOTO GRANDE SAI REDUZIDA (decisão de 28/09, fase 175): uma foto de câmera de
+ * 4000 por 3000 pixels, feita aqui mesmo no navegador, passa pela prévia já
+ * reduzida, e diz de quanto era.
+ */
+await pg.getByRole('button', { name: 'Descartar' }).click();
+await pg.waitForTimeout(300);
+const fotoGrande = Buffer.from(await pg.evaluate(() => {
+  const t = document.createElement('canvas'); t.width = 4000; t.height = 3000;
+  const c = t.getContext('2d'); const d = c.createImageData(4000, 3000);
+  for (let i = 0; i < d.data.length; i += 4) {
+    d.data[i] = (i * 13) % 251; d.data[i + 1] = (i * 7) % 241; d.data[i + 2] = (i * 3) % 239; d.data[i + 3] = 255;
+  }
+  c.putImageData(d, 0, 0);
+  return t.toDataURL('image/jpeg', 0.95).split(',')[1];
+}), 'base64');
+await pg.locator('#dia-anexo-arquivo').setInputFiles({ name: 'certidao-da-camera.jpg', mimeType: 'image/jpeg', buffer: fotoGrande });
+await pg.waitForTimeout(1500);
+const previaGrande = await corpo();
+cobrar(`a foto de câmera (${(fotoGrande.length / 1048576).toFixed(1)} MB) sai reduzida, e a prévia diz de quanto era`,
+  /certidao-da-camera\.jpg · [\d,.]+ (KB|MB) \(reduzida de [\d,.]+ MB para enviar\)/.test(previaGrande),
+  previaGrande.match(/certidao-da-camera[^\n]{0,80}/)?.[0]);
+await pg.getByRole('button', { name: 'Descartar' }).click();
+await pg.waitForTimeout(300);
+await pg.locator('#dia-anexo-arquivo').setInputFiles({ name: 'receita.png', mimeType: 'image/png', buffer: png });
+await pg.waitForTimeout(500);
 cobrar('sem dizer que documento é, não salva',
   await pg.locator('.overlay button', { hasText: /^Salvar$/ }).isDisabled());
 await pg.locator('#dia-cat').selectOption('receita');

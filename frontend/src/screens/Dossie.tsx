@@ -3,6 +3,8 @@ import { api } from '../api';
 import { baixarArquivo } from '../documentos';
 import { dia } from '../rotulos';
 import { Icone } from '../icones';
+import { lerArquivo } from '../anexos';
+import type { Escolhido } from '../anexos';
 
 /**
  * O DOSSIÊ DO ACOLHIDO (§6.1) e o ÁLBUM DE VIVÊNCIAS (§6.9).
@@ -74,8 +76,6 @@ interface Catalogo {
   tamanhoMaximo: number; aceitos: string[]; aviso: string;
   tiposDeVivencia: { code: string; label: string }[];
 }
-/** O que a prévia precisa saber sobre um arquivo escolhido, antes de enviar. */
-interface Escolhido { nome: string; tipo: string; tamanho: number; dataUrl: string }
 
 const tam = (b: number) => (b > 1048576 ? `${(b / 1048576).toFixed(1)} MB`
                                         : `${Math.max(1, Math.round(b / 1024))} KB`);
@@ -86,16 +86,8 @@ const ROTULO_SITUACAO: Record<string, string> = {
   falta: 'Falta', aguardando_conferencia: 'Conferir', aceito: 'Conferido',
 };
 
-/** Lê o arquivo escolhido SEM enviar: a prévia acontece no aparelho. */
-function lerArquivo(f: File): Promise<Escolhido> {
-  return new Promise((res, rej) => {
-    const r = new FileReader();
-    r.onload = () => res({ nome: f.name, tipo: f.type, tamanho: f.size,
-                           dataUrl: String(r.result) });
-    r.onerror = () => rej(r.error);
-    r.readAsDataURL(f);
-  });
-}
+/* A leitura do arquivo é a do `anexos.tsx` (fase 175): aqui havia uma cópia, e a
+   cópia não reduziria a foto que a Fundação decidiu reduzir. */
 
 export function Dossie({ personId, nome, papel, onVoltar }: {
   personId: string; nome: string; papel: string; onVoltar: () => void;
