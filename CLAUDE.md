@@ -296,7 +296,9 @@ acompanha até o fim, sem encerrar a vez (a de oito casas leva ~45 min assim).
 **2.45 FEITO — fase 178**: as quatro decisões de 28/09 (§2, linha 178). **As decisões
 que ainda esperam a Fundação** estão no §10: 1 (devolver acompanhamento para correção),
 2 (recorte da ATA Geral do dia corrente), 3 ("concluí tudo até agora"), 5 (grade para a
-parede) e 11 (a Enfermagem vê a internação, a confirmar).
+parede) e 11 (a Enfermagem vê a internação, a confirmar). **Conferido contra o servidor
+de verdade em 29/09** (oito casas, 30 dias, 27 contas no navegador): nenhum achado, e a
+Coordenação Geral recebeu os 8 avisos de internação e nenhum de ocorrência comum.
 
 **2.5 O que a fase 173 deixou como caminho** (está no relatório dela):
 ~~levar a simulação a várias casas vivendo juntas~~ ✅ **177**, e rodar a simulação e o ensaio contra o servidor a cada fase, como a
@@ -483,6 +485,12 @@ novo.
   `prototipo/rede-acolher-prototipo.html`. Baixar do GitHub em *Download raw file*
   e dar dois cliques; não instala nada, não precisa de banco, dados fictícios. O
   sistema de verdade está no §12.3 do documento.
+  **Link público, sem login** (pedido de 28/09; o repositório é público):
+  `https://raw.githack.com/kanaitzin/fundacao/<commit>/prototipo/rede-acolher-prototipo.html`,
+  com o commit do protótipo que se quer mostrar. Fica preso àquela versão: a cada
+  protótipo novo, manda-se o link com o commit novo. Há também uma cópia em
+  `claude.ai/artifact/A5uBh6iCWJqAv9Ek2UbGAY`, republicada do mesmo arquivo, que só
+  abre para quem o dono liberar em *Compartilhar* e onde baixar Word não funciona.
 - **Para dar corda por outra conta do Claude:** nada mora na conta — está tudo no
   repositório, inclusive o `.claude/hooks/session-start.sh`. Na outra conta,
   conecte o GitHub, instale o app do Claude no `kanaitzin/fundacao`, abra a sessão

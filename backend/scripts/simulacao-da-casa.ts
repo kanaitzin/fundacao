@@ -1076,11 +1076,15 @@ function criarCasa(cfg: Config) {
     if (ocup) confere('acolhidos na casa hoje', Number(campo(ocup, 'ocupadas')), ativas().length + cfg.inicial + recebidas.n);
 
     /* A escala do último mês: quem saiu não está nela, quem entrou está. */
-    const esc = await get('coord', `/escala/folha?houseId=${ids.CASA}&de=2027-02-01&ate=2027-02-13`, { rotulo: 'a escala de fevereiro' });
-    const textoEsc = JSON.stringify(esc ?? {});
-    if (textoEsc.includes('Bruno Educador')) achar('escala', 'coord', 'a escala de fevereiro', 'traz o Bruno, que saiu em dezembro');
-    if (!textoEsc.includes('Elisa Educadora')) achar('escala', 'coord', 'a escala de fevereiro', 'não traz a Elisa, que entrou no lugar dele');
-    await baixar('coord', '/escala/export', { houseId: ids.CASA, de: '2027-02-01', ate: '2027-02-13' }, 'escala de fevereiro', ['Elisa Educadora']);
+    /* Só quando a casa viveu até fevereiro: numa rodada curta a escala de
+       fevereiro nem foi publicada, e o achado seria da simulação. */
+    if (ultimo >= '2027-02-13') {
+      const esc = await get('coord', `/escala/folha?houseId=${ids.CASA}&de=2027-02-01&ate=2027-02-13`, { rotulo: 'a escala de fevereiro' });
+      const textoEsc = JSON.stringify(esc ?? {});
+      if (textoEsc.includes('Bruno Educador')) achar('escala', 'coord', 'a escala de fevereiro', 'traz o Bruno, que saiu em dezembro');
+      if (!textoEsc.includes('Elisa Educadora')) achar('escala', 'coord', 'a escala de fevereiro', 'não traz a Elisa, que entrou no lugar dele');
+      await baixar('coord', '/escala/export', { houseId: ids.CASA, de: '2027-02-01', ate: '2027-02-13' }, 'escala de fevereiro', ['Elisa Educadora']);
+    }
 
     /* A portaria, o armário, as compras e a cozinha no papel. */
     await baixar('coord', '/people/portaria/export', { houseId: ids.CASA }, 'folha da portaria');
