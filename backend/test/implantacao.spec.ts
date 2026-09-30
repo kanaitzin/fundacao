@@ -92,7 +92,7 @@ describe('implantação — nenhuma variável de ambiente fica sem documentaçã
      * Regra 2: segredo nunca no código — e o exemplo VAI para o repositório.
      * O que estiver aqui precisa ser obviamente falso para quem lê com pressa.
      */
-    for (const chave of ['CREDENTIAL_KEY', 'SESSION_PEPPER']) {
+    for (const chave of ['CREDENTIAL_KEY', 'SESSION_PEPPER', 'SMTP_PASS']) {
       const linha = exemplo.split('\n').find((l) => l.trim().startsWith(`${chave}=`));
       expect(linha).toBeDefined();
       expect(linha!.toLowerCase()).toMatch(/troque|change|exemplo|dev/);

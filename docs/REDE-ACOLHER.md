@@ -2956,8 +2956,13 @@ servidor em UTC, 05h00 são 02h00 em Porto Alegre e o dia gerado é o errado.
 
 ### 12.8 O SMTP institucional
 
-Hoje o `MailGateway` escreve numa **caixa local** (`EMAIL_DIR`). Nada sai para a
-rede, de propósito: um envio real ligado durante o desenvolvimento é exatamente
+O `MailGateway` tem três modos (`EMAIL_MODO`). O padrão escreve numa **caixa
+local** (`EMAIL_DIR`); o `smtp` **envia de verdade** (fase 179), com STARTTLS
+exigido por padrão (`SMTP_EXIGIR_TLS`) e recusa em português (503) quando o
+servidor não responde ou falta o remetente, provado contra um servidor de captura
+em `o-envio-por-smtp.e2e.spec.ts`: o link que chega na caixa abre a conta, e o log
+não leva o link nem a senha do SMTP. O padrão continua sendo a caixa local, de
+propósito: um envio real ligado durante o desenvolvimento é exatamente
 o caminho pelo qual um convite de teste chega na caixa de alguém da Fundação.
 Trocar por envio real não muda nada em `InviteService` — o contrato é enviar.
 
@@ -2980,9 +2985,10 @@ DKIM (assina a mensagem — num sistema cujo e-mail contém link de acesso, isso
 não é higiene, é segurança) e DMARC (comece em `p=none` e endureça depois de uma
 semana lendo os relatórios).
 
-**Variáveis:** `SMTP_HOST`, `SMTP_PORT` (587 com STARTTLS), `SMTP_USER`,
-`SMTP_PASS` (**senha de aplicativo**, não a senha da conta), `EMAIL_REMETENTE`,
-`APP_URL` (https).
+**Variáveis:** `EMAIL_MODO=smtp`, `SMTP_HOST`, `SMTP_PORT` (587 com STARTTLS),
+`SMTP_USER`, `SMTP_PASS` (**senha de aplicativo**, não a senha da conta),
+`EMAIL_REMETENTE`, `SMTP_EXIGIR_TLS` (só `nao` num servidor de captura) e
+`APP_BASE_URL` (https; o endereço do link do convite).
 
 **Como validar sem incomodar ninguém**, nesta ordem e só depois da autorização:
 caixa local → servidor de captura na rede interna (Mailpit/MailHog) → **um**
