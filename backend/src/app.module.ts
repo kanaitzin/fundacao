@@ -1,4 +1,7 @@
 import { Module } from '@nestjs/common';
+/* O limite do corpo (fase 179): o anexo em base64 passa dos 100 KB do padrão.
+   Importado AQUI para valer no servidor que sobe e na suíte, que monta por aqui. */
+import './kernel/common/corpo-da-requisicao';
 import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 import { FalhasEmPortugues } from './kernel/common/falhas-em-portugues';
 import { CasaDaConsulta } from './kernel/common/casa-da-consulta.interceptor';

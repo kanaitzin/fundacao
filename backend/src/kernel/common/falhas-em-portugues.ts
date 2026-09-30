@@ -126,6 +126,27 @@ export class FalhasEmPortugues implements ExceptionFilter {
       return;
     }
 
+    /*
+     * O CORPO GRANDE DEMAIS (fase 179): o leitor do corpo recusa antes de
+     * qualquer serviço, e a recusa chegava como "alguma coisa falhou". É culpa
+     * do tamanho, não do sistema, e a pessoa precisa saber o que fazer.
+     */
+    const doLeitor = erro as { type?: string; status?: number };
+    if (doLeitor?.type === 'entity.too.large' || doLeitor?.status === 413) {
+      res.status(HttpStatus.PAYLOAD_TOO_LARGE).json({
+        statusCode: HttpStatus.PAYLOAD_TOO_LARGE, error: 'Erro',
+        message: 'O arquivo é grande demais para enviar. Tire a foto de novo ou digitalize '
+          + 'em qualidade menor, e tente outra vez.',
+      });
+      return;
+    }
+    if (doLeitor?.type === 'entity.parse.failed') {
+      res.status(HttpStatus.BAD_REQUEST).json({
+        statusCode: HttpStatus.BAD_REQUEST, error: 'Erro', message: FORMATO,
+      });
+      return;
+    }
+
     const bruto = erro as { code?: string; message?: string; constraint?: string };
     const codigo = String(bruto?.code ?? '');
     const conhecido = this.PORTUGUES[codigo];
