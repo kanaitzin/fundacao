@@ -14,7 +14,8 @@
     "seed:fase2": "tsx scripts/seed-fase2.ts",
     "migrate:prod": "node dist/migrate.js",
     "postbuild": "node scripts/copiar-migracoes.mjs",
-    "relogio": "tsx src/relogio.ts"
+    "relogio": "tsx src/relogio.ts",
+    "relogio:prod": "node dist/relogio.js"
   },
   "dependencies": {
     "@napi-rs/canvas": "^1.0.9",

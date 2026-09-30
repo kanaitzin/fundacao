@@ -100,6 +100,33 @@ cobrar "o arranque confere a conexão e diz qual papel usou" \
   grep -q "conexão de aplicação conferida" /tmp/ensaio-prod.log
 
 echo
+echo "→ o relógio do dia, compilado…"
+#
+# A linha do cron chamava `npm run relogio`, que é `tsx`, dependência de
+# DESENVOLVIMENTO (análise de 30/09): no servidor de verdade o relógio nunca
+# rodaria, e o dia da casa não existiria. Aqui ele roda como o cron o chama, e
+# a conta de serviço nasce no banco virgem com uma casa para ele percorrer.
+cobrar "o cron chama o relógio compilado" \
+  grep -qE "^[^#].*npm run --silent relogio:prod" "$RAIZ/scripts/relogio.crontab"
+cobrar "e o script dele não usa nada de desenvolvimento" \
+  bash -c "cd '$RAIZ/backend' && node -e 'process.exit(/^node dist\\/relogio\\.js\$/.test(require(\"./package.json\").scripts[\"relogio:prod\"]) ? 0 : 1)'"
+su postgres -c "$PGBIN/psql -h 127.0.0.1 -U postgres -d $BANCO -v ON_ERROR_STOP=1" > /tmp/ensaio-relogio-conta.log 2>&1 <<'SQL' || true
+WITH i AS (INSERT INTO institution (name) VALUES ('Instituição do ensaio') RETURNING id),
+     h AS (INSERT INTO house (institution_id, code, name, kind)
+           SELECT id, 'AI3', 'Casa do ensaio', 'abrigo_institucional' FROM i RETURNING id)
+INSERT INTO app_user (institution_id, email, full_name, password_hash, role)
+SELECT id, 'relogio@ensaio.dev', 'Relógio do sistema', 'sem-senha', 'gestor_geral' FROM i;
+SQL
+cobrar "o relógio compilado roda o dia e sai com código 0" \
+  bash -c "cd '$RAIZ/backend' && PATH=/usr/bin:/bin:\$(dirname \$(command -v node)) \
+    DATABASE_URL='$ALVO' \
+    DATABASE_APP_URL='${ALVO/rede_admin:dev-only-change-me/rede_app:dev-only-change-me-app}' \
+    RELOGIO_USER_EMAIL=relogio@ensaio.dev \
+    npm run --silent relogio:prod > /tmp/ensaio-relogio.log 2>&1"
+cobrar "e diz que dia gerou, em quantas casas" \
+  grep -qE "relógio · [0-9]{4}-[0-9]{2}-[0-9]{2} · 1 casa" /tmp/ensaio-relogio.log
+
+echo
 echo "→ e recusa subir com a conexão errada…"
 #
 # A prova do outro lado. Apontar `DATABASE_APP_URL` para a conexão do DONO é

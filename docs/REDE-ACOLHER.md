@@ -2929,8 +2929,11 @@ atividades da rotina, sem escalonamento de dose atrasada, sem aviso de
 aniversário. Tudo funcionando, e nada acontecendo. *Nenhum teste pegava: cada
 rota tem a sua suíte, e todas passam — chamadas pelo teste.*
 
-**Como funciona agora:** `npm run relogio`, no servidor, uma vez ao dia. Ele
-roda as seis rotinas em todas as casas que a conta alcança, registra
+**Como funciona agora:** `npm run relogio:prod` (o `dist/relogio.js`, compilado),
+no servidor, uma vez ao dia. O `npm run relogio` é o de desenvolvimento, por
+`tsx`, e não existe num servidor instalado sem as dependências de desenvolvimento:
+a linha do cron chamava ele até a fase 179, e o `ensaio:producao` hoje roda o
+relógio como o cron o chama. Ele roda as sete rotinas em todas as casas que a conta alcança, registra
 `relogio.dia` na auditoria com o número de casas e de falhas, e sai com código
 1 se alguma falhar. Uma casa que falha **não derruba as outras** — numa
 instituição de oito, parar na segunda deixaria seis sem o dia gerado.

@@ -28,4 +28,8 @@ MAILTO=ti@paodospobres.com.br
 # 05h00, e não a virada do dia: à meia-noite a equipe da noite está
 # trabalhando, o backup está rodando e não há ninguém acordado para ver um
 # erro. Às 5h o plantão noturno ainda percebe se algo não veio.
-0 5 * * * cd /opt/rede-acolher/backend && npm run --silent relogio >> /var/log/rede-acolher/relogio.log 2>&1
+# O relógio COMPILADO (fase 179). Esta linha chamava `npm run relogio`, que
+# roda por `tsx`, dependência de DESENVOLVIMENTO: no servidor instalado com
+# `npm ci --omit=dev` ela saía com "tsx: not found" todo dia às 5h, e nenhuma
+# dose, atividade ou aviso era gerado. O mesmo defeito que o migrador teve.
+0 5 * * * cd /opt/rede-acolher/backend && npm run --silent relogio:prod >> /var/log/rede-acolher/relogio.log 2>&1
