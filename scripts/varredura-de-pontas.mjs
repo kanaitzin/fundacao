@@ -40,6 +40,16 @@ const url = process.env.DATABASE_URL
    em ruído e esconderia o que importa. */
 const RUIDO = new Set(['id', 'created_at']);
 
+/* O MESMO `created_at` COM OUTRO NOME (fase 179): a hora em que a linha nasceu,
+   que serve à investigação e ao backup sem que ninguém a leia por nome. Cada
+   uma está aqui com o motivo, e só entra depois de conferida: a análise de
+   30/09 achou três, e a terceira (`visit_correction.corrected_at`) NÃO era
+   carimbo, era o histórico da correção que a tela prometia e não mostrava. */
+const CARIMBOS = new Map([
+  ['pia_aviso.avisado_em', 'quando o aviso do PIA saiu; o aviso em si, com a hora, está no sino'],
+  ['shift_draft_item.added_at', 'quando a linha entrou no rascunho da escala; quem a pôs é o added_by, que é lido'],
+]);
+
 const c = new Client({ connectionString: url });
 await c.connect();
 
@@ -89,7 +99,9 @@ const candidatos = [];
 for (const nome of nomes) {
   const re = new RegExp(`\\b${nome}\\b`);
   if (re.test(doBanco) || re.test(doCodigo)) continue;
-  const onde = colunas.filter((r) => r.coluna === nome);
+  const onde = colunas.filter((r) => r.coluna === nome
+    && !CARIMBOS.has(`${r.tabela}.${r.coluna}`));
+  if (!onde.length) continue;
   candidatos.push({ nome, tabelas: onde.map((r) => r.tabela),
     morta: onde.some((r) => (r.comentario ?? '').startsWith('MORTA ')) });
 }
@@ -97,6 +109,10 @@ for (const nome of nomes) {
 console.log(`\nVARREDURA DE PONTAS — ${colunas.length} colunas em ${
   new Set(colunas.map((r) => r.tabela)).size} tabelas`);
 console.log(`${nomes.length} nomes distintos conferidos (fora id e created_at).\n`);
+
+console.log(`CARIMBOS DE CRIAÇÃO COM OUTRO NOME (${CARIMBOS.size}), declarados aqui:`);
+for (const [k, porque] of CARIMBOS) console.log(`  · ${k} — ${porque}`);
+console.log('');
 
 const jaDeclaradas = candidatos.filter((k) => k.morta);
 const novos = candidatos.filter((k) => !k.morta);

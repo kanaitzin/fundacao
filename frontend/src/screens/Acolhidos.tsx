@@ -3514,7 +3514,10 @@ function VisitasDoAcolhido({ personId }: { personId: string }) {
     visitantes: { nome: string; vinculo: string; visitas: number; minutos: number }[];
     visitas: { id: string; visitante: string; vinculoRotulo: string; entrouEm: string;
                saiuEm: string | null; minutos: number | null; entradaPor: string | null;
-               excecao: string | null; corrigida: boolean; aberta: boolean }[];
+               excecao: string | null; corrigida: boolean; aberta: boolean;
+               correcoes?: { antes: { entrouEm: string; saiuEm: string | null };
+                             depois: { entrouEm: string; saiuEm: string | null };
+                             motivo: string; por: string | null; em: string }[] }[];
     aviso: string;
   } | null>(null);
   const [de, setDe] = useState('');
@@ -3602,6 +3605,15 @@ function VisitasDoAcolhido({ personId }: { personId: string }) {
                     {v.corrigida ? ' · horário corrigido, com motivo' : ''}
                   </div>
                   {v.excecao && <div className="mutetxt">Entrada por exceção: {v.excecao}</div>}
+                  {/* O histórico da correção (fase 179): o que constava antes, quem
+                      corrigiu, quando e por quê. A tela prometia e não mostrava. */}
+                  {(v.correcoes ?? []).map((k, i) => (
+                    <div key={i} className="mutetxt">
+                      Corrigida em {quando(k.em)}{k.por ? ` por ${k.por}` : ''}. Constava:{' '}
+                      {quando(k.antes.entrouEm)}{k.antes.saiuEm ? ` — ${quando(k.antes.saiuEm)}` : ', sem saída'}.
+                      Motivo: {k.motivo}
+                    </div>
+                  ))}
                 </div>
               </li>
             ))}

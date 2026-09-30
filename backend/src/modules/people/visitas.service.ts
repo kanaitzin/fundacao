@@ -206,7 +206,27 @@ export class VisitasService {
            FROM visit v JOIN person_contact pc ON pc.id = v.contact_id
           WHERE v.person_id = $1
           ORDER BY v.started_at DESC`, [personId]);
-      return rows;
+      /*
+       * AS CORREÇÕES, com o antes, o depois, o motivo, quem e quando (fase 179).
+       * A tela dizia "o horário anterior e o motivo ficam no histórico dela", e
+       * o histórico era gravado e nunca lido: a varredura de pontas achou o
+       * `corrected_at` sem leitor, e atrás dele a tabela inteira.
+       */
+      const { rows: correcoes } = await c.query(
+        `SELECT k.visit_id, k.before_start, k.before_end, k.after_start, k.after_end,
+                k.reason, k.corrected_at, app_user_display_name(k.corrected_by) AS por
+           FROM visit_correction k JOIN visit v ON v.id = k.visit_id
+          WHERE v.person_id = $1
+          ORDER BY k.corrected_at`, [personId]);
+      const porVisita = new Map<string, any[]>();
+      for (const k of correcoes) {
+        porVisita.set(k.visit_id, [...(porVisita.get(k.visit_id) ?? []), {
+          antes: { entrouEm: k.before_start, saiuEm: k.before_end },
+          depois: { entrouEm: k.after_start, saiuEm: k.after_end },
+          motivo: k.reason, por: k.por, em: k.corrected_at,
+        }]);
+      }
+      return rows.map((r: any) => ({ ...r, correcoes: porVisita.get(r.id) ?? [] }));
     });
     const minutos = (r: any) => (r.ended_at
       ? Math.round((new Date(r.ended_at).getTime() - new Date(r.started_at).getTime()) / 60000) : null);
@@ -240,7 +260,7 @@ export class VisitasService {
         entrouEm: r.started_at, saiuEm: r.ended_at, minutos: minutos(r),
         documento: r.document_checked, entradaPor: r.entrada_por, saidaPor: r.saida_por,
         observacaoEntrada: r.start_note, observacaoSaida: r.end_note,
-        excecao: r.exception_reason, corrigida: r.corrigida,
+        excecao: r.exception_reason, corrigida: r.corrigida, correcoes: r.correcoes,
         aberta: !r.ended_at,
       })),
       aviso: 'Quantidade de visitas não é avaliação da família: o número diz o que houve, '

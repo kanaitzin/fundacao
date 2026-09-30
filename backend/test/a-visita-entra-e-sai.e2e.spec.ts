@@ -194,6 +194,28 @@ describe('A visita entra e sai', () => {
     expect(r.status).toBe(404);
   });
 
+  it('a portaria vê a foto 3×4 do visitante, para conferir o rosto', async () => {
+    /* Rota sem teste até a fase 179: a sondagem conferia que a OUTRA casa não
+       vê, e ninguém conferia que a portaria da casa vê. */
+    const PNG = Buffer.from(
+      '89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000a49444154'
+      + '789c6300010000050001' + '0d0a2db4' + '0000000049454e44ae426082', 'hex');
+    const url = `/api/v1/people/portaria/visitante/${ids.tia}/foto`;
+    const antes = await request(http).get(url).set(auth(tokens.portaria));
+    expect(antes.status).toBe(404);
+    expect(antes.body.message).toMatch(/ainda não tem foto/);
+
+    expect((await request(http).post(`/api/v1/people/contacts/${ids.tia}/photo`)
+      .set(auth(tokens.tecnica)).send({ conteudo: PNG.toString('base64') })).status).toBe(201);
+    const r = await request(http).get(url).set(auth(tokens.portaria));
+    expect(r.status).toBe(200);
+    expect(r.body.tipo).toBe('image/png');
+    expect(Buffer.from(r.body.conteudo, 'base64').equals(PNG)).toBe(true);
+
+    const outra = await request(http).get(url).set(auth(tokens.coord4));
+    expect(outra.status).toBe(404);
+  });
+
   it('a saída encerra, diz a duração, e não encerra duas vezes', async () => {
     const r = await request(http).post(`/api/v1/people/portaria/visitas/${ids.visitaTia}/saida`)
       .set(auth(tokens.portaria)).send({});
@@ -279,6 +301,23 @@ describe('A visita entra e sai', () => {
     expect(new Date(k.after_end).toISOString()).toBe(saida);
     const { rows: [v] } = await admin.query(`SELECT ended_at, ended_by FROM visit WHERE id = $1`, [id]);
     expect(v.ended_by).toBeTruthy();
+
+    /* E o histórico CHEGA a quem lê (fase 179): a tela promete "o horário
+       anterior e o motivo ficam no histórico dela". Lido por OUTRO cargo, e não
+       por quem corrigiu, porque o nome de quem escreve sempre volta (lição da 152). */
+    const { rows: [pessoa] } = await admin.query(`SELECT person_id FROM visit WHERE id = $1`, [id]);
+    const lido = await request(http).get(`/api/v1/people/${pessoa.person_id}/visitas`)
+      .set(auth(tokens.educador));
+    expect(lido.status).toBe(200);
+    const aVisita = lido.body.visitas.find((x: any) => x.id === id);
+    expect(aVisita.corrigida).toBe(true);
+    expect(aVisita.correcoes).toHaveLength(1);
+    const [corr] = aVisita.correcoes;
+    expect(corr.motivo).toBe('A saída ficou sem registro no portão.');
+    expect(corr.antes.saiuEm).toBeNull();
+    expect(new Date(corr.depois.saiuEm).toISOString()).toBe(saida);
+    expect(corr.por).toMatch(/Técnica/i);
+    expect(corr.em).toBeTruthy();
   });
 
   // ============ 5. No perfil, e só nele ============

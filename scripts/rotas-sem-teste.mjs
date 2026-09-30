@@ -100,6 +100,25 @@ for (const f of testes) {
     /\.(get|post|patch|put|delete)\(\s*[`'"]([^`'"]*\/api\/v1\/[^`'"]*)[`'"]/g)) {
     chamadas.push({ metodo: m[1].toUpperCase(), url: m[2], suite: f });
   }
+  /* AS CHAMADAS POR AUXILIAR (fase 179). Muitas suítes definem
+     `const post = (tk, rota, corpo) => request(http).post(`/api/v1${rota}`)…`
+     e chamam `post(t.coord, '/people/…')`, sem o prefixo. O medidor não via
+     nem o método nem a URL, e apontava como "sem teste" seis rotas que a suíte
+     chama. Agora ele lê a DEFINIÇÃO do auxiliar, que diz o método, e casa as
+     chamadas dele com o prefixo posto. */
+  const auxiliares = new Map();
+  for (const m of texto.matchAll(
+    /(?:const|let)\s+(\w+)\s*=\s*(?:async\s*)?\([^)]*\)\s*(?::\s*[^=]+)?=>\s*(?:\{[^}]*?return\s+)?request\(\s*\w+\s*\)\s*\.(get|post|patch|put|delete)\(\s*`\/api\/v1\$\{/g)) {
+    auxiliares.set(m[1], m[2].toUpperCase());
+  }
+  for (const [nome, metodo] of auxiliares) {
+    const re = new RegExp(`\\b${nome}\\(\\s*(?:[\\w.\\[\\]'"]+\\s*,\\s*)?[\`'"](\\/[^\`'"]*)[\`'"]`, 'g');
+    for (const m of texto.matchAll(re)) {
+      if (m[1].startsWith(PREFIXO)) continue;
+      chamadas.push({ metodo, url: PREFIXO + m[1], suite: f });
+      urls.push({ url: PREFIXO + m[1], suite: f });
+    }
+  }
   /* E toda URL literal, solta — é ela que aparece quando a suíte chama por um
      auxiliar e o método fica noutra linha. */
   for (const m of texto.matchAll(/[`'"]([^`'"]*\/api\/v1\/[^`'"]*)[`'"]/g)) {

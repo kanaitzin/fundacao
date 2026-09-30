@@ -4199,7 +4199,10 @@ const REGISTRA_VISITA = ['portaria', 'educador', 'lider_diurno', 'lider_noturno_
 const ABRE_EXCECAO = ['coordenador', 'equipe_tecnica', 'lider_diurno', 'lider_noturno_geral'];
 const VISITAS: { id: string; kidId: string; contatoId: string; documento: string; entrou: string;
   saiu: string | null; por: string; saidaPor: string | null; nota: string | null;
-  excecao: string | null; corrigida: boolean }[] = [];
+  excecao: string | null; corrigida: boolean;
+  correcoes?: { antes: { entrouEm: string; saiuEm: string | null };
+                depois: { entrouEm: string; saiuEm: string | null };
+                motivo: string; por: string; em: string }[] }[] = [];
 let visitasSemeadas = false;
 function semearVisitas() {
   if (visitasSemeadas) return;
@@ -4282,7 +4285,8 @@ function visitasDaCrianca(kidId: string, de?: string, ate?: string) {
       return { id: v.id, visitante: c.nome, vinculoRotulo: c.vinculoRotulo, entrouEm: v.entrou,
                saiuEm: v.saiu, minutos: minutos(v), documento: v.documento, entradaPor: v.por,
                saidaPor: v.saidaPor, observacaoEntrada: v.nota, observacaoSaida: null,
-               excecao: v.excecao, corrigida: v.corrigida, aberta: !v.saiu };
+               excecao: v.excecao, corrigida: v.corrigida, correcoes: v.correcoes ?? [],
+               aberta: !v.saiu };
     }),
     aviso: 'Quantidade de visitas não é avaliação da família: o número diz o que houve, '
       + 'e não o que isso quer dizer.',
@@ -8573,8 +8577,12 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     }
     if (s < e) return new Recusa(400, 'A saída não pode ser antes da entrada.');
     if (s > Date.now()) return new Recusa(400, 'A saída não pode estar no futuro.');
+    const antes = { entrouEm: v.entrou, saiuEm: v.saiu };
     v.entrou = new Date(e).toISOString(); v.saiu = new Date(s).toISOString();
     v.saidaPor = v.saidaPor ?? eu.fullName; v.corrigida = true;
+    v.correcoes = [...(v.correcoes ?? []), {
+      antes, depois: { entrouEm: v.entrou, saiuEm: v.saiu },
+      motivo: String(b.motivo).trim(), por: eu.fullName, em: new Date().toISOString() }];
     return { ok: true, aviso: 'Visita corrigida. O horário anterior e o motivo ficam no histórico dela.' };
   }
   if (seg[0] === 'people' && seg[2] === 'visitas' && seg.length === 3 && metodo === 'GET') {
