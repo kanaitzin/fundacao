@@ -203,6 +203,46 @@ cobrar('e o botão leva mesmo à chamada',
   /Janta|Almoço|Café|conferid/i.test(await conteudo()), (await conteudo()).slice(0, 100));
 
 await aba('Dia');
+/* "CONCLUÍ TUDO ATÉ AGORA" (fase 181): as atividades do protótipo têm hora do
+   dia, e o botão só aparece quando há coletiva vencida. Para o ensaio não
+   depender da hora em que roda, a conferência abre OUTRA página com o relógio
+   do navegador às 17h de Porto Alegre: a confirmação lista o que vai marcar,
+   remédio nunca está nela, e marcar diz quantas, com o nome. */
+{
+  const pg17 = await navegador.newPage({ viewport: { width: 420, height: 900 } });
+  const erros17 = [];
+  pg17.on('pageerror', (e) => erros17.push(e.message));
+  const as17 = new Date(); as17.setUTCHours(20, 0, 0, 0);
+  await pg17.clock.install({ time: as17 });
+  await pg17.goto(`file://${ARQUIVO}`);
+  await pg17.waitForTimeout(900);
+  await pg17.getByRole('button', { name: /Entrar no sistema/i }).click();
+  await pg17.waitForTimeout(1200);
+  await pg17.locator('select.troca-cargo-sel').selectOption('educador');
+  await pg17.waitForTimeout(900);
+  await pg17.locator('nav.tabbar button', { hasText: 'Dia' }).first().click();
+  await pg17.waitForTimeout(900);
+  const botaoColetivas = pg17.getByRole('button', { name: /^Concluí as atividades coletivas até agora$/ });
+  cobrar('às 17h, o Dia oferece concluir as atividades coletivas até agora', (await botaoColetivas.count()) > 0);
+  if (await botaoColetivas.count()) {
+    await botaoColetivas.click();
+    await pg17.waitForTimeout(300);
+    const confirma = await pg17.locator('main.conteudo').innerText();
+    cobrar('a confirmação diz que remédio e saúde ficam de fora',
+      /Remédio, saúde, atividade urgente e o que espera ciência/.test(confirma));
+    const lista = await pg17.locator('[aria-label="Concluir as atividades coletivas"] li').allInnerTexts();
+    cobrar('e a lista traz as coletivas vencidas, e remédio nenhum',
+      lista.includes('Reforço escolar') && !lista.some((t) => /Colírio|Amoxicilina|Insulina|Janta/i.test(t)),
+      lista.join(' | '));
+    await pg17.getByRole('button', { name: /^Concluir estas$/ }).click();
+    await pg17.waitForTimeout(800);
+    cobrar('e marcar diz quantas, com o nome de quem marcou',
+      /marcada\(s\) como concluída\(s\), com o seu nome/.test(await pg17.locator('main.conteudo').innerText()));
+    cobrar('e o botão some, porque não há mais coletiva vencida', (await botaoColetivas.count()) === 0);
+  }
+  cobrar('nenhuma exceção no concluí tudo', erros17.length === 0, erros17[0]);
+  await pg17.close();
+}
 cobrar('o Dia tem os quatro filtros',
   /Agora/.test(await conteudo()) && /Por criança/.test(await conteudo()));
 await clicar(/Por criança/);
@@ -510,6 +550,41 @@ if (await btFonte.count()) {
 await fechar();
 
 cobrar('nenhuma exceção no turno da técnica', erros.length === 0, erros[0]);
+
+/* A DEVOLUÇÃO DO ACOMPANHAMENTO (fase 181, decisão de 30/09): a coordenação
+   devolve com motivo o que a técnica enviou, o cartão diz o motivo, e a versão
+   devolvida fica legível dentro do acompanhamento. */
+await trocar('coordenador');
+erros.length = 0;
+cobrar('a coordenação abre os acompanhamentos', await doMais('Acompanhamentos'));
+const aguardando = pg.locator('main.conteudo .card').filter({ hasText: /Aguardando aprovação/ })
+  .filter({ has: pg.getByRole('button', { name: /^Devolver para correção$/ }) }).first();
+cobrar('o que aguarda aprovação tem a porta de devolver', (await aguardando.count()) > 0);
+if (await aguardando.count()) {
+  await aguardando.getByRole('button', { name: /^Devolver para correção$/ }).click();
+  await pg.waitForTimeout(300);
+  const botaoDev = aguardando.getByRole('button', { name: /^Devolver com este motivo$/ });
+  await aguardando.locator('textarea').fill('curto');
+  cobrar('sem motivo de verdade, não devolve', await botaoDev.isDisabled());
+  await aguardando.locator('textarea').fill('Falta dizer como foi a visita da avó, com data e duração.');
+  await botaoDev.click();
+  await pg.waitForTimeout(900);
+  const depoisDev = await conteudo();
+  cobrar('o cartão volta a rascunho, com o motivo à vista',
+    /Devolvido para revisão:.*visita da avó/.test(depoisDev), depoisDev.slice(0, 400));
+  const devolvidoCard = pg.locator('main.conteudo .card').filter({ hasText: /Devolvido para revisão/ }).first();
+  await devolvidoCard.getByRole('button', { name: /^Abrir$/ }).click();
+  await pg.waitForTimeout(900);
+  const resumo = pg.locator('.overlay summary').filter({ hasText: /Devolvido por/ }).first();
+  cobrar('dentro dele, a devolução aparece com quem e o motivo', (await resumo.count()) > 0);
+  if (await resumo.count()) { await resumo.click(); await pg.waitForTimeout(300); }
+  const folhaDev = await corpo();
+  cobrar('e, aberta, a versão devolvida se lê como estava',
+    /Devolvido por .*visita da avó/.test(folhaDev) && /O texto como estava quando foi devolvido/.test(folhaDev),
+    folhaDev.slice(0, 400));
+  await fechar();
+}
+cobrar('nenhuma exceção na devolução', erros.length === 0, erros[0]);
 
 // ====================================================== 4. Enfermagem
 console.log('\n🩺 Enfermagem');

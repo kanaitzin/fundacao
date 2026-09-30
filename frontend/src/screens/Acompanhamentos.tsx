@@ -103,6 +103,8 @@ export function Acompanhamentos({ houseId, casaLabel, papel }: {
   const [erro, setErro] = useState('');
   const [aviso, setAviso] = useState('');
   const [editando, setEditando] = useState<Acompanhamento | null>(null);
+  /* A devolução com motivo (fase 181): qual cartão está com o campo aberto. */
+  const [devolvendo, setDevolvendo] = useState<{ id: string; motivo: string } | null>(null);
   const [entregando, setEntregando] = useState<Relatorio | null>(null);
   const [rastro, setRastro] = useState<Relatorio | null>(null);
 
@@ -220,15 +222,11 @@ export function Acompanhamentos({ houseId, casaLabel, papel }: {
                 api(`/followups/${f.id}/approve`, { method: 'POST', body: '{}' }))}>
                 Revisar e aprovar
               </button>
-              {/*
-                * "Devolver para correção" saiu da tela em 31/08: a rota que ela
-                * chamava (/followups/:id/return) NÃO EXISTE no servidor, e o
-                * fluxo do banco hoje tem duas saídas para quem revisa —
-                * aprovar, ou pedir a correção fora do sistema e deixar o autor
-                * salvar de novo. Deixar um botão que sempre falharia é pior que
-                * não ter o botão. A decisão de criar a devolução com motivo
-                * registrado é de produto, e está anotada.
-                */}
+              {/* A DEVOLUÇÃO (fase 181, decisão de 30/09): com motivo, que é o
+                  que quem redigiu vai ler. A versão devolvida fica guardada. */}
+              <button className="btn sm sec" onClick={() => setDevolvendo({ id: f.id, motivo: '' })}>
+                Devolver para correção
+              </button>
             </>
           )}
           {f.situacao === 'em_aprovacao' && f.proprio && (
@@ -246,6 +244,25 @@ export function Acompanhamentos({ houseId, casaLabel, papel }: {
             }}>Corrigir (nova versão)</button>
           )}
         </div>
+        {devolvendo?.id === f.id && (
+          <div className="stack">
+            <label className="f" htmlFor={`dev-${f.id}`}>O que precisa ser corrigido</label>
+            <textarea id={`dev-${f.id}`} value={devolvendo.motivo}
+                      onChange={(e) => setDevolvendo({ id: f.id, motivo: e.target.value })}
+                      placeholder="Ex.: faltam os eixos de convivência e família; o que não foi observado se escreve assim." />
+            <div className="row">
+              <button className="btn sm sec" onClick={() => setDevolvendo(null)}>Cancelar</button>
+              <button className="btn sm" disabled={devolvendo.motivo.trim().length < 15}
+                      onClick={async () => {
+                        const ok = await acao(() => api(`/followups/${f.id}/return`, {
+                          method: 'POST', body: JSON.stringify({ motivo: devolvendo.motivo.trim() }) }));
+                        if (ok) setDevolvendo(null);
+                      }}>
+                Devolver com este motivo
+              </button>
+            </div>
+          </div>
+        )}
         {(f.historico ?? []).length > 0 && (
           <div className="mutetxt">
             {f.historico.map((h) => (
@@ -505,6 +522,8 @@ function FolhaEixos({ acompanhamento, eixos, onFechar, onSalvar }: {
           </div>
         )}
 
+        <VersoesDevolvidas id={acompanhamento.id} eixos={eixos} />
+
         {eixos.map((e) => (
           <div key={e.cod}>
             <label className="f" htmlFor={`eixo-${e.cod}`}>{e.label}</label>
@@ -540,6 +559,38 @@ function FolhaEixos({ acompanhamento, eixos, onFechar, onSalvar }: {
           </button>
         )}
       </div>
+    </div>
+  );
+}
+
+/**
+ * AS VERSÕES DEVOLVIDAS (fase 181). Quem aprova devolve com motivo, e o texto
+ * como estava fica guardado: aqui ele se lê, fechado, ao lado do que está sendo
+ * corrigido. Nada se sobrescreve sem rastro.
+ */
+function VersoesDevolvidas({ id, eixos }: { id: string; eixos: Eixo[] }) {
+  const [devolucoes, setDevolucoes] = useState<{ id: string; quem: string | null; em: string;
+    motivo: string; eixos: Record<string, string | null> }[]>([]);
+  useEffect(() => {
+    api<{ devolucoes?: typeof devolucoes }>(`/followups/${id}`)
+      .then((r) => setDevolucoes(r.devolucoes ?? [])).catch(() => setDevolucoes([]));
+  }, [id]);
+  if (!devolucoes.length) return null;
+  return (
+    <div className="stack">
+      {devolucoes.map((d) => (
+        <details key={d.id} className="card">
+          <summary>
+            Devolvido por {d.quem ?? 'quem aprova'} em {new Date(d.em).toLocaleString('pt-BR', {
+              day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
+              timeZone: 'America/Sao_Paulo' })}: {d.motivo}
+          </summary>
+          <div className="mutetxt">O texto como estava quando foi devolvido:</div>
+          {eixos.map((e) => (
+            <p key={e.cod}><b>{e.label}:</b> {d.eixos[e.cod] || 'em branco'}</p>
+          ))}
+        </details>
+      ))}
     </div>
   );
 }

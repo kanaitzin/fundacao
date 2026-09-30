@@ -140,6 +140,7 @@ describe('De onde vem a fonte do acompanhamento', () => {
    * fixture reaproveitada, criada uma vez só.
    */
   afterAll(async () => {
+    await admin.query(`DELETE FROM followup_return WHERE followup_id = $1`, [ids.followup]);
     await admin.query(`DELETE FROM followup_source WHERE followup_id = $1`, [ids.followup]);
     await admin.query(`DELETE FROM followup WHERE id = $1`, [ids.followup]);
     if (criados.atividades.length) {

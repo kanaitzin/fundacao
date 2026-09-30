@@ -259,5 +259,12 @@ describe('A Coordenação Geral', () => {
     expect(assinada.status).toBe(201);
     lista = await avisos();
     expect(lista.filter((a) => a.entidade === 'general_night_ata' && a.entidadeId === ids.ataGeral)).toHaveLength(1);
+
+    /* E ela lê a folha inteira das oito, que a coordenação de uma casa não lê
+       (decisão de 30/09, 1639). */
+    const folha = await get(t.geral, `/shifts/general-ata/${ids.ataGeral}`);
+    expect(folha.status).toBe(200);
+    expect(folha.body.folhaCompleta).toBe(true);
+    expect(folha.body.casas).toHaveLength(8);
   });
 });

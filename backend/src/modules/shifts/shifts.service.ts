@@ -1004,9 +1004,19 @@ export class ShiftsService {
     });
     if (!dados) throw new NotFoundException('ATA Geral não encontrada.');
 
+    /*
+     * O RECORTE POR CASA NO DIA CORRENTE (fase 181, decisão de 30/09, 1639).
+     * A política já entrega só a linha da casa a quem não responde pelas oito;
+     * aqui a resposta diz que é recorte, e não conta a noite: "1 de 1
+     * confirmada" pareceria a noite inteira em ordem. As pendências da folha
+     * falam das outras casas, e ficam com quem responde por elas.
+     */
+    const folhaCompleta = ['lider_noturno_geral', 'gestor_geral'].includes(user.role)
+      || !!user.todasAsCasas;
     return {
       id: dados.g.id, data: dados.g.on_date, status: dados.g.status,
-      pendencias: dados.g.pendencies, assinadaEm: dados.g.signed_at,
+      folhaCompleta,
+      pendencias: folhaCompleta ? dados.g.pendencies : null, assinadaEm: dados.g.signed_at,
       casas: dados.rows.map((e: any) => ({
         casaId: e.house_id, codigo: e.code, nome: e.name,
         houveContato: e.had_contact, contatoEm: e.contact_at,
@@ -1031,8 +1041,8 @@ export class ShiftsService {
             },
           })),
       })),
-      confirmadas: dados.rows.filter((e: any) => e.house_ata_confirmed).length,
-      total: dados.rows.length,
+      confirmadas: folhaCompleta ? dados.rows.filter((e: any) => e.house_ata_confirmed).length : null,
+      total: folhaCompleta ? dados.rows.length : null,
     };
   }
 
@@ -1527,9 +1537,9 @@ export class ShiftsService {
      * Geral. Para os demais o arquivo entrega a LINHA da casa e mais nada —
      * ter o id em mãos é ter o caminho para a folha inteira.
      *
-     * (A ATA Geral do DIA CORRENTE continua como está na tela de sempre, e a
-     * coordenação a alcança. Se o mesmo recorte deve valer lá, é decisão de
-     * produto ainda aberta — não mudei sozinho o que já foi aprovado.)
+     * No DIA CORRENTE vale o mesmo recorte desde a decisão de 30/09 (1639):
+     * a política das linhas entrega à casa só a linha dela, e a folha inteira
+     * fica com o Líder Noturno Geral, o Gestor Geral e a Coordenação Geral.
      */
     const veFolhaCompleta = user.role === 'gestor_geral' || user.role === 'lider_noturno_geral';
     /* Quem corrige a linha depois de assinada — decisão de 21/09/2026 (1440). */

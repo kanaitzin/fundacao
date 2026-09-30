@@ -287,6 +287,19 @@ export function Dia({ houseId, casaLabel, papel, irPara }: {
     return [...emAberto, ...recentes].sort((a, b) => a.at.localeCompare(b.at));
   }, [dados, filtro]);
 
+  /*
+   * "CONCLUÍ TUDO ATÉ AGORA" (fase 181, decisão de 30/09, §10 item 3): só as
+   * atividades COLETIVAS pendentes até agora. Remédio e saúde nunca, e a
+   * confirmação mostra o que vai ser marcado antes de marcar. O servidor decide
+   * de novo (e tira também a urgente), e o ato fica registrado com o nome.
+   */
+  const [concluindo, setConcluindo] = useState(false);
+  const coletivasAteAgora = useMemo(() => (dados?.eventos ?? []).filter((e) =>
+    e.id.startsWith('activity:') && !e.personId
+    && ['Agendada', 'Ciente', 'Em andamento', 'Sem confirmação'].includes(e.state)
+    && !['medicamento', 'saude'].includes(e.kind)
+    && new Date(e.at).getTime() <= Date.now()), [dados]);
+
   /** Ação que não pertence a uma linha da agenda: pedido e atividade urgente. */
   async function acaoSolta(fn: () => Promise<any>) {
     setErro(''); setAviso('');
@@ -436,6 +449,31 @@ export function Dia({ houseId, casaLabel, papel, irPara }: {
         ))}
       </nav>
 
+      {filtro !== 'os20' && coletivasAteAgora.length > 0 && !concluindo && (
+        <button className="btn sec block" onClick={() => setConcluindo(true)}>
+          Concluí as atividades coletivas até agora
+        </button>
+      )}
+      {concluindo && (
+        <div className="notice c-info stack" role="group" aria-label="Concluir as atividades coletivas">
+          <div>
+            Marcar como concluídas, com o seu nome, as atividades coletivas pendentes até agora:
+          </div>
+          <ul>{coletivasAteAgora.map((e) => <li key={e.id}>{e.title}</li>)}</ul>
+          <div className="mutetxt">
+            Remédio, saúde, atividade urgente e o que espera ciência continuam sendo registrados
+            um por um, na linha do dia.
+          </div>
+          <div className="row">
+            <button className="btn sm sec" onClick={() => setConcluindo(false)}>Cancelar</button>
+            <button className="btn sm" onClick={async () => {
+              setConcluindo(false);
+              await acaoSolta(() => api('/activities/complete-collective', {
+                method: 'POST', body: JSON.stringify({ houseId }) }));
+            }}>Concluir estas</button>
+          </div>
+        </div>
+      )}
       {erro && <div className="notice c-crit" role="alert">{erro}</div>}
       {/* A recusa da dose fica separada do erro do dia: ela é a que a pessoa
           precisa LER — "só a Enfermagem administra", "dose sem sinal não se

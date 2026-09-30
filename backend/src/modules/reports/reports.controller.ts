@@ -76,6 +76,13 @@ export class FollowupsController {
     return this.fu.aprovar(user, id, body?.nota);
   }
 
+  /** Devolver para correção, com motivo (fase 181, §10 item 1). */
+  @Post(':id/return')
+  devolver(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
+           @Body() body: { motivo?: string }) {
+    return this.fu.devolver(user, id, body?.motivo ?? '');
+  }
+
   @Post(':id/amend')
   novaVersao(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
              @Body() body: { motivo: string }) {

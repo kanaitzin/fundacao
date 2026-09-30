@@ -3170,6 +3170,9 @@ interface Acompanhamento {
   eixos: Record<string, string>;
   devolucao: string | null;
   historico: { id: string; quem: string; acao: string; em: string; nota: string | null }[];
+  /* As versões devolvidas, como estavam (fase 181). */
+  devolucoes?: { id: string; quem: string; em: string; motivo: string;
+                 eixos: Record<string, string | null> }[];
 }
 /**
  * O QUE PODE VIRAR FONTE DE UM ACOMPANHAMENTO (§14.4, fase 134).
@@ -5905,6 +5908,25 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         note: notaDaLinha(e, eu.role),
       })),
     };
+  }
+  /* "CONCLUÍ TUDO ATÉ AGORA" (fase 181): só as coletivas pendentes até agora,
+     sem remédio, saúde, urgência nem o que espera ciência — a mesma regra do
+     servidor, e com o nome de quem marcou. */
+  if (rota === '/activities/complete-collective' && metodo === 'POST') {
+    const alvo = LINHA.filter((e) => e.id.startsWith('activity:') && !e.personId
+      && ['Agendada', 'Ciente', 'Em andamento', 'Sem confirmação'].includes(e.state)
+      && !['medicamento', 'saude'].includes(e.kind) && !(e as any).urgente
+      && new Date(e.at).getTime() <= Date.now());
+    if (!alvo.length) {
+      return new Recusa(400, 'Não há atividade coletiva pendente até agora. Remédio, saúde, urgência '
+        + 'e o que espera ciência continuam sendo registrados um por um.');
+    }
+    for (const e of alvo) {
+      e.state = 'Concluída no horário'; e.responsible = eu.fullName; e.actions = [];
+    }
+    return { quantas: alvo.length, atividades: alvo.map((e) => e.title),
+      aviso: `${alvo.length} atividade(s) coletiva(s) marcada(s) como concluída(s), com o seu nome. `
+        + 'Remédio e o que pede atenção uma a uma continuam na linha do dia.' };
   }
   /* A ATIVIDADE URGENTE (§8.2): pontual, com autoria e motivo. Antes dos
      ramos `:id`, porque "urgent" é palavra fixa no lugar do identificador. */
@@ -11315,7 +11337,6 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     f.eixos = eixos;
     f.redator = eu.fullName;
     f.situacao = 'rascunho';
-    f.devolucao = null;
     f.historico = [...f.historico, { id: uid(), quem: eu.fullName, acao: 'rascunho salvo',
       em: new Date().toISOString(), nota: null }];
     return { ok: true, aviso: 'Rascunho salvo. Ninguém além de você o lê enquanto não for enviado.' };
@@ -11330,7 +11351,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         + 'Os eixos são obrigatórios — o que não foi observado se escreve como não observado, '
         + 'não se deixa em branco.');
     }
-    f.situacao = 'em_aprovacao';
+    f.situacao = 'em_aprovacao'; f.devolucao = null;
     f.historico = [...f.historico, { id: uid(), quem: eu.fullName,
       acao: 'enviado para aprovação', em: new Date().toISOString(), nota: null }];
     return { ok: true, aviso: 'Enviado para aprovação, com o seu nome como quem redigiu.' };
@@ -11357,11 +11378,36 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       + 'edita mais, e a cópia documental entrou na fila do arquivo.' };
   }
   /*
-   * `/followups/:id/return` — a devolução com motivo — NÃO EXISTE no servidor,
-   * e por isso saiu daqui também. O protótipo que aceita o que o sistema
-   * recusa é propaganda: alguém aprova a tela, e a função não chega na casa.
-   * Criar a devolução é decisão de produto, e está anotada.
+   * `/followups/:id/return` — a devolução com motivo (fase 181, decisão de
+   * 30/09). As mesmas recusas do servidor: só quem aprova, nunca o próprio
+   * texto, só o que aguarda aprovação, motivo de 15 caracteres.
    */
+  if (seg[0] === 'followups' && seg[2] === 'return' && metodo === 'POST') {
+    const f = ACOMPANHAMENTOS.find((x) => x.id === seg[1]);
+    if (!f) return new Recusa(404, 'Acompanhamento não encontrado.');
+    if (!['coordenador', 'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403, 'Devolver para correção é de quem aprova: a coordenação e o Gestor Geral.');
+    }
+    if (f.situacao !== 'em_aprovacao') return new Recusa(409, 'Este acompanhamento não está aguardando aprovação.');
+    if (f.redator === eu.fullName) return new Recusa(403, 'Quem redigiu não devolve o próprio texto.');
+    const motivo = String(b.motivo ?? '').trim();
+    if (motivo.length < 15) {
+      return new Recusa(400, 'Escreva o que precisa ser corrigido (mínimo 15 caracteres). É o que quem redigiu vai ler.');
+    }
+    const em = new Date().toISOString();
+    f.devolucoes = [...(f.devolucoes ?? []), { id: uid(), quem: eu.fullName, em, motivo,
+      eixos: { saude: f.eixos.saude ?? null, escola: f.eixos.escola ?? null,
+               convivencia: f.eixos.convivencia ?? null, familia: f.eixos.familia ?? null } }];
+    f.situacao = 'rascunho'; f.devolucao = motivo;
+    f.historico = [...f.historico, { id: uid(), quem: eu.fullName, acao: 'devolvido para correção', em, nota: motivo }];
+    return { situacao: 'rascunho', aviso: 'Devolvido para correção. Quem redigiu foi avisado, e a versão '
+      + 'devolvida fica guardada no histórico, como estava.' };
+  }
+  if (seg[0] === 'followups' && seg.length === 2 && metodo === 'GET') {
+    const f = ACOMPANHAMENTOS.find((x) => x.id === seg[1]);
+    if (!f) return new Recusa(404, 'Acompanhamento não encontrado.');
+    return { ...f, acolhido: kid(f.personId)?.nome ?? '—', devolucoes: f.devolucoes ?? [] };
+  }
   if (seg[0] === 'followups' && seg[2] === 'amend' && metodo === 'POST') {
     const f = ACOMPANHAMENTOS.find((x) => x.id === seg[1]);
     if (!f) return new Recusa(404, 'Não encontrado.');

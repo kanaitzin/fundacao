@@ -20,7 +20,7 @@ começava escolhendo em qual acreditar.*
 
 | Arquivo | Por que sobreviveu |
 |---|---|
-| `der.md` | as 126 tabelas com o que cada coluna guarda. É referência de dado, não narrativa, e o `documentacao.spec.ts` cobra que toda tabela apareça lá |
+| `der.md` | as 128 tabelas com o que cada coluna guarda. É referência de dado, não narrativa, e o `documentacao.spec.ts` cobra que toda tabela apareça lá |
 | `roteiro-marcelo.md` (+ `.docx`) | é entregue à Casa 03, escrito para quem não conhece o sistema. O `.docx` é GERADO do `.md` por `scripts/roteiro-em-word.mjs` — não editar o Word à mão |
 
 ---
@@ -90,10 +90,10 @@ discordavam entre si.
 | Quanto | De onde sai |
 |---|---|
 | **18 partições** isoladas | pastas em `backend/src/modules/` |
-| **178 migrações** | `.sql` dentro das partições |
-| **126 tabelas** | `CREATE TABLE` nas migrações |
-| **127 suítes** | `backend/test/*.spec.ts` |
-| **1161 testes** | `it(` / `test(` nas suítes |
+| **181 migrações** | `.sql` dentro das partições |
+| **128 tabelas** | `CREATE TABLE` nas migrações |
+| **128 suítes** | `backend/test/*.spec.ts` |
+| **1165 testes** | `it(` / `test(` nas suítes |
 | **36 telas React** | `frontend/src/screens/*.tsx` |
 | **10 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **7 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
@@ -388,6 +388,7 @@ arqueologia.
 | 178 | **As quatro decisões de 28/09.** (1) **A Coordenação Geral recebe os avisos graves das oito casas**: um nível próprio de escalonamento, `coordenacao_geral` (1635), escolhido pela marca `todas_as_casas`, e não pelo cargo, porque a coordenação de UMA casa não deve receber o grave das outras sete. Chegam a ela a ocorrência das categorias que exigem revisão técnica, a internação aberta e a ATA Geral Noturna assinada com pendência (um aviso só, e não um por casa); o aviso não carrega o fato. (2) **O Arquivo das ATAs abre nos últimos 30 dias**, contando o próprio dia: o mês de calendário deixava o Arquivo quase vazio todo dia 1º. Dia, semana e mês continuam como opção, e a conta mora em `janelaDeConsulta`, com cópia no protótipo. (3) **A dose dada fora do horário diz as duas horas** (*Dada às 20h40, prevista para as 20h00*), sem a palavra atraso: `rotuloForaDoHorario`, no kernel, usada pelo remédio e pela Enfermagem; o código do estado no banco não muda. (4) **O PIA avisa trinta dias antes, por criança**: o relógio do dia pergunta a `app_pia_chegando` (1636), que devolve só a data e o nome, nunca o documento restrito, e grava em `pia_aviso` o que já foi avisado, para sair uma vez só. A tabela mora no `people` porque o módulo de avisos é removível e a regra de fronteira reprovou a primeira versão, que lia o escalonamento. |
 | 179 | **Os defeitos da análise de 30/09, consertados.** (1) **Nenhuma foto de celular entrava no servidor de verdade**: o corpo da requisição estava no padrão de 100 KB e o anexo vai em base64, então acima de ~75 KB tudo dava 500. O limite agora é 25 MB (o maior anexo, 15 MB, em base64 com folga), ligado pelo `AppModule` (`kernel/common/corpo-da-requisicao.ts`) para valer na suíte e no servidor que sobe, e o corpo grande demais volta **413 com frase em português**. A suíte anexa foto de meio megabyte e PDF de 12 MB (`o-anexo-de-tamanho-real`), e o `ensaio:producao` manda 1 MB e 30 MB ao compilado. *Nenhum teste pegava porque todos anexavam imagem de um pixel.* (2) **O relógio não rodaria no servidor instalado**: o cron chamava `tsx`, que é de desenvolvimento, o mesmo defeito que o ensaio achou nas migrações na fase 62. Agora é `npm run relogio:prod` (o `dist/relogio.js`), e o `ensaio:producao` roda o relógio num banco virgem como o cron o chama. (3) **O convite sai por SMTP de verdade**, quando a Fundação ligar (`EMAIL_MODO=smtp`): STARTTLS exigido por padrão, conta e senha de aplicativo, recusa 503 em português quando o servidor não responde ou falta o remetente, e o log sem o link nem a senha. Provado contra um servidor de captura dentro da suíte (`o-envio-por-smtp`): **o link que chega na caixa abre a conta**. O padrão continua sendo a caixa local. (4) **O servidor pronto para sair da rede da casa** (`kernel/common/porta-da-internet.ts`, §12.9): o CORS, que sem a variável aceitava QUALQUER origem com credencial, agora fecha por padrão; toda resposta vai sem cache, sem moldura e sem adivinhar tipo; HSTS quando chega por HTTPS; e o `TRUST_PROXY`, sem o qual atrás do proxy toda sessão guardaria o IP do proxy. Cobrado pela suíte (`a-porta-para-a-internet`, com dois servidores, o de fábrica e o implantado) e pelo ensaio de produção. (5) **A correção da visita não mostrava o que corrigia**: a tela prometia *"o horário anterior e o motivo ficam no histórico dela"*, e o histórico era gravado e nunca lido. A varredura apontou o `corrected_at` sem leitor, e atrás dele estava a tabela inteira. Agora o perfil da criança mostra o que constava, quem corrigiu, quando e por quê, lido por OUTRO cargo no teste. De passagem: a foto 3×4 no portão ganhou teste (era a única rota que o medidor, consertado, ainda apontava), o `rotas-sem-teste.mjs` lê as chamadas por auxiliar, e a varredura declara os dois carimbos de criação com outro nome. *O que a análise listou e NÃO é defeito continua esperando alguém: a fila do aparelho cifrada (DPO), o Drive de verdade (decisão), os marcadores de fralda e mamadeira (a casa confirmar) e o aviso de meia hora antes do fim do plantão (pedido de 09/09, que pede o relógio rodando ao longo do dia).* |
 | 180 | **A meia hora antes do fim do plantão** (pedido de 09/09, decidido em 30/09: *a pessoa e o líder*). De dez em dez minutos o `fim-do-plantao` (compilado, com a conta do relógio, e com a sua linha no `relogio.crontab`) pergunta a cada casa se o turno corrente está na meia hora final. Na primeira passada dentro dela, `app_plantao_terminando` (shifts/1637) põe a marca do TURNO em `shift_fim_aviso` e devolve quem a escala diz que devia assinar (educador e Líder Diurno) e ainda não assinou a passagem. Cada um recebe **o próprio aviso**, e o líder do turno recebe **um só, com os nomes**: o Líder Diurno no diurno, o Líder Noturno Geral no noturno. **Uma vez por turno, e sem guardar quem foi avisado** (a regra do §10.5, de 09/09: o aviso é do turno corrente e não acumula por pessoa; a auditoria conta quantos faltavam, nunca quem). Sem escala lançada, ninguém é cobrado. O instante é parâmetro da função, e a suíte (`a-meia-hora-antes-do-fim`) pergunta num dia sorteado no futuro, sem depender do relógio de hoje nem da rodada anterior; o ensaio de produção roda o compilado como o cron o chama, e o sino do protótipo mostra o aviso do líder. *De passagem: o sino dizia "Continua em: pia" no aviso do PIA da fase 178, o nome cru da tabela; agora diz Dossiê da criança.* |
+| 181 | **As decisões 1, 2, 3 e 11 do §10, respondidas em 30/09.** (1) **Devolver o acompanhamento para correção**, que a tela prometia desde 31/08 e o servidor não tinha: a coordenação e o Gestor Geral devolvem o que aguarda aprovação, com motivo, e nunca o próprio texto; o acompanhamento volta a rascunho para quem redigiu, que recebe um aviso sem o motivo dentro (o motivo mora no acompanhamento), e a versão devolvida fica guardada em `followup_return` (1638), legível dentro do acompanhamento. (2) **A ATA Geral do dia, linha por casa**: a tela já só abria a folha inteira para o Líder Noturno Geral, mas a política das linhas entregava as oito à coordenação e à técnica de qualquer casa, e com o identificador da folha elas as liam pela rota. A 1639 fecha no banco; a resposta de quem lê o recorte diz que é recorte e não conta a noite, que *1 de 1 confirmada* pareceria a noite inteira em ordem (o teste da regressão cobrava as oito para a coordenação, e foi reescrito para o que ele queria proteger). (3) **"Concluí as atividades coletivas até agora"** na linha do dia: marca, depois de mostrar a lista, só as coletivas pendentes com horário até agora; remédio, saúde, urgência e o que espera ciência ficam de fora. Não é lote silencioso, a mesma regra da conferência de mesa: `activity_bulk` (1640), imutável, com quem e quantas, e cada execução aponta para ele. O `ensaio:uso` abre o botão numa página com o relógio do navegador às 17h, para não depender da hora em que roda. (4) **A Enfermagem continua vendo a internação**, confirmado. *De passagem: duas suítes limpavam os acompanhamentos antes de rodar, e com a tabela nova apontando para eles a limpeza travava a suíte inteira; elas limpam as devoluções primeiro.* |
 
 ---
 
@@ -435,7 +436,7 @@ cd frontend && npm run prototipo
 ```
 
 O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as
-178 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
+181 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
 
 ### Os ensaios — e por que cada um existe
 
@@ -500,7 +501,7 @@ rede-acolher/
 │   │   │   ├── documentos/     o contrato da folha e o gerador de .docx
 │   │   │   └── common/         CPF, criptografia, segredo, fuso da instituição
 │   │   └── modules/       18 partições, cada uma dona das próprias migrações
-│   ├── test/              127 suítes (e2e contra PostgreSQL real + estáticas)
+│   ├── test/              128 suítes (e2e contra PostgreSQL real + estáticas)
 │   ├── scripts/           ensaio-carga.ts, migrador compilado
 │   └── assets/timbre.png  a marca da Fundação, usada no documento em Word
 ├── frontend/
@@ -2482,19 +2483,24 @@ não medem onde uma pessoa hesita.
 Nenhuma é problema de código. Estão paradas esperando resposta — **responda pelo
 número**.
 
-1. **Devolver um acompanhamento para correção não existe no servidor.** A tela
-   tinha um botão que prometia isso; foi removido em vez de inventar a regra. A
-   pergunta é se a equipe técnica deve poder devolver, e o que acontece com a
-   versão que já estava lá.
-2. **O recorte por casa deve valer para a ATA Geral do DIA CORRENTE?** No
-   arquivo, cada casa recebe a linha dela. No dia corrente, a coordenação abre a
-   folha inteira das oito casas — que era o combinado antes. *Junto disso: de
-   dia, quem precisa ler a ATA Geral da noite anterior? Hoje só quem abre chega
-   nela.*
-3. **"Concluí tudo até agora" na linha do dia.** Facilitador pedido, mas a linha
-   do dia contém doses de medicamento, onde "não existe marcação em lote" é
-   absoluto. A versão segura ficaria limitada a atividades coletivas que não
-   sejam medicação, como ato declarado.
+1. ~~**Devolver um acompanhamento para correção não existe no servidor.**~~ ✅
+   **RESPONDIDA em 30/09/2026: quem aprova devolve, com motivo** (fase 181). A
+   coordenação e o Gestor Geral devolvem o que aguarda aprovação, nunca o próprio
+   texto, com motivo de 15 caracteres; o acompanhamento volta a rascunho para
+   quem redigiu, que é avisado sem o motivo no aviso, e a versão devolvida fica
+   guardada em `followup_return`, legível como estava.
+2. ~~**O recorte por casa deve valer para a ATA Geral do DIA CORRENTE?**~~ ✅
+   **RESPONDIDA em 30/09/2026: só a linha da casa** (fase 181). A política das
+   linhas (1639) entrega à coordenação e à técnica só a linha da casa delas,
+   mesmo com o identificador da folha em mãos; a folha inteira fica com o Líder
+   Noturno Geral, o Gestor Geral e a Coordenação Geral. Quem lê o recorte recebe
+   a resposta marcada como recorte, sem o contador da noite. De dia, cada casa lê
+   a linha dela pelo Arquivo.
+3. ~~**"Concluí tudo até agora" na linha do dia.**~~ ✅ **RESPONDIDA em
+   30/09/2026: só as atividades coletivas** (fase 181). O botão marca as
+   coletivas pendentes até agora, depois de mostrar a lista; remédio, saúde,
+   urgência e o que espera ciência ficam de fora. O ato tem registro próprio e
+   imutável (`activity_bulk`, 1640), e cada execução aponta para ele.
 4. ~~**O Arquivo das ATAS abre no mês de calendário**~~ ✅ **RESPONDIDA em
    28/09/2026: abre nos últimos 30 dias**, como as visitas. Dia, semana e mês
    continuam como opção (fase 178).
@@ -2531,7 +2537,7 @@ número**.
     subconjunto é o latino INTEIRO, e não os caracteres das telas de hoje: o
     protótipo tem campos onde a pessoa digita, e um nome com Ñ sairia na letra
     errada. *Número estimado que trava uma decisão pede medição, não opinião.*
-11. **A Enfermagem vê a internação — decisão MINHA, a confirmar.** A resposta da
+11. ✅ **CONFIRMADA em 30/09/2026: a Enfermagem continua vendo.** *O texto de antes:* **A Enfermagem vê a internação — decisão MINHA, a confirmar.** A resposta da
     coordenação em 03/09 listou equipe técnica, líder educador e coordenador, e
     disse que o educador social comum não vê. Incluí a Enfermagem porque
     internação é primeiro um fato de saúde, e é ela quem responde por medicação
@@ -2824,7 +2830,7 @@ ele continua dizendo que o arquivo existe.
 npm run ensaio:producao
 ```
 
-Constrói, cria um banco virgem, aplica as 178 migrações **pelo binário
+Constrói, cria um banco virgem, aplica as 181 migrações **pelo binário
 compilado**, sobe o serviço e confere `/health`. Não publica nada e não toca no
 banco de trabalho.
 

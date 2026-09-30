@@ -221,25 +221,37 @@ describe('Regressão — registros deixados para trás quando a criança sai', (
     expect(daEnfermagem.body.map((f: any) => f.id)).toContain(evo.body.id);
   });
 
-  it('a ATA Geral Noturna mostra as OITO casas para a coordenação, com nome', async () => {
+  it('a ATA Geral Noturna: a folha inteira para o Líder Noturno, a linha da casa para a coordenação', async () => {
     const geral = await request(http).post('/api/v1/shifts/general-ata')
       .set(auth(tokens.noturno)).send({ data: HOJE });
 
-    const vistaPelaCoordenacao = await request(http)
-      .get(`/api/v1/shifts/general-ata/${geral.body.id}`).set(auth(tokens.coord3));
-    expect(vistaPelaCoordenacao.status).toBe(200);
-    expect(vistaPelaCoordenacao.body.total).toBe(8);
-    expect(vistaPelaCoordenacao.body.casas).toHaveLength(8);
-    // Antes da correção sobrava só AI3, e "1 de 1 confirmada" parecia noite
-    // inteira em ordem.
-    expect(vistaPelaCoordenacao.body.casas.map((c: any) => c.codigo).sort())
+    /* Quem responde pelas oito lê as oito, com nome, e os contadores da noite. */
+    const doLider = await request(http)
+      .get(`/api/v1/shifts/general-ata/${geral.body.id}`).set(auth(tokens.noturno));
+    expect(doLider.status).toBe(200);
+    expect(doLider.body.folhaCompleta).toBe(true);
+    expect(doLider.body.total).toBe(8);
+    expect(doLider.body.casas.map((c: any) => c.codigo).sort())
       .toEqual(['AI1', 'AI2', 'AI3', 'AI4', 'ARM1', 'ARM2', 'ARM3', 'ARM4']);
-    for (const c of vistaPelaCoordenacao.body.casas) {
+    for (const c of doLider.body.casas) {
       expect(c.codigo).toBeTruthy();
       expect(c.nome).toBeTruthy();
       // "não existe" e "não posso ver" deixaram de ser a mesma frase.
       expect(c.situacaoAtaDaCasa).not.toBe('sem ATA aberta');
     }
+
+    /* A coordenação da casa lê a linha dela, mesmo com o identificador da folha
+       em mãos (decisão de 30/09, 1639). E a resposta diz que é recorte: sem
+       contador, "1 de 1 confirmada" pareceria a noite inteira em ordem. */
+    const daCoordenacao = await request(http)
+      .get(`/api/v1/shifts/general-ata/${geral.body.id}`).set(auth(tokens.coord3));
+    expect(daCoordenacao.status).toBe(200);
+    expect(daCoordenacao.body.folhaCompleta).toBe(false);
+    expect(daCoordenacao.body.casas.map((c: any) => c.codigo)).toEqual(['AI3']);
+    expect(daCoordenacao.body.casas[0].nome).toBeTruthy();
+    expect(daCoordenacao.body.total).toBeNull();
+    expect(daCoordenacao.body.confirmadas).toBeNull();
+    expect(daCoordenacao.body.pendencias).toBeNull();
   });
 
   it('nomear um acolhido que nunca passou pela sua casa continua impossível', async () => {

@@ -906,7 +906,7 @@ criança, e log não copia conteúdo sensível (§5). A auditoria guarda o ato �
 coordenação, Líder Diurno). Mais ninguém: a lista de quem pediu para ler o quê é,
 ela mesma, informação sobre o caso.
 
-## Inventário — 126 tabelas por partição
+## Inventário — 128 tabelas por partição
 
 | Partição | Tabelas |
 |---|---|
@@ -915,9 +915,9 @@ ela mesma, informação sobre o caso.
 | shifts (14) | shift, handover, handover_receipt, handover_note, ata, ata_note, ata_addendum, ata_episode, ata_episode_ack, general_night_ata, general_night_house_entry, general_night_house_amendment, ata_read_request, shift_fim_aviso |
 | incidents (7) | incident, incident_person, incident_protected, incident_restraint, incident_synthesis, external_communication, incident_attachment |
 | medications (13) | prescription, medication_schedule, medication_administration, medication_stock, medication_stock_movement, medication_protocol, medication_authorization, medication_protocol_change, prescription_restriction_change, medication_purchase, medication_purchase_item, prescription_document, family_stay_medication |
-| activities (7) | activity, activity_assignment, activity_acknowledgement, activity_execution, substitution_request, commitment, commitment_exception |
+| activities (8) | activity, activity_assignment, activity_acknowledgement, activity_execution, substitution_request, commitment, commitment_exception, activity_bulk |
 | nursing (11) | health_encounter, health_evolution, nursing_triage, health_summary_issue, education_support, education_evolution, education_concept, hospitalization, hospitalization_note, hospitalization_medication, hospitalization_companion |
-| reports (6) | followup, followup_source, report_document, report_delivery, export_log, life_milestone |
+| reports (7) | followup, followup_source, report_document, report_delivery, export_log, life_milestone, followup_return |
 | checks (4) | collective_check, check_result, check_result_amendment, check_bulk |
 | notifications (3) | notification, escalation, escalation_level |
 | archive (2) | archive_item, archive_attempt |
@@ -939,6 +939,21 @@ Quem lê é `app_user_cargo_em(pessoa, instante)`: a linha da ATA, o pedido de
 leitura, a escala, o trabalho da equipe e o relatório da internação mostram o
 cargo de QUANDO o registro foi feito. RLS ligado e nenhuma política: só as
 funções leem.
+
+### `followup_return` — a devolução do acompanhamento (fase 181, reports/1638)
+QUEM APROVA DEVOLVE, COM MOTIVO: `followup_id`, `house_id`, `eixos` (jsonb com os
+quatro eixos como estavam quando foram devolvidos), `written_by` (quem os
+redigiu), `reason` (mínimo 15 caracteres), `returned_by` e `returned_at`. Escreve
+`app_return_followup`, que confere o alcance, o cargo (coordenação e Gestor
+Geral), a situação (aguardando aprovação) e que quem devolve não é quem redigiu;
+o acompanhamento volta a rascunho. Lê quem lê o acompanhamento (a política
+pergunta à de `followup`).
+
+### `activity_bulk` — "concluí as coletivas até agora" (fase 181, activities/1640)
+O ATO DECLARADO, COM NOME: `house_id`, `quantos`, `declared_by`, `declared_at`.
+Imutável (gatilho recusa UPDATE e DELETE). Cada `activity_execution` marcada pelo
+ato leva o `bulk_id`. Só entram as atividades coletivas pendentes com horário até
+agora, fora remédio, saúde, urgência e o que espera ciência.
 
 ### `shift_fim_aviso` — a meia hora antes do fim do plantão (fase 180, shifts/1637)
 A MARCA DE QUE O TURNO JÁ FOI AVISADO: `id` (a chave do aviso ao líder),

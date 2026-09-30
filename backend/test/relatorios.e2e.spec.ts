@@ -74,6 +74,7 @@ describe('Fase 6 — acompanhamentos, relatórios, aprovações e arquivo', () =
     await admin.query(`DELETE FROM export_log WHERE report_id IS NOT NULL`);
     await admin.query(`DELETE FROM report_delivery`);
     await admin.query(`DELETE FROM report_document`);
+    await admin.query(`DELETE FROM followup_return`);
     await admin.query(`DELETE FROM followup_source`);
     await admin.query(`DELETE FROM followup`);
     await app.close(); await admin.end();
@@ -154,6 +155,62 @@ describe('Fase 6 — acompanhamentos, relatórios, aprovações e arquivo', () =
       .set(auth(tokens.coord)).send({});
     expect(proprio.status).toBe(403);
     expect(proprio.body.message).toMatch(/não aprova o próprio texto/i);
+
+    /*
+     * A DEVOLUÇÃO (fase 181, decisão de 30/09). Quem aprova devolve com motivo;
+     * o texto volta a rascunho para quem redigiu, e a versão devolvida fica
+     * guardada como estava.
+     */
+    const url = `/api/v1/followups/${followupMensal}/return`;
+    expect((await request(http).post(url).set(auth(tokens.tecnica))
+      .send({ motivo: 'A técnica não devolve o texto que ela mesma redigiu.' })).status).toBe(403);
+    expect((await request(http).post(url).set(auth(tokens.coord))
+      .send({ motivo: 'curto' })).status).toBe(400);
+    const doProprio = await request(http).post(`/api/v1/followups/${daCasa}/return`)
+      .set(auth(tokens.coord)).send({ motivo: 'Devolvendo o texto que eu mesma redigi.' });
+    expect(doProprio.status).toBe(403);
+    expect(doProprio.body.message).toMatch(/não devolve o próprio texto/i);
+
+    const antesDoAviso = new Date();
+    const motivo = 'Faltam os eixos de convivência e família; o que não foi observado se escreve assim.';
+    const devolvido = await request(http).post(url).set(auth(tokens.coord)).send({ motivo });
+    expect(devolvido.status).toBe(201);
+    expect(devolvido.body.situacao).toBe('rascunho');
+
+    /* Quem redigiu lê o motivo na lista, e a versão devolvida no acompanhamento. */
+    const naLista = (await request(http).get(`/api/v1/followups?houseId=${AI3}&tipo=mensal`)
+      .set(auth(tokens.tecnica))).body.find((f: any) => f.id === followupMensal);
+    expect(naLista.situacao).toBe('rascunho');
+    expect(naLista.devolucao).toBe(motivo);
+    expect(naLista.historico[0]).toMatchObject({ acao: 'devolvido para correção', nota: motivo });
+    expect(naLista.historico[0].quem).toMatch(/Carla/);
+    const aberto = (await request(http).get(`/api/v1/followups/${followupMensal}`)
+      .set(auth(tokens.tecnica))).body;
+    expect(aberto.devolucoes).toHaveLength(1);
+    expect(aberto.devolucoes[0].eixos.saude).toMatch(/odontológica/);
+    expect(aberto.devolucoes[0].eixos.convivencia).toBeNull();
+
+    /* E recebeu o aviso, sem o motivo dentro dele. */
+    const { rows: avisos } = await admin.query(
+      `SELECT n.title, n.body FROM notification n JOIN app_user u ON u.id = n.user_id
+        WHERE u.email = 'tecnica.ai3@paodospobres.dev' AND n.entity_id = $1 AND n.created_at >= $2`,
+      [followupMensal, antesDoAviso]);
+    expect(avisos.map((a: any) => a.title)).toContain('Acompanhamento devolvido para correção');
+    expect(avisos.every((a: any) => !a.body.includes('Faltam os eixos'))).toBe(true);
+
+    /* Não se devolve o que não está aguardando aprovação. */
+    expect((await request(http).post(url).set(auth(tokens.coord))
+      .send({ motivo })).status).toBe(409);
+
+    /* A técnica corrige e envia de novo; a versão devolvida continua lá. */
+    await request(http).post(`/api/v1/followups/${followupMensal}/draft`).set(auth(tokens.tecnica))
+      .send({ convivencia: 'Não observado no período.', familia: 'Não observado no período.' });
+    expect((await request(http).post(`/api/v1/followups/${followupMensal}/submit`)
+      .set(auth(tokens.tecnica))).status).toBe(201);
+    const { rows: [guardada] } = await admin.query(
+      `SELECT eixos, reason FROM followup_return WHERE followup_id = $1`, [followupMensal]);
+    expect(guardada.eixos.convivencia).toBeNull();
+    expect(guardada.reason).toBe(motivo);
 
     const daCoord = await request(http).post(`/api/v1/followups/${followupMensal}/approve`)
       .set(auth(tokens.coord)).send({ nota: 'Revisado com a equipe técnica.' });

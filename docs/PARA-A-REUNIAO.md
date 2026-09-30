@@ -18,7 +18,7 @@
 > depois das 21h em Porto Alegre semeava o dia seguinte — o dia de hoje nascia
 > sem dose nenhuma. **Nada no sistema; tudo no dado de partida.**
 
-- **180 fases.** 127 suítes e 1161 testes, verdes em duas condições de relógio —
+- **181 fases.** 128 suítes e 1165 testes, verdes em duas condições de relógio —
   antes e depois da virada do UTC, que em Porto Alegre é às 21h.
 - **O pedido de 25/09 está fechado** (fase 166). Uma simulação de dois dias e
   do dia de hoje na Casa 03 conferiu os relatórios contra os fatos, e achou
@@ -348,20 +348,20 @@ que ela mostrou e a Fundação decidiu:
 
 ## 5. As decisões que são do Marcelo *(§10 — responda pelo número)*
 
-Nenhuma é problema de código. Duas têm consequência maior e estão marcadas.
+Nenhuma é problema de código. **Sobra uma só, a 5** (a grade para a parede), que é escolha da casa.
 
 | # | Decisão |
 |---|---|
-| 1 | Devolver um acompanhamento para correção não existe. A técnica deve poder? E o que acontece com a versão que já estava lá? |
-| 2 | O recorte por casa vale para a ATA Geral do **dia corrente**? E: de dia, quem precisa ler a ATA Geral da noite? |
-| 3 | "Concluí tudo até agora" na linha do dia — a versão segura exclui medicação |
+| ~~1~~ | ✅ **RESPONDIDA EM 30/09: quem aprova devolve, com motivo** (fase 181). O texto volta a rascunho para quem redigiu, e a versão devolvida fica guardada e legível |
+| ~~2~~ | ✅ **RESPONDIDA EM 30/09: só a linha da casa** (fase 181). A folha inteira fica com o Líder Noturno Geral, o gestor e a Coordenação Geral; de dia, cada casa lê a linha dela pelo Arquivo |
+| ~~3~~ | ✅ **RESPONDIDA EM 30/09: só as atividades coletivas** (fase 181), como ato declarado com o nome de quem marcou. Remédio, saúde, urgência e o que espera ciência continuam um por um |
 | ~~4~~ | ✅ **RESPONDIDA EM 28/09: últimos 30 dias** (fase 178) |
 | 5 | A grade de medicação para colar na parede saiu sem diagnóstico. A casa quer diferente? |
 | ~~6~~ | ✅ **RESPONDIDA EM 20/09: só a contagem** — *"existem 2 relatos em área restrita"*, o mesmo precedente dos documentos. **Destrava duas telas:** a leitura excepcional, e a listagem de relatos por criança |
 | ~~7~~ | ✅ **RESPONDIDA EM 20/09: as três numa lista só**, com filtro por tipo — é a única que não obriga a técnica a adivinhar em qual aba está o que ela lembra |
 | ~~8~~ | ✅ **RESPONDIDA EM 28/09: descrever o fato** — *Dada às 20h40, prevista para as 20h00*, sem a palavra atraso (fase 178) |
 | ~~9~~ | ✅ **RESPONDIDA EM 28/09: por criança, 30 dias antes** (fase 178). A data é a validade do último PIA anexado ao dossiê |
-| 11 | **A Enfermagem vê a internação — decisão MINHA, a confirmar.** A resposta de 03/09 não a listou; incluí porque internação é primeiro um fato de saúde. Desfaz-se numa linha |
+| ~~11~~ | ✅ **CONFIRMADA EM 30/09: a Enfermagem continua vendo a internação** |
 
 *(O item 10, das fontes do protótipo, foi resolvido medindo — não precisa de
 reunião.)*

@@ -101,6 +101,12 @@ export class ActivitiesController {
     return this.activities.createUrgent(user, body);
   }
 
+  /** "Concluí tudo até agora": só as coletivas, como ato declarado (fase 181). */
+  @Post('complete-collective')
+  concluirColetivas(@CurrentUser() user: AuthenticatedUser, @Body() body: { houseId?: string }) {
+    return this.activities.concluirColetivas(user, body?.houseId ?? '');
+  }
+
   // Comandos específicos, não update genérico (§25)
   @Post(':id/acknowledge')
   ack(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,

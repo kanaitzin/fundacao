@@ -86,7 +86,15 @@ export class FollowupsService {
                 app_user_display_name(f.written_by) AS redator,
                 app_user_display_name(f.approved_by) AS aprovador,
                 f.axis_health, f.axis_school, f.axis_coexistence, f.axis_family,
-                f.written_by = app_current_user() AS proprio
+                f.written_by = app_current_user() AS proprio,
+                /* A devolução (fase 181): o último motivo, enquanto o texto
+                   continua em rascunho, e todas as devoluções no histórico. */
+                (SELECT r.reason FROM followup_return r WHERE r.followup_id = f.id
+                  ORDER BY r.returned_at DESC LIMIT 1) AS ultima_devolucao,
+                (SELECT coalesce(json_agg(json_build_object(
+                          'id', r.id, 'quem', app_user_display_name(r.returned_by),
+                          'em', r.returned_at, 'nota', r.reason) ORDER BY r.returned_at), '[]')
+                   FROM followup_return r WHERE r.followup_id = f.id) AS devolucoes
            FROM followup f
           WHERE f.house_id = $1
             AND (f.status IN ('pendente','rascunho','em_aprovacao')
@@ -107,7 +115,9 @@ export class FollowupsService {
         id: r.id, tipo: r.kind, situacao: r.status, pessoa: r.pessoa, acolhido: r.pessoa,
         personId: r.person_id,
         periodo: { de: r.period_start, ate: r.period_end }, versao: r.version, redator: r.redator,
-        aprovador: r.aprovador, devolucao: null, historico: [],
+        aprovador: r.aprovador,
+        devolucao: r.status === 'rascunho' ? r.ultima_devolucao ?? null : null,
+        historico: (r.devolucoes ?? []).map((d: any) => ({ ...d, acao: 'devolvido para correção' })),
         eixos: { saude: r.axis_health, escola: r.axis_school,
                  convivencia: r.axis_coexistence, familia: r.axis_family },
         proprio: !!r.proprio, podeAprovar,
@@ -130,10 +140,13 @@ export class FollowupsService {
       const { rows: fontes } = await c.query(
         `SELECT entity, entity_id, origem, autor, registrado_em, classificacao, escolhido_em
            FROM followup_source WHERE followup_id = $1 ORDER BY registrado_em`, [id]);
-      return { f, fontes };
+      const { rows: devolucoes } = await c.query(
+        `SELECT id, eixos, reason, returned_at, app_user_display_name(returned_by) AS quem
+           FROM followup_return WHERE followup_id = $1 ORDER BY returned_at`, [id]);
+      return { f, fontes, devolucoes };
     });
     if (!dados) throw new NotFoundException('Acompanhamento não encontrado.');
-    const { f, fontes } = dados;
+    const { f, fontes, devolucoes } = dados;
     return {
       id: f.id, tipo: f.kind, situacao: f.status, pessoa: f.pessoa, personId: f.person_id,
       periodo: { de: f.period_start, ate: f.period_end },
@@ -144,6 +157,10 @@ export class FollowupsService {
       },
       redator: f.redator, aprovador: f.aprovador, aprovadoEm: f.approved_at,
       notaAprovacao: f.approval_note,
+      /* As versões devolvidas, legíveis como estavam (fase 181). */
+      devolucoes: devolucoes.map((d: any) => ({
+        id: d.id, quem: d.quem, em: d.returned_at, motivo: d.reason, eixos: d.eixos,
+      })),
       fontes: fontes.map((s) => ({
         entidade: s.entity, id: s.entity_id, origem: s.origem, autor: s.autor,
         registradoEm: s.registrado_em, classificacao: s.classificacao,
@@ -439,6 +456,59 @@ export class FollowupsService {
     return {
       aprovado: true, versao: r.versao,
       aviso: 'Aprovado. A partir daqui é retrato daquele momento: corrigir cria uma nova versão, sem apagar esta.',
+    };
+  }
+
+  /**
+   * DEVOLVER PARA CORREÇÃO (fase 181, decisão de 30/09, §10 item 1).
+   *
+   * Quem aprova devolve, com motivo, o que está aguardando aprovação. O texto
+   * volta a rascunho para quem redigiu, e a versão devolvida fica guardada
+   * (`followup_return`), legível como estava. O aviso a quem redigiu diz que
+   * houve devolução, e não o motivo: o motivo mora no acompanhamento.
+   */
+  async devolver(user: AuthenticatedUser, id: string, motivo: string) {
+    const r = await this.db.asUser(user.id, async (c) => {
+      const { rows: [row] } = await c.query(
+        `SELECT * FROM app_return_followup($1,$2)`, [id, motivo ?? '']);
+      return row;
+    }).catch((e: any) => {
+      const m = String(e?.message ?? '');
+      if (m.includes('motivo_insuficiente')) {
+        throw new BadRequestException(
+          'Escreva o que precisa ser corrigido (mínimo 15 caracteres). É o que quem redigiu vai ler.');
+      }
+      if (m.includes('autor_nao_devolve')) {
+        throw new ForbiddenException('Quem redigiu não devolve o próprio texto.');
+      }
+      if (m.includes('somente_coordenacao_devolve')) {
+        throw new ForbiddenException('Devolver para correção é de quem aprova: a coordenação e o Gestor Geral.');
+      }
+      if (m.includes('nao_esta_em_aprovacao')) {
+        throw new ConflictException('Este acompanhamento não está aguardando aprovação.');
+      }
+      if (m.includes('fora_de_escopo') || m.includes('inexistente')) {
+        throw new NotFoundException('Acompanhamento não encontrado.');
+      }
+      throw e;
+    });
+    if (r.out_redator) {
+      await this.bus.publish('notice.requested', {
+        userId: r.out_redator,
+        title: 'Acompanhamento devolvido para correção',
+        body: `O acompanhamento ${r.out_tipo} voltou para você com o que precisa ser corrigido. `
+          + 'Abra em Acompanhamentos para ler o motivo e enviar de novo.',
+        priority: 'normal', entity: 'followup', entityId: id,
+      }, { actorId: user.id, houseId: r.out_casa });
+    }
+    await this.audit.log({
+      action: 'followup.return', actorId: user.id, institutionId: user.institutionId,
+      houseId: r.out_casa, entity: 'followup', entityId: id, detail: { tipo: r.out_tipo },
+    });
+    return {
+      situacao: 'rascunho',
+      aviso: 'Devolvido para correção. Quem redigiu foi avisado, e a versão devolvida fica '
+        + 'guardada no histórico, como estava.',
     };
   }
 

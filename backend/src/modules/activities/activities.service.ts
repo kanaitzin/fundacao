@@ -291,6 +291,66 @@ export class ActivitiesService {
   }
 
   /**
+   * "CONCLUÍ TUDO ATÉ AGORA" (fase 181, decisão de 30/09, §10 item 3).
+   *
+   * Só as atividades COLETIVAS da casa, pendentes, com horário até agora, no
+   * dia da instituição. Remédio e saúde ficam de fora (as doses nem moram aqui),
+   * e também a urgente e a que espera ciência: essas pedem alguém olhando uma a
+   * uma. O ato tem registro próprio (`activity_bulk`), com quem e quantas, e
+   * cada execução aponta para ele: não é marcação em lote silenciosa.
+   */
+  async concluirColetivas(user: AuthenticatedUser, houseId: string) {
+    const r = await this.db.asUser(user.id, async (c) => {
+      const { rows: [casa] } = await c.query(`SELECT app_house_in_scope($1) AS pode`, [houseId]);
+      if (!casa?.pode) return null;
+      const { rows: alvo } = await c.query(
+        `SELECT id, person_id, title FROM activity
+          WHERE house_id = $1 AND person_id IS NULL
+            AND kind NOT IN ('medicamento', 'saude')
+            AND NOT urgent
+            AND state IN ('agendada', 'ciente', 'em_andamento', 'sem_confirmacao')
+            AND scheduled_at <= now()
+            AND (scheduled_at AT TIME ZONE app_fuso())::date = app_hoje()
+          ORDER BY scheduled_at
+          FOR UPDATE`, [houseId]);
+      if (!alvo.length) return { alvo, bulk: null };
+      const { rows: [bulk] } = await c.query(
+        `INSERT INTO activity_bulk (house_id, quantos, declared_by)
+         VALUES ($1, $2, $3) RETURNING id, declared_at`, [houseId, alvo.length, user.id]);
+      for (const a of alvo) {
+        await c.query(
+          `INSERT INTO activity_execution (activity_id, user_id, resulting_state, note, bulk_id)
+           VALUES ($1, $2, 'concluida_no_horario', $3, $4)`,
+          [a.id, user.id, 'Concluída junto com as atividades coletivas até agora.', bulk.id]);
+        await c.query(
+          `UPDATE activity SET state = 'concluida_no_horario', updated_at = now(),
+                  version = version + 1 WHERE id = $1`, [a.id]);
+      }
+      return { alvo, bulk };
+    });
+    if (!r) throw new NotFoundException('Unidade não encontrada — ou fora do seu alcance.');
+    if (!r.bulk) {
+      throw new BadRequestException(
+        'Não há atividade coletiva pendente até agora. Remédio, saúde, urgência e o que espera '
+        + 'ciência continuam sendo registrados um por um.');
+    }
+    await this.audit.log({
+      action: 'activity.bulk_complete', actorId: user.id, houseId,
+      entity: 'activity_bulk', entityId: r.bulk.id, detail: { quantos: r.alvo.length },
+    });
+    for (const a of r.alvo) {
+      await this.bus.publish('activity.recorded',
+        { activityId: a.id, personId: null, estado: 'concluida_no_horario', titulo: a.title },
+        { actorId: user.id, houseId });
+    }
+    return {
+      quantas: r.alvo.length, atividades: r.alvo.map((a: any) => a.title),
+      aviso: `${r.alvo.length} atividade(s) coletiva(s) marcada(s) como concluída(s), com o seu nome. `
+        + 'Remédio e o que pede atenção uma a uma continuam na linha do dia.',
+    };
+  }
+
+  /**
    * Delegar atividade em aberto (§8.3). Caminho de cima para baixo: quem
    * faltou não pede substituição, então o líder passa a atividade adiante.
    */

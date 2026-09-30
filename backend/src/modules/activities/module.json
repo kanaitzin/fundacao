@@ -21,7 +21,8 @@
     "activity_execution",
     "substitution_request",
     "commitment",
-    "commitment_exception"
+    "commitment_exception",
+    "activity_bulk"
   ],
   "removivel": true,
   "observacao": "Registra-se como provedor da linha do tempo. Removê-lo apenas retira as atividades da timeline. Registra também o aplicador das próprias operações offline."
