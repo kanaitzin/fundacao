@@ -155,6 +155,8 @@ e qual é o caminho certo.
 | `frontend/src/anexos.tsx` | **o `EscolherAnexo`** (fase 165): câmera, galeria, arquivo e a câmera do computador, com prévia, ampliar, descartar e tirar outra. Todo lugar novo que recebe foto ou documento usa este, e não um `<input type="file">` solto. **E o `lerArquivo` daqui é a única leitura de arquivo** (fase 175): é ele que reduz a foto antes de enviar, e leitura por conta própria manda a foto do tamanho da câmera |
 | `backend/src/kernel/documentos/paginas-do-pdf.ts` | **as páginas de um PDF como imagem** (fase 165), num processo à parte (`desenhar-paginas.mjs`, nome diferente de propósito: com o mesmo nome o Jest importava o `.mjs`). Nunca lança: PDF que não desenha volta marcado, e o documento sai assim mesmo |
 | `scripts/simulacao-da-casa.sh` | **uma casa nasce e vive noventa dias** (fase 173), **ou as oito vivem juntas** com `SIM_CASAS` (fase 177): a ARM1 do primeiro acesso a fevereiro, com o relógio andando (`faketime` lendo um arquivo que a simulação reescreve), os relatórios conferidos contra o que ela contou, e no fim o **`frontend/ensaio-servidor.mjs`**, que abre as telas no navegador **contra o servidor de verdade**. Recria o banco: não roda junto com a suíte. `SIM_SO_NAVEGADOR=1` repete só o navegador |
+| `backend/src/kernel/common/porta-da-internet.ts` | **CORS, cabeçalhos de segurança e `TRUST_PROXY`** (fase 179), ligados pelo `AppModule`. CORS vazio é FECHADO: a tela está no mesmo endereço |
+| `backend/src/kernel/common/corpo-da-requisicao.ts` | **o limite do corpo, 25 MB** (fase 179): o anexo vai em base64 e o padrão de 100 KB recusava toda foto de celular. Mora no módulo para a suíte ver |
 | `frontend/src/cargos.tsx` | **a cor de cada cargo e o círculo de iniciais** (fase 151). Ela convive com DUAS outras: a cor de ESTADO (crítico/atenção — não se toca, e o cargo não usa a família dela) e a cor de AUTOR (`tomDoAutor`, qual colega escreveu — a coordenação escolhe, 0990). Três perguntas diferentes; o dia em que duas responderem à mesma, a cor deixa de informar |
 
 ## O que fazer agora
@@ -163,7 +165,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 28/09/2026, fase 178
+### Onde estamos — 30/09/2026, fase 179
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -205,8 +207,9 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 176 | **a Coordenação Geral** (cargo novo do Marcelo, decisão de 28/09): coordenador com a marca `todas_as_casas` (1634), que `app_user_house_ids` lê — nenhuma das 78 funções, 61 políticas, 76 conferências do servidor e 44 da tela precisou mudar. Só o gestor marca, só coordenador recebe, nasce sem casa (`app_create_coordenacao_geral`), não entra em escala nem escalonamento de casa. Topo diz *Coordenação Geral*, abre nas Unidades; Equipe do gestor tem a caixa e o botão. E a suíte do dossiê **deixava internação aberta** na criança que a da chamada usa: reprovava conforme a ordem do Jest |
 | 177 | **as oito casas vivem um ano juntas** (pedido de 28/09): `SIM_CASAS=AI1,...,ARM4` no `simulacao-da-casa.sh`, com uma agenda que só anda o relógio quando todas as casas pediram a hora; ATA Geral toda manhã, Coordenação Geral lendo as oito, gestor no painel. **Nenhum achado** no ano, 27 contas no navegador sem nada; mais pesada, a equipe das oito (582 ms); ~140 MB de banco por ano para as oito. A Coordenação Geral não recebeu aviso nenhum no ano: pergunta no PARA-A-REUNIAO §4.15. Relatório em `docs/historico/oito-casas-um-ano-28-09.md` |
 | 178 | **as quatro decisões de 28/09**: a Coordenação Geral recebe os GRAVES das oito (nível `coordenacao_geral`, 1635: ocorrência que exige revisão técnica, internação, ATA Geral com pendência); o Arquivo das ATAs abre nos **últimos 30 dias**; a dose fora do horário diz **as duas horas** (`rotuloForaDoHorario`), sem a palavra atraso; o **PIA avisa 30 dias antes**, por criança, uma vez (`app_pia_chegando`, `pia_aviso`, 1636) |
+| 179 | **os defeitos da análise de 30/09**: **nenhuma foto de celular entrava no servidor de verdade** (corpo no padrão de 100 KB; agora 25 MB no módulo e 413 em português, com anexo de tamanho real na suíte); **o relógio não rodaria no servidor instalado** (o cron chamava `tsx`; agora `relogio:prod`, rodado pelo `ensaio:producao`); **o convite por SMTP** (`EMAIL_MODO=smtp`, STARTTLS exigido, provado contra servidor de captura); **CORS fechado, cabeçalhos e `TRUST_PROXY`** (§12.9); e a **correção de visita que não mostrava o que corrigia** |
 
-**Medido no fim da 178:** 177 migrações, 125 tabelas, 123 suítes, 1139 testes, verdes nas
+**Medido no fim da 179:** 177 migrações, 125 tabelas, 126 suítes, 1154 testes, verdes nas
 DUAS condições de relógio; os sete ensaios de navegador verdes, com a portaria e o
 portão, o armário, a cozinha, os temas e a foto no percurso do `ensaio:uso`; **438 telas (146 × três
 temas) sem violação de WCAG 2.1 AA**; nenhuma
@@ -235,16 +238,17 @@ nova passa pelo `ensaio:acessibilidade`, que desde a 163 mede os TRÊS.
 
 ### A próxima etapa
 
-**PRÓXIMA — fase 179, os defeitos da análise de 30/09** (§9, primeira seção):
-(1) **anexo acima de ~75 KB dá 500 no servidor de verdade** — o corpo da requisição
-fica no padrão de 100 KB do NestJS; conserto que valha também na suíte, a recusa
-dizendo "arquivo grande demais", e anexo de TAMANHO REAL na suíte e no ensaio;
-(2) **o relógio não roda em produção** — o cron chama `tsx`, que é de
-desenvolvimento; chamar `dist/relogio.js` e pôr o relógio no `ensaio:producao`;
-(3) o **envio por SMTP**, provado contra servidor de captura. Depois: o aviso de
-meia hora antes do fim do plantão, o endurecimento para internet (proxy, HTTPS,
-cabeçalhos, `trust proxy`, CORS fechado) e a fila do aparelho cifrada, se o DPO
-pedir.
+**FEITO — fase 179, os defeitos da análise de 30/09** (§2, linha 179, e §9, primeira
+seção): o anexo de tamanho real, o relógio compilado, o SMTP provado, a porta para a
+internet (§12.9) e o histórico da correção de visita. **Não sobra defeito de código
+conhecido.** O que a análise listou e depende de alguém: a fila do aparelho cifrada
+(DPO), o Drive de verdade (decisão), os marcadores de fralda e mamadeira (a casa), e
+o **aviso de meia hora antes do fim do plantão** (pedido de 09/09), que é o próximo
+código possível: pede o relógio rodando ao longo do dia (uma linha de cron a mais,
+decisão de implantação) e a lista de quem recebe.
+
+**PRÓXIMA ETAPA:** aplicar o roteiro com a equipe e a implantação do §12 (onde roda,
+endereço, certificado, SMTP, conta do relógio). Se vier código, o aviso de meia hora.
 
 **0. FEITO — o "PROMPT MESTRE" de 25/09** (auditoria total, simulação e
 expansão). **O fechamento está em `docs/historico/relatorio-final-da-auditoria-25-09.md`**:
@@ -481,6 +485,12 @@ novo.
   dois relatórios imprimiam *Invalid Date* em toda linha. O `DatabaseService`
   hoje devolve `AAAA-MM-DD`. **Relatório se lê baixado, como quem recebe** — foi
   a leitura do Word que achou, não o teste de quem gera.
+- **O dado de teste do tamanho de um pixel esconde o limite** (179). Toda suíte e a
+  simulação de um ano anexavam imagem mínima, e nenhuma foto de celular entrava no
+  servidor de verdade: o corpo estava no padrão de 100 KB. **Anexo se testa do tamanho
+  que ele tem na vida**, e o limite que o framework põe sem ninguém escrever também é
+  regra do sistema. E a promessa da tela (*"o horário anterior fica no histórico"*) se
+  confere lendo o histórico de volta: a varredura achou a coluna, a promessa achou a tabela.
 - **Frase de tela que envelhece é frase que mente**, e a cobrança do ensaio que a
   guarda tem de ser reescrita junto. A ressalva do painel sobre nota escolar já foi
   reescrita três vezes. **Isto inclui este arquivo.**

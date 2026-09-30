@@ -18,7 +18,7 @@
 > depois das 21h em Porto Alegre semeava o dia seguinte — o dia de hoje nascia
 > sem dose nenhuma. **Nada no sistema; tudo no dado de partida.**
 
-- **178 fases.** 123 suítes e 1139 testes, verdes em duas condições de relógio —
+- **179 fases.** 126 suítes e 1154 testes, verdes em duas condições de relógio —
   antes e depois da virada do UTC, que em Porto Alegre é às 21h.
 - **O pedido de 25/09 está fechado** (fase 166). Uma simulação de dois dias e
   do dia de hoje na Casa 03 conferiu os relatórios contra os fatos, e achou

@@ -108,6 +108,17 @@ cobrar "o compilado responde sem cache e sem moldura" \
 cobrar "e não abre CORS para origem de fora" \
   bash -c "! grep -qi '^access-control-allow-origin' /tmp/ensaio-cabecalhos.txt"
 
+# O corpo de tamanho real (fase 179): com o padrão de 100 KB, toda foto de
+# celular dava 500. Um corpo de 1 MB tem de PASSAR do leitor (e ser recusado
+# pela entrada, por não ser conta); um de 30 MB volta 413, em português.
+node -e 'process.stdout.write(JSON.stringify({email:"x@x.dev",password:"x",lixo:"a".repeat(1048576)}))' > /tmp/ensaio-corpo-1mb.json
+node -e 'process.stdout.write(JSON.stringify({email:"x@x.dev",password:"x",lixo:"a".repeat(31457280)}))' > /tmp/ensaio-corpo-30mb.json
+cobrar "o corpo de 1 MB chega ao serviço" \
+  bash -c "c=\$(curl -s -o /dev/null -w '%{http_code}' -H 'Content-Type: application/json' --data-binary @/tmp/ensaio-corpo-1mb.json http://127.0.0.1:$PORTA/api/v1/auth/login); [ \"\$c\" = 401 ]"
+cobrar "e o de 30 MB volta 413, dizendo que é grande demais" \
+  bash -c "curl -s -H 'Content-Type: application/json' --data-binary @/tmp/ensaio-corpo-30mb.json http://127.0.0.1:$PORTA/api/v1/auth/login | grep -q 'grande demais'"
+rm -f /tmp/ensaio-corpo-1mb.json /tmp/ensaio-corpo-30mb.json
+
 echo
 echo "→ o relógio do dia, compilado…"
 #

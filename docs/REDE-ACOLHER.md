@@ -92,12 +92,12 @@ discordavam entre si.
 | **18 partições** isoladas | pastas em `backend/src/modules/` |
 | **177 migrações** | `.sql` dentro das partições |
 | **125 tabelas** | `CREATE TABLE` nas migrações |
-| **123 suítes** | `backend/test/*.spec.ts` |
-| **1139 testes** | `it(` / `test(` nas suítes |
+| **126 suítes** | `backend/test/*.spec.ts` |
+| **1154 testes** | `it(` / `test(` nas suítes |
 | **36 telas React** | `frontend/src/screens/*.tsx` |
 | **10 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **7 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
-| protótipo com **≈1434 KB** | `prototipo/rede-acolher-prototipo.html` |
+| protótipo com **≈1466 KB** | `prototipo/rede-acolher-prototipo.html` |
 
 *A frase importa: o conferidor lê o NÚMERO colado ao substantivo. Escrever
 "Telas React … 31" numa coluna separada faz o teste passar sem conferir nada —
@@ -386,6 +386,7 @@ arqueologia.
 | 176 | **A Coordenação Geral, o cargo novo do Marcelo.** Decisão de 28/09: ela faz tudo o que a coordenação de uma casa faz, **nas oito**, e o Gestor Geral continua olhando. **Não é um código de cargo novo**, e é decisão de engenharia medida: a palavra `coordenador` decide permissão em 78 funções e 61 políticas do banco, 76 conferências do servidor e 44 da tela, e um cargo novo teria de entrar em todas (a lição da 145 é que uma cópia fica para trás). É o cargo `coordenador` com a marca **`todas_as_casas`** (1634), e quem responde de quais casas a pessoa é continua sendo **uma função só**, `app_user_house_ids`, lida por `app_house_in_scope` e `app_casas_no_alcance`: as 119 políticas da 167 passam a valer para ela sem uma linha a mais. A marca **só vale para coordenador** (`CHECK` no banco) e **só o Gestor Geral a põe ou tira** (`POST /staff/:id/coordenacao-geral`, auditado como `staff.coordenacao_geral`, sem casa). A Coordenação Geral **nasce sem casa**, por uma função própria (`app_create_coordenacao_geral`): o cadastro comum exige casa para coordenador, e inventar uma para encerrar em seguida deixaria no histórico uma passagem que não houve. A coordenação de uma casa promovida **deixa a equipe dela**, com o vínculo encerrado com data; desmarcada, não alcança casa nenhuma até receber vínculo. Por não ser da equipe de casa nenhuma, ela **não entra na escala, na passagem nem no escalonamento** de uma casa (nas oito seria uma enxurrada de avisos). Na tela: o topo diz *Coordenação Geral*, ela **abre nas Unidades** para escolher a casa, e a Equipe do gestor tem a caixa *Coordena as oito casas* no cadastro e o botão *Tornar Coordenação Geral* em quem é da coordenação. No protótipo há uma conta de demonstração própria (a do Marcelo continua sendo a da Casa 03, porque é por ela que os ensaios entram). Suíte `a-coordenacao-geral`, e o `ensaio:uso` entra pela conta dela. De passagem, um defeito da suíte que **dependia da ordem**: a do dossiê abria internação na criança mais antiga da Casa 03 e nunca encerrava, e a da chamada escolhe a última pelo nome, que é a mesma; a suíte nova mudou a ordem do Jest e a chamada reprovou. Quem abre, encerra. |
 | 177 | **As oito casas vivem um ano juntas, e o olhar da instituição.** Pedido de 28/09. O `simulacao-da-casa` ganhou `SIM_CASAS`: as oito casas vivem o mesmo ano, cada uma com a sua equipe e as suas crianças (a AI3 e a AI4 também com as da semente), com um relógio só e uma **agenda que só o faz andar quando todas as casas pediram a hora seguinte**. A instituição vive junto: o Líder Noturno Geral assina a ATA Geral toda manhã, a Coordenação Geral lê as oito e amplia o limite das casas cheias, o gestor abre o painel todo mês. **Nenhum achado** em um ano: 81.563 refeições, 9.587 doses, 5.840 ATAs das casas, 364 ATAs Gerais sem pendência, 2.392 visitas, tudo batendo casa por casa; 27 contas abriram as telas contra o servidor de verdade sem nada. A leitura mais pesada é a equipe das oito pela Coordenação Geral (89 pessoas, 582 ms); o painel abre em 135 ms e o dia das unidades entre 140 e 265 ms. O banco cresce cerca de **140 MB por ano para as oito casas**. A Coordenação Geral **não recebeu nenhum aviso no ano** (decisão da 176), e isso vira pergunta à Fundação. Relatório em `docs/historico/oito-casas-um-ano-28-09.md` |
 | 178 | **As quatro decisões de 28/09.** (1) **A Coordenação Geral recebe os avisos graves das oito casas**: um nível próprio de escalonamento, `coordenacao_geral` (1635), escolhido pela marca `todas_as_casas`, e não pelo cargo, porque a coordenação de UMA casa não deve receber o grave das outras sete. Chegam a ela a ocorrência das categorias que exigem revisão técnica, a internação aberta e a ATA Geral Noturna assinada com pendência (um aviso só, e não um por casa); o aviso não carrega o fato. (2) **O Arquivo das ATAs abre nos últimos 30 dias**, contando o próprio dia: o mês de calendário deixava o Arquivo quase vazio todo dia 1º. Dia, semana e mês continuam como opção, e a conta mora em `janelaDeConsulta`, com cópia no protótipo. (3) **A dose dada fora do horário diz as duas horas** (*Dada às 20h40, prevista para as 20h00*), sem a palavra atraso: `rotuloForaDoHorario`, no kernel, usada pelo remédio e pela Enfermagem; o código do estado no banco não muda. (4) **O PIA avisa trinta dias antes, por criança**: o relógio do dia pergunta a `app_pia_chegando` (1636), que devolve só a data e o nome, nunca o documento restrito, e grava em `pia_aviso` o que já foi avisado, para sair uma vez só. A tabela mora no `people` porque o módulo de avisos é removível e a regra de fronteira reprovou a primeira versão, que lia o escalonamento. |
+| 179 | **Os defeitos da análise de 30/09, consertados.** (1) **Nenhuma foto de celular entrava no servidor de verdade**: o corpo da requisição estava no padrão de 100 KB e o anexo vai em base64, então acima de ~75 KB tudo dava 500. O limite agora é 25 MB (o maior anexo, 15 MB, em base64 com folga), ligado pelo `AppModule` (`kernel/common/corpo-da-requisicao.ts`) para valer na suíte e no servidor que sobe, e o corpo grande demais volta **413 com frase em português**. A suíte anexa foto de meio megabyte e PDF de 12 MB (`o-anexo-de-tamanho-real`), e o `ensaio:producao` manda 1 MB e 30 MB ao compilado. *Nenhum teste pegava porque todos anexavam imagem de um pixel.* (2) **O relógio não rodaria no servidor instalado**: o cron chamava `tsx`, que é de desenvolvimento, o mesmo defeito que o ensaio achou nas migrações na fase 62. Agora é `npm run relogio:prod` (o `dist/relogio.js`), e o `ensaio:producao` roda o relógio num banco virgem como o cron o chama. (3) **O convite sai por SMTP de verdade**, quando a Fundação ligar (`EMAIL_MODO=smtp`): STARTTLS exigido por padrão, conta e senha de aplicativo, recusa 503 em português quando o servidor não responde ou falta o remetente, e o log sem o link nem a senha. Provado contra um servidor de captura dentro da suíte (`o-envio-por-smtp`): **o link que chega na caixa abre a conta**. O padrão continua sendo a caixa local. (4) **O servidor pronto para sair da rede da casa** (`kernel/common/porta-da-internet.ts`, §12.9): o CORS, que sem a variável aceitava QUALQUER origem com credencial, agora fecha por padrão; toda resposta vai sem cache, sem moldura e sem adivinhar tipo; HSTS quando chega por HTTPS; e o `TRUST_PROXY`, sem o qual atrás do proxy toda sessão guardaria o IP do proxy. Cobrado pela suíte (`a-porta-para-a-internet`, com dois servidores, o de fábrica e o implantado) e pelo ensaio de produção. (5) **A correção da visita não mostrava o que corrigia**: a tela prometia *"o horário anterior e o motivo ficam no histórico dela"*, e o histórico era gravado e nunca lido. A varredura apontou o `corrected_at` sem leitor, e atrás dele estava a tabela inteira. Agora o perfil da criança mostra o que constava, quem corrigiu, quando e por quê, lido por OUTRO cargo no teste. De passagem: a foto 3×4 no portão ganhou teste (era a única rota que o medidor, consertado, ainda apontava), o `rotas-sem-teste.mjs` lê as chamadas por auxiliar, e a varredura declara os dois carimbos de criação com outro nome. *O que a análise listou e NÃO é defeito continua esperando alguém: a fila do aparelho cifrada (DPO), o Drive de verdade (decisão), os marcadores de fralda e mamadeira (a casa confirmar) e o aviso de meia hora antes do fim do plantão (pedido de 09/09, que pede o relógio rodando ao longo do dia).* |
 
 ---
 
@@ -498,7 +499,7 @@ rede-acolher/
 │   │   │   ├── documentos/     o contrato da folha e o gerador de .docx
 │   │   │   └── common/         CPF, criptografia, segredo, fuso da instituição
 │   │   └── modules/       18 partições, cada uma dona das próprias migrações
-│   ├── test/              123 suítes (e2e contra PostgreSQL real + estáticas)
+│   ├── test/              126 suítes (e2e contra PostgreSQL real + estáticas)
 │   ├── scripts/           ensaio-carga.ts, migrador compilado
 │   └── assets/timbre.png  a marca da Fundação, usada no documento em Word
 ├── frontend/
@@ -1773,9 +1774,9 @@ O que o documento dizia foi conferido contra o código, e o código achou o que 
 documento não sabia. Os três primeiros itens são DEFEITO, medido, e contrariam
 a frase do Grupo 1 logo abaixo: ela vale para as telas, não para a implantação.*
 
-**Defeitos que só o sistema de verdade mostra (código, e são meus):**
+**Defeitos que só o sistema de verdade mostra (código, e eram meus). ✅ OS TRÊS CONSERTADOS NA FASE 179** (§2, linha 179):
 
-1. **Anexo acima de ~75 KB falha no servidor de verdade.** O servidor não
+1. ~~**Anexo acima de ~75 KB falha no servidor de verdade.**~~ ✅ **179**: limite de 25 MB no módulo, 413 em português, anexo de tamanho real na suíte e no ensaio de produção. O servidor não
    configura o tamanho do corpo da requisição, e o padrão do NestJS é 100 KB; o
    anexo vai em base64 (um terço maior). Medido pela rota do dossiê: **50 KB
    passa, 90 KB, 150 KB, 500 KB e 3 MB devolvem 500**, com a frase de falha
@@ -1785,12 +1786,12 @@ a frase do Grupo 1 logo abaixo: ela vale para as telas, não para a implantaçã
    o ensaio contra o servidor abre telas mas não envia formulário. O conserto
    precisa valer também para a suíte (a lição da 155), e vir com anexo de
    tamanho real na suíte e no ensaio.
-2. **O relógio não roda numa instalação de produção.** O `relogio.crontab`
+2. ~~**O relógio não roda numa instalação de produção.**~~ ✅ **179**: o cron chama `relogio:prod`, e o ensaio de produção o roda. O `relogio.crontab`
    chama `npm run relogio`, que é `tsx src/relogio.ts`, e o `tsx` é dependência
    de desenvolvimento: é o mesmo defeito que o `ensaio:producao` achou nas
    migrações, e ele não confere o relógio. O `dist/relogio.js` compilado existe;
    é ele que o cron deve chamar, e o ensaio deve rodá-lo.
-3. **O e-mail real não existe.** `MailGateway` só grava em arquivo (`EMAIL_MODO`
+3. ~~**O e-mail real não existe.**~~ ✅ **179**: `EMAIL_MODO=smtp`, provado contra servidor de captura; ligar é decisão da implantação (§12.8). `MailGateway` só grava em arquivo (`EMAIL_MODO`
    conhece `arquivo` e `falha`). O envio por SMTP é código pequeno, que pode ser
    escrito e provado contra um servidor de captura antes dos dados do provedor.
 
@@ -1800,7 +1801,7 @@ a frase do Grupo 1 logo abaixo: ela vale para as telas, não para a implantaçã
   inclusive evolução de saúde e passagem (`fila-offline.ts`); o comentário do
   `vite.config.ts` prometia fila cifrada. Com o sistema no celular de cada
   pessoa, isto é pergunta ao DPO, junto de uma política de uso do celular pessoal.
-- **Nada no repositório serve o aplicativo na internet:** não há configuração
+- ✅ **Feito na 179, o lado do serviço** (§12.9): cabeçalhos, CORS fechado, `TRUST_PROXY` e o exemplo de proxy. O que sobra é da implantação (endereço, certificado, onde roda). *Era assim:* **Nada no repositório serve o aplicativo na internet:** não há configuração
   de proxy reverso (o aplicativo chama `/api/v1` no mesmo endereço), HTTPS,
   cabeçalhos de segurança, nem `trust proxy` (o IP das entradas sairia como o do
   proxy). O `CORS_ORIGIN` vazio aceita qualquer origem.
@@ -1813,14 +1814,17 @@ a frase do Grupo 1 logo abaixo: ela vale para as telas, não para a implantaçã
 - **Os marcadores de fralda, mamadeira e chupeta** na chamada (§10.5) nunca
   foram construídos; falta a casa confirmar que os quer.
 
-**O que foi conferido e está de pé em 30/09:** a suíte (1139 testes), nenhuma
+**O que foi conferido e está de pé em 30/09:** a suíte (na análise, 1139; 1154 depois da 179), nenhuma
 tabela sem teste, nenhuma rota sem teste de verdade (as seis que o
 `rotas-sem-teste.mjs` aponta são chamadas por auxiliar sem o prefixo, e o
 medidor não as reconhece), o contrato de rotas entre tela e servidor, o sistema
 compilado subindo num banco virgem, a restauração do backup, e o aplicativo de
-verdade compilando (874 KB, 221 KB comprimido). A varredura de pontas aponta três
-colunas de horário gravadas e nunca lidas (`pia_aviso.avisado_em`,
-`shift_draft_item.added_at`, `visit_correction.corrected_at`), a declarar.
+verdade compilando (874 KB, 221 KB comprimido). A varredura de pontas apontava três
+colunas de horário gravadas e nunca lidas; na 179, duas eram carimbo de criação
+(declaradas no script) e a terceira, `visit_correction.corrected_at`, era o
+histórico da correção de visita que a tela prometia e não mostrava: consertado.
+O medidor de rotas também foi consertado, e a única rota que ele ainda apontava
+(a foto 3×4 no portão) ganhou teste.
 
 **O resto do que falta não é código:** as decisões do §10 e da reunião, o §11,
 a implantação do §12 (onde roda, SMTP, Drive, chave do cofre, conta do relógio)

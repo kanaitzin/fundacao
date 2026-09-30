@@ -2685,6 +2685,16 @@ await pg.waitForTimeout(900);
 cobrar('a entrada por exceção fica registrada', /registrada como EXCEÇÃO/.test(await conteudo()));
 cobrar('e ainda gera a folha em papel', /Ver a folha da portaria/.test(await conteudo()));
 
+/* A CORREÇÃO MOSTRA O QUE CORRIGIU (fase 179). A folha promete que "o horário
+   anterior e o motivo ficam no histórico", e até a 179 o histórico não
+   aparecia em lugar nenhum. Corrige aqui, e o perfil tem de mostrar. */
+cobrar('a coordenação corrige o horário de quem está dentro', await clicar(/^Corrigir o horário$/));
+const folhaCorr = pg.locator('.overlay .sheet');
+await folhaCorr.locator('#corr-mot').fill('A saída não foi registrada no portão; confirmado com a educadora.');
+await folhaCorr.getByRole('button', { name: /^Corrigir$/ }).click();
+await pg.waitForTimeout(700);
+cobrar('e a correção diz que o anterior fica no histórico', /ficam no histórico/.test(await conteudo()));
+
 cobrar('o perfil da criança abre', await aba('Acolhidos'));
 await clicar(/^Alice/);
 await pg.waitForTimeout(900);
@@ -2693,6 +2703,9 @@ cobrar('o perfil tem as visitas dela', /visitas/i.test(perfilVisitas) && /visita
   perfilVisitas.slice(0, 300));
 cobrar('os visitantes vêm por nome, com o número ao lado', /Quem visitou, por nome/i.test(perfilVisitas));
 cobrar('e a frase de que número não é avaliação da família', /não é avaliação da família/.test(perfilVisitas));
+cobrar('o histórico da correção aparece: o que constava, quem e por quê',
+  /Corrigida em .* por .*Constava:/.test(perfilVisitas)
+  && /Motivo: A saída não foi registrada no portão/.test(perfilVisitas), perfilVisitas.slice(0, 600));
 cobrar('nenhuma exceção no portão', erros.length === 0, erros[0]);
 
 // ====================================================== O armário (fase 161)
