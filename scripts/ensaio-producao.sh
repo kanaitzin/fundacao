@@ -99,6 +99,15 @@ cobrar "nenhum erro no arranque" \
 cobrar "o arranque confere a conexão e diz qual papel usou" \
   grep -q "conexão de aplicação conferida" /tmp/ensaio-prod.log
 
+# A porta para a internet (fase 179), no binário compilado: o que a suíte
+# cobra no módulo tem de estar no servidor que sobe.
+curl -s -D /tmp/ensaio-cabecalhos.txt -o /dev/null -H "Origin: https://pagina-qualquer.example" \
+  "http://127.0.0.1:$PORTA/api/v1/health" || true
+cobrar "o compilado responde sem cache e sem moldura" \
+  bash -c "grep -qi '^cache-control: no-store' /tmp/ensaio-cabecalhos.txt && grep -qi '^x-frame-options: DENY' /tmp/ensaio-cabecalhos.txt"
+cobrar "e não abre CORS para origem de fora" \
+  bash -c "! grep -qi '^access-control-allow-origin' /tmp/ensaio-cabecalhos.txt"
+
 echo
 echo "→ o relógio do dia, compilado…"
 #

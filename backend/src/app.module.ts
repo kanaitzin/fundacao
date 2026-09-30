@@ -1,10 +1,14 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule, OnApplicationBootstrap } from '@nestjs/common';
+import { HttpAdapterHost } from '@nestjs/core';
 /* O limite do corpo (fase 179): o anexo em base64 passa dos 100 KB do padrão.
    Importado AQUI para valer no servidor que sobe e na suíte, que monta por aqui. */
 import './kernel/common/corpo-da-requisicao';
 import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 import { FalhasEmPortugues } from './kernel/common/falhas-em-portugues';
 import { CasaDaConsulta } from './kernel/common/casa-da-consulta.interceptor';
+import {
+  cabecalhosDeSeguranca, confiancaNoProxy, corsDaInstituicao,
+} from './kernel/common/porta-da-internet';
 import { ConfigModule } from '@nestjs/config';
 
 // ---------- Kernel: infraestrutura compartilhada, não domínio ----------
@@ -75,4 +79,18 @@ import { ArchiveModule } from './modules/archive';
     { provide: APP_INTERCEPTOR, useClass: CasaDaConsulta },
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule, OnApplicationBootstrap {
+  constructor(private readonly adaptador: HttpAdapterHost) {}
+
+  /* A porta para a internet (fase 179): cabeçalhos e CORS no módulo, e não no
+     `main.ts`, para a suíte passar por eles também. */
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(corsDaInstituicao(), cabecalhosDeSeguranca).forRoutes('*');
+  }
+
+  onApplicationBootstrap() {
+    const proxy = confiancaNoProxy();
+    const express = this.adaptador.httpAdapter?.getInstance?.();
+    if (proxy !== undefined && typeof express?.set === 'function') express.set('trust proxy', proxy);
+  }
+}

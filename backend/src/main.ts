@@ -5,8 +5,10 @@ import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  app.enableCors({ origin: process.env.CORS_ORIGIN?.split(',') ?? true, credentials: true });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
+  /* O CORS, os cabeçalhos de segurança e o `trust proxy` moram no AppModule
+     desde a fase 179 (`kernel/common/porta-da-internet.ts`): antes o CORS
+     ficava aqui, aberto a qualquer origem quando faltava a variável. */
   /* A última linha entre uma falha do banco e a educadora às onze da noite — o
      `FalhasEmPortugues` — mora no AppModule, para a suíte passar por ela também. */
   app.setGlobalPrefix('api/v1');

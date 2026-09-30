@@ -2999,6 +2999,48 @@ de verdade, para uma pessoa, com ela ao lado.
 convites disparados por engano derrubam as sessões de quarenta pessoas e
 embaralham as senhas de todas — no meio de um turno.
 
+### 12.9 A porta para a internet
+
+A tela e a API saem pelo **mesmo endereço**, atrás de um proxy que fala HTTPS: o
+PWA (`frontend/dist`) como arquivo estático, e `/api/` repassado ao serviço, que
+escuta só na própria máquina. Desde a fase 179 o serviço, por conta própria:
+
+- responde a toda requisição com `Cache-Control: no-store` (o dossiê não sobra no
+  cache do computador da sala), `X-Frame-Options: DENY`, `nosniff`,
+  `Referrer-Policy: no-referrer` e uma CSP fechada, e sem `X-Powered-By`;
+- manda HSTS quando o pedido chegou por HTTPS;
+- recusa CORS de qualquer origem que não esteja em `CORS_ORIGIN` (vazio, o
+  padrão, é nenhuma: a tela está no mesmo endereço e não precisa);
+- aceita corpo de até 25 MB, o maior anexo (15 MB) em base64 com folga;
+- confia no `X-Forwarded-For` só com `TRUST_PROXY` (atrás de um proxy só, `1`).
+
+O que é do proxy: o certificado, o redirecionamento de HTTP para HTTPS, e **o
+mesmo limite de corpo** (sem ele o proxy recusa a foto antes de o serviço ver).
+O exemplo, com Caddy, que busca e renova o certificado sozinho:
+
+```
+rede.paodospobres.com.br {
+    request_body {
+        max_size 30MB
+    }
+    handle /api/* {
+        reverse_proxy 127.0.0.1:3000
+    }
+    handle {
+        root * /opt/rede-acolher/frontend/dist
+        try_files {path} /index.html
+        file_server
+    }
+}
+```
+
+Com nginx, o equivalente pede `client_max_body_size 30m;`, o
+`proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;` e o
+`proxy_set_header X-Forwarded-Proto $scheme;`. **O `PORT` do serviço não se abre no
+firewall**: quem chega de fora chega pelo proxy. A suíte que cobra o lado do
+serviço é a `a-porta-para-a-internet.e2e.spec.ts`; a escolha do endereço, do
+certificado e de onde roda é do §12.8, pergunta 4.
+
 ---
 
 ## 13. O PILOTO DA CASA 03
