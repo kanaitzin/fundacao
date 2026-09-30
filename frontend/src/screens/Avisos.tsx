@@ -42,6 +42,9 @@ const ONDE: Record<string, string> = {
   archive: 'Arquivo documental', activity: 'O dia da casa',
   followup: 'Acompanhamentos', transfer: 'Transferências',
   health_evolution: 'Saúde',
+  /* O fim do plantão (fase 180) e o PIA (178) mostravam o nome cru da tabela. */
+  shift: 'Passagem de plantão', shift_fim_aviso: 'Passagem de plantão',
+  pia: 'Dossiê da criança',
 };
 
 const quando = (iso: string) => new Date(iso).toLocaleString('pt-BR',

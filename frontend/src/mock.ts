@@ -751,6 +751,12 @@ const AVISOS = [
     texto: 'O próximo PIA de Alice está previsto para daqui a dezoito dias. O plano está no dossiê da criança, na parte restrita.',
     prioridade: 'normal', entidade: 'pia', entidadeId: 'pia1',
     lida: false, ciente: false, em: emHoras(5, 0) },
+  /* A meia hora antes do fim do plantão (fase 180, decisão de 30/09): quem não
+     assinou recebe o próprio aviso, e o líder do turno um só, com os nomes. */
+  { id: 'n7', titulo: 'Passagens ainda não assinadas na AI3',
+    texto: 'O plantão diurno da Casa 03 (piloto) termina às 20:00. Ainda não assinaram a passagem: Mário Silva (fictício).',
+    prioridade: 'normal', entidade: 'shift_fim_aviso', entidadeId: 'fim1',
+    lida: false, ciente: false, em: emHoras(19, 30) },
 ];
 
 /**

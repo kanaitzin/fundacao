@@ -906,13 +906,13 @@ criança, e log não copia conteúdo sensível (§5). A auditoria guarda o ato �
 coordenação, Líder Diurno). Mais ninguém: a lista de quem pediu para ler o quê é,
 ela mesma, informação sobre o caso.
 
-## Inventário — 125 tabelas por partição
+## Inventário — 126 tabelas por partição
 
 | Partição | Tabelas |
 |---|---|
 | identity (17) | institution, house, app_user, user_house_assignment, work_schedule, shift_assignment, user_session, login_attempt, audit_event, institutional_device, staff_role_grant, house_capacity_change, user_invite, house_shift_hours, app_user_role_period, shift_draft, shift_draft_item |
 | people (30) | person, care_episode, house_stay, profile_detail, health_condition, food_restriction, document, document_version, benefit_record, memory_record, memory_photo, transfer_request, transfer_message, admission_record, judicial_record, person_credential, person_correction, profile_detail_change, person_contact, family_stay, family_stay_note, outing_permission, kitchen_request, house_field_permission, birthday_ack, contact_visit_change, visit, visit_correction, kitchen_request_change, pia_aviso |
-| shifts (13) | shift, handover, handover_receipt, handover_note, ata, ata_note, ata_addendum, ata_episode, ata_episode_ack, general_night_ata, general_night_house_entry, general_night_house_amendment, ata_read_request |
+| shifts (14) | shift, handover, handover_receipt, handover_note, ata, ata_note, ata_addendum, ata_episode, ata_episode_ack, general_night_ata, general_night_house_entry, general_night_house_amendment, ata_read_request, shift_fim_aviso |
 | incidents (7) | incident, incident_person, incident_protected, incident_restraint, incident_synthesis, external_communication, incident_attachment |
 | medications (13) | prescription, medication_schedule, medication_administration, medication_stock, medication_stock_movement, medication_protocol, medication_authorization, medication_protocol_change, prescription_restriction_change, medication_purchase, medication_purchase_item, prescription_document, family_stay_medication |
 | activities (7) | activity, activity_assignment, activity_acknowledgement, activity_execution, substitution_request, commitment, commitment_exception |
@@ -939,6 +939,16 @@ Quem lê é `app_user_cargo_em(pessoa, instante)`: a linha da ATA, o pedido de
 leitura, a escala, o trabalho da equipe e o relatório da internação mostram o
 cargo de QUANDO o registro foi feito. RLS ligado e nenhuma política: só as
 funções leem.
+
+### `shift_fim_aviso` — a meia hora antes do fim do plantão (fase 180, shifts/1637)
+A MARCA DE QUE O TURNO JÁ FOI AVISADO: `id` (a chave do aviso ao líder),
+`house_id`, `on_date`, `period` e `avisado_em`, com a chave primária em
+casa, dia e período. **Não guarda quem foi avisado, de propósito** (§10.5: o aviso
+é do turno corrente e não acumula por pessoa). Quem escreve e lê é
+`app_plantao_terminando(casa, minutos, instante)`, que o `fim-do-plantao` chama
+de dez em dez minutos: na primeira passada dentro da meia hora final ela põe a
+marca e devolve quem da escala (educador e Líder Diurno) ainda não assinou a
+passagem; nas seguintes, nada. RLS ligado e nenhuma política.
 
 ### `shift_draft` e `shift_draft_item` — o mês como rascunho
 REPETIR A ESCALA DO MÊS ANTERIOR (fase 165, identity/1621). `shift_draft`: a

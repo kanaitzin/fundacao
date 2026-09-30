@@ -145,6 +145,13 @@ cobrar "o relógio compilado roda o dia e sai com código 0" \
     npm run --silent relogio:prod > /tmp/ensaio-relogio.log 2>&1"
 cobrar "e diz que dia gerou, em quantas casas" \
   grep -qE "relógio · [0-9]{4}-[0-9]{2}-[0-9]{2} · 1 casa" /tmp/ensaio-relogio.log
+cobrar "o aviso do fim do plantão roda compilado, como o cron o chama" \
+  bash -c "cd '$RAIZ/backend' && grep -qE '^[^#].*fim-do-plantao:prod' '$RAIZ/scripts/relogio.crontab' \
+    && DATABASE_URL='$ALVO' \
+    DATABASE_APP_URL='${ALVO/rede_admin:dev-only-change-me/rede_app:dev-only-change-me-app}' \
+    RELOGIO_USER_EMAIL=relogio@ensaio.dev \
+    npm run --silent fim-do-plantao:prod > /tmp/ensaio-fim-do-plantao.log 2>&1 \
+    && grep -q 'fim do plantão · 1 casa' /tmp/ensaio-fim-do-plantao.log"
 
 echo
 echo "→ e recusa subir com a conexão errada…"

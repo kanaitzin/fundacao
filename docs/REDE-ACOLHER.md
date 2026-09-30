@@ -20,7 +20,7 @@ começava escolhendo em qual acreditar.*
 
 | Arquivo | Por que sobreviveu |
 |---|---|
-| `der.md` | as 125 tabelas com o que cada coluna guarda. É referência de dado, não narrativa, e o `documentacao.spec.ts` cobra que toda tabela apareça lá |
+| `der.md` | as 126 tabelas com o que cada coluna guarda. É referência de dado, não narrativa, e o `documentacao.spec.ts` cobra que toda tabela apareça lá |
 | `roteiro-marcelo.md` (+ `.docx`) | é entregue à Casa 03, escrito para quem não conhece o sistema. O `.docx` é GERADO do `.md` por `scripts/roteiro-em-word.mjs` — não editar o Word à mão |
 
 ---
@@ -90,10 +90,10 @@ discordavam entre si.
 | Quanto | De onde sai |
 |---|---|
 | **18 partições** isoladas | pastas em `backend/src/modules/` |
-| **177 migrações** | `.sql` dentro das partições |
-| **125 tabelas** | `CREATE TABLE` nas migrações |
-| **126 suítes** | `backend/test/*.spec.ts` |
-| **1154 testes** | `it(` / `test(` nas suítes |
+| **178 migrações** | `.sql` dentro das partições |
+| **126 tabelas** | `CREATE TABLE` nas migrações |
+| **127 suítes** | `backend/test/*.spec.ts` |
+| **1161 testes** | `it(` / `test(` nas suítes |
 | **36 telas React** | `frontend/src/screens/*.tsx` |
 | **10 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **7 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
@@ -387,6 +387,7 @@ arqueologia.
 | 177 | **As oito casas vivem um ano juntas, e o olhar da instituição.** Pedido de 28/09. O `simulacao-da-casa` ganhou `SIM_CASAS`: as oito casas vivem o mesmo ano, cada uma com a sua equipe e as suas crianças (a AI3 e a AI4 também com as da semente), com um relógio só e uma **agenda que só o faz andar quando todas as casas pediram a hora seguinte**. A instituição vive junto: o Líder Noturno Geral assina a ATA Geral toda manhã, a Coordenação Geral lê as oito e amplia o limite das casas cheias, o gestor abre o painel todo mês. **Nenhum achado** em um ano: 81.563 refeições, 9.587 doses, 5.840 ATAs das casas, 364 ATAs Gerais sem pendência, 2.392 visitas, tudo batendo casa por casa; 27 contas abriram as telas contra o servidor de verdade sem nada. A leitura mais pesada é a equipe das oito pela Coordenação Geral (89 pessoas, 582 ms); o painel abre em 135 ms e o dia das unidades entre 140 e 265 ms. O banco cresce cerca de **140 MB por ano para as oito casas**. A Coordenação Geral **não recebeu nenhum aviso no ano** (decisão da 176), e isso vira pergunta à Fundação. Relatório em `docs/historico/oito-casas-um-ano-28-09.md` |
 | 178 | **As quatro decisões de 28/09.** (1) **A Coordenação Geral recebe os avisos graves das oito casas**: um nível próprio de escalonamento, `coordenacao_geral` (1635), escolhido pela marca `todas_as_casas`, e não pelo cargo, porque a coordenação de UMA casa não deve receber o grave das outras sete. Chegam a ela a ocorrência das categorias que exigem revisão técnica, a internação aberta e a ATA Geral Noturna assinada com pendência (um aviso só, e não um por casa); o aviso não carrega o fato. (2) **O Arquivo das ATAs abre nos últimos 30 dias**, contando o próprio dia: o mês de calendário deixava o Arquivo quase vazio todo dia 1º. Dia, semana e mês continuam como opção, e a conta mora em `janelaDeConsulta`, com cópia no protótipo. (3) **A dose dada fora do horário diz as duas horas** (*Dada às 20h40, prevista para as 20h00*), sem a palavra atraso: `rotuloForaDoHorario`, no kernel, usada pelo remédio e pela Enfermagem; o código do estado no banco não muda. (4) **O PIA avisa trinta dias antes, por criança**: o relógio do dia pergunta a `app_pia_chegando` (1636), que devolve só a data e o nome, nunca o documento restrito, e grava em `pia_aviso` o que já foi avisado, para sair uma vez só. A tabela mora no `people` porque o módulo de avisos é removível e a regra de fronteira reprovou a primeira versão, que lia o escalonamento. |
 | 179 | **Os defeitos da análise de 30/09, consertados.** (1) **Nenhuma foto de celular entrava no servidor de verdade**: o corpo da requisição estava no padrão de 100 KB e o anexo vai em base64, então acima de ~75 KB tudo dava 500. O limite agora é 25 MB (o maior anexo, 15 MB, em base64 com folga), ligado pelo `AppModule` (`kernel/common/corpo-da-requisicao.ts`) para valer na suíte e no servidor que sobe, e o corpo grande demais volta **413 com frase em português**. A suíte anexa foto de meio megabyte e PDF de 12 MB (`o-anexo-de-tamanho-real`), e o `ensaio:producao` manda 1 MB e 30 MB ao compilado. *Nenhum teste pegava porque todos anexavam imagem de um pixel.* (2) **O relógio não rodaria no servidor instalado**: o cron chamava `tsx`, que é de desenvolvimento, o mesmo defeito que o ensaio achou nas migrações na fase 62. Agora é `npm run relogio:prod` (o `dist/relogio.js`), e o `ensaio:producao` roda o relógio num banco virgem como o cron o chama. (3) **O convite sai por SMTP de verdade**, quando a Fundação ligar (`EMAIL_MODO=smtp`): STARTTLS exigido por padrão, conta e senha de aplicativo, recusa 503 em português quando o servidor não responde ou falta o remetente, e o log sem o link nem a senha. Provado contra um servidor de captura dentro da suíte (`o-envio-por-smtp`): **o link que chega na caixa abre a conta**. O padrão continua sendo a caixa local. (4) **O servidor pronto para sair da rede da casa** (`kernel/common/porta-da-internet.ts`, §12.9): o CORS, que sem a variável aceitava QUALQUER origem com credencial, agora fecha por padrão; toda resposta vai sem cache, sem moldura e sem adivinhar tipo; HSTS quando chega por HTTPS; e o `TRUST_PROXY`, sem o qual atrás do proxy toda sessão guardaria o IP do proxy. Cobrado pela suíte (`a-porta-para-a-internet`, com dois servidores, o de fábrica e o implantado) e pelo ensaio de produção. (5) **A correção da visita não mostrava o que corrigia**: a tela prometia *"o horário anterior e o motivo ficam no histórico dela"*, e o histórico era gravado e nunca lido. A varredura apontou o `corrected_at` sem leitor, e atrás dele estava a tabela inteira. Agora o perfil da criança mostra o que constava, quem corrigiu, quando e por quê, lido por OUTRO cargo no teste. De passagem: a foto 3×4 no portão ganhou teste (era a única rota que o medidor, consertado, ainda apontava), o `rotas-sem-teste.mjs` lê as chamadas por auxiliar, e a varredura declara os dois carimbos de criação com outro nome. *O que a análise listou e NÃO é defeito continua esperando alguém: a fila do aparelho cifrada (DPO), o Drive de verdade (decisão), os marcadores de fralda e mamadeira (a casa confirmar) e o aviso de meia hora antes do fim do plantão (pedido de 09/09, que pede o relógio rodando ao longo do dia).* |
+| 180 | **A meia hora antes do fim do plantão** (pedido de 09/09, decidido em 30/09: *a pessoa e o líder*). De dez em dez minutos o `fim-do-plantao` (compilado, com a conta do relógio, e com a sua linha no `relogio.crontab`) pergunta a cada casa se o turno corrente está na meia hora final. Na primeira passada dentro dela, `app_plantao_terminando` (shifts/1637) põe a marca do TURNO em `shift_fim_aviso` e devolve quem a escala diz que devia assinar (educador e Líder Diurno) e ainda não assinou a passagem. Cada um recebe **o próprio aviso**, e o líder do turno recebe **um só, com os nomes**: o Líder Diurno no diurno, o Líder Noturno Geral no noturno. **Uma vez por turno, e sem guardar quem foi avisado** (a regra do §10.5, de 09/09: o aviso é do turno corrente e não acumula por pessoa; a auditoria conta quantos faltavam, nunca quem). Sem escala lançada, ninguém é cobrado. O instante é parâmetro da função, e a suíte (`a-meia-hora-antes-do-fim`) pergunta num dia sorteado no futuro, sem depender do relógio de hoje nem da rodada anterior; o ensaio de produção roda o compilado como o cron o chama, e o sino do protótipo mostra o aviso do líder. *De passagem: o sino dizia "Continua em: pia" no aviso do PIA da fase 178, o nome cru da tabela; agora diz Dossiê da criança.* |
 
 ---
 
@@ -434,7 +435,7 @@ cd frontend && npm run prototipo
 ```
 
 O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as
-177 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
+178 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
 
 ### Os ensaios — e por que cada um existe
 
@@ -499,7 +500,7 @@ rede-acolher/
 │   │   │   ├── documentos/     o contrato da folha e o gerador de .docx
 │   │   │   └── common/         CPF, criptografia, segredo, fuso da instituição
 │   │   └── modules/       18 partições, cada uma dona das próprias migrações
-│   ├── test/              126 suítes (e2e contra PostgreSQL real + estáticas)
+│   ├── test/              127 suítes (e2e contra PostgreSQL real + estáticas)
 │   ├── scripts/           ensaio-carga.ts, migrador compilado
 │   └── assets/timbre.png  a marca da Fundação, usada no documento em Word
 ├── frontend/
@@ -1808,7 +1809,7 @@ a frase do Grupo 1 logo abaixo: ela vale para as telas, não para a implantaçã
 - **O Drive é uma pasta local** (`DriveGateway`); a integração com o Google
   Shared Drive não existe. Para o piloto pode bastar a pasta com backup; é
   decisão, e o critério *"o documento chega ao Drive"* do §13.5 depende dela.
-- **O aviso de meia hora antes do fim do plantão** (pedido de 09/09, §10.5)
+- ✅ **Feito na 180** (§2, linha 180). **O aviso de meia hora antes do fim do plantão** (pedido de 09/09, §10.5)
   estava travado pela escala, e a escala existe desde a 123: pode ser feito, e
   pede um relógio que rode ao longo do dia, não só às 5h.
 - **Os marcadores de fralda, mamadeira e chupeta** na chamada (§10.5) nunca
@@ -2689,7 +2690,7 @@ fase 88 só apareceu no protótipo na 89 (§6.14).*
 
 | # | O que falta saber | Por que trava |
 |---|---|---|
-| 1 | **A escala 12x36 vigente da Casa 03** | Sem ela o sistema não sabe quando o plantão termina nem quem está nele — e o **aviso de meia hora antes do fim do plantão** (quem não preencheu a ATA) depende disso. *Detalhe: o "horário de Brasília" que ele pediu já é o que o sistema usa; Porto Alegre é o mesmo fuso* |
+| 1 | **A escala 12x36 vigente da Casa 03** | Sem ela o sistema não sabe quando o plantão termina nem quem está nele — e o **aviso de meia hora antes do fim do plantão** (quem não preencheu a ATA) depende disso. **O aviso existe desde a fase 180** (a pessoa e o líder, decisão de 30/09): sem a escala lançada, ele não cobra ninguém. *Detalhe: o "horário de Brasília" que ele pediu já é o que o sistema usa; Porto Alegre é o mesmo fuso* |
 | 2 | **O lembrete de prazo: vencendo o quê, e com quantos dias?** | Atividade, documento, PIA, receita? A antecedência muda o desenho |
 | 3 | **O pente-fino: em que dia da semana?** | Ele o quer semanal; falta o dia |
 
@@ -2823,7 +2824,7 @@ ele continua dizendo que o arquivo existe.
 npm run ensaio:producao
 ```
 
-Constrói, cria um banco virgem, aplica as 177 migrações **pelo binário
+Constrói, cria um banco virgem, aplica as 178 migrações **pelo binário
 compilado**, sobe o serviço e confere `/health`. Não publica nada e não toca no
 banco de trabalho.
 
@@ -2954,6 +2955,11 @@ consegue executar já está dentro.
 | 1 | **Qual conta é a do relógio** (`RELOGIO_USER_EMAIL`) | Tudo o que ele gera fica na auditoria com esse nome. **Não deve ser a conta de uma pessoa:** quem ler seis meses depois precisa distinguir "o sistema gerou" de "a enfermeira gerou". O sugerido é uma conta de serviço, com alcance nas oito casas |
 | 2 | **Que horas** | O exemplo em `scripts/relogio.crontab` usa 05h00, com o motivo escrito: a virada do dia é o pior horário — equipe da noite trabalhando, backup rodando, ninguém acordado para ver um erro. Às 5h o plantão noturno ainda percebe se algo não veio |
 | 3 | **Quem olha quando falha** | O comando sai com código 1 e o cron manda e-mail, se estiver configurado. Sem alguém para ler, o dia incompleto só aparece quando a casa disser que "o remédio sumiu da tela" |
+
+**A segunda linha do cron** (fase 180) é o `npm run fim-do-plantao:prod`, de dez
+em dez minutos: meia hora antes do fim de cada turno, avisa quem da escala não
+assinou a passagem, e o líder do turno, uma vez por turno. Usa a mesma conta do
+relógio, e o `ensaio:producao` a roda compilada.
 
 **Confira o fuso da máquina.** O exemplo traz `CRON_TZ=America/Sao_Paulo`: num
 servidor em UTC, 05h00 são 02h00 em Porto Alegre e o dia gerado é o errado.

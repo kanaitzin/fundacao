@@ -15,7 +15,9 @@
     "migrate:prod": "node dist/migrate.js",
     "postbuild": "node scripts/copiar-migracoes.mjs",
     "relogio": "tsx src/relogio.ts",
-    "relogio:prod": "node dist/relogio.js"
+    "relogio:prod": "node dist/relogio.js",
+    "fim-do-plantao": "tsx src/fim-do-plantao.ts",
+    "fim-do-plantao:prod": "node dist/fim-do-plantao.js"
   },
   "dependencies": {
     "@napi-rs/canvas": "^1.0.9",

@@ -1736,4 +1736,63 @@ export class ShiftsService {
     });
   }
 
+
+  /**
+   * A MEIA HORA ANTES DO FIM DO PLANTÃO (fase 180, pedido de 09/09).
+   *
+   * Decisão de 30/09: avisa a PESSOA da escala que ainda não assinou a
+   * passagem, e o LÍDER do turno, uma vez, com os nomes. Quem chama é o relógio
+   * de dez em dez minutos (`fim-do-plantao:prod`), com a conta dele; a função
+   * do banco só devolve nomes na primeira passada dentro da meia hora, e guarda
+   * a marca do TURNO, nunca de quem foi avisado (§10.5: não acumula por pessoa).
+   */
+  async avisarFimDoPlantao(user: AuthenticatedUser, minutos = 30, agora?: Date) {
+    const casas = await this.db.asUser(user.id, async (c) => (await c.query(
+      `SELECT id, code, name FROM house WHERE app_house_in_scope(id) ORDER BY code`)).rows as
+      { id: string; code: string; name: string }[]);
+    let turnos = 0; let avisos = 0;
+    for (const casa of casas) {
+      const faltam = await this.db.asUser(user.id, async (c) => (await c.query(
+        `SELECT * FROM app_plantao_terminando($1, $2, coalesce($3::timestamptz, now()))`,
+        [casa.id, minutos, agora?.toISOString() ?? null])).rows);
+      if (!faltam.length) continue;
+      const { out_aviso: aviso, out_dia: dia, out_periodo: periodo, out_fim: fim } = faltam[0];
+      const hora = new Date(fim).toLocaleTimeString('pt-BR',
+        { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' });
+      const turno = periodo === 'diurno' ? 'diurno' : 'noturno';
+      turnos += 1;
+      const shift = await this.db.asUser(user.id, async (c) => (await c.query(
+        `SELECT id FROM shift WHERE house_id = $1 AND on_date = $2 AND period = $3`,
+        [casa.id, dia, periodo])).rows[0]?.id as string | undefined);
+
+      for (const f of faltam) {
+        await this.bus.publish('notice.requested', {
+          userId: f.out_pessoa,
+          title: 'A sua passagem de plantão ainda não foi assinada',
+          body: `O plantão ${turno} da ${casa.name} termina às ${hora}. `
+            + 'Assine a sua passagem antes de sair, para a equipe que entra saber o que ficou.',
+          priority: 'normal',
+          ...(shift ? { entity: 'shift', entityId: shift } : {}),
+        }, { actorId: user.id, houseId: casa.id });
+        avisos += 1;
+      }
+      const nomes = faltam.map((f: any) => f.out_nome).join(', ');
+      await this.bus.publish('escalation.requested', {
+        level: periodo === 'diurno' ? 'lider' : 'lider_noturno',
+        entity: 'shift_fim_aviso', entityId: aviso,
+        reason: 'passagem_nao_assinada',
+        title: `Passagens ainda não assinadas na ${casa.code}`,
+        body: `O plantão ${turno} da ${casa.name} termina às ${hora}. `
+          + `Ainda não assinaram a passagem: ${nomes}.`,
+        priority: 'normal', groupKey: `fim-do-plantao:${casa.id}:${dia}:${periodo}`,
+      }, { actorId: user.id, houseId: casa.id });
+      /* Metadado do TURNO: quantos faltavam, nunca quem. */
+      await this.audit.log({
+        action: 'plantao.fim_avisado', actorId: user.id, houseId: casa.id,
+        entity: 'house', entityId: casa.id,
+        detail: { dia, periodo, faltavam: faltam.length },
+      });
+    }
+    return { casas: casas.length, turnos, avisos };
+  }
 }

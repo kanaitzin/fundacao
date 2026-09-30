@@ -33,3 +33,9 @@ MAILTO=ti@paodospobres.com.br
 # `npm ci --omit=dev` ela saía com "tsx: not found" todo dia às 5h, e nenhuma
 # dose, atividade ou aviso era gerado. O mesmo defeito que o migrador teve.
 0 5 * * * cd /opt/rede-acolher/backend && npm run --silent relogio:prod >> /var/log/rede-acolher/relogio.log 2>&1
+
+# A MEIA HORA ANTES DO FIM DO PLANTÃO (fase 180, decisão de 30/09): de dez em
+# dez minutos, avisa quem da escala ainda não assinou a passagem, e o líder do
+# turno, com os nomes. Rodar a cada dez minutos não repete o aviso: a marca é
+# do turno. Usa a mesma conta do relógio acima.
+*/10 * * * * cd /opt/rede-acolher/backend && npm run --silent fim-do-plantao:prod >> /var/log/rede-acolher/fim-do-plantao.log 2>&1

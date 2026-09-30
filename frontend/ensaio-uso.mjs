@@ -2695,6 +2695,16 @@ await folhaCorr.getByRole('button', { name: /^Corrigir$/ }).click();
 await pg.waitForTimeout(700);
 cobrar('e a correção diz que o anterior fica no histórico', /ficam no histórico/.test(await conteudo()));
 
+/* A MEIA HORA ANTES DO FIM DO PLANTÃO (fase 180): o aviso ao líder, com os
+   nomes, chega ao sino, e diz onde continua, pela palavra e não pela tabela. */
+await pg.getByRole('button', { name: /^Avisos/ }).first().click();
+await pg.waitForTimeout(800);
+const sino = await conteudo();
+cobrar('o sino traz as passagens não assinadas no fim do plantão, com os nomes',
+  /Passagens ainda não assinadas/.test(sino) && /Ainda não assinaram a passagem: Mário/.test(sino), sino.slice(0, 400));
+cobrar('e diz onde continua pela palavra, nunca pelo nome da tabela',
+  /Continua em: Passagem de plantão/.test(sino) && !/Continua em: (shift|pia)\b/.test(sino));
+
 cobrar('o perfil da criança abre', await aba('Acolhidos'));
 await clicar(/^Alice/);
 await pg.waitForTimeout(900);

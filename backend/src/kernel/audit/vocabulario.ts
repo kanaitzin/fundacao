@@ -344,4 +344,5 @@ export const VOCABULARIO_DA_AUDITORIA: Record<string, string> = {
   /* Sem "pelo relógio": o autor já vem na linha, e a conta dele é justamente
      o que o §12.7 pede que não se confunda com a de uma pessoa. */
   'relogio.dia': 'Dia da casa gerado automaticamente',
+  'plantao.fim_avisado': 'Aviso de passagem não assinada no fim do plantão',
 };

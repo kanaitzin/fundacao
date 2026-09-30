@@ -165,7 +165,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 30/09/2026, fase 179
+### Onde estamos — 30/09/2026, fase 180
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -208,8 +208,9 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 177 | **as oito casas vivem um ano juntas** (pedido de 28/09): `SIM_CASAS=AI1,...,ARM4` no `simulacao-da-casa.sh`, com uma agenda que só anda o relógio quando todas as casas pediram a hora; ATA Geral toda manhã, Coordenação Geral lendo as oito, gestor no painel. **Nenhum achado** no ano, 27 contas no navegador sem nada; mais pesada, a equipe das oito (582 ms); ~140 MB de banco por ano para as oito. A Coordenação Geral não recebeu aviso nenhum no ano: pergunta no PARA-A-REUNIAO §4.15. Relatório em `docs/historico/oito-casas-um-ano-28-09.md` |
 | 178 | **as quatro decisões de 28/09**: a Coordenação Geral recebe os GRAVES das oito (nível `coordenacao_geral`, 1635: ocorrência que exige revisão técnica, internação, ATA Geral com pendência); o Arquivo das ATAs abre nos **últimos 30 dias**; a dose fora do horário diz **as duas horas** (`rotuloForaDoHorario`), sem a palavra atraso; o **PIA avisa 30 dias antes**, por criança, uma vez (`app_pia_chegando`, `pia_aviso`, 1636) |
 | 179 | **os defeitos da análise de 30/09**: **nenhuma foto de celular entrava no servidor de verdade** (corpo no padrão de 100 KB; agora 25 MB no módulo e 413 em português, com anexo de tamanho real na suíte); **o relógio não rodaria no servidor instalado** (o cron chamava `tsx`; agora `relogio:prod`, rodado pelo `ensaio:producao`); **o convite por SMTP** (`EMAIL_MODO=smtp`, STARTTLS exigido, provado contra servidor de captura); **CORS fechado, cabeçalhos e `TRUST_PROXY`** (§12.9); e a **correção de visita que não mostrava o que corrigia** |
+| 180 | **o aviso de meia hora antes do fim do plantão** (decisão de 30/09: a pessoa e o líder): `fim-do-plantao:prod` de dez em dez minutos no cron; `app_plantao_terminando` (1637) marca o TURNO em `shift_fim_aviso` e devolve quem a escala diz que não assinou; cada um recebe o seu, o líder do turno um só com os nomes; nada guarda quem foi avisado |
 
-**Medido no fim da 179:** 177 migrações, 125 tabelas, 126 suítes, 1154 testes, verdes nas
+**Medido no fim da 180:** 178 migrações, 126 tabelas, 127 suítes, 1161 testes, verdes nas
 DUAS condições de relógio; os sete ensaios de navegador verdes, com a portaria e o
 portão, o armário, a cozinha, os temas e a foto no percurso do `ensaio:uso`; **438 telas (146 × três
 temas) sem violação de WCAG 2.1 AA**; nenhuma
@@ -238,17 +239,15 @@ nova passa pelo `ensaio:acessibilidade`, que desde a 163 mede os TRÊS.
 
 ### A próxima etapa
 
-**FEITO — fase 179, os defeitos da análise de 30/09** (§2, linha 179, e §9, primeira
-seção): o anexo de tamanho real, o relógio compilado, o SMTP provado, a porta para a
-internet (§12.9) e o histórico da correção de visita. **Não sobra defeito de código
-conhecido.** O que a análise listou e depende de alguém: a fila do aparelho cifrada
-(DPO), o Drive de verdade (decisão), os marcadores de fralda e mamadeira (a casa), e
-o **aviso de meia hora antes do fim do plantão** (pedido de 09/09), que é o próximo
-código possível: pede o relógio rodando ao longo do dia (uma linha de cron a mais,
-decisão de implantação) e a lista de quem recebe.
+**FEITO — fase 179, os defeitos da análise de 30/09**, e **fase 180, o aviso de meia
+hora antes do fim do plantão** (§2, linhas 179 e 180). **Não sobra defeito de código
+conhecido, nem pedido de código que não dependa de alguém.** O que depende: a fila do
+aparelho cifrada (DPO), o Drive de verdade (decisão), os marcadores de fralda e
+mamadeira (a casa confirmar), o pente-fino semanal (o dia da semana, §10.5), o
+diário estruturado da internação (os campos) e as decisões do §10 listadas no 2.45.
 
 **PRÓXIMA ETAPA:** aplicar o roteiro com a equipe e a implantação do §12 (onde roda,
-endereço, certificado, SMTP, conta do relógio). Se vier código, o aviso de meia hora.
+endereço, certificado, SMTP, conta do relógio e as DUAS linhas do cron).
 
 **0. FEITO — o "PROMPT MESTRE" de 25/09** (auditoria total, simulação e
 expansão). **O fechamento está em `docs/historico/relatorio-final-da-auditoria-25-09.md`**:
