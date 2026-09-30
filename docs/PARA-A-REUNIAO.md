@@ -18,7 +18,7 @@
 > depois das 21h em Porto Alegre semeava o dia seguinte — o dia de hoje nascia
 > sem dose nenhuma. **Nada no sistema; tudo no dado de partida.**
 
-- **172 fases.** 123 suítes e 1139 testes, verdes em duas condições de relógio —
+- **178 fases.** 123 suítes e 1139 testes, verdes em duas condições de relógio —
   antes e depois da virada do UTC, que em Porto Alegre é às 21h.
 - **O pedido de 25/09 está fechado** (fase 166). Uma simulação de dois dias e
   do dia de hoje na Casa 03 conferiu os relatórios contra os fatos, e achou
@@ -58,8 +58,8 @@
   não está.
 - O sistema **sobe compilado num banco virgem**, o backup restaura e o cofre
   abre com a chave certa — e reprova com a errada.
-- O **protótipo** é um arquivo só, abre sem internet, e percorre 132 telas nos
-  sete cargos sem violação de acessibilidade.
+- O **protótipo** é um arquivo só, abre sem internet, e percorre 146 telas nos
+  cargos, em cada um dos três temas (438 ao todo), sem violação de acessibilidade.
 - O **roteiro do Marcelo** tem 49 tarefas, todas com porta conferida.
 - **A fila de pedidos de 09/09 acabou:** os catorze estão entregues.
 
@@ -158,7 +158,7 @@ Estas têm de ser respondidas **depois** de a equipe usar o protótipo, não ant
 | # | O que falta saber | O que trava |
 |---|---|---|
 | ~~1~~ | ✅ **Respondida em 15/09.** Ele descreveu o funcionamento; quase tudo já existe. O que falta são quatro ajustes pequenos e **uma decisão** — ver a pergunta 1 do §5 |
-| 2 | O lembrete de prazo: vencendo **o quê**, e com quantos dias? | Atividade, documento, PIA, receita? A antecedência muda o desenho |
+| 2 | O lembrete de prazo: vencendo **o quê**, e com quantos dias? | ✅ **O PIA foi respondido em 28/09** (30 dias antes, por criança, fase 178). **Continua aberto para o resto:** receita, caderneta de vacinação, declaração de matrícula, curso |
 | 3 | O pente-fino semanal: **em que dia**? | Ele o quer semanal; falta o dia |
 
 ---
@@ -355,12 +355,12 @@ Nenhuma é problema de código. Duas têm consequência maior e estão marcadas.
 | 1 | Devolver um acompanhamento para correção não existe. A técnica deve poder? E o que acontece com a versão que já estava lá? |
 | 2 | O recorte por casa vale para a ATA Geral do **dia corrente**? E: de dia, quem precisa ler a ATA Geral da noite? |
 | 3 | "Concluí tudo até agora" na linha do dia — a versão segura exclui medicação |
-| 4 | O Arquivo das ATAS abre no mês de calendário e fica vazio todo dia 1º. Criar "últimos 30 dias"? |
+| ~~4~~ | ✅ **RESPONDIDA EM 28/09: últimos 30 dias** (fase 178) |
 | 5 | A grade de medicação para colar na parede saiu sem diagnóstico. A casa quer diferente? |
 | ~~6~~ | ✅ **RESPONDIDA EM 20/09: só a contagem** — *"existem 2 relatos em área restrita"*, o mesmo precedente dos documentos. **Destrava duas telas:** a leitura excepcional, e a listagem de relatos por criança |
 | ~~7~~ | ✅ **RESPONDIDA EM 20/09: as três numa lista só**, com filtro por tipo — é a única que não obriga a técnica a adivinhar em qual aba está o que ela lembra |
-| 8 | "Administrado com atraso" é informação útil, ou cobrança injusta com quem estava com uma criança no colo? |
-| **9** | ⚠️ **O PIA.** Nas vinte crianças, as duas datas são iguais (18/06 e 18/09), o que sugere controle por data única na planilha e não por criança. São mesmo iguais? O sistema deve avisar por criança, 30 dias antes? |
+| ~~8~~ | ✅ **RESPONDIDA EM 28/09: descrever o fato** — *Dada às 20h40, prevista para as 20h00*, sem a palavra atraso (fase 178) |
+| ~~9~~ | ✅ **RESPONDIDA EM 28/09: por criança, 30 dias antes** (fase 178). A data é a validade do último PIA anexado ao dossiê |
 | 11 | **A Enfermagem vê a internação — decisão MINHA, a confirmar.** A resposta de 03/09 não a listou; incluí porque internação é primeiro um fato de saúde. Desfaz-se numa linha |
 
 *(O item 10, das fontes do protótipo, foi resolvido medindo — não precisa de
@@ -377,9 +377,9 @@ reunião.)*
 | 3 | Códigos e nomes reais das oito unidades | AI1–AI4 / ARM1–ARM4 são preliminares e aparecem em tela e em nome de arquivo |
 | 4 | **O SMTP institucional** | Sem ele não há convite, e sem convite não há primeiro acesso para 40 pessoas sem senha por mensagem |
 | 5 | Prazo de triagem da Enfermagem | Já é parâmetro |
-| 6 | Horário oficial do Líder Noturno Geral | 7h como hipótese, no `.env` |
+| ~~6~~ | Horário oficial do Líder Noturno Geral | ✅ **Respondida em 25/09**: ATA diurna 08:00–20:00, noturna 20:01–07:59 (fase 157) |
 | 7 | Relatórios obrigatórios no piloto | Seleção com o Marcelo |
-| 8 | Permissões de fotos em memórias | Upload desabilitado até confirmação |
+| ~~8~~ | Permissões de fotos em memórias | ✅ **Respondida em 15/09**: a equipe da casa vê as fotos, e o envio não espera confirmação |
 | 9 | **Os dados de partida** | Equipe, acolhidos já na casa, e quanto do histórico em papel entra |
 | 10 | **LGPD** | Quem responde, por quanto tempo se guarda, o que se apaga |
 | 11 | Critérios de aceite do piloto | A proposta está no §13; falta assinar |
@@ -466,9 +466,9 @@ Estão no código com o motivo escrito. **Se a casa discordar, muda.**
 4. ~~Os **quatro ajustes da escala**~~ ✅ **três feitos (fase 123)** — entram a
    equipe técnica e o Líder Diurno em quem monta, a cor de cada pessoa chega à
    escala, e substituir virou um gesto só, com quem entrou sabendo de quem é o
-   lugar. O quarto — *"a gente não vai deduzir a escala"* — espera resposta:
-   sem dedução e sem escala lançada, a passagem de plantão fica sem ninguém
-   para assinar no primeiro dia de uso (§4.5).
+   lugar. O quarto — *"a gente não vai deduzir a escala"* — ✅ **foi respondido
+   em 20/09: a dedução saiu** (fase 129), e a passagem é assinada por quem está
+   ali (§4.5).
 5. ~~Os **três ajustes dos anexos**~~ ✅ **dois feitos (fase 124)** — uma
    vivência passou a ter quantas fotos tiver, com prévia de todas antes de
    confirmar e a autorização por foto; e o documento do dossiê ganhou o botão

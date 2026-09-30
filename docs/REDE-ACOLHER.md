@@ -1766,6 +1766,66 @@ curta com a equipe técnica no treinamento do piloto.
 
 ## 9. O QUE FALTA
 
+### A análise de 30/09 — o que falta para terminar, medido
+
+*Pedido de 30/09: "analise no esforço máximo todo o sistema e me diga o que falta".
+O que o documento dizia foi conferido contra o código, e o código achou o que o
+documento não sabia. Os três primeiros itens são DEFEITO, medido, e contrariam
+a frase do Grupo 1 logo abaixo: ela vale para as telas, não para a implantação.*
+
+**Defeitos que só o sistema de verdade mostra (código, e são meus):**
+
+1. **Anexo acima de ~75 KB falha no servidor de verdade.** O servidor não
+   configura o tamanho do corpo da requisição, e o padrão do NestJS é 100 KB; o
+   anexo vai em base64 (um terço maior). Medido pela rota do dossiê: **50 KB
+   passa, 90 KB, 150 KB, 500 KB e 3 MB devolvem 500**, com a frase de falha
+   interna em vez de dizer que o arquivo é grande. Vale para toda foto (a
+   reduzida da fase 175 fica perto de meio megabyte), certidão, laudo do hospital, nota fiscal e
+   foto 3×4. **Nenhum teste pegou porque todos anexam uma imagem de 1 pixel**, e
+   o ensaio contra o servidor abre telas mas não envia formulário. O conserto
+   precisa valer também para a suíte (a lição da 155), e vir com anexo de
+   tamanho real na suíte e no ensaio.
+2. **O relógio não roda numa instalação de produção.** O `relogio.crontab`
+   chama `npm run relogio`, que é `tsx src/relogio.ts`, e o `tsx` é dependência
+   de desenvolvimento: é o mesmo defeito que o `ensaio:producao` achou nas
+   migrações, e ele não confere o relógio. O `dist/relogio.js` compilado existe;
+   é ele que o cron deve chamar, e o ensaio deve rodá-lo.
+3. **O e-mail real não existe.** `MailGateway` só grava em arquivo (`EMAIL_MODO`
+   conhece `arquivo` e `falha`). O envio por SMTP é código pequeno, que pode ser
+   escrito e provado contra um servidor de captura antes dos dados do provedor.
+
+**O que a análise achou e é decisão ou endurecimento:**
+
+- **A fila do aparelho guarda em texto claro** o que foi feito sem sinal,
+  inclusive evolução de saúde e passagem (`fila-offline.ts`); o comentário do
+  `vite.config.ts` prometia fila cifrada. Com o sistema no celular de cada
+  pessoa, isto é pergunta ao DPO, junto de uma política de uso do celular pessoal.
+- **Nada no repositório serve o aplicativo na internet:** não há configuração
+  de proxy reverso (o aplicativo chama `/api/v1` no mesmo endereço), HTTPS,
+  cabeçalhos de segurança, nem `trust proxy` (o IP das entradas sairia como o do
+  proxy). O `CORS_ORIGIN` vazio aceita qualquer origem.
+- **O Drive é uma pasta local** (`DriveGateway`); a integração com o Google
+  Shared Drive não existe. Para o piloto pode bastar a pasta com backup; é
+  decisão, e o critério *"o documento chega ao Drive"* do §13.5 depende dela.
+- **O aviso de meia hora antes do fim do plantão** (pedido de 09/09, §10.5)
+  estava travado pela escala, e a escala existe desde a 123: pode ser feito, e
+  pede um relógio que rode ao longo do dia, não só às 5h.
+- **Os marcadores de fralda, mamadeira e chupeta** na chamada (§10.5) nunca
+  foram construídos; falta a casa confirmar que os quer.
+
+**O que foi conferido e está de pé em 30/09:** a suíte (1139 testes), nenhuma
+tabela sem teste, nenhuma rota sem teste de verdade (as seis que o
+`rotas-sem-teste.mjs` aponta são chamadas por auxiliar sem o prefixo, e o
+medidor não as reconhece), o contrato de rotas entre tela e servidor, o sistema
+compilado subindo num banco virgem, a restauração do backup, e o aplicativo de
+verdade compilando (874 KB, 221 KB comprimido). A varredura de pontas aponta três
+colunas de horário gravadas e nunca lidas (`pia_aviso.avisado_em`,
+`shift_draft_item.added_at`, `visit_correction.corrected_at`), a declarar.
+
+**O resto do que falta não é código:** as decisões do §10 e da reunião, o §11,
+a implantação do §12 (onde roda, SMTP, Drive, chave do cofre, conta do relógio)
+e o piloto do §13 com o roteiro aplicado.
+
 ### Grupo 1 — falta para o piloto: **NADA de código** ✅
 
 *Esteve VAZIO da fase 100 até 20/09/2026, quando a chamada que não fecha o

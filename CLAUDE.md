@@ -235,6 +235,17 @@ nova passa pelo `ensaio:acessibilidade`, que desde a 163 mede os TRÊS.
 
 ### A próxima etapa
 
+**PRÓXIMA — fase 179, os defeitos da análise de 30/09** (§9, primeira seção):
+(1) **anexo acima de ~75 KB dá 500 no servidor de verdade** — o corpo da requisição
+fica no padrão de 100 KB do NestJS; conserto que valha também na suíte, a recusa
+dizendo "arquivo grande demais", e anexo de TAMANHO REAL na suíte e no ensaio;
+(2) **o relógio não roda em produção** — o cron chama `tsx`, que é de
+desenvolvimento; chamar `dist/relogio.js` e pôr o relógio no `ensaio:producao`;
+(3) o **envio por SMTP**, provado contra servidor de captura. Depois: o aviso de
+meia hora antes do fim do plantão, o endurecimento para internet (proxy, HTTPS,
+cabeçalhos, `trust proxy`, CORS fechado) e a fila do aparelho cifrada, se o DPO
+pedir.
+
 **0. FEITO — o "PROMPT MESTRE" de 25/09** (auditoria total, simulação e
 expansão). **O fechamento está em `docs/historico/relatorio-final-da-auditoria-25-09.md`**:
 os achados por gravidade e a matriz de funcionalidades, com o que NÃO foi testado. Ele DECIDE uma
