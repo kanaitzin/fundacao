@@ -118,7 +118,7 @@ fala de contagens sem colar nenhuma, de propósito.*
 | Ensaio | Resultado |
 |---|---|
 | `npm run ensaio` | 132 telas nos **sete** cargos oferecidos — Coordenação 28, Técnica 25, Gestor 26, Líder Diurno 17, Líder Noturno 14, Educador 13, Enfermagem 9. A Cozinha saiu do seletor em 09/09: o cargo continua no banco, oculto |
-| `npm run ensaio:acessibilidade` | 438 telas — 146 em cada um dos TRÊS temas (claro, escuro, alto contraste) —, **nenhuma violação de WCAG 2.1 AA** |
+| `npm run ensaio:acessibilidade` | 1029 telas — 147 em cada um dos SETE temas (claro, escuro, alto contraste, rosa, azul claro, verde e colorido) —, **nenhuma violação de WCAG 2.1 AA** |
 | `npm run ensaio:roteiro` | 49 tarefas do roteiro, **todas com porta no cargo certo** |
 | `npm run ensaio:uso` | 247 cobranças em 19 blocos, **todas passando** — e todos os cargos completando o percurso. O bloco 14 nasceu na fase 107 e cresceu na 108: abre as prévias e cobra que o olho devolva uma **imagem**, e não o nome de um arquivo — e que a lista diga **antes do clique** se o documento está no sistema ou no Drive |
 | `bash scripts/simulacao-da-casa.sh 90` | **a ARM1 nasce e vive noventa dias** com o relógio andando, os relatórios conferidos contra o que ela contou, os documentos lidos na voz do papel, e no fim as telas abertas no navegador **contra o servidor de verdade** (`frontend/ensaio-servidor.mjs`): 12 contas, 179 telas, **nenhum achado**. Recria o banco; não roda junto com a suíte |
@@ -389,6 +389,7 @@ arqueologia.
 | 179 | **Os defeitos da análise de 30/09, consertados.** (1) **Nenhuma foto de celular entrava no servidor de verdade**: o corpo da requisição estava no padrão de 100 KB e o anexo vai em base64, então acima de ~75 KB tudo dava 500. O limite agora é 25 MB (o maior anexo, 15 MB, em base64 com folga), ligado pelo `AppModule` (`kernel/common/corpo-da-requisicao.ts`) para valer na suíte e no servidor que sobe, e o corpo grande demais volta **413 com frase em português**. A suíte anexa foto de meio megabyte e PDF de 12 MB (`o-anexo-de-tamanho-real`), e o `ensaio:producao` manda 1 MB e 30 MB ao compilado. *Nenhum teste pegava porque todos anexavam imagem de um pixel.* (2) **O relógio não rodaria no servidor instalado**: o cron chamava `tsx`, que é de desenvolvimento, o mesmo defeito que o ensaio achou nas migrações na fase 62. Agora é `npm run relogio:prod` (o `dist/relogio.js`), e o `ensaio:producao` roda o relógio num banco virgem como o cron o chama. (3) **O convite sai por SMTP de verdade**, quando a Fundação ligar (`EMAIL_MODO=smtp`): STARTTLS exigido por padrão, conta e senha de aplicativo, recusa 503 em português quando o servidor não responde ou falta o remetente, e o log sem o link nem a senha. Provado contra um servidor de captura dentro da suíte (`o-envio-por-smtp`): **o link que chega na caixa abre a conta**. O padrão continua sendo a caixa local. (4) **O servidor pronto para sair da rede da casa** (`kernel/common/porta-da-internet.ts`, §12.9): o CORS, que sem a variável aceitava QUALQUER origem com credencial, agora fecha por padrão; toda resposta vai sem cache, sem moldura e sem adivinhar tipo; HSTS quando chega por HTTPS; e o `TRUST_PROXY`, sem o qual atrás do proxy toda sessão guardaria o IP do proxy. Cobrado pela suíte (`a-porta-para-a-internet`, com dois servidores, o de fábrica e o implantado) e pelo ensaio de produção. (5) **A correção da visita não mostrava o que corrigia**: a tela prometia *"o horário anterior e o motivo ficam no histórico dela"*, e o histórico era gravado e nunca lido. A varredura apontou o `corrected_at` sem leitor, e atrás dele estava a tabela inteira. Agora o perfil da criança mostra o que constava, quem corrigiu, quando e por quê, lido por OUTRO cargo no teste. De passagem: a foto 3×4 no portão ganhou teste (era a única rota que o medidor, consertado, ainda apontava), o `rotas-sem-teste.mjs` lê as chamadas por auxiliar, e a varredura declara os dois carimbos de criação com outro nome. *O que a análise listou e NÃO é defeito continua esperando alguém: a fila do aparelho cifrada (DPO), o Drive de verdade (decisão), os marcadores de fralda e mamadeira (a casa confirmar) e o aviso de meia hora antes do fim do plantão (pedido de 09/09, que pede o relógio rodando ao longo do dia).* |
 | 180 | **A meia hora antes do fim do plantão** (pedido de 09/09, decidido em 30/09: *a pessoa e o líder*). De dez em dez minutos o `fim-do-plantao` (compilado, com a conta do relógio, e com a sua linha no `relogio.crontab`) pergunta a cada casa se o turno corrente está na meia hora final. Na primeira passada dentro dela, `app_plantao_terminando` (shifts/1637) põe a marca do TURNO em `shift_fim_aviso` e devolve quem a escala diz que devia assinar (educador e Líder Diurno) e ainda não assinou a passagem. Cada um recebe **o próprio aviso**, e o líder do turno recebe **um só, com os nomes**: o Líder Diurno no diurno, o Líder Noturno Geral no noturno. **Uma vez por turno, e sem guardar quem foi avisado** (a regra do §10.5, de 09/09: o aviso é do turno corrente e não acumula por pessoa; a auditoria conta quantos faltavam, nunca quem). Sem escala lançada, ninguém é cobrado. O instante é parâmetro da função, e a suíte (`a-meia-hora-antes-do-fim`) pergunta num dia sorteado no futuro, sem depender do relógio de hoje nem da rodada anterior; o ensaio de produção roda o compilado como o cron o chama, e o sino do protótipo mostra o aviso do líder. *De passagem: o sino dizia "Continua em: pia" no aviso do PIA da fase 178, o nome cru da tabela; agora diz Dossiê da criança.* |
 | 181 | **As decisões 1, 2, 3 e 11 do §10, respondidas em 30/09.** (1) **Devolver o acompanhamento para correção**, que a tela prometia desde 31/08 e o servidor não tinha: a coordenação e o Gestor Geral devolvem o que aguarda aprovação, com motivo, e nunca o próprio texto; o acompanhamento volta a rascunho para quem redigiu, que recebe um aviso sem o motivo dentro (o motivo mora no acompanhamento), e a versão devolvida fica guardada em `followup_return` (1638), legível dentro do acompanhamento. (2) **A ATA Geral do dia, linha por casa**: a tela já só abria a folha inteira para o Líder Noturno Geral, mas a política das linhas entregava as oito à coordenação e à técnica de qualquer casa, e com o identificador da folha elas as liam pela rota. A 1639 fecha no banco; a resposta de quem lê o recorte diz que é recorte e não conta a noite, que *1 de 1 confirmada* pareceria a noite inteira em ordem (o teste da regressão cobrava as oito para a coordenação, e foi reescrito para o que ele queria proteger). (3) **"Concluí as atividades coletivas até agora"** na linha do dia: marca, depois de mostrar a lista, só as coletivas pendentes com horário até agora; remédio, saúde, urgência e o que espera ciência ficam de fora. Não é lote silencioso, a mesma regra da conferência de mesa: `activity_bulk` (1640), imutável, com quem e quantas, e cada execução aponta para ele. O `ensaio:uso` abre o botão numa página com o relógio do navegador às 17h, para não depender da hora em que roda. (4) **A Enfermagem continua vendo a internação**, confirmado. *De passagem: duas suítes limpavam os acompanhamentos antes de rodar, e com a tabela nova apontando para eles a limpeza travava a suíte inteira; elas limpam as devoluções primeiro.* |
+| 182 | **A tela em outras cores, pela questão pedagógica** (pedido de 30/09: *"cor rosa na tela mas legível as letras, um azul claro, um verde, um colorido"*). Quatro temas novos, todos claros e com a letra escura, ao lado do claro, do escuro e do alto contraste: **Rosa, Azul claro, Verde e Colorido** (fundo em degradê suave, a faixa do topo com as cores do arco-íris, e um azulejo de cor em cada porta da coluna). Mudam o fundo, a moldura e a cor da marca, **nunca as três cores que querem dizer alguma coisa** (estado, autor e cargo): o verde do *concluída* e o vermelho do *crítico* são os mesmos em todos. Com sete, a roda de um botão pediria seis toques para voltar ao claro, e o botão passou a abrir a folha **"Cor da tela"**, com uma amostra de cada. **De passagem, um defeito de véspera:** o escuro do sistema operacional valia para *qualquer tema que não fosse claro nem contraste*, e num celular em modo escuro o rosa viria pintado por cima de escuro; agora ele vale só quando ninguém escolheu tema. O `ensaio:acessibilidade` mede os sete, e a folha nova junto: **1029 telas sem violação de WCAG 2.1 AA**; o `ensaio:uso` escolhe na folha, confere que fica lembrado no aparelho e volta ao claro. |
 
 ---
 
@@ -448,7 +449,7 @@ O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as
 | `npm run ensaio:fila` | corta o sinal, marca a chamada, fecha e abre o aplicativo, religa, e confere que **só o que o servidor confirmou** saiu do aparelho |
 | `npm run ensaio:folhas` | os caminhos de documento até o arquivo baixar: abre a folha, tenta baixar com finalidade curta demais, baixa com frase válida, confere que o `.docx` chegou |
 | `npm run ensaio:roteiro` | cobra que as 49 tarefas do roteiro do Marcelo tenham porta no cargo certo. Não simula a procura de uma pessoa — mas impede o fracasso barato: a tarefa não ter porta, e isso aparecer diante da equipe |
-| `npm run ensaio:acessibilidade` | axe-core (WCAG 2.1 AA) em todas as telas de todos os cargos, nos três temas — sete a mais por tema que o `ensaio` porque confere também a folha do "Mais" de cada cargo, aberta dezenas de vezes por turno. **Cor nova passa por ele antes de entrar** |
+| `npm run ensaio:acessibilidade` | axe-core (WCAG 2.1 AA) em todas as telas de todos os cargos, nos sete temas — sete a mais por tema que o `ensaio` porque confere também a folha do "Mais" de cada cargo, aberta dezenas de vezes por turno. **Cor nova passa por ele antes de entrar** |
 | `npm run ensaio:uso` | percorre os **sete** cargos **apertando os botões até o fim** — chamada, exceção, passagem, armário, cofre, internação, diário, pedido de lanche — e **lê de volta o que ficou gravado**. É o que pega o defeito que a tela não denuncia: a folha abriu, o botão salvou, e só o número estava errado. *Dizia "oito" aqui, e o roteiro dele também: era a Cozinha, que saiu do seletor na fase 83 — e por isso ele morria no meio* |
 
 **Fora do navegador:**
@@ -1831,6 +1832,46 @@ O medidor de rotas também foi consertado, e a única rota que ele ainda apontav
 **O resto do que falta não é código:** as decisões do §10 e da reunião, o §11,
 a implantação do §12 (onde roda, SMTP, Drive, chave do cofre, conta do relógio)
 e o piloto do §13 com o roteiro aplicado.
+
+### As ideias de 30/09 — o que mais pode melhorar, para a Fundação escolher
+
+*Pedido de 30/09: "veja o que mais você pode fazer para melhorar o sistema". Nada
+disto é defeito; é o que eu faria em seguida, em ordem de quanto muda o turno.
+Cada uma tem uma decisão que é da Fundação, e está dita ao lado.*
+
+1. **O que mudou desde o meu último plantão.** Ao entrar, uma folha curta com o
+   que aconteceu enquanto a pessoa estava fora: ocorrências, remédio novo ou
+   suspenso, criança que chegou ou saiu, a ATA anterior, os avisos. Montada pelo
+   sistema a partir do que já está registrado, sem inteligência artificial, e sem
+   nada que a pessoa não pudesse ler de qualquer jeito. *Decisão:* o que entra.
+2. **O aviso no celular mesmo com o sistema fechado** (notificação push, com o
+   título neutro do §19). Hoje o aviso só aparece no sino, com o sistema aberto: o
+   de meia hora antes do fim do plantão chega a quem já está olhando a tela.
+   *Decisão:* quais avisos vão por push; e pede HTTPS, que é da implantação.
+3. **O tamanho da letra** (A menor, A maior), guardado no aparelho como o tema.
+   Para a colega que enxerga pouco e para o celular pequeno. Sem decisão pendente.
+4. **Escuro automático à noite**, das 20h às 8h, para quem quiser. Sem decisão
+   pendente além de a pessoa ligar.
+5. **Busca de criança** em qualquer tela (nome ou nome social, só na casa de quem
+   busca). Sem decisão pendente.
+6. **Ditado por voz na ATA e na passagem.** Ajuda muito às 23h, mas o ditado do
+   navegador manda o áudio para um servidor de fora (o do Chrome vai ao Google):
+   com dado de criança, é pergunta ao DPO antes de qualquer linha de código.
+7. **O resumo da semana com inteligência artificial**, que o Marcelo pediu para o
+   futuro (§10.5, R1b). Pode ser feito sem decidir nada pela equipe: um rascunho
+   que a técnica lê, corrige e assina. *Decisão:* do DPO e da Fundação, porque o
+   texto sai do servidor da Fundação para o provedor.
+8. **Duas etapas para entrar** (código no aplicativo autenticador) para
+   coordenação, Coordenação Geral e gestor, que alcançam mais de uma casa ou a
+   casa inteira. *Decisão:* quem é obrigado.
+9. **Um painel de saúde da implantação** para quem cuida do servidor: o último
+   backup restaurado, o relógio que rodou às 5h, a fila do Drive, o último e-mail
+   que saiu. Sem decisão pendente.
+10. **Teste com gente de verdade.** O axe mede contraste e rótulo; não mede se a
+    educadora acha o botão. Uma hora com duas pessoas da Casa 03, com o roteiro e
+    o cronômetro (quanto tempo para registrar uma dose, uma ocorrência), mede a
+    condição de sucesso do §10: registrar aqui precisa ser mais rápido do que no
+    aplicativo de conversa. E um passeio com leitor de tela (TalkBack) no celular.
 
 ### Grupo 1 — falta para o piloto: **NADA de código** ✅
 

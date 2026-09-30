@@ -10,12 +10,23 @@
  * Sem escolha guardada, vale o do sistema operacional (claro ou escuro), como
  * sempre foi.
  */
-export type Tema = 'light' | 'dark' | 'contraste';
+export type Tema = 'light' | 'dark' | 'contraste' | 'rosa' | 'azul' | 'verde' | 'colorido';
 
-export const TEMAS: { cod: Tema; nome: string }[] = [
-  { cod: 'light', nome: 'Claro' },
-  { cod: 'dark', nome: 'Escuro' },
-  { cod: 'contraste', nome: 'Alto contraste' },
+/*
+ * AS CORES PARA ESCOLHER (pedido de 30/09): rosa, azul claro, verde e
+ * colorido, pela questão pedagógica. Todas claras, com a letra escura; mudam o
+ * fundo e a moldura, nunca as cores que querem dizer alguma coisa (estado,
+ * autor, cargo). A `amostra` é o que a folha de escolher mostra ao lado do nome.
+ */
+export const TEMAS: { cod: Tema; nome: string; amostra: string }[] = [
+  { cod: 'light', nome: 'Claro', amostra: '#EDF1F7' },
+  { cod: 'dark', nome: 'Escuro', amostra: '#151E28' },
+  { cod: 'contraste', nome: 'Alto contraste', amostra: 'linear-gradient(135deg,#000 50%,#fff 50%)' },
+  { cod: 'rosa', nome: 'Rosa', amostra: '#F4B8D3' },
+  { cod: 'azul', nome: 'Azul claro', amostra: '#A9D8F2' },
+  { cod: 'verde', nome: 'Verde', amostra: '#A8DBB8' },
+  { cod: 'colorido', nome: 'Colorido',
+    amostra: 'linear-gradient(135deg,#DB2777,#EA580C,#CA8A04,#16A34A,#0284C7,#7C3AED)' },
 ];
 
 const CHAVE = 'rede-acolher.tema';
@@ -37,12 +48,6 @@ export function temaAtual(): Tema {
 export function aplicarTema(t: Tema) {
   document.documentElement.setAttribute('data-theme', t);
   try { localStorage.setItem(CHAVE, t); } catch { /* aparelho sem armazenamento: vale até fechar */ }
-}
-
-/** O seguinte na roda: claro → escuro → alto contraste → claro. */
-export function proximoTema(t: Tema): Tema {
-  const i = TEMAS.findIndex((x) => x.cod === t);
-  return TEMAS[(i + 1) % TEMAS.length].cod;
 }
 
 export const nomeDoTema = (t: Tema) => TEMAS.find((x) => x.cod === t)?.nome ?? t;

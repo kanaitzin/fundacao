@@ -202,6 +202,23 @@ await clicar(/Abrir chamada/);
 cobrar('e o botão leva mesmo à chamada',
   /Janta|Almoço|Café|conferid/i.test(await conteudo()), (await conteudo()).slice(0, 100));
 
+/* A COR DA TELA (fase 182): a folha mostra as sete, escolher troca a tela e
+   fica lembrado no aparelho; volta-se ao claro para o resto do percurso. */
+{
+  await pg.getByRole('button', { name: /^Escolher a cor da tela/ }).click();
+  await pg.waitForTimeout(300);
+  const folhaTema = await corpo();
+  cobrar('a folha de cores traz as sete', ['Claro', 'Escuro', 'Alto contraste', 'Rosa', 'Azul claro',
+    'Verde', 'Colorido'].every((n) => folhaTema.includes(n)));
+  await pg.locator('.overlay .sheet button', { hasText: /^Rosa$/ }).click();
+  await pg.waitForTimeout(200);
+  cobrar('escolher Rosa pinta a tela e fica lembrado neste aparelho',
+    (await pg.evaluate(() => document.documentElement.getAttribute('data-theme'))) === 'rosa'
+    && (await pg.evaluate(() => localStorage.getItem('rede-acolher.tema'))) === 'rosa');
+  await pg.locator('.overlay .sheet button', { hasText: /^Claro$/ }).click();
+  await pg.locator('.overlay .sheet button', { hasText: /^Fechar$/ }).click();
+  await pg.waitForTimeout(300);
+}
 await aba('Dia');
 /* "CONCLUÍ TUDO ATÉ AGORA" (fase 181): as atividades do protótipo têm hora do
    dia, e o botão só aparece quando há coletiva vencida. Para o ensaio não
@@ -2879,7 +2896,7 @@ cobrar('nenhuma exceção na cozinha nova', erros.length === 0, erros[0]);
 
 // ====================================================== Temas e a foto do portão (27/09)
 /*
- * O TEMA troca na roda claro → escuro → alto contraste, e o aparelho lembra.
+ * O TEMA se escolhe na folha "Cor da tela" (era uma roda de três até a fase 182), e o aparelho lembra.
  * E a FOTO 3×4: a técnica anexa no próprio portão, e o cartão passa a mostrá-la.
  */
 await fechar();
@@ -2887,15 +2904,24 @@ console.log('\n🎨 Os temas e a foto do portão (27/09)');
 await trocar('equipe_tecnica');
 erros.length = 0;
 const temaAgora = () => pg.evaluate(() => document.documentElement.getAttribute('data-theme'));
-const botaoTema = pg.getByRole('button', { name: /Trocar o tema/ });
-await pg.evaluate(() => document.documentElement.setAttribute('data-theme', 'light'));
-await botaoTema.click();
-cobrar('o tema vai do claro ao escuro', (await temaAgora()) === 'dark');
-await pg.getByRole('button', { name: /Trocar o tema/ }).click();
-cobrar('e do escuro ao alto contraste', (await temaAgora()) === 'contraste');
+const escolherTema = async (nome) => {
+  await pg.getByRole('button', { name: /^Escolher a cor da tela/ }).click();
+  await pg.waitForTimeout(250);
+  await pg.locator('.overlay .sheet button', { hasText: new RegExp(`^${nome}$`) }).click();
+  await pg.locator('.overlay .sheet button', { hasText: /^Fechar$/ }).click();
+  await pg.waitForTimeout(250);
+};
+await escolherTema('Escuro');
+cobrar('o tema vai ao escuro', (await temaAgora()) === 'dark');
+await escolherTema('Alto contraste');
+cobrar('e ao alto contraste', (await temaAgora()) === 'contraste');
 cobrar('e o aparelho lembra a escolha',
   (await pg.evaluate(() => localStorage.getItem('rede-acolher.tema'))) === 'contraste');
-await pg.getByRole('button', { name: /Trocar o tema/ }).click();
+await escolherTema('Colorido');
+cobrar('e ao colorido, que também fica lembrado',
+  (await temaAgora()) === 'colorido'
+  && (await pg.evaluate(() => localStorage.getItem('rede-acolher.tema'))) === 'colorido');
+await escolherTema('Claro');
 cobrar('e volta ao claro', (await temaAgora()) === 'light');
 
 cobrar('a técnica abre o portão', await doMais('Portaria'));

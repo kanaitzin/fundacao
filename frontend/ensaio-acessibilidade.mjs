@@ -87,7 +87,7 @@ const cargos = await seletor.locator('option').evaluateAll((os) =>
  * sido medido. "Confira se tudo fica legível" é nos três, ou não é conferência.
  * `ENSAIO_TEMAS=light` roda um só, para quem está mexendo numa tela.
  */
-const TEMAS = (process.env.ENSAIO_TEMAS ?? 'light,dark,contraste').split(',').filter(Boolean);
+const TEMAS = (process.env.ENSAIO_TEMAS ?? 'light,dark,contraste,rosa,azul,verde,colorido').split(',').filter(Boolean);
 console.log(`Acessibilidade — ${cargos.length} cargos × ${TEMAS.length} temas (${TEMAS.join(', ')})\n`);
 let telas = 0;
 
@@ -178,6 +178,14 @@ await pg.waitForTimeout(700);
   await pg.locator('.overlay .sheet button', { hasText: /^Fechar$/ }).click();
   await pg.waitForTimeout(400);
 }
+
+/* A folha de escolher a cor da tela (fase 182): as sete amostras, lidas em
+ * cada tema. Só abre e fecha; escolher trocaria o tema no meio da volta. */
+await pg.getByRole('button', { name: /^Escolher a cor da tela/ }).click();
+await pg.waitForTimeout(400);
+await conferir(`${tema} · folha "Cor da tela"`); telas++;
+await pg.locator('.overlay .sheet button', { hasText: /^Fechar$/ }).click();
+await pg.waitForTimeout(300);
 }
 
 await navegador.close();

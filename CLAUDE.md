@@ -165,7 +165,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 30/09/2026, fase 181
+### Onde estamos — 30/09/2026, fase 182
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -210,10 +210,11 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 179 | **os defeitos da análise de 30/09**: **nenhuma foto de celular entrava no servidor de verdade** (corpo no padrão de 100 KB; agora 25 MB no módulo e 413 em português, com anexo de tamanho real na suíte); **o relógio não rodaria no servidor instalado** (o cron chamava `tsx`; agora `relogio:prod`, rodado pelo `ensaio:producao`); **o convite por SMTP** (`EMAIL_MODO=smtp`, STARTTLS exigido, provado contra servidor de captura); **CORS fechado, cabeçalhos e `TRUST_PROXY`** (§12.9); e a **correção de visita que não mostrava o que corrigia** |
 | 180 | **o aviso de meia hora antes do fim do plantão** (decisão de 30/09: a pessoa e o líder): `fim-do-plantao:prod` de dez em dez minutos no cron; `app_plantao_terminando` (1637) marca o TURNO em `shift_fim_aviso` e devolve quem a escala diz que não assinou; cada um recebe o seu, o líder do turno um só com os nomes; nada guarda quem foi avisado |
 | 181 | **as decisões 1, 2, 3 e 11 do §10** (30/09): **devolver o acompanhamento** com motivo (`followup_return`, 1638; a versão devolvida fica legível); a **ATA Geral do dia, linha por casa** (a política das linhas entregava as oito a qualquer coordenação com o id da folha; 1639); **"Concluí as atividades coletivas até agora"**, sem remédio, saúde, urgência nem o que espera ciência, com registro imutável (`activity_bulk`, 1640); a Enfermagem continua vendo a internação |
+| 182 | **a tela em outras cores** (pedido pedagógico de 30/09): temas **Rosa, Azul claro, Verde e Colorido**, claros e com letra escura, que mudam fundo, moldura e marca e NUNCA as cores de estado, autor e cargo; o botão abre a folha **"Cor da tela"**; e o **escuro do sistema pintava por cima de qualquer tema novo** (agora só vale sem tema escolhido). Ideias para a Fundação escolher no §9, *As ideias de 30/09* |
 
-**Medido no fim da 181:** 181 migrações, 128 tabelas, 128 suítes, 1165 testes, verdes nas
+**Medido no fim da 182:** 181 migrações, 128 tabelas, 128 suítes, 1165 testes, verdes nas
 DUAS condições de relógio; os sete ensaios de navegador verdes, com a portaria e o
-portão, o armário, a cozinha, os temas e a foto no percurso do `ensaio:uso`; **438 telas (146 × três
+portão, o armário, a cozinha, os temas e a foto no percurso do `ensaio:uso`; **1029 telas (147 × sete
 temas) sem violação de WCAG 2.1 AA**; nenhuma
 rota sem teste; nenhuma rota — escrita ou leitura — com 500; **250 leituras sondadas
 pela Casa 04 com registro real da Casa 03, sem achado; cerca de 170 rotas de escrita, sem linha
@@ -229,8 +230,9 @@ achado, 27 contas e todas as telas contra o servidor de verdade, nenhuma leitura
 **As TRÊS cores do sistema, porque confundi-las é o pior que esta tela pode
 fazer** — está escrito por extenso em `frontend/src/cargos.tsx`:
 
-**Os TEMAS são três** (claro, escuro, alto contraste — `frontend/src/tema.ts`). Cor
-nova passa pelo `ensaio:acessibilidade`, que desde a 163 mede os TRÊS.
+**Os TEMAS são sete** (claro, escuro, alto contraste, e desde a 182 rosa, azul claro,
+verde e colorido — `frontend/src/tema.ts`). Tema muda fundo, moldura e marca, **nunca**
+as três cores abaixo. Cor nova passa pelo `ensaio:acessibilidade`, que mede os SETE.
 
 | A cor | Responde | Onde |
 |---|---|---|
@@ -249,7 +251,10 @@ mamadeira (a casa confirmar), o pente-fino semanal (o dia da semana, §10.5) e o
 diário estruturado da internação (os campos).
 
 **PRÓXIMA ETAPA:** aplicar o roteiro com a equipe e a implantação do §12 (onde roda,
-endereço, certificado, SMTP, conta do relógio e as DUAS linhas do cron).
+endereço, certificado, SMTP, conta do relógio e as DUAS linhas do cron). Se vier
+código, a Fundação escolhe entre as dez ideias do §9 (*As ideias de 30/09*); as sem
+decisão pendente são a letra maior, o escuro automático à noite, a busca de criança e
+o painel de saúde da implantação.
 
 **0. FEITO — o "PROMPT MESTRE" de 25/09** (auditoria total, simulação e
 expansão). **O fechamento está em `docs/historico/relatorio-final-da-auditoria-25-09.md`**:

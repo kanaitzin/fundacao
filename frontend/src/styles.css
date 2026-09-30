@@ -60,7 +60,7 @@
 
 /* ---------- Tema escuro ---------- */
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]):not([data-theme="contraste"]) {
+  :root:not([data-theme]) {
     --ground:#0C1219; --surface:#151E28; --raised:#1C2833; --sunken:#0F1720;
     --ink:#E8EEF5; --ink-2:#C6D3E0; --muted:#8FA1B5; --line:#26333F; --line-2:#3B4C5D;
 
@@ -283,14 +283,14 @@ input {
    precisa reconhecer às 6h da manhã. Centralizada e do tamanho de um selo. */
 .loginlogo img{ display:block; margin:0 auto; width:auto; max-width:132px; height:auto }
 /* No escuro a arte precisa do seu próprio branco para não sumir no fundo. */
-:root[data-theme="dark"] .loginlogo img, :root:not([data-theme="light"]):not([data-theme="contraste"]) .loginlogo img{
+:root[data-theme="dark"] .loginlogo img, :root:not([data-theme]) .loginlogo img{
   background:#fff; border-radius:14px; padding:10px 14px;
 }
 .logincard h1{
   font-size:27px; line-height:1.2; margin:0; color:var(--titulo); letter-spacing:-.01em;
   font-family:"Plus Jakarta Sans",system-ui,sans-serif; font-weight:800;
 }
-:root[data-theme="dark"] .logincard h1, :root:not([data-theme="light"]):not([data-theme="contraste"]) .logincard h1{ color:var(--ink) }
+:root[data-theme="dark"] .logincard h1, :root:not([data-theme]) .logincard h1{ color:var(--ink) }
 .logincard h1 span{
   display:block; font-size:15px; font-weight:600; color:var(--brand);
   margin-top:4px; letter-spacing:0;
@@ -1042,7 +1042,7 @@ textarea{
   --gr-trilho: var(--sunken);
 }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]):not([data-theme="contraste"]) {
+  :root:not([data-theme]) {
     --gr-tinta: #3987e5;    /* azul 400 — passa em #151E28 */
     --gr-tinta-2: #d95926;
   }
@@ -1192,7 +1192,7 @@ textarea{
    ------------------------------------------------------------
    Preto sobre branco, bordas de 2px e foco grosso: para quem enxerga pouco, e
    para o celular do corredor lido no sol. Ele ganha do "escuro do sistema"
-   (o seletor do escuro diz `:not([data-theme="contraste"])`), porque quem
+   (o escuro do sistema só vale sem tema escolhido, `:not([data-theme])`), porque quem
    escolheu contraste escolheu por necessidade.
 
    As cores de ESTADO continuam existindo — só ficam mais escuras, todas com
@@ -1336,3 +1336,89 @@ textarea{
 /* O círculo do cargo DENTRO de uma linha de texto (fase 172): no fluxo, alinhado
    ao meio da letra, e não num bloco que quebra sozinho acima do texto. */
 .com-cargo .cargo-chip { display:inline-flex; vertical-align:middle; margin: 0 5px 2px 0 }
+
+/* ============================================================
+   AS CORES DA TELA PARA ESCOLHER (pedido de 30/09): rosa, azul claro,
+   verde e colorido
+   ------------------------------------------------------------
+   Pedido pedagógico: a mesma tela em outras cores, para quem aprende a usar
+   o sistema, para a criança que senta ao lado, ou só por gosto de quem usa.
+   Todas são CLARAS, com a letra escura, e passam pelo mesmo ensaio de
+   acessibilidade que os outros três temas.
+
+   O que muda é o FUNDO, a MOLDURA e a cor da marca. O que NÃO muda são as
+   três cores que querem dizer alguma coisa (estado, autor e cargo, em
+   `cargos.tsx`): elas são as do tema claro em todos. Tema é enfeite do
+   aparelho; o verde do "concluída" e o vermelho do "crítico" continuam os
+   mesmos para todo mundo.
+
+   Até esta fase o escuro do sistema operacional valia para "qualquer tema que
+   não seja claro nem contraste": num celular em modo escuro, o rosa viria
+   pintado por cima de escuro. Agora ele vale só quando ninguém escolheu tema.
+   ============================================================ */
+:root[data-theme="rosa"] {
+  --ground:#FBE9F2; --surface:#FFFFFF; --raised:#FFF5FA; --sunken:#F6DCE9;
+  --ink:#2B1422; --ink-2:#4A2338; --muted:#6B4258; --line:#F0CADD; --line-2:#DFA6C3;
+  --navy:#7D1D50; --navy-2:#611540; --titulo:#7D1D50;
+  --brand:#9D2463; --brand-2:#9D2463; --brand-soft:#FBE1EE; --brand-solid:#9D2463;
+  --on-navy:#FDE8F2; --focus:#B83478;
+}
+:root[data-theme="azul"] {
+  --ground:#E3F2FB; --surface:#FFFFFF; --raised:#F4FAFE; --sunken:#D3EAF7;
+  --ink:#0B2233; --ink-2:#1E3D52; --muted:#46606F; --line:#C2DFF1; --line-2:#9CC8E4;
+  --navy:#075985; --navy-2:#0C4A6E; --titulo:#0C4A6E;
+  --brand:#03649A; --brand-2:#03649A; --brand-soft:#DCEFFA; --brand-solid:#03649A;
+  --on-navy:#E0F2FE; --focus:#0284C7;
+}
+:root[data-theme="verde"] {
+  --ground:#E6F4EA; --surface:#FFFFFF; --raised:#F4FBF6; --sunken:#D5EBDC;
+  --ink:#102619; --ink-2:#21402C; --muted:#465E50; --line:#C4E2CD; --line-2:#9DCBAB;
+  --navy:#166534; --navy-2:#14532D; --titulo:#14532D;
+  --brand:#146C36; --brand-2:#146C36; --brand-soft:#DCF3E4; --brand-solid:#146C36;
+  --on-navy:#DCFCE7; --focus:#15803D;
+}
+:root[data-theme="colorido"] {
+  --ground:#FFF8EC; --surface:#FFFFFF; --raised:#FDFAFF; --sunken:#F1ECF9;
+  --ink:#1C1530; --ink-2:#352B4D; --muted:#554B69; --line:#E4DAF3; --line-2:#C9B8E6;
+  --navy:#5B21B6; --navy-2:#4C1D95; --titulo:#4C1D95;
+  --brand:#6D28D9; --brand-2:#6D28D9; --brand-soft:#EDE4FC; --brand-solid:#6D28D9;
+  --on-navy:#F3E8FF; --focus:#7C3AED;
+}
+/* A faixa de cor embaixo da barra do topo: é o que diz, de relance, qual cor
+   de tela está escolhida. */
+:root[data-theme="rosa"] .appbar,
+:root[data-theme="azul"] .appbar,
+:root[data-theme="verde"] .appbar { border-bottom:4px solid var(--navy) }
+/* O COLORIDO: fundo em degradê suave, a faixa do topo com as cores do arco-íris
+   e cada porta da coluna com um azulejo de cor. Os cartões continuam brancos:
+   a letra sempre sobre fundo liso. As cores das portas são enfeite de
+   navegação, e ao lado de cada uma há sempre a palavra. */
+:root[data-theme="colorido"] body {
+  background:linear-gradient(135deg,#FDE2F0 0%,#E0F2FE 34%,#DCFCE7 67%,#FEF3C7 100%) fixed;
+}
+:root[data-theme="colorido"] .appbar {
+  border-bottom:5px solid transparent;
+  border-image:linear-gradient(90deg,#DB2777,#EA580C,#CA8A04,#16A34A,#0284C7,#7C3AED) 1;
+}
+:root[data-theme="colorido"] .tabbar button:nth-child(6n+1) .icone,
+:root[data-theme="colorido"] .portas-lateral button:nth-child(6n+1) .icone{ color:#BE185D; background:#FCE7F3 }
+:root[data-theme="colorido"] .tabbar button:nth-child(6n+2) .icone,
+:root[data-theme="colorido"] .portas-lateral button:nth-child(6n+2) .icone{ color:#1D4ED8; background:#DBEAFE }
+:root[data-theme="colorido"] .tabbar button:nth-child(6n+3) .icone,
+:root[data-theme="colorido"] .portas-lateral button:nth-child(6n+3) .icone{ color:#047857; background:#D1FAE5 }
+:root[data-theme="colorido"] .tabbar button:nth-child(6n+4) .icone,
+:root[data-theme="colorido"] .portas-lateral button:nth-child(6n+4) .icone{ color:#9A3412; background:#FFEDD5 }
+:root[data-theme="colorido"] .tabbar button:nth-child(6n+5) .icone,
+:root[data-theme="colorido"] .portas-lateral button:nth-child(6n+5) .icone{ color:#6D28D9; background:#EDE9FE }
+:root[data-theme="colorido"] .tabbar button:nth-child(6n+6) .icone,
+:root[data-theme="colorido"] .portas-lateral button:nth-child(6n+6) .icone{ color:#0E7490; background:#CFFAFE }
+
+/* A folha de escolher a cor da tela: uma amostra por tema. */
+.temas-lista{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:12px 0 }
+.temas-lista button{
+  display:flex; align-items:center; gap:10px; min-height:52px; padding:8px 10px;
+  border:2px solid var(--line); border-radius:12px; background:var(--surface);
+  color:var(--ink); font:inherit; font-weight:700; text-align:left; cursor:pointer;
+}
+.temas-lista button[aria-pressed="true"]{ border-color:var(--brand); box-shadow:0 0 0 2px var(--brand-soft) }
+.temas-lista .amostra{ width:30px; height:30px; border-radius:8px; flex:none; border:1px solid rgba(0,0,0,.25) }

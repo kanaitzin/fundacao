@@ -18,7 +18,7 @@
 > depois das 21h em Porto Alegre semeava o dia seguinte — o dia de hoje nascia
 > sem dose nenhuma. **Nada no sistema; tudo no dado de partida.**
 
-- **181 fases.** 128 suítes e 1165 testes, verdes em duas condições de relógio —
+- **182 fases.** 128 suítes e 1165 testes, verdes em duas condições de relógio —
   antes e depois da virada do UTC, que em Porto Alegre é às 21h.
 - **O pedido de 25/09 está fechado** (fase 166). Uma simulação de dois dias e
   do dia de hoje na Casa 03 conferiu os relatórios contra os fatos, e achou
@@ -59,7 +59,7 @@
 - O sistema **sobe compilado num banco virgem**, o backup restaura e o cofre
   abre com a chave certa — e reprova com a errada.
 - O **protótipo** é um arquivo só, abre sem internet, e percorre 146 telas nos
-  cargos, em cada um dos três temas (438 ao todo), sem violação de acessibilidade.
+  cargos, em cada um dos sete temas (1029 ao todo, com a folha de escolher a cor), sem violação de acessibilidade.
 - O **roteiro do Marcelo** tem 49 tarefas, todas com porta conferida.
 - **A fila de pedidos de 09/09 acabou:** os catorze estão entregues.
 

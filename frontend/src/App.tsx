@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ROTULO_CARGO } from './rotulos';
-import { aplicarTema, nomeDoTema, proximoTema, temaAtual, type Tema } from './tema';
+import { aplicarTema, nomeDoTema, temaAtual, TEMAS, type Tema } from './tema';
 import { Icone } from './icones';
 import { Cargo } from './cargos';
 import { PORTAS, GRUPOS } from './portas';
@@ -130,15 +130,44 @@ const CARGOS_DEMO = [
    */
 ];
 
+/*
+ * A COR DA TELA (fase 182). Eram três temas numa roda; com sete, rodar um por
+ * um pediria seis toques para voltar ao claro. O botão abre uma folha com
+ * todos lado a lado, e a amostra de cada um.
+ */
 function BotaoTema() {
   const [tema, setTema] = useState<Tema>(() => temaAtual());
-  const proximo = proximoTema(tema);
+  const [aberto, setAberto] = useState(false);
   return (
-    <button className="iconbtn" title={`Tema: ${nomeDoTema(tema)}. Trocar para ${nomeDoTema(proximo)}`}
-            aria-label={`Trocar o tema para ${nomeDoTema(proximo)} (agora: ${nomeDoTema(tema)})`}
-            onClick={() => { aplicarTema(proximo); setTema(proximo); }}>
-      <Icone nome="tema" />
-    </button>
+    <>
+      <button className="iconbtn" title={`Cor da tela: ${nomeDoTema(tema)}`}
+              aria-label={`Escolher a cor da tela (agora: ${nomeDoTema(tema)})`}
+              onClick={() => setAberto(true)}>
+        <Icone nome="tema" />
+      </button>
+      {aberto && (
+        <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-tema"
+             onClick={(e) => { if (e.target === e.currentTarget) setAberto(false); }}>
+          <div className="sheet">
+            <h3 id="t-tema">Cor da tela</h3>
+            <p className="mutetxt">
+              Vale só neste aparelho. As cores que avisam alguma coisa (o que está pendente,
+              quem escreveu, o cargo de cada um) são as mesmas em todas.
+            </p>
+            <div className="temas-lista">
+              {TEMAS.map((t) => (
+                <button key={t.cod} aria-pressed={tema === t.cod}
+                        onClick={() => { aplicarTema(t.cod); setTema(t.cod); }}>
+                  <span className="amostra" style={{ background: t.amostra }} aria-hidden="true" />
+                  {t.nome}
+                </button>
+              ))}
+            </div>
+            <button className="btn sec block" onClick={() => setAberto(false)}>Fechar</button>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
