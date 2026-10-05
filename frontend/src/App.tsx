@@ -34,6 +34,7 @@ import { Acompanhamentos } from './screens/Acompanhamentos';
 import { Painel } from './screens/Painel';
 import { Sincronizacao } from './screens/Sincronizacao';
 import { Implantacao } from './screens/Implantacao';
+import { FolhaDuasEtapas } from './screens/DuasEtapas';
 import { Alinhamentos } from './screens/Alinhamentos';
 import { Arquivo } from './screens/Arquivo';
 import { Rotina } from './screens/Rotina';
@@ -354,6 +355,8 @@ export function App() {
   /* A folha da conta, que no celular guarda o que saiu do topo (fase 184). */
   const [conta, setConta] = useState(false);
   const [folhaTema, setFolhaTema] = useState(false);
+  /* As duas etapas para entrar (fase 187). */
+  const [duasEtapas, setDuasEtapas] = useState(false);
   const [mais, setMais] = useState(false);
   const [escolhida, setEscolhida] = useState<string | null>(null);
   /*
@@ -387,13 +390,36 @@ export function App() {
     return t;
   });
 
+  /* O desafio da segunda etapa (fase 187): a senha conferiu, falta o código. */
+  const [desafio, setDesafio] = useState<string | null>(null);
+
+  async function entrarComCodigo(codigo: string) {
+    if (!desafio) return;
+    setErro(''); setOcupado(true);
+    try {
+      const res = await api<{ token: string }>('/auth/login/segunda-etapa', {
+        method: 'POST', body: JSON.stringify({ desafio, codigo }),
+      });
+      setDesafio(null);
+      setOcupado(false);
+      await entrarComToken(res.token);
+    } catch (e) {
+      const m = e instanceof Error ? e.message : 'Não foi possível entrar. Tente novamente.';
+      setErro(m);
+      /* Desafio vencido ou gasto: volta para a senha, que é o que a frase pede. */
+      if (/Entre de novo com a senha/.test(m)) setDesafio(null);
+      setOcupado(false);
+    }
+  }
+
   async function entrar(email: string, password: string) {
     setErro(''); setOcupado(true);
     try {
-      const res = await api<{ token: string }>('/auth/login', {
+      const res = await api<{ token?: string; segundaEtapa?: boolean; desafio?: string }>('/auth/login', {
         method: 'POST', body: JSON.stringify({ email, password }),
       });
-      setToken(res.token);
+      if (res.segundaEtapa && res.desafio) { setDesafio(res.desafio); return; }
+      setToken(res.token!);
       const eu = await api<Me>('/users/me');
       setMe(eu);
       definirQuemAssina(eu.fullName, eu.role);
@@ -448,6 +474,9 @@ export function App() {
     setSessaoTerminou(false);
     try { await api('/auth/logout', { method: 'POST' }); } catch { /* sessão pode já ter expirado */ }
     setToken(null); setMe(null); setHouses([]); setAba(null); setSugerirSenha(false);
+    /* As folhas da conta fecham junto (fase 187): saindo pela folha Minha conta,
+       ela reabria por cima da tela de quem entrasse a seguir no mesmo aparelho. */
+    setConta(false); setDuasEtapas(false); setFolhaTema(false); setTrocarSenha(false);
     definirAutor(null);
   }
 
@@ -464,7 +493,9 @@ export function App() {
     return (
       <>
         <Tarja />
-        <Login onSubmit={entrar} erro={erro} ocupado={ocupado} />
+        <Login onSubmit={entrar} erro={erro} ocupado={ocupado}
+               desafio={!!desafio} onCodigo={entrarComCodigo}
+               onVoltar={() => { setDesafio(null); setErro(''); }} />
       </>
     );
   }
@@ -667,6 +698,9 @@ export function App() {
               </button>
               <button className="btn sec" onClick={() => { setConta(false); setTrocarSenha(true); }}>
                 <Icone nome="chave" /> Trocar minha senha
+              </button>
+              <button className="btn sec" onClick={() => { setConta(false); setDuasEtapas(true); }}>
+                <Icone nome="cadeado" /> Duas etapas para entrar
               </button>
               <button className="btn ghost" onClick={sair}>Sair</button>
               <button className="btn ghost" onClick={() => setConta(false)}>Fechar</button>
@@ -1047,8 +1081,10 @@ export function App() {
             setMe({ ...me, mustChangePassword: false, semSenha: false });
           }}
           onAdiar={() => { setSugerirSenha(false); setTrocarSenha(false); }}
+          onDuasEtapas={sugerirSenha ? undefined : () => { setTrocarSenha(false); setDuasEtapas(true); }}
         />
       )}
+      {duasEtapas && <FolhaDuasEtapas onFechar={() => setDuasEtapas(false)} />}
     </div>
   );
 }
@@ -1067,14 +1103,26 @@ function FolhaSessaoTerminou({ email, onEntrou, onOutraConta }: {
   const [senha, setSenha] = useState('');
   const [erro, setErro] = useState('');
   const [ocupado, setOcupado] = useState(false);
+  /* Quem tem as duas etapas digita o código aqui também (fase 187). */
+  const [desafio, setDesafio] = useState<string | null>(null);
+  const [codigo, setCodigo] = useState('');
   async function entrar(e: React.FormEvent) {
     e.preventDefault();
     setErro(''); setOcupado(true);
     try {
-      const r = await api<{ token: string }>('/auth/login', {
+      if (desafio) {
+        const r = await api<{ token: string }>('/auth/login/segunda-etapa', {
+          method: 'POST', body: JSON.stringify({ desafio, codigo }),
+        });
+        setToken(r.token);
+        onEntrou();
+        return;
+      }
+      const r = await api<{ token?: string; segundaEtapa?: boolean; desafio?: string }>('/auth/login', {
         method: 'POST', body: JSON.stringify({ email, password: senha }),
       });
-      setToken(r.token);
+      if (r.segundaEtapa && r.desafio) { setDesafio(r.desafio); return; }
+      setToken(r.token!);
       onEntrou();
     } catch (x) {
       setErro(x instanceof Error ? x.message : 'Não foi possível entrar. Tente de novo.');
@@ -1093,7 +1141,15 @@ function FolhaSessaoTerminou({ email, onEntrou, onOutraConta }: {
         <input id="sessao-email" className="field" value={email} readOnly />
         <label className="f" htmlFor="sessao-senha">Senha</label>
         <input id="sessao-senha" className="field" type="password" autoComplete="current-password"
-               value={senha} onChange={(e) => setSenha(e.target.value)} autoFocus />
+               value={senha} onChange={(e) => setSenha(e.target.value)} autoFocus readOnly={!!desafio} />
+        {desafio && (
+          <>
+            <label className="f" htmlFor="sessao-codigo">Código do aplicativo autenticador</label>
+            <input id="sessao-codigo" className="field" inputMode="numeric" autoComplete="one-time-code"
+                   value={codigo} onChange={(e) => setCodigo(e.target.value)} autoFocus />
+            <p className="mutetxt">Sem o celular, digite um dos seus códigos de reserva.</p>
+          </>
+        )}
         {erro && <div className="notice c-crit" role="alert">{erro}</div>}
         <div className="acoes" style={{ marginTop: 16 }}>
           <button className="btn" type="submit" disabled={ocupado}>

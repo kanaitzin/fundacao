@@ -61,10 +61,15 @@ const SENHA_DEMO = 'senha-dev-123';
 const ehPrototipo = import.meta.env.VITE_PROTOTIPO === '1';
 const demoDisponivel = import.meta.env.DEV || ehPrototipo;
 
-export function Login({ onSubmit, erro, ocupado }: {
+export function Login({ onSubmit, erro, ocupado, desafio = false, onCodigo, onVoltar }: {
   onSubmit: (email: string, senha: string) => void;
   erro: string; ocupado: boolean;
+  /** A senha conferiu e a conta tem as duas etapas (fase 187): falta o código. */
+  desafio?: boolean;
+  onCodigo?: (codigo: string) => void;
+  onVoltar?: () => void;
 }) {
+  const [codigo, setCodigo] = useState('');
   // No protótipo a tela já abre pronta para entrar; no aplicativo de verdade,
   // vazia, como tem de ser.
   const [email, setEmail] = useState(ehPrototipo ? CONVIDADO.email : '');
@@ -108,6 +113,25 @@ export function Login({ onSubmit, erro, ocupado }: {
           <p className="loginsub">Sistema de gestão do acolhimento</p>
         </div>
 
+        {desafio ? (
+          <form onSubmit={(e) => { e.preventDefault(); onCodigo?.(codigo); }}>
+            <label className="f" htmlFor="codigo">Código do aplicativo autenticador</label>
+            <input id="codigo" inputMode="numeric" autoComplete="one-time-code" required autoFocus
+                   value={codigo} onChange={(e) => setCodigo(e.target.value)} placeholder="6 números" />
+            <p className="loginhint">
+              <Icone nome="cadeado" /> Abra o aplicativo autenticador no seu celular e digite os seis
+              números da conta Rede Acolher. Sem o celular, digite um dos seus códigos de reserva.
+            </p>
+            {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+            <button className="btn block" type="submit" disabled={ocupado}>
+              {ocupado ? 'Entrando…' : 'Entrar no sistema'}
+            </button>
+            <button className="btn ghost block" type="button" style={{ marginTop: 8 }}
+                    onClick={() => { setCodigo(''); onVoltar?.(); }}>
+              Voltar para a senha
+            </button>
+          </form>
+        ) : (
         <form onSubmit={continuar}>
           <label className="f" htmlFor="email">E-mail institucional</label>
           <input
@@ -163,6 +187,7 @@ export function Login({ onSubmit, erro, ocupado }: {
               : passo === 'primeira' ? 'Tentar outro e-mail' : 'Continuar'}
           </button>
         </form>
+        )}
 
         {demoDisponivel && (
           <>

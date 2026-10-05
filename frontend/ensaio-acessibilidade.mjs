@@ -198,6 +198,10 @@ await pg.waitForTimeout(700);
 await pg.getByRole('button', { name: /^Minha conta/ }).click();
 await pg.waitForTimeout(300);
 await conferir(`${tema} · folha "Minha conta"`); telas++;
+/* As duas etapas para entrar (fase 187), abertas pela folha da conta. */
+await pg.locator('.overlay .sheet button', { hasText: 'Duas etapas para entrar' }).click();
+await pg.waitForTimeout(500);
+await conferir(`${tema} · folha "Duas etapas para entrar"`); telas++;
 await pg.locator('.overlay .sheet button', { hasText: /^Fechar$/ }).last().click();
 await pg.waitForTimeout(200);
 await abrirCor();

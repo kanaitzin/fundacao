@@ -73,7 +73,12 @@ export class StaffService {
   async list(user: AuthenticatedUser) {
     const rows = await this.db.asUser(user.id, async (c) => {
       const { rows } = await c.query(`SELECT * FROM app_staff_list()`);
-      return rows;
+      /* As duas etapas (fase 187): a função só responde a quem administra a conta. */
+      const { rows: duas } = await c.query(
+        `SELECT id, app_segunda_etapa_ligada(id) AS ligada FROM unnest($1::uuid[]) AS id`,
+        [rows.map((r) => r.id)]);
+      const ligadas = new Set(duas.filter((d) => d.ligada).map((d) => d.id));
+      return rows.map((r) => ({ ...r, segunda_etapa: ligadas.has(r.id) }));
     });
     return rows.map((r) => ({
       id: r.id,
@@ -91,7 +96,27 @@ export class StaffService {
       editavel: r.editavel,
       proprio: r.id === user.id,
       todasAsCasas: !!r.todas_as_casas,
+      segundaEtapa: !!r.segunda_etapa,
     }));
+  }
+
+  /**
+   * Para quem perdeu o celular e os códigos de reserva (decisão de 05/10):
+   * quem administra a conta desliga as duas etapas, com motivo escrito. O
+   * banco faz as duas perguntas, cargo e casa, e grava a auditoria.
+   */
+  async desligarSegundaEtapa(user: AuthenticatedUser, id: string, motivo?: string) {
+    if ((motivo ?? '').trim().length < 15) {
+      throw new BadRequestException(
+        'Escreva o motivo, com pelo menos 15 caracteres: ele fica registrado na conta da pessoa.');
+    }
+    const r = await this.comando(user, 'app_desligar_segunda_etapa_de($1,$2) AS ok', [id, motivo]);
+    return {
+      ok: true, desligada: !!r?.ok,
+      aviso: r?.ok
+        ? 'As duas etapas foram desligadas. A pessoa entra só com a senha, e pode ligar de novo em Minha conta.'
+        : 'Esta conta não tinha as duas etapas ligadas.',
+    };
   }
 
   async create(user: AuthenticatedUser, input: {

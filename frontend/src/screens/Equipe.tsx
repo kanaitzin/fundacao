@@ -12,6 +12,8 @@ interface Membro {
   senhaInicialPendente: boolean; editavel: boolean; proprio: boolean;
   /** A Coordenação Geral (fase 176): coordenação que alcança as oito casas. */
   todasAsCasas?: boolean;
+  /** As duas etapas para entrar ligadas (fase 187). Só vem para quem administra a conta. */
+  segundaEtapa?: boolean;
 }
 interface Casa { id: string; codigo: string; nome: string; propria: boolean; }
 
@@ -92,6 +94,7 @@ export function Equipe({ papel }: { papel: string }) {
     { rotulo: string; token: string; aviso: string } | null>(null);
   const [registrando, setRegistrando] = useState(false);
   const [revogando, setRevogando] = useState<Aparelho | null>(null);
+  const [desligandoDuas, setDesligandoDuas] = useState<Membro | null>(null);
 
   const ehGestor = papel === 'gestor_geral';
   const minhaCasa = casas.find((c) => c.propria) ?? null;
@@ -223,6 +226,11 @@ export function Equipe({ papel }: { papel: string }) {
                     {m.ativo
                       ? <span className="pill c-ok">Ativo</span>
                       : <span className="pill c-mute">Desativado</span>}
+                    {m.ativo && m.segundaEtapa && (
+                      <span className="pill c-info" title="Entra com a senha e o código do aplicativo autenticador">
+                        duas etapas
+                      </span>
+                    )}
                     {m.ativo && m.senhaInicialPendente && (
                       <span className="pill c-warn" title="Ainda usando a senha entregue pela coordenação">
                         senha inicial
@@ -260,6 +268,11 @@ export function Equipe({ papel }: { papel: string }) {
                             }
                           }}>
                             {m.todasAsCasas ? 'Retirar da Coordenação Geral' : 'Tornar Coordenação Geral'}
+                          </button>
+                        )}
+                        {m.segundaEtapa && (
+                          <button className="btn sm ghost" onClick={() => setDesligandoDuas(m)}>
+                            Desligar as duas etapas
                           </button>
                         )}
                         <button className="btn sm ghost" onClick={() => {
@@ -380,6 +393,19 @@ export function Equipe({ papel }: { papel: string }) {
               setErro(e instanceof Error ? e.message : 'Não foi possível registrar o aparelho.');
             }
           }} />
+      )}
+
+      {desligandoDuas && (
+        <FolhaDesligarDuas
+          membro={desligandoDuas}
+          onFechar={() => setDesligandoDuas(null)}
+          onDesligar={async (motivo) => {
+            const alvo = desligandoDuas;
+            setDesligandoDuas(null);
+            await acao(() => api(`/staff/${alvo.id}/segunda-etapa/desligar`, {
+              method: 'POST', body: JSON.stringify({ motivo }) }));
+          }}
+        />
       )}
 
       {revogando && (
@@ -705,6 +731,38 @@ function FolhaAparelho({ ehGestor, minhaCasa, onFechar, onRegistrar }: {
           <button className="btn grow" disabled={!pode}
                   onClick={() => onRegistrar(rotulo.trim(), institucional)}>
             Registrar e ver o código
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * DESLIGAR AS DUAS ETAPAS DE OUTRA PESSOA (fase 187, decidido em 05/10): para
+ * quem perdeu o celular e os códigos de reserva. O motivo fica na conta dela, e
+ * ela pode ligar de novo em Minha conta.
+ */
+function FolhaDesligarDuas({ membro, onFechar, onDesligar }: {
+  membro: Membro; onFechar: () => void; onDesligar: (motivo: string) => void;
+}) {
+  const [motivo, setMotivo] = useState('');
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-duas-d"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet modal">
+        <h3 id="t-duas-d">Desligar as duas etapas de {membro.nome}</h3>
+        <p className="mutetxt">
+          Depois disso, {membro.nome} entra só com a senha. Confira antes que é mesmo a pessoa
+          pedindo, de preferência pessoalmente: quem pede isto por mensagem pode não ser ela.
+        </p>
+        <label className="f" htmlFor="duas-mot">Motivo <small>(fica registrado)</small></label>
+        <textarea id="duas-mot" value={motivo} onChange={(e) => setMotivo(e.target.value)}
+                  placeholder="Ex.: perdeu o celular e os códigos de reserva; conferido pessoalmente na casa." />
+        <div className="row rodape">
+          <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
+          <button className="btn grow" disabled={motivo.trim().length < 15} onClick={() => onDesligar(motivo.trim())}>
+            Desligar
           </button>
         </div>
       </div>

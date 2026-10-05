@@ -18,8 +18,14 @@
 > depois das 21h em Porto Alegre semeava o dia seguinte — o dia de hoje nascia
 > sem dose nenhuma. **Nada no sistema; tudo no dado de partida.**
 
-- **186 fases.** 130 suítes e 1184 testes, verdes em duas condições de relógio —
+- **187 fases.** 131 suítes e 1193 testes, verdes em duas condições de relógio —
   antes e depois da virada do UTC, que em Porto Alegre é às 21h.
+- **As duas etapas para entrar** (fase 187): qualquer pessoa liga em *Minha conta*,
+  com um aplicativo autenticador no celular; ninguém é obrigado. Quem liga recebe oito
+  códigos de reserva para guardar no papel; sem o celular e sem eles, quem administra
+  a conta desliga pela Equipe, com motivo. **Uma conversa para a equipe:** quem pede
+  para desligar deve ser conferido pessoalmente, porque quem pede por mensagem pode
+  não ser a pessoa.
 - **O que mudou desde o meu último plantão** (fase 186): o Dia abre com um cartão
   das ocorrências, da ATA anterior e dos remédios que começaram, foram suspensos
   ou mudaram desde o fim do plantão da pessoa (quem não está na escala vê as

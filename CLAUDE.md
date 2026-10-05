@@ -149,6 +149,7 @@ e qual é o caminho certo.
 | `scripts/superficies-sem-teste.mjs` | acha tabela que **nenhum teste jamais escreveu** — a lição da fase 141 medida em vez de lembrada. Roda DEPOIS do `npm test`, na mesma rodada, e usa o `n_tup_ins` do banco porque contar linhas no fim não distingue "ninguém escreveu" de "a suíte limpou". **Não é teste**, e recusa concluir se a rodada foi parcial |
 | `frontend/ensaio-celular.mjs` | **o sistema no celular** (fase 184): oito cargos a 360 e 390 px, todas as abas, o "Mais" e cada porta. Mede o que o axe não mede: tela que anda para o lado, texto cortado ou vazando do botão, **botões encostados**, alvo abaixo de 24 px, conteúdo atrás da barra do pé. Fotos em `/tmp/ensaio-celular`. O `ensaio:uso-celular` faz o percurso de uso como celular. **Mudou tela, roda os dois** |
 | `backend/src/modules/relogio/implantacao.regra.ts` | **a regra da saúde da implantação** (fase 185): quando cada sinal está em dia, em atenção ou parado, e a frase. Não importa nada, como o `alcance.ts`: o servidor e o protótipo leem a MESMA. **Quem roda sozinho anota** por `anotarImplantacao` (`kernel/implantacao/anotar.ts`) ou, nos scripts, por `app_anotar_implantacao` no `psql`; anotar nunca derruba quem anota |
+| `backend/src/kernel/common/totp.ts` | **o código das duas etapas** (fase 187), RFC 6238 com o `crypto` do Node, conferido com os vetores oficiais. O protótipo tem o mesmo cálculo pelo WebCrypto em `frontend/src/totp-navegador.ts`, só para a demonstração; **a regra mora no servidor** (o desafio, a trava, o passo repetido, as reservas), nas funções `auth_*` da identity/1643 |
 | `scripts/rotas-sem-teste.mjs` | acha **rota** que nenhum teste chamou — o outro lado da mesma pergunta. Separa *candidata forte* (a URL não aparece em suíte nenhuma) de *par incerto* (a suíte chama por auxiliar e o método fica noutra linha). **Não é teste** |
 | `backend/src/kernel/common/data-do-dia.pipe.ts` | **toda data que vem da URL passa por aqui** (fase 148). Sete de dez rotas de data devolviam 500 para uma data que não é data; a conferência mora num lugar só, e há teste estático que cobra que todo `@Query('de')` e `@Param('data')` use o pipe |
 | `backend/src/kernel/audit/audit.service.ts` | quem ESCREVE a auditoria, e as três respostas sobre a casa de uma linha (fase 149). **Linha de auditoria sem casa é linha que a coordenação da casa não lê** — a policy compara `house_id` com o alcance, e NULL não é igual a nada. O `auditoria-tem-casa.spec.ts` cobra `houseId` em toda chamada, com a lista ESCRITA das poucas ações que não têm casa |
@@ -167,7 +168,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 05/10/2026, fase 186
+### Onde estamos — 05/10/2026, fase 187
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -217,10 +218,11 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 184 | **o sistema no celular, setor por setor** (pedido de 05/10): `ensaio:celular` (oito cargos, 360 e 390 px, 300 telas, mede o que o dedo sente) e `ensaio:uso-celular`; abas de baixo cortadas, botões encostados em quatro telas, abas internas vazando, Cozinha com abas de 21 px e a portaria com um *Mais* sozinho, consertados; e as duas escolhas de 05/10: **a barra das abas no pé, sempre à vista**, e **o topo numa linha**, com nome, cor, senha e Sair na folha **Minha conta** (só abaixo de 1080 px) |
 | 185 | **a saúde da implantação** (ideia 9; quem vê decidido em 05/10: Gestor Geral e Coordenação Geral): relógio, aviso de meia hora, e-mail, `backup.sh` e `restaurar.sh --ensaio` anotam em `implantacao_evento` (relogio/1641, só metadado, imutável); a tela mostra seis sinais *em dia/atenção/parado* com a regra em `implantacao.regra.ts`, lida pelo servidor e pelo protótipo. A *conta técnica* da pergunta está aposentada desde 01/09 |
 | 186 | **o que mudou desde o meu último plantão** (ideia 1; o que entra decidido em 05/10: ocorrências, ATA anterior, remédio novo/suspenso/mudado): cartão no alto do Dia, lido com a identidade de quem pergunta (`reports/o-que-mudou.service.ts`), desde o fim do último turno da pessoa na escala (sem escala, 24 h; no máximo sete dias); o "já li" é por PESSOA, porque o tablet é da casa; e a prescrição passou a guardar quando foi suspensa (medications/1642) |
+| 187 | **as duas etapas para entrar** (ideia 8; decidido em 05/10: ninguém obrigado, reservas, quem administra desliga com motivo): TOTP próprio (`kernel/common/totp.ts`, vetores da RFC), segredo cifrado com a `CREDENTIAL_KEY`, reservas só em hash, desafio de 5 min e 5 tentativas, código repetido recusado, **código errado conta na trava da senha**; tabelas fechadas como a sessão (identity/1643); no protótipo, o código é calculado de verdade (`totp-navegador.ts`); e sair pela Minha conta não fechava a folha |
 
-**Medido no fim da 186:** 183 migrações, 129 tabelas, 130 suítes, 1184 testes, verdes nas
+**Medido no fim da 187:** 184 migrações, 132 tabelas, 131 suítes, 1193 testes, verdes nas
 DUAS condições de relógio; os nove ensaios de navegador verdes (o do celular com 302 telas e nenhum achado), com a portaria e o
-portão, o armário, a cozinha, os temas e a foto no percurso do `ensaio:uso`; **1043 telas (149 × sete
+portão, o armário, a cozinha, os temas e a foto no percurso do `ensaio:uso`; **1050 telas (150 × sete
 temas) sem violação de WCAG 2.1 AA**; nenhuma
 rota sem teste; nenhuma rota — escrita ou leitura — com 500; **250 leituras sondadas
 pela Casa 04 com registro real da Casa 03, sem achado; cerca de 170 rotas de escrita, sem linha
@@ -248,10 +250,11 @@ as três cores abaixo. Cor nova passa pelo `ensaio:acessibilidade`, que mede os 
 
 ### A próxima etapa
 
-**FEITO — fase 186** (§2): o que mudou desde o meu último plantão, a ideia 1 de 30/09,
-com o que a Fundação escolheu em 05/10. **Das ideias de 30/09 sobram a 2 (push), a 6
-(ditado, DPO), a 7 (resumo com IA, DPO), a 8 (duas etapas: quem é obrigado) e a 10
-(teste com gente de verdade)** — todas com decisão ao lado, no §9.
+**FEITO — fase 187** (§2): as duas etapas para entrar, a ideia 8 de 30/09. **Das ideias
+de 30/09 sobram a 2 (push: quais avisos, e HTTPS), a 6 (ditado, DPO), a 7 (resumo com
+IA, DPO) e a 10 (teste com gente de verdade)** — todas com decisão ao lado, no §9.
+
+**FEITO — fase 186** (§2): o que mudou desde o meu último plantão, a ideia 1 de 30/09.
 
 **FEITO — fase 185** (§2, §12.10): a saúde da implantação, a ideia 9 de 30/09.
 
@@ -269,8 +272,9 @@ diário estruturado da internação (os campos).
 **PRÓXIMA ETAPA:** aplicar o roteiro com a equipe e a implantação do §12 (onde roda,
 endereço, certificado, SMTP, conta do relógio e as DUAS linhas do cron). Se vier
 código, a Fundação escolhe entre as ideias do §9 (*As ideias de 30/09*): a 1 (186), a 3,
-a 4, a 5 (183) e a 9 (185) já são código, e **nenhuma das que sobram anda sem uma
-decisão**. A mais barata de decidir é a 8 (*duas etapas para entrar*: quem é obrigado).
+a 4, a 5 (183), a 8 (187) e a 9 (185) já são código, e **nenhuma das que sobram anda sem
+uma decisão**. A mais barata de decidir é a 2 (*aviso no celular com o sistema fechado*:
+quais avisos vão por push).
 
 **0. FEITO — o "PROMPT MESTRE" de 25/09** (auditoria total, simulação e
 expansão). **O fechamento está em `docs/historico/relatorio-final-da-auditoria-25-09.md`**:

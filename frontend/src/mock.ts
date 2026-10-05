@@ -29,6 +29,7 @@ import {
 import { SemConexao, ErroApi } from './api';
 import { ALCANCE_POR_CARGO } from '../../backend/src/modules/identity/alcance';
 import { avaliar, avaliarDrive, TITULOS } from '../../backend/src/modules/relogio/implantacao.regra';
+import { novoSegredo, conferirCodigo } from './totp-navegador';
 import { TIPOS_OFFLINE, TIPOS_OFFLINE_KINDS } from '../../backend/src/modules/sync/tipos-offline';
 import { cargoNoDocumento, nomeDoArquivo as nomeDaFolha }
   from '../../backend/src/kernel/documentos/folha';
@@ -617,6 +618,22 @@ const PESSOA_DO_CARGO: Record<string, { id: string; fullName: string; role: stri
 };
 
 let eu = USUARIOS['educador.ai3@paodospobres.dev'];
+
+/*
+ * AS DUAS ETAPAS NO PROTÓTIPO (fase 187): por pessoa, só na memória desta aba.
+ * O código é calculado de verdade (`totp-navegador.ts`), e um aplicativo
+ * autenticador real funciona aqui. Os códigos de reserva ficam em texto
+ * porque nada sai do navegador; no servidor, só o hash é guardado.
+ */
+const DUAS = new Map<string, { segredo: string; ligada: boolean; ultimoPasso: number; reservas: string[]; desde?: string }>();
+let desafioPendente: { desafio: string; quem: typeof eu; tentativas: number } | null = null;
+const letrasReserva = 'abcdefghjkmnpqrstuvwxyz23456789';
+const novaReserva = () => {
+  const b = crypto.getRandomValues(new Uint8Array(10));
+  const s = [...b].map((x) => letrasReserva[x % letrasReserva.length]).join('');
+  return `${s.slice(0, 5)}-${s.slice(5)}`;
+};
+const semEnfeite = (c: string) => String(c ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
 /**
  * AVISOS (§19). O texto diz que existe algo e onde continuar — nunca repete o
  * conteúdo: a notificação chega na tela de bloqueio do aparelho da casa, que
@@ -3904,7 +3921,15 @@ export async function mockApi<T>(path: string, init?: RequestInit): Promise<T> {
   const q = new URLSearchParams(busca ?? '');
   const corpo = init?.body ? JSON.parse(String(init.body)) : {};
   const seg = rota.split('/').filter(Boolean);
-  if (sessaoVencida && rota !== '/auth/login') {
+  /* O código das duas etapas é calculado pelo WebCrypto, que é assíncrono; o
+     roteador não é, e recebe o passo já conferido no corpo (fase 187). */
+  const passoDe = async (id: string) => {
+    const duas = DUAS.get(id);
+    return duas ? conferirCodigo(duas.segredo, String(corpo.codigo ?? '')) : null;
+  };
+  if (rota === '/auth/login/segunda-etapa') corpo.__passo = desafioPendente ? await passoDe(desafioPendente.quem.id) : null;
+  if (rota === '/auth/segunda-etapa/confirmar') corpo.__passo = await passoDe(eu.id);
+  if (sessaoVencida && rota !== '/auth/login' && rota !== '/auth/login/segunda-etapa') {
     throw new Recusa(401, 'Sua sessão terminou. Entre de novo para continuar — o que você digitou '
       + 'nesta tela não foi salvo.');
   }
@@ -4896,9 +4921,83 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     if (u.senha !== null && b.password !== u.senha) {
       return new Recusa(401, 'E-mail ou senha inválidos.');
     }
+    const duas = DUAS.get(u.id);
+    if (duas?.ligada) {
+      desafioPendente = { desafio: `desafio-${uid()}`, quem: u, tentativas: 0 };
+      return { segundaEtapa: true, desafio: desafioPendente.desafio };
+    }
     eu = u;
     sessaoVencida = false;
     return { token: 'prototipo' };
+  }
+  if (rota === '/auth/login/segunda-etapa') {
+    const d = desafioPendente;
+    if (!d || d.desafio !== b.desafio || d.tentativas >= 5) {
+      return new Recusa(401, 'O tempo para digitar o código acabou, ou foram tentativas demais. Entre de novo com a senha.');
+    }
+    d.tentativas++;
+    const duas = DUAS.get(d.quem.id);
+    let ok = !duas?.ligada;
+    if (duas?.ligada) {
+      const passo = b.__passo as number | null;
+      if (passo !== null && passo > duas.ultimoPasso) { duas.ultimoPasso = passo; ok = true; }
+      const i = duas.reservas.findIndex((r) => semEnfeite(r) === semEnfeite(String(b.codigo ?? '')));
+      if (!ok && i >= 0) { duas.reservas.splice(i, 1); ok = true; }
+    }
+    if (!ok) {
+      return new Recusa(401, 'O código não confere. Confira se é o desta conta no aplicativo e digite o que está na tela agora.');
+    }
+    desafioPendente = null;
+    eu = d.quem;
+    sessaoVencida = false;
+    return { token: 'prototipo' };
+  }
+  if (rota === '/auth/segunda-etapa' && metodo === 'GET') {
+    const duas = DUAS.get(eu.id);
+    return { ligada: !!duas?.ligada, desde: duas?.desde ?? null, reservasRestantes: duas?.ligada ? duas.reservas.length : 0 };
+  }
+  if (rota === '/auth/segunda-etapa/iniciar') {
+    if (eu.senha !== null && b.senha !== eu.senha) return new Recusa(401, 'Senha incorreta.');
+    if (DUAS.get(eu.id)?.ligada) return new Recusa(400, 'As duas etapas já estão ligadas nesta conta.');
+    const segredo = novoSegredo();
+    DUAS.set(eu.id, { segredo, ligada: false, ultimoPasso: 0, reservas: [] });
+    const conta = Object.keys(USUARIOS).find((e) => USUARIOS[e].id === eu.id) ?? eu.fullName;
+    return {
+      segredo: segredo.replace(/(.{4})/g, '$1 ').trim(),
+      endereco: `otpauth://totp/${encodeURIComponent(`Rede Acolher:${conta}`)}?secret=${segredo}`
+        + '&issuer=Rede%20Acolher&algorithm=SHA1&digits=6&period=30',
+    };
+  }
+  if (rota === '/auth/segunda-etapa/confirmar') {
+    const duas = DUAS.get(eu.id);
+    if (!duas || duas.ligada) return new Recusa(400, 'Comece de novo: não há ligação de duas etapas em andamento.');
+    const passo = b.__passo as number | null;
+    if (passo === null) {
+      return new Recusa(400, 'O código não confere. Confira se o aplicativo leu a conta certa e digite o que está na tela agora.');
+    }
+    duas.ligada = true; duas.ultimoPasso = passo; duas.desde = new Date().toISOString();
+    duas.reservas = Array.from({ length: 8 }, novaReserva);
+    return { ok: true, reservas: [...duas.reservas],
+      aviso: 'Guarde estes códigos num lugar seguro, fora do celular.' };
+  }
+  if (rota === '/auth/segunda-etapa/desligar') {
+    if (eu.senha !== null && b.senha !== eu.senha) return new Recusa(401, 'Senha incorreta.');
+    const tinha = !!DUAS.get(eu.id)?.ligada;
+    DUAS.delete(eu.id);
+    return { ok: true, desligada: tinha };
+  }
+  if (seg[0] === 'staff' && seg[2] === 'segunda-etapa' && seg[3] === 'desligar' && metodo === 'POST') {
+    if (!['coordenador', 'gestor_geral', 'equipe_tecnica'].includes(eu.role)) {
+      return new Recusa(403, 'Desligar as duas etapas de outra pessoa é de quem administra a conta dela.');
+    }
+    if (String(b.motivo ?? '').trim().length < 15) {
+      return new Recusa(400, 'Escreva o motivo, com pelo menos 15 caracteres: ele fica registrado na conta da pessoa.');
+    }
+    const tinha = !!DUAS.get(seg[1])?.ligada;
+    DUAS.delete(seg[1]);
+    return { ok: true, desligada: tinha,
+      aviso: tinha ? 'As duas etapas foram desligadas. A pessoa entra só com a senha, e pode ligar de novo em Minha conta.'
+        : 'Esta conta não tinha as duas etapas ligadas.' };
   }
   if (rota === '/auth/logout') return { ok: true };
   /*
@@ -5705,7 +5804,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       proprio: m.id === eu.id,
       corDaLinha: CORES_DA_LINHA.get(m.id) ?? null,
       todasAsCasas: false,
-    })), ...geral];
+    })), ...geral].map((m) => ({ ...m, segundaEtapa: !!DUAS.get(m.id)?.ligada && (m.editavel || m.proprio) }));
   }
   if (rota.startsWith('/staff/line-colors')) {
     return [...CORES_DA_LINHA.entries()].map(([userId, cor]) => ({

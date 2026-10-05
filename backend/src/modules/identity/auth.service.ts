@@ -3,6 +3,10 @@ import { DatabaseService } from '../../kernel/database/database.service';
 import { AuditService } from '../../kernel/audit/audit.service';
 import { verifyPassword, hashPassword, newSessionToken, hashToken } from '../../kernel/common/crypto';
 import { AuthenticatedUser } from '../../kernel/contracts';
+import { cifrarSegredo, decifrarSegredo } from '../../kernel/common/segredo';
+import {
+  novoSegredo, conferirCodigo, enderecoDoAutenticador, codigosDeReserva, normalizarReserva,
+} from '../../kernel/common/totp';
 
 // O tipo vive no kernel: é o vocabulário que todo módulo autenticado usa.
 export type { AuthenticatedUser } from '../../kernel/contracts';
@@ -44,6 +48,21 @@ export class AuthService {
       throw new UnauthorizedException(GENERIC_FAIL);
     }
 
+    /*
+     * AS DUAS ETAPAS (fase 187). Quem ligou não recebe a sessão com a senha:
+     * recebe um desafio de cinco minutos, e a sessão só sai com o código do
+     * aplicativo ou um código de reserva (`loginSegundaEtapa`).
+     */
+    const { rows: [fator] } = await this.db.query(`SELECT * FROM auth_segunda_etapa_de($1)`, [user.id]);
+    if (fator) {
+      const desafio = newSessionToken();
+      await this.db.query(`SELECT auth_criar_desafio($1, $2)`, [user.id, desafio.hash]);
+      return { segundaEtapa: true as const, desafio: desafio.token };
+    }
+    return this.abrirSessao(user, ip, userAgent);
+  }
+
+  private async abrirSessao(user: any, ip?: string, userAgent?: string, detalhe: Record<string, unknown> = {}) {
     const { token, hash } = newSessionToken();
     const { rows: [session] } = await this.db.query(
       `SELECT auth_criar_sessao($1, $2, $3, $4, $5) AS id`,
@@ -51,7 +70,7 @@ export class AuthService {
     );
     await this.audit.log({
       action: 'auth.login', actorId: user.id, institutionId: user.institution_id,
-      detail: { sessionId: session.id, role: user.role },
+      detail: { sessionId: session.id, role: user.role, ...detalhe },
     });
 
     return {
@@ -61,6 +80,117 @@ export class AuthService {
         role: user.role, mustChangePassword: user.must_change_password,
       },
     };
+  }
+
+  /**
+   * A SEGUNDA ETAPA DA ENTRADA (fase 187): o código de seis dígitos do
+   * aplicativo, ou um dos códigos de reserva. O desafio vale cinco minutos e
+   * cinco tentativas, e cada código do aplicativo entra uma vez só.
+   */
+  async loginSegundaEtapa(desafio: string, codigo: string, ip?: string, userAgent?: string) {
+    const { rows: [d] } = await this.db.query(`SELECT * FROM auth_tentar_desafio($1)`, [hashToken(desafio ?? '')]);
+    if (!d) {
+      throw new UnauthorizedException(
+        'O tempo para digitar o código acabou, ou foram tentativas demais. Entre de novo com a senha.');
+    }
+    const user = await this.db.asUser(d.user_id, async (c) => (await c.query(
+      `SELECT id, institution_id, email, full_name, role, active, must_change_password
+         FROM app_user WHERE id = $1`, [d.user_id])).rows[0]);
+    if (!user?.active) throw new UnauthorizedException(GENERIC_FAIL);
+
+    const { rows: [fator] } = await this.db.query(`SELECT * FROM auth_segunda_etapa_de($1)`, [d.user_id]);
+    let como: 'aplicativo' | 'reserva' | null = null;
+    if (!fator) {
+      /* Desligada por quem administra enquanto a pessoa digitava: a senha já conferiu. */
+      como = 'aplicativo';
+    } else {
+      const passo = conferirCodigo(decifrarSegredo(fator.secret_enc), codigo);
+      if (passo !== null) {
+        const { rows: [a] } = await this.db.query(`SELECT auth_aceitar_passo($1, $2) AS ok`, [fator.factor_id, passo]);
+        if (a.ok) como = 'aplicativo';
+      } else if (normalizarReserva(codigo).length === 10) {
+        const { rows: [r] } = await this.db.query(
+          `SELECT auth_usar_codigo_reserva($1, $2) AS ok`, [fator.factor_id, hashToken(normalizarReserva(codigo))]);
+        if (r.ok) como = 'reserva';
+      }
+    }
+    if (!como) {
+      /* O código errado conta na MESMA trava da senha: sem isto, quem tem a
+         senha pediria desafios novos e chutaria códigos sem parar. */
+      await this.db.query(`SELECT auth_registrar_tentativa($1, $2, false)`, [user.email, ip ?? null]);
+      await this.audit.log({ action: 'auth.segunda_etapa_falhou', actorId: d.user_id });
+      throw new UnauthorizedException(
+        'O código não confere. Confira se é o desta conta no aplicativo e digite o que está na tela agora.');
+    }
+    await this.db.query(`SELECT auth_gastar_desafio($1)`, [d.challenge_id]);
+    if (como === 'reserva') {
+      await this.audit.log({ action: 'auth.codigo_reserva_usado', actorId: d.user_id });
+    }
+    return this.abrirSessao(user, ip, userAgent, { segundaEtapa: como });
+  }
+
+  // ------------------------------------------- a própria pessoa liga e desliga
+
+  async minhaSegundaEtapa(user: AuthenticatedUser) {
+    const r = await this.db.asUser(user.id, async (c) =>
+      (await c.query(`SELECT * FROM app_minha_segunda_etapa()`)).rows[0]);
+    return { ligada: !!r?.ligada, desde: r?.desde ?? null, reservasRestantes: r?.reservas_restantes ?? 0 };
+  }
+
+  private async conferirSenha(user: AuthenticatedUser, senha: string) {
+    const { rows: [u] } = await this.db.query(`SELECT * FROM auth_find_user($1)`, [user.email]);
+    if (!u || !(await verifyPassword(senha ?? '', u.password_hash))) {
+      await this.audit.log({ action: 'auth.reauth_failed', actorId: user.id });
+      throw new UnauthorizedException('Senha incorreta.');
+    }
+  }
+
+  /** Começa a ligar: pede a senha, e devolve o segredo para o aplicativo. */
+  async iniciarSegundaEtapa(user: AuthenticatedUser, senha: string) {
+    await this.conferirSenha(user, senha);
+    const segredo = novoSegredo();
+    try {
+      await this.db.asUser(user.id, (c) => c.query(`SELECT app_iniciar_segunda_etapa($1)`, [cifrarSegredo(segredo)]));
+    } catch (e: any) {
+      if (String(e?.message).includes('segunda_etapa_ja_ligada')) {
+        throw new BadRequestException('As duas etapas já estão ligadas nesta conta.');
+      }
+      throw e;
+    }
+    return {
+      segredo: segredo.replace(/(.{4})/g, '$1 ').trim(),
+      endereco: enderecoDoAutenticador(segredo, user.email),
+    };
+  }
+
+  /** Liga de fato com o primeiro código certo, e entrega os códigos de reserva UMA vez. */
+  async confirmarSegundaEtapa(user: AuthenticatedUser, codigo: string) {
+    return this.db.asUser(user.id, async (c) => {
+      const { rows: [p] } = await c.query(`SELECT * FROM app_segunda_etapa_pendente()`);
+      if (!p) throw new BadRequestException('Comece de novo: não há ligação de duas etapas em andamento.');
+      const passo = conferirCodigo(decifrarSegredo(p.secret_enc), codigo);
+      if (passo === null) {
+        throw new BadRequestException(
+          'O código não confere. Confira se o aplicativo leu a conta certa e digite o que está na tela agora.');
+      }
+      const reservas = codigosDeReserva();
+      await c.query(`SELECT app_confirmar_segunda_etapa($1, $2, $3)`,
+        [p.factor_id, passo, reservas.map((r) => hashToken(normalizarReserva(r)))]);
+      await this.audit.log({ action: 'auth.segunda_etapa_ligada', actorId: user.id });
+      return {
+        ok: true, reservas,
+        aviso: 'Guarde estes códigos num lugar seguro, fora do celular. Cada um entra uma vez, '
+          + 'se o celular se perder. Eles não aparecem de novo.',
+      };
+    });
+  }
+
+  async desligarMinhaSegundaEtapa(user: AuthenticatedUser, senha: string) {
+    await this.conferirSenha(user, senha);
+    const ok = await this.db.asUser(user.id, async (c) =>
+      (await c.query(`SELECT app_desligar_minha_segunda_etapa() AS ok`)).rows[0].ok);
+    if (ok) await this.audit.log({ action: 'auth.segunda_etapa_desligada', actorId: user.id });
+    return { ok: true, desligada: !!ok };
   }
 
   async validate(token: string): Promise<AuthenticatedUser> {
