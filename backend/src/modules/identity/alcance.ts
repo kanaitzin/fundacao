@@ -77,6 +77,7 @@ export const AREAS = {
   alinhamentos: 'Reuniões e combinados da equipe',
   painel: 'Painel das unidades',
   sincronizacao: 'Sincronização',
+  implantacao: 'Saúde da implantação',
   setores: 'O que cada setor enxerga',
   cozinha: 'Cozinha — pedidos e restrições',
   portaria: 'Portaria — quem pode visitar',
@@ -549,6 +550,12 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
       { area: 'sincronizacao', titulo: AREAS.sincronizacao,
         faz: 'Resolve os conflitos de registro feitos sem sinal, escrevendo o que valeu.',
         servidor: 'Nenhuma versão é descartada; a decisão é um registro novo.' },
+      { area: 'implantacao', titulo: AREAS.implantacao,
+        faz: 'Só a Coordenação Geral: vê se o que roda sozinho no servidor está rodando — '
+          + 'o relógio das 5h, o aviso de meia hora, o backup, a restauração conferida, o '
+          + 'e-mail e a fila do Drive.',
+        servidor: 'A coordenação de uma casa não alcança: o servidor é das oito. Só '
+          + 'metadado, nunca endereço, nome ou documento.' },
       { area: 'painel', titulo: AREAS.painel,
         faz: 'Abre o quadro da casa: ocupação, entradas e saídas, ATAs fechadas e o que está '
           + 'esperando alguém.',
@@ -641,6 +648,10 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
       { area: 'acompanhamentos', titulo: AREAS.acompanhamentos, faz: 'Aprova e acompanha.' },
       { area: 'sincronizacao', titulo: AREAS.sincronizacao,
         faz: 'Acompanha e decide conflitos de sincronização.' },
+      { area: 'implantacao', titulo: AREAS.implantacao,
+        faz: 'Vê se o que roda sozinho no servidor está rodando — o relógio das 5h, o aviso '
+          + 'de meia hora, o backup, a restauração conferida, o e-mail e a fila do Drive.',
+        servidor: 'Só metadado: quando rodou e se deu certo. Nunca endereço, nome ou documento.' },
       { area: 'metricas', titulo: AREAS.metricas,
         faz: 'A TELA INICIAL dele: as oito casas em números, no período que escolher — '
           + 'crianças acolhidas, quem passou de ano, conquistas, reuniões, escala, '

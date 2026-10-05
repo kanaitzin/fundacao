@@ -57,7 +57,7 @@ if [[ "${1:-}" == "--ensaio" ]]; then
   echo
 
   echo "→ backup…"
-  BACKUP_DIR="$PASTA" bash "$RAIZ/scripts/backup.sh" "$PASTA" > /dev/null
+  BACKUP_NAO_ANOTAR=1 BACKUP_DIR="$PASTA" bash "$RAIZ/scripts/backup.sh" "$PASTA" > /dev/null
   DUMP="$(ls -d "$PASTA"/*/ | tail -1)banco.dump"
   [[ -f "$DUMP" ]] || { echo "✗ o backup não produziu banco.dump"; exit 1; }
 
@@ -110,6 +110,11 @@ if [[ "${1:-}" == "--ensaio" ]]; then
   echo
   "$PSQL" -X -c "DROP DATABASE IF EXISTS $DESTINO_DB" "$ADMIN" > /dev/null
   rm -rf "$PASTA"
+  # O painel de saúde da implantação (fase 185): a restauração CONFERIDA é a
+  # que vale, e ela fica anotada no banco de trabalho, deu certo ou não.
+  ok=$([[ $falhas -eq 0 ]] && echo true || echo false)
+  "$PSQL" -X -q -c "SELECT app_anotar_implantacao('restauracao', $ok, jsonb_build_object('falhas', $falhas))" \
+    "$ORIGEM" > /dev/null 2>&1 || echo "⚠ não consegui anotar a restauração no painel de saúde da implantação."
   if [[ $falhas -eq 0 ]]; then
     echo "✓ ciclo completo: backup → restauração → conferência, sem perda."
     exit 0

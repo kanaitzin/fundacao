@@ -14,6 +14,8 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { RelogioService } from './modules/relogio';
+import { DatabaseService } from './kernel/database/database.service';
+import { anotarImplantacao } from './kernel/implantacao/anotar';
 
 async function main() {
   const app = await NestFactory.createApplicationContext(AppModule, {
@@ -32,6 +34,8 @@ async function main() {
   } catch (e) {
     console.error(`relógio NÃO rodou: ${e instanceof Error ? e.message : String(e)}`);
     process.exitCode = 1;
+    /* Que não rodou também é anotado: é o caso que o painel mais precisa ver. */
+    await anotarImplantacao(app.get(DatabaseService), 'relogio', false, { motivo: 'nao_rodou' });
   } finally {
     await app.close();
   }

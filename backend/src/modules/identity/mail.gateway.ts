@@ -1,7 +1,9 @@
-import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional, ServiceUnavailableException } from '@nestjs/common';
 import { mkdirSync, appendFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createTransport, type Transporter } from 'nodemailer';
+import { DatabaseService } from '../../kernel/database/database.service';
+import { anotarImplantacao } from '../../kernel/implantacao/anotar';
 
 /**
  * PORTA PARA O E-MAIL INSTITUCIONAL.
@@ -45,8 +47,19 @@ export class MailGateway {
   private readonly caixa = process.env.EMAIL_DIR ?? '/tmp/rede-acolher-email';
   private transporte?: { chave: string; t: Transporter };
 
+  constructor(@Optional() @Inject(DatabaseService) private readonly db?: DatabaseService) {}
+
+  /*
+   * O painel de saúde da implantação (fase 185) lê se o último e-mail saiu.
+   * Anota-se o MODO e o código do erro; nunca o endereço nem o assunto.
+   */
+  private async anotar(ok: boolean, detalhe: Record<string, string | null> = {}) {
+    if (this.db) await anotarImplantacao(this.db, 'email', ok, { modo: process.env.EMAIL_MODO ?? 'arquivo', ...detalhe });
+  }
+
   async enviar(m: Mensagem): Promise<{ ok: true }> {
     if (process.env.EMAIL_MODO === 'falha') {
+      await this.anotar(false, { codigo: 'modo_de_teste' });
       throw new Error('Servidor de e-mail indisponível (modo de teste)');
     }
     if (process.env.EMAIL_MODO === 'smtp') return this.porSmtp(m);
@@ -59,6 +72,7 @@ export class MailGateway {
     // Metadado, não conteúdo: destinatário e assunto bastam para investigar
     // "o convite saiu?" sem que o log vire a chave da porta.
     this.log.log(`e-mail enfileirado para ${m.para} — ${m.assunto}`);
+    await this.anotar(true);
     return { ok: true };
   }
 
@@ -67,6 +81,7 @@ export class MailGateway {
     const host = process.env.SMTP_HOST?.trim();
     if (!remetente || !host) {
       this.log.error('EMAIL_MODO=smtp sem SMTP_HOST ou EMAIL_REMETENTE: nenhum e-mail sai');
+      await this.anotar(false, { codigo: 'sem_configuracao' });
       throw new ServiceUnavailableException(
         'O envio de e-mail não está configurado neste servidor. O convite não saiu; '
         + 'avise o suporte.');
@@ -78,11 +93,13 @@ export class MailGateway {
       /* O mesmo metadado do modo arquivo, e o identificador que o servidor deu:
          é o que o provedor pede para rastrear. Nunca o corpo. */
       this.log.log(`e-mail enviado para ${m.para} — ${m.assunto} · ${info.messageId}`);
+      await this.anotar(true);
       return { ok: true };
     } catch (e: any) {
       /* O código do erro, e não a mensagem inteira: a resposta do servidor
          pode repetir o endereço, e é o código que diz o que houve. */
       this.log.error(`e-mail para ${m.para} NÃO saiu · ${e?.code ?? 'sem código'} ${e?.responseCode ?? ''}`);
+      await this.anotar(false, { codigo: String(e?.code ?? e?.responseCode ?? 'sem_codigo') });
       throw new ServiceUnavailableException(
         'O servidor de e-mail não respondeu e o convite não saiu. Tente de novo em '
         + 'alguns minutos; se repetir, avise o suporte.');

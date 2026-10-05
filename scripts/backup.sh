@@ -35,6 +35,20 @@ PASTA="$DESTINO/$CARIMBO"
 
 PGBIN="$(ls -d /usr/lib/postgresql/*/bin 2>/dev/null | sort -V | tail -1 || true)"
 DUMP="${PGBIN:+$PGBIN/}pg_dump"
+PSQL="${PGBIN:+$PGBIN/}psql"
+
+# O PAINEL DE SAÚDE DA IMPLANTAÇÃO (fase 185) lê daqui que o backup rodou, e
+# como terminou. Só metadado: o carimbo e o tamanho, nunca o caminho de nada
+# de dentro. Anotar não derruba o backup: se o banco não responder, avisa e
+# segue. O ensaio de restauração faz um backup descartável e não anota
+# (BACKUP_NAO_ANOTAR=1): ele não é o backup da casa.
+anotar() {
+  [[ "${BACKUP_NAO_ANOTAR:-}" == "1" ]] && return 0
+  "$PSQL" -X -q -v ON_ERROR_STOP=1 -c \
+    "SELECT app_anotar_implantacao('backup', $1, jsonb_build_object('carimbo', '$CARIMBO', 'mb', ${2:-0}))" \
+    "$BANCO" > /dev/null 2>&1 || echo "⚠ não consegui anotar o backup no painel de saúde da implantação."
+}
+trap 'anotar false' ERR
 
 mkdir -p "$PASTA"
 echo "→ banco…"
@@ -84,6 +98,8 @@ find "$DESTINO" -maxdepth 1 -type d -name '20*' -mtime "+$RETER_DIAS" -exec rm -
 echo
 echo "✓ backup em $PASTA"
 du -sh "$PASTA"
+trap - ERR
+anotar true "$(du -sm "$PASTA" | cut -f1)"
 echo
 echo "LEMBRETE: a CREDENTIAL_KEY não está aqui, e sem ela o cofre não volta."
 echo "Um backup que nunca foi restaurado não é backup."

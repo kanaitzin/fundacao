@@ -20,7 +20,7 @@ começava escolhendo em qual acreditar.*
 
 | Arquivo | Por que sobreviveu |
 |---|---|
-| `der.md` | as 128 tabelas com o que cada coluna guarda. É referência de dado, não narrativa, e o `documentacao.spec.ts` cobra que toda tabela apareça lá |
+| `der.md` | as 129 tabelas com o que cada coluna guarda. É referência de dado, não narrativa, e o `documentacao.spec.ts` cobra que toda tabela apareça lá |
 | `roteiro-marcelo.md` (+ `.docx`) | é entregue à Casa 03, escrito para quem não conhece o sistema. O `.docx` é GERADO do `.md` por `scripts/roteiro-em-word.mjs` — não editar o Word à mão |
 
 ---
@@ -90,11 +90,11 @@ discordavam entre si.
 | Quanto | De onde sai |
 |---|---|
 | **18 partições** isoladas | pastas em `backend/src/modules/` |
-| **181 migrações** | `.sql` dentro das partições |
-| **128 tabelas** | `CREATE TABLE` nas migrações |
-| **128 suítes** | `backend/test/*.spec.ts` |
-| **1165 testes** | `it(` / `test(` nas suítes |
-| **36 telas React** | `frontend/src/screens/*.tsx` |
+| **182 migrações** | `.sql` dentro das partições |
+| **129 tabelas** | `CREATE TABLE` nas migrações |
+| **129 suítes** | `backend/test/*.spec.ts` |
+| **1177 testes** | `it(` / `test(` nas suítes |
+| **37 telas React** | `frontend/src/screens/*.tsx` |
 | **10 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **9 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
 | protótipo com **≈1466 KB** | `prototipo/rede-acolher-prototipo.html` |
@@ -117,10 +117,10 @@ fala de contagens sem colar nenhuma, de propósito.*
 
 | Ensaio | Resultado |
 |---|---|
-| `npm run ensaio` | 132 telas nos **sete** cargos oferecidos — Coordenação 28, Técnica 25, Gestor 26, Líder Diurno 17, Líder Noturno 14, Educador 13, Enfermagem 9. A Cozinha saiu do seletor em 09/09: o cargo continua no banco, oculto |
-| `npm run ensaio:acessibilidade` | 1036 telas — 148 em cada um dos SETE temas (claro, escuro, alto contraste, rosa, azul claro, verde e colorido) —, **nenhuma violação de WCAG 2.1 AA** |
+| `npm run ensaio` | 133 telas nos **sete** cargos oferecidos — Coordenação 28, Técnica 25, Gestor 27, Líder Diurno 17, Líder Noturno 14, Educador 13, Enfermagem 9. A Cozinha saiu do seletor em 09/09: o cargo continua no banco, oculto |
+| `npm run ensaio:acessibilidade` | 1043 telas — 149 em cada um dos SETE temas (claro, escuro, alto contraste, rosa, azul claro, verde e colorido) —, **nenhuma violação de WCAG 2.1 AA** |
 | `npm run ensaio:roteiro` | 49 tarefas do roteiro, **todas com porta no cargo certo** |
-| `npm run ensaio:celular` | 300 telas a 360 e 390 px, nos oito cargos, **nenhum achado** (fase 184) |
+| `npm run ensaio:celular` | 302 telas a 360 e 390 px, nos oito cargos, **nenhum achado** (fase 184) |
 | `npm run ensaio:uso` | 247 cobranças em 19 blocos, **todas passando** — e todos os cargos completando o percurso. O bloco 14 nasceu na fase 107 e cresceu na 108: abre as prévias e cobra que o olho devolva uma **imagem**, e não o nome de um arquivo — e que a lista diga **antes do clique** se o documento está no sistema ou no Drive |
 | `bash scripts/simulacao-da-casa.sh 90` | **a ARM1 nasce e vive noventa dias** com o relógio andando, os relatórios conferidos contra o que ela contou, os documentos lidos na voz do papel, e no fim as telas abertas no navegador **contra o servidor de verdade** (`frontend/ensaio-servidor.mjs`): 12 contas, 179 telas, **nenhum achado**. Recria o banco; não roda junto com a suíte |
 | `bash scripts/simulacao-da-casa.sh 365` | **um ano inteiro de casa** (fase 174): tudo o que ela contou bate com os relatórios; nenhuma leitura ou relatório acima de 174 ms; o banco cresce cerca de 22 MB por casa por ano; 12 contas e 179 telas contra o servidor de verdade, **nenhum achado** |
@@ -393,6 +393,7 @@ arqueologia.
 | 182 | **A tela em outras cores, pela questão pedagógica** (pedido de 30/09: *"cor rosa na tela mas legível as letras, um azul claro, um verde, um colorido"*). Quatro temas novos, todos claros e com a letra escura, ao lado do claro, do escuro e do alto contraste: **Rosa, Azul claro, Verde e Colorido** (fundo em degradê suave, a faixa do topo com as cores do arco-íris, e um azulejo de cor em cada porta da coluna). Mudam o fundo, a moldura e a cor da marca, **nunca as três cores que querem dizer alguma coisa** (estado, autor e cargo): o verde do *concluída* e o vermelho do *crítico* são os mesmos em todos. Com sete, a roda de um botão pediria seis toques para voltar ao claro, e o botão passou a abrir a folha **"Cor da tela"**, com uma amostra de cada. **De passagem, um defeito de véspera:** o escuro do sistema operacional valia para *qualquer tema que não fosse claro nem contraste*, e num celular em modo escuro o rosa viria pintado por cima de escuro; agora ele vale só quando ninguém escolheu tema. O `ensaio:acessibilidade` mede os sete, e a folha nova junto: **1029 telas sem violação de WCAG 2.1 AA**; o `ensaio:uso` escolhe na folha, confere que fica lembrado no aparelho e volta ao claro. |
 | 183 | **Três das ideias de 30/09 que não dependiam de ninguém: a letra maior, o escuro à noite e a busca de criança.** (1) **O tamanho da letra** (Normal, Grande, Maior), guardado no aparelho como a cor: é um `zoom` da página inteira, para o botão crescer junto com a palavra; a 360 px a tela não vaza para o lado (as pílulas longas passam a quebrar a linha, e o nome das cinco abas de baixo encolhe dentro do zoom para *Chamada* e *Acolhidos* caberem inteiros). (2) **O escuro automático das 20h às 8h** de Porto Alegre, para quem ligar: vale por cima da cor escolhida e não a apaga, e de minuto em minuto a tela confere a hora. A folha virou **"Cor e letra da tela"** e marca a cor ESCOLHIDA, não a que está na tela. (3) **A busca de criança** no topo, por nome ou nome social, sem acento, só na casa aberta e só para quem vê os acolhidos; escolher abre o perfil dela. *O ensaio achou um defeito meu na mesma hora:* depois da busca, voltar à aba Acolhidos reabria a criança buscada em vez da lista; a escolha agora vale para uma abertura só, e o ensaio cobra a volta à lista. O `ensaio:uso` abre o escuro em duas páginas com o relógio do navegador às 22h e às 10h, e o `ensaio:acessibilidade` passa pela folha da busca nos sete temas. |
 | 184 | **O sistema no celular, setor por setor.** Pedido da Fundação em 05/10: *"veja como está pelo celular, todas as telas, se tudo fica no seu devido lugar, se tudo está funcionando, teste como cada setor"*. Nasceu o **`npm run ensaio:celular`** (`frontend/ensaio-celular.mjs`): um celular de verdade (toque, densidade dupla, navegador em português) a 360 e a 390 px, os oito cargos, todas as abas de baixo, a folha "Mais" e cada porta dela, 300 telas. Em cada uma mede o que a pessoa sente no dedo e o axe não mede: tela que anda para o lado, coisa que passa da borda, texto cortado com reticências, **texto que não cabe no próprio botão**, **botões vizinhos encostados**, alvo de toque abaixo de 24 px, conteúdo escondido atrás da barra e erro de página; e guarda a foto de cada tela. **A primeira rodada achou, e foi consertado:** o nome de três das cinco abas de baixo cortado com reticências (*Chama…*, *Acolhi…*, *Passag…*) nos dois tamanhos; as abas da Cozinha com 21 px de altura (a classe `seg` não tinha estilo nenhum; viraram o controle segmentado das outras telas); as pílulas de cor da Equipe com 23 px; **botões de ação encostados** em quatro telas (Substituir e Retirar na escala, Liberar e Negar na ATA, Remédios e Relato nos Acolhidos, Registrar conquista e Relatório em Word no trabalho social), onde o toque erra para o vizinho; *Acompanhamentos*, *Compras* e *Esquemas* vazando da pílula nas abas internas (no celular cada uma fica do tamanho do que escreve, e o que não cabe desce de linha); **a portaria**, que tem uma tela só, ganhava uma barra com um *Mais* sozinho que abria uma folha com a tela onde ela já estava; e a volta de quem está com a família dizia *"qua., 18:00"* (agora *"quarta às 18:00"*). **E o `npm run ensaio:uso-celular`**: o percurso inteiro do `ensaio:uso`, botão por botão e lendo de volta o que ficou gravado, como um celular de 360 px; ele achou que o próprio ensaio ainda procurava as abas da Cozinha pela classe antiga. **E as duas escolhas de desenho, feitas pela Fundação em 05/10:** no celular (abaixo de 1080 px) **a barra das abas fica no pé da tela, sempre à vista**, onde o polegar alcança (o Dia tem umas oito telas de altura, e para trocar de aba era preciso voltar ao topo; o rodapé que acompanha a rolagem dos formulários sobe junto para não ficar atrás dela); e **o topo virou uma linha**: a marca, a busca, os avisos e o círculo da pessoa, que é o botão **Minha conta** e abre a folha com o nome, o cargo, a casa, o e-mail, a cor e a letra da tela, a troca de senha e o Sair. O nome continua sendo o `h1` da página para o leitor de tela. No monitor nada mudou. De passagem, no Gestor Geral o *Mais* aparecia marcado junto com o *Painel*; e no toque a aba tocada antes ficava acinzentada (o fundo de passar o mouse, que o celular prende até o próximo toque) e parecia ainda escolhida. No visor de fotos do dossiê, Anterior e Próxima foram para o rodapé, porque no celular a foto ocupa a tela e o Fechar os cobria. *O que ficou de fora, dito para não virar promessa:* o campo de data aparece como *mm/dd/aaaa* nas fotos porque o Chromium do ensaio desenha o calendário no idioma dele, e não no da página; num celular em português ele sai *dd/mm/aaaa*. |
+| 185 | **A saúde da implantação** (ideia 9 de 30/09; quem vê decidido em 05/10: Gestor Geral e Coordenação Geral). O que roda sozinho no servidor não tinha tela, e a primeira notícia de que parou era a casa dizendo que o remédio sumiu. Agora **o relógio das 5h, o aviso de meia hora antes do fim do plantão, o e-mail, o `backup.sh` e o `restaurar.sh --ensaio` anotam como terminaram** numa tabela só (`implantacao_evento`, relogio/1641), com **só metadado** (o tipo, se deu certo, números e códigos; nunca endereço, assunto ou caminho, e detalhe grande é recusado), imutável, sem leitura nem escrita direta pela aplicação. A tela **Saúde da implantação** (grupo *Sistema*) mostra seis sinais, cada um *em dia*, *atenção*, *parado* ou *sem registro*, com a frase do que fazer, e a fila do Drive em contagens. **A regra de cada sinal mora num arquivo sem dependências** (`implantacao.regra.ts`), lido pelo servidor e pelo protótipo, como o `alcance.ts`: a demonstração diz o que o servidor diria. Anotar nunca derruba quem anota: o convite que saiu não vira erro porque a anotação falhou. *Dois cuidados que o próprio ensaio pediu:* o backup descartável do ensaio de restauração não anota (senão o painel diria *backup em dia* sem backup da casa), e o relógio que **não rodou** também anota, que é o caso que o painel mais precisa mostrar. **E uma correção do que eu tinha oferecido:** a *conta técnica* da pergunta está aposentada desde 01/09; o servidor a aceita se alguma existir, mas quem vê na prática é o Gestor Geral e a Coordenação Geral. Provado com os scripts de verdade (o `backup.sh` e o `ensaio:restauracao` anotaram, o do ensaio não), com a suíte `a-saude-da-implantacao` (quem lê e quem não, o e-mail que falha aparecendo parado e voltando a em dia pela rota, nenhum endereço na anotação, a regra de cada sinal com o instante como parâmetro, e que cada um que roda sozinho continua anotando) e no `ensaio:uso`. |
 
 ---
 
@@ -440,7 +441,7 @@ cd frontend && npm run prototipo
 ```
 
 O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as
-181 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
+182 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
 
 ### Os ensaios — e por que cada um existe
 
@@ -448,7 +449,7 @@ O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as
 
 | Comando | O que ele faz |
 |---|---|
-| `npm run ensaio` | percorre as 132 telas dos sete cargos oferecidos num navegador de verdade, cobrando que nenhuma deixe erro no console, que escreva alguma coisa e que não mostre `undefined` para quem lê. **Tela nova entra neste percurso.** |
+| `npm run ensaio` | percorre as 133 telas dos sete cargos oferecidos num navegador de verdade, cobrando que nenhuma deixe erro no console, que escreva alguma coisa e que não mostre `undefined` para quem lê. **Tela nova entra neste percurso.** |
 | `npm run ensaio:fila` | corta o sinal, marca a chamada, fecha e abre o aplicativo, religa, e confere que **só o que o servidor confirmou** saiu do aparelho |
 | `npm run ensaio:folhas` | os caminhos de documento até o arquivo baixar: abre a folha, tenta baixar com finalidade curta demais, baixa com frase válida, confere que o `.docx` chegou |
 | `npm run ensaio:roteiro` | cobra que as 49 tarefas do roteiro do Marcelo tenham porta no cargo certo. Não simula a procura de uma pessoa — mas impede o fracasso barato: a tarefa não ter porta, e isso aparecer diante da equipe |
@@ -507,12 +508,12 @@ rede-acolher/
 │   │   │   ├── documentos/     o contrato da folha e o gerador de .docx
 │   │   │   └── common/         CPF, criptografia, segredo, fuso da instituição
 │   │   └── modules/       18 partições, cada uma dona das próprias migrações
-│   ├── test/              128 suítes (e2e contra PostgreSQL real + estáticas)
+│   ├── test/              129 suítes (e2e contra PostgreSQL real + estáticas)
 │   ├── scripts/           ensaio-carga.ts, migrador compilado
 │   └── assets/timbre.png  a marca da Fundação, usada no documento em Word
 ├── frontend/
 │   ├── src/
-│   │   ├── screens/       36 telas React
+│   │   ├── screens/       37 telas React
 │   │   ├── mock.ts        o "servidor de mentira" do protótipo
 │   │   ├── docx.ts        monta o .docx NO NAVEGADOR — só para o protótipo, que
 │   │   │                  roda sem servidor. No sistema real quem gera é o
@@ -1866,9 +1867,8 @@ Cada uma tem uma decisão que é da Fundação, e está dita ao lado.*
 8. **Duas etapas para entrar** (código no aplicativo autenticador) para
    coordenação, Coordenação Geral e gestor, que alcançam mais de uma casa ou a
    casa inteira. *Decisão:* quem é obrigado.
-9. **Um painel de saúde da implantação** para quem cuida do servidor: o último
-   backup restaurado, o relógio que rodou às 5h, a fila do Drive, o último e-mail
-   que saiu. Sem decisão pendente.
+9. ~~**Um painel de saúde da implantação**~~ ✅ **Feito na 185** (§12.10). Quem vê,
+   decidido em 05/10: Gestor Geral e Coordenação Geral.
 10. **Teste com gente de verdade.** O axe mede contraste e rótulo; não mede se a
     educadora acha o botão. Uma hora com duas pessoas da Casa 03, com o roteiro e
     o cronômetro (quanto tempo para registrar uma dose, uma ocorrência), mede a
@@ -2873,7 +2873,7 @@ ele continua dizendo que o arquivo existe.
 npm run ensaio:producao
 ```
 
-Constrói, cria um banco virgem, aplica as 181 migrações **pelo binário
+Constrói, cria um banco virgem, aplica as 182 migrações **pelo binário
 compilado**, sobe o serviço e confere `/health`. Não publica nada e não toca no
 banco de trabalho.
 
@@ -3099,6 +3099,23 @@ Com nginx, o equivalente pede `client_max_body_size 30m;`, o
 firewall**: quem chega de fora chega pelo proxy. A suíte que cobra o lado do
 serviço é a `a-porta-para-a-internet.e2e.spec.ts`; a escolha do endereço, do
 certificado e de onde roda é do §12.8, pergunta 4.
+
+### 12.10 A saúde da implantação — o que roda sozinho, à vista
+
+Desde a fase 185, o relógio das 5h, o aviso de meia hora antes do fim do plantão,
+o e-mail, o `backup.sh` e o `restaurar.sh --ensaio` **anotam como terminaram**
+(`implantacao_evento`, só metadado), e a tela **Saúde da implantação**, no grupo
+*Sistema*, mostra cada um como *em dia*, *atenção* ou *parado*, com a frase do que
+fazer, junto da fila do Drive. Quem vê: Gestor Geral e Coordenação Geral
+(decisão de 05/10). Os prazos: relógio e backup, 26 horas; o aviso de meia hora,
+25 minutos (atenção até 2 horas); a restauração conferida, 35 dias; a fila do
+Drive, um dia de espera ou qualquer falha.
+
+**O que isto pede da implantação:** nada além do que já está aqui. O `backup.sh`
+anota pela mesma `DATABASE_URL` que usa para o dump; o ensaio de restauração anota
+no banco de trabalho e o backup descartável dele não se passa pelo da casa. **O que
+o painel não faz:** avisar sozinho. Ele mostra quando alguém abre; o `MAILTO` do
+cron (§12.7) continua sendo o aviso de quem cuida do servidor.
 
 ---
 

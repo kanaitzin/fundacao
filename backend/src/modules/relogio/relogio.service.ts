@@ -6,6 +6,7 @@ import { MedicationsService } from '../medications';
 import { ActivitiesService, AgendaService } from '../activities';
 import { AniversariosService, PiaService } from '../people';
 import { hojeNaInstituicao } from '../../kernel/common/tempo';
+import { anotarImplantacao } from '../../kernel/implantacao/anotar';
 
 /**
  * O RELÓGIO — o que roda sozinho, todo dia, em todas as casas (fase 103).
@@ -112,6 +113,9 @@ export class RelogioService {
       action: 'relogio.dia', actorId: user.id, institutionId: user.institutionId,
       detail: { dia, casas: casas.length, rotinas: resultado.length, falhas: falhas.length },
     });
+    /* O painel de saúde da implantação (fase 185) lê daqui que o dia nasceu. */
+    await anotarImplantacao(this.db, 'relogio', falhas.length === 0,
+      { dia, casas: casas.length, rotinas: resultado.length, falhas: falhas.length });
     return {
       dia, casas: casas.length,
       rodadas: resultado.length - falhas.length,

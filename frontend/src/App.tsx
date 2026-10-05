@@ -33,6 +33,7 @@ import { Transferencias } from './screens/Transferencias';
 import { Acompanhamentos } from './screens/Acompanhamentos';
 import { Painel } from './screens/Painel';
 import { Sincronizacao } from './screens/Sincronizacao';
+import { Implantacao } from './screens/Implantacao';
 import { Alinhamentos } from './screens/Alinhamentos';
 import { Arquivo } from './screens/Arquivo';
 import { Rotina } from './screens/Rotina';
@@ -65,7 +66,7 @@ const KIND_TONE: Record<string, string> = { casa_lar: 'c-move', abrigo_instituci
 /** As telas que não são do turno; a aba "Mais" fica acesa quando uma delas está aberta. */
 const OUTRAS = new Set(['agenda', 'equipe', 'casas', 'saude', 'internacao', 'impacto', 'ocorrencias', 'ata',
   'cofre', 'transferencias', 'acompanhamentos', 'arquivo', 'setores', 'unidades', 'plantao', 'trabalho', 'periodo', 'metricas',
-  'rotina', 'escala', 'alinhamentos', 'painel', 'sincronizacao']);
+  'rotina', 'escala', 'alinhamentos', 'painel', 'sincronizacao', 'implantacao']);
 /* O sino é de todo mundo: não há cargo que não receba escalonamento. */
 
 
@@ -302,7 +303,7 @@ export function App() {
     | 'saude' | 'internacao' | 'impacto' | 'ocorrencias' | 'ata' | 'cofre' | 'transferencias'
     | 'acompanhamentos' | 'arquivo' | 'plantao' | 'unidades' | 'setores' | 'cozinha' | 'portaria' | 'campos_do_perfil'
     | 'trabalho' | 'periodo' | 'metricas'
-    | 'alinhamentos' | 'painel' | 'sincronizacao'
+    | 'alinhamentos' | 'painel' | 'sincronizacao' | 'implantacao'
     | 'rotina' | 'escala' | 'avisos' | null>(null);
   /* Vale para UMA abertura: saindo dos Acolhidos, a escolha some. Sem isto,
      voltar à aba reabria a criança buscada antes, em vez da lista. */
@@ -480,7 +481,11 @@ export function App() {
    * Nulo significa "a minha" — o vínculo, ou a primeira do alcance. Quem tem
    * uma casa só nunca vê nada disto.
    */
-  const ve = (area: string) => alcanca(me.role, area);
+  /* A saúde da implantação é do servidor das oito: na coordenação, só a
+     Coordenação Geral a alcança (decisão de 05/10). O mapa é por cargo, e esta
+     é a única área que depende da marca. */
+  const ve = (area: string) => (area === 'implantacao' && me.role === 'coordenador'
+    ? !!me.todasAsCasas : alcanca(me.role, area));
   const administra = ve('equipe');
   const veSaude = ve('saude');
   const veCofre = ve('cofre');
@@ -951,6 +956,8 @@ export function App() {
                          casaLabel={`${casaAtual.code} — ${casaAtual.name}`}
                          papel={me.role} />
         )}
+
+        {abaEfetiva === 'implantacao' && ve('implantacao') && <Implantacao />}
 
         {abaEfetiva === 'arquivo' && veArquivo && casaAtual && (
           <Arquivo houseId={casaAtual.id} papel={me.role} />

@@ -79,6 +79,8 @@ const DESENHOS: Record<string, string[]> = {
   acompanhamentos:['M7 3h7l5 5v9a3 3 0 0 1-3 3H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z',
              'M14 3v5h5', 'M9 13h6', 'M9 17h4'],
   unidades: ['M4 4h7v7H4z', 'M13 4h7v7h-7z', 'M4 13h7v7H4z', 'M13 13h7v7h-7z'],
+  /* O pulso (fase 185): o que roda sozinho está vivo? */
+  pulso:    ['M3 12h4l2.5-6 4 12 2.5-6H21'],
   sincronizacao:['M20 12a8 8 0 0 1-13.7 5.6', 'M4 12a8 8 0 0 1 13.7-5.6',
              'M4 18.5V13h5.5', 'M20 5.5V11h-5.5'],
   arquivo:  ['M3 6.5h18V10H3z', 'M4.5 10v9a1 1 0 0 0 1 1h13a1 1 0 0 0 1-1v-9', 'M10 14h4'],

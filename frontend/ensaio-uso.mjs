@@ -3303,6 +3303,29 @@ await pg.waitForTimeout(1400);
 cobrar('escolhida a Casa 03, o dia dela abre', /AI3/.test(await conteudo()));
 cobrar('nenhuma exceção na Coordenação Geral', erros.length === 0, erros[0]);
 
+/*
+ * A SAÚDE DA IMPLANTAÇÃO (fase 185): da Coordenação Geral e do Gestor, e não
+ * da coordenação de uma casa. A tela diz cada sinal com a frase do servidor, e
+ * a restauração conferida há quarenta dias aparece como ATENÇÃO.
+ */
+console.log('\n🩺 A saúde da implantação (fase 185)');
+cobrar('a Coordenação Geral abre a saúde da implantação', await doMais('Saúde da implantação'));
+const saude185 = await conteudo();
+cobrar('ela diz o relógio, o backup, o e-mail e a fila do Drive',
+  ['O relógio das 5h', 'O backup da madrugada', 'O e-mail', 'A fila do Drive', 'A restauração conferida']
+    .every((t) => saude185.includes(t)), saude185.slice(0, 300));
+cobrar('e a restauração de quarenta dias é atenção, com o que fazer',
+  /Atenção/.test(saude185) && /uma vez por mês/.test(saude185));
+cobrar('nenhuma exceção na saúde da implantação', erros.length === 0, erros[0]);
+await pg.goto(`file://${ARQUIVO}`);
+await pg.waitForTimeout(900);
+await pg.getByRole('button', { name: /Entrar no sistema/i }).click();
+await pg.waitForTimeout(1200);
+await trocar('coordenador');
+cobrar('a coordenação de uma casa não tem a porta', !(await doMais('Saúde da implantação')));
+await trocar('gestor_geral');
+cobrar('o Gestor Geral tem', await doMais('Saúde da implantação'));
+
 await navegador.close();
 console.log(achados.length
   ? `\n${achados.length} ACHADO(S):\n  ${achados.join('\n  ')}`

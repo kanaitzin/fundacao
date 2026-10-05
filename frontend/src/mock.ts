@@ -28,6 +28,7 @@ import {
 } from './turno';
 import { SemConexao, ErroApi } from './api';
 import { ALCANCE_POR_CARGO } from '../../backend/src/modules/identity/alcance';
+import { avaliar, avaliarDrive, TITULOS } from '../../backend/src/modules/relogio/implantacao.regra';
 import { TIPOS_OFFLINE, TIPOS_OFFLINE_KINDS } from '../../backend/src/modules/sync/tipos-offline';
 import { cargoNoDocumento, nomeDoArquivo as nomeDaFolha }
   from '../../backend/src/kernel/documentos/folha';
@@ -5326,6 +5327,40 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
    * que tinha rede. Nenhuma das duas está "errada"; o que resolve é a frase
    * que a equipe escreve, e é ela que fica ao lado das duas versões.
    */
+  /*
+   * A SAÚDE DA IMPLANTAÇÃO (fase 185). A regra é a MESMA do servidor
+   * (`implantacao.regra.ts`); o que é de demonstração são os instantes: o
+   * relógio rodou às 5h, o aviso de meia hora há poucos minutos, o backup de
+   * madrugada, um e-mail que falhou anteontem, e a restauração conferida há
+   * quarenta dias, para a tela mostrar o que é ATENÇÃO.
+   */
+  if (rota === '/implantacao/saude' && metodo === 'GET') {
+    if (!(eu.role === 'gestor_geral' || (eu.role === 'coordenador' && TODAS_AS_CASAS.has(eu.id)))) {
+      throw new Error('A saúde da implantação é do Gestor Geral e da Coordenação Geral.');
+    }
+    const agora = Date.now();
+    const antes = (horas: number) => new Date(agora - horas * 3_600_000).toISOString();
+    const hora = Number(new Date().toLocaleString('en-US', { hour: 'numeric', hour12: false, timeZone: 'America/Sao_Paulo' }));
+    const desdeAs = (h: number) => (hora >= h ? hora - h : hora + 24 - h) + 0.2;
+    const ok = (horas: number, falhas7d = 0) => ({
+      ultimo: { em: antes(horas), ok: true, detalhe: {} }, ultimoOk: antes(horas), falhas7d });
+    const eventos: Record<string, ReturnType<typeof ok>> = {
+      relogio: ok(desdeAs(5)),
+      fim_do_plantao: ok(0.07),
+      backup: ok(desdeAs(2)),
+      restauracao: ok(24 * 40),
+      email: ok(3, 1),
+    };
+    return {
+      agora: new Date(agora).toISOString(),
+      sinais: [
+        ...TITULOS.map(([cod, titulo]) => ({ cod, titulo, ...avaliar(cod, eventos[cod], agora) })),
+        { cod: 'drive', titulo: 'A fila do Drive',
+          ...avaliarDrive({ aguardando: 2, falhou: 0, maisAntigoAguardando: antes(1), ultimoEnviado: antes(0.5) }, agora) },
+      ],
+    };
+  }
+
   if (rota === '/sync/status' && metodo === 'GET') {
     return {
       aplicadas: 12,

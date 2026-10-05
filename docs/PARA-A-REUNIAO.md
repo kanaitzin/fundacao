@@ -18,8 +18,13 @@
 > depois das 21h em Porto Alegre semeava o dia seguinte — o dia de hoje nascia
 > sem dose nenhuma. **Nada no sistema; tudo no dado de partida.**
 
-- **184 fases.** 128 suítes e 1165 testes, verdes em duas condições de relógio —
+- **185 fases.** 129 suítes e 1177 testes, verdes em duas condições de relógio —
   antes e depois da virada do UTC, que em Porto Alegre é às 21h.
+- **A saúde da implantação** (fase 185): o relógio das 5h, o aviso de meia hora,
+  o backup, a restauração conferida, o e-mail e a fila do Drive numa tela só,
+  para o Gestor Geral e a Coordenação Geral. Cada um aparece *em dia*, *atenção*
+  ou *parado*, com o que fazer. A tela não avisa sozinha: mostra quando alguém
+  abre. Se a Fundação quiser que o *parado* vire aviso no sino, é uma decisão.
 - **O sistema foi aberto no celular, cargo por cargo** (fase 184): 300 telas a
   360 e 390 px, e o percurso inteiro de uso apertando os botões num celular.
   Abas de baixo com o nome cortado, botões encostados onde o dedo erra para o

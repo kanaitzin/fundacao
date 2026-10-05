@@ -1,6 +1,6 @@
 {
   "name": "relogio",
-  "descricao": "O que roda sozinho, todo dia, em todas as casas (§12.7): doses geradas da prescrição, atividades da rotina, escalonamento do que atrasou, aviso de aniversário. Sem ele, o dia amanhece vazio.",
+  "descricao": "O que roda sozinho, todo dia, em todas as casas (§12.7): doses geradas da prescrição, atividades da rotina, escalonamento do que atrasou, aviso de aniversário. Sem ele, o dia amanhece vazio. E onde o que roda sozinho no servidor deixa dito que rodou (fase 185).",
   "depends": [
     "identity",
     "medications",
@@ -9,7 +9,13 @@
   ],
   "publica": [
     "RelogioModule",
-    "RelogioService"
+    "RelogioService",
+    "ImplantacaoService"
   ],
-  "tabelas": []
+  "tabelas": [
+    "implantacao_evento"
+  ],
+  "dependeDoEsquemaDe": [
+    "archive"
+  ]
 }

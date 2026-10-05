@@ -906,7 +906,7 @@ criança, e log não copia conteúdo sensível (§5). A auditoria guarda o ato �
 coordenação, Líder Diurno). Mais ninguém: a lista de quem pediu para ler o quê é,
 ela mesma, informação sobre o caso.
 
-## Inventário — 128 tabelas por partição
+## Inventário — 129 tabelas por partição
 
 | Partição | Tabelas |
 |---|---|
@@ -925,9 +925,21 @@ ela mesma, informação sobre o caso.
 | routine (2) | routine_version, routine_item |
 | statements (3) | witness_option, statement, statement_request |
 | sync (2) | offline_operation, sync_conflict |
+| relogio (1) | implantacao_evento |
 
 Cada partição guarda as próprias migrações. Remover um módulo é remover a
 pasta dele — e é por isso que a lista acima é por partição, e não por assunto.
+
+### `implantacao_evento` — a saúde da implantação (fase 185, relogio/1641)
+O QUE RODA SOZINHO DEIXA DITO QUE RODOU: `tipo` (`backup`, `restauracao`,
+`relogio`, `fim_do_plantao`, `email`), `ok`, `em` e `detalhe` (jsonb, só
+metadado: números e códigos, nunca endereço, nome ou caminho; acima de 1000
+caracteres é recusado). Escreve `app_anotar_implantacao`, chamada pelo relógio,
+pelo aviso de meia hora, pelo `MailGateway` e, pelo `psql`, pelo `backup.sh` e
+pelo `restaurar.sh --ensaio`. Imutável (gatilho recusa UPDATE e DELETE). Ninguém
+lê nem escreve direto: `app_saude_da_implantacao` devolve, por tipo, o último
+evento, o último que deu certo e as falhas de sete dias, e a fila do Drive em
+contagens; só para Gestor Geral, Coordenação Geral e conta técnica.
 
 ### `app_user_role_period` — o cargo da época
 O CARGO DE CADA PESSOA, POR PERÍODO (fase 165, identity/1620): `user_id`,
