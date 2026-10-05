@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import { ROTULO_CARGO } from './rotulos';
-import { aplicarTema, nomeDoTema, temaAtual, TEMAS, type Tema } from './tema';
+import {
+  aplicarTema, nomeDoTema, temaAtual, temaGuardado, TEMAS, type Tema,
+  LETRAS, letraGuardada, aplicarLetra, type Letra, escuroANoiteLigado, ligarEscuroANoite,
+} from './tema';
 import { Icone } from './icones';
 import { Cargo } from './cargos';
 import { PORTAS, GRUPOS } from './portas';
@@ -136,12 +139,16 @@ const CARGOS_DEMO = [
  * todos lado a lado, e a amostra de cada um.
  */
 function BotaoTema() {
-  const [tema, setTema] = useState<Tema>(() => temaAtual());
+  /* A folha marca a cor ESCOLHIDA, e não a que está na tela: à noite, com o
+     escuro automático, a tela está escura e a escolha continua sendo o rosa. */
+  const [tema, setTema] = useState<Tema>(() => temaGuardado() ?? temaAtual());
+  const [letra, setLetra] = useState<Letra>(() => letraGuardada());
+  const [noite, setNoite] = useState(() => escuroANoiteLigado());
   const [aberto, setAberto] = useState(false);
   return (
     <>
       <button className="iconbtn" title={`Cor da tela: ${nomeDoTema(tema)}`}
-              aria-label={`Escolher a cor da tela (agora: ${nomeDoTema(tema)})`}
+              aria-label={`Escolher a cor da tela e o tamanho da letra (agora: ${nomeDoTema(tema)})`}
               onClick={() => setAberto(true)}>
         <Icone nome="tema" />
       </button>
@@ -149,7 +156,7 @@ function BotaoTema() {
         <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-tema"
              onClick={(e) => { if (e.target === e.currentTarget) setAberto(false); }}>
           <div className="sheet">
-            <h3 id="t-tema">Cor da tela</h3>
+            <h3 id="t-tema">Cor e letra da tela</h3>
             <p className="mutetxt">
               Vale só neste aparelho. As cores que avisam alguma coisa (o que está pendente,
               quem escreveu, o cargo de cada um) são as mesmas em todas.
@@ -163,6 +170,76 @@ function BotaoTema() {
                 </button>
               ))}
             </div>
+            {/* A noite e a letra (fase 183): as duas preferências que a equipe
+                mais muda no turno, ao lado da cor. */}
+            <label className="prefs-noite">
+              <input type="checkbox" checked={noite}
+                     onChange={(e) => { ligarEscuroANoite(e.target.checked); setNoite(e.target.checked); }} />
+              <span>Escuro automático das 20h às 8h. De manhã, a tela volta à cor escolhida.</span>
+            </label>
+            <div className="eyebrow" id="t-letra">Tamanho da letra</div>
+            <div className="prefs-linha" role="group" aria-labelledby="t-letra">
+              {LETRAS.map((l) => (
+                <button key={l.cod} aria-pressed={letra === l.cod}
+                        onClick={() => { aplicarLetra(l.cod); setLetra(l.cod); }}>
+                  {l.nome}
+                </button>
+              ))}
+            </div>
+            <button className="btn sec block" onClick={() => setAberto(false)}>Fechar</button>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+/*
+ * A BUSCA DE CRIANÇA (fase 183): pelo nome ou pelo nome social, de qualquer
+ * tela, só na casa aberta e só para quem vê os acolhidos. Escolher leva ao
+ * perfil dela. É a lista que a casa já lê, filtrada aqui: não há busca por
+ * pessoa da equipe, nem entre casas.
+ */
+function BuscaCrianca({ houseId, onAbrir }: { houseId: string; onAbrir: (id: string) => void }) {
+  const [aberto, setAberto] = useState(false);
+  const [termo, setTermo] = useState('');
+  const [lista, setLista] = useState<{ id: string; nome: string; idade: number }[] | null>(null);
+  const [erro, setErro] = useState('');
+  useEffect(() => {
+    if (!aberto) return;
+    setErro('');
+    api<{ id: string; nome: string; idade: number }[]>(`/people?houseId=${houseId}`)
+      .then(setLista).catch((e) => setErro(e instanceof Error ? e.message : 'Não foi possível buscar.'));
+  }, [aberto, houseId]);
+  const sem = (t: string) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  const achadas = (lista ?? []).filter((p) => termo.trim() && sem(p.nome).includes(sem(termo.trim())));
+  return (
+    <>
+      <button className="iconbtn" title="Buscar criança" aria-label="Buscar criança pelo nome"
+              onClick={() => { setTermo(''); setAberto(true); }}>
+        <Icone nome="busca" />
+      </button>
+      {aberto && (
+        <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-busca"
+             onClick={(e) => { if (e.target === e.currentTarget) setAberto(false); }}>
+          <div className="sheet">
+            <h3 id="t-busca">Buscar criança</h3>
+            <label className="f" htmlFor="busca-crianca">Nome ou nome social</label>
+            <input id="busca-crianca" className="field" type="search" autoFocus value={termo}
+                   onChange={(e) => setTermo(e.target.value)} placeholder="Comece a digitar" />
+            {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+            <ul className="lista" aria-live="polite">
+              {achadas.map((p) => (
+                <li key={p.id}>
+                  <button className="btn ghost block" onClick={() => { setAberto(false); onAbrir(p.id); }}>
+                    {p.nome} <span className="mutetxt">· {p.idade} anos</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+            {termo.trim() && lista && !achadas.length && (
+              <p className="mutetxt">Nenhuma criança desta casa com esse nome.</p>
+            )}
             <button className="btn sec block" onClick={() => setAberto(false)}>Fechar</button>
           </div>
         </div>
@@ -218,6 +295,9 @@ export function App() {
   const [houses, setHouses] = useState<House[]>([]);
   const [erro, setErro] = useState('');
   const [ocupado, setOcupado] = useState(false);
+  /* A criança escolhida na busca do topo (fase 183): a tela de Acolhidos abre
+     com o perfil dela. */
+  const [abrirCrianca, setAbrirCrianca] = useState<{ id: string } | null>(null);
   const [aba, setAba] = useState<
     'dia' | 'chamada' | 'passagem' | 'acolhidos' | 'agenda' | 'casas' | 'equipe'
     | 'saude' | 'internacao' | 'impacto' | 'ocorrencias' | 'ata' | 'cofre' | 'transferencias'
@@ -225,6 +305,9 @@ export function App() {
     | 'trabalho' | 'periodo' | 'metricas'
     | 'alinhamentos' | 'painel' | 'sincronizacao'
     | 'rotina' | 'escala' | 'avisos' | null>(null);
+  /* Vale para UMA abertura: saindo dos Acolhidos, a escolha some. Sem isto,
+     voltar à aba reabria a criança buscada antes, em vez da lista. */
+  useEffect(() => { if (aba !== 'acolhidos') setAbrirCrianca(null); }, [aba]);
   const [sugerirSenha, setSugerirSenha] = useState(false);
   const [sessaoTerminou, setSessaoTerminou] = useState(false);
 
@@ -485,8 +568,13 @@ export function App() {
             {me.todasAsCasas ? 'Coordenação Geral' : (ROLE_LABEL[me.role] ?? me.role)}
           </span>
           <span className="grow" />
-          {/* O TEMA (27/09): claro, escuro e alto contraste — no sistema de
-              verdade também, lembrado neste aparelho. O nome diz o PRÓXIMO. */}
+          {/* A BUSCA DE CRIANÇA (fase 183): só para quem vê os acolhidos, e só na
+              casa aberta. */}
+          {casaAtual && ve('acolhidos') && (
+            <BuscaCrianca houseId={casaAtual.id}
+                          onAbrir={(id) => { setAbrirCrianca({ id }); setAba('acolhidos'); setMais(false); }} />
+          )}
+          {/* A COR E A LETRA DA TELA (27/09 e fase 183), lembradas neste aparelho. */}
           <BotaoTema />
           {/*
             * A CHAVE DO GESTOR — operação ou trabalho social.
@@ -731,7 +819,7 @@ export function App() {
 
         {abaEfetiva === 'acolhidos' && ve('acolhidos') && casaAtual && (
           <Acolhidos houseId={casaAtual.id} casaLabel={`${casaAtual.code} · ${casaAtual.name}`}
-                     papel={me.role} />
+                     papel={me.role} abrir={abrirCrianca} />
         )}
 
         {abaEfetiva === 'passagem' && ve('passagem') && casaAtual && (

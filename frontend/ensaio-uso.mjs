@@ -216,8 +216,52 @@ cobrar('e o botão leva mesmo à chamada',
     (await pg.evaluate(() => document.documentElement.getAttribute('data-theme'))) === 'rosa'
     && (await pg.evaluate(() => localStorage.getItem('rede-acolher.tema'))) === 'rosa');
   await pg.locator('.overlay .sheet button', { hasText: /^Claro$/ }).click();
+  /* O TAMANHO DA LETRA (fase 183): fica lembrado, e a tela não vaza para o lado. */
+  await pg.locator('.prefs-linha button', { hasText: /^Maior$/ }).click();
+  await pg.locator('.overlay .sheet button', { hasText: /^Fechar$/ }).click();
+  await pg.waitForTimeout(400);
+  const [sw, cw] = await pg.evaluate(() => [document.documentElement.scrollWidth, document.documentElement.clientWidth]);
+  cobrar('a letra maior fica lembrada e a tela não vaza para o lado',
+    (await pg.evaluate(() => localStorage.getItem('rede-acolher.letra'))) === 'maior' && sw <= cw, `${sw}/${cw}`);
+  await pg.getByRole('button', { name: /^Escolher a cor da tela/ }).click();
+  await pg.locator('.prefs-linha button', { hasText: /^Normal$/ }).click();
   await pg.locator('.overlay .sheet button', { hasText: /^Fechar$/ }).click();
   await pg.waitForTimeout(300);
+}
+/* A BUSCA DE CRIANÇA (fase 183): pelo nome, sem acento, e leva ao perfil. */
+{
+  await pg.getByRole('button', { name: /^Buscar criança pelo nome$/ }).click();
+  await pg.waitForTimeout(500);
+  await pg.locator('#busca-crianca').fill('bru');
+  await pg.waitForTimeout(300);
+  const achadas = await pg.locator('.overlay .lista li').allInnerTexts();
+  cobrar('a busca acha a criança pelo começo do nome', achadas.some((t) => /Bruno/.test(t)), achadas.join(' | '));
+  await pg.locator('.overlay .lista li button').first().click();
+  await pg.waitForTimeout(1200);
+  cobrar('e escolher abre o perfil dela', /Bruno/.test(await conteudo()) && /Acolhidos/.test(await conteudo()));
+  /* E vale para UMA abertura: indo a outra aba e voltando, a casa vê a lista,
+     e não a criança buscada de novo (o defeito que este ensaio achou). */
+  await aba('Dia');
+  await aba('Acolhidos');
+  cobrar('voltando aos Acolhidos depois da busca, a lista aparece, e não a criança buscada',
+    (await pg.locator('main.conteudo input[type="search"]').count()) > 0);
+}
+/* O ESCURO AUTOMÁTICO À NOITE (fase 183): numa página com o relógio às 22h,
+   quem escolheu rosa e ligou o escuro vê a tela escura; às 10h, o rosa. */
+for (const [hora, espera] of [[1, 'dark'], [13, 'rosa']]) {
+  const pgN = await navegador.newPage({ viewport: { width: 420, height: 900 } });
+  const quando = new Date(); quando.setUTCHours(hora, 0, 0, 0);
+  await pgN.clock.install({ time: quando });
+  await pgN.addInitScript(() => {
+    localStorage.setItem('rede-acolher.tema', 'rosa');
+    localStorage.setItem('rede-acolher.escuro-a-noite', '1');
+  });
+  await pgN.goto(`file://${ARQUIVO}`);
+  await pgN.waitForTimeout(600);
+  const vale = await pgN.evaluate(() => document.documentElement.getAttribute('data-theme'));
+  cobrar(`com o escuro à noite ligado, às ${hora === 1 ? '22h' : '10h'} a tela fica ${espera === 'dark' ? 'escura' : 'na cor escolhida'}`,
+    vale === espera, String(vale));
+  await pgN.close();
 }
 await aba('Dia');
 /* "CONCLUÍ TUDO ATÉ AGORA" (fase 181): as atividades do protótipo têm hora do

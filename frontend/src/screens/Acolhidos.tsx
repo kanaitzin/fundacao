@@ -257,11 +257,15 @@ const horaCurta = (iso: string) => new Date(iso).toLocaleString('pt-BR', {
   timeZone: 'America/Sao_Paulo', weekday: 'short', hour: '2-digit', minute: '2-digit',
 });
 
-export function Acolhidos({ houseId, casaLabel, papel }: {
+export function Acolhidos({ houseId, casaLabel, papel, abrir }: {
   houseId: string; casaLabel: string; papel: string;
+  /** A criança escolhida na busca do topo (fase 183). Um objeto novo a cada
+      busca, para a mesma criança abrir de novo depois de fechada. */
+  abrir?: { id: string } | null;
 }) {
   const [lista, setLista] = useState<Resumo[]>([]);
-  const [abertoId, setAbertoId] = useState<string | null>(null);
+  const [abertoId, setAbertoId] = useState<string | null>(abrir?.id ?? null);
+  useEffect(() => { if (abrir) setAbertoId(abrir.id); }, [abrir]);
   const [erro, setErro] = useState('');
   const [busca, setBusca] = useState('');
   const [cadastrando, setCadastrando] = useState(false);

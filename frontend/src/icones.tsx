@@ -66,6 +66,8 @@ const DESENHOS: Record<string, string[]> = {
              'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z'],
   portaria: ['M6 21V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v17', 'M4 21h16', 'M14.5 12.5h.01'],
   setores:  ['M11 18a7 7 0 1 1 0-14 7 7 0 0 1 0 14z', 'M20.5 20.5L16 16'],
+  /* A busca de criança no topo (fase 183): a mesma lupa, com o nome da função. */
+  busca:    ['M11 18a7 7 0 1 1 0-14 7 7 0 0 1 0 14z', 'M20.5 20.5L16 16'],
   ocorrencias:['M10.3 3.9L2.5 17.5A1.8 1.8 0 0 0 4 20.2h16a1.8 1.8 0 0 0 1.5-2.7L13.7 3.9a2 2 0 0 0-3.4 0z',
              'M12 9.5v4', 'M12 17h.01'],
   ata:      ['M5 4.5A2 2 0 0 1 7 3h12v18H7a2 2 0 0 1-2-2V4.5z', 'M5 17.5h14', 'M9 8h6'],

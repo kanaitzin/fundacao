@@ -186,6 +186,14 @@ await pg.waitForTimeout(400);
 await conferir(`${tema} · folha "Cor da tela"`); telas++;
 await pg.locator('.overlay .sheet button', { hasText: /^Fechar$/ }).click();
 await pg.waitForTimeout(300);
+/* A busca de criança (fase 183), com um nome digitado e a lista à vista. */
+await pg.getByRole('button', { name: /^Buscar criança pelo nome$/ }).click();
+await pg.waitForTimeout(400);
+await pg.locator('#busca-crianca').fill('a');
+await pg.waitForTimeout(300);
+await conferir(`${tema} · folha "Buscar criança"`); telas++;
+await pg.locator('.overlay .sheet button', { hasText: /^Fechar$/ }).click();
+await pg.waitForTimeout(300);
 }
 
 await navegador.close();
