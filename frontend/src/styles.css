@@ -1512,3 +1512,9 @@ div.acoes{ display:flex; flex-wrap:wrap; gap:8px; align-items:center }
   .app.com-barra{ --barra-pe:calc(68px + env(safe-area-inset-bottom, 0px)); padding-bottom:calc(var(--barra-pe) + 24px) }
   .app.com-barra .rodape{ bottom:var(--barra-pe) }
 }
+/* No toque não há "passar o mouse": o celular deixa o último botão tocado com o
+   fundo do hover até o próximo toque, e a aba anterior parecia ainda escolhida
+   na barra do pé (fase 184). */
+@media (hover:none){
+  .tabbar button:not(.on):hover{ background:transparent; color:var(--muted) }
+}
