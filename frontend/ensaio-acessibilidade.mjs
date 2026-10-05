@@ -71,6 +71,8 @@ async function fecharCor() {
 
 await pg.goto(`file://${ARQUIVO}`);
 await pg.waitForTimeout(900);
+/* A entrada abre vazia (fase 188): o atalho do protótipo preenche o Marcelo. */
+await pg.getByRole('button', { name: 'Marcelo Barbosa' }).click();
 await pg.getByRole('button', { name: /Entrar no sistema/i }).click();
 await pg.waitForTimeout(1200);
 
@@ -198,10 +200,6 @@ await pg.waitForTimeout(700);
 await pg.getByRole('button', { name: /^Minha conta/ }).click();
 await pg.waitForTimeout(300);
 await conferir(`${tema} · folha "Minha conta"`); telas++;
-/* As duas etapas para entrar (fase 187), abertas pela folha da conta. */
-await pg.locator('.overlay .sheet button', { hasText: 'Duas etapas para entrar' }).click();
-await pg.waitForTimeout(500);
-await conferir(`${tema} · folha "Duas etapas para entrar"`); telas++;
 await pg.locator('.overlay .sheet button', { hasText: /^Fechar$/ }).last().click();
 await pg.waitForTimeout(200);
 await abrirCor();

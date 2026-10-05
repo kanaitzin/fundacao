@@ -464,6 +464,8 @@ pg.on('pageerror', (e) => erros.push(e.message));
 
 await pg.goto(`file://${ARQUIVO}`);
 await pg.waitForTimeout(900);
+/* A entrada abre vazia (fase 188): o atalho do protótipo preenche o Marcelo. */
+await pg.getByRole('button', { name: 'Marcelo Barbosa' }).click();
 await pg.getByRole('button', { name: /Entrar no sistema/i }).click();
 await pg.waitForTimeout(1200);
 

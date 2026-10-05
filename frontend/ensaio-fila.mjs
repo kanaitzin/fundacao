@@ -67,6 +67,8 @@ const pg = await contexto.newPage();
 const entrar = async (p) => {
   await p.goto(`file://${ARQUIVO}`);
   await p.waitForTimeout(900);
+  /* A entrada abre vazia (fase 188): o atalho do protótipo preenche o Marcelo. */
+  await p.getByRole('button', { name: 'Marcelo Barbosa' }).click();
   await p.getByRole('button', { name: /Entrar no sistema/i }).click();
   await p.waitForTimeout(1200);
 };
@@ -138,6 +140,8 @@ console.log('\nCom o sinal de volta, e outra pessoa entrando');
  * ele NÃO sobe — fica guardado, contado como de outra pessoa —, e sobe quando
  * o Mário entra. Antes, subia com o nome de quem estivesse entrado.
  */
+/* A entrada abre vazia (fase 188): o atalho do protótipo preenche o Marcelo. */
+await pg.getByRole('button', { name: 'Marcelo Barbosa' }).click();
 await pg.getByRole('button', { name: /Entrar no sistema/i }).click();
 await pg.waitForTimeout(2500);
 fila = await lerFila(pg);

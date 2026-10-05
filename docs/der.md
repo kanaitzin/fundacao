@@ -355,6 +355,12 @@ banco na mão não entra no lugar de ninguém. Índice único parcial garante **
 convite ativo por pessoa**: emitir de novo cancela o anterior, porque dois
 convites válidos são duas portas.
 
+**`user_invite.motivo`** (identity/1644, fase 188): `convite` é o primeiro acesso,
+`esqueci` é o link que a própria pessoa pede pela tela de entrada. O mesmo token
+em hash, o mesmo uso único; o `esqueci` vale uma hora, é um a cada dois minutos
+por conta, e o pedido novo anula o anterior. A tela do link e a auditoria leem o
+motivo para dizer qual dos dois foi.
+
 ### Funções de tempo (fase 8)
 
 `app_hoje()` e `app_fuso()` (migração 0630) são o gêmeo SQL de
@@ -906,11 +912,11 @@ criança, e log não copia conteúdo sensível (§5). A auditoria guarda o ato �
 coordenação, Líder Diurno). Mais ninguém: a lista de quem pediu para ler o quê é,
 ela mesma, informação sobre o caso.
 
-## Inventário — 132 tabelas por partição
+## Inventário — 129 tabelas por partição
 
 | Partição | Tabelas |
 |---|---|
-| identity (20) | institution, house, app_user, user_house_assignment, work_schedule, shift_assignment, user_session, login_attempt, audit_event, institutional_device, staff_role_grant, house_capacity_change, user_invite, house_shift_hours, app_user_role_period, shift_draft, shift_draft_item, user_second_factor, user_recovery_code, login_challenge |
+| identity (17) | institution, house, app_user, user_house_assignment, work_schedule, shift_assignment, user_session, login_attempt, audit_event, institutional_device, staff_role_grant, house_capacity_change, user_invite, house_shift_hours, app_user_role_period, shift_draft, shift_draft_item |
 | people (30) | person, care_episode, house_stay, profile_detail, health_condition, food_restriction, document, document_version, benefit_record, memory_record, memory_photo, transfer_request, transfer_message, admission_record, judicial_record, person_credential, person_correction, profile_detail_change, person_contact, family_stay, family_stay_note, outing_permission, kitchen_request, house_field_permission, birthday_ack, contact_visit_change, visit, visit_correction, kitchen_request_change, pia_aviso |
 | shifts (14) | shift, handover, handover_receipt, handover_note, ata, ata_note, ata_addendum, ata_episode, ata_episode_ack, general_night_ata, general_night_house_entry, general_night_house_amendment, ata_read_request, shift_fim_aviso |
 | incidents (7) | incident, incident_person, incident_protected, incident_restraint, incident_synthesis, external_communication, incident_attachment |
@@ -929,18 +935,6 @@ ela mesma, informação sobre o caso.
 
 Cada partição guarda as próprias migrações. Remover um módulo é remover a
 pasta dele — e é por isso que a lista acima é por partição, e não por assunto.
-
-### `user_second_factor`, `user_recovery_code` e `login_challenge` — as duas etapas para entrar (fase 187, identity/1643)
-`user_second_factor`: `user_id`, `secret_enc` (o segredo do aplicativo autenticador,
-CIFRADO com a `CREDENTIAL_KEY`, como o cofre), `created_at`, `confirmed_at` (nulo até
-o primeiro código certo), `last_step` (o último intervalo de 30 segundos aceito: o
-mesmo código não entra duas vezes), `turned_off_at`, `turned_off_by` e
-`turned_off_reason`. Uma vigente por pessoa; desligar marca, não apaga.
-`user_recovery_code`: `factor_id`, `code_hash` (só o hash dos oito códigos de
-reserva) e `used_at`. `login_challenge`: o desafio entre a senha certa e o código,
-`user_id`, `token_hash`, `expires_at` (cinco minutos), `tries` (até cinco) e
-`used_at`. As três fechadas para a aplicação, como a sessão (1190): só as funções
-`auth_*` e `app_*` da 1643 leem e escrevem.
 
 ### `prescription.suspended_at` e `suspended_by` — quando o remédio foi suspenso (fase 186, medications/1642)
 O INSTANTE E O AUTOR DA SUSPENSÃO, na própria prescrição: antes só existiam na

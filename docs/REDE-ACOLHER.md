@@ -20,7 +20,7 @@ começava escolhendo em qual acreditar.*
 
 | Arquivo | Por que sobreviveu |
 |---|---|
-| `der.md` | as 132 tabelas com o que cada coluna guarda. É referência de dado, não narrativa, e o `documentacao.spec.ts` cobra que toda tabela apareça lá |
+| `der.md` | as 129 tabelas com o que cada coluna guarda. É referência de dado, não narrativa, e o `documentacao.spec.ts` cobra que toda tabela apareça lá |
 | `roteiro-marcelo.md` (+ `.docx`) | é entregue à Casa 03, escrito para quem não conhece o sistema. O `.docx` é GERADO do `.md` por `scripts/roteiro-em-word.mjs` — não editar o Word à mão |
 
 ---
@@ -91,13 +91,13 @@ discordavam entre si.
 |---|---|
 | **18 partições** isoladas | pastas em `backend/src/modules/` |
 | **184 migrações** | `.sql` dentro das partições |
-| **132 tabelas** | `CREATE TABLE` nas migrações |
+| **129 tabelas** | `CREATE TABLE` nas migrações |
 | **131 suítes** | `backend/test/*.spec.ts` |
-| **1193 testes** | `it(` / `test(` nas suítes |
-| **39 telas React** | `frontend/src/screens/*.tsx` |
+| **1188 testes** | `it(` / `test(` nas suítes |
+| **38 telas React** | `frontend/src/screens/*.tsx` |
 | **10 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **9 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
-| protótipo com **≈1509 KB** | `prototipo/rede-acolher-prototipo.html` |
+| protótipo com **≈1497 KB** | `prototipo/rede-acolher-prototipo.html` |
 
 *A frase importa: o conferidor lê o NÚMERO colado ao substantivo. Escrever
 "Telas React … 31" numa coluna separada faz o teste passar sem conferir nada —
@@ -118,7 +118,7 @@ fala de contagens sem colar nenhuma, de propósito.*
 | Ensaio | Resultado |
 |---|---|
 | `npm run ensaio` | 133 telas nos **sete** cargos oferecidos — Coordenação 28, Técnica 25, Gestor 27, Líder Diurno 17, Líder Noturno 14, Educador 13, Enfermagem 9. A Cozinha saiu do seletor em 09/09: o cargo continua no banco, oculto |
-| `npm run ensaio:acessibilidade` | 1050 telas — 150 em cada um dos SETE temas (claro, escuro, alto contraste, rosa, azul claro, verde e colorido) —, **nenhuma violação de WCAG 2.1 AA** |
+| `npm run ensaio:acessibilidade` | 1043 telas — 149 em cada um dos SETE temas (claro, escuro, alto contraste, rosa, azul claro, verde e colorido) —, **nenhuma violação de WCAG 2.1 AA** |
 | `npm run ensaio:roteiro` | 49 tarefas do roteiro, **todas com porta no cargo certo** |
 | `npm run ensaio:celular` | 302 telas a 360 e 390 px, nos oito cargos, **nenhum achado** (fase 184) |
 | `npm run ensaio:uso` | 247 cobranças em 19 blocos, **todas passando** — e todos os cargos completando o percurso. O bloco 14 nasceu na fase 107 e cresceu na 108: abre as prévias e cobra que o olho devolva uma **imagem**, e não o nome de um arquivo — e que a lista diga **antes do clique** se o documento está no sistema ou no Drive |
@@ -395,7 +395,8 @@ arqueologia.
 | 184 | **O sistema no celular, setor por setor.** Pedido da Fundação em 05/10: *"veja como está pelo celular, todas as telas, se tudo fica no seu devido lugar, se tudo está funcionando, teste como cada setor"*. Nasceu o **`npm run ensaio:celular`** (`frontend/ensaio-celular.mjs`): um celular de verdade (toque, densidade dupla, navegador em português) a 360 e a 390 px, os oito cargos, todas as abas de baixo, a folha "Mais" e cada porta dela, 300 telas. Em cada uma mede o que a pessoa sente no dedo e o axe não mede: tela que anda para o lado, coisa que passa da borda, texto cortado com reticências, **texto que não cabe no próprio botão**, **botões vizinhos encostados**, alvo de toque abaixo de 24 px, conteúdo escondido atrás da barra e erro de página; e guarda a foto de cada tela. **A primeira rodada achou, e foi consertado:** o nome de três das cinco abas de baixo cortado com reticências (*Chama…*, *Acolhi…*, *Passag…*) nos dois tamanhos; as abas da Cozinha com 21 px de altura (a classe `seg` não tinha estilo nenhum; viraram o controle segmentado das outras telas); as pílulas de cor da Equipe com 23 px; **botões de ação encostados** em quatro telas (Substituir e Retirar na escala, Liberar e Negar na ATA, Remédios e Relato nos Acolhidos, Registrar conquista e Relatório em Word no trabalho social), onde o toque erra para o vizinho; *Acompanhamentos*, *Compras* e *Esquemas* vazando da pílula nas abas internas (no celular cada uma fica do tamanho do que escreve, e o que não cabe desce de linha); **a portaria**, que tem uma tela só, ganhava uma barra com um *Mais* sozinho que abria uma folha com a tela onde ela já estava; e a volta de quem está com a família dizia *"qua., 18:00"* (agora *"quarta às 18:00"*). **E o `npm run ensaio:uso-celular`**: o percurso inteiro do `ensaio:uso`, botão por botão e lendo de volta o que ficou gravado, como um celular de 360 px; ele achou que o próprio ensaio ainda procurava as abas da Cozinha pela classe antiga. **E as duas escolhas de desenho, feitas pela Fundação em 05/10:** no celular (abaixo de 1080 px) **a barra das abas fica no pé da tela, sempre à vista**, onde o polegar alcança (o Dia tem umas oito telas de altura, e para trocar de aba era preciso voltar ao topo; o rodapé que acompanha a rolagem dos formulários sobe junto para não ficar atrás dela); e **o topo virou uma linha**: a marca, a busca, os avisos e o círculo da pessoa, que é o botão **Minha conta** e abre a folha com o nome, o cargo, a casa, o e-mail, a cor e a letra da tela, a troca de senha e o Sair. O nome continua sendo o `h1` da página para o leitor de tela. No monitor nada mudou. De passagem, no Gestor Geral o *Mais* aparecia marcado junto com o *Painel*; e no toque a aba tocada antes ficava acinzentada (o fundo de passar o mouse, que o celular prende até o próximo toque) e parecia ainda escolhida. No visor de fotos do dossiê, Anterior e Próxima foram para o rodapé, porque no celular a foto ocupa a tela e o Fechar os cobria. *O que ficou de fora, dito para não virar promessa:* o campo de data aparece como *mm/dd/aaaa* nas fotos porque o Chromium do ensaio desenha o calendário no idioma dele, e não no da página; num celular em português ele sai *dd/mm/aaaa*. |
 | 185 | **A saúde da implantação** (ideia 9 de 30/09; quem vê decidido em 05/10: Gestor Geral e Coordenação Geral). O que roda sozinho no servidor não tinha tela, e a primeira notícia de que parou era a casa dizendo que o remédio sumiu. Agora **o relógio das 5h, o aviso de meia hora antes do fim do plantão, o e-mail, o `backup.sh` e o `restaurar.sh --ensaio` anotam como terminaram** numa tabela só (`implantacao_evento`, relogio/1641), com **só metadado** (o tipo, se deu certo, números e códigos; nunca endereço, assunto ou caminho, e detalhe grande é recusado), imutável, sem leitura nem escrita direta pela aplicação. A tela **Saúde da implantação** (grupo *Sistema*) mostra seis sinais, cada um *em dia*, *atenção*, *parado* ou *sem registro*, com a frase do que fazer, e a fila do Drive em contagens. **A regra de cada sinal mora num arquivo sem dependências** (`implantacao.regra.ts`), lido pelo servidor e pelo protótipo, como o `alcance.ts`: a demonstração diz o que o servidor diria. Anotar nunca derruba quem anota: o convite que saiu não vira erro porque a anotação falhou. *Dois cuidados que o próprio ensaio pediu:* o backup descartável do ensaio de restauração não anota (senão o painel diria *backup em dia* sem backup da casa), e o relógio que **não rodou** também anota, que é o caso que o painel mais precisa mostrar. **E uma correção do que eu tinha oferecido:** a *conta técnica* da pergunta está aposentada desde 01/09; o servidor a aceita se alguma existir, mas quem vê na prática é o Gestor Geral e a Coordenação Geral. Provado com os scripts de verdade (o `backup.sh` e o `ensaio:restauracao` anotaram, o do ensaio não), com a suíte `a-saude-da-implantacao` (quem lê e quem não, o e-mail que falha aparecendo parado e voltando a em dia pela rota, nenhum endereço na anotação, a regra de cada sinal com o instante como parâmetro, e que cada um que roda sozinho continua anotando) e no `ensaio:uso`. |
 | 186 | **O que mudou desde o meu último plantão** (ideia 1 de 30/09; o que entra decidido em 05/10: ocorrências, a ATA anterior e remédio novo, suspenso ou mudado). Quem volta de dois dias de folga lia a passagem, as ocorrências e a saúde para saber o que mudou. Agora o Dia abre com um **cartão**: as ocorrências registradas desde então (categoria, hora, situação e as crianças; a de acesso restrito sem nome), a ATA anterior (situação, quem fechou, o que ficou para o próximo turno e as últimas linhas da equipe, nunca as restritas) e o remédio que começou, foi suspenso, terminou ou mudou de *só da Enfermagem*; cada parte com a porta para a tela dela, **só para quem a abre** (o educador não ganha *Abrir a Saúde*). **Desde quando:** o fim do último turno da pessoa na escala daquela casa, nas duas últimas semanas; quem não está na escala (técnica, coordenação) vê as últimas 24 horas; e nunca mais de sete dias para trás, que aí o pedido é o relatório do período. **Tudo é lido com a identidade de quem pergunta** (`reports/o-que-mudou.service.ts`): o banco filtra pelo cargo, e os três JOINs com tabela de RLS estão justificados ao lado, porque aqui sumir é o certo. **Não traz** o texto da ocorrência, o motivo da suspensão nem linha restrita da ATA: a folha avisa e aponta. **É um cartão, e não uma janela por cima da tela:** quem entra às 23h não pode ter de fechar nada para chegar ao turno; ele vem aberto na primeira vez de cada plantão e vira uma linha depois de *Entendi*. **O "já li" é por pessoa**: a primeira versão guardava por aparelho e casa, e no tablet da casa quem lesse primeiro esconderia o cartão da colega; o ensaio cobra as duas pessoas no mesmo aparelho. **E uma coluna que faltava:** a prescrição não guardava QUANDO foi suspensa (só na auditoria, que o educador não lê); agora guarda, com quem (`suspended_at`, `suspended_by`, medications/1642), e as anteriores receberam o que a auditoria tinha. Suíte `o-que-mudou-desde-o-meu-plantao` (na Casa 04, com conta criada e desativada por ela): as 24 horas sem escala, o limite de sete dias, o fim do plantão de anteontem, a ocorrência de antes do plantão fora, a restrita sem nome, nenhum texto de ocorrência nem motivo de suspensão na folha, o remédio novo e depois o suspenso pela rota com o instante guardado, o gestor recusado e a outra casa com 404. |
-| 187 | **As duas etapas para entrar** (ideia 8 de 30/09; decidido em 05/10: ninguém obrigado, qualquer pessoa liga para si; quem perde o celular entra com um código de reserva, e sem eles quem administra a conta desliga, com motivo). **O segundo passo é o código de seis dígitos de um aplicativo autenticador** (Google, Microsoft ou outro), o padrão TOTP da RFC 6238, calculado no servidor com o `crypto` do Node (`kernel/common/totp.ts`, conferido com os vetores oficiais da RFC), sem biblioteca de fora e sem serviço de terceiros. **Ligar** fica em *Minha conta* (e, no monitor, na folha da senha): pede a senha de novo, mostra a chave e o botão que abre o aplicativo no celular, e só liga com o primeiro código certo; aí entrega **oito códigos de reserva, uma vez**. **Entrar** com as duas etapas: a senha certa devolve um desafio de cinco minutos e cinco tentativas, não a sessão; o código abre. **O mesmo código não entra duas vezes** (o banco guarda o último intervalo aceito), aceita-se o intervalo de antes e o de depois (o relógio do celular erra), e **cada código errado conta na mesma trava da senha**: sem isso, quem tivesse a senha pediria desafios novos e chutaria códigos sem parar (achado relendo o próprio código, antes de entregar). O segredo vai **cifrado com a `CREDENTIAL_KEY`**, como o cofre; das reservas, só o hash. As três tabelas (`user_second_factor`, `user_recovery_code`, `login_challenge`, identity/1643) ficam fechadas para a aplicação, como a sessão (1190), e nada se apaga: desligar marca quando, quem e por quê. **Quem administra a conta desliga** pela Equipe, com motivo de 15 caracteres, e o banco faz as duas perguntas de sempre, cargo e casa (a coordenação de outra casa não desliga e nem vê a marca); a auditoria leva a casa da conta. **No protótipo funciona de verdade**: o servidor de mentira calcula o código pelo WebCrypto, e um aplicativo autenticador real liga e entra. **E um defeito que o ensaio achou:** sair pela folha *Minha conta* não fechava a folha, e ela reabria por cima da tela de quem entrasse a seguir no mesmo aparelho. Suíte `as-duas-etapas-para-entrar` (nove testes: os vetores da RFC, ligar com senha, primeiro código, reservas só em hash, o desafio no lugar da sessão, o código repetido recusado, o do intervalo seguinte aceito, a reserva uma vez, cinco tentativas e a trava, quem administra desligando e a outra casa recusada, a própria pessoa ligando e desligando, as tabelas fechadas) e o percurso inteiro no `ensaio:uso`. |
+| 187 | **As duas etapas para entrar, feitas e retiradas.** Ideia 8 de 30/09, decidida em 05/10 (ninguém obrigado, códigos de reserva, quem administra desliga com motivo): o código de seis dígitos de um aplicativo autenticador, calculado no servidor (TOTP da RFC 6238), com segredo cifrado, reservas em hash, desafio de cinco minutos e o código errado contando na trava da senha. **No mesmo dia, ao ver a tela, a Fundação pediu que saísse por completo** (*"vi que tem um codigo a mais, nao quero isso"*), e a fase 188 a retirou inteira, migração, telas e suíte: o código está no histórico do repositório (commit `5bff891`) se um dia for pedido de novo. O que ficou dela foi o defeito que o ensaio achou: sair pela folha *Minha conta* não fechava a folha, e ela reabria por cima da tela de quem entrasse a seguir no mesmo aparelho; o conserto ficou na 188. |
+| 188 | **Entrar com e-mail e senha numa tela só, e o esqueci minha senha pelo e-mail.** Pedido de 05/10: *"quero que apareça a tela inicial e a pessoa coloque ali normal seu email e senha, caso alguém esqueça que dispare aquele email padrão para o email cadastrado dando a opção de trocar de senha"*; decidido no mesmo dia: as duas etapas saem por completo, a entrada abre **vazia** com os atalhos de demonstração embaixo, e o link **vale uma hora e serve uma vez**. (1) **A tela de entrada** tem o e-mail e a senha juntos e o botão *Entrar no sistema*; os atalhos de demonstração só preenchem os dois campos. (2) **Esqueci minha senha** pede o e-mail e manda para o endereço CADASTRADO o mesmo tipo de link do convite de primeiro acesso, que abre a tela *Criar uma senha nova*. É o mesmo caminho do convite (`user_invite`, só o hash do token, uso único no banco), com a coluna `motivo` (`convite` ou `esqueci`, identity/1644) para a tela e a auditoria dizerem qual dos dois foi. **Quatro cuidados que o convite não precisava**, porque aqui quem pede não entrou: a resposta é **a mesma para e-mail cadastrado e inventado** (a tela de entrada não conta quem trabalha na Fundação), e o link nunca volta pela tela, só pelo e-mail; **pedir não troca a senha atual** (quem pediu pode não ser a pessoa); **um pedido a cada dois minutos** por conta, e o novo anula o anterior (senão a tela viraria um jeito de encher a caixa de alguém); e criar a senha nova **encerra as sessões abertas**. A auditoria leva *Pedido de senha nova por e-mail* e *Senha nova criada com o link do e-mail*. **No protótipo** o e-mail não sai: a tela mostra o link que iria, marcado *só no protótipo*. Suíte `esqueci-a-senha` (quatro testes, o link lido do e-mail que chega na caixa e não do banco) e o percurso no `ensaio:uso`: campos vazios, nada de autenticador, o pedido, o link, a senha nova entrando e a antiga recusada. |
 
 ---
 
@@ -515,7 +516,7 @@ rede-acolher/
 │   └── assets/timbre.png  a marca da Fundação, usada no documento em Word
 ├── frontend/
 │   ├── src/
-│   │   ├── screens/       39 telas React
+│   │   ├── screens/       38 telas React
 │   │   ├── mock.ts        o "servidor de mentira" do protótipo
 │   │   ├── docx.ts        monta o .docx NO NAVEGADOR — só para o protótipo, que
 │   │   │                  roda sem servidor. No sistema real quem gera é o
@@ -1864,9 +1865,9 @@ Cada uma tem uma decisão que é da Fundação, e está dita ao lado.*
    futuro (§10.5, R1b). Pode ser feito sem decidir nada pela equipe: um rascunho
    que a técnica lê, corrige e assina. *Decisão:* do DPO e da Fundação, porque o
    texto sai do servidor da Fundação para o provedor.
-8. ~~**Duas etapas para entrar**~~ ✅ **Feito na 187.** Decidido em 05/10: ninguém é
-   obrigado, qualquer pessoa liga para si; quem perde o celular entra com um código
-   de reserva, e sem eles quem administra a conta desliga, com motivo.
+8. ~~**Duas etapas para entrar**~~ Feita na 187 e **retirada na 188 a pedido da
+   Fundação**, que preferiu a entrada só com e-mail e senha e o *esqueci minha senha*
+   pelo e-mail. O código está no commit `5bff891`.
 9. ~~**Um painel de saúde da implantação**~~ ✅ **Feito na 185** (§12.10). Quem vê,
    decidido em 05/10: Gestor Geral e Coordenação Geral.
 10. **Teste com gente de verdade.** O axe mede contraste e rótulo; não mede se a
@@ -2924,12 +2925,6 @@ nas duas direções:
 A chave vive em outro lugar, com outro dono, e quem responde por ela é a
 Fundação. **Escreva onde ela está antes de precisar dela.**
 
-**A `CREDENTIAL_KEY` guarda também as duas etapas** (fase 187): o segredo do
-aplicativo autenticador de cada pessoa que ligou é cifrado com ela. Restaurar com
-outra chave deixa essas pessoas sem conseguir passar da senha; entram com um código de
-reserva, ou quem administra a conta desliga as duas etapas, com motivo, e elas ligam de
-novo.
-
 ### 12.5 Restauração — e a prova de que ela funciona
 
 ```bash
@@ -3030,6 +3025,11 @@ não leva o link nem a senha do SMTP. O padrão continua sendo a caixa local, de
 propósito: um envio real ligado durante o desenvolvimento é exatamente
 o caminho pelo qual um convite de teste chega na caixa de alguém da Fundação.
 Trocar por envio real não muda nada em `InviteService` — o contrato é enviar.
+
+**O mesmo caminho leva o *esqueci minha senha*** (fase 188): o link vai ao e-mail
+CADASTRADO, vale uma hora e serve uma vez, e a resposta da tela é a mesma para
+e-mail cadastrado ou não. Sem o SMTP ligado, quem esqueceu a senha não recebe
+nada: até lá, quem administra a conta redefine pela Equipe, como antes.
 
 **Regra que não se negocia:** o log registra que um e-mail saiu, para quem e por
 quê — **nunca o corpo, nunca o link, nunca o token**. Token é credencial.

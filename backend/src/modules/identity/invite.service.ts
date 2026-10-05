@@ -25,6 +25,9 @@ import { MailGateway } from './mail.gateway';
 /** 24 horas. Prazo curto de propósito: convite parado é porta aberta. */
 const HORAS_PADRAO = Number(process.env.CONVITE_HORAS ?? 24);
 
+/** O link do esqueci minha senha vale uma hora (decisão de 05/10). */
+const MINUTOS_ESQUECI = 60;
+
 @Injectable()
 export class InviteService {
   constructor(
@@ -110,6 +113,43 @@ export class InviteService {
     };
   }
 
+  /**
+   * ESQUECI MINHA SENHA (fase 188). A resposta é a mesma para e-mail
+   * cadastrado ou não, e também quando o e-mail não sai: dizer "não
+   * conseguimos enviar" contaria que a conta existe. Quem cuida do servidor
+   * vê a falha do e-mail na saúde da implantação.
+   */
+  async esqueci(email: string) {
+    const aviso = 'Se este e-mail estiver cadastrado, enviamos para ele um link para criar uma senha '
+      + 'nova. O link vale uma hora e serve uma vez. Confira também a caixa de spam. Se não chegar, '
+      + 'a coordenação pode reenviar o seu acesso.';
+    if (!email?.trim()) throw new BadRequestException('Informe o e-mail.');
+    const { token, hash } = newSessionToken();
+    const { rows: [r] } = await this.db.query(
+      `SELECT * FROM auth_pedir_nova_senha($1, $2, $3)`, [email.trim(), hash, MINUTOS_ESQUECI]);
+    if (r) {
+      await this.mail.enviar({
+        para: r.out_email,
+        assunto: 'Rede Acolher: criar uma senha nova',
+        corpo: [
+          `${r.out_nome},`,
+          '',
+          'Recebemos um pedido para criar uma senha nova para o seu acesso ao Rede Acolher.',
+          'Abra o endereço abaixo no seu próprio celular ou computador e escolha a senha:',
+          '',
+          `${this.base}/entrar?convite=${token}`,
+          '',
+          'O link vale uma hora e serve uma vez só. A sua senha atual continua valendo até',
+          'você criar a nova.',
+          '',
+          'Se não foi você quem pediu, ignore esta mensagem e avise a coordenação.',
+          'Ninguém da Fundação vai pedir a sua senha.',
+        ].join('\n'),
+      }).catch(() => { /* a mesma resposta: ver o comentário acima */ });
+    }
+    return { ok: true, aviso };
+  }
+
   /** A tela confere o convite antes de pedir a senha nova. */
   async conferir(token: string) {
     if (!token?.trim()) throw new BadRequestException('Convite não informado.');
@@ -121,7 +161,7 @@ export class InviteService {
       throw new HttpException(
         'Convite inválido ou vencido. Peça um novo à coordenação.', HttpStatus.GONE);
     }
-    return { valido: true, nome: r.out_nome, email: r.out_email };
+    return { valido: true, nome: r.out_nome, email: r.out_email, motivo: r.out_motivo as 'convite' | 'esqueci' };
   }
 
   /** A pessoa cria a senha. Gastar o convite e gravar a senha é um ato só. */

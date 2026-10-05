@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Inject, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Inject, Post, Req, UseGuards } from '@nestjs/common';
 import type { Request } from 'express';
 import { AuthService } from './auth.service';
 import { InviteService } from './invite.service';
@@ -23,6 +23,15 @@ export class AuthController {
     return this.convite.contaTemSenha(body?.email ?? '');
   }
 
+  /**
+   * Esqueci minha senha (fase 188). Pública: quem esqueceu a senha não está
+   * dentro. Responde igual para qualquer e-mail.
+   */
+  @Post('esqueci-a-senha')
+  esqueci(@Body() body: { email?: string }) {
+    return this.convite.esqueci(body?.email ?? '');
+  }
+
   /** Confere o convite ANTES de pedir a senha nova. */
   @Post('convite/conferir')
   conferirConvite(@Body() body: { convite?: string }) {
@@ -39,36 +48,6 @@ export class AuthController {
   @Post('login')
   login(@Body() body: { email: string; password: string }, @Req() req: Request) {
     return this.auth.login(body.email ?? '', body.password ?? '', req.ip, req.headers['user-agent']);
-  }
-
-  /** A segunda etapa da entrada (fase 187): o desafio que a senha certa devolveu, e o código. */
-  @Post('login/segunda-etapa')
-  loginSegundaEtapa(@Body() body: { desafio?: string; codigo?: string }, @Req() req: Request) {
-    return this.auth.loginSegundaEtapa(body?.desafio ?? '', body?.codigo ?? '', req.ip, req.headers['user-agent']);
-  }
-
-  @Get('segunda-etapa')
-  @UseGuards(SessionGuard)
-  minhaSegundaEtapa(@CurrentUser() user: AuthenticatedUser) {
-    return this.auth.minhaSegundaEtapa(user);
-  }
-
-  @Post('segunda-etapa/iniciar')
-  @UseGuards(SessionGuard)
-  iniciarSegundaEtapa(@CurrentUser() user: AuthenticatedUser, @Body() body: { senha?: string }) {
-    return this.auth.iniciarSegundaEtapa(user, body?.senha ?? '');
-  }
-
-  @Post('segunda-etapa/confirmar')
-  @UseGuards(SessionGuard)
-  confirmarSegundaEtapa(@CurrentUser() user: AuthenticatedUser, @Body() body: { codigo?: string }) {
-    return this.auth.confirmarSegundaEtapa(user, body?.codigo ?? '');
-  }
-
-  @Post('segunda-etapa/desligar')
-  @UseGuards(SessionGuard)
-  desligarSegundaEtapa(@CurrentUser() user: AuthenticatedUser, @Body() body: { senha?: string }) {
-    return this.auth.desligarMinhaSegundaEtapa(user, body?.senha ?? '');
   }
 
   @Post('logout')

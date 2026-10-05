@@ -22,7 +22,6 @@ import { chromium } from 'playwright-core';
 import { existsSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createHmac } from 'node:crypto';
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
 const ARQUIVO = process.env.ENSAIO_ARQUIVO
@@ -131,6 +130,8 @@ const clicar = async (texto, onde = 'main.conteudo') => {
 
 await pg.goto(`file://${ARQUIVO}`);
 await pg.waitForTimeout(900);
+/* A entrada abre vazia (fase 188): o atalho do protótipo preenche o Marcelo. */
+await pg.getByRole('button', { name: 'Marcelo Barbosa' }).click();
 await pg.getByRole('button', { name: /Entrar no sistema/i }).click();
 await pg.waitForTimeout(1200);
 
@@ -297,6 +298,8 @@ await aba('Dia');
   await pg17.clock.install({ time: as17 });
   await pg17.goto(`file://${ARQUIVO}`);
   await pg17.waitForTimeout(900);
+  /* A entrada abre vazia (fase 188): o atalho do protótipo preenche o Marcelo. */
+  await pg17.getByRole('button', { name: 'Marcelo Barbosa' }).click();
   await pg17.getByRole('button', { name: /Entrar no sistema/i }).click();
   await pg17.waitForTimeout(1200);
   await pg17.locator('select.troca-cargo-sel').selectOption('educador');
@@ -3359,6 +3362,8 @@ cobrar('e a restauração de quarenta dias é atenção, com o que fazer',
 cobrar('nenhuma exceção na saúde da implantação', erros.length === 0, erros[0]);
 await pg.goto(`file://${ARQUIVO}`);
 await pg.waitForTimeout(900);
+/* A entrada abre vazia (fase 188): o atalho do protótipo preenche o Marcelo. */
+await pg.getByRole('button', { name: 'Marcelo Barbosa' }).click();
 await pg.getByRole('button', { name: /Entrar no sistema/i }).click();
 await pg.waitForTimeout(1200);
 await trocar('coordenador');
@@ -3368,97 +3373,48 @@ cobrar('o Gestor Geral tem', await doMais('Saúde da implantação'));
 
 
 /*
- * AS DUAS ETAPAS PARA ENTRAR (fase 187): o educador liga para si em Minha
- * conta, com um código calculado aqui como o aplicativo autenticador calcula;
- * a coordenação vê a marca na Equipe; ele sai e entra com um código de
- * reserva; e a coordenação desliga, com motivo.
+ * A ENTRADA E O ESQUECI MINHA SENHA (fase 188): a tela abre vazia, com e-mail
+ * e senha juntos; o esqueci responde igual para qualquer e-mail, e o link
+ * (no protótipo, o botão que mostra o link que iria por e-mail) leva a criar
+ * uma senha nova; a senha nova entra e a antiga não.
  */
-console.log('\n🔐 As duas etapas para entrar (fase 187)');
-const codigoTotp = (segredo, passo) => {
-  const alfa = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
-  let bits = 0, valor = 0; const bytes = [];
-  for (const c of segredo.replace(/\s/g, '')) {
-    valor = (valor << 5) | alfa.indexOf(c); bits += 5;
-    if (bits >= 8) { bytes.push((valor >>> (bits - 8)) & 255); bits -= 8; }
-  }
-  const cont = Buffer.alloc(8); cont.writeBigUInt64BE(BigInt(passo));
-  const h = createHmac('sha1', Buffer.from(bytes)).update(cont).digest();
-  const o = h[h.length - 1] & 15;
-  return String((((h[o] & 127) << 24) | (h[o + 1] << 16) | (h[o + 2] << 8) | h[o + 3]) % 1_000_000).padStart(6, '0');
-};
-const abrirConta = async () => {
+console.log('\n🔑 A entrada e o esqueci minha senha (fase 188)');
+await pg.evaluate(() => { try { sessionStorage.clear(); } catch { /* sem armazenamento */ } });
+await pg.goto(`file://${ARQUIVO}`);
+await pg.waitForTimeout(900);
+cobrar('a entrada abre com e-mail e senha juntos, em branco',
+  (await pg.locator('#email').inputValue()) === '' && (await pg.locator('#senha').inputValue()) === '');
+cobrar('e sem o código das duas etapas', !/autenticador/i.test(await corpo()));
+await pg.getByRole('button', { name: 'Esqueci minha senha' }).click();
+await pg.locator('#email-esqueci').fill('educador.ai3@paodospobres.dev');
+await pg.getByRole('button', { name: 'Enviar o link para o meu e-mail' }).click();
+await pg.waitForTimeout(500);
+cobrar('o pedido diz que o link vale uma hora e serve uma vez', /vale uma hora e serve uma vez/.test(await corpo()));
+await pg.getByRole('link', { name: /Abrir o link que iria por e-mail/ }).click();
+await pg.waitForTimeout(1200);
+cobrar('o link abre a tela de criar uma senha nova, da conta certa',
+  /Criar uma senha nova/.test(await corpo()) && /educador\.ai3@paodospobres\.dev/.test(await corpo()));
+await pg.locator('#senha').fill('senha-nova-do-mario');
+await pg.locator('#repetida').fill('senha-nova-do-mario');
+await pg.getByRole('button', { name: 'Criar senha e entrar' }).click();
+await pg.waitForTimeout(1500);
+cobrar('a senha nova entra direto', (await pg.locator('header.appbar').count()) === 1);
+{
   const conta = pg.getByRole('button', { name: /^Minha conta/ });
   if (await conta.isVisible()) { await conta.click(); await pg.waitForTimeout(300); }
-};
-await trocar('educador');
-await abrirConta();
-await pg.locator('.overlay .sheet button', { hasText: 'Duas etapas para entrar' }).click();
-await pg.waitForTimeout(500);
-cobrar('a folha diz que é opcional e está desligada',
-  /É opcional/.test(await corpo()) && (await pg.getByRole('button', { name: 'Ligar as duas etapas' }).count()) === 1);
-await pg.getByRole('button', { name: 'Ligar as duas etapas' }).click();
-await pg.locator('#duas-senha').fill('senha-errada');
-await pg.locator('.overlay .sheet button', { hasText: /^Continuar$/ }).click();
-await pg.waitForTimeout(500);
-cobrar('a senha errada não começa a ligar', /Senha incorreta/.test(await corpo()));
-await pg.locator('#duas-senha').fill('senha-dev-123');
-await pg.locator('.overlay .sheet button', { hasText: /^Continuar$/ }).click();
-await pg.waitForTimeout(500);
-const chave187 = (await pg.locator('.overlay .sheet .bloco.mono').innerText()).trim();
-cobrar('a chave aparece para o aplicativo, com o botão que abre o aplicativo',
-  /^[A-Z2-7 ]{20,}$/.test(chave187)
-  && /^otpauth:\/\/totp\//.test(await pg.getByRole('link', { name: 'Abrir no aplicativo autenticador' }).getAttribute('href')));
-await pg.locator('#duas-codigo').fill('000000');
-await pg.locator('.overlay .sheet button', { hasText: /^Ligar$/ }).click();
-await pg.waitForTimeout(500);
-cobrar('o código errado não liga', /não confere/.test(await corpo()));
-await pg.locator('#duas-codigo').fill(codigoTotp(chave187, Math.floor(Date.now() / 30000)));
-await pg.locator('.overlay .sheet button', { hasText: /^Ligar$/ }).click();
-await pg.waitForTimeout(700);
-const reservas187 = await pg.locator('.overlay .sheet ul[aria-label="Códigos de reserva"] li').allInnerTexts();
-cobrar('o código certo liga e mostra oito códigos de reserva', reservas187.length === 8, String(reservas187.length));
-await pg.getByRole('button', { name: 'Já anotei os códigos' }).click();
-await pg.waitForTimeout(500);
-cobrar('e a folha passa a dizer ligada, com oito reservas', /Ligadas[\s\S]*Restam 8 códigos de reserva/.test(await corpo()));
-await pg.locator('.overlay .sheet button', { hasText: /^Fechar$/ }).click();
-await pg.waitForTimeout(300);
-
-await trocar('coordenador');
-cobrar('a coordenação abre a Equipe', await doMais('Equipe'));
-const linhaMario = pg.locator('main.conteudo tr', { hasText: 'Mário' }).first();
-cobrar('e vê a marca das duas etapas na conta do educador', /duas etapas/.test(await linhaMario.innerText()));
-
-/* Sai e entra como o educador: a senha certa pede o código; a reserva entra. */
-await abrirConta();
-await pg.locator('.overlay .sheet button', { hasText: /^Sair$/ }).click();
+  await pg.getByRole('button', { name: 'Sair', exact: true }).first().click();
+  await pg.waitForTimeout(800);
+}
+await pg.locator('#email').fill('educador.ai3@paodospobres.dev');
+await pg.locator('#senha').fill('senha-dev-123');
+await pg.getByRole('button', { name: /Entrar no sistema/i }).click();
 await pg.waitForTimeout(800);
-await pg.locator('.demochips button', { hasText: 'Educador social' }).click();
+cobrar('a senha antiga não entra mais', /inválidos/.test(await corpo()));
+await pg.locator('#senha').fill('senha-nova-do-mario');
 await pg.getByRole('button', { name: /Entrar no sistema/i }).click();
-await pg.waitForTimeout(900);
-cobrar('a senha certa pede o código do aplicativo', (await pg.locator('#codigo').count()) === 1);
-await pg.locator('#codigo').fill('123456');
-await pg.getByRole('button', { name: /Entrar no sistema/i }).click();
-await pg.waitForTimeout(700);
-cobrar('o código errado não entra', /não confere/.test(await corpo()));
-await pg.locator('#codigo').fill(reservas187[0].toUpperCase());
-await pg.getByRole('button', { name: /Entrar no sistema/i }).click();
-await pg.waitForTimeout(1500);
-cobrar('um código de reserva entra, escrito em maiúsculas', (await pg.locator('#codigo').count()) === 0
-  && (await pg.locator('header.appbar').count()) === 1);
-
-await trocar('coordenador');
-await doMais('Equipe');
-await pg.locator('main.conteudo tr', { hasText: 'Mário' }).first()
-  .getByRole('button', { name: 'Desligar as duas etapas' }).click();
-await pg.waitForTimeout(300);
-cobrar('desligar pede motivo de verdade',
-  await pg.locator('.overlay .sheet button', { hasText: /^Desligar$/ }).isDisabled());
-await pg.locator('#duas-mot').fill('Perdeu o celular e os códigos; conferido pessoalmente na casa.');
-await pg.locator('.overlay .sheet button', { hasText: /^Desligar$/ }).click();
-await pg.waitForTimeout(800);
-cobrar('a coordenação desliga, e a marca sai da conta',
-  !/duas etapas/.test(await pg.locator('main.conteudo tr', { hasText: 'Mário' }).first().innerText()));
-cobrar('nenhuma exceção nas duas etapas', erros.length === 0, erros[0]);
+await pg.waitForTimeout(1200);
+cobrar('e a nova entra pela tela de sempre', (await pg.locator('header.appbar').count()) === 1);
+cobrar('nenhuma exceção na entrada', erros.length === 0, erros[0]);
 
 await navegador.close();
 console.log(achados.length

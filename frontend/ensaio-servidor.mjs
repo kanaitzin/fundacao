@@ -107,9 +107,8 @@ for (const conta of CONTAS) {
 
   await pg.goto(URL_BASE);
   await pg.waitForTimeout(1200);
+  /* E-mail e senha juntos, numa tela só (fase 188). */
   await pg.fill('#email', conta.email);
-  await pg.getByRole('button', { name: /^Continuar$/ }).click();
-  await pg.waitForTimeout(700);
   await pg.fill('#senha', conta.senha);
   await pg.getByRole('button', { name: /Entrar no sistema/ }).click();
   await pg.waitForTimeout(2000);

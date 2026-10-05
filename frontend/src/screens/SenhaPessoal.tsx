@@ -14,11 +14,9 @@ import { Icone } from '../icones';
  * fica visível para a coordenação na lista de equipe (coluna "senha inicial
  * pendente"). Sugerir sem esquecer.
  */
-export function SenhaPessoal({ email, primeiroAcesso, semSenhaAinda, onPronto, onAdiar, onDuasEtapas }: {
+export function SenhaPessoal({ email, primeiroAcesso, semSenhaAinda, onPronto, onAdiar }: {
   email: string; primeiroAcesso: boolean; semSenhaAinda?: boolean;
   onPronto: () => void; onAdiar: () => void;
-  /** Abre a folha das duas etapas (fase 187): no monitor, é por aqui que se chega a ela. */
-  onDuasEtapas?: () => void;
 }) {
   const [atual, setAtual] = useState('');
   const [nova, setNova] = useState('');
@@ -100,11 +98,6 @@ export function SenhaPessoal({ email, primeiroAcesso, semSenhaAinda, onPronto, o
               {ocupado ? 'Salvando…' : semSenhaAinda ? 'Criar minha senha' : 'Salvar nova senha'}
             </button>
           </div>
-          {onDuasEtapas && (
-            <button type="button" className="btn ghost block" style={{ marginTop: 12 }} onClick={onDuasEtapas}>
-              Duas etapas para entrar
-            </button>
-          )}
         </form>
       </div>
     </div>

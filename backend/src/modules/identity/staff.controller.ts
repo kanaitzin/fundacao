@@ -94,13 +94,6 @@ export class StaffController {
     return this.convite.convidar(user, id);
   }
 
-  /** Desliga as duas etapas de quem perdeu o celular e os códigos de reserva (fase 187). */
-  @Post(':id/segunda-etapa/desligar')
-  desligarSegundaEtapa(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
-                       @Body() body: { motivo?: string }) {
-    return this.staff.desligarSegundaEtapa(user, id, body?.motivo);
-  }
-
   @Post(':id/reset-password')
   reset(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
         @Body() body: any) {

@@ -18,14 +18,14 @@
 > depois das 21h em Porto Alegre semeava o dia seguinte — o dia de hoje nascia
 > sem dose nenhuma. **Nada no sistema; tudo no dado de partida.**
 
-- **187 fases.** 131 suítes e 1193 testes, verdes em duas condições de relógio —
+- **188 fases.** 131 suítes e 1188 testes, verdes em duas condições de relógio —
   antes e depois da virada do UTC, que em Porto Alegre é às 21h.
-- **As duas etapas para entrar** (fase 187): qualquer pessoa liga em *Minha conta*,
-  com um aplicativo autenticador no celular; ninguém é obrigado. Quem liga recebe oito
-  códigos de reserva para guardar no papel; sem o celular e sem eles, quem administra
-  a conta desliga pela Equipe, com motivo. **Uma conversa para a equipe:** quem pede
-  para desligar deve ser conferido pessoalmente, porque quem pede por mensagem pode
-  não ser a pessoa.
+- **Entrar e esqueci minha senha** (fase 188, pedido de 05/10): a tela de entrada
+  abre vazia, com e-mail e senha juntos. Quem esqueceu pede um link que vai ao
+  e-mail cadastrado, vale uma hora e serve uma vez; a tela responde igual para
+  e-mail cadastrado ou não. As duas etapas (fase 187) saíram por completo, como
+  pedido. **Depende do SMTP institucional (§12.8 do documento)**: sem ele, o
+  e-mail não sai, e quem administra a conta continua redefinindo pela Equipe.
 - **O que mudou desde o meu último plantão** (fase 186): o Dia abre com um cartão
   das ocorrências, da ATA anterior e dos remédios que começaram, foram suspensos
   ou mudaram desde o fim do plantão da pessoa (quem não está na escala vê as

@@ -25,13 +25,17 @@ export function PrimeiroAcesso({ convite, onEntrou }: {
   const [repetida, setRepetida] = useState('');
   const [erro, setErro] = useState('');
   const [ocupado, setOcupado] = useState(false);
+  /* O mesmo link serve ao convite e ao esqueci minha senha (fase 188). */
+  const [motivo, setMotivo] = useState<'convite' | 'esqueci'>('convite');
 
   useEffect(() => {
     let vivo = true;
-    api<{ nome: string; email: string }>('/auth/convite/conferir', {
+    api<{ nome: string; email: string; motivo?: 'convite' | 'esqueci' }>('/auth/convite/conferir', {
       method: 'POST', body: JSON.stringify({ convite }),
     })
-      .then((r) => { if (vivo) { setNome(r.nome); setEmail(r.email); setEstado('ok'); } })
+      .then((r) => {
+        if (vivo) { setNome(r.nome); setEmail(r.email); setMotivo(r.motivo ?? 'convite'); setEstado('ok'); }
+      })
       .catch((e) => {
         if (!vivo) return;
         setErro(e instanceof Error ? e.message : 'Convite inválido ou vencido.');
@@ -65,16 +69,17 @@ export function PrimeiroAcesso({ convite, onEntrou }: {
         <div className="loginbrand">
           <span className="loginlogo"><img src={marca} alt="Fundação O Pão dos Pobres" /></span>
           <h1>Rede Acolher<span>Acolhimento Institucional</span></h1>
-          <p className="loginsub">Criar a sua senha</p>
+          <p className="loginsub">{motivo === 'esqueci' ? 'Criar uma senha nova' : 'Criar a sua senha'}</p>
         </div>
 
-        {estado === 'conferindo' && <p className="loginhint">Conferindo o convite…</p>}
+        {estado === 'conferindo' && <p className="loginhint">Conferindo o link…</p>}
 
         {estado === 'invalido' && (
           <>
             <div className="notice c-crit" role="alert">{erro}</div>
             <p className="loginhint">
-              Peça um convite novo à coordenação. É rápido, e o link antigo não volta a valer.
+              Se foi o link de senha nova, peça outro em Esqueci minha senha, na tela de entrada. Se
+              foi o convite, peça um novo à coordenação. O link antigo não volta a valer.
             </p>
           </>
         )}
@@ -82,7 +87,9 @@ export function PrimeiroAcesso({ convite, onEntrou }: {
         {estado === 'ok' && (
           <form onSubmit={criar}>
             <p className="loginhint">
-              Olá, <strong>{nome}</strong>. Você está criando a senha da conta <strong>{email}</strong>.
+              Olá, <strong>{nome}</strong>.{' '}
+              {motivo === 'esqueci' ? 'Você está criando uma senha nova para a conta ' : 'Você está criando a senha da conta '}
+              <strong>{email}</strong>.
             </p>
 
             <label className="f" htmlFor="senha">Sua senha</label>

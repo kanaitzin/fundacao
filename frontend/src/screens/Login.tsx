@@ -6,41 +6,25 @@ import { Icone } from '../icones';
 /**
  * ENTRADA NO SISTEMA.
  *
- * Conta individual e e-mail institucional (§5.1) — não há login por casa, por
+ * Conta individual e e-mail institucional (§5.1): não há login por casa, por
  * turno ou compartilhado.
  *
- * A entrada tem DOIS passos, e o segundo às vezes não acontece: a pessoa
- * digita o e-mail, e o sistema responde se aquela conta já tem senha. Quem
- * ainda não tem entra direto e cria a sua ali; quem já tem, digita.
+ * UMA TELA, COMO A PESSOA ESPERA (pedido de 05/10): e-mail e senha juntos, em
+ * branco, e o botão de entrar. A entrada em dois passos (primeiro o e-mail,
+ * depois a pergunta "esta conta tem senha?") saiu: quem tem conta nova entra
+ * pelo link do convite que chega no e-mail, e a tela diz isso embaixo.
  *
- * A razão é a coordenação, não a tecnologia. Distribuir senha inicial para
- * quarenta pessoas por WhatsApp — que é como isso acabaria acontecendo — é
- * pior do que qualquer senha fraca: a senha circula em grupo, some no
- * histórico e nunca é trocada. Aqui a primeira senha da pessoa é criada pela
- * própria pessoa, no aparelho dela.
+ * ESQUECI MINHA SENHA manda ao e-mail cadastrado um link de uma hora e uso
+ * único, que leva à mesma tela de criar a senha do convite. A resposta é a
+ * mesma para qualquer e-mail: a tela de entrada não conta quem trabalha na
+ * Fundação.
  *
- * O que isso exige do servidor, e ainda não está feito: o primeiro acesso sem
- * senha precisa valer UMA vez, por convite da coordenação e com prazo — senão
- * o e-mail sozinho vira porta permanente. Enquanto essa rota não existe, o
- * aplicativo de verdade continua pedindo a senha (o passo 1 responde 404 e a
- * tela mostra o campo). Quem usa o caminho curto é o protótipo.
+ * No protótipo os atalhos por função ficam embaixo e só preenchem os campos:
+ * a demonstração é entrar COMO cada função, e o que se vê ao abrir é a tela
+ * de verdade, vazia.
  */
-/**
- * O PROTÓTIPO É PARA SER ABERTO, e não decifrado.
- *
- * A entrada de verdade tem dois passos, e o segundo é uma recusa útil: conta
- * sem senha manda a pessoa ao link do convite, porque distribuir senha inicial
- * para quarenta pessoas acabaria no WhatsApp. No protótipo, que não envia
- * e-mail nenhum, essa recusa virava um beco: quem digitava o próprio e-mail
- * lia "use o link do convite" e não tinha link.
- *
- * Aqui o e-mail já vem escrito e um clique entra. Os atalhos por cargo existem
- * pelo mesmo motivo: a demonstração é entrar COMO cada função — o que a pessoa
- * vê ao abrir o aplicativo é metade do que se está mostrando.
- */
-const CONVIDADO = { nome: 'Marcelo Barbosa', email: 'mbarbosa@paodospobres.com.br' };
-
 const DEMO = [
+  { label: 'Marcelo Barbosa', email: 'mbarbosa@paodospobres.com.br' },
   { label: 'Coordenação', email: 'coord.ai3@paodospobres.dev' },
   { label: 'Coordenação Geral', email: 'coordenacao.geral@paodospobres.dev' },
   { label: 'Equipe técnica', email: 'tecnica.ai3@paodospobres.dev' },
@@ -61,44 +45,31 @@ const SENHA_DEMO = 'senha-dev-123';
 const ehPrototipo = import.meta.env.VITE_PROTOTIPO === '1';
 const demoDisponivel = import.meta.env.DEV || ehPrototipo;
 
-export function Login({ onSubmit, erro, ocupado, desafio = false, onCodigo, onVoltar }: {
+export function Login({ onSubmit, erro, ocupado }: {
   onSubmit: (email: string, senha: string) => void;
   erro: string; ocupado: boolean;
-  /** A senha conferiu e a conta tem as duas etapas (fase 187): falta o código. */
-  desafio?: boolean;
-  onCodigo?: (codigo: string) => void;
-  onVoltar?: () => void;
 }) {
-  const [codigo, setCodigo] = useState('');
-  // No protótipo a tela já abre pronta para entrar; no aplicativo de verdade,
-  // vazia, como tem de ser.
-  const [email, setEmail] = useState(ehPrototipo ? CONVIDADO.email : '');
-  const [senha, setSenha] = useState(ehPrototipo ? SENHA_DEMO : '');
-  /** '' = ainda não perguntamos; 'senha' = tem senha; 'primeira' = não tem. */
-  const [passo, setPasso] = useState<'' | 'senha' | 'primeira'>(ehPrototipo ? 'senha' : '');
-  const [conferindo, setConferindo] = useState(false);
+  const [email, setEmail] = useState('');
+  const [senha, setSenha] = useState('');
+  /* "Esqueci minha senha": o pedido do link, na mesma tela. */
+  const [esqueci, setEsqueci] = useState(false);
+  const [aviso, setAviso] = useState('');
+  const [linkDoPrototipo, setLinkDoPrototipo] = useState('');
+  const [pedindo, setPedindo] = useState(false);
+  const [erroEsqueci, setErroEsqueci] = useState('');
 
-  async function continuar(e: React.FormEvent) {
+  async function pedirLink(e: React.FormEvent) {
     e.preventDefault();
-    if (passo === 'primeira') { setPasso(''); setSenha(''); return; }
-    if (passo !== '') { onSubmit(email.trim(), senha); return; }
-
-    setConferindo(true);
+    setErroEsqueci(''); setPedindo(true);
     try {
-      const r = await api<{ temSenha: boolean }>('/auth/primeiro-acesso', {
+      const r = await api<{ aviso: string; linkDoPrototipo?: string }>('/auth/esqueci-a-senha', {
         method: 'POST', body: JSON.stringify({ email: email.trim() }),
       });
-      if (r.temSenha) { setPasso('senha'); return; }
-      // Conta ainda sem senha: a criação acontece pelo link do convite, no
-      // e-mail institucional. Criar senha aqui, só com o e-mail, devolveria a
-      // porta permanente que o convite existe para fechar (§8.2).
-      setPasso('primeira');
-    } catch {
-      // Servidor sem essa rota: o caminho de sempre, com senha. Falhar aqui
-      // não pode impedir ninguém de entrar.
-      setPasso('senha');
+      setAviso(r.aviso); setLinkDoPrototipo(r.linkDoPrototipo ?? '');
+    } catch (x) {
+      setErroEsqueci(x instanceof Error ? x.message : 'Não foi possível pedir o link. Tente de novo.');
     } finally {
-      setConferindo(false);
+      setPedindo(false);
     }
   }
 
@@ -113,92 +84,69 @@ export function Login({ onSubmit, erro, ocupado, desafio = false, onCodigo, onVo
           <p className="loginsub">Sistema de gestão do acolhimento</p>
         </div>
 
-        {desafio ? (
-          <form onSubmit={(e) => { e.preventDefault(); onCodigo?.(codigo); }}>
-            <label className="f" htmlFor="codigo">Código do aplicativo autenticador</label>
-            <input id="codigo" inputMode="numeric" autoComplete="one-time-code" required autoFocus
-                   value={codigo} onChange={(e) => setCodigo(e.target.value)} placeholder="6 números" />
-            <p className="loginhint">
-              <Icone nome="cadeado" /> Abra o aplicativo autenticador no seu celular e digite os seis
-              números da conta Rede Acolher. Sem o celular, digite um dos seus códigos de reserva.
-            </p>
+        {!esqueci ? (
+          <form onSubmit={(e) => { e.preventDefault(); onSubmit(email.trim(), senha); }}>
+            <label className="f" htmlFor="email">E-mail institucional</label>
+            <input id="email" type="email" autoComplete="username" required
+                   value={email} onChange={(e) => setEmail(e.target.value)}
+                   placeholder="nome@paodospobres.com.br" />
+            <label className="f" htmlFor="senha">Senha</label>
+            <input id="senha" type="password" autoComplete="current-password" required
+                   value={senha} onChange={(e) => setSenha(e.target.value)} placeholder="Sua senha" />
             {erro && <div className="notice c-crit" role="alert">{erro}</div>}
             <button className="btn block" type="submit" disabled={ocupado}>
               {ocupado ? 'Entrando…' : 'Entrar no sistema'}
             </button>
-            <button className="btn ghost block" type="button" style={{ marginTop: 8 }}
-                    onClick={() => { setCodigo(''); onVoltar?.(); }}>
-              Voltar para a senha
+            <button type="button" className="btn ghost block" style={{ marginTop: 8 }}
+                    onClick={() => { setEsqueci(true); setAviso(''); setErroEsqueci(''); }}>
+              Esqueci minha senha
             </button>
-          </form>
-        ) : (
-        <form onSubmit={continuar}>
-          <label className="f" htmlFor="email">E-mail institucional</label>
-          <input
-            id="email" type="email" autoComplete="username" required
-            value={email} onChange={(e) => { setEmail(e.target.value); setPasso(''); }}
-            placeholder="nome@paodospobres.com.br"
-          />
-
-          {ehPrototipo && (
-            <div className="notice c-info" role="status">
-              Protótipo aberto no seu nome, <b>{CONVIDADO.nome}</b> — é só tocar em
-              <b> Entrar no sistema</b>. Depois, use “Ver como” no alto da tela para
-              percorrer o sistema com os olhos de cada função.
-            </div>
-          )}
-
-          {passo === 'senha' && (
-            <>
-              <label className="f" htmlFor="senha">Senha</label>
-              <input
-                id="senha" type="password" autoComplete="current-password" required autoFocus
-                value={senha} onChange={(e) => setSenha(e.target.value)}
-                placeholder="Sua senha"
-              />
-              <p className="loginhint">
-                <Icone nome="cadeado" /> Esqueceu? A coordenação reenvia o primeiro acesso — ninguém, nem ela,
-                consegue ver a sua senha.
-              </p>
-            </>
-          )}
-
-          {passo === '' && (
             <p className="loginhint">
-              <Icone nome="cadeado" /> No primeiro acesso, a senha quem cria é você — pelo link que a
+              <Icone nome="cadeado" /> Primeiro acesso? A senha quem cria é você, pelo link que a
               coordenação envia para o seu e-mail institucional.
             </p>
-          )}
-
-          {passo === 'primeira' && (
-            <div className="notice c-info" role="status">
-              Esta conta ainda não tem senha. Abra o e-mail institucional e use o link
-              do convite para criar a sua — ele vale 24 horas e serve uma vez.
-              Se não chegou, peça um novo à coordenação.
-            </div>
-          )}
-
-          {erro && <div className="notice c-crit" role="alert">{erro}</div>}
-
-          <button className="btn block" type="submit" disabled={ocupado || conferindo}>
-            {ocupado || conferindo
-              ? 'Entrando…'
-              : passo === 'senha' ? 'Entrar no sistema'
-              : passo === 'primeira' ? 'Tentar outro e-mail' : 'Continuar'}
-          </button>
-        </form>
+          </form>
+        ) : (
+          <form onSubmit={pedirLink}>
+            <p className="loginhint" style={{ marginTop: 0 }}>
+              Digite o seu e-mail institucional. Enviamos para ele um link para você criar uma senha
+              nova. O link vale uma hora e serve uma vez, e a senha atual continua valendo até você
+              criar a nova.
+            </p>
+            <label className="f" htmlFor="email-esqueci">E-mail institucional</label>
+            <input id="email-esqueci" type="email" autoComplete="username" required autoFocus
+                   value={email} onChange={(e) => setEmail(e.target.value)}
+                   placeholder="nome@paodospobres.com.br" />
+            {aviso && <div className="notice c-ok" role="status">{aviso}</div>}
+            {linkDoPrototipo && (
+              <a className="btn sec block" href={linkDoPrototipo}>
+                Abrir o link que iria por e-mail (só no protótipo)
+              </a>
+            )}
+            {erroEsqueci && <div className="notice c-crit" role="alert">{erroEsqueci}</div>}
+            {!aviso && (
+              <button className="btn block" type="submit" disabled={pedindo}>
+                {pedindo ? 'Enviando…' : 'Enviar o link para o meu e-mail'}
+              </button>
+            )}
+            <button type="button" className="btn ghost block" style={{ marginTop: 8 }}
+                    onClick={() => { setEsqueci(false); setAviso(''); setLinkDoPrototipo(''); }}>
+              Voltar para a entrada
+            </button>
+          </form>
         )}
 
-        {demoDisponivel && (
+        {demoDisponivel && !esqueci && (
           <>
             <hr className="divider" />
             <p className="loginsub" style={{ marginBottom: 8 }}>
-              Ou entre como outra função — demonstração, dados fictícios
+              Protótipo, com dados fictícios: toque numa função para preencher o e-mail e a senha
+              de demonstração, e depois em Entrar no sistema.
             </p>
             <div className="demochips">
               {DEMO.map((d) => (
                 <button key={d.email} type="button" className="chipbtn"
-                        onClick={() => { setEmail(d.email); setSenha(SENHA_DEMO); setPasso('senha'); }}>
+                        onClick={() => { setEmail(d.email); setSenha(SENHA_DEMO); }}>
                   {d.label}
                 </button>
               ))}
