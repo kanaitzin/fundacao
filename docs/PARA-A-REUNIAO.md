@@ -18,8 +18,14 @@
 > depois das 21h em Porto Alegre semeava o dia seguinte — o dia de hoje nascia
 > sem dose nenhuma. **Nada no sistema; tudo no dado de partida.**
 
-- **183 fases.** 128 suítes e 1165 testes, verdes em duas condições de relógio —
+- **184 fases.** 128 suítes e 1165 testes, verdes em duas condições de relógio —
   antes e depois da virada do UTC, que em Porto Alegre é às 21h.
+- **O sistema foi aberto no celular, cargo por cargo** (fase 184): 300 telas a
+  360 e 390 px, e o percurso inteiro de uso apertando os botões num celular.
+  Abas de baixo com o nome cortado, botões encostados onde o dedo erra para o
+  vizinho e abas internas que não cabiam foram consertados; hoje nenhuma tela
+  tem achado. A barra das abas foi para o pé da tela e o topo virou uma linha
+  (escolhas de 05/10, §4.16).
 - **O pedido de 25/09 está fechado** (fase 166). Uma simulação de dois dias e
   do dia de hoje na Casa 03 conferiu os relatórios contra os fatos, e achou
   três coisas: **não havia como cadastrar alergia nem restrição alimentar**
@@ -345,6 +351,28 @@ que ela mostrou e a Fundação decidiu:
   coordenação de cada casa.
   ✅ **Respondido em 28/09: só os graves.** Ocorrência grave, internação e ATA
   Geral assinada com pendência, de qualquer das oito casas (fase 178).
+
+## 4.16 O celular (fase 184, pedido de 05/10)
+
+O sistema foi aberto num celular de 360 e de 390 px, nos oito cargos, tela por
+tela, e o percurso de uso foi feito apertando os botões como num celular. O que
+era defeito foi consertado. Ficaram duas perguntas de desenho, que mudam a cara
+de todas as telas e por isso são da Fundação:
+
+1. **A barra das abas (Dia, Chamada, Acolhidos, Passagem, Mais) fica no alto e
+   some quando a pessoa desce a tela.** O Dia tem cerca de oito telas de altura
+   no celular; para trocar de aba é preciso voltar ao topo. Pergunta: a barra
+   passa para o **pé da tela, sempre à vista**, onde o polegar alcança (como nos
+   aplicativos de banco), ou fica no alto como hoje?
+2. **O topo ocupa cerca de um terço da tela do celular** antes da primeira
+   linha do dia: os botões (busca, cor, painel, avisos, senha), o Sair, o cargo,
+   o nome, a casa e o e-mail. No Gestor Geral os botões já não cabem numa linha.
+   Pergunta: no celular, o topo fica **compacto** (uma linha com a marca, a
+   busca, os avisos e o círculo da pessoa; o resto vai para a folha que abre ao
+   tocar no círculo), ou fica como está?
+
+✅ **Respondido em 05/10: as duas como recomendado.** A barra vai para o pé, sempre
+à vista, e o topo fica compacto; no monitor nada muda (fase 184).
 
 ## 5. As decisões que são do Marcelo *(§10 — responda pelo número)*
 

@@ -147,6 +147,7 @@ e qual é o caminho certo.
 | `.claude/hooks/session-start.sh` | o preparo que roda antes de a sessão na web começar |
 | `scripts/varredura-de-pontas.mjs` | acha coluna que é gravada e não chega a lugar nenhum, medindo contra funções, políticas, visões e o TypeScript. **Não é teste**: devolve candidato, e quem confirma olha |
 | `scripts/superficies-sem-teste.mjs` | acha tabela que **nenhum teste jamais escreveu** — a lição da fase 141 medida em vez de lembrada. Roda DEPOIS do `npm test`, na mesma rodada, e usa o `n_tup_ins` do banco porque contar linhas no fim não distingue "ninguém escreveu" de "a suíte limpou". **Não é teste**, e recusa concluir se a rodada foi parcial |
+| `frontend/ensaio-celular.mjs` | **o sistema no celular** (fase 184): oito cargos a 360 e 390 px, todas as abas, o "Mais" e cada porta. Mede o que o axe não mede: tela que anda para o lado, texto cortado ou vazando do botão, **botões encostados**, alvo abaixo de 24 px, conteúdo atrás da barra do pé. Fotos em `/tmp/ensaio-celular`. O `ensaio:uso-celular` faz o percurso de uso como celular. **Mudou tela, roda os dois** |
 | `scripts/rotas-sem-teste.mjs` | acha **rota** que nenhum teste chamou — o outro lado da mesma pergunta. Separa *candidata forte* (a URL não aparece em suíte nenhuma) de *par incerto* (a suíte chama por auxiliar e o método fica noutra linha). **Não é teste** |
 | `backend/src/kernel/common/data-do-dia.pipe.ts` | **toda data que vem da URL passa por aqui** (fase 148). Sete de dez rotas de data devolviam 500 para uma data que não é data; a conferência mora num lugar só, e há teste estático que cobra que todo `@Query('de')` e `@Param('data')` use o pipe |
 | `backend/src/kernel/audit/audit.service.ts` | quem ESCREVE a auditoria, e as três respostas sobre a casa de uma linha (fase 149). **Linha de auditoria sem casa é linha que a coordenação da casa não lê** — a policy compara `house_id` com o alcance, e NULL não é igual a nada. O `auditoria-tem-casa.spec.ts` cobra `houseId` em toda chamada, com a lista ESCRITA das poucas ações que não têm casa |
@@ -165,7 +166,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 05/10/2026, fase 183
+### Onde estamos — 05/10/2026, fase 184
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -212,9 +213,10 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 181 | **as decisões 1, 2, 3 e 11 do §10** (30/09): **devolver o acompanhamento** com motivo (`followup_return`, 1638; a versão devolvida fica legível); a **ATA Geral do dia, linha por casa** (a política das linhas entregava as oito a qualquer coordenação com o id da folha; 1639); **"Concluí as atividades coletivas até agora"**, sem remédio, saúde, urgência nem o que espera ciência, com registro imutável (`activity_bulk`, 1640); a Enfermagem continua vendo a internação |
 | 182 | **a tela em outras cores** (pedido pedagógico de 30/09): temas **Rosa, Azul claro, Verde e Colorido**, claros e com letra escura, que mudam fundo, moldura e marca e NUNCA as cores de estado, autor e cargo; o botão abre a folha **"Cor da tela"**; e o **escuro do sistema pintava por cima de qualquer tema novo** (agora só vale sem tema escolhido). Ideias para a Fundação escolher no §9, *As ideias de 30/09* |
 | 183 | **a letra maior, o escuro à noite e a busca de criança** (ideias 3, 4 e 5 de 30/09): tamanho da letra por `zoom` guardado no aparelho, sem vazar a 360 px; escuro das 20h às 8h por cima da cor escolhida (`pintar()` em `tema.ts`); busca no topo, só na casa aberta, que abre o perfil; e o defeito que o ensaio achou na hora (voltar aos Acolhidos reabria a criança buscada) |
+| 184 | **o sistema no celular, setor por setor** (pedido de 05/10): `ensaio:celular` (oito cargos, 360 e 390 px, 300 telas, mede o que o dedo sente) e `ensaio:uso-celular`; abas de baixo cortadas, botões encostados em quatro telas, abas internas vazando, Cozinha com abas de 21 px e a portaria com um *Mais* sozinho, consertados; e as duas escolhas de 05/10: **a barra das abas no pé, sempre à vista**, e **o topo numa linha**, com nome, cor, senha e Sair na folha **Minha conta** (só abaixo de 1080 px) |
 
-**Medido no fim da 183:** 181 migrações, 128 tabelas, 128 suítes, 1165 testes, verdes nas
-DUAS condições de relógio; os sete ensaios de navegador verdes, com a portaria e o
+**Medido no fim da 184:** 181 migrações, 128 tabelas, 128 suítes, 1165 testes, verdes nas
+DUAS condições de relógio; os nove ensaios de navegador verdes (o do celular com 300 telas e nenhum achado), com a portaria e o
 portão, o armário, a cozinha, os temas e a foto no percurso do `ensaio:uso`; **1036 telas (148 × sete
 temas) sem violação de WCAG 2.1 AA**; nenhuma
 rota sem teste; nenhuma rota — escrita ou leitura — com 500; **250 leituras sondadas
@@ -242,6 +244,9 @@ as três cores abaixo. Cor nova passa pelo `ensaio:acessibilidade`, que mede os 
 | **cargo** | *de que setor é esta pessoa?* | círculo cheio com iniciais |
 
 ### A próxima etapa
+
+**FEITO — fase 184** (§2): o sistema aberto no celular, cargo por cargo, com a barra
+no pé e o topo numa linha (escolhas de 05/10). **Mudou tela, roda o `ensaio:celular`.**
 
 **FEITO — fases 179, 180 e 181** (§2): os defeitos da análise de 30/09, o aviso de
 meia hora antes do fim do plantão e as decisões 1, 2, 3 e 11 do §10. **Não sobra

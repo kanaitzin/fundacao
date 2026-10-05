@@ -1445,3 +1445,70 @@ textarea{
   :root[data-letra="grande"] .tabbar button{ font-size:10px; padding-left:1px; padding-right:1px }
   :root[data-letra="maior"] .tabbar button{ font-size:9px; padding-left:0; padding-right:0; letter-spacing:-.01em }
 }
+
+/* ============================================================
+   NO CELULAR (fase 184, ensaio:celular)
+   ------------------------------------------------------------
+   Cinco abas num celular de 390px davam ~56px de texto a cada uma, e
+   "Acolhidos" e "Passagem" saíam "Acolhi…" e "Passag…" em toda tela, para
+   todo cargo de cinco abas. A barra perde a folga de lado e a letra desce meio
+   ponto; o alvo continua com 54px de altura.
+   ============================================================ */
+@media (max-width:440px){
+  .tabbar{ gap:2px; padding:10px 6px 0 }
+  .tabbar button{ padding-left:1px; padding-right:1px; font-size:11.5px; letter-spacing:-.015em }
+}
+@media (max-width:370px){
+  .tabbar button{ font-size:10.5px }
+}
+/* O botão de cor da linha, na Equipe, tinha 23px de altura: abaixo do mínimo
+   para o dedo. Continua pílula, com a altura de um alvo. */
+.tabela button.pill{ min-height:32px; padding:4px 12px }
+
+/* ---------- O celular, setor por setor (fase 184) ----------
+   Botões de ação lado a lado se tocavam (Substituir/Retirar, Liberar/Negar,
+   Remédios/Relato): no dedo, o toque erra para o vizinho. E o controle
+   segmentado dividia a largura em partes iguais: Acompanhamentos e Esquemas
+   não cabiam e vazavam da pílula. No celular, cada um fica do tamanho do que
+   escreve e o que não cabe desce para a linha de baixo. */
+div.acoes{ display:flex; flex-wrap:wrap; gap:8px; align-items:center }
+@media (max-width:560px){
+  .filtros{ flex-wrap:wrap }
+  .filtros button{ flex:1 1 auto }
+}
+
+/* ---------- O celular: barra no pé e topo numa linha (fase 184) ----------
+   Escolhas da Fundação em 05/10. A barra das abas ficava no alto e sumia ao
+   descer o Dia, que tem umas oito telas de altura: para trocar de aba era
+   preciso voltar ao topo. Agora ela fica no pé, onde o polegar alcança. E o
+   topo, que gastava um terço da tela antes da primeira linha do dia, vira uma
+   linha: a marca, a busca, os avisos e o círculo da pessoa, que abre a folha
+   da conta com o nome, a casa, a cor da tela, a senha e o Sair. */
+.conta-celular{ display:none }
+.conta-acoes{ display:flex; flex-direction:column; gap:10px; margin-top:16px }
+@media (max-width:1079px){
+  .appbar .so-no-monitor, .appbar .wordmark{ display:none }
+  .conta-celular{
+    display:inline-flex; align-items:center; justify-content:center;
+    min-width:44px; min-height:44px; padding:0; border:none; background:transparent;
+    border-radius:999px; cursor:pointer;
+  }
+  /* O nome continua sendo o título principal da página para o leitor de tela;
+     só não ocupa a tela de quem enxerga, porque está na folha da conta. */
+  .appbar .quem{
+    position:absolute; width:1px; height:1px; overflow:hidden;
+    clip:rect(0 0 0 0); clip-path:inset(50%); white-space:nowrap; margin:0;
+  }
+  .appbar{ padding-top:8px; padding-bottom:8px }
+  .appbar .top{ gap:6px }
+
+  .navegacao{
+    position:fixed; left:0; right:0; bottom:0; z-index:30;
+    background:var(--surface); border-top:1px solid var(--line);
+    box-shadow:0 -6px 18px -8px rgba(0,20,45,.22);
+    padding-bottom:env(safe-area-inset-bottom, 0px);
+  }
+  .navegacao .tabbar{ padding:6px 6px; max-width:1180px; margin:0 auto }
+  .app.com-barra{ --barra-pe:calc(68px + env(safe-area-inset-bottom, 0px)); padding-bottom:calc(var(--barra-pe) + 24px) }
+  .app.com-barra .rodape{ bottom:var(--barra-pe) }
+}

@@ -253,9 +253,15 @@ interface Convivencia {
 const VE_REMEDIO = ['enfermagem', 'equipe_tecnica', 'coordenador', 'gestor_geral'];
 
 
-const horaCurta = (iso: string) => new Date(iso).toLocaleString('pt-BR', {
-  timeZone: 'America/Sao_Paulo', weekday: 'short', hour: '2-digit', minute: '2-digit',
-});
+/* "quarta às 18:00", e não o "qua., 18:00" do navegador, que no celular se lê
+   como abreviatura solta (fase 184). */
+const horaCurta = (iso: string) => {
+  const d = new Date(iso);
+  const semana = d.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', weekday: 'long' })
+    .replace('-feira', '');
+  const hora = d.toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' });
+  return `${semana} às ${hora}`;
+};
 
 export function Acolhidos({ houseId, casaLabel, papel, abrir }: {
   houseId: string; casaLabel: string; papel: string;

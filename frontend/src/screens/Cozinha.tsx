@@ -180,7 +180,7 @@ export function Cozinha({ houseId, casaLabel, papel }: {
       {erro && <div className="notice c-crit" role="alert">{erro}</div>}
       {aviso && <div className="notice c-ok" role="status">{aviso}</div>}
 
-      <div className="seg" role="tablist">
+      <div className="filtros" role="tablist">
         <button role="tab" aria-selected={aba === 'pedidos'}
                 className={aba === 'pedidos' ? 'on' : ''}
                 onClick={() => setAba('pedidos')}>Pedidos</button>

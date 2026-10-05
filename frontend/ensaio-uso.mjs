@@ -46,7 +46,13 @@ const cobrar = (o_que, ok, detalhe) => {
 const navegador = await chromium.launch({
   executablePath: EXECUTAVEL, args: ['--no-sandbox', '--disable-dev-shm-usage'],
 });
-const pg = await navegador.newPage({ viewport: { width: 420, height: 900 } });
+/* `ENSAIO_CELULAR=1` percorre o mesmo uso como um celular de verdade: 360 px,
+ * toque, tela de densidade dupla e o navegador em português (fase 184). */
+const comoCelular = process.env.ENSAIO_CELULAR === '1';
+const pg = await navegador.newPage(comoCelular
+  ? { viewport: { width: 360, height: 780 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2,
+      locale: 'pt-BR', timezoneId: 'America/Sao_Paulo' }
+  : { viewport: { width: 420, height: 900 } });
 const erros = [];
 pg.on('pageerror', (e) => erros.push(e.message));
 pg.on('console', (m) => {
@@ -88,6 +94,19 @@ async function doMais(nome) {
 }
 
 /** Fecha o que tenha ficado por cima, para o passo seguinte começar limpo. */
+/* A cor da tela mora no topo no monitor e na folha da conta no celular, onde o
+ * topo é uma linha só (fase 184). */
+async function abrirCor() {
+  const conta = pg.getByRole('button', { name: /^Minha conta/ });
+  if (await conta.isVisible()) { await conta.click(); await pg.waitForTimeout(300); }
+  await pg.getByRole('button', { name: /^Escolher a cor da tela/ }).click();
+}
+async function fecharCor() {
+  /* Abrir a cor fecha a folha da conta: fica uma folha só, com um Fechar só. */
+  await pg.locator('.overlay .sheet button', { hasText: /^Fechar$/ }).click();
+  await pg.waitForTimeout(200);
+}
+
 async function fechar() {
   for (let i = 0; i < 3; i++) {
     /* `.folha` e `.overlay` são as duas caixas do sistema: a folha que sobe de
@@ -205,7 +224,7 @@ cobrar('e o botão leva mesmo à chamada',
 /* A COR DA TELA (fase 182): a folha mostra as sete, escolher troca a tela e
    fica lembrado no aparelho; volta-se ao claro para o resto do percurso. */
 {
-  await pg.getByRole('button', { name: /^Escolher a cor da tela/ }).click();
+  await abrirCor();
   await pg.waitForTimeout(300);
   const folhaTema = await corpo();
   cobrar('a folha de cores traz as sete', ['Claro', 'Escuro', 'Alto contraste', 'Rosa', 'Azul claro',
@@ -218,14 +237,14 @@ cobrar('e o botão leva mesmo à chamada',
   await pg.locator('.overlay .sheet button', { hasText: /^Claro$/ }).click();
   /* O TAMANHO DA LETRA (fase 183): fica lembrado, e a tela não vaza para o lado. */
   await pg.locator('.prefs-linha button', { hasText: /^Maior$/ }).click();
-  await pg.locator('.overlay .sheet button', { hasText: /^Fechar$/ }).click();
+  await fecharCor();
   await pg.waitForTimeout(400);
   const [sw, cw] = await pg.evaluate(() => [document.documentElement.scrollWidth, document.documentElement.clientWidth]);
   cobrar('a letra maior fica lembrada e a tela não vaza para o lado',
     (await pg.evaluate(() => localStorage.getItem('rede-acolher.letra'))) === 'maior' && sw <= cw, `${sw}/${cw}`);
-  await pg.getByRole('button', { name: /^Escolher a cor da tela/ }).click();
+  await abrirCor();
   await pg.locator('.prefs-linha button', { hasText: /^Normal$/ }).click();
-  await pg.locator('.overlay .sheet button', { hasText: /^Fechar$/ }).click();
+  await fecharCor();
   await pg.waitForTimeout(300);
 }
 /* A BUSCA DE CRIANÇA (fase 183): pelo nome, sem acento, e leva ao perfil. */
@@ -1010,7 +1029,7 @@ cobrar('as três folhas para a cozinha têm porta',
 
 /* A outra aba: a restrição sem a razão dela. */
 cobrar('a aba das restrições abre',
-  await clicar(/^Restrições$/, 'main.conteudo .seg'));
+  await clicar(/^Restrições$/, 'main.conteudo .filtros'));
 const restricoes = await conteudo();
 cobrar('a lista mostra o que não pode ser servido', /Não servir|restri/i.test(restricoes));
 cobrar('e diz por que não traz o motivo da restrição',
@@ -2785,9 +2804,10 @@ cobrar('nenhuma exceção ao abrir as prévias', erros.length === 0, erros[0]);
 await fechar();
 console.log('\n🚪 O portão — a portaria com login mínimo (fase 160)');
 await trocar('portaria');
-/* A portaria não tem aba do turno: a primeira da barra é o "Mais", e o
-   `trocar` a abriu. Fecha-se, e fica o portão, que é a tela dela. */
+/* A portaria tem uma tela só, e desde a fase 184 não ganha barra: era um
+   "Mais" sozinho que abria uma folha com a tela onde ela já estava. */
 await fechar();
+cobrar('a portaria não tem barra de seções', (await pg.locator('nav.tabbar').count()) === 0);
 erros.length = 0;
 const portao = await conteudo();
 cobrar('a portaria abre direto no portão', /Portaria — quem pode visitar/.test(portao), portao.slice(0, 300));
@@ -2932,7 +2952,7 @@ await pg.locator('#ed-qtd').fill('2');
 await botaoEditar.click();
 await pg.waitForTimeout(800);
 cobrar('a edição fica registrada', /Pedido editado/.test(await conteudo()));
-cobrar('a aba das refeições abre', await clicar(/^Refeições$/, 'main.conteudo .seg'));
+cobrar('a aba das refeições abre', await clicar(/^Refeições$/, 'main.conteudo .filtros'));
 const refeicoes = await conteudo();
 cobrar('as refeições vêm por refeição, e dizem que não são de criança',
   /Por refeição/i.test(refeicoes) && /nunca de uma criança/.test(refeicoes));
@@ -2949,10 +2969,10 @@ await trocar('equipe_tecnica');
 erros.length = 0;
 const temaAgora = () => pg.evaluate(() => document.documentElement.getAttribute('data-theme'));
 const escolherTema = async (nome) => {
-  await pg.getByRole('button', { name: /^Escolher a cor da tela/ }).click();
+  await abrirCor();
   await pg.waitForTimeout(250);
   await pg.locator('.overlay .sheet button', { hasText: new RegExp(`^${nome}$`) }).click();
-  await pg.locator('.overlay .sheet button', { hasText: /^Fechar$/ }).click();
+  await fecharCor();
   await pg.waitForTimeout(250);
 };
 await escolherTema('Escuro');
@@ -3266,7 +3286,15 @@ await pg.getByRole('button', { name: /^Coordenação Geral$/ }).click();
 await pg.getByRole('button', { name: /Entrar no sistema/i }).click();
 await pg.waitForTimeout(1400);
 cargoAtual = 'coordenacao_geral';
-cobrar('o topo diz Coordenação Geral', /Coordenação Geral/.test(await pg.locator('header.appbar').innerText()));
+/* No celular o cargo está na folha da conta, aberta pelo círculo (fase 184). */
+{
+  const conta = pg.getByRole('button', { name: /^Minha conta/ });
+  const naFolha = await conta.isVisible();
+  if (naFolha) { await conta.click(); await pg.waitForTimeout(300); }
+  cobrar('o topo diz Coordenação Geral',
+    /Coordenação Geral/.test(await pg.locator(naFolha ? '.overlay .sheet' : 'header.appbar').innerText()));
+  await fechar();
+}
 const unidades176 = await conteudo();
 cobrar('ela abre nas unidades, para escolher a casa', /unidades no seu alcance/i.test(unidades176), unidades176.slice(0, 120));
 cobrar('e alcança as oito', (await pg.locator('main.conteudo button.card.row').count()) === 8);

@@ -56,6 +56,19 @@ const navegador = await chromium.launch({
 });
 const pg = await navegador.newPage({ viewport: { width: 420, height: 900 } });
 
+/* A cor da tela mora no topo no monitor e na folha da conta no celular, onde o
+ * topo é uma linha só (fase 184). */
+async function abrirCor() {
+  const conta = pg.getByRole('button', { name: /^Minha conta/ });
+  if (await conta.isVisible()) { await conta.click(); await pg.waitForTimeout(300); }
+  await pg.getByRole('button', { name: /^Escolher a cor da tela/ }).click();
+}
+async function fecharCor() {
+  /* Abrir a cor fecha a folha da conta: fica uma folha só, com um Fechar só. */
+  await pg.locator('.overlay .sheet button', { hasText: /^Fechar$/ }).click();
+  await pg.waitForTimeout(200);
+}
+
 await pg.goto(`file://${ARQUIVO}`);
 await pg.waitForTimeout(900);
 await pg.getByRole('button', { name: /Entrar no sistema/i }).click();
@@ -181,10 +194,16 @@ await pg.waitForTimeout(700);
 
 /* A folha de escolher a cor da tela (fase 182): as sete amostras, lidas em
  * cada tema. Só abre e fecha; escolher trocaria o tema no meio da volta. */
-await pg.getByRole('button', { name: /^Escolher a cor da tela/ }).click();
+/* A folha da conta (fase 184), que no celular guarda o nome, a senha e o Sair. */
+await pg.getByRole('button', { name: /^Minha conta/ }).click();
+await pg.waitForTimeout(300);
+await conferir(`${tema} · folha "Minha conta"`); telas++;
+await pg.locator('.overlay .sheet button', { hasText: /^Fechar$/ }).last().click();
+await pg.waitForTimeout(200);
+await abrirCor();
 await pg.waitForTimeout(400);
 await conferir(`${tema} · folha "Cor da tela"`); telas++;
-await pg.locator('.overlay .sheet button', { hasText: /^Fechar$/ }).click();
+await fecharCor();
 await pg.waitForTimeout(300);
 /* A busca de criança (fase 183), com um nome digitado e a lista à vista. */
 await pg.getByRole('button', { name: /^Buscar criança pelo nome$/ }).click();

@@ -16,6 +16,8 @@
     "ensaio:roteiro": "node ensaio-roteiro.mjs",
     "ensaio:acessibilidade": "node ensaio-acessibilidade.mjs",
     "ensaio:uso": "node ensaio-uso.mjs",
+    "ensaio:uso-celular": "ENSAIO_CELULAR=1 node ensaio-uso.mjs",
+    "ensaio:celular": "node ensaio-celular.mjs",
     "fontes": "node ../scripts/gerar-fontes.mjs"
   },
   "dependencies": {

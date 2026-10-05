@@ -772,15 +772,18 @@ function FolhaFoto({ personId, vivencia, onFechar }: {
             A autorização de uso de imagem desta criança não está registrada nesta foto.
           </div>
         )}
-        {fotos.length > 1 && (
-          <div className="row">
-            <button className="btn sec grow" disabled={i === 0}
-                    onClick={() => setI((n) => Math.max(0, n - 1))}>← Anterior</button>
-            <button className="btn sec grow" disabled={i >= fotos.length - 1}
-                    onClick={() => setI((n) => Math.min(fotos.length - 1, n + 1))}>Próxima →</button>
-          </div>
-        )}
-        <div className="row rodape">
+        {/* Passar de foto mora no rodapé que acompanha a rolagem (fase 184):
+            no celular a foto ocupa a tela, e os botões abaixo dela ficavam
+            cobertos pelo Fechar. */}
+        <div className="row rodape" style={{ flexWrap: 'wrap' }}>
+          {fotos.length > 1 && (
+            <>
+              <button className="btn sec grow" disabled={i === 0}
+                      onClick={() => setI((n) => Math.max(0, n - 1))}>← Anterior</button>
+              <button className="btn sec grow" disabled={i >= fotos.length - 1}
+                      onClick={() => setI((n) => Math.min(fotos.length - 1, n + 1))}>Próxima →</button>
+            </>
+          )}
           <button className="btn grow" onClick={onFechar}>Fechar</button>
         </div>
       </div>

@@ -138,23 +138,24 @@ const CARGOS_DEMO = [
  * um pediria seis toques para voltar ao claro. O botão abre uma folha com
  * todos lado a lado, e a amostra de cada um.
  */
-function BotaoTema() {
+/** O nome da cor escolhida neste aparelho, para o rótulo do botão que abre a folha. */
+const rotuloDoTema = () =>
+  `Escolher a cor da tela e o tamanho da letra (agora: ${nomeDoTema(temaGuardado() ?? temaAtual())})`;
+
+/*
+ * A FOLHA DA COR E DA LETRA. Mora no App, e não dentro do botão: no celular o
+ * botão está na folha da conta (fase 184), e uma folha aberta por cima da
+ * outra deixava dois "Fechar" na tela. Quem abre esta fecha a da conta antes.
+ */
+function FolhaTema({ onFechar }: { onFechar: () => void }) {
   /* A folha marca a cor ESCOLHIDA, e não a que está na tela: à noite, com o
      escuro automático, a tela está escura e a escolha continua sendo o rosa. */
   const [tema, setTema] = useState<Tema>(() => temaGuardado() ?? temaAtual());
   const [letra, setLetra] = useState<Letra>(() => letraGuardada());
   const [noite, setNoite] = useState(() => escuroANoiteLigado());
-  const [aberto, setAberto] = useState(false);
   return (
-    <>
-      <button className="iconbtn" title={`Cor da tela: ${nomeDoTema(tema)}`}
-              aria-label={`Escolher a cor da tela e o tamanho da letra (agora: ${nomeDoTema(tema)})`}
-              onClick={() => setAberto(true)}>
-        <Icone nome="tema" />
-      </button>
-      {aberto && (
         <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-tema"
-             onClick={(e) => { if (e.target === e.currentTarget) setAberto(false); }}>
+             onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
           <div className="sheet">
             <h3 id="t-tema">Cor e letra da tela</h3>
             <p className="mutetxt">
@@ -186,11 +187,9 @@ function BotaoTema() {
                 </button>
               ))}
             </div>
-            <button className="btn sec block" onClick={() => setAberto(false)}>Fechar</button>
+            <button className="btn sec block" onClick={onFechar}>Fechar</button>
           </div>
         </div>
-      )}
-    </>
   );
 }
 
@@ -351,6 +350,9 @@ export function App() {
     };
   }, [me, aba]);
   const [trocarSenha, setTrocarSenha] = useState(false);
+  /* A folha da conta, que no celular guarda o que saiu do topo (fase 184). */
+  const [conta, setConta] = useState(false);
+  const [folhaTema, setFolhaTema] = useState(false);
   const [mais, setMais] = useState(false);
   const [escolhida, setEscolhida] = useState<string | null>(null);
   /*
@@ -555,7 +557,7 @@ export function App() {
   const olhandoOutra = !!casaAtual && !!casa && casaAtual.code !== casa.code;
 
   return (
-    <div className="app">
+    <div className={`app${abasDoTurno.length + doMais.length > 1 ? ' com-barra' : ''}`}>
       <Tarja />
       <header className="appbar">
         <div className="top">
@@ -563,8 +565,15 @@ export function App() {
           <span className="wordmark">Rede Acolher</span>
           {/* Quem está usando o sistema, com o círculo do cargo (fase 151). O
               nome do cargo continua escrito ao lado: o círculo é apoio. */}
-          <Cargo nome={me.fullName} cargo={me.role} tamanho="sm" />
-          <span className="rolechip">
+          <span className="so-no-monitor"><Cargo nome={me.fullName} cargo={me.role} tamanho="sm" /></span>
+          {/* NO CELULAR, O TOPO É UMA LINHA (fase 184, escolha da Fundação em
+              05/10): o círculo da pessoa vira o botão da conta, e o nome, a
+              casa, a cor da tela, a senha e o Sair moram na folha dele. */}
+          <button className="conta-celular" aria-label={`Minha conta: ${me.fullName}`}
+                  onClick={() => setConta(true)}>
+            <Cargo nome={me.fullName} cargo={me.role} tamanho="sm" />
+          </button>
+          <span className="rolechip so-no-monitor">
             {me.todasAsCasas ? 'Coordenação Geral' : (ROLE_LABEL[me.role] ?? me.role)}
           </span>
           <span className="grow" />
@@ -575,7 +584,10 @@ export function App() {
                           onAbrir={(id) => { setAbrirCrianca({ id }); setAba('acolhidos'); setMais(false); }} />
           )}
           {/* A COR E A LETRA DA TELA (27/09 e fase 183), lembradas neste aparelho. */}
-          <BotaoTema />
+          <button className="iconbtn so-no-monitor" title={`Cor da tela: ${nomeDoTema(temaGuardado() ?? temaAtual())}`}
+                  aria-label={rotuloDoTema()} onClick={() => setFolhaTema(true)}>
+            <Icone nome="tema" />
+          </button>
           {/*
             * A CHAVE DO GESTOR — operação ou trabalho social.
             *
@@ -607,9 +619,9 @@ export function App() {
             <Icone nome="sino" />
             {naoLidos > 0 && <span className="badge">{naoLidos > 9 ? '9+' : naoLidos}</span>}
           </button>
-          <button className="iconbtn" title="Trocar minha senha" aria-label="Trocar minha senha"
+          <button className="iconbtn so-no-monitor" title="Trocar minha senha" aria-label="Trocar minha senha"
                   onClick={() => setTrocarSenha(true)}><Icone nome="chave" /></button>
-          <button className="btn sm ghost" onClick={sair}>Sair</button>
+          <button className="btn sm ghost so-no-monitor" onClick={sair}>Sair</button>
         </div>
         {/*
           * QUEM ESTÁ USANDO, numa linha só (fase 172). O nome ocupava um título
@@ -625,6 +637,38 @@ export function App() {
           </span>
         </div>
       </header>
+
+      {folhaTema && <FolhaTema onFechar={() => setFolhaTema(false)} />}
+      {conta && (
+        <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-conta"
+             onClick={(e) => { if (e.target === e.currentTarget) setConta(false); }}>
+          <div className="sheet">
+            <div className="row" style={{ gap: 12, alignItems: 'center' }}>
+              <Cargo nome={me.fullName} cargo={me.role} />
+              <div>
+                <h3 id="t-conta" style={{ margin: 0 }}>{me.fullName}</h3>
+                <div className="mutetxt">
+                  {me.todasAsCasas ? 'Coordenação Geral' : (ROLE_LABEL[me.role] ?? me.role)}
+                </div>
+              </div>
+            </div>
+            <p className="mutetxt" style={{ marginTop: 12 }}>
+              {casa ? `${casa.code} — ${casa.name}` : 'Escopo institucional'}<br />{me.email}
+            </p>
+            <div className="conta-acoes">
+              <button className="btn sec" aria-label={rotuloDoTema()}
+                      onClick={() => { setConta(false); setFolhaTema(true); }}>
+                <Icone nome="tema" /> Cor e letra da tela
+              </button>
+              <button className="btn sec" onClick={() => { setConta(false); setTrocarSenha(true); }}>
+                <Icone nome="chave" /> Trocar minha senha
+              </button>
+              <button className="btn ghost" onClick={sair}>Sair</button>
+              <button className="btn ghost" onClick={() => setConta(false)}>Fechar</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/*
         A barra carrega o TURNO: as quatro telas que a pessoa de plantão abre
@@ -693,7 +737,9 @@ export function App() {
         * trocar o elemento por outro deixaria a navegação sem conferência
         * exatamente na fase que a reescreve.
         */}
-      {(abasDoTurno.length > 1 || temMais) && (
+      {/* Quem tem uma tela só (a portaria) não ganha barra com um "Mais" que
+          abre uma folha com a tela onde ela já está (fase 184). */}
+      {abasDoTurno.length + doMais.length > 1 && (
         <div className="navegacao">
         <div className="marca-lateral" aria-hidden="true">
           <span className="logochip"><img src={logo} alt="" /></span>
@@ -710,7 +756,7 @@ export function App() {
             </button>
           ))}
           {temMais && (
-            <button className={`so-no-celular ${OUTRAS.has(abaEfetiva) ? 'on' : ''}`}
+            <button className={`so-no-celular ${OUTRAS.has(abaEfetiva) && !abasDoTurno.some((t) => t.aba === abaEfetiva) ? 'on' : ''}`}
                     onClick={() => setMais(true)}>
               <Icone nome="mais" /> <span className="rotulo">Mais</span>
             </button>
