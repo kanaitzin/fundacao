@@ -71,7 +71,7 @@ const ROTULO_DA_OPCAO: Record<string, string> = {
 };
 
 /** As categorias de ocorrência, pelo rótulo do §13.1. */
-const ROTULO_DA_CATEGORIA: Record<string, string> = {
+export const ROTULO_DA_CATEGORIA: Record<string, string> = {
   violencia_ou_suspeita: 'Violência ou suspeita de violação',
   conflito_agressao: 'Conflito ou agressão',
   saida_nao_autorizada: 'Saída não autorizada',

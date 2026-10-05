@@ -167,7 +167,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 05/10/2026, fase 185
+### Onde estamos — 05/10/2026, fase 186
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -216,8 +216,9 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 183 | **a letra maior, o escuro à noite e a busca de criança** (ideias 3, 4 e 5 de 30/09): tamanho da letra por `zoom` guardado no aparelho, sem vazar a 360 px; escuro das 20h às 8h por cima da cor escolhida (`pintar()` em `tema.ts`); busca no topo, só na casa aberta, que abre o perfil; e o defeito que o ensaio achou na hora (voltar aos Acolhidos reabria a criança buscada) |
 | 184 | **o sistema no celular, setor por setor** (pedido de 05/10): `ensaio:celular` (oito cargos, 360 e 390 px, 300 telas, mede o que o dedo sente) e `ensaio:uso-celular`; abas de baixo cortadas, botões encostados em quatro telas, abas internas vazando, Cozinha com abas de 21 px e a portaria com um *Mais* sozinho, consertados; e as duas escolhas de 05/10: **a barra das abas no pé, sempre à vista**, e **o topo numa linha**, com nome, cor, senha e Sair na folha **Minha conta** (só abaixo de 1080 px) |
 | 185 | **a saúde da implantação** (ideia 9; quem vê decidido em 05/10: Gestor Geral e Coordenação Geral): relógio, aviso de meia hora, e-mail, `backup.sh` e `restaurar.sh --ensaio` anotam em `implantacao_evento` (relogio/1641, só metadado, imutável); a tela mostra seis sinais *em dia/atenção/parado* com a regra em `implantacao.regra.ts`, lida pelo servidor e pelo protótipo. A *conta técnica* da pergunta está aposentada desde 01/09 |
+| 186 | **o que mudou desde o meu último plantão** (ideia 1; o que entra decidido em 05/10: ocorrências, ATA anterior, remédio novo/suspenso/mudado): cartão no alto do Dia, lido com a identidade de quem pergunta (`reports/o-que-mudou.service.ts`), desde o fim do último turno da pessoa na escala (sem escala, 24 h; no máximo sete dias); o "já li" é por PESSOA, porque o tablet é da casa; e a prescrição passou a guardar quando foi suspensa (medications/1642) |
 
-**Medido no fim da 185:** 182 migrações, 129 tabelas, 129 suítes, 1177 testes, verdes nas
+**Medido no fim da 186:** 183 migrações, 129 tabelas, 130 suítes, 1184 testes, verdes nas
 DUAS condições de relógio; os nove ensaios de navegador verdes (o do celular com 302 telas e nenhum achado), com a portaria e o
 portão, o armário, a cozinha, os temas e a foto no percurso do `ensaio:uso`; **1043 telas (149 × sete
 temas) sem violação de WCAG 2.1 AA**; nenhuma
@@ -247,9 +248,12 @@ as três cores abaixo. Cor nova passa pelo `ensaio:acessibilidade`, que mede os 
 
 ### A próxima etapa
 
-**FEITO — fase 185** (§2, §12.10): a saúde da implantação, a ideia 9 de 30/09. **Das
-ideias de 30/09, as que não dependem de ninguém acabaram**: as que sobram (1, 2, 6, 7,
-8, 10) têm decisão da Fundação ou do DPO ao lado, no §9.
+**FEITO — fase 186** (§2): o que mudou desde o meu último plantão, a ideia 1 de 30/09,
+com o que a Fundação escolheu em 05/10. **Das ideias de 30/09 sobram a 2 (push), a 6
+(ditado, DPO), a 7 (resumo com IA, DPO), a 8 (duas etapas: quem é obrigado) e a 10
+(teste com gente de verdade)** — todas com decisão ao lado, no §9.
+
+**FEITO — fase 185** (§2, §12.10): a saúde da implantação, a ideia 9 de 30/09.
 
 **FEITO — fase 184** (§2): o sistema aberto no celular, cargo por cargo, com a barra
 no pé e o topo numa linha (escolhas de 05/10). **Mudou tela, roda o `ensaio:celular`.**
@@ -264,9 +268,9 @@ diário estruturado da internação (os campos).
 
 **PRÓXIMA ETAPA:** aplicar o roteiro com a equipe e a implantação do §12 (onde roda,
 endereço, certificado, SMTP, conta do relógio e as DUAS linhas do cron). Se vier
-código, a Fundação escolhe entre as ideias do §9 (*As ideias de 30/09*): a 3, a 4, a 5
-(183) e a 9 (185) já são código, e **nenhuma das que sobram anda sem uma decisão**. A
-mais barata de decidir é a 1 (*o que mudou desde o meu último plantão*: o que entra).
+código, a Fundação escolhe entre as ideias do §9 (*As ideias de 30/09*): a 1 (186), a 3,
+a 4, a 5 (183) e a 9 (185) já são código, e **nenhuma das que sobram anda sem uma
+decisão**. A mais barata de decidir é a 8 (*duas etapas para entrar*: quem é obrigado).
 
 **0. FEITO — o "PROMPT MESTRE" de 25/09** (auditoria total, simulação e
 expansão). **O fechamento está em `docs/historico/relatorio-final-da-auditoria-25-09.md`**:

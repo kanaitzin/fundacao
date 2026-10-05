@@ -835,7 +835,8 @@ export function App() {
                       aberta", "passagem por assinar", "ocorrência em
                       acompanhamento". Sem esta função, o evento chegava com
                       a ação escrita pelo servidor e sem botão nenhum. */
-                   irPara={(destino) => { setAba(destino as typeof aba); setMais(false); }} />
+                   irPara={(destino) => { setAba(destino as typeof aba); setMais(false); }}
+                   alcanca={ve} pessoa={me.id} />
             : (
               <div className="card">
                 <p className="mutetxt" style={{ margin: 0 }}>

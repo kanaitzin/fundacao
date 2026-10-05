@@ -930,6 +930,12 @@ ela mesma, informação sobre o caso.
 Cada partição guarda as próprias migrações. Remover um módulo é remover a
 pasta dele — e é por isso que a lista acima é por partição, e não por assunto.
 
+### `prescription.suspended_at` e `suspended_by` — quando o remédio foi suspenso (fase 186, medications/1642)
+O INSTANTE E O AUTOR DA SUSPENSÃO, na própria prescrição: antes só existiam na
+auditoria, que o educador não lê. Grava a suspensão (`medications.service`); as
+anteriores à migração receberam o que a auditoria registrou. Lê a folha *o que
+mudou desde o meu último plantão* (`reports/o-que-mudou.service.ts`).
+
 ### `implantacao_evento` — a saúde da implantação (fase 185, relogio/1641)
 O QUE RODA SOZINHO DEIXA DITO QUE RODOU: `tipo` (`backup`, `restauracao`,
 `relogio`, `fim_do_plantao`, `email`), `ok`, `em` e `detalhe` (jsonb, só

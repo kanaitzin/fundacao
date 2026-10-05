@@ -3304,6 +3304,45 @@ cobrar('escolhida a Casa 03, o dia dela abre', /AI3/.test(await conteudo()));
 cobrar('nenhuma exceção na Coordenação Geral', erros.length === 0, erros[0]);
 
 /*
+ * O QUE MUDOU DESDE O MEU ÚLTIMO PLANTÃO (fase 186): um cartão no alto do Dia,
+ * aberto na primeira vez de cada plantão, que vira uma linha depois de
+ * "Entendi". O "já li" é por PESSOA: a colega que entra depois no mesmo
+ * aparelho vê o cartão aberto. E a porta só aparece para quem abre a tela.
+ */
+console.log('\n🔁 O que mudou desde o meu último plantão (fase 186)');
+await pg.evaluate(() => { try { Object.keys(localStorage).filter((k) => k.startsWith('rede-acolher.o-que-mudou.'))
+  .forEach((k) => localStorage.removeItem(k)); } catch { /* sem armazenamento */ } });
+await trocar('educador');
+await aba('Dia');
+const cartao186 = pg.locator('section.o-que-mudou');
+cobrar('o educador encontra o cartão aberto no Dia', (await cartao186.count()) === 1);
+const texto186 = (await cartao186.count()) ? await cartao186.innerText() : '';
+cobrar('ele diz a ocorrência, a ATA anterior e os remédios',
+  /Conflito ou agressão/.test(texto186) && /O que ficou para o próximo turno/.test(texto186)
+  && /Xarope de guaco/.test(texto186) && /foi suspenso/.test(texto186), texto186.slice(0, 300));
+cobrar('e não oferece a Saúde a quem não a abre',
+  (await cartao186.getByRole('button', { name: 'Abrir a Saúde' }).count()) === 0);
+await cartao186.getByRole('button', { name: 'Entendi' }).click();
+await pg.waitForTimeout(300);
+cobrar('depois de Entendi, vira a linha que reabre',
+  (await pg.locator('section.o-que-mudou').count()) === 0
+  && (await pg.getByRole('button', { name: /^O que mudou desde o seu último plantão/ }).count()) === 1);
+await trocar('enfermagem');
+await aba('Dia');
+cobrar('a Enfermagem, no mesmo aparelho, encontra o cartão aberto, com a porta da Saúde',
+  (await pg.locator('section.o-que-mudou').count()) === 1
+  && (await pg.locator('section.o-que-mudou').getByRole('button', { name: 'Abrir a Saúde' }).count()) === 1);
+await trocar('educador');
+await aba('Dia');
+cobrar('e o educador, de volta, continua com ele fechado', (await pg.locator('section.o-que-mudou').count()) === 0);
+await trocar('gestor_geral');
+await aba('Dia');
+cobrar('o gestor não tem a folha do plantão',
+  (await pg.getByRole('button', { name: /^O que mudou desde o seu último plantão/ }).count()) === 0
+  && (await pg.locator('section.o-que-mudou').count()) === 0);
+cobrar('nenhuma exceção na folha do plantão', erros.length === 0, erros[0]);
+
+/*
  * A SAÚDE DA IMPLANTAÇÃO (fase 185): da Coordenação Geral e do Gestor, e não
  * da coordenação de uma casa. A tela diz cada sinal com a frase do servidor, e
  * a restauração conferida há quarenta dias aparece como ATENÇÃO.

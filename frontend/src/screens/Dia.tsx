@@ -1,3 +1,4 @@
+import { OQueMudou } from './OQueMudou';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api, apiOuFila } from '../api';
 import { Cargo } from '../cargos';
@@ -205,10 +206,14 @@ interface PainelCasa {
   }[];
 }
 
-export function Dia({ houseId, casaLabel, papel, irPara }: {
+export function Dia({ houseId, casaLabel, papel, irPara, alcanca = () => true, pessoa = '' }: {
   houseId: string; casaLabel: string; papel: string;
+  /** Quem está usando (fase 186): o "já li" da folha do plantão é por pessoa. */
+  pessoa?: string;
   /** Leva a pessoa à tela que o evento aponta — ver `DESTINO` abaixo. */
   irPara: (aba: string) => void;
+  /** Se o cargo alcança a tela (fase 186): a folha do plantão só oferece a porta que abre. */
+  alcanca?: (aba: string) => boolean;
 }) {
   const lidera = LIDERA.includes(papel);
   const [dados, setDados] = useState<Resposta | null>(null);
@@ -438,6 +443,10 @@ export function Dia({ houseId, casaLabel, papel, irPara }: {
           </div>
         )}
       </div>
+
+      {/* O que mudou desde o último plantão (fase 186): antes do filtro do dia,
+          porque é a primeira coisa que quem chega precisa saber. */}
+      <OQueMudou pessoa={pessoa} houseId={houseId} irPara={irPara} alcanca={alcanca} />
 
       <nav className="filtros" aria-label="Filtro do dia">
         {([['agora', 'Agora'], ['minhas', 'Minhas'], ['tudo', 'Tudo'],

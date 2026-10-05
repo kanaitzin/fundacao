@@ -5334,6 +5334,44 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
    * madrugada, um e-mail que falhou anteontem, e a restauração conferida há
    * quarenta dias, para a tela mostrar o que é ATENÇÃO.
    */
+  /*
+   * O QUE MUDOU DESDE O MEU ÚLTIMO PLANTÃO (fase 186). Na demonstração, o
+   * último plantão de todo mundo terminou ontem às 20h; o que se passou desde
+   * então é fixo e fictício: uma ocorrência, a ATA da noite e dois remédios.
+   * O servidor lê pelo cargo de quem pergunta; aqui, o gestor fica de fora
+   * como lá.
+   */
+  if (rota.startsWith('/reports/o-que-mudou') && metodo === 'GET') {
+    if (!['educador', 'lider_diurno', 'lider_noturno_geral', 'enfermagem', 'equipe_tecnica', 'coordenador']
+      .includes(eu.role)) {
+      throw new Error('Esta folha é de quem trabalha no plantão da casa.');
+    }
+    return {
+      desde: emDias(-1, 20, 0), base: 'plantao', limitado: false,
+      ocorrencias: [
+        { id: 'oc-mudou-1', rotulo: 'Conflito ou agressão', quando: emDias(-1, 21, 40),
+          situacao: 'em acompanhamento', restrita: false, criancas: 'Bruno, Kauã' },
+      ],
+      ata: {
+        data: emDias(-1).slice(0, 10), turno: 'noturno', situacao: 'fechada',
+        fechadaPor: 'Nélio Noturno (fictício)', linhas: 4,
+        pendencias: 'Ligar para a escola do Felipe para confirmar a reunião de quinta.',
+        ultimas: [
+          { quem: 'Nélio Noturno (fictício)', quando: emDias(-1, 23, 50),
+            texto: 'Bruno e Kauã conversaram com a equipe depois da discussão na sala e foram dormir tranquilos.' },
+          { quem: 'Mário Silva (fictício)', quando: emDias(-1, 22, 5),
+            texto: 'Lara com tosse leve à noite, sem febre. A Enfermagem foi avisada.' },
+        ],
+      },
+      remedios: [
+        { tipo: 'novo', crianca: 'Lara', medicamento: 'Xarope de guaco (fictício)', dose: '5 ml',
+          quando: emDias(-1, 22, 30) },
+        { tipo: 'suspenso', crianca: 'Bruno', medicamento: 'Loratadina (fictício)', dose: '10 mg',
+          quando: emDias(-1, 21, 10) },
+      ],
+    };
+  }
+
   if (rota === '/implantacao/saude' && metodo === 'GET') {
     if (!(eu.role === 'gestor_geral' || (eu.role === 'coordenador' && TODAS_AS_CASAS.has(eu.id)))) {
       throw new Error('A saúde da implantação é do Gestor Geral e da Coordenação Geral.');

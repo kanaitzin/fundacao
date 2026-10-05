@@ -286,7 +286,8 @@ export class MedicationsService {
     // inteiro, ou não sai.
     const suspensa = await this.db.asUser(user.id, async (c) => {
       const { rowCount } = await c.query(
-        `UPDATE prescription SET status='suspensa', suspended_reason=$2, version=version+1
+        `UPDATE prescription SET status='suspensa', suspended_reason=$2, version=version+1,
+                suspended_at = now(), suspended_by = app_current_user()
           WHERE id=$1 AND status='ativa'`,
         [prescriptionId, motivo]);
       if ((rowCount ?? 0) === 0) return { ok: false, doses: 0 };

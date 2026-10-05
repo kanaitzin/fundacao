@@ -10,6 +10,7 @@ import { ImpactoService } from './impacto.service';
 import { PanelService } from './panel.service';
 import { MetricasService } from './metricas.service';
 import { PeriodoService } from './periodo.service';
+import { OQueMudouService } from './o-que-mudou.service';
 import { DataDoDia, CorpoConferido } from '../../kernel/common/data-do-dia.pipe';
 
 @Controller('followups')
@@ -189,10 +190,21 @@ export class ReportsController {
     @Inject(PanelService) private readonly panel: PanelService,
     @Inject(MetricasService) private readonly metricas_: MetricasService,
     @Inject(PeriodoService) private readonly periodo: PeriodoService,
+    @Inject(OQueMudouService) private readonly oQueMudou: OQueMudouService,
   ) {}
 
   @Get('kinds')
   tipos(@CurrentUser() user: AuthenticatedUser) { return this.reports.tipos(user); }
+
+  /**
+   * O QUE MUDOU DESDE O MEU ÚLTIMO PLANTÃO (fase 186). A casa vem pela
+   * consulta e passa pela `CasaDaConsulta`: fora do alcance é 404.
+   */
+  @Get('o-que-mudou')
+  desdeOMeuPlantao(@CurrentUser() user: AuthenticatedUser,
+                   @Query('houseId', ParseUUIDPipe) houseId: string) {
+    return this.oQueMudou.desdeOMeuPlantao(user, houseId);
+  }
 
   /**
    * AS MÉTRICAS DAS OITO CASAS (fase 120) — a resposta à pergunta 1.

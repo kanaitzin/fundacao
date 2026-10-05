@@ -18,8 +18,14 @@
 > depois das 21h em Porto Alegre semeava o dia seguinte — o dia de hoje nascia
 > sem dose nenhuma. **Nada no sistema; tudo no dado de partida.**
 
-- **185 fases.** 129 suítes e 1177 testes, verdes em duas condições de relógio —
+- **186 fases.** 130 suítes e 1184 testes, verdes em duas condições de relógio —
   antes e depois da virada do UTC, que em Porto Alegre é às 21h.
+- **O que mudou desde o meu último plantão** (fase 186): o Dia abre com um cartão
+  das ocorrências, da ATA anterior e dos remédios que começaram, foram suspensos
+  ou mudaram desde o fim do plantão da pessoa (quem não está na escala vê as
+  últimas 24 horas, e nunca mais de uma semana). Só o que o cargo já lê, sem o
+  texto da ocorrência nem o motivo da suspensão. Ficaram de fora, como decidido,
+  quem chegou ou saiu e os avisos; se a casa sentir falta, entram depois.
 - **A saúde da implantação** (fase 185): o relógio das 5h, o aviso de meia hora,
   o backup, a restauração conferida, o e-mail e a fila do Drive numa tela só,
   para o Gestor Geral e a Coordenação Geral. Cada um aparece *em dia*, *atenção*
