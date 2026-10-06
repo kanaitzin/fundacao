@@ -159,6 +159,7 @@ e qual é o caminho certo.
 | `scripts/simulacao-da-casa.sh` | **uma casa nasce e vive noventa dias** (fase 173), **ou as oito vivem juntas** com `SIM_CASAS` (fase 177): a ARM1 do primeiro acesso a fevereiro, com o relógio andando (`faketime` lendo um arquivo que a simulação reescreve), os relatórios conferidos contra o que ela contou, e no fim o **`frontend/ensaio-servidor.mjs`**, que abre as telas no navegador **contra o servidor de verdade**. Recria o banco: não roda junto com a suíte. `SIM_SO_NAVEGADOR=1` repete só o navegador |
 | `backend/src/kernel/common/porta-da-internet.ts` | **CORS, cabeçalhos de segurança e `TRUST_PROXY`** (fase 179), ligados pelo `AppModule`. CORS vazio é FECHADO: a tela está no mesmo endereço |
 | `backend/src/kernel/common/corpo-da-requisicao.ts` | **o limite do corpo, 25 MB** (fase 179): o anexo vai em base64 e o padrão de 100 KB recusava toda foto de celular. Mora no módulo para a suíte ver |
+| `frontend/src/aviso-no-celular.tsx` | **o aviso no celular** (fase 189), na folha Minha conta: liga e desliga NESTE aparelho; o `desligarAoSair` é chamado pelo Sair. O que o aparelho mostra mora em `public/sw-avisos.js`, e o que o servidor manda, em `textoDoAviso` (`notifications/aviso-no-celular.service.ts`): **só o título neutro, nunca o aviso** |
 | `frontend/src/cargos.tsx` | **a cor de cada cargo e o círculo de iniciais** (fase 151). Ela convive com DUAS outras: a cor de ESTADO (crítico/atenção — não se toca, e o cargo não usa a família dela) e a cor de AUTOR (`tomDoAutor`, qual colega escreveu — a coordenação escolhe, 0990). Três perguntas diferentes; o dia em que duas responderem à mesma, a cor deixa de informar |
 
 ## O que fazer agora
@@ -167,7 +168,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 05/10/2026, fase 188
+### Onde estamos — 06/10/2026, fase 189
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -219,8 +220,9 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 186 | **o que mudou desde o meu último plantão** (ideia 1; o que entra decidido em 05/10: ocorrências, ATA anterior, remédio novo/suspenso/mudado): cartão no alto do Dia, lido com a identidade de quem pergunta (`reports/o-que-mudou.service.ts`), desde o fim do último turno da pessoa na escala (sem escala, 24 h; no máximo sete dias); o "já li" é por PESSOA, porque o tablet é da casa; e a prescrição passou a guardar quando foi suspensa (medications/1642) |
 | 187 | **as duas etapas para entrar** (ideia 8): feitas e, no mesmo dia, **retiradas por completo a pedido da Fundação** na 188; o código está no commit `5bff891` se um dia voltar |
 | 188 | **a entrada com e-mail e senha numa tela só, vazia, com os atalhos de demonstração embaixo, e o esqueci minha senha** (pedido e decisões de 05/10): o link vai ao e-mail CADASTRADO, vale uma hora e serve uma vez, pelo mesmo caminho do convite (`user_invite.motivo`, identity/1644); resposta igual para e-mail cadastrado ou inventado, pedir não troca a senha, um pedido a cada dois minutos, e a senha nova encerra as sessões; e sair pela Minha conta não fechava a folha |
+| 189 | **o aviso no celular, mesmo com o sistema fechado** (ideia 2; decidido em 06/10: TODOS os avisos, tela bloqueada só com o título neutro): Web Push com VAPID (`web-push`), ligado por aparelho na Minha conta (`frontend/src/aviso-no-celular.tsx`, `public/sw-avisos.js`); de dez em dez segundos o servidor reserva e manda (`aviso-no-celular.service.ts`, notifications/1645); um aparelho, uma pessoa; sair desliga; só serviços de push conhecidos; desligado sem as chaves (§12.11). **Entrega num celular de verdade não testada daqui** |
 
-**Medido no fim da 188:** 184 migrações, 129 tabelas, 131 suítes, 1188 testes, verdes nas
+**Medido no fim da 189:** 185 migrações, 131 tabelas, 132 suítes, 1196 testes, verdes nas
 DUAS condições de relógio; os nove ensaios de navegador verdes (o do celular com 302 telas e nenhum achado), com a portaria e o
 portão, o armário, a cozinha, os temas e a foto no percurso do `ensaio:uso`; **1043 telas (149 × sete
 temas) sem violação de WCAG 2.1 AA**; nenhuma
@@ -250,12 +252,16 @@ as três cores abaixo. Cor nova passa pelo `ensaio:acessibilidade`, que mede os 
 
 ### A próxima etapa
 
+**FEITO — fase 189** (§2, §12.11): o aviso no celular, a ideia 2 de 30/09. **Depende
+da implantação** (as chaves, o HTTPS e a saída para os serviços de push), e a
+primeira entrega num celular de verdade se confere lá. **Das ideias de 30/09 sobram
+a 6 (ditado, DPO), a 7 (resumo com IA, DPO) e a 10 (teste com gente de verdade)**;
+a 8 foi recusada. Nenhuma anda sem uma decisão, e as duas primeiras são do DPO.
+
 **FEITO — fase 188** (§2): a entrada com e-mail e senha e o esqueci minha senha pelo
 e-mail; as duas etapas da 187 saíram por completo, a pedido. **O esqueci depende do
 SMTP institucional (§12.8)**: sem ele o e-mail não sai, e quem administra a conta
-continua redefinindo pela Equipe. **Das ideias de 30/09 sobram a 2 (push: quais
-avisos, e HTTPS), a 6 (ditado, DPO), a 7 (resumo com IA, DPO) e a 10 (teste com gente
-de verdade)**; a 8 foi recusada. Todas com decisão ao lado, no §9.
+continua redefinindo pela Equipe.
 
 **FEITO — fase 186** (§2): o que mudou desde o meu último plantão, a ideia 1 de 30/09.
 
@@ -273,11 +279,12 @@ mamadeira (a casa confirmar), o pente-fino semanal (o dia da semana, §10.5) e o
 diário estruturado da internação (os campos).
 
 **PRÓXIMA ETAPA:** aplicar o roteiro com a equipe e a implantação do §12 (onde roda,
-endereço, certificado, SMTP, conta do relógio e as DUAS linhas do cron). Se vier
-código, a Fundação escolhe entre as ideias do §9 (*As ideias de 30/09*): a 1 (186), a 3,
-a 4, a 5 (183) e a 9 (185) já são código, a 8 foi feita e recusada (187/188), e
-**nenhuma das que sobram anda sem uma decisão**. A mais barata de decidir é a 2
-(*aviso no celular com o sistema fechado*: quais avisos vão por push).
+endereço, certificado, SMTP, conta do relógio, as DUAS linhas do cron e, desde a 189,
+as chaves do aviso no celular). Se vier código, a Fundação escolhe entre as ideias do
+§9 (*As ideias de 30/09*): a 1 (186), a 2 (189), a 3, a 4, a 5 (183) e a 9 (185) já são
+código, a 8 foi feita e recusada (187/188), e **as que sobram (6, 7 e 10) não andam sem
+alguém de fora**: o DPO para o ditado e o resumo com IA, e duas pessoas da Casa 03
+para o teste com gente de verdade.
 
 **0. FEITO — o "PROMPT MESTRE" de 25/09** (auditoria total, simulação e
 expansão). **O fechamento está em `docs/historico/relatorio-final-da-auditoria-25-09.md`**:

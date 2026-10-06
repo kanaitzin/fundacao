@@ -302,6 +302,8 @@ export const VOCABULARIO_DA_AUDITORIA: Record<string, string> = {
   'auth.invite_issued': 'Convite de primeiro acesso emitido',
   'auth.first_access': 'Primeiro acesso concluído',
   'auth.reset_requested': 'Pedido de senha nova por e-mail',
+  'push.ligado': 'Aviso no celular ligado num aparelho',
+  'push.desligado': 'Aviso no celular desligado num aparelho',
   'auth.password_reset': 'Senha nova criada com o link do e-mail',
   'auth.reauth': 'Identidade confirmada de novo',
   'auth.reauth_failed': 'Confirmação de identidade recusada',

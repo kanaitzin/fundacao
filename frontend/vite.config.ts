@@ -40,6 +40,8 @@ export default defineConfig(({ mode }) => ({
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         navigateFallback: '/index.html',
+        // O aviso no celular (fase 189): o push e o toque no aviso.
+        importScripts: ['sw-avisos.js'],
       },
       manifest: {
         name: 'Rede Acolher',

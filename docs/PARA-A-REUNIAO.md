@@ -18,8 +18,15 @@
 > depois das 21h em Porto Alegre semeava o dia seguinte — o dia de hoje nascia
 > sem dose nenhuma. **Nada no sistema; tudo no dado de partida.**
 
-- **188 fases.** 131 suítes e 1188 testes, verdes em duas condições de relógio —
+- **189 fases.** 132 suítes e 1196 testes, verdes em duas condições de relógio —
   antes e depois da virada do UTC, que em Porto Alegre é às 21h.
+- **O aviso no celular** (fase 189, decidido em 06/10): quem liga na Minha conta
+  recebe no celular todos os avisos do sino, mesmo com o sistema fechado. Na
+  tela bloqueada aparece só *Rede Acolher: há um aviso para você na Casa 03*; o
+  conteúdo, só entrando. Sair do sistema desliga naquele aparelho, por causa do
+  tablet da casa. **Depende da implantação**: as chaves, o HTTPS e a saída para
+  os serviços de push (§12.11 do documento). A primeira entrega num celular de
+  verdade se confere lá, não daqui.
 - **Entrar e esqueci minha senha** (fase 188, pedido de 05/10): a tela de entrada
   abre vazia, com e-mail e senha juntos. Quem esqueceu pede um link que vai ao
   e-mail cadastrado, vale uma hora e serve uma vez; a tela responde igual para

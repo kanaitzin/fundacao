@@ -7,6 +7,7 @@ import {
 import { Icone } from './icones';
 import { Cargo } from './cargos';
 import { PORTAS, GRUPOS } from './portas';
+import { AvisoNoCelular, desligarAoSair } from './aviso-no-celular';
 import { api, setToken, ligarFilaAoServidor, quandoASessaoTerminar } from './api';
 import { definirAutor } from './fila-offline';
 import logo from './assets/logo.png';
@@ -446,6 +447,7 @@ export function App() {
 
   async function sair() {
     setSessaoTerminou(false);
+    await desligarAoSair();
     try { await api('/auth/logout', { method: 'POST' }); } catch { /* sessão pode já ter expirado */ }
     setToken(null); setMe(null); setHouses([]); setAba(null); setSugerirSenha(false);
     /* As folhas da conta fecham junto: saindo pela folha Minha conta, ela
@@ -674,6 +676,7 @@ export function App() {
               <button className="btn ghost" onClick={sair}>Sair</button>
               <button className="btn ghost" onClick={() => setConta(false)}>Fechar</button>
             </div>
+            <AvisoNoCelular casa={casa?.name ?? null} />
           </div>
         </div>
       )}

@@ -3416,6 +3416,28 @@ await pg.waitForTimeout(1200);
 cobrar('e a nova entra pela tela de sempre', (await pg.locator('header.appbar').count()) === 1);
 cobrar('nenhuma exceção na entrada', erros.length === 0, erros[0]);
 
+/*
+ * O AVISO NO CELULAR (fase 189): na folha Minha conta, com o exemplo do que a
+ * tela bloqueada mostra (a casa, e nada do aviso). No protótipo nenhum aviso
+ * sai, e a folha diz isso em vez de oferecer um botão que não faria nada.
+ */
+console.log('\n📱 O aviso no celular (fase 189)');
+{
+  const conta = pg.getByRole('button', { name: /^Minha conta/ });
+  const naFolha = await conta.isVisible();
+  cobrar('no celular, a conta abre pelo círculo', naFolha);
+  if (naFolha) { await conta.click(); await pg.waitForTimeout(400); }
+  const folha189 = naFolha ? await pg.locator('.overlay .sheet').innerText() : '';
+  cobrar('a folha tem o aviso no celular', /Aviso no celular/.test(folha189), folha189.slice(0, 200));
+  cobrar('com o exemplo da tela bloqueada, só a casa',
+    /Rede Acolher/.test(folha189) && /Há um aviso para você na Casa 03/.test(folha189));
+  cobrar('e o protótipo diz que nenhum aviso sai daqui', /No protótipo nenhum aviso sai/.test(folha189));
+  cobrar('sem botão de ligar que não faria nada',
+    (await pg.getByRole('button', { name: 'Ligar o aviso neste aparelho' }).count()) === 0);
+  await fechar();
+}
+cobrar('nenhuma exceção no aviso no celular', erros.length === 0, erros[0]);
+
 await navegador.close();
 console.log(achados.length
   ? `\n${achados.length} ACHADO(S):\n  ${achados.join('\n  ')}`

@@ -11,7 +11,9 @@
   "tabelas": [
     "notification",
     "escalation",
-    "escalation_level"
+    "escalation_level",
+    "push_subscription",
+    "notification_push"
   ],
   "removivel": true,
   "observacao": "Assina eventos por nome. Sem ele, nada quebra — apenas ninguém é avisado."

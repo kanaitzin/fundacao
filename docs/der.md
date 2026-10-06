@@ -912,7 +912,25 @@ criança, e log não copia conteúdo sensível (§5). A auditoria guarda o ato �
 coordenação, Líder Diurno). Mais ninguém: a lista de quem pediu para ler o quê é,
 ela mesma, informação sobre o caso.
 
-## Inventário — 129 tabelas por partição
+### O aviso no celular (notifications/1645, fase 189)
+
+**`push_subscription`** — um aparelho em que a pessoa ligou o aviso: `endpoint`
+(o endereço que o serviço de push do navegador entregou), `p256dh` e `auth` (as
+chaves do aparelho para cifrar o texto), `created_at`, e `revoked_at` com
+`revoked_reason` (`desligado`, `saiu_do_sistema`, `renovado`,
+`outra_pessoa_no_aparelho`, `aparelho_recusou`). **Um aparelho, uma pessoa**
+(índice único parcial no `endpoint`): no tablet da casa, quem liga por último é
+quem recebe. **`notification_push`** — o que saiu, para não sair duas vezes: o
+aviso, a vez em que ele subiu (`raised_at`, porque o escalonamento renova o
+`created_at`), o aparelho, quando foi reservado e enviado e o `http_status` do
+serviço de push. Só metadado: o texto não fica guardado, e nem é preciso, porque
+é sempre o mesmo título neutro.
+
+**As duas fechadas para a aplicação**, como a sessão (1190): `REVOKE ALL` e RLS
+sem política. Tudo passa pelas cinco funções `app_push_*`. O endereço do aparelho
+é uma porta para a tela dele: o log nunca o copia.
+
+## Inventário — 131 tabelas por partição
 
 | Partição | Tabelas |
 |---|---|
@@ -925,7 +943,7 @@ ela mesma, informação sobre o caso.
 | nursing (11) | health_encounter, health_evolution, nursing_triage, health_summary_issue, education_support, education_evolution, education_concept, hospitalization, hospitalization_note, hospitalization_medication, hospitalization_companion |
 | reports (7) | followup, followup_source, report_document, report_delivery, export_log, life_milestone, followup_return |
 | checks (4) | collective_check, check_result, check_result_amendment, check_bulk |
-| notifications (3) | notification, escalation, escalation_level |
+| notifications (5) | notification, escalation, escalation_level, push_subscription, notification_push |
 | archive (2) | archive_item, archive_attempt |
 | alignments (5) | team_meeting, team_agreement, agreement_change, meeting_agenda_item, house_statute |
 | routine (2) | routine_version, routine_item |

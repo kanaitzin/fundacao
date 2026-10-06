@@ -5267,6 +5267,10 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
    * crítica aguardando análise e a falha do Drive na terceira tentativa. É
    * assim que o educador descobre que "avisa a técnica na hora" tem endereço.
    */
+  /* O aviso no celular (fase 189): no protótipo nenhum aviso sai, e a folha diz isso. */
+  if (rota === '/avisos-no-celular/chave') return { ligado: false, chave: null, prototipo: true };
+  if (rota === '/avisos-no-celular/estado') return { ligado: false };
+  if (rota === '/avisos-no-celular/desligar') return { ligado: false, desligado: false };
   if (rota === '/notifications/count') {
     return { naoLidas: AVISOS.filter((a) => !a.lida).length,
              tituloSeguro: 'Há uma pendência na Rede Acolher' };

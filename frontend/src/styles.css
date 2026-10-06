@@ -1486,6 +1486,12 @@ div.acoes{ display:flex; flex-wrap:wrap; gap:8px; align-items:center }
    da conta com o nome, a casa, a cor da tela, a senha e o Sair. */
 .conta-celular{ display:none }
 .conta-acoes{ display:flex; flex-direction:column; gap:10px; margin-top:16px }
+/* O aviso no celular (fase 189): o exemplo de como ele aparece na tela bloqueada. */
+.aviso-celular{ margin-top:20px; padding-top:16px; border-top:1px solid var(--line) }
+.aviso-celular h4{ margin:0 0 6px }
+.aviso-celular .btn{ width:100% }
+.aviso-exemplo{ display:flex; flex-direction:column; gap:2px; margin:8px 0; padding:10px 12px;
+  border-radius:14px; background:var(--surface); border:1px solid var(--line); font-size:.95em }
 @media (max-width:1079px){
   .appbar .so-no-monitor, .appbar .wordmark{ display:none }
   .conta-celular{

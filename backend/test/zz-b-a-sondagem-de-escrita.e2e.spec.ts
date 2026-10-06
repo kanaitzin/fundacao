@@ -78,6 +78,7 @@ const FORA: Record<string, string> = {
   '/shifts/general-ata': 'a ATA Geral Noturna é das oito casas: cada coordenação escreve a linha da sua',
   '/shifts/general-night-line': 'idem, a linha da casa na ATA Geral',
   '/notifications': 'o aviso é da pessoa, não da casa: a coordenação da Casa 04 só alcança os seus',
+  '/avisos-no-celular': 'o aparelho é da pessoa, não da casa: ninguém liga, lê ou desliga o de outra (suíte o-aviso-no-celular)',
 };
 
 /**

@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { IdentityModule } from '../identity';
 import { NotificationsController } from './notifications.controller';
 import { NotificationsService } from './notifications.service';
+import { AvisoNoCelularController } from './aviso-no-celular.controller';
+import { AvisoNoCelularService } from './aviso-no-celular.service';
 
 /**
  * Módulo `notifications` — central, escalonamento e ciência (§19).
@@ -11,8 +13,8 @@ import { NotificationsService } from './notifications.service';
  */
 @Module({
   imports: [IdentityModule],
-  controllers: [NotificationsController],
-  providers: [NotificationsService],
+  controllers: [NotificationsController, AvisoNoCelularController],
+  providers: [NotificationsService, AvisoNoCelularService],
   exports: [NotificationsService],
 })
 export class NotificationsModule {}

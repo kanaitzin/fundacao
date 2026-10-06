@@ -20,7 +20,7 @@ começava escolhendo em qual acreditar.*
 
 | Arquivo | Por que sobreviveu |
 |---|---|
-| `der.md` | as 129 tabelas com o que cada coluna guarda. É referência de dado, não narrativa, e o `documentacao.spec.ts` cobra que toda tabela apareça lá |
+| `der.md` | as 131 tabelas com o que cada coluna guarda. É referência de dado, não narrativa, e o `documentacao.spec.ts` cobra que toda tabela apareça lá |
 | `roteiro-marcelo.md` (+ `.docx`) | é entregue à Casa 03, escrito para quem não conhece o sistema. O `.docx` é GERADO do `.md` por `scripts/roteiro-em-word.mjs` — não editar o Word à mão |
 
 ---
@@ -90,14 +90,14 @@ discordavam entre si.
 | Quanto | De onde sai |
 |---|---|
 | **18 partições** isoladas | pastas em `backend/src/modules/` |
-| **184 migrações** | `.sql` dentro das partições |
-| **129 tabelas** | `CREATE TABLE` nas migrações |
-| **131 suítes** | `backend/test/*.spec.ts` |
-| **1188 testes** | `it(` / `test(` nas suítes |
+| **185 migrações** | `.sql` dentro das partições |
+| **131 tabelas** | `CREATE TABLE` nas migrações |
+| **132 suítes** | `backend/test/*.spec.ts` |
+| **1196 testes** | `it(` / `test(` nas suítes |
 | **38 telas React** | `frontend/src/screens/*.tsx` |
 | **10 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **9 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
-| protótipo com **≈1497 KB** | `prototipo/rede-acolher-prototipo.html` |
+| protótipo com **≈1501 KB** | `prototipo/rede-acolher-prototipo.html` |
 
 *A frase importa: o conferidor lê o NÚMERO colado ao substantivo. Escrever
 "Telas React … 31" numa coluna separada faz o teste passar sem conferir nada —
@@ -397,6 +397,7 @@ arqueologia.
 | 186 | **O que mudou desde o meu último plantão** (ideia 1 de 30/09; o que entra decidido em 05/10: ocorrências, a ATA anterior e remédio novo, suspenso ou mudado). Quem volta de dois dias de folga lia a passagem, as ocorrências e a saúde para saber o que mudou. Agora o Dia abre com um **cartão**: as ocorrências registradas desde então (categoria, hora, situação e as crianças; a de acesso restrito sem nome), a ATA anterior (situação, quem fechou, o que ficou para o próximo turno e as últimas linhas da equipe, nunca as restritas) e o remédio que começou, foi suspenso, terminou ou mudou de *só da Enfermagem*; cada parte com a porta para a tela dela, **só para quem a abre** (o educador não ganha *Abrir a Saúde*). **Desde quando:** o fim do último turno da pessoa na escala daquela casa, nas duas últimas semanas; quem não está na escala (técnica, coordenação) vê as últimas 24 horas; e nunca mais de sete dias para trás, que aí o pedido é o relatório do período. **Tudo é lido com a identidade de quem pergunta** (`reports/o-que-mudou.service.ts`): o banco filtra pelo cargo, e os três JOINs com tabela de RLS estão justificados ao lado, porque aqui sumir é o certo. **Não traz** o texto da ocorrência, o motivo da suspensão nem linha restrita da ATA: a folha avisa e aponta. **É um cartão, e não uma janela por cima da tela:** quem entra às 23h não pode ter de fechar nada para chegar ao turno; ele vem aberto na primeira vez de cada plantão e vira uma linha depois de *Entendi*. **O "já li" é por pessoa**: a primeira versão guardava por aparelho e casa, e no tablet da casa quem lesse primeiro esconderia o cartão da colega; o ensaio cobra as duas pessoas no mesmo aparelho. **E uma coluna que faltava:** a prescrição não guardava QUANDO foi suspensa (só na auditoria, que o educador não lê); agora guarda, com quem (`suspended_at`, `suspended_by`, medications/1642), e as anteriores receberam o que a auditoria tinha. Suíte `o-que-mudou-desde-o-meu-plantao` (na Casa 04, com conta criada e desativada por ela): as 24 horas sem escala, o limite de sete dias, o fim do plantão de anteontem, a ocorrência de antes do plantão fora, a restrita sem nome, nenhum texto de ocorrência nem motivo de suspensão na folha, o remédio novo e depois o suspenso pela rota com o instante guardado, o gestor recusado e a outra casa com 404. |
 | 187 | **As duas etapas para entrar, feitas e retiradas.** Ideia 8 de 30/09, decidida em 05/10 (ninguém obrigado, códigos de reserva, quem administra desliga com motivo): o código de seis dígitos de um aplicativo autenticador, calculado no servidor (TOTP da RFC 6238), com segredo cifrado, reservas em hash, desafio de cinco minutos e o código errado contando na trava da senha. **No mesmo dia, ao ver a tela, a Fundação pediu que saísse por completo** (*"vi que tem um codigo a mais, nao quero isso"*), e a fase 188 a retirou inteira, migração, telas e suíte: o código está no histórico do repositório (commit `5bff891`) se um dia for pedido de novo. O que ficou dela foi o defeito que o ensaio achou: sair pela folha *Minha conta* não fechava a folha, e ela reabria por cima da tela de quem entrasse a seguir no mesmo aparelho; o conserto ficou na 188. |
 | 188 | **Entrar com e-mail e senha numa tela só, e o esqueci minha senha pelo e-mail.** Pedido de 05/10: *"quero que apareça a tela inicial e a pessoa coloque ali normal seu email e senha, caso alguém esqueça que dispare aquele email padrão para o email cadastrado dando a opção de trocar de senha"*; decidido no mesmo dia: as duas etapas saem por completo, a entrada abre **vazia** com os atalhos de demonstração embaixo, e o link **vale uma hora e serve uma vez**. (1) **A tela de entrada** tem o e-mail e a senha juntos e o botão *Entrar no sistema*; os atalhos de demonstração só preenchem os dois campos. (2) **Esqueci minha senha** pede o e-mail e manda para o endereço CADASTRADO o mesmo tipo de link do convite de primeiro acesso, que abre a tela *Criar uma senha nova*. É o mesmo caminho do convite (`user_invite`, só o hash do token, uso único no banco), com a coluna `motivo` (`convite` ou `esqueci`, identity/1644) para a tela e a auditoria dizerem qual dos dois foi. **Quatro cuidados que o convite não precisava**, porque aqui quem pede não entrou: a resposta é **a mesma para e-mail cadastrado e inventado** (a tela de entrada não conta quem trabalha na Fundação), e o link nunca volta pela tela, só pelo e-mail; **pedir não troca a senha atual** (quem pediu pode não ser a pessoa); **um pedido a cada dois minutos** por conta, e o novo anula o anterior (senão a tela viraria um jeito de encher a caixa de alguém); e criar a senha nova **encerra as sessões abertas**. A auditoria leva *Pedido de senha nova por e-mail* e *Senha nova criada com o link do e-mail*. **No protótipo** o e-mail não sai: a tela mostra o link que iria, marcado *só no protótipo*. Suíte `esqueci-a-senha` (quatro testes, o link lido do e-mail que chega na caixa e não do banco) e o percurso no `ensaio:uso`: campos vazios, nada de autenticador, o pedido, o link, a senha nova entrando e a antiga recusada. |
+| 189 | **O aviso no celular, mesmo com o sistema fechado** (ideia 2 de 30/09; decidido em 06/10: **todos os avisos** vão, e a tela bloqueada mostra **só o título neutro**). Até aqui o aviso só aparecia no sino, para quem estava com o sistema aberto: o de meia hora antes do fim do plantão chegava a quem já estava olhando a tela. Agora, em **Minha conta**, a pessoa liga o aviso **neste aparelho**, e cada aviso do sino chega também ao celular, pelo Web Push padrão do navegador (chaves VAPID, biblioteca `web-push`), de dez em dez segundos. **O que sai do servidor é só** *Rede Acolher: há um aviso para você na Casa 03*: nem criança, nem assunto, nem prioridade por escrito; cifrado para o aparelho, e o serviço de push do Google ou da Apple não lê. O conteúdo continua dentro do sistema, depois de entrar. Os avisos da mesma casa se juntam numa notificação só (dez doses não são dez toques), e o de prioridade alta ou crítica vai com urgência alta. **O tablet da casa:** um aparelho, uma pessoa (quem liga por último recebe, e o anterior deixa de receber ali), e **sair do sistema desliga** o aviso naquele aparelho. O aviso lido não vai; o que volta a subir pelo escalonamento vai de novo; o aparelho que não existe mais (o serviço responde 404 ou 410) sai sozinho; a conta desativada não recebe. **O endereço do aparelho é uma porta**: o servidor só manda para os serviços de push conhecidos (Google, Apple, Mozilla, Microsoft), sem o que qualquer pessoa com login faria o servidor da Fundação mandar pedidos para dentro da rede da casa; o log nunca copia o endereço. Duas tabelas fechadas como a sessão (`push_subscription`, `notification_push`, notifications/1645), cinco funções `app_push_*`, auditoria *Aviso no celular ligado/desligado num aparelho*. **Desligado enquanto a instalação não tiver as chaves** (§12.11), e pede HTTPS. **No protótipo nenhum aviso sai**: a folha mostra o exemplo da tela bloqueada e diz isso, em vez de um botão que não faria nada. Suíte `o-aviso-no-celular` (oito testes, com um serviço de push local fazendo o papel do Google, e **o aviso decifrado com a chave do aparelho**, como o celular faria) e o percurso no `ensaio:uso`. *O que NÃO foi testado:* a entrega de verdade a um celular. O Chromium do ensaio não tem serviço de push, e isso só se confere no servidor instalado, com HTTPS, num aparelho de verdade (§12.11). |
 
 ---
 
@@ -444,7 +445,7 @@ cd frontend && npm run prototipo
 ```
 
 O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as
-184 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
+185 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
 
 ### Os ensaios — e por que cada um existe
 
@@ -511,7 +512,7 @@ rede-acolher/
 │   │   │   ├── documentos/     o contrato da folha e o gerador de .docx
 │   │   │   └── common/         CPF, criptografia, segredo, fuso da instituição
 │   │   └── modules/       18 partições, cada uma dona das próprias migrações
-│   ├── test/              131 suítes (e2e contra PostgreSQL real + estáticas)
+│   ├── test/              132 suítes (e2e contra PostgreSQL real + estáticas)
 │   ├── scripts/           ensaio-carga.ts, migrador compilado
 │   └── assets/timbre.png  a marca da Fundação, usada no documento em Word
 ├── frontend/
@@ -1851,10 +1852,9 @@ Cada uma tem uma decisão que é da Fundação, e está dita ao lado.*
 1. ~~**O que mudou desde o meu último plantão.**~~ ✅ **Feito na 186.** O que entra,
    decidido em 05/10: as ocorrências, a ATA anterior e o remédio novo, suspenso ou
    mudado. Ficaram de fora, por decisão, quem chegou ou saiu e os avisos.
-2. **O aviso no celular mesmo com o sistema fechado** (notificação push, com o
-   título neutro do §19). Hoje o aviso só aparece no sino, com o sistema aberto: o
-   de meia hora antes do fim do plantão chega a quem já está olhando a tela.
-   *Decisão:* quais avisos vão por push; e pede HTTPS, que é da implantação.
+2. ~~**O aviso no celular mesmo com o sistema fechado**~~ ✅ **Feito na 189.**
+   Decidido em 06/10: todos os avisos, e a tela bloqueada só com o título neutro.
+   Depende da implantação: as chaves e o HTTPS (§12.11).
 3. ~~**O tamanho da letra**~~ ✅ **Feito na 183.**
 4. ~~**Escuro automático à noite**~~ ✅ **Feito na 183.**
 5. ~~**Busca de criança**~~ ✅ **Feito na 183.**
@@ -2874,7 +2874,7 @@ ele continua dizendo que o arquivo existe.
 npm run ensaio:producao
 ```
 
-Constrói, cria um banco virgem, aplica as 184 migrações **pelo binário
+Constrói, cria um banco virgem, aplica as 185 migrações **pelo binário
 compilado**, sobe o serviço e confere `/health`. Não publica nada e não toca no
 banco de trabalho.
 
@@ -3122,6 +3122,35 @@ anota pela mesma `DATABASE_URL` que usa para o dump; o ensaio de restauração a
 no banco de trabalho e o backup descartável dele não se passa pelo da casa. **O que
 o painel não faz:** avisar sozinho. Ele mostra quando alguém abre; o `MAILTO` do
 cron (§12.7) continua sendo o aviso de quem cuida do servidor.
+
+### 12.11 O aviso no celular
+
+Desde a fase 189 os avisos do sino chegam ao celular de quem ligou o aviso na
+Minha conta, mesmo com o sistema fechado, só com o título neutro (*Rede Acolher:
+há um aviso para você na Casa 03*). **Desligado até a implantação fazer três
+coisas:**
+
+1. **Gerar as chaves uma vez** com `npm run push:chaves -w backend` e pôr as duas
+   no ambiente (`PUSH_VAPID_PUBLICA`, `PUSH_VAPID_PRIVADA`), com o
+   `PUSH_CONTATO` da TI. A privada é segredo, como a `CREDENTIAL_KEY`, e **não se
+   troca**: chave nova desliga todos os aparelhos, e cada pessoa liga de novo.
+2. **Servir o sistema em HTTPS** (§12.9). Sem HTTPS o navegador não oferece o
+   aviso.
+3. **Deixar o servidor falar com os serviços de push** pela internet:
+   `fcm.googleapis.com` (Android e Chrome), `web.push.apple.com` (iPhone),
+   `updates.push.services.mozilla.com` (Firefox) e `*.notify.windows.com` (Edge).
+   Só esses: o servidor recusa ligar o aviso para qualquer outro endereço.
+
+**No iPhone** o aviso só existe com o sistema aberto pelo ícone da tela de início
+(no Safari, Compartilhar e Adicionar à Tela de Início), a partir do iOS 16.4. A
+folha diz isso a quem estiver no navegador.
+
+**A primeira conferência**, depois de ligado: uma pessoa da TI liga o aviso no
+próprio celular, alguém cria um aviso para ela (uma pendência qualquer na casa de
+teste), e ela confere que a tela bloqueada diz só o título neutro e que tocar nele
+abre o sistema. **Isto não tem ensaio daqui**: o navegador do ensaio não tem
+serviço de push, e a entrega só se confere com o servidor instalado e um
+aparelho de verdade.
 
 ---
 
