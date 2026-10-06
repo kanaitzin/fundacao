@@ -93,6 +93,9 @@ describe('O aviso no celular', () => {
     await app.init();
     http = app.getHttpServer();
     servico = app.get(AvisoNoCelularService);
+    /* O relógio de dez segundos do serviço corre junto com a suíte e reserva o
+       aviso antes do teste olhar. Aqui quem dá a hora é a suíte. */
+    servico.onModuleDestroy();
     ids.AI3 = (await admin.query(`SELECT id FROM house WHERE code = 'AI3'`)).rows[0].id;
     for (const [k, e] of [['edu', 'educador.ai3@paodospobres.dev'], ['edu2', 'educador2.ai3@paodospobres.dev']]) {
       ids[k] = (await admin.query(`SELECT id FROM app_user WHERE email = $1`, [e])).rows[0].id;
@@ -135,6 +138,13 @@ describe('O aviso no celular', () => {
     expect(c.cabecalhos.urgency).toBe('high');
     expect(Number(c.cabecalhos.ttl)).toBe(86400);
 
+    /* O que o serviço respondeu fica gravado, lido de volta (fase 190: na 189
+       nenhum envio tinha o status gravado, e nenhum teste lia). */
+    const { rows: gravado } = await admin.query(
+      `SELECT p.http_status, p.sent_at IS NOT NULL AS enviado, p.tentativas FROM notification_push p
+         JOIN push_subscription s ON s.id = p.subscription_id WHERE s.endpoint = $1`, [cel.endpoint]);
+    expect(gravado).toEqual([{ http_status: 201, enviado: true, tentativas: 1 }]);
+
     const texto = cel.abrir(c);
     expect(texto).toEqual({ titulo: 'Rede Acolher', texto: 'Há um aviso para você na Casa 03 (piloto).', marca: 'rede-acolher:Casa 03 (piloto)' });
     expect(JSON.stringify(texto)).not.toMatch(/Theo|Dose|horário/);
@@ -175,6 +185,71 @@ describe('O aviso no celular', () => {
     await avisar(ids.edu, 'Segundo');
     await servico.enviarPendentes();
     expect(doAparelho(cel)).toHaveLength(1);
+  });
+
+  it('o aviso que não saiu tenta de novo: o servidor que caiu e o serviço fora do ar (fase 190)', async () => {
+    const cel = aparelho(porta, 'tenta-de-novo');
+    const caminho = new URL(cel.endpoint).pathname;
+    await request(http).post('/api/v1/avisos-no-celular').set(comTok(tok.edu)).send(cel.assinatura());
+
+    /* O servidor caiu entre reservar e mandar: a reserva fica, o envio não. */
+    const n1 = await avisar(ids.edu, 'Reservado e não mandado');
+    await admin.query(`SELECT * FROM app_push_reservar(200)`);
+    await servico.enviarPendentes();
+    expect(doAparelho(cel)).toHaveLength(0);
+    /* Dois minutos depois, a reserva parada volta à fila. */
+    await admin.query(`UPDATE notification_push SET claimed_at = claimed_at - interval '3 minutes'
+                        WHERE notification_id = $1`, [n1]);
+    await servico.enviarPendentes();
+    expect(doAparelho(cel)).toHaveLength(1);
+
+    /* O serviço de push fora do ar: 503, e depois de um minuto, de novo. */
+    resposta.set(caminho, 503);
+    const n2 = await avisar(ids.edu, 'Serviço fora do ar');
+    await servico.enviarPendentes();
+    expect(doAparelho(cel)).toHaveLength(2);
+    await servico.enviarPendentes();
+    expect(doAparelho(cel)).toHaveLength(2);
+    resposta.set(caminho, 201);
+    await admin.query(`UPDATE notification_push SET sent_at = sent_at - interval '2 minutes' WHERE notification_id = $1`, [n2]);
+    await servico.enviarPendentes();
+    expect(doAparelho(cel)).toHaveLength(3);
+    expect(cel.abrir(doAparelho(cel)[2]).texto).toMatch(/Há um aviso para você/);
+    const { rows: [p2] } = await admin.query(
+      `SELECT p.tentativas, p.http_status FROM notification_push p JOIN push_subscription s ON s.id = p.subscription_id
+        WHERE p.notification_id = $1 AND s.endpoint = $2`, [n2, cel.endpoint]);
+    expect(p2).toEqual({ tentativas: 2, http_status: 201 });
+
+    /* Cinco tentativas e para; a recusa definitiva (403) não se repete. */
+    resposta.set(caminho, 500);
+    const n3 = await avisar(ids.edu, 'Sempre fora do ar');
+    for (let i = 0; i < 7; i++) {
+      await servico.enviarPendentes();
+      await admin.query(`UPDATE notification_push SET sent_at = sent_at - interval '2 minutes' WHERE notification_id = $1`, [n3]);
+    }
+    const { rows: [p3] } = await admin.query(
+      `SELECT p.tentativas FROM notification_push p JOIN push_subscription s ON s.id = p.subscription_id
+        WHERE p.notification_id = $1 AND s.endpoint = $2`, [n3, cel.endpoint]);
+    expect(p3.tentativas).toBe(5);
+    resposta.set(caminho, 403);
+    const n4 = await avisar(ids.edu, 'Recusa definitiva');
+    const antes = doAparelho(cel).length;
+    for (let i = 0; i < 3; i++) {
+      await servico.enviarPendentes();
+      await admin.query(`UPDATE notification_push SET sent_at = sent_at - interval '2 minutes' WHERE notification_id = $1`, [n4]);
+    }
+    expect(doAparelho(cel).length - antes).toBe(1);
+
+    /* O aviso lido no meio do caminho não é mais mandado. */
+    resposta.set(caminho, 503);
+    const n5 = await avisar(ids.edu, 'Lido antes da segunda tentativa');
+    await servico.enviarPendentes();
+    await admin.query(`UPDATE notification SET read_at = now() WHERE id = $1`, [n5]);
+    await admin.query(`UPDATE notification_push SET sent_at = sent_at - interval '2 minutes' WHERE notification_id = $1`, [n5]);
+    const depois = doAparelho(cel).length;
+    await servico.enviarPendentes();
+    expect(doAparelho(cel).length).toBe(depois);
+    resposta.delete(caminho);
   });
 
   it('o tablet da casa: só quem ligou por último recebe', async () => {

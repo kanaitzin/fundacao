@@ -291,6 +291,21 @@ function BotaoSemSinal() {
   );
 }
 
+/*
+ * O CONVITE DA URL, lido UMA vez, quando o arquivo carrega (fase 190). Lia-se
+ * no inicializador do `useState`, que apagava o token da barra de endereço: no
+ * desenvolvimento, o `StrictMode` do React roda o inicializador DUAS vezes, a
+ * segunda achava a barra limpa, e o link do e-mail abria a tela de entrada.
+ * O ensaio contra o servidor de verdade é que viu. Efeito colateral não mora em
+ * inicializador.
+ */
+const CONVITE_DA_URL = (() => {
+  if (typeof window === 'undefined') return '';
+  const t = new URLSearchParams(window.location.search).get('convite') ?? '';
+  if (t) window.history.replaceState({}, '', window.location.pathname);
+  return t;
+})();
+
 export function App() {
   const [me, setMe] = useState<Me | null>(null);
   const [houses, setHouses] = useState<House[]>([]);
@@ -382,11 +397,7 @@ export function App() {
     return () => { vivo = false; clearInterval(t); };
   }, [me, aba]);
 
-  const [convite, setConvite] = useState(() => {
-    const t = new URLSearchParams(window.location.search).get('convite') ?? '';
-    if (t) window.history.replaceState({}, '', window.location.pathname);
-    return t;
-  });
+  const [convite, setConvite] = useState(CONVITE_DA_URL);
 
   async function entrar(email: string, password: string) {
     setErro(''); setOcupado(true);

@@ -143,14 +143,18 @@ export class AvisoNoCelularService implements OnModuleInit, OnModuleDestroy {
     if (!vapid || this.rodando) return conta;
     this.rodando = true;
     try {
-      const { rows } = await this.db.query(`SELECT * FROM app_push_reservar(200)`);
+      // O instante vai e volta como TEXTO: o `Date` do JavaScript não tem os
+      // microssegundos do banco, e com ele o resultado não casava com linha
+      // nenhuma (fase 190: na 189, nenhum envio teve o status gravado).
+      const { rows } = await this.db.query(
+        `SELECT *, out_raised::text AS raised_exato FROM app_push_reservar(200)`);
       for (const r of rows) {
         const status = await this.mandar(r, vapid);
         if (status >= 200 && status < 300) conta.enviados++;
         else if (status === 404 || status === 410) conta.recusados++;
         else conta.falhas++;
         await this.db.query(`SELECT app_push_resultado($1, $2, $3, $4)`,
-          [r.out_notification, r.out_raised, r.out_subscription, status]);
+          [r.out_notification, r.raised_exato, r.out_subscription, status]);
       }
       if (rows.length) {
         this.log.log(`avisos no celular: ${conta.enviados} enviados, ${conta.recusados} aparelhos que não existem mais, ${conta.falhas} falhas`);

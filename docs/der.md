@@ -926,6 +926,12 @@ aviso, a vez em que ele subiu (`raised_at`, porque o escalonamento renova o
 serviço de push. Só metadado: o texto não fica guardado, e nem é preciso, porque
 é sempre o mesmo título neutro.
 
+**`notification_push.tentativas`** (notifications/1646, fase 190): de 1 a 5. A
+reserva parada há dois minutos (o servidor caiu entre reservar e mandar) e a
+falha passageira com um minuto (sem resposta, 429, 5xx) voltam à fila enquanto o
+aviso tiver menos de trinta minutos, não tiver sido lido e o aparelho seguir
+ligado. É o `claimed_at` que diz há quanto tempo a reserva está parada.
+
 **As duas fechadas para a aplicação**, como a sessão (1190): `REVOKE ALL` e RLS
 sem política. Tudo passa pelas cinco funções `app_push_*`. O endereço do aparelho
 é uma porta para a tela dele: o log nunca o copia.

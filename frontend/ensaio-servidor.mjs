@@ -27,10 +27,17 @@
  *   ENSAIO_AGORA      o instante que o navegador vive (o mesmo do banco)
  *   ENSAIO_CONTAS     JSON: [{ email, senha, quem }]
  *   ENSAIO_SAIDA      onde gravar fotos e achados (padrão /tmp/ensaio-servidor)
+ *   ENSAIO_CAIXA      a caixa de e-mail do servidor (EMAIL_DIR), para abrir o
+ *                     link do esqueci minha senha que chegou nela (fase 190)
+ *
+ * DESDE A FASE 190, além das portas, cada conta abre no tamanho de CELULAR a
+ * folha Minha conta, onde mora o aviso no celular (fase 189), e no fim uma
+ * pessoa pede o esqueci minha senha (fase 188), abre o link que chegou na caixa
+ * e confere a tela de criar a senha nova, sem criar: a conta segue a mesma.
  */
 import { chromium } from 'playwright-core';
 import { mkdir, writeFile } from 'node:fs/promises';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const URL_BASE = process.env.ENSAIO_URL ?? 'http://localhost:5173';
@@ -145,8 +152,94 @@ for (const conta of CONTAS) {
   }
   if (!telas.length) { onde = 'tela única'; await conferir(pg, conta.quem, onde); telas.push(onde); }
 
+  /* A FOLHA MINHA CONTA, no tamanho de celular (fase 190): só existe abaixo de
+     1080 px, e é onde mora o aviso no celular. Sem as chaves na instalação, a
+     folha tem de dizer isso, e não oferecer um botão que não faz nada. */
+  onde = 'Minha conta (celular)';
+  await pg.setViewportSize({ width: 390, height: 844 });
+  await pg.keyboard.press('Escape');
+  await pg.waitForTimeout(400);
+  const conta390 = pg.getByRole('button', { name: /^Minha conta/ });
+  if (await conta390.isVisible().catch(() => false)) {
+    await conta390.click();
+    await pg.waitForTimeout(1200);
+    const folha = pg.locator('.overlay .sheet');
+    const texto = (await folha.count()) ? await folha.innerText() : '';
+    if (!/Aviso no celular/.test(texto)) anota(conta.quem, onde, 'a folha não tem o aviso no celular');
+    else if (!/ainda não foi ligado nesta instalação/.test(texto)) {
+      anota(conta.quem, onde, `o aviso no celular, sem as chaves, não diz que está desligado: ${texto.slice(-200).replace(/\s+/g, ' ')}`);
+    }
+    for (const veneno of ['undefined', 'NaN', '[object Object]', 'Invalid Date']) {
+      if (texto.includes(veneno)) anota(conta.quem, onde, `a folha mostra "${veneno}"`);
+    }
+    await mkdir(join(SAIDA, emArquivo(conta.quem)), { recursive: true });
+    await pg.screenshot({ path: join(SAIDA, emArquivo(conta.quem), 'minha-conta-celular.png') });
+    telas.push(onde);
+  } else {
+    anota(conta.quem, onde, 'no tamanho de celular, o botão Minha conta não aparece');
+  }
+
   const meus = achados.filter((a) => a.quem === conta.quem).length;
   console.log(`${meus ? '✗' : '✓'} ${conta.quem.padEnd(22)} ${String(telas.length).padStart(2)} telas${meus ? `  (${meus} achado(s))` : ''}`);
+  await ctx.close();
+}
+
+/*
+ * O ESQUECI MINHA SENHA contra o servidor de verdade (fase 190): a mesma
+ * resposta para o e-mail da casa e para um inventado, o link que chega na
+ * caixa do servidor, e a tela de criar a senha nova aberta por ele. Não cria a
+ * senha: a conta continua entrando com a de sempre.
+ */
+{
+  const conta = CONTAS[0];
+  const quem = 'esqueci minha senha';
+  let onde = 'entrada';
+  const ctx = await navegador.newContext({ viewport: { width: 390, height: 844 } });
+  const pg = await ctx.newPage();
+  if (AGORA) await pg.clock.setFixedTime(AGORA);
+  pg.on('pageerror', (e) => anota(quem, onde, `exceção na página: ${e.message}`));
+  pg.on('response', async (r) => {
+    const u = new URL(r.url());
+    if (!u.pathname.startsWith('/api/') || r.status() < 400) return;
+    anota(quem, onde, `${r.status()} em ${r.request().method()} ${u.pathname}`);
+  });
+  const pedir = async (email) => {
+    await pg.goto(URL_BASE);
+    await pg.waitForTimeout(1000);
+    await pg.getByRole('button', { name: 'Esqueci minha senha' }).click();
+    await pg.locator('#email-esqueci').fill(email);
+    await pg.getByRole('button', { name: 'Enviar o link para o meu e-mail' }).click();
+    await pg.waitForTimeout(1200);
+    return (await pg.locator('body').innerText()).replace(/\s+/g, ' ');
+  };
+  onde = 'pedido';
+  const deVerdade = await pedir(conta.email);
+  const inventado = await pedir(`ninguem.${Date.now()}@paodospobres.dev`);
+  if (!/vale uma hora e serve uma vez/.test(deVerdade)) anota(quem, onde, 'o pedido não diz que o link vale uma hora');
+  if (deVerdade !== inventado) anota(quem, onde, 'a resposta muda entre e-mail cadastrado e inventado');
+  if (/Abrir o link que iria por e-mail/.test(deVerdade)) anota(quem, onde, 'o servidor de verdade mostra o link do protótipo');
+
+  const caixa = process.env.ENSAIO_CAIXA ? join(process.env.ENSAIO_CAIXA, 'caixa-de-saida.txt') : '';
+  if (!caixa || !existsSync(caixa)) {
+    anota(quem, 'caixa', `a caixa de e-mail do servidor não está em ${caixa || '(ENSAIO_CAIXA vazio)'}`);
+  } else {
+    const links = readFileSync(caixa, 'utf8').split('\n=== ').filter((m) => m.includes(`Para: ${conta.email}`))
+      .map((m) => /convite=([A-Za-z0-9_-]+)/.exec(m)?.[1]).filter(Boolean);
+    if (!links.length) anota(quem, 'caixa', 'o e-mail do esqueci não chegou à caixa do servidor');
+    else {
+      onde = 'o link do e-mail';
+      await pg.goto(`${URL_BASE}/entrar?convite=${links.at(-1)}`);
+      await pg.waitForTimeout(1500);
+      const t = await pg.locator('body').innerText();
+      if (!/Criar uma senha nova/.test(t) || !t.includes(conta.email)) {
+        anota(quem, onde, `o link não abre a tela de criar a senha nova da conta: ${t.slice(0, 160).replace(/\s+/g, ' ')}`);
+      }
+      await mkdir(join(SAIDA, 'esqueci'), { recursive: true });
+      await pg.screenshot({ path: join(SAIDA, 'esqueci', 'link-do-email.png') });
+    }
+  }
+  const meus = achados.filter((a) => a.quem === quem).length;
+  console.log(`${meus ? '✗' : '✓'} ${quem.padEnd(22)} pedido, caixa e link${meus ? `  (${meus} achado(s))` : ''}`);
   await ctx.close();
 }
 

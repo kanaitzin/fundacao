@@ -83,7 +83,9 @@ fi
 # servidor e o banco no relógio da simulação, o navegador com o mesmo instante.
 [[ "${SIM_SEM_NAVEGADOR:-}" == 1 ]] && exit 0
 SAIDA="${SIM_SAIDA:-/tmp/simulacao-da-casa}"
-LD_PRELOAD=$LIB FAKETIME_TIMESTAMP_FILE=$RELOGIO FAKETIME_NO_CACHE=1 PORT=3000 \
+# A caixa do e-mail do servidor, para o ensaio abrir o link do esqueci (fase 190).
+mkdir -p "$SAIDA/caixa"
+LD_PRELOAD=$LIB FAKETIME_TIMESTAMP_FILE=$RELOGIO FAKETIME_NO_CACHE=1 PORT=3000 EMAIL_MODO=arquivo EMAIL_DIR="$SAIDA/caixa" \
   nohup npx tsx src/main.ts >/tmp/simulacao-servidor.log 2>&1 &
 SERVIDOR=$!
 (cd "$RAIZ/frontend" && nohup npx vite --port 5173 --strictPort >/tmp/simulacao-vite.log 2>&1) &
@@ -94,5 +96,5 @@ for _ in $(seq 1 60); do
 done
 echo "→ as telas, pelo navegador, contra o servidor de verdade"
 (cd "$RAIZ/frontend" && ENSAIO_CONTAS="$(cat "$SAIDA/contas.json")" ENSAIO_AGORA="$(cat "$SAIDA/agora.txt")" \
-  ENSAIO_SAIDA="$SAIDA/telas" node ensaio-servidor.mjs)
+  ENSAIO_SAIDA="$SAIDA/telas" ENSAIO_CAIXA="$SAIDA/caixa" node ensaio-servidor.mjs)
 kill $SERVIDOR $VITE 2>/dev/null; pkill -f "src/main.ts" 2>/dev/null; pkill -f "vite --port 5173" 2>/dev/null

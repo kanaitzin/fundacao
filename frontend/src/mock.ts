@@ -29,6 +29,7 @@ import {
 import { SemConexao, ErroApi } from './api';
 import { ALCANCE_POR_CARGO } from '../../backend/src/modules/identity/alcance';
 import { avaliar, avaliarDrive, TITULOS } from '../../backend/src/modules/relogio/implantacao.regra';
+import { QUEM_LE_O_QUE_MUDOU } from '../../backend/src/modules/reports/o-que-mudou.regra';
 import { TIPOS_OFFLINE, TIPOS_OFFLINE_KINDS } from '../../backend/src/modules/sync/tipos-offline';
 import { cargoNoDocumento, nomeDoArquivo as nomeDaFolha }
   from '../../backend/src/kernel/documentos/folha';
@@ -5390,8 +5391,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
    * como lá.
    */
   if (rota.startsWith('/reports/o-que-mudou') && metodo === 'GET') {
-    if (!['educador', 'lider_diurno', 'lider_noturno_geral', 'enfermagem', 'equipe_tecnica', 'coordenador']
-      .includes(eu.role)) {
+    if (!QUEM_LE_O_QUE_MUDOU.includes(eu.role)) {
       throw new Error('Esta folha é de quem trabalha no plantão da casa.');
     }
     return {

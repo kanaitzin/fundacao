@@ -2,6 +2,7 @@ import { ForbiddenException, Inject, Injectable } from '@nestjs/common';
 import { DatabaseService } from '../../kernel/database/database.service';
 import { AuthenticatedUser } from '../../kernel/contracts';
 import { ROTULO_DA_CATEGORIA } from './periodo.service';
+import { QUEM_LE_O_QUE_MUDOU } from './o-que-mudou.regra';
 
 /**
  * O QUE MUDOU DESDE O MEU ÚLTIMO PLANTÃO (fase 186, ideia 1 de 30/09;
@@ -24,7 +25,6 @@ import { ROTULO_DA_CATEGORIA } from './periodo.service';
  * aponta; o detalhe se lê na tela de cada coisa, que registra quem abriu o
  * que precisa ser registrado.
  */
-const QUEM_LE = ['educador', 'lider_diurno', 'lider_noturno_geral', 'enfermagem', 'equipe_tecnica', 'coordenador'];
 
 const SITUACAO: Record<string, string> = {
   aberta: 'aberta', em_acompanhamento: 'em acompanhamento', reaberta: 'reaberta',
@@ -53,7 +53,7 @@ export class OQueMudouService {
 
   async desdeOMeuPlantao(user: AuthenticatedUser, houseId: string): Promise<OQueMudou> {
     /* alcance:o_que_mudou — quem trabalha no plantão da casa. */
-    if (!QUEM_LE.includes(user.role)) {
+    if (!QUEM_LE_O_QUE_MUDOU.includes(user.role)) {
       throw new ForbiddenException('Esta folha é de quem trabalha no plantão da casa.');
     }
     return this.db.asUser(user.id, async (c) => {

@@ -168,7 +168,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 06/10/2026, fase 189
+### Onde estamos — 06/10/2026, fase 190
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -221,8 +221,9 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 187 | **as duas etapas para entrar** (ideia 8): feitas e, no mesmo dia, **retiradas por completo a pedido da Fundação** na 188; o código está no commit `5bff891` se um dia voltar |
 | 188 | **a entrada com e-mail e senha numa tela só, vazia, com os atalhos de demonstração embaixo, e o esqueci minha senha** (pedido e decisões de 05/10): o link vai ao e-mail CADASTRADO, vale uma hora e serve uma vez, pelo mesmo caminho do convite (`user_invite.motivo`, identity/1644); resposta igual para e-mail cadastrado ou inventado, pedir não troca a senha, um pedido a cada dois minutos, e a senha nova encerra as sessões; e sair pela Minha conta não fechava a folha |
 | 189 | **o aviso no celular, mesmo com o sistema fechado** (ideia 2; decidido em 06/10: TODOS os avisos, tela bloqueada só com o título neutro): Web Push com VAPID (`web-push`), ligado por aparelho na Minha conta (`frontend/src/aviso-no-celular.tsx`, `public/sw-avisos.js`); de dez em dez segundos o servidor reserva e manda (`aviso-no-celular.service.ts`, notifications/1645); um aparelho, uma pessoa; sair desliga; só serviços de push conhecidos; desligado sem as chaves (§12.11). **Entrega num celular de verdade não testada daqui** |
+| 190 | **o aviso no celular que não saiu tenta de novo** (reserva parada e falha passageira, até cinco vezes; notifications/1646) e **o que a 189 nunca gravou** (o instante voltava do JavaScript sem microssegundos); e **a simulação de 30 dias contra o servidor de verdade**, com a Minha conta no celular e o esqueci no `ensaio-servidor`, achou três: **o servidor não subia pelo `tsx` desde a 179** (`@Inject` faltando no `AppModule`; hoje `toda-injecao-e-explicita.spec.ts`), **o link do esqueci caía na entrada no desenvolvimento** (efeito colateral no inicializador do `useState`, rodado duas vezes pelo `StrictMode`) e **o cartão do que mudou pedia ao gestor o que o servidor recusa** (lista única em `reports/o-que-mudou.regra.ts`) |
 
-**Medido no fim da 189:** 185 migrações, 131 tabelas, 132 suítes, 1196 testes, verdes nas
+**Medido no fim da 190:** 186 migrações, 131 tabelas, 133 suítes, 1198 testes, verdes nas
 DUAS condições de relógio; os nove ensaios de navegador verdes (o do celular com 302 telas e nenhum achado), com a portaria e o
 portão, o armário, a cozinha, os temas e a foto no percurso do `ensaio:uso`; **1043 telas (149 × sete
 temas) sem violação de WCAG 2.1 AA**; nenhuma
@@ -236,6 +237,9 @@ devolve, nenhum achado na API, e **12 contas, 179 telas contra o servidor de ver
 banco por casa por ano.
 **E as oito casas num ano** (`SIM_CASAS=AI1,AI2,AI3,AI4,ARM1,ARM2,ARM3,ARM4 … 365`): nenhum
 achado, 27 contas e todas as telas contra o servidor de verdade, nenhuma leitura acima de 582 ms.
+**E a Casa 03 em trinta dias, na fase 190** (`SIM_CASAS=AI3 … 30`): tudo bate, nenhuma leitura
+acima de 390 ms, e **onze contas, 177 telas, a Minha conta no celular e o esqueci minha senha
+contra o servidor de verdade, sem achado** (depois de consertar os três que ela achou).
 
 **As TRÊS cores do sistema, porque confundi-las é o pior que esta tela pode
 fazer** — está escrito por extenso em `frontend/src/cargos.tsx`:
@@ -251,6 +255,12 @@ as três cores abaixo. Cor nova passa pelo `ensaio:acessibilidade`, que mede os 
 | **cargo** | *de que setor é esta pessoa?* | círculo cheio com iniciais |
 
 ### A próxima etapa
+
+**FEITO — fase 190** (§2): os itens 1 e 2 da análise de 06/10 — o aviso no celular
+que não saiu tenta de novo, e as telas das fases 185 a 189 abertas contra o servidor
+de verdade, numa simulação de trinta dias da Casa 03, que achou três defeitos (§2,
+linha 190). **Rode a simulação a cada fase que muda tela**: ela ficou dez fases sem
+rodar, e o servidor pelo `tsx` passou essas dez fases sem subir.
 
 **FEITO — fase 189** (§2, §12.11): o aviso no celular, a ideia 2 de 30/09. **Depende
 da implantação** (as chaves, o HTTPS e a saída para os serviços de push), e a
@@ -525,6 +535,25 @@ novo.
   que ele tem na vida**, e o limite que o framework põe sem ninguém escrever também é
   regra do sistema. E a promessa da tela (*"o horário anterior fica no histórico"*) se
   confere lendo o histórico de volta: a varredura achou a coluna, a promessa achou a tabela.
+- **Instante do banco não volta do JavaScript igual** (190). O `Date` tem
+  milissegundo e o `timestamptz` tem microssegundo: o instante que ia ao
+  servidor e voltava como chave não casava com linha nenhuma, e o resultado de
+  TODO envio do aviso no celular ficou sem gravar, com a suíte verde. Instante
+  que é CHAVE vai e volta como texto (`::text`). E a suíte só viu quando passou
+  a **ler de volta o que foi gravado**: a lição da 149, de novo.
+- **O que só roda pelo `tsx` não é testado pela suíte** (190). O `ts-jest` e o
+  `tsc` gravam o metadado de tipo; o `tsx` não. Um construtor sem `@Inject`
+  subia na suíte e no compilado e caía no `npm run dev` e na simulação, por dez
+  fases. Hoje há teste que lê o código. **E a simulação que não roda não acha
+  nada**: ela é que viu, no primeiro dia em que voltou a rodar.
+- **Efeito colateral não mora em inicializador** (190). O `StrictMode` roda o
+  inicializador do `useState` duas vezes no desenvolvimento: o que lia o
+  convite e o apagava da barra perdia o convite na segunda. O que acontece uma
+  vez acontece quando o arquivo carrega.
+- **Duas rodadas que recriam o banco não rodam juntas** (190). Soltei a segunda
+  simulação sem conferir que a primeira tinha acabado (ela caiu na partida e
+  seguiu para o navegador), e as duas mediram o mesmo banco ao mesmo tempo.
+  Resultado de rodada sobreposta se descarta inteiro.
 - **Frase de tela que envelhece é frase que mente**, e a cobrança do ensaio que a
   guarda tem de ser reescrita junto. A ressalva do painel sobre nota escolar já foi
   reescrita três vezes. **Isto inclui este arquivo.**

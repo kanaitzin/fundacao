@@ -1,4 +1,4 @@
-import { MiddlewareConsumer, Module, NestModule, OnApplicationBootstrap } from '@nestjs/common';
+import { Inject, MiddlewareConsumer, Module, NestModule, OnApplicationBootstrap } from '@nestjs/common';
 import { HttpAdapterHost } from '@nestjs/core';
 /* O limite do corpo (fase 179): o anexo em base64 passa dos 100 KB do padrão.
    Importado AQUI para valer no servidor que sobe e na suíte, que monta por aqui. */
@@ -80,7 +80,10 @@ import { ArchiveModule } from './modules/archive';
   ],
 })
 export class AppModule implements NestModule, OnApplicationBootstrap {
-  constructor(private readonly adaptador: HttpAdapterHost) {}
+  /* `@Inject` explícito, como no resto do servidor: o `tsx` (o `npm run dev` e
+     a simulação) não gera o metadado de tipo, e sem ele o NestJS injeta nada.
+     Da 179 à 190 o servidor não subia pelo `tsx` por causa desta linha. */
+  constructor(@Inject(HttpAdapterHost) private readonly adaptador: HttpAdapterHost) {}
 
   /* A porta para a internet (fase 179): cabeçalhos e CORS no módulo, e não no
      `main.ts`, para a suíte passar por eles também. */

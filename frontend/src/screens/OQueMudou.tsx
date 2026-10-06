@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { QUEM_LE_O_QUE_MUDOU } from '../../../backend/src/modules/reports/o-que-mudou.regra';
 import { api } from '../api';
 
 /**
@@ -49,8 +50,10 @@ const chave = (pessoa: string, houseId: string, desde: string) =>
 const jaLeu = (k: string) => { try { return localStorage.getItem(k) === '1'; } catch { return false; } };
 const marcarLido = (k: string) => { try { localStorage.setItem(k, '1'); } catch { /* sem armazenamento: abre de novo */ } };
 
-export function OQueMudou({ pessoa, houseId, irPara, alcanca }: {
+export function OQueMudou({ pessoa, papel, houseId, irPara, alcanca }: {
   pessoa: string; houseId: string; irPara: (aba: string) => void;
+  /** O cargo de quem abre: fora da lista, o cartão nem pede a folha (fase 190). */
+  papel: string;
   /** A porta só aparece para quem alcança a tela: o educador não abre a Saúde. */
   alcanca: (aba: string) => boolean;
 }) {
@@ -60,7 +63,8 @@ export function OQueMudou({ pessoa, houseId, irPara, alcanca }: {
   useEffect(() => {
     let vivo = true;
     setR(null);
-    /* 403 é cargo que não faz plantão (o gestor): a linha simplesmente não aparece. */
+    /* Cargo que não faz plantão (o gestor) não pede: o servidor recusaria. */
+    if (!QUEM_LE_O_QUE_MUDOU.includes(papel)) return () => { vivo = false; };
     api<OQueMudouResposta>(`/reports/o-que-mudou?houseId=${houseId}`)
       .then((x) => {
         if (!vivo) return;
@@ -70,7 +74,7 @@ export function OQueMudou({ pessoa, houseId, irPara, alcanca }: {
       })
       .catch(() => { if (vivo) setR(null); });
     return () => { vivo = false; };
-  }, [houseId, pessoa]);
+  }, [houseId, pessoa, papel]);
 
   if (!r) return null;
   const n = r.ocorrencias.length + r.remedios.length;

@@ -446,7 +446,7 @@ export function Dia({ houseId, casaLabel, papel, irPara, alcanca = () => true, p
 
       {/* O que mudou desde o último plantão (fase 186): antes do filtro do dia,
           porque é a primeira coisa que quem chega precisa saber. */}
-      <OQueMudou pessoa={pessoa} houseId={houseId} irPara={irPara} alcanca={alcanca} />
+      <OQueMudou pessoa={pessoa} papel={papel} houseId={houseId} irPara={irPara} alcanca={alcanca} />
 
       <nav className="filtros" aria-label="Filtro do dia">
         {([['agora', 'Agora'], ['minhas', 'Minhas'], ['tudo', 'Tudo'],
