@@ -1057,6 +1057,7 @@ export function App() {
       {(sugerirSenha || trocarSenha) && (
         <SenhaPessoal
           email={me.email}
+          casa={casa?.name ?? null}
           primeiroAcesso={sugerirSenha}
           semSenhaAinda={!!me.semSenha && sugerirSenha}
           onPronto={() => {

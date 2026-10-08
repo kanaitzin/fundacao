@@ -215,6 +215,18 @@ await pg.waitForTimeout(300);
 await conferir(`${tema} · folha "Buscar criança"`); telas++;
 await pg.locator('.overlay .sheet button', { hasText: /^Fechar$/ }).click();
 await pg.waitForTimeout(300);
+/* O AVISO NESTE COMPUTADOR (fase 191): só existe a partir de 1080 px, na folha
+ * da senha. A volta inteira é a 420 px, onde ele se esconde; para medi-lo, a
+ * janela se alarga só para esta folha e volta. */
+await pg.setViewportSize({ width: 1440, height: 900 });
+await pg.waitForTimeout(300);
+await pg.getByRole('button', { name: 'Trocar minha senha' }).click();
+await pg.waitForTimeout(500);
+await conferir(`${tema} · folha da senha com o aviso neste computador (monitor)`); telas++;
+await pg.getByRole('button', { name: 'Cancelar' }).click();
+await pg.waitForTimeout(300);
+await pg.setViewportSize({ width: 420, height: 900 });
+await pg.waitForTimeout(300);
 }
 
 await navegador.close();

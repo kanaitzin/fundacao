@@ -231,6 +231,24 @@ for (const cargo of aEnsaiar) {
     telas.push('tela única');
   }
 
+  /* O AVISO NESTE COMPUTADOR (fase 191, decisão de 08/10): no monitor ele mora
+     na folha da senha, porque a folha Minha conta só existe abaixo de 1080 px.
+     No protótipo nenhum aviso sai, e a folha diz isso. */
+  if (LARG >= 1080) {
+    ondeEstou = { cargo: cargo.valor, tela: 'folha da senha (aviso neste computador)' };
+    const chave = pg.getByRole('button', { name: 'Trocar minha senha' });
+    if (await chave.isVisible().catch(() => false)) {
+      await chave.click();
+      await pg.waitForTimeout(500);
+      const folha = (await pg.locator('.overlay').last().innerText().catch(() => '')) || '';
+      if (!/Aviso neste computador/.test(folha)) anota(cargo.valor, ondeEstou.tela, 'a folha da senha não tem o aviso neste computador');
+      else if (!/No protótipo nenhum aviso sai/.test(folha)) anota(cargo.valor, ondeEstou.tela, 'o aviso neste computador não diz que no protótipo nada sai');
+      await pg.getByRole('button', { name: 'Cancelar' }).click().catch(() => {});
+      await pg.waitForTimeout(300);
+      telas.push('aviso neste computador');
+    }
+  }
+
   const meus = achados.filter((a) => a.cargo === cargo.valor).length;
   console.log(
     `${meus ? '✗' : '✓'} ${cargo.rotulo.padEnd(20)} ${String(telas.length).padStart(2)} telas` +

@@ -13,3 +13,4 @@ export { PeopleService } from './people.service';
 export type { PersonSummary } from './people.service';
 export { AniversariosService } from './aniversarios.service';
 export { PiaService } from './pia.service';
+export { VencimentosService } from './vencimentos.service';

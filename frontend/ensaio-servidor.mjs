@@ -152,6 +152,20 @@ for (const conta of CONTAS) {
   }
   if (!telas.length) { onde = 'tela única'; await conferir(pg, conta.quem, onde); telas.push(onde); }
 
+  /* O AVISO NESTE COMPUTADOR, no monitor (fase 191): na folha da senha. */
+  onde = 'folha da senha (computador)';
+  const chave = pg.getByRole('button', { name: 'Trocar minha senha' });
+  if (await chave.isVisible().catch(() => false)) {
+    await chave.click();
+    await pg.waitForTimeout(1200);
+    const folha = (await pg.locator('.overlay').last().innerText().catch(() => '')) || '';
+    if (!/Aviso neste computador/.test(folha)) anota(conta.quem, onde, 'a folha da senha não tem o aviso neste computador');
+    else if (!/ainda não foi ligado nesta instalação/.test(folha)) anota(conta.quem, onde, 'sem as chaves, o aviso neste computador não diz que está desligado');
+    await pg.getByRole('button', { name: 'Cancelar' }).click().catch(() => {});
+    await pg.waitForTimeout(300);
+    telas.push(onde);
+  }
+
   /* A FOLHA MINHA CONTA, no tamanho de celular (fase 190): só existe abaixo de
      1080 px, e é onde mora o aviso no celular. Sem as chaves na instalação, a
      folha tem de dizer isso, e não oferecer um botão que não faz nada. */

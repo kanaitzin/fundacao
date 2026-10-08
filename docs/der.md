@@ -936,12 +936,21 @@ ligado. É o `claimed_at` que diz há quanto tempo a reserva está parada.
 sem política. Tudo passa pelas cinco funções `app_push_*`. O endereço do aparelho
 é uma porta para a tela dele: o log nunca o copia.
 
-## Inventário — 131 tabelas por partição
+### A receita e a vacinação que vencem (people/1647, fase 191)
+
+**`document_due_notice`** — o aviso de vencimento que já saiu, um por documento:
+`document_id`, `checklist_key` (`receita` ou `caderneta_vacinacao`), a
+`valid_until` que valia quando o aviso saiu e `notified_at`. É a `pia_aviso` (1636)
+para os outros documentos com validade: o relógio do dia pergunta pela função
+`app_documentos_vencendo`, que é a única que lê e escreve aqui. Fechada para a
+aplicação.
+
+## Inventário — 132 tabelas por partição
 
 | Partição | Tabelas |
 |---|---|
 | identity (17) | institution, house, app_user, user_house_assignment, work_schedule, shift_assignment, user_session, login_attempt, audit_event, institutional_device, staff_role_grant, house_capacity_change, user_invite, house_shift_hours, app_user_role_period, shift_draft, shift_draft_item |
-| people (30) | person, care_episode, house_stay, profile_detail, health_condition, food_restriction, document, document_version, benefit_record, memory_record, memory_photo, transfer_request, transfer_message, admission_record, judicial_record, person_credential, person_correction, profile_detail_change, person_contact, family_stay, family_stay_note, outing_permission, kitchen_request, house_field_permission, birthday_ack, contact_visit_change, visit, visit_correction, kitchen_request_change, pia_aviso |
+| people (31) | person, care_episode, house_stay, profile_detail, health_condition, food_restriction, document, document_version, benefit_record, memory_record, memory_photo, transfer_request, transfer_message, admission_record, judicial_record, person_credential, person_correction, profile_detail_change, person_contact, family_stay, family_stay_note, outing_permission, kitchen_request, house_field_permission, birthday_ack, contact_visit_change, visit, visit_correction, kitchen_request_change, pia_aviso, document_due_notice |
 | shifts (14) | shift, handover, handover_receipt, handover_note, ata, ata_note, ata_addendum, ata_episode, ata_episode_ack, general_night_ata, general_night_house_entry, general_night_house_amendment, ata_read_request, shift_fim_aviso |
 | incidents (7) | incident, incident_person, incident_protected, incident_restraint, incident_synthesis, external_communication, incident_attachment |
 | medications (13) | prescription, medication_schedule, medication_administration, medication_stock, medication_stock_movement, medication_protocol, medication_authorization, medication_protocol_change, prescription_restriction_change, medication_purchase, medication_purchase_item, prescription_document, family_stay_medication |

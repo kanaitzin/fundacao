@@ -58,9 +58,9 @@ describe('O relógio', () => {
 
     expect(r.dia).toBe(hojeNaInstituicao());
     expect(r.casas).toBeGreaterThanOrEqual(8);
-    /* Sete rotinas por casa (a sétima, o PIA, é da fase 178). Se alguma sumir,
-       o número cai e o teste avisa. */
-    expect(r.rodadas).toBe(r.casas * 7);
+    /* Oito rotinas por casa (a sétima, o PIA, é da fase 178; a oitava, a receita
+       e a vacinação, da 191). Se alguma sumir, o número cai e o teste avisa. */
+    expect(r.rodadas).toBe(r.casas * 8);
     expect(r.falhas).toEqual([]);
 
     const { rows: [ev] } = await admin.query(
@@ -163,6 +163,91 @@ describe('O relógio', () => {
       expect(aviso.titulo).toMatch(/^O PIA de PIA Perto vence em \d{2}\/\d{2}$/);
     } finally {
       for (const p of pessoas) {
+        await request(http).post(`/api/v1/people/${p}/discharge`).set(auth(tecnica))
+          .send({ motivo: 'Encerramento de fixture de teste' });
+      }
+    }
+  });
+
+  /*
+   * A RECEITA E A VACINAÇÃO QUE ESTÃO VENCENDO (fase 191, decidido em 08/10): a
+   * receita dez dias antes, a caderneta quinze, para a Enfermagem e para a
+   * técnica e a coordenação da casa, uma vez por documento. A receita que vence
+   * em doze dias ainda não avisa; a caderneta em doze, sim. E a receita velha,
+   * substituída por uma nova, não avisa: vale a última.
+   */
+  it('avisa a Enfermagem e a técnica da receita e da vacinação que vencem, uma vez só', async () => {
+    const tok = async (email: string) =>
+      (await request(http).post('/api/v1/auth/login').send({ email, password: SENHA })).body.token;
+    const auth = (t: string) => ({ Authorization: `Bearer ${t}` });
+    const tecnica = await tok('tecnica.ai3@paodospobres.dev');
+    const enf = await tok(enfermagem);
+    const PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/58BAwAI/AL+hc2rNAAAAABJRU5ErkJggg==';
+    const somar = (n: number) => {
+      const d = new Date(`${hojeNaInstituicao()}T12:00:00Z`); d.setUTCDate(d.getUTCDate() + n);
+      return d.toISOString().slice(0, 10);
+    };
+    const nova = await request(http).post('/api/v1/people').set(auth(tecnica))
+      .send({ houseId: AI3, fullName: 'Criança da Receita (fictícia)', socialName: 'Receita Perto',
+              birthDate: '2015-05-05', provisionalReason: 'Ingresso de teste automatizado' });
+    expect(nova.status).toBe(201);
+    const pessoa = nova.body.personId;
+    let outraPessoa = '';
+    const anexar = async (chave: string, categoria: string, titulo: string, dias: number) => {
+      const r = await request(http).post(`/api/v1/people/${pessoa}/documents`).set(auth(tecnica))
+        .send({ chave, categoria, titulo, conteudo: PNG, nomeArquivo: `${chave}.png`, validoAte: somar(dias) });
+      expect(r.status).toBe(201);
+      return r.body.id as string;
+    };
+    try {
+      /* A receita antiga vence em 3 dias, mas foi renovada: a nova vence em 12. */
+      const receitaVelha = await anexar('receita', 'saude', 'Receita', 3);
+      const receitaNova = await anexar('receita', 'saude', 'Receita', 12);
+      const caderneta = await anexar('caderneta_vacinacao', 'pessoal', 'Caderneta de vacinação', 12);
+      const docs = [receitaVelha, receitaNova, caderneta];
+
+      const quem = await relogio.quemSou(enfermagem);
+      await relogio.rodarODia(quem);
+      await relogio.rodarODia(quem);
+      const { rows } = await admin.query(
+        `SELECT u.email, n.entity_id, count(*)::int AS n FROM notification n
+           JOIN app_user u ON u.id = n.user_id
+          WHERE u.email IN ('tecnica.ai3@paodospobres.dev', 'coord.ai3@paodospobres.dev', $2)
+            AND n.entity = 'document' AND n.entity_id = ANY($1::uuid[])
+          GROUP BY 1, 2 ORDER BY 1`, [docs, enfermagem]);
+      /* Só a caderneta (12 de 15 dias); a receita nova está a 12 de 10, e a velha foi substituída. */
+      expect(rows).toEqual([
+        { email: 'coord.ai3@paodospobres.dev', entity_id: caderneta, n: 1 },
+        { email: enfermagem, entity_id: caderneta, n: 1 },
+        { email: 'tecnica.ai3@paodospobres.dev', entity_id: caderneta, n: 1 },
+      ]);
+      const lista = (await request(http).get('/api/v1/notifications').set(auth(enf))).body as any[];
+      const aviso = lista.find((a) => a.entidadeId === caderneta);
+      expect(aviso.titulo).toMatch(/^A caderneta de vacinação de Receita Perto vence em \d{2}\/\d{2}$/);
+
+      /* A receita que vence em nove dias, noutra criança: avisa, e com o nome do documento. */
+      const outra = await request(http).post('/api/v1/people').set(auth(tecnica))
+        .send({ houseId: AI3, fullName: 'Criança da Receita Curta (fictícia)', socialName: 'Receita Curta',
+                birthDate: '2016-06-06', provisionalReason: 'Ingresso de teste automatizado' });
+      expect(outra.status).toBe(201);
+      outraPessoa = outra.body.personId;
+      const r9 = await request(http).post(`/api/v1/people/${outraPessoa}/documents`).set(auth(tecnica))
+        .send({ chave: 'receita', categoria: 'saude', titulo: 'Receita', conteudo: PNG,
+                nomeArquivo: 'receita.png', validoAte: somar(9) });
+      expect(r9.status).toBe(201);
+      await relogio.rodarODia(quem);
+      await relogio.rodarODia(quem);
+      const { rows: receita } = await admin.query(
+        `SELECT u.email, count(*)::int AS n FROM notification n JOIN app_user u ON u.id = n.user_id
+          WHERE n.entity = 'document' AND n.entity_id = $1 GROUP BY 1 ORDER BY 1`, [r9.body.id]);
+      expect(receita.map((x) => [x.email, x.n])).toEqual(expect.arrayContaining([
+        ['coord.ai3@paodospobres.dev', 1], [enfermagem, 1], ['tecnica.ai3@paodospobres.dev', 1]]));
+      const avisoReceita = ((await request(http).get('/api/v1/notifications').set(auth(enf))).body as any[])
+        .find((a) => a.entidadeId === r9.body.id);
+      expect(avisoReceita.titulo).toMatch(/^A receita de Receita Curta vence em \d{2}\/\d{2}$/);
+      expect(avisoReceita.corpo ?? avisoReceita.body ?? '').not.toMatch(/mg|comprimido/i);
+    } finally {
+      for (const p of [pessoa, outraPessoa].filter(Boolean)) {
         await request(http).post(`/api/v1/people/${p}/discharge`).set(auth(tecnica))
           .send({ motivo: 'Encerramento de fixture de teste' });
       }

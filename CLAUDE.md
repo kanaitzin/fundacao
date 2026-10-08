@@ -168,7 +168,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 06/10/2026, fase 190
+### Onde estamos — 08/10/2026, fase 191
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -222,10 +222,11 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 188 | **a entrada com e-mail e senha numa tela só, vazia, com os atalhos de demonstração embaixo, e o esqueci minha senha** (pedido e decisões de 05/10): o link vai ao e-mail CADASTRADO, vale uma hora e serve uma vez, pelo mesmo caminho do convite (`user_invite.motivo`, identity/1644); resposta igual para e-mail cadastrado ou inventado, pedir não troca a senha, um pedido a cada dois minutos, e a senha nova encerra as sessões; e sair pela Minha conta não fechava a folha |
 | 189 | **o aviso no celular, mesmo com o sistema fechado** (ideia 2; decidido em 06/10: TODOS os avisos, tela bloqueada só com o título neutro): Web Push com VAPID (`web-push`), ligado por aparelho na Minha conta (`frontend/src/aviso-no-celular.tsx`, `public/sw-avisos.js`); de dez em dez segundos o servidor reserva e manda (`aviso-no-celular.service.ts`, notifications/1645); um aparelho, uma pessoa; sair desliga; só serviços de push conhecidos; desligado sem as chaves (§12.11). **Entrega num celular de verdade não testada daqui** |
 | 190 | **o aviso no celular que não saiu tenta de novo** (reserva parada e falha passageira, até cinco vezes; notifications/1646) e **o que a 189 nunca gravou** (o instante voltava do JavaScript sem microssegundos); e **a simulação de 30 dias contra o servidor de verdade**, com a Minha conta no celular e o esqueci no `ensaio-servidor`, achou três: **o servidor não subia pelo `tsx` desde a 179** (`@Inject` faltando no `AppModule`; hoje `toda-injecao-e-explicita.spec.ts`), **o link do esqueci caía na entrada no desenvolvimento** (efeito colateral no inicializador do `useState`, rodado duas vezes pelo `StrictMode`) e **o cartão do que mudou pedia ao gestor o que o servidor recusa** (lista única em `reports/o-que-mudou.regra.ts`) |
+| 191 | **a receita e a vacinação avisam antes de vencer** (decisões de 08/10: 10 e 15 dias, à Enfermagem e à técnica e coordenação, uma vez por documento, o último de validade mais longa; sem o remédio nem a vacina no aviso; `app_documentos_vencendo`, `document_due_notice`, people/1647, oitava rotina do relógio) e **o aviso fora do sistema também no computador**, na folha da senha (*Aviso neste computador*). Decidido sem código: o convite segue 24 horas, e o aviso no celular não entra no painel da implantação |
 
-**Medido no fim da 190:** 186 migrações, 131 tabelas, 133 suítes, 1198 testes, verdes nas
+**Medido no fim da 191:** 187 migrações, 132 tabelas, 133 suítes, 1199 testes, verdes nas
 DUAS condições de relógio; os nove ensaios de navegador verdes (o do celular com 302 telas e nenhum achado), com a portaria e o
-portão, o armário, a cozinha, os temas e a foto no percurso do `ensaio:uso`; **1043 telas (149 × sete
+portão, o armário, a cozinha, os temas e a foto no percurso do `ensaio:uso`; **1050 telas (150 × sete
 temas) sem violação de WCAG 2.1 AA**; nenhuma
 rota sem teste; nenhuma rota — escrita ou leitura — com 500; **250 leituras sondadas
 pela Casa 04 com registro real da Casa 03, sem achado; cerca de 170 rotas de escrita, sem linha
@@ -255,6 +256,10 @@ as três cores abaixo. Cor nova passa pelo `ensaio:acessibilidade`, que mede os 
 | **cargo** | *de que setor é esta pessoa?* | círculo cheio com iniciais |
 
 ### A próxima etapa
+
+**FEITO — fase 191** (§2): as decisões de 08/10 — a receita e a vacinação avisam
+antes de vencer, e o aviso fora do sistema também no computador. **Do lembrete de
+prazo, ficaram sem aviso, por decisão, a matrícula e o curso.**
 
 **FEITO — fase 190** (§2): os itens 1 e 2 da análise de 06/10 — o aviso no celular
 que não saiu tenta de novo, e as telas das fases 185 a 189 abertas contra o servidor

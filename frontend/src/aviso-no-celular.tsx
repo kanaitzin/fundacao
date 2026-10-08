@@ -52,7 +52,12 @@ export async function desligarAoSair() {
   } catch { /* sair nunca falha por causa do aviso */ }
 }
 
-export function AvisoNoCelular({ casa }: { casa: string | null }) {
+/**
+ * `onde`: no celular e no tablet a seção mora na folha Minha conta; no
+ * computador, na folha da senha (decisão de 08/10, fase 191). O comportamento é
+ * o mesmo; muda o nome e onde o aviso aparece no aparelho.
+ */
+export function AvisoNoCelular({ casa, onde = 'celular' }: { casa: string | null; onde?: 'celular' | 'computador' }) {
   const [estado, setEstado] = useState<Estado>('carregando');
   const [chave, setChave] = useState<string | null>(null);
   const [ocupado, setOcupado] = useState(false);
@@ -121,13 +126,14 @@ export function AvisoNoCelular({ casa }: { casa: string | null }) {
   const exemplo = casa ? `Há um aviso para você na ${casa}.` : 'Há um aviso para você.';
 
   return (
-    <section className="aviso-celular" aria-labelledby="t-aviso-celular">
-      <h4 id="t-aviso-celular">Aviso no celular</h4>
+    <section className="aviso-celular" aria-labelledby={`t-aviso-${onde}`}>
+      <h4 id={`t-aviso-${onde}`}>{onde === 'computador' ? 'Aviso neste computador' : 'Aviso no celular'}</h4>
       <p className="mutetxt">
-        Os avisos do sino chegam a este aparelho mesmo com o sistema fechado. Na tela
-        bloqueada aparece só isto:
+        {onde === 'computador'
+          ? 'Os avisos do sino aparecem no canto da tela deste computador mesmo com o sistema fechado. O aviso diz só isto:'
+          : 'Os avisos do sino chegam a este aparelho mesmo com o sistema fechado. Na tela bloqueada aparece só isto:'}
       </p>
-      <div className="aviso-exemplo" aria-label={`Exemplo do aviso na tela bloqueada: Rede Acolher. ${exemplo}`}>
+      <div className="aviso-exemplo" aria-label={`Exemplo do aviso: Rede Acolher. ${exemplo}`}>
         <strong>Rede Acolher</strong>
         <span>{exemplo}</span>
       </div>
@@ -141,7 +147,7 @@ export function AvisoNoCelular({ casa }: { casa: string | null }) {
         </p>
       )}
       {estado === 'instalacao' && (
-        <p className="mutetxt">O aviso no celular ainda não foi ligado nesta instalação do sistema.</p>
+        <p className="mutetxt">O aviso com o sistema fechado ainda não foi ligado nesta instalação do sistema.</p>
       )}
       {estado === 'sem-suporte' && (
         <p className="mutetxt">

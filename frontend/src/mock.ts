@@ -753,6 +753,13 @@ const AVISOS = [
     texto: 'O próximo PIA de Alice está previsto para daqui a dezoito dias. O plano está no dossiê da criança, na parte restrita.',
     prioridade: 'normal', entidade: 'pia', entidadeId: 'pia1',
     lida: false, ciente: false, em: emHoras(5, 0) },
+  /* A caderneta de vacinação que está vencendo (fase 191, decisão de 08/10):
+     quinze dias antes, à Enfermagem e à técnica e coordenação. A receita avisa
+     dez dias antes, do mesmo jeito. O aviso não diz a vacina nem o remédio. */
+  { id: 'n6b', titulo: `A caderneta de vacinação de Lara vence em ${new Date(Date.now() + 12 * 864e5).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit' })}`,
+    texto: 'A caderneta de vacinação de Lara vence daqui a doze dias. O documento está no dossiê da criança.',
+    prioridade: 'normal', entidade: 'document', entidadeId: 'cad1',
+    lida: false, ciente: false, em: emHoras(5, 0) },
   /* A meia hora antes do fim do plantão (fase 180, decisão de 30/09): quem não
      assinou recebe o próprio aviso, e o líder do turno um só, com os nomes. */
   { id: 'n7', titulo: 'Passagens ainda não assinadas na AI3',

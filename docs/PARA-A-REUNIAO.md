@@ -18,7 +18,7 @@
 > depois das 21h em Porto Alegre semeava o dia seguinte — o dia de hoje nascia
 > sem dose nenhuma. **Nada no sistema; tudo no dado de partida.**
 
-- **190 fases.** 133 suítes e 1198 testes, verdes em duas condições de relógio —
+- **191 fases.** 133 suítes e 1199 testes, verdes em duas condições de relógio —
   antes e depois da virada do UTC, que em Porto Alegre é às 21h.
 - **O aviso no celular** (fase 189, decidido em 06/10): quem liga na Minha conta
   recebe no celular todos os avisos do sino, mesmo com o sistema fechado. Na
@@ -189,7 +189,7 @@ Estas têm de ser respondidas **depois** de a equipe usar o protótipo, não ant
 | # | O que falta saber | O que trava |
 |---|---|---|
 | ~~1~~ | ✅ **Respondida em 15/09.** Ele descreveu o funcionamento; quase tudo já existe. O que falta são quatro ajustes pequenos e **uma decisão** — ver a pergunta 1 do §5 |
-| 2 | O lembrete de prazo: vencendo **o quê**, e com quantos dias? | ✅ **O PIA foi respondido em 28/09** (30 dias antes, por criança, fase 178). **Continua aberto para o resto:** receita, caderneta de vacinação, declaração de matrícula, curso |
+| 2 | O lembrete de prazo: vencendo **o quê**, e com quantos dias? | ✅ **O PIA foi respondido em 28/09** (30 dias antes, fase 178), e **a receita e a vacinação em 08/10** (10 e 15 dias antes, à Enfermagem e à técnica e coordenação, fase 191). **Ficaram sem aviso, por decisão:** a declaração de matrícula e o curso |
 | 3 | O pente-fino semanal: **em que dia**? | Ele o quer semanal; falta o dia |
 
 ---

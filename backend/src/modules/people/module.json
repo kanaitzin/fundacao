@@ -9,7 +9,8 @@
     "PeopleService",
     "PersonSummary",
     "AniversariosService",
-    "PiaService"
+    "PiaService",
+    "VencimentosService"
   ],
   "tabelas": [
     "admission_record",
@@ -41,7 +42,8 @@
     "transfer_message",
     "transfer_request",
     "visit",
-    "visit_correction"
+    "visit_correction",
+    "document_due_notice"
   ],
   "observacao": "Base do domínio: routine, activities, checks e timeline dependem da noção de acolhido ativo numa casa. A transferência tem duas caixas (recebidas/da casa) e conversa entre as coordenações — a decisão é do destino, e a única escrita que cruza a fronteira entre casas é o comando app_accept_transfer. A migração 1300 (fase 122) acrescenta `family_stay_note`: o relato da convivência familiar, sem prazo e sem estado, escrito por qualquer pessoa da equipe da casa e quantas vezes for preciso. Ela não tem UPDATE nem DELETE — a linha nova fica ao lado da antiga. O aviso de \"houve alteração\" sai pelo BARRAMENTO, e não de dentro da função: `people` não pode depender de `notifications`, que é removível. A migração 1320 (fase 124) acrescenta `memory_photo`: a vivência passou a ter quantas fotos tiver, e as que já existiam MUDARAM DE LUGAR — as colunas de arquivo de `memory_record` ficam como origem histórica e não são mais lidas, porque guardar o mesmo fato em dois lugares é como duas versões da verdade começam. A autorização de imagem é POR FOTO: a festa pode ter uma com uma criança de outra casa."
 }

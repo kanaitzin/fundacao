@@ -1,3 +1,4 @@
+import { AvisoNoCelular } from '../aviso-no-celular';
 import { useState } from 'react';
 import { api } from '../api';
 import { Icone } from '../icones';
@@ -14,8 +15,10 @@ import { Icone } from '../icones';
  * fica visível para a coordenação na lista de equipe (coluna "senha inicial
  * pendente"). Sugerir sem esquecer.
  */
-export function SenhaPessoal({ email, primeiroAcesso, semSenhaAinda, onPronto, onAdiar }: {
+export function SenhaPessoal({ email, primeiroAcesso, semSenhaAinda, onPronto, onAdiar, casa }: {
   email: string; primeiroAcesso: boolean; semSenhaAinda?: boolean;
+  /** A casa, para o exemplo do aviso no computador (fase 191). */
+  casa?: string | null;
   onPronto: () => void; onAdiar: () => void;
 }) {
   const [atual, setAtual] = useState('');
@@ -99,6 +102,15 @@ export function SenhaPessoal({ email, primeiroAcesso, semSenhaAinda, onPronto, o
             </button>
           </div>
         </form>
+
+        {/* O AVISO NESTE COMPUTADOR (decisão de 08/10, fase 191). No monitor não
+            há a folha Minha conta: o aviso mora aqui, junto do que é da conta.
+            No celular ele já está na Minha conta, e esta parte se esconde. */}
+        {!primeiroAcesso && (
+          <div className="so-monitor">
+            <AvisoNoCelular casa={casa ?? null} onde="computador" />
+          </div>
+        )}
       </div>
     </div>
   );
