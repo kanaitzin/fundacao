@@ -41,6 +41,7 @@ import { ShiftsModule } from './modules/shifts';
 import { IncidentsModule } from './modules/incidents';
 import { ReportsModule } from './modules/reports';
 import { ArchiveModule } from './modules/archive';
+import { AssistenteModule } from './modules/assistente';
 
 @Module({
   imports: [
@@ -69,6 +70,7 @@ import { ArchiveModule } from './modules/archive';
     IncidentsModule,
     ReportsModule,
     ArchiveModule,
+    AssistenteModule,
   ],
   controllers: [HealthController],
   /* O filtro das falhas em português mora AQUI, e não no `main.ts`: é o que faz

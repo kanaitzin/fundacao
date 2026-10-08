@@ -159,6 +159,7 @@ e qual é o caminho certo.
 | `scripts/simulacao-da-casa.sh` | **uma casa nasce e vive noventa dias** (fase 173), **ou as oito vivem juntas** com `SIM_CASAS` (fase 177): a ARM1 do primeiro acesso a fevereiro, com o relógio andando (`faketime` lendo um arquivo que a simulação reescreve), os relatórios conferidos contra o que ela contou, e no fim o **`frontend/ensaio-servidor.mjs`**, que abre as telas no navegador **contra o servidor de verdade**. Recria o banco: não roda junto com a suíte. `SIM_SO_NAVEGADOR=1` repete só o navegador |
 | `backend/src/kernel/common/porta-da-internet.ts` | **CORS, cabeçalhos de segurança e `TRUST_PROXY`** (fase 179), ligados pelo `AppModule`. CORS vazio é FECHADO: a tela está no mesmo endereço |
 | `backend/src/kernel/common/corpo-da-requisicao.ts` | **o limite do corpo, 25 MB** (fase 179): o anexo vai em base64 e o padrão de 100 KB recusava toda foto de celular. Mora no módulo para a suíte ver |
+| `frontend/src/acolhe.tsx` | **a Acolhe+AI** (fase 192), em todas as telas. **A tela executa as ferramentas** que o modelo pede: leitura só GET e só do catálogo (`backend/src/modules/assistente/ferramentas.ts`, lido pelos dois lados), navegação só às telas do cargo, e proposta que vira cartão. O servidor (`assistente.service.ts`) só repassa ao Claude, com o guia e as regras em `guia.ts`. **Sem a chave, o `acolhe-guia.ts` responde.** Ferramenta nova: escreva no `ferramentas.ts`, execute no `acolhe.tsx`, e ponha no teste e no guia |
 | `frontend/src/aviso-no-celular.tsx` | **o aviso no celular** (fase 189), na folha Minha conta: liga e desliga NESTE aparelho; o `desligarAoSair` é chamado pelo Sair. O que o aparelho mostra mora em `public/sw-avisos.js`, e o que o servidor manda, em `textoDoAviso` (`notifications/aviso-no-celular.service.ts`): **só o título neutro, nunca o aviso** |
 | `frontend/src/cargos.tsx` | **a cor de cada cargo e o círculo de iniciais** (fase 151). Ela convive com DUAS outras: a cor de ESTADO (crítico/atenção — não se toca, e o cargo não usa a família dela) e a cor de AUTOR (`tomDoAutor`, qual colega escreveu — a coordenação escolhe, 0990). Três perguntas diferentes; o dia em que duas responderem à mesma, a cor deixa de informar |
 
@@ -168,7 +169,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 08/10/2026, fase 191
+### Onde estamos — 08/10/2026, fase 192
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -223,10 +224,11 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 189 | **o aviso no celular, mesmo com o sistema fechado** (ideia 2; decidido em 06/10: TODOS os avisos, tela bloqueada só com o título neutro): Web Push com VAPID (`web-push`), ligado por aparelho na Minha conta (`frontend/src/aviso-no-celular.tsx`, `public/sw-avisos.js`); de dez em dez segundos o servidor reserva e manda (`aviso-no-celular.service.ts`, notifications/1645); um aparelho, uma pessoa; sair desliga; só serviços de push conhecidos; desligado sem as chaves (§12.11). **Entrega num celular de verdade não testada daqui** |
 | 190 | **o aviso no celular que não saiu tenta de novo** (reserva parada e falha passageira, até cinco vezes; notifications/1646) e **o que a 189 nunca gravou** (o instante voltava do JavaScript sem microssegundos); e **a simulação de 30 dias contra o servidor de verdade**, com a Minha conta no celular e o esqueci no `ensaio-servidor`, achou três: **o servidor não subia pelo `tsx` desde a 179** (`@Inject` faltando no `AppModule`; hoje `toda-injecao-e-explicita.spec.ts`), **o link do esqueci caía na entrada no desenvolvimento** (efeito colateral no inicializador do `useState`, rodado duas vezes pelo `StrictMode`) e **o cartão do que mudou pedia ao gestor o que o servidor recusa** (lista única em `reports/o-que-mudou.regra.ts`) |
 | 191 | **a receita e a vacinação avisam antes de vencer** (decisões de 08/10: 10 e 15 dias, à Enfermagem e à técnica e coordenação, uma vez por documento, o último de validade mais longa; sem o remédio nem a vacina no aviso; `app_documentos_vencendo`, `document_due_notice`, people/1647, oitava rotina do relógio) e **o aviso fora do sistema também no computador**, na folha da senha (*Aviso neste computador*). Decidido sem código: o convite segue 24 horas, e o aviso no celular não entra no painel da implantação |
+| 192 | **a Acolhe+AI** (pedido e decisões de 08/10: nome, IA aprovada pela Fundação, a pessoa confirma, sugestões para coordenações, CG, gestor e TI): assistente em todas as telas com a equipe virtual; **age com o acesso de quem conversa, por construção** (o servidor só repassa ao Claude; a TELA executa as leituras pelas rotas de sempre, `assistente/ferramentas.ts`); propõe e nunca grava; links e navegação; anexos; voz; sugestões (`assistant_suggestion`, assistente/1648, tela *Sugestões de melhoria*); modo guia sem a chave e no protótipo (`acolhe-guia.ts`). O "poder total" pedido virou o acesso de quem fala (regra 5). **Modelo de verdade não testado daqui** (§12.12) |
 
-**Medido no fim da 191:** 187 migrações, 132 tabelas, 133 suítes, 1199 testes, verdes nas
-DUAS condições de relógio; os nove ensaios de navegador verdes (o do celular com 302 telas e nenhum achado), com a portaria e o
-portão, o armário, a cozinha, os temas e a foto no percurso do `ensaio:uso`; **1050 telas (150 × sete
+**Medido no fim da 192:** 188 migrações, 133 tabelas, 134 suítes, 1209 testes, verdes nas
+DUAS condições de relógio; os nove ensaios de navegador verdes (o do celular com 306 telas e nenhum achado), com a portaria e o
+portão, o armário, a cozinha, os temas e a foto no percurso do `ensaio:uso`; **1071 telas (153 × sete
 temas) sem violação de WCAG 2.1 AA**; nenhuma
 rota sem teste; nenhuma rota — escrita ou leitura — com 500; **250 leituras sondadas
 pela Casa 04 com registro real da Casa 03, sem achado; cerca de 170 rotas de escrita, sem linha
@@ -256,6 +258,14 @@ as três cores abaixo. Cor nova passa pelo `ensaio:acessibilidade`, que mede os 
 | **cargo** | *de que setor é esta pessoa?* | círculo cheio com iniciais |
 
 ### A próxima etapa
+
+**FEITO — fase 192** (§2, §12.12): a Acolhe+AI. **Depende da chave na instalação**
+(`ANTHROPIC_API_KEY`) e do registro da decisão com o DPO (o texto e os anexos vão à
+Anthropic; o microfone do Chrome manda o áudio ao Google). **Para ela crescer:** mais
+ferramentas de proposta (hoje: linha na ATA, documento no dossiê, sugestão) e mais
+rotas no catálogo de leitura, sempre com teste. **A TI ainda não tem cargo próprio**
+(o `admin_tecnico` lê as sugestões pelo banco, mas não tem tela); o pedido de um
+*cargo total* para quem alimenta o sistema é decisão em aberto, e esbarra na regra 5.
 
 **FEITO — fase 191** (§2): as decisões de 08/10 — a receita e a vacinação avisam
 antes de vencer, e o aviso fora do sistema também no computador. **Do lembrete de
@@ -559,6 +569,11 @@ novo.
   simulação sem conferir que a primeira tinha acabado (ela caiu na partida e
   seguiu para o navegador), e as duas mediram o mesmo banco ao mesmo tempo.
   Resultado de rodada sobreposta se descarta inteiro.
+- **Assistente com acesso próprio é conta compartilhada** (192). O pedido foi
+  *"poder total"*; a Acolhe+AI age com o acesso de quem conversa, e não por
+  promessa: ela não tem caminho até o dado, quem lê é a tela da pessoa. Quando uma
+  ferramenta nova precisar de dado, **o caminho é uma rota que a tela já usa**, nunca
+  uma consulta do servidor da assistente.
 - **Frase de tela que envelhece é frase que mente**, e a cobrança do ensaio que a
   guarda tem de ser reescrita junto. A ressalva do painel sobre nota escolar já foi
   reescrita três vezes. **Isto inclui este arquivo.**

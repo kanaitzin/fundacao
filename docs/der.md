@@ -945,7 +945,17 @@ para os outros documentos com validade: o relógio do dia pergunta pela função
 `app_documentos_vencendo`, que é a única que lê e escreve aqui. Fechada para a
 aplicação.
 
-## Inventário — 132 tabelas por partição
+### As sugestões da Acolhe+AI (assistente/1648, fase 192)
+
+**`assistant_suggestion`** — a sugestão de melhoria que a equipe deixa com a
+Acolhe+AI: `author_id` (quem sugeriu; ninguém é anônimo), `house_id` (a casa, só se
+quem sugeriu a alcança), `body` (de 10 a 4000 caracteres), `screen` (a tela em que
+estava) e `created_at`. Nada se apaga. **Quem lê** (decisão de 08/10): quem sugeriu, a
+coordenação da casa, a Coordenação Geral, o Gestor Geral e a TI (`admin_tecnico`). A
+conversa com a assistente **não** é tabela: ela vive na tela de quem conversa, e o uso
+fica na auditoria (`assistente.conversa`, só metadado).
+
+## Inventário — 133 tabelas por partição
 
 | Partição | Tabelas |
 |---|---|
@@ -962,6 +972,7 @@ aplicação.
 | archive (2) | archive_item, archive_attempt |
 | alignments (5) | team_meeting, team_agreement, agreement_change, meeting_agenda_item, house_statute |
 | routine (2) | routine_version, routine_item |
+| assistente (1) | assistant_suggestion |
 | statements (3) | witness_option, statement, statement_request |
 | sync (2) | offline_operation, sync_conflict |
 | relogio (1) | implantacao_evento |

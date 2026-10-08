@@ -18,7 +18,14 @@
 > depois das 21h em Porto Alegre semeava o dia seguinte — o dia de hoje nascia
 > sem dose nenhuma. **Nada no sistema; tudo no dado de partida.**
 
-- **191 fases.** 133 suítes e 1199 testes, verdes em duas condições de relógio —
+- **A Acolhe+AI** (fase 192, pedido de 08/10): a assistente em todas as telas,
+  com a equipe virtual, que explica o sistema, leva às telas, lê os dados com o
+  acesso de quem pergunta, lê anexos e propõe onde guardar, fala e ouve, e anota as
+  sugestões de melhoria. Ela nunca grava sozinha: a pessoa confirma, e o registro
+  sai no nome dela. **Depende da chave na instalação** (§12.12); sem ela, e no
+  protótipo, funciona no modo guia. **Para o DPO:** o texto da conversa e os anexos
+  vão à Anthropic, e o microfone do Chrome manda o áudio ao Google.
+- **192 fases.** 134 suítes e 1209 testes, verdes em duas condições de relógio —
   antes e depois da virada do UTC, que em Porto Alegre é às 21h.
 - **O aviso no celular** (fase 189, decidido em 06/10): quem liga na Minha conta
   recebe no celular todos os avisos do sino, mesmo com o sistema fechado. Na

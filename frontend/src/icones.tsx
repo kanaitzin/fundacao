@@ -155,6 +155,16 @@ const DESENHOS: Record<string, string[]> = {
   telefone: ['M6 3.5h3l1.5 4-2 1.5a12 12 0 0 0 6.5 6.5l1.5-2 4 1.5v3a2 2 0 0 1-2.2 2A16.5 16.5 0 0 1 4 5.7 2 2 0 0 1 6 3.5z'],
   mao:      ['M8 11V5.5a1.5 1.5 0 0 1 3 0V11', 'M11 10.5v-6a1.5 1.5 0 0 1 3 0V11',
              'M14 11V6.5a1.5 1.5 0 0 1 3 0V13', 'M8 11V9a1.5 1.5 0 0 0-3 0v5a7 7 0 0 0 7 7h1a6 6 0 0 0 6-6v-2'],
+  /* ---- a Acolhe+AI (fase 192) ---- */
+  /* Um balão de conversa com um coração dentro: a assistente é da casa, não do sistema. */
+  acolhe:   ['M4 5.5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-6.5L7 20.5v-4H6a2 2 0 0 1-2-2z',
+             'M12 13.2l-2.3-2.2a1.5 1.5 0 0 1 2.3-1.9 1.5 1.5 0 0 1 2.3 1.9z'],
+  microfone: ['M12 3.5a2.5 2.5 0 0 1 2.5 2.5v5.5a2.5 2.5 0 0 1-5 0V6A2.5 2.5 0 0 1 12 3.5z',
+              'M6.5 11a5.5 5.5 0 0 0 11 0', 'M12 16.5v4', 'M9 20.5h6'],
+  ouvir:    ['M4 9.5h3l4.5-4v13l-4.5-4H4z', 'M15 9a4 4 0 0 1 0 6', 'M17.5 6.5a7.5 7.5 0 0 1 0 11'],
+  lampada:  ['M9 17.5h6', 'M10 20.5h4',
+             'M12 3.5a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2V17h5v-.6c0-.8.4-1.5 1-2A6 6 0 0 0 12 3.5z'],
+  fechar:   ['M6 6l12 12', 'M18 6L6 18'],
 };
 
 export type NomeDoIcone = keyof typeof DESENHOS;

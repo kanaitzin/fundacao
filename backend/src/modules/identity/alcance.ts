@@ -86,6 +86,7 @@ export const AREAS = {
   periodo: 'O período da casa',
   metricas: 'As oito casas, em números',
   casas: 'Unidades',
+  sugestoes: 'Sugestões de melhoria',
 } as const;
 
 /**
@@ -496,6 +497,10 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
     transversal: false,
     resumo: 'Responde pela casa: equipe, aprovações, transferências e o cofre.',
     areas: [
+      { area: 'sugestoes', titulo: AREAS.sugestoes,
+        faz: 'Lê as sugestões de melhoria que a equipe da casa deixou com a Acolhe+AI, com o nome '
+          + 'de quem sugeriu. A Coordenação Geral lê as das oito casas.',
+        servidor: 'Ninguém sugere em nome de outro, e nada se apaga. Quem sugeriu lê as suas.' },
       { area: 'campos_do_perfil', titulo: AREAS.campos_do_perfil,
         faz: 'Liga e desliga, na própria casa, os campos do perfil que o educador em plantão vê — '
           + 'escola, contatos, equipe de referência, cuidados essenciais.',
@@ -605,6 +610,9 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
     transversal: true,
     resumo: 'Escopo institucional. Abre UMA casa por vez, e cada abertura fica registrada.',
     areas: [
+      { area: 'sugestoes', titulo: AREAS.sugestoes,
+        faz: 'Lê as sugestões de melhoria das oito casas, com o nome de quem sugeriu.',
+        servidor: 'Ninguém sugere em nome de outro, e nada se apaga.' },
       { area: 'campos_do_perfil', titulo: AREAS.campos_do_perfil,
         faz: 'Liga e desliga, na própria casa, os campos do perfil que o educador em plantão vê — '
           + 'escola, contatos, equipe de referência, cuidados essenciais.',

@@ -32,6 +32,8 @@
  */
 import { readdirSync, readFileSync, statSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { GUIA_DA_ACOLHE } from '../src/modules/assistente/guia';
+import { rotaDeLeituraPermitida } from '../src/modules/assistente/ferramentas';
 
 const SRC = join(__dirname, '..', 'src');
 const FRONT = join(__dirname, '..', '..', 'frontend', 'src');
@@ -182,8 +184,15 @@ describe('Contrato de rotas entre a tela e o servidor', () => {
      * para todo mundo. Quem esconde rota do conferidor é a TELA, e as telas
      * continuam todas aqui dentro.
      */
+    /*
+     * E a ACOLHE+AI (fase 192), pela mesma razão do `api.ts`: a rota que ela lê
+     * vem do modelo, e é variável por definição. Ela não fica sem conferência:
+     * a tela só executa o que passa por `rotaDeLeituraPermitida` (só GET, só o
+     * catálogo), e o teste abaixo cobra que toda rota que o guia oferece ao
+     * modelo exista no servidor. As gravações dela estão escritas por extenso.
+     */
     const alvos = arquivos(FRONT, (f) =>
-      (f.endsWith('.ts') || f.endsWith('.tsx')) && f !== 'mock.ts' && f !== 'api.ts');
+      (f.endsWith('.ts') || f.endsWith('.tsx')) && f !== 'mock.ts' && f !== 'api.ts' && f !== 'acolhe.tsx');
     /*
      * O COMENTÁRIO NÃO É CÓDIGO — e este conferidor já acusou um.
      *
@@ -222,5 +231,16 @@ describe('Contrato de rotas entre a tela e o servidor', () => {
       });
 
     expect(semResposta).toEqual([]);
+  });
+
+  it('toda rota que a Acolhe+AI oferece ao modelo existe no servidor, como GET', () => {
+    /* O catálogo está escrito no guia, para o modelo ler; aqui ele é conferido
+       contra os decoradores, como qualquer chamada da tela. `ID` é o :param. */
+    const linhas = GUIA_DA_ACOLHE.split('\n').filter((l) => /^- \/[a-z]/.test(l));
+    expect(linhas.length).toBeGreaterThan(20);
+    const problemas = linhas.map((l) => l.slice(2).split(/\s/)[0].split('?')[0].replace(/\bID\b/g, ':x'))
+      .filter((caminho) => conferir({ verbo: 'GET', caminho, arquivo: 'assistente/guia.ts' } as Chamada, rotas) !== 'ok'
+        || !rotaDeLeituraPermitida(caminho.replace(/:x/g, 'x')));
+    expect(problemas).toEqual([]);
   });
 });

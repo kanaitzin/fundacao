@@ -8,6 +8,8 @@ import { Icone } from './icones';
 import { Cargo } from './cargos';
 import { PORTAS, GRUPOS } from './portas';
 import { AvisoNoCelular, desligarAoSair } from './aviso-no-celular';
+import { AcolheAI } from './acolhe';
+import { Sugestoes } from './screens/Sugestoes';
 import { api, setToken, ligarFilaAoServidor, quandoASessaoTerminar } from './api';
 import { definirAutor } from './fila-offline';
 import logo from './assets/logo.png';
@@ -67,7 +69,7 @@ const KIND_TONE: Record<string, string> = { casa_lar: 'c-move', abrigo_instituci
 /** As telas que não são do turno; a aba "Mais" fica acesa quando uma delas está aberta. */
 const OUTRAS = new Set(['agenda', 'equipe', 'casas', 'saude', 'internacao', 'impacto', 'ocorrencias', 'ata',
   'cofre', 'transferencias', 'acompanhamentos', 'arquivo', 'setores', 'unidades', 'plantao', 'trabalho', 'periodo', 'metricas',
-  'rotina', 'escala', 'alinhamentos', 'painel', 'sincronizacao', 'implantacao']);
+  'rotina', 'escala', 'alinhamentos', 'painel', 'sincronizacao', 'implantacao', 'sugestoes']);
 /* O sino é de todo mundo: não há cargo que não receba escalonamento. */
 
 
@@ -319,7 +321,7 @@ export function App() {
     | 'saude' | 'internacao' | 'impacto' | 'ocorrencias' | 'ata' | 'cofre' | 'transferencias'
     | 'acompanhamentos' | 'arquivo' | 'plantao' | 'unidades' | 'setores' | 'cozinha' | 'portaria' | 'campos_do_perfil'
     | 'trabalho' | 'periodo' | 'metricas'
-    | 'alinhamentos' | 'painel' | 'sincronizacao' | 'implantacao'
+    | 'alinhamentos' | 'painel' | 'sincronizacao' | 'implantacao' | 'sugestoes'
     | 'rotina' | 'escala' | 'avisos' | null>(null);
   /* Vale para UMA abertura: saindo dos Acolhidos, a escolha some. Sem isto,
      voltar à aba reabria a criança buscada antes, em vez da lista. */
@@ -976,6 +978,10 @@ export function App() {
         )}
 
         {abaEfetiva === 'implantacao' && ve('implantacao') && <Implantacao />}
+        {abaEfetiva === 'sugestoes' && ve('sugestoes') && (
+          <Sugestoes houseId={casaAtual?.id ?? null} casaLabel={casaAtual ? `${casaAtual.code} · ${casaAtual.name}` : ''}
+                     todas={me.role !== 'coordenador' || !!me.todasAsCasas} />
+        )}
 
         {abaEfetiva === 'arquivo' && veArquivo && casaAtual && (
           <Arquivo houseId={casaAtual.id} papel={me.role} />
@@ -1014,6 +1020,21 @@ export function App() {
           </>
         )}
       </main>
+
+      {/* A ACOLHE+AI (fase 192): minimizada em todas as telas. Ela oferece só as
+          telas que este cargo alcança, e lê o sistema por esta tela, com esta sessão. */}
+      <AcolheAI
+        casa={casaAtual ? { id: casaAtual.id, nome: casaAtual.name } : null}
+        telaAtual={[...abasDoTurno.map((t) => ({ aba: t.aba, titulo: t.label })), ...PORTAS]
+          .find((t) => t.aba === abaEfetiva)?.titulo ?? (abaEfetiva === 'avisos' ? 'Avisos' : String(abaEfetiva))}
+        telas={[
+          ...abasDoTurno.map((t) => ({ chave: t.aba, titulo: t.label })),
+          ...PORTAS.filter((p) => ve(p.aba)).map((p) => ({ chave: p.aba, titulo: p.titulo, frase: p.descricao })),
+          { chave: 'avisos', titulo: 'Avisos', frase: 'O sino: o que precisa de alguém.' },
+        ]}
+        navegar={(tela) => { setAba(tela as typeof aba); setMais(false); }}
+        abrirCrianca={(id) => { setAbrirCrianca({ id }); setAba('acolhidos'); setMais(false); }}
+      />
 
       {sessaoTerminou && (
         <FolhaSessaoTerminou email={me.email} onEntrou={() => setSessaoTerminou(false)}

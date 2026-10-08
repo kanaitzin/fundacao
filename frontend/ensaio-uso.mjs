@@ -3438,6 +3438,52 @@ console.log('\n📱 O aviso no celular (fase 189)');
 }
 cobrar('nenhuma exceção no aviso no celular', erros.length === 0, erros[0]);
 
+/*
+ * A ACOLHE+AI (fase 192): minimizada em todas as telas; no protótipo, sem
+ * modelo, ela responde pelo guia e diz isso. Leva à tela pedida, só entre as
+ * que o cargo alcança, e a sugestão de melhoria só é gravada quando a pessoa
+ * confirma, com o nome dela. Quem lê as sugestões é a coordenação.
+ */
+console.log('\n💬 A Acolhe+AI (fase 192)');
+{
+  const abrir = pg.getByRole('button', { name: /^Abrir a Acolhe\+AI/ });
+  cobrar('o botão da Acolhe+AI está na tela', await abrir.isVisible());
+  await abrir.click();
+  await pg.waitForTimeout(500);
+  const painel = pg.locator('.acolhe-painel');
+  const perguntar = async (t) => {
+    await pg.locator('#acolhe-pergunta').fill(t);
+    await painel.getByRole('button', { name: 'Enviar' }).click();
+    await pg.waitForTimeout(700);
+    return painel.locator('.acolhe-conversa').innerText();
+  };
+  const r1 = await perguntar('o que você faz?');
+  cobrar('ela diz que está no modo guia, sem modelo no protótipo', /modo guia/i.test(r1), r1.slice(0, 200));
+  const r2 = await perguntar('onde vejo as ocorrências?');
+  cobrar('ela explica a tela e oferece o link', (await painel.locator('.acolhe-link', { hasText: /Ocorr/ }).count()) > 0, r2.slice(-200));
+  await perguntar('seria bom ter um lembrete de banho na chamada');
+  const cartao = painel.locator('.acolhe-proposta').last();
+  cobrar('a sugestão vira proposta, sem gravar sozinha', /Registrar esta sugestão/.test(await cartao.innerText())
+    && (await cartao.getByRole('button', { name: 'Confirmar' }).count()) === 1);
+  await cartao.getByRole('button', { name: 'Confirmar' }).click();
+  await pg.waitForTimeout(500);
+  cobrar('e, confirmada, sai em nome da pessoa', /Feito, em seu nome/.test(await cartao.innerText()));
+  await perguntar('me leva para a chamada');
+  await painel.getByRole('button', { name: 'Minimizar a Acolhe+AI' }).click();
+  await pg.waitForTimeout(500);
+  cobrar('"me leva para a chamada" abre a chamada', /chamada/i.test(await conteudo()) && (await abrir.isVisible()));
+}
+cobrar('o educador não tem a porta das sugestões', !(await doMais('Sugestões de melhoria')));
+await fechar();
+await trocar('coordenador');
+cobrar('a coordenação tem a porta das sugestões', await doMais('Sugestões de melhoria'));
+{
+  const lista = await conteudo();
+  cobrar('e lê a sugestão, com o nome de quem sugeriu',
+    /lembrete de banho na chamada/.test(lista) && /Mário Silva/.test(lista), lista.slice(0, 300));
+}
+cobrar('nenhuma exceção na Acolhe+AI', erros.length === 0, erros[0]);
+
 await navegador.close();
 console.log(achados.length
   ? `\n${achados.length} ACHADO(S):\n  ${achados.join('\n  ')}`

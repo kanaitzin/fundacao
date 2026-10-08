@@ -618,6 +618,16 @@ const PESSOA_DO_CARGO: Record<string, { id: string; fullName: string; role: stri
 };
 
 let eu = USUARIOS['educador.ai3@paodospobres.dev'];
+/** As sugestões de melhoria deixadas com a Acolhe+AI (fase 192). Fictícias. */
+const SUGESTOES: { id: string; texto: string; tela: string | null; criadaEm: string; casa: string;
+  autor: string; cargo: string; autorId: string }[] = [
+  { id: 'sug1', texto: 'Seria bom marcar na chamada quem tomou banho antes de dormir, para a passagem da noite.',
+    tela: 'Chamada', criadaEm: new Date(Date.now() - 2 * 864e5).toISOString(), casa: 'Casa 03 (piloto)',
+    autor: 'Mário Silva (fictício)', cargo: 'educador', autorId: 'u1' },
+  { id: 'sug2', texto: 'Na cozinha, poder repetir o pedido de lanche da semana passada com um toque.',
+    tela: 'Cozinha', criadaEm: new Date(Date.now() - 5 * 864e5).toISOString(), casa: 'Casa 03 (piloto)',
+    autor: 'Lúcia Líder Diurna (fictícia)', cargo: 'lider_diurno', autorId: 'u2' },
+];
 /**
  * AVISOS (§19). O texto diz que existe algo e onde continuar — nunca repete o
  * conteúdo: a notificação chega na tela de bloqueio do aparelho da casa, que
@@ -5277,6 +5287,25 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
    */
   /* O aviso no celular (fase 189): no protótipo nenhum aviso sai, e a folha diz isso. */
   if (rota === '/avisos-no-celular/chave') return { ligado: false, chave: null, prototipo: true };
+  /* A ACOLHE+AI (fase 192): no protótipo não há modelo, e ela responde pelo guia,
+     como na instalação sem a chave. As sugestões funcionam de verdade, em memória. */
+  if (rota === '/assistente/estado') return { ligada: false, nome: 'Acolhe+AI', prototipo: true };
+  if (rota === '/assistente/conversa') {
+    throw new Recusa(503, 'A Acolhe+AI ainda não foi ligada nesta instalação: ela responde só pelo guia.');
+  }
+  if (rota === '/assistente/preparado') return { ok: true };
+  if (rota === '/assistente/sugestoes' && metodo === 'POST') {
+    const texto = String(b.texto ?? '').trim();
+    if (texto.length < 10) return new Recusa(400, 'Escreva a sugestão com pelo menos dez letras.');
+    const nova = { id: `sug${SUGESTOES.length + 1}`, texto, tela: b.tela ? String(b.tela) : null,
+      criadaEm: new Date().toISOString(), casa: 'Casa 03 (piloto)', autor: eu.fullName, cargo: eu.role, autorId: eu.id };
+    SUGESTOES.unshift(nova);
+    return { id: nova.id, criadaEm: nova.criadaEm };
+  }
+  if (rota === '/assistente/sugestoes') {
+    const leTodas = ['coordenador', 'gestor_geral', 'admin_tecnico'].includes(eu.role);
+    return SUGESTOES.filter((x) => leTodas || x.autorId === eu.id);
+  }
   if (rota === '/avisos-no-celular/estado') return { ligado: false };
   if (rota === '/avisos-no-celular/desligar') return { ligado: false, desligado: false };
   if (rota === '/notifications/count') {

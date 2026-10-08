@@ -1,0 +1,16 @@
+{
+  "name": "assistente",
+  "descricao": "A Acolhe+AI (fase 192): a assistente em todas as telas, que explica o sistema, leva à tela certa, lê os dados com o acesso de quem conversa, propõe registros que a pessoa confirma e anota as sugestões de melhoria da equipe.",
+  "depends": [
+    "identity"
+  ],
+  "publica": [
+    "AssistenteModule",
+    "AssistenteService"
+  ],
+  "tabelas": [
+    "assistant_suggestion"
+  ],
+  "removivel": true,
+  "observacao": "Não lê o banco por conta própria: toda leitura sai da tela da pessoa, pelas rotas de sempre. Sem ele, o sistema segue igual, sem a assistente."
+}

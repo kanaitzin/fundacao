@@ -20,7 +20,7 @@ começava escolhendo em qual acreditar.*
 
 | Arquivo | Por que sobreviveu |
 |---|---|
-| `der.md` | as 132 tabelas com o que cada coluna guarda. É referência de dado, não narrativa, e o `documentacao.spec.ts` cobra que toda tabela apareça lá |
+| `der.md` | as 133 tabelas com o que cada coluna guarda. É referência de dado, não narrativa, e o `documentacao.spec.ts` cobra que toda tabela apareça lá |
 | `roteiro-marcelo.md` (+ `.docx`) | é entregue à Casa 03, escrito para quem não conhece o sistema. O `.docx` é GERADO do `.md` por `scripts/roteiro-em-word.mjs` — não editar o Word à mão |
 
 ---
@@ -89,12 +89,12 @@ discordavam entre si.
 
 | Quanto | De onde sai |
 |---|---|
-| **18 partições** isoladas | pastas em `backend/src/modules/` |
-| **187 migrações** | `.sql` dentro das partições |
-| **132 tabelas** | `CREATE TABLE` nas migrações |
-| **133 suítes** | `backend/test/*.spec.ts` |
-| **1199 testes** | `it(` / `test(` nas suítes |
-| **38 telas React** | `frontend/src/screens/*.tsx` |
+| **19 partições** isoladas | pastas em `backend/src/modules/` |
+| **188 migrações** | `.sql` dentro das partições |
+| **133 tabelas** | `CREATE TABLE` nas migrações |
+| **134 suítes** | `backend/test/*.spec.ts` |
+| **1209 testes** | `it(` / `test(` nas suítes |
+| **39 telas React** | `frontend/src/screens/*.tsx` |
 | **10 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **9 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
 | protótipo com **≈1501 KB** | `prototipo/rede-acolher-prototipo.html` |
@@ -118,7 +118,7 @@ fala de contagens sem colar nenhuma, de propósito.*
 | Ensaio | Resultado |
 |---|---|
 | `npm run ensaio` | 133 telas nos **sete** cargos oferecidos — Coordenação 28, Técnica 25, Gestor 27, Líder Diurno 17, Líder Noturno 14, Educador 13, Enfermagem 9. A Cozinha saiu do seletor em 09/09: o cargo continua no banco, oculto |
-| `npm run ensaio:acessibilidade` | 1050 telas — 150 em cada um dos SETE temas (claro, escuro, alto contraste, rosa, azul claro, verde e colorido) —, **nenhuma violação de WCAG 2.1 AA** |
+| `npm run ensaio:acessibilidade` | 1071 telas — 153 em cada um dos SETE temas (claro, escuro, alto contraste, rosa, azul claro, verde e colorido) —, **nenhuma violação de WCAG 2.1 AA** |
 | `npm run ensaio:roteiro` | 49 tarefas do roteiro, **todas com porta no cargo certo** |
 | `npm run ensaio:celular` | 302 telas a 360 e 390 px, nos oito cargos, **nenhum achado** (fase 184) |
 | `npm run ensaio:uso` | 247 cobranças em 19 blocos, **todas passando** — e todos os cargos completando o percurso. O bloco 14 nasceu na fase 107 e cresceu na 108: abre as prévias e cobra que o olho devolva uma **imagem**, e não o nome de um arquivo — e que a lista diga **antes do clique** se o documento está no sistema ou no Drive |
@@ -313,7 +313,7 @@ arqueologia.
 | 102 | **O caminho das funções privilegiadas.** 150 das 151 funções que rodam como dona do banco não fixavam `search_path`. O risco é **teórico hoje** — a aplicação não pode criar schema nem objeto, e isso passou a ser conferido —, mas basta um `GRANT` concedido numa pressa para deixar de ser, em 151 funções de uma vez |
 | 103 | **O relógio, que não existia.** Seis rotas de máquina tinham o motivo escrito de não ter tela — "roda por relógio" — e **nada as chamava**. No piloto, a casa abriria o sistema e acharia o dia vazio: sem doses geradas da prescrição, sem as atividades da rotina, sem aviso de aniversário. Nenhum teste pegava, porque cada rota tem a sua suíte e todas passam — chamadas pelo teste |
 | 104 | **O documento da reunião.** `docs/PARA-A-REUNIAO.md` reúne num lugar só o que estava espalhado pelas §9, §10, §10.5, §11 e §12, para a conversa com a Fundação não precisar caçar. Entrou no conferidor de números junto: número repetido em dois lugares envelhece no primeiro que ninguém conferir |
-| 105 | **O que o conferidor não conferia.** Seis desencontros achados lendo, nenhum capaz de quebrar nada — que é o que os põe na família da regra 18. O `.env.example` implantando convite de **72 horas** onde o código e a §7 dizem 24, sem motivo escrito em lugar nenhum; a lista das 18 partições com **17 nomes** (faltava a `relogio`, nascida duas fases antes); **o domínio errado em dois lugares** — no `relogio.crontab`, que alguém copia no dia da instalação, e no `placeholder` do e-mail institucional em Equipe, que é o campo de onde sai a conta para a qual o convite é enviado (`.org.br` onde a Fundação é `.com.br`, e o segundo é de onde o primeiro provavelmente veio); duas remissões do `.env.example` a documentos que foram para `docs/historico/` em 09/09; e o `module.json` da `relogio` apontando para a §12.6, que é a seção que a §12.7 abre pedindo para não confundir com ela. **Nada de novo foi construído.** *A lição que sobra: o conferidor de números conta o que está colado ao substantivo, e ao lado dele viajam listas, exemplos e remissões que ninguém confere — todas lidas por quem instala* |
+| 105 | **O que o conferidor não conferia.** Seis desencontros achados lendo, nenhum capaz de quebrar nada — que é o que os põe na família da regra 18. O `.env.example` implantando convite de **72 horas** onde o código e a §7 dizem 24, sem motivo escrito em lugar nenhum; a lista das partições (eram dezoito) com **17 nomes** (faltava a `relogio`, nascida duas fases antes); **o domínio errado em dois lugares** — no `relogio.crontab`, que alguém copia no dia da instalação, e no `placeholder` do e-mail institucional em Equipe, que é o campo de onde sai a conta para a qual o convite é enviado (`.org.br` onde a Fundação é `.com.br`, e o segundo é de onde o primeiro provavelmente veio); duas remissões do `.env.example` a documentos que foram para `docs/historico/` em 09/09; e o `module.json` da `relogio` apontando para a §12.6, que é a seção que a §12.7 abre pedindo para não confundir com ela. **Nada de novo foi construído.** *A lição que sobra: o conferidor de números conta o que está colado ao substantivo, e ao lado dele viajam listas, exemplos e remissões que ninguém confere — todas lidas por quem instala* |
 | 106 | **A varredura das pontas soltas.** Três varreduras por medição — as tabelas de então (112), 1236 colunas, 102 colunas de autoria — atrás de informação que não chega a lugar nenhum e de começo que não ficou ligado em nada. **Nada consertado, tudo anotado** no §9. O maior achado é o mais silencioso: a **auditoria** é escrita por todo serviço e não tem rota que a leia, embora a §7 prometa a leitura a dois cargos. Do lado bom, **100 das 102 colunas de autoria chegam a uma tela com o nome escrito** |
 | 107 | **O botão de olho, nos quatro que não tinham.** O primeiro conserto da varredura: `frontend/src/anexos.tsx` virou o lugar único da prévia, e a foto de identificação da criança **deixou de subir no instante em que o arquivo é escolhido**. Com ela, a foto 3×4 do visitante, o documento do hospital e o comprovante do marco. O `ensaio:uso` ganhou o bloco 14, que abre as prévias e cobra que o olho devolva uma **imagem** — porta que abre caixa vazia passaria numa cobrança de porta |
 | 108 | **O anexo que era um caminho passou a poder ser o papel.** Os três que a varredura achou guardando REFERÊNCIA e não documento — o anexo da **ocorrência**, a **receita** e a **nota fiscal** — passaram a aceitar as duas formas, e a casa escolhe uma por anexo. O `storage_ref NOT NULL` garantia um texto, nunca um documento: agora o banco exige **um dos dois** (`anexo_tem_onde_estar`). Os bytes saem pela mesma função que registra a abertura — abrir um laudo de criança não é um SELECT —, e `kernel/arquivos` virou o lugar único de guardar e ler, em vez das cinco cópias espalhadas. *Três lições no caminho: coluna nova não herda privilégio de coluna; `GRANT SELECT, INSERT (x)` concede SELECT da TABELA; e rota guardada em variável escapa do conferidor de contrato* |
@@ -400,6 +400,7 @@ arqueologia.
 | 189 | **O aviso no celular, mesmo com o sistema fechado** (ideia 2 de 30/09; decidido em 06/10: **todos os avisos** vão, e a tela bloqueada mostra **só o título neutro**). Até aqui o aviso só aparecia no sino, para quem estava com o sistema aberto: o de meia hora antes do fim do plantão chegava a quem já estava olhando a tela. Agora, em **Minha conta**, a pessoa liga o aviso **neste aparelho**, e cada aviso do sino chega também ao celular, pelo Web Push padrão do navegador (chaves VAPID, biblioteca `web-push`), de dez em dez segundos. **O que sai do servidor é só** *Rede Acolher: há um aviso para você na Casa 03*: nem criança, nem assunto, nem prioridade por escrito; cifrado para o aparelho, e o serviço de push do Google ou da Apple não lê. O conteúdo continua dentro do sistema, depois de entrar. Os avisos da mesma casa se juntam numa notificação só (dez doses não são dez toques), e o de prioridade alta ou crítica vai com urgência alta. **O tablet da casa:** um aparelho, uma pessoa (quem liga por último recebe, e o anterior deixa de receber ali), e **sair do sistema desliga** o aviso naquele aparelho. O aviso lido não vai; o que volta a subir pelo escalonamento vai de novo; o aparelho que não existe mais (o serviço responde 404 ou 410) sai sozinho; a conta desativada não recebe. **O endereço do aparelho é uma porta**: o servidor só manda para os serviços de push conhecidos (Google, Apple, Mozilla, Microsoft), sem o que qualquer pessoa com login faria o servidor da Fundação mandar pedidos para dentro da rede da casa; o log nunca copia o endereço. Duas tabelas fechadas como a sessão (`push_subscription`, `notification_push`, notifications/1645), cinco funções `app_push_*`, auditoria *Aviso no celular ligado/desligado num aparelho*. **Desligado enquanto a instalação não tiver as chaves** (§12.11), e pede HTTPS. **No protótipo nenhum aviso sai**: a folha mostra o exemplo da tela bloqueada e diz isso, em vez de um botão que não faria nada. Suíte `o-aviso-no-celular` (oito testes, com um serviço de push local fazendo o papel do Google, e **o aviso decifrado com a chave do aparelho**, como o celular faria) e o percurso no `ensaio:uso`. *O que NÃO foi testado:* a entrega de verdade a um celular. O Chromium do ensaio não tem serviço de push, e isso só se confere no servidor instalado, com HTTPS, num aparelho de verdade (§12.11). |
 | 190 | **O aviso no celular que não saiu tenta de novo, e as telas novas abertas contra o servidor de verdade** (pedido de 06/10, itens 1 e 2 da análise do mesmo dia). (1) A varredura de pontas apontou `notification_push.claimed_at`, gravada e nunca lida, e atrás dela havia DOIS defeitos da 189. O que eu procurava: a reserva do envio nunca era revista, e o aviso reservado por um servidor que caiu antes de mandar, ou recusado por um serviço de push fora do ar, **não chegava mais ao celular**. Agora a reserva parada há dois minutos e a falha passageira (sem resposta, 429, 5xx) com um minuto voltam à fila, enquanto o aviso tiver menos de trinta minutos, não tiver sido lido e o aparelho seguir ligado, **até cinco tentativas** (`notification_push.tentativas`, notifications/1646); a recusa definitiva (404 e 410, 400, 401, 403) não se repete. O que eu NÃO procurava, e o teste novo achou: **na 189, nenhum envio teve o resultado gravado**. O instante da reserva ia do banco para o JavaScript como `Date`, que não tem os microssegundos, e voltava para a função que grava o resultado sem casar com linha nenhuma; o `http_status` e o `sent_at` ficaram vazios em todo envio. A suíte da 189 passava porque conferia o aparelho que sumiu pela ASSINATURA, que é outra chave, e nunca lia o status de volta. O instante agora vai e volta como texto, e a suíte lê o que ficou gravado. E o relógio de dez segundos do serviço corria junto com a suíte, que tem as chaves, e reservava o aviso antes do teste olhar: a suíte desliga o relógio e dá a hora ela mesma. (2) O `ensaio-servidor` (fase 173) abria todas as portas no monitor, e por isso nunca tinha visto a folha Minha conta (só existe abaixo de 1080 px), o aviso no celular nem o esqueci minha senha. Agora cada conta abre a folha no tamanho de celular, e no fim uma pessoa pede o esqueci com o e-mail da casa e com um inventado (a resposta tem de ser a mesma), abre o link que chegou NA CAIXA DO SERVIDOR e confere a tela de criar a senha nova, sem criar. **E a simulação, rodada de verdade, achou TRÊS defeitos que o protótipo escondia.** *(a)* **Desde a 179 o servidor não subia pelo `tsx`** (o `npm run dev` e a própria simulação): o `AppModule` recebia o `HttpAdapterHost` sem `@Inject`, e o `tsx` não grava o metadado de tipo de que o NestJS precisa; a suíte (`ts-jest`) e o servidor compilado subiam, e por isso ninguém viu em dez fases. Consertado, com um teste que lê o código e reprova parâmetro de construtor sem `@Inject` (`toda-injecao-e-explicita`). *(b)* **O link do esqueci minha senha abria a tela de entrada no desenvolvimento**: o convite era lido e apagado da barra de endereço dentro do inicializador do `useState`, que o `StrictMode` do React roda duas vezes; a segunda achava a barra limpa. No compilado não acontece, mas efeito colateral não mora em inicializador: o convite é lido uma vez, quando o arquivo carrega. *(c)* **O cartão do que mudou pedia a folha para o Gestor Geral**, recebia a recusa e se escondia; o pedido recusado ia ao log do servidor a cada vez que o gestor abria o Dia. A lista de quem lê vivia em dois lugares (o serviço e o protótipo) e a tela não a conhecia: agora é uma só (`reports/o-que-mudou.regra.ts`), lida pelos três, e a tela não pede o que seria recusado. **Medido depois:** a Casa 03 viveu trinta dias e tudo o que ela contou bate (1881 refeições, 134 doses, 60 plantões, 21 acolhidos), nenhuma leitura acima de 390 ms, e **onze contas, 177 telas, a Minha conta no celular em cada uma e o esqueci com o link da caixa, contra o servidor de verdade, sem achado**. *Lição de procedimento:* a primeira simulação caiu na partida e seguiu para o navegador; a segunda, que eu soltei sem esperar a primeira acabar, rodou junto com ela no mesmo banco, e o resultado das duas foi descartado. |
 | 191 | **A receita e a vacinação avisam antes de vencer, e o aviso fora do sistema também no computador** (decisões de 08/10). (1) Como o PIA (fase 178), mas para dois documentos do dossiê que já tinham validade: **a receita avisa dez dias antes, a caderneta de vacinação quinze**, uma vez por documento, à **Enfermagem** e à **técnica e coordenação** da casa. Vale o último documento de cada criança, o de validade mais longa: a receita renovada substitui a velha, e quem anexou a nova não recebe aviso da antiga. **O aviso não diz o remédio nem a vacina**: diz de quem é, quando vence e onde está o documento. Roda no relógio do dia, como a oitava rotina (`app_documentos_vencendo`, `document_due_notice`, people/1647; `vencimentos.service.ts`). A declaração de matrícula e o curso continuam sem aviso, por decisão. (2) **O aviso com o sistema fechado também no computador**: no monitor não existe a folha Minha conta, e ele mora na folha da senha, com o nome *Aviso neste computador*; o computador da casa é compartilhado, e sair do sistema desliga ali também. (3) **Decidido sem código:** o convite de primeiro acesso continua valendo 24 horas, e o aviso no celular não entra no painel da saúde da implantação. **Conferido:** a suíte do relógio (a receita a doze dias não avisa, a nove avisa, a caderneta a doze avisa, a renovada não, as três pessoas uma vez cada), o `ensaio:largo` e o de acessibilidade abrem a folha da senha no monitor (1050 telas sem violação, nos sete temas), e a simulação de trinta dias da Casa 03 abriu 188 telas de onze contas contra o servidor de verdade, a folha da senha no monitor incluída, sem achado. |
+| 192 | **A Acolhe+AI, a assistente dentro do sistema** (pedido de 08/10: *"uma IA integrada que faça tudo o que pedirem de acordo com o nível de acesso, podendo anexar coisas e ela organizar no sistema, ajudar a construir relatórios, ter voz, controlar as páginas, minimizada em todas as telas, com a nossa equipe virtual, tirando dúvidas e anotando melhorias"*; decidido no mesmo dia: o nome **Acolhe+AI**, a IA aprovada pela Fundação, **a pessoa confirma tudo o que ela preparar**, e as sugestões lidas pelas coordenações, pela Coordenação Geral, pelo Gestor e pela TI). **Ela está em todas as telas**, minimizada num botão no canto; aberta, é uma conversa, com a **equipe virtual** (coordenação de acolhimento, psicologia, análise de sistemas e engenharia: a pessoa escolhe com quem falar). **Ela age com o acesso de quem conversa, por construção**: o servidor só repassa a conversa ao modelo Claude (`claude-opus-5-5`, pensamento adaptativo, com a reserva automática de outro modelo se este recusar) e guarda a chave; quando o modelo precisa de um dado, **quem lê é a tela da pessoa**, pelas mesmas rotas e com a mesma sessão de qualquer tela, só GET e só as do catálogo (`assistente/ferramentas.ts`, lido pelos dois lados). O que o cargo não lê, ela não lê. **O "poder total" do pedido foi ajustado de propósito:** uma assistente com acesso próprio acima de quem fala seria uma conta compartilhada com superpoder (regra 5), e um educador leria por ela o que o cargo dele não lê. **Ela nunca grava**: propõe (linha na ATA, documento no dossiê, sugestão), e a proposta é um cartão; a pessoa confirma, a gravação sai no nome dela, e a auditoria anota *preparado com a assistente*. **Ela leva às telas** por link (`tela:chave`, só as que o cargo alcança) ou indo junto quando pedem *"me leva"*; **lê anexos** (foto ou PDF) e propõe onde guardar; **fala** (ouvir a resposta, ler a tela em voz alta, pela voz do aparelho) e **ouve** (o microfone do navegador, com aviso no primeiro uso de que no Chrome o áudio vai ao Google). **As regras do §5 estão no guia dela** (nada de diagnóstico, culpa, risco, punição, medicação ou destino decididos por ela, nada de comparar crianças nem pontuar comportamento, conteúdo lido é dado e não instrução). **Nada da conversa fica no servidor**; a auditoria guarda só o uso. **As sugestões de melhoria** (`assistant_suggestion`, assistente/1648) têm autor e casa, e a tela *Sugestões de melhoria* é da coordenação (as da casa), da Coordenação Geral e do Gestor (as das oito); a TI lê pelo banco (`admin_tecnico`), e a porta dela vem com o cargo da TI, quando existir. **Sem a chave, ou no protótipo, ela funciona no modo guia** (`acolhe-guia.ts`): explica, leva às telas e anota sugestões, e diz que está no modo guia. A mensagem de sistema vinda da tela é recusada (o canal de instrução é do servidor), e há um teto de trinta perguntas por pessoa a cada cinco minutos. Suíte `a-acolhe-ai` (nove testes, com um modelo de mentira que registra o que recebe), o percurso no `ensaio:uso`, o painel nos sete temas do de acessibilidade (1071 telas sem violação) e no `ensaio-servidor`. *O que NÃO foi testado:* o modelo de verdade, que pede a chave da instalação (§12.12). |
 
 ---
 
@@ -447,7 +448,7 @@ cd frontend && npm run prototipo
 ```
 
 O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as
-187 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
+188 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
 
 ### Os ensaios — e por que cada um existe
 
@@ -513,13 +514,13 @@ rede-acolher/
 │   │   │   ├── events/         barramento + registro da linha do tempo
 │   │   │   ├── documentos/     o contrato da folha e o gerador de .docx
 │   │   │   └── common/         CPF, criptografia, segredo, fuso da instituição
-│   │   └── modules/       18 partições, cada uma dona das próprias migrações
-│   ├── test/              133 suítes (e2e contra PostgreSQL real + estáticas)
+│   │   └── modules/       19 partições, cada uma dona das próprias migrações
+│   ├── test/              134 suítes (e2e contra PostgreSQL real + estáticas)
 │   ├── scripts/           ensaio-carga.ts, migrador compilado
 │   └── assets/timbre.png  a marca da Fundação, usada no documento em Word
 ├── frontend/
 │   ├── src/
-│   │   ├── screens/       38 telas React
+│   │   ├── screens/       39 telas React
 │   │   ├── mock.ts        o "servidor de mentira" do protótipo
 │   │   ├── docx.ts        monta o .docx NO NAVEGADOR — só para o protótipo, que
 │   │   │                  roda sem servidor. No sistema real quem gera é o
@@ -536,12 +537,12 @@ rede-acolher/
 └── docs/                  este arquivo, der.md, roteiro-marcelo, historico/
 ```
 
-**As 18 partições:** activities, alignments, archive, checks, houses, identity,
-incidents, medications, notifications, nursing, people, relogio, reports,
-routine, shifts, statements, sync, timeline.
+**As 19 partições:** activities, alignments, archive, assistente, checks, houses,
+identity, incidents, medications, notifications, nursing, people, relogio,
+reports, routine, shifts, statements, sync, timeline.
 
 *A `relogio` nasceu na fase 103 e ficou fora desta lista até a 105: o conferidor
-lê o NÚMERO colado ao substantivo — "18 partições" — e não os nomes ao lado.
+lê o NÚMERO colado ao substantivo — "19 partições" — e não os nomes ao lado.
 **Lista escrita à mão ao lado de número conferido envelhece sozinha**, e é a
 lista que alguém lê para saber o que existe.*
 
@@ -1860,13 +1861,14 @@ Cada uma tem uma decisão que é da Fundação, e está dita ao lado.*
 3. ~~**O tamanho da letra**~~ ✅ **Feito na 183.**
 4. ~~**Escuro automático à noite**~~ ✅ **Feito na 183.**
 5. ~~**Busca de criança**~~ ✅ **Feito na 183.**
-6. **Ditado por voz na ATA e na passagem.** Ajuda muito às 23h, mas o ditado do
-   navegador manda o áudio para um servidor de fora (o do Chrome vai ao Google):
-   com dado de criança, é pergunta ao DPO antes de qualquer linha de código.
-7. **O resumo da semana com inteligência artificial**, que o Marcelo pediu para o
-   futuro (§10.5, R1b). Pode ser feito sem decidir nada pela equipe: um rascunho
-   que a técnica lê, corrige e assina. *Decisão:* do DPO e da Fundação, porque o
-   texto sai do servidor da Fundação para o provedor.
+6. ~~**Ditado por voz**~~ ✅ **Na Acolhe+AI, fase 192** (pedido de 08/10). O microfone
+   é o do navegador, e no Chrome o áudio vai ao Google: antes do primeiro uso a
+   tela diz isso e pede para não falar nome completo nem dado de criança em voz
+   alta. **O DPO precisa saber**; a Fundação aprovou a assistente em 08/10.
+7. ~~**O resumo com inteligência artificial**~~ ✅ **Na Acolhe+AI, fase 192**: ela
+   monta resumos e relatórios com o que lê, com o acesso de quem pede, e o texto
+   sai do servidor para a Anthropic. **Aprovado pela Fundação em 08/10**; o DPO
+   precisa ter o registro da decisão (§12.12).
 8. ~~**Duas etapas para entrar**~~ Feita na 187 e **retirada na 188 a pedido da
    Fundação**, que preferiu a entrada só com e-mail e senha e o *esqueci minha senha*
    pelo e-mail. O código está no commit `5bff891`.
@@ -2876,7 +2878,7 @@ ele continua dizendo que o arquivo existe.
 npm run ensaio:producao
 ```
 
-Constrói, cria um banco virgem, aplica as 187 migrações **pelo binário
+Constrói, cria um banco virgem, aplica as 188 migrações **pelo binário
 compilado**, sobe o serviço e confere `/health`. Não publica nada e não toca no
 banco de trabalho.
 
@@ -3153,6 +3155,37 @@ teste), e ela confere que a tela bloqueada diz só o título neutro e que tocar 
 abre o sistema. **Isto não tem ensaio daqui**: o navegador do ensaio não tem
 serviço de push, e a entrega só se confere com o servidor instalado e um
 aparelho de verdade.
+
+### 12.12 A Acolhe+AI
+
+Desde a fase 192 a Acolhe+AI está em todas as telas, minimizada num botão no canto.
+**Sem a chave ela funciona no modo guia**: explica as telas, leva até elas, lê a tela
+em voz alta e anota sugestões de melhoria, sem mandar nada para fora do servidor. **Com
+a chave** (`ANTHROPIC_API_KEY`, e `ACOLHE_AI_MODELO` se quiser outro modelo que não o
+`claude-opus-5-5`), ela conversa com o modelo Claude.
+
+**O que sai do servidor, e para onde:** o texto da conversa, o que ela leu para
+responder (com o acesso de quem perguntou) e os arquivos que a pessoa anexou vão à
+API da Anthropic. Nada da conversa fica guardado no servidor da Fundação nem no log;
+a auditoria guarda só o uso (quantos turnos, que ferramentas, quantos tokens). **A
+Fundação aprovou em 08/10**; o DPO deve ter o registro da decisão, a política de
+retenção da Anthropic para a conta usada, e a orientação à equipe sobre o que não
+dizer em voz alta (o microfone do navegador manda o áudio ao Google no Chrome).
+
+**O que ela nunca faz, por construção:** ler o que o cargo de quem pergunta não lê
+(toda leitura sai da tela da pessoa, pelas rotas de sempre), e gravar sem a pessoa
+confirmar (a proposta é um cartão; a gravação sai no nome de quem confirmou, e a
+auditoria anota *preparado com a assistente*).
+
+**Custo:** cada pergunta é uma ou mais chamadas ao modelo; há um teto de trinta por
+pessoa a cada cinco minutos. A conta da Anthropic deve ter limite de gasto mensal.
+
+**A primeira conferência**, ligada a chave: alguém da coordenação pergunta *"quem está
+na casa hoje?"* e *"me leva para a escala"*, anexa uma foto de receita fictícia e
+confere a proposta de guardar no dossiê; e um educador pergunta por algo que o cargo
+dele não vê, para conferir que ela diz que não alcança. **Isto não tem ensaio daqui
+com o modelo de verdade**: a suíte usa um modelo de mentira que devolve respostas
+roteirizadas.
 
 ---
 

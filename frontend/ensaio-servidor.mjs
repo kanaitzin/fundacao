@@ -152,6 +152,25 @@ for (const conta of CONTAS) {
   }
   if (!telas.length) { onde = 'tela única'; await conferir(pg, conta.quem, onde); telas.push(onde); }
 
+  /* A ACOLHE+AI (fase 192): sem a chave na instalação, ela responde pelo guia,
+     e diz isso; a pergunta não pode gerar recusa da API. */
+  onde = 'Acolhe+AI';
+  const abrirAcolhe = pg.getByRole('button', { name: /^Abrir a Acolhe\+AI/ });
+  if (await abrirAcolhe.isVisible().catch(() => false)) {
+    await abrirAcolhe.click();
+    await pg.waitForTimeout(800);
+    await pg.locator('#acolhe-pergunta').fill('o que você faz?');
+    await pg.locator('.acolhe-painel').getByRole('button', { name: 'Enviar' }).click();
+    await pg.waitForTimeout(1200);
+    const conversa = await pg.locator('.acolhe-painel').innerText().catch(() => '');
+    if (!/modo guia/i.test(conversa)) anota(conta.quem, onde, `sem a chave, a Acolhe+AI não disse que está no modo guia: ${conversa.slice(0, 160).replace(/\s+/g, ' ')}`);
+    await pg.getByRole('button', { name: 'Minimizar a Acolhe+AI' }).click().catch(() => {});
+    await pg.waitForTimeout(300);
+    telas.push(onde);
+  } else {
+    anota(conta.quem, onde, 'o botão da Acolhe+AI não aparece');
+  }
+
   /* O AVISO NESTE COMPUTADOR, no monitor (fase 191): na folha da senha. */
   onde = 'folha da senha (computador)';
   const chave = pg.getByRole('button', { name: 'Trocar minha senha' });

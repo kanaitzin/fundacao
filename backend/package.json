@@ -21,6 +21,7 @@
     "push:chaves": "node -e \"const k=require('web-push').generateVAPIDKeys();console.log('PUSH_VAPID_PUBLICA='+k.publicKey);console.log('PUSH_VAPID_PRIVADA='+k.privateKey)\""
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.132.1",
     "@napi-rs/canvas": "^1.0.9",
     "@nestjs/common": "^10.4.15",
     "@nestjs/config": "^3.3.0",
