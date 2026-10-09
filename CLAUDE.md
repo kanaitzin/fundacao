@@ -251,6 +251,10 @@ achado, 27 contas e todas as telas contra o servidor de verdade, nenhuma leitura
 **E a Casa 03 em trinta dias, na fase 190** (`SIM_CASAS=AI3 … 30`): tudo bate, nenhuma leitura
 acima de 390 ms, e **onze contas, 177 telas, a Minha conta no celular e o esqueci minha senha
 contra o servidor de verdade, sem achado** (depois de consertar os três que ela achou).
+**E de novo na fase 193** (`SIM_CASAS=AI3 … 30`): **onze contas, 201 telas e o esqueci minha senha
+contra o servidor de verdade, sem achado**. Na API a única recusa é a admissão numa Casa 03 que a
+semente já deixa no limite de vinte vagas: é a regra funcionando (a simulação admite sem
+justificativa), e já aparecia na 190.
 
 **As TRÊS cores do sistema, porque confundi-las é o pior que esta tela pode
 fazer** — está escrito por extenso em `frontend/src/cargos.tsx`:
