@@ -314,16 +314,22 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
     dizer(r.texto);
     if (r.conta) void executar('calcular', { conta: r.conta, rotulo: 'A conta' }).then((x) => { if (x.erro) dizer(x.conteudo); });
     if (r.ir) navegar(r.ir);
-    if (r.ir && r.abrirFormulario) void abrirOFormulario();
+    if (r.ir && r.abrirFormulario) void abrirOFormulario(t);
     if (r.sugestao) acrescentar({ quem: 'acolhe', texto: DESCRICAO.propor_sugestao,
       proposta: { tipo: 'propor_sugestao', texto: r.sugestao, tela: telaAtual, estado: 'aberta' } });
   }
 
   /** No modo guia: com a licença, aperta o botão que abre o formulário da tela. */
-  async function abrirOFormulario() {
+  async function abrirOFormulario(pedido: string) {
     await new Promise((r) => setTimeout(r, 350));
-    const alvo = Array.from(document.querySelectorAll<HTMLElement>('main.conteudo [data-acolhe-abre]'))
-      .find((el) => el.getClientRects().length > 0);
+    /* Com mais de um formulário na tela (lanche e cesta, alergia e restrição),
+       abre o que tem mais palavras em comum com o pedido; senão, o primeiro. */
+    const sem = (x: string) => x.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    const palavras = sem(pedido).split(/[^a-z]+/).filter((w) => w.length > 3);
+    const visiveis = Array.from(document.querySelectorAll<HTMLElement>('main.conteudo [data-acolhe-abre]'))
+      .filter((el) => el.getClientRects().length > 0);
+    const pontos = (el: HTMLElement) => palavras.filter((w) => sem(el.innerText).includes(w.slice(0, 5))).length;
+    const alvo = visiveis.reduce<HTMLElement | undefined>((m, el) => (!m || pontos(el) > pontos(m) ? el : m), undefined);
     if (!alvo) {
       dizer('Esta tela não tem um formulário que eu saiba abrir. O botão para começar está no alto da tela.');
       return;

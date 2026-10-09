@@ -836,7 +836,7 @@ function RascunhoDoMes({ houseId, equipe, hoje, onPublicado }: {
               </div>
             </div>
           ) : (
-            <button className="btn sec block" onClick={() => setIncluindo(true)}>Incluir alguém no rascunho</button>
+            <button data-acolhe-abre="" className="btn sec block" onClick={() => setIncluindo(true)}>Incluir alguém no rascunho</button>
           )}
 
           <button className="btn block" onClick={async () => {

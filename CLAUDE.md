@@ -274,9 +274,11 @@ as três cores abaixo. Cor nova passa pelo `ensaio:acessibilidade`, que mede os 
 **FEITO — fase 193** (§2, §5 item 11, §12.12): a Acolhe+AI sempre em dia, humanizada,
 preenchendo a tela com licença e fazendo contas e tabelas. **Toda fase, daqui em diante,
 ensina a assistente** (a regra do §5 item 11, cobrada por teste). **Para ela crescer:**
-marcar com `data-acolhe-abre` os botões de criação que ainda não têm (ficaram fora de
-propósito cofre, encerramentos, saída da criança e esquema de remédio, que pedem decisão
-da Fundação), e conferir com o modelo de verdade, ligada a chave, o roteiro do §12.12.
+os 36 botões de criação seguros estão marcados (o complemento de 09/10 marcou os dez
+que faltavam); os que ficaram sem marca são de remédio, de texto que tem de ser da própria
+pessoa, de decisão sobre a criança ou sensíveis, e **abrir algum deles é decisão da
+Fundação** (PARA-A-REUNIAO). Falta conferir com o modelo de verdade, ligada a chave, o
+roteiro do §12.12. **Botão novo de criação nasce marcado**, ou fica de fora com motivo.
 
 **FEITO — fase 192** (§2, §12.12): a Acolhe+AI. **Depende da chave na instalação**
 (`ANTHROPIC_API_KEY`) e do registro da decisão com o DPO (o texto e os anexos vão à

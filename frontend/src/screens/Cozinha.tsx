@@ -253,10 +253,10 @@ export function Cozinha({ houseId, casaLabel, papel }: {
 
           {podePedir && (
             <div className="row" style={{ gap: 8, marginBottom: 12 }}>
-              <button className="btn grow" onClick={() => setPedindo('lanche')}>
+              <button data-acolhe-abre="" className="btn grow" onClick={() => setPedindo('lanche')}>
                 <Icone nome="lanche" /> Pedir lanche
               </button>
-              <button className="btn sec grow" onClick={() => setPedindo('cesta_basica')}>
+              <button data-acolhe-abre="" className="btn sec grow" onClick={() => setPedindo('cesta_basica')}>
                 <Icone nome="cesta" /> Pedir cesta básica
               </button>
             </div>

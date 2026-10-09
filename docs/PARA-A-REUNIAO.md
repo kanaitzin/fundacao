@@ -30,9 +30,12 @@
   quem salva é sempre a pessoa. Faz conta exata e monta tabela que baixa como planilha
   (notas, armário, remédios), e escreve como colega, sem travessão nem lista. E virou
   regra: **o que o sistema ganha, ela aprende na mesma fase**, e um teste cobra.
-  **Para decidir:** ela abre hoje 26 formulários de criação (agenda, ocorrência, compra,
-  combinado, cadastro e outros). Ficaram de fora, por cautela, o esquema de remédio, a
-  medicação dada no hospital, a saída da criança, os encerramentos e o cofre. Deixar
+  **Para decidir:** ela abre hoje 36 formulários de criação (agenda, ocorrência, compra,
+  pedido à cozinha, combinado, cadastro, alergia, diário da internação e outros). Ficaram
+  de fora, por cautela, os de remédio (esquema, dose dada, medicação do hospital), os em
+  que o texto tem de ser da própria pessoa (o meu relato, a ciência, a fala espontânea,
+  registrar pelo colega), as decisões sobre a criança (saída, sair sozinho), a contenção,
+  o cofre, os encerramentos, a correção de ATA fechada e a comunicação externa. Deixar
   algum deles com ela, ou manter assim?
 - **193 fases.** 135 suítes e 1221 testes, verdes em duas condições de relógio —
   antes e depois da virada do UTC, que em Porto Alegre é às 21h.

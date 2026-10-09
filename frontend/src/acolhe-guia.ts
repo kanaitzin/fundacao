@@ -58,7 +58,7 @@ const PALAVRAS: Record<string, string[]> = {
 
 const QUER_IR = /\b(me leva|leva|abre|abrir|abra|ir para|vai para|va para|quero ver|mostra|mostrar|entrar em)\b/;
 const QUER_SUGERIR = /\b(sugest|sugiro|seria bom|melhoria|melhorar o sistema|poderia ter|devia ter|deveria ter|falta no sistema|nao tem como)\b/;
-const QUER_CRIAR = /\b(marcar|marca|criar|cria|cadastrar|cadastra|registrar|registra|escrever|escreve|novo|nova|preencher|preenche|me ajuda a)\b/;
+const QUER_CRIAR = /\b(marcar|marca|criar|cria|cadastrar|cadastra|registrar|registra|escrever|escreve|novo|nova|preencher|preenche|pedir|pede|solicitar|incluir|me ajuda a)\b/;
 const QUER_SABER = /\b(o que voce faz|quem e voce|ajuda|como funciona|o que da para fazer|o que posso)\b/;
 
 function achar(texto: string, telas: TelaDoGuia[]): TelaDoGuia | null {

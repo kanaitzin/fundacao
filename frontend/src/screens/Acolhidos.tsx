@@ -398,7 +398,7 @@ export function Acolhidos({ houseId, casaLabel, papel, abrir }: {
                       {p.episodios > 1 && ` · ${p.episodios} acolhimentos`}
                     </div>
                   </div>
-                  <button className="btn sm sec" onClick={() => setRetornando(p)}>
+                  <button data-acolhe-abre="" className="btn sm sec" onClick={() => setRetornando(p)}>
                     Registrar retorno
                   </button>
                 </div>
@@ -1132,10 +1132,10 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
         )}
         {ESCREVE_SAUDE.includes(papel) && (
           <div className="acoes">
-            <button className="btn sm sec" onClick={() => setRegistrandoSaude('condicao')}>
+            <button data-acolhe-abre="" className="btn sm sec" onClick={() => setRegistrandoSaude('condicao')}>
               <Icone nome="alerta" /> Registrar alergia ou condição
             </button>
-            <button className="btn sm sec" onClick={() => setRegistrandoSaude('restricao')}>
+            <button data-acolhe-abre="" className="btn sm sec" onClick={() => setRegistrandoSaude('restricao')}>
               <Icone nome="refeicao" /> Registrar restrição alimentar
             </button>
           </div>
@@ -3485,7 +3485,7 @@ function ConvivenciaFamiliar({ personId, quem }: { personId: string; quem: strin
 
             {/* Aberto para sempre: a ida de setembro aceita um relato em
                 março, e é justamente esse o que mais importa. */}
-            <button className="btn sec sm" onClick={() => setRelatando(f.id)}>
+            <button data-acolhe-abre="" className="btn sec sm" onClick={() => setRelatando(f.id)}>
               <Icone nome="escrever" /> Registrar o que ela contou
             </button>
           </div>
@@ -4269,7 +4269,7 @@ function Educacao({ personId, houseId, papel }: {
             ))}
           </div>
           {podeConceito && (
-            <button className="btn sec block" style={{ marginBottom: 12 }}
+            <button data-acolhe-abre="" className="btn sec block" style={{ marginBottom: 12 }}
                     onClick={() => { setAvisoConceito(''); setConceituando(true); }}>
               Registrar o conceito de um bimestre
             </button>

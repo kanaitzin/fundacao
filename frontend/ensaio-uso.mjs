@@ -3607,6 +3607,15 @@ console.log('\n🖐️ A Acolhe+AI mexendo na tela (fase 193)');
   await painel.getByRole('button', { name: 'Pode mexer' }).click();
   await pgG.waitForTimeout(1200);
   cobrar('e, com licença, abre o formulário da Agenda', await pgG.locator('[role="dialog"][aria-labelledby="t-marcar"]').isVisible());
+  /* Com dois formulários na tela (lanche e cesta), abre o que o pedido nomeou. */
+  await pgG.locator('[role="dialog"][aria-labelledby="t-marcar"]').getByRole('button', { name: 'Cancelar' }).click();
+  await pgG.locator('.acolhe-faixa').getByRole('button', { name: 'Ver a conversa' }).click();
+  await pgG.locator('#acolhe-pergunta').fill('quero pedir uma cesta básica na cozinha');
+  await painel.getByRole('button', { name: 'Enviar' }).click();
+  await pgG.waitForTimeout(1500);
+  const pedido = pgG.locator('[role="dialog"][aria-labelledby="t-ped"]');
+  cobrar('"pedir uma cesta" abre a Cozinha e o formulário da cesta, e não o do lanche',
+    (await pedido.isVisible()) && /Pedir cesta básica/.test(await pedido.locator('#t-ped').innerText().catch(() => '')));
   await pgG.close();
 }
 

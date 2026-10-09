@@ -421,7 +421,7 @@ export function Acompanhamentos({ houseId, casaLabel, papel }: {
                       {baixando === r.id ? 'Preparando…' : 'Baixar em Word'}
                     </button>
                     {r.situacao === 'aprovado' && (
-                      <button className="btn sm ghost" onClick={() => setEntregando(r)}>
+                      <button data-acolhe-abre="" className="btn sm ghost" onClick={() => setEntregando(r)}>
                         Registrar entrega feita
                       </button>
                     )}

@@ -357,7 +357,7 @@ function PeriodoNoHospital({ id, papel, onVoltar }: {
       {vocab && <p className="mutetxt">{vocab.nota}</p>}
       {p.status === 'em_andamento' && (
         <div className="acoes">
-          <button className="btn sm" onClick={() => setEscrevendo(true)}><Icone nome="escrever" /> Escrever no diário</button>
+          <button data-acolhe-abre="" className="btn sm" onClick={() => setEscrevendo(true)}><Icone nome="escrever" /> Escrever no diário</button>
           <button className="btn sm sec" onClick={() => setMedicando(true)}>
             <Icone nome="medicamento" /> Medicação dada no hospital
           </button>
