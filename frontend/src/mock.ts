@@ -5289,11 +5289,21 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
   if (rota === '/avisos-no-celular/chave') return { ligado: false, chave: null, prototipo: true };
   /* A ACOLHE+AI (fase 192): no protótipo não há modelo, e ela responde pelo guia,
      como na instalação sem a chave. As sugestões funcionam de verdade, em memória. */
-  if (rota === '/assistente/estado') return { ligada: false, nome: 'Acolhe+AI', prototipo: true };
+  /* O ROTEIRO DO ENSAIO (fase 193): o `ensaio:uso` põe em `window` as respostas
+     que um modelo daria, para percorrer no navegador o laço inteiro (ler a
+     tela, pedir licença, preencher, fazer a conta, montar a tabela). Quem abre
+     o protótipo não tem roteiro, e continua no modo guia. */
+  const roteiro = (globalThis as { __ACOLHE_ROTEIRO__?: unknown[] }).__ACOLHE_ROTEIRO__;
+  if (rota === '/assistente/estado') return { ligada: Array.isArray(roteiro), nome: 'Acolhe+AI', prototipo: true };
   if (rota === '/assistente/conversa') {
+    if (Array.isArray(roteiro) && roteiro.length) {
+      const g = globalThis as { __ACOLHE_PEDIDOS__?: unknown[] };
+      (g.__ACOLHE_PEDIDOS__ ??= []).push(b.mensagens);
+      return { conteudo: roteiro.shift(), parada: 'end_turn', guardar: true };
+    }
     throw new Recusa(503, 'A Acolhe+AI ainda não foi ligada nesta instalação: ela responde só pelo guia.');
   }
-  if (rota === '/assistente/preparado') return { ok: true };
+  if (rota === '/assistente/preparado' || rota === '/assistente/licenca' || rota === '/assistente/tabela') return { ok: true };
   if (rota === '/assistente/sugestoes' && metodo === 'POST') {
     const texto = String(b.texto ?? '').trim();
     if (texto.length < 10) return new Recusa(400, 'Escreva a sugestão com pelo menos dez letras.');

@@ -9,12 +9,25 @@
  * pelas mesmas rotas e com a mesma sessão de qualquer outra tela. O que o cargo
  * não vê, a assistente não vê. O servidor só guarda a chave do modelo.
  *
- * TRÊS TIPOS:
- *  - LER (`consultar_sistema`): um GET numa rota do catálogo, executado sem
- *    pedir licença, porque é o que a pessoa já poderia abrir na tela;
+ * CINCO TIPOS:
+ *  - LER (`consultar_sistema`, `ver_tela`): um GET numa rota do catálogo, ou o
+ *    que está na tela aberta, sem pedir licença, porque é o que a pessoa já
+ *    poderia abrir ou já está vendo;
  *  - IR (`abrir_tela`): leva a pessoa à tela, quando ela pediu para ir;
+ *  - MEXER NA TELA (`preencher_campo`, `apertar_botao`, fase 193): só depois de
+ *    a pessoa DEIXAR, uma vez por conversa. A Acolhe+AI abre o formulário e
+ *    escreve nos campos à vista, e NUNCA salva: o botão de salvar é da pessoa,
+ *    que confere, muda o que quiser e salva. Botão só se aperta se a tela o
+ *    marcou como de abrir (`data-acolhe-abre`) ou se é uma aba (`role="tab"`):
+ *    o nome do botão não diz se ele grava ("Abrir ocorrência e avisar" grava);
+ *  - CONTAR (`calcular`, `montar_tabela`, fase 193): a conta exata e a tabela
+ *    para apresentar, com a planilha para baixar;
  *  - PROPOR (`propor_*`): NUNCA grava. Vira um cartão com o que será feito, e
  *    só a pessoa, apertando Confirmar, faz a gravação, em nome dela.
+ *
+ * FERRAMENTA NOVA: escreva aqui, execute no `acolhe.tsx`, explique no
+ * `guia.ts` e ponha no teste. O `a-acolhe-conhece-o-sistema.spec.ts` reprova
+ * a que faltar num dos três.
  */
 
 /** As rotas de leitura que a assistente pode pedir. Prefixo de caminho, só GET. */
@@ -22,11 +35,14 @@ export const ROTAS_DE_LEITURA: readonly string[] = [
   '/people', '/houses', '/timeline', '/activities', '/medications', '/nursing',
   '/incidents', '/shifts', '/reports', '/escala', '/notifications', '/alignments',
   '/checks', '/routine', '/staff', '/followups', '/statements', '/transfers',
-  '/assistente/sugestoes',
+  '/impacto', '/implantacao', '/assistente/sugestoes',
 ];
 
+/** As que mexem na tela: pedem licença à pessoa, uma vez por conversa. */
+export const MEXEM_NA_TELA: readonly string[] = ['preencher_campo', 'apertar_botao'];
+
 /** Arquivos e folhas não são JSON: a assistente não os lê por rota. */
-export const LEITURA_PROIBIDA = /\/(folha|export|file|photo|foto|anexo|comprovante)(\/|\?|$)/;
+export const LEITURA_PROIBIDA = /\/(folha|export|file|photos?|foto|anexo|comprovante)(\/|\?|$)/;
 
 export function rotaDeLeituraPermitida(rota: string): boolean {
   if (typeof rota !== 'string' || !rota.startsWith('/') || rota.length > 400) return false;
@@ -68,6 +84,86 @@ export const FERRAMENTAS = [
         pessoaId: { type: 'string', description: 'Opcional: abre o perfil desta criança (tela acolhidos).' },
       },
       required: ['tela'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'ver_tela',
+    description:
+      'Mostra o que está na tela aberta agora: o texto, os campos do formulário (com o nome, o tipo, o '
+      + 'valor de agora e as opções) e os botões, dizendo quais você pode apertar. Use antes de preencher '
+      + 'qualquer coisa e depois de apertar um botão, para ver o formulário que abriu.',
+    input_schema: { type: 'object', properties: {}, additionalProperties: false },
+  },
+  {
+    name: 'preencher_campo',
+    description:
+      'Escreve num campo da tela aberta, à vista da pessoa, como ela escreveria. NÃO salva: depois de '
+      + 'preencher, diga o que preencheu e peça para ela conferir, mudar o que quiser e salvar. Na primeira '
+      + 'vez da conversa a tela pergunta se a pessoa deixa você mexer; se ela não deixar, explique o passo a '
+      + 'passo. Campo de senha nunca se preenche. Data em AAAA-MM-DD, hora em HH:MM, caixa de marcar com '
+      + '"sim" ou "não", lista de escolha com o texto da opção.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        campo: { type: 'string', description: 'O nome do campo como ver_tela mostrou, ou o número dele.' },
+        valor: { type: 'string' },
+      },
+      required: ['campo', 'valor'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'apertar_botao',
+    description:
+      'Aperta um botão da tela aberta que ABRE algo (um formulário, uma aba, uma folha). Só funciona nos '
+      + 'botões que ver_tela marcou como "pode apertar": botão que salva, registra ou envia é sempre da '
+      + 'pessoa. Pede licença como preencher_campo.',
+    input_schema: {
+      type: 'object',
+      properties: { botao: { type: 'string', description: 'O nome do botão como ver_tela mostrou.' } },
+      required: ['botao'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'calcular',
+    description:
+      'Faz uma conta exata. Use SEMPRE que houver número a somar, subtrair, dividir ou comparar: total '
+      + 'de nota, saldo do armário, doses no mês, média de refeições, porcentagem. Escreva a conta com '
+      + 'ponto como separador decimal e sem separador de milhar. Conhece + - * / ^ %, parênteses e as '
+      + 'funções soma(...), media(...), min(...), max(...), arred(x, casas), pct(parte, total), abs(x), '
+      + 'raiz(x). A conta e o resultado aparecem para a pessoa.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        conta: { type: 'string', description: 'Ex.: soma(12.5, 7.9, 30) ou pct(18, 20)' },
+        rotulo: { type: 'string', description: 'O que a conta é, em poucas palavras (aparece para a pessoa).' },
+      },
+      required: ['conta', 'rotulo'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'montar_tabela',
+    description:
+      'Mostra uma tabela na conversa, para apresentar dados, com o botão de baixar como planilha. Use '
+      + 'para relatório de gestão, notas de compra, armário, remédios, refeições, visitas. Cada linha é '
+      + 'um registro, nunca crianças lado a lado comparadas ou ordenadas por total. Diga de onde vieram '
+      + 'os dados e o período em "fonte".',
+    input_schema: {
+      type: 'object',
+      properties: {
+        titulo: { type: 'string' },
+        colunas: { type: 'array', items: { type: 'string' }, description: 'Até 12 colunas.' },
+        linhas: {
+          type: 'array',
+          items: { type: 'array', items: { type: ['string', 'number', 'null'] } },
+          description: 'Até 500 linhas, cada uma com um valor por coluna.',
+        },
+        fonte: { type: 'string', description: 'De onde vieram os dados e o período.' },
+      },
+      required: ['titulo', 'colunas', 'linhas', 'fonte'],
       additionalProperties: false,
     },
   },

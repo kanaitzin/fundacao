@@ -100,7 +100,7 @@ export function TrabalhoSocial({ papel }: { papel: string }) {
 
       <div className="acoes">
         {podeRegistrar && (
-          <button className="btn sm" onClick={() => setRegistrando(true)}>
+          <button data-acolhe-abre="" className="btn sm" onClick={() => setRegistrando(true)}>
             <Icone nome="conquista" /> Registrar conquista
           </button>
         )}

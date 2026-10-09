@@ -686,7 +686,7 @@ export function Saude({ houseId, casaLabel, papel }: {
             )}
           </div>
 
-          <button className="btn block" onClick={() => setComprando(true)}>
+          <button data-acolhe-abre="" className="btn block" onClick={() => setComprando(true)}>
             <Icone nome="nota" /> Registrar compra
           </button>
           <GerarEmWord rotulo="Gerar as notas do mês em Word" id="exp-notas"

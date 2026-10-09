@@ -395,7 +395,7 @@ export function Alinhamentos({ houseId, casaLabel }: { houseId: string; casaLabe
             {pautas.abertas > 0 && ` · ${pautas.abertas} esperando resposta`}
           </div>
 
-          <button className="btn block ghost" onClick={() => setPropondo(true)}>
+          <button data-acolhe-abre="" className="btn block ghost" onClick={() => setPropondo(true)}>
             Propor um assunto para a reunião
           </button>
 
@@ -505,10 +505,10 @@ export function Alinhamentos({ houseId, casaLabel }: { houseId: string; casaLabe
 
       {dados.podeEscrever && (
         <>
-          <button className="btn block" onClick={() => setReuniao(true)}>
+          <button data-acolhe-abre="" className="btn block" onClick={() => setReuniao(true)}>
             + Registrar uma reunião
           </button>
-          <button className="btn sec block" onClick={() => setCombinado(true)}>
+          <button data-acolhe-abre="" className="btn sec block" onClick={() => setCombinado(true)}>
             + Registrar um combinado avulso
           </button>
         </>

@@ -100,7 +100,8 @@ describe('A Acolhe+AI', () => {
     expect(corpo.system[1].text).toMatch(/- chamada: Chamada \(quem está na casa\)/);
     expect(corpo.system[1].text).toMatch(/falar com: Psicologia/);
     expect(corpo.tools.map((t: any) => t.name)).toEqual(
-      ['consultar_sistema', 'abrir_tela', 'propor_linha_na_ata', 'propor_anexo_no_dossie', 'propor_sugestao']);
+      ['consultar_sistema', 'abrir_tela', 'ver_tela', 'preencher_campo', 'apertar_botao', 'calcular', 'montar_tabela',
+       'propor_linha_na_ata', 'propor_anexo_no_dossie', 'propor_sugestao']);
     expect(corpo.messages).toEqual([{ role: 'user', content: marca }]);
 
     /* A Casa 04 não é do educador da Casa 03: não entra no contexto. */
@@ -214,6 +215,24 @@ describe('A Acolhe+AI', () => {
     expect(a).toEqual({ entity: 'linha_na_ata', house_id: ids.AI3 });
   });
 
+  it('a licença para mexer na tela e a planilha baixada ficam na auditoria, sem conteúdo (fase 193)', async () => {
+    const auth = { Authorization: `Bearer ${tok.edu}` };
+    expect((await request(http).post('/api/v1/assistente/licenca').set(auth)
+      .send({ tela: 'Agenda', casaId: ids.AI3 })).status).toBe(200);
+    const { rows: [l] } = await admin.query(
+      `SELECT entity, house_id, detail FROM audit_event WHERE action = 'assistente.licenca' AND actor_id = $1 ORDER BY at DESC LIMIT 1`, [ids.edu]);
+    expect(l).toEqual({ entity: 'tela', house_id: ids.AI3, detail: { tela: 'Agenda' } });
+
+    expect((await request(http).post('/api/v1/assistente/tabela').set(auth).send({ linhas: 'muitas', colunas: 3 })).status).toBe(400);
+    expect((await request(http).post('/api/v1/assistente/tabela').set(auth).send({ linhas: 501, colunas: 3 })).status).toBe(400);
+    expect((await request(http).post('/api/v1/assistente/tabela').set(auth)
+      .send({ linhas: 12, colunas: 4, casaId: ids.AI4 })).status).toBe(200);
+    const { rows: [t] } = await admin.query(
+      `SELECT entity, house_id, detail FROM audit_event WHERE action = 'assistente.tabela' AND actor_id = $1 ORDER BY at DESC LIMIT 1`, [ids.edu]);
+    // A casa de fora não entra: a linha fica sem casa, e não na casa dos outros.
+    expect(t).toEqual({ entity: 'planilha', house_id: null, detail: { linhas: 12, colunas: 4 } });
+  });
+
   it('a tela só executa leitura de rota do catálogo, e nunca arquivo', () => {
     expect(rotaDeLeituraPermitida(`/people?houseId=${ids.AI3}`)).toBe(true);
     expect(rotaDeLeituraPermitida('/medications/stock?houseId=x')).toBe(true);
@@ -221,7 +240,9 @@ describe('A Acolhe+AI', () => {
     expect(rotaDeLeituraPermitida('/shifts/x/folha')).toBe(false);
     expect(rotaDeLeituraPermitida('/medications/export?houseId=x')).toBe(false);
     expect(rotaDeLeituraPermitida('/auth/login')).toBe(false);
-    expect(rotaDeLeituraPermitida('/implantacao/saude')).toBe(false);
+    // Desde a 193 o catálogo lê a saúde da implantação: quem não alcança recebe 403 da rota, como na tela.
+    expect(rotaDeLeituraPermitida('/implantacao/saude')).toBe(true);
+    expect(rotaDeLeituraPermitida('/people/x/memories/y/photos/z')).toBe(false);
     expect(rotaDeLeituraPermitida('/people/../auth')).toBe(false);
     expect(rotaDeLeituraPermitida('https://exemplo.com/people')).toBe(false);
     expect(rotaDeLeituraPermitida('/peoplex')).toBe(false);

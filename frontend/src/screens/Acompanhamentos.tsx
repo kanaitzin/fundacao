@@ -341,7 +341,7 @@ export function Acompanhamentos({ houseId, casaLabel, papel }: {
               Tutelar ou ao Ministério Público é feita por uma pessoa e registrada aqui,
               com destinatário, meio, data e protocolo.
             </div>
-            <button className="btn" onClick={() => setGerando(true)}>
+            <button data-acolhe-abre="" className="btn" onClick={() => setGerando(true)}>
               Gerar relatório
             </button>
           </div>

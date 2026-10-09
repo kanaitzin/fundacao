@@ -310,7 +310,7 @@ export function Dossie({ personId, nome, papel, onVoltar }: {
             <div className="notice c-warn" role="status">{album.avisoDaAutorizacao}</div>
           )}
 
-          <button className="btn block" onClick={() => setNovaVivencia(true)}>
+          <button data-acolhe-abre="" className="btn block" onClick={() => setNovaVivencia(true)}>
             + Registrar uma vivência
           </button>
 

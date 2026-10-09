@@ -400,7 +400,7 @@ export function Passagem({ houseId }: { houseId: string }) {
                              onCancelar={() => setComplementando(false)}
                              onEnviar={complementar} />
           ) : (
-            <button className="btn sec block" onClick={() => setComplementando(true)}>
+            <button data-acolhe-abre="" className="btn sec block" onClick={() => setComplementando(true)}>
               Registrar um complemento
             </button>
           )}

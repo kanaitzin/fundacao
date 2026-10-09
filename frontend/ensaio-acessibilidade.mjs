@@ -219,13 +219,28 @@ await pg.waitForTimeout(300);
  * tela e o cartão de uma proposta à espera de confirmação. */
 await pg.getByRole('button', { name: /^Abrir a Acolhe\+AI/ }).click();
 await pg.waitForTimeout(400);
+/* A página é a mesma nos sete temas: cada volta começa conversa nova, e a
+   licença da volta anterior não vale nesta. */
+await pg.locator('.acolhe-painel').getByRole('button', { name: 'Nova conversa' }).click();
 for (const pergunta of ['onde vejo as ocorrências?', 'seria bom ter um lembrete na chamada']) {
   await pg.locator('#acolhe-pergunta').fill(pergunta);
   await pg.locator('.acolhe-painel').getByRole('button', { name: 'Enviar' }).click();
   await pg.waitForTimeout(500);
 }
 await conferir(`${tema} · Acolhe+AI aberta, com proposta`); telas++;
-await pg.getByRole('button', { name: 'Minimizar a Acolhe+AI' }).click();
+/* Fase 193: a conta, o cartão da licença, e a faixa por cima da folha aberta. */
+for (const pergunta of ['quanto é 12,50 + 7,90 x 3?', 'quero marcar um compromisso na agenda']) {
+  await pg.locator('#acolhe-pergunta').fill(pergunta);
+  await pg.locator('.acolhe-painel').getByRole('button', { name: 'Enviar' }).click();
+  await pg.waitForTimeout(600);
+}
+await conferir(`${tema} · Acolhe+AI com a conta e o pedido de licença`); telas++;
+await pg.locator('.acolhe-painel').getByRole('button', { name: 'Pode mexer' }).click();
+await pg.waitForTimeout(1200);
+await conferir(`${tema} · Acolhe+AI trabalhando: a faixa sobre a folha aberta`); telas++;
+await pg.locator('[role="dialog"][aria-labelledby="t-marcar"]').getByRole('button', { name: 'Cancelar' }).click();
+await pg.waitForTimeout(300);
+await pg.getByRole('button', { name: 'Fechar a Acolhe+AI' }).click();
 await pg.waitForTimeout(300);
 /* O AVISO NESTE COMPUTADOR (fase 191): só existe a partir de 1080 px, na folha
  * da senha. A volta inteira é a 420 px, onde ele se esconde; para medi-lo, a

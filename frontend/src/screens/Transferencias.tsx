@@ -261,7 +261,7 @@ export function Transferencias({ houseId }: { houseId: string }) {
             Escolha o acolhido e a unidade de destino. O motivo é obrigatório: é ele que a
             outra coordenação vai ler para decidir.
           </p>
-          <button className="btn sec block" onClick={() => setNova(true)}>
+          <button data-acolhe-abre="" className="btn sec block" onClick={() => setNova(true)}>
             Solicitar transferência
           </button>
         </div>

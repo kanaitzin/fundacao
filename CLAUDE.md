@@ -38,6 +38,12 @@ uma criança chorando ao lado**. Elegância que atrapalha o turno não serve.
 - **Número que descreve o sistema sai do código**, nunca da memória nem do
   documento anterior. Ao terminar uma fase, atualize o **§2** do
   `docs/REDE-ACOLHER.md` e rode `numeros-da-documentacao.spec.ts`.
+- **O que o sistema ganha, a Acolhe+AI aprende na mesma fase** (pedido de
+  08/10, §5 item 11). Rota GET nova: catálogo do `assistente/guia.ts` ou
+  `FORA_DO_CATALOGO` com o motivo. Tela nova: no guia pela chave. Ferramenta
+  nova: `ferramentas.ts`, `acolhe.tsx` e guia. Botão novo que só abre um
+  formulário de criação: `data-acolhe-abre`. O `a-acolhe-conhece-o-sistema.spec.ts`
+  reprova o que faltar. E ela escreve como colega: sem travessão nem lista.
 - Achou um defeito enquanto fazia outra coisa? **Anote e avise no fim** — não
   desvie a tarefa sem falar.
 - Fase nova **não cria arquivo novo**: atualiza a seção que mudou. O que vira
@@ -160,6 +166,7 @@ e qual é o caminho certo.
 | `backend/src/kernel/common/porta-da-internet.ts` | **CORS, cabeçalhos de segurança e `TRUST_PROXY`** (fase 179), ligados pelo `AppModule`. CORS vazio é FECHADO: a tela está no mesmo endereço |
 | `backend/src/kernel/common/corpo-da-requisicao.ts` | **o limite do corpo, 25 MB** (fase 179): o anexo vai em base64 e o padrão de 100 KB recusava toda foto de celular. Mora no módulo para a suíte ver |
 | `frontend/src/acolhe.tsx` | **a Acolhe+AI** (fase 192), em todas as telas. **A tela executa as ferramentas** que o modelo pede: leitura só GET e só do catálogo (`backend/src/modules/assistente/ferramentas.ts`, lido pelos dois lados), navegação só às telas do cargo, e proposta que vira cartão. O servidor (`assistente.service.ts`) só repassa ao Claude, com o guia e as regras em `guia.ts`. **Sem a chave, o `acolhe-guia.ts` responde.** Ferramenta nova: escreva no `ferramentas.ts`, execute no `acolhe.tsx`, e ponha no teste e no guia |
+| `frontend/src/acolhe-tela.ts` | **as mãos da Acolhe+AI na tela** (fase 193): lê os campos e botões da folha aberta, escreve à vista e marca o que escreveu. **Nunca salva**: só aperta botão com `data-acolhe-abre` ou aba, porque o nome do botão não diz se ele grava; senha e arquivo nem aparecem. Quem pede a licença é o `acolhe.tsx`, uma vez por conversa |
 | `frontend/src/aviso-no-celular.tsx` | **o aviso no celular** (fase 189), na folha Minha conta: liga e desliga NESTE aparelho; o `desligarAoSair` é chamado pelo Sair. O que o aparelho mostra mora em `public/sw-avisos.js`, e o que o servidor manda, em `textoDoAviso` (`notifications/aviso-no-celular.service.ts`): **só o título neutro, nunca o aviso** |
 | `frontend/src/cargos.tsx` | **a cor de cada cargo e o círculo de iniciais** (fase 151). Ela convive com DUAS outras: a cor de ESTADO (crítico/atenção — não se toca, e o cargo não usa a família dela) e a cor de AUTOR (`tomDoAutor`, qual colega escreveu — a coordenação escolhe, 0990). Três perguntas diferentes; o dia em que duas responderem à mesma, a cor deixa de informar |
 
@@ -169,7 +176,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 08/10/2026, fase 192
+### Onde estamos — 09/10/2026, fase 193
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -225,8 +232,9 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 190 | **o aviso no celular que não saiu tenta de novo** (reserva parada e falha passageira, até cinco vezes; notifications/1646) e **o que a 189 nunca gravou** (o instante voltava do JavaScript sem microssegundos); e **a simulação de 30 dias contra o servidor de verdade**, com a Minha conta no celular e o esqueci no `ensaio-servidor`, achou três: **o servidor não subia pelo `tsx` desde a 179** (`@Inject` faltando no `AppModule`; hoje `toda-injecao-e-explicita.spec.ts`), **o link do esqueci caía na entrada no desenvolvimento** (efeito colateral no inicializador do `useState`, rodado duas vezes pelo `StrictMode`) e **o cartão do que mudou pedia ao gestor o que o servidor recusa** (lista única em `reports/o-que-mudou.regra.ts`) |
 | 191 | **a receita e a vacinação avisam antes de vencer** (decisões de 08/10: 10 e 15 dias, à Enfermagem e à técnica e coordenação, uma vez por documento, o último de validade mais longa; sem o remédio nem a vacina no aviso; `app_documentos_vencendo`, `document_due_notice`, people/1647, oitava rotina do relógio) e **o aviso fora do sistema também no computador**, na folha da senha (*Aviso neste computador*). Decidido sem código: o convite segue 24 horas, e o aviso no celular não entra no painel da implantação |
 | 192 | **a Acolhe+AI** (pedido e decisões de 08/10: nome, IA aprovada pela Fundação, a pessoa confirma, sugestões para coordenações, CG, gestor e TI): assistente em todas as telas com a equipe virtual; **age com o acesso de quem conversa, por construção** (o servidor só repassa ao Claude; a TELA executa as leituras pelas rotas de sempre, `assistente/ferramentas.ts`); propõe e nunca grava; links e navegação; anexos; voz; sugestões (`assistant_suggestion`, assistente/1648, tela *Sugestões de melhoria*); modo guia sem a chave e no protótipo (`acolhe-guia.ts`). O "poder total" pedido virou o acesso de quem fala (regra 5). **Modelo de verdade não testado daqui** (§12.12) |
+| 193 | **a Acolhe+AI sempre em dia** (pedido de 08/10): a regra de toda fase ensinar a assistente virou teste que nega por padrão (`a-acolhe-conhece-o-sistema.spec.ts`; catálogo de 34 para 131 rotas, 14 fora com motivo); **escreve como colega** (`humanizar`); **mexe na tela com licença** (`acolhe-tela.ts`: abre o formulário, escreve à vista, nunca salva, só aperta `data-acolhe-abre` ou aba); **conta exata e tabela com planilha** (`calculo.ts`, auditada). O `ensaio:uso` com roteiro de modelo achou **a faixa por baixo da folha aberta** |
 
-**Medido no fim da 192:** 188 migrações, 133 tabelas, 134 suítes, 1209 testes, verdes nas
+**Medido no fim da 193:** 188 migrações, 133 tabelas, 135 suítes, 1221 testes, verdes nas
 DUAS condições de relógio; os nove ensaios de navegador verdes (o do celular com 306 telas e nenhum achado), com a portaria e o
 portão, o armário, a cozinha, os temas e a foto no percurso do `ensaio:uso`; **1071 telas (153 × sete
 temas) sem violação de WCAG 2.1 AA**; nenhuma
@@ -258,6 +266,13 @@ as três cores abaixo. Cor nova passa pelo `ensaio:acessibilidade`, que mede os 
 | **cargo** | *de que setor é esta pessoa?* | círculo cheio com iniciais |
 
 ### A próxima etapa
+
+**FEITO — fase 193** (§2, §5 item 11, §12.12): a Acolhe+AI sempre em dia, humanizada,
+preenchendo a tela com licença e fazendo contas e tabelas. **Toda fase, daqui em diante,
+ensina a assistente** (a regra do §5 item 11, cobrada por teste). **Para ela crescer:**
+marcar com `data-acolhe-abre` os botões de criação que ainda não têm (ficaram fora de
+propósito cofre, encerramentos, saída da criança e esquema de remédio, que pedem decisão
+da Fundação), e conferir com o modelo de verdade, ligada a chave, o roteiro do §12.12.
 
 **FEITO — fase 192** (§2, §12.12): a Acolhe+AI. **Depende da chave na instalação**
 (`ANTHROPIC_API_KEY`) e do registro da decisão com o DPO (o texto e os anexos vão à
@@ -574,6 +589,12 @@ novo.
   promessa: ela não tem caminho até o dado, quem lê é a tela da pessoa. Quando uma
   ferramenta nova precisar de dado, **o caminho é uma rota que a tela já usa**, nunca
   uma consulta do servidor da assistente.
+- **O nome do botão não diz se ele grava** (193). *"Abrir ocorrência e avisar"*
+  grava; *"Registrar um episódio"* só abre a folha. Permissão de apertar por lista de
+  verbos seria a lista escrita à mão da 153: a assistente só aperta o que a tela
+  MARCOU (`data-acolhe-abre`), e o teste lê o clique de cada marcado. **E camada também
+  é contrato**: a faixa da assistente nasceu abaixo da folha aberta (z-index 45 contra
+  50), e só o ensaio, clicando de verdade, viu que o Parar não se tocava.
 - **Frase de tela que envelhece é frase que mente**, e a cobrança do ensaio que a
   guarda tem de ser reescrita junto. A ressalva do painel sobre nota escolar já foi
   reescrita três vezes. **Isto inclui este arquivo.**

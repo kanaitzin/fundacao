@@ -306,6 +306,8 @@ export const VOCABULARIO_DA_AUDITORIA: Record<string, string> = {
   'assistente.conversa': 'Conversa com a Acolhe+AI',
   'assistente.preparado': 'Registro preparado com a Acolhe+AI e confirmado',
   'assistente.sugestao': 'Sugestão de melhoria registrada',
+  'assistente.licenca': 'Deixou a Acolhe+AI preencher a tela',
+  'assistente.tabela': 'Tabela da Acolhe+AI baixada como planilha',
   'push.desligado': 'Aviso no celular desligado num aparelho',
   'auth.password_reset': 'Senha nova criada com o link do e-mail',
   'auth.reauth': 'Identidade confirmada de novo',

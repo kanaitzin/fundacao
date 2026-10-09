@@ -329,7 +329,7 @@ export function Ocorrencias({ houseId, papel }: { houseId: string; papel: string
           {catalogo?.aviso ?? 'O registro nunca deve atrasar a proteção imediata, o atendimento '
             + 'de saúde ou o protocolo da instituição.'}
         </div>
-        <button className="btn block" onClick={() => setAbrindo(true)}>
+        <button data-acolhe-abre="" className="btn block" onClick={() => setAbrindo(true)}>
           <Icone nome="ocorrencias" /> Registrar ocorrência
         </button>
       </div>

@@ -2,8 +2,10 @@ import { Fragment, useEffect, useRef, useState } from 'react';
 import { api } from './api';
 import { Icone } from './icones';
 import { EscolherAnexo, Escolhido, base64De } from './anexos';
-import { rotaDeLeituraPermitida } from '../../backend/src/modules/assistente/ferramentas';
+import { MEXEM_NA_TELA, rotaDeLeituraPermitida } from '../../backend/src/modules/assistente/ferramentas';
+import { calcular, numeroEmPortugues } from '../../backend/src/modules/assistente/calculo';
 import { responderPeloGuia, TelaDoGuia } from './acolhe-guia';
+import { apertarBotao, botoesDaTela, camposDaTela, preencherCampo, textoDaTela } from './acolhe-tela';
 
 /**
  * A ACOLHE+AI, EM TODAS AS TELAS (fase 192; pedido e decisões de 08/10).
@@ -17,7 +19,15 @@ import { responderPeloGuia, TelaDoGuia } from './acolhe-guia';
  *    preparada com a assistente;
  *  - lê o que a pessoa anexar (foto ou PDF) e propõe onde guardar;
  *  - fala (lê a resposta e a tela em voz alta) e ouve (o microfone do navegador);
- *  - anota as sugestões de melhoria da equipe.
+ *  - anota as sugestões de melhoria da equipe;
+ *  - mexe na tela junto com a pessoa (fase 193): com a licença dela, uma vez
+ *    por conversa, abre o formulário e escreve nos campos à vista, e o painel
+ *    vira uma faixa para a pessoa ver o trabalho. NUNCA salva (`acolhe-tela.ts`);
+ *  - faz a conta exata e monta a tabela para apresentar, com a planilha para
+ *    baixar, que fica na auditoria como toda exportação (fase 193).
+ *
+ * E escreve como gente (fase 193): o `humanizar` tira o travessão, a lista e o
+ * negrito que escaparem do modelo, porque a conversa é de colega para colega.
  *
  * A conversa mora AQUI, e some ao sair ou ao começar outra: não é registro, e
  * o que importa dela vira registro pela proposta confirmada.
@@ -30,16 +40,47 @@ type Proposta =
   | { tipo: 'propor_anexo_no_dossie'; pessoaId: string; anexo: number; chave: string; titulo: string; validoAte?: string }
   | { tipo: 'propor_sugestao'; texto: string; tela?: string };
 
+interface Tabela { titulo: string; colunas: string[]; linhas: (string | number | null)[][]; fonte: string }
+
 interface Linha {
   id: number;
   quem: 'pessoa' | 'acolhe' | 'nota';
   texto: string;
   anexo?: string;
   proposta?: Proposta & { estado: 'aberta' | 'feita' | 'recusada' | 'erro'; detalhe?: string };
+  conta?: { rotulo: string; conta: string; resultado: string };
+  tabela?: Tabela;
+  licenca?: 'aberta' | 'sim' | 'nao';
+}
+
+/**
+ * A conversa de colega para colega (fase 193): o que escapar do modelo em
+ * forma de documento técnico vira frase. Travessão vira vírgula, marcador de
+ * lista e título somem, negrito some. O link [texto](tela:x) fica.
+ */
+export function humanizar(t: string): string {
+  return t
+    .replace(/\s*[\u2014\u2013]\s*/g, ', ')
+    .replace(/^\s{0,3}#{1,6}\s+/gm, '')
+    .replace(/^\s*(?:[-*\u2022]|\d{1,2}[.)])\s+/gm, '')
+    .replace(/\*\*|__/g, '')
+    .replace(/,\s*,/g, ',')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+/** A planilha como o Excel em português abre: ponto e vírgula, vírgula decimal, BOM. */
+function emPlanilha(t: Tabela): string {
+  const celula = (v: string | number | null) => {
+    if (v === null || v === undefined) return '';
+    const x = typeof v === 'number' ? String(v).replace('.', ',') : String(v);
+    return /[;"\n\r]/.test(x) ? `"${x.replace(/"/g, '""')}"` : x;
+  };
+  return '\ufeff' + [t.colunas, ...t.linhas].map((l) => l.map(celula).join(';')).join('\r\n');
 }
 
 const VOZES = ['Toda a equipe', 'Coordenação de acolhimento', 'Psicologia', 'Análise de sistemas', 'Engenharia'];
-const MAX_VOLTAS = 6;
+const MAX_VOLTAS = 12;
 const LIMITE_RESULTADO = 30_000;
 const CHAVE_AVISO_VOZ = 'rede-acolher.acolhe.aviso-do-microfone';
 
@@ -90,6 +131,12 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
   const [lerRespostas, setLerRespostas] = useState(false);
   const [ouvindo, setOuvindo] = useState(false);
   const [avisoVoz, setAvisoVoz] = useState(false);
+  /** Recolhida numa faixa enquanto mexe na tela, para a pessoa ver o trabalho. */
+  const [recolhida, setRecolhida] = useState(false);
+  const [faixa, setFaixa] = useState('');
+  const licenca = useRef<'perguntar' | 'sim' | 'nao'>('perguntar');
+  const respostaDaLicenca = useRef<((sim: boolean) => void) | null>(null);
+  const parar = useRef(false);
   const historico = useRef<MensagemDoModelo[]>([]);
   const anexos = useRef<Escolhido[]>([]);
   const seq = useRef(0);
@@ -112,13 +159,35 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
 
   function novaConversa() {
     historico.current = []; anexos.current = [];
-    setLinhas([]); setTexto(''); setAnexo(null); setLendo('');
+    licenca.current = 'perguntar'; respostaDaLicenca.current?.(false); respostaDaLicenca.current = null;
+    setLinhas([]); setTexto(''); setAnexo(null); setLendo(''); setRecolhida(false);
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
   }
 
   function dizer(t: string) {
-    acrescentar({ quem: 'acolhe', texto: t });
-    if (lerRespostas) falar(t);
+    const h = humanizar(t);
+    acrescentar({ quem: 'acolhe', texto: h });
+    setFaixa(h.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').split('\n')[0].slice(0, 160));
+    if (lerRespostas) falar(h);
+  }
+
+  /** A licença para mexer na tela: uma vez por conversa, e a resposta fica na auditoria. */
+  function pedirLicenca(): Promise<boolean> {
+    if (licenca.current === 'sim') return Promise.resolve(true);
+    if (licenca.current === 'nao') return Promise.resolve(false);
+    setRecolhida(false);
+    acrescentar({ quem: 'acolhe', texto: '', licenca: 'aberta' });
+    return new Promise((resolver) => { respostaDaLicenca.current = resolver; });
+  }
+  function responderLicenca(id: number, sim: boolean) {
+    licenca.current = sim ? 'sim' : 'nao';
+    setLinhas((xs) => xs.map((l) => (l.id === id ? { ...l, licenca: sim ? 'sim' : 'nao' } : l)));
+    if (sim) {
+      void api('/assistente/licenca', { method: 'POST', body: JSON.stringify({ tela: telaAtual, casaId: casa?.id }) })
+        .catch(() => undefined);
+    }
+    respostaDaLicenca.current?.(sim);
+    respostaDaLicenca.current = null;
   }
 
   // ---------- As ferramentas, executadas aqui, com a sessão de quem conversa ----------
@@ -146,6 +215,46 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
       if (!telas.some((t) => t.chave === tela)) return { conteudo: 'Esta tela não está no alcance da pessoa.', erro: true };
       navegar(tela);
       return { conteudo: `A tela ${tela} foi aberta.` };
+    }
+    if (nome === 'ver_tela') {
+      await new Promise((r) => setTimeout(r, 200));
+      return { conteudo: JSON.stringify({ tela: telaAtual, campos: camposDaTela(), botoes: botoesDaTela(), texto: textoDaTela() }) };
+    }
+    if (MEXEM_NA_TELA.includes(nome)) {
+      if (parar.current) return { conteudo: 'A pessoa pediu para parar. Não mexa mais na tela nesta resposta.', erro: true };
+      if (!(await pedirLicenca())) {
+        return { conteudo: 'A pessoa não deixou mexer na tela. Explique o passo a passo para ela fazer.', erro: true };
+      }
+      setRecolhida(true);
+      if (nome === 'preencher_campo') {
+        setFaixa(`Escrevendo em ${String(entrada.campo ?? '')}…`);
+        const r = await preencherCampo(String(entrada.campo ?? ''), String(entrada.valor ?? ''));
+        return { conteudo: r.frase, erro: !r.ok };
+      }
+      setFaixa(`Abrindo ${String(entrada.botao ?? '')}…`);
+      const r = await apertarBotao(String(entrada.botao ?? ''));
+      return { conteudo: r.frase, erro: !r.ok };
+    }
+    if (nome === 'calcular') {
+      const conta = String(entrada.conta ?? '');
+      const rotulo = String(entrada.rotulo ?? 'Conta');
+      const r = calcular(conta);
+      if (!r.ok) return { conteudo: `A conta não fechou: ${r.erro}`, erro: true };
+      acrescentar({ quem: 'nota', texto: '', conta: { rotulo, conta, resultado: numeroEmPortugues(r.valor) } });
+      return { conteudo: `${rotulo}: ${conta} = ${r.valor}` };
+    }
+    if (nome === 'montar_tabela') {
+      const colunas = Array.isArray(entrada.colunas) ? entrada.colunas.map((c) => String(c).slice(0, 60)) : [];
+      const brutas = Array.isArray(entrada.linhas) ? entrada.linhas : [];
+      if (!colunas.length || colunas.length > 12) return { conteudo: 'A tabela precisa de 1 a 12 colunas.', erro: true };
+      if (brutas.length > 500) return { conteudo: 'A tabela passou de 500 linhas: resuma ou divida.', erro: true };
+      const linhas = brutas.map((l) => (Array.isArray(l) ? l : []).slice(0, colunas.length)
+        .map((v) => (typeof v === 'number' || v === null ? v : String(v).slice(0, 300))));
+      if (linhas.some((l) => l.length !== colunas.length)) return { conteudo: 'Cada linha precisa de um valor por coluna.', erro: true };
+      acrescentar({ quem: 'acolhe', texto: '', tabela: {
+        titulo: humanizar(String(entrada.titulo ?? 'Tabela')).slice(0, 120), colunas, linhas,
+        fonte: humanizar(String(entrada.fonte ?? '')).slice(0, 300) } });
+      return { conteudo: 'A tabela foi mostrada à pessoa, com o botão de baixar como planilha.' };
     }
     if (nome.startsWith('propor_')) {
       const p = { ...entrada, tipo: nome } as unknown as Proposta;
@@ -203,9 +312,26 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
     }
     const r = responderPeloGuia(t, telas, linhas.filter((l) => l.quem === 'acolhe').length === 0);
     dizer(r.texto);
+    if (r.conta) void executar('calcular', { conta: r.conta, rotulo: 'A conta' }).then((x) => { if (x.erro) dizer(x.conteudo); });
     if (r.ir) navegar(r.ir);
+    if (r.ir && r.abrirFormulario) void abrirOFormulario();
     if (r.sugestao) acrescentar({ quem: 'acolhe', texto: DESCRICAO.propor_sugestao,
       proposta: { tipo: 'propor_sugestao', texto: r.sugestao, tela: telaAtual, estado: 'aberta' } });
+  }
+
+  /** No modo guia: com a licença, aperta o botão que abre o formulário da tela. */
+  async function abrirOFormulario() {
+    await new Promise((r) => setTimeout(r, 350));
+    const alvo = Array.from(document.querySelectorAll<HTMLElement>('main.conteudo [data-acolhe-abre]'))
+      .find((el) => el.getClientRects().length > 0);
+    if (!alvo) {
+      dizer('Esta tela não tem um formulário que eu saiba abrir. O botão para começar está no alto da tela.');
+      return;
+    }
+    const nome = (alvo.getAttribute('aria-label') || alvo.innerText || '').trim();
+    const r = await executar('apertar_botao', { botao: nome });
+    if (r.erro) dizer(r.conteudo);
+    else setFaixa('Abri o formulário. Preencha e salve quando estiver certo.');
   }
 
   async function enviar() {
@@ -231,6 +357,7 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
     historico.current.push({ role: 'user', content: conteudo });
 
     setOcupada(true);
+    parar.current = false;
     try {
       for (let volta = 0; volta < MAX_VOLTAS; volta++) {
         const r = await api<{ conteudo: Bloco[]; parada: string; guardar: boolean }>('/assistente/conversa', {
@@ -251,6 +378,12 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
         const pedidos = r.conteudo.filter((b) => b.type === 'tool_use');
         if (!pedidos.length) break;
         const resultados: Bloco[] = [];
+        if (parar.current) {
+          pedidos.forEach((p) => resultados.push({ type: 'tool_result', tool_use_id: p.id, content: 'A pessoa pediu para parar.', is_error: true }));
+          historico.current.push({ role: 'user', content: resultados });
+          dizer('Parei. O que já estava escrito na tela continua lá, para você conferir.');
+          break;
+        }
         for (const p of pedidos) {
           const res = await executar(String(p.name), (p.input ?? {}) as Record<string, unknown>);
           resultados.push({ type: 'tool_result', tool_use_id: p.id, content: res.conteudo, ...(res.erro ? { is_error: true } : {}) });
@@ -345,6 +478,89 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
     );
   }
 
+  function Licenca({ l }: { l: Linha }) {
+    if (l.licenca !== 'aberta') {
+      return (
+        <p className="acolhe-estado" role="status">
+          {l.licenca === 'sim' ? 'Você deixou a Acolhe+AI preencher a tela nesta conversa.' : 'Você preferiu fazer na tela por conta própria.'}
+        </p>
+      );
+    }
+    return (
+      <div className="acolhe-proposta" role="group" aria-labelledby={`t-licenca-${l.id}`}>
+        <strong id={`t-licenca-${l.id}`}>Posso mexer na tela com você?</strong>
+        <p className="acolhe-texto">
+          Eu abro o formulário e escrevo nos campos, e você vê tudo acontecendo. Nada é salvo por mim:
+          você confere, muda o que quiser e salva quando estiver certo.
+        </p>
+        <div className="row" style={{ gap: 8 }}>
+          <button className="btn sm" onClick={() => responderLicenca(l.id, true)}>Pode mexer</button>
+          <button className="btn sm sec" onClick={() => responderLicenca(l.id, false)}>Prefiro eu fazer</button>
+        </div>
+      </div>
+    );
+  }
+
+  function Conta({ c }: { c: NonNullable<Linha['conta']> }) {
+    return (
+      <p className="acolhe-conta">
+        <span>{c.rotulo}</span>
+        <span className="acolhe-conta-linha"><code>{c.conta}</code> = <strong>{c.resultado}</strong></span>
+      </p>
+    );
+  }
+
+  async function baixar(t: Tabela) {
+    await api('/assistente/tabela', { method: 'POST',
+      body: JSON.stringify({ linhas: t.linhas.length, colunas: t.colunas.length, casaId: casa?.id }) }).catch(() => undefined);
+    const url = URL.createObjectURL(new Blob([emPlanilha(t)], { type: 'text/csv;charset=utf-8' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `tabela-acolhe-${new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' })}.csv`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  }
+
+  function TabelaDaConversa({ t }: { t: Tabela }) {
+    const fmt = (v: string | number | null) => (typeof v === 'number' ? numeroEmPortugues(v) : v ?? '');
+    return (
+      <div className="acolhe-tabela">
+        <strong>{t.titulo}</strong>
+        <div className="acolhe-tabela-rolar" tabIndex={0} role="region" aria-label={t.titulo}>
+          <table>
+            <thead><tr>{t.colunas.map((c, i) => <th key={i} scope="col">{c}</th>)}</tr></thead>
+            <tbody>
+              {t.linhas.map((l, i) => (
+                <tr key={i}>{l.map((v, j) => <td key={j} className={typeof v === 'number' ? 'num' : undefined}>{fmt(v)}</td>)}</tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {t.fonte && <p className="mutetxt" style={{ margin: 0, fontSize: 13 }}>Fonte: {t.fonte}</p>}
+        <button className="btn sm sec" onClick={() => void baixar(t)}>Baixar como planilha</button>
+      </div>
+    );
+  }
+
+  if (aberta && recolhida) {
+    return (
+      <div className="acolhe-faixa" role="status" aria-live="polite">
+        <Icone nome="acolhe" />
+        <span className="acolhe-faixa-texto">{ocupada ? (faixa || 'Trabalhando na tela…') : (faixa || 'Pronto. Confira a tela.')}</span>
+        {ocupada && (
+          <button className="btn sm sec" onClick={() => { parar.current = true; setFaixa('Parando…'); }}>Parar</button>
+        )}
+        <button className="btn sm" onClick={() => setRecolhida(false)}>Ver a conversa</button>
+        {!ocupada && (
+          <button className="iconbtn" aria-label="Fechar a Acolhe+AI" title="Fechar"
+                  onClick={() => { setAberta(false); setRecolhida(false); }}>
+            <Icone nome="fechar" />
+          </button>
+        )}
+      </div>
+    );
+  }
+
   if (!aberta) {
     return (
       <button className="acolhe-botao" aria-label="Abrir a Acolhe+AI, a assistente" onClick={() => setAberta(true)}>
@@ -362,7 +578,7 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
         <button className="iconbtn" aria-label="Ler esta tela em voz alta" title="Ler esta tela" onClick={lerTela}>
           <Icone nome="ouvir" />
         </button>
-        <button className="iconbtn" aria-label="Minimizar a Acolhe+AI" title="Minimizar" onClick={() => setAberta(false)}>
+        <button className="iconbtn" aria-label="Minimizar a Acolhe+AI" title="Minimizar" onClick={() => { setAberta(false); setRecolhida(false); }}>
           <Icone nome="fechar" />
         </button>
       </header>
@@ -384,8 +600,8 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
       <div className="acolhe-conversa" aria-live="polite">
         {linhas.length === 0 && (
           <p className="mutetxt">
-            Oi! Pergunte o que quiser sobre o sistema, peça para ir a uma tela ou anexe um documento.
-            Eu proponho, e você confirma.
+            Oi! Pergunte o que quiser sobre o sistema, peça para ir a uma tela, faça uma conta ou anexe um
+            documento. Se você deixar, eu preencho a tela com você; quem salva é sempre você.
           </p>
         )}
         {linhas.map((l) => (
@@ -393,8 +609,11 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
             {l.quem === 'pessoa' && <span className="so-leitor">Você: </span>}
             {l.quem === 'acolhe' && <span className="so-leitor">Acolhe+AI: </span>}
             {l.anexo && <span className="acolhe-anexo"><Icone nome="anexo" tamanho={14} /> {l.anexo}</span>}
-            {l.proposta ? <Cartao l={l} /> : <Texto t={l.texto} />}
-            {l.quem === 'acolhe' && !l.proposta && (
+            {l.licenca ? <Licenca l={l} />
+              : l.conta ? <Conta c={l.conta} />
+                : l.tabela ? <TabelaDaConversa t={l.tabela} />
+                  : l.proposta ? <Cartao l={l} /> : <Texto t={l.texto} />}
+            {l.quem === 'acolhe' && !l.proposta && !l.licenca && !l.tabela && (
               <button className="acolhe-ouvir" aria-label="Ouvir esta resposta" onClick={() => falar(l.texto)}>
                 <Icone nome="ouvir" tamanho={14} /> Ouvir
               </button>

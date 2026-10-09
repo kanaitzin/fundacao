@@ -116,7 +116,7 @@ export function Internacao({ houseId, casaLabel, papel }: {
       {aviso && <div className="notice c-ok" role="status">{aviso}</div>}
 
       {podeAbrir && (
-        <button className="btn block" onClick={() => setAbrindoNova(true)}>
+        <button data-acolhe-abre="" className="btn block" onClick={() => setAbrindoNova(true)}>
           <Icone nome="internacao" /> Registrar internação
         </button>
       )}

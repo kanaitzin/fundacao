@@ -30,6 +30,21 @@ export class AssistenteController {
     return this.acolhe.registrarPreparado(user, corpo);
   }
 
+  /** A pessoa deixou a assistente mexer na tela, nesta conversa (fase 193). */
+  @Post('licenca')
+  @HttpCode(200)
+  licenca(@CurrentUser() user: AuthenticatedUser, @Body() corpo: { tela?: unknown; casaId?: unknown }) {
+    return this.acolhe.registrarLicenca(user, corpo);
+  }
+
+  /** Uma tabela da assistente foi baixada como planilha (fase 193). */
+  @Post('tabela')
+  @HttpCode(200)
+  tabela(@CurrentUser() user: AuthenticatedUser,
+         @Body() corpo: { linhas?: unknown; colunas?: unknown; casaId?: unknown }) {
+    return this.acolhe.registrarTabela(user, corpo);
+  }
+
   @Post('sugestoes')
   sugerir(@CurrentUser() user: AuthenticatedUser,
           @Body() corpo: { texto?: unknown; tela?: unknown; casaId?: unknown }) {

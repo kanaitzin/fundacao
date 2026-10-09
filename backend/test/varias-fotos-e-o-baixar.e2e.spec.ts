@@ -67,9 +67,16 @@ describe('Várias fotos numa vivência, e o baixar no dossiê', () => {
 
     const { rows: [{ id: casa }] } = await admin.query(
       `SELECT id FROM house WHERE code = 'AI3'`);
+    /* Qualquer criança da casa, MENOS a do `dossie-do-acolhido`, que conta o
+       Cartão SUS que falta e as fotos sem autorização da primeira por id. As
+       duas suítes caíam na mesma criança, e o dossiê reprovava ou passava
+       conforme a ordem do Jest (fase 193, quando a ordem mudou com a suíte
+       nova). Criar uma criança aqui mudaria as contagens da casa. */
     const { rows: [p] } = await admin.query(
       `SELECT s.person_id FROM house_stay s
         WHERE s.house_id = $1 AND s.status = 'ativa'
+          AND s.person_id <> (SELECT person_id FROM house_stay WHERE house_id = $1 AND status = 'ativa'
+                               ORDER BY person_id LIMIT 1)
         ORDER BY s.started_at LIMIT 1`, [casa]);
     ids.pessoa = p.person_id;
   });

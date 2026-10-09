@@ -1544,7 +1544,7 @@ div.acoes{ display:flex; flex-wrap:wrap; gap:8px; align-items:center }
 .conteudo{ padding-bottom:88px }
 .acolhe-botao:focus-visible{ outline:3px solid var(--titulo); outline-offset:3px }
 .acolhe-painel{
-  position:fixed; right:16px; bottom:16px; z-index:45; width:420px; max-width:calc(100vw - 32px);
+  position:fixed; right:16px; bottom:16px; z-index:56; width:420px; max-width:calc(100vw - 32px);
   height:min(720px, calc(100vh - 32px)); display:flex; flex-direction:column;
   background:var(--surface); color:var(--ink); border:1px solid var(--line); border-radius:18px;
   box-shadow:0 12px 40px rgba(0,0,0,.28); overflow:hidden;
@@ -1582,10 +1582,42 @@ div.acoes{ display:flex; flex-wrap:wrap; gap:8px; align-items:center }
 .acolhe-escrever textarea{ width:100%; resize:none; border-radius:12px; border:1px solid var(--line-2); padding:8px 10px; font:inherit; background:var(--surface); color:var(--ink) }
 .acolhe-acoes{ gap:8px; align-items:center }
 .iconbtn.ativo{ background:var(--brand-soft); border-color:var(--brand); color:var(--titulo) }
+/* Fase 193: a Acolhe+AI mexendo na tela. O campo em que ela escreve fica em
+   destaque, e o que ela escreveu fica pontilhado até a pessoa mexer nele:
+   quem confere sabe o que veio da assistente. Cor da marca, nunca de estado. */
+.acolhe-mexendo{ outline:3px solid var(--titulo) !important; outline-offset:3px; transition:outline-color .2s }
+.acolhe-preenchido{ outline:2px dashed var(--brand) !important; outline-offset:2px }
+.acolhe-faixa{
+  /* Acima das folhas (50): é com a folha aberta que ela trabalha, e o Parar
+     tem de estar à mão. O botão minimizado fica abaixo delas, para não cobrir
+     o rodapé da folha. */
+  position:fixed; right:16px; bottom:calc(var(--barra-pe, 0px) + 16px); z-index:57;
+  display:flex; align-items:center; gap:10px; max-width:min(560px, calc(100vw - 32px));
+  padding:10px 12px 10px 14px; border-radius:16px; background:var(--surface); color:var(--ink);
+  border:2px solid var(--brand); box-shadow:0 8px 28px rgba(0,0,0,.25);
+}
+.acolhe-faixa > svg{ color:var(--titulo); flex:none }
+.acolhe-faixa-texto{ flex:1 1 auto; min-width:0; font-size:14px; line-height:1.35 }
+.acolhe-faixa .btn{ flex:none }
+.acolhe-conta{ margin:0; display:flex; flex-direction:column; gap:2px; padding:8px 12px; border-radius:12px;
+  border:1px solid var(--line-2); background:var(--surface); color:var(--ink); font-size:13.5px; text-align:left }
+.acolhe-conta-linha{ overflow-wrap:anywhere }
+.acolhe-conta code{ font-size:13px; color:var(--muted) }
+.acolhe-linha.nota:has(.acolhe-conta){ align-self:stretch; max-width:100% }
+.acolhe-tabela{ display:flex; flex-direction:column; gap:6px; padding:10px; border:1px solid var(--line-2); border-radius:14px; background:var(--surface); max-width:100% }
+.acolhe-tabela-rolar{ overflow-x:auto; max-height:320px; overflow-y:auto }
+.acolhe-tabela table{ border-collapse:collapse; font-size:13px; width:100% }
+.acolhe-tabela th, .acolhe-tabela td{ padding:4px 8px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top }
+.acolhe-tabela th{ position:sticky; top:0; background:var(--surface); color:var(--titulo) }
+.acolhe-tabela td.num{ text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap }
+.acolhe-linha.acolhe:has(.acolhe-tabela){ align-self:stretch; max-width:100% }
 @media (max-width:1079px){
   /* No celular o painel ocupa a tela, por cima da barra do pé: é uma conversa, e o dedo precisa de espaço. */
   .acolhe-painel{ left:0; right:0; top:0; bottom:0; width:auto; max-width:none; height:auto; border-radius:0; border:none; z-index:60 }
   .acolhe-botao{ right:12px; min-height:48px; padding:0 14px 0 12px }
+  /* No celular a faixa fica no alto: embaixo está o botão de salvar da folha. */
+  .acolhe-faixa{ left:12px; right:12px; top:calc(env(safe-area-inset-top, 0px) + 8px); bottom:auto; max-width:none; flex-wrap:wrap }
+  .acolhe-faixa-texto{ flex-basis:calc(100% - 40px) }
 }
 @media (max-width:420px){
   .acolhe-botao .acolhe-nome{ display:none }

@@ -3484,6 +3484,132 @@ cobrar('a coordenação tem a porta das sugestões', await doMais('Sugestões de
 }
 cobrar('nenhuma exceção na Acolhe+AI', erros.length === 0, erros[0]);
 
+/*
+ * A ACOLHE+AI TRABALHANDO NA TELA (fase 193). Numa página à parte, o ensaio
+ * põe o roteiro do que um modelo responderia (o `mock.ts` só o lê quando ele
+ * existe) e percorre o laço inteiro no navegador: ir à Agenda, pedir licença,
+ * abrir o formulário, ler a tela, escrever nos campos à vista, ser RECUSADA
+ * ao tentar salvar, fazer a conta e montar a tabela. E o texto que volta
+ * humanizado, sem travessão, lista nem negrito.
+ */
+console.log('\n🖐️ A Acolhe+AI mexendo na tela (fase 193)');
+{
+  const pgA = await navegador.newPage({ viewport: { width: 1280, height: 900 } });
+  const errosA = [];
+  pgA.on('pageerror', (e) => errosA.push(e.message));
+  const uso = (id, name, input) => ({ type: 'tool_use', id, name, input });
+  await pgA.addInitScript(() => {
+    const uso = (id, name, input) => ({ type: 'tool_use', id, name, input });
+    window.__ACOLHE_ROTEIRO__ = [
+      [{ type: 'text', text: 'Claro! Vou abrir a agenda.' }, uso('t1', 'abrir_tela', { tela: 'agenda' })],
+      [uso('t2', 'apertar_botao', { botao: 'Marcar compromisso' })],
+      [uso('t3', 'ver_tela', {})],
+      [uso('t4', 'preencher_campo', { campo: 'O que é', valor: 'Consulta no posto de saúde' }),
+       uso('t5', 'preencher_campo', { campo: 'Hora', valor: '14:30' })],
+      [uso('t6', 'apertar_botao', { botao: 'Marcar' })],
+      [{ type: 'text', text: '## Pronto\n- Preenchi **o que é** e a hora — confira.\n- Quem salva é você.' }],
+      [uso('t7', 'calcular', { conta: 'soma(12.5, 7.9, 30)', rotulo: 'Total da nota' }),
+       uso('t8', 'montar_tabela', { titulo: 'Notas de outubro', colunas: ['Fornecedor', 'Valor'],
+         linhas: [['Farmácia A', 12.5], ['Farmácia B', 37.9]], fonte: 'Notas de compra da Casa 03, 01 a 08/10' })],
+      [{ type: 'text', text: 'O total das notas é 50,40.' }],
+    ];
+  });
+  await pgA.goto(`file://${ARQUIVO}`);
+  await pgA.waitForTimeout(800);
+  await pgA.getByRole('button', { name: 'Marcelo Barbosa' }).click();
+  await pgA.getByRole('button', { name: /Entrar no sistema/i }).click();
+  await pgA.waitForTimeout(1200);
+  await pgA.locator('select.troca-cargo-sel').selectOption('coordenador');
+  await pgA.waitForTimeout(900);
+  await pgA.getByRole('button', { name: /^Abrir a Acolhe\+AI/ }).click();
+  await pgA.waitForTimeout(400);
+  const painel = pgA.locator('.acolhe-painel');
+  cobrar('com o modelo, o aviso do modo guia não aparece', !(await painel.innerText()).includes('Modo guia'));
+  await pgA.locator('#acolhe-pergunta').fill('marca uma consulta no posto amanhã às 14h30');
+  await painel.getByRole('button', { name: 'Enviar' }).click();
+  await pgA.waitForTimeout(900);
+  const licenca = painel.getByRole('group', { name: 'Posso mexer na tela com você?' });
+  cobrar('antes de mexer na tela, ela pede licença', await licenca.isVisible());
+  cobrar('e já levou à Agenda', /Agenda|Marcar compromisso/.test(await pgA.locator('main.conteudo').innerText()));
+  await licenca.getByRole('button', { name: 'Pode mexer' }).click();
+  await pgA.waitForTimeout(3500);
+  const faixa = pgA.locator('.acolhe-faixa');
+  cobrar('mexendo na tela, o painel vira uma faixa e a pessoa vê o trabalho', await faixa.isVisible());
+  const folha = pgA.locator('[role="dialog"][aria-labelledby="t-marcar"]');
+  cobrar('ela abriu o formulário de marcar compromisso', await folha.isVisible());
+  const titulo = await folha.locator('#tit').inputValue().catch(() => '');
+  const hora = await folha.locator('#hr').inputValue().catch(() => '');
+  cobrar('e escreveu nos campos, à vista', titulo === 'Consulta no posto de saúde' && hora === '14:30', `${titulo} | ${hora}`);
+  cobrar('o que ela escreveu fica marcado para a pessoa conferir',
+    (await folha.locator('#tit.acolhe-preenchido').count()) === 1);
+  const pedidos = await pgA.evaluate(() => window.__ACOLHE_PEDIDOS__ ?? []);
+  const resultados = pedidos.flat().flatMap((m) => (Array.isArray(m.content) ? m.content : []))
+    .filter((c) => c.type === 'tool_result');
+  const daTela = resultados.find((r) => r.tool_use_id === 't3');
+  cobrar('ver_tela devolve os campos com o nome que a pessoa lê', /"campo":"O que é"/.test(daTela?.content ?? '')
+    && !/acolhe-pergunta|Sua pergunta para a Acolhe/.test(daTela?.content ?? ''), String(daTela?.content).slice(0, 200));
+  const salvar = resultados.find((r) => r.tool_use_id === 't6');
+  cobrar('o botão que grava é da pessoa: a assistente é recusada', salvar?.is_error === true && /é da pessoa/.test(salvar?.content ?? ''),
+    JSON.stringify(salvar));
+  cobrar('e nada foi salvo: o formulário continua aberto', await folha.isVisible());
+  await faixa.getByRole('button', { name: 'Ver a conversa' }).click();
+  await pgA.waitForTimeout(300);
+  const conversa = await painel.locator('.acolhe-conversa').innerText();
+  cobrar('o texto volta humanizado: sem travessão, título, lista nem negrito',
+    /Preenchi o que é e a hora, confira\./.test(conversa) && !/[\u2014#*]|^- /m.test(conversa), conversa.slice(-300));
+  await painel.getByRole('button', { name: 'Minimizar a Acolhe+AI' }).click();
+  await folha.getByRole('button', { name: 'Cancelar' }).click();
+  await pgA.waitForTimeout(300);
+  await pgA.getByRole('button', { name: /^Abrir a Acolhe\+AI/ }).click();
+  await pgA.locator('#acolhe-pergunta').fill('quanto deram as notas deste mês?');
+  await painel.getByRole('button', { name: 'Enviar' }).click();
+  await pgA.waitForTimeout(1200);
+  const contaTxt = await painel.locator('.acolhe-conta').last().innerText().catch(() => '');
+  cobrar('a conta é exata e aparece com o resultado em português', /Total da nota/.test(contaTxt) && /50,4/.test(contaTxt), contaTxt);
+  const tabela = painel.locator('.acolhe-tabela');
+  cobrar('a tabela aparece, com a fonte e o botão da planilha',
+    (await tabela.locator('tbody tr').count()) === 2 && /Fonte: Notas de compra/.test(await tabela.innerText())
+    && (await tabela.getByRole('button', { name: 'Baixar como planilha' }).count()) === 1);
+  const [baixado] = await Promise.all([
+    pgA.waitForEvent('download', { timeout: 5000 }).catch(() => null),
+    tabela.getByRole('button', { name: 'Baixar como planilha' }).click(),
+  ]);
+  const nome = baixado?.suggestedFilename() ?? '';
+  let csv = '';
+  if (baixado) { const { readFileSync } = await import('node:fs'); csv = readFileSync(await baixado.path(), 'utf8'); }
+  cobrar('a planilha baixa com vírgula decimal e ponto e vírgula, e o nome não diz nada da criança',
+    /^tabela-acolhe-\d{4}-\d{2}-\d{2}\.csv$/.test(nome) && /Farmácia B;37,9/.test(csv), `${nome} ${csv.slice(0, 80)}`);
+  cobrar('nenhuma exceção com a Acolhe+AI mexendo na tela', errosA.length === 0, errosA[0]);
+  void uso;
+  await pgA.close();
+}
+
+/* No MODO GUIA (o protótipo de quem abre), ela faz a conta e abre o formulário,
+   com a mesma licença. */
+{
+  const pgG = await navegador.newPage({ viewport: { width: 420, height: 900 } });
+  await pgG.goto(`file://${ARQUIVO}`);
+  await pgG.waitForTimeout(800);
+  await pgG.getByRole('button', { name: 'Marcelo Barbosa' }).click();
+  await pgG.getByRole('button', { name: /Entrar no sistema/i }).click();
+  await pgG.waitForTimeout(1200);
+  await pgG.locator('select.troca-cargo-sel').selectOption('coordenador');
+  await pgG.waitForTimeout(900);
+  await pgG.getByRole('button', { name: /^Abrir a Acolhe\+AI/ }).click();
+  const painel = pgG.locator('.acolhe-painel');
+  await pgG.locator('#acolhe-pergunta').fill('quanto é 12,50 + 7,90 x 3?');
+  await painel.getByRole('button', { name: 'Enviar' }).click();
+  await pgG.waitForTimeout(600);
+  cobrar('no modo guia, a conta da equipe (vírgula e x) sai certa', /36,2/.test(await painel.locator('.acolhe-conta').innerText().catch(() => '')));
+  await pgG.locator('#acolhe-pergunta').fill('quero marcar um compromisso na agenda');
+  await painel.getByRole('button', { name: 'Enviar' }).click();
+  await pgG.waitForTimeout(900);
+  await painel.getByRole('button', { name: 'Pode mexer' }).click();
+  await pgG.waitForTimeout(1200);
+  cobrar('e, com licença, abre o formulário da Agenda', await pgG.locator('[role="dialog"][aria-labelledby="t-marcar"]').isVisible());
+  await pgG.close();
+}
+
 await navegador.close();
 console.log(achados.length
   ? `\n${achados.length} ACHADO(S):\n  ${achados.join('\n  ')}`

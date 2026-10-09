@@ -177,12 +177,12 @@ export function Rotina({ houseId, papel }: { houseId: string; papel: string }) {
           </ul>
 
           {pode && rotina.versao && (
-            <button className="btn sec block" onClick={() => setAdicionando(true)}>
+            <button data-acolhe-abre="" className="btn sec block" onClick={() => setAdicionando(true)}>
               + Acrescentar item a esta versão
             </button>
           )}
           {pode && (
-            <button className="btn block" onClick={() => setAbrindoVersao(true)}>
+            <button data-acolhe-abre="" className="btn block" onClick={() => setAbrindoVersao(true)}>
               {rotina.versao ? 'Abrir uma versão nova' : 'Escrever a primeira rotina'}
             </button>
           )}

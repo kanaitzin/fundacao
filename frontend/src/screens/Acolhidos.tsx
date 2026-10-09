@@ -629,12 +629,12 @@ export function Acolhidos({ houseId, casaLabel, papel, abrir }: {
       )}
 
       {QUEM_CADASTRA.includes(papel) && (
-        <button className="btn block" onClick={() => setCadastrando(true)}>
+        <button data-acolhe-abre="" className="btn block" onClick={() => setCadastrando(true)}>
           Cadastrar acolhido
         </button>
       )}
       {REGISTRA_CHEGADA.includes(papel) && (
-        <button className="btn block sec" onClick={() => setChegando(true)}>
+        <button data-acolhe-abre="" className="btn block sec" onClick={() => setChegando(true)}>
           Chegou uma criança agora
         </button>
       )}
@@ -968,7 +968,7 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
         * deixa de ser lido justamente quando importa.
         */}
       {QUEM_CADASTRA.includes(papel) && (
-        <button className="btn ghost block" style={{ marginBottom: 12 }}
+        <button data-acolhe-abre="" className="btn ghost block" style={{ marginBottom: 12 }}
                 onClick={() => setEditandoDetalhe(true)}>
           <Icone nome="escrever" /> Atualizar escola, cuidados e equipe
         </button>
@@ -1120,7 +1120,7 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
           */}
         {REGISTRA_EVOLUCAO.includes(papel) && (
           <>
-            <button className="btn sec block" onClick={() => setEvolucao(true)}>
+            <button data-acolhe-abre="" className="btn sec block" onClick={() => setEvolucao(true)}>
               <Icone nome="saude_ic" /> Registrar atendimento de saúde
             </button>
             <p className="mutetxt">
@@ -2620,7 +2620,7 @@ function Contatos({ perfil, papel, onMudou }: {
         ))}
       </div>
       {podeEscrever && (
-        <button className="btn sec block" style={{ marginBottom: 12 }} onClick={() => setNovo(true)}>
+        <button data-acolhe-abre="" className="btn sec block" style={{ marginBottom: 12 }} onClick={() => setNovo(true)}>
           <Icone nome="telefone" /> Acrescentar contato
         </button>
       )}
@@ -3137,7 +3137,7 @@ function Conquistas({ perfil, papel }: { perfil: Perfil; papel: string }) {
         ))}
       </div>
       {podeEscrever && (
-        <button className="btn sec block" style={{ marginBottom: 12 }}
+        <button data-acolhe-abre="" className="btn sec block" style={{ marginBottom: 12 }}
                 onClick={() => setRegistrando(true)}>
           <Icone nome="conquista" /> Registrar conquista
         </button>
@@ -4195,7 +4195,7 @@ function Educacao({ personId, houseId, papel }: {
             </>
           )}
           {pode && (
-            <button className="btn sm ghost" onClick={() => setEditando(true)}>
+            <button data-acolhe-abre="" className="btn sm ghost" onClick={() => setEditando(true)}>
               {a ? 'Atualizar o apoio educacional' : 'Registrar o apoio educacional'}
             </button>
           )}
@@ -4223,7 +4223,7 @@ function Educacao({ personId, houseId, papel }: {
             ))}
           </div>
           {pode && (
-            <button className="btn sec block" style={{ marginBottom: 12 }}
+            <button data-acolhe-abre="" className="btn sec block" style={{ marginBottom: 12 }}
                     onClick={() => setEscrevendo(true)}>
               Escrever uma evolução
             </button>

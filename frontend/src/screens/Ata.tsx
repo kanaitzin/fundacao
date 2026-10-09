@@ -1098,7 +1098,7 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
                 {/* Registrar exige a ATA ABERTA: episódio é do turno que está
                     acontecendo, e o servidor recusa em ATA fechada. */}
                 {!fechada && acolhidos.length > 0 && (
-                  <button className="btn sec block" style={{ marginTop: 12 }}
+                  <button data-acolhe-abre="" className="btn sec block" style={{ marginTop: 12 }}
                           onClick={() => setRegistrandoEpisodio(true)}>
                     Registrar um episódio
                   </button>

@@ -177,7 +177,7 @@ export function Equipe({ papel }: { papel: string }) {
           <h3 className="grow" style={{ fontSize: 17, margin: 0 }}>Equipe cadastrada</h3>
           <span className="mutetxt">{membros.filter((m) => m.ativo).length} ativos · {membros.length} no total</span>
           {setores.length > 0 && (
-            <button className="btn sm" onClick={() => { setEditando(null); setForm(true); }}>
+            <button data-acolhe-abre="" className="btn sm" onClick={() => { setEditando(null); setForm(true); }}>
               + Novo cadastro
             </button>
           )}

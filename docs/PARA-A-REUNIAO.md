@@ -25,7 +25,16 @@
   sai no nome dela. **Depende da chave na instalação** (§12.12); sem ela, e no
   protótipo, funciona no modo guia. **Para o DPO:** o texto da conversa e os anexos
   vão à Anthropic, e o microfone do Chrome manda o áudio ao Google.
-- **192 fases.** 134 suítes e 1209 testes, verdes em duas condições de relógio —
+- **A Acolhe+AI preenchendo a tela** (fase 193, pedido de 08/10): com a licença da
+  pessoa, uma vez por conversa, ela abre o formulário e escreve nos campos à vista, e
+  quem salva é sempre a pessoa. Faz conta exata e monta tabela que baixa como planilha
+  (notas, armário, remédios), e escreve como colega, sem travessão nem lista. E virou
+  regra: **o que o sistema ganha, ela aprende na mesma fase**, e um teste cobra.
+  **Para decidir:** ela abre hoje 26 formulários de criação (agenda, ocorrência, compra,
+  combinado, cadastro e outros). Ficaram de fora, por cautela, o esquema de remédio, a
+  medicação dada no hospital, a saída da criança, os encerramentos e o cofre. Deixar
+  algum deles com ela, ou manter assim?
+- **193 fases.** 135 suítes e 1221 testes, verdes em duas condições de relógio —
   antes e depois da virada do UTC, que em Porto Alegre é às 21h.
 - **O aviso no celular** (fase 189, decidido em 06/10): quem liga na Minha conta
   recebe no celular todos os avisos do sino, mesmo com o sistema fechado. Na

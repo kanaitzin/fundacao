@@ -214,7 +214,7 @@ export function Chamada({ houseId }: { houseId: string }) {
           * que dizia "nenhuma chamada aberta hoje" para sempre.
           */}
         {tipos && (
-          <button className="btn block" style={{ marginBottom: 12 }}
+          <button data-acolhe-abre="" className="btn block" style={{ marginBottom: 12 }}
                   onClick={() => setAbrindo(true)}>
             <Icone nome="conferido" /> Abrir uma chamada
           </button>

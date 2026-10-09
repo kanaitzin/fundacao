@@ -193,6 +193,39 @@ export class AssistenteService {
     return { ok: true };
   }
 
+  /**
+   * A pessoa deixou a Acolhe+AI mexer na tela (fase 193). Fica na auditoria,
+   * só com a tela: o que ela preencheu e a pessoa salvou fica no registro de
+   * sempre, no nome de quem salvou.
+   */
+  async registrarLicenca(user: AuthenticatedUser, corpo: { tela?: unknown; casaId?: unknown }) {
+    const casaId = await this.casaConferida(user, corpo?.casaId);
+    const tela = typeof corpo?.tela === 'string' ? corpo.tela.trim().slice(0, 80) : '';
+    await this.audit.log({
+      action: 'assistente.licenca', actorId: user.id, houseId: casaId,
+      entity: 'tela', detail: tela ? { tela } : undefined,
+    });
+    return { ok: true };
+  }
+
+  /**
+   * Uma tabela da Acolhe+AI baixada como planilha (fase 193). Baixar é
+   * exportar, e exportação fica na auditoria como as outras: quem, quando, de
+   * que casa e o tamanho. O conteúdo não, como em toda linha de auditoria.
+   */
+  async registrarTabela(user: AuthenticatedUser, corpo: { linhas?: unknown; colunas?: unknown; casaId?: unknown }) {
+    const n = (v: unknown, max: number) => (Number.isInteger(v) && (v as number) >= 0 && (v as number) <= max ? (v as number) : null);
+    const linhas = n(corpo?.linhas, 500);
+    const colunas = n(corpo?.colunas, 12);
+    if (linhas === null || colunas === null) throw new BadRequestException('Tamanho da tabela inválido.');
+    const casaId = await this.casaConferida(user, corpo?.casaId);
+    await this.audit.log({
+      action: 'assistente.tabela', actorId: user.id, houseId: casaId,
+      entity: 'planilha', detail: { linhas, colunas },
+    });
+    return { ok: true };
+  }
+
   // ---------- As sugestões de melhoria ----------
 
   async sugerir(user: AuthenticatedUser, corpo: { texto?: unknown; tela?: unknown; casaId?: unknown }) {

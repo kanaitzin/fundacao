@@ -181,7 +181,7 @@ export function Agenda({ houseId, papel }: { houseId: string; papel: string }) {
       {aviso && <div className="notice c-ok" role="status">{aviso}</div>}
 
       {podeMarcar && (
-        <button className="btn block" onClick={() => setMarcando(true)}>
+        <button data-acolhe-abre="" className="btn block" onClick={() => setMarcando(true)}>
           Marcar compromisso
         </button>
       )}

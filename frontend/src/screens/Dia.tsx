@@ -840,7 +840,7 @@ export function Dia({ houseId, casaLabel, papel, irPara, alcanca = () => true, p
       {/* A ATIVIDADE URGENTE (§8.2): o que apareceu agora e não estava na
           agenda. Fica no fim porque é exceção, e exceção não abre a tela. */}
       {CRIA_URGENTE.includes(papel) && (
-        <button className="btn sec block" style={{ marginTop: 16 }} onClick={() => setUrgente(true)}>
+        <button data-acolhe-abre="" className="btn sec block" style={{ marginTop: 16 }} onClick={() => setUrgente(true)}>
           + Atividade urgente
         </button>
       )}

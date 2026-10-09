@@ -16,6 +16,10 @@ export type RespostaDoGuia = {
   ir?: string;
   /** Propor registrar uma sugestão, com as palavras da pessoa. */
   sugestao?: string;
+  /** Fazer esta conta (já com ponto decimal), pela mesma conta da Acolhe+AI. */
+  conta?: string;
+  /** Depois de ir, abrir o formulário da tela, com a licença da pessoa. */
+  abrirFormulario?: boolean;
 };
 
 const sem = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
@@ -54,6 +58,7 @@ const PALAVRAS: Record<string, string[]> = {
 
 const QUER_IR = /\b(me leva|leva|abre|abrir|abra|ir para|vai para|va para|quero ver|mostra|mostrar|entrar em)\b/;
 const QUER_SUGERIR = /\b(sugest|sugiro|seria bom|melhoria|melhorar o sistema|poderia ter|devia ter|deveria ter|falta no sistema|nao tem como)\b/;
+const QUER_CRIAR = /\b(marcar|marca|criar|cria|cadastrar|cadastra|registrar|registra|escrever|escreve|novo|nova|preencher|preenche|me ajuda a)\b/;
 const QUER_SABER = /\b(o que voce faz|quem e voce|ajuda|como funciona|o que da para fazer|o que posso)\b/;
 
 function achar(texto: string, telas: TelaDoGuia[]): TelaDoGuia | null {
@@ -70,6 +75,22 @@ function achar(texto: string, telas: TelaDoGuia[]): TelaDoGuia | null {
   return melhor?.tela ?? null;
 }
 
+/**
+ * Uma conta escrita como a equipe escreve ("quanto é 12,50 + 7,90 x 3"), em
+ * forma de conta: vírgula decimal vira ponto, ponto de milhar some, x vira
+ * vezes. Devolve null se o texto não for conta.
+ */
+export function contaDoTexto(texto: string): string | null {
+  const m = /[\d(][\d\s.,+\-*/x×÷()%]*[\d)%]/i.exec(texto);
+  if (!m || !/\d\s*[+\-*/x×÷%]\s*[\d(]/i.test(m[0])) return null;
+  return m[0]
+    .replace(/(\d)\.(\d{3})(?!\d)/g, '$1$2')
+    .replace(/(\d),(\d)/g, '$1.$2')
+    .replace(/[x×]/gi, '*')
+    .replace(/÷/g, '/')
+    .trim();
+}
+
 export function responderPeloGuia(texto: string, telas: TelaDoGuia[], primeira: boolean): RespostaDoGuia {
   const t = sem(texto);
   const aviso = primeira
@@ -83,8 +104,14 @@ export function responderPeloGuia(texto: string, telas: TelaDoGuia[], primeira: 
     };
   }
 
+  const conta = contaDoTexto(texto);
+  if (conta) return { texto: `${aviso}Fiz a conta para você.`, conta };
+
   const tela = achar(texto, telas);
   if (tela) {
+    if (QUER_CRIAR.test(t)) {
+      return { texto: `${aviso}Vou abrir ${tela.titulo} e o formulário para você. Preencha e salve quando estiver certo.`, ir: tela.chave, abrirFormulario: true };
+    }
     const link = `[Abrir ${tela.titulo}](tela:${tela.chave})`;
     const explica = tela.frase ? `${tela.titulo}: ${tela.frase}` : tela.titulo;
     if (QUER_IR.test(t)) return { texto: `${aviso}Abrindo ${tela.titulo}.`, ir: tela.chave };
@@ -94,7 +121,7 @@ export function responderPeloGuia(texto: string, telas: TelaDoGuia[], primeira: 
   if (QUER_SABER.test(t) || primeira) {
     const algumas = telas.slice(0, 6).map((x) => `[${x.titulo}](tela:${x.chave})`).join('  ');
     return {
-      texto: `${aviso}Eu sou a Acolhe+AI, da equipe do Rede Acolher. Posso explicar o que cada tela faz, levar você até ela ("me leva para a chamada"), ler esta tela em voz alta e anotar sugestões para o sistema melhorar.\n\nAlgumas telas suas: ${algumas}`,
+      texto: `${aviso}Eu sou a Acolhe+AI, da equipe do Rede Acolher. Posso explicar o que cada tela faz, levar você até ela ("me leva para a chamada"), abrir o formulário ("quero marcar um compromisso"), fazer contas ("quanto é 12,50 + 7,90"), ler esta tela em voz alta e anotar sugestões para o sistema melhorar.\n\nAlgumas telas suas: ${algumas}`,
     };
   }
   return {
