@@ -234,9 +234,9 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 191 | **a receita e a vacinação avisam antes de vencer** (decisões de 08/10: 10 e 15 dias, à Enfermagem e à técnica e coordenação, uma vez por documento, o último de validade mais longa; sem o remédio nem a vacina no aviso; `app_documentos_vencendo`, `document_due_notice`, people/1647, oitava rotina do relógio) e **o aviso fora do sistema também no computador**, na folha da senha (*Aviso neste computador*). Decidido sem código: o convite segue 24 horas, e o aviso no celular não entra no painel da implantação |
 | 192 | **a Acolhe+AI** (pedido e decisões de 08/10: nome, IA aprovada pela Fundação, a pessoa confirma, sugestões para coordenações, CG, gestor e TI): assistente em todas as telas com a equipe virtual; **age com o acesso de quem conversa, por construção** (o servidor só repassa ao Claude; a TELA executa as leituras pelas rotas de sempre, `assistente/ferramentas.ts`); propõe e nunca grava; links e navegação; anexos; voz; sugestões (`assistant_suggestion`, assistente/1648, tela *Sugestões de melhoria*); modo guia sem a chave e no protótipo (`acolhe-guia.ts`). O "poder total" pedido virou o acesso de quem fala (regra 5). **Modelo de verdade não testado daqui** (§12.12) |
 | 193 | **a Acolhe+AI sempre em dia** (pedido de 08/10): a regra de toda fase ensinar a assistente virou teste que nega por padrão (`a-acolhe-conhece-o-sistema.spec.ts`; catálogo de 34 para 131 rotas, 14 fora com motivo); **escreve como colega** (`humanizar`); **mexe na tela com licença** (`acolhe-tela.ts`: abre o formulário, escreve à vista, nunca salva, só aperta `data-acolhe-abre` ou aba); **conta exata e tabela com planilha** (`calculo.ts`, auditada). O `ensaio:uso` com roteiro de modelo achou **a faixa por baixo da folha aberta** |
-| 194 | **a câmera do sistema e o documento em PDF** (pedido de 10/10): visor ao vivo com X e ✓, modo Documento que junta as páginas num PDF A4 (`camera.tsx`, `pdf-de-imagens.ts`), em **todo** anexo (nove telas tinham seletor solto; `todo-anexo-pela-camera.spec.ts`), a câmera na Minha conta e na Acolhe+AI; e o defeito antigo: **o servidor não desenhava PDF com foto dentro** (duas cópias nativas do canvas), e o relatório da internação perdia os papéis do hospital |
+| 194 | **a câmera do sistema e o documento em PDF** (pedido de 10/10): visor ao vivo com X e ✓, modo Documento que junta as páginas num PDF A4 (`camera.tsx`, `pdf-de-imagens.ts`), em **todo** anexo (nove telas tinham seletor solto; `todo-anexo-pela-camera.spec.ts`), a câmera na Minha conta e na Acolhe+AI; e o defeito antigo: **o servidor não desenhava PDF com foto dentro** (duas cópias nativas do canvas), e o relatório da internação perdia os papéis do hospital; e a simulação achou **a API morrendo quando o banco encerra as conexões** (`DatabaseService` ouve o erro; `o-banco-que-reinicia.e2e.spec.ts`) |
 
-**Medido no fim da 194:** 188 migrações, 133 tabelas, 137 suítes, 1227 testes, verdes nas
+**Medido no fim da 194:** 188 migrações, 133 tabelas, 138 suítes, 1229 testes, verdes nas
 DUAS condições de relógio; os nove ensaios de navegador verdes (o do celular com 306 telas e nenhum achado), com a portaria e o
 portão, o armário, a cozinha, os temas e a foto no percurso do `ensaio:uso`; **1099 telas (157 × sete
 temas) sem violação de WCAG 2.1 AA**; nenhuma
@@ -257,6 +257,10 @@ contra o servidor de verdade, sem achado** (depois de consertar os três que ela
 contra o servidor de verdade, sem achado**. Na API a única recusa é a admissão numa Casa 03 que a
 semente já deixa no limite de vinte vagas: é a regra funcionando (a simulação admite sem
 justificativa), e já aparecia na 190.
+**E na fase 194** (`SIM_CASAS=AI3 … 30`), repetida depois de a primeira rodada ver o banco
+encerrar as conexões e a API morrer junto (consertado): **onze contas, 201 telas e o esqueci
+contra o servidor de verdade, sem achado**. O log do banco agora acrescenta, em
+`/tmp/pg-simulacao.log`: a causa daquela queda se perdeu porque ele era sobrescrito.
 
 **As TRÊS cores do sistema, porque confundi-las é o pior que esta tela pode
 fazer** — está escrito por extenso em `frontend/src/cargos.tsx`:
@@ -610,6 +614,12 @@ novo.
   MARCOU (`data-acolhe-abre`), e o teste lê o clique de cada marcado. **E camada também
   é contrato**: a faixa da assistente nasceu abaixo da folha aberta (z-index 45 contra
   50), e só o ensaio, clicando de verdade, viu que o Parar não se tocava.
+- **Erro de conexão sem ouvinte derruba o processo inteiro** (194). O `pg` emite
+  `error` na conexão que o banco encerra, e o Node mata a API se ninguém ouvir: um
+  reinício do banco viraria sistema fora do ar no plantão. A simulação viu; a suíte não,
+  porque o banco dela nunca reinicia. **O que derruba o servidor se testa derrubando**:
+  o `o-banco-que-reinicia` encerra as conexões de propósito. E **log que o próprio script
+  sobrescreve no fim apaga a prova**: a causa daquela queda se perdeu assim.
 - **Duas cópias da mesma biblioteca nativa não conversam** (194). O pdf.js traz o
   `@napi-rs/canvas` dele, e o servidor usava outro: a foto desenhada numa cópia e colada
   na tela da outra corrompia a memória, e o processo morria calado. O `paginasDoPdf`

@@ -42,7 +42,7 @@
   O documento de várias páginas vira um PDF só, com a letra realçada. A Minha conta mostra
   se a câmera está permitida neste aparelho. E apareceu um defeito antigo, já consertado: o
   PDF escaneado do hospital não entrava desenhado no relatório da internação.
-- **194 fases.** 137 suítes e 1227 testes, verdes em duas condições de relógio —
+- **194 fases.** 138 suítes e 1229 testes, verdes em duas condições de relógio —
   antes e depois da virada do UTC, que em Porto Alegre é às 21h.
 - **O aviso no celular** (fase 189, decidido em 06/10): quem liga na Minha conta
   recebe no celular todos os avisos do sino, mesmo com o sistema fechado. Na

@@ -44,7 +44,10 @@ subir_o_banco() {
   local comRelogio="${1:-}" cmd="$PGBIN/postgres -D $PGDATA -k $PGRUN -h 127.0.0.1 -p $PGPORT"
   [[ -n "$comRelogio" ]] && cmd="env LD_PRELOAD=$LIB FAKETIME_TIMESTAMP_FILE=$RELOGIO FAKETIME_NO_CACHE=1 $cmd"
   chown -R postgres "$PGDATA" "$PGRUN" 2>/dev/null || true
-  nohup su postgres -c "$cmd" >/tmp/pg-simulacao.log 2>&1 &
+  # O log ACRESCENTA (fase 194): sobrescrito, a volta do relógio real no fim
+  # apagava o que o banco disse durante a rodada, e a queda ficava sem causa.
+  echo "=== $(date -u +%FT%TZ) subindo o banco ${comRelogio:+com o relógio da simulação}" >>/tmp/pg-simulacao.log
+  nohup su postgres -c "$cmd" >>/tmp/pg-simulacao.log 2>&1 &
   for i in $(seq 1 30); do
     "$PGBIN/pg_isready" -h 127.0.0.1 -p "$PGPORT" >/dev/null 2>&1 && return 0
     sleep 1

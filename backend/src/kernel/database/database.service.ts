@@ -1,4 +1,4 @@
-import { Injectable, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { Pool, PoolClient, types } from 'pg';
 
 /**
@@ -35,6 +35,24 @@ export class DatabaseService implements OnModuleDestroy {
     max: 10,
     types: TIPOS,
   });
+  private readonly log = new Logger('Banco');
+
+  /*
+   * O BANCO QUE REINICIA NÃO DERRUBA O SERVIDOR (fase 194).
+   *
+   * Conexão que o banco encerra (reinício para manutenção, restauração de
+   * backup, queda) emite `error` no cliente do `pg`; sem quem a ouça, o Node
+   * encerra o processo inteiro, e o plantão fica sem sistema até alguém
+   * reiniciar a API. Aqui o erro é anotado (só a classe e o código, nunca a
+   * consulta) e a conexão sai do pool; a próxima pergunta abre outra. Achado
+   * pela simulação de 30 dias da fase 194, quando o banco caiu no meio do
+   * ensaio de navegador e levou a API junto.
+   */
+  constructor() {
+    this.pool.on('error', (e: Error & { code?: string }) => {
+      this.log.warn(`conexão ociosa encerrada pelo banco (${e.code ?? e.name}); o pool abre outra`);
+    });
+  }
 
   /** Consulta SEM identidade (login, health). Use com parcimônia. */
   query(text: string, params?: unknown[]) {
@@ -44,6 +62,11 @@ export class DatabaseService implements OnModuleDestroy {
   /** Executa `fn` numa transação com a identidade do usuário aplicada ao RLS. */
   async asUser<T>(userId: string, fn: (client: PoolClient) => Promise<T>): Promise<T> {
     const client = await this.pool.connect();
+    /* Enquanto emprestada, a conexão também não pode derrubar o processo: a
+       consulta em curso recebe o erro, e a conexão volta ao pool para ser descartada. */
+    let quebrou: Error | undefined;
+    const naoDerruba = (e: Error) => { quebrou = e; };
+    client.on('error', naoDerruba);
     try {
       await client.query('BEGIN');
       await client.query(`SELECT set_config('app.user_id', $1, true)`, [userId]);
@@ -51,10 +74,11 @@ export class DatabaseService implements OnModuleDestroy {
       await client.query('COMMIT');
       return result;
     } catch (e) {
-      await client.query('ROLLBACK');
+      await client.query('ROLLBACK').catch(() => undefined);
       throw e;
     } finally {
-      client.release();
+      client.off('error', naoDerruba);
+      client.release(quebrou);
     }
   }
 
