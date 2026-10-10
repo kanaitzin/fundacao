@@ -264,6 +264,9 @@ justificativa), e já aparecia na 190.
 encerrar as conexões e a API morrer junto (consertado): **onze contas, 201 telas e o esqueci
 contra o servidor de verdade, sem achado**. O log do banco agora acrescenta, em
 `/tmp/pg-simulacao.log`: a causa daquela queda se perdeu porque ele era sobrescrito.
+**E na fase 195** (`SIM_CASAS=AI3 … 30`), com o ditado e o rascunho no ar: **onze contas, 201
+telas e o esqueci contra o servidor de verdade, sem achado**; na API, só a recusa conhecida da
+admissão no limite de vagas.
 
 **As TRÊS cores do sistema, porque confundi-las é o pior que esta tela pode
 fazer** — está escrito por extenso em `frontend/src/cargos.tsx`:
