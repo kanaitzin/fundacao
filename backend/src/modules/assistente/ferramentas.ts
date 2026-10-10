@@ -168,6 +168,25 @@ export const FERRAMENTAS = [
     },
   },
   {
+    name: 'mostrar_rascunho',
+    description:
+      'Mostra à pessoa o rascunho de um texto que você organizou a partir do que ela falou ou escreveu '
+      + '(relatório, linha da ATA, evolução, relato, diário da internação), ANTES de qualquer registro. No '
+      + 'cartão ela edita, aprova, acrescenta falando, anexa foto e leva o texto para a tela onde ele fica. '
+      + 'Use sempre que for montar um texto para a pessoa: nunca preencha a tela com um texto que ela não viu. '
+      + 'Escreva como a equipe de acolhimento escreve: fatos, sem rótulo sobre a criança, sem travessão.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        titulo: { type: 'string', description: 'O que é o texto, em poucas palavras (aparece no cartão).' },
+        texto: { type: 'string', description: 'O rascunho inteiro.' },
+        tela: { type: 'string', description: 'A chave da tela onde o texto vai ficar, se você sabe (ata, ocorrencias, acompanhamentos, internacao...).' },
+      },
+      required: ['titulo', 'texto'],
+      additionalProperties: false,
+    },
+  },
+  {
     name: 'propor_linha_na_ata',
     description:
       'PROPÕE escrever uma linha na ATA do plantão. Não grava: mostra um cartão, e a pessoa confirma. '

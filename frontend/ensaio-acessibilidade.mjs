@@ -224,12 +224,13 @@ await pg.waitForTimeout(400);
 /* A página é a mesma nos sete temas: cada volta começa conversa nova, e a
    licença da volta anterior não vale nesta. */
 await pg.locator('.acolhe-painel').getByRole('button', { name: 'Nova conversa' }).click();
-for (const pergunta of ['onde vejo as ocorrências?', 'seria bom ter um lembrete na chamada']) {
+for (const pergunta of ['onde vejo as ocorrências?', 'seria bom ter um lembrete na chamada',
+  'relatório da ATA: a Ana voltou da escola às cinco e lanchou com o grupo']) {
   await pg.locator('#acolhe-pergunta').fill(pergunta);
   await pg.locator('.acolhe-painel').getByRole('button', { name: 'Enviar' }).click();
   await pg.waitForTimeout(500);
 }
-await conferir(`${tema} · Acolhe+AI aberta, com proposta`); telas++;
+await conferir(`${tema} · Acolhe+AI aberta, com proposta e rascunho`); telas++;
 /* Fase 193: a conta, o cartão da licença, e a faixa por cima da folha aberta. */
 for (const pergunta of ['quanto é 12,50 + 7,90 x 3?', 'quero marcar um compromisso na agenda']) {
   await pg.locator('#acolhe-pergunta').fill(pergunta);

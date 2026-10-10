@@ -18,7 +18,8 @@
     "ensaio:uso": "node ensaio-uso.mjs",
     "ensaio:uso-celular": "ENSAIO_CELULAR=1 node ensaio-uso.mjs",
     "ensaio:celular": "node ensaio-celular.mjs",
-    "fontes": "node ../scripts/gerar-fontes.mjs"
+    "fontes": "node ../scripts/gerar-fontes.mjs",
+    "ensaio:acolhe": "node ensaio-acolhe.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",

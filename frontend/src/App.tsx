@@ -9,6 +9,7 @@ import { Cargo } from './cargos';
 import { PORTAS, GRUPOS } from './portas';
 import { AvisoNoCelular, desligarAoSair } from './aviso-no-celular';
 import { CameraNesteAparelho } from './camera';
+import { DitadoNosCampos } from './ditado';
 import { AcolheAI } from './acolhe';
 import { Sugestoes } from './screens/Sugestoes';
 import { api, setToken, ligarFilaAoServidor, quandoASessaoTerminar } from './api';
@@ -115,6 +116,15 @@ function Tarja() {
  * Seletor de cargo — só aparece no protótipo.
  * Permite alternar entre funções sem sair do sistema, para avaliação do design.
  */
+/** O que cada aba do turno faz, dito à Acolhe+AI como as portas já dizem (fase 195). */
+const FRASE_DAS_ABAS: Record<string, string> = {
+  metricas: 'Os números das casas, sem ranking.',
+  dia: 'A linha do dia da casa: atividades, doses, compromissos e o que espera alguém.',
+  chamada: 'Quem está na casa em cada turno, quem está fora e por quê.',
+  acolhidos: 'O perfil de cada criança, com saúde, escola, família, visitas e o dossiê.',
+  passagem: 'A passagem do plantão, assinada por cada um, e o complemento do que se lembrou depois.',
+};
+
 const CARGOS_DEMO = [
   { value: 'coordenador',         label: 'Coordenação' },
   { value: 'equipe_tecnica',      label: 'Equipe técnica' },
@@ -828,7 +838,7 @@ export function App() {
         * regra que vale é a mesma: resposta buscada sob um alcance não
         * sobrevive à mudança de alcance.
         */}
-      <main className="conteudo" key={`${me.role}:${casaAtual?.id ?? 'sem-casa'}`}>
+      <main className="conteudo" data-tela={String(abaEfetiva)} key={`${me.role}:${casaAtual?.id ?? 'sem-casa'}`}>
         {/*
           * Olhando uma casa que não é a sua: a faixa diz qual, e devolve. Sem
           * ela, quem trocou de casa lê a tela inteira achando que é a dele — e
@@ -1030,13 +1040,16 @@ export function App() {
         telaAtual={[...abasDoTurno.map((t) => ({ aba: t.aba, titulo: t.label })), ...PORTAS]
           .find((t) => t.aba === abaEfetiva)?.titulo ?? (abaEfetiva === 'avisos' ? 'Avisos' : String(abaEfetiva))}
         telas={[
-          ...abasDoTurno.map((t) => ({ chave: t.aba, titulo: t.label })),
+          ...abasDoTurno.map((t) => ({ chave: t.aba, titulo: t.label, frase: FRASE_DAS_ABAS[t.aba] })),
           ...PORTAS.filter((p) => ve(p.aba)).map((p) => ({ chave: p.aba, titulo: p.titulo, frase: p.descricao })),
           { chave: 'avisos', titulo: 'Avisos', frase: 'O sino: o que precisa de alguém.' },
         ]}
         navegar={(tela) => { setAba(tela as typeof aba); setMais(false); }}
         abrirCrianca={(id) => { setAbrirCrianca({ id }); setAba('acolhidos'); setMais(false); }}
       />
+
+      {/* O DITADO (fase 195): o microfone junto de todo campo de texto longo. */}
+      <DitadoNosCampos />
 
       {sessaoTerminou && (
         <FolhaSessaoTerminou email={me.email} onEntrou={() => setSessaoTerminou(false)}

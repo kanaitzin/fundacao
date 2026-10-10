@@ -236,6 +236,33 @@ export function FolhaArquivo({ titulo, legenda, carregar, onFechar, onBaixar }: 
 /* ====================================================================== */
 
 /**
+ * AS FOTOS QUE A ACOLHE+AI TRAZ (fase 195).
+ *
+ * A pessoa fotografa no rascunho da Acolhe+AI e leva o texto para a tela; a
+ * foto vai junto, mas não entra sozinha: o anexo da tela OFERECE "Usar a foto
+ * da Acolhe+AI", e a pessoa confirma ali, vendo a prévia, como em todo anexo.
+ */
+let fotosDaAcolhe: Escolhido[] = [];
+const quemOuve = new Set<() => void>();
+export function oferecerFotosDaAcolhe(lista: Escolhido[]) {
+  fotosDaAcolhe = lista.slice(0, 10);
+  quemOuve.forEach((f) => f());
+}
+function usarFotoDaAcolhe(a: Escolhido) {
+  fotosDaAcolhe = fotosDaAcolhe.filter((x) => x !== a);
+  quemOuve.forEach((f) => f());
+}
+function useFotosDaAcolhe(): Escolhido[] {
+  const [, mexeu] = useState(0);
+  useEffect(() => {
+    const f = () => mexeu((n) => n + 1);
+    quemOuve.add(f);
+    return () => { quemOuve.delete(f); };
+  }, []);
+  return fotosDaAcolhe;
+}
+
+/**
  * ESCOLHER O ANEXO: CÂMERA, DOCUMENTO, GALERIA OU ARQUIVO (fases 165 e 194).
  *
  * Pedido de 25/09, para a internação: *"quando o navegador e o dispositivo
@@ -283,6 +310,7 @@ export function EscolherAnexo({ arquivo, onEscolher, aceita = 'application/pdf,i
   const doSistema = temCameraDoSistema() && !semCamera;
   const aceitos = aceita.split(',').map((t) => t.trim());
   const aceitaPdf = aceitos.includes('application/pdf');
+  const daAcolhe = useFotosDaAcolhe().filter((a) => aceitos.includes(a.tipo));
 
   async function receber(f: File | undefined, de: 'camera' | 'arquivo') {
     setErro('');
@@ -369,6 +397,16 @@ export function EscolherAnexo({ arquivo, onEscolher, aceita = 'application/pdf,i
 
   return (
     <div className="stack">
+      {daAcolhe.length > 0 && (
+        <div className="acoes" role="group" aria-label="Fotos trazidas pela Acolhe+AI">
+          {daAcolhe.map((a, i) => (
+            <button key={i} type="button" className="btn sm sec"
+                    onClick={() => { if (cabe(a)) { usarFotoDaAcolhe(a); setOrigem('arquivo'); onEscolher(a); } }}>
+              <Icone nome="acolhe" /> Usar a foto da Acolhe+AI{daAcolhe.length > 1 ? ` (${i + 1})` : ''}
+            </button>
+          ))}
+        </div>
+      )}
       <div className="acoes">
         {doSistema && (
           <button type="button" className="btn sm" onClick={() => { setErro(''); setCamera('foto'); }}>

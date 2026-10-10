@@ -100,7 +100,7 @@ describe('A Acolhe+AI', () => {
     expect(corpo.system[1].text).toMatch(/- chamada: Chamada \(quem está na casa\)/);
     expect(corpo.system[1].text).toMatch(/falar com: Psicologia/);
     expect(corpo.tools.map((t: any) => t.name)).toEqual(
-      ['consultar_sistema', 'abrir_tela', 'ver_tela', 'preencher_campo', 'apertar_botao', 'calcular', 'montar_tabela',
+      ['consultar_sistema', 'abrir_tela', 'ver_tela', 'preencher_campo', 'apertar_botao', 'calcular', 'montar_tabela', 'mostrar_rascunho',
        'propor_linha_na_ata', 'propor_anexo_no_dossie', 'propor_sugestao']);
     expect(corpo.messages).toEqual([{ role: 'user', content: marca }]);
 

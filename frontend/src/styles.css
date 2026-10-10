@@ -1669,3 +1669,29 @@ div.acoes{ display:flex; flex-wrap:wrap; gap:8px; align-items:center }
 .camera-ajustes{ display:flex; gap:12px }
 .previa-paginas{ list-style:none; margin:6px 0 0; padding:0; display:flex; gap:8px; overflow-x:auto }
 .previa-paginas img{ display:block; height:120px; width:auto; border-radius:6px; border:1px solid var(--line-2); background:#fff }
+
+/* ===================================================================
+ * O DITADO NOS CAMPOS (fase 195): o microfone no canto do campo de texto
+ * longo que tem o foco, e o que está sendo ouvido num balão ao lado.
+ * =================================================================== */
+.ditado{ position:fixed; z-index:58; display:flex; align-items:center; gap:6px; flex-direction:row-reverse; pointer-events:none }
+.ditado-botao{ pointer-events:auto; width:40px; height:40px; border-radius:999px; display:inline-flex; align-items:center; justify-content:center;
+  border:1px solid var(--line-2); background:var(--surface); color:var(--titulo); box-shadow:0 2px 8px rgba(0,0,0,.15); cursor:pointer }
+.ditado-botao.ativo{ background:var(--brand-solid, var(--brand)); color:#fff; border-color:transparent }
+.ditado-botao:focus-visible{ outline:3px solid var(--titulo); outline-offset:2px }
+.ditado-fala{ pointer-events:none; max-width:min(260px, 60vw); padding:6px 10px; border-radius:10px; font-size:13px; line-height:1.35;
+  background:var(--surface); color:var(--ink); border:1px solid var(--line-2); box-shadow:0 2px 8px rgba(0,0,0,.12);
+  overflow:hidden; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical }
+.ditado-fala.erro{ border-color:var(--red-solid); }
+.acolhe-fala{ margin:0; font-size:13px; color:var(--muted); line-height:1.4 }
+.acolhe-rascunho textarea{ width:100%; resize:vertical; border-radius:10px; border:1px solid var(--line-2); padding:8px 10px; font:inherit; line-height:1.45; background:var(--surface); color:var(--ink) }
+.acolhe-rascunho-fotos{ list-style:none; margin:0; padding:0; display:flex; gap:8px; flex-wrap:wrap }
+.acolhe-rascunho-fotos li{ display:flex; flex-direction:column; gap:4px; align-items:flex-start }
+.acolhe-rascunho-fotos img{ height:72px; width:auto; border-radius:8px; border:1px solid var(--line-2) }
+.acolhe-destino{ display:flex; align-items:center; gap:8px; margin:0; font-size:13.5px; font-weight:600 }
+.acolhe-destino select{ width:auto; min-height:36px; margin:0; border-radius:10px; padding:0 8px }
+.acolhe-feito{ margin:0; display:flex; flex-direction:column; gap:6px }
+.acolhe-feito div{ display:flex; flex-direction:column }
+.acolhe-feito dt{ font-weight:600; font-size:13px; color:var(--titulo) }
+.acolhe-feito dd{ margin:0; white-space:pre-wrap; font-size:13.5px }
+.acolhe-linha.acolhe:has(.acolhe-rascunho){ align-self:stretch; max-width:100% }

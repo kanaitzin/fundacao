@@ -1,11 +1,12 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { api } from './api';
 import { Icone } from './icones';
-import { EscolherAnexo, Escolhido, base64De } from './anexos';
+import { EscolherAnexo, Escolhido, base64De, oferecerFotosDaAcolhe } from './anexos';
 import { MEXEM_NA_TELA, rotaDeLeituraPermitida } from '../../backend/src/modules/assistente/ferramentas';
 import { calcular, numeroEmPortugues } from '../../backend/src/modules/assistente/calculo';
-import { responderPeloGuia, TelaDoGuia } from './acolhe-guia';
+import { DESTINOS_DE_TEXTO, responderPeloGuia, TelaDoGuia } from './acolhe-guia';
 import { apertarBotao, botoesDaTela, camposDaTela, preencherCampo, textoDaTela } from './acolhe-tela';
+import { Ditado, aceitarAvisoDaVoz, avisoDaVozAceito, iniciarDitado, juntarAoTexto, reconhecimentoDeVoz } from './ditado';
 
 /**
  * A ACOLHE+AI, EM TODAS AS TELAS (fase 192; pedido e decisões de 08/10).
@@ -51,7 +52,21 @@ interface Linha {
   conta?: { rotulo: string; conta: string; resultado: string };
   tabela?: Tabela;
   licenca?: 'aberta' | 'sim' | 'nao';
+  rascunho?: Rascunho;
+  /** O que a Acolhe+AI escreveu na tela nesta vez, para a pessoa conferir (fase 195). */
+  feito?: { campo: string; valor: string }[];
 }
+
+/**
+ * O RASCUNHO (fase 195): o texto que a Acolhe+AI organizou, antes de qualquer
+ * registro. A pessoa edita, aprova, acrescenta falando, anexa foto e o leva
+ * para a tela onde ele fica, e ali ainda confere e salva.
+ */
+interface Rascunho {
+  titulo: string; texto: string; tela?: string; fotos: Escolhido[];
+  estado: 'aberto' | 'aprovado' | 'levado' | 'descartado';
+}
+
 
 /**
  * A conversa de colega para colega (fase 193): o que escapar do modelo em
@@ -82,18 +97,6 @@ function emPlanilha(t: Tabela): string {
 const VOZES = ['Toda a equipe', 'Coordenação de acolhimento', 'Psicologia', 'Análise de sistemas', 'Engenharia'];
 const MAX_VOLTAS = 12;
 const LIMITE_RESULTADO = 30_000;
-const CHAVE_AVISO_VOZ = 'rede-acolher.acolhe.aviso-do-microfone';
-
-type Reconhecedor = {
-  lang: string; interimResults: boolean; continuous: boolean;
-  onresult: ((e: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null;
-  onend: (() => void) | null; onerror: (() => void) | null;
-  start: () => void; stop: () => void;
-};
-const ReconhecimentoDeVoz = (): (new () => Reconhecedor) | null => {
-  const w = window as unknown as { SpeechRecognition?: new () => Reconhecedor; webkitSpeechRecognition?: new () => Reconhecedor };
-  return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
-};
 
 /** Lê em voz alta, em português, com a voz que o aparelho tiver. */
 function falar(texto: string) {
@@ -143,7 +146,11 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
   const anexos = useRef<Escolhido[]>([]);
   const seq = useRef(0);
   const fim = useRef<HTMLDivElement | null>(null);
-  const reconhecedor = useRef<Reconhecedor | null>(null);
+  const ditado = useRef<Ditado | null>(null);
+  const preenchidos = useRef<{ campo: string; valor: string }[]>([]);
+  const ditadoDoRascunho = useRef<{ id: number; d: Ditado } | null>(null);
+  const [rascunhoOuvindo, setRascunhoOuvindo] = useState<number | null>(null);
+  const [falaProvisoria, setFalaProvisoria] = useState('');
   /** O que a pessoa confirmou ou recusou desde a última pergunta: vai junto com a próxima. */
   const pendenteParaOModelo = useRef<string[]>([]);
 
@@ -232,11 +239,20 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
       if (nome === 'preencher_campo') {
         setFaixa(`Escrevendo em ${String(entrada.campo ?? '')}…`);
         const r = await preencherCampo(String(entrada.campo ?? ''), String(entrada.valor ?? ''));
+        if (r.ok && r.campo) preenchidos.current.push({ campo: r.campo, valor: String(entrada.valor ?? '') });
         return { conteudo: r.frase, erro: !r.ok };
       }
       setFaixa(`Abrindo ${String(entrada.botao ?? '')}…`);
       const r = await apertarBotao(String(entrada.botao ?? ''));
       return { conteudo: r.frase, erro: !r.ok };
+    }
+    if (nome === 'mostrar_rascunho') {
+      const texto = humanizar(String(entrada.texto ?? '')).slice(0, 8000);
+      if (texto.length < 3) return { conteudo: 'O rascunho veio vazio.', erro: true };
+      const tela = typeof entrada.tela === 'string' && telas.some((x) => x.chave === entrada.tela) ? entrada.tela : undefined;
+      acrescentar({ quem: 'acolhe', texto: '', rascunho: {
+        titulo: humanizar(String(entrada.titulo ?? 'Rascunho')).slice(0, 120), texto, tela, fotos: [], estado: 'aberto' } });
+      return { conteudo: 'O rascunho foi mostrado. Espere a pessoa aprovar, editar, acrescentar ou anexar foto; não preencha a tela antes.' };
     }
     if (nome === 'calcular') {
       const conta = String(entrada.conta ?? '');
@@ -318,12 +334,17 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
     if (r.conta) void executar('calcular', { conta: r.conta, rotulo: 'A conta' }).then((x) => { if (x.erro) dizer(x.conteudo); });
     if (r.ir) navegar(r.ir);
     if (r.ir && r.abrirFormulario) void abrirOFormulario(t);
+    else if (r.ir) void abrirOFormulario(t, true);
+    if (r.rascunho) {
+      const tela = r.rascunho.tela && telas.some((x) => x.chave === r.rascunho!.tela) ? r.rascunho.tela : undefined;
+      acrescentar({ quem: 'acolhe', texto: '', rascunho: { ...r.rascunho, tela, fotos: [], estado: 'aberto' } });
+    }
     if (r.sugestao) acrescentar({ quem: 'acolhe', texto: DESCRICAO.propor_sugestao,
       proposta: { tipo: 'propor_sugestao', texto: r.sugestao, tela: telaAtual, estado: 'aberta' } });
   }
 
   /** No modo guia: com a licença, aperta o botão que abre o formulário da tela. */
-  async function abrirOFormulario(pedido: string) {
+  async function abrirOFormulario(pedido: string, soSeCombinar = false): Promise<boolean> {
     await new Promise((r) => setTimeout(r, 350));
     /* Com mais de um formulário na tela (lanche e cesta, alergia e restrição),
        abre o que tem mais palavras em comum com o pedido; senão, o primeiro. */
@@ -333,21 +354,94 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
       .filter((el) => el.getClientRects().length > 0);
     const pontos = (el: HTMLElement) => palavras.filter((w) => sem(el.innerText).includes(w.slice(0, 5))).length;
     const alvo = visiveis.reduce<HTMLElement | undefined>((m, el) => (!m || pontos(el) > pontos(m) ? el : m), undefined);
+    /* "Quero abrir uma chamada": o pedido nomeou um botão da tela (duas palavras
+       em comum), e ele abre junto. Sem isso, levar à tela basta. */
+    if (soSeCombinar && (!alvo || pontos(alvo) < 2)) return false;
     if (!alvo) {
       dizer('Esta tela não tem um formulário que eu saiba abrir. O botão para começar está no alto da tela.');
-      return;
+      return false;
     }
     const nome = (alvo.getAttribute('aria-label') || alvo.innerText || '').trim();
     const r = await executar('apertar_botao', { botao: nome });
-    if (r.erro) dizer(r.conteudo);
-    else setFaixa('Abri o formulário. Preencha e salve quando estiver certo.');
+    if (r.erro) { dizer(r.conteudo); return false; }
+    setFaixa('Abri o formulário. Preencha e salve quando estiver certo.');
+    return true;
   }
 
-  async function enviar() {
-    const t = texto.trim();
+  // ---------- O rascunho (fase 195) ----------
+
+  const mudarRascunho = (id: number, patch: Partial<Rascunho>) =>
+    setLinhas((xs) => xs.map((l) => (l.id === id && l.rascunho ? { ...l, rascunho: { ...l.rascunho, ...patch } } : l)));
+
+  /** O resumo do que foi escrito na tela, para a pessoa conferir antes de salvar. */
+  function mostrarFeito() {
+    const lista = preenchidos.current.splice(0);
+    if (lista.length) acrescentar({ quem: 'nota', texto: '', feito: lista });
+  }
+
+  function acrescentarFalando(l: Linha) {
+    if (ditadoDoRascunho.current) {
+      const era = ditadoDoRascunho.current.id;
+      ditadoDoRascunho.current.d.parar();
+      if (era === l.id) return;
+    }
+    if (!reconhecimentoDeVoz()) { dizer('Este navegador não ouve pelo microfone. Escreva no rascunho, por favor.'); return; }
+    if (!avisoDaVozAceito()) { setAvisoVoz(true); return; }
+    const d = iniciarDitado({
+      onCerto: (t) => setLinhas((xs) => xs.map((x) => (x.id === l.id && x.rascunho
+        ? { ...x, rascunho: { ...x.rascunho, texto: juntarAoTexto(x.rascunho.texto, t) } } : x))),
+      onProvisorio: setFalaProvisoria,
+      onFim: () => { ditadoDoRascunho.current = null; setRascunhoOuvindo(null); setFalaProvisoria(''); },
+      onErro: (f) => dizer(f),
+    });
+    if (d) { ditadoDoRascunho.current = { id: l.id, d }; setRascunhoOuvindo(l.id); }
+  }
+
+  function aprovar(l: Linha) {
+    const r = l.rascunho!;
+    ditadoDoRascunho.current?.d.parar();
+    mudarRascunho(l.id, { estado: 'aprovado' });
+    if (ligada) {
+      r.fotos.forEach((f) => anexos.current.push(f));
+      pendenteParaOModelo.current.push(`[A pessoa aprovou o rascunho "${r.titulo}"${r.fotos.length ? `, com ${r.fotos.length} foto(s) anexada(s) à conversa` : ''}. O texto final, como ela deixou:\n${r.texto}]`);
+      void enviar('Aprovei o rascunho.');
+      return;
+    }
+    dizer(r.tela
+      ? 'Ótimo. Agora é só levar o texto para a tela: eu abro o formulário e escrevo, e você confere e salva.'
+      : 'Ótimo. Escolha no cartão onde o texto vai ficar, e eu levo: abro o formulário e escrevo, e você confere e salva.');
+  }
+
+  /** Leva o rascunho aprovado à tela: abre, abre o formulário, escreve no campo de texto longo, oferece as fotos. */
+  async function levar(l: Linha) {
+    const r = l.rascunho!;
+    if (!r.tela) return;
+    navegar(r.tela);
+    await new Promise((ok) => setTimeout(ok, 500));
+    const abriu = await abrirOFormulario(`${r.titulo} ${r.texto.slice(0, 200)}`);
+    if (!abriu) return;
+    await new Promise((ok) => setTimeout(ok, 400));
+    const campo = camposDaTela().find((c) => c.tipo === 'texto longo');
+    if (!campo) {
+      dizer('Abri o formulário, mas não achei nele um campo de texto longo. O rascunho continua aqui para você copiar.');
+      return;
+    }
+    const e = await executar('preencher_campo', { campo: String(campo.n), valor: r.texto });
+    if (e.erro) { dizer(e.conteudo); return; }
+    if (r.fotos.length) oferecerFotosDaAcolhe(r.fotos);
+    mudarRascunho(l.id, { estado: 'levado' });
+    mostrarFeito();
+    setFaixa(r.fotos.length
+      ? 'Escrevi o rascunho no formulário. No anexo, use Usar a foto da Acolhe+AI. Confira tudo e salve.'
+      : 'Escrevi o rascunho no formulário. Confira, mude o que quiser e salve.');
+  }
+
+  async function enviar(forcado?: string) {
+    const t = (forcado ?? texto).trim();
     if ((!t && !anexo) || ocupada) return;
-    const meu = anexo;
-    setTexto(''); setAnexo(null); setAnexando(false); setPelaCamera(false);
+    const meu = forcado ? null : anexo;
+    ditado.current?.parar();
+    if (!forcado) { setTexto(''); setAnexo(null); setAnexando(false); setPelaCamera(false); }
     acrescentar({ quem: 'pessoa', texto: t || 'Veja este arquivo.', anexo: meu?.nome });
     if (!ligada) { pelosGuias(t, !!meu && !t); return; }
 
@@ -412,27 +506,26 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
       }
     } finally {
       setOcupada(false); setLendo('');
+      mostrarFeito();
     }
   }
 
+  /**
+   * O microfone da Acolhe+AI é o ditado longo (fase 195): o relatório falado
+   * aparece na caixa enquanto a pessoa fala, e ela confere antes de enviar.
+   * Fala até apertar de novo; uma pausa para pensar não corta.
+   */
   function ouvir() {
-    const R = ReconhecimentoDeVoz();
-    if (!R) { dizer('Este navegador não ouve pelo microfone. Escreva a pergunta, por favor.'); return; }
-    let avisado = false;
-    try { avisado = localStorage.getItem(CHAVE_AVISO_VOZ) === '1'; } catch { /* sem armazenamento */ }
-    if (!avisado) { setAvisoVoz(true); return; }
-    if (ouvindo) { reconhecedor.current?.stop(); return; }
-    const r = new R();
-    r.lang = 'pt-BR'; r.interimResults = false; r.continuous = false;
-    r.onresult = (e) => {
-      const fala = Array.from(e.results).map((x) => x[0]?.transcript ?? '').join(' ').trim();
-      if (fala) setTexto((t) => (t ? `${t} ${fala}` : fala));
-    };
-    r.onend = () => setOuvindo(false);
-    r.onerror = () => setOuvindo(false);
-    reconhecedor.current = r;
-    setOuvindo(true);
-    r.start();
+    if (ouvindo) { ditado.current?.parar(); return; }
+    if (!reconhecimentoDeVoz()) { dizer('Este navegador não ouve pelo microfone. Escreva, por favor.'); return; }
+    if (!avisoDaVozAceito()) { setAvisoVoz(true); return; }
+    ditado.current = iniciarDitado({
+      onCerto: (t) => setTexto((x) => juntarAoTexto(x, t)),
+      onProvisorio: setFalaProvisoria,
+      onFim: () => { ditado.current = null; setOuvindo(false); setFalaProvisoria(''); },
+      onErro: (f) => dizer(f),
+    });
+    if (ditado.current) setOuvindo(true);
   }
 
   function lerTela() {
@@ -506,6 +599,93 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
           <button className="btn sm" onClick={() => responderLicenca(l.id, true)}>Pode mexer</button>
           <button className="btn sm sec" onClick={() => responderLicenca(l.id, false)}>Prefiro eu fazer</button>
         </div>
+      </div>
+    );
+  }
+
+  /*
+   * O CARTÃO DO RASCUNHO. Chamado como função, e não como componente: um
+   * componente declarado aqui dentro nasceria de novo a cada letra, e o campo
+   * perderia o cursor no meio da frase.
+   */
+  function cartaoDoRascunho(l: Linha) {
+    const r = l.rascunho!;
+    const destinos = telas.filter((x) => DESTINOS_DE_TEXTO.includes(x.chave));
+    const aberto = r.estado === 'aberto';
+    const ouvindoAqui = rascunhoOuvindo === l.id;
+    return (
+      <div className="acolhe-proposta acolhe-rascunho" role="group" aria-labelledby={`t-rasc-${l.id}`}>
+        <strong id={`t-rasc-${l.id}`}>Rascunho: {r.titulo}</strong>
+        <label htmlFor={`rasc-${l.id}`} className="so-leitor">O texto do rascunho</label>
+        <textarea id={`rasc-${l.id}`} rows={Math.min(12, Math.max(4, Math.ceil(r.texto.length / 50)))}
+                  value={r.texto} readOnly={r.estado === 'levado' || r.estado === 'descartado'}
+                  onChange={(e) => mudarRascunho(l.id, { texto: e.target.value })} />
+        {ouvindoAqui && (
+          <p className="acolhe-fala" role="status" aria-live="polite">{falaProvisoria || 'Ouvindo. O que você falar entra no fim do rascunho.'}</p>
+        )}
+        {r.fotos.length > 0 && (
+          <ul className="acolhe-rascunho-fotos" aria-label="Fotos do rascunho">
+            {r.fotos.map((f, i) => (
+              <li key={i}>
+                {f.dataUrl.startsWith('data:image')
+                  ? <img src={f.dataUrl} alt={`Foto ${i + 1} do rascunho`} />
+                  : <span className="mutetxt">{f.nome}</span>}
+                {aberto && (
+                  <button type="button" className="btn sm ghost" onClick={() => mudarRascunho(l.id, { fotos: r.fotos.filter((_, j) => j !== i) })}>
+                    Tirar a foto {i + 1}
+                  </button>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+        {aberto && (
+          <EscolherAnexo id={`rasc-foto-${l.id}`} arquivo={null} multiplos aceita="image/jpeg,image/png"
+                         onEscolher={(f) => { if (f) mudarRascunho(l.id, { fotos: [...r.fotos, f] }); }} />
+        )}
+        {(aberto || r.estado === 'aprovado') && destinos.length > 0 && (
+          <label className="acolhe-destino">
+            <span>Onde vai ficar</span>
+            <select value={r.tela ?? ''} onChange={(e) => mudarRascunho(l.id, { tela: e.target.value || undefined })}>
+              <option value="">Escolha a tela</option>
+              {destinos.map((d) => <option key={d.chave} value={d.chave}>{d.titulo}</option>)}
+            </select>
+          </label>
+        )}
+        {aberto && (
+          <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+            <button className="btn sm" onClick={() => aprovar(l)}><Icone nome="certo" /> Está bom</button>
+            <button className="btn sm sec" aria-pressed={ouvindoAqui} onClick={() => acrescentarFalando(l)}>
+              <Icone nome="microfone" /> {ouvindoAqui ? 'Parar de ouvir' : 'Acrescentar falando'}
+            </button>
+            <button className="btn sm ghost" onClick={() => mudarRascunho(l.id, { estado: 'descartado' })}>Descartar</button>
+          </div>
+        )}
+        {r.estado === 'aprovado' && (
+          <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+            <button className="btn sm" disabled={!r.tela} onClick={() => void levar(l)}>
+              Levar para a tela{r.tela ? `: ${telas.find((x) => x.chave === r.tela)?.titulo ?? r.tela}` : ''}
+            </button>
+            <button className="btn sm ghost" onClick={() => mudarRascunho(l.id, { estado: 'aberto' })}>Mexer mais</button>
+          </div>
+        )}
+        {r.estado === 'levado' && <p className="acolhe-estado feita" role="status">Escrito no formulário. Confira lá e salve.</p>}
+        {r.estado === 'descartado' && <p className="acolhe-estado" role="status">Descartado. Nada foi guardado.</p>}
+      </div>
+    );
+  }
+
+  /** O que a Acolhe+AI escreveu na tela, campo por campo, para a pessoa conferir. */
+  function feitoNaTela(lista: { campo: string; valor: string }[]) {
+    return (
+      <div className="acolhe-proposta" role="group" aria-label="O que eu escrevi na tela">
+        <strong>O que eu escrevi na tela</strong>
+        <dl className="acolhe-feito">
+          {lista.map((f, i) => (
+            <div key={i}><dt>{f.campo}</dt><dd>{f.valor.length > 240 ? `${f.valor.slice(0, 240)}…` : f.valor}</dd></div>
+          ))}
+        </dl>
+        <p className="mutetxt" style={{ margin: 0 }}>Confira na tela, mude o que quiser e salve. Nada foi salvo por mim.</p>
       </div>
     );
   }
@@ -619,10 +799,12 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
             {l.quem === 'acolhe' && <span className="so-leitor">Acolhe+AI: </span>}
             {l.anexo && <span className="acolhe-anexo"><Icone nome="anexo" tamanho={14} /> {l.anexo}</span>}
             {l.licenca ? <Licenca l={l} />
+              : l.rascunho ? cartaoDoRascunho(l)
+              : l.feito ? feitoNaTela(l.feito)
               : l.conta ? <Conta c={l.conta} />
                 : l.tabela ? <TabelaDaConversa t={l.tabela} />
                   : l.proposta ? <Cartao l={l} /> : <Texto t={l.texto} />}
-            {l.quem === 'acolhe' && !l.proposta && !l.licenca && !l.tabela && (
+            {l.quem === 'acolhe' && !l.proposta && !l.licenca && !l.tabela && !l.rascunho && (
               <button className="acolhe-ouvir" aria-label="Ouvir esta resposta" onClick={() => falar(l.texto)}>
                 <Icone nome="ouvir" tamanho={14} /> Ouvir
               </button>
@@ -637,10 +819,9 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
           <strong id="t-aviso-voz">Antes de usar o microfone</strong>
           <p>O que você falar é transformado em texto pelo serviço do navegador (no Chrome, o do Google). Evite dizer nome completo e dados de criança em voz alta; escreva quando puder.</p>
           <div className="row" style={{ gap: 8 }}>
-            <button className="btn sm" onClick={() => {
-              try { localStorage.setItem(CHAVE_AVISO_VOZ, '1'); } catch { /* sem armazenamento */ }
-              setAvisoVoz(false); ouvir();
-            }}>Entendi, usar o microfone</button>
+            <button className="btn sm" onClick={() => { aceitarAvisoDaVoz(); setAvisoVoz(false); ouvir(); }}>
+              Entendi, usar o microfone
+            </button>
             <button className="btn sm sec" onClick={() => setAvisoVoz(false)}>Agora não</button>
           </div>
         </div>
@@ -657,6 +838,11 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
         <textarea id="acolhe-pergunta" rows={2} value={texto} placeholder="Escreva ou fale com a Acolhe+AI"
                   onChange={(e) => setTexto(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void enviar(); } }} />
+        {ouvindo && (
+          <p className="acolhe-fala" role="status" aria-live="polite">
+            {falaProvisoria || 'Ouvindo. Fale à vontade, pausas não cortam; aperte o microfone para parar e confira antes de enviar.'}
+          </p>
+        )}
         <div className="row acolhe-acoes">
           <button type="button" className={`iconbtn ${anexando && !pelaCamera ? 'ativo' : ''}`} aria-pressed={anexando && !pelaCamera}
                   aria-label="Anexar foto ou documento" title="Anexar"
