@@ -193,6 +193,23 @@ export async function preencherCampo(pedido: string, valor: string): Promise<{ o
 }
 
 /** Aperta um botão que abre algo. Botão que grava não se aperta. */
+/**
+ * Aperta ESTE botão (fase 196): o guia escolheu o elemento (o "Registrar retorno"
+ * da linha da criança nomeada, entre vários iguais), e a regra é a mesma: só o
+ * que a tela marcou, ou aba.
+ */
+export async function apertarEste(el: HTMLElement): Promise<{ ok: boolean; frase: string }> {
+  const b = botoes().find((x) => x.el === el);
+  if (!b) return { ok: false, frase: 'O botão não está mais na tela.' };
+  if (!b.pode) return { ok: false, frase: `O botão "${b.nome}" é da pessoa: ele pode gravar.` };
+  marcar(b.el);
+  await espera(semMovimento() ? 0 : 300);
+  b.el.click();
+  b.el.classList.remove('acolhe-mexendo');
+  await espera(250);
+  return { ok: true, frase: `Apertei "${b.nome}".` };
+}
+
 export async function apertarBotao(pedido: string): Promise<{ ok: boolean; frase: string }> {
   const a = achar(botoes(), (x) => x.nome, pedido);
   if (typeof a === 'string') return { ok: false, frase: a };

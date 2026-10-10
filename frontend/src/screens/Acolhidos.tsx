@@ -312,6 +312,9 @@ export function Acolhidos({ houseId, casaLabel, papel, abrir }: {
     try { setAcervo(await api<Acervo>(`/people/archive?houseId=${houseId}`)); }
     catch (e) { setErro(e instanceof Error ? e.message : 'Não foi possível abrir o acervo.'); }
   }, [houseId]);
+  /* Entrar no acervo só muda o estado; a leitura vem daqui (fase 196: o botão de
+     entrar tem a marca `data-acolhe-entra`, e o clique dele só pode mudar estado). */
+  useEffect(() => { if (vendoAcervo) void carregarAcervo(); }, [vendoAcervo, carregarAcervo]);
 
   /**
    * Registrar o retorno.
@@ -643,8 +646,8 @@ export function Acolhidos({ houseId, casaLabel, papel, abrir }: {
                       onRegistrou={(msg) => { setChegando(false); setAviso(msg); void carregar(); }} />
       )}
       {REGISTRA_SAIDA.includes(papel) && (
-        <button className="btn block sec" style={{ marginTop: 8 }}
-                onClick={() => { setVendoAcervo(true); carregarAcervo(); }}>
+        <button data-acolhe-entra="" className="btn block sec" style={{ marginTop: 8 }}
+                onClick={() => setVendoAcervo(true)}>
           <Icone nome="arquivo" /> Acervo histórico — quem saiu, e registrar retorno
         </button>
       )}

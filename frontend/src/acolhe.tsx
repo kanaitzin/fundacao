@@ -4,8 +4,8 @@ import { Icone } from './icones';
 import { EscolherAnexo, Escolhido, base64De, oferecerFotosDaAcolhe } from './anexos';
 import { MEXEM_NA_TELA, rotaDeLeituraPermitida } from '../../backend/src/modules/assistente/ferramentas';
 import { calcular, numeroEmPortugues } from '../../backend/src/modules/assistente/calculo';
-import { CriancaDaCasa, DESTINOS_DE_TEXTO, criancasNoPedido, pedeFormulario, responderPeloGuia, TelaDoGuia } from './acolhe-guia';
-import { apertarBotao, botoesDaTela, camposDaTela, preencherCampo, textoDaTela } from './acolhe-tela';
+import { CriancaDaCasa, DESTINOS_DE_TEXTO, criancasNoPedido, pedeAcao, pedeFormulario, responderPeloGuia, TelaDoGuia } from './acolhe-guia';
+import { apertarBotao, apertarEste, botoesDaTela, camposDaTela, preencherCampo, textoDaTela } from './acolhe-tela';
 import { Ditado, aceitarAvisoDaVoz, avisoDaVozAceito, iniciarDitado, juntarAoTexto, reconhecimentoDeVoz } from './ditado';
 
 /**
@@ -358,12 +358,24 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
       if (achadas.length === 1 && (await peloPerfil(t, achadas[0], r.ir))) return;
       daCrianca = achadas[0];
     }
+    /* Pedido sem nome de tela ("quero registrar um complemento", com o plantão
+       aberto): vale para a tela em que a pessoa está, se ela tem esse formulário. */
+    if (!r.ir && !r.rascunho && !r.sugestao && !r.conta && !daCrianca && pedeAcao(t)) {
+      const aqui = telas.find((x) => x.chave === telaAtual);
+      if (await abrirOFormulario(t, true, { tela: aqui?.titulo, chave: telaAtual })) {
+        dizer('Abri o formulário aqui nesta tela. Preencha e salve quando estiver certo.');
+        return;
+      }
+    }
     dizer(r.texto);
     if (r.conta) void executar('calcular', { conta: r.conta, rotulo: 'A conta' }).then((x) => { if (x.erro) dizer(x.conteudo); });
     if (r.ir) navegar(r.ir);
     /* "O diário da internação da Alice": na tela de destino, entra primeiro no
        registro dela (o cartão com o nome) e abre o formulário de dentro. */
-    const daCriancaNaTela = daCrianca ? { ignorar: sem(daCrianca.nome).split(/[^a-z0-9]+/), entrar: true, nomeDaCrianca: daCrianca.nome } : {};
+    const titulo = telas.find((x) => x.chave === r.ir)?.titulo;
+    const daCriancaNaTela = daCrianca
+      ? { ignorar: sem(daCrianca.nome).split(/[^a-z0-9]+/), entrar: true, nomeDaCrianca: daCrianca.nome, tela: titulo }
+      : { tela: titulo, chave: r.ir };
     if (r.ir && r.abrirFormulario) await abrirOFormulario(t, false, daCriancaNaTela);
     else if (r.ir) await abrirOFormulario(t, true, daCriancaNaTela);
     if (r.rascunho) {
@@ -405,47 +417,128 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
    * dossiê) antes do formulário de dentro dele.
    */
   async function abrirOFormulario(pedido: string, soSeCombinar = false,
-    { ignorar = [], entrar = false, nomeDaCrianca }: { ignorar?: string[]; entrar?: boolean; nomeDaCrianca?: string } = {}): Promise<boolean> {
+    { ignorar = [], entrar = false, nomeDaCrianca, tela, chave }: { ignorar?: string[]; entrar?: boolean; nomeDaCrianca?: string; tela?: string; chave?: string } = {}): Promise<boolean> {
     await new Promise((r) => setTimeout(r, 350));
-    /* Com mais de um formulário na tela (lanche e cesta, alergia e restrição),
-       abre o que tem mais palavras em comum com o pedido; senão, o primeiro. */
+    /* O nome da tela de destino já levou à tela: não escolhe aba nem cartão
+       ("me leva para Internação hospitalar" não entra no Hospital Fictício). */
+    const daTela = tela ? sem(tela).split(/[^a-z]+/) : [];
     const palavras = sem(pedido).split(/[^a-z]+/)
       .filter((w) => w.length > 3 && !ignorar.includes(w) && !(entrar && GENERICAS.test(w)));
+    const tem = (texto: string) => palavras.filter((w) => sem(texto).includes(w.slice(0, 5))).length;
+    /* O que o pedido diz além do nome da tela e dos verbos: "me leva para a Cozinha" não diz nada. */
+    const assunto = palavras.filter((w) => !daTela.includes(w) && !GENERICAS.test(w));
+    const temNoCaminho = (texto: string) => palavras.filter((w) => !daTela.includes(w) && sem(texto).includes(w.slice(0, 5))).length;
+    /* Formulário pedido sem a criança precisa de duas palavras em comum ("quero
+       abrir uma chamada"); com ela, ou no perfil, uma basta. */
     const minimo = entrar ? 1 : 2;
-    /* Entrando (fase 196), o caminho pode passar por uma entrada (o dossiê) e por
-       uma aba (Vivências) antes do formulário: até três passos. */
-    const seletor = entrar
-      ? 'main.conteudo [data-acolhe-abre], main.conteudo [data-acolhe-entra], main.conteudo [role="tab"]:not([aria-selected="true"])'
-      : 'main.conteudo [data-acolhe-abre]';
-    const jaApertados: string[] = [];
-    for (let nivel = 0; nivel < 3; nivel++) {
-      const visiveis = Array.from(document.querySelectorAll<HTMLElement>(seletor))
-        .filter((el) => el.getClientRects().length > 0 && !jaApertados.includes(el.innerText.trim()));
-      const pontos = (el: HTMLElement) => palavras.filter((w) => sem(el.innerText).includes(w.slice(0, 5))).length;
-      /* O registro com o nome da criança vem antes de qualquer formulário da lista. */
+    const jaApertados: HTMLElement[] = [];
+    const abasOlhadas: string[] = [];
+    /* O caminho pode passar por uma entrada (o dossiê, o acervo, o plantão) e por
+       uma aba (Vivências, Compras) antes do formulário: até três passos, mais as
+       abas que ela olha uma a uma quando nenhuma casa com o pedido. */
+    for (let nivel = 0, passos = 0; nivel < 3 && passos < 10; passos++) {
+      const visivel = (el: HTMLElement) => el.getClientRects().length > 0 && !jaApertados.includes(el);
+      const formularios = Array.from(document.querySelectorAll<HTMLElement>('main.conteudo [data-acolhe-abre]')).filter(visivel);
+      const caminhos = Array.from(document.querySelectorAll<HTMLElement>(
+        'main.conteudo [data-acolhe-entra], main.conteudo [role="tab"]:not([aria-selected="true"])')).filter(visivel);
+      /* O botão repetido em cada linha (o "Registrar retorno" de cada criança)
+         desempata pela linha: a palavra do pedido escrita ao lado dele. */
+      const pontos = (el: HTMLElement) => {
+        const linha = el.closest('li, .card, .row');
+        return tem(el.innerText) * 2 + (linha && linha !== el ? Math.min(1, tem((linha as HTMLElement).innerText) - tem(el.innerText)) : 0);
+      };
+      const melhor = (xs: HTMLElement[]) => xs.reduce<HTMLElement | undefined>((m, el) => (!m || pontos(el) > pontos(m) ? el : m), undefined);
+      /* O registro com o nome da criança vem antes de tudo. */
       const doNome = nomeDaCrianca && nivel === 0
-        ? visiveis.find((el) => el.hasAttribute('data-acolhe-entra') && sem(el.innerText).includes(sem(nomeDaCrianca).split(/[^a-z0-9]+/)[0]))
+        ? caminhos.find((el) => el.hasAttribute('data-acolhe-entra') && sem(el.innerText).includes(sem(nomeDaCrianca).split(/[^a-z0-9]+/)[0]))
         : undefined;
-      const alvo = doNome ?? visiveis.reduce<HTMLElement | undefined>((m, el) => (!m || pontos(el) > pontos(m) ? el : m), undefined);
-      /* "Quero abrir uma chamada": o pedido nomeou um botão da tela (duas palavras
-         em comum), e ele abre junto. Sem isso, levar à tela basta. */
-      if (soSeCombinar && !doNome && (!alvo || pontos(alvo) < minimo)) return nivel > 0;
+      const form = melhor(formularios);
+      const caminho = caminhos.reduce<HTMLElement | undefined>((m, el) => (!m || temNoCaminho(el.innerText) > temNoCaminho(m.innerText) ? el : m), undefined);
+      const pf = form ? tem(form.innerText) : 0;
+      const pc = caminho ? temNoCaminho(caminho.innerText) : 0;
+      let alvo: HTMLElement | undefined;
+      if (doNome) alvo = doNome;
+      else if (form && pf >= minimo && pf >= pc) alvo = form;
+      else if (caminho && pc >= 1) alvo = caminho;
+      else if (form && !soSeCombinar && nivel === 0) alvo = form; // pediu para criar: o primeiro formulário da tela
+      /* Nada casa, mas a tela tem abas que ela ainda não olhou: olha a próxima
+         (aba só mostra; o formulário pedido pode estar atrás dela). */
+      if (!alvo && !(form && pf >= 1) && assunto.length >= (soSeCombinar ? 2 : 1)) {
+        const aba = Array.from(document.querySelectorAll<HTMLElement>('main.conteudo [role="tab"]'))
+          .find((el) => el.getClientRects().length > 0 && !abasOlhadas.includes(el.innerText.trim()) && el.getAttribute('aria-selected') !== 'true');
+        if (aba) {
+          document.querySelectorAll<HTMLElement>('main.conteudo [role="tab"][aria-selected="true"]').forEach((el) => abasOlhadas.push(el.innerText.trim()));
+          abasOlhadas.push(aba.innerText.trim());
+          const r = await apertarAqui(aba);
+          if (r.erro) { dizer(r.conteudo); return false; }
+          await new Promise((ok) => setTimeout(ok, 350));
+          continue;
+        }
+      }
+      /* Nada casa e não há aba: o formulário pode morar dentro de um dos
+         registros da tela (o complemento, no plantão em que a pessoa assinou).
+         Ela entra em cada um, até quatro, e procura. */
+      if (!alvo && nivel === 0 && chave && !nomeDaCrianca && assunto.length >= (soSeCombinar ? 2 : 1)) {
+        if (await procurarNasEntradas(chave, (t) => assunto.filter((w) => sem(t).includes(w.slice(0, 5))).length)) return true;
+      }
       if (!alvo) {
-        dizer('Esta tela não tem um formulário que eu saiba abrir. O botão para começar está no alto da tela.');
+        if (nivel > 0) return true;
+        if (!soSeCombinar) dizer('Esta tela não tem um formulário que eu saiba abrir. O botão para começar está no alto da tela.');
         return false;
       }
-      const nome = (alvo.getAttribute('aria-label') || alvo.innerText || '').trim();
-      const entrada = alvo.hasAttribute('data-acolhe-entra') || alvo.getAttribute('role') === 'tab';
-      const r = await executar('apertar_botao', { botao: nome });
+      const r = await apertarAqui(alvo);
       if (r.erro) { dizer(r.conteudo); return false; }
-      if (!entrada) {
+      if (alvo.hasAttribute('data-acolhe-abre')) {
         setFaixa('Abri o formulário. Preencha e salve quando estiver certo.');
         return true;
       }
-      jaApertados.push(alvo.innerText.trim());
-      await new Promise((ok) => setTimeout(ok, 400));
+      jaApertados.push(alvo);
+      abasOlhadas.length = 0;
+      nivel++;
+      await new Promise((ok) => setTimeout(ok, 450));
     }
     return true;
+  }
+
+  async function procurarNasEntradas(chave: string, tem: (t: string) => number): Promise<boolean> {
+    const entradas = () => Array.from(document.querySelectorAll<HTMLElement>('main.conteudo [data-acolhe-entra]'))
+      .filter((el) => el.getClientRects().length > 0);
+    const total = Math.min(4, entradas().length);
+    const outra = telas.find((x) => x.chave !== chave)?.chave;
+    for (let k = 0; k < total; k++) {
+      if (k > 0) {
+        if (!outra) return false;
+        navegar(outra); await new Promise((ok) => setTimeout(ok, 250));
+        navegar(chave); await new Promise((ok) => setTimeout(ok, 700));
+      }
+      const el = entradas()[k];
+      if (!el) break;
+      const r = await apertarAqui(el);
+      if (r.erro) { dizer(r.conteudo); return false; }
+      await new Promise((ok) => setTimeout(ok, 700));
+      const form = Array.from(document.querySelectorAll<HTMLElement>('main.conteudo [data-acolhe-abre]'))
+        .filter((x) => x.getClientRects().length > 0)
+        .reduce<HTMLElement | undefined>((m, x) => (!m || tem(x.innerText) > tem(m.innerText) ? x : m), undefined);
+      if (form && tem(form.innerText) >= 1) {
+        const f = await apertarAqui(form);
+        if (f.erro) { dizer(f.conteudo); return false; }
+        setFaixa('Abri o formulário. Preencha e salve quando estiver certo.');
+        return true;
+      }
+    }
+    if (total && outra) { navegar(outra); await new Promise((ok) => setTimeout(ok, 250)); navegar(chave); }
+    return false;
+  }
+
+  /** O guia aperta o elemento que escolheu, com as mesmas regras das ferramentas: parar, licença, faixa. */
+  async function apertarAqui(el: HTMLElement): Promise<{ conteudo: string; erro?: boolean }> {
+    if (parar.current) return { conteudo: 'Parei, como você pediu.', erro: true };
+    if (!(await pedirLicenca())) return { conteudo: 'Tudo bem, não mexo na tela. O botão para começar está na própria tela.', erro: true };
+    setRecolhida(true);
+    const nome = (el.getAttribute('aria-label') || el.innerText || '').trim().split('\n')[0];
+    setFaixa(`Abrindo ${nome}…`);
+    const r = await apertarEste(el);
+    return { conteudo: r.frase, erro: !r.ok };
   }
 
   // ---------- O rascunho (fase 195) ----------

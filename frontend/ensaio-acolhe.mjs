@@ -177,9 +177,19 @@ async function percorrer(pg, rotulo) {
     await perguntar(pg, `o que é ${t.titulo}?`);
     const r = await ultimaResposta(pg);
     if (r.includes(t.titulo) && r.length > t.titulo.length + 12) linha.explicadas++; else falha(`"o que é ${t.titulo}?" não explicou (${r.slice(0, 80)})`);
-    // Os formulários que a tela mostra ao abrir.
-    const botoes = await pg.locator('main.conteudo [data-acolhe-abre]').evaluateAll((els) =>
+    /* O rascunho da escala só existe depois de alguém repetir o mês anterior (o que
+       grava): o ensaio repete, na memória da página, para medir o que vive nele. */
+    const repetir = pg.locator('main.conteudo button', { hasText: 'Repetir a escala do mês anterior' });
+    if (t.chave === 'escala' && (await repetir.count())) { await repetir.first().click(); await espera(pg, 800); }
+    // Os formulários que a tela mostra ao abrir, e os que moram atrás de uma aba (fase 196).
+    const visiveisAgora = () => pg.locator('main.conteudo [data-acolhe-abre]').evaluateAll((els) =>
       els.filter((e) => e.getClientRects().length).map((e) => (e.getAttribute('aria-label') || e.innerText).trim()));
+    const botoes = [...await visiveisAgora()];
+    for (const aba of await pg.locator('main.conteudo [role="tab"]').allInnerTexts()) {
+      await pg.locator('main.conteudo [role="tab"]', { hasText: aba.trim() }).first().click().catch(() => undefined);
+      await espera(pg, 300);
+      for (const b of await visiveisAgora()) if (!botoes.includes(b)) botoes.push(b);
+    }
     const campos = () => pg.locator('main.conteudo input, main.conteudo textarea, main.conteudo select').count();
     for (const b of botoes) {
       linha.formularios++;
@@ -195,6 +205,45 @@ async function percorrer(pg, rotulo) {
       const voltar = pg.locator('main.conteudo button', { hasText: /^← / });
       if (await voltar.count()) { await voltar.first().click(); await espera(pg, 300); }
     }
+    // Os formulários atrás de uma entrada da tela (o acervo, o cartão do plantão; fase 196).
+    if ((await telaAberta(pg)) !== t.chave) await perguntar(pg, `me leva para ${t.titulo}`);
+    await fecharFolhas(pg);
+    const entradas = await pg.locator('main.conteudo [data-acolhe-entra]').evaluateAll((els) =>
+      els.filter((e) => e.getClientRects().length).map((e, i) => i));
+    for (const i of entradas) {
+      if ((await telaAberta(pg)) !== t.chave) await perguntar(pg, `me leva para ${t.titulo}`);
+      await fecharFolhas(pg);
+      const entrada = pg.locator('main.conteudo [data-acolhe-entra]').nth(i);
+      if (!(await entrada.isVisible().catch(() => false))) continue;
+      await entrada.click();
+      await espera(pg, 700);
+      const dentro = (await visiveisAgora()).filter((b) => !botoes.includes(b));
+      const camposDentro = await pg.locator('main.conteudo input, main.conteudo textarea, main.conteudo select').count();
+      for (const b of dentro) {
+        botoes.push(b);
+        linha.formularios++;
+        const outraTela = telas.find((x) => x.chave !== t.chave);
+        if (outraTela) { await fecharFolhas(pg); await perguntar(pg, `me leva para ${outraTela.titulo}`); }
+        await perguntar(pg, `quero ${b.replace(/^\+\s*/, '').toLowerCase()} em ${t.titulo}`);
+        /* Folha por cima, ou o formulário dentro do registro (o complemento): mais campos que ao entrar. */
+        let abriu = await pg.locator('main.conteudo [role="dialog"][aria-modal="true"], main.conteudo .folha').count()
+          || (await pg.locator('main.conteudo input, main.conteudo textarea, main.conteudo select').count()) > camposDentro;
+        if (abriu) { linha.formulariosAbertos++; linha.abertos.push(b); continue; }
+        /* Pelo caminho não chegou: o formulário depende de um estado (o plantão em
+           que a pessoa assinou). Pedido de dentro desse estado, conta à parte. */
+        await fecharFolhas(pg);
+        await perguntar(pg, `me leva para ${t.titulo}`);
+        await pg.locator('main.conteudo [data-acolhe-entra]').nth(i).click().catch(() => undefined);
+        await espera(pg, 700);
+        await perguntar(pg, `quero ${b.replace(/^\+\s*/, '').toLowerCase()}`);
+        abriu = await pg.locator('main.conteudo [role="dialog"][aria-modal="true"], main.conteudo .folha').count()
+          || (await pg.locator('main.conteudo textarea').count()) > 0;
+        if (abriu) { linha.formulariosAbertos++; linha.abertos.push(b); linha.soNoEstado = [...(linha.soNoEstado ?? []), b]; }
+        else falha(`"quero ${b}" (atrás de uma entrada de ${t.titulo}) não abriu, nem de dentro`);
+        await fecharFolhas(pg);
+      }
+      await fecharFolhas(pg);
+    }
     // Por voz: o mesmo pedido, falado. Sai de lá antes, para a voz provar que leva.
     const outra = telas.find((x) => x.chave !== t.chave);
     if (outra) { await perguntar(pg, `me leva para ${outra.titulo}`); await fecharFolhas(pg); }
@@ -203,6 +252,7 @@ async function percorrer(pg, rotulo) {
     else falha(`"me leva para ${t.titulo}" por voz ${v.ok ? `abriu ${await telaAberta(pg)}` : `foi ouvido como "${v.ouvido}"`}`);
   }
   await percorrerAsSubtelas(pg, telas, linha, falha);
+  if (linha.soNoEstado?.length) console.log(`    pedidos de dentro do estado em que existem: ${linha.soNoEstado.join('; ')}`);
   console.log(`    ${linha.telas} telas · por texto ${linha.porTexto} · por voz ${linha.porVoz} · explicadas ${linha.explicadas} · subtelas ${linha.subtelasAbertas ?? 0}/${linha.subtelas ?? 0} · formulários ${linha.formulariosAbertos}/${linha.formularios}`);
 }
 
@@ -213,8 +263,15 @@ async function percorrer(pg, rotulo) {
  * `data-acolhe-entra`) e os formulários de dentro dele; e a internação aberta,
  * com o diário. Conta junto com os formulários da tela.
  */
-const CRIANCA = 'Bruno';
+/* O Bruno, e o Felipe, que está com a família: o perfil de quem está fora tem o
+   "Registrar o que ela contou", que o de quem está na casa não tem. */
+const CRIANCAS = ['Bruno', 'Felipe'];
 async function percorrerAsSubtelas(pg, telas, linha, falha) {
+  const jaMedidos = new Set();
+  for (const CRIANCA of CRIANCAS) await percorrerOPerfil(pg, telas, linha, falha, CRIANCA, jaMedidos);
+  await percorrerAInternacao(pg, telas, linha, falha);
+}
+async function percorrerOPerfil(pg, telas, linha, falha, CRIANCA, jaMedidos) {
   const outra = telas.find((x) => x.chave !== 'acolhidos' && x.chave !== 'internacao');
   const sair = async () => { await fecharFolhas(pg); if (outra) await perguntar(pg, `me leva para ${outra.titulo}`); };
   const titulo = () => pg.locator('main.conteudo h2').first().innerText().catch(() => '');
@@ -234,7 +291,8 @@ async function percorrerAsSubtelas(pg, telas, linha, falha) {
     if (v.ok && (await titulo()).includes(CRIANCA)) linha.subtelasAbertas = (linha.subtelasAbertas ?? 0) + 1;
     else falha(`"abre o perfil do ${CRIANCA}" por voz abriu "${await titulo()}"`);
 
-    const doPerfil = await marcados('[data-acolhe-abre], [data-acolhe-entra]');
+    const doPerfil = (await marcados('[data-acolhe-abre], [data-acolhe-entra]')).filter((b) => !jaMedidos.has(b.rotulo));
+    doPerfil.forEach((b) => jaMedidos.add(b.rotulo));
     const base = await campos();
     for (const b of doPerfil) {
       linha.formularios++;
@@ -267,22 +325,49 @@ async function percorrerAsSubtelas(pg, telas, linha, falha) {
     }
   }
 
+}
+
+async function percorrerAInternacao(pg, telas, linha, falha) {
+  const outra = telas.find((x) => x.chave !== 'acolhidos' && x.chave !== 'internacao');
+  const sair = async () => { await fecharFolhas(pg); if (outra) await perguntar(pg, `me leva para ${outra.titulo}`); };
+  const folhaAberta = () => pg.locator('main.conteudo [role="dialog"][aria-modal="true"], main.conteudo .folha').count();
+  const marcados = (sel) => pg.locator(`main.conteudo ${sel}`).evaluateAll((els) =>
+    els.filter((e) => e.getClientRects().length).map((e) => ({ rotulo: (e.getAttribute('aria-label') || e.innerText).trim(), entra: e.hasAttribute('data-acolhe-entra') })));
   const internacao = telas.find((x) => x.chave === 'internacao');
   if (internacao) {
     await sair();
     await perguntar(pg, `me leva para ${internacao.titulo}`);
     let cartoes = await marcados('[data-acolhe-entra]');
     /* O protótipo não tem internação em andamento (a de lá está encerrada, e o
-       diário só existe na aberta): o ensaio abre uma, na memória da página. */
-    const registrar = pg.locator('main.conteudo button', { hasText: 'Registrar internação' });
-    if (!cartoes.length && (await registrar.count())) {
-      await registrar.first().click();
-      await espera(pg, 400);
-      await pg.locator('#int-p').selectOption({ label: 'Caio' }).catch(() => pg.locator('#int-p').selectOption({ index: 1 }));
-      await pg.locator('#int-h').fill('Hospital Fictício do Ensaio');
-      await pg.locator('#int-m').fill('Febre alta, ficou em observação (dado do ensaio).');
-      await pg.locator('main.conteudo [role="dialog"] button', { hasText: /^Registrar$/ }).click();
-      await espera(pg, 800);
+       diário só existe na aberta): o ensaio abre uma, na memória da página. Quem
+       não abre internação (o Líder Noturno, a Enfermagem) recebe a que a
+       coordenação abriu: o seletor de cargo do protótipo troca e volta. */
+    const registrar = () => pg.locator('main.conteudo button', { hasText: 'Registrar internação' });
+    if (!cartoes.length) {
+      const seletor = pg.locator('select.troca-cargo-sel');
+      const cargo = await seletor.inputValue().catch(() => '');
+      const trocar = !(await registrar().count()) && cargo && cargo !== 'coordenador';
+      if (trocar) {
+        await fecharFolhas(pg);
+        await seletor.selectOption('coordenador');
+        await espera(pg, 900);
+        await pg.locator('nav.portas-lateral button, nav.tabbar button', { hasText: internacao.titulo }).first().click().catch(() => undefined);
+        await espera(pg, 700);
+      }
+      if (await registrar().count()) {
+        await registrar().first().click();
+        await espera(pg, 400);
+        await pg.locator('#int-p').selectOption({ label: 'Caio' }).catch(() => pg.locator('#int-p').selectOption({ index: 1 }));
+        await pg.locator('#int-h').fill('Hospital Fictício do Ensaio');
+        await pg.locator('#int-m').fill('Febre alta, ficou em observação (dado do ensaio).');
+        await pg.locator('main.conteudo [role="dialog"] button', { hasText: /^Registrar$/ }).click();
+        await espera(pg, 800);
+      }
+      if (trocar) {
+        await seletor.selectOption(cargo);
+        await espera(pg, 900);
+        await perguntar(pg, `me leva para ${internacao.titulo}`);
+      }
       cartoes = await marcados('[data-acolhe-entra]');
     }
     const nome = cartoes[0]?.rotulo.split(/\s+/)[0];
@@ -308,7 +393,8 @@ async function percorrerAsSubtelas(pg, telas, linha, falha) {
 // ============================================================ todos os cargos
 const TODOS = ['coordenador', 'equipe_tecnica', 'educador', 'lider_diurno', 'lider_noturno_geral', 'enfermagem', 'gestor_geral', 'portaria', 'coordenacao_geral'];
 /* `ENSAIO_CARGOS=portaria,educador` mede só esses; sem ele, todos, e o relatório pela voz. */
-const PEDIDOS = process.env.ENSAIO_CARGOS ? process.env.ENSAIO_CARGOS.split(',') : TODOS;
+/* `ENSAIO_SO_RELATORIO=1` roda só o relatório pela voz. */
+const PEDIDOS = process.env.ENSAIO_SO_RELATORIO ? [] : process.env.ENSAIO_CARGOS ? process.env.ENSAIO_CARGOS.split(',') : TODOS;
 const CARGOS = PEDIDOS.filter((c) => c !== 'coordenacao_geral');
 for (const cargo of CARGOS) {
   const { pg, erros } = await novaPagina();
@@ -326,7 +412,7 @@ if (PEDIDOS.includes('coordenacao_geral')) {
 }
 
 // ============================================================ o relatório pela voz
-if (!process.env.ENSAIO_CARGOS) {
+if (!process.env.ENSAIO_CARGOS || process.env.ENSAIO_SO_RELATORIO) {
 console.log('\n— o relatório pela voz, de ponta a ponta');
   const { pg, erros } = await novaPagina();
   await pg.locator('select.troca-cargo-sel').selectOption('coordenador');

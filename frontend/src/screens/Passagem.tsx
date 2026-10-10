@@ -119,6 +119,14 @@ export function Passagem({ houseId }: { houseId: string }) {
     try { setAberto(await api<Plantao>(`/shifts/${id}`)); }
     catch (e) { setErro(e instanceof Error ? e.message : 'Não foi possível abrir o plantão.'); }
   }, []);
+  /* O cartão do plantão só pede para abrir (fase 196: entrada com `data-acolhe-entra`,
+     cujo clique só muda estado); quem lê é este efeito. */
+  const [abrindoId, setAbrindoId] = useState<string | null>(null);
+  useEffect(() => {
+    if (!abrindoId) return;
+    setAbrindoId(null);
+    void abrirPlantao(abrindoId);
+  }, [abrindoId, abrirPlantao]);
 
   /**
    * Abrir o plantão do turno é o único caminho quando o Líder ainda não abriu.
@@ -253,7 +261,7 @@ export function Passagem({ houseId }: { houseId: string }) {
 
         <div className="stack">
           {lista.map((p) => (
-            <button key={p.id} className="card row chamadacard" onClick={() => abrirPlantao(p.id)}>
+            <button data-acolhe-entra="" key={p.id} className="card row chamadacard" onClick={() => setAbrindoId(p.id)}>
               <div className="grow" style={{ textAlign: 'left' }}>
                 <b className="ff">{TURNO_LABEL[p.turno] ?? p.turno}</b>
                 <div className="mutetxt">

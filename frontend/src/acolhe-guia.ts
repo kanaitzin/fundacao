@@ -233,3 +233,9 @@ export function criancasNoPedido(texto: string, lista: CriancaDaCasa[]): Crianca
 export function pedeFormulario(texto: string): boolean {
   return QUER_CRIAR.test(sem(texto));
 }
+
+/** O pedido quer fazer algo (criar, ou "quero", "preciso"), e não só saber. */
+export function pedeAcao(texto: string): boolean {
+  const t = sem(texto);
+  return QUER_CRIAR.test(t) || QUER_ACAO.test(t);
+}
