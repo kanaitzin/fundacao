@@ -162,6 +162,7 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
   function novaConversa() {
     historico.current = []; anexos.current = [];
     licenca.current = 'perguntar'; respostaDaLicenca.current?.(false); respostaDaLicenca.current = null;
+    setPelaCamera(false); setAnexando(false);
     setLinhas([]); setTexto(''); setAnexo(null); setLendo(''); setRecolhida(false);
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
   }
@@ -561,7 +562,7 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
         <button className="btn sm" onClick={() => setRecolhida(false)}>Ver a conversa</button>
         {!ocupada && (
           <button className="iconbtn" aria-label="Fechar a Acolhe+AI" title="Fechar"
-                  onClick={() => { setAberta(false); setRecolhida(false); }}>
+                  onClick={() => { setAberta(false); setRecolhida(false); setPelaCamera(false); }}>
             <Icone nome="fechar" />
           </button>
         )}
@@ -586,7 +587,7 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
         <button className="iconbtn" aria-label="Ler esta tela em voz alta" title="Ler esta tela" onClick={lerTela}>
           <Icone nome="ouvir" />
         </button>
-        <button className="iconbtn" aria-label="Minimizar a Acolhe+AI" title="Minimizar" onClick={() => { setAberta(false); setRecolhida(false); }}>
+        <button className="iconbtn" aria-label="Minimizar a Acolhe+AI" title="Minimizar" onClick={() => { setAberta(false); setRecolhida(false); setPelaCamera(false); }}>
           <Icone nome="fechar" />
         </button>
       </header>

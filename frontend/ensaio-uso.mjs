@@ -3689,6 +3689,10 @@ console.log('\n📷 A câmera do sistema e o documento digitalizado (fase 194)')
     !(await cam.count()) && (await pgC.locator('.acolhe-painel .previa img.previa-img').count()) === 1
     && /foto-\d{4}-\d{2}-\d{2}-\d{2}h\d{2}\.jpg/.test(await pgC.locator('.acolhe-painel .previa').innerText()));
   await pgC.getByRole('button', { name: 'Minimizar a Acolhe+AI' }).click();
+  await pgC.getByRole('button', { name: /^Abrir a Acolhe\+AI/ }).click();
+  await pgC.waitForTimeout(800);
+  cobrar('abrir de novo a Acolhe+AI não reabre a câmera sozinha', (await pgC.locator('.camera').count()) === 0);
+  await pgC.getByRole('button', { name: 'Minimizar a Acolhe+AI' }).click();
   /* A mesma câmera nos formulários: a nota de compra da Saúde. */
   const saude = pgC.locator('nav.tabbar button', { hasText: 'Mais' });
   if (await saude.count()) {
