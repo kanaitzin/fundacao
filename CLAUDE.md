@@ -238,7 +238,7 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 
 **Medido no fim da 194:** 188 migrações, 133 tabelas, 137 suítes, 1227 testes, verdes nas
 DUAS condições de relógio; os nove ensaios de navegador verdes (o do celular com 306 telas e nenhum achado), com a portaria e o
-portão, o armário, a cozinha, os temas e a foto no percurso do `ensaio:uso`; **1085 telas (155 × sete
+portão, o armário, a cozinha, os temas e a foto no percurso do `ensaio:uso`; **1099 telas (157 × sete
 temas) sem violação de WCAG 2.1 AA**; nenhuma
 rota sem teste; nenhuma rota — escrita ou leitura — com 500; **250 leituras sondadas
 pela Casa 04 com registro real da Casa 03, sem achado; cerca de 170 rotas de escrita, sem linha
