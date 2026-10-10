@@ -9,7 +9,9 @@
  *    ele grava ("Abrir ocorrência e avisar" grava; "Registrar um episódio" só
  *    abre a folha), por isso a regra nega por padrão: só se aperta o que a
  *    tela marcou com `data-acolhe-abre` (e o teste confere que o clique desses
- *    botões só muda estado da tela) ou uma aba (`role="tab"`);
+ *    botões só muda estado da tela), uma aba (`role="tab"`), ou a entrada num
+ *    registro que a tela marcou com `data-acolhe-entra` (o cartão da internação,
+ *    o detalhe que se abre ao tocar: fase 196, com a mesma conferência);
  *  - NUNCA ESCREVE SENHA. Campo de senha e de arquivo nem aparece na lista;
  *  - SÓ COM LICENÇA. Quem pede licença é o `acolhe.tsx`, uma vez por conversa.
  *
@@ -95,7 +97,7 @@ function botoes(): { el: HTMLElement; nome: string; pode: boolean }[] {
     .map((el) => ({
       el,
       nome: limpo(el.getAttribute('aria-label') || el.innerText || el.getAttribute('title')),
-      pode: el.hasAttribute('data-acolhe-abre') || el.getAttribute('role') === 'tab',
+      pode: el.hasAttribute('data-acolhe-abre') || el.hasAttribute('data-acolhe-entra') || el.getAttribute('role') === 'tab',
     }))
     .filter((b) => b.nome);
 }

@@ -134,8 +134,17 @@ async function perguntar(pg, frase, { voz = false } = {}) {
   }
   await painel.getByRole('button', { name: 'Enviar' }).click();
   await espera(pg, 700);
+  /* A licença pode vir depois de a tela carregar (o perfil da criança): espera
+     enquanto a Acolhe+AI diz "Pensando…", e aperta a licença quando ela aparece. */
   const licenca = painel.getByRole('button', { name: 'Pode mexer' });
-  if (await licenca.isVisible().catch(() => false)) { await licenca.click(); await espera(pg, 900); }
+  const ocupada = pg.locator('.acolhe-painel[data-ocupada], .acolhe-faixa[data-ocupada]');
+  for (let i = 0; i < 100; i++) {
+    if (await licenca.isVisible().catch(() => false)) { await licenca.click(); await espera(pg, 300); continue; }
+    if (!(await ocupada.count())) break;
+    await espera(pg, 150);
+  }
+  if (await ocupada.count()) achados.push(`a Acolhe+AI ficou trabalhando mais de 15 s em "${frase}"`);
+  await espera(pg, 300);
   return { ok: true };
 }
 
@@ -154,7 +163,7 @@ async function percorrer(pg, rotulo) {
     const titulo = Object.keys(CHAVE_DO_TITULO).find((k) => CHAVE_DO_TITULO[k] === chave);
     if (titulo) telas = [{ titulo, chave }];
   }
-  const linha = { telas: telas.length, porTexto: 0, porVoz: 0, explicadas: 0, formularios: 0, formulariosAbertos: 0, falhas: [] };
+  const linha = { telas: telas.length, porTexto: 0, porVoz: 0, explicadas: 0, formularios: 0, formulariosAbertos: 0, abertos: [], falhas: [] };
   matriz[rotulo] = linha;
   const falha = (o) => { linha.falhas.push(o); achados.push(`[${rotulo}] ${o}`); };
 
@@ -181,7 +190,7 @@ async function percorrer(pg, rotulo) {
       /* Folha por cima, ou o formulário dentro da própria tela (o cadastro de acolhido): mais campos que antes. */
       const abriu = await pg.locator('main.conteudo [role="dialog"][aria-modal="true"], main.conteudo .folha').count()
         || (await campos()) > antes;
-      if (abriu) linha.formulariosAbertos++; else falha(`"quero ${b}" em ${t.titulo} não abriu o formulário`);
+      if (abriu) { linha.formulariosAbertos++; linha.abertos.push(b); } else falha(`"quero ${b}" em ${t.titulo} não abriu o formulário`);
       await fecharFolhas(pg);
       const voltar = pg.locator('main.conteudo button', { hasText: /^← / });
       if (await voltar.count()) { await voltar.first().click(); await espera(pg, 300); }
@@ -193,7 +202,107 @@ async function percorrer(pg, rotulo) {
     if (v.ok && (await telaAberta(pg)) === t.chave) linha.porVoz++;
     else falha(`"me leva para ${t.titulo}" por voz ${v.ok ? `abriu ${await telaAberta(pg)}` : `foi ouvido como "${v.ouvido}"`}`);
   }
-  console.log(`    ${linha.telas} telas · por texto ${linha.porTexto} · por voz ${linha.porVoz} · explicadas ${linha.explicadas} · formulários ${linha.formulariosAbertos}/${linha.formularios}`);
+  await percorrerAsSubtelas(pg, telas, linha, falha);
+  console.log(`    ${linha.telas} telas · por texto ${linha.porTexto} · por voz ${linha.porVoz} · explicadas ${linha.explicadas} · subtelas ${linha.subtelasAbertas ?? 0}/${linha.subtelas ?? 0} · formulários ${linha.formulariosAbertos}/${linha.formularios}`);
+}
+
+/**
+ * AS SUBTELAS (fase 196): o que só aparece com um registro aberto. O perfil da
+ * criança, pedido pelo nome, por texto e por voz; cada formulário do perfil,
+ * pedido de OUTRA tela com o nome da criança; o dossiê (uma entrada,
+ * `data-acolhe-entra`) e os formulários de dentro dele; e a internação aberta,
+ * com o diário. Conta junto com os formulários da tela.
+ */
+const CRIANCA = 'Bruno';
+async function percorrerAsSubtelas(pg, telas, linha, falha) {
+  const outra = telas.find((x) => x.chave !== 'acolhidos' && x.chave !== 'internacao');
+  const sair = async () => { await fecharFolhas(pg); if (outra) await perguntar(pg, `me leva para ${outra.titulo}`); };
+  const titulo = () => pg.locator('main.conteudo h2').first().innerText().catch(() => '');
+  const folhaAberta = () => pg.locator('main.conteudo [role="dialog"][aria-modal="true"], main.conteudo .folha').count();
+  const campos = () => pg.locator('main.conteudo input, main.conteudo textarea, main.conteudo select').count();
+  const marcados = (sel) => pg.locator(`main.conteudo ${sel}`).evaluateAll((els) =>
+    els.filter((e) => e.getClientRects().length).map((e) => ({ rotulo: (e.getAttribute('aria-label') || e.innerText).trim(), entra: e.hasAttribute('data-acolhe-entra') })));
+
+  if (telas.some((x) => x.chave === 'acolhidos')) {
+    linha.subtelas = (linha.subtelas ?? 0) + 2;
+    await sair();
+    await perguntar(pg, `abre o perfil do ${CRIANCA}`);
+    if ((await titulo()).includes(CRIANCA)) linha.subtelasAbertas = (linha.subtelasAbertas ?? 0) + 1;
+    else falha(`"abre o perfil do ${CRIANCA}" por texto abriu "${await titulo()}"`);
+    await sair();
+    const v = await perguntar(pg, `abre o perfil do ${CRIANCA}`, { voz: true });
+    if (v.ok && (await titulo()).includes(CRIANCA)) linha.subtelasAbertas = (linha.subtelasAbertas ?? 0) + 1;
+    else falha(`"abre o perfil do ${CRIANCA}" por voz abriu "${await titulo()}"`);
+
+    const doPerfil = await marcados('[data-acolhe-abre], [data-acolhe-entra]');
+    const base = await campos();
+    for (const b of doPerfil) {
+      linha.formularios++;
+      await sair();
+      await perguntar(pg, `quero ${b.rotulo.toLowerCase()} do ${CRIANCA}`);
+      const abriu = b.entra
+        ? (await titulo()).includes(CRIANCA) && !(await pg.locator('main.conteudo [data-acolhe-entra]', { hasText: b.rotulo }).count())
+        : (await folhaAberta()) > 0 || (await campos()) > base;
+      if (abriu) { linha.formulariosAbertos++; linha.abertos.push(b.rotulo); } else falha(`"quero ${b.rotulo} do ${CRIANCA}" não abriu, no perfil`);
+      /* O dossiê: os formulários de dentro dele, pedidos de fora, pelo nome. */
+      if (b.entra && abriu) {
+        /* Cada aba do dossiê (Documentos, Vivências), olhada pelo ensaio. */
+        await fecharFolhas(pg);
+        const deDentro = [...await marcados('[data-acolhe-abre]')];
+        const abas = await pg.locator('main.conteudo [role="tab"]').allInnerTexts();
+        for (const a of abas) {
+          await pg.locator('main.conteudo [role="tab"]', { hasText: a.trim() }).first().click();
+          await espera(pg, 300);
+          for (const m of await marcados('[data-acolhe-abre]')) if (!deDentro.some((x) => x.rotulo === m.rotulo)) deDentro.push(m);
+        }
+        const baseDentro = await campos();
+        for (const d of deDentro) {
+          linha.formularios++;
+          await sair();
+          await perguntar(pg, `quero ${d.rotulo.toLowerCase()} no ${b.rotulo.split(' ')[0].toLowerCase()} do ${CRIANCA}`);
+          if ((await folhaAberta()) > 0 || (await campos()) > baseDentro) { linha.formulariosAbertos++; linha.abertos.push(d.rotulo); }
+          else falha(`"quero ${d.rotulo} no ${b.rotulo} do ${CRIANCA}" não abriu`);
+        }
+      }
+    }
+  }
+
+  const internacao = telas.find((x) => x.chave === 'internacao');
+  if (internacao) {
+    await sair();
+    await perguntar(pg, `me leva para ${internacao.titulo}`);
+    let cartoes = await marcados('[data-acolhe-entra]');
+    /* O protótipo não tem internação em andamento (a de lá está encerrada, e o
+       diário só existe na aberta): o ensaio abre uma, na memória da página. */
+    const registrar = pg.locator('main.conteudo button', { hasText: 'Registrar internação' });
+    if (!cartoes.length && (await registrar.count())) {
+      await registrar.first().click();
+      await espera(pg, 400);
+      await pg.locator('#int-p').selectOption({ label: 'Caio' }).catch(() => pg.locator('#int-p').selectOption({ index: 1 }));
+      await pg.locator('#int-h').fill('Hospital Fictício do Ensaio');
+      await pg.locator('#int-m').fill('Febre alta, ficou em observação (dado do ensaio).');
+      await pg.locator('main.conteudo [role="dialog"] button', { hasText: /^Registrar$/ }).click();
+      await espera(pg, 800);
+      cartoes = await marcados('[data-acolhe-entra]');
+    }
+    const nome = cartoes[0]?.rotulo.split(/\s+/)[0];
+    if (!nome) falha('a Internação não mostrou nenhum cartão para entrar: o ensaio não mediu o diário');
+    else {
+      linha.subtelas = (linha.subtelas ?? 0) + 1;
+      await sair();
+      await perguntar(pg, `quero ver a internação da ${nome}`);
+      const dentro = await marcados('[data-acolhe-abre]');
+      if (dentro.length && !(await pg.locator('main.conteudo [data-acolhe-entra]').count())) linha.subtelasAbertas = (linha.subtelasAbertas ?? 0) + 1;
+      else falha(`"quero ver a internação da ${nome}" não entrou na internação`);
+      for (const d of dentro) {
+        linha.formularios++;
+        await sair();
+        await perguntar(pg, `quero ${d.rotulo.toLowerCase()} da internação da ${nome}`);
+        if ((await folhaAberta()) > 0) { linha.formulariosAbertos++; linha.abertos.push(d.rotulo); }
+        else falha(`"quero ${d.rotulo} da internação da ${nome}" não abriu`);
+      }
+    }
+  }
 }
 
 // ============================================================ todos os cargos
@@ -300,9 +409,9 @@ console.log('\n— o relatório pela voz, de ponta a ponta');
 
 await navegador.close();
 writeFileSync(`${SAIDA}/cobertura.json`, JSON.stringify(matriz, null, 2));
-console.log('\nA cobertura, cargo por cargo (telas · texto · voz · explicadas · formulários):');
+console.log('\nA cobertura, cargo por cargo (telas · texto · voz · explicadas · subtelas · formulários):');
 for (const [c, l] of Object.entries(matriz)) {
-  console.log(`  ${c.padEnd(20)} ${String(l.telas).padStart(3)} · ${l.porTexto} · ${l.porVoz} · ${l.explicadas} · ${l.formulariosAbertos}/${l.formularios}`);
+  console.log(`  ${c.padEnd(20)} ${String(l.telas).padStart(3)} · ${l.porTexto} · ${l.porVoz} · ${l.explicadas} · ${l.subtelasAbertas ?? 0}/${l.subtelas ?? 0} · ${l.formulariosAbertos}/${l.formularios}`);
 }
 console.log(achados.length ? `\n${achados.length} ACHADO(S):\n  ${achados.join('\n  ')}` : '\nA Acolhe+AI alcança todas as telas de todos os cargos, por texto e por voz.');
 process.exit(achados.length ? 1 : 0);

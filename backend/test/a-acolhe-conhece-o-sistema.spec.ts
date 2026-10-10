@@ -26,6 +26,7 @@ import { join } from 'node:path';
 import { FORA_DO_CATALOGO, GUIA_DA_ACOLHE } from '../src/modules/assistente/guia';
 import { FERRAMENTAS, LEITURA_PROIBIDA, MEXEM_NA_TELA, rotaDeLeituraPermitida } from '../src/modules/assistente/ferramentas';
 import { calcular } from '../src/modules/assistente/calculo';
+import { criancasNoPedido, pedeFormulario, responderPeloGuia } from '../../frontend/src/acolhe-guia';
 
 const SRC = join(__dirname, '..', 'src');
 const FRONT = join(__dirname, '..', '..', 'frontend', 'src');
@@ -113,20 +114,28 @@ describe('a Acolhe+AI conhece o sistema de hoje', () => {
   it('botão que a assistente pode apertar só abre: o clique dele não grava', () => {
     const achados: string[] = [];
     let total = 0;
-    // O `acolhe.tsx` e o `acolhe-tela.ts` LEEM a marca; quem a põe são as telas.
+    let entradas = 0;
+    // O `acolhe.tsx` e o `acolhe-tela.ts` LEEM as marcas; quem as põe são as telas.
+    // `data-acolhe-abre` abre um formulário; `data-acolhe-entra` (fase 196) entra
+    // num registro (o cartão da internação). A conferência é a mesma: só estado.
     for (const arq of arquivos(FRONT, (f) => f.endsWith('.tsx') && f !== 'acolhe.tsx')) {
       const src = readFileSync(arq, 'utf8');
-      for (const m of src.matchAll(/<button data-acolhe-abre=""[^>]*?onClick=\{\(\) => (\{[^}]*\}|[^}]*?)\}\s*>/g)) {
-        total++;
-        const corpo = m[1].trim().replace(/^\{\s*|\s*\}$/g, '');
-        const soEstado = corpo.split(';').map((x) => x.trim()).filter(Boolean)
-          .every((x) => /^set[A-Z]\w*\([^()]*\)$/.test(x));
-        if (!soEstado) achados.push(`${arq.slice(FRONT.length + 1)}: ${corpo}`);
+      for (const marca of ['data-acolhe-abre', 'data-acolhe-entra']) {
+        const formato = new RegExp(`<button ${marca}=""[^>]*?onClick=\\{\\(\\) => (\\{[^}]*\\}|[^}]*?)\\}\\s*>`, 'g');
+        let conferidos = 0;
+        for (const m of src.matchAll(formato)) {
+          conferidos++;
+          if (marca === 'data-acolhe-abre') total++; else entradas++;
+          const corpo = m[1].trim().replace(/^\{\s*|\s*\}$/g, '');
+          const soEstado = corpo.split(';').map((x) => x.trim()).filter(Boolean)
+            .every((x) => /^set[A-Z]\w*\([^()]*\)$/.test(x));
+          if (!soEstado) achados.push(`${arq.slice(FRONT.length + 1)}: ${corpo}`);
+        }
+        const marcados = (src.match(new RegExp(marca, 'g')) ?? []).length;
+        if (marcados !== conferidos) achados.push(`${arq.slice(FRONT.length + 1)}: ${marcados - conferidos} ${marca} fora do formato conferido`);
       }
-      const marcados = (src.match(/data-acolhe-abre/g) ?? []).length;
-      const conferidos = [...src.matchAll(/<button data-acolhe-abre=""[^>]*?onClick=\{\(\) => (?:\{[^}]*\}|[^}]*?)\}\s*>/g)].length;
-      if (marcados !== conferidos) achados.push(`${arq.slice(FRONT.length + 1)}: ${marcados - conferidos} marcação fora do formato conferido`);
     }
+    expect(entradas).toBeGreaterThan(0);
     expect(total).toBeGreaterThan(15);
     expect(achados).toEqual([]);
   });
@@ -165,5 +174,53 @@ describe('a conta da Acolhe+AI', () => {
       if (!r.ok) expect(r.erro).toMatch(/[a-zà-ú]/i);
     }
     expect(calcular('x'.repeat(5000))).toEqual({ ok: false, erro: 'A conta é longa demais: divida em partes.' });
+  });
+});
+
+/*
+ * O MODO GUIA (fases 195 e 196), sem a chave: o que a medição do `ensaio:acolhe`
+ * achou pedindo de verdade, guardado aqui para não voltar.
+ */
+describe('o modo guia entende o pedido', () => {
+  const TELAS = [
+    { chave: 'dia', titulo: 'Dia' }, { chave: 'ata', titulo: 'ATA do turno' },
+    { chave: 'acolhidos', titulo: 'Acolhidos' }, { chave: 'sugestoes', titulo: 'Sugestões de melhoria' },
+    { chave: 'internacao', titulo: 'Internação hospitalar' }, { chave: 'cozinha', titulo: 'Cozinha' },
+  ];
+  const CASA = [
+    { id: 'p1', nome: 'Alice' }, { id: 'p2', nome: 'Bruno' }, { id: 'p3', nome: 'Vitória' },
+    { id: 'p4', nome: 'Ana Souza' }, { id: 'p5', nome: 'Ana Lima' },
+  ];
+
+  it('ir a uma tela vem antes da sugestão, e "ata" não casa dentro de "data"', () => {
+    expect(responderPeloGuia('me leva para as Sugestões de melhoria', TELAS, false).ir).toBe('sugestoes');
+    expect(responderPeloGuia('qual a data de hoje?', TELAS, false).ir).not.toBe('ata');
+  });
+
+  it('a criança nomeada no pedido é achada pelo primeiro nome, sem acento e por palavra inteira', () => {
+    expect(criancasNoPedido('abre o perfil do Bruno', CASA).map((c) => c.id)).toEqual(['p2']);
+    expect(criancasNoPedido('quero registrar a restrição alimentar da alice', CASA).map((c) => c.id)).toEqual(['p1']);
+    expect(criancasNoPedido('abre o perfil da Vitoria', CASA).map((c) => c.id)).toEqual(['p3']);
+    // "Brunoso" não é o Bruno.
+    expect(criancasNoPedido('abre o perfil do Brunoso', CASA)).toEqual([]);
+  });
+
+  it('sem dizer o que quer com ela, o nome é só palavra: "foi uma vitória" não abre perfil', () => {
+    expect(criancasNoPedido('foi uma vitória da equipe', CASA)).toEqual([]);
+  });
+
+  it('duas crianças com o mesmo primeiro nome: o sobrenome desempata, e sem ele a pessoa escolhe', () => {
+    expect(criancasNoPedido('abre o perfil da Ana Lima', CASA).map((c) => c.id)).toEqual(['p5']);
+    expect(criancasNoPedido('abre o perfil da Ana', CASA).map((c) => c.id).sort()).toEqual(['p4', 'p5']);
+  });
+
+  it('abrir o perfil não é pedir formulário; registrar é', () => {
+    expect(pedeFormulario('abre o perfil do Bruno')).toBe(false);
+    expect(pedeFormulario('quero registrar uma conquista do Bruno')).toBe(true);
+  });
+
+  it('o relatório ditado continua sendo rascunho, mesmo com o nome da criança dentro', () => {
+    const r = responderPeloGuia('relatório da ATA: a Alice voltou da escola e lanchou com o grupo', TELAS, false);
+    expect(r.rascunho?.tela).toBe('ata');
   });
 });

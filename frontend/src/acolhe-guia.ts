@@ -197,3 +197,39 @@ export function responderPeloGuia(texto: string, telas: TelaDoGuia[], primeira: 
     texto: 'Não achei essa tela nas que você alcança. Tente com o nome da tela ("abrir a escala"), ou diga o que quer fazer. Se for algo que o sistema não faz, posso anotar como sugestão.',
   };
 }
+
+/**
+ * A CRIANÇA NOMEADA NO PEDIDO (fase 196). *"Abre o perfil da Alice"*, *"quero
+ * registrar a restrição alimentar do Bruno"*: o perfil é o lugar da criança, e
+ * os formulários dele (saúde, contato, conquista, educação, o que ela contou)
+ * só aparecem com ele aberto. A lista é a que a casa já lê (a mesma da busca do
+ * topo), então só entram as crianças da casa aberta que a pessoa vê.
+ *
+ * O nome conta como palavra inteira, sem acento e pelo começo do nome (o primeiro
+ * nome, ou o nome social). Para não abrir perfil quando *Vitória* é só a palavra,
+ * o pedido precisa dizer o que quer com ela: abrir, ver, registrar, escrever,
+ * querer. Duas crianças com o mesmo primeiro nome: desempata o sobrenome dito, e
+ * sem ele quem decide é a pessoa (a resposta traz as duas).
+ */
+export type CriancaDaCasa = { id: string; nome: string };
+const QUER_A_CRIANCA = /\b(perfil|ficha|abre|abrir|abra|leva|mostra|mostrar|ver|quero|preciso|vou|gostaria|pode|registrar|registra|escrever|escreve|lancar|lanca|anotar|anota|acrescentar|acrescenta|atualizar|atualiza|cadastrar|incluir)\b/;
+
+export function criancasNoPedido(texto: string, lista: CriancaDaCasa[]): CriancaDaCasa[] {
+  const t = sem(texto);
+  if (!QUER_A_CRIANCA.test(t)) return [];
+  const palavras = new Set(t.split(/[^a-z0-9]+/).filter(Boolean));
+  const achadas = lista
+    .map((c) => {
+      const partes = sem(c.nome).split(/[^a-z0-9]+/).filter((w) => w.length >= 3);
+      if (!partes.length || !palavras.has(partes[0])) return null;
+      return { c, pontos: partes.filter((w) => palavras.has(w)).length };
+    })
+    .filter((x): x is { c: CriancaDaCasa; pontos: number } => !!x);
+  const melhor = Math.max(0, ...achadas.map((x) => x.pontos));
+  return achadas.filter((x) => x.pontos === melhor).map((x) => x.c);
+}
+
+/** O pedido diz só "abrir o perfil", sem formulário? Então abrir basta. */
+export function pedeFormulario(texto: string): boolean {
+  return QUER_CRIAR.test(sem(texto));
+}

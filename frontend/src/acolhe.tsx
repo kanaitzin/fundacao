@@ -4,7 +4,7 @@ import { Icone } from './icones';
 import { EscolherAnexo, Escolhido, base64De, oferecerFotosDaAcolhe } from './anexos';
 import { MEXEM_NA_TELA, rotaDeLeituraPermitida } from '../../backend/src/modules/assistente/ferramentas';
 import { calcular, numeroEmPortugues } from '../../backend/src/modules/assistente/calculo';
-import { DESTINOS_DE_TEXTO, responderPeloGuia, TelaDoGuia } from './acolhe-guia';
+import { CriancaDaCasa, DESTINOS_DE_TEXTO, criancasNoPedido, pedeFormulario, responderPeloGuia, TelaDoGuia } from './acolhe-guia';
 import { apertarBotao, botoesDaTela, camposDaTela, preencherCampo, textoDaTela } from './acolhe-tela';
 import { Ditado, aceitarAvisoDaVoz, avisoDaVozAceito, iniciarDitado, juntarAoTexto, reconhecimentoDeVoz } from './ditado';
 
@@ -115,6 +115,10 @@ const DESCRICAO: Record<Proposta['tipo'], string> = {
   propor_sugestao: 'Registrar esta sugestão de melhoria',
 };
 
+const sem = (x: string) => x.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+/** No perfil, o verbo e as palavras de ligação não escolhem botão: o que escolhe é o assunto. */
+const GENERICAS = /^(quero|preciso|gostaria|registrar|registra|escrever|escreve|acrescentar|acrescenta|atualizar|atualiza|lancar|lanca|anotar|anota|cadastrar|incluir|abrir|abre|abra|perfil|ficha|dela|dele|sobre|para|crianca|fazer|nova|novo|uma|pode|leva|mostra|mostrar)$/;
+
 export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
   casa: { id: string; nome: string } | null;
   telaAtual: string;
@@ -153,6 +157,8 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
   const [falaProvisoria, setFalaProvisoria] = useState('');
   /** O que a pessoa confirmou ou recusou desde a última pergunta: vai junto com a próxima. */
   const pendenteParaOModelo = useRef<string[]>([]);
+  /** As crianças da casa aberta, para o guia achar o nome no pedido (fase 196). */
+  const criancas = useRef<{ casa: string; lista: CriancaDaCasa[] } | null>(null);
 
   useEffect(() => {
     if (!aberta || ligada !== null) return;
@@ -323,18 +329,43 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
 
   // ---------- A conversa ----------
 
-  function pelosGuias(t: string, comAnexo = false) {
+  /** A lista que a busca do topo já lê: só a casa aberta, só para quem vê os acolhidos. */
+  async function criancasDaCasa(): Promise<CriancaDaCasa[]> {
+    if (!casa || !telas.some((x) => x.chave === 'acolhidos')) return [];
+    if (criancas.current?.casa === casa.id) return criancas.current.lista;
+    const lista = await api<CriancaDaCasa[]>(`/people?houseId=${casa.id}`).catch(() => []);
+    criancas.current = { casa: casa.id, lista: Array.isArray(lista) ? lista : [] };
+    return criancas.current.lista;
+  }
+
+  async function pelosGuias(t: string, comAnexo = false) {
     if (comAnexo) {
       const dossie = telas.find((x) => x.chave === 'acolhidos');
       dizer(`No modo guia eu não leio arquivos. Para guardar um documento, abra o perfil da criança e o dossiê dela${dossie ? ': [Abrir os Acolhidos](tela:acolhidos)' : '.'}`);
       return;
     }
     const r = responderPeloGuia(t, telas, linhas.filter((l) => l.quem === 'acolhe').length === 0);
+    /* A criança nomeada (fase 196): o perfil é o lugar dela. O rascunho, a
+       sugestão e a conta continuam vindo antes: "relatório: a Alice voltou da
+       escola" é texto para conferir, e não ida ao perfil. */
+    let daCrianca: CriancaDaCasa | undefined;
+    if (!r.rascunho && !r.sugestao && !r.conta) {
+      const achadas = criancasNoPedido(t, await criancasDaCasa());
+      if (achadas.length > 1) {
+        dizer(`Há ${achadas.length} crianças com esse nome nesta casa: ${achadas.map((c) => `[${c.nome}](crianca:${c.id})`).join('  ')}. Qual delas?`);
+        return;
+      }
+      if (achadas.length === 1 && (await peloPerfil(t, achadas[0], r.ir))) return;
+      daCrianca = achadas[0];
+    }
     dizer(r.texto);
     if (r.conta) void executar('calcular', { conta: r.conta, rotulo: 'A conta' }).then((x) => { if (x.erro) dizer(x.conteudo); });
     if (r.ir) navegar(r.ir);
-    if (r.ir && r.abrirFormulario) void abrirOFormulario(t);
-    else if (r.ir) void abrirOFormulario(t, true);
+    /* "O diário da internação da Alice": na tela de destino, entra primeiro no
+       registro dela (o cartão com o nome) e abre o formulário de dentro. */
+    const daCriancaNaTela = daCrianca ? { ignorar: sem(daCrianca.nome).split(/[^a-z0-9]+/), entrar: true, nomeDaCrianca: daCrianca.nome } : {};
+    if (r.ir && r.abrirFormulario) await abrirOFormulario(t, false, daCriancaNaTela);
+    else if (r.ir) await abrirOFormulario(t, true, daCriancaNaTela);
     if (r.rascunho) {
       const tela = r.rascunho.tela && telas.some((x) => x.chave === r.rascunho!.tela) ? r.rascunho.tela : undefined;
       acrescentar({ quem: 'acolhe', texto: '', rascunho: { ...r.rascunho, tela, fotos: [], estado: 'aberto' } });
@@ -343,28 +374,77 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
       proposta: { tipo: 'propor_sugestao', texto: r.sugestao, tela: telaAtual, estado: 'aberta' } });
   }
 
-  /** No modo guia: com a licença, aperta o botão que abre o formulário da tela. */
-  async function abrirOFormulario(pedido: string, soSeCombinar = false): Promise<boolean> {
+  /**
+   * Abre o perfil da criança e, se o pedido nomeia um formulário dele, abre o
+   * formulário (ou entra no dossiê e abre o de lá). Devolve falso quando o pedido
+   * era de outra tela ("a ocorrência da Alice"): aí o caminho de sempre segue.
+   */
+  async function peloPerfil(t: string, c: CriancaDaCasa, outraTela?: string): Promise<boolean> {
+    abrirCrianca(c.id);
+    const primeiro = sem(c.nome).split(/[^a-z0-9]+/)[0];
+    for (let i = 0; i < 30; i++) {
+      const h = document.querySelector<HTMLElement>('main.conteudo h2');
+      if (h && sem(h.innerText).includes(primeiro)) break;
+      await new Promise((ok) => setTimeout(ok, 150));
+    }
+    const ignorar = sem(c.nome).split(/[^a-z0-9]+/);
+    const abriu = await abrirOFormulario(t, true, { ignorar, entrar: true });
+    if (abriu) { dizer(`Abri o perfil de ${c.nome} e o que você pediu. Se for um formulário, preencha e salve quando estiver certo.`); return true; }
+    /* "Ver a internação da Alice": o pedido nomeou outra tela e não o perfil. */
+    if (outraTela && outraTela !== 'acolhidos' && !/\b(perfil|ficha)\b/.test(sem(t))) return false;
+    dizer(pedeFormulario(t)
+      ? `Abri o perfil de ${c.nome}. Não achei nele um formulário com esse nome: os botões de registrar ficam em cada parte do perfil.`
+      : `Abrindo o perfil de ${c.nome}.`);
+    return true;
+  }
+
+  /**
+   * No modo guia: com a licença, aperta o botão que abre o formulário da tela.
+   * Com `ignorar` (o nome da criança) e `entrar` (fase 196), conta só as palavras
+   * do que se quer, aceita uma em comum, e passa por um botão de entrar (o
+   * dossiê) antes do formulário de dentro dele.
+   */
+  async function abrirOFormulario(pedido: string, soSeCombinar = false,
+    { ignorar = [], entrar = false, nomeDaCrianca }: { ignorar?: string[]; entrar?: boolean; nomeDaCrianca?: string } = {}): Promise<boolean> {
     await new Promise((r) => setTimeout(r, 350));
     /* Com mais de um formulário na tela (lanche e cesta, alergia e restrição),
        abre o que tem mais palavras em comum com o pedido; senão, o primeiro. */
-    const sem = (x: string) => x.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-    const palavras = sem(pedido).split(/[^a-z]+/).filter((w) => w.length > 3);
-    const visiveis = Array.from(document.querySelectorAll<HTMLElement>('main.conteudo [data-acolhe-abre]'))
-      .filter((el) => el.getClientRects().length > 0);
-    const pontos = (el: HTMLElement) => palavras.filter((w) => sem(el.innerText).includes(w.slice(0, 5))).length;
-    const alvo = visiveis.reduce<HTMLElement | undefined>((m, el) => (!m || pontos(el) > pontos(m) ? el : m), undefined);
-    /* "Quero abrir uma chamada": o pedido nomeou um botão da tela (duas palavras
-       em comum), e ele abre junto. Sem isso, levar à tela basta. */
-    if (soSeCombinar && (!alvo || pontos(alvo) < 2)) return false;
-    if (!alvo) {
-      dizer('Esta tela não tem um formulário que eu saiba abrir. O botão para começar está no alto da tela.');
-      return false;
+    const palavras = sem(pedido).split(/[^a-z]+/)
+      .filter((w) => w.length > 3 && !ignorar.includes(w) && !(entrar && GENERICAS.test(w)));
+    const minimo = entrar ? 1 : 2;
+    /* Entrando (fase 196), o caminho pode passar por uma entrada (o dossiê) e por
+       uma aba (Vivências) antes do formulário: até três passos. */
+    const seletor = entrar
+      ? 'main.conteudo [data-acolhe-abre], main.conteudo [data-acolhe-entra], main.conteudo [role="tab"]:not([aria-selected="true"])'
+      : 'main.conteudo [data-acolhe-abre]';
+    const jaApertados: string[] = [];
+    for (let nivel = 0; nivel < 3; nivel++) {
+      const visiveis = Array.from(document.querySelectorAll<HTMLElement>(seletor))
+        .filter((el) => el.getClientRects().length > 0 && !jaApertados.includes(el.innerText.trim()));
+      const pontos = (el: HTMLElement) => palavras.filter((w) => sem(el.innerText).includes(w.slice(0, 5))).length;
+      /* O registro com o nome da criança vem antes de qualquer formulário da lista. */
+      const doNome = nomeDaCrianca && nivel === 0
+        ? visiveis.find((el) => el.hasAttribute('data-acolhe-entra') && sem(el.innerText).includes(sem(nomeDaCrianca).split(/[^a-z0-9]+/)[0]))
+        : undefined;
+      const alvo = doNome ?? visiveis.reduce<HTMLElement | undefined>((m, el) => (!m || pontos(el) > pontos(m) ? el : m), undefined);
+      /* "Quero abrir uma chamada": o pedido nomeou um botão da tela (duas palavras
+         em comum), e ele abre junto. Sem isso, levar à tela basta. */
+      if (soSeCombinar && !doNome && (!alvo || pontos(alvo) < minimo)) return nivel > 0;
+      if (!alvo) {
+        dizer('Esta tela não tem um formulário que eu saiba abrir. O botão para começar está no alto da tela.');
+        return false;
+      }
+      const nome = (alvo.getAttribute('aria-label') || alvo.innerText || '').trim();
+      const entrada = alvo.hasAttribute('data-acolhe-entra') || alvo.getAttribute('role') === 'tab';
+      const r = await executar('apertar_botao', { botao: nome });
+      if (r.erro) { dizer(r.conteudo); return false; }
+      if (!entrada) {
+        setFaixa('Abri o formulário. Preencha e salve quando estiver certo.');
+        return true;
+      }
+      jaApertados.push(alvo.innerText.trim());
+      await new Promise((ok) => setTimeout(ok, 400));
     }
-    const nome = (alvo.getAttribute('aria-label') || alvo.innerText || '').trim();
-    const r = await executar('apertar_botao', { botao: nome });
-    if (r.erro) { dizer(r.conteudo); return false; }
-    setFaixa('Abri o formulário. Preencha e salve quando estiver certo.');
     return true;
   }
 
@@ -443,7 +523,12 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
     ditado.current?.parar();
     if (!forcado) { setTexto(''); setAnexo(null); setAnexando(false); setPelaCamera(false); }
     acrescentar({ quem: 'pessoa', texto: t || 'Veja este arquivo.', anexo: meu?.nome });
-    if (!ligada) { pelosGuias(t, !!meu && !t); return; }
+    if (!ligada) {
+      /* O guia também trabalha na tela (abre o perfil, o formulário): "Pensando…" enquanto isso. */
+      setOcupada(true);
+      void pelosGuias(t, !!meu && !t).finally(() => setOcupada(false));
+      return;
+    }
 
     const conteudo: Bloco[] = [];
     if (meu) {
@@ -733,7 +818,7 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
 
   if (aberta && recolhida) {
     return (
-      <div className="acolhe-faixa" role="status" aria-live="polite">
+      <div className="acolhe-faixa" role="status" aria-live="polite" data-ocupada={ocupada ? '1' : undefined}>
         <Icone nome="acolhe" />
         <span className="acolhe-faixa-texto">{ocupada ? (faixa || 'Trabalhando na tela…') : (faixa || 'Pronto. Confira a tela.')}</span>
         {ocupada && (
@@ -760,7 +845,7 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
   }
 
   return (
-    <div className="acolhe-painel" role="dialog" aria-modal="false" aria-labelledby="t-acolhe">
+    <div className="acolhe-painel" role="dialog" aria-modal="false" aria-labelledby="t-acolhe" data-ocupada={ocupada ? '1' : undefined}>
       <header className="acolhe-topo">
         <Icone nome="acolhe" />
         <h2 id="t-acolhe" className="grow">Acolhe+AI</h2>

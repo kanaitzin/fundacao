@@ -937,7 +937,7 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
       <AuditoriaDoAcolhido personId={p.id} papel={papel} />
 
       {/* A pasta da criança: o que a casa precisa ter, e o álbum dela. */}
-      <button className="btn sec block" style={{ marginBottom: 12 }} onClick={() => setDossie(true)}>
+      <button data-acolhe-entra="" className="btn sec block" style={{ marginBottom: 12 }} onClick={() => setDossie(true)}>
         <Icone nome="pasta" /> Dossiê e vivências
       </button>
 

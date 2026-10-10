@@ -140,7 +140,7 @@ export function Internacao({ houseId, casaLabel, papel }: {
 
       <div className="stack">
         {(lista ?? []).map((i) => (
-          <button key={i.id} className="card row" onClick={() => setAbertaId(i.id)}>
+          <button data-acolhe-entra="" key={i.id} className="card row" onClick={() => setAbertaId(i.id)}>
             <div className="grow" style={{ textAlign: 'left' }}>
               <div className="row">
                 <b className="ff grow">{i.acolhido}</b>
