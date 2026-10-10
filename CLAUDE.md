@@ -239,8 +239,8 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 194 | **a câmera do sistema e o documento em PDF** (pedido de 10/10): visor ao vivo com X e ✓, modo Documento que junta as páginas num PDF A4 (`camera.tsx`, `pdf-de-imagens.ts`), em **todo** anexo (nove telas tinham seletor solto; `todo-anexo-pela-camera.spec.ts`), a câmera na Minha conta e na Acolhe+AI; e o defeito antigo: **o servidor não desenhava PDF com foto dentro** (duas cópias nativas do canvas), e o relatório da internação perdia os papéis do hospital; e a simulação achou **a API morrendo quando o banco encerra as conexões** (`DatabaseService` ouve o erro; `o-banco-que-reinicia.e2e.spec.ts`) |
 | 195 | **o relatório pela voz** (pedido de 10/10): ditado em todo campo de texto longo (`ditado.tsx`), a Acolhe+AI ouvindo ditado longo, e o **rascunho** (`mostrar_rascunho`) que a pessoa edita, aprova, completa falando, ilustra com foto e leva à tela, com o resumo do que foi escrito; e **a cobertura medida** (`ensaio:acolhe`): todas as telas de todos os cargos por texto e por voz, explicadas, 84 formulários de 84. A primeira rodada achou cinco lacunas do guia (consertadas) |
 
-**Medido no fim da 194:** 188 migrações, 133 tabelas, 138 suítes, 1229 testes, verdes nas
-DUAS condições de relógio; os dez ensaios de navegador verdes (o `ensaio:acolhe` com todas as telas de todos os cargos por texto e por voz) (o do celular com 306 telas e nenhum achado), com a portaria e o
+**Medido no fim da 195:** 188 migrações, 133 tabelas, 138 suítes, 1229 testes, verdes nas
+DUAS condições de relógio; os dez ensaios de navegador verdes (o `ensaio:acolhe` com todas as telas de todos os cargos por texto e por voz, e o do celular com 306 telas e nenhum achado), com a portaria e o
 portão, o armário, a cozinha, os temas e a foto no percurso do `ensaio:uso`; **1099 telas (157 × sete
 temas) sem violação de WCAG 2.1 AA**; nenhuma
 rota sem teste; nenhuma rota — escrita ou leitura — com 500; **250 leituras sondadas
