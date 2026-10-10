@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
-import { BotaoOlho, Escolhido, PreviaEscolhida, base64De, lerArquivo } from '../anexos';
+import { BotaoOlho, EscolherAnexo, Escolhido, base64De } from '../anexos';
 import { FolhaDocumento, entregarArquivo } from '../documentos';
 import type { ArquivoGerado } from '../documentos';
 import type { DocumentoWord } from '../docx';
@@ -2196,14 +2196,10 @@ function FolhaCompra({ houseId, onFechar, onPronto }: {
                onChange={(e) => setNota(e.target.value)} />
 
         {/* A NOTA, DE VERDADE (fase 108). */}
-        <label className="f" htmlFor="cp-arq">Nota fiscal digitalizada (opcional)</label>
-        <input id="cp-arq" type="file" accept="image/*,application/pdf"
-               onChange={async (e) => {
-                 const f = e.target.files?.[0];
-                 setArquivo(f ? await lerArquivo(f) : null);
-               }} />
-        {arquivo && <PreviaEscolhida arquivo={arquivo}
-          pergunta={<>É esta a nota? Ela é o que a prestação de contas pede no fim do mês.</>} />}
+        <label className="f" htmlFor="cp-arq-arquivo">Nota fiscal digitalizada (opcional)</label>
+        {/* A câmera do sistema digitaliza a nota em PDF (fase 194). */}
+        <EscolherAnexo id="cp-arq" arquivo={arquivo} onEscolher={setArquivo}
+          pergunta={<>É esta a nota? Ela é o que a prestação de contas pede no fim do mês.</>} />
 
         <label className="f" htmlFor="cp-anexo">
           Ou onde ela está <small>— o caminho no Drive, se o papel já estiver lá</small>
@@ -2496,17 +2492,12 @@ function FolhaReceitas({ esquema, papel, onFechar }: {
             <input id="rc-presc" value={prescritor} maxLength={80}
                    onChange={(e) => setPrescritor(e.target.value)} />
 
-            <label className="f" htmlFor="rc-arq">
+            <label className="f" htmlFor="rc-arq-arquivo">
               A receita digitalizada <small>— foto ou PDF</small>
             </label>
-            <input id="rc-arq" type="file" accept="image/*,application/pdf"
-                   onChange={async (e) => {
-                     const f = e.target.files?.[0];
-                     setArquivo(f ? await lerArquivo(f) : null);
-                   }} />
-            {arquivo && <PreviaEscolhida arquivo={arquivo}
+            <EscolherAnexo id="rc-arq" arquivo={arquivo} onEscolher={setArquivo}
               pergunta={<>É esta a receita deste esquema? Ela é o que autoriza a
-                prescrição — e é contra ela que a Enfermagem confere o que está na grade.</>} />}
+                prescrição — e é contra ela que a Enfermagem confere o que está na grade.</>} />
 
             <label className="f" htmlFor="rc-ref">
               Ou onde ela está <small>— o caminho no Drive</small>

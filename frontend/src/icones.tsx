@@ -165,6 +165,11 @@ const DESENHOS: Record<string, string[]> = {
   lampada:  ['M9 17.5h6', 'M10 20.5h4',
              'M12 3.5a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2V17h5v-.6c0-.8.4-1.5 1-2A6 6 0 0 0 12 3.5z'],
   fechar:   ['M6 6l12 12', 'M18 6L6 18'],
+  /* ---- a câmera do sistema (fase 194) ---- */
+  certo:    ['M5 12.5l4.5 4.5L19 7.5'],
+  girar:    ['M4.5 12a7.5 7.5 0 1 0 2.2-5.3', 'M4.5 4.5v4h4'],
+  /* A folha com o contraste dividido: metade clara, metade escura. */
+  realce:   ['M6 3.5h9l3.5 3.5v13.5H6z', 'M12 7v11', 'M8.5 9.5h2', 'M8.5 12.5h2', 'M8.5 15.5h2'],
 };
 
 export type NomeDoIcone = keyof typeof DESENHOS;

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
 import { FolhaDocumento, baixarArquivo } from '../documentos';
-import { BotaoOlho, FolhaArquivo, base64De, lerArquivo } from '../anexos';
+import { BotaoOlho, EscolherAnexo, Escolhido, FolhaArquivo, base64De } from '../anexos';
 import type { ArquivoGerado } from '../documentos';
 import type { DocumentoWord } from '../docx';
 import { dia } from '../rotulos';
@@ -234,7 +234,7 @@ function FolhaConquista({ onFechar, onSalvou }: {
     personId: '', tipo: 'aprovacao_escolar', tipoOutro: '',
     quando: '', descricao: '', instituicao: '',
   });
-  const [arquivo, setArquivo] = useState<{ nome: string; base64: string } | null>(null);
+  const [arquivo, setArquivo] = useState<Escolhido | null>(null);
   const [erro, setErro] = useState('');
   const [ocupado, setOcupado] = useState(false);
 
@@ -296,13 +296,9 @@ function FolhaConquista({ onFechar, onSalvou }: {
         <label className="f">
           Comprovante <small>— diploma, certificado, carteira. PDF, JPG ou PNG, opcional</small>
         </label>
-        <input type="file" accept="application/pdf,image/*" onChange={async (e) => {
-          const f = e.target.files?.[0];
-          if (!f) { setArquivo(null); return; }
-          /* Pela mesma leitura das outras telas: a foto grande sai reduzida (fase 175). */
-          const lido = await lerArquivo(f);
-          setArquivo({ nome: lido.nome, base64: base64De(lido.dataUrl) });
-        }} />
+        {/* A câmera do sistema e o documento digitalizado (fase 194). */}
+        <EscolherAnexo id="cq-arq" arquivo={arquivo} onEscolher={setArquivo}
+          pergunta={<>É este o comprovante? Ele fica na trajetória da criança.</>} />
 
         {erro && <div className="notice c-crit" role="alert">{erro}</div>}
         <div className="row rodape">
@@ -315,7 +311,7 @@ function FolhaConquista({ onFechar, onSalvou }: {
                 body: JSON.stringify({
                   ...d, quando: d.quando || undefined,
                   descricao: d.descricao.trim(),
-                  conteudo: arquivo?.base64, nomeArquivo: arquivo?.nome,
+                  conteudo: arquivo ? base64De(arquivo.dataUrl) : undefined, nomeArquivo: arquivo?.nome,
                 }),
               });
               onSalvou();

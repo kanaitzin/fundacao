@@ -125,6 +125,8 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
   const [texto, setTexto] = useState('');
   const [anexo, setAnexo] = useState<Escolhido | null>(null);
   const [anexando, setAnexando] = useState(false);
+  /* O botão de câmera (fase 194) abre o anexo já na câmera, no modo documento. */
+  const [pelaCamera, setPelaCamera] = useState(false);
   const [ocupada, setOcupada] = useState(false);
   const [lendo, setLendo] = useState('');
   const [voz, setVoz] = useState(VOZES[0]);
@@ -344,7 +346,7 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
     const t = texto.trim();
     if ((!t && !anexo) || ocupada) return;
     const meu = anexo;
-    setTexto(''); setAnexo(null); setAnexando(false);
+    setTexto(''); setAnexo(null); setAnexando(false); setPelaCamera(false);
     acrescentar({ quem: 'pessoa', texto: t || 'Veja este arquivo.', anexo: meu?.nome });
     if (!ligada) { pelosGuias(t, !!meu && !t); return; }
 
@@ -644,7 +646,8 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
       )}
       {anexando && (
         <div className="acolhe-anexar">
-          <EscolherAnexo id="acolhe-anexo" arquivo={anexo} onEscolher={setAnexo}
+          <EscolherAnexo key={pelaCamera ? 'camera' : 'anexo'} id="acolhe-anexo" arquivo={anexo} onEscolher={setAnexo}
+                         iniciarNaCamera={pelaCamera ? 'documento' : undefined}
                          pergunta="Foto ou PDF para a Acolhe+AI ler" />
         </div>
       )}
@@ -654,9 +657,14 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
                   onChange={(e) => setTexto(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void enviar(); } }} />
         <div className="row acolhe-acoes">
-          <button type="button" className={`iconbtn ${anexando ? 'ativo' : ''}`} aria-pressed={anexando}
-                  aria-label="Anexar foto ou documento" title="Anexar" onClick={() => setAnexando((x) => !x)}>
+          <button type="button" className={`iconbtn ${anexando && !pelaCamera ? 'ativo' : ''}`} aria-pressed={anexando && !pelaCamera}
+                  aria-label="Anexar foto ou documento" title="Anexar"
+                  onClick={() => { setPelaCamera(false); setAnexando((x) => !(x && !pelaCamera)); }}>
             <Icone nome="anexo" />
+          </button>
+          <button type="button" className="iconbtn" aria-label="Fotografar ou digitalizar um documento" title="Câmera"
+                  onClick={() => { setPelaCamera(true); setAnexando(true); setAnexo(null); }}>
+            <Icone nome="foto" />
           </button>
           <button type="button" className={`iconbtn ${ouvindo ? 'ativo' : ''}`} aria-pressed={ouvindo}
                   aria-label={ouvindo ? 'Parar de ouvir' : 'Falar pelo microfone'} title="Microfone" onClick={ouvir}>

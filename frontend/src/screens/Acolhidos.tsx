@@ -5,7 +5,7 @@ import { api, ErroApi } from '../api';
 import { Cadastro } from './Cadastro';
 import { VINCULO, FolhaDoRelato, RelatoDaConvivencia } from '../convivencias';
 import {
-  BotaoOlho, Escolhido, FolhaArquivo, PreviaEscolhida, base64De, lerArquivo,
+  BotaoOlho, EscolherAnexo, Escolhido, FolhaArquivo, base64De,
 } from '../anexos';
 import { dia, horaSemSegundos } from '../rotulos';
 import { Icone } from '../icones';
@@ -2194,6 +2194,9 @@ function FotoDoAcolhido({ perfil, papel, onTrocou }: {
      existia: escolher o arquivo já o enviava, e ninguém via o que tinha subido
      — numa foto que sai impressa na folha da guarita (§8.9.2). */
   const [escolhida, setEscolhida] = useState<Escolhido | null>(null);
+  /* A folha da foto abre ANTES de escolher (fase 194): é nela que estão a
+     câmera do sistema, a galeria e o arquivo, e a confirmação logo abaixo. */
+  const [pondoFoto, setPondoFoto] = useState(false);
   const [vendoMaior, setVendoMaior] = useState(false);
   const podeTrocar = QUEM_CADASTRA.includes(papel);
 
@@ -2218,6 +2221,7 @@ function FotoDoAcolhido({ perfil, papel, onTrocou }: {
         body: JSON.stringify({ conteudo: base64De(escolha.dataUrl), nomeArquivo: escolha.nome }),
       });
       setEscolhida(null);
+      setPondoFoto(false);
       onTrocou();
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Não foi possível guardar a foto.');
@@ -2239,19 +2243,10 @@ function FotoDoAcolhido({ perfil, papel, onTrocou }: {
       )}
 
       {podeTrocar && (
-        <label className="btn sm ghost" style={{ marginTop: 6, display: 'inline-block' }}>
+        <button type="button" className="btn sm ghost" style={{ marginTop: 6 }}
+                onClick={() => { setErro(''); setPondoFoto(true); }}>
           {ocupado ? 'Enviando…' : (src ? 'Trocar foto' : 'Pôr foto')}
-          <input type="file" accept="image/*" style={{ display: 'none' }}
-                 onChange={async (e) => {
-                   const f = e.target.files?.[0];
-                   if (!f) return;
-                   setErro('');
-                   setEscolhida(await lerArquivo(f));
-                   /* Limpa o campo: sem isto, escolher o MESMO arquivo depois
-                      de cancelar não dispara `change`, e a folha não reabre. */
-                   e.target.value = '';
-                 }} />
-        </label>
+        </button>
       )}
       {erro && <div className="mutetxt">{erro}</div>}
 
@@ -2273,19 +2268,20 @@ function FotoDoAcolhido({ perfil, papel, onTrocou }: {
 
       {/* A CONFIRMAÇÃO. O texto pergunta as duas coisas que dão errado: é a
           foto certa, e é desta criança. */}
-      {escolhida && (
+      {pondoFoto && (
         <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-foto-nova"
-             onClick={(e) => { if (e.target === e.currentTarget) setEscolhida(null); }}>
+             onClick={(e) => { if (e.target === e.currentTarget) { setEscolhida(null); setPondoFoto(false); } }}>
           <div className="sheet modal" style={{ textAlign: 'left' }}>
             <h3 id="t-foto-nova">A foto de {perfil.nome}</h3>
-            <PreviaEscolhida arquivo={escolhida}
+            <EscolherAnexo id="foto-id" arquivo={escolhida} onEscolher={setEscolhida}
+              aceita="image/jpeg,image/png" maximoMb={4}
               pergunta={<>Esta foto vai identificar a criança na tela e sai impressa na{' '}
                 <b>folha da portaria</b>. É esta foto, e é <b>desta</b> criança?</>} />
             {erro && <div className="notice c-crit" role="alert">{erro}</div>}
             <div className="row rodape">
-              <button className="btn sec grow" onClick={() => setEscolhida(null)}>Cancelar</button>
-              <button className="btn grow" disabled={ocupado}
-                      onClick={() => void enviar(escolhida)}>
+              <button className="btn sec grow" onClick={() => { setEscolhida(null); setPondoFoto(false); }}>Cancelar</button>
+              <button className="btn grow" disabled={ocupado || !escolhida}
+                      onClick={() => escolhida && void enviar(escolhida)}>
                 {ocupado ? 'Enviando…' : <><Icone nome="conferido" /> É esta foto</>}
               </button>
             </div>
@@ -2904,23 +2900,16 @@ function FolhaVisita({ contato, crianca, onFechar, onSalvou }: {
           </span>
         </div>
 
-        <label className="f" htmlFor="vis-foto">
+        <label className="f" htmlFor="vis-foto-arquivo">
           Foto 3×4 <small>— opcional; sem ela a portaria pede documento com foto</small>
         </label>
-        <input id="vis-foto" type="file" accept="image/jpeg,image/png"
-               onChange={async (e) => {
-                 const arquivo = e.target.files?.[0];
-                 if (!arquivo) { setFoto(null); return; }
-                 setFoto(await lerArquivo(arquivo));
-               }} />
-
         {/* A prévia, pelo mesmo motivo da foto da criança: esta imagem vai
             IMPRESSA na folha da guarita, ao lado do nome de um familiar. A
             foto errada aqui é a pessoa errada entrando — ou a certa ficando
-            do lado de fora. */}
-        {foto && <PreviaEscolhida arquivo={foto}
+            do lado de fora. A câmera do sistema tira na hora (fase 194). */}
+        <EscolherAnexo id="vis-foto" arquivo={foto} onEscolher={setFoto} aceita="image/jpeg,image/png" maximoMb={4}
           pergunta={<>Esta foto sai impressa na <b>folha da portaria</b>, ao lado do nome de{' '}
-            {contato.nome}. É esta pessoa?</>} />}
+            {contato.nome}. É esta pessoa?</>} />
 
         {contato.temFoto && !foto && (
           <p className="mutetxt">
@@ -3210,15 +3199,9 @@ function FolhaConquistaDoPerfil({ perfil, onFechar, onSalvou }: {
         <label className="f">
           Comprovante <small>— diploma, certificado, carteira. PDF, JPG ou PNG, opcional</small>
         </label>
-        <input type="file" accept="application/pdf,image/*" onChange={async (e) => {
-          const f = e.target.files?.[0];
-          if (!f) { setArquivo(null); return; }
-          setArquivo(await lerArquivo(f));
-        }} />
-
-        {arquivo && <PreviaEscolhida arquivo={arquivo}
+        <EscolherAnexo id="cp-comprovante" arquivo={arquivo} onEscolher={setArquivo}
           pergunta={<>É este o comprovante? Ele fica na trajetória da criança — é{' '}
-            <b>o documento que ela leva</b> quando sair daqui.</>} />}
+            <b>o documento que ela leva</b> quando sair daqui.</>} />
 
         {erro && <div className="notice c-crit" role="alert">{erro}</div>}
         <div className="row rodape">

@@ -27,12 +27,15 @@
  */
 import { ReactNode, useEffect, useRef, useState } from 'react';
 import { Icone } from './icones';
+import { FolhaCamera, temCameraDoSistema } from './camera';
 
 /** O que a prévia precisa saber sobre um arquivo escolhido, antes de enviar. */
 export interface Escolhido {
   nome: string; tipo: string; tamanho: number; dataUrl: string;
   /** O tamanho antes da redução, quando a foto foi reduzida no aparelho. */
   original?: number;
+  /** As páginas, em miniatura, do documento digitalizado pela câmera do sistema (fase 194). */
+  paginas?: string[];
 }
 
 /*
@@ -145,7 +148,15 @@ export function PreviaEscolhida({ arquivo, pergunta }: {
   return (
     <div className="bloco previa">
       <small>Confira antes de enviar</small>
-      {ehImagem ? (
+      {arquivo.paginas?.length ? (
+        /* O documento digitalizado pela câmera do sistema (fase 194): as páginas
+           estão no aparelho, e a conferência é delas, uma por uma. */
+        <ol className="previa-paginas" aria-label={`As ${arquivo.paginas.length} páginas do documento`}>
+          {arquivo.paginas.map((p, i) => (
+            <li key={i}><img src={p} alt={`Página ${i + 1} de ${arquivo.paginas!.length}`} /></li>
+          ))}
+        </ol>
+      ) : ehImagem ? (
         <img src={arquivo.dataUrl} alt={`Prévia de ${arquivo.nome}`} className="previa-img" />
       ) : (
         <p className="mutetxt" style={{ margin: 0 }}>
@@ -155,6 +166,7 @@ export function PreviaEscolhida({ arquivo, pergunta }: {
       )}
       <p className="mutetxt" style={{ marginBottom: 0 }}>
         {arquivo.nome} · {tamanhoLegivel(arquivo.tamanho)}
+        {arquivo.paginas?.length ? ` · PDF com ${arquivo.paginas.length} ${arquivo.paginas.length === 1 ? 'página' : 'páginas'}` : ''}
         {arquivo.original ? ` (reduzida de ${tamanhoLegivel(arquivo.original)} para enviar)` : ''}.{' '}
         {pergunta ?? <>O sistema confere o tipo pela assinatura do arquivo;{' '}
           <b>só os seus olhos</b> confirmam que é o documento certo, e desta criança.</>}
@@ -224,48 +236,60 @@ export function FolhaArquivo({ titulo, legenda, carregar, onFechar, onBaixar }: 
 /* ====================================================================== */
 
 /**
- * ESCOLHER O ANEXO: CÂMERA, GALERIA OU ARQUIVO (fase 165).
+ * ESCOLHER O ANEXO: CÂMERA, DOCUMENTO, GALERIA OU ARQUIVO (fases 165 e 194).
  *
  * Pedido de 25/09, para a internação: *"quando o navegador e o dispositivo
  * permitirem, oferecer: tirar foto agora, escolher da galeria, selecionar
  * arquivo; no computador, escolher arquivo e utilizar webcam quando disponível
  * e autorizado. Nunca presumir que a câmera estará disponível. Se a permissão
- * for negada, oferecer upload normal sem quebrar a tela."* E depois da foto:
- * prévia, ampliar, descartar, tirar de novo, e enviar só depois de confirmar.
+ * for negada, oferecer upload normal sem quebrar a tela."*
+ *
+ * Desde a fase 194 a câmera é a DO SISTEMA (`camera.tsx`), igual no celular e
+ * no computador: o visor ao vivo, o X e o certo de cada foto, e o modo
+ * documento, que junta as páginas num PDF. A câmera do próprio aparelho (o
+ * `capture` do navegador) continua como reserva, para o navegador sem câmera
+ * pelo sistema ou com ela bloqueada.
+ *
+ * É ESTE o lugar de todo anexo do sistema: o teste
+ * `todo-anexo-pela-camera.spec.ts` reprova `<input type="file">` solto numa tela.
  *
  * O ENVIO É DE QUEM CHAMA: este componente escolhe e mostra; o botão de salvar
  * da folha é a confirmação. A foto nunca sai do aparelho antes disso.
  *
- * O celular e o computador pedem gestos diferentes, e a pergunta é o
- * PONTEIRO, e não o tamanho da tela: `pointer: coarse` é dedo. No celular, o
- * `capture` do próprio navegador abre a câmera traseira; no computador, a
- * webcam só aparece se o navegador tiver `getUserMedia`, e a recusa da
- * permissão vira frase, e não tela quebrada.
+ * `multiplos`: para o álbum de vivências. A galeria aceita várias de uma vez,
+ * cada foto chega por `onEscolher`, e quem chama guarda a lista e a mostra.
  */
 export function EscolherAnexo({ arquivo, onEscolher, aceita = 'application/pdf,image/jpeg,image/png',
-                                maximoMb = 10, pergunta, id }: {
+                                maximoMb = 10, pergunta, id, multiplos = false, iniciarNaCamera }: {
   arquivo: Escolhido | null;
   onEscolher: (a: Escolhido | null) => void;
   aceita?: string;
   maximoMb?: number;
   pergunta?: ReactNode;
   id: string;
+  multiplos?: boolean;
+  /** Já abre a câmera do sistema, neste modo (o botão de câmera da Acolhe+AI). */
+  iniciarNaCamera?: 'foto' | 'documento';
 }) {
   const [erro, setErro] = useState('');
-  const [origem, setOrigem] = useState<'camera' | 'webcam' | 'arquivo' | null>(null);
-  const [webcam, setWebcam] = useState(false);
+  const [origem, setOrigem] = useState<'camera' | 'sistema' | 'documento' | 'arquivo' | null>(null);
+  const [camera, setCamera] = useState<'foto' | 'documento' | null>(
+    () => (iniciarNaCamera && temCameraDoSistema() ? iniciarNaCamera : null));
+  const [semCamera, setSemCamera] = useState(false);
   const [ampliada, setAmpliada] = useState(false);
   const campo = useRef<Record<string, HTMLInputElement | null>>({});
   const abrir = (qual: string) => campo.current[qual]?.click();
   const dedo = typeof window !== 'undefined' && !!window.matchMedia?.('(pointer: coarse)').matches;
-  const temWebcam = !dedo && typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getUserMedia;
+  const doSistema = temCameraDoSistema() && !semCamera;
   const aceitos = aceita.split(',').map((t) => t.trim());
+  const aceitaPdf = aceitos.includes('application/pdf');
 
   async function receber(f: File | undefined, de: 'camera' | 'arquivo') {
     setErro('');
     if (!f) return;
     if (f.type && !aceitos.includes(f.type)) {
-      setErro('Este tipo de arquivo não é aceito aqui. Envie PDF, JPG ou PNG.');
+      setErro(aceitaPdf ? 'Este tipo de arquivo não é aceito aqui. Envie PDF, JPG ou PNG.'
+        : 'Aqui vai uma foto, em JPG ou PNG.');
       return;
     }
     /* A mesma conferência do servidor, adiantada: recusar aqui poupa o envio
@@ -273,16 +297,34 @@ export function EscolherAnexo({ arquivo, onEscolher, aceita = 'application/pdf,i
        Confere-se DEPOIS de reduzir (fase 175): a foto de 12 MB que vira 500 KB
        não pode ser recusada pelo tamanho que ela não vai ter. */
     const lido = await lerArquivo(f);
-    if (lido.tamanho > maximoMb * 1024 * 1024) {
-      setErro(`O arquivo tem ${tamanhoLegivel(lido.tamanho)} e o limite é ${maximoMb} MB. `
-        + 'Digitalize a página em qualidade menor, ou divida o documento em partes.');
-      return;
-    }
+    if (!cabe(lido)) return;
     setOrigem(de);
     onEscolher(lido);
   }
 
-  if (arquivo) {
+  function cabe(a: Escolhido) {
+    if (a.tamanho <= maximoMb * 1024 * 1024) return true;
+    setErro(`O arquivo tem ${tamanhoLegivel(a.tamanho)} e o limite é ${maximoMb} MB. `
+      + 'Digitalize com menos páginas, ou divida o documento em partes.');
+    return false;
+  }
+
+  function daCamera(a: Escolhido, de: 'sistema' | 'documento') {
+    setCamera(null);
+    if (!cabe(a)) return;
+    setOrigem(de);
+    onEscolher(a);
+  }
+
+  const folhaDaCamera = camera && (
+    <FolhaCamera podeDocumento={aceitaPdf && !multiplos} inicial={camera}
+      onFechar={() => setCamera(null)}
+      onFoto={(a) => daCamera(a, 'sistema')}
+      onDocumento={(a) => daCamera(a, 'documento')}
+      onSemCamera={(frase) => { setCamera(null); setSemCamera(true); setErro(frase); }} />
+  );
+
+  if (arquivo && !multiplos) {
     const ehImagem = arquivo.dataUrl.startsWith('data:image');
     return (
       <div className="stack">
@@ -293,9 +335,10 @@ export function EscolherAnexo({ arquivo, onEscolher, aceita = 'application/pdf,i
               <Icone nome="olhar" /> Ampliar
             </button>
           )}
-          {origem === 'webcam' && (
-            <button type="button" className="btn sm sec" onClick={() => { onEscolher(null); setWebcam(true); }}>
-              Tirar outra
+          {(origem === 'sistema' || origem === 'documento') && (
+            <button type="button" className="btn sm sec"
+                    onClick={() => { onEscolher(null); setCamera(origem === 'documento' ? 'documento' : 'foto'); }}>
+              {origem === 'documento' ? 'Digitalizar de novo' : 'Tirar outra'}
             </button>
           )}
           {origem === 'camera' && (
@@ -310,6 +353,7 @@ export function EscolherAnexo({ arquivo, onEscolher, aceita = 'application/pdf,i
                  type="file" accept="image/*" capture="environment" tabIndex={-1} aria-hidden="true"
                  onChange={(e) => { void receber(e.target.files?.[0], 'camera'); e.target.value = ''; }} />
         )}
+        {folhaDaCamera}
         {ampliada && (
           <div className="overlay" role="dialog" aria-modal="true" aria-label="Foto ampliada"
                onClick={() => setAmpliada(false)}>
@@ -326,14 +370,19 @@ export function EscolherAnexo({ arquivo, onEscolher, aceita = 'application/pdf,i
   return (
     <div className="stack">
       <div className="acoes">
-        {dedo && (
-          <button type="button" className="btn sm" onClick={() => abrir('camera')}>
-            <Icone nome="foto" /> Tirar foto agora
+        {doSistema && (
+          <button type="button" className="btn sm" onClick={() => { setErro(''); setCamera('foto'); }}>
+            <Icone nome="foto" /> {multiplos ? 'Tirar uma foto' : 'Abrir a câmera'}
           </button>
         )}
-        {temWebcam && (
-          <button type="button" className="btn sm" onClick={() => setWebcam(true)}>
-            <Icone nome="foto" /> Usar a câmera do computador
+        {doSistema && aceitaPdf && !multiplos && (
+          <button type="button" className="btn sm" onClick={() => { setErro(''); setCamera('documento'); }}>
+            <Icone nome="documento" /> Digitalizar documento
+          </button>
+        )}
+        {dedo && !doSistema && (
+          <button type="button" className="btn sm" onClick={() => abrir('camera')}>
+            <Icone nome="foto" /> Tirar foto agora
           </button>
         )}
         {dedo && (
@@ -347,76 +396,17 @@ export function EscolherAnexo({ arquivo, onEscolher, aceita = 'application/pdf,i
              type="file" accept="image/*" capture="environment" tabIndex={-1} aria-hidden="true"
              onChange={(e) => { void receber(e.target.files?.[0], 'camera'); e.target.value = ''; }} />
       <input id={`${id}-galeria`} ref={(el) => { campo.current.galeria = el; }} className="so-leitor"
-             type="file" accept="image/*" tabIndex={-1} aria-hidden="true"
-             onChange={(e) => { void receber(e.target.files?.[0], 'arquivo'); e.target.value = ''; }} />
+             type="file" accept="image/*" tabIndex={-1} aria-hidden="true" multiple={multiplos}
+             onChange={(e) => { void receberVarios(e.target.files); e.target.value = ''; }} />
       <input id={`${id}-arquivo`} ref={(el) => { campo.current.arquivo = el; }} className="so-leitor"
-             type="file" accept={aceita} tabIndex={-1} aria-hidden="true"
-             onChange={(e) => { void receber(e.target.files?.[0], 'arquivo'); e.target.value = ''; }} />
+             type="file" accept={aceita} tabIndex={-1} aria-hidden="true" multiple={multiplos}
+             onChange={(e) => { void receberVarios(e.target.files); e.target.value = ''; }} />
       {erro && <div className="notice c-crit" role="alert">{erro}</div>}
-      {webcam && (
-        <FolhaWebcam onFechar={() => setWebcam(false)}
-          onFoto={(a) => { setWebcam(false); setOrigem('webcam'); onEscolher(a); }}
-          onSemCamera={(frase) => { setWebcam(false); setErro(frase); }} />
-      )}
+      {folhaDaCamera}
     </div>
   );
-}
 
-/**
- * A WEBCAM DO COMPUTADOR. Abre só depois do gesto de quem pediu, e a câmera
- * é desligada ao fechar: luz de câmera acesa sem ninguém fotografando é
- * pergunta que ninguém na sala sabe responder.
- */
-function FolhaWebcam({ onFechar, onFoto, onSemCamera }: {
-  onFechar: () => void; onFoto: (a: Escolhido) => void; onSemCamera: (frase: string) => void;
-}) {
-  const video = useRef<HTMLVideoElement | null>(null);
-  const [fluxo, setFluxo] = useState<MediaStream | null>(null);
-
-  useEffect(() => {
-    let vivo = true; let aberto: MediaStream | null = null;
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false })
-      .then((s) => {
-        if (!vivo) { s.getTracks().forEach((t) => t.stop()); return; }
-        aberto = s; setFluxo(s);
-        if (video.current) { video.current.srcObject = s; void video.current.play().catch(() => undefined); }
-      })
-      .catch((e: any) => {
-        const nome = String(e?.name ?? '');
-        onSemCamera(nome === 'NotAllowedError' || nome === 'SecurityError'
-          ? 'A permissão da câmera foi negada neste navegador. Use Selecionar arquivo.'
-          : 'Nenhuma câmera disponível neste aparelho. Use Selecionar arquivo.');
-      });
-    return () => { vivo = false; aberto?.getTracks().forEach((t) => t.stop()); };
-  }, []);
-
-  function fotografar() {
-    const v = video.current;
-    if (!v || !v.videoWidth) return;
-    /* A mesma redução da foto escolhida (fase 175). */
-    const r = reduzirNaTela(v, v.videoWidth, v.videoHeight);
-    if (!r) return;
-    const { dataUrl } = r;
-    const agora = new Date();
-    const nome = `foto-${agora.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })}`
-      + `-${agora.toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' }).replace(':', 'h')}.jpg`;
-    fluxo?.getTracks().forEach((t) => t.stop());
-    onFoto({ nome, tipo: 'image/jpeg', tamanho: r.tamanho, dataUrl });
+  async function receberVarios(lista: FileList | null) {
+    for (const f of Array.from(lista ?? []).slice(0, multiplos ? 20 : 1)) await receber(f, 'arquivo');
   }
-
-  return (
-    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-webcam">
-      <div className="sheet modal">
-        <h3 id="t-webcam">Fotografar o documento</h3>
-        <p className="mutetxt">Segure o papel de frente para a câmera, com boa luz, e fotografe.</p>
-        <video ref={video} className="previa-img" playsInline muted aria-label="Imagem da câmera" />
-        <div className="row rodape">
-          <button className="btn sec grow" onClick={() => { fluxo?.getTracks().forEach((t) => t.stop()); onFechar(); }}>
-            Cancelar
-          </button>
-          <button className="btn grow" disabled={!fluxo} onClick={fotografar}>Fotografar</button>
-        </div>
-      </div>
-    </div>
-  );
 }

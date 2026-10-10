@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api';
-import { BotaoOlho, Escolhido, PreviaEscolhida, base64De, lerArquivo } from '../anexos';
+import { BotaoOlho, EscolherAnexo, Escolhido, base64De } from '../anexos';
 import { FolhaDocumento } from '../documentos';
 import type { ArquivoGerado } from '../documentos';
 import type { DocumentoWord } from '../docx';
@@ -1199,17 +1199,12 @@ function FolhaAnexo({ tipos, aviso, onFechar, onEnviar }: {
 
         {forma === 'arquivo' ? (
           <>
-            <label className="f" htmlFor="anx-arq">
+            <label className="f" htmlFor="anx-arq-arquivo">
               O papel digitalizado <small>— foto ou PDF</small>
             </label>
-            <input id="anx-arq" type="file" accept="image/*,application/pdf"
-                   onChange={async (e) => {
-                     const f = e.target.files?.[0];
-                     setArquivo(f ? await lerArquivo(f) : null);
-                   }} />
-            {arquivo && <PreviaEscolhida arquivo={arquivo}
+            <EscolherAnexo id="anx-arq" arquivo={arquivo} onEscolher={setArquivo}
               pergunta={<>É este o documento? Quem abrir depois vai ver <b>isto</b> — e a
-                abertura fica registrada com o nome de quem abriu.</>} />}
+                abertura fica registrada com o nome de quem abriu.</>} />
           </>
         ) : (
           <>

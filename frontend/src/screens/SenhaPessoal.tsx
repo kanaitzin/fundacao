@@ -1,4 +1,5 @@
 import { AvisoNoCelular } from '../aviso-no-celular';
+import { CameraNesteAparelho } from '../camera';
 import { useState } from 'react';
 import { api } from '../api';
 import { Icone } from '../icones';
@@ -109,6 +110,7 @@ export function SenhaPessoal({ email, primeiroAcesso, semSenhaAinda, onPronto, o
         {!primeiroAcesso && (
           <div className="so-monitor">
             <AvisoNoCelular casa={casa ?? null} onde="computador" />
+            <CameraNesteAparelho onde="computador" />
           </div>
         )}
       </div>

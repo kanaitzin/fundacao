@@ -52,7 +52,9 @@ const TOLERADAS = new Map([
 const achados = new Map();   // regra → { impacto, ajuda, ondes: [] }
 
 const navegador = await chromium.launch({
-  executablePath: EXECUTAVEL, args: ['--no-sandbox', '--disable-dev-shm-usage'],
+  executablePath: EXECUTAVEL,
+  /* A câmera falsa do Chromium, para medir a câmera do sistema (fase 194). */
+  args: ['--no-sandbox', '--disable-dev-shm-usage', '--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'],
 });
 const pg = await navegador.newPage({ viewport: { width: 420, height: 900 } });
 
@@ -241,6 +243,19 @@ await conferir(`${tema} · Acolhe+AI trabalhando: a faixa sobre a folha aberta`)
 await pg.locator('[role="dialog"][aria-labelledby="t-marcar"]').getByRole('button', { name: 'Cancelar' }).click();
 await pg.waitForTimeout(300);
 await pg.getByRole('button', { name: 'Fechar a Acolhe+AI' }).click();
+await pg.waitForTimeout(300);
+/* A CÂMERA DO SISTEMA (fase 194): o visor no modo documento, e a revisão com o X e o certo. */
+await pg.getByRole('button', { name: /^Abrir a Acolhe\+AI/ }).click();
+await pg.waitForTimeout(300);
+await pg.getByRole('button', { name: 'Fotografar ou digitalizar um documento' }).click();
+await pg.waitForTimeout(1500);
+await conferir(`${tema} · câmera do sistema, o visor do documento`); telas++;
+await pg.locator('.camera').getByRole('button', { name: 'Fotografar a página 1' }).click();
+await pg.waitForTimeout(600);
+await conferir(`${tema} · câmera do sistema, a página para conferir`); telas++;
+await pg.locator('.camera').getByRole('button', { name: 'Fechar a câmera' }).click();
+await pg.waitForTimeout(300);
+await pg.getByRole('button', { name: 'Minimizar a Acolhe+AI' }).click();
 await pg.waitForTimeout(300);
 /* O AVISO NESTE COMPUTADOR (fase 191): só existe a partir de 1080 px, na folha
  * da senha. A volta inteira é a 420 px, onde ele se esconde; para medi-lo, a

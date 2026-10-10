@@ -18,15 +18,29 @@
  * Saída: uma linha de JSON no stdout — `{ total, paginas: [base64 PNG, …] }`.
  * O PDF original não é tocado: quem guarda o arquivo é o `ArquivosService`.
  */
-import { createCanvas, Path2D, DOMMatrix, ImageData } from '@napi-rs/canvas';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
+
+const exigir = createRequire(import.meta.url);
+/*
+ * A TELA VEM DA MESMA BIBLIOTECA QUE O PDF.JS USA (fase 194).
+ *
+ * O pdf.js traz a sua própria cópia do `@napi-rs/canvas` (a 0.1.x), e o
+ * servidor usa outra (a 1.x). Quando a página tem uma FOTO dentro (todo PDF
+ * escaneado: a alta do hospital, a receita fotografada), o pdf.js desenha a
+ * foto numa tela da cópia dele e a cola na nossa; telas de duas cópias nativas
+ * diferentes corrompem a memória, e o processo morria sem dizer nada. O
+ * relatório da internação saía com "não pôde ser reproduzido" justamente nos
+ * documentos do hospital. Achado ao digitalizar o primeiro documento pela
+ * câmera do sistema; `o-documento-digitalizado.spec.ts` cobra.
+ */
+const daMesmaDoPdfjs = createRequire(exigir.resolve('pdfjs-dist/package.json'));
+const { createCanvas, Path2D, DOMMatrix, ImageData } = daMesmaDoPdfjs('@napi-rs/canvas');
 
 globalThis.Path2D ??= Path2D;
 globalThis.DOMMatrix ??= DOMMatrix;
 globalThis.ImageData ??= ImageData;
 
-const exigir = createRequire(import.meta.url);
 const FONTES = join(dirname(exigir.resolve('pdfjs-dist/package.json')), 'standard_fonts') + '/';
 
 const maximo = Math.max(1, Math.min(50, Number(process.argv[2] ?? 20)));

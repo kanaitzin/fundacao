@@ -44,7 +44,9 @@ const cobrar = (o_que, ok, detalhe) => {
 };
 
 const navegador = await chromium.launch({
-  executablePath: EXECUTAVEL, args: ['--no-sandbox', '--disable-dev-shm-usage'],
+  executablePath: EXECUTAVEL,
+  /* A câmera falsa do Chromium (fase 194): imagem de verdade, sem pedir licença. */
+  args: ['--no-sandbox', '--disable-dev-shm-usage', '--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'],
 });
 /* `ENSAIO_CELULAR=1` percorre o mesmo uso como um celular de verdade: 360 px,
  * toque, tela de densidade dupla e o navegador em português (fase 184). */
@@ -2580,7 +2582,9 @@ if (await clicar(/Dossiê e vivências/)) {
   /* E o campo aceita VÁRIAS de uma vez, com prévia antes de confirmar. */
   if (await clicar(/Registrar uma vivência|Nova vivência/i)) {
     await pg.waitForTimeout(800);
-    const campo = pg.locator('.overlay input#viv-foto');
+    /* Desde a fase 194 o campo é o do EscolherAnexo: o de arquivo (e o da
+       galeria, no celular) aceitam várias. */
+    const campo = pg.locator('.overlay input#viv-foto-arquivo');
     cobrar('o campo de foto aceita várias de uma vez',
       (await campo.count()) > 0 && (await campo.getAttribute('multiple')) !== null,
       'o campo não tinha `multiple`, e a educadora registrava seis vivências');
@@ -3617,6 +3621,94 @@ console.log('\n🖐️ A Acolhe+AI mexendo na tela (fase 193)');
   cobrar('"pedir uma cesta" abre a Cozinha e o formulário da cesta, e não o do lanche',
     (await pedido.isVisible()) && /Pedir cesta básica/.test(await pedido.locator('#t-ped').innerText().catch(() => '')));
   await pgG.close();
+}
+
+/*
+ * A CÂMERA DO SISTEMA (fase 194). Pelo botão de câmera da Acolhe+AI, que abre
+ * já no modo documento: o visor ao vivo, o X que refaz, o certo que guarda a
+ * página, a segunda página, e o PDF de duas páginas na prévia. Depois a foto
+ * simples, a câmera nos formulários e a permissão na Minha conta.
+ */
+console.log('\n📷 A câmera do sistema e o documento digitalizado (fase 194)');
+{
+  const pgC = await navegador.newPage({ viewport: { width: 420, height: 900 } });
+  const errosC = [];
+  pgC.on('pageerror', (e) => errosC.push(e.message));
+  await pgC.goto(`file://${ARQUIVO}`);
+  await pgC.waitForTimeout(800);
+  await pgC.getByRole('button', { name: 'Marcelo Barbosa' }).click();
+  await pgC.getByRole('button', { name: /Entrar no sistema/i }).click();
+  await pgC.waitForTimeout(1200);
+  await pgC.locator('select.troca-cargo-sel').selectOption('coordenador');
+  await pgC.waitForTimeout(900);
+  await pgC.getByRole('button', { name: /^Abrir a Acolhe\+AI/ }).click();
+  await pgC.waitForTimeout(300);
+  await pgC.getByRole('button', { name: 'Fotografar ou digitalizar um documento' }).click();
+  const cam = pgC.locator('.camera');
+  await pgC.waitForTimeout(1500);
+  cobrar('o botão de câmera da Acolhe+AI abre a câmera do sistema, no modo documento',
+    (await cam.isVisible()) && /Digitalizar documento/.test(await cam.locator('#t-camera').innerText()));
+  const disparo = cam.getByRole('button', { name: /^Fotografar a página 1$/ });
+  cobrar('com o visor ao vivo e o disparo pronto', await disparo.isEnabled()
+    && await pgC.evaluate(() => (document.querySelector('.camera-video')?.videoWidth ?? 0) > 0));
+  await disparo.click();
+  await pgC.waitForTimeout(600);
+  cobrar('a foto aparece para conferir, com o X e o certo',
+    (await cam.locator('.camera-revisao').isVisible())
+    && (await cam.getByRole('button', { name: 'Refazer a foto' }).count()) === 1
+    && (await cam.getByRole('button', { name: 'Guardar esta página' }).count()) === 1);
+  await cam.getByRole('button', { name: 'Refazer a foto' }).click();
+  await pgC.waitForTimeout(1200);
+  cobrar('o X volta ao visor, sem guardar nada',
+    (await cam.locator('.camera-video').isVisible()) && (await cam.locator('.camera-paginas li').count()) === 0);
+  for (const n of [1, 2]) {
+    await cam.getByRole('button', { name: `Fotografar a página ${n}` }).click();
+    await pgC.waitForTimeout(600);
+    await cam.getByRole('button', { name: 'Guardar esta página' }).click();
+    await pgC.waitForTimeout(1200);
+  }
+  cobrar('cada página guardada volta ao visor, e a fila mostra as duas',
+    (await cam.locator('.camera-paginas li').count()) === 2
+    && (await cam.getByRole('button', { name: /^Concluir \(2 páginas\)$/ }).count()) === 1);
+  await cam.getByRole('button', { name: /^Concluir/ }).click();
+  await pgC.waitForTimeout(800);
+  const previa = pgC.locator('.acolhe-painel .previa');
+  cobrar('concluir monta UM PDF com as duas páginas, e a prévia mostra as páginas',
+    !(await cam.count()) && (await previa.locator('.previa-paginas img').count()) === 2
+    && /\.pdf · .* · PDF com 2 páginas/.test(await previa.innerText()), (await previa.innerText().catch(() => '')).slice(0, 160));
+  /* A foto simples: Descartar, a câmera de novo, o modo Foto, e o certo. */
+  await pgC.locator('.acolhe-painel').getByRole('button', { name: 'Descartar' }).click();
+  await pgC.locator('.acolhe-painel').getByRole('button', { name: 'Abrir a câmera' }).click();
+  await pgC.waitForTimeout(1500);
+  await cam.getByRole('button', { name: 'Foto', exact: true }).click();
+  await cam.getByRole('button', { name: 'Fotografar', exact: true }).click();
+  await pgC.waitForTimeout(600);
+  await cam.getByRole('button', { name: 'Usar esta foto' }).click();
+  await pgC.waitForTimeout(600);
+  cobrar('no modo foto, o certo entrega a foto, com a prévia em imagem',
+    !(await cam.count()) && (await pgC.locator('.acolhe-painel .previa img.previa-img').count()) === 1
+    && /foto-\d{4}-\d{2}-\d{2}-\d{2}h\d{2}\.jpg/.test(await pgC.locator('.acolhe-painel .previa').innerText()));
+  await pgC.getByRole('button', { name: 'Minimizar a Acolhe+AI' }).click();
+  /* A mesma câmera nos formulários: a nota de compra da Saúde. */
+  const saude = pgC.locator('nav.tabbar button', { hasText: 'Mais' });
+  if (await saude.count()) {
+    await saude.first().click();
+    await pgC.waitForTimeout(300);
+    await pgC.locator('.overlay .sheet button.card.row', { hasText: 'Saúde' }).first().click();
+    await pgC.waitForTimeout(1000);
+  }
+  const abaCompras = pgC.locator('main.conteudo [role="tab"]', { hasText: 'Compras' });
+  if (await abaCompras.count()) { await abaCompras.first().click(); await pgC.waitForTimeout(800); }
+  const compra = pgC.locator('main.conteudo button', { hasText: 'Registrar compra' });
+  if (await compra.count()) {
+    await compra.first().click();
+    await pgC.waitForTimeout(600);
+  }
+  cobrar('o formulário da nota de compra tem a câmera e o Digitalizar documento',
+    (await pgC.getByRole('button', { name: 'Abrir a câmera' }).count()) > 0
+    && (await pgC.getByRole('button', { name: 'Digitalizar documento' }).count()) > 0);
+  cobrar('nenhuma exceção com a câmera do sistema', errosC.length === 0, errosC[0]);
+  await pgC.close();
 }
 
 await navegador.close();

@@ -3,7 +3,7 @@ import { api } from '../api';
 import { baixarArquivo } from '../documentos';
 import { dia } from '../rotulos';
 import { Icone } from '../icones';
-import { lerArquivo } from '../anexos';
+import { EscolherAnexo } from '../anexos';
 import type { Escolhido } from '../anexos';
 
 /**
@@ -434,7 +434,6 @@ function FolhaAnexo({ item, catalogo, onFechar, onEnviar }: {
   }
 
   const pode = arquivo != null && titulo.trim().length >= 2 && !problema;
-  const ehImagem = arquivo?.dataUrl.startsWith('data:image');
 
   return (
     <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-anx"
@@ -443,35 +442,14 @@ function FolhaAnexo({ item, catalogo, onFechar, onEnviar }: {
         <h3 id="t-anx">Anexar · {item.label}</h3>
         <div className="notice c-info">{catalogo.aviso}</div>
 
-        <label className="f" htmlFor="anx-arq">
+        <label className="f" htmlFor="anx-arq-arquivo">
           O arquivo <small>— {catalogo.aceitos.join(', ')}, até {tam(catalogo.tamanhoMaximo)}</small>
         </label>
-        <input id="anx-arq" type="file" accept="image/*,application/pdf,.heic"
-               onChange={async (e) => {
-                 const f = e.target.files?.[0];
-                 if (f) setArquivo(await lerArquivo(f));
-               }} />
-
-        {arquivo && (
-          <>
-            <div className="bloco">
-              <small>Confira antes de enviar</small>
-              {ehImagem ? (
-                <img src={arquivo.dataUrl} alt={`Prévia de ${arquivo.nome}`}
-                     style={{ maxWidth: '100%', borderRadius: 10, display: 'block' }} />
-              ) : (
-                <p className="mutetxt" style={{ margin: 0 }}>
-                  {arquivo.nome} · {tam(arquivo.tamanho)} — a prévia de PDF abre depois de
-                  guardado, na conferência.
-                </p>
-              )}
-            </div>
-            <p className="mutetxt">
-              {arquivo.nome} · {tam(arquivo.tamanho)}. O sistema confere o tipo pela assinatura do
-              arquivo; <b>só os seus olhos</b> confirmam que é o documento certo, e desta criança.
-            </p>
-          </>
-        )}
+        {/* A câmera do sistema e o documento digitalizado em PDF (fase 194): a
+            certidão de duas folhas vira UM documento, e não duas fotos. */}
+        <EscolherAnexo id="anx-arq" arquivo={arquivo} onEscolher={setArquivo}
+          aceita="application/pdf,image/jpeg,image/png,image/heic,image/heif"
+          maximoMb={Math.floor(catalogo.tamanhoMaximo / 1048576)} />
 
         <label className="f" htmlFor="anx-tit">
           Título <small>— sem CPF, diagnóstico ou teor de decisão</small>
@@ -658,16 +636,12 @@ function FolhaVivencia({ tipos, onFechar, onEnviar }: {
           * registrava seis vivências — seis vezes a mesma data e a mesma
           * descrição, e o álbum contando a festa seis vezes.
           */}
-        <label className="f" htmlFor="viv-foto">
+        <label className="f" htmlFor="viv-foto-arquivo">
           Fotos <small>— opcional, e pode escolher várias</small>
         </label>
-        <input id="viv-foto" type="file" accept="image/*" multiple
-               onChange={async (e) => {
-                 const escolhidos = [...(e.target.files ?? [])];
-                 if (escolhidos.length) {
-                   setFotos(await Promise.all(escolhidos.map((f) => lerArquivo(f))));
-                 }
-               }} />
+        {/* Pela câmera do sistema (fase 194), uma a uma, ou várias da galeria. */}
+        <EscolherAnexo id="viv-foto" arquivo={null} multiplos aceita="image/jpeg,image/png"
+          onEscolher={(f) => { if (f) setFotos((xs) => [...xs, f]); }} />
         {fotos.length > 0 && (
           <>
             <p className="mutetxt">
@@ -675,9 +649,15 @@ function FolhaVivencia({ tipos, onFechar, onEnviar }: {
               {' '}— confira antes de guardar.
             </p>
             <div className="stack">
-              {fotos.map((f) => (
-                <img key={f.nome + f.tamanho} src={f.dataUrl} alt={`Prévia de ${f.nome}`}
-                     style={{ maxWidth: '100%', borderRadius: 10, display: 'block' }} />
+              {fotos.map((f, i) => (
+                <div key={i} className="stack" style={{ gap: 4 }}>
+                  <img src={f.dataUrl} alt={`Prévia da foto ${i + 1}`}
+                       style={{ maxWidth: '100%', borderRadius: 10, display: 'block' }} />
+                  <button type="button" className="btn sm ghost" style={{ alignSelf: 'flex-start' }}
+                          onClick={() => setFotos((xs) => xs.filter((_, j) => j !== i))}>
+                    Tirar a foto {i + 1}
+                  </button>
+                </div>
               ))}
             </div>
             {/* NÃO bloqueia — registra. A decisão da Fundação foi não impedir; o

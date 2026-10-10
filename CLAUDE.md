@@ -160,8 +160,9 @@ e qual é o caminho certo.
 | `backend/src/kernel/audit/audit.service.ts` | quem ESCREVE a auditoria, e as três respostas sobre a casa de uma linha (fase 149). **Linha de auditoria sem casa é linha que a coordenação da casa não lê** — a policy compara `house_id` com o alcance, e NULL não é igual a nada. O `auditoria-tem-casa.spec.ts` cobra `houseId` em toda chamada, com a lista ESCRITA das poucas ações que não têm casa |
 | `frontend/src/portas.ts` | **as vinte e cinco telas do sistema, numa lista só** (fase 150). A folha "Mais" do celular, a coluna do monitor e a conferência leem dela. A lista existia em DOIS lugares e as duas discordavam — `as-portas-e-os-icones.spec.ts` é o que impede a divergência voltar |
 | `frontend/src/icones.tsx` | **os desenhos da moldura**, em traço e `currentColor`, no lugar dos emoji (fase 150). Emoji muda de cara conforme o aparelho, não herda a cor e carrega significado que ninguém pediu. Nenhum ícone é o único portador do sentido: ao lado há sempre a palavra |
-| `frontend/src/anexos.tsx` | **o `EscolherAnexo`** (fase 165): câmera, galeria, arquivo e a câmera do computador, com prévia, ampliar, descartar e tirar outra. Todo lugar novo que recebe foto ou documento usa este, e não um `<input type="file">` solto. **E o `lerArquivo` daqui é a única leitura de arquivo** (fase 175): é ele que reduz a foto antes de enviar, e leitura por conta própria manda a foto do tamanho da câmera |
-| `backend/src/kernel/documentos/paginas-do-pdf.ts` | **as páginas de um PDF como imagem** (fase 165), num processo à parte (`desenhar-paginas.mjs`, nome diferente de propósito: com o mesmo nome o Jest importava o `.mjs`). Nunca lança: PDF que não desenha volta marcado, e o documento sai assim mesmo |
+| `frontend/src/anexos.tsx` | **o `EscolherAnexo`** (fase 165): câmera, galeria, arquivo, com prévia, ampliar, descartar e tirar outra. Todo lugar que recebe foto ou documento usa este, e não um `<input type="file">` solto, e desde a 194 **o `todo-anexo-pela-camera.spec.ts` cobra**. **E o `lerArquivo` daqui é a única leitura de arquivo** (fase 175): é ele que reduz a foto antes de enviar, e leitura por conta própria manda a foto do tamanho da câmera |
+| `frontend/src/camera.tsx` | **a câmera do sistema** (fase 194): visor ao vivo, X e ✓ de cada foto, girar, trocar de câmera, e o **modo Documento** (página por página, realce, e Concluir num PDF A4 por `backend/src/kernel/documentos/pdf-de-imagens.ts`, sem biblioteca). Quem a abre é o `EscolherAnexo`. E o `CameraNesteAparelho` da Minha conta. **Não acha a borda do papel**: a moldura guia |
+| `backend/src/kernel/documentos/paginas-do-pdf.ts` | **as páginas de um PDF como imagem** (fase 165), num processo à parte (`desenhar-paginas.mjs`, nome diferente de propósito: com o mesmo nome o Jest importava o `.mjs`). Nunca lança: PDF que não desenha volta marcado, e o documento sai assim mesmo. **A tela de desenho vem da cópia do `@napi-rs/canvas` que o pdf.js traz** (fase 194): com a outra, todo PDF com foto dentro derrubava o processo |
 | `scripts/simulacao-da-casa.sh` | **uma casa nasce e vive noventa dias** (fase 173), **ou as oito vivem juntas** com `SIM_CASAS` (fase 177): a ARM1 do primeiro acesso a fevereiro, com o relógio andando (`faketime` lendo um arquivo que a simulação reescreve), os relatórios conferidos contra o que ela contou, e no fim o **`frontend/ensaio-servidor.mjs`**, que abre as telas no navegador **contra o servidor de verdade**. Recria o banco: não roda junto com a suíte. `SIM_SO_NAVEGADOR=1` repete só o navegador |
 | `backend/src/kernel/common/porta-da-internet.ts` | **CORS, cabeçalhos de segurança e `TRUST_PROXY`** (fase 179), ligados pelo `AppModule`. CORS vazio é FECHADO: a tela está no mesmo endereço |
 | `backend/src/kernel/common/corpo-da-requisicao.ts` | **o limite do corpo, 25 MB** (fase 179): o anexo vai em base64 e o padrão de 100 KB recusava toda foto de celular. Mora no módulo para a suíte ver |
@@ -176,7 +177,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 09/10/2026, fase 193
+### Onde estamos — 10/10/2026, fase 194
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -233,8 +234,9 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 191 | **a receita e a vacinação avisam antes de vencer** (decisões de 08/10: 10 e 15 dias, à Enfermagem e à técnica e coordenação, uma vez por documento, o último de validade mais longa; sem o remédio nem a vacina no aviso; `app_documentos_vencendo`, `document_due_notice`, people/1647, oitava rotina do relógio) e **o aviso fora do sistema também no computador**, na folha da senha (*Aviso neste computador*). Decidido sem código: o convite segue 24 horas, e o aviso no celular não entra no painel da implantação |
 | 192 | **a Acolhe+AI** (pedido e decisões de 08/10: nome, IA aprovada pela Fundação, a pessoa confirma, sugestões para coordenações, CG, gestor e TI): assistente em todas as telas com a equipe virtual; **age com o acesso de quem conversa, por construção** (o servidor só repassa ao Claude; a TELA executa as leituras pelas rotas de sempre, `assistente/ferramentas.ts`); propõe e nunca grava; links e navegação; anexos; voz; sugestões (`assistant_suggestion`, assistente/1648, tela *Sugestões de melhoria*); modo guia sem a chave e no protótipo (`acolhe-guia.ts`). O "poder total" pedido virou o acesso de quem fala (regra 5). **Modelo de verdade não testado daqui** (§12.12) |
 | 193 | **a Acolhe+AI sempre em dia** (pedido de 08/10): a regra de toda fase ensinar a assistente virou teste que nega por padrão (`a-acolhe-conhece-o-sistema.spec.ts`; catálogo de 34 para 131 rotas, 14 fora com motivo); **escreve como colega** (`humanizar`); **mexe na tela com licença** (`acolhe-tela.ts`: abre o formulário, escreve à vista, nunca salva, só aperta `data-acolhe-abre` ou aba); **conta exata e tabela com planilha** (`calculo.ts`, auditada). O `ensaio:uso` com roteiro de modelo achou **a faixa por baixo da folha aberta** |
+| 194 | **a câmera do sistema e o documento em PDF** (pedido de 10/10): visor ao vivo com X e ✓, modo Documento que junta as páginas num PDF A4 (`camera.tsx`, `pdf-de-imagens.ts`), em **todo** anexo (nove telas tinham seletor solto; `todo-anexo-pela-camera.spec.ts`), a câmera na Minha conta e na Acolhe+AI; e o defeito antigo: **o servidor não desenhava PDF com foto dentro** (duas cópias nativas do canvas), e o relatório da internação perdia os papéis do hospital |
 
-**Medido no fim da 193:** 188 migrações, 133 tabelas, 135 suítes, 1221 testes, verdes nas
+**Medido no fim da 194:** 188 migrações, 133 tabelas, 137 suítes, 1227 testes, verdes nas
 DUAS condições de relógio; os nove ensaios de navegador verdes (o do celular com 306 telas e nenhum achado), com a portaria e o
 portão, o armário, a cozinha, os temas e a foto no percurso do `ensaio:uso`; **1085 telas (155 × sete
 temas) sem violação de WCAG 2.1 AA**; nenhuma
@@ -270,6 +272,13 @@ as três cores abaixo. Cor nova passa pelo `ensaio:acessibilidade`, que mede os 
 | **cargo** | *de que setor é esta pessoa?* | círculo cheio com iniciais |
 
 ### A próxima etapa
+
+**FEITO — fase 194** (§2): a câmera do sistema, com X e ✓, o documento digitalizado em PDF
+em todo lugar que recebe anexo, a câmera na Minha conta e o botão de câmera da Acolhe+AI.
+**Depende de HTTPS** na implantação (a câmera pelo sistema não liga sem ele; o anexo cai na
+câmera do aparelho e no arquivo). **Não testado daqui:** um celular de verdade. **Para
+crescer:** achar a borda do papel e endireitar a perspectiva (pede biblioteca de visão, peso
+no protótipo: decisão de custo).
 
 **FEITO — fase 193** (§2, §5 item 11, §12.12): a Acolhe+AI sempre em dia, humanizada,
 preenchendo a tela com licença e fazendo contas e tabelas. **Toda fase, daqui em diante,
@@ -601,6 +610,12 @@ novo.
   MARCOU (`data-acolhe-abre`), e o teste lê o clique de cada marcado. **E camada também
   é contrato**: a faixa da assistente nasceu abaixo da folha aberta (z-index 45 contra
   50), e só o ensaio, clicando de verdade, viu que o Parar não se tocava.
+- **Duas cópias da mesma biblioteca nativa não conversam** (194). O pdf.js traz o
+  `@napi-rs/canvas` dele, e o servidor usava outro: a foto desenhada numa cópia e colada
+  na tela da outra corrompia a memória, e o processo morria calado. O `paginasDoPdf`
+  "nunca lança" e devolveu *falhou* educadamente por fases inteiras, em todo PDF
+  escaneado. **Falha que é engolida de propósito precisa de teste que a cobre do lado
+  feliz**, com o dado de verdade: foi a primeira foto de câmera, e não a suíte, que viu.
 - **Frase de tela que envelhece é frase que mente**, e a cobrança do ensaio que a
   guarda tem de ser reescrita junto. A ressalva do painel sobre nota escolar já foi
   reescrita três vezes. **Isto inclui este arquivo.**

@@ -8,6 +8,7 @@ import { Icone } from './icones';
 import { Cargo } from './cargos';
 import { PORTAS, GRUPOS } from './portas';
 import { AvisoNoCelular, desligarAoSair } from './aviso-no-celular';
+import { CameraNesteAparelho } from './camera';
 import { AcolheAI } from './acolhe';
 import { Sugestoes } from './screens/Sugestoes';
 import { api, setToken, ligarFilaAoServidor, quandoASessaoTerminar } from './api';
@@ -690,6 +691,7 @@ export function App() {
               <button className="btn ghost" onClick={() => setConta(false)}>Fechar</button>
             </div>
             <AvisoNoCelular casa={casa?.name ?? null} />
+            <CameraNesteAparelho />
           </div>
         </div>
       )}
