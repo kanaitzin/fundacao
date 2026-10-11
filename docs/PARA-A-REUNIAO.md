@@ -45,9 +45,11 @@
 - **O relatório pela voz** (fase 195, pedido de 10/10): todo campo de texto longo tem um
   microfone, e a Acolhe+AI organiza o que a pessoa falou num rascunho, que ela confere,
   completa falando, ilustra com foto e leva para a tela certa antes de salvar. E a Acolhe+AI
-  foi pedida em cada tela de cada cargo, por texto e por voz: alcança todas. **Para o DPO:**
+  foi pedida em cada tela de cada cargo, por texto e por voz: alcança todas, e desde a fase
+  196 também dentro do perfil da criança (*quero registrar a alergia do Bruno*), do dossiê, da
+  internação aberta e do acervo: os 36 formulários do sistema. **Para o DPO:**
   o ditado usa o reconhecimento do navegador; no Chrome, o áudio vai ao Google.
-- **195 fases.** 138 suítes e 1229 testes, verdes em duas condições de relógio —
+- **196 fases.** 138 suítes e 1235 testes, verdes em duas condições de relógio —
   antes e depois da virada do UTC, que em Porto Alegre é às 21h.
 - **O aviso no celular** (fase 189, decidido em 06/10): quem liga na Minha conta
   recebe no celular todos os avisos do sino, mesmo com o sistema fechado. Na

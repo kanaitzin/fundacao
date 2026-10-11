@@ -42,7 +42,7 @@ uma criança chorando ao lado**. Elegância que atrapalha o turno não serve.
   08/10, §5 item 11). Rota GET nova: catálogo do `assistente/guia.ts` ou
   `FORA_DO_CATALOGO` com o motivo. Tela nova: no guia pela chave. Ferramenta
   nova: `ferramentas.ts`, `acolhe.tsx` e guia. Botão novo que só abre um
-  formulário de criação: `data-acolhe-abre`. O `a-acolhe-conhece-o-sistema.spec.ts`
+  formulário de criação: `data-acolhe-abre`; que só entra num registro: `data-acolhe-entra`. O `a-acolhe-conhece-o-sistema.spec.ts`
   reprova o que faltar. E ela escreve como colega: sem travessão nem lista.
 - Achou um defeito enquanto fazia outra coisa? **Anote e avise no fim** — não
   desvie a tarefa sem falar.
@@ -167,9 +167,9 @@ e qual é o caminho certo.
 | `backend/src/kernel/common/porta-da-internet.ts` | **CORS, cabeçalhos de segurança e `TRUST_PROXY`** (fase 179), ligados pelo `AppModule`. CORS vazio é FECHADO: a tela está no mesmo endereço |
 | `backend/src/kernel/common/corpo-da-requisicao.ts` | **o limite do corpo, 25 MB** (fase 179): o anexo vai em base64 e o padrão de 100 KB recusava toda foto de celular. Mora no módulo para a suíte ver |
 | `frontend/src/acolhe.tsx` | **a Acolhe+AI** (fase 192), em todas as telas. **A tela executa as ferramentas** que o modelo pede: leitura só GET e só do catálogo (`backend/src/modules/assistente/ferramentas.ts`, lido pelos dois lados), navegação só às telas do cargo, e proposta que vira cartão. O servidor (`assistente.service.ts`) só repassa ao Claude, com o guia e as regras em `guia.ts`. **Sem a chave, o `acolhe-guia.ts` responde.** Ferramenta nova: escreva no `ferramentas.ts`, execute no `acolhe.tsx`, e ponha no teste e no guia |
-| `frontend/src/acolhe-tela.ts` | **as mãos da Acolhe+AI na tela** (fase 193): lê os campos e botões da folha aberta, escreve à vista e marca o que escreveu. **Nunca salva**: só aperta botão com `data-acolhe-abre` ou aba, porque o nome do botão não diz se ele grava; senha e arquivo nem aparecem. Quem pede a licença é o `acolhe.tsx`, uma vez por conversa |
+| `frontend/src/acolhe-tela.ts` | **as mãos da Acolhe+AI na tela** (fase 193): lê os campos e botões da folha aberta, escreve à vista e marca o que escreveu. **Nunca salva**: só aperta botão com `data-acolhe-abre`, `data-acolhe-entra` (fase 196) ou aba, porque o nome do botão não diz se ele grava; senha e arquivo nem aparecem. Quem pede a licença é o `acolhe.tsx`, uma vez por conversa |
 | `frontend/src/ditado.tsx` | **o ditado** (fase 195): o microfone junto de todo campo de texto longo (`DitadoNosCampos`, uma vez só no `App.tsx`), e o `iniciarDitado` longo que a Acolhe+AI e o rascunho usam. Pausa não corta; o primeiro uso mostra o aviso do áudio (no Chrome vai ao Google). Campo que não deve ter ditado ganha `data-sem-ditado` |
-| `frontend/ensaio-acolhe.mjs` | **a cobertura da Acolhe+AI, medida** (fase 195): cada cargo pede cada tela por texto e por voz (microfone falso), a explicação e cada formulário de criação da tela; e o relatório pela voz de ponta a ponta. `ENSAIO_CARGOS=portaria` mede só um. **Tela ou formulário novo entra na medição sozinho**: o ensaio lê o menu e as marcas `data-acolhe-abre` |
+| `frontend/ensaio-acolhe.mjs` | **a cobertura da Acolhe+AI, medida** (fase 195): cada cargo pede cada tela por texto e por voz (microfone falso), a explicação e cada formulário de criação da tela; e o relatório pela voz de ponta a ponta. `ENSAIO_CARGOS=portaria` mede só um. **Tela ou formulário novo entra na medição sozinho**: o ensaio lê o menu e as marcas `data-acolhe-abre` e `data-acolhe-entra`, as abas, o perfil (do Bruno e do Felipe), o dossiê e a internação (fase 196) |
 | `frontend/src/aviso-no-celular.tsx` | **o aviso no celular** (fase 189), na folha Minha conta: liga e desliga NESTE aparelho; o `desligarAoSair` é chamado pelo Sair. O que o aparelho mostra mora em `public/sw-avisos.js`, e o que o servidor manda, em `textoDoAviso` (`notifications/aviso-no-celular.service.ts`): **só o título neutro, nunca o aviso** |
 | `frontend/src/cargos.tsx` | **a cor de cada cargo e o círculo de iniciais** (fase 151). Ela convive com DUAS outras: a cor de ESTADO (crítico/atenção — não se toca, e o cargo não usa a família dela) e a cor de AUTOR (`tomDoAutor`, qual colega escreveu — a coordenação escolhe, 0990). Três perguntas diferentes; o dia em que duas responderem à mesma, a cor deixa de informar |
 
@@ -179,7 +179,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 10/10/2026, fase 195
+### Onde estamos — 11/10/2026, fase 196
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -238,9 +238,10 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 193 | **a Acolhe+AI sempre em dia** (pedido de 08/10): a regra de toda fase ensinar a assistente virou teste que nega por padrão (`a-acolhe-conhece-o-sistema.spec.ts`; catálogo de 34 para 131 rotas, 14 fora com motivo); **escreve como colega** (`humanizar`); **mexe na tela com licença** (`acolhe-tela.ts`: abre o formulário, escreve à vista, nunca salva, só aperta `data-acolhe-abre` ou aba); **conta exata e tabela com planilha** (`calculo.ts`, auditada). O `ensaio:uso` com roteiro de modelo achou **a faixa por baixo da folha aberta** |
 | 194 | **a câmera do sistema e o documento em PDF** (pedido de 10/10): visor ao vivo com X e ✓, modo Documento que junta as páginas num PDF A4 (`camera.tsx`, `pdf-de-imagens.ts`), em **todo** anexo (nove telas tinham seletor solto; `todo-anexo-pela-camera.spec.ts`), a câmera na Minha conta e na Acolhe+AI; e o defeito antigo: **o servidor não desenhava PDF com foto dentro** (duas cópias nativas do canvas), e o relatório da internação perdia os papéis do hospital; e a simulação achou **a API morrendo quando o banco encerra as conexões** (`DatabaseService` ouve o erro; `o-banco-que-reinicia.e2e.spec.ts`) |
 | 195 | **o relatório pela voz** (pedido de 10/10): ditado em todo campo de texto longo (`ditado.tsx`), a Acolhe+AI ouvindo ditado longo, e o **rascunho** (`mostrar_rascunho`) que a pessoa edita, aprova, completa falando, ilustra com foto e leva à tela, com o resumo do que foi escrito; e **a cobertura medida** (`ensaio:acolhe`): todas as telas de todos os cargos por texto e por voz, explicadas, 84 formulários de 84. A primeira rodada achou cinco lacunas do guia (consertadas) |
+| 196 | **a Acolhe+AI dentro do perfil da criança e de toda subtela** (o *100 por cento* de 10/10): o guia acha a criança nomeada (`criancasNoPedido`) e abre o perfil e o formulário dele; passa por entrada (marca nova `data-acolhe-entra`: dossiê, acervo, cartão da internação e do plantão) e por aba, olha aba por aba e registro por registro quando o nome não casa, e desempata o botão repetido pela linha. **Os 36 formulários marcados, todos abertos pela Acolhe+AI pelo caminho inteiro**, nos nove cargos |
 
-**Medido no fim da 195:** 188 migrações, 133 tabelas, 138 suítes, 1229 testes, verdes nas
-DUAS condições de relógio; os dez ensaios de navegador verdes (o `ensaio:acolhe` com todas as telas de todos os cargos por texto e por voz, e o do celular com 306 telas e nenhum achado), com a portaria e o
+**Medido no fim da 196:** 188 migrações, 133 tabelas, 138 suítes, 1235 testes, verdes nas
+DUAS condições de relógio; os dez ensaios de navegador verdes (o `ensaio:acolhe` com todas as telas de todos os cargos por texto e por voz e os 36 formulários do sistema abertos por ela, inclusive dentro do perfil, do dossiê, da internação, do acervo e do plantão, e o do celular com 306 telas e nenhum achado), com a portaria e o
 portão, o armário, a cozinha, os temas e a foto no percurso do `ensaio:uso`; **1099 telas (157 × sete
 temas) sem violação de WCAG 2.1 AA**; nenhuma
 rota sem teste; nenhuma rota — escrita ou leitura — com 500; **250 leituras sondadas
@@ -282,6 +283,13 @@ as três cores abaixo. Cor nova passa pelo `ensaio:acessibilidade`, que mede os 
 | **cargo** | *de que setor é esta pessoa?* | círculo cheio com iniciais |
 
 ### A próxima etapa
+
+**FEITO — fase 196** (§2, §12.12): a Acolhe+AI dentro do perfil da criança e de toda subtela.
+**Botão novo que só ENTRA num registro** (abre o detalhe, o dossiê, um acervo) ganha
+`data-acolhe-entra`, com o clique só mudando estado (a leitura vai num efeito): o mesmo
+teste cobra. **Não medido daqui:** o modelo de verdade e a voz de verdade. **Para crescer:**
+o desempate pela linha vale para o nome escrito ao lado do botão; registro sem o nome à vista
+(o plantão em que a pessoa assinou) ela acha experimentando, até quatro.
 
 **FEITO — fase 195** (§2, §12.12): o relatório pela voz, o rascunho que se confere antes
 de guardar, o ditado em todo campo e a cobertura da Acolhe+AI medida cargo por cargo. **Para
@@ -644,6 +652,10 @@ novo.
   falhavam: a palavra *melhoria* desviava *me leva para as Sugestões de melhoria*, *ata*
   casava dentro de *data*, e pedido sem verbo de criar não abria nada. **Estar no catálogo
   não é ser alcançável**: a medição tem de fazer o caminho de quem pede.
+- **O limite escrito no relatório é o próximo trabalho** (196). A 195 terminou dizendo que os
+  formulários de dentro de um registro ficavam fora da conta; medidos, nenhum era alcançável
+  pelo guia, e o *Registrar compra* da Saúde, atrás de uma aba, também não. **E comentário que
+  cita a marca pelo nome conta como marca**: o teste que lê o código não distingue, e não deve.
 - **Frase de tela que envelhece é frase que mente**, e a cobrança do ensaio que a
   guarda tem de ser reescrita junto. A ressalva do painel sobre nota escolar já foi
   reescrita três vezes. **Isto inclui este arquivo.**
