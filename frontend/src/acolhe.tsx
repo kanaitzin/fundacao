@@ -248,9 +248,12 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
         if (r.ok && r.campo) preenchidos.current.push({ campo: r.campo, valor: String(entrada.valor ?? '') });
         return { conteudo: r.frase, erro: !r.ok };
       }
-      setFaixa(`Abrindo ${String(entrada.botao ?? '')}…`);
-      const r = await apertarBotao(String(entrada.botao ?? ''));
-      return { conteudo: r.frase, erro: !r.ok };
+      if (nome === 'apertar_botao') {
+        setFaixa(`Abrindo ${String(entrada.botao ?? '')}…`);
+        const r = await apertarBotao(String(entrada.botao ?? ''));
+        return { conteudo: r.frase, erro: !r.ok };
+      }
+      return { conteudo: `A ferramenta ${nome} não mexe na tela por aqui.`, erro: true };
     }
     if (nome === 'mostrar_rascunho') {
       const texto = humanizar(String(entrada.texto ?? '')).slice(0, 8000);

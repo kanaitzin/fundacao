@@ -313,7 +313,7 @@ export function Acolhidos({ houseId, casaLabel, papel, abrir }: {
     catch (e) { setErro(e instanceof Error ? e.message : 'Não foi possível abrir o acervo.'); }
   }, [houseId]);
   /* Entrar no acervo só muda o estado; a leitura vem daqui (fase 196: o botão de
-     entrar tem a marca `data-acolhe-entra`, e o clique dele só pode mudar estado). */
+     entrar tem a marca de entrada da Acolhe+AI, e o clique dele só pode mudar estado). */
   useEffect(() => { if (vendoAcervo) void carregarAcervo(); }, [vendoAcervo, carregarAcervo]);
 
   /**

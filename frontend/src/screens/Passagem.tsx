@@ -119,7 +119,7 @@ export function Passagem({ houseId }: { houseId: string }) {
     try { setAberto(await api<Plantao>(`/shifts/${id}`)); }
     catch (e) { setErro(e instanceof Error ? e.message : 'Não foi possível abrir o plantão.'); }
   }, []);
-  /* O cartão do plantão só pede para abrir (fase 196: entrada com `data-acolhe-entra`,
+  /* O cartão do plantão só pede para abrir (fase 196: entrada marcada para a Acolhe+AI,
      cujo clique só muda estado); quem lê é este efeito. */
   const [abrindoId, setAbrindoId] = useState<string | null>(null);
   useEffect(() => {
