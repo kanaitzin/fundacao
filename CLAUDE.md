@@ -268,6 +268,8 @@ contra o servidor de verdade, sem achado**. O log do banco agora acrescenta, em
 **E na fase 195** (`SIM_CASAS=AI3 … 30`), com o ditado e o rascunho no ar: **onze contas, 201
 telas e o esqueci contra o servidor de verdade, sem achado**; na API, só a recusa conhecida da
 admissão no limite de vagas.
+**E na fase 196** (`SIM_CASAS=AI3 … 30`), com o acervo e o plantão abrindo por efeito: **onze
+contas, 201 telas e o esqueci contra o servidor de verdade, sem achado**; na API, a mesma recusa.
 
 **As TRÊS cores do sistema, porque confundi-las é o pior que esta tela pode
 fazer** — está escrito por extenso em `frontend/src/cargos.tsx`:
