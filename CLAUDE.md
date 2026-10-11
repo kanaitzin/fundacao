@@ -273,6 +273,8 @@ telas e o esqueci contra o servidor de verdade, sem achado**; na API, só a recu
 admissão no limite de vagas.
 **E na fase 196** (`SIM_CASAS=AI3 … 30`), com o acervo e o plantão abrindo por efeito: **onze
 contas, 201 telas e o esqueci contra o servidor de verdade, sem achado**; na API, a mesma recusa.
+**E na fase 198** (`SIM_CASAS=AI3 … 30`), com os rostos nas listas e a linha do tempo: **onze
+contas, 201 telas e o esqueci contra o servidor de verdade, sem achado**; na API, a mesma recusa.
 
 **As TRÊS cores do sistema, porque confundi-las é o pior que esta tela pode
 fazer** — está escrito por extenso em `frontend/src/cargos.tsx`:
