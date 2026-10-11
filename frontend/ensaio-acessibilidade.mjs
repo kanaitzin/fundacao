@@ -104,7 +104,7 @@ const cargos = await seletor.locator('option').evaluateAll((os) =>
  * sido medido. "Confira se tudo fica legível" é nos três, ou não é conferência.
  * `ENSAIO_TEMAS=light` roda um só, para quem está mexendo numa tela.
  */
-const TEMAS = (process.env.ENSAIO_TEMAS ?? 'light,dark,contraste,rosa,azul,verde,colorido').split(',').filter(Boolean);
+const TEMAS = (process.env.ENSAIO_TEMAS ?? 'light,dark,contraste,rosa,azul,verde,colorido,rs').split(',').filter(Boolean);
 console.log(`Acessibilidade — ${cargos.length} cargos × ${TEMAS.length} temas (${TEMAS.join(', ')})\n`);
 let telas = 0;
 

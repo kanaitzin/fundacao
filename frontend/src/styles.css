@@ -1413,6 +1413,34 @@ textarea{
 :root[data-theme="colorido"] .tabbar button:nth-child(6n+6) .icone,
 :root[data-theme="colorido"] .portas-lateral button:nth-child(6n+6) .icone{ color:#0E7490; background:#CFFAFE }
 
+/* O RIO GRANDE DO SUL (pedido de 11/10): as cores da bandeira, bem coloridas.
+   O verde é a marca (botões, títulos, item ativo), escuro o bastante para a
+   letra branca. O vermelho e o amarelo entram como ENFEITE: a faixa do topo com
+   as três cores, o fundo em degradê suave das três, e os azulejos das portas em
+   rodízio verde, vermelho e amarelo, sempre com a palavra ao lado. As pílulas
+   de estado continuam as do tema claro: o vermelho do crítico e o amarelo da
+   atenção não se confundem com a bandeira porque a bandeira não chega nelas. */
+:root[data-theme="rs"] {
+  --ground:#F3F8EC; --surface:#FFFFFF; --raised:#FBFDF6; --sunken:#E6F0DC;
+  --ink:#13230F; --ink-2:#28401F; --muted:#4A5E41; --line:#D3E5C6; --line-2:#AFCF9B;
+  --navy:#005C26; --navy-2:#004A1F; --titulo:#004A1F;
+  --brand:#006B2C; --brand-2:#006B2C; --brand-soft:#DDF2E3; --brand-solid:#006B2C;
+  --on-navy:#E6F7EA; --focus:#008A3A;
+}
+:root[data-theme="rs"] body {
+  background:linear-gradient(160deg,#E3F3E6 0%,#F7F9EE 40%,#FFF6D6 70%,#FBE7E4 100%) fixed;
+}
+:root[data-theme="rs"] .appbar {
+  border-bottom:6px solid transparent;
+  border-image:linear-gradient(90deg,#009739 0 38%,#DA291C 38% 62%,#FFCD00 62%) 1;
+}
+:root[data-theme="rs"] .tabbar button:nth-child(3n+1) .icone,
+:root[data-theme="rs"] .portas-lateral button:nth-child(3n+1) .icone{ color:#006B2C; background:#DCF1E1 }
+:root[data-theme="rs"] .tabbar button:nth-child(3n+2) .icone,
+:root[data-theme="rs"] .portas-lateral button:nth-child(3n+2) .icone{ color:#A6191F; background:#FCE3E1 }
+:root[data-theme="rs"] .tabbar button:nth-child(3n+3) .icone,
+:root[data-theme="rs"] .portas-lateral button:nth-child(3n+3) .icone{ color:#7A5B00; background:#FFF1BF }
+
 /* A folha de escolher a cor da tela: uma amostra por tema. */
 .temas-lista{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:12px 0 }
 .temas-lista button{

@@ -225,14 +225,14 @@ await clicar(/Abrir chamada/);
 cobrar('e o botão leva mesmo à chamada',
   /Janta|Almoço|Café|conferid/i.test(await conteudo()), (await conteudo()).slice(0, 100));
 
-/* A COR DA TELA (fase 182): a folha mostra as sete, escolher troca a tela e
+/* A COR DA TELA (fase 182; o Rio Grande do Sul desde 11/10): a folha mostra as oito, escolher troca a tela e
    fica lembrado no aparelho; volta-se ao claro para o resto do percurso. */
 {
   await abrirCor();
   await pg.waitForTimeout(300);
   const folhaTema = await corpo();
-  cobrar('a folha de cores traz as sete', ['Claro', 'Escuro', 'Alto contraste', 'Rosa', 'Azul claro',
-    'Verde', 'Colorido'].every((n) => folhaTema.includes(n)));
+  cobrar('a folha de cores traz as oito', ['Claro', 'Escuro', 'Alto contraste', 'Rosa', 'Azul claro',
+    'Verde', 'Colorido', 'Rio Grande do Sul'].every((n) => folhaTema.includes(n)));
   await pg.locator('.overlay .sheet button', { hasText: /^Rosa$/ }).click();
   await pg.waitForTimeout(200);
   cobrar('escolher Rosa pinta a tela e fica lembrado neste aparelho',
@@ -2993,6 +2993,10 @@ await escolherTema('Colorido');
 cobrar('e ao colorido, que também fica lembrado',
   (await temaAgora()) === 'colorido'
   && (await pg.evaluate(() => localStorage.getItem('rede-acolher.tema'))) === 'colorido');
+await escolherTema('Rio Grande do Sul');
+cobrar('e às cores do Rio Grande do Sul, com a faixa da bandeira embaixo do topo',
+  (await temaAgora()) === 'rs'
+  && /linear-gradient/.test(await pg.evaluate(() => getComputedStyle(document.querySelector('.appbar')).borderImageSource)));
 await escolherTema('Claro');
 cobrar('e volta ao claro', (await temaAgora()) === 'light');
 

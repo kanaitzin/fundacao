@@ -179,7 +179,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 11/10/2026, fase 196
+### Onde estamos — 11/10/2026, fase 197
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -239,10 +239,11 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 194 | **a câmera do sistema e o documento em PDF** (pedido de 10/10): visor ao vivo com X e ✓, modo Documento que junta as páginas num PDF A4 (`camera.tsx`, `pdf-de-imagens.ts`), em **todo** anexo (nove telas tinham seletor solto; `todo-anexo-pela-camera.spec.ts`), a câmera na Minha conta e na Acolhe+AI; e o defeito antigo: **o servidor não desenhava PDF com foto dentro** (duas cópias nativas do canvas), e o relatório da internação perdia os papéis do hospital; e a simulação achou **a API morrendo quando o banco encerra as conexões** (`DatabaseService` ouve o erro; `o-banco-que-reinicia.e2e.spec.ts`) |
 | 195 | **o relatório pela voz** (pedido de 10/10): ditado em todo campo de texto longo (`ditado.tsx`), a Acolhe+AI ouvindo ditado longo, e o **rascunho** (`mostrar_rascunho`) que a pessoa edita, aprova, completa falando, ilustra com foto e leva à tela, com o resumo do que foi escrito; e **a cobertura medida** (`ensaio:acolhe`): todas as telas de todos os cargos por texto e por voz, explicadas, 84 formulários de 84. A primeira rodada achou cinco lacunas do guia (consertadas) |
 | 196 | **a Acolhe+AI dentro do perfil da criança e de toda subtela** (o *100 por cento* de 10/10): o guia acha a criança nomeada (`criancasNoPedido`) e abre o perfil e o formulário dele; passa por entrada (marca nova `data-acolhe-entra`: dossiê, acervo, cartão da internação e do plantão) e por aba, olha aba por aba e registro por registro quando o nome não casa, e desempata o botão repetido pela linha. **Os 36 formulários marcados, todos abertos pela Acolhe+AI pelo caminho inteiro**, nos nove cargos. E o **símbolo da Acolhe+AI é o do logo da Fundação** (`SimboloDaAcolhe`, pedido de 11/10) |
+| 197 | **as cores do Rio Grande do Sul** (pedido de 11/10): o oitavo tema, verde, vermelho e amarelo da bandeira na moldura, no fundo e na navegação, com o verde na marca; a primeira medida achou a pílula de marca com 4,47 de contraste (o verde escureceu para 5,37), e o ensaio de acessibilidade mede os oito |
 
-**Medido no fim da 196:** 188 migrações, 133 tabelas, 138 suítes, 1235 testes, verdes nas
+**Medido no fim da 197:** 188 migrações, 133 tabelas, 138 suítes, 1235 testes, verdes nas
 DUAS condições de relógio; os dez ensaios de navegador verdes (o `ensaio:acolhe` com todas as telas de todos os cargos por texto e por voz e os 36 formulários do sistema abertos por ela, inclusive dentro do perfil, do dossiê, da internação, do acervo e do plantão, e o do celular com 306 telas e nenhum achado), com a portaria e o
-portão, o armário, a cozinha, os temas e a foto no percurso do `ensaio:uso`; **1099 telas (157 × sete
+portão, o armário, a cozinha, os temas e a foto no percurso do `ensaio:uso`; **1256 telas (157 × oito
 temas) sem violação de WCAG 2.1 AA**; nenhuma
 rota sem teste; nenhuma rota — escrita ou leitura — com 500; **250 leituras sondadas
 pela Casa 04 com registro real da Casa 03, sem achado; cerca de 170 rotas de escrita, sem linha
@@ -274,9 +275,9 @@ contas, 201 telas e o esqueci contra o servidor de verdade, sem achado**; na API
 **As TRÊS cores do sistema, porque confundi-las é o pior que esta tela pode
 fazer** — está escrito por extenso em `frontend/src/cargos.tsx`:
 
-**Os TEMAS são sete** (claro, escuro, alto contraste, e desde a 182 rosa, azul claro,
-verde e colorido — `frontend/src/tema.ts`). Tema muda fundo, moldura e marca, **nunca**
-as três cores abaixo. Cor nova passa pelo `ensaio:acessibilidade`, que mede os SETE.
+**Os TEMAS são oito** (claro, escuro, alto contraste, desde a 182 rosa, azul claro,
+verde e colorido, e desde a 197 o Rio Grande do Sul — `frontend/src/tema.ts`). Tema muda fundo, moldura e marca, **nunca**
+as três cores abaixo. Cor nova passa pelo `ensaio:acessibilidade`, que mede os OITO.
 
 | A cor | Responde | Onde |
 |---|---|---|
@@ -285,6 +286,10 @@ as três cores abaixo. Cor nova passa pelo `ensaio:acessibilidade`, que mede os 
 | **cargo** | *de que setor é esta pessoa?* | círculo cheio com iniciais |
 
 ### A próxima etapa
+
+**FEITO — fase 197** (§2): o tema **Rio Grande do Sul**, o oitavo, com o verde, o vermelho e
+o amarelo da bandeira na faixa do topo, no fundo e nos azulejos da navegação, e o verde como
+marca. O vermelho e o amarelo da bandeira **não chegam às pílulas**, onde são crítico e atenção.
 
 **FEITO — fase 196** (§2, §12.12): a Acolhe+AI dentro do perfil da criança e de toda subtela.
 **Botão novo que só ENTRA num registro** (abre o detalhe, o dossiê, um acervo) ganha

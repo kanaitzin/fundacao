@@ -10,7 +10,7 @@
  * Sem escolha guardada, vale o do sistema operacional (claro ou escuro), como
  * sempre foi.
  */
-export type Tema = 'light' | 'dark' | 'contraste' | 'rosa' | 'azul' | 'verde' | 'colorido';
+export type Tema = 'light' | 'dark' | 'contraste' | 'rosa' | 'azul' | 'verde' | 'colorido' | 'rs';
 
 /*
  * AS CORES PARA ESCOLHER (pedido de 30/09): rosa, azul claro, verde e
@@ -27,6 +27,12 @@ export const TEMAS: { cod: Tema; nome: string; amostra: string }[] = [
   { cod: 'verde', nome: 'Verde', amostra: '#A8DBB8' },
   { cod: 'colorido', nome: 'Colorido',
     amostra: 'linear-gradient(135deg,#DB2777,#EA580C,#CA8A04,#16A34A,#0284C7,#7C3AED)' },
+  /* O RIO GRANDE DO SUL (pedido de 11/10): o verde, o vermelho e o amarelo da
+     bandeira. O verde é a marca; o vermelho e o amarelo ficam na faixa do topo,
+     no fundo e nos azulejos da navegação, nunca nas pílulas, porque ali vermelho
+     e amarelo são o crítico e a atenção. */
+  { cod: 'rs', nome: 'Rio Grande do Sul',
+    amostra: 'linear-gradient(135deg,#009739 0 38%,#DA291C 38% 62%,#FFCD00 62%)' },
 ];
 
 const CHAVE = 'rede-acolher.tema';

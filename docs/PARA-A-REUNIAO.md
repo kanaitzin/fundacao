@@ -49,7 +49,7 @@
   196 também dentro do perfil da criança (*quero registrar a alergia do Bruno*), do dossiê, da
   internação aberta e do acervo: os 36 formulários do sistema. **Para o DPO:**
   o ditado usa o reconhecimento do navegador; no Chrome, o áudio vai ao Google.
-- **196 fases.** 138 suítes e 1235 testes, verdes em duas condições de relógio —
+- **197 fases.** 138 suítes e 1235 testes, verdes em duas condições de relógio —
   antes e depois da virada do UTC, que em Porto Alegre é às 21h.
 - **O aviso no celular** (fase 189, decidido em 06/10): quem liga na Minha conta
   recebe no celular todos os avisos do sino, mesmo com o sistema fechado. Na
@@ -120,8 +120,8 @@
   não está.
 - O sistema **sobe compilado num banco virgem**, o backup restaura e o cofre
   abre com a chave certa — e reprova com a errada.
-- O **protótipo** é um arquivo só, abre sem internet, e percorre 146 telas nos
-  cargos, em cada um dos sete temas (1036 ao todo, com as folhas da cor e da busca), sem violação de acessibilidade.
+- O **protótipo** é um arquivo só, abre sem internet, e percorre 157 telas nos
+  cargos, em cada um dos oito temas (1256 ao todo, com as folhas da cor e da busca), sem violação de acessibilidade. O oitavo, desde 11/10, é o **Rio Grande do Sul**, com as cores da bandeira.
 - O **roteiro do Marcelo** tem 49 tarefas, todas com porta conferida.
 - **A fila de pedidos de 09/09 acabou:** os catorze estão entregues.
 
