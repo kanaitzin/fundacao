@@ -865,6 +865,105 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
       </div>
 
       {/*
+        * PRIMEIRO, e sem precisar rolar: o que machuca hoje se for ignorado.
+        *
+        * O comentário sempre disse isto, e ao longo das fases doze blocos foram
+        * entrando ANTES dele: a alergia ao amendoim da Alice estava a 5.185 px
+        * do topo, seis telas abaixo, e a da Lara a três telas no celular (achado
+        * na revisão do perfil, fase 202). Alergia, restrição, cuidados e o
+        * remédio de hoje vêm logo depois do nome, e o resto vem depois.
+        */}
+      {p.alertasEssenciais.map((a, i) => (
+        <div key={i} className="notice c-crit" role="alert">
+          <b><Icone nome="alerta" /> {a.descricao}</b>
+          <div className="mutetxt">{a.tipo}{a.gravidade ? ` · ${a.gravidade}` : ''}</div>
+        </div>
+      ))}
+      {p.restricoesAlimentares.map((r) => (
+        <div key={r.id} className="notice c-warn" role="status">
+          <b><Icone nome="refeicao" /> {r.restriction}</b>
+          {r.substitution && <div>No lugar: {r.substitution}</div>}
+          {r.guidance && <div className="mutetxt">{r.guidance}</div>}
+        </div>
+      ))}
+
+      {/*
+        A pendência de cadastro aparece para quem pode fechá-la.
+        Um ingresso urgente entra sem CPF de propósito — a criança não espera
+        documento —, mas a pendência não pode virar silêncio: é ela que
+        reaparece na primeira audiência. Para o educador no meio do turno isso
+        seria ruído; para a equipe técnica, é trabalho com nome e prazo.
+      */}
+      {p.cpfPendente && VE_JUDICIAL.includes(papel) && (
+        <div className="notice c-warn" role="status">
+          <b>Cadastro sem CPF</b>
+          <div>
+            Entrou como ingresso urgente{p.idProvisorio ? `, com o ID provisório ${p.idProvisorio}` : ''}.
+            O CPF continua pendente — enquanto estiver assim, documento, benefício e
+            matrícula esbarram nisso.
+          </div>
+        </div>
+      )}
+
+      {/*
+        * Vazio DIZ "não preenchido" para quem pode preencher, e some para quem
+        * não pode. Escondê-lo de todo mundo era o que mantinha o defeito: sem
+        * a seção na tela, ninguém sentia falta da porta que não existia — e o
+        * campo mais importante do perfil ficava em branco para sempre.
+        */}
+      {(p.cuidadosEssenciais || QUEM_CADASTRA.includes(papel)) && (
+        <Secao titulo="Cuidados essenciais">
+          {p.cuidadosEssenciais
+            ? <p className="bloco" style={{ marginTop: 0 }}>{p.cuidadosEssenciais}</p>
+            : <p className="mutetxt" style={{ margin: 0 }}>
+                Nada escrito ainda. É aqui que fica o que a educadora precisa saber antes de
+                dar banho, de deixar sozinha ou de servir o prato.
+              </p>}
+        </Secao>
+      )}
+
+      <Secao titulo="Remédio de hoje">
+        {doses.length === 0 ? (
+          <p className="mutetxt" style={{ margin: 0 }}>Nenhuma dose prevista hoje.</p>
+        ) : (
+          <>
+            {pendentes.length > 0 && (
+              <p className="mutetxt" style={{ marginTop: 0 }}>
+                {pendentes.length} dose(s) ainda sem confirmação. A confirmação é feita na
+                tela do dia, por quem administra.
+              </p>
+            )}
+            <ol className="doses">
+              {doses.map((d) => (
+                /* O nome do remédio ocupa a linha inteira e o estado vem
+                   embaixo. Ao lado, "Colírio lubrificante (fictício)" quebrava
+                   em três linhas e a leitura de relance — que é a única que
+                   acontece no corredor — se perdia. */
+                <li key={d.id} className={d.pendente ? '' : 'feito'}>
+                  <span className="hora">{hhmm(d.horario)}</span>
+                  <div className="grow">
+                    <b className="ff">{d.medicamento}</b>
+                    <div className="mutetxt">
+                      {d.dose} · {d.via} · {TIPO_DOSE[d.tipo] ?? d.tipo}
+                    </div>
+                    {d.condicaoUso && <div className="mutetxt">Só se: {d.condicaoUso}</div>}
+                    <div className="estado">
+                      <span className={`pill ${d.pendente ? 'c-warn' : 'c-ok'}`}>{d.rotulo}</span>
+                      {d.confirmadaPor && <span className="mutetxt"> por {d.confirmadaPor}</span>}
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </>
+        )}
+      </Secao>
+
+      <CompromissosDoAcolhido houseId={houseId} personId={p.id} nome={p.nome} />
+
+      <IndiceDoPerfil />
+
+      {/*
         * O QUE ELA CONQUISTOU.
         *
         * A conquista se registra AQUI, no perfil, e não na tela do Gestor
@@ -882,9 +981,11 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
         * plantão: quem está com a criança precisa saber quem é a pessoa que
         * apareceu no portão às nove da noite, sem ligar para a técnica.
         */}
-      <SairSozinho perfil={p} papel={papel} onMudou={recarregar} />
-      <Contatos perfil={p} papel={papel} onMudou={recarregar} />
-      <VisitasDoAcolhido personId={p.id} />
+      <div id="perfil-familia">
+        <SairSozinho perfil={p} papel={papel} onMudou={recarregar} />
+        <Contatos perfil={p} papel={papel} onMudou={recarregar} />
+        <VisitasDoAcolhido personId={p.id} />
+      </div>
 
       {/*
         * A PRESENÇA, NA VIDA DELA (fase 110).
@@ -894,7 +995,7 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
         * chamada daquele almoço. O provedor da linha do tempo dizia, num
         * comentário, que "o registro dele está no perfil" — e não estava.
         */}
-      <Presenca personId={p.id} nome={p.nome} />
+      <div id="perfil-presenca"><Presenca personId={p.id} nome={p.nome} /></div>
 
       {/*
         * O QUE SE ESCREVEU SOBRE ELA (fase 128).
@@ -915,7 +1016,7 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
         * desenvolvimento e a audiência diriam "não há" sobre escola e
         * profissionalização para sempre.
         */}
-      <Educacao personId={p.id} houseId={houseId} papel={papel} />
+      <div id="perfil-educacao"><Educacao personId={p.id} houseId={houseId} papel={papel} /></div>
 
       {/*
         * QUEM MEXEU NO REGISTRO DESTA CRIANÇA (fase 112).
@@ -937,9 +1038,11 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
         * Os três somem quando não há o que mostrar: um perfil com três blocos
         * vazios ensina a passar o olho por cima deles.
         */}
-      <ConvivenciaFamiliar personId={p.id} quem={p.nome} />
-      <InternacoesDoAcolhido personId={p.id} />
-      <OficiosDoAcolhido personId={p.id} />
+      <div id="perfil-trajetoria">
+        <ConvivenciaFamiliar personId={p.id} quem={p.nome} />
+        <InternacoesDoAcolhido personId={p.id} />
+        <OficiosDoAcolhido personId={p.id} />
+      </div>
 
       <AuditoriaDoAcolhido personId={p.id} papel={papel} />
 
@@ -1028,94 +1131,7 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
         </div>
       )}
 
-      {/* PRIMEIRO, e sem precisar rolar: o que machuca hoje se for ignorado. */}
-      {p.alertasEssenciais.map((a, i) => (
-        <div key={i} className="notice c-crit" role="alert">
-          <b><Icone nome="alerta" /> {a.descricao}</b>
-          <div className="mutetxt">{a.tipo}{a.gravidade ? ` · ${a.gravidade}` : ''}</div>
-        </div>
-      ))}
-      {p.restricoesAlimentares.map((r) => (
-        <div key={r.id} className="notice c-warn" role="status">
-          <b><Icone nome="refeicao" /> {r.restriction}</b>
-          {r.substitution && <div>No lugar: {r.substitution}</div>}
-          {r.guidance && <div className="mutetxt">{r.guidance}</div>}
-        </div>
-      ))}
-
-      {/*
-        A pendência de cadastro aparece para quem pode fechá-la.
-        Um ingresso urgente entra sem CPF de propósito — a criança não espera
-        documento —, mas a pendência não pode virar silêncio: é ela que
-        reaparece na primeira audiência. Para o educador no meio do turno isso
-        seria ruído; para a equipe técnica, é trabalho com nome e prazo.
-      */}
-      {p.cpfPendente && VE_JUDICIAL.includes(papel) && (
-        <div className="notice c-warn" role="status">
-          <b>Cadastro sem CPF</b>
-          <div>
-            Entrou como ingresso urgente{p.idProvisorio ? `, com o ID provisório ${p.idProvisorio}` : ''}.
-            O CPF continua pendente — enquanto estiver assim, documento, benefício e
-            matrícula esbarram nisso.
-          </div>
-        </div>
-      )}
-
-      {/*
-        * Vazio DIZ "não preenchido" para quem pode preencher, e some para quem
-        * não pode. Escondê-lo de todo mundo era o que mantinha o defeito: sem
-        * a seção na tela, ninguém sentia falta da porta que não existia — e o
-        * campo mais importante do perfil ficava em branco para sempre.
-        */}
-      {(p.cuidadosEssenciais || QUEM_CADASTRA.includes(papel)) && (
-        <Secao titulo="Cuidados essenciais">
-          {p.cuidadosEssenciais
-            ? <p className="bloco" style={{ marginTop: 0 }}>{p.cuidadosEssenciais}</p>
-            : <p className="mutetxt" style={{ margin: 0 }}>
-                Nada escrito ainda. É aqui que fica o que a educadora precisa saber antes de
-                dar banho, de deixar sozinha ou de servir o prato.
-              </p>}
-        </Secao>
-      )}
-
-      <Secao titulo="Remédio de hoje">
-        {doses.length === 0 ? (
-          <p className="mutetxt" style={{ margin: 0 }}>Nenhuma dose prevista hoje.</p>
-        ) : (
-          <>
-            {pendentes.length > 0 && (
-              <p className="mutetxt" style={{ marginTop: 0 }}>
-                {pendentes.length} dose(s) ainda sem confirmação. A confirmação é feita na
-                tela do dia, por quem administra.
-              </p>
-            )}
-            <ol className="doses">
-              {doses.map((d) => (
-                /* O nome do remédio ocupa a linha inteira e o estado vem
-                   embaixo. Ao lado, "Colírio lubrificante (fictício)" quebrava
-                   em três linhas e a leitura de relance — que é a única que
-                   acontece no corredor — se perdia. */
-                <li key={d.id} className={d.pendente ? '' : 'feito'}>
-                  <span className="hora">{hhmm(d.horario)}</span>
-                  <div className="grow">
-                    <b className="ff">{d.medicamento}</b>
-                    <div className="mutetxt">
-                      {d.dose} · {d.via} · {TIPO_DOSE[d.tipo] ?? d.tipo}
-                    </div>
-                    {d.condicaoUso && <div className="mutetxt">Só se: {d.condicaoUso}</div>}
-                    <div className="estado">
-                      <span className={`pill ${d.pendente ? 'c-warn' : 'c-ok'}`}>{d.rotulo}</span>
-                      {d.confirmadaPor && <span className="mutetxt"> por {d.confirmadaPor}</span>}
-                    </div>
-                  </div>
-                </li>
-              ))}
-            </ol>
-          </>
-        )}
-      </Secao>
-
-      <Secao titulo="Saúde">
+      <Secao titulo="Saúde" id="perfil-saude">
         {/*
           * REGISTRAR ATENDIMENTO — quem acompanhou é quem relata (§7.2).
           *
@@ -1243,7 +1259,7 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
         </Secao>
       )}
 
-      <Secao titulo="Documentos">
+      <Secao titulo="Documentos" id="perfil-documentos">
         {p.documentos.length === 0 && p.documentosRestritos === 0 && (
           <p className="mutetxt" style={{ margin: 0 }}>Nenhum documento cadastrado.</p>
         )}
@@ -1706,9 +1722,113 @@ function FolhaRetorno({ pessoa, onFechar, onConfirmar }: {
   );
 }
 
-function Secao({ titulo, children }: { titulo: string; children: React.ReactNode }) {
+/*
+ * OS PRÓXIMOS COMPROMISSOS DELA (fase 202).
+ *
+ * A agenda guarda o compromisso com a criança (a consulta, a audiência, o
+ * reforço) e o servidor sabe filtrar por ela desde a fase da agenda; o perfil
+ * nunca perguntava. Quem abre o perfil antes de uma audiência, ou o educador
+ * que vai levá-la ao dentista amanhã, precisava abrir a agenda da casa inteira
+ * e procurar o nome. Some quando não há nada nos próximos trinta dias.
+ */
+/* O dia de hoje na instituição, como a Agenda calcula (en-CA dá AAAA-MM-DD). */
+const hojeISO = () => new Intl.DateTimeFormat('en-CA',
+  { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+type CompromissoDoDia = {
+  compromissoId: string; em: string; hora: string; titulo: string; local: string | null;
+  tipo: string; desmarcada?: boolean; coletivo?: boolean;
+};
+function CompromissosDoAcolhido({ houseId, personId, nome }: { houseId: string; personId: string; nome: string }) {
+  const [lista, setLista] = useState<CompromissoDoDia[] | null>(null);
+  useEffect(() => {
+    let vivo = true;
+    const de = hojeISO();
+    const ate = new Date(`${de}T12:00:00`);
+    ate.setDate(ate.getDate() + 30);
+    api<CompromissoDoDia[]>(`/activities/agenda?houseId=${houseId}&de=${de}&ate=${ate.toISOString().slice(0, 10)}&personId=${personId}`)
+      .then((l) => { if (vivo) setLista(Array.isArray(l) ? l.filter((c) => !c.coletivo) : []); })
+      .catch(() => { if (vivo) setLista([]); });
+    return () => { vivo = false; };
+  }, [houseId, personId]);
+  if (!lista?.length) return null;
+  /* O compromisso que se repete (a fono de toda terça e quinta) aparece UMA vez,
+     com a próxima data e quantas vezes mais ele cai: cinco linhas iguais
+     escondiam a audiência que vinha depois delas. */
+  const porCompromisso = new Map<string, { primeiro: CompromissoDoDia; vezes: number; ultimo: string }>();
+  for (const c of lista) {
+    const g = porCompromisso.get(c.compromissoId);
+    if (g) { g.vezes++; g.ultimo = c.em; } else porCompromisso.set(c.compromissoId, { primeiro: c, vezes: 1, ultimo: c.em });
+  }
+  const grupos = [...porCompromisso.values()];
   return (
-    <section className="passagem">
+    <section className="passagem" id="perfil-agenda">
+      <div className="eyebrow">Os próximos compromissos de {nome} · {grupos.length}</div>
+      <div className="card">
+        <ul className="lista">
+          {grupos.map(({ primeiro: c, vezes, ultimo }) => (
+            <li key={c.compromissoId} className="row" style={{ alignItems: 'flex-start', flexWrap: 'nowrap' }}>
+              <span className="oc-quando" style={{ width: 58 }}>
+                <b>{dia(c.em).slice(0, 5)}</b>
+                <span>{c.hora}</span>
+              </span>
+              <div className="grow">
+                <b className="ff">{c.titulo}</b>
+                {c.local && <div className="mutetxt">{c.local}</div>}
+                {vezes > 1 && (
+                  <div className="mutetxt">E mais {vezes - 1} vez(es) até {dia(ultimo).slice(0, 5)}.</div>
+                )}
+                {c.desmarcada && <span className="pill c-mute">Desmarcado</span>}
+              </div>
+            </li>
+          ))}
+        </ul>
+        <p className="mutetxt" style={{ margin: '8px 0 0' }}>
+          Os próximos trinta dias. A agenda inteira da casa fica na Agenda.
+        </p>
+      </div>
+    </section>
+  );
+}
+
+/*
+ * O ÍNDICE DO PERFIL (fase 202). O perfil chega a oito telas de altura no
+ * monitor; o índice leva direto a cada parte. Só aparece o que existe nesta
+ * criança (a internação some quando não houve), conferido depois de as partes
+ * carregarem.
+ */
+const PARTES_DO_PERFIL: [string, string][] = [
+  ['perfil-agenda', 'Compromissos'], ['perfil-familia', 'Família e visitas'],
+  ['perfil-presenca', 'Presença'], ['perfil-educacao', 'Educação'],
+  ['perfil-trajetoria', 'Convivência e internações'], ['perfil-saude', 'Saúde'],
+  ['perfil-documentos', 'Documentos'],
+];
+function IndiceDoPerfil() {
+  const [partes, setPartes] = useState<[string, string][]>([]);
+  useEffect(() => {
+    const ver = () => setPartes(PARTES_DO_PERFIL.filter(([id]) => {
+      const el = document.getElementById(id);
+      return !!el && el.getClientRects().length > 0 && el.offsetHeight > 0;
+    }));
+    ver();
+    const t = setTimeout(ver, 900);
+    return () => clearTimeout(t);
+  }, []);
+  if (partes.length < 3) return null;
+  return (
+    <nav className="indice-perfil" aria-label="Partes do perfil">
+      {partes.map(([id, rotulo]) => (
+        <button key={id} type="button" className="btn sm ghost"
+                onClick={() => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+          {rotulo}
+        </button>
+      ))}
+    </nav>
+  );
+}
+
+function Secao({ titulo, id, children }: { titulo: string; id?: string; children: React.ReactNode }) {
+  return (
+    <section className="passagem" id={id}>
       <div className="eyebrow">{titulo}</div>
       <div className="card">{children}</div>
     </section>

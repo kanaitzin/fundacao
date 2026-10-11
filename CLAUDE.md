@@ -180,7 +180,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 11/10/2026, fase 201
+### Onde estamos — 11/10/2026, fase 202
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -245,8 +245,9 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 199 | **a Saúde e as Ocorrências no mesmo desenho** (pedido de 11/10): a dose em cartão com a hora e o **rosto da criança** (a grade diz `temFoto`), o rosto também na triagem, nos esquemas e no resumo (`useComFoto`, sem rota nova); a ocorrência com o dia em bloco e **o caminho das quatro etapas**, e **sem rosto, de propósito** (a lista não diz quem está envolvido) |
 | 200 | **a Equipe e o Painel das unidades no mesmo desenho** (pedido de 11/10): a Equipe em cartões de pessoa com o círculo do cargo (a tabela **cortava os botões na borda** e punha o *você* **por cima do e-mail**); o Painel em grade de casas, na ordem do código, com a ocupação contra o próprio limite e as contas em blocos |
 | 201 | **a Acolhe+AI como colega de plantão** (pedido de 11/10): fazendo o papel de cada setor, 59 pedidos e uns 20 bem atendidos; **"o Kauã fugiu" e "a Lara tá com febre" recebiam "não achei essa tela"**. Agora o cuidado vem antes da tela (`primeiroOCuidado`), os limites da Fundação vêm com o porquê, e quatro defeitos de lógica do guia consertados; a frase de urgência é para a Fundação conferir (PARA-A-REUNIAO §4.17) |
+| 202 | **o perfil do acolhido revisto** (pedido de 11/10): **a alergia ao amendoim da Alice estava a 5.185 px do topo**, embaixo de doze blocos que entraram ao longo das fases; voltou para logo depois do nome, com cuidados e remédio de hoje. E os **próximos compromissos** da criança, que a agenda guardava e o perfil nunca lia, e um índice no alto. As ocorrências no perfil ficam para a Fundação (PARA-A-REUNIAO §4.18) |
 
-**Medido no fim da 201:** 188 migrações, 133 tabelas, 138 suítes, 1246 testes, verdes nas
+**Medido no fim da 202:** 188 migrações, 133 tabelas, 138 suítes, 1247 testes, verdes nas
 DUAS condições de relógio; os dez ensaios de navegador verdes (o `ensaio:acolhe` com todas as telas de todos os cargos por texto e por voz e os 36 formulários do sistema abertos por ela, inclusive dentro do perfil, do dossiê, da internação, do acervo e do plantão, e o do celular com 306 telas e nenhum achado), com a portaria e o
 portão, o armário, a cozinha, os temas e a foto no percurso do `ensaio:uso`; **1256 telas (157 × oito
 temas) sem violação de WCAG 2.1 AA**; nenhuma
@@ -299,6 +300,12 @@ as três cores abaixo. Cor nova passa pelo `ensaio:acessibilidade`, que mede os 
 | **cargo** | *de que setor é esta pessoa?* | círculo cheio com iniciais |
 
 ### A próxima etapa
+
+**FEITO — fase 202** (§2, PARA-A-REUNIAO §4.18): o perfil do acolhido revisto. O que protege
+a criança voltou para o alto (alergia, restrição, cuidados, remédio de hoje), os compromissos
+dela chegam ao perfil, e um índice leva a cada parte. **Depende da Fundação:** as ocorrências
+da criança no perfil, só para técnica e coordenação. **Para crescer:** o perfil continua uma
+página longa; agrupar em abas (hoje, família, saúde, escola, trajetória) é decisão de desenho.
 
 **FEITO — fase 201** (§2, PARA-A-REUNIAO §4.17): a Acolhe+AI como colega de plantão. Fiz o
 papel de cada setor, com as frases do plantão, e o modo guia falhava justamente na urgência e
@@ -707,6 +714,11 @@ novo.
   formulários de dentro de um registro ficavam fora da conta; medidos, nenhum era alcançável
   pelo guia, e o *Registrar compra* da Saúde, atrás de uma aba, também não. **E comentário que
   cita a marca pelo nome conta como marca**: o teste que lê o código não distingue, e não deve.
+- **Bloco novo entra no lugar dele, não no topo** (202). Doze fases puseram o seu bloco "logo
+  depois da identificação", cada uma com bom motivo, e o comentário que dizia *"PRIMEIRO, e sem
+  precisar rolar"* ficou embaixo de todos. **Ordem de tela é contrato**: quem acrescenta uma parte
+  ao perfil confere o que estava em cima e por quê, e mede a posição (`getBoundingClientRect`),
+  porque o comentário não se move junto.
 - **Cobertura não é ajuda** (201). O `ensaio:acolhe` dizia que a Acolhe+AI alcançava todas as
   telas e formulários, e alcançava; fazendo o papel da educadora com as frases do plantão, *"o
   Kauã fugiu"* recebia *"não achei essa tela"*. A medição pedia pelo nome da tela, e ninguém no

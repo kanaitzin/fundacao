@@ -421,6 +421,24 @@ await clicar(/Alice/);
 const perfil = await conteudo();
 cobrar('o perfil traz a identificação nova', /RG|SUS|Filiação/.test(perfil));
 /*
+ * A ALERGIA LOGO DEPOIS DO NOME (fase 202).
+ *
+ * O comentário do perfil dizia "primeiro, e sem precisar rolar", e doze blocos
+ * entraram antes dele ao longo das fases: a alergia da Alice estava a 5.185 px
+ * do topo. Medido pela posição, porque o comentário não se move junto.
+ */
+{
+  const pos = await pg.evaluate(() => {
+    const y = (el) => (el ? el.getBoundingClientRect().top + window.scrollY : null);
+    const alergia = [...document.querySelectorAll('main.conteudo .notice.c-crit')].find((e) => /Alergia/.test(e.innerText));
+    const contatos = [...document.querySelectorAll('main.conteudo .eyebrow')].find((e) => /Quem aparece por/i.test(e.innerText));
+    return { alergia: y(alergia), contatos: y(contatos), tela: window.innerHeight };
+  });
+  cobrar('a alergia aparece antes dos contatos, e na primeira tela',
+    pos.alergia !== null && pos.contatos !== null && pos.alergia < pos.contatos && pos.alergia < pos.tela,
+    JSON.stringify(pos));
+}
+/*
  * O QUE O CADASTRO PEDE CHEGA AO PERFIL (fase 116).
  *
  * Cinco campos — gênero, raça/cor autodeclarada, naturalidade, NIS e registro

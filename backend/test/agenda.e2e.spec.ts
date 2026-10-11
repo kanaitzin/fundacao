@@ -150,6 +150,24 @@ describe('Agenda — marcar na linha do tempo com data, hora e repetição', () 
     expect(rows[0].n).toBe(0);
   });
 
+  it('o perfil pergunta pela criança: só os compromissos dela, sem os da casa toda (fase 202)', async () => {
+    /*
+     * O bloco "Os próximos compromissos" do perfil lê a agenda com o personId.
+     * Lida pelo EDUCADOR, que não marcou nada (lição da 149): a consulta da
+     * técnica para esta criança vem, e nenhum compromisso de outra criança nem
+     * da casa toda vem junto.
+     */
+    const r = await request(http)
+      .get(`/api/v1/activities/agenda?houseId=${AI3}&de=${daquiDoisMeses}&ate=${daquiDoisMeses}&personId=${pessoa}`)
+      .set(auth(tokens.educador)).expect(200);
+    expect(r.body.length).toBeGreaterThan(0);
+    expect(r.body.some((a: any) => a.titulo === 'Consulta oftalmológica (fictícia)')).toBe(true);
+    for (const a of r.body) {
+      expect(a.personId).toBe(pessoa);
+      expect(a.coletivo).toBe(false);
+    }
+  });
+
   it('tratamento sem data para acabar exige o motivo — e passa a aparecer todo dia', async () => {
     const semMotivo = await request(http).post('/api/v1/activities/agenda')
       .set(auth(tokens.enfermagem)).send({

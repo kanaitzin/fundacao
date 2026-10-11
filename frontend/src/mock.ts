@@ -9264,6 +9264,8 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       const dow = d.getDay();
       for (const c of COMPROMISSOS) {
         if (iso < c.inicio || (c.fim && iso > c.fim)) continue;
+        /* O filtro por criança, como o servidor (o perfil pergunta assim desde a fase 202). */
+        if (q.get('personId') && c.personId !== q.get('personId')) continue;
         const cai = c.recorrencia === 'diaria'
           || (c.recorrencia === 'unica' && iso === c.inicio)
           || (['semanal', 'quinzenal'].includes(c.recorrencia) && c.diasSemana.includes(dow))

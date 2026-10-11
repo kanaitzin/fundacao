@@ -49,7 +49,7 @@
   196 também dentro do perfil da criança (*quero registrar a alergia do Bruno*), do dossiê, da
   internação aberta e do acervo: os 36 formulários do sistema. **Para o DPO:**
   o ditado usa o reconhecimento do navegador; no Chrome, o áudio vai ao Google.
-- **201 fases.** 138 suítes e 1246 testes, verdes em duas condições de relógio —
+- **202 fases.** 138 suítes e 1247 testes, verdes em duas condições de relógio —
   antes e depois da virada do UTC, que em Porto Alegre é às 21h.
 - **O aviso no celular** (fase 189, decidido em 06/10): quem liga na Minha conta
   recebe no celular todos os avisos do sino, mesmo com o sistema fechado. Na
@@ -454,6 +454,21 @@ apagar, confirmar a dose de outra pessoa) recebe um não com o porquê.
 Pergunta: **o protocolo da casa diz a mesma coisa?** Se a Casa 03 tem outro
 primeiro passo (o telefone da Enfermagem de sobreaviso, a coordenação antes do
 líder, o Conselho Tutelar na fuga), as frases mudam para dizer o da casa.
+
+## 4.18 O perfil do acolhido (fase 202, pedido de 11/10)
+
+A revisão do perfil achou a alergia da criança seis telas abaixo do nome (já
+consertado: alergia, cuidados e remédio de hoje voltaram para o alto) e os
+compromissos dela fora do perfil (já entram, com os próximos trinta dias).
+
+Uma pergunta ficou, porque é sobre o que a casa inteira lê:
+
+- **As ocorrências em que a criança está não aparecem no perfil dela.** A lista de
+  Ocorrências mostra só *1 acolhido(s)*, sem nome, e quem está envolvido aparece
+  só ao abrir o detalhe. A técnica que prepara uma audiência precisa procurar uma
+  por uma. Pergunta: o perfil passa a mostrar, **só para a equipe técnica e a
+  coordenação**, a lista das ocorrências da criança (tipo, data e situação, sem o
+  texto), ou continua sem, como hoje?
 
 ## 5. As decisões que são do Marcelo *(§10 — responda pelo número)*
 

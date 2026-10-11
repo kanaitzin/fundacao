@@ -2045,3 +2045,7 @@ div.acoes{ display:flex; flex-wrap:wrap; gap:8px; align-items:center }
 /* A cor da linha é botão: no cartão ela ficava com 23 px de altura, abaixo dos
    24 px que o dedo precisa. Achado pelo `ensaio:celular` na própria fase 200. */
 .membro-dados button.pill{ min-height:32px; padding:4px 12px; display:inline-flex; align-items:center }
+
+/* O ÍNDICE DO PERFIL (fase 202): leva direto a cada parte de um perfil que chega a oito telas. */
+.indice-perfil{ display:flex; flex-wrap:wrap; gap:8px; margin:4px 0 16px }
+.indice-perfil .btn{ border-radius:999px }
