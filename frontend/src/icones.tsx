@@ -22,6 +22,7 @@
  * do significado — ao lado dele há sempre a palavra escrita, e é a palavra que
  * o leitor de tela anuncia. Ícone que precisa ser explicado é ícone que falhou.
  */
+import simboloDaFundacao from './assets/logo-simbolo.png';
 
 /** O traço é um só para todos: mudar aqui muda a família inteira. */
 const TRACO = {
@@ -193,3 +194,18 @@ export function Icone({ nome, tamanho }: { nome: string; tamanho?: number }) {
 
 /** Os nomes que existem — para o conferidor, e para quem escrever porta nova. */
 export const ICONES = Object.keys(DESENHOS);
+
+/**
+ * O SÍMBOLO DA ACOLHE+AI é o do logo da Fundação (pedido de 11/10): o coração
+ * com a figura, recortado do mesmo `logo.png` do topo, sem o nome (num botão
+ * de 26 px o nome não se lê). Ele não é desenho de traço: a marca não muda de
+ * cor com o tema, por isso mora num círculo branco, como o logo do topo mora
+ * no `logochip`. É enfeite: quem o carrega diz "Acolhe+AI" em palavra.
+ */
+export function SimboloDaAcolhe({ tamanho = 28 }: { tamanho?: number }) {
+  return (
+    <span className="acolhe-simbolo" style={{ width: tamanho, height: tamanho }} aria-hidden="true">
+      <img src={simboloDaFundacao} alt="" width={tamanho - 6} height={tamanho - 6} />
+    </span>
+  );
+}

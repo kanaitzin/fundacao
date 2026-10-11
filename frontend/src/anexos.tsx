@@ -26,7 +26,7 @@
  * página saiu cortada, ou se é a criança certa.
  */
 import { ReactNode, useEffect, useRef, useState } from 'react';
-import { Icone } from './icones';
+import { Icone, SimboloDaAcolhe } from './icones';
 import { FolhaCamera, temCameraDoSistema } from './camera';
 
 /** O que a prévia precisa saber sobre um arquivo escolhido, antes de enviar. */
@@ -402,7 +402,7 @@ export function EscolherAnexo({ arquivo, onEscolher, aceita = 'application/pdf,i
           {daAcolhe.map((a, i) => (
             <button key={i} type="button" className="btn sm sec"
                     onClick={() => { if (cabe(a)) { usarFotoDaAcolhe(a); setOrigem('arquivo'); onEscolher(a); } }}>
-              <Icone nome="acolhe" /> Usar a foto da Acolhe+AI{daAcolhe.length > 1 ? ` (${i + 1})` : ''}
+              <SimboloDaAcolhe tamanho={22} /> Usar a foto da Acolhe+AI{daAcolhe.length > 1 ? ` (${i + 1})` : ''}
             </button>
           ))}
         </div>

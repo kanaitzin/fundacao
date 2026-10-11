@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { api } from './api';
-import { Icone } from './icones';
+import { Icone, SimboloDaAcolhe } from './icones';
 import { EscolherAnexo, Escolhido, base64De, oferecerFotosDaAcolhe } from './anexos';
 import { MEXEM_NA_TELA, rotaDeLeituraPermitida } from '../../backend/src/modules/assistente/ferramentas';
 import { calcular, numeroEmPortugues } from '../../backend/src/modules/assistente/calculo';
@@ -915,7 +915,7 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
   if (aberta && recolhida) {
     return (
       <div className="acolhe-faixa" role="status" aria-live="polite" data-ocupada={ocupada ? '1' : undefined}>
-        <Icone nome="acolhe" />
+        <SimboloDaAcolhe tamanho={26} />
         <span className="acolhe-faixa-texto">{ocupada ? (faixa || 'Trabalhando na tela…') : (faixa || 'Pronto. Confira a tela.')}</span>
         {ocupada && (
           <button className="btn sm sec" onClick={() => { parar.current = true; setFaixa('Parando…'); }}>Parar</button>
@@ -934,7 +934,7 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
   if (!aberta) {
     return (
       <button className="acolhe-botao" aria-label="Abrir a Acolhe+AI, a assistente" onClick={() => setAberta(true)}>
-        <Icone nome="acolhe" tamanho={26} />
+        <SimboloDaAcolhe tamanho={34} />
         <span className="acolhe-nome">Acolhe+AI</span>
       </button>
     );
@@ -943,7 +943,7 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
   return (
     <div className="acolhe-painel" role="dialog" aria-modal="false" aria-labelledby="t-acolhe" data-ocupada={ocupada ? '1' : undefined}>
       <header className="acolhe-topo">
-        <Icone nome="acolhe" />
+        <SimboloDaAcolhe tamanho={30} />
         <h2 id="t-acolhe" className="grow">Acolhe+AI</h2>
         <button className="iconbtn" aria-label="Ler esta tela em voz alta" title="Ler esta tela" onClick={lerTela}>
           <Icone nome="ouvir" />

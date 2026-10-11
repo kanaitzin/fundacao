@@ -1695,3 +1695,10 @@ div.acoes{ display:flex; flex-wrap:wrap; gap:8px; align-items:center }
 .acolhe-feito dt{ font-weight:600; font-size:13px; color:var(--titulo) }
 .acolhe-feito dd{ margin:0; white-space:pre-wrap; font-size:13.5px }
 .acolhe-linha.acolhe:has(.acolhe-rascunho){ align-self:stretch; max-width:100% }
+
+/* O símbolo da Acolhe+AI é o do logo da Fundação: sempre sobre branco, em qualquer tema. */
+.acolhe-simbolo{
+  display:inline-flex; align-items:center; justify-content:center; flex:none;
+  background:#fff; border-radius:50%; box-shadow:0 0 0 1px rgba(0,0,0,.08); overflow:hidden;
+}
+.acolhe-simbolo img{ display:block }
