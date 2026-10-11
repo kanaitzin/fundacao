@@ -102,7 +102,7 @@ function Conta({ rotulo, valor, ausente }: {
     );
   }
   return (
-    <li className="row">
+    <li className={`row${valor === 0 ? ' zero' : ''}`}>
       <span className="grow">{rotulo}</span>
       <b className="ff">{valor}</b>
     </li>
@@ -207,14 +207,16 @@ export function Painel({ houseId, casaLabel, papel }: {
       {aviso && <div className="notice c-ok" role="status">{aviso}</div>}
 
       <div className="eyebrow">Agora · {cartoes.length} unidade(s) no seu alcance</div>
-      <div className="stack">
+      <div className="unidades-grade">
         {cartoes.length === 0 && (
           <p className="mutetxt">Nenhuma unidade no seu alcance.</p>
         )}
         {cartoes.map((c) => (
-          <article className={`card stack${aberta?.id === c.id ? ' raise' : ''}`} key={c.id}>
-            <div className="row">
-              <div className="grow">
+          <article className={`card stack unidade${aberta?.id === c.id ? ' raise aberta' : ''}`} key={c.id}>
+            <div className="row" style={{ flexWrap: 'nowrap', alignItems: 'flex-start' }}>
+              {/* O selo com o código da casa (fase 200), na cor neutra da marca. */}
+              <span className="casa-selo" aria-hidden="true">{c.codigo}</span>
+              <div className="grow" style={{ minWidth: 0 }}>
                 <b className="ff">{c.codigo} · {c.nome}</b>
                 <div className="mutetxt">
                   {c.ocupacao.ativos} de {c.ocupacao.limite} acolhidos ·
@@ -225,6 +227,16 @@ export function Painel({ houseId, casaLabel, papel }: {
                 {aberta?.id === c.id ? 'Aberta' : 'Abrir o mês'}
               </button>
             </div>
+            {/*
+              * A OCUPAÇÃO CONTRA O PRÓPRIO LIMITE (fase 200). Cada barra mede a
+              * casa contra as vagas DELA, e as casas seguem na ordem do código:
+              * é a pergunta "ainda cabe alguém?", não uma comparação. A barra é
+              * enfeite do número escrito na linha de cima.
+              */}
+            <div className="ocupacao" aria-hidden="true">
+              <span style={{ width: `${Math.min(100, Math.round(
+                (c.ocupacao.ativos / Math.max(1, c.ocupacao.limite)) * 100))}%` }} />
+            </div>
 
             {/* A única tarja: falta cama hoje. É fato operacional, não juízo. */}
             {c.ocupacao.acimaDoLimite && (
@@ -234,7 +246,7 @@ export function Painel({ houseId, casaLabel, papel }: {
               </div>
             )}
 
-            <ul className="lista">
+            <ul className="lista contas">
               <Conta rotulo="Transferências aguardando decisão"
                      valor={c.transferenciasAguardando} />
               <Conta rotulo="Acompanhamentos em aberto" valor={c.acompanhamentosAbertos} />
@@ -307,7 +319,7 @@ export function Painel({ houseId, casaLabel, papel }: {
             {mensal && (
               <>
                 <b className="ff">{mesPorExtenso(mensal.mes)}</b>
-                <ul className="lista">
+                <ul className="lista contas">
                   <li className="row">
                     <span className="grow">Acolhidos na casa hoje</span>
                     <b className="ff">{mensal.ocupacao.ativosHoje}</b>

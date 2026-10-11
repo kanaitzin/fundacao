@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api';
+import { Cargo } from '../cargos';
 
 interface Setor {
   code: string; label: string; descricao: string; transversal: boolean; exigeCasa: boolean;
@@ -183,31 +184,49 @@ export function Equipe({ papel }: { papel: string }) {
           )}
         </div>
 
-        <div className="tablewrap">
-          <table className="tabela">
-            <thead>
-              <tr>
-                <th>Nome</th><th>E-mail</th><th>Setor</th><th>Casa</th>
-                <th>Cor da linha</th><th>Situação</th><th aria-label="Ações"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {membros.map((m) => (
-                <tr key={m.id} className={m.ativo ? '' : 'inativo'}>
-                  <td><b className="ff">{m.nome}</b>{m.proprio && <> <span className="pill c-mute">você</span></>}</td>
-                  {/* `data-rotulo` é o que vira etiqueta quando a tabela vira
-                      lista no celular: o cabeçalho da coluna some, e sem ele
-                      "AI3" sozinho não diz que é a casa. */}
-                  <td className="mono" data-rotulo="E-mail">{m.email}</td>
-                  <td data-rotulo="Setor">
-                    <span className={`pill ${TOM[m.cargo] ?? 'c-mute'}`}>{m.setor}</span>
-                  </td>
-                  <td data-rotulo="Casa">
+        {/*
+          * A EQUIPE EM CARTÕES (fase 200). Era uma tabela de sete colunas que,
+          * no monitor, cortava os botões na borda e punha o "você" por cima do
+          * e-mail. Cada pessoa é um cartão: o círculo do cargo, o nome e o
+          * e-mail, o setor, a casa, a cor da linha e o que se pode fazer.
+          */}
+        <ul className="equipe-cartoes">
+          {membros.map((m) => (
+            <li key={m.id} className={`membro${m.ativo ? '' : ' inativo'}`}>
+              <div className="membro-cabeca">
+                <Cargo nome={m.nome} cargo={m.cargo} />
+                <div className="grow" style={{ minWidth: 0 }}>
+                  <b className="ff">{m.nome}</b>
+                  {m.proprio && <> <span className="pill c-mute">você</span></>}
+                  <div className="mono membro-email">{m.email}</div>
+                </div>
+                <div className="membro-situacao">
+                  {m.ativo
+                    ? <span className="pill c-ok">Ativo</span>
+                    : <span className="pill c-mute">Desativado</span>}
+                  {m.ativo && m.senhaInicialPendente && (
+                    <span className="pill c-warn" title="Ainda usando a senha entregue pela coordenação">
+                      senha inicial
+                    </span>
+                  )}
+                </div>
+              </div>
+              <dl className="membro-dados">
+                <div>
+                  <dt>Setor</dt>
+                  <dd><span className={`pill ${TOM[m.cargo] ?? 'c-mute'}`}>{m.setor}</span></dd>
+                </div>
+                <div>
+                  <dt>Casa</dt>
+                  <dd>
                     {m.transversal || m.todasAsCasas
                       ? <span className="mutetxt">8 casas</span> : (m.casa ?? '—')}
                     {m.todasAsCasas && <> <span className="pill c-move">Coordenação Geral</span></>}
-                  </td>
-                  <td data-rotulo="Cor da linha">
+                  </dd>
+                </div>
+                <div>
+                  <dt>Cor da linha</dt>
+                  <dd>
                     {/* A cor da ATA. Sempre com o NOME do tom escrito: quem não
                         distingue os matizes ainda consegue escolher e conferir. */}
                     {m.transversal || !m.casaId ? <span className="mutetxt">—</span> : (
@@ -218,83 +237,71 @@ export function Equipe({ papel }: { papel: string }) {
                         {NOME_DO_TOM[m.corDaLinha ?? ''] ?? 'automática'}
                       </button>
                     )}
-                  </td>
-                  <td data-rotulo="Situação">
-                    {m.ativo
-                      ? <span className="pill c-ok">Ativo</span>
-                      : <span className="pill c-mute">Desativado</span>}
-                    {m.ativo && m.senhaInicialPendente && (
-                      <span className="pill c-warn" title="Ainda usando a senha entregue pela coordenação">
-                        senha inicial
-                      </span>
+                  </dd>
+                </div>
+              </dl>
+                {m.editavel && !m.proprio && (
+                  <div className="membro-acoes">
+                    <button className="btn sm ghost" onClick={() => { setEditando(m); setForm(true); }}>
+                      Editar
+                    </button>
+                    {/*
+                      * Convidar vem ANTES de "Nova senha", e é o caminho
+                      * preferido: a senha não passa pela mão de quem
+                      * convida, o link vale 24 horas e serve uma vez. O
+                      * botão não existia — o servidor tinha a rota desde a
+                      * fase 9, e a tela só oferecia a senha inicial, que é
+                      * justamente o que vira recado de WhatsApp.
+                      */}
+                    <button className="btn sm" onClick={() => acao(() =>
+                      api(`/staff/${m.id}/convite`, { method: 'POST', body: '{}' }))}>
+                      Convidar
+                    </button>
+                    {/* A Coordenação Geral (fase 176): só o Gestor Geral põe ou
+                        tira, e só em quem é da coordenação. */}
+                    {ehGestor && m.cargo === 'coordenador' && m.ativo && (
+                      <button className="btn sm ghost" onClick={() => {
+                        const ok = confirm(m.todasAsCasas
+                          ? `${m.nome} deixa de coordenar as oito casas e fica sem casa até receber um vínculo. Continuar?`
+                          : `${m.nome} passa a coordenar as oito casas, e o vínculo com ${m.casa ?? 'a casa atual'} é encerrado. Continuar?`);
+                        if (ok) {
+                          acao(() => api(`/staff/${m.id}/coordenacao-geral`, {
+                            method: 'POST', body: JSON.stringify({ todas: !m.todasAsCasas }) }));
+                        }
+                      }}>
+                        {m.todasAsCasas ? 'Retirar da Coordenação Geral' : 'Tornar Coordenação Geral'}
+                      </button>
                     )}
-                  </td>
-                  <td className="acoes">
-                    {m.editavel && !m.proprio && (
-                      <>
-                        <button className="btn sm ghost" onClick={() => { setEditando(m); setForm(true); }}>
-                          Editar
-                        </button>
-                        {/*
-                          * Convidar vem ANTES de "Nova senha", e é o caminho
-                          * preferido: a senha não passa pela mão de quem
-                          * convida, o link vale 24 horas e serve uma vez. O
-                          * botão não existia — o servidor tinha a rota desde a
-                          * fase 9, e a tela só oferecia a senha inicial, que é
-                          * justamente o que vira recado de WhatsApp.
-                          */}
-                        <button className="btn sm" onClick={() => acao(() =>
-                          api(`/staff/${m.id}/convite`, { method: 'POST', body: '{}' }))}>
-                          Convidar
-                        </button>
-                        {/* A Coordenação Geral (fase 176): só o Gestor Geral põe ou
-                            tira, e só em quem é da coordenação. */}
-                        {ehGestor && m.cargo === 'coordenador' && m.ativo && (
-                          <button className="btn sm ghost" onClick={() => {
-                            const ok = confirm(m.todasAsCasas
-                              ? `${m.nome} deixa de coordenar as oito casas e fica sem casa até receber um vínculo. Continuar?`
-                              : `${m.nome} passa a coordenar as oito casas, e o vínculo com ${m.casa ?? 'a casa atual'} é encerrado. Continuar?`);
-                            if (ok) {
-                              acao(() => api(`/staff/${m.id}/coordenacao-geral`, {
-                                method: 'POST', body: JSON.stringify({ todas: !m.todasAsCasas }) }));
-                            }
-                          }}>
-                            {m.todasAsCasas ? 'Retirar da Coordenação Geral' : 'Tornar Coordenação Geral'}
-                          </button>
-                        )}
-                        <button className="btn sm ghost" onClick={() => {
-                          const ok = confirm(
-                            'Prefira o convite: a senha não passa pela sua mão.\n\n'
-                            + 'A senha inicial aparece UMA vez e você precisa entregá-la à '
-                            + 'pessoa. Continuar mesmo assim?');
-                          if (ok) {
-                            acao(() => api(`/staff/${m.id}/reset-password`, { method: 'POST', body: '{}' }));
-                          }
-                        }}>
-                          Nova senha
-                        </button>
-                        {m.ativo ? (
-                          <button className="btn sm ghost" onClick={() => {
-                            const motivo = prompt('Motivo da desativação (fica registrado):') ?? '';
-                            if (motivo.trim().length >= 5) {
-                              acao(() => api(`/staff/${m.id}/deactivate`, {
-                                method: 'POST', body: JSON.stringify({ motivo }) }));
-                            }
-                          }}>Desativar</button>
-                        ) : (
-                          <button className="btn sm ghost" onClick={() => acao(() =>
-                            api(`/staff/${m.id}/reactivate`, { method: 'POST', body: '{}' }))}>
-                            Reativar
-                          </button>
-                        )}
-                      </>
+                    <button className="btn sm ghost" onClick={() => {
+                      const ok = confirm(
+                        'Prefira o convite: a senha não passa pela sua mão.\n\n'
+                        + 'A senha inicial aparece UMA vez e você precisa entregá-la à '
+                        + 'pessoa. Continuar mesmo assim?');
+                      if (ok) {
+                        acao(() => api(`/staff/${m.id}/reset-password`, { method: 'POST', body: '{}' }));
+                      }
+                    }}>
+                      Nova senha
+                    </button>
+                    {m.ativo ? (
+                      <button className="btn sm ghost" onClick={() => {
+                        const motivo = prompt('Motivo da desativação (fica registrado):') ?? '';
+                        if (motivo.trim().length >= 5) {
+                          acao(() => api(`/staff/${m.id}/deactivate`, {
+                            method: 'POST', body: JSON.stringify({ motivo }) }));
+                        }
+                      }}>Desativar</button>
+                    ) : (
+                      <button className="btn sm ghost" onClick={() => acao(() =>
+                        api(`/staff/${m.id}/reactivate`, { method: 'POST', body: '{}' }))}>
+                        Reativar
+                      </button>
                     )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                  </div>
+                )}
+            </li>
+          ))}
+        </ul>
 
         <p className="mutetxt" style={{ marginTop: 12, marginBottom: 0 }}>
           Não existe remover. Desligado é <b>desativado</b>: o acesso acaba na hora e as

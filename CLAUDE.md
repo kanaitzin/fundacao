@@ -180,7 +180,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 11/10/2026, fase 199
+### Onde estamos — 11/10/2026, fase 200
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -243,8 +243,9 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 197 | **as cores do Rio Grande do Sul** (pedido de 11/10): o oitavo tema, verde, vermelho e amarelo da bandeira na moldura, no fundo e na navegação, com o verde na marca; a primeira medida achou a pílula de marca com 4,47 de contraste (o verde escureceu para 5,37), e o ensaio de acessibilidade mede os oito |
 | 198 | **o visual repensado** (pedido de 11/10: *"olhe como um designer"*): retratos ilustrados fictícios no protótipo (`retratos.ts`), o rosto nas listas (`avatar.tsx`, `temFoto` na lista e nas visitas), o perfil com retrato, a coluna lateral mais leve e a linha do dia com trilho e o traço do agora; o `ensaio:celular` achou a pílula longa empurrando a tela a 360 px (consertado) |
 | 199 | **a Saúde e as Ocorrências no mesmo desenho** (pedido de 11/10): a dose em cartão com a hora e o **rosto da criança** (a grade diz `temFoto`), o rosto também na triagem, nos esquemas e no resumo (`useComFoto`, sem rota nova); a ocorrência com o dia em bloco e **o caminho das quatro etapas**, e **sem rosto, de propósito** (a lista não diz quem está envolvido) |
+| 200 | **a Equipe e o Painel das unidades no mesmo desenho** (pedido de 11/10): a Equipe em cartões de pessoa com o círculo do cargo (a tabela **cortava os botões na borda** e punha o *você* **por cima do e-mail**); o Painel em grade de casas, na ordem do código, com a ocupação contra o próprio limite e as contas em blocos |
 
-**Medido no fim da 199:** 188 migrações, 133 tabelas, 138 suítes, 1236 testes, verdes nas
+**Medido no fim da 200:** 188 migrações, 133 tabelas, 138 suítes, 1236 testes, verdes nas
 DUAS condições de relógio; os dez ensaios de navegador verdes (o `ensaio:acolhe` com todas as telas de todos os cargos por texto e por voz e os 36 formulários do sistema abertos por ela, inclusive dentro do perfil, do dossiê, da internação, do acervo e do plantão, e o do celular com 306 telas e nenhum achado), com a portaria e o
 portão, o armário, a cozinha, os temas e a foto no percurso do `ensaio:uso`; **1256 telas (157 × oito
 temas) sem violação de WCAG 2.1 AA**; nenhuma
@@ -294,12 +295,19 @@ as três cores abaixo. Cor nova passa pelo `ensaio:acessibilidade`, que mede os 
 
 ### A próxima etapa
 
+**FEITO — fase 200** (§2): a Equipe e o Painel das unidades no desenho da 198. A **Equipe**
+virou cartões de pessoa com o círculo do cargo, e a foto do antes achou dois defeitos da
+tabela (botões cortados na borda e o *você* por cima do e-mail). O **Painel das unidades**
+virou uma grade de casas na ordem do código, com a ocupação contra o próprio limite e as
+contas em blocos. **Com isso, a frente visual pedida em 11/10 está feita.** O que vier de
+visual daqui em diante é pedido novo.
+
 **FEITO — fase 199** (§2): a Saúde e as Ocorrências no desenho da 198. Na **Saúde**, cada dose é
 um cartão com a hora, o rosto da criança e o remédio, e o rosto chega à triagem, aos esquemas e
 ao resumo de saúde. Nas **Ocorrências**, o dia em bloco e o caminho das quatro etapas
 (registrada, etapa operacional, análise, fechada). **A lista das ocorrências continua sem
-rosto e sem nome, de propósito**: quem está envolvido aparece só nos detalhes. **Para
-crescer:** a Equipe e o Painel, que ainda são lista de texto.
+rosto e sem nome, de propósito**: quem está envolvido aparece só nos detalhes. A Equipe e o
+Painel vieram na 200.
 
 **FEITO — fase 198** (§2): o visual repensado. **Retratos ilustrados fictícios** no
 protótipo (`frontend/src/retratos.ts`, desenho e nunca rosto realista), o **rosto** na lista dos

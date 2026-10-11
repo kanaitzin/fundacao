@@ -1974,3 +1974,71 @@ div.acoes{ display:flex; flex-wrap:wrap; gap:8px; align-items:center }
 }
 @media (min-width:760px){ .oc-caminho{ max-width:620px; margin-left:80px } }
 @media (max-width:620px){ .doses.grade li > .avatar{ width:40px !important; height:40px !important } }
+
+/* ============================================================
+   A EQUIPE E O PAINEL DAS UNIDADES (fase 200; pedido de 11/10)
+   ------------------------------------------------------------
+   A Equipe era uma tabela de sete colunas que cortava os botões na borda e
+   punha o "você" por cima do e-mail; agora cada pessoa é um cartão com o
+   círculo do cargo. O Painel das unidades era uma coluna de oito cartões
+   iguais; agora é uma grade, com o selo do código, a ocupação contra o
+   próprio limite e as contas em blocos. A ordem continua a do código.
+   ============================================================ */
+
+/* A EQUIPE */
+.equipe-cartoes{
+  list-style:none; margin:0; padding:0; display:grid; gap:12px;
+  grid-template-columns:repeat(auto-fill, minmax(330px, 1fr));
+}
+.membro{
+  display:flex; flex-direction:column; gap:12px; min-width:0;
+  background:var(--surface); border:1px solid var(--line); border-radius:16px;
+  padding:14px 16px; box-shadow:var(--shadow-1);
+}
+.membro.inativo{ background:var(--sunken); box-shadow:none; color:var(--ink-2) }
+.membro-cabeca{ display:flex; gap:12px; align-items:flex-start }
+.membro-cabeca .cargo-chip{ width:44px; height:44px; font-size:15px; flex:none }
+.membro-cabeca b.ff{ font-size:15.5px }
+.membro-email{ color:var(--muted); overflow-wrap:anywhere; margin-top:2px }
+.membro-situacao{ display:flex; flex-direction:column; align-items:flex-end; gap:4px; flex:none }
+.membro-dados{ display:grid; grid-template-columns:repeat(3, minmax(0, auto)); justify-content:start; gap:6px 18px; margin:0 }
+.membro-dados > div{ min-width:0 }
+.membro-dados dt{
+  font-size:10.5px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:var(--muted);
+  margin-bottom:3px;
+}
+.membro-dados dd{ margin:0; font-size:14px }
+.membro-dados .pill{ white-space:normal }
+.membro-acoes{ display:flex; flex-wrap:wrap; gap:8px; padding-top:10px; border-top:1px solid var(--line) }
+@media (max-width:420px){
+  .equipe-cartoes{ grid-template-columns:1fr }
+  .membro{ padding:12px }
+  .membro-dados{ grid-template-columns:1fr 1fr }
+}
+
+/* O PAINEL DAS UNIDADES */
+.unidades-grade{ display:grid; gap:12px; grid-template-columns:1fr }
+@media (min-width:900px){ .unidades-grade{ grid-template-columns:repeat(2, minmax(0, 1fr)) } }
+@media (min-width:1500px){ .unidades-grade{ grid-template-columns:repeat(3, minmax(0, 1fr)) } }
+.unidade{ border-radius:18px; padding:16px 18px }
+.unidade.aberta{ border-color:var(--brand-solid); box-shadow:0 0 0 2px color-mix(in srgb, var(--brand-solid) 30%, transparent), var(--shadow-1) }
+.casa-selo{
+  display:inline-flex; align-items:center; justify-content:center; flex:none;
+  min-width:52px; height:44px; padding:0 8px; border-radius:12px;
+  background:var(--brand-soft); color:var(--titulo);
+  font-family:"Plus Jakarta Sans",sans-serif; font-weight:800; font-size:14px; letter-spacing:.01em;
+}
+.ocupacao{ height:8px; border-radius:999px; background:var(--sunken); overflow:hidden }
+.ocupacao span{ display:block; height:100%; border-radius:999px; background:var(--brand-solid) }
+
+/* AS CONTAS EM BLOCOS: o número grande, a palavra embaixo. */
+.lista.contas{ display:grid; gap:8px; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)) }
+.lista.contas li, .lista.contas li:first-child{
+  display:flex; flex-direction:column-reverse; align-items:flex-start; justify-content:flex-end; gap:2px;
+  background:var(--sunken); border:0; border-radius:12px; padding:10px 12px;
+}
+.lista.contas li > span{ font-size:12.5px; line-height:1.3; color:var(--ink-2) }
+.lista.contas li > b{ font-family:"Plus Jakarta Sans",sans-serif; font-size:22px; font-weight:800; color:var(--titulo); line-height:1.1 }
+.lista.contas li.zero > b{ color:var(--muted) }
+.unidade .lista.contas{ grid-template-columns:repeat(3, minmax(0, 1fr)) }
+@media (max-width:420px){ .unidade .lista.contas{ grid-template-columns:1fr 1fr } }
