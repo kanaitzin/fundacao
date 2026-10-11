@@ -9,6 +9,7 @@ import {
 } from '../anexos';
 import { dia, horaSemSegundos } from '../rotulos';
 import { Icone } from '../icones';
+import { Avatar, esquecerFoto } from '../avatar';
 
 /**
  * OS ACOLHIDOS DA CASA e o PERFIL (§6, §13).
@@ -37,6 +38,8 @@ interface Resumo {
   id: string; nome: string; idade: number;
   /** O hospital, quando ela está internada. O motivo não vem — e não deve. */
   noHospital?: string;
+  /** Se há foto de identificação (fase 198): a lista mostra o rosto. */
+  temFoto?: boolean;
   alertasEssenciais: number; restricoesAlimentares: number;
 }
 interface Condicao {
@@ -662,7 +665,8 @@ export function Acolhidos({ houseId, casaLabel, papel, abrir }: {
       <ol className="pessoas">
         {filtrada.map((p) => (
           <li key={p.id}>
-            <button className="card row" onClick={() => setAbertoId(p.id)}>
+            <button className="card row pessoa-cartao" onClick={() => setAbertoId(p.id)}>
+              <Avatar nome={p.nome} de={{ acolhido: p.id }} temFoto={p.temFoto} tamanho={52} />
               <div className="grow" style={{ textAlign: 'left' }}>
                 <b className="ff">{p.nome}</b>
                 <div className="mutetxt">
@@ -802,8 +806,8 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
 
   return (
     <>
-      <div className="diahead">
-        <div className="row" style={{ gap: 12, alignItems: 'flex-start' }}>
+      <div className="diahead perfil-topo">
+        <div className="row" style={{ gap: 16, alignItems: 'flex-start' }}>
           {/*
             * A FOTO DE IDENTIFICAÇÃO.
             *
@@ -2225,6 +2229,7 @@ function FotoDoAcolhido({ perfil, papel, onTrocou }: {
       });
       setEscolhida(null);
       setPondoFoto(false);
+      esquecerFoto({ acolhido: perfil.id });
       onTrocou();
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Não foi possível guardar a foto.');
@@ -2551,12 +2556,15 @@ function Contatos({ perfil, papel, onMudou }: {
       )}
       <div className="stack">
         {ativos.map((c) => (
-          <div key={c.id} className="card">
-            <div className="row">
-              <b className="ff grow">{c.nome}</b>
+          <div key={c.id} className="card contato-cartao">
+            <div className="row contato-cabeca">
+              <Avatar nome={c.nome} de={{ contato: c.id }} temFoto={c.temFoto} tamanho={48} />
+              <div className="grow">
+                <b className="ff">{c.nome}</b>
+                {c.telefone && <div className="mutetxt">{c.telefone}</div>}
+              </div>
               <span className="pill c-info">{c.vinculoRotulo}</span>
             </div>
-            {c.telefone && <div>{c.telefone}</div>}
             {c.cpf && <div className="mutetxt">CPF {c.cpf}</div>}
             {c.observacao && <div className="mutetxt">{c.observacao}</div>}
             {c.autorizadoAVisitar && (
@@ -2753,6 +2761,7 @@ function FolhaVisita({ contato, crianca, onFechar, onSalvou }: {
         await api(`/people/contacts/${contato.id}/photo`, {
           method: 'POST', body: JSON.stringify({ conteudo: foto.dataUrl }),
         });
+        esquecerFoto({ contato: contato.id });
       }
       setAviso(r.aviso);
       setTimeout(onSalvou, 900);
@@ -3507,7 +3516,7 @@ function VisitasDoAcolhido({ personId }: { personId: string }) {
   const [dados, setDados] = useState<{
     periodo: { de: string; ate: string };
     contagem: { noPeriodo: number; noMes: number; noSemestre: number; noAno: number; total: number };
-    visitantes: { nome: string; vinculo: string; visitas: number; minutos: number }[];
+    visitantes: { nome: string; vinculo: string; visitas: number; minutos: number; contatoId?: string; temFoto?: boolean }[];
     visitas: { id: string; visitante: string; vinculoRotulo: string; entrouEm: string;
                saiuEm: string | null; minutos: number | null; entradaPor: string | null;
                excecao: string | null; corrigida: boolean; aberta: boolean;
@@ -3576,9 +3585,11 @@ function VisitasDoAcolhido({ personId }: { personId: string }) {
       {dados.visitantes.length > 0 && (
         <>
           <div className="eyebrow">Quem visitou, por nome</div>
-          <ul className="lista">
+          <ul className="lista visitantes">
             {dados.visitantes.map((v) => (
               <li key={`${v.nome}|${v.vinculo}`}>
+                <Avatar nome={v.nome} de={v.contatoId ? { contato: v.contatoId } : undefined}
+                        temFoto={v.temFoto} tamanho={38} />
                 <span className="grow">{v.nome} <span className="mutetxt">({v.vinculo})</span></span>
                 <span className="mutetxt">{v.visitas} {v.visitas === 1 ? 'visita' : 'visitas'} · {tempo(v.minutos)}</span>
               </li>

@@ -1730,3 +1730,152 @@ div.acoes{ display:flex; flex-wrap:wrap; gap:8px; align-items:center }
   background:#fff; border-radius:50%; box-shadow:0 0 0 1px rgba(0,0,0,.08); overflow:hidden;
 }
 .acolhe-simbolo img{ display:block }
+
+/* ============================================================
+   O VISUAL REPENSADO (fase 198; pedido de 11/10: "olhe como um designer")
+   ------------------------------------------------------------
+   Cinco telas que pareciam rascunho: a coluna lateral, a linha do dia, a
+   lista dos acolhidos, o perfil e os contatos. O que NÃO muda: as três cores
+   que querem dizer alguma coisa (estado, autor, cargo), o item aberto da
+   coluna preenchido na cor da marca (pedido de 27/09) e os nomes que os
+   ensaios e o leitor de tela usam para achar cada coisa.
+   ============================================================ */
+
+/* O ROSTO: foto quando há, iniciais quando não. Na cor neutra da marca. */
+.avatar{
+  display:inline-flex; align-items:center; justify-content:center; flex:none;
+  border-radius:50%; overflow:hidden; background:var(--brand-soft); color:var(--titulo);
+  font-family:"Plus Jakarta Sans",sans-serif; font-weight:800; letter-spacing:-.01em;
+  box-shadow:0 0 0 2px var(--surface), 0 0 0 3px var(--line);
+}
+.avatar img{ width:100%; height:100%; object-fit:cover; display:block }
+
+/* OS ACOLHIDOS: um cartão com rosto; no monitor, em grade. */
+.pessoas .pessoa-cartao{
+  gap:14px; padding:12px 14px; border-radius:16px; align-items:center;
+  transition:box-shadow .15s ease, transform .15s ease, border-color .15s ease;
+}
+.pessoas .pessoa-cartao:hover{ box-shadow:0 6px 18px rgba(15,28,46,.10); transform:translateY(-1px) }
+.pessoas .pessoa-cartao b{ font-size:16px }
+@media (min-width:900px){
+  .pessoas{ display:grid; grid-template-columns:repeat(auto-fill, minmax(290px, 1fr)); gap:12px }
+}
+
+/* O PERFIL: um cabeçalho com o retrato grande, sobre uma faixa da cor da marca. */
+.perfil-topo{
+  position:relative; display:block; background:var(--surface); border:1px solid var(--line);
+  border-radius:20px; padding:18px 18px 16px; box-shadow:var(--shadow-1); overflow:hidden;
+  margin-bottom:18px;
+}
+.perfil-topo::before{
+  content:""; position:absolute; left:0; right:0; top:0; height:68px;
+  background:linear-gradient(120deg, var(--brand-soft) 0%, color-mix(in srgb, var(--brand) 22%, var(--surface)) 100%);
+}
+.perfil-topo > *{ position:relative }
+.perfil-topo .retrato{
+  width:112px; height:112px; border-radius:50%; background:var(--brand-soft);
+  border:4px solid var(--surface); box-shadow:0 6px 18px rgba(15,28,46,.16);
+}
+.perfil-topo .retrato span{ font-size:38px; color:var(--titulo) }
+.perfil-topo h2{ font-size:28px; letter-spacing:-.02em; margin:10px 0 2px }
+
+/* OS CONTATOS: o rosto de quem aparece pela criança. */
+.contato-cartao{ border-radius:16px }
+.contato-cabeca{ gap:12px; align-items:center; margin-bottom:6px }
+.contato-cabeca b{ font-size:15.5px }
+
+/* A COLUNA DO MONITOR: mais leve. O azulejo só aparece no item em foco e no
+   aberto; o aberto continua preenchido na cor da marca, com um degradê e uma
+   sombra da própria cor para o olho achá-lo de longe. */
+@media (min-width:1080px){
+  .navegacao{
+    background:linear-gradient(180deg, var(--surface) 0%, var(--surface) 70%, var(--raised) 100%);
+    padding:16px 14px 24px;
+  }
+  .marca-lateral{ padding:6px 8px 16px; margin-bottom:10px }
+  .marca-lateral .logochip img{ height:34px }
+  .marca-lateral b{ font-size:16px }
+  .tabbar button, .portas-lateral button{
+    min-height:40px; padding:4px 10px 4px 4px; border-radius:11px; font-weight:650;
+  }
+  .tabbar button .icone, .portas-lateral button .icone{ background:transparent; color:var(--muted) }
+  .tabbar button:hover, .portas-lateral button:hover{ transform:none; border-color:transparent; background:var(--brand-soft) }
+  .tabbar button.on, .portas-lateral button.on{
+    background:linear-gradient(135deg, var(--brand-solid) 0%, color-mix(in srgb, var(--brand-solid) 80%, #000) 100%);
+    box-shadow:0 6px 16px color-mix(in srgb, var(--brand-solid) 32%, transparent);
+  }
+  .portas-lateral h2{ font-size:10.5px; letter-spacing:.12em; margin:0 0 4px }
+  .portas-lateral .grupo + .grupo{ margin-top:18px }
+}
+
+/* A LINHA DO DIA COMO LINHA DO TEMPO: um trilho, um ponto da cor da categoria
+   em cada evento, a hora à esquerda e o cartão à direita, e o traço do agora.
+   A categoria continua escrita no cartão (a cor é atalho, não sentido). */
+.linha{ position:relative; gap:12px }
+.linha::before{
+  content:""; position:absolute; left:71px; top:8px; bottom:8px; width:2px; border-radius:2px;
+  background:linear-gradient(var(--line-2), var(--line));
+}
+.linha .ev{
+  grid-template-columns:56px 1fr; gap:30px; position:relative;
+  background:transparent; border:0; border-radius:0; padding:0;
+}
+.linha .ev::before{
+  content:""; position:absolute; left:65px; top:14px; width:14px; height:14px; border-radius:50%;
+  background:var(--cat, var(--line-2)); box-shadow:0 0 0 4px var(--ground);
+}
+.linha .ev .corpo{
+  background:var(--surface); border:1px solid var(--line); border-left:4px solid var(--cat, var(--line));
+  border-radius:16px; padding:12px 14px; box-shadow:var(--shadow-1);
+}
+.linha .ev.feito{ background:transparent }
+.linha .ev.feito .corpo{ background:var(--sunken); box-shadow:none }
+.linha .ev.feito::before{ opacity:.55 }
+.linha .hora{
+  font-family:"Plus Jakarta Sans",sans-serif; font-size:15px; font-weight:800;
+  color:var(--titulo); text-align:right; padding-top:10px;
+}
+.linha .ic{
+  display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px;
+  border-radius:9px; background:color-mix(in srgb, var(--cat, var(--line)) 16%, var(--surface)); color:var(--ink);
+}
+.linha .tit{ align-items:center }
+.linha .agora{ position:relative; display:grid; grid-template-columns:56px 1fr; gap:30px; align-items:center; margin:2px 0 }
+.linha .agora::before{
+  content:""; position:absolute; left:56px; right:0; top:50%; height:2px;
+  background:var(--brand-solid); opacity:.35;
+}
+.linha .agora span{
+  grid-column:2; justify-self:start; position:relative;
+  font-family:"Plus Jakarta Sans",sans-serif; font-size:12px; font-weight:800; letter-spacing:.02em;
+  color:var(--on-solid); background:var(--brand-solid); border-radius:999px; padding:3px 11px;
+}
+@media (max-width:760px){
+  .linha::before{ left:51px }
+  .linha .ev{ grid-template-columns:42px 1fr; gap:22px; padding:0 }
+  .linha .ev::before{ left:45px }
+  .linha .hora{ font-size:13.5px }
+  .linha .agora{ grid-template-columns:42px 1fr; gap:22px }
+  .linha .agora::before{ left:42px }
+  .perfil-topo .retrato{ width:88px; height:88px }
+  .perfil-topo h2{ font-size:24px }
+}
+@media (prefers-reduced-motion: reduce){
+  .pessoas .pessoa-cartao{ transition:none }
+  .pessoas .pessoa-cartao:hover{ transform:none }
+}
+/* Quem visitou: o rosto ao lado do nome. */
+.lista.visitantes{ display:flex; flex-direction:column }
+.lista.visitantes li{ display:flex; align-items:center; gap:12px }
+/* No celular de 360 px o cartão da linha do tempo fica mais estreito: a pílula
+   longa ("Plantão aberto, 1 passagem(ns) assinada(s)") quebra a linha em vez de
+   empurrar a tela para o lado. Achado pelo `ensaio:celular`. */
+.linha .corpo .pill{ white-space:normal; max-width:100% }
+@media (max-width:420px){
+  .linha::before{ left:45px }
+  .linha .ev, .linha .agora{ grid-template-columns:38px 1fr; gap:18px }
+  .linha .ev::before{ left:39px; width:12px; height:12px; top:15px }
+  .linha .agora::before{ left:38px }
+  .linha .hora{ font-size:12.5px }
+  .linha .ev .corpo{ padding:10px 11px }
+}

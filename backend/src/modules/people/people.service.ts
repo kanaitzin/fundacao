@@ -263,6 +263,7 @@ export class PeopleService {
       const { rows } = await c.query(
         `SELECT p.id, p.full_name, p.social_name, p.birth_date, p.cpf, p.cpf_pending,
                 date_part('year', age(p.birth_date))::int AS idade,
+                p.photo_key IS NOT NULL AS tem_foto,
                 (SELECT count(*)::int FROM health_condition h
                    WHERE h.person_id = p.id AND h.active AND h.essential_alert) AS alertas,
                 (SELECT count(*)::int FROM food_restriction f
@@ -673,6 +674,8 @@ export interface PersonSummary {
   restricoesAlimentares: number;
   /** O hospital onde ela está, quando está internada. O motivo nunca vem. */
   noHospital?: string;
+  /** Se a criança tem foto de identificação (os bytes vêm pela rota da foto). */
+  temFoto?: boolean;
 }
 
 /** Projeção segura: CPF sempre mascarado na exibição operacional (§3.1). */
@@ -690,5 +693,8 @@ export function publicPerson(r: any): PersonSummary {
     /* Onde ela está, quando não está na casa. `undefined` some do JSON, e a
      * tela desenha a linha normal. */
     noHospital: r.no_hospital ?? undefined,
+    /* Se há foto de identificação (fase 198): a lista mostra o rosto, e a tela
+     * só pede a foto de quem tem. Os bytes vêm pela rota da foto, um de cada vez. */
+    temFoto: r.tem_foto ?? undefined,
   };
 }

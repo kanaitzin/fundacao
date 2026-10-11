@@ -197,6 +197,7 @@ export class VisitasService {
       const { rows } = await c.query(
         `SELECT v.id, v.started_at, v.ended_at, v.document_checked, v.start_note, v.end_note,
                 v.exception_reason, pc.name AS visitante, pc.social_name, pc.bond, pc.bond_other,
+                pc.id AS contato_id, pc.photo_key IS NOT NULL AS tem_foto,
                 (v.started_at AT TIME ZONE app_fuso())::date::text AS dia,
                 app_user_display_name(v.started_by) AS entrada_por,
                 app_user_display_name(v.ended_by) AS saida_por,
@@ -235,11 +236,15 @@ export class VisitasService {
     const semestre = Number(hoje.slice(5, 7)) <= 6 ? [`${ano}-01-01`, `${ano}-06-30`] : [`${ano}-07-01`, `${ano}-12-31`];
     const conta = (a: string, b: string) => linhas.filter((r: any) => r.dia >= a && r.dia <= b).length;
 
-    const porVisitante = new Map<string, { nome: string; vinculo: string; visitas: number; minutos: number }>();
+    /* O contato e se ele tem foto 3×4 (fase 198): a tela mostra o rosto de quem
+       visitou, pela rota da foto do contato, que confere o alcance de novo. */
+    const porVisitante = new Map<string, { nome: string; vinculo: string; visitas: number; minutos: number;
+                                           contatoId: string; temFoto: boolean }>();
     for (const r of noPeriodo) {
       const nome = r.social_name || r.visitante;
       const k = `${nome}|${r.bond}`;
-      const x = porVisitante.get(k) ?? { nome, vinculo: rotuloDoVinculo(r.bond, r.bond_other), visitas: 0, minutos: 0 };
+      const x = porVisitante.get(k) ?? { nome, vinculo: rotuloDoVinculo(r.bond, r.bond_other), visitas: 0, minutos: 0,
+                                         contatoId: r.contato_id, temFoto: !!r.tem_foto };
       x.visitas += 1; x.minutos += minutos(r) ?? 0;
       porVisitante.set(k, x);
     }

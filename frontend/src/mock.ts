@@ -27,6 +27,7 @@ import {
   periodoDaHora, horaNaInstituicao as horaDaTurnoNaInstituicao, INICIO_DO_DIURNO, INICIO_DO_NOTURNO,
 } from './turno';
 import { SemConexao, ErroApi } from './api';
+import { retratoFicticio, type Feitio } from './retratos';
 import { ALCANCE_POR_CARGO } from '../../backend/src/modules/identity/alcance';
 import { avaliar, avaliarDrive, TITULOS } from '../../backend/src/modules/relogio/implantacao.regra';
 import { QUEM_LE_O_QUE_MUDOU } from '../../backend/src/modules/reports/o-que-mudou.regra';
@@ -141,7 +142,7 @@ interface Kid {
   judicial?: Record<string, string>;
   /* Os campos que vieram da lista que a equipe técnica mantinha à mão. */
   rg?: string; cns?: string; filiacao?: string;
-  foto?: string; fotoEm?: string;
+  foto?: string; fotoEm?: string; fotoTipo?: string;
   /* Pedidos no cadastro desde a fase 40, lidos por nada até a 116. */
   genero?: string; raca?: string; naturalidade?: string; nis?: string; registroCivil?: string;
   /* Quantos episódios de acolhimento — mais de um é reacolhimento (fase 116). */
@@ -305,6 +306,24 @@ const KIDS: Kid[] = [
   { id: 'p20', nome: 'Théo', civil: 'Théo Barbosa (fictício)', idade: 10,
     nascimento: '2016-09-09', serie: '5º ano', turno: 'tarde' },
 ];
+
+/*
+ * OS RETRATOS DO PROTÓTIPO (pedido de 11/10): cada criança com o seu desenho,
+ * para a lista, o perfil e a portaria parecerem o sistema em uso. São desenhos
+ * de propósito (`retratos.ts`), nunca rosto realista. O Théo fica sem foto: é
+ * ele que mostra as iniciais e o "Pôr foto" de quem acabou de chegar.
+ */
+const MENINAS = new Set(['Alice', 'Gabi', 'Helena', 'Lara', 'Nina', 'Sofia', 'Vitória', 'Yasmin']);
+for (const k of KIDS) {
+  if (k.nome === 'Théo') { delete k.foto; continue; }
+  const r = retratoFicticio(k.civil, (MENINAS.has(k.nome) ? 'menina' : 'menino') as Feitio);
+  k.foto = r.conteudo; k.fotoTipo = r.tipo; k.fotoEm = k.fotoEm ?? emHoras(9, 0);
+}
+/** O retrato de um adulto, como a foto 3×4 guardada do contato (com o prefixo, como o contato guarda). */
+const retratoDeAdulto = (nome: string, feitio: Feitio) => {
+  const r = retratoFicticio(nome, feitio);
+  return `data:${r.tipo};base64,${r.conteudo}`;
+};
 
 // ---------------------------------------------------------------- pessoas do sistema
 
@@ -4264,6 +4283,21 @@ function semearVisitas() {
     nota: 'Trouxe o material da escola.',
     excecao: 'Visita remarcada por telefone com a equipe técnica, por causa da consulta de sexta.',
     corrigida: false });
+  /* E as visitas das outras crianças (fase 198): o perfil de cada uma mostra
+     quem a visitou, com o rosto, como vai ser com a casa em uso. A primeira
+     criança continua com as de antes, de que os ensaios dependem. */
+  const outras = todosKids().slice().sort((a, z) => a.nome.localeCompare(z.nome)).slice(1, 6);
+  outras.forEach((o, n) => {
+    const [m, mad] = contatosDe(o.id);
+    for (const [d, c, h] of [[-50 + n, mad, 15], [-24 + n, m, 10], [-8 + n, m, 10]] as [number, typeof m, number][]) {
+      const entrou = emDias(d, h, 0);
+      VISITAS.push({ id: `vis-${uid()}`, kidId: o.id, contatoId: c.id, documento: c.cpf ? 'CPF' : 'RG',
+        entrou, saiu: new Date(Date.parse(entrou) + (70 + n * 10) * 60000).toISOString(),
+        por: 'Paulo da Portaria (fictício)', saidaPor: 'Paulo da Portaria (fictício)',
+        nota: null, excecao: null, corrigida: false });
+    }
+  });
+
 }
 /** A visita cabe no combinado agora? A mesma ordem e as mesmas frases do servidor. */
 function foraDoCombinado(c: { ativo: boolean; autorizadoAVisitar: boolean;
@@ -4307,10 +4341,12 @@ function visitasDaCrianca(kidId: string, de?: string, ate?: string) {
   const noPeriodo = linhas.filter((v) => diaDe(v.entrou) >= inicio && diaDe(v.entrou) <= fim);
   const ano = HOJE.slice(0, 4);
   const semestre = Number(HOJE.slice(5, 7)) <= 6 ? [`${ano}-01-01`, `${ano}-06-30`] : [`${ano}-07-01`, `${ano}-12-31`];
-  const porVisitante = new Map<string, { nome: string; vinculo: string; visitas: number; minutos: number }>();
+  const porVisitante = new Map<string, { nome: string; vinculo: string; visitas: number; minutos: number;
+                                         contatoId: string; temFoto: boolean }>();
   for (const v of noPeriodo) {
     const c = acharContato(v.contatoId)!;
-    const x = porVisitante.get(c.id) ?? { nome: c.nome, vinculo: c.vinculoRotulo, visitas: 0, minutos: 0 };
+    const x = porVisitante.get(c.id) ?? { nome: c.nome, vinculo: c.vinculoRotulo, visitas: 0, minutos: 0,
+                                         contatoId: c.id, temFoto: !!c.temFoto };
     x.visitas += 1; x.minutos += minutos(v) ?? 0;
     porVisitante.set(c.id, x);
   }
@@ -4381,7 +4417,7 @@ function contatosDe(id: string) {
         visita: { dias: [5], de: '16:00', ate: '18:00',
                   observacao: 'Entra pelo portão dos fundos' } as
           { dias: number[]; de: string; ate: string; observacao: string | null } | null,
-        foto: RETRATO_FICTICIO as string | null,
+        foto: retratoDeAdulto('Madrinha Simoni', 'mulher') as string | null,
         autorizacao: { por: 'Equipe técnica (fictícia)', em: emHoras(9, 5) },
         por: 'Equipe técnica (fictícia)', em: emHoras(9, 0) },
       { id: `ct-${id}-3`, nome: 'Tio Fictício', vinculo: 'tio', vinculoRotulo: 'Tia ou tio',
@@ -8130,6 +8166,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
   if (rota === '/people' && metodo === 'GET') {
     return todosKids().map((k) => ({
       id: k.id, nome: k.nome, nomeCivil: k.civil, idade: k.idade, nascimento: k.nascimento,
+      temFoto: !!k.foto,
       cpf: k.semCpf ? null : '***.***.123-**', cpfPendente: !!k.semCpf,
       alertasEssenciais: k.alerta ? 1 : 0, restricoesAlimentares: k.restricao ? 1 : 0,
       /* Onde ela está — o FATO e o lugar, para todo mundo da casa. Nunca o
@@ -9019,7 +9056,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
   if (seg[0] === 'people' && seg[2] === 'photo' && metodo === 'GET') {
     const k = kid(seg[1]);
     if (!k?.foto) return new Recusa(404, 'Este acolhido ainda não tem foto.');
-    return { nome: 'identificacao', tipo: 'image/png', conteudo: k.foto };
+    return { nome: 'identificacao', tipo: k.fotoTipo ?? 'image/png', conteudo: k.foto };
   }
 
   if (seg[0] === 'people' && seg[2] === 'photo' && metodo === 'POST') {
@@ -9039,6 +9076,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       || (cabeca.slice(0, 4) === 'RIFF' && cabeca.slice(8, 12) === 'WEBP');
     if (!ehImagem) return new Recusa(400, 'Envie uma foto em JPG, PNG ou WEBP.');
     k.foto = limpo;
+    k.fotoTipo = cabeca.startsWith('\x89PNG') ? 'image/png' : cabeca.startsWith('\xFF\xD8\xFF') ? 'image/jpeg' : 'image/webp';
     k.fotoEm = new Date().toISOString();
     return { ok: true, aviso: 'Foto de identificação guardada. Ela aparece no alto do perfil '
       + 'e não entra em documento nenhum por padrão.' };

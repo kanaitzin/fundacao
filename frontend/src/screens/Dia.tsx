@@ -1,5 +1,5 @@
 import { OQueMudou } from './OQueMudou';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { api, apiOuFila } from '../api';
 import { Cargo } from '../cargos';
 import { Icone } from '../icones';
@@ -292,6 +292,14 @@ export function Dia({ houseId, casaLabel, papel, irPara, alcanca = () => true, p
     return [...emAberto, ...recentes].sort((a, b) => a.at.localeCompare(b.at));
   }, [dados, filtro]);
 
+  /* Onde entra o traço do AGORA: antes do primeiro evento que ainda vem. Sem
+     evento depois de agora, ou sem nenhum antes, o traço não aparece. */
+  const indiceDoAgora = useMemo(() => {
+    const agora = Date.now();
+    const i = eventos.findIndex((e) => new Date(e.at).getTime() > agora);
+    return i > 0 ? i : -1;
+  }, [eventos]);
+
   /*
    * "CONCLUÍ TUDO ATÉ AGORA" (fase 181, decisão de 30/09, §10 item 3): só as
    * atividades COLETIVAS pendentes até agora. Remédio e saúde nunca, e a
@@ -517,8 +525,15 @@ export function Dia({ houseId, casaLabel, papel, irPara, alcanca = () => true, p
         ) : null;
       })()}
       <ol className="linha">
-        {eventos.map((ev) => (
-          <li key={ev.id}
+        {eventos.map((ev, i) => (
+          <Fragment key={ev.id}>
+          {/* O AGORA (fase 198): o traço entre o que já passou e o que vem. É
+              enfeite de orientação, para o olho achar o meio do dia; o leitor
+              de tela já lê as horas, e por isso ele é escondido. */}
+          {i === indiceDoAgora && (
+            <li className="agora" aria-hidden="true"><span>agora · {hhmm(new Date().toISOString())}</span></li>
+          )}
+          <li
               className={`ev ${categoriaDe(ev.kind).classe} ${FINALIZADOS.has(ev.state) ? 'feito' : ''}`}>
             <div className="hora">{hhmm(ev.at)}</div>
             <div className="corpo">
@@ -659,6 +674,7 @@ export function Dia({ houseId, casaLabel, papel, irPara, alcanca = () => true, p
               )}
             </div>
           </li>
+          </Fragment>
         ))}
       </ol>
       </>
