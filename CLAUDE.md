@@ -279,6 +279,8 @@ contas, 201 telas e o esqueci contra o servidor de verdade, sem achado**; na API
 contas, 201 telas e o esqueci contra o servidor de verdade, sem achado**; na API, a mesma recusa.
 **E na fase 199** (`SIM_CASAS=AI3 … 30`), com o rosto nas doses e o caminho das ocorrências:
 **onze contas, 201 telas e o esqueci contra o servidor de verdade, sem achado**; na API, a mesma recusa.
+**E na fase 200** (`SIM_CASAS=AI3 … 30`), com a Equipe em cartões e o Painel em grade: **onze
+contas, 201 telas e o esqueci contra o servidor de verdade, sem achado**; na API, a mesma recusa.
 
 **As TRÊS cores do sistema, porque confundi-las é o pior que esta tela pode
 fazer** — está escrito por extenso em `frontend/src/cargos.tsx`:
