@@ -355,6 +355,8 @@ export class MedicationsService {
       const { rows } = await c.query(
         `SELECT a.id, a.scheduled_at, a.state, a.note, a.administered_at, a.offline,
                 a.person_id, coalesce(nullif(p.social_name,''), p.full_name) AS pessoa,
+                -- O rosto ao lado da dose (fase 199): só se existe, a tela pede depois.
+                p.photo_key IS NOT NULL AS tem_foto,
                 pr.medication, pr.dose, pr.route, pr.kind, pr.use_condition,
                 -- A EXCEÇÃO VIAJA COM A DOSE (0930).
                 --
@@ -1905,7 +1907,7 @@ function mapDose(r: any) {
   return {
     id: r.id,
     horario: r.scheduled_at,
-    acolhido: { id: r.person_id, nome: r.pessoa },
+    acolhido: { id: r.person_id, nome: r.pessoa, temFoto: r.tem_foto ?? undefined },
     medicamento: r.medication,
     dose: r.dose,
     via: r.route,

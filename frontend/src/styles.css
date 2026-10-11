@@ -1879,3 +1879,98 @@ div.acoes{ display:flex; flex-wrap:wrap; gap:8px; align-items:center }
   .linha .hora{ font-size:12.5px }
   .linha .ev .corpo{ padding:10px 11px }
 }
+
+/* ============================================================
+   A SAÚDE E AS OCORRÊNCIAS NO MESMO DESENHO (fase 199; pedido de 11/10)
+   ------------------------------------------------------------
+   As duas telas eram listas de texto com linha fina entre os itens. Agora
+   cada dose e cada ocorrência é um cartão, com a hora em destaque como na
+   linha do dia. Na Saúde entra o rosto da criança, porque a criança certa é a
+   primeira conferência do remédio. Nas Ocorrências entra o caminho das quatro
+   etapas, e NÃO entra rosto: a lista é lida por toda a casa e não diz quem
+   está envolvido; isso fica nos detalhes, como sempre.
+   ============================================================ */
+
+/* AS DOSES: hora, rosto, remédio e o Confirmar, num cartão. */
+.doses.grade{ gap:10px }
+.doses.grade li, .doses.grade li:first-child{
+  display:grid; grid-template-columns:52px auto 1fr auto; align-items:start; gap:14px;
+  background:var(--surface); border:1px solid var(--line); border-radius:16px;
+  padding:14px 16px; box-shadow:var(--shadow-1);
+}
+.doses.grade li > .hora{
+  font-family:"Plus Jakarta Sans",sans-serif; font-size:16px; font-weight:800;
+  color:var(--titulo); padding-top:11px; text-align:right; min-width:0;
+}
+.doses.grade li > .avatar{ margin-top:2px }
+.doses.grade li b.ff{ font-size:16.5px }
+.doses.grade li > .btn{ align-self:center }
+.doses.grade li > .bloco{ grid-column:3 / -1 }
+.doses.grade li.feito{ box-shadow:none }
+.doses.grade li.vazio{ display:block }
+@media (max-width:620px){
+  .doses.grade li, .doses.grade li:first-child{ grid-template-columns:auto 1fr; gap:10px 12px; padding:12px }
+  .doses.grade li > .hora{ grid-column:1 / -1; text-align:left; padding-top:0; font-size:14.5px }
+  .doses.grade li > .avatar{ grid-row:2 }
+  .doses.grade li > .btn, .doses.grade li > .bloco{ grid-column:1 / -1; justify-self:stretch }
+}
+
+/* O CARTÃO DE ABRIR: o selo da ocorrência ao lado do título. */
+.oc-selo{
+  display:inline-flex; align-items:center; justify-content:center; flex:none;
+  width:40px; height:40px; border-radius:12px;
+  background:var(--brand-soft); color:var(--titulo);
+}
+.oc-selo .icone{ width:22px; height:22px }
+
+/* AS OCORRÊNCIAS: o dia e a hora à esquerda, o resto ao lado. */
+.ocorrencia{ border-radius:18px; padding:16px 18px; gap:14px }
+.oc-cabeca{ display:flex; gap:16px; align-items:flex-start }
+.oc-quando{
+  flex:none; width:64px; text-align:center; padding:8px 4px; border-radius:12px;
+  background:var(--sunken); display:flex; flex-direction:column; gap:1px;
+}
+.oc-quando b{ font-family:"Plus Jakarta Sans",sans-serif; font-size:16px; font-weight:800; color:var(--titulo) }
+.oc-quando span{ font-size:12.5px; font-weight:700; color:var(--ink-2); font-variant-numeric:tabular-nums }
+.ocorrencia .pill{ white-space:normal; max-width:100% }
+.ocorrencia > .oc-detalhes{ align-self:flex-end; min-width:150px }
+.ocorrencia.aberta > .oc-detalhes{ align-self:stretch }
+
+/* O CAMINHO: quatro marcos ligados por um traço; a etapa em curso maior. */
+.oc-caminho{
+  list-style:none; margin:0; padding:2px 0 0; display:grid; grid-template-columns:repeat(4, 1fr);
+  counter-reset:etapa;
+}
+.oc-caminho li{
+  position:relative; display:flex; flex-direction:column; align-items:center; gap:6px;
+  text-align:center; font-size:12.5px; font-weight:650; color:var(--muted); line-height:1.25;
+}
+.oc-caminho li::before{
+  content:""; position:absolute; top:8px; right:50%; width:100%; height:2px; background:var(--line-2);
+}
+.oc-caminho li:first-child::before{ display:none }
+.oc-caminho .marco{
+  position:relative; width:18px; height:18px; border-radius:50%;
+  background:var(--surface); border:2px solid var(--line-2);
+}
+.oc-caminho li.feita .marco{ background:var(--brand-solid); border-color:var(--brand-solid) }
+.oc-caminho li.feita .marco::after{
+  content:""; position:absolute; left:4.5px; top:1.5px; width:4px; height:8px;
+  border:solid var(--on-solid); border-width:0 2px 2px 0; transform:rotate(45deg);
+}
+.oc-caminho li.feita::before, .oc-caminho li.atual::before{ background:var(--brand-solid) }
+.oc-caminho li.feita{ color:var(--ink-2) }
+.oc-caminho li.atual{ color:var(--titulo); font-weight:800 }
+.oc-caminho li.atual .marco{
+  border-color:var(--brand-solid); border-width:5px;
+  box-shadow:0 0 0 4px color-mix(in srgb, var(--brand-solid) 18%, transparent);
+}
+@media (max-width:420px){
+  .ocorrencia{ padding:14px 12px }
+  .oc-cabeca{ gap:12px }
+  .oc-quando{ width:54px }
+  .oc-caminho li{ font-size:11.5px }
+  .ocorrencia > .oc-detalhes{ align-self:stretch }
+}
+@media (min-width:760px){ .oc-caminho{ max-width:620px; margin-left:80px } }
+@media (max-width:620px){ .doses.grade li > .avatar{ width:40px !important; height:40px !important } }

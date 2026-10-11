@@ -348,6 +348,25 @@ describe('Quem dá o remédio nesta casa', () => {
     expect(JSON.stringify(folha.body)).toMatch(/administração exclusiva da Enfermagem/);
   });
 
+  it('a grade diz se a criança tem foto, igual ao banco, lida por quem confirma (fase 199)', async () => {
+    /*
+     * O rosto ao lado da dose só é pedido quando a grade diz que existe. Lido
+     * pelo EDUCADOR, e não por quem escreveu (lição da 149): a resposta tem de
+     * chegar a quem confirma, e tem de bater com o banco, criança por criança.
+     */
+    const r = await request(http).get(`/api/v1/medications?houseId=${ids.AI3}`)
+      .set(auth(tokens.educador)).expect(200);
+    expect(r.body.length).toBeGreaterThan(0);
+    const pessoas = [...new Set(r.body.map((d: any) => d.acolhido.id))];
+    const { rows } = await admin.query(
+      `SELECT id, photo_key IS NOT NULL AS tem FROM person WHERE id = ANY($1::uuid[])`, [pessoas]);
+    const noBanco = new Map(rows.map((x) => [x.id, x.tem]));
+    for (const d of r.body) {
+      expect(typeof d.acolhido.temFoto).toBe('boolean');
+      expect(d.acolhido.temFoto).toBe(noBanco.get(d.acolhido.id));
+    }
+  });
+
   // ==================== O que valia antes ====================
 
   it('o protocolo por período vira LEITURA, e diz o que a Fundação respondeu', async () => {

@@ -7,6 +7,7 @@ import type { DocumentoWord } from '../docx';
 import { quemAssina } from '../quem-assina';
 import { dia } from '../rotulos';
 import { Icone } from '../icones';
+import { Avatar, useComFoto } from '../avatar';
 
 /**
  * COMO ELA ESTAVA, nas quatro opções do papel (1460).
@@ -59,7 +60,7 @@ function comoEstava(antes?: string | null, depois?: string | null): string | nul
 
 export interface Dose {
   id: string; horario: string;
-  acolhido: { id: string; nome: string };
+  acolhido: { id: string; nome: string; temFoto?: boolean };
   medicamento: string; dose: string; via: string;
   tipo: string; condicaoUso: string | null;
   estado: string; rotulo: string; pendente: boolean;
@@ -291,6 +292,7 @@ const VE_COMPRAS = ['enfermagem', 'equipe_tecnica', 'lider_diurno',
 export function Saude({ houseId, casaLabel, papel }: {
   houseId: string; casaLabel: string; papel: string;
 }) {
+  const comFoto = useComFoto(houseId);
   const [aba, setAba] = useState<
     'doses' | 'triagem' | 'estoque' | 'compras' | 'prescricoes' | 'resumo'>('doses');
   const hoje = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo',
@@ -516,10 +518,15 @@ export function Saude({ houseId, casaLabel, papel }: {
             </button>
           </div>
           <div className="eyebrow">Doses de hoje</div>
-          <ul className="doses">
+          <ul className="doses grade">
             {doses.map((d) => (
               <li key={d.id} className={d.pendente ? '' : 'feito'}>
                 <span className="hora">{d.tipo === 'quando_necessario' ? 's/n' : hhmm(d.horario)}</span>
+                {/* O rosto ao lado do remédio (fase 199): a criança certa é a
+                    primeira conferência da dose, e o nome sozinho engana entre
+                    duas Anas. A foto é a de identificação; sem ela, as iniciais. */}
+                <Avatar nome={d.acolhido.nome} de={{ acolhido: d.acolhido.id }}
+                        temFoto={d.acolhido.temFoto} tamanho={46} />
                 <div className="grow">
                   {/* Nome em cima, remédio embaixo: numa linha só, o separador
                       caía no fim da linha e a via ficava órfã. */}
@@ -565,7 +572,7 @@ export function Saude({ houseId, casaLabel, papel }: {
               </li>
             ))}
             {doses.length === 0 && (
-              <li><div className="mutetxt">Nenhuma dose na grade de hoje nesta casa.</div></li>
+              <li className="vazio"><div className="mutetxt">Nenhuma dose na grade de hoje nesta casa.</div></li>
             )}
           </ul>
           <p className="mutetxt" style={{ marginTop: 12 }}>
@@ -587,6 +594,8 @@ export function Saude({ houseId, casaLabel, papel }: {
             {triagem.map((t) => (
               <div className="card stack" key={t.id}>
                 <div className="row">
+                  <Avatar nome={t.acolhido} de={{ acolhido: t.acolhidoId }}
+                          temFoto={comFoto?.has(t.acolhidoId)} tamanho={40} />
                   <b className="ff grow">{t.acolhido} · {t.tipo}</b>
                   <span className={`pill ${t.status === 'complemento_solicitado' ? 'c-other' : 'c-warn'}`}>
                     {t.status === 'complemento_solicitado' ? 'Devolvida para complemento' : 'Aguardando triagem'}
@@ -849,6 +858,8 @@ export function Saude({ houseId, casaLabel, papel }: {
             {esquemas.map((e) => (
               <article className="card" key={e.id}>
                 <div className="row">
+                  <Avatar nome={e.acolhido.nome} de={{ acolhido: e.acolhido.id }}
+                          temFoto={comFoto?.has(e.acolhido.id)} tamanho={44} />
                   <div className="grow">
                     <b className="ff">{e.acolhido.nome}</b>
                     <div className="mutetxt linhadois">
@@ -1059,7 +1070,9 @@ export function Saude({ houseId, casaLabel, papel }: {
           <div className="eyebrow">Todos os acolhidos · {painel.total}</div>
           <div className="stack">
             {painel.acolhidos.map((k) => (
-              <div className="card row" key={k.acolhidoId}>
+              <div className="card row resumo-cartao" key={k.acolhidoId}>
+                <Avatar nome={k.nome} de={{ acolhido: k.acolhidoId }}
+                        temFoto={comFoto?.has(k.acolhidoId)} tamanho={44} />
                 <div className="grow">
                   <b className="ff">{k.nome}</b> <span className="mutetxt">{k.idade} anos</span>
                   {k.alergias && <div><span className="pill c-crit"><Icone nome="alerta" /> Alergia a {k.alergias}</span></div>}

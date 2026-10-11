@@ -171,7 +171,7 @@ e qual é o caminho certo.
 | `frontend/src/ditado.tsx` | **o ditado** (fase 195): o microfone junto de todo campo de texto longo (`DitadoNosCampos`, uma vez só no `App.tsx`), e o `iniciarDitado` longo que a Acolhe+AI e o rascunho usam. Pausa não corta; o primeiro uso mostra o aviso do áudio (no Chrome vai ao Google). Campo que não deve ter ditado ganha `data-sem-ditado` |
 | `frontend/ensaio-acolhe.mjs` | **a cobertura da Acolhe+AI, medida** (fase 195): cada cargo pede cada tela por texto e por voz (microfone falso), a explicação e cada formulário de criação da tela; e o relatório pela voz de ponta a ponta. `ENSAIO_CARGOS=portaria` mede só um. **Tela ou formulário novo entra na medição sozinho**: o ensaio lê o menu e as marcas `data-acolhe-abre` e `data-acolhe-entra`, as abas, o perfil (do Bruno e do Felipe), o dossiê e a internação (fase 196) |
 | `frontend/src/aviso-no-celular.tsx` | **o aviso no celular** (fase 189), na folha Minha conta: liga e desliga NESTE aparelho; o `desligarAoSair` é chamado pelo Sair. O que o aparelho mostra mora em `public/sw-avisos.js`, e o que o servidor manda, em `textoDoAviso` (`notifications/aviso-no-celular.service.ts`): **só o título neutro, nunca o aviso** |
-| `frontend/src/avatar.tsx` | **o rosto nas listas** (fase 198): a foto quando a lista diz `temFoto`, as iniciais quando não, num cache em memória (nunca no aparelho). As rotas vão escritas por extenso (`{ acolhido }` ou `{ contato }`): o contrato de rotas confere. No protótipo, os retratos são desenhos de `retratos.ts`, nunca rosto realista |
+| `frontend/src/avatar.tsx` | **o rosto nas listas** (fase 198): a foto quando a lista diz `temFoto`, as iniciais quando não, num cache em memória (nunca no aparelho). As rotas vão escritas por extenso (`{ acolhido }` ou `{ contato }`): o contrato de rotas confere. No protótipo, os retratos são desenhos de `retratos.ts`, nunca rosto realista. Lista que não diz `temFoto` usa o `useComFoto(casa)` (fase 199), que pergunta uma vez à lista da casa |
 | `frontend/src/cargos.tsx` | **a cor de cada cargo e o círculo de iniciais** (fase 151). Ela convive com DUAS outras: a cor de ESTADO (crítico/atenção — não se toca, e o cargo não usa a família dela) e a cor de AUTOR (`tomDoAutor`, qual colega escreveu — a coordenação escolhe, 0990). Três perguntas diferentes; o dia em que duas responderem à mesma, a cor deixa de informar |
 
 ## O que fazer agora
@@ -180,7 +180,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 11/10/2026, fase 198
+### Onde estamos — 11/10/2026, fase 199
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -242,8 +242,9 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 196 | **a Acolhe+AI dentro do perfil da criança e de toda subtela** (o *100 por cento* de 10/10): o guia acha a criança nomeada (`criancasNoPedido`) e abre o perfil e o formulário dele; passa por entrada (marca nova `data-acolhe-entra`: dossiê, acervo, cartão da internação e do plantão) e por aba, olha aba por aba e registro por registro quando o nome não casa, e desempata o botão repetido pela linha. **Os 36 formulários marcados, todos abertos pela Acolhe+AI pelo caminho inteiro**, nos nove cargos. E o **símbolo da Acolhe+AI é o do logo da Fundação** (`SimboloDaAcolhe`, pedido de 11/10) |
 | 197 | **as cores do Rio Grande do Sul** (pedido de 11/10): o oitavo tema, verde, vermelho e amarelo da bandeira na moldura, no fundo e na navegação, com o verde na marca; a primeira medida achou a pílula de marca com 4,47 de contraste (o verde escureceu para 5,37), e o ensaio de acessibilidade mede os oito |
 | 198 | **o visual repensado** (pedido de 11/10: *"olhe como um designer"*): retratos ilustrados fictícios no protótipo (`retratos.ts`), o rosto nas listas (`avatar.tsx`, `temFoto` na lista e nas visitas), o perfil com retrato, a coluna lateral mais leve e a linha do dia com trilho e o traço do agora; o `ensaio:celular` achou a pílula longa empurrando a tela a 360 px (consertado) |
+| 199 | **a Saúde e as Ocorrências no mesmo desenho** (pedido de 11/10): a dose em cartão com a hora e o **rosto da criança** (a grade diz `temFoto`), o rosto também na triagem, nos esquemas e no resumo (`useComFoto`, sem rota nova); a ocorrência com o dia em bloco e **o caminho das quatro etapas**, e **sem rosto, de propósito** (a lista não diz quem está envolvido) |
 
-**Medido no fim da 198:** 188 migrações, 133 tabelas, 138 suítes, 1235 testes, verdes nas
+**Medido no fim da 199:** 188 migrações, 133 tabelas, 138 suítes, 1236 testes, verdes nas
 DUAS condições de relógio; os dez ensaios de navegador verdes (o `ensaio:acolhe` com todas as telas de todos os cargos por texto e por voz e os 36 formulários do sistema abertos por ela, inclusive dentro do perfil, do dossiê, da internação, do acervo e do plantão, e o do celular com 306 telas e nenhum achado), com a portaria e o
 portão, o armário, a cozinha, os temas e a foto no percurso do `ensaio:uso`; **1256 telas (157 × oito
 temas) sem violação de WCAG 2.1 AA**; nenhuma
@@ -275,6 +276,8 @@ admissão no limite de vagas.
 contas, 201 telas e o esqueci contra o servidor de verdade, sem achado**; na API, a mesma recusa.
 **E na fase 198** (`SIM_CASAS=AI3 … 30`), com os rostos nas listas e a linha do tempo: **onze
 contas, 201 telas e o esqueci contra o servidor de verdade, sem achado**; na API, a mesma recusa.
+**E na fase 199** (`SIM_CASAS=AI3 … 30`), com o rosto nas doses e o caminho das ocorrências:
+**onze contas, 201 telas e o esqueci contra o servidor de verdade, sem achado**; na API, a mesma recusa.
 
 **As TRÊS cores do sistema, porque confundi-las é o pior que esta tela pode
 fazer** — está escrito por extenso em `frontend/src/cargos.tsx`:
@@ -291,13 +294,19 @@ as três cores abaixo. Cor nova passa pelo `ensaio:acessibilidade`, que mede os 
 
 ### A próxima etapa
 
+**FEITO — fase 199** (§2): a Saúde e as Ocorrências no desenho da 198. Na **Saúde**, cada dose é
+um cartão com a hora, o rosto da criança e o remédio, e o rosto chega à triagem, aos esquemas e
+ao resumo de saúde. Nas **Ocorrências**, o dia em bloco e o caminho das quatro etapas
+(registrada, etapa operacional, análise, fechada). **A lista das ocorrências continua sem
+rosto e sem nome, de propósito**: quem está envolvido aparece só nos detalhes. **Para
+crescer:** a Equipe e o Painel, que ainda são lista de texto.
+
 **FEITO — fase 198** (§2): o visual repensado. **Retratos ilustrados fictícios** no
 protótipo (`frontend/src/retratos.ts`, desenho e nunca rosto realista), o **rosto** na lista dos
 acolhidos, nos contatos e em quem visitou (`frontend/src/avatar.tsx`, com `temFoto` na lista e
 nas visitas do servidor), o **perfil com retrato grande**, a **coluna lateral** mais leve (o item
 aberto continua preenchido, decisão de 27/09) e a **linha do dia como linha do tempo** (trilho,
-ponto da categoria, traço do agora). **Para crescer:** o mesmo cuidado nas telas que ainda são
-lista de texto (Saúde, Ocorrências, Equipe, Painel).
+ponto da categoria, traço do agora). A Saúde e as Ocorrências vieram na 199.
 
 **FEITO — fase 197** (§2): o tema **Rio Grande do Sul**, o oitavo, com o verde, o vermelho e
 o amarelo da bandeira na faixa do topo, no fundo e nos azulejos da navegação, e o verde como

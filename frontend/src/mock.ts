@@ -9170,7 +9170,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     return DOSES.filter((d) => (!pid || d.personId === pid) && !estaInternado(d.personId))
       .map((d) => ({
         ...d,
-        acolhido: { id: d.personId, nome: kid(d.personId)?.nome ?? '—' },
+        acolhido: { id: d.personId, nome: kid(d.personId)?.nome ?? '—', temFoto: !!kid(d.personId)?.foto },
         offline: false,
         // Ao lado de uma dose, "Dipirona" sozinha se lê como o que dar.
         alergias: kid(d.personId)?.alerta?.tipo === 'alergia'

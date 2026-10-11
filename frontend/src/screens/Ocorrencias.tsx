@@ -123,6 +123,16 @@ const TOM_CATEGORIA: Record<string, string> = {
   emergencia_saude: 'c-crit', contencao: 'c-other',
   desorganizacao_relevante: 'c-info', dano_recusa_critica: 'c-info', outro: 'c-mute',
 };
+/**
+ * As etapas do fluxo, na ordem em que acontecem, para o desenho do caminho na
+ * lista (fase 199). Derivadas da situação do banco, sem estado novo.
+ */
+const CAMINHO = ['Registrada', 'Etapa operacional', 'Análise', 'Fechada'];
+function etapaAtual(status: string): number {
+  if (status === 'fechada') return 4;
+  if (status === 'encerrada_operacional' || status === 'aguardando_revisao_tecnica') return 2;
+  return 1; // aberta, em acompanhamento ou reaberta: a etapa operacional está em curso
+}
 /** Etapa operacional já encerrada? Depois dela é que vem a análise. */
 const OPERACIONAL_ENCERRADA = ['encerrada_operacional', 'aguardando_revisao_tecnica', 'fechada'];
 
@@ -318,8 +328,11 @@ export function Ocorrencias({ houseId, papel }: { houseId: string; papel: string
 
       {aba === 'ocorrencias' && (
        <>
-      <div className="card raise stack">
-        <h3 style={{ fontSize: 17, margin: 0 }}>Fato que exige acompanhamento formal</h3>
+      <div className="card raise stack oc-abrir">
+        <div className="row" style={{ gap: 12, flexWrap: 'nowrap' }}>
+          <span className="oc-selo" aria-hidden="true"><Icone nome="ocorrencias" /></span>
+          <h3 style={{ fontSize: 17, margin: 0 }}>Fato que exige acompanhamento formal</h3>
+        </div>
         <p className="mutetxt" style={{ margin: 0 }}>
           Alguns fatos não cabem na passagem: abrem fluxo próprio, avisam o líder, a
           equipe técnica e a coordenação na hora — e alguns não se encerram sem análise
@@ -342,25 +355,59 @@ export function Ocorrencias({ houseId, papel }: { houseId: string; papel: string
           const d = detalhes[o.id];
           const operacionalEncerrada = OPERACIONAL_ENCERRADA.includes(o.status);
           return (
-            <div className="card stack" key={o.id}>
-              <div className="row">
-                <span className={`pill ${TOM_CATEGORIA[o.codigoCategoria] ?? 'c-mute'}`}>
-                  {o.categoria}
-                </span>
-                <span className="grow" />
-                <span className={`pill ${s.tom}`}>{s.label}</span>
-              </div>
-              <div className="mutetxt">
-                {dia(o.quando)} às {hhmm(o.quando)} · aberta por {o.abertaPor} ·
-                {' '}{o.acolhidos} acolhido(s){o.anexos ? ` · ${o.anexos} anexo(s)` : ''}
-              </div>
-              <div className="row">
-                {o.revisaoTecnicaObrigatoria && <span className="pill c-med">Exige análise técnica</span>}
-                {o.nivelAcesso === 'restrito' && <span className="pill c-crit">Acesso restrito</span>}
-                {o.prazo && <span className="pill c-warn">Pendência até {dia(o.prazo)}</span>}
+            <div className={`card stack ocorrencia${expandida ? ' aberta' : ''}`} key={o.id}>
+              <div className="oc-cabeca">
+                {/* O dia e a hora em destaque, como na linha do dia (fase 199). */}
+                <div className="oc-quando">
+                  <b>{dia(o.quando)}</b>
+                  <span>{hhmm(o.quando)}</span>
+                </div>
+                <div className="grow stack" style={{ gap: 6 }}>
+                  <div className="row">
+                    <span className={`pill ${TOM_CATEGORIA[o.codigoCategoria] ?? 'c-mute'}`}>
+                      {o.categoria}
+                    </span>
+                    <span className="grow" />
+                    <span className={`pill ${s.tom}`}>{s.label}</span>
+                  </div>
+                  <div className="mutetxt">
+                    aberta por {o.abertaPor} ·
+                    {' '}{o.acolhidos} acolhido(s){o.anexos ? ` · ${o.anexos} anexo(s)` : ''}
+                  </div>
+                  {(o.revisaoTecnicaObrigatoria || o.nivelAcesso === 'restrito' || o.prazo) && (
+                    <div className="row">
+                      {o.revisaoTecnicaObrigatoria && <span className="pill c-med">Exige análise técnica</span>}
+                      {o.nivelAcesso === 'restrito' && <span className="pill c-crit">Acesso restrito</span>}
+                      {o.prazo && <span className="pill c-warn">Pendência até {dia(o.prazo)}</span>}
+                    </div>
+                  )}
+                </div>
               </div>
 
-              <button className="btn sm ghost" onClick={() => abrirDetalhe(o.id)}>
+              {/*
+                * O CAMINHO DA OCORRÊNCIA (fase 199). As quatro etapas do fluxo
+                * (§13.5), e onde esta está. É a mesma informação da pílula de
+                * situação, desenhada: quem abre a lista vê de longe o que ainda
+                * espera alguém. Cor da marca, nunca de estado; a palavra vai junto.
+                * Sem o nome da criança, como a linha de cima: a lista é lida por
+                * toda a casa, e quem está envolvido aparece só nos detalhes.
+                */}
+              <ol className="oc-caminho" aria-label="Etapas da ocorrência">
+                {CAMINHO.map((etapa, i) => {
+                  const atual = etapaAtual(o.status);
+                  const estado = i < atual ? 'feita' : i === atual ? 'atual' : '';
+                  return (
+                    <li key={etapa} className={estado}
+                        aria-current={estado === 'atual' ? 'step' : undefined}>
+                      <span className="marco" aria-hidden="true" />
+                      <span className="nome">{etapa}</span>
+                      {estado === 'feita' && <span className="so-leitor"> (feita)</span>}
+                    </li>
+                  );
+                })}
+              </ol>
+
+              <button className="btn sm ghost oc-detalhes" onClick={() => abrirDetalhe(o.id)}>
                 {expandida ? 'Fechar detalhes' : 'Abrir detalhes'}
               </button>
 
