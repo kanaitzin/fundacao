@@ -49,7 +49,7 @@
   196 também dentro do perfil da criança (*quero registrar a alergia do Bruno*), do dossiê, da
   internação aberta e do acervo: os 36 formulários do sistema. **Para o DPO:**
   o ditado usa o reconhecimento do navegador; no Chrome, o áudio vai ao Google.
-- **200 fases.** 138 suítes e 1236 testes, verdes em duas condições de relógio —
+- **201 fases.** 138 suítes e 1236 testes, verdes em duas condições de relógio —
   antes e depois da virada do UTC, que em Porto Alegre é às 21h.
 - **O aviso no celular** (fase 189, decidido em 06/10): quem liga na Minha conta
   recebe no celular todos os avisos do sino, mesmo com o sistema fechado. Na
@@ -429,6 +429,31 @@ de todas as telas e por isso são da Fundação:
 
 ✅ **Respondido em 05/10: as duas como recomendado.** A barra vai para o pé, sempre
 à vista, e o topo fica compacto; no monitor nada muda (fase 184).
+
+## 4.17 A Acolhe+AI como colega de plantão (fase 201, pedido de 11/10)
+
+Fiz o papel de um funcionário de cada setor e conversei com a Acolhe+AI do
+protótipo como se fala no plantão. Dos 59 pedidos, uns 20 eram bem atendidos, e
+os piores eram os mais sérios: *"o Kauã fugiu"* e *"a Lara tá com febre, o que eu
+faço"* recebiam *"não achei essa tela"*. Consertado: a urgência vem antes da tela,
+e o que fere as regras da Fundação (comparar crianças, rotular, WhatsApp,
+apagar, confirmar a dose de outra pessoa) recebe um não com o porquê.
+
+**Uma frase para a Fundação conferir**, porque é dita no pior momento do turno:
+
+- Fuga: *"Primeiro a criança: avise agora o líder do plantão e siga o protocolo
+  da casa para saída não autorizada. O registro nunca atrasa a proteção."*
+- Emergência de saúde: *"Se é emergência, ligue agora para o SAMU, no 192, chame
+  o líder do plantão e fique com a criança."*
+- Violência: *"Primeiro a proteção: afaste a criança do risco e avise agora o
+  líder do plantão e a coordenação. Se ela contar alguma coisa, acolha sem
+  perguntar detalhes e escreva com as palavras dela."*
+- Febre ou tombo: *"Não oriento sobre remédio nem diagnóstico: isso é da
+  Enfermagem. Avise a Enfermagem ou o líder do plantão."*
+
+Pergunta: **o protocolo da casa diz a mesma coisa?** Se a Casa 03 tem outro
+primeiro passo (o telefone da Enfermagem de sobreaviso, a coordenação antes do
+líder, o Conselho Tutelar na fuga), as frases mudam para dizer o da casa.
 
 ## 5. As decisões que são do Marcelo *(§10 — responda pelo número)*
 

@@ -26,7 +26,7 @@ import { join } from 'node:path';
 import { FORA_DO_CATALOGO, GUIA_DA_ACOLHE } from '../src/modules/assistente/guia';
 import { FERRAMENTAS, LEITURA_PROIBIDA, MEXEM_NA_TELA, rotaDeLeituraPermitida } from '../src/modules/assistente/ferramentas';
 import { calcular } from '../src/modules/assistente/calculo';
-import { criancasNoPedido, pedeAcao, pedeFormulario, responderPeloGuia } from '../../frontend/src/acolhe-guia';
+import { criancasNoPedido, ehPergunta, pedeAcao, pedeFormulario, responderPeloGuia } from '../../frontend/src/acolhe-guia';
 
 const SRC = join(__dirname, '..', 'src');
 const FRONT = join(__dirname, '..', '..', 'frontend', 'src');
@@ -285,7 +285,9 @@ describe('o modo guia atende como colega de plantão', () => {
   });
 
   it('as palavras do plantão levam à tela certa', () => {
-    expect(r('fechar a ata de hoje').ir).toBe('ata');
+    // Fechar a ATA grava: a assistente explica a ATA e deixa o link, e não ganha o Dia por causa do "hoje".
+    expect(r('fechar a ata de hoje').texto).toMatch(/\(tela:ata\)/);
+    expect(r('fechar a ata de hoje').ir).toBeUndefined();
     expect(r('tem pedido de substituição?').texto).toMatch(/Painel do plantão/);
     expect(r('quero mudar o horario do turno').ir).toBe('escala');
     expect(r('cadastrar educador novo').ir).toBe('equipe');
@@ -299,6 +301,12 @@ describe('o modo guia atende como colega de plantão', () => {
   it('"quem não pode comer amendoim" é pergunta, não pedido de mexer na tela', () => {
     expect(pedeAcao('quem não pode comer amendoim')).toBe(false);
     expect(r('quem não pode comer amendoim').texto).toMatch(/Cozinha/);
+  });
+
+  it('pergunta sobre a criança não é pedido de registrar', () => {
+    expect(ehPergunta('a lara é alergica a que')).toBe(true);
+    expect(ehPergunta('a gabi tomou a insulina das 22?')).toBe(true);
+    expect(ehPergunta('quero registrar a alergia da lara')).toBe(false);
   });
 
   it('"registrar que" vira rascunho com o relato, e não abre o perfil', () => {

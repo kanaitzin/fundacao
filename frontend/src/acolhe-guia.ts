@@ -69,7 +69,9 @@ const QUER_SUGERIR = /\b(sugest|sugiro|seria bom|melhoria|melhorar o sistema|pod
 const QUER_CRIAR = /\b(marcar|marca|criar|cria|cadastrar|cadastra|registrar|registra|escrever|escreve|novo|nova|preencher|preenche|pedir|pede|solicitar|solicita|incluir|inclui|acrescentar|acrescenta|propor|propoe|lancar|lanca|anotar|anota|me ajuda a)\b/;
 /* "Quero atividade urgente", "preciso da chegada de uma criança": quer fazer algo na tela, sem o verbo de criar.
    Leva à tela e abre o formulário só se o pedido nomear um botão dela (fase 195). */
-const QUER_ACAO = /\b(quero|preciso|vou|gostaria|tenho que|pode|chegou|fazer|faz|fechar|fecha|mudar|muda|trocar|troca|alterar|altera|esqueci)\b/;
+/* "Fechar" e "assinar" ficam de fora de propósito: fechar a ATA grava, e quem
+   aperta é a pessoa; a assistente só leva à tela (fase 200). */
+const QUER_ACAO = /\b(quero|preciso|vou|gostaria|tenho que|pode|chegou|fazer|faz|mudar|muda|trocar|troca|alterar|altera|esqueci)\b/;
 /* "Quem não pode comer amendoim" é pergunta, não pedido de mexer na tela: a
    licença era pedida à toa (achado fazendo o papel da Cozinha, fase 200). */
 const acao = (t: string) => QUER_ACAO.test(t.replace(/\bnao pode\b/g, ' '));
@@ -377,3 +379,11 @@ export function pedeAcao(texto: string): boolean {
   const t = sem(texto);
   return QUER_CRIAR.test(t) || acao(t);
 }
+
+/** É pergunta sobre a criança ("a Lara é alérgica a quê?"), e não pedido de registrar: abre o perfil, sem formulário. */
+export function ehPergunta(texto: string): boolean {
+  const t = sem(texto).trim();
+  return /\?/.test(t) || /^(o que|a que|qual|quais|quem|quando|onde|como|tem|sera)\b/.test(t)
+    || /\b(e|eh)\s+alergic/.test(t) || /\b(a|de) que\s*$/.test(t);
+}
+

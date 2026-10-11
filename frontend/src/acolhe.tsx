@@ -4,7 +4,7 @@ import { Icone, SimboloDaAcolhe } from './icones';
 import { EscolherAnexo, Escolhido, base64De, oferecerFotosDaAcolhe } from './anexos';
 import { MEXEM_NA_TELA, rotaDeLeituraPermitida } from '../../backend/src/modules/assistente/ferramentas';
 import { calcular, numeroEmPortugues } from '../../backend/src/modules/assistente/calculo';
-import { CriancaDaCasa, DESTINOS_DE_TEXTO, criancasNoPedido, pedeAcao, pedeFormulario, responderPeloGuia, TelaDoGuia } from './acolhe-guia';
+import { CriancaDaCasa, DESTINOS_DE_TEXTO, criancasNoPedido, ehPergunta, pedeAcao, pedeFormulario, responderPeloGuia, TelaDoGuia } from './acolhe-guia';
 import { apertarBotao, apertarEste, botoesDaTela, camposDaTela, preencherCampo, textoDaTela } from './acolhe-tela';
 import { Ditado, aceitarAvisoDaVoz, avisoDaVozAceito, iniciarDitado, juntarAoTexto, reconhecimentoDeVoz } from './ditado';
 
@@ -403,6 +403,12 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
       await new Promise((ok) => setTimeout(ok, 150));
     }
     const ignorar = sem(c.nome).split(/[^a-z0-9]+/);
+    /* Pergunta não abre formulário: "a Lara é alérgica a quê" abria o de cadastrar
+       alergia (achado fazendo o papel da Enfermagem, fase 200). */
+    if (ehPergunta(t) && !pedeFormulario(t)) {
+      dizer(`Abrindo o perfil de ${c.nome}. No modo guia eu não leio os dados dela; o que está registrado aparece no perfil, cada coisa na sua parte.`);
+      return true;
+    }
     const abriu = await abrirOFormulario(t, true, { ignorar, entrar: true });
     if (abriu) { dizer(`Abri o perfil de ${c.nome} e o que você pediu. Se for um formulário, preencha e salve quando estiver certo.`); return true; }
     /* "Ver a internação da Alice": o pedido nomeou outra tela e não o perfil. */
@@ -486,7 +492,7 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
       }
       if (!alvo) {
         if (nivel > 0) return true;
-        if (!soSeCombinar) dizer('Esta tela não tem um formulário que eu saiba abrir. O botão para começar está no alto da tela.');
+        if (!soSeCombinar) dizer('Não achei aqui um botão que só abra um formulário com esse nome. Quando a ação é num registro da lista, como a saída de uma visita, o botão fica no próprio cartão e grava na hora, por isso quem aperta é você.');
         return false;
       }
       const r = await apertarAqui(alvo);
