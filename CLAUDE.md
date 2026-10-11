@@ -180,7 +180,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 11/10/2026, fase 200
+### Onde estamos — 11/10/2026, fase 201
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -244,8 +244,9 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 198 | **o visual repensado** (pedido de 11/10: *"olhe como um designer"*): retratos ilustrados fictícios no protótipo (`retratos.ts`), o rosto nas listas (`avatar.tsx`, `temFoto` na lista e nas visitas), o perfil com retrato, a coluna lateral mais leve e a linha do dia com trilho e o traço do agora; o `ensaio:celular` achou a pílula longa empurrando a tela a 360 px (consertado) |
 | 199 | **a Saúde e as Ocorrências no mesmo desenho** (pedido de 11/10): a dose em cartão com a hora e o **rosto da criança** (a grade diz `temFoto`), o rosto também na triagem, nos esquemas e no resumo (`useComFoto`, sem rota nova); a ocorrência com o dia em bloco e **o caminho das quatro etapas**, e **sem rosto, de propósito** (a lista não diz quem está envolvido) |
 | 200 | **a Equipe e o Painel das unidades no mesmo desenho** (pedido de 11/10): a Equipe em cartões de pessoa com o círculo do cargo (a tabela **cortava os botões na borda** e punha o *você* **por cima do e-mail**); o Painel em grade de casas, na ordem do código, com a ocupação contra o próprio limite e as contas em blocos |
+| 201 | **a Acolhe+AI como colega de plantão** (pedido de 11/10): fazendo o papel de cada setor, 59 pedidos e uns 20 bem atendidos; **"o Kauã fugiu" e "a Lara tá com febre" recebiam "não achei essa tela"**. Agora o cuidado vem antes da tela (`primeiroOCuidado`), os limites da Fundação vêm com o porquê, e quatro defeitos de lógica do guia consertados; a frase de urgência é para a Fundação conferir (PARA-A-REUNIAO §4.17) |
 
-**Medido no fim da 200:** 188 migrações, 133 tabelas, 138 suítes, 1236 testes, verdes nas
+**Medido no fim da 201:** 188 migrações, 133 tabelas, 138 suítes, 1246 testes, verdes nas
 DUAS condições de relógio; os dez ensaios de navegador verdes (o `ensaio:acolhe` com todas as telas de todos os cargos por texto e por voz e os 36 formulários do sistema abertos por ela, inclusive dentro do perfil, do dossiê, da internação, do acervo e do plantão, e o do celular com 306 telas e nenhum achado), com a portaria e o
 portão, o armário, a cozinha, os temas e a foto no percurso do `ensaio:uso`; **1256 telas (157 × oito
 temas) sem violação de WCAG 2.1 AA**; nenhuma
@@ -281,6 +282,8 @@ contas, 201 telas e o esqueci contra o servidor de verdade, sem achado**; na API
 **onze contas, 201 telas e o esqueci contra o servidor de verdade, sem achado**; na API, a mesma recusa.
 **E na fase 200** (`SIM_CASAS=AI3 … 30`), com a Equipe em cartões e o Painel em grade: **onze
 contas, 201 telas e o esqueci contra o servidor de verdade, sem achado**; na API, a mesma recusa.
+**E na fase 201** (`SIM_CASAS=AI3 … 30`), com a Acolhe+AI nova no ar: **onze contas, 201 telas e
+o esqueci contra o servidor de verdade, sem achado**; na API, a mesma recusa.
 
 **As TRÊS cores do sistema, porque confundi-las é o pior que esta tela pode
 fazer** — está escrito por extenso em `frontend/src/cargos.tsx`:
@@ -296,6 +299,16 @@ as três cores abaixo. Cor nova passa pelo `ensaio:acessibilidade`, que mede os 
 | **cargo** | *de que setor é esta pessoa?* | círculo cheio com iniciais |
 
 ### A próxima etapa
+
+**FEITO — fase 201** (§2, PARA-A-REUNIAO §4.17): a Acolhe+AI como colega de plantão. Fiz o
+papel de cada setor, com as frases do plantão, e o modo guia falhava justamente na urgência e
+nos limites da Fundação. Agora a proteção vem antes da tela, o não vem com o porquê, e as
+conversas viraram teste (`a-acolhe-conhece-o-sistema.spec.ts`, *o modo guia atende como colega
+de plantão*). **Depende da Fundação:** conferir a frase de urgência contra o protocolo da Casa
+03. **Não medido daqui:** o modelo de verdade nessas mesmas frases (as regras foram para o
+`assistente/guia.ts`). **Para crescer:** no modo guia ela não lê dado nenhum, então *"tem dose
+atrasada?"* e *"a Gabi tomou a insulina?"* levam à tela certa sem responder; com a chave, quem
+responde é o modelo.
 
 **FEITO — fase 200** (§2): a Equipe e o Painel das unidades no desenho da 198. A **Equipe**
 virou cartões de pessoa com o círculo do cargo, e a foto do antes achou dois defeitos da
@@ -694,6 +707,11 @@ novo.
   formulários de dentro de um registro ficavam fora da conta; medidos, nenhum era alcançável
   pelo guia, e o *Registrar compra* da Saúde, atrás de uma aba, também não. **E comentário que
   cita a marca pelo nome conta como marca**: o teste que lê o código não distingue, e não deve.
+- **Cobertura não é ajuda** (201). O `ensaio:acolhe` dizia que a Acolhe+AI alcançava todas as
+  telas e formulários, e alcançava; fazendo o papel da educadora com as frases do plantão, *"o
+  Kauã fugiu"* recebia *"não achei essa tela"*. A medição pedia pelo nome da tela, e ninguém no
+  plantão fala assim. **Assistente se testa com a frase de quem está com pressa**, e o primeiro
+  pedido a medir é o do pior momento do turno.
 - **Frase de tela que envelhece é frase que mente**, e a cobrança do ensaio que a
   guarda tem de ser reescrita junto. A ressalva do painel sobre nota escolar já foi
   reescrita três vezes. **Isto inclui este arquivo.**
