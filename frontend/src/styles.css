@@ -2042,3 +2042,6 @@ div.acoes{ display:flex; flex-wrap:wrap; gap:8px; align-items:center }
 .lista.contas li.zero > b{ color:var(--muted) }
 .unidade .lista.contas{ grid-template-columns:repeat(3, minmax(0, 1fr)) }
 @media (max-width:420px){ .unidade .lista.contas{ grid-template-columns:1fr 1fr } }
+/* A cor da linha é botão: no cartão ela ficava com 23 px de altura, abaixo dos
+   24 px que o dedo precisa. Achado pelo `ensaio:celular` na própria fase 200. */
+.membro-dados button.pill{ min-height:32px; padding:4px 12px; display:inline-flex; align-items:center }

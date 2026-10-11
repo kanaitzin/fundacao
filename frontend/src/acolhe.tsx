@@ -352,7 +352,7 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
        sugestão e a conta continuam vindo antes: "relatório: a Alice voltou da
        escola" é texto para conferir, e não ida ao perfil. */
     let daCrianca: CriancaDaCasa | undefined;
-    if (!r.rascunho && !r.sugestao && !r.conta) {
+    if (!r.rascunho && !r.sugestao && !r.conta && !r.cuidado) {
       const achadas = criancasNoPedido(t, await criancasDaCasa());
       if (achadas.length > 1) {
         dizer(`Há ${achadas.length} crianças com esse nome nesta casa: ${achadas.map((c) => `[${c.nome}](crianca:${c.id})`).join('  ')}. Qual delas?`);
@@ -363,7 +363,7 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
     }
     /* Pedido sem nome de tela ("quero registrar um complemento", com o plantão
        aberto): vale para a tela em que a pessoa está, se ela tem esse formulário. */
-    if (!r.ir && !r.rascunho && !r.sugestao && !r.conta && !daCrianca && pedeAcao(t)) {
+    if (!r.ir && !r.rascunho && !r.sugestao && !r.conta && !r.cuidado && !daCrianca && pedeAcao(t)) {
       const aqui = telas.find((x) => x.chave === telaAtual);
       if (await abrirOFormulario(t, true, { tela: aqui?.titulo, chave: telaAtual })) {
         dizer('Abri o formulário aqui nesta tela. Preencha e salve quando estiver certo.');

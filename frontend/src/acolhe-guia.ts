@@ -22,6 +22,8 @@ export type RespostaDoGuia = {
   abrirFormulario?: boolean;
   /** Um rascunho com o que a pessoa falou ou escreveu, para conferir antes de guardar (fase 195). */
   rascunho?: { titulo: string; texto: string; tela?: string };
+  /** Resposta de cuidado ou de limite (fase 200): a tela só responde, não abre perfil nem formulário. */
+  cuidado?: boolean;
 };
 
 /** As telas onde um texto escrito pela equipe costuma ficar, na ordem em que a casa mais usa. */
@@ -31,27 +33,28 @@ const sem = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCas
 
 /** As palavras que a equipe usa para cada tela, além do nome dela. */
 const PALAVRAS: Record<string, string[]> = {
-  dia: ['dia', 'hoje', 'linha do dia', 'o que tem hoje'],
+  dia: ['dia', 'hoje', 'linha do dia', 'o que tem hoje', 'o que mudou', 'ultimo plantao', 'resumo do dia'],
   chamada: ['chamada', 'presenca', 'quem esta na casa', 'quem esta fora'],
   acolhidos: ['acolhido', 'crianca', 'perfil', 'dossie', 'documento da crianca', 'adolescente'],
-  passagem: ['passagem', 'assinar a passagem', 'passar o plantao'],
-  ata: ['ata', 'livro', 'linha da ata', 'registro do turno'],
-  saude: ['saude', 'remedio', 'dose', 'medicac', 'enfermagem', 'receita', 'vacina'],
+  passagem: ['passagem', 'assinar a passagem', 'passar o plantao', 'assinou o plantao', 'assinar o plantao'],
+  ata: ['ata', 'livro', 'linha da ata', 'registro do turno', 'fechar a ata', 'assinou a ata'],
+  saude: ['saude', 'remedio', 'dose', 'medicac', 'enfermagem', 'receita', 'vacina', 'estoque', 'armario', 'triagem', 'evolucao de saude', 'insulina'],
   internacao: ['internacao', 'hospital', 'internad'],
   ocorrencias: ['ocorrencia', 'briga', 'fuga', 'evasao', 'conflito', 'agressao', 'contencao'],
-  cozinha: ['cozinha', 'lanche', 'cesta', 'refeic', 'comida', 'restric', 'alergia'],
-  portaria: ['portaria', 'visita', 'visitante', 'portao'],
-  escala: ['escala', 'folga', 'turno de quem', 'quem trabalha'],
+  cozinha: ['cozinha', 'lanche', 'cesta', 'refeic', 'comida', 'restric', 'alergia', 'amendoim', 'nao pode comer', 'dieta'],
+  portaria: ['portaria', 'visita', 'visitante', 'portao', 'chegou a tia', 'chegou o tio', 'chegou a avo', 'chegou o avo', 'chegou a mae', 'chegou o pai', 'veio visitar'],
+  escala: ['escala', 'folga', 'turno de quem', 'quem trabalha', 'horario do turno', 'horario dos turnos'],
   agenda: ['agenda', 'consulta', 'compromisso', 'audiencia', 'marcado'],
   rotina: ['rotina', 'horario da casa', 'molde do dia'],
-  plantao: ['painel do plantao', 'quem esta em que'],
-  equipe: ['equipe', 'funcionario', 'convite', 'colega', 'conta de'],
+  plantao: ['painel do plantao', 'quem esta em que', 'substituic', 'de plantao comigo', 'quem esta de plantao', 'quem ta de plantao'],
+  equipe: ['equipe', 'funcionario', 'convite', 'colega', 'conta de', 'educador novo', 'educadora nova', 'cadastrar educador', 'cadastrar educadora', 'profissional novo'],
   alinhamentos: ['combinado', 'reuniao', 'pauta', 'regra de convivencia', 'estatuto'],
   acompanhamentos: ['acompanhamento', 'relatorio mensal', 'relatorio semanal', 'pia'],
   periodo: ['periodo', 'relatorio da casa', 'relatorio do periodo'],
   trabalho: ['trabalho da equipe'],
   unidades: ['todas as unidades', 'dia em ordem', 'dia das unidades'],
-  metricas: ['painel', 'numeros', 'oito casas'],
+  painel: ['painel das unidades', 'limite de vagas', 'vagas', 'ocupacao', 'lotacao'],
+  metricas: ['painel', 'numeros', 'oito casas', 'como estao as casas', 'gasto', 'gastamos'],
   avisos: ['aviso', 'sino', 'notificac', 'alerta'],
   sugestoes: ['sugestoes da equipe', 'ver sugestoes'],
   implantacao: ['implantacao', 'backup', 'servidor'],
@@ -66,7 +69,10 @@ const QUER_SUGERIR = /\b(sugest|sugiro|seria bom|melhoria|melhorar o sistema|pod
 const QUER_CRIAR = /\b(marcar|marca|criar|cria|cadastrar|cadastra|registrar|registra|escrever|escreve|novo|nova|preencher|preenche|pedir|pede|solicitar|solicita|incluir|inclui|acrescentar|acrescenta|propor|propoe|lancar|lanca|anotar|anota|me ajuda a)\b/;
 /* "Quero atividade urgente", "preciso da chegada de uma criança": quer fazer algo na tela, sem o verbo de criar.
    Leva à tela e abre o formulário só se o pedido nomear um botão dela (fase 195). */
-const QUER_ACAO = /\b(quero|preciso|vou|gostaria|tenho que|pode|chegou)\b/;
+const QUER_ACAO = /\b(quero|preciso|vou|gostaria|tenho que|pode|chegou|fazer|faz|fechar|fecha|mudar|muda|trocar|troca|alterar|altera|esqueci)\b/;
+/* "Quem não pode comer amendoim" é pergunta, não pedido de mexer na tela: a
+   licença era pedida à toa (achado fazendo o papel da Cozinha, fase 200). */
+const acao = (t: string) => QUER_ACAO.test(t.replace(/\bnao pode\b/g, ' '));
 const QUER_SABER = /\b(o que voce faz|quem e voce|ajuda|como funciona|o que da para fazer|o que posso)\b/;
 
 const comecaPalavra = (t: string, termo: string) => {
@@ -78,20 +84,38 @@ const comecaPalavra = (t: string, termo: string) => {
   return false;
 };
 
+/*
+ * Palavras que estão em quase toda frase do plantão ("hoje", "dia") pesam pouco:
+ * em "fechar a ata de hoje", a ATA tem de ganhar do Dia, e ganhava o mais
+ * comprido (achado fazendo o papel do Líder Diurno, fase 200).
+ */
+const GENERICAS = new Set(['hoje', 'dia', 'painel', 'numeros']);
+/*
+ * Quem não tem a tela da Saúde (o educador) acha a dose na linha do Dia: estas
+ * palavras só valem quando nenhuma tela do pedido casou.
+ */
+const SECUNDARIAS: Record<string, string[]> = {
+  dia: ['dose', 'remedio', 'medicac', 'insulina'],
+};
+
 function achar(texto: string, telas: TelaDoGuia[]): TelaDoGuia | null {
   const t = sem(texto);
-  let melhor: { tela: TelaDoGuia; peso: number } | null = null;
-  for (const tela of telas) {
-    const termos = [sem(tela.titulo), ...(PALAVRAS[tela.chave] ?? [])];
-    for (const termo of termos) {
-      /* No começo de uma palavra (fase 195): "ata" não pode casar dentro de
-         "data" nem "batata", senão todo relatório ditado ia para a ATA. */
-      if (termo && comecaPalavra(t, termo) && (!melhor || termo.length > melhor.peso)) {
-        melhor = { tela, peso: termo.length };
+  const procurar = (dic: Record<string, string[]>, comTitulo: boolean) => {
+    let melhor: { tela: TelaDoGuia; peso: number } | null = null;
+    for (const tela of telas) {
+      const termos = [...(comTitulo ? [sem(tela.titulo)] : []), ...(dic[tela.chave] ?? [])];
+      for (const termo of termos) {
+        /* No começo de uma palavra (fase 195): "ata" não pode casar dentro de
+           "data" nem "batata", senão todo relatório ditado ia para a ATA. */
+        const peso = GENERICAS.has(termo) ? 1 : termo.length;
+        if (termo && comecaPalavra(t, termo) && (!melhor || peso > melhor.peso)) {
+          melhor = { tela, peso };
+        }
       }
     }
-  }
-  return melhor?.tela ?? null;
+    return melhor?.tela ?? null;
+  };
+  return procurar(PALAVRAS, true) ?? procurar(SECUNDARIAS, false);
 }
 
 /**
@@ -118,6 +142,9 @@ export function contaDoTexto(texto: string): string | null {
  */
 const PEDIDO_DE_RELATORIO = /^\s*(relat[oó]rio|rascunho|anota[cç][aã]o|anotar|registro|registrar|escrever)\b[^:]{0,80}:/i;
 const QUER_RELATORIO = /\b(fazer|faz|escrever|escreve|montar|monta|criar|cria|ditar|dita)\s+(um|o|uma|a)?\s*(relat[oó]rio|rascunho|registro|relato)\b/;
+/* "Preciso registrar que o Bruno caiu no pátio": o que vem depois do "que" é o
+   relato, e o lugar dele é o rascunho, não o perfil (fase 200). */
+const REGISTRAR_QUE = /\b(registrar|registra|anotar|anota|escrever|escreve|lancar|lanca|colocar|coloca|por)\s+(na ata\s+|no livro\s+)?que\s+/;
 
 function arrumar(t: string): string {
   const x = t.trim().replace(/\s+/g, ' ');
@@ -128,16 +155,117 @@ function arrumar(t: string): string {
 
 function rascunhoDoPedido(texto: string, telas: TelaDoGuia[], aceitaLongo: boolean): RespostaDoGuia['rascunho'] | null {
   const t = sem(texto);
-  const explicito = PEDIDO_DE_RELATORIO.test(texto) || QUER_RELATORIO.test(t);
+  const que = REGISTRAR_QUE.exec(t);
+  const explicito = PEDIDO_DE_RELATORIO.test(texto) || QUER_RELATORIO.test(t) || !!que;
   const ditadoLongo = aceitaLongo && texto.trim().length > 160 && !texto.includes('?');
   if (!explicito && !ditadoLongo) return null;
   const doisPontos = texto.indexOf(':');
-  const corpo = explicito && doisPontos >= 0 && doisPontos < 120 ? texto.slice(doisPontos + 1) : texto;
+  /* `sem()` não muda o comprimento do texto (só tira o acento), então o fim do
+     "registrar que" em `t` é o mesmo lugar no texto original. */
+  const corpo = que ? texto.slice(que.index + que[0].length)
+    : explicito && doisPontos >= 0 && doisPontos < 120 ? texto.slice(doisPontos + 1) : texto;
   if (corpo.trim().length < 8) return null;
   const destinos = telas.filter((x) => DESTINOS_DE_TEXTO.includes(x.chave));
   const tela = achar(texto, destinos)?.chave;
   const titulo = tela ? `para ${destinos.find((d) => d.chave === tela)?.titulo ?? tela}` : 'relatório';
   return { titulo, texto: arrumar(corpo), tela };
+}
+
+
+/*
+ * O CUIDADO VEM ANTES DA TELA (fase 200; pedido de 11/10: "seja um funcionário
+ * de cada setor testando a Acolhe").
+ *
+ * Fazendo o papel da educadora de plantão, "o Kauã fugiu" e "a Lara tá com
+ * febre, o que eu faço" recebiam "Não achei essa tela": o pior momento do turno
+ * tinha a resposta mais inútil. E os pedidos que ferem as regras da Fundação
+ * (comparar crianças, rotular, mandar por WhatsApp, apagar, confirmar a dose de
+ * outra pessoa) eram tratados como busca de tela, sem dizer não nem por quê.
+ *
+ * Aqui a assistente diz primeiro o que protege a criança, e depois o caminho no
+ * sistema, com a frase da própria tela de Ocorrências: o registro nunca atrasa a
+ * proteção. Ela nunca decide diagnóstico, remédio nem risco: diz quem decide.
+ * Não navega sozinha numa urgência; deixa o caminho como link.
+ */
+const URGENCIA_FUGA = /\b(fugiu|fugir|fugindo|fuga|fugiram|evadiu|evasao|sumiu|sumiram|desapareceu|nao voltou|nao voltaram|pulou o muro|saiu sem (avisar|autorizacao|permissao))\b/;
+const URGENCIA_SAUDE = /\b(convuls\w*|desmai\w*|nao (esta |ta )?respirando|engasg\w*|sangrando|muito sangue|engoliu|intoxic\w*|overdose|queimou|queimadura|bateu a cabeca|inconsciente|desacordad\w*|se cortou|se cortando|automutil\w*|se matar|suicid\w*|quer morrer)\b/;
+const VIOLENCIA = /\b(abus\w*|violencia|violentad\w*|estupr\w*|bateu nel[ae]|bateram nel[ae]|apanhou|apanhando|assedi\w*|tocou nel[ae]|mexeu com el[ae])\b/;
+/* "O sistema caiu" não é tombo. */
+const CAIU_SEM_SER_GENTE = /\b(sistema|internet|rede|wifi|luz|energia|servidor|pagina|tela|sinal|ligacao)\s+(\w+\s+)?caiu\b/;
+const SAUDE_COMUM = /\b(febre|dor de|com dor|vomit\w*|diarreia|tosse|gripad\w*|machuc\w*|caiu|tombo|ferid\w*|piolho|coceira|mancha|passando mal|nao quer comer|nao comeu)\b/;
+const COMPARAR = /\b(compar\w*|ranking|ranque\w*|classifica\w*|top \d)\b|\b(qual|quais|quem|que)\b.{0,40}\b(crianca|criancas|acolhid\w*|menin\w*|educador\w*|colega\w*|funcionari\w*|casa|casas|unidade\w*|equipe\w*)\b.{0,40}\b(mais|menos|pior|piores|melhor|melhores)\b/;
+const ROTULO = /\b(agressiv\w*|problematic\w*|mentiros\w*|manipulador\w*|perigos\w*|preguicos\w*|sem jeito|mal educad\w*|dificil de lidar)\b/;
+const CONTAR_PESSOA = /\b(quantas faltas|faltando muito|falta muito|registra menos|registra mais|produtiv\w*|desempenho)\b/;
+const FORA_DO_SISTEMA = /\b(whats\w*|zap|zapzap|telegram|instagram|facebook|grupo de mensagem|grupo da casa)\b/;
+const APAGAR = /\b(apaga|apagar|apague|deleta|deletar|exclui|excluir|remove|remover|desfaz|desfazer|sumir com)\b/;
+const NO_LUGAR_DE = /\b(confirm\w*|marca\w*|dar baixa|da baixa|assina\w*)\b.{0,60}\b(por mim|pra mim|para mim|no meu lugar|por ela|por ele|pela colega|pelo colega)\b/;
+const OBRIGADO = /^(muito )?(obrigad\w*|brigad\w*|valeu|vlw|obg|tmj)\b/;
+const OI = /^(oi+|ola|bom dia|boa tarde|boa noite|e ai|opa)\b[\s!.,]*(acolhe\w*)?[\s!.,]*$/;
+const SENHA = /\bsenha\b/;
+
+function link(telas: TelaDoGuia[], chave: string, rotulo: string): string {
+  return telas.some((x) => x.chave === chave) ? ` [${rotulo}](tela:${chave})` : '';
+}
+
+function primeiroOCuidado(t: string, telas: TelaDoGuia[]): string | null {
+  const ocorrencia = link(telas, 'ocorrencias', 'Registrar ocorrência');
+  const depois = ocorrencia
+    ? ` Quando der, registre a ocorrência com o mínimo e complete depois:${ocorrencia}`
+    : ' Quando der, o líder do plantão registra a ocorrência.';
+  if (URGENCIA_SAUDE.test(t)) {
+    return 'Se é emergência, ligue agora para o SAMU, no 192, chame o líder do plantão e fique com a criança. '
+      + `O registro nunca atrasa o atendimento.${depois}`;
+  }
+  if (VIOLENCIA.test(t)) {
+    return 'Primeiro a proteção: afaste a criança do risco e avise agora o líder do plantão e a coordenação. '
+      + 'Se ela contar alguma coisa, acolha sem perguntar detalhes e escreva com as palavras dela. '
+      + `O caminho é a ocorrência de violência ou suspeita, que tem acesso restrito.${depois}`;
+  }
+  if (URGENCIA_FUGA.test(t)) {
+    return 'Primeiro a criança: avise agora o líder do plantão e siga o protocolo da casa para saída não autorizada. '
+      + `O registro nunca atrasa a proteção.${depois}`;
+  }
+  if (NO_LUGAR_DE.test(t)) {
+    return 'Isso não dá: cada dose e cada assinatura são de quem fez, na conta de quem fez. Ninguém confirma pelo outro, nem eu. '
+      + 'Se a colega deu o remédio e não confirmou, peça a ela; se não for possível, escreva na ATA o que aconteceu.'
+      + link(telas, 'ata', 'Abrir a ATA');
+  }
+  if (FORA_DO_SISTEMA.test(t)) {
+    return 'Por mensagem fora do sistema não: é regra da Fundação que nada sobre a criança vá por WhatsApp ou grupo. '
+      + 'O contato com a família passa pela equipe técnica, e o que aconteceu fica registrado aqui, com o seu nome.';
+  }
+  if (COMPARAR.test(t)) {
+    return 'Isso eu não faço: o sistema não compara nem ordena crianças, pessoas ou casas, por regra da Fundação. '
+      + 'Cada uma tem a sua história e o seu contexto, e número lado a lado vira julgamento. '
+      + 'Os números de cada casa existem, cada um olhado por si.'
+      + (link(telas, 'painel', 'Painel das unidades') || link(telas, 'periodo', 'O período da casa'));
+  }
+  if (CONTAR_PESSOA.test(t)) {
+    return 'O sistema não conta nem compara pessoas da equipe, de propósito. Falta e combinado de trabalho se conversa '
+      + 'com a pessoa e com a coordenação. A escala mostra quem estava em cada turno.' + link(telas, 'escala', 'Abrir a escala');
+  }
+  if (ROTULO.test(t)) {
+    return 'Não faço avaliação sobre a criança: o sistema não dá rótulo nem nota de comportamento. '
+      + 'O que ajuda é o fato, o que aconteceu, quando e quem viu, e quem lê e decide é a equipe técnica.'
+      + link(telas, 'acolhidos', 'Abrir os Acolhidos');
+  }
+  if (APAGAR.test(t)) {
+    return 'Aqui nada se apaga, nem o que saiu errado: é o que garante a história da criança e de quem escreveu. '
+      + 'O caminho é escrever a correção ou o complemento, com o seu nome e a hora, ao lado do que estava.'
+      + (achar(t, telas) ? link(telas, achar(t, telas)!.chave, `Abrir ${achar(t, telas)!.titulo}`) : '');
+  }
+  if (SAUDE_COMUM.test(t) && !CAIU_SEM_SER_GENTE.test(t)) {
+    return 'Não oriento sobre remédio nem diagnóstico: isso é da Enfermagem. Avise a Enfermagem ou o líder do plantão. '
+      + 'Remédio de se necessário só com a condição escrita na prescrição, e quem dá é quem confirma. '
+      + 'Se piorar ou parecer urgência, ligue para o SAMU, no 192.'
+      + (link(telas, 'saude', 'Abrir a Saúde') || link(telas, 'dia', 'Ver as doses no Dia'));
+  }
+  if (OBRIGADO.test(t)) return 'De nada! Estou por aqui quando precisar.';
+  if (SENHA.test(t) && !/\b(cofre|acesso|credencia)/.test(t)) {
+    return 'A sua senha se troca no botão da senha, no alto da tela; no celular, ele fica em Minha conta. '
+      + 'Esqueceu a senha? Na tela de entrada há o Esqueci minha senha, e o link chega no seu e-mail.';
+  }
+  return null;
 }
 
 export function responderPeloGuia(texto: string, telas: TelaDoGuia[], primeira: boolean): RespostaDoGuia {
@@ -154,6 +282,15 @@ export function responderPeloGuia(texto: string, telas: TelaDoGuia[], primeira: 
      pedido vira rascunho só depois de não ser ida a uma tela nem sugestão. */
   const pedido = rascunhoDoPedido(texto, telas, false);
   if (pedido) return comRascunho(pedido);
+
+  /* O cuidado vem antes de qualquer tela (fase 200). Num ditado longo, o
+     relato vira rascunho logo abaixo: "fugiu" no meio de um relatório é fato
+     contado, não urgência acontecendo. */
+  if (texto.trim().length <= 160) {
+    const cuidado = primeiroOCuidado(t, telas);
+    if (cuidado) return { texto: `${aviso}${cuidado}`, cuidado: true };
+    if (OI.test(t) && !primeira) return { texto: 'Oi! Diga o que precisa: levo você a uma tela, abro um formulário ou monto um rascunho com o que você contar.' };
+  }
 
   /* Ir a uma tela vem antes da sugestão: "me leva para as Sugestões de melhoria"
      é ir, e não sugerir (a palavra "melhoria" enganava o guia; fase 195). */
@@ -183,14 +320,15 @@ export function responderPeloGuia(texto: string, telas: TelaDoGuia[], primeira: 
     const link = `[Abrir ${tela.titulo}](tela:${tela.chave})`;
     const explica = tela.frase ? `${tela.titulo}: ${tela.frase}` : tela.titulo;
     if (QUER_IR.test(t)) return { texto: `${aviso}Abrindo ${tela.titulo}.`, ir: tela.chave };
-    if (QUER_ACAO.test(t)) return { texto: `${aviso}Abrindo ${tela.titulo}.`, ir: tela.chave };
+    if (acao(t)) return { texto: `${aviso}Abrindo ${tela.titulo}.`, ir: tela.chave };
     return { texto: `${aviso}${explica}\n\n${link}` };
   }
 
   if (QUER_SABER.test(t) || primeira) {
+    const naoAchei = QUER_SABER.test(t) || OI.test(t) ? '' : 'Esse pedido eu não reconheci. ';
     const algumas = telas.slice(0, 6).map((x) => `[${x.titulo}](tela:${x.chave})`).join('  ');
     return {
-      texto: `${aviso}Eu sou a Acolhe+AI, da equipe do Rede Acolher. Posso explicar o que cada tela faz, levar você até ela ("me leva para a chamada"), abrir o formulário ("quero marcar um compromisso"), fazer contas ("quanto é 12,50 + 7,90"), ler esta tela em voz alta e anotar sugestões para o sistema melhorar.\n\nAlgumas telas suas: ${algumas}`,
+      texto: `${aviso}${naoAchei}Eu sou a Acolhe+AI, da equipe do Rede Acolher. Posso explicar o que cada tela faz, levar você até ela ("me leva para a chamada"), abrir o formulário ("quero marcar um compromisso"), fazer contas ("quanto é 12,50 + 7,90"), ler esta tela em voz alta e anotar sugestões para o sistema melhorar.\n\nAlgumas telas suas: ${algumas}`,
     };
   }
   return {
@@ -212,7 +350,7 @@ export function responderPeloGuia(texto: string, telas: TelaDoGuia[], primeira: 
  * sem ele quem decide é a pessoa (a resposta traz as duas).
  */
 export type CriancaDaCasa = { id: string; nome: string };
-const QUER_A_CRIANCA = /\b(perfil|ficha|abre|abrir|abra|leva|mostra|mostrar|ver|quero|preciso|vou|gostaria|pode|registrar|registra|escrever|escreve|lancar|lanca|anotar|anota|acrescentar|acrescenta|atualizar|atualiza|cadastrar|incluir)\b/;
+const QUER_A_CRIANCA = /\b(perfil|ficha|abre|abrir|abra|leva|mostra|mostrar|ver|quero|preciso|vou|gostaria|pode|registrar|registra|escrever|escreve|lancar|lanca|anotar|anota|acrescentar|acrescenta|atualizar|atualiza|cadastrar|incluir|alergic\w*|alergia|escola|idade|aniversario|documento)\b/;
 
 export function criancasNoPedido(texto: string, lista: CriancaDaCasa[]): CriancaDaCasa[] {
   const t = sem(texto);
@@ -237,5 +375,5 @@ export function pedeFormulario(texto: string): boolean {
 /** O pedido quer fazer algo (criar, ou "quero", "preciso"), e não só saber. */
 export function pedeAcao(texto: string): boolean {
   const t = sem(texto);
-  return QUER_CRIAR.test(t) || QUER_ACAO.test(t);
+  return QUER_CRIAR.test(t) || acao(t);
 }

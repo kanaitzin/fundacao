@@ -26,7 +26,7 @@ import { join } from 'node:path';
 import { FORA_DO_CATALOGO, GUIA_DA_ACOLHE } from '../src/modules/assistente/guia';
 import { FERRAMENTAS, LEITURA_PROIBIDA, MEXEM_NA_TELA, rotaDeLeituraPermitida } from '../src/modules/assistente/ferramentas';
 import { calcular } from '../src/modules/assistente/calculo';
-import { criancasNoPedido, pedeFormulario, responderPeloGuia } from '../../frontend/src/acolhe-guia';
+import { criancasNoPedido, pedeAcao, pedeFormulario, responderPeloGuia } from '../../frontend/src/acolhe-guia';
 
 const SRC = join(__dirname, '..', 'src');
 const FRONT = join(__dirname, '..', '..', 'frontend', 'src');
@@ -224,3 +224,98 @@ describe('o modo guia entende o pedido', () => {
     expect(r.rascunho?.tela).toBe('ata');
   });
 });
+
+/*
+ * UM FUNCIONÁRIO DE CADA SETOR CONVERSANDO COM A ACOLHE+AI (fase 200; pedido de
+ * 11/10). Fazendo o papel de cada cargo, com as frases como se fala no plantão,
+ * vinte de cinquenta e nove pedidos eram bem atendidos. Os que falharam estão
+ * aqui, para não voltar: a urgência que recebia "não achei essa tela", os
+ * limites da Fundação tratados como busca, e as palavras que a equipe usa.
+ */
+describe('o modo guia atende como colega de plantão', () => {
+  const TELAS = [
+    { chave: 'dia', titulo: 'Dia' }, { chave: 'chamada', titulo: 'Chamada' },
+    { chave: 'acolhidos', titulo: 'Acolhidos' }, { chave: 'passagem', titulo: 'Passagem' },
+    { chave: 'plantao', titulo: 'Painel do plantão' }, { chave: 'ata', titulo: 'ATA' },
+    { chave: 'ocorrencias', titulo: 'Ocorrências' }, { chave: 'escala', titulo: 'A escala de plantão' },
+    { chave: 'equipe', titulo: 'Equipe' }, { chave: 'painel', titulo: 'Painel das unidades' },
+    { chave: 'saude', titulo: 'Saúde' }, { chave: 'cozinha', titulo: 'Cozinha' },
+  ];
+  const SEM_SAUDE = TELAS.filter((x) => x.chave !== 'saude');
+  const r = (frase: string, telas = TELAS) => responderPeloGuia(frase, telas, false);
+
+  it('a urgência vem antes de qualquer tela, e não navega sozinha', () => {
+    for (const frase of ['o kauã fugiu', 'a Gabi desmaiou no banho', 'ele bateu nela no quarto']) {
+      const x = r(frase);
+      expect(x.cuidado).toBe(true);
+      expect(x.ir).toBeUndefined();
+      expect(x.texto).toMatch(/líder do plantão/);
+      expect(x.texto).toMatch(/\(tela:ocorrencias\)/);
+    }
+    expect(r('a Gabi desmaiou no banho').texto).toMatch(/SAMU, no 192/);
+    expect(r('ele bateu nela no quarto').texto).toMatch(/sem perguntar detalhes/);
+  });
+
+  it('febre e tombo: não orienta remédio nem diagnóstico, diz quem decide', () => {
+    const x = r('a lara ta com febre o que eu faço');
+    expect(x.cuidado).toBe(true);
+    expect(x.texto).toMatch(/Enfermagem/);
+    expect(x.texto).not.toMatch(/dipirona|paracetamol|\bmg\b/i);
+    // O sistema que caiu não é tombo.
+    expect(r('o sistema caiu de novo').cuidado).toBeFalsy();
+  });
+
+  it('os limites da Fundação são ditos, com o porquê', () => {
+    expect(r('qual criança dá mais trabalho').texto).toMatch(/não compara nem ordena/);
+    expect(r('qual casa tem mais ocorrência').texto).toMatch(/não compara nem ordena/);
+    expect(r('o bruno é agressivo?').texto).toMatch(/não dá rótulo/);
+    expect(r('qual educador registra menos?').texto).toMatch(/não conta nem compara pessoas da equipe|não compara nem ordena/);
+    expect(r('manda no whatsapp da mãe da alice que ela ta bem').texto).toMatch(/WhatsApp/);
+    expect(r('apaga o que eu escrevi errado na ata').texto).toMatch(/nada se apaga/);
+    expect(r('pode confirmar a dose da lara por mim').texto).toMatch(/Ninguém confirma pelo outro/);
+    for (const f of ['qual criança dá mais trabalho', 'pode confirmar a dose da lara por mim']) {
+      expect(r(f).cuidado).toBe(true);
+    }
+  });
+
+  it('agradecer, cumprimentar e perguntar da senha têm resposta', () => {
+    expect(r('obrigada').texto).toMatch(/De nada/);
+    expect(r('boa noite').texto).toMatch(/^Oi!/);
+    expect(r('como troco minha senha').texto).toMatch(/Minha conta/);
+  });
+
+  it('as palavras do plantão levam à tela certa', () => {
+    expect(r('fechar a ata de hoje').ir).toBe('ata');
+    expect(r('tem pedido de substituição?').texto).toMatch(/Painel do plantão/);
+    expect(r('quero mudar o horario do turno').ir).toBe('escala');
+    expect(r('cadastrar educador novo').ir).toBe('equipe');
+    expect(r('mudar o limite de vagas').ir).toBe('painel');
+    expect(r('esqueci de fazer a chamada').ir).toBe('chamada');
+    expect(r('o estoque de dipirona').texto).toMatch(/Saúde/);
+    // Quem não tem a Saúde acha a dose no Dia.
+    expect(r('tem dose atrasada?', SEM_SAUDE).texto).toMatch(/Dia/);
+  });
+
+  it('"quem não pode comer amendoim" é pergunta, não pedido de mexer na tela', () => {
+    expect(pedeAcao('quem não pode comer amendoim')).toBe(false);
+    expect(r('quem não pode comer amendoim').texto).toMatch(/Cozinha/);
+  });
+
+  it('"registrar que" vira rascunho com o relato, e não abre o perfil', () => {
+    const x = r('preciso registrar que o bruno caiu no patio e machucou o joelho');
+    expect(x.rascunho?.texto).toBe('O bruno caiu no patio e machucou o joelho.');
+  });
+
+  it('a primeira pergunta não reconhecida diz que não reconheceu, antes de se apresentar', () => {
+    expect(responderPeloGuia('xpto zzz', TELAS, true).texto).toMatch(/Esse pedido eu não reconheci/);
+    expect(responderPeloGuia('oi', TELAS, true).texto).not.toMatch(/não reconheci/);
+  });
+
+  it('nenhuma resposta do guia usa travessão (a Acolhe+AI escreve como colega)', () => {
+    for (const f of ['o kauã fugiu', 'a lara ta com febre', 'qual criança dá mais trabalho', 'apaga isso da ata',
+      'manda no zap', 'como troco minha senha', 'obrigado', 'o bruno é agressivo?']) {
+      expect(r(f).texto).not.toMatch(/—/);
+    }
+  });
+});
+
