@@ -354,6 +354,13 @@ describe('o modo guia atende como colega de plantão', () => {
     }
     // A falta de passagem é a pergunta de quem fecha a ATA.
     expect(r('quem nao passou o plantao').texto).toMatch(/ATA/);
+    // "Fazer o relatório mensal" é ir ao acompanhamento, e não um rascunho com o próprio pedido.
+    const tecnica = [...TELAS, { chave: 'acompanhamentos', titulo: 'Acompanhamentos' }];
+    const mensal = r('preciso fazer o relatorio mensal da alice', tecnica);
+    expect(mensal.rascunho).toBeUndefined();
+    expect(mensal.ir).toBe('acompanhamentos');
+    // O dia de visita é o combinado do contato, no perfil, e não a Portaria.
+    expect(r('marcar visita da mae do bruno no sabado').texto).toMatch(/Autorizar a visitar/);
   });
 
   it('não promete formulário antes de abrir: "registrar saída da visita" na portaria (fase 203)', () => {
