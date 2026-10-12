@@ -3845,6 +3845,57 @@ console.log('\n🔗 De um setor ao outro');
   await pgS.close();
 }
 
+console.log('\n📅 O calendário das ATAs e dos plantões (fase 206)');
+{
+  const pgC = await navegador.newPage({ viewport: { width: 1366, height: 900 } });
+  const errosC = [];
+  pgC.on('pageerror', (e) => errosC.push(e.message));
+  const esp = (ms = 800) => pgC.waitForTimeout(ms);
+  const txt = () => pgC.locator('main.conteudo').innerText();
+  await pgC.goto(`file://${ARQUIVO}`); await esp(700);
+  await pgC.getByRole('button', { name: 'Marcelo Barbosa', exact: true }).click();
+  await pgC.getByRole('button', { name: /Entrar no sistema/i }).click(); await esp(1200);
+  cargoAtual = 'coordenador';
+  await pgC.locator('select.troca-cargo-sel').selectOption('coordenador'); await esp(900);
+
+  /* Na Passagem: o mês em grade, embaixo da lista de hoje. */
+  await pgC.getByRole('button', { name: /^Passagem/ }).filter({ visible: true }).first().click(); await esp(1000);
+  const cal = pgC.locator('.calendario');
+  cobrar('a Passagem mostra o calendário dos plantões do mês', await cal.count() === 1);
+  await cal.getByRole('button', { name: 'Mês anterior' }).click(); await esp(800);
+  const turnos = cal.locator('button.cal-turno');
+  cobrar('o mês anterior tem a manhã e a noite de quase todos os dias', await turnos.count() >= 50,
+    String(await turnos.count()));
+  const nums = (await cal.locator('.cal-numeros').innerText()).replace(/\s+/g, ' ');
+  cobrar('os números do mês são da casa: ATAs, pendência, episódios', /ATAs no mês/.test(nums)
+    && /com pendência/.test(nums) && /episódios/.test(nums) && !/por pessoa|ranking/i.test(nums), nums);
+  const rotulo = await turnos.nth(10).getAttribute('aria-label');
+  cobrar('cada turno diz o dia, o turno e a situação em palavras', /\d+ de \w+, turno (diurno|noturno): (fechada|fechada com pendência|aberta|reaberta)/.test(rotulo ?? ''), rotulo);
+  await turnos.nth(10).click(); await esp(1000);
+  const plantao = await txt();
+  cobrar('tocar no turno abre aquele plantão, com a data', /\d{2}\/\d{2}\/\d{4}/.test(plantao) && /Fechado/.test(plantao), plantao.slice(0, 200));
+  cobrar('o plantão de outro dia não põe o formulário da passagem na frente',
+    /Trabalhei neste plantão e quero assinar/.test(plantao) && !/Recebi este plantão/.test(plantao));
+  await pgC.getByRole('button', { name: /A ATA deste plantão/ }).click(); await esp(900);
+  cobrar('e a ATA dele abre em folha, para ler e baixar', await pgC.locator('.overlay').count() > 0
+    && /Baixar|Word/i.test(await pgC.locator('.overlay').innerText()));
+  await pgC.locator('.overlay').getByRole('button', { name: /^Fechar/ }).first().click().catch(() => {}); await esp(400);
+
+  /* Na ATA, aba Arquivo: o mesmo calendário, e a ATA abre com o texto DELA. */
+  await pgC.locator('nav.portas-lateral').getByRole('button', { name: 'ATA', exact: true }).click(); await esp(1000);
+  const textoDeHoje = await txt();
+  await pgC.getByRole('tab', { name: /Arquivo/ }).or(pgC.locator('main.conteudo button', { hasText: /^Arquivo$/ })).first().click(); await esp(1000);
+  await pgC.locator('.calendario').getByRole('button', { name: 'Mês anterior' }).click(); await esp(800);
+  await pgC.locator('.calendario button.cal-turno').nth(4).click(); await esp(1200);
+  const ata = await txt();
+  cobrar('o calendário do Arquivo abre a ATA daquele dia com o texto dela',
+    /ACOLHIDOS ATIVOS E SITUAÇÃO/i.test(ata) && !/fechada sem texto nas seções/.test(ata), ata.slice(0, 300));
+  cobrar('e oferece a volta ao calendário', await pgC.getByRole('button', { name: /Voltar ao calendário/ }).count() === 1);
+  void textoDeHoje;
+  cobrar('nenhuma exceção no calendário', errosC.length === 0, errosC[0]);
+  await pgC.close();
+}
+
 await navegador.close();
 console.log(achados.length
   ? `\n${achados.length} ACHADO(S):\n  ${achados.join('\n  ')}`

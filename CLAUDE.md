@@ -172,6 +172,7 @@ e qual é o caminho certo.
 | `frontend/ensaio-acolhe.mjs` | **a cobertura da Acolhe+AI, medida** (fase 195): cada cargo pede cada tela por texto e por voz (microfone falso), a explicação e cada formulário de criação da tela; e o relatório pela voz de ponta a ponta. `ENSAIO_CARGOS=portaria` mede só um. **Tela ou formulário novo entra na medição sozinho**: o ensaio lê o menu e as marcas `data-acolhe-abre` e `data-acolhe-entra`, as abas, o perfil (do Bruno e do Felipe), o dossiê e a internação (fase 196) |
 | `frontend/src/aviso-no-celular.tsx` | **o aviso no celular** (fase 189), na folha Minha conta: liga e desliga NESTE aparelho; o `desligarAoSair` é chamado pelo Sair. O que o aparelho mostra mora em `public/sw-avisos.js`, e o que o servidor manda, em `textoDoAviso` (`notifications/aviso-no-celular.service.ts`): **só o título neutro, nunca o aviso** |
 | `frontend/src/avatar.tsx` | **o rosto nas listas** (fase 198): a foto quando a lista diz `temFoto`, as iniciais quando não, num cache em memória (nunca no aparelho). As rotas vão escritas por extenso (`{ acolhido }` ou `{ contato }`): o contrato de rotas confere. No protótipo, os retratos são desenhos de `retratos.ts`, nunca rosto realista. Lista que não diz `temFoto` usa o `useComFoto(casa)` (fase 199), que pergunta uma vez à lista da casa |
+| `frontend/src/calendario-turnos.tsx` | **o calendário das ATAs** (fase 206), na Passagem e no Arquivo: lê o recorte do mês do `/shifts/ata-archive`, e as cores são as de ESTADO da pílula da ATA. Os números do mês são da casa, nunca de pessoa |
 | `frontend/src/cargos.tsx` | **a cor de cada cargo e o círculo de iniciais** (fase 151). Ela convive com DUAS outras: a cor de ESTADO (crítico/atenção — não se toca, e o cargo não usa a família dela) e a cor de AUTOR (`tomDoAutor`, qual colega escreveu — a coordenação escolhe, 0990). Três perguntas diferentes; o dia em que duas responderem à mesma, a cor deixa de informar |
 
 ## O que fazer agora
@@ -180,7 +181,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 12/10/2026, fase 205
+### Onde estamos — 12/10/2026, fase 206
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -249,8 +250,9 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 203 | **a Acolhe+AI só promete o formulário depois de abri-lo** (pedido de 12/10): na portaria ela dizia *"vou abrir o formulário"* e logo *"não achei"*; agora diz *"Abrindo"* e a frase do formulário vem só quando ele abriu, com teste |
 | 204 | **cada setor de ponta a ponta** (pedido de 12/10): catorze percursos levando um registro de um setor aos outros; no protótipo, **a alergia registrada não chegava** à Saúde, à Enfermagem nem à Cozinha, **os plantões eram fixos e de antes de 25/09** (de madrugada, o diurno de amanhã já assinado), a ATA aberta não deixava escrever linha, a dose não baixava o armário e tocar em Acolhidos não voltava à lista; no sistema de verdade, **o remédio vencido dizia Validade próxima** |
 | 205 | **a Acolhe+AI em cada setor e as oito casas com vinte pessoas por seis meses** (pedidos de 12/10): dezenove pedidos do plantão recebiam *não achei* (o choro, o homem no portão dizendo ser o pai, a mãe ao telefone, o colega que faltou); a vacina abria o Registrar compra, e o rascunho da ATA ia ao formulário de episódio; na simulação (`SIM_EQUIPE=20`), nada do sistema em seis meses, as 2.904 linhas pela Acolhe+AI no banco com o nome de quem registrou, e **a equipe das oito e o dia das unidades, que passavam de um segundo** (1649 e as casas de quatro em quatro) |
+| 206 | **o calendário das ATAs e dos plantões** (pedido de 12/10): na Passagem e no Arquivo da ATA, o mês em grade com a manhã e a noite pintadas pela situação, os números do mês (só da casa) e o turno que abre o plantão e a ATA, para ler e baixar (`frontend/src/calendario-turnos.tsx`, sem rota nova); meses de histórias fictícias no protótipo; e **a ATA aberta pelo Arquivo mostrava o texto da ATA de antes**, no sistema de verdade também |
 
-**Medido no fim da 205:** 189 migrações, 133 tabelas, 138 suítes, 1249 testes, verdes nas
+**Medido no fim da 206:** 189 migrações, 133 tabelas, 138 suítes, 1250 testes, verdes nas
 DUAS condições de relógio; os dez ensaios de navegador verdes (o `ensaio:acolhe` com todas as telas de todos os cargos por texto e por voz e os 36 formulários do sistema abertos por ela, inclusive dentro do perfil, do dossiê, da internação, do acervo e do plantão, e o do celular com 306 telas e nenhum achado), com a portaria e o
 portão, o armário, a cozinha, os temas e a foto no percurso do `ensaio:uso`; **1256 telas (157 × oito
 temas) sem violação de WCAG 2.1 AA**; nenhuma
@@ -315,6 +317,15 @@ as três cores abaixo. Cor nova passa pelo `ensaio:acessibilidade`, que mede os 
 | **cargo** | *de que setor é esta pessoa?* | círculo cheio com iniciais |
 
 ### A próxima etapa
+
+**FEITO — fase 206** (§2): o calendário das ATAs e dos plantões, na Passagem e no Arquivo
+da ATA, com o livro fictício desde 01/07 no protótipo. **O pedido de 12/10 continua**, e a
+ordem combinada é: **207** a autorização de saída e a portaria (a regra de 1020 dizia que
+quem decide é a técnica ou a coordenação; o pedido de 12/10 diz educador, líder,
+coordenação e técnica), **208** o perfil em abas coloridas com os Atendimentos, **209** as
+fotos (marcar quem aparece em vez de reconhecer o rosto: é dado biométrico de criança),
+**210** as chamadas editáveis por casa com cor, **211** a legenda e o aperto do *O dia, em
+ordem*, **212** a varredura dos traços de raciocínio nas frases das telas.
 
 **FEITO — fase 205** (§2, PARA-A-REUNIAO §4.19, relatório em `docs/historico/oito-casas-seis-meses-vinte-pessoas-12-10.md`):
 a Acolhe+AI testada setor por setor outra vez, e as oito casas com vinte pessoas por seis meses usando o
@@ -764,6 +775,11 @@ novo.
   passava no ensaio. **Ensaio de um setor só não vê o que não chega ao outro**: o percurso
   leva o registro de um setor e o procura nos outros. E **dado de demonstração com hora fixa
   mente em alguma hora do dia**: os plantões fixos estavam certos às 14h e errados às 3h.
+- **Abrir um registro é trazer TUDO o que é dele** (206). O Arquivo abria a ATA de outro
+  dia trocando só o plantão, e o texto das seções continuava o da ATA aberta antes: a data
+  de um dia em cima do texto de outro, no sistema de verdade, desde a fase do Arquivo. Os
+  outros três caminhos que abriam ATA faziam certo, cada um com a sua cópia das três linhas.
+  **Quem abre registro por um caminho novo usa a função que já abre**, e não refaz metade dela.
 - **O banco é um só, e a suíte o recria** (205). Rodei um arquivo de teste do Jest com a simulação
   das oito casas no ar, e o `globalSetup` recriou o banco embaixo dela: a primeira casa sumiu e a
   rodada morreu. A regra já estava escrita aqui; **simulação no ar, nada do Jest**, nem um arquivo só.

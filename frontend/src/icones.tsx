@@ -171,6 +171,12 @@ const DESENHOS: Record<string, string[]> = {
   girar:    ['M4.5 12a7.5 7.5 0 1 0 2.2-5.3', 'M4.5 4.5v4h4'],
   /* A folha com o contraste dividido: metade clara, metade escura. */
   realce:   ['M6 3.5h9l3.5 3.5v13.5H6z', 'M12 7v11', 'M8.5 9.5h2', 'M8.5 12.5h2', 'M8.5 15.5h2'],
+  /* ---- o calendário das ATAs (fase 206): o turno do dia e o da noite ---- */
+  sol:      ['M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8z', 'M12 2.5v2', 'M12 19.5v2', 'M4.6 4.6L6 6',
+             'M18 18l1.4 1.4', 'M2.5 12h2', 'M19.5 12h2', 'M4.6 19.4L6 18', 'M18 6l1.4-1.4'],
+  lua:      ['M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z'],
+  voltar:   ['M15 5l-7 7 7 7'],
+  avancar:  ['M9 5l7 7-7 7'],
 };
 
 export type NomeDoIcone = keyof typeof DESENHOS;

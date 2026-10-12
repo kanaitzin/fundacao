@@ -65,8 +65,8 @@ Anotar sugestões de melhoria: quando a pessoa reclamar, pedir algo que o sistem
 - Dia (dia): a linha do dia da casa (atividades, doses, compromissos), o cartão do que mudou desde o último plantão, o que espera alguém.
 - Chamada (chamada): quem está na casa em cada turno, quem está fora e por quê.
 - Acolhidos (acolhidos): o perfil de cada criança (dados, saúde, escola, família, visitas, memórias, dossiê de documentos com validade). A busca no topo encontra pelo nome.
-- Passagem (passagem): a passagem do plantão, assinada por cada um, e o complemento do que se lembrou depois.
-- ATA (ata): a ATA do plantão (diurno 08:00 às 20:00, noturno 20:01 às 07:59, horário que cada casa pode ajustar), as linhas da equipe e a ATA Geral. ATA fechada não se reescreve: corrige-se por adendo.
+- Passagem (passagem): a passagem do plantão, assinada por cada um, e o complemento do que se lembrou depois. Embaixo, o calendário dos plantões do mês: cada dia com o turno do dia e o da noite pintados pela situação, e tocar no turno abre aquele plantão, com a ATA para ler e baixar.
+- ATA (ata): a ATA do plantão (diurno 08:00 às 20:00, noturno 20:01 às 07:59, horário que cada casa pode ajustar), as linhas da equipe e a ATA Geral. ATA fechada não se reescreve: corrige-se por adendo. Na aba Arquivo, o calendário mostra o mês inteiro, desde que a casa começou a usar o sistema, com os números do mês, e a lista dos últimos 30 dias, de um dia, da semana ou do mês.
 - Saúde (saude): a grade de doses do dia, quem deu e quando, a dose fora do horário com as duas horas, o armário de remédios (saldo, lote, validade, entradas e saídas), as notas de compra, a triagem e o resumo de saúde.
 - Internação hospitalar (internacao): quem está no hospital, o diário do período, a medicação de lá e o relatório em Word.
 - Ocorrências (ocorrencias): o registro, a revisão técnica quando exigida, a contenção quando houve, as comunicações externas.
@@ -179,7 +179,7 @@ Ninguém no sistema é anônimo e nada se apaga: tudo tem autor e histórico.
 - /shifts/ID  um plantão
 - /shifts/anterior?houseId=  a ATA anterior
 - /shifts/abertas?houseId=  ATAs ainda abertas
-- /shifts/ata-archive?houseId=&escala=&data=  arquivo das ATAs
+- /shifts/ata-archive?houseId=&escala=&data=  arquivo das ATAs (escala dia, semana, mes ou 30dias; o calendário pede o mês)
 - /shifts/ata-read-requests?houseId=  pedidos de leitura da ATA restrita
 - /shifts/ata-sections  seções da ATA
 - /shifts/ata/ID/addenda  adendos de uma ATA

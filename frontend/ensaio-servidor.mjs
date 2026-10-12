@@ -285,6 +285,39 @@ for (const conta of CONTAS) {
     telas.push(onde);
   }
 
+  /* O CALENDÁRIO DOS PLANTÕES (fase 206), contra o livro de verdade: o mês em
+     grade, e o turno tocado abre o plantão daquele dia. */
+  onde = 'calendário dos plantões';
+  const aPassagem = pg.locator('nav.tabbar button, nav.portas-lateral button', { hasText: 'Passagem' });
+  if (await aPassagem.count()) {
+    await aPassagem.first().click();
+    await pg.waitForTimeout(1500);
+    const cal = pg.locator('.calendario');
+    if (!(await cal.count())) anota(conta.quem, onde, 'a Passagem não mostra o calendário');
+    else {
+      const erroCal = await cal.locator('[role="alert"]').count();
+      if (erroCal) anota(conta.quem, onde, `o calendário abriu com erro: ${await cal.locator('[role="alert"]').innerText()}`);
+      let turnos = cal.locator('button.cal-turno');
+      if (!(await turnos.count())) {
+        await cal.getByRole('button', { name: 'Mês anterior' }).click();
+        await pg.waitForTimeout(1200);
+        turnos = cal.locator('button.cal-turno');
+      }
+      if (!(await turnos.count())) anota(conta.quem, onde, 'nem este mês nem o anterior têm turno no calendário');
+      else {
+        await turnos.first().click();
+        await pg.waitForTimeout(1500);
+        const t = await pg.locator('main.conteudo').innerText();
+        if (!/\d{2}\/\d{2}\/\d{4}/.test(t) || !/Plantão (diurno|noturno)/.test(t)) {
+          anota(conta.quem, onde, `o turno tocado não abriu o plantão daquele dia (a tela diz: ${t.replace(/\s+/g, ' ').slice(0, 160)})`);
+        }
+        await pg.getByRole('button', { name: '← Plantões' }).click().catch(() => {});
+        await pg.waitForTimeout(600);
+      }
+    }
+    telas.push(onde);
+  }
+
   /* O AVISO NESTE COMPUTADOR, no monitor (fase 191): na folha da senha. */
   onde = 'folha da senha (computador)';
   const chave = pg.getByRole('button', { name: 'Trocar minha senha' });

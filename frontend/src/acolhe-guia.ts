@@ -38,7 +38,8 @@ const PALAVRAS: Record<string, string[]> = {
   acolhidos: ['acolhido', 'crianca', 'perfil', 'dossie', 'documento da crianca', 'adolescente'],
   passagem: ['passagem', 'assinar a passagem', 'passar o plantao', 'passou o plantao', 'assinou o plantao', 'assinar o plantao'],
   /* "Quem não passou o plantão" é a pergunta do líder que vai fechar a ATA: é nela que a falta aparece com nome (fase 205). */
-  ata: ['ata', 'livro', 'linha da ata', 'registro do turno', 'fechar a ata', 'assinou a ata', 'ronda', 'nao passou o plantao', 'nao passaram o plantao', 'quem nao assinou'],
+  ata: ['ata', 'livro', 'linha da ata', 'registro do turno', 'fechar a ata', 'assinou a ata', 'ronda', 'nao passou o plantao', 'nao passaram o plantao', 'quem nao assinou',
+        'calendario', 'dias anteriores', 'atas antigas', 'ata de ontem', 'ata do mes', 'atas do mes'],
   /* O nome do remédio e o que se faz com a caixa também levam à Saúde: "o colírio acabou",
      "joguei fora a dipirona vencida" recebiam "não achei" (fase 205). */
   saude: ['saude', 'remedio', 'dose', 'medicac', 'enfermagem', 'receita', 'vacina', 'estoque', 'armario', 'triagem', 'evolucao de saude', 'insulina',

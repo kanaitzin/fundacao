@@ -3012,10 +3012,245 @@ const ARQUIVO_ATAS: AtaArquivada[] = [
     geral: null },
 ];
 
+/*
+ * MESES DE LIVRO NO PROTÓTIPO (fase 206).
+ *
+ * O pedido de 12/10 foi um calendário com as ATAs de todos os meses desde que a
+ * casa começou a usar o sistema, e um calendário de três dias não mostra nada.
+ * O servidor tem o livro de verdade; aqui ele é escrito por um sorteio com
+ * semente na DATA, para que o mesmo dia conte sempre a mesma história, e com
+ * frases do dia a dia de uma casa: escola, febre, visita, telefonema, a ronda.
+ * Nenhuma frase compara crianças nem as qualifica: o que se escreve é o fato.
+ */
+const INICIO_DO_LIVRO = (() => {
+  const limite = diasAtras(400);
+  return limite > '2026-07-01' ? limite : '2026-07-01';
+})();
+interface HistoriaDoTurno {
+  abre: string;
+  conteudo: Record<string, string>;
+  notas: { hora: string; texto: string; quem: string; userId: string; restrita?: boolean }[];
+  passagens: { quem: string; userId: string; cargo: string; hora: string }[];
+  episodios: { hora: string; acolhidoId: string; acolhido: string; classificacao: string; relato: string; quem: string }[];
+}
+/** O que cada capa do arquivo tem dentro, pelo id do plantão. */
+const HISTORIA_DO_ARQUIVO = new Map<string, HistoriaDoTurno>();
+
+function sorteioDoDia(data: string) {
+  let h = 2166136261;
+  for (const ch of data) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
+  let x = h >>> 0;
+  const proximo = () => {
+    x = (x + 0x6D2B79F5) >>> 0;
+    let t = x;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  return {
+    chance: (p: number) => proximo() < p,
+    um: <T,>(xs: readonly T[]): T => xs[Math.floor(proximo() * xs.length)],
+    entre: (a: number, b: number) => a + Math.floor(proximo() * (b - a + 1)),
+  };
+}
+
+const EQUIPE_DO_DIA = [
+  { quem: 'Tainá Souza (fictícia)', userId: 'u7' },
+  { quem: 'Mário Silva (fictício)', userId: 'u1' },
+  { quem: 'Joana Lima (fictícia)', userId: 'u6' },
+];
+const EQUIPE_DA_NOITE = [
+  { quem: 'Rosa Menezes (fictícia)', userId: 'u21' },
+  { quem: 'Valdir Prates (fictício)', userId: 'u22' },
+  { quem: 'Sueli Antunes (fictícia)', userId: 'u23' },
+];
+const ACOLHIDOS_DO_DIA = [
+  'Café às 7h30 com todos; {a} e {b} foram para a escola de van, os menores para a creche. Almoço tranquilo e tema de casa até as 16h.',
+  'Manhã de escola. À tarde, oficina de desenho na sala de estudos; {a} terminou o cartaz do aniversário da casa.',
+  'Sem aula hoje (conselho de classe). Manhã no pátio com bola e corda, tarde de filme na sala. Todos almoçaram bem.',
+  'Escola no horário. {a} voltou mais cedo com dor de cabeça; ficou em repouso e melhorou depois do lanche.',
+  'Dia de futebol na quadra do bairro com o educador social. {a} e {b} levaram o lanche e voltaram às 17h.',
+  'Manhã de faxina dos quartos com música; tarde de jogos de tabuleiro. {a} ensinou o dominó para {b}.',
+  'Escola e tema de casa. {a} pediu ajuda com frações e fizemos juntos na mesa da cozinha.',
+  'Passeio ao Parque da Redenção à tarde, com lanche. Voltamos às 17h30, todos juntos.',
+  'Manhã de escola; à tarde, corte de cabelo para {a}, {b} e mais três, no salão parceiro.',
+  'Dia de chuva: atividades na sala, pintura e massinha com os menores, leitura com os maiores.',
+  'Escola no horário. Reunião de pais na escola de {a}: fui eu, e a professora elogiou a leitura.',
+  'Horta pela manhã com a turma dos menores; colhemos alface para o almoço. Tarde de tema e banho.',
+];
+const ACOLHIDOS_DA_NOITE = [
+  'Janta às 19h e banho em sequência. Todos deitados às 22h; ronda à meia-noite e às 3h sem intercorrência.',
+  '{a} demorou a dormir, pediu para conversar; ficamos na sala até as 23h e depois dormiu. Ronda sem intercorrência.',
+  'Noite tranquila. {a} acordou com sede às 2h, tomou água e voltou a dormir.',
+  'Janta e novela com os maiores até as 21h30. {a} teve pesadelo às 4h; acolhida, luz do corredor acesa, dormiu de novo.',
+  'Todos dormiram até as 22h30. {a} tossiu de madrugada: travesseiro alto e água, sem febre.',
+  'Noite de sexta, filme na sala com pipoca até as 22h. Ronda à meia-noite e às 3h, todos dormindo.',
+  'Janta tranquila. {a} e {b} discutiram pela televisão; conversamos, combinaram a vez de cada um e se acertaram.',
+  '{a} acordou com frio às 3h; cobertor a mais, e dormiu de novo.',
+  'Noite calma. Preparei as mochilas da escola com {a} e {b} antes de dormir.',
+  'A luz do banheiro de cima queimou às 21h; usamos o de baixo. Todos dormiram às 22h.',
+];
+const CONVIVENCIA = [
+  'Visita da avó de {a} à tarde, das 15h às 17h, acompanhada por mim na sala de visitas.',
+  'Videochamada de {a} com a mãe às 18h, combinada com a técnica. Ficou contente depois.',
+  'O tio de {a} trouxe roupas e um bolo; ficou meia hora na portaria com ela.',
+  'Ligação do pai de {a}, no horário combinado. Conversaram por vinte minutos.',
+];
+const SAUDE = [
+  'Consulta de rotina de {a} na unidade de saúde às 9h, acompanhada por mim. Sem alteração.',
+  '{a} foi ao dentista às 14h; restauração feita, volta em 30 dias.',
+  'Vacina da gripe de {a} e {b} na unidade de saúde. Carteira atualizada no dossiê.',
+  'Exame de vista de {a} no ambulatório; receita de óculos entregue à técnica.',
+];
+const NOTAS_DO_DIA = [
+  '{a} voltou da escola com bilhete da professora; está na mochila dela.',
+  'A van da escola atrasou vinte minutos; avisei a coordenação da escola por telefone.',
+  'Faltou leite para o lanche da tarde; a cozinha já pediu para amanhã.',
+  '{a} ganhou medalha na gincana da escola e quer mostrar para a técnica.',
+  'O conserto do chuveiro do banheiro de cima ficou para amanhã cedo.',
+  '{a} pediu para ligar para a avó no fim de semana; anotei para a técnica combinar.',
+  'Entreguei o uniforme novo de {a} e de {b}; os antigos foram para a doação.',
+  '{a} esqueceu o casaco na escola; a professora vai guardar.',
+  'Reunião rápida com a técnica sobre a rotina de tema de casa dos maiores.',
+  '{a} começou o curso de violão no sábado de manhã, no centro comunitário.',
+];
+const NOTAS_DA_NOITE = [
+  '{a} pediu para ligar para a avó amanhã cedo; combinado com a técnica.',
+  'Ronda das 3h: todos dormindo, porta da frente trancada, gás fechado.',
+  '{a} acordou com dor de ouvido às 1h; compressa morna, dormiu às 1h40. Fica para a Enfermagem olhar de manhã.',
+  'A geladeira da cozinha fez barulho a noite toda; anotei para a manutenção.',
+  '{a} e {b} ficaram acordados conversando até as 23h; pedi silêncio duas vezes, e dormiram.',
+  'Faltou papel higiênico no banheiro de baixo; reposto do estoque.',
+  'Separei a roupa da escola de {a} que estava molhada no varal.',
+];
+const PENDENCIAS = [
+  '{e} saiu antes do fim do turno por motivo de saúde e não assinou a passagem. Fechada com pendência, sem assinatura em nome dele ou dela.',
+  'A escala dizia três educadores e só dois vieram; {e} avisou a falta às 6h. Fechada com pendência.',
+  'O armário de remédios ficou sem conferência no fim do turno; a Enfermagem confere de manhã.',
+  '{e} estava em atendimento externo com uma criança e assina quando voltar.',
+];
+const EPISODIOS_DO_LIVRO = [
+  { classificacao: 'briga_conflito', relato: '{a} e {b} discutiram pelo controle da televisão e houve empurrão. Separados, conversa com cada um, e se acalmaram em dez minutos.' },
+  { classificacao: 'desorganizacao', relato: '{a} chorou muito depois do telefonema da família e jogou o travesseiro. Ficamos juntos na varanda até se acalmar.' },
+  { classificacao: 'saude', relato: '{a} teve febre de 38,2 às 21h. Antitérmico conforme a prescrição, Enfermagem avisada por telefone, febre baixou às 22h30.' },
+  { classificacao: 'saida_nao_autorizada', relato: '{a} saiu pelo portão às 19h40 sem avisar e voltou sozinho às 20h15. Conversa ao voltar; técnica avisada.' },
+  { classificacao: 'medicamento', relato: 'A dose das 20h de {a} foi dada às 21h10, porque estava no banho; registrado na grade com as duas horas.' },
+];
+const CONTATOS_DA_GERAL = [
+  { categoria: 'saude', motivo: 'Chamado às 23h40 por febre de {a}; orientação por telefone e retorno às 0h30.', acao: 'Orientei a medicação prescrita e pedi nova medida às 0h30.' },
+  { categoria: 'falta_de_pessoal', motivo: 'A casa ficou com um educador só até as 21h30 por falta avisada em cima da hora.', acao: 'Remanejei um educador da ARM2 até as 23h.' },
+  { categoria: 'ocorrencia', motivo: 'Conflito entre dois acolhidos às 22h; a equipe separou e conversou.', acao: 'Passei na casa às 22h40 e conferi que estavam todos deitados.' },
+  { categoria: 'outro_apoio', motivo: 'Faltou luz no bairro das 0h às 1h20.', acao: 'Levei lanternas e fiquei até a luz voltar.' },
+];
+
+function gerarLivroDaCasa(): AtaArquivada[] {
+  const feitos = new Set(ARQUIVO_ATAS.map((d) => d.data));
+  const nomes = KIDS.map((k) => k.nome);
+  const out: AtaArquivada[] = [];
+  const ultimo = diasAtras(3);
+  for (let t = Date.parse(`${INICIO_DO_LIVRO}T12:00:00Z`); ; t += 86_400_000) {
+    const data = new Date(t).toISOString().slice(0, 10);
+    if (data > ultimo) break;
+    if (feitos.has(data)) continue;
+    const r = sorteioDoDia(data);
+    const semana = new Date(`${data}T12:00:00Z`).getUTCDay();
+    const fimDeSemana = semana === 0 || semana === 6;
+    const preencher = (txt: string) => {
+      const a = r.um(nomes);
+      let b = r.um(nomes);
+      if (b === a) b = nomes[(nomes.indexOf(a) + 3) % nomes.length];
+      return txt.replace(/\{a\}/g, a).replace(/\{b\}/g, b);
+    };
+    const hora = (base: string, h: number, m: number) => {
+      const [y, mo, d] = base.split('-').map(Number);
+      const dia = new Date(Date.UTC(y, mo - 1, d) + (h >= 24 ? 86_400_000 : 0)).toISOString().slice(0, 10);
+      return new Date(`${dia}T${String(h % 24).padStart(2, '0')}:${String(m).padStart(2, '0')}:00-03:00`).toISOString();
+    };
+    /* A primeira semana do livro só tem o diurno: a casa começou pelo dia,
+       como a Casa 03 começou o piloto. É o que o calendário mostra vazio. */
+    const comecoDoLivro = Date.parse(data) - Date.parse(INICIO_DO_LIVRO) < 7 * 86_400_000;
+    const turno = (qual: 'diurno' | 'noturno') => {
+      const noite = qual === 'noturno';
+      const equipe = noite ? EQUIPE_DA_NOITE : EQUIPE_DO_DIA;
+      const presentes = r.chance(0.12) ? [r.um(equipe)] : equipe.filter(() => r.chance(0.8));
+      if (presentes.length === 0) presentes.push(equipe[0]);
+      const pendente = r.chance(0.07);
+      const faltou = pendente ? r.um(equipe) : null;
+      const episodios = r.chance(noite ? 0.1 : 0.08) ? [r.um(EPISODIOS_DO_LIVRO)] : [];
+      const aditamento = !pendente && r.chance(0.03);
+      const fecha = noite ? hora(data, 32, r.entre(5, 40)) : hora(data, 20, r.entre(0, 35));
+      const fechadaPor = noite ? presentes[0].quem : 'Lúcia Líder Diurna (fictícia)';
+      const conteudo: Record<string, string> = {
+        equipe_presente: presentes.map((p) => p.quem).join(', '),
+        acolhidos: preencher(r.um(noite ? ACOLHIDOS_DA_NOITE : ACOLHIDOS_DO_DIA)),
+        saida_nao_autorizada: episodios.some((e) => e.classificacao === 'saida_nao_autorizada')
+          ? 'Sim. Detalhe no episódio registrado no turno.' : 'Não.',
+        enfermagem: episodios.some((e) => e.classificacao === 'saude')
+          ? 'Sim, por telefone, com orientação seguida.' : 'Não.',
+        medicamentos: noite ? 'Doses das 20h e das 22h dadas e conferidas na grade.'
+          : 'Doses da manhã e do almoço dadas e conferidas na grade.',
+        orientacoes: noite ? 'Acordar os da escola às 6h30. Conferir as mochilas.'
+          : 'Janta às 19h. Banho dos menores antes da novela.',
+      };
+      if (!noite && fimDeSemana) conteudo.convivencia_familiar = preencher(r.um(CONVIVENCIA));
+      if (!noite && !fimDeSemana && r.chance(0.3)) conteudo.saude_deslocamentos = preencher(r.um(SAUDE));
+      if (!noite && r.chance(0.2)) conteudo.ligacoes = preencher(r.um(CONVIVENCIA));
+      const notas = Array.from({ length: r.entre(1, 3) }, (_, i) => ({
+        hora: noite ? hora(data, 21 + i * 2, r.entre(0, 59)) : hora(data, 9 + i * 3, r.entre(0, 59)),
+        texto: preencher(r.um(noite ? NOTAS_DA_NOITE : NOTAS_DO_DIA)),
+        ...r.um(presentes),
+      }));
+      const passagens = presentes
+        .filter((p) => !faltou || p.userId !== faltou.userId)
+        .map((p) => ({ ...p, cargo: 'educador', hora: fecha }));
+      if (!noite) passagens.push({ quem: 'Lúcia Líder Diurna (fictícia)', userId: 'u2', cargo: 'lider_diurno', hora: fecha });
+      const plantaoId = uid();
+      HISTORIA_DO_ARQUIVO.set(plantaoId, {
+        abre: noite ? hora(data, 20, 1) : hora(data, 8, 0),
+        conteudo, notas, passagens,
+        episodios: episodios.map((e) => {
+          const [a, b] = [r.um(KIDS), r.um(KIDS)];
+          return { hora: noite ? hora(data, 21, r.entre(0, 59)) : hora(data, 15, r.entre(0, 59)),
+                   acolhidoId: a.id, acolhido: a.nome, classificacao: e.classificacao,
+                   relato: e.relato.replace(/\{a\}/g, a.nome).replace(/\{b\}/g, b.id === a.id ? 'outro acolhido' : b.nome),
+                   quem: presentes[0].quem };
+        }),
+      });
+      return capa({
+        plantaoId,
+        status: pendente ? 'fechada_com_pendencia' : 'fechada',
+        pendencias: pendente ? r.um(PENDENCIAS).replace(/\{e\}/g, faltou!.quem) : null,
+        assinaturasFaltantes: pendente ? 1 : 0,
+        fechadaEm: fecha, fechadaPor,
+        aditamentos: aditamento ? 1 : 0,
+        episodios: episodios.length,
+        passagens: passagens.length,
+      });
+    };
+    const diurno = turno('diurno');
+    const noturno = comecoDoLivro ? null : turno('noturno');
+    const contato = !comecoDoLivro && r.chance(0.18) ? r.um(CONTATOS_DA_GERAL) : null;
+    out.push({
+      data, diurno, noturno,
+      geral: comecoDoLivro ? null : contato
+        ? { id: null, status: 'fechada', houveContato: true, categoria: contato.categoria,
+            motivo: preencher(contato.motivo), acao: contato.acao, pendencias: null,
+            chegada: hora(data, 23, r.entre(0, 50)), saida: hora(data, 24, r.entre(10, 50)) }
+        : { id: null, status: 'fechada', houveContato: false, categoria: null,
+            motivo: null, acao: null, pendencias: null, chegada: null, saida: null },
+    });
+  }
+  return out;
+}
+ARQUIVO_ATAS.push(...gerarLivroDaCasa());
+ARQUIVO_ATAS.sort((x, y) => (x.data < y.data ? 1 : -1));
+
 /** A capa da ATA de hoje, montada a partir do plantão vivo. */
 function capaDoPlantao(turno: string) {
   const s = PLANTOES.find((x) => !x.data && x.turno === turno);
-  if (!s) return null;
+  return s ? capaDe(s) : null;
+}
+function capaDe(s: (typeof PLANTOES)[number]) {
   const a = ataDo(s.id);
   const faltam = s.esperados.filter(
     (e) => !s.passagens.some((p) => p.userId === e.userId)).length;
@@ -6955,14 +7190,33 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     const { de, ate } = janelaDeConsulta(escala, base);
     const veFolhaCompleta = eu.role === 'gestor_geral' || eu.role === 'lider_noturno_geral';
 
+    /* Os plantões vivos saem dos plantões de verdade do protótipo, cada um no dia
+       em que começou (fase 206): de dia, o noturno vivo é o de ONTEM; de noite, o
+       diurno e o noturno vivos são do dia em que a noite começou. Assim o
+       calendário e a tela da Passagem contam a mesma história. */
+    const diaDoDiurno = DE_NOITE ? DIA_DO_NOTURNO : HOJE;
+    const diaDoNoturno = DE_NOITE ? DIA_DO_NOTURNO : ONTEM_SP;
+    const vivos = new Map<string, AtaArquivada>();
+    const vivo = (data: string) => {
+      if (!vivos.has(data)) {
+        const doLivro = ARQUIVO_ATAS.find((x) => x.data === data);
+        vivos.set(data, doLivro ? { ...doLivro } : { data, diurno: null, noturno: null, geral: null });
+      }
+      return vivos.get(data)!;
+    };
+    vivo(diaDoDiurno).diurno = capaDoPlantao('diurno');
+    vivo(diaDoNoturno).noturno = capaDoPlantao('noturno');
+    vivo(HOJE).geral = linhaDaCasaNaGeral();
+    /* E os plantões de dias anteriores que o protótipo tem vivos (a ATA do
+       sábado que ninguém fechou): no calendário eles aparecem abertos. */
+    for (const p of PLANTOES.filter((x) => x.data)) {
+      (vivo(dataDoPlantao(p)) as any)[p.turno] = capaDe(p);
+    }
     const dias = [
-      // O dia de hoje sai dos plantões vivos: o arquivo e a tela do dia
-      // contam a mesma história, e é isso que o Marcelo vai conferir.
-      { data: HOJE,
-        diurno: capaDoPlantao('diurno'), noturno: capaDoPlantao('noturno'),
-        geral: linhaDaCasaNaGeral() },
-      ...ARQUIVO_ATAS,
-    ].filter((d) => d.data >= de && d.data <= ate)
+      ...[...vivos.values()],
+      ...ARQUIVO_ATAS.filter((x) => !vivos.has(x.data)),
+    ].sort((x, y) => (x.data < y.data ? 1 : -1))
+     .filter((d) => d.data >= de && d.data <= ate)
      .filter((d) => d.diurno || d.noturno || d.geral)
      .map((d) => ({ ...d,
        geral: leGeral && d.geral && { ...d.geral,
@@ -7622,9 +7876,45 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         const c: any = (d as any)[turno];
         if (!c || c.plantaoId !== seg[1]) continue;
         const noite = turno === 'noturno';
+        /* O livro gerado (fase 206): cada dia com a sua história. */
+        const hist = HISTORIA_DO_ARQUIVO.get(c.plantaoId);
+        if (hist) {
+          return {
+            id: c.plantaoId, casaId: CASA.id, data: d.data, turno, status: 'fechado',
+            abertoEm: hist.abre, fechadoEm: c.fechadaEm,
+            ata: { id: c.ataId, status: c.status, versao: c.aditamentos ? 2 : 1, pendencias: c.pendencias,
+                   assinaturasFaltantes: c.assinaturasFaltantes, fechadaEm: c.fechadaEm,
+                   conteudo: hist.conteudo },
+            passagens: hist.passagens.map((p, i) => ({
+              id: `${c.plantaoId}-p${i}`, quem: p.quem, cargo: p.cargo, userId: p.userId,
+              contribuicoes: i === 0 ? hist.conteudo.acolhidos
+                : hist.notas[i - 1]?.texto ?? 'Acompanhei o turno com a equipe; o que houve está na ATA.',
+              pendencias: i === 0 ? c.pendencias : null,
+              orientacoes: i === 0 ? hist.conteudo.orientacoes : null,
+              medicacao: i === 0 ? hist.conteudo.medicamentos : null,
+              assinadaEm: p.hora, horarioReal: p.hora, complementoTardio: false,
+              offline: false, complementos: [], propria: false })),
+            assinaturasPendentes: [], escalaLancada: true, nenhumaPassagemAssinada: false,
+            minhaPassagemEsperada: false, recebimentos: [],
+            remedios: { doses: [], total: 0, semResposta: 0, jaEscrito: false, exigeFrase: false },
+            convivencias: [],
+            linhas: { notas: hist.notas.map((n, i) => ({
+                        id: `${c.plantaoId}-n${i}`, texto: n.texto, quem: n.quem, cargo: 'educador',
+                        autorId: n.userId, corAutor: null,
+                        quando: n.hora, restrita: false, cor: null })),
+                      restritas: 0, podeEscreverRestrita: false },
+            episodios: hist.episodios.map((e, i) => ({
+              id: `${c.plantaoId}-e${i}`, acolhidoId: e.acolhidoId, acolhido: e.acolhido,
+              classificacao: e.classificacao, relato: e.relato, quando: e.hora,
+              ocorrenciaId: null, registradoPor: e.quem, ciencias: 1, cienciaPropria: false,
+              quemDeuCiencia: [{ id: `${c.plantaoId}-c${i}`, quem: 'Tatiane Técnica (fictícia)',
+                                 comentario: null, quando: c.fechadaEm }] })),
+          };
+        }
         return {
           id: c.plantaoId, casaId: CASA.id, data: d.data, turno, status: 'fechado',
-          abertoEm: null, fechadoEm: c.fechadaEm,
+          abertoEm: new Date(`${d.data}T${noite ? '20:01' : '08:00'}:00-03:00`).toISOString(),
+          fechadoEm: c.fechadaEm,
           ata: { id: c.ataId, status: c.status, versao: 1, pendencias: c.pendencias,
                  assinaturasFaltantes: c.assinaturasFaltantes, fechadaEm: c.fechadaEm,
                  conteudo: noite
@@ -7646,6 +7936,8 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
                       ? 'O Bruno pediu para ligar para a avó amanhã cedo; combinado com a técnica.'
                       : 'A Maria voltou da escola com bilhete da professora; está na mochila dela.',
                       quem: noite ? 'Nélio Noturno (fictício)' : 'Tainá Souza (fictícia)', cargo: 'educador',
+                      /* Sem o autor, a tela da ATA quebrava ao pintar a borda (fase 206). */
+                      autorId: noite ? 'u8' : 'u7', corAutor: null,
                       quando: new Date(`${d.data}T${noite ? '23:10' : '15:30'}:00-03:00`).toISOString(),
                       restrita: false, cor: null }],
                     restritas: 0, podeEscreverRestrita: false },

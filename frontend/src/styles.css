@@ -2049,3 +2049,48 @@ div.acoes{ display:flex; flex-wrap:wrap; gap:8px; align-items:center }
 /* O ÍNDICE DO PERFIL (fase 202): leva direto a cada parte de um perfil que chega a oito telas. */
 .indice-perfil{ display:flex; flex-wrap:wrap; gap:8px; margin:4px 0 16px }
 .indice-perfil .btn{ border-radius:999px }
+
+/* O CALENDÁRIO DAS ATAS (fase 206): o mês em grade, cada dia com o turno do dia e o da
+   noite pintados pela situação da ATA. Cor de ESTADO, sempre com a palavra na legenda. */
+.calendario{ display:flex; flex-direction:column; gap:12px }
+.cal-topo{ display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px }
+.cal-titulo{ font-size:17px; margin:0 }
+.cal-mes{ display:flex; align-items:center; gap:8px }
+.cal-mes b{ min-width:128px; text-align:center }
+.cal-mes .btn{ min-width:36px; min-height:36px; display:inline-flex; align-items:center; justify-content:center }
+.cal-legenda{ list-style:none; margin:0; padding:0; display:flex; flex-wrap:wrap; gap:6px 14px;
+  font-size:12.5px; color:var(--ink-2) }
+.cal-legenda li{ display:inline-flex; align-items:center; gap:5px }
+.cal-amostra{ width:14px; height:14px; border-radius:4px; display:inline-block;
+  background:color-mix(in srgb, var(--c) 26%, var(--surface)); border:1.5px solid var(--ct) }
+.cal-amostra.vazio{ background:transparent; border:1.5px dashed var(--line-2) }
+.cal-semana, .cal-dias{ display:grid; grid-template-columns:repeat(7, minmax(0, 1fr)); gap:4px }
+.cal-semana span{ font-size:11px; font-weight:700; color:var(--muted); text-align:center; text-transform:uppercase }
+.cal-dia{ display:flex; flex-direction:column; gap:3px; padding:3px; border-radius:8px;
+  background:color-mix(in srgb, var(--line) 35%, transparent); min-width:0 }
+.cal-dia.fora{ background:transparent }
+.cal-dia.hoje{ outline:2px solid var(--brand); outline-offset:-1px }
+.cal-num{ font-size:12px; font-weight:800; color:var(--ink-2); text-align:center; line-height:1.1 }
+.cal-dia.depois .cal-num{ color:var(--muted) }
+.cal-turno{ position:relative; display:flex; align-items:center; justify-content:center;
+  min-height:26px; width:100%; border-radius:6px; padding:0; font:inherit; cursor:pointer;
+  background:color-mix(in srgb, var(--c) 24%, var(--surface)); color:var(--ct);
+  border:1.5px solid color-mix(in srgb, var(--ct) 60%, transparent) }
+.cal-turno.vazio{ cursor:default; background:transparent; color:var(--muted);
+  border:1.5px dashed var(--line-2) }
+.cal-turno.vazio.depois{ opacity:.45 }
+button.cal-turno:hover{ background:color-mix(in srgb, var(--c) 38%, var(--surface)) }
+button.cal-turno:focus-visible{ outline:3px solid var(--brand); outline-offset:1px }
+.cal-marca{ position:absolute; top:2px; right:3px; width:6px; height:6px; border-radius:50%;
+  background:var(--ink-2) }
+.cal-marca.solta{ position:static; display:inline-block; width:7px; height:7px }
+.cal-numeros{ display:grid; grid-template-columns:repeat(auto-fill, minmax(92px, 1fr)); gap:8px }
+.cal-numero{ display:flex; flex-direction:column; padding:8px 10px; border-radius:10px;
+  background:color-mix(in srgb, var(--c, var(--slate)) 10%, var(--surface));
+  border:1px solid color-mix(in srgb, var(--c, var(--slate)) 26%, transparent) }
+.cal-numero b{ font-size:20px; font-family:"Plus Jakarta Sans", sans-serif; color:var(--ct, var(--ink)) }
+.cal-numero span{ font-size:12px; color:var(--ink-2) }
+@media (min-width: 720px){
+  .cal-turno{ min-height:30px }
+  .cal-dia{ padding:4px }
+}

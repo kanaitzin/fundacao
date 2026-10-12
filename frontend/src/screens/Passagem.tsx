@@ -2,6 +2,12 @@ import { turnoAgora } from '../turno';
 import { useCallback, useEffect, useState } from 'react';
 import { ConvivenciasDoTurno, ConvivenciaDoTurno } from '../convivencias';
 import { api, apiOuFila } from '../api';
+import { CalendarioDosTurnos } from '../calendario-turnos';
+import { FolhaDocumento } from '../documentos';
+import type { ArquivoGerado } from '../documentos';
+import type { DocumentoWord } from '../docx';
+import { dia } from '../rotulos';
+import { Icone } from '../icones';
 
 /**
  * PASSAGEM INDIVIDUAL (§12.1–§12.4).
@@ -122,6 +128,11 @@ export function Passagem({ houseId }: { houseId: string }) {
   /* O cartão do plantão só pede para abrir (fase 196: entrada marcada para a Acolhe+AI,
      cujo clique só muda estado); quem lê é este efeito. */
   const [abrindoId, setAbrindoId] = useState<string | null>(null);
+  /* A ATA do plantão em folha, para ler e baixar (fase 206). */
+  const [documento, setDocumento] = useState<DocumentoWord | null>(null);
+  /* Aberto pelo calendário: é dia que passou, e quem abre está lendo. */
+  const [doCalendario, setDoCalendario] = useState(false);
+  const [tardia, setTardia] = useState(false);
   useEffect(() => {
     if (!abrindoId) return;
     setAbrindoId(null);
@@ -261,7 +272,7 @@ export function Passagem({ houseId }: { houseId: string }) {
 
         <div className="stack">
           {lista.map((p) => (
-            <button data-acolhe-entra="" key={p.id} className="card row chamadacard" onClick={() => setAbrindoId(p.id)}>
+            <button data-acolhe-entra="" key={p.id} className="card row chamadacard" onClick={() => { setDoCalendario(false); setTardia(false); setAbrindoId(p.id); }}>
               <div className="grow" style={{ textAlign: 'left' }}>
                 <b className="ff">{TURNO_LABEL[p.turno] ?? p.turno}</b>
                 <div className="mutetxt">
@@ -288,6 +299,13 @@ export function Passagem({ houseId }: { houseId: string }) {
             Abrir o {turnoDeAgora() === 'diurno' ? 'plantão diurno' : 'plantão noturno'}
           </button>
         )}
+
+        {/* OS DIAS ANTERIORES (fase 206): depois de recebido, o plantão sai da lista
+            de hoje e mora no calendário, com a ATA dele para ler e baixar. */}
+        <div style={{ marginTop: 18 }}>
+          <CalendarioDosTurnos houseId={houseId} titulo="Os plantões do mês"
+                               onAbrir={(id) => { setDoCalendario(true); setTardia(false); setAbrindoId(id); }} />
+        </div>
       </>
     );
   }
@@ -307,6 +325,8 @@ export function Passagem({ houseId }: { houseId: string }) {
             ← Plantões
           </button>
           <h2>{TURNO_LABEL[aberto.turno] ?? aberto.turno}</h2>
+          {/* O plantão de outro dia diz de que dia é: veio do calendário. */}
+          {aberto.data && <div className="mutetxt">{dia(aberto.data)}</div>}
         </div>
         <div className="resumo">
           <span className={`pill ${fechado ? 'c-mute' : 'c-ok'}`}>
@@ -328,6 +348,21 @@ export function Passagem({ houseId }: { houseId: string }) {
       </div>
 
       {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+      {aberto.ata && fechado && (
+        <button className="btn sec sm" style={{ marginBottom: 12 }}
+                onClick={async () => {
+                  try { setDocumento(await api<DocumentoWord>(`/shifts/${aberto.id}/folha`)); }
+                  catch (e) { setErro(e instanceof Error ? e.message : 'Não foi possível montar a folha da ATA.'); }
+                }}>
+          <Icone nome="documento" /> A ATA deste plantão: ver em folha ou baixar em Word
+        </button>
+      )}
+      {documento && (
+        <FolhaDocumento doc={documento} onFechar={() => setDocumento(null)}
+                        exportar={(finalidade) => api<ArquivoGerado>(
+                          `/shifts/${aberto.id}/export`,
+                          { method: 'POST', body: JSON.stringify({ finalidade }) })} />
+      )}
       {aviso && <div className="notice c-ok" role="status">{aviso}</div>}
 
       {/* O que quem chega precisa ler. Fica no topo porque é para isso que a
@@ -415,7 +450,14 @@ export function Passagem({ houseId }: { houseId: string }) {
         </section>
       )}
 
-      {!minha && (
+      {/* Do calendário (fase 206), o plantão fechado em que a pessoa não estava é
+          leitura: o formulário da passagem tardia fica a um toque, e não na frente. */}
+      {!minha && fechado && !aberto.minhaPassagemEsperada && !tardia && (
+        <button className="btn ghost block" style={{ marginTop: 14 }} onClick={() => setTardia(true)}>
+          Trabalhei neste plantão e quero assinar a minha passagem
+        </button>
+      )}
+      {!minha && (!fechado || aberto.minhaPassagemEsperada || tardia) && (
         <Formulario fechado={fechado} fechadoEm={aberto.fechadoEm ?? null}
                     esperada={aberto.minhaPassagemEsperada}
                     remedios={aberto.remedios}
@@ -426,7 +468,7 @@ export function Passagem({ houseId }: { houseId: string }) {
           Quem assinou a passagem deste plantão é quem SAI — oferecer a ele o
           botão de receber foi o que a tela de verdade mostrou: dois botões
           iguais, um deles sem sentido nenhum para quem estava ali. */}
-      {!jaRecebi && !minha && aberto.passagens.length > 0 && (
+      {!jaRecebi && !minha && aberto.passagens.length > 0 && !doCalendario && (
         <button className="btn sec block" style={{ marginTop: 14 }} onClick={() => setRecebendo(true)}>
           Recebi este plantão
         </button>

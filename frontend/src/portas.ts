@@ -81,7 +81,7 @@ export const PORTAS: Porta[] = [
     descricao: 'Abrir, acompanhar e encerrar com análise — nunca sozinha.' },
   { aba: 'ata', icone: 'ata', grupo: 'registro',
     titulo: 'ATA',
-    descricao: 'A da casa e a Geral Noturna, com pendência quando for o caso.' },
+    descricao: 'A da casa e a Geral Noturna, e o calendário com as ATAs dos dias anteriores.' },
   { aba: 'impacto', icone: 'impacto', grupo: 'gestao',
     titulo: 'O trabalho social',
     descricao: 'As oito casas pelo que o acolhimento produziu, e não pelo turno de hoje.' },

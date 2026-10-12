@@ -8,6 +8,7 @@ import type { ArquivoGerado } from '../documentos';
 import type { DocumentoWord } from '../docx';
 import { quemAssina } from '../quem-assina';
 import { Icone } from '../icones';
+import { CalendarioDosTurnos } from '../calendario-turnos';
 
 /**
  * ATAS — a da casa e a Geral Noturna.
@@ -487,6 +488,27 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
    * celular pode estar em outro fuso, e o dia da instituição é decidido num
    * lugar só (§23).
    */
+  /*
+   * ABRIR UMA ATA DO ARQUIVO OU DO CALENDÁRIO (fase 206).
+   *
+   * Abria trocando só o plantão: o texto das seções ficava o da ATA que estava
+   * aberta antes, e a ATA de outro dia aparecia com o texto de hoje embaixo da
+   * data dela. O texto e os adendos vêm junto, sempre do servidor.
+   */
+  const [doArquivo, setDoArquivo] = useState<string | null>(null);
+  async function abrirDoArquivo(plantaoId: string) {
+    setErro('');
+    try {
+      const p = await api<Plantao>(`/shifts/${plantaoId}`);
+      setAba('casa'); setEscolhido(plantaoId); setPlantao(p); setDoArquivo(plantaoId);
+      setLendoAnterior(false); setSemAnterior('');
+      setConteudo((p.ata?.conteudo ?? {}) as Record<string, string>);
+      setAdendos(p.ata ? await api<Adendo[]>(`/shifts/ata/${p.ata.id}/addenda`).catch(() => []) : []);
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Não foi possível abrir esta ATA.');
+    }
+  }
+
   async function consultar(nova = escala, data = quando) {
     setErro(''); setBuscando(true);
     try {
@@ -734,6 +756,12 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
 
           {plantao && (
             <>
+              {doArquivo === plantao.id && (
+                <button className="btn sm ghost" style={{ alignSelf: 'flex-start', marginBottom: 8 }}
+                        onClick={() => { setDoArquivo(null); setAba('arquivo'); }}>
+                  ← Voltar ao calendário
+                </button>
+              )}
               <div className="card raise stack">
                 <div className="row">
                   <h3 className="grow" style={{ fontSize: 17, margin: 0 }}>
@@ -1378,6 +1406,11 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
 
       {aba === 'arquivo' && (
         <>
+          {/* O CALENDÁRIO (fase 206): o mês inteiro de uma vez, a manhã e a noite
+              pintadas pela situação; tocar no turno abre a ATA, para ler e baixar. */}
+          <CalendarioDosTurnos houseId={houseId}
+            onAbrir={(plantaoId) => abrirDoArquivo(plantaoId)} />
+          <div style={{ height: 12 }} />
           {/*
             * O ARQUIVO DAS ATAS.
             *
@@ -1491,10 +1524,7 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
                         </div>
                       )}
                       <button className="btn sm sec" style={{ marginTop: 8 }}
-                              onClick={async () => {
-                                setAba('casa'); setEscolhido(a.plantaoId);
-                                setPlantao(await api<Plantao>(`/shifts/${a.plantaoId}`));
-                              }}>
+                              onClick={() => abrirDoArquivo(a.plantaoId)}>
                         Abrir esta ATA
                       </button>
                     </div>

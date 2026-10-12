@@ -369,6 +369,15 @@ describe('o modo guia atende como colega de plantão', () => {
     expect(r('marcar visita da mae do bruno no sabado').texto).toMatch(/Autorizar a visitar/);
   });
 
+  it('o calendário das ATAs se pede pelo jeito de quem quer olhar para trás (fase 206)', () => {
+    for (const f of ['quero ver o calendario das atas', 'como vejo as atas dos dias anteriores',
+                     'onde ficam as atas antigas', 'abre a ata de ontem']) {
+      const x = r(f);
+      // Pedido leva; pergunta explica e deixa o caminho.
+      expect(x.ir === 'ata' || /\(tela:ata\)/.test(x.texto)).toBe(true);
+    }
+  });
+
   it('não promete formulário antes de abrir: "registrar saída da visita" na portaria (fase 203)', () => {
     const portaria = [{ chave: 'portaria', titulo: 'Portaria' }];
     const x = responderPeloGuia('registrar saída da visita', portaria, false);

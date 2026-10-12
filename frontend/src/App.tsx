@@ -122,7 +122,7 @@ const FRASE_DAS_ABAS: Record<string, string> = {
   dia: 'A linha do dia da casa: atividades, doses, compromissos e o que espera alguém.',
   chamada: 'Quem está na casa em cada turno, quem está fora e por quê.',
   acolhidos: 'O perfil de cada criança, com saúde, escola, família, visitas e o dossiê.',
-  passagem: 'A passagem do plantão, assinada por cada um, e o complemento do que se lembrou depois.',
+  passagem: 'A passagem do plantão, assinada por cada um, e o calendário dos plantões do mês.',
 };
 
 const CARGOS_DEMO = [
