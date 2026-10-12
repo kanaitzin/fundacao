@@ -180,7 +180,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 12/10/2026, fase 203
+### Onde estamos — 12/10/2026, fase 204
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -247,8 +247,9 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 201 | **a Acolhe+AI como colega de plantão** (pedido de 11/10): fazendo o papel de cada setor, 59 pedidos e uns 20 bem atendidos; **"o Kauã fugiu" e "a Lara tá com febre" recebiam "não achei essa tela"**. Agora o cuidado vem antes da tela (`primeiroOCuidado`), os limites da Fundação vêm com o porquê, e quatro defeitos de lógica do guia consertados; a frase de urgência é para a Fundação conferir (PARA-A-REUNIAO §4.17) |
 | 202 | **o perfil do acolhido revisto** (pedido de 11/10): **a alergia ao amendoim da Alice estava a 5.185 px do topo**, embaixo de doze blocos que entraram ao longo das fases; voltou para logo depois do nome, com cuidados e remédio de hoje. E os **próximos compromissos** da criança, que a agenda guardava e o perfil nunca lia, e um índice no alto. As ocorrências no perfil ficam para a Fundação (PARA-A-REUNIAO §4.18) |
 | 203 | **a Acolhe+AI só promete o formulário depois de abri-lo** (pedido de 12/10): na portaria ela dizia *"vou abrir o formulário"* e logo *"não achei"*; agora diz *"Abrindo"* e a frase do formulário vem só quando ele abriu, com teste |
+| 204 | **cada setor de ponta a ponta** (pedido de 12/10): catorze percursos levando um registro de um setor aos outros; no protótipo, **a alergia registrada não chegava** à Saúde, à Enfermagem nem à Cozinha, **os plantões eram fixos e de antes de 25/09** (de madrugada, o diurno de amanhã já assinado), a ATA aberta não deixava escrever linha, a dose não baixava o armário e tocar em Acolhidos não voltava à lista; no sistema de verdade, **o remédio vencido dizia Validade próxima** |
 
-**Medido no fim da 203:** 188 migrações, 133 tabelas, 138 suítes, 1248 testes, verdes nas
+**Medido no fim da 204:** 188 migrações, 133 tabelas, 138 suítes, 1248 testes, verdes nas
 DUAS condições de relógio; os dez ensaios de navegador verdes (o `ensaio:acolhe` com todas as telas de todos os cargos por texto e por voz e os 36 formulários do sistema abertos por ela, inclusive dentro do perfil, do dossiê, da internação, do acervo e do plantão, e o do celular com 306 telas e nenhum achado), com a portaria e o
 portão, o armário, a cozinha, os temas e a foto no percurso do `ensaio:uso`; **1256 telas (157 × oito
 temas) sem violação de WCAG 2.1 AA**; nenhuma
@@ -290,6 +291,7 @@ o esqueci contra o servidor de verdade, sem achado**; na API, a mesma recusa.
 servidor: **onze contas, 201 telas e o esqueci, sem achado**; na API, a mesma recusa.
 **E na fase 203** (`SIM_CASAS=AI3 … 30`): **onze contas, 201 telas e o esqueci, sem achado**; na
 API, a mesma recusa.
+**E na fase 204** (`SIM_CASAS=AI3 … 30`), com o armário dizendo o vencido: SIMULACAO_204.
 
 **As TRÊS cores do sistema, porque confundi-las é o pior que esta tela pode
 fazer** — está escrito por extenso em `frontend/src/cargos.tsx`:
@@ -305,6 +307,13 @@ as três cores abaixo. Cor nova passa pelo `ensaio:acessibilidade`, que mede os 
 | **cargo** | *de que setor é esta pessoa?* | círculo cheio com iniciais |
 
 ### A próxima etapa
+
+**FEITO — fase 204** (§2): cada setor usado de ponta a ponta, conferindo se o registro de um
+chegava aos outros. Cinco defeitos do protótipo (a alergia que não saía do perfil, os plantões
+fixos e de antes da regra de 25/09, a ATA sem caixa de linha, o armário que não baixava com a
+dose, o toque em Acolhidos) e um do sistema de verdade (o vencido como validade próxima); o
+`ensaio:uso` ganhou o bloco *De um setor ao outro*. **Limite que fica, só no protótipo:** de
+madrugada, registros semeados com hora fixa do dia aparecem à frente.
 
 **FEITO — fase 203** (§2): a Acolhe+AI deixa de prometer formulário antes de abri-lo. Era o
 ponto menor que ficou da 201, na portaria.
@@ -732,6 +741,12 @@ novo.
   Kauã fugiu"* recebia *"não achei essa tela"*. A medição pedia pelo nome da tela, e ninguém no
   plantão fala assim. **Assistente se testa com a frase de quem está com pressa**, e o primeiro
   pedido a medir é o do pior momento do turno.
+- **O servidor de mentira tem de ler o que ele mesmo grava** (204). O mock guardava a alergia
+  nova numa lista e a Saúde, a Enfermagem e a Cozinha liam outra, a semeada: no protótipo,
+  que é o que o Marcelo abre, a alergia registrada não saía do perfil. Cada tela, sozinha,
+  passava no ensaio. **Ensaio de um setor só não vê o que não chega ao outro**: o percurso
+  leva o registro de um setor e o procura nos outros. E **dado de demonstração com hora fixa
+  mente em alguma hora do dia**: os plantões fixos estavam certos às 14h e errados às 3h.
 - **Frase de tela que envelhece é frase que mente**, e a cobrança do ensaio que a
   guarda tem de ser reescrita junto. A ressalva do painel sobre nota escolar já foi
   reescrita três vezes. **Isto inclui este arquivo.**
