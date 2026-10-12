@@ -650,12 +650,14 @@ function criarCasa(cfg: Config) {
 
     await eventosDoDia(dia, n, 'tarde');
     await relogio(dia, '18:30');
+    /* A turma relida depois da manhã: quem saiu da equipe às 09h não escreve às 18h (fase 205). */
+    const tarde = quemTrabalha(dia);
     await escreverNaAta(hoje.diurno, dia, 'diurno', `Tarde de ${['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'][semana]} sem intercorrências; tema de casa feito com os maiores.`);
-    if (hoje.diurno2) {
+    if (tarde.diurno2) {
       await relogio(dia, '18:35');
-      await pelaAcolhe(hoje.diurno2, dia, 'diurno', 'Acompanhei os menores no banho e no lanche da tarde; todos jantaram bem.');
+      await pelaAcolhe(tarde.diurno2, dia, 'diurno', 'Acompanhei os menores no banho e no lanche da tarde; todos jantaram bem.');
       if (semana === 0) {
-        const r = await post(hoje.diurno2, '/assistente/sugestoes', { texto: `Seria bom a chamada da janta lembrar quem tem dieta, semana de ${dia}.`, tela: 'chamada', casaId: ids.CASA }, { rotulo: 'deixar uma sugestão pela Acolhe+AI' });
+        const r = await post(tarde.diurno2, '/assistente/sugestoes', { texto: `Seria bom a chamada da janta lembrar quem tem dieta, semana de ${dia}.`, tela: 'chamada', casaId: ids.CASA }, { rotulo: 'deixar uma sugestão pela Acolhe+AI' });
         if (r?.id) fatos.sugestoes++;
       }
     }
@@ -666,7 +668,7 @@ function criarCasa(cfg: Config) {
     await abrirPlantao(hoje.noturno, dia, 'noturno');
     await passarOPlantao(hoje.diurno, hoje.noturno, dia, 'diurno', 'Dia cumprido, banho feito, todos em casa.');
     const pd = plantoes[`${dia}|diurno`];
-    if (hoje.diurno2 && pd) await post(hoje.diurno2, `/shifts/${pd.plantaoId}/handover`, { contribuicoes: 'Fiquei com os menores à tarde; tudo na ATA.' }, { rotulo: 'assinar a passagem (segundo do dia)' });
+    if (tarde.diurno2 && pd) await post(tarde.diurno2, `/shifts/${pd.plantaoId}/handover`, { contribuicoes: 'Fiquei com os menores à tarde; tudo na ATA.' }, { rotulo: 'assinar a passagem (segundo do dia)' });
     await relogio(dia, '19:15');
     await chamadaDaRefeicao(hoje.noturno, dia, '19:00', 'Janta');
     if (![0, 6].includes(semana)) {
@@ -690,9 +692,9 @@ function criarCasa(cfg: Config) {
     await relogio(dia, '23:00');
     await escreverNaAta(hoje.noturno, dia, 'noturno', 'Todos dormindo às 22h; ronda feita à meia-noite.');
     await cumprirAsAtividades(hoje.noturno, dia);
-    if (hoje.noturno2) {
+    if (tarde.noturno2) {
       await relogio(dia, '23:30');
-      await pelaAcolhe(hoje.noturno2, dia, 'noturno', 'Fiz a ronda das 23h; os maiores ainda conversavam baixo e logo dormiram.');
+      await pelaAcolhe(tarde.noturno2, dia, 'noturno', 'Fiz a ronda das 23h; os maiores ainda conversavam baixo e logo dormiram.');
     }
     primeiraOlhada = false;
   }
