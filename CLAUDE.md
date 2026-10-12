@@ -291,7 +291,8 @@ o esqueci contra o servidor de verdade, sem achado**; na API, a mesma recusa.
 servidor: **onze contas, 201 telas e o esqueci, sem achado**; na API, a mesma recusa.
 **E na fase 203** (`SIM_CASAS=AI3 … 30`): **onze contas, 201 telas e o esqueci, sem achado**; na
 API, a mesma recusa.
-**E na fase 204** (`SIM_CASAS=AI3 … 30`), com o armário dizendo o vencido: SIMULACAO_204.
+**E na fase 204** (`SIM_CASAS=AI3 … 30`), com o armário dizendo o vencido: **onze contas, 201 telas e o esqueci, sem achado**; nenhuma
+leitura acima de 155 ms; na API, a mesma recusa.
 
 **As TRÊS cores do sistema, porque confundi-las é o pior que esta tela pode
 fazer** — está escrito por extenso em `frontend/src/cargos.tsx`:
