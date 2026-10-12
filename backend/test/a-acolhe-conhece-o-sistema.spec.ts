@@ -319,6 +319,43 @@ describe('o modo guia atende como colega de plantão', () => {
     expect(responderPeloGuia('oi', TELAS, true).texto).not.toMatch(/não reconheci/);
   });
 
+  it('o que o plantão diz e o guia não ouvia (fase 205)', () => {
+    const portaria = [{ chave: 'portaria', titulo: 'Portaria' }];
+    // Alguém no portão dizendo ser da família: a proteção, nunca a tela.
+    const pai = responderPeloGuia('um homem quer entrar dizendo que é pai do felipe', portaria, false);
+    expect(pai.cuidado).toBe(true);
+    expect(pai.texto).toMatch(/Não abra o portão/);
+    expect(r('a familia da lara quer levar ela no fim de semana').texto).toMatch(/saída registrada pela equipe técnica/);
+    expect(responderPeloGuia('a tia do bruno ta no portao sem documento', portaria, false).texto).toMatch(/documento conferido/);
+    // A criança que chora, o pesadelo: a criança primeiro, sem diagnóstico.
+    for (const f of ['a alice ta chorando muito e nao para', 'a maria acordou com pesadelo']) {
+      const x = r(f);
+      expect(x.cuidado).toBe(true);
+      expect(x.texto).toMatch(/fique perto/);
+      expect(x.texto).toMatch(/\(tela:ata\)/);
+    }
+    // A família ao telefone: conferir o contato antes de passar.
+    expect(r('a mae do kaua ligou querendo falar com ele').texto).toMatch(/aproximação restrita/);
+    // O colega que não veio: a substituição, e nenhuma contagem de faltas.
+    const falta = r('o educador da casa 2 nao veio');
+    expect(falta.texto).toMatch(/substituição/);
+    expect(falta.texto).toMatch(/não conta faltas/);
+    // O fato contado no passado leva à ocorrência, sem abrir o perfil de ninguém.
+    for (const f of ['o felipe brigou com o bruno no patio', 'o kaua quebrou o vidro da janela']) {
+      const x = r(f);
+      expect(x.cuidado).toBe(true);
+      expect(x.texto).toMatch(/\(tela:ocorrencias\)/);
+    }
+    // Pedir ajuda para escrever pede o relato, e não a apresentação.
+    expect(r('acolhe me ajuda a escrever o que aconteceu na janta').texto).toMatch(/Me conte o que aconteceu/);
+    // A Enfermagem fala pelo nome do remédio e pelo que fez com a caixa.
+    for (const f of ['o colirio acabou', 'joguei fora uma caixa de dipirona vencida', 'suspender o antibiotico do bruno']) {
+      expect(r(f).texto).toMatch(/Saúde/);
+    }
+    // A falta de passagem é a pergunta de quem fecha a ATA.
+    expect(r('quem nao passou o plantao').texto).toMatch(/ATA/);
+  });
+
   it('não promete formulário antes de abrir: "registrar saída da visita" na portaria (fase 203)', () => {
     const portaria = [{ chave: 'portaria', titulo: 'Portaria' }];
     const x = responderPeloGuia('registrar saída da visita', portaria, false);

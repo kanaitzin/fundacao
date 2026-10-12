@@ -405,6 +405,18 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
       await new Promise((ok) => setTimeout(ok, 150));
     }
     const ignorar = sem(c.nome).split(/[^a-z0-9]+/);
+    /* A vacina, a receita e os papéis da criança moram no dossiê dela, cada um no seu
+       item (fase 205). Ela entra no dossiê e diz onde; anexar é da pessoa. */
+    if (/\b(vacina\w*|receita\w*|certidao|carteira de vacina\w*|documento\w*|rg|laudo\w*|declaracao)\b/.test(sem(t))) {
+      const dossie = Array.from(document.querySelectorAll<HTMLElement>('main.conteudo [data-acolhe-entra]'))
+        .find((el) => el.getClientRects().length > 0 && sem(el.innerText).includes('dossie'));
+      if (dossie) {
+        const r = await apertarAqui(dossie);
+        if (r.erro) { dizer(r.conteudo); return true; }
+        dizer(`Abri o dossiê de ${c.nome}. A carteira de vacinação, a receita e os outros papéis ficam aqui, cada um no seu item, com a validade quando houver: aperte Anexar no item certo. No modo guia eu não leio as datas.`);
+        return true;
+      }
+    }
     /* Pergunta não abre formulário: "a Lara é alérgica a quê" abria o de cadastrar
        alergia (achado fazendo o papel da Enfermagem, fase 200). */
     if (ehPergunta(t) && !pedeFormulario(t)) {
@@ -471,7 +483,10 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
       if (doNome) alvo = doNome;
       else if (form && pf >= minimo && pf >= pc) alvo = form;
       else if (caminho && pc >= 1) alvo = caminho;
-      else if (form && !soSeCombinar && nivel === 0) alvo = form; // pediu para criar: o primeiro formulário da tela
+      /* Pediu para criar sem dizer o quê ("quero registrar na Cozinha"): o primeiro
+         formulário da tela. Com assunto que não casa com nenhum botão, nenhum: "preciso
+         cadastrar a vacina do Bruno" abria o Registrar compra da Saúde (fase 205). */
+      else if (form && !soSeCombinar && nivel === 0 && assunto.length === 0) alvo = form;
       /* Nada casa, mas a tela tem abas que ela ainda não olhou: olha a próxima
          (aba só mostra; o formulário pedido pode estar atrás dela). */
       if (!alvo && !(form && pf >= 1) && assunto.length >= (soSeCombinar ? 2 : 1)) {

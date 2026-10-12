@@ -36,11 +36,18 @@ const PALAVRAS: Record<string, string[]> = {
   dia: ['dia', 'hoje', 'linha do dia', 'o que tem hoje', 'o que mudou', 'ultimo plantao', 'resumo do dia'],
   chamada: ['chamada', 'presenca', 'quem esta na casa', 'quem esta fora'],
   acolhidos: ['acolhido', 'crianca', 'perfil', 'dossie', 'documento da crianca', 'adolescente'],
-  passagem: ['passagem', 'assinar a passagem', 'passar o plantao', 'assinou o plantao', 'assinar o plantao'],
-  ata: ['ata', 'livro', 'linha da ata', 'registro do turno', 'fechar a ata', 'assinou a ata'],
-  saude: ['saude', 'remedio', 'dose', 'medicac', 'enfermagem', 'receita', 'vacina', 'estoque', 'armario', 'triagem', 'evolucao de saude', 'insulina'],
+  passagem: ['passagem', 'assinar a passagem', 'passar o plantao', 'passou o plantao', 'assinou o plantao', 'assinar o plantao'],
+  /* "Quem não passou o plantão" é a pergunta do líder que vai fechar a ATA: é nela que a falta aparece com nome (fase 205). */
+  ata: ['ata', 'livro', 'linha da ata', 'registro do turno', 'fechar a ata', 'assinou a ata', 'ronda', 'nao passou o plantao', 'nao passaram o plantao', 'quem nao assinou'],
+  /* O nome do remédio e o que se faz com a caixa também levam à Saúde: "o colírio acabou",
+     "joguei fora a dipirona vencida" recebiam "não achei" (fase 205). */
+  saude: ['saude', 'remedio', 'dose', 'medicac', 'enfermagem', 'receita', 'vacina', 'estoque', 'armario', 'triagem', 'evolucao de saude', 'insulina',
+    'colirio', 'xarope', 'pomada', 'comprimido', 'antibiotic', 'dipirona', 'paracetamol', 'ibuprofeno', 'amoxicilina', 'farmacia', 'vencid', 'descart', 'joguei fora', 'suspender', 'suspende'],
   internacao: ['internacao', 'hospital', 'internad'],
-  ocorrencias: ['ocorrencia', 'briga', 'fuga', 'evasao', 'conflito', 'agressao', 'contencao'],
+  /* O fato contado no passado ("o Felipe brigou com o Bruno", "o Kauã quebrou o vidro")
+     recebia "não achei": a lista tinha só o substantivo (fase 205). */
+  ocorrencias: ['ocorrencia', 'briga', 'brigou', 'brigaram', 'brigando', 'fuga', 'evasao', 'conflito', 'agressao', 'contencao',
+    'quebrou', 'quebraram', 'danific', 'estragou', 'xingou', 'xingando', 'ameacou', 'empurrou', 'mordeu', 'chutou', 'bateu no', 'bateu na', 'bateu em'],
   cozinha: ['cozinha', 'lanche', 'cesta', 'refeic', 'comida', 'restric', 'alergia', 'amendoim', 'nao pode comer', 'dieta'],
   portaria: ['portaria', 'visita', 'visitante', 'portao', 'chegou a tia', 'chegou o tio', 'chegou a avo', 'chegou o avo', 'chegou a mae', 'chegou o pai', 'veio visitar'],
   escala: ['escala', 'folga', 'turno de quem', 'quem trabalha', 'horario do turno', 'horario dos turnos'],
@@ -71,10 +78,12 @@ const QUER_CRIAR = /\b(marcar|marca|criar|cria|cadastrar|cadastra|registrar|regi
    Leva à tela e abre o formulário só se o pedido nomear um botão dela (fase 195). */
 /* "Fechar" e "assinar" ficam de fora de propósito: fechar a ATA grava, e quem
    aperta é a pessoa; a assistente só leva à tela (fase 200). */
-const QUER_ACAO = /\b(quero|preciso|vou|gostaria|tenho que|pode|chegou|fazer|faz|mudar|muda|trocar|troca|alterar|altera|esqueci)\b/;
+const QUER_ACAO = /\b(quero|preciso|vou|gostaria|tenho que|pode|chegou|fazer|faz|mudar|muda|trocar|troca|alterar|altera|esqueci|suspender|suspende|descartar|descarta|joguei)\b/;
 /* "Quem não pode comer amendoim" é pergunta, não pedido de mexer na tela: a
    licença era pedida à toa (achado fazendo o papel da Cozinha, fase 200). */
 const acao = (t: string) => QUER_ACAO.test(t.replace(/\bnao pode\b/g, ' '));
+/* "Me ajuda a escrever o que aconteceu na janta": ainda não há o que pôr no rascunho; ela pede o relato (fase 205). */
+const QUER_ESCREVER = /\b(ajuda|ajudar|ajude)\b.{0,12}\b(escrever|relatar|registrar|redigir|contar|anotar)\b|\bcomo (eu )?(escrevo|registro|relato|conto)\b.{0,12}\bo que aconteceu\b/;
 const QUER_SABER = /\b(o que voce faz|quem e voce|ajuda|como funciona|o que da para fazer|o que posso)\b/;
 
 const comecaPalavra = (t: string, termo: string) => {
@@ -201,6 +210,21 @@ const CONTAR_PESSOA = /\b(quantas faltas|faltando muito|falta muito|registra men
 const FORA_DO_SISTEMA = /\b(whats\w*|zap|zapzap|telegram|instagram|facebook|grupo de mensagem|grupo da casa)\b/;
 const APAGAR = /\b(apaga|apagar|apague|deleta|deletar|exclui|excluir|remove|remover|desfaz|desfazer|sumir com)\b/;
 const NO_LUGAR_DE = /\b(confirm\w*|marca\w*|dar baixa|da baixa|assina\w*)\b.{0,60}\b(por mim|pra mim|para mim|no meu lugar|por ela|por ele|pela colega|pelo colega)\b/;
+/*
+ * O QUE O PLANTÃO DIZ E O GUIA NÃO OUVIA (fase 205; pedido de 12/10: "procure mais
+ * bugs na Acolhe+AI em cada setor"). Fazendo o papel de cada setor outra vez, a
+ * criança chorando sem parar, o pesadelo, a mãe ao telefone, o homem no portão
+ * dizendo ser o pai e o colega que não veio recebiam "não achei essa tela".
+ */
+const PARENTE = '(mae|pai|avo|avos|tia|tio|irma|irmao|madrinha|padrinho|familia|parente|genitor\\w*|padrasto|madrasta|responsavel)';
+/* Alguém de fora quer entrar ou levar a criança: a resposta é a da proteção, não a da tela. */
+const LEVAR_A_CRIANCA = new RegExp(`\\b(quer|querendo|veio|vieram|vem)\\s+(\\w+\\s+)?(levar|buscar|pegar|tirar)\\b|\\b(dizendo|diz|disse|falando|fala) que (e|eh) (o |a )?${PARENTE}\\b|\\b(homem|mulher|pessoa|alguem|um cara|uma moca|desconhecid\\w*|estranh\\w*)\\b.{0,40}\\b(quer entrar|querendo entrar|no portao|na porta|no muro)\\b`);
+const CONTATO_DA_FAMILIA = new RegExp(`\\b${PARENTE}\\b.{0,50}\\b(ligou|liga|ligando|telefonou|quer falar|querendo falar|quer ver|querendo ver|mandou mensagem|mandou audio|quer visitar|pediu para falar|pediu pra falar)\\b`);
+const EMOCAO = /\b(chorando|chorou|chora muito|nao para de chorar|choro|crise|surtando|surtou|descontrolad\w*|gritando|se debatendo|pesadelo\w*|ansios\w*|apavorad\w*|com medo|assustad\w*|triste|tristeza|saudade|nao consegue dormir|nao quer dormir|sem dormir)\b/;
+const COLEGA = '(educador\\w*|colega\\w*|funcionari\\w*|plantonista\\w*|enfermeir\\w*|cozinheir\\w*|porteir\\w*|lider)';
+const COLEGA_FALTOU = new RegExp(`\\b${COLEGA}\\b.{0,40}\\b(nao veio|nao vem|nao apareceu|faltou|vai faltar|atrasad\\w*|atrasou|esta atrasad\\w*|ta atrasad\\w*|foi embora|saiu mais cedo|passou mal)\\b`);
+/* A entrada só se registra com o documento que a portaria olhou (fase 160). */
+const SEM_DOCUMENTO = /\b(sem documento|sem o documento|sem rg|sem identidade|sem carteira|esqueceu o documento|nao trouxe (o )?documento|sem foto no documento)\b/;
 const OBRIGADO = /^(muito )?(obrigad\w*|brigad\w*|valeu|vlw|obg|tmj)\b/;
 const OI = /^(oi+|ola|bom dia|boa tarde|boa noite|e ai|opa)\b[\s!.,]*(acolhe\w*)?[\s!.,]*$/;
 const SENHA = /\bsenha\b/;
@@ -226,6 +250,37 @@ function primeiroOCuidado(t: string, telas: TelaDoGuia[]): string | null {
   if (URGENCIA_FUGA.test(t)) {
     return 'Primeiro a criança: avise agora o líder do plantão e siga o protocolo da casa para saída não autorizada. '
       + `O registro nunca atrasa a proteção.${depois}`;
+  }
+  if (LEVAR_A_CRIANCA.test(t)) {
+    return 'Não abra o portão nem entregue a criança. Só entra quem está na lista de quem pode visitar aquela criança, '
+      + 'com documento conferido, e ninguém sai com ela sem a saída registrada pela equipe técnica. '
+      + 'Chame agora o líder do plantão ou a coordenação, e fique com a criança longe do portão. '
+      + 'Dizer que é da família não basta: há contato com aproximação restrita, e quem sabe é a equipe.'
+      + link(telas, 'portaria', 'Ver quem pode visitar');
+  }
+  if (SEM_DOCUMENTO.test(t)) {
+    return 'A entrada só se registra com o documento conferido, de preferência com foto, e sem ele o sistema não aceita. '
+      + 'Não deixe entrar: chame a coordenação, a técnica ou o líder do plantão, que conversam com a família. '
+      + 'Se for alguém que a criança esperava, explique com calma que é para a proteção dela.'
+      + link(telas, 'portaria', 'Abrir a Portaria');
+  }
+  if (EMOCAO.test(t)) {
+    return 'Primeiro ela: fique perto, com calma e sem pressa, num canto mais tranquilo, e ofereça água ou colo se ela aceitar. '
+      + 'Não precisa resolver agora nem perguntar o porquê. Se não passar, ou se houver risco para ela ou para alguém, '
+      + 'chame o líder do plantão e a equipe técnica. Depois, escreva na ATA o que aconteceu e o que ajudou: '
+      + 'é o que a próxima equipe precisa saber.' + link(telas, 'ata', 'Abrir a ATA');
+  }
+  if (CONTATO_DA_FAMILIA.test(t)) {
+    return 'Antes de passar o telefone ou marcar, confira no perfil da criança, nos contatos, se esse contato é permitido: '
+      + 'a aproximação restrita aparece em destaque. Na dúvida, não passe e avise o líder do plantão. '
+      + 'O contato com a família passa pela equipe técnica, e o que foi conversado fica na ATA.'
+      + link(telas, 'acolhidos', 'Abrir os Acolhidos');
+  }
+  if (COLEGA_FALTOU.test(t)) {
+    return 'Avise o líder do plantão e a coordenação, que resolvem a substituição. Quem cobriu fica registrado no Painel do plantão, '
+      + 'e a escala mostra quem estava escalado. Escreva na ATA como o turno ficou. '
+      + 'O sistema não conta faltas de ninguém: isso se conversa com a pessoa.'
+      + (link(telas, 'plantao', 'Abrir o Painel do plantão') || link(telas, 'escala', 'Abrir a escala'));
   }
   if (NO_LUGAR_DE.test(t)) {
     return 'Isso não dá: cada dose e cada assinatura são de quem fez, na conta de quem fez. Ninguém confirma pelo outro, nem eu. '
@@ -321,11 +376,21 @@ export function responderPeloGuia(texto: string, telas: TelaDoGuia[], primeira: 
          antes fazia a portaria ler "vou abrir o formulário" e logo "não achei" (fase 203). */
       return { texto: `${aviso}Abrindo ${tela.titulo}.`, ir: tela.chave, abrirFormulario: true };
     }
+    /* O fato contado sem pedido ("o Felipe brigou com o Bruno no pátio"): o cuidado
+       antes, e o caminho do registro como link. Não abre perfil de quem foi nomeado:
+       a ocorrência é da casa, e quem está envolvido entra nos detalhes (fase 205). */
+    if (tela.chave === 'ocorrencias' && !QUER_IR.test(t) && !acao(t) && !ehPergunta(texto)) {
+      return { texto: `${aviso}Isso se registra como ocorrência. Se alguém se machucou, o cuidado vem antes, e o líder do plantão precisa saber agora. Quando der, escreva o que você viu, sem julgar ninguém: [Registrar ocorrência](tela:ocorrencias)`, cuidado: true };
+    }
     const link = `[Abrir ${tela.titulo}](tela:${tela.chave})`;
     const explica = tela.frase ? `${tela.titulo}: ${tela.frase}` : tela.titulo;
     if (QUER_IR.test(t)) return { texto: `${aviso}Abrindo ${tela.titulo}.`, ir: tela.chave };
     if (acao(t)) return { texto: `${aviso}Abrindo ${tela.titulo}.`, ir: tela.chave };
     return { texto: `${aviso}${explica}\n\n${link}` };
+  }
+
+  if (QUER_ESCREVER.test(t)) {
+    return { texto: `${aviso}Me conte o que aconteceu, do jeito que vier, escrevendo aqui ou pelo microfone. Eu monto um rascunho para você conferir, e depois você escolhe onde ele fica: na ATA, numa ocorrência ou num acompanhamento. Só os fatos: o que aconteceu, quando, quem estava e o que foi feito.` };
   }
 
   if (QUER_SABER.test(t) || primeira) {
@@ -354,7 +419,7 @@ export function responderPeloGuia(texto: string, telas: TelaDoGuia[], primeira: 
  * sem ele quem decide é a pessoa (a resposta traz as duas).
  */
 export type CriancaDaCasa = { id: string; nome: string };
-const QUER_A_CRIANCA = /\b(perfil|ficha|abre|abrir|abra|leva|mostra|mostrar|ver|quero|preciso|vou|gostaria|pode|registrar|registra|escrever|escreve|lancar|lanca|anotar|anota|acrescentar|acrescenta|atualizar|atualiza|cadastrar|incluir|alergic\w*|alergia|escola|idade|aniversario|documento)\b/;
+const QUER_A_CRIANCA = /\b(perfil|ficha|abre|abrir|abra|leva|mostra|mostrar|ver|quero|preciso|vou|gostaria|pode|registrar|registra|escrever|escreve|lancar|lanca|anotar|anota|acrescentar|acrescenta|atualizar|atualiza|cadastrar|incluir|alergic\w*|alergia|escola|idade|aniversario|documento|receita|vacina\w*)\b/;
 
 export function criancasNoPedido(texto: string, lista: CriancaDaCasa[]): CriancaDaCasa[] {
   const t = sem(texto);
