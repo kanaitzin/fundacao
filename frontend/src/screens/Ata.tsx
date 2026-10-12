@@ -728,7 +728,8 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
           {doDia.length === 0 && (
             <div className="card"><p className="mutetxt" style={{ margin: 0 }}>
               Nenhum plantão aberto hoje nesta casa. A ATA nasce com o plantão — não é um
-              documento à parte.</p></div>
+              documento à parte. Quem chega abre o plantão na tela Passagem, no botão Abrir o
+              plantão; a linha da ATA aparece aqui em seguida.</p></div>
           )}
 
           {plantao && (

@@ -325,7 +325,11 @@ describe('o modo guia atende como colega de plantão', () => {
     const pai = responderPeloGuia('um homem quer entrar dizendo que é pai do felipe', portaria, false);
     expect(pai.cuidado).toBe(true);
     expect(pai.texto).toMatch(/Não abra o portão/);
-    expect(r('a familia da lara quer levar ela no fim de semana').texto).toMatch(/saída registrada pela equipe técnica/);
+    expect(r('a mulher no portao quer levar o kaua agora').texto).toMatch(/saída registrada pela equipe técnica/);
+    // A família que planeja o fim de semana é convivência familiar, e não alguém no portão.
+    const fds = r('a familia da lara quer levar ela no fim de semana');
+    expect(fds.texto).toMatch(/convivência familiar/);
+    expect(fds.texto).not.toMatch(/Não abra o portão/);
     expect(responderPeloGuia('a tia do bruno ta no portao sem documento', portaria, false).texto).toMatch(/documento conferido/);
     // A criança que chora, o pesadelo: a criança primeiro, sem diagnóstico.
     for (const f of ['a alice ta chorando muito e nao para', 'a maria acordou com pesadelo']) {
@@ -359,6 +363,8 @@ describe('o modo guia atende como colega de plantão', () => {
     const mensal = r('preciso fazer o relatorio mensal da alice', tecnica);
     expect(mensal.rascunho).toBeUndefined();
     expect(mensal.ir).toBe('acompanhamentos');
+    // A ocorrência que já existe não é fato novo para registrar.
+    expect(r('a ocorrencia de ontem precisa de analise').texto).not.toMatch(/Isso se registra como ocorrência/);
     // O dia de visita é o combinado do contato, no perfil, e não a Portaria.
     expect(r('marcar visita da mae do bruno no sabado').texto).toMatch(/Autorizar a visitar/);
   });

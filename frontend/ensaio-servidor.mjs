@@ -211,6 +211,15 @@ for (const conta of CONTAS) {
     const ata = pg.locator('nav.portas-lateral button', { hasText: /^\s*ATA\s*$/ }).first();
     if (await ata.isVisible().catch(() => false)) await ata.click(); else await pg.locator('nav.tabbar button', { hasText: 'ATA' }).first().click().catch(() => {});
     await pg.waitForTimeout(1200);
+    /* Sem plantão aberto não há ATA: a educadora abre o plantão na Passagem, como faria ao chegar. */
+    if (!(await pg.locator('#linha-ata').count())) {
+      await pg.locator('nav.portas-lateral button', { hasText: /^\s*Passagem\s*$/ }).first().click().catch(() => {});
+      await pg.waitForTimeout(1000);
+      await pg.getByRole('button', { name: /^Abrir o plantão/ }).first().click().catch(() => {});
+      await pg.waitForTimeout(1500);
+      await pg.locator('nav.portas-lateral button', { hasText: /^\s*ATA\s*$/ }).first().click().catch(() => {});
+      await pg.waitForTimeout(1200);
+    }
     const temLinha = await pg.locator('#linha-ata').count();
     const painel = pg.locator('.acolhe-painel');
     if (!(await painel.isVisible().catch(() => false))) await pg.getByRole('button', { name: /^Abrir a Acolhe\+AI/ }).click().catch(() => {});
