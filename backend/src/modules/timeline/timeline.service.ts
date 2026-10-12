@@ -59,17 +59,28 @@ export class TimelineService {
     const falhas = new Set<string>();
     const porCasa: { casa: string; nome: string; eventos: number }[] = [];
 
-    for (const casa of casas) {
-      const r = await this.registry.collect({
+    /*
+     * DE QUATRO EM QUATRO (fase 205). As casas eram lidas uma depois da outra, e
+     * com vinte pessoas por casa e seis meses de uso o dia das oito passou de um
+     * segundo para quem abre às 3h (o Líder Noturno Geral). As casas não dependem
+     * uma da outra; quatro de cada vez usam no máximo quatro das dez conexões do
+     * banco, e a ordem da lista continua a do código da casa.
+     */
+    const coletas: Awaited<ReturnType<TimelineRegistry['collect']>>[] = [];
+    for (let i = 0; i < casas.length; i += 4) {
+      coletas.push(...await Promise.all(casas.slice(i, i + 4).map((casa) => this.registry.collect({
         user, houseId: casa.id, date: params.date,
         onlyMine: params.mode === 'minhas',
-      });
+      }))));
+    }
+    casas.forEach((casa, i) => {
+      const r = coletas[i];
       r.falhas.forEach((f) => falhas.add(f));
       // A casa vai em cada evento: numa lista de oito unidades, saber QUANDO
       // sem saber ONDE não ajuda ninguém.
       for (const e of r.events) eventos.push({ ...e, casa: casa.code });
       porCasa.push({ casa: casa.code, nome: casa.name, eventos: r.events.length });
-    }
+    });
 
     eventos.sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
 
