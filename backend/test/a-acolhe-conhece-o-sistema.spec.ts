@@ -319,6 +319,15 @@ describe('o modo guia atende como colega de plantão', () => {
     expect(responderPeloGuia('oi', TELAS, true).texto).not.toMatch(/não reconheci/);
   });
 
+  it('não promete formulário antes de abrir: "registrar saída da visita" na portaria (fase 203)', () => {
+    const portaria = [{ chave: 'portaria', titulo: 'Portaria' }];
+    const x = responderPeloGuia('registrar saída da visita', portaria, false);
+    expect(x.ir).toBe('portaria');
+    expect(x.abrirFormulario).toBe(true);
+    // A frase do formulário vem da tela, e só se ele abrir.
+    expect(x.texto).not.toMatch(/formulário/);
+  });
+
   it('nenhuma resposta do guia usa travessão (a Acolhe+AI escreve como colega)', () => {
     for (const f of ['o kauã fugiu', 'a lara ta com febre', 'qual criança dá mais trabalho', 'apaga isso da ata',
       'manda no zap', 'como troco minha senha', 'obrigado', 'o bruno é agressivo?']) {

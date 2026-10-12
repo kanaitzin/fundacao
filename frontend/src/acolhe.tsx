@@ -379,7 +379,9 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
     const daCriancaNaTela = daCrianca
       ? { ignorar: sem(daCrianca.nome).split(/[^a-z0-9]+/), entrar: true, nomeDaCrianca: daCrianca.nome, tela: titulo }
       : { tela: titulo, chave: r.ir };
-    if (r.ir && r.abrirFormulario) await abrirOFormulario(t, false, daCriancaNaTela);
+    if (r.ir && r.abrirFormulario) {
+      if (await abrirOFormulario(t, false, daCriancaNaTela)) dizer('Abri o formulário. Preencha e salve quando estiver certo.');
+    }
     else if (r.ir) await abrirOFormulario(t, true, daCriancaNaTela);
     if (r.rascunho) {
       const tela = r.rascunho.tela && telas.some((x) => x.chave === r.rascunho!.tela) ? r.rascunho.tela : undefined;

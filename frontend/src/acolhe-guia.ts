@@ -317,7 +317,9 @@ export function responderPeloGuia(texto: string, telas: TelaDoGuia[], primeira: 
   const tela = achar(texto, telas);
   if (tela) {
     if (QUER_CRIAR.test(t)) {
-      return { texto: `${aviso}Vou abrir ${tela.titulo} e o formulário para você. Preencha e salve quando estiver certo.`, ir: tela.chave, abrirFormulario: true };
+      /* Só "Abrindo": a frase do formulário vem depois, e só se ele abrir. Prometer
+         antes fazia a portaria ler "vou abrir o formulário" e logo "não achei" (fase 203). */
+      return { texto: `${aviso}Abrindo ${tela.titulo}.`, ir: tela.chave, abrirFormulario: true };
     }
     const link = `[Abrir ${tela.titulo}](tela:${tela.chave})`;
     const explica = tela.frase ? `${tela.titulo}: ${tela.frase}` : tela.titulo;
