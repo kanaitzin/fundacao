@@ -637,8 +637,20 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
         return;
       }
     }
-    const abriu = await abrirOFormulario(`${r.titulo} ${r.texto.slice(0, 200)}`);
-    if (!abriu) return;
+    /* O formulário que casa com o texto; se nenhum casa, o primeiro da tela de destino,
+       que foi a pessoa quem escolheu (fase 205: sem isto, o conserto da vacina deixava
+       o rascunho sem formulário). */
+    const formularios = Array.from(document.querySelectorAll<HTMLElement>('main.conteudo [data-acolhe-abre]'))
+      .filter((el) => el.getClientRects().length > 0);
+    const palavras = sem(`${r.titulo} ${r.texto.slice(0, 200)}`).split(/[^a-z]+/).filter((w) => w.length > 3);
+    const casa = (el: HTMLElement) => palavras.filter((w) => sem(el.innerText).includes(w.slice(0, 5))).length;
+    const alvo = formularios.reduce<HTMLElement | undefined>((m, el) => (!m || casa(el) > casa(m) ? el : m), undefined);
+    if (!alvo) {
+      dizer('Abri a tela, mas não achei nela um formulário para o rascunho. Ele continua aqui para você copiar.');
+      return;
+    }
+    const apertou = await apertarAqui(alvo);
+    if (apertou.erro) { dizer(apertou.conteudo); return; }
     await new Promise((ok) => setTimeout(ok, 400));
     const campo = camposDaTela().find((c) => c.tipo === 'texto longo');
     if (!campo) {
