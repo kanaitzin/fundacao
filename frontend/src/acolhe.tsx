@@ -405,6 +405,26 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
       await new Promise((ok) => setTimeout(ok, 150));
     }
     const ignorar = sem(c.nome).split(/[^a-z0-9]+/);
+    /* O PERFIL EM ABAS (fase 208): o assunto do pedido escolhe a aba, como a pessoa
+       escolheria ("as visitas do Bruno" abre Família e visitas). Aba não grava. */
+    const ABA_DO_ASSUNTO: [RegExp, string][] = [
+      [/\b(atendimento\w*|historico|tudo sobre|o dia d[ea]l[ea])\b/, 'Atendimentos'],
+      [/\b(visita\w*|familia\w*|contato\w*|mae|pai|avo|tia|tio|madrinha|sair|saida\w*|portao|acompanhante)\b/, 'Família e visitas'],
+      [/\b(saude|alergi\w*|remedio\w*|doenca\w*|consulta\w*|internac\w*|restric\w*)\b/, 'Saúde'],
+      [/\b(escola\w*|educac\w*|estud\w*|bimestre|conceito|curso\w*)\b/, 'Educação'],
+      [/\b(judic\w*|juiz\w*|processo\w*|oficio\w*|como (ela |ele )?chegou)\b/, 'Judiciário'],
+      [/\b(aniversari\w*|conquista\w*|foto\w*|memoria\w*|vivencia\w*)\b/, 'Vida na casa'],
+      [/\b(cadastro|correc\w*|quem mexeu)\b/, 'Cadastro'],
+    ];
+    const daAba = ABA_DO_ASSUNTO.find(([re]) => re.test(sem(t)))?.[1];
+    if (daAba) {
+      const aba = Array.from(document.querySelectorAll<HTMLElement>('main.conteudo nav.abas-perfil [role=tab]'))
+        .find((el) => el.innerText.trim() === daAba);
+      if (aba && aba.getAttribute('aria-selected') !== 'true') {
+        aba.click();
+        await new Promise((ok) => setTimeout(ok, 400));
+      }
+    }
     /* A vacina, a receita e os papéis da criança moram no dossiê dela, cada um no seu
        item (fase 205). Ela entra no dossiê e diz onde; anexar é da pessoa. */
     if (/\b(vacina\w*|receita\w*|certidao|carteira de vacina\w*|documento\w*|rg|laudo\w*|declaracao)\b/.test(sem(t))) {

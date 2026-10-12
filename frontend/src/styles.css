@@ -2101,3 +2101,33 @@ button.cal-turno:focus-visible{ outline:3px solid var(--brand); outline-offset:1
   .saidas-do-portao{ grid-template-columns:repeat(auto-fill, minmax(340px, 1fr)) }
 }
 .saidas-do-portao .card{ margin:0 }
+
+/* AS ABAS DO PERFIL (fase 208): cada parte da vida da criança com a sua cor, na barra
+   da aba e no desenho. A letra é sempre a da tela; a cor nunca vira pílula. */
+:root{
+  --aba-hoje:#1F6FB2; --aba-familia:#B4387A; --aba-saude:#7A4CC4; --aba-educacao:#0E7C86;
+  --aba-judiciario:#4B5A8C; --aba-vida:#C2571A; --aba-atendimentos:#2E7D4F; --aba-cadastro:#5E6B7A;
+}
+.abas-perfil{ display:flex; flex-wrap:wrap; gap:6px; margin:6px 0 16px }
+.aba-perfil{ display:inline-flex; align-items:center; gap:7px; min-height:40px; padding:6px 12px;
+  border-radius:10px; font:inherit; font-weight:700; font-size:14px; cursor:pointer;
+  color:var(--ink-2); background:var(--surface);
+  border:1.5px solid color-mix(in srgb, var(--aba) 35%, var(--line));
+  border-bottom:4px solid var(--aba) }
+.aba-perfil .icone{ color:var(--aba) }
+.aba-perfil.on{ background:color-mix(in srgb, var(--aba) 16%, var(--surface)); color:var(--ink);
+  border-color:var(--aba) }
+.aba-perfil:focus-visible{ outline:3px solid var(--brand); outline-offset:2px }
+.aba-hoje{ --aba:var(--aba-hoje) } .aba-familia{ --aba:var(--aba-familia) }
+.aba-saude{ --aba:var(--aba-saude) } .aba-educacao{ --aba:var(--aba-educacao) }
+.aba-judiciario{ --aba:var(--aba-judiciario) } .aba-vida{ --aba:var(--aba-vida) }
+.aba-atendimentos{ --aba:var(--aba-atendimentos) } .aba-cadastro{ --aba:var(--aba-cadastro) }
+@media (max-width: 719px){
+  .abas-perfil{ display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)) }
+  .aba-perfil{ justify-content:flex-start; font-size:13.5px }
+}
+.atendimentos{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:10px }
+.atendimentos li{ display:flex; align-items:flex-start; gap:10px }
+.atendimentos .hora{ font-weight:800; min-width:44px; color:var(--ink-2) }
+.atend-tipo{ display:inline-flex; color:var(--muted); padding-top:2px }
+@media (max-width: 719px){ .atendimentos li{ flex-wrap:wrap } }

@@ -49,7 +49,7 @@
   196 também dentro do perfil da criança (*quero registrar a alergia do Bruno*), do dossiê, da
   internação aberta e do acervo: os 36 formulários do sistema. **Para o DPO:**
   o ditado usa o reconhecimento do navegador; no Chrome, o áudio vai ao Google.
-- **207 fases.** 139 suítes e 1258 testes, verdes em duas condições de relógio —
+- **208 fases.** 139 suítes e 1258 testes, verdes em duas condições de relógio —
   antes e depois da virada do UTC, que em Porto Alegre é às 21h.
 - **O aviso no celular** (fase 189, decidido em 06/10): quem liga na Minha conta
   recebe no celular todos os avisos do sino, mesmo com o sistema fechado. Na
@@ -516,6 +516,14 @@ para a portaria**. Quem ainda não tem decisão da equipe só sai com acompanhan
 
 Perguntas, só para confirmar: **o Gestor Geral fica mesmo de fora?** E **o "pode ir a"
 (escola, curso) deve aparecer para a portaria**, ou só o que vale?
+
+## 4.21 O perfil em abas (fase 208, pedido de 12/10)
+
+O perfil da criança virou oito abas coloridas, com o que protege a criança sempre no
+alto. Duas coisas para a Fundação olhar: **as amizades**, que o pedido cita na Vida na
+casa, não têm lugar no sistema (escrever quem é amigo de quem é registro sobre duas
+crianças, e pede cuidado); e **as ocorrências da criança** continuam fora do perfil,
+esperando a resposta da §4.18.
 
 ## 5. As decisões que são do Marcelo *(§10 — responda pelo número)*
 

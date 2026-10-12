@@ -747,6 +747,8 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
   const [alteracoes, setAlteracoes] = useState<Alteracao[]>([]);
   /** A ficha de entrada: existia, tinha rota, e nenhuma tela a pedia (fase 116). */
   const [acolhimento, setAcolhimento] = useState<Acolhimento | null>(null);
+  /** A aba do perfil (fase 208): o perfil em partes, em vez de oito telas de rolagem. */
+  const [aba, setAba] = useState<AbaDoPerfil>('hoje');
 
   useEffect(() => {
     (async () => {
@@ -964,9 +966,9 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
         )}
       </Secao>
 
-      <CompromissosDoAcolhido houseId={houseId} personId={p.id} nome={p.nome} />
+      <AbasDoPerfil aba={aba} onAba={setAba} veJudicial={VE_JUDICIAL.includes(papel)} />
 
-      <IndiceDoPerfil />
+      {aba === 'hoje' && <CompromissosDoAcolhido houseId={houseId} personId={p.id} nome={p.nome} />}
 
       {/*
         * O QUE ELA CONQUISTOU.
@@ -977,7 +979,8 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
         * alcança. Sem este bloco, a fase 58 tinha criado uma tabela que só a
         * API sabia preencher.
         */}
-      <Conquistas perfil={p} papel={papel} />
+      {aba === 'vida' && <VidaNaCasa perfil={p} />}
+      {aba === 'vida' && <Conquistas perfil={p} papel={papel} />}
 
       {/*
         * QUEM APARECE POR ESTA CRIANÇA.
@@ -986,11 +989,14 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
         * plantão: quem está com a criança precisa saber quem é a pessoa que
         * apareceu no portão às nove da noite, sem ligar para a técnica.
         */}
+      {aba === 'familia' && (
       <div id="perfil-familia">
         <SairSozinho perfil={p} papel={papel} onMudou={recarregar} />
         <Contatos perfil={p} papel={papel} onMudou={recarregar} />
         <VisitasDoAcolhido personId={p.id} />
+        <ConvivenciaFamiliar personId={p.id} quem={p.nome} />
       </div>
+      )}
 
       {/*
         * A PRESENÇA, NA VIDA DELA (fase 110).
@@ -1000,7 +1006,8 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
         * chamada daquele almoço. O provedor da linha do tempo dizia, num
         * comentário, que "o registro dele está no perfil" — e não estava.
         */}
-      <div id="perfil-presenca"><Presenca personId={p.id} nome={p.nome} /></div>
+      {aba === 'atendimentos' && <AtendimentosDoAcolhido houseId={houseId} personId={p.id} nome={p.nome} />}
+      {aba === 'hoje' && <div id="perfil-presenca"><Presenca personId={p.id} nome={p.nome} /></div>}
 
       {/*
         * O QUE SE ESCREVEU SOBRE ELA (fase 128).
@@ -1011,7 +1018,7 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
         * exatamente a narrativa que o §26.2 protege. A resposta foi "só a
         * contagem", e é ela que desenha este bloco.
         */}
-      <Relatos personId={p.id} nome={p.nome} />
+      {aba === 'atendimentos' && <Relatos personId={p.id} nome={p.nome} />}
 
       {/*
         * O PRONTUÁRIO DE EDUCAÇÃO (fase 111).
@@ -1021,7 +1028,7 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
         * desenvolvimento e a audiência diriam "não há" sobre escola e
         * profissionalização para sempre.
         */}
-      <div id="perfil-educacao"><Educacao personId={p.id} houseId={houseId} papel={papel} /></div>
+      {aba === 'educacao' && <div id="perfil-educacao"><Educacao personId={p.id} houseId={houseId} papel={papel} /></div>}
 
       {/*
         * QUEM MEXEU NO REGISTRO DESTA CRIANÇA (fase 112).
@@ -1043,18 +1050,17 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
         * Os três somem quando não há o que mostrar: um perfil com três blocos
         * vazios ensina a passar o olho por cima deles.
         */}
-      <div id="perfil-trajetoria">
-        <ConvivenciaFamiliar personId={p.id} quem={p.nome} />
-        <InternacoesDoAcolhido personId={p.id} />
-        <OficiosDoAcolhido personId={p.id} />
-      </div>
+      {aba === 'saude' && <InternacoesDoAcolhido personId={p.id} />}
+      {aba === 'judiciario' && <OficiosDoAcolhido personId={p.id} />}
 
-      <AuditoriaDoAcolhido personId={p.id} papel={papel} />
+      {aba === 'cadastro' && <AuditoriaDoAcolhido personId={p.id} papel={papel} />}
 
       {/* A pasta da criança: o que a casa precisa ter, e o álbum dela. */}
-      <button data-acolhe-entra="" className="btn sec block" style={{ marginBottom: 12 }} onClick={() => setDossie(true)}>
-        <Icone nome="pasta" /> Dossiê e vivências
-      </button>
+      {(aba === 'vida' || aba === 'cadastro') && (
+        <button data-acolhe-entra="" className="btn sec block" style={{ marginBottom: 12 }} onClick={() => setDossie(true)}>
+          <Icone nome="pasta" /> Dossiê e vivências
+        </button>
+      )}
 
       {/*
         * CORRIGIR O CADASTRO (§6.2).
@@ -1064,7 +1070,7 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
         * saída de quem usa é RECADASTRAR — e aí existem duas crianças, o
         * histórico parte em dois, e é isso que a audiência pergunta.
         */}
-      {QUEM_CADASTRA.includes(papel) && (
+      {aba === 'cadastro' && QUEM_CADASTRA.includes(papel) && (
         <button className="btn ghost block" style={{ marginBottom: 12 }}
                 onClick={() => setCorrigindo(true)}>
           <Icone nome="escrever" /> Corrigir o cadastro
@@ -1082,7 +1088,7 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
         * escrever "atualização" no campo de motivo mil vezes, e aí o motivo
         * deixa de ser lido justamente quando importa.
         */}
-      {QUEM_CADASTRA.includes(papel) && (
+      {(aba === 'cadastro' || aba === 'educacao') && QUEM_CADASTRA.includes(papel) && (
         <button data-acolhe-abre="" className="btn ghost block" style={{ marginBottom: 12 }}
                 onClick={() => setEditandoDetalhe(true)}>
           <Icone nome="escrever" /> Atualizar escola, cuidados e equipe
@@ -1091,7 +1097,7 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
 
       {/* O histórico fica À VISTA de quem cuida: "por que o nome dela mudou em
           março?" é pergunta do caso, não de auditoria. */}
-      {correcoes.length > 0 && (
+      {aba === 'cadastro' && correcoes.length > 0 && (
         <div className="card" style={{ marginBottom: 12 }}>
           <div className="eyebrow" style={{ marginTop: 0 }}>
             Correções de cadastro · {correcoes.length}
@@ -1117,7 +1123,7 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
         * o cuidado essencial que a técnica reescreveu hoje de manhã, e ele
         * precisa poder ver que mudou — e o que dizia antes — sem perguntar.
         */}
-      {alteracoes.length > 0 && (
+      {aba === 'cadastro' && alteracoes.length > 0 && (
         <div className="card" style={{ marginBottom: 12 }}>
           <div className="eyebrow" style={{ marginTop: 0 }}>
             O que mudou no perfil · {alteracoes.length}
@@ -1136,6 +1142,7 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
         </div>
       )}
 
+      {aba === 'saude' && (
       <Secao titulo="Saúde" id="perfil-saude">
         {/*
           * REGISTRAR ATENDIMENTO — quem acompanhou é quem relata (§7.2).
@@ -1206,6 +1213,7 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
           </ul>
         )}
       </Secao>
+      )}
 
       {/*
         * O QUE A COORDENAÇÃO DESLIGOU (fase 93).
@@ -1214,7 +1222,7 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
         * desligou e por quê. Sem isto ele leria a ausência como "não há
         * telefone da escola" — e ligaria para ninguém.
         */}
-      {(p.camposDesligados ?? []).length > 0 && (
+      {aba === 'hoje' && (p.camposDesligados ?? []).length > 0 && (
         <div className="notice c-info">
           <b>Fora da vista do plantão, por decisão da coordenação:</b>
           <ul className="lista">
@@ -1230,7 +1238,7 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
         </div>
       )}
 
-      {((p.escola && (p.escola.nome || p.escola.serie)) || QUEM_CADASTRA.includes(papel)) && (
+      {aba === 'educacao' && ((p.escola && (p.escola.nome || p.escola.serie)) || QUEM_CADASTRA.includes(papel)) && (
         <Secao titulo="Escola">
           {p.escola && (p.escola.nome || p.escola.serie) ? (
             <>
@@ -1246,7 +1254,7 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
         </Secao>
       )}
 
-      {(p.equipeReferencia || QUEM_CADASTRA.includes(papel)) && (
+      {aba === 'hoje' && (p.equipeReferencia || QUEM_CADASTRA.includes(papel)) && (
         <Secao titulo="Equipe de referência">
           {p.equipeReferencia
             ? <p className="bloco" style={{ marginTop: 0 }}>{p.equipeReferencia}</p>
@@ -1256,7 +1264,7 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
 
       {/* As observações só chegam a quem pode escrevê-las: o servidor nem as
           devolve para os outros cargos (§6.2). */}
-      {p.observacoes !== undefined && (
+      {aba === 'cadastro' && p.observacoes !== undefined && (
         <Secao titulo="Observações">
           {p.observacoes
             ? <p className="bloco" style={{ marginTop: 0 }}>{p.observacoes}</p>
@@ -1264,6 +1272,7 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
         </Secao>
       )}
 
+      {aba === 'cadastro' && (
       <Secao titulo="Documentos" id="perfil-documentos">
         {p.documentos.length === 0 && p.documentosRestritos === 0 && (
           <p className="mutetxt" style={{ margin: 0 }}>Nenhum documento cadastrado.</p>
@@ -1288,6 +1297,7 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
           </p>
         )}
       </Secao>
+      )}
 
       {/* A ÁREA RESTRITA. Não abre junto com o perfil: exige o toque, e o
           toque fica registrado com o nome de quem deu (§13.1, §20). */}
@@ -1333,7 +1343,7 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
         * que recebe a criança no primeiro plantão precisa saber que ela tem
         * uma irmã na Casa 01 e que chegou sem nada além da roupa do corpo.
         */}
-      {acolhimento && (
+      {aba === 'judiciario' && acolhimento && (
         <Secao titulo="Como ela chegou">
           <ul className="lista">
             <li>
@@ -1389,7 +1399,7 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
         * saiu. Uma criança que voltou é a informação mais importante do alto
         * de um perfil, e era justamente onde não aparecia (fase 116).
         */}
-      {p.episodios && p.episodios.length > 1 && (
+      {aba === 'judiciario' && p.episodios && p.episodios.length > 1 && (
         <Secao titulo="Episódios de acolhimento">
           <p className="mutetxt" style={{ marginTop: 0 }}>
             Esta criança já esteve acolhida antes. O que aconteceu em cada passagem continua
@@ -1410,7 +1420,7 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
         </Secao>
       )}
 
-      {VE_JUDICIAL.includes(papel) && (
+      {aba === 'judiciario' && VE_JUDICIAL.includes(papel) && (
         <Secao titulo="Motivo do acolhimento e dados judiciais">
           {!judicial && !erroJudicial && !semJudicial && (
             <>
@@ -1490,7 +1500,7 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
         * — nada disso é apagamento, e é isso que a tela diz antes de pedir a
         * confirmação.
         */}
-      {REGISTRA_SAIDA.includes(papel) && (
+      {aba === 'cadastro' && REGISTRA_SAIDA.includes(papel) && (
         <Secao titulo="Saída da casa">
           <p className="mutetxt" style={{ marginTop: 0 }}>
             Registrar a saída encerra o acolhimento nesta casa. O perfil <b>não é
@@ -1605,7 +1615,7 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
           }} />
       )}
 
-      {p.memorias.length > 0 && (
+      {aba === 'vida' && p.memorias.length > 0 && (
         <Secao titulo="Memórias">
           <ul className="lista">
             {p.memorias.map((m) => (
@@ -1796,38 +1806,145 @@ function CompromissosDoAcolhido({ houseId, personId, nome }: { houseId: string; 
 }
 
 /*
- * O ÍNDICE DO PERFIL (fase 202). O perfil chega a oito telas de altura no
- * monitor; o índice leva direto a cada parte. Só aparece o que existe nesta
- * criança (a internação some quando não houve), conferido depois de as partes
- * carregarem.
+ * AS ABAS DO PERFIL (fase 208, pedido de 12/10).
+ *
+ * O perfil chegava a oito telas de altura, e o índice da 202 só encurtava o
+ * caminho. Agora ele é em partes, cada uma com a sua cor e o seu desenho. O que
+ * protege a criança (alergia, restrição, cuidados, remédio de hoje) continua
+ * ACIMA das abas, em todas elas: ninguém precisa escolher a aba certa para
+ * saber que a Alice não come amendoim.
+ *
+ * A cor da aba diz de que PARTE da vida dela é o que está aberto. Ela não é a
+ * cor de estado, de autor nem de cargo: mora só na barra da aba e no desenho,
+ * nunca numa pílula, e o nome da aba vem sempre escrito.
  */
-const PARTES_DO_PERFIL: [string, string][] = [
-  ['perfil-agenda', 'Compromissos'], ['perfil-familia', 'Família e visitas'],
-  ['perfil-presenca', 'Presença'], ['perfil-educacao', 'Educação'],
-  ['perfil-trajetoria', 'Convivência e internações'], ['perfil-saude', 'Saúde'],
-  ['perfil-documentos', 'Documentos'],
+type AbaDoPerfil = 'hoje' | 'familia' | 'saude' | 'educacao' | 'judiciario' | 'vida' | 'atendimentos' | 'cadastro';
+const ABAS_DO_PERFIL: { id: AbaDoPerfil; rotulo: string; icone: string }[] = [
+  { id: 'hoje', rotulo: 'Hoje', icone: 'dia' },
+  { id: 'familia', rotulo: 'Família e visitas', icone: 'casas' },
+  { id: 'saude', rotulo: 'Saúde', icone: 'saude_ic' },
+  { id: 'educacao', rotulo: 'Educação', icone: 'formatura' },
+  { id: 'judiciario', rotulo: 'Judiciário', icone: 'instituicao' },
+  { id: 'vida', rotulo: 'Vida na casa', icone: 'conquista' },
+  { id: 'atendimentos', rotulo: 'Atendimentos', icone: 'linha_do_dia' },
+  { id: 'cadastro', rotulo: 'Cadastro', icone: 'documento' },
 ];
-function IndiceDoPerfil() {
-  const [partes, setPartes] = useState<[string, string][]>([]);
-  useEffect(() => {
-    const ver = () => setPartes(PARTES_DO_PERFIL.filter(([id]) => {
-      const el = document.getElementById(id);
-      return !!el && el.getClientRects().length > 0 && el.offsetHeight > 0;
-    }));
-    ver();
-    const t = setTimeout(ver, 900);
-    return () => clearTimeout(t);
-  }, []);
-  if (partes.length < 3) return null;
+function AbasDoPerfil({ aba, onAba }: { aba: AbaDoPerfil; onAba: (a: AbaDoPerfil) => void; veJudicial: boolean }) {
   return (
-    <nav className="indice-perfil" aria-label="Partes do perfil">
-      {partes.map(([id, rotulo]) => (
-        <button key={id} type="button" className="btn sm ghost"
-                onClick={() => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
-          {rotulo}
+    <nav className="abas-perfil" role="tablist" aria-label="Partes do perfil">
+      {ABAS_DO_PERFIL.map((a) => (
+        <button key={a.id} type="button" role="tab" aria-selected={aba === a.id}
+                className={`aba-perfil aba-${a.id}${aba === a.id ? ' on' : ''}`}
+                onClick={() => onAba(a.id)}>
+          <Icone nome={a.icone} tamanho={18} /> {a.rotulo}
         </button>
       ))}
     </nav>
+  );
+}
+
+/* A VIDA NA CASA (fase 208): o aniversário e o tempo de casa, em frase. As
+   conquistas vêm logo abaixo, e as fotos moram no dossiê e vivências. */
+function VidaNaCasa({ perfil }: { perfil: Perfil }) {
+  const hoje = new Date(new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo',
+    year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()) + 'T12:00:00Z');
+  const linhas: string[] = [];
+  if (perfil.nascimento) {
+    const [, m, d] = perfil.nascimento.split('-').map(Number);
+    let prox = new Date(Date.UTC(hoje.getUTCFullYear(), m - 1, d, 12));
+    if (prox < hoje) prox = new Date(Date.UTC(hoje.getUTCFullYear() + 1, m - 1, d, 12));
+    const faltam = Math.round((prox.getTime() - hoje.getTime()) / 86_400_000);
+    const quando = `${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}`;
+    linhas.push(faltam === 0 ? `Hoje é o aniversário de ${perfil.nome}: ${perfil.idade} anos.`
+      : `Faz aniversário em ${quando}${faltam <= 30 ? `, daqui a ${faltam} ${faltam === 1 ? 'dia' : 'dias'}` : ''}.`);
+  }
+  if (perfil.casaAtual?.desde) {
+    const dias = Math.max(0, Math.round((hoje.getTime() - new Date(perfil.casaAtual.desde + 'T12:00:00Z').getTime()) / 86_400_000));
+    const meses = Math.floor(dias / 30);
+    linhas.push(`Mora na ${perfil.casaAtual.codigo} desde ${dia(perfil.casaAtual.desde)}`
+      + (meses >= 1 ? `, há ${meses} ${meses === 1 ? 'mês' : 'meses'}.` : `, há ${dias} ${dias === 1 ? 'dia' : 'dias'}.`));
+  }
+  return (
+    <Secao titulo="Vida na casa">
+      {linhas.map((l) => <p key={l} className="bloco" style={{ marginTop: 0 }}>{l}</p>)}
+      <p className="mutetxt" style={{ margin: 0 }}>
+        As fotos e as memórias de {perfil.nome} ficam no dossiê e vivências, logo abaixo.
+      </p>
+    </Secao>
+  );
+}
+
+/*
+ * OS ATENDIMENTOS (fase 208): tudo o que a casa registrou sobre esta criança,
+ * dia por dia, numa lista só. É a linha do tempo do dia no modo de um acolhido,
+ * a mesma que o servidor já monta com o alcance de quem pergunta.
+ */
+const TIPO_NO_DIA: Record<string, { rotulo: string; icone: string }> = {
+  rotina: { rotulo: 'Rotina', icone: 'rotina' }, refeicao: { rotulo: 'Refeição', icone: 'refeicao' },
+  atividade: { rotulo: 'Atividade', icone: 'atividade' }, saida: { rotulo: 'Saída', icone: 'saida' },
+  medicamento: { rotulo: 'Remédio', icone: 'medicamento' }, chamada: { rotulo: 'Chamada', icone: 'chamada' },
+  plantao: { rotulo: 'Plantão', icone: 'passagem' }, ocorrencia: { rotulo: 'Ocorrência', icone: 'ocorrencias' },
+  saude: { rotulo: 'Saúde', icone: 'saude_ic' },
+};
+const TOM_DA_SEVERIDADE: Record<string, string> = { normal: 'c-mute', atencao: 'c-warn', critico: 'c-crit' };
+function AtendimentosDoAcolhido({ houseId, personId, nome }: { houseId: string; personId: string; nome: string }) {
+  const [data, setData] = useState('');
+  const [hoje, setHoje] = useState('');
+  const [dados, setDados] = useState<{ data: string; eventos: { id: string; at: string; kind: string; title: string;
+    state: string; severity: string; responsible?: string | null }[] } | null>(null);
+  const [erro, setErro] = useState('');
+  useEffect(() => {
+    let vivo = true;
+    setErro('');
+    api<NonNullable<typeof dados>>(`/timeline?houseId=${houseId}&date=${data}&mode=individual&personId=${personId}`)
+      .then((r) => { if (!vivo) return; setDados(r); if (!data) setHoje(r.data); })
+      .catch((e) => { if (vivo) setErro(e instanceof Error ? e.message : 'Não foi possível abrir o dia.'); });
+    return () => { vivo = false; };
+  }, [houseId, personId, data]);
+  const atual = data || dados?.data || '';
+  const andar = (n: number) => {
+    if (!atual) return;
+    const d = new Date(`${atual}T12:00:00Z`); d.setUTCDate(d.getUTCDate() + n);
+    setData(d.toISOString().slice(0, 10));
+  };
+  const eventos = [...(dados?.eventos ?? [])].sort((a, b) => a.at.localeCompare(b.at));
+  return (
+    <section className="passagem">
+      <div className="eyebrow">Atendimentos de {nome}</div>
+      <div className="card stack">
+        <div className="row" style={{ gap: 8 }}>
+          <button type="button" className="btn sm ghost" aria-label="Dia anterior" onClick={() => andar(-1)}>
+            <Icone nome="voltar" tamanho={16} />
+          </button>
+          <b className="ff grow" style={{ textAlign: 'center' }}>{atual ? dia(atual) : '…'}</b>
+          <button type="button" className="btn sm ghost" aria-label="Dia seguinte"
+                  disabled={!!hoje && atual >= hoje} onClick={() => andar(1)}>
+            <Icone nome="avancar" tamanho={16} />
+          </button>
+        </div>
+        {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+        {dados && eventos.length === 0 && (
+          <p className="mutetxt" style={{ margin: 0 }}>Nada registrado sobre {nome} neste dia.</p>
+        )}
+        <ol className="atendimentos">
+          {eventos.map((e) => (
+            <li key={e.id}>
+              <span className="hora">{hhmm(e.at)}</span>
+              <span className={`atend-tipo atend-${e.kind}`} aria-hidden="true">
+                <Icone nome={TIPO_NO_DIA[e.kind]?.icone ?? 'ponto'} tamanho={16} />
+              </span>
+              <div className="grow">
+                <b className="ff">{e.title}</b>
+                <div className="mutetxt">
+                  {TIPO_NO_DIA[e.kind]?.rotulo ?? e.kind}{e.responsible ? ` · ${e.responsible}` : ''}
+                </div>
+              </div>
+              <span className={`pill ${TOM_DA_SEVERIDADE[e.severity] ?? 'c-mute'}`}>{e.state}</span>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </section>
   );
 }
 

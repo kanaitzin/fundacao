@@ -181,7 +181,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 12/10/2026, fase 207
+### Onde estamos — 12/10/2026, fase 208
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -252,6 +252,7 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 205 | **a Acolhe+AI em cada setor e as oito casas com vinte pessoas por seis meses** (pedidos de 12/10): dezenove pedidos do plantão recebiam *não achei* (o choro, o homem no portão dizendo ser o pai, a mãe ao telefone, o colega que faltou); a vacina abria o Registrar compra, e o rascunho da ATA ia ao formulário de episódio; na simulação (`SIM_EQUIPE=20`), nada do sistema em seis meses, as 2.904 linhas pela Acolhe+AI no banco com o nome de quem registrou, e **a equipe das oito e o dia das unidades, que passavam de um segundo** (1649 e as casas de quatro em quatro) |
 | 206 | **o calendário das ATAs e dos plantões** (pedido de 12/10): na Passagem e no Arquivo da ATA, o mês em grade com a manhã e a noite pintadas pela situação, os números do mês (só da casa) e o turno que abre o plantão e a ATA, para ler e baixar (`frontend/src/calendario-turnos.tsx`, sem rota nova); meses de histórias fictícias no protótipo; e **a ATA aberta pelo Arquivo mostrava o texto da ATA de antes**, no sistema de verdade também |
 | 207 | **a saída das crianças pelo portão** (pedido de 12/10): quem decide é a equipe da casa (educador, líder, técnica, coordenação; people/1650); a Portaria ganha a aba *Saídas das crianças*, com o que vale, quem decidiu e desde quando, **sem o motivo**, e registra saída e volta (`child_outing`); sem decisão, só sai com acompanhante. A auditoria da saída pela portaria nascia **sem casa** |
+| 208 | **o perfil em abas coloridas** (pedido de 12/10): o que protege a criança no alto, e oito abas (Hoje, Família e visitas, Saúde, Educação, Judiciário, Vida na casa, Atendimentos dia por dia, Cadastro); a cor da aba nunca vira pílula; a Acolhe+AI escolhe a aba pelo assunto; o `ensaio:uso` percorre as abas |
 
 **Medido no fim da 207:** 190 migrações, 134 tabelas, 139 suítes, 1258 testes, verdes nas
 DUAS condições de relógio; os dez ensaios de navegador verdes (o `ensaio:acolhe` com todas as telas de todos os cargos por texto e por voz e os 36 formulários do sistema abertos por ela, inclusive dentro do perfil, do dossiê, da internação, do acervo e do plantão, e o do celular com 306 telas e nenhum achado), com a portaria e o
@@ -318,6 +319,11 @@ as três cores abaixo. Cor nova passa pelo `ensaio:acessibilidade`, que mede os 
 | **cargo** | *de que setor é esta pessoa?* | círculo cheio com iniciais |
 
 ### A próxima etapa
+
+**FEITO — fase 208** (§2, PARA-A-REUNIAO §4.21): o perfil em abas coloridas. **Quem
+escreve ensaio sobre o perfil** usa o `conteudo()` e o `clicar()` do `ensaio:uso`, que
+passam pelas abas sozinhos; e **bloco novo do perfil entra numa aba**, nunca solto (o
+*Memórias* ficou solto e aparecia em todas). **Próxima: 209**, as fotos.
 
 **FEITO — fase 207** (§2, PARA-A-REUNIAO §4.20): a saída das crianças pelo portão.
 **Muda uma regra de 09/09** (quem decide); a Fundação confirma se o Gestor Geral fica de

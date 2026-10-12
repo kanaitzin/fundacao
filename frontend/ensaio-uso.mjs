@@ -62,7 +62,25 @@ pg.on('console', (m) => {
 });
 
 const corpo = () => pg.locator('body').innerText();
-const conteudo = () => pg.locator('main.conteudo').innerText();
+/* No perfil em abas (fase 208), o conteúdo é o de todas as abas, como quem as
+   percorre; a aba que estava aberta volta a ficar aberta. */
+const conteudo = async () => {
+  const abas = pg.locator('main.conteudo nav.abas-perfil [role=tab]');
+  const n = await abas.count();
+  /* Com uma folha aberta por cima, a pessoa não troca de aba: lê o que está ali. */
+  if (!n || await pg.locator('.overlay').count()) return pg.locator('main.conteudo').innerText();
+  let aberta = 0;
+  for (let i = 0; i < n; i++) if ((await abas.nth(i).getAttribute('aria-selected')) === 'true') aberta = i;
+  /* Primeiro a aba aberta, como está: trocar de aba desmonta o aviso que a
+     ação acabou de mostrar. */
+  let t = await pg.locator('main.conteudo').innerText();
+  for (let i = 0; i < n; i++) {
+    if (i === aberta) continue;
+    await abas.nth(i).click(); await pg.waitForTimeout(350); t += '\n' + await pg.locator('main.conteudo').innerText();
+  }
+  await abas.nth(aberta).click(); await pg.waitForTimeout(250);
+  return t;
+};
 
 async function trocar(cargo) {
   cargoAtual = cargo;
@@ -122,8 +140,18 @@ async function fechar() {
   }
 }
 
+/* O PERFIL EM ABAS (fase 208): o botão pode estar noutra aba do perfil. Sem
+   achar na aba aberta, o ensaio passa pelas abas como a pessoa passaria. */
+const abasDoPerfil = () => pg.locator('main.conteudo nav.abas-perfil [role=tab]');
 const clicar = async (texto, onde = 'main.conteudo') => {
-  const b = pg.locator(`${onde} button`).filter({ hasText: texto });
+  const b = pg.locator(`${onde} button:not(.aba-perfil)`).filter({ hasText: texto });
+  if (!(await b.count()) && onde === 'main.conteudo') {
+    const n = await abasDoPerfil().count();
+    for (let i = 0; i < n && !(await b.count()); i++) {
+      await abasDoPerfil().nth(i).click();
+      await pg.waitForTimeout(450);
+    }
+  }
   if (!(await b.count())) return false;
   await b.first().click();
   await pg.waitForTimeout(1000);
@@ -431,10 +459,11 @@ cobrar('o perfil traz a identificação nova', /RG|SUS|Filiação/.test(perfil))
   const pos = await pg.evaluate(() => {
     const y = (el) => (el ? el.getBoundingClientRect().top + window.scrollY : null);
     const alergia = [...document.querySelectorAll('main.conteudo .notice.c-crit')].find((e) => /Alergia/.test(e.innerText));
-    const contatos = [...document.querySelectorAll('main.conteudo .eyebrow')].find((e) => /Quem aparece por/i.test(e.innerText));
+    /* Desde a fase 208 o resto do perfil mora nas abas: a alergia vem antes delas. */
+    const contatos = document.querySelector('main.conteudo nav.abas-perfil');
     return { alergia: y(alergia), contatos: y(contatos), tela: window.innerHeight };
   });
-  cobrar('a alergia aparece antes dos contatos, e na primeira tela',
+  cobrar('a alergia aparece antes das abas do perfil, e na primeira tela',
     pos.alergia !== null && pos.contatos !== null && pos.alergia < pos.contatos && pos.alergia < pos.tela,
     JSON.stringify(pos));
 }
@@ -514,6 +543,8 @@ cobrar('o perfil traz a educação',
   'o relatório leria "não há" sobre escola e profissionalização para sempre');
 cobrar('e a evolução educacional, com quem escreveu',
   /Evolução educacional/i.test(perfil) && /ciências|sala de recursos/i.test(perfil));
+await pg.getByRole('tab', { name: 'Educação' }).click().catch(() => {});
+await pg.waitForTimeout(400);
 cobrar('há por onde escrever uma evolução — inclusive para o educador',
   (await pg.locator('main.conteudo button')
      .filter({ hasText: /Escrever uma evolução/ }).count()) > 0,
@@ -1772,6 +1803,8 @@ await fechar();
  * mesmo botão, e só a madrinha tem foto guardada — a genitora existe
  * justamente para a folha da guarita mostrar os espaços em branco. Um ensaio
  * que clica no `.first()` mede outra coisa e reprova uma tela certa. */
+await pg.getByRole('tab', { name: 'Família e visitas' }).click().catch(() => {});
+await pg.waitForTimeout(500);
 const cartaoDaMadrinha = pg.locator('main.conteudo .card').filter({ hasText: /Simoni/ });
 const portaria = cartaoDaMadrinha.locator('button').filter({ hasText: /Portaria/ });
 const achouPortaria = (await portaria.count()) > 0;
@@ -2836,7 +2869,7 @@ await fechar();
 cobrar('a portaria não tem barra de seções', (await pg.locator('nav.tabbar').count()) === 0);
 erros.length = 0;
 const portao = await conteudo();
-cobrar('a portaria abre direto no portão', /Portaria — quem pode visitar/.test(portao), portao.slice(0, 300));
+cobrar('a portaria abre direto no portão', /Portaria/.test(portao) && /Visitantes/.test(portao) && /Quem chegou/.test(portao), portao.slice(0, 300));
 cobrar('e não tem as abas do turno',
   (await pg.locator('nav.tabbar button', { hasText: /^(Dia|Chamada|Acolhidos|Passagem)$/ }).count()) === 0);
 cobrar('a lista diz quem está na casa agora', /Na casa agora/i.test(portao));
@@ -3153,6 +3186,8 @@ await trocar('equipe_tecnica');
 erros.length = 0;
 await aba('Acolhidos');
 await clicar(/Alice/);
+await pg.getByRole('tab', { name: 'Saúde' }).click().catch(() => {});
+await pg.waitForTimeout(500);
 cobrar('a técnica tem como registrar restrição alimentar',
   (await pg.getByRole('button', { name: /Registrar restrição alimentar/ }).count()) > 0);
 await pg.getByRole('button', { name: /Registrar restrição alimentar/ }).click();
@@ -3172,6 +3207,8 @@ cobrar('encerrada, sai do perfil', !/Amendoim do ensaio/.test(await conteudo()))
 await trocar('educador');
 await aba('Acolhidos');
 await clicar(/Alice/);
+await pg.getByRole('tab', { name: 'Saúde' }).click().catch(() => {});
+await pg.waitForTimeout(500);
 cobrar('o educador não tem os botões de registrar',
   (await pg.getByRole('button', { name: /Registrar alergia ou condição|Registrar restrição alimentar/ }).count()) === 0);
 cobrar('nenhuma exceção na alergia e na restrição', erros.length === 0, erros[0]);
@@ -3186,6 +3223,8 @@ const TEXTO_168 = 'Escrito antes de a sessão terminar';
 await trocar('equipe_tecnica');
 await aba('Acolhidos');
 await clicar(/Alice/);
+await pg.getByRole('tab', { name: 'Saúde' }).click();
+await pg.waitForTimeout(400);
 await pg.getByRole('button', { name: /Registrar restrição alimentar/ }).click();
 await pg.waitForTimeout(400);
 await pg.locator('#sr-rest').fill(TEXTO_168);
@@ -3770,6 +3809,7 @@ console.log('\n🔗 De um setor ao outro');
   await ver('equipe_tecnica');
   await ir('Acolhidos');
   await pgS.locator('.pessoa-cartao').filter({ hasText: 'Bruno' }).first().click(); await esp(1300);
+  await pgS.getByRole('tab', { name: 'Saúde' }).click(); await esp(600);
   await pgS.getByRole('button', { name: /Registrar alergia ou condição/ }).click(); await esp(400);
   await pgS.locator('#sr-desc').fill('Leite de vaca (fictício)');
   const alerta = pgS.locator('#sr-alerta');
@@ -3913,6 +3953,7 @@ console.log('\n🚪 A saída das crianças pelo portão (fase 207)');
   await ver('educador');
   await pgP.getByRole('button', { name: /^Acolhidos/ }).filter({ visible: true }).first().click(); await esp(900);
   await pgP.locator('.pessoa-cartao').filter({ hasText: 'Bruno' }).first().click(); await esp(1300);
+  await pgP.getByRole('tab', { name: 'Família e visitas' }).click(); await esp(600);
   const perfil = await txt();
   cobrar('a frase de quem ainda não tem decisão é a nova', /Até alguém da equipe decidir, Bruno só sai\s+com acompanhante/.test(perfil)
     && !/faz o que sempre fez/.test(perfil));
@@ -3953,6 +3994,7 @@ console.log('\n🚪 A saída das crianças pelo portão (fase 207)');
   await ver('equipe_tecnica');
   await pgP.getByRole('button', { name: /^Acolhidos/ }).filter({ visible: true }).first().click(); await esp(900);
   await pgP.locator('.pessoa-cartao').filter({ hasText: 'Bruno' }).first().click(); await esp(1300);
+  await pgP.getByRole('tab', { name: 'Família e visitas' }).click(); await esp(600);
   cobrar('o perfil do Bruno lista a saída pelo portão', /Saídas pelo portão · [1-9]/i.test(await txt()));
   cobrar('nenhuma exceção na saída pelo portão', errosP.length === 0, errosP[0]);
   await pgP.close();

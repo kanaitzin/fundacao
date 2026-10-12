@@ -3288,6 +3288,30 @@ function gerarLivroDaCasa(): AtaArquivada[] {
   return out;
 }
 ARQUIVO_ATAS.push(...gerarLivroDaCasa());
+
+/* Um dia passado de uma criança, para os Atendimentos do perfil (fase 208). */
+function diaDaCrianca(data: string, pid: string, nome: string) {
+  const r = sorteioDoDia(`${data}:${pid}`);
+  const semana = new Date(`${data}T12:00:00Z`).getUTCDay();
+  const util = semana !== 0 && semana !== 6;
+  const em = (h: number, m: number) => new Date(`${data}T${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00-03:00`).toISOString();
+  const ev = (id: string, at: string, kind: string, title: string, state: string, responsible: string | null) => ({
+    id: `dia:${data}:${pid}:${id}`, source: 'prototipo', at, kind, title, personId: pid, personName: nome,
+    houseId: CASA.id, state, severity: 'normal', responsible, actions: [], note: null });
+  const quem = r.um(['Tainá Souza (fictícia)', 'Mário Silva (fictício)', 'Joana Lima (fictícia)']);
+  const out = [
+    ev('cafe', em(7, 30), 'refeicao', 'Café da manhã', 'Presente', quem),
+    ev('almoco', em(12, 0), 'refeicao', 'Almoço', 'Presente', quem),
+    ev('janta', em(19, 0), 'refeicao', 'Janta', 'Presente', r.um(['Joana Lima (fictícia)', 'Mário Silva (fictício)'])),
+  ];
+  if (util) out.push(ev('escola', em(13, 15), 'saida', 'Escola', r.chance(0.92) ? 'Foi à escola' : 'Faltou: dor de cabeça, ficou em repouso', quem));
+  if (r.chance(0.45)) out.push(ev('ativ', em(16, r.entre(0, 30)), 'atividade',
+    r.um(['Tema de casa', 'Oficina de desenho', 'Futebol na quadra', 'Leitura na sala de estudos', 'Horta']),
+    'Concluída no horário', quem));
+  if (r.chance(0.12)) out.push(ev('saude', em(10, 0), 'saude', r.um(['Consulta de rotina na unidade de saúde', 'Dentista']), 'Atendimento registrado', 'Tatiane Técnica (fictícia)'));
+  if (!util && r.chance(0.5)) out.push(ev('visita', em(15, 0), 'plantao', 'Visita da família na sala de visitas', 'Registrada na portaria', 'Paulo da Portaria (fictício)'));
+  return out;
+}
 ARQUIVO_ATAS.sort((x, y) => (x.data < y.data ? 1 : -1));
 
 /** A capa da ATA de hoje, montada a partir do plantão vivo. */
@@ -6482,6 +6506,21 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
   }
 
   if (rota === '/timeline') {
+    /* OS ATENDIMENTOS DE UMA CRIANÇA (fase 208): o modo individual, por dia. Hoje
+       sai da linha viva; os dias anteriores são escritos por sorteio com semente
+       na data e na criança, para o mesmo dia contar sempre a mesma coisa. */
+    if (q.get('mode') === 'individual' && q.get('personId')) {
+      const pid = String(q.get('personId'));
+      const k = todosKids().find((x) => x.id === pid);
+      const data = String(q.get('date') || HOJE);
+      const eventos = data === HOJE
+        ? [...LINHA.filter((e) => e.personId === pid).map((e) => ({ ...e, actions: [], note: null })),
+           ...diaDaCrianca(data, pid, k?.nome ?? '').filter((e) => Date.parse(e.at) <= Date.now())]
+        : diaDaCrianca(data, pid, k?.nome ?? '');
+      return { data, modo: 'individual', incompleta: false, fontesIndisponiveis: [],
+        resumo: { total: eventos.length, criticos: 0, atencao: 0, individuais: eventos.length, coletivos: 0 },
+        eventos };
+    }
     const so = q.get('mode') === 'minhas';
     /*
      * QUEM NÃO ESTÁ NA CASA SAI DA GRADE DO DIA (migração 1470, regra 14).
