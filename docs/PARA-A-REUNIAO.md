@@ -49,7 +49,7 @@
   196 também dentro do perfil da criança (*quero registrar a alergia do Bruno*), do dossiê, da
   internação aberta e do acervo: os 36 formulários do sistema. **Para o DPO:**
   o ditado usa o reconhecimento do navegador; no Chrome, o áudio vai ao Google.
-- **204 fases.** 138 suítes e 1248 testes, verdes em duas condições de relógio —
+- **205 fases.** 138 suítes e 1248 testes, verdes em duas condições de relógio —
   antes e depois da virada do UTC, que em Porto Alegre é às 21h.
 - **O aviso no celular** (fase 189, decidido em 06/10): quem liga na Minha conta
   recebe no celular todos os avisos do sino, mesmo com o sistema fechado. Na
@@ -469,6 +469,40 @@ Uma pergunta ficou, porque é sobre o que a casa inteira lê:
   por uma. Pergunta: o perfil passa a mostrar, **só para a equipe técnica e a
   coordenação**, a lista das ocorrências da criança (tipo, data e situação, sem o
   texto), ou continua sem, como hoje?
+
+## 4.19 Seis meses das oito casas com vinte pessoas, e a Acolhe+AI gravando (fase 205, pedido de 12/10)
+
+As oito casas viveram seis meses juntas com vinte pessoas cada (duas técnicas, dois
+líderes, onze educadores, duas na portaria, duas na cozinha e a coordenação), usando
+o sistema e a Acolhe+AI. Tudo o que elas contaram bate com o banco e com os
+relatórios: 4.686 doses, 37 mil refeições, 1.072 visitas, 5.816 linhas da ATA. Das
+linhas, **2.904 foram escritas pela Acolhe+AI e registradas pela pessoa**, e o banco tem
+todas com o nome de quem registrou. **38 contas e 1.142 telas abertas no navegador
+contra o servidor de verdade, sem achado.** Duas telas da instituição passavam de um
+segundo e foram consertadas (a equipe das oito e o dia das unidades, hoje entre 190 e
+300 ms). O relatório inteiro está em `docs/historico/oito-casas-seis-meses-vinte-pessoas-12-10.md`.
+
+**Mais frases da Acolhe+AI para a Fundação conferir**, como as da §4.17. Elas nasceram
+fazendo o papel de cada setor outra vez, em pedidos que recebiam *"não achei essa tela"*:
+
+- Alguém no portão dizendo ser da família: *"Não abra o portão nem entregue a
+  criança. Só entra quem está na lista de quem pode visitar aquela criança, com
+  documento conferido, e ninguém sai com ela sem a saída registrada pela equipe
+  técnica. Chame agora o líder do plantão ou a coordenação."*
+- Visitante sem documento: *"A entrada só se registra com o documento conferido. Não
+  deixe entrar: chame a coordenação, a técnica ou o líder do plantão."*
+- Criança chorando sem parar, pesadelo: *"Primeiro ela: fique perto, com calma e sem
+  pressa, num canto mais tranquilo, e ofereça água ou colo se ela aceitar. Não precisa
+  resolver agora nem perguntar o porquê."*
+- A família ao telefone: *"Antes de passar o telefone, confira no perfil da criança se
+  esse contato é permitido. Na dúvida, não passe e avise o líder do plantão."*
+- A família que quer levar a criança no fim de semana: *"Passar dias com a família é
+  convivência familiar, e quem decide é a equipe técnica."*
+- O colega que não veio: *"Avise o líder do plantão e a coordenação, que resolvem a
+  substituição. O sistema não conta faltas de ninguém."*
+
+Pergunta: **é isso que a casa faz?** Se o protocolo da Casa 03 diz outra coisa (por
+exemplo, a portaria chamar primeiro a coordenação de sobreaviso), a frase muda.
 
 ## 5. As decisões que são do Marcelo *(§10 — responda pelo número)*
 

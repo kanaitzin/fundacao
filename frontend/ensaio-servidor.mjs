@@ -213,11 +213,13 @@ for (const conta of CONTAS) {
     await pg.waitForTimeout(1200);
     /* Sem plantão aberto não há ATA: a educadora abre o plantão na Passagem, como faria ao chegar. */
     if (!(await pg.locator('#linha-ata').count())) {
-      await pg.locator('nav.portas-lateral button', { hasText: /^\s*Passagem\s*$/ }).first().click().catch(() => {});
+      /* A Passagem é uma das abas de cima, e não uma porta da coluna. */
+      await pg.locator('nav.tabbar button, nav.portas-lateral button', { hasText: /^\s*Passagem\s*$/ }).first().click().catch(() => {});
       await pg.waitForTimeout(1000);
-      await pg.getByRole('button', { name: /^Abrir o plantão/ }).first().click().catch(() => {});
+      const abrirPlantao = pg.getByRole('button', { name: /^Abrir o plantão/ }).first();
+      await abrirPlantao.click({ timeout: 8000 }).catch(() => {});
       await pg.waitForTimeout(1500);
-      await pg.locator('nav.portas-lateral button', { hasText: /^\s*ATA\s*$/ }).first().click().catch(() => {});
+      await pg.locator('nav.tabbar button, nav.portas-lateral button', { hasText: /^\s*ATA\s*$/ }).first().click().catch(() => {});
       await pg.waitForTimeout(1200);
     }
     const temLinha = await pg.locator('#linha-ata').count();
@@ -229,7 +231,11 @@ for (const conta of CONTAS) {
     await pg.waitForTimeout(1500);
     const cartao = painel.locator('.acolhe-rascunho').last();
     if (!(await cartao.isVisible().catch(() => false))) anota(conta.quem, onde, 'a Acolhe+AI não montou o rascunho do relato');
-    else if (!temLinha) anota(conta.quem, onde, 'a ATA do turno aberta não tem a caixa Escrever uma linha');
+    else if (!temLinha) {
+      await mkdir(join(SAIDA, 'acolhe-gravando'), { recursive: true });
+      await pg.screenshot({ path: join(SAIDA, 'acolhe-gravando', 'ata-sem-linha.png'), fullPage: true });
+      anota(conta.quem, onde, `a ATA do turno aberta não tem a caixa Escrever uma linha (a tela diz: ${(await pg.locator('main.conteudo').innerText()).replace(/\s+/g, ' ').slice(0, 160)})`);
+    }
     else {
       await cartao.getByRole('button', { name: 'Está bom' }).click();
       await pg.waitForTimeout(300);
@@ -252,7 +258,12 @@ for (const conta of CONTAS) {
         if (rows.length !== 1) anota(conta.quem, onde, `o banco tem ${rows.length} linha(s) com o relato, esperava uma`);
         else if (rows[0].email !== conta.email) anota(conta.quem, onde, `a linha ficou com o nome de outra pessoa: ${rows[0].email}`);
         /* E a sugestão, pela conversa, com o nome dela. */
-        if (!(await painel.isVisible().catch(() => false))) await pg.getByRole('button', { name: /^Abrir a Acolhe\+AI/ }).click().catch(() => {});
+        /* Minimizada, ela fica no botão ou na faixa com Ver a conversa. */
+        if (!(await painel.isVisible().catch(() => false))) {
+          const faixa = pg.locator('.acolhe-faixa').getByRole('button', { name: 'Ver a conversa' });
+          if (await faixa.isVisible().catch(() => false)) await faixa.click();
+          else await pg.getByRole('button', { name: /^Abrir a Acolhe\+AI/ }).click().catch(() => {});
+        }
         await pg.waitForTimeout(400);
         await pg.locator('#acolhe-pergunta').fill(`seria bom a ATA lembrar a ronda das 3h, sugestão ${marca}`);
         await painel.getByRole('button', { name: 'Enviar' }).click();

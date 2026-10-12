@@ -180,7 +180,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 12/10/2026, fase 204
+### Onde estamos — 12/10/2026, fase 205
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -248,8 +248,9 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 202 | **o perfil do acolhido revisto** (pedido de 11/10): **a alergia ao amendoim da Alice estava a 5.185 px do topo**, embaixo de doze blocos que entraram ao longo das fases; voltou para logo depois do nome, com cuidados e remédio de hoje. E os **próximos compromissos** da criança, que a agenda guardava e o perfil nunca lia, e um índice no alto. As ocorrências no perfil ficam para a Fundação (PARA-A-REUNIAO §4.18) |
 | 203 | **a Acolhe+AI só promete o formulário depois de abri-lo** (pedido de 12/10): na portaria ela dizia *"vou abrir o formulário"* e logo *"não achei"*; agora diz *"Abrindo"* e a frase do formulário vem só quando ele abriu, com teste |
 | 204 | **cada setor de ponta a ponta** (pedido de 12/10): catorze percursos levando um registro de um setor aos outros; no protótipo, **a alergia registrada não chegava** à Saúde, à Enfermagem nem à Cozinha, **os plantões eram fixos e de antes de 25/09** (de madrugada, o diurno de amanhã já assinado), a ATA aberta não deixava escrever linha, a dose não baixava o armário e tocar em Acolhidos não voltava à lista; no sistema de verdade, **o remédio vencido dizia Validade próxima** |
+| 205 | **a Acolhe+AI em cada setor e as oito casas com vinte pessoas por seis meses** (pedidos de 12/10): dezenove pedidos do plantão recebiam *não achei* (o choro, o homem no portão dizendo ser o pai, a mãe ao telefone, o colega que faltou); a vacina abria o Registrar compra, e o rascunho da ATA ia ao formulário de episódio; na simulação (`SIM_EQUIPE=20`), nada do sistema em seis meses, as 2.904 linhas pela Acolhe+AI no banco com o nome de quem registrou, e **a equipe das oito e o dia das unidades, que passavam de um segundo** (1649 e as casas de quatro em quatro) |
 
-**Medido no fim da 204:** 188 migrações, 133 tabelas, 138 suítes, 1248 testes, verdes nas
+**Medido no fim da 205:** 189 migrações, 133 tabelas, 138 suítes, 1248 testes, verdes nas
 DUAS condições de relógio; os dez ensaios de navegador verdes (o `ensaio:acolhe` com todas as telas de todos os cargos por texto e por voz e os 36 formulários do sistema abertos por ela, inclusive dentro do perfil, do dossiê, da internação, do acervo e do plantão, e o do celular com 306 telas e nenhum achado), com a portaria e o
 portão, o armário, a cozinha, os temas e a foto no percurso do `ensaio:uso`; **1256 telas (157 × oito
 temas) sem violação de WCAG 2.1 AA**; nenhuma
@@ -291,6 +292,12 @@ o esqueci contra o servidor de verdade, sem achado**; na API, a mesma recusa.
 servidor: **onze contas, 201 telas e o esqueci, sem achado**; na API, a mesma recusa.
 **E na fase 203** (`SIM_CASAS=AI3 … 30`): **onze contas, 201 telas e o esqueci, sem achado**; na
 API, a mesma recusa.
+**E na fase 205** (`SIM_CASAS=AI1,…,ARM4 SIM_EQUIPE=20 … 182`): **oito casas, vinte pessoas em cada, seis
+meses**: nenhum achado do sistema; tudo o que as casas contaram bate com o banco e os relatórios; as
+2.904 linhas que a Acolhe+AI ajudou a escrever estão no banco e no Word com o nome de quem registrou;
+**38 contas e 1.142 telas, com cada aba de dentro, contra o servidor de verdade, sem achado**, e a
+educadora gravando pela Acolhe+AI conferida no banco; 123,6 MB de banco. Relatório em
+`docs/historico/oito-casas-seis-meses-vinte-pessoas-12-10.md`.
 **E na fase 204** (`SIM_CASAS=AI3 … 30`), com o armário dizendo o vencido: **onze contas, 201 telas e o esqueci, sem achado**; nenhuma
 leitura acima de 155 ms; na API, a mesma recusa.
 
@@ -308,6 +315,15 @@ as três cores abaixo. Cor nova passa pelo `ensaio:acessibilidade`, que mede os 
 | **cargo** | *de que setor é esta pessoa?* | círculo cheio com iniciais |
 
 ### A próxima etapa
+
+**FEITO — fase 205** (§2, PARA-A-REUNIAO §4.19, relatório em `docs/historico/oito-casas-seis-meses-vinte-pessoas-12-10.md`):
+a Acolhe+AI testada setor por setor outra vez, e as oito casas com vinte pessoas por seis meses usando o
+sistema e ela. **Depende da Fundação:** conferir as frases novas da Acolhe+AI (portão, choro, família,
+colega que faltou) contra o protocolo da casa. **O que falta para ir ao ar** está no relatório, e é tudo
+do §11 e do §12: onde roda, HTTPS, SMTP, cron, backup provado, a chave da Acolhe+AI, os nomes das casas,
+os dados de partida e a LGPD, a folha de remédio de papel, e o roteiro com a equipe. **Rode a simulação
+com `SIM_EQUIPE=20` quando a mudança tocar a instituição**: com nove pessoas por casa, as duas telas
+lentas não apareciam.
 
 **FEITO — fase 204** (§2): cada setor usado de ponta a ponta, conferindo se o registro de um
 chegava aos outros. Cinco defeitos do protótipo (a alergia que não saía do perfil, os plantões
@@ -748,6 +764,13 @@ novo.
   passava no ensaio. **Ensaio de um setor só não vê o que não chega ao outro**: o percurso
   leva o registro de um setor e o procura nos outros. E **dado de demonstração com hora fixa
   mente em alguma hora do dia**: os plantões fixos estavam certos às 14h e errados às 3h.
+- **O banco é um só, e a suíte o recria** (205). Rodei um arquivo de teste do Jest com a simulação
+  das oito casas no ar, e o `globalSetup` recriou o banco embaixo dela: a primeira casa sumiu e a
+  rodada morreu. A regra já estava escrita aqui; **simulação no ar, nada do Jest**, nem um arquivo só.
+- **Volume que não cresce não mede** (205). As oito casas viveram um ano na 177 com nove pessoas
+  cada, e nada passou de 582 ms; com vinte pessoas, em seis meses, a equipe das oito e o dia das
+  unidades passaram de um segundo. **Ensaio de carga se faz com o tamanho da casa**, e a pergunta feita
+  pessoa por pessoa só aparece quando há pessoas.
 - **Frase de tela que envelhece é frase que mente**, e a cobrança do ensaio que a
   guarda tem de ser reescrita junto. A ressalva do painel sobre nota escolar já foi
   reescrita três vezes. **Isto inclui este arquivo.**

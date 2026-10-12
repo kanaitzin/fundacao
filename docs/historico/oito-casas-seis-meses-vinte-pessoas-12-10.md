@@ -83,11 +83,31 @@ auditoria (80 mil linhas, 41 MB), depois a chamada (37 mil, 9 MB) e os avisos (9
   Geral, o gestor, a coordenação de uma casa, duas técnicas e uma educadora.
 - **O dia das unidades levava mais de um segundo** para o Líder Noturno Geral (1.161
   ms), porque as oito casas eram lidas uma depois da outra. Agora são lidas de quatro
-  em quatro, com no máximo quatro das dez conexões do banco.
+  em quatro, com no máximo quatro das dez conexões do banco: **cerca de 300 ms**.
+
+As duas medidas depois do conserto são do mesmo banco de seis meses, pelo servidor:
+a equipe das oito pela Coordenação Geral em 185 a 260 ms, e pelo gestor em 96 a 131 ms;
+o dia das unidades em 229 a 332 ms.
 
 ## O que o navegador viu
 
-NAVEGADOR_205
+**38 contas e 1.142 telas abertas contra o servidor de verdade, sem achado do sistema**:
+as vinte da AI1 (coordenação, duas técnicas, dois líderes, doze educadores com a que
+entrou no dia 44, duas na portaria e duas na cozinha), a coordenação e o líder das
+outras sete casas, e o gestor, a Enfermagem, o Líder Noturno Geral e a Coordenação
+Geral. Contando agora as abas de dentro de cada tela, a coordenação abre 46 telas, a
+técnica 41, o gestor 53 e a Coordenação Geral 54. O esqueci minha senha fez o pedido,
+chegou à caixa e abriu a tela da senha nova.
+
+**A Acolhe+AI e o sistema juntos, gravando, passaram.** A educadora chega às 11h,
+quando ninguém abriu o plantão, abre o plantão na Passagem, conta à Acolhe+AI o que
+aconteceu, leva o rascunho à linha da ATA, aperta Registrar linha e deixa uma
+sugestão. O banco tem a linha e a sugestão, as duas com o e-mail dela e a casa dela, e
+a licença na auditoria. As duas primeiras tentativas reprovaram por defeito do roteiro
+(ele procurava a Passagem na coluna, e ela é uma das abas de cima; e não reabria a
+Acolhe+AI pela faixa), e o caminho até lá mostrou uma tela que **não dizia como sair
+dela**: a ATA sem plantão aberto dizia só *nenhum plantão aberto hoje*. Hoje ela diz
+que quem chega abre o plantão na Passagem.
 
 ## O que falta para o sistema estar pronto de verdade
 
