@@ -90,6 +90,8 @@ export const VOCABULARIO_DA_AUDITORIA: Record<string, string> = {
   'visita.entrada': 'Entrada de visita registrada',
   'visita.saida': 'Saída de visita registrada',
   'visita.correcao': 'Horário de visita corrigido',
+  'saida.registrada': 'Saída de acolhido registrada no portão',
+  'saida.volta': 'Volta de acolhido registrada no portão',
 
   // ------------------------------------------------------------- Dossiê e fotos
   'document.attach': 'Documento anexado ao dossiê',

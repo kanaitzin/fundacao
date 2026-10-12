@@ -2094,3 +2094,10 @@ button.cal-turno:focus-visible{ outline:3px solid var(--brand); outline-offset:1
   .cal-turno{ min-height:30px }
   .cal-dia{ padding:4px }
 }
+
+/* AS SAÍDAS DAS CRIANÇAS NO PORTÃO (fase 207): um cartão por criança, o que vale em palavras. */
+.saidas-do-portao{ list-style:none; margin:0 0 16px; padding:0; display:grid; gap:10px }
+@media (min-width: 900px){
+  .saidas-do-portao{ grid-template-columns:repeat(auto-fill, minmax(340px, 1fr)) }
+}
+.saidas-do-portao .card{ margin:0 }

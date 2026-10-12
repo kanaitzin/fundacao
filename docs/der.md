@@ -955,12 +955,12 @@ coordenação da casa, a Coordenação Geral, o Gestor Geral e a TI (`admin_tecn
 conversa com a assistente **não** é tabela: ela vive na tela de quem conversa, e o uso
 fica na auditoria (`assistente.conversa`, só metadado).
 
-## Inventário — 133 tabelas por partição
+## Inventário — 134 tabelas por partição
 
 | Partição | Tabelas |
 |---|---|
 | identity (17) | institution, house, app_user, user_house_assignment, work_schedule, shift_assignment, user_session, login_attempt, audit_event, institutional_device, staff_role_grant, house_capacity_change, user_invite, house_shift_hours, app_user_role_period, shift_draft, shift_draft_item |
-| people (31) | person, care_episode, house_stay, profile_detail, health_condition, food_restriction, document, document_version, benefit_record, memory_record, memory_photo, transfer_request, transfer_message, admission_record, judicial_record, person_credential, person_correction, profile_detail_change, person_contact, family_stay, family_stay_note, outing_permission, kitchen_request, house_field_permission, birthday_ack, contact_visit_change, visit, visit_correction, kitchen_request_change, pia_aviso, document_due_notice |
+| people (32) | person, care_episode, house_stay, profile_detail, health_condition, food_restriction, document, document_version, benefit_record, memory_record, memory_photo, transfer_request, transfer_message, admission_record, judicial_record, person_credential, person_correction, profile_detail_change, person_contact, family_stay, family_stay_note, outing_permission, kitchen_request, house_field_permission, birthday_ack, contact_visit_change, visit, visit_correction, kitchen_request_change, pia_aviso, document_due_notice, child_outing |
 | shifts (14) | shift, handover, handover_receipt, handover_note, ata, ata_note, ata_addendum, ata_episode, ata_episode_ack, general_night_ata, general_night_house_entry, general_night_house_amendment, ata_read_request, shift_fim_aviso |
 | incidents (7) | incident, incident_person, incident_protected, incident_restraint, incident_synthesis, external_communication, incident_attachment |
 | medications (13) | prescription, medication_schedule, medication_administration, medication_stock, medication_stock_movement, medication_protocol, medication_authorization, medication_protocol_change, prescription_restriction_change, medication_purchase, medication_purchase_item, prescription_document, family_stay_medication |
@@ -1149,6 +1149,28 @@ tem vínculo (`app_registra_visita`), e não lê `visit` pela tabela:
 `app_house_in_scope` responde NÃO a ela (identity/1591), e o que ela vê vem de
 `app_portaria_da_casa`. A contagem por criança existe só no perfil dela
 (decisão de 26/09): nenhuma consulta compara crianças.
+
+### `child_outing`
+QUEM SAIU PELO PORTÃO, e não só quem podia (fase 207, people/1650). A 1020 dizia
+se a criança pode sair sozinha; esta tabela diz quando ela saiu e voltou.
+
+`child_outing` — uma linha por saída: `house_id`, `person_id`, `alone` (saiu
+sozinha), `with_whom` (com quem, obrigatório quando não foi sozinha),
+`destination`, `expected_back_at` (a hora combinada de volta, no relógio da
+instituição), `left_at`/`left_by`/`left_note`, e a volta, preenchida uma vez:
+`returned_at`/`returned_by`, `returned_registered_at` (quando a volta foi
+registrada, que pode ser depois) e `return_note` (obrigatória quando a volta é
+registrada mais de quinze minutos depois). Índice único parcial por `person_id
+WHERE returned_at IS NULL`: uma saída aberta por criança.
+
+Quem grava são `app_registrar_saida_acolhido` e `app_registrar_volta_acolhido`,
+pela portaria (na casa em que tem vínculo) e pela equipe da casa
+(`app_registra_visita`). **Sozinha, só sai quem tem a autorização vigente como
+liberada**: sem registro é sem autorização, e quem não pode sair sozinha sai com
+o nome de quem vai junto. O portão lê pela `app_portaria_acolhidos`, que devolve o
+que vale, quem decidiu e desde quando, **e nunca o motivo**. Na mesma migração, a
+`app_definir_saida_sozinho` passa a aceitar a decisão do educador, do líder, da
+equipe técnica e da coordenação (pedido de 12/10).
 
 ### `commitment_exception`
 Uma ocorrência desmarcada de um compromisso que continua valendo. Por DATA, com

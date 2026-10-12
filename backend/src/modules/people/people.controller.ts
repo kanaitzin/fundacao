@@ -9,6 +9,7 @@ import { DossieService } from './dossie.service';
 import { PeopleService } from './people.service';
 import { CozinhaService } from './cozinha.service';
 import { VisitasService } from './visitas.service';
+import { SaidasService } from './saidas.service';
 import { PortariaService } from './portaria.service';
 import { CasaConferidaNoServico } from '../../kernel/common/casa-da-consulta.interceptor';
 import { CamposDoPerfilService } from './campos.service';
@@ -29,6 +30,7 @@ export class PeopleController {
     @Inject(ProfileService) private readonly profile: ProfileService,
     @Inject(CozinhaService) private readonly cozinha: CozinhaService,
     @Inject(VisitasService) private readonly visitas: VisitasService,
+    @Inject(SaidasService) private readonly saidas: SaidasService,
     @Inject(PortariaService) private readonly portaria: PortariaService,
     @Inject(CamposDoPerfilService) private readonly campos: CamposDoPerfilService,
     @Inject(AniversariosService) private readonly aniversarios: AniversariosService,
@@ -320,6 +322,26 @@ export class PeopleController {
     return this.visitas.corrigir(user, id, body ?? {});
   }
 
+  /* ---------------- A saída da criança pelo portão (fase 207) ---------------- */
+  @CasaConferidaNoServico('O portão confere pela casa em que a portaria trabalha (1591), '
+    + 'como a lista dos visitantes.')
+  @Get('portaria/acolhidos')
+  acolhidosNoPortao(@CurrentUser() user: AuthenticatedUser,
+                    @Query('houseId', ParseUUIDPipe) houseId: string) {
+    return this.saidas.doPortao(user, houseId);
+  }
+
+  @Post('portaria/saidas')
+  saidaPeloPortao(@CurrentUser() user: AuthenticatedUser, @Body(CorpoConferido) body: any) {
+    return this.saidas.sair(user, body ?? {});
+  }
+
+  @Post('portaria/saidas/:id/volta')
+  voltaPeloPortao(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
+                 @Body(CorpoConferido) body: any) {
+    return this.saidas.voltar(user, id, body ?? {});
+  }
+
   @CasaConferidaNoServico('A folha do portão, pela mesma razão da lista de hoje.')
   @Get('portaria/folha')
   folhaDaPortaria(@CurrentUser() user: AuthenticatedUser,
@@ -375,6 +397,12 @@ export class PeopleController {
   @Get(':id/outing-permission')
   saidaSozinho(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.people.saidaSozinho(user, id);
+  }
+
+  @RegistroDaRota('id', 'person')
+  @Get(':id/saidas')
+  saidasDaCrianca(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.saidas.daCrianca(user, id);
   }
 
   @Post(':id/outing-permission')

@@ -64,14 +64,14 @@ Anotar sugestões de melhoria: quando a pessoa reclamar, pedir algo que o sistem
 - Painel (metricas): a tela inicial do Gestor Geral, com os números das casas, sem ranking.
 - Dia (dia): a linha do dia da casa (atividades, doses, compromissos), o cartão do que mudou desde o último plantão, o que espera alguém.
 - Chamada (chamada): quem está na casa em cada turno, quem está fora e por quê.
-- Acolhidos (acolhidos): o perfil de cada criança (dados, saúde, escola, família, visitas, memórias, dossiê de documentos com validade). A busca no topo encontra pelo nome.
+- Acolhidos (acolhidos): o perfil de cada criança (dados, saúde, escola, família, visitas, memórias, dossiê de documentos com validade). A busca no topo encontra pelo nome. No perfil, em Sair sem acompanhante, o educador, o líder, a técnica e a coordenação decidem se a criança pode sair sem acompanhante, com o motivo, e quem perde a autorização por um tempo tem o prazo escrito.
 - Passagem (passagem): a passagem do plantão, assinada por cada um, e o complemento do que se lembrou depois. Embaixo, o calendário dos plantões do mês: cada dia com o turno do dia e o da noite pintados pela situação, e tocar no turno abre aquele plantão, com a ATA para ler e baixar.
 - ATA (ata): a ATA do plantão (diurno 08:00 às 20:00, noturno 20:01 às 07:59, horário que cada casa pode ajustar), as linhas da equipe e a ATA Geral. ATA fechada não se reescreve: corrige-se por adendo. Na aba Arquivo, o calendário mostra o mês inteiro, desde que a casa começou a usar o sistema, com os números do mês, e a lista dos últimos 30 dias, de um dia, da semana ou do mês.
 - Saúde (saude): a grade de doses do dia, quem deu e quando, a dose fora do horário com as duas horas, o armário de remédios (saldo, lote, validade, entradas e saídas), as notas de compra, a triagem e o resumo de saúde.
 - Internação hospitalar (internacao): quem está no hospital, o diário do período, a medicação de lá e o relatório em Word.
 - Ocorrências (ocorrencias): o registro, a revisão técnica quando exigida, a contenção quando houve, as comunicações externas.
 - Cozinha (cozinha): pedidos de lanche e cesta, restrições alimentares, refeições da casa, as folhas para a cozinha.
-- Portaria (portaria): quem entra e sai, visitas combinadas por criança, visitante com foto e documento.
+- Portaria (portaria): quem entra e sai, visitas combinadas por criança, visitante com foto e documento. Na aba Saídas das crianças, o que vale para cada criança sair (sem acompanhante, só com acompanhante, ou não pode sair sem acompanhante por um tempo), quem decidiu e desde quando, sem o motivo, e o registro da saída e da volta.
 - A escala de plantão (escala): quem trabalha quando, o rascunho do mês, o horário dos turnos da casa.
 - Agenda (agenda): compromissos marcados e o que vem pela frente.
 - A rotina da casa (rotina): o molde do dia, com as versões que a casa já seguiu.
@@ -107,7 +107,8 @@ Ninguém no sistema é anônimo e nada se apaga: tudo tem autor e histórico.
 - /people/ID/judicial  dados judiciais da criança
 - /people/ID/memories  memórias e vivências da criança
 - /people/ID/family-stays  convivências com a família
-- /people/ID/outing-permission  se a criança sai sozinha
+- /people/ID/outing-permission  se a criança pode sair sem acompanhante, quem decidiu e por quê
+- /people/ID/saidas  as saídas da criança pelo portão, com a volta
 - /people/ID/correcoes  correções do perfil
 - /people/ID/detalhe-historico  histórico do perfil
 - /people/dossie/catalogo  as chaves e categorias dos documentos do dossiê
@@ -123,6 +124,7 @@ Ninguém no sistema é anônimo e nada se apaga: tudo tem autor e histórico.
 - /people/profile-fields?houseId=  campos do perfil para o plantão
 - /people/birthdays?houseId=  aniversários
 - /people/portaria/hoje?houseId=  portaria do dia
+- /people/portaria/acolhidos?houseId=  as crianças no portão: o que vale para sair e quem está fora agora
 - /people/kitchen-requests?houseId=&de=&ate=  pedidos à cozinha
 - /people/kitchen-requests/summary?houseId=&de=&ate=  resumo da cozinha
 - /people/kitchen-requests/ID/history  histórico de um pedido

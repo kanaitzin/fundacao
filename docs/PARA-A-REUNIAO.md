@@ -49,7 +49,7 @@
   196 também dentro do perfil da criança (*quero registrar a alergia do Bruno*), do dossiê, da
   internação aberta e do acervo: os 36 formulários do sistema. **Para o DPO:**
   o ditado usa o reconhecimento do navegador; no Chrome, o áudio vai ao Google.
-- **206 fases.** 138 suítes e 1250 testes, verdes em duas condições de relógio —
+- **207 fases.** 139 suítes e 1258 testes, verdes em duas condições de relógio —
   antes e depois da virada do UTC, que em Porto Alegre é às 21h.
 - **O aviso no celular** (fase 189, decidido em 06/10): quem liga na Minha conta
   recebe no celular todos os avisos do sino, mesmo com o sistema fechado. Na
@@ -503,6 +503,19 @@ fazendo o papel de cada setor outra vez, em pedidos que recebiam *"não achei es
 
 Pergunta: **é isso que a casa faz?** Se o protocolo da Casa 03 diz outra coisa (por
 exemplo, a portaria chamar primeiro a coordenação de sobreaviso), a frase muda.
+
+## 4.20 Quem decide a saída da criança, e o que a portaria vê (fase 207, pedido de 12/10)
+
+O pedido de 12/10 mudou uma regra de 09/09. **Antes**, só a equipe técnica e a
+coordenação (e o Gestor Geral) decidiam se a criança pode sair sozinha. **Agora**
+decidem o educador, o líder, a equipe técnica e a coordenação, sempre com o motivo, e
+quem perde a autorização tem o prazo escrito. O Gestor Geral saiu da lista, porque o
+pedido não o nomeia. A portaria vê, na aba **Saídas das crianças**, o que vale para cada
+criança, quem decidiu e desde quando, e para onde ela pode ir; **o motivo não aparece
+para a portaria**. Quem ainda não tem decisão da equipe só sai com acompanhante.
+
+Perguntas, só para confirmar: **o Gestor Geral fica mesmo de fora?** E **o "pode ir a"
+(escola, curso) deve aparecer para a portaria**, ou só o que vale?
 
 ## 5. As decisões que são do Marcelo *(§10 — responda pelo número)*
 

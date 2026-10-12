@@ -20,7 +20,7 @@ começava escolhendo em qual acreditar.*
 
 | Arquivo | Por que sobreviveu |
 |---|---|
-| `der.md` | as 133 tabelas com o que cada coluna guarda. É referência de dado, não narrativa, e o `documentacao.spec.ts` cobra que toda tabela apareça lá |
+| `der.md` | as 134 tabelas com o que cada coluna guarda. É referência de dado, não narrativa, e o `documentacao.spec.ts` cobra que toda tabela apareça lá |
 | `roteiro-marcelo.md` (+ `.docx`) | é entregue à Casa 03, escrito para quem não conhece o sistema. O `.docx` é GERADO do `.md` por `scripts/roteiro-em-word.mjs` — não editar o Word à mão |
 
 ---
@@ -90,10 +90,10 @@ discordavam entre si.
 | Quanto | De onde sai |
 |---|---|
 | **19 partições** isoladas | pastas em `backend/src/modules/` |
-| **189 migrações** | `.sql` dentro das partições |
-| **133 tabelas** | `CREATE TABLE` nas migrações |
-| **138 suítes** | `backend/test/*.spec.ts` |
-| **1250 testes** | `it(` / `test(` nas suítes |
+| **190 migrações** | `.sql` dentro das partições |
+| **134 tabelas** | `CREATE TABLE` nas migrações |
+| **139 suítes** | `backend/test/*.spec.ts` |
+| **1258 testes** | `it(` / `test(` nas suítes |
 | **39 telas React** | `frontend/src/screens/*.tsx` |
 | **10 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **10 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
@@ -416,6 +416,7 @@ arqueologia.
 | 204 | **Cada setor usado de ponta a ponta, e o que passava de um setor ao outro** (pedido de 12/10: *"procure mais bugs testando cada setor"*). Fiz o papel de técnica, Enfermagem, educador, líder, portaria e coordenação no protótipo, sempre levando um registro de um setor e conferindo se ele chegava aos outros, em catorze percursos. **Os defeitos:** a **alergia e a restrição registradas no perfil não chegavam** à dose da Saúde, ao resumo, ao painel da Enfermagem nem à Cozinha do protótipo (o servidor de mentira lia só o dado semeado); os **plantões de demonstração eram fixos e de antes da regra de 25/09**, e de madrugada a tela mostrava o diurno de amanhã já assinado e o noturno fechado antes de abrir (agora o turno em curso é o da hora, a noite segue sem escala e o dia com escala, a qualquer hora, conferido em dez horários); a **ATA aberta não oferecia Escrever uma linha** no protótipo (o estado chegava como aberta, e a tela espera rascunho); a **dose dada não baixava o armário** no protótipo, como baixa no servidor; **tocar em Acolhidos com um perfil aberto não fazia nada**; e, no sistema de verdade também, **o remédio vencido aparecia como Validade próxima**, com *(-7 dia(s))*: agora diz *Vencido* e há quantos dias. **O que passou sem achado:** a agenda até o perfil, a dose do educador até a Saúde e o perfil, a visita da portaria até o perfil, a ocorrência até a coordenação, a internação tirando a criança da grade e do Dia, a suspensão do esquema, a saída com a família tirando a criança da chamada, o líder fechando a ATA com pendência e o pedido de lanche chegando à coordenação. O `ensaio:uso` ganhou o bloco *De um setor ao outro*, que cobra os consertos. **Limite que fica, só no protótipo:** de madrugada, alguns registros semeados com hora fixa do dia (o almoço, doses já confirmadas de manhã) aparecem com hora à frente, e o total de doses do mês no armário é fixo. |
 | 205 | **A Acolhe+AI em cada setor, e as oito casas com vinte pessoas por seis meses** (pedidos de 12/10: *"procure mais bugs na Acolhe+AI em cada setor"* e *"simule as 8 casas com 20 funcionários […] 6 meses […] teste tudo, cada menu"*). **Na Acolhe+AI**, fazendo o papel de cada setor outra vez, dezenove pedidos do plantão recebiam *"não achei essa tela"* ou a resposta errada: a criança chorando sem parar, o pesadelo, a mãe ao telefone, **o homem no portão dizendo ser o pai**, o visitante sem documento, o colega que não veio, a briga e o vidro quebrado contados no passado, o colírio que acabou, a dipirona vencida jogada fora. E três defeitos de tela: **"preciso cadastrar a vacina do Bruno" abria o Registrar compra da Saúde** (o primeiro formulário da tela, quando nenhum casava; hoje ela leva ao dossiê da criança), **o rascunho da ATA era escrito no formulário de episódio**, que é de uma criança e pede ciência (hoje vai à linha do turno), e com o dossiê de uma criança aberto, abrir outra mostrava direto o dossiê da segunda. As conversas viraram teste. **Na simulação** (`SIM_EQUIPE=20`), cento e sessenta contas nas oito casas, com rodízio de onze educadores, dois líderes, duas técnicas, e a Acolhe+AI escrevendo a linha da ATA do segundo educador de cada turno: **nenhum achado do sistema em seis meses**, tudo o que as casas contaram bate com o banco e os relatórios, e **as 2.904 linhas que a Acolhe+AI ajudou a escrever estão no banco e no Word com o nome de quem registrou**. O navegador contra o servidor abriu **38 contas e 1.142 telas, agora com cada aba de dentro, sem achado**, e uma educadora fez o caminho inteiro (abre o plantão, conta à Acolhe+AI, leva à linha da ATA, registra, deixa sugestão), conferido no banco. Achou e consertou: **a equipe das oito levava 913 ms** (migração 1649: 668 ms para 168 ms, idêntico para seis cargos) e **o dia das unidades 1.161 ms** (as casas de quatro em quatro: uns 300 ms); e a ATA sem plantão aberto não dizia como sair dela. Relatório em `docs/historico/oito-casas-seis-meses-vinte-pessoas-12-10.md`; as frases novas da Acolhe+AI estão para a Fundação conferir (PARA-A-REUNIAO §4.19). |
 | 206 | **O calendário das ATAs e dos plantões** (pedido de 12/10: *"onde é que está o dia? Quando é que ele sabe ver outros períodos? Não tem um calendário […] uma tabela bem colorida […] desde o início […] umas historinhas nas atas de outros dias"*). Na **Passagem**, embaixo dos plantões de hoje, e na aba **Arquivo** da ATA, o mês em grade: cada dia com o turno do dia (sol) e o da noite (lua) pintados pela situação da ATA, com as cores de ESTADO da pílula (fechada, com pendência, aberta, sem ATA) e a palavra na legenda e no nome do botão; o ponto marca o turno que teve episódio. Tocar no turno abre aquele plantão (na Passagem, com a ATA em folha para ler e baixar em Word; no Arquivo, a ATA inteira, com **Voltar ao calendário**). Embaixo, os números do mês, todos da casa: ATAs, fechadas, com pendência, abertas, passagens, episódios, adendos, noites com chamado à ATA Geral. Nenhum número por pessoa nem por criança. A leitura é a do Arquivo (`/shifts/ata-archive`, recorte do mês), sem rota nova. **No protótipo**, o livro da casa tem meses de histórias fictícias desde 01/07, sorteadas com semente na data (o mesmo dia conta sempre a mesma história), e os plantões vivos aparecem no dia em que começaram. Do plantão de outro dia, o formulário da passagem tardia fica a um toque e o Recebi não aparece. **Achou dois defeitos antigos**: abrir uma ATA pelo Arquivo trocava o plantão e **deixava na tela o texto das seções da ATA aberta antes** (a ATA de outro dia aparecia com o texto de hoje, no sistema de verdade também); e no protótipo **abrir uma ATA do arquivo quebrava a tela** (as linhas vinham sem autor). O `ensaio:uso` ganhou o bloco do calendário, e o `ensaio-servidor` abre o calendário de cada conta contra o servidor. |
+| 207 | **A saída das crianças pelo portão** (pedido de 12/10: *"o acolhido tem autorização da casa para poder sair […] quem autoriza é o educador, líder, coordenador e equipe técnica […] registrando o porquê e por quanto tempo […] não precisa a portaria saber o motivo […] a portaria controla"*). A decisão de 1020 (sair sozinho) passa a ser da **equipe da casa**: educador, líder, equipe técnica e coordenação (antes só a técnica, a coordenação e o gestor; people/1650). No perfil, o bloco virou **Sair sem acompanhante**, com palavras que não dependem do gênero: pode sair sem acompanhante, só sai com acompanhante, ou não pode sair sem acompanhante por um tempo, com o motivo e o **até quando**; a frase feia do perfil (*"a casa faz o que sempre fez"*) virou *"Até alguém da equipe decidir, ele só sai com acompanhante"*; e a suspensão deixou o vermelho (é estado, não juízo). Na **Portaria**, a aba **Saídas das crianças**: cada criança da casa com o que vale, quem decidiu e desde quando, **sem o motivo**, quem está fora agora (com a volta combinada e *passou da hora combinada*), e o registro da saída e da volta (`child_outing`). Sem acompanhante, o servidor só aceita quem a equipe autorizou; sem decisão, só sai com acompanhante, com o nome de quem vai junto. A volta registrada mais de quinze minutos depois pede a frase do que houve. O perfil lista as saídas pelo portão. **Achou, no teste que lê de volta**, a auditoria da saída registrada pela portaria nascendo **sem casa** (a portaria não lê a casa da criança; a função passou a devolvê-la). E corrige um defeito que a 206 deixou no protótipo: as passagens da noite do livro fictício eram de pessoas que não estão no quadro da casa. |
 
 ---
 
@@ -463,7 +464,7 @@ cd frontend && npm run prototipo
 ```
 
 O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as
-189 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
+190 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
 
 ### Os ensaios — e por que cada um existe
 
@@ -530,7 +531,7 @@ rede-acolher/
 │   │   │   ├── documentos/     o contrato da folha e o gerador de .docx
 │   │   │   └── common/         CPF, criptografia, segredo, fuso da instituição
 │   │   └── modules/       19 partições, cada uma dona das próprias migrações
-│   ├── test/              138 suítes (e2e contra PostgreSQL real + estáticas)
+│   ├── test/              139 suítes (e2e contra PostgreSQL real + estáticas)
 │   ├── scripts/           ensaio-carga.ts, migrador compilado
 │   └── assets/timbre.png  a marca da Fundação, usada no documento em Word
 ├── frontend/
@@ -2902,7 +2903,7 @@ ele continua dizendo que o arquivo existe.
 npm run ensaio:producao
 ```
 
-Constrói, cria um banco virgem, aplica as 189 migrações **pelo binário
+Constrói, cria um banco virgem, aplica as 190 migrações **pelo binário
 compilado**, sobe o serviço e confere `/health`. Não publica nada e não toca no
 banco de trabalho.
 

@@ -378,6 +378,15 @@ describe('o modo guia atende como colega de plantão', () => {
     }
   });
 
+  it('a saída das crianças pelo portão se pede pela portaria (fase 207)', () => {
+    const comPortaria = [...TELAS, { chave: 'portaria', titulo: 'Portaria' }];
+    for (const f of ['quem pode sair sem acompanhante hoje', 'registrar a volta de quem saiu para a escola',
+                     'me leva para a saida das criancas']) {
+      const x = r(f, comPortaria);
+      expect(x.ir === 'portaria' || /\(tela:portaria\)/.test(x.texto)).toBe(true);
+    }
+  });
+
   it('não promete formulário antes de abrir: "registrar saída da visita" na portaria (fase 203)', () => {
     const portaria = [{ chave: 'portaria', titulo: 'Portaria' }];
     const x = responderPeloGuia('registrar saída da visita', portaria, false);

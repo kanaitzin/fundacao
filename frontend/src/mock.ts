@@ -1530,7 +1530,52 @@ const SAIDAS_SOZINHO: Record<string, {
        autor que ninguém pode procurar para perguntar por quê. */
     quem: 'Tatiane Técnica (fictícia)',
   }],
+  /* Fase 207: mais três, para o portão ter o que mostrar. Quem decide agora é a
+     equipe da casa, educador e líder inclusive. */
+  p14: [{
+    status: 'liberada',
+    motivo: 'Vai e volta da escola e do trabalho de aprendiz desde agosto, sem intercorrência.',
+    onde: 'Escola e trabalho de aprendiz.', ate: null,
+    desde: new Date(Date.now() - 40 * 86400_000).toISOString(), quem: 'Tatiane Técnica (fictícia)',
+  }],
+  p09: [{
+    status: 'liberada',
+    motivo: 'Combinado com ele e com a técnica: escola e treino de futebol no bairro.',
+    onde: 'Escola e treino de futebol.', ate: null,
+    desde: new Date(Date.now() - 20 * 86400_000).toISOString(), quem: 'Mário Silva (fictício)',
+  }],
+  p18: [{
+    status: 'suspensa',
+    motivo: 'Voltou duas horas depois do combinado ontem; conversamos e combinamos uma semana acompanhada.',
+    onde: null, ate: new Date(Date.now() + 5 * 86400_000).toISOString().slice(0, 10),
+    desde: new Date(Date.now() - 1 * 86400_000).toISOString(), quem: 'Lúcia Líder Diurna (fictícia)',
+  }, {
+    status: 'liberada', motivo: 'Vai sozinha à escola desde o começo do ano letivo.',
+    onde: 'Escola.', ate: null,
+    desde: new Date(Date.now() - 200 * 86400_000).toISOString(), quem: 'Tatiane Técnica (fictícia)',
+  }],
 };
+
+/* AS SAÍDAS PELO PORTÃO (fase 207): uma criança fora agora, e um pouco de história. */
+interface SaidaMock {
+  id: string; personId: string; sozinho: boolean; comQuem: string | null; destino: string | null;
+  voltaPrevista: string | null; saiuEm: string; quemSaida: string; voltouEm: string | null;
+  quemVolta: string | null; notaSaida: string | null; notaVolta: string | null;
+}
+const SAIDAS_PORTAO: SaidaMock[] = [
+  { id: 'sp1', personId: 'p14', sozinho: true, comQuem: null, destino: 'Escola',
+    voltaPrevista: new Date(Date.now() + 2 * 3600_000).toISOString(),
+    saiuEm: new Date(Date.now() - 3 * 3600_000).toISOString(), quemSaida: 'Paulo da Portaria (fictício)',
+    voltouEm: null, quemVolta: null, notaSaida: null, notaVolta: null },
+  { id: 'sp2', personId: 'p09', sozinho: true, comQuem: null, destino: 'Treino de futebol',
+    voltaPrevista: null, saiuEm: new Date(Date.now() - 26 * 3600_000).toISOString(),
+    quemSaida: 'Paulo da Portaria (fictício)', voltouEm: new Date(Date.now() - 23 * 3600_000).toISOString(),
+    quemVolta: 'Paulo da Portaria (fictício)', notaSaida: null, notaVolta: null },
+  { id: 'sp3', personId: 'p10', sozinho: false, comQuem: 'Educador Mário (fictício)', destino: 'Curso profissionalizante',
+    voltaPrevista: null, saiuEm: new Date(Date.now() - 50 * 3600_000).toISOString(),
+    quemSaida: 'Mário Silva (fictício)', voltouEm: new Date(Date.now() - 46 * 3600_000).toISOString(),
+    quemVolta: 'Paulo da Portaria (fictício)', notaSaida: null, notaVolta: null },
+];
 
 /* PEDIDOS PARA A COZINHA (1030). Um de cada, para a demonstração mostrar a
    folha com conteúdo — e um cancelado, porque ele NÃO some da folha. */
@@ -3059,10 +3104,10 @@ const EQUIPE_DO_DIA = [
   { quem: 'Mário Silva (fictício)', userId: 'u1' },
   { quem: 'Joana Lima (fictícia)', userId: 'u6' },
 ];
+/* A noite é da mesma equipe da casa, em rodízio: quem assina tem de estar no quadro. */
 const EQUIPE_DA_NOITE = [
-  { quem: 'Rosa Menezes (fictícia)', userId: 'u21' },
-  { quem: 'Valdir Prates (fictício)', userId: 'u22' },
-  { quem: 'Sueli Antunes (fictícia)', userId: 'u23' },
+  { quem: 'Joana Lima (fictícia)', userId: 'u6' },
+  { quem: 'Mário Silva (fictício)', userId: 'u1' },
 ];
 const ACOLHIDOS_DO_DIA = [
   'Café às 7h30 com todos; {a} e {b} foram para a escola de van, os menores para a creche. Almoço tranquilo e tema de casa até as 16h.',
@@ -8419,6 +8464,78 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     p.motivoCancelamento = String(b.motivo).trim();
     return { cancelado: true };
   }
+  /* ---------- A saída da criança pelo portão (fase 207) ---------- */
+  if (rota === '/people/portaria/acolhidos' && metodo === 'GET') {
+    if (!['portaria', 'educador', 'lider_diurno', 'lider_noturno_geral', 'equipe_tecnica',
+          'coordenador', 'gestor_geral'].includes(eu.role)) {
+      throw new ErroApi(404, 'Criança não encontrada nesta casa.');
+    }
+    const ROTULO: Record<string, string> = { liberada: 'pode sair sem acompanhante',
+      acompanhada: 'só sai com acompanhante', suspensa: 'não pode sair sem acompanhante' };
+    return todosKids().map((k) => {
+      const v = (SAIDAS_SOZINHO[k.id] ?? [])[0];
+      const fora = SAIDAS_PORTAO.find((x) => x.personId === k.id && !x.voltouEm);
+      /* O motivo NÃO sai daqui: o portão vê o que vale e quem decidiu. */
+      return {
+        personId: k.id, nome: k.nome, situacao: v?.status ?? null,
+        rotulo: v ? ROTULO[v.status] : 'ainda sem decisão',
+        podeSairSozinho: v?.status === 'liberada', onde: v?.onde ?? null, desde: v?.desde ?? null,
+        quemDecidiu: v?.quem ?? null, foraDaCasa: false,
+        saida: fora ? { id: fora.id, saiuEm: fora.saiuEm, sozinho: fora.sozinho, comQuem: fora.comQuem,
+                        destino: fora.destino, voltaPrevista: fora.voltaPrevista,
+                        passouDaHora: !!fora.voltaPrevista && Date.parse(fora.voltaPrevista) < Date.now() } : null,
+      };
+    }).sort((a, b) => a.nome.localeCompare(b.nome));
+  }
+  if (rota === '/people/portaria/saidas' && metodo === 'POST') {
+    const pid = String(b.personId ?? '');
+    if (!todosKids().some((k) => k.id === pid)) throw new ErroApi(404, 'Criança não encontrada nesta casa.');
+    if (SAIDAS_PORTAO.some((x) => x.personId === pid && !x.voltouEm)) {
+      throw new ErroApi(409, 'Esta criança já está com uma saída aberta. Registre a volta antes.');
+    }
+    const v = (SAIDAS_SOZINHO[pid] ?? [])[0];
+    if (b.sozinho === true && v?.status !== 'liberada') {
+      throw new ErroApi(400, v
+        ? 'Esta criança não pode sair sem acompanhante agora. Ela só sai com acompanhante; '
+          + 'se for preciso, chame o líder do plantão.'
+        : 'A equipe ainda não registrou autorização para esta criança sair sem acompanhante. '
+          + 'Ela só sai com acompanhante; se for preciso, chame o líder do plantão.');
+    }
+    if (b.sozinho !== true && String(b.comQuem ?? '').trim().length < 3) {
+      throw new ErroApi(400, 'Escreva com quem vai: o nome de quem responde pela criança fora da casa.');
+    }
+    let volta: string | null = null;
+    if (b.volta) {
+      const t = Date.parse(`${HOJE}T${b.volta}:00-03:00`);
+      volta = new Date(t < Date.now() ? t + 86400_000 : t).toISOString();
+    }
+    const id = uid();
+    SAIDAS_PORTAO.unshift({ id, personId: pid, sozinho: b.sozinho === true,
+      comQuem: b.sozinho === true ? null : String(b.comQuem).trim(), destino: b.destino || null,
+      voltaPrevista: volta, saiuEm: new Date().toISOString(), quemSaida: eu.fullName,
+      voltouEm: null, quemVolta: null, notaSaida: b.nota || null, notaVolta: null });
+    return { id, aviso: `Saída registrada às ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })}.` };
+  }
+  if (seg[0] === 'people' && seg[1] === 'portaria' && seg[2] === 'saidas' && seg[4] === 'volta' && metodo === 'POST') {
+    const x = SAIDAS_PORTAO.find((y) => y.id === seg[3]);
+    if (!x) throw new ErroApi(404, 'Saída não encontrada.');
+    if (x.voltouEm) throw new ErroApi(409, 'A volta desta saída já foi registrada.');
+    const quando = b.voltouEm ? Date.parse(b.voltouEm) : Date.now();
+    if (Number.isNaN(quando) || quando < Date.parse(x.saiuEm) || quando > Date.now() + 5 * 60_000) {
+      throw new ErroApi(400, 'A hora da volta tem de ser depois da saída, e não pode ser mais tarde que agora.');
+    }
+    if (quando < Date.now() - 15 * 60_000 && String(b.nota ?? '').trim().length < 10) {
+      throw new ErroApi(400, 'A volta está sendo registrada bem depois de acontecer. Escreva em uma frase o que houve (mínimo 10 letras).');
+    }
+    x.voltouEm = new Date(quando).toISOString(); x.quemVolta = eu.fullName; x.notaVolta = b.nota || null;
+    return { aviso: `Volta registrada${b.voltouEm ? ` às ${new Date(quando).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })}` : ''}.` };
+  }
+  if (seg[0] === 'people' && seg[2] === 'saidas' && seg.length === 3 && metodo === 'GET') {
+    if (eu.role === 'portaria' || eu.role === 'cozinha') throw new ErroApi(404, 'Não encontrado.');
+    return SAIDAS_PORTAO.filter((x) => x.personId === seg[1])
+      .map(({ personId: _p, ...resto }) => resto);
+  }
+
   if (rota.startsWith('/people/outing-permissions')) {
     const hoje = new Date().toISOString().slice(0, 10);
     return Object.entries(SAIDAS_SOZINHO).flatMap(([pid, hist]) => {
@@ -8446,8 +8563,10 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         })),
       };
     }
-    if (!['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)) {
-      throw new ErroApi(403, 'Só a equipe técnica ou a coordenação decidem sobre sair sozinho.');
+    /* Desde 12/10, a equipe da casa decide (fase 207). */
+    if (!['educador', 'lider_diurno', 'lider_noturno_geral', 'equipe_tecnica', 'coordenador'].includes(eu.role)) {
+      throw new ErroApi(403, 'Quem decide sobre sair sem acompanhante é a equipe da casa: educador, líder, '
+        + 'equipe técnica ou coordenação.');
     }
     if (String(b.motivo ?? '').trim().length < 10) {
       throw new ErroApi(400, 'Escreva o motivo. Quem for conversar com o adolescente '
@@ -8455,7 +8574,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     }
     if (b.status === 'suspensa' && !b.ate) {
       throw new ErroApi(400, 'Escreva até quando. Medida sem prazo vira permanente por '
-        + 'esquecimento — e ninguém decidiu que seria permanente.');
+        + 'esquecimento, e ninguém decidiu que seria permanente.');
     }
     SAIDAS_SOZINHO[seg[1]] = [
       { status: b.status, motivo: String(b.motivo).trim(), onde: b.onde || null,

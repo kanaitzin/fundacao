@@ -4,6 +4,7 @@ import { EscolherAnexo, Escolhido } from '../anexos';
 import { Icone } from '../icones';
 import { FolhaDocumento, ArquivoGerado } from '../documentos';
 import type { DocumentoWord } from '../docx';
+import { Avatar } from '../avatar';
 
 /**
  * PORTARIA — quem pode visitar, e quem visitou.
@@ -64,6 +65,8 @@ export function Portaria({ houseId, casaLabel }: { houseId: string; casaLabel: s
   /* A BUSCA: vinte crianças com dois ou três visitantes cada são uma lista de
      dez telas. Quem chega diz um nome — o dele ou o da criança. */
   const [busca, setBusca] = useState('');
+  /* Os visitantes e, desde a fase 207, as saídas das crianças. */
+  const [aba, setAba] = useState<'visitantes' | 'acolhidos'>('visitantes');
 
   useEffect(() => {
     setErro('');
@@ -120,17 +123,28 @@ export function Portaria({ houseId, casaLabel }: { houseId: string; casaLabel: s
 
   return (
     <>
-      <h2 className="ff">Portaria — quem pode visitar</h2>
+      <h2 className="ff">Portaria</h2>
+      <div className="filtros" role="tablist" aria-label="O que o portão olha">
+        <button role="tab" aria-selected={aba === 'visitantes'} className={aba === 'visitantes' ? 'on' : ''}
+                onClick={() => setAba('visitantes')}>Visitantes</button>
+        <button role="tab" aria-selected={aba === 'acolhidos'} className={aba === 'acolhidos' ? 'on' : ''}
+                onClick={() => setAba('acolhidos')}>Saídas das crianças</button>
+      </div>
+
+      {aba === 'acolhidos' && <AcolhidosNoPortao houseId={houseId} />}
+
+      {aba === 'visitantes' && (
       <p className="mutetxt">
         {casaLabel}. Confira quem chega pela foto e pelo documento, e registre a entrada e a
         saída. Só está na lista quem a equipe técnica ou a coordenação autorizou, no contato da
         criança. <b>Quem não está aqui não entra sem falar com a casa.</b>
       </p>
+      )}
 
-      {erro && <div className="notice c-crit" role="alert">{erro}</div>}
-      {aviso && <div className="notice c-ok" role="status">{aviso}</div>}
+      {aba === 'visitantes' && erro && <div className="notice c-crit" role="alert">{erro}</div>}
+      {aba === 'visitantes' && aviso && <div className="notice c-ok" role="status">{aviso}</div>}
 
-      {portao && (
+      {aba === 'visitantes' && portao && (
         <>
           <label className="f" htmlFor="port-busca">
             Quem chegou? <small>— procure pelo nome da pessoa ou da criança</small>
@@ -513,6 +527,239 @@ function FolhaFotoDoVisitante({ v, onFechar, onFeito }: {
         <div className="row rodape">
           <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
           <button className="btn grow" disabled={!arquivo || ocupado} onClick={enviar}>Guardar a foto</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * OS ACOLHIDOS NO PORTÃO (fase 207, pedido de 12/10).
+ *
+ * A portaria vê as crianças da casa, o que vale para cada uma (sai sem
+ * acompanhante, só com acompanhante, não pode sair sem acompanhante), quem
+ * decidiu e desde quando. O motivo não chega aqui: é da equipe. E registra a
+ * saída e a volta. Sem acompanhante, o servidor só aceita quem a equipe
+ * autorizou; para os outros, o botão nem aparece.
+ */
+interface AcolhidoNoPortao {
+  personId: string; nome: string; situacao: string | null; rotulo: string;
+  podeSairSozinho: boolean; onde: string | null; desde: string | null;
+  quemDecidiu: string | null; foraDaCasa: boolean;
+  saida: { id: string; saiuEm: string; sozinho: boolean; comQuem: string | null;
+           destino: string | null; voltaPrevista: string | null; passouDaHora: boolean } | null;
+}
+const TOM_DA_SAIDA: Record<string, string> = { liberada: 'c-ok', acompanhada: 'c-info', suspensa: 'c-warn' };
+
+function AcolhidosNoPortao({ houseId }: { houseId: string }) {
+  const [lista, setLista] = useState<AcolhidoNoPortao[] | null>(null);
+  const [erro, setErro] = useState('');
+  const [aviso, setAviso] = useState('');
+  const [busca, setBusca] = useState('');
+  const [saindo, setSaindo] = useState<AcolhidoNoPortao | null>(null);
+  const [voltando, setVoltando] = useState<AcolhidoNoPortao | null>(null);
+  const [volta, setVolta] = useState(0);
+
+  useEffect(() => {
+    setErro('');
+    api<AcolhidoNoPortao[]>(`/people/portaria/acolhidos?houseId=${houseId}`)
+      .then(setLista)
+      .catch((e) => setErro(erroDe(e, 'Não foi possível abrir a lista das crianças.')));
+  }, [houseId, volta]);
+  const recarregar = (msg: string) => { setAviso(msg); setVolta((n) => n + 1); };
+
+  async function voltouAgora(a: AcolhidoNoPortao) {
+    setErro(''); setAviso('');
+    try {
+      const r = await api<{ aviso: string }>(`/people/portaria/saidas/${a.saida!.id}/volta`, {
+        method: 'POST', body: JSON.stringify({}) });
+      recarregar(`${a.nome}: ${r.aviso}`);
+    } catch (e) { setErro(erroDe(e, 'Não foi possível registrar a volta.')); }
+  }
+
+  const sem = (t: string) => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  const todos = lista ?? [];
+  const fora = todos.filter((a) => a.saida);
+  const achados = busca.trim() ? todos.filter((a) => sem(a.nome).includes(sem(busca.trim()))) : todos;
+
+  return (
+    <>
+      <p className="mutetxt">
+        O que vale para cada criança sair, e quem decidiu. Registre a saída e a volta. Quem não
+        pode sair sem acompanhante, ou ainda não tem decisão da equipe, só sai com alguém da equipe
+        ou com quem a equipe indicou.
+      </p>
+      {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+      {aviso && <div className="notice c-ok" role="status">{aviso}</div>}
+
+      <div className="eyebrow">Fora da casa agora · {fora.length}</div>
+      {fora.length === 0 && <p className="mutetxt">Nenhuma criança fora pelo portão agora.</p>}
+      <ul className="saidas-do-portao">
+        {fora.map((a) => (
+          <li key={a.personId} className="card stack">
+            <div className="row">
+              <Avatar nome={a.nome} temFoto={false} tamanho={40} />
+              <b className="ff grow">{a.nome}</b>
+              {a.saida!.passouDaHora && <span className="pill c-warn">passou da hora combinada</span>}
+            </div>
+            <div className="mutetxt">
+              Saiu às {hora(a.saida!.saiuEm)}
+              {a.saida!.sozinho ? ' sem acompanhante' : a.saida!.comQuem ? `, com ${a.saida!.comQuem}` : ''}
+              {a.saida!.destino ? `, para ${a.saida!.destino}` : ''}
+              {a.saida!.voltaPrevista ? `. Combinou voltar às ${hora(a.saida!.voltaPrevista)}` : ''}.
+            </div>
+            <div className="row" style={{ gap: 8 }}>
+              <button className="btn grow" onClick={() => voltouAgora(a)}>Voltou agora</button>
+              <button className="btn sec grow" onClick={() => setVoltando(a)}>Voltou mais cedo</button>
+            </div>
+          </li>
+        ))}
+      </ul>
+
+      <label className="f" htmlFor="port-acolhido">
+        Quem está saindo? <small>— procure pelo nome</small>
+      </label>
+      <input id="port-acolhido" type="search" className="busca-grande" value={busca}
+             onChange={(e) => setBusca(e.target.value)} placeholder="Ex.: Kauã" />
+
+      <div className="eyebrow">As crianças da casa · {todos.length}</div>
+      <ul className="saidas-do-portao">
+        {achados.map((a) => (
+          <li key={a.personId} className="card stack">
+            <div className="row">
+              <Avatar nome={a.nome} temFoto={false} tamanho={40} />
+              <b className="ff grow">{a.nome}</b>
+              <span className={`pill ${a.situacao ? TOM_DA_SAIDA[a.situacao] ?? 'c-mute' : 'c-mute'}`}>{a.rotulo}</span>
+            </div>
+            {a.situacao && (
+              <div className="mutetxt">
+                Desde {a.desde ? new Date(a.desde).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' }) : 'hoje'}
+                {a.quemDecidiu ? `, decidido por ${a.quemDecidiu}` : ''}.
+                {a.onde ? ` Pode ir a: ${a.onde.replace(/\.$/, '')}.` : ''}
+              </div>
+            )}
+            {a.foraDaCasa && <div className="mutetxt">Hoje não está na casa.</div>}
+            {!a.saida && !a.foraDaCasa && (
+              <button className="btn sec block" onClick={() => setSaindo(a)}>
+                Registrar a saída de {a.nome}
+              </button>
+            )}
+          </li>
+        ))}
+      </ul>
+
+      {saindo && (
+        <FolhaDaSaida a={saindo} onFechar={() => setSaindo(null)}
+                      onFeito={(msg) => { setSaindo(null); recarregar(msg); }} />
+      )}
+      {voltando && (
+        <FolhaDaVolta a={voltando} onFechar={() => setVoltando(null)}
+                      onFeito={(msg) => { setVoltando(null); recarregar(msg); }} />
+      )}
+    </>
+  );
+}
+
+function FolhaDaSaida({ a, onFechar, onFeito }: {
+  a: AcolhidoNoPortao; onFechar: () => void; onFeito: (msg: string) => void;
+}) {
+  const [sozinho, setSozinho] = useState(a.podeSairSozinho);
+  const [comQuem, setComQuem] = useState('');
+  const [destino, setDestino] = useState('');
+  const [voltaAs, setVoltaAs] = useState('');
+  const [nota, setNota] = useState('');
+  const [erro, setErro] = useState('');
+  const [ocupado, setOcupado] = useState(false);
+  const pode = sozinho || comQuem.trim().length >= 3;
+
+  async function enviar() {
+    setErro(''); setOcupado(true);
+    try {
+      const r = await api<{ aviso: string }>('/people/portaria/saidas', {
+        method: 'POST',
+        body: JSON.stringify({ personId: a.personId, sozinho, comQuem: sozinho ? undefined : comQuem.trim(),
+          destino: destino.trim() || undefined, volta: voltaAs || undefined, nota: nota.trim() || undefined }),
+      });
+      onFeito(`${a.nome}: ${r.aviso}`);
+    } catch (e) { setErro(erroDe(e, 'Não foi possível registrar a saída.')); }
+    finally { setOcupado(false); }
+  }
+
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-saida-ac"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet">
+        <h3 id="t-saida-ac">Saída de {a.nome}</h3>
+        <p className="mutetxt">A hora é a de agora. {a.rotulo[0].toUpperCase() + a.rotulo.slice(1)}.</p>
+        {a.podeSairSozinho ? (
+          <div className="filtros" role="radiogroup" aria-label="Como sai">
+            <button role="radio" aria-checked={sozinho} className={sozinho ? 'on' : ''}
+                    onClick={() => setSozinho(true)}>Sem acompanhante</button>
+            <button role="radio" aria-checked={!sozinho} className={!sozinho ? 'on' : ''}
+                    onClick={() => setSozinho(false)}>Com acompanhante</button>
+          </div>
+        ) : (
+          <div className="notice c-info">
+            {a.nome} só sai com acompanhante. Se for preciso sair sem, chame o líder do plantão.
+          </div>
+        )}
+        {!sozinho && (
+          <>
+            <label className="f" htmlFor="sai-com">Com quem vai</label>
+            <input id="sai-com" value={comQuem} onChange={(e) => setComQuem(e.target.value)}
+                   placeholder="Ex.: educadora Tainá" />
+          </>
+        )}
+        <label className="f" htmlFor="sai-dest">Para onde <small>— opcional</small></label>
+        <input id="sai-dest" value={destino} onChange={(e) => setDestino(e.target.value)}
+               placeholder="Ex.: escola, curso, consulta" />
+        <label className="f" htmlFor="sai-volta">Volta combinada <small>— opcional</small></label>
+        <input id="sai-volta" type="time" value={voltaAs} onChange={(e) => setVoltaAs(e.target.value)} />
+        <label className="f" htmlFor="sai-nota">Observação <small>— opcional</small></label>
+        <input id="sai-nota" value={nota} onChange={(e) => setNota(e.target.value)} />
+        {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+        <div className="row rodape">
+          <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
+          <button className="btn grow" disabled={!pode || ocupado} onClick={enviar}>Registrar saída</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FolhaDaVolta({ a, onFechar, onFeito }: {
+  a: AcolhidoNoPortao; onFechar: () => void; onFeito: (msg: string) => void;
+}) {
+  const [quando, setQuando] = useState(paraCampo(new Date().toISOString()));
+  const [nota, setNota] = useState('');
+  const [erro, setErro] = useState('');
+
+  async function enviar() {
+    setErro('');
+    try {
+      const r = await api<{ aviso: string }>(`/people/portaria/saidas/${a.saida!.id}/volta`, {
+        method: 'POST', body: JSON.stringify({ voltouEm: doCampo(quando), nota: nota.trim() || undefined }),
+      });
+      onFeito(`${a.nome}: ${r.aviso}`);
+    } catch (e) { setErro(erroDe(e, 'Não foi possível registrar a volta.')); }
+  }
+
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-volta-ac"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet">
+        <h3 id="t-volta-ac">A volta de {a.nome}</h3>
+        <p className="mutetxt">Saiu às {hora(a.saida!.saiuEm)}. Diga a hora em que voltou; se foi há mais de
+          quinze minutos, escreva o que houve.</p>
+        <label className="f" htmlFor="volta-qd">Voltou</label>
+        <input id="volta-qd" type="datetime-local" value={quando} onChange={(e) => setQuando(e.target.value)} />
+        <label className="f" htmlFor="volta-nota">O que houve</label>
+        <textarea id="volta-nota" rows={2} value={nota} onChange={(e) => setNota(e.target.value)}
+                  placeholder="Ex.: voltou às 15h com a líder; registrei agora." />
+        {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+        <div className="row rodape">
+          <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
+          <button className="btn grow" onClick={enviar}>Registrar a volta</button>
         </div>
       </div>
     </div>

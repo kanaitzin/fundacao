@@ -241,9 +241,9 @@ interface SaidaSozinho {
 
 /** O rótulo que o educador lê às sete da manhã. Nunca um número. */
 const SAIDA_ROTULO: Record<string, { txt: string; tom: string }> = {
-  liberada:    { txt: 'sai sozinho', tom: 'c-ok' },
-  acompanhada: { txt: 'sai acompanhado', tom: 'c-warn' },
-  suspensa:    { txt: 'não sai sozinho', tom: 'c-crit' },
+  liberada:    { txt: 'pode sair sem acompanhante', tom: 'c-ok' },
+  acompanhada: { txt: 'só sai com acompanhante', tom: 'c-warn' },
+  suspensa:    { txt: 'não pode sair sem acompanhante', tom: 'c-warn' },
 };
 
 interface Convivencia {
@@ -2512,26 +2512,41 @@ function FolhaSaidaFamiliar({ pessoa, contato, onFechar, onRegistrar }: {
 
 
 /**
- * SAIR SOZINHO — a decisão, o motivo e o histórico.
+ * SAIR SEM ACOMPANHANTE — a decisão, o motivo, o prazo e as saídas pelo portão.
  *
- * Fica no perfil, junto dos contatos, porque é onde a equipe técnica já
- * trabalha. O educador não decide: ele LÊ, na lista da casa, de manhã.
+ * Fica no perfil, junto dos contatos. Desde o pedido de 12/10 quem decide é a
+ * equipe da casa: educador, líder, equipe técnica e coordenação (antes, só a
+ * técnica e a coordenação). A portaria vê o que vale e quem decidiu, e nunca o
+ * motivo, que é desta tela.
  */
+interface SaidaPeloPortao {
+  id: string; saiuEm: string; sozinho: boolean; comQuem: string | null; destino: string | null;
+  voltaPrevista: string | null; voltouEm: string | null; quemSaida: string | null;
+  quemVolta: string | null; notaSaida: string | null; notaVolta: string | null;
+}
+const DECIDE_SAIDA = ['educador', 'lider_diurno', 'lider_noturno_geral', 'equipe_tecnica', 'coordenador'];
+const hhmmDe = (iso: string) => new Date(iso).toLocaleTimeString('pt-BR',
+  { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' });
+const diaDe = (iso: string) => new Date(iso).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+
 function SairSozinho({ perfil, papel, onMudou }: {
   perfil: Perfil; papel: string; onMudou: () => void;
 }) {
   const [dados, setDados] = useState<{ vigente: any; historico: any[] } | null>(null);
+  const [saidas, setSaidas] = useState<SaidaPeloPortao[]>([]);
   const [decidindo, setDecidindo] = useState(false);
   const [status, setStatus] = useState('liberada');
   const [motivo, setMotivo] = useState('');
   const [ate, setAte] = useState('');
   const [onde, setOnde] = useState('');
   const [erro, setErro] = useState('');
-  const podeDecidir = ['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(papel);
+  const podeDecidir = DECIDE_SAIDA.includes(papel);
 
   const carregar = useCallback(async () => {
     try { setDados(await api(`/people/${perfil.id}/outing-permission`)); }
     catch { setDados(null); }
+    try { setSaidas(await api<SaidaPeloPortao[]>(`/people/${perfil.id}/saidas`)); }
+    catch { setSaidas([]); }
   }, [perfil.id]);
   useEffect(() => { carregar(); }, [carregar]);
 
@@ -2550,17 +2565,16 @@ function SairSozinho({ perfil, papel, onMudou }: {
   }
 
   const v = dados?.vigente;
+  const fora = saidas.find((x) => !x.voltouEm);
   return (
     <>
-      <div className="eyebrow">Sair sozinho</div>
+      <div className="eyebrow">Sair sem acompanhante</div>
       {erro && <div className="notice c-crit" role="alert">{erro}</div>}
 
-      {/* Ausência NÃO é liberação: dizer isso por extenso evita que o silêncio
-          do cadastro seja lido como permissão. */}
       {!v && (
         <p className="mutetxt">
-          Sem definição registrada. A casa faz o que sempre fez — isto não é
-          autorização para sair sozinho.
+          Ainda não há decisão registrada. Até alguém da equipe decidir, {perfil.nome} só sai
+          com acompanhante.
         </p>
       )}
 
@@ -2573,21 +2587,29 @@ function SairSozinho({ perfil, papel, onMudou }: {
             </span>
           </div>
           <div>{v.motivo}</div>
-          {v.onde && <div className="mutetxt">Onde: {v.onde}</div>}
-          <div className="mutetxt">Decidido por {v.quem}.</div>
+          {v.onde && <div className="mutetxt">Pode ir a: {v.onde.replace(/\.$/, '')}.</div>}
+          <div className="mutetxt">Decidido por {v.quem}. A portaria vê o que vale e quem decidiu, sem o motivo.</div>
           {v.ate && (
             <div className={v.aRevisar ? 'notice c-warn' : 'mutetxt'} role="status">
-              Combinado revisar em {new Date(v.ate).toLocaleDateString('pt-BR')}.
-              {v.aRevisar && ' O prazo chegou — continua valendo até alguém decidir outra coisa.'}
+              {v.status === 'suspensa' ? 'Vale até' : 'Revisar em'} {new Date(v.ate).toLocaleDateString('pt-BR')}.
+              {v.aRevisar && ' O prazo chegou: continua valendo até alguém da equipe decidir de novo.'}
             </div>
           )}
+        </div>
+      )}
+
+      {fora && (
+        <div className="notice c-info" role="status">
+          Saiu às {hhmmDe(fora.saiuEm)}{fora.sozinho ? ' sem acompanhante' : fora.comQuem ? `, com ${fora.comQuem}` : ''}
+          {fora.destino ? `, para ${fora.destino}` : ''}
+          {fora.voltaPrevista ? `. Combinou voltar às ${hhmmDe(fora.voltaPrevista)}` : ''}.
         </div>
       )}
 
       {podeDecidir && !decidindo && (
         <button className="btn sec block" style={{ marginBottom: 12 }}
                 onClick={() => { setStatus(v?.status === 'liberada' ? 'suspensa' : 'liberada'); setDecidindo(true); }}>
-          <Icone nome="portaria" /> Registrar decisão sobre sair sozinho
+          <Icone nome="portaria" /> Mudar o que vale para sair
         </button>
       )}
 
@@ -2595,34 +2617,42 @@ function SairSozinho({ perfil, papel, onMudou }: {
         <div className="card stack">
           <label className="f" htmlFor="ss-st">O que vale a partir de agora</label>
           <select id="ss-st" value={status} onChange={(e) => setStatus(e.target.value)}>
-            <option value="liberada">Sai sozinho</option>
-            <option value="acompanhada">Sai acompanhado</option>
-            <option value="suspensa">Não sai sozinho</option>
+            <option value="liberada">Pode sair sem acompanhante</option>
+            <option value="acompanhada">Só sai com acompanhante</option>
+            <option value="suspensa">Não pode sair sem acompanhante, por um tempo</option>
           </select>
 
           <label className="f" htmlFor="ss-mot">Por quê</label>
-          {/* Motivo exigido inclusive para liberar: "por que ele pode sair
-              sozinho" é decisão tão registrável quanto a outra. */}
           <textarea id="ss-mot" rows={2} value={motivo}
                     onChange={(e) => setMotivo(e.target.value)}
-                    placeholder="Ex.: vai e volta da escola sozinho desde março, sem intercorrência." />
+                    placeholder={status === 'liberada'
+                      ? 'Ex.: vai e volta da escola desde março, sem intercorrência.'
+                      : 'Ex.: combinado com ele depois da conversa de hoje.'} />
+          <div className="mutetxt">O motivo fica com a equipe. A portaria não vê.</div>
 
           {status !== 'liberada' && (
             <>
-              <label className="f" htmlFor="ss-ate">Revisar até</label>
+              <label className="f" htmlFor="ss-ate">
+                {status === 'suspensa' ? 'Até quando' : 'Revisar em (opcional)'}
+              </label>
               <input id="ss-ate" type="date" value={ate}
                      onChange={(e) => setAte(e.target.value)} />
-              <div className="mutetxt">
-                Obrigatório quando não sai sozinho: medida sem prazo vira permanente
-                por esquecimento, e ninguém decidiu que seria permanente.
-              </div>
+              {status === 'suspensa' && (
+                <div className="mutetxt">
+                  No dia marcado a equipe revisa e decide de novo. A autorização não volta sozinha.
+                </div>
+              )}
             </>
           )}
 
-          <label className="f" htmlFor="ss-onde">Onde pode ir sozinho (opcional)</label>
-          <input id="ss-onde" value={onde} maxLength={120}
-                 onChange={(e) => setOnde(e.target.value)}
-                 placeholder="Ex.: escola e curso; nada além disso." />
+          {status === 'liberada' && (
+            <>
+              <label className="f" htmlFor="ss-onde">Aonde pode ir (opcional)</label>
+              <input id="ss-onde" value={onde} maxLength={120}
+                     onChange={(e) => setOnde(e.target.value)}
+                     placeholder="Ex.: escola e curso." />
+            </>
+          )}
 
           <div className="row" style={{ gap: 8 }}>
             <button className="btn sec grow" onClick={() => { setDecidindo(false); setErro(''); }}>
@@ -2637,7 +2667,6 @@ function SairSozinho({ perfil, papel, onMudou }: {
         </div>
       )}
 
-      {/* O histórico responde "por que ele perdeu a saída em março". */}
       {(dados?.historico ?? []).length > 1 && (
         <details style={{ marginBottom: 12 }}>
           <summary className="mutetxt">Decisões anteriores</summary>
@@ -2649,7 +2678,26 @@ function SairSozinho({ perfil, papel, onMudou }: {
                 </span>{' '}
                 {new Date(h.de).toLocaleDateString('pt-BR')}
                 {h.ateQuando ? ` a ${new Date(h.ateQuando).toLocaleDateString('pt-BR')}` : ''}
-                {' — '}{h.motivo} <span className="mutetxt">({h.quem})</span>
+                {'. '}{h.motivo} <span className="mutetxt">({h.quem})</span>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+
+      {saidas.length > 0 && (
+        <details style={{ marginBottom: 12 }}>
+          <summary className="mutetxt">Saídas pelo portão · {saidas.length}</summary>
+          <ul className="lista-seca">
+            {saidas.map((x) => (
+              <li key={x.id}>
+                <b>{diaDe(x.saiuEm)}</b>, saiu às {hhmmDe(x.saiuEm)}
+                {x.sozinho ? ' sem acompanhante' : x.comQuem ? ` com ${x.comQuem}` : ''}
+                {x.destino ? `, para ${x.destino}` : ''}
+                {x.voltouEm ? `, voltou às ${hhmmDe(x.voltouEm)}` : ', ainda fora'}.
+                <span className="mutetxt"> Registrou {x.quemSaida ?? 'a portaria'}
+                  {x.quemVolta ? `; a volta, ${x.quemVolta}` : ''}.</span>
+                {x.notaVolta && <div className="mutetxt">{x.notaVolta}</div>}
               </li>
             ))}
           </ul>

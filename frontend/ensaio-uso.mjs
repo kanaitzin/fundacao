@@ -3896,6 +3896,68 @@ console.log('\n📅 O calendário das ATAs e dos plantões (fase 206)');
   await pgC.close();
 }
 
+console.log('\n🚪 A saída das crianças pelo portão (fase 207)');
+{
+  const pgP = await navegador.newPage({ viewport: { width: 1366, height: 900 } });
+  const errosP = [];
+  pgP.on('pageerror', (e) => errosP.push(e.message));
+  const esp = (ms = 800) => pgP.waitForTimeout(ms);
+  const txt = () => pgP.locator('main.conteudo').innerText();
+  const ver = async (c) => { await pgP.locator('select.troca-cargo-sel').selectOption(c); await esp(900); };
+  await pgP.goto(`file://${ARQUIVO}`); await esp(700);
+  await pgP.getByRole('button', { name: 'Marcelo Barbosa', exact: true }).click();
+  await pgP.getByRole('button', { name: /Entrar no sistema/i }).click(); await esp(1200);
+
+  /* O educador decide, no perfil (pedido de 12/10). */
+  cargoAtual = 'educador';
+  await ver('educador');
+  await pgP.getByRole('button', { name: /^Acolhidos/ }).filter({ visible: true }).first().click(); await esp(900);
+  await pgP.locator('.pessoa-cartao').filter({ hasText: 'Bruno' }).first().click(); await esp(1300);
+  const perfil = await txt();
+  cobrar('a frase de quem ainda não tem decisão é a nova', /Até alguém da equipe decidir, Bruno só sai\s+com acompanhante/.test(perfil)
+    && !/faz o que sempre fez/.test(perfil));
+  await pgP.getByRole('button', { name: /Mudar o que vale para sair/ }).click(); await esp(400);
+  await pgP.locator('#ss-st').selectOption('liberada');
+  await pgP.locator('#ss-mot').fill('Vai e volta da escola, combinado com a técnica (fictício).');
+  await pgP.locator('#ss-onde').fill('Escola.');
+  await pgP.getByRole('button', { name: 'Registrar', exact: true }).click(); await esp(900);
+  cobrar('o educador registra que pode sair sem acompanhante', /pode sair sem acompanhante/.test(await txt()));
+
+  /* A portaria vê o que vale e quem decidiu, sem o motivo, e registra saída e volta. */
+  cargoAtual = 'portaria';
+  await ver('portaria');
+  await pgP.getByRole('tab', { name: 'Saídas das crianças' }).click(); await esp(900);
+  const portao = await txt();
+  const cartao = pgP.locator('.saidas-do-portao li').filter({ hasText: 'Bruno' }).first();
+  const doBruno = await cartao.innerText();
+  cobrar('a portaria vê o que vale para o Bruno e quem decidiu', /pode sair sem acompanhante/.test(doBruno) && /Mário/.test(doBruno), doBruno);
+  cobrar('e não vê o motivo', !/combinado com a técnica/.test(portao) && !/Voltou duas horas/.test(portao));
+  cobrar('quem está fora agora aparece em cima', /Fora da casa agora · [1-9]/i.test(portao), portao.slice(0, 300));
+  await cartao.getByRole('button', { name: /Registrar a saída de Bruno/ }).click(); await esp(400);
+  await pgP.locator('#sai-dest').fill('Escola');
+  await pgP.locator('.overlay').getByRole('button', { name: 'Registrar saída' }).click(); await esp(900);
+  cobrar('a saída do Bruno entra em Fora da casa agora', /Bruno: Saída registrada/.test(await txt()));
+  const fora = pgP.locator('.saidas-do-portao li').filter({ hasText: 'Bruno' }).filter({ has: pgP.getByRole('button', { name: 'Voltou agora' }) }).first();
+  await fora.getByRole('button', { name: 'Voltou agora' }).click(); await esp(900);
+  cobrar('e a volta fecha a saída', /Bruno: Volta registrada/.test(await txt()));
+  /* Quem não pode sair sem acompanhante nem tem a escolha. */
+  const vit = pgP.locator('.saidas-do-portao li').filter({ hasText: 'Vitória' }).first();
+  await vit.getByRole('button', { name: /Registrar a saída/ }).click(); await esp(400);
+  const folha = await pgP.locator('.overlay').innerText();
+  cobrar('quem não pode sair sem acompanhante sai só com o nome de quem vai junto',
+    /só sai com acompanhante/.test(folha) && !(await pgP.locator('.overlay').getByRole('radio', { name: 'Sem acompanhante' }).count()));
+  await pgP.locator('.overlay').getByRole('button', { name: 'Cancelar' }).click(); await esp(300);
+
+  /* E o perfil mostra a saída, para a equipe. */
+  cargoAtual = 'equipe_tecnica';
+  await ver('equipe_tecnica');
+  await pgP.getByRole('button', { name: /^Acolhidos/ }).filter({ visible: true }).first().click(); await esp(900);
+  await pgP.locator('.pessoa-cartao').filter({ hasText: 'Bruno' }).first().click(); await esp(1300);
+  cobrar('o perfil do Bruno lista a saída pelo portão', /Saídas pelo portão · [1-9]/i.test(await txt()));
+  cobrar('nenhuma exceção na saída pelo portão', errosP.length === 0, errosP[0]);
+  await pgP.close();
+}
+
 await navegador.close();
 console.log(achados.length
   ? `\n${achados.length} ACHADO(S):\n  ${achados.join('\n  ')}`

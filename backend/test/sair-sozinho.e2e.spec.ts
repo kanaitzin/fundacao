@@ -24,7 +24,9 @@
  *  5. **o prazo NÃO devolve a autorização sozinho.** Vencido, o sistema
  *     sinaliza `aRevisar` e o estado continua o mesmo: permissão que volta
  *     sozinha é decisão automática sobre a vida de alguém;
- *  6. **o educador lê e não decide** — ele é o motivo de isto existir;
+ *  6. **quem decide é a equipe da casa** — desde 12/10, o educador e o líder
+ *     também (fase 207: ele está no portão quando a situação acontece), e a
+ *     cozinha não; e o educador LÊ o motivo, porque é ele quem conversa;
  *  7. **quem está liberado não entra na lista de atenção.** A lista inteira
  *     todo dia vira paisagem;
  *  8. **nenhum campo carrega pontuação, nota ou contagem.**
@@ -75,6 +77,7 @@ describe('Sair sozinho', () => {
       tecnica: 'tecnica.ai3@paodospobres.dev',
       coord: 'coord.ai3@paodospobres.dev',
       educador: 'educador.ai3@paodospobres.dev',
+      cozinha: 'cozinha.ai3@paodospobres.dev',
     })) tokens[k] = (await login(email)).body.token;
 
     ({ rows: [{ id: AI3 }] } = await admin.query(`SELECT id FROM house WHERE code='AI3'`));
@@ -150,11 +153,14 @@ describe('Sair sozinho', () => {
     expect(r.body.vigente.aRevisar).toBe(true);
   });
 
-  it('o educador lê, e não decide', async () => {
-    const r = await decidir(tokens.educador, {
-      status: 'liberada', motivo: 'Tentativa do educador, que não decide isto.',
+  it('o educador decide (pedido de 12/10), a cozinha não, e ele lê o motivo', async () => {
+    await decidir(tokens.educador, {
+      status: 'liberada', motivo: 'Vai e volta da escola, combinado com a técnica.',
+    }).expect(201);
+    const cozinha = await decidir(tokens.cozinha, {
+      status: 'liberada', motivo: 'Tentativa da cozinha, que não decide isto.',
     });
-    expect(r.status).toBe(403);
+    expect(cozinha.status).toBe(403);
 
     await decidir(tokens.tecnica, {
       status: 'acompanhada', motivo: 'Vai acompanhado esta semana, combinado com ele.',

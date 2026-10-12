@@ -622,15 +622,16 @@ export class PeopleService {
       const m = String(e?.message ?? '');
       if (m.includes('sem_permissao_saida_sozinho')) {
         throw new ForbiddenException(
-          'Só a equipe técnica ou a coordenação decidem sobre sair sozinho.');
+          'Quem decide sobre sair sem acompanhante é a equipe da casa: educador, líder, '
+          + 'equipe técnica ou coordenação.');
       }
       if (m.includes('suspensao_exige_prazo')) {
         throw new BadRequestException(
-          'Escreva até quando. Medida sem prazo vira permanente por esquecimento — '
+          'Escreva até quando. Medida sem prazo vira permanente por esquecimento, '
           + 'e ninguém decidiu que seria permanente.');
       }
       if (m.includes('prazo_no_passado')) {
-        throw new BadRequestException('O prazo de revisão tem de ser hoje ou depois.');
+        throw new BadRequestException('O prazo tem de ser hoje ou depois.');
       }
       if (m.includes('motivo_obrigatorio')) {
         throw new BadRequestException(

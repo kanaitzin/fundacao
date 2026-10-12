@@ -5,6 +5,7 @@ import { PeopleController, TransfersController, ReportsController } from './peop
 import { PeopleService } from './people.service';
 import { CozinhaService } from './cozinha.service';
 import { VisitasService } from './visitas.service';
+import { SaidasService } from './saidas.service';
 import { PortariaService } from './portaria.service';
 import { CamposDoPerfilService } from './campos.service';
 import { AniversariosService } from './aniversarios.service';
@@ -22,7 +23,7 @@ import { CredentialsService } from './credentials.service';
   imports: [IdentityModule],
   controllers: [PeopleController, TransfersController, ReportsController],
   providers: [PeopleService, ProfileService,
-    CozinhaService, VisitasService, PortariaService, CamposDoPerfilService, AniversariosService,
+    CozinhaService, VisitasService, SaidasService, PortariaService, CamposDoPerfilService, AniversariosService,
     ContatosService, BenefitsService, TransfersService, AdmissionService, CredentialsService,
     DossieService, SaudeDoPerfilService, PiaService, VencimentosService],
   /* `AniversariosService` sai pela porta desde a fase 103: é o relógio que
