@@ -3737,6 +3737,114 @@ console.log('\n📷 A câmera do sistema e o documento digitalizado (fase 194)')
   await pgC.close();
 }
 
+/*
+ * DE UM SETOR AO OUTRO (fase 204; pedido de 12/10: "procure mais bugs testando
+ * cada setor"). Três defeitos que só apareciam usando um setor e conferindo o
+ * outro, no mesmo protótipo aberto:
+ *  - a alergia que a técnica registrava não chegava ao alto do perfil, à dose
+ *    na Saúde, ao resumo de saúde, à chamada do almoço nem à cozinha (o servidor
+ *    de mentira lia só a alergia da semente);
+ *  - ninguém conseguia escrever uma linha na ATA do turno (o servidor de mentira
+ *    devolvia "aberta", e a tela só oferece a caixa no rascunho);
+ *  - os plantões de demonstração eram fixos, com as horas de antes de 25/09: de
+ *    noite, o turno em curso era o diurno, com passagem assinada no futuro.
+ */
+console.log('\n🔗 De um setor ao outro');
+{
+  const pgS = await navegador.newPage({ viewport: { width: 1366, height: 900 } });
+  const errosS = [];
+  pgS.on('pageerror', (e) => errosS.push(e.message));
+  const esp = (ms = 800) => pgS.waitForTimeout(ms);
+  const txt = () => pgS.locator('main.conteudo').innerText();
+  const ver = async (c) => { await pgS.locator('select.troca-cargo-sel').selectOption(c); await esp(900); };
+  const ir = async (nome) => {
+    const b = pgS.getByRole('button', { name: new RegExp('^' + nome) }).filter({ visible: true }).first();
+    if (!(await b.count())) return false;
+    await b.click(); await esp(900); return true;
+  };
+  await pgS.goto(`file://${ARQUIVO}`); await esp(700);
+  await pgS.getByRole('button', { name: 'Marcelo Barbosa', exact: true }).click();
+  await pgS.getByRole('button', { name: /Entrar no sistema/i }).click(); await esp(1200);
+
+  cargoAtual = 'equipe_tecnica';
+  await ver('equipe_tecnica');
+  await ir('Acolhidos');
+  await pgS.locator('.pessoa-cartao').filter({ hasText: 'Bruno' }).first().click(); await esp(1300);
+  await pgS.getByRole('button', { name: /Registrar alergia ou condição/ }).click(); await esp(400);
+  await pgS.locator('#sr-desc').fill('Leite de vaca (fictício)');
+  const alerta = pgS.locator('#sr-alerta');
+  if (await alerta.count() && !(await alerta.isChecked())) await alerta.check();
+  await pgS.locator('.overlay').getByRole('button', { name: 'Registrar' }).click(); await esp(900);
+  const noAlto = await pgS.evaluate(() => {
+    const e = [...document.querySelectorAll('main.conteudo .notice.c-crit')].find((x) => /Leite de vaca/.test(x.innerText));
+    return e ? e.getBoundingClientRect().top + window.scrollY : null;
+  });
+  cobrar('a alergia registrada pela técnica vai para o alto do perfil', noAlto !== null && noAlto < 900, String(noAlto));
+  cargoAtual = 'enfermagem';
+  await ver('enfermagem'); await ir('Saúde');
+  cobrar('e chega ao lado da dose do Bruno na Saúde', /Alergia a Leite de vaca/.test(await txt()));
+  await pgS.getByRole('tab', { name: 'Resumo de saúde' }).click().catch(() => {}); await esp(700);
+  cobrar('e ao resumo de saúde', /Bruno[\s\S]{0,300}Leite de vaca/.test(await txt()));
+
+  cargoAtual = 'educador';
+  await ver('educador'); await ir('ATA');
+  const caixa = pgS.locator('#linha-ata');
+  cobrar('o educador tem onde escrever uma linha na ATA do turno', (await caixa.count()) === 1);
+  if (await caixa.count()) {
+    await caixa.fill('Kauã pediu para ligar para a avó amanhã cedo (fictício).');
+    await pgS.locator('main.conteudo .card.stack').filter({ has: caixa }).locator('button.btn.block').first().click(); await esp(900);
+    cargoAtual = 'lider_diurno';
+    await ver('lider_diurno'); await ir('ATA');
+    cobrar('e a líder lê a linha que ele escreveu', /ligar para a avó amanhã cedo/.test(await txt()));
+  }
+
+  /* O plantão em curso é o turno da hora de agora, e nenhuma passagem foi assinada depois de agora. */
+  const agora = new Intl.DateTimeFormat('en-GB', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date());
+  const turno = agora >= '08:00' && agora < '20:01' ? 'diurno' : 'noturno';
+  cargoAtual = 'educador';
+  await ver('educador'); await ir('ATA');
+  const ata = (await txt()).replace(/\s+/g, ' ');
+  cobrar(`às ${agora}, a ATA aberta é a do turno ${turno}`, new RegExp(`ATA ${turno} · [\\d/]+ Aberta`).test(ata), ata.slice(0, 160));
+  const abertoAs = ata.match(/Plantão aberto às (\d\d:\d\d)/)?.[1];
+  cobrar('e abriu na hora da regra de 25/09', abertoAs === (turno === 'diurno' ? '08:00' : '20:01'), String(abertoAs));
+  const assinaturas = [...ata.matchAll(/Assinada às (\d\d:\d\d)/g)].map((m) => m[1]);
+  const futuras = assinaturas.filter((h) => (turno === 'diurno' || agora >= '20:01') ? h > agora : (h > agora && h < '20:00'));
+  cobrar('e nenhuma passagem do turno foi assinada depois de agora', futuras.length === 0, futuras.join(', '));
+  /* A dose dada baixa o armário, como o `app_confirm_dose` (fase 204). */
+  cargoAtual = 'enfermagem';
+  await ver('enfermagem'); await ir('Saúde');
+  const saldo = async () => {
+    await pgS.getByRole('tab', { name: 'Estoque' }).click(); await esp(800);
+    const t = (await txt()).replace(/\s+/g, ' ');
+    return Number(t.match(/ARMÁRIO DE MEDICAMENTOS DA CASA.*?Colírio lubrificante \(fictício\) (-?\d+) frasco/i)?.[1] ?? NaN);
+  };
+  const antes = await saldo();
+  const insulina = (await pgS.locator('main.conteudo .card').filter({ hasText: /Insulina/ }).first().innerText()).replace(/\s+/g, ' ');
+  cobrar('o remédio vencido diz que venceu, e não que está perto de vencer',
+    /venceu há \d+ dias?/.test(insulina) && /Vencido/.test(insulina) && !/Validade próxima|dia\(s\)/.test(insulina),
+    insulina.slice(0, 200));
+  await pgS.getByRole('tab', { name: /Doses/ }).click(); await esp(800);
+  const dose = pgS.locator('main.conteudo .card').filter({ hasText: /Colírio/ }).filter({ has: pgS.getByRole('button', { name: 'Confirmar' }) }).first();
+  if (await dose.count()) {
+    await dose.getByRole('button', { name: 'Confirmar' }).click(); await esp(500);
+    await pgS.locator('.overlay button').filter({ hasText: 'Administrada no horário' }).click();
+    await pgS.locator('.overlay button').filter({ hasText: 'Confirmar dose' }).click(); await esp(900);
+    const depois = await saldo();
+    cobrar('a dose dada pela Enfermagem sai do armário', depois === antes - 1, `antes ${antes}, depois ${depois}`);
+  } else cobrar('há uma dose do colírio para confirmar', false, (await txt()).slice(0, 200));
+
+  /* Tocar de novo em Acolhidos, com um perfil aberto, volta à lista (fase 204). */
+  cargoAtual = 'equipe_tecnica';
+  await ver('equipe_tecnica'); await ir('Acolhidos');
+  await pgS.locator('.pessoa-cartao').filter({ hasText: 'Bruno' }).first().click(); await esp(1000);
+  await ir('Acolhidos'); await esp(600);
+  cobrar('tocar em Acolhidos com um perfil aberto volta à lista',
+    (await pgS.locator('.pessoa-cartao').count()) > 3, String(await pgS.locator('.pessoa-cartao').count()));
+
+  cobrar('nenhuma exceção indo de um setor ao outro', errosS.length === 0, errosS[0]);
+  await pgS.close();
+}
+
 await navegador.close();
 console.log(achados.length
   ? `\n${achados.length} ACHADO(S):\n  ${achados.join('\n  ')}`

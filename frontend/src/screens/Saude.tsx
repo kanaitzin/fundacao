@@ -773,9 +773,15 @@ export function Saude({ houseId, casaLabel, papel }: {
                   <div className="grow">
                     <b className="ff">{i.medicamento}</b>
                     <div className="mutetxt">
-                      {i.quantidade} {i.unidade}{i.quantidade === 1 ? '' : 's'}
+                      {i.quantidade} {i.unidade}{Math.abs(i.quantidade) === 1 ? '' : 's'}
                       {i.validade ? ` · validade ${dia(i.validade)}` : ' · sem validade registrada'}
-                      {i.diasParaVencer !== null ? ` (${i.diasParaVencer} dia(s))` : ''}
+                      {/* Vencido dizia "(-7 dia(s))" com a pílula de validade próxima
+                          (fase 204): o número negativo era a única pista. */}
+                      {i.diasParaVencer === null ? ''
+                        : i.diasParaVencer < 0
+                          ? ` (venceu há ${-i.diasParaVencer} dia${i.diasParaVencer === -1 ? '' : 's'})`
+                          : i.diasParaVencer === 0 ? ' (vence hoje)'
+                            : ` (vence em ${i.diasParaVencer} dia${i.diasParaVencer === 1 ? '' : 's'})`}
                     </div>
                     <div className="mutetxt">
                       {i.individual
@@ -786,7 +792,9 @@ export function Saude({ houseId, casaLabel, papel }: {
                   </div>
                   <div className="stack">
                     {i.saldoNegativo && <span className="pill c-warn">Saldo negativo — conferir</span>}
-                    {i.validadeProxima && <span className="pill c-warn">Validade próxima</span>}
+                    {i.diasParaVencer !== null && i.diasParaVencer < 0
+                      ? <span className="pill c-crit">Vencido</span>
+                      : i.validadeProxima && <span className="pill c-warn">Validade próxima</span>}
                     {i.estoqueBaixo && <span className="pill c-info">Sinalizado como baixo</span>}
                   </div>
                 </div>

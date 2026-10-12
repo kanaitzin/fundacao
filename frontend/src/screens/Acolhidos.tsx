@@ -266,15 +266,18 @@ const horaCurta = (iso: string) => {
   return `${semana} às ${hora}`;
 };
 
-export function Acolhidos({ houseId, casaLabel, papel, abrir }: {
+export function Acolhidos({ houseId, casaLabel, papel, abrir, paraALista }: {
   houseId: string; casaLabel: string; papel: string;
   /** A criança escolhida na busca do topo (fase 183). Um objeto novo a cada
       busca, para a mesma criança abrir de novo depois de fechada. */
+  /** Muda quando a pessoa toca de novo em Acolhidos no menu: volta à lista (fase 204). */
+  paraALista?: number;
   abrir?: { id: string } | null;
 }) {
   const [lista, setLista] = useState<Resumo[]>([]);
   const [abertoId, setAbertoId] = useState<string | null>(abrir?.id ?? null);
   useEffect(() => { if (abrir) setAbertoId(abrir.id); }, [abrir]);
+  useEffect(() => { if (paraALista) { setAbertoId(null); setVendoAcervo(false); } }, [paraALista]);
   const [erro, setErro] = useState('');
   const [busca, setBusca] = useState('');
   const [cadastrando, setCadastrando] = useState(false);

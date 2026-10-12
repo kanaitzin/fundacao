@@ -1309,6 +1309,66 @@ interface Plantao {
                   leuOrientacoes: boolean; assumiuPendencias: boolean; nota: string | null }[];
   esperados: { quem: string; cargo: string; userId: string }[];
 }
+/*
+ * OS DOIS PLANTÕES DE HOJE, PELA HORA DE AGORA (fase 204).
+ *
+ * Eram fixos: o anterior era sempre um noturno aberto às 19:00 de HOJE e
+ * fechado às 07:10 de HOJE (fechado antes de abrir), e o em curso era sempre o
+ * diurno, aberto às 07:00, com uma passagem assinada às 13:00. Quem abria o
+ * protótipo à noite, que é a hora do plantão noturno, via o diurno de amanhã já
+ * assinado. E as horas eram as de antes da regra de 25/09.
+ *
+ * Agora: o em curso é o turno da hora de agora (diurno das 08:00 às 20:00,
+ * noturno das 20:01 às 07:59, com a data do dia em que começou), e o anterior é
+ * o que fechou logo antes. Nenhuma assinatura cai no futuro. Achado usando cada
+ * setor ponta a ponta, de madrugada.
+ */
+const AGORA_SP = new Intl.DateTimeFormat('en-GB', { timeZone: 'America/Sao_Paulo',
+  hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date());
+const DE_NOITE = !(AGORA_SP >= '08:00' && AGORA_SP < '20:01');
+const ONTEM_SP = (() => {
+  const d = new Date(`${HOJE}T12:00:00Z`); d.setUTCDate(d.getUTCDate() - 1);
+  return d.toISOString().slice(0, 10);
+})();
+/** Um horário numa data, na hora de Porto Alegre. */
+const naData = (data: string, h: number, m = 0) =>
+  new Date(`${data}T${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00-03:00`).toISOString();
+/** O instante, mas nunca depois de agora menos `folga` minutos, nem antes de `minimo`. */
+const atePassado = (iso: string, minimo: string, folga = 5) => {
+  const teto = Date.now() - folga * 60e3;
+  return new Date(Math.max(new Date(minimo).getTime() + 60e3, Math.min(new Date(iso).getTime(), teto))).toISOString();
+};
+/* De dia: o noturno de ontem fechou às 08:05, e o diurno de hoje está aberto.
+   De noite: o diurno do dia em que o noturno começou fechou às 20:05, e o
+   noturno está aberto desde as 20:01 (de hoje, ou de ontem se já passou da meia-noite). */
+const DIA_DO_NOTURNO = DE_NOITE ? (AGORA_SP >= '20:01' ? HOJE : ONTEM_SP) : ONTEM_SP;
+const ANTERIOR = DE_NOITE
+  ? { turno: 'diurno', abre: naData(DIA_DO_NOTURNO, 8, 0), fecha: naData(DIA_DO_NOTURNO, 20, 5), assina: naData(DIA_DO_NOTURNO, 19, 55) }
+  : { turno: 'noturno', abre: naData(ONTEM_SP, 20, 1), fecha: naData(HOJE, 8, 5), assina: naData(HOJE, 7, 55) };
+const EM_CURSO = DE_NOITE
+  ? { turno: 'noturno', abre: naData(DIA_DO_NOTURNO, 20, 1) }
+  : { turno: 'diurno', abre: naData(HOJE, 8, 0) };
+/* O que cada turno contou na passagem: a equipe da noite e a do dia. */
+const PASSAGEM_DA_NOITE = {
+  quem: 'Nélio Noturno (fictício)', userId: 'u8', cargo: 'lider_noturno_geral',
+  contribuicoes: 'Plantão noturno sem intercorrência grave; dois despertares.',
+  pendencias: 'O portão dos fundos está emperrado.',
+  orientacoes: 'A Maria pode estar cansada hoje — não dormiu bem.',
+  medicacao: 'As doses das 22h foram dadas e confirmadas.',
+};
+const PASSAGEM_DO_DIA = {
+  quem: 'Tainá Souza (fictícia)', userId: 'u7', cargo: 'educador',
+  contribuicoes: 'Acompanhei o café e a saída para a escola; tudo tranquilo.',
+  pendencias: 'Falta buscar o resultado do exame do Bruno na unidade de saúde.',
+  orientacoes: 'A Alice acordou com tosse; se piorar, acionar a Enfermagem.',
+  medicacao: null as string | null,
+};
+
+/** A data de um plantão: a do dia em que ele começou, como a regra de 25/09 (o noturno das 20:01 leva a data do início). */
+const dataDoPlantao = (p: { data?: string; abertoEm: string }) => p.data
+  ?? new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' })
+    .format(new Date(p.abertoEm));
+
 /* O sábado mais recente antes de hoje: a ATA diurna dele fica aberta (28/09). */
 const SABADO_PASSADO = (() => {
   const d = new Date(`${HOJE}T12:00:00Z`);
@@ -1324,7 +1384,7 @@ let PLANTOES: Plantao[] = [
    * e a fecha; sem ela aqui, a lista nasceria invisível no protótipo (§6.19).
    */
   { id: 's-sabado', turno: 'diurno', status: 'aberto', data: SABADO_PASSADO,
-    abertoEm: new Date(`${SABADO_PASSADO}T07:00:00-03:00`).toISOString(), fechadoEm: null,
+    abertoEm: new Date(`${SABADO_PASSADO}T08:00:00-03:00`).toISOString(), fechadoEm: null,
     passagens: [
       { id: 'h-sab', quem: 'Tainá Souza (fictícia)', cargo: 'educador', userId: 'u7',
         contribuicoes: 'Sábado de pátio e piscina de plástico; almoço com a avó da Alice na visita.',
@@ -1337,15 +1397,11 @@ let PLANTOES: Plantao[] = [
     esperados: [{ quem: 'Tainá Souza (fictícia)', cargo: 'educador', userId: 'u7' }] },
   /* O turno anterior — a noite que acabou de terminar. É o que a equipe que
      entra abre para ler, e por isso vem fechado, com passagem assinada. */
-  { id: 's0', turno: 'noturno', status: 'fechado', abertoEm: emHoras(19, 0),
-    fechadoEm: emHoras(7, 10),
+  { id: 's0', turno: ANTERIOR.turno, status: 'fechado', abertoEm: ANTERIOR.abre,
+    fechadoEm: ANTERIOR.fecha,
     passagens: [
-      { id: 'h0', quem: 'Nélio Noturno (fictício)', cargo: 'educador', userId: 'u8',
-        contribuicoes: 'Plantão noturno sem intercorrência grave; dois despertares.',
-        pendencias: 'O portão dos fundos está emperrado.',
-        orientacoes: 'A Maria pode estar cansada hoje — não dormiu bem.',
-        medicacao: 'As doses das 22h foram dadas e confirmadas.',
-        assinadaEm: emHoras(7, 5), horarioReal: emHoras(7, 5),
+      { id: 'h0', ...(ANTERIOR.turno === 'noturno' ? PASSAGEM_DA_NOITE : PASSAGEM_DO_DIA),
+        assinadaEm: ANTERIOR.assina, horarioReal: ANTERIOR.assina,
         complementoTardio: false, offline: false, complementos: [] },
     ],
     recebimentos: [],
@@ -1364,20 +1420,27 @@ let PLANTOES: Plantao[] = [
      * pendência) tem teste de servidor e não entra no protótipo: um turno sem
      * passagem nenhuma faria a demonstração abrir numa casa que não registrou
      * nada.
+     *
+     * A NOITE é sempre a sem escala, e o DIA sempre o com escala, qualquer que
+     * seja a hora em que o protótipo abre (fase 204): de noite o anterior é o
+     * diurno, e ele traz a escala com quem não passou o plantão.
      */
-    esperados: [] },
-  { id: 's1', turno: 'diurno', status: 'aberto', abertoEm: emHoras(7, 0), fechadoEm: null,
+    esperados: ANTERIOR.turno === 'noturno' ? [] : [
+      { quem: 'Tainá Souza (fictícia)', cargo: 'educador', userId: 'u7' },
+      { quem: 'Mário Silva (fictício)', cargo: 'educador', userId: 'u1' },
+    ] },
+  { id: 's1', turno: EM_CURSO.turno, status: 'aberto', abertoEm: EM_CURSO.abre, fechadoEm: null,
     passagens: [
-      { id: 'h1', quem: 'Tainá Souza (fictícia)', cargo: 'educador', userId: 'u7',
-        contribuicoes: 'Acompanhei o café e a saída para a escola; tudo tranquilo.',
-        pendencias: 'Falta buscar o resultado do exame do Bruno na unidade de saúde.',
-        orientacoes: 'A Alice acordou com tosse; se piorar, acionar a Enfermagem.',
-        medicacao: null,
-        assinadaEm: emHoras(13, 0), horarioReal: emHoras(13, 0),
+      /* Quem saiu antes do fim do turno e já assinou: às 13:00 de dia, às 23:30
+         de noite, e nunca depois de agora. */
+      { id: 'h1', ...(EM_CURSO.turno === 'diurno' ? PASSAGEM_DO_DIA : PASSAGEM_DA_NOITE),
+        assinadaEm: atePassado(EM_CURSO.turno === 'diurno' ? naData(HOJE, 13, 0) : naData(DIA_DO_NOTURNO, 23, 30), EM_CURSO.abre),
+        horarioReal: atePassado(EM_CURSO.turno === 'diurno' ? naData(HOJE, 13, 0) : naData(DIA_DO_NOTURNO, 23, 30), EM_CURSO.abre),
         complementoTardio: false, offline: false, complementos: [] },
     ],
     recebimentos: [],
-    esperados: [
+    /* O diurno tem escala; o noturno é o sem escala da demonstração (acima). */
+    esperados: EM_CURSO.turno === 'noturno' ? [] : [
       { quem: 'Mário Silva (fictício)', cargo: 'educador', userId: 'u1' },
       { quem: 'Joana Lima (fictícia)', cargo: 'educador', userId: 'u6' },
       { quem: 'Lúcia Líder Diurna (fictícia)', cargo: 'lider_diurno', userId: 'u2' },
@@ -2077,25 +2140,50 @@ interface LinhaAtaMock {
   id: string; ataId: string; autorId: string; quem: string; cargo: string;
   texto: string; restrita: boolean; quando: string; escritaEm: string;
 }
+/* A hora de uma linha da noite: de dia, a madrugada de hoje (a noite já fechou);
+   de noite, a madrugada do turno em curso, e nunca depois de agora (fase 204).
+   A `folga` diferente por linha guarda a ordem quando todas caem no teto. */
+const naNoite = (h: number, m: number, folga: number) => !DE_NOITE ? emHoras(h, m)
+  : atePassado(new Date(new Date(naData(DIA_DO_NOTURNO, h, m)).getTime() + 864e5).toISOString(),
+    EM_CURSO.abre, folga);
 const LINHAS_ATA: LinhaAtaMock[] = [
   { id: 'ln1', ataId: 'ata-noturna', autorId: 'u8', quem: 'Nélio Noturno (fictício)',
     cargo: 'educador',
     texto: 'A Maria não dormiu bem e fez xixi à noite; troquei a roupa de cama às 4h e ela '
       + 'voltou a dormir. Vale ficar de olho hoje à tarde.',
-    restrita: false, quando: emHoras(4, 10), escritaEm: emHoras(4, 12) },
+    restrita: false, quando: naNoite(4, 10, 16), escritaEm: naNoite(4, 12, 15) },
   { id: 'ln2', ataId: 'ata-noturna', autorId: 'u8', quem: 'Nélio Noturno (fictício)',
     cargo: 'educador',
     texto: 'O portão dos fundos ficou emperrado. Avisei a manutenção pelo caderno da casa.',
-    restrita: false, quando: emHoras(5, 30), escritaEm: emHoras(5, 31) },
+    restrita: false, quando: naNoite(5, 30, 12), escritaEm: naNoite(5, 31, 11) },
   { id: 'ln3', ataId: 'ata-noturna', autorId: 'u6', quem: 'Joana Lima (fictícia)',
     cargo: 'educador',
     texto: 'O Bruno acordou duas vezes com dor de barriga; tomou água e melhorou.',
-    restrita: false, quando: emHoras(3, 5), escritaEm: emHoras(3, 6) },
+    restrita: false, quando: naNoite(3, 5, 20), escritaEm: naNoite(3, 6, 19) },
   { id: 'ln4', ataId: 'ata-noturna', autorId: 'u3', quem: 'Carla Coordenadora (fictícia)',
     cargo: 'coordenador',
     texto: 'A visita da genitora da Alice, marcada para sexta, foi remarcada pela Vara. A '
       + 'equipe técnica conversa com ela antes de contar.',
-    restrita: true, quando: emHoras(6, 40), escritaEm: emHoras(6, 41) },
+    restrita: true, quando: naNoite(6, 40, 8), escritaEm: naNoite(6, 41, 7) },
+  /* De noite, o turno anterior é o DIA, e quem entra lê a ATA dele: ela também
+     tem linhas, e uma restrita, senão a regra da contagem sumiria justamente na
+     ATA que a equipe da noite abre (fase 204). */
+  ...(DE_NOITE ? [
+    { id: 'ld1', ataId: 'ata-diurna', autorId: 'u7', quem: 'Tainá Souza (fictícia)',
+      cargo: 'educador',
+      texto: 'Todos foram à escola. O Bruno voltou com bilhete pedindo material de artes '
+        + 'para quinta.',
+      restrita: false, quando: naData(DIA_DO_NOTURNO, 13, 10), escritaEm: naData(DIA_DO_NOTURNO, 13, 12) },
+    { id: 'ld2', ataId: 'ata-diurna', autorId: 'u7', quem: 'Tainá Souza (fictícia)',
+      cargo: 'educador',
+      texto: 'A Alice tossiu à tarde, sem febre. Ficou no pátio coberto e jantou bem.',
+      restrita: false, quando: naData(DIA_DO_NOTURNO, 17, 40), escritaEm: naData(DIA_DO_NOTURNO, 17, 41) },
+    { id: 'ld3', ataId: 'ata-diurna', autorId: 'u3', quem: 'Carla Coordenadora (fictícia)',
+      cargo: 'coordenador',
+      texto: 'A Vara pediu o relatório da Alice até sexta. A equipe técnica conversa com a '
+        + 'genitora antes de a visita ser remarcada.',
+      restrita: true, quando: naData(DIA_DO_NOTURNO, 15, 20), escritaEm: naData(DIA_DO_NOTURNO, 15, 22) },
+  ] : []),
 ];
 
 const LE_RESTRITA = ['coordenador', 'equipe_tecnica', 'lider_diurno',
@@ -2120,7 +2208,7 @@ const PEDIDOS_DE_LEITURA: PedidoLeituraMock[] = [
   { id: 'pl1', ataId: 'ata-noturna', quem: 'Tainá Souza (fictícia)', quemId: 'u9',
     cargo: 'enfermagem',
     motivo: 'Preciso saber como a Alice passou a noite antes de dar a dose das 9h.',
-    em: emHoras(8, 10),
+    em: DE_NOITE ? atePassado(new Date().toISOString(), EM_CURSO.abre, 3) : emHoras(8, 10),
     liberado: null, decidiuQuem: null, decidiuEm: null, motivoDaDecisao: null,
     retiradoEm: null, retiradoPor: null, motivoDaRetirada: null },
 ];
@@ -2782,13 +2870,21 @@ interface AtaMock {
  * "ainda não há plantão anterior", que é verdade no arquivo e mentira na casa.
  */
 let ATAS: AtaMock[] = [
-  { id: 'ata-noturna', plantaoId: 's0', status: 'fechada', versao: 2,
-    pendencias: null, fechadaEm: emHoras(7, 10),
-    conteudo: {
+  { id: ANTERIOR.turno === 'noturno' ? 'ata-noturna' : 'ata-diurna', plantaoId: 's0', status: 'fechada', versao: 2,
+    pendencias: null, fechadaEm: ANTERIOR.fecha,
+    /* O conteúdo é o do turno anterior: a noite, de dia; o dia, de noite (fase 204). */
+    conteudo: ANTERIOR.turno === 'noturno' ? {
       intercorrencias: 'Noite tranquila, com dois despertares.',
       medicacao: 'Doses das 22h administradas e confirmadas.',
+    } : {
+      intercorrencias: 'Dia de escola sem intercorrência; tarde no pátio.',
+      medicacao: 'Doses do dia administradas e confirmadas.',
     },
     adendos: [] },
+  /* De noite, a ATA da noite é a do turno em curso, ainda aberta: é nela que
+     moram as linhas semeadas, a restrita entre elas (fase 204). */
+  ...(EM_CURSO.turno === 'noturno' ? [{ id: 'ata-noturna', plantaoId: 's1', status: 'aberta' as const, versao: 1,
+    pendencias: null, fechadaEm: null, conteudo: {}, adendos: [] }] : []),
 ];
 /*
  * As seções vêm do MESMO arquivo que o servidor usa.
@@ -3550,6 +3646,31 @@ const todosKids = () => [...KIDS, ...NOVOS].filter(
 const kid = (id: string) => [...KIDS, ...NOVOS, ...ACERVO.map((a) => a.kid)]
   .find((k) => k.id === id);
 
+/*
+ * AS ALERGIAS, OS ALERTAS E AS RESTRIÇÕES DE UMA CRIANÇA, a de fábrica e as
+ * registradas depois (fase 204). O servidor lê todas as condições ativas; o
+ * protótipo lia só a que a semente trazia, e a alergia que a técnica registrava
+ * aparecia no perfil e em nenhum outro lugar: nem no alerta do alto, nem ao lado
+ * da dose, nem no resumo de saúde, nem na chamada do almoço, nem na cozinha.
+ * Achado usando cada setor ponta a ponta.
+ */
+function alergiasDe(k: Kid): string[] {
+  return [
+    ...(k.alerta?.tipo === 'alergia' ? [k.alerta.descricao.replace(/^Alergia a /, '')] : []),
+    ...(k.condicoesExtras ?? []).filter((c: any) => c.kind === 'alergia').map((c: any) => String(c.description)),
+  ];
+}
+function alertasDe(k: Kid): { tipo: string; descricao: string; gravidade: string | null }[] {
+  return [
+    ...(k.alerta ? [{ tipo: k.alerta.tipo, descricao: k.alerta.descricao, gravidade: k.alerta.gravidade }] : []),
+    ...(k.condicoesExtras ?? []).filter((c: any) => c.essential_alert)
+      .map((c: any) => ({ tipo: c.kind, descricao: c.rotulo, gravidade: c.severity ?? null })),
+  ];
+}
+function restricoesDe(k: Kid): { restriction: string; substitution?: string | null; guidance?: string | null }[] {
+  return [...(k.restricao ? [k.restricao] : []), ...(k.restricoesExtras ?? [])];
+}
+
 /** A ATA de um plantão — criada junto com ele, como no servidor. */
 /**
  * EPISÓDIOS (§12.5). O relato é imutável — no banco há gatilho que recusa
@@ -3829,7 +3950,8 @@ const EPISODIOS: EpisodioMock[] = [];
  */
 function semearEpisodio() {
   if (EPISODIOS.length) return;
-  const s = PLANTOES.find((x) => !x.data && x.turno === 'diurno');
+  /* O plantão em curso, seja qual for o turno (fase 204). */
+  const s = PLANTOES.find((x) => x.id === 's1');
   if (!s) return;
   EPISODIOS.push({
     id: 'ep1', ataId: ataDo(s.id).id, acolhidoId: 'p01',
@@ -5952,14 +6074,13 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       return new Recusa(403, 'Sem acesso ao relatório de alimentação.');
     }
     return todosKids()
-      .filter((k) => k.restricao)
-      .map((k) => ({
+      .flatMap((k) => restricoesDe(k).map((r) => ({
         nome: k.nome,
-        evitar: k.restricao!.restriction,
-        substituicao: k.restricao!.substitution ?? null,
-        orientacao: k.restricao!.guidance ?? null,
+        evitar: r.restriction,
+        substituicao: r.substitution ?? null,
+        orientacao: r.guidance ?? null,
         revisarEm: null,
-      }));
+      })));
   }
 
   if (rota === '/staff/alcance') return { cargos: ALCANCE_POR_CARGO };
@@ -6571,8 +6692,8 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       const res = k.resultados[p.id];
       return {
         acolhidoId: p.id, nome: p.nome, idade: p.idade, ativo: true,
-        alertas: p.alerta ? p.alerta.descricao : null,
-        restricoes: p.restricao ? p.restricao.restriction : null,
+        alertas: alertasDe(p).map((a) => a.descricao).join(' · ') || null,
+        restricoes: restricoesDe(p).map((r) => r.restriction).join(' · ') || null,
         resultado: res?.opcao ?? null, justificativa: res?.nota ?? null,
         registradoPor: res ? eu.fullName : null, registradoEm: res ? new Date().toISOString() : null,
         naConferenciaDeMesa: !!res?.mesa,
@@ -6673,7 +6794,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       noturno: ['lider_noturno_geral', 'equipe_tecnica', 'coordenador'],
     };
     return PLANTOES.filter((s) => s.data && ataDo(s.id).status === 'aberta').map((s) => ({
-      plantaoId: s.id, ataId: ataDo(s.id).id, data: s.data, turno: s.turno,
+      plantaoId: s.id, ataId: ataDo(s.id).id, data: dataDoPlantao(s), turno: s.turno,
       situacao: 'rascunho', podeFechar: fecha[s.turno]?.includes(eu.role) ?? false,
     }));
   }
@@ -7433,12 +7554,15 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     semearEpisodio();
     const s = PLANTOES.find((x) => x.id === seg[1])!;
     return {
-      id: s.id, casaId: CASA.id, data: s.data ?? HOJE, turno: s.turno, status: s.status,
+      id: s.id, casaId: CASA.id, data: dataDoPlantao(s), turno: s.turno, status: s.status,
       abertoEm: s.abertoEm, fechadoEm: s.fechadoEm,
       // A ATA vem DENTRO do plantão, como no servidor.
       ata: (() => {
         const a = ataDo(s.id);
-        return { id: a.id, status: a.status, versao: a.versao, conteudo: a.conteudo,
+        /* O banco chama de rascunho a ATA aberta, e a tela só oferece "Escrever uma
+           linha" nesse estado. Devolver "aberta" aqui escondia a caixa: no protótipo
+           ninguém conseguia escrever na ATA do turno (fase 204). */
+        return { id: a.id, status: a.status === 'aberta' ? 'rascunho' : a.status, versao: a.versao, conteudo: a.conteudo,
                  pendencias: a.pendencias,
                  assinaturasFaltantes: s.esperados.filter(
                    (e) => !s.passagens.some((p) => p.userId === e.userId)).length,
@@ -8168,7 +8292,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       id: k.id, nome: k.nome, nomeCivil: k.civil, idade: k.idade, nascimento: k.nascimento,
       temFoto: !!k.foto,
       cpf: k.semCpf ? null : '***.***.123-**', cpfPendente: !!k.semCpf,
-      alertasEssenciais: k.alerta ? 1 : 0, restricoesAlimentares: k.restricao ? 1 : 0,
+      alertasEssenciais: alertasDe(k).length, restricoesAlimentares: restricoesDe(k).length,
       /* Onde ela está — o FATO e o lugar, para todo mundo da casa. Nunca o
        * motivo, que continua atrás do alcance da internação. */
       noHospital: INTERNACOES.find(
@@ -9093,8 +9217,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       cpfPendente: !!k.semCpf, idProvisorio: k.provisorio ?? null,
       casaAtual: { id: CASA.id, codigo: CASA.code, nome: CASA.name, desde: '2026-02-28' },
       noAcervo: false,
-      alertasEssenciais: k.alerta ? [{ tipo: k.alerta.tipo, descricao: k.alerta.descricao,
-                                       gravidade: k.alerta.gravidade }] : [],
+      alertasEssenciais: alertasDe(k),
       condicoesSaude: [...(k.alerta ? [{ id: `h1-${k.id}`, kind: k.alerta.tipo, description: k.alerta.descricao,
         rotulo: k.alerta.descricao, severity: k.alerta.gravidade, essential_alert: true,
         source: 'Relatório médico (fictício)', review_on: null }] : []), ...(k.condicoesExtras ?? [])],
@@ -9173,8 +9296,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         acolhido: { id: d.personId, nome: kid(d.personId)?.nome ?? '—', temFoto: !!kid(d.personId)?.foto },
         offline: false,
         // Ao lado de uma dose, "Dipirona" sozinha se lê como o que dar.
-        alergias: kid(d.personId)?.alerta?.tipo === 'alergia'
-          ? kid(d.personId)!.alerta!.descricao : null,
+        alergias: kid(d.personId) ? alergiasDe(kid(d.personId)!).map((a) => `Alergia a ${a}`).join(' · ') || null : null,
         ...excecaoDaDose(d.medicamento),
         /* `mapDose` as devolve desde a 1390 — o `...d` já as traz, e isto só
            garante que a chave EXISTA mesmo na dose que não é "se necessário". */
@@ -9481,6 +9603,18 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     d.rotulo = estado === 'administrado_com_atraso'
       ? rotuloForaDoHorario(d.horario, d.administradaEm) : ESTADO_DOSE[estado];
     d.observacao = String(b.nota ?? '').trim() || null;
+    /*
+     * A BAIXA NO ARMÁRIO, como o `app_confirm_dose` (fase 204). O protótipo
+     * confirmava a dose e o armário ficava igual: a Enfermagem que dava a dose
+     * e abria o Estoque via o mesmo número, e a regra do saldo verdadeiro
+     * (pode ficar negativo, decisão de 26/09) nunca aparecia na demonstração.
+     * UMA linha só: a nominal da criança, se houver; senão a comum da casa.
+     */
+    if (estado.startsWith('administrado')) {
+      const nominal = ESTOQUE.find((x) => x.medicamento === d.medicamento && x.personId === d.personId);
+      const item = nominal ?? ESTOQUE.find((x) => x.medicamento === d.medicamento && x.personId == null);
+      if (item) { item.quantidade -= 1; item.atualizadoEm = d.administradaEm; }
+    }
     return { ok: true, estado, rotulo: ESTADO_DOSE[estado] };
   }
 
@@ -9889,10 +10023,11 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         // GRADE devolve já rotulada, porque ao lado de uma dose o nome sozinho
         // se lê como o que dar. Aqui os dados nascem rotulados, então o painel
         // tira o prefixo — era o que produzia "Alergia a Alergia a Amendoim".
-        alergias: k.alerta?.tipo === 'alergia'
-          ? k.alerta.descricao.replace(/^Alergia a /, '') : null,
-        restricoes: k.restricao?.restriction ?? null,
-        condicoes: k.alerta && k.alerta.tipo === 'condicao' ? k.alerta.descricao : null,
+        alergias: alergiasDe(k).join(', ') || null,
+        restricoes: restricoesDe(k).map((r) => r.restriction).join(' · ') || null,
+        condicoes: [...(k.alerta && k.alerta.tipo === 'condicao' ? [k.alerta.descricao] : []),
+          ...(k.condicoesExtras ?? []).filter((c: any) => c.kind === 'condicao').map((c: any) => String(c.description))]
+          .join(' · ') || null,
         dosesPrevistas: doses.length,
         proximaDose: pendentes[0]?.horario ?? null,
         ultimaDose: doses.find((d) => !d.pendente)?.administradaEm ?? null,
@@ -11782,7 +11917,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     if (p instanceof Recusa) return p;
     return folhaDaAta(
       {
-        data: p.data, turno: p.turno,
+        data: dataDoPlantao(p), turno: p.turno,
         status: p.ata?.status ?? p.status,
         conteudo: p.ata?.conteudo ?? null,
         pendencias: p.ata?.pendencias ?? null,

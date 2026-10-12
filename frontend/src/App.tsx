@@ -327,6 +327,16 @@ export function App() {
   /* A criança escolhida na busca do topo (fase 183): a tela de Acolhidos abre
      com o perfil dela. */
   const [abrirCrianca, setAbrirCrianca] = useState<{ id: string } | null>(null);
+  /*
+   * TOCAR DE NOVO EM ACOLHIDOS VOLTA À LISTA (fase 204). Com um perfil aberto, o
+   * toque no menu não fazia nada, e no plantão isso parece sistema travado. Só
+   * nos Acolhidos: noutras telas o começo pode ter um texto sendo escrito.
+   */
+  const [paraALista, setParaALista] = useState(0);
+  const tocarAba = (destino: string) => {
+    if (destino === 'acolhidos' && abaEfetiva === 'acolhidos') setParaALista((n) => n + 1);
+    setAba(destino as typeof aba);
+  };
   const [aba, setAba] = useState<
     'dia' | 'chamada' | 'passagem' | 'acolhidos' | 'agenda' | 'casas' | 'equipe'
     | 'saude' | 'internacao' | 'impacto' | 'ocorrencias' | 'ata' | 'cofre' | 'transferencias'
@@ -787,7 +797,7 @@ export function App() {
         <nav className="tabbar" aria-label="Seções">
           {abasDoTurno.map((t) => (
             <button key={t.aba} className={abaEfetiva === t.aba ? 'on' : ''}
-                    onClick={() => setAba(t.aba as typeof aba)}>
+                    onClick={() => tocarAba(t.aba)}>
               <Icone nome={t.icone} /> <span className="rotulo">{t.label}</span>
             </button>
           ))}
@@ -813,7 +823,7 @@ export function App() {
                 {dele.map((porta) => (
                   <button key={porta.aba} className={aba === porta.aba ? 'on' : ''}
                           title={porta.descricao}
-                          onClick={() => setAba(porta.aba as typeof aba)}>
+                          onClick={() => tocarAba(porta.aba)}>
                     <Icone nome={porta.icone} /> <span className="rotulo">{porta.titulo}</span>
                   </button>
                 ))}
@@ -902,7 +912,7 @@ export function App() {
 
         {abaEfetiva === 'acolhidos' && ve('acolhidos') && casaAtual && (
           <Acolhidos houseId={casaAtual.id} casaLabel={`${casaAtual.code} · ${casaAtual.name}`}
-                     papel={me.role} abrir={abrirCrianca} />
+                     papel={me.role} abrir={abrirCrianca} paraALista={paraALista} />
         )}
 
         {abaEfetiva === 'passagem' && ve('passagem') && casaAtual && (
