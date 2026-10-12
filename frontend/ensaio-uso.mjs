@@ -3819,12 +3819,12 @@ console.log('\n🔗 De um setor ao outro');
     return Number(t.match(/ARMÁRIO DE MEDICAMENTOS DA CASA.*?Colírio lubrificante \(fictício\) (-?\d+) frasco/i)?.[1] ?? NaN);
   };
   const antes = await saldo();
-  const insulina = (await pgS.locator('main.conteudo .card').filter({ hasText: /Insulina/ }).first().innerText()).replace(/\s+/g, ' ');
+  const insulina = (await pgS.locator('main.conteudo .card').filter({ hasText: /Estoque nominal de/ }).filter({ hasText: /Insulina/ }).first().innerText()).replace(/\s+/g, ' ');
   cobrar('o remédio vencido diz que venceu, e não que está perto de vencer',
     /venceu há \d+ dias?/.test(insulina) && /Vencido/.test(insulina) && !/Validade próxima|dia\(s\)/.test(insulina),
     insulina.slice(0, 200));
   await pgS.getByRole('tab', { name: /Doses/ }).click(); await esp(800);
-  const dose = pgS.locator('main.conteudo .card').filter({ hasText: /Colírio/ }).filter({ has: pgS.getByRole('button', { name: 'Confirmar' }) }).first();
+  const dose = pgS.locator('main.conteudo ul.doses > li').filter({ hasText: /Colírio/ }).filter({ has: pgS.getByRole('button', { name: 'Confirmar' }) }).first();
   if (await dose.count()) {
     await dose.getByRole('button', { name: 'Confirmar' }).click(); await esp(500);
     await pgS.locator('.overlay button').filter({ hasText: 'Administrada no horário' }).click();
