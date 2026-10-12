@@ -39,6 +39,7 @@ import { chromium } from 'playwright-core';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import PgLib from 'pg';
 
 const URL_BASE = process.env.ENSAIO_URL ?? 'http://localhost:5173';
 const EXECUTAVEL = process.env.ENSAIO_CHROMIUM;
@@ -82,6 +83,25 @@ async function conferir(pg, quem, tela) {
   await pg.screenshot({ path: join(SAIDA, emArquivo(quem), `${emArquivo(tela)}.png`), fullPage: true });
 }
 
+/*
+ * AS ABAS DE DENTRO DE CADA TELA (fase 205; pedido de 12/10: "teste cada menu, cada
+ * detalhe"). A porta abria a tela na primeira aba, e as outras (Estoque, Compras,
+ * Esquemas, Pedidos, Restrições, Álbum...) nunca eram abertas contra o servidor.
+ */
+async function abasDeDentro(pg, quem, tela) {
+  const nomes = (await pg.locator('main.conteudo [role="tab"]').allInnerTexts()).map((t) => t.replace(/\s+/g, ' ').trim()).filter(Boolean);
+  const vistas = [];
+  for (const nome of [...new Set(nomes)].slice(0, 8)) {
+    const aba = pg.locator('main.conteudo [role="tab"]', { hasText: nome }).first();
+    if (!(await aba.isVisible().catch(() => false)) || (await aba.getAttribute('aria-selected')) === 'true') continue;
+    await aba.click({ timeout: 5000 }).catch(() => {});
+    await pg.waitForTimeout(600);
+    await conferir(pg, quem, `${tela} › ${nome}`);
+    vistas.push(nome);
+  }
+  return vistas;
+}
+
 async function portas(pg) {
   const coluna = pg.locator('nav.portas-lateral button');
   if (await coluna.first().isVisible().catch(() => false)) {
@@ -90,6 +110,8 @@ async function portas(pg) {
   return [];
 }
 
+let juntosFeito = false;
+let juntosOk = false;
 const navegador = await chromium.launch({ executablePath: EXECUTAVEL, args: ['--no-sandbox', '--disable-dev-shm-usage'] });
 const inicio = Date.now();
 
@@ -140,6 +162,7 @@ for (const conta of CONTAS) {
     await assentar(pg);
     await conferir(pg, conta.quem, onde);
     telas.push(onde);
+    for (const a of await abasDeDentro(pg, conta.quem, onde)) telas.push(`${onde} › ${a}`);
   }
   const lista = await portas(pg);
   for (let i = 0; i < lista.length; i++) {
@@ -149,6 +172,7 @@ for (const conta of CONTAS) {
     await assentar(pg);
     await conferir(pg, conta.quem, onde);
     telas.push(onde);
+    for (const a of await abasDeDentro(pg, conta.quem, onde)) telas.push(`${onde} › ${a}`);
   }
   if (!telas.length) { onde = 'tela única'; await conferir(pg, conta.quem, onde); telas.push(onde); }
 
@@ -169,6 +193,76 @@ for (const conta of CONTAS) {
     telas.push(onde);
   } else {
     anota(conta.quem, onde, 'o botão da Acolhe+AI não aparece');
+  }
+
+  /*
+   * A ACOLHE+AI E O SISTEMA JUNTOS, GRAVANDO (fase 205; pedido de 12/10: "usando os 2
+   * ao mesmo tempo e vendo se ele anota e guarda tudo certinho"). O primeiro
+   * educador conta à Acolhe+AI o que aconteceu, leva o rascunho à linha da ATA e
+   * aperta Registrar linha; depois deixa uma sugestão. O banco tem de ter as duas
+   * coisas, com o nome DELE e na casa dele: quem escreve é a pessoa, nunca a assistente.
+   */
+  if (/\(educador\)/.test(conta.quem) && !juntosFeito) {
+    juntosFeito = true;
+    onde = 'Acolhe+AI e ATA, gravando';
+    const marca = `R${Date.now().toString().slice(-6)}`;
+    const relato = `a ronda da meia-noite foi tranquila, todos dormindo, conferido ${marca}`;
+    await pg.keyboard.press('Escape');
+    const ata = pg.locator('nav.portas-lateral button', { hasText: /^\s*ATA\s*$/ }).first();
+    if (await ata.isVisible().catch(() => false)) await ata.click(); else await pg.locator('nav.tabbar button', { hasText: 'ATA' }).first().click().catch(() => {});
+    await pg.waitForTimeout(1200);
+    const temLinha = await pg.locator('#linha-ata').count();
+    const painel = pg.locator('.acolhe-painel');
+    if (!(await painel.isVisible().catch(() => false))) await pg.getByRole('button', { name: /^Abrir a Acolhe\+AI/ }).click().catch(() => {});
+    await pg.waitForTimeout(500);
+    await pg.locator('#acolhe-pergunta').fill(`preciso registrar que ${relato}`);
+    await painel.getByRole('button', { name: 'Enviar' }).click();
+    await pg.waitForTimeout(1500);
+    const cartao = painel.locator('.acolhe-rascunho').last();
+    if (!(await cartao.isVisible().catch(() => false))) anota(conta.quem, onde, 'a Acolhe+AI não montou o rascunho do relato');
+    else if (!temLinha) anota(conta.quem, onde, 'a ATA do turno aberta não tem a caixa Escrever uma linha');
+    else {
+      await cartao.getByRole('button', { name: 'Está bom' }).click();
+      await pg.waitForTimeout(300);
+      await cartao.getByRole('button', { name: /^Levar para a tela/ }).click();
+      await pg.waitForTimeout(1500);
+      const licenca = painel.getByRole('button', { name: 'Pode mexer' });
+      if (await licenca.isVisible().catch(() => false)) { await licenca.click(); await pg.waitForTimeout(2500); }
+      const escrito = await pg.locator('#linha-ata').inputValue().catch(() => '');
+      if (!escrito.includes(marca)) anota(conta.quem, onde, `o rascunho não chegou à linha da ATA (a caixa tem: ${escrito.slice(0, 80)})`);
+      else if (await pg.locator('main.conteudo [role="dialog"]').count()) anota(conta.quem, onde, 'o rascunho abriu um formulário por cima da ATA, em vez da linha do turno');
+      else {
+        await pg.getByRole('button', { name: 'Minimizar a Acolhe+AI' }).click().catch(() => {});
+        await pg.locator('main.conteudo button', { hasText: 'Registrar linha' }).first().click();
+        await pg.waitForTimeout(1500);
+        if (!(await pg.locator('main.conteudo').innerText()).includes(marca)) anota(conta.quem, onde, 'a linha registrada não aparece na ATA');
+        const db = new PgLib.Client({ connectionString: process.env.DATABASE_URL });
+        await db.connect();
+        const { rows } = await db.query(`SELECT u.email, u.role, h.code FROM ata_note n JOIN app_user u ON u.id = n.author_id
+                                          JOIN house h ON h.id = n.house_id WHERE n.body LIKE $1`, [`%${marca}%`]);
+        if (rows.length !== 1) anota(conta.quem, onde, `o banco tem ${rows.length} linha(s) com o relato, esperava uma`);
+        else if (rows[0].email !== conta.email) anota(conta.quem, onde, `a linha ficou com o nome de outra pessoa: ${rows[0].email}`);
+        /* E a sugestão, pela conversa, com o nome dela. */
+        if (!(await painel.isVisible().catch(() => false))) await pg.getByRole('button', { name: /^Abrir a Acolhe\+AI/ }).click().catch(() => {});
+        await pg.waitForTimeout(400);
+        await pg.locator('#acolhe-pergunta').fill(`seria bom a ATA lembrar a ronda das 3h, sugestão ${marca}`);
+        await painel.getByRole('button', { name: 'Enviar' }).click();
+        await pg.waitForTimeout(1200);
+        await painel.locator('.acolhe-proposta').last().getByRole('button', { name: 'Confirmar' }).click().catch(() => {});
+        await pg.waitForTimeout(1500);
+        const s2 = await db.query(`SELECT u.email, s.house_id IS NOT NULL AS com_casa FROM assistant_suggestion s
+                                     JOIN app_user u ON u.id = s.author_id WHERE s.body LIKE $1`, [`%${marca}%`]);
+        if (s2.rows.length !== 1) anota(conta.quem, onde, `o banco tem ${s2.rows.length} sugestão(ões) com a marca, esperava uma`);
+        else if (s2.rows[0].email !== conta.email || !s2.rows[0].com_casa) anota(conta.quem, onde, `a sugestão ficou sem o autor certo ou sem a casa: ${JSON.stringify(s2.rows[0])}`);
+        const lic = await db.query(`SELECT count(*)::int AS n FROM audit_event a JOIN app_user u ON u.id = a.actor_id
+                                     WHERE a.action = 'assistente.licenca' AND u.email = $1`, [conta.email]);
+        if (!lic.rows[0].n) anota(conta.quem, onde, 'a licença dada à Acolhe+AI não ficou na auditoria');
+        await db.end();
+        juntosOk = !achados.some((a) => a.quem === conta.quem && a.tela === onde);
+      }
+    }
+    await pg.getByRole('button', { name: 'Minimizar a Acolhe+AI' }).click().catch(() => {});
+    telas.push(onde);
   }
 
   /* O AVISO NESTE COMPUTADOR, no monitor (fase 191): na folha da senha. */
@@ -276,6 +370,8 @@ for (const conta of CONTAS) {
   await ctx.close();
 }
 
+if (!juntosFeito) anota('Acolhe+AI e sistema', 'gravando', 'nenhuma conta de educador para o ensaio de gravar pela Acolhe+AI');
+else console.log(`${juntosOk ? '✓' : '✗'} ${'Acolhe+AI e o sistema'.padEnd(22)} rascunho na linha da ATA e sugestão, gravados com o autor`);
 await navegador.close();
 await mkdir(SAIDA, { recursive: true });
 await writeFile(join(SAIDA, 'achados.json'), JSON.stringify(achados, null, 2));

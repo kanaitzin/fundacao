@@ -617,6 +617,20 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
     if (!r.tela) return;
     navegar(r.tela);
     await new Promise((ok) => setTimeout(ok, 500));
+    /* O rascunho da ATA vai para a LINHA do turno, com o nome de quem escreve (fase 205).
+       Ele ia para o formulário de episódio, que é de uma criança e pede ciência: a ronda
+       das 3h virava episódio de alguém. Com foto, segue o episódio, que tem anexo. */
+    if (r.tela === 'ata' && !r.fotos.length) {
+      for (let i = 0; i < 20 && !document.getElementById('linha-ata'); i++) await new Promise((ok) => setTimeout(ok, 150));
+      if (document.getElementById('linha-ata')) {
+        const e = await executar('preencher_campo', { campo: 'Escrever uma linha', valor: r.texto });
+        if (e.erro) { dizer(e.conteudo); return; }
+        mudarRascunho(l.id, { estado: 'levado' });
+        mostrarFeito();
+        setFaixa('Escrevi o rascunho na linha da ATA do turno. Confira, mude o que quiser e aperte Registrar linha.');
+        return;
+      }
+    }
     const abriu = await abrirOFormulario(`${r.titulo} ${r.texto.slice(0, 200)}`);
     if (!abriu) return;
     await new Promise((ok) => setTimeout(ok, 400));

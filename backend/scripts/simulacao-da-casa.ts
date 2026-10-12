@@ -44,6 +44,18 @@ const RELOGIO = process.env.SIM_RELOGIO!;
 const DIAS = Number(process.argv[2] ?? 90);
 const INICIO = (process.argv[3] ?? '2026-11-16 07:00:00').slice(0, 10);
 const SAIDA = process.env.SIM_SAIDA ?? '/tmp/simulacao-da-casa';
+/*
+ * A EQUIPE DE VINTE (fase 205; pedido de 12/10: "simule as 8 casas com 20
+ * funcionários em vários setores"). SIM_EQUIPE=20 põe em cada casa, além da
+ * coordenação: duas técnicas, dois líderes diurnos, onze educadores em rodízio
+ * (dois no dia e dois na noite), duas pessoas na portaria e duas na cozinha. A
+ * Enfermagem e o Líder Noturno Geral continuam da instituição. E a Acolhe+AI entra
+ * no dia: o segundo educador de cada turno escreve a linha da ATA pelo rascunho
+ * dela (licença, e a linha gravada com o nome de quem escreveu), e toda semana
+ * alguém da casa deixa uma sugestão, que a coordenação lê no mês.
+ */
+const GRANDE = Number(process.env.SIM_EQUIPE ?? 9) >= 20;
+const EDUS = GRANDE ? ['edu1', 'edu2', 'edu3', 'edu4', 'edu6', 'edu7', 'edu8', 'edu9', 'edu10', 'edu11', 'edu12'] : ['edu1', 'edu2', 'edu3', 'edu4'];
 const CAIXA = join(process.env.EMAIL_DIR ?? '/tmp/rede-acolher-email', 'caixa-de-saida.txt');
 const SENHA_SEMENTE = 'senha-dev-123';
 const SENHA_NOVA = 'minha-senha-da-casa-1';
@@ -250,6 +262,8 @@ function criarCasa(cfg: Config) {
     refeicoes: 0, pedidosCozinha: 0, cestas: 0, internacoes: 0, ocorrencias: 0,
     notasNaAta: 0, plantoes: 0, entradasArmario: 0, notasFiscais: 0, admissoes: 0,
     desligamentos: 0, chamadasConfirmadas: 0, transferencias: 0, anexos: 0, downloads: 0, relatorios: 0,
+    /** Fase 205: o que a Acolhe+AI ajudou a escrever, e as sugestões deixadas por ela. */
+    linhasPelaAcolhe: 0, sugestoes: 0, licencas: 0,
   };
 
   // ================================================================ os capítulos
@@ -308,6 +322,19 @@ function criarCasa(cfg: Config) {
       { chave: 'edu4', nome: 'Davi Educador (fictício)', email: `davi.${SLUG}@paodospobres.dev`, cargo: 'educador' },
       { chave: 'portaria', nome: 'Jorge da Portaria (fictício)', email: `portaria.${SLUG}@paodospobres.dev`, cargo: 'portaria' },
       { chave: 'cozinha', nome: 'Marta da Cozinha (fictícia)', email: `cozinha.${SLUG}@paodospobres.dev`, cargo: 'cozinha' },
+      ...(GRANDE ? [
+        { chave: 'tecnica2', nome: 'Sara Assistente Social (fictícia)', email: `sara.${SLUG}@paodospobres.dev`, cargo: 'equipe_tecnica' },
+        { chave: 'lider2', nome: 'Rui Líder (fictício)', email: `rui.${SLUG}@paodospobres.dev`, cargo: 'lider_diurno' },
+        { chave: 'edu6', nome: 'Fábio Educador (fictício)', email: `fabio.${SLUG}@paodospobres.dev`, cargo: 'educador' },
+        { chave: 'edu7', nome: 'Gabriela Educadora (fictícia)', email: `gabriela.${SLUG}@paodospobres.dev`, cargo: 'educador' },
+        { chave: 'edu8', nome: 'Hugo Educador (fictício)', email: `hugo.${SLUG}@paodospobres.dev`, cargo: 'educador' },
+        { chave: 'edu9', nome: 'Íris Educadora (fictícia)', email: `iris.${SLUG}@paodospobres.dev`, cargo: 'educador' },
+        { chave: 'edu10', nome: 'João Educador (fictício)', email: `joao.${SLUG}@paodospobres.dev`, cargo: 'educador' },
+        { chave: 'edu11', nome: 'Kátia Educadora (fictícia)', email: `katia.${SLUG}@paodospobres.dev`, cargo: 'educador' },
+        { chave: 'edu12', nome: 'Luan Educador (fictício)', email: `luan.${SLUG}@paodospobres.dev`, cargo: 'educador' },
+        { chave: 'portaria2', nome: 'Nilda da Portaria (fictícia)', email: `nilda.${SLUG}@paodospobres.dev`, cargo: 'portaria' },
+        { chave: 'cozinha2', nome: 'Otávio da Cozinha (fictício)', email: `otavio.${SLUG}@paodospobres.dev`, cargo: 'cozinha' },
+      ] : []),
     ];
     for (const p of equipe) await criarConta(p.chave, 'coord', p);
 
@@ -462,22 +489,35 @@ function criarCasa(cfg: Config) {
   }
 
   /** A escala: 12x36 de dia (Ana e Bruno) e de noite (Carla e Davi); o líder de segunda a sexta. */
-  const escalados: Record<string, { diurno: string; noturno: string }> = {};
-  function quemTrabalha(dia: string) {
-    const par = Math.round((new Date(`${dia}T12:00:00Z`).getTime() - new Date(`${INICIO}T12:00:00Z`).getTime()) / 864e5) % 2 === 0;
-    return escalados[dia] ?? { diurno: par ? 'edu1' : 'edu2', noturno: par ? 'edu3' : 'edu4' };
+  type Turma = { diurno: string; noturno: string; diurno2?: string; noturno2?: string };
+  const escalados: Record<string, Turma> = {};
+  function quemTrabalha(dia: string): Turma {
+    const n = Math.round((new Date(`${dia}T12:00:00Z`).getTime() - new Date(`${INICIO}T12:00:00Z`).getTime()) / 864e5);
+    if (escalados[dia]) return escalados[dia];
+    if (!GRANDE) return { diurno: n % 2 === 0 ? 'edu1' : 'edu2', noturno: n % 2 === 0 ? 'edu3' : 'edu4' };
+    /* Onze educadores, quatro por dia: ninguém faz dois turnos seguidos. */
+    const e = (k: number) => EDUS[(4 * n + k) % EDUS.length];
+    return { diurno: e(0), diurno2: e(1), noturno: e(2), noturno2: e(3) };
   }
+  /** O líder diurno do dia: com dois, um nas segundas, quartas e sextas, o outro nas terças e quintas. */
+  const liderDo = (dia: string) => (GRANDE && [2, 4].includes(diaDaSemana(dia)) ? 'lider2' : 'lider');
+  /** Quem da técnica cuida hoje: com duas, alternam por mês. */
+  const tecnicaDo = (dia: string) => (GRANDE && Number(dia.slice(5, 7)) % 2 === 0 ? 'tecnica2' : 'tecnica');
+  /** A portaria e a cozinha do dia: com duas pessoas, alternam por dia. */
+  const portariaDo = (dia: string) => (GRANDE && Number(dia.slice(8, 10)) % 2 === 0 ? 'portaria2' : 'portaria');
+  const cozinhaDo = (dia: string) => (GRANDE && Number(dia.slice(8, 10)) % 2 === 0 ? 'cozinha2' : 'cozinha');
   async function escalaDoPrimeiroMes() {
     await relogio(INICIO, '17:00');
     /* Novembro e dezembro à mão; de janeiro em diante, o rascunho repete o mês anterior. */
     const fim = '2026-12-31';
     for (let d = INICIO; d <= fim; d = somaDias(d, 1)) {
       const q = quemTrabalha(d);
-      for (const [turno, quem] of [['diurno', q.diurno], ['noturno', q.noturno]]) {
+      for (const [turno, quem] of [['diurno', q.diurno], ['noturno', q.noturno], ['diurno', q.diurno2], ['noturno', q.noturno2]]) {
+        if (!quem) continue;
         await post('coord', '/escala', { houseId: ids.CASA, userId: gente[quem].id, data: d, turno }, { rotulo: 'publicar a escala do mês' });
       }
       if (![0, 6].includes(diaDaSemana(d))) {
-        await post('coord', '/escala', { houseId: ids.CASA, userId: gente.lider.id, data: d, turno: 'diurno' }, { rotulo: 'publicar a escala do mês' });
+        await post('coord', '/escala', { houseId: ids.CASA, userId: gente[liderDo(d)].id, data: d, turno: 'diurno' }, { rotulo: 'publicar a escala do mês' });
       }
     }
   }
@@ -503,6 +543,18 @@ function criarCasa(cfg: Config) {
     const p = plantoes[`${dia}|${turno}`];
     if (!p) return;
     if (await post(quem, `/shifts/ata/${p.ataId}/notes`, { texto, restrita }, { rotulo: 'escrever na ATA' })) fatos.notasNaAta++;
+  }
+
+  /**
+   * A LINHA DA ATA PELA ACOLHE+AI (fase 205): a pessoa dá a licença (uma vez por
+   * conversa, e o servidor anota), a Acolhe+AI escreve o rascunho na linha do turno,
+   * e quem aperta Registrar linha é a pessoa: a linha leva o nome DELA.
+   */
+  async function pelaAcolhe(quem: string, dia: string, turno: 'diurno' | 'noturno', texto: string) {
+    if (await post(quem, '/assistente/licenca', { tela: 'ata', casaId: ids.CASA }, { rotulo: 'dar a licença à Acolhe+AI' })) fatos.licencas++;
+    const antes = fatos.notasNaAta;
+    await escreverNaAta(quem, dia, turno, texto);
+    if (fatos.notasNaAta > antes) fatos.linhasPelaAcolhe++;
   }
 
   async function passarOPlantao(sai: string, entra: string, dia: string, turno: 'diurno' | 'noturno', frase: string) {
@@ -580,6 +632,8 @@ function criarCasa(cfg: Config) {
     await abrirPlantao(hoje.diurno, dia, 'diurno');
     if (n > 0) {
       await passarOPlantao(antes.noturno, hoje.diurno, ontem, 'noturno', 'Noite tranquila, todos dormiram no horário.');
+      const pn = plantoes[`${ontem}|noturno`];
+      if (antes.noturno2 && pn) await post(antes.noturno2, `/shifts/${pn.plantaoId}/handover`, { contribuicoes: 'Fiz a ronda das 3h com a colega; nada a acrescentar.' }, { rotulo: 'assinar a passagem (segundo da noite)' });
       await relogio(dia, '07:30');
       const p = plantoes[`${ontem}|noturno`];
       if (p) await post('noturno', `/shifts/ata/${p.ataId}/close`, {}, { rotulo: 'fechar a ATA noturna' });
@@ -597,27 +651,37 @@ function criarCasa(cfg: Config) {
     await eventosDoDia(dia, n, 'tarde');
     await relogio(dia, '18:30');
     await escreverNaAta(hoje.diurno, dia, 'diurno', `Tarde de ${['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'][semana]} sem intercorrências; tema de casa feito com os maiores.`);
+    if (hoje.diurno2) {
+      await relogio(dia, '18:35');
+      await pelaAcolhe(hoje.diurno2, dia, 'diurno', 'Acompanhei os menores no banho e no lanche da tarde; todos jantaram bem.');
+      if (semana === 0) {
+        const r = await post(hoje.diurno2, '/assistente/sugestoes', { texto: `Seria bom a chamada da janta lembrar quem tem dieta, semana de ${dia}.`, tela: 'chamada', casaId: ids.CASA }, { rotulo: 'deixar uma sugestão pela Acolhe+AI' });
+        if (r?.id) fatos.sugestoes++;
+      }
+    }
 
     await relogio(dia, '18:40');
     await cumprirAsAtividades(hoje.diurno, dia);
     await relogio(dia, '19:00');
     await abrirPlantao(hoje.noturno, dia, 'noturno');
     await passarOPlantao(hoje.diurno, hoje.noturno, dia, 'diurno', 'Dia cumprido, banho feito, todos em casa.');
+    const pd = plantoes[`${dia}|diurno`];
+    if (hoje.diurno2 && pd) await post(hoje.diurno2, `/shifts/${pd.plantaoId}/handover`, { contribuicoes: 'Fiquei com os menores à tarde; tudo na ATA.' }, { rotulo: 'assinar a passagem (segundo do dia)' });
     await relogio(dia, '19:15');
     await chamadaDaRefeicao(hoje.noturno, dia, '19:00', 'Janta');
     if (![0, 6].includes(semana)) {
       const p = plantoes[`${dia}|diurno`];
       if (p) {
         /* O líder também estava no turno: assina a passagem antes de fechar. */
-        await post('lider', `/shifts/${p.plantaoId}/handover`, { contribuicoes: 'Acompanhei o dia; nada a acrescentar.' }, { rotulo: 'assinar a passagem (líder)' });
-        await post('lider', `/shifts/ata/${p.ataId}/close`, {}, { rotulo: 'fechar a ATA diurna' });
+        await post(liderDo(dia), `/shifts/${p.plantaoId}/handover`, { contribuicoes: 'Acompanhei o dia; nada a acrescentar.' }, { rotulo: 'assinar a passagem (líder)' });
+        await post(liderDo(dia), `/shifts/ata/${p.ataId}/close`, {}, { rotulo: 'fechar a ATA diurna' });
       }
     }
     if (semana === 1) {
       /* Segunda: as ATAs diurnas do fim de semana que ninguém fechou (decisão de 28/09). */
-      const abertas = lista(await get('lider', `/shifts/abertas?houseId=${ids.CASA}`, { rotulo: 'as ATAs que ficaram abertas' }));
+      const abertas = lista(await get(liderDo(dia), `/shifts/abertas?houseId=${ids.CASA}`, { rotulo: 'as ATAs que ficaram abertas' }));
       for (const a of abertas.filter((x: any) => x.podeFechar)) {
-        await post('lider', `/shifts/ata/${a.ataId}/close`, {}, { rotulo: 'fechar a ATA do fim de semana' });
+        await post(liderDo(dia), `/shifts/ata/${a.ataId}/close`, {}, { rotulo: 'fechar a ATA do fim de semana' });
       }
     }
     await relogio(dia, '20:05');
@@ -626,6 +690,10 @@ function criarCasa(cfg: Config) {
     await relogio(dia, '23:00');
     await escreverNaAta(hoje.noturno, dia, 'noturno', 'Todos dormindo às 22h; ronda feita à meia-noite.');
     await cumprirAsAtividades(hoje.noturno, dia);
+    if (hoje.noturno2) {
+      await relogio(dia, '23:30');
+      await pelaAcolhe(hoje.noturno2, dia, 'noturno', 'Fiz a ronda das 23h; os maiores ainda conversavam baixo e logo dormiram.');
+    }
     primeiraOlhada = false;
   }
 
@@ -637,8 +705,9 @@ function criarCasa(cfg: Config) {
 
   /** As visitas do fim de semana: a portaria confere a foto, registra a entrada e a saída. */
   async function visitasDoFimDeSemana(dia: string) {
+    const portaria = portariaDo(dia);
     await relogio(dia, '14:05');
-    const hoje = await get('portaria', `/people/portaria/hoje?houseId=${ids.CASA}`, { rotulo: 'abrir a portaria' });
+    const hoje = await get(portaria, `/people/portaria/hoje?houseId=${ids.CASA}`, { rotulo: 'abrir a portaria' });
     const esperados = lista(hoje, 'visitantes');
     const dentro: { visita: string; crianca: string; contato: string }[] = [];
     for (const c of presentes()) {
@@ -646,17 +715,17 @@ function criarCasa(cfg: Config) {
         const v = esperados.find((x: any) => campo(x, 'contatoId', 'id') === contato);
         if (!v) { achar('portaria', 'portaria', 'visitante autorizado não aparece no portão', `${c.social} · ${dia}`); continue; }
         if (!campo(v, 'temFoto', 'foto', 'fotoUrl', 'comFoto')) achar('portaria', 'portaria', 'a foto do visitante não aparece no portão', JSON.stringify(Object.keys(v)));
-        await get('portaria', `/people/portaria/visitante/${contato}/foto`, { rotulo: 'ver a foto do visitante' });
+        await get(portaria, `/people/portaria/visitante/${contato}/foto`, { rotulo: 'ver a foto do visitante' });
         /* Metade das semanas a avó vem; a outra metade não. */
         if ((c.chave.length + Number(dia.slice(8))) % 2 === 1) continue;
         await relogio(dia, '14:10');
-        const e = await post('portaria', '/people/portaria/visitas', { contatoId: contato, documento: 'RG' }, { rotulo: 'registrar a entrada da visita' });
+        const e = await post(portaria, '/people/portaria/visitas', { contatoId: contato, documento: 'RG' }, { rotulo: 'registrar a entrada da visita' });
         if (e?.id) dentro.push({ visita: e.id, crianca: c.id, contato });
       }
     }
     await relogio(dia, '16:20');
     for (const d of dentro) {
-      const s = await post('portaria', `/people/portaria/visitas/${d.visita}/saida`, { nota: 'Saiu tranquila, combinou voltar no próximo sábado.' }, { rotulo: 'registrar a saída da visita' });
+      const s = await post(portaria, `/people/portaria/visitas/${d.visita}/saida`, { nota: 'Saiu tranquila, combinou voltar no próximo sábado.' }, { rotulo: 'registrar a saída da visita' });
       if (s) {
         fatos.visitas++;
         fatos.visitasPorCrianca[d.crianca] = (fatos.visitasPorCrianca[d.crianca] ?? 0) + 1;
@@ -810,9 +879,10 @@ function criarCasa(cfg: Config) {
     await criarConta('edu5', 'coord', { chave: 'edu5', nome: 'Elisa Educadora (fictícia)', email: `elisa.${SLUG}@paodospobres.dev`, cargo: 'educador' });
     for (let d = dia; d <= somaDias(INICIO, DIAS); d = somaDias(d, 1)) {
       const q = quemTrabalha(d);
-      if (q.diurno === 'edu2') {
-        escalados[d] = { ...q, diurno: 'edu5' };
-        await post('coord', '/escala', { houseId: ids.CASA, userId: gente.edu5.id, data: d, turno: 'diurno' }, { rotulo: 'pôr a nova educadora na escala' });
+      for (const pos of ['diurno', 'noturno', 'diurno2', 'noturno2'] as const) {
+        if (q[pos] !== 'edu2' || (!GRANDE && pos !== 'diurno')) continue;
+        escalados[d] = { ...(escalados[d] ?? q), [pos]: 'edu5' };
+        await post('coord', '/escala', { houseId: ids.CASA, userId: gente.edu5.id, data: d, turno: pos.startsWith('diurno') ? 'diurno' : 'noturno' }, { rotulo: 'pôr a nova educadora na escala' });
       }
     }
     /* Quem saiu não entra mais. */
@@ -828,8 +898,8 @@ function criarCasa(cfg: Config) {
       em: dia, quantidade: 1, finalidade: 'Passeio ao parque da Redenção.' }, { rotulo: 'pedir o lanche do passeio (todos)' });
     if (r) fatos.pedidosCozinha += presentes().length;
     await relogio(dia, '09:30');
-    await get('cozinha', `/people/kitchen-requests?houseId=${ids.CASA}`, { rotulo: 'a cozinha abre os pedidos' });
-    await get('cozinha', `/people/kitchen-requests/folha/restricoes?houseId=${ids.CASA}`, { rotulo: 'a cozinha abre a folha das restrições' });
+    await get(cozinhaDo(dia), `/people/kitchen-requests?houseId=${ids.CASA}`, { rotulo: 'a cozinha abre os pedidos' });
+    await get(cozinhaDo(dia), `/people/kitchen-requests/folha/restricoes?houseId=${ids.CASA}`, { rotulo: 'a cozinha abre a folha das restrições' });
   }
 
   /**
@@ -1030,10 +1100,39 @@ function criarCasa(cfg: Config) {
         WHERE entity = 'medication_dose' AND house_id = $1`, [ids.CASA]);
     confere('avisos de dose atrasada por dose (uma vez só, em dois níveis)', avisosDeDose.doses ? avisosDeDose.avisos / avisosDeDose.doses : 2, 2);
 
-    /* Uma ATA de cada turno, no papel. */
+    /* Uma ATA de cada turno, no papel. Com a equipe de vinte, a linha que a Acolhe+AI
+       ajudou a escrever tem de estar no papel com o nome de quem a registrou (fase 205). */
     for (const chave of [`${somaDias(INICIO, 5)}|diurno`, `${somaDias(INICIO, 5)}|noturno`, `2026-12-31|noturno`]) {
       const p = plantoes[chave];
-      if (p) await baixar('coord', `/shifts/${p.plantaoId}/export`, {}, `ATA ${chave.replace('|', ' ')}`);
+      const [d, turno] = chave.split('|') as [string, 'diurno' | 'noturno'];
+      const segundo = turno === 'diurno' ? quemTrabalha(d).diurno2 : quemTrabalha(d).noturno2;
+      const deve = segundo && gente[segundo]
+        ? [turno === 'diurno' ? 'Acompanhei os menores no banho' : 'Fiz a ronda das 23h', gente[segundo].nome.replace(/ \(fict[ií]ci[ao]\)$/, '')] : [];
+      if (p) await baixar('coord', `/shifts/${p.plantaoId}/export`, {}, `ATA ${chave.replace('|', ' ')}`, deve);
+    }
+
+    /* A ACOLHE+AI E O SISTEMA JUNTOS (fase 205): o que ela ajudou a escrever ficou
+       no banco com o nome de quem registrou, na casa certa; a licença ficou na
+       auditoria; e a sugestão chegou à coordenação, com autor e cargo. */
+    if (GRANDE) {
+      const { rows: [l] } = await admin.query(
+        `SELECT count(*)::int AS n, count(*) FILTER (WHERE u.role <> 'educador')::int AS fora,
+                count(DISTINCT n.author_id)::int AS autores
+           FROM ata_note n JOIN app_user u ON u.id = n.author_id
+          WHERE n.house_id = $1 AND (n.body LIKE 'Acompanhei os menores no banho%' OR n.body LIKE 'Fiz a ronda das 23h%')`, [ids.CASA]);
+      confere('linhas da ATA escritas pela Acolhe+AI, com o nome de quem registrou', l.n, fatos.linhasPelaAcolhe);
+      confere('dessas linhas, as de quem não é educador', l.fora, 0);
+      const { rows: [lic] } = await admin.query(
+        `SELECT count(*)::int AS n FROM audit_event WHERE house_id = $1 AND action = 'assistente.licenca'`, [ids.CASA]);
+      confere('licenças dadas à Acolhe+AI, na auditoria da casa', lic.n, fatos.licencas);
+      const sug = lista(await get('coord', `/assistente/sugestoes?houseId=${ids.CASA}`, { rotulo: 'a coordenação lê as sugestões' }), 'itens');
+      confere('sugestões da casa que a coordenação lê', sug.length, fatos.sugestoes);
+      const semAutor = sug.filter((x: any) => !x.autor || !x.cargo).length;
+      confere('sugestões sem autor ou sem cargo', semAutor, 0);
+      const deOutra = lista(await get('coord', '/assistente/sugestoes', { rotulo: 'as sugestões sem filtro' }), 'itens')
+        .filter((x: any) => x.casaId && x.casaId !== ids.CASA).length;
+      confere('sugestões de outra casa que a coordenação desta lê', deOutra, 0);
+      console.log(`  (a Acolhe+AI: ${fatos.linhasPelaAcolhe} linhas, ${fatos.licencas} licenças, ${fatos.sugestoes} sugestões; ${l.autores} pessoas diferentes escreveram por ela)`);
     }
 
     /* A internação, com o diário e os anexos. */

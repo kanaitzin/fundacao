@@ -167,7 +167,11 @@ function arrumar(t: string): string {
 function rascunhoDoPedido(texto: string, telas: TelaDoGuia[], aceitaLongo: boolean): RespostaDoGuia['rascunho'] | null {
   const t = sem(texto);
   const que = REGISTRAR_QUE.exec(t);
-  const explicito = PEDIDO_DE_RELATORIO.test(texto) || QUER_RELATORIO.test(t) || !!que;
+  /* "Preciso fazer o relatório mensal da Alice" é pedido de ir ao acompanhamento, e não
+     o relato: sem dois-pontos e curto, o pedido não vira o texto do rascunho (fase 205). */
+  const soOPedido = QUER_RELATORIO.test(t) && !PEDIDO_DE_RELATORIO.test(texto) && !que
+    && !texto.includes(':') && texto.trim().length <= 160;
+  const explicito = !soOPedido && (PEDIDO_DE_RELATORIO.test(texto) || QUER_RELATORIO.test(t) || !!que);
   const ditadoLongo = aceitaLongo && texto.trim().length > 160 && !texto.includes('?');
   if (!explicito && !ditadoLongo) return null;
   const doisPontos = texto.indexOf(':');
@@ -347,6 +351,12 @@ export function responderPeloGuia(texto: string, telas: TelaDoGuia[], primeira: 
     const cuidado = primeiroOCuidado(t, telas);
     if (cuidado) return { texto: `${aviso}${cuidado}`, cuidado: true };
     if (OI.test(t) && !primeira) return { texto: 'Oi! Diga o que precisa: levo você a uma tela, abro um formulário ou monto um rascunho com o que você contar.' };
+  }
+
+  /* "Marcar visita da mãe do Bruno no sábado" levava à Portaria, que não marca nada:
+     o dia de visita é o combinado do contato, no perfil (fase 205). */
+  if (/\b(marcar|marca|combinar|agendar|agenda|mudar|muda|trocar)\b.{0,25}\bvisita/.test(t) && telas.some((x) => x.chave === 'acolhidos')) {
+    return { texto: `${aviso}O dia e a hora de visita de cada pessoa são o combinado da equipe técnica e ficam no contato dela, no perfil da criança, em Autorizar a visitar. A portaria só deixa entrar dentro do combinado, e a exceção é da coordenação, da técnica ou do líder do plantão, com o motivo.\n\n[Abrir os Acolhidos](tela:acolhidos)` };
   }
 
   /* Ir a uma tela vem antes da sugestão: "me leva para as Sugestões de melhoria"

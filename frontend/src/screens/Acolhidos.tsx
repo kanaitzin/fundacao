@@ -362,7 +362,9 @@ export function Acolhidos({ houseId, casaLabel, papel, abrir, paraALista }: {
   }
 
   if (abertoId) {
-    return <Perfil personId={abertoId} houseId={houseId} papel={papel}
+    /* A chave é a criança (fase 205): sem ela, abrir outra criança pela busca ou pela
+       Acolhe+AI com o dossiê da primeira aberto mostrava direto o dossiê da segunda. */
+    return <Perfil key={abertoId} personId={abertoId} houseId={houseId} papel={papel}
                    onVoltar={() => { setAbertoId(null); carregar(); }} />;
   }
 
