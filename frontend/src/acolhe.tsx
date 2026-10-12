@@ -417,6 +417,12 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
         return true;
       }
     }
+    /* O fato contado, sem pedido ("a escola ligou dizendo que o Kauã não foi"): abre o
+       perfil e nada mais. Abria o Atualizar dados do perfil por causa da palavra escola (fase 205). */
+    if (!pedeAcao(t) && !ehPergunta(t) && !/\b(perfil|ficha)\b/.test(sem(t))) {
+      dizer(`Abrindo o perfil de ${c.nome}. Se for para registrar o que aconteceu, a ATA do turno é o lugar; diga "registrar que..." e eu monto o rascunho.`);
+      return true;
+    }
     /* Pergunta não abre formulário: "a Lara é alérgica a quê" abria o de cadastrar
        alergia (achado fazendo o papel da Enfermagem, fase 200). */
     if (ehPergunta(t) && !pedeFormulario(t)) {
@@ -486,7 +492,7 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
       /* Pediu para criar sem dizer o quê ("quero registrar na Cozinha"): o primeiro
          formulário da tela. Com assunto que não casa com nenhum botão, nenhum: "preciso
          cadastrar a vacina do Bruno" abria o Registrar compra da Saúde (fase 205). */
-      else if (form && !soSeCombinar && nivel === 0 && assunto.length === 0) alvo = form;
+      else if (form && !soSeCombinar && nivel === 0 && (assunto.length === 0 || pf >= 1)) alvo = form;
       /* Nada casa, mas a tela tem abas que ela ainda não olhou: olha a próxima
          (aba só mostra; o formulário pedido pode estar atrás dela). */
       if (!alvo && !(form && pf >= 1) && assunto.length >= (soSeCombinar ? 2 : 1)) {
