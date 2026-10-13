@@ -1133,6 +1133,29 @@ let CHAMADAS: Chamada[] = [
 ];
 
 /**
+ * AS CHAMADAS DA CASA (fase 211): o dia montado, com nome, horário, pessoas e
+ * cor. Os nomes casam com as chamadas semeadas acima, para o protótipo mostrar
+ * o café feito, o almoço e a janta abertos, o lanche e a ceia por abrir.
+ */
+interface ModeloDeChamada {
+  id: string; tipo: string; titulo: string; hora: string; pessoas: number | null; cor: string;
+  por: string; desde: string; encerrado?: boolean; substitui?: string;
+}
+let CHAMADAS_DA_CASA: ModeloDeChamada[] = [
+  { id: 'mc1', tipo: 'alimentacao', titulo: 'Café da manhã', hora: '07:30', pessoas: 24, cor: 'girassol',
+    por: 'Coordenação Fictícia', desde: emDias(-40, 10, 0) },
+  { id: 'mc2', tipo: 'alimentacao', titulo: 'Almoço', hora: '11:30', pessoas: 26, cor: 'tomate',
+    por: 'Coordenação Fictícia', desde: emDias(-40, 10, 0) },
+  { id: 'mc3', tipo: 'alimentacao', titulo: 'Lanche da tarde', hora: '15:30', pessoas: 22, cor: 'laranja',
+    por: 'Coordenação Fictícia', desde: emDias(-40, 10, 0) },
+  { id: 'mc4', tipo: 'alimentacao', titulo: 'Janta', hora: '18:30', pessoas: 25, cor: 'mar',
+    por: 'Líder Diurno Fictício', desde: emDias(-12, 9, 0) },
+  { id: 'mc5', tipo: 'alimentacao', titulo: 'Ceia', hora: '21:00', pessoas: 20, cor: 'lavanda',
+    por: 'Líder Diurno Fictício', desde: emDias(-12, 9, 0) },
+];
+const DEFINE_CHAMADAS = ['coordenador', 'equipe_tecnica', 'lider_diurno'];
+
+/**
  * A PRESENÇA DE DIAS ANTERIORES.
  *
  * As chamadas do mock são só as de HOJE — é o que a tela da chamada precisa. O
@@ -6780,6 +6803,62 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         (!estaInternado(p.id) && !estaComAFamilia(p.id)) || k.resultados[p.id]).length,
       conferidos: Object.keys(k.resultados).length,
     }));
+  }
+  /* As chamadas da casa (fase 211): palavra fixa antes de `/checks/:id`. */
+  if (rota === '/checks/models' && metodo === 'GET') {
+    return {
+      podeEditar: DEFINE_CHAMADAS.includes(eu.role),
+      modelos: CHAMADAS_DA_CASA.filter((m) => !m.encerrado)
+        .sort((a, b) => a.hora.localeCompare(b.hora) || a.titulo.localeCompare(b.titulo))
+        .map(({ encerrado: _e, substitui: _s, ...m }) => m),
+    };
+  }
+  if (rota === '/checks/models' && metodo === 'POST') {
+    if (!DEFINE_CHAMADAS.includes(eu.role)) {
+      return new Recusa(403, 'Quem define as chamadas da casa é a coordenação, a equipe técnica ou o Líder Diurno.');
+    }
+    const tipo = TIPOS_DE_CHAMADA.find((t) => t.cod === String(b.tipo ?? ''));
+    if (!tipo) {
+      return new Recusa(400, 'Escolha o tipo da chamada: ' + TIPOS_DE_CHAMADA.map((t) => t.label).join('; ') + '.');
+    }
+    const titulo = String(b.titulo ?? '').trim();
+    if (titulo.length < 3 || titulo.length > 60) {
+      return new Recusa(400, 'Dê um nome à chamada, entre 3 e 60 letras. É o nome que a equipe lê na tela.');
+    }
+    const hora = String(b.hora ?? '');
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(hora)) return new Recusa(400, 'O horário vem como HH:MM, por exemplo 07:30.');
+    let pessoas: number | null = null;
+    if (b.pessoas !== undefined && b.pessoas !== null && b.pessoas !== '') {
+      pessoas = Number(b.pessoas);
+      if (!Number.isInteger(pessoas) || pessoas < 1 || pessoas > 200) {
+        return new Recusa(400, 'Quantas pessoas: um número de 1 a 200, ou deixe em branco.');
+      }
+    }
+    const cor = String(b.cor ?? '');
+    if (!/^[a-z0-9-]{2,24}$/.test(cor)) return new Recusa(400, 'Escolha uma cor para a chamada.');
+    if (b.substitui) {
+      const antes = CHAMADAS_DA_CASA.find((m) => m.id === b.substitui);
+      if (!antes) return new Recusa(404, 'Chamada da casa não encontrada.');
+      if (antes.encerrado) return new Recusa(409, 'Esta chamada já tinha saído da lista da casa.');
+      antes.encerrado = true;
+    }
+    const novo: ModeloDeChamada = { id: uid(), tipo: tipo.cod, titulo, hora, pessoas, cor,
+      por: eu.fullName, desde: new Date().toISOString(), substitui: b.substitui ? String(b.substitui) : undefined };
+    CHAMADAS_DA_CASA = [...CHAMADAS_DA_CASA, novo];
+    return { id: novo.id, aviso: b.substitui ? 'Chamada da casa mudada.' : 'Chamada da casa criada.' };
+  }
+  {
+    const m = rota.match(/^\/checks\/models\/([^/]+)\/encerrar$/);
+    if (m && metodo === 'POST') {
+      if (!DEFINE_CHAMADAS.includes(eu.role)) {
+        return new Recusa(403, 'Quem define as chamadas da casa é a coordenação, a equipe técnica ou o Líder Diurno.');
+      }
+      const alvo = CHAMADAS_DA_CASA.find((x) => x.id === m[1]);
+      if (!alvo) return new Recusa(404, 'Chamada da casa não encontrada.');
+      if (alvo.encerrado) return new Recusa(409, 'Esta chamada já tinha saído da lista da casa.');
+      alvo.encerrado = true;
+      return { aviso: 'A chamada saiu da lista da casa. As que já foram feitas continuam no registro.' };
+    }
   }
   /* Palavra fixa antes de `/checks/:id`: dois segmentos dos dois lados. */
   if (rota === '/checks/kinds' && metodo === 'GET') {

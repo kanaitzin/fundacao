@@ -955,7 +955,7 @@ coordenação da casa, a Coordenação Geral, o Gestor Geral e a TI (`admin_tecn
 conversa com a assistente **não** é tabela: ela vive na tela de quem conversa, e o uso
 fica na auditoria (`assistente.conversa`, só metadado).
 
-## Inventário — 135 tabelas por partição
+## Inventário — 136 tabelas por partição
 
 | Partição | Tabelas |
 |---|---|
@@ -967,7 +967,7 @@ fica na auditoria (`assistente.conversa`, só metadado).
 | activities (8) | activity, activity_assignment, activity_acknowledgement, activity_execution, substitution_request, commitment, commitment_exception, activity_bulk |
 | nursing (11) | health_encounter, health_evolution, nursing_triage, health_summary_issue, education_support, education_evolution, education_concept, hospitalization, hospitalization_note, hospitalization_medication, hospitalization_companion |
 | reports (7) | followup, followup_source, report_document, report_delivery, export_log, life_milestone, followup_return |
-| checks (4) | collective_check, check_result, check_result_amendment, check_bulk |
+| checks (5) | collective_check, check_result, check_result_amendment, check_bulk, house_check_model |
 | notifications (5) | notification, escalation, escalation_level, push_subscription, notification_push |
 | archive (2) | archive_item, archive_attempt |
 | alignments (5) | team_meeting, team_agreement, agreement_change, meeting_agenda_item, house_statute |
@@ -1189,6 +1189,22 @@ e só a equipe da casa) e `app_desmarcar_da_foto`; quem lê o álbum da criança
 `memory_photo.thumb_key`/`thumb_mime` — a miniatura feita no aparelho (por volta de
 320 px), que a lista do álbum usa; a foto inteira abre no toque e vai à auditoria, a
 miniatura não.
+
+### `house_check_model`
+AS CHAMADAS DA CASA (fase 211, checks/1652). O pedido de 12/10: o café, o almoço,
+a janta e a ceia definidos uma vez, com o nome, o horário, quantas pessoas costumam
+estar e uma cor, para a Chamada mostrar o dia já montado.
+
+`house_check_model` — uma linha por chamada da casa: `house_id`, `kind` (o tipo do
+enum `check_type`), `title` (3 a 60 letras), `at_time`, `people_count` (1 a 200, ou
+em branco), `color` (o código de uma cor de `frontend/src/cores-da-casa.ts`), quem
+criou e quando, e o fim: `ended_at`/`ended_by`. **Mudar é encerrar e abrir outra**,
+com `replaces` apontando para a de antes; nunca se reescreve. A chamada feita guarda
+o nome que tinha no dia (`collective_check.title`), e o modelo de hoje não muda o
+passado. Quem grava são `app_salvar_modelo_de_chamada` e
+`app_encerrar_modelo_de_chamada`, só pela coordenação, a equipe técnica e o Líder
+Diurno (`app_define_chamadas_da_casa`); quem lê é a equipe da casa, pela política.
+A cor diz QUAL chamada é, e nunca se a chamada foi bem.
 
 ### `commitment_exception`
 Uma ocorrência desmarcada de um compromisso que continua valendo. Por DATA, com

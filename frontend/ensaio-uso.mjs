@@ -4051,6 +4051,53 @@ console.log('\n🕒 O dia, em ordem, com legenda e mais curto (fase 210)');
   await pgD.close();
 }
 
+console.log('\n🎨 As chamadas da casa, com horário, pessoas e cor (fase 211)');
+{
+  const pgC = await navegador.newPage({ viewport: { width: 1366, height: 900 } });
+  const errosC = [];
+  pgC.on('pageerror', (e) => errosC.push(e.message));
+  const esp = (ms = 800) => pgC.waitForTimeout(ms);
+  await pgC.goto(`file://${ARQUIVO}`); await esp(700);
+  await pgC.getByRole('button', { name: 'Marcelo Barbosa', exact: true }).click();
+  await pgC.getByRole('button', { name: /Entrar no sistema/i }).click(); await esp(1200);
+  /* A equipe técnica define as chamadas da casa, como a coordenação e o Líder Diurno. */
+  cargoAtual = 'equipe_tecnica';
+  await pgC.locator('select.troca-cargo-sel').selectOption('equipe_tecnica'); await esp(900);
+  await pgC.locator('nav.tabbar button', { hasText: 'Chamada' }).first().click(); await esp(1000);
+  const main = () => pgC.locator('main.conteudo').innerText();
+  let t = await main();
+  cobrar('a Chamada mostra as chamadas da casa com o horário e as pessoas',
+    /As chamadas da casa/.test(t) && /Ceia/.test(t) && /21:00 · 20 pessoas/.test(t), t.slice(0, 200));
+  cobrar('cada chamada da casa tem a barra da cor dela', await pgC.locator('.chamada-da-casa').count() >= 5);
+  await pgC.getByRole('button', { name: 'Nova chamada da casa' }).click(); await esp(500);
+  const folha = pgC.locator('.overlay');
+  await folha.getByRole('button', { name: 'Lazer ou atividade' }).click();
+  await folha.locator('#mc-titulo').fill('Roda de leitura');
+  await folha.locator('#mc-hora').fill('16:30');
+  await folha.locator('#mc-pessoas').fill('12');
+  cobrar('a paleta tem umas cinquenta cores, cada uma com o nome', await folha.locator('.amostra-da-casa').count() >= 45);
+  await folha.getByRole('button', { name: 'Jade', exact: true }).click();
+  cobrar('a cor escolhida aparece escrita', /Cor da chamada\s*:\s*Jade/.test(await folha.innerText()));
+  await folha.getByRole('button', { name: 'Criar a chamada' }).click(); await esp(900);
+  t = await main();
+  cobrar('a chamada criada entra na lista da casa, na ordem do horário',
+    /Roda de leitura/.test(t) && t.indexOf('Lanche da tarde') < t.indexOf('Roda de leitura')
+      && t.indexOf('Roda de leitura') < t.indexOf('Janta'), t.slice(0, 300));
+  await pgC.getByRole('button', { name: 'Mudar a chamada Roda de leitura' }).click(); await esp(500);
+  await folha.locator('#mc-hora').fill('17:00');
+  await folha.getByRole('button', { name: 'Guardar a mudança' }).click(); await esp(900);
+  cobrar('mudar o horário muda a chamada na lista', /Roda de leitura[\s\S]{0,40}17:00 · 12 pessoas/.test(await main()));
+  await pgC.getByRole('button', { name: 'Mudar a chamada Roda de leitura' }).click(); await esp(500);
+  await folha.getByRole('button', { name: /Tirar esta chamada/ }).click();
+  await folha.getByRole('button', { name: 'Tirar da lista' }).click(); await esp(900);
+  t = await main();
+  cobrar('tirar da lista tira, e diz que o que foi feito continua', !/Roda de leitura/.test(t) && /continuam no registro/.test(t));
+  await pgC.locator('.chamada-da-casa button.chamadacard', { hasText: 'Ceia' }).click(); await esp(1000);
+  cobrar('abrir a chamada da casa com um toque já mostra quem conferir', /Ceia/.test(await main()) && /Aberta por/.test(await main()));
+  cobrar('nenhuma exceção nas chamadas da casa', errosC.length === 0, errosC[0]);
+  await pgC.close();
+}
+
 await navegador.close();
 console.log(achados.length
   ? `\n${achados.length} ACHADO(S):\n  ${achados.join('\n  ')}`

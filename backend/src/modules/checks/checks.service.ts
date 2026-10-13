@@ -1,4 +1,6 @@
-import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException, ConflictException, ForbiddenException, Inject, Injectable, NotFoundException,
+} from '@nestjs/common';
 import { DatabaseService } from '../../kernel/database/database.service';
 import { AuditService } from '../../kernel/audit/audit.service';
 import { EventBus } from '../../kernel/events/event-bus.service';
@@ -507,6 +509,107 @@ export class ChecksService {
       if (e?.message?.includes('chamada_inexistente')) throw new NotFoundException('Chamada não encontrada');
       throw e;
     }
+  }
+
+  /**
+   * AS CHAMADAS DA CASA (fase 211, pedido de 12/10).
+   *
+   * O dia da casa já montado: o café, o almoço, a janta, a ceia, com o horário,
+   * quantas pessoas costumam estar e uma cor. Quem lê é toda a equipe da casa;
+   * quem define é a coordenação, a técnica e o Líder Diurno.
+   */
+  async modelos(user: AuthenticatedUser, houseId: string) {
+    return this.db.asUser(user.id, async (c) => {
+      const { rows } = await c.query(
+        `SELECT m.id, m.kind, m.title, to_char(m.at_time, 'HH24:MI') AS hora, m.people_count, m.color,
+                app_user_display_name(m.created_by) AS por, m.created_at
+           FROM house_check_model m
+          WHERE m.house_id = $1 AND m.ended_at IS NULL
+          ORDER BY m.at_time, m.title`, [houseId]);
+      const { rows: [p] } = await c.query(`SELECT app_define_chamadas_da_casa() AS pode`);
+      return {
+        podeEditar: p.pode === true,
+        modelos: rows.map((r) => ({
+          id: r.id, tipo: r.kind, titulo: r.title, hora: r.hora,
+          pessoas: r.people_count ?? null, cor: r.color, por: r.por, desde: r.created_at,
+        })),
+      };
+    });
+  }
+
+  private traduzModelo(e: any): never {
+    const m = String(e?.message ?? '');
+    if (m.includes('sem_permissao_modelo')) {
+      throw new ForbiddenException('Quem define as chamadas da casa é a coordenação, a equipe técnica ou o Líder Diurno.');
+    }
+    if (m.includes('casa_fora_de_escopo') || m.includes('modelo_inexistente')) {
+      throw new NotFoundException('Chamada da casa não encontrada.');
+    }
+    if (m.includes('modelo_ja_encerrado')) {
+      throw new ConflictException('Esta chamada já tinha saído da lista da casa.');
+    }
+    throw e;
+  }
+
+  /** Criar uma chamada da casa, ou mudar uma (com `substitui`): a de antes encerra. */
+  async salvarModelo(user: AuthenticatedUser, input: {
+    houseId?: string; substitui?: string; tipo?: string; titulo?: string; hora?: string;
+    pessoas?: number | string | null; cor?: string;
+  }) {
+    const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (typeof input?.houseId !== 'string' || !uuid.test(input.houseId)) {
+      throw new BadRequestException('Diga de qual casa é a chamada.');
+    }
+    if (input.substitui != null && (typeof input.substitui !== 'string' || !uuid.test(input.substitui))) {
+      throw new BadRequestException('A chamada que está sendo mudada não foi reconhecida.');
+    }
+    const tipo = TIPOS_DE_CHAMADA.find((t) => t.cod === input.tipo);
+    if (!tipo) {
+      throw new BadRequestException(
+        `Escolha o tipo da chamada: ${TIPOS_DE_CHAMADA.map((t) => t.label).join('; ')}.`);
+    }
+    const titulo = typeof input.titulo === 'string' ? input.titulo.trim() : '';
+    if (titulo.length < 3 || titulo.length > 60) {
+      throw new BadRequestException('Dê um nome à chamada, entre 3 e 60 letras. É o nome que a equipe lê na tela.');
+    }
+    const hora = typeof input.hora === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(input.hora) ? input.hora : null;
+    if (!hora) throw new BadRequestException('O horário vem como HH:MM, por exemplo 07:30.');
+    let pessoas: number | null = null;
+    if (input.pessoas !== undefined && input.pessoas !== null && input.pessoas !== '') {
+      pessoas = Number(input.pessoas);
+      if (!Number.isInteger(pessoas) || pessoas < 1 || pessoas > 200) {
+        throw new BadRequestException('Quantas pessoas: um número de 1 a 200, ou deixe em branco.');
+      }
+    }
+    const cor = typeof input.cor === 'string' && /^[a-z0-9-]{2,24}$/.test(input.cor) ? input.cor : null;
+    if (!cor) throw new BadRequestException('Escolha uma cor para a chamada.');
+
+    const id = await this.db.asUser(user.id, async (c) => {
+      const { rows: [r] } = await c.query(
+        `SELECT app_salvar_modelo_de_chamada($1, $2, $3, $4, $5::time, $6, $7) AS id`,
+        [input.houseId, input.substitui ?? null, tipo.cod, titulo, hora, pessoas, cor]);
+      return r.id as string;
+    }).catch((e) => this.traduzModelo(e));
+    await this.audit.log({
+      action: input.substitui ? 'check.model.change' : 'check.model.create',
+      actorId: user.id, houseId: input.houseId,
+      entity: 'house_check_model', entityId: id,
+      detail: { tipo: tipo.cod, hora, substitui: input.substitui ?? null },
+    });
+    return { id, aviso: input.substitui ? 'Chamada da casa mudada.' : 'Chamada da casa criada.' };
+  }
+
+  /** Tirar uma chamada da lista da casa. As chamadas feitas continuam como foram. */
+  async encerrarModelo(user: AuthenticatedUser, id: string) {
+    const casa = await this.db.asUser(user.id, async (c) => {
+      const { rows: [r] } = await c.query(`SELECT app_encerrar_modelo_de_chamada($1) AS casa`, [id]);
+      return r.casa as string;
+    }).catch((e) => this.traduzModelo(e));
+    await this.audit.log({
+      action: 'check.model.end', actorId: user.id, houseId: casa,
+      entity: 'house_check_model', entityId: id, detail: {},
+    });
+    return { aviso: 'A chamada saiu da lista da casa. As que já foram feitas continuam no registro.' };
   }
 
   async listDay(user: AuthenticatedUser, houseId: string, date: string) {

@@ -387,6 +387,17 @@ describe('o modo guia atende como colega de plantão', () => {
     }
   });
 
+  it('as chamadas da casa se pedem pela Chamada, e criar abre o formulário (fase 211)', () => {
+    for (const f of ['mudar o horario da chamada da janta', 'quero trocar a cor da chamada do almoco',
+                     'onde ficam as chamadas da casa']) {
+      const x = r(f);
+      expect(x.ir === 'chamada' || /\(tela:chamada\)/.test(x.texto)).toBe(true);
+    }
+    const criar = r('criar uma chamada da casa para a ceia');
+    expect(criar.ir).toBe('chamada');
+    expect(criar.abrirFormulario).toBe(true);
+  });
+
   it('não promete formulário antes de abrir: "registrar saída da visita" na portaria (fase 203)', () => {
     const portaria = [{ chave: 'portaria', titulo: 'Portaria' }];
     const x = responderPeloGuia('registrar saída da visita', portaria, false);

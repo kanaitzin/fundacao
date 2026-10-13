@@ -34,7 +34,7 @@ const sem = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCas
 /** As palavras que a equipe usa para cada tela, além do nome dela. */
 const PALAVRAS: Record<string, string[]> = {
   dia: ['dia', 'hoje', 'linha do dia', 'o que tem hoje', 'o que mudou', 'ultimo plantao', 'resumo do dia'],
-  chamada: ['chamada', 'presenca', 'quem esta na casa', 'quem esta fora'],
+  chamada: ['chamada', 'presenca', 'quem esta na casa', 'quem esta fora', 'chamadas da casa', 'cor da chamada', 'horario da chamada'],
   acolhidos: ['acolhido', 'crianca', 'perfil', 'dossie', 'documento da crianca', 'adolescente'],
   passagem: ['passagem', 'assinar a passagem', 'passar o plantao', 'passou o plantao', 'assinou o plantao', 'assinar o plantao'],
   /* "Quem não passou o plantão" é a pergunta do líder que vai fechar a ATA: é nela que a falta aparece com nome (fase 205). */

@@ -63,7 +63,7 @@ Anotar sugestões de melhoria: quando a pessoa reclamar, pedir algo que o sistem
 # As telas do sistema (o nome, a chave entre parênteses e o que ela faz)
 - Painel (metricas): a tela inicial do Gestor Geral, com os números das casas, sem ranking.
 - Dia (dia): a linha do dia da casa (atividades, doses, compromissos), o cartão do que mudou desde o último plantão, o que espera alguém.
-- Chamada (chamada): quem está na casa em cada turno, quem está fora e por quê.
+- Chamada (chamada): as chamadas da casa já montadas (café, almoço, janta, ceia e o que mais a casa fizer), cada uma com horário, quantas pessoas e uma cor, abertas com um toque; quem define é a coordenação, a técnica ou o Líder Diurno. Em cada chamada, quem está na casa e quem está fora e por quê.
 - Acolhidos (acolhidos): o perfil de cada criança. No alto, sempre, a alergia, a restrição, os cuidados e o remédio de hoje; embaixo, as abas coloridas: Hoje (compromissos e presença), Família e visitas (contatos, visitas com o relatório, saídas, convivência familiar), Saúde, Educação, Judiciário (como chegou, área restrita, ofícios), Vida na casa (aniversário, conquistas, memórias, fotos no dossiê), Atendimentos (tudo o que a casa registrou sobre a criança, dia por dia) e Cadastro (documentos, correções, quem mexeu). A busca no topo encontra pelo nome. No perfil, em Sair sem acompanhante, o educador, o líder, a técnica e a coordenação decidem se a criança pode sair sem acompanhante, com o motivo, e quem perde a autorização por um tempo tem o prazo escrito.
 - Passagem (passagem): a passagem do plantão, assinada por cada um, e o complemento do que se lembrou depois. Embaixo, o calendário dos plantões do mês: cada dia com o turno do dia e o da noite pintados pela situação, e tocar no turno abre aquele plantão, com a ATA para ler e baixar.
 - ATA (ata): a ATA do plantão (diurno 08:00 às 20:00, noturno 20:01 às 07:59, horário que cada casa pode ajustar), as linhas da equipe e a ATA Geral. ATA fechada não se reescreve: corrige-se por adendo. Na aba Arquivo, o calendário mostra o mês inteiro, desde que a casa começou a usar o sistema, com os números do mês, e a lista dos últimos 30 dias, de um dia, da semana ou do mês.
@@ -142,6 +142,7 @@ Ninguém no sistema é anônimo e nada se apaga: tudo tem autor e histórico.
 - /checks?houseId=&date=  a chamada do dia
 - /checks/ID  uma chamada
 - /checks/kinds  tipos de chamada
+- /checks/models?houseId=  as chamadas da casa: nome, horário, quantas pessoas e cor
 - /checks/person/ID?dias=  presença de uma criança
 - /medications?houseId=  doses do dia (pode &personId=)
 - /medications/prescriptions?houseId=  prescrições

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api, apiOuFila } from '../api';
 import { Icone } from '../icones';
+import { CORES_DA_CASA, corDaCasa } from '../cores-da-casa';
 
 /**
  * CHAMADA COLETIVA (§10).
@@ -73,6 +74,12 @@ interface Resumo {
 /** O vocabulário vem do servidor: `kind` é um enum do banco (§10). */
 interface TipoDeChamada { cod: string; label: string; sugestao: string }
 interface Vocabulario { tipos: TipoDeChamada[]; aviso: string }
+/** Uma chamada da casa (fase 211): o dia montado, com nome, horário, pessoas e cor. */
+interface Modelo {
+  id: string; tipo: string; titulo: string; hora: string; pessoas: number | null; cor: string;
+  por: string | null; desde: string;
+}
+interface Modelos { podeEditar: boolean; modelos: Modelo[] }
 
 const hhmm = (iso: string) => new Date(iso).toLocaleTimeString('pt-BR',
   { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' });
@@ -91,6 +98,9 @@ export function Chamada({ houseId }: { houseId: string }) {
   const [conferindoMesa, setConferindoMesa] = useState(false);
   /** Filtro por nome: no fim da chamada sobra uma criança, e achá-la custa rolagem. */
   const [busca, setBusca] = useState('');
+  /** As chamadas da casa (fase 211), e a que está sendo criada ou mudada. */
+  const [modelos, setModelos] = useState<Modelos | null>(null);
+  const [editando, setEditando] = useState<Modelo | 'nova' | null>(null);
 
   const carregarLista = useCallback(async () => {
     setErro('');
@@ -99,6 +109,24 @@ export function Chamada({ houseId }: { houseId: string }) {
   }, [houseId]);
 
   useEffect(() => { carregarLista(); }, [carregarLista]);
+  const carregarModelos = useCallback(async () => {
+    try { setModelos(await api<Modelos>(`/checks/models?houseId=${houseId}`)); }
+    catch { setModelos(null); }
+  }, [houseId]);
+  useEffect(() => { carregarModelos(); }, [carregarModelos]);
+
+  /** Abrir a chamada da casa: com o tipo e o nome dela, e a pessoa já confere. */
+  async function abrirDaCasa(m: Modelo) {
+    setErro(''); setAviso('');
+    try {
+      const r = await api<{ id: string }>('/checks', {
+        method: 'POST', body: JSON.stringify({ houseId, kind: m.tipo, titulo: m.titulo }) });
+      await carregarLista();
+      await abrir(r.id);
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Não foi possível abrir a chamada.');
+    }
+  }
   useEffect(() => {
     // Falhar aqui não pode travar a chamada em andamento: sem o vocabulário,
     // some o botão de abrir e o resto da tela continua servindo o turno.
@@ -213,10 +241,85 @@ export function Chamada({ houseId }: { houseId: string }) {
           * servidor — e não havia por onde. Na casa, isso significava uma tela
           * que dizia "nenhuma chamada aberta hoje" para sempre.
           */}
+        {/*
+          * AS CHAMADAS DA CASA (fase 211). O dia já montado: cada chamada com o
+          * horário, quantas pessoas costumam estar e a cor que a casa escolheu.
+          * A cor diz QUAL chamada é, na barra e no ponto, e nunca numa pílula; o
+          * que diz se ela já foi feita é a pílula de estado, como sempre.
+          */}
+        {modelos && (modelos.modelos.length > 0 || modelos.podeEditar) && (
+          <section className="chamadas-da-casa" aria-labelledby="t-da-casa">
+            <h3 id="t-da-casa">As chamadas da casa</h3>
+            {modelos.modelos.length === 0 && (
+              <p className="mutetxt">
+                A casa ainda não montou as chamadas do dia. Crie o café, o almoço, a janta e o que
+                mais a casa fizer, com o horário e uma cor, e a equipe abre cada uma com um toque.
+              </p>
+            )}
+            <div className="stack">
+              {modelos.modelos.map((m) => {
+                const feita = lista.find((c) => c.tipo === m.tipo && c.titulo === m.titulo);
+                const cor = corDaCasa(m.cor);
+                return (
+                  <div key={m.id} className="chamada-da-casa" style={{ ['--cor-da-casa' as string]: cor.hex }}>
+                    <button className="card row chamadacard grow" disabled={ocupado === m.id}
+                            onClick={async () => {
+                              if (feita) { await abrir(feita.id); return; }
+                              setOcupado(m.id);
+                              try { await abrirDaCasa(m); } finally { setOcupado(null); }
+                            }}>
+                      <div className="grow" style={{ textAlign: 'left' }}>
+                        <b className="ff"><span className="ponto-da-casa" aria-hidden="true" /> {m.titulo}</b>
+                        <div className="mutetxt">
+                          {m.hora}{m.pessoas ? ` · ${m.pessoas} pessoas` : ''}
+                          {feita ? ` · ${feita.conferidos} de ${feita.esperados}` : ''}
+                        </div>
+                      </div>
+                      {feita
+                        ? <span className={`pill ${feita.status === 'confirmada' ? 'c-ok' : 'c-warn'}`}>
+                            {feita.status === 'confirmada' ? 'Confirmada' : 'Aberta'}
+                          </span>
+                        : <span className="pill c-mute">Abrir</span>}
+                    </button>
+                    {modelos.podeEditar && (
+                      <button className="btn sm sec" onClick={() => setEditando(m)}
+                              aria-label={`Mudar a chamada ${m.titulo}`}>Mudar</button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            {modelos.podeEditar && (
+              <button data-acolhe-abre="" className="btn sec block" style={{ marginTop: 10 }}
+                      onClick={() => setEditando('nova')}>
+                Nova chamada da casa
+              </button>
+            )}
+          </section>
+        )}
+
+        {editando && tipos && (
+          <FolhaDoModelo
+            tipos={tipos.tipos}
+            modelo={editando === 'nova' ? null : editando}
+            onFechar={() => setEditando(null)}
+            onSalvar={async (corpo) => {
+              const r = await api<{ aviso: string }>('/checks/models', {
+                method: 'POST', body: JSON.stringify({ houseId, ...corpo }) });
+              setEditando(null); setAviso(r.aviso);
+              await carregarModelos();
+            }}
+            onTirar={async (id) => {
+              const r = await api<{ aviso: string }>(`/checks/models/${id}/encerrar`, { method: 'POST' });
+              setEditando(null); setAviso(r.aviso);
+              await carregarModelos();
+            }} />
+        )}
+
         {tipos && (
-          <button data-acolhe-abre="" className="btn block" style={{ marginBottom: 12 }}
+          <button data-acolhe-abre="" className="btn block" style={{ margin: '12px 0' }}
                   onClick={() => setAbrindo(true)}>
-            <Icone nome="conferido" /> Abrir uma chamada
+            <Icone nome="conferido" /> Abrir outra chamada
           </button>
         )}
 
@@ -239,8 +342,11 @@ export function Chamada({ houseId }: { houseId: string }) {
             }} />
         )}
 
+        {modelos && modelos.modelos.length > 0 && outras(lista, modelos.modelos).length > 0 && (
+          <h3>Outras chamadas de hoje</h3>
+        )}
         <div className="stack">
-          {lista.map((c) => (
+          {(modelos ? outras(lista, modelos.modelos) : lista).map((c) => (
             <button key={c.id} className="card row chamadacard" onClick={() => abrir(c.id)}>
               <div className="grow" style={{ textAlign: 'left' }}>
                 <b className="ff">{c.titulo}</b>
@@ -251,7 +357,7 @@ export function Chamada({ houseId }: { houseId: string }) {
               </span>
             </button>
           ))}
-          {lista.length === 0 && (
+          {lista.length === 0 && !(modelos && modelos.modelos.length > 0) && (
             <div className="card">
               <p className="mutetxt" style={{ margin: 0 }}>
                 Nenhuma chamada aberta hoje. Abra a do café, do almoço, da escola, da janta
@@ -613,6 +719,132 @@ function FolhaAbrir({ tipos, aviso, onFechar, onAbrir }: {
             Abrir e conferir agora
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+/** As chamadas de hoje que não são de nenhuma chamada da casa. */
+function outras(lista: Resumo[], modelos: Modelo[]) {
+  return lista.filter((c) => !modelos.some((m) => m.tipo === c.tipo && m.titulo === c.titulo));
+}
+
+/**
+ * CRIAR OU MUDAR UMA CHAMADA DA CASA (fase 211).
+ *
+ * Mudar não reescreve: a chamada de antes sai da lista e a nova entra, e as
+ * chamadas já feitas guardam o nome que tinham no dia. A paleta tem as cores
+ * de `cores-da-casa.ts`, cada uma com o nome escrito para quem não distingue a cor.
+ */
+function FolhaDoModelo({ tipos, modelo, onFechar, onSalvar, onTirar }: {
+  tipos: TipoDeChamada[]; modelo: Modelo | null;
+  onFechar: () => void;
+  onSalvar: (corpo: { substitui?: string; tipo: string; titulo: string; hora: string;
+                      pessoas: number | null; cor: string }) => Promise<void>;
+  onTirar: (id: string) => Promise<void>;
+}) {
+  const [tipo, setTipo] = useState(modelo?.tipo ?? '');
+  const [titulo, setTitulo] = useState(modelo?.titulo ?? '');
+  const [hora, setHora] = useState(modelo?.hora ?? '');
+  const [pessoas, setPessoas] = useState(modelo?.pessoas ? String(modelo.pessoas) : '');
+  const [cor, setCor] = useState(modelo?.cor ?? '');
+  const [erro, setErro] = useState('');
+  const [ocupado, setOcupado] = useState(false);
+  const [tirando, setTirando] = useState(false);
+  const pode = tipo !== '' && titulo.trim().length >= 3 && /^\d{2}:\d{2}$/.test(hora) && cor !== '' && !ocupado;
+  const escolhida = cor ? corDaCasa(cor) : null;
+
+  async function salvar() {
+    setErro(''); setOcupado(true);
+    try {
+      await onSalvar({ substitui: modelo?.id, tipo, titulo: titulo.trim(), hora,
+                       pessoas: pessoas.trim() ? Number(pessoas) : null, cor });
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Não foi possível guardar a chamada da casa.');
+    } finally { setOcupado(false); }
+  }
+  async function tirar() {
+    if (!modelo) return;
+    setErro(''); setOcupado(true);
+    try { await onTirar(modelo.id); }
+    catch (e) { setErro(e instanceof Error ? e.message : 'Não foi possível tirar a chamada da lista.'); }
+    finally { setOcupado(false); }
+  }
+
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-modelo"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet modal">
+        <h3 id="t-modelo">{modelo ? `Mudar a chamada ${modelo.titulo}` : 'Nova chamada da casa'}</h3>
+        {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+        {modelo && (
+          <p className="mutetxt">
+            As chamadas já feitas continuam com o nome e o horário que tinham no dia.
+          </p>
+        )}
+
+        <label className="f">O que está sendo conferido</label>
+        <div className="opts">
+          {tipos.map((t) => (
+            <button type="button" key={t.cod} className="opt c-info" aria-pressed={tipo === t.cod}
+                    onClick={() => { setTipo(t.cod); if (!titulo.trim()) setTitulo(t.sugestao); }}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        <label className="f" htmlFor="mc-titulo">Nome da chamada</label>
+        <input id="mc-titulo" className="field" value={titulo} maxLength={60} data-sem-ditado=""
+               onChange={(e) => setTitulo(e.target.value)} placeholder="Ex.: Ceia" />
+
+        <div className="row" style={{ gap: 12 }}>
+          <div className="grow">
+            <label className="f" htmlFor="mc-hora">Horário</label>
+            <input id="mc-hora" className="field" type="time" value={hora}
+                   onChange={(e) => setHora(e.target.value)} />
+          </div>
+          <div className="grow">
+            <label className="f" htmlFor="mc-pessoas">Quantas pessoas costumam estar</label>
+            <input id="mc-pessoas" className="field" type="number" inputMode="numeric" min={1} max={200}
+                   value={pessoas} onChange={(e) => setPessoas(e.target.value)} placeholder="Ex.: 22" />
+          </div>
+        </div>
+
+        <label className="f" id="mc-cor">
+          Cor da chamada{escolhida && <small>: {escolhida.nome}</small>}
+        </label>
+        <div className="paleta-da-casa" role="group" aria-labelledby="mc-cor">
+          {CORES_DA_CASA.map((c) => (
+            <button type="button" key={c.codigo} className="amostra-da-casa"
+                    style={{ ['--cor-da-casa' as string]: c.hex }}
+                    aria-pressed={cor === c.codigo} aria-label={c.nome} title={c.nome}
+                    onClick={() => setCor(c.codigo)} />
+          ))}
+        </div>
+        <p className="mutetxt">A cor só diz qual é a chamada. Se ela foi feita, quem diz é a etiqueta ao lado.</p>
+
+        <div className="row rodape">
+          <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
+          <button className="btn grow" disabled={!pode} onClick={salvar}>
+            {modelo ? 'Guardar a mudança' : 'Criar a chamada'}
+          </button>
+        </div>
+        {modelo && !tirando && (
+          <button className="btn sec block" style={{ marginTop: 10 }} onClick={() => setTirando(true)}>
+            Tirar esta chamada da lista da casa
+          </button>
+        )}
+        {modelo && tirando && (
+          <div className="notice c-warn" style={{ marginTop: 10 }}>
+            <p style={{ marginTop: 0 }}>
+              A chamada {modelo.titulo} sai da lista da casa. As que já foram feitas continuam no registro.
+            </p>
+            <div className="row" style={{ gap: 8 }}>
+              <button className="btn sec grow" onClick={() => setTirando(false)}>Manter</button>
+              <button className="btn grow" disabled={ocupado} onClick={tirar}>Tirar da lista</button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

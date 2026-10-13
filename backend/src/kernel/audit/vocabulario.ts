@@ -129,6 +129,9 @@ export const VOCABULARIO_DA_AUDITORIA: Record<string, string> = {
   'check.bulk': 'Conferência de mesa registrada',
   'check.amend': 'Registro de chamada corrigido',
   'check.confirm': 'Chamada confirmada',
+  'check.model.create': 'Chamada da casa criada',
+  'check.model.change': 'Chamada da casa mudada',
+  'check.model.end': 'Chamada da casa tirada da lista',
 
   // ----------------------------------------------------------------- Atividades
   'activity.generate_day': 'Atividades do dia geradas a partir da rotina',

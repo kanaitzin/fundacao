@@ -30,6 +30,25 @@ export class ChecksController {
   kinds() { return this.checks.tipos(); }
 
   /**
+   * AS CHAMADAS DA CASA (fase 211): o dia já montado, com nome, horário,
+   * pessoas e cor. Palavra fixa, antes de `:id`.
+   */
+  @Get('models')
+  modelos(@CurrentUser() user: AuthenticatedUser, @Query('houseId', ParseUUIDPipe) houseId: string) {
+    return this.checks.modelos(user, houseId);
+  }
+
+  @Post('models')
+  salvarModelo(@CurrentUser() user: AuthenticatedUser, @Body() body: any) {
+    return this.checks.salvarModelo(user, body);
+  }
+
+  @Post('models/:id/encerrar')
+  encerrarModelo(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.checks.encerrarModelo(user, id);
+  }
+
+  /**
    * A PRESENÇA DE UMA CRIANÇA — palavra fixa, e vem ANTES de `:id`.
    *
    * A chamada é coletiva, e o registro de cada criança ficava dentro dela: só

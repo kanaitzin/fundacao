@@ -181,7 +181,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 13/10/2026, fase 210
+### Onde estamos — 13/10/2026, fase 211
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -255,8 +255,9 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 208 | **o perfil em abas coloridas** (pedido de 12/10): o que protege a criança no alto, e oito abas (Hoje, Família e visitas, Saúde, Educação, Judiciário, Vida na casa, Atendimentos dia por dia, Cadastro); a cor da aba nunca vira pílula; a Acolhe+AI escolhe a aba pelo assunto; o `ensaio:uso` percorre as abas |
 | 209 | **quem aparece na foto, e a foto pequena** (pedido de 12/10): o reconhecimento de rosto **não entrou** (biométrico de criança, DPO); a equipe marca quem aparece e a foto entra no álbum de cada criança marcada (`memory_photo_person`, people/1651), desmarcar com motivo; a miniatura feita no aparelho para a lista do álbum, a inteira no toque; estimativa de 22 GB em dez anos para as oito casas (§12.2) |
 | 210 | **o dia, em ordem, com cor e mais curto** (pedido de 12/10): uma linha por evento com a cor e o desenho da categoria (`categorias-do-dia.ts`, as mesmas do Dia), *da casa toda* ou o nome da criança, legenda em cima, o dia em quatro partes e *Só o que ainda precisa de alguém* |
+| 211 | **as chamadas da casa** (pedido de 12/10): nome, horário, quantas pessoas e uma cor de 48 (`frontend/src/cores-da-casa.ts`), um toque abre a chamada; coordenação, técnica e Líder Diurno definem; mudar encerra e abre outra (`house_check_model`, checks/1652); a cor só na barra e no ponto |
 
-**Medido no fim da 210:** 191 migrações, 135 tabelas, 140 suítes, 1263 testes, verdes nas
+**Medido no fim da 211:** 192 migrações, 136 tabelas, 141 suítes, 1269 testes, verdes nas
 DUAS condições de relógio; os dez ensaios de navegador verdes (o `ensaio:acolhe` com todas as telas de todos os cargos por texto e por voz e os 36 formulários do sistema abertos por ela, inclusive dentro do perfil, do dossiê, da internação, do acervo e do plantão, e o do celular com 306 telas e nenhum achado), com a portaria e o
 portão, o armário, a cozinha, os temas e a foto no percurso do `ensaio:uso`; **1256 telas (157 × oito
 temas) sem violação de WCAG 2.1 AA**; nenhuma
@@ -319,14 +320,18 @@ as três cores abaixo. Cor nova passa pelo `ensaio:acessibilidade`, que mede os 
 | **estado** | *isto ainda precisa de alguém?* | pílula clara, letra colorida |
 | **autor** | *qual colega escreveu?* | borda da linha; a coordenação escolhe (0990) |
 | **cargo** | *de que setor é esta pessoa?* | círculo cheio com iniciais |
+| **casa** (211) | *qual é esta chamada?* | barra e ponto do cartão da chamada; a casa escolhe (`cores-da-casa.ts`) |
 
 ### A próxima etapa
 
+**FEITO — fase 211** (§2, PARA-A-REUNIAO §4.23): as chamadas da casa com nome, horário,
+pessoas e cor. **A cor da casa é a quarta cor do sistema** e mora em `cores-da-casa.ts`:
+nunca pílula, nunca fundo. **Próxima: 212**, a varredura dos traços de raciocínio nas
+frases das telas (medir pelo texto que a tela MOSTRA, abrindo as telas, e não pelo código,
+onde o travessão dos comentários soma mais de mil).
+
 **FEITO — fases 209 e 210** (§2, PARA-A-REUNIAO §4.22): as fotos com quem aparece e a
-miniatura, e o *O dia, em ordem* com cor, legenda e mais curto. **Próxima: 211**, as
-chamadas da casa editáveis com cor (a migração e a paleta de 48 cores já estão rascunhadas
-fora do repositório: escrever de novo a partir daqui é mais seguro do que procurar), e
-**212**, a varredura dos traços de raciocínio nas frases das telas.
+miniatura, e o *O dia, em ordem* com cor, legenda e mais curto.
 
 **FEITO — fase 208** (§2, PARA-A-REUNIAO §4.21): o perfil em abas coloridas. **Quem
 escreve ensaio sobre o perfil** usa o `conteudo()` e o `clicar()` do `ensaio:uso`, que

@@ -49,7 +49,7 @@
   196 também dentro do perfil da criança (*quero registrar a alergia do Bruno*), do dossiê, da
   internação aberta e do acervo: os 36 formulários do sistema. **Para o DPO:**
   o ditado usa o reconhecimento do navegador; no Chrome, o áudio vai ao Google.
-- **210 fases.** 140 suítes e 1263 testes, verdes em duas condições de relógio —
+- **211 fases.** 141 suítes e 1269 testes, verdes em duas condições de relógio —
   antes e depois da virada do UTC, que em Porto Alegre é às 21h.
 - **O aviso no celular** (fase 189, decidido em 06/10): quem liga na Minha conta
   recebe no celular todos os avisos do sino, mesmo com o sistema fechado. Na
@@ -535,6 +535,14 @@ quem aparece. Se a Fundação quiser mesmo o reconhecimento, a conversa começa 
 
 E o espaço: oito casas em dez anos dão uns 22 GB de fotos (§12.2 do documento). Cabe em
 disco comum; o que precisa de atenção é o backup, que leva as fotos junto.
+
+## 4.23 As chamadas da casa (fase 211, pedido de 12/10)
+
+Cada casa monta as suas chamadas uma vez (nome, horário, quantas pessoas e a cor, numa
+paleta de 48), e a equipe abre cada uma com um toque. **Quem define, escolhi eu:** a
+coordenação, a equipe técnica e o Líder Diurno, as mesmas pessoas que definem o horário
+dos turnos. Se a Fundação quiser que o educador também mude, ou só a coordenação, é uma
+linha. E a cor diz só qual é a chamada: se ela foi feita quem diz é a etiqueta de sempre.
 
 ## 5. As decisões que são do Marcelo *(§10 — responda pelo número)*
 
