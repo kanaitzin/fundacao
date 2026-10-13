@@ -955,12 +955,12 @@ coordenação da casa, a Coordenação Geral, o Gestor Geral e a TI (`admin_tecn
 conversa com a assistente **não** é tabela: ela vive na tela de quem conversa, e o uso
 fica na auditoria (`assistente.conversa`, só metadado).
 
-## Inventário — 134 tabelas por partição
+## Inventário — 135 tabelas por partição
 
 | Partição | Tabelas |
 |---|---|
 | identity (17) | institution, house, app_user, user_house_assignment, work_schedule, shift_assignment, user_session, login_attempt, audit_event, institutional_device, staff_role_grant, house_capacity_change, user_invite, house_shift_hours, app_user_role_period, shift_draft, shift_draft_item |
-| people (32) | person, care_episode, house_stay, profile_detail, health_condition, food_restriction, document, document_version, benefit_record, memory_record, memory_photo, transfer_request, transfer_message, admission_record, judicial_record, person_credential, person_correction, profile_detail_change, person_contact, family_stay, family_stay_note, outing_permission, kitchen_request, house_field_permission, birthday_ack, contact_visit_change, visit, visit_correction, kitchen_request_change, pia_aviso, document_due_notice, child_outing |
+| people (33) | person, care_episode, house_stay, profile_detail, health_condition, food_restriction, document, document_version, benefit_record, memory_record, memory_photo, transfer_request, transfer_message, admission_record, judicial_record, person_credential, person_correction, profile_detail_change, person_contact, family_stay, family_stay_note, outing_permission, kitchen_request, house_field_permission, birthday_ack, contact_visit_change, visit, visit_correction, kitchen_request_change, pia_aviso, document_due_notice, child_outing, memory_photo_person |
 | shifts (14) | shift, handover, handover_receipt, handover_note, ata, ata_note, ata_addendum, ata_episode, ata_episode_ack, general_night_ata, general_night_house_entry, general_night_house_amendment, ata_read_request, shift_fim_aviso |
 | incidents (7) | incident, incident_person, incident_protected, incident_restraint, incident_synthesis, external_communication, incident_attachment |
 | medications (13) | prescription, medication_schedule, medication_administration, medication_stock, medication_stock_movement, medication_protocol, medication_authorization, medication_protocol_change, prescription_restriction_change, medication_purchase, medication_purchase_item, prescription_document, family_stay_medication |
@@ -1171,6 +1171,24 @@ o nome de quem vai junto. O portão lê pela `app_portaria_acolhidos`, que devol
 que vale, quem decidiu e desde quando, **e nunca o motivo**. Na mesma migração, a
 `app_definir_saida_sozinho` passa a aceitar a decisão do educador, do líder, da
 equipe técnica e da coordenação (pedido de 12/10).
+
+### `memory_photo_person` (e a miniatura em `memory_photo`)
+QUEM APARECE NA FOTO (fase 209, people/1651). O pedido de 12/10 foi reconhecer o
+rosto da criança nas fotos; não entrou, porque é dado biométrico de criança, e o
+que entrou é a pessoa marcar quem aparece.
+
+`memory_photo_person` — uma linha por criança marcada numa foto: `photo_id`,
+`person_id`, `house_id` (a casa da criança marcada, copiada para a política),
+`image_authorized` (a autorização de imagem é de cada criança que aparece),
+`tagged_by`/`tagged_at`, e a retirada: `removed_at`/`removed_by`/`removed_reason`
+(motivo obrigatório). Índice único parcial por (`photo_id`, `person_id`) enquanto a
+marca vale. Quem grava são `app_marcar_na_foto` (só criança da MESMA casa da foto,
+e só a equipe da casa) e `app_desmarcar_da_foto`; quem lê o álbum da criança marcada
+é `app_fotos_em_que_aparece`.
+
+`memory_photo.thumb_key`/`thumb_mime` — a miniatura feita no aparelho (por volta de
+320 px), que a lista do álbum usa; a foto inteira abre no toque e vai à auditoria, a
+miniatura não.
 
 ### `commitment_exception`
 Uma ocorrência desmarcada de um compromisso que continua valendo. Por DATA, com

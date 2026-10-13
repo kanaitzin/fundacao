@@ -980,6 +980,7 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
         * API sabia preencher.
         */}
       {aba === 'vida' && <VidaNaCasa perfil={p} />}
+      {aba === 'vida' && <FotosEmQueAparece personId={p.id} nome={p.nome} />}
       {aba === 'vida' && <Conquistas perfil={p} papel={papel} />}
 
       {/*
@@ -1870,6 +1871,71 @@ function VidaNaCasa({ perfil }: { perfil: Perfil }) {
       <p className="mutetxt" style={{ margin: 0 }}>
         As fotos e as memórias de {perfil.nome} ficam no dossiê e vivências, logo abaixo.
       </p>
+    </Secao>
+  );
+}
+
+/*
+ * AS FOTOS EM QUE ELA APARECE (fase 209): fotos de vivências de outras crianças
+ * da casa em que alguém da equipe a marcou. A miniatura na lista, a inteira no
+ * toque. Nenhum rosto é reconhecido pela máquina.
+ */
+interface FotoEmQueAparece {
+  marcaId: string; fotoId: string; vivenciaId: string; donoId: string; descricao: string;
+  quando: string; autorizacaoRegistrada: boolean; marcadaPor: string | null;
+}
+function FotosEmQueAparece({ personId, nome }: { personId: string; nome: string }) {
+  const [fotos, setFotos] = useState<FotoEmQueAparece[]>([]);
+  const [srcs, setSrcs] = useState<Record<string, string>>({});
+  const [aberta, setAberta] = useState<{ f: FotoEmQueAparece; src: string } | null>(null);
+  useEffect(() => {
+    let vivo = true;
+    api<FotoEmQueAparece[]>(`/people/${personId}/aparece-em`).then(async (l) => {
+      if (!vivo) return;
+      setFotos(l);
+      for (const f of l) {
+        try {
+          const a = await api<{ tipo: string; conteudo: string }>(
+            `/people/${f.donoId}/memories/${f.vivenciaId}/photos/${f.fotoId}/miniatura`);
+          if (vivo) setSrcs((x) => ({ ...x, [f.fotoId]: `data:${a.tipo};base64,${a.conteudo}` }));
+        } catch { /* sem a miniatura, fica a frase */ }
+      }
+    }).catch(() => setFotos([]));
+    return () => { vivo = false; };
+  }, [personId]);
+  async function abrir(f: FotoEmQueAparece) {
+    try {
+      const a = await api<{ tipo: string; conteudo: string }>(
+        `/people/${f.donoId}/memories/${f.vivenciaId}/photos/${f.fotoId}`);
+      setAberta({ f, src: `data:${a.tipo};base64,${a.conteudo}` });
+    } catch { /* a foto que não abre não abre a folha */ }
+  }
+  if (!fotos.length) return null;
+  return (
+    <Secao titulo={`Fotos em que ${nome} aparece · ${fotos.length}`}>
+      <div className="miniaturas">
+        {fotos.map((f) => (
+          <button key={f.marcaId} type="button" className="miniatura" onClick={() => abrir(f)}
+                  aria-label={`Abrir a foto: ${f.descricao}`}>
+            {srcs[f.fotoId] ? <img src={srcs[f.fotoId]} alt="" /> : <Icone nome="foto" />}
+          </button>
+        ))}
+      </div>
+      {aberta && (
+        <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-aparece"
+             onClick={(e) => { if (e.target === e.currentTarget) setAberta(null); }}>
+          <div className="sheet modal">
+            <h3 id="t-aparece">{dia(aberta.f.quando)}</h3>
+            <p className="mutetxt">{aberta.f.descricao}</p>
+            <img src={aberta.src} alt={aberta.f.descricao} style={{ maxWidth: '100%', borderRadius: 10, display: 'block' }} />
+            <p className="mutetxt">
+              Marcada por {aberta.f.marcadaPor ?? 'alguém da equipe'}.
+              {!aberta.f.autorizacaoRegistrada && ' A autorização de imagem dela não está registrada nesta foto.'}
+            </p>
+            <button className="btn block" onClick={() => setAberta(null)}>Fechar</button>
+          </div>
+        </div>
+      )}
     </Secao>
   );
 }

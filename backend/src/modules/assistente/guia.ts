@@ -105,7 +105,8 @@ Ninguém no sistema é anônimo e nada se apaga: tudo tem autor e histórico.
 - /people/ID/admission  o acolhimento da criança
 - /people/ID/contacts  família e contatos da criança
 - /people/ID/judicial  dados judiciais da criança
-- /people/ID/memories  memórias e vivências da criança
+- /people/ID/memories  memórias e vivências da criança, com quem aparece em cada foto
+- /people/ID/aparece-em  as fotos de outras vivências em que a criança foi marcada
 - /people/ID/family-stays  convivências com a família
 - /people/ID/outing-permission  se a criança pode sair sem acompanhante, quem decidiu e por quê
 - /people/ID/saidas  as saídas da criança pelo portão, com a volta

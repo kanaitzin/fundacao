@@ -4069,7 +4069,15 @@ interface DocumentoMock {
 }
 interface FotoMock {
   id: string; nome: string; tipo: string; conteudo: string; autorizacaoRegistrada: boolean;
+  /* A miniatura feita no aparelho (fase 209). Sem ela, a inteira serve de miniatura. */
+  miniatura?: string;
 }
+/* QUEM APARECE NA FOTO (fase 209): a pessoa marca; a marca retirada fica, com o motivo. */
+interface MarcaMock {
+  id: string; fotoId: string; personId: string; autorizada: boolean; por: string; em: string;
+  retirada?: { por: string; em: string; motivo: string };
+}
+const MARCAS_FOTO: MarcaMock[] = [];
 interface VivenciaMock {
   id: string; personId: string; tipo: string; quando: string; descricao: string;
   /* QUANTAS FOREM (fase 124). `temFoto`, `autorizacaoRegistrada` e `arquivo`
@@ -4237,11 +4245,21 @@ function semearDossie() {
           conteudo: jpegFicticio('A turma cantando'), autorizacaoRegistrada: true },
       ],
       registradoPor: 'Tainá Souza (fictícia)', registradoEm: emHoras(20, 0) },
+    /* Uma foto do Bruno em que a Alice também aparece (fase 209). */
+    { id: uid(), personId: 'p02', tipo: 'passeio', quando: diasAtras(12),
+      descricao: 'Passeio ao Parque da Redenção com a turma dos menores; piquenique e pedalinho.',
+      fotos: [
+        { id: 'foto-redencao', nome: 'redencao.jpg', tipo: 'image/jpeg',
+          conteudo: jpegFicticio('No pedalinho'), autorizacaoRegistrada: true },
+      ],
+      registradoPor: 'Mário Silva (fictício)', registradoEm: emHoras(18, 0) },
     { id: uid(), personId: 'p01', tipo: 'conquista', quando: diasAtras(30),
       descricao: 'Aprendeu a andar de bicicleta sem rodinhas no pátio, num sábado de manhã.',
       fotos: [],
       registradoPor: 'Lúcia Líder Diurna (fictícia)', registradoEm: emHoras(11, 30) },
   );
+  MARCAS_FOTO.push({ id: 'marca-1', fotoId: 'foto-redencao', personId: 'p01', autorizada: true,
+    por: 'Mário Silva (fictício)', em: emHoras(18, 5) });
 }
 
 const EPISODIOS: EpisodioMock[] = [];
@@ -7426,6 +7444,10 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       fotos: v.fotos.map((f) => ({
         id: f.id, nome: f.nome, tipo: f.tipo,
         autorizacaoRegistrada: f.autorizacaoRegistrada,
+        temMiniatura: true,
+        quemAparece: MARCAS_FOTO.filter((m) => m.fotoId === f.id && !m.retirada).map((m) => ({
+          marcaId: m.id, personId: m.personId, nome: todosKids().find((k) => k.id === m.personId)?.nome ?? '',
+          autorizacaoRegistrada: m.autorizada, marcadaPor: m.por })),
       })),
       arquivo: v.fotos.length ? { nome: v.fotos[0].nome, tipo: v.fotos[0].tipo } : null,
       registradoPor: v.registradoPor, registradoEm: v.registradoEm,
@@ -7471,6 +7493,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     const fotos: FotoMock[] = pedidas.map((f) => ({
       id: uid(), nome: String(f.nomeArquivo ?? 'foto'), tipo: 'image/jpeg',
       conteudo: String(f.conteudo), autorizacaoRegistrada: f.autorizacaoRegistrada === true,
+      miniatura: f.miniatura ? `data:image/jpeg;base64,${f.miniatura}` : undefined,
     }));
     VIVENCIAS.unshift({ id, personId: String(seg[1]), tipo: String(b.tipo),
       quando: String(b.quando), descricao: String(b.descricao).trim(), fotos,
@@ -7480,6 +7503,48 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         ? 'Vivência registrada. A autorização de uso de imagem NÃO está registrada nesta foto — '
           + 'fica anotado assim, e o álbum mostra.'
         : 'Vivência registrada no álbum da criança.' };
+  }
+  /* A MINIATURA (fase 209): antes do ramo da foto inteira, que casaria pelo começo. */
+  if (seg[0] === 'people' && seg[2] === 'memories' && seg[4] === 'photos' && seg[6] === 'miniatura' && metodo === 'GET') {
+    semearDossie();
+    const v = VIVENCIAS.find((x) => x.id === seg[3]);
+    const f = v?.fotos.find((x) => x.id === seg[5]);
+    if (!f) return new Recusa(404, 'Esta vivência não tem foto.');
+    return { nome: f.nome, tipo: 'image/jpeg', conteudo: (f.miniatura ?? f.conteudo).split(',')[1] ?? '' };
+  }
+  /* QUEM APARECE NA FOTO (fase 209). */
+  if (seg[0] === 'people' && seg[1] === 'memory-photos' && seg[3] === 'pessoas' && metodo === 'POST') {
+    semearDossie();
+    if (!['educador', 'lider_diurno', 'lider_noturno_geral', 'equipe_tecnica', 'coordenador'].includes(eu.role)) {
+      return new Recusa(403, 'Quem marca é a equipe da casa.');
+    }
+    const v = VIVENCIAS.find((x) => x.fotos.some((f) => f.id === seg[2]));
+    if (!v || !todosKids().some((k) => k.id === b.personId)) return new Recusa(404, 'Foto ou criança não encontrada nesta casa.');
+    if (v.personId === b.personId) return new Recusa(400, 'A foto já é do álbum desta criança.');
+    if (MARCAS_FOTO.some((m) => m.fotoId === seg[2] && m.personId === b.personId && !m.retirada)) {
+      return new Recusa(409, 'Esta criança já está marcada nesta foto.');
+    }
+    const id = uid();
+    MARCAS_FOTO.push({ id, fotoId: seg[2], personId: String(b.personId), autorizada: b.autorizacaoRegistrada === true,
+      por: eu.fullName, em: new Date().toISOString() });
+    return { marcaId: id, aviso: 'Marcada. A foto passa a aparecer no álbum dela também.' };
+  }
+  if (seg[0] === 'people' && seg[1] === 'memory-tags' && seg[3] === 'remover' && metodo === 'POST') {
+    const m = MARCAS_FOTO.find((x) => x.id === seg[2]);
+    if (!m) return new Recusa(404, 'Marca não encontrada.');
+    if (m.retirada) return new Recusa(409, 'Esta marca já foi retirada.');
+    if (String(b.motivo ?? '').trim().length < 5) return new Recusa(400, 'Escreva por que a marca sai (ex.: não é ela na foto).');
+    m.retirada = { por: eu.fullName, em: new Date().toISOString(), motivo: String(b.motivo).trim() };
+    return { aviso: 'A marca saiu, e fica registrado quem tirou e por quê.' };
+  }
+  if (seg[0] === 'people' && seg[2] === 'aparece-em' && metodo === 'GET') {
+    semearDossie();
+    return MARCAS_FOTO.filter((m) => m.personId === seg[1] && !m.retirada).flatMap((m) => {
+      const v = VIVENCIAS.find((x) => x.fotos.some((f) => f.id === m.fotoId));
+      return v ? [{ marcaId: m.id, fotoId: m.fotoId, vivenciaId: v.id, donoId: v.personId,
+        descricao: v.descricao, quando: v.quando, autorizacaoRegistrada: m.autorizada,
+        marcadaPor: m.por, marcadaEm: m.em }] : [];
+    });
   }
   /* UMA foto específica (fase 124). Antes do ramo `/file`, que casaria por
      posição se a ordem se invertesse — é a falha 3 do `contrato-rotas`. */

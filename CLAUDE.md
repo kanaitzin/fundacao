@@ -181,7 +181,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 12/10/2026, fase 208
+### Onde estamos — 13/10/2026, fase 210
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -253,8 +253,10 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 206 | **o calendário das ATAs e dos plantões** (pedido de 12/10): na Passagem e no Arquivo da ATA, o mês em grade com a manhã e a noite pintadas pela situação, os números do mês (só da casa) e o turno que abre o plantão e a ATA, para ler e baixar (`frontend/src/calendario-turnos.tsx`, sem rota nova); meses de histórias fictícias no protótipo; e **a ATA aberta pelo Arquivo mostrava o texto da ATA de antes**, no sistema de verdade também |
 | 207 | **a saída das crianças pelo portão** (pedido de 12/10): quem decide é a equipe da casa (educador, líder, técnica, coordenação; people/1650); a Portaria ganha a aba *Saídas das crianças*, com o que vale, quem decidiu e desde quando, **sem o motivo**, e registra saída e volta (`child_outing`); sem decisão, só sai com acompanhante. A auditoria da saída pela portaria nascia **sem casa** |
 | 208 | **o perfil em abas coloridas** (pedido de 12/10): o que protege a criança no alto, e oito abas (Hoje, Família e visitas, Saúde, Educação, Judiciário, Vida na casa, Atendimentos dia por dia, Cadastro); a cor da aba nunca vira pílula; a Acolhe+AI escolhe a aba pelo assunto; o `ensaio:uso` percorre as abas |
+| 209 | **quem aparece na foto, e a foto pequena** (pedido de 12/10): o reconhecimento de rosto **não entrou** (biométrico de criança, DPO); a equipe marca quem aparece e a foto entra no álbum de cada criança marcada (`memory_photo_person`, people/1651), desmarcar com motivo; a miniatura feita no aparelho para a lista do álbum, a inteira no toque; estimativa de 22 GB em dez anos para as oito casas (§12.2) |
+| 210 | **o dia, em ordem, com cor e mais curto** (pedido de 12/10): uma linha por evento com a cor e o desenho da categoria (`categorias-do-dia.ts`, as mesmas do Dia), *da casa toda* ou o nome da criança, legenda em cima, o dia em quatro partes e *Só o que ainda precisa de alguém* |
 
-**Medido no fim da 207:** 190 migrações, 134 tabelas, 139 suítes, 1258 testes, verdes nas
+**Medido no fim da 210:** 191 migrações, 135 tabelas, 140 suítes, 1263 testes, verdes nas
 DUAS condições de relógio; os dez ensaios de navegador verdes (o `ensaio:acolhe` com todas as telas de todos os cargos por texto e por voz e os 36 formulários do sistema abertos por ela, inclusive dentro do perfil, do dossiê, da internação, do acervo e do plantão, e o do celular com 306 telas e nenhum achado), com a portaria e o
 portão, o armário, a cozinha, os temas e a foto no percurso do `ensaio:uso`; **1256 telas (157 × oito
 temas) sem violação de WCAG 2.1 AA**; nenhuma
@@ -320,6 +322,12 @@ as três cores abaixo. Cor nova passa pelo `ensaio:acessibilidade`, que mede os 
 
 ### A próxima etapa
 
+**FEITO — fases 209 e 210** (§2, PARA-A-REUNIAO §4.22): as fotos com quem aparece e a
+miniatura, e o *O dia, em ordem* com cor, legenda e mais curto. **Próxima: 211**, as
+chamadas da casa editáveis com cor (a migração e a paleta de 48 cores já estão rascunhadas
+fora do repositório: escrever de novo a partir daqui é mais seguro do que procurar), e
+**212**, a varredura dos traços de raciocínio nas frases das telas.
+
 **FEITO — fase 208** (§2, PARA-A-REUNIAO §4.21): o perfil em abas coloridas. **Quem
 escreve ensaio sobre o perfil** usa o `conteudo()` e o `clicar()` do `ensaio:uso`, que
 passam pelas abas sozinhos; e **bloco novo do perfil entra numa aba**, nunca solto (o
@@ -335,8 +343,8 @@ ordem combinada é: **207** a autorização de saída e a portaria (a regra de 1
 quem decide é a técnica ou a coordenação; o pedido de 12/10 diz educador, líder,
 coordenação e técnica), **208** o perfil em abas coloridas com os Atendimentos, **209** as
 fotos (marcar quem aparece em vez de reconhecer o rosto: é dado biométrico de criança),
-**210** as chamadas editáveis por casa com cor, **211** a legenda e o aperto do *O dia, em
-ordem*, **212** a varredura dos traços de raciocínio nas frases das telas.
+**210** a legenda e o aperto do *O dia, em ordem*, **211** as chamadas editáveis por casa
+com cor, **212** a varredura dos traços de raciocínio nas frases das telas.
 
 **FEITO — fase 205** (§2, PARA-A-REUNIAO §4.19, relatório em `docs/historico/oito-casas-seis-meses-vinte-pessoas-12-10.md`):
 a Acolhe+AI testada setor por setor outra vez, e as oito casas com vinte pessoas por seis meses usando o

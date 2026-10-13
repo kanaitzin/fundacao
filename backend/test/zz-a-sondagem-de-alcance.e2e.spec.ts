@@ -102,6 +102,8 @@ const MAPA: Record<string, string> = {
   '/people/:id/memories/:memId/file#memId': 'memory_record',
   '/people/:id/memories/:memId/photos/:fotoId#memId': 'memory_record',
   '/people/:id/memories/:memId/photos/:fotoId#fotoId': 'memory_photo',
+  '/people/:id/memories/:memId/photos/:fotoId/miniatura#memId': 'memory_record',
+  '/people/:id/memories/:memId/photos/:fotoId/miniatura#fotoId': 'memory_photo',
   '/followups/:id#id': 'followup',
   '/followups/:id/sources#id': 'followup',
   '/impacto/marcos/:id/comprovante#id': 'life_milestone',

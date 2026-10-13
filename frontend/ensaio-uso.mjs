@@ -4000,6 +4000,57 @@ console.log('\n🚪 A saída das crianças pelo portão (fase 207)');
   await pgP.close();
 }
 
+console.log('\n📷 Quem aparece na foto, e a foto pequena (fase 209)');
+{
+  const pgF = await navegador.newPage({ viewport: { width: 1366, height: 900 } });
+  const errosF = [];
+  pgF.on('pageerror', (e) => errosF.push(e.message));
+  const esp = (ms = 800) => pgF.waitForTimeout(ms);
+  await pgF.goto(`file://${ARQUIVO}`); await esp(700);
+  await pgF.getByRole('button', { name: 'Marcelo Barbosa', exact: true }).click();
+  await pgF.getByRole('button', { name: /Entrar no sistema/i }).click(); await esp(1200);
+  cargoAtual = 'equipe_tecnica';
+  await pgF.locator('select.troca-cargo-sel').selectOption('equipe_tecnica'); await esp(900);
+  await pgF.getByRole('button', { name: /^Acolhidos/ }).filter({ visible: true }).first().click(); await esp(900);
+  await pgF.locator('.pessoa-cartao').filter({ hasText: 'Alice' }).first().click(); await esp(1200);
+  await pgF.getByRole('tab', { name: 'Vida na casa' }).click(); await esp(1000);
+  cobrar('a Vida na casa mostra as fotos de outras vivências em que a Alice foi marcada',
+    /Fotos em que Alice aparece · [1-9]/i.test(await pgF.locator('main.conteudo').innerText()));
+  await pgF.getByRole('button', { name: /Dossiê e vivências/ }).click(); await esp(1200);
+  await pgF.getByRole('tab', { name: /Vivências|Álbum/ }).first().click().catch(() => {}); await esp(900);
+  cobrar('o álbum lista as miniaturas', await pgF.locator('.miniatura img').count() > 0);
+  await pgF.getByRole('button', { name: /Ver a foto/ }).first().click(); await esp(900);
+  const folha = pgF.locator('.overlay');
+  cobrar('a foto aberta diz quem mais aparece nela', /Quem mais aparece nesta foto/i.test(await folha.innerText()));
+  await folha.locator('#marcar-quem').selectOption({ label: 'Bruno' }); await esp(200);
+  await folha.getByRole('button', { name: 'Marcar na foto' }).click(); await esp(900);
+  cobrar('marcar o Bruno põe a foto no álbum dele', /Marcada/.test(await folha.innerText()));
+  cobrar('nenhuma exceção nas fotos', errosF.length === 0, errosF[0]);
+  await pgF.close();
+}
+
+console.log('\n🕒 O dia, em ordem, com legenda e mais curto (fase 210)');
+{
+  const pgD = await navegador.newPage({ viewport: { width: 1366, height: 900 } });
+  const errosD = [];
+  pgD.on('pageerror', (e) => errosD.push(e.message));
+  const esp = (ms = 800) => pgD.waitForTimeout(ms);
+  await pgD.goto(`file://${ARQUIVO}`); await esp(700);
+  await pgD.getByRole('button', { name: 'Marcelo Barbosa', exact: true }).click();
+  await pgD.getByRole('button', { name: /Entrar no sistema/i }).click(); await esp(1200);
+  cargoAtual = 'coordenador';
+  await pgD.locator('nav.portas-lateral').getByRole('button', { name: 'O dia, em ordem' }).click(); await esp(1200);
+  const t = await pgD.locator('main.conteudo').innerText();
+  cobrar('a legenda diz as cores e o que é da casa toda e de uma criança',
+    /da casa toda/.test(t) && /de uma criança/.test(t) && await pgD.locator('.legenda-dia .ponto').count() > 0);
+  const antes = await pgD.locator('.dia-item').count();
+  cobrar('cada evento é uma linha com a cor da categoria', antes > 0);
+  await pgD.getByText('Só o que ainda precisa de alguém').click(); await esp(400);
+  cobrar('e o filtro deixa só o que precisa de alguém', await pgD.locator('.dia-item').count() < antes);
+  cobrar('nenhuma exceção no dia em ordem', errosD.length === 0, errosD[0]);
+  await pgD.close();
+}
+
 await navegador.close();
 console.log(achados.length
   ? `\n${achados.length} ACHADO(S):\n  ${achados.join('\n  ')}`

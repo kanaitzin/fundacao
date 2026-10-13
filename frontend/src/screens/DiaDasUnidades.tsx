@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
+import { CATEGORIA, ICONE, categoriaDe } from '../categorias-do-dia';
+import { Icone } from '../icones';
 
 /**
  * O DIA INTEIRO, DAS UNIDADES QUE A PESSOA ALCANÇA, EM UMA LISTA SÓ.
@@ -29,6 +31,8 @@ interface Evento {
   title: string;
   casa?: string;
   personName?: string | null;
+  personId?: string | null;
+  kind?: string;
   state?: string | null;
   severity?: string | null;
   source?: string;
@@ -41,9 +45,17 @@ const hojeLocal = () => new Intl.DateTimeFormat('en-CA', {
 const hora = (iso: string) => new Date(iso).toLocaleTimeString('pt-BR',
   { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' });
 
+/* Estado é estado: o normal não pinta de verde, que se leria como "foi bem". */
 const TOM: Record<string, string> = {
-  critico: 'c-crit', atencao: 'c-med', normal: 'c-ok',
+  critico: 'c-crit', atencao: 'c-warn', normal: 'c-mute',
 };
+/* O dia em quatro partes, para quem olha no celular achar a tarde sem rolar a manhã. */
+const PARTES = [
+  { ate: 6, nome: 'Madrugada' }, { ate: 12, nome: 'Manhã' },
+  { ate: 18, nome: 'Tarde' }, { ate: 24, nome: 'Noite' },
+];
+const horaDe = (iso: string) => Number(new Intl.DateTimeFormat('en-GB',
+  { hour: '2-digit', hour12: false, timeZone: 'America/Sao_Paulo' }).format(new Date(iso)));
 
 export function DiaDasUnidades() {
   const [data, setData] = useState(hojeLocal());
@@ -54,6 +66,8 @@ export function DiaDasUnidades() {
   const [erro, setErro] = useState('');
   const [carregando, setCarregando] = useState(true);
   const [filtro, setFiltro] = useState('');
+  /* Só o que ainda precisa de alguém (fase 210): o resto do dia fica a um toque. */
+  const [soAtencao, setSoAtencao] = useState(false);
 
   const carregar = useCallback(async () => {
     setCarregando(true);
@@ -73,7 +87,9 @@ export function DiaDasUnidades() {
 
   useEffect(() => { void carregar(); }, [carregar]);
 
-  const lista = filtro ? eventos.filter((e) => e.casa === filtro) : eventos;
+  const daCasa = filtro ? eventos.filter((e) => e.casa === filtro) : eventos;
+  const lista = soAtencao ? daCasa.filter((e) => e.severity && e.severity !== 'normal') : daCasa;
+  const presentes = CATEGORIA.filter((c) => daCasa.some((e) => categoriaDe(e.kind ?? 'rotina') === c));
 
   return (
     <>
@@ -120,23 +136,65 @@ export function DiaDasUnidades() {
         </div>
       )}
 
-      <ol className="stack" style={{ listStyle: 'none', padding: 0 }}>
-        {lista.map((e) => (
-          <li key={e.id} className="card">
-            <div className="row" style={{ gap: 10, alignItems: 'baseline' }}>
-              <b className="ff">{hora(e.at)}</b>
-              {e.casa && <span className="pill">{e.casa}</span>}
-              <div className="grow">
-                <b className="ff">{e.title}</b>
-                {e.personName && <div className="mutetxt">{e.personName}</div>}
-              </div>
-              {e.state && (
-                <span className={`pill ${TOM[e.severity ?? 'normal'] ?? ''}`}>{e.state}</span>
-              )}
-            </div>
-          </li>
-        ))}
-      </ol>
+      {/* A LEGENDA (fase 210): o que cada cor quer dizer, e como se lê se é de uma
+          criança ou da casa toda. Mostra só as categorias que o dia tem. */}
+      {daCasa.length > 0 && (
+        <div className="legenda legenda-dia" aria-label="O que cada cor quer dizer">
+          {presentes.map((c) => (
+            <span key={c.classe} className={`item ${c.classe}`}>
+              <span className="ponto" aria-hidden="true" />{c.rotulo}
+            </span>
+          ))}
+          <span className="item"><Icone nome="acolhidos" tamanho={14} /> da casa toda</span>
+          <span className="item"><Icone nome="pessoa" tamanho={14} /> de uma criança</span>
+        </div>
+      )}
+      {daCasa.length > 0 && (
+        <label className="row so-atencao" style={{ gap: 8 }}>
+          <input type="checkbox" checked={soAtencao} onChange={(e) => setSoAtencao(e.target.checked)} />
+          <span>Só o que ainda precisa de alguém</span>
+        </label>
+      )}
+
+      {PARTES.map((parte, i) => {
+        const de = i === 0 ? 0 : PARTES[i - 1].ate;
+        const daParte = lista.filter((e) => { const h = horaDe(e.at); return h >= de && h < parte.ate; });
+        if (!daParte.length) return null;
+        return (
+          <section key={parte.nome} className="parte-do-dia">
+            <div className="eyebrow">{parte.nome} · {daParte.length}</div>
+            <ol className="dia-ordem">
+              {daParte.map((e) => {
+                const cat = categoriaDe(e.kind ?? 'rotina');
+                const deUma = !!(e.personId || e.personName);
+                return (
+                  <li key={e.id} className={`dia-item ${cat.classe}`}>
+                    <span className="hora">{hora(e.at)}</span>
+                    <span className="ic" aria-hidden="true"><Icone nome={ICONE[e.kind ?? ''] ?? 'ponto'} tamanho={16} /></span>
+                    <div className="grow">
+                      <b>{e.title}</b>
+                      <div className="mutetxt">
+                        {e.casa && <>{e.casa} · </>}
+                        <span className="quem-e">
+                          <Icone nome={deUma ? 'pessoa' : 'acolhidos'} tamanho={13} />
+                          {deUma ? (e.personName ?? 'uma criança') : 'da casa toda'}
+                        </span>
+                        <span className="cat-nome"> · {cat.rotulo}</span>
+                      </div>
+                    </div>
+                    {e.state && (
+                      <span className={`pill ${TOM[e.severity ?? 'normal'] ?? 'c-mute'}`}>{e.state}</span>
+                    )}
+                  </li>
+                );
+              })}
+            </ol>
+          </section>
+        );
+      })}
+      {soAtencao && lista.length === 0 && daCasa.length > 0 && (
+        <p className="mutetxt">Nada esperando alguém neste dia.</p>
+      )}
 
       {nota && <p className="mutetxt" style={{ marginTop: 16 }}>{nota}</p>}
     </>

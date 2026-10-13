@@ -49,7 +49,7 @@
   196 também dentro do perfil da criança (*quero registrar a alergia do Bruno*), do dossiê, da
   internação aberta e do acervo: os 36 formulários do sistema. **Para o DPO:**
   o ditado usa o reconhecimento do navegador; no Chrome, o áudio vai ao Google.
-- **208 fases.** 139 suítes e 1258 testes, verdes em duas condições de relógio —
+- **210 fases.** 140 suítes e 1263 testes, verdes em duas condições de relógio —
   antes e depois da virada do UTC, que em Porto Alegre é às 21h.
 - **O aviso no celular** (fase 189, decidido em 06/10): quem liga na Minha conta
   recebe no celular todos os avisos do sino, mesmo com o sistema fechado. Na
@@ -524,6 +524,17 @@ alto. Duas coisas para a Fundação olhar: **as amizades**, que o pedido cita na
 casa, não têm lugar no sistema (escrever quem é amigo de quem é registro sobre duas
 crianças, e pede cuidado); e **as ocorrências da criança** continuam fora do perfil,
 esperando a resposta da §4.18.
+
+## 4.22 As fotos: quem aparece, sem reconhecer rosto (fase 209, pedido de 12/10)
+
+O pedido foi a IA reconhecer cada criança nas fotos e levar a foto à pasta dela. **Não
+fiz, e não é por dificuldade:** reconhecimento facial é dado biométrico de criança, a LGPD
+pede base legal, relatório de impacto e o DPO, e o erro de reconhecimento poria a foto de
+uma criança na pasta de outra. Fiz a mesma coisa pela mão de quem guardou a foto: marcar
+quem aparece. Se a Fundação quiser mesmo o reconhecimento, a conversa começa pelo DPO.
+
+E o espaço: oito casas em dez anos dão uns 22 GB de fotos (§12.2 do documento). Cabe em
+disco comum; o que precisa de atenção é o backup, que leva as fotos junto.
 
 ## 5. As decisões que são do Marcelo *(§10 — responda pelo número)*
 

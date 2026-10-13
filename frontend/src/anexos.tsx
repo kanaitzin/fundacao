@@ -97,6 +97,31 @@ async function reduzirFoto(f: File): Promise<Escolhido | null> {
 }
 
 /** Lê o arquivo escolhido SEM enviar: a prévia acontece no aparelho. A foto grande sai reduzida. */
+/**
+ * A MINIATURA da foto (fase 209): por volta de 320 px, para a lista do álbum. A
+ * foto inteira só vem no toque. Devolve o base64 sem o prefixo, ou nada quando o
+ * navegador não consegue desenhar (a lista usa a inteira, como antes).
+ */
+export async function miniaturaDe(dataUrl: string, lado = 320): Promise<string | null> {
+  try {
+    if (!dataUrl.startsWith('data:image/') || typeof createImageBitmap !== 'function') return null;
+    const blob = await (await fetch(dataUrl)).blob();
+    const img = await createImageBitmap(blob, { imageOrientation: 'from-image' });
+    try {
+      const escala = Math.min(1, lado / Math.max(img.width, img.height));
+      const w = Math.max(1, Math.round(img.width * escala));
+      const h = Math.max(1, Math.round(img.height * escala));
+      const tela = document.createElement('canvas');
+      tela.width = w; tela.height = h;
+      const ctx = tela.getContext('2d');
+      if (!ctx) return null;
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, w, h);
+      ctx.drawImage(img, 0, 0, w, h);
+      return tela.toDataURL('image/jpeg', 0.72).split(',')[1] ?? null;
+    } finally { img.close(); }
+  } catch { return null; }
+}
+
 export async function lerArquivo(f: File): Promise<Escolhido> {
   try {
     const reduzida = await reduzirFoto(f);

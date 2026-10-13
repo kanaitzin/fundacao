@@ -92,6 +92,8 @@ export const VOCABULARIO_DA_AUDITORIA: Record<string, string> = {
   'visita.correcao': 'Horário de visita corrigido',
   'saida.registrada': 'Saída de acolhido registrada no portão',
   'saida.volta': 'Volta de acolhido registrada no portão',
+  'memory.tag': 'Criança marcada numa foto do álbum',
+  'memory.untag': 'Marca de criança retirada de uma foto',
 
   // ------------------------------------------------------------- Dossiê e fotos
   'document.attach': 'Documento anexado ao dossiê',

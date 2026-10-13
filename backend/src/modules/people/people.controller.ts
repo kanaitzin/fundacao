@@ -608,6 +608,35 @@ export class PeopleController {
     return this.dossie.foto(user, id, memId, fotoId);
   }
 
+  /* A MINIATURA da foto (fase 209): o álbum lista as pequenas; a inteira abre no toque. */
+  @RegistroDaRota('id', 'person')
+  @Get(':id/memories/:memId/photos/:fotoId/miniatura')
+  miniaturaDaFoto(@CurrentUser() user: AuthenticatedUser,
+                  @Param('id', ParseUUIDPipe) id: string,
+                  @Param('memId', ParseUUIDPipe) memId: string,
+                  @Param('fotoId', ParseUUIDPipe) fotoId: string) {
+    return this.dossie.foto(user, id, memId, fotoId, true);
+  }
+
+  /* QUEM APARECE NA FOTO (fase 209): a pessoa marca, e não um reconhecimento de rosto. */
+  @RegistroDaRota('id', 'person')
+  @Get(':id/aparece-em')
+  fotosEmQueAparece(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.dossie.fotosEmQueAparece(user, id);
+  }
+
+  @Post('memory-photos/:fotoId/pessoas')
+  marcarNaFoto(@CurrentUser() user: AuthenticatedUser,
+               @Param('fotoId', ParseUUIDPipe) fotoId: string, @Body(CorpoConferido) body: any) {
+    return this.dossie.marcarNaFoto(user, fotoId, body ?? {});
+  }
+
+  @Post('memory-tags/:marcaId/remover')
+  desmarcarDaFoto(@CurrentUser() user: AuthenticatedUser,
+                  @Param('marcaId', ParseUUIDPipe) marcaId: string, @Body(CorpoConferido) body: any) {
+    return this.dossie.desmarcarDaFoto(user, marcaId, body ?? {});
+  }
+
   /**
    * BAIXAR o documento do dossiê (fase 124) — *"poder visualizar a hora que
    * eles quiserem e baixar"*.

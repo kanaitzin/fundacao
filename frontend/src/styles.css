@@ -2131,3 +2131,35 @@ button.cal-turno:focus-visible{ outline:3px solid var(--brand); outline-offset:1
 .atendimentos .hora{ font-weight:800; min-width:44px; color:var(--ink-2) }
 .atend-tipo{ display:inline-flex; color:var(--muted); padding-top:2px }
 @media (max-width: 719px){ .atendimentos li{ flex-wrap:wrap } }
+
+/* AS MINIATURAS DO ÁLBUM (fase 209): a foto pequena na lista; a inteira abre no toque. */
+.miniaturas{ display:flex; flex-wrap:wrap; gap:8px; margin-top:8px }
+.miniatura{ width:88px; height:88px; padding:0; border-radius:10px; overflow:hidden; cursor:pointer;
+  border:1.5px solid var(--line-2); background:var(--surface); display:inline-flex;
+  align-items:center; justify-content:center; color:var(--muted) }
+.miniatura img{ width:100%; height:100%; object-fit:cover; display:block }
+.miniatura:focus-visible{ outline:3px solid var(--brand); outline-offset:2px }
+.quem-aparece{ margin-top:12px; display:flex; flex-direction:column; gap:8px }
+
+/* O DIA, EM ORDEM, DAS UNIDADES (fase 210): uma linha por evento, a cor da categoria na
+   borda e o desenho dela, e quem é: da casa toda ou de uma criança. Mais curto no celular. */
+.legenda-dia{ margin:4px 0 8px }
+.legenda-dia .item .icone{ color:var(--ink-2) }
+.so-atencao{ display:flex; align-items:center; gap:8px; font-size:14px; margin:0 0 10px; flex-wrap:nowrap }
+.so-atencao input{ width:auto; flex:none; margin:0 }
+.parte-do-dia{ margin-bottom:14px }
+.dia-ordem{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px }
+.dia-item{ display:grid; grid-template-columns:44px 18px minmax(0, 1fr) auto; align-items:start;
+  column-gap:8px; row-gap:4px; padding:8px 10px; border-radius:10px;
+  background:var(--surface); border:1px solid var(--line); border-left:4px solid var(--cat, var(--slate)) }
+.dia-item .hora{ font-weight:800; color:var(--ink-2); font-size:14px }
+.dia-item .ic{ color:var(--cat, var(--slate)); display:inline-flex; padding-top:1px }
+.dia-item b{ font-size:14.5px }
+.dia-item .mutetxt{ font-size:12.5px }
+.dia-item .quem-e{ display:inline-flex; align-items:center; gap:3px }
+@media (max-width: 719px){
+  .dia-item{ grid-template-columns:44px 18px minmax(0, 1fr); padding:7px 9px }
+  .dia-item .pill{ grid-column:3; justify-self:start; white-space:normal; max-width:100% }
+  .dia-item .cat-nome{ display:none }
+}
+.dia-item .pill{ white-space:normal }

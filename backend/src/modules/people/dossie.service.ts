@@ -1,5 +1,5 @@
 import {
-  BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException,
+  BadRequestException, ConflictException, ForbiddenException, Inject, Injectable, NotFoundException,
 } from '@nestjs/common';
 import { createHash } from 'node:crypto';
 import { DatabaseService } from '../../kernel/database/database.service';
@@ -346,10 +346,21 @@ export class DossieService {
          uma chamada por vivência, e um álbum de quarenta vivências faria
          quarenta e uma. `memory_photo` já é filtrada pela RLS da criança. */
       const { rows: fotos } = await c.query(
-        `SELECT p.id, p.memory_id, p.mime, p.file_name, p.photo_authorized, p.position
+        `SELECT p.id, p.memory_id, p.mime, p.file_name, p.photo_authorized, p.position,
+                p.thumb_key IS NOT NULL AS tem_miniatura
            FROM memory_photo p WHERE p.person_id = $1
           ORDER BY p.memory_id, p.position, p.created_at`, [personId]);
-      return { r, fotos };
+      /* Quem aparece em cada foto (fase 209), com o nome por função (lição da 152). */
+      const { rows: marcas } = await c.query(
+        `SELECT m.id, m.photo_id, m.person_id, m.image_authorized,
+                app_user_display_name(m.tagged_by) AS por,
+                coalesce(nullif(p.social_name, ''), p.full_name) AS nome
+           FROM memory_photo_person m
+           -- rls-join-ok (person): a marca é de criança da mesma casa, e a política da pessoa confere.
+           JOIN person p ON p.id = m.person_id
+          WHERE m.removed_at IS NULL
+            AND m.photo_id IN (SELECT id FROM memory_photo WHERE person_id = $1)`, [personId]);
+      return { r, fotos, marcas };
     });
     const itens = rows.r.map((m: any) => {
       const dela = rows.fotos.filter((f: any) => f.memory_id === m.id);
@@ -366,6 +377,11 @@ export class DossieService {
         fotos: dela.map((f: any) => ({
           id: f.id, nome: f.file_name, tipo: f.mime,
           autorizacaoRegistrada: f.photo_authorized === true,
+          temMiniatura: f.tem_miniatura === true,
+          quemAparece: rows.marcas.filter((x: any) => x.photo_id === f.id).map((x: any) => ({
+            marcaId: x.id, personId: x.person_id, nome: x.nome,
+            autorizacaoRegistrada: x.image_authorized === true, marcadaPor: x.por,
+          })),
         })),
         /* Mantido para quem já lia `arquivo`: é a primeira foto. */
         arquivo: dela.length ? { nome: dela[0].file_name, tipo: dela[0].mime } : null,
@@ -403,7 +419,7 @@ export class DossieService {
   async registrarVivencia(user: AuthenticatedUser, personId: string, input: {
     tipo: string; quando: string; descricao: string;
     conteudo?: string; nomeArquivo?: string; autorizacaoRegistrada?: boolean;
-    fotos?: { conteudo: string; nomeArquivo?: string; autorizacaoRegistrada?: boolean }[];
+    fotos?: { conteudo: string; nomeArquivo?: string; autorizacaoRegistrada?: boolean; miniatura?: string }[];
   }) {
     if (!TIPOS_DE_VIVENCIA.some((t) => t.code === input.tipo)) {
       throw new BadRequestException('Tipo de vivência inválido.');
@@ -433,15 +449,22 @@ export class DossieService {
     }
 
     const guardadas: { chave: string; mime: string | null; sha: string | null;
-                       nome: string | null; autorizada: boolean }[] = [];
+                       nome: string | null; autorizada: boolean;
+                       miniatura: { chave: string; mime: string | null } | null }[] = [];
     for (const f of pedidas) {
       const nome = f.nomeArquivo ?? 'foto';
       const proibido = tituloProibido(nome);
       if (proibido) throw new BadRequestException(`O nome do arquivo: ${proibido}`);
       const foto = await this.arquivos.guardar(f.conteudo, A_FOTO_DA_VIVENCIA);
       if (!foto) throw new BadRequestException('Nenhum arquivo foi enviado.');
+      /* A MINIATURA (fase 209), feita no aparelho: o álbum lista as pequenas e a
+         inteira só abre no toque. Sem ela, a lista usa a inteira, como antes. */
+      const mini = (f as any).miniatura
+        ? await this.arquivos.guardar((f as any).miniatura, A_FOTO_DA_VIVENCIA).catch(() => null)
+        : null;
       guardadas.push({
         chave: foto.chave, mime: foto.mime, sha: foto.sha256,
+        miniatura: mini ? { chave: mini.chave, mime: mini.mime } : null,
         nome: f.nomeArquivo ?? null,
         /* POR FOTO. A festa pode ter uma com uma criança de outra casa. */
         autorizada: f.autorizacaoRegistrada === true,
@@ -464,9 +487,10 @@ export class DossieService {
         posicao += 1;
         await c.query(
           `INSERT INTO memory_photo (memory_id, person_id, storage_key, mime, sha256,
-             file_name, photo_authorized, position, created_by)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
-          [m.id, personId, g.chave, g.mime, g.sha, g.nome, g.autorizada, posicao, user.id]);
+             file_name, photo_authorized, position, created_by, thumb_key, thumb_mime)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+          [m.id, personId, g.chave, g.mime, g.sha, g.nome, g.autorizada, posicao, user.id,
+           g.miniatura?.chave ?? null, g.miniatura?.mime ?? null]);
       }
       return m.id as string;
     });
@@ -497,19 +521,21 @@ export class DossieService {
    * passou a ter quantas fotos tiver — uma festa com seis fotos era, antes,
    * seis vivências com a mesma data e a mesma descrição.
    */
-  async foto(user: AuthenticatedUser, personId: string, memoryId: string, fotoId?: string) {
+  async foto(user: AuthenticatedUser, personId: string, memoryId: string, fotoId?: string,
+             miniatura = false) {
     const casa = await this.audit.casaDoAcolhido(user.id, personId);
     const m = await this.db.asUser(user.id, async (c) => {
       /* rls-join-ok: `mp_select` já filtra `memory_photo` pelo alcance da
          criança; o `person_id` no WHERE é conferência da rota, não da RLS. */
       const { rows: [row] } = await c.query(
-        `SELECT p.id, p.storage_key, p.mime, p.file_name, p.sha256
+        `SELECT p.id, p.storage_key, p.mime, p.file_name, p.sha256, p.thumb_key, p.thumb_mime
            FROM memory_photo p
           WHERE p.memory_id = $1 AND p.person_id = $2
             AND ($3::uuid IS NULL OR p.id = $3)
           ORDER BY p.position, p.created_at LIMIT 1`,
         [memoryId, personId, fotoId ?? null]);
-      if (row) {
+      /* A miniatura é a lista do álbum, e não abertura de foto: não vai à auditoria. */
+      if (row && !miniatura) {
         /* A abertura é da FOTO, e a entidade continua sendo a vivência: quem
            procura "quem abriu o álbum da Alice" procura por `memory_record`,
            e um segundo nome de entidade esconderia metade das aberturas. */
@@ -521,11 +547,71 @@ export class DossieService {
       return row;
     });
     if (!m?.storage_key) throw new NotFoundException('Esta vivência não tem foto.');
+    if (miniatura && m.thumb_key) {
+      const mini = await this.arquivos.ler(m.thumb_key);
+      if (mini) return { nome: m.file_name, tipo: m.thumb_mime ?? 'image/jpeg', conteudo: mini.toString('base64') };
+    }
     const bytes = await this.arquivos.ler(m.storage_key);
     if (!bytes) throw new NotFoundException('A foto não está no armazenamento.');
     return { nome: m.file_name, tipo: m.mime, conteudo: bytes.toString('base64') };
   }
 
   // ------------------------------------------------------------------
+  // Quem aparece na foto (fase 209)
+  // ------------------------------------------------------------------
 
+  async marcarNaFoto(user: AuthenticatedUser, fotoId: string, input: { personId?: string; autorizacaoRegistrada?: boolean }) {
+    if (!input.personId) throw new BadRequestException('Diga quem aparece na foto.');
+    const r = await this.db.asUser(user.id, async (c) => {
+      const { rows: [x] } = await c.query(`SELECT * FROM app_marcar_na_foto($1, $2, $3)`,
+        [fotoId, input.personId, input.autorizacaoRegistrada === true]);
+      return x as { marca: string; casa: string };
+    }).catch((e: any) => {
+      const m = String(e?.message ?? '');
+      if (m.includes('sem_permissao_marcar')) throw new ForbiddenException('Quem marca é a equipe da casa.');
+      if (m.includes('fora_de_escopo')) throw new NotFoundException('Foto ou criança não encontrada nesta casa.');
+      if (m.includes('crianca_de_outra_casa')) {
+        throw new BadRequestException('Só se marca criança da mesma casa. A criança de outra casa fica de fora do álbum dela.');
+      }
+      if (m.includes('ja_e_da_crianca')) throw new BadRequestException('A foto já é do álbum desta criança.');
+      if (m.includes('ja_marcada')) throw new ConflictException('Esta criança já está marcada nesta foto.');
+      throw e;
+    });
+    await this.audit.log({
+      action: 'memory.tag', actorId: user.id, houseId: r.casa,
+      entity: 'memory_photo', entityId: fotoId, detail: { marca: r.marca },
+    });
+    return { marcaId: r.marca, aviso: 'Marcada. A foto passa a aparecer no álbum dela também.' };
+  }
+
+  async desmarcarDaFoto(user: AuthenticatedUser, marcaId: string, input: { motivo?: string }) {
+    const r = await this.db.asUser(user.id, async (c) => {
+      const { rows: [x] } = await c.query(`SELECT * FROM app_desmarcar_da_foto($1, $2)`,
+        [marcaId, input.motivo ?? null]);
+      return x as { pessoa: string; casa: string };
+    }).catch((e: any) => {
+      const m = String(e?.message ?? '');
+      if (m.includes('sem_permissao_marcar')) throw new ForbiddenException('Quem desmarca é a equipe da casa.');
+      if (m.includes('marca_inexistente')) throw new NotFoundException('Marca não encontrada.');
+      if (m.includes('marca_ja_retirada')) throw new ConflictException('Esta marca já foi retirada.');
+      if (m.includes('motivo_obrigatorio')) throw new BadRequestException('Escreva por que a marca sai (ex.: não é ela na foto).');
+      throw e;
+    });
+    await this.audit.log({
+      action: 'memory.untag', actorId: user.id, houseId: r.casa,
+      entity: 'person', entityId: r.pessoa, detail: { marca: marcaId },
+    });
+    return { aviso: 'A marca saiu, e fica registrado quem tirou e por quê.' };
+  }
+
+  async fotosEmQueAparece(user: AuthenticatedUser, personId: string) {
+    return this.db.asUser(user.id, async (c) => {
+      const { rows } = await c.query(`SELECT * FROM app_fotos_em_que_aparece($1)`, [personId]);
+      return rows.map((r: any) => ({
+        marcaId: r.marca, fotoId: r.foto, vivenciaId: r.vivencia, donoId: r.dono,
+        descricao: r.descricao, quando: r.quando, autorizacaoRegistrada: r.autorizada === true,
+        marcadaPor: r.marcada_por, marcadaEm: r.marcada_em,
+      }));
+    });
+  }
 }

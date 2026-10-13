@@ -3,7 +3,7 @@ import { api } from '../api';
 import { baixarArquivo } from '../documentos';
 import { dia } from '../rotulos';
 import { Icone } from '../icones';
-import { EscolherAnexo } from '../anexos';
+import { EscolherAnexo, miniaturaDe } from '../anexos';
 import type { Escolhido } from '../anexos';
 
 /**
@@ -57,8 +57,13 @@ interface Dossie {
   categorias: CategoriaDoDossie[]; avulsos: DocumentoDoDossie[];
   vence: DocumentoDoDossie[]; aviso: string;
 }
+interface QuemAparece {
+  marcaId: string; personId: string; nome: string; autorizacaoRegistrada: boolean; marcadaPor: string | null;
+}
 interface FotoDaVivencia {
   id: string; nome: string | null; tipo: string | null; autorizacaoRegistrada: boolean;
+  /* Fase 209: a foto pequena para a lista, e quem aparece nela. */
+  temMiniatura?: boolean; quemAparece?: QuemAparece[];
 }
 interface Vivencia {
   id: string; tipo: string; quando: string; descricao: string;
@@ -336,6 +341,9 @@ export function Dossie({ personId, nome, papel, onVoltar }: {
                 </div>
                 <p style={{ margin: '8px 0 0' }}>{v.descricao}</p>
                 {v.temFoto && (
+                  <Miniaturas personId={personId} vivencia={v} onAbrir={() => setVendoFoto(v)} />
+                )}
+                {v.temFoto && (
                   <div className="row" style={{ marginTop: 8 }}>
                     <button className="btn sm sec" onClick={() => setVendoFoto(v)}><Icone nome="foto" /> Ver a foto</button>
                     {!v.autorizacaoRegistrada && (
@@ -384,7 +392,8 @@ export function Dossie({ personId, nome, papel, onVoltar }: {
       )}
 
       {vendoFoto && (
-        <FolhaFoto personId={personId} vivencia={vendoFoto} onFechar={() => setVendoFoto(null)} />
+        <FolhaFoto personId={personId} vivencia={vendoFoto} papel={papel}
+                   onFechar={() => setVendoFoto(null)} onMudou={carregar} />
       )}
 
       {papel === 'educador' && aba === 'dossie' && (
@@ -588,7 +597,7 @@ function FolhaVivencia({ tipos, onFechar, onEnviar }: {
   tipos: { code: string; label: string }[]; onFechar: () => void;
   onEnviar: (d: { tipo: string; quando: string; descricao: string;
                   fotos: { conteudo: string; nomeArquivo?: string;
-                           autorizacaoRegistrada: boolean }[];
+                           autorizacaoRegistrada: boolean; miniatura?: string }[];
                   autorizacaoRegistrada: boolean }) => void;
 }) {
   const [tipo, setTipo] = useState('');
@@ -678,15 +687,17 @@ function FolhaVivencia({ tipos, onFechar, onEnviar }: {
 
         <div className="row rodape">
           <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
-          <button className="btn grow" disabled={!pode} onClick={() => onEnviar({
+          <button className="btn grow" disabled={!pode} onClick={async () => onEnviar({
             tipo, quando, descricao: descricao.trim(),
             /* A autorização vale para as fotos DESTE envio. Ela é por foto no
                banco — a festa pode ter uma com uma criança de outra casa —, e
                a tela ainda não pergunta uma a uma: quando perguntar, o campo
                já está lá. */
-            fotos: fotos.map((f) => ({
+            fotos: await Promise.all(fotos.map(async (f) => ({
               conteudo: f.dataUrl, nomeArquivo: f.nome, autorizacaoRegistrada: autorizada,
-            })),
+              /* A miniatura vai junto (fase 209): o álbum lista as pequenas. */
+              miniatura: (await miniaturaDe(f.dataUrl)) ?? undefined,
+            }))),
             autorizacaoRegistrada: autorizada,
           })}>
             Guardar no álbum
@@ -705,8 +716,8 @@ function FolhaVivencia({ tipos, onFechar, onEnviar }: {
  * vez numa conexão de casa é a tela que não abre, e o álbum é justamente o que
  * a equipe mostra para a criança no meio do plantão.
  */
-function FolhaFoto({ personId, vivencia, onFechar }: {
-  personId: string; vivencia: Vivencia; onFechar: () => void;
+function FolhaFoto({ personId, vivencia, papel, onFechar, onMudou }: {
+  personId: string; vivencia: Vivencia; papel: string; onFechar: () => void; onMudou: () => void;
 }) {
   const fotos = vivencia.fotos?.length
     ? vivencia.fotos
@@ -752,6 +763,7 @@ function FolhaFoto({ personId, vivencia, onFechar }: {
             A autorização de uso de imagem desta criança não está registrada nesta foto.
           </div>
         )}
+        {atual.id && <QuemApareceNaFoto personId={personId} foto={atual} papel={papel} onMudou={onMudou} />}
         {/* Passar de foto mora no rodapé que acompanha a rolagem (fase 184):
             no celular a foto ocupa a tela, e os botões abaixo dela ficavam
             cobertos pelo Fechar. */}
@@ -767,6 +779,126 @@ function FolhaFoto({ personId, vivencia, onFechar }: {
           <button className="btn grow" onClick={onFechar}>Fechar</button>
         </div>
       </div>
+    </div>
+  );
+}
+
+/* AS MINIATURAS do álbum (fase 209): a foto pequena na lista, a inteira no toque.
+   Foto guardada antes da miniatura existir mostra o botão, como antes. */
+function Miniaturas({ personId, vivencia, onAbrir }: { personId: string; vivencia: Vivencia; onAbrir: () => void }) {
+  const [srcs, setSrcs] = useState<Record<string, string>>({});
+  const comMini = (vivencia.fotos ?? []).filter((f) => f.temMiniatura);
+  useEffect(() => {
+    let vivo = true;
+    (async () => {
+      for (const f of comMini) {
+        try {
+          const a = await api<{ tipo: string; conteudo: string }>(
+            `/people/${personId}/memories/${vivencia.id}/photos/${f.id}/miniatura`);
+          if (vivo) setSrcs((x) => ({ ...x, [f.id]: `data:${a.tipo};base64,${a.conteudo}` }));
+        } catch { /* sem a miniatura, fica o botão */ }
+      }
+    })();
+    return () => { vivo = false; };
+  }, [personId, vivencia.id]);
+  if (!comMini.length) return null;
+  return (
+    <div className="miniaturas">
+      {comMini.map((f, i) => srcs[f.id] && (
+        <button key={f.id} type="button" className="miniatura" onClick={onAbrir}
+                aria-label={`Abrir a foto ${i + 1} de ${vivencia.descricao}`}>
+          <img src={srcs[f.id]} alt="" />
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/* QUEM APARECE NA FOTO (fase 209): a pessoa marca, e a foto entra no álbum de
+   cada criança marcada. Desmarcar pede o motivo. Nenhum rosto é reconhecido
+   pela máquina: é dado biométrico de criança. */
+const MARCA_NA_FOTO = ['educador', 'lider_diurno', 'lider_noturno_geral', 'equipe_tecnica', 'coordenador'];
+function QuemApareceNaFoto({ personId, foto, papel, onMudou }: {
+  personId: string; foto: FotoDaVivencia; papel: string; onMudou: () => void;
+}) {
+  const [casa, setCasa] = useState<{ id: string; nome: string }[]>([]);
+  const [escolhida, setEscolhida] = useState('');
+  const [autorizada, setAutorizada] = useState(false);
+  const [msg, setMsg] = useState('');
+  const [tirando, setTirando] = useState<QuemAparece | null>(null);
+  const [motivo, setMotivo] = useState('');
+  const pode = MARCA_NA_FOTO.includes(papel);
+  const marcados = foto.quemAparece ?? [];
+  useEffect(() => {
+    if (!pode) return;
+    api<{ casaAtual?: { id: string } }>(`/people/${personId}`)
+      .then((p) => p.casaAtual?.id
+        ? api<{ id: string; nome: string }[]>(`/people?houseId=${p.casaAtual.id}`) : [])
+      .then((l) => setCasa(l.filter((c) => c.id !== personId)))
+      .catch(() => setCasa([]));
+  }, [personId, pode]);
+
+  async function marcar() {
+    setMsg('');
+    try {
+      const r = await api<{ aviso: string }>(`/people/memory-photos/${foto.id}/pessoas`, {
+        method: 'POST', body: JSON.stringify({ personId: escolhida, autorizacaoRegistrada: autorizada }) });
+      setMsg(r.aviso); setEscolhida(''); setAutorizada(false); onMudou();
+    } catch (e) { setMsg(e instanceof Error ? e.message : 'Não foi possível marcar.'); }
+  }
+  async function desmarcar() {
+    if (!tirando) return;
+    setMsg('');
+    try {
+      const r = await api<{ aviso: string }>(`/people/memory-tags/${tirando.marcaId}/remover`, {
+        method: 'POST', body: JSON.stringify({ motivo: motivo.trim() }) });
+      setMsg(r.aviso); setTirando(null); setMotivo(''); onMudou();
+    } catch (e) { setMsg(e instanceof Error ? e.message : 'Não foi possível tirar a marca.'); }
+  }
+
+  return (
+    <div className="quem-aparece">
+      <div className="eyebrow">Quem mais aparece nesta foto</div>
+      {marcados.length === 0 && <p className="mutetxt" style={{ margin: 0 }}>Ninguém marcado ainda.</p>}
+      <ul className="lista-seca">
+        {marcados.map((m) => (
+          <li key={m.marcaId} className="row">
+            <span className="grow">
+              <b>{m.nome}</b>
+              <span className="mutetxt">{m.marcadaPor ? ` · marcou ${m.marcadaPor}` : ''}</span>
+              {!m.autorizacaoRegistrada && <span className="pill c-warn" style={{ marginLeft: 6 }}>sem autorização de imagem</span>}
+            </span>
+            {pode && <button type="button" className="btn sm ghost" onClick={() => setTirando(m)}>Tirar a marca</button>}
+          </li>
+        ))}
+      </ul>
+      {tirando && (
+        <div className="stack">
+          <label className="f" htmlFor="tirar-mot">Por que a marca de {tirando.nome} sai</label>
+          <input id="tirar-mot" value={motivo} onChange={(e) => setMotivo(e.target.value)}
+                 placeholder="Ex.: não é ela na foto" />
+          <div className="row" style={{ gap: 8 }}>
+            <button type="button" className="btn sm sec grow" onClick={() => setTirando(null)}>Cancelar</button>
+            <button type="button" className="btn sm grow" disabled={motivo.trim().length < 5} onClick={desmarcar}>Tirar a marca</button>
+          </div>
+        </div>
+      )}
+      {pode && casa.length > 0 && (
+        <div className="stack">
+          <label className="f" htmlFor="marcar-quem">Marcar mais alguém da casa</label>
+          <select id="marcar-quem" value={escolhida} onChange={(e) => setEscolhida(e.target.value)}>
+            <option value="">Escolha a criança</option>
+            {casa.filter((c) => !marcados.some((m) => m.personId === c.id))
+              .map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
+          </select>
+          <label className="row" style={{ gap: 8 }}>
+            <input type="checkbox" checked={autorizada} onChange={(e) => setAutorizada(e.target.checked)} />
+            <span>A autorização de imagem desta criança está registrada</span>
+          </label>
+          <button type="button" className="btn sm sec" disabled={!escolhida} onClick={marcar}>Marcar na foto</button>
+        </div>
+      )}
+      {msg && <div className="notice c-info" role="status">{msg}</div>}
     </div>
   );
 }

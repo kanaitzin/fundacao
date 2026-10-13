@@ -20,7 +20,7 @@ começava escolhendo em qual acreditar.*
 
 | Arquivo | Por que sobreviveu |
 |---|---|
-| `der.md` | as 134 tabelas com o que cada coluna guarda. É referência de dado, não narrativa, e o `documentacao.spec.ts` cobra que toda tabela apareça lá |
+| `der.md` | as 135 tabelas com o que cada coluna guarda. É referência de dado, não narrativa, e o `documentacao.spec.ts` cobra que toda tabela apareça lá |
 | `roteiro-marcelo.md` (+ `.docx`) | é entregue à Casa 03, escrito para quem não conhece o sistema. O `.docx` é GERADO do `.md` por `scripts/roteiro-em-word.mjs` — não editar o Word à mão |
 
 ---
@@ -90,10 +90,10 @@ discordavam entre si.
 | Quanto | De onde sai |
 |---|---|
 | **19 partições** isoladas | pastas em `backend/src/modules/` |
-| **190 migrações** | `.sql` dentro das partições |
-| **134 tabelas** | `CREATE TABLE` nas migrações |
-| **139 suítes** | `backend/test/*.spec.ts` |
-| **1258 testes** | `it(` / `test(` nas suítes |
+| **191 migrações** | `.sql` dentro das partições |
+| **135 tabelas** | `CREATE TABLE` nas migrações |
+| **140 suítes** | `backend/test/*.spec.ts` |
+| **1263 testes** | `it(` / `test(` nas suítes |
 | **39 telas React** | `frontend/src/screens/*.tsx` |
 | **10 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **10 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
@@ -418,6 +418,8 @@ arqueologia.
 | 206 | **O calendário das ATAs e dos plantões** (pedido de 12/10: *"onde é que está o dia? Quando é que ele sabe ver outros períodos? Não tem um calendário […] uma tabela bem colorida […] desde o início […] umas historinhas nas atas de outros dias"*). Na **Passagem**, embaixo dos plantões de hoje, e na aba **Arquivo** da ATA, o mês em grade: cada dia com o turno do dia (sol) e o da noite (lua) pintados pela situação da ATA, com as cores de ESTADO da pílula (fechada, com pendência, aberta, sem ATA) e a palavra na legenda e no nome do botão; o ponto marca o turno que teve episódio. Tocar no turno abre aquele plantão (na Passagem, com a ATA em folha para ler e baixar em Word; no Arquivo, a ATA inteira, com **Voltar ao calendário**). Embaixo, os números do mês, todos da casa: ATAs, fechadas, com pendência, abertas, passagens, episódios, adendos, noites com chamado à ATA Geral. Nenhum número por pessoa nem por criança. A leitura é a do Arquivo (`/shifts/ata-archive`, recorte do mês), sem rota nova. **No protótipo**, o livro da casa tem meses de histórias fictícias desde 01/07, sorteadas com semente na data (o mesmo dia conta sempre a mesma história), e os plantões vivos aparecem no dia em que começaram. Do plantão de outro dia, o formulário da passagem tardia fica a um toque e o Recebi não aparece. **Achou dois defeitos antigos**: abrir uma ATA pelo Arquivo trocava o plantão e **deixava na tela o texto das seções da ATA aberta antes** (a ATA de outro dia aparecia com o texto de hoje, no sistema de verdade também); e no protótipo **abrir uma ATA do arquivo quebrava a tela** (as linhas vinham sem autor). O `ensaio:uso` ganhou o bloco do calendário, e o `ensaio-servidor` abre o calendário de cada conta contra o servidor. |
 | 207 | **A saída das crianças pelo portão** (pedido de 12/10: *"o acolhido tem autorização da casa para poder sair […] quem autoriza é o educador, líder, coordenador e equipe técnica […] registrando o porquê e por quanto tempo […] não precisa a portaria saber o motivo […] a portaria controla"*). A decisão de 1020 (sair sozinho) passa a ser da **equipe da casa**: educador, líder, equipe técnica e coordenação (antes só a técnica, a coordenação e o gestor; people/1650). No perfil, o bloco virou **Sair sem acompanhante**, com palavras que não dependem do gênero: pode sair sem acompanhante, só sai com acompanhante, ou não pode sair sem acompanhante por um tempo, com o motivo e o **até quando**; a frase feia do perfil (*"a casa faz o que sempre fez"*) virou *"Até alguém da equipe decidir, ele só sai com acompanhante"*; e a suspensão deixou o vermelho (é estado, não juízo). Na **Portaria**, a aba **Saídas das crianças**: cada criança da casa com o que vale, quem decidiu e desde quando, **sem o motivo**, quem está fora agora (com a volta combinada e *passou da hora combinada*), e o registro da saída e da volta (`child_outing`). Sem acompanhante, o servidor só aceita quem a equipe autorizou; sem decisão, só sai com acompanhante, com o nome de quem vai junto. A volta registrada mais de quinze minutos depois pede a frase do que houve. O perfil lista as saídas pelo portão. **Achou, no teste que lê de volta**, a auditoria da saída registrada pela portaria nascendo **sem casa** (a portaria não lê a casa da criança; a função passou a devolvê-la). E corrige um defeito que a 206 deixou no protótipo: as passagens da noite do livro fictício eram de pessoas que não estão no quadro da casa. |
 | 208 | **O perfil do acolhido em abas coloridas** (pedido de 12/10: *"tu tem que rolar muito […] embaixo da foto uns submenuzinhos: educação, saúde, judiciário […] os atendimentos pela equipe […] visitas […] vivência […] pinta por cores"*). O que protege a criança (alergia, restrição, cuidados e remédio de hoje) continua acima de tudo, e o resto foi para oito abas, cada uma com a sua cor na barra e no desenho, e a palavra sempre escrita: **Hoje** (compromissos, presença, equipe de referência), **Família e visitas** (sair sem acompanhante, contatos, visitas com o relatório, convivência familiar), **Saúde** (com as internações), **Educação**, **Judiciário** (como chegou, episódios, área restrita, ofícios), **Vida na casa** (o aniversário e o tempo de casa em frase, conquistas, memórias, dossiê e vivências), **Atendimentos** (tudo o que a casa registrou sobre a criança, **dia por dia**, pela linha do tempo no modo de um acolhido, sem rota nova) e **Cadastro** (documentos, correções, quem mexeu, a saída da casa). A cor da aba diz a parte da vida da criança e nunca vira pílula, para não se confundir com as cores de estado, autor e cargo. No celular, as abas ficam em duas colunas. A Acolhe+AI escolhe a aba pelo assunto (*"as visitas do Bruno"* abre Família e visitas). No protótipo, os Atendimentos têm meses de dias fictícios por criança. O `ensaio:uso` passou a percorrer as abas como a pessoa percorre. |
+| 209 | **Quem aparece na foto, e a foto pequena** (pedido de 12/10: *"a IA reconhecer quando aquele jovem está numa foto e levar para a pasta dele […] um banco robusto para aguentar bastante foto […] quando clicar, ela abrir"*). **O reconhecimento de rosto não entrou**: é dado biométrico de criança (LGPD), pede base legal, relatório de impacto e o DPO, e um erro poria a foto de uma criança na pasta de outra. O que entrou resolve a mesma coisa pela mão de quem guardou a foto: na foto aberta, **Quem mais aparece nesta foto**, e marcar uma criança da mesma casa põe a foto também no álbum dela (*Fotos em que ela aparece*, na Vida na casa), com quem marcou e a autorização de imagem de cada criança marcada; tirar a marca pede o motivo e a marca fica, retirada (`memory_photo_person`, people/1651; só criança da mesma casa, só a equipe da casa). E **a miniatura**: o aparelho faz uma de uns 320 px junto da foto, o álbum lista as pequenas e a inteira abre no toque; a miniatura não vai à auditoria, a foto aberta vai. A estimativa de espaço para oito casas em dez anos está no §12.2. |
+| 210 | **O dia, em ordem, com cor e mais curto** (pedido de 12/10: *"não tá nem separado por cor […] como eu sei que um é coletivo e o outro não […] uma explicação de cores em cima […] no telefone, tem que descer muito"*). O dia das unidades virou uma linha por evento, com a cor da categoria na borda e o desenho dela (as mesmas do Dia, agora num lugar só, `frontend/src/categorias-do-dia.ts`), e em cada linha **da casa toda** ou **o nome da criança**. Em cima, a legenda das cores do dia e dos dois desenhos; o dia em quatro partes (madrugada, manhã, tarde, noite); e **Só o que ainda precisa de alguém**, que deixa o resto a um toque. O estado normal deixou de ser verde, que se lia como *foi bem*. |
 
 ---
 
@@ -465,7 +467,7 @@ cd frontend && npm run prototipo
 ```
 
 O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as
-190 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
+191 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
 
 ### Os ensaios — e por que cada um existe
 
@@ -532,7 +534,7 @@ rede-acolher/
 │   │   │   ├── documentos/     o contrato da folha e o gerador de .docx
 │   │   │   └── common/         CPF, criptografia, segredo, fuso da instituição
 │   │   └── modules/       19 partições, cada uma dona das próprias migrações
-│   ├── test/              139 suítes (e2e contra PostgreSQL real + estáticas)
+│   ├── test/              140 suítes (e2e contra PostgreSQL real + estáticas)
 │   ├── scripts/           ensaio-carga.ts, migrador compilado
 │   └── assets/timbre.png  a marca da Fundação, usada no documento em Word
 ├── frontend/
@@ -2898,13 +2900,22 @@ precisasse restaurar, que é o pior dia possível para descobrir qualquer coisa.
 Perder um dos dois é perder documento de criança **sem que o banco acuse nada**:
 ele continua dizendo que o arquivo existe.
 
+**Quanto espaço as fotos pedem** (estimativa da fase 209, pedido de 12/10: *"oito casas
+durante dez anos"*). A foto sai do aparelho reduzida, por volta de 500 KB (fase 175), e
+leva junto uma miniatura de uns 25 KB, que é o que o álbum lista. Com dez fotos por
+semana em cada casa, as oito casas guardam umas 4.200 fotos por ano: **cerca de 2,2 GB
+por ano, uns 22 GB em dez anos**, mais o dossiê. No banco fica só a linha de cada foto
+(alguns megabytes no total). É disco comum, e o que pesa é o **backup**: o
+`ARQUIVOS_DIR` entra inteiro nele, e a cópia fora da máquina precisa caber esse
+crescimento. Vídeo não entra no álbum: um minuto de vídeo de celular pesa como cem fotos.
+
 ### 12.3 Subir o sistema — e provar que ele sobe
 
 ```bash
 npm run ensaio:producao
 ```
 
-Constrói, cria um banco virgem, aplica as 190 migrações **pelo binário
+Constrói, cria um banco virgem, aplica as 191 migrações **pelo binário
 compilado**, sobe o serviço e confere `/health`. Não publica nada e não toca no
 banco de trabalho.
 
