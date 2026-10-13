@@ -3317,10 +3317,11 @@ const sequencia = await pg.locator('.overlay .sheet').innerText();
 cobrar('a leitura abre o dia com a diurna e depois a noturna',
   sequencia.indexOf('ATA diurna de') >= 0 && sequencia.indexOf('ATA noturna de') > sequencia.indexOf('ATA diurna de'),
   sequencia.slice(0, 160));
-/* O livro fictício (fase 206) escolhe a nota do dia pela data: a cobrança aceita qualquer
-   uma delas, e não a de um dia só (de madrugada, "ontem" muda e a nota também). */
+/* O que a equipe escreveu muda conforme o dia (o livro fictício da 206 escolhe a nota pela
+   data, e depois da meia-noite "ontem" é outro dia): a cobrança confere a seção dos registros
+   com a hora e o nome de quem escreveu, e não uma frase. */
 cobrar('e cada ATA vem como a folha, com o que a equipe escreveu',
-  /bilhete da professora|van da escola|Faltou leite|medalha na gincana|chuveiro|ligar para a avó|uniforme novo|esqueceu o casaco|rotina de tema|curso de violão/.test(sequencia),
+  /REGISTROS DA EQUIPE NO TURNO\s+\d{2}:\d{2}\. .+\(fictíci[oa]\)/.test(sequencia),
   sequencia.slice(0, 300));
 await fechar();
 await pg.getByRole('tab', { name: /^Só noturno$/ }).click();
