@@ -490,7 +490,7 @@ export function Saude({ houseId, casaLabel, papel }: {
         <>
           <div className="notice c-crit">
             Cada dose é confirmada <b>somente por quem a administrou</b>, na conta dela.
-            Ninguém confirma pelo outro, e não existe marcação em lote.
+            Cada uma é confirmada por vez, por quem deu.
           </div>
           {/* A folha que fica no armário da medicação. Vem depois do resumo do
               dia porque conferir na tela é o caminho normal; o papel é para o
@@ -577,8 +577,7 @@ export function Saude({ houseId, casaLabel, papel }: {
           </ul>
           <p className="mutetxt" style={{ marginTop: 12 }}>
             Dose que passou da hora aparece como <b>sem confirmação</b>, nunca como
-            “não administrada”. A diferença entre as duas frases é uma conclusão — e a
-            conclusão é da equipe, não do sistema.
+            “não administrada”. Se a dose foi dada ou não, quem diz é a equipe.
           </p>
         </>
       )}
@@ -2314,7 +2313,7 @@ function GerarEmWord({ rotulo, gerarCom, id }: {
   }
   return (
     <div className="stack">
-      <label className="f" htmlFor={id}>{rotulo} <small>— para quê (fica registrado)</small></label>
+      <label className="f" htmlFor={id}>{rotulo} <small>(para quê; fica registrado)</small></label>
       <input id={id} value={finalidade} onChange={(e) => setFinalidade(e.target.value)}
              placeholder="Ex.: prestação de contas do mês" />
       <button className="btn sec block" disabled={finalidade.trim().length < 10 || ocupado} onClick={gerar}>

@@ -147,7 +147,7 @@ export function Portaria({ houseId, casaLabel }: { houseId: string; casaLabel: s
       {aba === 'visitantes' && portao && (
         <>
           <label className="f" htmlFor="port-busca">
-            Quem chegou? <small>— procure pelo nome da pessoa ou da criança</small>
+            Quem chegou? <small>Procure pelo nome da pessoa ou da criança</small>
           </label>
           <input id="port-busca" type="search" className="busca-grande" value={busca}
                  onChange={(e) => setBusca(e.target.value)} placeholder="Ex.: Simoni, ou Alice" />

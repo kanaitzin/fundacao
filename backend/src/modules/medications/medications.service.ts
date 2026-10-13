@@ -688,7 +688,7 @@ export class MedicationsService {
     return {
       id,
       aviso: 'Registrado com o seu nome e o horário. O que aconteceu depois pode ser escrito '
-        + 'quando se souber — não há prazo, e ninguém vai cobrar.',
+        + 'quando se souber. Não há prazo, e ninguém vai cobrar.',
     };
   }
 

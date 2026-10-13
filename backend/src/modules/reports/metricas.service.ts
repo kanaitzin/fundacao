@@ -174,8 +174,8 @@ export class MetricasService {
        */
       ressalvas: [
         soma((c) => c.notasSemValor) > 0
-          ? `${soma((c) => c.notasSemValor)} nota(s) fiscal(is) sem valor lançado — o total `
-            + 'gasto é MAIOR do que o número acima. Lançar o valor é o que fecha a conta.'
+          ? `${soma((c) => c.notasSemValor)} nota(s) fiscal(is) sem valor lançado `
+            + '(o total gasto é maior do que o número acima até elas terem valor).'
           : null,
         /*
          * A FRASE MUDA COM O SISTEMA, e é a terceira versão dela.
@@ -185,17 +185,14 @@ export class MetricasService {
          * não o contava — era verdade até esta. **Frase de tela que envelhece é
          * frase que mente**, e é por isso que ela é reescrita junto do código.
          */
-        'Não existe nota escolar neste sistema, e não vai existir. O que o painel conta é o '
-        + 'CONCEITO do bimestre, escrito pela equipe com o porquê ao lado — quem está '
-        + 'acompanhando o ano e quem não está. "Acompanha com apoio" não vira caixa: é uma '
-        + 'criança que ESTÁ acompanhando, e o apoio já tem a caixa dele.',
+        'O painel conta o conceito do bimestre que a equipe escreveu, com o porquê ao lado: '
+        + 'quem está acompanhando o ano e quem não está. Quem acompanha com apoio conta como '
+        + 'acompanhando, e o apoio aparece na caixa dele.',
         /* O número contado é do BIMESTRE que encosta na janela, e não da data em que
            alguém digitou: o retorno atrasado da escola é o caso comum. */
-        'O conceito conta pelo BIMESTRE, não pela data em que foi digitado — o conceito do 3º '
-        + 'bimestre lançado em novembro conta no 3º. E conta uma vez por criança: a versão '
-        + 'corrigida é história, e não soma.',
-        'As casas saem na ordem do código, nunca por resultado: ordenar por número é a '
-        + 'classificação pronta, e ela precisa ser decisão de quem lê.',
+        'O conceito conta no bimestre a que se refere, mesmo lançado depois: o do 3º bimestre '
+        + 'lançado em novembro conta no 3º. E conta uma vez por criança, na versão mais recente.',
+        'As casas aparecem na ordem do código.',
       ].filter(Boolean) as string[],
     };
   }

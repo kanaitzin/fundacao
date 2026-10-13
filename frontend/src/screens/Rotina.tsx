@@ -188,8 +188,8 @@ export function Rotina({ houseId, papel }: { houseId: string; papel: string }) {
           )}
           {!pode && (
             <p className="mutetxt" style={{ marginBottom: 0 }}>
-              Alterar a rotina é da equipe técnica e da coordenação. O que o turno cria — a
-              atividade que apareceu agora — entra pelo Dia, e não muda o molde da casa.
+              Quem altera a rotina é a equipe técnica ou a coordenação. A atividade que apareceu
+              agora, no turno, entra pelo Dia, e não muda o molde da casa.
             </p>
           )}
         </div>

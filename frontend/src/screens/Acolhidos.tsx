@@ -476,7 +476,7 @@ export function Acolhidos({ houseId, casaLabel, papel, abrir, paraALista }: {
         */}
       {observar.length > 0 && (
         <div className="card stack" style={{ marginBottom: 12 }}>
-          <div className="eyebrow">Saídas de hoje — atenção</div>
+          <div className="eyebrow">Saídas de hoje: atenção</div>
           {observar.map((o) => (
             <div key={o.personId}>
               <div className="row">
@@ -656,7 +656,7 @@ export function Acolhidos({ houseId, casaLabel, papel, abrir, paraALista }: {
       {REGISTRA_SAIDA.includes(papel) && (
         <button data-acolhe-entra="" className="btn block sec" style={{ marginTop: 8 }}
                 onClick={() => setVendoAcervo(true)}>
-          <Icone nome="arquivo" /> Acervo histórico — quem saiu, e registrar retorno
+          <Icone nome="arquivo" /> Acervo histórico: quem saiu, e registrar retorno
         </button>
       )}
 
@@ -1293,8 +1293,8 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
             procurar num lugar sem proteção nenhuma. */}
         {p.documentosRestritos > 0 && (
           <p className="mutetxt" style={{ marginBottom: 0 }}>
-            Mais {p.documentosRestritos} documento(s) em área restrita ao seu cargo. Existem, e
-            estão guardados — quem precisa deles é a equipe técnica.
+            Mais {p.documentosRestritos} documento(s) em área restrita ao seu cargo. Estão guardados,
+            e quem os consulta é a equipe técnica.
           </p>
         )}
       </Secao>
@@ -3990,7 +3990,7 @@ function VisitasDoAcolhido({ personId }: { personId: string }) {
       )}
       <p className="mutetxt">{dados.aviso}</p>
       <label className="f" htmlFor="visp-fin">
-        Relatório de visitas em Word <small>— para quê (fica registrado)</small>
+        Relatório de visitas em Word <small>(para quê; fica registrado)</small>
       </label>
       <input id="visp-fin" value={finalidade} onChange={(e) => setFinalidade(e.target.value)}
              placeholder="Ex.: relatório para a audiência concentrada" />
@@ -4072,8 +4072,8 @@ function OficiosDoAcolhido({ personId }: { personId: string }) {
   return (
     <Secao titulo="Comunicações a órgãos externos">
       <p className="mutetxt" style={{ marginTop: 0 }}>
-        Ofícios redigidos sobre esta criança. O sistema <b>não despacha nada</b>: a entrega é
-        feita pelo canal que a instituição decidir, e fica registrada aqui com o responsável.
+        Ofícios redigidos sobre esta criança. A entrega é feita pelo canal de costume da
+        instituição, e fica registrada aqui com o nome de quem entregou.
       </p>
       <ul className="lista">
         {linhas.map((o) => (
@@ -4877,8 +4877,8 @@ function AuditoriaDoAcolhido({ personId, papel }: { personId: string; papel: str
       {!aberto && (
         <p className="mutetxt">
           Últimos 90 dias, com o nome de quem agiu e a finalidade declarada, quando houve.{' '}
-          <b>Abrir a auditoria também é um ato</b> — e ela não responde "o que fulano fez": a
-          pergunta aqui é sobre a criança.
+          Abrir esta lista também fica registrado. Ela mostra o que foi feito com o registro
+          desta criança, e não o trabalho de cada colega.
         </p>
       )}
       {!aberto && (

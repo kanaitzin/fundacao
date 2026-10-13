@@ -304,8 +304,8 @@ export function Equipe({ papel }: { papel: string }) {
         </ul>
 
         <p className="mutetxt" style={{ marginTop: 12, marginBottom: 0 }}>
-          Não existe remover. Desligado é <b>desativado</b>: o acesso acaba na hora e as
-          sessões abertas caem, mas tudo o que a pessoa registrou continua com o nome dela.
+          Quem sai da equipe é <b>desativado</b>: o acesso acaba na hora e as sessões abertas
+          caem, e tudo o que a pessoa registrou continua com o nome dela.
         </p>
       </div>
       )}

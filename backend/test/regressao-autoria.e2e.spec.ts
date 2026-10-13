@@ -543,7 +543,7 @@ describe('Regressão — escopo, autoria e primeiro acesso', () => {
       .get(`/api/v1/activities/shift-board?houseId=${AI3}`).set(auth(tokens.educador));
     expect(meu.status).toBe(200);
     expect(Array.isArray(meu.body.linhas)).toBe(true);
-    expect(meu.body.nota).toMatch(/não é medição/i);
+    expect(meu.body.nota).toMatch(/não há contagem por pessoa/i);
     /* O cargo do responsável chega a quem NÃO é ele (fase 172, lição da 152):
        a atividade delegada ao segundo educador, lida pelo primeiro. Por JOIN
        em app_user, o educador leria só a própria linha e o cargo viria nulo. */

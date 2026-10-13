@@ -158,7 +158,7 @@ export function ConvivenciasDoTurno({ lista, titulo }: {
       </ul>
       <div className="mutetxt">
         A vaga na casa continua ocupada em todos os casos acima. Quem está fora não
-        entra na chamada, na rotina nem na grade de medicamentos — e o remédio que foi
+        entra na chamada, na rotina nem na grade de medicamentos, e o remédio que foi
         com a criança está na folha do perfil dela.
       </div>
     </div>

@@ -16,11 +16,11 @@ export interface CampoDoPerfil {
 
 export const CAMPOS_DO_PERFIL: CampoDoPerfil[] = [
   { code: 'escola', rotulo: 'Escola',
-    oQueSome: 'Nome, série, turno e endereço da escola — e o telefone para ligar quando a criança falta.' },
+    oQueSome: 'Nome, série, turno e endereço da escola, e o telefone para ligar quando a criança falta.' },
   { code: 'contatos', rotulo: 'Quem aparece pela criança',
     oQueSome: 'A lista de contatos e os telefones. O educador deixa de saber quem é a pessoa que apareceu no portão.' },
   { code: 'equipe_referencia', rotulo: 'Equipe de referência',
-    oQueSome: 'O serviço da rede que acompanha a criança — CRAS, CAPS, unidade de saúde.' },
+    oQueSome: 'O serviço da rede que acompanha a criança: CRAS, CAPS, unidade de saúde.' },
   { code: 'cuidados_essenciais', rotulo: 'Cuidados essenciais',
     oQueSome: 'O texto de como cuidar desta criança no dia a dia.' },
 ];

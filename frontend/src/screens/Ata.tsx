@@ -815,7 +815,7 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
                     */}
                   {plantao.escalaLancada === false && (
                     <li className="mutetxt">
-                      A escala deste turno não foi lançada — o sistema não diz quem devia estar.
+                      A escala deste turno não foi lançada, então não há lista de quem devia estar.
                     </li>
                   )}
                   {plantao.passagens.length === 0 && plantao.assinaturasPendentes.length === 0
@@ -831,8 +831,8 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
                       {plantao.passagens.length === 0
                         ? 'E nenhuma passagem foi assinada. Fechar assim registra a ATA COM '
                           + 'PENDÊNCIA: não há nome a cobrar, e o turno ficou sem registro.'
-                        : 'Quem esteve na casa assinou, e é isso que a ATA leva. Não há nome a '
-                          + 'cobrar — o sistema não deduz quem devia estar.'}
+                        : 'Quem esteve na casa assinou, e é isso que a ATA leva. Sem escala, não há '
+                          + 'nome a cobrar.'}
                     </div>
                   </div>
                 )}
@@ -953,8 +953,8 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
                   */}
                 <div className="eyebrow">O que ficou escrito neste turno</div>
                 <p className="mutetxt" style={{ margin: 0 }}>
-                  Cada linha fica com o nome de quem escreveu e não é reescrita — para corrigir,
-                  escreva outra. É o que a equipe que entra lê antes de começar o turno.
+                  Cada linha fica com o nome de quem escreveu. Para corrigir, escreva outra
+                  linha. É o que a equipe que entra lê antes de começar o turno.
                 </p>
 
                 {(plantao.linhas?.notas.length ?? 0) === 0 && (
@@ -1023,7 +1023,7 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
                 {!lendoAnterior && plantao.ata && ['rascunho', 'reaberta'].includes(plantao.ata.status) && (
                   <div className="card stack">
                     <label className="f" htmlFor="linha-ata">
-                      Escrever uma linha <small>— fica com o seu nome</small>
+                      Escrever uma linha <small>(fica com o seu nome)</small>
                     </label>
                     <textarea id="linha-ata" rows={2} value={linha}
                               onChange={(e) => setLinha(e.target.value)}
@@ -1034,7 +1034,7 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
                                onChange={(e) => setLinhaRestrita(e.target.checked)} />
                         <span>
                           Só para a coordenação, a equipe técnica e os líderes
-                          <small className="mutetxt"> — quem não alcança vê que existe, não o que diz</small>
+                          <small className="mutetxt"> (os outros cargos veem que existe, mas não o que diz)</small>
                         </span>
                       </label>
                     )}
@@ -1070,9 +1070,8 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
 
                 <div className="eyebrow">Episódios do turno</div>
                 <p className="mutetxt" style={{ margin: 0 }}>
-                  O que aconteceu com um acolhido neste turno, descrito pelo fato. A
-                  classificação é do FATO, nunca da criança — não existe gravidade, nota nem
-                  comparação entre acolhidos. O relato não pode ser alterado depois: quem assume
+                  O que aconteceu com um acolhido neste turno, descrito pelo fato. O tipo
+                  escolhido diz o que aconteceu, e não quem a criança é. O relato não pode ser alterado depois: quem assume
                   o turno registra <b>ciência</b>, e o comentário dele nasce ao lado.
                 </p>
 

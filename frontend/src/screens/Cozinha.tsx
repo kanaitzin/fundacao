@@ -320,13 +320,13 @@ export function Cozinha({ houseId, casaLabel, papel }: {
           <div className="eyebrow">Folhas para a cozinha</div>
           <div className="stack" style={{ marginBottom: 12 }}>
             <button className="btn sec block" onClick={() => abrirFolha('lanches')}>
-              <Icone nome="documento" /> Solicitação de lanche — do período
+              <Icone nome="documento" /> Solicitação de lanche do período
             </button>
             <button className="btn sec block" onClick={() => abrirFolha('cestas')}>
-              <Icone nome="documento" /> Solicitação de cesta básica — do período
+              <Icone nome="documento" /> Solicitação de cesta básica do período
             </button>
             <button className="btn sec block" onClick={() => abrirFolha('restricoes')}>
-              <Icone nome="documento" /> Restrições alimentares — da casa
+              <Icone nome="documento" /> Restrições alimentares da casa
             </button>
           </div>
 

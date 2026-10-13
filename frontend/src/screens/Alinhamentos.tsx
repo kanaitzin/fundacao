@@ -344,7 +344,7 @@ export function Alinhamentos({ houseId, casaLabel }: { houseId: string; casaLabe
                   setDocumento(await api<DocumentoWord>(
                     `/alignments/statute/folha?houseId=${houseId}&publico=acolhidos`));
                 }}>
-                  Folha para a parede — só o que é das crianças
+                  Folha para a parede, só com o que é das crianças
                 </button>
               </>
             );
@@ -684,9 +684,8 @@ function FolhaCombinado({ onFechar, onGravar }: {
       <div className="sheet modal">
         <h3 id="t-cmb">Registrar um combinado</h3>
         <div className="notice c-info">
-          O texto de um combinado <b>não se reescreve</b>. Mudou de ideia? Registre outro
-          dizendo que substitui este — é assim que a equipe muda de acordo sem apagar o que
-          todo mundo cumpriu até ontem.
+          Mudou o combinado? Registre outro dizendo que substitui este. O de antes fica
+          guardado, com o que a equipe cumpriu até aqui.
         </div>
 
         <label className="f" htmlFor="cmb-txt">

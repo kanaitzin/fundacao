@@ -179,7 +179,7 @@ export function Periodo({ casaId }: { casaId: string | null }) {
         <div>
           <h2>O período da casa</h2>
           <p className="mutetxt">
-            Como foi a casa no intervalo que você escolher — de um dia a seis meses.
+            Como foi a casa no intervalo que você escolher, de um dia a seis meses.
             O que aconteceu, escrito por quem estava lá.
           </p>
         </div>
@@ -213,7 +213,7 @@ export function Periodo({ casaId }: { casaId: string | null }) {
       </div>
       <p className="mutetxt">
         Sem datas, são os últimos sete dias. O período vai até{' '}
-        {voc?.janelaMaximaDias ?? 184} dias — seis meses.
+        {voc?.janelaMaximaDias ?? 184} dias, seis meses.
       </p>
 
       {erro && <div className="notice c-crit" role="alert">{erro}</div>}

@@ -52,7 +52,13 @@ async function medir(pg) {
   return pg.evaluate(() => {
     const vw = document.documentElement.clientWidth;
     const vh = window.innerHeight;
-    const r = { vaza: 0, fora: [], cortado: [], naoCabe: [], encostados: [], pequeno: [], medio: 0, escondido: null };
+    const r = { vaza: 0, fora: [], cortado: [], naoCabe: [], encostados: [], pequeno: [], medio: 0, escondido: null, raciocinio: [] };
+    const MARCAS = /o sistema não|não existe|de prop[óo]sito|justamente|não é (medição|avaliação|julgamento|supervisão)|por construção|é por isso que|quem consulta também/i;
+    for (const el of document.querySelectorAll('main.conteudo, .overlay, .folha')) {
+      for (const linha of el.innerText.split('\n')) {
+        if (MARCAS.test(linha)) r.raciocinio.push(linha.trim().slice(0, 120));
+      }
+    }
     r.vaza = document.documentElement.scrollWidth - vw;
     const visivel = (e) => {
       const s = getComputedStyle(e);
@@ -174,6 +180,11 @@ for (const largura of LARGURAS) {
     for (const p of m.pequeno) problemas.push(`pequeno para o dedo: ${p}`);
     if (m.escondido) problemas.push(`escondido: ${m.escondido}`);
     for (const e of erros) problemas.push(`erro: ${e}`);
+    /* A TELA FALA COMO COLEGA (fase 212). Frase que defende a regra, fala do
+       sistema na terceira pessoa ou argumenta com a própria pessoa soa como
+       raciocínio de quem escreveu, e não como orientação de quem trabalha junto.
+       Os travessões de dado (AI3 — Casa 03, remédio — dose) ficam: são separador. */
+    for (const f of m.raciocinio) problemas.push(`frase de raciocínio: ${f}`);
     for (const p of problemas) achados.push(`[${largura} · ${cargo} · ${onde}] ${p}`);
     return problemas.length;
   };

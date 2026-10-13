@@ -94,8 +94,8 @@ export function TrabalhoSocial({ papel }: { papel: string }) {
       <div className="eyebrow">Fundação · {p.total.casas} casas</div>
       <h2>O trabalho social</h2>
       <p className="mutetxt">
-        De {dia(p.periodo.de)} a {dia(p.periodo.ate)}. Esta é a leitura do que o
-        acolhimento produziu — a operação do dia fica nas telas da casa.
+        De {dia(p.periodo.de)} a {dia(p.periodo.ate)}. Aqui está o que o
+        acolhimento produziu no período. O dia a dia fica nas telas da casa.
       </p>
 
       <div className="acoes">

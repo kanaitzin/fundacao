@@ -299,8 +299,8 @@ export function Ocorrencias({ houseId, papel }: { houseId: string; papel: string
             ))}
           </ul>
           <div className="mutetxt" style={{ marginTop: 6 }}>
-            Se você não presenciou, marque “Não presenciei” — declarar isso é
-            responder, e fica registrado com o seu nome.
+            Se você não presenciou, marque “Não presenciei”. Isso também é uma resposta,
+            e fica registrada com o seu nome.
           </div>
         </div>
       )}
@@ -335,7 +335,7 @@ export function Ocorrencias({ houseId, papel }: { houseId: string; papel: string
         </div>
         <p className="mutetxt" style={{ margin: 0 }}>
           Alguns fatos não cabem na passagem: abrem fluxo próprio, avisam o líder, a
-          equipe técnica e a coordenação na hora — e alguns não se encerram sem análise
+          equipe técnica e a coordenação na hora, e alguns só se encerram depois da análise
           de quem responde pelo caso.
         </p>
         <div className="notice c-crit">

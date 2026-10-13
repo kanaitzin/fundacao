@@ -259,7 +259,7 @@ export class SyncService {
         // As duas versões vão íntegras para a tela: quem decide é a equipe.
         versaoA: r.version_a, versaoB: r.version_b,
         criadoEm: r.created_at,
-        aviso: 'O sistema não escolhe a versão correta. Ambas permanecem registradas.',
+        aviso: 'As duas versões ficam registradas. Quem conhece o caso escolhe qual vale.',
       }));
     });
   }

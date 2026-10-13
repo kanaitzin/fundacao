@@ -907,7 +907,7 @@ const TIPOS_SETOR = [
   { code: 'cozinha', label: 'Cozinha', transversal: false,
     descricao: 'Somente o relatório de restrições alimentares' },
   { code: 'portaria', label: 'Portaria', transversal: false,
-    descricao: 'Somente quem pode visitar hoje, e a entrada e a saída das visitas — sem acesso a perfil' },
+    descricao: 'Somente quem pode visitar hoje, e a entrada e a saída das visitas, sem acesso a perfil' },
   { code: 'enfermagem', label: 'Enfermagem', transversal: true,
     descricao: 'Saúde das oito casas' },
   { code: 'lider_noturno_geral', label: 'Líder Noturno Geral', transversal: true,
@@ -4441,7 +4441,7 @@ const PEDIDOS_SUB: PedidoSub[] = [
     status: 'solicitada', pedidoPor: 'Joana Lima (fictícia)', substituto: null,
     decidiuNota: null, solicitadoEm: new Date().toISOString(), semEfeito: true,
     aviso: 'A atividade já foi encerrada como "Concluída no horário" enquanto o pedido '
-         + 'aguardava. Não cabe substituir o que já aconteceu — recuse o pedido com o motivo.' },
+         + 'aguardava. Como ela já aconteceu, recuse o pedido escrevendo o motivo.' },
 ];
 
 /** Token de mentira do protótipo: entre com ?convite=demo na barra de endereço. */
@@ -4591,11 +4591,11 @@ const ESCREVE_CONTATO = ['equipe_tecnica', 'coordenador', 'gestor_geral'];
 const DECIDE_CAMPOS = ['coordenador', 'gestor_geral'];
 const CAMPOS_DO_PERFIL = [
   { code: 'escola', rotulo: 'Escola',
-    oQueSome: 'Nome, série, turno e endereço da escola — e o telefone para ligar quando a criança falta.' },
+    oQueSome: 'Nome, série, turno e endereço da escola, e o telefone para ligar quando a criança falta.' },
   { code: 'contatos', rotulo: 'Quem aparece pela criança',
     oQueSome: 'A lista de contatos e os telefones. O educador deixa de saber quem é a pessoa que apareceu no portão.' },
   { code: 'equipe_referencia', rotulo: 'Equipe de referência',
-    oQueSome: 'O serviço da rede que acompanha a criança — CRAS, CAPS, unidade de saúde.' },
+    oQueSome: 'O serviço da rede que acompanha a criança: CRAS, CAPS, unidade de saúde.' },
   { code: 'cuidados_essenciais', rotulo: 'Cuidados essenciais',
     oQueSome: 'O texto de como cuidar desta criança no dia a dia.' },
 ];
@@ -4831,8 +4831,8 @@ function visitasDaCrianca(kidId: string, de?: string, ate?: string) {
                excecao: v.excecao, corrigida: v.corrigida, correcoes: v.correcoes ?? [],
                aberta: !v.saiu };
     }),
-    aviso: 'Quantidade de visitas não é avaliação da família: o número diz o que houve, '
-      + 'e não o que isso quer dizer.',
+    aviso: 'O número diz quantas visitas aconteceram. O que elas significam para a criança, '
+      + 'a equipe técnica conversa e escreve no acompanhamento.',
   };
 }
 
@@ -6051,7 +6051,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
   if (rota.startsWith('/sync/conflicts') && metodo === 'GET') {
     return CONFLITOS.filter((c) => c.aberto).map(({ aberto, ...resto }) => ({
       ...resto,
-      aviso: 'O sistema não escolhe a versão correta. Ambas permanecem registradas.',
+      aviso: 'As duas versões ficam registradas. Quem conhece o caso escolhe qual vale.',
     }));
   }
   if (seg[0] === 'sync' && seg[1] === 'conflicts' && seg[3] === 'resolve'
@@ -6125,19 +6125,16 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       de: emDias(-29, 0, 0).slice(0, 10), ate: HOJE,
       casas, total,
       ressalvas: [
-        `${soma((c) => c.notasSemValor)} nota(s) fiscal(is) sem valor lançado — o total `
-        + 'gasto é MAIOR do que o número acima. Lançar o valor é o que fecha a conta.',
+        `${soma((c) => c.notasSemValor)} nota(s) fiscal(is) sem valor lançado `
+        + '(o total gasto é maior do que o número acima até elas terem valor).',
         /* Terceira versão desta frase: ela é reescrita junto do código, porque
            frase de tela que envelhece é frase que mente (fase 139). */
-        'Não existe nota escolar neste sistema, e não vai existir. O que o painel conta é o '
-        + 'CONCEITO do bimestre, escrito pela equipe com o porquê ao lado — quem está '
-        + 'acompanhando o ano e quem não está. "Acompanha com apoio" não vira caixa: é uma '
-        + 'criança que ESTÁ acompanhando, e o apoio já tem a caixa dele.',
-        'O conceito conta pelo BIMESTRE, não pela data em que foi digitado — o conceito do 3º '
-        + 'bimestre lançado em novembro conta no 3º. E conta uma vez por criança: a versão '
-        + 'corrigida é história, e não soma.',
-        'As casas saem na ordem do código, nunca por resultado: ordenar por número é a '
-        + 'classificação pronta, e ela precisa ser decisão de quem lê.',
+        'O painel conta o conceito do bimestre que a equipe escreveu, com o porquê ao lado: '
+        + 'quem está acompanhando o ano e quem não está. Quem acompanha com apoio conta como '
+        + 'acompanhando, e o apoio aparece na caixa dele.',
+        'O conceito conta no bimestre a que se refere, mesmo lançado depois: o do 3º bimestre '
+        + 'lançado em novembro conta no 3º. E conta uma vez por criança, na versão mais recente.',
+        'As casas aparecem na ordem do código.',
       ],
     };
   }
@@ -6148,10 +6145,9 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       /* Só o Gestor Geral tem a aba de contagens (fase 119). Quem decide é o
          servidor: uma aba que responde 403 ensina que o sistema é caprichoso. */
       temMetricas: eu.role === 'gestor_geral',
-      aviso: 'Esta leitura não conta nada — ela mostra o que foi feito, em ordem, com data '
-        + 'e hora.',
+      aviso: 'Aqui está o que foi feito, em ordem, com data e hora, sem somar por pessoa.',
       sobreAFinalidade: 'Escreva por que está abrindo. A frase fica no registro desta consulta, '
-        + 'com o seu nome — quem consulta também é consultável.',
+        + 'com o seu nome.',
     };
   }
   /*
@@ -6506,8 +6502,8 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       fontesIndisponiveis: [],
       eventos,
       nota: 'Dia completo das unidades que você alcança, das 00h00 às 23h59 no horário '
-          + 'de Porto Alegre, em ordem. Não é medição de casa nem de equipe: não há '
-          + 'contagem por pessoa nem comparação entre unidades.',
+          + 'de Porto Alegre, em ordem, sem contagem por pessoa nem comparação '
+          + 'entre unidades.',
     };
   }
 
@@ -6746,8 +6742,8 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     }
     if (p.semEfeito) {
       return new Recusa(400,
-        'A atividade já foi encerrada enquanto o pedido esperava. Não cabe substituir o que já '
-        + 'aconteceu — recuse o pedido, com o motivo.');
+        'A atividade já foi encerrada enquanto o pedido esperava. Como ela já aconteceu, '
+        + 'recuse o pedido escrevendo o motivo.');
     }
     const nome = EQUIPE_CASA.find((m) => m.id === b.substitutoId)?.nome ?? 'Colega';
     // `atribuida` é o valor que o banco aceita — o mock não pode inventar outro.
@@ -6788,8 +6784,8 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         responsavelCargo: e.responsible ? cargoPeloNome(e.responsible) : null,
         acolhido: e.personName,
       })),
-      nota: 'Quem está em quê neste turno. Não é medição de ninguém: não há contagem '
-          + 'por pessoa, ordenação por desempenho nem histórico de deslocamento.',
+      nota: 'Quem está em quê neste turno, para a equipe se organizar. Não há contagem '
+          + 'por pessoa nem ordem por desempenho.',
     };
   }
 
@@ -10139,7 +10135,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     }];
     return { id,
       aviso: 'Registrado com o seu nome e o horário. O que aconteceu depois pode ser escrito '
-        + 'quando se souber — não há prazo, e ninguém vai cobrar.' };
+        + 'quando se souber. Não há prazo, e ninguém vai cobrar.' };
   }
 
   /** `POST /medications/doses/:id/prn-outcome` — escrito depois, e uma vez (1390). */
@@ -11572,9 +11568,8 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       vigentes: vigentes.length,
       podeEscrever: escreve,
       aviso: escreve
-        ? 'O texto de um combinado não se reescreve. Mudou de ideia? Registre outro, dizendo '
-          + 'que substitui o anterior — é assim que a equipe muda de acordo sem apagar o que '
-          + 'todo mundo cumpriu até ontem.'
+        ? 'Mudou o combinado? Registre outro dizendo que substitui o anterior. O de antes '
+          + 'fica guardado, com o que a equipe cumpriu até aqui.'
         : 'Aqui está o que a equipe combinou. Quem registra é a equipe técnica e a '
           + 'coordenação; ler é de todo mundo da casa, e é para isso que existe.',
     };
@@ -12065,8 +12060,8 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       return new Recusa(403, 'Seu cargo não tem acesso a este conteúdo.');
     }
     return {
-      aviso: 'Você vê quem é, de onde vem e por quê. O perfil completo — saúde, documentos, '
-        + 'benefícios e histórico — só abre depois do aceite.',
+      aviso: 'Você vê quem é, de onde vem e por quê. O perfil completo, com saúde, documentos, '
+        + 'benefícios e histórico, abre depois do aceite.',
       solicitacoes: TRANSFERENCIAS
         .filter((t) => t.caixa === 'recebida' && t.situacao === 'solicitada')
         .map((t) => ({

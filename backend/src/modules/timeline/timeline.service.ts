@@ -94,8 +94,8 @@ export class TimelineService {
       resumo: resumir(eventos),
       eventos,
       nota: 'Dia completo das unidades que você alcança, das 00h00 às 23h59 no '
-          + 'horário de Porto Alegre, em ordem. Não é medição de casa nem de '
-          + 'equipe: não há contagem por pessoa nem comparação entre unidades.',
+          + 'horário de Porto Alegre, em ordem, sem contagem por pessoa nem '
+          + 'comparação entre unidades.',
     };
   }
 

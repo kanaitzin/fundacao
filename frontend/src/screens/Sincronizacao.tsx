@@ -163,8 +163,8 @@ export function Sincronizacao({ houseId, casaLabel, papel }: {
             </div>
             <p className="mutetxt" style={{ margin: 0 }}>
               O registro feito sem sinal guarda o <b>horário real</b> do que aconteceu, e não
-              o da hora em que subiu. É por isso que a dose das 21h30 continua sendo das
-              21h30, mesmo tendo chegado ao servidor às 23h.
+              o da hora em que subiu: a dose das 21h30 continua sendo das 21h30, mesmo
+              tendo chegado ao servidor às 23h.
             </p>
           </>
         )}

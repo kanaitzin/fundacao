@@ -467,7 +467,7 @@ describe('Fase 3 — Rotina, atividades, chamadas, linha do tempo e offline', ()
     const c = conflitos.body[0];
     expect(c.versaoA).toBeTruthy();
     expect(c.versaoB).toBeTruthy();
-    expect(c.aviso).toMatch(/não escolhe a versão correta/i);
+    expect(c.aviso).toMatch(/duas versões ficam registradas.*escolhe qual vale/i);
 
     // Educador não resolve conflito; técnica resolve registrando a decisão
     await request(http).post(`/api/v1/sync/conflicts/${c.id}/resolve`)

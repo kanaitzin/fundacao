@@ -181,7 +181,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 13/10/2026, fase 211
+### Onde estamos — 13/10/2026, fase 212
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -256,8 +256,9 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 209 | **quem aparece na foto, e a foto pequena** (pedido de 12/10): o reconhecimento de rosto **não entrou** (biométrico de criança, DPO); a equipe marca quem aparece e a foto entra no álbum de cada criança marcada (`memory_photo_person`, people/1651), desmarcar com motivo; a miniatura feita no aparelho para a lista do álbum, a inteira no toque; estimativa de 22 GB em dez anos para as oito casas (§12.2) |
 | 210 | **o dia, em ordem, com cor e mais curto** (pedido de 12/10): uma linha por evento com a cor e o desenho da categoria (`categorias-do-dia.ts`, as mesmas do Dia), *da casa toda* ou o nome da criança, legenda em cima, o dia em quatro partes e *Só o que ainda precisa de alguém* |
 | 211 | **as chamadas da casa** (pedido de 12/10): nome, horário, quantas pessoas e uma cor de 48 (`frontend/src/cores-da-casa.ts`), um toque abre a chamada; coordenação, técnica e Líder Diurno definem; mudar encerra e abre outra (`house_check_model`, checks/1652); a cor só na barra e no ponto |
+| 212 | **as telas falam como colega** (pedido de 12/10): medido pelo texto que a tela mostra, 137 frases com marca de raciocínio reescritas (telas, servidor, protótipo e a página do alcance); sobram só separadores de dado; o `ensaio:celular` passa a reprovar a frase de raciocínio |
 
-**Medido no fim da 211:** 192 migrações, 136 tabelas, 141 suítes, 1269 testes, verdes nas
+**Medido no fim da 212:** 192 migrações, 136 tabelas, 141 suítes, 1269 testes, verdes nas
 DUAS condições de relógio; os dez ensaios de navegador verdes (o `ensaio:acolhe` com todas as telas de todos os cargos por texto e por voz e os 36 formulários do sistema abertos por ela, inclusive dentro do perfil, do dossiê, da internação, do acervo e do plantão, e o do celular com 306 telas e nenhum achado), com a portaria e o
 portão, o armário, a cozinha, os temas e a foto no percurso do `ensaio:uso`; **1256 telas (157 × oito
 temas) sem violação de WCAG 2.1 AA**; nenhuma
@@ -324,11 +325,16 @@ as três cores abaixo. Cor nova passa pelo `ensaio:acessibilidade`, que mede os 
 
 ### A próxima etapa
 
+**FEITO — fase 212** (§2): as telas falam como colega. **Frase nova de tela** diz o que
+fazer e quem faz, sem defender a regra, sem falar *do sistema* na terceira pessoa e sem
+travessão que argumenta; o `ensaio:celular` reprova as marcas (*o sistema não*, *não
+existe*, *de propósito*, *não é medição*...). **Com isso o pedido de 12/10 está feito**
+(206 a 212). **Próxima etapa:** a mesma de antes do pedido: o roteiro com a equipe e a
+implantação do §12.
+
 **FEITO — fase 211** (§2, PARA-A-REUNIAO §4.23): as chamadas da casa com nome, horário,
 pessoas e cor. **A cor da casa é a quarta cor do sistema** e mora em `cores-da-casa.ts`:
-nunca pílula, nunca fundo. **Próxima: 212**, a varredura dos traços de raciocínio nas
-frases das telas (medir pelo texto que a tela MOSTRA, abrindo as telas, e não pelo código,
-onde o travessão dos comentários soma mais de mil).
+nunca pílula, nunca fundo.
 
 **FEITO — fases 209 e 210** (§2, PARA-A-REUNIAO §4.22): as fotos com quem aparece e a
 miniatura, e o *O dia, em ordem* com cor, legenda e mais curto.
@@ -811,6 +817,11 @@ novo.
   cada, e nada passou de 582 ms; com vinte pessoas, em seis meses, a equipe das oito e o dia das
   unidades passaram de um segundo. **Ensaio de carga se faz com o tamanho da casa**, e a pergunta feita
   pessoa por pessoa só aparece quando há pessoas.
+- **Frase de tela se mede aberta, não no código** (212). No código há mais de mil
+  travessões, quase todos em comentário; abrindo as telas de todos os cargos eram 137
+  frases, e só umas 90 argumentavam. E metade delas vinha do SERVIDOR e do protótipo ao
+  mesmo tempo: reescrever só a tela deixaria o protótipo dizendo uma coisa e o sistema
+  outra. **Frase do servidor se troca nos dois lugares, na mesma vez.**
 - **Frase de tela que envelhece é frase que mente**, e a cobrança do ensaio que a
   guarda tem de ser reescrita junto. A ressalva do painel sobre nota escolar já foi
   reescrita três vezes. **Isto inclui este arquivo.**

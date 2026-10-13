@@ -140,14 +140,12 @@ export function Arquivo({ houseId, papel }: { houseId: string; papel: string }) 
         <h3 style={{ fontSize: 17, margin: 0 }}>Arquivo documental</h3>
         <div className="mutetxt">Cópia do que fechou, no Drive institucional.</div>
         <div className="notice c-info">
-          Não é backup do sistema — banco e arquivos têm backup técnico próprio. Aqui vai
-          a cópia documental do que a instituição <b>fechou</b>: ATA, passagem,
+          Aqui vai a cópia documental do que a instituição <b>fechou</b>: ATA, passagem,
           ocorrência, acompanhamento, relatório.
         </div>
         <div className="notice c-med">
           O <b>educador social não abre o Drive</b>. O que ele precisa ler do acolhido
-          está no perfil, onde a leitura tem permissão e deixa registro — pasta
-          compartilhada não sabe quem abriu o quê.
+          está no perfil, onde cada leitura fica registrada com o nome de quem abriu.
         </div>
         {conta && (
           conta.pendentes > 0
@@ -196,13 +194,13 @@ export function Arquivo({ houseId, papel }: { houseId: string; papel: string }) 
               <b className="ff mono" style={{ fontSize: 13 }}>{a.arquivo}</b>
               <div className="mutetxt mono">{a.caminho}</div>
               {a.areaRestrita && (
-                <div className="mutetxt"><Icone nome="cadeado" /> Área restrita — outra raiz, outra permissão.</div>
+                <div className="mutetxt"><Icone nome="cadeado" /> Área restrita, com permissão própria.</div>
               )}
               {a.situacao === 'falhou' && (
                 <div className="notice c-crit">
                   {a.tentativas} tentativa(s). A equipe técnica e a coordenação foram
-                  avisadas. <b>O documento continua íntegro no sistema</b> — o que faltou
-                  foi a cópia no Drive.
+                  avisadas. <b>O documento continua guardado no sistema</b>; só a cópia no
+                  Drive não foi feita.
                 </div>
               )}
 
@@ -239,14 +237,12 @@ export function Arquivo({ houseId, papel }: { houseId: string; papel: string }) 
       </div>
 
       <p className="mutetxt" style={{ marginTop: 12 }}>
-        Nunca sobrescreve: correção vira <b>V2_ADENDO</b>, ao lado da V1. O nome do
-        arquivo não carrega nome, CPF nem diagnóstico — quem precisa saber de quem é
-        abre o sistema.
+        A correção entra como <b>V2_ADENDO</b>, ao lado da V1. O nome do arquivo não traz
+        nome, CPF nem diagnóstico da criança.
       </p>
       <p className="mutetxt" style={{ marginTop: 12 }}>
         Procurando os documentos de uma criança? Eles ficam no <b>perfil dela</b>, em
-        Acolhidos. É lá que a leitura passa por permissão e deixa registro — e por isso
-        não há uma segunda lista aqui.
+        Acolhidos, onde cada leitura fica registrada.
       </p>
     </>
   );

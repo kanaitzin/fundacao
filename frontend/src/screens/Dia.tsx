@@ -1208,8 +1208,8 @@ function FolhaDecidirSub({ pedido, houseId, onFechar, onAssumir, onRecusar }: {
 
         {pedido.semEfeito && (
           <div className="notice c-warn">
-            A atividade já foi encerrada enquanto o pedido esperava. Não cabe substituir o que já
-            aconteceu — recusar, com o motivo, é o caminho que fecha isto sem apagar nada.
+            A atividade já foi encerrada enquanto o pedido esperava. Como ela já aconteceu,
+            recuse o pedido escrevendo o motivo.
           </div>
         )}
 
@@ -1509,7 +1509,7 @@ function SeNecessario({ houseId }: { houseId: string }) {
             /* Dito em palavra, e não em cor: não é pendência, e a tela não deve
                deixar dúvida sobre isso para quem vai dormir depois do plantão. */
             <p className="mutetxt">
-              O que aconteceu depois pode ser escrito quando se souber — não há prazo,
+              O que aconteceu depois pode ser escrito quando se souber. Não há prazo,
               e ninguém vai cobrar.
             </p>
           )}

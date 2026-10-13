@@ -2191,3 +2191,8 @@ button.cal-turno:focus-visible{ outline:3px solid var(--brand); outline-offset:1
 .amostra-da-casa[aria-pressed="true"] {
   outline: 3px solid var(--ink, #1d2939); outline-offset: 2px;
 }
+
+/* A caixa do "Só o que ainda precisa de alguém" (fase 210) do tamanho do dedo:
+   o ensaio:celular mediu 20 px de altura (fase 212). */
+.so-atencao { min-height: 44px; align-items: center; cursor: pointer; }
+.so-atencao input[type="checkbox"] { width: 24px; height: 24px; flex: none; margin: 0; }

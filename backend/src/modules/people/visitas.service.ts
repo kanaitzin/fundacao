@@ -268,8 +268,8 @@ export class VisitasService {
         excecao: r.exception_reason, corrigida: r.corrigida, correcoes: r.correcoes,
         aberta: !r.ended_at,
       })),
-      aviso: 'Quantidade de visitas não é avaliação da família: o número diz o que houve, '
-        + 'e não o que isso quer dizer.',
+      aviso: 'O número diz quantas visitas aconteceram. O que elas significam para a criança, '
+        + 'a equipe técnica conversa e escreve no acompanhamento.',
     };
   }
 

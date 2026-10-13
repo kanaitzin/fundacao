@@ -229,7 +229,7 @@ export function Escala({ houseId, casaLabel, papel }: {
               <div className="bloco" key={cod}>
                 <small>{label} <span className="mutetxt">{horas}</span></small>
                 {gente.length === 0 ? (
-                  <div className="mutetxt">— ninguém escalado —</div>
+                  <div className="mutetxt">ninguém escalado</div>
                 ) : (
                   <ul className="lista">
                     {gente.map((p) => (

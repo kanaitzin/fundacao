@@ -95,10 +95,9 @@ export class TrabalhoService {
       temMetricas: LEEM_AS_METRICAS.includes(user.role),
       setores: SETORES.map((s) => ({ cod: s.code, label: s.label, descricao: s.descricao })),
       janelaMaximaDias: JANELA_MAXIMA_DIAS,
-      aviso: 'Esta leitura não conta nada — ela mostra o que foi feito, em ordem, com data '
-        + 'e hora.',
+      aviso: 'Aqui está o que foi feito, em ordem, com data e hora, sem somar por pessoa.',
       sobreAFinalidade: 'Escreva por que está abrindo. A frase fica no registro desta consulta, '
-        + 'com o seu nome — quem consulta também é consultável.',
+        + 'com o seu nome.',
     };
   }
 
@@ -156,7 +155,7 @@ export class TrabalhoService {
       if (m.includes('janela_invalida')) {
         throw new BadRequestException(
           `O período vai até ${JANELA_MAXIMA_DIAS} dias, e a data final não pode vir antes da inicial. `
-          + 'Mais que três meses não é supervisão, é dossiê.');
+          + 'Escolha um período de até três meses.');
       }
       if (m.includes('pessoa_ou_setor')) {
         throw new BadRequestException('Escolha uma pessoa da equipe OU um setor.');

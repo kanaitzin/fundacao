@@ -110,8 +110,8 @@ export class TransfersService {
       return rows;
     });
     return {
-      aviso: 'Você vê quem é, de onde vem e por quê. O perfil completo — saúde, documentos, '
-           + 'benefícios e histórico — só abre depois do aceite.',
+      aviso: 'Você vê quem é, de onde vem e por quê. O perfil completo, com saúde, documentos, '
+           + 'benefícios e histórico, abre depois do aceite.',
       solicitacoes: rows.map((r) => ({
         id: r.id,
         nomeCompleto: r.nome_completo,

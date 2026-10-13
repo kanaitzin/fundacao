@@ -269,7 +269,7 @@ export function Transferencias({ houseId }: { houseId: string }) {
 
       <p className="mutetxt" style={{ marginTop: 12 }}>
         A criança só muda de casa <b>no aceite</b>. Até lá, a responsabilidade continua
-        sendo desta unidade — e nenhuma etapa acontece sem alguém com nome decidindo.
+        sendo desta unidade, e cada etapa fica com o nome de quem decidiu.
       </p>
 
       {decidindo && (

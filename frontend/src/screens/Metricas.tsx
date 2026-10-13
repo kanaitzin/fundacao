@@ -183,7 +183,7 @@ export function Metricas() {
         {p.total.notasSemValor > 0 && (
           <div className="notice c-warn" role="status" style={{ marginTop: 8 }}>
             <b>{p.total.notasSemValor} nota(s) sem valor lançado.</b>
-            <div>O gasto real é MAIOR do que este número. Lançar o valor é o que fecha a conta.</div>
+            <div>O gasto real é maior do que este número até elas terem valor.</div>
           </div>
         )}
       </div>

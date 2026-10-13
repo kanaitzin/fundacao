@@ -570,9 +570,8 @@ function Reautenticar({ erro, onErro, onLiberado }: {
     <div className="card raise">
       <h3 style={{ fontSize: 17, margin: 0 }}>Confirme sua senha para continuar</h3>
       <p className="mutetxt">
-        O cofre guarda as contas das crianças. Entrar nele pede a sua senha de novo,
-        mesmo com a sessão já aberta — celular esquecido destravado em cima da mesa não
-        pode virar acesso ao gov.br de ninguém.
+        O cofre guarda as contas das crianças. Para entrar, confirme a sua senha, mesmo
+        com a sessão já aberta.
       </p>
       <div className="notice c-med">
         <Icone nome="cadeado" /> Este acesso é <b>auditado</b>: a entrada, cada senha aberta e a finalidade

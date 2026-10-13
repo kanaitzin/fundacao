@@ -150,9 +150,8 @@ export class AlignmentsService {
         vigentes: vigentes.length,
         podeEscrever: ESCREVE.includes(user.role),
         aviso: ESCREVE.includes(user.role)
-          ? 'O texto de um combinado não se reescreve. Mudou de ideia? Registre outro, '
-            + 'dizendo que substitui o anterior — é assim que a equipe muda de acordo sem '
-            + 'apagar o que todo mundo cumpriu até ontem.'
+          ? 'Mudou o combinado? Registre outro dizendo que substitui o anterior. O de '
+            + 'antes fica guardado, com o que a equipe cumpriu até aqui.'
           : 'Aqui está o que a equipe combinou. Quem registra é a equipe técnica e a '
             + 'coordenação; ler é de todo mundo da casa, e é para isso que existe.',
       };

@@ -231,7 +231,7 @@ export function Acompanhamentos({ houseId, casaLabel, papel }: {
           )}
           {f.situacao === 'em_aprovacao' && f.proprio && (
             <span className="mutetxt">
-              Você redigiu este texto — revisão do próprio autor não é revisão.
+              Você redigiu este texto. A aprovação é de outra pessoa da equipe técnica ou da coordenação.
             </span>
           )}
           {f.situacao === 'aprovado' && (
@@ -325,8 +325,8 @@ export function Acompanhamentos({ houseId, casaLabel, papel }: {
           <div className="stack">{aprovados.map(cartao)}</div>
 
           <p className="mutetxt" style={{ marginTop: 12 }}>
-            Aprovado não se edita. Corrigir cria a versão seguinte, que precisa de nova
-            aprovação — e a anterior continua legível como estava.
+            Para corrigir um aprovado, crie a versão seguinte, que passa por nova aprovação.
+            A anterior continua legível como estava.
           </p>
         </>
       )}

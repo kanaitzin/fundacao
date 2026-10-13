@@ -167,9 +167,8 @@ describe('O painel conta o conceito do bimestre', () => {
     const texto = r.body.ressalvas.join(' ');
     /* A frase que envelheceu duas vezes: ela tem de dizer o que o painel conta
        HOJE, e não o que ele contava. */
-    expect(texto).toMatch(/não existe nota escolar/i);
-    expect(texto).toMatch(/CONCEITO do bimestre/);
-    expect(texto).toMatch(/conta pelo BIMESTRE/);
+    expect(texto).toMatch(/conta o conceito do bimestre/i);
+    expect(texto).toMatch(/bimestre a que se refere/);
     expect(texto).not.toMatch(/ainda não o conta/i);
   });
 });

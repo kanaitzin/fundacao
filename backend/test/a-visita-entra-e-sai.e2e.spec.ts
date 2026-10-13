@@ -336,7 +336,7 @@ describe('A visita entra e sai', () => {
     expect([...nomes].sort((a: string, b: string) => a.localeCompare(b, 'pt-BR'))).toEqual(nomes);
     /* O nome social é o nome com que a pessoa é chamada. */
     expect(nomes).toContain('Tia Bia');
-    expect(r.body.aviso).toMatch(/não é avaliação da família/);
+    expect(r.body.aviso).toMatch(/quantas visitas aconteceram/);
     const exc = r.body.visitas.find((v: any) => v.excecao);
     expect(exc).toBeTruthy();
     expect(r.body.visitas.some((v: any) => v.corrigida)).toBe(true);

@@ -58,12 +58,11 @@ export function Setores({ papel }: { papel: string }) {
         <h3 style={{ fontSize: 17, margin: 0 }}>O que cada setor enxerga</h3>
         <p className="mutetxt" style={{ margin: 0 }}>
           Para responder “o educador vê isso?” sem entrar com a conta de ninguém.
-          Conta é individual — emprestar uma para conferir uma tela é o começo de um
-          registro sem autoria.
+          Assim ninguém precisa emprestar a própria conta para conferir uma tela.
         </p>
         <div className="notice c-info">
-          Esta página descreve o alcance. Quem <b>recusa</b> é o banco: o servidor confere
-          de novo, por baixo, mesmo quando a tela ofereceu o botão.
+          Esta página mostra o que cada setor alcança. Mesmo que um botão apareça, o servidor
+          confere de novo antes de gravar.
         </div>
       </div>
 
@@ -105,7 +104,7 @@ export function Setores({ papel }: { papel: string }) {
                 <div>{ar.faz}</div>
                 {ar.servidor && (
                   <div className="notice c-med" style={{ margin: 0 }}>
-                    <Icone nome="cadeado" /> <b>O servidor recusa por baixo:</b> {ar.servidor}
+                    <Icone nome="cadeado" /> <b>O servidor confere:</b> {ar.servidor}
                   </div>
                 )}
               </div>
@@ -122,9 +121,8 @@ export function Setores({ papel }: { papel: string }) {
           </div>
 
           <p className="mutetxt" style={{ marginTop: 12 }}>
-            Se alguma linha aqui não bater com o que a pessoa vê na prática, é defeito —
-            de um lado ou do outro. Anote e avise: a página e o menu são conferidos juntos
-            por teste, e discordância entre eles não é detalhe de tela.
+            Se alguma linha aqui não bater com o que a pessoa vê na prática, anote e avise a
+            coordenação: é defeito, e se conserta.
           </p>
         </>
       )}

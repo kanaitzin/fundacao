@@ -217,7 +217,7 @@ export class ArchiveService {
       reason: 'documento não chegou ao arquivo',
       title: 'Documento não foi arquivado',
       body: 'Um documento fechado falhou ao ser enviado para o arquivo depois de três tentativas. '
-          + 'O documento continua íntegro no sistema; o que faltou foi a cópia no Drive.',
+          + 'O documento continua guardado no sistema; só a cópia no Drive não foi feita.',
       priority: 'alta', groupKey: 'archive:falha',
     };
     await this.bus.publish('escalation.requested', pedido, { actorId: user.id });

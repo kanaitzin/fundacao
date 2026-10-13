@@ -264,7 +264,7 @@ export function Passagem({ houseId }: { houseId: string }) {
         {!!lista.length && (
           <p className="mutetxt">
             Toque no plantão para <b>assinar a sua passagem</b> ou registrar que recebeu o
-            turno. Cada pessoa assina a dela — o sistema não assina por ninguém.
+            turno. Cada pessoa assina a sua, na própria conta.
           </p>
         )}
         {erro && <div className="notice c-crit" role="alert">{erro}</div>}
@@ -408,10 +408,10 @@ export function Passagem({ houseId }: { houseId: string }) {
           <b>Ninguém lançou a escala deste turno.</b>
           <div className="mutetxt" style={{ marginTop: 4 }}>
             {aberto.nenhumaPassagemAssinada
-              ? 'Sem escala lançada, o sistema não diz quem devia estar — e nenhuma passagem foi '
+              ? 'E nenhuma passagem foi '
                 + 'assinada ainda. Quem esteve na casa assina a sua abaixo; a escala é lançada na '
                 + 'tela da Escala, e vale para os próximos turnos.'
-              : 'Sem escala lançada, o sistema não diz quem devia estar — então não há nome a '
+              : 'Então não há nome a '
                 + 'cobrar aqui. Quem esteve na casa assina a sua, e a escala é lançada na tela da '
                 + 'Escala.'}
           </div>

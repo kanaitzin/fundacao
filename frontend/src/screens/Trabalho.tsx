@@ -228,14 +228,14 @@ export function Trabalho() {
       </div>
       <p className="mutetxt">
         Sem datas, são os últimos catorze dias. O período vai até{' '}
-        {voc?.janelaMaximaDias ?? 92} dias — mais que três meses não é supervisão, é dossiê.
+        {voc?.janelaMaximaDias ?? 92} dias, uns três meses.
       </p>
 
       {/* A FINALIDADE vem ANTES do botão, e não numa confirmação depois: quem
           escreve o motivo antes de olhar pensa no motivo; quem escreve depois
           preenche um campo. */}
       <label className="f" htmlFor="tr-fim">
-        Por que está abrindo <small>— fica registrado com o seu nome</small>
+        Por que está abrindo <small>(fica registrado com o seu nome)</small>
       </label>
       <textarea id="tr-fim" value={finalidade} onChange={(e) => setFinalidade(e.target.value)}
                 placeholder="Ex.: apuração do episódio de 12/09 · preparação da avaliação semestral" />

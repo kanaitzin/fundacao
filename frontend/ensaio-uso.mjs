@@ -2129,8 +2129,8 @@ const trabalhoVazio = await conteudo();
 cobrar('a coordenação alcança o trabalho da equipe',
   /trabalho da equipe/i.test(trabalhoVazio),
   'a §7 passou a prometer isto a três cargos');
-cobrar('e a tela diz, antes de tudo, que não conta nada',
-  /não conta nada|somar por pessoa é medir gente/i.test(trabalhoVazio),
+cobrar('e a tela diz, antes de tudo, que não soma por pessoa',
+  /sem somar por pessoa/i.test(trabalhoVazio),
   'um total ao lado de um nome é uma avaliação que ninguém assinou');
 /* Abrir sem finalidade tem de ser recusado NA TELA, e não só no servidor: a
  * recusa que só aparece depois do clique ensina que o campo é decorativo. A
@@ -2292,8 +2292,8 @@ cobrar('o gasto vem com a ressalva colada, e não em nota de rodapé',
  * Agora o painel conta. **Cobrança que não muda com o sistema guarda uma
  * mentira**, e é por isso que ela é reescrita junto.
  */
-cobrar('a tela diz que não existe NOTA, e que o que ela conta é o CONCEITO',
-  /não existe nota escolar/i.test(inicial) && /CONCEITO do bimestre/i.test(inicial),
+cobrar('a tela diz que o que ela conta é o CONCEITO do bimestre escrito pela equipe',
+  /conta o conceito do bimestre/i.test(inicial),
   'estimar "boas notas" a partir de texto livre continuaria sendo inventar um número');
 cobrar('o painel tem a caixa de quem está acompanhando o ano',
   /Acompanhando o ano/i.test(inicial),
@@ -2302,7 +2302,7 @@ cobrar('e a caixa de quem NÃO está — a que faz a casa agir',
   /pede providência/i.test(inicial),
   'painel que mostra só quem vai bem ensina a olhar para o lado bom');
 cobrar('e diz que o conceito conta pelo BIMESTRE, não pela data de digitação',
-  /conta pelo BIMESTRE/i.test(inicial),
+  /bimestre a que se refere, mesmo lançado depois/i.test(inicial),
   'o retorno atrasado da escola é o caso comum, e ele não pode cair no bimestre errado');
 cobrar('e diz que a ordem é o código da casa, nunca o resultado',
   /nunca por resultado/i.test(inicial),
@@ -2446,8 +2446,8 @@ if (await aba('Passagem')) {
     cobrar('a passagem do turno sem escala diz que ninguém a lançou',
       semEscala.includes('ninguém lançou a escala'),
       'sem isto, a tela cala sobre o motivo de não haver nome a cobrar');
-    cobrar('e diz que o sistema não deduz quem devia estar',
-      semEscala.includes('não diz quem devia estar'),
+    cobrar('e diz que, sem escala, não há nome a cobrar',
+      semEscala.includes('não há nome a cobrar'),
       'é a decisão da Fundação, e a tela precisa dizê-la em voz alta');
     cobrar('e que quem esteve na casa assina do mesmo jeito',
       semEscala.includes('quem esteve na casa') || semEscala.includes('quem esteve'),
@@ -2927,7 +2927,8 @@ const perfilVisitas = await conteudo();
 cobrar('o perfil tem as visitas dela', /visitas/i.test(perfilVisitas) && /visitas? no período/i.test(perfilVisitas),
   perfilVisitas.slice(0, 300));
 cobrar('os visitantes vêm por nome, com o número ao lado', /Quem visitou, por nome/i.test(perfilVisitas));
-cobrar('e a frase de que número não é avaliação da família', /não é avaliação da família/.test(perfilVisitas));
+cobrar('e a frase de que o número só conta, e quem avalia é a equipe técnica',
+  /quantas visitas aconteceram/.test(perfilVisitas) && /equipe técnica conversa/.test(perfilVisitas));
 cobrar('o histórico da correção aparece: o que constava, quem e por quê',
   /Corrigida em .* por .*Constava:/.test(perfilVisitas)
   && /Motivo: A saída não foi registrada no portão/.test(perfilVisitas), perfilVisitas.slice(0, 600));
@@ -3316,7 +3317,11 @@ const sequencia = await pg.locator('.overlay .sheet').innerText();
 cobrar('a leitura abre o dia com a diurna e depois a noturna',
   sequencia.indexOf('ATA diurna de') >= 0 && sequencia.indexOf('ATA noturna de') > sequencia.indexOf('ATA diurna de'),
   sequencia.slice(0, 160));
-cobrar('e cada ATA vem como a folha, com o que a equipe escreveu', /bilhete da professora/.test(sequencia));
+/* O livro fictício (fase 206) escolhe a nota do dia pela data: a cobrança aceita qualquer
+   uma delas, e não a de um dia só (de madrugada, "ontem" muda e a nota também). */
+cobrar('e cada ATA vem como a folha, com o que a equipe escreveu',
+  /bilhete da professora|van da escola|Faltou leite|medalha na gincana|chuveiro|ligar para a avó|uniforme novo|esqueceu o casaco|rotina de tema|curso de violão/.test(sequencia),
+  sequencia.slice(0, 300));
 await fechar();
 await pg.getByRole('tab', { name: /^Só noturno$/ }).click();
 await pg.waitForTimeout(400);

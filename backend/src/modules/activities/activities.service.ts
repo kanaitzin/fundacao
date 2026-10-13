@@ -409,8 +409,8 @@ export class ActivitiesService {
         responsavel: l.responsavel, responsavelCargo: l.responsavel_cargo ?? null,
         acolhido: l.acolhido,
       })),
-      nota: 'Quem está em quê neste turno. Não é medição de ninguém: não há contagem '
-          + 'por pessoa, ordenação por desempenho nem histórico de deslocamento (§3.3).',
+      nota: 'Quem está em quê neste turno, para a equipe se organizar. Não há contagem '
+          + 'por pessoa nem ordem por desempenho (§3.3).',
     };
   }
 
@@ -613,8 +613,8 @@ export class ActivitiesService {
           semEfeito,
           aviso: semEfeito
             ? `A atividade já foi encerrada como "${ESTADO_LABEL[r.state] ?? r.state}" `
-              + 'enquanto o pedido aguardava. Não cabe substituir o que já aconteceu — '
-              + 'recuse o pedido com o motivo.'
+              + 'enquanto o pedido aguardava. Como ela já aconteceu, recuse o pedido '
+              + 'escrevendo o motivo.'
             : null,
         };
       });
