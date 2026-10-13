@@ -316,7 +316,7 @@ const TAREFAS = [
     cargo: 'equipe_tecnica', secao: '3.12',
     nome: 'Este adolescente sai sozinho para o curso?',
     caminho: [{ aba: 'Acolhidos' }, { clicar: /Alice/ }],
-    procurar: [/sozinh/i],
+    procurar: [/sem acompanhante/i],
   },
   /*
    * A PORTARIA (fase 92). A marca de visita nasce no contato, como a saída.
@@ -440,7 +440,7 @@ const TAREFAS = [
     /* O "Quando pode vir" entra na cobrança na fase 142: a folha que diz QUEM
        pode entrar e não diz QUANDO deixa a decisão na guarita, e a tarefa do
        roteiro é justamente gerar a folha que vai para o portão. */
-    procurar: [/Portaria — quem pode visitar/, /Madrinha Simoni/, /Ver a folha da portaria/],
+    procurar: [/Portaria/, /Visitantes/, /Madrinha Simoni/, /Ver a folha da portaria/],
   },
   {
     cargo: 'coordenador', secao: '5.16',
@@ -544,7 +544,18 @@ for (const t of TAREFAS) {
 
   /* O texto do documento aberto também vale: várias tarefas terminam numa
    * folha por cima da tela, e não na tela. */
-  const corpo = await pg.locator('body').innerText();
+  let corpo = await pg.locator('body').innerText();
+  /* O PERFIL EM ABAS (fase 208): o que a tarefa procura pode estar noutra aba do
+     perfil. Sem folha aberta por cima, o ensaio passa pelas abas como a pessoa. */
+  const abasDoPerfil = pg.locator('main.conteudo nav.abas-perfil [role=tab]');
+  if (t.procurar.some((r) => !r.test(corpo)) && !(await pg.locator('.overlay').count())) {
+    const n = await abasDoPerfil.count();
+    for (let i = 0; i < n; i++) {
+      await abasDoPerfil.nth(i).click();
+      await pg.waitForTimeout(400);
+      corpo += '\n' + await pg.locator('body').innerText();
+    }
+  }
   const faltando = t.procurar.filter((r) => !r.test(corpo));
 
   if (faltando.length) {

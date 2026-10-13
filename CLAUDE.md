@@ -259,9 +259,16 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 212 | **as telas falam como colega** (pedido de 12/10): medido pelo texto que a tela mostra, 137 frases com marca de raciocínio reescritas (telas, servidor, protótipo e a página do alcance); sobram só separadores de dado; o `ensaio:celular` passa a reprovar a frase de raciocínio |
 
 **Medido no fim da 212:** 192 migrações, 136 tabelas, 141 suítes, 1269 testes, verdes nas
-DUAS condições de relógio; os dez ensaios de navegador verdes (o `ensaio:acolhe` com todas as telas de todos os cargos por texto e por voz e os 36 formulários do sistema abertos por ela, inclusive dentro do perfil, do dossiê, da internação, do acervo e do plantão, e o do celular com 306 telas e nenhum achado), com a portaria e o
-portão, o armário, a cozinha, os temas e a foto no percurso do `ensaio:uso`; **1256 telas (157 × oito
-temas) sem violação de WCAG 2.1 AA**; nenhuma
+DUAS condições de relógio (a do relógio normal com as três suítes de frase conferidas depois,
+uma a uma); o `ensaio:uso` inteiro, com as chamadas da casa, e o `ensaio:uso-celular`, verdes; o
+`ensaio:acolhe` com todas as telas de todos os cargos por texto e por voz e todos os formulários
+marcados abertos por ela; o do celular com 306 telas a 360 e 390 px, que achou só a caixa da 210
+(consertada) e depois 153 telas a 360 sem achado, **nenhuma frase de raciocínio**; e **1256 telas (157 × oito
+temas) sem violação de WCAG 2.1 AA**; e o `ensaio`, o `largo`, o `fila`, o `folhas` e o
+`roteiro` verdes (os dez). O `roteiro` não rodava desde a 207 e reprovava em cinco tarefas:
+não passava pelas abas do perfil (208) e procurava os nomes de antes da 207; o roteiro da
+Casa 03 dizia *sai sozinho* onde a tela diz *sem acompanhante* (corrigido, Word regerado).
+**Não rodou nesta fase** a simulação contra o servidor. Nenhuma
 rota sem teste; nenhuma rota — escrita ou leitura — com 500; **250 leituras sondadas
 pela Casa 04 com registro real da Casa 03, sem achado; cerca de 170 rotas de escrita, sem linha
 da Casa 03 mudada**; nenhum ouvinte

@@ -76,8 +76,9 @@ Leitura recomendada antes da aplicação, para quem conduz.
   grade, com a vaga mantida, e há uma folha da medicação que ela leva.
 - O retorno da família aparece na passagem e na ATA: quem voltou, a que horas,
   quem recebeu, como a criança chegou e o que trouxe de casa.
-- A autorização para sair sozinho é registrada como situação (sai sozinho, sai
-  acompanhado, não sai sozinho), com motivo, autor e prazo de revisão.
+- A autorização para sair sem acompanhante é decidida pela equipe da casa e registrada
+  como situação (pode sair sem acompanhante, só sai com acompanhante, não pode sair sem
+  acompanhante), com motivo, autor e desde quando. A portaria vê o que vale, sem o motivo.
 - A portaria tem acesso próprio, com a relação de visitantes autorizados de
   cada acolhido, a foto 3x4 e o registro de entrada e saída das visitas.
 
@@ -329,8 +330,8 @@ este cargo em 31/08; vale observar se ela espera encontrá-la.
 
 12. **Este adolescente pode ir sozinho ao curso?**
     Observar: ela encontra a autorização no perfil? Entende que é uma situação
-    (sai sozinho, sai acompanhado, não sai sozinho), com motivo, autor e prazo
-    de revisão? Se ela pedir pontos, nota ou algum número para medir confiança,
+    (pode sair sem acompanhante, só sai com acompanhante, não pode sair sem
+    acompanhante), com motivo, autor e desde quando? Se ela pedir pontos, nota ou algum número para medir confiança,
     anote a frase e informe que não há. Pergunte o que ela usaria no lugar.
 
 12.1. **O educador propôs um assunto que não vai entrar nesta reunião.
