@@ -303,8 +303,16 @@ for (const conta of CONTAS) {
         await pg.waitForTimeout(1200);
         turnos = cal.locator('button.cal-turno');
       }
-      if (!(await turnos.count())) anota(conta.quem, onde, 'nem este mês nem o anterior têm turno no calendário');
-      else {
+      /* Quem não tem casa de trabalho abre a primeira casa da lista, e a simulação só
+         vive a dela: aqui a cobrança é a tela DIZER qual casa está aberta (fase 213). */
+      const semCasa = /\((lider_noturno_geral|enfermagem|gestor_geral)\)$|^geral /.test(conta.quem);
+      if (semCasa) {
+        const aviso = pg.locator('.casa-aberta');
+        if (!(await aviso.count()) || !/Você está na \S+ · /.test(await aviso.innerText())) {
+          anota(conta.quem, onde, 'quem não tem casa de trabalho abre a Passagem sem saber de qual casa');
+        }
+      } else if (!(await turnos.count())) anota(conta.quem, onde, 'nem este mês nem o anterior têm turno no calendário');
+      else if (await turnos.count()) {
         await turnos.first().click();
         await pg.waitForTimeout(1500);
         const t = await pg.locator('main.conteudo').innerText();
@@ -314,6 +322,63 @@ for (const conta of CONTAS) {
         await pg.getByRole('button', { name: '← Plantões' }).click().catch(() => {});
         await pg.waitForTimeout(600);
       }
+    }
+    telas.push(onde);
+  }
+
+  /* AS CHAMADAS DA CASA (fase 211), contra o servidor: quem define cria uma pela
+     folha com a paleta, confere no BANCO que ela nasceu na casa com a cor, abre a
+     chamada com um toque e tira da lista; quem não define não vê o botão. */
+  onde = 'chamadas da casa';
+  const aChamada = pg.locator('nav.tabbar button, nav.portas-lateral button', { hasText: /^Chamada/ });
+  if (await aChamada.count()) {
+    await aChamada.first().click();
+    await pg.waitForTimeout(1500);
+    const nova = pg.getByRole('button', { name: 'Nova chamada da casa' });
+    const define = /\((coordenador|equipe_tecnica|lider_diurno)\)$/.test(conta.quem) && !/^geral /.test(conta.quem);
+    if (await nova.count()) {
+      const titulo = `Roda de leitura ${emArquivo(conta.quem).slice(0, 12)}`;
+      await nova.click();
+      await pg.waitForTimeout(500);
+      const folha = pg.locator('.overlay');
+      await folha.getByRole('button', { name: 'Lazer ou atividade' }).click();
+      await folha.locator('#mc-titulo').fill(titulo);
+      await folha.locator('#mc-hora').fill('16:30');
+      await folha.locator('#mc-pessoas').fill('12');
+      await folha.getByRole('button', { name: 'Jade', exact: true }).click();
+      await folha.getByRole('button', { name: 'Criar a chamada' }).click();
+      await pg.waitForTimeout(1500);
+      if (await folha.count()) anota(conta.quem, onde, `a folha não fechou: ${(await folha.innerText()).replace(/\s+/g, ' ').slice(0, 160)}`);
+      const db = new PgLib.Client({ connectionString: process.env.DATABASE_URL });
+      await db.connect();
+      const { rows } = await db.query(
+        `SELECT m.id, h.code, m.color, m.at_time::text AS hora, m.people_count FROM house_check_model m
+           JOIN house h ON h.id = m.house_id WHERE m.title = $1 AND m.ended_at IS NULL`, [titulo]);
+      if (rows.length !== 1 || rows[0].color !== 'jade' || rows[0].hora !== '16:30:00' || rows[0].people_count !== 12) {
+        anota(conta.quem, onde, `a chamada criada pela tela não está no banco como devia: ${JSON.stringify(rows)}`);
+      }
+      const cartao = pg.locator('.chamada-da-casa button.chamadacard', { hasText: titulo });
+      if (!(await cartao.count())) anota(conta.quem, onde, 'a chamada criada não aparece na lista da casa');
+      else {
+        await cartao.first().click();
+        await pg.waitForTimeout(1500);
+        const t = await pg.locator('main.conteudo').innerText();
+        if (!t.includes(titulo) || !/Aberta por/.test(t)) {
+          anota(conta.quem, onde, `o toque não abriu a chamada (a tela diz: ${t.replace(/\s+/g, ' ').slice(0, 160)})`);
+        }
+        await pg.getByRole('button', { name: /← Chamadas/ }).click().catch(() => {});
+        await pg.waitForTimeout(800);
+        await pg.getByRole('button', { name: `Mudar a chamada ${titulo}` }).click();
+        await pg.waitForTimeout(500);
+        await folha.getByRole('button', { name: /Tirar esta chamada/ }).click();
+        await folha.getByRole('button', { name: 'Tirar da lista' }).click();
+        await pg.waitForTimeout(1200);
+        const fim = await db.query(`SELECT ended_at IS NOT NULL AS saiu FROM house_check_model WHERE title = $1`, [titulo]);
+        if (!fim.rows.every((r) => r.saiu)) anota(conta.quem, onde, 'tirar da lista não encerrou a chamada no banco');
+      }
+      await db.end();
+    } else if (define) {
+      anota(conta.quem, onde, 'quem define as chamadas da casa não vê o botão Nova chamada da casa');
     }
     telas.push(onde);
   }

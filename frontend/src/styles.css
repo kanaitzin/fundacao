@@ -2196,3 +2196,6 @@ button.cal-turno:focus-visible{ outline:3px solid var(--brand); outline-offset:1
    o ensaio:celular mediu 20 px de altura (fase 212). */
 .so-atencao { min-height: 44px; align-items: center; cursor: pointer; }
 .so-atencao input[type="checkbox"] { width: 24px; height: 24px; flex: none; margin: 0; }
+
+/* A casa aberta, para quem não tem casa de trabalho (fase 213). */
+.casa-aberta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }

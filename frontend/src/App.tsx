@@ -319,6 +319,11 @@ const CONVITE_DA_URL = (() => {
   return t;
 })();
 
+/** As telas que mostram UMA casa: quem não tem casa de trabalho precisa ver qual (fase 213). */
+const TELAS_DA_CASA = new Set(['dia', 'chamada', 'acolhidos', 'passagem', 'agenda', 'plantao',
+  'rotina', 'cozinha', 'portaria', 'campos_do_perfil', 'escala', 'internacao', 'saude',
+  'ocorrencias', 'ata', 'alinhamentos', 'painel', 'acompanhamentos', 'cofre', 'periodo']);
+
 export function App() {
   const [me, setMe] = useState<Me | null>(null);
   const [houses, setHouses] = useState<House[]>([]);
@@ -854,6 +859,21 @@ export function App() {
           * ela, quem trocou de casa lê a tela inteira achando que é a dele — e
           * um turno de outra casa é exatamente o tipo de coisa que se confunde.
           */}
+        {/*
+          * QUEM NÃO TEM CASA DE TRABALHO (Líder Noturno Geral, Enfermagem, Gestor
+          * Geral, Coordenação Geral) abre a primeira casa da lista, ou a que
+          * escolheu, e a tela não dizia qual: a Passagem falava "nesta casa" sem
+          * nome. A simulação contra o servidor viu o noturno olhando a AI1 achando
+          * que olhava a dele (fase 213). O nome da casa vai no alto, com a troca.
+          */}
+        {!casa && casaAtual && TELAS_DA_CASA.has(String(abaEfetiva)) && (
+          <div className="notice c-info casa-aberta" role="status">
+            <span>Você está na <b>{casaAtual.code} · {casaAtual.name}</b>.</span>{' '}
+            {ve('casas') && (
+              <button className="btn sm ghost" onClick={() => setAba('casas')}>Trocar de casa</button>
+            )}
+          </div>
+        )}
         {olhandoOutra && casaAtual && (
           <div className="notice c-info" role="status">
             <b>Você está olhando {casaAtual.code} · {casaAtual.name}.</b>{' '}

@@ -181,7 +181,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 13/10/2026, fase 212
+### Onde estamos — 14/10/2026, fase 213
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -257,6 +257,7 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 210 | **o dia, em ordem, com cor e mais curto** (pedido de 12/10): uma linha por evento com a cor e o desenho da categoria (`categorias-do-dia.ts`, as mesmas do Dia), *da casa toda* ou o nome da criança, legenda em cima, o dia em quatro partes e *Só o que ainda precisa de alguém* |
 | 211 | **as chamadas da casa** (pedido de 12/10): nome, horário, quantas pessoas e uma cor de 48 (`frontend/src/cores-da-casa.ts`), um toque abre a chamada; coordenação, técnica e Líder Diurno definem; mudar encerra e abre outra (`house_check_model`, checks/1652); a cor só na barra e no ponto |
 | 212 | **as telas falam como colega** (pedido de 12/10): medido pelo texto que a tela mostra, 137 frases com marca de raciocínio reescritas (telas, servidor, protótipo e a página do alcance); sobram só separadores de dado; o `ensaio:celular` passa a reprovar a frase de raciocínio |
+| 213 | **a casa aberta, dita**: a simulação contra o servidor (a primeira desde a 205) conferiu as chamadas da casa no banco e achou que **quem não tem casa de trabalho** (noturno, Enfermagem, gestor, CG) abria a primeira casa da lista sem saber qual; agora *Você está na …* com *Trocar de casa*, cobrado no `ensaio-servidor` |
 
 **Medido no fim da 212:** 192 migrações, 136 tabelas, 141 suítes, 1269 testes, verdes nas
 DUAS condições de relógio (a do relógio normal com as três suítes de frase conferidas depois,
@@ -313,6 +314,10 @@ meses**: nenhum achado do sistema; tudo o que as casas contaram bate com o banco
 **38 contas e 1.142 telas, com cada aba de dentro, contra o servidor de verdade, sem achado**, e a
 educadora gravando pela Acolhe+AI conferida no banco; 123,6 MB de banco. Relatório em
 `docs/historico/oito-casas-seis-meses-vinte-pessoas-12-10.md`.
+**E na fase 213** (`SIM_CASAS=AI3 … 30`), a primeira depois da 205, com o calendário, a saída pelo
+portão, o perfil em abas, as fotos, o dia em ordem, as chamadas da casa e as frases novas: **onze
+contas e as telas contra o servidor de verdade, sem achado** depois de consertar a casa aberta sem nome;
+as chamadas da casa criadas pela tela e conferidas no banco; na API, a mesma recusa.
 **E na fase 204** (`SIM_CASAS=AI3 … 30`), com o armário dizendo o vencido: **onze contas, 201 telas e o esqueci, sem achado**; nenhuma
 leitura acima de 155 ms; na API, a mesma recusa.
 
@@ -331,6 +336,13 @@ as três cores abaixo. Cor nova passa pelo `ensaio:acessibilidade`, que mede os 
 | **casa** (211) | *qual é esta chamada?* | barra e ponto do cartão da chamada; a casa escolhe (`cores-da-casa.ts`) |
 
 ### A próxima etapa
+
+**FEITO — fase 213** (§2): a simulação de trinta dias da Casa 03 contra o servidor, que
+ficou sete fases sem rodar, conferiu as chamadas da casa e achou a casa aberta sem nome para
+quem não tem casa de trabalho (consertado). **Fica para a próxima fase:** as recusas do
+SERVIDOR ainda trazem travessão e frase que argumenta (são uns 150 recados de erro, que a
+varredura da 212 não via porque só aparecem quando algo é recusado). **Rode a simulação a
+cada fase que muda tela** (a lição da 190, de novo).
 
 **FEITO — fase 212** (§2): as telas falam como colega. **Frase nova de tela** diz o que
 fazer e quem faz, sem defender a regra, sem falar *do sistema* na terceira pessoa e sem
