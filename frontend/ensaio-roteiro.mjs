@@ -242,6 +242,18 @@ const TAREFAS = [
     caminho: [{ aba: 'Acolhidos' }, { clicar: /Alice/ }, { abaDoPerfil: 'Atendimentos' }],
     procurar: [/Registrar atendimento da equipe técnica/, /Psicologia/],
   },
+  {
+    cargo: 'equipe_tecnica', secao: '3.13.3',
+    nome: 'Antes da audiência: o tempo de acolhimento, o PIA e o último atendimento',
+    caminho: [{ aba: 'Acolhidos' }, { clicar: /Alice/ }],
+    procurar: [/No acolhimento/, /PIA/, /há \d/],
+  },
+  {
+    cargo: 'educador', secao: '1.13.1',
+    nome: 'O almoço de ontem, no Dia a dia do perfil',
+    caminho: [{ aba: 'Acolhidos' }, { clicar: /Alice/ }, { abaDoPerfil: 'Dia a dia' }],
+    procurar: [/O dia a dia de Alice/i, /Escolha o dia/],
+  },
 
   // ------------------------------------------------ 5.11 e 5.12 — coordenação
   {

@@ -91,6 +91,11 @@ Leitura recomendada antes da aplicação, para quem conduz.
 - A equipe técnica registra o atendimento da criança (psicologia, psicopedagogia,
   serviço social) com os arquivos, como o desenho feito na sessão. Leem a equipe
   técnica, a coordenação e a gestão.
+- O perfil da criança abre na aba *Geral*, com os dados dela: idade, casa, há
+  quanto tempo está no acolhimento, escola, PIA, equipe de referência e a
+  família. O dia de hoje fica no Dia e na ATA. O que a casa registrou em cada dia
+  se consulta na aba *Dia a dia*, e a aba *Atendimentos* é o relatório da equipe
+  técnica, o mais recente em cima. Cada aba traz os números da criança.
 
 **Gestão**
 
@@ -226,6 +231,12 @@ vezes por turno.
     voltou no turno diurno. Se a aplicação for à noite, o retorno dela está no
     cartão do plantão diurno. Se a tarefa 12 foi feita antes, o Felipe também
     aparece.)*
+
+13.1. **A mãe da Alice ligou perguntando se ela almoçou bem ontem. Onde você
+    confere?**
+    Observar: ela abre o perfil da Alice e vai à aba *Dia a dia*? Volta um dia
+    pela seta ou pelo calendário? Encontra o almoço com quem registrou? Pergunte:
+    *você procuraria aqui ou na ATA de ontem?*
 
 14. **Pergunte ao final:** *teve algum momento em que você achou que ia dar
     errado?*
@@ -378,6 +389,13 @@ este cargo em 31/08; vale observar se ela espera encontrá-la.
     fotografa o desenho? Repara que o atendimento não se edita depois? Pergunte:
     *quem da casa deveria ler este registro? O educador deveria saber ao menos
     que houve atendimento?* A resposta vai para a pergunta 4.24 da reunião.
+
+13.3. **Amanhã tem audiência da Alice. Diga há quanto tempo ela está acolhida,
+    quando vence o PIA e quando foi o último atendimento de psicopedagogia.**
+    Observar: ela encontra os três na aba *Geral* e em *Atendimentos*, sem abrir
+    relatório? Usa o filtro por área? Lê o relatório de cima para baixo, do mais
+    recente ao mais antigo? Pergunte: *que número faltou para você levar à
+    audiência?*
 
 14. **Pergunte ao final:** *o que faltou neste documento para você levar a uma
     audiência?*

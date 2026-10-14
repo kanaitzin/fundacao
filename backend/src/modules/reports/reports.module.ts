@@ -8,6 +8,7 @@ import { PanelService } from './panel.service';
 import { MetricasService } from './metricas.service';
 import { PeriodoService } from './periodo.service';
 import { OQueMudouService } from './o-que-mudou.service';
+import { NumerosDaCriancaService } from './numeros-da-crianca.service';
 import { ConteudoService } from './conteudo.service';
 import { DocumentoService } from './documento.service';
 
@@ -22,7 +23,7 @@ import { DocumentoService } from './documento.service';
   imports: [IdentityModule],
   controllers: [FollowupsController, ReportsController, ImpactoController],
   providers: [FollowupsService, ReportsService, ImpactoService, PanelService, MetricasService,
-    PeriodoService, ConteudoService, DocumentoService, OQueMudouService],
+    PeriodoService, ConteudoService, DocumentoService, OQueMudouService, NumerosDaCriancaService],
   exports: [ReportsService, FollowupsService],
 })
 export class ReportsModule {}

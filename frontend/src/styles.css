@@ -2199,3 +2199,32 @@ button.cal-turno:focus-visible{ outline:3px solid var(--brand); outline-offset:1
 
 /* A casa aberta, para quem não tem casa de trabalho (fase 213). */
 .casa-aberta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+/* O PERFIL REORGANIZADO (fase 221): a Geral abre com a ficha dela, e cada aba
+   traz os seus números nas contas em blocos da fase 200. */
+:root{ --aba-geral:#1F6FB2; --aba-rotina:#8C6A00 }
+.aba-geral{ --aba:var(--aba-geral) } .aba-rotina{ --aba:var(--aba-rotina) }
+.ficha-geral{ list-style:none; margin:0; padding:0; display:grid; gap:8px;
+  grid-template-columns:repeat(auto-fill, minmax(210px, 1fr)) }
+.ficha-geral li{ display:flex; flex-direction:column; gap:2px; background:var(--surface);
+  border:1px solid var(--line); border-radius:12px; padding:10px 12px; min-width:0 }
+.ficha-geral li > span{ font-size:12.5px; color:var(--ink-2); font-weight:700; letter-spacing:.01em }
+.ficha-geral li > b{ font-family:"Plus Jakarta Sans",sans-serif; font-size:17px; font-weight:800;
+  color:var(--titulo); line-height:1.25; overflow-wrap:anywhere }
+.ficha-geral li > small{ font-size:13px; color:var(--ink-2); overflow-wrap:anywhere }
+.ficha-geral.ficha-miuda li{ background:var(--sunken); border:0 }
+.ficha-geral.ficha-miuda li > b{ font-size:15px }
+.familiares{ list-style:none; margin:0; padding:0; display:grid; gap:8px;
+  grid-template-columns:repeat(auto-fill, minmax(240px, 1fr)) }
+.familiares li{ display:flex; align-items:center; gap:10px; min-width:0 }
+/* O relatório da equipe técnica: o mês em bloco, e cada atendimento com a data ao lado. */
+.relatorio-tecnico{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:10px }
+.relatorio-mes{ font-weight:800; font-size:13px; color:var(--ink-2);
+  margin:6px 0 2px; padding-bottom:4px; border-bottom:1px solid var(--line) }
+.relatorio-item{ display:flex; gap:12px; align-items:flex-start; padding:10px 12px; border-radius:12px;
+  background:var(--sunken); border-left:4px solid var(--aba-atendimentos) }
+.relatorio-texto{ white-space:pre-wrap; margin-top:6px; line-height:1.5 }
+@media (max-width: 719px){
+  .ficha-geral{ grid-template-columns:repeat(2, minmax(0, 1fr)) }
+  .ficha-geral li > b{ font-size:15.5px }
+}

@@ -405,10 +405,14 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
       await new Promise((ok) => setTimeout(ok, 150));
     }
     const ignorar = sem(c.nome).split(/[^a-z0-9]+/);
-    /* O PERFIL EM ABAS (fase 208): o assunto do pedido escolhe a aba, como a pessoa
-       escolheria ("as visitas do Bruno" abre Família e visitas). Aba não grava. */
+    /* O PERFIL EM ABAS (fase 208; reorganizado na 221): o assunto do pedido escolhe a
+       aba, como a pessoa escolheria ("as visitas do Bruno" abre Família e visitas).
+       Atendimento é o da equipe técnica; o que a casa registrou no dia é o Dia a dia.
+       Aba não grava. */
     const ABA_DO_ASSUNTO: [RegExp, string][] = [
-      [/\b(atendimento\w*|historico|tudo sobre|o dia d[ea]l[ea])\b/, 'Atendimentos'],
+      [/\b(atendimento\w*|psicolog\w*|psicopedagog\w*|servico social|sessao|sessoes|desenho\w*)\b/, 'Atendimentos'],
+      [/\b(dia a dia|historico|o dia d[ea]l[ea]|refeic\w*|almoc\w*|janta\w*|chamada\w*|presenca)\b/, 'Dia a dia'],
+      [/\b(tudo sobre|quem e|dados d[ea]l[ea]|idade|quanto tempo|tempo de acolhimento|pia)\b/, 'Geral'],
       [/\b(visita\w*|familia\w*|contato\w*|mae|pai|avo|tia|tio|madrinha|sair|saida\w*|portao|acompanhante)\b/, 'Família e visitas'],
       [/\b(saude|alergi\w*|remedio\w*|doenca\w*|consulta\w*|internac\w*|restric\w*)\b/, 'Saúde'],
       [/\b(escola\w*|educac\w*|estud\w*|bimestre|conceito|curso\w*)\b/, 'Educação'],

@@ -182,7 +182,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 14/10/2026, fase 220
+### Onde estamos — 14/10/2026, fase 221
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -265,9 +265,10 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 217 | **o laudo junto da alergia e as receitas no perfil**: laudo ou receita anexado à alergia, condição ou restrição (`document.health_condition_id`/`food_restriction_id`, people/1654), e os remédios dela com as receitas na aba Saúde; o `doc_insert` passou a conferir a casa |
 | 218 | **o atendimento da equipe técnica**: área, dia, o que foi trabalhado e até oito arquivos (o desenho), na aba Atendimentos, só técnica, coordenação e gestão (`technical_session`, people/1655); entra como fonte restrita do acompanhamento |
 | 219 | **o banco mais robusto** (pedido de 14/10): a autoria trocável num UPDATE (21 políticas sem a segunda trava), 5 inserções abertas, 12 UPDATE concedidos sem política, 73 chaves sem índice (identity/1656); limites de tempo na conexão (`BANCO_*`, recusa *NÃO foi salvo*); a migração guarda a soma de cada arquivo e para se um aplicado mudar, com trava e um executor só; o resto é da instalação (§12.4.1) |
-| 220 | **nada se perde no servidor do Pão** (pedido de 14/10): o arquivo contínuo do banco (`arquivar-wal.sh`, `postgresql-do-servidor.conf`, um minuto no máximo), a base semanal conferida (`base-do-banco.sh`), a volta a qualquer minuto (`restaurar-ponto-no-tempo.sh`) e a cópia das fotos de dez em dez minutos (`copiar-arquivos.sh`), provados pelo `ensaio:ponto-no-tempo`; o arquivo guardado agora vai ao disco antes da resposta (`gravarNoDisco`); três sinais novos na Implantação (relogio/1657) |
+| 220 | **nada se perde no servidor do Pão** (pedido de 14/10): o arquivo contínuo do banco (`arquivar-wal.sh`, `postgresql-do-servidor.conf`, um minuto no máximo), a base semanal conferida (`base-do-banco.sh`), a volta a qualquer minuto (`restaurar-ponto-no-tempo.sh`) e a cópia das fotos de cinco em cinco minutos (`copiar-arquivos.sh`), provados pelo `ensaio:ponto-no-tempo`; o arquivo guardado agora vai ao disco antes da resposta (`gravarNoDisco`); três sinais novos na Implantação (relogio/1657) |
+| 221 | **o perfil como ferramenta de trabalho** (pedido de 14/10): abre na **Geral** (idade, casa, tempo de acolhimento, escola, PIA, família, cuidados); a aba Hoje e o remédio de hoje saíram (o dia é do Dia e da ATA); **Dia a dia** para consultar; **Atendimentos** só da equipe técnica, linear, o mais novo em cima; os números de cada aba por `GET /reports/acolhido/:id/numeros` |
 
-**Medido no fim da 220:** 197 migrações, 139 tabelas, 146 suítes, 1303 testes, verdes nas
+**Medido no fim da 221:** 197 migrações, 139 tabelas, 146 suítes, 1303 testes, verdes nas
 DUAS condições de relógio, rodadas inteiras (na 219, a espera pela linha travada não se mede
 sob o relógio adiantado: o banco ali não tem temporizador); na 220, o `ensaio:ponto-no-tempo`
 (arquivo contínuo, base conferida, volta a um minuto do meio e ao fim, cópia que só acrescenta); e na 219 a simulação da Casa 03
@@ -354,10 +355,17 @@ as três cores abaixo. Cor nova passa pelo `ensaio:acessibilidade`, que mede os 
 
 ### A próxima etapa
 
+**FEITO — fase 221** (§2, PARA-A-REUNIAO §4.26): o perfil como ferramenta de trabalho, a
+pedido de 14/10. **Bloco novo do perfil entra na aba do assunto**, e o que é do dia de hoje
+não entra no perfil: vai para o Dia, a Chamada ou a ATA. **Número novo de criança** vai na
+`numeros-da-crianca.service.ts`, lido com a identidade de quem pede, e devolve `null` (nunca
+zero) onde o cargo não lê. **Depende da Fundação:** as cinco escolhas da §4.26. **Próxima
+etapa:** o roteiro com a equipe (agora com a 1.13.1 e a 3.13.3) e a implantação do §12.
+
 **FEITO — fase 220** (§2, §12.4.1, PARA-A-REUNIAO §4.25): a resposta ao *"não quero
 perder nada"*. Quatro camadas para o servidor próprio do Pão: o **arquivo contínuo** do
 banco (perda máxima de um minuto), a **base semanal** conferida pelo `pg_verifybackup`, a
-**volta a qualquer minuto** e a **cópia das fotos e documentos** de dez em dez minutos, que
+**volta a qualquer minuto** e a **cópia das fotos e documentos** de cinco em cinco minutos, que
 só acrescenta. O `npm run ensaio:ponto-no-tempo` prova tudo num banco à parte, e a tela da
 Implantação mostra três sinais novos (arquivo contínuo, base, cópia). **O arquivo que a
 pessoa anexa vai ao disco antes da resposta** (`gravarNoDisco`: nome provisório, `fsync`,

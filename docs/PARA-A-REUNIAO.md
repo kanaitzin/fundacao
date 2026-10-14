@@ -576,6 +576,26 @@ para quem cuidar do servidor:
 - **Quem roda o ensaio uma vez por mês** (`npm run ensaio:ponto-no-tempo`), e olha a saúde da
   implantação, que agora mostra o arquivo contínuo, a base e a cópia.
 
+## 4.26 O perfil como ferramenta de trabalho (fase 221, pedido de 14/10)
+
+O perfil abre na **Geral**, com os dados da criança e a família; o dia de hoje saiu do
+perfil e fica no Dia e na ATA; o **Dia a dia** consulta o que a casa registrou em cada dia;
+os **Atendimentos** são o relatório da equipe técnica, o mais recente em cima; e cada aba
+traz os números da criança. Cinco escolhas foram minhas, e cada uma é uma linha:
+
+- **A alergia e a restrição alimentar continuam no alto, em todas as abas.** É o que
+  machuca no mesmo dia se for esquecido (a lição da fase 202). Os cuidados essenciais
+  foram para a Geral.
+- **O remédio de hoje saiu do perfil.** Quem dá a dose usa a Saúde e o Dia, como antes; no
+  perfil, a aba Saúde mostra os números dos últimos trinta dias.
+- **A aba Atendimentos não aparece para o plantão e a Enfermagem**, porque eles não leem o
+  atendimento técnico (pergunta 4.24). Se a Fundação decidir que o educador sabe que houve
+  atendimento, a aba volta para ele só com a data e a área.
+- **O PIA aparece na Geral para a equipe técnica, a coordenação e a gestão**, que é quem
+  lê o PIA no dossiê.
+- **O que se escreveu sobre a criança nas ocorrências** (os relatos, com a contagem do
+  que é restrito) foi para o Dia a dia, junto do que a casa registrou.
+
 ## 5. As decisões que são do Marcelo *(§10 — responda pelo número)*
 
 Nenhuma é problema de código. **Sobra uma só, a 5** (a grade para a parede), que é escolha da casa.

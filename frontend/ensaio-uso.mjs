@@ -4252,10 +4252,74 @@ console.log('\n🖍️ O atendimento da equipe técnica, com o desenho (fase 218
   await pgT.locator('select.troca-cargo-sel').selectOption('educador'); await esp(900);
   await pgT.getByRole('button', { name: /^Acolhidos/ }).filter({ visible: true }).first().click(); await esp(900);
   await pgT.locator('.pessoa-cartao').filter({ hasText: 'Alice' }).first().click(); await esp(1200);
-  await pgT.getByRole('tab', { name: /Atendimentos/ }).click(); await esp(900);
-  cobrar('o educador não vê os atendimentos da equipe técnica', (await pgT.locator('section.atendimentos-tecnicos').count()) === 0);
+  /* Desde a 221 a aba nem aparece para o educador: os Atendimentos são os da equipe técnica. */
+  cobrar('o educador não vê os atendimentos da equipe técnica',
+    (await pgT.getByRole('tab', { name: /Atendimentos/ }).count()) === 0
+    && (await pgT.locator('section.atendimentos-tecnicos').count()) === 0);
   cobrar('nenhuma exceção no atendimento da equipe técnica', errosT.length === 0, errosT[0]);
   await pgT.close();
+}
+
+/*
+ * O PERFIL COMO FERRAMENTA DE TRABALHO (fase 221, pedido de 14/10): abre na
+ * Geral, com os dados dela; o dia de hoje não está no perfil; o Dia a dia é
+ * para consultar; os Atendimentos são o relatório da equipe técnica, o mais
+ * novo em cima; e cada aba tem os seus números.
+ */
+{
+  console.log('\n🗂️  O perfil reorganizado — Geral, Dia a dia, Atendimentos e os números');
+  const pgP = await navegador.newPage({ viewport: { width: 1280, height: 900 } });
+  const errosP = []; pgP.on('pageerror', (e) => errosP.push(e.message));
+  const esp = (ms) => pgP.waitForTimeout(ms);
+  await pgP.goto(`file://${ARQUIVO}`); await esp(700);
+  await pgP.getByRole('button', { name: 'Marcelo Barbosa', exact: true }).click();
+  await pgP.getByRole('button', { name: /Entrar no sistema/i }).click(); await esp(1200);
+  cargoAtual = 'equipe_tecnica';
+  await pgP.locator('select.troca-cargo-sel').selectOption('equipe_tecnica'); await esp(900);
+  await pgP.getByRole('button', { name: /^Acolhidos/ }).filter({ visible: true }).first().click(); await esp(900);
+  await pgP.locator('.pessoa-cartao').filter({ hasText: 'Alice' }).first().click(); await esp(1300);
+  const aberta = await pgP.locator('main.conteudo nav.abas-perfil [aria-selected=true]').innerText();
+  const geral = await pgP.locator('main.conteudo').innerText();
+  cobrar('o perfil abre na Geral', /Geral/.test(aberta), aberta);
+  cobrar('a Geral traz idade, casa, tempo de acolhimento, escola e PIA',
+    /Quem é Alice/.test(geral) && /Idade/.test(geral) && /No acolhimento/.test(geral) && /há \d/.test(geral)
+    && /Escola/.test(geral) && /PIA/.test(geral), geral.slice(0, 400));
+  cobrar('a Geral traz a família dela', /A família · \d/.test(geral) && /Genitora|Madrinha/.test(geral));
+  cobrar('o perfil não tem mais a aba Hoje nem o remédio de hoje',
+    (await pgP.getByRole('tab', { name: /^Hoje$/ }).count()) === 0 && !/Remédio de hoje/.test(geral));
+  cobrar('a alergia continua no alto, antes das abas', /Alergia a Amendoim/.test(geral));
+
+  await pgP.getByRole('tab', { name: /Dia a dia/ }).click(); await esp(900);
+  const dd = await pgP.locator('main.conteudo').innerText();
+  cobrar('o Dia a dia é para consultar o que a casa registrou, dia por dia',
+    /O dia a dia de Alice/i.test(dd) && (await pgP.getByRole('textbox', { name: 'O dia' }).count() + await pgP.locator('input[type=date][aria-label="O dia"]').count()) > 0);
+  cobrar('o Dia a dia traz as chamadas em números', /As chamadas de Alice nos últimos 30 dias/i.test(dd), dd.slice(0, 300));
+
+  await pgP.getByRole('tab', { name: /Atendimentos/ }).click(); await esp(900);
+  const at = await pgP.locator('section.atendimentos-tecnicos').innerText();
+  cobrar('os Atendimentos são só os da equipe técnica, sem café nem almoço',
+    !/Café da manhã|Almoço/.test(at) && /Psicologia/.test(at) && /Psicopedagogia/.test(at));
+  const datas = await pgP.locator('.relatorio-item .oc-quando').allInnerTexts();
+  const iso = datas.map((d) => { const [dm, a] = d.split('\n'); const [dd2, mm] = dm.split('/'); return `${a}-${mm}-${dd2}`; });
+  cobrar('o relatório vem do mais novo para o mais antigo',
+    iso.length >= 3 && iso.every((d, i) => i === 0 || iso[i - 1] >= d), iso.join(' '));
+  cobrar('os Atendimentos têm os números por área', /em números/i.test(at) && /psicopedagogia/.test(at));
+  await pgP.getByRole('button', { name: /^Psicopedagogia · / }).click(); await esp(400);
+  const soPsicoped = await pgP.locator('.relatorio-item').allInnerTexts();
+  cobrar('o filtro por área mostra só a área escolhida',
+    soPsicoped.length > 0 && soPsicoped.every((t) => /Psicopedagogia/.test(t)));
+
+  await pgP.getByRole('tab', { name: /Saúde/ }).click(); await esp(900);
+  cobrar('a Saúde traz os números dos últimos 30 dias',
+    /A saúde de Alice em números/.test(await pgP.locator('main.conteudo').innerText()));
+  await pgP.getByRole('tab', { name: /Família e visitas/ }).click(); await esp(900);
+  cobrar('a Família traz os números da convivência',
+    /A convivência de Alice em números/.test(await pgP.locator('main.conteudo').innerText()));
+  await pgP.getByRole('tab', { name: /Vida na casa/ }).click(); await esp(900);
+  cobrar('a Vida na casa traz os números dela',
+    /A vida de Alice na casa em números/.test(await pgP.locator('main.conteudo').innerText()));
+  cobrar('nenhuma exceção no perfil reorganizado', errosP.length === 0, errosP[0]);
+  await pgP.close();
 }
 
 await navegador.close();

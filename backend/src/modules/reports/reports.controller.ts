@@ -11,6 +11,7 @@ import { PanelService } from './panel.service';
 import { MetricasService } from './metricas.service';
 import { PeriodoService } from './periodo.service';
 import { OQueMudouService } from './o-que-mudou.service';
+import { NumerosDaCriancaService } from './numeros-da-crianca.service';
 import { DataDoDia, CorpoConferido } from '../../kernel/common/data-do-dia.pipe';
 
 @Controller('followups')
@@ -191,6 +192,7 @@ export class ReportsController {
     @Inject(MetricasService) private readonly metricas_: MetricasService,
     @Inject(PeriodoService) private readonly periodo: PeriodoService,
     @Inject(OQueMudouService) private readonly oQueMudou: OQueMudouService,
+    @Inject(NumerosDaCriancaService) private readonly numeros: NumerosDaCriancaService,
   ) {}
 
   @Get('kinds')
@@ -214,6 +216,17 @@ export class ReportsController {
    * exigir uma frase para o Gestor Geral ver o próprio painel de gestão seria
    * burocracia sem quem proteger. A abertura fica auditada mesmo assim.
    */
+  /**
+   * OS NÚMEROS DE UMA CRIANÇA, no perfil dela (fase 221). Fora do alcance, 404
+   * pela guarda; dentro, cada número lido com a identidade de quem pede.
+   */
+  @RegistroDaRota('personId', 'person')
+  @Get('acolhido/:personId/numeros')
+  numerosDaCrianca(@CurrentUser() user: AuthenticatedUser,
+                   @Param('personId', ParseUUIDPipe) personId: string) {
+    return this.numeros.daCrianca(user, personId);
+  }
+
   @Get('metrics')
   metricas(@CurrentUser() user: AuthenticatedUser,
            @Query('de', DataDoDia) de?: string, @Query('ate', DataDoDia) ate?: string) {

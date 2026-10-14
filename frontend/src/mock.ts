@@ -4225,6 +4225,23 @@ function semearAtendimentos() {
     anexos: [{ id: 'atend-alice-1-a', nome: 'desenho.jpg', tipo: 'image/jpeg', tamanho: 48_000,
                legenda: 'O desenho da sessão', conteudo: jpegFicticio('Desenho da sessão') }],
   });
+  /* O relatório da Alice descendo no tempo (fase 221): a psicopedagoga e o serviço
+     social também atendem, e o caderno de meses anteriores continua aqui. */
+  const mais: [number, string, string, string][] = [
+    [20, 'psicopedagogia', 'Paula Psicopedagoga (fictícia)', 'Leitura de palavras com sílabas simples e jogo da memória '
+      + 'com figuras. Alice reconheceu as vogais sem ajuda e pediu para levar o jogo para o quarto. Próximo encontro: '
+      + 'sílabas com M e P (fictício).'],
+    [34, 'servico_social', 'Sara Assistente Social (fictícia)', 'Conversa sobre a visita da avó no domingo. Alice contou '
+      + 'que gosta quando a avó traz o caderno de desenhos. Combinado com a família o horário das próximas visitas (fictício).'],
+    [41, 'psicologia', 'Tatiane Técnica (fictícia)', 'Atendimento com massinha. Alice montou a casa e o quarto, '
+      + 'nomeou as colegas e disse que dorme melhor com a luz do corredor acesa. Combinado com a equipe da noite (fictício).'],
+    [63, 'psicopedagogia', 'Paula Psicopedagoga (fictícia)', 'Primeira avaliação: atenção boa em atividades curtas, '
+      + 'cansa depois de quinze minutos. Plano: encontros semanais de meia hora, com jogo no fim (fictício).'],
+  ];
+  for (const [d, area, por, relato] of mais) {
+    ATENDIMENTOS_TECNICOS.push({ id: `atend-alice-${d}`, personId: 'p01', area, areaOutra: null, dia: diasAtras(d),
+      relato, registradoEm: emHoras(15, 20), por, anexos: [] });
+  }
 }
 const DOSSIE_DOCS: DocumentoMock[] = [];
 /** O laudo e a receita de um registro de saúde, na forma do perfil (fase 217). */
@@ -5982,6 +5999,69 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
    * O servidor lê pelo cargo de quem pergunta; aqui, o gestor fica de fora
    * como lá.
    */
+  /*
+   * OS NÚMEROS DE UMA CRIANÇA (fase 221), como `NumerosDaCriancaService`: o que
+   * o protótipo guarda (remédio em uso, as doses de hoje, a internação, a
+   * convivência, a saída pelo portão, as conquistas e as fotos marcadas) e, para
+   * os trinta dias que o protótipo não viveu, uma conta fictícia fixa por
+   * criança. Internação e PIA seguem o cargo, como no servidor: `null`, e não zero.
+   */
+  if (seg[0] === 'reports' && seg[1] === 'acolhido' && seg[3] === 'numeros' && metodo === 'GET') {
+    const k = kid(seg[2]);
+    if (!k) return new Recusa(404, 'Acolhido não encontrado, ou fora do seu alcance.');
+    const entre = (de: string, ate: string) =>
+      Math.round((Date.parse(`${ate}T12:00:00Z`) - Date.parse(`${de}T12:00:00Z`)) / 86_400_000);
+    const ep = (k.episodios ?? []).find((e: any) => !e.ended_at) ?? null;
+    const acolhidaDesde = ep?.started_at ?? '2026-02-28';
+    const casaDesde = '2026-02-28' > acolhidaDesde ? '2026-02-28' : acolhidaDesde;
+    const semente = [...String(k.id)].reduce((t, c) => t + c.charCodeAt(0), 0);
+    const deHoje = DOSES.filter((d) => d.personId === k.id);
+    const emUso = ESQUEMAS.filter((e) => e.acolhido.id === k.id && e.status === 'ativa').length;
+    const base = emUso ? 28 * emUso : 0;
+    const fora = emUso ? semente % 3 : 0;
+    const naoDadas = emUso ? semente % 2 : 0;
+    const noHorario = base - fora - naoDadas + deHoje.filter((d) => d.estado === 'administrado_no_horario').length;
+    const daCasa = (x: string) => x >= emDias(-30).slice(0, 10);
+    return {
+      geral: {
+        acolhidaDesde, diasNoAcolhimento: entre(acolhidaDesde, HOJE), episodio: ep?.number ?? 1,
+        episodios: (k.episodios ?? []).length || 1, casaDesde, diasNaCasa: entre(casaDesde, HOJE),
+        casasNesteAcolhimento: 1,
+        pia: ['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)
+          ? (() => { const vence = emDias(40 + (semente % 90) - 30).slice(0, 10); return { vence, dias: entre(HOJE, vence) }; })()
+          : null,
+      },
+      saude: {
+        remediosEmUso: emUso,
+        doses30: { previstas: base + deHoje.filter((d) => !d.pendente).length, noHorario, foraDoHorario: fora,
+                   naoDadas, semConfirmacao: 0, ausente: 0 },
+        atendimentos90: (k.alerta ? 2 : 0) + (semente % 2),
+        ultimoAtendimento: k.alerta ? { dia: emDias(-18).slice(0, 10), tipo: 'consulta' } : null,
+        proximoRetorno: k.alerta ? emDias(24).slice(0, 10) : null,
+        internacoes: ['equipe_tecnica', 'coordenador', 'gestor_geral', 'lider_diurno', 'lider_noturno_geral', 'enfermagem'].includes(eu.role)
+          ? (() => {
+              const minhas = INTERNACOES.filter((i) => i.acolhidoId === k.id);
+              return { total: minhas.length, agora: minhas.some((i) => !i.ate),
+                       ultima: minhas.map((i) => i.desde.slice(0, 10)).sort().pop() ?? null };
+            })()
+          : null,
+      },
+      familia: {
+        convivencias90: CONVIVENCIAS.filter((c) => c.personId === k.id && c.saiuEm >= emDias(-90)).length,
+        comAFamiliaAgora: CONVIVENCIAS.some((c) => c.personId === k.id && c.status !== 'encerrada' && !c.voltouEm),
+        saidas30: SAIDAS_PORTAO.filter((x) => x.personId === k.id && daCasa(x.saiuEm)).length,
+      },
+      vida: {
+        conquistas: MARCOS.filter((m) => m.acolhidoId === k.id).length,
+        ultimaConquista: (() => {
+          const m = MARCOS.filter((x) => x.acolhidoId === k.id).sort((a, b) => b.quando.localeCompare(a.quando))[0];
+          return m ? { dia: m.quando, tipo: m.tipo } : null;
+        })(),
+        fotosEmQueAparece: MARCAS_FOTO.filter((m) => m.personId === k.id && !m.retirada).length,
+      },
+    };
+  }
+
   if (rota.startsWith('/reports/o-que-mudou') && metodo === 'GET') {
     if (!QUEM_LE_O_QUE_MUDOU.includes(eu.role)) {
       throw new Error('Esta folha é de quem trabalha no plantão da casa.');
@@ -7127,8 +7207,10 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         correcoes: a.correcoes ?? [],
       };
     });
+    /* O período pedido, como o servidor (`?dias=`, de 1 a 90; a tela pede 30). */
+    const pedidos = Math.min(90, Math.max(1, Number(new URLSearchParams(rota.split('?')[1] ?? '').get('dias')) || 14));
     return {
-      dias: 14,
+      dias: pedidos,
       linhas: [...deHoje, ...anteriores]
         .sort((x, y) => (x.quando < y.quando ? 1 : -1)),
     };
