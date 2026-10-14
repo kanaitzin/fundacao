@@ -270,7 +270,11 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 
 **Medido no fim da 221:** 197 migrações, 139 tabelas, 147 suítes, 1308 testes, verdes nas
 DUAS condições de relógio, rodadas inteiras (na 219, a espera pela linha travada não se mede
-sob o relógio adiantado: o banco ali não tem temporizador); na 220, o `ensaio:ponto-no-tempo`
+sob o relógio adiantado: o banco ali não tem temporizador); na 221, o `ensaio:uso` (com o bloco do perfil
+reorganizado), o `roteiro` (54 tarefas), o do celular (306 telas, sem achado, depois de reescrever duas
+frases da ATA da noite), o de acessibilidade (1256 telas, nenhuma violação), o `ensaio:acolhe` (todas as
+telas e formulários de todos os cargos) e a Casa 03 em trinta dias contra o servidor de verdade, sem achado;
+na 220, o `ensaio:ponto-no-tempo`
 (arquivo contínuo, base conferida, volta a um minuto do meio e ao fim, cópia que só acrescenta); e na 219 a simulação da Casa 03
 em trinta dias contra o servidor de verdade, com as travas novas, sem achado; na 218, o `ensaio:uso` inteiro (com os blocos
 215 a 218), o do celular (306 telas, sem achado), o de acessibilidade (1256 telas, nenhuma
