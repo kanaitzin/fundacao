@@ -4282,9 +4282,9 @@ console.log('\n🖍️ O atendimento da equipe técnica, com o desenho (fase 218
   const geral = await pgP.locator('main.conteudo').innerText();
   cobrar('o perfil abre na Geral', /Geral/.test(aberta), aberta);
   cobrar('a Geral traz idade, casa, tempo de acolhimento, escola e PIA',
-    /Quem é Alice/.test(geral) && /Idade/.test(geral) && /No acolhimento/.test(geral) && /há \d/.test(geral)
+    /Quem é Alice/i.test(geral) && /Idade/.test(geral) && /No acolhimento/.test(geral) && /há \d/.test(geral)
     && /Escola/.test(geral) && /PIA/.test(geral), geral.slice(0, 400));
-  cobrar('a Geral traz a família dela', /A família · \d/.test(geral) && /Genitora|Madrinha/.test(geral));
+  cobrar('a Geral traz a família dela', /A família · \d/i.test(geral) && /Genitora|Madrinha/.test(geral));
   cobrar('o perfil não tem mais a aba Hoje nem o remédio de hoje',
     (await pgP.getByRole('tab', { name: /^Hoje$/ }).count()) === 0 && !/Remédio de hoje/.test(geral));
   cobrar('a alergia continua no alto, antes das abas', /Alergia a Amendoim/.test(geral));
@@ -4311,13 +4311,13 @@ console.log('\n🖍️ O atendimento da equipe técnica, com o desenho (fase 218
 
   await pgP.getByRole('tab', { name: /Saúde/ }).click(); await esp(900);
   cobrar('a Saúde traz os números dos últimos 30 dias',
-    /A saúde de Alice em números/.test(await pgP.locator('main.conteudo').innerText()));
+    /A saúde de Alice em números/i.test(await pgP.locator('main.conteudo').innerText()));
   await pgP.getByRole('tab', { name: /Família e visitas/ }).click(); await esp(900);
   cobrar('a Família traz os números da convivência',
-    /A convivência de Alice em números/.test(await pgP.locator('main.conteudo').innerText()));
+    /A convivência de Alice em números/i.test(await pgP.locator('main.conteudo').innerText()));
   await pgP.getByRole('tab', { name: /Vida na casa/ }).click(); await esp(900);
   cobrar('a Vida na casa traz os números dela',
-    /A vida de Alice na casa em números/.test(await pgP.locator('main.conteudo').innerText()));
+    /A vida de Alice na casa em números/i.test(await pgP.locator('main.conteudo').innerText()));
   cobrar('nenhuma exceção no perfil reorganizado', errosP.length === 0, errosP[0]);
   await pgP.close();
 }

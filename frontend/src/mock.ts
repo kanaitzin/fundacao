@@ -7208,7 +7208,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       };
     });
     /* O período pedido, como o servidor (`?dias=`, de 1 a 90; a tela pede 30). */
-    const pedidos = Math.min(90, Math.max(1, Number(new URLSearchParams(rota.split('?')[1] ?? '').get('dias')) || 14));
+    const pedidos = Math.min(90, Math.max(1, Number(q.get('dias')) || 14));
     return {
       dias: pedidos,
       linhas: [...deHoje, ...anteriores]
