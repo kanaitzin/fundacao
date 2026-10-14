@@ -331,7 +331,7 @@ export class IncidentsService {
          FROM external_communication e WHERE e.incident_id = $1 ORDER BY e.created_at`, [id]);
       return { i, pessoas, prot, cont, sinteses, anexos, comunicacoes };
     });
-    if (!dados) throw new NotFoundException('Ocorrência não encontrada — ou fora do seu alcance.');
+    if (!dados) throw new NotFoundException('Ocorrência não encontrada, ou fora do seu alcance.');
 
     const relatos = await this.statements.listFor(user, 'incident', id);
     const i = dados.i;
@@ -455,9 +455,8 @@ export class IncidentsService {
     const sinais = (input.sinaisObservados ?? '').trim();
     if (!fala && !sinais) {
       throw new BadRequestException(
-        'Escreva ao menos a fala espontânea ou os sinais observados. Este registro é único '
-        + 'por ocorrência e não é reescrito — um registro vazio ocuparia o lugar de quem '
-        + 'tem o que dizer.');
+        'Escreva ao menos a fala espontânea ou os sinais observados. Este registro é um só por '
+        + 'ocorrência, e depois de gravado não se reescreve.');
     }
     const casa = await this.casa(user, id);
     const { rows: [st] } = await this.db.asUser(user.id, async (c) =>
@@ -465,7 +464,7 @@ export class IncidentsService {
     if (st?.status === 'fechada') {
       throw new BadRequestException(
         'A ocorrência está fechada e a cópia documental dela já foi arquivada. Para acrescentar '
-        + 'algo, peça a reabertura à equipe técnica — a reabertura fica registrada, e o que '
+        + 'algo, peça a reabertura à equipe técnica. A reabertura fica registrada, e o que '
         + 'você escrever depois nasce datado do dia em que foi escrito.');
     }
     input = { falaEspontanea: fala || undefined, sinaisObservados: sinais || undefined };
@@ -482,7 +481,7 @@ export class IncidentsService {
         // protegido não fica sabendo o que ele diz por causa de uma recusa.
         throw new BadRequestException(
           'Esta ocorrência não recebe outro registro protegido: ele é único e não se reescreve. '
-          + 'Escreva um relato em seu nome — ele fica ao lado, com a sua assinatura e a sua hora, '
+          + 'Escreva um relato em seu nome. Ele fica ao lado, com a sua assinatura e a sua hora, '
           + 'e ninguém o altera depois.');
       }
       throw e;
@@ -656,9 +655,8 @@ export class IncidentsService {
     const referencia = (input.referencia ?? '').trim();
     if (!referencia && !(input.conteudo ?? '').trim()) {
       throw new BadRequestException(
-        'Anexe o documento digitalizado, ou informe onde ele está — a pasta ou o link no '
-        + 'Drive da instituição. Uma das duas: anexo sem nenhuma das duas é uma linha que '
-        + 'promete um documento que ninguém alcança.');
+        'Anexe o documento digitalizado, ou informe onde ele está: a pasta ou o link no Drive '
+        + 'da instituição.');
     }
     // §13.7: foto exige justificativa. Sem ela, não entra.
     if (input.tipo === 'foto_autorizada' && (input.justificativa ?? '').trim().length < 15) {
@@ -756,7 +754,7 @@ export class IncidentsService {
       /* O anexo de ocorrência de outra casa (fase 171): a função recusava
          certo, e a recusa chegava como erro 500. Igual a inexistente. */
       if (m.includes('fora_de_escopo')) {
-        throw new NotFoundException('Anexo não encontrado — ou fora do seu alcance.');
+        throw new NotFoundException('Anexo não encontrado, ou fora do seu alcance.');
       }
       throw e;
     }
@@ -941,7 +939,7 @@ export class IncidentsService {
       const { rows: [i] } = await c.query(`SELECT house_id FROM incident WHERE id = $1`, [incidentId]);
       return i?.house_id;
     });
-    if (!casa) throw new NotFoundException('Ocorrência não encontrada — ou fora do seu alcance.');
+    if (!casa) throw new NotFoundException('Ocorrência não encontrada, ou fora do seu alcance.');
     return casa;
   }
 

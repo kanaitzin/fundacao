@@ -70,7 +70,7 @@ export class AniversariosService {
         `SELECT * FROM app_aniversarios_proximos($1, $2)`, [houseId, dias]);
       return rows as Linha[];
     });
-    if (!linhas) throw new NotFoundException('Casa não encontrada — ou fora do seu alcance.');
+    if (!linhas) throw new NotFoundException('Casa não encontrada, ou fora do seu alcance.');
     return linhas;
   }
 

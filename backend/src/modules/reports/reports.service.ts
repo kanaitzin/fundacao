@@ -498,7 +498,7 @@ export class ReportsService {
     const doc = await this.abrir(user, id);
     if (doc.situacao !== 'aprovado' && ['judiciario', 'audiencia'].includes(doc.tipo)) {
       throw new ConflictException(
-        'Relatório ainda não aprovado. Exportar um rascunho para fora seria entregar como institucional o que ninguém revisou.');
+        'Este relatório ainda não foi aprovado. Ele sai da instituição depois da aprovação.');
     }
     // Planilha carrega o mínimo (§18.4): dado sensível em planilha viaja
     // fácil demais, e ninguém consegue lembrar quem tem qual cópia.

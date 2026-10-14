@@ -89,7 +89,7 @@ describe('Registro protegido depois da abertura', () => {
     const vazio = await request(http).post(`/api/v1/incidents/${ids.oc}/protected`)
       .set(auth(tokens.educador)).send({ falaEspontanea: '   ', sinaisObservados: '' });
     expect(vazio.status).toBe(400);
-    expect(vazio.body.message).toMatch(/único por ocorrência/i);
+    expect(vazio.body.message).toMatch(/um só por ocorrência/i);
 
     const { rows } = await admin.query(
       `SELECT count(*)::int AS n FROM incident_protected WHERE incident_id=$1`, [ids.oc]);

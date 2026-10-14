@@ -489,7 +489,7 @@ export class MedicationsService {
         // depois — quando ninguém lembra mais do frasco.
         throw new ForbiddenException(
           'Sem internet não dá para confirmar remédio: a mesma dose poderia ser confirmada em dois '
-          + 'aparelhos. Dê o medicamento e confirme assim que o sinal voltar — o resto do turno '
+          + 'aparelhos. Dê o medicamento e confirme assim que o sinal voltar. O resto do turno '
           + 'continua funcionando sem sinal.');
       }
       if (msg.includes('aparelho_nao_institucional')) {
@@ -663,12 +663,12 @@ export class MedicationsService {
       if (msg.includes('prescricao_sem_orientacao_valida')) {
         throw new BadRequestException(
           'Esta prescrição não está ativa e assinada. Dar remédio "se necessário" depende de uma '
-          + 'orientação válida — se ela foi suspensa, fale com a Enfermagem antes.');
+          + 'orientação válida. Se ela foi suspensa, fale com a Enfermagem antes.');
       }
       if (msg.includes('motivo_insuficiente')) {
         throw new BadRequestException(
           'Escreva por que o remédio foi preciso agora (mínimo 10 caracteres). A condição da '
-          + 'prescrição diz quando se PODE dar; isto diz o que aconteceu — e é o que a Enfermagem '
+          + 'prescrição diz quando se PODE dar; isto diz o que aconteceu, e é o que a Enfermagem '
           + 'lê para decidir se este remédio deve virar dose fixa.');
       }
       if (msg.includes('quando_no_futuro')) {
@@ -711,13 +711,13 @@ export class MedicationsService {
       if (msg.includes('dose_inexistente')) throw new NotFoundException('Dose não encontrada.');
       if (msg.includes('nao_e_quando_necessario')) {
         throw new BadRequestException(
-          'Esta dose não é "quando necessário" — o desfecho é o que se observou depois de dar um '
+          'Esta dose não é "quando necessário". O desfecho é o que se observou depois de dar um '
           + 'remédio que dependia da condição do momento.');
       }
       if (msg.includes('desfecho_ja_registrado')) {
         throw new ConflictException(
           'O desfecho desta dose já foi registrado, e não se reescreve. Se houve outra observação '
-          + 'depois, ela precisa de lugar próprio — fale com a coordenação.');
+          + 'depois, ela precisa de lugar próprio. Fale com a coordenação.');
       }
       if (msg.includes('desfecho_insuficiente')) {
         throw new BadRequestException(
@@ -825,7 +825,7 @@ export class MedicationsService {
            FROM medication_stock s WHERE s.id = $1`, [stockId]);
       /* Fora de alcance responde 404 idêntico a inexistente (§4.5). */
       if (!estoque) {
-        throw new NotFoundException('Este item do armário não foi encontrado — ou está fora do seu alcance.');
+        throw new NotFoundException('Este item do armário não foi encontrado, ou está fora do seu alcance.');
       }
       const { rows } = await c.query(
         `SELECT m.id, m.kind, m.quantity, m.reason, m.at, m.lot, m.lot_expires_on::text AS lot_exp, m.origin,
@@ -1019,7 +1019,7 @@ export class MedicationsService {
       return rowCount ?? 0;
     });
     if (!mudou) {
-      throw new NotFoundException('Item do estoque não encontrado — ou fora do seu alcance.');
+      throw new NotFoundException('Item do estoque não encontrado, ou fora do seu alcance.');
     }
     return { ok: true, estoqueBaixo: baixo };
   }
@@ -1196,7 +1196,7 @@ export class MedicationsService {
      * vazia, que se lê como "casa sem medicação hoje" (a mesma armadilha do
      * "zerar não é recusar").
      */
-    if (!casa) throw new NotFoundException('Unidade não encontrada — ou fora do seu alcance.');
+    if (!casa) throw new NotFoundException('Unidade não encontrada, ou fora do seu alcance.');
     return folhaDaGrade(
       casa,
       doses.map((d: any) => ({
@@ -1266,7 +1266,7 @@ export class MedicationsService {
     if (input.cnpj != null && String(input.cnpj).trim() !== '') {
       cnpj = normalizarCnpj(String(input.cnpj));
       if (!cnpjConfere(cnpj)) {
-        throw new BadRequestException('Este CNPJ não confere — os dígitos verificadores não batem. Confira na nota.');
+        throw new BadRequestException('Este CNPJ não confere. Os dígitos verificadores não batem. Confira na nota.');
       }
     }
     if (input.totalCentavos != null
@@ -1327,7 +1327,7 @@ export class MedicationsService {
       const m = String(e?.message ?? '');
       if (m.includes('nota_repetida:')) {
         throw new ConflictException(`Nota repetida: ${m.split('nota_repetida:')[1].trim()} `
-          + 'O mesmo CNPJ e o mesmo número não entram duas vezes — dobraria o gasto da prestação de contas.');
+          + 'Uma nota com o mesmo CNPJ e o mesmo número já está registrada.');
       }
       if (e?.code === '23505' && m.includes('uq_nota_da_casa')) {
         throw new ConflictException('Nota repetida: o mesmo CNPJ e o mesmo número já foram lançados nesta casa.');
@@ -1341,7 +1341,7 @@ export class MedicationsService {
           'Registram compra a Enfermagem, a equipe técnica, o líder e a coordenação.');
       }
       if (m.includes('casa_fora_de_escopo')) {
-        throw new NotFoundException('Unidade não encontrada — ou fora do seu alcance.');
+        throw new NotFoundException('Unidade não encontrada, ou fora do seu alcance.');
       }
       throw e;
     }
@@ -1381,10 +1381,10 @@ export class MedicationsService {
     const r = await this.db.asUser(user.id, async (c) => {
       const { rows: [s] } = await c.query(
         `SELECT id, house_id, medication, quantity FROM medication_stock WHERE id = $1 FOR UPDATE`, [stockId]);
-      if (!s) throw new NotFoundException('Item do estoque não encontrado — ou fora do seu alcance.');
+      if (!s) throw new NotFoundException('Item do estoque não encontrado, ou fora do seu alcance.');
       if (Number(s.quantity) < quantidade) {
         throw new BadRequestException(`O armário registra ${Number(s.quantity)} e a saída é de ${quantidade}. `
-          + 'Faça a contagem antes — ela corrige o saldo com o motivo.');
+          + 'Faça a contagem antes. Ela corrige o saldo com o motivo.');
       }
       const { rowCount } = await c.query(
         `UPDATE medication_stock SET quantity = quantity - $2, updated_at = now() WHERE id = $1`,
@@ -1422,7 +1422,7 @@ export class MedicationsService {
     if (de > ate) throw new BadRequestException('O início do período vem antes do fim.');
     return this.db.asUser(user.id, async (c) => {
       const { rows: [dentro] } = await c.query(`SELECT app_house_in_scope($1) AS ok`, [houseId]);
-      if (!dentro?.ok) throw new NotFoundException('Unidade não encontrada — ou fora do seu alcance.');
+      if (!dentro?.ok) throw new NotFoundException('Unidade não encontrada, ou fora do seu alcance.');
       const { rows: doses } = await c.query(
         `SELECT state::text AS estado, count(*)::int AS n FROM medication_administration
           WHERE house_id = $1 AND (scheduled_at AT TIME ZONE app_fuso())::date BETWEEN $2::date AND $3::date
@@ -1600,7 +1600,7 @@ export class MedicationsService {
         `SELECT app_house_label($1) AS code, app_house_name($1) AS name`, [houseId]);
       return [h?.code, h?.name].filter(Boolean).join(' · ');
     });
-    if (!casa) throw new NotFoundException('Unidade não encontrada — ou fora do seu alcance.');
+    if (!casa) throw new NotFoundException('Unidade não encontrada, ou fora do seu alcance.');
     return casa;
   }
 
@@ -1680,7 +1680,7 @@ export class MedicationsService {
       if (m.includes('receita_sem_papel')) {
         throw new BadRequestException(
           'Anexe a receita digitalizada, ou informe onde ela está no Drive da instituição. '
-          + 'Uma das duas — a receita é o que autoriza a prescrição.');
+          + 'Uma das duas. A receita é o que autoriza a prescrição.');
       }
       throw e;
     }
@@ -1717,7 +1717,7 @@ export class MedicationsService {
       /* Fora de alcance devolve 404 idêntico a inexistente (§4.5): negar de um
        * jeito diferente vazaria a existência do registro. */
       if (m.includes('inexistente')) {
-        throw new NotFoundException(`Esta ${oQue} não foi encontrada — ou está fora do seu alcance.`);
+        throw new NotFoundException(`Esta ${oQue} não foi encontrada, ou está fora do seu alcance.`);
       }
       throw e;
     }

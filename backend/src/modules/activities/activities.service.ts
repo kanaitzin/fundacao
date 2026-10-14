@@ -199,7 +199,7 @@ export class ActivitiesService {
     // Sem os dois juntos não passa: nome sem motivo é assinatura em branco.
     if (input.realizadoPor && !input.motivoRegistroPorOutro?.trim()) {
       throw new BadRequestException(
-        'Registrar pelo colega exige o motivo — por exemplo, "aparelho da casa sem sinal".');
+        'Registrar pelo colega exige o motivo: por exemplo, "aparelho da casa sem sinal".');
     }
     if (input.realizadoPor === user.id) {
       throw new BadRequestException('Para registrar por si mesmo, não informe "realizado por".');
@@ -261,7 +261,7 @@ export class ActivitiesService {
     if ((res as any).encerrada) {
       throw new BadRequestException(
         `Esta atividade já foi encerrada como "${ESTADO_LABEL[(res.a as any).state] ?? (res.a as any).state}". `
-        + 'Uma correção entra como adendo pela equipe técnica — o registro original não é sobrescrito.');
+        + 'Uma correção entra como adendo pela equipe técnica. O registro original não é sobrescrito.');
     }
     if (res.duplicada) return { ok: true, duplicada: true, estado: input.estado };
 
@@ -328,7 +328,7 @@ export class ActivitiesService {
       }
       return { alvo, bulk };
     });
-    if (!r) throw new NotFoundException('Unidade não encontrada — ou fora do seu alcance.');
+    if (!r) throw new NotFoundException('Unidade não encontrada, ou fora do seu alcance.');
     if (!r.bulk) {
       throw new BadRequestException(
         'Não há atividade coletiva pendente até agora. Remédio, saúde, urgência e o que espera '
@@ -368,7 +368,7 @@ export class ActivitiesService {
         throw new ForbiddenException('Somente o líder do turno e a coordenação delegam atividade.');
       }
       if (m.includes('atividade_encerrada')) {
-        throw new BadRequestException('Esta atividade já foi encerrada — o que já aconteceu não troca de dono.');
+        throw new BadRequestException('Esta atividade já foi encerrada. O que já aconteceu não troca de dono.');
       }
       if (m.includes('pessoa_nao_e_da_casa')) {
         throw new BadRequestException('Esta pessoa não está na equipe desta unidade hoje.');
@@ -467,7 +467,7 @@ export class ActivitiesService {
     if ((r as any).encerrada) {
       throw new BadRequestException(
         `Esta atividade já foi encerrada como "${ESTADO_LABEL[(r.a as any).state] ?? (r.a as any).state}". `
-        + 'Não cabe substituição no que já aconteceu — uma correção entra como adendo pela equipe técnica.');
+        + 'Não cabe substituição no que já aconteceu, uma correção entra como adendo pela equipe técnica.');
     }
 
     await this.audit.log({
@@ -523,7 +523,7 @@ export class ActivitiesService {
         // 'solicitada' e ninguém fica com um pedido decidido sem efeito.
         throw new BadRequestException(
           `A atividade foi encerrada como "${ESTADO_LABEL[at.state] ?? at.state}" enquanto o pedido aguardava. `
-          + 'O pedido segue aberto para você recusar com o motivo — o sistema não decide isso sozinho.');
+          + 'O pedido segue aberto para você recusar, escrevendo o motivo.');
       }
 
       // Quem substitui precisa ser da equipe daquela casa hoje — mesma regra da
@@ -638,7 +638,7 @@ export class ActivitiesService {
       throw new ForbiddenException('Somente o líder do turno, a equipe técnica ou a coordenação decidem substituição.');
     }
     if (!motivo?.trim()) {
-      throw new BadRequestException('Informe o motivo da recusa — quem pediu vai ler.');
+      throw new BadRequestException('Informe o motivo da recusa. Quem pediu vai ler.');
     }
 
     const r = await this.db.asUser(user.id, async (c) => {

@@ -76,7 +76,7 @@ describe('Painel de impacto — o trabalho social nas oito casas', () => {
       .set(auth(tokens.tecnica))
       .send({ personId: crianca, tipo: 'aprovacao_escolar', descricao: 'passou' });
     expect(semDescricao.status).toBe(400);
-    expect(semDescricao.body.message).toMatch(/esta linha é a história/);
+    expect(semDescricao.body.message).toMatch(/esta linha é a história/i);
 
     const r = await request(http).post('/api/v1/impacto/marcos')
       .set(auth(tokens.tecnica))

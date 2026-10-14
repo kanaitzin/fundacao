@@ -154,7 +154,7 @@ describe('Equipe — cadastro por setor e aparelho institucional', () => {
       .send({ nome: 'Tentativa Gestor (fictício)', email: 'tentativa.gestor@paodospobres.dev',
               cargo: 'gestor_geral' });
     expect(res.status).toBe(403);
-    expect(res.body.message).toMatch(/oito casas/i);
+    expect(res.body.message).toMatch(/criadas pelo Gestor Geral/i);
 
     const { rows } = await admin.query(
       `SELECT count(*)::int AS n FROM app_user WHERE email='tentativa.gestor@paodospobres.dev'`);

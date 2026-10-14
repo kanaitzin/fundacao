@@ -113,11 +113,11 @@ describe('A pauta que o educador propõe', () => {
 
     const sem = await responder(tokens.tecnica, id, { situacao: 'recusada' });
     expect(sem.status).toBe(400);
-    expect(sem.body.message).toMatch(/pior do que não poder propor/);
+    expect(sem.body.message).toMatch(/Quem propôs vai ler/);
 
     const adiarSem = await responder(tokens.tecnica, id, { situacao: 'adiada', resposta: 'depois' });
     expect(adiarSem.status).toBe(400);
-    expect(adiarSem.body.message).toMatch(/recusa com outro nome/);
+    expect(adiarSem.body.message).toMatch(/o que quem propôs pode esperar/);
 
     /* E por dentro do banco também não passa. */
     await expect(admin.query(

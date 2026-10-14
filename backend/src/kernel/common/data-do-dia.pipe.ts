@@ -38,7 +38,7 @@ export class DataDoDia implements PipeTransform<string | undefined, string | und
 
     if (!/^\d{4}-\d{2}-\d{2}$/.test(texto)) {
       throw new BadRequestException(
-        'A data precisa vir como 2026-09-22 — ano, mês e dia. '
+        'A data precisa vir como 2026-09-22. Ano, mês e dia. '
         + 'Se você chegou aqui por um link antigo, abra a tela pelo menu.');
     }
     /*
@@ -77,7 +77,7 @@ export class HoraDoDia implements PipeTransform<string | undefined, string | und
     const m = /^(\d{2}):(\d{2})$/.exec(texto);
     if (!m || Number(m[1]) > 23 || Number(m[2]) > 59) {
       throw new BadRequestException(
-        'A hora precisa vir como 14:30 — horas e minutos, de 00:00 a 23:59. '
+        'A hora precisa vir como 14:30. Horas e minutos, de 00:00 a 23:59. '
         + 'Se você chegou aqui por um link antigo, abra a tela pelo menu.');
     }
     return texto;
@@ -120,7 +120,7 @@ export class CorpoConferido implements PipeTransform<any, any> {
       if (valor == null) continue;
       if (typeof valor !== 'string') {
         throw new BadRequestException(
-          'A data precisa vir como 2026-09-22 — ano, mês e dia.');
+          'A data precisa vir como 2026-09-22. Ano, mês e dia.');
       }
       corpo[campo] = this.dia.transform(valor);
     }

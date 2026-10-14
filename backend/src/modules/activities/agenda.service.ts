@@ -165,7 +165,7 @@ export class AgendaService {
     // porque o laudo é contínuo" de "indeterminado porque ninguém sabia".
     if (!fim && (input.motivoSemPrazo ?? '').trim().length < 10) {
       throw new BadRequestException(
-        'Sem data para terminar, descreva o motivo (mínimo 10 caracteres) — ex.: tratamento contínuo conforme laudo. '
+        'Sem data para terminar, descreva o motivo (mínimo 10 caracteres). Ex.: tratamento contínuo conforme laudo. '
         + 'Fica visível para quem for revisar a agenda depois.');
     }
 

@@ -123,7 +123,7 @@ export class FollowupsService {
         proprio: !!r.proprio, podeAprovar,
       }));
     });
-    if (!linhas) throw new NotFoundException('Unidade não encontrada — ou fora do seu alcance.');
+    if (!linhas) throw new NotFoundException('Unidade não encontrada, ou fora do seu alcance.');
     return linhas;
   }
 
@@ -193,7 +193,7 @@ export class FollowupsService {
     }).catch((e: any) => {
       if (String(e?.message).includes('aprovado_e_imutavel')) {
         throw new ConflictException(
-          'Este acompanhamento já foi aprovado. Para corrigir, gere uma nova versão — a aprovada continua sendo o retrato daquele momento.');
+          'Este acompanhamento já foi aprovado. Para corrigir, gere uma nova versão. A aprovada continua sendo o retrato daquele momento.');
       }
       throw e;
     });

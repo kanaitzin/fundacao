@@ -92,8 +92,8 @@ discordavam entre si.
 | **19 partições** isoladas | pastas em `backend/src/modules/` |
 | **192 migrações** | `.sql` dentro das partições |
 | **136 tabelas** | `CREATE TABLE` nas migrações |
-| **141 suítes** | `backend/test/*.spec.ts` |
-| **1269 testes** | `it(` / `test(` nas suítes |
+| **142 suítes** | `backend/test/*.spec.ts` |
+| **1271 testes** | `it(` / `test(` nas suítes |
 | **39 telas React** | `frontend/src/screens/*.tsx` |
 | **10 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **10 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
@@ -423,6 +423,7 @@ arqueologia.
 | 211 | **As chamadas da casa, com horário, pessoas e cor** (pedido de 12/10: *"as chamadas, cada casa poder mudar o nome, o horário, quantas pessoas, e escolher a cor numa gama de umas cinquenta"*). A Chamada abre com **As chamadas da casa**: o café, o almoço, o lanche, a janta, a ceia e o que mais a casa fizer, cada uma com o horário, quantas pessoas costumam estar e a cor escolhida, e **um toque abre a chamada** e já mostra quem conferir (ou volta à que já está aberta). Quem define são a coordenação, a equipe técnica e o Líder Diurno, como o horário dos turnos (159), pela folha **Nova chamada da casa** e pelo **Mudar** de cada uma, com a paleta de 48 cores, cada uma com o nome escrito. **Mudar não reescreve**: a de antes encerra e a nova aponta para ela, e as chamadas feitas guardam o nome que tinham no dia (`house_check_model`, checks/1652). **A cor da casa é a quarta pergunta que uma cor responde** (*qual é a chamada*), mora em `frontend/src/cores-da-casa.ts` e só pinta a barra e o ponto, nunca a pílula: se a chamada foi feita continua dito pela pílula de estado. A abertura avulsa ficou como **Abrir outra chamada**. |
 | 212 | **As telas falam como colega** (pedido de 12/10: *"tem frase que parece o raciocínio de quem escreveu, não fala com a gente"*). Medido pelo texto que a tela MOSTRA, abrindo todas as telas de todos os cargos e as abas do perfil: **137 frases** com marca de raciocínio (o sistema que *não assina por ninguém*, *não existe*, *não é medição*, *quem consulta também é consultável*, *mais que três meses não é supervisão, é dossiê*, o travessão que argumenta). Reescritas como orientação de quem trabalha junto, nas telas, no servidor e no protótipo ao mesmo tempo, e a página *O que cada setor enxerga* inteira (`alcance.ts`). Sobraram 54, todas separador de dado (*AI3 — Casa 03*, remédio e dose, nome e cargo) ou texto escrito pela equipe. **Virou cobrança**: o `ensaio:celular`, que já abre as telas de todos os cargos, reprova a frase com marca de raciocínio no texto visível. |
 | 213 | **Quem não tem casa de trabalho sabe em qual casa está, e as chamadas da casa conferidas contra o servidor**. A simulação de trinta dias da Casa 03, que não rodava desde a 205, levou ao navegador as telas novas das fases 206 a 212. As **chamadas da casa** passaram contra o servidor de verdade nos três cargos que as definem (criadas pela folha com a paleta, conferidas no banco com a casa, a cor, o horário e as pessoas, abertas com um toque e tiradas da lista). E o calendário da Passagem achou um defeito de tela: **o Líder Noturno Geral (e quem mais não tem casa de trabalho: Enfermagem, Gestor Geral, Coordenação Geral) abria a primeira casa da lista sem a tela dizer qual**; a Passagem falava *nesta casa* sem nome. Agora, nas telas de uma casa, aparece *Você está na AI1 · Abrigo Institucional 1* com o botão **Trocar de casa**, e o `ensaio-servidor` cobra isso dessas contas. Na API, só a recusa conhecida da admissão no limite de vagas. |
+| 214 | **As recusas também falam como colega**. A 212 mediu as frases abrindo as telas, e as recusas do servidor ficaram de fora: só aparecem quando algo é recusado. Eram **157 no servidor e 96 no protótipo** com travessão ou com frase que argumenta com a pessoa (*do contrário, bastaria uma conta nova para enxergar as oito casas*, *uma pauta recusada sem resposta é pior do que não poder propor*, *todos aqui seria suposição*). O travessão saiu de todas, por regra revisada à mão (vírgula antes de *ou, e, mas*, dois-pontos antes de *por exemplo*, vírgulas no par, ponto no resto), e as que argumentavam foram reescritas dizendo o que fazer e quem faz, nos dois lados ao mesmo tempo. **Virou suíte** (`as-recusas-falam-como-colega.spec.ts`): lê o texto de toda `new XException(...)` do servidor e de toda `Recusa`/`ErroApi` do protótipo e reprova as marcas. |
 
 ---
 
@@ -537,7 +538,7 @@ rede-acolher/
 │   │   │   ├── documentos/     o contrato da folha e o gerador de .docx
 │   │   │   └── common/         CPF, criptografia, segredo, fuso da instituição
 │   │   └── modules/       19 partições, cada uma dona das próprias migrações
-│   ├── test/              141 suítes (e2e contra PostgreSQL real + estáticas)
+│   ├── test/              142 suítes (e2e contra PostgreSQL real + estáticas)
 │   ├── scripts/           ensaio-carga.ts, migrador compilado
 │   └── assets/timbre.png  a marca da Fundação, usada no documento em Word
 ├── frontend/

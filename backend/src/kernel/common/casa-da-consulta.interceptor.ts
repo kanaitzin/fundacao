@@ -52,8 +52,8 @@ export class CasaDaConsulta implements NestInterceptor {
         [UUID.test(casa) ? casa : null, UUID.test(pessoa) ? pessoa : null]);
       return x;
     });
-    if (!r?.casa) throw new NotFoundException('Unidade não encontrada — ou fora do seu alcance.');
-    if (!r?.pessoa) throw new NotFoundException('Acolhido não encontrado — ou fora do seu alcance.');
+    if (!r?.casa) throw new NotFoundException('Unidade não encontrada, ou fora do seu alcance.');
+    if (!r?.pessoa) throw new NotFoundException('Acolhido não encontrado, ou fora do seu alcance.');
     return next.handle();
   }
 }

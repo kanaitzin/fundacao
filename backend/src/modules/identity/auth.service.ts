@@ -68,7 +68,7 @@ export class AuthService {
       `SELECT * FROM auth_validar_sessao($1)`, [hashToken(token)]);
     if (!s) {
       throw new UnauthorizedException(
-        'Sua sessão terminou. Entre de novo para continuar — o que você digitou nesta '
+        'Sua sessão terminou. Entre de novo para continuar. O que você digitou nesta '
         + 'tela não foi salvo.');
     }
 

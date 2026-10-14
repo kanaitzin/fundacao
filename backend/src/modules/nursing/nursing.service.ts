@@ -395,8 +395,8 @@ export class NursingService {
     if (ok.ja) throw new BadRequestException('Esta evolução já foi triada e assinada.');
     if (ok.corrida) {
       throw new ConflictException(
-        'Outra pessoa triou esta evolução enquanto você conferia. Abra de novo para ver como ficou '
-        + '— nada do que você escreveu foi gravado.');
+        'Outra pessoa triou esta evolução enquanto você conferia. Abra de novo para ver como ficou. '
+        + 'O que você escreveu não foi gravado.');
     }
 
     await this.audit.log({
@@ -579,7 +579,7 @@ export class NursingService {
      * seu alcance. Gerar a folha assim entregaria um documento sobre alguém
      * que a pessoa não pode ver. */
     if (!quem?.nome) {
-      throw new NotFoundException('Acolhido não encontrado — ou fora do seu alcance.');
+      throw new NotFoundException('Acolhido não encontrado, ou fora do seu alcance.');
     }
     return folhaDeSaude(
       { nome: quem.nome },

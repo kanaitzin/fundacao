@@ -147,7 +147,7 @@ export class RoutineService {
       const m = String(e?.message ?? '');
       if (m.includes('versao_fechada')) {
         throw new ConflictException(
-          'Esta versão da rotina já foi encerrada e não recebe itens novos — o que ela contém é o que a casa seguiu naquele período. '
+          'Esta versão da rotina já foi encerrada e não recebe itens novos. O que ela contém é o que a casa seguiu naquele período. '
           + 'Abra uma versão nova para alterar a rotina.');
       }
       if (m.includes('versao_de_outra_casa')) {

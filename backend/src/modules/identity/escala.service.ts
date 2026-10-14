@@ -125,7 +125,7 @@ export class EscalaService {
     }
     if (input.repetirACada && !input.ate) {
       throw new BadRequestException(
-        'Para repetir, diga até quando — uma repetição sem fim escreveria plantão para sempre.');
+        'Para repetir, diga até quando, uma repetição sem fim escreveria plantão para sempre.');
     }
 
     const r = await this.chamar(user, async (c) => {
@@ -164,7 +164,7 @@ export class EscalaService {
     if ((motivo ?? '').trim().length < 10) {
       throw new BadRequestException(
         'Escreva por que esta pessoa sai do plantão. Ela vai perguntar, e é esta frase '
-        + 'que responde — a escala já guarda quem retirou e quando.');
+        + 'que responde. A escala já guarda quem retirou e quando.');
     }
     const mudou = await this.chamar(user, async (c) => {
       const { rows: [r] } = await c.query(`SELECT app_desescalar($1,$2) AS ok`, [id, motivo ?? null]);
@@ -258,7 +258,7 @@ export class EscalaService {
         `SELECT app_house_label($1) AS code, app_house_name($1) AS name`, [houseId]);
       return [h?.code, h?.name].filter(Boolean).join(' · ');
     });
-    if (!casa) throw new NotFoundException('Unidade não encontrada — ou fora do seu alcance.');
+    if (!casa) throw new NotFoundException('Unidade não encontrada, ou fora do seu alcance.');
     /* O HORÁRIO DOS TURNOS DA CASA (fase 159). A folha imprimia "08:00–20:00"
        fixo, e a casa que mudou o horário recebia a escala impressa errada. */
     const turnos = await this.db.asUser(user.id, async (c) => {

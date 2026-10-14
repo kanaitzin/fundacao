@@ -181,7 +181,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 14/10/2026, fase 213
+### Onde estamos — 14/10/2026, fase 214
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -258,10 +258,12 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 211 | **as chamadas da casa** (pedido de 12/10): nome, horário, quantas pessoas e uma cor de 48 (`frontend/src/cores-da-casa.ts`), um toque abre a chamada; coordenação, técnica e Líder Diurno definem; mudar encerra e abre outra (`house_check_model`, checks/1652); a cor só na barra e no ponto |
 | 212 | **as telas falam como colega** (pedido de 12/10): medido pelo texto que a tela mostra, 137 frases com marca de raciocínio reescritas (telas, servidor, protótipo e a página do alcance); sobram só separadores de dado; o `ensaio:celular` passa a reprovar a frase de raciocínio |
 | 213 | **a casa aberta, dita**: a simulação contra o servidor (a primeira desde a 205) conferiu as chamadas da casa no banco e achou que **quem não tem casa de trabalho** (noturno, Enfermagem, gestor, CG) abria a primeira casa da lista sem saber qual; agora *Você está na …* com *Trocar de casa*, cobrado no `ensaio-servidor` |
+| 214 | **as recusas também falam como colega**: 157 recados do servidor e 96 do protótipo sem travessão nem frase que argumenta; o `as-recusas-falam-como-colega.spec.ts` lê toda recusa dos dois lados e reprova |
 
-**Medido no fim da 212:** 192 migrações, 136 tabelas, 141 suítes, 1269 testes, verdes nas
-DUAS condições de relógio (a do relógio normal com as três suítes de frase conferidas depois,
-uma a uma); o `ensaio:uso` inteiro, com as chamadas da casa, e o `ensaio:uso-celular`, verdes; o
+**Medido no fim da 214:** 192 migrações, 136 tabelas, 142 suítes, 1271 testes, verdes nas
+DUAS condições de relógio, rodadas inteiras; na 214, o `ensaio:uso`, o `roteiro` e o `fila`
+verdes sobre o protótipo novo, e na 213 o `uso`, o do celular e o de acessibilidade (1256 telas,
+nenhuma violação), mais a simulação contra o servidor. **Da 212:** o `ensaio:uso-celular` e o
 `ensaio:acolhe` com todas as telas de todos os cargos por texto e por voz e todos os formulários
 marcados abertos por ela; o do celular com 306 telas a 360 e 390 px, que achou só a caixa da 210
 (consertada) e depois 153 telas a 360 sem achado, **nenhuma frase de raciocínio**; e **1256 telas (157 × oito
@@ -337,12 +339,15 @@ as três cores abaixo. Cor nova passa pelo `ensaio:acessibilidade`, que mede os 
 
 ### A próxima etapa
 
+**FEITO — fase 214** (§2): as recusas do servidor e do protótipo sem travessão nem frase
+que argumenta, cobradas por suíte. **Recado novo de recusa** diz o que fazer e quem faz; o
+porquê da regra mora no documento. **Próxima etapa:** o roteiro com a equipe e a implantação
+do §12; se vier código, pedido novo.
+
 **FEITO — fase 213** (§2): a simulação de trinta dias da Casa 03 contra o servidor, que
 ficou sete fases sem rodar, conferiu as chamadas da casa e achou a casa aberta sem nome para
-quem não tem casa de trabalho (consertado). **Fica para a próxima fase:** as recusas do
-SERVIDOR ainda trazem travessão e frase que argumenta (são uns 150 recados de erro, que a
-varredura da 212 não via porque só aparecem quando algo é recusado). **Rode a simulação a
-cada fase que muda tela** (a lição da 190, de novo).
+quem não tem casa de trabalho (consertado). **Rode a simulação a cada fase que muda tela**
+(a lição da 190, de novo).
 
 **FEITO — fase 212** (§2): as telas falam como colega. **Frase nova de tela** diz o que
 fazer e quem faz, sem defender a regra, sem falar *do sistema* na terceira pessoa e sem

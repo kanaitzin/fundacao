@@ -30,7 +30,7 @@ export class CamposDoPerfilService {
            FROM house_field_permission WHERE house_id = $1`, [houseId]);
       return rows;
     });
-    if (!linhas) throw new NotFoundException('Casa não encontrada — ou fora do seu alcance.');
+    if (!linhas) throw new NotFoundException('Casa não encontrada, ou fora do seu alcance.');
 
     const por = new Map(linhas.map((r: any) => [r.field_code, r]));
     return {
@@ -71,7 +71,7 @@ export class CamposDoPerfilService {
     const motivo = String(input.motivo ?? '').trim();
     if (!input.visivel && motivo.length < 15) {
       throw new BadRequestException(
-        'Escreva por que este campo sai da vista do plantão — quem estiver com a criança '
+        'Escreva por que este campo sai da vista do plantão. Quem estiver com a criança '
         + 'vai ler este motivo quando procurar o dado.');
     }
 
@@ -89,7 +89,7 @@ export class CamposDoPerfilService {
         [input.houseId, input.campo, input.visivel, user.id, input.visivel ? null : motivo]);
       return true;
     });
-    if (!ok) throw new NotFoundException('Casa não encontrada — ou fora do seu alcance.');
+    if (!ok) throw new NotFoundException('Casa não encontrada, ou fora do seu alcance.');
 
     await this.audit.log({
       action: input.visivel ? 'perfil.campo.ligado' : 'perfil.campo.desligado',

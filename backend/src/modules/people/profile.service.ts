@@ -271,7 +271,7 @@ export class ProfileService {
       const { rows: [r] } = await c.query(`SELECT app_person_in_scope($1) AS ok`, [personId]);
       return !!r?.ok;
     });
-    if (!noAlcance) throw new NotFoundException('Perfil não encontrado — ou fora do seu alcance.');
+    if (!noAlcance) throw new NotFoundException('Perfil não encontrado, ou fora do seu alcance.');
     if (!Object.keys(enviados).length) return { ok: true, alterado: 0 };
 
     let n = 0;
@@ -290,7 +290,7 @@ export class ProfileService {
       // Fora de escopo responde 404 igual a inexistente: 403 confirmaria que a
       // criança existe em outra casa (§23).
       if (m.includes('pessoa_fora_de_escopo')) {
-        throw new NotFoundException('Perfil não encontrado — ou fora do seu alcance.');
+        throw new NotFoundException('Perfil não encontrado, ou fora do seu alcance.');
       }
       if (m.includes('campo_nao_editavel')) {
         throw new BadRequestException('Este campo não se altera por aqui.');
@@ -355,7 +355,7 @@ export class ProfileService {
     if ((input.motivo ?? '').trim().length < 10) {
       throw new BadRequestException(
         'Escreva por que o cadastro está sendo corrigido. Quem ler o caso daqui a um ano '
-        + 'precisa saber por que o nome mudou — "erro" não explica nada.');
+        + 'precisa saber por que o nome mudou. "erro" não explica nada.');
     }
 
     let n = 0;
@@ -373,7 +373,7 @@ export class ProfileService {
           'Corrigir a identificação é da equipe técnica e da coordenação.');
       }
       if (m.includes('pessoa_fora_de_escopo') || m.includes('pessoa_inexistente')) {
-        throw new NotFoundException('Acolhido não encontrado — ou fora do seu alcance.');
+        throw new NotFoundException('Acolhido não encontrado, ou fora do seu alcance.');
       }
       if (m.includes('campo_obrigatorio_nao_se_esvazia')) {
         throw new BadRequestException(

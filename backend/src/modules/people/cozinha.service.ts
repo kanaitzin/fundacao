@@ -143,10 +143,10 @@ export class CozinhaService {
       }
       if (m.includes('quantidade_invalida')) throw new BadRequestException('A quantidade tem de ser maior que zero.');
       if (m.includes('pessoa_fora_da_casa')) {
-        throw new NotFoundException('Uma das crianças marcadas não está nesta casa. Nada foi registrado — confira a lista.');
+        throw new NotFoundException('Uma das crianças marcadas não está nesta casa. Nada foi registrado. Confira a lista.');
       }
       if (m.includes('sem_permissao_pedido_cozinha')) throw new ForbiddenException('Sem acesso aos pedidos da cozinha.');
-      if (m.includes('casa_fora_de_escopo')) throw new NotFoundException('Unidade não encontrada — ou fora do seu alcance.');
+      if (m.includes('casa_fora_de_escopo')) throw new NotFoundException('Unidade não encontrada, ou fora do seu alcance.');
       throw e;
     }
   }
@@ -161,7 +161,7 @@ export class CozinhaService {
     entregarA?: string; motivo?: string;
   }) {
     if (input.em != null && (!/^\d{4}-\d{2}-\d{2}$/.test(input.em) || Number.isNaN(Date.parse(`${input.em}T12:00:00Z`)))) {
-      throw new BadRequestException('A data precisa vir como 2026-09-26 — ano, mês e dia.');
+      throw new BadRequestException('A data precisa vir como 2026-09-26. Ano, mês e dia.');
     }
     if (input.quantidade != null && !Number.isInteger(Number(input.quantidade))) {
       throw new BadRequestException('A quantidade é um número inteiro.');
@@ -181,7 +181,7 @@ export class CozinhaService {
       }
       if (m.includes('pedido_cancelado')) throw new ConflictException('Este pedido foi cancelado; não se edita.');
       if (m.includes('pedido_passado')) {
-        throw new ConflictException('A data deste pedido já passou — a cozinha já serviu. Se foi errado, cancele com o motivo.');
+        throw new ConflictException('A data deste pedido já passou. A cozinha já serviu. Se foi errado, cancele com o motivo.');
       }
       if (m.includes('data_no_passado')) throw new BadRequestException('A nova data não pode estar no passado.');
       if (m.includes('motivo_obrigatorio')) throw new BadRequestException('Escreva o motivo da mudança (pelo menos 5 caracteres).');
@@ -467,7 +467,7 @@ export class CozinhaService {
       const { rows: [e] } = await c.query(`SELECT app_house_in_scope($1) AS pode`, [houseId]);
       return !!e?.pode;
     });
-    if (!pode) throw new NotFoundException('Unidade não encontrada — ou fora do seu alcance.');
+    if (!pode) throw new NotFoundException('Unidade não encontrada, ou fora do seu alcance.');
   }
 
   private async rotuloDaCasa(user: AuthenticatedUser, houseId: string) {
@@ -477,7 +477,7 @@ export class CozinhaService {
       const { rows: [r] } = await c.query(`SELECT app_house_label($1) AS r`, [houseId]);
       return (r?.r as string | null) ?? '';
     });
-    if (rotulo === null) throw new NotFoundException('Unidade não encontrada — ou fora do seu alcance.');
+    if (rotulo === null) throw new NotFoundException('Unidade não encontrada, ou fora do seu alcance.');
     return rotulo;
   }
 }

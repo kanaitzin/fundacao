@@ -60,7 +60,7 @@ export class RegistroNoAlcance implements CanActivate {
         `SELECT EXISTS (SELECT 1 FROM ${meta.tabela} WHERE id = $1) AS ve`, [id]);
       return r?.ve === true;
     });
-    if (!ve) throw new NotFoundException('Não encontrado — ou fora do seu alcance.');
+    if (!ve) throw new NotFoundException('Não encontrado, ou fora do seu alcance.');
     return true;
   }
 }

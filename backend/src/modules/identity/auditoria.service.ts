@@ -76,7 +76,7 @@ export class AuditoriaService {
     if (!LEEM.includes(user.role)) {
       throw new ForbiddenException(
         'A auditoria é lida pela coordenação, na própria casa, e pela gestão geral. '
-        + 'Quem age no sistema tem o nome em cada registro — mas ler o rastro é outro ato.');
+        + 'Quem age no sistema tem o nome em cada registro, mas ler o rastro é outro ato.');
     }
   }
 
@@ -115,7 +115,7 @@ export class AuditoriaService {
         `SELECT 1 FROM person WHERE id = $1 AND app_person_in_scope(id)`, [personId]);
       /* Fora de alcance responde 404 idêntico a inexistente (§4.5). */
       if (!existe) {
-        throw new NotFoundException('Acolhido não encontrado — ou fora do seu alcance.');
+        throw new NotFoundException('Acolhido não encontrado, ou fora do seu alcance.');
       }
       const { rows } = await c.query(
         `SELECT a.id, a.action, a.at, a.entity, a.entity_id, a.purpose, a.detail,
@@ -172,7 +172,7 @@ export class AuditoriaService {
          quem pergunta achando que procurou no lugar errado. */
       return { entidade, entidadeId, linhas: rows.map((r) => this.linha(r)) };
     });
-    if (!r) throw new NotFoundException('Relatório não encontrado — ou fora do seu alcance.');
+    if (!r) throw new NotFoundException('Relatório não encontrado, ou fora do seu alcance.');
     return r;
   }
 }

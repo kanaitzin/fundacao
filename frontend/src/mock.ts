@@ -4409,7 +4409,7 @@ export async function mockApi<T>(path: string, init?: RequestInit): Promise<T> {
   const corpo = init?.body ? JSON.parse(String(init.body)) : {};
   const seg = rota.split('/').filter(Boolean);
   if (sessaoVencida && rota !== '/auth/login') {
-    throw new Recusa(401, 'Sua sessão terminou. Entre de novo para continuar — o que você digitou '
+    throw new Recusa(401, 'Sua sessão terminou. Entre de novo para continuar. O que você digitou '
       + 'nesta tela não foi salvo.');
   }
 
@@ -5250,7 +5250,7 @@ function responderImpacto(
     if (soUma && !soUmaLista.length) {
       /* Casa fora do alcance é RECUSA, e não painel zerado: zero se leria
        * como "esta casa não fez nada". */
-      return new Recusa(404, 'Unidade não encontrada — ou fora do seu alcance.');
+      return new Recusa(404, 'Unidade não encontrada, ou fora do seu alcance.');
     }
     const soma = (campo: string) =>
       soUmaLista.reduce((t, x: any) => t + Number(x[campo] ?? 0), 0);
@@ -5279,7 +5279,7 @@ function responderImpacto(
       }
       if (String(b.descricao ?? '').trim().length < 10) {
         return new Recusa(400,
-          'Escreva o que aconteceu. O tipo já diz a categoria — esta linha é a história.');
+          'Escreva o que aconteceu. O tipo já diz a categoria. Esta linha é a história.');
       }
       const t = TIPOS_DE_MARCO.find((x) => x.cod === b.tipo);
       if (!t) return new Recusa(400, 'Escolha o tipo do marco.');
@@ -5320,7 +5320,7 @@ function responderImpacto(
     if (seg[0] === 'impacto' && seg[1] === 'trajetoria' && seg.length === 3
         && metodo === 'GET') {
     const k = kid(seg[2]);
-    if (!k) return new Recusa(404, 'Acolhido não encontrado — ou fora do seu alcance.');
+    if (!k) return new Recusa(404, 'Acolhido não encontrado, ou fora do seu alcance.');
     return {
       acolhido: k.nome,
       acolhidoDesde: emHoras(9, 0),
@@ -5872,13 +5872,13 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     const institucional = !b.houseId;
     if (institucional && eu.role !== 'gestor_geral') {
       return new Recusa(403,
-        'O aparelho da instituição — o que vale nas oito casas — é registrado pelo Gestor '
+        'O aparelho da instituição, o que vale nas oito casas, é registrado pelo Gestor '
         + 'Geral. A coordenação registra aparelhos da própria casa, informando a casa.');
     }
     const rotulo = String(b.rotulo ?? '').trim();
     if (rotulo.length < 3) {
       return new Recusa(400,
-        'Dê um nome ao aparelho — algo que a equipe reconheça na prateleira.');
+        'Dê um nome ao aparelho, algo que a equipe reconheça na prateleira.');
     }
     if (APARELHOS.some((a) => a.ativo && a.rotulo === rotulo)) {
       return new Recusa(400, 'Já existe um aparelho com este nome nesta casa.');
@@ -6164,7 +6164,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     }
     if (String(b.finalidade ?? '').trim().length < 10) {
       return new Recusa(400,
-        'Escreva a finalidade desta consulta — ela fica registrada com o seu nome.');
+        'Escreva a finalidade desta consulta. Ela fica registrada com o seu nome.');
     }
     const cargoDe = (id: string) => EQUIPE_CASA.find((x) => x.id === id)?.cargo ?? '—';
     const rotuloDoCargo = (c: string) => TIPOS_SETOR.find((t) => t.code === c)?.label ?? c;
@@ -6211,11 +6211,11 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     const setor = b.setor || null;
     if (!pessoaId === !setor) {
       return new Recusa(400,
-        'Escolha uma pessoa da equipe OU um setor — a busca é por um dos dois, nunca pelos dois.');
+        'Escolha uma pessoa da equipe OU um setor. A busca é por um dos dois, nunca pelos dois.');
     }
     if (String(b.finalidade ?? '').trim().length < 10) {
       return new Recusa(400,
-        'Escreva a finalidade desta consulta — por exemplo, "apuração do episódio de 12/09" ou '
+        'Escreva a finalidade desta consulta: por exemplo, "apuração do episódio de 12/09" ou '
         + '"preparação da avaliação semestral". Ela fica registrada com o seu nome.');
     }
     const linhas = TRABALHO_DA_EQUIPE.filter((l) =>
@@ -6619,7 +6619,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       return new Recusa(400, 'Informe o motivo da atividade urgente.');
     }
     if (String(b.title ?? '').trim().length < 3) {
-      return new Recusa(400, 'Dê um nome à atividade — é o que a próxima pessoa lê na linha.');
+      return new Recusa(400, 'Dê um nome à atividade. É o que a próxima pessoa lê na linha.');
     }
     const quem = b.personId ? KIDS.find((k) => k.id === b.personId)?.nome ?? null : null;
     LINHA.push({ id: `activity:${uid()}`, source: 'agenda',
@@ -6720,7 +6720,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
           .includes(ev.state)) {
       return new Recusa(400,
         `Esta atividade já foi encerrada como "${ev.state}". Não cabe substituição no que já `
-        + 'aconteceu — uma correção entra como adendo pela equipe técnica.');
+        + 'aconteceu, uma correção entra como adendo pela equipe técnica.');
     }
     PEDIDOS_SUB.unshift({ id: uid(), atividade: ev.title, horario: ev.at,
       motivo: String(b.motivo).trim(), status: 'solicitada', pedidoPor: eu.fullName,
@@ -6763,7 +6763,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         'Somente o líder do turno, a equipe técnica ou a coordenação decidem substituição.');
     }
     if (String(b.motivo ?? '').trim().length < 5) {
-      return new Recusa(400, 'Informe o motivo da recusa — quem pediu vai ler.');
+      return new Recusa(400, 'Informe o motivo da recusa. Quem pediu vai ler.');
     }
     p.status = 'recusada'; p.decidiuNota = String(b.motivo).trim();
     return { ok: true, status: 'recusada',
@@ -6874,7 +6874,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     const titulo = String(b.titulo ?? '').trim() || tipo.sugestao;
     if (titulo.length < 3) {
       return new Recusa(400,
-        'Dê um nome à chamada — é o que a próxima pessoa lê na lista do dia.');
+        'Dê um nome à chamada. É o que a próxima pessoa lê na lista do dia.');
     }
     const nova: Chamada = { id: uid(), tipo: tipo.cod, titulo,
                             status: 'aberta', horario: new Date().toISOString(), resultados: {},
@@ -6906,7 +6906,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     if (!['coordenador', 'gestor_geral', 'admin_tecnico'].includes(eu.role)) {
       return new Recusa(403,
         'A auditoria é lida pela coordenação, na própria casa, e pela gestão geral. '
-        + 'Quem age no sistema tem o nome em cada registro — mas ler o rastro é outro ato.');
+        + 'Quem age no sistema tem o nome em cada registro, mas ler o rastro é outro ato.');
     }
     if (seg[1] === 'person') {
       return { dias: 90, cortado: false, linhas: AUDITORIA[seg[2]] ?? [] };
@@ -6974,7 +6974,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     const motivo = String(b.motivo ?? '').trim();
     if (motivo.length < 10) {
       return new Recusa(400, 'Escreva por que o conceito é esse. Um conceito sozinho atravessa '
-        + 'meses e vira característica da criança — o motivo é o que o mantém sendo sobre o '
+        + 'meses e vira característica da criança. O motivo é o que o mantém sendo sobre o '
         + 'bimestre.');
     }
     const ano = Number(b.ano); const bim = Number(b.bimestre);
@@ -6986,8 +6986,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     const agoraBR = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
     const bimAgora = Math.min(4, Math.max(1, Math.ceil((agoraBR.getMonth() + 1) / 3)));
     if (ano * 10 + bim > agoraBR.getFullYear() * 10 + bimAgora) {
-      return new Recusa(400, 'Este bimestre ainda não terminou de acontecer. Escrever o conceito '
-        + 'dele agora seria escrever sobre o que não houve — e o painel contaria.');
+      return new Recusa(400, 'Este bimestre ainda não terminou. O conceito dele se escreve quando o bimestre acabar.');
     }
     const lista = CONCEITOS_EDU[seg[2]] ?? [];
     const anterior = lista.find((k) => k.ano === ano && k.bimestre === bim && !k.substituido);
@@ -7042,8 +7041,8 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     }
     const texto = String(b.texto ?? '').trim();
     if (texto.length < 10) {
-      return new Recusa(400, 'Escreva o que aconteceu — o que a criança fez, ou o que a escola '
-        + 'disse. Uma linha curta demais não conta nada a quem ler daqui a um ano.');
+      return new Recusa(400, 'Escreva o que aconteceu: o que a criança fez, ou o que a escola '
+        + 'disse, de um jeito que quem ler daqui a um ano entenda.');
     }
     EVOLUCOES_EDU[seg[2]] = [
       { id: uid(), em: String(b.em ?? '').slice(0, 10) || HOJE, texto,
@@ -7126,8 +7125,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       opcaoDaMesa: comum?.code ?? null,
       conferenciasDeMesa: k.mesas ?? [],
       avisoDaMesa: k.tipo === 'chamada_final'
-        ? 'A chamada final do turno é um a um: ela existe para alguém contar as crianças '
-          + 'antes de dormir, e "todos" aqui seria suposição, não observação.'
+        ? 'A chamada final do turno é feita criança por criança, contando cada uma antes de dormir.'
         : 'Conferir a mesa registra, de uma vez, o que você olhou de uma vez — com o seu nome, '
           + 'o horário e quantos. Quem já foi marcado NÃO é sobrescrito, e exceção continua '
           + 'sendo uma a uma, com o motivo escrito.',
@@ -7144,8 +7142,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     }
     if (k.tipo === 'chamada_final') {
       return new Recusa(400,
-        'A chamada final do turno é um a um. Ela existe para alguém contar as crianças antes '
-        + 'de dormir — "todos" aqui seria suposição, não observação.');
+        'A chamada final do turno é feita criança por criança, contando cada uma antes de dormir.');
     }
     const comum = opcoesDoTipo(k.tipo).find((o) => !o.excecao);
     if (!comum) {
@@ -7155,7 +7152,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     // inclusive a criança marcada "recusou" antes de a mesa ser conferida.
     const pendentes = todosKids().filter((p) => !k.resultados[p.id]);
     if (!pendentes.length) {
-      return new Recusa(400, 'Todos já foram conferidos nesta chamada — não há o que marcar em bloco.');
+      return new Recusa(400, 'Todos já foram conferidos nesta chamada, não há o que marcar em bloco.');
     }
     const mesa = uid();
     for (const p of pendentes) k.resultados[p.id] = { opcao: comum.code, mesa };
@@ -7169,7 +7166,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
   if (seg[0] === 'checks' && seg[2] === 'mark') {
     const k = CHAMADAS.find((x) => x.id === seg[1])!;
     if (k.status === 'confirmada') {
-      return new Recusa(400, 'Chamada confirmada não é reescrita — a correção entra como adendo.');
+      return new Recusa(400, 'Chamada confirmada não é reescrita. A correção entra como adendo.');
     }
     // Corrigir uma linha que veio da mesa a torna INDIVIDUAL: alguém olhou
     // aquela criança. A procedência não pode continuar dizendo "na mesa".
@@ -7306,7 +7303,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         + 'coordenação ou o Líder Diurno da casa.');
     }
     const pedido = PEDIDOS_DE_LEITURA.find((x) => x.id === seg[2]);
-    if (!pedido) return new Recusa(404, 'Não encontrado — ou fora do seu alcance.');
+    if (!pedido) return new Recusa(404, 'Não encontrado, ou fora do seu alcance.');
     if (pedido.liberado !== null) return new Recusa(400, 'Este pedido já foi respondido.');
     if (pedido.quemId === eu.id) return new Recusa(400, 'Ninguém libera o próprio pedido.');
     const motivo = String(b.motivo ?? '').trim();
@@ -7330,7 +7327,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         + 'coordenação ou o Líder Diurno da casa.');
     }
     const pedido = PEDIDOS_DE_LEITURA.find((x) => x.id === seg[2]);
-    if (!pedido) return new Recusa(404, 'Não encontrado — ou fora do seu alcance.');
+    if (!pedido) return new Recusa(404, 'Não encontrado, ou fora do seu alcance.');
     if (pedido.liberado !== true || pedido.retiradoEm) {
       return { ok: true, mudou: false, aviso: 'Esta liberação já não estava valendo.' };
     }
@@ -7355,7 +7352,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     if (!folheia) {
       return new Recusa(403,
         'O arquivo das ATAS é de quem trabalha nesta casa. Se você está vendo isto, '
-        + 'fale com a coordenação — pode ser que o seu vínculo com a casa não esteja lançado.');
+        + 'fale com a coordenação. Pode ser que o seu vínculo com a casa não esteja lançado.');
     }
     /* E A ATA GERAL NOTURNA CONTINUA FORA para quem não a lê (1510): abrir a
        Geral ao educador de carona responderia à §10.2, que é pergunta da
@@ -7462,7 +7459,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     const tipo = tipoDoDataUrl(String(b.conteudo ?? ''));
     if (!tipo) {
       return new Recusa(400,
-        'Este arquivo não é imagem nem PDF. O dossiê guarda documento digitalizado — e a '
+        'Este arquivo não é imagem nem PDF. O dossiê guarda documento digitalizado, e a '
         + 'conferência é pela assinatura do arquivo, não pela extensão do nome.');
     }
     const id = uid();
@@ -7485,7 +7482,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     if (d.aceitoEm) {
       return new Recusa(400,
         'Este documento não existe nesta criança, ou já foi conferido. Se o arquivo estiver '
-        + 'errado, anexe a versão certa — o que foi aceito antes continua registrado.');
+        + 'errado, anexe a versão certa. O que foi aceito antes continua registrado.');
     }
     d.aceitoEm = new Date().toISOString(); d.aceitoPor = eu.fullName;
     d.notaDoAceite = b.nota ? String(b.nota) : null;
@@ -7561,7 +7558,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     }
     if (pedidas.length > 12) {
       return new Recusa(400,
-        'Envie até 12 fotos por vez. Não é limite do álbum — é o tamanho de um envio que cabe '
+        'Envie até 12 fotos por vez. Não é limite do álbum. É o tamanho de um envio que cabe '
         + 'numa conexão de casa; registre outra vivência, ou mande em duas levas.');
     }
     const id = uid();
@@ -7698,7 +7695,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     if (!v) return new Recusa(404, 'Versão de rotina não encontrada.');
     if (v.vigenteAte !== null) {
       return new Recusa(409,
-        'Esta versão da rotina já foi encerrada e não recebe itens novos — o que ela contém é o '
+        'Esta versão da rotina já foi encerrada e não recebe itens novos. O que ela contém é o '
         + 'que a casa seguiu naquele período. Abra uma versão nova para alterar a rotina.');
     }
     if (!TIPOS_ROTINA.some((t) => t.code === b.kind)) {
@@ -7747,7 +7744,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     const restrita = b.restrita === true;
     if (restrita && !LE_RESTRITA.includes(eu.role)) {
       return new Recusa(403, 'A linha restrita é da coordenação, da equipe técnica e dos '
-        + 'líderes — quem escreve uma linha precisa poder relê-la depois.');
+        + 'líderes. Quem escreve uma linha precisa poder relê-la depois.');
     }
     LINHAS_ATA.push({ id: uid(), ataId: seg[2], autorId: eu.id, quem: eu.fullName,
       cargo: eu.role, texto, restrita,
@@ -7896,7 +7893,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       return new Recusa(403, 'Quem monta a escala é a coordenação, a equipe técnica ou o Líder Diurno desta casa.');
     }
     if (b.repetirACada && !b.ate) {
-      return new Recusa(400, 'Para repetir, diga até quando — uma repetição sem fim escreveria '
+      return new Recusa(400, 'Para repetir, diga até quando, uma repetição sem fim escreveria '
         + 'plantão para sempre.');
     }
     const quem = EQUIPE_CASA.find((m) => m.id === String(b.userId ?? ''));
@@ -7959,7 +7956,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     const motivoSub = String(b.motivo ?? '').trim();
     if (motivoSub.length < 10) {
       return new Recusa(400, alvo.data < HOJE
-        ? 'Este plantão já passou. Escreva por que a escala dele muda — é ela que responde '
+        ? 'Este plantão já passou. Escreva por que a escala dele muda. É ela que responde '
           + 'quem estava na casa naquela noite.'
         : 'Escreva por que esta troca acontece. Quem sai vai perguntar, e é esta frase que responde.');
     }
@@ -7999,10 +7996,10 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     const motivo = String(b.motivo ?? '').trim();
     if (motivo.length < 10) {
       return new Recusa(400, alvo.data < HOJE
-        ? 'Este plantão já passou. Escreva por que a escala dele muda — é ela que responde '
+        ? 'Este plantão já passou. Escreva por que a escala dele muda. É ela que responde '
           + 'quem estava na casa naquela noite.'
         : 'Escreva por que esta pessoa sai do plantão. Ela vai perguntar, e é esta frase que '
-          + 'responde — a escala já guarda quem retirou e quando.');
+          + 'responde. A escala já guarda quem retirou e quando.');
     }
     alvo.revogadaEm = new Date().toISOString();
     alvo.motivoRevogacao = motivo;
@@ -8182,7 +8179,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     if (ata.status !== 'aberta' && ata.status !== 'reaberta') {
       return new Recusa(400,
         'Esta ATA está fechada e não recebe registro novo. O episódio pertence ao plantão que '
-        + 'está aberto — registre nele, com o horário real do fato. Se o que precisa mudar é o '
+        + 'está aberto. Registre nele, com o horário real do fato. Se o que precisa mudar é o '
         + 'texto desta ATA, o caminho é a reabertura, e ela deixa adendo.');
     }
     if (!CLASSIFICACOES_EPISODIO.some((c) => c.code === b.classificacao)) {
@@ -8221,7 +8218,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     const s = PLANTOES.find((x) => x.id === seg[1])!;
     if (s.passagens.some((p) => p.userId === eu.id)) {
       return new Recusa(400, 'Você já assinou a passagem deste plantão. Para acrescentar algo, '
-        + 'registre um complemento — ele entra ao lado, sem reescrever o que você assinou.');
+        + 'registre um complemento. Ele entra ao lado, sem reescrever o que você assinou.');
     }
     /* A MESMA RECUSA DO SERVIDOR (0940, regra 14): dose sem resposta no turno
        exige a frase. O servidor de mentira que aceitasse aqui ensinaria a
@@ -8233,7 +8230,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         .map((d) => `${d.medicamento} (${d.acolhido})`).join(', ');
       return new Recusa(400,
         `${rem.semResposta === 1 ? 'Uma dose deste turno ficou' : `${rem.semResposta} doses deste turno ficaram`}`
-        + ` sem resposta: ${quais}. Escreva o que aconteceu antes de assinar — quem deu o `
+        + ` sem resposta: ${quais}. Escreva o que aconteceu antes de assinar. Quem deu o `
         + 'remédio ainda está na casa agora, e amanhã ninguém vai saber dizer.');
     }
     const tardia = !!b.happenedAt;
@@ -8417,7 +8414,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       && metodo === 'GET') {
     if (!['enfermagem', 'equipe_tecnica', 'lider_diurno', 'coordenador',
           'gestor_geral'].includes(eu.role)) {
-      return new Recusa(404, 'Esta nota fiscal não foi encontrada — ou está fora do seu alcance.');
+      return new Recusa(404, 'Esta nota fiscal não foi encontrada, ou está fora do seu alcance.');
     }
     const c: any = COMPRAS_MED.find((x: any) => x.id === seg[2]);
     if (!c) return new Recusa(404, 'Esta nota fiscal não foi encontrada.');
@@ -8451,7 +8448,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     }
     const cnpj = String(b.cnpj ?? '').replace(/\D/g, '');
     if (cnpj && !cnpjConfereMock(cnpj)) {
-      throw new ErroApi(400, 'Este CNPJ não confere — os dígitos verificadores não batem. Confira na nota.');
+      throw new ErroApi(400, 'Este CNPJ não confere. Os dígitos verificadores não batem. Confira na nota.');
     }
     const cnpjFmt = cnpj ? `${cnpj.slice(0, 2)}.${cnpj.slice(2, 5)}.${cnpj.slice(5, 8)}/${cnpj.slice(8, 12)}-${cnpj.slice(12)}` : null;
     const numero = String(b.nota ?? '').trim();
@@ -8459,7 +8456,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       ? COMPRAS_MED.find((c) => c.cnpj === cnpjFmt && (c.nota ?? '').toUpperCase() === numero.toUpperCase()) : null;
     if (repetida) {
       throw new ErroApi(409, `Nota repetida: esta nota já foi lançada por ${repetida.compradoPor}. `
-        + 'O mesmo CNPJ e o mesmo número não entram duas vezes — dobraria o gasto da prestação de contas.');
+        + 'Uma nota com o mesmo CNPJ e o mesmo número já está registrada.');
     }
     const soma = itensNf.reduce((n, i) => n + (i.valorUnitarioCentavos != null
       ? Math.round(Number(i.quantidade) * Number(i.valorUnitarioCentavos)) : 0), 0);
@@ -8491,7 +8488,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
   if (seg[0] === 'medications' && seg[1] === 'prescriptions' && seg[2] === 'documents'
       && seg[4] === 'file' && metodo === 'GET') {
     if (!['enfermagem', 'equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)) {
-      return new Recusa(404, 'Esta receita não foi encontrada — ou está fora do seu alcance.');
+      return new Recusa(404, 'Esta receita não foi encontrada, ou está fora do seu alcance.');
     }
     for (const lista of Object.values(RECEITAS)) {
       const r: any = (lista as any[]).find((x) => x.id === seg[3]);
@@ -8501,7 +8498,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
                        conteudo: r.arquivo }, referencia: null, nome: r.nome }
         : { arquivo: null, referencia: r.referencia ?? null, nome: r.nome };
     }
-    return new Recusa(404, 'Esta receita não foi encontrada — ou está fora do seu alcance.');
+    return new Recusa(404, 'Esta receita não foi encontrada, ou está fora do seu alcance.');
   }
 
   if (seg[0] === 'medications' && seg[1] === 'prescriptions' && seg[3] === 'documents') {
@@ -8513,7 +8510,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     const conteudo = String(b.conteudo ?? '').trim();
     if (!conteudo && !String(b.anexoRef ?? '').trim()) {
       return new Recusa(400, 'Anexe a receita digitalizada, ou informe onde ela está no '
-        + 'Drive da instituição. Uma das duas — a receita é o que autoriza a prescrição.');
+        + 'Drive da instituição. Uma das duas. A receita é o que autoriza a prescrição.');
     }
     if (b.tipo && !['receita', 'bula'].includes(String(b.tipo))) {
       return new Recusa(400, 'O papel é receita ou bula.');
@@ -8572,7 +8569,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       const pessoas = [...new Set((b.pessoas as string[]).map(String))];
       if (!pessoas.length) throw new ErroApi(400, 'Marque pelo menos uma criança.');
       if (pessoas.some((id) => !todosKids().some((k) => k.id === id))) {
-        throw new ErroApi(404, 'Uma das crianças marcadas não está nesta casa. Nada foi registrado — confira a lista.');
+        throw new ErroApi(404, 'Uma das crianças marcadas não está nesta casa. Nada foi registrado. Confira a lista.');
       }
       const lote = `lote-${uid()}`;
       const ids = pessoas.map((pid, i) => {
@@ -8608,7 +8605,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     }
     if (p.status !== 'aberto') throw new ErroApi(409, 'Este pedido foi cancelado; não se edita.');
     if (p.em < HOJE) {
-      throw new ErroApi(409, 'A data deste pedido já passou — a cozinha já serviu. Se foi errado, cancele com o motivo.');
+      throw new ErroApi(409, 'A data deste pedido já passou. A cozinha já serviu. Se foi errado, cancele com o motivo.');
     }
     if (b.em && String(b.em) < HOJE) throw new ErroApi(400, 'A nova data não pode estar no passado.');
     if (String(b.motivo ?? '').trim().length < 5) {
@@ -8752,8 +8749,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         + 'na porta precisa dele.');
     }
     if (b.status === 'suspensa' && !b.ate) {
-      throw new ErroApi(400, 'Escreva até quando. Medida sem prazo vira permanente por '
-        + 'esquecimento, e ninguém decidiu que seria permanente.');
+      throw new ErroApi(400, 'Escreva até quando vale a medida. Na data, a equipe revê.');
     }
     SAIDAS_SOZINHO[seg[1]] = [
       { status: b.status, motivo: String(b.motivo).trim(), onde: b.onde || null,
@@ -8957,7 +8953,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     const acima = todosKids().length + 1 > 20;
     if (acima && String(b.acolhimento?.capacityReason ?? '').trim().length < 15) {
       return new Recusa(409, 'A casa está no limite de vagas. Para acolher assim mesmo, '
-        + 'descreva a justificativa — ela fica registrada com o seu nome.');
+        + 'descreva a justificativa. Ela fica registrada com o seu nome.');
     }
     const semCpf = !String(b.pessoa?.cpf ?? '').trim();
     const nasc = String(b.pessoa?.birthDate ?? HOJE);
@@ -8991,14 +8987,14 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
      servidor: motivo obrigatório, campo que não mudou não vira correção. */
   if (seg[0] === 'people' && seg[2] === 'corrigir-identificacao' && metodo === 'POST') {
     const k = kid(seg[1]);
-    if (!k) return new Recusa(404, 'Acolhido não encontrado — ou fora do seu alcance.');
+    if (!k) return new Recusa(404, 'Acolhido não encontrado, ou fora do seu alcance.');
     if (!['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)) {
       return new Recusa(403, 'Corrigir a identificação é da equipe técnica e da coordenação.');
     }
     if (String(b.motivo ?? '').trim().length < 10) {
       return new Recusa(400,
         'Escreva por que o cadastro está sendo corrigido. Quem ler o caso daqui a um ano '
-        + 'precisa saber por que o nome mudou — "erro" não explica nada.');
+        + 'precisa saber por que o nome mudou. "erro" não explica nada.');
     }
     if (b.nome !== undefined && String(b.nome).trim().length < 2) {
       return new Recusa(400,
@@ -9136,7 +9132,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
   }
   if (seg[0] === 'people' && seg.length === 2 && metodo === 'PATCH') {
     const k = kid(seg[1]);
-    if (!k) return new Recusa(404, 'Perfil não encontrado — ou fora do seu alcance.');
+    if (!k) return new Recusa(404, 'Perfil não encontrado, ou fora do seu alcance.');
     if (!['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)) {
       return new Recusa(403, 'Educadores não alteram dados estruturais do perfil.');
     }
@@ -9240,7 +9236,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       if (String(b.motivo ?? '').trim().length < 10) {
         return new Recusa(400,
           'Escreva por que a criança foi internada. Quem ler daqui a um ano precisa '
-          + 'saber o que aconteceu — "internação" não explica nada.');
+          + 'saber o que aconteceu. "internação" não explica nada.');
       }
       if (estaInternado(String(b.personId))) {
         return new Recusa(400,
@@ -9265,7 +9261,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
 
   if (seg[0] === 'nursing' && seg[1] === 'hospitalizations' && seg.length >= 3) {
     const i = INTERNACOES.find((x) => x.id === seg[2]);
-    if (!i) return new Recusa(404, 'Internação não encontrada — ou fora do seu alcance.');
+    if (!i) return new Recusa(404, 'Internação não encontrada, ou fora do seu alcance.');
     const souAcompanhante = i.acompanhantes.some((a: any) => a.quem === eu.fullName);
     if (!QUEM_VE_INT.includes(eu.role) && !souAcompanhante) {
       return new Recusa(403, 'A internação não é do educador social.');
@@ -9428,7 +9424,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     if (typeof b.visivel !== 'boolean') return new Recusa(400, 'Diga se o campo fica à vista do plantão ou não.');
     const motivo = String(b.motivo ?? '').trim();
     if (!b.visivel && motivo.length < 15) {
-      return new Recusa(400, 'Escreva por que este campo sai da vista do plantão — quem estiver com a criança '
+      return new Recusa(400, 'Escreva por que este campo sai da vista do plantão. Quem estiver com a criança '
         + 'vai ler este motivo quando procurar o dado.');
     }
     if (b.visivel) delete CAMPOS_DESLIGADOS[campo.code];
@@ -9441,7 +9437,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
 
   /* ---------------- As visitas (fase 160) — o portão e o perfil, com as recusas do servidor ---------------- */
   if (rota === '/people/portaria/hoje' && metodo === 'GET') {
-    if (!REGISTRA_VISITA.includes(eu.role)) return new Recusa(404, 'Visitante não encontrado — ou fora do seu alcance.');
+    if (!REGISTRA_VISITA.includes(eu.role)) return new Recusa(404, 'Visitante não encontrado, ou fora do seu alcance.');
     semearVisitas();
     const inteiro = ESCREVE_CONTATO.includes(eu.role);
     const visitantes = todosKids().slice().sort((a, z) => a.nome.localeCompare(z.nome)).flatMap((k) =>
@@ -9466,14 +9462,14 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
   }
   if (seg[0] === 'people' && seg[1] === 'portaria' && seg[2] === 'visitante' && seg[4] === 'foto') {
     const c = REGISTRA_VISITA.includes(eu.role) ? acharContato(seg[3]) : null;
-    if (!c || !c.autorizadoAVisitar) return new Recusa(404, 'Visitante não encontrado — ou fora do seu alcance.');
+    if (!c || !c.autorizadoAVisitar) return new Recusa(404, 'Visitante não encontrado, ou fora do seu alcance.');
     if (!c.foto) return new Recusa(404, 'Este visitante ainda não tem foto.');
     return { nome: 'visitante', tipo: /^data:([^;]+)/.exec(c.foto)?.[1] ?? 'image/png',
              conteudo: c.foto.replace(/^data:[^;]+;base64,/, '') };
   }
   if (rota === '/people/portaria/visitas' && metodo === 'POST') {
     const c = REGISTRA_VISITA.includes(eu.role) ? acharContato(String(b.contatoId ?? '')) : null;
-    if (!c || !c.autorizadoAVisitar) return new Recusa(404, 'Visitante não encontrado — ou fora do seu alcance.');
+    if (!c || !c.autorizadoAVisitar) return new Recusa(404, 'Visitante não encontrado, ou fora do seu alcance.');
     if (String(b.documento ?? '').trim().length < 2) {
       return new Recusa(400, 'Diga qual documento foi conferido no portão (ex.: RG, CPF).');
     }
@@ -9488,7 +9484,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     }
     if (fora && excecao.length < 10) {
       return new Recusa(400, `${fora} Para abrir a exceção, escreva o motivo (pelo menos 10 `
-        + 'caracteres) — ele fica registrado.');
+        + 'caracteres). Ele fica registrado.');
     }
     const kidId = todosKids().find((k) => contatosDe(k.id).includes(c))?.id ?? '';
     const v = { id: `vis-${uid()}`, kidId, contatoId: c.id, documento: String(b.documento).trim(),
@@ -9533,14 +9529,14 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
   }
   if (seg[0] === 'people' && seg[2] === 'visitas' && seg.length === 3 && metodo === 'GET') {
     if (eu.role === 'portaria' || eu.role === 'cozinha') {
-      return new Recusa(404, 'Acolhido não encontrado — ou fora do seu alcance.');
+      return new Recusa(404, 'Acolhido não encontrado, ou fora do seu alcance.');
     }
     semearVisitas();
     return visitasDaCrianca(seg[1], q.get('de') ?? undefined, q.get('ate') ?? undefined);
   }
   if (seg[0] === 'people' && seg[2] === 'visitas' && seg[3] === 'export' && metodo === 'POST') {
     if (eu.role === 'portaria' || eu.role === 'cozinha') {
-      return new Recusa(404, 'Acolhido não encontrado — ou fora do seu alcance.');
+      return new Recusa(404, 'Acolhido não encontrado, ou fora do seu alcance.');
     }
     if (String(b.finalidade ?? '').trim().length < 10) {
       return new Recusa(400, 'Descreva a finalidade da exportação (mínimo 10 caracteres).');
@@ -9573,8 +9569,8 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
   /* ---------------- A portaria (fase 92) — as mesmas recusas do servidor ---------------- */
   if (rota.startsWith('/people/portaria/folha') && metodo === 'GET') {
     if (!ESCREVE_CONTATO.includes(eu.role)) {
-      return new Recusa(403, 'A folha da portaria é gerada pela equipe técnica ou pela coordenação — '
-        + 'é quem responde por quem está autorizado nela.');
+      return new Recusa(403, 'A folha da portaria é gerada pela equipe técnica ou pela coordenação. '
+        + 'É quem responde por quem está autorizado nela.');
     }
     return folhaDaPortaria(eu);
   }
@@ -9593,13 +9589,13 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
   }
   if (seg[0] === 'people' && seg[1] === 'contacts' && seg[3] === 'visit' && metodo === 'POST') {
     if (!ESCREVE_CONTATO.includes(eu.role)) {
-      return new Recusa(403, 'Autorizar visita é da equipe técnica e da coordenação — é quem responde por quem entra.');
+      return new Recusa(403, 'Autorizar visita é da equipe técnica e da coordenação. É quem responde por quem entra.');
     }
     const c = acharContato(seg[2]);
-    if (!c) return new Recusa(404, 'Contato não encontrado — ou fora do seu alcance.');
+    if (!c) return new Recusa(404, 'Contato não encontrado, ou fora do seu alcance.');
     const cpf = String(b.cpf ?? '').replace(/\D/g, '');
     if (cpf && !cpfConfere(cpf)) {
-      return new Recusa(400, 'Este CPF não confere — os dígitos verificadores não batem. Confira no documento.');
+      return new Recusa(400, 'Este CPF não confere. Os dígitos verificadores não batem. Confira no documento.');
     }
     if (b.autorizado && c.restrito) {
       return new Recusa(400, 'Este contato tem aproximação restrita e não pode ser autorizado a visitar. '
@@ -9625,7 +9621,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     const informouJanela = b.dias !== undefined || b.de !== undefined
       || b.ate !== undefined || b.observacao !== undefined;
     if (dias.some((d) => !Number.isInteger(d) || d < 0 || d > 6)) {
-      return new Recusa(400, 'Dia de visita fora da semana — escolha de domingo a sábado.');
+      return new Recusa(400, 'Dia de visita fora da semana. Escolha de domingo a sábado.');
     }
     const de = String(b.de ?? '').trim(); const ate = String(b.ate ?? '').trim();
     if ((de === '') !== (ate === '')) {
@@ -9633,7 +9629,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         + 'não diz nada a quem está na guarita.');
     }
     if (de && ate && de >= ate) {
-      return new Recusa(400, 'A visita termina depois de começar — confira as duas horas.');
+      return new Recusa(400, 'A visita termina depois de começar. Confira as duas horas.');
     }
     if (dias.length > 0 && !de) return new Recusa(400, 'Escolha também a faixa de horário desses dias.');
     if (dias.length === 0 && de) return new Recusa(400, 'Escolha em que dias vale essa faixa de horário.');
@@ -9642,7 +9638,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     const ficaComHorario = informouJanela ? dias.length > 0 : Boolean(c.visita?.dias?.length);
     if (b.autorizado && !ficaComHorario) {
       return new Recusa(400, 'Escolha em que dias este visitante pode vir, e a faixa de horário. '
-        + 'A folha da guarita sai com isso — sem ele, quem está no portão às 21h de uma terça tem '
+        + 'A folha da guarita sai com isso, sem ele, quem está no portão às 21h de uma terça tem '
         + 'de escolher entre barrar um familiar autorizado e deixar entrar fora da hora.');
     }
 
@@ -9686,7 +9682,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
   }
   if (seg[0] === 'people' && seg[1] === 'contacts' && seg[3] === 'photo') {
     const c = acharContato(seg[2]);
-    if (!c) return new Recusa(404, 'Contato não encontrado — ou fora do seu alcance.');
+    if (!c) return new Recusa(404, 'Contato não encontrado, ou fora do seu alcance.');
     if (metodo === 'POST') {
       if (!ESCREVE_CONTATO.includes(eu.role)) return new Recusa(403, 'A foto do visitante é cadastrada pela técnica ou pela coordenação.');
       if (!String(b.conteudo ?? '')) return new Recusa(400, 'Nenhuma foto foi enviada.');
@@ -9764,7 +9760,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       /* E retira a autorização de visita junto, como o servidor (fase 92). */
       if (c) { c.ativo = false; c.motivoDoEncerramento = String(b.motivo).trim(); c.autorizadoAVisitar = false; c.autorizacao = null; return { ok: true }; }
     }
-    return new Recusa(404, 'Contato não encontrado — ou já encerrado.');
+    return new Recusa(404, 'Contato não encontrado, ou já encerrado.');
   }
 
   if (seg[0] === 'people' && seg[2] === 'photo' && metodo === 'GET') {
@@ -9779,7 +9775,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         'A foto de identificação é cadastrada pela técnica ou pela coordenação.');
     }
     const k = kid(seg[1]);
-    if (!k) return new Recusa(404, 'Acolhido não encontrado — ou fora do seu alcance.');
+    if (!k) return new Recusa(404, 'Acolhido não encontrado, ou fora do seu alcance.');
     const limpo = String(b.conteudo ?? '').replace(/^data:[^;]+;base64,/, '');
     if (!limpo) return new Recusa(400, 'Nenhuma foto foi enviada.');
     /* O servidor confere a ASSINATURA do arquivo, e não a extensão. O mock
@@ -10024,7 +10020,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       throw new ErroApi(403, 'Só a equipe técnica ou a coordenação desmarcam um atendimento.');
     }
     if (String(b.motivo ?? '').trim().length < 5) {
-      throw new ErroApi(400, 'Escreva o motivo — quem abrir a agenda depois precisa saber por que não houve.');
+      throw new ErroApi(400, 'Escreva o motivo. Quem abrir a agenda depois precisa saber por que não houve.');
     }
     DESMARCADAS.set(`${seg[2]}:${b.data}`, String(b.motivo).trim());
     return { desmarcada: true, atividadeCancelada: b.data === HOJE };
@@ -10102,7 +10098,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     const e = ESQUEMAS.find((x) => x.id === seg[2]);
     if (!e) return new Recusa(404, 'Esquema não encontrado.');
     if (e.tipo !== 'quando_necessario') {
-      return new Recusa(400, 'Este esquema tem horário — a dose dele se confirma na grade do dia.');
+      return new Recusa(400, 'Este esquema tem horário. A dose dele se confirma na grade do dia.');
     }
     if (e.status !== 'ativa' || !e.assinadaPor) {
       return new Recusa(400, 'Este esquema não está com orientação válida: ele foi suspenso ou '
@@ -10144,12 +10140,12 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     const d = DOSES.find((x) => x.id === seg[2]);
     if (!d) return new Recusa(404, 'Dose não encontrada.');
     if (!d.motivoQuandoNecessario) {
-      return new Recusa(400, 'Esta dose não é "quando necessário" — o desfecho é o que se '
+      return new Recusa(400, 'Esta dose não é "quando necessário". O desfecho é o que se '
         + 'observou depois de dar um remédio que dependia da condição do momento.');
     }
     if (d.desfechoQuandoNecessario) {
       return new Recusa(409, 'O desfecho desta dose já foi registrado, e não se reescreve. Se '
-        + 'houve outra observação depois, ela precisa de lugar próprio — fale com a coordenação.');
+        + 'houve outra observação depois, ela precisa de lugar próprio. Fale com a coordenação.');
     }
     const t = String(b.desfecho ?? '').trim();
     if (t.length < 10) {
@@ -10306,7 +10302,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     if (!e) return new Recusa(404, 'Esquema não encontrado.');
     const motivoE = String(b.motivo ?? '').trim();
     if (motivoE.length < 15) {
-      return new Recusa(400, 'Escreva por que este medicamento exige a Enfermagem — quem ler '
+      return new Recusa(400, 'Escreva por que este medicamento exige a Enfermagem. Quem ler '
         + 'daqui a seis meses precisa entender a decisão.');
     }
     const querMarcar = b.soEnfermagem === true;
@@ -10503,7 +10499,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     const item = ESTOQUE.find((x) => x.id === seg[2]);
     if (!item) {
       return new Recusa(404,
-        'Este item do armário não foi encontrado — ou está fora do seu alcance.');
+        'Este item do armário não foi encontrado, ou está fora do seu alcance.');
     }
     const linhas = MOVIMENTOS[item.id] ?? [];
     return {
@@ -10530,10 +10526,10 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       return new Recusa(400, 'Escreva o motivo (pelo menos 10 caracteres): é ele que a prestação de contas lê.');
     }
     const item = ESTOQUE.find((x) => x.id === seg[2]);
-    if (!item) return new Recusa(404, 'Item do estoque não encontrado — ou fora do seu alcance.');
+    if (!item) return new Recusa(404, 'Item do estoque não encontrado, ou fora do seu alcance.');
     if (item.quantidade < qtd) {
       return new Recusa(400, `O armário registra ${item.quantidade} e a saída é de ${qtd}. `
-        + 'Faça a contagem antes — ela corrige o saldo com o motivo.');
+        + 'Faça a contagem antes. Ela corrige o saldo com o motivo.');
     }
     item.quantidade -= qtd; item.atualizadoEm = new Date().toISOString();
     MOVIMENTOS[item.id] = [{ id: uid(), tipo, quantidade: -qtd, motivo, quando: new Date().toISOString(),
@@ -10935,9 +10931,8 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         + 'referência judicial. Use um nome neutro; o conteúdo fica protegido dentro do anexo.');
     }
     if (!String(b.referencia ?? '').trim() && !String(b.conteudo ?? '').trim()) {
-      return new Recusa(400, 'Anexe o documento digitalizado, ou informe onde ele está — a '
-        + 'pasta ou o link no Drive da instituição. Uma das duas: anexo sem nenhuma das duas '
-        + 'é uma linha que promete um documento que ninguém alcança.');
+      return new Recusa(400, 'Anexe o documento digitalizado, ou informe onde ele está: a '
+        + 'pasta ou o link no Drive da instituição.');
     }
     if (tipo.exigeJustificativa && String(b.justificativa ?? '').trim().length < 15) {
       return new Recusa(400,
@@ -10967,19 +10962,18 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
    */
   if (seg[0] === 'incidents' && seg[2] === 'protected' && metodo === 'POST') {
     const o = OCORRENCIAS.find((x) => x.id === seg[1]);
-    if (!o) return new Recusa(404, 'Ocorrência não encontrada — ou fora do seu alcance.');
+    if (!o) return new Recusa(404, 'Ocorrência não encontrada, ou fora do seu alcance.');
     const fala = String(b.falaEspontanea ?? '').trim();
     const sinais = String(b.sinaisObservados ?? '').trim();
     if (!fala && !sinais) {
       return new Recusa(400,
-        'Escreva ao menos a fala espontânea ou os sinais observados. Este registro é único '
-        + 'por ocorrência e não é reescrito — um registro vazio ocuparia o lugar de quem '
-        + 'tem o que dizer.');
+        'Escreva ao menos a fala espontânea ou os sinais observados. Este registro é um só por '
+        + 'ocorrência, e depois de gravado não se reescreve.');
     }
     if (o.status === 'fechada') {
       return new Recusa(400,
         'A ocorrência está fechada e a cópia documental dela já foi arquivada. Para acrescentar '
-        + 'algo, peça a reabertura à equipe técnica — a reabertura fica registrada, e o que '
+        + 'algo, peça a reabertura à equipe técnica. A reabertura fica registrada, e o que '
         + 'você escrever depois nasce datado do dia em que foi escrito.');
     }
     if (o.falaEspontanea || o.sinaisObservados) {
@@ -10987,7 +10981,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       // fica sabendo o que ele diz por causa de uma recusa.
       return new Recusa(400,
         'Esta ocorrência não recebe outro registro protegido: ele é único e não se reescreve. '
-        + 'Escreva um relato em seu nome — ele fica ao lado, com a sua assinatura e a sua hora, '
+        + 'Escreva um relato em seu nome. Ele fica ao lado, com a sua assinatura e a sua hora, '
         + 'e ninguém o altera depois.');
     }
     o.falaEspontanea = fala || null;
@@ -11143,7 +11137,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
   /** Detalhe: é AQUI que a política decide o que devolver. */
   if (seg[0] === 'incidents' && seg.length === 2 && metodo === 'GET') {
     const o = OCORRENCIAS.find((x) => x.id === seg[1]);
-    if (!o) return new Recusa(404, 'Ocorrência não encontrada — ou fora do seu alcance.');
+    if (!o) return new Recusa(404, 'Ocorrência não encontrada, ou fora do seu alcance.');
     const cat = CATEGORIAS_OCORRENCIA.find((c) => c.cod === o.categoria)!;
     const tecnica = ['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role);
     // Conteúdo protegido não é escondido na tela: NÃO É DEVOLVIDO.
@@ -11320,8 +11314,8 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     const a = ATAS.find((x) => x.id === seg[2]);
     if (!a) return new Recusa(404, 'ATA não encontrada.');
     if (a.status === 'fechada') {
-      return new Recusa(400, 'ATA fechada não é reescrita. Peça reabertura à equipe técnica — '
-        + 'a correção entra como adendo, com antes e depois.');
+      return new Recusa(400, 'ATA fechada não é reescrita. Peça reabertura à equipe técnica. '
+        + 'A correção entra como adendo, com antes e depois.');
     }
     a.conteudo = { ...(b.conteudo ?? {}) };
     return { ok: true };
@@ -11384,7 +11378,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     if (!a) return new Recusa(404, 'ATA não encontrada.');
     if (a.status === 'fechada') {
       return new Recusa(400, 'Esta ATA já foi fechada. O que vier depois entra como adendo, '
-        + 'ao lado — registro fechado não é reescrito.');
+        + 'ao lado. Registro fechado não é reescrito.');
     }
     if (!['lider_diurno', 'lider_noturno_geral', 'equipe_tecnica', 'coordenador', 'gestor_geral']
         .includes(eu.role)) {
@@ -11473,13 +11467,13 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     } else {
       if (!['lider_diurno', 'equipe_tecnica', 'coordenador'].includes(eu.role)) {
         return new Recusa(403, 'A ATA Geral já foi assinada. Depois disso, quem corrige a linha '
-          + 'de uma casa é o Líder Diurno, a equipe técnica ou a coordenação — e a correção fica '
+          + 'de uma casa é o Líder Diurno, a equipe técnica ou a coordenação, e a correção fica '
           + 'registrada com o nome de quem a fez.');
       }
       if (String(b.motivoDaCorrecao ?? '').trim().length < 10) {
         return new Recusa(400, 'Esta ATA Geral já foi assinada: descreva por que a linha está '
           + 'sendo corrigida (mínimo 10 caracteres). O que constava antes continua legível, e o '
-          + 'motivo fica ao lado — é o que explica as duas versões a quem ler depois.');
+          + 'motivo fica ao lado. É o que explica as duas versões a quem ler depois.');
       }
     }
 
@@ -11616,7 +11610,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         + 'você escreve a regra desta casa.');
     }
     if (String(b.texto ?? '').trim().length < 15) {
-      return new Recusa(400, 'Escreva a regra por inteiro — ela vai ser lida por quem chegar '
+      return new Recusa(400, 'Escreva a regra por inteiro. Ela vai ser lida por quem chegar '
         + 'depois de você, sem ninguém do lado para explicar.');
     }
     const publico = String(b.publico ?? 'todos');
@@ -11625,7 +11619,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     }
     if (b.substituiId) {
       const velha = ESTATUTO.find((r) => r.id === b.substituiId);
-      if (!velha) return new Recusa(404, 'Regra não encontrada — ou fora do seu alcance.');
+      if (!velha) return new Recusa(404, 'Regra não encontrada, ou fora do seu alcance.');
       if (velha.situacao !== 'vigente') {
         return new Recusa(409, 'A regra que você ia substituir já tinha sido encerrada por outra '
           + 'pessoa. Abra o estatuto de novo antes de escrever.');
@@ -11654,7 +11648,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     /* Regra da instituição não é da coordenação da casa — e responde como
        inexistente, igual ao servidor (regra 8). */
     if (!r || (r.daInstituicao && eu.role !== 'gestor_geral')) {
-      return new Recusa(404, 'Regra não encontrada — ou fora do seu alcance.');
+      return new Recusa(404, 'Regra não encontrada, ou fora do seu alcance.');
     }
     if (String(b.motivo ?? '').trim().length < 15) {
       return new Recusa(400, 'Escreva por que esta regra deixou de valer. Sem isso, quem ler o '
@@ -11682,7 +11676,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
   if (rota === '/alignments/agenda' && metodo === 'POST') {
     if (String(b.texto ?? '').trim().length < 10) {
       return new Recusa(400,
-        'Escreva o assunto da pauta — uma frase que quem não estava no seu turno entenda.');
+        'Escreva o assunto da pauta, uma frase que quem não estava no seu turno entenda.');
     }
     const id = uid();
     PAUTAS.unshift({
@@ -11696,11 +11690,11 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
   }
   if (seg[0] === 'alignments' && seg[1] === 'agenda' && seg[3] === 'answer' && metodo === 'POST') {
     if (!RESPONDE_PAUTA.includes(eu.role)) {
-      return new Recusa(403, 'Responder a pauta é de quem conduz a reunião — equipe técnica, '
+      return new Recusa(403, 'Quem responde a pauta é quem conduz a reunião: equipe técnica, '
         + 'liderança de turno ou coordenação.');
     }
     const p = PAUTAS.find((x) => x.id === seg[2]);
-    if (!p) return new Recusa(404, 'Proposta não encontrada — ou fora do seu alcance.');
+    if (!p) return new Recusa(404, 'Proposta não encontrada, ou fora do seu alcance.');
     if (p.situacao !== 'proposta') {
       return new Recusa(409, 'Outra pessoa já respondeu esta proposta enquanto você escrevia.');
     }
@@ -11711,10 +11705,8 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     const resposta = String(b.resposta ?? '').trim();
     if (situacao !== 'aceita' && resposta.length < 15) {
       return new Recusa(400, situacao === 'recusada'
-        ? 'Escreva por que esta pauta não entra. Quem propôs vai ler — e uma pauta recusada sem '
-          + 'resposta é pior do que não poder propor.'
-        : 'Escreva por que fica para depois, e o que quem propôs pode esperar. '
-          + '"Fica para a próxima" sem uma palavra é recusa com outro nome.');
+        ? 'Escreva por que esta pauta não entra. Quem propôs vai ler a resposta.'
+        : 'Escreva por que fica para depois, e o que quem propôs pode esperar.');
     }
     p.situacao = situacao as typeof p.situacao;
     p.resposta = resposta || null;
@@ -11731,7 +11723,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         'Registrar reunião é da equipe técnica e da coordenação. Ler é de todo mundo da casa.');
     }
     if (String(b.titulo ?? '').trim().length < 4) {
-      return new Recusa(400, 'Dê um assunto à reunião — é como ela vai ser achada depois.');
+      return new Recusa(400, 'Dê um assunto à reunião. É como ela vai ser achada depois.');
     }
     for (const c of (b.combinados ?? []) as any[]) {
       if (String(c.texto ?? '').trim().length < 10) {
@@ -11912,9 +11904,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     }
     if (b.pendenciaBancaria && !String(b.pendenciaNota ?? '').trim()) {
       return new Recusa(400,
-        'Escreva qual é a pendência bancária. "Pendente" sozinho não diz a ninguém o que '
-        + 'falta fazer — e é justamente isso que precisa passar de uma coordenação para a '
-        + 'próxima.');
+        'Escreva qual é a pendência bancária, para a próxima coordenação saber o que falta fazer.');
     }
     // O CHECK da migração 055, em forma de frase: senha não entra aqui.
     const comCaraDeSenha = /(senha|password|passwd)\s*[:=]/i;
@@ -12222,7 +12212,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     if (!f) return new Recusa(404, 'Acompanhamento não encontrado.');
     if (f.situacao === 'aprovado') {
       return new Recusa(409, 'Acompanhamento aprovado não recebe fonte nova. Corrigir cria a '
-        + 'versão seguinte — a aprovada continua sendo o retrato daquele momento.');
+        + 'versão seguinte. A aprovada continua sendo o retrato daquele momento.');
     }
     if (!b.entidade || !b.entityId) {
       return new Recusa(400, 'Informe a fonte que está sendo escolhida.');
@@ -12261,7 +12251,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     }
     if (f.situacao === 'aprovado') {
       return new Recusa(400, 'Acompanhamento aprovado não se edita. Corrigir cria a versão '
-        + 'seguinte, que precisa de nova aprovação — e a anterior continua legível.');
+        + 'seguinte, que precisa de nova aprovação, e a anterior continua legível.');
     }
     const eixos = b as Record<string, string>;
     if (!Object.keys(eixos).length) return new Recusa(400, 'Nenhum eixo informado.');
@@ -12279,7 +12269,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     const vazios = EIXOS.filter((e) => !String(f.eixos[e.cod] ?? '').trim());
     if (vazios.length) {
       return new Recusa(400, `Faltam eixos: ${vazios.map((e) => e.label).join('; ')}. `
-        + 'Os eixos são obrigatórios — o que não foi observado se escreve como não observado, '
+        + 'Os eixos são obrigatórios. O que não foi observado se escreve como não observado, '
         + 'não se deixa em branco.');
     }
     f.situacao = 'em_aprovacao'; f.devolucao = null;
@@ -12544,7 +12534,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     const h: any = responder(`/nursing/history/${pid}`, ['nursing', 'history', pid], q, {}, 'GET');
     if (h instanceof Recusa) return h;
     const pessoa = kid(pid);
-    if (!pessoa) return new Recusa(404, 'Acolhido não encontrado — ou fora do seu alcance.');
+    if (!pessoa) return new Recusa(404, 'Acolhido não encontrado, ou fora do seu alcance.');
     return folhaDeSaude({ nome: pessoa.nome }, h, casaDaFolha, autorDaFolha());
   };
 

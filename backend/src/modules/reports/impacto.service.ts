@@ -191,7 +191,7 @@ export class ImpactoService {
       /* Casa fora do alcance é RECUSA, e não painel zerado — o RLS filtra as
        * linhas, e zero se leria como "esta casa não fez nada". */
       if (!casa) {
-        throw new NotFoundException('Unidade não encontrada — ou fora do seu alcance.');
+        throw new NotFoundException('Unidade não encontrada, ou fora do seu alcance.');
       }
 
       const um = async (sql: string, params: unknown[] = []) =>
@@ -343,7 +343,7 @@ export class ImpactoService {
                 (SELECT count(*)::int FROM house_stay WHERE person_id = $1) AS casas`,
         [personId]);
       if (!p?.nome) {
-        throw new NotFoundException('Acolhido não encontrado — ou fora do seu alcance.');
+        throw new NotFoundException('Acolhido não encontrado, ou fora do seu alcance.');
       }
       const marcos = await this.marcos(user, { personId, de: '1900-01-01' });
       const { rows: passagens } = await c.query(
@@ -386,7 +386,7 @@ export class ImpactoService {
      */
     if ((input.descricao ?? '').trim().length < 10) {
       throw new BadRequestException(
-        'Escreva o que aconteceu. O tipo já diz a categoria — esta linha é a história.');
+        'Escreva o que aconteceu. O tipo já diz a categoria. Esta linha é a história.');
     }
 
     const guardado = await this.arquivos.guardar(input.conteudo, O_COMPROVANTE);
@@ -449,7 +449,7 @@ export class ImpactoService {
         `SELECT storage_key, mime, file_name, house_id FROM life_milestone WHERE id = $1`, [marcoId]);
       return r;
     });
-    if (!m) throw new NotFoundException('Marco não encontrado — ou fora do seu alcance.');
+    if (!m) throw new NotFoundException('Marco não encontrado, ou fora do seu alcance.');
     if (!m.storage_key) throw new NotFoundException('Este marco não tem comprovante.');
     const bytes = await this.arquivos.ler(m.storage_key);
     if (!bytes) {

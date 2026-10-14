@@ -120,7 +120,7 @@ export class InternacaoService {
     if ((input.motivo ?? '').trim().length < 10) {
       throw new BadRequestException(
         'Escreva por que a criança foi internada. Quem ler daqui a um ano precisa '
-        + 'saber o que aconteceu — "internação" não explica nada.');
+        + 'saber o que aconteceu. "internação" não explica nada.');
     }
 
     const aberta = await this.db.asUser(user.id, async (c) => {
@@ -188,7 +188,7 @@ export class InternacaoService {
         RETURNING house_id`,
         [id, input.desfecho, input.ate ?? null, (input.observacao ?? '').trim() || null, user.id]);
       if (!rowCount) {
-        throw new NotFoundException('Internação não encontrada — ou já encerrada.');
+        throw new NotFoundException('Internação não encontrada, ou já encerrada.');
       }
       await this.audit.log({
         action: 'internacao.encerrada', actorId: user.id, institutionId: user.institutionId,
@@ -278,7 +278,7 @@ export class InternacaoService {
                 app_user_display_name(h.opened_by) AS abertaPor,
                 app_user_display_name(h.closed_by) AS encerradaPor
            FROM hospitalization h WHERE h.id = $1`, [id]);
-      if (!h) throw new NotFoundException('Internação não encontrada — ou fora do seu alcance.');
+      if (!h) throw new NotFoundException('Internação não encontrada, ou fora do seu alcance.');
 
       const { rows: notas } = await c.query(
         `SELECT n.id, n.on_date::text AS on_date, n.kind, n.body, n.file_name, n.storage_key IS NOT NULL AS temAnexo,
@@ -453,7 +453,7 @@ export class InternacaoService {
       return r;
     });
     if (!nota) {
-      throw new NotFoundException('Registro não encontrado — ou fora do seu alcance.');
+      throw new NotFoundException('Registro não encontrado, ou fora do seu alcance.');
     }
     if (!nota.storage_key) throw new NotFoundException('Este registro não tem anexo.');
     const bytes = await this.arquivos.ler(nota.storage_key);
@@ -516,7 +516,7 @@ export class InternacaoService {
          `UPDATE` abaixo filtrava calado, e a política só conferia o cargo — a
          coordenação de outra casa trocava quem acompanha a criança internada. */
       const { rows: [h] } = await c.query(`SELECT id FROM hospitalization WHERE id = $1`, [id]);
-      if (!h) throw new NotFoundException('Internação não encontrada — ou fora do seu alcance.');
+      if (!h) throw new NotFoundException('Internação não encontrada, ou fora do seu alcance.');
       /*
        * Fecha o período de quem estava antes. Sem isto, a lista responderia
        * que três pessoas acompanham ao mesmo tempo — e a pergunta "quem

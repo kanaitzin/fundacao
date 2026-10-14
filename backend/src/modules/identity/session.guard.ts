@@ -13,7 +13,7 @@ export class SessionGuard implements CanActivate {
        * verdade e não ajuda ninguém — sobretudo quem vê isso no meio de um
        * registro, às onze da noite, e precisa saber que basta entrar de novo. */
       throw new UnauthorizedException(
-        'Sua sessão terminou. Entre de novo para continuar — o que você digitou nesta '
+        'Sua sessão terminou. Entre de novo para continuar. O que você digitou nesta '
         + 'tela não foi salvo.');
     }
     req.user = await this.auth.validate(header.slice(7));

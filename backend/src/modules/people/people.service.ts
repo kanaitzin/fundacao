@@ -409,7 +409,7 @@ export class PeopleService {
       if (m.includes('contato_inexistente')) {
         throw new NotFoundException(
           'Contato não encontrado. A saída aponta para um contato já cadastrado no '
-          + 'perfil — digitar o nome à mão permitiria escrever qualquer um.');
+          + 'perfil. Digitar o nome à mão permitiria escrever qualquer um.');
       }
       if (m.includes('retorno_antes_da_saida')) {
         throw new BadRequestException('O retorno previsto tem de ser depois da saída.');
@@ -627,8 +627,7 @@ export class PeopleService {
       }
       if (m.includes('suspensao_exige_prazo')) {
         throw new BadRequestException(
-          'Escreva até quando. Medida sem prazo vira permanente por esquecimento, '
-          + 'e ninguém decidiu que seria permanente.');
+          'Escreva até quando vale a medida. Na data, a equipe revê.');
       }
       if (m.includes('prazo_no_passado')) {
         throw new BadRequestException('O prazo tem de ser hoje ou depois.');

@@ -112,7 +112,7 @@ export class ArquivosService {
     if (bytes.length > maximo) {
       throw new BadRequestException(regra.recusas?.grande
         ?? `O arquivo passa de ${Math.round(maximo / 1024 / 1024)} MB. `
-           + 'Digitalize em qualidade menor — a foto do celular costuma resolver.');
+           + 'Digitalize em qualidade menor. A foto do celular costuma resolver.');
     }
 
     const { tipo, rotulo } = this.tipoReal(bytes, regra);
@@ -161,7 +161,7 @@ export class ArquivosService {
     const hex = bytes.subarray(0, 12).toString('hex');
     const recusa = () => {
       throw new BadRequestException(regra.recusas?.tipo
-        ?? 'Este arquivo não é imagem nem PDF. O sistema guarda documento digitalizado — e a '
+        ?? 'Este arquivo não é imagem nem PDF. O sistema guarda documento digitalizado, e a '
            + 'conferência é pela assinatura do arquivo, não pela extensão do nome.');
     };
     const passa = (tipo: string) => !regra.aceita || regra.aceita.includes(tipo);

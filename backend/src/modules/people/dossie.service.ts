@@ -262,7 +262,7 @@ export class DossieService {
     if (!ok) {
       throw new BadRequestException(
         'Este documento não existe nesta criança, ou já foi conferido. Se o arquivo estiver '
-        + 'errado, anexe a versão certa — o que foi aceito antes continua registrado.');
+        + 'errado, anexe a versão certa. O que foi aceito antes continua registrado.');
     }
     await this.audit.log({
       action: 'document.accept', actorId: user.id,
@@ -319,14 +319,14 @@ export class DossieService {
     const bytes = await this.arquivos.ler(v.storage_key);
     if (!bytes) {
       throw new NotFoundException(
-        'O arquivo não está no armazenamento. O registro do documento continua — o que sumiu '
+        'O arquivo não está no armazenamento. O registro do documento continua. O que sumiu '
         + 'foi o objeto, e isso precisa ser dito, não escondido.');
     }
     const sha = createHash('sha256').update(bytes).digest('hex');
     if (sha !== v.sha256) {
       throw new BadRequestException(
-        'O arquivo guardado não confere com o que foi aceito. Ele não vai ser aberto: um '
-        + 'documento trocado por baixo é pior do que um documento que falta.');
+        'O arquivo guardado não confere com o que foi aceito, e por segurança não vai ser aberto. '
+        + 'Avise a coordenação.');
     }
     return { nome: v.file_name, tipo: v.mime, conteudo: bytes.toString('base64') };
   }
@@ -443,7 +443,7 @@ export class DossieService {
     ];
     if (pedidas.length > MAXIMO_DE_FOTOS) {
       throw new BadRequestException(
-        `Envie até ${MAXIMO_DE_FOTOS} fotos por vez. Não é limite do álbum — é o tamanho de `
+        `Envie até ${MAXIMO_DE_FOTOS} fotos por vez. Não é limite do álbum. É o tamanho de `
         + 'um envio que cabe numa conexão de casa; registre outra vivência, ou mande em duas '
         + 'levas.');
     }

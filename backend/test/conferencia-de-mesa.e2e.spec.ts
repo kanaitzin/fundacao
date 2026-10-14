@@ -245,12 +245,12 @@ describe('A conferência de mesa', () => {
     const final = await abrir('chamada_final', 'Chamada final do ensaio');
     const c = await ver(final);
     expect(c.aceitaConferenciaDeMesa).toBe(false);
-    expect(c.avisoDaMesa).toMatch(/contar as crianças/i);
+    expect(c.avisoDaMesa).toMatch(/criança por criança/i);
 
     const res = await request(http).post(`/api/v1/checks/${final}/bulk`)
       .set(auth(tokens.educador)).send({});
     expect(res.status).toBe(400);
-    expect(res.body.message).toMatch(/um a um/i);
+    expect(res.body.message).toMatch(/criança por criança/i);
 
     const { rows } = await admin.query(
       `SELECT count(*)::int AS n FROM check_result WHERE check_id = $1`, [final]);

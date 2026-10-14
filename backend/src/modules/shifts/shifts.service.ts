@@ -405,13 +405,13 @@ export class ShiftsService {
         .map((d) => `${d.medicamento} (${d.acolhido})`).join(', ');
       throw new BadRequestException(
         `${remedios.semResposta === 1 ? 'Uma dose deste turno ficou' : `${remedios.semResposta} doses deste turno ficaram`}`
-        + ` sem resposta: ${quais}. Escreva o que aconteceu antes de assinar — quem deu o remédio ainda`
+        + ` sem resposta: ${quais}. Escreva o que aconteceu antes de assinar. Quem deu o remédio ainda`
         + ' está na casa agora, e amanhã ninguém vai saber dizer.');
     }
 
     if (['fechado', 'fechado_com_pendencia'].includes(s.status) && !input.happenedAt) {
       throw new BadRequestException(
-        'Este plantão já foi fechado. Informe o horário real em que a passagem foi feita — ela entra como complemento tardio.');
+        'Este plantão já foi fechado. Informe o horário real em que a passagem foi feita. Ela entra como complemento tardio.');
     }
 
     // TUDO numa transação só. Antes eram três chamadas `asUser` separadas, e
@@ -437,7 +437,7 @@ export class ShiftsService {
         const fechado = ['fechado', 'fechado_com_pendencia'].includes(atual?.status);
         if (fechado && !input.happenedAt) {
           throw new BadRequestException(
-            'Este plantão foi fechado enquanto você preenchia. Informe o horário real da passagem — ela entra como complemento tardio.');
+            'Este plantão foi fechado enquanto você preenchia. Informe o horário real da passagem. Ela entra como complemento tardio.');
         }
 
         const { rows: [r] } = await c.query(
@@ -466,8 +466,8 @@ export class ShiftsService {
         throw new BadRequestException(
           // A mensagem antiga prometia "relato complementar" sem que existisse
           // caminho para ele. Agora existe, e ela diz qual é.
-          'Você já assinou a passagem deste plantão. Para acrescentar algo, registre um complemento — '
-          + 'ele entra ao lado, sem reescrever o que você assinou.');
+          'Você já assinou a passagem deste plantão. Para acrescentar algo, registre um complemento. '
+          + 'Ele entra ao lado, sem reescrever o que você assinou.');
       }
       if (e?.code === '42501' || /row-level security/i.test(e?.message ?? '')) {
         // Chega aqui quem tentou gravar em nome de outro ou fora da própria casa.
@@ -526,7 +526,7 @@ export class ShiftsService {
         /* Duas recusas caem aqui, e a frase diz qual: escrever em nome de
          * outro, e marcar como restrita sem poder relê-la depois. */
         throw new ForbiddenException(input.restrita
-          ? 'A linha restrita é da coordenação, da equipe técnica e dos líderes — quem escreve '
+          ? 'A linha restrita é da coordenação, da equipe técnica e dos líderes. Quem escreve '
             + 'uma linha precisa poder relê-la depois.'
           : 'A linha da ATA é escrita em nome de quem escreve, e na casa dela.');
       }
@@ -570,7 +570,7 @@ export class ShiftsService {
           ORDER BY s.on_date, s.period`, [houseId]);
       return rows;
     });
-    if (!linhas) throw new NotFoundException('Unidade não encontrada — ou fora do seu alcance.');
+    if (!linhas) throw new NotFoundException('Unidade não encontrada, ou fora do seu alcance.');
     /* A mesma regra de `app_close_ata`: a diurna é do Líder Diurno, a noturna do
        Líder Noturno Geral, e as duas da equipe técnica e da coordenação. */
     const fecha: Record<string, string[]> = {
@@ -624,7 +624,7 @@ export class ShiftsService {
   }) {
     const texto = (input.texto ?? '').trim();
     if (texto.length < 5) {
-      throw new BadRequestException('Escreva o complemento — o que aconteceu, em uma linha que seja.');
+      throw new BadRequestException('Escreva o complemento. O que aconteceu, em uma linha que seja.');
     }
 
     const contexto = await this.db.asUser(user.id, async (c) => {
@@ -638,7 +638,7 @@ export class ShiftsService {
     if (!contexto) throw new NotFoundException('Plantão não encontrado.');
     if (!contexto.handover_id) {
       throw new BadRequestException(
-        'Você ainda não assinou a passagem deste plantão. Assine primeiro — o complemento acrescenta a ela.');
+        'Você ainda não assinou a passagem deste plantão. Assine primeiro. O complemento acrescenta a ela.');
     }
 
     const fechado = ['fechado', 'fechado_com_pendencia'].includes(contexto.status);
@@ -748,7 +748,7 @@ export class ShiftsService {
     });
     if (!ok) {
       throw new BadRequestException(
-        'ATA fechada não é reescrita. Peça reabertura à equipe técnica — a correção entra como adendo, com antes e depois.');
+        'ATA fechada não é reescrita. Peça reabertura à equipe técnica. A correção entra como adendo, com antes e depois.');
     }
     return { ok: true };
   }
@@ -930,7 +930,7 @@ export class ShiftsService {
            conferia "a ciência é sua", e a coordenação de outra casa gravava
            ciência com comentário num episódio que ela nem lê. */
         const { rows: [ep] } = await c.query(`SELECT id FROM ata_episode WHERE id = $1`, [episodeId]);
-        if (!ep) throw new NotFoundException('Episódio não encontrado — ou fora do seu alcance.');
+        if (!ep) throw new NotFoundException('Episódio não encontrado, ou fora do seu alcance.');
         await c.query(
           `INSERT INTO ata_episode_ack (episode_id, user_id, comment) VALUES ($1,$2,$3)`,
           [episodeId, user.id, comentario ?? null]);
@@ -1077,8 +1077,8 @@ export class ShiftsService {
       });
       if (!fechada || !['fechada', 'fechada_com_pendencia'].includes(fechada)) {
         throw new BadRequestException(
-          'A ATA noturna desta casa ainda não foi fechada. A confirmação registra um fechamento que existe — '
-          + 'ela não substitui as assinaturas da equipe.');
+          'A ATA noturna desta casa ainda não foi fechada. A confirmação registra um fechamento que existe. '
+          + 'Ela não substitui as assinaturas da equipe.');
       }
     }
 
@@ -1101,7 +1101,7 @@ export class ShiftsService {
     if (!CORRIGEM.includes(user.role) && user.role !== AUTOR && user.role !== 'gestor_geral') {
       throw new ForbiddenException(
         'A linha de uma casa na ATA Geral é preenchida pelo Líder Noturno Geral e corrigida '
-        + 'pelo Líder Diurno, pela equipe técnica ou pela coordenação — a correção fica '
+        + 'pelo Líder Diurno, pela equipe técnica ou pela coordenação. A correção fica '
         + 'registrada com o nome de quem a fez.');
     }
 
@@ -1114,14 +1114,14 @@ export class ShiftsService {
       if (!CORRIGEM.includes(user.role)) {
         throw new ForbiddenException(
           'A ATA Geral já foi assinada. Depois disso, quem corrige a linha de uma casa é o '
-          + 'Líder Diurno, a equipe técnica ou a coordenação — e a correção fica registrada '
+          + 'Líder Diurno, a equipe técnica ou a coordenação, e a correção fica registrada '
           + 'com o nome de quem a fez.');
       }
       if (String(input.motivoDaCorrecao ?? '').trim().length < 10) {
         throw new BadRequestException(
           'Esta ATA Geral já foi assinada: descreva por que a linha está sendo corrigida '
           + '(mínimo 10 caracteres). O que constava antes continua legível, e o motivo fica '
-          + 'ao lado — é o que explica as duas versões a quem ler depois.');
+          + 'ao lado. É o que explica as duas versões a quem ler depois.');
       }
     }
 
@@ -1153,8 +1153,8 @@ export class ShiftsService {
     if (!ok) {
       throw new BadRequestException(
         assinada
-          ? 'Esta casa não está no seu alcance — a linha dela não é sua para corrigir.'
-          : 'ATA Geral fechada ou fora do seu alcance — não é possível alterar.');
+          ? 'Esta casa não está no seu alcance. A linha dela não é sua para corrigir.'
+          : 'ATA Geral fechada ou fora do seu alcance, não é possível alterar.');
     }
 
     if (assinada) {
@@ -1192,7 +1192,7 @@ export class ShiftsService {
     });
     if (!id) {
       throw new NotFoundException(
-        'Não há ATA Geral Noturna nesta data — não há linha para corrigir.');
+        'Não há ATA Geral Noturna nesta data, não há linha para corrigir.');
     }
     return this.updateGeneralHouse(user, id, houseId, input);
   }
@@ -1203,7 +1203,7 @@ export class ShiftsService {
         'A ATA Geral é assinada por quem a preencheu. Ninguém assina por outro.'),
       ata_geral_ja_fechada: () => new BadRequestException('Esta ATA Geral já foi fechada.'),
       pendencia_exige_descricao: () => new BadRequestException(
-        'Há casas sem confirmação. Descreva a pendência (mínimo 10 caracteres) — ela vai para a equipe técnica.'),
+        'Há casas sem confirmação. Descreva a pendência (mínimo 10 caracteres). Ela vai para a equipe técnica.'),
       ata_geral_inexistente: () => new NotFoundException('ATA Geral não encontrada.'),
     });
 
@@ -1442,7 +1442,7 @@ export class ShiftsService {
       return new ForbiddenException('Esta casa não está no seu alcance.');
     }
     if (m.includes('ata_inexistente') || m.includes('pedido_inexistente')) {
-      return new NotFoundException('Não encontrado — ou fora do seu alcance.');
+      return new NotFoundException('Não encontrado, ou fora do seu alcance.');
     }
     if (m.startsWith('ata: ')) return new BadRequestException(m.slice(5));
     return e;
@@ -1490,7 +1490,7 @@ export class ShiftsService {
           // 1510: o educador entrou. A frase deixou de nomear cargos porque a
           // lista mudou duas vezes e a frase ficou mentindo na segunda.
           'O arquivo das ATAS é de quem trabalha nesta casa. Se você está vendo isto, '
-          + 'fale com a coordenação — pode ser que o seu vínculo com a casa não esteja lançado.');
+          + 'fale com a coordenação. Pode ser que o seu vínculo com a casa não esteja lançado.');
       }
       if (msg.includes('periodo_invalido')) {
         throw new BadRequestException('Escolha um período de até um mês.');
@@ -1652,7 +1652,7 @@ export class ShiftsService {
     if (['fechada', 'fechada_com_pendencia'].includes(a.status)) {
       throw new BadRequestException(
         'Esta ATA está fechada e não recebe registro novo. O episódio pertence ao plantão que '
-        + 'está aberto — registre nele, com o horário real do fato. Se o que precisa mudar é o '
+        + 'está aberto. Registre nele, com o horário real do fato. Se o que precisa mudar é o '
         + 'texto desta ATA, o caminho é a reabertura, e ela deixa adendo.');
     }
     return a.house_id;

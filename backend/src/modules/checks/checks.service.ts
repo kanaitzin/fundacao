@@ -186,7 +186,7 @@ export class ChecksService {
     const titulo = (input.titulo ?? '').trim() || tipo.sugestao;
     if (titulo.length < 3) {
       throw new BadRequestException(
-        'Dê um nome à chamada — é o que a próxima pessoa lê na lista do dia.');
+        'Dê um nome à chamada. É o que a próxima pessoa lê na lista do dia.');
     }
     input = { ...input, titulo };
 
@@ -331,8 +331,7 @@ export class ChecksService {
         por: b.por, quando: b.happened_at,
       })),
       avisoDaMesa: data.k.kind === 'chamada_final'
-        ? 'A chamada final do turno é um a um: ela existe para alguém contar as crianças '
-          + 'antes de dormir, e "todos" aqui seria suposição, não observação.'
+        ? 'A chamada final do turno é feita criança por criança, contando cada uma antes de dormir.'
         : 'Conferir a mesa registra, de uma vez, o que você olhou de uma vez — com o seu nome, '
           + 'o horário e quantos. Quem já foi marcado NÃO é sobrescrito, e exceção continua '
           + 'sendo uma a uma, com o motivo escrito.',
@@ -371,8 +370,7 @@ export class ChecksService {
       const m = String(e?.message ?? '');
       if (m.includes('chamada_final_e_um_a_um')) {
         throw new BadRequestException(
-          'A chamada final do turno é um a um. Ela existe para alguém contar as crianças antes '
-          + 'de dormir — "todos" aqui seria suposição, não observação.');
+          'A chamada final do turno é feita criança por criança, contando cada uma antes de dormir.');
       }
       if (m.includes('chamada_confirmada')) {
         throw new BadRequestException(
@@ -380,7 +378,7 @@ export class ChecksService {
       }
       if (m.includes('ninguem_pendente')) {
         throw new BadRequestException(
-          'Todos já foram conferidos nesta chamada — não há o que marcar em bloco.');
+          'Todos já foram conferidos nesta chamada, não há o que marcar em bloco.');
       }
       throw e;
     }

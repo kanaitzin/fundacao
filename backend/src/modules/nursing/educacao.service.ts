@@ -213,8 +213,8 @@ export class EducacaoService {
     const texto = String(input?.texto ?? '').trim();
     if (texto.length < 10) {
       throw new BadRequestException(
-        'Escreva o que aconteceu — o que a criança fez, ou o que a escola disse. '
-        + 'Uma linha curta demais não conta nada a quem ler daqui a um ano.');
+        'Escreva o que aconteceu: o que a criança fez, ou o que a escola disse, de um jeito '
+        + 'que quem ler daqui a um ano entenda.');
     }
 
     const id = await this.db.asUser(user.id, async (c) => {
@@ -260,7 +260,7 @@ export class EducacaoService {
     if (motivo.length < 10) {
       throw new BadRequestException(
         'Escreva por que o conceito é esse. Um conceito sozinho atravessa meses e vira '
-        + 'característica da criança — o motivo é o que o mantém sendo sobre o bimestre.');
+        + 'característica da criança. O motivo é o que o mantém sendo sobre o bimestre.');
     }
     const ano = Number(input?.ano);
     const bimestre = Number(input?.bimestre);
@@ -285,8 +285,7 @@ export class EducacaoService {
       if (m.includes('acolhido_fora_de_escopo')) throw new NotFoundException('Acolhido não encontrado.');
       if (m.includes('bimestre_no_futuro')) {
         throw new BadRequestException(
-          'Este bimestre ainda não terminou de acontecer. Escrever o conceito dele agora seria '
-          + 'escrever sobre o que não houve — e o painel contaria.');
+          'Este bimestre ainda não terminou. O conceito dele se escreve quando o bimestre acabar.');
       }
       if (m.includes('motivo_insuficiente')) {
         throw new BadRequestException('Escreva por que o conceito é esse (mínimo 10 caracteres).');

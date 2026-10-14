@@ -169,7 +169,7 @@ export class AlignmentsService {
     }
     if (!input.data) throw new BadRequestException('Informe o dia da reunião.');
     if ((input.titulo ?? '').trim().length < 4) {
-      throw new BadRequestException('Dê um assunto à reunião — é como ela vai ser achada depois.');
+      throw new BadRequestException('Dê um assunto à reunião. É como ela vai ser achada depois.');
     }
     const tipo = input.tipo ?? 'equipe';
     if (!TIPOS_DE_REUNIAO.some((t) => t.code === tipo)) {
@@ -377,7 +377,7 @@ export class AlignmentsService {
     });
     /* Casa sem rótulo é casa fora do alcance — e o RLS teria devolvido lista
      * vazia, que se lê como "esta equipe não combinou nada". */
-    if (!casa) throw new NotFoundException('Unidade não encontrada — ou fora do seu alcance.');
+    if (!casa) throw new NotFoundException('Unidade não encontrada, ou fora do seu alcance.');
     return folhaDosCombinados(
       casa,
       (d.combinados ?? []).map((a: any) => ({
@@ -423,7 +423,7 @@ export class AlignmentsService {
           ORDER BY (status = 'proposta') DESC, proposed_at DESC`, [houseId]);
       return rows;
     });
-    if (!linhas) throw new NotFoundException('Casa não encontrada — ou fora do seu alcance.');
+    if (!linhas) throw new NotFoundException('Casa não encontrada, ou fora do seu alcance.');
 
     return {
       podeResponder: RESPONDE_PAUTA.includes(user.role),
@@ -447,7 +447,7 @@ export class AlignmentsService {
     const texto = String(input.texto ?? '').trim();
     if (texto.length < 10) {
       throw new BadRequestException(
-        'Escreva o assunto da pauta — uma frase que quem não estava no seu turno entenda.');
+        'Escreva o assunto da pauta, uma frase que quem não estava no seu turno entenda.');
     }
     const id = await this.db.asUser(user.id, async (c) => {
       const { rows: [casa] } = await c.query(
@@ -459,7 +459,7 @@ export class AlignmentsService {
         [input.houseId, texto, String(input.contexto ?? '').trim() || null, user.id]);
       return r.id as string;
     });
-    if (!id) throw new NotFoundException('Casa não encontrada — ou fora do seu alcance.');
+    if (!id) throw new NotFoundException('Casa não encontrada, ou fora do seu alcance.');
 
     await this.audit.log({
       action: 'pauta.proposta', actorId: user.id, institutionId: user.institutionId,
@@ -486,7 +486,7 @@ export class AlignmentsService {
   }) {
     if (!RESPONDE_PAUTA.includes(user.role)) {
       throw new ForbiddenException(
-        'Responder a pauta é de quem conduz a reunião — equipe técnica, liderança de turno '
+        'Quem responde a pauta é quem conduz a reunião: equipe técnica, liderança de turno '
         + 'ou coordenação.');
     }
     const situacao = String(input.situacao ?? '');
@@ -497,10 +497,8 @@ export class AlignmentsService {
     if (situacao !== 'aceita' && resposta.length < 15) {
       throw new BadRequestException(
         situacao === 'recusada'
-          ? 'Escreva por que esta pauta não entra. Quem propôs vai ler — e uma pauta recusada '
-            + 'sem resposta é pior do que não poder propor.'
-          : 'Escreva por que fica para depois, e o que quem propôs pode esperar. '
-            + '"Fica para a próxima" sem uma palavra é recusa com outro nome.');
+          ? 'Escreva por que esta pauta não entra. Quem propôs vai ler a resposta.'
+          : 'Escreva por que fica para depois, e o que quem propôs pode esperar.');
     }
 
     const r = await this.db.asUser(user.id, async (c) => {
@@ -569,7 +567,7 @@ export class AlignmentsService {
                    s.created_at DESC`, [houseId]);
       return { rotulo: casa.rotulo as string, rows };
     });
-    if (!linhas) throw new NotFoundException('Casa não encontrada — ou fora do seu alcance.');
+    if (!linhas) throw new NotFoundException('Casa não encontrada, ou fora do seu alcance.');
 
     /* No FUSO DA INSTITUIÇÃO: em UTC, das 21h à meia-noite, uma regra que
        passou a valer hoje aparecia como "ainda não vale" (fase 99). */
@@ -618,7 +616,7 @@ export class AlignmentsService {
     const texto = String(input.texto ?? '').trim();
     if (texto.length < 15) {
       throw new BadRequestException(
-        'Escreva a regra por inteiro — ela vai ser lida por quem chegar depois de você, '
+        'Escreva a regra por inteiro. Ela vai ser lida por quem chegar depois de você, '
         + 'sem ninguém do lado para explicar.');
     }
     const publico = String(input.publico ?? 'todos');
@@ -654,7 +652,7 @@ export class AlignmentsService {
       }
       throw e;
     });
-    if (!id) throw new NotFoundException('Casa não encontrada — ou fora do seu alcance.');
+    if (!id) throw new NotFoundException('Casa não encontrada, ou fora do seu alcance.');
 
     await this.audit.log({
       action: 'estatuto.escrito', actorId: user.id, institutionId: user.institutionId,
@@ -687,7 +685,7 @@ export class AlignmentsService {
       .catch((e: any) => {
         const m = String(e?.message ?? '');
         if (m.includes('estatuto_inexistente')) {
-          throw new NotFoundException('Regra não encontrada — ou fora do seu alcance.');
+          throw new NotFoundException('Regra não encontrada, ou fora do seu alcance.');
         }
         if (m.includes('estatuto_ja_encerrado')) {
           throw new ConflictException('Esta regra já tinha sido encerrada por outra pessoa.');

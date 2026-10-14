@@ -638,7 +638,7 @@ describe('Fase 5 — Plantão, ATA e proteção', () => {
       .set(auth(tokens.tecnica))
       .send({ tipo: 'documento_tecnico', nome: 'anexo-sem-documento.pdf' });
     expect(nenhuma.status).toBe(400);
-    expect(nenhuma.body.message).toMatch(/promete um documento que ninguém alcança/i);
+    expect(nenhuma.body.message).toMatch(/onde ele está: a pasta ou o link/i);
   });
 
   it('#23 comunicação externa é registrada, revisada e aprovada — nunca enviada pelo sistema', async () => {

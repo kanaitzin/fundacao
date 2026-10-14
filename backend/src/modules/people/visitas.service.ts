@@ -48,7 +48,7 @@ export class VisitasService {
   private traduz(e: any): never {
     const m = String(e?.message ?? '');
     if (m.includes('fora_de_escopo') || m.includes('visitante_inexistente')) {
-      throw new NotFoundException('Visitante não encontrado — ou fora do seu alcance.');
+      throw new NotFoundException('Visitante não encontrado, ou fora do seu alcance.');
     }
     if (m.includes('visita_inexistente')) throw new NotFoundException('Visita não encontrada.');
     if (m.includes('documento_obrigatorio')) {
@@ -60,7 +60,7 @@ export class VisitasService {
     if (m.includes('visita_ja_encerrada')) throw new ConflictException('Esta visita já foi encerrada.');
     if (m.includes('excecao_sem_motivo:')) {
       throw new BadRequestException(`${m.split('excecao_sem_motivo:')[1].trim()} Para abrir a `
-        + 'exceção, escreva o motivo (pelo menos 10 caracteres) — ele fica registrado.');
+        + 'exceção, escreva o motivo (pelo menos 10 caracteres). Ele fica registrado.');
     }
     if (m.includes('fora_do_combinado:')) {
       throw new ForbiddenException(`${m.split('fora_do_combinado:')[1].trim()} A entrada fora do `
@@ -283,7 +283,7 @@ export class VisitasService {
       const { rows: [p] } = await c.query(`SELECT app_person_display_name($1) AS n`, [personId]);
       return p?.n as string | null;
     });
-    if (!nome) throw new NotFoundException('Acolhido não encontrado — ou fora do seu alcance.');
+    if (!nome) throw new NotFoundException('Acolhido não encontrado, ou fora do seu alcance.');
     const dia = (iso: string) => iso.split('-').reverse().join('/');
     /* Com o ano (fase 173): um relatório de novembro a fevereiro dizia 30/01 e
        22/11 lado a lado, e quem lê não sabe de que ano é cada visita. */

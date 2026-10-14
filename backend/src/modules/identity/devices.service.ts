@@ -59,12 +59,12 @@ export class DevicesService {
       }
       if (m.includes('aparelho_institucional_e_do_gestor')) {
         throw new ForbiddenException(
-          'O aparelho da instituição — o que vale nas oito casas — é registrado pelo Gestor Geral. '
+          'O aparelho da instituição, o que vale nas oito casas, é registrado pelo Gestor Geral. '
           + 'A coordenação registra aparelhos da própria casa, informando a casa.');
       }
       if (m.includes('fora_de_escopo')) throw new ForbiddenException('Esta casa não está no seu alcance.');
       if (m.includes('rotulo_insuficiente')) {
-        throw new BadRequestException('Dê um nome ao aparelho — algo que a equipe reconheça na prateleira.');
+        throw new BadRequestException('Dê um nome ao aparelho, algo que a equipe reconheça na prateleira.');
       }
       if (e?.code === '23505') {
         throw new BadRequestException('Já existe um aparelho com este nome nesta casa.');

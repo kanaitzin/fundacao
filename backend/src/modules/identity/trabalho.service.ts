@@ -121,7 +121,7 @@ export class TrabalhoService {
     const setor = input.setor || null;
     if (!pessoaId === !setor) {
       throw new BadRequestException(
-        'Escolha uma pessoa da equipe OU um setor — a busca é por um dos dois, nunca pelos dois.');
+        'Escolha uma pessoa da equipe OU um setor. A busca é por um dos dois, nunca pelos dois.');
     }
     if (setor && !SETORES.some((s) => s.code === setor)) {
       throw new BadRequestException('Setor desconhecido.');
@@ -129,7 +129,7 @@ export class TrabalhoService {
     const finalidade = (input.finalidade ?? '').trim();
     if (finalidade.length < 10) {
       throw new BadRequestException(
-        'Escreva a finalidade desta consulta — por exemplo, "apuração do episódio de 12/09" ou '
+        'Escreva a finalidade desta consulta: por exemplo, "apuração do episódio de 12/09" ou '
         + '"preparação da avaliação semestral". Ela fica registrada com o seu nome.');
     }
     /* O dia vem do relógio da instituição, e é lido na hora: guardar o "hoje"
@@ -150,7 +150,7 @@ export class TrabalhoService {
           + 'e pelo Gestor Geral.');
       }
       if (m.includes('finalidade_obrigatoria')) {
-        throw new BadRequestException('Escreva a finalidade desta consulta — ela fica registrada.');
+        throw new BadRequestException('Escreva a finalidade desta consulta. Ela fica registrada.');
       }
       if (m.includes('janela_invalida')) {
         throw new BadRequestException(
@@ -226,7 +226,7 @@ export class TrabalhoService {
     const finalidade = (input.finalidade ?? '').trim();
     if (finalidade.length < 10) {
       throw new BadRequestException(
-        'Escreva a finalidade desta consulta — ela fica registrada com o seu nome.');
+        'Escreva a finalidade desta consulta. Ela fica registrada com o seu nome.');
     }
     const ate = input.ate || hojeNaInstituicao();
     const de = input.de || this.diasAntes(ate, 29);
@@ -241,7 +241,7 @@ export class TrabalhoService {
         throw new ForbiddenException('A visão de contagens é do Gestor Geral.');
       }
       if (m.includes('finalidade_obrigatoria')) {
-        throw new BadRequestException('Escreva a finalidade desta consulta — ela fica registrada.');
+        throw new BadRequestException('Escreva a finalidade desta consulta. Ela fica registrada.');
       }
       if (m.includes('janela_invalida')) {
         throw new BadRequestException(

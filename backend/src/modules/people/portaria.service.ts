@@ -49,8 +49,8 @@ export class PortariaService {
   private conferirQuemPode(user: AuthenticatedUser) {
     if (!ESCREVE_CONTATO.includes(user.role)) {
       throw new ForbiddenException(
-        'A folha da portaria é gerada pela equipe técnica ou pela coordenação — '
-        + 'é quem responde por quem está autorizado nela.');
+        'A folha da portaria é gerada pela equipe técnica ou pela coordenação. '
+        + 'É quem responde por quem está autorizado nela.');
     }
   }
 
@@ -87,7 +87,7 @@ export class PortariaService {
           ORDER BY crianca, ct.name`, [houseId]);
       return { rotulo: casa.rotulo as string, rows };
     });
-    if (!dados) throw new NotFoundException('Casa não encontrada — ou fora do seu alcance.');
+    if (!dados) throw new NotFoundException('Casa não encontrada, ou fora do seu alcance.');
 
     const linhas: string[][] = [];
     const fotos: (FotoNaCelula | null)[][] = [];
@@ -186,7 +186,7 @@ export class PortariaService {
 
   async exportar(user: AuthenticatedUser, input: { houseId?: string; finalidade?: string }) {
     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(input.houseId ?? '')) {
-      throw new NotFoundException('Casa não encontrada — ou fora do seu alcance.');
+      throw new NotFoundException('Casa não encontrada, ou fora do seu alcance.');
     }
     const folha = await this.folha(user, input.houseId!, true);
     return this.documentos.exportar(user, folha, {

@@ -216,8 +216,7 @@ export class StaffService {
         const cargo = m.split(':').pop()?.trim() ?? '';
         throw new ForbiddenException(
           `Seu cargo não cadastra nem altera "${LABEL.get(cargo as RoleCode) ?? cargo}". `
-          + 'Criar contas de escopo institucional é do Gestor Geral — do contrário, bastaria '
-          + 'uma conta nova para enxergar as oito casas.');
+          + 'Contas de escopo institucional são criadas pelo Gestor Geral.');
       }
       if (m.includes('cargo_exige_casa')) {
         throw new BadRequestException('Escolha a casa deste profissional.');
@@ -234,7 +233,7 @@ export class StaffService {
       if (m.includes('nome_insuficiente')) throw new BadRequestException('Informe o nome completo.');
       if (m.includes('email_invalido')) throw new BadRequestException('E-mail institucional inválido.');
       if (m.includes('motivo_insuficiente')) {
-        throw new BadRequestException('Informe o motivo da desativação — ele fica registrado.');
+        throw new BadRequestException('Informe o motivo da desativação. Ele fica registrado.');
       }
       if (m.includes('nao_desativa_a_si_mesmo')) {
         throw new BadRequestException('Você não pode desativar a própria conta.');
@@ -281,7 +280,7 @@ export class StaffService {
       const dona = /cor_ja_usada_por_(.+)$/.exec(m);
       if (dona) {
         throw new ConflictException(
-          `Esta cor já é de ${dona[1]}. Escolha outra — duas pessoas da mesma casa `
+          `Esta cor já é de ${dona[1]}. Escolha outra. Duas pessoas da mesma casa `
           + 'não podem ter a mesma cor de linha.');
       }
       if (m.includes('sem_permissao_cor')) {

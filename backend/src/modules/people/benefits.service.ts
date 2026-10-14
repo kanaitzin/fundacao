@@ -216,9 +216,7 @@ export class BenefitsService {
     // depois, "pendente" sozinho é uma caixa marcada que ninguém sabe resolver.
     if (input.pendenciaBancaria && !input.pendenciaNota?.trim()) {
       throw new BadRequestException(
-        'Escreva qual é a pendência bancária. "Pendente" sozinho não diz a ninguém o que '
-        + 'falta fazer — e é justamente isso que precisa passar de uma coordenação para a '
-        + 'próxima.');
+        'Escreva qual é a pendência bancária, para a próxima coordenação saber o que falta fazer.');
     }
     // O sistema registra que a credencial EXISTE e quem responde por ela. A
     // senha fica no cofre cifrado (§6.10, §22), e o CHECK da 055 já recusa algo

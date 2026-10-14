@@ -155,7 +155,7 @@ export class AdmissionService {
       // Ingresso urgente: entra sem CPF, mas com pendência que não se perde (§6.1).
       if (!acolhimento.provisionalReason?.trim()) {
         throw new BadRequestException(
-          'Sem CPF, descreva o motivo do ingresso urgente — o cadastro entra com ID provisório e pendência.');
+          'Sem CPF, descreva o motivo do ingresso urgente. O cadastro entra com ID provisório e pendência.');
       }
       pessoa.provisionalId = `PROV-${Date.now().toString(36).toUpperCase()}`;
     }
@@ -184,7 +184,7 @@ export class AdmissionService {
       if (m.includes('casa_no_limite')) {
         throw new ConflictException(
           'A casa está no limite de vagas. Para acolher assim mesmo, descreva a justificativa '
-          + '(mínimo 15 caracteres) — ela fica registrada. Se o limite mudou de verdade, a '
+          + '(mínimo 15 caracteres). Ela fica registrada. Se o limite mudou de verdade, a '
           + 'coordenação pode alterá-lo na tela da unidade.');
       }
       if (m.includes('cpf_ja_cadastrado')) {

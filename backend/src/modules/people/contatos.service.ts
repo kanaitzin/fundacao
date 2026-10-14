@@ -242,7 +242,7 @@ export class ContatosService {
                 visit_authorized = false,
                 updated_at = now(), updated_by = $3
           WHERE id = $1 AND active`, [contatoId, motivo.trim(), user.id]);
-      if (!rowCount) throw new NotFoundException('Contato não encontrado — ou já encerrado.');
+      if (!rowCount) throw new NotFoundException('Contato não encontrado, ou já encerrado.');
       return { ok: true };
     });
   }
@@ -253,7 +253,7 @@ export class ContatosService {
     if (!limpo) return null;
     if (!isValidCpf(limpo)) {
       throw new BadRequestException(
-        'Este CPF não confere — os dígitos verificadores não batem. Confira no documento.');
+        'Este CPF não confere. Os dígitos verificadores não batem. Confira no documento.');
     }
     return limpo;
   }
@@ -274,7 +274,7 @@ export class ContatosService {
   }) {
     if (!ESCREVE_CONTATO.includes(user.role)) {
       throw new ForbiddenException(
-        'Autorizar visita é da equipe técnica e da coordenação — é quem responde por quem entra.');
+        'Autorizar visita é da equipe técnica e da coordenação. É quem responde por quem entra.');
     }
     if (typeof input.autorizado !== 'boolean') {
       throw new BadRequestException('Diga se este contato está autorizado a visitar ou não.');
@@ -285,7 +285,7 @@ export class ContatosService {
       if (s === undefined) return undefined;
       if (s === '' || s === null) return null;
       if (!/^\d{4}-\d{2}-\d{2}$/.test(s) || Number.isNaN(Date.parse(`${s}T12:00:00Z`))) {
-        throw new BadRequestException('A validade precisa vir como 2026-09-26 — ano, mês e dia.');
+        throw new BadRequestException('A validade precisa vir como 2026-09-26. Ano, mês e dia.');
       }
       return s;
     };
@@ -358,7 +358,7 @@ export class ContatosService {
       if (input.autorizado && !ficaComHorario) {
         throw new BadRequestException(
           'Escolha em que dias este visitante pode vir, e a faixa de horário. '
-          + 'A folha da guarita sai com isso — sem ele, quem está no portão às 21h de uma '
+          + 'A folha da guarita sai com isso, sem ele, quem está no portão às 21h de uma '
           + 'terça tem de escolher entre barrar um familiar autorizado e deixar entrar fora da hora.');
       }
       await c.query(
@@ -394,7 +394,7 @@ export class ContatosService {
         [contatoId, antes.person_id, input.autorizado, motivo || null, user.id]);
       return antes;
     });
-    if (!r) throw new NotFoundException('Contato não encontrado — ou fora do seu alcance.');
+    if (!r) throw new NotFoundException('Contato não encontrado, ou fora do seu alcance.');
 
     await this.audit.log({
       action: input.autorizado ? 'contato.visita.autorizada' : 'contato.visita.retirada',
@@ -432,7 +432,7 @@ export class ContatosService {
     const dias = Array.isArray(input.dias)
       ? [...new Set(input.dias.map((d) => Number(d)))].sort((a, b) => a - b) : [];
     if (dias.some((d) => !Number.isInteger(d) || d < 0 || d > 6)) {
-      throw new BadRequestException('Dia de visita fora da semana — escolha de domingo a sábado.');
+      throw new BadRequestException('Dia de visita fora da semana. Escolha de domingo a sábado.');
     }
     const hora = (v?: string) => {
       const s = String(v ?? '').trim();
@@ -449,7 +449,7 @@ export class ContatosService {
         + 'quem está na guarita.');
     }
     if (de && ate && de >= ate) {
-      throw new BadRequestException('A visita termina depois de começar — confira as duas horas.');
+      throw new BadRequestException('A visita termina depois de começar. Confira as duas horas.');
     }
     if (dias.length > 0 && !de) {
       throw new BadRequestException('Escolha também a faixa de horário desses dias.');
@@ -540,7 +540,7 @@ export class ContatosService {
         `SELECT photo_key, photo_mime FROM person_contact WHERE id = $1`, [contatoId]);
       return x;
     });
-    if (!r) throw new NotFoundException('Contato não encontrado — ou fora do seu alcance.');
+    if (!r) throw new NotFoundException('Contato não encontrado, ou fora do seu alcance.');
     if (!r.photo_key) throw new NotFoundException('Este contato ainda não tem foto.');
     const bytes = await this.arquivos.ler(r.photo_key);
     if (!bytes) throw new NotFoundException('A foto não está no armazenamento.');
@@ -569,7 +569,7 @@ export class ContatosService {
       const { rowCount } = await c.query(
         `UPDATE person SET photo_key = $2, photo_mime = $3, photo_at = now(), photo_by = $4
           WHERE id = $1`, [personId, chave, tipo, user.id]);
-      if (!rowCount) throw new NotFoundException('Acolhido não encontrado — ou fora do seu alcance.');
+      if (!rowCount) throw new NotFoundException('Acolhido não encontrado, ou fora do seu alcance.');
     });
 
     await this.audit.log({
@@ -589,7 +589,7 @@ export class ContatosService {
         `SELECT photo_key, photo_mime FROM person WHERE id = $1`, [personId]);
       return r;
     });
-    if (!p) throw new NotFoundException('Acolhido não encontrado — ou fora do seu alcance.');
+    if (!p) throw new NotFoundException('Acolhido não encontrado, ou fora do seu alcance.');
     if (!p.photo_key) throw new NotFoundException('Este acolhido ainda não tem foto.');
     const bytes = await this.arquivos.ler(p.photo_key);
     if (!bytes) throw new NotFoundException('A foto não está no armazenamento.');

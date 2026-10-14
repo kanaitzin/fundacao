@@ -219,7 +219,7 @@ describe('O conceito educacional do bimestre', () => {
       motivo: 'Motivo fictício suficientemente longo para passar do piso de dez.',
     });
     expect(r.status).toBe(400);
-    expect(r.body.message).toMatch(/não terminou de acontecer|não houve/i);
+    expect(r.body.message).toMatch(/não terminou/i);
   });
 
   it('a lista de conceitos vem do SERVIDOR, e não da tela', async () => {

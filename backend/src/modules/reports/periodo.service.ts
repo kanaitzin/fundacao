@@ -111,7 +111,7 @@ export class PeriodoService {
     if (inicio > fim) throw new BadRequestException('O início do período vem antes do fim.');
     return this.db.asUser(user.id, async (c) => {
       const { rows: [dentro] } = await c.query(`SELECT app_house_in_scope($1) AS ok`, [houseId]);
-      if (!dentro?.ok) throw new NotFoundException('Unidade não encontrada — ou fora do seu alcance.');
+      if (!dentro?.ok) throw new NotFoundException('Unidade não encontrada, ou fora do seu alcance.');
       const { rows } = await c.query(
         `SELECT * FROM app_refeicoes_da_casa($1::uuid, $2::date, $3::date)`, [houseId, inicio, fim]);
       const porRefeicao = rows.map((r: any) => ({

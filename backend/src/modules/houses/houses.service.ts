@@ -174,7 +174,7 @@ export class HousesService {
       return row;
     }).catch((e: any) => {
       const m = String(e?.message ?? '');
-      if (m.includes('fora_de_escopo')) throw new NotFoundException('Casa não encontrada — ou fora do seu alcance.');
+      if (m.includes('fora_de_escopo')) throw new NotFoundException('Casa não encontrada, ou fora do seu alcance.');
       if (m.includes('sem_permissao_horario')) {
         throw new ForbiddenException('Seu cargo não define o horário dos turnos.');
       }

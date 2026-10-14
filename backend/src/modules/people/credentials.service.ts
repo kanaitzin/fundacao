@@ -109,7 +109,7 @@ export class CredentialsService {
            FROM person_credential WHERE person_id = $1 ORDER BY kind`, [personId]);
       return rows;
     });
-    if (!rows) throw new NotFoundException('Acolhido não encontrado — ou fora do seu alcance.');
+    if (!rows) throw new NotFoundException('Acolhido não encontrado, ou fora do seu alcance.');
 
     await this.audit.log({
       action: 'credential.list', actorId: user.id, institutionId: user.institutionId,
@@ -232,7 +232,7 @@ export class CredentialsService {
       // Chave trocada ou dado alterado: dizer a verdade em vez de devolver lixo.
       throw new BadRequestException(
         'Não foi possível abrir este acesso: o segredo não confere com a chave atual do sistema. '
-        + 'Cadastre a senha novamente — e avise a coordenação da casa.');
+        + 'Cadastre a senha novamente, e avise a coordenação da casa.');
     }
 
     return {
@@ -258,7 +258,7 @@ export class CredentialsService {
       const { rows } = await c.query(`SELECT * FROM app_credential_history($1)`, [personId]);
       return rows;
     });
-    if (!rows) throw new NotFoundException('Acolhido não encontrado — ou fora do seu alcance.');
+    if (!rows) throw new NotFoundException('Acolhido não encontrado, ou fora do seu alcance.');
     return rows.map((r) => ({
       quando: r.quando, quem: r.quem, finalidade: r.finalidade,
       acao: r.acao === 'credential.reveal_exceptional' ? 'abertura excepcional'
