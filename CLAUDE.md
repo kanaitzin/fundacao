@@ -264,9 +264,12 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 217 | **o laudo junto da alergia e as receitas no perfil**: laudo ou receita anexado à alergia, condição ou restrição (`document.health_condition_id`/`food_restriction_id`, people/1654), e os remédios dela com as receitas na aba Saúde; o `doc_insert` passou a conferir a casa |
 | 218 | **o atendimento da equipe técnica**: área, dia, o que foi trabalhado e até oito arquivos (o desenho), na aba Atendimentos, só técnica, coordenação e gestão (`technical_session`, people/1655); entra como fonte restrita do acompanhamento |
 
-**Medido no fim da 214:** 195 migrações, 139 tabelas, 145 suítes, 1288 testes, verdes nas
-DUAS condições de relógio, rodadas inteiras; na 214, o `ensaio:uso`, o `roteiro` e o `fila`
-verdes sobre o protótipo novo, e na 213 o `uso`, o do celular e o de acessibilidade (1256 telas,
+**Medido no fim da 218:** 195 migrações, 139 tabelas, 145 suítes, 1288 testes, verdes nas
+DUAS condições de relógio, rodadas inteiras; na 218, o `ensaio:uso` inteiro (com os blocos
+215 a 218), o do celular (306 telas, sem achado), o de acessibilidade (1256 telas, nenhuma
+violação), o `ensaio:acolhe` (todas as telas e formulários de todos os cargos, por texto e por voz) e a simulação da Casa 03 em trinta dias contra o servidor de verdade, sem achado, com
+a técnica registrando o atendimento e anexando o laudo pela tela, conferidos no banco; na 214,
+o `ensaio:uso`, o `roteiro` e o `fila` verdes sobre o protótipo novo, e na 213 o `uso`, o do celular e o de acessibilidade (1256 telas,
 nenhuma violação), mais a simulação contra o servidor. **Da 212:** o `ensaio:uso-celular` e o
 `ensaio:acolhe` com todas as telas de todos os cargos por texto e por voz e todos os formulários
 marcados abertos por ela; o do celular com 306 telas a 360 e 390 px, que achou só a caixa da 210

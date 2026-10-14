@@ -129,6 +129,10 @@ for (const conta of CONTAS) {
   pg.on('response', async (r) => {
     const u = new URL(r.url());
     if (!u.pathname.startsWith('/api/') || r.status() < 400) return;
+    /* O 404 que a tela lê como "ainda não preenchido" (fase 218, a primeira vez que
+       o ensaio abriu um perfil): a ficha de entrada de cadastro antigo e o motivo
+       judicial que ninguém registrou. A tela mostra o que falta preencher. */
+    if (r.status() === 404 && /^\/api\/v1\/people\/[0-9a-f-]{36}\/(admission|judicial)$/.test(u.pathname)) return;
     let msg = '';
     try { msg = JSON.stringify((await r.json())?.message ?? '').slice(0, 160); } catch { /* sem corpo */ }
     anota(conta.quem, onde, `${r.status()} em ${r.request().method()} ${u.pathname.replace(/[0-9a-f]{8}-[0-9a-f-]{27}/g, ':id')}${u.search ? '?…' : ''} ${msg}`);
@@ -383,6 +387,89 @@ for (const conta of CONTAS) {
     telas.push(onde);
   }
 
+  /* OS ARQUIVOS NO PERFIL (fases 216 a 218), contra o servidor: a técnica abre a
+     área restrita e vê os documentos dela; anexa o laudo a uma alergia ou
+     restrição, se a criança tiver uma; e registra um atendimento com um arquivo,
+     conferido no BANCO com o autor. */
+  if (/\(equipe_tecnica\)$/.test(conta.quem)) {
+    onde = 'perfil: arquivos';
+    await pg.keyboard.press('Escape');
+    const acolhidos = pg.getByRole('button', { name: /^Acolhidos/ }).filter({ visible: true });
+    if (await acolhidos.count()) {
+      await acolhidos.first().click();
+      await pg.waitForTimeout(1500);
+      const cartao = pg.locator('.pessoa-cartao').first();
+      if (!(await cartao.count())) anota(conta.quem, onde, 'a lista dos acolhidos veio vazia');
+      else {
+        await cartao.click();
+        await pg.waitForTimeout(1800);
+        const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
+        const db = new PgLib.Client({ connectionString: process.env.DATABASE_URL });
+        await db.connect();
+
+        await pg.getByRole('tab', { name: /Judiciário/ }).click().catch(() => {});
+        await pg.waitForTimeout(800);
+        const abrirArea = pg.getByRole('button', { name: 'Abrir a área restrita' });
+        if (await abrirArea.count()) {
+          await abrirArea.click();
+          await pg.waitForTimeout(1500);
+          if (!(await pg.locator('section.documentos-da-categoria').count())) {
+            anota(conta.quem, onde, 'a área restrita aberta não mostra os documentos dela');
+          }
+        }
+
+        await pg.getByRole('tab', { name: /Saúde/ }).click().catch(() => {});
+        await pg.waitForTimeout(1000);
+        const anexarLaudo = pg.locator('#perfil-saude').getByRole('button', { name: /^Anexar laudo ou receita de / });
+        if (await anexarLaudo.count()) {
+          await anexarLaudo.first().click();
+          await pg.waitForTimeout(800);
+          await pg.locator('#anx-arq-arquivo').setInputFiles({ name: 'laudo.png', mimeType: 'image/png', buffer: png });
+          await pg.waitForTimeout(700);
+          await pg.locator('.overlay').getByRole('button', { name: /^Anexar$/ }).last().click();
+          await pg.waitForTimeout(1500);
+          const { rows } = await db.query(
+            `SELECT count(*)::int AS n FROM document WHERE category = 'saude'
+               AND (health_condition_id IS NOT NULL OR food_restriction_id IS NOT NULL)
+               AND created_by = (SELECT id FROM app_user WHERE email = $1)`,
+            [conta.email]);
+          if (!rows[0].n) anota(conta.quem, onde, 'o laudo anexado à alergia ou restrição não chegou ao banco ligado ao registro');
+        }
+
+        await pg.getByRole('tab', { name: /Atendimentos/ }).click().catch(() => {});
+        await pg.waitForTimeout(1200);
+        const registrar = pg.getByRole('button', { name: 'Registrar atendimento da equipe técnica' });
+        if (!(await registrar.count())) anota(conta.quem, onde, 'a técnica não vê o botão de registrar atendimento');
+        else {
+          // Único por rodada: o SIM_SO_NAVEGADOR repete o ensaio sobre o mesmo banco.
+          const relato = `Atendimento de psicopedagogia da simulação, ${emArquivo(conta.quem).slice(0, 16)}, ${Date.now()}.`;
+          await registrar.click();
+          await pg.waitForTimeout(600);
+          const folha = pg.locator('.overlay');
+          await folha.getByRole('button', { name: 'Psicopedagogia' }).click();
+          await folha.locator('#at-relato').fill(relato);
+          await pg.locator('#at-arq-arquivo').setInputFiles({ name: 'atividade.png', mimeType: 'image/png', buffer: png });
+          await pg.waitForTimeout(700);
+          await folha.getByRole('button', { name: 'Pôr no atendimento' }).click();
+          await folha.getByRole('button', { name: 'Registrar o atendimento' }).click();
+          await pg.waitForTimeout(1800);
+          const { rows } = await db.query(
+            `SELECT s.area, (SELECT count(*)::int FROM technical_session_attachment a WHERE a.session_id = s.id) AS arquivos,
+                    u.email FROM technical_session s JOIN app_user u ON u.id = s.created_by WHERE s.summary = $1`, [relato]);
+          if (rows.length !== 1 || rows[0].area !== 'psicopedagogia' || rows[0].arquivos !== 1 || rows[0].email !== conta.email) {
+            anota(conta.quem, onde, `o atendimento registrado pela tela não está no banco como devia: ${JSON.stringify(rows)}`);
+          }
+          const bloco = await pg.locator('section.atendimentos-tecnicos').innerText().catch(() => '');
+          if (!bloco.includes(relato)) anota(conta.quem, onde, 'o atendimento registrado não aparece no perfil');
+        }
+        await db.end();
+      }
+      telas.push(onde);
+    } else {
+      anota(conta.quem, onde, 'a técnica não acha a porta dos Acolhidos');
+    }
+  }
+
   /* O AVISO NESTE COMPUTADOR, no monitor (fase 191): na folha da senha. */
   onde = 'folha da senha (computador)';
   const chave = pg.getByRole('button', { name: 'Trocar minha senha' });
@@ -446,6 +533,10 @@ for (const conta of CONTAS) {
   pg.on('response', async (r) => {
     const u = new URL(r.url());
     if (!u.pathname.startsWith('/api/') || r.status() < 400) return;
+    /* O 404 que a tela lê como "ainda não preenchido" (fase 218, a primeira vez que
+       o ensaio abriu um perfil): a ficha de entrada de cadastro antigo e o motivo
+       judicial que ninguém registrou. A tela mostra o que falta preencher. */
+    if (r.status() === 404 && /^\/api\/v1\/people\/[0-9a-f-]{36}\/(admission|judicial)$/.test(u.pathname)) return;
     anota(quem, onde, `${r.status()} em ${r.request().method()} ${u.pathname}`);
   });
   const pedir = async (email) => {
