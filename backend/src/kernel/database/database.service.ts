@@ -13,6 +13,12 @@ import { Pool, PoolClient, types } from 'pg';
  * anterior. Texto não tem essa ambiguidade.
  */
 const OID_DATE = 1082;
+
+/** Número vindo do ambiente, com o padrão quando não há ou não é número. */
+function numero(v: string | undefined, padrao: number): number {
+  const n = Number(v);
+  return Number.isFinite(n) && n > 0 ? n : padrao;
+}
 const TIPOS = {
   getTypeParser: ((oid: number, formato?: any) =>
     oid === OID_DATE ? (v: string) => v : types.getTypeParser(oid, formato)) as typeof types.getTypeParser,
@@ -28,12 +34,32 @@ const TIPOS = {
  */
 @Injectable()
 export class DatabaseService implements OnModuleDestroy {
+  /*
+   * OS LIMITES DE TEMPO DA CONEXÃO (fase 219).
+   *
+   * Sem eles, o banco esperava para sempre: uma consulta presa, uma linha
+   * travada por outra transação ou uma transação esquecida aberta seguravam a
+   * conexão, e com dez conexões no pool bastam dez para o plantão inteiro
+   * ficar parado sem erro nenhum na tela. Com eles, a espera acaba com uma
+   * recusa que diz que nada foi salvo, e a pessoa tenta de novo. Os números
+   * ficam muito acima do que a carga de dois anos mediu (nenhuma leitura
+   * acima de 600 ms), e mudam pelo ambiente sem mexer no código.
+   */
   readonly pool = new Pool({
     connectionString:
       process.env.DATABASE_APP_URL ??
       'postgres://rede_app:dev-only-change-me-app@localhost:5432/rede_acolher',
-    max: 10,
+    max: numero(process.env.BANCO_CONEXOES, 10),
     types: TIPOS,
+    application_name: 'rede-acolher-api',
+    // Uma consulta sozinha não passa de um minuto.
+    statement_timeout: numero(process.env.BANCO_LIMITE_CONSULTA_MS, 60_000),
+    // Esperar a linha que outra transação travou: quinze segundos.
+    lock_timeout: numero(process.env.BANCO_LIMITE_TRAVA_MS, 15_000),
+    // Transação aberta e parada (o código esqueceu de fechar): dois minutos.
+    idle_in_transaction_session_timeout: numero(process.env.BANCO_LIMITE_PARADA_MS, 120_000),
+    // Todas as conexões ocupadas: esperar por uma, no máximo quinze segundos.
+    connectionTimeoutMillis: numero(process.env.BANCO_LIMITE_CONEXAO_MS, 15_000),
   });
   private readonly log = new Logger('Banco');
 

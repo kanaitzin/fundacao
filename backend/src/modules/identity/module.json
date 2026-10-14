@@ -4,7 +4,8 @@
   "depends": [],
   "dependeDoEsquemaDe": [
     "archive",
-    "people"
+    "people",
+    "shifts"
   ],
   "publica": [
     "IdentityModule",

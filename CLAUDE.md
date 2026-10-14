@@ -181,7 +181,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 14/10/2026, fase 218
+### Onde estamos — 14/10/2026, fase 219
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -263,9 +263,12 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 216 | **os arquivos na área restrita do Judiciário**: guia, decisões, o relatório de acolhimento e outros, em PDF ou pela câmera, logo abaixo do motivo (`DocumentosDaCategoria`, a categoria judicial do dossiê); no protótipo, a recusa do servidor de mentira passou a ser `ErroApi` |
 | 217 | **o laudo junto da alergia e as receitas no perfil**: laudo ou receita anexado à alergia, condição ou restrição (`document.health_condition_id`/`food_restriction_id`, people/1654), e os remédios dela com as receitas na aba Saúde; o `doc_insert` passou a conferir a casa |
 | 218 | **o atendimento da equipe técnica**: área, dia, o que foi trabalhado e até oito arquivos (o desenho), na aba Atendimentos, só técnica, coordenação e gestão (`technical_session`, people/1655); entra como fonte restrita do acompanhamento |
+| 219 | **o banco mais robusto** (pedido de 14/10): a autoria trocável num UPDATE (21 políticas sem a segunda trava), 5 inserções abertas, 12 UPDATE concedidos sem política, 73 chaves sem índice (identity/1656); limites de tempo na conexão (`BANCO_*`, recusa *NÃO foi salvo*); a migração guarda a soma de cada arquivo e para se um aplicado mudar, com trava e um executor só; o resto é da instalação (§12.4.1) |
 
-**Medido no fim da 218:** 195 migrações, 139 tabelas, 145 suítes, 1288 testes, verdes nas
-DUAS condições de relógio, rodadas inteiras; na 218, o `ensaio:uso` inteiro (com os blocos
+**Medido no fim da 219:** 196 migrações, 139 tabelas, 146 suítes, 1299 testes, verdes nas
+DUAS condições de relógio, rodadas inteiras (na 219, a espera pela linha travada não se mede
+sob o relógio adiantado: o banco ali não tem temporizador), e na 219 a simulação da Casa 03
+em trinta dias contra o servidor de verdade, com as travas novas, sem achado; na 218, o `ensaio:uso` inteiro (com os blocos
 215 a 218), o do celular (306 telas, sem achado), o de acessibilidade (1256 telas, nenhuma
 violação), o `ensaio:acolhe` (todas as telas e formulários de todos os cargos, por texto e por voz) e a simulação da Casa 03 em trinta dias contra o servidor de verdade, sem achado, com
 a técnica registrando o atendimento e anexando o laudo pela tela, conferidos no banco; e, no
@@ -347,6 +350,16 @@ as três cores abaixo. Cor nova passa pelo `ensaio:acessibilidade`, que mede os 
 | **casa** (211) | *qual é esta chamada?* | barra e ponto do cartão da chamada; a casa escolhe (`cores-da-casa.ts`) |
 
 ### A próxima etapa
+
+**FEITO — fase 219** (§2, §12.4.1, PARA-A-REUNIAO §4.25): o banco mais robusto, medido no
+catálogo e cobrado por `o-banco-com-as-duas-travas.e2e.spec.ts`, que nega por padrão:
+tabela sem chave ou RLS, política de escrita que confere só a linha de antes, UPDATE
+concedido sem política, chave estrangeira sem índice, conexão sem limite de tempo e
+migração aplicada que mudou. **Migração aplicada não se edita**: mudança vai em arquivo
+novo; comentário corrigido roda com `MIGRACAO_ACEITAR_EDITADAS=1`. **Depende da Fundação e
+de quem cuidar do servidor:** quanto de plantão se aceita perder (o WAL contínuo) e onde
+fica a cópia fora do servidor. **Próxima etapa:** a mesma, o roteiro com a equipe e a
+implantação do §12.
 
 **FEITO — fases 215 a 218, o pedido de 14/10** (§2, PARA-A-REUNIAO §4.24): os
 familiares se corrigem com o motivo e o antes guardado (215); a área restrita do
@@ -870,6 +883,20 @@ novo.
   frases, e só umas 90 argumentavam. E metade delas vinha do SERVIDOR e do protótipo ao
   mesmo tempo: reescrever só a tela deixaria o protótipo dizendo uma coisa e o sistema
   outra. **Frase do servidor se troca nos dois lugares, na mesma vez.**
+- **Política trocada à mão não sobrevive ao Jest** (219). Para provar que o teste
+  reprovaria sem a migração, voltei a política antiga no banco e rodei a suíte; ela
+  passou, e passou de novo, porque o `globalSetup` recria o banco e reaplica as
+  migrações antes de tudo. **Prova com a regra antiga se faz fora do Jest**, direto no
+  banco, com o papel da aplicação. E foi essa prova que corrigiu o diagnóstico: levar o
+  registro para outra casa já era recusado (o UPDATE que lê colunas passa a linha nova
+  pela política de LEITURA); o que passava era trocar o AUTOR.
+- **Sob o `faketime`, o Postgres não tem temporizador** (219). `SET statement_timeout='1s';
+  SELECT pg_sleep(4)` não é cortado na rodada do relógio adiantado. O teste do limite de
+  espera ficou esperando para sempre, segurou a trava da linha, e o teste seguinte (a
+  migração, por `spawnSync`) ficou preso nela: a suíte inteira parou sem reprovar.
+  **Teste que espera o banco cortar tem guarda próprio** (cancela a consulta presa) e diz
+  por que não mede sob `FAKETIME`; e **`spawnSync` em teste leva `timeout`**, porque ele
+  para o Jest inteiro enquanto espera.
 - **Frase de tela que envelhece é frase que mente**, e a cobrança do ensaio que a
   guarda tem de ser reescrita junto. A ressalva do painel sobre nota escolar já foi
   reescrita três vezes. **Isto inclui este arquivo.**

@@ -57,6 +57,16 @@ describe('As recusas falam como colega', () => {
     expect(total).toBeGreaterThan(300);
   });
 
+  /* O FILTRO DE ERROS (fase 219): as frases dele não nascem de `new X(...)`, e
+     por isso esta suíte não as lia. Duas tinham travessão. */
+  it('as frases do filtro de erros também', () => {
+    const fonte = readFileSync(join(RAIZ, 'backend', 'src', 'kernel', 'common', 'falhas-em-portugues.ts'), 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+    const frases = [...fonte.matchAll(/'((?:[^'\\]|\\.){12,})'/g)].map((m) => m[1]);
+    expect(frases.length).toBeGreaterThan(8);
+    expect(frases.filter((f) => MARCAS.test(f))).toEqual([]);
+  });
+
   it('nenhuma recusa traz travessão nem frase que argumenta com a pessoa', () => {
     const achados = fontes.flatMap((p) => recados(p)
       .filter((r) => MARCAS.test(r.texto))

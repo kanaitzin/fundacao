@@ -21,7 +21,26 @@
 import { readdirSync, existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { createHash } from 'node:crypto';
 import { Client } from 'pg';
+
+/**
+ * A SOMA DE CADA MIGRAÇÃO APLICADA (fase 219).
+ *
+ * Migração aplicada é história: o arquivo que mudou depois de aplicado não
+ * roda de novo, e o banco instalado fica diferente do banco de quem
+ * desenvolve, sem ninguém saber. Agora cada migração guarda a soma do
+ * arquivo; se o arquivo de uma já aplicada mudar, a migração para e diz
+ * qual. Mudança de esquema vai num arquivo NOVO. Quem precisa aceitar a
+ * diferença (um comentário corrigido) roda com `MIGRACAO_ACEITAR_EDITADAS=1`,
+ * e a soma nova fica registrada.
+ */
+export function somaDaMigracao(sql: string): string {
+  return createHash('sha256').update(sql.replace(/\r\n/g, '\n')).digest('hex');
+}
+
+/** Duas migrações ao mesmo tempo no mesmo banco esperam uma pela outra. */
+const TRAVA_DA_MIGRACAO = 'rede-acolher-migracao';
 
 /**
  * A raiz das migrações.
@@ -47,8 +66,9 @@ async function main() {
     process.exit(1);
   }
 
-  const c = new Client({ connectionString: url });
+  const c = new Client({ connectionString: url, application_name: 'rede-acolher-migracao' });
   await c.connect();
+  await c.query(`SELECT pg_advisory_lock(hashtext($1))`, [TRAVA_DA_MIGRACAO]);
 
   await c.query(`
     CREATE TABLE IF NOT EXISTS schema_migration (
@@ -56,9 +76,10 @@ async function main() {
       module     text NOT NULL,
       applied_at timestamptz NOT NULL DEFAULT now()
     )`);
+  await c.query(`ALTER TABLE schema_migration ADD COLUMN IF NOT EXISTS sha256 text`);
 
-  const { rows } = await c.query(`SELECT name FROM schema_migration`);
-  const jaAplicadas = new Set(rows.map((r) => r.name));
+  const { rows } = await c.query(`SELECT name, sha256 FROM schema_migration`);
+  const jaAplicadas = new Map<string, string | null>(rows.map((r) => [r.name, r.sha256]));
 
   /*
    * A ORDEM É PELO NÚMERO DO ARQUIVO, ATRAVESSANDO OS MÓDULOS.
@@ -83,6 +104,33 @@ async function main() {
     process.exit(1);
   }
 
+  /* Antes de aplicar qualquer coisa: as já aplicadas continuam iguais? */
+  const aceitar = process.env.MIGRACAO_ACEITAR_EDITADAS === '1';
+  const editadas: string[] = [];
+  const textos = new Map<string, string>();
+  for (const m of todas) {
+    const sql = await readFile(m.caminho, 'utf8');
+    textos.set(m.nome, sql);
+    if (!jaAplicadas.has(m.nome)) continue;
+    const soma = somaDaMigracao(sql);
+    const guardada = jaAplicadas.get(m.nome);
+    if (!guardada || aceitar) {
+      // Aplicada antes de a soma existir (ou aceita): registra a de hoje.
+      if (guardada !== soma) {
+        await c.query(`UPDATE schema_migration SET sha256 = $2 WHERE name = $1`, [m.nome, soma]);
+      }
+    } else if (guardada !== soma) {
+      editadas.push(m.nome);
+    }
+  }
+  if (editadas.length) {
+    console.error(`\nO arquivo destas migrações já aplicadas mudou depois de aplicado:\n  `
+      + `${editadas.join('\n  ')}\n\nO banco não recebe a mudança: ela precisa ir num arquivo novo. `
+      + 'Se a mudança é só de texto (um comentário), rode de novo com MIGRACAO_ACEITAR_EDITADAS=1.');
+    await c.end();
+    process.exit(1);
+  }
+
   let novas = 0;
   for (const m of todas) {
     if (jaAplicadas.has(m.nome)) {
@@ -90,14 +138,15 @@ async function main() {
       continue;
     }
     console.log(`> [${m.modulo}] ${m.nome}`);
-    const sql = await readFile(m.caminho, 'utf8');
+    const sql = textos.get(m.nome)!;
     /* Cada migração numa transação: uma que falha no meio não deixa metade
      * aplicada e o registro dizendo que aplicou. */
     await c.query('BEGIN');
     try {
       await c.query(sql);
       await c.query(
-        `INSERT INTO schema_migration (name, module) VALUES ($1, $2)`, [m.nome, m.modulo]);
+        `INSERT INTO schema_migration (name, module, sha256) VALUES ($1, $2, $3)`,
+        [m.nome, m.modulo, somaDaMigracao(sql)]);
       await c.query('COMMIT');
       novas++;
     } catch (e) {
@@ -108,8 +157,9 @@ async function main() {
     }
   }
 
-  console.log(`\nMigrações concluídas — ${todas.length} no total, ${novas} nova(s).`);
+  console.log(`\nMigrações concluídas: ${todas.length} no total, ${novas} nova(s).`);
   await c.end();
 }
 
-main().catch((e) => { console.error(e); process.exit(1); });
+if (require.main === module) main().catch((e) => { console.error(e); process.exit(1); });
+export { main as migrar };

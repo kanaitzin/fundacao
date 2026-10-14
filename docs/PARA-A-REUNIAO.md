@@ -49,7 +49,7 @@
   196 também dentro do perfil da criança (*quero registrar a alergia do Bruno*), do dossiê, da
   internação aberta e do acervo: os 36 formulários do sistema. **Para o DPO:**
   o ditado usa o reconhecimento do navegador; no Chrome, o áudio vai ao Google.
-- **215 fases.** 145 suítes e 1288 testes, verdes em duas condições de relógio —
+- **215 fases.** 146 suítes e 1299 testes, verdes em duas condições de relógio —
   antes e depois da virada do UTC, que em Porto Alegre é às 21h.
 - **O aviso no celular** (fase 189, decidido em 06/10): quem liga na Minha conta
   recebe no celular todos os avisos do sino, mesmo com o sistema fechado. Na
@@ -559,6 +559,20 @@ escolhas foram minhas e cada uma é uma linha:
 - **O laudo da alergia é lido por quem abre a pasta da saúde**, o educador também,
   como os outros documentos de saúde. Quem anexa é a Enfermagem, a técnica e a
   coordenação.
+
+## 4.25 Quanto de plantão a casa aceita perder (fase 219, pedido de 14/10)
+
+Hoje o backup é diário: se o disco do servidor queimar às 18h, volta o banco das
+3h, e o dia inteiro de plantão (doses, ATA, passagens) se perde. A pergunta é para
+a Fundação e para quem cuidar do servidor (§12.4.1):
+
+- **Quanto se aceita perder?** Com o arquivo contínuo do banco, a perda cai para
+  minutos; custa um disco a mais e alguém que confira uma vez por mês.
+- **Onde fica a cópia fora do servidor?** Outro prédio da Fundação ou a nuvem
+  dela, sempre cifrada e sem a chave do cofre junto.
+
+O que é do código já está feito (os limites de tempo, a migração que percebe
+arquivo editado, as travas e os índices).
 
 ## 5. As decisões que são do Marcelo *(§10 — responda pelo número)*
 

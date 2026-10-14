@@ -26,8 +26,12 @@ import type { Request, Response } from 'express';
  * "esta criança já tem uma internação aberta" é melhor do que qualquer coisa
  * que se possa escrever aqui. O filtro existe para o que ninguém previu.
  */
-const FORMATO = 'Um dos campos veio num formato que o sistema não reconhece — uma data, '
+const FORMATO = 'Um dos campos veio num formato que o sistema não reconhece: uma data, '
   + 'uma hora, um número ou um item da lista. Confira o que foi preenchido e tente de novo.';
+
+/** A espera que acabou (fase 219): limite de tempo, linha travada, gravações cruzadas. */
+const ESPERA = 'O sistema demorou para responder e o que você fez NÃO foi salvo. Espere um '
+  + 'instante e tente de novo.';
 
 /*
  * REGISTRADO NO `AppModule`, e não só no `main.ts` (fase 155). Enquanto morava
@@ -49,8 +53,8 @@ export class FalhasEmPortugues implements ExceptionFilter {
     // Chave estrangeira: apontaram para uma coisa que não existe.
     '23503': {
       status: HttpStatus.BAD_REQUEST,
-      frase: 'Um dos itens indicados não existe mais no sistema — pode ter sido removido '
-        + 'ou digitado errado. Recarregue a tela e tente de novo.',
+      frase: 'Um dos itens indicados não existe mais, ou foi digitado errado. Recarregue a '
+        + 'tela e tente de novo.',
     },
     // Unicidade: já existe.
     '23505': {
@@ -88,8 +92,18 @@ export class FalhasEmPortugues implements ExceptionFilter {
      */
     'P0002': {
       status: HttpStatus.NOT_FOUND,
-      frase: 'Não encontrado — ou fora do seu alcance. Recarregue a tela e tente de novo.',
+      frase: 'Não encontrado, ou fora do seu alcance. Recarregue a tela e tente de novo.',
     },
+    /*
+     * A ESPERA QUE ACABOU (fase 219): a consulta passou do limite, a linha
+     * estava travada por outra pessoa, duas gravações se cruzaram. Nada foi
+     * salvo, e tentar de novo costuma resolver.
+     */
+    '57014': { status: HttpStatus.SERVICE_UNAVAILABLE, frase: ESPERA },
+    '55P03': { status: HttpStatus.SERVICE_UNAVAILABLE, frase: ESPERA },
+    '40001': { status: HttpStatus.SERVICE_UNAVAILABLE, frase: ESPERA },
+    '40P01': { status: HttpStatus.SERVICE_UNAVAILABLE, frase: ESPERA },
+    '25P03': { status: HttpStatus.SERVICE_UNAVAILABLE, frase: ESPERA },
     // RLS: fora do alcance. Nunca dizer QUAL tabela.
     '42501': {
       status: HttpStatus.FORBIDDEN,
@@ -149,7 +163,11 @@ export class FalhasEmPortugues implements ExceptionFilter {
 
     const bruto = erro as { code?: string; message?: string; constraint?: string };
     const codigo = String(bruto?.code ?? '');
-    const conhecido = this.PORTUGUES[codigo];
+    /* Todas as conexões ocupadas: o `pg` não dá código, só a frase. */
+    const semConexao = /timeout exceeded when trying to connect/i.test(String(bruto?.message ?? ''));
+    const conhecido = semConexao
+      ? { status: HttpStatus.SERVICE_UNAVAILABLE, frase: ESPERA }
+      : this.PORTUGUES[codigo];
 
     /*
      * O detalhe técnico vai para o LOG, com o caminho e quem estava. É o que

@@ -90,10 +90,10 @@ discordavam entre si.
 | Quanto | De onde sai |
 |---|---|
 | **19 partições** isoladas | pastas em `backend/src/modules/` |
-| **195 migrações** | `.sql` dentro das partições |
+| **196 migrações** | `.sql` dentro das partições |
 | **139 tabelas** | `CREATE TABLE` nas migrações |
-| **145 suítes** | `backend/test/*.spec.ts` |
-| **1288 testes** | `it(` / `test(` nas suítes |
+| **146 suítes** | `backend/test/*.spec.ts` |
+| **1299 testes** | `it(` / `test(` nas suítes |
 | **39 telas React** | `frontend/src/screens/*.tsx` |
 | **10 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **10 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
@@ -428,6 +428,7 @@ arqueologia.
 | 216 | **Os arquivos na área restrita do Judiciário** (pedido de 14/10: *"quando ele abre o cofre, quero anexar arquivos e hospedar, e um relatório de quando o jovem veio para a casa, o motivo"*). A pasta de documentos já tinha a categoria judicial restrita (só técnica, coordenação e gestor a abrem, e cada abertura fica registrada), mas ela morava no Cadastro, longe do motivo do acolhimento. Agora, aberta a área restrita, logo abaixo da situação judicial aparecem **os documentos da área restrita**: a guia, as decisões, o item novo **Relatório de acolhimento** (opcional, `dossie-exigido.ts`) e qualquer outro documento, em PDF ou digitalizado pela câmera, com a mesma conferência do dossiê (`DocumentosDaCategoria`, que a 217 reaproveita). De passagem: **no protótipo, a recusa do servidor de mentira não era a do servidor de verdade**, e a área restrita de uma criança sem motivo registrado mostrava *Não encontrado* onde o sistema mostra o que falta preencher (a `Recusa` do `mock.ts` agora é um `ErroApi`). |
 | 217 | **O laudo junto da alergia, e as receitas no perfil** (pedido de 14/10: *"a restrição alimentar e o remédio poderiam ter em anexo a receita médica, não só o registro à mão, no perfil da criança"*). A alergia, a condição de saúde e a restrição alimentar eram só texto. Agora cada uma, na aba Saúde do perfil, tem **Anexar laudo ou receita**: o papel entra na pasta da saúde do dossiê já dizendo a que registro responde (`document.health_condition_id` e `food_restriction_id`, people/1654), com a mesma conferência e a mesma abertura registrada, e aparece junto do registro para quem abre a pasta da saúde, o educador também. A ligação é da mesma criança, de um registro só, e não se reescreve depois. A receita do remédio já existia, presa ao esquema na tela da Saúde; no perfil, Enfermagem, técnica e coordenação veem agora **Remédios e receitas**, os esquemas dela com as receitas e bulas e o mesmo anexar (`FolhaReceitas`). De passagem: a política de gravar documento no dossiê **conferia o cargo e não a casa**; pela tela nada passava, mas por acaso (o `RETURNING` do serviço passa a linha nova pela política de leitura). Agora a casa é conferida na própria política, e a suíte cobra o efeito. |
 | 218 | **O atendimento da equipe técnica, com o desenho** (pedido de 14/10: *"se a psicopedagoga ou a psicóloga está fazendo um atendimento, e algum desenho tem alguma coisa, ela pode tirar foto, digitalizar ou anexar o arquivo, e hospedar no perfil daquela criança como um acompanhamento"*). O atendimento não tinha onde morar: ficava no caderno de quem atende. Agora, na aba Atendimentos do perfil, a equipe técnica e a coordenação registram o **atendimento da equipe técnica**: a área (psicologia, psicopedagogia, serviço social, pedagogia ou outra), o dia, o que foi trabalhado e até oito arquivos, pela câmera do sistema ou do aparelho, cada um com o que é (`technical_session`, `technical_session_attachment`, people/1655, regra em `atendimento-tecnico.regra.ts`, lida pelo servidor e pelo protótipo). Leem a equipe técnica, a coordenação e a gestão; o plantão não. Cada arquivo aberto vai à auditoria, com a casa, e o sha256 é conferido. Nada se reescreve. E o atendimento **entra como fonte do acompanhamento**, como referência restrita, sem o que foi trabalhado (o nome da área vem de `app_rotulo_da_area_do_atendimento`, que um teste obriga a concordar com a regra). Quem lê é escolha a confirmar (PARA-A-REUNIAO §4.24). No fechamento, o roteiro da Casa 03 acompanhou: a tarefa 3.8 ainda esperava encerrar e recadastrar o contato da madrinha, e passou a esperar o *Corrigir* da 215; entraram as tarefas 3.13.1 (a área restrita), 3.13.2 (o atendimento com o desenho) e 4.8.1 (o laudo da alergia), e o `ensaio:roteiro` ganhou o passo pela aba do perfil. |
+| 219 | **O banco mais robusto** (pedido de 14/10: *"veja o que podemos melhorar para deixar nossos bancos de dados mais robustos e fortes"*). Medido no catálogo: toda tabela tinha chave primária e RLS, a aplicação não é dona nem superusuário. O que faltava: **a autoria podia ser trocada num UPDATE** (21 políticas de atualização com `WITH CHECK (true)`; levar o registro para outra casa já era recusado pela política de leitura, mas `UPDATE offline_operation SET user_id = <colega>` passava, conferido à mão), **cinco inserções abertas** que dependiam do RETURNING, **doze tabelas com UPDATE concedido sem política** (o UPDATE responderia sem mudar nada) e **73 chaves estrangeiras sem índice**, entre elas a criança no dossiê, na chamada e no armário (identity/1656). E fora do banco: **a conexão da aplicação esperava para sempre** (agora limite de consulta, de linha travada, de transação parada e de espera por conexão, `BANCO_*`, com a recusa *"NÃO foi salvo, tente de novo"*), e **a migração não percebia arquivo editado depois de aplicado** (agora guarda a soma de cada um, para e diz qual; e uma trava contra duas ao mesmo tempo; os dois executores viraram um). De passagem, duas frases do filtro de erros com travessão, que a suíte da 214 não lia (agora lê). O que é da instalação (o WAL contínuo, a cópia fora do servidor, as somas de página) está no §12.4.1. Cobrado por `o-banco-com-as-duas-travas.e2e.spec.ts`. E a primeira rodada no relógio adiantado parou a suíte sem reprovar: sob o `faketime` o Postgres não dispara limite de tempo nenhum, e o teste da espera ficou esperando para sempre; hoje ele tem um guarda que cancela a consulta presa e não mede a espera nessa condição. |
 
 ---
 
@@ -475,7 +476,7 @@ cd frontend && npm run prototipo
 ```
 
 O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as
-195 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
+196 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
 
 ### Os ensaios — e por que cada um existe
 
@@ -542,7 +543,7 @@ rede-acolher/
 │   │   │   ├── documentos/     o contrato da folha e o gerador de .docx
 │   │   │   └── common/         CPF, criptografia, segredo, fuso da instituição
 │   │   └── modules/       19 partições, cada uma dona das próprias migrações
-│   ├── test/              145 suítes (e2e contra PostgreSQL real + estáticas)
+│   ├── test/              146 suítes (e2e contra PostgreSQL real + estáticas)
 │   ├── scripts/           ensaio-carga.ts, migrador compilado
 │   └── assets/timbre.png  a marca da Fundação, usada no documento em Word
 ├── frontend/
@@ -2923,7 +2924,7 @@ crescimento. Vídeo não entra no álbum: um minuto de vídeo de celular pesa co
 npm run ensaio:producao
 ```
 
-Constrói, cria um banco virgem, aplica as 195 migrações **pelo binário
+Constrói, cria um banco virgem, aplica as 196 migrações **pelo binário
 compilado**, sobe o serviço e confere `/health`. Não publica nada e não toca no
 banco de trabalho.
 
@@ -2973,6 +2974,32 @@ nas duas direções:
 
 A chave vive em outro lugar, com outro dono, e quem responde por ela é a
 Fundação. **Escreva onde ela está antes de precisar dela.**
+
+### 12.4.1 O que o backup diário não cobre, e o que a instalação acrescenta (fase 219)
+
+O `backup.sh` diário devolve o banco **como estava na hora do backup**. Uma
+queda de disco às 18h, com o backup das 3h, perde o dia inteiro de plantão: as
+doses confirmadas, as linhas da ATA, as passagens. Para uma casa de acolhimento
+isso é registro que não se reescreve de memória. Quatro coisas que a instalação
+pode acrescentar, e que são escolha da Fundação com quem cuida do servidor
+(PARA-A-REUNIAO §4.25):
+
+| O que | O que resolve | Como |
+|---|---|---|
+| **Arquivo contínuo do WAL** (restauração a qualquer minuto) | a perda passa de até um dia para minutos | `archive_mode = on` com `pgBackRest` ou `wal-g`, guardando em outro disco; o `backup.sh` continua como cópia diária |
+| **Cópia fora do servidor** | incêndio, roubo, disco que queima junto com o backup | a pasta do backup (já com `SOMAS.txt`) copiada cifrada para outro prédio ou para a nuvem da Fundação, sem a `CREDENTIAL_KEY` |
+| **Somas de página** (`initdb --data-checksums`) | o disco que corrompe um bloco em silêncio | ao criar o banco, ou `pg_checksums --enable` com o banco parado; o Postgres passa a recusar o bloco estragado em vez de devolver dado errado |
+| **Consulta lenta no log** (`log_min_duration_statement = 1000`) | ver a tela que ficou lenta antes de a casa reclamar | uma linha no `postgresql.conf`; o log guarda o tempo e a consulta, sem os valores |
+
+**O que já mora no código, e vale em qualquer instalação** (fase 219): a
+conexão da aplicação tem limite de tempo (consulta, linha travada, transação
+parada e espera por conexão, nas variáveis `BANCO_*` do `.env.example`), e a
+espera que acaba volta como *"o que você fez NÃO foi salvo, tente de novo"*, em
+vez de deixar o plantão parado sem erro. A migração guarda a soma de cada
+arquivo aplicado e **para** se o arquivo de uma migração já aplicada mudar
+depois, porque o banco instalado não receberia a mudança; e duas migrações ao
+mesmo tempo esperam uma pela outra. O `o-banco-com-as-duas-travas.e2e.spec.ts`
+cobra tudo isso, negando por padrão.
 
 ### 12.5 Restauração — e a prova de que ela funciona
 
