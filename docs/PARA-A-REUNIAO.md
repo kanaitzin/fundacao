@@ -49,7 +49,7 @@
   196 também dentro do perfil da criança (*quero registrar a alergia do Bruno*), do dossiê, da
   internação aberta e do acervo: os 36 formulários do sistema. **Para o DPO:**
   o ditado usa o reconhecimento do navegador; no Chrome, o áudio vai ao Google.
-- **215 fases.** 146 suítes e 1299 testes, verdes em duas condições de relógio —
+- **215 fases.** 146 suítes e 1303 testes, verdes em duas condições de relógio —
   antes e depois da virada do UTC, que em Porto Alegre é às 21h.
 - **O aviso no celular** (fase 189, decidido em 06/10): quem liga na Minha conta
   recebe no celular todos os avisos do sino, mesmo com o sistema fechado. Na
@@ -560,19 +560,21 @@ escolhas foram minhas e cada uma é uma linha:
   como os outros documentos de saúde. Quem anexa é a Enfermagem, a técnica e a
   coordenação.
 
-## 4.25 Quanto de plantão a casa aceita perder (fase 219, pedido de 14/10)
+## 4.25 Nada se perde, no servidor do Pão (fases 219 e 220)
 
-Hoje o backup é diário: se o disco do servidor queimar às 18h, volta o banco das
-3h, e o dia inteiro de plantão (doses, ATA, passagens) se perde. A pergunta é para
-a Fundação e para quem cuidar do servidor (§12.4.1):
+**Respondido em 14/10:** nada pode se perder, e o sistema vai para o servidor próprio do Pão
+quando estiver pronto. O kit está feito e provado (§12.4.1): o arquivo contínuo do banco (no
+máximo um minuto entre o disco principal e o segundo), a base semanal, a cópia das fotos de
+cinco em cinco minutos, e o ensaio que apaga o banco e o traz de volta até o minuto. Falta,
+para quem cuidar do servidor:
 
-- **Quanto se aceita perder?** Com o arquivo contínuo do banco, a perda cai para
-  minutos; custa um disco a mais e alguém que confira uma vez por mês.
-- **Onde fica a cópia fora do servidor?** Outro prédio da Fundação ou a nuvem
-  dela, sempre cifrada e sem a chave do cofre junto.
-
-O que é do código já está feito (os limites de tempo, a migração que percebe
-arquivo editado, as travas e os índices).
+- **Dois discos espelhados no servidor** (RAID 1). É o que faz um disco queimado não levar
+  nada, nem o último minuto. Se o servidor ainda não tem, é a compra mais importante.
+- **Onde fica a cópia fora do prédio.** Um incêndio ou um roubo leva o servidor e os dois
+  discos juntos. Outro prédio do Pão ou a nuvem da Fundação, sempre cifrada e sem a chave do
+  cofre junto.
+- **Quem roda o ensaio uma vez por mês** (`npm run ensaio:ponto-no-tempo`), e olha a saúde da
+  implantação, que agora mostra o arquivo contínuo, a base e a cópia.
 
 ## 5. As decisões que são do Marcelo *(§10 — responda pelo número)*
 

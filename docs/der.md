@@ -988,7 +988,8 @@ mudou desde o meu último plantão* (`reports/o-que-mudou.service.ts`).
 
 ### `implantacao_evento` — a saúde da implantação (fase 185, relogio/1641)
 O QUE RODA SOZINHO DEIXA DITO QUE RODOU: `tipo` (`backup`, `restauracao`,
-`relogio`, `fim_do_plantao`, `email`), `ok`, `em` e `detalhe` (jsonb, só
+`relogio`, `fim_do_plantao`, `email`, e desde a fase 220, relogio/1657, `base`
+ e `copia_arquivos`), `ok`, `em` e `detalhe` (jsonb, só
 metadado: números e códigos, nunca endereço, nome ou caminho; acima de 1000
 caracteres é recusado). Escreve `app_anotar_implantacao`, chamada pelo relógio,
 pelo aviso de meia hora, pelo `MailGateway` e, pelo `psql`, pelo `backup.sh` e

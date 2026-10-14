@@ -23,7 +23,7 @@ import { join } from 'node:path';
 import { AppModule } from '../src/app.module';
 import { DatabaseService } from '../src/kernel/database/database.service';
 import { MailGateway } from '../src/modules/identity/mail.gateway';
-import { avaliar, avaliarDrive } from '../src/modules/relogio/implantacao.service';
+import { avaliar, avaliarArquivo, avaliarDrive } from '../src/modules/relogio/implantacao.service';
 
 const SENHA = 'senha-dev-123';
 const adminUrl = process.env.DATABASE_URL
@@ -84,7 +84,8 @@ describe('A saúde da implantação', () => {
       const r = await get(t[quem], '/implantacao/saude');
       expect(r.status).toBe(200);
       expect((r.body.sinais as any[]).map((s) => s.cod))
-        .toEqual(['relogio', 'fim_do_plantao', 'backup', 'restauracao', 'email', 'drive']);
+        .toEqual(['arquivo_continuo', 'relogio', 'fim_do_plantao', 'backup', 'base', 'copia_arquivos',
+          'restauracao', 'email', 'drive']);
     }
     for (const quem of ['coord3', 'educador']) {
       const r = await get(t[quem], '/implantacao/saude');
@@ -180,12 +181,39 @@ describe('A saúde da implantação', () => {
       const falhou = { ultimo: { em: em(1), ok: false, detalhe: {} }, ultimoOk: em(30), falhas7d: 2 };
       expect(avaliar('email', falhou, agora).estado).toBe('parado');
     });
+    it('base do banco: uma vez por semana (fase 220)', () => {
+      expect(avaliar('base', ok(24 * 6), agora).estado).toBe('em_dia');
+      expect(avaliar('base', ok(24 * 10), agora).estado).toBe('atencao');
+      expect(avaliar('base', ok(24 * 20), agora).estado).toBe('parado');
+      expect(avaliar('base', undefined, agora).estado).toBe('sem_registro');
+    });
+    it('cópia das fotos: de cinco em cinco minutos (fase 220)', () => {
+      expect(avaliar('copia_arquivos', ok(0.1), agora).estado).toBe('em_dia');
+      expect(avaliar('copia_arquivos', ok(1), agora).estado).toBe('atencao');
+      expect(avaliar('copia_arquivos', ok(3), agora).estado).toBe('parado');
+    });
+    it('arquivo contínuo: desligado não tem registro, falha por último é parado, madrugada parada não é defeito (fase 220)', () => {
+      expect(avaliarArquivo({ ligado: false }, agora).estado).toBe('sem_registro');
+      expect(avaliarArquivo({ ligado: true, ultimoArquivado: em(9), ultimaFalha: null }, agora).estado).toBe('em_dia');
+      expect(avaliarArquivo({ ligado: true, ultimoArquivado: em(2), ultimaFalha: em(1) }, agora).estado).toBe('parado');
+      expect(avaliarArquivo({ ligado: true, ultimoArquivado: em(1), ultimaFalha: em(2) }, agora).estado).toBe('atencao');
+      expect(avaliarArquivo({ ligado: true, ultimoArquivado: em(1), ultimaFalha: em(30) }, agora).estado).toBe('em_dia');
+    });
     it('fila do Drive: espera de mais de um dia é atenção, falha é parado', () => {
       expect(avaliarDrive({ aguardando: 0, falhou: 0 }, agora).estado).toBe('em_dia');
       expect(avaliarDrive({ aguardando: 3, falhou: 0, maisAntigoAguardando: em(2) }, agora).estado).toBe('em_dia');
       expect(avaliarDrive({ aguardando: 3, falhou: 0, maisAntigoAguardando: em(30) }, agora).estado).toBe('atencao');
       expect(avaliarDrive({ aguardando: 0, falhou: 1 }, agora).estado).toBe('parado');
     });
+  });
+
+  it('o arquivo contínuo é lido do próprio Postgres, e aqui ele está desligado (fase 220)', async () => {
+    const r = await get(t.gestor, '/implantacao/saude');
+    const a = (r.body.sinais as any[]).find((x) => x.cod === 'arquivo_continuo');
+    // No banco de desenvolvimento o arquivo contínuo não está ligado; no
+    // servidor do Pão, o postgresql-do-servidor.conf liga, e o ensaio-ponto-no-tempo prova.
+    expect(a).toMatchObject({ estado: 'sem_registro' });
+    expect(a.frase).toMatch(/não está ligado/);
   });
 
   it('cada um que roda sozinho continua anotando', () => {
@@ -197,6 +225,8 @@ describe('A saúde da implantação', () => {
     expect(ler('backend/src/modules/identity/mail.gateway.ts')).toMatch(/anotarImplantacao\(this\.db, 'email'/);
     expect(ler('scripts/backup.sh')).toMatch(/app_anotar_implantacao\('backup'/);
     expect(ler('scripts/restaurar.sh')).toMatch(/app_anotar_implantacao\('restauracao'/);
+    expect(ler('scripts/base-do-banco.sh')).toMatch(/app_anotar_implantacao\('base'/);
+    expect(ler('scripts/copiar-arquivos.sh')).toMatch(/app_anotar_implantacao\('copia_arquivos'/);
     /* O backup descartável do ensaio não se passa pelo backup da casa. */
     expect(ler('scripts/restaurar.sh')).toMatch(/BACKUP_NAO_ANOTAR=1 .*backup\.sh/);
   });

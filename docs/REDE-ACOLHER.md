@@ -90,10 +90,10 @@ discordavam entre si.
 | Quanto | De onde sai |
 |---|---|
 | **19 partições** isoladas | pastas em `backend/src/modules/` |
-| **196 migrações** | `.sql` dentro das partições |
+| **197 migrações** | `.sql` dentro das partições |
 | **139 tabelas** | `CREATE TABLE` nas migrações |
 | **146 suítes** | `backend/test/*.spec.ts` |
-| **1299 testes** | `it(` / `test(` nas suítes |
+| **1303 testes** | `it(` / `test(` nas suítes |
 | **39 telas React** | `frontend/src/screens/*.tsx` |
 | **10 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **10 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
@@ -429,6 +429,7 @@ arqueologia.
 | 217 | **O laudo junto da alergia, e as receitas no perfil** (pedido de 14/10: *"a restrição alimentar e o remédio poderiam ter em anexo a receita médica, não só o registro à mão, no perfil da criança"*). A alergia, a condição de saúde e a restrição alimentar eram só texto. Agora cada uma, na aba Saúde do perfil, tem **Anexar laudo ou receita**: o papel entra na pasta da saúde do dossiê já dizendo a que registro responde (`document.health_condition_id` e `food_restriction_id`, people/1654), com a mesma conferência e a mesma abertura registrada, e aparece junto do registro para quem abre a pasta da saúde, o educador também. A ligação é da mesma criança, de um registro só, e não se reescreve depois. A receita do remédio já existia, presa ao esquema na tela da Saúde; no perfil, Enfermagem, técnica e coordenação veem agora **Remédios e receitas**, os esquemas dela com as receitas e bulas e o mesmo anexar (`FolhaReceitas`). De passagem: a política de gravar documento no dossiê **conferia o cargo e não a casa**; pela tela nada passava, mas por acaso (o `RETURNING` do serviço passa a linha nova pela política de leitura). Agora a casa é conferida na própria política, e a suíte cobra o efeito. |
 | 218 | **O atendimento da equipe técnica, com o desenho** (pedido de 14/10: *"se a psicopedagoga ou a psicóloga está fazendo um atendimento, e algum desenho tem alguma coisa, ela pode tirar foto, digitalizar ou anexar o arquivo, e hospedar no perfil daquela criança como um acompanhamento"*). O atendimento não tinha onde morar: ficava no caderno de quem atende. Agora, na aba Atendimentos do perfil, a equipe técnica e a coordenação registram o **atendimento da equipe técnica**: a área (psicologia, psicopedagogia, serviço social, pedagogia ou outra), o dia, o que foi trabalhado e até oito arquivos, pela câmera do sistema ou do aparelho, cada um com o que é (`technical_session`, `technical_session_attachment`, people/1655, regra em `atendimento-tecnico.regra.ts`, lida pelo servidor e pelo protótipo). Leem a equipe técnica, a coordenação e a gestão; o plantão não. Cada arquivo aberto vai à auditoria, com a casa, e o sha256 é conferido. Nada se reescreve. E o atendimento **entra como fonte do acompanhamento**, como referência restrita, sem o que foi trabalhado (o nome da área vem de `app_rotulo_da_area_do_atendimento`, que um teste obriga a concordar com a regra). Quem lê é escolha a confirmar (PARA-A-REUNIAO §4.24). No fechamento, o roteiro da Casa 03 acompanhou: a tarefa 3.8 ainda esperava encerrar e recadastrar o contato da madrinha, e passou a esperar o *Corrigir* da 215; entraram as tarefas 3.13.1 (a área restrita), 3.13.2 (o atendimento com o desenho) e 4.8.1 (o laudo da alergia), e o `ensaio:roteiro` ganhou o passo pela aba do perfil. |
 | 219 | **O banco mais robusto** (pedido de 14/10: *"veja o que podemos melhorar para deixar nossos bancos de dados mais robustos e fortes"*). Medido no catálogo: toda tabela tinha chave primária e RLS, a aplicação não é dona nem superusuário. O que faltava: **a autoria podia ser trocada num UPDATE** (21 políticas de atualização com `WITH CHECK (true)`; levar o registro para outra casa já era recusado pela política de leitura, mas `UPDATE offline_operation SET user_id = <colega>` passava, conferido à mão), **cinco inserções abertas** que dependiam do RETURNING, **doze tabelas com UPDATE concedido sem política** (o UPDATE responderia sem mudar nada) e **73 chaves estrangeiras sem índice**, entre elas a criança no dossiê, na chamada e no armário (identity/1656). E fora do banco: **a conexão da aplicação esperava para sempre** (agora limite de consulta, de linha travada, de transação parada e de espera por conexão, `BANCO_*`, com a recusa *"NÃO foi salvo, tente de novo"*), e **a migração não percebia arquivo editado depois de aplicado** (agora guarda a soma de cada um, para e diz qual; e uma trava contra duas ao mesmo tempo; os dois executores viraram um). De passagem, duas frases do filtro de erros com travessão, que a suíte da 214 não lia (agora lê). O que é da instalação (o WAL contínuo, a cópia fora do servidor, as somas de página) está no §12.4.1. Cobrado por `o-banco-com-as-duas-travas.e2e.spec.ts`. E a primeira rodada no relógio adiantado parou a suíte sem reprovar: sob o `faketime` o Postgres não dispara limite de tempo nenhum, e o teste da espera ficou esperando para sempre; hoje ele tem um guarda que cancela a consulta presa e não mede a espera nessa condição. |
+| 220 | **Nada se perde no servidor do Pão** (decisão de 14/10: *"não quero perder nada, tudo tem que ficar salvo; o Pão tem um servidor próprio"*). O kit de instalação e a prova: **o arquivo contínuo do banco** (`postgresql-do-servidor.conf`, `arquivar-wal.sh`, que nunca sobrescreve trecho com conteúdo diferente e só nomeia depois de forçar ao disco), **a base semanal** conferida contra o manifesto (`base-do-banco.sh`, com retenção que só tira do segundo disco o diário mais velho que a base mais antiga guardada), **a restauração até um minuto exato** (`restaurar-ponto-no-tempo.sh`, que nunca escreve por cima de banco nenhum) e **a cópia das fotos e documentos** de cinco em cinco minutos, que só acrescenta e confere (`copiar-arquivos.sh`). **O `ensaio:ponto-no-tempo` prova tudo num banco descartável:** apaga a pasta do banco como um disco que queima e o traz de volta até o minuto marcado (200 linhas, exatas) e até o fim (300). A saúde da implantação ganhou três sinais (o arquivo contínuo lido do próprio Postgres, a base e a cópia; relogio/1657). E no código: **a foto ou o documento enviado era gravado sem ser forçado ao disco**, e uma queda de energia logo depois do *salvo* podia levá-lo; agora vai ao disco com nome provisório, é forçado, e só então ganha o nome (`gravarNoDisco`). O que é da instalação, em quatro camadas, está no §12.4.1. |
 
 ---
 
@@ -476,7 +477,7 @@ cd frontend && npm run prototipo
 ```
 
 O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as
-196 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
+197 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
 
 ### Os ensaios — e por que cada um existe
 
@@ -2924,7 +2925,7 @@ crescimento. Vídeo não entra no álbum: um minuto de vídeo de celular pesa co
 npm run ensaio:producao
 ```
 
-Constrói, cria um banco virgem, aplica as 196 migrações **pelo binário
+Constrói, cria um banco virgem, aplica as 197 migrações **pelo binário
 compilado**, sobe o serviço e confere `/health`. Não publica nada e não toca no
 banco de trabalho.
 
@@ -2975,31 +2976,67 @@ nas duas direções:
 A chave vive em outro lugar, com outro dono, e quem responde por ela é a
 Fundação. **Escreva onde ela está antes de precisar dela.**
 
-### 12.4.1 O que o backup diário não cobre, e o que a instalação acrescenta (fase 219)
+### 12.4.1 Nada se perde no servidor do Pão (fases 219 e 220)
 
-O `backup.sh` diário devolve o banco **como estava na hora do backup**. Uma
-queda de disco às 18h, com o backup das 3h, perde o dia inteiro de plantão: as
-doses confirmadas, as linhas da ATA, as passagens. Para uma casa de acolhimento
-isso é registro que não se reescreve de memória. Quatro coisas que a instalação
-pode acrescentar, e que são escolha da Fundação com quem cuida do servidor
-(PARA-A-REUNIAO §4.25):
+**Decisão da Fundação em 14/10:** *"não quero perder nada, tudo tem que ficar salvo; o Pão
+tem um servidor próprio, e depois que o sistema estiver pronto colocamos lá."* O backup da
+madrugada (§12.4) sozinho não cumpre isso: um disco que queima às 18h leva o dia inteiro de
+plantão. No servidor do Pão, o banco e os arquivos ficam em **quatro camadas**, cada uma para
+um tipo de perda:
 
-| O que | O que resolve | Como |
-|---|---|---|
-| **Arquivo contínuo do WAL** (restauração a qualquer minuto) | a perda passa de até um dia para minutos | `archive_mode = on` com `pgBackRest` ou `wal-g`, guardando em outro disco; o `backup.sh` continua como cópia diária |
-| **Cópia fora do servidor** | incêndio, roubo, disco que queima junto com o backup | a pasta do backup (já com `SOMAS.txt`) copiada cifrada para outro prédio ou para a nuvem da Fundação, sem a `CREDENTIAL_KEY` |
-| **Somas de página** (`initdb --data-checksums`) | o disco que corrompe um bloco em silêncio | ao criar o banco, ou `pg_checksums --enable` com o banco parado; o Postgres passa a recusar o bloco estragado em vez de devolver dado errado |
-| **Consulta lenta no log** (`log_min_duration_statement = 1000`) | ver a tela que ficou lenta antes de a casa reclamar | uma linha no `postgresql.conf`; o log guarda o tempo e a consulta, sem os valores |
+| Camada | O que protege | Quanto se perde no pior caso | Como |
+|---|---|---|---|
+| **Dois discos espelhados** (RAID 1) | um disco que queima | nada | na compra ou montagem do servidor; o sistema não vê diferença |
+| **Arquivo contínuo do banco** + **base semanal** | o servidor inteiro que para, ou algo apagado por engano | no máximo um minuto de banco | `postgresql-do-servidor.conf`, `arquivar-wal.sh`, `base-do-banco.sh` |
+| **Cópia das fotos e documentos** | o servidor inteiro que para | no máximo cinco minutos de fotos | `copiar-arquivos.sh` |
+| **Cópia fora do prédio** | incêndio, roubo, enchente | o intervalo da cópia | a pasta do segundo disco copiada, cifrada, para outro lugar (a decidir, PARA-A-REUNIAO §4.25) |
 
-**O que já mora no código, e vale em qualquer instalação** (fase 219): a
-conexão da aplicação tem limite de tempo (consulta, linha travada, transação
-parada e espera por conexão, nas variáveis `BANCO_*` do `.env.example`), e a
-espera que acaba volta como *"o que você fez NÃO foi salvo, tente de novo"*, em
-vez de deixar o plantão parado sem erro. A migração guarda a soma de cada
-arquivo aplicado e **para** se o arquivo de uma migração já aplicada mudar
-depois, porque o banco instalado não receberia a mudança; e duas migrações ao
-mesmo tempo esperam uma pela outra. O `o-banco-com-as-duas-travas.e2e.spec.ts`
-cobra tudo isso, negando por padrão.
+E dentro do sistema, o que já vale em qualquer servidor: toda gravação confirmada na tela já
+está no disco do banco (`synchronous_commit = on`), e **a foto ou o documento enviado também**
+(desde a 220 o arquivo é forçado ao disco antes de o registro existir; antes, uma queda de
+energia logo depois do *salvo* podia levar a foto).
+
+**A instalação, passo a passo** (as pastas supõem o segundo disco em `/var/lib/rede-acolher`):
+
+1. Ao criar o banco, `initdb --data-checksums` (ou `pg_checksums --enable` com o banco parado):
+   o Postgres passa a recusar um bloco corrompido pelo disco em vez de devolver dado errado.
+2. Acrescente ao `postgresql.conf` o `scripts/postgresql-do-servidor.conf` e reinicie. Cada
+   trecho do diário do banco passa a ir para `/var/lib/rede-acolher/wal`, no máximo um minuto
+   depois. O `arquivar-wal.sh` nunca sobrescreve um trecho com conteúdo diferente e só dá o
+   nome final depois de o trecho estar no disco; se ele falhar, o Postgres guarda o trecho e
+   tenta de novo.
+3. Crie o papel da cópia: `CREATE ROLE rede_copia LOGIN REPLICATION PASSWORD '…'` e uma
+   linha `replication` no `pg_hba.conf` só para `127.0.0.1`.
+4. As linhas do cron, além das do §12.7:
+   ```
+   # a base do banco, domingo às 3h30, conferida contra o manifesto
+   30 3 * * 0  cd /opt/rede-acolher && BASE_DATABASE_URL=postgres://rede_copia@127.0.0.1/rede_acolher DATABASE_URL=… bash scripts/base-do-banco.sh
+   # as fotos e documentos, de cinco em cinco minutos
+   */5 * * * *  cd /opt/rede-acolher && DATABASE_URL=… bash scripts/copiar-arquivos.sh
+   ```
+5. Rode `npm run ensaio:ponto-no-tempo` no servidor, uma vez antes de abrir para a casa e
+   depois uma vez por mês. Ele sobe um banco descartável com tudo isso ligado, grava, tira a
+   base, marca um minuto, grava mais, **apaga a pasta do banco como um disco que queima** e
+   restaura duas vezes: até o minuto marcado (voltam exatamente as 200 linhas de até ali) e até
+   o fim (voltam as 300). Confere também que o arquivamento recusa sobrescrever e que a cópia
+   das fotos só acrescenta. Rodou nesta sessão, todas as conferências verdes.
+
+**A restauração de verdade**, se um dia for preciso:
+`bash scripts/restaurar-ponto-no-tempo.sh <pasta-da-base> <pasta-nova> ["AAAA-MM-DD HH:MM:SS"]`.
+Sem a hora, volta até o último trecho guardado (o disco que queimou). Com a hora de Porto
+Alegre, para nela (algo apagado por engano às 15h12: restaura-se até 15h11 numa pasta à parte,
+confere-se, e só então se troca). Ela nunca escreve por cima de banco nenhum.
+
+**O que a saúde da implantação mostra** (§12.10): o arquivo contínuo, lido do próprio Postgres
+(*parado* quando a última tentativa falhou: enquanto falhar, o que muda fica só no disco
+principal, e ele vai enchendo), a base semanal e a cópia das fotos, cada um com o prazo dele.
+
+**O que já mora no código desde a 219, e vale em qualquer servidor:** a conexão da aplicação
+tem limite de tempo (consulta, linha travada, transação parada e espera por conexão, nas
+variáveis `BANCO_*`), e a espera que acaba volta como *"o que você fez NÃO foi salvo, tente de
+novo"*; a migração guarda a soma de cada arquivo aplicado e para se um deles mudar; e duas
+migrações ao mesmo tempo esperam uma pela outra. O `o-banco-com-as-duas-travas.e2e.spec.ts`
+cobra.
 
 ### 12.5 Restauração — e a prova de que ela funciona
 

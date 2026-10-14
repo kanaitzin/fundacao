@@ -155,6 +155,7 @@ e qual é o caminho certo.
 | `scripts/superficies-sem-teste.mjs` | acha tabela que **nenhum teste jamais escreveu** — a lição da fase 141 medida em vez de lembrada. Roda DEPOIS do `npm test`, na mesma rodada, e usa o `n_tup_ins` do banco porque contar linhas no fim não distingue "ninguém escreveu" de "a suíte limpou". **Não é teste**, e recusa concluir se a rodada foi parcial |
 | `frontend/ensaio-celular.mjs` | **o sistema no celular** (fase 184): oito cargos a 360 e 390 px, todas as abas, o "Mais" e cada porta. Mede o que o axe não mede: tela que anda para o lado, texto cortado ou vazando do botão, **botões encostados**, alvo abaixo de 24 px, conteúdo atrás da barra do pé. Fotos em `/tmp/ensaio-celular`. O `ensaio:uso-celular` faz o percurso de uso como celular. **Mudou tela, roda os dois** |
 | `backend/src/modules/relogio/implantacao.regra.ts` | **a regra da saúde da implantação** (fase 185): quando cada sinal está em dia, em atenção ou parado, e a frase. Não importa nada, como o `alcance.ts`: o servidor e o protótipo leem a MESMA. **Quem roda sozinho anota** por `anotarImplantacao` (`kernel/implantacao/anotar.ts`) ou, nos scripts, por `app_anotar_implantacao` no `psql`; anotar nunca derruba quem anota |
+| `scripts/arquivar-wal.sh`, `base-do-banco.sh`, `restaurar-ponto-no-tempo.sh`, `copiar-arquivos.sh` | **nada se perde no servidor do Pão** (fase 220): o arquivo contínuo do banco, a base semanal conferida, a volta a qualquer minuto e a cópia das fotos; o `postgresql-do-servidor.conf` liga o arquivo. **Mudou um deles, roda o `npm run ensaio:ponto-no-tempo`**, que prova os quatro num banco à parte |
 | `scripts/rotas-sem-teste.mjs` | acha **rota** que nenhum teste chamou — o outro lado da mesma pergunta. Separa *candidata forte* (a URL não aparece em suíte nenhuma) de *par incerto* (a suíte chama por auxiliar e o método fica noutra linha). **Não é teste** |
 | `backend/src/kernel/common/data-do-dia.pipe.ts` | **toda data que vem da URL passa por aqui** (fase 148). Sete de dez rotas de data devolviam 500 para uma data que não é data; a conferência mora num lugar só, e há teste estático que cobra que todo `@Query('de')` e `@Param('data')` use o pipe |
 | `backend/src/kernel/audit/audit.service.ts` | quem ESCREVE a auditoria, e as três respostas sobre a casa de uma linha (fase 149). **Linha de auditoria sem casa é linha que a coordenação da casa não lê** — a policy compara `house_id` com o alcance, e NULL não é igual a nada. O `auditoria-tem-casa.spec.ts` cobra `houseId` em toda chamada, com a lista ESCRITA das poucas ações que não têm casa |
@@ -181,7 +182,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 14/10/2026, fase 219
+### Onde estamos — 14/10/2026, fase 220
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -264,10 +265,12 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 217 | **o laudo junto da alergia e as receitas no perfil**: laudo ou receita anexado à alergia, condição ou restrição (`document.health_condition_id`/`food_restriction_id`, people/1654), e os remédios dela com as receitas na aba Saúde; o `doc_insert` passou a conferir a casa |
 | 218 | **o atendimento da equipe técnica**: área, dia, o que foi trabalhado e até oito arquivos (o desenho), na aba Atendimentos, só técnica, coordenação e gestão (`technical_session`, people/1655); entra como fonte restrita do acompanhamento |
 | 219 | **o banco mais robusto** (pedido de 14/10): a autoria trocável num UPDATE (21 políticas sem a segunda trava), 5 inserções abertas, 12 UPDATE concedidos sem política, 73 chaves sem índice (identity/1656); limites de tempo na conexão (`BANCO_*`, recusa *NÃO foi salvo*); a migração guarda a soma de cada arquivo e para se um aplicado mudar, com trava e um executor só; o resto é da instalação (§12.4.1) |
+| 220 | **nada se perde no servidor do Pão** (pedido de 14/10): o arquivo contínuo do banco (`arquivar-wal.sh`, `postgresql-do-servidor.conf`, um minuto no máximo), a base semanal conferida (`base-do-banco.sh`), a volta a qualquer minuto (`restaurar-ponto-no-tempo.sh`) e a cópia das fotos de dez em dez minutos (`copiar-arquivos.sh`), provados pelo `ensaio:ponto-no-tempo`; o arquivo guardado agora vai ao disco antes da resposta (`gravarNoDisco`); três sinais novos na Implantação (relogio/1657) |
 
-**Medido no fim da 219:** 196 migrações, 139 tabelas, 146 suítes, 1299 testes, verdes nas
+**Medido no fim da 220:** 197 migrações, 139 tabelas, 146 suítes, 1303 testes, verdes nas
 DUAS condições de relógio, rodadas inteiras (na 219, a espera pela linha travada não se mede
-sob o relógio adiantado: o banco ali não tem temporizador), e na 219 a simulação da Casa 03
+sob o relógio adiantado: o banco ali não tem temporizador); na 220, o `ensaio:ponto-no-tempo`
+(arquivo contínuo, base conferida, volta a um minuto do meio e ao fim, cópia que só acrescenta); e na 219 a simulação da Casa 03
 em trinta dias contra o servidor de verdade, com as travas novas, sem achado; na 218, o `ensaio:uso` inteiro (com os blocos
 215 a 218), o do celular (306 telas, sem achado), o de acessibilidade (1256 telas, nenhuma
 violação), o `ensaio:acolhe` (todas as telas e formulários de todos os cargos, por texto e por voz) e a simulação da Casa 03 em trinta dias contra o servidor de verdade, sem achado, com
@@ -350,6 +353,17 @@ as três cores abaixo. Cor nova passa pelo `ensaio:acessibilidade`, que mede os 
 | **casa** (211) | *qual é esta chamada?* | barra e ponto do cartão da chamada; a casa escolhe (`cores-da-casa.ts`) |
 
 ### A próxima etapa
+
+**FEITO — fase 220** (§2, §12.4.1, PARA-A-REUNIAO §4.25): a resposta ao *"não quero
+perder nada"*. Quatro camadas para o servidor próprio do Pão: o **arquivo contínuo** do
+banco (perda máxima de um minuto), a **base semanal** conferida pelo `pg_verifybackup`, a
+**volta a qualquer minuto** e a **cópia das fotos e documentos** de dez em dez minutos, que
+só acrescenta. O `npm run ensaio:ponto-no-tempo` prova tudo num banco à parte, e a tela da
+Implantação mostra três sinais novos (arquivo contínuo, base, cópia). **O arquivo que a
+pessoa anexa vai ao disco antes da resposta** (`gravarNoDisco`: nome provisório, `fsync`,
+troca de nome). **Depende da Fundação e de quem cuidar do servidor:** dois discos espelhados
+(RAID 1), o lugar da cópia fora da sala do servidor e quem roda o ensaio todo mês.
+**Próxima etapa:** o roteiro com a equipe e a implantação do §12, agora com o §12.4.1 pronto.
 
 **FEITO — fase 219** (§2, §12.4.1, PARA-A-REUNIAO §4.25): o banco mais robusto, medido no
 catálogo e cobrado por `o-banco-com-as-duas-travas.e2e.spec.ts`, que nega por padrão:

@@ -54,6 +54,8 @@ export function avaliar(cod: string, e: Evento | undefined, agora: number): Omit
       relogio: 'O relógio das 5h nunca rodou neste servidor. Sem ele, o dia da casa não nasce.',
       fim_do_plantao: 'O aviso de meia hora antes do fim do plantão nunca rodou neste servidor.',
       email: 'Nenhum e-mail saiu ainda deste servidor.',
+      base: 'Nenhuma base do banco anotada neste servidor. Rode scripts/base-do-banco.sh e ponha no cron.',
+      copia_arquivos: 'As fotos e documentos ainda não foram copiados para o segundo disco. Ponha scripts/copiar-arquivos.sh no cron.',
     };
     return { ...base, estado: cod === 'email' ? 'em_dia' : 'sem_registro', frase: frase[cod] ?? 'Sem registro.' };
   }
@@ -65,6 +67,8 @@ export function avaliar(cod: string, e: Evento | undefined, agora: number): Omit
       relogio: 'A última rodada do relógio teve falha: o dia de alguma casa pode estar incompleto.',
       fim_do_plantao: 'A última rodada do aviso de meia hora falhou.',
       email: 'O último e-mail NÃO saiu. Convites podem não estar chegando.',
+      base: 'A última base do banco FALHOU.',
+      copia_arquivos: 'A última cópia das fotos e documentos FALHOU: o que entrou depois está só no disco principal.',
     };
     return { ...base, estado: 'parado',
       frase: `${frase[cod] ?? 'A última rodada falhou.'}${ultimoOkEm ? ` O último que deu certo foi ${quandoOk}.` : ''}` };
@@ -85,6 +89,14 @@ export function avaliar(cod: string, e: Evento | undefined, agora: number): Omit
       if (desdeOk <= 25 * 60_000) return { ...base, estado: 'em_dia', frase: `Rodou ${quandoOk}.` };
       if (desdeOk <= 2 * HORA) return { ...base, estado: 'atencao', frase: `Rodou ${quandoOk}. Ele roda de dez em dez minutos.` };
       return { ...base, estado: 'parado', frase: `Rodou pela última vez ${quandoOk}. Confira o cron do servidor.` };
+    case 'base':
+      if (desdeOk <= 8 * DIA) return { ...base, estado: 'em_dia', frase: `Última base do banco ${quandoOk}.` };
+      if (desdeOk <= 15 * DIA) return { ...base, estado: 'atencao', frase: `A última base do banco foi ${quandoOk}. Ela roda uma vez por semana.` };
+      return { ...base, estado: 'parado', frase: `A última base do banco foi ${quandoOk}: confira o cron do servidor.` };
+    case 'copia_arquivos':
+      if (desdeOk <= 30 * 60_000) return { ...base, estado: 'em_dia', frase: `Fotos e documentos copiados ${quandoOk}.` };
+      if (desdeOk <= 2 * HORA) return { ...base, estado: 'atencao', frase: `A última cópia foi ${quandoOk}. Ela roda de cinco em cinco minutos.` };
+      return { ...base, estado: 'parado', frase: `A última cópia das fotos e documentos foi ${quandoOk}: o que entrou depois está só no disco principal. Confira o cron do servidor.` };
     default:
       return { ...base, estado: 'em_dia', frase: `O último e-mail saiu ${quandoOk}.` };
   }
@@ -108,10 +120,44 @@ export function avaliarDrive(d: { aguardando?: number; falhou?: number; maisAnti
     frase: aguardando ? `${aguardando} na fila, andando.` : 'Fila vazia: tudo o que fechou já foi para o Drive.' };
 }
 
+/**
+ * O ARQUIVO CONTÍNUO DO BANCO (fase 220), lido do próprio Postgres.
+ *
+ * Não tem prazo de atraso: com o banco parado de madrugada, nenhum trecho
+ * novo fecha e não há o que arquivar, e isso não é defeito. O que é defeito é
+ * a falha: o Postgres guarda o trecho e tenta de novo, mas enquanto falhar o
+ * que muda fica só no disco principal, e o disco principal vai enchendo.
+ */
+export function avaliarArquivo(a: { ligado?: boolean; ultimoArquivado?: string | null;
+  ultimaFalha?: string | null; falhas?: number } | null, agora: number): Omit<Sinal, 'cod' | 'titulo'> {
+  const ultimoOk = a?.ultimoArquivado ?? null;
+  const ultimaFalha = a?.ultimaFalha ?? null;
+  const base = { ultimoEm: [ultimoOk, ultimaFalha].filter(Boolean).sort().pop() ?? null,
+    ultimoOkEm: ultimoOk, falhas7d: 0 };
+  if (!a?.ligado) {
+    return { ...base, estado: 'sem_registro',
+      frase: 'O arquivo contínuo do banco não está ligado neste servidor. Sem ele, um disco que queima leva tudo desde o último backup.' };
+  }
+  const falhouPorUltimo = ultimaFalha && (!ultimoOk || new Date(ultimaFalha) > new Date(ultimoOk));
+  if (falhouPorUltimo) {
+    return { ...base, estado: 'parado',
+      frase: `O arquivo contínuo está FALHANDO: o último trecho guardado no segundo disco foi ${ultimoOk ? haQuanto(agora - new Date(ultimoOk).getTime()) : 'nunca'}. Confira o segundo disco.` };
+  }
+  if (!ultimoOk) {
+    return { ...base, estado: 'em_dia', frase: 'Ligado, esperando o primeiro trecho do diário fechar.' };
+  }
+  const falhaRecente = ultimaFalha && agora - new Date(ultimaFalha).getTime() < DIA;
+  return { ...base, estado: falhaRecente ? 'atencao' : 'em_dia',
+    frase: `Último trecho guardado no segundo disco ${haQuanto(agora - new Date(ultimoOk).getTime())}.`
+      + (falhaRecente ? ' Houve falha nas últimas 24 horas, e o Postgres já tentou de novo com sucesso.' : '') };
+}
+
 export const TITULOS: [string, string][] = [
   ['relogio', 'O relógio das 5h'],
   ['fim_do_plantao', 'O aviso de meia hora antes do fim do plantão'],
   ['backup', 'O backup da madrugada'],
+  ['base', 'A base semanal do banco'],
+  ['copia_arquivos', 'A cópia das fotos e documentos'],
   ['restauracao', 'A restauração conferida'],
   ['email', 'O e-mail'],
 ];

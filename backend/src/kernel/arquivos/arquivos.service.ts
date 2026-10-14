@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { createHash, randomUUID } from 'node:crypto';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, open, readFile, rename } from 'node:fs/promises';
 import { join } from 'node:path';
 
 /**
@@ -89,6 +89,30 @@ export interface RegraDoArquivo {
   conferirInteireza?: boolean;
 }
 
+/**
+ * GRAVAR E SÓ ENTÃO DIZER QUE GRAVOU (fase 220, "não quero perder nada").
+ *
+ * O `writeFile` devolve quando o sistema operacional recebeu os bytes, e não
+ * quando eles chegaram ao disco: uma queda de energia logo depois do "salvo"
+ * levava a foto que a tela já tinha mostrado como guardada. Agora o arquivo é
+ * escrito com um nome provisório, forçado ao disco, renomeado, e a pasta
+ * também é forçada (é ela que guarda o nome novo). O banco só registra o
+ * documento depois disso, porque quem chama grava a linha depois de `guardar`.
+ */
+export async function gravarNoDisco(dir: string, nome: string, bytes: Buffer): Promise<void> {
+  const provisorio = join(dir, `.${nome}.parcial`);
+  const f = await open(provisorio, 'wx');
+  try {
+    await f.writeFile(bytes);
+    await f.sync();
+  } finally {
+    await f.close();
+  }
+  await rename(provisorio, join(dir, nome));
+  const d = await open(dir, 'r');
+  try { await d.sync(); } finally { await d.close(); }
+}
+
 @Injectable()
 export class ArquivosService {
   private readonly dir = process.env.ARQUIVOS_DIR ?? join(process.cwd(), '.arquivos');
@@ -124,7 +148,7 @@ export class ArquivosService {
     const sha256 = createHash('sha256').update(bytes).digest('hex');
     const chave = randomUUID();
     await mkdir(this.dir, { recursive: true });
-    await writeFile(join(this.dir, chave), bytes);
+    await gravarNoDisco(this.dir, chave, bytes);
     return { chave, mime: tipo, rotulo, sha256, tamanho: bytes.length };
   }
 

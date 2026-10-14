@@ -33,7 +33,7 @@ import {
   rotuloDaArea,
 } from '../../backend/src/modules/people/atendimento-tecnico.regra';
 import { ALCANCE_POR_CARGO } from '../../backend/src/modules/identity/alcance';
-import { avaliar, avaliarDrive, TITULOS } from '../../backend/src/modules/relogio/implantacao.regra';
+import { avaliar, avaliarArquivo, avaliarDrive, TITULOS } from '../../backend/src/modules/relogio/implantacao.regra';
 import { QUEM_LE_O_QUE_MUDOU } from '../../backend/src/modules/reports/o-que-mudou.regra';
 import { TIPOS_OFFLINE, TIPOS_OFFLINE_KINDS } from '../../backend/src/modules/sync/tipos-offline';
 import { cargoNoDocumento, nomeDoArquivo as nomeDaFolha }
@@ -6028,10 +6028,14 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       backup: ok(desdeAs(2)),
       restauracao: ok(24 * 40),
       email: ok(3, 1),
+      base: ok(24 * 3),
+      copia_arquivos: ok(0.05),
     };
     return {
       agora: new Date(agora).toISOString(),
       sinais: [
+        { cod: 'arquivo_continuo', titulo: 'O arquivo contínuo do banco',
+          ...avaliarArquivo({ ligado: true, ultimoArquivado: antes(0.01), ultimaFalha: null, falhas: 0 }, agora) },
         ...TITULOS.map(([cod, titulo]) => ({ cod, titulo, ...avaliar(cod, eventos[cod], agora) })),
         { cod: 'drive', titulo: 'A fila do Drive',
           ...avaliarDrive({ aguardando: 2, falhou: 0, maisAntigoAguardando: antes(1), ultimoEnviado: antes(0.5) }, agora) },

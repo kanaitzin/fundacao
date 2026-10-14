@@ -1,7 +1,7 @@
 import { ForbiddenException, Inject, Injectable } from '@nestjs/common';
 import { DatabaseService } from '../../kernel/database/database.service';
 import { AuthenticatedUser } from '../../kernel/contracts';
-import { avaliar, avaliarDrive, TITULOS, type Evento, type Sinal } from './implantacao.regra';
+import { avaliar, avaliarArquivo, avaliarDrive, TITULOS, type Evento, type Sinal } from './implantacao.regra';
 
 /**
  * A SAÚDE DA IMPLANTAÇÃO (fase 185, ideia 9 de 30/09).
@@ -16,7 +16,7 @@ import { avaliar, avaliarDrive, TITULOS, type Evento, type Sinal } from './impla
  * de novo, na função.
  */
 export type { Sinal, EstadoDoSinal } from './implantacao.regra';
-export { avaliar, avaliarDrive } from './implantacao.regra';
+export { avaliar, avaliarArquivo, avaliarDrive } from './implantacao.regra';
 
 @Injectable()
 export class ImplantacaoService {
@@ -28,9 +28,13 @@ export class ImplantacaoService {
       throw new ForbiddenException('A saúde da implantação é do Gestor Geral e da Coordenação Geral.');
     }
     const r = await this.db.asUser(user.id, (c) => c.query('SELECT app_saude_da_implantacao() AS s'));
-    const s = r.rows[0].s as { agora: string; eventos: Record<string, Evento>; drive: Parameters<typeof avaliarDrive>[0] };
+    const s = r.rows[0].s as { agora: string; eventos: Record<string, Evento>; drive: Parameters<typeof avaliarDrive>[0];
+      arquivo: Parameters<typeof avaliarArquivo>[0] };
     const agora = new Date(s.agora).getTime();
-    const sinais: Sinal[] = TITULOS.map(([cod, titulo]) => ({ cod, titulo, ...avaliar(cod, s.eventos[cod], agora) }));
+    const sinais: Sinal[] = [
+      { cod: 'arquivo_continuo', titulo: 'O arquivo contínuo do banco', ...avaliarArquivo(s.arquivo, agora) },
+      ...TITULOS.map(([cod, titulo]) => ({ cod, titulo, ...avaliar(cod, s.eventos[cod], agora) })),
+    ];
     sinais.push({ cod: 'drive', titulo: 'A fila do Drive', ...avaliarDrive(s.drive, agora) });
     return { agora: s.agora, sinais };
   }
