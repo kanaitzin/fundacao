@@ -227,7 +227,20 @@ const TAREFAS = [
     cargo: 'equipe_tecnica', secao: '3.8',
     nome: 'Os contatos de quem aparece pela criança',
     caminho: [{ aba: 'Acolhidos' }, { clicar: /Alice/ }],
-    procurar: [/quem aparece por/i, /acrescentar contato/i],
+    procurar: [/quem aparece por/i, /acrescentar contato/i, /Corrigir/],
+  },
+  {
+    cargo: 'equipe_tecnica', secao: '3.13.1',
+    nome: 'A guia e o relatório de acolhimento na área restrita',
+    caminho: [{ aba: 'Acolhidos' }, { clicar: /Alice/ }, { abaDoPerfil: 'Judiciário' },
+              { clicar: /Abrir a área restrita/ }],
+    procurar: [/Documentos da área restrita/i, /Relatório de acolhimento/],
+  },
+  {
+    cargo: 'equipe_tecnica', secao: '3.13.2',
+    nome: 'O atendimento da psicóloga, com o desenho',
+    caminho: [{ aba: 'Acolhidos' }, { clicar: /Alice/ }, { abaDoPerfil: 'Atendimentos' }],
+    procurar: [/Registrar atendimento da equipe técnica/, /Psicologia/],
   },
 
   // ------------------------------------------------ 5.11 e 5.12 — coordenação
@@ -358,6 +371,12 @@ const TAREFAS = [
     nome: 'O que a equipe sinalizou como estoque baixo',
     caminho: [{ mais: 'Saúde' }, { clicar: /^Estoque$/ }],
     procurar: [/sinalizado por gente|baixo/i],
+  },
+  {
+    cargo: 'enfermagem', secao: '4.8.1',
+    nome: 'O laudo junto da alergia, e as receitas dos remédios',
+    caminho: [{ aba: 'Acolhidos' }, { clicar: /Alice/ }, { abaDoPerfil: 'Saúde' }],
+    procurar: [/Anexar laudo ou receita/, /Remédios e receitas/i],
   },
 
   /* --------------------------------------- 88: o retorno que a equipe seguinte lê
@@ -511,6 +530,15 @@ async function andar(passo) {
     }
     await porta.first().click();
     await pg.waitForTimeout(1200);
+    return null;
+  }
+  /* A ABA DO PERFIL (fase 208), pelo papel de aba: o texto do botão traz a cor
+     e o desenho antes do nome, e o nome se repete dentro das abas. */
+  if (passo.abaDoPerfil) {
+    const t = pg.locator('main.conteudo nav.abas-perfil [role=tab]', { hasText: passo.abaDoPerfil });
+    if (!(await t.count())) return `não achei a aba do perfil "${passo.abaDoPerfil}"`;
+    await t.first().click();
+    await pg.waitForTimeout(800);
     return null;
   }
   if (passo.clicar) {

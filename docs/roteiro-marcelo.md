@@ -81,6 +81,16 @@ Leitura recomendada antes da aplicação, para quem conduz.
   acompanhante), com motivo, autor e desde quando. A portaria vê o que vale, sem o motivo.
 - A portaria tem acesso próprio, com a relação de visitantes autorizados de
   cada acolhido, a foto 3x4 e o registro de entrada e saída das visitas.
+- O contato de quem aparece pela criança se corrige pelo botão *Corrigir*, com o
+  motivo, e o que constava antes fica guardado. Encerrar continua sendo para quem
+  deixou de fazer parte da vida da criança.
+- A área restrita do Judiciário guarda os documentos dela: a guia, as decisões e
+  o relatório de acolhimento, em PDF ou fotografados pela câmera.
+- Na aba Saúde do perfil, cada alergia, condição e restrição alimentar recebe o
+  laudo ou a receita, e os remédios da criança aparecem com as receitas.
+- A equipe técnica registra o atendimento da criança (psicologia, psicopedagogia,
+  serviço social) com os arquivos, como o desenho feito na sessão. Leem a equipe
+  técnica, a coordenação e a gestão.
 
 **Gestão**
 
@@ -310,9 +320,11 @@ este cargo em 31/08; vale observar se ela espera encontrá-la.
    são recusadas, e a reação dela a isso é o que se observa.)*
 
 8. **Atualize os contatos da Rayssa: a madrinha mudou de telefone.**
-   Observar: ela encontra *Quem aparece por…*? Entende que o contato antigo é
-   encerrado com motivo, e não apagado? Repara na marca de aproximação restrita,
-   e o que comenta sobre ela?
+   Observar: ela encontra *Quem aparece por…* e o botão *Corrigir* no contato, ou
+   encerra o contato e cadastra de novo? Repara que a correção pede o motivo e que
+   o telefone anterior fica em *Correções anteriores*? Entende que encerrar é para
+   quem deixou de fazer parte da vida da criança, com motivo, e não para mudar um
+   número? Repara na marca de aproximação restrita, e o que comenta sobre ela?
 
 10. **A psicóloga desmarcou o atendimento desta quarta. O da semana que vem
     continua valendo.**
@@ -350,6 +362,22 @@ este cargo em 31/08; vale observar se ela espera encontrá-la.
     restrita, não tem o botão? Pergunte: *se o tio chegar à portaria, o que a
     portaria sabe?* A relação da portaria não lista quem não entra, e a resposta
     dela ajuda na pergunta 6 da seção 8.
+
+13.1. **Chegaram a guia de acolhimento e o relatório de quando a Alice veio
+    para a casa. Guarde os dois no sistema.**
+    Observar: ela procura no Judiciário e abre a área restrita? Encontra os
+    documentos logo abaixo da situação judicial, com o item *Relatório de
+    acolhimento*? Fotografa o papel pela câmera ou anexa o PDF? Repara que o
+    documento entra ainda por conferir? Pergunte: *quem mais, na casa, deveria
+    poder abrir estes documentos?*
+
+13.2. **A psicóloga atendeu a Alice hoje, e ela fez um desenho da família.
+    Registre o atendimento com o desenho.**
+    Observar: ela encontra *Registrar atendimento da equipe técnica* na aba
+    Atendimentos do perfil? Escolhe a área, escreve o que foi trabalhado e
+    fotografa o desenho? Repara que o atendimento não se edita depois? Pergunte:
+    *quem da casa deveria ler este registro? O educador deveria saber ao menos
+    que houve atendimento?* A resposta vai para a pergunta 4.24 da reunião.
 
 14. **Pergunte ao final:** *o que faltou neste documento para você levar a uma
     audiência?*
@@ -389,6 +417,13 @@ Atende as oito casas. É o cargo com mais mudanças desde 28/08.
    Observar: ela encontra os itens sinalizados? Se procurar um mínimo
    calculado, anote a frase. Pergunte se ela concorda com a sinalização feita
    pela equipe ou se prefere um cálculo automático, e por quê.
+
+8.1. **A Alice voltou da consulta com o laudo da alergia ao amendoim. Guarde o
+   laudo junto da alergia.**
+   Observar: ela vai ao perfil, na aba Saúde, e encontra *Anexar laudo ou
+   receita* ao lado da alergia, ou procura no dossiê? Depois, encontra a receita
+   de um remédio da Alice em *Remédios e receitas*, no mesmo lugar? Pergunte:
+   *o educador de plantão deveria poder abrir este laudo?*
 
 9. **Pergunte ao final:** *em que momento do seu dia você abriria isto?*
 

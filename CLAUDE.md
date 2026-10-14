@@ -268,7 +268,9 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 DUAS condições de relógio, rodadas inteiras; na 218, o `ensaio:uso` inteiro (com os blocos
 215 a 218), o do celular (306 telas, sem achado), o de acessibilidade (1256 telas, nenhuma
 violação), o `ensaio:acolhe` (todas as telas e formulários de todos os cargos, por texto e por voz) e a simulação da Casa 03 em trinta dias contra o servidor de verdade, sem achado, com
-a técnica registrando o atendimento e anexando o laudo pela tela, conferidos no banco; na 214,
+a técnica registrando o atendimento e anexando o laudo pela tela, conferidos no banco; e, no
+fechamento, o `ensaio`, o `largo`, o `fila`, o `folhas`, o `uso-celular` e o `roteiro` (52
+tarefas, as três novas de 14/10 incluídas), os dez verdes; na 214,
 o `ensaio:uso`, o `roteiro` e o `fila` verdes sobre o protótipo novo, e na 213 o `uso`, o do celular e o de acessibilidade (1256 telas,
 nenhuma violação), mais a simulação contra o servidor. **Da 212:** o `ensaio:uso-celular` e o
 `ensaio:acolhe` com todas as telas de todos os cargos por texto e por voz e todos os formulários
@@ -278,7 +280,7 @@ temas) sem violação de WCAG 2.1 AA**; e o `ensaio`, o `largo`, o `fila`, o `fo
 `roteiro` verdes (os dez). O `roteiro` não rodava desde a 207 e reprovava em cinco tarefas:
 não passava pelas abas do perfil (208) e procurava os nomes de antes da 207; o roteiro da
 Casa 03 dizia *sai sozinho* onde a tela diz *sem acompanhante* (corrigido, Word regerado).
-**Não rodou nesta fase** a simulação contra o servidor. Nenhuma
+**Na 212 não rodou** a simulação contra o servidor. Nenhuma
 rota sem teste; nenhuma rota — escrita ou leitura — com 500; **250 leituras sondadas
 pela Casa 04 com registro real da Casa 03, sem achado; cerca de 170 rotas de escrita, sem linha
 da Casa 03 mudada**; nenhum ouvinte
@@ -354,7 +356,9 @@ da alergia, da condição e da restrição, e os remédios dela aparecem no perf
 receitas (217, `AnexosDoRegistroDeSaude`, `RemediosEReceitas`); e a equipe técnica registra
 o atendimento com o desenho, que entra como fonte restrita do acompanhamento (218,
 `technical_session`, regra em `atendimento-tecnico.regra.ts`). **Depende da Fundação:**
-quem lê o atendimento técnico (escolhi técnica, coordenação e gestão). **Anexo novo no
+quem lê o atendimento técnico (escolhi técnica, coordenação e gestão). **O roteiro da Casa 03
+acompanhou:** a tarefa 3.8 esperava encerrar e recadastrar o contato e agora espera o
+*Corrigir*, e entraram a 3.13.1, a 3.13.2 e a 4.8.1 (Word regerado). **Anexo novo no
 perfil** vai pelo dossiê quando é documento da criança, e por tabela própria só quando
 pertence a um registro que não é documento (o atendimento). **Próxima etapa:** o roteiro
 com a equipe e a implantação do §12; se vier código, pedido novo.
