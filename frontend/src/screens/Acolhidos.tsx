@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { FolhaDocumento, entregarArquivo } from '../documentos';
-import { Dossie } from './Dossie';
+import { Dossie, DocumentosDaCategoria } from './Dossie';
 import { api, ErroApi } from '../api';
 import { Cadastro } from './Cadastro';
 import { VINCULO, FolhaDoRelato, RelatoDaConvivencia } from '../convivencias';
@@ -1438,9 +1438,8 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
             <div className="notice c-warn" role="status">
               <b>Sem motivo judicial cadastrado.</b>
               <div>
-                Esta criança está acolhida e o sistema não sabe por quê. É a lacuna que
-                reaparece na primeira audiência — o cadastro completo, pela equipe técnica,
-                é o que a fecha.
+                O motivo do acolhimento ainda não foi registrado. A equipe técnica completa o
+                cadastro, e os documentos de quando a criança chegou podem ser anexados abaixo.
               </div>
             </div>
           )}
@@ -1486,6 +1485,17 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
                 </button>
               )}
             </>
+          )}
+          {/* Os documentos da área restrita (fase 216, pedido de 14/10): a guia, a
+              decisão, o relatório de quando a criança chegou e o que mais a equipe
+              técnica precisar guardar, em PDF ou digitalizado, na mesma pasta do dossiê. */}
+          {(judicial || semJudicial) && (
+            <div style={{ marginTop: 14 }}>
+              <DocumentosDaCategoria personId={p.id} categoria="judicial_socioassistencial"
+                titulo="Documentos da área restrita"
+                explicacao="A guia, as decisões, o relatório de acolhimento e o que mais a equipe técnica guardar. Cada arquivo aberto fica registrado."
+                podeAnexar={VE_JUDICIAL.includes(papel)} />
+            </div>
           )}
         </Secao>
       )}

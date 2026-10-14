@@ -4365,8 +4365,12 @@ const FINALIDADES_RESUMO = [
   'consulta', 'exame', 'urgencia', 'internacao', 'transferencia_assistencial',
 ];
 
-class Recusa extends Error {
-  constructor(readonly status: number, message: string) { super(message); }
+/* A recusa do servidor de mentira é a mesma do servidor de verdade: a tela
+   que distingue o 404 (campo ainda não preenchido) do resto distingue aqui
+   também. Até a fase 216 era um Error à parte, e a área restrita do protótipo
+   mostrava "Não encontrado" onde o sistema mostra o que falta preencher. */
+class Recusa extends ErroApi {
+  constructor(status: number, message: string) { super(status, message); }
 }
 
 /*

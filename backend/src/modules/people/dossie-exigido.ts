@@ -110,6 +110,10 @@ export const DOSSIE_EXIGIDO: ItemDoDossie[] = [
   // ---------- Judicial e socioassistencial (restrito) ----------
   { chave: 'guia_acolhimento', label: 'Guia de acolhimento', categoria: 'judicial_socioassistencial',
     titulo: 'Guia de acolhimento', obrigatorio: true },
+  /* O relatório de quando a criança chegou, com o motivo e a situação (pedido de 14/10). */
+  { chave: 'relatorio_acolhimento', label: 'Relatório de acolhimento',
+    categoria: 'judicial_socioassistencial', titulo: 'Relatório de acolhimento', obrigatorio: false,
+    ajuda: 'O relatório de quando chegou: o motivo e a situação, como a equipe técnica registrou.' },
   { chave: 'decisao_judicial', label: 'Decisão judicial', categoria: 'judicial_socioassistencial',
     titulo: 'Decisão judicial', obrigatorio: false,
     ajuda: 'O TEOR não vai no título. "Decisão judicial — 04/02" basta para achar.' },

@@ -416,7 +416,7 @@ export function Dossie({ personId, nome, papel, onVoltar }: {
  */
 function FolhaAnexo({ item, catalogo, onFechar, onEnviar }: {
   item: ItemDoDossie; catalogo: Catalogo; onFechar: () => void;
-  onEnviar: (d: { chave: string; categoria: string; titulo: string; conteudo: string;
+  onEnviar: (d: { chave?: string; categoria: string; titulo: string; conteudo: string;
                   nomeArquivo: string; emitidoEm?: string; validoAte?: string }) => void;
 }) {
   const [arquivo, setArquivo] = useState<Escolhido | null>(null);
@@ -452,7 +452,7 @@ function FolhaAnexo({ item, catalogo, onFechar, onEnviar }: {
         <div className="notice c-info">{catalogo.aviso}</div>
 
         <label className="f" htmlFor="anx-arq-arquivo">
-          O arquivo <small>— {catalogo.aceitos.join(', ')}, até {tam(catalogo.tamanhoMaximo)}</small>
+          O arquivo <small>({catalogo.aceitos.join(', ')}, até {tam(catalogo.tamanhoMaximo)})</small>
         </label>
         {/* A câmera do sistema e o documento digitalizado em PDF (fase 194): a
             certidão de duas folhas vira UM documento, e não duas fotos. */}
@@ -461,7 +461,7 @@ function FolhaAnexo({ item, catalogo, onFechar, onEnviar }: {
           maximoMb={Math.floor(catalogo.tamanhoMaximo / 1048576)} />
 
         <label className="f" htmlFor="anx-tit">
-          Título <small>— sem CPF, diagnóstico ou teor de decisão</small>
+          Título <small>(sem CPF, diagnóstico ou teor de decisão)</small>
         </label>
         <input id="anx-tit" value={titulo}
                onChange={(e) => { setTitulo(e.target.value); conferirTitulo(e.target.value); }} />
@@ -469,7 +469,7 @@ function FolhaAnexo({ item, catalogo, onFechar, onEnviar }: {
 
         <div className="row" style={{ gap: 10, alignItems: 'flex-end' }}>
           <div className="grow">
-            <label className="f" htmlFor="anx-em">Data <small>— opcional</small></label>
+            <label className="f" htmlFor="anx-em">Data <small>(opcional)</small></label>
             <input id="anx-em" type="date" value={emitidoEm}
                    onChange={(e) => setEmitidoEm(e.target.value)} />
           </div>
@@ -485,11 +485,11 @@ function FolhaAnexo({ item, catalogo, onFechar, onEnviar }: {
         <div className="row rodape">
           <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
           <button className="btn grow" disabled={!pode} onClick={() => onEnviar({
-            chave: item.chave, categoria: item.categoria, titulo: titulo.trim(),
+            chave: item.chave || undefined, categoria: item.categoria, titulo: titulo.trim(),
             conteudo: arquivo!.dataUrl, nomeArquivo: arquivo!.nome,
             emitidoEm: emitidoEm || undefined, validoAte: validoAte || undefined,
           })}>
-            É o {item.label} — anexar
+            {item.chave ? `É o ${item.label}: anexar` : 'Anexar'}
           </button>
         </div>
       </div>
@@ -575,7 +575,7 @@ function FolhaConferencia({ personId, documento, onFechar, onAceitar }: {
               Este arquivo ainda não foi conferido. Olhe a prévia: é <b>este documento</b>, é
               <b> desta criança</b>, e está legível? O aceite fica com o seu nome e o horário.
             </div>
-            <label className="f" htmlFor="conf-nota">Observação <small>— opcional</small></label>
+            <label className="f" htmlFor="conf-nota">Observação <small>(opcional)</small></label>
             <input id="conf-nota" value={nota} onChange={(e) => setNota(e.target.value)}
                    placeholder="Ex.: legível; a segunda via chegou pela escola." />
             <div className="row rodape">
@@ -900,5 +900,117 @@ function QuemApareceNaFoto({ personId, foto, papel, onMudou }: {
       )}
       {msg && <div className="notice c-info" role="status">{msg}</div>}
     </div>
+  );
+}
+
+/**
+ * OS DOCUMENTOS DE UMA CATEGORIA, FORA DO DOSSIÊ (fase 216, pedido de 14/10).
+ *
+ * A pasta é a mesma do dossiê: a mesma lista do que a casa precisa ter, a mesma
+ * conferência, o mesmo arquivo aberto pelo servidor e registrado. O que muda é
+ * ONDE ela aparece: o judicial dentro da área restrita do Judiciário, a saúde
+ * junto do que protege a criança. E além da lista, qualquer outro documento da
+ * categoria entra avulso, com o título que a equipe der.
+ */
+export function DocumentosDaCategoria({ personId, categoria, titulo, explicacao, podeAnexar }: {
+  personId: string; categoria: string; titulo: string; explicacao?: string; podeAnexar: boolean;
+}) {
+  const [dossie, setDossie] = useState<Dossie | null>(null);
+  const [catalogo, setCatalogo] = useState<Catalogo | null>(null);
+  const [anexando, setAnexando] = useState<ItemDoDossie | null>(null);
+  const [abrindo, setAbrindo] = useState<DocumentoDoDossie | null>(null);
+  const [erro, setErro] = useState('');
+  const [aviso, setAviso] = useState('');
+
+  async function carregar() {
+    try {
+      const [d, c] = await Promise.all([
+        api<Dossie>(`/people/${personId}/dossie`), api<Catalogo>('/people/dossie/catalogo')]);
+      setDossie(d); setCatalogo(c);
+    } catch (e) { setErro(e instanceof Error ? e.message : 'Não foi possível abrir os documentos.'); }
+  }
+  useEffect(() => { void carregar(); }, [personId]);
+
+  const cat = dossie?.categorias.find((c) => c.code === categoria);
+  const avulsos = (dossie?.avulsos ?? []).filter((d) => d.categoria === categoria);
+  const avulso: ItemDoDossie = { chave: '', label: 'Outro documento', categoria, titulo: '',
+    obrigatorio: false, documentos: [], situacao: 'falta' };
+
+  const linhaDoDocumento = (d: DocumentoDoDossie) => (
+    <li key={d.id} className="row" style={{ justifyContent: 'space-between', gap: 8 }}>
+      <div className="grow">
+        <b className="ff">{d.titulo}</b>
+        <div className="mutetxt">
+          {d.arquivo?.nome ?? 'sem arquivo'} · anexado por {d.anexadoPor} em {dia(String(d.anexadoEm).slice(0, 10))}
+          {d.aceitoEm ? ` · conferido por ${d.aceitoPor}` : ' · ainda não conferido'}
+        </div>
+      </div>
+      {d.arquivo && (
+        <button className="btn sm sec" onClick={() => setAbrindo(d)} aria-label={`Abrir ${d.titulo}`}>Abrir</button>
+      )}
+    </li>
+  );
+
+  return (
+    <section className="documentos-da-categoria" aria-label={titulo}>
+      <div className="eyebrow">{titulo}</div>
+      {explicacao && <p className="mutetxt" style={{ marginTop: 0 }}>{explicacao}</p>}
+      {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+      {aviso && <div className="notice c-ok" role="status">{aviso}</div>}
+      {!dossie && !erro && <p className="mutetxt">Abrindo os documentos…</p>}
+      {cat && (
+        <ul className="lista">
+          {cat.itens.map((i) => (
+            <li key={i.chave}>
+              <div className="row" style={{ justifyContent: 'space-between', gap: 8 }}>
+                <div className="grow">
+                  <b className="ff">{i.label}</b>{i.obrigatorio ? <small className="mutetxt"> · a casa precisa ter</small> : null}
+                  {i.ajuda && <div className="mutetxt">{i.ajuda}</div>}
+                </div>
+                <span className={`pill ${TOM_SITUACAO[i.situacao]}`}>{ROTULO_SITUACAO[i.situacao]}</span>
+                {podeAnexar && (
+                  <button data-acolhe-abre="" className="btn sm sec" aria-label={`Anexar ${i.label}`}
+                          onClick={() => setAnexando(i)}>Anexar</button>
+                )}
+              </div>
+              {i.documentos.length > 0 && <ul className="lista">{i.documentos.map(linhaDoDocumento)}</ul>}
+            </li>
+          ))}
+        </ul>
+      )}
+      {avulsos.length > 0 && (
+        <>
+          <div className="mutetxt" style={{ marginTop: 8 }}>Outros documentos</div>
+          <ul className="lista">{avulsos.map(linhaDoDocumento)}</ul>
+        </>
+      )}
+      {podeAnexar && dossie && (
+        <button data-acolhe-abre="" className="btn sec block" style={{ marginTop: 8 }} onClick={() => setAnexando(avulso)}>
+          <Icone nome="anexo" /> Anexar outro documento
+        </button>
+      )}
+
+      {anexando && catalogo && (
+        <FolhaAnexo item={anexando} catalogo={catalogo} onFechar={() => setAnexando(null)}
+          onEnviar={async (dados) => {
+            setErro(''); setAviso('');
+            try {
+              await api(`/people/${personId}/documents`, { method: 'POST', body: JSON.stringify(dados) });
+              setAnexando(null); setAviso('Documento anexado. Falta alguém conferir.');
+              await carregar();
+            } catch (e) { setErro(e instanceof Error ? e.message : 'Não foi possível anexar o documento.'); }
+          }} />
+      )}
+      {abrindo && (
+        <FolhaConferencia personId={personId} documento={abrindo} onFechar={() => setAbrindo(null)}
+          onAceitar={async (nota) => {
+            setErro('');
+            try {
+              await api(`/people/${personId}/documents/${abrindo.id}/accept`, { method: 'POST', body: JSON.stringify({ nota }) });
+              setAbrindo(null); await carregar();
+            } catch (e) { setErro(e instanceof Error ? e.message : 'Não foi possível conferir o documento.'); }
+          }} />
+      )}
+    </section>
   );
 }

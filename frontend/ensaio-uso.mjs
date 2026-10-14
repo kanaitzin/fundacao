@@ -4133,6 +4133,36 @@ console.log('\n👪 Corrigir um familiar, com o antes guardado (fase 215)');
   await pgK.close();
 }
 
+console.log('\n🗂️ Os documentos na área restrita do Judiciário (fase 216)');
+{
+  const pgJ = await navegador.newPage({ viewport: { width: 1366, height: 900 } });
+  const errosJ = [];
+  pgJ.on('pageerror', (e) => errosJ.push(e.message));
+  const esp = (ms = 800) => pgJ.waitForTimeout(ms);
+  await pgJ.goto(`file://${ARQUIVO}`); await esp(700);
+  await pgJ.getByRole('button', { name: 'Marcelo Barbosa', exact: true }).click();
+  await pgJ.getByRole('button', { name: /Entrar no sistema/i }).click(); await esp(1200);
+  cargoAtual = 'equipe_tecnica';
+  await pgJ.locator('select.troca-cargo-sel').selectOption('equipe_tecnica'); await esp(900);
+  await pgJ.getByRole('button', { name: /^Acolhidos/ }).filter({ visible: true }).first().click(); await esp(900);
+  await pgJ.locator('.pessoa-cartao').filter({ hasText: 'Alice' }).first().click(); await esp(1200);
+  await pgJ.getByRole('tab', { name: /Judiciário/ }).click(); await esp(800);
+  await pgJ.getByRole('button', { name: 'Abrir a área restrita' }).click(); await esp(1200);
+  const bloco = pgJ.locator('section.documentos-da-categoria');
+  cobrar('a área restrita aberta mostra os documentos, com o relatório de acolhimento',
+    (await bloco.count()) > 0 && /Relatório de acolhimento/.test(await bloco.innerText()));
+  await bloco.getByRole('button', { name: 'Anexar Relatório de acolhimento' }).click(); await esp(500);
+  const pdf = Buffer.from('%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF');
+  await pgJ.locator('#anx-arq-arquivo').setInputFiles({ name: 'relatorio.pdf', mimeType: 'application/pdf', buffer: pdf }); await esp(600);
+  await pgJ.locator('.overlay').getByRole('button', { name: /anexar/i }).last().click(); await esp(1000);
+  const depois = await bloco.innerText();
+  cobrar('o relatório anexado aparece, ainda por conferir', /relatorio\.pdf/.test(depois) && /ainda não conferido/.test(depois), depois.slice(0, 300));
+  await bloco.getByRole('button', { name: /^Abrir Relatório de acolhimento/ }).first().click(); await esp(900);
+  cobrar('e abre para conferir', /Conferir|Documento/.test(await pgJ.locator('.overlay').innerText()));
+  cobrar('nenhuma exceção nos documentos do Judiciário', errosJ.length === 0, errosJ[0]);
+  await pgJ.close();
+}
+
 await navegador.close();
 console.log(achados.length
   ? `\n${achados.length} ACHADO(S):\n  ${achados.join('\n  ')}`

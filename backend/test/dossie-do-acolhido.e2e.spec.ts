@@ -261,6 +261,26 @@ describe('O dossiê do acolhido', () => {
     expect(abrir.status).toBe(404);
   });
 
+  it('o relatório de acolhimento é item da área restrita, anexado pela técnica (fase 216)', async () => {
+    const cat = await request(http).get('/api/v1/people/dossie/catalogo').set(auth(tokens.tecnica)).expect(200);
+    const item = cat.body.itens.find((i: any) => i.chave === 'relatorio_acolhimento');
+    expect(item).toMatchObject({ categoria: 'judicial_socioassistencial', obrigatorio: false });
+
+    const rel = await anexar(tokens.tecnica, {
+      chave: 'relatorio_acolhimento', categoria: 'judicial_socioassistencial',
+      titulo: 'Relatório de acolhimento', nomeArquivo: 'relatorio.pdf', conteudo: PDF,
+    });
+    expect(rel.status).toBe(201);
+
+    // A coordenação vê o item preenchido na área restrita; o educador nem a categoria.
+    const daCoord = await dossie(tokens.coord);
+    const judicial = daCoord.categorias.find((c: any) => c.code === 'judicial_socioassistencial');
+    expect(judicial.itens.find((i: any) => i.chave === 'relatorio_acolhimento').documentos.map((d: any) => d.id))
+      .toContain(rel.body.id);
+    const doEducador = await dossie(tokens.educador);
+    expect(doEducador.categorias.map((c: any) => c.code)).not.toContain('judicial_socioassistencial');
+  });
+
   // ==================== O álbum de vivências ====================
 
   it('a vivência sem foto entra, e pede que se escreva o que aconteceu', async () => {
