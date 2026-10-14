@@ -92,8 +92,8 @@ discordavam entre si.
 | **19 partições** isoladas | pastas em `backend/src/modules/` |
 | **197 migrações** | `.sql` dentro das partições |
 | **139 tabelas** | `CREATE TABLE` nas migrações |
-| **146 suítes** | `backend/test/*.spec.ts` |
-| **1303 testes** | `it(` / `test(` nas suítes |
+| **147 suítes** | `backend/test/*.spec.ts` |
+| **1308 testes** | `it(` / `test(` nas suítes |
 | **39 telas React** | `frontend/src/screens/*.tsx` |
 | **10 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **10 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
@@ -545,7 +545,7 @@ rede-acolher/
 │   │   │   ├── documentos/     o contrato da folha e o gerador de .docx
 │   │   │   └── common/         CPF, criptografia, segredo, fuso da instituição
 │   │   └── modules/       19 partições, cada uma dona das próprias migrações
-│   ├── test/              146 suítes (e2e contra PostgreSQL real + estáticas)
+│   ├── test/              147 suítes (e2e contra PostgreSQL real + estáticas)
 │   ├── scripts/           ensaio-carga.ts, migrador compilado
 │   └── assets/timbre.png  a marca da Fundação, usada no documento em Word
 ├── frontend/

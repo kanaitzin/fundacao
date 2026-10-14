@@ -268,7 +268,7 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 220 | **nada se perde no servidor do Pão** (pedido de 14/10): o arquivo contínuo do banco (`arquivar-wal.sh`, `postgresql-do-servidor.conf`, um minuto no máximo), a base semanal conferida (`base-do-banco.sh`), a volta a qualquer minuto (`restaurar-ponto-no-tempo.sh`) e a cópia das fotos de cinco em cinco minutos (`copiar-arquivos.sh`), provados pelo `ensaio:ponto-no-tempo`; o arquivo guardado agora vai ao disco antes da resposta (`gravarNoDisco`); três sinais novos na Implantação (relogio/1657) |
 | 221 | **o perfil como ferramenta de trabalho** (pedido de 14/10): abre na **Geral** (idade, casa, tempo de acolhimento, escola, PIA, família, cuidados); a aba Hoje e o remédio de hoje saíram (o dia é do Dia e da ATA); **Dia a dia** para consultar; **Atendimentos** só da equipe técnica, linear, o mais novo em cima; os números de cada aba por `GET /reports/acolhido/:id/numeros` |
 
-**Medido no fim da 221:** 197 migrações, 139 tabelas, 146 suítes, 1303 testes, verdes nas
+**Medido no fim da 221:** 197 migrações, 139 tabelas, 147 suítes, 1308 testes, verdes nas
 DUAS condições de relógio, rodadas inteiras (na 219, a espera pela linha travada não se mede
 sob o relógio adiantado: o banco ali não tem temporizador); na 220, o `ensaio:ponto-no-tempo`
 (arquivo contínuo, base conferida, volta a um minuto do meio e ao fim, cópia que só acrescenta); e na 219 a simulação da Casa 03
