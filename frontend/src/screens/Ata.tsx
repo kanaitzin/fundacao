@@ -1232,9 +1232,9 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
                   <>
                     {faltam > 0 && (
                       <div className="notice c-warn">
-                        {faltam === 1 ? 'Falta 1 passagem' : `Faltam ${faltam} passagens`}. O
-                        sistema não assina no lugar de ninguém: ou a pessoa assina, ou a ATA
-                        fecha <b>com pendência</b>.
+                        {faltam === 1 ? 'Falta 1 passagem' : `Faltam ${faltam} passagens`}. Peça a
+                        quem falta para assinar, ou feche a ATA <b>com pendência</b>, escrevendo o
+                        que faltou.
                       </div>
                     )}
                     <button className="btn block" onClick={() => setFechando('casa')}>

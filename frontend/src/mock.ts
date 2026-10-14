@@ -11627,7 +11627,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     const pendencias = String(b.pendencias ?? '').trim();
     if (faltam.length && !pendencias) {
       return new Recusa(400, `Falta a passagem de ${faltam.map((f) => f.quem).join(', ')}. `
-        + 'O sistema não assina no lugar de ninguém: feche com pendência, dizendo o que faltou.');
+        + 'Peça para a pessoa assinar, ou feche com pendência, escrevendo o que faltou.');
     }
     a.status = 'fechada';
     a.pendencias = pendencias || null;

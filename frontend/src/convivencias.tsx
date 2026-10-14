@@ -90,8 +90,7 @@ export function ConvivenciasDoTurno({ lista, titulo }: {
       {voltaram > 0 && (
         <div className="mutetxt">
           {voltaram === 1 ? 'Uma criança voltou' : `${voltaram} crianças voltaram`} neste
-          turno. O que veio escrito aqui é o que quem recebeu observou — não é avaliação
-          dela.
+          turno. Aqui está o que quem a recebeu observou na chegada.
         </div>
       )}
       <ul className="lista">
