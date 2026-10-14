@@ -49,7 +49,7 @@
   196 também dentro do perfil da criança (*quero registrar a alergia do Bruno*), do dossiê, da
   internação aberta e do acervo: os 36 formulários do sistema. **Para o DPO:**
   o ditado usa o reconhecimento do navegador; no Chrome, o áudio vai ao Google.
-- **215 fases.** 144 suítes e 1282 testes, verdes em duas condições de relógio —
+- **215 fases.** 145 suítes e 1288 testes, verdes em duas condições de relógio —
   antes e depois da virada do UTC, que em Porto Alegre é às 21h.
 - **O aviso no celular** (fase 189, decidido em 06/10): quem liga na Minha conta
   recebe no celular todos os avisos do sino, mesmo com o sistema fechado. Na
@@ -543,6 +543,22 @@ paleta de 48), e a equipe abre cada uma com um toque. **Quem define, escolhi eu:
 coordenação, a equipe técnica e o Líder Diurno, as mesmas pessoas que definem o horário
 dos turnos. Se a Fundação quiser que o educador também mude, ou só a coordenação, é uma
 linha. E a cor diz só qual é a chamada: se ela foi feita quem diz é a etiqueta de sempre.
+
+## 4.24 Os arquivos no perfil: Judiciário, saúde e atendimentos (fases 215 a 218, pedido de 14/10)
+
+Os familiares agora se corrigem (215), a área restrita do Judiciário guarda os documentos
+(216), o laudo e a receita ficam junto da alergia, da restrição e do remédio (217), e a
+equipe técnica registra o atendimento com o desenho ou a folha da atividade (218). Três
+escolhas foram minhas e cada uma é uma linha:
+
+- **Quem lê o atendimento da equipe técnica:** a equipe técnica, a coordenação e a
+  gestão. O plantão e a Enfermagem não leem. Se a Fundação quiser que o educador saiba
+  ao menos que houve atendimento naquele dia, sem o conteúdo, dá para acrescentar.
+- **Quem registra:** a equipe técnica e a coordenação. O atendimento não se edita
+  depois; o que ficou errado se completa com outro registro, e os dois ficam.
+- **O laudo da alergia é lido por quem abre a pasta da saúde**, o educador também,
+  como os outros documentos de saúde. Quem anexa é a Enfermagem, a técnica e a
+  coordenação.
 
 ## 5. As decisões que são do Marcelo *(§10 — responda pelo número)*
 

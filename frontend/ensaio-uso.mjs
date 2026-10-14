@@ -4213,6 +4213,51 @@ console.log('\n🩺 O laudo junto da alergia, e as receitas dos remédios no per
   await pgS.close();
 }
 
+console.log('\n🖍️ O atendimento da equipe técnica, com o desenho (fase 218)');
+{
+  const pgT = await navegador.newPage({ viewport: { width: 1366, height: 900 } });
+  const errosT = [];
+  pgT.on('pageerror', (e) => errosT.push(e.message));
+  const esp = (ms = 800) => pgT.waitForTimeout(ms);
+  await pgT.goto(`file://${ARQUIVO}`); await esp(700);
+  await pgT.getByRole('button', { name: 'Marcelo Barbosa', exact: true }).click();
+  await pgT.getByRole('button', { name: /Entrar no sistema/i }).click(); await esp(1200);
+  cargoAtual = 'equipe_tecnica';
+  await pgT.locator('select.troca-cargo-sel').selectOption('equipe_tecnica'); await esp(900);
+  await pgT.getByRole('button', { name: /^Acolhidos/ }).filter({ visible: true }).first().click(); await esp(900);
+  await pgT.locator('.pessoa-cartao').filter({ hasText: 'Alice' }).first().click(); await esp(1200);
+  await pgT.getByRole('tab', { name: /Atendimentos/ }).click(); await esp(900);
+  const bloco = pgT.locator('section.atendimentos-tecnicos');
+  cobrar('a aba Atendimentos traz os da equipe técnica, com o desenho',
+    (await bloco.count()) > 0 && /Psicologia/.test(await bloco.innerText()) && /O desenho da sessão/.test(await bloco.innerText()));
+  await bloco.getByRole('button', { name: 'Abrir O desenho da sessão' }).click(); await esp(900);
+  cobrar('o desenho abre', (await pgT.locator('.overlay img').count()) > 0);
+  await pgT.locator('.overlay').getByRole('button', { name: 'Fechar' }).click(); await esp(400);
+
+  await bloco.getByRole('button', { name: 'Registrar atendimento da equipe técnica' }).click(); await esp(600);
+  const folha = pgT.locator('.overlay');
+  await folha.getByRole('button', { name: 'Psicopedagogia' }).click();
+  await folha.locator('#at-relato').fill('Atividade de leitura com jogo de palavras; a folha da atividade vai anexada.');
+  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
+  await pgT.locator('#at-arq-arquivo').setInputFiles({ name: 'atividade.png', mimeType: 'image/png', buffer: png }); await esp(700);
+  await folha.getByRole('button', { name: 'Pôr no atendimento' }).click(); await esp(300);
+  await folha.getByRole('textbox', { name: 'O que é atividade.png' }).fill('A folha da atividade');
+  await folha.getByRole('button', { name: 'Registrar o atendimento' }).click(); await esp(1200);
+  const depois = await bloco.innerText();
+  cobrar('o atendimento novo aparece, com a folha da atividade',
+    /Psicopedagogia/.test(depois) && /A folha da atividade/.test(depois) && /Atendimento registrado/.test(depois), depois.slice(0, 300));
+
+  // O educador não vê o bloco.
+  cargoAtual = 'educador';
+  await pgT.locator('select.troca-cargo-sel').selectOption('educador'); await esp(900);
+  await pgT.getByRole('button', { name: /^Acolhidos/ }).filter({ visible: true }).first().click(); await esp(900);
+  await pgT.locator('.pessoa-cartao').filter({ hasText: 'Alice' }).first().click(); await esp(1200);
+  await pgT.getByRole('tab', { name: /Atendimentos/ }).click(); await esp(900);
+  cobrar('o educador não vê os atendimentos da equipe técnica', (await pgT.locator('section.atendimentos-tecnicos').count()) === 0);
+  cobrar('nenhuma exceção no atendimento da equipe técnica', errosT.length === 0, errosT[0]);
+  await pgT.close();
+}
+
 await navegador.close();
 console.log(achados.length
   ? `\n${achados.length} ACHADO(S):\n  ${achados.join('\n  ')}`

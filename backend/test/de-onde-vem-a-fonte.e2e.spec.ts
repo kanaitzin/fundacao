@@ -200,7 +200,8 @@ describe('De onde vem a fonte do acompanhamento', () => {
   it('o filtro por tipo recorta sem mudar a forma da resposta', async () => {
     const r = await listar('saude');
     expect(r.status).toBe(200);
-    expect(r.body.tipos).toHaveLength(3);
+    // As quatro origens continuam na resposta: o filtro recorta os candidatos, não os tipos.
+    expect(r.body.tipos).toHaveLength(4);
     expect(r.body.candidatos.every((c: any) => c.tipo === 'saude')).toBe(true);
   });
 

@@ -119,6 +119,7 @@ Ninguém no sistema é anônimo e nada se apaga: tudo tem autor e histórico.
 - /people/contacts/kinds  tipos de vínculo
 - /people/contacts/ID/visit-history  visitas de um visitante
 - /people/contacts/ID/correcoes  as correções de um contato, com o que constava antes
+- /people/ID/technical-sessions  os atendimentos da equipe técnica com a criança (psicologia, psicopedagogia, serviço social), com a área, o dia, quem atendeu e os arquivos; só para técnica, coordenação e gestão
 - /people/credentials/kinds  tipos de conta do acolhido
 - /people/family-stays?houseId=  convivências da casa
 - /people/family-stays/ID/notes  relatos de uma convivência

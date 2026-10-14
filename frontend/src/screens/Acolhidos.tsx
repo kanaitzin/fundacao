@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import { FolhaDocumento, entregarArquivo } from '../documentos';
-import { Dossie, DocumentosDaCategoria, AnexosDoRegistroDeSaude } from './Dossie'
+import { Dossie, DocumentosDaCategoria, AnexosDoRegistroDeSaude } from './Dossie';
 import { FolhaReceitas } from './Saude';
+import {
+  AREAS_DO_ATENDIMENTO, MAXIMO_DE_ANEXOS_DO_ATENDIMENTO, QUEM_LE_ATENDIMENTO, QUEM_REGISTRA_ATENDIMENTO,
+} from '../../../backend/src/modules/people/atendimento-tecnico.regra';
 import { api, ErroApi } from '../api';
 import { Cadastro } from './Cadastro';
 import { VINCULO, FolhaDoRelato, RelatoDaConvivencia } from '../convivencias';
@@ -1013,6 +1016,9 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
         * comentário, que "o registro dele está no perfil" — e não estava.
         */}
       {aba === 'atendimentos' && <AtendimentosDoAcolhido houseId={houseId} personId={p.id} nome={p.nome} />}
+      {aba === 'atendimentos' && QUEM_LE_ATENDIMENTO.includes(papel) && (
+        <AtendimentosDaEquipeTecnica personId={p.id} nome={p.nome} papel={papel} />
+      )}
       {aba === 'hoje' && <div id="perfil-presenca"><Presenca personId={p.id} nome={p.nome} /></div>}
 
       {/*
@@ -5403,6 +5409,170 @@ function RemediosEReceitas({ personId, houseId, papel }: { personId: string; hou
         ))}
       </ul>
       {receitasDe && <FolhaReceitas esquema={receitasDe} papel={papel} onFechar={() => setReceitasDe(null)} />}
+    </div>
+  );
+}
+
+/**
+ * OS ATENDIMENTOS DA EQUIPE TÉCNICA (fase 218, pedido de 14/10).
+ *
+ * A psicóloga, a psicopedagoga, a assistente social registram o atendimento da
+ * criança: a área, o dia, o que foi trabalhado, e os arquivos (o desenho
+ * fotografado, a folha da atividade, o relatório digitalizado). Fica no perfil,
+ * para a equipe técnica e a coordenação, e entra como fonte do acompanhamento.
+ */
+interface AtendimentoTecnico {
+  id: string; area: string; areaRotulo: string; dia: string; relato: string; por: string;
+  anexos: { id: string; nome: string; tipo: string; tamanho: number; legenda: string | null }[];
+}
+function AtendimentosDaEquipeTecnica({ personId, nome, papel }: { personId: string; nome: string; papel: string }) {
+  const [lista, setLista] = useState<AtendimentoTecnico[] | null>(null);
+  const [erro, setErro] = useState('');
+  const [aviso, setAviso] = useState('');
+  const [registrando, setRegistrando] = useState(false);
+  const [vendo, setVendo] = useState<{ id: string; nome: string } | null>(null);
+  const carregar = useCallback(async () => {
+    try { setLista(await api<AtendimentoTecnico[]>(`/people/${personId}/technical-sessions`)); }
+    catch (e) { setErro(e instanceof Error ? e.message : 'Não foi possível abrir os atendimentos.'); }
+  }, [personId]);
+  useEffect(() => { void carregar(); }, [carregar]);
+  return (
+    <section className="atendimentos-tecnicos" aria-label="Atendimentos da equipe técnica">
+      <div className="eyebrow">Atendimentos da equipe técnica</div>
+      <div className="card stack">
+        <p className="mutetxt" style={{ margin: 0 }}>
+          Psicologia, psicopedagogia, serviço social. Ficam aqui para a equipe técnica e a coordenação,
+          e cada arquivo aberto fica registrado.
+        </p>
+        {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+        {aviso && <div className="notice c-ok" role="status">{aviso}</div>}
+        {QUEM_REGISTRA_ATENDIMENTO.includes(papel) && (
+          <button data-acolhe-abre="" className="btn sec block" onClick={() => setRegistrando(true)}>
+            <Icone nome="anexo" /> Registrar atendimento da equipe técnica
+          </button>
+        )}
+        {lista && lista.length === 0 && (
+          <p className="mutetxt" style={{ margin: 0 }}>Nenhum atendimento da equipe técnica registrado com {nome}.</p>
+        )}
+        <ul className="lista">
+          {(lista ?? []).map((a) => (
+            <li key={a.id}>
+              <b className="ff">{a.areaRotulo} · {dia(a.dia)}</b>
+              <div className="mutetxt">{a.por}</div>
+              <div style={{ whiteSpace: 'pre-wrap', marginTop: 4 }}>{a.relato}</div>
+              {a.anexos.map((x) => (
+                <div key={x.id} className="row" style={{ gap: 8, marginTop: 4 }}>
+                  <span className="mutetxt grow"><Icone nome="anexo" /> {x.legenda || x.nome}</span>
+                  <button className="btn sm sec" aria-label={`Abrir ${x.legenda || x.nome}`}
+                          onClick={() => setVendo({ id: x.id, nome: x.legenda || x.nome })}>Abrir</button>
+                </div>
+              ))}
+            </li>
+          ))}
+        </ul>
+      </div>
+      {registrando && (
+        <FolhaAtendimentoTecnico personId={personId} nome={nome} onFechar={() => setRegistrando(false)}
+          onRegistrado={async (msg) => { setRegistrando(false); setAviso(msg); await carregar(); }} />
+      )}
+      {vendo && (
+        <FolhaArquivo titulo={vendo.nome} legenda="A abertura fica registrada com o seu nome e o horário."
+          carregar={() => api(`/people/technical-sessions/attachments/${vendo.id}/file`)}
+          onFechar={() => setVendo(null)} />
+      )}
+    </section>
+  );
+}
+
+function FolhaAtendimentoTecnico({ personId, nome, onFechar, onRegistrado }: {
+  personId: string; nome: string; onFechar: () => void; onRegistrado: (aviso: string) => void;
+}) {
+  const hoje = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo',
+    year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+  const [area, setArea] = useState('');
+  const [areaOutra, setAreaOutra] = useState('');
+  const [quando, setQuando] = useState(hoje);
+  const [relato, setRelato] = useState('');
+  const [arquivos, setArquivos] = useState<{ arquivo: Escolhido; legenda: string }[]>([]);
+  const [escolhendo, setEscolhendo] = useState<Escolhido | null>(null);
+  const [erro, setErro] = useState('');
+  const [enviando, setEnviando] = useState(false);
+  const pode = !!area && (area !== 'outra' || areaOutra.trim().length >= 3) && relato.trim().length >= 10 && !enviando;
+
+  async function guardar() {
+    setErro(''); setEnviando(true);
+    try {
+      const r = await api<{ aviso: string }>(`/people/${personId}/technical-sessions`, {
+        method: 'POST',
+        body: JSON.stringify({
+          area, areaOutra: area === 'outra' ? areaOutra.trim() : undefined, dia: quando, relato: relato.trim(),
+          anexos: arquivos.map((a) => ({ conteudo: base64De(a.arquivo.dataUrl), nomeArquivo: a.arquivo.nome,
+                                         legenda: a.legenda.trim() || undefined })),
+        }),
+      });
+      onRegistrado(r.aviso);
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Não foi possível registrar o atendimento.');
+    } finally { setEnviando(false); }
+  }
+
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-atend"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet">
+        <h3 id="t-atend">Atendimento da equipe técnica · {nome}</h3>
+        <label className="f">A área</label>
+        <div className="opts">
+          {AREAS_DO_ATENDIMENTO.map((a) => (
+            <button type="button" key={a.cod} className="opt c-other" aria-pressed={area === a.cod}
+                    onClick={() => setArea(a.cod)}>{a.label}</button>
+          ))}
+        </div>
+        {area === 'outra' && (
+          <>
+            <label className="f" htmlFor="at-outra">Qual área</label>
+            <input id="at-outra" value={areaOutra} maxLength={60} onChange={(e) => setAreaOutra(e.target.value)} />
+          </>
+        )}
+        <label className="f" htmlFor="at-dia">O dia</label>
+        <input id="at-dia" type="date" value={quando} max={hoje} onChange={(e) => setQuando(e.target.value)} />
+        <label className="f" htmlFor="at-relato">O que foi trabalhado</label>
+        <textarea id="at-relato" rows={5} value={relato} onChange={(e) => setRelato(e.target.value)}
+                  placeholder="O que foi proposto, como a criança participou, o que fica para o próximo encontro." />
+
+        <label className="f" htmlFor="at-arq-arquivo">
+          Arquivos <small>(o desenho, a folha da atividade, um relatório; até {MAXIMO_DE_ANEXOS_DO_ATENDIMENTO})</small>
+        </label>
+        {arquivos.map((a, i) => (
+          <div key={i} className="row" style={{ gap: 8 }}>
+            <span className="mutetxt grow"><Icone nome="anexo" /> {a.arquivo.nome}</span>
+            <input aria-label={`O que é ${a.arquivo.nome}`} placeholder="O que é (opcional)" value={a.legenda}
+                   style={{ maxWidth: 200 }} maxLength={80}
+                   onChange={(e) => setArquivos(arquivos.map((x, j) => (j === i ? { ...x, legenda: e.target.value } : x)))} />
+            <button className="btn sm ghost" aria-label={`Tirar ${a.arquivo.nome}`}
+                    onClick={() => setArquivos(arquivos.filter((_, j) => j !== i))}>Tirar</button>
+          </div>
+        ))}
+        {arquivos.length < MAXIMO_DE_ANEXOS_DO_ATENDIMENTO && (
+          <>
+            <EscolherAnexo id="at-arq" arquivo={escolhendo} onEscolher={setEscolhendo}
+              aceita="application/pdf,image/jpeg,image/png,image/heic,image/heif" maximoMb={15}
+              pergunta={<>É este o arquivo do atendimento?</>} />
+            {escolhendo && (
+              <button className="btn sm sec" onClick={() => { setArquivos([...arquivos, { arquivo: escolhendo, legenda: '' }]); setEscolhendo(null); }}>
+                Pôr no atendimento
+              </button>
+            )}
+          </>
+        )}
+        {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+        <div className="row rodape">
+          <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
+          <button className="btn grow" disabled={!pode} onClick={() => void guardar()}>
+            {enviando ? 'Guardando…' : 'Registrar o atendimento'}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

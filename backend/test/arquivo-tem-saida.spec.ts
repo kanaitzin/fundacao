@@ -47,6 +47,9 @@ const POR_ONDE_SAI: Record<string, string> = {
   /* Várias fotos numa vivência só (fase 124). A rota nomeia a foto. */
   'memory_photo.storage_key':
     ':id/memories/:memId/photos/:fotoId',
+  /* O desenho e a folha do atendimento da equipe técnica (fase 218). */
+  'technical_session_attachment.storage_key':
+    'technical-sessions/attachments/:anexoId/file',
   'person.photo_key':
     ':id/photo',
   /* A foto 3×4 do visitante, que vai para a folha da portaria (fase 92). */

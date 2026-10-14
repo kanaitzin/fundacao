@@ -955,12 +955,12 @@ coordenação da casa, a Coordenação Geral, o Gestor Geral e a TI (`admin_tecn
 conversa com a assistente **não** é tabela: ela vive na tela de quem conversa, e o uso
 fica na auditoria (`assistente.conversa`, só metadado).
 
-## Inventário — 137 tabelas por partição
+## Inventário — 139 tabelas por partição
 
 | Partição | Tabelas |
 |---|---|
 | identity (17) | institution, house, app_user, user_house_assignment, work_schedule, shift_assignment, user_session, login_attempt, audit_event, institutional_device, staff_role_grant, house_capacity_change, user_invite, house_shift_hours, app_user_role_period, shift_draft, shift_draft_item |
-| people (34) | person, care_episode, house_stay, profile_detail, health_condition, food_restriction, document, document_version, benefit_record, memory_record, memory_photo, transfer_request, transfer_message, admission_record, judicial_record, person_credential, person_correction, profile_detail_change, person_contact, family_stay, family_stay_note, outing_permission, kitchen_request, house_field_permission, birthday_ack, contact_visit_change, visit, visit_correction, kitchen_request_change, pia_aviso, document_due_notice, child_outing, memory_photo_person, person_contact_change |
+| people (36) | person, care_episode, house_stay, profile_detail, health_condition, food_restriction, document, document_version, benefit_record, memory_record, memory_photo, transfer_request, transfer_message, admission_record, judicial_record, person_credential, person_correction, profile_detail_change, person_contact, family_stay, family_stay_note, outing_permission, kitchen_request, house_field_permission, birthday_ack, contact_visit_change, visit, visit_correction, kitchen_request_change, pia_aviso, document_due_notice, child_outing, memory_photo_person, person_contact_change, technical_session, technical_session_attachment |
 | shifts (14) | shift, handover, handover_receipt, handover_note, ata, ata_note, ata_addendum, ata_episode, ata_episode_ack, general_night_ata, general_night_house_entry, general_night_house_amendment, ata_read_request, shift_fim_aviso |
 | incidents (7) | incident, incident_person, incident_protected, incident_restraint, incident_synthesis, external_communication, incident_attachment |
 | medications (13) | prescription, medication_schedule, medication_administration, medication_stock, medication_stock_movement, medication_protocol, medication_authorization, medication_protocol_change, prescription_restriction_change, medication_purchase, medication_purchase_item, prescription_document, family_stay_medication |
@@ -1225,6 +1225,21 @@ perdia a marca de visita e a foto.
 só os campos que mudaram (`name`, `bond`, `bond_other`, `phone`, `note`, `cpf`).
 Escrevem a equipe técnica e a coordenação, como no cadastro; lê quem alcança a criança.
 A aproximação restrita não se corrige por aqui.
+
+### `technical_session` e `technical_session_attachment`
+O ATENDIMENTO DA EQUIPE TÉCNICA (fase 218, people/1655). A psicóloga, a psicopedagoga
+e a assistente social registram o atendimento da criança, com os arquivos (o desenho
+fotografado, a folha da atividade, o relatório digitalizado).
+
+`technical_session` — `person_id`, `area` (`psicologia`, `psicopedagogia`,
+`servico_social`, `pedagogia`, `outra`), `area_other` (obrigatório quando `outra`),
+`happened_on` (nunca depois de `app_hoje()`), `summary` (o que foi trabalhado),
+`created_by`, `created_at`. `technical_session_attachment` — `session_id`, `person_id`,
+`storage_key`, `sha256`, `mime`, `file_name`, `size_bytes`, `caption`, `created_by`,
+`created_at`. Escrevem a equipe técnica e a coordenação; leem as duas e a gestão
+(`atendimento-tecnico.regra.ts`). Sem UPDATE nem DELETE para o aplicativo. O nome da
+área sai de `app_rotulo_da_area_do_atendimento`, que a lista de fontes do acompanhamento
+usa, e o atendimento entra lá como fonte restrita, sem o que foi trabalhado.
 
 ### `commitment_exception`
 Uma ocorrência desmarcada de um compromisso que continua valendo. Por DATA, com

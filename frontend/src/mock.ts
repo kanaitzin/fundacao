@@ -28,6 +28,10 @@ import {
 } from './turno';
 import { SemConexao, ErroApi } from './api';
 import { retratoFicticio, type Feitio } from './retratos';
+import {
+  AREAS_DO_ATENDIMENTO, MAXIMO_DE_ANEXOS_DO_ATENDIMENTO, QUEM_LE_ATENDIMENTO, QUEM_REGISTRA_ATENDIMENTO,
+  rotuloDaArea,
+} from '../../backend/src/modules/people/atendimento-tecnico.regra';
 import { ALCANCE_POR_CARGO } from '../../backend/src/modules/identity/alcance';
 import { avaliar, avaliarDrive, TITULOS } from '../../backend/src/modules/relogio/implantacao.regra';
 import { QUEM_LE_O_QUE_MUDOU } from '../../backend/src/modules/reports/o-que-mudou.regra';
@@ -3657,6 +3661,10 @@ const FONTES_CANDIDATAS: Record<string, FonteMock[]> = {
     { entidade: 'activity', id: 'fc1', tipo: 'atividade', origem: 'Linha do tempo',
       titulo: 'Consulta odontológica', quando: emDias(-9, 14, 0),
       autor: 'Joana Lima (fictícia)', classificacao: 'operacional', resumo: 'Realizada' },
+    /* O atendimento da psicologia (fase 218): como referência, sem o que foi trabalhado. */
+    { entidade: 'technical_session', id: 'fc-atend', tipo: 'atendimento_tecnico',
+      origem: 'Atendimentos da equipe técnica', titulo: 'Psicologia', quando: emDias(-6, 15, 0),
+      autor: 'Tatiane Técnica (fictícia)', classificacao: 'restrito', resumo: '1 arquivo anexado' },
     { entidade: 'health_evolution', id: 'fc2', tipo: 'saude', origem: 'Evoluções de saúde',
       titulo: 'Consulta', quando: emDias(-9, 16, 30), autor: 'Joana Lima (fictícia)',
       classificacao: 'operacional',
@@ -4199,6 +4207,25 @@ function detalheDe(k: Kid): Record<string, string | null> {
 /** O que a atualização judicial já mudou nesta sessão da demonstração. */
 const JUDICIAL_EXTRA: Record<string, string | null> = {};
 
+/** Os atendimentos da equipe técnica nesta demonstração (fase 218). */
+interface AtendimentoMock {
+  id: string; personId: string; area: string; areaOutra: string | null; dia: string; relato: string;
+  registradoEm: string; por: string;
+  anexos: { id: string; nome: string; tipo: string; tamanho: number; legenda: string | null; conteudo: string }[];
+}
+const ATENDIMENTOS_TECNICOS: AtendimentoMock[] = [];
+/** Um atendimento de psicologia da Alice, com o desenho, para a tela não abrir vazia. */
+function semearAtendimentos() {
+  if (ATENDIMENTOS_TECNICOS.length) return;
+  ATENDIMENTOS_TECNICOS.push({
+    id: 'atend-alice-1', personId: 'p01', area: 'psicologia', areaOutra: null, dia: diasAtras(6),
+    relato: 'Desenho livre com o tema da casa. Alice desenhou a família e os colegas do quarto, falou com '
+      + 'calma sobre a visita da avó. Fica para o próximo encontro retomar o desenho (fictício).',
+    registradoEm: emHoras(15, 20), por: 'Tatiane Técnica (fictícia)',
+    anexos: [{ id: 'atend-alice-1-a', nome: 'desenho.jpg', tipo: 'image/jpeg', tamanho: 48_000,
+               legenda: 'O desenho da sessão', conteudo: jpegFicticio('Desenho da sessão') }],
+  });
+}
 const DOSSIE_DOCS: DocumentoMock[] = [];
 /** O laudo e a receita de um registro de saúde, na forma do perfil (fase 217). */
 function docsDoRegistro(campo: 'condicaoId' | 'restricaoId', id: string) {
@@ -9066,6 +9093,63 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       aviso: `${trocas.length} campo(s) corrigido(s). O que estava antes continua registrado, `
         + 'com o seu nome, o horário e o motivo — e aparece no perfil para quem cuida da criança.' };
   }
+  /* O ATENDIMENTO DA EQUIPE TÉCNICA (fase 218): a mesma regra do servidor. */
+  if (seg[0] === 'people' && seg[1] === 'technical-sessions' && seg[2] === 'attachments'
+      && seg[4] === 'file' && metodo === 'GET') {
+    semearAtendimentos();
+    if (!QUEM_LE_ATENDIMENTO.includes(eu.role)) return new Recusa(404, 'Arquivo não encontrado.');
+    const a = ATENDIMENTOS_TECNICOS.flatMap((x) => x.anexos).find((x) => x.id === seg[3]);
+    if (!a) return new Recusa(404, 'Arquivo não encontrado.');
+    const [cab, dados] = a.conteudo.split(',');
+    return { nome: a.nome, tipo: (cab.match(/data:([^;]+)/) ?? [])[1] ?? a.tipo, conteudo: dados ?? '' };
+  }
+  if (seg[0] === 'people' && seg[2] === 'technical-sessions' && metodo === 'GET') {
+    semearAtendimentos();
+    if (!QUEM_LE_ATENDIMENTO.includes(eu.role)) {
+      return new Recusa(403, 'Os atendimentos da equipe técnica são lidos pela equipe técnica e pela coordenação.');
+    }
+    return ATENDIMENTOS_TECNICOS.filter((x) => x.personId === seg[1]).map(({ personId: _p, anexos, ...x }) => ({
+      ...x, areaRotulo: rotuloDaArea(x.area, x.areaOutra),
+      anexos: anexos.map(({ conteudo: _c, ...r }) => r),
+    }));
+  }
+  if (seg[0] === 'people' && seg[2] === 'technical-sessions' && metodo === 'POST') {
+    semearAtendimentos();
+    if (!QUEM_REGISTRA_ATENDIMENTO.includes(eu.role)) {
+      return new Recusa(403, 'O atendimento é registrado pela equipe técnica ou pela coordenação.');
+    }
+    if (!AREAS_DO_ATENDIMENTO.some((a) => a.cod === b.area)) {
+      return new Recusa(400, 'Diga a área do atendimento: psicologia, psicopedagogia, serviço social, pedagogia ou outra.');
+    }
+    if (b.area === 'outra' && String(b.areaOutra ?? '').trim().length < 3) {
+      return new Recusa(400, 'Escreva qual é a área do atendimento.');
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(b.dia ?? ''))) return new Recusa(400, 'Diga o dia do atendimento.');
+    if (String(b.dia) > HOJE) return new Recusa(400, 'O dia do atendimento ainda não chegou.');
+    const relato = String(b.relato ?? '').trim();
+    if (relato.length < 10) return new Recusa(400, 'Escreva o que foi trabalhado no atendimento.');
+    const lista = Array.isArray(b.anexos) ? b.anexos : [];
+    if (lista.length > MAXIMO_DE_ANEXOS_DO_ATENDIMENTO) {
+      return new Recusa(400, `Um atendimento leva até ${MAXIMO_DE_ANEXOS_DO_ATENDIMENTO} arquivos. O resto vai num complemento.`);
+    }
+    const anexos = [];
+    for (const a of lista) {
+      const dataUrl = String(a.conteudo ?? '').startsWith('data:') ? String(a.conteudo)
+        : `data:application/octet-stream;base64,${a.conteudo ?? ''}`;
+      const tipo = tipoDoDataUrl(dataUrl);
+      if (!tipo) return new Recusa(400, 'O atendimento recebe foto ou PDF.');
+      anexos.push({ id: uid(), nome: String(a.nomeArquivo ?? 'arquivo'), tipo,
+        tamanho: Math.round(dataUrl.length * 0.75), legenda: a.legenda ? String(a.legenda) : null,
+        conteudo: `data:${tipo};base64,${dataUrl.split(',')[1] ?? ''}` });
+    }
+    const id = uid();
+    ATENDIMENTOS_TECNICOS.unshift({ id, personId: String(seg[1]), area: String(b.area),
+      areaOutra: b.area === 'outra' ? String(b.areaOutra).trim() : null, dia: String(b.dia), relato,
+      registradoEm: new Date().toISOString(), por: eu.fullName, anexos });
+    return { id, aviso: anexos.length
+      ? 'Atendimento registrado, com os arquivos. Aparece no perfil para a equipe técnica e a coordenação.'
+      : 'Atendimento registrado. Aparece no perfil para a equipe técnica e a coordenação.' };
+  }
   if (seg[0] === 'people' && seg[2] === 'correcoes' && metodo === 'GET') {
     return CORRECOES.filter((c) => c.personId === seg[1]);
   }
@@ -12264,6 +12348,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         { cod: 'atividade', label: 'Linha do tempo' },
         { cod: 'ocorrencia', label: 'Ocorrências' },
         { cod: 'saude', label: 'Evoluções de saúde' },
+        { cod: 'atendimento_tecnico', label: 'Atendimentos da equipe técnica' },
       ],
       candidatos,
       aviso: 'O acompanhamento guarda a REFERÊNCIA ao registro, nunca a cópia. '

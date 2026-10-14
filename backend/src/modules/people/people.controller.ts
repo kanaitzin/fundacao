@@ -1,4 +1,5 @@
 import { SaudeDoPerfilService } from './saude-do-perfil.service';
+import { AtendimentosTecnicosService } from './atendimentos-tecnicos.service';
 import { RegistroDaRota } from '../../kernel/common/registro-da-rota.guard';
 import {
   Body, Controller, Get, Inject, Param, ParseUUIDPipe, Patch, Post, Query, UseGuards,
@@ -41,6 +42,7 @@ export class PeopleController {
     @Inject(DossieService) private readonly dossie: DossieService,
     @Inject(ContatosService) private readonly contatos: ContatosService,
     @Inject(SaudeDoPerfilService) private readonly saude: SaudeDoPerfilService,
+    @Inject(AtendimentosTecnicosService) private readonly atendimentos: AtendimentosTecnicosService,
   ) {}
 
   /** Visão da casa — “os 20”. */
@@ -515,6 +517,26 @@ export class PeopleController {
   encerrarRestricao(@CurrentUser() user: AuthenticatedUser,
                     @Param('restrictionId', ParseUUIDPipe) restrictionId: string, @Body() body: any) {
     return this.saude.encerrar(user, 'restricao', restrictionId, body?.motivo);
+  }
+
+  /* O ATENDIMENTO DA EQUIPE TÉCNICA (fase 218): a área, o dia, o que foi
+     trabalhado e os arquivos (o desenho, a folha da atividade). */
+  @Get('technical-sessions/attachments/:anexoId/file')
+  arquivoDoAtendimento(@CurrentUser() user: AuthenticatedUser,
+                       @Param('anexoId', ParseUUIDPipe) anexoId: string) {
+    return this.atendimentos.arquivo(user, anexoId);
+  }
+
+  @RegistroDaRota('id', 'person')
+  @Get(':id/technical-sessions')
+  atendimentosDo(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.atendimentos.listar(user, id);
+  }
+
+  @Post(':id/technical-sessions')
+  registrarAtendimento(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
+                       @Body() body: any) {
+    return this.atendimentos.registrar(user, id, body ?? {});
   }
 
   /* Corrigir o contato, com o antes guardado (fase 215). */

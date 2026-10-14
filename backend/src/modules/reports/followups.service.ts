@@ -240,7 +240,7 @@ export class FollowupsService {
       const { rows: existe } = await c.query(
         `SELECT t AS tabela FROM unnest($1::text[]) t
           WHERE to_regclass('public.' || t) IS NOT NULL`,
-        [['activity', 'incident', 'health_evolution']]);
+        [['activity', 'incident', 'health_evolution', 'technical_session']]);
       const tem = new Set(existe.map((r: any) => r.tabela));
 
       const { rows: escolhidas } = await c.query(
@@ -309,6 +309,27 @@ export class FollowupsService {
         }
       }
 
+      /* O ATENDIMENTO DA EQUIPE TÉCNICA (fase 218). Entra como referência, e o
+         que foi trabalhado não sai daqui: esta folha se imprime, e quem precisa
+         lê no perfil, onde cada arquivo aberto fica registrado. */
+      if (tem.has('technical_session')) {
+        const { rows } = await c.query(
+          `SELECT s.id, app_rotulo_da_area_do_atendimento(s.area, s.area_other) AS area, s.happened_on AS quando,
+                  app_user_display_name(s.created_by) AS autor,
+                  (SELECT count(*)::int FROM technical_session_attachment a WHERE a.session_id = s.id) AS arquivos
+             FROM technical_session s
+            WHERE s.person_id = $1 AND s.happened_on BETWEEN $2 AND $3
+            ORDER BY s.happened_on DESC LIMIT 200`, [f.person_id, f.period_start, f.period_end]);
+        for (const r of rows) {
+          candidatos.push({
+            entidade: 'technical_session', id: r.id, tipo: 'atendimento_tecnico',
+            origem: 'Atendimentos da equipe técnica', titulo: r.area,
+            quando: r.quando, autor: r.autor, classificacao: 'restrito',
+            resumo: r.arquivos ? `${r.arquivos} arquivo${r.arquivos > 1 ? 's' : ''} anexado${r.arquivos > 1 ? 's' : ''}` : null,
+          });
+        }
+      }
+
       const lista = candidatos
         .filter((x) => !tipo || x.tipo === tipo)
         .map((x) => ({ ...x, jaEscolhida: jaEscolhida.has(`${x.entidade}:${x.id}`) }))
@@ -323,6 +344,7 @@ export class FollowupsService {
           { cod: 'atividade', label: 'Linha do tempo' },
           { cod: 'ocorrencia', label: 'Ocorrências' },
           { cod: 'saude', label: 'Evoluções de saúde' },
+          { cod: 'atendimento_tecnico', label: 'Atendimentos da equipe técnica' },
         ],
         candidatos: lista,
         aviso: 'O acompanhamento guarda a REFERÊNCIA ao registro, nunca a cópia. '
