@@ -1062,6 +1062,15 @@ por quê, e a linha continua no banco. Quem escreve é
 equipe técnica, coordenação e gestão; as políticas `hc_insert`/`fr_insert`
 passaram a conferir também `app_person_in_scope` (antes só o cargo).
 
+**O laudo junto do registro (fase 217, people/1654).** O `document` ganhou
+`health_condition_id` e `food_restriction_id`: o laudo ou a receita entra na
+pasta da saúde já dizendo a que alergia, condição ou restrição responde. No
+máximo uma das duas, só na categoria `saude`, e da mesma criança (gatilho
+`document_registro_de_saude`, que também recusa mudar a ligação depois). O
+perfil traz `documentos` em cada registro. E a política `doc_insert` passou a
+conferir a casa (antes só o cargo; quem recusava a outra casa era o
+`RETURNING` do serviço, que passa a linha nova pela política de leitura).
+
 ### `house_shift_hours`
 O horário dos turnos de CADA CASA (fase 159, identity/1580). A casa diz o
 **diurno**; o noturno é o resto do dia, e é isso que impede buraco e

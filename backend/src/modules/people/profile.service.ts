@@ -42,6 +42,13 @@ async function seq<T>(fns: Array<() => Promise<T>>): Promise<T[]> {
 export const QUEM_LE_AS_RESTRICOES = ['cozinha', 'coordenador', 'equipe_tecnica', 'gestor_geral',
   'educador', 'lider_diurno', 'lider_noturno_geral'];
 
+/** Os documentos ligados a um registro de saúde, já na forma que a tela lê. */
+const DOCUMENTOS_DO_REGISTRO = (coluna: string, alias: string) =>
+  `(SELECT coalesce(json_agg(json_build_object(
+             'id', d.id, 'titulo', d.title, 'anexadoEm', d.created_at,
+             'conferido', d.accepted_at IS NOT NULL) ORDER BY d.created_at), '[]'::json)
+      FROM document d WHERE d.${coluna} = ${alias}.id) AS documentos`;
+
 @Injectable()
 export class ProfileService {
   constructor(
@@ -70,12 +77,16 @@ export class ProfileService {
                  FROM house_stay s JOIN house h ON h.id = s.house_id
                  WHERE s.person_id = $1 AND s.status = 'ativa'`, [personId]),
         () => c.query(`SELECT * FROM profile_detail WHERE person_id = $1`, [personId]),
-        () => c.query(`SELECT id, kind, description, severity, essential_alert, source, review_on,
-                        app_condition_label(kind, description) AS rotulo
-                 FROM health_condition WHERE person_id = $1 AND active
-                 ORDER BY essential_alert DESC, kind`, [personId]),
-        () => c.query(`SELECT id, restriction, substitution, guidance, review_on
-                 FROM food_restriction WHERE person_id = $1 AND active`, [personId]),
+        /* O laudo e a receita de cada registro (fase 217). O `document` responde ao
+           próprio RLS: quem não abre a pasta da saúde recebe a lista vazia. */
+        () => c.query(`SELECT h.id, h.kind, h.description, h.severity, h.essential_alert, h.source,
+                        h.review_on, app_condition_label(h.kind, h.description) AS rotulo,
+                        ${DOCUMENTOS_DO_REGISTRO('health_condition_id', 'h')}
+                 FROM health_condition h WHERE h.person_id = $1 AND h.active
+                 ORDER BY h.essential_alert DESC, h.kind`, [personId]),
+        () => c.query(`SELECT f.id, f.restriction, f.substitution, f.guidance, f.review_on,
+                        ${DOCUMENTOS_DO_REGISTRO('food_restriction_id', 'f')}
+                 FROM food_restriction f WHERE f.person_id = $1 AND f.active`, [personId]),
         () => c.query(`SELECT number, started_at, ended_at, end_reason, status
                  FROM care_episode WHERE person_id = $1 ORDER BY number`, [personId]),
         () => c.query(`SELECT id, category, title, issued_on, valid_until

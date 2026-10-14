@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { FolhaDocumento, entregarArquivo } from '../documentos';
-import { Dossie, DocumentosDaCategoria } from './Dossie';
+import { Dossie, DocumentosDaCategoria, AnexosDoRegistroDeSaude } from './Dossie'
+import { FolhaReceitas } from './Saude';
 import { api, ErroApi } from '../api';
 import { Cadastro } from './Cadastro';
 import { VINCULO, FolhaDoRelato, RelatoDaConvivencia } from '../convivencias';
@@ -45,10 +46,14 @@ interface Resumo {
 interface Condicao {
   id: string; kind: string; description: string; rotulo: string; severity: string | null;
   essential_alert: boolean; source: string | null; review_on: string | null;
+  /** O laudo e a receita ligados a este registro (fase 217). */
+  documentos?: DocDoRegistro[];
 }
 interface Restricao {
   id: string; restriction: string; substitution: string | null; guidance: string | null;
+  documentos?: DocDoRegistro[];
 }
+interface DocDoRegistro { id: string; titulo: string; anexadoEm: string; conferido: boolean }
 interface Doc {
   id: string; category: string; title: string; issued_on: string | null; valid_until: string | null;
 }
@@ -1193,11 +1198,16 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
                     Encerrar
                   </button>
                 )}
+                <div style={{ flexBasis: '100%' }}>
+                  <AnexosDoRegistroDeSaude personId={p.id} documentos={c.documentos ?? []}
+                    registro={{ qual: 'condicao', id: c.id, nome: c.rotulo ?? c.description }}
+                    podeAnexar={ESCREVE_SAUDE.includes(papel)} onMudou={() => void recarregar()} />
+                </div>
               </li>
             ))}
           </ul>
         )}
-        {ESCREVE_SAUDE.includes(papel) && p.restricoesAlimentares.length > 0 && (
+        {p.restricoesAlimentares.length > 0 && (
           <ul className="lista">
             {p.restricoesAlimentares.map((r) => (
               <li key={r.id} className="row">
@@ -1205,13 +1215,23 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
                   <b className="ff">Não servir: {r.restriction}</b>
                   {r.substitution && <span className="mutetxt linhadois">No lugar: {r.substitution}</span>}
                 </span>
-                <button className="btn sm ghost" aria-label={`Encerrar a restrição ${r.restriction}`}
-                        onClick={() => setEncerrandoSaude({ qual: 'restricao', id: r.id, nome: r.restriction })}>
-                  Encerrar
-                </button>
+                {ESCREVE_SAUDE.includes(papel) && (
+                  <button className="btn sm ghost" aria-label={`Encerrar a restrição ${r.restriction}`}
+                          onClick={() => setEncerrandoSaude({ qual: 'restricao', id: r.id, nome: r.restriction })}>
+                    Encerrar
+                  </button>
+                )}
+                <div style={{ flexBasis: '100%' }}>
+                  <AnexosDoRegistroDeSaude personId={p.id} documentos={r.documentos ?? []}
+                    registro={{ qual: 'restricao', id: r.id, nome: r.restriction }}
+                    podeAnexar={ESCREVE_SAUDE.includes(papel)} onMudou={() => void recarregar()} />
+                </div>
               </li>
             ))}
           </ul>
+        )}
+        {ESCREVE_SAUDE.includes(papel) && houseId && (
+          <RemediosEReceitas personId={p.id} houseId={houseId} papel={papel} />
         )}
       </Secao>
       )}
@@ -5343,6 +5363,46 @@ function FolhaChegada({ houseId, onFechar, onRegistrou }: {
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+/**
+ * OS REMÉDIOS DELA E AS RECEITAS (fase 217, pedido de 14/10).
+ *
+ * A receita sempre teve lugar, presa ao esquema na tela da Saúde, e espelhada
+ * no dossiê. No perfil, quem cuida da saúde não via de qual remédio ela era.
+ * Aqui ficam os esquemas desta criança, cada um com as receitas e bulas, e o
+ * anexar é o mesmo da Saúde. O educador não vê: a receita traz o que não muda
+ * o que ele faz no plantão, como na tela da Saúde.
+ */
+function RemediosEReceitas({ personId, houseId, papel }: { personId: string; houseId: string; papel: string }) {
+  const [esquemas, setEsquemas] = useState<{ id: string; medicamento: string; dose: string;
+    rotulo: string; acolhido: { id: string } }[] | null>(null);
+  const [receitasDe, setReceitasDe] = useState<{ id: string; medicamento: string } | null>(null);
+  useEffect(() => {
+    api<{ esquemas: any[] }>(`/medications/prescriptions?houseId=${houseId}`)
+      .then((r) => setEsquemas(r.esquemas.filter((e) => e.acolhido?.id === personId)))
+      .catch(() => setEsquemas([]));
+  }, [personId, houseId]);
+  if (!esquemas) return null;
+  return (
+    <div className="remedios-e-receitas" style={{ marginTop: 14 }}>
+      <div className="eyebrow">Remédios e receitas</div>
+      {esquemas.length === 0 && <p className="mutetxt">Nenhum remédio em uso registrado.</p>}
+      <ul className="lista">
+        {esquemas.map((e) => (
+          <li key={e.id} className="row">
+            <span className="grow">
+              <b className="ff">{e.medicamento}</b>
+              <span className="mutetxt linhadois">{e.dose} · {e.rotulo}</span>
+            </span>
+            <button data-acolhe-entra="" className="btn sm sec" aria-label={`Receitas de ${e.medicamento}`}
+                    onClick={() => setReceitasDe(e)}>Receitas</button>
+          </li>
+        ))}
+      </ul>
+      {receitasDe && <FolhaReceitas esquema={receitasDe} papel={papel} onFechar={() => setReceitasDe(null)} />}
     </div>
   );
 }

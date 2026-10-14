@@ -119,6 +119,7 @@ export class DossieService {
     const linhas = await this.db.asUser(user.id, async (c) => {
       const { rows } = await c.query(
         `SELECT d.id, d.category, d.title, d.checklist_key, d.issued_on, d.valid_until,
+                d.health_condition_id, d.food_restriction_id,
                 d.source, d.created_at, d.accepted_at, d.accepted_note,
                 app_user_display_name(d.created_by) AS anexado_por,
                 app_user_display_name(d.accepted_by) AS aceito_por,
@@ -135,6 +136,7 @@ export class DossieService {
 
     const documentos = linhas.map((d: any) => ({
       id: d.id, categoria: d.category, titulo: d.title, chave: d.checklist_key,
+      condicaoId: d.health_condition_id ?? null, restricaoId: d.food_restriction_id ?? null,
       emitidoEm: d.issued_on, validoAte: d.valid_until, origem: d.source,
       anexadoEm: d.created_at, anexadoPor: d.anexado_por,
       aceitoEm: d.accepted_at, aceitoPor: d.aceito_por, notaDoAceite: d.accepted_note,
@@ -197,6 +199,8 @@ export class DossieService {
   async anexar(user: AuthenticatedUser, personId: string, input: {
     chave?: string; categoria: string; titulo: string; conteudo: string; nomeArquivo: string;
     emitidoEm?: string; validoAte?: string; origem?: string;
+    /** O laudo ou a receita da alergia, da condição ou da restrição (fase 217). */
+    condicaoId?: string; restricaoId?: string;
   }) {
     const proibido = tituloProibido(input.titulo);
     if (proibido) throw new BadRequestException(proibido);
@@ -210,18 +214,43 @@ export class DossieService {
     if (!CATEGORIAS_DOSSIE.some((c) => c.code === input.categoria)) {
       throw new BadRequestException('Categoria de documento inválida.');
     }
+    const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const condicaoId = input.condicaoId || null;
+    const restricaoId = input.restricaoId || null;
+    if ((condicaoId && !uuid.test(condicaoId)) || (restricaoId && !uuid.test(restricaoId))) {
+      throw new BadRequestException('O registro de saúde indicado não existe.');
+    }
+    if (condicaoId && restricaoId) {
+      throw new BadRequestException('Anexe a um registro de cada vez: a alergia ou a restrição.');
+    }
+    if ((condicaoId || restricaoId) && (input.categoria !== 'saude' || input.chave)) {
+      throw new BadRequestException('O laudo e a receita da alergia ou da restrição ficam na pasta da saúde.');
+    }
 
     const guardado = await this.arquivos.guardar(input.conteudo, O_DOCUMENTO);
     if (!guardado) throw new BadRequestException('Nenhum arquivo foi enviado.');
     const { chave: chaveObjeto, mime, rotulo, sha256: sha, tamanho } = guardado;
 
     const id = await this.db.asUser(user.id, async (c) => {
-      const { rows: [d] } = await c.query(
-        `INSERT INTO document (person_id, category, title, checklist_key,
-           issued_on, valid_until, source, created_by)
-         VALUES ($1,$2::doc_category,$3,$4,$5,$6,$7,$8) RETURNING id`,
-        [personId, input.categoria, input.titulo.trim(), input.chave ?? null,
-         input.emitidoEm ?? null, input.validoAte ?? null, input.origem ?? null, user.id]);
+      let d: any;
+      try {
+        ({ rows: [d] } = await c.query(
+          `INSERT INTO document (person_id, category, title, checklist_key,
+             issued_on, valid_until, source, created_by, health_condition_id, food_restriction_id)
+           VALUES ($1,$2::doc_category,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id`,
+          [personId, input.categoria, input.titulo.trim(), input.chave ?? null,
+           input.emitidoEm ?? null, input.validoAte ?? null, input.origem ?? null, user.id,
+           condicaoId, restricaoId]));
+      } catch (e: any) {
+        const m = String(e?.message ?? '');
+        if (m.includes('row-level security')) {
+          throw new NotFoundException('Acolhido não encontrado, ou fora do seu alcance.');
+        }
+        if (m.includes('registro_de_saude_de_outra_crianca')) {
+          throw new BadRequestException('O registro de saúde indicado não é desta criança.');
+        }
+        throw e;
+      }
       await c.query(
         `INSERT INTO document_version (document_id, version, storage_key, sha256,
            mime, file_name, size_bytes, created_by)
@@ -235,7 +264,8 @@ export class DossieService {
       houseId: await this.audit.casaDoAcolhido(user.id, personId),
       entity: 'document', entityId: id,
       detail: { categoria: input.categoria, chave: input.chave ?? null, tipo: mime,
-                bytes: tamanho },
+                bytes: tamanho,
+                registroDeSaude: condicaoId ? 'condicao' : restricaoId ? 'restricao' : null },
     });
 
     return {

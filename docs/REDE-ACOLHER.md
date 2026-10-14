@@ -90,10 +90,10 @@ discordavam entre si.
 | Quanto | De onde sai |
 |---|---|
 | **19 partições** isoladas | pastas em `backend/src/modules/` |
-| **193 migrações** | `.sql` dentro das partições |
+| **194 migrações** | `.sql` dentro das partições |
 | **137 tabelas** | `CREATE TABLE` nas migrações |
-| **143 suítes** | `backend/test/*.spec.ts` |
-| **1277 testes** | `it(` / `test(` nas suítes |
+| **144 suítes** | `backend/test/*.spec.ts` |
+| **1282 testes** | `it(` / `test(` nas suítes |
 | **39 telas React** | `frontend/src/screens/*.tsx` |
 | **10 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **10 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
@@ -426,6 +426,7 @@ arqueologia.
 | 214 | **As recusas também falam como colega**. A 212 mediu as frases abrindo as telas, e as recusas do servidor ficaram de fora: só aparecem quando algo é recusado. Eram **157 no servidor e 96 no protótipo** com travessão ou com frase que argumenta com a pessoa (*do contrário, bastaria uma conta nova para enxergar as oito casas*, *uma pauta recusada sem resposta é pior do que não poder propor*, *todos aqui seria suposição*). O travessão saiu de todas, por regra revisada à mão (vírgula antes de *ou, e, mas*, dois-pontos antes de *por exemplo*, vírgulas no par, ponto no resto), e as que argumentavam foram reescritas dizendo o que fazer e quem faz, nos dois lados ao mesmo tempo. **Virou suíte** (`as-recusas-falam-como-colega.spec.ts`): lê o texto de toda `new XException(...)` do servidor e de toda `Recusa`/`ErroApi` do protótipo e reprova as marcas. |
 | 215 | **Corrigir um familiar** (pedido de 14/10: *"tava tentando mexer nos familiares deles para adicionar ou remover, e não consegui"*). Acrescentar e encerrar contato funcionavam para a coordenação e a técnica (conferido no protótipo, como o Marcelo entra); o que não existia era **corrigir**: o telefone que mudou, o vínculo escrito errado, o CPF que chegou depois. A saída era encerrar e cadastrar de novo, e o contato novo perdia a marca de visita e a foto. Agora cada contato tem **Corrigir**, com a folha preenchida, o motivo obrigatório e as **correções anteriores** embaixo, com o que constava (`person_contact_change`, people/1653, só os campos que mudaram). A aproximação restrita não se corrige por ali. De passagem: **encerrar um contato não deixava rastro na auditoria**, e criar deixava (consertado). |
 | 216 | **Os arquivos na área restrita do Judiciário** (pedido de 14/10: *"quando ele abre o cofre, quero anexar arquivos e hospedar, e um relatório de quando o jovem veio para a casa, o motivo"*). A pasta de documentos já tinha a categoria judicial restrita (só técnica, coordenação e gestor a abrem, e cada abertura fica registrada), mas ela morava no Cadastro, longe do motivo do acolhimento. Agora, aberta a área restrita, logo abaixo da situação judicial aparecem **os documentos da área restrita**: a guia, as decisões, o item novo **Relatório de acolhimento** (opcional, `dossie-exigido.ts`) e qualquer outro documento, em PDF ou digitalizado pela câmera, com a mesma conferência do dossiê (`DocumentosDaCategoria`, que a 217 reaproveita). De passagem: **no protótipo, a recusa do servidor de mentira não era a do servidor de verdade**, e a área restrita de uma criança sem motivo registrado mostrava *Não encontrado* onde o sistema mostra o que falta preencher (a `Recusa` do `mock.ts` agora é um `ErroApi`). |
+| 217 | **O laudo junto da alergia, e as receitas no perfil** (pedido de 14/10: *"a restrição alimentar e o remédio poderiam ter em anexo a receita médica, não só o registro à mão, no perfil da criança"*). A alergia, a condição de saúde e a restrição alimentar eram só texto. Agora cada uma, na aba Saúde do perfil, tem **Anexar laudo ou receita**: o papel entra na pasta da saúde do dossiê já dizendo a que registro responde (`document.health_condition_id` e `food_restriction_id`, people/1654), com a mesma conferência e a mesma abertura registrada, e aparece junto do registro para quem abre a pasta da saúde, o educador também. A ligação é da mesma criança, de um registro só, e não se reescreve depois. A receita do remédio já existia, presa ao esquema na tela da Saúde; no perfil, Enfermagem, técnica e coordenação veem agora **Remédios e receitas**, os esquemas dela com as receitas e bulas e o mesmo anexar (`FolhaReceitas`). De passagem: a política de gravar documento no dossiê **conferia o cargo e não a casa**; pela tela nada passava, mas por acaso (o `RETURNING` do serviço passa a linha nova pela política de leitura). Agora a casa é conferida na própria política, e a suíte cobra o efeito. |
 
 ---
 
@@ -473,7 +474,7 @@ cd frontend && npm run prototipo
 ```
 
 O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as
-193 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
+194 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
 
 ### Os ensaios — e por que cada um existe
 
@@ -540,7 +541,7 @@ rede-acolher/
 │   │   │   ├── documentos/     o contrato da folha e o gerador de .docx
 │   │   │   └── common/         CPF, criptografia, segredo, fuso da instituição
 │   │   └── modules/       19 partições, cada uma dona das próprias migrações
-│   ├── test/              143 suítes (e2e contra PostgreSQL real + estáticas)
+│   ├── test/              144 suítes (e2e contra PostgreSQL real + estáticas)
 │   ├── scripts/           ensaio-carga.ts, migrador compilado
 │   └── assets/timbre.png  a marca da Fundação, usada no documento em Word
 ├── frontend/
@@ -2921,7 +2922,7 @@ crescimento. Vídeo não entra no álbum: um minuto de vídeo de celular pesa co
 npm run ensaio:producao
 ```
 
-Constrói, cria um banco virgem, aplica as 193 migrações **pelo binário
+Constrói, cria um banco virgem, aplica as 194 migrações **pelo binário
 compilado**, sobe o serviço e confere `/health`. Não publica nada e não toca no
 banco de trabalho.
 

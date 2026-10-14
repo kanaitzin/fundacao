@@ -4089,6 +4089,8 @@ interface DocumentoMock {
   aceitoEm: string | null; aceitoPor: string | null; notaDoAceite: string | null;
   versao: number; conteudo: string;
   arquivo: { nome: string; tipo: string; tamanho: number; sha256: string };
+  /** O registro de saúde a que o laudo ou a receita responde (fase 217). */
+  condicaoId?: string | null; restricaoId?: string | null;
 }
 interface FotoMock {
   id: string; nome: string; tipo: string; conteudo: string; autorizacaoRegistrada: boolean;
@@ -4198,6 +4200,12 @@ function detalheDe(k: Kid): Record<string, string | null> {
 const JUDICIAL_EXTRA: Record<string, string | null> = {};
 
 const DOSSIE_DOCS: DocumentoMock[] = [];
+/** O laudo e a receita de um registro de saúde, na forma do perfil (fase 217). */
+function docsDoRegistro(campo: 'condicaoId' | 'restricaoId', id: string) {
+  semearDossie();
+  return DOSSIE_DOCS.filter((d) => d[campo] === id).reverse()
+    .map((d) => ({ id: d.id, titulo: d.titulo, anexadoEm: d.anexadoEm, conferido: !!d.aceitoEm }));
+}
 const VIVENCIAS: VivenciaMock[] = [];
 
 /**
@@ -4247,6 +4255,10 @@ function semearDossie() {
             'Bula anexada à prescrição de Colírio'),
     espelho('doc-espelho-laudo', null, 'Laudo da radiografia de tórax',
             'Anexo do diário de internação'),
+    /* O laudo da alergia ao amendoim, ligado a ela (fase 217): aparece junto da
+       alergia, na aba Saúde do perfil. */
+    { ...espelho('doc-laudo-alergia', null, 'Laudo médico', 'Anexado à alergia pela Enfermagem'),
+      condicaoId: 'h1-p01' },
     doc('certidao_nascimento', 'pessoal', 'Certidão de nascimento', true),
     doc('cartao_sus', 'pessoal', 'Cartão SUS', false),
     doc('caderneta_vacinacao', 'pessoal', 'Caderneta de vacinação', true, diasAtras(-120)),
@@ -7466,8 +7478,17 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         'Este arquivo não é imagem nem PDF. O dossiê guarda documento digitalizado, e a '
         + 'conferência é pela assinatura do arquivo, não pela extensão do nome.');
     }
+    const condicaoId = b.condicaoId ? String(b.condicaoId) : null;
+    const restricaoId = b.restricaoId ? String(b.restricaoId) : null;
+    if (condicaoId && restricaoId) {
+      return new Recusa(400, 'Anexe a um registro de cada vez: a alergia ou a restrição.');
+    }
+    if ((condicaoId || restricaoId) && (b.categoria !== 'saude' || b.chave)) {
+      return new Recusa(400, 'O laudo e a receita da alergia ou da restrição ficam na pasta da saúde.');
+    }
     const id = uid();
     DOSSIE_DOCS.unshift({ id, personId: String(seg[1]), chave: b.chave ? String(b.chave) : null,
+      condicaoId, restricaoId,
       categoria: String(b.categoria), titulo: String(b.titulo).trim(),
       emitidoEm: b.emitidoEm ? String(b.emitidoEm) : null,
       validoAte: b.validoAte ? String(b.validoAte) : null, origem: null,
@@ -9849,9 +9870,11 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       alertasEssenciais: alertasDe(k),
       condicoesSaude: [...(k.alerta ? [{ id: `h1-${k.id}`, kind: k.alerta.tipo, description: k.alerta.descricao,
         rotulo: k.alerta.descricao, severity: k.alerta.gravidade, essential_alert: true,
-        source: 'Relatório médico (fictício)', review_on: null }] : []), ...(k.condicoesExtras ?? [])],
+        source: 'Relatório médico (fictício)', review_on: null }] : []), ...(k.condicoesExtras ?? [])]
+        .map((c: any) => ({ ...c, documentos: docsDoRegistro('condicaoId', c.id) })),
       restricoesAlimentares: [...(k.restricao ? [{ id: `r1-${k.id}`, ...k.restricao, review_on: null }] : []),
-        ...(k.restricoesExtras ?? [])],
+        ...(k.restricoesExtras ?? [])]
+        .map((r: any) => ({ ...r, documentos: docsDoRegistro('restricaoId', r.id) })),
       cuidadosEssenciais: campoLiberado('cuidados_essenciais', eu.role)
         ? detalheDe(k).cuidadosEssenciais : null,
       escola: campoLiberado('escola', eu.role)

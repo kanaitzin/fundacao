@@ -1014,3 +1014,92 @@ export function DocumentosDaCategoria({ personId, categoria, titulo, explicacao,
     </section>
   );
 }
+
+/**
+ * O LAUDO E A RECEITA DE UM REGISTRO DE SAÚDE (fase 217, pedido de 14/10).
+ *
+ * A alergia, a condição e a restrição alimentar eram só o que alguém escreveu.
+ * O papel do médico entra aqui, na pasta da saúde do dossiê, já dizendo a que
+ * registro responde, e aparece junto dele no perfil. Abrir é o mesmo do dossiê:
+ * pelo servidor, registrado, com a conferência de quem olhou.
+ */
+export function AnexosDoRegistroDeSaude({ personId, registro, documentos, podeAnexar, onMudou }: {
+  personId: string;
+  registro: { qual: 'condicao' | 'restricao'; id: string; nome: string };
+  documentos: { id: string; titulo: string; anexadoEm: string; conferido: boolean }[];
+  podeAnexar: boolean; onMudou: () => void;
+}) {
+  const [catalogo, setCatalogo] = useState<Catalogo | null>(null);
+  const [anexando, setAnexando] = useState(false);
+  const [abrindo, setAbrindo] = useState<DocumentoDoDossie | null>(null);
+  const [erro, setErro] = useState('');
+  const item: ItemDoDossie = { chave: '', label: `Laudo ou receita · ${registro.nome}`,
+    categoria: 'saude', titulo: registro.qual === 'restricao' ? 'Receita médica' : 'Laudo médico',
+    obrigatorio: false, documentos: [], situacao: 'falta' };
+
+  useEffect(() => {
+    if (anexando && !catalogo) {
+      api<Catalogo>('/people/dossie/catalogo').then(setCatalogo)
+        .catch((e) => setErro(e instanceof Error ? e.message : 'Não foi possível abrir o anexo.'));
+    }
+  }, [anexando, catalogo]);
+
+  async function abrir(id: string) {
+    setErro('');
+    try {
+      const d = await api<Dossie>(`/people/${personId}/dossie`);
+      const doc = d.avulsos.find((x) => x.id === id);
+      if (doc) setAbrindo(doc); else setErro('Documento não encontrado.');
+    } catch (e) { setErro(e instanceof Error ? e.message : 'Não foi possível abrir o documento.'); }
+  }
+
+  if (!documentos.length && !podeAnexar) return null;
+  return (
+    <div className="anexos-do-registro">
+      {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+      {documentos.map((d) => (
+        <div key={d.id} className="row" style={{ gap: 8 }}>
+          <span className="mutetxt grow">
+            <Icone nome="anexo" /> {d.titulo} · {dia(String(d.anexadoEm).slice(0, 10))}
+            {d.conferido ? '' : ' · ainda não conferido'}
+          </span>
+          <button className="btn sm sec" aria-label={`Abrir ${d.titulo} de ${registro.nome}`}
+                  onClick={() => void abrir(d.id)}>Abrir</button>
+        </div>
+      ))}
+      {podeAnexar && (
+        <button data-acolhe-abre="" className="btn sm ghost" aria-label={`Anexar laudo ou receita de ${registro.nome}`}
+                onClick={() => setAnexando(true)}>
+          <Icone nome="anexo" /> Anexar laudo ou receita
+        </button>
+      )}
+
+      {anexando && catalogo && (
+        <FolhaAnexo item={item} catalogo={catalogo} onFechar={() => setAnexando(false)}
+          onEnviar={async (dados) => {
+            setErro('');
+            try {
+              await api(`/people/${personId}/documents`, {
+                method: 'POST',
+                body: JSON.stringify({
+                  ...dados,
+                  ...(registro.qual === 'condicao' ? { condicaoId: registro.id } : { restricaoId: registro.id }),
+                }),
+              });
+              setAnexando(false); onMudou();
+            } catch (e) { setErro(e instanceof Error ? e.message : 'Não foi possível anexar o documento.'); }
+          }} />
+      )}
+      {abrindo && (
+        <FolhaConferencia personId={personId} documento={abrindo} onFechar={() => setAbrindo(null)}
+          onAceitar={async (nota) => {
+            setErro('');
+            try {
+              await api(`/people/${personId}/documents/${abrindo.id}/accept`, { method: 'POST', body: JSON.stringify({ nota }) });
+              setAbrindo(null); onMudou();
+            } catch (e) { setErro(e instanceof Error ? e.message : 'Não foi possível conferir o documento.'); }
+          }} />
+      )}
+    </div>
+  );
+}

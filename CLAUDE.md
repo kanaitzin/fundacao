@@ -181,7 +181,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 14/10/2026, fase 216
+### Onde estamos — 14/10/2026, fase 217
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -261,8 +261,9 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 214 | **as recusas também falam como colega**: 157 recados do servidor e 96 do protótipo sem travessão nem frase que argumenta; o `as-recusas-falam-como-colega.spec.ts` lê toda recusa dos dois lados e reprova |
 | 215 | **corrigir um familiar** (pedido de 14/10): acrescentar e encerrar já funcionavam; faltava corrigir, com o motivo e o antes guardado (`person_contact_change`, people/1653); encerrar contato não ia à auditoria |
 | 216 | **os arquivos na área restrita do Judiciário**: guia, decisões, o relatório de acolhimento e outros, em PDF ou pela câmera, logo abaixo do motivo (`DocumentosDaCategoria`, a categoria judicial do dossiê); no protótipo, a recusa do servidor de mentira passou a ser `ErroApi` |
+| 217 | **o laudo junto da alergia e as receitas no perfil**: laudo ou receita anexado à alergia, condição ou restrição (`document.health_condition_id`/`food_restriction_id`, people/1654), e os remédios dela com as receitas na aba Saúde; o `doc_insert` passou a conferir a casa |
 
-**Medido no fim da 214:** 193 migrações, 137 tabelas, 143 suítes, 1277 testes, verdes nas
+**Medido no fim da 214:** 194 migrações, 137 tabelas, 144 suítes, 1282 testes, verdes nas
 DUAS condições de relógio, rodadas inteiras; na 214, o `ensaio:uso`, o `roteiro` e o `fila`
 verdes sobre o protótipo novo, e na 213 o `uso`, o do celular e o de acessibilidade (1256 telas,
 nenhuma violação), mais a simulação contra o servidor. **Da 212:** o `ensaio:uso-celular` e o
@@ -344,8 +345,8 @@ as três cores abaixo. Cor nova passa pelo `ensaio:acessibilidade`, que mede os 
 **EM ANDAMENTO — o pedido de 14/10** (familiares e anexos no perfil). **215 feita**:
 corrigir o familiar. **216 feita**: os arquivos na área restrita, pela categoria judicial
 do dossiê (`DocumentosDaCategoria` no `Dossie.tsx`, que mostra uma categoria em qualquer
-aba). **Próximas:** **217**
-o laudo e a receita junto da alergia, da restrição e do remédio, **218** o atendimento da
+aba). **217 feita**: o laudo e a receita junto da alergia, da restrição e do remédio
+(`AnexosDoRegistroDeSaude` no `Dossie.tsx`, `RemediosEReceitas` no perfil). **Próxima:** **218** o atendimento da
 equipe técnica (psicologia, psicopedagogia) com o desenho anexado, restrito a técnica e
 coordenação, que vira fonte do acompanhamento.
 

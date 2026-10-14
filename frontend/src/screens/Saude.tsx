@@ -2390,7 +2390,7 @@ function NumerosDoArmario({ houseId }: { houseId: string }) {
  * que ele faz às 22h. Por isso este botão não aparece para ele, e o servidor
  * recusa de qualquer jeito.
  */
-function FolhaReceitas({ esquema, papel, onFechar }: {
+export function FolhaReceitas({ esquema, papel, onFechar }: {
   esquema: { id: string; medicamento: string }; papel: string; onFechar: () => void;
 }) {
   const [lista, setLista] = useState<{ id: string; nome: string; tipo: string;

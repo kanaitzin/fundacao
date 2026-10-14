@@ -4163,6 +4163,56 @@ console.log('\n🗂️ Os documentos na área restrita do Judiciário (fase 216)
   await pgJ.close();
 }
 
+console.log('\n🩺 O laudo junto da alergia, e as receitas dos remédios no perfil (fase 217)');
+{
+  const pgS = await navegador.newPage({ viewport: { width: 1366, height: 900 } });
+  const errosS = [];
+  pgS.on('pageerror', (e) => errosS.push(e.message));
+  const esp = (ms = 800) => pgS.waitForTimeout(ms);
+  await pgS.goto(`file://${ARQUIVO}`); await esp(700);
+  await pgS.getByRole('button', { name: 'Marcelo Barbosa', exact: true }).click();
+  await pgS.getByRole('button', { name: /Entrar no sistema/i }).click(); await esp(1200);
+  cargoAtual = 'enfermagem';
+  await pgS.locator('select.troca-cargo-sel').selectOption('enfermagem'); await esp(900);
+  await pgS.getByRole('button', { name: /^Acolhidos/ }).filter({ visible: true }).first().click(); await esp(900);
+  await pgS.locator('.pessoa-cartao').filter({ hasText: 'Alice' }).first().click(); await esp(1200);
+  await pgS.getByRole('tab', { name: /Saúde/ }).click(); await esp(800);
+  const saude = pgS.locator('#perfil-saude');
+  const antes = await saude.innerText();
+  cobrar('a alergia da Alice traz o laudo junto', /Laudo médico/.test(antes), antes.slice(0, 300));
+  await saude.getByRole('button', { name: /^Abrir Laudo médico de/ }).first().click(); await esp(900);
+  cobrar('o laudo abre', /Laudo médico/.test(await pgS.locator('.overlay').innerText()));
+  await pgS.locator('.overlay').getByRole('button', { name: /Fechar|Cancelar/ }).first().click(); await esp(500);
+  await saude.getByRole('button', { name: /^Anexar laudo ou receita de Amendoim, pasta/ }).click(); await esp(600);
+  const pdf = Buffer.from('%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF');
+  await pgS.locator('#anx-arq-arquivo').setInputFiles({ name: 'receita.pdf', mimeType: 'application/pdf', buffer: pdf }); await esp(600);
+  await pgS.locator('.overlay').getByRole('button', { name: /^Anexar$/ }).last().click(); await esp(1200);
+  const linhaRest = saude.locator('li').filter({ hasText: 'Não servir: Amendoim' });
+  cobrar('a receita anexada aparece junto da restrição, por conferir',
+    /Receita médica/.test(await linhaRest.innerText()) && /ainda não conferido/.test(await linhaRest.innerText()),
+    (await linhaRest.innerText()).slice(0, 200));
+  const rem = pgS.locator('.remedios-e-receitas');
+  cobrar('os remédios dela aparecem no perfil, com as receitas',
+    (await rem.count()) > 0 && (await rem.getByRole('button', { name: /^Receitas de/ }).count()) > 0);
+  await rem.getByRole('button', { name: /^Receitas de/ }).first().click(); await esp(900);
+  cobrar('e as receitas do remédio abrem no perfil', /Receitas e bulas/.test(await pgS.locator('.overlay').innerText()));
+  await pgS.locator('.overlay').getByRole('button', { name: 'Fechar' }).last().click(); await esp(400);
+
+  // O educador vê o laudo junto da alergia, sem anexar nem ver as receitas.
+  cargoAtual = 'educador';
+  await pgS.locator('select.troca-cargo-sel').selectOption('educador'); await esp(900);
+  await pgS.getByRole('button', { name: /^Acolhidos/ }).filter({ visible: true }).first().click(); await esp(900);
+  await pgS.locator('.pessoa-cartao').filter({ hasText: 'Alice' }).first().click(); await esp(1200);
+  await pgS.getByRole('tab', { name: /Saúde/ }).click(); await esp(800);
+  const doEducador = pgS.locator('#perfil-saude');
+  cobrar('o educador vê o laudo, sem o botão de anexar nem as receitas',
+    /Laudo médico/.test(await doEducador.innerText())
+      && (await doEducador.getByRole('button', { name: /^Anexar laudo/ }).count()) === 0
+      && (await pgS.locator('.remedios-e-receitas').count()) === 0);
+  cobrar('nenhuma exceção no laudo e nas receitas', errosS.length === 0, errosS[0]);
+  await pgS.close();
+}
+
 await navegador.close();
 console.log(achados.length
   ? `\n${achados.length} ACHADO(S):\n  ${achados.join('\n  ')}`
