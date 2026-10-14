@@ -955,12 +955,12 @@ coordenação da casa, a Coordenação Geral, o Gestor Geral e a TI (`admin_tecn
 conversa com a assistente **não** é tabela: ela vive na tela de quem conversa, e o uso
 fica na auditoria (`assistente.conversa`, só metadado).
 
-## Inventário — 136 tabelas por partição
+## Inventário — 137 tabelas por partição
 
 | Partição | Tabelas |
 |---|---|
 | identity (17) | institution, house, app_user, user_house_assignment, work_schedule, shift_assignment, user_session, login_attempt, audit_event, institutional_device, staff_role_grant, house_capacity_change, user_invite, house_shift_hours, app_user_role_period, shift_draft, shift_draft_item |
-| people (33) | person, care_episode, house_stay, profile_detail, health_condition, food_restriction, document, document_version, benefit_record, memory_record, memory_photo, transfer_request, transfer_message, admission_record, judicial_record, person_credential, person_correction, profile_detail_change, person_contact, family_stay, family_stay_note, outing_permission, kitchen_request, house_field_permission, birthday_ack, contact_visit_change, visit, visit_correction, kitchen_request_change, pia_aviso, document_due_notice, child_outing, memory_photo_person |
+| people (34) | person, care_episode, house_stay, profile_detail, health_condition, food_restriction, document, document_version, benefit_record, memory_record, memory_photo, transfer_request, transfer_message, admission_record, judicial_record, person_credential, person_correction, profile_detail_change, person_contact, family_stay, family_stay_note, outing_permission, kitchen_request, house_field_permission, birthday_ack, contact_visit_change, visit, visit_correction, kitchen_request_change, pia_aviso, document_due_notice, child_outing, memory_photo_person, person_contact_change |
 | shifts (14) | shift, handover, handover_receipt, handover_note, ata, ata_note, ata_addendum, ata_episode, ata_episode_ack, general_night_ata, general_night_house_entry, general_night_house_amendment, ata_read_request, shift_fim_aviso |
 | incidents (7) | incident, incident_person, incident_protected, incident_restraint, incident_synthesis, external_communication, incident_attachment |
 | medications (13) | prescription, medication_schedule, medication_administration, medication_stock, medication_stock_movement, medication_protocol, medication_authorization, medication_protocol_change, prescription_restriction_change, medication_purchase, medication_purchase_item, prescription_document, family_stay_medication |
@@ -1205,6 +1205,17 @@ passado. Quem grava são `app_salvar_modelo_de_chamada` e
 `app_encerrar_modelo_de_chamada`, só pela coordenação, a equipe técnica e o Líder
 Diurno (`app_define_chamadas_da_casa`); quem lê é a equipe da casa, pela política.
 A cor diz QUAL chamada é, e nunca se a chamada foi bem.
+
+### `person_contact_change`
+O CONTATO CORRIGIDO (fase 215, people/1653). Antes só se acrescentava e encerrava
+contato; o telefone que mudou obrigava a encerrar e cadastrar de novo, e o contato novo
+perdia a marca de visita e a foto.
+
+`person_contact_change` — uma linha por correção: `contact_id`, `person_id`,
+`changed_by`, `changed_at`, `reason` (obrigatório) e, em `before`/`after` (jsonb),
+só os campos que mudaram (`name`, `bond`, `bond_other`, `phone`, `note`, `cpf`).
+Escrevem a equipe técnica e a coordenação, como no cadastro; lê quem alcança a criança.
+A aproximação restrita não se corrige por aqui.
 
 ### `commitment_exception`
 Uma ocorrência desmarcada de um compromisso que continua valendo. Por DATA, com

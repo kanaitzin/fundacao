@@ -118,6 +118,7 @@ Ninguém no sistema é anônimo e nada se apaga: tudo tem autor e histórico.
 - /people/benefits/kinds  tipos de benefício
 - /people/contacts/kinds  tipos de vínculo
 - /people/contacts/ID/visit-history  visitas de um visitante
+- /people/contacts/ID/correcoes  as correções de um contato, com o que constava antes
 - /people/credentials/kinds  tipos de conta do acolhido
 - /people/family-stays?houseId=  convivências da casa
 - /people/family-stays/ID/notes  relatos de uma convivência

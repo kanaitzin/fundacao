@@ -20,7 +20,7 @@ começava escolhendo em qual acreditar.*
 
 | Arquivo | Por que sobreviveu |
 |---|---|
-| `der.md` | as 136 tabelas com o que cada coluna guarda. É referência de dado, não narrativa, e o `documentacao.spec.ts` cobra que toda tabela apareça lá |
+| `der.md` | as 137 tabelas com o que cada coluna guarda. É referência de dado, não narrativa, e o `documentacao.spec.ts` cobra que toda tabela apareça lá |
 | `roteiro-marcelo.md` (+ `.docx`) | é entregue à Casa 03, escrito para quem não conhece o sistema. O `.docx` é GERADO do `.md` por `scripts/roteiro-em-word.mjs` — não editar o Word à mão |
 
 ---
@@ -90,10 +90,10 @@ discordavam entre si.
 | Quanto | De onde sai |
 |---|---|
 | **19 partições** isoladas | pastas em `backend/src/modules/` |
-| **192 migrações** | `.sql` dentro das partições |
-| **136 tabelas** | `CREATE TABLE` nas migrações |
-| **142 suítes** | `backend/test/*.spec.ts` |
-| **1271 testes** | `it(` / `test(` nas suítes |
+| **193 migrações** | `.sql` dentro das partições |
+| **137 tabelas** | `CREATE TABLE` nas migrações |
+| **143 suítes** | `backend/test/*.spec.ts` |
+| **1276 testes** | `it(` / `test(` nas suítes |
 | **39 telas React** | `frontend/src/screens/*.tsx` |
 | **10 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **10 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
@@ -424,6 +424,7 @@ arqueologia.
 | 212 | **As telas falam como colega** (pedido de 12/10: *"tem frase que parece o raciocínio de quem escreveu, não fala com a gente"*). Medido pelo texto que a tela MOSTRA, abrindo todas as telas de todos os cargos e as abas do perfil: **137 frases** com marca de raciocínio (o sistema que *não assina por ninguém*, *não existe*, *não é medição*, *quem consulta também é consultável*, *mais que três meses não é supervisão, é dossiê*, o travessão que argumenta). Reescritas como orientação de quem trabalha junto, nas telas, no servidor e no protótipo ao mesmo tempo, e a página *O que cada setor enxerga* inteira (`alcance.ts`). Sobraram 54, todas separador de dado (*AI3 — Casa 03*, remédio e dose, nome e cargo) ou texto escrito pela equipe. **Virou cobrança**: o `ensaio:celular`, que já abre as telas de todos os cargos, reprova a frase com marca de raciocínio no texto visível. |
 | 213 | **Quem não tem casa de trabalho sabe em qual casa está, e as chamadas da casa conferidas contra o servidor**. A simulação de trinta dias da Casa 03, que não rodava desde a 205, levou ao navegador as telas novas das fases 206 a 212. As **chamadas da casa** passaram contra o servidor de verdade nos três cargos que as definem (criadas pela folha com a paleta, conferidas no banco com a casa, a cor, o horário e as pessoas, abertas com um toque e tiradas da lista). E o calendário da Passagem achou um defeito de tela: **o Líder Noturno Geral (e quem mais não tem casa de trabalho: Enfermagem, Gestor Geral, Coordenação Geral) abria a primeira casa da lista sem a tela dizer qual**; a Passagem falava *nesta casa* sem nome. Agora, nas telas de uma casa, aparece *Você está na AI1 · Abrigo Institucional 1* com o botão **Trocar de casa**, e o `ensaio-servidor` cobra isso dessas contas. Na API, só a recusa conhecida da admissão no limite de vagas. |
 | 214 | **As recusas também falam como colega**. A 212 mediu as frases abrindo as telas, e as recusas do servidor ficaram de fora: só aparecem quando algo é recusado. Eram **157 no servidor e 96 no protótipo** com travessão ou com frase que argumenta com a pessoa (*do contrário, bastaria uma conta nova para enxergar as oito casas*, *uma pauta recusada sem resposta é pior do que não poder propor*, *todos aqui seria suposição*). O travessão saiu de todas, por regra revisada à mão (vírgula antes de *ou, e, mas*, dois-pontos antes de *por exemplo*, vírgulas no par, ponto no resto), e as que argumentavam foram reescritas dizendo o que fazer e quem faz, nos dois lados ao mesmo tempo. **Virou suíte** (`as-recusas-falam-como-colega.spec.ts`): lê o texto de toda `new XException(...)` do servidor e de toda `Recusa`/`ErroApi` do protótipo e reprova as marcas. |
+| 215 | **Corrigir um familiar** (pedido de 14/10: *"tava tentando mexer nos familiares deles para adicionar ou remover, e não consegui"*). Acrescentar e encerrar contato funcionavam para a coordenação e a técnica (conferido no protótipo, como o Marcelo entra); o que não existia era **corrigir**: o telefone que mudou, o vínculo escrito errado, o CPF que chegou depois. A saída era encerrar e cadastrar de novo, e o contato novo perdia a marca de visita e a foto. Agora cada contato tem **Corrigir**, com a folha preenchida, o motivo obrigatório e as **correções anteriores** embaixo, com o que constava (`person_contact_change`, people/1653, só os campos que mudaram). A aproximação restrita não se corrige por ali. De passagem: **encerrar um contato não deixava rastro na auditoria**, e criar deixava (consertado). |
 
 ---
 
@@ -471,7 +472,7 @@ cd frontend && npm run prototipo
 ```
 
 O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as
-192 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
+193 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
 
 ### Os ensaios — e por que cada um existe
 
@@ -538,7 +539,7 @@ rede-acolher/
 │   │   │   ├── documentos/     o contrato da folha e o gerador de .docx
 │   │   │   └── common/         CPF, criptografia, segredo, fuso da instituição
 │   │   └── modules/       19 partições, cada uma dona das próprias migrações
-│   ├── test/              142 suítes (e2e contra PostgreSQL real + estáticas)
+│   ├── test/              143 suítes (e2e contra PostgreSQL real + estáticas)
 │   ├── scripts/           ensaio-carga.ts, migrador compilado
 │   └── assets/timbre.png  a marca da Fundação, usada no documento em Word
 ├── frontend/
@@ -2919,7 +2920,7 @@ crescimento. Vídeo não entra no álbum: um minuto de vídeo de celular pesa co
 npm run ensaio:producao
 ```
 
-Constrói, cria um banco virgem, aplica as 192 migrações **pelo binário
+Constrói, cria um banco virgem, aplica as 193 migrações **pelo binário
 compilado**, sobe o serviço e confere `/health`. Não publica nada e não toca no
 banco de trabalho.
 

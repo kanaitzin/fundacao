@@ -9750,6 +9750,45 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     return { id: novoContato.id, ok: true };
   }
 
+  /* Corrigir o contato, com o antes guardado (fase 215). */
+  if (seg[0] === 'people' && seg[1] === 'contacts' && seg[3] === 'corrigir' && metodo === 'POST') {
+    if (!['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403, 'Quem corrige o cadastro de contatos é a equipe técnica ou a coordenação.');
+    }
+    if (String(b.motivo ?? '').trim().length < 5) return new Recusa(400, 'Escreva por que o contato está sendo corrigido.');
+    for (const lista of Object.values(CONTATOS)) {
+      const c = lista.find((x) => x.id === seg[2] && x.ativo);
+      if (!c) continue;
+      const rotulos: Record<string, string> = {
+        genitora: 'Genitora', genitor: 'Genitor', irmao: 'Irmão ou irmã', avo: 'Avó ou avô',
+        tio: 'Tia ou tio', padrinho: 'Padrinho', madrinha: 'Madrinha',
+        vinculo_comunitario: 'Vínculo comunitário', servico_da_rede: 'Serviço da rede',
+      };
+      const antes: Record<string, unknown> = {}; const depois: Record<string, unknown> = {};
+      const troca = (campo: string, chave: string, valor: unknown) => {
+        if ((c[chave] ?? null) !== (valor ?? null)) { antes[campo] = c[chave] ?? null; depois[campo] = valor ?? null; c[chave] = valor; }
+      };
+      if (b.nome !== undefined) troca('name', 'nome', String(b.nome).trim());
+      if (b.telefone !== undefined) troca('phone', 'telefone', String(b.telefone).trim() || null);
+      if (b.observacao !== undefined) troca('note', 'observacao', String(b.observacao).trim() || null);
+      if (b.cpf !== undefined) troca('cpf', 'cpf', String(b.cpf).replace(/\D/g, '') || null);
+      if (b.vinculo !== undefined) {
+        troca('bond', 'vinculo', b.vinculo);
+        c.vinculoRotulo = b.vinculo === 'outro' ? String(b.vinculoOutro ?? 'Outro') : (rotulos[String(b.vinculo)] ?? String(b.vinculo));
+      }
+      if (!Object.keys(depois).length) return new Recusa(400, 'Nada mudou no contato.');
+      (c.correcoes ??= []).unshift({ antes, depois, motivo: String(b.motivo).trim(), em: new Date().toISOString(), por: eu.fullName });
+      return { ok: true, aviso: 'Contato corrigido. O que constava antes fica no histórico.' };
+    }
+    return new Recusa(404, 'Contato não encontrado, ou já encerrado.');
+  }
+  if (seg[0] === 'people' && seg[1] === 'contacts' && seg[3] === 'correcoes' && metodo === 'GET') {
+    for (const lista of Object.values(CONTATOS)) {
+      const c = lista.find((x) => x.id === seg[2]);
+      if (c) return c.correcoes ?? [];
+    }
+    return [];
+  }
   if (seg[0] === 'people' && seg[1] === 'contacts' && seg[3] === 'end' && metodo === 'POST') {
     if (String(b.motivo ?? '').trim().length < 5) {
       return new Recusa(400, 'Escreva por que este contato não vale mais.');

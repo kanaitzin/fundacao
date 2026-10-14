@@ -4104,6 +4104,35 @@ console.log('\n🎨 As chamadas da casa, com horário, pessoas e cor (fase 211)'
   await pgC.close();
 }
 
+console.log('\n👪 Corrigir um familiar, com o antes guardado (fase 215)');
+{
+  const pgK = await navegador.newPage({ viewport: { width: 1366, height: 900 } });
+  const errosK = [];
+  pgK.on('pageerror', (e) => errosK.push(e.message));
+  const esp = (ms = 800) => pgK.waitForTimeout(ms);
+  await pgK.goto(`file://${ARQUIVO}`); await esp(700);
+  await pgK.getByRole('button', { name: 'Marcelo Barbosa', exact: true }).click();
+  await pgK.getByRole('button', { name: /Entrar no sistema/i }).click(); await esp(1200);
+  cargoAtual = 'coordenador';
+  await pgK.getByRole('button', { name: /^Acolhidos/ }).filter({ visible: true }).first().click(); await esp(900);
+  await pgK.locator('.pessoa-cartao').filter({ hasText: 'Alice' }).first().click(); await esp(1200);
+  await pgK.getByRole('tab', { name: /Família/ }).click(); await esp(800);
+  await pgK.getByRole('button', { name: /^Corrigir o contato Rosângela/ }).click(); await esp(500);
+  const folha = pgK.locator('.overlay');
+  cobrar('a folha de corrigir vem preenchida com o que consta', (await folha.locator('#cc-tel').inputValue()).length > 5);
+  await folha.locator('#cc-tel').fill('51 97777-1234');
+  await folha.locator('#cc-motivo').fill('A mãe trocou de número.');
+  await folha.getByRole('button', { name: 'Guardar a correção' }).click(); await esp(900);
+  cobrar('o telefone novo aparece no cartão', /51 97777-1234/.test(await pgK.locator('main.conteudo').innerText()));
+  await pgK.getByRole('button', { name: /^Corrigir o contato Rosângela/ }).click(); await esp(700);
+  const t = await folha.innerText();
+  cobrar('e a correção anterior aparece, com o que constava e o motivo',
+    /Correções anteriores/i.test(t) && /trocou de número/.test(t));
+  await folha.getByRole('button', { name: 'Cancelar' }).click();
+  cobrar('nenhuma exceção ao corrigir o familiar', errosK.length === 0, errosK[0]);
+  await pgK.close();
+}
+
 await navegador.close();
 console.log(achados.length
   ? `\n${achados.length} ACHADO(S):\n  ${achados.join('\n  ')}`

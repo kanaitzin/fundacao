@@ -517,6 +517,20 @@ export class PeopleController {
     return this.saude.encerrar(user, 'restricao', restrictionId, body?.motivo);
   }
 
+  /* Corrigir o contato, com o antes guardado (fase 215). */
+  @Post('contacts/:contactId/corrigir')
+  corrigirContato(@CurrentUser() user: AuthenticatedUser,
+                  @Param('contactId', ParseUUIDPipe) contactId: string, @Body() body: any) {
+    return this.contatos.corrigir(user, contactId, body ?? {});
+  }
+
+  @RegistroDaRota('contactId', 'person_contact')
+  @Get('contacts/:contactId/correcoes')
+  correcoesDoContato(@CurrentUser() user: AuthenticatedUser,
+                     @Param('contactId', ParseUUIDPipe) contactId: string) {
+    return this.contatos.correcoesDoContato(user, contactId);
+  }
+
   @Post('contacts/:contactId/end')
   encerrarContato(@CurrentUser() user: AuthenticatedUser,
                   @Param('contactId', ParseUUIDPipe) contactId: string,

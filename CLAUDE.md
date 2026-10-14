@@ -181,7 +181,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 14/10/2026, fase 214
+### Onde estamos — 14/10/2026, fase 215
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -259,8 +259,9 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 212 | **as telas falam como colega** (pedido de 12/10): medido pelo texto que a tela mostra, 137 frases com marca de raciocínio reescritas (telas, servidor, protótipo e a página do alcance); sobram só separadores de dado; o `ensaio:celular` passa a reprovar a frase de raciocínio |
 | 213 | **a casa aberta, dita**: a simulação contra o servidor (a primeira desde a 205) conferiu as chamadas da casa no banco e achou que **quem não tem casa de trabalho** (noturno, Enfermagem, gestor, CG) abria a primeira casa da lista sem saber qual; agora *Você está na …* com *Trocar de casa*, cobrado no `ensaio-servidor` |
 | 214 | **as recusas também falam como colega**: 157 recados do servidor e 96 do protótipo sem travessão nem frase que argumenta; o `as-recusas-falam-como-colega.spec.ts` lê toda recusa dos dois lados e reprova |
+| 215 | **corrigir um familiar** (pedido de 14/10): acrescentar e encerrar já funcionavam; faltava corrigir, com o motivo e o antes guardado (`person_contact_change`, people/1653); encerrar contato não ia à auditoria |
 
-**Medido no fim da 214:** 192 migrações, 136 tabelas, 142 suítes, 1271 testes, verdes nas
+**Medido no fim da 214:** 193 migrações, 137 tabelas, 143 suítes, 1276 testes, verdes nas
 DUAS condições de relógio, rodadas inteiras; na 214, o `ensaio:uso`, o `roteiro` e o `fila`
 verdes sobre o protótipo novo, e na 213 o `uso`, o do celular e o de acessibilidade (1256 telas,
 nenhuma violação), mais a simulação contra o servidor. **Da 212:** o `ensaio:uso-celular` e o
@@ -338,6 +339,13 @@ as três cores abaixo. Cor nova passa pelo `ensaio:acessibilidade`, que mede os 
 | **casa** (211) | *qual é esta chamada?* | barra e ponto do cartão da chamada; a casa escolhe (`cores-da-casa.ts`) |
 
 ### A próxima etapa
+
+**EM ANDAMENTO — o pedido de 14/10** (familiares e anexos no perfil). **215 feita**:
+corrigir o familiar. **Próximas:** **216** os arquivos na área restrita do Judiciário (a
+pasta de documentos já tem a categoria judicial restrita: usar ela, não criar outra), **217**
+o laudo e a receita junto da alergia, da restrição e do remédio, **218** o atendimento da
+equipe técnica (psicologia, psicopedagogia) com o desenho anexado, restrito a técnica e
+coordenação, que vira fonte do acompanhamento.
 
 **FEITO — fase 214** (§2): as recusas do servidor e do protótipo sem travessão nem frase
 que argumenta, cobradas por suíte. **Recado novo de recusa** diz o que fazer e quem faz; o

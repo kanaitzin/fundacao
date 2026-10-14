@@ -237,13 +237,102 @@ export class ContatosService {
       throw new BadRequestException('Escreva por que este contato não vale mais.');
     }
     return this.db.asUser(user.id, async (c) => {
-      const { rowCount } = await c.query(
+      const { rows: [r] } = await c.query(
         `UPDATE person_contact SET active = false, ended_reason = $2,
                 visit_authorized = false,
                 updated_at = now(), updated_by = $3
-          WHERE id = $1 AND active`, [contatoId, motivo.trim(), user.id]);
-      if (!rowCount) throw new NotFoundException('Contato não encontrado, ou já encerrado.');
+          WHERE id = $1 AND active RETURNING person_id`, [contatoId, motivo.trim(), user.id]);
+      if (!r) throw new NotFoundException('Contato não encontrado, ou já encerrado.');
+      /* Encerrar não deixava rastro na auditoria, e criar deixava (fase 215). */
+      await this.audit.log({
+        action: 'contato.encerrado', actorId: user.id, institutionId: user.institutionId,
+        houseId: await this.audit.casaDoAcolhido(user.id, r.person_id, c),
+        entity: 'person_contact', entityId: contatoId, detail: {},
+      });
       return { ok: true };
+    });
+  }
+
+  /**
+   * CORRIGIR UM CONTATO (fase 215, pedido de 14/10).
+   *
+   * O telefone que mudou, o vínculo escrito errado, o CPF que chegou depois.
+   * Encerrar e cadastrar de novo perdia a marca de visita, a foto e o
+   * histórico. A correção guarda o antes e o depois de cada campo que mudou,
+   * com quem e por quê. A aproximação restrita fica de fora: é decisão, com
+   * motivo próprio.
+   */
+  async corrigir(user: AuthenticatedUser, contatoId: string, input: {
+    nome?: string; vinculo?: string; vinculoOutro?: string; telefone?: string;
+    observacao?: string; cpf?: string; motivo?: string;
+  }) {
+    const motivo = (input.motivo ?? '').trim();
+    if (motivo.length < 5) throw new BadRequestException('Escreva por que o contato está sendo corrigido.');
+    if (input.vinculo !== undefined && !this.VINCULOS.some((v) => v.code === input.vinculo)) {
+      throw new BadRequestException('Informe o vínculo desta pessoa com o acolhido.');
+    }
+    if (input.nome !== undefined && !String(input.nome).trim()) {
+      throw new BadRequestException('Escreva o nome de quem é este contato.');
+    }
+    const cpf = input.cpf !== undefined ? this.cpfOuNulo(input.cpf) : undefined;
+    return this.db.asUser(user.id, async (c) => {
+      const { rows: [atual] } = await c.query(
+        `SELECT id, person_id, name, bond, bond_other, phone, note, cpf, active
+           FROM person_contact WHERE id = $1`, [contatoId]);
+      if (!atual || !atual.active) throw new NotFoundException('Contato não encontrado, ou já encerrado.');
+      const vinculo = input.vinculo ?? atual.bond;
+      const novo: Record<string, string | null> = {
+        name: input.nome !== undefined ? String(input.nome).trim() : atual.name,
+        bond: vinculo,
+        bond_other: vinculo === 'outro'
+          ? (input.vinculoOutro !== undefined ? String(input.vinculoOutro).trim() || null : atual.bond_other)
+          : null,
+        phone: input.telefone !== undefined ? String(input.telefone).trim() || null : atual.phone,
+        note: input.observacao !== undefined ? String(input.observacao).trim() || null : atual.note,
+        cpf: cpf !== undefined ? cpf : atual.cpf,
+      };
+      if (novo.bond === 'outro' && !novo.bond_other) {
+        throw new BadRequestException('Em "outro", escreva qual é o vínculo.');
+      }
+      const antes: Record<string, unknown> = {};
+      const depois: Record<string, unknown> = {};
+      for (const k of Object.keys(novo)) {
+        if ((atual[k] ?? null) !== (novo[k] ?? null)) { antes[k] = atual[k] ?? null; depois[k] = novo[k] ?? null; }
+      }
+      if (!Object.keys(depois).length) throw new BadRequestException('Nada mudou no contato.');
+      try {
+        await c.query(
+          `UPDATE person_contact SET name = $2, bond = $3, bond_other = $4, phone = $5, note = $6,
+                  cpf = $7, updated_at = now(), updated_by = $8 WHERE id = $1`,
+          [contatoId, novo.name, novo.bond, novo.bond_other, novo.phone, novo.note, novo.cpf, user.id]);
+        await c.query(
+          `INSERT INTO person_contact_change (contact_id, person_id, changed_by, reason, before, after)
+           VALUES ($1, $2, $3, $4, $5::jsonb, $6::jsonb)`,
+          [contatoId, atual.person_id, user.id, motivo, JSON.stringify(antes), JSON.stringify(depois)]);
+      } catch (e: any) {
+        if (String(e?.message ?? '').includes('row-level security')) {
+          throw new ForbiddenException('Quem corrige o cadastro de contatos é a equipe técnica ou a coordenação.');
+        }
+        throw e;
+      }
+      await this.audit.log({
+        action: 'contato.corrigido', actorId: user.id, institutionId: user.institutionId,
+        houseId: await this.audit.casaDoAcolhido(user.id, atual.person_id, c),
+        entity: 'person_contact', entityId: contatoId,
+        // Só os NOMES dos campos que mudaram, nunca o telefone nem o CPF.
+        detail: { campos: Object.keys(depois) },
+      });
+      return { ok: true, aviso: 'Contato corrigido. O que constava antes fica no histórico.' };
+    });
+  }
+
+  /** As correções de um contato, da mais recente, com quem e por quê. */
+  async correcoesDoContato(user: AuthenticatedUser, contatoId: string) {
+    return this.db.asUser(user.id, async (c) => {
+      const { rows } = await c.query(
+        `SELECT before, after, reason, changed_at, app_user_display_name(changed_by) AS por
+           FROM person_contact_change WHERE contact_id = $1 ORDER BY changed_at DESC`, [contatoId]);
+      return rows.map((r) => ({ antes: r.before, depois: r.after, motivo: r.reason, em: r.changed_at, por: r.por }));
     });
   }
 

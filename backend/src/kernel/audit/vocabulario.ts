@@ -113,6 +113,8 @@ export const VOCABULARIO_DA_AUDITORIA: Record<string, string> = {
 
   // ------------------------------------------------------------------ Contatos
   'contato.criado': 'Contato cadastrado',
+  'contato.corrigido': 'Contato corrigido',
+  'contato.encerrado': 'Contato encerrado',
   'contato.visita.autorizada': 'Visita autorizada',
   'contato.visita.retirada': 'Autorização de visita retirada',
   'family_stay.open': 'Convivência familiar iniciada',

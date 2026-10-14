@@ -2895,6 +2895,8 @@ function Contatos({ perfil, papel, onMudou }: {
 }) {
   const [novo, setNovo] = useState(false);
   const [encerrando, setEncerrando] = useState<Contato | null>(null);
+  /* Corrigir o contato, com o antes guardado (fase 215). */
+  const [corrigindo, setCorrigindo] = useState<Contato | null>(null);
   const [saindoCom, setSaindoCom] = useState<Contato | null>(null);
   const [erroSaida, setErroSaida] = useState('');
   const [portariaDe, setPortariaDe] = useState<Contato | null>(null);
@@ -2974,6 +2976,10 @@ function Contatos({ perfil, papel, onMudou }: {
                     {c.autorizadoAVisitar ? 'Portaria: CPF, foto ou retirar' : 'Autorizar a visitar'}
                   </button>
                 )}
+                <button className="btn sm ghost" onClick={() => setCorrigindo(c)}
+                        aria-label={`Corrigir o contato ${c.nome}`}>
+                  Corrigir
+                </button>
                 <button className="btn sm ghost" onClick={() => setEncerrando(c)}>
                   Este contato não vale mais
                 </button>
@@ -3026,6 +3032,18 @@ function Contatos({ perfil, papel, onMudou }: {
               method: 'POST', body: JSON.stringify(d),
             });
             setNovo(false); onMudou();
+          }} />
+      )}
+
+      {corrigindo && (
+        <FolhaCorrigirContato
+          contato={corrigindo}
+          onFechar={() => setCorrigindo(null)}
+          onSalvar={async (d) => {
+            await api(`/people/contacts/${corrigindo.id}/corrigir`, {
+              method: 'POST', body: JSON.stringify(d),
+            });
+            setCorrigindo(null); onMudou();
           }} />
       )}
 
@@ -3406,6 +3424,111 @@ function FolhaContato({ nome, onFechar, onSalvar }: {
             }
           }}>Salvar contato</button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * CORRIGIR UM CONTATO (fase 215, pedido de 14/10).
+ *
+ * O telefone que mudou, o vínculo escrito errado, o CPF que chegou depois. A
+ * folha vem preenchida com o que consta, pede o motivo e mostra, embaixo, o
+ * que já foi corrigido antes. A aproximação restrita não se corrige aqui.
+ */
+function FolhaCorrigirContato({ contato, onFechar, onSalvar }: {
+  contato: Contato; onFechar: () => void;
+  onSalvar: (d: Record<string, unknown>) => Promise<void>;
+}) {
+  const [vocab, setVocab] = useState<{ vinculos: { code: string; label: string }[] } | null>(null);
+  const [dados, setDados] = useState({
+    nome: contato.nome, vinculo: contato.vinculo,
+    vinculoOutro: contato.vinculo === 'outro' ? contato.vinculoRotulo : '',
+    telefone: contato.telefone ?? '', observacao: contato.observacao ?? '',
+    cpf: contato.cpf && !contato.cpf.includes('*') ? contato.cpf : '',
+  });
+  const [motivo, setMotivo] = useState('');
+  const [erro, setErro] = useState('');
+  const [ocupado, setOcupado] = useState(false);
+  const [historico, setHistorico] = useState<{ antes: Record<string, unknown>; depois: Record<string, unknown>;
+    motivo: string; em: string; por: string | null }[]>([]);
+
+  useEffect(() => {
+    api<{ vinculos: { code: string; label: string }[] }>('/people/contacts/kinds')
+      .then(setVocab).catch(() => setVocab(null));
+    api<typeof historico>(`/people/contacts/${contato.id}/correcoes`).then(setHistorico).catch(() => setHistorico([]));
+  }, [contato.id]);
+
+  const ROTULO: Record<string, string> = { name: 'nome', bond: 'vínculo', bond_other: 'vínculo escrito',
+    phone: 'telefone', note: 'observação', cpf: 'CPF' };
+  const pode = dados.nome.trim().length >= 2 && motivo.trim().length >= 5
+    && (dados.vinculo !== 'outro' || dados.vinculoOutro.trim().length >= 2) && !ocupado;
+
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-corr-cont"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet modal">
+        <h3 id="t-corr-cont">Corrigir o contato {contato.nome}</h3>
+        {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+        <label className="f" htmlFor="cc-nome">Nome</label>
+        <input id="cc-nome" className="field" value={dados.nome}
+               onChange={(e) => setDados({ ...dados, nome: e.target.value })} />
+        <label className="f" htmlFor="cc-vinc">Vínculo</label>
+        <select id="cc-vinc" className="field" value={dados.vinculo}
+                onChange={(e) => setDados({ ...dados, vinculo: e.target.value })}>
+          {(vocab?.vinculos ?? [{ code: contato.vinculo, label: contato.vinculoRotulo }])
+            .map((v) => <option key={v.code} value={v.code}>{v.label}</option>)}
+        </select>
+        {dados.vinculo === 'outro' && (
+          <>
+            <label className="f" htmlFor="cc-outro">Qual é o vínculo</label>
+            <input id="cc-outro" className="field" value={dados.vinculoOutro}
+                   onChange={(e) => setDados({ ...dados, vinculoOutro: e.target.value })} />
+          </>
+        )}
+        <label className="f" htmlFor="cc-tel">Telefone</label>
+        <input id="cc-tel" className="field" inputMode="tel" value={dados.telefone}
+               onChange={(e) => setDados({ ...dados, telefone: e.target.value })} />
+        <label className="f" htmlFor="cc-cpf">CPF</label>
+        <input id="cc-cpf" className="field" inputMode="numeric" value={dados.cpf} placeholder="Opcional"
+               onChange={(e) => setDados({ ...dados, cpf: e.target.value })} />
+        <label className="f" htmlFor="cc-obs">Observação</label>
+        <textarea id="cc-obs" rows={2} value={dados.observacao}
+                  onChange={(e) => setDados({ ...dados, observacao: e.target.value })} />
+        <label className="f" htmlFor="cc-motivo">Por que está corrigindo</label>
+        <input id="cc-motivo" className="field" value={motivo} placeholder="Ex.: a mãe trocou de número"
+               onChange={(e) => setMotivo(e.target.value)} />
+        <p className="mutetxt">O que constava antes fica guardado, com o seu nome e o motivo.</p>
+        <div className="row rodape">
+          <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
+          <button className="btn grow" disabled={!pode} onClick={async () => {
+            setErro(''); setOcupado(true);
+            try {
+              await onSalvar({ nome: dados.nome, vinculo: dados.vinculo, vinculoOutro: dados.vinculoOutro,
+                telefone: dados.telefone, observacao: dados.observacao,
+                ...(dados.cpf.trim() || !contato.cpf ? { cpf: dados.cpf } : {}), motivo });
+            } catch (e) {
+              setErro(e instanceof Error ? e.message : 'Não foi possível corrigir o contato.');
+            } finally { setOcupado(false); }
+          }}>Guardar a correção</button>
+        </div>
+        {historico.length > 0 && (
+          <>
+            <div className="eyebrow" style={{ marginTop: 14 }}>Correções anteriores</div>
+            <ul className="lista">
+              {historico.map((h, i) => (
+                <li key={i}>
+                  <div>
+                    {Object.keys(h.depois).map((k) => (
+                      <span key={k}>{ROTULO[k] ?? k}: <s>{String(h.antes[k] ?? 'vazio')}</s> → {String(h.depois[k] ?? 'vazio')}. </span>
+                    ))}
+                  </div>
+                  <div className="mutetxt">{h.motivo} · {h.por ?? 'equipe'} · {new Date(h.em).toLocaleDateString('pt-BR')}</div>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
       </div>
     </div>
   );
