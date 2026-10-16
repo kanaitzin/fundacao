@@ -57,6 +57,26 @@ export function juntarAoTexto(antes: string, dito: string): string {
   return a ? `${a} ${pedaco}` : pedaco;
 }
 
+/**
+ * O CHROME DO ANDROID E O SAFARI DO IPHONE ouvem uma frase por vez (fase 222).
+ * O Safari ignora o ditado contínuo; o Chrome do Android, contínuo, repete o que
+ * já tinha reconhecido. Nos dois, uma frase por escuta e religar a cada frase
+ * dá o mesmo texto que o ditado contínuo dá no computador.
+ */
+export function escutaUmaFrasePorVez(ua = typeof navigator === 'undefined' ? '' : navigator.userAgent): boolean {
+  return /Android|iPhone|iPad|iPod/i.test(ua);
+}
+
+/** Tira do começo de `dito` o que já entrou (o resultado cumulativo do Android). */
+export function semORepetido(jaEntrou: string, dito: string): string {
+  const d = dito.trim();
+  const j = jaEntrou.trim();
+  if (!j) return d;
+  const norm = (x: string) => x.toLowerCase().replace(/\s+/g, ' ');
+  if (norm(d) === norm(j)) return '';
+  return norm(d).startsWith(`${norm(j)} `) ? d.slice(d.length - (norm(d).length - norm(j).length)).trim() : d;
+}
+
 export interface Ditado { parar: () => void }
 
 /** Liga o microfone e entrega o que foi dito: o provisório enquanto fala, o certo quando fecha a frase. */
@@ -71,31 +91,57 @@ export function iniciarDitado({ onCerto, onProvisorio, onFim, onErro }: {
   let parado = false;
   const inicio = Date.now();
   let atual: Reconhecedor | null = null;
+  /* Escutas seguidas que terminaram logo, sem ouvir nada: o aparelho está
+     recusando, e religar sem parar só esquenta o celular (fase 222). */
+  let curtasSeguidas = 0;
+  const umaFrasePorEscuta = escutaUmaFrasePorVez();
 
   const ligar = () => {
     const r = new R();
-    r.lang = 'pt-BR'; r.interimResults = true; r.continuous = true;
+    const comecou = Date.now();
+    /* O silêncio (`no-speech`) também conta como escuta: ninguém falou, e o
+       microfone segue ouvindo. Só a escuta recusada é que conta para desistir. */
+    let ouviu = false;
+    /* O que já entrou como certo nesta escuta. O Chrome do Android, em ditado
+       contínuo, repete no resultado novo o que já tinha dado como certo; aqui
+       entra só o pedaço novo. */
+    let jaEntrou = '';
+    r.lang = 'pt-BR'; r.interimResults = true; r.continuous = !umaFrasePorEscuta;
     r.onresult = (e) => {
+      ouviu = true;
       let provisorio = '';
       for (let i = e.resultIndex; i < e.results.length; i++) {
         const res = e.results[i];
         const t = res[0]?.transcript ?? '';
-        if (res.isFinal) onCerto(t); else provisorio += t;
+        if (res.isFinal) {
+          const novo = semORepetido(jaEntrou, t);
+          jaEntrou = `${jaEntrou} ${novo}`.trim();
+          if (novo) onCerto(novo);
+        } else provisorio += semORepetido(jaEntrou, t);
       }
       onProvisorio?.(provisorio);
     };
     r.onerror = (e) => {
       const erro = e?.error ?? '';
+      if (erro === 'no-speech') ouviu = true;
       if (erro === 'not-allowed' || erro === 'service-not-allowed') {
         parado = true;
         onErro('O microfone está bloqueado neste navegador. Para liberar, toque no cadeado ao lado do endereço.');
       } else if (erro === 'network') {
         parado = true;
         onErro('Sem internet o navegador não reconhece a fala. Escreva, ou tente quando o sinal voltar.');
+      } else if (erro === 'audio-capture') {
+        parado = true;
+        onErro('Não achei um microfone funcionando neste aparelho. Escreva, ou confira se outro aplicativo está usando o microfone.');
       }
     };
     r.onend = () => {
       onProvisorio?.('');
+      curtasSeguidas = !ouviu && Date.now() - comecou < 1500 ? curtasSeguidas + 1 : 0;
+      if (!parado && curtasSeguidas >= 3) {
+        parado = true;
+        onErro('O microfone parou de responder. Toque de novo para tentar, ou escreva.');
+      }
       if (!parado && Date.now() - inicio < MAXIMO_MS) { ligar(); return; }
       onFim();
     };

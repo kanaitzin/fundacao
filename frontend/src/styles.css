@@ -1548,6 +1548,10 @@ div.acoes{ display:flex; flex-wrap:wrap; gap:8px; align-items:center }
   .navegacao .tabbar{ padding:6px 6px; max-width:1180px; margin:0 auto }
   .app.com-barra{ --barra-pe:calc(68px + env(safe-area-inset-bottom, 0px)); padding-bottom:calc(var(--barra-pe) + 24px) }
   .app.com-barra .rodape{ bottom:var(--barra-pe) }
+  /* Dentro da folha aberta, a folha está POR CIMA da barra do pé: o rodapé cola
+     no fim da folha, como fora do celular. Com o recuo da barra, ele ficava 68 px
+     acima do fim e cobria os últimos botões de todo formulário (fase 222). */
+  .app.com-barra .sheet .rodape{ bottom:-24px }
 }
 /* No toque não há "passar o mouse": o celular deixa o último botão tocado com o
    fundo do hover até o próximo toque, e a aba anterior parecia ainda escolhida

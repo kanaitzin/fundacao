@@ -156,6 +156,7 @@ e qual é o caminho certo.
 | `frontend/ensaio-celular.mjs` | **o sistema no celular** (fase 184): oito cargos a 360 e 390 px, todas as abas, o "Mais" e cada porta. Mede o que o axe não mede: tela que anda para o lado, texto cortado ou vazando do botão, **botões encostados**, alvo abaixo de 24 px, conteúdo atrás da barra do pé. Fotos em `/tmp/ensaio-celular`. O `ensaio:uso-celular` faz o percurso de uso como celular. **Mudou tela, roda os dois** |
 | `backend/src/modules/relogio/implantacao.regra.ts` | **a regra da saúde da implantação** (fase 185): quando cada sinal está em dia, em atenção ou parado, e a frase. Não importa nada, como o `alcance.ts`: o servidor e o protótipo leem a MESMA. **Quem roda sozinho anota** por `anotarImplantacao` (`kernel/implantacao/anotar.ts`) ou, nos scripts, por `app_anotar_implantacao` no `psql`; anotar nunca derruba quem anota |
 | `scripts/arquivar-wal.sh`, `base-do-banco.sh`, `restaurar-ponto-no-tempo.sh`, `copiar-arquivos.sh` | **nada se perde no servidor do Pão** (fase 220): o arquivo contínuo do banco, a base semanal conferida, a volta a qualquer minuto e a cópia das fotos; o `postgresql-do-servidor.conf` liga o arquivo. **Mudou um deles, roda o `npm run ensaio:ponto-no-tempo`**, que prova os quatro num banco à parte |
+| `frontend/ensaio-aparelhos.mjs` | **o que o aparelho faz de diferente** (fase 222): oito aparelhos simulados, a câmera do tamanho de cada um (vídeo Y4M gerado), o reconhecimento de voz como o Safari do iPhone e o Chrome do Android, as falhas do microfone, a galeria de 12 e 50 MP e HEIC, e todo formulário de folha rolado até o fim. `ENSAIO_APARELHOS="iPhone SE"` mede um; `=extras`, o resto. **Mexeu em ditado, câmera, anexo ou folha, roda este.** Não prova o Safari de verdade nem a voz de verdade (PARA-A-REUNIAO §4.27) |
 | `scripts/rotas-sem-teste.mjs` | acha **rota** que nenhum teste chamou — o outro lado da mesma pergunta. Separa *candidata forte* (a URL não aparece em suíte nenhuma) de *par incerto* (a suíte chama por auxiliar e o método fica noutra linha). **Não é teste** |
 | `backend/src/kernel/common/data-do-dia.pipe.ts` | **toda data que vem da URL passa por aqui** (fase 148). Sete de dez rotas de data devolviam 500 para uma data que não é data; a conferência mora num lugar só, e há teste estático que cobra que todo `@Query('de')` e `@Param('data')` use o pipe |
 | `backend/src/kernel/audit/audit.service.ts` | quem ESCREVE a auditoria, e as três respostas sobre a casa de uma linha (fase 149). **Linha de auditoria sem casa é linha que a coordenação da casa não lê** — a policy compara `house_id` com o alcance, e NULL não é igual a nada. O `auditoria-tem-casa.spec.ts` cobra `houseId` em toda chamada, com a lista ESCRITA das poucas ações que não têm casa |
@@ -182,7 +183,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 14/10/2026, fase 221
+### Onde estamos — 16/10/2026, fase 222
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -267,10 +268,13 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 219 | **o banco mais robusto** (pedido de 14/10): a autoria trocável num UPDATE (21 políticas sem a segunda trava), 5 inserções abertas, 12 UPDATE concedidos sem política, 73 chaves sem índice (identity/1656); limites de tempo na conexão (`BANCO_*`, recusa *NÃO foi salvo*); a migração guarda a soma de cada arquivo e para se um aplicado mudar, com trava e um executor só; o resto é da instalação (§12.4.1) |
 | 220 | **nada se perde no servidor do Pão** (pedido de 14/10): o arquivo contínuo do banco (`arquivar-wal.sh`, `postgresql-do-servidor.conf`, um minuto no máximo), a base semanal conferida (`base-do-banco.sh`), a volta a qualquer minuto (`restaurar-ponto-no-tempo.sh`) e a cópia das fotos de cinco em cinco minutos (`copiar-arquivos.sh`), provados pelo `ensaio:ponto-no-tempo`; o arquivo guardado agora vai ao disco antes da resposta (`gravarNoDisco`); três sinais novos na Implantação (relogio/1657) |
 | 221 | **o perfil como ferramenta de trabalho** (pedido de 14/10): abre na **Geral** (idade, casa, tempo de acolhimento, escola, PIA, família, cuidados); a aba Hoje e o remédio de hoje saíram (o dia é do Dia e da ATA); **Dia a dia** para consultar; **Atendimentos** só da equipe técnica, linear, o mais novo em cima; os números de cada aba por `GET /reports/acolhido/:id/numeros` |
+| 222 | **a voz, a câmera e a galeria por modelo de celular** (pedido de 16/10): `ensaio:aparelhos` com oito aparelhos simulados achou quatro: o **ditado repetia o texto no Chrome do Android**, a **câmera cortava a folha** (pedir 1920×1080 corta a imagem 4:3), o **aparelho sem microfone religava sem parar**, e a **barra Cancelar/Registrar cobria o fim de todo formulário de folha no celular** desde a 184 |
 
-**Medido no fim da 221:** 197 migrações, 139 tabelas, 147 suítes, 1308 testes, verdes nas
+**Medido no fim da 222:** 197 migrações, 139 tabelas, 147 suítes, 1308 testes, verdes nas
 DUAS condições de relógio, rodadas inteiras (na 219, a espera pela linha travada não se mede
-sob o relógio adiantado: o banco ali não tem temporizador); na 221, o `ensaio:uso` (com o bloco do perfil
+sob o relógio adiantado: o banco ali não tem temporizador); na 222, o `ensaio:aparelhos` (oito aparelhos, as
+falhas do microfone, a galeria e 27 formulários de folha rolados até o fim, sem achado depois dos consertos;
+a varredura das folhas reprova sem o conserto do rodapé); na 221, o `ensaio:uso` (com o bloco do perfil
 reorganizado), o `roteiro` (54 tarefas), o do celular (306 telas, sem achado, depois de reescrever duas
 frases da ATA da noite), o de acessibilidade (1256 telas, nenhuma violação), o `ensaio:acolhe` (todas as
 telas e formulários de todos os cargos) e a Casa 03 em trinta dias contra o servidor de verdade, sem achado;
@@ -358,6 +362,12 @@ as três cores abaixo. Cor nova passa pelo `ensaio:acessibilidade`, que mede os 
 | **casa** (211) | *qual é esta chamada?* | barra e ponto do cartão da chamada; a casa escolhe (`cores-da-casa.ts`) |
 
 ### A próxima etapa
+
+**FEITO — fase 222** (§2, PARA-A-REUNIAO §4.27): os testes de voz, ditado, câmera e galeria por
+modelo de celular, simulados. **Ditado novo usa o `iniciarDitado`**, que já trata o Android, o Safari
+e as falhas; **câmera nova pede só a largura**, nunca largura e altura juntas. **Depende de alguém
+na Casa 03:** as cinco tarefas da §4.27 num Android e num iPhone de verdade, com o sistema no
+servidor com HTTPS. **Próxima etapa:** a mesma, o roteiro com a equipe e a implantação do §12.
 
 **FEITO — fase 221** (§2, PARA-A-REUNIAO §4.26): o perfil como ferramenta de trabalho, a
 pedido de 14/10. **Bloco novo do perfil entra na aba do assunto**, e o que é do dia de hoje
@@ -923,6 +933,13 @@ novo.
   **Teste que espera o banco cortar tem guarda próprio** (cancela a consulta presa) e diz
   por que não mede sob `FAKETIME`; e **`spawnSync` em teste leva `timeout`**, porque ele
   para o Jest inteiro enquanto espera.
+- **O aparelho simulado acha o que a tela simulada não acha** (222). O `ensaio:celular` media a tela
+  a 360 e 390 px havia trinta fases e nunca rolou uma folha até o fim: a barra Cancelar e Registrar
+  cobria o último campo de todo formulário no celular. E o microfone falso de todos os ensaios se
+  comportava como o Chrome do computador: o Android repete o texto, o Safari para a cada frase, e
+  ninguém via. **Imite o aparelho, não só o tamanho dele**: a câmera com a proporção dela, a voz com o
+  jeito de cada navegador, e a folha rolada até o último botão. E prove que o teste reprova sem o
+  conserto, tirando o conserto.
 - **Frase de tela que envelhece é frase que mente**, e a cobrança do ensaio que a
   guarda tem de ser reescrita junto. A ressalva do painel sobre nota escolar já foi
   reescrita três vezes. **Isto inclui este arquivo.**

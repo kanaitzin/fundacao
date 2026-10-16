@@ -157,8 +157,13 @@ export function FolhaCamera({ podeDocumento, inicial = 'foto', onFoto, onDocumen
       try {
         const s = await navigator.mediaDevices.getUserMedia({
           audio: false,
+          /* Só a LARGURA (fase 222). Com largura e altura, o navegador corta a
+             imagem para a proporção pedida: a câmera de celular é 4:3, e pedir
+             1920×1080 cortava o alto e o pé da folha; com o celular em pé, a
+             página saía quadrada. Pedindo só a largura, a câmera entrega a
+             imagem inteira, na proporção dela. */
           video: id ? { deviceId: { exact: id } }
-            : { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } },
+            : { facingMode: { ideal: 'environment' }, width: { ideal: 1920 } },
         });
         if (!vivo) { s.getTracks().forEach((t) => t.stop()); return; }
         fluxo.current = s;

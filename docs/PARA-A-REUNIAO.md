@@ -596,6 +596,26 @@ traz os números da criança. Cinco escolhas foram minhas, e cada uma é uma lin
 - **O que se escreveu sobre a criança nas ocorrências** (os relatos, com a contagem do
   que é restrito) foi para o Dia a dia, junto do que a casa registrou.
 
+## 4.27 O teste num celular de verdade (fase 222)
+
+O `ensaio:aparelhos` simula oito aparelhos e achou quatro defeitos, já consertados. O que
+ele não prova se confere com **um Android com Chrome e um iPhone com Safari**, no servidor
+do Pão com HTTPS (sem HTTPS a câmera e o microfone não ligam). Cinco tarefas, dez minutos
+por aparelho:
+
+1. **Ditar um registro na ATA**, três frases com pausa entre elas. Observar: o texto sai
+   inteiro, sem repetir? No iPhone, o microfone apita a cada frase?
+2. **Pedir à Acolhe+AI pela voz** *abre a chamada*. Observar: ela entende com o barulho da
+   casa?
+3. **Digitalizar um papel de três páginas** pelo anexo, com o celular em pé. Observar: a
+   folha sai inteira, sem cortar o alto e o pé? O PDF abre no computador?
+4. **Anexar uma foto da galeria**. No iPhone, observar se a foto entra com a prévia (o
+   iPhone costuma converter a HEIC; se não converter, ela entra sem prévia).
+5. **Ligar o aviso no celular** na Minha conta, e pedir a alguém que abra uma ocorrência.
+
+E uma escolha a confirmar: **a foto HEIC entra como veio**, sem prévia no Chrome. Converter
+no aparelho pede uma biblioteca a mais no protótipo, e o iPhone quase sempre já converte.
+
 ## 5. As decisões que são do Marcelo *(§10 — responda pelo número)*
 
 Nenhuma é problema de código. **Sobra uma só, a 5** (a grade para a parede), que é escolha da casa.
