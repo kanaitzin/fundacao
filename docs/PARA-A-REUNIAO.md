@@ -49,7 +49,7 @@
   196 também dentro do perfil da criança (*quero registrar a alergia do Bruno*), do dossiê, da
   internação aberta e do acervo: os 36 formulários do sistema. **Para o DPO:**
   o ditado usa o reconhecimento do navegador; no Chrome, o áudio vai ao Google.
-- **215 fases.** 147 suítes e 1308 testes, verdes em duas condições de relógio —
+- **215 fases.** 147 suítes e 1310 testes, verdes em duas condições de relógio —
   antes e depois da virada do UTC, que em Porto Alegre é às 21h.
 - **O aviso no celular** (fase 189, decidido em 06/10): quem liga na Minha conta
   recebe no celular todos os avisos do sino, mesmo com o sistema fechado. Na
@@ -615,6 +615,24 @@ por aparelho:
 
 E uma escolha a confirmar: **a foto HEIC entra como veio**, sem prévia no Chrome. Converter
 no aparelho pede uma biblioteca a mais no protótipo, e o iPhone quase sempre já converte.
+
+## 4.28 A Acolhe+AI mais firme (fase 223, pedido de 16/10)
+
+A fase consertou a conversa que quebraria com a chave ligada (as instruções mudavam no meio
+dela) e deu à Acolhe+AI a hora, o turno e o primeiro nome de quem fala. Ficam quatro
+escolhas, nenhuma urgente:
+
+1. **Ler as respostas em voz alta** já existe, na caixa *Ler as respostas em voz alta* do
+   painel, e começa desligado. Ligar por padrão ajuda quem está com as mãos ocupadas, e fala
+   em voz alta, no meio da casa, o que a assistente respondeu sobre uma criança. Eu deixaria
+   desligado.
+2. **A conversa some ao recarregar a página.** Guardar no aparelho deixaria texto sobre as
+   crianças no navegador do tablet da casa, que é de todos: é decisão do DPO. Eu deixaria
+   como está.
+3. **A resposta aparecer enquanto é escrita** (em vez de *Pensando…* até o fim). É a próxima
+   melhoria que eu faria, e não muda nada do que vai à Anthropic.
+4. **A primeira conferência com a chave** (§12.12 do documento) ganhou uma pergunta: *"a dose
+   das 20h já passou?"*, feita depois das 20h, para ver se ela usa a hora certa.
 
 ## 5. As decisões que são do Marcelo *(§10 — responda pelo número)*
 

@@ -2889,7 +2889,23 @@ cobrar('e diz quanto tempo a visita durou', /A visita durou/.test(await conteudo
 
 await trocar('coordenador');
 cobrar('a coordenação abre o portão em "Mais"', await doMais('Portaria'));
-cobrar('e tem a entrada com exceção', await clicar(/Entrada com exceção/));
+/* De quem é a exceção depende da hora (quem está no combinado agora) e do que o
+   ensaio fez antes: a criança e o visitante saem da tela, e o perfil conferido
+   mais abaixo é o DESSA criança, e não um nome fixo. */
+const secaoDaExcecao = pg.locator('main.conteudo section.crianca-do-portao')
+  .filter({ has: pg.getByRole('button', { name: /^Entrada com exceção$/ }) }).first();
+const criancaDaExcecao = ((await secaoDaExcecao.getAttribute('aria-label').catch(() => null)) ?? '')
+  .replace(/^Visitantes de /, '');
+const cartaoDaExcecao = secaoDaExcecao.locator('li.visitante')
+  .filter({ has: pg.getByRole('button', { name: /^Entrada com exceção$/ }) }).first();
+const visitanteDaExcecao = criancaDaExcecao
+  ? ((await cartaoDaExcecao.innerText()).split('\n').map((x) => x.trim())
+      .find((x) => x && !/^(sem foto|Anexar foto|Trocar a foto|Ver a foto)/i.test(x)) ?? '')
+  : '';
+cobrar('e tem a entrada com exceção', !!criancaDaExcecao && !!visitanteDaExcecao
+  && await cartaoDaExcecao.getByRole('button', { name: /^Entrada com exceção$/ }).click().then(() => true, () => false),
+  `${criancaDaExcecao} | ${visitanteDaExcecao}`);
+await pg.waitForTimeout(600);
 const folhaEntrada = pg.locator('.overlay .sheet');
 const botaoEntrada = folhaEntrada.getByRole('button', { name: /^Registrar entrada$/ });
 await folhaEntrada.locator('#ent-doc').fill('RG');
@@ -2903,7 +2919,11 @@ cobrar('e ainda gera a folha em papel', /Ver a folha da portaria/.test(await con
 /* A CORREÇÃO MOSTRA O QUE CORRIGIU (fase 179). A folha promete que "o horário
    anterior e o motivo ficam no histórico", e até a 179 o histórico não
    aparecia em lugar nenhum. Corrige aqui, e o perfil tem de mostrar. */
-cobrar('a coordenação corrige o horário de quem está dentro', await clicar(/^Corrigir o horário$/));
+const cartaoDentro = pg.locator('main.conteudo li.visitante').filter({ hasText: visitanteDaExcecao })
+  .filter({ has: pg.getByRole('button', { name: /^Corrigir o horário$/ }) }).first();
+cobrar('a coordenação corrige o horário de quem está dentro',
+  await cartaoDentro.getByRole('button', { name: /^Corrigir o horário$/ }).click().then(() => true, () => false));
+await pg.waitForTimeout(500);
 const folhaCorr = pg.locator('.overlay .sheet');
 await folhaCorr.locator('#corr-mot').fill('A saída não foi registrada no portão; confirmado com a educadora.');
 await folhaCorr.getByRole('button', { name: /^Corrigir$/ }).click();
@@ -2921,7 +2941,7 @@ cobrar('e diz onde continua pela palavra, nunca pelo nome da tabela',
   /Continua em: Passagem de plantão/.test(sino) && !/Continua em: (shift|pia)\b/.test(sino));
 
 cobrar('o perfil da criança abre', await aba('Acolhidos'));
-await clicar(/^Alice/);
+await clicar(new RegExp(`^${criancaDaExcecao || 'Alice'}`));
 await pg.waitForTimeout(900);
 const perfilVisitas = await conteudo();
 cobrar('o perfil tem as visitas dela', /visitas/i.test(perfilVisitas) && /visitas? no período/i.test(perfilVisitas),
@@ -2931,7 +2951,8 @@ cobrar('e a frase de que o número só conta, e quem avalia é a equipe técnica
   /quantas visitas aconteceram/.test(perfilVisitas) && /equipe técnica conversa/.test(perfilVisitas));
 cobrar('o histórico da correção aparece: o que constava, quem e por quê',
   /Corrigida em .* por .*Constava:/.test(perfilVisitas)
-  && /Motivo: A saída não foi registrada no portão/.test(perfilVisitas), perfilVisitas.slice(0, 600));
+  && /Motivo: A saída não foi registrada no portão/.test(perfilVisitas),
+  perfilVisitas.slice(Math.max(0, perfilVisitas.search(/visitas, da mais recente/i)), perfilVisitas.search(/visitas, da mais recente/i) + 900));
 cobrar('nenhuma exceção no portão', erros.length === 0, erros[0]);
 
 // ====================================================== O armário (fase 161)
@@ -3650,6 +3671,22 @@ console.log('\n🖐️ A Acolhe+AI mexendo na tela (fase 193)');
   if (baixado) { const { readFileSync } = await import('node:fs'); csv = readFileSync(await baixado.path(), 'utf8'); }
   cobrar('a planilha baixa com vírgula decimal e ponto e vírgula, e o nome não diz nada da criança',
     /^tabela-acolhe-\d{4}-\d{2}-\d{2}\.csv$/.test(nome) && /Farmácia B;37,9/.test(csv), `${nome} ${csv.slice(0, 80)}`);
+  /* A CONVERSA SÓ CRESCE (fase 223): o raciocínio do modelo fica preso à
+     conversa exata em que nasceu, e mensagem anterior que muda o invalida.
+     Cada pedido tem de repetir o anterior byte a byte (a última mensagem da
+     pessoa pode só ganhar blocos, quando a volta parou num resultado), e cada
+     pergunta da pessoa começa pela nota do momento, com a tela e a casa. */
+  const todos = await pgA.evaluate(() => window.__ACOLHE_PEDIDOS__ ?? []);
+  const quebra = todos.findIndex((m, i) => i > 0 && (m.length < todos[i - 1].length
+    || JSON.stringify(m.slice(0, todos[i - 1].length - 1)) !== JSON.stringify(todos[i - 1].slice(0, -1))));
+  cobrar('a conversa só cresce: nenhum pedido muda o que já foi mandado', todos.length >= 8 && quebra === -1,
+    `${todos.length} pedidos, quebra no ${quebra}`);
+  const perguntas = todos.at(-1).filter((m) => m.role === 'user' && Array.isArray(m.content)
+    && m.content.some((c) => c.type === 'text'));
+  const notas = perguntas.map((m) => m.content.find((c) => c.type === 'text').text);
+  cobrar('cada pergunta começa pela nota do momento, com a hora, o turno, a tela e a casa',
+    notas.length === 2 && notas.every((x) => /^\[Nota da tela, não da pessoa\. Agora: .+, \d\d:\d\d, turno d[oa] (dia|noite)\..*Casa aberta: .+ \(houseId .+\)\.\]/.test(x))
+    && /Tela aberta: Agenda\./.test(notas[1]), notas.map((x) => x.slice(0, 160)).join(' | '));
   cobrar('nenhuma exceção com a Acolhe+AI mexendo na tela', errosA.length === 0, errosA[0]);
   void uso;
   await pgA.close();

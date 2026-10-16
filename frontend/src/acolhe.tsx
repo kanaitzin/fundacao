@@ -4,6 +4,8 @@ import { Icone, SimboloDaAcolhe } from './icones';
 import { EscolherAnexo, Escolhido, base64De, oferecerFotosDaAcolhe } from './anexos';
 import { MEXEM_NA_TELA, rotaDeLeituraPermitida } from '../../backend/src/modules/assistente/ferramentas';
 import { calcular, numeroEmPortugues } from '../../backend/src/modules/assistente/calculo';
+import { notaDoMomento } from '../../backend/src/modules/assistente/momento';
+import { turnoAgora } from './turno';
 import { CriancaDaCasa, DESTINOS_DE_TEXTO, criancasNoPedido, ehPergunta, pedeAcao, pedeFormulario, responderPeloGuia, TelaDoGuia } from './acolhe-guia';
 import { apertarBotao, apertarEste, botoesDaTela, camposDaTela, preencherCampo, textoDaTela } from './acolhe-tela';
 import { Ditado, aceitarAvisoDaVoz, avisoDaVozAceito, iniciarDitado, juntarAoTexto, reconhecimentoDeVoz } from './ditado';
@@ -35,6 +37,8 @@ import { Ditado, aceitarAvisoDaVoz, avisoDaVozAceito, iniciarDitado, juntarAoTex
  */
 type Bloco = { type: string; [k: string]: unknown };
 type MensagemDoModelo = { role: 'user' | 'assistant'; content: string | Bloco[] };
+/** Antes do limite do servidor (80 mensagens, 25 MB de corpo), a conversa vira resumo: 50, mais as doze voltas de uma pergunta (24), cabe nas 80. */
+const LIMITE_DA_CONVERSA = { mensagens: 50, bytes: 12_000_000 };
 
 type Proposta =
   | { tipo: 'propor_linha_na_ata'; ataId: string; texto: string; restrita?: boolean }
@@ -691,6 +695,25 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
       : 'Escrevi o rascunho no formulário. Confira, mude o que quiser e salve.');
   }
 
+  /**
+   * A conversa longa vira um resumo (fase 223). O servidor recebe a conversa
+   * inteira a cada pergunta, e ela tem limite: oitenta mensagens e o tamanho
+   * das fotos. Antes de chegar lá, a tela troca tudo o que veio antes por um
+   * resumo do que está escrito no painel, e a conversa recomeça dele, sem as
+   * fotos (os anexos continuam guardados aqui pelo número). Nada é editado no
+   * meio: ou a conversa cresce, ou recomeça inteira.
+   */
+  function compactarSePreciso(conteudo: Bloco[]): MensagemDoModelo[] | null {
+    const tamanho = JSON.stringify(historico.current).length;
+    if (historico.current.length < LIMITE_DA_CONVERSA.mensagens && tamanho < LIMITE_DA_CONVERSA.bytes) return null;
+    const anterior = historico.current;
+    const ditas = linhas.filter((l) => l.quem !== 'nota' && l.texto.trim())
+      .slice(-30).map((l) => `${l.quem === 'pessoa' ? 'Pessoa' : 'Acolhe+AI'}: ${l.texto.trim().slice(0, 600)}`);
+    historico.current = [];
+    conteudo.unshift({ type: 'text', text: `[Resumo da conversa até aqui, feito pela tela: a conversa ficou longa e recomeçou daqui. As fotos e documentos anexados antes continuam valendo pelo número.\n${ditas.join('\n')}]` });
+    return anterior;
+  }
+
   async function enviar(forcado?: string) {
     const t = (forcado ?? texto).trim();
     if ((!t && !anexo) || ocupada) return;
@@ -714,10 +737,34 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
         : { type: 'image', source: { type: 'base64', media_type: meu.tipo, data: dados } });
     }
     const notas = pendenteParaOModelo.current.splice(0);
-    const fala = [...notas, meu ? `(Anexo ${anexos.current.length}: ${meu.nome})` : '', t || 'Veja este arquivo.']
+    /* A nota do momento (fase 223): a hora, o turno, a tela e a casa vão aqui,
+       na pergunta, e não nas instruções, que ficam fixas durante a conversa. */
+    const momento = notaDoMomento({ agora: new Date(), turno: turnoAgora(), tela: telaAtual,
+      casa, voz: voz === VOZES[0] ? null : voz });
+    const fala = [momento, ...notas, meu ? `(Anexo ${anexos.current.length}: ${meu.nome})` : '', t || 'Veja este arquivo.']
       .filter(Boolean).join('\n');
     conteudo.push({ type: 'text', text: fala });
-    historico.current.push({ role: 'user', content: conteudo });
+    const anterior = compactarSePreciso(conteudo);
+    /* A conversa só cresce. Onde ela estava antes desta pergunta, para voltar
+       inteira se der errado: tirar só a pergunta deixaria resposta sem pergunta. */
+    const antes = historico.current.length;
+    const ultima = historico.current[antes - 1];
+    let juntouNaUltima = false;
+    if (ultima?.role === 'user' && Array.isArray(ultima.content)) {
+      /* A volta anterior parou num resultado de ferramenta (a pessoa pediu para
+         parar, ou a volta chegou ao limite): a pergunta entra na mesma mensagem,
+         porque duas mensagens seguidas da pessoa não se mandam. */
+      ultima.content.push(...conteudo);
+      juntouNaUltima = true;
+    } else {
+      historico.current.push({ role: 'user', content: conteudo });
+    }
+    const voltarAoDeAntes = () => {
+      if (anterior) historico.current = anterior;
+      else historico.current.length = antes;
+      if (juntouNaUltima && Array.isArray(ultima?.content)) ultima.content.splice(-conteudo.length);
+      pendenteParaOModelo.current.unshift(...notas);
+    };
 
     setOcupada(true);
     parar.current = false;
@@ -731,7 +778,7 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
           } }),
         });
         if (!r.guardar) {
-          historico.current.pop();
+          voltarAoDeAntes();
           r.conteudo.forEach((b) => b.type === 'text' && dizer(String(b.text)));
           break;
         }
@@ -756,7 +803,7 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
         if (volta === MAX_VOLTAS - 1) dizer('Parei aqui para não demorar demais. Pergunte de novo, por partes, se precisar.');
       }
     } catch (e) {
-      historico.current = historico.current.filter((m) => m.content !== conteudo);
+      voltarAoDeAntes();
       /* O protótipo recusa como o servidor sem a chave: 503, "responde só pelo guia". */
       if ((e as { status?: number })?.status === 503 && /guia/.test((e as Error).message)) {
         setLigada(false);

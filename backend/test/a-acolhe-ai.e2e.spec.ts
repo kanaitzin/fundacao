@@ -21,6 +21,7 @@ import { Client } from 'pg';
 import { createServer, Server } from 'node:http';
 import { AppModule } from '../src/app.module';
 import { rotaDeLeituraPermitida } from '../src/modules/assistente';
+import { notaDoMomento } from '../src/modules/assistente/momento';
 
 const adminUrl = process.env.DATABASE_URL
   ?? 'postgres://rede_admin:dev-only-change-me@127.0.0.1:5432/rede_acolher';
@@ -80,35 +81,69 @@ describe('A Acolhe+AI', () => {
     await new Promise((ok) => modelo.close(ok));
   });
 
-  it('repassa o guia, as ferramentas e quem fala, com a casa que a pessoa alcança', async () => {
+  it('repassa o guia, as ferramentas e quem fala, e as instruções não mudam no meio da conversa', async () => {
     recebidos.length = 0; proxima = null;
+    const telas = [{ chave: 'chamada', titulo: 'Chamada', frase: 'quem está na casa' }];
     const r = await conversar(tok.edu, {
       mensagens: [{ role: 'user', content: marca }],
-      contexto: { casaId: ids.AI3, casaNome: 'Casa 03 (piloto)', tela: 'Dia',
-        telas: [{ chave: 'chamada', titulo: 'Chamada', frase: 'quem está na casa' }], voz: 'Psicologia' },
+      contexto: { casaId: ids.AI3, casaNome: 'Casa 03 (piloto)', tela: 'Dia', telas, voz: 'Psicologia' },
     });
     expect(r.status).toBe(200);
     expect(r.body.conteudo).toEqual([{ type: 'text', text: 'Oi! Sou a Acolhe+AI.' }]);
     const [{ corpo, cabecalhos }] = recebidos;
     expect(corpo.model).toBe('claude-opus-5-5');
-    expect(corpo.thinking).toEqual({ type: 'adaptive' });
+    /* Raciocínio que deixou de valer sai em vez de a conversa parar (fase 223). */
+    expect(corpo.thinking).toEqual({ type: 'adaptive', block_binding: { prefix_mismatch_behavior: 'drop_block' } });
     expect(corpo.fallbacks).toBe('default');
     expect(String(cabecalhos['anthropic-beta'])).toMatch(/server-side-fallback-2026-07-01/);
+    expect(String(cabecalhos['anthropic-beta'])).toMatch(/thinking-binding-controls-2026-08-01/);
     expect(corpo.system[0].text).toMatch(/Você é a Acolhe\+AI/);
-    expect(corpo.system[0].cache_control).toEqual({ type: 'ephemeral' });
-    expect(corpo.system[1].text).toMatch(new RegExp(`houseId ${ids.AI3}`));
+    expect(corpo.system[1].cache_control).toEqual({ type: 'ephemeral' });
     expect(corpo.system[1].text).toMatch(/- chamada: Chamada \(quem está na casa\)/);
-    expect(corpo.system[1].text).toMatch(/falar com: Psicologia/);
+    /* Chamada pelo primeiro nome, como a equipe chama a colega. */
+    const { rows: [{ nome }] } = await admin.query(`SELECT full_name AS nome FROM app_user WHERE id = $1`, [ids.edu]);
+    expect(corpo.system[1].text).toContain(`${nome.split(' ')[0]} (no cadastro, ${nome})`);
     expect(corpo.tools.map((t: any) => t.name)).toEqual(
       ['consultar_sistema', 'abrir_tela', 'ver_tela', 'preencher_campo', 'apertar_botao', 'calcular', 'montar_tabela', 'mostrar_rascunho',
        'propor_linha_na_ata', 'propor_anexo_no_dossie', 'propor_sugestao']);
-    expect(corpo.messages).toEqual([{ role: 'user', content: marca }]);
+    /* A pergunta vai como veio, com a marca de cache na última. */
+    expect(corpo.messages).toEqual([{ role: 'user', content: [{ type: 'text', text: marca, cache_control: { type: 'ephemeral' } }] }]);
 
-    /* A Casa 04 não é do educador da Casa 03: não entra no contexto. */
+    /* Outra tela, outra casa, outra voz: as instruções e as ferramentas são as
+       MESMAS, byte a byte. O que muda vai na nota que a tela escreve na
+       pergunta; se fosse aqui, o raciocínio anterior deixaria de valer. */
     recebidos.length = 0;
-    await conversar(tok.edu, { mensagens: [{ role: 'user', content: 'oi' }], contexto: { casaId: ids.AI4, casaNome: 'Casa 04' } });
-    expect(recebidos[0].corpo.system[1].text).toMatch(/Sem casa aberta/);
-    expect(recebidos[0].corpo.system[1].text).not.toMatch(ids.AI4);
+    await conversar(tok.edu, { mensagens: [{ role: 'user', content: 'oi' }],
+      contexto: { casaId: ids.AI4, casaNome: 'Casa 04', tela: 'Saúde', telas, voz: 'Enfermagem' } });
+    expect(JSON.stringify(recebidos[0].corpo.system)).toBe(JSON.stringify(corpo.system));
+    expect(JSON.stringify(recebidos[0].corpo.tools)).toBe(JSON.stringify(corpo.tools));
+    expect(JSON.stringify(recebidos[0].corpo.system)).not.toMatch(new RegExp(`${ids.AI4}|${ids.AI3}|Casa 04`));
+    expect(recebidos[0].corpo.system[1].text).not.toMatch(/Saúde|Enfermagem|Psicologia|Dia/);
+  });
+
+  it('a nota do momento diz o dia de Porto Alegre, mesmo quando o UTC já virou', () => {
+    /* 02h30 em UTC do dia 16 são 23h30 do dia 15 em Porto Alegre. */
+    const nota = notaDoMomento({ agora: new Date('2026-10-16T02:30:00Z'), turno: 'noturno', tela: 'ATA',
+      casa: { id: 'id-da-casa', nome: 'Casa 03 (piloto)' }, voz: null });
+    expect(nota).toBe('[Nota da tela, não da pessoa. Agora: quinta-feira, 15/10/2026, 23:30, turno da noite. '
+      + 'Tela aberta: ATA. Casa aberta: Casa 03 (piloto) (houseId id-da-casa).]');
+    expect(notaDoMomento({ agora: new Date('2026-10-16T14:00:00Z'), turno: 'diurno', casa: null }))
+      .toMatch(/16\/10\/2026, 11:00, turno do dia\. Sem casa aberta\.\]$/);
+  });
+
+  it('o raciocínio que deixou de valer é contado na auditoria', async () => {
+    proxima = { ...resposta([{ type: 'text', text: 'Certo.' }]),
+      input_transformations: [{ type: 'thinking_dropped', reason: 'prefix_mismatch', message_index: 1, block_index: 0 }] };
+    await conversar(tok.edu2, { mensagens: [
+      { role: 'user', content: 'oi' },
+      { role: 'assistant', content: [{ type: 'thinking', thinking: 'pensando', signature: 'assinatura' }, { type: 'text', text: 'Oi!' }] },
+      { role: 'user', content: 'e agora?' },
+    ] }).expect(200);
+    proxima = null;
+    const { rows: [l] } = await admin.query(
+      `SELECT detail FROM audit_event WHERE action = 'assistente.conversa' AND actor_id = $1
+        ORDER BY at DESC LIMIT 1`, [ids.edu2]);
+    expect(l.detail.raciocinioTirado).toBe(1);
   });
 
   it('devolve o pedido de ferramenta para a tela, sem executar nada', async () => {

@@ -183,7 +183,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 16/10/2026, fase 222
+### Onde estamos — 16/10/2026, fase 223
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -269,10 +269,11 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 220 | **nada se perde no servidor do Pão** (pedido de 14/10): o arquivo contínuo do banco (`arquivar-wal.sh`, `postgresql-do-servidor.conf`, um minuto no máximo), a base semanal conferida (`base-do-banco.sh`), a volta a qualquer minuto (`restaurar-ponto-no-tempo.sh`) e a cópia das fotos de cinco em cinco minutos (`copiar-arquivos.sh`), provados pelo `ensaio:ponto-no-tempo`; o arquivo guardado agora vai ao disco antes da resposta (`gravarNoDisco`); três sinais novos na Implantação (relogio/1657) |
 | 221 | **o perfil como ferramenta de trabalho** (pedido de 14/10): abre na **Geral** (idade, casa, tempo de acolhimento, escola, PIA, família, cuidados); a aba Hoje e o remédio de hoje saíram (o dia é do Dia e da ATA); **Dia a dia** para consultar; **Atendimentos** só da equipe técnica, linear, o mais novo em cima; os números de cada aba por `GET /reports/acolhido/:id/numeros` |
 | 222 | **a voz, a câmera e a galeria por modelo de celular** (pedido de 16/10): `ensaio:aparelhos` com oito aparelhos simulados achou quatro: o **ditado repetia o texto no Chrome do Android**, a **câmera cortava a folha** (pedir 1920×1080 corta a imagem 4:3), o **aparelho sem microfone religava sem parar**, e a **barra Cancelar/Registrar cobria o fim de todo formulário de folha no celular** desde a 184 |
+| 223 | **a Acolhe+AI mais firme** (pedido de 16/10): as instruções ao modelo levavam a tela, a casa e a data, e mudavam no meio da conversa, o que invalida o raciocínio anterior (com a chave, em conta nova, a pergunta seguinte seria recusada); agora ficam fixas, e o que muda vai na **nota do momento** no começo de cada pergunta (`assistente/momento.ts`), com a hora e o turno; `drop_block` como rede, contado na auditoria (`raciocinioTirado`); chama pelo **primeiro nome**; a tela **só faz a conversa crescer** (erro volta inteiro, conversa longa vira resumo) |
 
-**Medido no fim da 222:** 197 migrações, 139 tabelas, 147 suítes, 1308 testes, verdes nas
+**Medido no fim da 223:** 197 migrações, 139 tabelas, 147 suítes, 1310 testes, verdes nas
 DUAS condições de relógio, rodadas inteiras (na 219, a espera pela linha travada não se mede
-sob o relógio adiantado: o banco ali não tem temporizador); na 222, a suíte nas duas condições, o `ensaio:celular`, o `uso-celular`, o `uso`, o `acolhe` e o `ensaio:aparelhos` (oito aparelhos, as
+sob o relógio adiantado: o banco ali não tem temporizador); na 223, o `ensaio:uso` (684 cobranças, com a conversa que só cresce e a nota do momento, depois de consertar a cobrança da portaria que dependia da hora), o `ensaio:acolhe` (todas as telas e formulários de todos os cargos) e o `ensaio:aparelhos` no Pixel 7 e no iPhone SE; na 222, a suíte nas duas condições, o `ensaio:celular`, o `uso-celular`, o `uso`, o `acolhe` e o `ensaio:aparelhos` (oito aparelhos, as
 falhas do microfone, a galeria e 27 formulários de folha rolados até o fim, sem achado depois dos consertos;
 a varredura das folhas reprova sem o conserto do rodapé); na 221, o `ensaio:uso` (com o bloco do perfil
 reorganizado), o `roteiro` (54 tarefas), o do celular (306 telas, sem achado, depois de reescrever duas
@@ -362,6 +363,14 @@ as três cores abaixo. Cor nova passa pelo `ensaio:acessibilidade`, que mede os 
 | **casa** (211) | *qual é esta chamada?* | barra e ponto do cartão da chamada; a casa escolhe (`cores-da-casa.ts`) |
 
 ### A próxima etapa
+
+**FEITO — fase 223** (§2, §12.12, PARA-A-REUNIAO §4.28): a Acolhe+AI mais firme, com a hora,
+o turno e o primeiro nome. **Regra nova para quem mexer nela:** nada que muda no meio da conversa
+vai nas instruções do servidor (vai na nota do momento), e a tela nunca edita mensagem já mandada;
+o `ensaio:uso` e o `a-acolhe-ai.e2e.spec.ts` cobram. **Depende da Fundação:** as quatro escolhas da
+§4.28 (a leitura em voz alta, que já existe e começa desligada; guardar a conversa no aparelho, DPO;
+a resposta aparecendo enquanto é escrita, que é a próxima que eu faria). **Não medido daqui:** o
+modelo de verdade. **Próxima etapa:** a mesma, o roteiro com a equipe e a implantação do §12.
 
 **FEITO — fase 222** (§2, PARA-A-REUNIAO §4.27): os testes de voz, ditado, câmera e galeria por
 modelo de celular, simulados. **Ditado novo usa o `iniciarDitado`**, que já trata o Android, o Safari
@@ -940,6 +949,11 @@ novo.
   ninguém via. **Imite o aparelho, não só o tamanho dele**: a câmera com a proporção dela, a voz com o
   jeito de cada navegador, e a folha rolada até o último botão. E prove que o teste reprova sem o
   conserto, tirando o conserto.
+- **O que muda não vai nas instruções** (223). O raciocínio do modelo vale só na conversa exata
+  em que nasceu, e as instruções da Acolhe+AI levavam a tela aberta e a data: trocar de tela no
+  meio da conversa invalidava tudo o que ela pensou antes, e o modelo de mentira da suíte nunca
+  diria isso. **Instrução fixa, conversa que só cresce**; o que muda vai na mensagem da pessoa.
+  E a pergunta que dá erro se desfaz inteira: tirar só ela deixava resposta sem pergunta.
 - **Frase de tela que envelhece é frase que mente**, e a cobrança do ensaio que a
   guarda tem de ser reescrita junto. A ressalva do painel sobre nota escolar já foi
   reescrita três vezes. **Isto inclui este arquivo.**

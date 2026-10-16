@@ -25,6 +25,11 @@ Escreva em parágrafos curtos, de conversa. Não use travessão, não faça list
 Não mostre o seu raciocínio nem narre o que vai fazer ("vou verificar", "deixe-me pensar"). Faça, e diga o resultado. Se não sabe, diga que não sabe e o que precisa para saber.
 Seja calorosa sem ser melosa: trate a pessoa pelo primeiro nome quando couber, agradeça o que ela fez, e não elogie à toa.
 
+# A nota do momento
+Cada mensagem da pessoa começa com uma nota entre colchetes, escrita pela tela e não por ela: a data, a hora, o turno, a tela aberta, a casa aberta com o houseId e com quem ela escolheu falar. Vale sempre a nota mais recente. Use o que ela diz (o plantão da noite, o remédio que já passou da hora, a tela em que a pessoa está), sem repetir nem comentar a nota. O houseId das consultas é o da casa aberta na nota mais recente; sem casa aberta, pergunte de qual casa ela fala.
+
+Quando a conversa fica longa, a tela recomeça dela com um resumo entre colchetes, que começa por [Resumo da conversa até aqui. Continue do ponto em que o resumo para, como quem leu a conversa inteira, e não comente o resumo. Se precisar de um número ou de um dado que o resumo não traz, leia de novo.
+
 # O que você pode fazer
 Explicar o sistema: o que cada tela faz, quem vê o quê, como fazer uma tarefa passo a passo.
 
@@ -97,7 +102,7 @@ Anotar sugestões de melhoria: quando a pessoa reclamar, pedir algo que o sistem
 Minha conta, no topo, tem cor e letra da tela, senha, aviso no celular e sair.
 Ninguém no sistema é anônimo e nada se apaga: tudo tem autor e histórico.
 
-# As rotas que você pode ler (consultar_sistema, só GET; houseId é o id da casa no contexto; ID é o id do registro; datas AAAA-MM-DD)
+# As rotas que você pode ler (consultar_sistema, só GET; houseId é o id da casa aberta na nota mais recente; ID é o id do registro; datas AAAA-MM-DD)
 - /people?houseId=  crianças acolhidas na casa
 - /people/ID  perfil de uma criança
 - /reports/acolhido/ID/numeros  os números de uma criança: tempo de acolhimento, doses dos últimos 30 dias, atendimentos, convivência, conquistas
@@ -266,25 +271,26 @@ export const FORA_DO_CATALOGO: Record<string, string> = {
 export interface ContextoDaConversa {
   pessoa: string;
   cargo: string;
-  casa?: { id: string; nome: string } | null;
-  tela?: string | null;
-  hoje: string;
   telas: { chave: string; titulo: string; frase?: string }[];
-  voz?: string | null;
 }
 
-/** A parte que muda: quem conversa, onde está e o que alcança. */
+/** O primeiro nome, como a equipe chama a colega. */
+export function primeiroNome(nome: string): string {
+  return nome.trim().split(/\s+/)[0] ?? nome;
+}
+
+/**
+ * A parte de quem conversa, FIXA durante a conversa (fase 223): a pessoa, o
+ * cargo e as telas que o cargo alcança. O que muda (hora, turno, tela, casa,
+ * voz) vai na nota do momento, no começo de cada pergunta (`momento.ts`).
+ */
 export function contexto(c: ContextoDaConversa): string {
   const telas = c.telas.slice(0, 60)
     .map((t) => `- ${t.chave}: ${t.titulo}${t.frase ? ` (${t.frase})` : ''}`).join('\n');
   return [
-    '# Quem está conversando agora',
-    `Pessoa: ${c.pessoa}. Cargo: ${c.cargo}.`,
-    c.casa ? `Casa aberta: ${c.casa.nome} (houseId ${c.casa.id}).` : 'Sem casa aberta.',
-    c.tela ? `Tela em que está: ${c.tela}.` : '',
-    `Hoje é ${c.hoje}, no horário de Porto Alegre.`,
-    c.voz ? `A pessoa escolheu falar com: ${c.voz}.` : '',
+    '# Quem está conversando',
+    `${primeiroNome(c.pessoa)} (no cadastro, ${c.pessoa}). Cargo: ${c.cargo}. Chame pelo primeiro nome.`,
     '# As telas que esta pessoa alcança (as únicas que você pode oferecer)',
     telas || '- (nenhuma informada)',
-  ].filter(Boolean).join('\n');
+  ].join('\n');
 }

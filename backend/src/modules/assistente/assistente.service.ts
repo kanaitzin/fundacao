@@ -5,7 +5,6 @@ import Anthropic from '@anthropic-ai/sdk';
 import { DatabaseService } from '../../kernel/database/database.service';
 import { AuditService } from '../../kernel/audit/audit.service';
 import { AuthenticatedUser } from '../../kernel/contracts';
-import { hojeNaInstituicao } from '../../kernel/common/tempo';
 import { FERRAMENTAS, NOMES_DAS_FERRAMENTAS } from './ferramentas';
 import { GUIA_DA_ACOLHE, contexto, ContextoDaConversa } from './guia';
 
@@ -21,6 +20,16 @@ import { GUIA_DA_ACOLHE, contexto, ContextoDaConversa } from './guia';
  *
  * Desligada enquanto a instalação não tiver a `ANTHROPIC_API_KEY`. Sem ela a
  * tela responde pelo guia, sem modelo, e diz isso.
+ *
+ * O QUE VAI AO MODELO NÃO MUDA NO MEIO DA CONVERSA (fase 223). O raciocínio do
+ * modelo fica preso à conversa exata em que nasceu: se as instruções, as
+ * ferramentas ou uma mensagem anterior mudam, o raciocínio anterior deixa de
+ * valer, e em conta nova a pergunta é recusada. Por isso as instruções levam só
+ * o que é fixo (o guia, quem conversa, as telas do cargo), e o que muda (hora,
+ * turno, tela, casa, voz) vai na nota que a tela escreve no começo de cada
+ * pergunta (`momento.ts`). E, se mesmo assim algo mudar, o raciocínio que não
+ * vale mais é tirado em vez de a conversa parar (`drop_block`), e a auditoria
+ * conta quantos saíram: número acima de zero é defeito a procurar.
  */
 const MODELO_PADRAO = 'claude-opus-5-5';
 const MAX_MENSAGENS = 80;
@@ -35,6 +44,22 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export interface PedidoDeConversa {
   mensagens?: unknown;
   contexto?: { casaId?: unknown; casaNome?: unknown; tela?: unknown; telas?: unknown; voz?: unknown };
+}
+
+/**
+ * A marca de cache na última pergunta: a conversa só cresce, então tudo o que
+ * veio antes é lido do cache na pergunta seguinte. Cópia rasa, para não mexer
+ * no que a tela mandou; texto puro vira bloco, que é o mesmo conteúdo.
+ */
+function comCache(m: Anthropic.Beta.BetaMessageParam[]): Anthropic.Beta.BetaMessageParam[] {
+  const ultima = m[m.length - 1];
+  const blocos = typeof ultima.content === 'string'
+    ? [{ type: 'text' as const, text: ultima.content }]
+    : [...ultima.content];
+  const i = blocos.length - 1;
+  if (i < 0 || blocos[i].type === 'thinking' || blocos[i].type === 'redacted_thinking') return m;
+  blocos[i] = { ...blocos[i], cache_control: { type: 'ephemeral' } } as typeof blocos[number];
+  return [...m.slice(0, -1), { ...ultima, content: blocos }];
 }
 
 @Injectable()
@@ -121,8 +146,8 @@ export class AssistenteService {
       throw new ServiceUnavailableException('Muitas perguntas seguidas. Espere um minuto e tente de novo.');
     }
     const ctx = pedido?.contexto ?? {};
+    /* A casa conferida vai só para a auditoria: ao modelo ela chega pela nota do momento. */
     const casaId = await this.casaConferida(user, ctx.casaId);
-    const texto = (v: unknown, n: number) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, n) : null);
 
     const cliente = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, timeout: 120_000, maxRetries: 1 });
     let resposta: Anthropic.Beta.BetaMessage;
@@ -130,21 +155,18 @@ export class AssistenteService {
       resposta = await cliente.beta.messages.create({
         model: this.modelo(),
         max_tokens: 16000,
-        betas: ['server-side-fallback-2026-07-01'],
+        betas: ['server-side-fallback-2026-07-01', 'thinking-binding-controls-2026-08-01'],
         fallbacks: 'default',
-        thinking: { type: 'adaptive' },
+        thinking: { type: 'adaptive', block_binding: { prefix_mismatch_behavior: 'drop_block' } },
         output_config: { effort: 'medium' },
         system: [
-          { type: 'text', text: GUIA_DA_ACOLHE, cache_control: { type: 'ephemeral' } },
+          { type: 'text', text: GUIA_DA_ACOLHE },
           { type: 'text', text: contexto({
-            pessoa: user.fullName, cargo: user.role,
-            casa: casaId ? { id: casaId, nome: texto(ctx.casaNome, 80) ?? 'a casa aberta' } : null,
-            tela: texto(ctx.tela, 60), hoje: hojeNaInstituicao(),
-            telas: this.conferirTelas(ctx.telas), voz: texto(ctx.voz, 40),
-          }) },
+            pessoa: user.fullName, cargo: user.role, telas: this.conferirTelas(ctx.telas),
+          }), cache_control: { type: 'ephemeral' } },
         ],
         tools: JSON.parse(JSON.stringify(FERRAMENTAS)) as Anthropic.Beta.BetaTool[],
-        messages: mensagens,
+        messages: comCache(mensagens),
       });
     } catch (e) {
       /* O log leva a classe e o status, nunca a conversa. */
@@ -170,6 +192,8 @@ export class AssistenteService {
         turnos: mensagens.length, ferramentas, parada: resposta.stop_reason,
         entrada: resposta.usage?.input_tokens ?? null, saida: resposta.usage?.output_tokens ?? null,
         cache: resposta.usage?.cache_read_input_tokens ?? null,
+        raciocinioTirado: (resposta.input_transformations ?? [])
+          .filter((t) => t.type === 'thinking_dropped').length,
       },
     });
 
