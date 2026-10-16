@@ -272,7 +272,7 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 
 **Medido no fim da 222:** 197 migrações, 139 tabelas, 147 suítes, 1308 testes, verdes nas
 DUAS condições de relógio, rodadas inteiras (na 219, a espera pela linha travada não se mede
-sob o relógio adiantado: o banco ali não tem temporizador); na 222, o `ensaio:aparelhos` (oito aparelhos, as
+sob o relógio adiantado: o banco ali não tem temporizador); na 222, a suíte nas duas condições, o `ensaio:celular`, o `uso-celular`, o `uso`, o `acolhe` e o `ensaio:aparelhos` (oito aparelhos, as
 falhas do microfone, a galeria e 27 formulários de folha rolados até o fim, sem achado depois dos consertos;
 a varredura das folhas reprova sem o conserto do rodapé); na 221, o `ensaio:uso` (com o bloco do perfil
 reorganizado), o `roteiro` (54 tarefas), o do celular (306 telas, sem achado, depois de reescrever duas
