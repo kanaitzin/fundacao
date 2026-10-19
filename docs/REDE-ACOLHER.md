@@ -90,7 +90,7 @@ discordavam entre si.
 | Quanto | De onde sai |
 |---|---|
 | **19 partições** isoladas | pastas em `backend/src/modules/` |
-| **198 migrações** | `.sql` dentro das partições |
+| **199 migrações** | `.sql` dentro das partições |
 | **139 tabelas** | `CREATE TABLE` nas migrações |
 | **149 suítes** | `backend/test/*.spec.ts` |
 | **1320 testes** | `it(` / `test(` nas suítes |
@@ -439,6 +439,7 @@ arqueologia.
 | 226 | **Seis meses de história em tudo, nas oito casas** (pedido de 19/10: *"6 meses de históricos fictícios em tudo, para quando o Marcelo e a equipe verem, observar como eles podem trabalhar e como ficam os registros"*). Quando a cópia de uma casa nasce, ela escreve seis meses (`escreverSeisMeses`, com a semente da casa): as **visitas** da família no dia combinado de cada visitante, quase toda semana; os **atendimentos da equipe técnica** a cada duas ou três semanas, em rodízio entre psicologia, serviço social e psicopedagogia; a **saúde** (consulta de rotina, dentista, vacina, urgência); as **ocorrências** fechadas, com a síntese de quem fechou; as **conquistas**; os **acompanhamentos mensais** aprovados e os do mês passado ainda em aberto; as **reuniões** com o combinado cumprido; os **fins de semana com a família** e a cesta da cozinha; o **lanche dos passeios**; as **compras da farmácia**, uma em cada seis sem o valor lançado; a **escala** de dia e de noite com as **trocas de plantão** e o motivo; a **escola** (anotações e o conceito dos dois bimestres); uma ou duas **internações** curtas; as **saídas** dos mais velhos para a escola, o curso e o treino; e o **livro das ATAs** desde abril. Nas outras casas, de zero a quatro crianças saíram nesses meses (reintegração, adoção, maioridade, guarda), e cada casa fica com entre 16 e 20. **Cada criança tem a sua família**: até aqui todas tinham a mesma mãe (Rosângela), a mesma madrinha e o mesmo tio, e com seis meses de visitas a portaria mostraria a mesma senhora visitando vinte crianças (a Alice continua com a família que os ensaios conhecem). **O painel do Gestor Geral, o painel das unidades e o trabalho social saem dos registros de cada casa**, e a soma é a soma do que se vê entrando em cada uma; a lista de quem conquistou junta as oito, e tocar no nome de outra casa abre a criança certa (`casa-xxx~id`). Achado no caminho: **a troca de nomes na saída também trocava o código "AI3"**, e a linha da Casa 03 que a cópia da Casa 04 devolvia para o painel virava uma segunda "AI4" com os números antigos; as somas agora pedem às cópias sem a troca. As frases são da equipe de acolhimento, só o fato, sem comparar crianças nem qualificá-las. |
 | 227 | **O que falta para ir ao ar, e o preparo** (pedido de 19/10: *"comece a transformar o protótipo e ver o que mais falta para o sistema ser real"*; escolhido no mesmo dia: levantar o que falta e preparar o que se prepara daqui, sem publicar nada). O **§12.0** põe em ordem o caminho do protótipo ao ar, com quem faz cada passo: as decisões da Fundação, a máquina, o treino, os dados da Casa 03 e o piloto. Pronto daqui: **`scripts/instalar.sh`**, que confere a máquina, o `.env`, o banco, o cron e o serviço e aponta a seção de cada item que falta, sem mudar nada, e com `--instalar` constrói, migra e lista os comandos que mudam a máquina; **`scripts/servidor/rede-acolher.service`** (o serviço compilado, com o `.env`, que volta sozinho) e **`scripts/servidor/Caddyfile`** (o HTTPS, com o mesmo limite de corpo do serviço); e **o banco de demonstração**: a simulação das oito casas com vinte pessoas cada, seis meses terminando no dia em que roda, guardada num arquivo (`SIM_DUMP`) para o treino da equipe num servidor à parte. A suíte `o-servidor-do-pao.spec.ts` cobra que o proxy aceite o corpo que o serviço aceita, que o serviço rode o compilado e que o instalador confira as três variáveis que decidem a segurança. A rodada que gerou o banco achou a escala recusada com 500 e 503 no primeiro dia, em quatro e depois cinco casas, todas no mesmo instante; **com o relógio real, as oito coordenações publicando juntas gravaram 3.840 plantões em 15 segundos sem nenhuma falha**. Um dia só de simulação repetiu a falha, e a fotografia do `pg_stat_activity` mostrou o Postgres encerrando por *transação parada* sessões paradas havia zero segundo, sempre em múltiplos de dez segundos: a conta de tempo do banco sob o relógio de mentira. Um limite de um dia não bastou. Agora o zero escrito no `.env` desliga o limite (`BANCO_LIMITE_*=0`, como no Postgres), a simulação roda com os quatro desligados e sem nenhum achado, e o `instalar.sh` recusa o zero no servidor. E um defeito do próprio caminho, achado ao escrever o instalador: **o `.env.example` tinha comentário na mesma linha do valor**, e o systemd, que entrega o `.env` ao serviço, não tira esse comentário; o `SESSION_TTL_HOURS` chegaria como *14 seguido do comentário*, que não é número, e a entrada no sistema falharia para todos no primeiro dia. O comentário passou para a linha de cima, o instalador aponta a linha que tiver, e a suíte cobra o exemplo. |
 | 228 | **A folha dos remédios da saída com a família, e a conta das doses** (o que 225 a 227 deixaram sem medir: as outras casas, os Words e as telas contra o servidor). **No servidor de verdade, a conta das doses que vão com a criança multiplicava por zero os horários do dia**: um remédio de duas vezes ao dia, em três dias com a família, saía com três doses e não seis, e o remédio com horários em dias diferentes da semana saía em duas linhas (`app_medicamentos_para_levar`, 1050). A medications/1658 conta cada horário de cada dia, numa linha por remédio, e o `as-doses-que-vao-junto.e2e.spec.ts` confere o número; a suíte que passava por ali se chamava *a folha conta as doses* e conferia só que a resposta era uma lista. **No protótipo, a mesma folha dizia sempre Ana Paula com Rosângela**, com uma Risperidona fixa, outro título e uma ressalva que argumentava, fosse qual fosse a saída; agora é a do servidor, com a criança, quem a recebe, o período e as receitas dela, e o `ensaio:uso` a abre. **O Word das outras casas passa pela troca de nomes** antes de virar arquivo (a troca da resposta não entrava no base64), e o `servidor-de-mentira.spec.ts` cobra que nenhuma folha escreva nome à mão e que todo Word passe pela troca. O aviso *Nesta demonstração só a Casa 03 tem dados*, falso desde a 225, saiu. E **as telas das oito casas contra o servidor de verdade** (38 contas sobre o banco de demonstração) acharam seis falhas, todas *transação parada* encerrada pelo banco com o relógio parado: os limites de espera estavam desligados só na simulação e não nos dois servidores do navegador. |
+| 229 | **As doses da saída dentro da receita** (seguindo a lição da 228: perguntar ao catálogo onde mais o banco conta doses pelos horários). Só duas funções leem os horários: a grade da casa (`app_generate_doses`), que sempre olhou o começo e o fim da receita, e a conta da saída com a família, que **não olhava**: o antibiótico que termina no segundo dia da saída ia com as doses dos três dias, e a receita que começa no último dia ia com as doses de todos. A medications/1659 conta só os dias em que a receita vale e tira da folha a receita sem dose no período; o protótipo segue a mesma conta. O `as-doses-que-vao-junto` ganhou os dois casos, e reprova sem a migração (3 doses em vez de 2, e 6 em vez de 2). E duas buscas na suíte, fora dela: os testes cujo nome promete uma conta e não conferem número, e os que só conferem o formato da resposta. Das cerca de cem candidatas, nenhuma escondia defeito: são negações (*não soma nada*), recusas de alcance, onde o status é a prova e as sondagens conferem o banco, ou passos de uma história que os testes seguintes leem de volta. |
 
 ---
 
@@ -486,7 +487,7 @@ cd frontend && npm run prototipo
 ```
 
 O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as
-198 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
+199 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
 
 ### Os ensaios — e por que cada um existe
 
@@ -1455,8 +1456,10 @@ gerada quantas vezes for preciso, e a baixa acontece uma vez só. O movimento é
 como consumo faria o histórico dizer que ela administrou o que ninguém viu
 ninguém tomar. A contagem conta **cada horário de cada dia**, do dia em que a
 criança sai ao dia em que volta, os dois inteiros: a casa manda a dose do dia do
-retorno, e a folha diz isso. Até a fase 228 ela contava os dias e não os
-horários, e o remédio de duas vezes ao dia saía pela metade (medications/1658).
+retorno, e a folha diz isso, e só nos dias em que a receita vale: o tratamento
+que termina no meio da saída vai até o último dia dele. Até a fase 228 ela contava
+os dias e não os horários, e o remédio de duas vezes ao dia saía pela metade
+(medications/1658); até a 229, não olhava o começo nem o fim da receita (1659).
 
 **A dose confirmada registra `consumo` no histórico do armário, e o histórico
 ABRE.** O número já caía desde a fase 6; faltava o histórico dizer por quê — ele
@@ -2991,7 +2994,7 @@ crescimento. Vídeo não entra no álbum: um minuto de vídeo de celular pesa co
 npm run ensaio:producao
 ```
 
-Constrói, cria um banco virgem, aplica as 198 migrações **pelo binário
+Constrói, cria um banco virgem, aplica as 199 migrações **pelo binário
 compilado**, sobe o serviço e confere `/health`. Não publica nada e não toca no
 banco de trabalho.
 

@@ -9,6 +9,8 @@
  *
  * A suíte que passava por esta rota se chamava "a folha conta as doses" e
  * conferia só que a resposta era uma lista. Aqui a conta é conferida pelo número.
+ * E a conta não olhava o começo nem o fim da receita (fase 229): o antibiótico que
+ * termina no meio da saída ia com doses para depois do fim do tratamento.
  * Tudo nasce numa transação que se desfaz no fim: nenhuma criança, receita ou
  * saída sobra para as outras suítes.
  */
@@ -39,11 +41,15 @@ describe('As doses que vão com a criança', () => {
         `INSERT INTO person_contact (person_id, name, bond)
          VALUES ($1, 'Mãe Fictícia das Doses', 'genitora') RETURNING id`, [crianca.id]);
 
-      const receita = async (remedio: string, horarios: [string, number[]][]) => {
+      const receita = async (remedio: string, horarios: [string, number[]][],
+                             periodo: { de?: number; ate?: number } = {}) => {
         const { rows: [p] } = await admin.query(
-          `INSERT INTO prescription (person_id, house_id, kind, medication, dose, route, status)
-           VALUES ($1, $2, 'uso_continuo', $3, '1 comprimido', 'oral', 'ativa') RETURNING id`,
-          [crianca.id, casa.house, remedio]);
+          `INSERT INTO prescription (person_id, house_id, kind, medication, dose, route, status,
+                                     starts_on, ends_on)
+           VALUES ($1, $2, $4::prescription_kind, $3, '1 comprimido', 'oral', 'ativa',
+                   app_hoje() + coalesce($5::int, -30), app_hoje() + $6::int) RETURNING id`,
+          [crianca.id, casa.house, remedio, periodo.ate == null && periodo.de == null ? 'uso_continuo' : 'tratamento',
+           periodo.de ?? null, periodo.ate ?? null]);
         for (const [hora, dias] of horarios) {
           await admin.query(
             `INSERT INTO medication_schedule (prescription_id, time_of_day, weekdays)
@@ -54,6 +60,10 @@ describe('As doses que vão com a criança', () => {
       await receita('Remédio Fictício A, de duas vezes', [['08:00', TODOS], ['20:00', TODOS]]);
       /* O do meio-dia só nos dias de semana; o da noite, todos os dias. */
       await receita('Remédio Fictício B, misto', [['12:00', [1, 2, 3, 4, 5]], ['21:00', TODOS]]);
+      /* O tratamento que termina no segundo dia da saída, e o que começa no último:
+         a casa manda só as doses dos dias em que a receita vale. */
+      await receita('Remédio Fictício C, termina na saída', [['08:00', TODOS]], { ate: 2 });
+      await receita('Remédio Fictício D, começa na saída', [['08:00', TODOS], ['20:00', TODOS]], { de: 3 });
 
       /* Três dias de calendário: sai amanhã às 9h, volta depois de amanhã + 1 às 18h. */
       const { rows: [saida] } = await admin.query(
@@ -75,6 +85,8 @@ describe('As doses que vão com a criança', () => {
       expect(rows).toEqual([
         { medicamento: 'Remédio Fictício A, de duas vezes', horarios: '08:00, 20:00', doses: 6 },
         { medicamento: 'Remédio Fictício B, misto', horarios: '12:00, 21:00', doses: diasDeSemana + 3 },
+        { medicamento: 'Remédio Fictício C, termina na saída', horarios: '08:00', doses: 2 },
+        { medicamento: 'Remédio Fictício D, começa na saída', horarios: '08:00, 20:00', doses: 2 },
       ]);
     } finally {
       await admin.query('ROLLBACK');

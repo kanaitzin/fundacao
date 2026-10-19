@@ -8565,23 +8565,28 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     /*
      * O QUE VAI JUNTO, DAS RECEITAS DELA (fase 228). A lista era uma Risperidona
      * fixa para toda criança que saísse. Agora são as receitas em uso com
-     * horário, como no servidor (`app_medicamentos_para_levar`, 1658): cada
-     * horário conta os dias da saída, do dia em que sai ao dia em que volta.
+     * horário, como no servidor (`app_medicamentos_para_levar`, 1659): cada
+     * horário conta os dias da saída em que a receita vale.
      */
     const saidaDoRemedio = CONVIVENCIAS.find((f) => f.id === seg[2]);
     if (!saidaDoRemedio) throw new ErroApi(404, 'Saída não encontrada.');
     const diaLocal = (iso: string) => new Intl.DateTimeFormat('en-CA', {
       timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' })
       .format(new Date(iso));
-    const diasDaSaida = Math.round((Date.parse(diaLocal(saidaDoRemedio.retornoPrevisto))
-      - Date.parse(diaLocal(saidaDoRemedio.saiuEm))) / 86400_000) + 1;
+    /* Só os dias da saída em que a receita vale, do começo ao fim dela (1659). */
+    const diasNaReceita = (inicio: string, fim: string | null) => {
+      const de = [diaLocal(saidaDoRemedio.saiuEm), inicio.slice(0, 10)].sort()[1];
+      const ate = [diaLocal(saidaDoRemedio.retornoPrevisto), (fim ?? '9999-12-31').slice(0, 10)].sort()[0];
+      return Math.max(0, Math.round((Date.parse(ate) - Date.parse(de)) / 86400_000) + 1);
+    };
     const itens = ESQUEMAS
-      .filter((e) => e.acolhido.id === saidaDoRemedio.personId && e.status === 'ativa' && e.horarios.length)
+      .filter((e) => e.acolhido.id === saidaDoRemedio.personId && e.status === 'ativa' && e.horarios.length
+        && diasNaReceita(e.inicio, e.fim) > 0)
       .sort((a, z) => a.medicamento.localeCompare(z.medicamento, 'pt-BR'))
       .map((e) => ({
         prescriptionId: e.id, medicamento: e.medicamento, dose: e.dose, via: e.via,
         orientacoes: null as string | null,
-        horarios: [...e.horarios].sort().join(', '), doses: e.horarios.length * diasDaSaida,
+        horarios: [...e.horarios].sort().join(', '), doses: e.horarios.length * diasNaReceita(e.inicio, e.fim),
         emEstoque: ESTOQUE.find((st) => st.medicamento === e.medicamento
           && (st.personId === e.acolhido.id || st.personId === null))?.quantidade ?? null,
         soEnfermagem: e.soEnfermagem,
