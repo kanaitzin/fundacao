@@ -7,6 +7,7 @@ import type { DocumentoWord } from '../docx';
 import { quemAssina } from '../quem-assina';
 import { diaCurto as dia } from '../rotulos';
 import { Icone } from '../icones';
+import { Explica } from '../explica';
 
 /**
  * OCORRÊNCIAS (§13).
@@ -333,11 +334,11 @@ export function Ocorrencias({ houseId, papel }: { houseId: string; papel: string
           <span className="oc-selo" aria-hidden="true"><Icone nome="ocorrencias" /></span>
           <h3 style={{ fontSize: 17, margin: 0 }}>Fato que exige acompanhamento formal</h3>
         </div>
-        <p className="mutetxt" style={{ margin: 0 }}>
+        <Explica style={{ margin: 0 }} resumo={<>Alguns fatos não cabem na passagem e abrem fluxo próprio.</>}>
           Alguns fatos não cabem na passagem: abrem fluxo próprio, avisam o líder, a
           equipe técnica e a coordenação na hora, e alguns só se encerram depois da análise
           de quem responde pelo caso.
-        </p>
+        </Explica>
         <div className="notice c-crit">
           {catalogo?.aviso ?? 'O registro nunca deve atrasar a proteção imediata, o atendimento '
             + 'de saúde ou o protocolo da instituição.'}
@@ -728,11 +729,11 @@ export function Ocorrencias({ houseId, papel }: { houseId: string; papel: string
         )}
       </div>
 
-      <p className="mutetxt" style={{ marginTop: 12 }}>
+      <Explica style={{ marginTop: 12 }}>
         Nenhuma ocorrência se encerra sozinha, nem por tempo. O que foi escrito por
         alguém continua como aquela pessoa escreveu; a síntese entra ao lado, com autor
         e horário.
-      </p>
+      </Explica>
        </>
       )}
 

@@ -2,6 +2,7 @@ import { ROTULO_CARGO } from '../rotulos';
 import { useEffect, useState } from 'react';
 import { api } from '../api';
 import { Icone } from '../icones';
+import { Explica } from '../explica';
 
 /**
  * O QUE CADA SETOR ENXERGA (§8.3).
@@ -56,14 +57,14 @@ export function Setores({ papel }: { papel: string }) {
 
       <div className="card raise stack">
         <h3 style={{ fontSize: 17, margin: 0 }}>O que cada setor enxerga</h3>
-        <p className="mutetxt" style={{ margin: 0 }}>
+        <Explica style={{ margin: 0 }}>
           Para responder “o educador vê isso?” sem entrar com a conta de ninguém.
           Assim ninguém precisa emprestar a própria conta para conferir uma tela.
-        </p>
-        <div className="notice c-info">
+        </Explica>
+        <Explica className="notice c-info">
           Esta página mostra o que cada setor alcança. Mesmo que um botão apareça, o servidor
           confere de novo antes de gravar.
-        </div>
+        </Explica>
       </div>
 
       <div className="eyebrow">Escolha o setor</div>

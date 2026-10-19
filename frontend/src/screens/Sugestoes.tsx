@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api';
 import { Cargo } from '../cargos';
+import { Explica } from '../explica';
 
 /**
  * AS SUGESTÕES DE MELHORIA (fase 192; quem lê decidido em 08/10).
@@ -43,10 +44,10 @@ export function Sugestoes({ houseId, casaLabel, todas }: { houseId: string | nul
           <h2>Sugestões de melhoria</h2>
         </div>
       </div>
-      <p className="mutetxt">
+      <Explica>
         O que a equipe pediu para o sistema melhorar, conversando com a Acolhe+AI. Cada sugestão
         tem o nome de quem sugeriu e a tela em que estava.
-      </p>
+      </Explica>
       {todas && houseId && (
         <div className="row" role="group" aria-label="Quais sugestões" style={{ gap: 8, margin: '8px 0 12px' }}>
           <button className={`btn sm ${soEsta ? '' : 'sec'}`} aria-pressed={soEsta} onClick={() => setSoEsta(true)}>

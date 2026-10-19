@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
 import { CATEGORIA, ICONE, categoriaDe } from '../categorias-do-dia';
 import { Icone } from '../icones';
+import { Explica } from '../explica';
 
 /**
  * O DIA INTEIRO, DAS UNIDADES QUE A PESSOA ALCANÇA, EM UMA LISTA SÓ.
@@ -196,7 +197,7 @@ export function DiaDasUnidades() {
         <p className="mutetxt">Nada esperando alguém neste dia.</p>
       )}
 
-      {nota && <p className="mutetxt" style={{ marginTop: 16 }}>{nota}</p>}
+      {nota && <Explica style={{ marginTop: 16 }}>{nota}</Explica>}
     </>
   );
 }

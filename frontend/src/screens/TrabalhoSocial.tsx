@@ -6,6 +6,7 @@ import type { ArquivoGerado } from '../documentos';
 import type { DocumentoWord } from '../docx';
 import { dia } from '../rotulos';
 import { Icone } from '../icones';
+import { Explica } from '../explica';
 
 /**
  * O TRABALHO SOCIAL — a outra leitura das oito casas.
@@ -160,7 +161,7 @@ export function TrabalhoSocial({ papel }: { papel: string }) {
 
       {/* -------------------------------------------------------- as casas */}
       <div className="eyebrow" style={{ marginTop: 16 }}>Casa a casa</div>
-      <p className="mutetxt">{p.aviso}</p>
+      <Explica>{p.aviso}</Explica>
       <div className="stack">
         {p.casas.map((c) => (
           <div key={c.id} className="card">
@@ -408,7 +409,7 @@ function Trajetoria({ personId, onVoltar }: { personId: string; onVoltar: () => 
           </div>
         ))}
       </div>
-      <p className="mutetxt" style={{ marginTop: 12 }}>{t.aviso}</p>
+      <Explica style={{ marginTop: 12 }}>{t.aviso}</Explica>
 
       {doc && (
         <FolhaDocumento doc={doc} onFechar={() => setDoc(null)}

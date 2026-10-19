@@ -6,6 +6,7 @@ import { Alinhamentos } from './Alinhamentos';
 import type { DocumentoWord } from '../docx';
 import { dia } from '../rotulos';
 import { Icone } from '../icones';
+import { Explica } from '../explica';
 
 /**
  * ACOMPANHAMENTOS E RELATÓRIOS.
@@ -312,10 +313,10 @@ export function Acompanhamentos({ houseId, casaLabel, papel }: {
                 Gerar pendências
               </button>
             </div>
-            <div className="notice c-info">
+            <Explica className="notice c-info" resumo={<>A automação cria a pendência e <b>nunca escreve a avaliação</b>.</>}>
               A automação cria a pendência e <b>nunca escreve a avaliação</b>. Os eixos
               nascem vazios; o texto é de quem acompanha o caso.
-            </div>
+            </Explica>
           </div>
 
           <div className="eyebrow">Abertos · {abertos.length}</div>
@@ -324,10 +325,10 @@ export function Acompanhamentos({ houseId, casaLabel, papel }: {
           <div className="eyebrow">Aprovados — retrato daquele momento</div>
           <div className="stack">{aprovados.map(cartao)}</div>
 
-          <p className="mutetxt" style={{ marginTop: 12 }}>
+          <Explica style={{ marginTop: 12 }}>
             Para corrigir um aprovado, crie a versão seguinte, que passa por nova aprovação.
             A anterior continua legível como estava.
-          </p>
+          </Explica>
         </>
       )}
 
@@ -681,7 +682,7 @@ function FontesDoAcompanhamento({ id, bloqueado }: { id: string; bloqueado: bool
       <div className="eyebrow">
         Fontes do período · {escolhidas.length} escolhida(s)
       </div>
-      <p className="mutetxt">{dados.aviso}</p>
+      <Explica>{dados.aviso}</Explica>
       {erro && <div className="notice c-crit" role="alert">{erro}</div>}
 
       <div className="opts">

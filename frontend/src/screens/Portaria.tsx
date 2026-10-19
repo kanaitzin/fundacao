@@ -5,6 +5,7 @@ import { Icone } from '../icones';
 import { FolhaDocumento, ArquivoGerado } from '../documentos';
 import type { DocumentoWord } from '../docx';
 import { Avatar } from '../avatar';
+import { Explica } from '../explica';
 
 /**
  * PORTARIA — quem pode visitar, e quem visitou.
@@ -134,11 +135,11 @@ export function Portaria({ houseId, casaLabel }: { houseId: string; casaLabel: s
       {aba === 'acolhidos' && <AcolhidosNoPortao houseId={houseId} />}
 
       {aba === 'visitantes' && (
-      <p className="mutetxt">
+      <Explica resumo={<>{casaLabel}. Confira quem chega pela foto e pelo documento. <b>Quem não está aqui não entra sem falar com a casa.</b></>}>
         {casaLabel}. Confira quem chega pela foto e pelo documento, e registre a entrada e a
         saída. Só está na lista quem a equipe técnica ou a coordenação autorizou, no contato da
         criança. <b>Quem não está aqui não entra sem falar com a casa.</b>
-      </p>
+      </Explica>
       )}
 
       {aba === 'visitantes' && erro && <div className="notice c-crit" role="alert">{erro}</div>}

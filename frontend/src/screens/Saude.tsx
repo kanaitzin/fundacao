@@ -8,6 +8,7 @@ import { quemAssina } from '../quem-assina';
 import { dia } from '../rotulos';
 import { Icone } from '../icones';
 import { Avatar, useComFoto } from '../avatar';
+import { Explica } from '../explica';
 
 /**
  * COMO ELA ESTAVA, nas quatro opções do papel (1460).
@@ -575,10 +576,10 @@ export function Saude({ houseId, casaLabel, papel }: {
               <li className="vazio"><div className="mutetxt">Nenhuma dose na grade de hoje nesta casa.</div></li>
             )}
           </ul>
-          <p className="mutetxt" style={{ marginTop: 12 }}>
+          <Explica style={{ marginTop: 12 }} resumo={<>Dose que passou da hora aparece como <b>sem confirmação</b>, nunca como “não administrada”.</>}>
             Dose que passou da hora aparece como <b>sem confirmação</b>, nunca como
             “não administrada”. Se a dose foi dada ou não, quem diz é a equipe.
-          </p>
+          </Explica>
         </>
       )}
 
@@ -1119,11 +1120,11 @@ export function Saude({ houseId, casaLabel, papel }: {
               </div>
             ))}
           </div>
-          <p className="mutetxt" style={{ marginTop: 12 }}>
+          <Explica style={{ marginTop: 12 }} resumo={<>{painel.aviso} A lista não ordena por gravidade nem sugere prioridade clínica.</>}>
             {painel.aviso} Todos aparecem, inclusive quem não tem medicação. A lista não
             ordena por gravidade nem sugere prioridade clínica — isso seria uma decisão que
             o sistema não pode tomar.
-          </p>
+          </Explica>
         </>
       )}
 
@@ -1708,7 +1709,7 @@ function FolhaHistorico({ pessoa, dados, emissoes, onFechar, onBaixar, onDocumen
           </>
         )}
 
-        <p className="mutetxt" style={{ marginTop: 12 }}>{dados.aviso}</p>
+        <Explica style={{ marginTop: 12 }}>{dados.aviso}</Explica>
 
         <div className="row rodape">
           <button className="btn sec grow" onClick={onFechar}>Fechar</button>
@@ -2374,7 +2375,7 @@ function NumerosDoArmario({ houseId }: { houseId: string }) {
           ))}
         </ul>
       )}
-      <p className="mutetxt">{m.aviso}</p>
+      <Explica>{m.aviso}</Explica>
       <GerarEmWord rotulo="Gerar o relatório do armário do mês" id="exp-armario"
                    gerarCom={(finalidade) => api('/medications/stock/report/export', {
                      method: 'POST', body: JSON.stringify({ houseId, de, ate: hoje, finalidade }) })} />

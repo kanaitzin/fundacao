@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from './api';
+import { Explica } from './explica';
 
 /**
  * O RETORNO DA EXPERIÊNCIA FAMILIAR, na Passagem e na ATA (1070).
@@ -155,11 +156,11 @@ export function ConvivenciasDoTurno({ lista, titulo }: {
           </li>
         ))}
       </ul>
-      <div className="mutetxt">
+      <Explica>
         A vaga na casa continua ocupada em todos os casos acima. Quem está fora não
         entra na chamada, na rotina nem na grade de medicamentos, e o remédio que foi
         com a criança está na folha do perfil dela.
-      </div>
+      </Explica>
     </div>
   );
 }

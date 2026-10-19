@@ -4,6 +4,7 @@ import { FolhaDocumento, ArquivoGerado } from '../documentos';
 import type { DocumentoWord } from '../docx';
 import { dia } from '../rotulos';
 import { Icone } from '../icones';
+import { Explica } from '../explica';
 
 /**
  * COZINHA — uma tela só, e é isso que a torna certa.
@@ -704,7 +705,7 @@ function RefeicoesDaCasa({ houseId, casaLabel }: { houseId: string; casaLabel: s
               </li>
             ))}
           </ul>
-          <p className="mutetxt">{d.aviso}</p>
+          <Explica>{d.aviso}</Explica>
         </>
       )}
     </>

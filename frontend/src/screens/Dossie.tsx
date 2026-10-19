@@ -5,6 +5,7 @@ import { dia } from '../rotulos';
 import { Icone } from '../icones';
 import { EscolherAnexo, miniaturaDe } from '../anexos';
 import type { Escolhido } from '../anexos';
+import { Explica } from '../explica';
 
 /**
  * O DOSSIÊ DO ACOLHIDO (§6.1) e o ÁLBUM DE VIVÊNCIAS (§6.9).
@@ -170,7 +171,7 @@ export function Dossie({ personId, nome, papel, onVoltar }: {
 
       {aba === 'dossie' && dossie && (
         <>
-          <div className="notice c-info">{dossie.aviso}</div>
+          <Explica className="notice c-info">{dossie.aviso}</Explica>
 
           {/* O que vence, antes de vencer. Uma pasta cheia que não avisa é uma
               pasta que só serve depois que o problema aconteceu. */}
@@ -310,7 +311,7 @@ export function Dossie({ personId, nome, papel, onVoltar }: {
 
       {aba === 'album' && album && (
         <>
-          <div className="notice c-info">{album.aviso}</div>
+          <Explica className="notice c-info">{album.aviso}</Explica>
           {album.avisoDaAutorizacao && (
             <div className="notice c-warn" role="status">{album.avisoDaAutorizacao}</div>
           )}
@@ -449,7 +450,7 @@ function FolhaAnexo({ item, catalogo, onFechar, onEnviar }: {
          onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
       <div className="sheet modal">
         <h3 id="t-anx">Anexar · {item.label}</h3>
-        <div className="notice c-info">{catalogo.aviso}</div>
+        <Explica className="notice c-info">{catalogo.aviso}</Explica>
 
         <label className="f" htmlFor="anx-arq-arquivo">
           O arquivo <small>({catalogo.aceitos.join(', ')}, até {tam(catalogo.tamanhoMaximo)})</small>

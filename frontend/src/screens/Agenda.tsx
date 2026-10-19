@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
+import { Explica } from '../explica';
 
 /**
  * A AGENDA (§7, §8).
@@ -256,10 +257,10 @@ export function Agenda({ houseId, papel }: { houseId: string; papel: string }) {
               Ver mais 30 dias
             </button>
           )}
-          <p className="mutetxt">
+          <Explica>
             Esta lista é projeção: mostra os dias em que cada compromisso cai, sem criar nada.
             Cada dia vira linha do tempo quando o dia chega.
-          </p>
+          </Explica>
         </>
       ) : (
         <>

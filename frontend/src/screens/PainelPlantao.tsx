@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
 import { Cargo } from '../cargos';
+import { Explica } from '../explica';
 
 /**
  * PAINEL DO PLANTÃO — quem está em quê agora.
@@ -235,7 +236,7 @@ export function PainelPlantao({ houseId, casaLabel, papel }: {
       )}
 
       {nota && (
-        <p className="mutetxt" style={{ marginTop: 16 }}>{nota}</p>
+        <Explica style={{ marginTop: 16 }}>{nota}</Explica>
       )}
     </>
   );

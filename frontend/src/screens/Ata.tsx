@@ -9,6 +9,7 @@ import type { DocumentoWord } from '../docx';
 import { quemAssina } from '../quem-assina';
 import { Icone } from '../icones';
 import { CalendarioDosTurnos } from '../calendario-turnos';
+import { Explica } from '../explica';
 
 /**
  * ATAS — a da casa e a Geral Noturna.
@@ -635,10 +636,10 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
                   </div>
                 </div>
               ))}
-              <p className="mutetxt">
+              <Explica>
                 As duas respostas pedem motivo. Negar é o que a pessoa vai perguntar; liberar é
                 o que alguém vai perguntar pela criança.
-              </p>
+              </Explica>
             </div>
           )}
 
@@ -852,7 +853,7 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
                 {secoes && (
                   <>
                     <div className="eyebrow">O livro ATA da casa</div>
-                    {secoes.aviso && <p className="mutetxt" style={{ margin: 0 }}>{secoes.aviso}</p>}
+                    {secoes.aviso && <Explica style={{ margin: 0 }}>{secoes.aviso}</Explica>}
 
                     {secoes.secoes.map((sec) => {
                       const valor = conteudo[sec.chave] ?? '';
@@ -952,10 +953,10 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
                   * borda; o nome vem escrito, sempre.
                   */}
                 <div className="eyebrow">O que ficou escrito neste turno</div>
-                <p className="mutetxt" style={{ margin: 0 }}>
+                <Explica style={{ margin: 0 }}>
                   Cada linha fica com o nome de quem escreveu. Para corrigir, escreva outra
                   linha. É o que a equipe que entra lê antes de começar o turno.
-                </p>
+                </Explica>
 
                 {(plantao.linhas?.notas.length ?? 0) === 0 && (
                   <p className="mutetxt">Nada escrito neste turno ainda.</p>
@@ -1069,11 +1070,11 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
                                      titulo="Acolhido em experiência familiar" />
 
                 <div className="eyebrow">Episódios do turno</div>
-                <p className="mutetxt" style={{ margin: 0 }}>
+                <Explica style={{ margin: 0 }} resumo={<>O que aconteceu com um acolhido neste turno, descrito pelo fato.</>}>
                   O que aconteceu com um acolhido neste turno, descrito pelo fato. O tipo
                   escolhido diz o que aconteceu, e não quem a criança é. O relato não pode ser alterado depois: quem assume
                   o turno registra <b>ciência</b>, e o comentário dele nasce ao lado.
-                </p>
+                </Explica>
 
                 {plantao.episodios.length === 0 && (
                   <p className="mutetxt">Nenhum episódio registrado neste turno.</p>
@@ -1242,11 +1243,11 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
                     </button>
                   </>
                 ) : (
-                  <p className="mutetxt" style={{ margin: 0 }}>
+                  <Explica style={{ margin: 0 }}>
                     Quem fecha esta ATA é o Líder Diurno, o Líder Noturno Geral, a equipe
                     técnica ou a coordenação. Você lê, e o que escreveu na sua passagem já
                     está aqui.
-                  </p>
+                  </Explica>
                 )}
               </div>
 

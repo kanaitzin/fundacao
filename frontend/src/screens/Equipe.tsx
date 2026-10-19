@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api';
 import { Cargo } from '../cargos';
+import { Explica } from '../explica';
 
 interface Setor {
   code: string; label: string; descricao: string; transversal: boolean; exigeCasa: boolean;
@@ -303,10 +304,10 @@ export function Equipe({ papel }: { papel: string }) {
           ))}
         </ul>
 
-        <p className="mutetxt" style={{ marginTop: 12, marginBottom: 0 }}>
+        <Explica style={{ marginTop: 12, marginBottom: 0 }} resumo={<>Quem sai da equipe é <b>desativado</b>.</>}>
           Quem sai da equipe é <b>desativado</b>: o acesso acaba na hora e as sessões abertas
           caem, e tudo o que a pessoa registrou continua com o nome dela.
-        </p>
+        </Explica>
       </div>
       )}
 

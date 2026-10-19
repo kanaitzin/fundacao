@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api';
 import { Icone } from '../icones';
+import { Explica } from '../explica';
 
 /**
  * ARQUIVO DOCUMENTAL (Drive institucional).
@@ -143,10 +144,10 @@ export function Arquivo({ houseId, papel }: { houseId: string; papel: string }) 
           Aqui vai a cópia documental do que a instituição <b>fechou</b>: ATA, passagem,
           ocorrência, acompanhamento, relatório.
         </div>
-        <div className="notice c-med">
+        <Explica className="notice c-med" resumo={<>O <b>educador social não abre o Drive</b>.</>}>
           O <b>educador social não abre o Drive</b>. O que ele precisa ler do acolhido
           está no perfil, onde cada leitura fica registrada com o nome de quem abriu.
-        </div>
+        </Explica>
         {conta && (
           conta.pendentes > 0
             ? <div className="notice c-crit">{conta.aviso}</div>

@@ -4389,6 +4389,37 @@ console.log('\n🖍️ O atendimento da equipe técnica, com o desenho (fase 218
   await pgP.close();
 }
 
+console.log('\n📖 A explicação recolhida, com o Como funciona (fase 230)');
+{
+  const pgX = await navegador.newPage({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  const errosX = [];
+  pgX.on('pageerror', (e) => errosX.push(e.message));
+  const esp = (ms = 800) => pgX.waitForTimeout(ms);
+  await pgX.goto(`file://${ARQUIVO}`); await esp(700);
+  await pgX.getByRole('button', { name: 'Marcelo Barbosa', exact: true }).click();
+  await pgX.getByRole('button', { name: /Entrar no sistema/i }).click(); await esp(1200);
+  cargoAtual = 'coordenador';
+  await pgX.locator('nav.tabbar button', { hasText: 'Mais' }).first().click(); await esp(350);
+  await pgX.locator('.overlay .sheet button.card.row', { hasText: 'Ocorrências' }).first().click(); await esp(1200);
+  const caixa = pgX.locator('[data-explica]', { hasText: 'Alguns fatos não cabem na passagem' });
+  const fechada = await caixa.innerText();
+  cobrar('a explicação mostra a primeira frase e esconde o resto',
+    /abrem fluxo próprio/.test(fechada) && !/avisam o líder/.test(fechada), fechada);
+  const botao = caixa.getByRole('button', { name: 'Como funciona' });
+  const alvo = await botao.boundingBox();
+  cobrar('o Como funciona se toca com o dedo', alvo && alvo.height >= 24, alvo && `${alvo.height}px`);
+  await botao.click(); await esp(300);
+  cobrar('um toque abre o texto inteiro, como era',
+    /avisam o líder, a equipe técnica e a coordenação na hora/.test(await caixa.innerText())
+    && await caixa.locator('button').getAttribute('aria-expanded') === 'true');
+  await caixa.getByRole('button', { name: 'Mostrar menos' }).click(); await esp(300);
+  cobrar('e o Mostrar menos recolhe de novo', !/avisam o líder/.test(await caixa.innerText()));
+  cobrar('nenhum alerta da tela se recolhe',
+    await pgX.locator('.c-crit [data-explica], [data-explica].c-crit, [data-explica].c-warn').count() === 0);
+  cobrar('nenhuma exceção na explicação recolhida', errosX.length === 0, errosX[0]);
+  await pgX.close();
+}
+
 await navegador.close();
 console.log(achados.length
   ? `\n${achados.length} ACHADO(S):\n  ${achados.join('\n  ')}`

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
+import { Explica } from '../explica';
 
 /**
  * SAÚDE DA IMPLANTAÇÃO (fase 185, ideia 9 de 30/09; quem vê decidido em 05/10).
@@ -67,10 +68,10 @@ export function Implantacao() {
         </div>
         <button className="btn sm sec" onClick={() => void carregar()}>Ler de novo</button>
       </div>
-      <p className="mutetxt">
+      <Explica>
         O que roda sozinho, sem ninguém apertar botão. Quando algo aqui para, a casa só percebe
         depois: o remédio que não aparece na tela, o convite que não chega.
-      </p>
+      </Explica>
 
       {erro && <div className="notice c-crit" role="alert">{erro}</div>}
       {!sinais && !erro && <p className="mutetxt">Abrindo…</p>}

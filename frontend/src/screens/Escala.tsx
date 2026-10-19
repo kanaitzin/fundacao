@@ -7,6 +7,7 @@ import type { DocumentoWord } from '../docx';
 import { cargo as rotuloCargo, diaCurto as dia, tomDoAutor } from '../rotulos';
 import { Cargo } from '../cargos';
 import { Icone } from '../icones';
+import { Explica } from '../explica';
 
 /**
  * A ESCALA DE PLANTÃO (§5.12).
@@ -650,7 +651,7 @@ function HorarioDosTurnos({ houseId, turnos, onMudou }: {
 
       {editando && (
         <div className="stack">
-          <p className="mutetxt" style={{ margin: 0 }}>{turnos.aviso}</p>
+          <Explica style={{ margin: 0 }}>{turnos.aviso}</Explica>
           <div className="row">
             <label className="f grow" htmlFor="turno-de">
               O diurno começa às
@@ -770,11 +771,11 @@ function RascunhoDoMes({ houseId, equipe, hoje, onPublicado }: {
 
       {r === null && (
         <>
-          <p className="mutetxt">
+          <Explica resumo={<>A escala de {nomeDoMes(mes)} pode começar pela do mês anterior.</>}>
             A escala de {nomeDoMes(mes)} pode começar pela do mês anterior: cada dia copia o mesmo
             dia da semana de quatro semanas antes. A cópia fica como rascunho, visível só para quem
             monta a escala, até ser publicada.
-          </p>
+          </Explica>
           <button className="btn block" onClick={() => acao(() => api('/escala/rascunho', {
             method: 'POST', body: JSON.stringify({ houseId, mes }) }))}>
             Repetir a escala do mês anterior

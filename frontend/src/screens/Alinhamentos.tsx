@@ -6,6 +6,7 @@ import type { DocumentoWord } from '../docx';
 import { quemAssina } from '../quem-assina';
 import { dia } from '../rotulos';
 import { Icone } from '../icones';
+import { Explica } from '../explica';
 
 /**
  * REUNIÕES E COMBINADOS DA EQUIPE (§9.4).
@@ -501,7 +502,7 @@ export function Alinhamentos({ houseId, casaLabel }: { houseId: string; casaLabe
         )}
       </div>
 
-      <p className="mutetxt" style={{ marginTop: 12 }}>{dados.aviso}</p>
+      <Explica style={{ marginTop: 12 }}>{dados.aviso}</Explica>
 
       {dados.podeEscrever && (
         <>
@@ -683,10 +684,10 @@ function FolhaCombinado({ onFechar, onGravar }: {
          onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
       <div className="sheet modal">
         <h3 id="t-cmb">Registrar um combinado</h3>
-        <div className="notice c-info">
+        <Explica className="notice c-info">
           Mudou o combinado? Registre outro dizendo que substitui este. O de antes fica
           guardado, com o que a equipe cumpriu até aqui.
-        </div>
+        </Explica>
 
         <label className="f" htmlFor="cmb-txt">
           O que ficou combinado

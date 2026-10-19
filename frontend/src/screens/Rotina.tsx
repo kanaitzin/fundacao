@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api';
+import { Explica } from '../explica';
 
 /**
  * A ROTINA DA CASA (§8.1).
@@ -132,7 +133,7 @@ export function Rotina({ houseId, papel }: { houseId: string; papel: string }) {
 
       {aba === 'hoje' && rotina && (
         <div className="card raise stack">
-          <div className="notice c-info">{rotina.aviso}</div>
+          <Explica className="notice c-info">{rotina.aviso}</Explica>
 
           {rotina.versao?.nota && (
             <div className="bloco destaque">
@@ -187,10 +188,10 @@ export function Rotina({ houseId, papel }: { houseId: string; papel: string }) {
             </button>
           )}
           {!pode && (
-            <p className="mutetxt" style={{ marginBottom: 0 }}>
+            <Explica style={{ marginBottom: 0 }}>
               Quem altera a rotina é a equipe técnica ou a coordenação. A atividade que apareceu
               agora, no turno, entra pelo Dia, e não muda o molde da casa.
-            </p>
+            </Explica>
           )}
         </div>
       )}

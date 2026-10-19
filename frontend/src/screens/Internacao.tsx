@@ -6,6 +6,7 @@ import { FolhaDocumento } from '../documentos';
 import type { DocumentoWord } from '../docx';
 import { dia } from '../rotulos';
 import { Icone } from '../icones';
+import { Explica } from '../explica';
 
 /**
  * INTERNAÇÃO HOSPITALAR.
@@ -107,10 +108,10 @@ export function Internacao({ houseId, casaLabel, papel }: {
     <>
       <div className="eyebrow">{casaLabel} · internação hospitalar</div>
       <h2>No hospital</h2>
-      <p className="mutetxt">
+      <Explica resumo={<>A criança internada <b>continua da casa</b>: continua na contagem e na vaga.</>}>
         A criança internada <b>continua da casa</b>: continua na contagem e na vaga. Ela sai da
         chamada e da grade de medicação enquanto estiver internada, e volta sozinha na alta.
-      </p>
+      </Explica>
 
       {erro && <div className="notice c-crit" role="alert">{erro}</div>}
       {aviso && <div className="notice c-ok" role="status">{aviso}</div>}
@@ -354,7 +355,7 @@ function PeriodoNoHospital({ id, papel, onVoltar }: {
       <div className="eyebrow" style={{ marginTop: 16 }}>
         O que aconteceu no hospital · {p.diasComRelato} dia(s) com relato
       </div>
-      {vocab && <p className="mutetxt">{vocab.nota}</p>}
+      {vocab && <Explica>{vocab.nota}</Explica>}
       {p.status === 'em_andamento' && (
         <div className="acoes">
           <button data-acolhe-abre="" className="btn sm" onClick={() => setEscrevendo(true)}><Icone nome="escrever" /> Escrever no diário</button>

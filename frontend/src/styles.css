@@ -2232,3 +2232,12 @@ button.cal-turno:focus-visible{ outline:3px solid var(--brand); outline-offset:1
   .ficha-geral{ grid-template-columns:repeat(2, minmax(0, 1fr)) }
   .ficha-geral li > b{ font-size:15.5px }
 }
+
+/* A EXPLICAÇÃO RECOLHIDA (fase 230): o "Como funciona" que abre o texto inteiro.
+   Link no meio da frase, com altura de dedo (24 px) e a tinta do texto. */
+.explica-mais{
+  display:inline-flex; align-items:center; min-height:24px; padding:0 4px; margin:0 -4px;
+  border:0; background:transparent; color:var(--ink-2); font:inherit; font-weight:600;
+  text-decoration:underline; text-underline-offset:2px; cursor:pointer;
+}
+.explica-mais:hover{ color:var(--ink) }

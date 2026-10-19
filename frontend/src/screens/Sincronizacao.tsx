@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
+import { Explica } from '../explica';
 
 /**
  * SINCRONIZAÇÃO — o que ficou pendurado entre o aparelho e o servidor (§17).
@@ -161,11 +162,11 @@ export function Sincronizacao({ houseId, casaLabel, papel }: {
                 : 'Este aparelho ainda não enviou nada — o que é normal quando a casa está '
                   + 'sempre com sinal.'}
             </div>
-            <p className="mutetxt" style={{ margin: 0 }}>
+            <Explica style={{ margin: 0 }} resumo={<>O registro feito sem sinal guarda o <b>horário real</b> do que aconteceu.</>}>
               O registro feito sem sinal guarda o <b>horário real</b> do que aconteceu, e não
               o da hora em que subiu: a dose das 21h30 continua sendo das 21h30, mesmo
               tendo chegado ao servidor às 23h.
-            </p>
+            </Explica>
           </>
         )}
       </div>
@@ -202,7 +203,7 @@ export function Sincronizacao({ houseId, casaLabel, papel }: {
             <Versao titulo="Versão que já estava no servidor" dados={c.versaoA} />
             <Versao titulo="Versão que chegou do aparelho" dados={c.versaoB} />
 
-            <div className="notice c-info">{c.aviso}</div>
+            <Explica className="notice c-info">{c.aviso}</Explica>
 
             {resolve ? (
               <button className="btn" onClick={() => setResolvendo(c)}>

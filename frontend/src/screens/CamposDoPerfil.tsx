@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api';
+import { Explica } from '../explica';
 
 /**
  * O QUE O PLANTÃO VÊ NO PERFIL (fase 93, pedido do Marcelo em 09/09).
@@ -55,11 +56,11 @@ export function CamposDoPerfil({ houseId, casaLabel }: { houseId: string; casaLa
   return (
     <>
       <h2 className="ff">O que o plantão vê no perfil</h2>
-      <p className="mutetxt">
+      <Explica resumo={<>{casaLabel}. O educador em plantão vê estes campos do perfil das crianças desta casa.</>}>
         {casaLabel}. O educador em plantão vê estes campos do perfil das crianças desta casa.
         Desligar não apaga nada: a equipe técnica continua vendo, e quem estiver no plantão lê
         que o campo existe e por que foi desligado.
-      </p>
+      </Explica>
 
       {erro && <div className="notice c-crit" role="alert">{erro}</div>}
       {aviso && <div className="notice c-ok" role="status">{aviso}</div>}

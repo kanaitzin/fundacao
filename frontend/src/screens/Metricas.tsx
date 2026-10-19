@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api';
 import { dia } from '../rotulos';
+import { Explica } from '../explica';
 
 /**
  * ============================================================================
@@ -202,7 +203,7 @@ export function Metricas() {
           <option key={String(r.chave)} value={String(r.chave)}>{r.titulo}</option>
         ))}
       </select>
-      {escolhido.nota && <p className="mutetxt">{escolhido.nota}</p>}
+      {escolhido.nota && <Explica>{escolhido.nota}</Explica>}
 
       <Barras casas={p.casas} chave={recorte} titulo={escolhido.titulo} />
 
@@ -270,10 +271,10 @@ export function Metricas() {
       </div>
       </details>
 
-      <p className="mutetxt">
+      <Explica resumo={<>As casas saem na ordem do código, <b>nunca por resultado</b>.</>}>
         As casas saem na ordem do código, <b>nunca por resultado</b>: ordenar por número é a
         classificação pronta, e ela precisa ser decisão de quem lê.
-      </p>
+      </Explica>
     </>
   );
 }

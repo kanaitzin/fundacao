@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api';
 import { Icone } from '../icones';
+import { Explica } from '../explica';
 
 /**
  * TRANSFERÊNCIAS ENTRE UNIDADES (§15.6).
@@ -169,7 +170,7 @@ export function Transferencias({ houseId }: { houseId: string }) {
 
       {caixa === 'recebida' && (
         <>
-          <div className="notice c-info">{avisoCaixa}</div>
+          <Explica className="notice c-info">{avisoCaixa}</Explica>
           <div className="stack" style={{ marginTop: 12 }}>
             {recebidas.map((t) => (
               <div className="card stack" key={t.id}>
@@ -267,10 +268,10 @@ export function Transferencias({ houseId }: { houseId: string }) {
         </div>
       )}
 
-      <p className="mutetxt" style={{ marginTop: 12 }}>
+      <Explica style={{ marginTop: 12 }} resumo={<>A criança só muda de casa <b>no aceite</b>.</>}>
         A criança só muda de casa <b>no aceite</b>. Até lá, a responsabilidade continua
         sendo desta unidade, e cada etapa fica com o nome de quem decidiu.
-      </p>
+      </Explica>
 
       {decidindo && (
         <FolhaDecisao

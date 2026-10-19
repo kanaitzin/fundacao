@@ -5,6 +5,7 @@ import type { ArquivoGerado } from '../documentos';
 import type { DocumentoWord } from '../docx';
 import { dia } from '../rotulos';
 import { Icone } from '../icones';
+import { Explica } from '../explica';
 
 /**
  * ============================================================================
@@ -178,10 +179,10 @@ export function Periodo({ casaId }: { casaId: string | null }) {
       <div className="diahead">
         <div>
           <h2>O período da casa</h2>
-          <p className="mutetxt">
+          <Explica>
             Como foi a casa no intervalo que você escolher, de um dia a seis meses.
             O que aconteceu, escrito por quem estava lá.
-          </p>
+          </Explica>
         </div>
       </div>
 

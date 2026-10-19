@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api';
+import { Explica } from '../explica';
 
 /**
  * ============================================================================
@@ -239,7 +240,7 @@ export function Trabalho() {
       </label>
       <textarea id="tr-fim" value={finalidade} onChange={(e) => setFinalidade(e.target.value)}
                 placeholder="Ex.: apuração do episódio de 12/09 · preparação da avaliação semestral" />
-      {voc && <p className="mutetxt">{voc.sobreAFinalidade}</p>}
+      {voc && <Explica>{voc.sobreAFinalidade}</Explica>}
 
       {erro && <div className="notice c-crit" role="alert">{erro}</div>}
 

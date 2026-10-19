@@ -14,6 +14,7 @@ import {
 import { dia, horaSemSegundos } from '../rotulos';
 import { Icone } from '../icones';
 import { Avatar, esquecerFoto } from '../avatar';
+import { Explica } from '../explica';
 
 /**
  * OS ACOLHIDOS DA CASA e o PERFIL (§6, §13).
@@ -394,7 +395,7 @@ export function Acolhidos({ houseId, casaLabel, papel, abrir, paraALista }: {
 
         {erro && <div className="notice c-crit" role="alert">{erro}</div>}
         {aviso && <div className="notice c-ok" role="status">{aviso}</div>}
-        {acervo && <div className="notice c-info">{acervo.aviso}</div>}
+        {acervo && <Explica className="notice c-info">{acervo.aviso}</Explica>}
 
         <ol className="pessoas">
           {(acervo?.pessoas ?? []).map((p) => (
@@ -2362,7 +2363,7 @@ function FolhaEvolucao({ nome, onFechar, onEnviar }: {
                 </button>
               ))}
             </div>
-            {opcoes.aviso && <p className="mutetxt">{opcoes.aviso}</p>}
+            {opcoes.aviso && <Explica>{opcoes.aviso}</Explica>}
           </>
         )}
 
@@ -3538,7 +3539,7 @@ function FolhaContato({ nome, onFechar, onSalvar }: {
          onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
       <div className="sheet modal">
         <h3 id="t-cont">Quem aparece por {nome}</h3>
-        {vocab && <p className="mutetxt">{vocab.nota}</p>}
+        {vocab && <Explica>{vocab.nota}</Explica>}
 
         <label className="f" htmlFor="ct-nome">Nome</label>
         <input id="ct-nome" value={dados.nome}
@@ -4285,7 +4286,7 @@ function VisitasDoAcolhido({ personId }: { personId: string }) {
           )}
         </>
       )}
-      <p className="mutetxt">{dados.aviso}</p>
+      <Explica>{dados.aviso}</Explica>
       <label className="f" htmlFor="visp-fin">
         Relatório de visitas em Word <small>(para quê; fica registrado)</small>
       </label>

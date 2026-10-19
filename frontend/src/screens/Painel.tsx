@@ -4,6 +4,7 @@ import { FolhaDocumento } from '../documentos';
 import type { ArquivoGerado } from '../documentos';
 import type { DocumentoWord } from '../docx';
 import { Icone } from '../icones';
+import { Explica } from '../explica';
 
 /**
  * O PAINEL DAS UNIDADES (§18.1–§18.3).
@@ -179,11 +180,11 @@ export function Painel({ houseId, casaLabel, papel }: {
         </div>
       </div>
 
-      <div className="notice c-info">
+      <Explica className="notice c-info" resumo={<>As unidades aparecem <b>na ordem do código</b>, sempre.</>}>
         As unidades aparecem <b>na ordem do código</b>, sempre. Nenhuma lista aqui é ordenada
         por número: casa não se compara com casa, e ordenar por ocorrências viraria cobrança
         sobre quem registra mais.
-      </div>
+      </Explica>
 
       {/*
         * O RELATÓRIO DO TRABALHO DESTA CASA.
@@ -350,7 +351,7 @@ export function Painel({ houseId, casaLabel, papel }: {
                   <Conta rotulo="Porções de lanche" valor={mensal.porcoesDeLanche} />
                   <Conta rotulo="Cestas básicas" valor={mensal.cestasBasicas} />
                 </ul>
-                <p className="mutetxt" style={{ margin: 0 }}>{mensal.nota}</p>
+                <Explica style={{ margin: 0 }}>{mensal.nota}</Explica>
               </>
             )}
           </div>

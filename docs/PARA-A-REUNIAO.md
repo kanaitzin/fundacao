@@ -49,7 +49,7 @@
   196 também dentro do perfil da criança (*quero registrar a alergia do Bruno*), do dossiê, da
   internação aberta e do acervo: os 36 formulários do sistema. **Para o DPO:**
   o ditado usa o reconhecimento do navegador; no Chrome, o áudio vai ao Google.
-- **215 fases.** 149 suítes e 1320 testes, verdes em duas condições de relógio —
+- **215 fases.** 150 suítes e 1324 testes, verdes em duas condições de relógio —
   antes e depois da virada do UTC, que em Porto Alegre é às 21h.
 - **O aviso no celular** (fase 189, decidido em 06/10): quem liga na Minha conta
   recebe no celular todos os avisos do sino, mesmo com o sistema fechado. Na
@@ -655,6 +655,27 @@ ar está escrito em ordem no §12.0 do documento. Ficam cinco escolhas:
    de produção, e de quem o instale (§12.0, etapa 3).
 5. **A primeira decisão da lista do §12.0**: onde o sistema roda, o endereço e o certificado.
    Sem ela, nenhum passo da máquina começa.
+
+## 4.30 O sistema menos poluído (fase 230, pedido de 19/10)
+
+Abri todas as telas de todos os cargos, no celular e no computador, e medi: um terço do texto
+era explicação de como a tela funciona. Das quatro saídas, a escolhida em 19/10 foi a primeira,
+e ela está feita: a explicação fica recolhida, com a primeira frase à vista e o botão **Como
+funciona** para ler o resto. Nenhuma ferramenta saiu. O alerta, o recado de que algo foi
+registrado, o aviso com número e a frase que diz que o número não avalia a criança continuam à
+vista. Ficam três saídas, se a equipe ainda achar a tela cheia depois de usar:
+
+1. **O histórico recolhido.** As listas longas (visitas, combinados, acompanhamentos aprovados,
+   linhas da ATA de dias passados) abririam com as cinco mais recentes e um *Ver todas*.
+2. **As ações num botão só.** Nos cartões com quatro ou cinco botões (a Escala é a tela com
+   mais, 165 no celular), as ações menos usadas iriam para um botão *Mais ações* em cada cartão.
+   Ganha espaço, mas a ação passa a pedir dois toques.
+3. **Os avisos e os ajustes juntos.** Os avisos azuis de uma tela virariam uma linha só, e os
+   ajustes da casa (horário dos turnos, chamadas, rotina) iriam para uma aba própria de
+   coordenação, longe da tela do turno.
+
+**O que vale perguntar à equipe da Casa 03 no roteiro:** a explicação recolhida ajudou, ou
+alguém deixou de achar o que precisava?
 
 ## 5. As decisões que são do Marcelo *(§10 — responda pelo número)*
 
