@@ -97,7 +97,24 @@ for _ in $(seq 1 60); do
   curl -sf http://localhost:3000/api/v1/health >/dev/null 2>&1 && curl -sf http://localhost:5173 >/dev/null 2>&1 && break
   sleep 1
 done
-echo "→ as telas, pelo navegador, contra o servidor de verdade"
+# SIM_SO_ACOLHE=1 (com SIM_SO_NAVEGADOR=1) pula as telas e roda só a Acolhe+AI com o modelo.
+if [[ "${SIM_SO_ACOLHE:-}" != 1 ]]; then
+  echo "→ as telas, pelo navegador, contra o servidor de verdade"
+  (cd "$RAIZ/frontend" && ENSAIO_CONTAS="$(cat "$SAIDA/contas.json")" ENSAIO_AGORA="$(cat "$SAIDA/agora.txt")" \
+    ENSAIO_SAIDA="$SAIDA/telas" ENSAIO_CAIXA="$SAIDA/caixa" node ensaio-servidor.mjs)
+fi
+
+# A ACOLHE+AI COM O MODELO (fase 224): o servidor sobe de novo, agora COM a chave
+# e apontando para o modelo de mentira que o ensaio abre na porta 3999. Assim a
+# tela, o servidor e o modelo se falam inteiros, sem nada sair para a internet.
+kill $SERVIDOR 2>/dev/null; pkill -f "src/main.ts" 2>/dev/null
+for _ in $(seq 1 20); do curl -sf http://localhost:3000/api/v1/health >/dev/null 2>&1 || break; sleep 1; done
+LD_PRELOAD=$LIB FAKETIME_TIMESTAMP_FILE=$RELOGIO FAKETIME_NO_CACHE=1 PORT=3000 EMAIL_MODO=arquivo EMAIL_DIR="$SAIDA/caixa" \
+  ANTHROPIC_API_KEY=chave-do-ensaio ANTHROPIC_BASE_URL=http://127.0.0.1:3999 \
+  nohup npx tsx src/main.ts >/tmp/simulacao-servidor-acolhe.log 2>&1 &
+SERVIDOR=$!
+for _ in $(seq 1 60); do curl -sf http://localhost:3000/api/v1/health >/dev/null 2>&1 && break; sleep 1; done
+echo "→ a Acolhe+AI com o modelo, contra o servidor de verdade"
 (cd "$RAIZ/frontend" && ENSAIO_CONTAS="$(cat "$SAIDA/contas.json")" ENSAIO_AGORA="$(cat "$SAIDA/agora.txt")" \
-  ENSAIO_SAIDA="$SAIDA/telas" ENSAIO_CAIXA="$SAIDA/caixa" node ensaio-servidor.mjs)
+  ENSAIO_SAIDA="$SAIDA/telas" node ensaio-acolhe-modelo.mjs)
 kill $SERVIDOR $VITE 2>/dev/null; pkill -f "src/main.ts" 2>/dev/null; pkill -f "vite --port 5173" 2>/dev/null

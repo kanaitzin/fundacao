@@ -165,7 +165,7 @@ e qual é o caminho certo.
 | `frontend/src/anexos.tsx` | **o `EscolherAnexo`** (fase 165): câmera, galeria, arquivo, com prévia, ampliar, descartar e tirar outra. Todo lugar que recebe foto ou documento usa este, e não um `<input type="file">` solto, e desde a 194 **o `todo-anexo-pela-camera.spec.ts` cobra**. **E o `lerArquivo` daqui é a única leitura de arquivo** (fase 175): é ele que reduz a foto antes de enviar, e leitura por conta própria manda a foto do tamanho da câmera |
 | `frontend/src/camera.tsx` | **a câmera do sistema** (fase 194): visor ao vivo, X e ✓ de cada foto, girar, trocar de câmera, e o **modo Documento** (página por página, realce, e Concluir num PDF A4 por `backend/src/kernel/documentos/pdf-de-imagens.ts`, sem biblioteca). Quem a abre é o `EscolherAnexo`. E o `CameraNesteAparelho` da Minha conta. **Não acha a borda do papel**: a moldura guia |
 | `backend/src/kernel/documentos/paginas-do-pdf.ts` | **as páginas de um PDF como imagem** (fase 165), num processo à parte (`desenhar-paginas.mjs`, nome diferente de propósito: com o mesmo nome o Jest importava o `.mjs`). Nunca lança: PDF que não desenha volta marcado, e o documento sai assim mesmo. **A tela de desenho vem da cópia do `@napi-rs/canvas` que o pdf.js traz** (fase 194): com a outra, todo PDF com foto dentro derrubava o processo |
-| `scripts/simulacao-da-casa.sh` | **uma casa nasce e vive noventa dias** (fase 173), **ou as oito vivem juntas** com `SIM_CASAS` (fase 177): a ARM1 do primeiro acesso a fevereiro, com o relógio andando (`faketime` lendo um arquivo que a simulação reescreve), os relatórios conferidos contra o que ela contou, e no fim o **`frontend/ensaio-servidor.mjs`**, que abre as telas no navegador **contra o servidor de verdade**. Recria o banco: não roda junto com a suíte. `SIM_SO_NAVEGADOR=1` repete só o navegador |
+| `scripts/simulacao-da-casa.sh` | **uma casa nasce e vive noventa dias** (fase 173), **ou as oito vivem juntas** com `SIM_CASAS` (fase 177): a ARM1 do primeiro acesso a fevereiro, com o relógio andando (`faketime` lendo um arquivo que a simulação reescreve), os relatórios conferidos contra o que ela contou, e no fim o **`frontend/ensaio-servidor.mjs`**, que abre as telas no navegador **contra o servidor de verdade**. Depois dele, o **`frontend/ensaio-acolhe-modelo.mjs`** (fase 224): o servidor sobe de novo com a chave apontando para um modelo de mentira local, e a Acolhe+AI conversa inteira. Recria o banco: não roda junto com a suíte. `SIM_SO_NAVEGADOR=1` repete só o navegador |
 | `backend/src/kernel/common/porta-da-internet.ts` | **CORS, cabeçalhos de segurança e `TRUST_PROXY`** (fase 179), ligados pelo `AppModule`. CORS vazio é FECHADO: a tela está no mesmo endereço |
 | `backend/src/kernel/common/corpo-da-requisicao.ts` | **o limite do corpo, 25 MB** (fase 179): o anexo vai em base64 e o padrão de 100 KB recusava toda foto de celular. Mora no módulo para a suíte ver |
 | `frontend/src/acolhe.tsx` | **a Acolhe+AI** (fase 192), em todas as telas. **A tela executa as ferramentas** que o modelo pede: leitura só GET e só do catálogo (`backend/src/modules/assistente/ferramentas.ts`, lido pelos dois lados), navegação só às telas do cargo, e proposta que vira cartão. O servidor (`assistente.service.ts`) só repassa ao Claude, com o guia e as regras em `guia.ts`. **Sem a chave, o `acolhe-guia.ts` responde.** Ferramenta nova: escreva no `ferramentas.ts`, execute no `acolhe.tsx`, e ponha no teste e no guia |
@@ -183,7 +183,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 16/10/2026, fase 223
+### Onde estamos — 19/10/2026, fase 224
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -270,10 +270,11 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 221 | **o perfil como ferramenta de trabalho** (pedido de 14/10): abre na **Geral** (idade, casa, tempo de acolhimento, escola, PIA, família, cuidados); a aba Hoje e o remédio de hoje saíram (o dia é do Dia e da ATA); **Dia a dia** para consultar; **Atendimentos** só da equipe técnica, linear, o mais novo em cima; os números de cada aba por `GET /reports/acolhido/:id/numeros` |
 | 222 | **a voz, a câmera e a galeria por modelo de celular** (pedido de 16/10): `ensaio:aparelhos` com oito aparelhos simulados achou quatro: o **ditado repetia o texto no Chrome do Android**, a **câmera cortava a folha** (pedir 1920×1080 corta a imagem 4:3), o **aparelho sem microfone religava sem parar**, e a **barra Cancelar/Registrar cobria o fim de todo formulário de folha no celular** desde a 184 |
 | 223 | **a Acolhe+AI mais firme** (pedido de 16/10): as instruções ao modelo levavam a tela, a casa e a data, e mudavam no meio da conversa, o que invalida o raciocínio anterior (com a chave, em conta nova, a pergunta seguinte seria recusada); agora ficam fixas, e o que muda vai na **nota do momento** no começo de cada pergunta (`assistente/momento.ts`), com a hora e o turno; `drop_block` como rede, contado na auditoria (`raciocinioTirado`); chama pelo **primeiro nome**; a tela **só faz a conversa crescer** (erro volta inteiro, conversa longa vira resumo) |
+| 224 | **a Acolhe+AI inteira contra o servidor de verdade**: a tela, o servidor com a chave e um modelo de mentira local nunca tinham sido abertos juntos; agora a simulação os abre no fim (`ensaio-acolhe-modelo.mjs`) e confere o que chega ao modelo, a leitura pela sessão da educadora e a auditoria; com o código da 222, onze das dezoito cobranças reprovam |
 
-**Medido no fim da 223:** 197 migrações, 139 tabelas, 147 suítes, 1310 testes, verdes nas
+**Medido no fim da 224:** 197 migrações, 139 tabelas, 147 suítes, 1310 testes, verdes nas
 DUAS condições de relógio, rodadas inteiras (na 219, a espera pela linha travada não se mede
-sob o relógio adiantado: o banco ali não tem temporizador); na 223, o `ensaio:uso` (684 cobranças, com a conversa que só cresce e a nota do momento, depois de consertar a cobrança da portaria que dependia da hora), o `ensaio:acolhe` (todas as telas e formulários de todos os cargos) e o `ensaio:aparelhos` no Pixel 7 e no iPhone SE; na 222, a suíte nas duas condições, o `ensaio:celular`, o `uso-celular`, o `uso`, o `acolhe` e o `ensaio:aparelhos` (oito aparelhos, as
+sob o relógio adiantado: o banco ali não tem temporizador); na 224, a Casa 03 em trinta dias contra o servidor de verdade (onze contas, 317 telas e o esqueci, sem achado; na API, só a recusa conhecida das vagas) e, no fim dela, a Acolhe+AI com o modelo de mentira através do servidor (dezoito cobranças, todas verdes; onze reprovam com o código da 222); na 223, o `ensaio:uso` (684 cobranças, com a conversa que só cresce e a nota do momento, depois de consertar a cobrança da portaria que dependia da hora), o `ensaio:acolhe` (todas as telas e formulários de todos os cargos) e o `ensaio:aparelhos` no Pixel 7 e no iPhone SE; na 222, a suíte nas duas condições, o `ensaio:celular`, o `uso-celular`, o `uso`, o `acolhe` e o `ensaio:aparelhos` (oito aparelhos, as
 falhas do microfone, a galeria e 27 formulários de folha rolados até o fim, sem achado depois dos consertos;
 a varredura das folhas reprova sem o conserto do rodapé); na 221, o `ensaio:uso` (com o bloco do perfil
 reorganizado), o `roteiro` (54 tarefas), o do celular (306 telas, sem achado, depois de reescrever duas
@@ -363,6 +364,13 @@ as três cores abaixo. Cor nova passa pelo `ensaio:acessibilidade`, que mede os 
 | **casa** (211) | *qual é esta chamada?* | barra e ponto do cartão da chamada; a casa escolhe (`cores-da-casa.ts`) |
 
 ### A próxima etapa
+
+**FEITO — fase 224** (§2, §12.12): a Acolhe+AI aberta inteira, a tela, o servidor com a chave e
+um modelo de mentira local, no fim da simulação da casa (`frontend/ensaio-acolhe-modelo.mjs`;
+`SIM_SO_NAVEGADOR=1 SIM_SO_ACOLHE=1` repete só ele). **Mexeu na Acolhe+AI, rode a simulação**: é o
+único lugar em que a tela e o servidor dela conversam com um modelo. **Próxima etapa:** a mesma, o
+roteiro com a equipe e a implantação do §12; das escolhas da §4.28, a resposta aparecendo
+enquanto é escrita é a próxima que eu faria, se a Fundação quiser.
 
 **FEITO — fase 223** (§2, §12.12, PARA-A-REUNIAO §4.28): a Acolhe+AI mais firme, com a hora,
 o turno e o primeiro nome. **Regra nova para quem mexer nela:** nada que muda no meio da conversa
@@ -954,6 +962,10 @@ novo.
   meio da conversa invalidava tudo o que ela pensou antes, e o modelo de mentira da suíte nunca
   diria isso. **Instrução fixa, conversa que só cresce**; o que muda vai na mensagem da pessoa.
   E a pergunta que dá erro se desfaz inteira: tirar só ela deixava resposta sem pergunta.
+- **Sob a simulação, a hora não separa uma rodada da outra** (224). O relógio do `faketime`
+  recomeça do mesmo instante a cada vez que o banco e o servidor sobem: a auditoria da rodada
+  nova tinha hora ANTERIOR à da rodada de antes, e o ensaio contou zero linhas. O que separa
+  as rodadas é o que já estava lá (os ids), nunca o relógio.
 - **Frase de tela que envelhece é frase que mente**, e a cobrança do ensaio que a
   guarda tem de ser reescrita junto. A ressalva do painel sobre nota escolar já foi
   reescrita três vezes. **Isto inclui este arquivo.**
