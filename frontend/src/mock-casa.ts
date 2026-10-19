@@ -54,7 +54,7 @@ import { SECOES_ATA, AMBIENTES_CASA, CLASSIFICACOES_EPISODIO }
   from '../../backend/src/modules/shifts/ata-secoes';
 import { TIPOS_ROTINA, DIAS_DA_SEMANA }
   from '../../backend/src/modules/routine/rotina-vocabulario';
-import { gerarDocx, nomeDeArquivo } from './docx';
+import { gerarDocx as gerarDocxDaFolha, nomeDeArquivo } from './docx';
 import type { DocumentoWord, SecaoDoDocumento } from './docx';
 import { timbreEmBytes } from './timbre';
 import { ROTULO_CARGO } from './rotulos';
@@ -71,6 +71,27 @@ import { CASAS_DA_FUNDACAO, CASA_MODELO, trocadorDeNomes, type ConfigDaCasa } fr
  * (`casas-ficticias.ts`).
  */
 export function criarServidorDaCasa(cfg: ConfigDaCasa) {
+
+/*
+ * O WORD COM OS NOMES DESTA CASA (fase 228). A troca de nomes da cópia vale nos
+ * dados e na resposta, mas o Word sai em base64, e a troca da saída não entra
+ * nele: a folha montada com uma frase escrita dentro de uma função levava ao
+ * papel da Casa 01 o nome de alguém da Casa 03. Aqui a folha troca os nomes
+ * antes de virar arquivo. As imagens vão como vieram.
+ */
+const trocarNaFolha = trocadorDeNomes(cfg.trocas);
+const comOsNomesDaCasa = (v: unknown): unknown => {
+  if (typeof v === 'string') {
+    return v.startsWith('data:') || (v.length > 2000 && !/\s/.test(v.slice(0, 2000))) ? v : trocarNaFolha(v);
+  }
+  if (Array.isArray(v)) return v.map(comOsNomesDaCasa);
+  if (v && typeof v === 'object' && Object.getPrototypeOf(v) === Object.prototype) {
+    return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, comOsNomesDaCasa(x)]));
+  }
+  return v;
+};
+const gerarDocx: typeof gerarDocxDaFolha = (folha, timbre) =>
+  gerarDocxDaFolha(cfg.casa.id === CASA_MODELO ? folha : comOsNomesDaCasa(folha) as DocumentoWord, timbre);
 
 const HOJE = new Intl.DateTimeFormat('en-CA',
   { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' })
@@ -8541,60 +8562,74 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     if (!['enfermagem', 'equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)) {
       throw new ErroApi(403, 'Sem acesso aos medicamentos da saída.');
     }
-    const itens = [{
-      prescriptionId: 'pr-fake-1', medicamento: 'Risperidona 1mg (fictícia)',
-      dose: '1 comprimido', via: 'oral',
-      orientacoes: 'Dar após o jantar, com água.',
-      horarios: '20:00', doses: 3, emEstoque: 12, soEnfermagem: false,
-    }];
-    if (seg[4] === 'folha') {
+    /*
+     * O QUE VAI JUNTO, DAS RECEITAS DELA (fase 228). A lista era uma Risperidona
+     * fixa para toda criança que saísse. Agora são as receitas em uso com
+     * horário, como no servidor (`app_medicamentos_para_levar`, 1658): cada
+     * horário conta os dias da saída, do dia em que sai ao dia em que volta.
+     */
+    const saidaDoRemedio = CONVIVENCIAS.find((f) => f.id === seg[2]);
+    if (!saidaDoRemedio) throw new ErroApi(404, 'Saída não encontrada.');
+    const diaLocal = (iso: string) => new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' })
+      .format(new Date(iso));
+    const diasDaSaida = Math.round((Date.parse(diaLocal(saidaDoRemedio.retornoPrevisto))
+      - Date.parse(diaLocal(saidaDoRemedio.saiuEm))) / 86400_000) + 1;
+    const itens = ESQUEMAS
+      .filter((e) => e.acolhido.id === saidaDoRemedio.personId && e.status === 'ativa' && e.horarios.length)
+      .sort((a, z) => a.medicamento.localeCompare(z.medicamento, 'pt-BR'))
+      .map((e) => ({
+        prescriptionId: e.id, medicamento: e.medicamento, dose: e.dose, via: e.via,
+        orientacoes: null as string | null,
+        horarios: [...e.horarios].sort().join(', '), doses: e.horarios.length * diasDaSaida,
+        emEstoque: ESTOQUE.find((st) => st.medicamento === e.medicamento
+          && (st.personId === e.acolhido.id || st.personId === null))?.quantidade ?? null,
+        soEnfermagem: e.soEnfermagem,
+      }));
+    /*
+     * A FOLHA DA SAÍDA (fase 228), a mesma do servidor: a criança e quem a
+     * recebe vêm da saída escolhida. Até aqui a folha dizia sempre "Ana Paula"
+     * com "Rosângela", fosse qual fosse a saída, e com outro título e outra
+     * ressalva que os do sistema de verdade.
+     */
+    const folhaDaSaida = () => {
+      const saida = saidaDoRemedio;
+      const dia = (iso: string) => new Date(iso).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+      const soEnfermagem = itens.filter((i) => i.soEnfermagem);
       return {
-        titulo: 'Medicamentos para o período fora da casa',
+        titulo: 'Medicação para o período em convivência familiar',
         subtitulo: `${CASA.code} · ${CASA.name}`,
         identificacao: [
-          { rotulo: 'Acolhido', valor: 'Ana Paula (fictícia)' },
-          { rotulo: 'Com', valor: 'Rosângela (fictícia)' },
+          { rotulo: 'Acolhido', valor: saida.quem },
+          { rotulo: 'Responsável no período', valor: saida.comQuem },
+          { rotulo: 'Período', valor: `${dia(saida.saiuEm)} a ${dia(saida.retornoPrevisto)}` },
         ],
         secoes: [{
-          titulo: 'O que vai junto',
+          titulo: 'Medicamentos entregues',
           tabela: {
             cabecalho: ['Medicamento', 'Dose', 'Horários', 'Quantidade', 'Orientação'],
-            linhas: itens.map((i) => [i.medicamento, i.dose, i.horarios,
-                                      String(i.doses), i.orientacoes]),
+            linhas: itens.map((i) => [i.medicamento, i.dose ?? '—', i.horarios ?? '—', String(i.doses), i.orientacoes ?? '—']),
           },
-          procedencia: 'Prescrições em vigor do acolhido, com os horários registrados pela '
-            + 'Enfermagem.',
+          procedencia: 'Prescrições em uso, com os horários definidos pela Enfermagem.',
         }],
         geradoPor: eu.fullName, cargo: cargoNoDocumento(eu.role), assinatura: true,
-        ressalva: 'A contagem inclui a dose do dia do retorno, se houver: mandar um '
-          + 'comprimido a mais é barato, faltar um não é. Em caso de dúvida, procure a '
-          + 'casa antes de dar qualquer dose.',
+        ressalva: itens.length === 0
+          ? 'Não há medicação em uso prescrita para o acolhido no período.'
+          : 'A quantidade inclui as doses do dia do retorno. '
+            + (soEnfermagem.length
+              ? 'Há medicamento de administração exclusiva da Enfermagem; a Enfermagem deve '
+                + 'orientar o responsável antes da saída. '
+              : '')
+            + 'Em caso de dúvida sobre qualquer dose, o responsável deve entrar em contato com a '
+            + 'unidade antes de administrá-la.',
       };
-    }
+    };
+    if (seg[4] === 'folha') return folhaDaSaida();
     if (seg[4] === 'export') {
-      /* A mesma folha da rota de cima — montada aqui e não chamada de novo,
-         porque o servidor de mentira não é um cliente de si mesmo. */
-      const f: any = {
-        titulo: 'Medicamentos para o período fora da casa',
-        subtitulo: `${CASA.code} · ${CASA.name}`,
-        identificacao: [
-          { rotulo: 'Acolhido', valor: 'Ana Paula (fictícia)' },
-          { rotulo: 'Com', valor: 'Rosângela (fictícia)' },
-        ],
-        secoes: [{
-          titulo: 'O que vai junto',
-          tabela: {
-            cabecalho: ['Medicamento', 'Dose', 'Horários', 'Quantidade', 'Orientação'],
-            linhas: itens.map((i) => [i.medicamento, i.dose, i.horarios,
-                                      String(i.doses), i.orientacoes]),
-          },
-          procedencia: 'Esquemas ativos da criança.',
-        }],
-        geradoPor: eu.fullName, cargo: cargoNoDocumento(eu.role), assinatura: true,
-      };
+      const f = folhaDaSaida();
       return {
         nomeArquivo: nomeDaFolha(f.titulo),
-        conteudoBase64: gerarDocx(f, timbreEmBytes()),
+        conteudoBase64: gerarDocx(f as any, timbreEmBytes()),
         aviso: 'Folha exportada em Word. A saída fica registrada com o seu nome, a '
           + 'finalidade e o horário.',
       };

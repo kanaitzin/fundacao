@@ -185,7 +185,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 19/10/2026, fase 227
+### Onde estamos — 19/10/2026, fase 228
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -276,10 +276,11 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 225 | **as oito casas no protótipo** (pedido de 19/10): cada casa é uma cópia própria do servidor de mentira (`mock-casa.ts`, criada quando alguém entra), com crianças, famílias e equipe de dezoito pessoas com outros nomes (`casas-ficticias.ts`); o `mock.ts` escolhe a casa de cada pedido. Até aqui quem entrava na Casa 01 via as crianças da Casa 03. Endereço da casa na lista das unidades, também no servidor de verdade |
 | 226 | **seis meses de história em tudo, nas oito casas** (pedido de 19/10): visitas, atendimentos técnicos, saúde, ocorrências, conquistas, acompanhamentos, reuniões, convivências, cozinha, notas, escala com trocas, escola, internações, saídas e o livro das ATAs desde abril (`escreverSeisMeses`, semente da casa); cada criança com a sua família (todas tinham a mesma mãe); os painéis do gestor somam o que cada casa registrou |
 | 227 | **o que falta para ir ao ar** (pedido de 19/10): o §12.0 põe o caminho em ordem, com quem faz; prontos daqui o `scripts/instalar.sh` (confere sem mudar nada; `--instalar` constrói e migra), o serviço e o proxy em `scripts/servidor/`, e o banco de demonstração (`SIM_DUMP` na simulação), para a equipe treinar antes do dado real; a rodada achou a escala recusada com 500, que era a conta de tempo do banco sob o relógio de mentira (com o relógio real, nada): o zero em `BANCO_LIMITE_*` desliga o limite, só a simulação o usa e o instalador o recusa; e o `.env.example` com comentário na linha do valor, que o systemd entregaria junto (a sessão sem duração, ninguém entrando no primeiro dia) |
+| 228 | **a conta das doses que vão com a criança multiplicava por zero os horários do dia** (o remédio de duas vezes ao dia saía pela metade; medications/1658, `as-doses-que-vao-junto`); no protótipo, a mesma folha dizia sempre Ana Paula com Rosângela e uma Risperidona fixa (agora a do servidor, aberta pelo `ensaio:uso`); o Word das outras casas passa pela troca de nomes; e as telas das oito casas contra o servidor acharam os limites de espera ligados nos servidores do navegador |
 
-**Medido no fim da 227:** 197 migrações, 139 tabelas, 148 suítes, 1317 testes, verdes nas
+**Medido no fim da 228:** 198 migrações, 139 tabelas, 149 suítes, 1320 testes, verdes nas
 DUAS condições de relógio, rodadas inteiras (na 219, a espera pela linha travada não se mede
-sob o relógio adiantado: o banco ali não tem temporizador); nas 225 a 227, sobre o protótipo das oito casas, o `ensaio` e o `roteiro`, o `ensaio:uso` (684 cobranças, sem reprovação), o `ensaio:acolhe` (todas as telas e formulários de todos os cargos, por texto e por voz) e o do celular (306 telas, sem achado); e **as oito casas com vinte pessoas cada, seis meses contra o servidor de verdade, sem achado** depois de desligar os limites de espera só na simulação (o banco de demonstração: 120 MB, um arquivo de 14 MB, de 20/04 a 19/10, 169 contas fictícias, restaurado num banco à parte); e as oito coordenações publicando a escala juntas com o relógio real, 3.840 plantões em 15 s. **Não rodou** nas 225 a 227 o de acessibilidade (o protótipo mudou de dado, não de cor) nem as telas contra o servidor no navegador (a simulação rodou com `SIM_SEM_NAVEGADOR`); na 224, a Casa 03 em trinta dias contra o servidor de verdade (onze contas, 317 telas e o esqueci, sem achado; na API, só a recusa conhecida das vagas) e, no fim dela, a Acolhe+AI com o modelo de mentira através do servidor (dezoito cobranças, todas verdes; onze reprovam com o código da 222); na 223, o `ensaio:uso` (684 cobranças, com a conversa que só cresce e a nota do momento, depois de consertar a cobrança da portaria que dependia da hora), o `ensaio:acolhe` (todas as telas e formulários de todos os cargos) e o `ensaio:aparelhos` no Pixel 7 e no iPhone SE; na 222, a suíte nas duas condições, o `ensaio:celular`, o `uso-celular`, o `uso`, o `acolhe` e o `ensaio:aparelhos` (oito aparelhos, as
+sob o relógio adiantado: o banco ali não tem temporizador); na 228, o `ensaio:uso` (689 cobranças, sem reprovação, com a folha dos remédios da saída), **as telas das oito casas contra o servidor de verdade sobre o banco de demonstração** (38 contas, 1.209 telas, sem achado depois de desligar os limites nos servidores do navegador) e, no fim, a Acolhe+AI com o modelo de mentira (todas verdes); e duas sondas fora da suíte, que entraram como Gestor Geral na Casa 01 e na Casa-Lar 4 (58 telas, nenhum nome da Casa 03 fora das visões que juntam as oito) e baixaram quatro Words da Casa 01 (limpos); nas 225 a 227, sobre o protótipo das oito casas, o `ensaio` e o `roteiro`, o `ensaio:uso` (684 cobranças, sem reprovação), o `ensaio:acolhe` (todas as telas e formulários de todos os cargos, por texto e por voz) e o do celular (306 telas, sem achado); e **as oito casas com vinte pessoas cada, seis meses contra o servidor de verdade, sem achado** depois de desligar os limites de espera só na simulação (o banco de demonstração: 120 MB, um arquivo de 14 MB, de 20/04 a 19/10, 169 contas fictícias, restaurado num banco à parte); e as oito coordenações publicando a escala juntas com o relógio real, 3.840 plantões em 15 s. **Não rodou** nas 225 a 227 o de acessibilidade (o protótipo mudou de dado, não de cor) nem as telas contra o servidor no navegador (a simulação rodou com `SIM_SEM_NAVEGADOR`); na 224, a Casa 03 em trinta dias contra o servidor de verdade (onze contas, 317 telas e o esqueci, sem achado; na API, só a recusa conhecida das vagas) e, no fim dela, a Acolhe+AI com o modelo de mentira através do servidor (dezoito cobranças, todas verdes; onze reprovam com o código da 222); na 223, o `ensaio:uso` (684 cobranças, com a conversa que só cresce e a nota do momento, depois de consertar a cobrança da portaria que dependia da hora), o `ensaio:acolhe` (todas as telas e formulários de todos os cargos) e o `ensaio:aparelhos` no Pixel 7 e no iPhone SE; na 222, a suíte nas duas condições, o `ensaio:celular`, o `uso-celular`, o `uso`, o `acolhe` e o `ensaio:aparelhos` (oito aparelhos, as
 falhas do microfone, a galeria e 27 formulários de folha rolados até o fim, sem achado depois dos consertos;
 a varredura das folhas reprova sem o conserto do rodapé); na 221, o `ensaio:uso` (com o bloco do perfil
 reorganizado), o `roteiro` (54 tarefas), o do celular (306 telas, sem achado, depois de reescrever duas
@@ -369,6 +370,13 @@ as três cores abaixo. Cor nova passa pelo `ensaio:acessibilidade`, que mede os 
 | **casa** (211) | *qual é esta chamada?* | barra e ponto do cartão da chamada; a casa escolhe (`cores-da-casa.ts`) |
 
 ### A próxima etapa
+
+**FEITO — fase 228** (§2, §8): o que as 225 a 227 deixaram sem medir. **Achou no servidor de verdade** a conta
+das doses que vão com a criança, que contava os dias e não os horários (medications/1658, com teste que confere o
+número). **No protótipo**, a folha dos remédios da saída inventava a criança e o remédio, e o Word das outras casas
+não passava pela troca de nomes; o `servidor-de-mentira.spec.ts` cobra as duas coisas. **Quem mexer na simulação:**
+os limites de espera do banco ficam desligados em tudo o que roda sob o relógio de mentira (`SEM_LIMITES` no
+`simulacao-da-casa.sh`). **Próxima etapa:** a mesma da 227.
 
 **FEITO — fases 225, 226 e 227** (§2, §12.0, PARA-A-REUNIAO §4.29): as oito casas no protótipo,
 cada uma com a sua equipe, crianças e famílias; seis meses de história em todas as telas; e o
@@ -990,9 +998,16 @@ novo.
   agenda, mudei o limite para um dia, e a falha voltou igual: a explicação estava errada e o conserto não consertava.
   **Antes de chamar de defeito o que só a simulação viu, repita com o relógio real** (3.840 plantões em 15 s, sem falha); e
   **antes de escrever a causa, reproduza no menor caso** (um dia só repetiu, e o `pg_stat_activity` mostrou o zero segundo).
+  E o conserto vale para tudo o que roda sob o mesmo relógio: na 228, os dois servidores do navegador, com o relógio
+  parado, ainda tinham os limites ligados e deram seis falhas iguais.
 - **Quem lê o arquivo decide a sintaxe dele** (227). O `.env.example` tinha comentário depois do valor, e o `bash` o
   tira; o systemd, que entrega o `.env` ao serviço instalado, não. Em desenvolvimento tudo passava, e no servidor a sessão
   nasceria sem duração. **Arquivo que vai para a máquina se confere lido pelo programa que o lê lá.**
+- **O teste com nome de promessa** (228). A suíte *"a folha conta as doses"* conferia só que a resposta era uma
+  lista, e a conta das doses multiplicava os horários por zero desde a 1050: o remédio de duas vezes ao dia ia
+  pela metade para a casa da família. **Teste que promete um número confere o número**, montado com o caso que
+  erra (dois horários, dias diferentes da semana). E o protótipo tinha a mesma folha com a criança escrita à mão:
+  nenhum ensaio a abria, e ela envelheceu sem ninguém ver.
 - **Frase de tela que envelhece é frase que mente**, e a cobrança do ensaio que a
   guarda tem de ser reescrita junto. A ressalva do painel sobre nota escolar já foi
   reescrita três vezes. **Isto inclui este arquivo.**

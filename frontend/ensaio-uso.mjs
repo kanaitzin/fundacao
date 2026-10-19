@@ -1643,6 +1643,36 @@ if (await registrarSaida.count()) {
 }
 await fechar();
 
+/*
+ * O REMÉDIO QUE VAI COM ELA, NA FOLHA DELA (fase 228). A folha para levar dizia
+ * sempre "Ana Paula" com "Rosângela", fosse qual fosse a saída, e com outro
+ * título que o do sistema de verdade; nenhum ensaio abria esta folha.
+ */
+cobrar('a técnica volta à lista da casa', await aba('Acolhidos'));
+await pg.waitForTimeout(600);
+/* O Felipe abre o protótipo na casa da mãe, a Gessi: a folha tem de dizer os dois. */
+const remediosDoFelipe = pg.locator('main .card .row').filter({ hasText: /Felipe/ })
+  .filter({ hasText: /Gessi/ }).locator('button', { hasText: /Remédios/ }).first();
+cobrar('a linha de quem está com a família tem os remédios para levar', (await remediosDoFelipe.count()) > 0);
+if (await remediosDoFelipe.count()) {
+  await remediosDoFelipe.click();
+  await pg.waitForTimeout(900);
+  await pg.locator('.overlay button', { hasText: /Folha para levar/ }).first().click();
+  await pg.waitForTimeout(900);
+  const folhaParaLevar = await pg.locator('.overlay').last().innerText();
+  cobrar('a folha para levar diz a criança da saída e quem a recebe',
+    /Felipe/.test(folhaParaLevar) && /Gessi/.test(folhaParaLevar)
+      && /Responsável no período/i.test(folhaParaLevar) && !/Ana Paula/.test(folhaParaLevar),
+    folhaParaLevar.slice(0, 240));
+  cobrar('e tem o título da folha do sistema de verdade',
+    /Medicação para o período em convivência familiar/i.test(folhaParaLevar));
+  /* O Felipe não tem receita em uso: a lista vem das receitas dele, e não de um remédio fixo. */
+  cobrar('e os remédios vêm das receitas dele: sem receita, a folha diz que não há',
+    /Não há medicação em uso prescrita/i.test(folhaParaLevar) && !/Risperidona/i.test(folhaParaLevar),
+    folhaParaLevar.slice(0, 400));
+  await fechar();
+}
+
 /* Quem recebe é quem está na porta: o educador de plantão. */
 await trocar('educador');
 /* `trocar` volta para a primeira aba — a lista da casa é outra. */

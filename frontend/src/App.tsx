@@ -881,10 +881,6 @@ export function App() {
           <div className="notice c-info" role="status">
             <b>Você está olhando {casaAtual.code} · {casaAtual.name}.</b>{' '}
             Não é a sua casa de trabalho.{' '}
-            {import.meta.env.VITE_PROTOTIPO === '1' && (
-              <>Nesta demonstração só a Casa 03 tem dados; as outras aparecem para você poder
-              escolher.{' '}</>
-            )}
             <button className="btn sm ghost" onClick={() => setEscolhida(null)}>
               Voltar para a minha
             </button>

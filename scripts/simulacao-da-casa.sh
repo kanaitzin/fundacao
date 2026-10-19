@@ -35,6 +35,7 @@ PGPORT="${PGPORT:-5432}"
 DIAS="${1:-90}"
 INICIO="${SIM_INICIO:-2026-11-16 07:00:00}"
 RELOGIO=/tmp/relogio-da-simulacao.txt
+SEM_LIMITES="env BANCO_LIMITE_CONSULTA_MS=0 BANCO_LIMITE_TRAVA_MS=0 BANCO_LIMITE_PARADA_MS=0 BANCO_LIMITE_CONEXAO_MS=0"
 LIB=/usr/lib/x86_64-linux-gnu/faketime/libfaketimeMT.so.1
 PGBIN="$(ls -d /usr/lib/postgresql/*/bin 2>/dev/null | sort -V | tail -1 || true)"
 [[ -z "$PGBIN" ]] && { echo "✗ PostgreSQL não instalado. Rode: bash scripts/preparar-ambiente.sh"; exit 1; }
@@ -86,17 +87,16 @@ LD_PRELOAD=$LIB FAKETIME_TIMESTAMP_FILE=$RELOGIO FAKETIME_NO_CACHE=1 \
   npx tsx -e "import('./test/setup/reset-db').then((m) => (m.default.default ?? m.default)())" >/tmp/simulacao-reset.log 2>&1 \
   || { echo "✗ não recriou o banco — veja /tmp/simulacao-reset.log"; exit 1; }
 echo "→ $DIAS dias de casa"
-# OS LIMITES DE ESPERA DO BANCO, DESLIGADOS NA SIMULAÇÃO (fase 227). Sob o
-# relógio de mentira, o Postgres encerrava por "transação parada" sessões que ele
-# mesmo mostrava paradas havia zero segundo, sempre em múltiplos de dez segundos,
-# e a escala publicada pelas oito casas juntas voltava 500 e 503. Um limite de um
-# dia não bastou: a conta interna do banco salta para a data real, meses adiante.
-# Com o relógio real, as oito coordenações publicando juntas não falham (3.840
-# plantões em 15 s). Os limites continuam cobrados pela suíte
+# OS LIMITES DE ESPERA DO BANCO, DESLIGADOS NA SIMULAÇÃO (fases 227 e 228).
+# Sob o relógio de mentira, o Postgres encerra por "transação parada" sessões que
+# ele mesmo mostra paradas havia zero segundo, e isso com o relógio andando ou
+# parado: a escala das oito casas voltava 500 e 503 na 227, e as telas contra o
+# servidor, na 228. Com o relógio real, as oito coordenações publicando juntas
+# não falham (3.840 plantões em 15 s). Vale para a simulação e para os dois
+# servidores do navegador. Os limites continuam cobrados pela suíte
 # (`o-banco-com-as-duas-travas`), e o zero só vale aqui: o instalador o recusa.
 LD_PRELOAD=$LIB FAKETIME_TIMESTAMP_FILE=$RELOGIO FAKETIME_NO_CACHE=1 SIM_RELOGIO=$RELOGIO \
-  BANCO_LIMITE_CONSULTA_MS=0 BANCO_LIMITE_TRAVA_MS=0 BANCO_LIMITE_PARADA_MS=0 BANCO_LIMITE_CONEXAO_MS=0 \
-  npx tsx scripts/simulacao-da-casa.ts "$DIAS" "$INICIO"
+  $SEM_LIMITES npx tsx scripts/simulacao-da-casa.ts "$DIAS" "$INICIO"
 fi
 
 # O BANCO DE DEMONSTRAÇÃO (fase 227): o banco que a simulação deixou, num arquivo.
@@ -115,7 +115,7 @@ SAIDA="${SIM_SAIDA:-/tmp/simulacao-da-casa}"
 # A caixa do e-mail do servidor, para o ensaio abrir o link do esqueci (fase 190).
 mkdir -p "$SAIDA/caixa"
 LD_PRELOAD=$LIB FAKETIME_TIMESTAMP_FILE=$RELOGIO FAKETIME_NO_CACHE=1 PORT=3000 EMAIL_MODO=arquivo EMAIL_DIR="$SAIDA/caixa" \
-  nohup npx tsx src/main.ts >/tmp/simulacao-servidor.log 2>&1 &
+  $SEM_LIMITES nohup npx tsx src/main.ts >/tmp/simulacao-servidor.log 2>&1 &
 SERVIDOR=$!
 (cd "$RAIZ/frontend" && nohup npx vite --port 5173 --strictPort >/tmp/simulacao-vite.log 2>&1) &
 VITE=$!
@@ -136,7 +136,7 @@ fi
 kill $SERVIDOR 2>/dev/null; pkill -f "src/main.ts" 2>/dev/null
 for _ in $(seq 1 20); do curl -sf http://localhost:3000/api/v1/health >/dev/null 2>&1 || break; sleep 1; done
 LD_PRELOAD=$LIB FAKETIME_TIMESTAMP_FILE=$RELOGIO FAKETIME_NO_CACHE=1 PORT=3000 EMAIL_MODO=arquivo EMAIL_DIR="$SAIDA/caixa" \
-  ANTHROPIC_API_KEY=chave-do-ensaio ANTHROPIC_BASE_URL=http://127.0.0.1:3999 \
+  $SEM_LIMITES ANTHROPIC_API_KEY=chave-do-ensaio ANTHROPIC_BASE_URL=http://127.0.0.1:3999 \
   nohup npx tsx src/main.ts >/tmp/simulacao-servidor-acolhe.log 2>&1 &
 SERVIDOR=$!
 for _ in $(seq 1 60); do curl -sf http://localhost:3000/api/v1/health >/dev/null 2>&1 && break; sleep 1; done

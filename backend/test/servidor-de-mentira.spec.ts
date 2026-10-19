@@ -242,4 +242,28 @@ describe('O servidor de mentira do protótipo', () => {
     expect(noPrototipo.length).toBeGreaterThan(0);
     expect([...noPrototipo].sort()).toEqual([...CODIGOS_DE_CAMPO].sort());
   });
+
+  /*
+   * A FOLHA DIZ A CRIANÇA DO REGISTRO (fase 228). A folha dos remédios da saída
+   * com a família dizia sempre "Ana Paula (fictícia)" com "Rosângela", fosse qual
+   * fosse a saída: os nomes estavam escritos dentro da função. Nome de pessoa na
+   * identificação de uma folha vem do registro, nunca de uma frase fixa.
+   */
+  it('nenhuma folha do protótipo escreve à mão o nome de quem ela identifica', () => {
+    const fixos = [...mock.matchAll(/valor:\s*'[^']*\(fict[ií]ci[ao]\)'/g)].map((m) => m[0]);
+    expect(fixos).toEqual([]);
+  });
+
+  /*
+   * O WORD DAS OUTRAS CASAS COM OS NOMES DELAS (fase 228). A troca de nomes de
+   * cada casa vale nos dados e na resposta, mas o Word sai em base64, e a troca
+   * da resposta não entra nele. Todo Word passa pelo `gerarDocx` da cópia, que
+   * troca os nomes antes; chamar o de `docx.ts` direto levaria ao papel da
+   * Casa 01 um nome da Casa 03.
+   */
+  it('todo Word do protótipo passa pela troca de nomes da casa', () => {
+    const fonte = mock;
+    expect(fonte).toMatch(/import \{ gerarDocx as gerarDocxDaFolha[,\s]/);
+    expect([...fonte.matchAll(/gerarDocxDaFolha\(/g)]).toHaveLength(1);
+  });
 });
