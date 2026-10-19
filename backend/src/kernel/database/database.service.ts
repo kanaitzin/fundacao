@@ -14,10 +14,19 @@ import { Pool, PoolClient, types } from 'pg';
  */
 const OID_DATE = 1082;
 
-/** Número vindo do ambiente, com o padrão quando não há ou não é número. */
+/**
+ * Número vindo do ambiente, com o padrão quando não há ou não é número.
+ *
+ * O zero escrito desliga o limite, como no Postgres (fase 227). Só a simulação
+ * o usa: sob o relógio de mentira o banco encerrava por "transação parada"
+ * sessões paradas havia zero segundo, e nenhum limite que o Postgres aceita
+ * passa da distância entre a data simulada e a real. No servidor do Pão o
+ * instalador recusa o zero.
+ */
 function numero(v: string | undefined, padrao: number): number {
+  if (v === undefined || v.trim() === '') return padrao;
   const n = Number(v);
-  return Number.isFinite(n) && n > 0 ? n : padrao;
+  return Number.isFinite(n) && n >= 0 ? n : padrao;
 }
 const TIPOS = {
   getTypeParser: ((oid: number, formato?: any) =>

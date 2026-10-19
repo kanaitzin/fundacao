@@ -1,0 +1,35 @@
+# ============================================================
+# O serviço do Rede Acolher no servidor do Pão (fase 227)
+#
+#   sudo cp scripts/servidor/rede-acolher.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now rede-acolher
+#
+# Roda o servidor COMPILADO (`dist/main.js`), com a conta da aplicação
+# (`DATABASE_APP_URL`, sem superusuário: o RLS vale). O servidor não lê o
+# `.env` sozinho: quem entrega as variáveis é o `EnvironmentFile` abaixo.
+# Se ele cair, o systemd o sobe de novo em cinco segundos.
+# ============================================================
+[Unit]
+Description=Rede Acolher, o servidor
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=rede-acolher
+Group=rede-acolher
+WorkingDirectory=/opt/rede-acolher/backend
+EnvironmentFile=/opt/rede-acolher/.env
+ExecStart=/usr/bin/node dist/main.js
+Restart=always
+RestartSec=5
+# O que o serviço pode tocar no disco: os dois acervos e o log. O resto é só leitura.
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/rede-acolher /var/log/rede-acolher
+
+[Install]
+WantedBy=multi-user.target

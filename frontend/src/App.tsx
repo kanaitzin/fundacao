@@ -12,7 +12,7 @@ import { CameraNesteAparelho } from './camera';
 import { DitadoNosCampos } from './ditado';
 import { AcolheAI } from './acolhe';
 import { Sugestoes } from './screens/Sugestoes';
-import { api, setToken, ligarFilaAoServidor, quandoASessaoTerminar } from './api';
+import { api, setToken, ligarFilaAoServidor, quandoASessaoTerminar, casaAbertaNaTela } from './api';
 import { definirAutor } from './fila-offline';
 import logo from './assets/logo.png';
 import { definirQuemAssina } from './quem-assina';
@@ -62,7 +62,7 @@ interface Me {
   /** A Coordenação Geral (fase 176): coordenação que alcança as oito casas. */
   todasAsCasas?: boolean;
 }
-interface House { id: string; code: string; name: string; kind: string; }
+interface House { id: string; code: string; name: string; kind: string; address?: string | null }
 
 const ROLE_LABEL = ROTULO_CARGO;
 /** Cor por tipo de unidade — categoria, nunca ranking entre casas. */
@@ -604,6 +604,9 @@ export function App() {
   const casaAtual = (escolhida ? houses.find((h) => h.id === escolhida) : undefined)
     ?? houses.find((h) => h.code === casa?.code) ?? houses[0] ?? null;
   const olhandoOutra = !!casaAtual && !!casa && casaAtual.code !== casa.code;
+  /* O protótipo tem uma cópia do servidor por casa (fase 225): ele precisa
+     saber qual casa a tela abriu. No sistema de verdade não faz nada. */
+  casaAbertaNaTela(casaAtual?.id ?? null);
 
   return (
     <div className={`app${abasDoTurno.length + doMais.length > 1 ? ' com-barra' : ''}`}>
@@ -1040,6 +1043,7 @@ export function App() {
                   <div className="grow" style={{ textAlign: 'left' }}>
                     <b className="ff">{h.code}</b>
                     <div className="mutetxt">{h.name}</div>
+                    {h.address && <div className="mutetxt">{h.address}</div>}
                   </div>
                   {casaAtual?.id === h.id && <span className="pill c-ok">olhando</span>}
                   <span className={`pill ${KIND_TONE[h.kind] ?? 'c-mute'}`}>

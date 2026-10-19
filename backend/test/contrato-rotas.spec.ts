@@ -92,7 +92,7 @@ function rotasDoServidor(): Rota[] {
  */
 function chamadasDoFrontend(): Chamada[] {
   const out: Chamada[] = [];
-  const alvos = arquivos(FRONT, (f) => (f.endsWith('.ts') || f.endsWith('.tsx')) && f !== 'mock.ts');
+  const alvos = arquivos(FRONT, (f) => (f.endsWith('.ts') || f.endsWith('.tsx')) && f !== 'mock.ts' && f !== 'mock-casa.ts');
   for (const arq of alvos) {
     const src = readFileSync(arq, 'utf8');
     // O trecho seguinte entra por LOOKAHEAD, de propósito: capturando-o de
@@ -192,7 +192,7 @@ describe('Contrato de rotas entre a tela e o servidor', () => {
      * modelo exista no servidor. As gravações dela estão escritas por extenso.
      */
     const alvos = arquivos(FRONT, (f) =>
-      (f.endsWith('.ts') || f.endsWith('.tsx')) && f !== 'mock.ts' && f !== 'api.ts' && f !== 'acolhe.tsx');
+      (f.endsWith('.ts') || f.endsWith('.tsx')) && f !== 'mock.ts' && f !== 'mock-casa.ts' && f !== 'api.ts' && f !== 'acolhe.tsx');
     /*
      * O COMENTÁRIO NÃO É CÓDIGO — e este conferidor já acusou um.
      *
@@ -218,7 +218,7 @@ describe('Contrato de rotas entre a tela e o servidor', () => {
     // O protótipo é o aplicativo com outra fonte de dados. Se a tela chama uma
     // rota que o mock não conhece, a demonstração quebra na frente da equipe —
     // e, pior, uma rota que só o mock atende esconde uma tela sem servidor.
-    const mock = readFileSync(join(FRONT, 'mock.ts'), 'utf8');
+    const mock = readFileSync(join(FRONT, 'mock-casa.ts'), 'utf8');
     const semResposta = chamadas
       .map((c) => c.caminho)
       .filter((caminho, i, todos) => todos.indexOf(caminho) === i)

@@ -49,7 +49,7 @@
   196 também dentro do perfil da criança (*quero registrar a alergia do Bruno*), do dossiê, da
   internação aberta e do acervo: os 36 formulários do sistema. **Para o DPO:**
   o ditado usa o reconhecimento do navegador; no Chrome, o áudio vai ao Google.
-- **215 fases.** 147 suítes e 1310 testes, verdes em duas condições de relógio —
+- **215 fases.** 148 suítes e 1317 testes, verdes em duas condições de relógio —
   antes e depois da virada do UTC, que em Porto Alegre é às 21h.
 - **O aviso no celular** (fase 189, decidido em 06/10): quem liga na Minha conta
   recebe no celular todos os avisos do sino, mesmo com o sistema fechado. Na
@@ -633,6 +633,28 @@ escolhas, nenhuma urgente:
    melhoria que eu faria, e não muda nada do que vai à Anthropic.
 4. **A primeira conferência com a chave** (§12.12 do documento) ganhou uma pergunta: *"a dose
    das 20h já passou?"*, feita depois das 20h, para ver se ela usa a hora certa.
+
+## 4.29 As oito casas, seis meses de história e o caminho até o ar (fases 225 a 227, pedido de 19/10)
+
+O protótipo agora tem as oito casas, cada uma com a sua equipe de dezoito pessoas, as suas
+crianças e famílias, e seis meses de história em todas as telas. O caminho do protótipo ao
+ar está escrito em ordem no §12.0 do documento. Ficam cinco escolhas:
+
+1. **Os nomes e o tipo de cada casa.** Usei os da semente do sistema (Abrigo Institucional
+   1 a 4 e Casa-Lar ARM1 a ARM4, vinte vagas em cada). O próprio protótipo dizia, no painel,
+   "Acolhimento Republicano Masculino" com quinze vagas. Qual é o certo? E as casas ARM
+   recebem crianças, adolescentes ou jovens adultos? Hoje as oito têm crianças de todas as
+   idades.
+2. **As outras sete casas nascem da Casa 03**, com outras pessoas e outra história, mas com as
+   mesmas situações de partida (a criança com alergia, a com insulina). Se quiser que cada
+   casa tenha o seu perfil próprio, é dizer como é cada uma.
+3. **Quartos e camas.** O espaço da casa no sistema é endereço, vagas, turnos, chamadas e
+   rotina. Saber quem dorme em que quarto é uma tela nova; ela entra se for útil no plantão.
+4. **O servidor de treino.** O banco de demonstração (oito casas, seis meses) está pronto para
+   a equipe treinar no sistema de verdade antes do dado real. Precisa de um lugar à parte do
+   de produção, e de quem o instale (§12.0, etapa 3).
+5. **A primeira decisão da lista do §12.0**: onde o sistema roda, o endereço e o certificado.
+   Sem ela, nenhum passo da máquina começa.
 
 ## 5. As decisões que são do Marcelo *(§10 — responda pelo número)*
 

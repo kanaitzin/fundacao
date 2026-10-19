@@ -257,7 +257,7 @@ describe('Rotas sem porta', () => {
  */
 describe('Ações da linha do tempo sem botão na tela', () => {
   const DIA = readFileSync(join(FRONT, 'screens', 'Dia.tsx'), 'utf8');
-  const MOCK = readFileSync(join(FRONT, 'mock.ts'), 'utf8');
+  const MOCK = readFileSync(join(FRONT, 'mock-casa.ts'), 'utf8');
 
   /** Os comandos que os provedores de linha do tempo emitem. */
   const comandos = [...new Set(

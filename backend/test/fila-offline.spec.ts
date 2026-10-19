@@ -93,7 +93,7 @@ describe('fila offline — as duas outras pontas', () => {
   });
 
   it('o servidor de mentira anuncia a mesma lista', () => {
-    const mock = readFileSync(join(FRONT, 'mock.ts'), 'utf8');
+    const mock = readFileSync(join(FRONT, 'mock-casa.ts'), 'utf8');
     expect(mock).toContain('TIPOS_OFFLINE_KINDS');
     expect(mock).toContain("rota === '/sync/push'");
   });
@@ -104,7 +104,7 @@ describe('fila offline — as duas outras pontas', () => {
      * como no servidor. Um mock que devolva todos os ids ensinaria a equipe a
      * confiar num apagamento que o sistema real não faz (§17.2).
      */
-    const mock = readFileSync(join(FRONT, 'mock.ts'), 'utf8');
+    const mock = readFileSync(join(FRONT, 'mock-casa.ts'), 'utf8');
     const trecho = mock.slice(mock.indexOf("rota === '/sync/push'"));
     expect(trecho).toContain("podeLimpar: resultados.filter");
   });

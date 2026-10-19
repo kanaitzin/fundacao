@@ -34,7 +34,7 @@ import { join } from 'node:path';
 import { CODIGOS_DE_CAMPO } from '../src/modules/people/campos-do-perfil';
 
 const RAIZ = join(__dirname, '..', '..');
-const MOCK = join(RAIZ, 'frontend', 'src', 'mock.ts');
+const MOCK = join(RAIZ, 'frontend', 'src', 'mock-casa.ts');
 const APP = join(RAIZ, 'frontend', 'src', 'App.tsx');
 const ENSAIOS = ['ensaio-roteiro.mjs', 'ensaio-uso.mjs'];
 

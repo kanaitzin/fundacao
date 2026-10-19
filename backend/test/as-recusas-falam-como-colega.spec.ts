@@ -49,7 +49,7 @@ function recados(p: string): { linha: number; texto: string }[] {
 describe('As recusas falam como colega', () => {
   const fontes = [
     ...arquivos(join(RAIZ, 'backend', 'src')),
-    join(RAIZ, 'frontend', 'src', 'mock.ts'),
+    join(RAIZ, 'frontend', 'src', 'mock-casa.ts'),
   ];
 
   it('há recados para ler (a busca não ficou vazia por engano)', () => {

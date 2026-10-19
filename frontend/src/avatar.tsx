@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { api } from './api';
+import { api, casaDaTela } from './api';
 
 /**
  * O ROSTO DE UMA PESSOA NAS LISTAS (fase 198; pedido de 11/10).
@@ -24,7 +24,9 @@ type Foto = { tipo: string; conteudo: string };
 /** De quem é o rosto: uma criança (foto de identificação) ou um contato (foto 3×4). */
 export type DeQuem = { acolhido: string } | { contato: string };
 
-const chaveDe = (q: DeQuem) => ('acolhido' in q ? `a:${q.acolhido}` : `c:${q.contato}`);
+/* Com a casa na frente: no protótipo cada casa é uma cópia, e a mesma
+   identificação é de crianças diferentes em casas diferentes (fase 225). */
+const chaveDe = (q: DeQuem) => `${casaDaTela() ?? ''}|${'acolhido' in q ? `a:${q.acolhido}` : `c:${q.contato}`}`;
 /* As duas rotas escritas por extenso: o contrato de rotas confere que elas existem no servidor. */
 const pedir = (q: DeQuem) => ('acolhido' in q
   ? api<Foto>(`/people/${q.acolhido}/photo`)

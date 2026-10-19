@@ -73,9 +73,19 @@ function talvezVenceu(status: number, path: string) {
   if (status === 401 && token && !path.startsWith('/auth/')) aoVencer?.();
 }
 
+/**
+ * A casa aberta na tela, para o protótipo (fase 225): o servidor de mentira tem
+ * uma cópia por casa e precisa saber de qual é o pedido que não diz a casa. O
+ * `App.tsx` diz a cada desenho; no sistema de verdade isto não faz nada.
+ */
+let casaAbertaNoPrototipo: string | null = null;
+export function casaAbertaNaTela(id: string | null) { casaAbertaNoPrototipo = id; }
+export function casaDaTela() { return casaAbertaNoPrototipo; }
+
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   if (PROTOTIPO) {
-    const { mockApi } = await import('./mock');
+    const { mockApi, abrirCasaNoPrototipo } = await import('./mock');
+    abrirCasaNoPrototipo(casaAbertaNoPrototipo);
     try {
       return await mockApi<T>(path, init);
     } catch (e) {

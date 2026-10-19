@@ -24,7 +24,7 @@ export class HousesService {
   async list(user: AuthenticatedUser) {
     return this.db.asUser(user.id, async (c) => {
       const { rows } = await c.query(
-        `SELECT id, code, name, kind FROM house WHERE active ORDER BY code`);
+        `SELECT id, code, name, kind, address FROM house WHERE active ORDER BY code`);
       return rows;
     });
   }

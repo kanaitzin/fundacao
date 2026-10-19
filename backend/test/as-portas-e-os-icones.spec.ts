@@ -154,7 +154,7 @@ describe('As portas do sistema e os desenhos delas', () => {
      */
     const doServidor = readFileSync(
       join(__dirname, '..', 'src', 'modules', 'reports', 'impacto.service.ts'), 'utf8');
-    const mock = readFileSync(join(FRONT, 'mock.ts'), 'utf8');
+    const mock = readFileSync(join(FRONT, 'mock-casa.ts'), 'utf8');
     const marcos = (fonte: string) =>
       [...fonte.matchAll(/cod: '([a-z_]+)', label: '[^']*', icone: '([a-z_]+)'/g)]
         .map((m) => `${m[1]}=${m[2]}`);

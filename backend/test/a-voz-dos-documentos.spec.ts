@@ -156,7 +156,7 @@ describe('A voz dos documentos', () => {
   it('encontra os textos dos documentos (sem isto, passaria por não ler nada)', () => {
     expect(textos.length).toBeGreaterThan(300);
     expect(textos.some((t) => /ata-folha\.ts/.test(t.onde))).toBe(true);
-    expect(textos.some((t) => /mock\.ts/.test(t.onde))).toBe(true);
+    expect(textos.some((t) => /mock(-casa)?\.ts/.test(t.onde))).toBe(true);
   });
 
   /* O roteiro da Casa 03 também é documento: sai em Word e vai impresso para a

@@ -92,12 +92,12 @@ discordavam entre si.
 | **19 partições** isoladas | pastas em `backend/src/modules/` |
 | **197 migrações** | `.sql` dentro das partições |
 | **139 tabelas** | `CREATE TABLE` nas migrações |
-| **147 suítes** | `backend/test/*.spec.ts` |
-| **1310 testes** | `it(` / `test(` nas suítes |
+| **148 suítes** | `backend/test/*.spec.ts` |
+| **1317 testes** | `it(` / `test(` nas suítes |
 | **39 telas React** | `frontend/src/screens/*.tsx` |
 | **10 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **11 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
-| protótipo com **≈1709 KB** | `prototipo/rede-acolher-prototipo.html` |
+| protótipo com **≈1783 KB** | `prototipo/rede-acolher-prototipo.html` |
 
 *A frase importa: o conferidor lê o NÚMERO colado ao substantivo. Escrever
 "Telas React … 31" numa coluna separada faz o teste passar sem conferir nada —
@@ -435,6 +435,9 @@ arqueologia.
 | 222 | **A voz, a câmera e a galeria em cada modelo de celular** (pedido de 16/10: *"tu fez teste no modo voz e transcrição, criação de pdfs por modelos de celular? faça os testes"*). Um ensaio novo, `ensaio:aparelhos`, simula oito aparelhos com a câmera do tamanho de cada um e o reconhecimento de voz como cada navegador se comporta, e achou quatro defeitos de verdade, que nenhum ensaio anterior via: **no Chrome do Android o ditado repetia o que já tinha reconhecido** (três frases viravam o começo escrito quatro vezes; agora, no celular, uma frase por escuta e o resultado repetido é aparado, `escutaUmaFrasePorVez` e `semORepetido` em `ditado.tsx`); **a câmera cortava a folha** (o pedido de 1920×1080 fazia o navegador cortar a imagem 4:3 da câmera de celular, e com o celular em pé a página saía quadrada; agora pede só a largura); **aparelho sem microfone ficava religando sem parar** (agora diz que não achou microfone, e três escutas recusadas seguidas desistem); e **em todo formulário de folha no celular a barra Cancelar e Registrar cobria o fim do formulário** desde a fase 184 (o recuo da barra de abas valia dentro da folha, que fica por cima dela; o horário do episódio da ATA e o fim dos formulários de reunião e de combinado ficavam atrás). A varredura dos formulários reprova sem o conserto e passa com ele. Medido: PDF de três páginas entre 133 e 547 KB, páginas até 1800 px sem corte, foto de 50 MP reduzida em cerca de 4 s. **O que não se prova daqui** (a lista para o celular de verdade está no PARA-A-REUNIAO §4.27): o Safari de verdade, a voz reconhecida de verdade, o aparelho com pouca memória e a foto HEIC (no Chrome ela vai como veio, sem prévia). |
 | 223 | **A Acolhe+AI mais firme, no tempo certo e chamando pelo nome** (pedido de 16/10: *"veja como podemos melhorar a ia embutida, como deixar ela mais robusta, inteligente e humanizada"*). A análise achou um defeito que só apareceria com a chave ligada: **a cada pergunta, as instruções mandadas ao modelo levavam a tela aberta, a casa, a voz escolhida e a data**, e o raciocínio do modelo fica preso à conversa exata em que nasceu; trocar de tela no meio da conversa, ou passar da meia-noite, invalidava todo o raciocínio anterior, e em conta nova a pergunta seguinte seria recusada (*"a conversa não pôde ser lida, comece uma nova"*). Agora **as instruções ficam fixas durante a conversa** (o guia, quem conversa e as telas do cargo), e **o que muda vai numa nota no começo de cada pergunta** (`assistente/momento.ts`: o dia da semana, a hora de Porto Alegre, o turno, a tela e a casa abertas, a voz), lida pela tela e pela suíte; se mesmo assim algo mudar, o raciocínio que não vale mais é tirado em vez de a conversa parar (`drop_block`), e a auditoria conta quantos saíram (`raciocinioTirado`, que deve ficar em zero). Com isso ela sabe **a hora e o turno** (*"a dose das 20h já passou?"*, *"o plantão da noite"*), e **chama pelo primeiro nome**. Na tela, a conversa **só cresce**: a pergunta que deu erro sai inteira, com as consultas que ela puxou (quando o erro vinha no meio das consultas, tirar só a pergunta deixava resposta sem pergunta, e a conversa seguinte quebrava); a volta que parou num resultado recebe a pergunta seguinte na mesma mensagem; e a conversa longa **vira um resumo** do que está no painel antes de chegar ao limite do servidor (oitenta mensagens), em vez de recusar. O cache passou a marcar a última pergunta, e a conversa inteira é lida do cache na seguinte. O `ensaio:uso` cobra, pelo roteiro de modelo, que nenhum pedido muda o que já foi mandado e que toda pergunta começa pela nota. De passagem, o `ensaio:uso` reprovou numa sexta às 17h30 por defeito dele: a correção da visita era conferida no perfil da Alice, mas qual visitante está fora do combinado depende da hora, e a exceção caía no visitante de outra criança; agora o ensaio confere o perfil da criança cuja visita ele corrigiu. **Não medido daqui:** o modelo de verdade (a instalação não tem a chave). |
 | 224 | **A Acolhe+AI inteira, com o modelo, contra o servidor de verdade.** Os caminhos dela eram medidos aos pedaços: a suíte põe o servidor diante de um modelo de mentira, sem a tela; o `ensaio:uso` põe a tela diante de um roteiro, sem o servidor; e o `ensaio-servidor` abre a tela contra o servidor, mas sem a chave, no modo guia. A corrente inteira nunca tinha sido aberta junta, e a 223 mexeu justamente nela. Agora, no fim da simulação, o servidor sobe de novo com a chave apontando para um modelo de mentira local (`frontend/ensaio-acolhe-modelo.mjs`, porta 3999, nada sai para a internet), que responde com raciocínio assinado e pedidos de ferramenta; uma educadora da casa simulada pergunta quem está na casa, troca de tela, pede a Agenda e agradece. O ensaio confere que as instruções e as ferramentas chegam iguais nas cinco chamadas, que a conversa só cresce e o raciocínio volta com a assinatura, que cada pergunta traz a nota do momento com a casa dela, a tela daquele momento e a hora de Porto Alegre no relógio da casa, que a leitura pedida pelo modelo saiu pela sessão dela e contou as mesmas 21 crianças que o banco tem, e que a auditoria tem uma linha por chamada, na casa dela, sem raciocínio tirado e sem a conversa. **Com o código da 222 no lugar, onze das dezoito cobranças reprovam**; com o da 223, todas passam. Na mesma rodada, a Casa 03 viveu trinta dias: tudo bate, e **onze contas, 317 telas e o esqueci minha senha contra o servidor de verdade, sem achado**; na API, só a recusa conhecida da admissão no limite de vagas. `SIM_SO_NAVEGADOR=1 SIM_SO_ACOLHE=1` repete só este ensaio. **Não medido daqui:** o modelo de verdade. |
+| 225 | **As oito casas no protótipo, com espaço e equipe** (pedido de 19/10: *"construa já os espaços e equipes das 8 casas de forma fictícia"*). Até aqui o servidor de mentira tinha UMA casa: quem entrava na Casa 01 via as crianças da Casa 03, e o painel das unidades tinha números escritos à mão. Agora cada casa é uma **cópia própria do servidor de mentira** (`frontend/src/mock-casa.ts`, a fábrica `criarServidorDaCasa`), criada na primeira vez que alguém entra nela, com o estado dela: o que se registra na Casa 01 fica na Casa 01. A cópia nasce da Casa 03 e troca, nos próprios dados, os nomes das crianças (mantendo menina e menino), das famílias e da equipe pelos da casa (`frontend/src/casas-ficticias.ts`, por sorteio com semente: a mesma casa tem sempre as mesmas pessoas). O `frontend/src/mock.ts` escolhe a casa de cada pedido (o `houseId`, a página da unidade ou a casa aberta na tela, dita pelo `api.ts`), e manda à Casa 03 o que é da instituição (entrar, o Ver como, a ATA Geral, as transferências). **Cada casa tem a equipe inteira**, dezoito pessoas: coordenação, técnica, assistente social, psicopedagoga, líder diurno, educadores do dia e da noite, portaria e cozinha (a Casa 03 tinha seis na lista, e quatro delas só apareciam nos registros). **O espaço da casa** é o que o sistema já guarda: endereço (fictício), telefone, vagas, turnos, chamadas e rotina; a lista das unidades mostra o endereço, e o `GET /houses` do servidor de verdade passou a devolvê-lo. Quartos e camas o sistema não tem, e criar é decisão (PARA-A-REUNIAO §4.29). Os nomes e as vagas seguem a semente do sistema de verdade: o protótipo dizia "Acolhimento Republicano Masculino" com 15 vagas no painel e "Casa-Lar" com 20 na lista. De passagem: **o rosto guardado na tela** passou a ter a casa na chave, porque a mesma identificação é de crianças diferentes em casas diferentes. |
+| 226 | **Seis meses de história em tudo, nas oito casas** (pedido de 19/10: *"6 meses de históricos fictícios em tudo, para quando o Marcelo e a equipe verem, observar como eles podem trabalhar e como ficam os registros"*). Quando a cópia de uma casa nasce, ela escreve seis meses (`escreverSeisMeses`, com a semente da casa): as **visitas** da família no dia combinado de cada visitante, quase toda semana; os **atendimentos da equipe técnica** a cada duas ou três semanas, em rodízio entre psicologia, serviço social e psicopedagogia; a **saúde** (consulta de rotina, dentista, vacina, urgência); as **ocorrências** fechadas, com a síntese de quem fechou; as **conquistas**; os **acompanhamentos mensais** aprovados e os do mês passado ainda em aberto; as **reuniões** com o combinado cumprido; os **fins de semana com a família** e a cesta da cozinha; o **lanche dos passeios**; as **compras da farmácia**, uma em cada seis sem o valor lançado; a **escala** de dia e de noite com as **trocas de plantão** e o motivo; a **escola** (anotações e o conceito dos dois bimestres); uma ou duas **internações** curtas; as **saídas** dos mais velhos para a escola, o curso e o treino; e o **livro das ATAs** desde abril. Nas outras casas, de zero a quatro crianças saíram nesses meses (reintegração, adoção, maioridade, guarda), e cada casa fica com entre 16 e 20. **Cada criança tem a sua família**: até aqui todas tinham a mesma mãe (Rosângela), a mesma madrinha e o mesmo tio, e com seis meses de visitas a portaria mostraria a mesma senhora visitando vinte crianças (a Alice continua com a família que os ensaios conhecem). **O painel do Gestor Geral, o painel das unidades e o trabalho social saem dos registros de cada casa**, e a soma é a soma do que se vê entrando em cada uma; a lista de quem conquistou junta as oito, e tocar no nome de outra casa abre a criança certa (`casa-xxx~id`). Achado no caminho: **a troca de nomes na saída também trocava o código "AI3"**, e a linha da Casa 03 que a cópia da Casa 04 devolvia para o painel virava uma segunda "AI4" com os números antigos; as somas agora pedem às cópias sem a troca. As frases são da equipe de acolhimento, só o fato, sem comparar crianças nem qualificá-las. |
+| 227 | **O que falta para ir ao ar, e o preparo** (pedido de 19/10: *"comece a transformar o protótipo e ver o que mais falta para o sistema ser real"*; escolhido no mesmo dia: levantar o que falta e preparar o que se prepara daqui, sem publicar nada). O **§12.0** põe em ordem o caminho do protótipo ao ar, com quem faz cada passo: as decisões da Fundação, a máquina, o treino, os dados da Casa 03 e o piloto. Pronto daqui: **`scripts/instalar.sh`**, que confere a máquina, o `.env`, o banco, o cron e o serviço e aponta a seção de cada item que falta, sem mudar nada, e com `--instalar` constrói, migra e lista os comandos que mudam a máquina; **`scripts/servidor/rede-acolher.service`** (o serviço compilado, com o `.env`, que volta sozinho) e **`scripts/servidor/Caddyfile`** (o HTTPS, com o mesmo limite de corpo do serviço); e **o banco de demonstração**: a simulação das oito casas com vinte pessoas cada, seis meses terminando no dia em que roda, guardada num arquivo (`SIM_DUMP`) para o treino da equipe num servidor à parte. A suíte `o-servidor-do-pao.spec.ts` cobra que o proxy aceite o corpo que o serviço aceita, que o serviço rode o compilado e que o instalador confira as três variáveis que decidem a segurança. A rodada que gerou o banco achou a escala recusada com 500 e 503 no primeiro dia, em quatro e depois cinco casas, todas no mesmo instante; **com o relógio real, as oito coordenações publicando juntas gravaram 3.840 plantões em 15 segundos sem nenhuma falha**. Um dia só de simulação repetiu a falha, e a fotografia do `pg_stat_activity` mostrou o Postgres encerrando por *transação parada* sessões paradas havia zero segundo, sempre em múltiplos de dez segundos: a conta de tempo do banco sob o relógio de mentira. Um limite de um dia não bastou. Agora o zero escrito no `.env` desliga o limite (`BANCO_LIMITE_*=0`, como no Postgres), a simulação roda com os quatro desligados e sem nenhum achado, e o `instalar.sh` recusa o zero no servidor. E um defeito do próprio caminho, achado ao escrever o instalador: **o `.env.example` tinha comentário na mesma linha do valor**, e o systemd, que entrega o `.env` ao serviço, não tira esse comentário; o `SESSION_TTL_HOURS` chegaria como *14 seguido do comentário*, que não é número, e a entrada no sistema falharia para todos no primeiro dia. O comentário passou para a linha de cima, o instalador aponta a linha que tiver, e a suíte cobra o exemplo. |
 
 ---
 
@@ -549,7 +552,7 @@ rede-acolher/
 │   │   │   ├── documentos/     o contrato da folha e o gerador de .docx
 │   │   │   └── common/         CPF, criptografia, segredo, fuso da instituição
 │   │   └── modules/       19 partições, cada uma dona das próprias migrações
-│   ├── test/              147 suítes (e2e contra PostgreSQL real + estáticas)
+│   ├── test/              148 suítes (e2e contra PostgreSQL real + estáticas)
 │   ├── scripts/           ensaio-carga.ts, migrador compilado
 │   └── assets/timbre.png  a marca da Fundação, usada no documento em Word
 ├── frontend/
@@ -2836,7 +2839,7 @@ desacoplada** — nenhuma pendência virou regra inventada.
 | 1 | ~~**A escala 12x36 vigente da Casa 03**~~ ✅ **Respondida em 15/09** | A tela existe desde 08/09 e ele descreveu o funcionamento que quer — *"a gente não vai deduzir a escala"*, lançada semanas antes, cor por pessoa, retirar e substituir. **Quase tudo já existe** (§8.4); as três diferenças estão no §9. O conteúdo real — quem trabalha quando — continua sendo da casa, e entra na implantação |
 | 2 | **A janela de acesso por plantão (T-10/T+10)** | **Não implementada.** Com a escala por data ela passou a ser possível; ligá-la é decidir que alguém fica sem abrir o sistema fora do horário |
 | 3 | **Os códigos e nomes reais das oito unidades** | AI1–AI4 / ARM1–ARM4 são preliminares e aparecem em tela, relatório e nome de arquivo. Trocar é um `UPDATE` de `house.code` — os IDs internos são UUID |
-| 4 | **O SMTP institucional** | Ver §12.7. Sem ele não há convite, e sem convite não há primeiro acesso para 40 pessoas sem distribuir senha por mensagem |
+| 4 | **O SMTP institucional** | Ver §12.8. Sem ele não há convite, e sem convite não há primeiro acesso para 40 pessoas sem distribuir senha por mensagem |
 | 5 | **O prazo de triagem da Enfermagem** | Será parâmetro |
 | 6 | ~~**O horário oficial do Líder Noturno Geral**~~ ✅ **Respondida em 25/09 (fase 157)** | *ATA diurna 08:00–20:00; noturna 20:01–07:59, da data em que começou.* A variável `NIGHT_SHIFT_END_HOUR` saiu: a regra mora no banco (`app_turno_de`, `app_janela_do_turno`) e o servidor e a tela a espelham, com teste que os obriga a concordar |
 | 7 | **Relatórios obrigatórios no piloto** | Todos marcados como candidatos; seleção com o Marcelo |
@@ -2882,6 +2885,61 @@ lembrete.
 ## 12. IMPLANTAÇÃO
 
 O que separa **protótipo aprovado** de **sistema rodando na casa**.
+
+### 12.0 Do protótipo ao ar, em ordem (fase 227, pedido de 19/10)
+
+*"Comece a transformar o protótipo e ver o que mais falta para o sistema ser real."*
+O código do piloto está pronto desde a fase 139; o que separa o protótipo do sistema na
+casa são decisões, uma máquina e pessoas. Em ordem, com quem faz e onde está escrito:
+
+**Etapa 1. As decisões (Fundação).** Nada da máquina começa sem estas.
+
+| # | O que | Quem | Onde |
+|---|---|---|---|
+| 1 | Onde roda (o servidor do Pão), o endereço (ex.: `rede.paodospobres.com.br`) e o certificado | Gestor Geral e TI | §12.8, pergunta 4; §12.9 |
+| 2 | Os códigos e nomes reais das oito unidades | Gestor Geral | §11, item 3 |
+| 3 | O SMTP institucional e um e-mail por pessoa (sem ele não há convite nem esqueci) | TI | §12.8 |
+| 4 | A conta institucional do relógio | TI | §12.7 |
+| 5 | Quem responde pela LGPD, por quanto tempo se guarda cada coisa, a folha da portaria, o ditado e a Acolhe+AI | DPO | §11, itens 10 e 12; §12.12 |
+| 6 | Dois discos espelhados, a cópia fora da sala do servidor e quem roda o ensaio de restauração todo mês | TI e Gestor Geral | §12.4.1; PARA-A-REUNIAO §4.25 |
+| 7 | Se a Acolhe+AI liga com a chave, e o aviso no celular com as chaves | Fundação e TI | §12.11, §12.12 (os dois são opcionais) |
+
+**Etapa 2. A máquina (TI).** Tudo o que se faz daqui está pronto e ensaiado.
+
+1. Node 20 ou mais novo, PostgreSQL 16 (com `pg_basebackup` e `pg_verifybackup`), `rsync`
+   e Caddy (ou nginx); um usuário `rede-acolher`; as pastas em `/var/lib/rede-acolher`.
+2. O banco com o `scripts/postgresql-do-servidor.conf` (arquivo contínuo ligado).
+3. O `.env`, a partir do `.env.example` (§12.1).
+4. `bash scripts/instalar.sh` até não faltar nada. Ele só confere (máquina, `.env`, banco,
+   cron, serviço) e aponta a seção que explica cada item; não muda nada.
+5. `bash scripts/instalar.sh --instalar`: constrói, migra e lista os comandos que mudam a
+   máquina: o serviço (`scripts/servidor/rede-acolher.service`), o proxy
+   (`scripts/servidor/Caddyfile`), o cron (`scripts/relogio.crontab` e as linhas do
+   §12.4.1).
+6. `npm run ensaio:restauracao` e `npm run ensaio:ponto-no-tempo`: a prova de que o que se
+   guarda volta (§12.5, §12.4.1).
+
+**Etapa 3. O treino, com o banco de demonstração (recomendado).** Antes de qualquer dado
+real, a equipe treina num sistema de verdade com as oito casas fictícias e seis meses de
+história, gerado pela simulação (`SIM_DUMP`, cabeçalho do `scripts/simulacao-da-casa.sh`).
+O banco sai de um arquivo, num servidor ou banco **à parte** do de produção; as contas e
+senhas fictícias saem no `contas.json` da simulação. É o mesmo sistema que vai para a casa,
+e não o protótipo: o que a equipe registra no treino passa pelas regras de verdade. Os três
+encontros curtos do §13.3 podem ser feitos nele.
+
+**Etapa 4. Os dados da Casa 03 (Coordenação, equipe técnica, TI).** A equipe real com os
+e-mails, a escala 12x36 vigente, os vinte perfis (§13.1 e §13.2) e a folha real de
+medicamentos (§11, os formulários que faltam). **Dado real só entra depois do item 5 da
+Etapa 1 e com o `CREDENTIAL_KEY` próprio**, e nunca no banco de demonstração.
+
+**Etapa 5. O piloto.** Quatro semanas com o papel ao lado (§13.4), com os critérios do §13.5
+assinados pela Fundação (§11, item 11). O que só se testa com gente: o roteiro da Casa 03
+(`docs/roteiro-marcelo.md`) e as cinco tarefas num Android e num iPhone de verdade
+(PARA-A-REUNIAO §4.27).
+
+**O protótipo continua sendo o lugar de mostrar** (desde a fase 225 com as oito casas, e
+desde a 226 com seis meses de história em cada uma): ele não guarda nada e não tem as
+proteções do banco. O sistema de verdade é o da Etapa 2.
 
 ### 12.1 A configuração
 

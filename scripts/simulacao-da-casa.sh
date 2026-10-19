@@ -18,6 +18,14 @@
 #       SIM_INICIO="2026-11-16 07:00:00" para outro primeiro dia
 #       SIM_CASAS=AI1,AI2,AI3,AI4,ARM1,ARM2,ARM3,ARM4 para as oito casas
 #         viverem o mesmo período, com a instituição junto (fase 177)
+#       SIM_DUMP=/caminho/demonstracao.dump guarda, no fim, o banco simulado
+#         num arquivo, para restaurar no servidor de treino (fase 227):
+#         SIM_INICIO="$(date -d '-182 days' '+%Y-%m-%d') 07:00:00" \
+#         SIM_CASAS=AI1,AI2,AI3,AI4,ARM1,ARM2,ARM3,ARM4 SIM_EQUIPE=20 \
+#         SIM_SEM_NAVEGADOR=1 SIM_DUMP=/tmp/demonstracao.dump \
+#         bash scripts/simulacao-da-casa.sh 182
+#         (o SIM_INICIO faz os seis meses terminarem hoje, e não no futuro)
+#         As contas e senhas de quem entra ficam em $SIM_SAIDA/contas.json.
 #
 set -uo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -78,8 +86,26 @@ LD_PRELOAD=$LIB FAKETIME_TIMESTAMP_FILE=$RELOGIO FAKETIME_NO_CACHE=1 \
   npx tsx -e "import('./test/setup/reset-db').then((m) => (m.default.default ?? m.default)())" >/tmp/simulacao-reset.log 2>&1 \
   || { echo "✗ não recriou o banco — veja /tmp/simulacao-reset.log"; exit 1; }
 echo "→ $DIAS dias de casa"
+# OS LIMITES DE ESPERA DO BANCO, DESLIGADOS NA SIMULAÇÃO (fase 227). Sob o
+# relógio de mentira, o Postgres encerrava por "transação parada" sessões que ele
+# mesmo mostrava paradas havia zero segundo, sempre em múltiplos de dez segundos,
+# e a escala publicada pelas oito casas juntas voltava 500 e 503. Um limite de um
+# dia não bastou: a conta interna do banco salta para a data real, meses adiante.
+# Com o relógio real, as oito coordenações publicando juntas não falham (3.840
+# plantões em 15 s). Os limites continuam cobrados pela suíte
+# (`o-banco-com-as-duas-travas`), e o zero só vale aqui: o instalador o recusa.
 LD_PRELOAD=$LIB FAKETIME_TIMESTAMP_FILE=$RELOGIO FAKETIME_NO_CACHE=1 SIM_RELOGIO=$RELOGIO \
+  BANCO_LIMITE_CONSULTA_MS=0 BANCO_LIMITE_TRAVA_MS=0 BANCO_LIMITE_PARADA_MS=0 BANCO_LIMITE_CONEXAO_MS=0 \
   npx tsx scripts/simulacao-da-casa.ts "$DIAS" "$INICIO"
+fi
+
+# O BANCO DE DEMONSTRAÇÃO (fase 227): o banco que a simulação deixou, num arquivo.
+# Dado só fictício; é o que a equipe usa para treinar antes do dado real.
+if [[ -n "${SIM_DUMP:-}" ]]; then
+  echo "→ guardando o banco de demonstração em $SIM_DUMP"
+  PGPASSWORD=dev-only-change-me pg_dump -h 127.0.0.1 -p "$PGPORT" -U rede_admin -d rede_acolher -Fc -f "$SIM_DUMP" \
+    && echo "  $(du -h "$SIM_DUMP" | cut -f1). Para restaurar: pg_restore --clean --if-exists -d <banco> $SIM_DUMP" \
+    || echo "✗ o pg_dump falhou"
 fi
 
 # O ENSAIO DE NAVEGADOR CONTRA O SERVIDOR DE VERDADE, no último dia da casa: o

@@ -1,0 +1,26 @@
+# ============================================================
+# A porta para a internet (§12.9), com Caddy: busca e renova o certificado
+# sozinho e manda o HTTP para o HTTPS.
+#
+#   sudo cp scripts/servidor/Caddyfile /etc/caddy/Caddyfile
+#   sudo systemctl reload caddy
+#
+# Troque o endereço pelo que a Fundação escolher. O serviço escuta na porta
+# 3000 e o proxy fala com ele por dentro da máquina: a porta 3000 fica FECHADA
+# no firewall (quem chega de fora chega pelo proxy).
+# O limite de corpo é o mesmo do serviço, com folga: sem ele o proxy recusa a
+# foto de celular antes de o serviço ver.
+# ============================================================
+rede.paodospobres.com.br {
+	request_body {
+		max_size 30MB
+	}
+	handle /api/* {
+		reverse_proxy 127.0.0.1:3000
+	}
+	handle {
+		root * /opt/rede-acolher/frontend/dist
+		try_files {path} /index.html
+		file_server
+	}
+}
