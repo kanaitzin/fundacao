@@ -249,6 +249,18 @@ const TAREFAS = [
     procurar: [/No acolhimento/, /PIA/, /há \d/],
   },
   {
+    cargo: 'educador', secao: '1.13.2',
+    nome: 'O boletim da Alice, na aba Documentos do perfil',
+    caminho: [{ aba: 'Acolhidos' }, { clicar: /Alice/ }, { abaDoPerfil: 'Documentos' }],
+    procurar: [/Os documentos de Alice/i, /Dossiê: documentos e vivências/, /Boletim do semestre/i, /área restrita/i],
+  },
+  {
+    cargo: 'educador', secao: '1.13.3',
+    nome: 'Onde se pede o lanche, pelo Guia do sistema',
+    caminho: [{ mais: 'Guia do sistema' }],
+    procurar: [/Guia do sistema/, /Cozinha/, /Com a Acolhe\+AI|As telas/],
+  },
+  {
     cargo: 'educador', secao: '1.13.1',
     nome: 'O almoço de ontem, no Dia a dia do perfil',
     caminho: [{ aba: 'Acolhidos' }, { clicar: /Alice/ }, { abaDoPerfil: 'Dia a dia' }],

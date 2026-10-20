@@ -96,6 +96,19 @@ Leitura recomendada antes da aplicação, para quem conduz.
   família. O dia de hoje fica no Dia e na ATA. O que a casa registrou em cada dia
   se consulta na aba *Dia a dia*, e a aba *Atendimentos* é o relatório da equipe
   técnica, o mais recente em cima. Cada aba traz os números da criança.
+- O aniversário, as conquistas, as fotos e as memórias da criança ficam no fim da
+  aba *Geral*. A aba que se chamava Cadastro passou a se chamar *Documentos* e abre
+  no dossiê e na lista dos documentos da criança; as correções e o registro de
+  quem mexeu no perfil vêm depois.
+
+**Para se orientar**
+
+- O primeiro item do menu é o *Guia do sistema*. Ele mostra as telas que cada
+  cargo usa, o que se faz em cada uma e o que a Acolhe+AI faz junto, explica as
+  abas do perfil da criança e traz as novidades de cada atualização. Cada tela do
+  Guia tem o botão que leva até ela.
+- O texto que explica cada tela aparece pela primeira frase, e o botão *Como
+  funciona* abre o restante. Os alertas e os avisos com números continuam à vista.
 
 **Gestão**
 
@@ -237,6 +250,21 @@ vezes por turno.
     Observar: ela abre o perfil da Alice e vai à aba *Dia a dia*? Volta um dia
     pela seta ou pelo calendário? Encontra o almoço com quem registrou? Pergunte:
     *você procuraria aqui ou na ATA de ontem?*
+
+13.2. **A escola pediu o boletim do semestre da Alice. Onde ele está?**
+    Observar: ela abre o perfil da Alice e vai direto à aba *Documentos*, ou
+    procura em outras abas antes? Encontra o boletim na lista ou entra no dossiê?
+    Logo abaixo da lista aparece quantos documentos estão em área restrita ao
+    cargo dela: ela entende que eles existem e que quem os consulta é a equipe
+    técnica? Pergunte: *o nome Documentos ajudou, ou você procuraria por outro
+    nome?* A resposta mostra se a aba está onde a equipe espera.
+
+13.3. **Você não sabe onde se pede o lanche para a cozinha. Descubra sem
+    perguntar a ninguém.**
+    Observar: ela abre o *Guia do sistema*, o primeiro item do menu, ou procura
+    tela por tela? No Guia, toca na tela para ler o que se faz nela e usa o botão
+    que leva até lá? Pergunte: *o Guia respondeu a sua dúvida, ou você ainda
+    perguntaria a alguém?*
 
 14. **Pergunte ao final:** *teve algum momento em que você achou que ia dar
     errado?*
