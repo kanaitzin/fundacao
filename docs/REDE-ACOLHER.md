@@ -119,7 +119,7 @@ fala de contagens sem colar nenhuma, de propósito.*
 |---|---|
 | `npm run ensaio` | 133 telas nos **sete** cargos oferecidos — Coordenação 28, Técnica 25, Gestor 27, Líder Diurno 17, Líder Noturno 14, Educador 13, Enfermagem 9. A Cozinha saiu do seletor em 09/09: o cargo continua no banco, oculto |
 | `npm run ensaio:acessibilidade` | 1256 telas — 157 em cada um dos OITO temas (claro, escuro, alto contraste, rosa, azul claro, verde, colorido e Rio Grande do Sul) —, **nenhuma violação de WCAG 2.1 AA** |
-| `npm run ensaio:roteiro` | 54 tarefas do roteiro, **todas com porta no cargo certo** |
+| `npm run ensaio:roteiro` | 56 tarefas do roteiro, **todas com porta no cargo certo** |
 | `npm run ensaio:celular` | 302 telas a 360 e 390 px, nos oito cargos, **nenhum achado** (fase 184) |
 | `npm run ensaio:uso` | 595 cobranças em 37 blocos, **todas passando** (fase 194) — e todos os cargos completando o percurso. O bloco 14 nasceu na fase 107 e cresceu na 108: abre as prévias e cobra que o olho devolva uma **imagem**, e não o nome de um arquivo — e que a lista diga **antes do clique** se o documento está no sistema ou no Drive |
 | `npm run ensaio:acolhe` | **a Acolhe+AI pedida em cada tela de cada cargo** (fase 195): os oito cargos e a Coordenação Geral, por texto e por voz (microfone falso), cada tela explicada e cada formulário de criação que a tela mostra ao abrir, pedido pelo nome; e o relatório pela voz de ponta a ponta. **Todas as telas, por texto e por voz, todas explicadas, todos os formulários abertos.** **E as subtelas** (fase 196): o perfil da criança pedido pelo nome, por texto e por voz, cada formulário do perfil, o dossiê e as vivências, a internação aberta com o diário, o acervo de quem saiu, o plantão em que a pessoa assinou e o rascunho da escala; os formulários atrás de aba também. Mede o modo guia; o modelo de verdade pede a chave |
@@ -132,7 +132,7 @@ fala de contagens sem colar nenhuma, de propósito.*
 **20/09/2026 — a verificação da mudança para o Claude Code.** Nada foi
 construído; o repositório foi conferido inteiro antes de mudar de casa. `tsc`
 limpo nos dois lados, **os sete ensaios de navegador limpos** (132 telas nos
-sete cargos, 139 sem violação de WCAG 2.1 AA, as 54 tarefas do roteiro com
+sete cargos, 139 sem violação de WCAG 2.1 AA, as 56 tarefas do roteiro com
 porta, os 19 blocos do ensaio de uso, a fila offline e as folhas), e o protótipo
 **reconstrói byte a byte igual** ao arquivo entregue — mesmo md5.
 
@@ -501,7 +501,7 @@ O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as
 | `npm run ensaio` | percorre as 133 telas dos sete cargos oferecidos num navegador de verdade, cobrando que nenhuma deixe erro no console, que escreva alguma coisa e que não mostre `undefined` para quem lê. **Tela nova entra neste percurso.** |
 | `npm run ensaio:fila` | corta o sinal, marca a chamada, fecha e abre o aplicativo, religa, e confere que **só o que o servidor confirmou** saiu do aparelho |
 | `npm run ensaio:folhas` | os caminhos de documento até o arquivo baixar: abre a folha, tenta baixar com finalidade curta demais, baixa com frase válida, confere que o `.docx` chegou |
-| `npm run ensaio:roteiro` | cobra que as 54 tarefas do roteiro do Marcelo tenham porta no cargo certo. Não simula a procura de uma pessoa — mas impede o fracasso barato: a tarefa não ter porta, e isso aparecer diante da equipe |
+| `npm run ensaio:roteiro` | cobra que as 56 tarefas do roteiro do Marcelo tenham porta no cargo certo. Não simula a procura de uma pessoa — mas impede o fracasso barato: a tarefa não ter porta, e isso aparecer diante da equipe |
 | `npm run ensaio:acessibilidade` | axe-core (WCAG 2.1 AA) em todas as telas de todos os cargos, nos oito temas — sete a mais por tema que o `ensaio` porque confere também a folha do "Mais" de cada cargo, aberta dezenas de vezes por turno. **Cor nova passa por ele antes de entrar** |
 | `npm run ensaio:uso` | percorre os **sete** cargos **apertando os botões até o fim** — chamada, exceção, passagem, armário, cofre, internação, diário, pedido de lanche — e **lê de volta o que ficou gravado**. É o que pega o defeito que a tela não denuncia: a folha abriu, o botão salvou, e só o número estava errado. *Dizia "oito" aqui, e o roteiro dele também: era a Cozinha, que saiu do seletor na fase 83 — e por isso ele morria no meio* |
 | `npm run ensaio:uso-celular` | o mesmo percurso do `ensaio:uso`, como um celular de 360 px com toque e o navegador em português (fase 184) |
@@ -3536,7 +3536,7 @@ outras; mudança pedida por uma casa só é conversa antes de virar código.
 
 ### O roteiro do Marcelo
 
-`roteiro-marcelo.md` (e o `.docx` gerado dele) leva 54 tarefas do roteiro à Casa 03, cargo a
+`roteiro-marcelo.md` (e o `.docx` gerado dele) leva 56 tarefas do roteiro à Casa 03, cargo a
 cargo — dez delas nasceram na fase 87, uma na 88 e uma na 89, para o roteiro alcançar as entregas de
 09/09. **Ele ficou longo: aplique por cargo, e pare onde o tempo acabar.**
 Como se aplica:
