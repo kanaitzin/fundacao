@@ -2111,6 +2111,9 @@ button.cal-turno:focus-visible{ outline:3px solid var(--brand); outline-offset:1
 :root{
   --aba-hoje:#1F6FB2; --aba-familia:#B4387A; --aba-saude:#7A4CC4; --aba-educacao:#0E7C86;
   --aba-judiciario:#4B5A8C; --aba-vida:#C2571A; --aba-atendimentos:#2E7D4F; --aba-cadastro:#5E6B7A;
+  /* Documentos (pedido de 20/10) herda o laranja da antiga Vida na casa: a aba que a
+     equipe procura precisa saltar aos olhos, e o laranja já passou no contraste. */
+  --aba-documentos:#C2571A;
 }
 .abas-perfil{ display:flex; flex-wrap:wrap; gap:6px; margin:6px 0 16px }
 .aba-perfil{ display:inline-flex; align-items:center; gap:7px; min-height:40px; padding:6px 12px;
@@ -2126,6 +2129,7 @@ button.cal-turno:focus-visible{ outline:3px solid var(--brand); outline-offset:1
 .aba-saude{ --aba:var(--aba-saude) } .aba-educacao{ --aba:var(--aba-educacao) }
 .aba-judiciario{ --aba:var(--aba-judiciario) } .aba-vida{ --aba:var(--aba-vida) }
 .aba-atendimentos{ --aba:var(--aba-atendimentos) } .aba-cadastro{ --aba:var(--aba-cadastro) }
+.aba-documentos{ --aba:var(--aba-documentos) }
 @media (max-width: 719px){
   .abas-perfil{ display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)) }
   .aba-perfil{ justify-content:flex-start; font-size:13.5px }

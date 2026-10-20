@@ -2587,7 +2587,7 @@ await trocar('equipe_tecnica');
 await fechar();
 await aba('Acolhidos');
 await clicar(/Alice/);
-if (await clicar(/Dossiê e vivências/)) {
+if (await clicar(/Dossiê: documentos e vivências/)) {
   await pg.waitForTimeout(900);
 
   /* O BAIXAR, na folha do documento já conferido.
@@ -4086,10 +4086,10 @@ console.log('\n📷 Quem aparece na foto, e a foto pequena (fase 209)');
   await pgF.locator('select.troca-cargo-sel').selectOption('equipe_tecnica'); await esp(900);
   await pgF.getByRole('button', { name: /^Acolhidos/ }).filter({ visible: true }).first().click(); await esp(900);
   await pgF.locator('.pessoa-cartao').filter({ hasText: 'Alice' }).first().click(); await esp(1200);
-  await pgF.getByRole('tab', { name: 'Vida na casa' }).click(); await esp(1000);
-  cobrar('a Vida na casa mostra as fotos de outras vivências em que a Alice foi marcada',
+  await pgF.getByRole('tab', { name: 'Geral' }).click(); await esp(1000);
+  cobrar('a Geral mostra as fotos de outras vivências em que a Alice foi marcada',
     /Fotos em que Alice aparece · [1-9]/i.test(await pgF.locator('main.conteudo').innerText()));
-  await pgF.getByRole('button', { name: /Dossiê e vivências/ }).click(); await esp(1200);
+  await pgF.getByRole('button', { name: /Dossiê: documentos e vivências/ }).click(); await esp(1200);
   await pgF.getByRole('tab', { name: /Vivências|Álbum/ }).first().click().catch(() => {}); await esp(900);
   cobrar('o álbum lista as miniaturas', await pgF.locator('.miniatura img').count() > 0);
   await pgF.getByRole('button', { name: /Ver a foto/ }).first().click(); await esp(900);
@@ -4382,9 +4382,20 @@ console.log('\n🖍️ O atendimento da equipe técnica, com o desenho (fase 218
   await pgP.getByRole('tab', { name: /Família e visitas/ }).click(); await esp(900);
   cobrar('a Família traz os números da convivência',
     /A convivência de Alice em números/i.test(await pgP.locator('main.conteudo').innerText()));
-  await pgP.getByRole('tab', { name: /Vida na casa/ }).click(); await esp(900);
-  cobrar('a Vida na casa traz os números dela',
-    /A vida de Alice na casa em números/i.test(await pgP.locator('main.conteudo').innerText()));
+  await pgP.getByRole('tab', { name: /^Geral/ }).click(); await esp(900);
+  cobrar('a vida na casa entrou na Geral, com os números dela (pedido de 20/10)',
+    /A vida de Alice na casa em números/i.test(await pgP.locator('main.conteudo').innerText())
+    && await pgP.getByRole('tab', { name: /Vida na casa/ }).count() === 0);
+  await pgP.getByRole('tab', { name: /^Documentos/ }).click(); await esp(900);
+  {
+    /* A aba Documentos abre nos documentos: o dossiê e a lista vêm antes do histórico. */
+    const dossie = await pgP.getByRole('button', { name: /Dossiê: documentos e vivências/ }).boundingBox();
+    const lista = await pgP.locator('#perfil-documentos').boundingBox();
+    const quem = await pgP.getByText(/Quem mexeu/i).first().boundingBox().catch(() => null);
+    cobrar('a aba Documentos abre no dossiê e na lista dos documentos, antes de quem mexeu',
+      !!dossie && !!lista && dossie.y < lista.y && (!quem || lista.y < quem.y),
+      JSON.stringify({ dossie: dossie?.y, lista: lista?.y, quem: quem?.y }));
+  }
   cobrar('nenhuma exceção no perfil reorganizado', errosP.length === 0, errosP[0]);
   await pgP.close();
 }

@@ -892,9 +892,11 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
         * alcança. Sem este bloco, a fase 58 tinha criado uma tabela que só a
         * API sabia preencher.
         */}
-      {aba === 'vida' && <VidaNaCasa perfil={p} numeros={numeros} />}
-      {aba === 'vida' && <FotosEmQueAparece personId={p.id} nome={p.nome} />}
-      {aba === 'vida' && <Conquistas perfil={p} papel={papel} />}
+      {/* A VIDA NA CASA entrou na Geral (pedido de 20/10): o aniversário, as
+          conquistas e as fotos são de quem ela é, e não de uma aba à parte. */}
+      {aba === 'geral' && <VidaNaCasa perfil={p} numeros={numeros} />}
+      {aba === 'geral' && <FotosEmQueAparece personId={p.id} nome={p.nome} />}
+      {aba === 'geral' && <Conquistas perfil={p} papel={papel} />}
 
       {/*
         * QUEM APARECE POR ESTA CRIANÇA.
@@ -970,13 +972,40 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
         */}
       {aba === 'judiciario' && <OficiosDoAcolhido personId={p.id} />}
 
-      {aba === 'cadastro' && <AuditoriaDoAcolhido personId={p.id} papel={papel} />}
-
-      {/* A pasta da criança: o que a casa precisa ter, e o álbum dela. */}
-      {(aba === 'vida' || aba === 'cadastro') && (
+      {/* OS DOCUMENTOS PRIMEIRO (pedido de 20/10: "tive que procurar onde ficam os
+          documentos"). A aba se chamava Cadastro e abria no histórico de quem mexeu;
+          agora se chama Documentos e abre no dossiê e na lista. O dossiê também fica
+          na Geral, junto das fotos e vivências. */}
+      {(aba === 'geral' || aba === 'documentos') && (
         <button data-acolhe-entra="" className="btn sec block" style={{ marginBottom: 12 }} onClick={() => setDossie(true)}>
-          <Icone nome="pasta" /> Dossiê e vivências
+          <Icone nome="pasta" /> Dossiê: documentos e vivências
         </button>
+      )}
+      {aba === 'documentos' && (
+      <Secao titulo={`Os documentos de ${p.nome}`} id="perfil-documentos">
+        {p.documentos.length === 0 && p.documentosRestritos === 0 && (
+          <p className="mutetxt" style={{ margin: 0 }}>Nenhum documento cadastrado.</p>
+        )}
+        <ul className="lista">
+          {p.documentos.map((d) => (
+            <li key={d.id}>
+              <b className="ff">{d.title}</b>
+              <div className="mutetxt">
+                {CATEGORIA[d.category] ?? d.category}
+                {d.valid_until ? ` · vence em ${dia(d.valid_until)}` : ''}
+              </div>
+            </li>
+          ))}
+        </ul>
+        {/* Contagem, não conteúdo: esconder que existem faria a equipe
+            procurar num lugar sem proteção nenhuma. */}
+        {p.documentosRestritos > 0 && (
+          <p className="mutetxt" style={{ marginBottom: 0 }}>
+            Mais {p.documentosRestritos} documento(s) em área restrita ao seu cargo. Estão guardados,
+            e quem os consulta é a equipe técnica.
+          </p>
+        )}
+      </Secao>
       )}
 
       {/*
@@ -987,7 +1016,7 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
         * saída de quem usa é RECADASTRAR — e aí existem duas crianças, o
         * histórico parte em dois, e é isso que a audiência pergunta.
         */}
-      {aba === 'cadastro' && QUEM_CADASTRA.includes(papel) && (
+      {aba === 'documentos' && QUEM_CADASTRA.includes(papel) && (
         <button className="btn ghost block" style={{ marginBottom: 12 }}
                 onClick={() => setCorrigindo(true)}>
           <Icone nome="escrever" /> Corrigir o cadastro
@@ -1005,7 +1034,7 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
         * escrever "atualização" no campo de motivo mil vezes, e aí o motivo
         * deixa de ser lido justamente quando importa.
         */}
-      {(aba === 'cadastro' || aba === 'educacao') && QUEM_CADASTRA.includes(papel) && (
+      {(aba === 'documentos' || aba === 'educacao') && QUEM_CADASTRA.includes(papel) && (
         <button data-acolhe-abre="" className="btn ghost block" style={{ marginBottom: 12 }}
                 onClick={() => setEditandoDetalhe(true)}>
           <Icone nome="escrever" /> Atualizar escola, cuidados e equipe
@@ -1014,7 +1043,7 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
 
       {/* O histórico fica À VISTA de quem cuida: "por que o nome dela mudou em
           março?" é pergunta do caso, não de auditoria. */}
-      {aba === 'cadastro' && correcoes.length > 0 && (
+      {aba === 'documentos' && correcoes.length > 0 && (
         <div className="card" style={{ marginBottom: 12 }}>
           <div className="eyebrow" style={{ marginTop: 0 }}>
             Correções de cadastro · {correcoes.length}
@@ -1040,7 +1069,7 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
         * o cuidado essencial que a técnica reescreveu hoje de manhã, e ele
         * precisa poder ver que mudou — e o que dizia antes — sem perguntar.
         */}
-      {aba === 'cadastro' && alteracoes.length > 0 && (
+      {aba === 'documentos' && alteracoes.length > 0 && (
         <div className="card" style={{ marginBottom: 12 }}>
           <div className="eyebrow" style={{ marginTop: 0 }}>
             O que mudou no perfil · {alteracoes.length}
@@ -1058,6 +1087,10 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
           </ul>
         </div>
       )}
+
+      {/* Quem mexeu no registro desta criança (fase 112): fica no fim dos
+          Documentos, depois do que a casa precisa ter à mão. */}
+      {aba === 'documentos' && <AuditoriaDoAcolhido personId={p.id} papel={papel} />}
 
       {aba === 'saude' && numeros && <NumerosDaSaude numeros={numeros} nome={p.nome} />}
       {aba === 'saude' && (
@@ -1190,7 +1223,7 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
 
       {/* As observações só chegam a quem pode escrevê-las: o servidor nem as
           devolve para os outros cargos (§6.2). */}
-      {aba === 'cadastro' && p.observacoes !== undefined && (
+      {aba === 'documentos' && p.observacoes !== undefined && (
         <Secao titulo="Observações">
           {p.observacoes
             ? <p className="bloco" style={{ marginTop: 0 }}>{p.observacoes}</p>
@@ -1198,32 +1231,6 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
         </Secao>
       )}
 
-      {aba === 'cadastro' && (
-      <Secao titulo="Documentos" id="perfil-documentos">
-        {p.documentos.length === 0 && p.documentosRestritos === 0 && (
-          <p className="mutetxt" style={{ margin: 0 }}>Nenhum documento cadastrado.</p>
-        )}
-        <ul className="lista">
-          {p.documentos.map((d) => (
-            <li key={d.id}>
-              <b className="ff">{d.title}</b>
-              <div className="mutetxt">
-                {CATEGORIA[d.category] ?? d.category}
-                {d.valid_until ? ` · vence em ${dia(d.valid_until)}` : ''}
-              </div>
-            </li>
-          ))}
-        </ul>
-        {/* Contagem, não conteúdo: esconder que existem faria a equipe
-            procurar num lugar sem proteção nenhuma. */}
-        {p.documentosRestritos > 0 && (
-          <p className="mutetxt" style={{ marginBottom: 0 }}>
-            Mais {p.documentosRestritos} documento(s) em área restrita ao seu cargo. Estão guardados,
-            e quem os consulta é a equipe técnica.
-          </p>
-        )}
-      </Secao>
-      )}
 
       {/* A ÁREA RESTRITA. Não abre junto com o perfil: exige o toque, e o
           toque fica registrado com o nome de quem deu (§13.1, §20). */}
@@ -1436,7 +1443,7 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
         * — nada disso é apagamento, e é isso que a tela diz antes de pedir a
         * confirmação.
         */}
-      {aba === 'cadastro' && REGISTRA_SAIDA.includes(papel) && (
+      {aba === 'documentos' && REGISTRA_SAIDA.includes(papel) && (
         <Secao titulo="Saída da casa">
           <p className="mutetxt" style={{ marginTop: 0 }}>
             Registrar a saída encerra o acolhimento nesta casa. O perfil <b>não é
@@ -1551,7 +1558,7 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
           }} />
       )}
 
-      {aba === 'vida' && p.memorias.length > 0 && (
+      {aba === 'geral' && p.memorias.length > 0 && (
         <Secao titulo="Memórias">
           <ul className="lista">
             {p.memorias.map((m) => (
@@ -1760,7 +1767,7 @@ function CompromissosDoAcolhido({ houseId, personId, nome }: { houseId: string; 
  * nunca numa pílula, e o nome da aba vem sempre escrito.
  */
 type AbaDoPerfil = 'geral' | 'familia' | 'saude' | 'rotina' | 'educacao' | 'atendimentos'
-  | 'judiciario' | 'vida' | 'cadastro';
+  | 'judiciario' | 'documentos';
 const ABAS_DO_PERFIL: { id: AbaDoPerfil; rotulo: string; icone: string }[] = [
   { id: 'geral', rotulo: 'Geral', icone: 'identidade' },
   { id: 'familia', rotulo: 'Família e visitas', icone: 'casas' },
@@ -1769,8 +1776,7 @@ const ABAS_DO_PERFIL: { id: AbaDoPerfil; rotulo: string; icone: string }[] = [
   { id: 'educacao', rotulo: 'Educação', icone: 'formatura' },
   { id: 'atendimentos', rotulo: 'Atendimentos', icone: 'ouvir' },
   { id: 'judiciario', rotulo: 'Judiciário', icone: 'instituicao' },
-  { id: 'vida', rotulo: 'Vida na casa', icone: 'conquista' },
-  { id: 'cadastro', rotulo: 'Cadastro', icone: 'documento' },
+  { id: 'documentos', rotulo: 'Documentos', icone: 'documento' },
 ];
 function AbasDoPerfil({ aba, onAba, leAtendimento }: {
   aba: AbaDoPerfil; onAba: (a: AbaDoPerfil) => void; leAtendimento: boolean;
@@ -2034,7 +2040,7 @@ function VidaNaCasa({ perfil, numeros }: { perfil: Perfil; numeros: NumerosDaCri
           </p>
         )}
         <p className="mutetxt" style={{ margin: 0 }}>
-          As fotos e as memórias de {perfil.nome} ficam no dossiê e vivências, logo abaixo.
+          As fotos e as memórias de {perfil.nome} ficam no dossiê, logo abaixo.
         </p>
       </Secao>
     </>

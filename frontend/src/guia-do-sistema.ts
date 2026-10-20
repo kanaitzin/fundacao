@@ -48,7 +48,7 @@ export const COM_A_ACOLHE: Record<string, string> = {
   metricas: 'Ela lê os números das casas e monta tabela com as contas feitas, que você baixa como planilha. Casa não se compara com casa: ela mostra cada uma no seu contexto.',
   dia: 'Ela lê o dia da casa e diz o que ainda espera alguém. Para o que apareceu agora no turno, abre o formulário de atividade urgente e preenche com você.',
   chamada: 'Ela abre uma chamada nova da casa e preenche o formulário com você. Quem marca a presença é você, criança por criança.',
-  acolhidos: 'Ela acha a criança pelo nome, abre o perfil e a aba do assunto, e abre o formulário que você pedir (alergia, contato, conquista, atendimento, escola). Também cadastra a chegada de uma criança com você.',
+  acolhidos: 'Ela acha a criança pelo nome, abre o perfil e a aba do assunto (pedir um documento abre a aba Documentos e o dossiê), e abre o formulário que você pedir (alergia, contato, conquista, atendimento, escola). Também cadastra a chegada de uma criança com você.',
   passagem: 'Ela redige com você o complemento da passagem, a partir do que você contar, e mostra o rascunho para você conferir. A assinatura é sempre sua.',
   unidades: 'Ela lê o dia das unidades que você acompanha e conta o que ainda espera alguém, casa por casa.',
   plantao: 'Ela diz quem está em cada atividade agora e o que ficou para o próximo turno.',
@@ -95,7 +95,7 @@ export const CURTA_DO_TURNO: Record<string, string> = {
 /** As abas do perfil da criança, na ordem em que aparecem. */
 export const ABAS_DO_PERFIL_NO_GUIA: { id: string; titulo: string; texto: string; quem?: string }[] = [
   { id: 'geral', titulo: 'Geral',
-    texto: 'A primeira aba: idade, casa, há quanto tempo está no acolhimento, escola, a equipe de referência, a família, os cuidados essenciais, os próximos compromissos e a identificação. O PIA aparece para a equipe técnica.' },
+    texto: 'A primeira aba: idade, casa, há quanto tempo está no acolhimento, escola, a equipe de referência, a família, os cuidados essenciais, os próximos compromissos e a identificação. Embaixo, a vida na casa: aniversário, conquistas, fotos (com quem aparece em cada uma) e memórias, e o botão do dossiê. O PIA aparece para a equipe técnica.' },
   { id: 'familia', titulo: 'Família e visitas',
     texto: 'Os contatos da família, as visitas com o relatório, as saídas, a convivência familiar e os números da convivência. O contato se corrige com o motivo, e o de antes fica guardado.' },
   { id: 'saude', titulo: 'Saúde',
@@ -110,10 +110,8 @@ export const ABAS_DO_PERFIL_NO_GUIA: { id: string; titulo: string; texto: string
   { id: 'judiciario', titulo: 'Judiciário',
     texto: 'Como a criança chegou, a área restrita com os documentos que a equipe técnica guarda ali (a guia, as decisões, o relatório de acolhimento) e os ofícios.',
     quem: 'A área restrita abre para a equipe técnica e a coordenação.' },
-  { id: 'vida', titulo: 'Vida na casa',
-    texto: 'Aniversário, conquistas, memórias e fotos (com quem aparece em cada uma), o que ela contou e os números da vida na casa.' },
-  { id: 'cadastro', titulo: 'Cadastro',
-    texto: 'Os documentos, as correções e quem mexeu no perfil, com data e nome.' },
+  { id: 'documentos', titulo: 'Documentos',
+    texto: 'Começa pelo dossiê (certidão, RG, carteira de vacina, receitas, laudos, PIA, cada um com a validade e o que falta) e pela lista dos documentos da criança. Depois, corrigir e atualizar o cadastro, as correções feitas e quem mexeu no perfil, com data e nome.' },
 ];
 
 /** O alto do perfil, que vem antes das abas. */
@@ -140,6 +138,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 232, dia: '20/10/2026', aba: 'acolhidos',
+    texto: 'No perfil da criança, a Vida na casa entrou na aba Geral, e a aba Cadastro virou Documentos: abre no dossiê e na lista dos documentos, e o histórico de quem mexeu fica no fim.' },
   { fase: 231, dia: '20/10/2026', aba: 'guia',
     texto: 'Chegou este Guia: cada tela que você alcança, o que você faz nela e o que a Acolhe+AI faz junto, as abas do perfil da criança e as novidades de cada atualização.' },
   { fase: 230, dia: '19/10/2026',
