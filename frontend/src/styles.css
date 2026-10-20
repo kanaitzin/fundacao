@@ -2241,3 +2241,36 @@ button.cal-turno:focus-visible{ outline:3px solid var(--brand); outline-offset:1
   text-decoration:underline; text-underline-offset:2px; cursor:pointer;
 }
 .explica-mais:hover{ color:var(--ink) }
+
+/* O GUIA DO SISTEMA (fase 231). */
+@media (min-width:1080px){
+  .portas-lateral.portas-comeco{ margin:0 0 10px }
+}
+.guia-indice{ display:flex; flex-wrap:wrap; gap:4px 14px; margin:12px 0 4px }
+.guia-link{
+  display:inline-flex; align-items:center; min-height:32px; padding:0 2px;
+  border:0; background:transparent; color:var(--brand-ink, var(--ink)); font:inherit; font-weight:700;
+  text-decoration:underline; text-underline-offset:3px; cursor:pointer;
+}
+.guia-secao{ margin-top:22px; scroll-margin-top:16px }
+.guia-secao > h3{ margin:0 0 10px; font-size:18px; color:var(--titulo, var(--ink)) }
+.guia-secao p{ margin:6px 0; line-height:1.5; max-width:72ch }
+.guia-grupo{ margin-top:14px }
+.guia-tela{ margin:8px 0 }
+.guia-tela{ padding:0 }
+.guia-tela > summary{
+  display:flex; align-items:center; gap:12px; min-height:52px; padding:10px 14px;
+  cursor:pointer; list-style:none;
+}
+.guia-tela > summary::-webkit-details-marker{ display:none }
+.guia-tela > summary::after{ content:"+"; margin-left:auto; font-weight:700; color:var(--muted) }
+.guia-tela[open] > summary::after{ content:"−" }
+.guia-tela > summary .icone{ flex:none; color:var(--brand) }
+.guia-nome{ display:flex; flex-direction:column; min-width:0 }
+.guia-nome small{ color:var(--muted); font-size:13px; line-height:1.35 }
+.guia-tela > p, .guia-tela > .guia-abrir{ margin:0 14px 10px }
+.guia-tela[open] > summary{ border-bottom:1px solid var(--line); margin-bottom:10px }
+.guia-novidades, .guia-abas{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px }
+.guia-novidades li{ display:flex; gap:12px; align-items:baseline; flex-wrap:wrap; max-width:80ch }
+.guia-dia{ flex:none; font-weight:700; color:var(--muted); font-variant-numeric:tabular-nums }
+.guia-abas li{ padding:8px 12px; border-left:4px solid var(--aba, var(--line)); background:var(--surface); border-radius:8px; line-height:1.5 }

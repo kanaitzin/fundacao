@@ -49,7 +49,7 @@
   196 também dentro do perfil da criança (*quero registrar a alergia do Bruno*), do dossiê, da
   internação aberta e do acervo: os 36 formulários do sistema. **Para o DPO:**
   o ditado usa o reconhecimento do navegador; no Chrome, o áudio vai ao Google.
-- **215 fases.** 150 suítes e 1324 testes, verdes em duas condições de relógio —
+- **215 fases.** 151 suítes e 1330 testes, verdes em duas condições de relógio —
   antes e depois da virada do UTC, que em Porto Alegre é às 21h.
 - **O aviso no celular** (fase 189, decidido em 06/10): quem liga na Minha conta
   recebe no celular todos os avisos do sino, mesmo com o sistema fechado. Na
@@ -676,6 +676,19 @@ vista. Ficam três saídas, se a equipe ainda achar a tela cheia depois de usar:
 
 **O que vale perguntar à equipe da Casa 03 no roteiro:** a explicação recolhida ajudou, ou
 alguém deixou de achar o que precisava?
+
+## 4.31 O Guia do sistema (fase 231, pedido de 19/10)
+
+O Guia é o primeiro item do menu: cada tela explicada, com o botão que abre a tela, o que cada
+cargo faz nela e o que a Acolhe+AI faz junto, as abas do perfil da criança e as novidades de
+cada atualização. Daqui em diante, toda atualização põe a linha dela nas Novidades. Ficam duas
+perguntas:
+
+1. **A portaria fica sem o Guia.** Ela tem uma tela só, sem barra de menu, e o Guia seria a
+   segunda porta dela. Se for útil para quem fica no portão, ele entra com um botão dentro da
+   própria Portaria.
+2. **O texto do Guia é para a equipe ler.** Vale a coordenação da Casa 03 ler uma vez com o
+   roteiro na mão e dizer o que ficou difícil de entender.
 
 ## 5. As decisões que são do Marcelo *(§10 — responda pelo número)*
 

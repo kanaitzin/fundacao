@@ -87,6 +87,7 @@ export const AREAS = {
   metricas: 'As oito casas, em números',
   casas: 'Unidades',
   sugestoes: 'Sugestões de melhoria',
+  guia: 'Guia do sistema',
 } as const;
 
 /**
@@ -704,6 +705,18 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
     ],
   },
 ];
+
+/*
+ * O GUIA DO SISTEMA (fase 231) é de todo cargo que tem menu, e por isso entra
+ * aqui de uma vez, e não cargo por cargo: uma tela de ajuda que um cargo
+ * esquecesse de listar ficaria sem porta. A portaria fica de fora: ela tem uma
+ * tela só, sem barra, e o Guia seria a segunda porta da barra dela.
+ */
+for (const a of ALCANCE_POR_CARGO) {
+  if (a.cargo === 'portaria') continue;
+  a.areas.unshift({ area: 'guia', titulo: AREAS.guia,
+    faz: 'Lê como cada tela funciona, o que o seu cargo faz em cada uma e o que a Acolhe+AI faz junto, com o link para abrir a tela.' });
+}
 
 /*
  * A ADMINISTRAÇÃO TÉCNICA existia aqui e saiu em 01/09/2026 (migração 0770).

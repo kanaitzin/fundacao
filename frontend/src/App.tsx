@@ -44,6 +44,7 @@ import { Arquivo } from './screens/Arquivo';
 import { Rotina } from './screens/Rotina';
 import { Escala } from './screens/Escala';
 import { Setores } from './screens/Setores';
+import { Guia } from './screens/Guia';
 import { Cozinha } from './screens/Cozinha';
 import { Portaria } from './screens/Portaria';
 import { CamposDoPerfil } from './screens/CamposDoPerfil';
@@ -71,7 +72,7 @@ const KIND_TONE: Record<string, string> = { casa_lar: 'c-move', abrigo_instituci
 /** As telas que não são do turno; a aba "Mais" fica acesa quando uma delas está aberta. */
 const OUTRAS = new Set(['agenda', 'equipe', 'casas', 'saude', 'internacao', 'impacto', 'ocorrencias', 'ata',
   'cofre', 'transferencias', 'acompanhamentos', 'arquivo', 'setores', 'unidades', 'plantao', 'trabalho', 'periodo', 'metricas',
-  'rotina', 'escala', 'alinhamentos', 'painel', 'sincronizacao', 'implantacao', 'sugestoes']);
+  'rotina', 'escala', 'alinhamentos', 'painel', 'sincronizacao', 'implantacao', 'sugestoes', 'guia']);
 /* O sino é de todo mundo: não há cargo que não receba escalonamento. */
 
 
@@ -348,7 +349,7 @@ export function App() {
     | 'acompanhamentos' | 'arquivo' | 'plantao' | 'unidades' | 'setores' | 'cozinha' | 'portaria' | 'campos_do_perfil'
     | 'trabalho' | 'periodo' | 'metricas'
     | 'alinhamentos' | 'painel' | 'sincronizacao' | 'implantacao' | 'sugestoes'
-    | 'rotina' | 'escala' | 'avisos' | null>(null);
+    | 'rotina' | 'escala' | 'avisos' | 'guia' | null>(null);
   /* Vale para UMA abertura: saindo dos Acolhidos, a escolha some. Sem isto,
      voltar à aba reabria a criança buscada antes, em vez da lista. */
   useEffect(() => { if (aba !== 'acolhidos') setAbrirCrianca(null); }, [aba]);
@@ -802,6 +803,19 @@ export function App() {
             <small>{casa ? `${casa.code} · ${casa.name}` : 'Escopo institucional'}</small>
           </div>
         </div>
+        {/* O Guia vem primeiro, antes das abas do turno (fase 231). No celular
+            ele é a primeira porta da folha Mais. */}
+        {PORTAS.some((porta) => porta.grupo === 'comeco' && ve(porta.aba)) && (
+          <nav className="portas-lateral portas-comeco" aria-label="Comece aqui">
+            {PORTAS.filter((porta) => porta.grupo === 'comeco' && ve(porta.aba)).map((porta) => (
+              <button key={porta.aba} className={aba === porta.aba ? 'on' : ''}
+                      title={porta.descricao}
+                      onClick={() => tocarAba(porta.aba)}>
+                <Icone nome={porta.icone} /> <span className="rotulo">{porta.titulo}</span>
+              </button>
+            ))}
+          </nav>
+        )}
         <nav className="tabbar" aria-label="Seções">
           {abasDoTurno.map((t) => (
             <button key={t.aba} className={abaEfetiva === t.aba ? 'on' : ''}
@@ -823,6 +837,7 @@ export function App() {
           */}
         <nav className="portas-lateral" aria-label="Todas as telas">
           {GRUPOS.map((grupo) => {
+            if (grupo.cod === 'comeco') return null;
             const dele = PORTAS.filter((porta) => porta.grupo === grupo.cod && ve(porta.aba));
             if (!dele.length) return null;
             return (
@@ -1019,6 +1034,10 @@ export function App() {
         )}
 
         {abaEfetiva === 'implantacao' && ve('implantacao') && <Implantacao />}
+        {abaEfetiva === 'guia' && ve('guia') && (
+          <Guia papel={me.role} todasAsCasas={!!me.todasAsCasas} doTurno={abasDoTurno} ve={ve}
+                irPara={(destino) => { setAba(destino as typeof aba); setMais(false); window.scrollTo(0, 0); }} />
+        )}
         {abaEfetiva === 'sugestoes' && ve('sugestoes') && (
           <Sugestoes houseId={casaAtual?.id ?? null} casaLabel={casaAtual ? `${casaAtual.code} · ${casaAtual.name}` : ''}
                      todas={me.role !== 'coordenador' || !!me.todasAsCasas} />

@@ -25,13 +25,15 @@ export interface Porta {
   aba: string;
   /** Nome em `icones.tsx`. Sem desenho, a porta aparece só com a palavra. */
   icone: string;
-  grupo: 'cotidiano' | 'registro' | 'gestao' | 'sistema';
+  grupo: 'comeco' | 'cotidiano' | 'registro' | 'gestao' | 'sistema';
   titulo: string;
   descricao: string;
 }
 
 /** Como cada grupo se chama na barra lateral. */
 export const GRUPOS: { cod: Porta['grupo']; titulo: string }[] = [
+  /* O Guia vem antes de tudo, inclusive das abas do turno (fase 231). */
+  { cod: 'comeco', titulo: 'Comece aqui' },
   { cod: 'cotidiano', titulo: 'O dia a dia' },
   { cod: 'registro', titulo: 'Registro e cuidado' },
   { cod: 'gestao', titulo: 'Equipe e gestão' },
@@ -40,6 +42,9 @@ export const GRUPOS: { cod: Porta['grupo']; titulo: string }[] = [
 
 /** A ordem é a que a equipe já conhece — a da folha "Mais" de hoje. */
 export const PORTAS: Porta[] = [
+  { aba: 'guia', icone: 'livros', grupo: 'comeco',
+    titulo: 'Guia do sistema',
+    descricao: 'Cada tela explicada, com o link para abrir, e o que a Acolhe+AI faz em cada uma.' },
   { aba: 'unidades', icone: 'linha_do_dia', grupo: 'cotidiano',
     titulo: 'O dia, em ordem',
     descricao: 'Todas as unidades que você acompanha, das 00h às 23h59.' },

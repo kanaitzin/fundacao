@@ -4420,6 +4420,52 @@ console.log('\n📖 A explicação recolhida, com o Como funciona (fase 230)');
   await pgX.close();
 }
 
+console.log('\n🧭 O Guia do sistema (fase 231)');
+{
+  const pgG = await navegador.newPage({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  const errosG = [];
+  pgG.on('pageerror', (e) => errosG.push(e.message));
+  const esp = (ms = 800) => pgG.waitForTimeout(ms);
+  await pgG.goto(`file://${ARQUIVO}`); await esp(700);
+  await pgG.getByRole('button', { name: 'Marcelo Barbosa', exact: true }).click();
+  await pgG.getByRole('button', { name: /Entrar no sistema/i }).click(); await esp(1200);
+  cargoAtual = 'educador';
+  await pgG.locator('select.troca-cargo-sel').selectOption('educador'); await esp(900);
+  await pgG.locator('nav.tabbar button', { hasText: 'Mais' }).first().click(); await esp(400);
+  cobrar('o Guia é a primeira porta do Mais',
+    (await pgG.locator('.overlay .sheet button.card.row b.ff').first().innerText()).trim() === 'Guia do sistema');
+  await pgG.locator('.overlay .sheet button.card.row').first().click(); await esp(900);
+  const guia = await pgG.locator('main.conteudo').innerText();
+  cobrar('o Guia diz o cargo e traz as novidades', /como Educador/i.test(guia) && /Novidades/.test(guia), guia.slice(0, 200));
+  cobrar('o educador vê no Guia só as telas dele',
+    /Chamada/.test(guia) && !/Painel das unidades/.test(guia) && !/Cofre de acessos/.test(guia));
+  cobrar('a aba Atendimentos do perfil não aparece para o educador', !/Atendimentos\. O relatório/.test(guia));
+  await pgG.locator('.guia-tela summary', { hasText: 'Agenda' }).click(); await esp(300);
+  const aberta = await pgG.locator('.guia-tela[open]').innerText();
+  cobrar('uma tela aberta diz o que o cargo faz e o que a Acolhe+AI faz',
+    /O que você faz aqui/.test(aberta) && /Com a Acolhe\+AI/.test(aberta), aberta.slice(0, 200));
+  await pgG.locator('.guia-tela[open] .guia-abrir').click(); await esp(900);
+  cobrar('o botão da tela leva até ela', await pgG.locator('main.conteudo').getAttribute('data-tela') === 'agenda');
+  await pgG.locator('nav.tabbar button', { hasText: 'Mais' }).first().click(); await esp(400);
+  await pgG.locator('.overlay .sheet button.card.row').first().click(); await esp(900);
+  await pgG.locator('#guia-busca').fill('passagem'); await esp(300);
+  const achadas = await pgG.locator('.guia-tela[open] summary b').allInnerTexts();
+  cobrar('a busca acha a tela e já a mostra aberta', achadas.includes('Passagem'), achadas.join(', '));
+  cargoAtual = 'coordenador';
+  await pgG.locator('select.troca-cargo-sel').selectOption('coordenador'); await esp(900);
+  await pgG.locator('nav.tabbar button', { hasText: 'Mais' }).first().click(); await esp(400);
+  await pgG.locator('.overlay .sheet button.card.row').first().click(); await esp(900);
+  const daCoord = await pgG.locator('main.conteudo').innerText();
+  cobrar('a coordenação vê no Guia a Equipe e a aba Atendimentos', /Equipe/.test(daCoord) && /Atendimentos\. O relatório/.test(daCoord));
+  cargoAtual = 'portaria';
+  await pgG.locator('select.troca-cargo-sel').selectOption('portaria'); await esp(900);
+  cobrar('a portaria continua com uma tela só, sem o Guia',
+    await pgG.locator('main.conteudo').getAttribute('data-tela') === 'portaria'
+    && await pgG.locator('nav.tabbar').count() === 0);
+  cobrar('nenhuma exceção no Guia', errosG.length === 0, errosG[0]);
+  await pgG.close();
+}
+
 await navegador.close();
 console.log(achados.length
   ? `\n${achados.length} ACHADO(S):\n  ${achados.join('\n  ')}`
