@@ -1,8 +1,151 @@
 # PARA A REUNIÃO — o que falta, e o que eu preciso perguntar
 
 > Gerado em 13/09/2026 na fase 104, revisto em 15/09 na fase 120, em 19/09 na
-> fase 126 e em **20/09**, quando quatro perguntas foram respondidas de uma vez
-> (§4.5 e §5).
+> fase 126, em **20/09**, quando quatro perguntas foram respondidas de uma vez
+> (§4.5 e §5), e em **21/10**, depois da fase 232, com a pauta do §0.
+
+---
+
+## 0. A pauta de 21/10, para a conversa com o Marcelo
+
+> Refeita em 21/10, depois da fase 232, conferindo cada item do resto deste documento, do §10,
+> do §11 e do §12.0 contra o código. **O código do piloto está pronto.** O que separa o sistema
+> da Casa 03 agora são as respostas abaixo, documentos de papel e pessoas. O resto deste
+> arquivo é o histórico das perguntas; esta seção é a que se leva para a mesa.
+
+### Se só der tempo para cinco
+
+1. **Onde o sistema roda.** O servidor próprio do Pão está decidido (14/10). Falta saber
+   que máquina é, quem da TI cuida dela, o endereço (por exemplo `rede.paodospobres.com.br`)
+   e quem emite o certificado. Sem isso nenhum passo da instalação começa (§12.0, etapa 1).
+2. **O e-mail institucional.** Qual é o provedor do `paodospobres.com.br`, qual endereço
+   manda os convites, quem mexe no DNS, e se cada pessoa da Casa 03 tem e-mail próprio.
+   Sem e-mail não há primeiro acesso nem *esqueci minha senha* (§12.8).
+3. **Quem é o encarregado da LGPD (o DPO).** Seis assuntos estão esperando por ele (bloco C
+   abaixo), e a regra da casa é que dado real só entra depois disso.
+4. **A folha real de administração de medicamentos**, a de papel que a Casa 03 usa hoje. É o
+   único módulo desenhado pelo documento e não pelo papel, e é onde o erro custa mais.
+5. **As datas e as pessoas**: quem da Casa 03 faz o roteiro, quando começa o treino e quando
+   começa o piloto de quatro semanas.
+
+### A. Para ir ao ar: perguntas para o Gestor Geral e a TI
+
+| # | Pergunta | Onde está |
+|---|---|---|
+| A1 | A máquina: sistema operacional, memória, disco, se fica ligada o tempo todo, e quem tem acesso a ela | §12.0, etapa 2 |
+| A2 | O endereço na internet, o certificado (HTTPS) e se o servidor é alcançado de fora do prédio. **Sem HTTPS a câmera, o microfone e o aviso no celular não funcionam** | §12.9, §12.11 |
+| A3 | Os **dois discos espelhados** (RAID 1) no servidor. Se não houver, é a compra mais importante | §12.4.1, §4.25 |
+| A4 | **Onde fica a cópia fora do prédio** (outro prédio do Pão ou nuvem da Fundação), e quem roda o ensaio de restauração uma vez por mês | §12.4.1, §4.25 |
+| A5 | O e-mail: provedor, remetente (uma conta ou apelido que não seja de ninguém), quem administra o DNS (SPF, DKIM, DMARC), e se a equipe abre e-mail no celular ou só no computador | §12.8 |
+| A6 | A **conta do relógio**: uma conta de serviço, e não de pessoa, para o que o sistema gera sozinho (as doses do dia às 5h, os avisos). E quem recebe o aviso quando ele falha | §12.7 |
+| A7 | Um **lugar à parte para o treino**, com o banco de demonstração das oito casas fictícias, separado do de produção | §12.0, etapa 3 |
+| A8 | **A Acolhe+AI com a chave:** liga no piloto? Quem abre a conta na Anthropic, quem paga, e qual o limite de gasto por mês. Sem a chave ela funciona como guia, sem conversar | §12.12 |
+| A9 | **O aviso no celular:** liga no piloto? Precisa de duas chaves geradas na instalação e da saída do servidor para os serviços de aviso do Google e da Apple | §12.11 |
+| A10 | **O Drive:** para o piloto basta a pasta no servidor com a cópia de segurança, ou tem de ser o Google Drive compartilhado da Fundação? O critério *o documento chega ao Drive* do piloto depende disso | §9, §13.5 |
+
+### B. Os documentos e os dados que preciso receber
+
+**Os formulários de papel que a casa usa hoje** (fotografados ou digitalizados, **com os nomes
+tapados ou em branco**: só o modelo, nunca o preenchido):
+
+1. A folha de administração de medicamentos (a prioridade).
+2. A rotina real da casa, a do dia e a da semana.
+3. O formulário de ingresso e o modelo do PIA.
+4. O modelo de passagem de plantão individual, se existir (a do sistema é uma proposta).
+5. Os formulários de ocorrência e de contenção.
+6. Um exemplo de escala 12x36, com os horários da técnica e da Enfermagem.
+7. **Os protocolos da casa** para fuga, emergência de saúde, violência, pessoa no portão
+   dizendo ser da família e telefonema da família. A Acolhe+AI responde a essas situações
+   com frases que eu escrevi (§4.17 e §4.19), e elas têm de dizer o que o protocolo diz.
+
+**Os nomes das casas** (para trocar os provisórios AI1 a AI4 e ARM1 a ARM4): o código, o nome,
+o tipo (o protótipo já disse *Acolhimento Republicano Masculino*), o público (crianças,
+adolescentes ou jovens), o endereço e o número de vagas de cada uma (§4.29).
+
+**Os dados de partida da Casa 03**, só para a implantação e só depois do bloco C:
+
+- a equipe, com nome, cargo e e-mail de cada pessoa;
+- a escala 12x36 vigente;
+- **quanto do histórico em papel entra** (só o que está valendo, ou os últimos meses também).
+  O cadastro das vinte crianças é feito pela equipe técnica, na tela, dois por dia (§13.2), e
+  não por planilha.
+
+### C. Para o DPO: o que ele precisa ver antes de o dado real entrar
+
+| # | O assunto | Onde está |
+|---|---|---|
+| C1 | Quem responde formalmente pela LGPD, **por quanto tempo se guarda cada coisa** e o que se apaga quando alguém pede | §11, item 10 |
+| C2 | A **folha da portaria** com CPF e foto 3×4 de familiares impressos, que fica na guarita, e o CPF e o RG mascarados na tela da portaria | §11, item 12; §4.9 |
+| C3 | A **Acolhe+AI**: o texto da conversa e os anexos vão à Anthropic (aprovado pela Fundação em 08/10; falta o registro) | §12.12 |
+| C4 | O **ditado**: no Chrome, o áudio vai ao Google. A tela avisa no primeiro uso | §12.12 |
+| C5 | **O sistema no celular pessoal**: o que se registra sem sinal fica guardado no aparelho sem cifra até o sinal voltar. Precisa de uma política de uso do celular pessoal, ou de aparelhos da casa | §9 |
+| C6 | O **reconhecimento de rosto nas fotos não foi feito** (é dado biométrico de criança). Se a Fundação quiser, a conversa começa por ele | §4.22 |
+
+### D. Para assinar, antes do piloto
+
+- **Os critérios do §13.5** do documento: passagem assinada, ATA fechada no dia, dose
+  confirmada na hora, o registro mais rápido que o WhatsApp, e a equipe preferindo o sistema
+  ao papel no fim das quatro semanas. Falta a Fundação dizer que são esses.
+- **Os relatórios obrigatórios** do piloto: quais a casa precisa tirar do sistema desde a
+  primeira semana (§11, item 7).
+
+### E. As pessoas
+
+- Quem da Casa 03 faz o **roteiro** (56 tarefas, `docs/roteiro-marcelo.docx`), uma pessoa de
+  cada cargo, com alguém que pede a tarefa e anota sem explicar.
+- **Duas pessoas para o teste cronometrado**: quanto tempo leva registrar uma dose, uma
+  ocorrência e uma passagem (é a condição de sucesso do piloto).
+- **Um Android e um iPhone de verdade** para as cinco tarefas da §4.27 (ditado, câmera,
+  documento, galeria, aviso), já no servidor com HTTPS.
+- Quem da coordenação lê o **Guia do sistema** uma vez e diz o que ficou difícil (§4.31).
+
+### F. As decisões de produto que continuam abertas
+
+Nenhuma trava o piloto. Cada uma é uma linha de código, e o que está entre parênteses é o que
+vale hoje.
+
+**Da rotina da casa:**
+
+1. A grade de medicação para a parede: serve como está? (sem diagnóstico, com o aviso na folha; §10, item 5)
+2. O pente-fino semanal: em que dia da semana? (ainda não existe; §4, item 3)
+3. Fralda, mamadeira e chupeta como marcadores por criança na chamada: a casa quer? (não existe; nunca por idade)
+4. O prazo de triagem da Enfermagem: 24 horas está bom? (24 horas)
+5. Travar o acesso fora do horário do plantão: liga? (desligado; ligar no piloto bloquearia trabalho legítimo; §11, item 2)
+6. O diário da internação com campos fixos: quais campos e quais obrigatórios? (texto livre por tipo)
+7. A lista de origens do remédio: compra, doação, farmácia pública, família, hospital e outro. Falta alguma? (§4.10)
+
+**De quem faz o quê:**
+
+8. O Gestor Geral muda o horário dos turnos da casa? (não, só coordenação, técnica e Líder Diurno; §4.9)
+9. Quem cria a conta da portaria? (§4.9)
+10. A Enfermagem corrige o cadastro da criança, ou só a saúde? (só a saúde; §4.5, pergunta 4)
+11. O Gestor Geral decide a saída da criança? E a portaria vê para onde ela pode ir? (o gestor não decide; a portaria vê o que vale, sem o motivo; §4.20)
+12. Quem define as chamadas da casa? (coordenação, técnica e Líder Diurno; §4.23)
+13. O educador fica sabendo que houve atendimento técnico, sem o conteúdo? (não; §4.24)
+14. O educador vê os compromissos da casa na agenda? (§3, pergunta 7)
+15. A Acolhe+AI abre algum dos formulários que ficaram de fora (remédio, relato da própria pessoa, decisão sobre a criança, contenção)? (não; §1)
+
+**Do perfil da criança:**
+
+16. As ocorrências da criança no perfil, só para técnica e coordenação? (fora do perfil; §4.18)
+17. As amizades na Vida na casa? (não existe; é registro sobre duas crianças; §4.21)
+18. A foto de identificação continua sem botão de baixar? (sem baixar; §4.5, pergunta 3)
+19. Uma segunda lista na portaria, de quem não entra, só com nome e foto? (não existe; com o DPO; §3, pergunta 6)
+20. O estatuto da casa: existe assembleia das crianças? (o estatuto é escrito pela coordenação; §3, pergunta 8)
+
+**Da tela, depois de a equipe usar:**
+
+21. A portaria ganha o Guia do sistema? (sem o Guia; §4.31)
+22. Se a tela ainda parecer cheia: o histórico recolhido, as ações num botão só, ou os avisos e ajustes juntos? (só a explicação recolhida; §4.30)
+23. A resposta da Acolhe+AI aparecendo enquanto é escrita: é a próxima melhoria que eu faria (§4.28)
+24. Quartos e camas no sistema: é útil no plantão? (não existe; §4.29)
+
+### O que já foi respondido e este documento ainda perguntava
+
+Conferido em 21/10 contra o código: o prazo do convite (continua 24 horas, 08/10), a
+Coordenação Geral receber os graves (fase 178), o PIA, a receita e a vacinação avisando antes
+(fases 178 e 191), a barra no pé e o topo compacto no celular (fase 184) e o painel do Gestor
+contando o conceito escolar (fase 137). Nada disso volta à mesa.
 
 ---
 
@@ -49,7 +192,7 @@
   196 também dentro do perfil da criança (*quero registrar a alergia do Bruno*), do dossiê, da
   internação aberta e do acervo: os 36 formulários do sistema. **Para o DPO:**
   o ditado usa o reconhecimento do navegador; no Chrome, o áudio vai ao Google.
-- **215 fases.** 151 suítes e 1330 testes, verdes em duas condições de relógio —
+- **232 fases.** 151 suítes e 1330 testes, verdes em duas condições de relógio —
   antes e depois da virada do UTC, que em Porto Alegre é às 21h.
 - **O aviso no celular** (fase 189, decidido em 06/10): quem liga na Minha conta
   recebe no celular todos os avisos do sino, mesmo com o sistema fechado. Na
@@ -122,7 +265,7 @@
   abre com a chave certa — e reprova com a errada.
 - O **protótipo** é um arquivo só, abre sem internet, e percorre 157 telas nos
   cargos, em cada um dos oito temas (1256 ao todo, com as folhas da cor e da busca), sem violação de acessibilidade. O oitavo, desde 11/10, é o **Rio Grande do Sul**, com as cores da bandeira.
-- O **roteiro do Marcelo** tem 49 tarefas, todas com porta conferida.
+- O **roteiro do Marcelo** tem 56 tarefas, todas com porta conferida.
 - **A fila de pedidos de 09/09 acabou:** os catorze estão entregues.
 
 **O que ninguém ainda fez:** aplicar o roteiro com a equipe. Nenhuma das
@@ -728,7 +871,7 @@ reunião.)*
 | 10 | **LGPD** | Quem responde, por quanto tempo se guarda, o que se apaga |
 | 11 | Critérios de aceite do piloto | A proposta está no §13; falta assinar |
 | 12 | **A folha da portaria com CPF e foto impressos** | Decisão dele de 09/09, já construída. **O DPO precisa ver antes do piloto** |
-| 13 | **O prazo do convite de primeiro acesso** | 24 horas. Com quarenta pessoas convidadas na implantação, pode ser curto — quem não abrir o e-mail no dia precisa de convite novo. Alongar é uma linha |
+| ~~13~~ | ~~**O prazo do convite de primeiro acesso**~~ | ✅ **Respondida em 08/10: continua 24 horas.** Quem não abrir o e-mail no dia recebe convite novo |
 
 ### Os seis formulários de papel que faltam
 

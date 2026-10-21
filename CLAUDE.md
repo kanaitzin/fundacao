@@ -380,6 +380,12 @@ as três cores abaixo. Cor nova passa pelo `ensaio:acessibilidade`, que mede os 
 
 ### A próxima etapa
 
+**A pauta de 21/10** (sem fase, sem código): tudo o que espera o Pão, conferido contra o código e
+posto em ordem no **PARA-A-REUNIAO §0**: as cinco perguntas que mais destravam, o que a TI precisa
+responder, os documentos de papel e os dados a receber, o que o DPO vê, o que se assina e as 24
+decisões de produto abertas. **Quando a resposta vier, ela entra lá e no §10 ou §11 do documento**, e
+o item respondido sai do §0.
+
 **FEITO — fase 232** (§2): o perfil em oito abas, com a Vida na casa no fim da Geral e a aba
 Documentos no lugar da Cadastro, abrindo no dossiê e na lista. **Quem acrescentar coisa ao
 perfil** confere a ordem dentro da aba (o `ensaio:uso` mede o dossiê e a lista antes de quem mexeu).
