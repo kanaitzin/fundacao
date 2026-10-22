@@ -119,13 +119,21 @@ export const temCameraDoSistema = () =>
   typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getUserMedia
   && (typeof window === 'undefined' || window.isSecureContext !== false);
 
-export function FolhaCamera({ podeDocumento, inicial = 'foto', onFoto, onDocumento, onFechar, onSemCamera }: {
+export function FolhaCamera({ podeDocumento, inicial = 'foto', onFoto, onDocumento, onFechar, onSemCamera,
+                             varias = 1, onFotos }: {
   podeDocumento: boolean;
   inicial?: Modo;
   onFoto: (a: Escolhido) => void;
   onDocumento: (a: Escolhido) => void;
   onFechar: () => void;
   onSemCamera: (frase: string) => void;
+  /**
+   * FOTOS EM SEQUÊNCIA, como no WhatsApp (fase 233): até quantas fotos esta
+   * câmera tira antes de fechar. Com mais de uma, o certo guarda a foto e a
+   * câmera continua aberta para a próxima; o Concluir entrega todas em `onFotos`.
+   */
+  varias?: number;
+  onFotos?: (lista: Escolhido[]) => void;
 }) {
   const video = useRef<HTMLVideoElement | null>(null);
   const fluxo = useRef<MediaStream | null>(null);
@@ -138,6 +146,8 @@ export function FolhaCamera({ podeDocumento, inicial = 'foto', onFoto, onDocumen
   const [giro, setGiro] = useState(0);
   const [realce, setRealce] = useState(true);
   const [paginas, setPaginas] = useState<Pagina[]>([]);
+  const [fotos, setFotos] = useState<Pagina[]>([]);
+  const emSequencia = varias > 1 && !!onFotos;
   const [revisao, setRevisao] = useState<Pagina | null>(null);
   const [aviso, setAviso] = useState('');
   const [ocupada, setOcupada] = useState(false);
@@ -209,6 +219,14 @@ export function FolhaCamera({ podeDocumento, inicial = 'foto', onFoto, onDocumen
 
   async function usar() {
     if (!revisao) return;
+    if (modo === 'foto' && emSequencia) {
+      const novas = [...fotos, revisao];
+      setFotos(novas);
+      if (novas.length >= varias) { concluirFotos(novas); return; }
+      setAviso(`Foto ${novas.length} guardada. Tire a próxima, ou conclua.`);
+      setCaptura(null);
+      return;
+    }
     if (modo === 'foto') {
       onFoto({ nome: nomeDoArquivo('foto', 'jpg'), tipo: 'image/jpeg', tamanho: revisao.tamanho, dataUrl: revisao.dataUrl });
       return;
@@ -236,6 +254,13 @@ export function FolhaCamera({ podeDocumento, inicial = 'foto', onFoto, onDocumen
     } finally { setOcupada(false); }
   }
 
+  function concluirFotos(lista = fotos) {
+    if (!lista.length) return;
+    desligar();
+    const base = nomeDoArquivo('foto', 'jpg').replace(/\.jpg$/, '');
+    onFotos?.(lista.map((p, i) => ({ nome: `${base}-${i + 1}.jpg`, tipo: 'image/jpeg', tamanho: p.tamanho, dataUrl: p.dataUrl })));
+  }
+
   const fechar = () => { desligar(); onFechar(); };
   const doc = modo === 'documento';
 
@@ -249,7 +274,7 @@ export function FolhaCamera({ podeDocumento, inicial = 'foto', onFoto, onDocumen
         {podeDocumento && !captura && (
           <div className="camera-modos" role="group" aria-label="O que fotografar">
             <button type="button" aria-pressed={!doc} onClick={() => setModo('foto')} disabled={paginas.length > 0}>Foto</button>
-            <button type="button" aria-pressed={doc} onClick={() => setModo('documento')}>Documento</button>
+            <button type="button" aria-pressed={doc} onClick={() => setModo('documento')} disabled={fotos.length > 0}>Documento</button>
           </div>
         )}
       </div>
@@ -276,9 +301,25 @@ export function FolhaCamera({ podeDocumento, inicial = 'foto', onFoto, onDocumen
 
       <p className="camera-aviso" role="status" aria-live="polite">
         {captura
-          ? (doc ? 'A página está legível? Use o X para refazer, ou o certo para guardar.' : 'Ficou boa? Use o X para refazer, ou o certo para usar.')
+          ? (doc ? 'A página está legível? Use o X para refazer, ou o certo para guardar.'
+            : emSequencia ? 'Ficou boa? Use o X para refazer, ou o certo para guardar e tirar a próxima.'
+              : 'Ficou boa? Use o X para refazer, ou o certo para usar.')
           : (aviso || (doc ? 'Encaixe a folha na moldura, com boa luz, e fotografe.' : ''))}
       </p>
+
+      {!doc && fotos.length > 0 && !captura && (
+        <ol className="camera-paginas" aria-label="Fotos guardadas">
+          {fotos.map((p, i) => (
+            <li key={i}>
+              <img src={p.dataUrl} alt={`Foto ${i + 1}`} />
+              <button type="button" className="camera-tirar" aria-label={`Tirar a foto ${i + 1}`}
+                      onClick={() => setFotos(fotos.filter((_, j) => j !== i))}>
+                <Icone nome="fechar" tamanho={14} />
+              </button>
+            </li>
+          ))}
+        </ol>
+      )}
 
       {doc && paginas.length > 0 && !captura && (
         <ol className="camera-paginas" aria-label="Páginas guardadas">
@@ -305,12 +346,18 @@ export function FolhaCamera({ podeDocumento, inicial = 'foto', onFoto, onDocumen
                 </button>
               )}
             </span>
-            <button type="button" className="camera-disparo" aria-label={doc ? `Fotografar a página ${paginas.length + 1}` : 'Fotografar'}
+            <button type="button" className="camera-disparo"
+                    aria-label={doc ? `Fotografar a página ${paginas.length + 1}` : emSequencia ? `Fotografar a foto ${fotos.length + 1}` : 'Fotografar'}
                     disabled={!ligada} onClick={() => void fotografar()} />
             <span className="camera-lado">
               {doc && paginas.length > 0 && (
                 <button type="button" className="camera-concluir" disabled={ocupada} onClick={() => void concluir()}>
                   {ocupada ? 'Montando…' : `Concluir (${paginas.length} ${paginas.length === 1 ? 'página' : 'páginas'})`}
+                </button>
+              )}
+              {!doc && fotos.length > 0 && (
+                <button type="button" className="camera-concluir" onClick={() => concluirFotos()}>
+                  {`Concluir (${fotos.length} ${fotos.length === 1 ? 'foto' : 'fotos'})`}
                 </button>
               )}
             </span>
@@ -332,7 +379,7 @@ export function FolhaCamera({ podeDocumento, inicial = 'foto', onFoto, onDocumen
               )}
             </span>
             <button type="button" className="camera-redondo sim" disabled={!revisao}
-                    aria-label={doc ? 'Guardar esta página' : 'Usar esta foto'} onClick={() => void usar()}>
+                    aria-label={doc ? 'Guardar esta página' : emSequencia ? 'Guardar esta foto' : 'Usar esta foto'} onClick={() => void usar()}>
               <Icone nome="certo" tamanho={28} />
             </button>
           </>

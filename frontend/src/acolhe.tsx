@@ -1,7 +1,8 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { api } from './api';
 import { Icone, SimboloDaAcolhe } from './icones';
-import { EscolherAnexo, Escolhido, base64De, oferecerFotosDaAcolhe } from './anexos';
+import { AnexosDaMensagem, EscolherAnexo, Escolhido, base64De, oferecerFotosDaAcolhe } from './anexos';
+import { recusaDosAnexos } from '../../backend/src/kernel/arquivos/anexos-da-mensagem.regra';
 import { MEXEM_NA_TELA, rotaDeLeituraPermitida } from '../../backend/src/modules/assistente/ferramentas';
 import { calcular, numeroEmPortugues } from '../../backend/src/modules/assistente/calculo';
 import { notaDoMomento } from '../../backend/src/modules/assistente/momento';
@@ -134,7 +135,8 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
   const [ligada, setLigada] = useState<boolean | null>(null);
   const [linhas, setLinhas] = useState<Linha[]>([]);
   const [texto, setTexto] = useState('');
-  const [anexo, setAnexo] = useState<Escolhido | null>(null);
+  /* Até dez fotos ou PDFs por pergunta (fase 233), como no WhatsApp. */
+  const [anexosDaPergunta, setAnexosDaPergunta] = useState<Escolhido[]>([]);
   const [anexando, setAnexando] = useState(false);
   /* O botão de câmera (fase 194) abre o anexo já na câmera, no modo documento. */
   const [pelaCamera, setPelaCamera] = useState(false);
@@ -180,7 +182,7 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
     historico.current = []; anexos.current = [];
     licenca.current = 'perguntar'; respostaDaLicenca.current?.(false); respostaDaLicenca.current = null;
     setPelaCamera(false); setAnexando(false);
-    setLinhas([]); setTexto(''); setAnexo(null); setLendo(''); setRecolhida(false);
+    setLinhas([]); setTexto(''); setAnexosDaPergunta([]); setLendo(''); setRecolhida(false);
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
   }
 
@@ -704,7 +706,9 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
    * meio: ou a conversa cresce, ou recomeça inteira.
    */
   function compactarSePreciso(conteudo: Bloco[]): MensagemDoModelo[] | null {
-    const tamanho = JSON.stringify(historico.current).length;
+    /* O que vai entrar conta junto: dez fotos numa pergunta só pesam, e a
+       conversa recomeça antes de passar do que o servidor lê de uma vez. */
+    const tamanho = JSON.stringify(historico.current).length + JSON.stringify(conteudo).length;
     if (historico.current.length < LIMITE_DA_CONVERSA.mensagens && tamanho < LIMITE_DA_CONVERSA.bytes) return null;
     const anterior = historico.current;
     const ditas = linhas.filter((l) => l.quem !== 'nota' && l.texto.trim())
@@ -716,32 +720,39 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
 
   async function enviar(forcado?: string) {
     const t = (forcado ?? texto).trim();
-    if ((!t && !anexo) || ocupada) return;
-    const meu = forcado ? null : anexo;
+    if ((!t && !anexosDaPergunta.length) || ocupada) return;
+    const meus = forcado ? [] : anexosDaPergunta;
+    if (recusaDosAnexos(meus.map((a) => a.tamanho))) return;
     ditado.current?.parar();
-    if (!forcado) { setTexto(''); setAnexo(null); setAnexando(false); setPelaCamera(false); }
-    acrescentar({ quem: 'pessoa', texto: t || 'Veja este arquivo.', anexo: meu?.nome });
+    if (!forcado) { setTexto(''); setAnexosDaPergunta([]); setAnexando(false); setPelaCamera(false); }
+    const veja = meus.length > 1 ? 'Veja estes arquivos.' : 'Veja este arquivo.';
+    acrescentar({ quem: 'pessoa', texto: t || veja, anexo: meus.length ? meus.map((a) => a.nome).join(', ') : undefined });
     if (!ligada) {
       /* O guia também trabalha na tela (abre o perfil, o formulário): "Pensando…" enquanto isso. */
       setOcupada(true);
-      void pelosGuias(t, !!meu && !t).finally(() => setOcupada(false));
+      void pelosGuias(t, meus.length > 0 && !t).finally(() => setOcupada(false));
       return;
     }
 
     const conteudo: Bloco[] = [];
-    if (meu) {
+    const primeiro = anexos.current.length + 1;
+    for (const meu of meus) {
       anexos.current.push(meu);
       const dados = base64De(meu.dataUrl);
       conteudo.push(meu.tipo === 'application/pdf'
         ? { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: dados } }
         : { type: 'image', source: { type: 'base64', media_type: meu.tipo, data: dados } });
     }
+    /* O número de cada anexo na conversa: é por ele que a proposta de guardar no
+       dossiê diz qual arquivo é. */
+    const quais = meus.length === 1 ? `(Anexo ${primeiro}: ${meus[0].nome})`
+      : meus.length ? `(Anexos ${primeiro} a ${anexos.current.length}: ${meus.map((a, i) => `${primeiro + i} ${a.nome}`).join('; ')})` : '';
     const notas = pendenteParaOModelo.current.splice(0);
     /* A nota do momento (fase 223): a hora, o turno, a tela e a casa vão aqui,
        na pergunta, e não nas instruções, que ficam fixas durante a conversa. */
     const momento = notaDoMomento({ agora: new Date(), turno: turnoAgora(), tela: telaAtual,
       casa, voz: voz === VOZES[0] ? null : voz });
-    const fala = [momento, ...notas, meu ? `(Anexo ${anexos.current.length}: ${meu.nome})` : '', t || 'Veja este arquivo.']
+    const fala = [momento, ...notas, quais, t || veja]
       .filter(Boolean).join('\n');
     conteudo.push({ type: 'text', text: fala });
     const anterior = compactarSePreciso(conteudo);
@@ -1135,9 +1146,9 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
       )}
       {anexando && (
         <div className="acolhe-anexar">
-          <EscolherAnexo key={pelaCamera ? 'camera' : 'anexo'} id="acolhe-anexo" arquivo={anexo} onEscolher={setAnexo}
-                         iniciarNaCamera={pelaCamera ? 'documento' : undefined}
-                         pergunta="Foto ou PDF para a Acolhe+AI ler" />
+          <AnexosDaMensagem key={pelaCamera ? 'camera' : 'anexo'} id="acolhe-anexo" anexos={anexosDaPergunta}
+                            onMudar={setAnexosDaPergunta} iniciarNaCamera={pelaCamera ? 'documento' : undefined}
+                            rotulo="Fotos ou PDFs para a Acolhe+AI ler" />
         </div>
       )}
       <form className="acolhe-escrever" onSubmit={(e) => { e.preventDefault(); void enviar(); }}>
@@ -1157,7 +1168,7 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
             <Icone nome="anexo" />
           </button>
           <button type="button" className="iconbtn" aria-label="Fotografar ou digitalizar um documento" title="Câmera"
-                  onClick={() => { setPelaCamera(true); setAnexando(true); setAnexo(null); }}>
+                  onClick={() => { setPelaCamera(true); setAnexando(true); }}>
             <Icone nome="foto" />
           </button>
           <button type="button" className={`iconbtn ${ouvindo ? 'ativo' : ''}`} aria-pressed={ouvindo}
@@ -1166,7 +1177,10 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
           </button>
           <button type="button" className="btn sm ghost" onClick={novaConversa}>Nova conversa</button>
           <span className="grow" />
-          <button type="submit" className="btn sm" disabled={ocupada || (!texto.trim() && !anexo)}>Enviar</button>
+          <button type="submit" className="btn sm"
+                  disabled={ocupada || (!texto.trim() && !anexosDaPergunta.length) || !!recusaDosAnexos(anexosDaPergunta.map((a) => a.tamanho))}>
+            Enviar
+          </button>
         </div>
       </form>
     </div>

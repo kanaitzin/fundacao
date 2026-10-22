@@ -10,6 +10,8 @@ import { quemAssina } from '../quem-assina';
 import { Icone } from '../icones';
 import { CalendarioDosTurnos } from '../calendario-turnos';
 import { Explica } from '../explica';
+import { AnexosDaMensagem, Escolhido, FolhaArquivo, paraEnviar } from '../anexos';
+import { recusaDosAnexos } from '../../../backend/src/kernel/arquivos/anexos-da-mensagem.regra';
 
 /**
  * ATAS — a da casa e a Geral Noturna.
@@ -95,6 +97,8 @@ interface LinhaDaAta {
   id: string; autorId: string; quem: string; cargo: string | null; corAutor?: string | null;
   texto: string; restrita: boolean;
   quando: string; escritaEm: string; propria: boolean;
+  /** As fotos e documentos da linha (fase 233). */
+  anexos?: { id: string; nome: string; tipo: string; tamanho: number }[];
 }
 /** O acolhido, como a lista da casa o devolve — só o que o episódio precisa. */
 interface AcolhidoDaCasa { id: string; nome: string; }
@@ -390,6 +394,8 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
   const [semAnterior, setSemAnterior] = useState('');
   const [linha, setLinha] = useState('');
   const [linhaRestrita, setLinhaRestrita] = useState(false);
+  const [anexosDaLinha, setAnexosDaLinha] = useState<Escolhido[]>([]);
+  const [abrindoAnexo, setAbrindoAnexo] = useState<{ id: string; nome: string } | null>(null);
   const [salvando, setSalvando] = useState(false);
   const [adendos, setAdendos] = useState<Adendo[]>([]);
   /* A ATA em folha: ver antes de baixar, e baixar o que se viu. */
@@ -975,6 +981,16 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
                         )}
                       </div>
                       <p style={{ marginBottom: 0 }}>{n.texto}</p>
+                      {!!n.anexos?.length && (
+                        <div className="acoes anexos-da-linha" role="group" aria-label={`Anexos da linha de ${n.quem}`}>
+                          {n.anexos.map((x) => (
+                            <button key={x.id} type="button" className="btn sm ghost"
+                                    onClick={() => setAbrindoAnexo({ id: x.id, nome: x.nome })}>
+                              <Icone nome={x.tipo === 'application/pdf' ? 'documento' : 'foto'} /> {x.nome}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </article>
                   ))}
                 </div>
@@ -1039,15 +1055,23 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
                         </span>
                       </label>
                     )}
-                    <button className="btn block" disabled={linha.trim().length < 3}
+                    {/* Até dez fotos ou documentos na linha (fase 233): a foto do
+                        curativo, o bilhete da escola, o recado da família. */}
+                    <AnexosDaMensagem id="linha-anexos" anexos={anexosDaLinha} onMudar={setAnexosDaLinha}
+                                      rotulo="Fotos e documentos da linha" />
+                    <button className="btn block"
+                            disabled={linha.trim().length < 3 || !!recusaDosAnexos(anexosDaLinha.map((a) => a.tamanho))}
                             onClick={async () => {
                               const ok = await acao(() => api(
                                 `/shifts/ata/${plantao.ata!.id}/notes`,
                                 { method: 'POST',
-                                  body: JSON.stringify({ texto: linha.trim(), restrita: linhaRestrita }) }));
-                              if (ok) { setLinha(''); setLinhaRestrita(false); }
+                                  body: JSON.stringify({ texto: linha.trim(), restrita: linhaRestrita,
+                                                         anexos: paraEnviar(anexosDaLinha) }) }));
+                              if (ok) { setLinha(''); setLinhaRestrita(false); setAnexosDaLinha([]); }
                             }}>
-                      Registrar linha
+                      {anexosDaLinha.length
+                        ? `Registrar linha com ${anexosDaLinha.length} ${anexosDaLinha.length === 1 ? 'anexo' : 'anexos'}`
+                        : 'Registrar linha'}
                     </button>
                   </div>
                 )}
@@ -1066,6 +1090,12 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
                   * substitui. Ele mostra o que o SISTEMA já sabe, para quem
                   * escreve não precisar procurar em vinte perfis.
                   */}
+                {abrindoAnexo && (
+                  <FolhaArquivo titulo={abrindoAnexo.nome} legenda="Anexo da linha da ATA. A abertura fica registrada."
+                    carregar={() => api(`/shifts/ata-notes/attachments/${abrindoAnexo.id}/file`)}
+                    onFechar={() => setAbrindoAnexo(null)} />
+                )}
+
                 <ConvivenciasDoTurno lista={plantao.convivencias ?? []}
                                      titulo="Acolhido em experiência familiar" />
 

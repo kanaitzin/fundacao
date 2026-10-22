@@ -138,6 +138,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 233, dia: '22/10/2026', aba: 'ata',
+    texto: 'A linha da ATA, o diário da internação, a ocorrência, o atendimento técnico e a conversa com a Acolhe+AI levam até 10 fotos ou documentos por mensagem. A câmera tira várias fotos seguidas, como no WhatsApp, e cada uma aparece em miniatura, com Ver e Tirar, antes de enviar. E o Exportar dos benefícios, no Cofre, agora entrega o documento em Word.' },
   { fase: 232, dia: '20/10/2026', aba: 'acolhidos',
     texto: 'No perfil da criança, a Vida na casa entrou na aba Geral, e a aba Cadastro virou Documentos: abre no dossiê e na lista dos documentos, e o histórico de quem mexeu fica no fim.' },
   { fase: 231, dia: '20/10/2026', aba: 'guia',

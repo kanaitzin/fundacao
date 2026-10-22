@@ -35,6 +35,7 @@ import {
 import { ALCANCE_POR_CARGO } from '../../backend/src/modules/identity/alcance';
 import { avaliar, avaliarArquivo, avaliarDrive, TITULOS } from '../../backend/src/modules/relogio/implantacao.regra';
 import { QUEM_LE_O_QUE_MUDOU } from '../../backend/src/modules/reports/o-que-mudou.regra';
+import { bytesDoBase64, recusaDosAnexos } from '../../backend/src/kernel/arquivos/anexos-da-mensagem.regra';
 import { TIPOS_OFFLINE, TIPOS_OFFLINE_KINDS } from '../../backend/src/modules/sync/tipos-offline';
 import { cargoNoDocumento, nomeDoArquivo as nomeDaFolha }
   from '../../backend/src/kernel/documentos/folha';
@@ -46,6 +47,7 @@ import { folhaDosCombinados } from '../../backend/src/modules/alignments/combina
 import { folhaDoEstatuto } from '../../backend/src/modules/alignments/estatuto-folha';
 import { folhaDaEscala } from '../../backend/src/modules/identity/escala-folha';
 import { folhaDaInternacao } from '../../backend/src/modules/nursing/internacao-folha';
+import { folhaDosBeneficios } from '../../backend/src/modules/people/beneficios-folha';
 import { folhaDoImpacto, folhaDaTrajetoria }
   from '../../backend/src/modules/reports/impacto-folha';
 import { folhaDoPeriodo, SECOES_DO_PERIODO }
@@ -2252,6 +2254,8 @@ const ESCALA: EscalaMock[] = (() => {
 interface LinhaAtaMock {
   id: string; ataId: string; autorId: string; quem: string; cargo: string;
   texto: string; restrita: boolean; quando: string; escritaEm: string;
+  /** As fotos e documentos da linha (fase 233), com o conteúdo, para abrir. */
+  anexos?: { id: string; nome: string; tipo: string; tamanho: number; conteudo: string }[];
 }
 /* A hora de uma linha da noite: de dia, a madrugada de hoje (a noite já fechou);
    de noite, a madrugada do turno em curso, e nunca depois de agora (fase 204).
@@ -2348,6 +2352,7 @@ function linhasDaAta(ataId: string, papel: string, quemId = '') {
          tela cai no tom automático. */
       corAutor: CORES_DA_LINHA.get(l.autorId) ?? null,
       quando: l.quando, escritaEm: l.escritaEm, propria: false,
+      anexos: (l.anexos ?? []).map(({ conteudo: _c, ...x }) => x),
     })),
     restritas,
     restritasOcultas: restritas - visiveis.filter((l) => l.restrita).length,
@@ -4602,10 +4607,20 @@ const CATEGORIAS_DO_ANEXO_INT = [
   { cod: 'foto_de_documento', label: 'Foto de documento' }, { cod: 'outro', label: 'Outro documento' },
 ];
 
+/** Os anexos de um registro do diário (fase 233): os de antes, um por registro, entram como lista de um. */
+function anexosDaNotaInt(n: any): any[] {
+  if (Array.isArray(n.anexos)) return n.anexos;
+  return n.temAnexo ? [{ id: n.id, nome: n.nomeDoArquivo ?? 'documento', tipo: n.tipoDoArquivo ?? null,
+                         categoria: n.categoria ?? null, categoriaRotulo: n.categoriaRotulo ?? null,
+                         conteudo: n.conteudo ?? null }] : [];
+}
+
 /** A folha do relatório da internação, pelo MESMO montador do servidor (fase 165). */
 function folhaDaInternacaoMock(i: InternacaoMock, eu: { fullName: string; role: string }) {
-  const comAnexo = [...i.diario].filter((n: any) => n.temAnexo).reverse();
-  const numero = new Map(comAnexo.map((n: any, k: number) => [n.id, k + 1]));
+  const comAnexo = [...i.diario].filter((n: any) => anexosDaNotaInt(n).length).reverse();
+  const numeros = new Map<string, number[]>();
+  let proximo = 1;
+  for (const n of comAnexo) numeros.set(n.id, anexosDaNotaInt(n).map(() => proximo++));
   return folhaDaInternacao({
     acolhido: kid(i.acolhidoId)?.nome ?? '—', unidade: `${CASA.code} · ${CASA.name}`,
     hospital: i.hospital, motivo: i.motivo, desde: i.desde, ate: i.ate, status: i.status,
@@ -4614,13 +4629,14 @@ function folhaDaInternacaoMock(i: InternacaoMock, eu: { fullName: string; role: 
     acompanhantes: [...i.acompanhantes].reverse().map((a: any) => ({
       quem: a.quem, cargo: 'educador', de: a.de, ate: a.ate, designadoPor: a.designadoPor })),
     diario: i.diario.map((n: any) => ({ dia: n.dia, em: n.em, tipoRotulo: n.tipoRotulo, texto: n.texto,
-      por: n.por, cargo: n.cargo ?? null, anexo: numero.get(n.id) ?? null, categoria: n.categoriaRotulo ?? null })),
+      por: n.por, cargo: n.cargo ?? null,
+      anexos: anexosDaNotaInt(n).map((a: any, k: number) => ({ numero: numeros.get(n.id)![k], categoria: a.categoriaRotulo ?? null })) })),
     medicacao: i.medicacaoNoHospital.map((m: any) => ({ quando: m.quando, medicamento: m.medicamento,
       dose: m.dose, via: m.via, observacao: m.observacao })),
-  }, comAnexo.map((n: any) => ({
-    numero: numero.get(n.id)!, categoria: n.categoriaRotulo ?? 'Documento', nomeDoArquivo: n.nomeDoArquivo,
+  }, comAnexo.flatMap((n: any) => anexosDaNotaInt(n).map((a: any, k: number) => ({
+    numero: numeros.get(n.id)![k], categoria: a.categoriaRotulo ?? 'Documento', nomeDoArquivo: a.nome,
     registradoEm: n.em, registradoPor: n.por, paginas: [],
-  })), { nome: eu.fullName, cargo: cargoNoDocumento(eu.role) });
+  }))), { nome: eu.fullName, cargo: cargoNoDocumento(eu.role) });
 }
 const QUEM_VE_INT = [...QUEM_ABRE_INT, 'lider_diurno', 'lider_noturno_geral', 'enfermagem'];
 
@@ -7965,6 +7981,15 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     return { existe: true, ...(responder(`/shifts/${anterior.id}`, ['shifts', anterior.id],
                                           q, {}, 'GET') as object) };
   }
+  if (seg[0] === 'shifts' && seg[1] === 'ata-notes' && seg[2] === 'attachments' && seg[4] === 'file' && metodo === 'GET') {
+    /* Quem lê a linha abre o anexo; o da linha restrita, só quem lê a restrita. */
+    const linha = LINHAS_ATA.find((l) => (l.anexos ?? []).some((x) => x.id === seg[3]));
+    const x = linha?.anexos?.find((y) => y.id === seg[3]);
+    if (!linha || !x || (linha.restrita && !LE_RESTRITA.includes(eu.role) && !temLiberacao(linha.ataId, eu.id))) {
+      return new Recusa(404, 'Anexo não encontrado, ou fora do seu alcance.');
+    }
+    return { nome: x.nome, tipo: x.tipo, conteudo: x.conteudo };
+  }
   if (seg[0] === 'shifts' && seg[1] === 'ata' && seg[3] === 'notes' && metodo === 'POST') {
     const texto = String(b.texto ?? '').trim();
     if (texto.length < 3) return new Recusa(400, 'Escreva a linha antes de registrar.');
@@ -7973,10 +7998,23 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       return new Recusa(403, 'A linha restrita é da coordenação, da equipe técnica e dos '
         + 'líderes. Quem escreve uma linha precisa poder relê-la depois.');
     }
-    LINHAS_ATA.push({ id: uid(), ataId: seg[2], autorId: eu.id, quem: eu.fullName,
+    /* Até dez fotos ou documentos (fase 233), com o nome neutro, como no servidor:
+       o nome que o arquivo tinha no aparelho não entra. */
+    const lista: any[] = Array.isArray(b.anexos) ? b.anexos : [];
+    const recusa = recusaDosAnexos(lista.map((a) => bytesDoBase64(String(a?.conteudo ?? ''))));
+    if (recusa) return new Recusa(400, recusa);
+    const idLinha = uid();
+    const anexos = lista.map((a, k) => {
+      const pdf = String(a.conteudo).startsWith('JVBER');
+      const png = String(a.conteudo).startsWith('iVBOR');
+      return { id: `${idLinha}-anexo-${k + 1}`, nome: pdf ? `documento-${k + 1}.pdf` : `foto-${k + 1}.${png ? 'png' : 'jpg'}`,
+               tipo: pdf ? 'application/pdf' : png ? 'image/png' : 'image/jpeg',
+               tamanho: bytesDoBase64(String(a.conteudo)), conteudo: String(a.conteudo) };
+    });
+    LINHAS_ATA.push({ id: idLinha, ataId: seg[2], autorId: eu.id, quem: eu.fullName,
       cargo: eu.role, texto, restrita,
-      quando: new Date().toISOString(), escritaEm: new Date().toISOString() });
-    return { id: 'ln',
+      quando: new Date().toISOString(), escritaEm: new Date().toISOString(), anexos });
+    return { id: idLinha, anexos: anexos.length,
       aviso: restrita
         ? 'Linha registrada, restrita à coordenação, à equipe técnica e aos líderes. Quem não a '
           + 'alcança vê que ela existe, e não o que ela diz.'
@@ -9572,7 +9610,9 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
 
     if (seg.length === 3 && metodo === 'GET') {
       return { ...resumoInternacao(i), observacaoDoDesfecho: i.observacaoDoDesfecho,
-               encerradaPor: i.encerradaPor, diario: i.diario,
+               encerradaPor: i.encerradaPor,
+               diario: i.diario.map((n: any) => ({
+                 ...n, anexos: anexosDaNotaInt(n).map(({ conteudo: _c, ...a }: any) => a) })),
                medicacaoNoHospital: i.medicacaoNoHospital, acompanhantes: i.acompanhantes };
     }
     if (seg[3] === 'notes' && metodo === 'POST') {
@@ -9581,35 +9621,54 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
           'Escreva o que aconteceu. O anexo sozinho, daqui a um ano, não diz o que foi feito.');
       }
       const tipo = String(b.tipo ?? 'relato');
-      if (b.conteudo && !CATEGORIAS_DO_ANEXO_INT.some((c) => c.cod === b.categoria)) {
+      /* Até dez anexos por registro (fase 233); o anexo único de antes é a lista de um. */
+      const lista: any[] = (Array.isArray(b.anexos) && b.anexos.length ? b.anexos
+        : b.conteudo ? [{ conteudo: b.conteudo, nomeArquivo: b.nomeArquivo, categoria: b.categoria }] : [])
+        .map((a: any) => ({ ...a, categoria: a?.categoria ?? b.categoria }));
+      const recusa = recusaDosAnexos(lista.map((a) => bytesDoBase64(String(a.conteudo ?? ''))));
+      if (recusa) return new Recusa(400, recusa);
+      if (lista.some((a) => !CATEGORIAS_DO_ANEXO_INT.some((c) => c.cod === a.categoria))) {
         return new Recusa(400, 'Diga que documento é o anexo: receita, atestado, relatório médico, '
           + 'exame, encaminhamento, foto de documento ou outro.');
       }
+      if (new Set(lista.map((a) => a.conteudo)).size < lista.length) {
+        return new Recusa(409, 'O mesmo arquivo está duas vezes nesta mensagem. Tire uma das cópias.');
+      }
       /* O mesmo arquivo duas vezes é recusado, como no servidor (1622). */
-      const repetido = b.conteudo && i.diario.find((n: any) => n.conteudo === b.conteudo);
+      const repetido = i.diario.find((n: any) => anexosDaNotaInt(n).some((x: any) => lista.some((a) => a.conteudo === x.conteudo)));
       if (repetido) {
         return new Recusa(409, `Este mesmo arquivo já foi anexado a esta internação, no registro de `
           + `${String(repetido.dia).split('-').reverse().join('/')}, por ${repetido.por}. Não é preciso enviar de novo.`);
       }
+      const idNota = `nota-${i.diario.length + 1}`;
+      const anexos = lista.map((a, k) => {
+        const cod = a.categoria;
+        return { id: `${idNota}-anexo-${k + 1}`, nome: a.nomeArquivo || `anexo-${k + 1}`,
+                 tipo: String(a.conteudo).startsWith('JVBER') ? 'application/pdf' : 'image/jpeg',
+                 categoria: cod, categoriaRotulo: CATEGORIAS_DO_ANEXO_INT.find((c) => c.cod === cod)?.label ?? null,
+                 conteudo: a.conteudo };
+      });
+      const primeiro = anexos[0];
       i.diario.unshift({
-        id: `nota-${i.diario.length + 1}`, dia: HOJE, tipo,
+        id: idNota, dia: HOJE, tipo,
         tipoRotulo: TIPOS_DE_NOTA_INT.find((t) => t.cod === tipo)?.label ?? tipo,
-        texto: String(b.texto).trim(), temAnexo: !!b.conteudo,
-        nomeDoArquivo: b.nomeArquivo ?? null, por: eu.fullName, cargo: eu.role,
-        categoria: b.conteudo ? b.categoria : null,
-        categoriaRotulo: b.conteudo ? CATEGORIAS_DO_ANEXO_INT.find((c) => c.cod === b.categoria)?.label : null,
-        conteudo: b.conteudo ?? null, tipoDoArquivo: b.conteudo ? (String(b.conteudo).startsWith('JVBER') ? 'application/pdf' : 'image/jpeg') : null,
+        texto: String(b.texto).trim(), temAnexo: !!primeiro, anexos,
+        nomeDoArquivo: primeiro?.nome ?? null, por: eu.fullName, cargo: eu.role,
+        categoria: primeiro?.categoria ?? null, categoriaRotulo: primeiro?.categoriaRotulo ?? null,
+        tipoDoArquivo: primeiro?.tipo ?? null,
         em: new Date().toISOString(),
       });
-      return { ok: true };
+      return { ok: true, id: idNota, anexos: anexos.length };
     }
-    if (seg[3] === 'notes' && seg[5] === 'anexo' && metodo === 'GET') {
+    if (seg[3] === 'notes' && (seg[5] === 'anexo' || seg[5] === 'anexos') && metodo === 'GET') {
       const n = i.diario.find((x: any) => x.id === seg[4]);
-      if (!n?.temAnexo) return new Recusa(404, 'Este registro não tem anexo.');
+      const lista = n ? anexosDaNotaInt(n) : [];
+      const a = seg[5] === 'anexos' ? lista.find((x: any) => x.id === seg[6]) : lista[0];
+      if (!a) return new Recusa(404, 'Este registro não tem anexo.');
       /* O que foi anexado nesta sessão volta como entrou; o que não tem conteúdo
          guardado volta como PDF fictício. */
-      return { nome: n.nomeDoArquivo ?? 'documento.pdf', tipo: n.tipoDoArquivo ?? 'application/pdf',
-               conteudo: n.conteudo ?? btoa('%PDF-1.7 documento do hospital, fictício') };
+      return { nome: a.nome ?? 'documento.pdf', tipo: a.tipo ?? 'application/pdf',
+               conteudo: a.conteudo ?? btoa('%PDF-1.7 documento do hospital, fictício') };
     }
     if ((seg[3] === 'folha' && metodo === 'GET') || (seg[3] === 'export' && metodo === 'POST')) {
       if (!QUEM_BAIXA_INT.includes(eu.role)) {
@@ -11274,13 +11333,31 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       return new Recusa(400, 'O nome do arquivo não pode conter CPF, diagnóstico ou '
         + 'referência judicial. Use um nome neutro; o conteúdo fica protegido dentro do anexo.');
     }
-    if (!String(b.referencia ?? '').trim() && !String(b.conteudo ?? '').trim()) {
+    const varios: any[] = Array.isArray(b.anexos) ? b.anexos : [];
+    if (!String(b.referencia ?? '').trim() && !String(b.conteudo ?? '').trim() && !varios.length) {
       return new Recusa(400, 'Anexe o documento digitalizado, ou informe onde ele está: a '
         + 'pasta ou o link no Drive da instituição.');
     }
     if (tipo.exigeJustificativa && String(b.justificativa ?? '').trim().length < 15) {
       return new Recusa(400,
         'Foto exige justificativa: para que ela é necessária e qual autorização a ampara.');
+    }
+    /* Até dez de uma vez (fase 233), com o mesmo tipo e o nome numerado, como no servidor. */
+    if (varios.length) {
+      const recusa = recusaDosAnexos(varios.map((a) => bytesDoBase64(String(a?.conteudo ?? ''))));
+      if (recusa) return new Recusa(400, recusa);
+      const novos = varios.map((a, k) => {
+        const c = String(a.conteudo ?? '');
+        const exibicao = varios.length > 1 ? `${nome} (${k + 1} de ${varios.length})` : nome;
+        return { id: uid(), ocorrenciaId: o.id, tipo: tipo.cod, nome: exibicao, referencia: null,
+          restrito: b.restrito ?? tipo.restritoPorPadrao, autor: eu.fullName, arquivo: c,
+          nomeDoArquivo: String(a.nomeArquivo ?? '').trim() || exibicao,
+          mime: c.startsWith('JVBER') ? 'application/pdf' : c.startsWith('iVBOR') ? 'image/png' : 'image/jpeg' };
+      });
+      ANEXOS = [...ANEXOS, ...novos];
+      return { id: novos[0].id, ids: novos.map((x) => x.id),
+        aviso: `${novos.length === 1 ? 'Anexo guardado' : `${novos.length} anexos guardados`} no sistema. `
+          + 'Quem abrir vê o documento, e a abertura fica registrada.' };
     }
     const conteudo = String(b.conteudo ?? '').trim();
     ANEXOS = [...ANEXOS, {
@@ -12229,8 +12306,17 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     if (finalidade.length < 5) return new Recusa(400, 'Informe a finalidade da exportação.');
     BENEFICIO_HIST = [{ personId: seg[1], quem: eu.fullName, acao: 'exportação',
       quando: new Date().toISOString(), finalidade, recusada: false }, ...BENEFICIO_HIST];
-    return { ok: true, formato: 'pdf',
-      aviso: 'Exportação registrada em auditoria com finalidade declarada.' };
+    /* A folha em Word, pelo MESMO montador do servidor (conserto de 22/10). */
+    const f = folhaDosBeneficios(kid(seg[1])?.nome ?? 'acolhido', finalidade,
+      BENEFICIOS.filter((x) => x.personId === seg[1])
+        .sort((a, x) => Number(x.pendenciaBancaria) - Number(a.pendenciaBancaria))
+        .map((x) => ({ ...x,
+          tipoRotulo: TIPOS_BENEFICIO_MOCK.find((t) => t.cod === x.tipo)?.label ?? x.tipo,
+          situacaoRotulo: SITUACOES_BENEFICIO_MOCK.find((t) => t.cod === x.situacao)?.label ?? x.situacao })),
+      { nome: eu.fullName, cargo: cargoNoDocumento(eu.role) });
+    return { ok: true, formato: 'docx', nomeArquivo: nomeDaFolha(f.titulo),
+      conteudoBase64: gerarDocx(f as any, timbreEmBytes()),
+      aviso: 'Documento gerado em Word. A exportação ficou registrada com o seu nome, a finalidade e o horário.' };
   }
 
   if (seg[0] === 'people' && seg[2] === 'benefits' && seg.length === 3 && metodo === 'POST') {

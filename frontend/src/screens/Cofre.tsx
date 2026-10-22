@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api, ErroApi } from '../api';
+import { baixarArquivo } from '../documentos';
 import { Icone } from '../icones';
 
 /**
@@ -474,8 +475,15 @@ export function Cofre({ houseId, papel }: { houseId: string; papel: string }) {
               onEnviar={async (finalidade) => {
                 setErro('');
                 try {
-                  const r = await api<{ aviso: string }>(`/people/${pessoa.id}/benefits/export`, {
-                    method: 'POST', body: JSON.stringify({ formato: 'pdf', finalidade }) });
+                  const r = await api<{ aviso: string; nomeArquivo?: string; conteudoBase64?: string }>(
+                    `/people/${pessoa.id}/benefits/export`, {
+                      method: 'POST', body: JSON.stringify({ formato: 'docx', finalidade }) });
+                  /* O arquivo sai junto (conserto de 22/10): antes, a finalidade ficava
+                     registrada e nenhum documento chegava às mãos de quem pediu. */
+                  if (r.conteudoBase64) {
+                    baixarArquivo(r.nomeArquivo ?? 'beneficios.docx',
+                      'application/vnd.openxmlformats-officedocument.wordprocessingml.document', r.conteudoBase64);
+                  }
                   setExportando(false); setAviso(r.aviso);
                   setAcessosBeneficio(await api<AcessoBeneficio[]>(
                     `/people/${pessoa.id}/benefits/history`,

@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
 import { baixarArquivo } from '../documentos';
-import { BotaoOlho, EscolherAnexo, Escolhido, FolhaArquivo, base64De } from '../anexos';
+import { AnexosDaMensagem, BotaoOlho, Escolhido, FolhaArquivo, base64De } from '../anexos';
+import { recusaDosAnexos } from '../../../backend/src/kernel/arquivos/anexos-da-mensagem.regra';
 import { FolhaDocumento } from '../documentos';
 import type { DocumentoWord } from '../docx';
 import { dia } from '../rotulos';
@@ -43,6 +44,8 @@ interface Nota {
   id: string; dia: string; tipo: string; tipoRotulo: string; texto: string;
   temAnexo: boolean; nomeDoArquivo: string | null; por: string; em: string;
   categoriaRotulo?: string | null;
+  /** Os anexos do registro (fase 233): a receita, o exame e o atestado da mesma visita. */
+  anexos?: { id: string; nome: string; tipo: string | null; categoriaRotulo: string | null }[];
 }
 
 interface Periodo extends Internacao {
@@ -252,7 +255,7 @@ function PeriodoNoHospital({ id, papel, onVoltar }: {
   const [encerrando, setEncerrando] = useState(false);
   const [designando, setDesignando] = useState(false);
   /** O anexo que está aberto na tela — nunca mais o download às cegas. */
-  const [vendoAnexo, setVendoAnexo] = useState<{ id: string; nomeDoArquivo: string | null } | null>(null);
+  const [vendoAnexo, setVendoAnexo] = useState<{ notaId: string; anexoId: string; nome: string } | null>(null);
   const [relatorio, setRelatorio] = useState<DocumentoWord | null>(null);
   const podeEncerrar = QUEM_ABRE.includes(papel);
   const podeBaixar = QUEM_BAIXA.includes(papel);
@@ -387,10 +390,15 @@ function PeriodoNoHospital({ id, papel, onVoltar }: {
                 * parar na pasta de downloads de alguém (fase 106, §9). Agora
                 * abre na tela, e baixar é o segundo gesto, de quem já olhou.
                 */
-              <BotaoOlho rotulo={n.nomeDoArquivo ?? 'documento do hospital'}
-                         onClick={() => setVendoAnexo(n)} />
+              <div className="acoes" role="group" aria-label="Anexos do registro">
+                {(n.anexos ?? [{ id: n.id, nome: n.nomeDoArquivo ?? 'documento do hospital', tipo: null,
+                                 categoriaRotulo: n.categoriaRotulo ?? null }]).map((a) => (
+                  <BotaoOlho key={a.id}
+                             rotulo={`${a.nome}${a.categoriaRotulo ? ` (${a.categoriaRotulo.toLowerCase()})` : ''}`}
+                             onClick={() => setVendoAnexo({ notaId: n.id, anexoId: a.id, nome: a.nome })} />
+                ))}
+              </div>
             )}
-            {n.categoriaRotulo && <div className="mutetxt">Anexo: {n.categoriaRotulo}</div>}
             <div className="mutetxt">{n.por} · {hhmm(n.em)}</div>
           </div>
         ))}
@@ -471,10 +479,10 @@ function PeriodoNoHospital({ id, papel, onVoltar }: {
 
       {vendoAnexo && (
         <FolhaArquivo
-          titulo={vendoAnexo.nomeDoArquivo ?? 'Documento do hospital'}
+          titulo={vendoAnexo.nome || 'Documento do hospital'}
           legenda="Do período de internação. Baixar é o segundo gesto, de quem já olhou."
           carregar={() => api<{ nome: string; tipo: string; conteudo: string }>(
-            `/nursing/hospitalizations/${id}/notes/${vendoAnexo.id}/anexo`)}
+            `/nursing/hospitalizations/${id}/notes/${vendoAnexo.notaId}/anexos/${vendoAnexo.anexoId}`)}
           onFechar={() => setVendoAnexo(null)}
           onBaixar={(a) => baixarArquivo(a.nome, a.tipo, a.conteudo)} />
       )}
@@ -489,9 +497,15 @@ function FolhaDiario({ tipos, categorias, onFechar, onSalvar }: {
 }) {
   const [tipo, setTipo] = useState('relato');
   const [texto, setTexto] = useState('');
-  const [arquivo, setArquivo] = useState<Escolhido | null>(null);
-  const [categoria, setCategoria] = useState('');
+  const [anexos, setAnexos] = useState<Escolhido[]>([]);
+  /* A categoria de cada anexo, na mesma ordem: a receita e o exame da mesma visita
+     são papéis diferentes, e o relatório diz qual é qual. */
+  const [categorias_, setCategorias] = useState<string[]>([]);
   const [erro, setErro] = useState('');
+  const mudarAnexos = (lista: Escolhido[]) => {
+    setCategorias((cs) => lista.map((a) => cs[anexos.indexOf(a)] ?? cs[anexos.length - 1] ?? ''));
+    setAnexos(lista);
+  };
 
   return (
     <div className="overlay" role="dialog" aria-modal="true"
@@ -507,23 +521,25 @@ function FolhaDiario({ tipos, categorias, onFechar, onSalvar }: {
         <textarea id="dia-x" value={texto} onChange={(e) => setTexto(e.target.value)}
                   placeholder="Ex.: visita da tarde; acordada, comeu bem, pediu o urso." />
 
-        <label className="f">
-          Documento do hospital <small>(PDF, JPG ou PNG, até 10 MB, opcional)</small>
-        </label>
-        {/* A prévia do exame ANTES de ele subir. A equipe digitaliza o papel e
-            o devolve ao hospital: se subiu a página errada, ou a foto saiu
-            ilegível, este é o único momento em que ainda dá para refazer. */}
-        <EscolherAnexo id="dia-anexo" arquivo={arquivo} onEscolher={setArquivo}
-          pergunta={<>É este o documento do hospital, e está legível? O papel costuma voltar
-            para o hospital — <b>esta cópia é a que fica</b>.</>} />
-        {arquivo && (
-          <>
-            <label className="f" htmlFor="dia-cat">Que documento é</label>
-            <select id="dia-cat" value={categoria} onChange={(e) => setCategoria(e.target.value)}>
-              <option value="">Escolha…</option>
-              {categorias.map((c) => <option key={c.cod} value={c.cod}>{c.label}</option>)}
-            </select>
-          </>
+        {/* A prévia de cada papel ANTES de ele subir (fase 233: até dez). A
+            equipe digitaliza e devolve o papel ao hospital: se saiu a página
+            errada ou ilegível, este é o único momento em que ainda dá para refazer. */}
+        <AnexosDaMensagem id="dia-anexo" anexos={anexos} onMudar={mudarAnexos}
+          rotulo="Documentos do hospital (opcional, PDF, JPG ou PNG)"
+          extra={(_, i) => (
+            <>
+              <label className="f" htmlFor={i === 0 ? 'dia-cat' : `dia-cat-${i + 1}`}>Que documento é</label>
+              <select id={i === 0 ? 'dia-cat' : `dia-cat-${i + 1}`} value={categorias_[i] ?? ''}
+                      onChange={(e) => setCategorias((cs) => anexos.map((_, j) => (j === i ? e.target.value : cs[j] ?? '')))}>
+                <option value="">Escolha…</option>
+                {categorias.map((c) => <option key={c.cod} value={c.cod}>{c.label}</option>)}
+              </select>
+            </>
+          )} />
+        {anexos.length > 0 && (
+          <p className="mutetxt" style={{ margin: 0 }}>
+            O papel costuma voltar para o hospital: <b>esta cópia é a que fica</b>. Confira se está legível.
+          </p>
         )}
         {/*
           * O anexo NÃO substitui o texto: o servidor recusa relato só com
@@ -534,14 +550,14 @@ function FolhaDiario({ tipos, categorias, onFechar, onSalvar }: {
         {erro && <div className="notice c-crit" role="alert">{erro}</div>}
         <div className="row rodape">
           <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
-          <button className="btn grow" disabled={texto.trim().length < 3 || (!!arquivo && !categoria)}
+          <button className="btn grow"
+                  disabled={texto.trim().length < 3 || anexos.some((_, i) => !categorias_[i])
+                    || !!recusaDosAnexos(anexos.map((a) => a.tamanho))}
                   onClick={async () => {
             try {
               await onSalvar({
                 tipo, texto: texto.trim(),
-                conteudo: arquivo ? base64De(arquivo.dataUrl) : undefined,
-                nomeArquivo: arquivo?.nome,
-                categoria: arquivo ? categoria : undefined,
+                anexos: anexos.map((a, i) => ({ conteudo: base64De(a.dataUrl), nomeArquivo: a.nome, categoria: categorias_[i] })),
               });
             } catch (e) {
               setErro(e instanceof Error ? e.message : 'Não foi possível salvar.');

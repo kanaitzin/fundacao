@@ -28,6 +28,7 @@
 import { ReactNode, useEffect, useRef, useState } from 'react';
 import { Icone, SimboloDaAcolhe } from './icones';
 import { FolhaCamera, temCameraDoSistema } from './camera';
+import { MAXIMO_DE_ANEXOS_POR_MENSAGEM, recusaDosAnexos } from '../../backend/src/kernel/arquivos/anexos-da-mensagem.regra';
 
 /** O que a prévia precisa saber sobre um arquivo escolhido, antes de enviar. */
 export interface Escolhido {
@@ -312,7 +313,7 @@ function useFotosDaAcolhe(): Escolhido[] {
  * cada foto chega por `onEscolher`, e quem chama guarda a lista e a mostra.
  */
 export function EscolherAnexo({ arquivo, onEscolher, aceita = 'application/pdf,image/jpeg,image/png',
-                                maximoMb = 10, pergunta, id, multiplos = false, iniciarNaCamera }: {
+                                maximoMb = 10, pergunta, id, multiplos = false, iniciarNaCamera, restam }: {
   arquivo: Escolhido | null;
   onEscolher: (a: Escolhido | null) => void;
   aceita?: string;
@@ -322,6 +323,12 @@ export function EscolherAnexo({ arquivo, onEscolher, aceita = 'application/pdf,i
   multiplos?: boolean;
   /** Já abre a câmera do sistema, neste modo (o botão de câmera da Acolhe+AI). */
   iniciarNaCamera?: 'foto' | 'documento';
+  /**
+   * Os anexos da mensagem (fase 233): quantos ainda cabem. Com ele, a câmera
+   * tira fotos em sequência até esse número, o Digitalizar documento aparece
+   * junto, e a galeria não passa do que cabe.
+   */
+  restam?: number;
 }) {
   const [erro, setErro] = useState('');
   const [origem, setOrigem] = useState<'camera' | 'sistema' | 'documento' | 'arquivo' | null>(null);
@@ -369,8 +376,11 @@ export function EscolherAnexo({ arquivo, onEscolher, aceita = 'application/pdf,i
     onEscolher(a);
   }
 
+  const daMensagem = multiplos && restam !== undefined;
   const folhaDaCamera = camera && (
-    <FolhaCamera podeDocumento={aceitaPdf && !multiplos} inicial={camera}
+    <FolhaCamera podeDocumento={aceitaPdf && (!multiplos || daMensagem)} inicial={camera}
+      varias={daMensagem ? Math.max(1, restam!) : 1}
+      onFotos={daMensagem ? (lista) => { setCamera(null); lista.forEach((a) => { if (cabe(a)) onEscolher(a); }); } : undefined}
       onFechar={() => setCamera(null)}
       onFoto={(a) => daCamera(a, 'sistema')}
       onDocumento={(a) => daCamera(a, 'documento')}
@@ -435,10 +445,10 @@ export function EscolherAnexo({ arquivo, onEscolher, aceita = 'application/pdf,i
       <div className="acoes">
         {doSistema && (
           <button type="button" className="btn sm" onClick={() => { setErro(''); setCamera('foto'); }}>
-            <Icone nome="foto" /> {multiplos ? 'Tirar uma foto' : 'Abrir a câmera'}
+            <Icone nome="foto" /> {daMensagem ? 'Tirar fotos' : multiplos ? 'Tirar uma foto' : 'Abrir a câmera'}
           </button>
         )}
-        {doSistema && aceitaPdf && !multiplos && (
+        {doSistema && aceitaPdf && (!multiplos || daMensagem) && (
           <button type="button" className="btn sm" onClick={() => { setErro(''); setCamera('documento'); }}>
             <Icone nome="documento" /> Digitalizar documento
           </button>
@@ -470,6 +480,118 @@ export function EscolherAnexo({ arquivo, onEscolher, aceita = 'application/pdf,i
   );
 
   async function receberVarios(lista: FileList | null) {
-    for (const f of Array.from(lista ?? []).slice(0, multiplos ? 20 : 1)) await receber(f, 'arquivo');
+    const todos = Array.from(lista ?? []);
+    const cabem = daMensagem ? Math.max(0, restam!) : multiplos ? 20 : 1;
+    for (const f of todos.slice(0, cabem)) await receber(f, 'arquivo');
+    if (daMensagem && todos.length > cabem) {
+      setErro(`Cabem mais ${cabem} ${cabem === 1 ? 'anexo' : 'anexos'} nesta mensagem. `
+        + `${todos.length - cabem} ${todos.length - cabem === 1 ? 'ficou' : 'ficaram'} de fora: mande numa mensagem seguinte.`);
+    }
   }
 }
+
+/* ====================================================================== */
+
+/**
+ * OS ANEXOS DE UMA MENSAGEM (fase 233, pedido de 22/10).
+ *
+ * *"Podendo enviar até 10 anexos por mensagem."* A linha da ATA, o registro do
+ * diário da internação, a ocorrência, o atendimento técnico e a conversa da
+ * Acolhe+AI juntam fotos e documentos como no WhatsApp: a câmera tira várias
+ * em sequência, o documento de várias páginas vira um PDF, a galeria escolhe
+ * várias de uma vez, e cada anexo aparece em miniatura, com Ver e Tirar, antes
+ * de a mensagem sair. O limite e o total por envio vêm da mesma regra que o
+ * servidor confere (`anexos-da-mensagem.regra.ts`).
+ *
+ * `extra` desenha, embaixo de cada miniatura, o que aquele anexo pede (a
+ * categoria do papel do hospital, a legenda do desenho).
+ */
+export function AnexosDaMensagem({ anexos, onMudar, id, aceita = 'application/pdf,image/jpeg,image/png',
+                                   maximo = MAXIMO_DE_ANEXOS_POR_MENSAGEM, extra, iniciarNaCamera, rotulo }: {
+  anexos: Escolhido[];
+  onMudar: (lista: Escolhido[]) => void;
+  id: string;
+  aceita?: string;
+  maximo?: number;
+  extra?: (a: Escolhido, i: number) => ReactNode;
+  iniciarNaCamera?: 'foto' | 'documento';
+  rotulo?: string;
+}) {
+  const [vendo, setVendo] = useState<number | null>(null);
+  /* A lista corrente num ref: a câmera e a galeria entregam vários seguidos,
+     e cada um tem de entrar depois do anterior, não por cima dele. */
+  const atual = useRef(anexos);
+  atual.current = anexos;
+  const total = anexos.reduce((s, a) => s + a.tamanho, 0);
+  const recusa = recusaDosAnexos(anexos.map((a) => a.tamanho));
+  const restam = Math.max(0, maximo - anexos.length);
+  const vista = vendo !== null ? anexos[vendo] : null;
+
+  return (
+    <div className="stack anexos-da-mensagem">
+      <div className="row" style={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
+        <span className="f" id={`${id}-rotulo`}>{rotulo ?? 'Anexos'}</span>
+        <small className="mutetxt" role="status" aria-live="polite">
+          {anexos.length} de {maximo}{anexos.length ? ` · ${tamanhoLegivel(total)}` : ''}
+        </small>
+      </div>
+      {anexos.length > 0 && (
+        <ul className="anexos-grade" aria-labelledby={`${id}-rotulo`}>
+          {anexos.map((a, i) => (
+            <li key={`${a.nome}-${i}`} className="anexo-cartao">
+              {a.dataUrl.startsWith('data:image')
+                ? <img src={a.dataUrl} alt={`Anexo ${i + 1}: ${a.nome}`} />
+                : a.paginas?.length
+                  ? <img src={a.paginas[0]} alt={`Anexo ${i + 1}: documento com ${a.paginas.length} ${a.paginas.length === 1 ? 'página' : 'páginas'}`} />
+                  : <span className="anexo-pdf" aria-label={`Anexo ${i + 1}: ${a.nome}`}><Icone nome="documento" /> PDF</span>}
+              <small className="anexo-nome" title={a.nome}>
+                {a.nome} · {tamanhoLegivel(a.tamanho)}
+                {a.paginas?.length ? ` · PDF com ${a.paginas.length} ${a.paginas.length === 1 ? 'página' : 'páginas'}` : ''}
+                {a.original ? ` (reduzida de ${tamanhoLegivel(a.original)} para enviar)` : ''}
+              </small>
+              <div className="acoes">
+                <button type="button" className="btn sm ghost" onClick={() => setVendo(i)}>
+                  <Icone nome="olhar" /> Ver
+                </button>
+                <button type="button" className="btn sm ghost" aria-label={`Tirar o anexo ${i + 1}`}
+                        onClick={() => onMudar(anexos.filter((_, j) => j !== i))}>
+                  <Icone nome="fechar" /> Tirar
+                </button>
+              </div>
+              {extra?.(a, i)}
+            </li>
+          ))}
+        </ul>
+      )}
+      {recusa && <div className="notice c-crit" role="alert">{recusa}</div>}
+      {restam > 0 ? (
+        <EscolherAnexo id={id} arquivo={null} multiplos restam={restam} aceita={aceita}
+                       iniciarNaCamera={iniciarNaCamera}
+                       onEscolher={(a) => { if (a) { atual.current = [...atual.current, a]; onMudar(atual.current); } }} />
+      ) : (
+        <p className="mutetxt" style={{ margin: 0 }}>
+          Esta mensagem já tem {maximo} anexos. O que faltar vai numa mensagem seguinte.
+        </p>
+      )}
+      {vista && (
+        <div className="overlay" role="dialog" aria-modal="true" aria-label={`Anexo ${vendo! + 1}`}
+             onClick={(e) => { if (e.target === e.currentTarget) setVendo(null); }}>
+          <div className="sheet modal">
+            {vista.dataUrl.startsWith('data:image')
+              ? <img src={vista.dataUrl} alt={`Ampliação de ${vista.nome}`} className="previa-img ampliada" />
+              : vista.paginas?.length
+                ? <ol className="previa-paginas">{vista.paginas.map((p, k) => <li key={k}><img src={p} alt={`Página ${k + 1}`} /></li>)}</ol>
+                : <iframe src={vista.dataUrl} title={vista.nome} className="previa-quadro" />}
+            <p className="mutetxt">{vista.nome} · {tamanhoLegivel(vista.tamanho)}</p>
+            <button className="btn sec block" onClick={() => setVendo(null)}>Fechar</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Os anexos de uma mensagem, no formato que as rotas de envio esperam. */
+export const paraEnviar = (lista: Escolhido[]) =>
+  lista.map((a) => ({ conteudo: base64De(a.dataUrl), nomeArquivo: a.nome }));
+

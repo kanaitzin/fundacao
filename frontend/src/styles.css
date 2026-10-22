@@ -1701,6 +1701,20 @@ div.acoes{ display:flex; flex-wrap:wrap; gap:8px; align-items:center }
 .camera-ajustes{ display:flex; gap:12px }
 .previa-paginas{ list-style:none; margin:6px 0 0; padding:0; display:flex; gap:8px; overflow-x:auto }
 .previa-paginas img{ display:block; height:120px; width:auto; border-radius:6px; border:1px solid var(--line-2); background:#fff }
+/* Os anexos de uma mensagem (fase 233): miniaturas em grade, cada uma com Ver e
+   Tirar com tamanho de dedo, e o que o anexo pede (a categoria, a legenda) embaixo. */
+.anexos-grade{ list-style:none; margin:0; padding:0; display:grid; gap:10px;
+  grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)) }
+.anexo-cartao{ display:flex; flex-direction:column; gap:6px; min-width:0; padding:8px;
+  border:1px solid var(--line-2); border-radius:var(--r-md); background:var(--raised) }
+.anexo-cartao > img{ display:block; width:100%; height:110px; object-fit:cover; border-radius:6px; background:#fff }
+.anexo-pdf{ display:flex; align-items:center; justify-content:center; gap:6px; height:110px;
+  border-radius:6px; border:1px dashed var(--line-2); font-weight:700 }
+.anexo-nome{ overflow-wrap:anywhere }
+.anexo-cartao .acoes{ display:flex; gap:6px; flex-wrap:wrap }
+.anexo-cartao .acoes .btn{ min-height:36px }
+.anexo-cartao select, .anexo-cartao input{ width:100%; min-width:0 }
+.anexos-da-linha{ margin-top:6px }
 
 /* ===================================================================
  * O DITADO NOS CAMPOS (fase 195): o microfone no canto do campo de texto

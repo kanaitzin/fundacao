@@ -3,7 +3,8 @@ import { DatabaseService } from '../../kernel/database/database.service';
 import { AuditService } from '../../kernel/audit/audit.service';
 import { AuthenticatedUser } from '../../kernel/contracts';
 import { DocumentosService } from '../../kernel/documentos/documentos.service';
-import { Folha, cargoNoDocumento, diaBR, hhmmBR, nomeDoArquivo } from '../../kernel/documentos/folha';
+import { cargoNoDocumento, nomeDoArquivo } from '../../kernel/documentos/folha';
+import { folhaDosBeneficios } from './beneficios-folha';
 
 /**
  * Benefícios e dados bancários (§6.10) — a área mais sensível do sistema.
@@ -330,38 +331,14 @@ export class BenefitsService {
       }, c);
       return { pessoa, rows };
     });
-    const agora = new Date();
     const rotulo = (lista: readonly { cod: string; label: string }[], cod: string) =>
-      (lista.find((t) => t.cod === cod)?.label ?? cod).replace(/ — /g, ': ');
-    const folha: Folha = {
-      titulo: `Benefícios e dados bancários de ${pessoa?.nome ?? 'acolhido'}`,
-      identificacao: [
-        { rotulo: 'Acolhido', valor: pessoa?.nome ?? '' },
-        { rotulo: 'Emitida em', valor: `${diaBR(agora)}, às ${hhmmBR(agora)}` },
-        { rotulo: 'Finalidade', valor: finalidade.trim() },
-        { rotulo: 'Registros', valor: String(rows.length) },
-      ],
-      secoes: rows.length ? rows.map((r) => ({
-        titulo: rotulo(TIPOS_BENEFICIO, r.benefit_type),
-        paragrafos: [
-          `Situação: ${rotulo(SITUACOES_BENEFICIO, r.status)}.`,
-          ...(r.benefit_number ? [`Número do benefício: ${r.benefit_number}.`] : []),
-          ...(r.bank_name || r.agency || r.account ? [[
-            r.bank_name ? `Banco: ${r.bank_name}` : '',
-            r.agency ? `agência ${r.agency}${r.agency_name ? ` (${r.agency_name})` : ''}` : '',
-            r.account ? `conta ${r.account}${r.account_op ? `, operação ${r.account_op}` : ''}` : '',
-          ].filter(Boolean).join(', ') + '.'] : []),
-          ...(r.bank_pending ? [`Pendência bancária: ${r.pending_note || 'a regularizar junto ao banco'}.`] : []),
-          ...(r.has_gov_access ? [`Acesso ao gov.br sob a responsabilidade de ${r.gov_access_holder || 'pessoa a confirmar'}.`] : []),
-          ...(r.notes ? [`Observações: ${r.notes}`] : []),
-        ],
-      })) : [{ titulo: 'Registros', paragrafos: ['Não há benefício nem conta registrados para este acolhido.'] }],
-      geradoPor: user.fullName,
-      cargo: cargoNoDocumento(user.role),
-      assinatura: true,
-      ressalva: 'Documento de uso restrito da coordenação. Contém dados bancários do acolhido e deve '
-        + 'ser entregue somente ao órgão indicado na finalidade, sem cópias.',
-    };
+      lista.find((t) => t.cod === cod)?.label ?? cod;
+    const folha = folhaDosBeneficios(pessoa?.nome ?? 'acolhido', finalidade, rows.map((r) => ({
+      tipoRotulo: rotulo(TIPOS_BENEFICIO, r.benefit_type), situacaoRotulo: rotulo(SITUACOES_BENEFICIO, r.status),
+      numero: r.benefit_number, banco: r.bank_name, agencia: r.agency, agenciaNome: r.agency_name,
+      conta: r.account, operacao: r.account_op, pendenciaBancaria: r.bank_pending, pendenciaNota: r.pending_note,
+      temAcessoGov: r.has_gov_access, responsavelPeloAcesso: r.gov_access_holder, observacoes: r.notes,
+    })), { nome: user.fullName, cargo: cargoNoDocumento(user.role) });
     const arquivo = await this.documentos.gerar(folha);
     return {
       ok: true, formato: 'docx',

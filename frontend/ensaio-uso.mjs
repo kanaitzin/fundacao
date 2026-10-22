@@ -3172,10 +3172,10 @@ cobrar('o diário oferece selecionar arquivo',
 await pg.locator('#dia-x').fill('Visita da manhã; dormiu bem e aceitou o café.');
 await pg.locator('#dia-anexo-arquivo').setInputFiles({ name: 'receita.png', mimeType: 'image/png', buffer: png });
 await pg.waitForTimeout(500);
-cobrar('a foto aparece em prévia antes de sair do aparelho, com ampliar e descartar',
-  /Confira antes de enviar/i.test(await corpo())
-  && (await pg.getByRole('button', { name: 'Ampliar' }).count()) > 0
-  && (await pg.getByRole('button', { name: 'Descartar' }).count()) > 0);
+cobrar('a foto aparece em miniatura antes de sair do aparelho, com Ver e Tirar',
+  (await pg.locator('.overlay .anexo-cartao img').count()) === 1
+  && (await pg.locator('.overlay .anexo-cartao').getByRole('button', { name: 'Ver' }).count()) === 1
+  && (await pg.getByRole('button', { name: 'Tirar o anexo 1' }).count()) === 1);
 cobrar('a imagem pequena vai como veio, sem ser reduzida',
   !/reduzida de/.test(await corpo()) && /receita\.png/.test(await corpo()));
 /*
@@ -3183,7 +3183,7 @@ cobrar('a imagem pequena vai como veio, sem ser reduzida',
  * 4000 por 3000 pixels, feita aqui mesmo no navegador, passa pela prévia já
  * reduzida, e diz de quanto era.
  */
-await pg.getByRole('button', { name: 'Descartar' }).click();
+await pg.getByRole('button', { name: 'Tirar o anexo 1' }).click();
 await pg.waitForTimeout(300);
 const fotoGrande = Buffer.from(await pg.evaluate(() => {
   const t = document.createElement('canvas'); t.width = 4000; t.height = 3000;
@@ -3200,7 +3200,7 @@ const previaGrande = await corpo();
 cobrar(`a foto de câmera (${(fotoGrande.length / 1048576).toFixed(1)} MB) sai reduzida, e a prévia diz de quanto era`,
   /certidao-da-camera\.jpg · [\d,.]+ (KB|MB) \(reduzida de [\d,.]+ MB para enviar\)/.test(previaGrande),
   previaGrande.match(/certidao-da-camera[^\n]{0,80}/)?.[0]);
-await pg.getByRole('button', { name: 'Descartar' }).click();
+await pg.getByRole('button', { name: 'Tirar o anexo 1' }).click();
 await pg.waitForTimeout(300);
 await pg.locator('#dia-anexo-arquivo').setInputFiles({ name: 'receita.png', mimeType: 'image/png', buffer: png });
 await pg.waitForTimeout(500);
@@ -3209,7 +3209,7 @@ cobrar('sem dizer que documento é, não salva',
 await pg.locator('#dia-cat').selectOption('receita');
 await pg.locator('.overlay button', { hasText: /^Salvar$/ }).click();
 await pg.waitForTimeout(900);
-cobrar('o registro diz que documento veio junto', /Anexo: Receita/.test(await conteudo()));
+cobrar('o registro diz que documento veio junto', /receita\.png \(receita\)/.test(await conteudo()));
 await pg.getByRole('button', { name: /Relatório completo da internação/ }).click();
 await pg.waitForTimeout(900);
 const relatorio = await corpo();
@@ -3806,22 +3806,37 @@ console.log('\n📷 A câmera do sistema e o documento digitalizado (fase 194)')
     && (await cam.getByRole('button', { name: /^Concluir \(2 páginas\)$/ }).count()) === 1);
   await cam.getByRole('button', { name: /^Concluir/ }).click();
   await pgC.waitForTimeout(800);
-  const previa = pgC.locator('.acolhe-painel .previa');
-  cobrar('concluir monta UM PDF com as duas páginas, e a prévia mostra as páginas',
-    !(await cam.count()) && (await previa.locator('.previa-paginas img').count()) === 2
-    && /\.pdf · .* · PDF com 2 páginas/.test(await previa.innerText()), (await previa.innerText().catch(() => '')).slice(0, 160));
-  /* A foto simples: Descartar, a câmera de novo, o modo Foto, e o certo. */
-  await pgC.locator('.acolhe-painel').getByRole('button', { name: 'Descartar' }).click();
-  await pgC.locator('.acolhe-painel').getByRole('button', { name: 'Abrir a câmera' }).click();
+  const cartao = pgC.locator('.acolhe-painel .anexo-cartao');
+  cobrar('concluir monta UM PDF com as duas páginas, num cartão com a primeira página',
+    !(await cam.count()) && (await cartao.count()) === 1 && (await cartao.locator('img').count()) === 1
+    && /\.pdf · .* · PDF com 2 páginas/.test(await cartao.innerText()), (await cartao.innerText().catch(() => '')).slice(0, 160));
+  await cartao.getByRole('button', { name: 'Ver' }).click();
+  await pgC.waitForTimeout(300);
+  cobrar('o Ver mostra as duas páginas antes de enviar',
+    (await pgC.locator('.overlay .previa-paginas img').count()) === 2);
+  await pgC.locator('.overlay').last().getByRole('button', { name: 'Fechar' }).click();
+  /* As fotos em sequência, como no WhatsApp (fase 233): Tirar o documento, Tirar
+     fotos, duas seguidas, e o Concluir entrega as duas. */
+  await pgC.locator('.acolhe-painel').getByRole('button', { name: 'Tirar o anexo 1' }).click();
+  await pgC.locator('.acolhe-painel').getByRole('button', { name: 'Tirar fotos' }).click();
   await pgC.waitForTimeout(1500);
-  await cam.getByRole('button', { name: 'Foto', exact: true }).click();
-  await cam.getByRole('button', { name: 'Fotografar', exact: true }).click();
-  await pgC.waitForTimeout(600);
-  await cam.getByRole('button', { name: 'Usar esta foto' }).click();
-  await pgC.waitForTimeout(600);
-  cobrar('no modo foto, o certo entrega a foto, com a prévia em imagem',
-    !(await cam.count()) && (await pgC.locator('.acolhe-painel .previa img.previa-img').count()) === 1
-    && /foto-\d{4}-\d{2}-\d{2}-\d{2}h\d{2}\.jpg/.test(await pgC.locator('.acolhe-painel .previa').innerText()));
+  cobrar('o Tirar fotos abre a câmera no modo foto',
+    (await cam.getByRole('button', { name: 'Foto', exact: true }).getAttribute('aria-pressed')) === 'true');
+  for (const n of [1, 2]) {
+    await cam.getByRole('button', { name: `Fotografar a foto ${n}` }).click();
+    await pgC.waitForTimeout(600);
+    await cam.getByRole('button', { name: 'Guardar esta foto' }).click();
+    await pgC.waitForTimeout(1200);
+  }
+  cobrar('cada foto guardada volta ao visor, e a fila mostra as duas',
+    (await cam.locator('.camera-paginas li').count()) === 2
+    && (await cam.getByRole('button', { name: /^Concluir \(2 fotos\)$/ }).count()) === 1);
+  await cam.getByRole('button', { name: /^Concluir \(2 fotos\)$/ }).click();
+  await pgC.waitForTimeout(800);
+  const nomes = await pgC.locator('.acolhe-painel .anexo-cartao .anexo-nome').allInnerTexts();
+  cobrar('o Concluir entrega as duas fotos, cada uma com o seu nome',
+    !(await cam.count()) && nomes.length === 2
+    && /foto-\d{4}-\d{2}-\d{2}-\d{2}h\d{2}-1\.jpg/.test(nomes[0]) && /-2\.jpg/.test(nomes[1]), nomes.join(' | '));
   await pgC.getByRole('button', { name: 'Minimizar a Acolhe+AI' }).click();
   await pgC.getByRole('button', { name: /^Abrir a Acolhe\+AI/ }).click();
   await pgC.waitForTimeout(800);
@@ -4475,6 +4490,70 @@ console.log('\n🧭 O Guia do sistema (fase 231)');
     && await pgG.locator('nav.tabbar').count() === 0);
   cobrar('nenhuma exceção no Guia', errosG.length === 0, errosG[0]);
   await pgG.close();
+}
+
+console.log('\n📎 Até 10 anexos por mensagem (fase 233)');
+{
+  const pgM = await navegador.newPage({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  const errosM = [];
+  pgM.on('pageerror', (e) => errosM.push(e.message));
+  const esp = (ms = 800) => pgM.waitForTimeout(ms);
+  /* Fotos de verdade, de cores diferentes: a soma repetida seria recusada. */
+  const fotoDe = async (cor) => Buffer.from(await pgM.evaluate((c) => {
+    const t = document.createElement('canvas'); t.width = 900; t.height = 700;
+    const g = t.getContext('2d'); g.fillStyle = c; g.fillRect(0, 0, 900, 700);
+    g.fillStyle = '#fff'; g.font = '80px sans-serif'; g.fillText(c, 100, 350);
+    return t.toDataURL('image/jpeg', 0.8).split(',')[1];
+  }, cor), 'base64');
+  await pgM.goto(`file://${ARQUIVO}`); await esp(700);
+  await pgM.getByRole('button', { name: 'Marcelo Barbosa', exact: true }).click();
+  await pgM.getByRole('button', { name: /Entrar no sistema/i }).click(); await esp(1200);
+  cargoAtual = 'educador';
+  await pgM.locator('select.troca-cargo-sel').selectOption('educador'); await esp(900);
+  await pgM.locator('nav.tabbar button', { hasText: 'Mais' }).first().click(); await esp(400);
+  await pgM.locator('.overlay .sheet button.card.row', { hasText: 'ATA' }).first().click(); await esp(1200);
+
+  /* A linha da ATA com fotos: três entram, uma sai, o Ver abre, e a linha guarda duas. */
+  await pgM.locator('#linha-ata').fill('Curativo do joelho trocado depois do futebol; fotos do antes e do depois.');
+  const tres = [];
+  for (const cor of ['#3a6', '#a36', '#36a']) tres.push({ name: `IMG_${cor.slice(1)}.jpg`, mimeType: 'image/jpeg', buffer: await fotoDe(cor) });
+  await pgM.locator('#linha-anexos-arquivo').setInputFiles(tres); await esp(1500);
+  cobrar('a galeria entrega as três fotos de uma vez, em miniatura, com a contagem',
+    await pgM.locator('.anexos-grade .anexo-cartao').count() === 3
+    && /^3 de 10/.test(await pgM.locator('.anexos-da-mensagem [role=status]').first().innerText()));
+  await pgM.getByRole('button', { name: 'Tirar o anexo 2' }).click(); await esp(300);
+  cobrar('o Tirar remove só aquele anexo, antes de enviar', await pgM.locator('.anexos-grade .anexo-cartao').count() === 2);
+  await pgM.locator('.anexo-cartao').first().getByRole('button', { name: 'Ver' }).click(); await esp(300);
+  cobrar('o Ver abre a foto inteira antes de enviar', await pgM.locator('.overlay img.previa-img').count() === 1);
+  await pgM.locator('.overlay').getByRole('button', { name: 'Fechar' }).click(); await esp(200);
+  await pgM.getByRole('button', { name: /Registrar linha com 2 anexos/ }).click(); await esp(1200);
+  const naLinha = await pgM.locator('.anexos-da-linha button').allInnerTexts();
+  cobrar('a linha guardada mostra os dois anexos, com o nome neutro',
+    naLinha.length === 2 && naLinha.every((t) => /foto-\d\.jpg/.test(t)), naLinha.join(', '));
+  await pgM.locator('.anexos-da-linha button').first().click(); await esp(800);
+  cobrar('o anexo guardado abre na linha', await pgM.locator('.overlay img.previa-img').count() === 1);
+  await pgM.locator('.overlay').getByRole('button', { name: 'Fechar' }).click(); await esp(200);
+
+  /* Onze escolhidas de uma vez: entram dez, e a frase diz quantas ficaram de fora. */
+  const onze = [];
+  for (let k = 0; k < 11; k++) onze.push({ name: `F${k}.jpg`, mimeType: 'image/jpeg', buffer: await fotoDe(`#${(100 + k * 70).toString(16).padStart(3, '0').slice(-3)}`) });
+  await pgM.locator('#linha-anexos-arquivo').setInputFiles(onze); await esp(3000);
+  const aviso = await pgM.locator('.anexos-da-mensagem [role=alert]').allInnerTexts();
+  cobrar('com onze escolhidas, entram dez e a tela diz que uma ficou de fora',
+    await pgM.locator('.anexos-grade .anexo-cartao').count() === 10 && aviso.some((t) => /1 ficou de fora/.test(t)),
+    aviso.join(' | '));
+  cobrar('com dez, a tela diz que a mensagem está cheia', /já tem 10 anexos/.test(await pgM.locator('.anexos-da-mensagem').first().innerText()));
+
+  /* A Acolhe+AI recebe várias de uma vez, e a conversa mostra os nomes. */
+  await pgM.locator('.acolhe-botao').click(); await esp(600);
+  await pgM.getByRole('button', { name: 'Anexar foto ou documento' }).click(); await esp(300);
+  await pgM.locator('#acolhe-anexo-arquivo').setInputFiles(tres.slice(0, 2)); await esp(1200);
+  await pgM.locator('#acolhe-pergunta').fill('o que é isto?');
+  await pgM.locator('.acolhe-escrever button[type=submit]').click(); await esp(1500);
+  const naConversa = await pgM.locator('.acolhe-anexo').last().innerText().catch(() => '');
+  cobrar('a Acolhe+AI recebe as duas fotos na mesma pergunta', /IMG_3a6\.jpg, IMG_a36\.jpg/.test(naConversa), naConversa);
+  cobrar('nenhuma exceção nos anexos da mensagem', errosM.length === 0, errosM[0]);
+  await pgM.close();
 }
 
 await navegador.close();

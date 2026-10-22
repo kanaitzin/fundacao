@@ -139,6 +139,7 @@ vale hoje.
 22. Se a tela ainda parecer cheia: o histórico recolhido, as ações num botão só, ou os avisos e ajustes juntos? (só a explicação recolhida; §4.30)
 23. A resposta da Acolhe+AI aparecendo enquanto é escrita: é a próxima melhoria que eu faria (§4.28)
 24. Quartos e camas no sistema: é útil no plantão? (não existe; §4.29)
+25. Os anexos da mensagem: 15 MB por envio, o mesmo tipo para os anexos de uma ocorrência, o nome neutro na ATA? (como está; §4.32)
 
 ### O que já foi respondido e este documento ainda perguntava
 
@@ -192,7 +193,7 @@ contando o conceito escolar (fase 137). Nada disso volta à mesa.
   196 também dentro do perfil da criança (*quero registrar a alergia do Bruno*), do dossiê, da
   internação aberta e do acervo: os 36 formulários do sistema. **Para o DPO:**
   o ditado usa o reconhecimento do navegador; no Chrome, o áudio vai ao Google.
-- **232 fases.** 151 suítes e 1330 testes, verdes em duas condições de relógio —
+- **233 fases.** 153 suítes e 1344 testes, verdes em duas condições de relógio —
   antes e depois da virada do UTC, que em Porto Alegre é às 21h.
 - **O aviso no celular** (fase 189, decidido em 06/10): quem liga na Minha conta
   recebe no celular todos os avisos do sino, mesmo com o sistema fechado. Na
@@ -832,6 +833,30 @@ perguntas:
    própria Portaria.
 2. **O texto do Guia é para a equipe ler.** Vale a coordenação da Casa 03 ler uma vez com o
    roteiro na mão e dizer o que ficou difícil de entender.
+
+## 4.32 Até 10 anexos por mensagem (fase 233, pedido de 22/10)
+
+Decidido em 22/10 onde valem os dez: a linha da ATA, o diário da internação, a ocorrência, o
+atendimento técnico e a conversa com a Acolhe+AI. Os outros lugares continuam com um arquivo cada,
+porque cada um é um documento só. A câmera tira fotos em sequência, como no WhatsApp, e cada anexo
+aparece em miniatura, com Ver e Tirar, antes de enviar. Quatro escolhas foram minhas, e cada uma
+é uma linha:
+
+1. **Quinze megabytes por mensagem, somando tudo.** É o que cabe num envio pelo celular. Dez fotos
+   (perto de meio megabyte cada, depois de reduzidas) ou três documentos digitalizados cabem; um
+   PDF grande do hospital vai numa mensagem própria.
+2. **Na ocorrência, os anexos de uma vez têm o mesmo tipo e a mesma justificativa**, e o nome de
+   exibição sai numerado (*Atendimento no posto (1 de 3)*). Tipos diferentes vão em envios
+   diferentes, como antes.
+3. **Na linha da ATA, o nome do arquivo não vem do aparelho**: cada um vira *foto-1.jpg* ou
+   *documento-2.pdf*, porque a ATA é lida pela casa inteira e o nome do celular pode trazer CPF ou
+   diagnóstico. A linha restrita esconde os anexos dela, e eles não vão ao Word da ATA.
+4. **No Word da ATA, as fotos são reproduzidas no fim e o PDF fica citado** (*documento, disponível
+   no registro eletrônico*). No relatório da internação, os PDFs continuam desenhados página por
+   página, como antes.
+
+E o que a mesma rodada consertou e o Marcelo pode ter visto: **o Exportar dos benefícios, no Cofre,
+registrava a finalidade e não entregava arquivo**. Agora entrega o documento em Word.
 
 ## 5. As decisões que são do Marcelo *(§10 — responda pelo número)*
 

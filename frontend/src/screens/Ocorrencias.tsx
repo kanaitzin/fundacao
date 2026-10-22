@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api';
-import { BotaoOlho, EscolherAnexo, Escolhido, base64De } from '../anexos';
+import { AnexosDaMensagem, BotaoOlho, Escolhido, paraEnviar } from '../anexos';
+import { recusaDosAnexos } from '../../../backend/src/kernel/arquivos/anexos-da-mensagem.regra';
 import { FolhaDocumento } from '../documentos';
 import type { ArquivoGerado } from '../documentos';
 import type { DocumentoWord } from '../docx';
@@ -1192,12 +1193,14 @@ function FolhaAnexo({ tipos, aviso, onFechar, onEnviar }: {
      pelo campo preenchido: um campo que muda de sentido conforme o outro está
      vazio é o tipo de tela que a pessoa cansada erra às 23h. */
   const [forma, setForma] = useState<'arquivo' | 'referencia'>('arquivo');
-  const [arquivo, setArquivo] = useState<Escolhido | null>(null);
+  const [arquivos, setArquivos] = useState<Escolhido[]>([]);
   const escolhido = tipos.find((t) => t.cod === tipo);
   // A mesma checagem do servidor, para o aviso chegar antes da recusa.
   const nomeSuspeito = /\d{11}|\d{3}\.?\d{3}\.?\d{3}-?\d{2}|hiv|aids|autis|esquizo|depress|transtorn|psiquiatr|cid[\s-]?\d/i
     .test(nome);
-  const temOnde = forma === 'arquivo' ? arquivo != null : referencia.trim().length >= 3;
+  const temOnde = forma === 'arquivo'
+    ? arquivos.length > 0 && !recusaDosAnexos(arquivos.map((a) => a.tamanho))
+    : referencia.trim().length >= 3;
   const pode = tipo !== '' && nome.trim().length >= 3 && !nomeSuspeito && temOnde
     && (!escolhido?.exigeJustificativa || justificativa.trim().length >= 15);
 
@@ -1247,12 +1250,15 @@ function FolhaAnexo({ tipos, aviso, onFechar, onEnviar }: {
 
         {forma === 'arquivo' ? (
           <>
-            <label className="f" htmlFor="anx-arq-arquivo">
-              O papel digitalizado <small>— foto ou PDF</small>
-            </label>
-            <EscolherAnexo id="anx-arq" arquivo={arquivo} onEscolher={setArquivo}
-              pergunta={<>É este o documento? Quem abrir depois vai ver <b>isto</b> — e a
-                abertura fica registrada com o nome de quem abriu.</>} />
+            {/* Até dez de uma vez (fase 233), com o mesmo tipo e o nome de exibição
+                numerado: as fotos do braço, o atestado e o encaminhamento do posto. */}
+            <AnexosDaMensagem id="anx-arq" anexos={arquivos} onMudar={setArquivos}
+              rotulo="O papel digitalizado (foto ou PDF)" />
+            {arquivos.length > 0 && (
+              <p className="mutetxt" style={{ margin: 0 }}>
+                Quem abrir depois vai ver <b>isto</b>, e a abertura fica registrada com o nome de quem abriu.
+              </p>
+            )}
           </>
         ) : (
           <>
@@ -1294,12 +1300,11 @@ function FolhaAnexo({ tipos, aviso, onFechar, onEnviar }: {
                   onClick={() => onEnviar({
                     tipo, nome: nome.trim(),
                     referencia: forma === 'referencia' ? referencia.trim() : undefined,
-                    conteudo: forma === 'arquivo' && arquivo
-                      ? base64De(arquivo.dataUrl) : undefined,
-                    nomeArquivo: forma === 'arquivo' ? arquivo?.nome : undefined,
+                    anexos: forma === 'arquivo' ? paraEnviar(arquivos) : undefined,
                     justificativa: justificativa.trim() || undefined,
                   })}>
-            {forma === 'arquivo' ? 'Anexar o documento' : 'Registrar a referência'}
+            {forma === 'referencia' ? 'Registrar a referência'
+              : arquivos.length > 1 ? `Anexar os ${arquivos.length} documentos` : 'Anexar o documento'}
           </button>
         </div>
       </div>

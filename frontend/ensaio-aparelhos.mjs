@@ -326,13 +326,16 @@ async function oAparelho(navegador, a) {
       !!tc && tc.dentro && tc.tamanho >= 24 && tc.livre, JSON.stringify(tc));
     if (await concluir.count()) await concluir.click();
     await esp(pg, 1200);
-    const previa = folha.locator('.previa');
-    const texto = (await previa.innerText().catch(() => '')) || '';
-    const paginas = await previa.locator('.previa-paginas img').evaluateAll((imgs) =>
+    /* O documento vira um cartão na grade dos anexos (fase 233), e o Ver abre as páginas. */
+    const cartao = folha.locator('.anexo-cartao').first();
+    const texto = (await cartao.innerText().catch(() => '')) || '';
+    await cartao.getByRole('button', { name: 'Ver' }).click().catch(() => undefined); await esp(pg, 400);
+    const paginas = await pg.locator('.overlay .previa-paginas img').evaluateAll((imgs) =>
       imgs.map((i) => ({ w: i.naturalWidth, h: i.naturalHeight })));
+    await pg.locator('.overlay').last().getByRole('button', { name: 'Fechar' }).click().catch(() => undefined); await esp(pg, 300);
     const tamanho = /· ([\d.,]+) (KB|MB) · PDF com 3 páginas/.exec(texto);
     const kb = tamanho ? Number(tamanho[1].replace(',', '.')) * (tamanho[2] === 'MB' ? 1024 : 1) : NaN;
-    cobrar('sai UM PDF com as três páginas, e a prévia mostra as três', paginas.length === 3 && /PDF com 3 páginas/.test(texto), texto.slice(0, 120));
+    cobrar('sai UM PDF com as três páginas, e o Ver mostra as três', paginas.length === 3 && /PDF com 3 páginas/.test(texto), texto.slice(0, 120));
     cobrar('cada página do PDF tem no máximo 1800 px no lado maior, sem corte',
       paginas.length === 3 && paginas.every((p) => Math.max(p.w, p.h) <= 1800 && Math.abs(p.w / p.h - CAMERAS[a.camera].w / CAMERAS[a.camera].h) < 0.01),
       JSON.stringify(paginas));
@@ -342,31 +345,61 @@ async function oAparelho(navegador, a) {
     console.log(`      PDF: ${tamanho ? `${tamanho[1]} ${tamanho[2]}` : '?'} · páginas ${paginas.map((p) => `${p.w}×${p.h}`).join(', ')}`);
   }
 
-  /* 3. A foto da galeria: 12 MP girada pelo EXIF. */
-  /* Os botões da prévia têm de se alcançar com o dedo, acima da barra fixa do pé da folha. */
-  for (const nome of ['Pôr no atendimento', 'Digitalizar de novo', 'Descartar']) {
-    const b = folha.getByRole('button', { name: nome, exact: true });
-    if (!(await b.count())) { cobrar(`"${nome}" aparece na prévia`, false); continue; }
+  /* 3. Os botões do cartão têm de se alcançar com o dedo, acima da barra fixa do pé da folha. */
+  for (const nome of ['Ver', 'Tirar o anexo 1']) {
+    const b = folha.locator('.anexo-cartao').first().getByRole('button', { name: nome, exact: true });
+    if (!(await b.count())) { cobrar(`"${nome}" aparece no cartão do anexo`, false); continue; }
     await b.evaluate((el) => el.scrollIntoView({ block: 'center' })).catch(() => undefined); await esp(pg, 250);
     const t = await tocavel(pg, b);
     cobrar(`"${nome}" se alcança, rolando a folha, sem a barra do pé por cima`, t.dentro && t.tamanho >= 24 && t.livre, JSON.stringify(t));
   }
-  const descartar = folha.getByRole('button', { name: 'Descartar', exact: true });
-  if (await descartar.count()) { await descartar.first().click({ force: true }).catch(() => undefined); await esp(pg, 300); }
+  await folha.getByRole('button', { name: 'Tirar o anexo 1' }).click({ force: true }).catch(() => undefined); await esp(pg, 300);
+
+  /* 4. A câmera em sequência, como no WhatsApp (fase 233): três fotos seguidas, e o Concluir entrega as três. */
+  const tirarFotos = folha.getByRole('button', { name: 'Tirar fotos' });
+  cobrar('o anexo oferece tirar fotos em sequência', (await tirarFotos.count()) === 1);
+  if (await tirarFotos.count()) {
+    await tirarFotos.click(); await esp(pg, 1800);
+    const cam = pg.locator('.camera');
+    for (const n of [1, 2, 3]) {
+      await cam.getByRole('button', { name: `Fotografar a foto ${n}` }).click().catch(() => undefined);
+      await cam.getByRole('button', { name: 'Guardar esta foto' }).waitFor({ timeout: 8000 }).catch(() => undefined);
+      if (n === 1) {
+        const t = await tocavel(pg, cam.getByRole('button', { name: 'Guardar esta foto' }));
+        cobrar('"Guardar esta foto" cabe na tela, com tamanho de dedo e livre', t.dentro && t.tamanho >= 24 && t.livre, JSON.stringify(t));
+      }
+      await cam.getByRole('button', { name: 'Guardar esta foto' }).click().catch(() => undefined);
+      await esp(pg, 1200);
+    }
+    const concluir = cam.getByRole('button', { name: /^Concluir \(3 fotos\)$/ });
+    const tc = (await concluir.count()) ? await tocavel(pg, concluir) : null;
+    cobrar('"Concluir (3 fotos)" cabe na tela, com tamanho de dedo e livre', !!tc && tc.dentro && tc.tamanho >= 24 && tc.livre, JSON.stringify(tc));
+    if (await concluir.count()) await concluir.click();
+    await esp(pg, 1000);
+    const fotos = await folha.locator('.anexo-cartao img').evaluateAll((imgs) => imgs.map((i) => ({ w: i.naturalWidth, h: i.naturalHeight })));
+    cobrar('as três fotos entram no atendimento, cada uma com no máximo 2000 px',
+      fotos.length === 3 && fotos.every((f) => Math.max(f.w, f.h) <= 2000 && f.w > 0), JSON.stringify(fotos));
+    await pg.screenshot({ path: `${PASTA}/${a.nome.replace(/\W+/g, '-')}-tres-fotos.png` });
+    for (let k = 3; k >= 1; k--) {
+      await folha.getByRole('button', { name: `Tirar o anexo ${k}` }).click({ force: true }).catch(() => undefined); await esp(pg, 150);
+    }
+  }
+
+  /* 5. A foto da galeria: 12 MP girada pelo EXIF. */
   const campoArquivo = folha.locator('#at-arq-arquivo');
   if (!(await campoArquivo.count())) {
     await pg.screenshot({ path: `${PASTA}/${a.nome.replace(/\W+/g, '-')}-sem-anexo.png`, fullPage: true });
-    cobrar('depois de descartar o documento, o anexo volta a oferecer a galeria e o arquivo', false,
+    cobrar('depois de tirar os anexos, o atendimento volta a oferecer a galeria e o arquivo', false,
       ((await folha.innerText().catch(() => '')) || '').replace(/\s+/g, ' ').slice(-300));
     await ctx.close();
     return;
   }
   await campoArquivo.setInputFiles({ name: 'IMG_0001.jpg', mimeType: 'image/jpeg', buffer: FOTO_12MP_GIRADA });
   await esp(pg, 2500);
-  const previaFoto = folha.locator('.previa');
-  const info = await previaFoto.locator('img.previa-img').evaluate((i) => ({ w: i.naturalWidth, h: i.naturalHeight })).catch(() => null);
-  const tf = (await previaFoto.innerText().catch(() => '')) || '';
-  cobrar('a foto de 12 MP sai reduzida, com o tamanho de antes dito na prévia', /reduzida de [\d.,]+ MB/.test(tf), tf.slice(0, 140));
+  const cartaoFoto = folha.locator('.anexo-cartao').first();
+  const info = await cartaoFoto.locator('img').evaluate((i) => ({ w: i.naturalWidth, h: i.naturalHeight })).catch(() => null);
+  const tf = (await cartaoFoto.innerText().catch(() => '')) || '';
+  cobrar('a foto de 12 MP sai reduzida, com o tamanho de antes dito no cartão', /reduzida de [\d.,]+ MB/.test(tf), tf.slice(0, 140));
   cobrar('a foto tirada em pé aparece em pé (o EXIF da câmera é respeitado)', !!info && info.h > info.w && Math.max(info.w, info.h) <= 2000, JSON.stringify(info));
 
   cobrar('nenhuma exceção na página', erros.length === 0, erros[0]);
@@ -544,10 +577,10 @@ async function aGaleria(navegador) {
     const folha = await folhaDoAtendimento(pg);
     const t0 = Date.now();
     await folha.locator('#at-arq-arquivo').setInputFiles({ name: 'PXL_20261016.jpg', mimeType: 'image/jpeg', buffer: FOTO_50MP });
-    await folha.locator('.previa').waitFor({ timeout: 20000 }).catch(() => undefined);
+    await folha.locator('.anexo-cartao').waitFor({ timeout: 20000 }).catch(() => undefined);
     const ms = Date.now() - t0;
-    const tf = (await folha.locator('.previa').innerText().catch(() => '')) || '';
-    const dim = await folha.locator('.previa img.previa-img').evaluate((i) => ({ w: i.naturalWidth, h: i.naturalHeight })).catch(() => null);
+    const tf = (await folha.locator('.anexo-cartao').innerText().catch(() => '')) || '';
+    const dim = await folha.locator('.anexo-cartao img').evaluate((i) => ({ w: i.naturalWidth, h: i.naturalHeight })).catch(() => null);
     console.log(`  50 MP: ${(FOTO_50MP.length / 1048576).toFixed(1)} MB lida e reduzida em ${ms} ms · ${JSON.stringify(dim)}`);
     cobrar('a foto de 50 MP sai reduzida a no máximo 2000 px', !!dim && Math.max(dim.w, dim.h) <= 2000 && /reduzida de/.test(tf), tf.slice(0, 120));
     cobrar('nenhuma exceção', erros.length === 0, erros[0]);
@@ -560,7 +593,7 @@ async function aGaleria(navegador) {
     await folha.locator('#at-arq-arquivo').setInputFiles({ name: 'IMG_4512.HEIC', mimeType: 'image/heic', buffer: heicFicticio() });
     await esp(pg, 1500);
     const tudo = (await folha.innerText()) || '';
-    const previa = (await folha.locator('.previa').innerText().catch(() => '')) || '';
+    const previa = (await folha.locator('.anexo-cartao').innerText().catch(() => '')) || '';
     const erro = (await folha.locator('[role=alert]').allInnerTexts()).join(' ');
     console.log(`  HEIC: prévia "${previa.slice(0, 120)}" · aviso "${erro.slice(0, 160)}"`);
     cobrar('a foto HEIC não quebra a tela: ou entra com a prévia dita, ou a recusa diz o que fazer',

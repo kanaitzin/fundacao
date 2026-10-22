@@ -9,8 +9,9 @@ import { api, ErroApi } from '../api';
 import { Cadastro } from './Cadastro';
 import { VINCULO, FolhaDoRelato, RelatoDaConvivencia } from '../convivencias';
 import {
-  BotaoOlho, EscolherAnexo, Escolhido, FolhaArquivo, base64De,
+  AnexosDaMensagem, BotaoOlho, EscolherAnexo, Escolhido, FolhaArquivo, base64De,
 } from '../anexos';
+import { recusaDosAnexos } from '../../../backend/src/kernel/arquivos/anexos-da-mensagem.regra';
 import { dia, horaSemSegundos } from '../rotulos';
 import { Icone } from '../icones';
 import { Avatar, esquecerFoto } from '../avatar';
@@ -5704,11 +5705,13 @@ function FolhaAtendimentoTecnico({ personId, nome, onFechar, onRegistrado }: {
   const [areaOutra, setAreaOutra] = useState('');
   const [quando, setQuando] = useState(hoje);
   const [relato, setRelato] = useState('');
-  const [arquivos, setArquivos] = useState<{ arquivo: Escolhido; legenda: string }[]>([]);
-  const [escolhendo, setEscolhendo] = useState<Escolhido | null>(null);
+  const [arquivos, setArquivos] = useState<Escolhido[]>([]);
+  /* A legenda de cada arquivo, na mesma ordem (o desenho da família, a folha da leitura). */
+  const [legendas, setLegendas] = useState<string[]>([]);
   const [erro, setErro] = useState('');
   const [enviando, setEnviando] = useState(false);
-  const pode = !!area && (area !== 'outra' || areaOutra.trim().length >= 3) && relato.trim().length >= 10 && !enviando;
+  const pode = !!area && (area !== 'outra' || areaOutra.trim().length >= 3) && relato.trim().length >= 10 && !enviando
+    && !recusaDosAnexos(arquivos.map((a) => a.tamanho));
 
   async function guardar() {
     setErro(''); setEnviando(true);
@@ -5717,8 +5720,8 @@ function FolhaAtendimentoTecnico({ personId, nome, onFechar, onRegistrado }: {
         method: 'POST',
         body: JSON.stringify({
           area, areaOutra: area === 'outra' ? areaOutra.trim() : undefined, dia: quando, relato: relato.trim(),
-          anexos: arquivos.map((a) => ({ conteudo: base64De(a.arquivo.dataUrl), nomeArquivo: a.arquivo.nome,
-                                         legenda: a.legenda.trim() || undefined })),
+          anexos: arquivos.map((a, i) => ({ conteudo: base64De(a.dataUrl), nomeArquivo: a.nome,
+                                            legenda: (legendas[i] ?? '').trim() || undefined })),
         }),
       });
       onRegistrado(r.aviso);
@@ -5751,31 +5754,20 @@ function FolhaAtendimentoTecnico({ personId, nome, onFechar, onRegistrado }: {
         <textarea id="at-relato" rows={5} value={relato} onChange={(e) => setRelato(e.target.value)}
                   placeholder="O que foi proposto, como a criança participou, o que fica para o próximo encontro." />
 
-        <label className="f" htmlFor="at-arq-arquivo">
-          Arquivos <small>(o desenho, a folha da atividade, um relatório; até {MAXIMO_DE_ANEXOS_DO_ATENDIMENTO})</small>
-        </label>
-        {arquivos.map((a, i) => (
-          <div key={i} className="row" style={{ gap: 8 }}>
-            <span className="mutetxt grow"><Icone nome="anexo" /> {a.arquivo.nome}</span>
-            <input aria-label={`O que é ${a.arquivo.nome}`} placeholder="O que é (opcional)" value={a.legenda}
-                   style={{ maxWidth: 200 }} maxLength={80}
-                   onChange={(e) => setArquivos(arquivos.map((x, j) => (j === i ? { ...x, legenda: e.target.value } : x)))} />
-            <button className="btn sm ghost" aria-label={`Tirar ${a.arquivo.nome}`}
-                    onClick={() => setArquivos(arquivos.filter((_, j) => j !== i))}>Tirar</button>
-          </div>
-        ))}
-        {arquivos.length < MAXIMO_DE_ANEXOS_DO_ATENDIMENTO && (
-          <>
-            <EscolherAnexo id="at-arq" arquivo={escolhendo} onEscolher={setEscolhendo}
-              aceita="application/pdf,image/jpeg,image/png,image/heic,image/heif" maximoMb={15}
-              pergunta={<>É este o arquivo do atendimento?</>} />
-            {escolhendo && (
-              <button className="btn sm sec" onClick={() => { setArquivos([...arquivos, { arquivo: escolhendo, legenda: '' }]); setEscolhendo(null); }}>
-                Pôr no atendimento
-              </button>
-            )}
-          </>
-        )}
+        {/* Até dez (fase 233): o desenho fotografado, a folha da atividade
+            digitalizada, o relatório. Cada um com a legenda do que é. */}
+        <AnexosDaMensagem id="at-arq" anexos={arquivos} maximo={MAXIMO_DE_ANEXOS_DO_ATENDIMENTO}
+          aceita="application/pdf,image/jpeg,image/png,image/heic,image/heif"
+          rotulo="Arquivos (o desenho, a folha da atividade, um relatório)"
+          onMudar={(lista) => {
+            setLegendas((ls) => lista.map((a) => { const k = arquivos.indexOf(a); return k >= 0 ? ls[k] ?? '' : ''; }));
+            setArquivos(lista);
+          }}
+          extra={(a, i) => (
+            <input aria-label={`O que é ${a.nome}`} placeholder="O que é (opcional)" value={legendas[i] ?? ''}
+                   maxLength={80}
+                   onChange={(e) => setLegendas((ls) => arquivos.map((_, j) => (j === i ? e.target.value : ls[j] ?? '')))} />
+          )} />
         {erro && <div className="notice c-crit" role="alert">{erro}</div>}
         <div className="row rodape">
           <button className="btn sec grow" onClick={onFechar}>Cancelar</button>

@@ -20,7 +20,7 @@ começava escolhendo em qual acreditar.*
 
 | Arquivo | Por que sobreviveu |
 |---|---|
-| `der.md` | as 139 tabelas com o que cada coluna guarda. É referência de dado, não narrativa, e o `documentacao.spec.ts` cobra que toda tabela apareça lá |
+| `der.md` | as 141 tabelas com o que cada coluna guarda. É referência de dado, não narrativa, e o `documentacao.spec.ts` cobra que toda tabela apareça lá |
 | `roteiro-marcelo.md` (+ `.docx`) | é entregue à Casa 03, escrito para quem não conhece o sistema. O `.docx` é GERADO do `.md` por `scripts/roteiro-em-word.mjs` — não editar o Word à mão |
 
 ---
@@ -90,10 +90,10 @@ discordavam entre si.
 | Quanto | De onde sai |
 |---|---|
 | **19 partições** isoladas | pastas em `backend/src/modules/` |
-| **199 migrações** | `.sql` dentro das partições |
-| **139 tabelas** | `CREATE TABLE` nas migrações |
-| **151 suítes** | `backend/test/*.spec.ts` |
-| **1330 testes** | `it(` / `test(` nas suítes |
+| **201 migrações** | `.sql` dentro das partições |
+| **141 tabelas** | `CREATE TABLE` nas migrações |
+| **153 suítes** | `backend/test/*.spec.ts` |
+| **1344 testes** | `it(` / `test(` nas suítes |
 | **40 telas React** | `frontend/src/screens/*.tsx` |
 | **10 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **11 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
@@ -443,6 +443,7 @@ arqueologia.
 | 230 | **A explicação recolhida** (pedido de 19/10: *"o sistema possui muitas informações, parece poluído; não quero tirar nenhuma ferramenta, quero apenas deixar menos poluído e mais fácil de usar"*). Medi antes de mexer: todas as telas de todos os cargos abertas no protótipo, a 390 e a 1280 px, e **um terço das palavras era explicação** (6.559 de 18.918 nos blocos de explicação; 30,7% de todo o texto do celular), quase sempre o parágrafo do alto da tela que diz como ela funciona. Das quatro saídas que levei à Fundação, a escolhida foi uma só: a explicação continua inteira, mas **recolhida**. A primeira frase fica à vista e **Como funciona** abre o resto, no mesmo lugar (`frontend/src/explica.tsx`, com a regra em `explica-regra.ts`): texto de até vinte palavras ou de uma frase só fica como estava, e, em 54 lugares de 29 arquivos, o que tinha mais virou a primeira frase com o botão (quinze com a frase curta escrita à mão, quando a primeira frase sozinha dizia pouco). **Não se recolhe** o alerta (`c-crit`, `c-warn`), o recado de que algo foi registrado, o aviso com o número do dia e as ressalvas dos relatórios e das métricas, que já eram escolha de ficar à vista. **E a frase que diz o que o número não é fica à vista**: o primeiro `ensaio:uso` da fase reprovou três cobranças, porque a visita passava a mostrar o número sem dizer que quem avalia é a equipe técnica, a folha da atividade perdia o *não é avaliação da criança* e o trabalho social perdia o *não compara casas*. Hoje o texto que traz uma dessas frases depois da primeira não se recolhe (`FRASE_QUE_PROTEGE`), e o resumo escrito à mão tem de trazê-la junto (a dose *sem confirmação, nunca como não administrada*). O `a-explicacao-recolhida.spec.ts` cobra as quatro coisas, e o `ensaio:uso` abre e fecha uma explicação no celular. Depois, a explicação à vista caiu para **26,9%** do texto do celular e **26,5%** do computador, sem botão, aba nem tela a menos. Ficam para a Fundação as três outras saídas (PARA-A-REUNIAO §4.30). |
 | 231 | **O Guia do sistema** (pedido de 19/10: *"um sub menu na lateral, pode ser o primeiro, com todas as explicações, com hiperlinks direcionando para onde quer ir, explicando as funções de cada menu e pela Acolhe+AI, como fica o perfil e os menus do perfil, e que a cada atualização também se atualize"*). O primeiro item do menu, antes das abas do turno no computador e a primeira porta da folha Mais no celular (`frontend/src/screens/Guia.tsx`). Cada tela que o cargo alcança aparece fechada, com o nome e uma linha; aberta, diz o que a tela é, o que o cargo faz nela, quem pode o quê e o que a Acolhe+AI faz junto, e o botão abre a tela. Embaixo, as abas do perfil da criança (a de Atendimentos só para quem a lê), a Acolhe+AI com o botão de conversar, a Minha conta e os avisos, as Novidades e uma busca sem acento. **O Guia não é uma segunda lista para manter:** o que cada tela é vem da lista que a Acolhe+AI já lê (`GUIA_DA_ACOLHE`), o que cada cargo faz vem do mapa de alcance, e só o que a Acolhe+AI faz em cada tela, as abas do perfil e as Novidades moram em `frontend/src/guia-do-sistema.ts`. **A atualização a cada fase é cobrada:** o `o-guia-do-sistema.spec.ts` reprova tela sem explicação, aba do perfil fora da ordem, texto com travessão ou frase que argumenta, e **a fase que terminou sem a linha dela nas Novidades** (lê a fase do CLAUDE.md). A área `guia` entra no alcance de todo cargo com menu; **a portaria fica sem o Guia**, porque ela tem uma tela só, sem barra (PARA-A-REUNIAO §4.31). A primeira versão empilhava tudo aberto e dava 9.955 px no celular; fechada por tela, 4.671 px. |
 | 232 | **A Vida na casa na Geral, e os documentos com aba própria** (pedido de 20/10: *"o vida na casa pode ir para o geral, organize isso, tive que procurar onde ficam os documentos dos acolhidos"*). O perfil passou de nove para oito abas: o aniversário, as conquistas, as fotos em que a criança aparece e as memórias ficam no fim da **Geral**, e a aba **Cadastro** virou **Documentos**. Ela abria no histórico de quem mexeu no perfil, e a lista dos documentos ficava embaixo das correções e das observações; agora abre no botão do dossiê (*Dossiê: documentos e vivências*) e na lista *Os documentos de* (nome), e o corrigir, as correções e quem mexeu vêm depois. O dossiê também fica na Geral, junto das fotos. A cor da aba Documentos é o laranja da antiga Vida na casa, que já passava no contraste. A Acolhe+AI abre a aba Documentos quando o pedido fala de documento, certidão, RG ou CPF, e a Geral quando fala de aniversário, conquista ou foto; o guia dela e o Guia do sistema acompanharam, e o `ensaio:uso` mede a posição (o dossiê e a lista antes de quem mexeu). |
+| 233 | **Até 10 anexos por mensagem, e a rodada dos downloads** (pedido de 22/10: *"teste se todos os relatórios e downloads estão funcionando, se as pré-visualizações abrem, se o servidor armazena as mensagens e os arquivos, se o modo câmera funciona como o WhatsApp, podendo enviar até 10 anexos por mensagem"*; onde valem os dez, decidido no mesmo dia). **A rodada** passou por todas as portas de uma vez numa suíte nova (`o-que-entra-volta-inteiro`): os 21 Words que o servidor entrega, abertos pela suíte e no LibreOffice, e cada porta de anexo (dossiê, área judicial, receita, nota, ocorrência, internação, atendimento, vivência, as duas fotos de identificação e a linha da ATA), com o arquivo voltando byte por byte e conferido no disco. Achou cinco: **o LibreOffice cortava toda imagem do Word numa faixa fina**, o timbre inclusive (a entrelinha do documento não dizia o tipo, e 360 virava altura exata; a suíte reprova sem o conserto); **o Exportar dos benefícios registrava na auditoria e não entregava arquivo** (sai a folha em Word, montada em `beneficios-folha.ts`, que o protótipo lê também); **tabela vazia deixava o título solto no papel** (diz *Sem registro*); **o diário da internação aceitava, no banco, registro em nome de outra pessoa** (a política confere o autor, nursing/1661); e o preparo da sessão não instalava o `faketime` em contêiner novo. **Os dez anexos** (`anexos-da-mensagem.regra.ts`, lido pelo servidor e pela tela: dez por mensagem e 15 MB por envio): a linha da ATA ganha anexos (`ata_note_attachment`, shifts/1660; o nome do aparelho não entra, a linha restrita esconde os anexos dela e eles não vão ao papel, e o Word da ATA cita e reproduz as fotos), o diário da internação leva até dez documentos por registro, cada um com a sua categoria e o seu espelho no dossiê (`hospitalization_note_attachment`, nursing/1661; o registro de antes continua legível), a ocorrência recebe até dez de uma vez, numa transação, com o nome numerado, o atendimento técnico passou de oito para dez, e a Acolhe+AI recebe até dez fotos ou PDFs por pergunta (o servidor recusa o décimo primeiro). Na tela, o `AnexosDaMensagem` (`anexos.tsx`) mostra cada anexo em miniatura com **Ver** e **Tirar**, a contagem e o total, e a **câmera tira fotos em sequência** (o certo guarda e volta ao visor; *Concluir (N fotos)* entrega todas), com o documento de várias páginas virando um PDF como antes. |
 
 ---
 
@@ -490,7 +491,7 @@ cd frontend && npm run prototipo
 ```
 
 O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as
-199 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
+201 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
 
 ### Os ensaios — e por que cada um existe
 
@@ -557,7 +558,7 @@ rede-acolher/
 │   │   │   ├── documentos/     o contrato da folha e o gerador de .docx
 │   │   │   └── common/         CPF, criptografia, segredo, fuso da instituição
 │   │   └── modules/       19 partições, cada uma dona das próprias migrações
-│   ├── test/              151 suítes (e2e contra PostgreSQL real + estáticas)
+│   ├── test/              153 suítes (e2e contra PostgreSQL real + estáticas)
 │   ├── scripts/           ensaio-carga.ts, migrador compilado
 │   └── assets/timbre.png  a marca da Fundação, usada no documento em Word
 ├── frontend/
@@ -2997,7 +2998,7 @@ crescimento. Vídeo não entra no álbum: um minuto de vídeo de celular pesa co
 npm run ensaio:producao
 ```
 
-Constrói, cria um banco virgem, aplica as 199 migrações **pelo binário
+Constrói, cria um banco virgem, aplica as 201 migrações **pelo binário
 compilado**, sobe o serviço e confere `/health`. Não publica nada e não toca no
 banco de trabalho.
 
