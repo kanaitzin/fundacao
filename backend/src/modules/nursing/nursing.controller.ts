@@ -201,6 +201,15 @@ export class NursingController {
     return this.internacao.lerAnexo(user, id, notaId);
   }
 
+  /** Um dos anexos de um registro com vários (fase 233): o número vem da lista do diário. */
+  @Get('hospitalizations/:id/notes/:notaId/anexos/:anexoId')
+  umAnexoDoDiario(@CurrentUser() user: AuthenticatedUser,
+                  @Param('id', ParseUUIDPipe) id: string,
+                  @Param('notaId', ParseUUIDPipe) notaId: string,
+                  @Param('anexoId', ParseUUIDPipe) anexoId: string) {
+    return this.internacao.lerAnexo(user, id, notaId, anexoId);
+  }
+
   @Post('hospitalizations/:id/medications')
   medicacaoDoHospital(@CurrentUser() user: AuthenticatedUser,
                       @Param('id', ParseUUIDPipe) id: string, @Body() body: any) {

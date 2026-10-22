@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import {
   Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType,
   Header, Footer, ImageRun, PageNumber, PageOrientation, BorderStyle, Table, TableRow, TableCell,
-    WidthType, PageBreak,
+    WidthType, PageBreak, LineRuleType,
 } from 'docx';
 import { AuditService } from '../audit/audit.service';
 import { AuthenticatedUser } from '../contracts';
@@ -232,7 +232,10 @@ export class DocumentosService {
       title: f.titulo,
             styles: { default: { document: {
         run: { font: FONTE, size: CORPO },
-        paragraph: { spacing: { line: ENTRELINHA } },
+        /* O tipo da entrelinha vai escrito: sem ele, o LibreOffice lê 360 como
+           altura EXATA de linha e corta toda imagem numa faixa fina (achado de
+           22/10, na nota fiscal e no raio-x da internação). */
+        paragraph: { spacing: { line: ENTRELINHA, lineRule: LineRuleType.AUTO } },
       } } },
       sections: [{
         properties: {
@@ -301,7 +304,7 @@ export class DocumentosService {
        * naquele dia. */
       saida.push(new Paragraph({
         alignment: AlignmentType.JUSTIFIED,
-                spacing: { after: 60, line: ENTRELINHA },
+                spacing: { after: 60, line: ENTRELINHA, lineRule: LineRuleType.AUTO },
         children: [new TextRun({ text: p, size: CORPO })],
       }));
     }
@@ -313,6 +316,12 @@ export class DocumentosService {
                 alignment: AlignmentType.JUSTIFIED,
         children: [new TextRun({ text: i, size: CORPO })],
       }));
+    }
+
+    /* Tabela sem linha nenhuma deixava o título solto no papel, e quem recebe
+       não sabe se faltou o dado ou a página (achado de 22/10, nas notas). */
+    if (s.tabela && !s.tabela.linhas.length && !(s.paragrafos ?? []).length && !(s.itens ?? []).length) {
+      saida.push(new Paragraph({ spacing: { after: 120 }, children: [new TextRun({ text: 'Sem registro.', size: CORPO })] }));
     }
 
     if (s.tabela && s.tabela.linhas.length) {

@@ -5,6 +5,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { DatabaseService } from '../../kernel/database/database.service';
 import { AuditService } from '../../kernel/audit/audit.service';
 import { AuthenticatedUser } from '../../kernel/contracts';
+import { MAXIMO_DE_ANEXOS_POR_MENSAGEM, recusaDosAnexos } from '../../kernel/arquivos/anexos-da-mensagem.regra';
 import { FERRAMENTAS, NOMES_DAS_FERRAMENTAS } from './ferramentas';
 import { GUIA_DA_ACOLHE, contexto, ContextoDaConversa } from './guia';
 
@@ -106,6 +107,13 @@ export class AssistenteService {
           if (!b || typeof b.type !== 'string' || !TIPOS_DE_BLOCO.has(b.type)) {
             throw new BadRequestException('A conversa tem um conteúdo que a assistente não aceita.');
           }
+        }
+        /* Até dez fotos ou documentos por mensagem (fase 233), a mesma regra das
+           outras mensagens com anexo. Conta só o que a pessoa mandou: o que volta
+           de uma ferramenta vem dentro do resultado dela. */
+        const anexados = (msg.content as { type: string }[]).filter((b) => b.type === 'image' || b.type === 'document');
+        if (msg.role === 'user' && anexados.length > MAXIMO_DE_ANEXOS_POR_MENSAGEM) {
+          throw new BadRequestException(recusaDosAnexos(anexados.map(() => 0)) ?? '');
         }
       } else {
         throw new BadRequestException('Há uma mensagem sem conteúdo na conversa.');

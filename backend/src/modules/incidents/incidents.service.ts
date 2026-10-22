@@ -5,7 +5,8 @@ import { EventBus } from '../../kernel/events/event-bus.service';
 import { AuthenticatedUser, DocumentClosed, EscalationRequest } from '../../kernel/contracts';
 import { StatementsService } from '../statements';
 import { DocumentosService } from '../../kernel/documentos/documentos.service';
-import { ArquivosService } from '../../kernel/arquivos/arquivos.service';
+import { ArquivoGuardado, ArquivosService } from '../../kernel/arquivos/arquivos.service';
+import { bytesDoBase64, recusaDosAnexos } from '../../kernel/arquivos/anexos-da-mensagem.regra';
 import { cargoNoDocumento } from '../../kernel/documentos/folha';
 import { folhaDaOcorrencia } from './ocorrencia-folha';
 
@@ -646,7 +647,10 @@ export class IncidentsService {
   async addAttachment(user: AuthenticatedUser, id: string, input: {
     tipo: string; nome: string; referencia?: string; justificativa?: string;
     restrito?: boolean; checksum?: string; conteudo?: string; nomeArquivo?: string;
+    /** Até dez de uma vez, com o mesmo tipo e a mesma justificativa (fase 233). */
+    anexos?: { conteudo?: string; nomeArquivo?: string }[];
   }) {
+    if (Array.isArray(input.anexos) && input.anexos.length) return this.addAttachments(user, id, input);
     const tipo = TIPOS_ANEXO.find((t) => t.cod === input.tipo);
     if (!tipo) {
       throw new BadRequestException(
@@ -709,6 +713,73 @@ export class IncidentsService {
       aviso: guardado
         ? 'Anexo guardado no sistema. Quem abrir vê o documento, e a abertura fica registrada.'
         : 'Anexo registrado por referência: o arquivo continua no Drive da instituição.',
+    };
+  }
+
+  /**
+   * VÁRIOS ANEXOS NUMA MENSAGEM SÓ (fase 233, pedido de 22/10: "até 10 anexos
+   * por mensagem"). As fotos do braço, o atestado e o encaminhamento do posto
+   * entram de uma vez, com o tipo e a justificativa ditos uma vez. Ou entram
+   * todos, ou nenhum: os arquivos vão ao disco antes, e as linhas nascem numa
+   * transação só. Cada anexo continua sendo uma linha, com a sua abertura
+   * registrada.
+   */
+  private async addAttachments(user: AuthenticatedUser, id: string, input: {
+    tipo: string; nome: string; justificativa?: string; restrito?: boolean;
+    anexos?: { conteudo?: string; nomeArquivo?: string }[];
+  }) {
+    const lista = input.anexos ?? [];
+    const recusa = recusaDosAnexos(lista.map((a) => bytesDoBase64(String(a?.conteudo ?? ''))));
+    if (recusa) throw new BadRequestException(recusa);
+    const tipo = TIPOS_ANEXO.find((t) => t.cod === input.tipo);
+    if (!tipo) {
+      throw new BadRequestException(
+        `Escolha o tipo do anexo: ${TIPOS_ANEXO.map((t) => t.label).join('; ')}.`);
+    }
+    if (input.tipo === 'foto_autorizada' && (input.justificativa ?? '').trim().length < 15) {
+      throw new BadRequestException(
+        'Foto exige justificativa: para que ela é necessária e qual autorização a ampara.');
+    }
+    const nome = (input.nome ?? '').trim();
+    if (!nome) throw new BadRequestException('Informe um nome de exibição para o anexo.');
+    for (const texto of [nome, ...lista.map((a) => (a?.nomeArquivo ?? '').trim())]) {
+      if (texto && PROIBIDO_NO_NOME.some((re) => re.test(texto))) {
+        throw new BadRequestException(
+          'O nome não pode conter CPF, diagnóstico ou referência judicial. '
+          + 'Use um nome neutro; o conteúdo fica protegido dentro do anexo.');
+      }
+    }
+    const guardados: (ArquivoGuardado & { nomeArquivo: string })[] = [];
+    for (const a of lista) {
+      const g = await this.arquivos.guardar(a?.conteudo);
+      if (!g) throw new BadRequestException('Um dos anexos chegou vazio. Escolha de novo e envie.');
+      guardados.push({ ...g, nomeArquivo: (a?.nomeArquivo ?? '').trim() });
+    }
+    const casa = await this.casa(user, id);
+    const ids = await this.db.asUser(user.id, async (c) => {
+      const saida: string[] = [];
+      for (const [i, g] of guardados.entries()) {
+        const exibicao = guardados.length > 1 ? `${nome} (${i + 1} de ${guardados.length})` : nome;
+        const { rows: [r] } = await c.query(
+          `INSERT INTO incident_attachment (incident_id, house_id, kind, display_name,
+             justification, restricted, author_id, storage_key, mime, file_name, size_bytes, sha256)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING id`,
+          [id, casa, input.tipo, exibicao, input.justificativa ?? null,
+           input.restrito ?? tipo.restritoPorPadrao, user.id,
+           g.chave, g.mime, g.nomeArquivo || exibicao, g.tamanho, g.sha256]);
+        saida.push(r.id as string);
+      }
+      return saida;
+    });
+    for (const attId of ids) {
+      await this.audit.log({ action: 'incident.attachment_add', actorId: user.id, houseId: casa,
+        entity: 'incident_attachment', entityId: attId,
+        detail: { tipo: input.tipo, forma: 'arquivo', naMensagem: ids.length } });
+    }
+    return {
+      id: ids[0], ids,
+      aviso: `${ids.length === 1 ? 'Anexo guardado' : `${ids.length} anexos guardados`} no sistema. `
+        + 'Quem abrir vê o documento, e a abertura fica registrada.',
     };
   }
 

@@ -21,6 +21,7 @@
     "ata_episode",
     "ata_episode_ack",
     "ata_note",
+    "ata_note_attachment",
     "ata_read_request",
     "general_night_ata",
     "general_night_house_amendment",

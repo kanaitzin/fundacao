@@ -5,6 +5,7 @@ import { createHash } from 'node:crypto';
 import { DatabaseService } from '../../kernel/database/database.service';
 import { AuditService } from '../../kernel/audit/audit.service';
 import { ArquivosService, RegraDoArquivo } from '../../kernel/arquivos/arquivos.service';
+import { bytesDoBase64, recusaDosAnexos } from '../../kernel/arquivos/anexos-da-mensagem.regra';
 import { AuthenticatedUser } from '../../kernel/contracts';
 import { TAMANHO_MAXIMO, TIPOS_DE_ARQUIVO, tituloProibido } from './dossie-exigido';
 import {
@@ -92,6 +93,8 @@ export class AtendimentosTecnicosService {
       throw new BadRequestException(
         `Um atendimento leva até ${MAXIMO_DE_ANEXOS_DO_ATENDIMENTO} arquivos. O resto vai num complemento.`);
     }
+    const passou = recusaDosAnexos(anexos.map((a) => bytesDoBase64(String(a?.conteudo ?? ''))));
+    if (passou) throw new BadRequestException(passou);
     for (const a of anexos) {
       const problema = tituloProibido(String(a?.nomeArquivo ?? 'arquivo'))
         || (a?.legenda ? tituloProibido(String(a.legenda)) : null);

@@ -39,7 +39,9 @@ export interface DadosDaInternacao {
   acompanhantes: { quem: string; cargo: string | null; de: string; ate: string | null; designadoPor: string | null }[];
   diario: {
     dia: string; em: string; tipoRotulo: string; texto: string;
-    por: string | null; cargo: string | null; anexo: number | null; categoria: string | null;
+    por: string | null; cargo: string | null;
+    /** Os anexos do registro, com o número que eles têm no fim do relatório. */
+    anexos: { numero: number; categoria: string | null }[];
   }[];
   medicacao: { quando: string; medicamento: string; dose: string | null; via: string | null; observacao: string | null }[];
 }
@@ -110,9 +112,10 @@ export function folhaDaInternacao(
         const autoria = n.por
           ? ` Registrado por ${n.por}${n.cargo ? `, ${cargoNoDocumento(n.cargo)}` : ''}.`
           : '';
-        const anexo = n.anexo
-          ? ` Anexo ${n.anexo}${n.categoria ? ` (${n.categoria.toLowerCase()})` : ''}, reproduzido ao final.`
-          : '';
+        const citados = n.anexos.map((a) => `${a.numero}${a.categoria ? ` (${a.categoria.toLowerCase()})` : ''}`);
+        const anexo = !citados.length ? ''
+          : citados.length === 1 ? ` Anexo ${citados[0]}, reproduzido ao final.`
+            : ` Anexos ${citados.slice(0, -1).join(', ')} e ${citados[citados.length - 1]}, reproduzidos ao final.`;
         const texto = n.texto.trim().replace(/[.!?]?$/, (m) => m || '.');
         return `${hhmmBR(n.em)}. ${n.tipoRotulo}. ${texto}${autoria}${anexo}`;
       }),

@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import {
   Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType,
   Header, Footer, ImageRun, PageNumber, BorderStyle, Table, TableRow, TableCell,
-  WidthType,
+  WidthType, LineRuleType,
 } from 'docx';
 import { Secao } from './conteudo.service';
 
@@ -226,7 +226,7 @@ export class DocumentoService {
           // já leu outros vinte naquele dia.
           filhos.push(new Paragraph({
             alignment: AlignmentType.JUSTIFIED,
-            spacing: { after: 60, line: 300 },
+            spacing: { after: 60, line: 300, lineRule: LineRuleType.AUTO },
             children: [new TextRun({ text: linha, size: 22 })],
           }));
         }

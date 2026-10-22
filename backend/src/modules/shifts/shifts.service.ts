@@ -6,6 +6,8 @@ import { AuthenticatedUser, DocumentClosed, EscalationRequest } from '../../kern
 import { hojeNaInstituicao, dataDoPlantao, janelaDeConsulta } from '../../kernel/common/tempo';
 import { SECOES_ATA, AMBIENTES_CASA, CLASSIFICACOES_EPISODIO } from './ata-secoes';
 import { DocumentosService } from '../../kernel/documentos/documentos.service';
+import { ArquivoGuardado, ArquivosService, RegraDoArquivo } from '../../kernel/arquivos/arquivos.service';
+import { bytesDoBase64, recusaDosAnexos } from '../../kernel/arquivos/anexos-da-mensagem.regra';
 import { cargoNoDocumento } from '../../kernel/documentos/folha';
 import { folhaDaAta } from './ata-folha';
 
@@ -30,6 +32,23 @@ const LE_ATA_GERAL = ['lider_noturno_geral', 'equipe_tecnica', 'coordenador',
      responde pela instituição. */
   'educador', 'enfermagem'];
 
+/**
+ * O ANEXO DA LINHA DA ATA (fase 233): a foto que sai reduzida do aparelho, ou o
+ * papel digitalizado em PDF. Dez megabytes cada, como no diário da internação;
+ * a mensagem inteira cabe em quinze (`anexos-da-mensagem.regra.ts`).
+ */
+const O_ANEXO_DA_ATA: RegraDoArquivo = {
+  aceita: ['application/pdf', 'image/jpeg', 'image/png'],
+  maximo: 10 * 1024 * 1024,
+  conferirInteireza: true,
+  recusas: {
+    vazio: 'Um dos anexos chegou vazio. Escolha de novo e envie.',
+    grande: 'Um dos anexos passa de 10 MB. Digitalize com menos páginas.',
+    tipo: 'Na ATA vai foto (JPG ou PNG) ou documento em PDF.',
+    incompleto: 'Um dos anexos chegou incompleto, provavelmente porque o sinal caiu. Envie de novo.',
+  },
+};
+
 @Injectable()
 export class ShiftsService {
   constructor(
@@ -37,6 +56,7 @@ export class ShiftsService {
     @Inject(AuditService) private readonly audit: AuditService,
     @Inject(EventBus) private readonly bus: EventBus,
     @Inject(DocumentosService) private readonly documentos: DocumentosService,
+    @Inject(ArquivosService) private readonly arquivos: ArquivosService,
   ) {}
 
   secoes() {
@@ -134,6 +154,13 @@ export class ShiftsService {
                    NULL: a tela cai no tom automático, como antes. */
                 app_cor_do_autor(n.author_id) AS cor_autor
            FROM ata_note n WHERE n.ata_id = $1 ORDER BY n.happened_at`, [a?.id ?? null]);
+      /* Os anexos de cada linha (1660). A política deles é a da linha: o anexo
+         da linha restrita só vem para quem lê a linha. */
+      const { rows: anexosDasNotas } = await c.query(
+        `SELECT x.id, x.note_id, x.file_name, x.mime, x.size_bytes
+           FROM ata_note_attachment x
+          WHERE x.note_id IN (SELECT n.id FROM ata_note n WHERE n.ata_id = $1)
+          ORDER BY x.note_id, x.position`, [a?.id ?? null]);
       const { rows: [restritas] } = a
         ? await c.query(`SELECT app_ata_restritas($1) AS n`, [a.id])
         : { rows: [{ n: 0 }] } as any;
@@ -186,7 +213,7 @@ export class ShiftsService {
           WHERE e.ata_id = $1 ORDER BY k.at`, [a?.id ?? null]);
       return { s, a, passagens, complementos, recebimentos, faltam, episodios, ciencias,
                doses, jaEscrito: (jaEscrito?.n ?? 0) > 0, convivencias,
-               notas, restritas: restritas?.n ?? 0, fonteDaEscala: fonte?.f ?? null };
+               notas, anexosDasNotas, restritas: restritas?.n ?? 0, fonteDaEscala: fonte?.f ?? null };
     });
     if (!dados) throw new NotFoundException('Plantão não encontrado.');
 
@@ -275,6 +302,9 @@ export class ShiftsService {
           texto: n.body, restrita: n.restricted,
           quando: n.happened_at, escritaEm: n.created_at,
           propria: n.author_id === user.id,
+          anexos: dados.anexosDasNotas.filter((x: any) => x.note_id === n.id).map((x: any) => ({
+            id: x.id, nome: x.file_name, tipo: x.mime, tamanho: x.size_bytes,
+          })),
         })),
         /** Quantas linhas restritas existem — inclusive para quem não as lê. */
         restritas: dados.restritas,
@@ -504,12 +534,29 @@ export class ShiftsService {
    */
   async escreverNaAta(user: AuthenticatedUser, ataId: string, input: {
     texto?: string; restrita?: boolean; happenedAt?: string;
+    /** Até dez fotos ou documentos (fase 233): a mensagem do plantão, com o que ela mostra. */
+    anexos?: { conteudo?: string; nomeArquivo?: string }[];
   }) {
     const texto = (input.texto ?? '').trim();
     if (texto.length < 3) {
       throw new BadRequestException('Escreva a linha antes de registrar.');
     }
+    const lista = Array.isArray(input.anexos) ? input.anexos : [];
+    const recusa = recusaDosAnexos(lista.map((a) => bytesDoBase64(String(a?.conteudo ?? ''))));
+    if (recusa) throw new BadRequestException(recusa);
     const casa = await this.casaDaAta(user, ataId);
+    /* Os arquivos vão ao disco ANTES da linha: a recusa de um deles chega antes
+       de a linha existir pela metade, sem a foto que ela cita. */
+    const guardados: (ArquivoGuardado & { nomeArquivo: string })[] = [];
+    for (const [i, a] of lista.entries()) {
+      const g = await this.arquivos.guardar(a?.conteudo, O_ANEXO_DA_ATA);
+      if (!g) throw new BadRequestException('Um dos anexos chegou vazio. Escolha de novo e envie.');
+      /* O nome que o arquivo tinha no aparelho não entra: ele pode trazer CPF ou
+         diagnóstico, e a ATA é lida pela casa inteira. O nome é o que ele é. */
+      const nome = g.mime === 'application/pdf' ? `documento-${i + 1}.pdf`
+        : `foto-${i + 1}.${g.mime === 'image/png' ? 'png' : 'jpg'}`;
+      guardados.push({ ...g, nomeArquivo: nome });
+    }
 
     let id: string;
     try {
@@ -519,6 +566,13 @@ export class ShiftsService {
            VALUES ($1,$2,app_current_user(),$3,$4, coalesce($5::timestamptz, now()))
            RETURNING id`,
           [ataId, casa, texto, input.restrita === true, input.happenedAt ?? null]);
+        for (const [i, g] of guardados.entries()) {
+          await c.query(
+            `INSERT INTO ata_note_attachment (note_id, house_id, storage_key, sha256, mime,
+               file_name, size_bytes, position, created_by)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,app_current_user())`,
+            [r.id, casa, g.chave, g.sha256, g.mime, g.nomeArquivo, g.tamanho, i + 1]);
+        }
         return r.id as string;
       });
     } catch (e: any) {
@@ -535,15 +589,41 @@ export class ShiftsService {
 
     await this.audit.log({
       action: 'ata.note', actorId: user.id, houseId: casa,
-      entity: 'ata', entityId: ataId, detail: { restrita: input.restrita === true },
+      entity: 'ata', entityId: ataId, detail: { restrita: input.restrita === true, anexos: guardados.length },
     });
     return {
-      id,
+      id, anexos: guardados.length,
       aviso: input.restrita
         ? 'Linha registrada, restrita à coordenação, à equipe técnica e aos líderes. Quem não a '
           + 'alcança vê que ela existe, e não o que ela diz.'
         : 'Linha registrada com o seu nome. Ela não é reescrita: para corrigir, escreva outra.',
     };
+  }
+
+  /**
+   * ABRIR UM ANEXO DA LINHA (fase 233). Quem lê a linha abre o anexo: a política
+   * da tabela pergunta pela própria linha, a restrita inclusive. A abertura fica
+   * na auditoria com a casa, como a do anexo da ocorrência.
+   */
+  async lerAnexoDaLinha(user: AuthenticatedUser, anexoId: string) {
+    const x = await this.db.asUser(user.id, async (c) => {
+      const { rows: [r] } = await c.query(
+        `SELECT storage_key, mime, file_name, house_id, note_id
+           FROM ata_note_attachment WHERE id = $1`, [anexoId]);
+      return r;
+    });
+    if (!x) throw new NotFoundException('Anexo não encontrado, ou fora do seu alcance.');
+    const bytes = await this.arquivos.ler(x.storage_key);
+    if (!bytes) {
+      throw new NotFoundException(
+        'O anexo está registrado mas não foi encontrado no armazenamento. '
+        + 'Avise quem cuida do servidor: é falha de disco ou de restauração.');
+    }
+    await this.audit.log({
+      action: 'ata.anexo.lido', actorId: user.id, houseId: x.house_id,
+      entity: 'ata_note_attachment', entityId: anexoId, detail: { linha: x.note_id, tipo: x.mime },
+    });
+    return { nome: x.file_name, tipo: x.mime, conteudo: bytes.toString('base64') };
   }
 
   /**
@@ -1701,8 +1781,19 @@ export class ShiftsService {
    * alcance no plantão tem alcance na folha dele, e é o RLS de `get` que
    * decide isso — não uma segunda lista de permissões aqui.
    */
-  async folhaDoPlantao(user: AuthenticatedUser, shiftId: string) {
+  async folhaDoPlantao(user: AuthenticatedUser, shiftId: string, desenhar = false) {
     const p = await this.get(user, shiftId);
+    /* A foto do anexo só é lida para o Word: ver a folha na tela não carrega
+       imagem nenhuma (fase 233). */
+    const bytesDe = async (x: { id: string; tipo: string }) => {
+      if (!desenhar || !/^image\/(png|jpeg)$/.test(x.tipo)) return null;
+      const chave = await this.db.asUser(user.id, async (c) => {
+        const { rows: [r] } = await c.query(`SELECT storage_key FROM ata_note_attachment WHERE id = $1`, [x.id]);
+        return r?.storage_key as string | undefined;
+      });
+      const b = chave ? await this.arquivos.ler(chave) : null;
+      return b ? new Uint8Array(b) : null;
+    };
     const casa = await this.db.asUser(user.id, async (c) => {
       const { rows: [h] } = await c.query(
         `SELECT app_house_label($1) AS code, app_house_name($1) AS name`, [p.casaId]);
@@ -1721,10 +1812,12 @@ export class ShiftsService {
         passagens: p.passagens.map((h: any) => ({
           quem: h.quem, cargo: cargoNoDocumento(h.cargo), assinadaEm: h.assinadaEm,
         })),
-        linhas: (p.linhas?.notas ?? []).map((n: any) => ({
+        linhas: await Promise.all((p.linhas?.notas ?? []).map(async (n: any) => ({
           quando: n.quando, texto: n.texto, quem: n.quem,
           cargo: n.cargo ? cargoNoDocumento(n.cargo) : null, restrita: !!n.restrita,
-        })),
+          anexos: n.restrita ? [] : await Promise.all((n.anexos ?? []).map(async (x: any) => ({
+            tipo: x.tipo, dados: await bytesDe(x) }))),
+        }))),
         restritas: p.linhas?.restritas ?? 0,
         adendos: p.ata?.id ? (await this.addenda(user, p.ata.id)).map((d) => ({
           quando: d.quando, tipo: d.tipo, motivo: d.motivo, quem: d.autor,
@@ -1738,7 +1831,7 @@ export class ShiftsService {
 
   /** O arquivo. Exige finalidade escrita, e a saída fica registrada. */
   async exportarAta(user: AuthenticatedUser, shiftId: string, finalidade: string) {
-    const folha = await this.folhaDoPlantao(user, shiftId);
+    const folha = await this.folhaDoPlantao(user, shiftId, true);
     const p = await this.get(user, shiftId);
     return this.documentos.exportar(user, folha, {
       entidade: 'ata', entidadeId: p.ata?.id ?? shiftId,

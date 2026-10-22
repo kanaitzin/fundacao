@@ -35,7 +35,11 @@ diga() { echo "[rede-acolher] $*"; }
 # calculadas em UTC. Vem do apt porque não há pacote npm que sirva.
 if ! command -v faketime >/dev/null 2>&1; then
   diga "instalando o faketime (a segunda condição de relógio depende dele)…"
-  if ! (apt-get install -y faketime >/dev/null 2>&1 || apt-get install -y libfaketime >/dev/null 2>&1); then
+  # Contêiner novo vem sem a lista de pacotes: sem o `update`, o apt diz que o
+  # faketime não existe (achado em 22/10, duas sessões seguidas sem ele).
+  if ! (apt-get install -y faketime >/dev/null 2>&1 \
+        || { apt-get update >/dev/null 2>&1 && apt-get install -y faketime >/dev/null 2>&1; } \
+        || apt-get install -y libfaketime >/dev/null 2>&1); then
     diga "✗ faketime não instalou — o 'relogio-adiantado.sh' não vai rodar nesta sessão."
   fi
 fi

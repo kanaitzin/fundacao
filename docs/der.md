@@ -955,17 +955,17 @@ coordenação da casa, a Coordenação Geral, o Gestor Geral e a TI (`admin_tecn
 conversa com a assistente **não** é tabela: ela vive na tela de quem conversa, e o uso
 fica na auditoria (`assistente.conversa`, só metadado).
 
-## Inventário — 139 tabelas por partição
+## Inventário — 141 tabelas por partição
 
 | Partição | Tabelas |
 |---|---|
 | identity (17) | institution, house, app_user, user_house_assignment, work_schedule, shift_assignment, user_session, login_attempt, audit_event, institutional_device, staff_role_grant, house_capacity_change, user_invite, house_shift_hours, app_user_role_period, shift_draft, shift_draft_item |
 | people (36) | person, care_episode, house_stay, profile_detail, health_condition, food_restriction, document, document_version, benefit_record, memory_record, memory_photo, transfer_request, transfer_message, admission_record, judicial_record, person_credential, person_correction, profile_detail_change, person_contact, family_stay, family_stay_note, outing_permission, kitchen_request, house_field_permission, birthday_ack, contact_visit_change, visit, visit_correction, kitchen_request_change, pia_aviso, document_due_notice, child_outing, memory_photo_person, person_contact_change, technical_session, technical_session_attachment |
-| shifts (14) | shift, handover, handover_receipt, handover_note, ata, ata_note, ata_addendum, ata_episode, ata_episode_ack, general_night_ata, general_night_house_entry, general_night_house_amendment, ata_read_request, shift_fim_aviso |
+| shifts (15) | shift, handover, handover_receipt, handover_note, ata, ata_note, ata_note_attachment, ata_addendum, ata_episode, ata_episode_ack, general_night_ata, general_night_house_entry, general_night_house_amendment, ata_read_request, shift_fim_aviso |
 | incidents (7) | incident, incident_person, incident_protected, incident_restraint, incident_synthesis, external_communication, incident_attachment |
 | medications (13) | prescription, medication_schedule, medication_administration, medication_stock, medication_stock_movement, medication_protocol, medication_authorization, medication_protocol_change, prescription_restriction_change, medication_purchase, medication_purchase_item, prescription_document, family_stay_medication |
 | activities (8) | activity, activity_assignment, activity_acknowledgement, activity_execution, substitution_request, commitment, commitment_exception, activity_bulk |
-| nursing (11) | health_encounter, health_evolution, nursing_triage, health_summary_issue, education_support, education_evolution, education_concept, hospitalization, hospitalization_note, hospitalization_medication, hospitalization_companion |
+| nursing (12) | health_encounter, health_evolution, nursing_triage, health_summary_issue, education_support, education_evolution, education_concept, hospitalization, hospitalization_note, hospitalization_note_attachment, hospitalization_medication, hospitalization_companion |
 | reports (7) | followup, followup_source, report_document, report_delivery, export_log, life_milestone, followup_return |
 | checks (5) | collective_check, check_result, check_result_amendment, check_bulk, house_check_model |
 | notifications (5) | notification, escalation, escalation_level, push_subscription, notification_push |
@@ -1241,6 +1241,25 @@ fotografado, a folha da atividade, o relatório digitalizado).
 (`atendimento-tecnico.regra.ts`). Sem UPDATE nem DELETE para o aplicativo. O nome da
 área sai de `app_rotulo_da_area_do_atendimento`, que a lista de fontes do acompanhamento
 usa, e o atendimento entra lá como fonte restrita, sem o que foi trabalhado.
+
+### `ata_note_attachment` e `hospitalization_note_attachment`
+OS ANEXOS DA MENSAGEM (fase 233, shifts/1660 e nursing/1661). Pedido de 22/10: até dez
+anexos por mensagem, na linha da ATA, no diário da internação, na ocorrência, no
+atendimento técnico e na conversa da Acolhe+AI (`anexos-da-mensagem.regra.ts`, com o total
+de 15 MB por envio).
+
+`ata_note_attachment` — `note_id`, `house_id`, `storage_key`, `sha256`, `mime`,
+`file_name` (neutro: `foto-1.jpg`, `documento-2.pdf`; o nome do aparelho não entra),
+`size_bytes`, `position` (1 a 10), `created_by`, `created_at`. Lê quem lê a linha (a
+política pergunta pela própria `ata_note`, a restrita inclusive); grava quem escreveu a
+linha, na casa dela, na mesma transação. `hospitalization_note_attachment` — `note_id`,
+`hospitalization_id`, `storage_key`, `sha256`, `mime`, `file_name`, `size_bytes`,
+`doc_category`, `position`, `created_by`, `created_at`; lê quem lê a internação, e cada
+anexo cai no dossiê da criança. O registro de antes da 233 continua com o anexo nas
+colunas da própria `hospitalization_note`, e a leitura junta os dois. Sem UPDATE nem
+DELETE para o aplicativo. A ocorrência e o atendimento técnico já guardavam um anexo por
+linha (`incident_attachment`, `technical_session_attachment`) e só passaram a receber até
+dez de uma vez.
 
 ### `commitment_exception`
 Uma ocorrência desmarcada de um compromisso que continua valendo. Por DATA, com

@@ -21,7 +21,9 @@ export interface DadosDaAta {
   episodios?: Array<{ quando: string; classificacao?: string; relato: string; por?: string }>;
   passagens?: Array<{ quem: string; cargo: string; assinadaEm: string | null }>;
   /** As linhas escritas pela equipe ao longo do turno (fase 166). */
-  linhas?: Array<{ quando: string; texto: string; quem: string | null; cargo: string | null; restrita: boolean }>;
+  linhas?: Array<{ quando: string; texto: string; quem: string | null; cargo: string | null; restrita: boolean;
+                   /** Os anexos da linha (fase 233): as fotos entram no fim; o PDF fica citado. */
+                   anexos?: Array<{ tipo: string; dados: Uint8Array | null }> }>;
   /** Quantas observações restritas o turno tem, inclusive as que quem imprime não lê. */
   restritas?: number;
   /** Reaberturas, correções e complementos feitos depois do fechamento. */
@@ -63,14 +65,35 @@ export function folhaDaAta(
   const abertas = [...(a.linhas ?? [])].filter((l) => !l.restrita)
     .sort((x, y) => new Date(x.quando).getTime() - new Date(y.quando).getTime());
   const restritas = a.restritas ?? (a.linhas ?? []).filter((l) => l.restrita).length;
+  /* Os anexos das linhas abertas, numerados na ordem em que as linhas aparecem
+     (fase 233). A linha restrita não vai ao papel, e os anexos dela também não. */
+  const anexosDoPapel: NonNullable<Folha['secoes'][number]['imagens']> = [];
+  const numerosDa = new Map<number, number[]>();
+  abertas.forEach((l, i) => {
+    const nums: number[] = [];
+    for (const ax of l.anexos ?? []) {
+      const n = anexosDoPapel.length + 1;
+      nums.push(n);
+      anexosDoPapel.push({
+        legenda: `Anexo ${n}, ${ax.tipo === 'application/pdf' ? 'documento' : 'foto'} do registro das `
+          + `${hhmmBR(l.quando)}${l.quem ? `, de ${l.quem}` : ''}`,
+        foto: ax.dados && /^image\/(png|jpeg)$/.test(ax.tipo) ? { tipo: ax.tipo, dados: ax.dados } : null,
+      });
+    }
+    numerosDa.set(i, nums);
+  });
   if (abertas.length || restritas) {
     corpo.push({
       titulo: 'Registros da equipe no turno',
       paragrafos: [
-        ...abertas.map((l) => {
+        ...abertas.map((l, i) => {
           const texto = l.texto.trim().replace(/[.!?]?$/, (m) => m || '.');
           const autoria = l.quem ? ` ${l.quem}${l.cargo ? `, ${l.cargo}` : ''}.` : '';
-          return `${hhmmBR(l.quando)}. ${texto}${autoria}`;
+          const nums = numerosDa.get(i) ?? [];
+          const citados = !nums.length ? ''
+            : nums.length === 1 ? ` Anexo ${nums[0]}, reproduzido ao final.`
+              : ` Anexos ${nums.slice(0, -1).join(', ')} e ${nums[nums.length - 1]}, reproduzidos ao final.`;
+          return `${hhmmBR(l.quando)}. ${texto}${autoria}${citados}`;
         }),
         ...(restritas
           ? [`${restritas === 1 ? 'Há 1 observação' : `Há ${restritas} observações`} de acesso restrito `
@@ -119,6 +142,15 @@ export function folhaDaAta(
 
   if (a.pendencias) {
     corpo.push({ titulo: 'Pendências para o próximo turno', paragrafos: [a.pendencias] });
+  }
+
+  if (anexosDoPapel.length) {
+    corpo.push({
+      titulo: 'Anexos dos registros',
+      imagens: anexosDoPapel,
+      procedencia: 'Fotos e documentos anexados pela equipe às linhas do turno. Os originais '
+        + 'permanecem no registro eletrônico.',
+    });
   }
 
   return {

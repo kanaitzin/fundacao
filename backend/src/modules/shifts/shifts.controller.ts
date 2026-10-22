@@ -210,6 +210,13 @@ export class ShiftsController {
     return this.shifts.escreverNaAta(user, ataId, body);
   }
 
+  /** Um anexo de uma linha da ATA (fase 233). Palavra fixa, antes do `@Get(':id')`. */
+  @Get('ata-notes/attachments/:anexoId/file')
+  anexoDaLinha(@CurrentUser() user: AuthenticatedUser,
+               @Param('anexoId', ParseUUIDPipe) anexoId: string) {
+    return this.shifts.lerAnexoDaLinha(user, anexoId);
+  }
+
   @Get(':id')
   get(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.shifts.get(user, id);

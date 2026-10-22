@@ -3,7 +3,8 @@ import {
 } from '@nestjs/common';
 import { DatabaseService } from '../../kernel/database/database.service';
 import { AuditService } from '../../kernel/audit/audit.service';
-import { ArquivosService, RegraDoArquivo } from '../../kernel/arquivos/arquivos.service';
+import { ArquivoGuardado, ArquivosService, RegraDoArquivo } from '../../kernel/arquivos/arquivos.service';
+import { bytesDoBase64, recusaDosAnexos } from '../../kernel/arquivos/anexos-da-mensagem.regra';
 import { AuthenticatedUser } from '../../kernel/contracts';
 import { EventBus } from '../../kernel/events/event-bus.service';
 import { DocumentosService } from '../../kernel/documentos/documentos.service';
@@ -287,6 +288,12 @@ export class InternacaoService {
                 app_user_cargo_em(n.written_by, n.written_at) AS cargo, n.written_at
            FROM hospitalization_note n WHERE n.hospitalization_id = $1
           ORDER BY n.on_date DESC, n.written_at DESC`, [id]);
+      /* Os anexos de cada registro (1661). O registro de antes da fase 233 tem
+         o anexo nas próprias colunas, e entra na lista como o primeiro. */
+      const { rows: anexosDasNotas } = await c.query(
+        `SELECT a.id, a.note_id, a.file_name, a.mime, a.doc_category
+           FROM hospitalization_note_attachment a WHERE a.hospitalization_id = $1
+          ORDER BY a.note_id, a.position`, [id]);
 
       const { rows: meds } = await c.query(
         `SELECT m.id, m.given_at, m.medication, m.dose, m.route, m.note,
@@ -308,15 +315,27 @@ export class InternacaoService {
         desde: h.started_at, ate: h.ended_at, status: h.status,
         desfecho: h.outcome, observacaoDoDesfecho: h.outcome_note,
         abertaPor: h.abertapor, encerradaPor: h.encerradapor,
-        diario: notas.map((n) => ({
-          id: n.id, dia: n.on_date, tipo: n.kind,
-          tipoRotulo: this.TIPOS_DE_NOTA.find((t) => t.cod === n.kind)?.label ?? n.kind,
-          texto: n.body, temAnexo: n.temanexo, nomeDoArquivo: n.file_name,
-          categoria: n.doc_category ?? null,
-          categoriaRotulo: CATEGORIAS_DO_ANEXO.find((c) => c.cod === n.doc_category)?.label ?? null,
-          tipoDoArquivo: n.mime ?? null,
-          por: n.por, cargo: n.cargo, em: n.written_at,
-        })),
+        diario: notas.map((n) => {
+          const rotuloDa = (cod: string | null) => CATEGORIAS_DO_ANEXO.find((c) => c.cod === cod)?.label ?? null;
+          const anexos = [
+            ...(n.temanexo ? [{ id: n.id, nome: n.file_name ?? 'documento', tipo: n.mime ?? null,
+                                 categoria: n.doc_category ?? null, categoriaRotulo: rotuloDa(n.doc_category) }] : []),
+            ...anexosDasNotas.filter((a) => a.note_id === n.id).map((a) => ({
+              id: a.id, nome: a.file_name, tipo: a.mime, categoria: a.doc_category,
+              categoriaRotulo: rotuloDa(a.doc_category) })),
+          ];
+          const primeiro = anexos[0] ?? null;
+          return {
+            id: n.id, dia: n.on_date, tipo: n.kind,
+            tipoRotulo: this.TIPOS_DE_NOTA.find((t) => t.cod === n.kind)?.label ?? n.kind,
+            texto: n.body, anexos,
+            /* O primeiro anexo também nos campos de antes: a tela que lê um só continua lendo. */
+            temAnexo: !!primeiro, nomeDoArquivo: primeiro?.nome ?? null,
+            categoria: primeiro?.categoria ?? null, categoriaRotulo: primeiro?.categoriaRotulo ?? null,
+            tipoDoArquivo: primeiro?.tipo ?? null,
+            por: n.por, cargo: n.cargo, em: n.written_at,
+          };
+        }),
         /* A medicação do hospital sai SEMPRE com a origem escrita. Sem essa
          * frase, a linha se leria como dose da casa — e a casa apareceria
          * administrando o que não administrou. */
@@ -338,6 +357,8 @@ export class InternacaoService {
   async registrar(user: AuthenticatedUser, id: string, input: {
     dia?: string; tipo?: string; texto?: string; conteudo?: string; nomeArquivo?: string;
     categoria?: string;
+    /** Até dez de uma vez (fase 233): a receita, o exame e o atestado da mesma visita. */
+    anexos?: { conteudo?: string; nomeArquivo?: string; categoria?: string }[];
   }) {
     if (!(input.texto ?? '').trim()) {
       throw new BadRequestException(
@@ -347,24 +368,41 @@ export class InternacaoService {
       throw new BadRequestException('Tipo de registro desconhecido.');
     }
 
-    const temAnexo = !!String(input.conteudo ?? '').trim();
-    if (temAnexo && !CATEGORIAS_DO_ANEXO.some((c) => c.cod === input.categoria)) {
+    /* O anexo único de antes é a lista de um: um caminho só daqui para baixo. */
+    const lista = (Array.isArray(input.anexos) && input.anexos.length
+      ? input.anexos
+      : String(input.conteudo ?? '').trim()
+        ? [{ conteudo: input.conteudo, nomeArquivo: input.nomeArquivo, categoria: input.categoria }]
+        : []
+    ).map((a) => ({ ...a, categoria: a?.categoria ?? input.categoria }));
+    if (!lista.length && input.categoria) {
+      throw new BadRequestException('A categoria é do anexo, e este registro não tem anexo.');
+    }
+    const recusa = recusaDosAnexos(lista.map((a) => bytesDoBase64(String(a.conteudo ?? ''))));
+    if (recusa) throw new BadRequestException(recusa);
+    if (lista.some((a) => !CATEGORIAS_DO_ANEXO.some((c) => c.cod === a.categoria))) {
       throw new BadRequestException(
         'Diga que documento é o anexo: receita, atestado, relatório médico, exame, '
         + 'encaminhamento, foto de documento ou outro.');
     }
-    if (!temAnexo && input.categoria) {
-      throw new BadRequestException('A categoria é do anexo, e este registro não tem anexo.');
-    }
 
     /* O MESMO ARQUIVO DUAS VEZES (1622): conferido ANTES de gravar, para não
-       deixar no disco um objeto que nenhum registro aponta. */
-    const soma = this.arquivos.somaDe(input.conteudo);
-    if (soma) {
+       deixar no disco um objeto que nenhum registro aponta. Vale contra os
+       registros de antes e dentro da própria mensagem. */
+    const somas = lista.map((a) => this.arquivos.somaDe(a.conteudo));
+    if (new Set(somas).size < somas.length) {
+      throw new ConflictException('O mesmo arquivo está duas vezes nesta mensagem. Tire uma das cópias.');
+    }
+    for (const soma of somas) {
+      if (!soma) continue;
       const repetido = await this.db.asUser(user.id, async (c) => {
         const { rows: [r] } = await c.query(
-          `SELECT on_date::text AS dia, app_user_display_name(written_by) AS quem
-             FROM hospitalization_note WHERE hospitalization_id = $1 AND sha256 = $2`, [id, soma]);
+          `SELECT n.on_date::text AS dia, app_user_display_name(n.written_by) AS quem
+             FROM hospitalization_note n
+            WHERE n.hospitalization_id = $1
+              AND (n.sha256 = $2 OR n.id IN (SELECT a.note_id FROM hospitalization_note_attachment a
+                                              WHERE a.hospitalization_id = $1 AND a.sha256 = $2))
+            LIMIT 1`, [id, soma]);
         return r;
       });
       if (repetido) {
@@ -375,49 +413,46 @@ export class InternacaoService {
       }
     }
 
-    const guardado = await this.arquivos.guardar(input.conteudo, O_ANEXO_DA_INTERNACAO);
-    const chave = guardado?.chave ?? null;
-    const tipoArq = guardado?.mime ?? null;
+    const guardados: (ArquivoGuardado & { nomeArquivo: string | null; categoria: string })[] = [];
+    for (const a of lista) {
+      const g = await this.arquivos.guardar(a.conteudo, O_ANEXO_DA_INTERNACAO);
+      if (!g) throw new BadRequestException(O_ANEXO_DA_INTERNACAO.recusas!.vazio!);
+      guardados.push({ ...g, nomeArquivo: (a.nomeArquivo ?? '').trim() || null, categoria: a.categoria! });
+    }
 
     return this.db.asUser(user.id, async (c) => {
       try {
         const { rows: [r] } = await c.query(
-          `INSERT INTO hospitalization_note (hospitalization_id, on_date, kind, body,
-                                             storage_key, mime, file_name, written_by,
-                                             doc_category, sha256, size_bytes)
-           VALUES ($1, coalesce($2::date, app_hoje()), coalesce($3,'relato'), $4,
-                   $5, $6, $7, $8, $9, $10, $11) RETURNING id`,
-          [id, input.dia ?? null, input.tipo ?? null, input.texto!.trim(),
-           chave, tipoArq, input.nomeArquivo ?? null, user.id,
-           chave ? input.categoria : null, guardado?.sha256 ?? null, guardado?.tamanho ?? null]);
+          `INSERT INTO hospitalization_note (hospitalization_id, on_date, kind, body, written_by)
+           VALUES ($1, coalesce($2::date, app_hoje()), coalesce($3,'relato'), $4, $5) RETURNING id`,
+          [id, input.dia ?? null, input.tipo ?? null, input.texto!.trim(), user.id]);
+        const { rows: [h] } = await c.query(`SELECT person_id FROM hospitalization WHERE id = $1`, [id]);
 
-        /*
-         * E O ANEXO CAI NO PERFIL DA CRIANÇA (fase 125).
-         *
-         * *"Todos os outros lugares onde a gente preenche […] têm que ir
-         * individual para cada um no seu registro."* O laudo que o hospital
-         * entregou é documento DELA, e ficava só no diário da internação —
-         * que some da tela da casa quando a internação encerra.
-         *
-         * Espelho, e não cópia: o mesmo objeto guardado, a mesma soma de
-         * verificação. E na MESMA transação do registro: se o espelho falhar,
-         * o diário também volta, e a equipe reescreve uma vez em vez de
-         * descobrir meses depois que metade dos laudos chegou ao dossiê.
-         */
-        if (chave) {
-          const { rows: [h] } = await c.query(
-            `SELECT person_id FROM hospitalization WHERE id = $1`, [id]);
+        for (const [i, g] of guardados.entries()) {
+          const { rows: [an] } = await c.query(
+            `INSERT INTO hospitalization_note_attachment (note_id, hospitalization_id, storage_key,
+               sha256, mime, file_name, size_bytes, doc_category, position, created_by)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id`,
+            [r.id, id, g.chave, g.sha256, g.mime, g.nomeArquivo ?? `anexo-${i + 1}`, g.tamanho,
+             g.categoria, i + 1, user.id]);
+          /*
+           * E CADA ANEXO CAI NO PERFIL DA CRIANÇA (fase 125).
+           *
+           * *"Todos os outros lugares onde a gente preenche […] têm que ir
+           * individual para cada um no seu registro."* O laudo que o hospital
+           * entregou é documento DELA, e ficava só no diário da internação,
+           * que some da tela da casa quando a internação encerra. Espelho, e
+           * não cópia: o mesmo objeto guardado, na MESMA transação.
+           */
           if (h?.person_id) {
             await c.query(
               `SELECT * FROM app_espelhar_no_dossie($1,'saude',NULL,$2,$3,$4,$5,$6,$7,$8,NULL)`,
-              [h.person_id,
-               (input.nomeArquivo ?? '').trim() || 'Anexo do diário de internação',
-               'Anexo do diário de internação',
-               `hospitalization_note:${r.id}`,
-               chave, guardado?.sha256 ?? null, tipoArq, input.nomeArquivo ?? null]);
+              [h.person_id, g.nomeArquivo || 'Anexo do diário de internação',
+               'Anexo do diário de internação', `hospitalization_note_attachment:${an.id}`,
+               g.chave, g.sha256, g.mime, g.nomeArquivo]);
           }
         }
-        return { id: r.id, ok: true };
+        return { id: r.id, ok: true, anexos: guardados.length };
       } catch (e: any) {
         if (String(e?.message ?? '').includes('row-level security')) {
           throw new ForbiddenException(
@@ -441,7 +476,7 @@ export class InternacaoService {
    * Nada de rota separada com regra própria, que é como as duas se
    * desencontram com o tempo.
    */
-  async lerAnexo(user: AuthenticatedUser, internacaoId: string, notaId: string) {
+  async lerAnexo(user: AuthenticatedUser, internacaoId: string, notaId: string, anexoId?: string) {
     const nota = await this.db.asUser(user.id, async (c) => {
       /* rls-join-ok: `hospitalization_note` já é filtrada pela internação; a
          casa vem da internação porque a nota não a guarda (fase 149). */
@@ -450,6 +485,17 @@ export class InternacaoService {
            FROM hospitalization_note n
            JOIN hospitalization i ON i.id = n.hospitalization_id
           WHERE n.id = $1 AND n.hospitalization_id = $2`, [notaId, internacaoId]);
+      if (!r) return r;
+      /* O anexo pedido pelo número, ou o primeiro (1661): a rota de antes, sem
+         o número, continua abrindo o registro de um anexo só. */
+      if (anexoId || !r.storage_key) {
+        const { rows: [a] } = await c.query(
+          `SELECT storage_key, mime, file_name FROM hospitalization_note_attachment
+            WHERE note_id = $1 AND ($2::uuid IS NULL OR id = $2::uuid)
+            ORDER BY position LIMIT 1`, [notaId, anexoId && anexoId !== notaId ? anexoId : null]);
+        if (anexoId && anexoId !== notaId) return a ? { ...a, house_id: r.house_id } : null;
+        if (!r.storage_key && a) return { ...a, house_id: r.house_id };
+      }
       return r;
     });
     if (!nota) {
@@ -567,28 +613,31 @@ export class InternacaoService {
       return r;
     });
 
-    /* Os anexos em ordem de registro: é a ordem em que o diário os cita. */
-    const comAnexo = [...p.diario].filter((n) => n.temAnexo)
+    /* Os anexos em ordem de registro, e dentro do registro na ordem em que
+       foram mandados: é a ordem em que o diário os cita. */
+    const comAnexo = [...p.diario].filter((n) => n.anexos.length)
       .sort((a, b) => new Date(a.em).getTime() - new Date(b.em).getTime());
-    const numero = new Map(comAnexo.map((n, i) => [n.id, i + 1]));
+    const numeros = new Map<string, number[]>();
+    let proximo = 1;
+    for (const n of comAnexo) numeros.set(n.id, n.anexos.map(() => proximo++));
 
     const anexos: AnexoDaInternacao[] = [];
-    for (const n of comAnexo) {
+    for (const n of comAnexo) for (const [i, ax] of n.anexos.entries()) {
       const base = {
-        numero: numero.get(n.id)!, categoria: n.categoriaRotulo ?? 'Documento',
-        nomeDoArquivo: n.nomeDoArquivo, registradoEm: n.em, registradoPor: n.por,
+        numero: numeros.get(n.id)![i], categoria: ax.categoriaRotulo ?? 'Documento',
+        nomeDoArquivo: ax.nome, registradoEm: n.em, registradoPor: n.por,
       };
       if (!desenhar) { anexos.push({ ...base, paginas: [] }); continue; }
-      const bytes = await this.lerChave(user, id, n.id);
+      const bytes = await this.lerChave(user, id, n.id, ax.id);
       if (!bytes) { anexos.push({ ...base, paginas: [], naoReproduzido: true }); continue; }
-      if (n.tipoDoArquivo === 'application/pdf') {
+      if (ax.tipo === 'application/pdf') {
         const r = await paginasDoPdf(bytes);
         anexos.push({
           ...base, totalDePaginas: r.total, naoReproduzido: r.falhou || !r.paginas.length,
           paginas: r.paginas.map((pg) => ({ tipo: 'image/png', dados: new Uint8Array(pg) })),
         });
       } else {
-        anexos.push({ ...base, paginas: [{ tipo: n.tipoDoArquivo ?? '', dados: new Uint8Array(bytes) }] });
+        anexos.push({ ...base, paginas: [{ tipo: ax.tipo ?? '', dados: new Uint8Array(bytes) }] });
       }
     }
 
@@ -603,7 +652,8 @@ export class InternacaoService {
       diario: p.diario.map((n: any) => ({
         dia: String(n.dia).slice(0, 10),
         em: new Date(n.em).toISOString(), tipoRotulo: n.tipoRotulo, texto: n.texto,
-        por: n.por, cargo: n.cargo, anexo: numero.get(n.id) ?? null, categoria: n.categoriaRotulo,
+        por: n.por, cargo: n.cargo,
+        anexos: n.anexos.map((ax: any, i: number) => ({ numero: numeros.get(n.id)![i], categoria: ax.categoriaRotulo })),
       })),
       medicacao: p.medicacaoNoHospital.map((m: any) => ({
         quando: new Date(m.quando).toISOString(), medicamento: m.medicamento,
@@ -622,11 +672,15 @@ export class InternacaoService {
   }
 
   /** Os bytes de um anexo, sob o alcance de quem pede (a mesma leitura do diário). */
-  private async lerChave(user: AuthenticatedUser, internacaoId: string, notaId: string) {
+  private async lerChave(user: AuthenticatedUser, internacaoId: string, notaId: string, anexoId: string) {
     const chave = await this.db.asUser(user.id, async (c) => {
+      /* O anexo de antes da 233 tem o id da própria nota; o novo, o seu. */
       const { rows: [r] } = await c.query(
-        `SELECT storage_key FROM hospitalization_note WHERE id = $1 AND hospitalization_id = $2`,
-        [notaId, internacaoId]);
+        `SELECT storage_key FROM hospitalization_note WHERE id = $1 AND hospitalization_id = $2 AND id = $3
+         UNION ALL
+         SELECT storage_key FROM hospitalization_note_attachment
+          WHERE note_id = $1 AND hospitalization_id = $2 AND id = $3`,
+        [notaId, internacaoId, anexoId]);
       return r?.storage_key as string | undefined;
     });
     return chave ? this.arquivos.ler(chave) : null;

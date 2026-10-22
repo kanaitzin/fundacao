@@ -57,6 +57,11 @@ const POR_ONDE_SAI: Record<string, string> = {
     'contacts/:contactId/photo',
   'hospitalization_note.storage_key':
     'hospitalizations/:id/notes/:notaId/anexo',
+  /* Os anexos da mensagem (fase 233): vários num registro do diário, e na linha da ATA. */
+  'hospitalization_note_attachment.storage_key':
+    'hospitalizations/:id/notes/:notaId/anexos/:anexoId',
+  'ata_note_attachment.storage_key':
+    'ata-notes/attachments/:anexoId/file',
   'life_milestone.storage_key':
     'marcos/:id/comprovante',
   /* Os três que a fase 108 tirou da forma de REFERÊNCIA e passaram a poder

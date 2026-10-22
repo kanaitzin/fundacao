@@ -22,8 +22,12 @@ export const QUEM_REGISTRA_ATENDIMENTO = ['equipe_tecnica', 'coordenador'];
  */
 export const QUEM_LE_ATENDIMENTO = ['equipe_tecnica', 'coordenador', 'gestor_geral'];
 
-/** Quantos arquivos num atendimento: o desenho, a folha da atividade, a foto. */
-export const MAXIMO_DE_ANEXOS_DO_ATENDIMENTO = 8;
+/**
+ * Quantos arquivos num atendimento: o desenho, a folha da atividade, a foto.
+ * Eram oito; desde a fase 233 é o mesmo número de toda mensagem com anexo
+ * (`anexos-da-mensagem.regra.ts`), dito numa linha só.
+ */
+export { MAXIMO_DE_ANEXOS_POR_MENSAGEM as MAXIMO_DE_ANEXOS_DO_ATENDIMENTO } from '../../kernel/arquivos/anexos-da-mensagem.regra';
 
 export function rotuloDaArea(cod: string, outra?: string | null): string {
   if (cod === 'outra' && outra) return outra;

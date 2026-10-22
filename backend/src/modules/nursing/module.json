@@ -26,6 +26,7 @@
     "education_concept",
     "hospitalization",
     "hospitalization_note",
+    "hospitalization_note_attachment",
     "hospitalization_medication",
     "hospitalization_companion"
   ],

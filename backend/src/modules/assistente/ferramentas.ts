@@ -42,7 +42,7 @@ export const ROTAS_DE_LEITURA: readonly string[] = [
 export const MEXEM_NA_TELA: readonly string[] = ['preencher_campo', 'apertar_botao'];
 
 /** Arquivos e folhas não são JSON: a assistente não os lê por rota. */
-export const LEITURA_PROIBIDA = /\/(folha|export|file|photos?|foto|anexo|comprovante)(\/|\?|$)/;
+export const LEITURA_PROIBIDA = /\/(folha|export|file|photos?|foto|anexos?|comprovante)(\/|\?|$)/;
 
 export function rotaDeLeituraPermitida(rota: string): boolean {
   if (typeof rota !== 'string' || !rota.startsWith('/') || rota.length > 400) return false;

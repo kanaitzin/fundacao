@@ -2,6 +2,8 @@ import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundEx
 import { DatabaseService } from '../../kernel/database/database.service';
 import { AuditService } from '../../kernel/audit/audit.service';
 import { AuthenticatedUser } from '../../kernel/contracts';
+import { DocumentosService } from '../../kernel/documentos/documentos.service';
+import { Folha, cargoNoDocumento, diaBR, hhmmBR, nomeDoArquivo } from '../../kernel/documentos/folha';
 
 /**
  * Benefícios e dados bancários (§6.10) — a área mais sensível do sistema.
@@ -47,6 +49,7 @@ export class BenefitsService {
   constructor(
     @Inject(DatabaseService) private readonly db: DatabaseService,
     @Inject(AuditService) private readonly audit: AuditService,
+    @Inject(DocumentosService) private readonly documentos: DocumentosService,
   ) {}
 
   /** O vocabulário é do servidor. A tela desenha o que vier daqui. */
@@ -295,6 +298,15 @@ export class BenefitsService {
   }
 
   /** Impressão/exportação: mesma fricção da visualização, log próprio (§6.10). */
+  /**
+   * A VIA PARA IMPRIMIR (conserto de 22/10). Até aqui esta rota registrava a
+   * exportação na auditoria e não devolvia arquivo nenhum: a tela dizia
+   * Registrar e exportar, a finalidade ficava no histórico, e a coordenação
+   * saía sem o papel que foi pedir. Agora sai a folha em Word, com os mesmos
+   * campos que a tela mostra, e a leitura e o registro acontecem na MESMA
+   * transação, como na visualização. Nunca o segredo do gov.br: ele mora no
+   * cofre, que é outra porta com outro registro.
+   */
   async export(user: AuthenticatedUser, personId: string, formato: string, finalidade: string) {
     if (!['coordenador', 'gestor_geral'].includes(user.role)) {
       throw new ForbiddenException('Sem permissão para exportar esta área.');
@@ -302,13 +314,61 @@ export class BenefitsService {
     if (!finalidade?.trim()) throw new BadRequestException('Informe a finalidade da exportação.');
     this.exigirReauth(user);
     if (!(await this.podeVer(user, personId))) await this.negar(user, personId, 'fora_da_casa_atual');
-    await this.audit.log({
-      action: 'benefits.export', actorId: user.id,
-      houseId: await this.audit.casaDoAcolhido(user.id, personId),
-      entity: 'person', entityId: personId,
-      purpose: finalidade, detail: { formato },
+    const casa = await this.audit.casaDoAcolhido(user.id, personId);
+    const { pessoa, rows } = await this.db.asUser(user.id, async (c) => {
+      const { rows: [pessoa] } = await c.query(
+        `SELECT coalesce(nullif(social_name, ''), full_name) AS nome FROM person WHERE id = $1`, [personId]);
+      const { rows } = await c.query(
+        `SELECT benefit_type, benefit_number, bank_name, agency, agency_name, account, account_op,
+                status, notes, bank_pending, pending_note, has_gov_access, gov_access_holder
+           FROM benefit_record WHERE person_id = $1
+          ORDER BY bank_pending DESC, benefit_type`, [personId]);
+      await this.audit.log({
+        action: 'benefits.export', actorId: user.id, houseId: casa,
+        entity: 'person', entityId: personId,
+        purpose: finalidade, detail: { formato: 'docx', registros: rows.length },
+      }, c);
+      return { pessoa, rows };
     });
-    return { ok: true, formato, aviso: 'Exportação registrada em auditoria com finalidade declarada.' };
+    const agora = new Date();
+    const rotulo = (lista: readonly { cod: string; label: string }[], cod: string) =>
+      (lista.find((t) => t.cod === cod)?.label ?? cod).replace(/ — /g, ': ');
+    const folha: Folha = {
+      titulo: `Benefícios e dados bancários de ${pessoa?.nome ?? 'acolhido'}`,
+      identificacao: [
+        { rotulo: 'Acolhido', valor: pessoa?.nome ?? '' },
+        { rotulo: 'Emitida em', valor: `${diaBR(agora)}, às ${hhmmBR(agora)}` },
+        { rotulo: 'Finalidade', valor: finalidade.trim() },
+        { rotulo: 'Registros', valor: String(rows.length) },
+      ],
+      secoes: rows.length ? rows.map((r) => ({
+        titulo: rotulo(TIPOS_BENEFICIO, r.benefit_type),
+        paragrafos: [
+          `Situação: ${rotulo(SITUACOES_BENEFICIO, r.status)}.`,
+          ...(r.benefit_number ? [`Número do benefício: ${r.benefit_number}.`] : []),
+          ...(r.bank_name || r.agency || r.account ? [[
+            r.bank_name ? `Banco: ${r.bank_name}` : '',
+            r.agency ? `agência ${r.agency}${r.agency_name ? ` (${r.agency_name})` : ''}` : '',
+            r.account ? `conta ${r.account}${r.account_op ? `, operação ${r.account_op}` : ''}` : '',
+          ].filter(Boolean).join(', ') + '.'] : []),
+          ...(r.bank_pending ? [`Pendência bancária: ${r.pending_note || 'a regularizar junto ao banco'}.`] : []),
+          ...(r.has_gov_access ? [`Acesso ao gov.br sob a responsabilidade de ${r.gov_access_holder || 'pessoa a confirmar'}.`] : []),
+          ...(r.notes ? [`Observações: ${r.notes}`] : []),
+        ],
+      })) : [{ titulo: 'Registros', paragrafos: ['Não há benefício nem conta registrados para este acolhido.'] }],
+      geradoPor: user.fullName,
+      cargo: cargoNoDocumento(user.role),
+      assinatura: true,
+      ressalva: 'Documento de uso restrito da coordenação. Contém dados bancários do acolhido e deve '
+        + 'ser entregue somente ao órgão indicado na finalidade, sem cópias.',
+    };
+    const arquivo = await this.documentos.gerar(folha);
+    return {
+      ok: true, formato: 'docx',
+      nomeArquivo: nomeDoArquivo(folha.titulo),
+      conteudoBase64: arquivo.toString('base64'),
+      aviso: 'Documento gerado em Word. A exportação ficou registrada com o seu nome, a finalidade e o horário.',
+    };
   }
 
   private async lastAccess(personId: string, exceptActor: string) {
