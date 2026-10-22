@@ -223,6 +223,7 @@ export const VOCABULARIO_DA_AUDITORIA: Record<string, string> = {
   'internacao.aberta': 'Internação hospitalar aberta',
   'internacao.encerrada': 'Internação hospitalar encerrada',
   'internacao.anexo.lido': 'Anexo de internação aberto',
+  'ata.anexo.lido': 'Anexo de linha da ATA aberto',
 
   // ----------------------------------------------------------------- Medicação
   'prescription.create': 'Prescrição registrada',

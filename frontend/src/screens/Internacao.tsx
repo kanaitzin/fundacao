@@ -482,7 +482,10 @@ function PeriodoNoHospital({ id, papel, onVoltar }: {
           titulo={vendoAnexo.nome || 'Documento do hospital'}
           legenda="Do período de internação. Baixar é o segundo gesto, de quem já olhou."
           carregar={() => api<{ nome: string; tipo: string; conteudo: string }>(
-            `/nursing/hospitalizations/${id}/notes/${vendoAnexo.notaId}/anexos/${vendoAnexo.anexoId}`)}
+            /* O anexo de antes da fase 233 é o do próprio registro, pela rota de um só. */
+            vendoAnexo.anexoId === vendoAnexo.notaId
+              ? `/nursing/hospitalizations/${id}/notes/${vendoAnexo.notaId}/anexo`
+              : `/nursing/hospitalizations/${id}/notes/${vendoAnexo.notaId}/anexos/${vendoAnexo.anexoId}`)}
           onFechar={() => setVendoAnexo(null)}
           onBaixar={(a) => baixarArquivo(a.nome, a.tipo, a.conteudo)} />
       )}

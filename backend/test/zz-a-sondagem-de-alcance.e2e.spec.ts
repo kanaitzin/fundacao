@@ -96,6 +96,11 @@ const MAPA: Record<string, string> = {
   '/nursing/hospitalizations/:id/folha#id': 'hospitalization',
   '/nursing/hospitalizations/:id/notes/:notaId/anexo#id': 'hospitalization',
   '/nursing/hospitalizations/:id/notes/:notaId/anexo#notaId': 'hospitalization_note',
+  /* Os anexos da mensagem (fase 233): o de vários num registro do diário, e o da linha da ATA. */
+  '/nursing/hospitalizations/:id/notes/:notaId/anexos/:anexoId#id': 'hospitalization',
+  '/nursing/hospitalizations/:id/notes/:notaId/anexos/:anexoId#notaId': 'hospitalization_note',
+  '/nursing/hospitalizations/:id/notes/:notaId/anexos/:anexoId#anexoId': 'hospitalization_note_attachment',
+  '/shifts/ata-notes/attachments/:anexoId/file#anexoId': 'ata_note_attachment',
   '/people/kitchen-requests/:id/history#id': 'kitchen_request',
   '/people/portaria/visitante/:contactId/foto#contactId': 'person_contact',
   '/people/technical-sessions/attachments/:anexoId/file#anexoId': 'technical_session_attachment',
@@ -184,7 +189,7 @@ describe('A sondagem de alcance — toda leitura, com registro real da Casa 03',
     const tem = (c: string) => cols.some((x) => x.column_name === c);
     let onde: string;
     if (tabela === 'transfer_request') onde = `from_house_id = $1 AND to_house_id <> $2`;
-    else if (tabela === 'hospitalization_note') {
+    else if (tabela === 'hospitalization_note' || tabela === 'hospitalization_note_attachment') {
       onde = `hospitalization_id IN (SELECT id FROM hospitalization WHERE house_id = $1)`;
     } else if (tabela === 'memory_photo') {
       onde = `memory_id IN (SELECT id FROM memory_record m WHERE m.person_id IN (

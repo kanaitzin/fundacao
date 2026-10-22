@@ -45,9 +45,11 @@ describe('todo anexo passa pela câmera do sistema', () => {
     expect(camera).toMatch(/Usar esta foto/);
   });
 
+  /* Desde a fase 233 a mensagem com vários anexos usa o `AnexosDaMensagem`, que
+     é o `EscolherAnexo` por dentro (com a câmera em sequência): os dois contam. */
   it('toda tela que recebe documento usa o EscolherAnexo', () => {
     const usam = arquivos(join(FRONT, 'screens'))
-      .filter((f) => /<EscolherAnexo\b/.test(readFileSync(f, 'utf8')))
+      .filter((f) => /<(EscolherAnexo|AnexosDaMensagem)\b/.test(readFileSync(f, 'utf8')))
       .map((f) => f.split('/').pop());
     for (const tela of ['Acolhidos.tsx', 'Dossie.tsx', 'Internacao.tsx', 'Ocorrencias.tsx', 'Portaria.tsx',
       'Saude.tsx', 'TrabalhoSocial.tsx']) {
