@@ -29,6 +29,8 @@ export type RespostaDoGuia = {
 /** As telas onde um texto escrito pela equipe costuma ficar, na ordem em que a casa mais usa. */
 export const DESTINOS_DE_TEXTO = ['ata', 'ocorrencias', 'acompanhamentos', 'internacao', 'passagem', 'alinhamentos', 'impacto'];
 
+import { traduzirPalavrasDaCasa } from '../../backend/src/modules/assistente/palavras-da-casa';
+
 const sem = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
 /** As palavras que a equipe usa para cada tela, além do nome dela. */
@@ -342,7 +344,8 @@ function primeiroOCuidado(t: string, telas: TelaDoGuia[]): string | null {
 }
 
 export function responderPeloGuia(texto: string, telas: TelaDoGuia[], primeira: boolean): RespostaDoGuia {
-  const t = sem(texto);
+  /* O banco de palavras da casa (fase 238): "o piá tá com piripaque" ganha "crianca menino passando mal". */
+  const t = traduzirPalavrasDaCasa(sem(texto));
   const aviso = primeira
     ? 'Estou no modo guia: explico as telas, levo você até elas e anoto sugestões. Para ler os dados e montar relatórios, a Acolhe+AI precisa estar ligada na instalação.\n\n'
     : '';
@@ -387,7 +390,7 @@ export function responderPeloGuia(texto: string, telas: TelaDoGuia[], primeira: 
 
   /* Ir a uma tela vem antes da sugestão: "me leva para as Sugestões de melhoria"
      é ir, e não sugerir (a palavra "melhoria" enganava o guia; fase 195). */
-  const telaPedida = achar(texto, telas);
+  const telaPedida = achar(t, telas);
   if (telaPedida && QUER_IR.test(t) && !QUER_CRIAR.test(t)) {
     return { texto: `${aviso}Abrindo ${telaPedida.titulo}.`, ir: telaPedida.chave };
   }
@@ -405,7 +408,7 @@ export function responderPeloGuia(texto: string, telas: TelaDoGuia[], primeira: 
   const conta = contaDoTexto(texto);
   if (conta) return { texto: `${aviso}Fiz a conta para você.`, conta };
 
-  const tela = achar(texto, telas);
+  const tela = achar(t, telas);
   if (tela) {
     if (QUER_CRIAR.test(t)) {
       /* Só "Abrindo": a frase do formulário vem depois, e só se ele abrir. Prometer

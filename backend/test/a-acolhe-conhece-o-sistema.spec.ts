@@ -26,6 +26,7 @@ import { join } from 'node:path';
 import { FORA_DO_CATALOGO, GUIA_DA_ACOLHE } from '../src/modules/assistente/guia';
 import { FERRAMENTAS, LEITURA_PROIBIDA, MEXEM_NA_TELA, rotaDeLeituraPermitida } from '../src/modules/assistente/ferramentas';
 import { calcular } from '../src/modules/assistente/calculo';
+import { GLOSSARIO_DA_CASA, PALAVRAS_DA_CASA, traduzirPalavrasDaCasa } from '../src/modules/assistente/palavras-da-casa';
 import { criancasNoPedido, ehPergunta, pedeAcao, pedeFormulario, responderPeloGuia } from '../../frontend/src/acolhe-guia';
 
 const SRC = join(__dirname, '..', 'src');
@@ -411,6 +412,43 @@ describe('o modo guia atende como colega de plantão', () => {
     for (const f of ['o kauã fugiu', 'a lara ta com febre', 'qual criança dá mais trabalho', 'apaga isso da ata',
       'manda no zap', 'como troco minha senha', 'obrigado', 'o bruno é agressivo?']) {
       expect(r(f).texto).not.toMatch(/—/);
+    }
+  });
+});
+
+/* O banco de palavras da casa (fase 238) e o relatório das vivências (fase 237). */
+describe('a Acolhe+AI entende o jeito de falar da casa', () => {
+  const TELAS = [
+    { chave: 'acolhidos', titulo: 'Acolhidos' }, { chave: 'ata', titulo: 'ATA' },
+    { chave: 'ocorrencias', titulo: 'Ocorrências' }, { chave: 'saude', titulo: 'Saúde' },
+  ];
+  const r = (frase: string) => responderPeloGuia(frase, TELAS, false);
+
+  it('a gíria do plantão chega ao cuidado certo', () => {
+    expect(r('o piá tá com piripaque').cuidado).toBe(true);
+    expect(r('a guria tá pelando').cuidado).toBe(true);
+    expect(r('o guri se mandou').texto).toMatch(/líder do plantão/);
+    expect(r('a guria deu um piti').cuidado).toBe(true);
+    expect(r('os guris saíram no tapa').texto).toMatch(/Ocorrências/);
+    expect(r('abre o livro do plantão').ir).toBe('ata');
+  });
+
+  it('a palavra que quer dizer outra coisa não se traduz', () => {
+    expect(traduzirPalavrasDaCasa('a pia da cozinha vazou')).toBe('a pia da cozinha vazou');
+    expect(r('a pia da cozinha vazou').cuidado).toBeFalsy();
+  });
+
+  it('cada palavra tem forma e sentido, sem acento nem maiúscula onde o texto casa', () => {
+    for (const p of PALAVRAS_DA_CASA) {
+      expect(p.diz.length).toBeGreaterThan(0);
+      expect(p.querDizer).toMatch(/^[a-z0-9 ,]+$/);
+    }
+    expect(GUIA_DA_ACOLHE).toContain(GLOSSARIO_DA_CASA);
+  });
+
+  it('o pedido do relatório das vivências em Word é entendido', () => {
+    for (const f of ['faz um relatório da vivência da Alice em word', 'me dá um word com as vivências da Alice']) {
+      expect(r(f).texto).toMatch(/Relatório das vivências em Word/);
     }
   });
 });

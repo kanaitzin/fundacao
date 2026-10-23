@@ -138,6 +138,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 238, dia: '23/10/2026',
+    texto: 'A Acolhe+AI entende o jeito de falar do plantão: piá, guria, piripaque, pelando, se mandou, deu um piti, saíram no tapa, livro do plantão, e as siglas da rede (CT, CRAS, CREAS, CAPS, UBS, MP). Ela continua respondendo no português de sempre.' },
   { fase: 237, dia: '23/10/2026', aba: 'acolhidos',
     texto: 'O relatório das vivências em Word: no álbum de vivências de cada criança, o botão Relatório das vivências em Word. Você escolhe o período, os tipos, quais vivências entram e se vai com as fotos, confere a folha e baixa. As fotos seguem o seu cargo: técnica, líderes, coordenação e gestão colocam todas; nos outros cargos, a foto sem autorização de imagem sai só com a legenda. E a Acolhe+AI entende quando você pede esse relatório.' },
   { fase: 236, dia: '23/10/2026', aba: 'periodo',
