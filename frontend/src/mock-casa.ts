@@ -37,6 +37,9 @@ import { avaliar, avaliarArquivo, avaliarDrive, TITULOS } from '../../backend/sr
 import { QUEM_LE_O_QUE_MUDOU } from '../../backend/src/modules/reports/o-que-mudou.regra';
 import { bytesDoBase64, recusaDosAnexos } from '../../backend/src/kernel/arquivos/anexos-da-mensagem.regra';
 import { TIPOS_OFFLINE, TIPOS_OFFLINE_KINDS } from '../../backend/src/modules/sync/tipos-offline';
+import {
+  folhaDasVivencias, fotosForaPeloCargo, incluiTodasAsFotos, vivenciasEscolhidas,
+} from '../../backend/src/modules/people/vivencias-folha';
 import { cargoNoDocumento, nomeDoArquivo as nomeDaFolha, nomeDaPlanilha, planilhaDaFolha }
   from '../../backend/src/kernel/documentos/folha';
 import { folhaDaAta } from '../../backend/src/modules/shifts/ata-folha';
@@ -13074,6 +13077,36 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
   if (rota === '/alignments/export' && metodo === 'POST') {
     const f = folhaDosCombinadosMock();
     return f instanceof Recusa ? f : exportarFolha(f);
+  }
+
+  /* O RELATÓRIO DAS VIVÊNCIAS (fase 237): a mesma regra do servidor
+     (`vivencias-folha.ts`), com as escolhas de quem pede e as fotos conforme o cargo.
+     O Word do protótipo não leva imagem: a foto sai como legenda. */
+  if (seg[0] === 'people' && seg[2] === 'memories' && (seg[3] === 'folha' || seg[3] === 'export') && metodo === 'POST') {
+    semearDossie();
+    const crianca = todosKids().find((k) => k.id === seg[1]);
+    if (!crianca) return new Recusa(404, 'Acolhido não encontrado, ou fora do seu alcance.');
+    const dados = {
+      crianca: { nome: crianca.nome, casa: `${CASA.code} · ${CASA.name}` },
+      itens: VIVENCIAS.filter((v) => v.personId === seg[1]).map((v) => ({
+        id: v.id, tipo: v.tipo, quando: String(v.quando).slice(0, 10), descricao: v.descricao,
+        registradoPor: v.registradoPor ?? null,
+        fotos: v.fotos.map((f) => ({ id: f.id, autorizada: f.autorizacaoRegistrada, foto: null })),
+      })),
+      rotulos: Object.fromEntries(TIPOS_DE_VIVENCIA.map((t) => [t.code, t.label])),
+    };
+    const escolhas = {
+      de: b.de || null, ate: b.ate || null,
+      tipos: Array.isArray(b.tipos) ? b.tipos : null, ids: Array.isArray(b.ids) ? b.ids : null,
+      comFotos: b.comFotos !== false,
+    };
+    const folha = folhaDasVivencias(dados, escolhas, eu.role, autorDaFolha());
+    if (seg[3] === 'export') return exportarFolha(folha);
+    return {
+      folha,
+      fotosForaPeloCargo: escolhas.comFotos ? fotosForaPeloCargo(vivenciasEscolhidas(dados.itens, escolhas), eu.role) : 0,
+      incluiTodasAsFotos: incluiTodasAsFotos(eu.role),
+    };
   }
 
   if (seg[0] === 'reports' && seg[2] === 'preview' && metodo === 'POST') {
