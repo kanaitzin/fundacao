@@ -138,6 +138,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 237, dia: '23/10/2026', aba: 'acolhidos',
+    texto: 'O relatório das vivências em Word: no álbum de vivências de cada criança, o botão Relatório das vivências em Word. Você escolhe o período, os tipos, quais vivências entram e se vai com as fotos, confere a folha e baixa. As fotos seguem o seu cargo: técnica, líderes, coordenação e gestão colocam todas; nos outros cargos, a foto sem autorização de imagem sai só com a legenda. E a Acolhe+AI entende quando você pede esse relatório.' },
   { fase: 236, dia: '23/10/2026', aba: 'periodo',
     texto: 'O relatório do período da casa ganhou gráficos no Word, as doses deste período e do anterior e os registros da casa, com o número escrito ao lado de cada barra, e o botão Baixar a planilha, que entrega os mesmos quadros para abrir no Excel. A planilha pede a finalidade e fica registrada como o Word.' },
   { fase: 235, dia: '23/10/2026', aba: 'acolhidos',

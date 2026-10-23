@@ -371,6 +371,14 @@ export function responderPeloGuia(texto: string, telas: TelaDoGuia[], primeira: 
     return { texto: `${aviso}O dia e a hora de visita de cada pessoa são o combinado da equipe técnica e ficam no contato dela, no perfil da criança, em Autorizar a visitar. A portaria só deixa entrar dentro do combinado, e a exceção é da coordenação, da técnica ou do líder do plantão, com o motivo.\n\n[Abrir os Acolhidos](tela:acolhidos)` };
   }
 
+  /* O relatório das vivências (fase 237, pedido de 23/10: "pedi um relatório da vivência
+     de uma aluna em Word e ela não soube fazer"). Vem antes da tela: "relatório" casaria
+     com o Período, e "vivência" com os Acolhidos. Ela diz o caminho, o que dá para escolher
+     e oferece abrir. */
+  if (/\b(relatorio|word|documento|resumo)\b/.test(t) && /\b(vivencias?|album|memorias?)\b/.test(t)) {
+    return { texto: `${aviso}Faço com você. O relatório das vivências fica no perfil da criança: aba Documentos, Dossiê, aba Vivências, botão Relatório das vivências em Word. Lá você escolhe o período, os tipos (aniversário, passeio, conquista...), tira as vivências que não quer e diz se vai com as fotos. Depois confere a folha e baixa o Word, escrevendo para que é. As fotos seguem o seu cargo: a técnica, os líderes, a coordenação e a gestão colocam todas, e nos outros cargos a foto sem autorização de imagem sai só com a legenda.${telas.some((x) => x.chave === 'acolhidos') ? '\n\n[Abrir os Acolhidos](tela:acolhidos)' : ''}` };
+  }
+
   /* Ler o texto de um papel (fase 234): a leitura é na prévia do documento, neste
      aparelho, e a pessoa confere antes. Vem antes da tela: "documento" casaria com os Acolhidos. */
   if (/\b(ler|leia|transcrever|transcreve|passar|tirar|copiar|extrair)\b.{0,30}\b(texto|escrito|letras)\b.{0,40}\b(papel|foto|documento|pdf|oficio|receita|guia|bilhete)\b|\bocr\b/.test(t)) {
