@@ -450,7 +450,7 @@ for (const conta of CONTAS) {
           await folha.locator('#at-relato').fill(relato);
           await pg.locator('#at-arq-arquivo').setInputFiles({ name: 'atividade.png', mimeType: 'image/png', buffer: png });
           await pg.waitForTimeout(700);
-          await folha.getByRole('button', { name: 'Pôr no atendimento' }).click();
+          /* Desde a 233 o arquivo escolhido já entra na lista da mensagem. */
           await folha.getByRole('button', { name: 'Registrar o atendimento' }).click();
           await pg.waitForTimeout(1800);
           const { rows } = await db.query(
