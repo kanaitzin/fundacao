@@ -201,7 +201,7 @@ describe('A Acolhe+AI', () => {
       { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: malicioso } },
       { type: 'text', text: 'o que diz este papel?' },
     ] }] });
-    expect(r.status).toBe(201);
+    expect(r.status).toBe(200);
     const enviado = recebidos.slice(antes).map((x) => x.corpo).find((c) => c?.messages);
     expect(enviado).toBeTruthy();
     const sistema = JSON.stringify(enviado.system);
