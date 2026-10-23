@@ -194,7 +194,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 23/10/2026, fase 236
+### Onde estamos — 23/10/2026, fase 238
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -294,8 +294,10 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 234 | **o texto do papel, lido no aparelho** (depois de conferir o andamento de outra IA, pedido de 22/10): *Ler o texto do papel* na prévia do dossiê e no Ver de cada anexo, com o Tesseract e o português no navegador (`ocr.ts`), conferido e corrigido pela pessoa; o texto conferido guardado com versão (`document_text`, people/1662) e a busca do dossiê; **com o protótipo aberto por dois cliques o trabalhador não carregava uma segunda peça**, e vai numa peça só |
 | 235 | **o cadastro corrigido pelo papel conferido**: a folha Corrigir o cadastro sugere nome, data, RG, CNS e filiação com o trecho do papel (`campos-do-papel.regra.ts`), a pessoa marca e corrige com o motivo; nada junta crianças, e nome muito diferente avisa |
 | 236 | **os gráficos no Word e a planilha do período**: o gráfico como dado da folha, impresso como quadro pintado (igual no servidor e no protótipo), e *Baixar a planilha* em CSV do Excel pelo mesmo registro com finalidade; **o LibreOffice espremia o rótulo** com a largura em porcentagem |
+| 237 | **o relatório das vivências em Word** (pedido de 23/10: *"pedi o relatório da vivência de uma aluna em Word pela IA e ela não soube fazer"*): no álbum, com as escolhas de período, tipos, quais vivências e fotos; as fotos conforme o cargo (técnica, líderes, coordenação e gestão incluem todas; nos outros cargos, a sem autorização de imagem sai como legenda); a regra em `vivencias-folha.ts`, a mesma no servidor e no protótipo; a Acolhe+AI entende o pedido |
+| 238 | **o banco de palavras da casa** (pedido de 23/10): a gíria gaúcha, as siglas da rede e os outros nomes das coisas da casa (`assistente/palavras-da-casa.ts`), lidos pelo modo próprio da Acolhe+AI e pelo guia do modelo; *a pia da cozinha* não vira *piá* (`menosQuando`); e *janta* saiu, porque abria a Cozinha no meio de um relato |
 
-**Medido no fim da 236:** 202 migrações, 142 tabelas, 155 suítes, 1359 testes, verdes nas
+**Medido no fim da 238:** 202 migrações, 142 tabelas, 155 suítes, 1363 testes, verdes nas
 DUAS condições de relógio, rodadas inteiras (a única reprovação das duas era esta linha, ainda com os números da 232);
 nas 233 a 236, o `ensaio:uso` (730 cobranças, sem reprovação, com os blocos dos anexos da mensagem, do texto do papel
 lido no protótipo aberto por dois cliques, do cadastro pelo papel e dos gráficos e da planilha), o do celular (320
@@ -401,6 +403,15 @@ posto em ordem no **PARA-A-REUNIAO §0**: as cinco perguntas que mais destravam,
 responder, os documentos de papel e os dados a receber, o que o DPO vê, o que se assina e as 30
 decisões de produto abertas. **Quando a resposta vier, ela entra lá e no §10 ou §11 do documento**, e
 o item respondido sai do §0.
+
+**FEITO — fases 237 e 238** (§2): o relatório das vivências em Word e o banco de palavras da casa.
+**Decisões de 23/10 desta pessoa da Fundação:** as fotos do relatório conforme o cargo, e **a IA só no
+computador do Pão, sem custo e sem limite por pessoa** (troca a escolha de 08/10 pelo Claude). **Palavra
+nova** entra no `palavras-da-casa.ts`, com teste; palavra comum em relato (como *janta*) não entra.
+**FALTA — fase 239:** a Acolhe+AI ligada a um modelo aberto no computador do Pão pelo Ollama (o padrão
+de conversa da OpenAI), com fila em vez de limite por pessoa, teste com modelo de mentira e o passo a
+passo da instalação no §12.12. Nesta sessão, um filtro automático interrompeu a escrita desse arquivo
+várias vezes; comece por ele numa sessão nova. **Próxima etapa:** a 239.
 
 **FEITO — fases 234, 235 e 236** (§2, PARA-A-REUNIAO §4.33, comparação em
 `docs/historico/comparacao-com-o-andamento-de-outra-ia-22-10.md`): o que a outra IA tinha e nós não, e

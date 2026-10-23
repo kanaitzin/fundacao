@@ -146,7 +146,7 @@ vale hoje.
 26. O protótipo com a leitura do papel embutida pesa 7,6 MB: fica assim, ou a leitura fica só no sistema instalado? (fica embutida; §4.33)
 27. A planilha também nos outros relatórios (cozinha, remédios, visitas), com o DPO? (só no período da casa; §4.33)
 28. A árvore da família entre gerações, com irmãos em outras casas e retornos? (não existe; com o DPO; §4.33)
-29. A IA num computador do Pão (modelo local), em vez do Claude pela chave institucional? (a decisão de 08/10 continua; §4.33)
+29. A IA num computador do Pão (modelo local), em vez do Claude pela chave institucional? (**respondido em 23/10: só o computador do Pão, sem custo e sem limite por pessoa**; o código é a fase 239; falta a máquina com placa de vídeo; §4.33)
 30. Prazo de guarda das fotos e documentos, e o depósito e as finanças da casa no sistema? (nada se apaga; não existem; §4.33)
 
 ### O que já foi respondido e este documento ainda perguntava
@@ -201,7 +201,7 @@ contando o conceito escolar (fase 137). Nada disso volta à mesa.
   196 também dentro do perfil da criança (*quero registrar a alergia do Bruno*), do dossiê, da
   internação aberta e do acervo: os 36 formulários do sistema. **Para o DPO:**
   o ditado usa o reconhecimento do navegador; no Chrome, o áudio vai ao Google.
-- **236 fases.** 155 suítes e 1359 testes, verdes em duas condições de relógio —
+- **238 fases.** 155 suítes e 1363 testes, verdes em duas condições de relógio —
   antes e depois da virada do UTC, que em Porto Alegre é às 21h.
 - **O aviso no celular** (fase 189, decidido em 06/10): quem liga na Minha conta
   recebe no celular todos os avisos do sino, mesmo com o sistema fechado. Na
