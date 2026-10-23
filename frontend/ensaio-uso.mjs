@@ -4743,6 +4743,40 @@ console.log('\n📊 Os gráficos e a planilha do período da casa (fase 236)');
   await pgP.close();
 }
 
+/* O RELATÓRIO DAS VIVÊNCIAS EM WORD (fase 237): o álbum da Alice vira folha e Word. */
+console.log('\n📒 O relatório das vivências em Word (fase 237)');
+{
+  const pgV = await navegador.newPage({ viewport: { width: 1280, height: 900 }, acceptDownloads: true });
+  const errosV = [];
+  pgV.on('pageerror', (e) => errosV.push(e.message));
+  const esp = (ms = 800) => pgV.waitForTimeout(ms);
+  await pgV.goto(`file://${ARQUIVO}`); await esp(700);
+  await pgV.getByRole('button', { name: 'Marcelo Barbosa', exact: true }).click();
+  await pgV.getByRole('button', { name: /Entrar no sistema/i }).click(); await esp(1200);
+  cargoAtual = 'coordenador';
+  await pgV.locator('select.troca-cargo-sel').selectOption('coordenador'); await esp(900);
+  await pgV.getByRole('button', { name: /^Acolhidos/ }).filter({ visible: true }).first().click(); await esp(900);
+  await pgV.locator('.pessoa-cartao').filter({ hasText: 'Alice' }).first().click(); await esp(1200);
+  await pgV.getByRole('tab', { name: /Documentos/ }).click(); await esp(700);
+  await pgV.getByRole('button', { name: /Dossiê: documentos e vivências/ }).click(); await esp(1200);
+  await pgV.getByRole('tab', { name: /Vivências/ }).click(); await esp(800);
+  await pgV.getByRole('button', { name: /Relatório das vivências em Word/ }).click(); await esp(600);
+  const lista = await pgV.getByRole('list', { name: 'Vivências do relatório' }).innerText().catch(() => '');
+  cobrar('a folha das escolhas lista as vivências da criança', lista.trim().length > 0, lista.slice(0, 120));
+  await pgV.getByRole('button', { name: 'Ver a folha' }).click(); await esp(900);
+  const papel = await pgV.locator('.overlay').last().innerText().catch(() => '');
+  cobrar('a folha do relatório abre com o título e a criança', /Relatório das vivências/i.test(papel) && /Alice/.test(papel), papel.slice(0, 160));
+  await pgV.getByRole('button', { name: 'Baixar em Word' }).click(); await esp(400);
+  await pgV.locator('.overlay textarea').last().fill('Reunião do PIA da criança com a equipe');
+  const [arquivo] = await Promise.all([
+    pgV.waitForEvent('download', { timeout: 15000 }).catch(() => null),
+    pgV.getByRole('button', { name: 'Gerar o documento' }).click(),
+  ]);
+  cobrar('o Word do relatório das vivências é baixado', !!arquivo && /\.docx$/.test(arquivo.suggestedFilename()), arquivo?.suggestedFilename());
+  cobrar('nenhuma exceção no relatório das vivências', errosV.length === 0, errosV[0]);
+  await pgV.close();
+}
+
 await navegador.close();
 console.log(achados.length
   ? `\n${achados.length} ACHADO(S):\n  ${achados.join('\n  ')}`
