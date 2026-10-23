@@ -138,6 +138,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 239, dia: '23/10/2026',
+    texto: 'A Acolhe+AI pode funcionar num computador da própria Fundação, sem custo por pergunta e sem limite por pessoa. Quando muita gente pergunta ao mesmo tempo, as perguntas esperam a vez. Para quem usa, a conversa é a mesma de sempre.' },
   { fase: 238, dia: '23/10/2026',
     texto: 'A Acolhe+AI entende o jeito de falar do plantão: piá, guria, piripaque, pelando, se mandou, deu um piti, saíram no tapa, livro do plantão, e as siglas da rede (CT, CRAS, CREAS, CAPS, UBS, MP). Ela continua respondendo no português de sempre.' },
   { fase: 237, dia: '23/10/2026', aba: 'acolhidos',

@@ -194,7 +194,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 23/10/2026, fase 238
+### Onde estamos — 23/10/2026, fase 239
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -296,6 +296,7 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 236 | **os gráficos no Word e a planilha do período**: o gráfico como dado da folha, impresso como quadro pintado (igual no servidor e no protótipo), e *Baixar a planilha* em CSV do Excel pelo mesmo registro com finalidade; **o LibreOffice espremia o rótulo** com a largura em porcentagem |
 | 237 | **o relatório das vivências em Word** (pedido de 23/10: *"pedi o relatório da vivência de uma aluna em Word pela IA e ela não soube fazer"*): no álbum, com as escolhas de período, tipos, quais vivências e fotos; as fotos conforme o cargo (técnica, líderes, coordenação e gestão incluem todas; nos outros cargos, a sem autorização de imagem sai como legenda); a regra em `vivencias-folha.ts`, a mesma no servidor e no protótipo; a Acolhe+AI entende o pedido |
 | 238 | **o banco de palavras da casa** (pedido de 23/10): a gíria gaúcha, as siglas da rede e os outros nomes das coisas da casa (`assistente/palavras-da-casa.ts`), lidos pelo modo próprio da Acolhe+AI e pelo guia do modelo; *a pia da cozinha* não vira *piá* (`menosQuando`); e *janta* saiu, porque abria a Cozinha no meio de um relato |
+| 239 | **a Acolhe+AI no computador do Pão**, sem custo e sem limite por pessoa: `ACOLHE_AI_MOTOR=local` conversa com um modelo aberto pelo padrão do Ollama (`assistente/motor-local.ts`), com fila no lugar do limite e a janela curta anotada na auditoria; sem a variável, segue o Claude |
 
 **Medido no fim da 238:** 202 migrações, 142 tabelas, 156 suítes, 1378 testes; nas 237 e 238, a suíte inteira
 verde (1363 de 1363, depois de consertar as três conferências que o relatório das vivências deixou soltas) e o
@@ -411,10 +412,7 @@ o item respondido sai do §0.
 **Decisões de 23/10 desta pessoa da Fundação:** as fotos do relatório conforme o cargo, e **a IA só no
 computador do Pão, sem custo e sem limite por pessoa** (troca a escolha de 08/10 pelo Claude). **Palavra
 nova** entra no `palavras-da-casa.ts`, com teste; palavra comum em relato (como *janta*) não entra.
-**FALTA — fase 239:** a Acolhe+AI ligada a um modelo aberto no computador do Pão pelo Ollama (o padrão
-de conversa da OpenAI), com fila em vez de limite por pessoa, teste com modelo de mentira e o passo a
-passo da instalação no §12.12. Nesta sessão, um filtro automático interrompeu a escrita desse arquivo
-várias vezes; comece por ele numa sessão nova. **Próxima etapa:** a 239.
+**FEITO — fase 239** (§2): o código e a suíte da Acolhe+AI no computador do Pão. **FALTA da 239:** o passo a passo da instalação no §12.12, o `.env.example` e o `instalar.sh` (a escrita foi interrompida por um filtro automático em duas sessões; comece por ela numa sessão nova), e a suíte inteira nas duas condições de relógio. **Depende da Fundação e da TI:** qual computador e qual modelo (português, ferramentas e, para foto, visão). **Não medido daqui:** um modelo de verdade. **Quem mexer no motor local:** a tela não muda; a tradução mora no `motor-local.ts` e a suíte `a-acolhe-ai-no-computador-do-pao` cobra os dois sentidos. **Próxima etapa:** o que falta da 239.
 
 **FEITO — fases 234, 235 e 236** (§2, PARA-A-REUNIAO §4.33, comparação em
 `docs/historico/comparacao-com-o-andamento-de-outra-ia-22-10.md`): o que a outra IA tinha e nós não, e
