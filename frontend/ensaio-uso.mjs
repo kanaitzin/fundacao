@@ -4322,7 +4322,7 @@ console.log('\n🖍️ O atendimento da equipe técnica, com o desenho (fase 218
   await folha.locator('#at-relato').fill('Atividade de leitura com jogo de palavras; a folha da atividade vai anexada.');
   const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
   await pgT.locator('#at-arq-arquivo').setInputFiles({ name: 'atividade.png', mimeType: 'image/png', buffer: png }); await esp(700);
-  await folha.getByRole('button', { name: 'Pôr no atendimento' }).click(); await esp(300);
+  /* Desde a 233 o arquivo escolhido já entra na lista da mensagem, sem o Pôr no atendimento. */
   await folha.getByRole('textbox', { name: 'O que é atividade.png' }).fill('A folha da atividade');
   await folha.getByRole('button', { name: 'Registrar o atendimento' }).click(); await esp(1200);
   const depois = await bloco.innerText();

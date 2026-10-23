@@ -313,7 +313,7 @@ function useFotosDaAcolhe(): Escolhido[] {
  * cada foto chega por `onEscolher`, e quem chama guarda a lista e a mostra.
  */
 export function EscolherAnexo({ arquivo, onEscolher, aceita = 'application/pdf,image/jpeg,image/png',
-                                maximoMb = 10, pergunta, id, multiplos = false, iniciarNaCamera, restam }: {
+                                maximoMb = 10, pergunta, id, multiplos = false, iniciarNaCamera, restam, onFicaramDeFora }: {
   arquivo: Escolhido | null;
   onEscolher: (a: Escolhido | null) => void;
   aceita?: string;
@@ -329,6 +329,8 @@ export function EscolherAnexo({ arquivo, onEscolher, aceita = 'application/pdf,i
    * junto, e a galeria não passa do que cabe.
    */
   restam?: number;
+  /* Quem fica de fora é dito por quem continua na tela: com a mensagem cheia, este seletor sai. */
+  onFicaramDeFora?: (frase: string) => void;
 }) {
   const [erro, setErro] = useState('');
   const [origem, setOrigem] = useState<'camera' | 'sistema' | 'documento' | 'arquivo' | null>(null);
@@ -484,8 +486,9 @@ export function EscolherAnexo({ arquivo, onEscolher, aceita = 'application/pdf,i
     const cabem = daMensagem ? Math.max(0, restam!) : multiplos ? 20 : 1;
     for (const f of todos.slice(0, cabem)) await receber(f, 'arquivo');
     if (daMensagem && todos.length > cabem) {
-      setErro(`Cabem mais ${cabem} ${cabem === 1 ? 'anexo' : 'anexos'} nesta mensagem. `
-        + `${todos.length - cabem} ${todos.length - cabem === 1 ? 'ficou' : 'ficaram'} de fora: mande numa mensagem seguinte.`);
+      const frase = `Cabem mais ${cabem} ${cabem === 1 ? 'anexo' : 'anexos'} nesta mensagem. `
+        + `${todos.length - cabem} ${todos.length - cabem === 1 ? 'ficou' : 'ficaram'} de fora: mande numa mensagem seguinte.`;
+      if (onFicaramDeFora) onFicaramDeFora(frase); else setErro(frase);
     }
   }
 }
@@ -518,6 +521,11 @@ export function AnexosDaMensagem({ anexos, onMudar, id, aceita = 'application/pd
   rotulo?: string;
 }) {
   const [vendo, setVendo] = useState<number | null>(null);
+  /* A frase de quem ficou de fora mora aqui, e não no seletor: quando a escolha enche
+     a mensagem, o seletor sai da tela e levaria a frase junto. */
+  const [deFora, setDeFora] = useState<string | null>(null);
+  /* Mensagem enviada (a lista volta vazia): a frase era daquela mensagem. */
+  useEffect(() => { if (anexos.length === 0) setDeFora(null); }, [anexos.length]);
   /* A lista corrente num ref: a câmera e a galeria entregam vários seguidos,
      e cada um tem de entrar depois do anterior, não por cima dele. */
   const atual = useRef(anexos);
@@ -564,10 +572,11 @@ export function AnexosDaMensagem({ anexos, onMudar, id, aceita = 'application/pd
         </ul>
       )}
       {recusa && <div className="notice c-crit" role="alert">{recusa}</div>}
+      {deFora && <div className="notice c-warn" role="alert">{deFora}</div>}
       {restam > 0 ? (
         <EscolherAnexo id={id} arquivo={null} multiplos restam={restam} aceita={aceita}
-                       iniciarNaCamera={iniciarNaCamera}
-                       onEscolher={(a) => { if (a) { atual.current = [...atual.current, a]; onMudar(atual.current); } }} />
+                       iniciarNaCamera={iniciarNaCamera} onFicaramDeFora={setDeFora}
+                       onEscolher={(a) => { if (a) { setDeFora(null); atual.current = [...atual.current, a]; onMudar(atual.current); } }} />
       ) : (
         <p className="mutetxt" style={{ margin: 0 }}>
           Esta mensagem já tem {maximo} anexos. O que faltar vai numa mensagem seguinte.
