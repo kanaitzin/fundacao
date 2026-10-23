@@ -24,8 +24,13 @@ export class FilaCheia extends Error {
 export class FilaDoModelo {
   private rodando = 0;
   private readonly esperando: (() => void)[] = [];
+  private readonly simultaneas: number;
+  private readonly maxEsperando: number;
 
-  constructor(private readonly simultaneas: number, private readonly maxEsperando: number) {}
+  constructor(simultaneas: number, maxEsperando: number) {
+    this.simultaneas = simultaneas;
+    this.maxEsperando = maxEsperando;
+  }
 
   get ocupadas() { return this.rodando; }
   get naFila() { return this.esperando.length; }
@@ -193,8 +198,13 @@ export function daRespostaAberta(json: unknown, nomes: readonly string[]): Respo
 
 /** Quando a máquina do Pão não respondeu, com a razão em poucas palavras para o log. */
 export class MotorLocalFalhou extends Error {
-  constructor(readonly motivo: 'sem_conexao' | 'demorou' | 'recusou' | 'resposta_ilegivel', readonly status?: number) {
+  readonly motivo: 'sem_conexao' | 'demorou' | 'recusou' | 'resposta_ilegivel';
+  readonly status?: number;
+
+  constructor(motivo: MotorLocalFalhou['motivo'], status?: number) {
     super(motivo); this.name = 'MotorLocalFalhou';
+    this.motivo = motivo;
+    this.status = status;
   }
 }
 
