@@ -51,7 +51,11 @@ export interface SecaoDaFolha {
    * imagem — a tela mostra a legenda. PDF não entra como imagem: a legenda diz
    * que o arquivo está no sistema.
    */
-  imagens?: { legenda: string; foto: FotoNaCelula | null }[];
+  imagens?: {
+    legenda: string; foto: FotoNaCelula | null;
+    /** Por que a foto não está no papel (fase 237); sem ele, o papel diz que o arquivo está no registro. */
+    semFoto?: string;
+  }[];
   /**
    * Um gráfico de barras dos números da casa (fase 236). Sai no Word como quadro
    * de células pintadas, sem imagem: igual no servidor, no protótipo e no papel,

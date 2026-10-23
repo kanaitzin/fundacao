@@ -3,6 +3,12 @@ import {
 } from '@nestjs/common';
 import { createHash } from 'node:crypto';
 import { paginasDoPdf } from '../../kernel/documentos/paginas-do-pdf';
+import { cargoNoDocumento } from '../../kernel/documentos/folha';
+import { DocumentosService } from '../../kernel/documentos/documentos.service';
+import {
+  DadosDasVivencias, EscolhasDasVivencias, VivenciaDaFolha, folhaDasVivencias, fotoEntra, fotosForaPeloCargo,
+  incluiTodasAsFotos, vivenciasEscolhidas,
+} from './vivencias-folha';
 import { DatabaseService } from '../../kernel/database/database.service';
 import { AuditService } from '../../kernel/audit/audit.service';
 import { ArquivosService, RegraDoArquivo } from '../../kernel/arquivos/arquivos.service';
@@ -95,6 +101,7 @@ export class DossieService {
     @Inject(DatabaseService) private readonly db: DatabaseService,
     @Inject(AuditService) private readonly audit: AuditService,
     @Inject(ArquivosService) private readonly arquivos: ArquivosService,
+    @Inject(DocumentosService) private readonly documentos: DocumentosService,
   ) {}
 
   /** O vocabulário: a lista exigida, as categorias e os tipos de vivência. */
@@ -370,6 +377,94 @@ export class DossieService {
         + 'Avise a coordenação.');
     }
     return { nome: v.file_name, tipo: v.mime, conteudo: bytes.toString('base64') };
+  }
+
+  // ------------------------------------------------------------------
+  // O relatório das vivências em Word (fase 237)
+  // ------------------------------------------------------------------
+
+  /**
+   * As vivências da criança como a folha as quer, lidas com a identidade de quem
+   * pede (o álbum que ela vê é o que vai para o papel). Os bytes das fotos só são
+   * lidos para gerar o arquivo, e só das fotos que entram pelo cargo.
+   */
+  private async dadosDasVivencias(user: AuthenticatedUser, personId: string, comBytes: boolean,
+                                  escolhas: EscolhasDasVivencias): Promise<DadosDasVivencias> {
+    const lido = await this.db.asUser(user.id, async (c) => {
+      const { rows: [crianca] } = await c.query(
+        `SELECT coalesce(nullif(p.social_name, ''), p.full_name) AS nome,
+                (SELECT h.code || ' · ' || h.name FROM house_stay s JOIN house h ON h.id = s.house_id
+                  WHERE s.person_id = p.id ORDER BY (s.status = 'ativa') DESC, s.started_at DESC LIMIT 1) AS casa
+           FROM person p WHERE p.id = $1`, [personId]);
+      const { rows: itens } = await c.query(
+        `SELECT m.id, m.event_type, m.happened_on, m.description, app_user_display_name(m.created_by) AS por
+           FROM memory_record m WHERE m.person_id = $1`, [personId]);
+      const { rows: fotos } = await c.query(
+        `SELECT id, memory_id, storage_key, mime, photo_authorized
+           FROM memory_photo WHERE person_id = $1 ORDER BY memory_id, position, created_at`, [personId]);
+      return { crianca, itens, fotos };
+    });
+    if (!lido.crianca) throw new NotFoundException('Acolhido não encontrado, ou fora do seu alcance.');
+    const vivencias: VivenciaDaFolha[] = lido.itens.map((m: any) => ({
+      id: m.id, tipo: m.event_type, quando: String(m.happened_on).slice(0, 10), descricao: m.description,
+      registradoPor: m.por ?? null,
+      fotos: lido.fotos.filter((f: any) => f.memory_id === m.id)
+        .map((f: any) => ({ id: f.id, autorizada: f.photo_authorized === true, foto: null, chave: f.storage_key, mime: f.mime })),
+    }));
+    if (comBytes && escolhas.comFotos !== false) {
+      const entram = new Set(vivenciasEscolhidas(vivencias, escolhas).map((v) => v.id));
+      for (const v of vivencias) {
+        if (!entram.has(v.id)) continue;
+        for (const f of v.fotos as any[]) {
+          if (!fotoEntra(user.role, f.autorizada)) continue;
+          if (f.mime !== 'image/jpeg' && f.mime !== 'image/png') continue;
+          const bytes = await this.arquivos.ler(f.chave);
+          if (bytes) f.foto = { tipo: f.mime, dados: new Uint8Array(bytes) };
+        }
+      }
+    }
+    return {
+      crianca: { nome: lido.crianca.nome, casa: lido.crianca.casa ?? '' },
+      itens: vivencias,
+      rotulos: Object.fromEntries(TIPOS_DE_VIVENCIA.map((t) => [t.code, t.label])),
+    };
+  }
+
+  private escolhas(body: any): EscolhasDasVivencias {
+    const lista = (x: unknown) => (Array.isArray(x) ? x.filter((y) => typeof y === 'string').slice(0, 500) : null);
+    for (const d of [body?.de, body?.ate]) {
+      if (d != null && d !== '' && !/^\d{4}-\d{2}-\d{2}$/.test(String(d))) {
+        throw new BadRequestException('A data do período não é uma data.');
+      }
+    }
+    if (body?.de && body?.ate && String(body.de) > String(body.ate)) {
+      throw new BadRequestException('A data inicial vem depois da final.');
+    }
+    return { de: body?.de || null, ate: body?.ate || null, tipos: lista(body?.tipos), ids: lista(body?.ids),
+             comFotos: body?.comFotos !== false };
+  }
+
+  /** A folha para ver antes de baixar, e quantas fotos ficam de fora pelo cargo. */
+  async folhaDasVivencias(user: AuthenticatedUser, personId: string, body: any) {
+    const e = this.escolhas(body);
+    const d = await this.dadosDasVivencias(user, personId, false, e);
+    const escolhidas = vivenciasEscolhidas(d.itens, e);
+    return {
+      folha: folhaDasVivencias(d, e, user.role, { nome: user.fullName, cargo: cargoNoDocumento(user.role) }),
+      fotosForaPeloCargo: e.comFotos === false ? 0 : fotosForaPeloCargo(escolhidas, user.role),
+      incluiTodasAsFotos: incluiTodasAsFotos(user.role),
+    };
+  }
+
+  /** O Word, com a finalidade e o registro de quem baixou (§18.4). */
+  async exportarVivencias(user: AuthenticatedUser, personId: string, body: any) {
+    const e = this.escolhas(body);
+    const casa = await this.audit.casaDoAcolhido(user.id, personId);
+    const d = await this.dadosDasVivencias(user, personId, true, e);
+    const folha = folhaDasVivencias(d, e, user.role, { nome: user.fullName, cargo: cargoNoDocumento(user.role) });
+    return this.documentos.exportar(user, folha, {
+      entidade: 'vivencias', entidadeId: personId, houseId: casa, finalidade: body?.finalidade ?? '',
+    });
   }
 
   // ------------------------------------------------------------------

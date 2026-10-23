@@ -640,6 +640,20 @@ export class PeopleController {
   }
 
   @RegistroDaRota('id', 'person')
+  /** O relatório das vivências: a folha para ver, com as escolhas de quem pede (fase 237). */
+  @Post(':id/memories/folha')
+  folhaDasVivencias(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
+                    @Body(CorpoConferido) body: any) {
+    return this.dossie.folhaDasVivencias(user, id, body ?? {});
+  }
+
+  /** O mesmo relatório em Word, com a finalidade e o registro (fase 237). */
+  @Post(':id/memories/export')
+  exportarVivencias(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
+                    @Body(CorpoConferido) body: any) {
+    return this.dossie.exportarVivencias(user, id, body ?? {});
+  }
+
   @Get(':id/memories/:memId/file')
   fotoDaVivencia(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
                  @Param('memId', ParseUUIDPipe) memId: string) {

@@ -274,7 +274,7 @@ function corpoDoDocumento(d: DocumentoWord): string {
     if (s.tabela) partes.push(tabela(s.tabela.cabecalho, s.tabela.linhas));
     if (s.grafico?.barras.length) partes.push(grafico(s.grafico.barras));
     for (const im of s.imagens ?? []) {
-      partes.push(par(`${im.legenda}. Documento disponível no registro eletrônico.`, {
+      partes.push(par(im.semFoto ? `${im.legenda}. ${im.semFoto}.` : `${im.legenda}. Documento disponível no registro eletrônico.`, {
         italico: true, tamanho: MENOR, alinhamento: 'left', espacoDepois: 80 }));
     }
 

@@ -444,6 +444,7 @@ export class DocumentosService {
       saida.push(new Paragraph({
         spacing: { after: 200 },
         children: [new TextRun({ text: medida ? im.legenda
+          : im.semFoto ? `${im.legenda}. ${im.semFoto}.`
           : `${im.legenda}. Documento em PDF ou outro formato, disponível no registro eletrônico.`,
           size: 18, italics: true })],
       }));

@@ -295,7 +295,7 @@ export function PapelDoDocumento({ doc }: { doc: DocumentoWord }) {
           )}
           {(s.imagens ?? []).map((im, i) => (
             /* Na tela, a legenda: a imagem entra no arquivo em Word. */
-            <p className="papel-fonte" key={`im${i}`}><i>{im.legenda}.</i></p>
+            <p className="papel-fonte" key={`im${i}`}><i>{im.legenda}.{im.semFoto ? ` ${im.semFoto}.` : ''}</i></p>
           ))}
           {s.procedencia && <p className="papel-fonte">Procedência: {s.procedencia}</p>}
         </div>
