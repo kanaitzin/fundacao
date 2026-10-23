@@ -592,6 +592,10 @@ export function AnexosDaMensagem({ anexos, onMudar, id, aceita = 'application/pd
                 ? <ol className="previa-paginas">{vista.paginas.map((p, k) => <li key={k}><img src={p} alt={`Página ${k + 1}`} /></li>)}</ol>
                 : <iframe src={vista.dataUrl} title={vista.nome} className="previa-quadro" />}
             <p className="mutetxt">{vista.nome} · {tamanhoLegivel(vista.tamanho)}</p>
+            {/* O texto do papel, para copiar para a mensagem (fase 234). */}
+            {(vista.dataUrl.startsWith('data:image') || vista.paginas?.length) && (
+              <LerTextoDoPapel key={vendo} paginas={async () => vista.paginas?.length ? vista.paginas : [vista.dataUrl]} />
+            )}
             <button className="btn sec block" onClick={() => setVendo(null)}>Fechar</button>
           </div>
         </div>
@@ -604,3 +608,115 @@ export function AnexosDaMensagem({ anexos, onMudar, id, aceita = 'application/pd
 export const paraEnviar = (lista: Escolhido[]) =>
   lista.map((a) => ({ conteudo: base64De(a.dataUrl), nomeArquivo: a.nome }));
 
+
+/* ====================================================================== */
+
+/**
+ * LER O TEXTO DO PAPEL (fase 234).
+ *
+ * A leitura roda neste aparelho (`ocr.ts`, importado só quando alguém toca no
+ * botão) e erra letra e número: o texto aparece embaixo da imagem, numa caixa
+ * que a pessoa corrige, e só sai dali por um botão dela (copiar, guardar como
+ * texto conferido ou levar ao campo). Nada é guardado sem esse toque.
+ */
+export function LerTextoDoPapel({ paginas, guardado, onGuardar, onUsar, rotuloUsar = 'Pôr no campo' }: {
+  /** As páginas como imagem; chamada só no toque, porque pode pedir ao servidor. */
+  paginas: () => Promise<string[]>;
+  guardado?: { texto: string; por?: string; em?: string; versao?: number } | null;
+  onGuardar?: (texto: string, origem: 'leitura_no_aparelho' | 'digitado') => Promise<void>;
+  onUsar?: (texto: string) => void;
+  rotuloUsar?: string;
+}) {
+  const [estado, setEstado] = useState<'parado' | 'lendo' | 'pronto'>(guardado ? 'pronto' : 'parado');
+  const [texto, setTexto] = useState(guardado?.texto ?? '');
+  const [lido, setLido] = useState(false);
+  const [andamento, setAndamento] = useState('');
+  const [erro, setErro] = useState('');
+  const [recado, setRecado] = useState('');
+  const [guardando, setGuardando] = useState(false);
+  const mudou = texto.trim() !== (guardado?.texto ?? '').trim();
+
+  async function ler() {
+    setErro(''); setRecado(''); setEstado('lendo'); setAndamento('Preparando a leitura…');
+    try {
+      const imagens = await paginas();
+      if (!imagens.length) throw new Error('Este arquivo não tem página para ler.');
+      const { lerOTexto } = await import('./ocr');
+      const t = await lerOTexto(imagens, (a) => setAndamento(
+        `Lendo ${a.total > 1 ? `a página ${a.pagina} de ${a.total}` : 'o papel'}… ${Math.round(a.fracao * 100)}%`));
+      setTexto(t); setLido(true); setEstado('pronto');
+      if (!t) setRecado('A leitura não achou texto. Se o papel tem texto, tire outra foto com mais luz, ou digite.');
+    } catch (e) {
+      setEstado(guardado ? 'pronto' : 'parado');
+      setErro(e instanceof Error ? e.message : 'A leitura não deu certo. Tente outra foto, ou digite o texto.');
+    }
+  }
+
+  async function copiar() {
+    try { await navigator.clipboard.writeText(texto); setRecado('Texto copiado.'); }
+    catch { setRecado('Não deu para copiar daqui: selecione o texto na caixa e copie.'); }
+  }
+
+  return (
+    <section className="stack ler-texto" aria-label="Texto do papel">
+      {estado === 'parado' && (
+        <div className="row" style={{ alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <button type="button" className="btn sec" onClick={() => void ler()}>
+            <Icone nome="documento" /> Ler o texto do papel
+          </button>
+          <small className="mutetxt">A leitura acontece neste aparelho, e nada sai dele.</small>
+        </div>
+      )}
+      {estado === 'lendo' && <p className="mutetxt" role="status" aria-live="polite">{andamento}</p>}
+      {estado === 'pronto' && (
+        <>
+          {guardado && !lido && (
+            <small className="mutetxt">
+              Texto conferido{guardado.por ? ` por ${guardado.por}` : ''}{guardado.em ? ` em ${new Date(guardado.em).toLocaleDateString('pt-BR')}` : ''}
+              {guardado.versao && guardado.versao > 1 ? ` (versão ${guardado.versao})` : ''}.
+            </small>
+          )}
+          <label className="f" htmlFor="ler-texto-caixa">
+            {lido ? 'O texto lido, para conferir com o papel' : 'O texto do papel'}
+          </label>
+          {lido && (
+            <p className="mutetxt" style={{ margin: 0 }}>
+              Confira com o papel antes de usar: a leitura erra letra, número e data.
+            </p>
+          )}
+          <textarea id="ler-texto-caixa" rows={8} value={texto} data-sem-ditado
+                    onChange={(e) => setTexto(e.target.value)} />
+          <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+            <button type="button" className="btn sm sec" disabled={!texto.trim()} onClick={() => void copiar()}>
+              Copiar o texto
+            </button>
+            {onUsar && (
+              <button type="button" className="btn sm sec" disabled={!texto.trim()} onClick={() => onUsar(texto.trim())}>
+                {rotuloUsar}
+              </button>
+            )}
+            {!lido && (
+              <button type="button" className="btn sm ghost" onClick={() => void ler()}>Ler de novo</button>
+            )}
+            {onGuardar && (
+              <button type="button" className="btn sm" disabled={!texto.trim() || !mudou || guardando}
+                      onClick={async () => {
+                        setErro(''); setRecado(''); setGuardando(true);
+                        try {
+                          await onGuardar(texto.trim(), lido ? 'leitura_no_aparelho' : 'digitado');
+                          setRecado('Texto conferido guardado, com o seu nome e o horário.');
+                        } catch (e) {
+                          setErro(e instanceof Error ? e.message : 'Não foi possível guardar o texto.');
+                        } finally { setGuardando(false); }
+                      }}>
+                {guardado ? 'Guardar a correção' : 'Guardar o texto conferido'}
+              </button>
+            )}
+          </div>
+        </>
+      )}
+      {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+      {recado && <p className="mutetxt" role="status">{recado}</p>}
+    </section>
+  );
+}

@@ -30,6 +30,8 @@
 import { Test } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
+import { PASSOS_DA_BARRA, passosDaBarra, planilhaDaFolha } from '../src/kernel/documentos/folha';
+import JSZip from 'jszip';
 import { Client } from 'pg';
 import { AppModule } from '../src/app.module';
 
@@ -228,6 +230,61 @@ describe('O período da casa', () => {
         ORDER BY at DESC LIMIT 1`);
     expect(rows).toHaveLength(1);
     expect(rows[0].purpose).toBe(FINALIDADE);
+  });
+
+  /* Fase 236: os números da casa em gráfico no Word, e os mesmos quadros em planilha. */
+  it('o Word leva os gráficos da casa como quadro pintado, com o número de cada barra', async () => {
+    const r = await request(http).post('/api/v1/reports/period/export')
+      .set(auth(tokens.coord)).send({ houseId: ids.AI3, finalidade: FINALIDADE });
+    expect(r.status).toBe(201);
+    const xml = await (await JSZip.loadAsync(Buffer.from(r.body.conteudoBase64, 'base64')))
+      .file('word/document.xml')!.async('string');
+    expect(xml).toContain('Doses previstas, neste período e no anterior');
+    expect(xml).toContain('Registros da casa no período');
+    expect((xml.match(/w:fill="1F3864"/g) ?? []).length).toBeGreaterThan(0);
+  });
+
+  it('a planilha sai pelo mesmo registro, com finalidade, em CSV do Excel', async () => {
+    const curta = await request(http).post('/api/v1/reports/period/export')
+      .set(auth(tokens.coord)).send({ houseId: ids.AI3, finalidade: 'curta', formato: 'csv' });
+    expect(curta.status).toBe(400);
+    const r = await request(http).post('/api/v1/reports/period/export')
+      .set(auth(tokens.coord)).send({ houseId: ids.AI3, finalidade: FINALIDADE, formato: 'csv' });
+    expect(r.status).toBe(201);
+    expect(r.body.nomeArquivo).toMatch(/\.csv$/);
+    const csv = Buffer.from(r.body.conteudoBase64, 'base64').toString('utf8');
+    expect(csv.charCodeAt(0)).toBe(0xFEFF);
+    expect(csv).toContain('Síntese do período');
+    expect(csv).toMatch(/Conquistas;\d+/);
+    const { rows } = await admin.query(
+      `SELECT purpose, detail FROM audit_event
+        WHERE action = 'documento.export' AND entity = 'periodo' ORDER BY at DESC LIMIT 1`);
+    expect(rows[0].purpose).toBe(FINALIDADE);
+    expect(rows[0].detail.formato).toBe('csv');
+    /* O educador não abre o período, nem em planilha. */
+    const negado = await request(http).post('/api/v1/reports/period/export')
+      .set(auth(tokens.educador)).send({ houseId: ids.AI3, finalidade: FINALIDADE, formato: 'csv' });
+    expect(negado.status).toBeGreaterThanOrEqual(403);
+  });
+});
+
+describe('A planilha da folha (fase 236)', () => {
+  it('não deixa célula virar fórmula, e põe aspas onde precisa', () => {
+    const csv = planilhaDaFolha({
+      titulo: 'Teste', identificacao: [], secoes: [
+        { titulo: 'Quadro', tabela: { cabecalho: ['A', 'B'], linhas: [['=1+1', 'tem; ponto e vírgula'], ['@x', 'aspas "aqui"']] } },
+        { titulo: 'Gráfico', grafico: { barras: [{ rotulo: 'Visitas', valor: 3 }] } },
+      ],
+    } as any);
+    expect(csv).toContain("'=1+1;\"tem; ponto e vírgula\"");
+    expect(csv).toContain("'@x;\"aspas \"\"aqui\"\"\"");
+    expect(csv).toContain('Visitas;3');
+  });
+  it('a barra pinta proporcional ao maior, e valor acima de zero pinta ao menos um passo', () => {
+    expect(passosDaBarra(10, 10)).toBe(PASSOS_DA_BARRA);
+    expect(passosDaBarra(5, 10)).toBe(10);
+    expect(passosDaBarra(1, 1000)).toBe(1);
+    expect(passosDaBarra(0, 10)).toBe(0);
   });
 });
 

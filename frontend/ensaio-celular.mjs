@@ -63,6 +63,9 @@ async function medir(pg) {
     const visivel = (e) => {
       const s = getComputedStyle(e);
       if (s.visibility === 'hidden' || s.display === 'none' || Number(s.opacity) === 0) return false;
+      /* O campo de arquivo escondido (aria-hidden, fora do Tab) não é alvo de ninguém:
+         quem o aciona é o botão com nome ao lado (fase 233, os anexos da linha da ATA). */
+      if (e.closest('[aria-hidden="true"]') && e.tabIndex < 0) return false;
       const b = e.getBoundingClientRect();
       return b.width > 0 && b.height > 0;
     };

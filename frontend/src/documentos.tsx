@@ -21,6 +21,7 @@
  */
 import { useState } from 'react';
 import { nomeDeArquivo } from './docx';
+import { PASSOS_DA_BARRA, passosDaBarra } from '../../backend/src/kernel/documentos/folha';
 import type { DocumentoWord } from './docx';
 
 /** O que a rota de exportação devolve. */
@@ -98,7 +99,7 @@ function FolhaFinalidade({ titulo, onFechar, onConfirmar }: {
  * A folha na tela: papel, e não formulário. Quem abre precisa reconhecer o
  * documento que vai sair da impressora.
  */
-export function FolhaDocumento({ doc, onFechar, onBaixar, exportar }: {
+export function FolhaDocumento({ doc, onFechar, onBaixar, exportar, exportarPlanilha }: {
   doc: DocumentoWord; onFechar: () => void;
   /**
    * QUEM CHAMA A ROTA É A TELA, e não esta folha.
@@ -122,8 +123,10 @@ export function FolhaDocumento({ doc, onFechar, onBaixar, exportar }: {
    * sistema?" seis meses depois.
    */
   onBaixar?: () => void;
+  /** A planilha dos mesmos quadros e gráficos (fase 236), pelo mesmo registro com finalidade. */
+  exportarPlanilha?: (finalidade: string) => Promise<ArquivoGerado>;
 }) {
-  const [pedindo, setPedindo] = useState(false);
+  const [pedindo, setPedindo] = useState<false | 'word' | 'planilha'>(false);
   const [ocupado, setOcupado] = useState(false);
   const [erro, setErro] = useState('');
   const [aviso, setAviso] = useState('');
@@ -148,8 +151,13 @@ export function FolhaDocumento({ doc, onFechar, onBaixar, exportar }: {
           <button className="btn sec grow" onClick={onFechar}>Fechar</button>
           {(onBaixar || exportar) && (
             <button className="btn grow" disabled={ocupado}
-                    onClick={() => (onBaixar ? onBaixar() : setPedindo(true))}>
+                    onClick={() => (onBaixar ? onBaixar() : setPedindo('word'))}>
               {ocupado ? 'Gerando…' : 'Baixar em Word'}
+            </button>
+          )}
+          {exportarPlanilha && (
+            <button className="btn sec grow" disabled={ocupado} onClick={() => setPedindo('planilha')}>
+              Baixar a planilha
             </button>
           )}
         </div>
@@ -157,15 +165,17 @@ export function FolhaDocumento({ doc, onFechar, onBaixar, exportar }: {
         {aviso && <div className="notice c-ok" role="status">{aviso}</div>}
       </div>
 
-      {pedindo && exportar && (
+      {pedindo && (pedindo === 'planilha' ? exportarPlanilha : exportar) && (
         <FolhaFinalidade
           titulo={doc.titulo}
           onFechar={() => setPedindo(false)}
           onConfirmar={async (finalidade) => {
+            const qual = pedindo;
             setPedindo(false); setOcupado(true); setErro(''); setAviso('');
             try {
-              const r = await exportar(finalidade);
-              entregarArquivo(r.nomeArquivo, r.conteudoBase64);
+              const r = await (qual === 'planilha' ? exportarPlanilha! : exportar!)(finalidade);
+              if (qual === 'planilha') baixarArquivo(r.nomeArquivo, 'text/csv', r.conteudoBase64);
+              else entregarArquivo(r.nomeArquivo, r.conteudoBase64);
               setAviso(r.aviso);
             } catch (e) {
               setErro(e instanceof Error ? e.message : 'Não foi possível gerar o documento.');
@@ -259,6 +269,23 @@ export function PapelDoDocumento({ doc }: { doc: DocumentoWord }) {
                 </tbody>
               </table>
             </div>
+          )}
+          {s.grafico && s.grafico.barras.length > 0 && (
+            /* O gráfico (fase 236): a mesma conta de passos do Word, e o número ao lado. */
+            <ul className="papel-grafico" aria-label={`Gráfico: ${s.titulo}`}>
+              {s.grafico.barras.map((b, i) => {
+                const maximo = Math.max(...s.grafico!.barras.map((x) => x.valor), 0);
+                return (
+                  <li key={i}>
+                    <span className="rotulo">{b.rotulo}</span>
+                    <span className="barra" aria-hidden="true">
+                      <span style={{ width: `${(passosDaBarra(b.valor, maximo) / PASSOS_DA_BARRA) * 100}%` }} />
+                    </span>
+                    <b className="valor">{b.valor}</b>
+                  </li>
+                );
+              })}
+            </ul>
           )}
           {s.aPreencher && (
             <>

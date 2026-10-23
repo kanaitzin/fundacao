@@ -4,11 +4,13 @@ import { join } from 'node:path';
 import {
   Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType,
   Header, Footer, ImageRun, PageNumber, PageOrientation, BorderStyle, Table, TableRow, TableCell,
-    WidthType, PageBreak, LineRuleType,
+    WidthType, PageBreak, LineRuleType, TableLayoutType,
 } from 'docx';
 import { AuditService } from '../audit/audit.service';
 import { AuthenticatedUser } from '../contracts';
-import { Folha, SecaoDaFolha, diaBR, nomeDoArquivo } from './folha';
+import {
+  Folha, PASSOS_DA_BARRA, SecaoDaFolha, diaBR, nomeDaPlanilha, nomeDoArquivo, passosDaBarra, planilhaDaFolha,
+} from './folha';
 
 /**
  * A FOLHA VIRANDO ARQUIVO — no servidor, e não no navegador.
@@ -31,6 +33,13 @@ import { Folha, SecaoDaFolha, diaBR, nomeDoArquivo } from './folha';
  */
 
 const AZUL = '1F3864';
+/* As células do gráfico sem linha: a barra é a cor, e a grade por cima a picotaria. */
+const SEM_BORDA = {
+  top: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' },
+  bottom: { style: BorderStyle.SINGLE, size: 6, color: 'FFFFFF' },
+  left: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' },
+  right: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' },
+};
 const CINZA = '595959';
 
 /*
@@ -96,6 +105,30 @@ export class DocumentosService {
           + 'Exportação registrada com o seu nome, a finalidade e o horário.'
         : 'Documento gerado em Word, com timbre. Exportação registrada com o seu nome, '
           + 'a finalidade e o horário. Converta para PDF na hora de enviar.',
+    };
+  }
+
+  /**
+   * A planilha da mesma folha (fase 236), com o mesmo registro do Word: quem, para
+   * quê e quando. Leva os quadros e os gráficos, em CSV do Excel em português.
+   */
+  async exportarPlanilha(user: AuthenticatedUser, folha: Folha, ctx: {
+    entidade: string; entidadeId?: string; houseId?: string | null; finalidade: string;
+  }): Promise<{ nomeArquivo: string; conteudoBase64: string; tipo: string; aviso: string }> {
+    const finalidade = (ctx.finalidade ?? '').trim();
+    if (finalidade.length < 10) {
+      throw new BadRequestException('Descreva a finalidade da exportação (mínimo 10 caracteres).');
+    }
+    await this.audit.log({
+      action: 'documento.export', actorId: user.id, institutionId: user.institutionId,
+      houseId: ctx.houseId ?? null, entity: ctx.entidade, entityId: ctx.entidadeId, purpose: finalidade,
+      detail: { titulo: folha.titulo, secoes: folha.secoes.length, formato: 'csv' },
+    });
+    return {
+      nomeArquivo: nomeDaPlanilha(folha.titulo),
+      conteudoBase64: Buffer.from(planilhaDaFolha(folha), 'utf8').toString('base64'),
+      tipo: 'text/csv',
+      aviso: 'Planilha gerada, para abrir no Excel. Exportação registrada com o seu nome, a finalidade e o horário.',
     };
   }
 
@@ -354,6 +387,43 @@ export class DocumentosService {
             }),
           })),
         ],
+      }));
+      saida.push(new Paragraph({ text: '', spacing: { after: 120 } }));
+    }
+
+    /* O GRÁFICO (fase 236): um quadro de células pintadas, com o rótulo à esquerda e
+       o número à direita. Sem imagem: sai nítido em qualquer impressora, e o número
+       escrito é o que vale; a barra só ajuda a ver. */
+    if (s.grafico?.barras.length) {
+      const maximo = Math.max(...s.grafico.barras.map((b) => b.valor), 0);
+      /* Largura fixa, em vinte avos de ponto: em porcentagem o LibreOffice espremia o
+         rótulo numa coluna de três letras (achado na 236, abrindo o Word). Cabe na
+         página em pé (16 cm) e sobra na deitada. */
+      const ROTULO = 3100, PASSO = 250, VALOR = 970;
+      const vazia = (largura: number, fill?: string) => new TableCell({
+        width: { size: largura, type: WidthType.DXA },
+        shading: fill ? { fill } : undefined,
+        borders: SEM_BORDA,
+        children: [new Paragraph({ children: [new TextRun({ text: '', size: 14 })] })],
+      });
+      saida.push(new Table({
+        width: { size: ROTULO + PASSO * PASSOS_DA_BARRA + VALOR, type: WidthType.DXA },
+        layout: TableLayoutType.FIXED,
+        columnWidths: [ROTULO, ...Array.from({ length: PASSOS_DA_BARRA }, () => PASSO), VALOR],
+        rows: s.grafico.barras.map((b) => {
+          const pintados = passosDaBarra(b.valor, maximo);
+          return new TableRow({
+            cantSplit: true,
+            children: [
+              new TableCell({ width: { size: ROTULO, type: WidthType.DXA }, borders: SEM_BORDA,
+                children: [new Paragraph({ children: [new TextRun({ text: b.rotulo, size: 18 })] })] }),
+              ...Array.from({ length: PASSOS_DA_BARRA }, (_, k) => vazia(PASSO, k < pintados ? AZUL : undefined)),
+              new TableCell({ width: { size: VALOR, type: WidthType.DXA }, borders: SEM_BORDA,
+                children: [new Paragraph({ alignment: AlignmentType.RIGHT,
+                  children: [new TextRun({ text: String(b.valor), size: 18, bold: true })] })] }),
+            ],
+          });
+        }),
       }));
       saida.push(new Paragraph({ text: '', spacing: { after: 120 } }));
     }

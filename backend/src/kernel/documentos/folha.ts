@@ -52,6 +52,13 @@ export interface SecaoDaFolha {
    * que o arquivo está no sistema.
    */
   imagens?: { legenda: string; foto: FotoNaCelula | null }[];
+  /**
+   * Um gráfico de barras dos números da casa (fase 236). Sai no Word como quadro
+   * de células pintadas, sem imagem: igual no servidor, no protótipo e no papel,
+   * e com o número escrito ao lado de cada barra. Nunca põe criança contra
+   * criança nem pessoa contra pessoa: é a casa, no período.
+   */
+  grafico?: { barras: { rotulo: string; valor: number }[] };
   /** Começa em página nova: a seção de anexos do relatório da internação. */
   quebraAntes?: boolean;
   /** Campo que só uma pessoa preenche: sai com a marca e o espaço em branco. */
@@ -160,3 +167,44 @@ export const CARGO_NO_DOCUMENTO: Record<string, string> = {
 
 /** O código cru só aparece quando o cargo é desconhecido — e aí ele é a pista. */
 export const cargoNoDocumento = (code: string): string => CARGO_NO_DOCUMENTO[code] ?? code;
+
+
+/** As barras do gráfico no papel: vinte passos, cada um uma célula pintada (fase 236). */
+export const PASSOS_DA_BARRA = 20;
+
+/** Quantos passos esta barra pinta: o maior valor pinta todos, e valor acima de zero pinta ao menos um. */
+export function passosDaBarra(valor: number, maximo: number): number {
+  if (!(valor > 0) || !(maximo > 0)) return 0;
+  return Math.max(1, Math.round((valor / maximo) * PASSOS_DA_BARRA));
+}
+
+/**
+ * A planilha de uma folha (fase 236): cada quadro da folha, com o título da seção
+ * em cima, em CSV do Excel em português (ponto e vírgula, aspas quando precisa e a
+ * marca do UTF-8 no começo, para o acento abrir certo). Os gráficos entram como
+ * quadro de rótulo e número. Sem fórmula: célula que começa com =, +, - ou @ ganha
+ * um apóstrofo, para o Excel não executar nada.
+ */
+export function planilhaDaFolha(f: Folha): string {
+  const celula = (v: string | number) => {
+    let t = String(v ?? '');
+    if (/^[=+\-@]/.test(t)) t = `'${t}`;
+    return /[;"\n\r]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
+  };
+  const linha = (l: (string | number)[]) => l.map(celula).join(';');
+  const saida: string[] = [linha([f.titulo]), ...(f.subtitulo ? [linha([f.subtitulo])] : [])];
+  for (const i of f.identificacao) saida.push(linha([i.rotulo, i.valor]));
+  for (const s of f.secoes) {
+    if (s.tabela?.linhas.length) {
+      saida.push('', linha([s.titulo]), linha(s.tabela.cabecalho), ...s.tabela.linhas.map(linha));
+    }
+    if (s.grafico?.barras.length) {
+      saida.push('', linha([s.titulo]), ...s.grafico.barras.map((b) => linha([b.rotulo, b.valor])));
+    }
+  }
+  if (f.ressalva) saida.push('', linha([f.ressalva]));
+  return `\uFEFF${saida.join('\r\n')}\r\n`;
+}
+
+/** O nome da planilha: o mesmo do documento, com a extensão dela. */
+export const nomeDaPlanilha = (titulo: string) => nomeDoArquivo(titulo).replace(/\.docx$/, '.csv');

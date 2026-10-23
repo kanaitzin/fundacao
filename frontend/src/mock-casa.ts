@@ -37,7 +37,7 @@ import { avaliar, avaliarArquivo, avaliarDrive, TITULOS } from '../../backend/sr
 import { QUEM_LE_O_QUE_MUDOU } from '../../backend/src/modules/reports/o-que-mudou.regra';
 import { bytesDoBase64, recusaDosAnexos } from '../../backend/src/kernel/arquivos/anexos-da-mensagem.regra';
 import { TIPOS_OFFLINE, TIPOS_OFFLINE_KINDS } from '../../backend/src/modules/sync/tipos-offline';
-import { cargoNoDocumento, nomeDoArquivo as nomeDaFolha }
+import { cargoNoDocumento, nomeDoArquivo as nomeDaFolha, nomeDaPlanilha, planilhaDaFolha }
   from '../../backend/src/kernel/documentos/folha';
 import { folhaDaAta } from '../../backend/src/modules/shifts/ata-folha';
 import { folhaDaOcorrencia } from '../../backend/src/modules/incidents/ocorrencia-folha';
@@ -4145,6 +4145,8 @@ interface DocumentoMock {
   arquivo: { nome: string; tipo: string; tamanho: number; sha256: string };
   /** O registro de saúde a que o laudo ou a receita responde (fase 217). */
   condicaoId?: string | null; restricaoId?: string | null;
+  /** O texto conferido do papel, todas as versões; a última vale (fase 234). */
+  textos?: { texto: string; versao: number; origem: string; por: string; em: string }[];
 }
 interface FotoMock {
   id: string; nome: string; tipo: string; conteudo: string; autorizacaoRegistrada: boolean;
@@ -4290,6 +4292,8 @@ function semearAtendimentos() {
   }
 }
 const DOSSIE_DOCS: DocumentoMock[] = [];
+/** Quem guarda o texto conferido: quem pode anexar ao perfil (`app_can_edit_profile`/`_health`). */
+const GUARDA_TEXTO_DO_DOCUMENTO = ['enfermagem', 'equipe_tecnica', 'coordenador', 'gestor_geral'];
 /** O laudo e a receita de um registro de saúde, na forma do perfil (fase 217). */
 function docsDoRegistro(campo: 'condicaoId' | 'restricaoId', id: string) {
   semearDossie();
@@ -5354,7 +5358,19 @@ function responderPeriodo(
   }
   if (rota === '/reports/period/export' && metodo === 'POST') {
     const f = folhaDoPeriodoMock();
-    return f instanceof Recusa ? f : exportarFolha(f);
+    if (f instanceof Recusa) return f;
+    /* A planilha dos mesmos números (fase 236), com a mesma finalidade exigida. */
+    if (b.formato === 'csv') {
+      if (String(b.finalidade ?? '').trim().length < 10) {
+        return new Recusa(400, 'Descreva a finalidade da exportação (mínimo 10 caracteres).');
+      }
+      const texto = planilhaDaFolha(f);
+      const bytes = new TextEncoder().encode(texto);
+      let bin = ''; bytes.forEach((x) => { bin += String.fromCharCode(x); });
+      return { nomeArquivo: nomeDaPlanilha(f.titulo), conteudoBase64: btoa(bin), tipo: 'text/csv',
+        aviso: 'Planilha gerada, para abrir no Excel. Exportação registrada com o seu nome, a finalidade e o horário.' };
+    }
+    return exportarFolha(f);
   }
 
   return undefined;
@@ -7664,7 +7680,8 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
   }
   if (seg[0] === 'people' && seg[2] === 'dossie' && metodo === 'GET') {
     semearDossie();
-    const meus = DOSSIE_DOCS.filter((d) => d.personId === seg[1]);
+    const meus = DOSSIE_DOCS.filter((d) => d.personId === seg[1])
+      .map(({ textos, ...d }) => ({ ...d, texto: textos?.length ? textos[textos.length - 1] : null }));
     const podeJudicial = VE_JUDICIAL.includes(eu.role);
     const categorias = CATEGORIAS_DOSSIE
       .filter((c) => !c.restrita || podeJudicial)
@@ -7740,6 +7757,30 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     const [cab, dados] = d.conteudo.split(',');
     return { nome: d.arquivo.nome, tipo: (cab.match(/data:([^;]+)/) ?? [])[1] ?? 'image/jpeg',
              conteudo: dados ?? '' };
+  }
+  /* O TEXTO CONFERIDO DO PAPEL (fase 234): quem pode anexar guarda; corrigir acrescenta versão. */
+  if (seg[0] === 'people' && seg[2] === 'documents' && seg[4] === 'texto' && metodo === 'POST') {
+    const d = DOSSIE_DOCS.find((x) => x.id === seg[3] && x.personId === seg[1]);
+    if (!d) return new Recusa(404, 'Documento não encontrado.');
+    if (!GUARDA_TEXTO_DO_DOCUMENTO.includes(eu.role)) {
+      return new Recusa(403, 'Quem guarda o texto do documento é quem pode anexar documento ao perfil.');
+    }
+    const texto = typeof b.texto === 'string' ? b.texto.trim() : '';
+    if (!texto) return new Recusa(400, 'Escreva ou confira o texto antes de guardar.');
+    if (texto.length > 20000) return new Recusa(400, 'O texto passa de 20 mil letras. Guarde só a parte que importa.');
+    d.textos ??= [];
+    const versao = d.textos.length + 1;
+    d.textos.push({ texto, versao, origem: b.origem === 'digitado' ? 'digitado' : 'leitura_no_aparelho',
+      por: eu.fullName, em: new Date().toISOString() });
+    return { ok: true, versao };
+  }
+  /* As páginas para ler: a foto volta como veio. O PDF é desenhado pelo servidor
+     instalado; o servidor de mentira não tem quem desenhe. */
+  if (seg[0] === 'people' && seg[2] === 'documents' && seg[4] === 'paginas' && metodo === 'GET') {
+    const d = DOSSIE_DOCS.find((x) => x.id === seg[3]);
+    if (!d) return new Recusa(404, 'Documento não encontrado.');
+    if (d.conteudo.startsWith('data:image')) return { paginas: [d.conteudo], total: 1 };
+    return new Recusa(400, 'Neste protótipo a leitura do PDF fica para o sistema instalado. Com foto, ela lê aqui.');
   }
   if (seg[0] === 'people' && seg[2] === 'documents' && seg[4] === 'file' && metodo === 'GET') {
     const d = DOSSIE_DOCS.find((x) => x.id === seg[3]);

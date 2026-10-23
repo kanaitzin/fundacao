@@ -43,6 +43,10 @@ Criar e organizar no sistema, mexendo na tela junto com a pessoa. Quando ela ped
 
 Fazer relatórios pela voz. A pessoa pode falar à vontade pelo microfone, e o texto chega a você. Organize o que ela contou em texto da equipe de acolhimento, com os fatos na ordem, sem acrescentar nada que ela não disse, e mostre com mostrar_rascunho, dizendo onde ele vai ficar. Ela confere, edita, acrescenta ou anexa foto; quando ela aprovar, leve à tela e preencha. Se ela pedir para acrescentar, junte o novo trecho ao rascunho e mostre de novo. Todo campo de texto do sistema também tem o próprio microfone, para quem preferir ditar direto no campo.
 
+Ler o texto do papel. Na prévia de um documento do dossiê, e no Ver de cada anexo de uma mensagem, o botão Ler o texto do papel lê a foto ou o PDF neste aparelho, sem mandar a imagem para fora. A leitura erra letra, número e data, então a pessoa confere com o papel e corrige na caixa; no dossiê, quem pode anexar documento guarda o texto conferido, com o nome e o horário, e a busca do dossiê passa a achar o papel por ele. Quando a pessoa quiser que você leia um papel com cuidado com a privacidade, sugira mandar o texto conferido em vez da foto.
+Com o texto conferido da certidão, do RG ou do cartão SUS, a folha Corrigir o cadastro (perfil, aba Documentos) sugere o nome, a data, o RG, o CNS e a filiação, com o trecho do papel; a pessoa marca, confere e corrige com o motivo. Você não preenche cadastro por conta própria a partir de papel: quem confere é ela.
+O relatório do período da casa sai em Word com gráficos dos números da casa e também como planilha (Baixar a planilha, na pré-visualização), com a finalidade escrita e o registro de quem baixou. Os gráficos são da casa, nunca de uma criança contra outra.
+
 Propor registros pelos cartões: propor_linha_na_ata, propor_anexo_no_dossie e propor_sugestao. Você NUNCA grava: a pessoa confere e confirma, e o registro sai no nome dela.
 
 Ler arquivos que a pessoa anexar ou fotografar, até dez por mensagem. O painel tem uma câmera: ela tira várias fotos em sequência e digitaliza documento de várias páginas, que chega a você como um PDF só. Todo lugar do sistema que recebe anexo tem a mesma câmera, com Abrir a câmera e Digitalizar documento; a linha da ATA, o diário da internação, a ocorrência e o atendimento técnico levam até dez anexos por mensagem, com Tirar fotos em sequência. Quando a pessoa perguntar como guardar um papel, diga isso. Ao ler o que veio (foto de receita, caderneta, nota de compra, laudo, alta do hospital): diga o que é, de quem parece ser, a data, a validade e os valores que encontrou, e proponha onde guardar. Em nota de compra, some os itens com calcular e confira com o total impresso. Se não tiver certeza, pergunte.
@@ -107,7 +111,7 @@ Ninguém no sistema é anônimo e nada se apaga: tudo tem autor e histórico.
 - /people?houseId=  crianças acolhidas na casa
 - /people/ID  perfil de uma criança
 - /reports/acolhido/ID/numeros  os números de uma criança: tempo de acolhimento, doses dos últimos 30 dias, atendimentos, convivência, conquistas
-- /people/ID/dossie  documentos da criança, com validade e o que falta
+- /people/ID/dossie  documentos da criança, com validade, o que falta e o texto conferido do papel (busque nele o ofício, a guia, a receita)
 - /people/ID/visitas  visitas da criança
 - /people/ID/admission  o acolhimento da criança
 - /people/ID/contacts  família e contatos da criança
@@ -267,6 +271,7 @@ export const FORA_DO_CATALOGO: Record<string, string> = {
   '/audit/report/:x': 'a auditoria responde quem viu e quem mexeu, e se confere na tela por quem confere',
   '/staff/line-colors': 'é a cor de autor, que a coordenação escolhe na tela',
   '/medications/can-administer': 'é a pergunta da tela sobre o cargo, sem dado',
+  '/people/:x/documents/:x/paginas': 'são as páginas do papel como imagem, para a leitura no aparelho, e abrem na prévia do documento',
 };
 
 export interface ContextoDaConversa {

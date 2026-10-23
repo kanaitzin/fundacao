@@ -178,6 +178,32 @@ export function folhaDoPeriodo(d: PeriodoDaCasa, autor: AutorDaFolha): Folha {
       + 'metas nem desempenho individual.',
   });
 
+  /* ---- 4. Os mesmos números em gráfico (fase 236) ---- */
+  secoes.push({
+    titulo: 'Doses previstas, neste período e no anterior',
+    grafico: { barras: [
+      { rotulo: `${diaBR(d.periodoAnterior.de)} a ${diaBR(d.periodoAnterior.ate)}`, valor: n.dosesAnterior },
+      { rotulo: `${diaBR(d.periodo.de)} a ${diaBR(d.periodo.ate)}`, valor: n.doses },
+    ] },
+    procedencia: 'Períodos de igual duração. A variação acompanha as prescrições em vigor e a '
+      + 'presença das crianças na casa.',
+  });
+  secoes.push({
+    titulo: 'Registros da casa no período',
+    grafico: { barras: [
+      { rotulo: 'Conquistas', valor: n.marcos },
+      { rotulo: 'Evoluções escolares', valor: n.evolucoesEducacionais },
+      { rotulo: 'Evoluções de saúde', valor: n.evolucoesDeSaude },
+      { rotulo: 'Registros de memória', valor: n.memorias },
+      { rotulo: 'Reuniões de equipe', valor: n.reunioes },
+      { rotulo: 'Idas para convivência familiar', valor: n.idasAFamilia },
+      { rotulo: 'Ocorrências', valor: n.ocorrencias },
+      { rotulo: 'Internações hospitalares', valor: n.internacoes },
+    ] },
+    procedencia: 'Contagem dos registros da casa no período, sem separar por criança nem por '
+      + 'profissional.',
+  });
+
   return {
     paisagem: true,
     titulo: 'Relatório do período da casa',

@@ -39,6 +39,9 @@ export default defineConfig(({ mode }) => ({
       // terão fila local criptografada (IndexedDB) nas próximas fases.
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        // A leitura do texto do papel (fase 234) desce só na primeira vez que alguém
+        // toca em Ler o texto, e não em toda instalação: 4 MB que nem todo aparelho usa.
+        globIgnores: ['**/ocr-*.js'],
         navigateFallback: '/index.html',
         // O aviso no celular (fase 189): o push e o toque no aviso.
         importScripts: ['sw-avisos.js'],

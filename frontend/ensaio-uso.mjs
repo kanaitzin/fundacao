@@ -4556,6 +4556,193 @@ console.log('\n📎 Até 10 anexos por mensagem (fase 233)');
   await pgM.close();
 }
 
+/*
+ * O TEXTO DO PAPEL (fase 234): a técnica anexa o bilhete da escola, a leitura no
+ * aparelho devolve o texto, ela corrige e guarda o texto conferido, e a busca do
+ * dossiê acha o bilhete pelo que está escrito nele. E no Ver do anexo da linha
+ * da ATA, o educador lê e copia, sem guardar.
+ */
+console.log('\n🔎 O texto do papel, lido no aparelho (fase 234)');
+{
+  const pgO = await navegador.newPage({ viewport: { width: 1280, height: 900 } });
+  const errosO = [];
+  pgO.on('pageerror', (e) => errosO.push(e.message));
+  const esp = (ms = 800) => pgO.waitForTimeout(ms);
+  const bilhete = Buffer.from(await pgO.evaluate(() => {
+    const c = document.createElement('canvas'); c.width = 1200; c.height = 420;
+    const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, 1200, 420);
+    g.fillStyle = '#111'; g.font = '46px Arial';
+    g.fillText('Escola Municipal Primavera', 60, 110);
+    g.fillText('Reunião de pais na sexta-feira, às 14h.', 60, 210);
+    g.fillText('Trazer o caderno de recados assinado.', 60, 310);
+    return c.toDataURL('image/png').split(',')[1];
+  }), 'base64');
+  await pgO.goto(`file://${ARQUIVO}`); await esp(700);
+  await pgO.getByRole('button', { name: 'Marcelo Barbosa', exact: true }).click();
+  await pgO.getByRole('button', { name: /Entrar no sistema/i }).click(); await esp(1200);
+  cargoAtual = 'equipe_tecnica';
+  await pgO.locator('select.troca-cargo-sel').selectOption('equipe_tecnica'); await esp(900);
+  await pgO.getByRole('button', { name: /^Acolhidos/ }).filter({ visible: true }).first().click(); await esp(900);
+  await pgO.locator('.pessoa-cartao').filter({ hasText: 'Alice' }).first().click(); await esp(1200);
+  await pgO.getByRole('tab', { name: /Documentos/ }).click(); await esp(700);
+  await pgO.getByRole('button', { name: /Dossiê: documentos e vivências/ }).click(); await esp(1200);
+  await pgO.locator('main.conteudo button', { hasText: 'Anexar' }).first().click(); await esp(500);
+  await pgO.locator('#anx-arq-arquivo').setInputFiles({ name: 'bilhete.png', mimeType: 'image/png', buffer: bilhete }); await esp(900);
+  await pgO.locator('#anx-tit').fill('Bilhete da escola sobre a reunião');
+  await pgO.locator('.overlay .rodape button').last().click(); await esp(1200);
+  const botaoDoDoc = pgO.getByRole('button', { name: /Conferir agora|Abrir/ });
+  await pgO.locator('main.conteudo div').filter({ hasText: 'bilhete.png', has: botaoDoDoc })
+    .last().locator(botaoDoDoc).first().click(); await esp(900);
+  await pgO.getByRole('button', { name: 'Ler o texto do papel' }).click();
+  await pgO.locator('#ler-texto-caixa').waitFor({ timeout: 120000 }).catch(() => undefined);
+  const lido = await pgO.locator('#ler-texto-caixa').inputValue().catch(() => '');
+  cobrar('a leitura no aparelho devolve o texto do papel, com acento', /Primavera/.test(lido) && /Reunião/.test(lido) && /caderno de recados/.test(lido), lido);
+  cobrar('e pede para conferir com o papel antes de usar', /Confira com o papel/.test(await pgO.locator('.ler-texto').innerText()));
+  await pgO.locator('#ler-texto-caixa').fill(`${lido}\nConferido com o papel.`);
+  await pgO.getByRole('button', { name: 'Guardar o texto conferido' }).click(); await esp(900);
+  cobrar('o texto conferido fica guardado, com o nome de quem conferiu',
+    /Texto conferido guardado/.test(await pgO.locator('.ler-texto').innerText()));
+  await pgO.locator('.overlay').getByRole('button', { name: /Fechar|Ainda não/ }).last().click(); await esp(600);
+  await pgO.locator('#dossie-procura').fill('caderno de recados'); await esp(400);
+  const achadosNaBusca = await pgO.getByRole('list', { name: 'Documentos achados' }).innerText().catch(() => '');
+  cobrar('a busca do dossiê acha o bilhete pelo que está escrito nele',
+    /Bilhete da escola sobre a reunião/.test(achadosNaBusca) && /caderno de recados/.test(achadosNaBusca), achadosNaBusca);
+  await pgO.locator('#dossie-procura').fill('palavra que não existe em papel nenhum'); await esp(300);
+  cobrar('e diz quando não acha', /Nenhum documento/.test(await pgO.locator('main.conteudo').innerText()));
+
+  /* O educador, no Ver do anexo da linha da ATA: lê e copia, sem guardar. */
+  cargoAtual = 'educador';
+  await pgO.locator('select.troca-cargo-sel').selectOption('educador'); await esp(900);
+  await pgO.getByRole('button', { name: /^ATA/ }).filter({ visible: true }).first().click(); await esp(1200);
+  await pgO.locator('#linha-anexos-arquivo').setInputFiles({ name: 'recado.png', mimeType: 'image/png', buffer: bilhete }); await esp(1200);
+  await pgO.locator('.anexo-cartao').first().getByRole('button', { name: 'Ver' }).click(); await esp(400);
+  await pgO.getByRole('button', { name: 'Ler o texto do papel' }).click();
+  await pgO.locator('#ler-texto-caixa').waitFor({ timeout: 120000 }).catch(() => undefined);
+  const daLinha = await pgO.locator('#ler-texto-caixa').inputValue().catch(() => '');
+  cobrar('no Ver do anexo da mensagem, o educador lê o texto e copia, sem guardar',
+    /Primavera/.test(daLinha) && await pgO.getByRole('button', { name: 'Copiar o texto' }).count() === 1
+    && await pgO.getByRole('button', { name: /Guardar o texto/ }).count() === 0, daLinha);
+  cobrar('nenhuma exceção na leitura do papel', errosO.length === 0, errosO[0]);
+  await pgO.close();
+}
+
+/*
+ * OS CAMPOS DO CADASTRO PELO PAPEL CONFERIDO (fase 235): a técnica anexa a
+ * certidão, lê, confere e guarda o texto; na folha Corrigir o cadastro, o papel
+ * sugere o nome, a data e a filiação com o trecho de onde saiu, e os marcados
+ * vão para os campos. Quem corrige continua sendo ela, com o motivo.
+ */
+console.log('\n🪪 Os campos do cadastro pelo papel conferido (fase 235)');
+{
+  const pgC = await navegador.newPage({ viewport: { width: 1280, height: 900 } });
+  const errosC = [];
+  pgC.on('pageerror', (e) => errosC.push(e.message));
+  const esp = (ms = 800) => pgC.waitForTimeout(ms);
+  const certidao = Buffer.from(await pgC.evaluate(() => {
+    const c = document.createElement('canvas'); c.width = 1200; c.height = 760;
+    const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, 1200, 760);
+    g.fillStyle = '#111'; g.font = '44px Arial';
+    ['CERTIDÃO DE NASCIMENTO', 'NOME', 'ALICE FICTÍCIA DOS SANTOS', 'DATA DE NASCIMENTO: 04/03/2016',
+     'FILIAÇÃO', 'MARIA FICTÍCIA DOS SANTOS', 'JOÃO FICTÍCIO DA SILVA']
+      .forEach((l, k) => g.fillText(l, 60, 90 + k * 95));
+    return c.toDataURL('image/png').split(',')[1];
+  }), 'base64');
+  await pgC.goto(`file://${ARQUIVO}`); await esp(700);
+  await pgC.getByRole('button', { name: 'Marcelo Barbosa', exact: true }).click();
+  await pgC.getByRole('button', { name: /Entrar no sistema/i }).click(); await esp(1200);
+  cargoAtual = 'equipe_tecnica';
+  await pgC.locator('select.troca-cargo-sel').selectOption('equipe_tecnica'); await esp(900);
+  await pgC.getByRole('button', { name: /^Acolhidos/ }).filter({ visible: true }).first().click(); await esp(900);
+  await pgC.locator('.pessoa-cartao').filter({ hasText: 'Alice' }).first().click(); await esp(1200);
+  await pgC.getByRole('tab', { name: /Documentos/ }).click(); await esp(700);
+  await pgC.getByRole('button', { name: /Dossiê: documentos e vivências/ }).click(); await esp(1200);
+  await pgC.locator('main.conteudo button', { hasText: 'Anexar' }).first().click(); await esp(500);
+  await pgC.locator('#anx-arq-arquivo').setInputFiles({ name: 'certidao-papel.png', mimeType: 'image/png', buffer: certidao }); await esp(900);
+  await pgC.locator('#anx-tit').fill('Certidão de nascimento');
+  await pgC.locator('.overlay .rodape button').last().click(); await esp(1200);
+  const botaoDoDoc = pgC.getByRole('button', { name: /Conferir agora|Abrir/ });
+  await pgC.locator('main.conteudo div').filter({ hasText: 'certidao-papel.png', has: botaoDoDoc })
+    .last().locator(botaoDoDoc).first().click(); await esp(900);
+  await pgC.getByRole('button', { name: 'Ler o texto do papel' }).click();
+  await pgC.locator('#ler-texto-caixa').waitFor({ timeout: 120000 }).catch(() => undefined);
+  await pgC.getByRole('button', { name: 'Guardar o texto conferido' }).click(); await esp(900);
+  await pgC.locator('.overlay').getByRole('button', { name: /Fechar|Ainda não/ }).last().click(); await esp(600);
+  await pgC.getByRole('button', { name: /Perfil/ }).first().click(); await esp(1000);
+  await pgC.getByRole('tab', { name: /Documentos/ }).click(); await esp(600);
+  await pgC.getByRole('button', { name: /Corrigir o cadastro/ }).click(); await esp(900);
+  const opcoes = await pgC.locator('#cor-papel option').allInnerTexts();
+  cobrar('a folha de corrigir oferece o papel com texto conferido', opcoes.some((o) => /Certidão de nascimento/.test(o)), opcoes.join(' | '));
+  const valor = await pgC.locator('#cor-papel option', { hasText: 'Certidão de nascimento' }).first().getAttribute('value');
+  await pgC.locator('#cor-papel').selectOption(valor ?? ''); await esp(400);
+  const sugere = await pgC.getByRole('list', { name: 'O que o papel sugere' }).innerText().catch(() => '');
+  cobrar('o papel sugere o nome, a data e a filiação, cada um com o trecho de onde saiu',
+    /Alice Fictícia dos Santos/.test(sugere) && /04\/03\/2016/.test(sugere) && /Maria Fictícia dos Santos/.test(sugere) && /no papel:/.test(sugere), sugere);
+  await pgC.getByRole('button', { name: 'Pôr os marcados nos campos' }).click(); await esp(300);
+  const campos = {
+    nome: await pgC.locator('#cor-nome').inputValue(), nasc: await pgC.locator('#cor-nasc').inputValue(),
+    fil: await pgC.locator('#cor-fil').inputValue(), mot: await pgC.locator('#cor-mot').inputValue(),
+  };
+  cobrar('os marcados vão para os campos da folha, e o motivo cita o papel',
+    campos.nome === 'Alice Fictícia dos Santos' && campos.nasc === '2016-03-04'
+    && /Maria Fictícia dos Santos\nJoão Fictício da Silva/.test(campos.fil) && /Certidão de nascimento/.test(campos.mot), JSON.stringify(campos));
+  cobrar('e nada é corrigido sem o botão de corrigir', await pgC.locator('.overlay h3', { hasText: 'Corrigir o cadastro' }).count() === 1);
+  cobrar('nenhuma exceção nos campos pelo papel', errosC.length === 0, errosC[0]);
+  await pgC.close();
+}
+
+/*
+ * OS GRÁFICOS E A PLANILHA DO PERÍODO (fase 236): a folha do período mostra os
+ * dois gráficos da casa, com o número ao lado; a planilha pede a finalidade e
+ * sai em CSV do Excel; e o Word leva o gráfico como quadro pintado.
+ */
+console.log('\n📊 Os gráficos e a planilha do período da casa (fase 236)');
+{
+  const pgP = await navegador.newPage({ viewport: { width: 1280, height: 900 }, acceptDownloads: true });
+  const errosP = [];
+  pgP.on('pageerror', (e) => errosP.push(e.message));
+  const esp = (ms = 800) => pgP.waitForTimeout(ms);
+  await pgP.goto(`file://${ARQUIVO}`); await esp(700);
+  await pgP.getByRole('button', { name: 'Marcelo Barbosa', exact: true }).click();
+  await pgP.getByRole('button', { name: /Entrar no sistema/i }).click(); await esp(1200);
+  cargoAtual = 'coordenador';
+  await pgP.locator('select.troca-cargo-sel').selectOption('coordenador'); await esp(900);
+  await pgP.getByRole('button', { name: /O período da casa/ }).filter({ visible: true }).first().click(); await esp(1500);
+  await pgP.getByRole('button', { name: /Ver a folha antes de baixar/ }).click(); await esp(1200);
+  const graficos = pgP.locator('.papel-grafico');
+  const textoG = (await graficos.allInnerTexts()).join(' | ');
+  cobrar('a folha do período traz os dois gráficos da casa, com o número de cada barra',
+    await graficos.count() === 2 && /Conquistas/.test(textoG) && /\d/.test(textoG), textoG.slice(0, 200));
+  cobrar('e as barras saem desenhadas', await pgP.locator('.papel-grafico .barra span').count() >= 2);
+  await pgP.getByRole('button', { name: 'Baixar a planilha' }).click(); await esp(400);
+  await pgP.locator('.overlay textarea').last().fill('Reunião de equipe para olhar o mês da casa');
+  const [arquivo] = await Promise.all([
+    pgP.waitForEvent('download', { timeout: 15000 }).catch(() => null),
+    pgP.getByRole('button', { name: 'Gerar o documento' }).click(),
+  ]);
+  let csv = '';
+  if (arquivo) { const caminho = await arquivo.path(); csv = caminho ? (await import('node:fs')).readFileSync(caminho, 'utf8') : ''; }
+  cobrar('a planilha sai em CSV do Excel, com os quadros e os gráficos',
+    !!arquivo && /\.csv$/.test(arquivo.suggestedFilename()) && csv.charCodeAt(0) === 0xFEFF
+    && /Síntese do período/.test(csv) && /Registros da casa no período/.test(csv) && /Conquistas;\d+/.test(csv),
+    `${arquivo?.suggestedFilename()} ${csv.slice(0, 120)}`);
+  await esp(600);
+  await pgP.getByRole('button', { name: 'Baixar em Word' }).click(); await esp(400);
+  await pgP.locator('.overlay textarea').last().fill('Reunião de equipe para olhar o mês da casa');
+  const [word] = await Promise.all([
+    pgP.waitForEvent('download', { timeout: 15000 }).catch(() => null),
+    pgP.getByRole('button', { name: 'Gerar o documento' }).click(),
+  ]);
+  let xml = '';
+  if (word) {
+    const caminho = await word.path();
+    const { default: JSZip } = await import('jszip');
+    xml = caminho ? await (await JSZip.loadAsync((await import('node:fs')).readFileSync(caminho))).file('word/document.xml').async('string') : '';
+  }
+  cobrar('o Word leva o gráfico como quadro pintado, com o número', /w:fill="1F3864"/.test(xml) && /Registros da casa no período/i.test(xml));
+  cobrar('nenhuma exceção nos gráficos e na planilha', errosP.length === 0, errosP[0]);
+  await pgP.close();
+}
+
 await navegador.close();
 console.log(achados.length
   ? `\n${achados.length} ACHADO(S):\n  ${achados.join('\n  ')}`

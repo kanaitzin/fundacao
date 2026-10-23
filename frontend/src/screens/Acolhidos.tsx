@@ -12,6 +12,9 @@ import {
   AnexosDaMensagem, BotaoOlho, EscolherAnexo, Escolhido, FolhaArquivo, base64De,
 } from '../anexos';
 import { recusaDosAnexos } from '../../../backend/src/kernel/arquivos/anexos-da-mensagem.regra';
+import {
+  CampoDoPapel, ROTULO_DO_CAMPO, camposDoPapel, nomeDiferente,
+} from '../../../backend/src/modules/people/campos-do-papel.regra';
 import { dia, horaSemSegundos } from '../rotulos';
 import { Icone } from '../icones';
 import { Avatar, esquecerFoto } from '../avatar';
@@ -2446,6 +2449,15 @@ function FolhaCorrigir({ perfil, onFechar, onCorrigir }: {
   const [filiacao, setFiliacao] = useState(perfil.filiacao ?? '');
   const [motivo, setMotivo] = useState('');
   const pode = motivo.trim().length >= 10 && nome.trim().length >= 2 && nascimento !== '';
+  /* O que o papel conferido sugere (fase 235): só preenche os campos marcados; quem corrige é a pessoa. */
+  const preencher = (campos: Partial<Record<CampoDoPapel, string>>, papel: string) => {
+    if (campos.nome) setNome(campos.nome);
+    if (campos.nascimento) setNascimento(campos.nascimento);
+    if (campos.rg) setRg(campos.rg);
+    if (campos.cns) setCns(campos.cns);
+    if (campos.filiacao) setFiliacao(campos.filiacao);
+    setMotivo((m) => m.trim() ? m : `Conferido com o documento ${papel}, que está no dossiê.`);
+  };
 
   return (
     <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-cor"
@@ -2458,6 +2470,8 @@ function FolhaCorrigir({ perfil, onFechar, onCorrigir }: {
           ler sem perguntar a ninguém. Corrigir é sempre melhor do que recadastrar: recadastrar
           cria uma segunda criança e parte o histórico em dois.
         </div>
+
+        <SugestoesDoPapel personId={perfil.id} nomeAtual={perfil.nomeCivil ?? perfil.nome} onPreencher={preencher} />
 
         <label className="f" htmlFor="cor-nome">Nome civil</label>
         <input id="cor-nome" value={nome} onChange={(e) => setNome(e.target.value)} />
@@ -2504,6 +2518,83 @@ function FolhaCorrigir({ perfil, onFechar, onCorrigir }: {
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+/**
+ * O QUE O PAPEL CONFERIDO SUGERE (fase 235).
+ *
+ * Os documentos do dossiê com texto conferido (fase 234) sugerem o nome, a data,
+ * o RG, o CNS e a filiação, cada um com o trecho de onde saiu
+ * (`campos-do-papel.regra.ts`). A pessoa escolhe o papel, marca o que quer e os
+ * campos da folha se preenchem; corrigir continua sendo o botão dela, com o
+ * motivo. Nada junta duas crianças: a sugestão vale só para esta folha.
+ */
+function SugestoesDoPapel({ personId, nomeAtual, onPreencher }: {
+  personId: string; nomeAtual: string;
+  onPreencher: (campos: Partial<Record<CampoDoPapel, string>>, papel: string) => void;
+}) {
+  const [papeis, setPapeis] = useState<{ id: string; titulo: string; texto: string; por: string }[] | null>(null);
+  const [escolhido, setEscolhido] = useState('');
+  const [marcados, setMarcados] = useState<Set<CampoDoPapel>>(new Set());
+  const [feito, setFeito] = useState('');
+  useEffect(() => {
+    api<{ categorias: { itens: { documentos: any[] }[] }[]; avulsos: any[] }>(`/people/${personId}/dossie`)
+      .then((d) => {
+        const todos = [...d.categorias.flatMap((c) => c.itens.flatMap((i) => i.documentos)), ...d.avulsos]
+          .filter((x, k, l) => x.texto?.texto && l.findIndex((y) => y.id === x.id) === k);
+        setPapeis(todos.map((x) => ({ id: x.id, titulo: x.titulo, texto: x.texto.texto, por: x.texto.por })));
+      })
+      .catch(() => setPapeis([]));
+  }, [personId]);
+  if (!papeis?.length) return null;
+  const papel = papeis.find((x) => x.id === escolhido);
+  const sugestoes = papel ? camposDoPapel(papel.texto) : [];
+  const nomeDoPapel = sugestoes.find((x) => x.campo === 'nome')?.valor;
+  return (
+    <div className="card stack sugestoes-do-papel">
+      <label className="f" htmlFor="cor-papel">Preencher pelo papel conferido <small>(opcional)</small></label>
+      <select id="cor-papel" value={escolhido} onChange={(e) => {
+        const id = e.target.value; setEscolhido(id); setFeito('');
+        const p = papeis.find((x) => x.id === id);
+        setMarcados(new Set(p ? camposDoPapel(p.texto).map((x) => x.campo) : []));
+      }}>
+        <option value="">Escolha um documento do dossiê com texto conferido</option>
+        {papeis.map((x) => <option key={x.id} value={x.id}>{x.titulo} · conferido por {x.por}</option>)}
+      </select>
+      {papel && !sugestoes.length && (
+        <p className="mutetxt" role="status">Este papel não traz nome, data, RG, cartão SUS nem filiação que dê para sugerir.</p>
+      )}
+      {papel && nomeDoPapel && nomeDiferente(nomeAtual, nomeDoPapel) && (
+        <div className="notice c-warn" role="alert">
+          O nome deste papel é bem diferente do cadastro. Confira se o papel é desta criança antes de usar.
+        </div>
+      )}
+      {sugestoes.length > 0 && (
+        <>
+          <ul className="lista" aria-label="O que o papel sugere">
+            {sugestoes.map((x) => (
+              <li key={x.campo}>
+                <label className="row" style={{ gap: 8, alignItems: 'flex-start' }}>
+                  <input type="checkbox" checked={marcados.has(x.campo)} onChange={(e) => {
+                    const m = new Set(marcados); if (e.target.checked) m.add(x.campo); else m.delete(x.campo); setMarcados(m);
+                  }} />
+                  <span className="grow">
+                    <b>{ROTULO_DO_CAMPO[x.campo]}:</b> {x.campo === 'nascimento' ? dia(x.valor) : x.valor.split('\n').join(' · ')}
+                    <span className="mutetxt linhadois">no papel: {x.trecho}</span>
+                  </span>
+                </label>
+              </li>
+            ))}
+          </ul>
+          <button type="button" className="btn sm sec" disabled={!marcados.size} onClick={() => {
+            onPreencher(Object.fromEntries(sugestoes.filter((x) => marcados.has(x.campo)).map((x) => [x.campo, x.valor])), papel!.titulo);
+            setFeito('Os campos marcados foram preenchidos. Confira cada um antes de corrigir.');
+          }}>Pôr os marcados nos campos</button>
+          {feito && <p className="mutetxt" role="status">{feito}</p>}
+        </>
+      )}
     </div>
   );
 }

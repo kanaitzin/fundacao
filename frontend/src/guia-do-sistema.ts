@@ -138,6 +138,12 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 236, dia: '23/10/2026', aba: 'periodo',
+    texto: 'O relatório do período da casa ganhou gráficos no Word, as doses deste período e do anterior e os registros da casa, com o número escrito ao lado de cada barra, e o botão Baixar a planilha, que entrega os mesmos quadros para abrir no Excel. A planilha pede a finalidade e fica registrada como o Word.' },
+  { fase: 235, dia: '23/10/2026', aba: 'acolhidos',
+    texto: 'Corrigir o cadastro pelo papel: com o texto da certidão, do RG ou do cartão SUS conferido no dossiê, a folha Corrigir o cadastro sugere o nome, a data de nascimento, o RG, o cartão SUS e a filiação, cada um com o trecho de onde saiu. Você marca o que quer, os campos se preenchem, e a correção continua com o seu motivo. Se o nome do papel for bem diferente do cadastro, a folha avisa para conferir se o papel é desta criança.' },
+  { fase: 234, dia: '23/10/2026', aba: 'acolhidos',
+    texto: 'O texto do papel: na prévia de um documento do dossiê e no Ver de cada anexo, o botão Ler o texto do papel lê a foto ou o PDF neste aparelho, sem mandar a imagem para fora. Você confere com o papel e corrige; a técnica, a coordenação e a Enfermagem guardam o texto conferido, e a busca do dossiê acha o ofício, a guia ou a receita pelo que está escrito neles.' },
   { fase: 233, dia: '22/10/2026', aba: 'ata',
     texto: 'A linha da ATA, o diário da internação, a ocorrência, o atendimento técnico e a conversa com a Acolhe+AI levam até 10 fotos ou documentos por mensagem. A câmera tira várias fotos seguidas, como no WhatsApp, e cada uma aparece em miniatura, com Ver e Tirar, antes de enviar. E o Exportar dos benefícios, no Cofre, agora entrega o documento em Word.' },
   { fase: 232, dia: '20/10/2026', aba: 'acolhidos',

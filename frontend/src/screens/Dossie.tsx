@@ -3,7 +3,7 @@ import { api } from '../api';
 import { baixarArquivo } from '../documentos';
 import { dia } from '../rotulos';
 import { Icone } from '../icones';
-import { EscolherAnexo, miniaturaDe } from '../anexos';
+import { EscolherAnexo, LerTextoDoPapel, miniaturaDe } from '../anexos';
 import type { Escolhido } from '../anexos';
 import { Explica } from '../explica';
 
@@ -43,6 +43,8 @@ interface DocumentoDoDossie {
   aceitoEm: string | null; aceitoPor: string | null; notaDoAceite: string | null;
   versao: number | null;
   arquivo: { nome: string; tipo: string; tamanho: number; sha256: string } | null;
+  /** O texto conferido do papel (fase 234). */
+  texto?: { texto: string; versao: number; origem: string; por: string; em: string } | null;
 }
 interface ItemDoDossie {
   chave: string; label: string; categoria: string; titulo: string;
@@ -108,6 +110,8 @@ export function Dossie({ personId, nome, papel, onVoltar }: {
   const [conferindo, setConferindo] = useState<DocumentoDoDossie | null>(null);
   const [novaVivencia, setNovaVivencia] = useState(false);
   const [vendoFoto, setVendoFoto] = useState<Vivencia | null>(null);
+  /* A busca pelo título e pelo texto conferido do papel (fase 234). */
+  const [procura, setProcura] = useState('');
 
   async function carregar() {
     setErro('');
@@ -172,6 +176,9 @@ export function Dossie({ personId, nome, papel, onVoltar }: {
       {aba === 'dossie' && dossie && (
         <>
           <Explica className="notice c-info">{dossie.aviso}</Explica>
+
+          <ProcurarNosDocumentos dossie={dossie} procura={procura} onProcura={setProcura}
+                                 onAbrir={setConferindo} />
 
           {/* O que vence, antes de vencer. Uma pasta cheia que não avisa é uma
               pasta que só serve depois que o problema aconteceu. */}
@@ -373,6 +380,7 @@ export function Dossie({ personId, nome, papel, onVoltar }: {
         <FolhaConferencia
           personId={personId} documento={conferindo}
           onFechar={() => setConferindo(null)}
+          onTextoGuardado={() => void carregar()} papel={papel}
           onAceitar={async (nota) => {
             const ok = await acao(() => api(
               `/people/${personId}/documents/${conferindo.id}/accept`,
@@ -498,6 +506,56 @@ function FolhaAnexo({ item, catalogo, onFechar, onEnviar }: {
   );
 }
 
+/** Sem acento e sem maiúscula, para a busca achar *oficio* em *Ofício*. */
+const semAcento = (t: string) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
+/**
+ * PROCURAR NOS DOCUMENTOS (fase 234): pelo título e pelo texto conferido do
+ * papel. Acha o ofício que fala da audiência sem abrir um por um. Procura só no
+ * que esta pessoa já vê: a lista é a do dossiê que o servidor devolveu.
+ */
+function ProcurarNosDocumentos({ dossie, procura, onProcura, onAbrir }: {
+  dossie: Dossie; procura: string; onProcura: (t: string) => void;
+  onAbrir: (d: DocumentoDoDossie) => void;
+}) {
+  const todos = [
+    ...dossie.categorias.flatMap((c) => c.itens.flatMap((i) => i.documentos)),
+    ...dossie.avulsos,
+  ].filter((d, k, l) => l.findIndex((x) => x.id === d.id) === k);
+  const termo = semAcento(procura.trim());
+  const achados = termo.length < 2 ? [] : todos.filter((d) =>
+    semAcento(d.titulo).includes(termo) || semAcento(d.texto?.texto ?? '').includes(termo));
+  const trecho = (d: DocumentoDoDossie) => {
+    const t = d.texto?.texto ?? '';
+    const k = semAcento(t).indexOf(termo);
+    if (k < 0) return '';
+    const ini = Math.max(0, k - 40);
+    return `${ini > 0 ? '…' : ''}${t.slice(ini, k + termo.length + 60).replace(/\s+/g, ' ')}…`;
+  };
+  if (!todos.length) return null;
+  return (
+    <div className="card stack" style={{ marginTop: 12 }}>
+      <label className="f" htmlFor="dossie-procura">Procurar nos documentos</label>
+      <input id="dossie-procura" type="search" value={procura} onChange={(e) => onProcura(e.target.value)}
+             placeholder="Pelo título ou pelo texto conferido do papel" />
+      {termo.length >= 2 && (
+        achados.length ? (
+          <ul className="lista" aria-label="Documentos achados">
+            {achados.map((d) => (
+              <li key={d.id} className="row">
+                <span className="grow">{d.titulo}
+                  {trecho(d) && <span className="mutetxt linhadois">{trecho(d)}</span>}
+                </span>
+                <button className="btn sm sec" aria-label={`Abrir ${d.titulo}`} onClick={() => onAbrir(d)}>Abrir</button>
+              </li>
+            ))}
+          </ul>
+        ) : <p className="mutetxt" role="status">Nenhum documento com esse título ou texto.</p>
+      )}
+    </div>
+  );
+}
+
 /**
  * A FOLHA DA CONFERÊNCIA — o aceite.
  *
@@ -505,9 +563,16 @@ function FolhaAnexo({ item, catalogo, onFechar, onEnviar }: {
  * vai ficar. O servidor confere o sha256 antes de devolver: um objeto trocado
  * por baixo não passa como se fosse o que foi aceito.
  */
-function FolhaConferencia({ personId, documento, onFechar, onAceitar }: {
+/** Quem guarda o texto conferido: quem pode anexar ao perfil (o servidor confere de novo). */
+const GUARDA_TEXTO = ['enfermagem', 'equipe_tecnica', 'coordenador', 'gestor_geral'];
+
+function FolhaConferencia({ personId, documento, onFechar, onAceitar, onTextoGuardado, papel }: {
   personId: string; documento: DocumentoDoDossie;
   onFechar: () => void; onAceitar: (nota?: string) => void;
+  /** Depois de guardar o texto conferido, quem abriu recarrega a lista (fase 234). */
+  onTextoGuardado?: () => void;
+  /** O cargo de quem abriu: quem não guarda lê e copia. Sem ele, o servidor responde. */
+  papel?: string;
 }) {
   const [arquivo, setArquivo] = useState<{ tipo: string; dataUrl: string } | null>(null);
   const [erro, setErro] = useState('');
@@ -549,6 +614,20 @@ function FolhaConferencia({ personId, documento, onFechar, onAceitar }: {
           : <iframe src={arquivo.dataUrl} title={documento.titulo}
                     style={{ width: '100%', height: '46vh', border: 0, borderRadius: 10,
                              background: '#fff' }} />)}
+
+        {/* O texto do papel, lido neste aparelho e conferido pela pessoa (fase 234). */}
+        {arquivo && (arquivo.tipo.startsWith('image') || arquivo.tipo === 'application/pdf') && (
+          <LerTextoDoPapel
+            guardado={documento.texto ?? null}
+            paginas={async () => arquivo.tipo.startsWith('image')
+              ? [arquivo.dataUrl]
+              : (await api<{ paginas: string[] }>(`/people/${personId}/documents/${documento.id}/paginas`)).paginas}
+            onGuardar={papel && !GUARDA_TEXTO.includes(papel) ? undefined : async (texto, origem) => {
+              await api(`/people/${personId}/documents/${documento.id}/texto`,
+                { method: 'POST', body: JSON.stringify({ texto, origem }) });
+              onTextoGuardado?.();
+            }} />
+        )}
 
         {documento.aceitoEm ? (
           <>
@@ -1004,6 +1083,7 @@ export function DocumentosDaCategoria({ personId, categoria, titulo, explicacao,
       )}
       {abrindo && (
         <FolhaConferencia personId={personId} documento={abrindo} onFechar={() => setAbrindo(null)}
+          onTextoGuardado={() => void carregar()}
           onAceitar={async (nota) => {
             setErro('');
             try {
@@ -1093,6 +1173,7 @@ export function AnexosDoRegistroDeSaude({ personId, registro, documentos, podeAn
       )}
       {abrindo && (
         <FolhaConferencia personId={personId} documento={abrindo} onFechar={() => setAbrindo(null)}
+          onTextoGuardado={onMudou}
           onAceitar={async (nota) => {
             setErro('');
             try {

@@ -289,6 +289,12 @@ export function Periodo({ casaId }: { casaId: string | null }) {
                           body: JSON.stringify({
                             houseId: r.casa.id, de: r.periodo.de, ate: r.periodo.ate, finalidade,
                           }),
+                        })}
+                        exportarPlanilha={(finalidade) => api<ArquivoGerado>('/reports/period/export', {
+                          method: 'POST',
+                          body: JSON.stringify({
+                            houseId: r.casa.id, de: r.periodo.de, ate: r.periodo.ate, finalidade, formato: 'csv',
+                          }),
                         })} />
       )}
     </>

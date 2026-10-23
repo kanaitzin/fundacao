@@ -612,6 +612,21 @@ export class PeopleController {
     return this.dossie.arquivo(user, id, docId);
   }
 
+  /** As páginas do PDF como imagem, para ler o texto no aparelho (fase 234). */
+  @RegistroDaRota('id', 'person')
+  @Get(':id/documents/:docId/paginas')
+  paginasDo(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
+            @Param('docId', ParseUUIDPipe) docId: string) {
+    return this.dossie.paginas(user, id, docId);
+  }
+
+  /** O texto que a pessoa conferiu com o papel; corrigir acrescenta versão (fase 234). */
+  @Post(':id/documents/:docId/texto')
+  guardarTexto(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
+               @Param('docId', ParseUUIDPipe) docId: string, @Body() body: any) {
+    return this.dossie.guardarTexto(user, id, docId, body ?? {});
+  }
+
   @RegistroDaRota('id', 'person')
   @Get(':id/memories')
   vivencias(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {

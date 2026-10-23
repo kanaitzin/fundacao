@@ -45,6 +45,7 @@ export type {
   Folha as DocumentoWord,
 } from '../../backend/src/kernel/documentos/folha';
 import type { Folha as DocumentoWord } from '../../backend/src/kernel/documentos/folha';
+import { PASSOS_DA_BARRA, passosDaBarra } from '../../backend/src/kernel/documentos/folha';
 
 
 // ---------------------------------------------------------------- utilidades
@@ -194,6 +195,34 @@ function tabela(cabecalho: string[], linhas: string[][]): string {
     + '</w:tbl>' + par('', { espacoDepois: 60 });
 }
 
+/**
+ * O gráfico no Word do protótipo (fase 236): o mesmo quadro de células pintadas do
+ * servidor, com o rótulo, os vinte passos da barra e o número.
+ */
+function grafico(barras: { rotulo: string; valor: number }[]): string {
+  const rpr = `<w:rFonts w:ascii="${FONTE}" w:hAnsi="${FONTE}"/><w:sz w:val="${MENOR}"/>`;
+  const maximo = Math.max(...barras.map((b) => b.valor), 0);
+  const texto = (t: string, largura: number, direita = false, negrito = false) =>
+    `<w:tc><w:tcPr><w:tcW w:w="${largura}" w:type="dxa"/></w:tcPr><w:p><w:pPr><w:spacing w:after="20"/>`
+    + `<w:jc w:val="${direita ? 'right' : 'left'}"/></w:pPr><w:r><w:rPr>${rpr}${negrito ? '<w:b/>' : ''}</w:rPr>`
+    + `<w:t xml:space="preserve">${esc(t)}</w:t></w:r></w:p></w:tc>`;
+  const passo = (pintado: boolean) => `<w:tc><w:tcPr><w:tcW w:w="227" w:type="dxa"/>`
+    + (pintado ? '<w:shd w:val="clear" w:fill="1F3864"/>' : '') + '</w:tcPr><w:p/></w:tc>';
+  const linhas = barras.map((b) => {
+    const n = passosDaBarra(b.valor, maximo);
+    return `<w:tr><w:trPr><w:cantSplit/></w:trPr>${texto(b.rotulo, 3080)}`
+      + Array.from({ length: PASSOS_DA_BARRA }, (_, k) => passo(k < n)).join('')
+      + `${texto(String(b.valor), 1450, true, true)}</w:tr>`;
+  }).join('');
+  /* Largura fixa, com a grade escrita: sem ela o LibreOffice espreme o rótulo (achado na 236). */
+  const grade = [3080, ...Array.from({ length: PASSOS_DA_BARRA }, () => 227), 1450];
+  return `<w:tbl><w:tblPr><w:tblW w:w="${grade.reduce((x, y) => x + y, 0)}" w:type="dxa"/><w:tblLayout w:type="fixed"/><w:tblBorders>`
+    + ['top', 'left', 'bottom', 'right', 'insideV'].map((x) => `<w:${x} w:val="nil"/>`).join('')
+    + '<w:insideH w:val="single" w:sz="6" w:space="0" w:color="FFFFFF"/></w:tblBorders></w:tblPr>'
+    + `<w:tblGrid>${grade.map((g) => `<w:gridCol w:w="${g}"/>`).join('')}</w:tblGrid>`
+    + linhas + '</w:tbl>' + par('', { espacoDepois: 60 });
+}
+
 function corpoDoDocumento(d: DocumentoWord): string {
   const partes: string[] = [];
 
@@ -243,6 +272,7 @@ function corpoDoDocumento(d: DocumentoWord): string {
       partes.push(par(`•  ${it}`, { alinhamento: 'left', espacoDepois: 40 }));
     }
     if (s.tabela) partes.push(tabela(s.tabela.cabecalho, s.tabela.linhas));
+    if (s.grafico?.barras.length) partes.push(grafico(s.grafico.barras));
     for (const im of s.imagens ?? []) {
       partes.push(par(`${im.legenda}. Documento disponível no registro eletrônico.`, {
         italico: true, tamanho: MENOR, alinhamento: 'left', espacoDepois: 80 }));

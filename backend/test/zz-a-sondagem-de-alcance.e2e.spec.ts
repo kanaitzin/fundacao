@@ -105,6 +105,7 @@ const MAPA: Record<string, string> = {
   '/people/portaria/visitante/:contactId/foto#contactId': 'person_contact',
   '/people/technical-sessions/attachments/:anexoId/file#anexoId': 'technical_session_attachment',
   '/people/:id/documents/:docId/file#docId': 'document',
+  '/people/:id/documents/:docId/paginas#docId': 'document',
   '/people/:id/memories/:memId/file#memId': 'memory_record',
   '/people/:id/memories/:memId/photos/:fotoId#memId': 'memory_record',
   '/people/:id/memories/:memId/photos/:fotoId#fotoId': 'memory_photo',

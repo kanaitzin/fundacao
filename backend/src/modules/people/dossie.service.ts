@@ -2,6 +2,7 @@ import {
   BadRequestException, ConflictException, ForbiddenException, Inject, Injectable, NotFoundException,
 } from '@nestjs/common';
 import { createHash } from 'node:crypto';
+import { paginasDoPdf } from '../../kernel/documentos/paginas-do-pdf';
 import { DatabaseService } from '../../kernel/database/database.service';
 import { AuditService } from '../../kernel/audit/audit.service';
 import { ArquivosService, RegraDoArquivo } from '../../kernel/arquivos/arquivos.service';
@@ -123,12 +124,18 @@ export class DossieService {
                 d.source, d.created_at, d.accepted_at, d.accepted_note,
                 app_user_display_name(d.created_by) AS anexado_por,
                 app_user_display_name(d.accepted_by) AS aceito_por,
-                v.version, v.storage_key, v.sha256, v.mime, v.file_name, v.size_bytes
+                v.version, v.storage_key, v.sha256, v.mime, v.file_name, v.size_bytes,
+                t.texto, t.version AS texto_versao, t.origem AS texto_origem, t.created_at AS texto_em,
+                app_user_display_name(t.created_by) AS texto_por
            FROM document d
            LEFT JOIN LATERAL (
              SELECT version, storage_key, sha256, mime, file_name, size_bytes
                FROM document_version WHERE document_id = d.id
               ORDER BY version DESC LIMIT 1) v ON true
+           LEFT JOIN LATERAL (
+             SELECT texto, version, origem, created_at, created_by
+               FROM document_text WHERE document_id = d.id
+              ORDER BY version DESC LIMIT 1) t ON true
           WHERE d.person_id = $1
           ORDER BY d.created_at DESC`, [personId]);
       return rows;
@@ -143,6 +150,10 @@ export class DossieService {
       versao: d.version,
       arquivo: d.storage_key
         ? { nome: d.file_name, tipo: d.mime, tamanho: d.size_bytes, sha256: d.sha256 }
+        : null,
+      /* O texto conferido do papel (fase 234): a última versão, com quem conferiu. */
+      texto: d.texto
+        ? { texto: d.texto, versao: d.texto_versao, origem: d.texto_origem, por: d.texto_por, em: d.texto_em }
         : null,
     }));
 
@@ -359,6 +370,70 @@ export class DossieService {
         + 'Avise a coordenação.');
     }
     return { nome: v.file_name, tipo: v.mime, conteudo: bytes.toString('base64') };
+  }
+
+  // ------------------------------------------------------------------
+  // O texto conferido do papel (fase 234)
+  // ------------------------------------------------------------------
+
+  /**
+   * As páginas de um PDF do dossiê como imagem, para a leitura do texto no
+   * aparelho. É uma abertura do documento como a prévia, e fica registrada
+   * igual. Imagem volta como veio: já é página.
+   */
+  async paginas(user: AuthenticatedUser, personId: string, documentId: string) {
+    const a = await this.arquivo(user, personId, documentId);
+    if (a.tipo.startsWith('image/')) return { paginas: [`data:${a.tipo};base64,${a.conteudo}`], total: 1 };
+    if (a.tipo !== 'application/pdf') {
+      throw new BadRequestException('Este arquivo não tem página para ler.');
+    }
+    const r = await paginasDoPdf(Buffer.from(a.conteudo, 'base64'), 10);
+    if (r.falhou) {
+      throw new BadRequestException('As páginas deste PDF não se desenharam. Leia pelo papel ou digite o texto.');
+    }
+    return { paginas: r.paginas.map((p) => `data:image/png;base64,${p.toString('base64')}`), total: r.total };
+  }
+
+  /**
+   * Guarda o texto que a pessoa conferiu com o papel. Corrigir acrescenta uma
+   * versão. A auditoria leva só o tamanho, nunca o texto.
+   */
+  async guardarTexto(user: AuthenticatedUser, personId: string, documentId: string,
+                     input: { texto?: unknown; origem?: unknown }) {
+    const texto = typeof input?.texto === 'string' ? input.texto.trim() : '';
+    if (!texto) throw new BadRequestException('Escreva ou confira o texto antes de guardar.');
+    if (texto.length > 20000) {
+      throw new BadRequestException('O texto passa de 20 mil letras. Guarde só a parte que importa.');
+    }
+    const origem = input?.origem === 'digitado' ? 'digitado' : 'leitura_no_aparelho';
+    const casa = await this.audit.casaDoAcolhido(user.id, personId);
+    return this.db.asUser(user.id, async (c) => {
+      const { rows: [doc] } = await c.query(
+        `SELECT id FROM document WHERE id = $1 AND person_id = $2`, [documentId, personId]);
+      if (!doc) throw new NotFoundException('Documento não encontrado.');
+      const { rows: [{ versao }] } = await c.query(
+        `SELECT COALESCE(max(version), 0) + 1 AS versao FROM document_text WHERE document_id = $1`,
+        [documentId]);
+      try {
+        await c.query(
+          `INSERT INTO document_text (document_id, version, texto, origem, created_by)
+           VALUES ($1, $2, $3, $4, $5)`, [documentId, versao, texto, origem, user.id]);
+      } catch (e: any) {
+        const m = String(e?.message ?? '');
+        if (m.includes('row-level security')) {
+          throw new ForbiddenException('Quem guarda o texto do documento é quem pode anexar documento ao perfil.');
+        }
+        if (e?.code === '23505') {
+          throw new ConflictException('Outra pessoa guardou o texto agora. Abra de novo e confira.');
+        }
+        throw e;
+      }
+      await this.audit.log({
+        action: 'document.texto', actorId: user.id, houseId: casa, entity: 'document',
+        entityId: documentId, detail: { versao, origem, tamanho: texto.length },
+      }, c);
+      return { ok: true, versao };
+    });
   }
 
   // ------------------------------------------------------------------

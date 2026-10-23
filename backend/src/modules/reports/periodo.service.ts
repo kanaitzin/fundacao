@@ -310,10 +310,12 @@ export class PeriodoService {
 
   /** Exportar deixa rastro: quem, finalidade, período e hora (§18.4). */
   async exportar(user: AuthenticatedUser, body: {
-    houseId?: string; de?: string; ate?: string; finalidade?: string;
+    houseId?: string; de?: string; ate?: string; finalidade?: string; formato?: string;
   }) {
     const folha = await this.folha(user, body?.houseId ?? '', body?.de, body?.ate);
-    return this.docs.exportar(user, folha, {
+    /* A planilha dos mesmos números (fase 236): o mesmo registro, outro formato. */
+    const saida = body?.formato === 'csv' ? this.docs.exportarPlanilha.bind(this.docs) : this.docs.exportar.bind(this.docs);
+    return saida(user, folha, {
       entidade: 'periodo', entidadeId: body?.houseId, houseId: body?.houseId ?? null,
       finalidade: body?.finalidade ?? '',
     });

@@ -371,6 +371,12 @@ export function responderPeloGuia(texto: string, telas: TelaDoGuia[], primeira: 
     return { texto: `${aviso}O dia e a hora de visita de cada pessoa são o combinado da equipe técnica e ficam no contato dela, no perfil da criança, em Autorizar a visitar. A portaria só deixa entrar dentro do combinado, e a exceção é da coordenação, da técnica ou do líder do plantão, com o motivo.\n\n[Abrir os Acolhidos](tela:acolhidos)` };
   }
 
+  /* Ler o texto de um papel (fase 234): a leitura é na prévia do documento, neste
+     aparelho, e a pessoa confere antes. Vem antes da tela: "documento" casaria com os Acolhidos. */
+  if (/\b(ler|leia|transcrever|transcreve|passar|tirar|copiar|extrair)\b.{0,30}\b(texto|escrito|letras)\b.{0,40}\b(papel|foto|documento|pdf|oficio|receita|guia|bilhete)\b|\bocr\b/.test(t)) {
+    return { texto: `${aviso}Abra o documento no dossiê da criança, ou toque em Ver no anexo da mensagem, e toque em Ler o texto do papel. A leitura acontece neste aparelho, a imagem não sai dele, e ela erra letra, número e data: confira com o papel e corrija na caixa antes de usar. No dossiê, a técnica, a coordenação e a Enfermagem guardam o texto conferido, e a busca passa a achar o papel por ele.${telas.some((x) => x.chave === 'acolhidos') ? '\n\n[Abrir os Acolhidos](tela:acolhidos)' : ''}` };
+  }
+
   /* Ir a uma tela vem antes da sugestão: "me leva para as Sugestões de melhoria"
      é ir, e não sugerir (a palavra "melhoria" enganava o guia; fase 195). */
   const telaPedida = achar(texto, telas);
