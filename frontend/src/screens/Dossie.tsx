@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api';
-import { baixarArquivo } from '../documentos';
+import { baixarArquivo, FolhaDocumento } from '../documentos';
+import type { ArquivoGerado } from '../documentos';
+import type { DocumentoWord } from '../docx';
 import { dia } from '../rotulos';
 import { Icone } from '../icones';
 import { EscolherAnexo, LerTextoDoPapel, miniaturaDe } from '../anexos';
@@ -110,6 +112,8 @@ export function Dossie({ personId, nome, papel, onVoltar }: {
   const [conferindo, setConferindo] = useState<DocumentoDoDossie | null>(null);
   const [novaVivencia, setNovaVivencia] = useState(false);
   const [vendoFoto, setVendoFoto] = useState<Vivencia | null>(null);
+  /* O relatório das vivências em Word (fase 237): as escolhas, e depois a folha. */
+  const [relatorio, setRelatorio] = useState(false);
   /* A busca pelo título e pelo texto conferido do papel (fase 234). */
   const [procura, setProcura] = useState('');
 
@@ -326,6 +330,14 @@ export function Dossie({ personId, nome, papel, onVoltar }: {
           <button data-acolhe-abre="" className="btn block" onClick={() => setNovaVivencia(true)}>
             + Registrar uma vivência
           </button>
+          {album.itens.length > 0 && (
+            <button data-acolhe-abre="" className="btn sec block" onClick={() => setRelatorio(true)}>
+              <Icone nome="documento" /> Relatório das vivências em Word
+            </button>
+          )}
+          {relatorio && (
+            <FolhaRelatorioDasVivencias personId={personId} album={album} onFechar={() => setRelatorio(false)} />
+          )}
 
           {album.itens.length === 0 && (
             <p className="mutetxt">
@@ -667,6 +679,108 @@ function FolhaConferencia({ personId, documento, onFechar, onAceitar, onTextoGua
             </div>
           </>
         )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * O RELATÓRIO DAS VIVÊNCIAS (fase 237): quem pede escolhe o que entra (o período,
+ * os tipos, quais vivências e se vai com as fotos), vê a folha e baixa o Word com
+ * a finalidade. As fotos seguem o cargo: a tela diz quantas ficam de fora e por quê.
+ */
+function FolhaRelatorioDasVivencias({ personId, album, onFechar }: {
+  personId: string; album: Album; onFechar: () => void;
+}) {
+  const [de, setDe] = useState('');
+  const [ate, setAte] = useState('');
+  const [tipos, setTipos] = useState<Set<string>>(new Set());
+  const [fora, setFora] = useState<Set<string>>(new Set());
+  const [comFotos, setComFotos] = useState(true);
+  const [erro, setErro] = useState('');
+  const [previa, setPrevia] = useState<{ folha: DocumentoWord; fotosForaPeloCargo: number; incluiTodasAsFotos: boolean } | null>(null);
+  const tiposUsados = album.tipos.filter((t) => album.itens.some((v) => v.tipo === t.code));
+  const visiveis = album.itens.filter((v) => (!de || v.quando.slice(0, 10) >= de) && (!ate || v.quando.slice(0, 10) <= ate)
+    && (!tipos.size || tipos.has(v.tipo)));
+  const corpo = () => ({
+    de: de || undefined, ate: ate || undefined, tipos: tipos.size ? [...tipos] : undefined,
+    ids: visiveis.filter((v) => !fora.has(v.id)).map((v) => v.id), comFotos,
+  });
+  const quantas = visiveis.filter((v) => !fora.has(v.id)).length;
+
+  if (previa) {
+    return (
+      <>
+        {previa.fotosForaPeloCargo > 0 && (
+          <div className="notice c-warn" role="status">
+            {previa.fotosForaPeloCargo} {previa.fotosForaPeloCargo === 1 ? 'foto fica' : 'fotos ficam'} só como legenda:
+            {' '}sem a autorização de imagem registrada, a foto entra no relatório de quem é da equipe técnica, liderança,
+            coordenação ou gestão. Se precisar dela, peça a uma dessas pessoas.
+          </div>
+        )}
+        <FolhaDocumento doc={previa.folha} onFechar={() => { setPrevia(null); onFechar(); }}
+          exportar={(finalidade) => api<ArquivoGerado>(`/people/${personId}/memories/export`, {
+            method: 'POST', body: JSON.stringify({ ...corpo(), finalidade }) })} />
+      </>
+    );
+  }
+
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-relviv"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet modal">
+        <h3 id="t-relviv">Relatório das vivências</h3>
+        <p className="mutetxt" style={{ marginTop: 0 }}>Escolha o que entra. Depois você vê a folha e baixa em Word.</p>
+        <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+          <div className="grow"><label className="f" htmlFor="rv-de">De <small>(opcional)</small></label>
+            <input id="rv-de" type="date" value={de} onChange={(e) => setDe(e.target.value)} /></div>
+          <div className="grow"><label className="f" htmlFor="rv-ate">Até <small>(opcional)</small></label>
+            <input id="rv-ate" type="date" value={ate} onChange={(e) => setAte(e.target.value)} /></div>
+        </div>
+        {tiposUsados.length > 1 && (
+          <fieldset className="stack" style={{ border: 0, padding: 0, margin: 0 }}>
+            <legend className="f">Tipos <small>(sem marcar nenhum, vão todos)</small></legend>
+            <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+              {tiposUsados.map((t) => (
+                <label key={t.code} className="row" style={{ gap: 6 }}>
+                  <input type="checkbox" checked={tipos.has(t.code)} onChange={(e) => {
+                    const n = new Set(tipos); if (e.target.checked) n.add(t.code); else n.delete(t.code); setTipos(n);
+                  }} /> {t.label}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        )}
+        <fieldset className="stack" style={{ border: 0, padding: 0, margin: 0 }}>
+          <legend className="f">Vivências que entram <small>({quantas} de {visiveis.length})</small></legend>
+          <ul className="lista" aria-label="Vivências do relatório">
+            {visiveis.map((v) => (
+              <li key={v.id}>
+                <label className="row" style={{ gap: 8, alignItems: 'flex-start' }}>
+                  <input type="checkbox" checked={!fora.has(v.id)} onChange={(e) => {
+                    const n = new Set(fora); if (e.target.checked) n.delete(v.id); else n.add(v.id); setFora(n);
+                  }} />
+                  <span className="grow">{dia(v.quando)} · {album.tipos.find((t) => t.code === v.tipo)?.label ?? v.tipo}
+                    <span className="mutetxt linhadois">{v.descricao.slice(0, 90)}{v.descricao.length > 90 ? '…' : ''}</span>
+                  </span>
+                </label>
+              </li>
+            ))}
+          </ul>
+        </fieldset>
+        <label className="row" style={{ gap: 8 }}>
+          <input type="checkbox" checked={comFotos} onChange={(e) => setComFotos(e.target.checked)} /> Com as fotos
+        </label>
+        {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+        <div className="row rodape">
+          <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
+          <button className="btn grow" disabled={!quantas} onClick={async () => {
+            setErro('');
+            try {
+              setPrevia(await api(`/people/${personId}/memories/folha`, { method: 'POST', body: JSON.stringify(corpo()) }));
+            } catch (e) { setErro(e instanceof Error ? e.message : 'Não foi possível montar o relatório.'); }
+          }}>Ver a folha</button>
+        </div>
       </div>
     </div>
   );
