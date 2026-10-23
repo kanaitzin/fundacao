@@ -8,6 +8,10 @@ import { AuthenticatedUser } from '../../kernel/contracts';
 import { MAXIMO_DE_ANEXOS_POR_MENSAGEM, recusaDosAnexos } from '../../kernel/arquivos/anexos-da-mensagem.regra';
 import { FERRAMENTAS, NOMES_DAS_FERRAMENTAS } from './ferramentas';
 import { GUIA_DA_ACOLHE, contexto, ContextoDaConversa } from './guia';
+import {
+  FilaCheia, FilaDoModelo, MotorLocalFalhou, MensagemDaConversa,
+  daRespostaAberta, ferramentasAbertas, janelaCurta, letrasDoTexto, paraOPadraoAberto, perguntarAoMotorLocal,
+} from './motor-local';
 
 /**
  * A ACOLHE+AI (fase 192; pedido e decisões de 08/10).
@@ -21,6 +25,12 @@ import { GUIA_DA_ACOLHE, contexto, ContextoDaConversa } from './guia';
  *
  * Desligada enquanto a instalação não tiver a `ANTHROPIC_API_KEY`. Sem ela a
  * tela responde pelo guia, sem modelo, e diz isso.
+ *
+ * DOIS MOTORES (fase 239). Com `ACOLHE_AI_MOTOR=local`, a conversa vai a um
+ * modelo aberto no computador do Pão (`motor-local.ts`), sem custo por pergunta
+ * e sem limite por pessoa: as perguntas esperam a vez numa fila. Sem a
+ * variável, continua o Claude, com a chave. A tela não sabe a diferença: a
+ * conversa, as ferramentas e a auditoria são as mesmas.
  *
  * O QUE VAI AO MODELO NÃO MUDA NO MEIO DA CONVERSA (fase 223). O raciocínio do
  * modelo fica preso à conversa exata em que nasceu: se as instruções, as
@@ -39,6 +49,16 @@ const TIPOS_DE_BLOCO = new Set([
 ]);
 /** Para a conta não ser gasta por um laço: trinta pedidos a cada cinco minutos, por pessoa. */
 const LIMITE = { pedidos: 30, janelaMs: 5 * 60_000 };
+
+/** O que cada motor devolve, na forma da conversa. */
+interface Resultado {
+  content: { type: string; [k: string]: unknown }[];
+  stop_reason: string | null;
+  entrada: number | null; saida: number | null; cache: number | null;
+  raciocinioTirado: number; descartadas: number;
+  /** Só no computador do Pão: o modelo leu menos do que recebeu. */
+  janelaCurta?: boolean;
+}
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -73,11 +93,28 @@ export class AssistenteService {
     @Inject(AuditService) private readonly audit: AuditService,
   ) {}
 
-  private ligada() { return !!process.env.ANTHROPIC_API_KEY?.trim(); }
+  private fila: FilaDoModelo | null = null;
+
+  private motor(): 'local' | 'claude' { return process.env.ACOLHE_AI_MOTOR?.trim() === 'local' ? 'local' : 'claude'; }
+  private ligada() {
+    return this.motor() === 'local'
+      ? !!(process.env.ACOLHE_AI_LOCAL_URL?.trim() && process.env.ACOLHE_AI_LOCAL_MODELO?.trim())
+      : !!process.env.ANTHROPIC_API_KEY?.trim();
+  }
   private modelo() { return process.env.ACOLHE_AI_MODELO?.trim() || MODELO_PADRAO; }
+  private numero(nome: string, padrao: number, min: number, max: number) {
+    const n = Number(process.env[nome]);
+    return Number.isInteger(n) && n >= min && n <= max ? n : padrao;
+  }
+  /** A fila nasce na primeira pergunta, com o tamanho que a instalação disser. */
+  private filaDoModelo() {
+    this.fila ??= new FilaDoModelo(
+      this.numero('ACOLHE_AI_LOCAL_SIMULTANEAS', 2, 1, 16), this.numero('ACOLHE_AI_LOCAL_FILA', 40, 0, 500));
+    return this.fila;
+  }
 
   estado() {
-    return { ligada: this.ligada(), nome: 'Acolhe+AI', ferramentas: NOMES_DAS_FERRAMENTAS };
+    return { ligada: this.ligada(), nome: 'Acolhe+AI', ferramentas: NOMES_DAS_FERRAMENTAS, motor: this.motor() };
   }
 
   /** A casa só vai para a auditoria se quem fala a alcança. */
@@ -145,18 +182,8 @@ export class AssistenteService {
     return true;
   }
 
-  async conversar(user: AuthenticatedUser, pedido: PedidoDeConversa) {
-    const mensagens = this.conferirMensagens(pedido?.mensagens);
-    if (!this.ligada()) {
-      throw new ServiceUnavailableException('A Acolhe+AI ainda não foi ligada nesta instalação: ela responde só pelo guia.');
-    }
-    if (!this.dentroDoLimite(user.id)) {
-      throw new ServiceUnavailableException('Muitas perguntas seguidas. Espere um minuto e tente de novo.');
-    }
-    const ctx = pedido?.contexto ?? {};
-    /* A casa conferida vai só para a auditoria: ao modelo ela chega pela nota do momento. */
-    const casaId = await this.casaConferida(user, ctx.casaId);
-
+  /** O Claude, com a chave (fase 192). */
+  private async perguntarAoClaude(instrucoes: string[], mensagens: Anthropic.Beta.BetaMessageParam[]): Promise<Resultado> {
     const cliente = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, timeout: 120_000, maxRetries: 1 });
     let resposta: Anthropic.Beta.BetaMessage;
     try {
@@ -168,10 +195,8 @@ export class AssistenteService {
         thinking: { type: 'adaptive', block_binding: { prefix_mismatch_behavior: 'drop_block' } },
         output_config: { effort: 'medium' },
         system: [
-          { type: 'text', text: GUIA_DA_ACOLHE },
-          { type: 'text', text: contexto({
-            pessoa: user.fullName, cargo: user.role, telas: this.conferirTelas(ctx.telas),
-          }), cache_control: { type: 'ephemeral' } },
+          { type: 'text', text: instrucoes[0] },
+          { type: 'text', text: instrucoes[1], cache_control: { type: 'ephemeral' } },
         ],
         tools: JSON.parse(JSON.stringify(FERRAMENTAS)) as Anthropic.Beta.BetaTool[],
         messages: comCache(mensagens),
@@ -191,24 +216,94 @@ export class AssistenteService {
       }
       throw new ServiceUnavailableException('A Acolhe+AI não respondeu agora. Tente de novo.');
     }
+    return {
+      content: resposta.content as unknown as Resultado['content'], stop_reason: resposta.stop_reason,
+      entrada: resposta.usage?.input_tokens ?? null, saida: resposta.usage?.output_tokens ?? null,
+      cache: resposta.usage?.cache_read_input_tokens ?? null,
+      raciocinioTirado: (resposta.input_transformations ?? []).filter((t) => t.type === 'thinking_dropped').length,
+      descartadas: 0,
+    };
+  }
 
-    const ferramentas = resposta.content
-      .filter((b): b is Anthropic.Beta.BetaToolUseBlock => b.type === 'tool_use').map((b) => b.name);
+  /** O modelo aberto no computador do Pão (fase 239), na vez da fila. */
+  private async perguntarNoPao(instrucoes: string[], mensagens: Anthropic.Beta.BetaMessageParam[]): Promise<Resultado> {
+    const cfg = {
+      url: process.env.ACOLHE_AI_LOCAL_URL!.trim(),
+      modelo: process.env.ACOLHE_AI_LOCAL_MODELO!.trim(),
+      esperaMs: this.numero('ACOLHE_AI_LOCAL_ESPERA_S', 180, 10, 900) * 1000,
+      maxTokens: this.numero('ACOLHE_AI_LOCAL_MAX_TOKENS', 4000, 256, 32000),
+    };
+    const conversa = paraOPadraoAberto(instrucoes, mensagens as unknown as MensagemDaConversa[]);
+    let json: unknown;
+    try {
+      json = await this.filaDoModelo().executar(() => perguntarAoMotorLocal(cfg, conversa, ferramentasAbertas(FERRAMENTAS)));
+    } catch (e) {
+      /* O log leva a razão e o status, nunca a conversa. */
+      if (e instanceof FilaCheia) {
+        this.log.warn('motor local: fila cheia');
+        throw new ServiceUnavailableException('A Acolhe+AI está atendendo muitas pessoas agora. Tente em um minuto.');
+      }
+      const f = e instanceof MotorLocalFalhou ? e : new MotorLocalFalhou('sem_conexao');
+      this.log.error(`motor local falhou: ${f.motivo}${f.status ? ` ${f.status}` : ''}`);
+      if (f.motivo === 'demorou') {
+        throw new ServiceUnavailableException('A Acolhe+AI demorou demais para responder. Tente de novo com uma pergunta mais curta.');
+      }
+      if (f.motivo === 'recusou' && f.status === 400) {
+        throw new BadRequestException('A conversa não pôde ser lida. Comece uma conversa nova.');
+      }
+      if (f.motivo === 'sem_conexao' || f.status === 404) {
+        throw new ServiceUnavailableException('O computador da Acolhe+AI não está respondendo. Avise a TI.');
+      }
+      throw new ServiceUnavailableException('A Acolhe+AI não respondeu agora. Tente de novo.');
+    }
+    const r = daRespostaAberta(json, NOMES_DAS_FERRAMENTAS);
+    if (r.descartadas) this.log.warn(`motor local: ${r.descartadas} pedido(s) de ferramenta ilegível(is) descartado(s)`);
+    const curta = janelaCurta(letrasDoTexto(conversa), r.usage.input_tokens);
+    if (curta) this.log.warn('motor local: o modelo leu menos que o guia; aumente o OLLAMA_CONTEXT_LENGTH (§12.12)');
+    return {
+      janelaCurta: curta,
+      content: r.content, stop_reason: r.stop_reason,
+      entrada: r.usage.input_tokens, saida: r.usage.output_tokens, cache: null, raciocinioTirado: 0,
+      descartadas: r.descartadas,
+    };
+  }
+
+  async conversar(user: AuthenticatedUser, pedido: PedidoDeConversa) {
+    const mensagens = this.conferirMensagens(pedido?.mensagens);
+    if (!this.ligada()) {
+      throw new ServiceUnavailableException('A Acolhe+AI ainda não foi ligada nesta instalação: ela responde só pelo guia.');
+    }
+    const local = this.motor() === 'local';
+    /* No computador do Pão não há conta a gastar: quem segura a máquina é a fila. */
+    if (!local && !this.dentroDoLimite(user.id)) {
+      throw new ServiceUnavailableException('Muitas perguntas seguidas. Espere um minuto e tente de novo.');
+    }
+    const ctx = pedido?.contexto ?? {};
+    /* A casa conferida vai só para a auditoria: ao modelo ela chega pela nota do momento. */
+    const casaId = await this.casaConferida(user, ctx.casaId);
+    const instrucoes = [GUIA_DA_ACOLHE, contexto({
+      pessoa: user.fullName, cargo: user.role, telas: this.conferirTelas(ctx.telas),
+    })];
+
+    const r = local
+      ? await this.perguntarNoPao(instrucoes, mensagens)
+      : await this.perguntarAoClaude(instrucoes, mensagens);
+
+    const ferramentas = r.content.filter((b) => b.type === 'tool_use').map((b) => String((b as { name?: unknown }).name));
     await this.audit.log({
       action: 'assistente.conversa', actorId: user.id, houseId: casaId,
       detail: {
-        turnos: mensagens.length, ferramentas, parada: resposta.stop_reason,
-        entrada: resposta.usage?.input_tokens ?? null, saida: resposta.usage?.output_tokens ?? null,
-        cache: resposta.usage?.cache_read_input_tokens ?? null,
-        raciocinioTirado: (resposta.input_transformations ?? [])
-          .filter((t) => t.type === 'thinking_dropped').length,
+        motor: local ? 'local' : 'claude',
+        turnos: mensagens.length, ferramentas, parada: r.stop_reason,
+        entrada: r.entrada, saida: r.saida, cache: r.cache, raciocinioTirado: r.raciocinioTirado,
+        ...(local ? { descartadas: r.descartadas, janelaCurta: !!r.janelaCurta } : {}),
       },
     });
 
-    if (resposta.stop_reason === 'refusal') {
+    if (r.stop_reason === 'refusal') {
       return { conteudo: [{ type: 'text', text: 'Com isso eu não consigo ajudar. Se for algo sobre uma criança, fale com a coordenação ou a equipe técnica da casa.' }], parada: 'refusal', guardar: false };
     }
-    return { conteudo: resposta.content, parada: resposta.stop_reason, guardar: true };
+    return { conteudo: r.content, parada: r.stop_reason, guardar: true };
   }
 
   /** Depois que a pessoa confirmou uma proposta e a gravação deu certo. */

@@ -297,7 +297,7 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 237 | **o relatório das vivências em Word** (pedido de 23/10: *"pedi o relatório da vivência de uma aluna em Word pela IA e ela não soube fazer"*): no álbum, com as escolhas de período, tipos, quais vivências e fotos; as fotos conforme o cargo (técnica, líderes, coordenação e gestão incluem todas; nos outros cargos, a sem autorização de imagem sai como legenda); a regra em `vivencias-folha.ts`, a mesma no servidor e no protótipo; a Acolhe+AI entende o pedido |
 | 238 | **o banco de palavras da casa** (pedido de 23/10): a gíria gaúcha, as siglas da rede e os outros nomes das coisas da casa (`assistente/palavras-da-casa.ts`), lidos pelo modo próprio da Acolhe+AI e pelo guia do modelo; *a pia da cozinha* não vira *piá* (`menosQuando`); e *janta* saiu, porque abria a Cozinha no meio de um relato |
 
-**Medido no fim da 238:** 202 migrações, 142 tabelas, 155 suítes, 1363 testes; nas 237 e 238, a suíte inteira
+**Medido no fim da 238:** 202 migrações, 142 tabelas, 156 suítes, 1378 testes; nas 237 e 238, a suíte inteira
 verde (1363 de 1363, depois de consertar as três conferências que o relatório das vivências deixou soltas) e o
 `ensaio:uso` (739 cobranças, sem reprovação, com o relatório das vivências aberto e o Word baixado); **não rodou**
 nas 237 e 238 o relógio adiantado, o do celular, o de acessibilidade, o `ensaio:acolhe` nem a simulação contra o servidor;
