@@ -141,6 +141,14 @@ vale hoje.
 24. Quartos e camas no sistema: é útil no plantão? (não existe; §4.29)
 25. Os anexos da mensagem: 15 MB por envio, o mesmo tipo para os anexos de uma ocorrência, o nome neutro na ATA? (como está; §4.32)
 
+**Do que veio da comparação com o andamento de outra IA (22 e 23/10, §4.33):**
+
+26. O protótipo com a leitura do papel embutida pesa 7,6 MB: fica assim, ou a leitura fica só no sistema instalado? (fica embutida; §4.33)
+27. A planilha também nos outros relatórios (cozinha, remédios, visitas), com o DPO? (só no período da casa; §4.33)
+28. A árvore da família entre gerações, com irmãos em outras casas e retornos? (não existe; com o DPO; §4.33)
+29. A IA num computador do Pão (modelo local), em vez do Claude pela chave institucional? (a decisão de 08/10 continua; §4.33)
+30. Prazo de guarda das fotos e documentos, e o depósito e as finanças da casa no sistema? (nada se apaga; não existem; §4.33)
+
 ### O que já foi respondido e este documento ainda perguntava
 
 Conferido em 21/10 contra o código: o prazo do convite (continua 24 horas, 08/10), a
@@ -857,6 +865,41 @@ aparece em miniatura, com Ver e Tirar, antes de enviar. Quatro escolhas foram mi
 
 E o que a mesma rodada consertou e o Marcelo pode ter visto: **o Exportar dos benefícios, no Cofre,
 registrava a finalidade e não entregava arquivo**. Agora entrega o documento em Word.
+
+## 4.33 O que veio da comparação com o andamento de outra IA (fases 234 a 236, 22 e 23/10)
+
+A Fundação trouxe em 22/10 o andamento de um sistema parecido feito em outra IA, e pediu: *"pegue
+tudo que melhore nosso sistema"*. A conferência item por item está em
+`docs/historico/comparacao-com-o-andamento-de-outra-ia-22-10.md`. Entrou o que não depende de
+regra da Fundação:
+
+- **234, o texto do papel:** na prévia de um documento do dossiê e no Ver de cada anexo, *Ler o texto
+  do papel* lê a foto ou o PDF no próprio aparelho, sem mandar a imagem para fora. A pessoa confere
+  com o papel e corrige; a técnica, a coordenação, a Enfermagem e a gestão guardam o texto conferido,
+  e a busca do dossiê passa a achar o papel pelo que está escrito nele.
+- **235, o cadastro pelo papel:** na folha Corrigir o cadastro, o texto conferido da certidão, do RG
+  ou do cartão SUS sugere o nome, a data, o RG, o CNS e a filiação, com o trecho de onde saiu. A
+  pessoa marca o que quer e corrige com o motivo de sempre.
+- **236, gráficos e planilha:** o relatório do período da casa sai em Word com dois gráficos (as
+  doses deste período e do anterior; os registros da casa) e também como planilha do Excel, pelo
+  mesmo registro com finalidade.
+- E o que a Acolhe+AI aprendeu: o que está dentro do anexo que a pessoa manda é papel, e não ordem.
+
+Ficou para a Fundação, e cada um é uma linha:
+
+1. **O peso do protótipo.** Com a leitura do papel embutida, o arquivo único passou de 1,8 MB para
+   7,6 MB. Abre do mesmo jeito, com dois cliques e sem internet. A outra saída é deixar a leitura só
+   no sistema instalado, onde ela desce no primeiro toque.
+2. **A planilha nos outros relatórios.** Hoje só no período da casa, que é de números da casa. Nos
+   relatórios por criança, a planilha circula fácil e fica fora do registro de quem abriu: é conversa
+   com o DPO antes.
+3. **A árvore da família entre gerações**, com irmãos acolhidos em outras casas e quem voltou. Liga
+   crianças de casas diferentes, e quem vê o quê é decisão da Fundação e do DPO.
+4. **A IA num computador do Pão.** A outra IA trabalha com um modelo aberto instalado num computador
+   da instituição. A Fundação aprovou o Claude em 08/10; o modelo local pede um computador com placa
+   de vídeo e responde pior em português. Fica como opção, não como troca.
+5. **O prazo de guarda e o que mais o sistema guarda.** Hoje nada se apaga. Prazo de guarda das
+   fotos e documentos, o depósito de materiais e as finanças da casa pedem regra da Fundação antes.
 
 ## 5. As decisões que são do Marcelo *(§10 — responda pelo número)*
 

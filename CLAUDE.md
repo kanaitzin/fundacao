@@ -169,6 +169,8 @@ e qual é o caminho certo.
 | `frontend/src/anexos.tsx` | **o `EscolherAnexo`** (fase 165): câmera, galeria, arquivo, com prévia, ampliar, descartar e tirar outra. Todo lugar que recebe foto ou documento usa este, e não um `<input type="file">` solto, e desde a 194 **o `todo-anexo-pela-camera.spec.ts` cobra**. **E o `lerArquivo` daqui é a única leitura de arquivo** (fase 175): é ele que reduz a foto antes de enviar, e leitura por conta própria manda a foto do tamanho da câmera |
 | `backend/src/kernel/arquivos/anexos-da-mensagem.regra.ts` | **os anexos de uma mensagem** (fase 233): dez por mensagem e 15 MB por envio, na linha da ATA, no diário da internação, na ocorrência, no atendimento técnico e na Acolhe+AI. O servidor recusa e a tela avisa lendo a MESMA regra; na tela, o `AnexosDaMensagem` (`anexos.tsx`) com Ver e Tirar, e a câmera em sequência (`varias` no `camera.tsx`) |
 | `backend/test/o-que-entra-volta-inteiro.e2e.spec.ts` | **todo Word abre e todo anexo volta** (fase 233): as exportações conferidas contra os controladores (negando por padrão), cada Word aberto e cobrado (XML, imagens, texto sem lixo, entrelinha com tipo), e cada porta de anexo devolvendo o arquivo byte por byte e conferido no disco. `DOCUMENTOS_DIR=pasta` grava os Words para abrir no LibreOffice |
+| `frontend/src/ocr.ts` | **a leitura do texto do papel no aparelho** (fase 234): Tesseract com o português embutido, importado só no toque; o trabalhador numa peça só, com o `fetch` que recusa tudo o que não é o português. Quem usa é o `LerTextoDoPapel` (`anexos.tsx`), que sempre deixa a pessoa conferir e corrigir. No servidor, o texto conferido em `document_text` |
+| `backend/src/modules/people/campos-do-papel.regra.ts` | **o cadastro pelo papel conferido** (fase 235): o que a certidão, o RG e o cartão SUS sugerem, com o trecho; a tela e o teste leem a mesma regra |
 | `frontend/src/camera.tsx` | **a câmera do sistema** (fase 194): visor ao vivo, X e ✓ de cada foto, girar, trocar de câmera, e o **modo Documento** (página por página, realce, e Concluir num PDF A4 por `backend/src/kernel/documentos/pdf-de-imagens.ts`, sem biblioteca). Quem a abre é o `EscolherAnexo`. E o `CameraNesteAparelho` da Minha conta. **Não acha a borda do papel**: a moldura guia |
 | `backend/src/kernel/documentos/paginas-do-pdf.ts` | **as páginas de um PDF como imagem** (fase 165), num processo à parte (`desenhar-paginas.mjs`, nome diferente de propósito: com o mesmo nome o Jest importava o `.mjs`). Nunca lança: PDF que não desenha volta marcado, e o documento sai assim mesmo. **A tela de desenho vem da cópia do `@napi-rs/canvas` que o pdf.js traz** (fase 194): com a outra, todo PDF com foto dentro derrubava o processo |
 | `scripts/simulacao-da-casa.sh` | **uma casa nasce e vive noventa dias** (fase 173), **ou as oito vivem juntas** com `SIM_CASAS` (fase 177): a ARM1 do primeiro acesso a fevereiro, com o relógio andando (`faketime` lendo um arquivo que a simulação reescreve), os relatórios conferidos contra o que ela contou, e no fim o **`frontend/ensaio-servidor.mjs`**, que abre as telas no navegador **contra o servidor de verdade**. Depois dele, o **`frontend/ensaio-acolhe-modelo.mjs`** (fase 224): o servidor sobe de novo com a chave apontando para um modelo de mentira local, e a Acolhe+AI conversa inteira. Recria o banco: não roda junto com a suíte. `SIM_SO_NAVEGADOR=1` repete só o navegador. **`SIM_DUMP=arquivo` guarda o banco no fim** (fase 227): é o banco de demonstração do treino, com `SIM_INICIO` seis meses atrás para a história terminar hoje |
@@ -192,7 +194,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 22/10/2026, fase 233
+### Onde estamos — 23/10/2026, fase 236
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -289,6 +291,9 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 231 | **o Guia do sistema** (pedido de 19/10): o primeiro item do menu, com cada tela que o cargo alcança (o que é, o que o cargo faz, o que a Acolhe+AI faz, o botão que abre), as abas do perfil, a Acolhe+AI, a conta e as Novidades; o texto vem da lista da Acolhe+AI e do alcance, e o resto de `guia-do-sistema.ts`; o `o-guia-do-sistema.spec.ts` reprova a fase sem a linha dela nas Novidades |
 | 232 | **a Vida na casa na Geral, e a aba Documentos** (pedido de 20/10: *"tive que procurar onde ficam os documentos"*): o perfil em oito abas; a Cadastro virou Documentos e abre no dossiê e na lista, com quem mexeu no fim |
 | 233 | **até 10 anexos por mensagem, e a rodada dos downloads** (pedido de 22/10): a linha da ATA ganha anexos (shifts/1660), o diário da internação leva vários por registro (nursing/1661), a ocorrência recebe vários de uma vez, o atendimento vai a 10 e a Acolhe+AI aceita 10 por pergunta (`anexos-da-mensagem.regra.ts`, 15 MB por envio); na tela, `AnexosDaMensagem` com Ver e Tirar e a **câmera em sequência**; a rodada (`o-que-entra-volta-inteiro`, os 21 Words e cada porta de anexo, byte por byte e no disco) achou **toda imagem do Word cortada no LibreOffice** (entrelinha sem tipo), **o Exportar dos benefícios sem arquivo**, tabela vazia com título solto e **o diário da internação aceitando autor alheio no banco** |
+| 234 | **o texto do papel, lido no aparelho** (depois de conferir o andamento de outra IA, pedido de 22/10): *Ler o texto do papel* na prévia do dossiê e no Ver de cada anexo, com o Tesseract e o português no navegador (`ocr.ts`), conferido e corrigido pela pessoa; o texto conferido guardado com versão (`document_text`, people/1662) e a busca do dossiê; **com o protótipo aberto por dois cliques o trabalhador não carregava uma segunda peça**, e vai numa peça só |
+| 235 | **o cadastro corrigido pelo papel conferido**: a folha Corrigir o cadastro sugere nome, data, RG, CNS e filiação com o trecho do papel (`campos-do-papel.regra.ts`), a pessoa marca e corrige com o motivo; nada junta crianças, e nome muito diferente avisa |
+| 236 | **os gráficos no Word e a planilha do período**: o gráfico como dado da folha, impresso como quadro pintado (igual no servidor e no protótipo), e *Baixar a planilha* em CSV do Excel pelo mesmo registro com finalidade; **o LibreOffice espremia o rótulo** com a largura em porcentagem |
 
 **Medido no fim da 232:** 199 migrações, 139 tabelas, 151 suítes, 1330 testes, verdes nas
 DUAS condições de relógio, rodadas inteiras (na 219, a espera pela linha travada não se mede
@@ -385,9 +390,19 @@ as três cores abaixo. Cor nova passa pelo `ensaio:acessibilidade`, que mede os 
 
 **A pauta de 21/10** (sem fase, sem código): tudo o que espera o Pão, conferido contra o código e
 posto em ordem no **PARA-A-REUNIAO §0**: as cinco perguntas que mais destravam, o que a TI precisa
-responder, os documentos de papel e os dados a receber, o que o DPO vê, o que se assina e as 25
+responder, os documentos de papel e os dados a receber, o que o DPO vê, o que se assina e as 30
 decisões de produto abertas. **Quando a resposta vier, ela entra lá e no §10 ou §11 do documento**, e
 o item respondido sai do §0.
+
+**FEITO — fases 234, 235 e 236** (§2, PARA-A-REUNIAO §4.33, comparação em
+`docs/historico/comparacao-com-o-andamento-de-outra-ia-22-10.md`): o que a outra IA tinha e nós não, e
+que não depende de regra da Fundação: a leitura do papel no aparelho, o cadastro pelo papel conferido,
+os gráficos e a planilha do período, e a Acolhe+AI tratando o anexo como papel. **Quem mexer na leitura:**
+o `ocr.ts` é importado só no toque, e tudo do trabalhador vai numa peça (no `file://` ele não carrega
+outra); rode a sonda do `ensaio:uso` (*O texto do papel*). **Gráfico novo** entra como `grafico` na
+folha, e não como imagem. **Depende da Fundação:** as cinco linhas da §4.33 (o peso do protótipo, a
+planilha nos outros relatórios, a árvore da família, a IA local, a guarda e o depósito). **Próxima
+etapa:** a mesma da 227.
 
 **FEITO — fase 233** (§2, PARA-A-REUNIAO §4.32): até 10 anexos por mensagem na linha da ATA, no
 diário da internação, na ocorrência, no atendimento técnico e na Acolhe+AI, e a rodada de testes
@@ -1079,6 +1094,13 @@ novo.
   internação com o campo errado, o encerramento devolvia 400 calado no `afterAll`, e a suíte
   seguinte não achava criança livre na Casa 04. Hoje o encerramento que falha reprova a suíte. É a
   lição da 176 pela terceira vez: **o que a suíte abre no banco compartilhado, ela fecha e confere**.
+- **O que roda por dois cliques não é o que roda servido** (234). A leitura do papel passou no
+  sistema servido e morreu no protótipo aberto por `file://`: ali o trabalhador não carrega uma
+  segunda peça de blob. Foi a sonda no navegador, abrindo o arquivo como o Marcelo abre, que viu.
+  **O protótipo se prova aberto por dois cliques**, e recurso novo do navegador se mede lá.
+- **Largura em porcentagem é sugestão para o LibreOffice** (236). O gráfico saiu certo no XML e
+  espremido no papel: o rótulo numa coluna de três letras. Quadro do Word leva largura fixa e a
+  grade escrita. É a lição da 233 de novo: **documento se confere aberto**.
 - **Frase de tela que envelhece é frase que mente**, e a cobrança do ensaio que a
   guarda tem de ser reescrita junto. A ressalva do painel sobre nota escolar já foi
   reescrita três vezes. **Isto inclui este arquivo.**
