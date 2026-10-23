@@ -392,10 +392,13 @@ export class DossieService {
                                   escolhas: EscolhasDasVivencias): Promise<DadosDasVivencias> {
     const lido = await this.db.asUser(user.id, async (c) => {
       const { rows: [crianca] } = await c.query(
-        `SELECT coalesce(nullif(p.social_name, ''), p.full_name) AS nome,
-                (SELECT h.code || ' · ' || h.name FROM house_stay s JOIN house h ON h.id = s.house_id
-                  WHERE s.person_id = p.id ORDER BY (s.status = 'ativa') DESC, s.started_at DESC LIMIT 1) AS casa
-           FROM person p WHERE p.id = $1`, [personId]);
+        `SELECT coalesce(nullif(p.social_name, ''), p.full_name) AS nome FROM person p WHERE p.id = $1`, [personId]);
+      /* A casa pela mesma resposta da auditoria, sem JOIN entre tabelas com RLS. */
+      const idDaCasa = await this.audit.casaDoAcolhido(user.id, personId);
+      const { rows: [casa] } = idDaCasa
+        ? await c.query(`SELECT code || ' · ' || name AS nome FROM house WHERE id = $1`, [idDaCasa])
+        : { rows: [] as any[] };
+      if (crianca) crianca.casa = casa?.nome ?? null;
       const { rows: itens } = await c.query(
         `SELECT m.id, m.event_type, m.happened_on, m.description, app_user_display_name(m.created_by) AS por
            FROM memory_record m WHERE m.person_id = $1`, [personId]);
