@@ -303,7 +303,7 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 243 | **os documentos pela conversa** (período, visitas, internação, trajetória) e **o cuidado com as palavras** que rotulam a criança, só sugestão, nada guardado (`palavras-que-rotulam.ts`, `CuidadoComAsPalavras`); no protótipo, a volta semeada de noite caía no turno do dia |
 | 244 | **as palavras que a equipe ensina**: quem conversa propõe, a coordenação, a CG ou o gestor aprova ou recusa com motivo, e só a aprovada vale para a Acolhe+AI de todos (`assistant_word`, `assistant_word_decision`, assistente/1663) |
 
-**Medido no fim da 238:** 202 migrações, 142 tabelas, 156 suítes, 1387 testes; nas 237 e 238, a suíte inteira
+**Medido no fim da 238:** 203 migrações, 144 tabelas, 156 suítes, 1395 testes; nas 237 e 238, a suíte inteira
 verde (1363 de 1363, depois de consertar as três conferências que o relatório das vivências deixou soltas) e o
 `ensaio:uso` (739 cobranças, sem reprovação, com o relatório das vivências aberto e o Word baixado); **não rodou**
 nas 237 e 238 o relógio adiantado, o do celular, o de acessibilidade, o `ensaio:acolhe` nem a simulação contra o servidor;
