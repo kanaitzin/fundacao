@@ -99,7 +99,29 @@ describe('O relato da convivência familiar', () => {
     ids.saida = saida.body.id;
   });
 
-  afterAll(async () => { await app.close(); await admin.end(); });
+  /* A suíte FECHA o que abre (a lição da 127). A saída ficava em andamento, e a
+     criança, a mais antiga da Casa 03, aparecia fora da casa para a suíte que
+     rodasse depois: a da chamada reprovou assim, conforme a ordem do Jest. O
+     fecho é por SQL de dono, para funcionar mesmo que a rota seja o que quebrou,
+     e confere que fechou. */
+  afterAll(async () => {
+    try {
+      if (ids.saida) {
+        await admin.query(
+          `UPDATE family_stay SET status = 'encerrada', returned_at = now()
+            WHERE id = $1 AND returned_at IS NULL`, [ids.saida]);
+        const { rows: [f] } = await admin.query(
+          `SELECT status FROM family_stay WHERE id = $1`, [ids.saida]);
+        expect(f.status).toBe('encerrada');
+      }
+      if (ids.contato) {
+        await admin.query(
+          `UPDATE person_contact SET active = false,
+                  ended_reason = 'Contato fictício criado pela suíte de teste.'
+            WHERE id = $1`, [ids.contato]);
+      }
+    } finally { await app.close(); await admin.end(); }
+  });
 
   // ==================== O que a correção da Fundação impôs ====================
 

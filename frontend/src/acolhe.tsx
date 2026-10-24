@@ -505,8 +505,13 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
     /* O nome da tela de destino já levou à tela: não escolhe aba nem cartão
        ("me leva para Internação hospitalar" não entra no Hospital Fictício). */
     const daTela = tela ? sem(tela).split(/[^a-z]+/) : [];
+    /* Com a criança nomeada, o nome da tela já escolheu a tela e o cartão dela: não
+       escolhe também o botão de dentro. "Ver a internação da Caio" abria o Relatório
+       completo da internação, porque o botão tem a palavra (achado do ensaio:acolhe). */
+    const doNomeDaTela = (w: string) => daTela.some((d) => d.length > 3 && d.slice(0, 5) === w.slice(0, 5));
     const palavras = sem(pedido).split(/[^a-z]+/)
-      .filter((w) => w.length > 3 && !ignorar.includes(w) && !(entrar && GENERICAS.test(w)));
+      .filter((w) => w.length > 3 && !ignorar.includes(w) && !(entrar && GENERICAS.test(w))
+        && !(entrar && nomeDaCrianca && doNomeDaTela(w)));
     const tem = (texto: string) => palavras.filter((w) => sem(texto).includes(w.slice(0, 5))).length;
     /* O que o pedido diz além do nome da tela e dos verbos: "me leva para a Cozinha" não diz nada. */
     const assunto = palavras.filter((w) => !daTela.includes(w) && !GENERICAS.test(w));
