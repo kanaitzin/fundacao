@@ -138,6 +138,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 242, dia: '24/10/2026',
+    texto: 'No começo do plantão, pergunte à Acolhe+AI o que você precisa saber, e ela leva ao que mudou desde o seu último plantão. No fim, peça o rascunho da ATA. E, com as mãos ocupadas, marque Mãos ocupadas: você fala, ela responde em voz alta e volta a ouvir.' },
   { fase: 241, dia: '24/10/2026',
     texto: 'Antes de escolher o modelo da Acolhe+AI no computador do Pão, a TI pode medir: as frases do plantão e os pedidos que ela tem de recusar, com quantas foram bem atendidas e quanto tempo cada uma levou.' },
   { fase: 240, dia: '24/10/2026',

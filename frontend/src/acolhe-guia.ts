@@ -157,7 +157,16 @@ export function contaDoTexto(texto: string): string | null {
  * com a maiúscula e o ponto final, e sugere onde ele fica. A pessoa confere,
  * acrescenta e leva para a tela. Com o modelo, quem organiza o texto é ele.
  */
-const PEDIDO_DE_RELATORIO = /^\s*(relat[oó]rio|rascunho|anota[cç][aã]o|anotar|registro|registrar|escrever)\b[^:]{0,80}:/i;
+const PEDIDO_DE_RELATORIO = /^\s*(relat[oó]rio|rascunho|anota[cç][aã]o|anotar|registro|registrar|escrever|ata)\b[^:]{0,80}:/i;
+
+/*
+ * O COMEÇO E O FIM DO PLANTÃO (fase 242). Quem chega pergunta "o que eu preciso
+ * saber?", e o lugar disso é o cartão do que mudou, no alto do Dia, com a
+ * passagem ao lado. Quem sai pede o rascunho da ATA: no modo guia ela não lê as
+ * linhas do turno, então pede o relato, e o "ATA:" leva o rascunho à linha.
+ */
+const COMECO_DO_PLANTAO = /\b(o que (eu )?(preciso|tenho que|devo) saber|passa(r)? o plantao|como (ta|esta) a casa|cheguei (agora )?(no|pro|para o|ao) plantao|comecei (o |meu )?plantao|comeco do (meu )?plantao|o que aconteceu (no|desde o) (meu )?(ultimo )?plantao)\b/;
+const FIM_DO_TURNO = /\b(rascunho da ata|resumo do (meu )?(plantao|turno)|fim do (meu )?(plantao|turno)|terminando o (meu )?(plantao|turno)|encerrando o (meu )?(plantao|turno))\b/;
 const QUER_RELATORIO = /\b(fazer|faz|escrever|escreve|montar|monta|criar|cria|ditar|dita)\s+(um|o|uma|a)?\s*(relat[oó]rio|rascunho|registro|relato)\b/;
 /* "Preciso registrar que o Bruno caiu no pátio": o que vem depois do "que" é o
    relato, e o lugar dele é o rascunho, não o perfil (fase 200). */
@@ -358,6 +367,13 @@ export function responderPeloGuia(texto: string, telas: TelaDoGuia[], primeira: 
      pedido vira rascunho só depois de não ser ida a uma tela nem sugestão. */
   const pedido = rascunhoDoPedido(texto, telas, false);
   if (pedido) return comRascunho(pedido);
+
+  if (COMECO_DO_PLANTAO.test(t) && telas.some((x) => x.chave === 'dia')) {
+    return { texto: `${aviso}Bom plantão! O que mudou desde o seu último plantão fica no alto do Dia: as ocorrências, a ATA anterior e os remédios novos, suspensos ou mudados. A passagem assinada está na Passagem.\n\n${`${link(telas, 'dia', 'Abrir o Dia')}${link(telas, 'passagem', 'Abrir a Passagem')}`.trim()}`, ir: 'dia' };
+  }
+  if (FIM_DO_TURNO.test(t) && telas.some((x) => x.chave === 'ata')) {
+    return { texto: `${aviso}Para fechar o turno, me conte o que aconteceu, do jeito que vier, escrevendo aqui ou pelo microfone, começando com ATA e dois-pontos. Eu monto o rascunho, você confere e eu escrevo na linha da ATA. Só os fatos: o que aconteceu, quando, quem estava e o que foi feito.` };
+  }
 
   /* O cuidado vem antes de qualquer tela (fase 200). Num ditado longo, o
      relato vira rascunho logo abaixo: "fugiu" no meio de um relatório é fato

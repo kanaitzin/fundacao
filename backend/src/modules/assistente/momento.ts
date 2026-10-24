@@ -18,6 +18,8 @@ export interface Momento {
   tela?: string | null;
   casa?: { id: string; nome: string } | null;
   voz?: string | null;
+  /** A pessoa ligou o modo mãos ocupadas (fase 242): fala e ouve, sem tocar na tela. */
+  maosOcupadas?: boolean;
 }
 
 export const INICIO_DA_NOTA = '[Nota da tela, não da pessoa.';
@@ -31,5 +33,6 @@ export function notaDoMomento(m: Momento): string {
     m.tela ? `Tela aberta: ${m.tela}.` : '',
     m.casa ? `Casa aberta: ${m.casa.nome} (houseId ${m.casa.id}).` : 'Sem casa aberta.',
     m.voz ? `A pessoa escolheu falar com: ${m.voz}.` : '',
+    m.maosOcupadas ? 'A pessoa está com as mãos ocupadas e ouve a resposta em voz alta: responda em uma ou duas frases curtas, sem tabela nem lista.' : '',
   ].filter(Boolean).join(' ') + ']';
 }

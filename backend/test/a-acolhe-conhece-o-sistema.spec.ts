@@ -257,6 +257,24 @@ describe('o modo guia atende como colega de plantão', () => {
     expect(r('ele bateu nela no quarto').texto).toMatch(/sem perguntar detalhes/);
   });
 
+  it('no começo do plantão, leva ao que mudou; no fim, monta o rascunho da ATA (fase 242)', () => {
+    for (const frase of ['o que eu preciso saber?', 'cheguei agora no plantão', 'passa o plantão pra mim', 'como tá a casa?']) {
+      const x = r(frase);
+      expect([frase, x.ir]).toEqual([frase, 'dia']);
+      expect(x.texto).toMatch(/O que mudou desde o seu último plantão/);
+      expect(x.texto).toMatch(/\(tela:passagem\)/);
+    }
+    for (const frase of ['monta o rascunho da ata do meu turno', 'fim do meu plantão, me ajuda']) {
+      expect(r(frase).texto).toMatch(/começando com ATA e dois-pontos/);
+      expect(r(frase).rascunho).toBeUndefined();
+    }
+    const ata = r('ATA: a noite foi tranquila, o Theo teve febre às 2h e foi medicado pela Enfermagem');
+    expect(ata.rascunho).toMatchObject({ tela: 'ata', texto: 'A noite foi tranquila, o Theo teve febre às 2h e foi medicado pela Enfermagem.' });
+    /* Fechar a ATA continua abrindo a ATA, e quem não tem o Dia não ganha o link. */
+    expect(r('me ajuda a fechar a ata').ir).toBe('ata');
+    expect(r('o que eu preciso saber?', TELAS.filter((x) => x.chave !== 'dia')).ir).not.toBe('dia');
+  });
+
   it('febre e tombo: não orienta remédio nem diagnóstico, diz quem decide', () => {
     const x = r('a lara ta com febre o que eu faço');
     expect(x.cuidado).toBe(true);

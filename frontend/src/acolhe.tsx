@@ -147,6 +147,13 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
   const [escrevendo, setEscrevendo] = useState('');
   const [voz, setVoz] = useState(VOZES[0]);
   const [lerRespostas, setLerRespostas] = useState(false);
+  /* MÃOS OCUPADAS (fase 242): a pessoa fala, a pergunta vai sozinha depois de
+     um silêncio, a resposta é lida em voz alta e o microfone volta a ouvir
+     quando a leitura acaba (antes disso ele ouviria a própria Acolhe+AI). */
+  const [maos, setMaos] = useState(false);
+  const maosRef = useRef(false);
+  const falado = useRef('');
+  const silencio = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [ouvindo, setOuvindo] = useState(false);
   const [avisoVoz, setAvisoVoz] = useState(false);
   /** Recolhida numa faixa enquanto mexe na tela, para a pessoa ver o trabalho. */
@@ -754,7 +761,7 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
     /* A nota do momento (fase 223): a hora, o turno, a tela e a casa vão aqui,
        na pergunta, e não nas instruções, que ficam fixas durante a conversa. */
     const momento = notaDoMomento({ agora: new Date(), turno: turnoAgora(), tela: telaAtual,
-      casa, voz: voz === VOZES[0] ? null : voz });
+      casa, voz: voz === VOZES[0] ? null : voz, maosOcupadas: maos });
     const fala = [momento, ...notas, quais, t || veja]
       .filter(Boolean).join('\n');
     conteudo.push({ type: 'text', text: fala });
@@ -859,6 +866,61 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
     });
     if (ditado.current) setOuvindo(true);
   }
+
+  /** O microfone das mãos ocupadas: ouve até um silêncio de dois segundos e meio, e manda. */
+  function ouvirSozinho() {
+    if (!maosRef.current || ditado.current) return;
+    if (!reconhecimentoDeVoz()) { dizer('Este navegador não ouve pelo microfone. Escreva, por favor.'); return; }
+    falado.current = '';
+    const mandar = () => {
+      silencio.current = null;
+      ditado.current?.parar();
+    };
+    const esperar = () => {
+      if (silencio.current) clearTimeout(silencio.current);
+      silencio.current = setTimeout(mandar, 2500);
+    };
+    ditado.current = iniciarDitado({
+      onCerto: (t) => { falado.current = juntarAoTexto(falado.current, t); setTexto(falado.current); esperar(); },
+      onProvisorio: (t) => { setFalaProvisoria(t); esperar(); },
+      onFim: () => {
+        ditado.current = null; setOuvindo(false); setFalaProvisoria('');
+        if (silencio.current) { clearTimeout(silencio.current); silencio.current = null; }
+        const t = falado.current.trim();
+        falado.current = '';
+        if (t && maosRef.current) { setTexto(''); void enviar(t); }
+      },
+      onErro: (f) => dizer(f),
+    });
+    if (ditado.current) setOuvindo(true);
+  }
+
+  function ligarMaos(sim: boolean) {
+    maosRef.current = sim;
+    setMaos(sim);
+    if (sim) {
+      if (!avisoDaVozAceito()) { setAvisoVoz(true); return; }
+      setLerRespostas(true);
+      ouvirSozinho();
+    } else {
+      if (silencio.current) { clearTimeout(silencio.current); silencio.current = null; }
+      falado.current = '';
+      ditado.current?.parar();
+    }
+  }
+
+  /* Fechada a Acolhe+AI, o microfone das mãos ocupadas desliga: ele não fica ouvindo escondido. */
+  useEffect(() => { if (!aberta && maosRef.current) ligarMaos(false); }, [aberta]);
+
+  /* Com as mãos ocupadas, o microfone volta quando ela parou de pensar e de falar. */
+  useEffect(() => {
+    if (!maos || ocupada || ouvindo || !aberta) return;
+    const vez = setInterval(() => {
+      const falando = 'speechSynthesis' in window && (window.speechSynthesis.speaking || window.speechSynthesis.pending);
+      if (!falando) { clearInterval(vez); ouvirSozinho(); }
+    }, 300);
+    return () => clearInterval(vez);
+  }, [maos, ocupada, ouvindo, aberta]);
 
   function lerTela() {
     const t = (document.querySelector('main.conteudo') as HTMLElement | null)?.innerText?.trim();
@@ -1114,6 +1176,10 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
           <input type="checkbox" checked={lerRespostas} onChange={(e) => setLerRespostas(e.target.checked)} />
           <span>Ler as respostas em voz alta</span>
         </label>
+        <label className="acolhe-ler">
+          <input type="checkbox" checked={maos} onChange={(e) => ligarMaos(e.target.checked)} />
+          <span>Mãos ocupadas: falo, ela responde em voz alta e volta a ouvir</span>
+        </label>
       </div>
       {ligada === false && (
         <p className="acolhe-aviso">Modo guia: explico as telas, levo você até elas e anoto sugestões. Ler dados e montar relatórios pede a Acolhe+AI ligada na instalação.</p>
@@ -1156,10 +1222,10 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
           <strong id="t-aviso-voz">Antes de usar o microfone</strong>
           <p>O que você falar é transformado em texto pelo serviço do navegador (no Chrome, o do Google). Evite dizer nome completo e dados de criança em voz alta; escreva quando puder.</p>
           <div className="row" style={{ gap: 8 }}>
-            <button className="btn sm" onClick={() => { aceitarAvisoDaVoz(); setAvisoVoz(false); ouvir(); }}>
+            <button className="btn sm" onClick={() => { aceitarAvisoDaVoz(); setAvisoVoz(false); if (maosRef.current) { setLerRespostas(true); ouvirSozinho(); } else ouvir(); }}>
               Entendi, usar o microfone
             </button>
-            <button className="btn sm sec" onClick={() => setAvisoVoz(false)}>Agora não</button>
+            <button className="btn sm sec" onClick={() => { setAvisoVoz(false); if (maosRef.current) ligarMaos(false); }}>Agora não</button>
           </div>
         </div>
       )}

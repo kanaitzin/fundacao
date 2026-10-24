@@ -3777,6 +3777,7 @@ console.log('\n🔌 A Acolhe+AI com a máquina fora do ar (fase 240)');
   await pgF.locator('select.troca-cargo-sel').selectOption('coordenador');
   await pgF.waitForTimeout(900);
   await pgF.getByRole('button', { name: /^Abrir a Acolhe\+AI/ }).click();
+  await pgF.waitForTimeout(600); /* a tela pergunta ao servidor se ela está ligada */
   const painel = pgF.locator('.acolhe-painel');
   await pgF.locator('#acolhe-pergunta').fill('onde vejo as ocorrências?');
   await painel.getByRole('button', { name: 'Enviar' }).click();
@@ -3792,6 +3793,72 @@ console.log('\n🔌 A Acolhe+AI com a máquina fora do ar (fase 240)');
   cobrar('com a máquina de volta, a pergunta seguinte vai ao modelo', /Voltei, pode perguntar/.test(await painel.locator('.acolhe-conversa').innerText()));
   cobrar('nenhuma exceção com a máquina fora do ar', errosF.length === 0, errosF[0]);
   await pgF.close();
+}
+
+/*
+ * AS MÃOS OCUPADAS (fase 242). Com um microfone falso (cada vez que liga, fala
+ * a próxima frase da fila) e uma leitura em voz alta falsa (anota o que leu e
+ * termina em 200 ms): a pergunta vai sozinha depois do silêncio, a resposta é
+ * lida, e o microfone só volta quando a leitura acabou, com a frase seguinte.
+ */
+console.log('\n🙌 A Acolhe+AI com as mãos ocupadas (fase 242)');
+{
+  const pgM = await navegador.newPage({ viewport: { width: 420, height: 900 } });
+  const errosM = [];
+  pgM.on('pageerror', (e) => errosM.push(e.message));
+  await pgM.addInitScript(() => {
+    localStorage.setItem('rede-acolher.acolhe.aviso-do-microfone', '1');
+    window.__falas = ['me leva para a escala', 'onde vejo as ocorrências?'];
+    window.__ligou = 0;
+    class Falso {
+      constructor() { this.onresult = null; this.onend = null; this.onerror = null; }
+      start() {
+        window.__ligou++;
+        const fala = window.__falas.shift();
+        if (!fala) return;
+        setTimeout(() => this.onresult?.({ resultIndex: 0, results: [Object.assign([{ transcript: fala }], { isFinal: true })] }), 60);
+      }
+      stop() { setTimeout(() => this.onend?.(), 10); }
+    }
+    window.webkitSpeechRecognition = Falso;
+    window.SpeechRecognition = Falso;
+    window.__lidas = [];
+    let lendo = false;
+    Object.defineProperty(window, 'speechSynthesis', { configurable: true, value: {
+      speak(u) { window.__lidas.push(u.text); lendo = true; setTimeout(() => { lendo = false; u.onend?.(); }, 200); },
+      cancel() {}, getVoices: () => [],
+      get speaking() { return lendo; }, get pending() { return false; },
+    } });
+  });
+  await pgM.goto(`file://${ARQUIVO}`);
+  await pgM.waitForTimeout(800);
+  await pgM.getByRole('button', { name: 'Marcelo Barbosa' }).click();
+  await pgM.getByRole('button', { name: /Entrar no sistema/i }).click();
+  await pgM.waitForTimeout(1200);
+  await pgM.locator('select.troca-cargo-sel').selectOption('coordenador');
+  await pgM.waitForTimeout(900);
+  await pgM.getByRole('button', { name: /^Abrir a Acolhe\+AI/ }).click();
+  await pgM.waitForTimeout(600);
+  const painel = pgM.locator('.acolhe-painel');
+  await painel.getByLabel(/Mãos ocupadas/).check();
+  cobrar('as mãos ocupadas ligam a leitura em voz alta', await painel.getByLabel('Ler as respostas em voz alta').isChecked());
+  await pgM.waitForTimeout(4500);
+  const conversa1 = await painel.locator('.acolhe-conversa').innerText();
+  cobrar('a primeira fala vai sozinha depois do silêncio, sem tocar em Enviar', /me leva para a escala/.test(conversa1), conversa1.slice(0, 200));
+  cobrar('e leva à Escala', (await pgM.locator('main.conteudo').getAttribute('data-tela')) === 'escala');
+  const lidas1 = await pgM.evaluate(() => window.__lidas.length);
+  cobrar('a resposta é lida em voz alta', lidas1 >= 1);
+  await pgM.getByRole('button', { name: /^Abrir a Acolhe\+AI/ }).click().catch(() => {});
+  await pgM.locator('.acolhe-faixa').getByRole('button', { name: 'Ver a conversa' }).click().catch(() => {});
+  await pgM.waitForTimeout(5000);
+  const conversa2 = await painel.locator('.acolhe-conversa').innerText().catch(() => '');
+  cobrar('o microfone volta depois da leitura, e a segunda fala também vai', /onde vejo as ocorr/.test(conversa2), conversa2.slice(-300));
+  await painel.getByLabel(/Mãos ocupadas/).uncheck().catch(() => {});
+  const ligou = await pgM.evaluate(() => window.__ligou);
+  await pgM.waitForTimeout(3000);
+  cobrar('desligadas as mãos ocupadas, o microfone não religa', (await pgM.evaluate(() => window.__ligou)) === ligou);
+  cobrar('nenhuma exceção com as mãos ocupadas', errosM.length === 0, errosM[0]);
+  await pgM.close();
 }
 
 /*

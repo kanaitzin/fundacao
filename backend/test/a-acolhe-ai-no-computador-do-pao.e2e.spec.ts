@@ -19,6 +19,7 @@ import { createServer, Server, ServerResponse } from 'node:http';
 import { AppModule } from '../src/app.module';
 import { FERRAMENTAS, NOMES_DAS_FERRAMENTAS } from '../src/modules/assistente/ferramentas';
 import { GUIA_DA_ACOLHE, guiaDoCargo } from '../src/modules/assistente/guia';
+import { notaDoMomento } from '../src/modules/assistente/momento';
 import { CASOS_DA_PROVA, RespostaDaProva, contaDaProva } from '../src/modules/assistente/prova-do-modelo';
 import { rodarAProva, telasDoGuia } from '../src/modules/assistente/prova-do-modelo.rodar';
 import {
@@ -142,6 +143,13 @@ describe('A tradução para o modelo do Pão', () => {
       expect(g.slice(g.indexOf(parte), g.indexOf('\n# ', g.indexOf(parte) + 2)))
         .toBe(GUIA_DA_ACOLHE.slice(GUIA_DA_ACOLHE.indexOf(parte), GUIA_DA_ACOLHE.indexOf('\n# ', GUIA_DA_ACOLHE.indexOf(parte) + 2)));
     expect(guiaDoCargo([])).toBe(GUIA_DA_ACOLHE);
+  });
+
+  it('com as mãos ocupadas, a nota do momento pede resposta curta para ouvir (fase 242)', () => {
+    const base = { agora: new Date('2026-10-24T15:00:00Z'), turno: 'diurno' as const };
+    expect(notaDoMomento({ ...base, maosOcupadas: true })).toMatch(/mãos ocupadas e ouve a resposta em voz alta: responda em uma ou duas frases curtas/);
+    expect(notaDoMomento(base)).not.toMatch(/mãos ocupadas/);
+    expect(GUIA_DA_ACOLHE).toMatch(/As mãos ocupadas\. Quando a nota do momento diz/);
   });
 
   it('a máquina que não responde a tempo é dita como demora', async () => {
