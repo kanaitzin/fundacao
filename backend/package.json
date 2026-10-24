@@ -14,6 +14,7 @@
     "seed:fase2": "tsx scripts/seed-fase2.ts",
     "migrate:prod": "node dist/migrate.js",
     "postbuild": "node scripts/copiar-migracoes.mjs",
+    "prova-do-modelo": "tsx scripts/prova-do-modelo.ts",
     "relogio": "tsx src/relogio.ts",
     "relogio:prod": "node dist/relogio.js",
     "fim-do-plantao": "tsx src/fim-do-plantao.ts",
