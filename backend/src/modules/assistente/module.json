@@ -9,8 +9,10 @@
     "AssistenteService"
   ],
   "tabelas": [
-    "assistant_suggestion"
+    "assistant_suggestion",
+    "assistant_word",
+    "assistant_word_decision"
   ],
   "removivel": true,
-  "observacao": "Não lê o banco por conta própria: toda leitura sai da tela da pessoa, pelas rotas de sempre. Sem ele, o sistema segue igual, sem a assistente."
+  "observacao": "Não lê o banco por conta própria: toda leitura sai da tela da pessoa, pelas rotas de sempre; a única exceção são as palavras que a equipe ensinou e a coordenação aprovou (fase 244), que são o vocabulário dela. Sem ele, o sistema segue igual, sem a assistente."
 }

@@ -257,6 +257,14 @@ function PeriodoNoHospital({ id, papel, onVoltar }: {
   /** O anexo que está aberto na tela — nunca mais o download às cegas. */
   const [vendoAnexo, setVendoAnexo] = useState<{ notaId: string; anexoId: string; nome: string } | null>(null);
   const [relatorio, setRelatorio] = useState<DocumentoWord | null>(null);
+  /* O botão só pede o relatório, e o efeito busca (fase 243): a Acolhe+AI pode abri-lo a pedido. */
+  const [pedirRelatorio, setPedirRelatorio] = useState(false);
+  useEffect(() => {
+    if (!pedirRelatorio) return;
+    setPedirRelatorio(false);
+    api<DocumentoWord>(`/nursing/hospitalizations/${id}/folha`).then(setRelatorio)
+      .catch((e) => setErro(e instanceof Error ? e.message : 'Não foi possível montar o relatório.'));
+  }, [pedirRelatorio]);
   const podeEncerrar = QUEM_ABRE.includes(papel);
   const podeBaixar = QUEM_BAIXA.includes(papel);
 
@@ -313,10 +321,7 @@ function PeriodoNoHospital({ id, papel, onVoltar }: {
       {/* O RELATÓRIO COMPLETO (fase 165): capa, os dias em ordem e os anexos
           dentro do Word, inclusive as páginas dos PDFs do hospital. */}
       {podeBaixar && (
-        <button className="btn sec block" onClick={async () => {
-          try { setRelatorio(await api<DocumentoWord>(`/nursing/hospitalizations/${id}/folha`)); }
-          catch (e) { setErro(e instanceof Error ? e.message : 'Não foi possível montar o relatório.'); }
-        }}>
+        <button data-acolhe-abre="" className="btn sec block" onClick={() => setPedirRelatorio(true)}>
           <Icone nome="documento" /> Relatório completo da internação
         </button>
       )}

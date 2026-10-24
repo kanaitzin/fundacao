@@ -264,6 +264,55 @@ describe('A Acolhe+AI', () => {
     }
   });
 
+  it('a palavra que a equipe ensina: quem propõe, quem decide, e só a aprovada chega ao modelo (fase 244)', async () => {
+    const auth = (k: string) => ({ Authorization: `Bearer ${tok[k]}` });
+    const diz = `dar um bico ${Date.now()}`;
+    const pal = (k: string) => request(http).get('/api/v1/assistente/palavras').set(auth(k));
+    const decidir = (k: string, id: string, corpo: any) =>
+      request(http).post(`/api/v1/assistente/palavras/${id}/decisao`).set(auth(k)).send(corpo);
+
+    expect((await request(http).post('/api/v1/assistente/palavras').set(auth('edu')).send({ diz: 'x', querDizer: 'chutar' })).status).toBe(400);
+    const proposta = await request(http).post('/api/v1/assistente/palavras').set(auth('edu'))
+      .send({ diz, querDizer: 'chutar alguém', casaId: ids.AI3 });
+    expect(proposta.status).toBe(201);
+    const id = proposta.body.id;
+    expect((await pal('edu')).body.minhas.find((x: any) => x.id === id)).toMatchObject({ situacao: 'esperando', diz });
+    /* Outra pessoa não lê a proposta, e ela ainda não vale. */
+    const outro = (await pal('edu2')).body;
+    expect(outro.minhas.some((x: any) => x.id === id)).toBe(false);
+    expect(outro.aprovadas.some((x: any) => x.diz === diz)).toBe(false);
+    expect(outro.decide).toBe(false);
+
+    expect((await decidir('edu', id, { decisao: 'aprovar' })).status).toBe(403);
+    expect((await decidir('coord4', id, { decisao: 'aprovar' })).status).toBe(404);
+    expect((await decidir('coord3', id, { decisao: 'recusar' })).status).toBe(400);
+    expect((await decidir('coord3', id, { decisao: 'retirar', motivo: 'ainda não aprovada' })).status).toBe(409);
+    expect((await pal('coord3')).body.paraDecidir.some((x: any) => x.id === id)).toBe(true);
+    expect((await decidir('coord3', id, { decisao: 'aprovar' })).status).toBe(200);
+    expect((await decidir('gestor', id, { decisao: 'recusar', motivo: 'decidida duas vezes' })).status).toBe(409);
+
+    /* Aprovada, vale para todos: a lista e o contexto do modelo. */
+    expect((await pal('edu2')).body.aprovadas).toContainEqual({ diz, querDizer: 'chutar alguém' });
+    recebidos.length = 0; proxima = null;
+    await request(http).post('/api/v1/assistente/conversa').set(auth('edu2')).send({ mensagens: [{ role: 'user', content: 'oi' }] });
+    expect(recebidos[0].corpo.system[1].text).toContain(`- ${diz}: chutar alguém`);
+    expect((await pal('edu')).body.minhas.find((x: any) => x.id === id)).toMatchObject({ situacao: 'aprovada' });
+
+    /* Retirada, com motivo, deixa de valer; nada se apaga. */
+    expect((await decidir('gestor', id, { decisao: 'retirar' })).status).toBe(400);
+    expect((await decidir('gestor', id, { decisao: 'retirar', motivo: 'quer dizer outra coisa na casa' })).status).toBe(200);
+    expect((await pal('edu2')).body.aprovadas.some((x: any) => x.diz === diz)).toBe(false);
+    const { rows } = await admin.query(`SELECT decision FROM assistant_word_decision WHERE word_id = $1 ORDER BY created_at`, [id]);
+    expect(rows.map((r) => r.decision)).toEqual(['aprovada', 'retirada']);
+
+    /* A auditoria leva a casa e a decisão, nunca o texto da palavra. */
+    const { rows: aud } = await admin.query(
+      `SELECT action, house_id, detail FROM audit_event WHERE entity_id = $1 ORDER BY at`, [id]);
+    expect(aud.map((r) => r.action)).toEqual(['assistente.palavra.proposta', 'assistente.palavra.decisao', 'assistente.palavra.decisao']);
+    expect(aud.every((r) => r.house_id === ids.AI3)).toBe(true);
+    expect(JSON.stringify(aud)).not.toContain('dar um bico');
+  });
+
   it('a sugestão de melhoria tem autor, e quem lê é quem a Fundação decidiu', async () => {
     const auth = (k: string) => ({ Authorization: `Bearer ${tok[k]}` });
     const texto = `Seria bom poder marcar a mamadeira na chamada (${Date.now()}).`;

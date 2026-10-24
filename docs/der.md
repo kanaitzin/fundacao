@@ -955,7 +955,21 @@ coordenação da casa, a Coordenação Geral, o Gestor Geral e a TI (`admin_tecn
 conversa com a assistente **não** é tabela: ela vive na tela de quem conversa, e o uso
 fica na auditoria (`assistente.conversa`, só metadado).
 
-## Inventário — 142 tabelas por partição
+### As palavras que a equipe ensina (assistente/1663, fase 244)
+
+**`assistant_word`** — a palavra ou o jeito de dizer que alguém da equipe ensinou à
+Acolhe+AI: `author_id` (quem ensinou), `house_id` (a casa de quem ensinou, só se a
+alcança), `says` (de 2 a 60 caracteres), `means` (o que quer dizer, de 2 a 160) e
+`created_at`. **`assistant_word_decision`** — cada decisão sobre ela, numa linha nova:
+`word_id`, `decided_by`, `decision` (`aprovada`, `recusada` ou `retirada`), `reason` (o
+motivo, obrigatório para recusar e retirar) e `created_at`. A situação é a última decisão
+(`app_palavra_aprovada`). **Quem decide:** a coordenação da casa da palavra, a
+Coordenação Geral e o Gestor Geral (`app_decide_palavra`). **Quem lê a proposta:** quem
+ensinou, quem decide e a TI; **a palavra aprovada**, todos, porque é ela que a Acolhe+AI
+de todos entende. Nada se apaga nem se reescreve: aprovar e recusar só o que espera,
+retirar só o aprovado (gatilho `app_ordem_da_decisao_da_palavra`).
+
+## Inventário — 144 tabelas por partição
 
 | Partição | Tabelas |
 |---|---|
@@ -972,7 +986,7 @@ fica na auditoria (`assistente.conversa`, só metadado).
 | archive (2) | archive_item, archive_attempt |
 | alignments (5) | team_meeting, team_agreement, agreement_change, meeting_agenda_item, house_statute |
 | routine (2) | routine_version, routine_item |
-| assistente (1) | assistant_suggestion |
+| assistente (3) | assistant_suggestion, assistant_word, assistant_word_decision |
 | statements (3) | witness_option, statement, statement_request |
 | sync (2) | offline_operation, sync_conflict |
 | relogio (1) | implantacao_evento |

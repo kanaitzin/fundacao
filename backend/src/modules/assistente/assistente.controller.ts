@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, HttpException, Inject, Post, Query, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpException, Inject, Param, Post, Query, Res, UseGuards } from '@nestjs/common';
 import type { Response } from 'express';
 import { SessionGuard, CurrentUser } from '../identity';
 import { AuthenticatedUser } from '../../kernel/contracts';
@@ -89,5 +89,22 @@ export class AssistenteController {
   @Get('sugestoes')
   sugestoes(@CurrentUser() user: AuthenticatedUser, @Query('houseId') casaId?: string) {
     return this.acolhe.sugestoes(user, casaId || undefined);
+  }
+
+  /** As palavras que a equipe ensinou (fase 244): as aprovadas, as minhas e, para quem decide, as da casa. */
+  @Get('palavras')
+  palavras(@CurrentUser() user: AuthenticatedUser) { return this.acolhe.palavras(user); }
+
+  @Post('palavras')
+  proporPalavra(@CurrentUser() user: AuthenticatedUser,
+                @Body() corpo: { diz?: unknown; querDizer?: unknown; casaId?: unknown }) {
+    return this.acolhe.proporPalavra(user, corpo);
+  }
+
+  @Post('palavras/:id/decisao')
+  @HttpCode(200)
+  decidirPalavra(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string,
+                 @Body() corpo: { decisao?: unknown; motivo?: unknown }) {
+    return this.acolhe.decidirPalavra(user, id, corpo);
   }
 }

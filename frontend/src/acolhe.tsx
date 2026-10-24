@@ -7,6 +7,8 @@ import { MEXEM_NA_TELA, rotaDeLeituraPermitida } from '../../backend/src/modules
 import { calcular, numeroEmPortugues } from '../../backend/src/modules/assistente/calculo';
 import { notaDoMomento } from '../../backend/src/modules/assistente/momento';
 import { turnoAgora } from './turno';
+import { palavrasEnsinadas } from '../../backend/src/modules/assistente/palavras-da-casa';
+import type { PalavraDaCasa } from '../../backend/src/modules/assistente/palavras-da-casa';
 import { CriancaDaCasa, DESTINOS_DE_TEXTO, criancasNoPedido, ehPergunta, pedeAcao, pedeFormulario, responderPeloGuia, TelaDoGuia } from './acolhe-guia';
 import { apertarBotao, apertarEste, botoesDaTela, camposDaTela, preencherCampo, textoDaTela } from './acolhe-tela';
 import { Ditado, aceitarAvisoDaVoz, avisoDaVozAceito, iniciarDitado, juntarAoTexto, reconhecimentoDeVoz } from './ditado';
@@ -151,6 +153,11 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
      um silêncio, a resposta é lida em voz alta e o microfone volta a ouvir
      quando a leitura acaba (antes disso ele ouviria a própria Acolhe+AI). */
   const [maos, setMaos] = useState(false);
+  /* As palavras que a equipe ensinou e a coordenação aprovou (fase 244). */
+  const [ensinadas, setEnsinadas] = useState<PalavraDaCasa[]>([]);
+  const [ensinando, setEnsinando] = useState(false);
+  const [palavraDiz, setPalavraDiz] = useState('');
+  const [palavraQuer, setPalavraQuer] = useState('');
   const maosRef = useRef(false);
   const falado = useRef('');
   const silencio = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -181,6 +188,12 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
     api<{ ligada: boolean }>('/assistente/estado')
       .then((r) => setLigada(!!r.ligada)).catch(() => setLigada(false));
   }, [aberta, ligada]);
+  /* As palavras aprovadas, toda vez que o painel abre: a coordenação pode ter aprovado uma agora. */
+  useEffect(() => {
+    if (!aberta) return;
+    api<{ aprovadas: { diz: string; querDizer: string }[] }>('/assistente/palavras')
+      .then((r) => setEnsinadas(palavrasEnsinadas(r.aprovadas ?? []))).catch(() => undefined);
+  }, [aberta]);
 
   useEffect(() => { fim.current?.scrollIntoView({ block: 'end' }); }, [linhas, lendo]);
 
@@ -200,7 +213,8 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
     const h = humanizar(t);
     acrescentar({ quem: 'acolhe', texto: h });
     setFaixa(h.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').split('\n')[0].slice(0, 160));
-    if (lerRespostas) falar(h);
+    /* Com as mãos ocupadas, lê sempre: a escolha acabou de mudar e este trecho ainda veria o valor de antes. */
+    if (lerRespostas || maosRef.current) falar(h);
   }
 
   /** A licença para mexer na tela: uma vez por conversa, e a resposta fica na auditoria. */
@@ -363,7 +377,7 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
       dizer(`No modo guia eu não leio arquivos. Para guardar um documento, abra o perfil da criança e o dossiê dela${dossie ? ': [Abrir os Acolhidos](tela:acolhidos)' : '.'}`);
       return;
     }
-    const r = responderPeloGuia(t, telas, linhas.filter((l) => l.quem === 'acolhe').length === 0);
+    const r = responderPeloGuia(t, telas, linhas.filter((l) => l.quem === 'acolhe').length === 0, ensinadas);
     /* A criança nomeada (fase 196): o perfil é o lugar dela. O rascunho, a
        sugestão e a conta continuam vindo antes: "relatório: a Alice voltou da
        escola" é texto para conferir, e não ida ao perfil. */
@@ -922,6 +936,17 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
     return () => clearInterval(vez);
   }, [maos, ocupada, ouvindo, aberta]);
 
+  async function ensinar() {
+    try {
+      await api('/assistente/palavras', { method: 'POST',
+        body: JSON.stringify({ diz: palavraDiz, querDizer: palavraQuer, casaId: casa?.id }) });
+      setEnsinando(false); setPalavraDiz(''); setPalavraQuer('');
+      dizer(`Obrigada! Mandei ${palavraDiz.trim()} para a coordenação conferir. Quando ela aprovar, eu passo a entender, e para todo mundo.`);
+    } catch (e) {
+      dizer(e instanceof Error ? e.message : 'Não consegui guardar a palavra agora.');
+    }
+  }
+
   function lerTela() {
     const t = (document.querySelector('main.conteudo') as HTMLElement | null)?.innerText?.trim();
     if (!t) { dizer('Não achei texto nesta tela para ler.'); return; }
@@ -1180,7 +1205,27 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
           <input type="checkbox" checked={maos} onChange={(e) => ligarMaos(e.target.checked)} />
           <span>Mãos ocupadas: falo, ela responde em voz alta e volta a ouvir</span>
         </label>
+        <button type="button" className="btn sm ghost" aria-expanded={ensinando} onClick={() => setEnsinando((x) => !x)}>
+          Ensinar uma palavra
+        </button>
       </div>
+      {ensinando && (
+        <div className="acolhe-ensinar stack" role="group" aria-labelledby="t-ensinar">
+          <strong id="t-ensinar">Ensinar uma palavra à Acolhe+AI</strong>
+          <label className="f" htmlFor="acolhe-palavra-diz">A palavra ou o jeito de dizer</label>
+          <input id="acolhe-palavra-diz" value={palavraDiz} maxLength={60} onChange={(e) => setPalavraDiz(e.target.value)}
+                 placeholder="Ex.: dar um bico" />
+          <label className="f" htmlFor="acolhe-palavra-quer">O que quer dizer</label>
+          <input id="acolhe-palavra-quer" value={palavraQuer} maxLength={160} onChange={(e) => setPalavraQuer(e.target.value)}
+                 placeholder="Ex.: chutar" />
+          <p className="mutetxt" style={{ margin: 0 }}>A coordenação confere e, se aprovar, a palavra passa a valer para todos.</p>
+          <div className="row" style={{ gap: 8 }}>
+            <button type="button" className="btn sm" disabled={palavraDiz.trim().length < 2 || palavraQuer.trim().length < 2}
+                    onClick={() => void ensinar()}>Mandar para a coordenação</button>
+            <button type="button" className="btn sm sec" onClick={() => setEnsinando(false)}>Cancelar</button>
+          </div>
+        </div>
+      )}
       {ligada === false && (
         <p className="acolhe-aviso">Modo guia: explico as telas, levo você até elas e anoto sugestões. Ler dados e montar relatórios pede a Acolhe+AI ligada na instalação.</p>
       )}

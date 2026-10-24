@@ -68,10 +68,18 @@ export const PALAVRAS_DA_CASA: PalavraDaCasa[] = [
   // FIM DA LISTA
 ];
 
+const semAcento = (t: string) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+
+/** As palavras que a equipe ensinou e a coordenação aprovou (fase 244), na forma da lista. */
+export function palavrasEnsinadas(ensinadas: readonly { diz: string; querDizer: string }[]): PalavraDaCasa[] {
+  return ensinadas.filter((p) => semAcento(p.diz).length >= 2)
+    .map((p) => ({ diz: [semAcento(p.diz)], querDizer: semAcento(p.querDizer) }));
+}
+
 /** Acrescenta ao texto (já sem acento e em minúsculas) o que as palavras da casa querem dizer. */
-export function traduzirPalavrasDaCasa(t: string): string {
+export function traduzirPalavrasDaCasa(t: string, ensinadas: readonly PalavraDaCasa[] = []): string {
   const extras: string[] = [];
-  for (const p of PALAVRAS_DA_CASA) {
+  for (const p of [...PALAVRAS_DA_CASA, ...ensinadas]) {
     if (p.menosQuando?.some((m) => t.includes(m))) continue;
     if (p.diz.some((d) => new RegExp(`(^|[^a-z])${d.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([^a-z]|$)`).test(t))) {
       extras.push(p.querDizer);

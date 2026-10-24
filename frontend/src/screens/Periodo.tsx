@@ -109,6 +109,14 @@ export function Periodo({ casaId }: { casaId: string | null }) {
   const [ate, setAte] = useState('');
   const [r, setR] = useState<Periodo | null>(null);
   const [doc, setDoc] = useState<DocumentoWord | null>(null);
+  /* O botão só pede a folha, e o efeito busca (fase 243): assim a Acolhe+AI
+     pode abri-la a pedido, como abre um formulário, sem nada ser gravado. */
+  const [pedirFolha, setPedirFolha] = useState(false);
+  useEffect(() => {
+    if (!pedirFolha) return;
+    setPedirFolha(false);
+    void verFolha();
+  }, [pedirFolha]);
   const [erro, setErro] = useState('');
   const [buscando, setBuscando] = useState(false);
 
@@ -237,7 +245,7 @@ export function Periodo({ casaId }: { casaId: string | null }) {
             </div>
           </div>
 
-          <button className="btn sec block" onClick={() => void verFolha()}>
+          <button data-acolhe-abre="" className="btn sec block" onClick={() => setPedirFolha(true)}>
             <Icone nome="documento" /> Ver a folha antes de baixar
           </button>
 

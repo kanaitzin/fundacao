@@ -1729,6 +1729,10 @@ div.acoes{ display:flex; flex-wrap:wrap; gap:8px; align-items:center }
   background:var(--surface); color:var(--ink); border:1px solid var(--line-2); box-shadow:0 2px 8px rgba(0,0,0,.12);
   overflow:hidden; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical }
 .ditado-fala.erro{ border-color:var(--red-solid); }
+.cuidado-palavras{ position:fixed; z-index:57; display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:6px 10px; border-radius:10px;
+  font-size:13px; line-height:1.4; background:var(--surface); color:var(--ink); border:1px solid var(--line-2); box-shadow:0 2px 8px rgba(0,0,0,.12) }
+.cuidado-palavras span{ flex:1 1 180px; min-width:0 }
+.acolhe-ensinar{ margin:8px 12px; padding:10px 12px; border:1px solid var(--line-2); border-radius:10px; background:var(--raised) }
 .acolhe-fala{ margin:0; font-size:13px; color:var(--muted); line-height:1.4 }
 .acolhe-rascunho textarea{ width:100%; resize:vertical; border-radius:10px; border:1px solid var(--line-2); padding:8px 10px; font:inherit; line-height:1.45; background:var(--surface); color:var(--ink) }
 .acolhe-rascunho-fotos{ list-style:none; margin:0; padding:0; display:flex; gap:8px; flex-wrap:wrap }

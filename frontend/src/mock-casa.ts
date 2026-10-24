@@ -688,6 +688,8 @@ const PESSOA_DO_CARGO: Record<string, { id: string; fullName: string; role: stri
 
 let eu = USUARIOS['educador.ai3@paodospobres.dev'];
 /** As sugestões de melhoria deixadas com a Acolhe+AI (fase 192). Fictícias. */
+const PALAVRAS_ENSINADAS: { id: string; diz: string; querDizer: string; criadaEm: string; autor: string; cargo: string;
+  autorId: string; decisoes: { decisao: string; motivo: string | null; por: string }[] }[] = [];
 const SUGESTOES: { id: string; texto: string; tela: string | null; criadaEm: string; casa: string;
   autor: string; cargo: string; autorId: string }[] = [
   { id: 'sug1', texto: 'Seria bom marcar na chamada quem tomou banho antes de dormir, para a passagem da noite.',
@@ -1872,14 +1874,15 @@ function retornoDeSemente() {
       year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(base));
     return new Date(`${dia}T${hh}:00-03:00`).toISOString();
   };
-  /* A chegada cai no diurno mais recente, pela regra de 25/09 (fase 157) —
-     esta era a OITAVA cópia do 7h–19h. */
+  /* A chegada cai no turno de AGORA, pela regra de 25/09 (fase 157), uns
+     quarenta minutos antes da hora: a passagem e a ATA do turno mostram a volta.
+     Ela caía às 17h40 de noite, no turno do dia, e de noite a passagem não a
+     mostrava (achado da fase 243, num ensaio à meia-noite). */
   const hhmm = horaDaTurnoNaInstituicao(new Date());
   const diaDaChegada = hhmm < INICIO_DO_DIURNO ? -1 : 0;
-  const chegada = periodoDaHora(hhmm) === 'diurno'
-    ? new Date(Math.max(new Date(naInstituicao(0, INICIO_DO_DIURNO)).getTime(),
-                        Date.now() - 40 * 60000)).toISOString()
-    : naInstituicao(diaDaChegada, '17:40');
+  const inicioDoTurno = periodoDaHora(hhmm) === 'diurno'
+    ? naInstituicao(0, INICIO_DO_DIURNO) : naInstituicao(diaDaChegada, INICIO_DO_NOTURNO);
+  const chegada = new Date(Math.max(new Date(inicioDoTurno).getTime(), Date.now() - 40 * 60000)).toISOString();
   return {
     id: 'fs-semente-1', personId: 'p08', quem: 'Helena',
     comQuem: familiaDe('p08').segundo, vinculo: familiaDe('p08').segundoVinculo,
@@ -5985,6 +5988,46 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     throw new Recusa(503, 'A Acolhe+AI ainda não foi ligada nesta instalação: ela responde só pelo guia.');
   }
   if (rota === '/assistente/preparado' || rota === '/assistente/licenca' || rota === '/assistente/tabela') return { ok: true };
+  /* AS PALAVRAS QUE A EQUIPE ENSINA (fase 244), em memória: no protótipo ficam na
+     casa em que foram ensinadas; no sistema de verdade, a aprovada vale para as oito. */
+  if (rota.startsWith('/assistente/palavras')) {
+    const decide = eu.role === 'coordenador' || eu.role === 'gestor_geral';
+    const situacao = (w: typeof PALAVRAS_ENSINADAS[number]) => w.decisoes.at(-1)?.decisao ?? 'esperando';
+    const linha = (w: typeof PALAVRAS_ENSINADAS[number]) => ({ id: w.id, diz: w.diz, querDizer: w.querDizer,
+      criadaEm: w.criadaEm, autor: w.autor, cargo: w.cargo, situacao: situacao(w),
+      motivo: w.decisoes.at(-1)?.motivo ?? null, decididaPor: w.decisoes.at(-1)?.por ?? null });
+    const m = /^\/assistente\/palavras\/([^/]+)\/decisao$/.exec(rota);
+    if (m && metodo === 'POST') {
+      const w = PALAVRAS_ENSINADAS.find((x) => x.id === m[1]);
+      if (!w || !decide) throw new Recusa(404, 'Esta palavra não está entre as que você decide.');
+      const d = b.decisao === 'aprovar' ? 'aprovada' : b.decisao === 'recusar' ? 'recusada' : b.decisao === 'retirar' ? 'retirada' : null;
+      if (!d) throw new Recusa(400, 'Diga se aprova, recusa ou retira a palavra.');
+      const motivo = String(b.motivo ?? '').trim();
+      if (d !== 'aprovada' && motivo.length < 3) throw new Recusa(400, 'Escreva o motivo, para quem ensinou saber.');
+      if (d !== 'retirada' && w.decisoes.length) throw new Recusa(409, 'Esta palavra já foi decidida.');
+      if (d === 'retirada' && situacao(w) !== 'aprovada') throw new Recusa(409, 'Só se retira palavra aprovada.');
+      w.decisoes.push({ decisao: d, motivo: motivo || null, por: eu.fullName });
+      return { id: w.id, situacao: d };
+    }
+    if (rota === '/assistente/palavras' && metodo === 'POST') {
+      const diz = String(b.diz ?? '').trim().replace(/\s+/g, ' ');
+      const querDizer = String(b.querDizer ?? '').trim().replace(/\s+/g, ' ');
+      if (diz.length < 2 || diz.length > 60) throw new Recusa(400, 'Escreva a palavra ou o jeito de dizer, com até 60 letras.');
+      if (querDizer.length < 2 || querDizer.length > 160) throw new Recusa(400, 'Escreva o que ela quer dizer, com até 160 letras.');
+      const nova = { id: `pal${PALAVRAS_ENSINADAS.length + 1}`, diz, querDizer, criadaEm: new Date().toISOString(),
+        autor: eu.fullName, cargo: eu.role, autorId: eu.id, decisoes: [] as { decisao: string; motivo: string | null; por: string }[] };
+      PALAVRAS_ENSINADAS.unshift(nova);
+      return { id: nova.id, criadaEm: nova.criadaEm, situacao: 'esperando' };
+    }
+    if (rota === '/assistente/palavras') {
+      return {
+        aprovadas: PALAVRAS_ENSINADAS.filter((w) => situacao(w) === 'aprovada').map((w) => ({ diz: w.diz, querDizer: w.querDizer })),
+        decide,
+        minhas: PALAVRAS_ENSINADAS.filter((w) => w.autorId === eu.id).map(linha),
+        paraDecidir: decide ? PALAVRAS_ENSINADAS.map(linha) : [],
+      };
+    }
+  }
   if (rota === '/assistente/sugestoes' && metodo === 'POST') {
     const texto = String(b.texto ?? '').trim();
     if (texto.length < 10) return new Recusa(400, 'Escreva a sugestão com pelo menos dez letras.');

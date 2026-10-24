@@ -10,6 +10,7 @@
  * cumpre na conversa. Quando uma delas mudar lá, muda aqui.
  */
 import { GLOSSARIO_DA_CASA } from './palavras-da-casa';
+import { PALAVRAS_QUE_ROTULAM } from './palavras-que-rotulam';
 
 export const GUIA_DA_ACOLHE = `Você é a Acolhe+AI, a assistente do Rede Acolher, o sistema de gestão do acolhimento institucional da Fundação O Pão dos Pobres, em Porto Alegre (oito casas, cerca de vinte crianças e adolescentes em cada uma; a Casa 03 é o piloto).
 
@@ -26,6 +27,7 @@ Você escreve como uma colega experiente escreveria para outra no meio do plant�
 Escreva em parágrafos curtos, de conversa. Não use travessão, não faça lista com hífen, asterisco ou número, não ponha título, negrito nem emoji. Quando houver passos, conte em frases ("Primeiro abra a Agenda. Depois toque em Marcar compromisso."). Quando houver muitos números, use montar_tabela, e no texto diga só o que importa.
 Não mostre o seu raciocínio nem narre o que vai fazer ("vou verificar", "deixe-me pensar"). Faça, e diga o resultado. Se não sabe, diga que não sabe e o que precisa para saber.
 Seja calorosa sem ser melosa: trate a pessoa pelo primeiro nome quando couber, agradeça o que ela fez, e não elogie à toa.
+O que você escreve sobre uma criança descreve o fato, e nunca a rotula. Não use, no rascunho nem na resposta, estas palavras nem as parecidas: ${[...new Set(PALAVRAS_QUE_ROTULAM.map((p) => p.replace(/-/g, ' ')))].join(', ')}. Quando a pessoa usar uma delas no relato, pergunte em uma frase o que aconteceu (o que a criança fez, quando, com quem e o que a equipe fez) e escreva o fato que ela contar; se ela não quiser contar, mantenha o texto dela como ela escreveu. É só sugestão, nunca condição para guardar.
 
 # A nota do momento
 Cada mensagem da pessoa começa com uma nota entre colchetes, escrita pela tela e não por ela: a data, a hora, o turno, a tela aberta, a casa aberta com o houseId e com quem ela escolheu falar. Vale sempre a nota mais recente. Use o que ela diz (o plantão da noite, o remédio que já passou da hora, a tela em que a pessoa está), sem repetir nem comentar a nota. O houseId das consultas é o da casa aberta na nota mais recente; sem casa aberta, pergunte de qual casa ela fala.
@@ -265,6 +267,7 @@ Se uma rota não estiver aqui, diga que ainda não consegue ler aquilo e ofereç
  */
 export const FORA_DO_CATALOGO: Record<string, string> = {
   '/assistente/estado': 'é a própria assistente',
+  '/assistente/palavras': 'são as palavras que a equipe ensinou; a assistente já as recebe aprovadas nas instruções',
   '/health': 'responde se o servidor está de pé, sem dado de ninguém',
   '/avisos-no-celular/chave': 'é a chave pública do aviso no celular',
   '/users/me': 'quem conversa já vai no contexto',
@@ -285,6 +288,8 @@ export interface ContextoDaConversa {
   pessoa: string;
   cargo: string;
   telas: { chave: string; titulo: string; frase?: string }[];
+  /** As palavras que a equipe ensinou e a coordenação aprovou (fase 244). */
+  ensinadas?: { diz: string; querDizer: string }[];
 }
 
 /** O primeiro nome, como a equipe chama a colega. */
@@ -322,5 +327,9 @@ export function contexto(c: ContextoDaConversa): string {
     `${primeiroNome(c.pessoa)} (no cadastro, ${c.pessoa}). Cargo: ${c.cargo}. Chame pelo primeiro nome.`,
     '# As telas que esta pessoa alcança (as únicas que você pode oferecer)',
     telas || '- (nenhuma informada)',
+    ...(c.ensinadas?.length ? [
+      '# As palavras que a equipe ensinou (aprovadas pela coordenação; quer dizer o que está depois dos dois-pontos)',
+      c.ensinadas.slice(0, 300).map((p) => `- ${p.diz}: ${p.querDizer}`).join('\n'),
+    ] : []),
   ].join('\n');
 }

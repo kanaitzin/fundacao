@@ -1,5 +1,6 @@
 import {
-  BadRequestException, Inject, Injectable, Logger, ServiceUnavailableException,
+  BadRequestException, ConflictException, ForbiddenException, Inject, Injectable, Logger, NotFoundException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import Anthropic from '@anthropic-ai/sdk';
 import { DatabaseService } from '../../kernel/database/database.service';
@@ -301,9 +302,10 @@ export class AssistenteService {
     /* A casa conferida vai só para a auditoria: ao modelo ela chega pela nota do momento. */
     const casaId = await this.casaConferida(user, ctx.casaId);
     const telas = this.conferirTelas(ctx.telas);
+    const ensinadas = await this.palavrasAprovadas(user);
     /* No computador do Pão, só as telas do cargo (fase 240): o modelo é menor. */
     const instrucoes = [local ? guiaDoCargo(telas.map((x) => x.chave)) : GUIA_DA_ACOLHE, contexto({
-      pessoa: user.fullName, cargo: user.role, telas,
+      pessoa: user.fullName, cargo: user.role, telas, ensinadas,
     })];
 
     const r = local
@@ -404,4 +406,88 @@ export class AssistenteService {
         WHERE ($1::uuid IS NULL OR s.house_id = $1)
         ORDER BY s.created_at DESC LIMIT 300`, [casaId ?? null])).rows);
   }
+
+  /*
+   * AS PALAVRAS QUE A EQUIPE ENSINA (fase 244). Quem conversa propõe; a
+   * coordenação da casa, a Coordenação Geral ou o Gestor Geral aprova ou recusa,
+   * com o motivo; só a aprovada vale. Esta é a única leitura que a Acolhe+AI faz
+   * por conta própria, e é do vocabulário dela, nunca de dado de criança.
+   */
+  private async palavrasAprovadas(user: AuthenticatedUser): Promise<{ diz: string; querDizer: string }[]> {
+    return this.db.asUser(user.id, async (c) => (await c.query(
+      `SELECT says AS diz, means AS "querDizer" FROM assistant_word
+        WHERE app_palavra_aprovada(id) ORDER BY created_at LIMIT 300`)).rows);
+  }
+
+  private decide(user: AuthenticatedUser) { return user.role === 'coordenador' || user.role === 'gestor_geral'; }
+
+  async palavras(user: AuthenticatedUser) {
+    const aprovadas = await this.palavrasAprovadas(user);
+    const linhas = await this.db.asUser(user.id, async (c) => (await c.query(
+      `SELECT w.id, w.says AS diz, w.means AS "querDizer", w.created_at AS "criadaEm", w.house_id AS "casaId",
+              app_user_display_name(w.author_id) AS autor, app_user_cargo(w.author_id) AS cargo,
+              (w.author_id = app_current_user()) AS minha,
+              d.decision AS situacao, d.reason AS motivo, d.created_at AS "decididaEm",
+              app_user_display_name(d.decided_by) AS "decididaPor"
+         FROM assistant_word w
+         -- rls-join-ok (assistant_word_decision): a última decisão da palavra, que a política deixa ler a quem propôs, a quem decide e à TI.
+         LEFT JOIN LATERAL (SELECT x.decision, x.reason, x.created_at, x.decided_by FROM assistant_word_decision x
+                             WHERE x.word_id = w.id ORDER BY x.created_at DESC, x.id DESC LIMIT 1) d ON true
+        WHERE w.author_id = app_current_user() OR app_decide_palavra(w.house_id) OR app_current_role() = 'admin_tecnico'
+        ORDER BY w.created_at DESC LIMIT 300`)).rows);
+    return {
+      aprovadas,
+      decide: this.decide(user),
+      minhas: linhas.filter((l) => l.minha).map(({ minha: _m, ...l }) => ({ ...l, situacao: l.situacao ?? 'esperando' })),
+      paraDecidir: this.decide(user)
+        ? linhas.map(({ minha: _m, ...l }) => ({ ...l, situacao: l.situacao ?? 'esperando' })) : [],
+    };
+  }
+
+  async proporPalavra(user: AuthenticatedUser, corpo: { diz?: unknown; querDizer?: unknown; casaId?: unknown }) {
+    const diz = typeof corpo?.diz === 'string' ? corpo.diz.trim().replace(/\s+/g, ' ') : '';
+    const querDizer = typeof corpo?.querDizer === 'string' ? corpo.querDizer.trim().replace(/\s+/g, ' ') : '';
+    if (diz.length < 2 || diz.length > 60) throw new BadRequestException('Escreva a palavra ou o jeito de dizer, com até 60 letras.');
+    if (querDizer.length < 2 || querDizer.length > 160) throw new BadRequestException('Escreva o que ela quer dizer, com até 160 letras.');
+    const casaId = await this.casaConferida(user, corpo?.casaId);
+    const { rows: [r] } = await this.db.asUser(user.id, (c) => c.query(
+      `INSERT INTO assistant_word (author_id, house_id, says, means)
+       VALUES (app_current_user(), $1, $2, $3) RETURNING id, created_at`, [casaId, diz, querDizer]));
+    /* A auditoria leva só o metadado: o texto da palavra fica na tabela, com o nome de quem ensinou. */
+    await this.audit.log({
+      action: 'assistente.palavra.proposta', actorId: user.id, houseId: casaId,
+      entity: 'assistant_word', entityId: r.id,
+    });
+    return { id: r.id, criadaEm: r.created_at, situacao: 'esperando' };
+  }
+
+  async decidirPalavra(user: AuthenticatedUser, id: string, corpo: { decisao?: unknown; motivo?: unknown }) {
+    if (!UUID.test(id)) throw new BadRequestException('Palavra inválida.');
+    const decisao = corpo?.decisao === 'aprovar' ? 'aprovada' : corpo?.decisao === 'recusar' ? 'recusada'
+      : corpo?.decisao === 'retirar' ? 'retirada' : null;
+    if (!decisao) throw new BadRequestException('Diga se aprova, recusa ou retira a palavra.');
+    const motivo = typeof corpo?.motivo === 'string' ? corpo.motivo.trim() : '';
+    if (decisao !== 'aprovada' && motivo.length < 3) throw new BadRequestException('Escreva o motivo, para quem ensinou saber.');
+    if (motivo.length > 400) throw new BadRequestException('O motivo passou de 400 letras.');
+    if (!this.decide(user)) throw new ForbiddenException('Quem aprova as palavras é a coordenação ou o Gestor Geral.');
+    return this.db.asUser(user.id, async (c) => {
+      const { rows: [w] } = await c.query(
+        `SELECT w.id, w.house_id, app_decide_palavra(w.house_id) AS pode,
+                (SELECT x.decision FROM assistant_word_decision x WHERE x.word_id = w.id
+                  ORDER BY x.created_at DESC, x.id DESC LIMIT 1) AS ultima
+           FROM assistant_word w WHERE w.id = $1`, [id]);
+      if (!w || !w.pode) throw new NotFoundException('Esta palavra não está entre as que você decide.');
+      if (decisao !== 'retirada' && w.ultima) throw new ConflictException('Esta palavra já foi decidida.');
+      if (decisao === 'retirada' && w.ultima !== 'aprovada') throw new ConflictException('Só se retira palavra aprovada.');
+      await c.query(
+        `INSERT INTO assistant_word_decision (word_id, decided_by, decision, reason)
+         VALUES ($1, app_current_user(), $2, $3)`, [id, decisao, motivo || null]);
+      await this.audit.log({
+        action: 'assistente.palavra.decisao', actorId: user.id, houseId: w.house_id,
+        entity: 'assistant_word', entityId: id, detail: { decisao },
+      });
+      return { id, situacao: decisao };
+    });
+  }
+
 }

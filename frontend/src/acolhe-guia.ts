@@ -29,7 +29,7 @@ export type RespostaDoGuia = {
 /** As telas onde um texto escrito pela equipe costuma ficar, na ordem em que a casa mais usa. */
 export const DESTINOS_DE_TEXTO = ['ata', 'ocorrencias', 'acompanhamentos', 'internacao', 'passagem', 'alinhamentos', 'impacto'];
 
-import { traduzirPalavrasDaCasa } from '../../backend/src/modules/assistente/palavras-da-casa';
+import { PalavraDaCasa, traduzirPalavrasDaCasa } from '../../backend/src/modules/assistente/palavras-da-casa';
 
 const sem = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
@@ -352,9 +352,11 @@ function primeiroOCuidado(t: string, telas: TelaDoGuia[]): string | null {
   return null;
 }
 
-export function responderPeloGuia(texto: string, telas: TelaDoGuia[], primeira: boolean): RespostaDoGuia {
-  /* O banco de palavras da casa (fase 238): "o piá tá com piripaque" ganha "crianca menino passando mal". */
-  const t = traduzirPalavrasDaCasa(sem(texto));
+export function responderPeloGuia(texto: string, telas: TelaDoGuia[], primeira: boolean,
+                                  ensinadas: readonly PalavraDaCasa[] = []): RespostaDoGuia {
+  /* O banco de palavras da casa (fase 238): "o piá tá com piripaque" ganha "crianca menino passando mal".
+     E as que a equipe ensinou e a coordenação aprovou (fase 244). */
+  const t = traduzirPalavrasDaCasa(sem(texto), ensinadas);
   const aviso = primeira
     ? 'Estou no modo guia: explico as telas, levo você até elas e anoto sugestões. Para ler os dados e montar relatórios, a Acolhe+AI precisa estar ligada na instalação.\n\n'
     : '';
@@ -397,6 +399,20 @@ export function responderPeloGuia(texto: string, telas: TelaDoGuia[], primeira: 
   if (/\b(relatorio|word|documento|resumo)\b/.test(t) && /\b(vivencias?|album|memorias?)\b/.test(t)) {
     return { texto: `${aviso}Faço com você. O relatório das vivências fica no perfil da criança: aba Documentos, Dossiê, aba Vivências, botão Relatório das vivências em Word. Lá você escolhe o período, os tipos (aniversário, passeio, conquista...), tira as vivências que não quer e diz se vai com as fotos. Depois confere a folha e baixa o Word, escrevendo para que é. As fotos seguem o seu cargo: a técnica, os líderes, a coordenação e a gestão colocam todas, e nos outros cargos a foto sem autorização de imagem sai só com a legenda.${telas.some((x) => x.chave === 'acolhidos') ? '\n\n[Abrir os Acolhidos](tela:acolhidos)' : ''}` };
   }
+  /* Os outros relatórios pedidos conversando (fase 243). Cada um diz o caminho e o que
+     se escolhe, e quem baixa, com a finalidade, é a pessoa. "Relatório do mês" de uma
+     criança é o acompanhamento; da casa, é o período. */
+  const relatorio = /\b(relatorio|word|resumo)\b/.test(t);
+  if (relatorio && /\bvisitas?\b/.test(t) && telas.some((x) => x.chave === 'acolhidos')) {
+    return { texto: `${aviso}O relatório de visitas fica no perfil da criança, na aba Família e visitas: veja o período, escreva para que é e baixe o Word. A quantidade de visitas não avalia a família: quem avalia é a equipe técnica.\n\n[Abrir os Acolhidos](tela:acolhidos)` };
+  }
+  if (relatorio && /\b(periodo|da casa|semana da casa|mes da casa)\b/.test(t) && telas.some((x) => x.chave === 'periodo')) {
+    return { texto: `${aviso}O relatório da casa fica no Período da casa: escolha as datas, de um dia a seis meses, aperte Abrir o período, depois Ver a folha antes de baixar e, se estiver bom, baixe o Word, escrevendo para que é. Dali também sai a planilha.`, ir: 'periodo' };
+  }
+  if (/\btrajetoria\b/.test(t) && telas.some((x) => x.chave === 'impacto')) {
+    return { texto: `${aviso}A trajetória da criança fica no Trabalho social: escolha a criança e baixe A trajetória em Word, escrevendo para que é.`, ir: 'impacto' };
+  }
+
 
   /* Ler o texto de um papel (fase 234): a leitura é na prévia do documento, neste
      aparelho, e a pessoa confere antes. Vem antes da tela: "documento" casaria com os Acolhidos. */

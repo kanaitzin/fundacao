@@ -138,6 +138,10 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 244, dia: '24/10/2026',
+    texto: 'Você pode ensinar à Acolhe+AI o jeito de falar da casa: em Ensinar uma palavra, escreva a palavra e o que ela quer dizer. A coordenação confere nas Sugestões de melhoria e, quando aprova, a Acolhe+AI de todo mundo passa a entender.' },
+  { fase: 243, dia: '24/10/2026',
+    texto: 'Peça à Acolhe+AI o relatório do período da casa, das visitas, da internação ou a trajetória, e ela leva até ele. E, quando você escrever uma palavra que rotula a criança, como agressivo, aparece embaixo do campo a sugestão de escrever o fato. É só sugestão: você salva como quiser.' },
   { fase: 242, dia: '24/10/2026',
     texto: 'No começo do plantão, pergunte à Acolhe+AI o que você precisa saber, e ela leva ao que mudou desde o seu último plantão. No fim, peça o rascunho da ATA. E, com as mãos ocupadas, marque Mãos ocupadas: você fala, ela responde em voz alta e volta a ouvir.' },
   { fase: 241, dia: '24/10/2026',

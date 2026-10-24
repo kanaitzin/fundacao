@@ -10,6 +10,7 @@ import { PORTAS, GRUPOS } from './portas';
 import { AvisoNoCelular, desligarAoSair } from './aviso-no-celular';
 import { CameraNesteAparelho } from './camera';
 import { DitadoNosCampos } from './ditado';
+import { CuidadoComAsPalavras } from './cuidado-com-as-palavras';
 import { AcolheAI } from './acolhe';
 import { Sugestoes } from './screens/Sugestoes';
 import { api, setToken, ligarFilaAoServidor, quandoASessaoTerminar, casaAbertaNaTela } from './api';
@@ -1099,6 +1100,7 @@ export function App() {
 
       {/* O DITADO (fase 195): o microfone junto de todo campo de texto longo. */}
       <DitadoNosCampos />
+      <CuidadoComAsPalavras />
 
       {sessaoTerminou && (
         <FolhaSessaoTerminou email={me.email} onEntrou={() => setSessaoTerminou(false)}

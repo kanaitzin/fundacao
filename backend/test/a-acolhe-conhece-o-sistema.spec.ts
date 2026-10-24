@@ -26,7 +26,8 @@ import { join } from 'node:path';
 import { FORA_DO_CATALOGO, GUIA_DA_ACOLHE } from '../src/modules/assistente/guia';
 import { FERRAMENTAS, LEITURA_PROIBIDA, MEXEM_NA_TELA, rotaDeLeituraPermitida } from '../src/modules/assistente/ferramentas';
 import { calcular } from '../src/modules/assistente/calculo';
-import { GLOSSARIO_DA_CASA, PALAVRAS_DA_CASA, traduzirPalavrasDaCasa } from '../src/modules/assistente/palavras-da-casa';
+import { GLOSSARIO_DA_CASA, PALAVRAS_DA_CASA, palavrasEnsinadas, traduzirPalavrasDaCasa } from '../src/modules/assistente/palavras-da-casa';
+import { palavrasQueRotulam, sugestaoDoFato } from '../src/modules/assistente/palavras-que-rotulam';
 import { criancasNoPedido, ehPergunta, pedeAcao, pedeFormulario, responderPeloGuia } from '../../frontend/src/acolhe-guia';
 
 const SRC = join(__dirname, '..', 'src');
@@ -451,6 +452,14 @@ describe('a Acolhe+AI entende o jeito de falar da casa', () => {
     expect(r('abre o livro do plantão').ir).toBe('ata');
   });
 
+  it('a palavra que a equipe ensinou e a coordenação aprovou também se entende (fase 244)', () => {
+    const ensinadas = palavrasEnsinadas([{ diz: 'Lavar o Chão', querDizer: 'ocorrência de briga' }, { diz: 'x', querDizer: 'curta demais' }]);
+    expect(ensinadas).toEqual([{ diz: ['lavar o chao'], querDizer: 'ocorrencia de briga' }]);
+    expect(traduzirPalavrasDaCasa('os guris vao lavar o chao hoje', ensinadas)).toMatch(/ocorrencia de briga/);
+    expect(responderPeloGuia('os guris vão lavar o chão', TELAS, false, ensinadas).texto).toMatch(/Ocorr/);
+    expect(responderPeloGuia('os guris vão lavar o chão', TELAS, false).texto).not.toMatch(/Ocorr/);
+  });
+
   it('a palavra que quer dizer outra coisa não se traduz', () => {
     expect(traduzirPalavrasDaCasa('a pia da cozinha vazou')).toBe('a pia da cozinha vazou');
     expect(r('a pia da cozinha vazou').cuidado).toBeFalsy();
@@ -471,3 +480,47 @@ describe('a Acolhe+AI entende o jeito de falar da casa', () => {
   });
 });
 
+
+describe('os documentos pela conversa e o cuidado com as palavras (fase 243)', () => {
+  const TELAS = [
+    { chave: 'acolhidos', titulo: 'Acolhidos' }, { chave: 'periodo', titulo: 'O período da casa' },
+    { chave: 'internacao', titulo: 'Internação hospitalar' }, { chave: 'impacto', titulo: 'O trabalho social' },
+    { chave: 'portaria', titulo: 'Portaria' }, { chave: 'acompanhamentos', titulo: 'Acompanhamentos' },
+  ];
+  const r = (frase: string) => responderPeloGuia(frase, TELAS, false);
+
+  it('cada relatório pedido conversando leva ao lugar dele, e quem baixa é a pessoa', () => {
+    expect(r('quero o relatório do período da casa em word')).toMatchObject({ ir: 'periodo' });
+    expect(r('faz o relatório do mês da casa').texto).toMatch(/Abrir o período, depois Ver a folha antes de baixar/);
+    expect(r('relatório de visitas da Alice em word').texto).toMatch(/aba Família e visitas/);
+    expect(r('relatório de visitas da Alice em word').texto).toMatch(/quem avalia é a equipe técnica/);
+    expect(r('me dá a trajetória do Bruno em word')).toMatchObject({ ir: 'impacto' });
+    expect(r('preciso do relatório da internação do Theo')).toMatchObject({ ir: 'internacao' });
+  });
+
+  it('as folhas do período e da internação a Acolhe+AI abre a pedido, sem gravar', () => {
+    for (const [arq, rotulo] of [['screens/Periodo.tsx', 'Ver a folha antes de baixar'], ['screens/Internacao.tsx', 'Relatório completo da internação']]) {
+      const src = readFileSync(join(FRONT, arq), 'utf8');
+      const i = src.indexOf(rotulo);
+      expect([arq, src.lastIndexOf('<button data-acolhe-abre=""', i) > src.lastIndexOf('<button', i - 1) - 1]).toEqual([arq, true]);
+    }
+  });
+
+  it('acha a palavra que rotula, com as variações, e não confunde o fato com o rótulo', () => {
+    expect(palavrasQueRotulam('O Theo foi agressivo com a colega e depois ficou mal-educado')).toEqual(['agressivo', 'mal educado']);
+    expect(palavrasQueRotulam('A Alice é MENTIROSA e sem educação')).toEqual(['mentirosa', 'sem educacao']);
+    expect(palavrasQueRotulam('Houve agressão no pátio: o Theo empurrou a colega na fila do almoço.')).toEqual([]);
+    expect(palavrasQueRotulam('A educadora usou o violão na roda de música.')).toEqual([]);
+    expect(sugestaoDoFato('agressivo')).toBe('Em vez de agressivo, que tal escrever o fato? O que aconteceu, quando, com quem e o que a equipe fez.');
+    expect(sugestaoDoFato('agressivo')).not.toMatch(/[—–]/);
+  });
+
+  it('a sugestão mora em todo campo de texto longo, só sugere, e não guarda nem conta nada', () => {
+    const app = readFileSync(join(FRONT, 'App.tsx'), 'utf8');
+    expect(app).toMatch(/<CuidadoComAsPalavras \/>/);
+    const c = readFileSync(join(FRONT, 'cuidado-com-as-palavras.tsx'), 'utf8');
+    expect(c).not.toMatch(/\bapi\(|fetch\(|localStorage|sessionStorage|indexedDB|preventDefault\(\)\s*;?\s*\}\s*\)\s*;?\s*\/\/\s*submit/);
+    expect(c).not.toMatch(/addEventListener\('submit'/);
+    expect(GUIA_DA_ACOLHE).toMatch(/O que você escreve sobre uma criança descreve o fato, e nunca a rotula\..*agressivo, agressiva/);
+  });
+});

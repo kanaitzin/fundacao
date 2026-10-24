@@ -3844,7 +3844,7 @@ console.log('\n🙌 A Acolhe+AI com as mãos ocupadas (fase 242)');
   cobrar('as mãos ocupadas ligam a leitura em voz alta', await painel.getByLabel('Ler as respostas em voz alta').isChecked());
   await pgM.waitForTimeout(4500);
   const conversa1 = await painel.locator('.acolhe-conversa').innerText();
-  cobrar('a primeira fala vai sozinha depois do silêncio, sem tocar em Enviar', /me leva para a escala/.test(conversa1), conversa1.slice(0, 200));
+  cobrar('a primeira fala vai sozinha depois do silêncio, sem tocar em Enviar', /me leva para a escala/i.test(conversa1), conversa1.slice(0, 200));
   cobrar('e leva à Escala', (await pgM.locator('main.conteudo').getAttribute('data-tela')) === 'escala');
   const lidas1 = await pgM.evaluate(() => window.__lidas.length);
   cobrar('a resposta é lida em voz alta', lidas1 >= 1);
@@ -3852,13 +3852,118 @@ console.log('\n🙌 A Acolhe+AI com as mãos ocupadas (fase 242)');
   await pgM.locator('.acolhe-faixa').getByRole('button', { name: 'Ver a conversa' }).click().catch(() => {});
   await pgM.waitForTimeout(5000);
   const conversa2 = await painel.locator('.acolhe-conversa').innerText().catch(() => '');
-  cobrar('o microfone volta depois da leitura, e a segunda fala também vai', /onde vejo as ocorr/.test(conversa2), conversa2.slice(-300));
+  cobrar('o microfone volta depois da leitura, e a segunda fala também vai', /onde vejo as ocorr/i.test(conversa2), conversa2.slice(-300));
   await painel.getByLabel(/Mãos ocupadas/).uncheck().catch(() => {});
   const ligou = await pgM.evaluate(() => window.__ligou);
   await pgM.waitForTimeout(3000);
   cobrar('desligadas as mãos ocupadas, o microfone não religa', (await pgM.evaluate(() => window.__ligou)) === ligou);
   cobrar('nenhuma exceção com as mãos ocupadas', errosM.length === 0, errosM[0]);
   await pgM.close();
+}
+
+/*
+ * O CUIDADO COM AS PALAVRAS (fase 243). Na linha da ATA, a palavra que rotula
+ * a criança faz aparecer, embaixo do campo, a sugestão de escrever o fato; o
+ * Entendi fecha, e salvar continua livre.
+ */
+console.log('\n🫶 O cuidado com as palavras (fase 243)');
+{
+  const pgC = await navegador.newPage({ viewport: { width: 420, height: 900 } });
+  const errosC = [];
+  pgC.on('pageerror', (e) => errosC.push(e.message));
+  await pgC.goto(`file://${ARQUIVO}`);
+  await pgC.waitForTimeout(800);
+  await pgC.getByRole('button', { name: 'Marcelo Barbosa' }).click();
+  await pgC.getByRole('button', { name: /Entrar no sistema/i }).click();
+  await pgC.waitForTimeout(1200);
+  await pgC.locator('select.troca-cargo-sel').selectOption('educador');
+  await pgC.waitForTimeout(900);
+  /* A ATA pela barra do pé, ou pela folha Mais, como nos outros blocos. */
+  const naBarra = pgC.locator('nav.tabbar button', { hasText: /^ATA$/ });
+  if (await naBarra.count()) await naBarra.first().click();
+  else {
+    await pgC.locator('nav.tabbar button', { hasText: 'Mais' }).first().click();
+    await pgC.waitForTimeout(350);
+    await pgC.locator('.overlay .sheet button.card.row', { hasText: /^ATA/ }).first().click();
+  }
+  await pgC.waitForTimeout(1200);
+  const campo = pgC.locator('#linha-ata');
+  cobrar('a linha da ATA está à vista', await campo.isVisible().catch(() => false));
+  await campo.click();
+  await campo.fill('A noite foi agitada, o Theo foi agressivo com a colega no quarto.');
+  await campo.dispatchEvent('input');
+  await pgC.waitForTimeout(1000);
+  const nota = pgC.locator('.cuidado-palavras');
+  const texto = await nota.innerText().catch(() => '');
+  cobrar('a palavra que rotula faz aparecer a sugestão de escrever o fato', /Em vez de agressivo, que tal escrever o fato\?/.test(texto), texto);
+  await nota.getByRole('button', { name: 'Entendi' }).click();
+  await pgC.waitForTimeout(400);
+  cobrar('Entendi fecha a sugestão, e o texto continua como estava', (await nota.count()) === 0
+    && /agressivo com a colega/.test(await campo.inputValue()));
+  const botao = pgC.getByRole('button', { name: /Registrar linha/ });
+  cobrar('e salvar continua livre', await botao.isEnabled().catch(() => false));
+  cobrar('nenhuma exceção no cuidado com as palavras', errosC.length === 0, errosC[0]);
+  await pgC.close();
+}
+
+/*
+ * AS PALAVRAS QUE A EQUIPE ENSINA (fase 244). A educadora ensina "dar um bico";
+ * enquanto a coordenação não aprova, a Acolhe+AI não entende; a coordenação
+ * aprova na tela das Sugestões de melhoria, e ela passa a entender.
+ */
+console.log('\n📚 As palavras que a equipe ensina (fase 244)');
+{
+  const pgP = await navegador.newPage({ viewport: { width: 420, height: 900 } });
+  const errosP = [];
+  pgP.on('pageerror', (e) => errosP.push(e.message));
+  await pgP.goto(`file://${ARQUIVO}`);
+  await pgP.waitForTimeout(800);
+  await pgP.getByRole('button', { name: 'Marcelo Barbosa' }).click();
+  await pgP.getByRole('button', { name: /Entrar no sistema/i }).click();
+  await pgP.waitForTimeout(1200);
+  const abrirAcolhe = async () => {
+    await pgP.getByRole('button', { name: /^Abrir a Acolhe\+AI/ }).click().catch(() => {});
+    await pgP.locator('.acolhe-faixa').getByRole('button', { name: 'Ver a conversa' }).click().catch(() => {});
+    await pgP.waitForTimeout(600);
+  };
+  const perguntar = async (t) => {
+    await pgP.locator('#acolhe-pergunta').fill(t);
+    await painel.getByRole('button', { name: 'Enviar' }).click();
+    await pgP.waitForTimeout(900);
+    return (await painel.locator('.acolhe-linha.acolhe').last().innerText().catch(() => ''));
+  };
+  const painel = pgP.locator('.acolhe-painel');
+  await pgP.locator('select.troca-cargo-sel').selectOption('educador');
+  await pgP.waitForTimeout(900);
+  await abrirAcolhe();
+  await painel.getByRole('button', { name: 'Ensinar uma palavra' }).click();
+  await painel.getByLabel('A palavra ou o jeito de dizer').fill('dar um bico');
+  await painel.getByLabel('O que quer dizer').fill('chutar, briga entre crianças, ocorrência');
+  await painel.getByRole('button', { name: 'Mandar para a coordenação' }).click();
+  await pgP.waitForTimeout(600);
+  cobrar('a educadora ensina a palavra, e a Acolhe+AI diz que a coordenação confere',
+    /para a coordenação conferir/.test(await painel.locator('.acolhe-conversa').innerText()));
+  const antes = await perguntar('o guri foi dar um bico no colega');
+  cobrar('antes da aprovação, a palavra ainda não vale', !/Ocorr/.test(antes), antes.slice(0, 200));
+  await painel.getByRole('button', { name: 'Minimizar a Acolhe+AI' }).click();
+  await pgP.locator('select.troca-cargo-sel').selectOption('coordenador');
+  await pgP.waitForTimeout(900);
+  const mais = pgP.locator('nav.tabbar button', { hasText: 'Mais' });
+  if (await mais.count()) { await mais.first().click(); await pgP.waitForTimeout(350); }
+  await pgP.locator('.overlay .sheet button.card.row', { hasText: 'Sugestões de melhoria' }).first().click();
+  await pgP.waitForTimeout(1100);
+  const cartao = pgP.locator('article.card', { hasText: 'dar um bico' }).first();
+  cobrar('a coordenação vê a palavra para decidir, com quem ensinou', /Esperando a coordenação/.test(await cartao.innerText().catch(() => '')));
+  await cartao.getByRole('button', { name: 'Aprovar' }).click();
+  await pgP.waitForTimeout(700);
+  cobrar('e aprova', /Aprovada/.test(await cartao.innerText().catch(() => '')));
+  await pgP.locator('select.troca-cargo-sel').selectOption('educador');
+  await pgP.waitForTimeout(900);
+  await abrirAcolhe();
+  const depois = await perguntar('o guri foi dar um bico no colega');
+  cobrar('aprovada, a Acolhe+AI entende a palavra da equipe', /Ocorr/.test(depois), depois.slice(0, 200));
+  cobrar('nenhuma exceção nas palavras ensinadas', errosP.length === 0, errosP[0]);
+  await pgP.close();
 }
 
 /*
