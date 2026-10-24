@@ -286,6 +286,23 @@ export interface ContextoDaConversa {
 }
 
 /** O primeiro nome, como a equipe chama a colega. */
+/**
+ * O guia do cargo, para o modelo do computador do Pão (fase 240). Modelo
+ * pequeno se perde com instrução longa: das telas do sistema, vão só as que o
+ * cargo de quem conversa alcança, que a tela manda e que não mudam no meio da
+ * conversa. O resto do guia vai inteiro, regras da Fundação incluídas.
+ */
+export function guiaDoCargo(chaves: readonly string[]): string {
+  if (!chaves.length) return GUIA_DA_ACOLHE;
+  const daTela = /^- [^(\n]+\(([a-z0-9-]+)\):/;
+  let naLista = false;
+  return GUIA_DA_ACOLHE.split('\n').filter((l) => {
+    if (l.startsWith('# ')) naLista = l.startsWith('# As telas do sistema');
+    const m = naLista ? daTela.exec(l) : null;
+    return !m || chaves.includes(m[1]);
+  }).join('\n');
+}
+
 export function primeiroNome(nome: string): string {
   return nome.trim().split(/\s+/)[0] ?? nome;
 }

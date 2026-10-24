@@ -1,4 +1,5 @@
-import { Body, Controller, Get, HttpCode, Inject, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpException, Inject, Post, Query, Res, UseGuards } from '@nestjs/common';
+import type { Response } from 'express';
 import { SessionGuard, CurrentUser } from '../identity';
 import { AuthenticatedUser } from '../../kernel/contracts';
 import { AssistenteService, PedidoDeConversa } from './assistente.service';
@@ -20,6 +21,40 @@ export class AssistenteController {
   @HttpCode(200)
   conversar(@CurrentUser() user: AuthenticatedUser, @Body() corpo: PedidoDeConversa) {
     return this.acolhe.conversar(user, corpo);
+  }
+
+  /**
+   * A mesma volta da conversa, com a resposta aparecendo enquanto é escrita
+   * (fase 240). Cada linha é um JSON: `texto` com o que já está escrito, e no
+   * fim `fim` com a resposta inteira, igual à da rota de cima. A recusa que vem
+   * antes da primeira linha é a de sempre, com o status dela; a que vem depois
+   * chega como a última linha, `erro`.
+   */
+  @Post('conversa/aos-poucos')
+  async conversarAosPoucos(@CurrentUser() user: AuthenticatedUser, @Body() corpo: PedidoDeConversa,
+                           @Res() res: Response) {
+    let comecou = false;
+    const comecar = () => {
+      if (comecou) return;
+      comecou = true;
+      res.status(200);
+      res.setHeader('Content-Type', 'application/x-ndjson; charset=utf-8');
+      res.setHeader('Cache-Control', 'no-store');
+      res.setHeader('X-Accel-Buffering', 'no');
+    };
+    const linha = (o: unknown) => { comecar(); res.write(`${JSON.stringify(o)}\n`); };
+    try {
+      const r = await this.acolhe.conversar(user, corpo, (texto) => linha({ tipo: 'texto', texto }));
+      linha({ tipo: 'fim', ...r });
+      res.end();
+    } catch (e) {
+      if (!comecou) throw e;
+      const status = e instanceof HttpException ? e.getStatus() : 500;
+      const dito = e instanceof HttpException ? (e.getResponse() as { message?: unknown })?.message : undefined;
+      linha({ tipo: 'erro', status,
+        mensagem: typeof dito === 'string' ? dito : 'A Acolhe+AI não respondeu agora. Tente de novo.' });
+      res.end();
+    }
   }
 
   /** A pessoa confirmou uma proposta, e a gravação deu certo: fica na auditoria. */

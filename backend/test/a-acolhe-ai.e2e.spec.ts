@@ -50,6 +50,19 @@ describe('A Acolhe+AI', () => {
       req.on('data', (p) => partes.push(p));
       req.on('end', () => {
         recebidos.push({ url: req.url, cabecalhos: req.headers, corpo: JSON.parse(Buffer.concat(partes).toString('utf8')) });
+        if (recebidos[recebidos.length - 1].corpo.stream) {
+          /* Em pedaços, no formato da Anthropic (fase 240). */
+          const ev = (tipo: string, dado: any) => res.write(`event: ${tipo}\ndata: ${JSON.stringify({ type: tipo, ...dado })}\n\n`);
+          res.setHeader('content-type', 'text/event-stream');
+          ev('message_start', { message: { ...resposta([]), stop_reason: null, usage: { input_tokens: 1200, output_tokens: 1 } } });
+          ev('content_block_start', { index: 0, content_block: { type: 'text', text: '' } });
+          for (const parte of ['Oi! ', 'Sou a ', 'Acolhe+AI.']) ev('content_block_delta', { index: 0, delta: { type: 'text_delta', text: parte } });
+          ev('content_block_stop', { index: 0 });
+          ev('message_delta', { delta: { stop_reason: 'end_turn', stop_sequence: null }, usage: { output_tokens: 12 } });
+          ev('message_stop', {});
+          res.end();
+          return;
+        }
         res.setHeader('content-type', 'application/json');
         res.end(JSON.stringify(proxima ?? resposta([{ type: 'text', text: 'Oi! Sou a Acolhe+AI.' }])));
       });
@@ -218,6 +231,24 @@ describe('A Acolhe+AI', () => {
     expect(r.body.parada).toBe('refusal');
     expect(r.body.conteudo[0].text).toMatch(/coordenação ou a equipe técnica/);
     proxima = null;
+  });
+
+  it('a resposta aparece enquanto é escrita, e volta inteira no fim (fase 240)', async () => {
+    recebidos.length = 0;
+    const r = await request(http).post('/api/v1/assistente/conversa/aos-poucos').set({ Authorization: `Bearer ${tok.edu}` })
+      .send({ mensagens: [{ role: 'user', content: 'oi' }] })
+      .buffer(true).parse((res, fim) => {
+        let d = '';
+        res.setEncoding('utf8');
+        res.on('data', (c: string) => { d += c; });
+        res.on('end', () => fim(null, d));
+      });
+    expect(r.status).toBe(200);
+    expect(recebidos[0].corpo.stream).toBe(true);
+    const linhas = String(r.body).trim().split('\n').map((l) => JSON.parse(l));
+    expect(linhas.filter((l) => l.tipo === 'texto').map((l) => l.texto)).toEqual(['Oi! ', 'Oi! Sou a ', 'Oi! Sou a Acolhe+AI.']);
+    expect(linhas[linhas.length - 1]).toMatchObject({ tipo: 'fim', parada: 'end_turn', guardar: true,
+      conteudo: [{ type: 'text', text: 'Oi! Sou a Acolhe+AI.' }] });
   });
 
   it('sem a chave, ela diz que responde pelo guia', async () => {

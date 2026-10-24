@@ -5972,7 +5972,11 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
      o protótipo não tem roteiro, e continua no modo guia. */
   const roteiro = (globalThis as { __ACOLHE_ROTEIRO__?: unknown[] }).__ACOLHE_ROTEIRO__;
   if (rota === '/assistente/estado') return { ligada: Array.isArray(roteiro), nome: 'Acolhe+AI', prototipo: true };
-  if (rota === '/assistente/conversa') {
+  if (rota === '/assistente/conversa' || rota === '/assistente/conversa/aos-poucos') {
+    /* O ensaio finge a máquina da Acolhe+AI fora do ar (fase 240). */
+    if ((globalThis as { __ACOLHE_FORA__?: boolean }).__ACOLHE_FORA__) {
+      throw new Recusa(503, 'O computador da Acolhe+AI não está respondendo. Avise a TI.');
+    }
     if (Array.isArray(roteiro) && roteiro.length) {
       const g = globalThis as { __ACOLHE_PEDIDOS__?: unknown[] };
       (g.__ACOLHE_PEDIDOS__ ??= []).push(b.mensagens);

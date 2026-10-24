@@ -138,6 +138,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 240, dia: '24/10/2026',
+    texto: 'A resposta da Acolhe+AI aparece enquanto ela escreve. E, se o computador dela não responder, ela avisa e segue ajudando pelo guia, sem ler os dados da casa; a pergunta seguinte tenta de novo.' },
   { fase: 239, dia: '23/10/2026',
     texto: 'A Acolhe+AI pode funcionar num computador da própria Fundação, sem custo por pergunta e sem limite por pessoa. Quando muita gente pergunta ao mesmo tempo, as perguntas esperam a vez. Para quem usa, a conversa é a mesma de sempre.' },
   { fase: 238, dia: '23/10/2026',

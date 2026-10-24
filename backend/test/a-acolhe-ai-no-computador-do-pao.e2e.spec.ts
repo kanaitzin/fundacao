@@ -18,9 +18,10 @@ import { Client } from 'pg';
 import { createServer, Server, ServerResponse } from 'node:http';
 import { AppModule } from '../src/app.module';
 import { FERRAMENTAS, NOMES_DAS_FERRAMENTAS } from '../src/modules/assistente/ferramentas';
+import { GUIA_DA_ACOLHE, guiaDoCargo } from '../src/modules/assistente/guia';
 import {
   FilaCheia, FilaDoModelo, MotorLocalFalhou, PDF_NAO_LIDO, SEM_RESPOSTA,
-  daRespostaAberta, ferramentasAbertas, paraOPadraoAberto, perguntarAoMotorLocal,
+  daRespostaAberta, ferramentasAbertas, paraOPadraoAberto, perguntarAoMotorLocal, textoVisivel,
 } from '../src/modules/assistente/motor-local';
 
 const adminUrl = process.env.DATABASE_URL
@@ -122,6 +123,25 @@ describe('A tradução para o modelo do Pão', () => {
     expect(fila.ocupadas).toBe(0);
   });
 
+  it('enquanto a resposta nasce, aparece só o que não é raciocínio (fase 240)', () => {
+    expect(textoVisivel('<think>a pessoa quer')).toBe('');
+    expect(textoVisivel('<think>a pessoa quer</think>Vou ')).toBe('Vou ');
+    expect(textoVisivel('Vou ver <thi')).toBe('Vou ver ');
+    expect(textoVisivel('Já vi.<think>e agora')).toBe('Já vi.');
+  });
+
+  it('o modelo do Pão recebe só as telas do cargo, e as regras da Fundação inteiras (fase 240)', () => {
+    const g = guiaDoCargo(['dia', 'ata', 'acolhidos']);
+    expect(g).toContain('- Dia (dia):');
+    expect(g).toContain('- ATA (ata):');
+    expect(g).not.toContain('(escala):');
+    expect(g).not.toContain('(metricas):');
+    for (const parte of ['# O que você nunca faz', '# O que você pode fazer', '# As rotas que você pode ler'])
+      expect(g.slice(g.indexOf(parte), g.indexOf('\n# ', g.indexOf(parte) + 2)))
+        .toBe(GUIA_DA_ACOLHE.slice(GUIA_DA_ACOLHE.indexOf(parte), GUIA_DA_ACOLHE.indexOf('\n# ', GUIA_DA_ACOLHE.indexOf(parte) + 2)));
+    expect(guiaDoCargo([])).toBe(GUIA_DA_ACOLHE);
+  });
+
   it('a máquina que não responde a tempo é dita como demora', async () => {
     const parado = createServer(() => { /* nunca responde */ });
     await new Promise<void>((ok) => parado.listen(0, '127.0.0.1', ok));
@@ -144,6 +164,7 @@ describe('A Acolhe+AI pelo computador do Pão', () => {
   let proxima: any = null;
   let segurar = false;
   let lidos = 12000;
+  let emPedacos: any[] | null = null;
   const presas: ServerResponse[] = [];
   const ids: Record<string, string> = {};
   const tok: Record<string, string> = {};
@@ -161,6 +182,15 @@ describe('A Acolhe+AI pelo computador do Pão', () => {
   };
   const conversar = (t: string, corpo: any) =>
     request(http).post('/api/v1/assistente/conversa').set({ Authorization: `Bearer ${t}` }).send(corpo);
+  /* A rota em pedaços devolve linhas de JSON: lidas como texto, inteiras. */
+  const aosPoucos = (t: string, corpo: any) =>
+    request(http).post('/api/v1/assistente/conversa/aos-poucos').set({ Authorization: `Bearer ${t}` }).send(corpo)
+      .buffer(true).parse((res, fim) => {
+        let d = '';
+        res.setEncoding('utf8');
+        res.on('data', (c: string) => { d += c; });
+        res.on('end', () => fim(null, d));
+      });
 
   beforeAll(async () => {
     modelo = createServer((req, res) => {
@@ -168,6 +198,12 @@ describe('A Acolhe+AI pelo computador do Pão', () => {
       req.on('data', (p) => partes.push(p));
       req.on('end', () => {
         recebidos.push({ url: req.url, cabecalhos: req.headers, corpo: JSON.parse(Buffer.concat(partes).toString('utf8')) });
+        if (emPedacos && recebidos[recebidos.length - 1].corpo.stream) {
+          res.setHeader('content-type', 'text/event-stream');
+          for (const p of emPedacos) res.write(`data: ${JSON.stringify(p)}\n\n`);
+          res.end('data: [DONE]\n\n');
+          return;
+        }
         if (segurar) presas.push(res); else responder(res);
       });
     });
@@ -231,6 +267,13 @@ describe('A Acolhe+AI pelo computador do Pão', () => {
     expect(corpo.messages[0].content).toContain('Acolhe+AI');
     expect(corpo.messages[0].content).toContain('piripaque'); /* o banco de palavras da casa */
     expect(corpo.messages[1]).toEqual({ role: 'user', content: marca });
+    /* Com as telas do cargo, o guia vai recortado, e igual em toda pergunta. */
+    recebidos.length = 0;
+    const telas = [{ chave: 'dia', titulo: 'Dia' }, { chave: 'ata', titulo: 'ATA' }];
+    await conversar(tok.edu, { mensagens: [{ role: 'user', content: 'oi' }], contexto: { telas } });
+    await conversar(tok.edu, { mensagens: [{ role: 'user', content: 'oi de novo' }], contexto: { telas } });
+    expect(recebidos[0].corpo.messages[0].content).not.toContain('(escala):');
+    expect(recebidos[1].corpo.messages[0].content).toBe(recebidos[0].corpo.messages[0].content);
     expect(corpo.tools.map((t: any) => t.function.name)).toEqual([...NOMES_DAS_FERRAMENTAS]);
   });
 
@@ -310,6 +353,47 @@ describe('A Acolhe+AI pelo computador do Pão', () => {
     } finally {
       lidos = 12000;
     }
+  });
+
+  it('a resposta aparece enquanto é escrita, sem o raciocínio, e volta inteira no fim (fase 240)', async () => {
+    recebidos.length = 0;
+    emPedacos = [
+      { choices: [{ delta: { content: '<think>a pessoa' } }] },
+      { choices: [{ delta: { content: ' quer ver</think>Vou ' } }] },
+      { choices: [{ delta: { content: 'ver quem está na casa.' } }] },
+      { choices: [{ delta: { tool_calls: [{ index: 0, id: 'call_5', function: { name: 'consultar_sistema', arguments: '{"rota":"/pe' } }] } }] },
+      { choices: [{ delta: { tool_calls: [{ index: 0, function: { arguments: 'ople"}' } }] }, finish_reason: 'tool_calls' }] },
+      { choices: [], usage: { prompt_tokens: 12000, completion_tokens: 60 } },
+    ];
+    try {
+      const r = await aosPoucos(tok.edu, { mensagens: [{ role: 'user', content: 'quem está aqui?' }], contexto: { casaId: ids.AI3 } });
+      expect(r.status).toBe(200);
+      expect(r.headers['content-type']).toMatch(/ndjson/);
+      expect(recebidos[0].corpo).toMatchObject({ stream: true, stream_options: { include_usage: true } });
+      const linhas = String(r.body).trim().split('\n').map((l) => JSON.parse(l));
+      expect(linhas.filter((l) => l.tipo === 'texto').map((l) => l.texto))
+        .toEqual(['Vou ', 'Vou ver quem está na casa.']);
+      expect(linhas[linhas.length - 1]).toEqual({ tipo: 'fim', parada: 'tool_use', guardar: true, conteudo: [
+        { type: 'text', text: 'Vou ver quem está na casa.' },
+        { type: 'tool_use', id: 'call_5', name: 'consultar_sistema', input: { rota: '/people' } },
+      ] });
+      expect(String(r.body)).not.toMatch(/a pessoa quer/);
+    } finally {
+      emPedacos = null;
+    }
+  });
+
+  it('em pedaços, a máquina desligada é recusada antes da primeira linha, como na rota de sempre', async () => {
+    const antes = process.env.ACOLHE_AI_LOCAL_URL;
+    process.env.ACOLHE_AI_LOCAL_URL = 'http://127.0.0.1:1/v1';
+    try {
+      const r = await aosPoucos(tok.edu, { mensagens: [{ role: 'user', content: 'oi' }] });
+      expect(r.status).toBe(503);
+      expect(JSON.parse(String(r.body)).message).toBe('O computador da Acolhe+AI não está respondendo. Avise a TI.');
+    } finally {
+      process.env.ACOLHE_AI_LOCAL_URL = antes;
+    }
+    expect((await aosPoucos('', { mensagens: [{ role: 'user', content: 'oi' }] })).status).toBe(401);
   });
 
   it('a auditoria diz o motor e o uso, nunca a conversa', async () => {

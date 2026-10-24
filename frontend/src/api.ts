@@ -43,6 +43,9 @@ function mensagem(status: number, doServidor?: string): string {
   if (status === 429) return doServidor || 'Muitas tentativas. Aguarde alguns minutos e tente novamente.';
   if (status === 403) return 'Seu cargo não tem acesso a este conteúdo.';
   if (status === 404) return 'Não encontrado.';
+  /* O 503 é de quem está ocupado ou fora do ar e diz o que fazer (a Acolhe+AI
+     diz se a máquina dela não responde, fase 240): a frase do servidor vale. */
+  if (status === 503 && doServidor) return doServidor;
   if (status >= 500) return 'O sistema está indisponível no momento. Tente novamente em instantes.';
   return doServidor || 'Não foi possível concluir a ação.';
 }
@@ -109,15 +112,65 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
     );
   }
 
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({} as { message?: string }));
-    // Mensagem do servidor só é exibida quando já vem em linguagem de usuário.
-    const doServidor = typeof body.message === 'string' && /[À-ÿ]|senha|tentativas|Sessão/i.test(body.message)
-      ? body.message : undefined;
-    talvezVenceu(res.status, path);
-    throw new ErroApi(res.status, mensagem(res.status, doServidor));
-  }
+  if (!res.ok) await recusa(res, path);
   return res.json();
+}
+
+async function recusa(res: Response, path: string): Promise<never> {
+  const body = await res.json().catch(() => ({} as { message?: string }));
+  // Mensagem do servidor só é exibida quando já vem em linguagem de usuário.
+  const doServidor = typeof body.message === 'string' && /[À-ÿ]|senha|tentativas|Sessão/i.test(body.message)
+    ? body.message : undefined;
+  talvezVenceu(res.status, path);
+  throw new ErroApi(res.status, mensagem(res.status, doServidor));
+}
+
+/**
+ * A resposta que aparece enquanto é escrita (fase 240): o servidor manda uma
+ * linha de JSON por pedaço (`texto`), e a última traz a resposta inteira
+ * (`fim`) ou a recusa que veio no meio (`erro`). No protótipo, que não tem
+ * pedaços, a resposta vem inteira de uma vez.
+ */
+export async function apiAosPoucos<T>(path: string, init: RequestInit, aoEscrever: (texto: string) => void): Promise<T> {
+  if (PROTOTIPO) return api<T>(path, init);
+  let res: Response;
+  try {
+    res = await fetch(`${BASE}${path}`, {
+      ...init,
+      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}), ...init.headers },
+    });
+  } catch {
+    throw new SemConexao('Sem conexão com o servidor.');
+  }
+  if (!res.ok) await recusa(res, path);
+  if (!res.body || !/ndjson/.test(res.headers.get('content-type') ?? '')) return res.json();
+  const leitor = res.body.getReader();
+  const dec = new TextDecoder();
+  let resto = '';
+  let fim: T | null = null;
+  const linha = (l: string) => {
+    if (!l.trim()) return;
+    const o = JSON.parse(l) as { tipo: string; texto?: string; status?: number; mensagem?: string };
+    if (o.tipo === 'texto') aoEscrever(String(o.texto ?? ''));
+    else if (o.tipo === 'erro') throw new ErroApi(o.status ?? 503, mensagem(o.status ?? 503, o.mensagem));
+    else if (o.tipo === 'fim') { const { tipo: _t, ...r } = o; fim = r as unknown as T; }
+  };
+  try {
+    for (;;) {
+      const { value, done } = await leitor.read();
+      if (done) break;
+      resto += dec.decode(value, { stream: true });
+      const partes = resto.split('\n');
+      resto = partes.pop() ?? '';
+      partes.forEach(linha);
+    }
+    linha(resto);
+  } catch (e) {
+    if (e instanceof ErroApi) throw e;
+    throw new SemConexao('A conexão caiu no meio da resposta.');
+  }
+  if (!fim) throw new SemConexao('A conexão caiu no meio da resposta.');
+  return fim;
 }
 
 /* ------------------------------------------------------------- Fila offline */

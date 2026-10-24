@@ -7,7 +7,7 @@ import { AuditService } from '../../kernel/audit/audit.service';
 import { AuthenticatedUser } from '../../kernel/contracts';
 import { MAXIMO_DE_ANEXOS_POR_MENSAGEM, recusaDosAnexos } from '../../kernel/arquivos/anexos-da-mensagem.regra';
 import { FERRAMENTAS, NOMES_DAS_FERRAMENTAS } from './ferramentas';
-import { GUIA_DA_ACOLHE, contexto, ContextoDaConversa } from './guia';
+import { GUIA_DA_ACOLHE, contexto, ContextoDaConversa, guiaDoCargo } from './guia';
 import {
   FilaCheia, FilaDoModelo, MotorLocalFalhou, MensagemDaConversa,
   daRespostaAberta, ferramentasAbertas, janelaCurta, letrasDoTexto, paraOPadraoAberto, perguntarAoMotorLocal,
@@ -183,11 +183,13 @@ export class AssistenteService {
   }
 
   /** O Claude, com a chave (fase 192). */
-  private async perguntarAoClaude(instrucoes: string[], mensagens: Anthropic.Beta.BetaMessageParam[]): Promise<Resultado> {
+  private async perguntarAoClaude(
+    instrucoes: string[], mensagens: Anthropic.Beta.BetaMessageParam[], aoEscrever?: (texto: string) => void,
+  ): Promise<Resultado> {
     const cliente = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, timeout: 120_000, maxRetries: 1 });
     let resposta: Anthropic.Beta.BetaMessage;
     try {
-      resposta = await cliente.beta.messages.create({
+      const pedido: Anthropic.Beta.MessageCreateParamsNonStreaming = {
         model: this.modelo(),
         max_tokens: 16000,
         betas: ['server-side-fallback-2026-07-01', 'thinking-binding-controls-2026-08-01'],
@@ -200,7 +202,18 @@ export class AssistenteService {
         ],
         tools: JSON.parse(JSON.stringify(FERRAMENTAS)) as Anthropic.Beta.BetaTool[],
         messages: comCache(mensagens),
-      });
+      };
+      if (aoEscrever) {
+        /* Em pedaços: o texto de cada bloco vai saindo, com os blocos já
+           terminados na frente, e a resposta inteira é a de sempre. */
+        const fluxo = cliente.beta.messages.stream(pedido);
+        let anteriores = '';
+        fluxo.on('text', (_parte, atual) => aoEscrever(anteriores + atual));
+        fluxo.on('contentBlock', (b) => { if (b.type === 'text') anteriores += `${b.text}\n`; });
+        resposta = await fluxo.finalMessage();
+      } else {
+        resposta = await cliente.beta.messages.create(pedido);
+      }
     } catch (e) {
       /* O log leva a classe e o status, nunca a conversa. */
       const status = e instanceof Anthropic.APIError ? e.status : undefined;
@@ -226,7 +239,9 @@ export class AssistenteService {
   }
 
   /** O modelo aberto no computador do Pão (fase 239), na vez da fila. */
-  private async perguntarNoPao(instrucoes: string[], mensagens: Anthropic.Beta.BetaMessageParam[]): Promise<Resultado> {
+  private async perguntarNoPao(
+    instrucoes: string[], mensagens: Anthropic.Beta.BetaMessageParam[], aoEscrever?: (texto: string) => void,
+  ): Promise<Resultado> {
     const cfg = {
       url: process.env.ACOLHE_AI_LOCAL_URL!.trim(),
       modelo: process.env.ACOLHE_AI_LOCAL_MODELO!.trim(),
@@ -236,7 +251,7 @@ export class AssistenteService {
     const conversa = paraOPadraoAberto(instrucoes, mensagens as unknown as MensagemDaConversa[]);
     let json: unknown;
     try {
-      json = await this.filaDoModelo().executar(() => perguntarAoMotorLocal(cfg, conversa, ferramentasAbertas(FERRAMENTAS)));
+      json = await this.filaDoModelo().executar(() => perguntarAoMotorLocal(cfg, conversa, ferramentasAbertas(FERRAMENTAS), aoEscrever));
     } catch (e) {
       /* O log leva a razão e o status, nunca a conversa. */
       if (e instanceof FilaCheia) {
@@ -268,7 +283,11 @@ export class AssistenteService {
     };
   }
 
-  async conversar(user: AuthenticatedUser, pedido: PedidoDeConversa) {
+  /**
+   * Uma volta da conversa. Com `aoEscrever` (fase 240), o texto da resposta vai
+   * saindo enquanto o modelo escreve, e a resposta inteira volta no fim igual.
+   */
+  async conversar(user: AuthenticatedUser, pedido: PedidoDeConversa, aoEscrever?: (texto: string) => void) {
     const mensagens = this.conferirMensagens(pedido?.mensagens);
     if (!this.ligada()) {
       throw new ServiceUnavailableException('A Acolhe+AI ainda não foi ligada nesta instalação: ela responde só pelo guia.');
@@ -281,13 +300,15 @@ export class AssistenteService {
     const ctx = pedido?.contexto ?? {};
     /* A casa conferida vai só para a auditoria: ao modelo ela chega pela nota do momento. */
     const casaId = await this.casaConferida(user, ctx.casaId);
-    const instrucoes = [GUIA_DA_ACOLHE, contexto({
-      pessoa: user.fullName, cargo: user.role, telas: this.conferirTelas(ctx.telas),
+    const telas = this.conferirTelas(ctx.telas);
+    /* No computador do Pão, só as telas do cargo (fase 240): o modelo é menor. */
+    const instrucoes = [local ? guiaDoCargo(telas.map((x) => x.chave)) : GUIA_DA_ACOLHE, contexto({
+      pessoa: user.fullName, cargo: user.role, telas,
     })];
 
     const r = local
-      ? await this.perguntarNoPao(instrucoes, mensagens)
-      : await this.perguntarAoClaude(instrucoes, mensagens);
+      ? await this.perguntarNoPao(instrucoes, mensagens, aoEscrever)
+      : await this.perguntarAoClaude(instrucoes, mensagens, aoEscrever);
 
     const ferramentas = r.content.filter((b) => b.type === 'tool_use').map((b) => String((b as { name?: unknown }).name));
     await this.audit.log({

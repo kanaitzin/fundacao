@@ -3758,6 +3758,43 @@ console.log('\n🖐️ A Acolhe+AI mexendo na tela (fase 193)');
 }
 
 /*
+ * A MÁQUINA DA ACOLHE+AI FORA DO AR (fase 240). Com o modelo ligado e a
+ * máquina sem responder, a pergunta é atendida pelo guia, que mora na tela,
+ * com o aviso; a Acolhe+AI continua ligada, e a pergunta seguinte, com a
+ * máquina de volta, vai ao modelo de novo.
+ */
+console.log('\n🔌 A Acolhe+AI com a máquina fora do ar (fase 240)');
+{
+  const pgF = await navegador.newPage({ viewport: { width: 420, height: 900 } });
+  const errosF = [];
+  pgF.on('pageerror', (e) => errosF.push(e.message));
+  await pgF.addInitScript(() => { window.__ACOLHE_ROTEIRO__ = []; window.__ACOLHE_FORA__ = true; });
+  await pgF.goto(`file://${ARQUIVO}`);
+  await pgF.waitForTimeout(800);
+  await pgF.getByRole('button', { name: 'Marcelo Barbosa' }).click();
+  await pgF.getByRole('button', { name: /Entrar no sistema/i }).click();
+  await pgF.waitForTimeout(1200);
+  await pgF.locator('select.troca-cargo-sel').selectOption('coordenador');
+  await pgF.waitForTimeout(900);
+  await pgF.getByRole('button', { name: /^Abrir a Acolhe\+AI/ }).click();
+  const painel = pgF.locator('.acolhe-painel');
+  await pgF.locator('#acolhe-pergunta').fill('onde vejo as ocorrências?');
+  await painel.getByRole('button', { name: 'Enviar' }).click();
+  await pgF.waitForTimeout(900);
+  const fala = await painel.locator('.acolhe-conversa').innerText();
+  cobrar('com a máquina fora, ela avisa e responde pelo guia', /não está respondendo/.test(fala)
+    && /respondo pelo guia/.test(fala) && (await painel.locator('.acolhe-link', { hasText: /Ocorr/ }).count()) > 0, fala.slice(-300));
+  cobrar('e continua ligada: o aviso do modo guia não aparece', (await painel.locator('.acolhe-aviso', { hasText: 'Modo guia' }).count()) === 0);
+  await pgF.evaluate(() => { window.__ACOLHE_FORA__ = false; window.__ACOLHE_ROTEIRO__ = [[{ type: 'text', text: 'Voltei, pode perguntar.' }]]; });
+  await pgF.locator('#acolhe-pergunta').fill('e agora?');
+  await painel.getByRole('button', { name: 'Enviar' }).click();
+  await pgF.waitForTimeout(900);
+  cobrar('com a máquina de volta, a pergunta seguinte vai ao modelo', /Voltei, pode perguntar/.test(await painel.locator('.acolhe-conversa').innerText()));
+  cobrar('nenhuma exceção com a máquina fora do ar', errosF.length === 0, errosF[0]);
+  await pgF.close();
+}
+
+/*
  * A CÂMERA DO SISTEMA (fase 194). Pelo botão de câmera da Acolhe+AI, que abre
  * já no modo documento: o visor ao vivo, o X que refaz, o certo que guarda a
  * página, a segunda página, e o PDF de duas páginas na prévia. Depois a foto

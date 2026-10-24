@@ -98,6 +98,38 @@ function responder(corpo) {
   return [{ type: 'text', text: 'De nada! Estou por aqui.' }];
 }
 
+/**
+ * A mesma resposta em pedaços, no formato da Anthropic (fase 240): a tela pede
+ * a resposta aparecendo enquanto é escrita, e o servidor pede ao modelo assim.
+ * O raciocínio vai com a assinatura, o texto em dois pedaços e o pedido de
+ * ferramenta com o argumento em JSON.
+ */
+function emPedacos(res, mensagem) {
+  const ev = (tipo, dado) => res.write(`event: ${tipo}\ndata: ${JSON.stringify({ type: tipo, ...dado })}\n\n`);
+  res.setHeader('content-type', 'text/event-stream');
+  ev('message_start', { message: { ...mensagem, content: [], stop_reason: null, usage: { input_tokens: 1000, output_tokens: 1 } } });
+  mensagem.content.forEach((b, index) => {
+    if (b.type === 'thinking') {
+      ev('content_block_start', { index, content_block: { type: 'thinking', thinking: '', signature: '' } });
+      ev('content_block_delta', { index, delta: { type: 'thinking_delta', thinking: b.thinking } });
+      ev('content_block_delta', { index, delta: { type: 'signature_delta', signature: b.signature } });
+    } else if (b.type === 'tool_use') {
+      ev('content_block_start', { index, content_block: { type: 'tool_use', id: b.id, name: b.name, input: {} } });
+      ev('content_block_delta', { index, delta: { type: 'input_json_delta', partial_json: JSON.stringify(b.input) } });
+    } else {
+      const meio = Math.ceil(b.text.length / 2);
+      ev('content_block_start', { index, content_block: { type: 'text', text: '' } });
+      for (const parte of [b.text.slice(0, meio), b.text.slice(meio)]) {
+        if (parte) ev('content_block_delta', { index, delta: { type: 'text_delta', text: parte } });
+      }
+    }
+    ev('content_block_stop', { index });
+  });
+  ev('message_delta', { delta: { stop_reason: mensagem.stop_reason, stop_sequence: null }, usage: { output_tokens: 50 } });
+  ev('message_stop', {});
+  res.end();
+}
+
 const modelo = createServer((req, res) => {
   const partes = [];
   req.on('data', (p) => partes.push(p));
@@ -106,13 +138,15 @@ const modelo = createServer((req, res) => {
     try { corpo = JSON.parse(Buffer.concat(partes).toString('utf8')); } catch { /* corpo vazio */ }
     recebidos.push({ cabecalhos: req.headers, corpo });
     const content = corpo.messages ? responder(corpo) : [{ type: 'text', text: '' }];
-    res.setHeader('content-type', 'application/json');
-    res.end(JSON.stringify({
+    const mensagem = {
       id: `msg_ensaio_${recebidos.length}`, type: 'message', role: 'assistant', model: corpo.model,
       content, stop_reason: content.some((b) => b.type === 'tool_use') ? 'tool_use' : 'end_turn', stop_sequence: null,
       usage: { input_tokens: 1000, output_tokens: 50, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 },
       input_transformations: [],
-    }));
+    };
+    if (corpo.stream) { emPedacos(res, mensagem); return; }
+    res.setHeader('content-type', 'application/json');
+    res.end(JSON.stringify(mensagem));
   });
 });
 await new Promise((ok) => modelo.listen(PORTA, '127.0.0.1', ok));
@@ -192,6 +226,8 @@ await pg.screenshot({ path: join(SAIDA, 'conversa.png'), fullPage: true });
 const chamadas = recebidos.filter((r) => r.corpo.messages);
 cobrar('cada pergunta e cada resultado foram ao modelo pelo servidor (cinco chamadas)', chamadas.length === 5, `${chamadas.length} chamadas`);
 const [primeira] = chamadas;
+cobrar('a tela pediu a resposta aparecendo enquanto é escrita, e o servidor a pediu em pedaços (fase 240)',
+  chamadas.every((c) => c.corpo.stream === true), chamadas.map((c) => c.corpo.stream).join(','));
 cobrar('com o raciocínio preso à conversa e tirado em vez de recusar, se mudar',
   String(primeira?.cabecalhos['anthropic-beta']).includes('thinking-binding-controls-2026-08-01')
   && primeira?.corpo.thinking?.block_binding?.prefix_mismatch_behavior === 'drop_block',

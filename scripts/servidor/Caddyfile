@@ -15,6 +15,13 @@ rede.paodospobres.com.br {
 	request_body {
 		max_size 30MB
 	}
+	# A resposta da Acolhe+AI que aparece enquanto é escrita: cada pedaço
+	# passa na hora, sem o proxy juntar a resposta inteira antes.
+	handle /api/v1/assistente/conversa/aos-poucos {
+		reverse_proxy 127.0.0.1:3000 {
+			flush_interval -1
+		}
+	}
 	handle /api/* {
 		reverse_proxy 127.0.0.1:3000
 	}

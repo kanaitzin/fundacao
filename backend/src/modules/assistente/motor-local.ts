@@ -161,6 +161,73 @@ export function semRaciocinio(t: string): string {
   return t.replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/^[\s\S]*?<\/think>/i, '').trim();
 }
 
+/**
+ * O texto que já pode aparecer enquanto a resposta nasce (fase 240): sem o
+ * raciocínio entre marcas, sem o que ainda está dentro de uma marca aberta e
+ * sem o pedaço de marca que chegou pela metade.
+ */
+export function textoVisivel(t: string): string {
+  let s = t.replace(/<think>[\s\S]*?<\/think>/gi, '');
+  const aberta = s.search(/<think>/i);
+  if (aberta >= 0) s = s.slice(0, aberta);
+  return s.replace(/<\/?t?h?i?n?k?$/i, '').trimStart();
+}
+
+/**
+ * A resposta em pedaços do padrão aberto (`stream: true`), lida até o fim e
+ * montada na mesma forma da resposta inteira, para o `daRespostaAberta` ler
+ * igual. Cada mudança do texto visível vai para quem está esperando.
+ */
+export async function lerOsPedacos(corpo: ReadableStream<Uint8Array>, aoEscrever: (visivel: string) => void): Promise<unknown> {
+  const leitor = corpo.getReader();
+  const dec = new TextDecoder();
+  let resto = '';
+  let texto = '';
+  let visto = '';
+  let fim: unknown = null;
+  let uso: unknown = undefined;
+  const chamadas: { id?: string; nome: string; args: string }[] = [];
+  const linha = (l: string) => {
+    const d = l.trim();
+    if (!d.startsWith('data:')) return;
+    const dado = d.slice(5).trim();
+    if (!dado || dado === '[DONE]') return;
+    let j: { usage?: unknown; choices?: { finish_reason?: unknown; delta?: { content?: unknown; tool_calls?: { index?: unknown; id?: unknown; function?: { name?: unknown; arguments?: unknown } }[] } }[] };
+    try { j = JSON.parse(dado); } catch { return; }
+    if (j.usage) uso = j.usage;
+    const e = j.choices?.[0];
+    if (!e) return;
+    if (e.finish_reason) fim = e.finish_reason;
+    const delta = e.delta ?? {};
+    if (typeof delta.content === 'string' && delta.content) {
+      texto += delta.content;
+      const v = textoVisivel(texto);
+      if (v !== visto) { visto = v; aoEscrever(v); }
+    }
+    for (const c of Array.isArray(delta.tool_calls) ? delta.tool_calls : []) {
+      const i = typeof c.index === 'number' ? c.index : chamadas.length;
+      chamadas[i] ??= { nome: '', args: '' };
+      if (typeof c.id === 'string') chamadas[i].id = c.id;
+      if (typeof c.function?.name === 'string') chamadas[i].nome += c.function.name;
+      if (typeof c.function?.arguments === 'string') chamadas[i].args += c.function.arguments;
+    }
+  };
+  for (;;) {
+    const { value, done } = await leitor.read();
+    if (done) break;
+    resto += dec.decode(value, { stream: true });
+    const partes = resto.split('\n');
+    resto = partes.pop() ?? '';
+    partes.forEach(linha);
+  }
+  if (resto) linha(resto);
+  return {
+    choices: [{ finish_reason: fim, message: { content: texto,
+      tool_calls: chamadas.filter(Boolean).map((c) => ({ id: c.id, function: { name: c.nome, arguments: c.args } })) } }],
+    usage: uso,
+  };
+}
+
 /** A resposta do padrão aberto, nos blocos da conversa. Só passam as ferramentas conhecidas. */
 export function daRespostaAberta(json: unknown, nomes: readonly string[]): RespostaTraduzida {
   const r = json as {
@@ -213,13 +280,17 @@ export interface ConfiguracaoDoMotorLocal { url: string; modelo: string; esperaM
 /** Uma pergunta ao modelo do Pão. O endereço é o do `/v1` (o Ollama responde em `:11434/v1`). */
 export async function perguntarAoMotorLocal(
   cfg: ConfiguracaoDoMotorLocal, mensagens: MensagemAberta[], ferramentas: ReturnType<typeof ferramentasAbertas>,
+  aoEscrever?: (visivel: string) => void,
 ): Promise<unknown> {
   let res: Response;
   try {
     res = await fetch(`${cfg.url.replace(/\/+$/, '')}/chat/completions`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ model: cfg.modelo, messages: mensagens, tools: ferramentas, stream: false, max_tokens: cfg.maxTokens }),
+      body: JSON.stringify({
+        model: cfg.modelo, messages: mensagens, tools: ferramentas, max_tokens: cfg.maxTokens,
+        ...(aoEscrever ? { stream: true, stream_options: { include_usage: true } } : { stream: false }),
+      }),
       signal: AbortSignal.timeout(cfg.esperaMs),
     });
   } catch (e) {
@@ -227,5 +298,11 @@ export async function perguntarAoMotorLocal(
     throw new MotorLocalFalhou(nome === 'TimeoutError' || nome === 'AbortError' ? 'demorou' : 'sem_conexao');
   }
   if (!res.ok) throw new MotorLocalFalhou('recusou', res.status);
+  if (aoEscrever && res.body && /event-stream|ndjson/.test(res.headers.get('content-type') ?? '')) {
+    try { return await lerOsPedacos(res.body, aoEscrever); } catch (e) {
+      const nome = (e as Error)?.name;
+      throw new MotorLocalFalhou(nome === 'TimeoutError' || nome === 'AbortError' ? 'demorou' : 'resposta_ilegivel', res.status);
+    }
+  }
   try { return await res.json(); } catch { throw new MotorLocalFalhou('resposta_ilegivel', res.status); }
 }

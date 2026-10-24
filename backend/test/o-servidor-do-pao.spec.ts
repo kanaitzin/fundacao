@@ -31,6 +31,11 @@ describe('Os arquivos do servidor do Pão', () => {
     expect(c).toMatch(/try_files \{path\} \/index\.html/);
   });
 
+  it('a resposta da Acolhe+AI em pedaços passa pelo proxy na hora (fase 240)', () => {
+    expect(ler('scripts/servidor/Caddyfile'))
+      .toMatch(/handle \/api\/v1\/assistente\/conversa\/aos-poucos\s*\{\s*reverse_proxy 127\.0\.0\.1:3000\s*\{\s*flush_interval -1/);
+  });
+
   it('o serviço roda o compilado, com o .env, e volta sozinho se cair', () => {
     const s = ler('scripts/servidor/rede-acolher.service');
     expect(s).toMatch(/^ExecStart=\/usr\/bin\/node dist\/main\.js$/m);

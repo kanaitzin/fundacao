@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
-import { api } from './api';
+import { api, apiAosPoucos, SemConexao } from './api';
 import { Icone, SimboloDaAcolhe } from './icones';
 import { AnexosDaMensagem, EscolherAnexo, Escolhido, base64De, oferecerFotosDaAcolhe } from './anexos';
 import { recusaDosAnexos } from '../../backend/src/kernel/arquivos/anexos-da-mensagem.regra';
@@ -142,6 +142,9 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
   const [pelaCamera, setPelaCamera] = useState(false);
   const [ocupada, setOcupada] = useState(false);
   const [lendo, setLendo] = useState('');
+  /* A resposta enquanto é escrita (fase 240): só para ver; a fala de verdade
+     entra na conversa quando ela termina. */
+  const [escrevendo, setEscrevendo] = useState('');
   const [voz, setVoz] = useState(VOZES[0]);
   const [lerRespostas, setLerRespostas] = useState(false);
   const [ouvindo, setOuvindo] = useState(false);
@@ -781,13 +784,14 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
     parar.current = false;
     try {
       for (let volta = 0; volta < MAX_VOLTAS; volta++) {
-        const r = await api<{ conteudo: Bloco[]; parada: string; guardar: boolean }>('/assistente/conversa', {
+        const r = await apiAosPoucos<{ conteudo: Bloco[]; parada: string; guardar: boolean }>('/assistente/conversa/aos-poucos', {
           method: 'POST',
           body: JSON.stringify({ mensagens: historico.current, contexto: {
             casaId: casa?.id, casaNome: casa?.nome, tela: telaAtual, voz: voz === VOZES[0] ? null : voz,
             telas: telas.map((x) => ({ chave: x.chave, titulo: x.titulo, frase: x.frase })),
           } }),
-        });
+        }, setEscrevendo);
+        setEscrevendo('');
         if (!r.guardar) {
           voltarAoDeAntes();
           r.conteudo.forEach((b) => b.type === 'text' && dizer(String(b.text)));
@@ -815,15 +819,25 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
       }
     } catch (e) {
       voltarAoDeAntes();
+      const status = (e as { status?: number })?.status;
+      const frase = e instanceof Error ? e.message : 'A Acolhe+AI não respondeu agora.';
       /* O protótipo recusa como o servidor sem a chave: 503, "responde só pelo guia". */
-      if ((e as { status?: number })?.status === 503 && /guia/.test((e as Error).message)) {
+      if (status === 503 && /guia/.test(frase)) {
         setLigada(false);
-        pelosGuias(t);
+        void pelosGuias(t, meus.length > 0 && !t);
+      } else if (status === 503 || e instanceof SemConexao) {
+        /* A máquina da Acolhe+AI não respondeu, a fila encheu ou caiu a rede
+           (fase 240). O guia mora na tela e responde assim mesmo, só nesta
+           pergunta: a próxima tenta a máquina de novo. */
+        dizer(e instanceof SemConexao
+          ? 'Estou sem conexão com o servidor agora. Enquanto isso, respondo pelo guia, sem ler os dados da casa.'
+          : `${frase} Enquanto isso, respondo pelo guia, sem ler os dados da casa.`);
+        void pelosGuias(t, meus.length > 0 && !t);
       } else {
-        dizer(e instanceof Error ? e.message : 'A Acolhe+AI não respondeu agora.');
+        dizer(frase);
       }
     } finally {
-      setOcupada(false); setLendo('');
+      setOcupada(false); setLendo(''); setEscrevendo('');
       mostrarFeito();
     }
   }
@@ -1129,7 +1143,12 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
             )}
           </div>
         ))}
-        {(ocupada || lendo) && <p className="mutetxt" role="status">{lendo ? `Lendo: ${lendo}…` : 'Pensando…'}</p>}
+        {escrevendo.trim() && (
+          <div className="acolhe-linha acolhe escrevendo" aria-hidden="true">
+            <Texto t={humanizar(escrevendo)} />
+          </div>
+        )}
+        {(ocupada || lendo) && <p className="mutetxt" role="status">{lendo ? `Lendo: ${lendo}…` : escrevendo.trim() ? 'Escrevendo…' : 'Pensando…'}</p>}
         <div ref={fim} />
       </div>
       {avisoVoz && (
