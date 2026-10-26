@@ -96,13 +96,22 @@ async function fecharTudo(pg) {
 }
 
 /* A coluna lateral, ou, onde ela não existe (a portaria), a barra de baixo. */
-let PELA_BARRA = false;
+/* Quem tem uma tela só (a portaria) não tem barra nem coluna: a tela é a que abre. */
+const TELA_UNICA = '(a tela única)';
 async function irPara(pg, porta, aba) {
   await fecharTudo(pg);
+  if (porta === TELA_UNICA) {
+    if (aba) {
+      const a = pg.locator('main.conteudo [role="tab"]').filter({ hasText: new RegExp(`^\\s*${aba.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`) });
+      if (await a.count()) { await a.first().click({ timeout: 4000 }).catch(() => undefined); await espera(pg, 600); }
+    }
+    return;
+  }
   const nome = new RegExp(`^\\s*${porta.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`);
-  const botao = PELA_BARRA
-    ? pg.locator('nav.tabbar button').filter({ hasText: nome })
-    : pg.locator('nav.portas-lateral button').filter({ has: pg.locator('.rotulo', { hasText: nome }) });
+  /* As telas do turno moram na barra (no monitor, ela fica de pé); as outras, na coluna. */
+  const naColuna = pg.locator('nav.portas-lateral button').filter({ has: pg.locator('.rotulo', { hasText: nome }) });
+  const naBarra = pg.locator('nav.tabbar button').filter({ hasText: nome });
+  const botao = (await naColuna.count()) ? naColuna : naBarra;
   await botao.first().click({ timeout: 8000 });
   await espera(pg, 900);
   if (aba) {
@@ -210,9 +219,12 @@ for (const conta of CONTAS) {
     await ctx.close();
     continue;
   }
-  let portas = (await pg.locator('nav.portas-lateral button .rotulo').allInnerTexts()).map(limpo).filter(Boolean);
-  PELA_BARRA = !portas.length;
-  if (PELA_BARRA) portas = (await pg.locator('nav.tabbar button').allInnerTexts()).map(limpo).filter((t) => t && !/^Mais$/i.test(t));
+  /* A barra do turno primeiro (Dia, Acolhidos, Chamada...), depois a coluna. A
+     primeira rodada só olhou a coluna, e as telas mais usadas ficaram de fora. */
+  const daBarra = (await pg.locator('nav.tabbar button').allInnerTexts()).map(limpo).filter((t) => t && !/^Mais$/i.test(t));
+  const daColuna = (await pg.locator('nav.portas-lateral button .rotulo').allInnerTexts()).map(limpo).filter(Boolean);
+  let portas = [...new Set([...daBarra, ...daColuna])];
+  if (!portas.length) portas = [TELA_UNICA];
   let medidos = 0;
   for (const porta of portas) {
     await irPara(pg, porta, null).catch(() => undefined);
