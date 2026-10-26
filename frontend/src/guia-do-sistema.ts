@@ -138,6 +138,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 247, dia: '26/10/2026',
+    texto: 'Para quem cuida do servidor: a conferência da instalação pergunta ao computador da Acolhe+AI se ele responde e se tem o modelo escrito na configuração, e reprova quando a Acolhe+AI ficaria só no modo guia sem ninguém perceber.' },
   { fase: 246, dia: '26/10/2026',
     texto: 'Cada setor vê só o que é dele. O Gestor Geral acompanha a ATA, o Dia, a internação, a Cozinha, os combinados, a rotina e a escala de cada casa sem registrar nelas, e continua escrevendo a regra que vale para as oito casas. Saíram os botões que apareciam e não funcionavam para o cargo, e os Combinados da equipe ficam numa tela só.' },
   { fase: 245, dia: '25/10/2026', aba: 'saude',

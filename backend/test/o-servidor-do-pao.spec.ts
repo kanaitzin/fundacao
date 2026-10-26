@@ -10,7 +10,7 @@
 import { readFileSync, existsSync, writeFileSync, mkdtempSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { spawnSync } from 'node:child_process';
+import { spawnSync, spawn, type ChildProcess } from 'node:child_process';
 
 const RAIZ = join(__dirname, '..', '..');
 const ler = (p: string) => readFileSync(join(RAIZ, p), 'utf8');
@@ -83,5 +83,82 @@ describe('Os arquivos do servidor do Pão', () => {
     expect(r.status).toBe(1);
     expect(r.stdout).toMatch(/BANCO_LIMITE_PARADA_MS=0 desliga o limite/);
     expect(r.stdout).not.toMatch(/BANCO_LIMITE_CONSULTA_MS=0/);
+  });
+
+  /*
+   * A Acolhe+AI no computador do Pão (fase 247). O serviço só usa o motor local com
+   * o endereço e o modelo, e sem um deles cai calado no modo guia: a conferência
+   * pergunta à máquina. A máquina de mentira roda num processo à parte, porque o
+   * `spawnSync` para este processo enquanto o instalador espera a resposta.
+   */
+  describe('a conferência da Acolhe+AI no computador do Pão', () => {
+    let maquina: ChildProcess;
+    let porta = 0;
+
+    beforeAll(async () => {
+      maquina = spawn(process.execPath, ['-e', `
+        require('node:http').createServer((req, res) => {
+          if (req.url !== '/v1/models') { res.statusCode = 404; return res.end(); }
+          res.setHeader('content-type', 'application/json');
+          res.end(JSON.stringify({ object: 'list', data: [{ id: 'qwen2.5:14b' }, { id: 'llama3.2:latest' }] }));
+        }).listen(0, '127.0.0.1', function () { console.log(this.address().port); });`]);
+      porta = await new Promise<number>((ok, falha) => {
+        maquina.stdout!.once('data', (d) => ok(Number(String(d).trim())));
+        maquina.once('error', falha);
+      });
+    });
+    afterAll(() => { maquina?.kill(); });
+
+    const conferir = (troca: Record<string, string>) => {
+      let texto = readFileSync(join(RAIZ, '.env.example'), 'utf8');
+      for (const [v, valor] of Object.entries(troca)) texto = texto.replace(new RegExp(`^${v}=.*$`, 'm'), `${v}=${valor}`);
+      const env = join(mkdtempSync(join(tmpdir(), 'instalar-')), '.env');
+      writeFileSync(env, texto);
+      return spawnSync('bash', [join(RAIZ, 'scripts', 'instalar.sh')], {
+        env: { ...process.env, ENV_ARQUIVO: env }, encoding: 'utf8', timeout: 60_000,
+      }).stdout;
+    };
+
+    it('o modelo que a máquina tem passa, e o nome sem a etiqueta vale como latest', () => {
+      expect(conferir({ ACOLHE_AI_MOTOR: 'local', ACOLHE_AI_LOCAL_URL: `http://127.0.0.1:${porta}/v1`, ACOLHE_AI_LOCAL_MODELO: 'qwen2.5:14b' }))
+        .toMatch(/✓.*a Acolhe\+AI no computador do Pão \(qwen2\.5:14b em 127\.0\.0\.1\)/);
+      expect(conferir({ ACOLHE_AI_MOTOR: 'local', ACOLHE_AI_LOCAL_URL: `http://127.0.0.1:${porta}/v1/`, ACOLHE_AI_LOCAL_MODELO: 'llama3.2' }))
+        .toMatch(/✓.*a Acolhe\+AI no computador do Pão \(llama3\.2 em/);
+    });
+
+    it('o modelo que a máquina não tem reprova, com os nomes que ela tem', () => {
+      const r = conferir({ ACOLHE_AI_MOTOR: 'local', ACOLHE_AI_LOCAL_URL: `http://127.0.0.1:${porta}/v1`, ACOLHE_AI_LOCAL_MODELO: 'gemma3' });
+      expect(r).toMatch(/✗.*o modelo gemma3 não está no computador da Acolhe\+AI/);
+      expect(r).toMatch(/qwen2\.5:14b llama3\.2:latest/);
+    });
+
+    it('a máquina que não responde reprova, e o endereço sem /v1 também', () => {
+      expect(conferir({ ACOLHE_AI_MOTOR: 'local', ACOLHE_AI_LOCAL_URL: 'http://127.0.0.1:9/v1', ACOLHE_AI_LOCAL_MODELO: 'qwen2.5:14b' }))
+        .toMatch(/✗.*o computador da Acolhe\+AI não responde/);
+      expect(conferir({ ACOLHE_AI_MOTOR: 'local', ACOLHE_AI_LOCAL_URL: `http://127.0.0.1:${porta}`, ACOLHE_AI_LOCAL_MODELO: 'qwen2.5:14b' }))
+        .toMatch(/✗.*não termina em \/v1/);
+    });
+
+    it('o motor local sem o modelo reprova (o serviço cairia calado no modo guia)', () => {
+      expect(conferir({ ACOLHE_AI_MOTOR: 'local', ACOLHE_AI_LOCAL_URL: `http://127.0.0.1:${porta}/v1` }))
+        .toMatch(/✗.*ACOLHE_AI_MOTOR=local sem o endereço ou sem o modelo/);
+    });
+
+    it('motor que o serviço não conhece reprova, e a chave sem uso avisa', () => {
+      expect(conferir({ ACOLHE_AI_MOTOR: 'ollama' })).toMatch(/✗.*ACOLHE_AI_MOTOR=ollama não é um motor/);
+      expect(conferir({ ACOLHE_AI_MOTOR: 'local', ACOLHE_AI_LOCAL_URL: `http://127.0.0.1:${porta}/v1`,
+        ACOLHE_AI_LOCAL_MODELO: 'qwen2.5:14b', ANTHROPIC_API_KEY: 'chave-de-teste' }))
+        .toMatch(/○.*ANTHROPIC_API_KEY preenchida com o motor local/);
+    });
+
+    it('a conferência lê o motor como o serviço lê (os nomes das variáveis batem)', () => {
+      const servico = ler('backend/src/modules/assistente/assistente.service.ts');
+      const instalador = ler('scripts/instalar.sh');
+      for (const v of ['ACOLHE_AI_MOTOR', 'ACOLHE_AI_LOCAL_URL', 'ACOLHE_AI_LOCAL_MODELO']) {
+        expect(servico).toContain(`process.env.${v}`);
+        expect(instalador).toContain(`val ${v}`);
+      }
+      expect(servico).toMatch(/ACOLHE_AI_MOTOR\?\.trim\(\) === 'local'/);
+    });
   });
 });

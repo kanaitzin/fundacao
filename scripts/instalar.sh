@@ -95,8 +95,45 @@ else
     || falta "RELOGIO_USER_EMAIL=$(val RELOGIO_USER_EMAIL)" "a conta institucional do relógio (§12.7)"
   [[ -n "$(val PUSH_VAPID_PUBLICA)" && -n "$(val PUSH_VAPID_PRIVADA)" ]] && ok "as chaves do aviso no celular" \
     || aviso "sem as chaves do aviso no celular" "opcional; sem elas o aviso fica só na tela (§12.11)"
-  [[ -n "$(val ANTHROPIC_API_KEY)" ]] && ok "a chave da Acolhe+AI" \
-    || aviso "sem a chave da Acolhe+AI" "opcional; sem ela a Acolhe+AI fica no modo guia (§12.12)"
+  # A Acolhe+AI (fase 247). A decisão de 23/10 é o computador do Pão: o serviço
+  # só usa o motor local com o endereço E o modelo, e sem um deles cai calado no
+  # modo guia. Por isso a conferência pergunta à máquina, e não só ao .env.
+  FIM_EM_V1='^https?://[^/]+(/.*)?/v1/?$'
+  DA_REDE='^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[01])\.)|^[a-z0-9-]+$|\.local$|\.lan$|\.paodospobres\.com\.br$'
+  motor=$(val ACOLHE_AI_MOTOR | tr -d '[:space:]')
+  lurl=$(val ACOLHE_AI_LOCAL_URL | tr -d '[:space:]')
+  lmod=$(val ACOLHE_AI_LOCAL_MODELO | tr -d '[:space:]')
+  if [[ "$motor" == local ]]; then
+    if [[ -z "$lurl" || -z "$lmod" ]]; then
+      falta "ACOLHE_AI_MOTOR=local sem o endereço ou sem o modelo" "preencha ACOLHE_AI_LOCAL_URL e ACOLHE_AI_LOCAL_MODELO; sem os dois a Acolhe+AI fica no modo guia (§12.12)"
+    elif [[ ! "$lurl" =~ $FIM_EM_V1 ]]; then
+      falta "ACOLHE_AI_LOCAL_URL=$lurl não termina em /v1" "o endereço do computador termina em /v1, como http://10.0.0.20:11434/v1 (§12.12)"
+    else
+      host=$(sed -E 's#^https?://([^/:]+).*#\1#' <<<"$lurl")
+      [[ "$host" =~ $DA_REDE ]] \
+        || aviso "ACOLHE_AI_LOCAL_URL aponta para $host" "confira que esse computador é da rede do Pão: a conversa vai inteira para ele"
+      # Pergunta à máquina quais modelos ela tem (/v1/models, o padrão aberto).
+      modelos=$(node -e '
+        fetch(process.argv[1].replace(/\/+$/, "") + "/models", { signal: AbortSignal.timeout(8000) })
+          .then((r) => r.ok ? r.json() : Promise.reject(r.status))
+          .then((j) => console.log((j.data ?? []).map((m) => m.id).join("\n")))
+          .catch(() => process.exit(2));' "$lurl" 2>/dev/null)
+      if [[ $? -ne 0 ]]; then
+        falta "o computador da Acolhe+AI não responde em $lurl" "confira que a máquina está ligada, o serviço do modelo está de pé e a porta está aberta para este servidor"
+      elif grep -qxF -e "$lmod" -e "$lmod:latest" <<<"$modelos"; then
+        ok "a Acolhe+AI no computador do Pão ($lmod em $host); a prova: npm run prova-do-modelo -w backend"
+      else
+        falta "o modelo $lmod não está no computador da Acolhe+AI" "os que ele tem: $(tr '\n' ' ' <<<"$modelos"); confira o nome em ACOLHE_AI_LOCAL_MODELO"
+      fi
+    fi
+    [[ -n "$(val ANTHROPIC_API_KEY)" ]] && aviso "ANTHROPIC_API_KEY preenchida com o motor local" "com o motor local a chave não é usada; apague a linha, segredo sem uso é segredo a guardar"
+  elif [[ -n "$motor" && "$motor" != claude ]]; then
+    falta "ACOLHE_AI_MOTOR=$motor não é um motor" "use local para o computador do Pão, ou deixe vazio (§12.12)"
+  elif [[ -n "$(val ANTHROPIC_API_KEY)" ]]; then
+    aviso "a Acolhe+AI pela chave da Anthropic" "a conversa sai do servidor; a decisão de 23/10 é o computador do Pão, com ACOLHE_AI_MOTOR=local (§12.12)"
+  else
+    aviso "a Acolhe+AI sem modelo" "opcional; sem o computador do Pão ela fica no modo guia (§12.12)"
+  fi
 fi
 
 secao "3. O banco"
