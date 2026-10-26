@@ -422,7 +422,15 @@ cada setor vê só as suas funções. **Quem acrescentar rota de escrita** na AT
 nos combinados, na rotina ou na escala põe `@OGestorSoLe()` nela, ou a escreve com o motivo na lista das livres
 do `o-gestor-so-le.spec.ts`, que nega por padrão; e a mesma rota entra no `GESTOR_SO_LE` do `mock-casa.ts`.
 **Quem mexer em permissão** roda a medição: `SIM_SETORES=1` na simulação (uma hora e meia; em lotes com
-`ENSAIO_CARGOS` e `SIM_SETORES_SAIDA`, e `SIM_SO_NAVEGADOR=1 SIM_SO_SETORES=1` para repetir só ela). **Para o
+`ENSAIO_CARGOS` e `SIM_SETORES_SAIDA`, e `SIM_SO_NAVEGADOR=1 SIM_SO_SETORES=1` para repetir só ela). **Medido na 246:** a suíte inteira nas
+DUAS condições de relógio (1405 de 1405; a primeira rodada adiantada reprovou o teste da fila do aparelho, que
+pegava uma atividade qualquer do banco, e a suíte dos downloads escolhia a criança pelo identificador sorteado:
+as duas passam a escolher pelo que o teste precisa), o `ensaio:uso` inteiro (com o percurso do gestor lendo a
+casa, que achou o *Propor um assunto* que faltava esconder), o do celular (320 telas, sem achado), o
+`ensaio:acolhe` (todas as telas, subtelas e formulários dos nove cargos; o gestor foi de 31 para 15 formulários)
+e a Casa 03 em trinta dias contra o servidor de verdade (onze contas, 326 telas e o esqueci, sem achado; na API,
+só a recusa conhecida das vagas; nenhuma leitura acima de 149 ms; a Acolhe+AI com o modelo, verde). **Não rodou**
+o de acessibilidade: nenhuma cor mudou. **Para o
 Marcelo conferir:** se o Gestor Geral precisa cobrir casa sem coordenação. **Próxima etapa:** a mesma da 239
 (o passo a passo da instalação no §12.12) e a escolha do computador e do modelo.
 
