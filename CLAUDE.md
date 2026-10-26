@@ -426,7 +426,10 @@ relógio, 1411 de 1411 no relógio real e às 22h30 de Porto Alegre. **Com isso,
 está todo feito.** **E a varredura de 26/10** (§2, linha 247): a folha das vivências da 237 não tinha suíte, e a
 regra das fotos conforme o cargo só era conferida pelo protótipo; hoje a `a-folha-das-vivencias` cobra, lendo de
 volta a folha e o Word. **Rode o `rotas-sem-teste.mjs` e a `varredura-de-pontas.mjs` a cada fase que cria rota
-ou coluna**: a 237 passou com as duas, e ninguém viu. **Fica de fora, de propósito:** o passo a passo de instalar o modelo no computador (a escrita
+ou coluna**: a 237 passou com as duas, e ninguém viu. **Medido na varredura:** a suíte inteira nas DUAS condições de relógio, 1417 de 1417, e o
+`superficies-sem-teste.mjs` sem candidata. A primeira rodada adiantada reprovou o dossiê: a suíte nova caiu na
+criança dele e somou uma foto sem autorização (a lição da 127, pela quarta vez); hoje ela tira da escolha as
+crianças que o dossiê e a foto marcada contam. **Fica de fora, de propósito:** o passo a passo de instalar o modelo no computador (a escrita
 foi interrompida por um filtro automático em duas sessões, e é da TI com a máquina escolhida). **Próxima etapa:**
 a pauta de 21/10 (PARA-A-REUNIAO §0); a escolha do computador e do modelo é da Fundação e da TI, e quando a
 máquina vier, roda-se o `instalar.sh` e o `npm run prova-do-modelo -w backend` nela.
