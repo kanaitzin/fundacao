@@ -201,7 +201,7 @@ contando o conceito escolar (fase 137). Nada disso volta à mesa.
   196 também dentro do perfil da criança (*quero registrar a alergia do Bruno*), do dossiê, da
   internação aberta e do acervo: os 36 formulários do sistema. **Para o DPO:**
   o ditado usa o reconhecimento do navegador; no Chrome, o áudio vai ao Google.
-- **238 fases.** 156 suítes e 1396 testes, verdes em duas condições de relógio —
+- **238 fases.** 157 suítes e 1398 testes, verdes em duas condições de relógio —
   antes e depois da virada do UTC, que em Porto Alegre é às 21h.
 - **O aviso no celular** (fase 189, decidido em 06/10): quem liga na Minha conta
   recebe no celular todos os avisos do sino, mesmo com o sistema fechado. Na
@@ -900,6 +900,28 @@ Ficou para a Fundação, e cada um é uma linha:
    de vídeo e responde pior em português. Fica como opção, não como troca.
 5. **O prazo de guarda e o que mais o sistema guarda.** Hoje nada se apaga. Prazo de guarda das
    fotos e documentos, o depósito de materiais e as finanças da casa pedem regra da Fundação antes.
+
+## 4.34 O remédio pela Enfermagem e o que cada setor vê (fases 245 e 246, 25/10)
+
+Decidido em 25/10 pela pessoa da Fundação que acompanha a sessão, e já é código:
+
+- **Só a Enfermagem ativa o esquema de medicamento** (245). De noite, a coordenação ou a
+  técnica cadastram o rascunho com a foto da receita, e a Enfermagem é avisada; a dose
+  daquela noite a educadora dá conforme a receita e escreve na ATA. Troca a decisão de
+  08/09 só na ativação; o Gestor Geral saiu do cadastro.
+- **O Gestor Geral lê a casa e não registra** na ATA, no Dia, na internação, na Cozinha,
+  nos combinados, na rotina e na escala (246). Ele continua escrevendo a regra das oito
+  casas e baixando os papéis.
+- **A técnica e a coordenação ficam como estão**: foi proposto e recusado tirar da técnica
+  o Painel das unidades, a fila do arquivo, as contas da equipe e o armário, e da
+  coordenação a Sincronização, o Arquivo documental e a página dos setores.
+- **Os Combinados da equipe moram numa tela só** (a aba Alinhamentos saiu dos
+  Acompanhamentos).
+
+**Para o Marcelo conferir:** se o Gestor Geral precisa, em algum caso, cobrir uma casa sem
+coordenação (montar a escala ou fechar a ATA). Hoje ele não consegue; quem cobre é a
+Coordenação Geral, que é coordenadora e alcança as oito. A medição inteira está em
+`docs/historico/o-que-cada-setor-ve-25-10.md`.
 
 ## 5. As decisões que são do Marcelo *(§10 — responda pelo número)*
 

@@ -2,6 +2,7 @@ import { Body, Controller, Get, Inject, Param, ParseUUIDPipe, Post, Query, UseGu
 import { SessionGuard, CurrentUser } from '../identity';
 import { AuthenticatedUser } from '../../kernel/contracts';
 import { RoutineService, RoutineItemInput } from './routine.service';
+import { OGestorSoLe } from '../../kernel/common/o-gestor-so-le.guard';
 
 @Controller('routine')
 @UseGuards(SessionGuard)
@@ -19,12 +20,14 @@ export class RoutineController {
   }
 
   @Post('versions')
+  @OGestorSoLe()
   newVersion(@CurrentUser() user: AuthenticatedUser,
              @Body() body: { houseId: string; motivo: string }) {
     return this.routine.newVersion(user, body.houseId, body.motivo);
   }
 
   @Post('versions/:id/items')
+  @OGestorSoLe()
   addItem(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) versionId: string,
           @Body() body: RoutineItemInput & { houseId: string }) {
     return this.routine.addItem(user, body.houseId, versionId, body);

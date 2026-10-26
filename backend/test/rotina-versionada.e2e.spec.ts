@@ -65,9 +65,9 @@ describe('A rotina versionada da casa', () => {
     for (const [k, email] of Object.entries({
       educador: 'educador.ai4@paodospobres.dev',
       coord: 'coord.ai4@paodospobres.dev',
-      // Transversal: alcança as oito casas por função, e é quem abre a segunda
-      // versão — o teste precisa dos DOIS cargos que alteram.
-      tecnica: 'gestor@paodospobres.dev',
+      // Transversal: alcança as oito casas, e desde 25/10 lê a rotina sem
+      // escrevê-la (fase 246). O teste cobra a recusa.
+      gestor: 'gestor@paodospobres.dev',
     })) tokens[k] = await login(email);
 
     ({ rows: [{ id: ids.AI3 }] } = await admin.query(`SELECT id FROM house WHERE code='AI4'`));
@@ -177,8 +177,15 @@ describe('A rotina versionada da casa', () => {
     const quantos = antes.itens.length;
     expect(quantos).toBeGreaterThanOrEqual(2);
 
+    /* O Gestor Geral lê a rotina da casa e não a escreve (fase 246, decisão de 25/10). */
+    const peloGestor = await request(http).post('/api/v1/routine/versions')
+      .set(auth(tokens.gestor))
+      .send({ houseId: ids.AI3, motivo: 'O gestor tentando abrir uma versão nova da rotina.' });
+    expect(peloGestor.status).toBe(403);
+    expect(peloGestor.body.message).toMatch(/equipe da casa/);
+
     const res = await request(http).post('/api/v1/routine/versions')
-      .set(auth(tokens.tecnica))
+      .set(auth(tokens.coord))
       .send({ houseId: ids.AI3,
               motivo: 'A escola passou os maiores para a tarde; o almoço mudou de hora.' });
     expect(res.status).toBe(201);

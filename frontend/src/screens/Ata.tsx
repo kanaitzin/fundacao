@@ -237,7 +237,9 @@ function LeituraEmSequencia({ titulo, atas, onFechar }: {
   );
 }
 
-const FECHA_ATA = ['lider_diurno', 'lider_noturno_geral', 'equipe_tecnica', 'coordenador', 'gestor_geral'];
+/* O Gestor Geral lê a ATA da casa e não escreve nela (fase 246, decisão de 25/10). */
+const SO_LE_A_ATA = 'gestor_geral';
+const FECHA_ATA = ['lider_diurno', 'lider_noturno_geral', 'equipe_tecnica', 'coordenador'];
 
 /**
  * Quem CORRIGE a linha de uma casa na ATA Geral depois de assinada (fase 138).
@@ -258,10 +260,10 @@ const CORRIGEM_GERAL = ['lider_diurno', 'equipe_tecnica', 'coordenador'];
  * quiser registrar a sua continua podendo pela sua própria passagem.
  */
 const DA_CIENCIA = ['lider_diurno', 'lider_noturno_geral', 'equipe_tecnica',
-                    'coordenador', 'gestor_geral'];
+                    'coordenador'];
 
 /** Quem REABRE e CORRIGE ATA fechada (§12.7) — o mesmo alcance do servidor. */
-const CORRIGE_ATA = ['equipe_tecnica', 'coordenador', 'gestor_geral'];
+const CORRIGE_ATA = ['equipe_tecnica', 'coordenador'];
 
 const TIPO_ADENDO: Record<string, string> = {
   reabertura: 'Reabertura', correcao: 'Correção', complemento_tardio: 'Complemento tardio',
@@ -1037,7 +1039,7 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
                   </div>
                 )}
 
-                {!lendoAnterior && plantao.ata && ['rascunho', 'reaberta'].includes(plantao.ata.status) && (
+                {papel !== SO_LE_A_ATA && !lendoAnterior && plantao.ata && ['rascunho', 'reaberta'].includes(plantao.ata.status) && (
                   <div className="card stack">
                     <label className="f" htmlFor="linha-ata">
                       Escrever uma linha <small>(fica com o seu nome)</small>
@@ -1156,7 +1158,7 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
 
                 {/* Registrar exige a ATA ABERTA: episódio é do turno que está
                     acontecendo, e o servidor recusa em ATA fechada. */}
-                {!fechada && acolhidos.length > 0 && (
+                {papel !== SO_LE_A_ATA && !fechada && acolhidos.length > 0 && (
                   <button data-acolhe-abre="" className="btn sec block" style={{ marginTop: 12 }}
                           onClick={() => setRegistrandoEpisodio(true)}>
                     Registrar um episódio

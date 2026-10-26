@@ -122,6 +122,21 @@ describe('O estatuto — regras de convivência', () => {
     expect([403, 404]).toContain(tenta.status);
   });
 
+  /* E A REGRA DA CASA NÃO É DO GESTOR (fase 246, decisão de 25/10): ele escreve a das
+     oito casas, e a da casa fica com a coordenação. */
+  it('o Gestor Geral não escreve nem revoga a regra da casa', async () => {
+    const r = await escrever(tokens.gestor, {
+      houseId: AI3, texto: 'Regra da casa escrita pelo gestor, que não deve entrar.', publico: 'todos' });
+    expect(r.status).toBe(403);
+    expect(r.body.message).toMatch(/A regra desta casa é da coordenação/);
+
+    const daCasa = await escrever(tokens.coord, {
+      houseId: AI3, texto: 'Regra da casa para conferir a revogação pelo gestor.', publico: 'todos' });
+    expect(daCasa.status).toBe(201);
+    const tenta = await revogar(tokens.gestor, daCasa.body.id, MOTIVO);
+    expect(tenta.status).toBe(403);
+  });
+
   it('mudar é escrever outra: o texto não se reescreve e a anterior continua legível', async () => {
     const velha = await escrever(tokens.coord, {
       houseId: AI3, texto: 'A TV da sala desliga às 21h nos dias de aula (teste).',

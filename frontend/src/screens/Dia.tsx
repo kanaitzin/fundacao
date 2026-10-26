@@ -105,7 +105,7 @@ const LIDERA = ['lider_diurno', 'lider_noturno_geral', 'coordenador', 'gestor_ge
 
 /* alcance:urgente — quem cria atividade urgente. Conferido contra `alcance.ts`. */
 const CRIA_URGENTE = ['lider_diurno', 'lider_noturno_geral', 'equipe_tecnica',
-                      'coordenador', 'gestor_geral'];
+                      'coordenador'];
 /** Quem DECIDE uma substituição — o mesmo alcance do servidor. */
 const DECIDE_SUB = ['lider_diurno', 'lider_noturno_geral', 'equipe_tecnica', 'coordenador'];
 
@@ -162,6 +162,8 @@ export function Dia({ houseId, casaLabel, papel, irPara, alcanca = () => true, p
   alcanca?: (aba: string) => boolean;
 }) {
   const lidera = LIDERA.includes(papel);
+  /* O Gestor Geral lê o Dia e não registra nele (fase 246, decisão de 25/10). */
+  const soLe = papel === 'gestor_geral';
   const [dados, setDados] = useState<Resposta | null>(null);
   const [erro, setErro] = useState('');
   const [filtro, setFiltro] = useState<'agora' | 'minhas' | 'tudo' | 'os20'>('agora');
@@ -366,7 +368,7 @@ export function Dia({ houseId, casaLabel, papel, irPara, alcanca = () => true, p
               <span className="grow">
                 <b className="ff">{f.nome}</b> faz {f.idadeQueFaz} anos <b>{f.quando}</b>.
               </span>
-              <button className="btn sm ghost" onClick={async () => {
+              {!soLe && <button className="btn sm ghost" onClick={async () => {
                 await api(`/people/birthdays/${f.personId}/ack`, { method: 'POST', body: '{}' })
                   .catch(() => undefined);
                 setFestas(await api<{ aniversariantes: Aniversariante[] }>(
@@ -374,7 +376,7 @@ export function Dia({ houseId, casaLabel, papel, irPara, alcanca = () => true, p
                   .catch(() => festas));
               }}>
                 A casa está ciente
-              </button>
+              </button>}
             </div>
           ))}
         </div>
@@ -412,7 +414,7 @@ export function Dia({ houseId, casaLabel, papel, irPara, alcanca = () => true, p
         ))}
       </nav>
 
-      {filtro !== 'os20' && coletivasAteAgora.length > 0 && !concluindo && (
+      {!soLe && filtro !== 'os20' && coletivasAteAgora.length > 0 && !concluindo && (
         <button className="btn sec block" onClick={() => setConcluindo(true)}>
           Concluí as atividades coletivas até agora
         </button>
@@ -502,7 +504,7 @@ export function Dia({ houseId, casaLabel, papel, irPara, alcanca = () => true, p
               </div>
               {ev.note && <div className="mutetxt">{ev.note}</div>}
 
-              {(ev.actions ?? []).length > 0 && (
+              {!soLe && (ev.actions ?? []).length > 0 && (
                 <div className="acoes">
                   {ev.actions!.some((a) => a.command === 'activity.acknowledge') && (
                     <button className="btn sm ghost" disabled={ocupado === ev.id}
@@ -731,7 +733,7 @@ export function Dia({ houseId, casaLabel, papel, irPara, alcanca = () => true, p
         * E fica NO DIA, e não na tela de Saúde, porque quem dá a dose das 2h é o
         * educador — e o educador não alcança a tela de Saúde (§7).
         */}
-      <SeNecessario houseId={houseId} />
+      <SeNecessario houseId={houseId} papel={papel} />
 
       {/*
         * OS PEDIDOS DE SUBSTITUIÇÃO EM ABERTO.
@@ -1381,7 +1383,11 @@ interface PrnDada {
  * Cobrança com prazo sobre quem cuidou da criança de madrugada tem uma só forma
  * de ser baixada, e não é a boa.
  */
-function SeNecessario({ houseId }: { houseId: string }) {
+/** Quem dá remédio, a mesma lista do `app_can_administer` (fase 246: a técnica e a
+ *  coordenação viam o botão e o servidor recusava). */
+const DA_REMEDIO = ['enfermagem', 'educador', 'lider_diurno'];
+
+function SeNecessario({ houseId, papel }: { houseId: string; papel: string }) {
   const [disponiveis, setDisponiveis] = useState<PrnDisponivel[]>([]);
   const [dadasHoje, setDadasHoje] = useState<PrnDada[]>([]);
   const [dando, setDando] = useState<PrnDisponivel | null>(null);
@@ -1467,11 +1473,17 @@ function SeNecessario({ houseId }: { houseId: string }) {
               </p>
             )}
 
-            <div className="row" style={{ marginTop: 12 }}>
-              <button type="button" className="btn grow" onClick={() => setDando(p)}>
-                Registrar que foi dado
-              </button>
-            </div>
+            {DA_REMEDIO.includes(papel) ? (
+              <div className="row" style={{ marginTop: 12 }}>
+                <button type="button" className="btn grow" onClick={() => setDando(p)}>
+                  Registrar que foi dado
+                </button>
+              </div>
+            ) : (
+              <p className="mutetxt" style={{ margin: '8px 0 0' }}>
+                Quem registra é quem deu: a Enfermagem ou o educador de plantão.
+              </p>
+            )}
           </article>
         ))}
       </div>

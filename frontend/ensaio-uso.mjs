@@ -2766,6 +2766,37 @@ if (await ativar.count()) {
 }
 cobrar('nenhuma exceção no esquema pela Enfermagem', erros.length === 0, erros[0]);
 
+/*
+ * O GESTOR GERAL LÊ A CASA (fase 246, decisão de 25/10). Ele abre a ATA, a escala,
+ * a Cozinha, a rotina, a internação e os combinados da casa e não encontra botão de
+ * registrar; os Combinados moram numa tela só, e não mais dentro dos Acompanhamentos.
+ */
+console.log('\n👁  O Gestor Geral lê a casa');
+await fechar();
+await trocar('gestor_geral');
+erros.length = 0;
+const semBotao = async (porta, rotulos) => {
+  const abriu = (await aba(porta)) || (await doMais(porta));
+  cobrar(`o gestor abre ${porta}`, abriu);
+  if (!abriu) return;
+  const achados = [];
+  for (const r of rotulos) {
+    if (await pg.locator('main.conteudo button', { hasText: r }).count()) achados.push(String(r));
+  }
+  cobrar(`e em ${porta} não há botão de registrar`, achados.length === 0, achados.join(', '));
+};
+await semBotao('ATA', [/^Registrar um episódio$/, /^Fechar a ATA/, /^Registrar ciência$/]);
+await semBotao('A escala de plantão', [/^Escalar alguém$/, /^Repetir a escala/, /^Substituir$/]);
+await semBotao('Cozinha', [/^Pedir lanche$/, /^Pedir cesta básica$/]);
+await semBotao('A rotina da casa', [/^Escrever a primeira rotina$/, /^Abrir uma versão nova$/, /Acrescentar item/]);
+await semBotao('Internação hospitalar', [/^Registrar internação$/]);
+await semBotao('Combinados da equipe', [/Registrar uma reunião/, /Registrar um combinado avulso/, /^Propor um assunto/]);
+if ((await aba('Acompanhamentos')) || (await doMais('Acompanhamentos'))) {
+  cobrar('os Acompanhamentos não repetem os Combinados numa aba',
+    (await pg.locator('main.conteudo [role="tab"]', { hasText: /^Alinhamentos$/ }).count()) === 0);
+}
+cobrar('nenhuma exceção com o gestor lendo a casa', erros.length === 0, erros[0]);
+
 /* ======================================================================== */
 /* O REMÉDIO "SE NECESSÁRIO" — quem dá é o educador, e é no Dia (fase 132).  */
 /*                                                                          */

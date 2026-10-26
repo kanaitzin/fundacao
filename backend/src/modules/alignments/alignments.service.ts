@@ -39,7 +39,8 @@ const SITUACOES: Record<string, string> = {
   revogado: 'Revogado', substituido: 'Substituído por outro',
 };
 
-const ESCREVE = ['equipe_tecnica', 'coordenador', 'gestor_geral'];
+/* O Gestor Geral lê a reunião e o combinado da casa e não os registra (fase 246, decisão de 25/10). */
+const ESCREVE = ['equipe_tecnica', 'coordenador'];
 
 /**
  * Quem RESPONDE uma proposta de pauta (fase 94, migração 1140).
@@ -427,6 +428,8 @@ export class AlignmentsService {
 
     return {
       podeResponder: RESPONDE_PAUTA.includes(user.role),
+      /* Quem trabalha na casa propõe; o Gestor Geral lê (fase 246, decisão de 25/10). */
+      podePropor: user.role !== 'gestor_geral',
       abertas: linhas.filter((r: any) => r.status === 'proposta').length,
       itens: linhas.map((r: any) => ({
         id: r.id, texto: r.body, contexto: r.context,
@@ -613,6 +616,11 @@ export class AlignmentsService {
         'Regra que vale para as oito casas é da gestão geral. Nesta tela você escreve a regra '
         + 'desta casa.');
     }
+    /* O gestor escreve a regra da instituição; a da casa é da coordenação (fase 246). */
+    if (!input.daInstituicao && user.role === 'gestor_geral') {
+      throw new ForbiddenException(
+        'O Gestor Geral escreve a regra que vale para as oito casas. A regra desta casa é da coordenação.');
+    }
     const texto = String(input.texto ?? '').trim();
     if (texto.length < 15) {
       throw new BadRequestException(
@@ -673,6 +681,14 @@ export class AlignmentsService {
   async revogarEstatuto(user: AuthenticatedUser, id: string, input: { motivo?: string }) {
     if (!ESCREVE_ESTATUTO.includes(user.role)) {
       throw new ForbiddenException('Revogar regra do estatuto é da coordenação da casa.');
+    }
+    if (user.role === 'gestor_geral') {
+      const daCasa = await this.db.asUser(user.id, async (c) => (await c.query(
+        `SELECT house_id IS NOT NULL AS da_casa FROM house_statute WHERE id = $1`, [id])).rows[0]?.da_casa === true);
+      if (daCasa) {
+        throw new ForbiddenException(
+          'O Gestor Geral revoga a regra que vale para as oito casas. A regra desta casa é da coordenação.');
+      }
     }
     const motivo = String(input.motivo ?? '').trim();
     if (motivo.length < 15) {

@@ -186,6 +186,8 @@ e qual é o caminho certo.
 | `frontend/src/aviso-no-celular.tsx` | **o aviso no celular** (fase 189), na folha Minha conta: liga e desliga NESTE aparelho; o `desligarAoSair` é chamado pelo Sair. O que o aparelho mostra mora em `public/sw-avisos.js`, e o que o servidor manda, em `textoDoAviso` (`notifications/aviso-no-celular.service.ts`): **só o título neutro, nunca o aviso** |
 | `frontend/src/avatar.tsx` | **o rosto nas listas** (fase 198): a foto quando a lista diz `temFoto`, as iniciais quando não, num cache em memória (nunca no aparelho). As rotas vão escritas por extenso (`{ acolhido }` ou `{ contato }`): o contrato de rotas confere. No protótipo, os retratos são desenhos de `retratos.ts`, nunca rosto realista. Lista que não diz `temFoto` usa o `useComFoto(casa)` (fase 199), que pergunta uma vez à lista da casa |
 | `frontend/src/calendario-turnos.tsx` | **o calendário das ATAs** (fase 206), na Passagem e no Arquivo: lê o recorte do mês do `/shifts/ata-archive`, e as cores são as de ESTADO da pílula da ATA. Os números do mês são da casa, nunca de pessoa |
+| `frontend/ensaio-o-que-cada-setor-ve.mjs` | **o que cada setor vê** (fase 246): uma conta de cada cargo, contra o servidor de verdade, aperta cada botão de cada tela e anota o que o servidor recusa; o inventário sai em `inventario.md`. Chamado pela simulação com `SIM_SETORES=1`, por último, porque grava. **Botão que a tela mostra e o servidor recusa é achado** |
+| `backend/src/kernel/common/o-gestor-so-le.guard.ts` | **o Gestor Geral lê a casa** (fase 246): `@OGestorSoLe()` na porta de cada rota de escrita da ATA, do Dia, da internação, da Cozinha, dos combinados, da rotina e da escala; o `o-gestor-so-le.spec.ts` cobra, negando por padrão |
 | `frontend/src/cargos.tsx` | **a cor de cada cargo e o círculo de iniciais** (fase 151). Ela convive com DUAS outras: a cor de ESTADO (crítico/atenção — não se toca, e o cargo não usa a família dela) e a cor de AUTOR (`tomDoAutor`, qual colega escreveu — a coordenação escolhe, 0990). Três perguntas diferentes; o dia em que duas responderem à mesma, a cor deixa de informar |
 
 ## O que fazer agora
@@ -194,7 +196,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 25/10/2026, fase 245
+### Onde estamos — 26/10/2026, fase 246
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -303,8 +305,9 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 243 | **os documentos pela conversa** (período, visitas, internação, trajetória) e **o cuidado com as palavras** que rotulam a criança, só sugestão, nada guardado (`palavras-que-rotulam.ts`, `CuidadoComAsPalavras`); no protótipo, a volta semeada de noite caía no turno do dia |
 | 244 | **as palavras que a equipe ensina**: quem conversa propõe, a coordenação, a CG ou o gestor aprova ou recusa com motivo, e só a aprovada vale para a Acolhe+AI de todos (`assistant_word`, `assistant_word_decision`, assistente/1663) |
 | 245 | **só a Enfermagem ativa o esquema de medicamento** (decisão de 25/10): de noite a coordenação e a técnica deixam o rascunho com a foto da receita, a Enfermagem é avisada e ativa; a dose daquela noite vai na ATA; o gestor sai do cadastro; trava no banco (medications/1664) |
+| 246 | **cada setor vê só as suas funções** (pedido de 25/10): 884 botões medidos contra o servidor (`ensaio-o-que-cada-setor-ve.mjs`); os que a tela mostrava e o servidor recusava saíram; o Gestor Geral lê a ATA, o Dia, a internação, a Cozinha, os combinados, a rotina e a escala sem registrar (`@OGestorSoLe()`, decisão de 25/10); a aba repetida dos Combinados saiu |
 
-**Medido no fim da 245:** 204 migrações, 144 tabelas, 156 suítes, 1396 testes; nas 237 e 238, a suíte inteira
+**Medido no fim da 246:** 204 migrações, 144 tabelas, 157 suítes, 1398 testes; nas 237 e 238, a suíte inteira
 verde (1363 de 1363, depois de consertar as três conferências que o relatório das vivências deixou soltas) e o
 `ensaio:uso` (739 cobranças, sem reprovação, com o relatório das vivências aberto e o Word baixado); **não rodou**
 nas 237 e 238 o relógio adiantado, o do celular, o de acessibilidade, o `ensaio:acolhe` nem a simulação contra o servidor;
@@ -413,6 +416,15 @@ posto em ordem no **PARA-A-REUNIAO §0**: as cinco perguntas que mais destravam,
 responder, os documentos de papel e os dados a receber, o que o DPO vê, o que se assina e as 30
 decisões de produto abertas. **Quando a resposta vier, ela entra lá e no §10 ou §11 do documento**, e
 o item respondido sai do §0.
+
+**FEITO — fase 246** (§2, PARA-A-REUNIAO §4.34, relato em `docs/historico/o-que-cada-setor-ve-25-10.md`):
+cada setor vê só as suas funções. **Quem acrescentar rota de escrita** na ATA, no Dia, na internação, na Cozinha,
+nos combinados, na rotina ou na escala põe `@OGestorSoLe()` nela, ou a escreve com o motivo na lista das livres
+do `o-gestor-so-le.spec.ts`, que nega por padrão; e a mesma rota entra no `GESTOR_SO_LE` do `mock-casa.ts`.
+**Quem mexer em permissão** roda a medição: `SIM_SETORES=1` na simulação (uma hora e meia; em lotes com
+`ENSAIO_CARGOS` e `SIM_SETORES_SAIDA`, e `SIM_SO_NAVEGADOR=1 SIM_SO_SETORES=1` para repetir só ela). **Para o
+Marcelo conferir:** se o Gestor Geral precisa cobrir casa sem coordenação. **Próxima etapa:** a mesma da 239
+(o passo a passo da instalação no §12.12) e a escolha do computador e do modelo.
 
 **FEITO — fase 245** (§2, §8.6): só a Enfermagem ativa o esquema de medicamento (decisão de 25/10 desta
 pessoa da Fundação, que troca a de 08/09 só na ativação). **Quem mexer no remédio:** cadastrar é

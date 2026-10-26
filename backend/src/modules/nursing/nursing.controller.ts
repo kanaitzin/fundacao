@@ -8,6 +8,7 @@ import { NursingService } from './nursing.service';
 import { InternacaoService } from './internacao.service';
 import { HealthSummaryService } from './health-summary.service';
 import { DataDoDia, CorpoConferido } from '../../kernel/common/data-do-dia.pipe';
+import { OGestorSoLe } from '../../kernel/common/o-gestor-so-le.guard';
 
 @Controller('nursing')
 @UseGuards(SessionGuard)
@@ -159,6 +160,7 @@ export class NursingController {
   }
 
   @Post('hospitalizations')
+  @OGestorSoLe()
   abrirInternacao(@CurrentUser() user: AuthenticatedUser, @Body() body: any) {
     return this.internacao.abrir(user, body ?? {});
   }
@@ -182,12 +184,14 @@ export class NursingController {
   }
 
   @Post('hospitalizations/:id/close')
+  @OGestorSoLe()
   encerrarInternacao(@CurrentUser() user: AuthenticatedUser,
                      @Param('id', ParseUUIDPipe) id: string, @Body() body: any) {
     return this.internacao.encerrar(user, id, body ?? {});
   }
 
   @Post('hospitalizations/:id/notes')
+  @OGestorSoLe()
   registrarNoDiario(@CurrentUser() user: AuthenticatedUser,
                     @Param('id', ParseUUIDPipe) id: string, @Body() body: any) {
     return this.internacao.registrar(user, id, body ?? {});
@@ -211,12 +215,14 @@ export class NursingController {
   }
 
   @Post('hospitalizations/:id/medications')
+  @OGestorSoLe()
   medicacaoDoHospital(@CurrentUser() user: AuthenticatedUser,
                       @Param('id', ParseUUIDPipe) id: string, @Body() body: any) {
     return this.internacao.registrarMedicacao(user, id, body ?? {});
   }
 
   @Post('hospitalizations/:id/companion')
+  @OGestorSoLe()
   designarAcompanhante(@CurrentUser() user: AuthenticatedUser,
                        @Param('id', ParseUUIDPipe) id: string, @Body() body: any) {
     return this.internacao.designar(user, id, body ?? {});

@@ -124,7 +124,9 @@ for _ in $(seq 1 60); do
   sleep 1
 done
 # SIM_SO_ACOLHE=1 (com SIM_SO_NAVEGADOR=1) pula as telas e roda só a Acolhe+AI com o modelo.
-if [[ "${SIM_SO_ACOLHE:-}" != 1 ]]; then
+# SIM_SO_SETORES=1 (com SIM_SO_NAVEGADOR=1 e SIM_SETORES=1) pula os dois e mede só os setores,
+# em lotes de cargos com ENSAIO_CARGOS e SIM_SETORES_SAIDA, para um reinício perder um lote só.
+if [[ "${SIM_SO_ACOLHE:-}" != 1 && "${SIM_SO_SETORES:-}" != 1 ]]; then
   echo "→ as telas, pelo navegador, contra o servidor de verdade"
   (cd "$RAIZ/frontend" && ENSAIO_CONTAS="$(cat "$SAIDA/contas.json")" ENSAIO_AGORA="$(cat "$SAIDA/agora.txt")" \
     ENSAIO_SAIDA="$SAIDA/telas" ENSAIO_CAIXA="$SAIDA/caixa" node ensaio-servidor.mjs)
@@ -140,9 +142,11 @@ LD_PRELOAD=$LIB FAKETIME_TIMESTAMP_FILE=$RELOGIO FAKETIME_NO_CACHE=1 PORT=3000 E
   nohup npx tsx src/main.ts >/tmp/simulacao-servidor-acolhe.log 2>&1 &
 SERVIDOR=$!
 for _ in $(seq 1 60); do curl -sf http://localhost:3000/api/v1/health >/dev/null 2>&1 && break; sleep 1; done
-echo "→ a Acolhe+AI com o modelo, contra o servidor de verdade"
-(cd "$RAIZ/frontend" && ENSAIO_CONTAS="$(cat "$SAIDA/contas.json")" ENSAIO_AGORA="$(cat "$SAIDA/agora.txt")" \
-  ENSAIO_SAIDA="$SAIDA/telas" node ensaio-acolhe-modelo.mjs)
+if [[ "${SIM_SO_SETORES:-}" != 1 ]]; then
+  echo "→ a Acolhe+AI com o modelo, contra o servidor de verdade"
+  (cd "$RAIZ/frontend" && ENSAIO_CONTAS="$(cat "$SAIDA/contas.json")" ENSAIO_AGORA="$(cat "$SAIDA/agora.txt")" \
+    ENSAIO_SAIDA="$SAIDA/telas" node ensaio-acolhe-modelo.mjs)
+fi
 # O QUE CADA SETOR VÊ (fase 246): SIM_SETORES=1 aperta cada botão de cada tela,
 # uma conta de cada cargo, e anota o que o servidor recusa. Grava no banco da
 # simulação de verdade (a primeira rodada encerrou a conta da educadora pela
@@ -150,6 +154,6 @@ echo "→ a Acolhe+AI com o modelo, contra o servidor de verdade"
 if [[ "${SIM_SETORES:-}" == 1 ]]; then
   echo "→ o que cada setor vê, botão por botão, contra o servidor de verdade"
   (cd "$RAIZ/frontend" && ENSAIO_CONTAS="$(cat "$SAIDA/contas.json")" ENSAIO_AGORA="$(cat "$SAIDA/agora.txt")" \
-    ENSAIO_SAIDA="$SAIDA/setores" node ensaio-o-que-cada-setor-ve.mjs)
+    ENSAIO_SAIDA="${SIM_SETORES_SAIDA:-$SAIDA/setores}" node ensaio-o-que-cada-setor-ve.mjs)
 fi
 kill $SERVIDOR $VITE 2>/dev/null; pkill -f "src/main.ts" 2>/dev/null; pkill -f "vite --port 5173" 2>/dev/null

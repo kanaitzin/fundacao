@@ -69,7 +69,8 @@ interface Vocabulario {
   nota: string;
 }
 
-const QUEM_ABRE = ['equipe_tecnica', 'coordenador', 'gestor_geral'];
+/* O Gestor Geral lê a internação e baixa o relatório; não registra nela (fase 246, decisão de 25/10). */
+const QUEM_ABRE = ['equipe_tecnica', 'coordenador'];
 /** Quem baixa o relatório completo (fase 165): a lista do pedido de 25/09. */
 /* Espelha QUEM_BAIXA do servidor e QUEM_BAIXA_INT do protótipo (Enfermagem desde 27/09). */
 const QUEM_BAIXA = ['equipe_tecnica', 'coordenador', 'lider_diurno', 'lider_noturno_geral', 'gestor_geral',
@@ -364,7 +365,7 @@ function PeriodoNoHospital({ id, papel, onVoltar }: {
         O que aconteceu no hospital · {p.diasComRelato} dia(s) com relato
       </div>
       {vocab && <Explica>{vocab.nota}</Explica>}
-      {p.status === 'em_andamento' && (
+      {p.status === 'em_andamento' && papel !== 'gestor_geral' && (
         <div className="acoes">
           <button data-acolhe-abre="" className="btn sm" onClick={() => setEscrevendo(true)}><Icone nome="escrever" /> Escrever no diário</button>
           <button className="btn sm sec" onClick={() => setMedicando(true)}>

@@ -774,7 +774,7 @@ function regrasParaTela() {
     }));
 }
 
-const RESPONDE_PAUTA = ['equipe_tecnica', 'coordenador', 'gestor_geral',
+const RESPONDE_PAUTA = ['equipe_tecnica', 'coordenador',
   'lider_diurno', 'lider_noturno_geral'];
 const DESFECHO_PAUTA: Record<string, string> = {
   aceita: 'entra na pauta', recusada: 'não entra', adiada: 'fica para depois',
@@ -2363,7 +2363,7 @@ function linhasDaAta(ataId: string, papel: string, quemId = '') {
     restritas,
     restritasOcultas: restritas - visiveis.filter((l) => l.restrita).length,
     /* ESCREVER restrita continua sendo dos cargos — a liberação é para LER. */
-    podeEscreverRestrita: LE_RESTRITA.includes(papel),
+    podeEscreverRestrita: LE_RESTRITA.includes(papel) && papel !== 'gestor_geral',
   };
 }
 
@@ -4086,7 +4086,8 @@ interface ItemRotinaMock {
   inicio: string; fim: string | null; diasSemana: number[];
   coletiva: boolean; acolhidoId: string | null; instrucoes: string | null;
 }
-const ALTERA_ROTINA = ['equipe_tecnica', 'coordenador', 'gestor_geral'];
+/* O Gestor Geral lê a rotina e não a escreve (fase 246). */
+const ALTERA_ROTINA = ['equipe_tecnica', 'coordenador'];
 
 const VERSOES_ROTINA: VersaoRotina[] = [
   { id: 'rv1', numero: 1, vigenteDesde: '2026-02-01', vigenteAte: '2026-07-31',
@@ -5559,8 +5560,32 @@ function responderImpacto(
   return undefined;
 }
 
+/** As rotas de escrita que o Gestor Geral só lê (fase 246), espelho do `@OGestorSoLe()`. */
+const GESTOR_SO_LE: RegExp[] = [
+  /^\/shifts$/, /^\/shifts\/ata\/[^/]+(\/(close|reopen|amend|episodes|notes))?$/,
+  /^\/shifts\/episodes\/[^/]+\/ack$/, /^\/shifts\/[^/]+\/(handover|handover\/note|receipt)$/,
+  /^\/activities\/(generate-day|urgent|complete-collective|mark-unconfirmed)$/,
+  /^\/activities\/[^/]+\/(acknowledge|record|delegate|substitution)$/,
+  /^\/activities\/substitutions\/[^/]+\/(assign|decline)$/,
+  /^\/nursing\/hospitalizations$/, /^\/nursing\/hospitalizations\/[^/]+\/(close|notes|medications|companion)$/,
+  /^\/alignments\/(meetings|agenda|agreements)$/, /^\/alignments\/agenda\/[^/]+\/answer$/,
+  /^\/alignments\/agreements\/[^/]+\/status$/,
+  /^\/people\/kitchen-requests$/, /^\/people\/kitchen-requests\/[^/]+\/(edit|cancel)$/,
+  /^\/people\/birthdays\/[^/]+\/ack$/,
+  /^\/routine\/versions$/, /^\/routine\/versions\/[^/]+\/items$/,
+  /^\/escala$/, /^\/escala\/rascunho$/, /^\/escala\/rascunho\/itens\/[^/]+\/retirar$/,
+  /^\/escala\/rascunho\/[^/]+\/(itens|publicar|descartar)$/, /^\/escala\/[^/]+\/(substituir|revogar)$/,
+  /^\/houses\/[^/]+\/turnos$/,
+];
+
 function responder(rota: string, seg: string[], q: URLSearchParams,
                    b: any, metodo: string): unknown {
+  /* O GESTOR GERAL LÊ A CASA E NÃO REGISTRA NELA (fase 246, decisão de 25/10), as
+     mesmas rotas que levam `@OGestorSoLe()` no servidor. Exportar continua livre. */
+  if (eu?.role === 'gestor_geral' && metodo !== 'GET' && (GESTOR_SO_LE.some((re) => re.test(rota))
+      || (rota === '/alignments/statute' && !b?.daInstituicao))) {
+    return new Recusa(403, 'O Gestor Geral acompanha esta parte e não registra nela. Quem registra é a equipe da casa.');
+  }
   // ---- entrada
   // Passo 1 da entrada: esta conta já tem senha?
   if (rota === '/auth/primeiro-acesso') {
@@ -10589,6 +10614,9 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
    */
   if (seg[0] === 'medications' && seg[1] === 'prescriptions' && seg[3] === 'prn'
       && metodo === 'POST') {
+    if (!['enfermagem', 'educador', 'lider_diurno'].includes(eu.role)) {
+      return new Recusa(403, 'Quem confirma a dose é quem a administrou: a Enfermagem ou o educador de plantão.');
+    }
     const e = ESQUEMAS.find((x) => x.id === seg[2]);
     if (!e) return new Recusa(404, 'Esquema não encontrado.');
     if (e.tipo !== 'quando_necessario') {
@@ -12074,7 +12102,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
   }
 
   if (seg[0] === 'alignments' && seg.length === 1 && metodo === 'GET') {
-    const escreve = ['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role);
+    const escreve = ['equipe_tecnica', 'coordenador'].includes(eu.role);
     const comRotulo = (c: CombinadoMock) => ({
       ...c, situacaoRotulo: SITUACAO_COMBINADO[c.situacao] ?? c.situacao,
     });
@@ -12195,6 +12223,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
   if (rota.startsWith('/alignments/agenda') && metodo === 'GET') {
     return {
       podeResponder: RESPONDE_PAUTA.includes(eu.role),
+      podePropor: eu.role !== 'gestor_geral',
       abertas: PAUTAS.filter((p) => p.situacao === 'proposta').length,
       itens: PAUTAS.slice()
         .sort((a, z) => Number(z.situacao === 'proposta') - Number(a.situacao === 'proposta'))

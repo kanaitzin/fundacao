@@ -138,6 +138,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 246, dia: '26/10/2026',
+    texto: 'Cada setor vê só o que é dele. O Gestor Geral acompanha a ATA, o Dia, a internação, a Cozinha, os combinados, a rotina e a escala de cada casa sem registrar nelas, e continua escrevendo a regra que vale para as oito casas. Saíram os botões que apareciam e não funcionavam para o cargo, e os Combinados da equipe ficam numa tela só.' },
   { fase: 245, dia: '25/10/2026', aba: 'saude',
     texto: 'Quem ativa o remédio da receita, e faz a dose entrar na grade, é só a Enfermagem. De noite, a coordenação ou a técnica cadastram o rascunho e anexam a foto da receita, e a Enfermagem é avisada para conferir e ativar. A dose daquela noite, a educadora dá conforme a receita e escreve na ATA.' },
   { fase: 244, dia: '24/10/2026',

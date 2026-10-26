@@ -44,7 +44,7 @@ export class RoutineService {
       if (!v) {
         return {
           versao: null, itens: [], tipos: TIPOS_ROTINA, dias: DIAS_DA_SEMANA,
-          podeAlterar: ['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(user.role),
+          podeAlterar: ['equipe_tecnica', 'coordenador'].includes(user.role),
           aviso: 'Esta casa ainda não tem rotina registrada. Enquanto não tiver, o dia nasce '
             + 'do que está na agenda e do que a equipe lançar — e não de um molde escrito.',
         };
@@ -66,7 +66,7 @@ export class RoutineService {
         // Quem lê e quem ALTERA são conjuntos diferentes: a casa inteira
         // precisa saber a que horas é a janta; mudar o molde é da técnica e da
         // coordenação. A tela pergunta ao servidor em vez de repetir a lista.
-        podeAlterar: ['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(user.role),
+        podeAlterar: ['equipe_tecnica', 'coordenador'].includes(user.role),
         aviso: 'Alterar a rotina cria uma VERSÃO NOVA. A anterior continua inteira: é ela que '
           + 'explica por que o dia de dois meses atrás foi daquele jeito.',
       };
@@ -88,7 +88,7 @@ export class RoutineService {
   /** Abre uma versão nova (copiando os itens vigentes) para poder alterar. */
   async newVersion(user: AuthenticatedUser, houseId: string, note: string) {
     /* alcance:rotina — quem altera o molde da casa. Conferido contra `alcance.ts`. */
-    if (!['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(user.role)) {
+    if (!['equipe_tecnica', 'coordenador'].includes(user.role)) {
       throw new ForbiddenException('Somente equipe técnica e coordenação alteram a rotina.');
     }
     if (!note?.trim()) throw new BadRequestException('Descreva o motivo da nova versão da rotina.');
@@ -106,7 +106,7 @@ export class RoutineService {
   }
 
   async addItem(user: AuthenticatedUser, houseId: string, versionId: string, input: RoutineItemInput) {
-    if (!['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(user.role)) {
+    if (!['equipe_tecnica', 'coordenador'].includes(user.role)) {
       throw new ForbiddenException('Somente equipe técnica e coordenação alteram a rotina.');
     }
     if (!TIPOS_ROTINA.some((t) => t.code === input.kind)) {

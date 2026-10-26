@@ -5,6 +5,7 @@ import { AuthenticatedUser } from '../../kernel/contracts';
 import { hojeNaInstituicao } from '../../kernel/common/tempo';
 import { ShiftsService } from './shifts.service';
 import { DataDoDia, CorpoConferido } from '../../kernel/common/data-do-dia.pipe';
+import { OGestorSoLe } from '../../kernel/common/o-gestor-so-le.guard';
 
 @Controller('shifts')
 @UseGuards(SessionGuard)
@@ -22,6 +23,7 @@ export class ShiftsController {
   }
 
   @Post()
+  @OGestorSoLe()
   open(@CurrentUser() user: AuthenticatedUser, @Body() body: any) {
     return this.shifts.open(user, body);
   }
@@ -116,6 +118,7 @@ export class ShiftsController {
   // ---------- ATA da casa ----------
 
   @Patch('ata/:ataId')
+  @OGestorSoLe()
   saveAta(@CurrentUser() user: AuthenticatedUser,
           @Param('ataId', ParseUUIDPipe) ataId: string, @Body() body: any) {
     return this.shifts.saveAta(user, ataId, body);
@@ -145,18 +148,21 @@ export class ShiftsController {
   }
 
   @Post('ata/:ataId/close')
+  @OGestorSoLe()
   closeAta(@CurrentUser() user: AuthenticatedUser,
            @Param('ataId', ParseUUIDPipe) ataId: string, @Body() body: any) {
     return this.shifts.closeAta(user, ataId, body?.pendencias);
   }
 
   @Post('ata/:ataId/reopen')
+  @OGestorSoLe()
   reopenAta(@CurrentUser() user: AuthenticatedUser,
             @Param('ataId', ParseUUIDPipe) ataId: string, @Body() body: any) {
     return this.shifts.reopenAta(user, ataId, body?.motivo ?? '');
   }
 
   @Post('ata/:ataId/amend')
+  @OGestorSoLe()
   amendAta(@CurrentUser() user: AuthenticatedUser,
            @Param('ataId', ParseUUIDPipe) ataId: string, @Body() body: any) {
     return this.shifts.amendAta(user, ataId, body?.motivo ?? '', body?.conteudo ?? {});
@@ -169,12 +175,14 @@ export class ShiftsController {
   }
 
   @Post('ata/:ataId/episodes')
+  @OGestorSoLe()
   addEpisode(@CurrentUser() user: AuthenticatedUser,
              @Param('ataId', ParseUUIDPipe) ataId: string, @Body() body: any) {
     return this.shifts.addEpisode(user, ataId, body);
   }
 
   @Post('episodes/:episodeId/ack')
+  @OGestorSoLe()
   ackEpisode(@CurrentUser() user: AuthenticatedUser,
              @Param('episodeId', ParseUUIDPipe) episodeId: string, @Body() body: any) {
     return this.shifts.ackEpisode(user, episodeId, body?.comentario);
@@ -205,6 +213,7 @@ export class ShiftsController {
   }
 
   @Post('ata/:ataId/notes')
+  @OGestorSoLe()
   escrever(@CurrentUser() user: AuthenticatedUser,
            @Param('ataId', ParseUUIDPipe) ataId: string, @Body() body: any) {
     return this.shifts.escreverNaAta(user, ataId, body);
@@ -224,6 +233,7 @@ export class ShiftsController {
 
   /** Assina a PRÓPRIA passagem. Não existe rota que assine por outro (§12.1). */
   @Post(':id/handover')
+  @OGestorSoLe()
   sign(@CurrentUser() user: AuthenticatedUser,
        @Param('id', ParseUUIDPipe) id: string, @Body() body: any) {
     return this.shifts.signHandover(user, id, body);
@@ -234,12 +244,14 @@ export class ShiftsController {
    * complemento nasce ao lado dela, com hora própria.
    */
   @Post(':id/handover/note')
+  @OGestorSoLe()
   complement(@CurrentUser() user: AuthenticatedUser,
              @Param('id', ParseUUIDPipe) id: string, @Body() body: any) {
     return this.shifts.complementHandover(user, id, body);
   }
 
   @Post(':id/receipt')
+  @OGestorSoLe()
   receive(@CurrentUser() user: AuthenticatedUser,
           @Param('id', ParseUUIDPipe) id: string, @Body() body: any) {
     return this.shifts.receive(user, id, body);

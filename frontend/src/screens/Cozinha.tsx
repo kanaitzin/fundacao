@@ -81,8 +81,9 @@ export function Cozinha({ houseId, casaLabel, papel }: {
 
   /* Quem pede é quem está no turno — decisão do Marcelo em 09/09. O controle
      aqui é de AUTORIA (fica o nome), não de acesso. */
+  /* O Gestor Geral lê os pedidos e não pede (fase 246, decisão de 25/10). */
   const podePedir = ['educador', 'lider_diurno', 'lider_noturno_geral',
-                     'equipe_tecnica', 'coordenador', 'gestor_geral'].includes(papel);
+                     'equipe_tecnica', 'coordenador'].includes(papel);
 
   async function carregarPedidos() {
     setPedidos(await api<Pedido[]>(

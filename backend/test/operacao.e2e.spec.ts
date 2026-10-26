@@ -514,7 +514,16 @@ describe('Fase 3 — Rotina, atividades, chamadas, linha do tempo e offline', ()
   });
 
   it('o aparelho só limpa o que foi confirmado pelo servidor (§17.2)', async () => {
-    const { rows: [a] } = await admin.query(`SELECT id FROM activity LIMIT 1`);
+    /* Uma atividade da casa do educador, em que ele ainda não deu ciência. Antes era
+       "uma atividade qualquer" (LIMIT 1 sem ordem nem casa): conforme a ordem em que o
+       banco devolvia as linhas, caía numa de outra casa ou numa já ciente, o servidor
+       respondia conflito, e o teste reprovava sem nada de errado (fase 246). */
+    const { rows: [a] } = await admin.query(
+      `SELECT a.id FROM activity a
+        WHERE a.house_id = $1
+          AND NOT EXISTS (SELECT 1 FROM activity_acknowledgement k JOIN app_user u ON u.id = k.user_id
+                           WHERE k.activity_id = a.id AND u.email = 'educador.ai3@paodospobres.dev')
+        ORDER BY a.scheduled_at DESC LIMIT 1`, [AI3]);
     const r = await request(http).post('/api/v1/sync/push').set(auth(tokens.educador)).send({
       operacoes: [
         { clientOpId: 'op-ok-002', kind: 'activity.acknowledge', houseId: AI3,

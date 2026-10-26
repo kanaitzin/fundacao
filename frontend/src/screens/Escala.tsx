@@ -118,8 +118,8 @@ export function Escala({ houseId, casaLabel, papel }: {
    * é quem descobre às 6h50 que alguém não veio; a técnica é quem remaneja
    * quando a coordenação está em audiência.
    */
-  const monta = ['lider_diurno', 'equipe_tecnica', 'coordenador', 'gestor_geral']
-    .includes(papel);
+  /* O Gestor Geral lê a escala e não a monta (fase 246, decisão de 25/10). */
+  const monta = ['lider_diurno', 'equipe_tecnica', 'coordenador'].includes(papel);
 
   async function carregar() {
     setErro('');

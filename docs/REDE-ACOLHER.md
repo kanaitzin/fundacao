@@ -92,8 +92,8 @@ discordavam entre si.
 | **19 partições** isoladas | pastas em `backend/src/modules/` |
 | **204 migrações** | `.sql` dentro das partições |
 | **144 tabelas** | `CREATE TABLE` nas migrações |
-| **156 suítes** | `backend/test/*.spec.ts` |
-| **1396 testes** | `it(` / `test(` nas suítes |
+| **157 suítes** | `backend/test/*.spec.ts` |
+| **1398 testes** | `it(` / `test(` nas suítes |
 | **40 telas React** | `frontend/src/screens/*.tsx` |
 | **10 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **11 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
@@ -456,6 +456,7 @@ arqueologia.
 | 243 | **Os documentos pela conversa** (ideias de 24/10). *O relatório do período* (ou *do mês da casa*), *de visitas*, *da internação* e *a trajetória* levam ao lugar de cada um, com o caminho e as escolhas, e quem baixa, com a finalidade, é a pessoa; *o relatório do mês* de uma criança continua sendo o acompanhamento. *Ver a folha antes de baixar* do período e *Relatório completo da internação* ganharam `data-acolhe-abre`: o clique só pede a folha e um efeito busca, e a Acolhe+AI as abre a pedido (no fechamento, o `ensaio:acolhe` achou que *ver a internação da Caio* abria o relatório, porque o botão tem a palavra que levou à tela; com a criança nomeada, o nome da tela não escolhe mais o botão de dentro). **O cuidado com as palavras:** em todo campo de texto longo, quando a pessoa escreve uma palavra que rotula a criança (agressivo, mentirosa, sem educação e as outras de `assistente/palavras-que-rotulam.ts`), aparece embaixo a sugestão de escrever o fato (`CuidadoComAsPalavras`, uma vez só no `App.tsx`); nunca impede de salvar, *Entendi* fecha, e nada é guardado nem contado; cor neutra, nunca a de estado. O modelo não usa essas palavras e pergunta o fato. De passagem, no protótipo: **de noite, a volta da criança semeada caía no turno do dia**, e a passagem do turno da noite não a mostrava; agora ela cai no turno de agora. |
 | 244 | **As palavras que a equipe ensina** (ideia de 24/10). Na Acolhe+AI, *Ensinar uma palavra*: a palavra ou o jeito de dizer e o que quer dizer, em nome de quem ensina (`assistant_word`, assistente/1663). A coordenação da casa, a Coordenação Geral ou o Gestor Geral aprova ou recusa, com o motivo para recusar, e pode retirar a aprovada, com o motivo, na tela das Sugestões de melhoria (`assistant_word_decision`, uma linha por decisão; a ordem é cobrada no banco). Só a aprovada vale, para a Acolhe+AI de todos: no modo guia, junto do banco de palavras da casa; no modelo, no contexto de quem conversa. É a única leitura que a assistente faz por conta própria, e é do vocabulário dela. Quem lê a proposta é quem ensinou, quem decide e a TI; a auditoria leva só o metadado. No protótipo, a palavra fica na casa em que foi ensinada. |
 | 245 | **Só a Enfermagem ativa o esquema de medicamento** (decisão de 25/10). Ativar, que é o que faz a dose entrar na grade, passa a ser só da Enfermagem; cadastrar o rascunho continua com a Enfermagem, a coordenação e a equipe técnica, porque a receita chega de noite, e o Gestor Geral sai do cadastro. O rascunho de quem não é a Enfermagem avisa a Enfermagem (nível `enfermagem`, com a criança e sem o remédio), e a tela diz a quem cadastrou que ela foi avisada, oferece anexar a foto da receita e diz que a dose daquela noite vai na ATA. A trava está no servidor, no protótipo e no banco (medications/1664: `app_cadastra_esquema` na política de inserção, que agora também pergunta o alcance e o autor, e o gatilho `app_so_a_enfermagem_ativa`). De passagem, a Saúde mostrava *Suspender este esquema* à coordenação e à técnica, que o servidor recusa; agora mostra a quem o servidor deixa, e o protótipo ativava esquema por qualquer cargo. |
+| 246 | **Cada setor vê só as suas funções** (pedido de 25/10). Medido botão por botão contra o servidor de verdade: o `ensaio-o-que-cada-setor-ve.mjs` (simulação com `SIM_SETORES=1`, em lotes de cargos) entra com uma conta de cada cargo, abre cada tela da barra e da coluna e cada aba, aperta cada botão, preenche a folha e anota o que o servidor responde; 884 botões em nove cargos, relato em `docs/historico/o-que-cada-setor-ve-25-10.md`. **Consertados sem decisão** os botões que a tela mostrava e o servidor recusava: *Registrar ocorrência* para o Gestor Geral (`ABRE_OCORRENCIA`) e *Registrar que foi dado* do remédio *se necessário* para a técnica e a coordenação (`DA_REMEDIO`). **Decidido em 25/10:** o Gestor Geral lê a casa e não registra na ATA, no Dia, na internação, na Cozinha, nos combinados, na rotina e na escala (`@OGestorSoLe()` na porta de cada rota, `kernel/common/o-gestor-so-le.guard.ts`, cobrado pelo `o-gestor-so-le.spec.ts`, que nega por padrão), e continua escrevendo a regra das oito casas, que só ele escreve; a técnica e a coordenação ficam como estão; e a aba *Alinhamentos* saiu dos Acompanhamentos, porque repetia os Combinados da equipe. De passagem, a suíte dos downloads escolhia a criança pelo identificador sorteado e, numa rodada, caiu na Alice, cujos documentos restritos o perfil conta. |
 
 ---
 
@@ -570,7 +571,7 @@ rede-acolher/
 │   │   │   ├── documentos/     o contrato da folha e o gerador de .docx
 │   │   │   └── common/         CPF, criptografia, segredo, fuso da instituição
 │   │   └── modules/       19 partições, cada uma dona das próprias migrações
-│   ├── test/              156 suítes (e2e contra PostgreSQL real + estáticas)
+│   ├── test/              157 suítes (e2e contra PostgreSQL real + estáticas)
 │   ├── scripts/           ensaio-carga.ts, migrador compilado
 │   └── assets/timbre.png  a marca da Fundação, usada no documento em Word
 ├── frontend/
@@ -1185,11 +1186,12 @@ cobrando pela terceira vez o mesmo pedágio: **cargo, como número, sai do
 | **O relato da convivência familiar** — sem prazo, sem estado e quantas vezes for preciso; a porta abre na saída e não fecha nunca. *"Houve alteração"* é opcional e avisa a técnica e a coordenação (fase 122, correção da Fundação). **Quem alcança a casa escreve** — não há conferência de cargo, e é decisão escrita: a criança conta para quem ela confia | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | **O período da casa** — *"uma ata geral de toda semana"*, de um dia a seis meses: o que aconteceu em texto, com a parte boa primeiro, *"quem não está comendo o quê"* e os números no fim. Texto de acesso restrito sai só como CONTAGEM, porque esta folha circula (fase 121, pedido da Fundação) | — | ✅ própria casa | ✅ própria casa | ✅ própria casa | — | — | ✅ as oito |
 | **As contagens do trabalho** — por casa, setor, pessoa e tipo de ação. Ordem por NOME, nunca por total; **nenhuma contagem por criança**; aviso junto do número (fase 119, decisão da Fundação) | — | — | — | — | — | — | ✅ |
-| Registrar conclusão **pelo colega** | — | ✅ | — | ✅ | — | ✅ | ✅ |
-| Delegar atividade em aberto | — | ✅ | — | ✅ | — | ✅ | ✅ |
+| Registrar conclusão **pelo colega** | — | ✅ | — | ✅ | — | ✅ | — |
+| Delegar atividade em aberto | — | ✅ | — | ✅ | — | ✅ | — |
 | Autorizar ou **recusar** substituição | — | ✅ | ✅ | ✅ | — | ✅ | — |
 | Ver o painel do plantão | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Convidar para o primeiro acesso | — | — | — | ✅ própria casa | — | — | ✅ |
+| **Registrar na casa**: ATA, Dia, internação, pedido à Cozinha, reunião e combinado, regra da casa, rotina, escala (fase 246, decisão de 25/10: o Gestor Geral lê e baixa os papéis, e escreve só a regra das oito casas) | conforme a parte | conforme a parte | conforme a parte | conforme a parte | conforme a parte | conforme a parte | — lê |
 | Ler a escala de plantão da casa | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ |
 | Ler a ATA do turno anterior | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ |
 | Escrever linha na ATA do turno | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |

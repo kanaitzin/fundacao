@@ -22,6 +22,7 @@ import { TransfersService } from './transfers.service';
 import { AdmissionService } from './admission.service';
 import { CredentialsService } from './credentials.service';
 import { DataDoDia, CorpoConferido } from '../../kernel/common/data-do-dia.pipe';
+import { OGestorSoLe } from '../../kernel/common/o-gestor-so-le.guard';
 
 @Controller('people')
 @UseGuards(SessionGuard)
@@ -187,12 +188,14 @@ export class PeopleController {
   }
 
   @Post('kitchen-requests')
+  @OGestorSoLe()
   pedirCozinha(@CurrentUser() user: AuthenticatedUser, @Body() body: any) {
     return this.cozinha.pedir(user, body);
   }
 
   /* Editar, com o antes guardado (fase 162). */
   @Post('kitchen-requests/:id/edit')
+  @OGestorSoLe()
   editarPedido(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
                @Body() body: any) {
     return this.cozinha.editar(user, id, body ?? {});
@@ -204,6 +207,7 @@ export class PeopleController {
   }
 
   @Post('kitchen-requests/:id/cancel')
+  @OGestorSoLe()
   cancelarPedido(@CurrentUser() user: AuthenticatedUser,
                  @Param('id', ParseUUIDPipe) id: string,
                  @Body() body: { motivo: string }) {
@@ -258,6 +262,7 @@ export class PeopleController {
   }
 
   @Post('birthdays/:personId/ack')
+  @OGestorSoLe()
   cienteDoAniversario(@CurrentUser() user: AuthenticatedUser,
                       @Param('personId', ParseUUIDPipe) personId: string, @Body() body: any) {
     return this.aniversarios.darCiencia(user, personId, body ?? {});

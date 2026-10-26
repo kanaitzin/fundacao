@@ -5,6 +5,7 @@ import { SessionGuard, CurrentUser } from '../identity';
 import { AuthenticatedUser } from '../../kernel/contracts';
 import { AlignmentsService } from './alignments.service';
 import { CorpoConferido } from '../../kernel/common/data-do-dia.pipe';
+import { OGestorSoLe } from '../../kernel/common/o-gestor-so-le.guard';
 
 /**
  * O que a equipe combinou (§9.4).
@@ -47,6 +48,7 @@ export class AlignmentsController {
   }
 
   @Post('meetings')
+  @OGestorSoLe()
   registrarReuniao(@CurrentUser() user: AuthenticatedUser, @Body() body: any) {
     return this.alinhamentos.registrarReuniao(user, body);
   }
@@ -89,23 +91,27 @@ export class AlignmentsController {
   }
 
   @Post('agenda')
+  @OGestorSoLe()
   proporPauta(@CurrentUser() user: AuthenticatedUser, @Body() body: any) {
     return this.alinhamentos.proporPauta(user, body ?? {});
   }
 
   @Post('agenda/:id/answer')
+  @OGestorSoLe()
   responderPauta(@CurrentUser() user: AuthenticatedUser,
                  @Param('id', ParseUUIDPipe) id: string, @Body() body: any) {
     return this.alinhamentos.responderPauta(user, id, body ?? {});
   }
 
   @Post('agreements')
+  @OGestorSoLe()
   registrarCombinado(@CurrentUser() user: AuthenticatedUser, @Body() body: any) {
     return this.alinhamentos.registrarCombinado(user, body);
   }
 
   /** Cumprir, revogar ou substituir — sempre com motivo escrito. */
   @Post('agreements/:id/status')
+  @OGestorSoLe()
   mudar(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
         @Body() body: { situacao: string; motivo: string; substitutoId?: string }) {
     return this.alinhamentos.mudarSituacao(

@@ -5,6 +5,7 @@ import { hojeNaInstituicao } from '../../kernel/common/tempo';
 import { ActivitiesService } from './activities.service';
 import { AgendaService } from './agenda.service';
 import { DataDoDia, HoraDoDia } from '../../kernel/common/data-do-dia.pipe';
+import { OGestorSoLe } from '../../kernel/common/o-gestor-so-le.guard';
 
 @Controller('activities')
 @UseGuards(SessionGuard)
@@ -92,29 +93,34 @@ export class ActivitiesController {
   }
 
   @Post('generate-day')
+  @OGestorSoLe()
   generate(@CurrentUser() user: AuthenticatedUser, @Body() body: { houseId: string; date?: string }) {
     return this.activities.generateDay(user, body.houseId, body.date ?? hojeNaInstituicao());
   }
 
   @Post('urgent')
+  @OGestorSoLe()
   urgent(@CurrentUser() user: AuthenticatedUser, @Body() body: any) {
     return this.activities.createUrgent(user, body);
   }
 
   /** "Concluí tudo até agora": só as coletivas, como ato declarado (fase 181). */
   @Post('complete-collective')
+  @OGestorSoLe()
   concluirColetivas(@CurrentUser() user: AuthenticatedUser, @Body() body: { houseId?: string }) {
     return this.activities.concluirColetivas(user, body?.houseId ?? '');
   }
 
   // Comandos específicos, não update genérico (§25)
   @Post(':id/acknowledge')
+  @OGestorSoLe()
   ack(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
       @Body() body: { device?: string; offline?: boolean }) {
     return this.activities.acknowledge(user, id, body ?? {});
   }
 
   @Post(':id/record')
+  @OGestorSoLe()
   record(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
          @Body() body: any) {
     return this.activities.record(user, id, body);
@@ -122,6 +128,7 @@ export class ActivitiesController {
 
   /** Delegar atividade em aberto — líder do turno e coordenação. */
   @Post(':id/delegate')
+  @OGestorSoLe()
   delegate(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
            @Body() body: { paraId: string; motivo: string }) {
     return this.activities.delegate(user, id, body?.paraId, body?.motivo ?? '');
@@ -135,6 +142,7 @@ export class ActivitiesController {
   }
 
   @Post(':id/substitution')
+  @OGestorSoLe()
   substitution(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
                @Body() body: { motivo: string }) {
     return this.activities.requestSubstitution(user, id, body?.motivo ?? '');
@@ -146,18 +154,21 @@ export class ActivitiesController {
   }
 
   @Post('substitutions/:id/assign')
+  @OGestorSoLe()
   assign(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
          @Body() body: { substitutoId: string; nota?: string }) {
     return this.activities.assignSubstitute(user, id, body.substitutoId, body.nota);
   }
 
   @Post('substitutions/:id/decline')
+  @OGestorSoLe()
   decline(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
           @Body() body: { motivo: string }) {
     return this.activities.declineSubstitution(user, id, body?.motivo ?? '');
   }
 
   @Post('mark-unconfirmed')
+  @OGestorSoLe()
   unconfirmed(@CurrentUser() user: AuthenticatedUser,
               @Body() body: { houseId: string; minutos?: number }) {
     return this.activities.markUnconfirmed(user, body.houseId, body.minutos ?? 60);

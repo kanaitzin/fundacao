@@ -4,6 +4,7 @@ import { CurrentUser } from './current-user.decorator';
 import { AuthenticatedUser } from '../../kernel/contracts';
 import { EscalaService } from './escala.service';
 import { DataDoDia, CorpoConferido } from '../../kernel/common/data-do-dia.pipe';
+import { OGestorSoLe } from '../../kernel/common/o-gestor-so-le.guard';
 
 /**
  * A ESCALA DA CASA — quem assume cada plantão (§5.12).
@@ -36,28 +37,33 @@ export class EscalaController {
   }
 
   @Post('rascunho')
+  @OGestorSoLe()
   repetirMesAnterior(@CurrentUser() user: AuthenticatedUser, @Body(CorpoConferido) body: any) {
     return this.escala.repetirMesAnterior(user, body ?? {});
   }
 
   @Post('rascunho/itens/:itemId/retirar')
+  @OGestorSoLe()
   retirarDoRascunho(@CurrentUser() user: AuthenticatedUser,
                     @Param('itemId', ParseUUIDPipe) itemId: string) {
     return this.escala.retirarDoRascunho(user, itemId);
   }
 
   @Post('rascunho/:id/itens')
+  @OGestorSoLe()
   incluirNoRascunho(@CurrentUser() user: AuthenticatedUser,
                     @Param('id', ParseUUIDPipe) id: string, @Body(CorpoConferido) body: any) {
     return this.escala.incluirNoRascunho(user, id, body ?? {});
   }
 
   @Post('rascunho/:id/publicar')
+  @OGestorSoLe()
   publicarRascunho(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.escala.publicarRascunho(user, id);
   }
 
   @Post('rascunho/:id/descartar')
+  @OGestorSoLe()
   descartarRascunho(@CurrentUser() user: AuthenticatedUser,
                     @Param('id', ParseUUIDPipe) id: string, @Body(CorpoConferido) body: any) {
     return this.escala.descartarRascunho(user, id, body?.motivo);
@@ -76,6 +82,7 @@ export class EscalaController {
   }
 
   @Post()
+  @OGestorSoLe()
   escalar(@CurrentUser() user: AuthenticatedUser, @Body() body: any) {
     return this.escala.escalar(user, body);
   }
@@ -86,12 +93,14 @@ export class EscalaController {
    * confundem.
    */
   @Post(':id/substituir')
+  @OGestorSoLe()
   substituir(@CurrentUser() user: AuthenticatedUser,
              @Param('id', ParseUUIDPipe) id: string, @Body() body: any) {
     return this.escala.substituir(user, id, body ?? {});
   }
 
   @Post(':id/revogar')
+  @OGestorSoLe()
   revogar(@CurrentUser() user: AuthenticatedUser,
           @Param('id', ParseUUIDPipe) id: string, @Body() body: any) {
     return this.escala.desescalar(user, id, body?.motivo);

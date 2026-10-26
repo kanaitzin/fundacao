@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
 import { BotaoOlho } from '../anexos';
 import { FolhaDocumento } from '../documentos';
-import { Alinhamentos } from './Alinhamentos';
 import type { DocumentoWord } from '../docx';
 import { dia } from '../rotulos';
 import { Icone } from '../icones';
@@ -92,7 +91,7 @@ const periodoDe = (p: Acompanhamento['periodo']) => (typeof p === 'string' ? p :
 export function Acompanhamentos({ houseId, casaLabel, papel }: {
   houseId: string; casaLabel: string; papel: string;
 }) {
-  const [aba, setAba] = useState<'acomp' | 'relat' | 'alinha'>('acomp');
+  const [aba, setAba] = useState<'acomp' | 'relat'>('acomp');
   const [eixos, setEixos] = useState<Eixo[]>([]);
   const [lista, setLista] = useState<Acompanhamento[]>([]);
   const [relatorios, setRelatorios] = useState<Relatorio[]>([]);
@@ -292,13 +291,9 @@ export function Acompanhamentos({ houseId, casaLabel, papel }: {
                 onClick={() => setAba('acomp')}>Acompanhamentos</button>
         <button role="tab" aria-selected={aba === 'relat'} className={aba === 'relat' ? 'on' : ''}
                 onClick={() => setAba('relat')}>Relatórios</button>
-        {/* O combinado da equipe vive ao lado do relatório porque é a mesma
-            pergunta em outra escala: o que ficou estabelecido, e por quem. */}
-        <button role="tab" aria-selected={aba === 'alinha'} className={aba === 'alinha' ? 'on' : ''}
-                onClick={() => setAba('alinha')}>Alinhamentos</button>
+        {/* Os combinados da equipe moram só na tela Combinados da equipe: aqui eles
+            eram uma segunda porta para a mesma coisa (fase 246, decisão de 25/10). */}
       </div>
-
-      {aba === 'alinha' && <Alinhamentos houseId={houseId} casaLabel={casaLabel} />}
 
       {aba === 'acomp' && (
         <>

@@ -158,8 +158,13 @@ describe('O que entra volta inteiro, e o que se baixa abre', () => {
     }
     ({ rows: [{ id: ids.AI3 }] } = await admin.query(`SELECT id FROM house WHERE code='AI3'`));
     ({ rows: [{ id: ids.AI4 }] } = await admin.query(`SELECT id FROM house WHERE code='AI4'`));
+    /* A criança escolhida pelo NOME, e não pelo identificador: o identificador é
+       sorteado a cada banco recriado, e numa rodada caiu na Alice, cujos documentos
+       restritos o perfil conta (fase 246). As do começo da lista são da suíte do
+       perfil; as duas do fim, da chamada; esta fica no meio, longe das duas. */
     ({ rows: [{ person_id: ids.crianca }] } = await admin.query(
-      `SELECT person_id FROM house_stay WHERE house_id=$1 AND status='ativa' ORDER BY person_id LIMIT 1`, [ids.AI3]));
+      `SELECT hs.person_id FROM house_stay hs JOIN person p ON p.id = hs.person_id
+        WHERE hs.house_id=$1 AND hs.status='ativa' ORDER BY p.full_name DESC OFFSET 3 LIMIT 1`, [ids.AI3]));
     ({ rows: [{ id: ids.esquema }] } = await admin.query(
       `SELECT id FROM prescription WHERE house_id=$1 AND status='ativa' ORDER BY created_at LIMIT 1`, [ids.AI3]));
 

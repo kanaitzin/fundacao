@@ -97,7 +97,7 @@ export class InternacaoService {
   }
 
   private soTecnicaOuCoordenacao(user: AuthenticatedUser) {
-    if (!['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(user.role)) {
+    if (!['equipe_tecnica', 'coordenador'].includes(user.role)) {
       throw new ForbiddenException(
         'Abrir e encerrar internação é da equipe técnica e da coordenação.');
     }

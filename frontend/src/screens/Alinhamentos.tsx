@@ -58,7 +58,7 @@ interface Pauta {
   resposta: string | null; respondidaPor: string | null; respondidaEm: string | null;
   por: string; em: string; minha: boolean;
 }
-interface Pautas { podeResponder: boolean; abertas: number; itens: Pauta[] }
+interface Pautas { podeResponder: boolean; podePropor?: boolean; abertas: number; itens: Pauta[] }
 
 /** O estatuto — regras de convivência (fase 95). */
 interface Regra {
@@ -293,7 +293,7 @@ export function Alinhamentos({ houseId, casaLabel }: { houseId: string; casaLabe
                           {r.aindaNaoVale && ' · ainda não está valendo'}
                         </div>
                         {estatuto.podeEscrever
-                          && (!r.daInstituicao || estatuto.podeEscreverDaInstituicao) && (
+                          && (r.daInstituicao ? estatuto.podeEscreverDaInstituicao : !estatuto.podeEscreverDaInstituicao) && (
                           <div className="row">
                             <button className="btn sm ghost"
                                     onClick={() => setEscrevendo({ substitui: r })}>
@@ -396,9 +396,11 @@ export function Alinhamentos({ houseId, casaLabel }: { houseId: string; casaLabe
             {pautas.abertas > 0 && ` · ${pautas.abertas} esperando resposta`}
           </div>
 
+          {pautas.podePropor !== false && (
           <button data-acolhe-abre="" className="btn block ghost" onClick={() => setPropondo(true)}>
             Propor um assunto para a reunião
           </button>
+          )}
 
           {pautas.itens.length === 0 ? (
             <div className="card">
@@ -879,7 +881,7 @@ function FolhaEscreverRegra({ substitui, publicos, podeDaInstituicao, onFechar, 
   const [texto, setTexto] = useState('');
   const [publico, setPublico] = useState(substitui?.publico ?? 'todos');
   const [desde, setDesde] = useState('');
-  const [daInstituicao, setDaInstituicao] = useState(!!substitui?.daInstituicao);
+  const daInstituicao = podeDaInstituicao || !!substitui?.daInstituicao;
   const [enviando, setEnviando] = useState(false);
 
   return (
@@ -913,12 +915,10 @@ function FolhaEscreverRegra({ substitui, publicos, podeDaInstituicao, onFechar, 
         <input id="regra-desde" type="date" value={desde}
                onChange={(e) => setDesde(e.target.value)} />
 
+        {/* Quem escreve a regra das oito casas é o Gestor Geral, e só ela: a regra
+            da casa é da coordenação (fase 246, decisão de 25/10). */}
         {podeDaInstituicao && (
-          <label className="f">
-            <input type="checkbox" checked={daInstituicao}
-                   onChange={(e) => setDaInstituicao(e.target.checked)} />
-            {' '}Vale para as oito casas
-          </label>
+          <p className="mutetxt" style={{ margin: 0 }}>Esta regra vale para as oito casas.</p>
         )}
 
         <div className="acoes">

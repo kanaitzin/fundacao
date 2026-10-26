@@ -312,7 +312,7 @@ export class ShiftsService {
         restritasOcultas: Math.max(
           0, dados.restritas - dados.notas.filter((n: any) => n.restricted).length),
         podeEscreverRestrita: ['coordenador', 'equipe_tecnica', 'lider_diurno',
-                               'lider_noturno_geral', 'gestor_geral'].includes(user.role),
+                               'lider_noturno_geral'].includes(user.role),
       },
       /**
        * OS REMÉDIOS DO TURNO (0940). A tela da passagem mostra o que ficou

@@ -5,6 +5,7 @@ import {
 import { SessionGuard, CurrentUser } from '../identity';
 import { AuthenticatedUser } from '../../kernel/contracts';
 import { HousesService } from './houses.service';
+import { OGestorSoLe } from '../../kernel/common/o-gestor-so-le.guard';
 
 @Controller('houses')
 @UseGuards(SessionGuard)
@@ -43,6 +44,7 @@ export class HousesController {
   }
 
   @Post(':id/turnos')
+  @OGestorSoLe()
   definirTurnos(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
                 @Body() body: { diurnoDe?: string; diurnoAte?: string; motivo?: string }) {
     return this.houses.definirTurnos(user, id, body ?? {});

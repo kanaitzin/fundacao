@@ -22,7 +22,7 @@ const EXIGEM_JUSTIFICATIVA = new Set([
   'nao_realizada_transporte', 'nao_realizada_decisao_institucional',
 ]);
 
-const PODE_URGENTE = ['lider_diurno', 'lider_noturno_geral', 'equipe_tecnica', 'coordenador', 'gestor_geral'];
+const PODE_URGENTE = ['lider_diurno', 'lider_noturno_geral', 'equipe_tecnica', 'coordenador'];
 const PODE_AUTORIZAR_SUB = ['lider_diurno', 'lider_noturno_geral', 'equipe_tecnica', 'coordenador'];
 
 export const ESTADO_LABEL: Record<string, string> = {
