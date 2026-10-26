@@ -143,4 +143,13 @@ for _ in $(seq 1 60); do curl -sf http://localhost:3000/api/v1/health >/dev/null
 echo "→ a Acolhe+AI com o modelo, contra o servidor de verdade"
 (cd "$RAIZ/frontend" && ENSAIO_CONTAS="$(cat "$SAIDA/contas.json")" ENSAIO_AGORA="$(cat "$SAIDA/agora.txt")" \
   ENSAIO_SAIDA="$SAIDA/telas" node ensaio-acolhe-modelo.mjs)
+# O QUE CADA SETOR VÊ (fase 246): SIM_SETORES=1 aperta cada botão de cada tela,
+# uma conta de cada cargo, e anota o que o servidor recusa. Grava no banco da
+# simulação de verdade (a primeira rodada encerrou a conta da educadora pela
+# Equipe), por isso vem por último, depois de todos os outros ensaios.
+if [[ "${SIM_SETORES:-}" == 1 ]]; then
+  echo "→ o que cada setor vê, botão por botão, contra o servidor de verdade"
+  (cd "$RAIZ/frontend" && ENSAIO_CONTAS="$(cat "$SAIDA/contas.json")" ENSAIO_AGORA="$(cat "$SAIDA/agora.txt")" \
+    ENSAIO_SAIDA="$SAIDA/setores" node ensaio-o-que-cada-setor-ve.mjs)
+fi
 kill $SERVIDOR $VITE 2>/dev/null; pkill -f "src/main.ts" 2>/dev/null; pkill -f "vite --port 5173" 2>/dev/null

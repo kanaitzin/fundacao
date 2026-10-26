@@ -10707,7 +10707,8 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
    * dar.
    */
   if (rota === '/medications/prescriptions' && metodo === 'POST') {
-    if (!['enfermagem', 'coordenador', 'equipe_tecnica', 'gestor_geral'].includes(eu.role)) {
+    /* Cadastra o rascunho; quem ativa é só a Enfermagem (1664, decisão de 25/10). */
+    if (!['enfermagem', 'coordenador', 'equipe_tecnica'].includes(eu.role)) {
       return new Recusa(403,
         'Quem cadastra esquema de medicamento é a Enfermagem, a coordenação ou a equipe técnica.');
     }
@@ -10721,9 +10722,21 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       personId: String(b.personId ?? ''), horarios: (b.horarios as string[]) ?? [],
       condicaoUso: (b.condicaoUso as string) ?? null,
       prescritaEm: (b.prescritaEm as string) ?? null });
+    if (eu.role === 'enfermagem') {
+      return { id, status: 'rascunho',
+        aviso: 'Esquema registrado como rascunho. Ele começa a gerar dose quando você conferir e ativar, '
+          + 'e o seu nome fica ao lado de cada dose.' };
+    }
+    const k = kid(String(b.personId ?? ''));
+    const titulo = `Esquema de remédio${k ? ` de ${k.nome}` : ''} para conferir`;
+    AVISOS.unshift({ id: uid(), titulo,
+      texto: `${titulo}. Ficou como rascunho, com a receita, e só gera dose depois que a Enfermagem `
+        + 'conferir e ativar, na Saúde.',
+      prioridade: 'normal', entidade: 'prescription', entidadeId: id,
+      lida: false, ciente: false, em: new Date().toISOString() });
     return { id, status: 'rascunho',
-      aviso: 'Esquema registrado como rascunho. Ele só começa a gerar dose quando alguém o '
-        + 'ativar — e o nome de quem ativou fica ao lado de cada dose.' };
+      aviso: 'Ficou como rascunho e a Enfermagem foi avisada: ela confere a receita e ativa. Até lá não '
+        + 'gera dose. A dose de hoje, dê conforme a receita e escreva na ATA.' };
   }
 
   /**
@@ -10867,6 +10880,10 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
 
   /** `POST /medications/prescriptions/:id/sign` — é a assinatura que faz valer. */
   if (seg[0] === 'medications' && seg[1] === 'prescriptions' && seg[3] === 'sign' && metodo === 'POST') {
+    if (eu.role !== 'enfermagem') {
+      return new Recusa(403,
+        'Quem ativa o esquema é a Enfermagem. O rascunho fica na lista e ela confere a receita.');
+    }
     const r = RASCUNHOS.get(seg[2]);
     if (!r) return new Recusa(404, 'Prescrição não encontrada ou já assinada.');
     RASCUNHOS.delete(seg[2]);
@@ -11713,6 +11730,9 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
   }
 
   if (rota === '/incidents' && metodo === 'POST') {
+    if (!['educador', 'lider_diurno', 'lider_noturno_geral', 'equipe_tecnica', 'coordenador', 'enfermagem'].includes(eu.role)) {
+      return new Recusa(403, 'Quem registra ocorrência é a equipe da casa.');
+    }
     const cat = CATEGORIAS_OCORRENCIA.find((c) => c.cod === b.categoria);
     if (!cat) return new Recusa(400, 'Categoria inválida.');
     if (String(b.fato ?? '').trim().length < 15) {

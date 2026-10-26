@@ -156,6 +156,11 @@ interface Falta {
 const VE_QUEM_FALTA = ['equipe_tecnica', 'coordenador', 'lider_diurno',
                        'lider_noturno_geral', 'gestor_geral'];
 
+/** Quem registra ocorrência: a equipe da casa, a mesma lista da política `incident_insert`.
+ *  O Gestor Geral lê e não registra (fase 246: a tela mostrava o botão e o servidor recusava). */
+export const ABRE_OCORRENCIA = ['educador', 'lider_diurno', 'lider_noturno_geral', 'equipe_tecnica',
+  'coordenador', 'enfermagem'];
+
 export function Ocorrencias({ houseId, papel }: { houseId: string; papel: string }) {
   const [lista, setLista] = useState<ItemLista[]>([]);
   const [catalogo, setCatalogo] = useState<Catalogo | null>(null);
@@ -330,6 +335,7 @@ export function Ocorrencias({ houseId, papel }: { houseId: string; papel: string
 
       {aba === 'ocorrencias' && (
        <>
+      {ABRE_OCORRENCIA.includes(papel) && (
       <div className="card raise stack oc-abrir">
         <div className="row" style={{ gap: 12, flexWrap: 'nowrap' }}>
           <span className="oc-selo" aria-hidden="true"><Icone nome="ocorrencias" /></span>
@@ -348,6 +354,7 @@ export function Ocorrencias({ houseId, papel }: { houseId: string; papel: string
           <Icone nome="ocorrencias" /> Registrar ocorrência
         </button>
       </div>
+      )}
 
       <div className="eyebrow">Em acompanhamento · {abertas.length}</div>
       <div className="stack">

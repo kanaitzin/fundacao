@@ -25,6 +25,8 @@ export const SAIDAS_DO_ARMARIO: Record<string, string> = {
 };
 /** Quem lê as métricas e o relatório do armário — o mesmo alcance das compras. */
 const LE_O_ARMARIO = ['enfermagem', 'equipe_tecnica', 'lider_diurno', 'coordenador', 'gestor_geral'];
+/** Quem cadastra o esquema, como rascunho (1664). Quem ATIVA é só a Enfermagem. */
+export const CADASTRA_ESQUEMA = ['enfermagem', 'coordenador', 'equipe_tecnica'];
 
 /** Estados que exigem observação obrigatória (§11.4). */
 const EXIGEM_NOTA = new Set([
@@ -97,6 +99,11 @@ export class MedicationsService {
    * criança chega da consulta com a receita na mão às 20h — exigir a
    * Enfermagem ali é adiar o tratamento até o dia seguinte, ou dar o remédio
    * sem registro. Quem cadastrou e quem ativou continuam gravados, um a um.
+   *
+   * QUEM ATIVA mudou em 25/10/2026 (migração 1664): só a Enfermagem. De noite, a
+   * coordenação ou a técnica deixam o rascunho com a foto da receita, a Enfermagem
+   * é avisada e confere de manhã, e a dose daquela noite vai na ATA. O Gestor
+   * Geral deixou de cadastrar, porque não está na casa quando a receita chega.
    */
   async prescribe(user: AuthenticatedUser, input: {
     personId: string; houseId: string; tipo: string; medicamento: string; dose: string;
@@ -105,7 +112,7 @@ export class MedicationsService {
     /** A data em que o profissional prescreveu — não é `inicio` (1460). */
     prescritaEm?: string;
   }) {
-    if (!['enfermagem', 'coordenador', 'equipe_tecnica', 'gestor_geral'].includes(user.role)) {
+    if (!CADASTRA_ESQUEMA.includes(user.role)) {
       throw new ForbiddenException(
         'Quem cadastra esquema de medicamento é a Enfermagem, a coordenação ou a equipe técnica.');
     }
@@ -151,10 +158,31 @@ export class MedicationsService {
       entity: 'prescription', entityId: id,
       detail: { tipo: input.tipo, horarios: (input.horarios ?? []).length },
     });
+    if (user.role === 'enfermagem') {
+      return {
+        id, status: 'rascunho',
+        aviso: 'Esquema registrado como rascunho. Ele começa a gerar dose quando você conferir e ativar, '
+          + 'e o seu nome fica ao lado de cada dose.',
+      };
+    }
+    /* Quem ativa é a Enfermagem: ela é avisada do rascunho que a espera. O aviso
+       diz a criança e não o remédio, como o da receita que vence (08/10). */
+    const nome = await this.db.asUser(user.id, async (c) => (await c.query(
+      `SELECT app_person_display_name($1) AS nome`, [input.personId])).rows[0]?.nome as string | null);
+    const titulo = `Esquema de remédio${nome ? ` de ${nome}` : ''} para conferir`;
+    await this.bus.publish('escalation.requested', {
+      level: 'enfermagem',
+      entity: 'prescription', entityId: id,
+      reason: 'esquema_para_ativar',
+      title: titulo,
+      body: `${titulo}. Ficou como rascunho, com a receita, e só gera dose depois que a Enfermagem `
+        + 'conferir e ativar, na Saúde.',
+      priority: 'normal', groupKey: `ativar:${id}`,
+    }, { actorId: user.id, houseId: input.houseId });
     return {
       id, status: 'rascunho',
-      aviso: 'Esquema registrado como rascunho. Ele só começa a gerar dose quando alguém o ativar — '
-        + 'e o nome de quem ativou fica ao lado de cada dose.',
+      aviso: 'Ficou como rascunho e a Enfermagem foi avisada: ela confere a receita e ativa. Até lá não '
+        + 'gera dose. A dose de hoje, dê conforme a receita e escreva na ATA.',
     };
   }
 
@@ -164,9 +192,9 @@ export class MedicationsService {
    * quem assinou fica na grade, ao lado de cada dose gerada.
    */
   async sign(user: AuthenticatedUser, prescriptionId: string) {
-    if (!['enfermagem', 'coordenador', 'equipe_tecnica', 'gestor_geral'].includes(user.role)) {
+    if (user.role !== 'enfermagem') {
       throw new ForbiddenException(
-        'Quem ativa o esquema é a Enfermagem, a coordenação ou a equipe técnica.');
+        'Quem ativa o esquema é a Enfermagem. O rascunho fica na lista e ela confere a receita.');
     }
     const ok = await this.db.asUser(user.id, async (c) => {
       const { rowCount } = await c.query(

@@ -194,7 +194,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 24/10/2026, fase 244
+### Onde estamos — 25/10/2026, fase 245
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -302,8 +302,9 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 242 | **o plantão com a Acolhe+AI**: o que eu preciso saber leva ao que mudou, o rascunho da ATA no fim do turno (`ATA:`), e as **mãos ocupadas** (fala, envio no silêncio, resposta lida, o microfone volta só depois da leitura) |
 | 243 | **os documentos pela conversa** (período, visitas, internação, trajetória) e **o cuidado com as palavras** que rotulam a criança, só sugestão, nada guardado (`palavras-que-rotulam.ts`, `CuidadoComAsPalavras`); no protótipo, a volta semeada de noite caía no turno do dia |
 | 244 | **as palavras que a equipe ensina**: quem conversa propõe, a coordenação, a CG ou o gestor aprova ou recusa com motivo, e só a aprovada vale para a Acolhe+AI de todos (`assistant_word`, `assistant_word_decision`, assistente/1663) |
+| 245 | **só a Enfermagem ativa o esquema de medicamento** (decisão de 25/10): de noite a coordenação e a técnica deixam o rascunho com a foto da receita, a Enfermagem é avisada e ativa; a dose daquela noite vai na ATA; o gestor sai do cadastro; trava no banco (medications/1664) |
 
-**Medido no fim da 238:** 203 migrações, 144 tabelas, 156 suítes, 1395 testes; nas 237 e 238, a suíte inteira
+**Medido no fim da 245:** 204 migrações, 144 tabelas, 156 suítes, 1396 testes; nas 237 e 238, a suíte inteira
 verde (1363 de 1363, depois de consertar as três conferências que o relatório das vivências deixou soltas) e o
 `ensaio:uso` (739 cobranças, sem reprovação, com o relatório das vivências aberto e o Word baixado); **não rodou**
 nas 237 e 238 o relógio adiantado, o do celular, o de acessibilidade, o `ensaio:acolhe` nem a simulação contra o servidor;
@@ -412,6 +413,14 @@ posto em ordem no **PARA-A-REUNIAO §0**: as cinco perguntas que mais destravam,
 responder, os documentos de papel e os dados a receber, o que o DPO vê, o que se assina e as 30
 decisões de produto abertas. **Quando a resposta vier, ela entra lá e no §10 ou §11 do documento**, e
 o item respondido sai do §0.
+
+**FEITO — fase 245** (§2, §8.6): só a Enfermagem ativa o esquema de medicamento (decisão de 25/10 desta
+pessoa da Fundação, que troca a de 08/09 só na ativação). **Quem mexer no remédio:** cadastrar é
+`CADASTRA_ESQUEMA` no servidor e `app_cadastra_esquema` no banco; ativar é só a Enfermagem, no servidor, na
+tela (`ativaEsquema`), no protótipo e no gatilho `app_so_a_enfermagem_ativa`; a educadora continua marcando a
+dose dada. **Próxima: 246**, o que cada setor vê (pedido de 25/10): o `ensaio-o-que-cada-setor-ve.mjs`, pela
+simulação com `SIM_SETORES=1`, aperta cada botão de cada tela numa conta de cada cargo; o botão que o servidor
+recusa sai da tela sem decisão, e o resto vira a lista por setor para a Fundação aprovar antes de esconder.
 
 **FEITO — fases 237 e 238** (§2): o relatório das vivências em Word e o banco de palavras da casa.
 **Decisões de 23/10 desta pessoa da Fundação:** as fotos do relatório conforme o cargo, e **a IA só no

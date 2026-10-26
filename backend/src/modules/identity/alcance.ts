@@ -331,7 +331,8 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
         faz: 'Abre e encerra a internação, escreve o diário e designa quem acompanha.',
         servidor: 'A criança internada continua da casa e sai da chamada, da grade e da rotina '
           + 'do dia, e volta a elas na alta.' },
-      { area: 'saude', titulo: AREAS.saude, faz: 'Acompanha o painel e movimenta o armário.' },
+      { area: 'saude', titulo: AREAS.saude, faz: 'Acompanha o painel e movimenta o armário.',
+        servidor: 'Deixa o remédio da receita como rascunho, com a foto; quem ativa é a Enfermagem.' },
       { area: 'agenda', titulo: AREAS.agenda, faz: 'Marca compromissos e troca quem vai.' },
       { area: 'alinhamentos', titulo: AREAS.alinhamentos,
         faz: 'Registra a reunião e os combinados, e encerra um combinado com o motivo escrito.',
@@ -422,7 +423,7 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
           + 'relatório completo da internação.',
         servidor: 'A medicação do hospital entra com a origem escrita, e não na grade da casa.' },
       { area: 'saude', titulo: AREAS.saude,
-        faz: 'Prescreve, tria evoluções, assina e cuida do armário.',
+        faz: 'Cadastra o remédio da receita e é quem ativa o esquema, tria evoluções, assina e cuida do armário.',
         servidor: 'A dose é confirmada por quem administrou, e a Enfermagem não confirma pelo '
           + 'educador.' },
       { area: 'acolhidos', titulo: AREAS.acolhidos,
@@ -568,7 +569,8 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
       { area: 'ata', titulo: AREAS.ata, faz: 'Fecha a ATA quando o líder não está.' },
       { area: 'internacao', titulo: AREAS.internacao,
         faz: 'Abre e encerra a internação, e designa o educador que acompanha as visitas.' },
-      { area: 'saude', titulo: AREAS.saude, faz: 'Acompanha o painel; não assina evolução.' },
+      { area: 'saude', titulo: AREAS.saude, faz: 'Acompanha o painel; não assina evolução.',
+        servidor: 'Deixa o remédio da receita como rascunho, com a foto; quem ativa é a Enfermagem.' },
       { area: 'alinhamentos', titulo: AREAS.alinhamentos,
         faz: 'Lê o que a equipe combinou, inclusive o que foi decidido em reunião em que não esteve.',
         servidor: 'Registrar reunião e combinado é da equipe técnica e da coordenação.' },

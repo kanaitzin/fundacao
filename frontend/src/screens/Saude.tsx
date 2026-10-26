@@ -424,9 +424,12 @@ export function Saude({ houseId, casaLabel, papel }: {
   const movimenta = ['enfermagem', 'equipe_tecnica', 'coordenador', 'gestor_geral'].includes(papel);
   /* alcance:protocolo — quem marca o medicamento que só a Enfermagem dá (§11.3). */
   const defineProtocolo = ['enfermagem', 'coordenador', 'gestor_geral'].includes(papel);
-  /** Quem cadastra e ativa esquema, desde 0930: não é mais só a Enfermagem. */
-  const cadastraEsquema =
-    ['enfermagem', 'coordenador', 'equipe_tecnica', 'gestor_geral'].includes(papel);
+  /** Quem cadastra o esquema como rascunho (0930, e sem o Gestor Geral desde a 1664). */
+  const cadastraEsquema = ['enfermagem', 'coordenador', 'equipe_tecnica'].includes(papel);
+  /** Quem ATIVA, que é o que põe a dose na grade: só a Enfermagem (decisão de 25/10, 1664). */
+  const ativaEsquema = papel === 'enfermagem';
+  /** Quem suspende: o mesmo alcance do servidor. */
+  const suspendeEsquema = ['enfermagem', 'gestor_geral'].includes(papel);
   const emiteResumo = ['enfermagem', 'equipe_tecnica', 'coordenador', 'gestor_geral'].includes(papel);
 
   // Os números vêm do que já está na tela, não de um resumo paralelo: o painel
@@ -906,7 +909,10 @@ export function Saude({ houseId, casaLabel, papel }: {
                     {e.motivoSoEnfermagem ?? 'sem motivo registrado'}
                   </div>
                 )}
-                {cadastraEsquema && e.status === 'rascunho' && (
+                {!ativaEsquema && e.status === 'rascunho' && (
+                  <small className="mutetxt">Espera a Enfermagem conferir a receita e ativar.</small>
+                )}
+                {ativaEsquema && e.status === 'rascunho' && (
                   <button className="btn sm" onClick={() => acao(() =>
                     api(`/medications/prescriptions/${e.id}/sign`, { method: 'POST', body: '{}' }))}>
                     Conferir e ativar
@@ -922,7 +928,7 @@ export function Saude({ houseId, casaLabel, papel }: {
                 {/* SUSPENDER é da Enfermagem, e só do que está na grade. O
                     médico suspendeu o remédio e a grade continuava cobrando a
                     dose todo dia — este botão é o que fecha esse silêncio. */}
-                {cadastraEsquema && e.status === 'ativa' && (
+                {suspendeEsquema && e.status === 'ativa' && (
                   <button className="btn sm sec" onClick={() => setSuspendendo(e)}>
                     Suspender este esquema
                   </button>
@@ -1025,16 +1031,32 @@ export function Saude({ houseId, casaLabel, papel }: {
       {aba === 'prescricoes' && cadastraEsquema && (
         <>
           <div className="notice c-crit">
-            Um esquema nasce como <b>rascunho</b> e só entra na grade quando alguém
-            <b> confere e ativa</b>. Receita entregue numa consulta não altera a grade sozinha:
-            alguém assume, com nome e horário. Cadastram a Enfermagem, a coordenação e a
-            equipe técnica — quem estiver na casa quando a receita chegar.
+            Um esquema nasce como <b>rascunho</b> e só entra na grade quando a
+            <b> Enfermagem confere a receita e ativa</b>. De noite, a coordenação ou a técnica
+            cadastram o rascunho com a foto da receita, e a Enfermagem é avisada. A dose
+            daquela noite, a educadora dá conforme a receita e escreve na ATA.
           </div>
           {rascunho && (
             <div className="card raise stack">
               <b className="ff">Rascunho: {rascunho.medicamento}</b>
+              {!ativaEsquema && (
+                <>
+                  <div className="mutetxt">
+                    Ainda NÃO está na grade. A Enfermagem foi avisada: ela confere a receita e
+                    ativa. Anexe a foto da receita para ela conferir. A dose de hoje, dê conforme
+                    a receita e escreva na ATA.
+                  </div>
+                  <div className="row">
+                    <button className="btn grow" onClick={() => setVendoReceitas(rascunho)}>
+                      <Icone nome="documento" /> Anexar a foto da receita
+                    </button>
+                    <button className="btn sec grow" onClick={() => setRascunho(null)}>Pronto</button>
+                  </div>
+                </>
+              )}
+              {ativaEsquema && (<>
               <div className="mutetxt">
-                Ainda NÃO está na grade. Confira o que você cadastrou e ative — é isso que
+                Ainda NÃO está na grade. Confira o que você cadastrou e ative: é isso que
                 faz a casa começar a dar o medicamento, e o seu nome fica ao lado de cada dose.
               </div>
               <div className="row">
@@ -1054,6 +1076,7 @@ export function Saude({ houseId, casaLabel, papel }: {
                 esquemas desta aba</b>, porque é o que está esperando alguém. Enquanto não
                 for assinado, <b>não gera dose nenhuma</b>.
               </p>
+              </>)}
             </div>
           )}
           <button className="btn block" onClick={() => setPrescrevendo(true)}>

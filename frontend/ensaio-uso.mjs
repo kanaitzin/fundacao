@@ -2713,6 +2713,59 @@ if (await receitas.count()) {
   await fechar();
 }
 
+/*
+ * SÓ A ENFERMAGEM ATIVA O ESQUEMA (fase 245, decisão de 25/10). A coordenação
+ * cadastra o rascunho da receita que chegou de noite, não vê o ativar e é
+ * dita que a Enfermagem foi avisada; a Enfermagem encontra o aviso e ativa.
+ */
+console.log('\n💊 Só a Enfermagem ativa o esquema');
+await fechar();
+await trocar('coordenador');
+erros.length = 0;
+cobrar('a coordenação alcança a Saúde', (await aba('Saúde')) || (await doMais('Saúde')));
+await pg.locator('main.conteudo [role="tab"]').filter({ hasText: /^Esquemas$/ }).first().click();
+await pg.waitForTimeout(700);
+const esquemasCoord = await conteudo();
+cobrar('e a aba dos esquemas diz que quem ativa é a Enfermagem',
+  /Enfermagem confere a receita e ativa/i.test(esquemasCoord), esquemasCoord.slice(0, 300));
+cobrar('a coordenação não tem o botão de ativar nenhum rascunho',
+  (await pg.locator('main.conteudo button').filter({ hasText: /^Conferir e (ativar|assinar)$/ }).count()) === 0);
+await pg.locator('main.conteudo button', { hasText: 'Cadastrar esquema de medicamento' }).first().click();
+await pg.waitForTimeout(500);
+await pg.locator('#pr-pessoa').selectOption({ index: 1 });
+await pg.locator('#pr-med').fill('Amoxicilina (do ensaio)');
+await pg.locator('#pr-dose').fill('5 mL');
+await pg.locator('button', { hasText: 'Salvar como rascunho' }).click();
+await pg.waitForTimeout(900);
+const depoisCoord = await conteudo();
+cobrar('o rascunho da coordenação diz que a Enfermagem foi avisada',
+  /A Enfermagem foi avisada/i.test(depoisCoord), depoisCoord.slice(0, 300));
+cobrar('e oferece anexar a foto da receita, sem o ativar',
+  (await pg.locator('main.conteudo button', { hasText: 'Anexar a foto da receita' }).count()) > 0
+    && (await pg.locator('main.conteudo button').filter({ hasText: /^Conferir e (ativar|assinar)$/ }).count()) === 0);
+cobrar('e diz o que fazer com a dose de hoje', /escreva na ATA/i.test(depoisCoord));
+await trocar('enfermagem');
+await pg.locator('button[title="Avisos"]').first().click();
+await pg.waitForTimeout(800);
+cobrar('a Enfermagem recebe o aviso do esquema para conferir',
+  /Esquema de remédio de .+ para conferir/.test(await corpo()));
+await fechar();
+cobrar('a Enfermagem alcança a Saúde', (await aba('Saúde')) || (await doMais('Saúde')));
+await pg.locator('main.conteudo [role="tab"]').filter({ hasText: /^Esquemas$/ }).first().click();
+await pg.waitForTimeout(700);
+const ativar = pg.locator('main.conteudo article', { hasText: 'Amoxicilina (do ensaio)' })
+  .locator('button', { hasText: 'Conferir e ativar' });
+cobrar('e ativa o rascunho que a coordenação deixou', (await ativar.count()) > 0,
+  (await conteudo()).slice(0, 300));
+if (await ativar.count()) {
+  await ativar.first().click();
+  await pg.waitForTimeout(900);
+  cobrar('ativado, ele deixa de esperar',
+    (await pg.locator('main.conteudo article', { hasText: 'Amoxicilina (do ensaio)' })
+      .locator('button', { hasText: 'Conferir e ativar' }).count()) === 0);
+}
+cobrar('nenhuma exceção no esquema pela Enfermagem', erros.length === 0, erros[0]);
+
 /* ======================================================================== */
 /* O REMÉDIO "SE NECESSÁRIO" — quem dá é o educador, e é no Dia (fase 132).  */
 /*                                                                          */

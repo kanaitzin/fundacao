@@ -138,6 +138,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 245, dia: '25/10/2026', aba: 'saude',
+    texto: 'Quem ativa o remédio da receita, e faz a dose entrar na grade, é só a Enfermagem. De noite, a coordenação ou a técnica cadastram o rascunho e anexam a foto da receita, e a Enfermagem é avisada para conferir e ativar. A dose daquela noite, a educadora dá conforme a receita e escreve na ATA.' },
   { fase: 244, dia: '24/10/2026',
     texto: 'Você pode ensinar à Acolhe+AI o jeito de falar da casa: em Ensinar uma palavra, escreva a palavra e o que ela quer dizer. A coordenação confere nas Sugestões de melhoria e, quando aprova, a Acolhe+AI de todo mundo passa a entender.' },
   { fase: 243, dia: '24/10/2026',

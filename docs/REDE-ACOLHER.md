@@ -90,10 +90,10 @@ discordavam entre si.
 | Quanto | De onde sai |
 |---|---|
 | **19 partições** isoladas | pastas em `backend/src/modules/` |
-| **203 migrações** | `.sql` dentro das partições |
+| **204 migrações** | `.sql` dentro das partições |
 | **144 tabelas** | `CREATE TABLE` nas migrações |
 | **156 suítes** | `backend/test/*.spec.ts` |
-| **1395 testes** | `it(` / `test(` nas suítes |
+| **1396 testes** | `it(` / `test(` nas suítes |
 | **40 telas React** | `frontend/src/screens/*.tsx` |
 | **10 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **11 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
@@ -455,6 +455,7 @@ arqueologia.
 | 242 | **O plantão com a Acolhe+AI** (ideias de 24/10). **No começo:** *o que eu preciso saber*, *cheguei no plantão*, *passa o plantão*, *como tá a casa* levam ao cartão do que mudou, no alto do Dia, com a Passagem ao lado; com o modelo, ela lê o que mudou e a ATA anterior e conta, primeiro o que pede cuidado. **No fim:** *o rascunho da ATA* pede o relato, e o *ATA:* vira rascunho que vai à linha da ATA; com o modelo, ela monta o rascunho com as linhas do turno, sem inventar nem julgar a criança. **Mãos ocupadas:** na Acolhe+AI, a pessoa fala, a pergunta vai sozinha depois de dois segundos e meio de silêncio, a resposta é lida em voz alta e o microfone só volta quando a leitura acabou (antes, ele escreveria a própria voz da Acolhe+AI); a nota do momento pede resposta curta; fechar a Acolhe+AI desliga o microfone. O `ensaio:uso` mede as mãos ocupadas com um microfone e uma leitura em voz alta falsos. *Não medido daqui:* a voz de verdade num celular. |
 | 243 | **Os documentos pela conversa** (ideias de 24/10). *O relatório do período* (ou *do mês da casa*), *de visitas*, *da internação* e *a trajetória* levam ao lugar de cada um, com o caminho e as escolhas, e quem baixa, com a finalidade, é a pessoa; *o relatório do mês* de uma criança continua sendo o acompanhamento. *Ver a folha antes de baixar* do período e *Relatório completo da internação* ganharam `data-acolhe-abre`: o clique só pede a folha e um efeito busca, e a Acolhe+AI as abre a pedido (no fechamento, o `ensaio:acolhe` achou que *ver a internação da Caio* abria o relatório, porque o botão tem a palavra que levou à tela; com a criança nomeada, o nome da tela não escolhe mais o botão de dentro). **O cuidado com as palavras:** em todo campo de texto longo, quando a pessoa escreve uma palavra que rotula a criança (agressivo, mentirosa, sem educação e as outras de `assistente/palavras-que-rotulam.ts`), aparece embaixo a sugestão de escrever o fato (`CuidadoComAsPalavras`, uma vez só no `App.tsx`); nunca impede de salvar, *Entendi* fecha, e nada é guardado nem contado; cor neutra, nunca a de estado. O modelo não usa essas palavras e pergunta o fato. De passagem, no protótipo: **de noite, a volta da criança semeada caía no turno do dia**, e a passagem do turno da noite não a mostrava; agora ela cai no turno de agora. |
 | 244 | **As palavras que a equipe ensina** (ideia de 24/10). Na Acolhe+AI, *Ensinar uma palavra*: a palavra ou o jeito de dizer e o que quer dizer, em nome de quem ensina (`assistant_word`, assistente/1663). A coordenação da casa, a Coordenação Geral ou o Gestor Geral aprova ou recusa, com o motivo para recusar, e pode retirar a aprovada, com o motivo, na tela das Sugestões de melhoria (`assistant_word_decision`, uma linha por decisão; a ordem é cobrada no banco). Só a aprovada vale, para a Acolhe+AI de todos: no modo guia, junto do banco de palavras da casa; no modelo, no contexto de quem conversa. É a única leitura que a assistente faz por conta própria, e é do vocabulário dela. Quem lê a proposta é quem ensinou, quem decide e a TI; a auditoria leva só o metadado. No protótipo, a palavra fica na casa em que foi ensinada. |
+| 245 | **Só a Enfermagem ativa o esquema de medicamento** (decisão de 25/10). Ativar, que é o que faz a dose entrar na grade, passa a ser só da Enfermagem; cadastrar o rascunho continua com a Enfermagem, a coordenação e a equipe técnica, porque a receita chega de noite, e o Gestor Geral sai do cadastro. O rascunho de quem não é a Enfermagem avisa a Enfermagem (nível `enfermagem`, com a criança e sem o remédio), e a tela diz a quem cadastrou que ela foi avisada, oferece anexar a foto da receita e diz que a dose daquela noite vai na ATA. A trava está no servidor, no protótipo e no banco (medications/1664: `app_cadastra_esquema` na política de inserção, que agora também pergunta o alcance e o autor, e o gatilho `app_so_a_enfermagem_ativa`). De passagem, a Saúde mostrava *Suspender este esquema* à coordenação e à técnica, que o servidor recusa; agora mostra a quem o servidor deixa, e o protótipo ativava esquema por qualquer cargo. |
 
 ---
 
@@ -502,7 +503,7 @@ cd frontend && npm run prototipo
 ```
 
 O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as
-203 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
+204 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
 
 ### Os ensaios — e por que cada um existe
 
@@ -1155,7 +1156,8 @@ cobrando pela terceira vez o mesmo pedágio: **cargo, como número, sai do
 | Ver linha do tempo / visão dos 20 | ✅ | ✅ | ✅ | ✅ | saúde | mínimo | ✅ |
 | Criar/alterar agenda regular | — | urgente pontual | ✅ | ✅ | — | urgente pontual | — |
 | Confirmar medicamento | ✅ se administrou | ✅ se administrou | — | — | ✅ se administrou | — | — |
-| Cadastrar e ativar esquema de medicamentos | — | — | ✅ | ✅ | ✅ | — | — |
+| Cadastrar esquema de medicamentos (rascunho) | — | — | ✅ | ✅ | ✅ | — | — |
+| Ativar esquema de medicamentos (a dose entra na grade) | — | — | — | — | ✅ | — | — |
 | Marcar medicamento como exclusivo da Enfermagem | — | — | — | ✅ | ✅ | — | ✅ |
 | Editar perfil estrutural do acolhido | — | — | ✅ | ✅ | saúde | — | — |
 | Ver narrativas pessoais de educadores | próprias | não navega | ✅ | ✅ | — | não | apuração formal |
@@ -1507,8 +1509,16 @@ esquema com motivo obrigatório e antes-e-depois; o educador barrado **lê o
 motivo**, e a dose continua aparecendo na linha dele sem botão, porque ele
 precisa saber que há remédio às 22h para chamar quem pode.
 
-Cadastram esquema a Enfermagem, a coordenação **e** a equipe técnica — porque a
-criança volta da consulta com a receita às 20h.
+Cadastram esquema a Enfermagem, a coordenação **e** a equipe técnica, porque a
+criança volta da consulta com a receita às 20h. **Quem ativa é só a Enfermagem**
+(decisão de 25/10, medications/1664): o que a coordenação ou a técnica cadastram
+de noite fica como rascunho, com a foto da receita, e não gera dose nenhuma; a
+Enfermagem é avisada (nível `enfermagem`, com a criança e sem o remédio) e
+confere e ativa de manhã. A dose daquela noite o educador dá conforme a receita e
+escreve na ATA. O Gestor Geral deixou de cadastrar, porque não está na casa
+quando a receita chega; continua suspendendo, como antes. A trava está no
+servidor e no banco: a política de inserção pergunta o cargo e o alcance, e um
+gatilho recusa a passagem de rascunho para ativa por quem não é a Enfermagem.
 
 *O protocolo por período e a autorização nominal deixaram de decidir, não de
 existir: guardam o que a casa decidiu enquanto ninguém sabia o horário da
@@ -3009,7 +3019,7 @@ crescimento. Vídeo não entra no álbum: um minuto de vídeo de celular pesa co
 npm run ensaio:producao
 ```
 
-Constrói, cria um banco virgem, aplica as 203 migrações **pelo binário
+Constrói, cria um banco virgem, aplica as 204 migrações **pelo binário
 compilado**, sobe o serviço e confere `/health`. Não publica nada e não toca no
 banco de trabalho.
 

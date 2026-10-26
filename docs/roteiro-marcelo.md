@@ -32,8 +32,12 @@ Leitura recomendada antes da aplicação, para quem conduz.
 - Quando um medicamento só pode ser administrado pela Enfermagem (insulina,
   injetável, controlado), a Enfermagem ou a coordenação marca isso na aba
   **Esquemas**, com o motivo. No protótipo, a insulina da Rayssa está marcada.
-- Coordenação e equipe técnica também cadastram a prescrição, porque a criança
-  muitas vezes volta da consulta com a receita no fim do dia.
+- Quem ativa a prescrição, e faz a dose entrar na grade, é só a Enfermagem
+  (decisão de 25/10). Como a criança muitas vezes volta da consulta com a
+  receita no fim do dia, a coordenação e a equipe técnica cadastram o
+  rascunho e anexam a foto da receita, e a Enfermagem é avisada para conferir
+  e ativar. A dose daquela noite, o educador dá conforme a receita e escreve
+  na ATA.
 - O armário tem duas ações: **Chegou remédio**, que soma à quantidade, e
   **Conferi o armário**, que substitui a quantidade e pede o motivo.
 - O estoque baixo é sinalizado pela equipe, com o nome de quem sinalizou. A

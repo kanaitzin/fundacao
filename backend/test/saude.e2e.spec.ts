@@ -26,6 +26,7 @@ const HOJE = new Intl.DateTimeFormat('en-CA', {
 describe('Fase 4 — Medicamentos e Enfermagem', () => {
   let app: INestApplication, http: any, admin: Client;
   const tokens: Record<string, string> = {};
+  let pelaCoordId = '';
   let AI3: string, sofia: string, educadorId: string, prescricaoId: string;
 
   const login = async (email: string) => {
@@ -92,6 +93,55 @@ describe('Fase 4 — Medicamentos e Enfermagem', () => {
               medicamento: 'Xarope (fictício)', dose: '5 mL', via: 'oral',
               horarios: ['21:00'], prescritor: 'Pediatria (fictícia)' });
     expect(pelaCoord.status).toBe(201);
+    pelaCoordId = pelaCoord.body.id;
+    expect(pelaCoord.body.aviso).toMatch(/Enfermagem foi avisada/);
+  });
+
+  /*
+   * SÓ A ENFERMAGEM ATIVA (fase 245, decisão de 25/10, migração 1664). A
+   * coordenação e a técnica deixam o rascunho de noite; ativar, que é o que põe
+   * a dose na grade, é só da Enfermagem. E o Gestor Geral deixou de cadastrar.
+   */
+  it('só a Enfermagem ativa o esquema; quem deixou o rascunho não ativa, e a Enfermagem é avisada', async () => {
+    for (const quem of ['coord', 'tecnica', 'gestor']) {
+      const r = await request(http).post(`/api/v1/medications/prescriptions/${pelaCoordId}/sign`)
+        .set(auth(tokens[quem])).send({});
+      expect({ quem, status: r.status }).toEqual({ quem, status: 403 });
+    }
+    const { rows: [p] } = await admin.query(
+      `SELECT status FROM prescription WHERE id = $1`, [pelaCoordId]);
+    expect(p.status).toBe('rascunho');
+
+    const peloGestor = await request(http).post('/api/v1/medications/prescriptions')
+      .set(auth(tokens.gestor))
+      .send({ personId: sofia, houseId: AI3, tipo: 'tratamento',
+              medicamento: 'Xarope do gestor (fictício)', dose: '5 mL', via: 'oral' });
+    expect(peloGestor.status).toBe(403);
+
+    /* O aviso chega à Enfermagem, com a criança e sem o remédio. */
+    const avisos = await request(http).get('/api/v1/notifications').set(auth(tokens.enfermagem));
+    expect(avisos.status).toBe(200);
+    const lista = Array.isArray(avisos.body) ? avisos.body : (avisos.body.itens ?? avisos.body.avisos ?? []);
+    const doEsquema = lista.find((n: any) => n.entityId === pelaCoordId || n.entidadeId === pelaCoordId);
+    expect(doEsquema).toBeDefined();
+    expect(JSON.stringify(doEsquema)).toMatch(/para conferir/);
+    expect(JSON.stringify(doEsquema)).not.toMatch(/Xarope/);
+
+    /* A trava mora no banco também: por fora do servidor, a coordenação não ativa. */
+    const appUrl = process.env.DATABASE_APP_URL
+      ?? 'postgres://rede_app:dev-only-change-me-app@127.0.0.1:5432/rede_acolher';
+    const app_ = new Client({ connectionString: appUrl });
+    await app_.connect();
+    try {
+      const { rows: [u] } = await admin.query(
+        `SELECT id FROM app_user WHERE email = 'coord.ai3@paodospobres.dev'`);
+      await app_.query('BEGIN');
+      await app_.query(`SELECT set_config('app.user_id', $1, true)`, [u.id]);
+      await expect(app_.query(
+        `UPDATE prescription SET status = 'ativa', signed_by = $2, signed_at = now()
+          WHERE id = $1`, [pelaCoordId, u.id])).rejects.toThrow(/so_a_enfermagem_ativa/);
+      await app_.query('ROLLBACK');
+    } finally { await app_.end(); }
   });
 
   it('"quando necessário" exige a condição de uso escrita pelo profissional (§11.5)', async () => {
