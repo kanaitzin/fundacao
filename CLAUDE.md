@@ -308,7 +308,7 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 246 | **cada setor vê só as suas funções** (pedido de 25/10): 884 botões medidos contra o servidor (`ensaio-o-que-cada-setor-ve.mjs`); os que a tela mostrava e o servidor recusava saíram; o Gestor Geral lê a ATA, o Dia, a internação, a Cozinha, os combinados, a rotina e a escala sem registrar (`@OGestorSoLe()`, decisão de 25/10); a aba repetida dos Combinados saiu |
 | 247 | **a conferência da instalação pergunta ao computador da Acolhe+AI** (o que faltava da 239): motor, endereço em `/v1`, se a máquina responde e se tem o modelo; sem um deles o serviço caía calado no modo guia |
 
-**Medido no fim da 247:** 204 migrações, 144 tabelas, 157 suítes, 1404 testes; nas 237 e 238, a suíte inteira
+**Medido no fim da 247:** 204 migrações, 144 tabelas, 158 suítes, 1410 testes; nas 237 e 238, a suíte inteira
 verde (1363 de 1363, depois de consertar as três conferências que o relatório das vivências deixou soltas) e o
 `ensaio:uso` (739 cobranças, sem reprovação, com o relatório das vivências aberto e o Word baixado); **não rodou**
 nas 237 e 238 o relógio adiantado, o do celular, o de acessibilidade, o `ensaio:acolhe` nem a simulação contra o servidor;
@@ -423,7 +423,10 @@ máquina pelo `/v1/models`; seis testes no `o-servidor-do-pao.spec.ts`, com a m�
 parte (o `spawnSync` para o Jest enquanto espera). **Quem mexer nas variáveis do motor** muda o serviço e o
 instalador juntos: o último teste da suíte confere que os dois leem os mesmos nomes. **Medido na 247:** a suíte inteira nas DUAS condições de
 relógio, 1411 de 1411 no relógio real e às 22h30 de Porto Alegre. **Com isso, o código da 239
-está todo feito.** **Fica de fora, de propósito:** o passo a passo de instalar o modelo no computador (a escrita
+está todo feito.** **E a varredura de 26/10** (§2, linha 247): a folha das vivências da 237 não tinha suíte, e a
+regra das fotos conforme o cargo só era conferida pelo protótipo; hoje a `a-folha-das-vivencias` cobra, lendo de
+volta a folha e o Word. **Rode o `rotas-sem-teste.mjs` e a `varredura-de-pontas.mjs` a cada fase que cria rota
+ou coluna**: a 237 passou com as duas, e ninguém viu. **Fica de fora, de propósito:** o passo a passo de instalar o modelo no computador (a escrita
 foi interrompida por um filtro automático em duas sessões, e é da TI com a máquina escolhida). **Próxima etapa:**
 a pauta de 21/10 (PARA-A-REUNIAO §0); a escolha do computador e do modelo é da Fundação e da TI, e quando a
 máquina vier, roda-se o `instalar.sh` e o `npm run prova-do-modelo -w backend` nela.
