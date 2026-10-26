@@ -421,7 +421,8 @@ o item respondido sai do §0.
 **FEITO — fase 247** (§2, §12.12): o `instalar.sh` confere a Acolhe+AI no computador do Pão, perguntando à
 máquina pelo `/v1/models`; seis testes no `o-servidor-do-pao.spec.ts`, com a máquina de mentira num processo à
 parte (o `spawnSync` para o Jest enquanto espera). **Quem mexer nas variáveis do motor** muda o serviço e o
-instalador juntos: o último teste da suíte confere que os dois leem os mesmos nomes. **Com isso, o código da 239
+instalador juntos: o último teste da suíte confere que os dois leem os mesmos nomes. **Medido na 247:** a suíte inteira nas DUAS condições de
+relógio, 1411 de 1411 no relógio real e às 22h30 de Porto Alegre. **Com isso, o código da 239
 está todo feito.** **Fica de fora, de propósito:** o passo a passo de instalar o modelo no computador (a escrita
 foi interrompida por um filtro automático em duas sessões, e é da TI com a máquina escolhida). **Próxima etapa:**
 a pauta de 21/10 (PARA-A-REUNIAO §0); a escolha do computador e do modelo é da Fundação e da TI, e quando a
