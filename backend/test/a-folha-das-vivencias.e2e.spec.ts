@@ -64,10 +64,16 @@ describe('A folha das vivências, conforme o cargo', () => {
       educador: 'educador.ai3@paodospobres.dev', tecnica: 'tecnica.ai3@paodospobres.dev',
       coord4: 'coord.ai4@paodospobres.dev',
     })) tokens[k] = await login(email);
-    /* A criança pelo nome, numa posição que as outras suítes do álbum não usam. */
+    /* A criança fora das que as outras suítes do álbum contam: o dossiê e a de quem
+       aparece na foto escolhem as duas primeiras pelo identificador, que muda a cada
+       banco recriado. Pelo nome só, ela caiu uma vez na do dossiê, e a foto sem
+       autorização daqui virou a segunda dele (rodada adiantada de 26/10). */
     ({ rows: [{ person_id: ids.crianca }] } = await admin.query(
       `SELECT s.person_id FROM house_stay s JOIN house h ON h.id = s.house_id JOIN person p ON p.id = s.person_id
-        WHERE h.code = 'AI3' AND s.status = 'ativa' ORDER BY p.full_name OFFSET 7 LIMIT 1`));
+        WHERE h.code = 'AI3' AND s.status = 'ativa'
+          AND s.person_id NOT IN (SELECT person_id FROM house_stay WHERE house_id = h.id AND status = 'ativa'
+                                   ORDER BY person_id LIMIT 2)
+        ORDER BY p.full_name OFFSET 7 LIMIT 1`));
 
     /* Duas vivências de 2019, fora de toda janela das outras suítes: uma com a
        autorização de imagem registrada, a outra sem. */
