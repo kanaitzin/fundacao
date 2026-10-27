@@ -424,7 +424,7 @@ o item respondido sai do §0.
 **FEITO — fase 250** (§2): o relato pedido chega a quem deve escrever. **Frase que promete aviso** (*a
 Enfermagem é avisada*) se confere contra o `publish` que a cumpre, e **pedido que espera resposta** contra quem
 responde e quem é avisado: foi assim que a cobrança de relato apareceu. **Aviso a uma pessoa** vai por
-`notice.requested` com `userId`, e não por nível. **Medido na 250:** a `cobranca-de-relato` (8 de 8, a nova reprova sem o aviso); a suíte inteira nas duas condições está rodando. **Próxima etapa:** a mesma da 247.
+`notice.requested` com `userId`, e não por nível. **Medido na 250:** a suíte inteira nas DUAS condições de relógio (1424 de 1424), com o aviso do relato pedido na `cobranca-de-relato`. **Não rodou** nenhum ensaio de navegador: nenhuma tela mudou, só o aviso que chega ao sino. **Próxima etapa:** a mesma da 247.
 
 **FEITO — fase 249** (§2, PARA-A-REUNIAO §4.36): os caminhos sem fim. **Aviso novo** (`escalation.requested`
 com `entity`) ganha a tela e a aba no `ONDE` do `Avisos.tsx`, no servidor e no protótipo; o
