@@ -1622,7 +1622,7 @@ function FolhaHistorico({ pessoa, dados, emissoes, onFechar, onBaixar, onDocumen
                   {a.desfecho && <div className="mutetxt">Desfecho: {a.desfecho}</div>}
                   {a.retornoEm && (
                     <div className={a.retornoVencido ? '' : 'mutetxt'}>
-                      Retorno em {dia(a.retornoEm)}
+                      {a.status === 'concluido' ? 'Retorno marcado para' : 'Retorno em'} {dia(a.retornoEm)}
                       {a.retornoVencido && <b> — a data já passou.</b>}
                     </div>
                   )}

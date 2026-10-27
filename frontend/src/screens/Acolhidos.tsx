@@ -1250,7 +1250,7 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
 
       {evolucao && p && (
         <FolhaEvolucao
-          nome={p.nome}
+          nome={p.nome} personId={p.id}
           onFechar={() => setEvolucao(false)}
           onEnviar={async (corpo) => {
             setErro('');
@@ -2220,8 +2220,8 @@ function Secao({ titulo, id, children }: { titulo: string; id?: string; children
  * A receita entra como TEXTO do que foi entregue. Ela não altera a grade de
  * medicamentos: a grade só muda depois que a Enfermagem tria e assina (§11.1).
  */
-function FolhaEvolucao({ nome, onFechar, onEnviar }: {
-  nome: string; onFechar: () => void;
+function FolhaEvolucao({ nome, personId, onFechar, onEnviar }: {
+  nome: string; personId: string; onFechar: () => void;
   onEnviar: (corpo: Record<string, unknown>) => void;
 }) {
   const agora = new Date();
@@ -2246,15 +2246,24 @@ function FolhaEvolucao({ nome, onFechar, onEnviar }: {
   const [opcoes, setOpcoes] = useState<{
     tipos: { cod: string; label: string }[];
     comportamentos: { cod: string; label: string }[];
+    retornosMarcados?: { id: string; retornoEm: string; quando: string; rotulo: string }[];
     aviso?: string;
   } | null>(null);
   useEffect(() => {
     let vivo = true;
-    api<typeof opcoes>('/nursing/evolutions/options')
+    api<typeof opcoes>(`/nursing/evolutions/options?personId=${encodeURIComponent(personId)}`)
       .then((o) => { if (vivo) setOpcoes(o); })
       .catch(() => { if (vivo) setOpcoes(null); });
     return () => { vivo = false; };
-  }, []);
+  }, [personId]);
+  /*
+   * O RETORNO QUE ESTA CONSULTA CUMPRE (1665).
+   *
+   * Sem esta pergunta o retorno marcado ficava pendente para sempre, e passada
+   * a data a Saúde dizia *a reagendar* sobre a consulta que já tinha acontecido.
+   * Nasce "não", que é o caso comum, e só aparece quando há retorno marcado.
+   */
+  const [retornoDe, setRetornoDe] = useState('');
   /* Como a criança estava, na chegada e na saída (1460). */
   const [aoChegar, setAoChegar] = useState('');
   const [aoSair, setAoSair] = useState('');
@@ -2299,6 +2308,24 @@ function FolhaEvolucao({ nome, onFechar, onEnviar }: {
             </button>
           ))}
         </div>
+
+        {!!opcoes?.retornosMarcados?.length && (
+          <>
+            <label className="f">É o retorno de uma consulta marcada?</label>
+            <div className="opts">
+              <button type="button" className="opt c-med" aria-pressed={retornoDe === ''}
+                      onClick={() => setRetornoDe('')}>
+                Não
+              </button>
+              {opcoes.retornosMarcados.map((r) => (
+                <button type="button" key={r.id} className="opt c-med" aria-pressed={retornoDe === r.id}
+                        onClick={() => setRetornoDe(r.id)}>
+                  Sim, o retorno de {dia(r.quando)}, marcado para {dia(r.retornoEm)} ({r.rotulo})
+                </button>
+              ))}
+            </div>
+          </>
+        )}
 
         <label className="f" htmlFor="evo-quando">
           Quando aconteceu <small>— o horário real, não o do registro</small>
@@ -2407,6 +2434,7 @@ function FolhaEvolucao({ nome, onFechar, onEnviar }: {
                     acompanhanteNome: foiOutro ? quemLevou.trim() : undefined,
                     comportamentoAoChegar: aoChegar || undefined,
                     comportamentoAoSair: aoSair || undefined,
+                    retornoDe: retornoDe || undefined,
                   })}>
             Enviar para a Enfermagem
           </button>

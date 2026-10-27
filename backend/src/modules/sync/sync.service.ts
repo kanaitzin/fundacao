@@ -243,6 +243,18 @@ export class SyncService {
       return r.id;
     });
     await this.bus.publish('sync.conflict', { conflitoId: id, tipo: input.kind }, { houseId: input.houseId });
+    /* O CONFLITO CHEGA A QUEM DECIDE (varredura de 27/10). Ele esperava a decisão
+       da equipe técnica e da coordenação, e ninguém era avisado: ficava parado
+       até alguém abrir a Sincronização por conta própria. O aviso leva só o fato,
+       nunca o que o registro dizia. */
+    await this.bus.publish('escalation.requested', {
+      level: 'tecnica_coordenacao', entity: 'sync_conflict', entityId: id,
+      reason: 'registro feito sem internet não pôde ser gravado',
+      title: 'Registro sem internet esperando decisão',
+      body: 'Um registro feito sem internet não pôde ser gravado como chegou. As duas versões estão '
+        + 'guardadas na Sincronização, e quem decide qual vale é a equipe técnica ou a coordenação.',
+      priority: 'alta', groupKey: `sync-conflict:${input.houseId}`,
+    }, { actorId: user.id, houseId: input.houseId });
     return { id };
   }
 

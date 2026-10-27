@@ -90,10 +90,10 @@ discordavam entre si.
 | Quanto | De onde sai |
 |---|---|
 | **19 partições** isoladas | pastas em `backend/src/modules/` |
-| **204 migrações** | `.sql` dentro das partições |
+| **205 migrações** | `.sql` dentro das partições |
 | **144 tabelas** | `CREATE TABLE` nas migrações |
-| **159 suítes** | `backend/test/*.spec.ts` |
-| **1412 testes** | `it(` / `test(` nas suítes |
+| **160 suítes** | `backend/test/*.spec.ts` |
+| **1416 testes** | `it(` / `test(` nas suítes |
 | **40 telas React** | `frontend/src/screens/*.tsx` |
 | **10 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **11 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
@@ -459,6 +459,7 @@ arqueologia.
 | 246 | **Cada setor vê só as suas funções** (pedido de 25/10). Medido botão por botão contra o servidor de verdade: o `ensaio-o-que-cada-setor-ve.mjs` (simulação com `SIM_SETORES=1`, em lotes de cargos) entra com uma conta de cada cargo, abre cada tela da barra e da coluna e cada aba, aperta cada botão, preenche a folha e anota o que o servidor responde; 884 botões em nove cargos, relato em `docs/historico/o-que-cada-setor-ve-25-10.md`. **Consertados sem decisão** os botões que a tela mostrava e o servidor recusava: *Registrar ocorrência* para o Gestor Geral (`ABRE_OCORRENCIA`) e *Registrar que foi dado* do remédio *se necessário* para a técnica e a coordenação (`DA_REMEDIO`). **Decidido em 25/10:** o Gestor Geral lê a casa e não registra na ATA, no Dia, na internação, na Cozinha, nos combinados, na rotina e na escala (`@OGestorSoLe()` na porta de cada rota, `kernel/common/o-gestor-so-le.guard.ts`, cobrado pelo `o-gestor-so-le.spec.ts`, que nega por padrão), e continua escrevendo a regra das oito casas, que só ele escreve; a técnica e a coordenação ficam como estão; e a aba *Alinhamentos* saiu dos Acompanhamentos, porque repetia os Combinados da equipe. De passagem, a suíte dos downloads escolhia a criança pelo identificador sorteado e, numa rodada, caiu na Alice, cujos documentos restritos o perfil conta. |
 | 247 | **A conferência da instalação pergunta ao computador da Acolhe+AI** (o que faltava da 239). O serviço só usa o motor local com o endereço e o modelo, e sem um deles cai calado no modo guia: a casa ligaria o sistema achando que tem a Acolhe+AI e teria só o guia. Hoje o `instalar.sh` confere o motor (`local`, vazio ou `claude`; outro nome reprova, porque o serviço o leria como Claude), o endereço terminado em `/v1`, se a máquina responde e se tem o modelo escrito no `.env` (pelo `/v1/models`, o padrão aberto; o nome sem etiqueta vale como `latest`), avisa quando o endereço não parece da rede do Pão, avisa a chave da Anthropic que ficou sem uso com o motor local, e lembra que a decisão de 23/10 é o computador do Pão quando a Acolhe+AI está pela chave. Seis testes novos no `o-servidor-do-pao.spec.ts`, com uma máquina de mentira num processo à parte. *Não feito:* o passo a passo de instalar o modelo no computador, que é da TI com a escolha da máquina, e o teste com um modelo de verdade. **E a varredura de 26/10**, que não rodava desde a 246: o `rotas-sem-teste.mjs` achou a folha das vivências da 237 (`POST /people/:id/memories/folha`) sem suíte nenhuma, e a exportação só com o Word aberto, sem olhar as fotos; a regra das fotos conforme o cargo era conferida só pelo protótipo. Hoje a `a-folha-das-vivencias` cobra a legenda no lugar da foto sem autorização para o educador, as duas fotos e a ressalva do uso interno para a técnica, as escolhas, as recusas, a outra casa e as imagens dentro do Word, e reprova com o educador na lista de quem inclui todas. A `varredura-de-pontas` achou duas marcas de aviso que saiu (`document_due_notice.notified_at`, `shift_fim_aviso.avisado_em`), declaradas como carimbo, como a `pia_aviso`. |
 | 248 | **O dia a dia mais leve** (pedido de 27/10: *"veja tudo, procure erros, melhorias de manuseio como usuários"*). Fiz o papel de cada cargo no protótipo, no celular, às 23h e às 14h, por 153 telas: nenhum erro de página nem de console, e o que atrapalha o turno anotado e consertado quando não pedia decisão. **No Painel do plantão, o pedido de substituição só se recusava**, embora o título diga *aguardando você*; passar a atividade a outra pessoa ficava no Dia. Hoje é a mesma folha do Dia (`FolhaDecidirSub`), e **a lista de quem decide existia em duas cópias**: a do Painel ainda tinha o Gestor Geral, a quem o servidor recusa desde a 246 (hoje é uma só, `DECIDE_SUB`). **As quantidades com parênteses** (*1 passagem(ns) assinada(s)*, *2 crítico(s)*, *1 vaga(s)*) estavam em mais de cem frases das telas, dos avisos, das folhas que vão ao juiz e à rede e do protótipo; hoje o `quantos` (kernel/common/quantos.ts) escreve o número com a palavra certa, e o `a-quantidade-por-extenso.spec.ts` lê todo texto do código e reprova o plural com parênteses. **A Portaria repetia em cada cartão** a orientação de ligar para a casa: ela aparece uma vez, e a tela foi de 21,3 para 18,3 telas de rolagem no celular. **A regra das doses na Saúde** vinha dita duas vezes e na cor de crítico, que é de estado; hoje é uma frase, na cor de informação. **Frases que falavam do sistema** (*não é filtro de tela*, *o sistema não dá ninguém como avisado*, *o sistema não deduz*, *o sistema não conclui*) reescritas; a ATA tinha o aviso da escala repetido e o emoji ⏮; a chamada dizia *26 pessoas · 3 de 19* (hoje *costumam ser 26 · 3 de 19 conferidos*). **No protótipo, às 23h**, o Dia mostrava o plantão diurno das 07:00 aberto, pedindo à educadora da noite que assinasse a passagem dele (hoje os dois plantões seguem a regra das oito às oito e o turno em curso), o Nélio aparecia como educador nas linhas que escreveu, e a ATA da noite trazia um episódio das 02:20 com a ciência das 07:15. O `ensaio:uso` ganhou o pedido de substituição passado pelo Painel e o Painel sem botão para o gestor. *O que pede decisão* está no PARA-A-REUNIAO §4.35. |
+| 249 | **Os caminhos sem fim** (pedido de 27/10: *"procure por caminhos que não têm fim, coisas que começamos e não demos destino, informações que não vão para onde deviam"*). Três achados, consertados. **O registro feito sem internet que não pôde ser gravado** abria o conflito na Sincronização e não avisava ninguém: o evento `sync.conflict` não tinha ouvinte, e a tela só era vista por quem já a abria; hoje sai o aviso à equipe técnica e à coordenação, que são quem decide (`sync.service.ts`, cobrado no cenário 17 do `operacao.e2e`). **O sino** dizia *Continua em: medication_dose* em metade dos avisos, porque a lista que traduz o tipo do registro para a tela tinha ficado para trás, e não levava a tela nenhuma; hoje o `ONDE` do `Avisos.tsx` dá a tela e a aba de cada tipo, com o botão **Abrir** quando o cargo alcança a aba, e o `todo-aviso-tem-destino.spec.ts` lê do código do servidor e do protótipo todo objeto de aviso e reprova o tipo sem destino. **O retorno médico marcado nunca terminava** (0210): a consulta seguinte criava outro atendimento, e passada a data a Saúde, a folha de saúde em Word e o painel da Enfermagem diziam *a reagendar* sobre o retorno que já tinha acontecido; hoje a folha do atendimento pergunta *É o retorno de uma consulta marcada?*, com os retornos marcados da criança (`GET /nursing/evolutions/options?personId=`), e o de antes fica *Retorno feito*, com a data marcada guardada (`return_done_in`, nursing/1665). A varredura das situações pelo catálogo (toda coluna de estado com os valores listados, contra todo `UPDATE` do código) não achou outro estado que nasce e não muda. Ficam para a Fundação a resposta às sugestões de melhoria e o retorno desmarcado (PARA-A-REUNIAO §4.36) |
 
 ---
 
@@ -506,7 +507,7 @@ cd frontend && npm run prototipo
 ```
 
 O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as
-204 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
+205 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
 
 ### Os ensaios — e por que cada um existe
 
@@ -573,7 +574,7 @@ rede-acolher/
 │   │   │   ├── documentos/     o contrato da folha e o gerador de .docx
 │   │   │   └── common/         CPF, criptografia, segredo, fuso da instituição
 │   │   └── modules/       19 partições, cada uma dona das próprias migrações
-│   ├── test/              159 suítes (e2e contra PostgreSQL real + estáticas)
+│   ├── test/              160 suítes (e2e contra PostgreSQL real + estáticas)
 │   ├── scripts/           ensaio-carga.ts, migrador compilado
 │   └── assets/timbre.png  a marca da Fundação, usada no documento em Word
 ├── frontend/
@@ -3023,7 +3024,7 @@ crescimento. Vídeo não entra no álbum: um minuto de vídeo de celular pesa co
 npm run ensaio:producao
 ```
 
-Constrói, cria um banco virgem, aplica as 204 migrações **pelo binário
+Constrói, cria um banco virgem, aplica as 205 migrações **pelo binário
 compilado**, sobe o serviço e confere `/health`. Não publica nada e não toca no
 banco de trabalho.
 

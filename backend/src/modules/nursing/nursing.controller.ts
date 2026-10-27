@@ -86,8 +86,9 @@ export class NursingController {
    * tem: registrar vacina devolvia 500. Ver o serviço.
    */
   @Get('evolutions/options')
-  opcoesDaEvolucao(@CurrentUser() user: AuthenticatedUser) {
-    return this.nursing.opcoesDaEvolucao(user);
+  opcoesDaEvolucao(@CurrentUser() user: AuthenticatedUser,
+                   @Query('personId', new ParseUUIDPipe({ optional: true })) personId?: string) {
+    return this.nursing.opcoesDaEvolucao(user, personId);
   }
 
   @Post('evolutions')

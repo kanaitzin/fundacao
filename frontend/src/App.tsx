@@ -924,7 +924,8 @@ export function App() {
         )}
 
         {abaEfetiva === 'avisos' && (
-          <Avisos onMudou={() => {
+          <Avisos alcanca={ve} irPara={(destino) => { setAba(destino as typeof aba); setMais(false); }}
+                  onMudou={() => {
             api<{ naoLidas: number }>('/notifications/count')
               .then((r) => setNaoLidos(r.naoLidas)).catch(() => {});
           }} />

@@ -160,7 +160,25 @@ export class NursingService {
    * no próprio código em vez de sumir: a tela mostra `terapia` feio uma vez, e
    * alguém escreve o rótulo — melhor do que o botão não existir.
    */
-  async opcoesDaEvolucao(user: AuthenticatedUser) {
+  async opcoesDaEvolucao(user: AuthenticatedUser, personId?: string) {
+    /*
+     * OS RETORNOS MARCADOS DA CRIANÇA (1665), para a folha perguntar se a
+     * consulta de agora é um deles. Pedida com a criança, que tem de estar no
+     * alcance de quem pergunta: a lista vazia diria *não há retorno marcado*.
+     */
+    const retornosMarcados = !personId ? undefined : await this.db.asUser(user.id, async (c) => {
+      const { rows: [alc] } = await c.query(`SELECT app_person_in_scope($1) AS ok`, [personId]);
+      if (!alc?.ok) throw new NotFoundException('Acolhido não encontrado.');
+      const { rows } = await c.query(
+        `SELECT id, kind, happened_at, specialty, place, return_on::text AS return_on
+           FROM health_encounter
+          WHERE person_id = $1 AND status = 'retorno_pendente'
+          ORDER BY return_on, happened_at`, [personId]);
+      return rows.map((r) => ({
+        id: r.id as string, retornoEm: r.return_on as string, quando: r.happened_at,
+        rotulo: [TIPO_ATENDIMENTO[r.kind] ?? r.kind, r.specialty, r.place].filter(Boolean).join(' · '),
+      }));
+    });
     const tipos = await this.db.asUser(user.id, async (c) => {
       const { rows } = await c.query(
         `SELECT e.enumlabel AS cod FROM pg_enum e
@@ -171,6 +189,7 @@ export class NursingService {
     });
     return {
       tipos,
+      ...(retornosMarcados ? { retornosMarcados } : {}),
       comportamentos: Object.entries(COMPORTAMENTO).map(([cod, label]) => ({ cod, label })),
       aviso: 'Como a criança estava ao chegar e ao sair é observação de dois momentos, para a '
         + 'Enfermagem comparar. Não é avaliação da criança, e não é contada em painel nenhum.',
@@ -206,7 +225,18 @@ export class NursingService {
      */
     comportamentoAoChegar?: string;
     comportamentoAoSair?: string;
+    /**
+     * O RETORNO QUE ESTA CONSULTA CUMPRE (1665).
+     *
+     * O atendimento de antes com retorno marcado. Sem isto ele ficava pendente
+     * para sempre, e passada a data a Saúde dizia *a reagendar* sobre o retorno
+     * que já tinha acontecido.
+     */
+    retornoDe?: string;
   }) {
+    if (input.retornoDe && !/^[0-9a-f-]{36}$/i.test(input.retornoDe)) {
+      throw new BadRequestException('Escolha o retorno na lista dos retornos marcados da criança.');
+    }
     if (!input.quandoAconteceu) {
       throw new BadRequestException('Informe o horário real do atendimento.');
     }
@@ -223,7 +253,7 @@ export class NursingService {
       ids = await this.db.asUser(user.id, async (c) => {
         const { rows: [r] } = await c.query(
           `SELECT * FROM app_submit_evolution($1,$2,$3,$4::timestamptz,$5,$6,$7,$8,$9,$10,$11,
-             $12,$13,$14,$15,$16,$17,$18::date,$19,$20,$21,$22,$23,$24,$25,$26)`,
+             $12,$13,$14,$15,$16,$17,$18::date,$19,$20,$21,$22,$23,$24,$25,$26,$27::uuid)`,
           [input.personId, input.houseId, input.tipo, input.quandoAconteceu,
            input.local ?? null, input.especialidade ?? null, input.servicoProfissional ?? null,
            input.motivo ?? null, input.estadoSaida ?? null, input.estadoDurante ?? null,
@@ -233,12 +263,17 @@ export class NursingService {
            input.intercorrenciasDeslocamento ?? null, input.observacoes ?? null,
            input.offline ?? false, input.clientOpId ?? null,
            input.acompanhanteNome?.trim() || null,
-           input.comportamentoAoChegar || null, input.comportamentoAoSair || null]);
+           input.comportamentoAoChegar || null, input.comportamentoAoSair || null,
+           input.retornoDe || null]);
         return r;
       });
     } catch (e: any) {
       if (e?.message?.includes('acolhido_fora_de_escopo')) {
         throw new NotFoundException('Acolhido não encontrado.');
+      }
+      if (e?.message?.includes('retorno_nao_pendente')) {
+        throw new BadRequestException(
+          'Esse retorno já foi registrado ou não é desta criança. Abra a folha de novo para ver os retornos marcados.');
       }
       /*
        * TIPO QUE O BANCO NÃO CONHECE VIRA FRASE, E NÃO 500 (fase 140).
@@ -438,7 +473,9 @@ export class NursingService {
     return this.db.asUser(user.id, async (c) => {
       const { rows: encontros } = await c.query(
         `SELECT id, kind, happened_at, place, specialty, professional, reason, outcome,
-                status, return_on::text AS return_on
+                status, return_on::text AS return_on,
+                -- Cumprido por uma consulta registrada depois (1665).
+                (return_done_in IS NOT NULL) AS retorno_feito
          FROM health_encounter WHERE person_id = $1 ORDER BY happened_at DESC LIMIT 100`, [personId]);
       const { rows: evolucoes } = await c.query(
         `SELECT e.id, e.kind, e.happened_at, e.state_return, e.guidance, e.status,
@@ -497,7 +534,8 @@ export class NursingService {
         id: e.id, tipo: e.kind, tipoRotulo: TIPO_ATENDIMENTO[e.kind] ?? e.kind,
         quando: e.happened_at, local: e.place, especialidade: e.specialty,
         profissional: e.professional, motivo: e.reason, desfecho: e.outcome,
-        status: e.status, statusRotulo: ESTADO_ATENDIMENTO[e.status] ?? e.status,
+        status: e.status,
+        statusRotulo: e.retorno_feito ? 'Retorno feito' : (ESTADO_ATENDIMENTO[e.status] ?? e.status),
         retornoEm: e.return_on,
         // Retorno marcado para uma data que já passou não é histórico: é
         // pendência. Quem lê precisa disso escrito, não deduzido da data.

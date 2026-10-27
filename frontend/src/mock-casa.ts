@@ -2730,6 +2730,8 @@ const ATENDIMENTOS: {
   id: string; personId: string; tipo: string; quando: string; local: string | null;
   especialidade: string | null; profissional: string | null; motivo: string | null;
   desfecho: string | null; status: string; retornoEm: string | null;
+  /** Cumprido por uma consulta registrada depois (1665). */
+  retornoFeito?: boolean;
 }[] = [
   { id: 'at1', personId: 'p08', tipo: 'consulta', quando: `${diasAtras(21)}T09:30:00-03:00`,
     local: 'UBS fictícia Centro', especialidade: 'Pediatria',
@@ -11239,8 +11241,18 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
    * era 500, e aqui o servidor de mentira nem sabia da rota. Se estas duas listas
    * divergirem de novo, o `contrato-rotas` e o teste do enum reprovam.
    */
-  if (rota === '/nursing/evolutions/options' && metodo === 'GET') {
+  if ((rota === '/nursing/evolutions/options' || rota.startsWith('/nursing/evolutions/options?')) && metodo === 'GET') {
+    /* Os retornos marcados da criança (1665), como o servidor. */
+    const daCrianca = q.get('personId');
+    const TIPO_AT: Record<string, string> = { consulta: 'Consulta', exame: 'Exame', urgencia: 'Urgência',
+      emergencia: 'Emergência', internacao: 'Internação', retorno: 'Retorno', terapia: 'Terapia' };
+    const retornosMarcados = !daCrianca ? undefined : ATENDIMENTOS
+      .filter((a) => a.personId === daCrianca && a.status === 'retorno_pendente' && a.retornoEm)
+      .sort((x, y) => x.retornoEm!.localeCompare(y.retornoEm!))
+      .map((a) => ({ id: a.id, retornoEm: a.retornoEm!, quando: a.quando,
+        rotulo: [TIPO_AT[a.tipo] ?? a.tipo, a.especialidade, a.local].filter(Boolean).join(' · ') }));
     return {
+      ...(retornosMarcados ? { retornosMarcados } : {}),
       tipos: [
         { cod: 'consulta', label: 'Consulta' },
         { cod: 'exame', label: 'Exame' },
@@ -11268,7 +11280,22 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     if (String(b.estadoRetorno ?? '').trim().length < 5) {
       return new Recusa(400, 'Descreva o estado observado no retorno.');
     }
+    /* O retorno que esta consulta cumpre (1665): da mesma criança e ainda pendente. */
+    const cumpre = b.retornoDe ? ATENDIMENTOS.find((a) => a.id === b.retornoDe
+      && a.personId === String(b.personId ?? '') && a.status === 'retorno_pendente') : undefined;
+    if (b.retornoDe && !cumpre) {
+      return new Recusa(400,
+        'Esse retorno já foi registrado ou não é desta criança. Abra a folha de novo para ver os retornos marcados.');
+    }
     const k = kid(String(b.personId ?? ''));
+    const novoAt = { id: uid(), personId: String(b.personId ?? ''), tipo: String(b.tipo ?? 'consulta'),
+      quando: String(b.quandoAconteceu), local: (b.local as string) || null,
+      especialidade: (b.especialidade as string) || null, profissional: null, motivo: null,
+      desfecho: (b.orientacoes as string) || null,
+      status: b.prazoRetorno ? 'retorno_pendente' : 'concluido', retornoEm: (b.prazoRetorno as string) || null,
+      retornoFeito: false };
+    ATENDIMENTOS.unshift(novoAt);
+    if (cumpre) { cumpre.status = 'concluido'; cumpre.retornoFeito = true; }
     const TIPO: Record<string, string> = {
       consulta: 'Consulta', exame: 'Exame', urgencia: 'Urgência ou emergência',
       internacao: 'Internação', retorno: 'Retorno', vacina: 'Vacina',
@@ -11356,7 +11383,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         id: a.id, tipo: a.tipo, tipoRotulo: TIPO[a.tipo] ?? a.tipo, quando: a.quando,
         local: a.local, especialidade: a.especialidade, profissional: a.profissional,
         motivo: a.motivo, desfecho: a.desfecho,
-        status: a.status, statusRotulo: EST_AT[a.status] ?? a.status,
+        status: a.status, statusRotulo: a.retornoFeito ? 'Retorno feito' : (EST_AT[a.status] ?? a.status),
         retornoEm: a.retornoEm,
         // A data que já passou não é histórico: é pendência, e vem escrita.
         retornoVencido: a.status === 'retorno_pendente'

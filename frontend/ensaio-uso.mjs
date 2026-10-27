@@ -2998,6 +2998,46 @@ cobrar('e diz também quem REGISTROU — ao lado, não no lugar',
 
 cobrar('nenhuma exceção ao abrir as prévias', erros.length === 0, erros[0]);
 
+// ====================================================== O retorno marcado tem fim (fase 249)
+/*
+ * O retorno marcado ficava pendente para sempre: a consulta nova criava outro
+ * atendimento, e passada a data a Saúde dizia "a data já passou" sobre o
+ * retorno que tinha acontecido. A Helena tem um retorno de pediatria vencido
+ * no protótipo; a educadora registra a consulta dizendo que é aquele retorno,
+ * e a Enfermagem, no histórico, lê Retorno feito.
+ */
+console.log('\n🩺 O retorno marcado tem fim');
+await fechar();
+await trocar('educador');
+erros.length = 0;
+await aba('Acolhidos');
+await clicar(/Helena/);
+await clicar(/Registrar atendimento de saúde/);
+await pg.waitForTimeout(600);
+const folha249 = await corpo();
+cobrar('a folha pergunta se a consulta é o retorno marcado', /É o retorno de uma consulta marcada\?/.test(folha249),
+  folha249.slice(0, 400));
+const opRetorno = pg.locator('.overlay .sheet .opt').filter({ hasText: /^Sim, o retorno de/ }).first();
+cobrar('e oferece o retorno de pediatria da criança', (await opRetorno.count()) > 0 && /Pediatria/.test(await opRetorno.innerText().catch(() => '')));
+await pg.locator('.overlay .sheet .opt').filter({ hasText: /^Retorno$/ }).first().click();
+if (await opRetorno.count()) await opRetorno.click();
+await pg.locator('#evo-ret').fill('Voltou bem; a pediatra viu o exame e está tudo certo.');
+await pg.locator('.overlay .sheet button').filter({ hasText: /Enviar para a Enfermagem/ }).first().click();
+await pg.waitForTimeout(1200);
+await fechar();
+await trocar('enfermagem');
+await doMais('Saúde');
+const abaResumo = pg.locator('main.conteudo [role="tab"]').filter({ hasText: /^Resumo de saúde$/ });
+if (await abaResumo.count()) { await abaResumo.first().click(); await pg.waitForTimeout(900); }
+await pg.locator('.resumo-cartao').filter({ hasText: 'Helena' }).first()
+  .getByRole('button', { name: /^Histórico$/ }).click().catch(() => {});
+await pg.waitForTimeout(900);
+const hist249 = await pg.locator('.overlay').last().innerText().catch(() => '');
+cobrar('o histórico diz Retorno feito no atendimento de antes', /Retorno feito/.test(hist249), hist249.slice(0, 500));
+cobrar('e não conta mais o retorno como data passada', !/com a data já passada/.test(hist249), hist249.slice(0, 300));
+cobrar('nenhuma exceção no retorno', erros.length === 0, erros[0]);
+await fechar();
+
 // ====================================================== O portão (fase 160)
 /*
  * A PORTARIA ENTRA COM LOGIN MÍNIMO (decisão de 26/09). O que se cobra é o que

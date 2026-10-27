@@ -461,6 +461,11 @@ describe('Fase 3 — Rotina, atividades, chamadas, linha do tempo e offline', ()
     });
     expect(r.body.resultados[0].status).toBe('conflito');
 
+    /* Quem decide é avisado (varredura de 27/10): o conflito ficava parado até
+       alguém abrir a Sincronização por conta própria. */
+    const avisos = await request(http).get('/api/v1/notifications').set(auth(tokens.tecnica));
+    expect(avisos.body.some((n: any) => n.titulo === 'Registro sem internet esperando decisão')).toBe(true);
+
     const conflitos = await request(http).get(`/api/v1/sync/conflicts?houseId=${AI3}`)
       .set(auth(tokens.tecnica));
     expect(conflitos.body.length).toBeGreaterThan(0);

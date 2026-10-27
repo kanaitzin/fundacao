@@ -164,6 +164,50 @@ describe('O histórico de saúde do acolhido', () => {
     expect(h.pendencias.retornosMarcados).toBeGreaterThanOrEqual(1);
   });
 
+  it('a consulta que é o retorno FECHA o retorno marcado, e ele não vira "a reagendar" depois (1665)',
+     async () => {
+    /* Antes da 1665 nada fechava o retorno: a consulta nova criava outro
+       atendimento, e passada a data a Saúde dizia "a reagendar" sobre o retorno
+       que já tinha acontecido. */
+    const op = await request(http).get(`/api/v1/nursing/evolutions/options?personId=${ids.acolhido}`)
+      .set(auth(tokens.educador)).expect(200);
+    expect(op.body.retornosMarcados.length).toBeGreaterThanOrEqual(1);
+    const marcado = op.body.retornosMarcados[0];
+    expect(marcado.rotulo).toMatch(/Consulta · Pediatria/);
+    // Sem a criança, a folha de antes continua igual.
+    const semCrianca = await request(http).get('/api/v1/nursing/evolutions/options')
+      .set(auth(tokens.educador)).expect(200);
+    expect(semCrianca.body.retornosMarcados).toBeUndefined();
+    // Quem não alcança a criança não lê os retornos dela, e não lê "nenhum".
+    await request(http).get(`/api/v1/nursing/evolutions/options?personId=${ids.acolhido}`)
+      .set(auth(tokens.deOutraCasa)).expect(404);
+
+    const consulta = (retornoDe: string) => request(http).post('/api/v1/nursing/evolutions')
+      .set(auth(tokens.educador))
+      .send({ personId: ids.acolhido, houseId: ids.AI4, tipo: 'retorno',
+              quandoAconteceu: new Date(Date.now() - 3600_000).toISOString(),
+              local: 'UBS fictícia', especialidade: 'Pediatria',
+              estadoRetorno: 'Voltou bem, a pediatra disse que está tudo certo.', retornoDe });
+    expect((await consulta(marcado.id)).status).toBe(201);
+
+    const h = await historico();
+    const antigo = h.atendimentos.find((a: any) => a.id === marcado.id);
+    expect(antigo.status).toBe('concluido');
+    expect(antigo.statusRotulo).toBe('Retorno feito');
+    expect(antigo.retornoEm).toBe(marcado.retornoEm);   // a data marcada fica como estava
+    expect(h.pendencias.retornosMarcados).toBe(0);
+
+    // Dias depois, a data passa, e ele continua fechado: nada de "a reagendar".
+    await admin.query(`UPDATE health_encounter SET return_on = app_hoje() - 5 WHERE id = $1`, [marcado.id]);
+    const depois = await historico();
+    expect(depois.pendencias.retornosVencidos).toBe(0);
+
+    // O mesmo retorno não fecha duas vezes, e o servidor diz o que fazer.
+    const deNovo = await consulta(marcado.id);
+    expect(deNovo.status).toBe(400);
+    expect(deNovo.body.message).toMatch(/^Esse retorno já foi registrado/);
+  });
+
   // ==================== Doses ====================
 
   it('dose ainda por confirmar NÃO entra no histórico: ela está na grade, esperando alguém',

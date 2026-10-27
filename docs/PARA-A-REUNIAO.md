@@ -201,7 +201,7 @@ contando o conceito escolar (fase 137). Nada disso volta à mesa.
   196 também dentro do perfil da criança (*quero registrar a alergia do Bruno*), do dossiê, da
   internação aberta e do acervo: os 36 formulários do sistema. **Para o DPO:**
   o ditado usa o reconhecimento do navegador; no Chrome, o áudio vai ao Google.
-- **248 fases.** 159 suítes e 1412 testes, verdes em duas condições de relógio —
+- **249 fases.** 160 suítes e 1416 testes, verdes em duas condições de relógio —
   antes e depois da virada do UTC, que em Porto Alegre é às 21h.
 - **O aviso no celular** (fase 189, decidido em 06/10): quem liga na Minha conta
   recebe no celular todos os avisos do sino, mesmo com o sistema fechado. Na
@@ -945,6 +945,29 @@ organizar fica aqui, para a Fundação escolher, com o que a medição mostrou:
 
 **O que vale perguntar à equipe da Casa 03 no roteiro:** na Portaria, quanto tempo leva
 achar o visitante que chegou, e se a busca no alto basta.
+
+## 4.36 Os caminhos sem fim (fase 249, 27/10)
+
+Procurei o que começa e não termina: registro que nasce esperando alguém e ninguém é
+avisado, estado que nasce e nada muda, aviso que não leva a lugar nenhum. Consertei três
+que não pediam decisão (§2 do documento, linha 249): o **registro feito sem internet que
+não pôde ser gravado** ficava esperando decisão sem avisar ninguém; o **sino** mostrava o
+nome cru da tabela em metade dos avisos e não levava à tela; e o **retorno médico marcado**
+nunca terminava, e passada a data a Saúde dizia *a reagendar* sobre a consulta que já tinha
+acontecido. Ficam duas escolhas:
+
+1. **As sugestões de melhoria não têm resposta.** A pessoa sugere pela Acolhe+AI, a
+   coordenação, a Coordenação Geral e o gestor leem na tela *Sugestões de melhoria*, e a
+   sugestão fica ali para sempre: não há como dizer *vamos fazer*, *não vamos, porque…* ou
+   *feito*, e quem sugeriu nunca sabe o que aconteceu. Na palavra ensinada (fase 244) a
+   resposta existe, com motivo. A proposta: o mesmo para a sugestão, com quatro situações
+   (*recebida*, *vai virar mudança*, *não vai, com o motivo*, *feita*), e quem sugeriu lê a
+   resposta na Minha conta. (Hoje: só a lista.)
+2. **O retorno que não vai mais acontecer.** Hoje o retorno marcado fecha quando alguém
+   registra a consulta dizendo que é aquele retorno. Quando o médico desmarca, a criança é
+   desacolhida ou o retorno muda de data sem consulta, ele continua pendente. A proposta: a
+   Enfermagem marca *retorno desmarcado*, com o motivo, e o atendimento continua guardado
+   como estava. (Hoje: só a consulta fecha.)
 
 ## 5. As decisões que são do Marcelo *(§10 — responda pelo número)*
 
