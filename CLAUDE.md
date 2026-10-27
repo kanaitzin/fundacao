@@ -423,7 +423,13 @@ o item respondido sai do §0.
 no protótipo, no celular, às 23h e às 14h (153 telas, nenhum erro de página). **Quantidade nova na tela, no aviso
 ou na folha** usa o `quantos(n, 'um', 'varios')` de `backend/src/kernel/common/quantos.ts`, nunca o *(s)*; o
 `a-quantidade-por-extenso.spec.ts` reprova. **Lista de cargos que a tela usa para mostrar botão** mora num lugar só e
-é importada: a do Painel era cópia da do Dia e ficou para trás na 246. **Depende da Fundação:** as três propostas
+é importada: a do Painel era cópia da do Dia e ficou para trás na 246. **Medido na 248:** a suíte inteira nas DUAS condições de relógio (1419 de 1419), o `ensaio:uso` (787 cobranças, sem
+reprovação, com o pedido de substituição passado pelo Painel) e o do celular (320 telas, sem achado). A primeira rodada
+do `ensaio:uso` reprovou sete: seis liam as frases antigas, e uma achou que a tela do Período, sem os parênteses,
+passava a dizer *N exceções de*, a forma que a regra da contagem por criança recusa (hoje igual à folha:
+*exceções registradas, de N crianças*); e um filtro do ensaio procurava *anexo(s)* e pulava a conferência calado.
+**Não rodou** o de acessibilidade (a única cor mudada foi a da regra das doses, de crítico para informação, que
+já existe nas telas) nem a simulação contra o servidor. **Depende da Fundação:** as três propostas
 da §4.35 (a Portaria em ordem de chegada, a chamada da vez, o histórico recolhido). **Próxima etapa:** a mesma da
 247: a pauta de 21/10 e a máquina da Acolhe+AI.
 
