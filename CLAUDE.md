@@ -426,7 +426,11 @@ com `entity`) ganha a tela e a aba no `ONDE` do `Avisos.tsx`, no servidor e no p
 esperando** (como o `retorno_pendente`) nasce com o caminho que o fecha, e a varredura das situações (toda
 coluna de estado com os valores listados, contra todo `UPDATE` do código) é a medida. **Evento novo** que
 promete alguém avisado tem ouvinte: o `sync.conflict` não tinha. **Depende da Fundação:** a resposta às
-sugestões de melhoria e o retorno desmarcado. **Próxima etapa:** a mesma da 247.
+sugestões de melhoria e o retorno desmarcado. **Medido na 249:** a suíte inteira nas DUAS condições de relógio
+(1423 de 1423), o `ensaio:uso` (792 cobranças, sem reprovação, com o retorno da Helena registrado pela educadora e
+lido como *Retorno feito* pela Enfermagem) e o do celular (320 telas, sem achado); a varredura de pontas e a de rotas,
+sem candidata. **Não rodou** o de acessibilidade (nenhuma cor nova) nem a simulação contra o servidor. **Próxima
+etapa:** a mesma da 247.
 
 **FEITO — fase 248** (§2, PARA-A-REUNIAO §4.35): o dia a dia mais leve, achado fazendo o papel de cada cargo
 no protótipo, no celular, às 23h e às 14h (153 telas, nenhum erro de página). **Quantidade nova na tela, no aviso
