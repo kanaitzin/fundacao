@@ -363,8 +363,8 @@ function QuadroDeNumeros({ n, anterior }: {
     ['Chamadas', `${n.chamadas}, sendo ${quantos(n.chamadasConfirmadas, 'confirmada', 'confirmadas')}`
       + (n.chamadasAbertas ? ` e ${quantos(n.chamadasAbertas, 'ainda aberta', 'ainda abertas')}` : '')],
     ['Refeições conferidas',
-      `${n.refeicoesConferidas}, com ${quantos(n.refeicoesComExcecao, 'exceção', 'exceções')} de `
-      + `${quantos(n.criancasComExcecao, 'criança', 'crianças')}`],
+      `${n.refeicoesConferidas}, com ${quantos(n.refeicoesComExcecao, 'exceção registrada', 'exceções registradas')}, `
+      + `de ${quantos(n.criancasComExcecao, 'criança', 'crianças')}`],
     ['Ocorrências', `${n.ocorrencias}`
       + (n.ocorrenciasRestritas ? `, sendo ${n.ocorrenciasRestritas} de acesso restrito` : '')],
     ['Desorganização com repercussão relevante', `${n.desorganizacao}`],

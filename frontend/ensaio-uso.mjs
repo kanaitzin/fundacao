@@ -351,7 +351,7 @@ await aba('Dia');
     await pg17.getByRole('button', { name: /^Concluir estas$/ }).click();
     await pg17.waitForTimeout(800);
     cobrar('e marcar diz quantas, com o nome de quem marcou',
-      /marcada\(s\) como concluída\(s\), com o seu nome/.test(await pg17.locator('main.conteudo').innerText()));
+      /marcadas? como concluídas?, com o seu nome/.test(await pg17.locator('main.conteudo').innerText()));
     cobrar('e o botão some, porque não há mais coletiva vencida', (await botaoColetivas.count()) === 0);
   }
   cobrar('nenhuma exceção no concluí tudo', erros17.length === 0, erros17[0]);
@@ -888,8 +888,8 @@ cobrar('o relato entra no diário', /Visita da tarde/.test(await conteudo()));
 await clicar(/← Internações/);
 await pg.waitForTimeout(900);
 cobrar('a lista passa a contar o dia com relato',
-  /1 dia\(s\) com relato/.test(await conteudo()),
-  (await conteudo()).match(/\d+ dia\(s\) com relato/)?.[0] ?? 'sem a contagem');
+  /\b1 dia com relato/.test(await conteudo()),
+  (await conteudo()).match(/\d+ dias? com relato/)?.[0] ?? 'sem a contagem');
 await clicar(/Hospital Fictício/);
 await clicar(/Medicação dada no hospital/);
 await pg.locator('.overlay input#me-m').fill('Antibiótico fictício');
@@ -1956,7 +1956,7 @@ await fechar();
 await fechar();
 if (await doMais('Ocorrências')) {
   const cartaoComAnexo = pg.locator('main.conteudo .card')
-    .filter({ hasText: /anexo\(s\)/i }).first();
+    .filter({ hasText: /\banexos?\b/i }).first();
   if (await cartaoComAnexo.count()) {
     await cartaoComAnexo.locator('button').filter({ hasText: /Abrir detalhes/ }).first().click();
     await pg.waitForTimeout(900);
@@ -2817,7 +2817,11 @@ await semBotao('A escala de plantão', [/^Escalar alguém$/, /^Repetir a escala/
 await semBotao('Cozinha', [/^Pedir lanche$/, /^Pedir cesta básica$/]);
 await semBotao('A rotina da casa', [/^Escrever a primeira rotina$/, /^Abrir uma versão nova$/, /Acrescentar item/]);
 await semBotao('Internação hospitalar', [/^Registrar internação$/]);
-await semBotao('Painel do plantão', [/^Passar para outra pessoa ou recusar$/, /^Recusar com motivo$/]);
+/* O Painel do plantão não é porta do gestor; se um dia for, ele lê sem decidir substituição. */
+if (await doMais('Painel do plantão')) {
+  cobrar('e no Painel do plantão o gestor não decide substituição',
+    (await pg.locator('main.conteudo button', { hasText: /^Passar para outra pessoa ou recusar$/ }).count()) === 0);
+}
 await semBotao('Combinados da equipe', [/Registrar uma reunião/, /Registrar um combinado avulso/, /^Propor um assunto/]);
 if ((await aba('Acompanhamentos')) || (await doMais('Acompanhamentos'))) {
   cobrar('os Acompanhamentos não repetem os Combinados numa aba',
@@ -3260,7 +3264,7 @@ cobrar('cada linha do rascunho se retira sozinha',
 await pg.getByRole('button', { name: /^Publicar a escala de/ }).click();
 await pg.waitForTimeout(900);
 cobrar('publicar leva o rascunho para a escala, e diz quantos',
-  /plantão\(ões\) publicado\(s\)/.test(await conteudo()));
+  /plant(ão|ões) publicados?/.test(await conteudo()));
 
 await trocar('educador');
 await doMais('escala de plantão');
@@ -4476,7 +4480,7 @@ console.log('\n🎨 As chamadas da casa, com horário, pessoas e cor (fase 211)'
   const main = () => pgC.locator('main.conteudo').innerText();
   let t = await main();
   cobrar('a Chamada mostra as chamadas da casa com o horário e as pessoas',
-    /As chamadas da casa/.test(t) && /Ceia/.test(t) && /21:00 · 20 pessoas/.test(t), t.slice(0, 200));
+    /As chamadas da casa/.test(t) && /Ceia/.test(t) && /21:00 · costumam ser 20/.test(t), t.slice(0, 200));
   cobrar('cada chamada da casa tem a barra da cor dela', await pgC.locator('.chamada-da-casa').count() >= 5);
   await pgC.getByRole('button', { name: 'Nova chamada da casa' }).click(); await esp(500);
   const folha = pgC.locator('.overlay');
@@ -4495,7 +4499,7 @@ console.log('\n🎨 As chamadas da casa, com horário, pessoas e cor (fase 211)'
   await pgC.getByRole('button', { name: 'Mudar a chamada Roda de leitura' }).click(); await esp(500);
   await folha.locator('#mc-hora').fill('17:00');
   await folha.getByRole('button', { name: 'Guardar a mudança' }).click(); await esp(900);
-  cobrar('mudar o horário muda a chamada na lista', /Roda de leitura[\s\S]{0,40}17:00 · 12 pessoas/.test(await main()));
+  cobrar('mudar o horário muda a chamada na lista', /Roda de leitura[\s\S]{0,40}17:00 · costumam ser 12/.test(await main()));
   await pgC.getByRole('button', { name: 'Mudar a chamada Roda de leitura' }).click(); await esp(500);
   await folha.getByRole('button', { name: /Tirar esta chamada/ }).click();
   await folha.getByRole('button', { name: 'Tirar da lista' }).click(); await esp(900);
