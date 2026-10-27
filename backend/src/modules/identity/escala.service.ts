@@ -9,6 +9,7 @@ import { DocumentosService } from '../../kernel/documentos/documentos.service';
 import { cargoNoDocumento } from '../../kernel/documentos/folha';
 import { folhaDaEscala } from './escala-folha';
 import { hojeNaInstituicao } from '../../kernel/common/tempo';
+import { quantos } from '../../kernel/common/quantos';
 
 /**
  * A ESCALA DA CASA (§5.12, migração 0950).
@@ -102,7 +103,7 @@ export class EscalaService {
       de: inicio, ate: fim, dias: lista,
       turnosSemNinguem: buracos,
       aviso: buracos.length
-        ? `${buracos.length} turno(s) deste período ainda não têm ninguém escalado. A escala `
+        ? `${quantos(buracos.length, 'turno', 'turnos')} deste período ${buracos.length === 1 ? 'ainda não tem' : 'ainda não têm'} ninguém escalado. A escala `
           + 'informa quem devia estar; ela não impede ninguém de trabalhar.'
         : 'Todos os turnos deste período têm alguém escalado.',
     };
@@ -146,9 +147,9 @@ export class EscalaService {
     return {
       criadas: r.criadas, jaExistiam: r.ja_existiam,
       aviso: r.ja_existiam > 0
-        ? `${r.criadas} plantão(ões) escalado(s). ${r.ja_existiam} já existia(m) e ficou(aram) `
-          + 'como está(vam) — escalar de novo não duplica.'
-        : `${r.criadas} plantão(ões) escalado(s).`,
+        ? `${quantos(r.criadas, 'plantão escalado', 'plantões escalados')}. `
+          + `${quantos(r.ja_existiam, 'já estava na escala e ficou como estava', 'já estavam na escala e ficaram como estavam')}.`
+        : `${quantos(r.criadas, 'plantão escalado', 'plantões escalados')}.`,
     };
   }
 
@@ -320,7 +321,7 @@ export class EscalaService {
     const inativos: string[] = r.fora_por_inativo ?? [];
     return {
       rascunhoId: r.rascunho_id, copiados: r.copiados, foraPorInativo: inativos,
-      aviso: `Rascunho criado com ${r.copiados} plantão(ões), copiados do mesmo dia da semana `
+      aviso: `Rascunho criado com ${quantos(r.copiados, 'plantão copiado', 'plantões copiados')} do mesmo dia da semana `
         + 'quatro semanas antes. Ele ainda não vale: revise e publique quando estiver certo.'
         + (inativos.length
           ? ` Não foram copiados os plantões de quem não está mais ativo: ${inativos.join(', ')}.`
@@ -385,9 +386,9 @@ export class EscalaService {
       entity: 'shift_draft', entityId: rascunhoId,
       detail: { publicados: r.publicados, foraPorInativo: r.fora_por_inativo, jaEscalados: r.ja_escalados },
     });
-    const partes = [`${r.publicados} plantão(ões) publicado(s) na escala da casa.`];
-    if (r.ja_escalados) partes.push(`${r.ja_escalados} já estava(m) na escala e ficou(aram) como estava(m).`);
-    if (r.fora_por_inativo) partes.push(`${r.fora_por_inativo} não entrou(aram): a pessoa não está mais ativa.`);
+    const partes = [`${quantos(r.publicados, 'plantão publicado', 'plantões publicados')} na escala da casa.`];
+    if (r.ja_escalados) partes.push(`${quantos(r.ja_escalados, 'já estava na escala e ficou como estava', 'já estavam na escala e ficaram como estavam')}.`);
+    if (r.fora_por_inativo) partes.push(`${quantos(r.fora_por_inativo, 'não entrou', 'não entraram')}: a pessoa não está mais ativa.`);
     return { publicados: r.publicados, jaEscalados: r.ja_escalados, foraPorInativo: r.fora_por_inativo,
              aviso: partes.join(' ') };
   }

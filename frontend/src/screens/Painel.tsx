@@ -5,6 +5,7 @@ import type { ArquivoGerado } from '../documentos';
 import type { DocumentoWord } from '../docx';
 import { Icone } from '../icones';
 import { Explica } from '../explica';
+import { quantos } from '../../../backend/src/kernel/common/quantos';
 
 /**
  * O PAINEL DAS UNIDADES (§18.1–§18.3).
@@ -207,7 +208,7 @@ export function Painel({ houseId, casaLabel, papel }: {
 
       {aviso && <div className="notice c-ok" role="status">{aviso}</div>}
 
-      <div className="eyebrow">Agora · {cartoes.length} unidade(s) no seu alcance</div>
+      <div className="eyebrow">Agora · {quantos(cartoes.length, 'unidade', 'unidades')} no seu alcance</div>
       <div className="unidades-grade">
         {cartoes.length === 0 && (
           <p className="mutetxt">Nenhuma unidade no seu alcance.</p>
@@ -221,7 +222,7 @@ export function Painel({ houseId, casaLabel, papel }: {
                 <b className="ff">{c.codigo} · {c.nome}</b>
                 <div className="mutetxt">
                   {c.ocupacao.ativos} de {c.ocupacao.limite} acolhidos ·
-                  {' '}{c.entradas30d} entrada(s) em 30 dias
+                  {' '}{quantos(c.entradas30d, 'entrada', 'entradas')} em 30 dias
                 </div>
               </div>
               <button className="btn sm ghost" onClick={() => setAberta(c)}>
@@ -276,8 +277,8 @@ export function Painel({ houseId, casaLabel, papel }: {
               <div className="grow">
                 <b className="ff">{aberta.ocupacao.limite} vagas</b>
                 <div className="mutetxt">
-                  {aberta.ocupacao.ativos} acolhido(s) hoje ·
-                  {' '}{Math.max(0, aberta.ocupacao.limite - aberta.ocupacao.ativos)} vaga(s)
+                  {quantos(aberta.ocupacao.ativos, 'acolhido', 'acolhidos')} hoje ·
+                  {' '}{quantos(Math.max(0, aberta.ocupacao.limite - aberta.ocupacao.ativos), 'vaga', 'vagas')}
                 </div>
               </div>
               {alteraLimite && (
@@ -423,7 +424,7 @@ function FolhaLimite({ unidade, onFechar, onAlterar }: {
         </div>
 
         <label className="f" htmlFor="lim-n">
-          Novo limite <small>— hoje são {unidade.ocupacao.limite}, com {unidade.ocupacao.ativos} acolhido(s) na casa</small>
+          Novo limite <small>— hoje são {unidade.ocupacao.limite}, com {quantos(unidade.ocupacao.ativos, 'acolhido', 'acolhidos')} na casa</small>
         </label>
         <input id="lim-n" type="number" min={1} max={60} value={valor}
                onChange={(e) => setValor(e.target.value)} />

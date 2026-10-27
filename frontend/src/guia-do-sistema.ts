@@ -138,6 +138,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 248, dia: '27/10/2026',
+    texto: 'No Painel do plantão, o pedido de substituição agora se resolve ali mesmo: passe a atividade para outra pessoa ou recuse com o motivo. As quantidades aparecem por extenso, como 1 passagem assinada e 3 vagas, a Portaria ficou mais curta de rolar e a regra das doses na Saúde deixou de aparecer em vermelho.' },
   { fase: 247, dia: '26/10/2026',
     texto: 'Para quem cuida do servidor: a conferência da instalação pergunta ao computador da Acolhe+AI se ele responde e se tem o modelo escrito na configuração, e reprova quando a Acolhe+AI ficaria só no modo guia sem ninguém perceber.' },
   { fase: 246, dia: '26/10/2026',

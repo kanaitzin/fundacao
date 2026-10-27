@@ -271,8 +271,10 @@ export function Chamada({ houseId }: { houseId: string }) {
                       <div className="grow" style={{ textAlign: 'left' }}>
                         <b className="ff"><span className="ponto-da-casa" aria-hidden="true" /> {m.titulo}</b>
                         <div className="mutetxt">
-                          {m.hora}{m.pessoas ? ` · ${m.pessoas} pessoas` : ''}
-                          {feita ? ` · ${feita.conferidos} de ${feita.esperados}` : ''}
+                          {/* Dois números de pessoas lado a lado confundiam (26 pessoas · 3 de 19):
+                              um é o que a casa costuma ter na refeição, o outro é a conferência. */}
+                          {m.hora}{m.pessoas ? ` · costumam ser ${m.pessoas}` : ''}
+                          {feita ? ` · ${feita.conferidos} de ${feita.esperados} conferidos` : ''}
                         </div>
                       </div>
                       {feita
@@ -639,7 +641,7 @@ export function Chamada({ houseId }: { houseId: string }) {
             {aberta.confirmadaEm ? ` às ${hhmm(aberta.confirmadaEm)}` : ''}.
           </b>{' '}
           {pendentes.length > 0
-            ? `${pendentes.length} acolhido(s) entraram na casa depois do fechamento e não estavam nesta chamada. `
+            ? `${pendentes.length === 1 ? '1 acolhido entrou' : `${pendentes.length} acolhidos entraram`} na casa depois do fechamento e não estavam nesta chamada. `
             : ''}
           Correção depois disso entra como adendo pela equipe técnica: o que foi registrado
           na hora continua como foi registrado.

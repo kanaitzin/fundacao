@@ -35,6 +35,7 @@ import {
 import { ALCANCE_POR_CARGO } from '../../backend/src/modules/identity/alcance';
 import { avaliar, avaliarArquivo, avaliarDrive, TITULOS } from '../../backend/src/modules/relogio/implantacao.regra';
 import { QUEM_LE_O_QUE_MUDOU } from '../../backend/src/modules/reports/o-que-mudou.regra';
+import { quantos } from '../../backend/src/kernel/common/quantos';
 import { bytesDoBase64, recusaDosAnexos } from '../../backend/src/kernel/arquivos/anexos-da-mensagem.regra';
 import { TIPOS_OFFLINE, TIPOS_OFFLINE_KINDS } from '../../backend/src/modules/sync/tipos-offline';
 import {
@@ -1080,7 +1081,7 @@ let LINHA: Ev[] = [
     actions: [{ command: 'check.open', label: 'Abrir chamada' }] },
   { id: 'shift:s1', source: 'plantao', at: emHoras(7, 0), kind: 'plantao',
     title: 'Plantão diurno', personId: null, personName: null,
-    state: 'Plantão aberto — 1 passagem(ns) assinada(s)', severity: 'normal',
+    state: 'Plantão aberto, 1 passagem assinada', severity: 'normal',
     note: 'Cada profissional assina a própria passagem.',
     actions: [{ command: 'handover.sign', label: 'Assinar minha passagem' }] },
   { id: 'shift:s0', source: 'plantao', at: emHoras(19, 0), kind: 'plantao',
@@ -1423,6 +1424,13 @@ const ANTERIOR = DE_NOITE
 const EM_CURSO = DE_NOITE
   ? { turno: 'noturno', abre: naData(DIA_DO_NOTURNO, 20, 1) }
   : { turno: 'diurno', abre: naData(HOJE, 8, 0) };
+/* Os dois plantões na linha do Dia seguem a regra das oito às oito e o turno em
+   curso. Até a fase 248 eles diziam 07:00 e 19:00, e às 23h o diurno aparecia
+   aberto, pedindo à educadora da noite que assinasse a passagem dele. */
+for (const ev of LINHA) {
+  if (ev.id === 'shift:s1') { ev.at = EM_CURSO.abre; ev.title = `Plantão ${EM_CURSO.turno}`; }
+  if (ev.id === 'shift:s0') { ev.at = ANTERIOR.abre; ev.title = `Plantão ${ANTERIOR.turno}`; }
+}
 /* O que cada turno contou na passagem: a equipe da noite e a do dia. */
 const PASSAGEM_DA_NOITE = {
   quem: 'Nélio Noturno (fictício)', userId: 'u8', cargo: 'lider_noturno_geral',
@@ -2271,12 +2279,12 @@ const naNoite = (h: number, m: number, folga: number) => !DE_NOITE ? emHoras(h, 
     EM_CURSO.abre, folga);
 const LINHAS_ATA: LinhaAtaMock[] = [
   { id: 'ln1', ataId: 'ata-noturna', autorId: 'u8', quem: 'Nélio Noturno (fictício)',
-    cargo: 'educador',
-    texto: 'A Maria não dormiu bem e fez xixi à noite; troquei a roupa de cama às 4h e ela '
-      + 'voltou a dormir. Vale ficar de olho hoje à tarde.',
+    cargo: 'lider_noturno_geral',
+    texto: 'A Maria não dormiu bem e fez xixi; troquei a roupa de cama e ela voltou a dormir. '
+      + 'Vale ficar de olho amanhã à tarde.',
     restrita: false, quando: naNoite(4, 10, 16), escritaEm: naNoite(4, 12, 15) },
   { id: 'ln2', ataId: 'ata-noturna', autorId: 'u8', quem: 'Nélio Noturno (fictício)',
-    cargo: 'educador',
+    cargo: 'lider_noturno_geral',
     texto: 'O portão dos fundos ficou emperrado. Avisei a manutenção pelo caderno da casa.',
     restrita: false, quando: naNoite(5, 30, 12), escritaEm: naNoite(5, 31, 11) },
   { id: 'ln3', ataId: 'ata-noturna', autorId: 'u6', quem: 'Joana Lima (fictícia)',
@@ -2399,7 +2407,7 @@ function escalaDoPeriodo(de: string, ate: string) {
   return {
     de, ate, dias, turnosSemNinguem: buracos,
     aviso: buracos.length
-      ? `${buracos.length} turno(s) deste período ainda não têm ninguém escalado. A escala `
+      ? `${quantos(buracos.length, 'turno', 'turnos')} deste período ${buracos.length === 1 ? 'ainda não tem' : 'ainda não têm'} ninguém escalado. A escala `
         + 'informa quem devia estar; ela não impede ninguém de trabalhar.'
       : 'Todos os turnos deste período têm alguém escalado.',
   };
@@ -3870,7 +3878,7 @@ function documentoDoRelatorio(
     secoes.push({
       titulo: 'Medicação',
       paragrafos: doses.length
-        ? [`No período constam ${doses.length} dose(s) previstas na grade da casa, `
+        ? [`No período constam ${quantos(doses.length, 'dose prevista', 'doses previstas')} na grade da casa, `
            + `das quais ${doses.filter((d) => !d.pendente).length} com confirmação `
            + 'registrada por quem administrou.']
         : ['O acolhido não tem medicação prevista na grade da casa.'],
@@ -3891,9 +3899,9 @@ function documentoDoRelatorio(
       titulo: 'Movimento da unidade no período',
       itens: [
         `${todosKids().length} acolhidos na unidade ao fim do período.`,
-        `${ocorr} ocorrência(s) registrada(s), com etapa operacional encerrada `
+        `${quantos(ocorr, 'ocorrência registrada', 'ocorrências registradas')}, com etapa operacional encerrada `
         + 'ou em revisão técnica.',
-        `${DOSES.length} dose(s) na grade de medicamentos do dia de referência.`,
+        `${quantos(DOSES.length, 'dose', 'doses')} na grade de medicamentos do dia de referência.`,
       ],
       procedencia: 'registros operacionais da unidade no período informado.',
     });
@@ -4411,13 +4419,15 @@ function semearEpisodio() {
   /* O plantão em curso, seja qual for o turno (fase 204). */
   const s = PLANTOES.find((x) => x.id === 's1');
   if (!s) return;
+  /* De noite, o episódio é do turno em curso e ainda não tem a ciência do dia: a
+     madrugada e a manhã seguinte não aconteceram (fase 248). */
   EPISODIOS.push({
     id: 'ep1', ataId: ataDo(s.id).id, acolhidoId: 'p01',
     classificacao: 'desorganizacao',
-    relato: 'Por volta das 2h20 acordou chorando e não quis voltar para o quarto. '
-      + 'Ficou na sala com a educadora até as 3h05, tomou água e dormiu em seguida.',
-    quando: emHoras(2, 20), registradoPor: 'Nélio Noturno (fictício)',
-    ciencias: [{ id: 'k1', quem: 'Lúcia Líder Diurna (fictícia)', userId: 'u2',
+    relato: 'Acordou chorando e não quis voltar para o quarto. Ficou na sala com a '
+      + 'educadora por uns quarenta minutos, tomou água e dormiu em seguida.',
+    quando: DE_NOITE ? naNoite(2, 20, 30) : emHoras(2, 20), registradoPor: 'Nélio Noturno (fictício)',
+    ciencias: DE_NOITE ? [] : [{ id: 'k1', quem: 'Lúcia Líder Diurna (fictícia)', userId: 'u2',
       comentario: 'Acompanhei pela manhã; acordou bem e foi para a escola no horário.',
       quando: emHoras(7, 15) }],
   });
@@ -5300,8 +5310,8 @@ function responderPeriodo(
     const ressalvas: string[] = [];
     if (numeros.ocorrenciasRestritas > 0 || numeros.notasRestritas > 0) {
       ressalvas.push(
-        `${numeros.ocorrenciasRestritas} ocorrência(s) de acesso restrito e `
-        + `${numeros.notasRestritas} observação(ões) restrita(s) de ATA foram registradas no `
+        `${quantos(numeros.ocorrenciasRestritas, 'ocorrência', 'ocorrências')} de acesso restrito e `
+        + `${quantos(numeros.notasRestritas, 'observação restrita', 'observações restritas')} de ATA foram registradas no `
         + 'período e constam apenas na contagem. O conteúdo pode ser consultado no registro '
         + 'eletrônico, pelos profissionais autorizados.');
     }
@@ -6446,7 +6456,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       de: emDias(-29, 0, 0).slice(0, 10), ate: HOJE,
       casas, total,
       ressalvas: [
-        `${soma((c) => c.notasSemValor)} nota(s) fiscal(is) sem valor lançado `
+        `${quantos(soma((c) => c.notasSemValor), 'nota fiscal', 'notas fiscais')} sem valor lançado `
         + '(o total gasto é maior do que o número acima até elas terem valor).',
         /* Terceira versão desta frase: ela é reescrita junto do código, porque
            frase de tela que envelhece é frase que mente (fase 139). */
@@ -6928,7 +6938,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       e.state = 'Concluída no horário'; e.responsible = eu.fullName; e.actions = [];
     }
     return { quantas: alvo.length, atividades: alvo.map((e) => e.title),
-      aviso: `${alvo.length} atividade(s) coletiva(s) marcada(s) como concluída(s), com o seu nome. `
+      aviso: `${quantos(alvo.length, 'atividade coletiva marcada como concluída', 'atividades coletivas marcadas como concluídas')}, com o seu nome. `
         + 'Remédio e o que pede atenção uma a uma continuam na linha do dia.' };
   }
   /* A ATIVIDADE URGENTE (§8.2): pontual, com autoria e motivo. Antes dos
@@ -7550,7 +7560,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     const novo: Plantao = {
       id: uid(), turno: b.turno, status: 'aberto', abertoEm: new Date().toISOString(),
       fechadoEm: null, passagens: [], recebimentos: [],
-      esperados: [{ quem: 'Nélio Noturno (fictício)', cargo: 'educador', userId: 'u8' }],
+      esperados: [{ quem: 'Nélio Noturno (fictício)', cargo: 'lider_noturno_geral', userId: 'u8' }],
     };
     PLANTOES = [...PLANTOES, novo];
     return { plantaoId: novo.id, novo: true, turno: b.turno };
@@ -8215,7 +8225,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       }
       RASCUNHOS_DA_ESCALA.push(r);
       return { rascunhoId: r.id, copiados: r.itens.length, foraPorInativo: [],
-        aviso: `Rascunho criado com ${r.itens.length} plantão(ões), copiados do mesmo dia da semana `
+        aviso: `Rascunho criado com ${quantos(r.itens.length, 'plantão copiado', 'plantões copiados')} do mesmo dia da semana `
           + 'quatro semanas antes. Ele ainda não vale: revise e publique quando estiver certo.' };
     }
     if (seg[2] === 'itens' && seg[4] === 'retirar' && metodo === 'POST') {
@@ -8255,8 +8265,8 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       }
       r.status = 'publicado';
       return { publicados, jaEscalados, foraPorInativo: 0,
-        aviso: `${publicados} plantão(ões) publicado(s) na escala da casa.`
-          + (jaEscalados ? ` ${jaEscalados} já estava(m) na escala e ficou(aram) como estava(m).` : '') };
+        aviso: `${quantos(publicados, 'plantão publicado', 'plantões publicados')} na escala da casa.`
+          + (jaEscalados ? ` ${quantos(jaEscalados, 'já estava na escala e ficou como estava', 'já estavam na escala e ficaram como estavam')}.` : '') };
     }
     if (seg[3] === 'descartar' && metodo === 'POST') {
       if (String(b.motivo ?? '').trim().length < 5) return new Recusa(400, 'Escreva por que o rascunho foi descartado.');
@@ -8301,9 +8311,9 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     }
     return { criadas, jaExistiam,
       aviso: jaExistiam > 0
-        ? `${criadas} plantão(ões) escalado(s). ${jaExistiam} já existia(m) e ficou(aram) como `
-          + 'está(vam) — escalar de novo não duplica.'
-        : `${criadas} plantão(ões) escalado(s).` };
+        ? `${quantos(criadas, 'plantão escalado', 'plantões escalados')}. `
+          + `${quantos(jaExistiam, 'já estava na escala e ficou como estava', 'já estavam na escala e ficaram como estavam')}.`
+        : `${quantos(criadas, 'plantão escalado', 'plantões escalados')}.` };
   }
   /*
    * SUBSTITUIR NUM GESTO (fase 123) — antes de `revogar` na ordem de leitura.
@@ -8525,7 +8535,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
                    : { acolhidos: 'Café, escola e tema de casa no horário; pátio à tarde, sem '
                          + 'intercorrências de saúde no turno.' } },
           passagens: [{ id: `${c.plantaoId}-p`, quem: noite ? 'Nélio Noturno (fictício)' : 'Tainá Souza (fictícia)',
-                        cargo: 'educador', userId: noite ? 'u8' : 'u7',
+                        cargo: noite ? 'lider_noturno_geral' : 'educador', userId: noite ? 'u8' : 'u7',
                         contribuicoes: 'Turno registrado na ATA.', pendencias: null, orientacoes: null,
                         medicacao: null, assinadaEm: c.fechadaEm ?? new Date(`${d.data}T19:00:00-03:00`).toISOString(),
                         horarioReal: null, complementoTardio: false, offline: false, complementos: [],
@@ -8537,7 +8547,8 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
           linhas: { notas: [{ id: `${c.plantaoId}-n`, texto: noite
                       ? 'O Bruno pediu para ligar para a avó amanhã cedo; combinado com a técnica.'
                       : 'A Maria voltou da escola com bilhete da professora; está na mochila dela.',
-                      quem: noite ? 'Nélio Noturno (fictício)' : 'Tainá Souza (fictícia)', cargo: 'educador',
+                      quem: noite ? 'Nélio Noturno (fictício)' : 'Tainá Souza (fictícia)',
+                      cargo: noite ? 'lider_noturno_geral' : 'educador',
                       /* Sem o autor, a tela da ATA quebrava ao pintar a borda (fase 206). */
                       autorId: noite ? 'u8' : 'u7', corAutor: null,
                       quando: new Date(`${d.data}T${noite ? '23:10' : '15:30'}:00-03:00`).toISOString(),
@@ -9438,7 +9449,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         motivo: String(b.motivo).trim(), por: eu.fullName, quando: new Date().toISOString() });
     }
     return { corrigidos: trocas.length,
-      aviso: `${trocas.length} campo(s) corrigido(s). O que estava antes continua registrado, `
+      aviso: `${quantos(trocas.length, 'campo corrigido', 'campos corrigidos')}. O que estava antes continua registrado, `
         + 'com o seu nome, o horário e o motivo — e aparece no perfil para quem cuida da criança.' };
   }
   /* O ATENDIMENTO DA EQUIPE TÉCNICA (fase 218): a mesma regra do servidor. */
@@ -9610,7 +9621,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         aviso: 'Nada mudou: o que você enviou é igual ao que já estava.' };
     }
     return { ok: true, alterado: n,
-      aviso: `${n} campo(s) atualizado(s). O que estava antes continua registrado, com o seu `
+      aviso: `${quantos(n, 'campo atualizado', 'campos atualizados')}. O que estava antes continua registrado, com o seu `
         + 'nome e o horário, e aparece no perfil para quem cuida da criança.' };
   }
   /* ALERGIA, CONDIÇÃO E RESTRIÇÃO (fase 166), com as regras do servidor. */
@@ -10901,7 +10912,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     }
     return { ok: true, status: 'suspensa', dosesRetiradasDaGrade: retiradas,
       aviso: retiradas > 0
-        ? `${retiradas} dose(s) ainda por vir saíram da grade de hoje, com a orientação `
+        ? `${retiradas === 1 ? '1 dose ainda por vir saiu' : `${retiradas} doses ainda por vir saíram`} da grade de hoje, com a orientação `
           + 'escrita ao lado. O que já foi confirmado continua registrado.'
         : 'Não havia dose por vir hoje. O que já foi confirmado continua registrado.' };
   }

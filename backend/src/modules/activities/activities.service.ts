@@ -6,6 +6,7 @@ import { DatabaseService } from '../../kernel/database/database.service';
 import { AuditService } from '../../kernel/audit/audit.service';
 import { EventBus } from '../../kernel/events/event-bus.service';
 import { AuthenticatedUser } from '../../kernel/contracts';
+import { quantos } from '../../kernel/common/quantos';
 
 /** Estados que encerram a atividade — depois deles só cabe adendo. */
 const ESTADOS_FINAIS = new Set([
@@ -345,7 +346,7 @@ export class ActivitiesService {
     }
     return {
       quantas: r.alvo.length, atividades: r.alvo.map((a: any) => a.title),
-      aviso: `${r.alvo.length} atividade(s) coletiva(s) marcada(s) como concluída(s), com o seu nome. `
+      aviso: `${quantos(r.alvo.length, 'atividade coletiva marcada como concluída', 'atividades coletivas marcadas como concluídas')}, com o seu nome. `
         + 'Remédio e o que pede atenção uma a uma continuam na linha do dia.',
     };
   }
@@ -703,7 +704,7 @@ export class ActivitiesService {
           entity: 'activity_unconfirmed', entityId: id,
           reason: `atividade sem confirmação há mais de ${minutes} min`,
           title: 'Atividades sem confirmação',
-          body: `${n} atividade(s) venceram sem registro nesta casa. "Sem confirmação" não significa não realizada — é preciso conferir com a equipe do plantão.`,
+          body: `${n === 1 ? '1 atividade venceu' : `${n} atividades venceram`} sem registro nesta casa. Sem confirmação não quer dizer que não aconteceu: confira com a equipe do plantão.`,
           priority: 'alta', groupKey: `unconfirmed:${houseId}`,
         }, { houseId });
       }

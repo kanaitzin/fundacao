@@ -8,6 +8,7 @@ import type { DocumentoWord } from '../docx';
 import { dia } from '../rotulos';
 import { Icone } from '../icones';
 import { Explica } from '../explica';
+import { quantos } from '../../../backend/src/kernel/common/quantos';
 
 /**
  * INTERNAÇÃO HOSPITALAR.
@@ -155,11 +156,11 @@ export function Internacao({ houseId, casaLabel, papel }: {
               </div>
               <div className="mutetxt">
                 {i.hospital} · desde {dia(i.desde)}
-                {i.ate ? ` até ${dia(i.ate)}` : ''} · {i.diasInternada} dia(s)
+                {i.ate ? ` até ${dia(i.ate)}` : ''} · {quantos(i.diasInternada, 'dia', 'dias')}
               </div>
               {/* Dias COM relato: contagem, e não cobrança. */}
               <div className="mutetxt">
-                {i.diasComRelato} dia(s) com relato
+                {quantos(i.diasComRelato, 'dia', 'dias')} com relato
                 {i.acompanhante ? ` · acompanha: ${i.acompanhante}` : ' · sem acompanhante designado'}
               </div>
             </div>
@@ -302,7 +303,7 @@ function PeriodoNoHospital({ id, papel, onVoltar }: {
       <h2>{p.acolhido}</h2>
       <div className="mutetxt">
         {p.hospital} · desde {dia(p.desde)}{p.ate ? ` até ${dia(p.ate)}` : ''}
-        {' · '}{p.diasInternada} dia(s) · aberta por {p.abertaPor}
+        {' · '}{quantos(p.diasInternada, 'dia', 'dias')} · aberta por {p.abertaPor}
       </div>
       <div className="card" style={{ marginTop: 8 }}>
         <b className="ff">Por que foi internada</b>
@@ -362,7 +363,7 @@ function PeriodoNoHospital({ id, papel, onVoltar }: {
 
       {/* ------------------------------------------------------------ diário */}
       <div className="eyebrow" style={{ marginTop: 16 }}>
-        O que aconteceu no hospital · {p.diasComRelato} dia(s) com relato
+        O que aconteceu no hospital · {quantos(p.diasComRelato, 'dia', 'dias')} com relato
       </div>
       {vocab && <Explica>{vocab.nota}</Explica>}
       {p.status === 'em_andamento' && papel !== 'gestor_geral' && (

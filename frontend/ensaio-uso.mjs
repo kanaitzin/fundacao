@@ -435,6 +435,33 @@ await trocar('lider_diurno');
 erros.length = 0;
 cobrar('o Painel do Plantão está em "Mais"', await doMais('Plantão'));
 cobrar('o painel diz quem está em quê', (await conteudo()).length > 120);
+/* O PEDIDO DE SUBSTITUIÇÃO SE DECIDE NO PAINEL (fase 248). Até 27/10 o painel, cujo
+   título é "aguardando você", só oferecia recusar; passar a atividade a outra pessoa
+   ficava no Dia. Hoje é a mesma folha do Dia, e o Gestor Geral não a vê. */
+{
+  const decidir = pg.locator('main.conteudo button', { hasText: /^Passar para outra pessoa ou recusar$/ });
+  cobrar('o painel oferece passar a atividade a outra pessoa, e não só recusar', (await decidir.count()) > 0);
+  if (await decidir.count()) {
+    const titulo = (await decidir.first().locator('xpath=ancestor::li').locator('b.ff').first().innerText()).trim();
+    await decidir.first().click();
+    await pg.waitForTimeout(500);
+    const quem = pg.locator('.overlay select#dec-quem');
+    cobrar('a folha pede quem assume', (await quem.count()) > 0);
+    const opcoes = await quem.locator('option').evaluateAll((os) => os.map((o) => o.value).filter(Boolean));
+    if (opcoes.length) {
+      await quem.selectOption(opcoes[0]);
+      await pg.locator('.overlay button', { hasText: /^Passar para esta pessoa$/ }).click();
+      await pg.waitForTimeout(900);
+      const depois = await conteudo();
+      cobrar('passado, o pedido sai da lista do que aguarda o líder',
+        !depois.split(/em aberto agora/i)[0].includes(titulo),
+        titulo);
+    } else {
+      cobrar('a folha lista a equipe para escolher', false);
+      await fechar();
+    }
+  }
+}
 cobrar('a ATA está em "Mais"', await doMais('ATA'));
 const ata = await conteudo();
 cobrar('a ATA mostra o turno e as seções', /ATA|turno|seção|Seções/i.test(ata));
@@ -2790,6 +2817,7 @@ await semBotao('A escala de plantão', [/^Escalar alguém$/, /^Repetir a escala/
 await semBotao('Cozinha', [/^Pedir lanche$/, /^Pedir cesta básica$/]);
 await semBotao('A rotina da casa', [/^Escrever a primeira rotina$/, /^Abrir uma versão nova$/, /Acrescentar item/]);
 await semBotao('Internação hospitalar', [/^Registrar internação$/]);
+await semBotao('Painel do plantão', [/^Passar para outra pessoa ou recusar$/, /^Recusar com motivo$/]);
 await semBotao('Combinados da equipe', [/Registrar uma reunião/, /Registrar um combinado avulso/, /^Propor um assunto/]);
 if ((await aba('Acompanhamentos')) || (await doMais('Acompanhamentos'))) {
   cobrar('os Acompanhamentos não repetem os Combinados numa aba',

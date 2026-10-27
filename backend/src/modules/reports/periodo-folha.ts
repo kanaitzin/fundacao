@@ -24,6 +24,7 @@
  *    registra cada abertura.
  */
 import { Folha, SecaoDaFolha, AutorDaFolha, diaBR } from '../../kernel/documentos/folha';
+import { quantos } from '../../kernel/common/quantos';
 
 /** As seções de texto, na ordem em que a casa lê — a parte boa primeiro. */
 export const SECOES_DO_PERIODO: { cod: string; label: string; ajuda: string }[] = [
@@ -143,15 +144,15 @@ export function folhaDoPeriodo(d: PeriodoDaCasa, autor: AutorDaFolha): Folha {
       cabecalho: ['Indicador', 'No período'],
       linhas: [
         ['Acolhidos ao final do período', `${n.acolhidos} de ${n.capacidade} vagas`],
-        ['Acolhimentos e desligamentos', `${n.entradas} acolhimento(s), ${n.saidas} desligamento(s)`],
-        ['Chamadas', `${n.chamadas}, sendo ${n.chamadasConfirmadas} confirmada(s)`
+        ['Acolhimentos e desligamentos', `${quantos(n.entradas, 'acolhimento', 'acolhimentos')}, ${quantos(n.saidas, 'desligamento', 'desligamentos')}`],
+        ['Chamadas', `${n.chamadas}, sendo ${quantos(n.chamadasConfirmadas, 'confirmada', 'confirmadas')}`
           + (n.chamadasAbertas ? ` e ${n.chamadasAbertas} em aberto` : '')],
-        ['Refeições conferidas', `${n.refeicoesConferidas}, com ${n.refeicoesComExcecao} exceção(ões) `
-          + `registrada(s), de ${n.criancasComExcecao} criança(s)`],
+        ['Refeições conferidas', `${n.refeicoesConferidas}, com ${quantos(n.refeicoesComExcecao, 'exceção registrada', 'exceções registradas')}, `
+          + `de ${quantos(n.criancasComExcecao, 'criança', 'crianças')}`],
         ['Ocorrências', `${n.ocorrencias}`
           + (n.ocorrenciasRestritas ? `, sendo ${n.ocorrenciasRestritas} de acesso restrito` : '')],
         ['Desorganização com repercussão relevante', `${n.desorganizacao}`],
-        ['ATAs', `${n.atas}: ${n.atasFechadas} fechada(s), ${n.atasComPendencia} com pendência, `
+        ['ATAs', `${n.atas}: ${quantos(n.atasFechadas, 'fechada', 'fechadas')}, ${n.atasComPendencia} com pendência, `
           + `${n.atasAbertas} em aberto`],
         ['Passagens de plantão', `${n.passagens}`
           + (n.passagensSemRecibo ? `, sendo ${n.passagensSemRecibo} sem confirmação de recebimento` : '')],
@@ -169,8 +170,8 @@ export function folhaDoPeriodo(d: PeriodoDaCasa, autor: AutorDaFolha): Folha {
         ['Evoluções de saúde', `${n.evolucoesDeSaude}`],
         ['Registros de memória', `${n.memorias}`],
         ['Reuniões de equipe', `${n.reunioes}`],
-        ['Lanches e cestas básicas solicitados', `${n.lanches} lanche(s), ${n.cestas} cesta(s)`],
-        ['Acompanhamentos', `${n.acompanhamentosAprovados} aprovado(s), `
+        ['Lanches e cestas básicas solicitados', `${quantos(n.lanches, 'lanche', 'lanches')}, ${quantos(n.cestas, 'cesta', 'cestas')}`],
+        ['Acompanhamentos', `${quantos(n.acompanhamentosAprovados, 'aprovado', 'aprovados')}, `
           + `${n.acompanhamentosAbertos} em aberto`],
       ],
     },

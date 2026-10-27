@@ -12,6 +12,7 @@ import { CalendarioDosTurnos } from '../calendario-turnos';
 import { Explica } from '../explica';
 import { AnexosDaMensagem, Escolhido, FolhaArquivo, paraEnviar } from '../anexos';
 import { recusaDosAnexos } from '../../../backend/src/kernel/arquivos/anexos-da-mensagem.regra';
+import { quantos } from '../../../backend/src/kernel/common/quantos';
 
 /**
  * ATAS — a da casa e a Geral Noturna.
@@ -744,7 +745,7 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
                         setErro(e instanceof Error ? e.message : 'Não foi possível abrir a ATA anterior.');
                       }
                     }}>
-              ⏮ Turno anterior
+              Turno anterior
             </button>
           </div>
           {semAnterior && <div className="notice c-info">{semAnterior}</div>}
@@ -822,11 +823,8 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
                     * turno sem registro. As duas juntas é o que faz a ATA
                     * fechar com pendência sem nome.
                     */}
-                  {plantao.escalaLancada === false && (
-                    <li className="mutetxt">
-                      A escala deste turno não foi lançada, então não há lista de quem devia estar.
-                    </li>
-                  )}
+                  {/* Sem escala lançada, quem avisa é a caixa logo abaixo, uma vez só
+                      (fase 248): a lista repetia a mesma frase. */}
                   {plantao.passagens.length === 0 && plantao.assinaturasPendentes.length === 0
                     && plantao.escalaLancada !== false && (
                     <li className="mutetxt">Ninguém escalado para este turno.</li>
@@ -838,9 +836,9 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
                     <b>Ninguém lançou a escala deste turno.</b>
                     <div className="mutetxt" style={{ marginTop: 4 }}>
                       {plantao.passagens.length === 0
-                        ? 'E nenhuma passagem foi assinada. Fechar assim registra a ATA COM '
-                          + 'PENDÊNCIA: não há nome a cobrar, e o turno ficou sem registro.'
-                        : 'Quem esteve na casa assinou, e é isso que a ATA leva. Sem escala, não há '
+                        ? 'E nenhuma passagem foi assinada. Fechar assim registra a ATA com '
+                          + 'pendência: não há nome a cobrar, e o turno fica sem registro.'
+                        : 'Quem esteve na casa assinou, e a ATA leva essas passagens. Sem escala, não há '
                           + 'nome a cobrar.'}
                     </div>
                   </div>
@@ -1499,7 +1497,7 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
           {arquivo && (
             <>
               <p className="mutetxt" style={{ marginTop: 12 }}>
-                De {dia(arquivo.de)} a {dia(arquivo.ate)} · {arquivo.dias.length} dia(s) com ATA.
+                De {dia(arquivo.de)} a {dia(arquivo.ate)} · {quantos(arquivo.dias.length, 'dia', 'dias')} com ATA.
               </p>
               <div className="notice c-info">{arquivo.notaAtaGeral}</div>
               {LE_EM_SEQUENCIA.includes(papel) && (escala === 'dia' || escala === 'semana') && atasDoArquivo(arquivo.dias).length > 0 && (
@@ -1541,12 +1539,12 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
                         </span>
                       </div>
                       <div className="mutetxt">
-                        {a.passagens} passagem(ns) assinada(s)
+                        {quantos(a.passagens, 'passagem assinada', 'passagens assinadas')}
                         {a.assinaturasFaltantes > 0 && ` · ${a.assinaturasFaltantes} faltando`}
-                        {a.episodios > 0 && ` · ${a.episodios} episódio(s)`}
+                        {a.episodios > 0 && ` · ${quantos(a.episodios, 'episódio', 'episódios')}`}
                         {/* Aditamento aparece na CAPA: uma ATA corrigida depois
                             precisa se anunciar antes de ser lida. */}
-                        {a.aditamentos > 0 && ` · ${a.aditamentos} aditamento(s)`}
+                        {a.aditamentos > 0 && ` · ${quantos(a.aditamentos, 'aditamento', 'aditamentos')}`}
                         {a.fechadaEm && ` · fechada às ${hhmm(a.fechadaEm)}`}
                         {a.fechadaPor && ` por ${a.fechadaPor}`}
                       </div>

@@ -9,6 +9,7 @@ import { quemAssina } from '../quem-assina';
 import { diaCurto as dia } from '../rotulos';
 import { Icone } from '../icones';
 import { Explica } from '../explica';
+import { quantos } from '../../../backend/src/kernel/common/quantos';
 
 /**
  * OCORRÊNCIAS (§13).
@@ -381,7 +382,7 @@ export function Ocorrencias({ houseId, papel }: { houseId: string; papel: string
                   </div>
                   <div className="mutetxt">
                     aberta por {o.abertaPor} ·
-                    {' '}{o.acolhidos} acolhido(s){o.anexos ? ` · ${o.anexos} anexo(s)` : ''}
+                    {' '}{quantos(o.acolhidos, 'acolhido', 'acolhidos')}{o.anexos ? ` · ${quantos(o.anexos, 'anexo', 'anexos')}` : ''}
                   </div>
                   {(o.revisaoTecnicaObrigatoria || o.nivelAcesso === 'restrito' || o.prazo) && (
                     <div className="row">
@@ -445,7 +446,7 @@ export function Ocorrencias({ houseId, papel }: { houseId: string; papel: string
                       )
                     : d.avisoProtegido && (
                         <div className="notice c-med">
-                          {d.avisoProtegido} <b>Não é filtro de tela</b>: o conteúdo não é devolvido.
+                          {d.avisoProtegido}
                         </div>
                       )}
 

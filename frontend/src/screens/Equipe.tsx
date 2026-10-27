@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { api } from '../api';
 import { Cargo } from '../cargos';
 import { Explica } from '../explica';
+import { quantos } from '../../../backend/src/kernel/common/quantos';
 
 interface Setor {
   code: string; label: string; descricao: string; transversal: boolean; exigeCasa: boolean;
@@ -591,7 +592,7 @@ function Aparelhos({ lista, ehGestor, minhaCasa, onRegistrar, onRevogar }: {
             Aparelhos institucionais
           </h3>
           <span className="mutetxt">
-            {ativos.length} ativo(s) · {lista.length} no total
+            {quantos(ativos.length, 'ativo', 'ativos')} · {lista.length} no total
           </span>
           <button className="btn sm" onClick={onRegistrar}>+ Registrar aparelho</button>
         </div>

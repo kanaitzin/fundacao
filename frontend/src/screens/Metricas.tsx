@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { api } from '../api';
 import { dia } from '../rotulos';
 import { Explica } from '../explica';
+import { quantos } from '../../../backend/src/kernel/common/quantos';
 
 /**
  * ============================================================================
@@ -183,7 +184,7 @@ export function Metricas() {
         <b className="ff" style={{ fontSize: 28 }}>{reais(p.total.notasCentavos)}</b>
         {p.total.notasSemValor > 0 && (
           <div className="notice c-warn" role="status" style={{ marginTop: 8 }}>
-            <b>{p.total.notasSemValor} nota(s) sem valor lançado.</b>
+            <b>{quantos(p.total.notasSemValor, 'nota', 'notas')} sem valor lançado.</b>
             <div>O gasto real é maior do que este número até elas terem valor.</div>
           </div>
         )}

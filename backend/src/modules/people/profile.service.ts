@@ -5,6 +5,7 @@ import { DatabaseService } from '../../kernel/database/database.service';
 import { AuditService } from '../../kernel/audit/audit.service';
 import { AuthenticatedUser } from '../../kernel/contracts';
 import { maskCpf } from '../../kernel/common/cpf';
+import { quantos } from '../../kernel/common/quantos';
 
 /** Categorias que cada papel pode ABRIR (§6.8). Espelha app_can_open_doc no banco. */
 const DOCS_POR_PAPEL: Record<string, string[]> = {
@@ -320,7 +321,7 @@ export class ProfileService {
       detail: { campos: Object.keys(enviados), alterados: n },  // nomes, nunca o conteúdo (§20)
     });
     return { ok: true, alterado: n,
-      aviso: `${n} campo(s) atualizado(s). O que estava antes continua registrado, com o seu `
+      aviso: `${quantos(n, 'campo atualizado', 'campos atualizados')}. O que estava antes continua registrado, com o seu `
         + 'nome e o horário, e aparece no perfil para quem cuida da criança.' };
   }
 
@@ -417,7 +418,7 @@ export class ProfileService {
     });
     return {
       corrigidos: n,
-      aviso: `${n} campo(s) corrigido(s). O que estava antes continua registrado, com o seu `
+      aviso: `${quantos(n, 'campo corrigido', 'campos corrigidos')}. O que estava antes continua registrado, com o seu `
         + 'nome, o horário e o motivo — e aparece no perfil para quem cuida da criança.',
     };
   }

@@ -1,5 +1,6 @@
 import { Inject, Injectable, OnApplicationBootstrap, Logger } from '@nestjs/common';
 import { DatabaseService } from './database.service';
+import { quantos } from '../common/quantos';
 
 /**
  * A CONFERÊNCIA DE ARRANQUE.
@@ -91,7 +92,7 @@ export class ConferenciaDeArranque implements OnApplicationBootstrap {
       `SELECT count(*)::int AS n FROM person`);
     if (prova.n > 0) {
       recusar(
-        `Sem identidade de usuário, o banco devolveu ${prova.n} pessoa(s) — deveria `
+        `Sem identidade de usuário, o banco devolveu ${quantos(prova.n, 'pessoa', 'pessoas')} — deveria `
         + 'devolver zero. As políticas de RLS não estão valendo para esta conexão.');
     }
 

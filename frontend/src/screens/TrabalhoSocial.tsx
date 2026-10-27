@@ -7,6 +7,7 @@ import type { DocumentoWord } from '../docx';
 import { dia } from '../rotulos';
 import { Icone } from '../icones';
 import { Explica } from '../explica';
+import { quantos } from '../../../backend/src/kernel/common/quantos';
 
 /**
  * O TRABALHO SOCIAL — a outra leitura das oito casas.
@@ -170,8 +171,8 @@ export function TrabalhoSocial({ papel }: { papel: string }) {
               <span className="pill c-info">{c.acolhidos} de {c.capacidade}</span>
             </div>
             <div className="mutetxt">
-              {c.entradas} entrada(s) · {c.saidas} saída(s) · {c.ocorrencias} ocorrência(s)
-              {' · '}{c.marcos} conquista(s)
+              {quantos(c.entradas, 'entrada', 'entradas')} · {quantos(c.saidas, 'saída', 'saídas')} · {quantos(c.ocorrencias, 'ocorrência', 'ocorrências')}
+              {' · '}{quantos(c.marcos, 'conquista', 'conquistas')}
             </div>
           </div>
         ))}

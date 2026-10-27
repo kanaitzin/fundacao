@@ -9,6 +9,7 @@
  * e não substitui o parecer de quem atende.
  */
 import { Folha, SecaoDaFolha, AutorDaFolha, diaBR, hhmmBR } from '../../kernel/documentos/folha';
+import { quantos } from '../../kernel/common/quantos';
 
 export interface DadosDeSaude {
   atendimentos: Array<{
@@ -47,13 +48,13 @@ export function folhaDeSaude(
   const pend: string[] = [];
   if (h.pendencias.internacaoEmAndamento) pend.push('Internação em andamento.');
   if (h.pendencias.retornosVencidos) {
-    pend.push(`${h.pendencias.retornosVencidos} retorno(s) com data vencida, a reagendar.`);
+    pend.push(`${quantos(h.pendencias.retornosVencidos, 'retorno', 'retornos')} com data vencida, a reagendar.`);
   }
   if (h.pendencias.retornosMarcados) {
-    pend.push(`${h.pendencias.retornosMarcados} retorno(s) marcado(s).`);
+    pend.push(`${quantos(h.pendencias.retornosMarcados, 'retorno marcado', 'retornos marcados')}.`);
   }
   if (h.pendencias.evolucoesAguardandoTriagem) {
-    pend.push(`${h.pendencias.evolucoesAguardandoTriagem} evolução(ões) aguardando `
+    pend.push(`${quantos(h.pendencias.evolucoesAguardandoTriagem, 'evolução aguardando', 'evoluções aguardando')} `
       + 'triagem da Enfermagem.');
   }
   secoes.push({

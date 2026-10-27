@@ -8,6 +8,7 @@ import type { ArquivoGerado } from '../documentos';
 import type { DocumentoWord } from '../docx';
 import { dia } from '../rotulos';
 import { Icone } from '../icones';
+import { quantos } from '../../../backend/src/kernel/common/quantos';
 
 /**
  * PASSAGEM INDIVIDUAL (§12.1–§12.4).
@@ -276,8 +277,8 @@ export function Passagem({ houseId }: { houseId: string }) {
               <div className="grow" style={{ textAlign: 'left' }}>
                 <b className="ff">{TURNO_LABEL[p.turno] ?? p.turno}</b>
                 <div className="mutetxt">
-                  desde {hhmm(p.abertoEm)} · {p.passagensAssinadas} passagem(ns) assinada(s)
-                  {p.recebimentos > 0 ? ` · ${p.recebimentos} recebimento(s)` : ''}
+                  desde {hhmm(p.abertoEm)} · {quantos(p.passagensAssinadas, 'passagem assinada', 'passagens assinadas')}
+                  {p.recebimentos > 0 ? ` · ${quantos(p.recebimentos, 'recebimento', 'recebimentos')}` : ''}
                 </div>
               </div>
               <span className={`pill ${FECHADO.has(p.status) ? 'c-mute' : 'c-ok'}`}>

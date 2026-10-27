@@ -355,7 +355,7 @@ export class MedicationsService {
     return {
       ok: true, status: 'suspensa', dosesRetiradasDaGrade: suspensa.doses,
       aviso: suspensa.doses > 0
-        ? `${suspensa.doses} dose(s) ainda por vir saíram da grade de hoje, com a orientação `
+        ? `${suspensa.doses === 1 ? '1 dose ainda por vir saiu' : `${suspensa.doses} doses ainda por vir saíram`} da grade de hoje, com a orientação `
           + 'escrita ao lado. O que já foi confirmado continua registrado.'
         : 'Não havia dose por vir hoje. O que já foi confirmado continua registrado.',
     };
@@ -808,7 +808,8 @@ export class MedicationsService {
           level, entity: 'medication_dose', entityId: dose.id,
           reason: `dose sem confirmação há mais de ${minutos} min`,
           title: 'Dose de medicamento sem confirmação',
-          body: `${pendentes.length} dose(s) venceram sem registro nesta casa. Permanecem como "aguardando confirmação" — o sistema não conclui que não foram administradas.`,
+          body: `${pendentes.length === 1 ? '1 dose venceu' : `${pendentes.length} doses venceram`} sem registro nesta casa. `
+            + 'Elas continuam aguardando confirmação: confira com quem estava no plantão antes de dar como não administrada.',
           priority: 'critica', groupKey: `dose-overdue:${houseId}:${level}`,
         }, { actorId: user.id, houseId });
       }

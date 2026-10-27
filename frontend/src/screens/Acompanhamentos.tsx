@@ -6,6 +6,7 @@ import type { DocumentoWord } from '../docx';
 import { dia } from '../rotulos';
 import { Icone } from '../icones';
 import { Explica } from '../explica';
+import { quantos } from '../../../backend/src/kernel/common/quantos';
 
 /**
  * ACOMPANHAMENTOS E RELATÓRIOS.
@@ -545,7 +546,7 @@ function FolhaEixos({ acompanhamento, eixos, onFechar, onSalvar }: {
               Salvar rascunho
             </button>
             <button className="btn grow" onClick={() => onSalvar(valores, true)}>
-              Enviar para aprovação{faltam ? ` (${faltam} eixo(s) em branco)` : ''}
+              Enviar para aprovação{faltam ? ` (${quantos(faltam, 'eixo', 'eixos')} em branco)` : ''}
             </button>
           </div>
         )}
@@ -675,7 +676,7 @@ function FontesDoAcompanhamento({ id, bloqueado }: { id: string; bloqueado: bool
   return (
     <>
       <div className="eyebrow">
-        Fontes do período · {escolhidas.length} escolhida(s)
+        Fontes do período · {quantos(escolhidas.length, 'escolhida', 'escolhidas')}
       </div>
       <Explica>{dados.aviso}</Explica>
       {erro && <div className="notice c-crit" role="alert">{erro}</div>}

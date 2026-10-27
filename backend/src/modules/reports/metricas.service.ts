@@ -3,6 +3,7 @@ import { DatabaseService } from '../../kernel/database/database.service';
 import { AuditService } from '../../kernel/audit/audit.service';
 import { AuthenticatedUser } from '../../kernel/contracts';
 import { hojeNaInstituicao } from '../../kernel/common/tempo';
+import { quantos } from '../../kernel/common/quantos';
 
 /**
  * ============================================================================
@@ -174,7 +175,7 @@ export class MetricasService {
        */
       ressalvas: [
         soma((c) => c.notasSemValor) > 0
-          ? `${soma((c) => c.notasSemValor)} nota(s) fiscal(is) sem valor lançado `
+          ? `${quantos(soma((c) => c.notasSemValor), 'nota fiscal', 'notas fiscais')} sem valor lançado `
             + '(o total gasto é maior do que o número acima até elas terem valor).'
           : null,
         /*

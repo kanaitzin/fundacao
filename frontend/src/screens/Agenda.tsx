@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
 import { Explica } from '../explica';
+import { quantos } from '../../../backend/src/kernel/common/quantos';
 
 /**
  * A AGENDA (§7, §8).
@@ -165,7 +166,7 @@ export function Agenda({ houseId, papel }: { houseId: string; papel: string }) {
       <div className="diahead">
         <div><h2>Agenda</h2></div>
         <div className="resumo">
-          <span className="pill c-info">{vigentes.length} compromisso(s)</span>
+          <span className="pill c-info">{quantos(vigentes.length, 'compromisso', 'compromissos')}</span>
         </div>
       </div>
 

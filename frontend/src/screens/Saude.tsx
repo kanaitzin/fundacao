@@ -9,6 +9,7 @@ import { dia } from '../rotulos';
 import { Icone } from '../icones';
 import { Avatar, useComFoto } from '../avatar';
 import { Explica } from '../explica';
+import { quantos } from '../../../backend/src/kernel/common/quantos';
 
 /**
  * COMO ELA ESTAVA, nas quatro opções do papel (1460).
@@ -492,9 +493,10 @@ export function Saude({ houseId, casaLabel, papel }: {
 
       {aba === 'doses' && (
         <>
-          <div className="notice c-crit">
-            Cada dose é confirmada <b>somente por quem a administrou</b>, na conta dela.
-            Cada uma é confirmada por vez, por quem deu.
+          {/* Regra fixa não é estado: a cor de crítico fica para o que precisa de
+              alguém agora (fase 248). */}
+          <div className="notice c-info">
+            Cada dose é confirmada <b>somente por quem a administrou</b>, uma por vez, na própria conta.
           </div>
           {/* A folha que fica no armário da medicação. Vem depois do resumo do
               dia porque conferir na tela é o caminho normal; o papel é para o
@@ -1118,14 +1120,14 @@ export function Saude({ houseId, casaLabel, papel }: {
                       <span className="pill c-warn">Receita vence em {dia(k.receitaVencendo)}</span>
                     )}
                     {k.evolucoesAguardandoTriagem > 0 && (
-                      <span className="pill c-med">{k.evolucoesAguardandoTriagem} evolução(ões) na triagem</span>
+                      <span className="pill c-med">{quantos(k.evolucoesAguardandoTriagem, 'evolução', 'evoluções')} na triagem</span>
                     )}
                   </div>
                 </div>
                 <span className={`pill ${k.semMedicacaoPrevista ? 'c-mute' : 'c-med'}`}>
                   {k.semMedicacaoPrevista
                     ? 'Sem medicação prevista'
-                    : `${k.dosesPrevistas} dose(s) na grade`}
+                    : `${quantos(k.dosesPrevistas, 'dose', 'doses')} na grade`}
                 </span>
                 {/* A linha única vem ANTES de gerar resumo, de propósito: o
                     resumo é o que sai da casa, e ninguém deveria emiti-lo sem
@@ -1570,15 +1572,15 @@ function FolhaHistorico({ pessoa, dados, emissoes, onFechar, onBaixar, onDocumen
             {p.internacaoEmAndamento && <span className="pill c-crit">Internação em andamento</span>}
             {p.retornosVencidos > 0 && (
               <span className="pill c-crit">
-                {p.retornosVencidos} retorno(s) com a data já passada
+                {quantos(p.retornosVencidos, 'retorno', 'retornos')} com a data já passada
               </span>
             )}
             {p.retornosMarcados > 0 && (
-              <span className="pill c-warn">{p.retornosMarcados} retorno(s) marcado(s)</span>
+              <span className="pill c-warn">{quantos(p.retornosMarcados, 'retorno marcado', 'retornos marcados')}</span>
             )}
             {p.evolucoesAguardandoTriagem > 0 && (
               <span className="pill c-med">
-                {p.evolucoesAguardandoTriagem} evolução(ões) esperando a Enfermagem
+                {quantos(p.evolucoesAguardandoTriagem, 'evolução', 'evoluções')} esperando a Enfermagem
               </span>
             )}
           </div>

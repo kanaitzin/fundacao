@@ -19,6 +19,7 @@
  *    concluir o contrário se ninguém escrever.
  */
 import { Folha, SecaoDaFolha, AutorDaFolha, diaBR } from '../../kernel/documentos/folha';
+import { quantos } from '../../kernel/common/quantos';
 
 export interface CasaNoImpacto {
   codigo: string; nome: string;
@@ -47,8 +48,8 @@ export function folhaDoImpacto(
       titulo: 'Síntese do período',
       itens: [
         `${total.acolhidos} acolhidos ao final do período, para ${total.capacidade} vagas.`,
-        `${total.entradas} acolhimento(s) e ${total.saidas} desligamento(s) no período.`,
-        `${total.marcos} conquista(s) registrada(s) pela equipe.`,
+        `${quantos(total.entradas, 'acolhimento', 'acolhimentos')} e ${quantos(total.saidas, 'desligamento', 'desligamentos')} no período.`,
+        `${quantos(total.marcos, 'conquista registrada', 'conquistas registradas')} pela equipe.`,
       ],
       procedencia: 'Registros das unidades no período indicado.',
     },

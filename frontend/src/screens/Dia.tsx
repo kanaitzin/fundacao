@@ -7,6 +7,7 @@ import { Icone } from '../icones';
 import type { AoEnfileirar } from '../fila-offline';
 import { FolhaDose } from './Saude';
 import type { Dose } from './Saude';
+import { quantos } from '../../../backend/src/kernel/common/quantos';
 
 /**
  * O DIA — a linha do tempo (§9).
@@ -107,7 +108,7 @@ const LIDERA = ['lider_diurno', 'lider_noturno_geral', 'coordenador', 'gestor_ge
 const CRIA_URGENTE = ['lider_diurno', 'lider_noturno_geral', 'equipe_tecnica',
                       'coordenador'];
 /** Quem DECIDE uma substituição — o mesmo alcance do servidor. */
-const DECIDE_SUB = ['lider_diurno', 'lider_noturno_geral', 'equipe_tecnica', 'coordenador'];
+export const DECIDE_SUB = ['lider_diurno', 'lider_noturno_geral', 'equipe_tecnica', 'coordenador'];
 
 /**
  * Um pedido de substituição (§8.3).
@@ -391,7 +392,7 @@ export function Dia({ houseId, casaLabel, papel, irPara, alcanca = () => true, p
           <div className="resumo">
             <span className="pill c-info">{dados.resumo.total} no dia</span>
             {dados.resumo.criticos > 0 && (
-              <span className="pill c-crit">{dados.resumo.criticos} crítico(s)</span>
+              <span className="pill c-crit">{quantos(dados.resumo.criticos, 'crítico', 'críticos')}</span>
             )}
             {dados.resumo.atencao > 0 && (
               <span className="pill c-warn">{dados.resumo.atencao} em atenção</span>
@@ -682,7 +683,7 @@ export function Dia({ houseId, casaLabel, papel, irPara, alcanca = () => true, p
                       <b className="ff grow">{a.nome}</b>
                       {a.pendencias > 0 && (
                         <span className="pill c-crit">
-                          {a.pendencias} pendência(s)
+                          {quantos(a.pendencias, 'pendência', 'pendências')}
                         </span>
                       )}
                     </div>
@@ -1180,7 +1181,7 @@ function FolhaMotivoSimples({ titulo, explicacao, rotulo, exemplo, botao, onFech
  * recado no corredor: a pessoa que ia sair mais cedo precisa saber, antes de
  * sair, que ninguém vai cobrir — e precisa saber por quê.
  */
-function FolhaDecidirSub({ pedido, houseId, onFechar, onAssumir, onRecusar }: {
+export function FolhaDecidirSub({ pedido, houseId, onFechar, onAssumir, onRecusar }: {
   pedido: { id: string; atividade: string; motivo: string; pedidoPor: string; semEfeito: boolean };
   houseId: string; onFechar: () => void;
   onAssumir: (substitutoId: string, nota?: string) => void;
@@ -1228,8 +1229,7 @@ function FolhaDecidirSub({ pedido, houseId, onFechar, onAssumir, onRecusar }: {
             <input id="dec-nota" value={nota} onChange={(e) => setNota(e.target.value)}
                    placeholder="Ex.: combinei com a Joana; ela já leva a Alice na mesma clínica." />
             <p className="mutetxt">
-              Quem assume recebe o aviso e precisa tomar ciência — o sistema não dá ninguém como
-              avisado por ter sido escolhido.
+              Quem assume recebe o aviso e toma ciência na própria conta.
             </p>
             <div className="row rodape">
               <button className="btn sec grow" onClick={() => setRecusando(true)}>

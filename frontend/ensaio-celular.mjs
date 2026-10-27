@@ -53,7 +53,7 @@ async function medir(pg) {
     const vw = document.documentElement.clientWidth;
     const vh = window.innerHeight;
     const r = { vaza: 0, fora: [], cortado: [], naoCabe: [], encostados: [], pequeno: [], medio: 0, escondido: null, raciocinio: [] };
-    const MARCAS = /o sistema não|não existe|de prop[óo]sito|justamente|não é (medição|avaliação|julgamento|supervisão)|por construção|é por isso que|quem consulta também/i;
+    const MARCAS = /o sistema não|não existe|de prop[óo]sito|justamente|não é (medição|avaliação|julgamento|supervisão)|por construção|é por isso que|quem consulta também|filtro de tela/i;
     for (const el of document.querySelectorAll('main.conteudo, .overlay, .folha')) {
       for (const linha of el.innerText.split('\n')) {
         if (MARCAS.test(linha)) r.raciocinio.push(linha.trim().slice(0, 120));

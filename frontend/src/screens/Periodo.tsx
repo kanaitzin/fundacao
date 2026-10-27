@@ -6,6 +6,7 @@ import type { DocumentoWord } from '../docx';
 import { dia } from '../rotulos';
 import { Icone } from '../icones';
 import { Explica } from '../explica';
+import { quantos } from '../../../backend/src/kernel/common/quantos';
 
 /**
  * ============================================================================
@@ -358,17 +359,17 @@ function QuadroDeNumeros({ n, anterior }: {
 }) {
   const linhas: [string, string][] = [
     ['Acolhidos ao fim do período', `${n.acolhidos} de ${n.capacidade} vagas`],
-    ['Entradas e saídas', `${n.entradas} entrada(s), ${n.saidas} saída(s)`],
-    ['Chamadas', `${n.chamadas}, sendo ${n.chamadasConfirmadas} confirmada(s)`
-      + (n.chamadasAbertas ? ` e ${n.chamadasAbertas} ainda aberta(s)` : '')],
+    ['Entradas e saídas', `${quantos(n.entradas, 'entrada', 'entradas')}, ${quantos(n.saidas, 'saída', 'saídas')}`],
+    ['Chamadas', `${n.chamadas}, sendo ${quantos(n.chamadasConfirmadas, 'confirmada', 'confirmadas')}`
+      + (n.chamadasAbertas ? ` e ${quantos(n.chamadasAbertas, 'ainda aberta', 'ainda abertas')}` : '')],
     ['Refeições conferidas',
-      `${n.refeicoesConferidas}, com ${n.refeicoesComExcecao} exceção(ões) de `
-      + `${n.criancasComExcecao} criança(s)`],
+      `${n.refeicoesConferidas}, com ${quantos(n.refeicoesComExcecao, 'exceção', 'exceções')} de `
+      + `${quantos(n.criancasComExcecao, 'criança', 'crianças')}`],
     ['Ocorrências', `${n.ocorrencias}`
       + (n.ocorrenciasRestritas ? `, sendo ${n.ocorrenciasRestritas} de acesso restrito` : '')],
     ['Desorganização com repercussão relevante', `${n.desorganizacao}`],
-    ['ATAs', `${n.atas}: ${n.atasFechadas} fechada(s), ${n.atasComPendencia} com pendência, `
-      + `${n.atasAbertas} aberta(s)`],
+    ['ATAs', `${n.atas}: ${quantos(n.atasFechadas, 'fechada', 'fechadas')}, ${n.atasComPendencia} com pendência, `
+      + `${quantos(n.atasAbertas, 'aberta', 'abertas')}`],
     ['Passagens de plantão', `${n.passagens}`
       + (n.passagensSemRecibo ? `, sendo ${n.passagensSemRecibo} sem recibo` : '')],
     ['Doses previstas',
@@ -383,9 +384,9 @@ function QuadroDeNumeros({ n, anterior }: {
     ['Evoluções de saúde escritas', `${n.evolucoesDeSaude}`],
     ['Memórias guardadas', `${n.memorias}`],
     ['Reuniões de equipe', `${n.reunioes}`],
-    ['Cozinha', `${n.lanches} lanche(s), ${n.cestas} cesta(s)`],
+    ['Cozinha', `${quantos(n.lanches, 'lanche', 'lanches')}, ${quantos(n.cestas, 'cesta', 'cestas')}`],
     ['Acompanhamentos',
-      `${n.acompanhamentosAprovados} aprovado(s), ${n.acompanhamentosAbertos} em aberto`],
+      `${quantos(n.acompanhamentosAprovados, 'aprovado', 'aprovados')}, ${n.acompanhamentosAbertos} em aberto`],
   ];
   return (
     <>

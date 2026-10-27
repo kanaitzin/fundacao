@@ -7,6 +7,7 @@ import { quemAssina } from '../quem-assina';
 import { dia } from '../rotulos';
 import { Icone } from '../icones';
 import { Explica } from '../explica';
+import { quantos } from '../../../backend/src/kernel/common/quantos';
 
 /**
  * REUNIÕES E COMBINADOS DA EQUIPE (§9.4).
@@ -177,9 +178,9 @@ export function Alinhamentos({ houseId, casaLabel }: { houseId: string; casaLabe
       )}
 
       <div className="row" style={{ marginTop: 12 }}>
-        <span className="pill c-ok">{vigentes.length} vigente(s)</span>
+        <span className="pill c-ok">{quantos(vigentes.length, 'vigente', 'vigentes')}</span>
         {encerrados.length > 0 && (
-          <span className="pill c-mute">{encerrados.length} encerrado(s)</span>
+          <span className="pill c-mute">{quantos(encerrados.length, 'encerrado', 'encerrados')}</span>
         )}
         <span className="grow" />
         <button className="btn sm ghost" onClick={async () => {

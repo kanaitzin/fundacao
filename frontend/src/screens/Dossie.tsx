@@ -8,6 +8,7 @@ import { Icone } from '../icones';
 import { EscolherAnexo, LerTextoDoPapel, miniaturaDe } from '../anexos';
 import type { Escolhido } from '../anexos';
 import { Explica } from '../explica';
+import { quantos } from '../../../backend/src/kernel/common/quantos';
 
 /**
  * O DOSSIÊ DO ACOLHIDO (§6.1) e o ÁLBUM DE VIVÊNCIAS (§6.9).
@@ -160,7 +161,7 @@ export function Dossie({ personId, nome, papel, onVoltar }: {
         {dossie && (
           <div className="resumo">
             <span className={`pill ${faltamAoTodo ? 'c-warn' : 'c-ok'}`}>
-              {faltamAoTodo ? `${faltamAoTodo} obrigatório(s) faltando` : 'Dossiê completo'}
+              {faltamAoTodo ? `${quantos(faltamAoTodo, 'obrigatório faltando', 'obrigatórios faltando')}` : 'Dossiê completo'}
             </span>
             {aConferir > 0 && <span className="pill c-crit">{aConferir} a conferir</span>}
           </div>

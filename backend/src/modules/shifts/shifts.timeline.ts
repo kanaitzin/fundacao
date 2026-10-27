@@ -2,6 +2,7 @@ import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { TimelineRegistry } from '../../kernel/events/timeline-registry.service';
 import { TimelineEvent, TimelineProvider, TimelineQuery } from '../../kernel/contracts';
 import { ShiftsService } from './shifts.service';
+import { quantos } from '../../kernel/common/quantos';
 
 /**
  * Provedor de Linha do Tempo do módulo `shifts`.
@@ -37,8 +38,8 @@ export class ShiftsTimelineProvider implements TimelineProvider, OnModuleInit {
         title: `Plantão ${s.turno}`,
         personId: null, personName: null, houseId: q.houseId,
         state: fechado
-          ? (pendente ? `ATA fechada com ${s.assinaturasFaltantes} assinatura(s) pendente(s)` : 'ATA fechada')
-          : `Plantão aberto — ${s.passagensAssinadas} passagem(ns) assinada(s)`,
+          ? (pendente ? `ATA fechada com ${quantos(s.assinaturasFaltantes, 'assinatura pendente', 'assinaturas pendentes')}` : 'ATA fechada')
+          : `Plantão aberto, ${quantos(s.passagensAssinadas, 'passagem assinada', 'passagens assinadas')}`,
         severity: pendente ? 'atencao' : 'normal',
         note: fechado ? null : 'Cada profissional assina a própria passagem.',
         actions: fechado

@@ -175,6 +175,15 @@ export function Portaria({ houseId, casaLabel }: { houseId: string; casaLabel: s
             )}
 
           <div className="eyebrow">Quem pode visitar, por criança</div>
+          {/* A orientação vale para todo cartão fora do combinado e aparece uma vez,
+              aqui. Até a fase 248 ela se repetia em cada cartão, e a tela do portão
+              chegava a 22 telas de rolagem no celular. */}
+          {!portao.podeAbrirExcecao && lista.some((v) => v.foraDoCombinado && !v.visitaAberta) && (
+            <p className="mutetxt">
+              Para entrar fora do combinado, ligue para a casa: a exceção é da coordenação, da
+              equipe técnica ou do líder.
+            </p>
+          )}
           {termo && achados.length === 0 && lista.length > 0 && (
             <div className="notice c-warn">
               Ninguém com esse nome na lista. <b>Quem não está aqui não entra sem falar com a casa.</b>
@@ -196,12 +205,6 @@ export function Portaria({ houseId, casaLabel }: { houseId: string; casaLabel: s
                       <button className={`btn block${v.foraDoCombinado ? ' sec' : ''}`} onClick={() => setEntrando(v)}>
                         {v.foraDoCombinado ? 'Entrada com exceção' : 'Registrar entrada'}
                       </button>
-                    )}
-                    {v.foraDoCombinado && !v.visitaAberta && !portao.podeAbrirExcecao && (
-                      <div className="mutetxt">
-                        Para entrar fora do combinado, ligue para a casa: a exceção é da
-                        coordenação, da equipe técnica ou do líder.
-                      </div>
                     )}
                   </CartaoDoVisitante>
                 ))}

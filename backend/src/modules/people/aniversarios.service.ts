@@ -3,6 +3,7 @@ import { DatabaseService } from '../../kernel/database/database.service';
 import { AuditService } from '../../kernel/audit/audit.service';
 import { EventBus } from '../../kernel/events/event-bus.service';
 import { AuthenticatedUser } from '../../kernel/contracts';
+import { quantos } from '../../kernel/common/quantos';
 
 /**
  * OS ANIVERSÁRIOS, AVISADOS ANTES (migração 1160).
@@ -151,7 +152,7 @@ export class AniversariosService {
       await this.bus.publish('escalation.requested', {
         level: 'equipe',
         entity: 'birthday', entityId: r.person_id,
-        reason: `aniversário em ${r.faltam} dia(s)`,
+        reason: `aniversário em ${quantos(r.faltam, 'dia', 'dias')}`,
         title: r.faltam === 0
           ? `Hoje é aniversário de ${r.nome}`
           : `${r.nome} faz ${r.idade_que_faz} anos em ${r.faltam} dias`,

@@ -201,7 +201,7 @@ contando o conceito escolar (fase 137). Nada disso volta à mesa.
   196 também dentro do perfil da criança (*quero registrar a alergia do Bruno*), do dossiê, da
   internação aberta e do acervo: os 36 formulários do sistema. **Para o DPO:**
   o ditado usa o reconhecimento do navegador; no Chrome, o áudio vai ao Google.
-- **247 fases.** 158 suítes e 1410 testes, verdes em duas condições de relógio —
+- **248 fases.** 159 suítes e 1412 testes, verdes em duas condições de relógio —
   antes e depois da virada do UTC, que em Porto Alegre é às 21h.
 - **O aviso no celular** (fase 189, decidido em 06/10): quem liga na Minha conta
   recebe no celular todos os avisos do sino, mesmo com o sistema fechado. Na
@@ -922,6 +922,29 @@ Decidido em 25/10 pela pessoa da Fundação que acompanha a sessão, e já é c�
 coordenação (montar a escala ou fechar a ATA). Hoje ele não consegue; quem cobre é a
 Coordenação Geral, que é coordenadora e alcança as oito. A medição inteira está em
 `docs/historico/o-que-cada-setor-ve-25-10.md`.
+
+## 4.35 O dia a dia mais leve (fase 248, 27/10)
+
+Fiz o papel de cada cargo num plantão, no celular, às 23h e às 14h, e consertei o que não
+pedia decisão (está no §2 do documento, linha 248). O que mexe no jeito de a tela se
+organizar fica aqui, para a Fundação escolher, com o que a medição mostrou:
+
+1. **A Portaria em ordem de chegada.** A tela do portão é a única da portaria e tem 18
+   telas de rolagem no celular, com uns quarenta cartões, um por visitante autorizado, quase
+   todos fora do dia combinado. A proposta: no alto, **quem pode vir hoje**; abaixo, os
+   demais por criança, recolhidos, com o nome da criança e quantos são, abrindo com um toque.
+   A busca continua achando todos. Nada some; muda a ordem e o que abre de começo. (Hoje: a
+   lista inteira, por criança, aberta.)
+2. **A chamada da vez.** Às 23h, a tela das chamadas mostra as cinco do dia na ordem do
+   horário, com a Ceia das 21h sem abrir e o almoço ainda aberto. A proposta: marcar a
+   chamada da vez (a próxima pelo horário que ainda não foi confirmada) com a palavra
+   *agora*, na pílula de estado. (Hoje: a lista sem destaque.)
+3. **Os Acompanhamentos e o Trabalho social**, que passam de 19 telas de rolagem para a
+   coordenação, a técnica e o gestor: é a saída 1 da §4.30 (o histórico recolhido, com as
+   cinco mais recentes e um *Ver todas*), que ficou para depois de a equipe usar.
+
+**O que vale perguntar à equipe da Casa 03 no roteiro:** na Portaria, quanto tempo leva
+achar o visitante que chegou, e se a busca no alto basta.
 
 ## 5. As decisões que são do Marcelo *(§10 — responda pelo número)*
 

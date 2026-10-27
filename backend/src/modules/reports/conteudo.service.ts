@@ -327,7 +327,7 @@ export class ConteudoService {
           });
           const abertas = ocs.filter((o) => o.status === 'aberta').length;
           if (abertas > 0) {
-            linhas.push('', `${abertas} ocorrência(s) seguem em acompanhamento nesta data.`);
+            linhas.push('', `${abertas === 1 ? '1 ocorrência segue' : `${abertas} ocorrências seguem`} em acompanhamento nesta data.`);
           }
           secoes.push({
             titulo: 'Ocorrências',

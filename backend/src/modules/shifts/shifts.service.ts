@@ -10,6 +10,7 @@ import { ArquivoGuardado, ArquivosService, RegraDoArquivo } from '../../kernel/a
 import { bytesDoBase64, recusaDosAnexos } from '../../kernel/arquivos/anexos-da-mensagem.regra';
 import { cargoNoDocumento } from '../../kernel/documentos/folha';
 import { folhaDaAta } from './ata-folha';
+import { quantos } from '../../kernel/common/quantos';
 
 /**
  * PLANTÃO, PASSAGEM E ATA (§12).
@@ -872,9 +873,9 @@ export class ShiftsService {
           ? 'ATA fechada com assinatura pendente'
           : 'ATA fechada sem escala lançada e sem nenhuma passagem',
         body: faltam > 0
-          ? `${faltam} passagem(ns) não assinada(s) no plantão. A ATA foi fechada com pendência registrada.`
-          : 'A escala deste turno não foi lançada, e nenhuma passagem foi assinada. O sistema não '
-            + 'deduz quem devia estar — então não há nome a cobrar, e o turno ficou sem registro.',
+          ? `${quantos(faltam, 'passagem não assinada', 'passagens não assinadas')} no plantão. A ATA foi fechada com pendência registrada.`
+          : 'A escala deste turno não foi lançada, e nenhuma passagem foi assinada. Sem escala, não '
+            + 'há nome a cobrar, e o turno ficou sem registro.',
         priority: 'alta', groupKey: `ata:${ataId}`,
       };
       await this.bus.publish('escalation.requested', pedido, { actorId: user.id, houseId: casa });
@@ -899,7 +900,7 @@ export class ShiftsService {
       /** A escala deste turno foi lançada? (1370) */
       escalaLancada: !semEscala,
       aviso: faltam > 0
-        ? `Fechada com pendência: ${faltam} passagem(ns) sem assinatura. Nenhuma assinatura foi presumida; `
+        ? `Fechada com pendência: ${quantos(faltam, 'passagem sem assinatura', 'passagens sem assinatura')}. Nenhuma assinatura foi presumida; `
           + 'a equipe técnica e a coordenação foram avisadas.'
         : r.out_status === 'fechada_com_pendencia'
           ? 'Fechada com pendência: a escala deste turno não foi lançada e nenhuma passagem foi '

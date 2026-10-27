@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
 import { Cargo } from '../cargos';
 import { Explica } from '../explica';
+import { DECIDE_SUB, FolhaDecidirSub } from './Dia';
 
 /**
  * PAINEL DO PLANTÃO — quem está em quê agora.
@@ -62,19 +63,19 @@ function hhmm(iso: string) {
   return new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 }
 
-/** Cargos que decidem substituição (§8.3). */
-const DECIDE = ['lider_diurno', 'lider_noturno_geral', 'equipe_tecnica', 'coordenador', 'gestor_geral'];
 
 export function PainelPlantao({ houseId, casaLabel, papel }: {
   houseId: string; casaLabel: string; papel: string;
 }) {
-  const decide = DECIDE.includes(papel);
+  /* A lista de quem decide é a do Dia, uma só: a cópia daqui ficou com o Gestor
+     Geral depois da fase 246, e o botão aparecia para quem o servidor recusa. */
+  const decide = DECIDE_SUB.includes(papel);
   const [linhas, setLinhas] = useState<Linha[]>([]);
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [nota, setNota] = useState('');
   const [erro, setErro] = useState('');
   const [carregando, setCarregando] = useState(true);
-  const [recusando, setRecusando] = useState<Pedido | null>(null);
+  const [decidindo, setDecidindo] = useState<Pedido | null>(null);
 
   const carregar = useCallback(async () => {
     setCarregando(true);
@@ -143,9 +144,12 @@ export function PainelPlantao({ houseId, casaLabel, papel }: {
                   </div>
                 )}
                 <div className="row" style={{ gap: 8, marginTop: 8 }}>
-                  <button type="button" className="btn sm ghost"
-                          onClick={() => setRecusando(p)}>
-                    Recusar com motivo
+                  {/* A mesma folha do Dia: passar para outra pessoa ou recusar.
+                      Até 27/10 daqui só se recusava, e o pedido que esperava
+                      um substituto tinha de ser procurado no Dia. */}
+                  <button type="button" className="btn sm sec"
+                          onClick={() => setDecidindo(p)}>
+                    Passar para outra pessoa ou recusar
                   </button>
                 </div>
               </li>
@@ -154,13 +158,25 @@ export function PainelPlantao({ houseId, casaLabel, papel }: {
         </>
       )}
 
-      {recusando && (
-        <FolhaRecusa
-          pedido={recusando}
-          onFechar={() => setRecusando(null)}
+      {decidindo && (
+        <FolhaDecidirSub
+          pedido={decidindo} houseId={houseId}
+          onFechar={() => setDecidindo(null)}
+          onAssumir={async (substitutoId, nota) => {
+            const p = decidindo;
+            setDecidindo(null);
+            try {
+              await api(`/activities/substitutions/${p.id}/assign`, {
+                method: 'POST', body: JSON.stringify({ substitutoId, nota }),
+              });
+              await carregar();
+            } catch (e) {
+              setErro(e instanceof Error ? e.message : 'Não foi possível passar a atividade.');
+            }
+          }}
           onRecusar={async (motivo) => {
-            const p = recusando;
-            setRecusando(null);
+            const p = decidindo;
+            setDecidindo(null);
             try {
               await api(`/activities/substitutions/${p.id}/decline`, {
                 method: 'POST', body: JSON.stringify({ motivo }),
@@ -239,46 +255,5 @@ export function PainelPlantao({ houseId, casaLabel, papel }: {
         <Explica style={{ marginTop: 16 }}>{nota}</Explica>
       )}
     </>
-  );
-}
-
-/**
- * A folha da recusa.
- *
- * O motivo é obrigatório porque quem pediu vai lê-lo. "Recusado" sozinho, no
- * meio do plantão, é a resposta que faz a pessoa procurar o líder no corredor
- * — ou desistir de pedir da próxima vez.
- */
-function FolhaRecusa({ pedido, onFechar, onRecusar }: {
-  pedido: Pedido;
-  onFechar: () => void;
-  onRecusar: (motivo: string) => void;
-}) {
-  const [motivo, setMotivo] = useState(
-    pedido.semEfeito ? 'A atividade já foi concluída antes da autorização.' : '');
-  const pode = motivo.trim().length >= 5;
-
-  return (
-    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-rec"
-         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
-      <div className="sheet">
-        <h3 id="t-rec">Recusar o pedido</h3>
-        <p className="mutetxt">{pedido.atividade} · pedido por {pedido.pedidoPor}</p>
-
-        <label className="f" htmlFor="mrec">
-          O motivo <small>— quem pediu vai ler isto</small>
-        </label>
-        <textarea id="mrec" value={motivo} onChange={(e) => setMotivo(e.target.value)}
-                  placeholder="Ex.: não há substituto disponível neste turno; converse comigo antes do fim do plantão." />
-
-        <div className="row" style={{ gap: 8, marginTop: 16 }}>
-          <button type="button" className="btn sec grow" onClick={onFechar}>Cancelar</button>
-          <button type="button" className="btn grow" disabled={!pode}
-                  onClick={() => onRecusar(motivo.trim())}>
-            Recusar
-          </button>
-        </div>
-      </div>
-    </div>
   );
 }

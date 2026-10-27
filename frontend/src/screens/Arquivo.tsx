@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { api } from '../api';
 import { Icone } from '../icones';
 import { Explica } from '../explica';
+import { quantos } from '../../../backend/src/kernel/common/quantos';
 
 /**
  * ARQUIVO DOCUMENTAL (Drive institucional).
@@ -112,9 +113,10 @@ export function Arquivo({ houseId, papel }: { houseId: string; papel: string }) 
         '/archive/process', { method: 'POST', body: JSON.stringify({ limite: 5 }) });
       const ok = r.itens.filter((i) => i.situacao === 'verificado').length;
       const falhos = r.itens.filter((i) => i.situacao === 'falhou').length;
-      setAviso(`${r.processados} item(ns) processado(s): ${ok} verificado(s) no Drive`
-        + `${falhos ? `, ${falhos} ainda com falha` : ''}. O reenvio não duplica — mesmo `
-        + 'caminho e mesma versão substituem o mesmo arquivo.');
+      setAviso(`${quantos(r.processados, 'item processado', 'itens processados')}: `
+        + `${quantos(ok, 'verificado', 'verificados')} no Drive`
+        + `${falhos ? `, ${falhos} ainda com falha` : ''}. Reenviar não duplica: o mesmo `
+        + 'caminho e a mesma versão substituem o mesmo arquivo.');
       await carregar();
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Não foi possível processar a fila.');
@@ -168,7 +170,7 @@ export function Arquivo({ houseId, papel }: { houseId: string; papel: string }) 
             {conta.porCategoria.map((c) => (
               <div className="card row" key={c.categoria}>
                 <b className="ff grow">{c.categoria}</b>
-                <span className="pill c-ok">{c.verificado} verificado(s)</span>
+                <span className="pill c-ok">{quantos(c.verificado, 'verificado', 'verificados')}</span>
                 {Number(c.aguardando) > 0 && <span className="pill c-warn">{c.aguardando} na fila</span>}
                 {Number(c.falhou) > 0 && <span className="pill c-crit">{c.falhou} com falha</span>}
               </div>
@@ -199,7 +201,7 @@ export function Arquivo({ houseId, papel }: { houseId: string; papel: string }) 
               )}
               {a.situacao === 'falhou' && (
                 <div className="notice c-crit">
-                  {a.tentativas} tentativa(s). A equipe técnica e a coordenação foram
+                  {quantos(a.tentativas, 'tentativa', 'tentativas')}. A equipe técnica e a coordenação foram
                   avisadas. <b>O documento continua guardado no sistema</b>; só a cópia no
                   Drive não foi feita.
                 </div>

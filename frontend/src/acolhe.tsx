@@ -667,7 +667,7 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
     mudarRascunho(l.id, { estado: 'aprovado' });
     if (ligada) {
       r.fotos.forEach((f) => anexos.current.push(f));
-      pendenteParaOModelo.current.push(`[A pessoa aprovou o rascunho "${r.titulo}"${r.fotos.length ? `, com ${r.fotos.length} foto(s) anexada(s) à conversa` : ''}. O texto final, como ela deixou:\n${r.texto}]`);
+      pendenteParaOModelo.current.push(`[A pessoa aprovou o rascunho "${r.titulo}"${r.fotos.length ? `, com ${r.fotos.length === 1 ? '1 foto anexada' : `${r.fotos.length} fotos anexadas`} à conversa` : ''}. O texto final, como ela deixou:\n${r.texto}]`);
       void enviar('Aprovei o rascunho.');
       return;
     }

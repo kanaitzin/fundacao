@@ -11,6 +11,7 @@ import {
   folhaDoPeriodo, LinhaDoPeriodo, NumerosDoPeriodo, PeriodoDaCasa, RefeicaoDoPeriodo,
   SECOES_DO_PERIODO,
 } from './periodo-folha';
+import { quantos } from '../../kernel/common/quantos';
 
 /**
  * ============================================================================
@@ -277,8 +278,8 @@ export class PeriodoService {
     const r: string[] = [];
     if (n.ocorrenciasRestritas > 0 || n.notasRestritas > 0) {
       r.push(
-        `${n.ocorrenciasRestritas} ocorrência(s) de acesso restrito e ${n.notasRestritas} `
-        + 'observação(ões) restrita(s) de ATA foram registradas no período e constam apenas na '
+        `${quantos(n.ocorrenciasRestritas, 'ocorrência', 'ocorrências')} de acesso restrito e `
+        + `${quantos(n.notasRestritas, 'observação restrita', 'observações restritas')} de ATA foram registradas no período e constam apenas na `
         + 'contagem. O conteúdo pode ser consultado no registro eletrônico, pelos profissionais '
         + 'autorizados.');
     }

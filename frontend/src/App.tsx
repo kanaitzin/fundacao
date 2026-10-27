@@ -1076,8 +1076,7 @@ export function App() {
               )}
             </div>
             <p className="mutetxt" style={{ marginTop: 12 }}>
-              Você enxerga apenas as unidades do seu escopo. Não é filtro de tela: o banco
-              não devolve as demais.
+              Aqui estão as unidades em que você trabalha.
             </p>
           </>
         )}

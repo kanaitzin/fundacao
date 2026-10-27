@@ -5,6 +5,7 @@ import {
 } from '../fila-offline';
 import { tipoOffline } from '../../../backend/src/modules/sync/tipos-offline';
 import { Icone } from '../icones';
+import { quantos } from '../../../backend/src/kernel/common/quantos';
 
 /**
  * O QUE ESTE APARELHO AINDA NÃO MANDOU (§17.1, §17.2).
@@ -41,8 +42,8 @@ export function SeloDaFila() {
         title={estado.online ? 'O que ainda não subiu deste aparelho' : 'Sem internet'}
         aria-label={
           !estado.online
-            ? `Sem internet. ${total} registro(s) guardados neste aparelho.`
-            : `${total} registro(s) ainda não enviados`
+            ? `Sem internet. ${quantos(total, 'registro guardado', 'registros guardados')} neste aparelho.`
+            : `${quantos(total, 'registro ainda não enviado', 'registros ainda não enviados')}`
         }
         onClick={() => setAberta(true)}
       >
@@ -172,7 +173,7 @@ function Linha({ op, onTentar, onDescartar }: {
       <b className="ff">{rotulo}</b>
       <div className="mutetxt">
         Aconteceu {quando.toLocaleString('pt-BR')}
-        {op.tentativas > 0 && ` · ${op.tentativas} tentativa(s)`}
+        {op.tentativas > 0 && ` · ${quantos(op.tentativas, 'tentativa', 'tentativas')}`}
       </div>
       {op.motivo && <div className="estado"><span className="pill c-warn">{op.motivo}</span></div>}
       {(onTentar || onDescartar) && (

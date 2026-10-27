@@ -19,6 +19,7 @@ import { dia, horaSemSegundos } from '../rotulos';
 import { Icone } from '../icones';
 import { Avatar, esquecerFoto } from '../avatar';
 import { Explica } from '../explica';
+import { quantos } from '../../../backend/src/kernel/common/quantos';
 
 /**
  * OS ACOLHIDOS DA CASA e o PERFIL (§6, §13).
@@ -1005,7 +1006,7 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
             procurar num lugar sem proteção nenhuma. */}
         {p.documentosRestritos > 0 && (
           <p className="mutetxt" style={{ marginBottom: 0 }}>
-            Mais {p.documentosRestritos} documento(s) em área restrita ao seu cargo. Estão guardados,
+            Mais {quantos(p.documentosRestritos, 'documento', 'documentos')} em área restrita ao seu cargo. Estão guardados,
             e quem os consulta é a equipe técnica.
           </p>
         )}
@@ -1737,7 +1738,7 @@ function CompromissosDoAcolhido({ houseId, personId, nome }: { houseId: string; 
                 <b className="ff">{c.titulo}</b>
                 {c.local && <div className="mutetxt">{c.local}</div>}
                 {vezes > 1 && (
-                  <div className="mutetxt">E mais {vezes - 1} vez(es) até {dia(ultimo).slice(0, 5)}.</div>
+                  <div className="mutetxt">E mais {vezes - 1 === 1 ? 'uma vez' : `${vezes - 1} vezes`} até {dia(ultimo).slice(0, 5)}.</div>
                 )}
                 {c.desmarcada && <span className="pill c-mute">Desmarcado</span>}
               </div>
