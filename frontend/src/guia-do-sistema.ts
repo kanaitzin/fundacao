@@ -138,6 +138,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 250, dia: '27/10/2026',
+    texto: 'Quando uma ocorrência grave pede o relato de quem estava no turno, cada pessoa recebe no sino o aviso O seu relato foi pedido, com o botão que abre as Ocorrências. Escreva o que viu ou marque Não presenciei.' },
   { fase: 249, dia: '27/10/2026',
     texto: 'Os avisos do sino agora dizem em que tela continua e têm o botão Abrir, que leva até lá. Quando um registro feito sem internet não pode ser gravado, a equipe técnica e a coordenação são avisadas para decidir. E no atendimento de saúde, diga se a consulta é o retorno marcado: ele fica como Retorno feito e deixa de aparecer como data passada.' },
   { fase: 248, dia: '27/10/2026',

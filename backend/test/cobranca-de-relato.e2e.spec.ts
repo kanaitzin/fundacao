@@ -171,6 +171,21 @@ describe('A cobrança de relato numa ocorrência grave', () => {
     expect(r.body[0].entidade).toBe('incident');
   });
 
+  it('e recebe o aviso de que o relato foi pedido, sem o fato (1666)', async () => {
+    /* A cobrança só aparecia para quem abrisse a tela de Ocorrências: o
+       educador cobrado não era avisado, e a falta aparecia dias depois. */
+    await escalar(educador);
+    const o = await abrir('contencao');
+    const avisos = await request(http).get('/api/v1/notifications').set(auth(tokens.educador)).expect(200);
+    const doRelato = avisos.body.filter((n: any) => n.titulo === 'O seu relato foi pedido' && n.entidadeId === o.body.id);
+    expect(doRelato).toHaveLength(1);
+    expect(doRelato[0].entidade).toBe('incident');
+    expect(doRelato[0].texto).not.toMatch(/fictício registrado pela suíte/i);
+    // Quem abriu a ocorrência já está nela, e não recebe o aviso do próprio relato.
+    const doLider = await request(http).get('/api/v1/notifications').set(auth(tokens.lider)).expect(200);
+    expect(doLider.body.some((n: any) => n.titulo === 'O seu relato foi pedido' && n.entidadeId === o.body.id)).toBe(false);
+  });
+
   it('"Não presenciei" É responder: fica relato, e a cobrança fecha', async () => {
     await escalar(educador);
     const o = await abrir('erro_medicamento');

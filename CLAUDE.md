@@ -196,7 +196,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 27/10/2026, fase 249
+### Onde estamos — 27/10/2026, fase 250
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -309,8 +309,9 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 247 | **a conferência da instalação pergunta ao computador da Acolhe+AI** (o que faltava da 239): motor, endereço em `/v1`, se a máquina responde e se tem o modelo; sem um deles o serviço caía calado no modo guia |
 | 248 | **o dia a dia mais leve** (pedido de 27/10): cada cargo usado no protótipo às 23h e às 14h; o **Painel do plantão só recusava** a substituição (hoje passa ou recusa, com a folha do Dia) e tinha **uma segunda lista de quem decide, ainda com o gestor**; **mais de cem quantidades com parênteses** nas telas, avisos, folhas e protótipo (`quantos`, `a-quantidade-por-extenso.spec.ts`); a Portaria sem a orientação repetida em cada cartão; a regra das doses fora do vermelho; e o protótipo da noite (plantão das 07:00, cargo do Nélio, episódio da madrugada) |
 | 249 | **os caminhos sem fim** (pedido de 27/10): o **registro sem internet que não pôde ser gravado não avisava ninguém** (hoje avisa a técnica e a coordenação); o **sino dizia o nome cru da tabela** e não levava à tela (o `ONDE` do `Avisos.tsx`, o botão Abrir e o `todo-aviso-tem-destino.spec.ts`); e o **retorno médico marcado nunca terminava**, e a Saúde dizia *a reagendar* sobre a consulta feita (a folha pergunta de qual retorno é a consulta; nursing/1665) |
+| 250 | **o relato pedido chega a quem deve escrever**: a cobrança de relato da ocorrência grave só aparecia para quem abrisse as Ocorrências, e o educador cobrado não era avisado; hoje recebe *O seu relato foi pedido* (statements/1666) |
 
-**Medido no fim da 249:** 205 migrações, 144 tabelas, 160 suítes, 1416 testes; nas 237 e 238, a suíte inteira
+**Medido no fim da 250:** 206 migrações, 144 tabelas, 160 suítes, 1417 testes; nas 237 e 238, a suíte inteira
 verde (1363 de 1363, depois de consertar as três conferências que o relatório das vivências deixou soltas) e o
 `ensaio:uso` (739 cobranças, sem reprovação, com o relatório das vivências aberto e o Word baixado); **não rodou**
 nas 237 e 238 o relógio adiantado, o do celular, o de acessibilidade, o `ensaio:acolhe` nem a simulação contra o servidor;
@@ -419,6 +420,11 @@ posto em ordem no **PARA-A-REUNIAO §0**: as cinco perguntas que mais destravam,
 responder, os documentos de papel e os dados a receber, o que o DPO vê, o que se assina e as 30
 decisões de produto abertas. **Quando a resposta vier, ela entra lá e no §10 ou §11 do documento**, e
 o item respondido sai do §0.
+
+**FEITO — fase 250** (§2): o relato pedido chega a quem deve escrever. **Frase que promete aviso** (*a
+Enfermagem é avisada*) se confere contra o `publish` que a cumpre, e **pedido que espera resposta** contra quem
+responde e quem é avisado: foi assim que a cobrança de relato apareceu. **Aviso a uma pessoa** vai por
+`notice.requested` com `userId`, e não por nível. **Medido na 250:** a `cobranca-de-relato` (8 de 8, a nova reprova sem o aviso); a suíte inteira nas duas condições está rodando. **Próxima etapa:** a mesma da 247.
 
 **FEITO — fase 249** (§2, PARA-A-REUNIAO §4.36): os caminhos sem fim. **Aviso novo** (`escalation.requested`
 com `entity`) ganha a tela e a aba no `ONDE` do `Avisos.tsx`, no servidor e no protótipo; o

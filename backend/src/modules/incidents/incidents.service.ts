@@ -175,6 +175,8 @@ export class IncidentsService {
     }
     if (!input.quando) throw new BadRequestException('Informe a data e a hora do fato.');
 
+    /* Quem a cobrança acabou de pedir o relato (1666), para o aviso de cada um. */
+    let cobrados: string[] = [];
     const id = await this.db.asUser(user.id, async (c) => {
       if (input.clientOpId) {
         const { rows: [dup] } = await c.query(`SELECT id FROM incident WHERE client_op_id = $1`, [input.clientOpId]);
@@ -222,9 +224,10 @@ export class IncidentsService {
        * é a falha silenciosa que este trecho existe para impedir.
        */
       if (COBRA_RELATO.has(input.categoria)) {
-        await c.query(
+        const { rows: [cob] } = await c.query(
           `SELECT * FROM app_cobrar_relatos($1,'ocorrencia','incident',$2,$3,$4::timestamptz)`,
           [input.houseId, novoId, perguntaDoRelato(cat.label), input.quando]);
+        cobrados = (cob?.pessoas ?? []) as string[];
       }
       return novoId;
     }).catch((e: any) => {
@@ -241,6 +244,24 @@ export class IncidentsService {
       detail: { categoria: input.categoria, acolhidos: (input.acolhidos ?? []).length,
                 saude: input.saude ?? false, medicamento: input.medicamento ?? false },
     });
+
+    /*
+     * O RELATO PEDIDO CHEGA A QUEM DEVE ESCREVER (1666).
+     *
+     * A cobrança só aparecia para quem abrisse a tela de Ocorrências, e a falta
+     * aparecia dias depois, quando a técnica fosse montar a conversa. Cada
+     * pessoa cobrada recebe o seu aviso, sem o fato; quem abriu a ocorrência já
+     * está nela e não é avisado de novo.
+     */
+    for (const pessoa of cobrados.filter((u) => u !== user.id)) {
+      await this.bus.publish('notice.requested', {
+        userId: pessoa,
+        title: 'O seu relato foi pedido',
+        body: `Houve uma ocorrência na casa em que a equipe do turno é chamada a relatar (${cat.label}). `
+          + 'Escreva o que você viu em Ocorrências. Se não presenciou, marque Não presenciei.',
+        priority: 'alta', entity: 'incident', entityId: id,
+      }, { actorId: user.id, houseId: input.houseId });
+    }
 
     // §13.2 — avisar IMEDIATAMENTE líder, equipe técnica e coordenação; e a
     // Enfermagem quando há saúde ou medicamento. O Gestor Geral NÃO entra
