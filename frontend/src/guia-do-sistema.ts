@@ -138,6 +138,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 253, dia: '28/10/2026', aba: 'acolhidos',
+    texto: 'Conferimos o cadastro de uma criança de ponta a ponta, o perfil com as oito abas, os documentos do dossiê e todos os menus de todos os cargos. No protótipo, a criança cadastrada agora mostra só o que foi registrado, e o que se escreve na chegada (quem trouxe, a referência familiar e como chegou) aparece no perfil, na aba Judiciário.' },
   { fase: 252, dia: '28/10/2026',
     texto: 'Nada muda na tela. Para quem cuida do sistema: conferimos que todo registro que espera uma resposta tem como terminar e que tudo o que se grava chega a alguém, e corrigimos a descrição da substituição no documento das tabelas.' },
   { fase: 251, dia: '28/10/2026', aba: 'alinhamentos',

@@ -196,7 +196,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 28/10/2026, fase 252
+### Onde estamos — 28/10/2026, fase 253
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -312,6 +312,7 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 250 | **o relato pedido chega a quem deve escrever**: a cobrança de relato da ocorrência grave só aparecia para quem abrisse as Ocorrências, e o educador cobrado não era avisado; hoje recebe *O seu relato foi pedido* (statements/1666) |
 | 251 | **o aviso leva a uma tela que quem o recebe abre**: o combinado da reunião era avisado ao Líder Noturno Geral, que responde a pauta, e a tela dos Combinados não estava no mapa dele (`alcance.ts`); o cruzamento aviso, nível, cargo e tela virou teste (`todo-aviso-tem-destino`) |
 | 252 | **o que nasce aberto e o que ninguém lê**: as 54 colunas de fim contra todo `UPDATE` e `INSERT`, e cada tabela contra toda leitura; nada fica aberto para sempre nem sem chegar a alguém, e a `substitution_request.acknowledged_at`, que dizia ciência do substituto e nunca foi escrita, ganhou o comentário certo (activities/1667) |
+| 253 | **o cadastro, o perfil, os documentos e os menus** (pedido de 28/10): oito cargos, 146 telas, 167 abas e 21 perfis sem achado; nenhum ensaio passava pelo Cadastrar acolhido, e no protótipo a criança cadastrada **perdia a ficha da chegada e ganhava uma história que ninguém registrou** (família, visitas, escola, PIA, memória, o dia de hoje); consertado (`ehNova`) e no `ensaio:uso` |
 
 **Medido no fim da 252:** 207 migrações, 144 tabelas, 160 suítes, 1418 testes; nas 237 e 238, a suíte inteira
 verde (1363 de 1363, depois de consertar as três conferências que o relatório das vivências deixou soltas) e o
@@ -422,6 +423,12 @@ posto em ordem no **PARA-A-REUNIAO §0**: as cinco perguntas que mais destravam,
 responder, os documentos de papel e os dados a receber, o que o DPO vê, o que se assina e as 30
 decisões de produto abertas. **Quando a resposta vier, ela entra lá e no §10 ou §11 do documento**, e
 o item respondido sai do §0.
+
+**FEITO — fase 253** (§2, PARA-A-REUNIAO §4.37): o cadastro, o perfil, os documentos e os menus conferidos, a
+pedido de 28/10. **Dado de fábrica do protótipo é das crianças semeadas**: o que o servidor de mentira inventa para
+uma criança (escola, PIA, família, visitas, memória, dia) passa pelo `ehNova(k)`, e a criança cadastrada na
+demonstração mostra só o que foi registrado; **semeador tardio** (que roda na primeira abertura de uma tela) roda
+antes do cadastro. **Depende da Fundação:** onde mostrar a referência familiar escrita no cadastro. **Medido na 253:** os percursos de menus e perfis (oito cargos, 146 telas, 167 abas, 21 perfis e 198 abas, sem achado), o cadastro de ponta a ponta com a coordenação e a técnica, o `ensaio:acolhe` (todas as telas e formulários dos nove cargos), o de acessibilidade (1320 telas, nenhuma violação), a Casa 03 em trinta dias contra o servidor (onze contas, sem achado) e as conferências da documentação; o `ensaio:uso` com o bloco novo está rodando. **Próxima etapa:** a mesma da 247.
 
 **FEITO — fase 252** (§2): as colunas de fim e as tabelas sem leitor, medidas. **Coluna de fim nova** (`*_at`
 de fechado, respondido, decidido) nasce com quem a escreve; **tabela nova** nasce com quem a lê, ou com o motivo de

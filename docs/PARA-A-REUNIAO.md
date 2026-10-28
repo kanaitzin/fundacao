@@ -969,6 +969,20 @@ acontecido. Ficam duas escolhas:
    Enfermagem marca *retorno desmarcado*, com o motivo, e o atendimento continua guardado
    como estava. (Hoje: só a consulta fecha.)
 
+## 4.37 O cadastro, o perfil e os menus conferidos (fase 253, 28/10)
+
+Percorri o protótipo com os oito cargos (146 telas, 167 abas internas, 21 perfis com as oito abas
+e o dossiê) e cadastrei uma criança pela tela, de ponta a ponta, com a coordenação e com a técnica:
+os quatro passos, os sete formulários do perfil, um documento em cada um dos 25 itens do dossiê, a
+conferência e a correção do cadastro. Os menus e as abas estão certos. Os defeitos eram do
+protótipo e foram consertados (§2 do documento, linha 253). Fica uma escolha:
+
+1. **A referência familiar escrita no cadastro aparece só na aba Judiciário**, no bloco *Como ela
+   chegou*. Na aba Geral, a parte da família diz *Nenhum familiar cadastrado ainda* até alguém
+   acrescentar um contato. Quem está de plantão à noite pode ler isso como criança sem referência
+   nenhuma. A proposta: na aba Geral e na Família e visitas, enquanto não houver contato, mostrar
+   *Referência escrita no cadastro: …*, com o que a técnica escreveu. (Hoje: só no Judiciário.)
+
 ## 5. As decisões que são do Marcelo *(§10 — responda pelo número)*
 
 Nenhuma é problema de código. **Sobra uma só, a 5** (a grade para a parede), que é escolha da casa.

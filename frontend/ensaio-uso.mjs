@@ -5161,6 +5161,80 @@ console.log('\n📒 O relatório das vivências em Word (fase 237)');
   await pgV.close();
 }
 
+/*
+ * A CRIANÇA CADASTRADA PELA TELA, DE PONTA A PONTA (fase 253, pedido de 28/10:
+ * "registrar o perfil e os docs tudo certinho"). Nenhum ensaio passava pelo
+ * Cadastrar acolhido. A primeira rodada achou a ficha da chegada sumindo do
+ * perfil, e a criança de minutos atrás com escola, PIA, família, seis meses de
+ * visitas, memória e o dia de hoje que ninguém registrou.
+ */
+console.log('\n🧒 A criança cadastrada pela tela (fase 253)');
+{
+  const pgK = await navegador.newPage({ viewport: { width: 420, height: 900 } });
+  const errosK = [];
+  pgK.on('pageerror', (e) => errosK.push(e.message));
+  const esp = (ms = 800) => pgK.waitForTimeout(ms);
+  const mainK = () => pgK.locator('main.conteudo');
+  const texto = async () => (await mainK().innerText().catch(() => '')).replace(/\s+/g, ' ');
+  const abaK = async (n) => { await mainK().locator('nav.abas-perfil [role=tab]').filter({ hasText: n }).first().click(); await esp(600); return texto(); };
+  await pgK.goto(`file://${ARQUIVO}`); await esp(700);
+  await pgK.getByRole('button', { name: 'Marcelo Barbosa', exact: true }).click();
+  await pgK.getByRole('button', { name: /Entrar no sistema/i }).click(); await esp(1200);
+  cargoAtual = 'coordenador';
+  await pgK.locator('select.troca-cargo-sel').selectOption('coordenador'); await esp(900);
+  await pgK.getByRole('button', { name: /^Acolhidos/ }).filter({ visible: true }).first().click(); await esp(900);
+  await mainK().getByRole('button', { name: /^Cadastrar acolhido/ }).click(); await esp(700);
+  await pgK.locator('#cpf').fill('52998224725');
+  await pgK.getByRole('button', { name: /^Conferir$/ }).click(); await esp(600);
+  await pgK.locator('#nome').fill('Teodoro Fictício da Silva'); await pgK.locator('#social').fill('Teodoro');
+  await pgK.locator('#nasc').fill('2016-03-14'); await pgK.locator('#nat').fill('Porto Alegre/RS');
+  await pgK.getByRole('button', { name: /^Continuar$/ }).click(); await esp(400);
+  await pgK.locator('#trz').fill('Conselho Tutelar da região leste (fictício)');
+  await pgK.locator('#ref').fill('Avó materna, Dona Lurdes (fictícia), autorizada a visitar.');
+  await pgK.locator('#cui').fill('Usa óculos para ler; dorme com a luz do corredor acesa.');
+  await pgK.locator('#obs').fill('Chegou com uma mochila e o caderno da escola.');
+  if (await pgK.locator('#mcap').count()) await pgK.locator('#mcap').fill('Irmão de acolhido já na casa; separar os dois seria pior.');
+  await pgK.getByRole('button', { name: /^Continuar$/ }).click(); await esp(400);
+  for (const id of ['mot', 'org']) {
+    const v = await pgK.locator(`#${id} option`).evaluateAll((os) => os.map((o) => o.value).filter(Boolean));
+    await pgK.locator(`#${id}`).selectOption(v[0]);
+  }
+  await pgK.getByRole('button', { name: /^Continuar$/ }).click(); await esp(400);
+  cobrar('a conferência do cadastro mostra o nome, o nascimento e quem trouxe',
+    /Teodoro/.test(await texto()) && /14\/03\/2016/.test(await texto()) && /Conselho Tutelar/.test(await texto()));
+  await mainK().getByRole('button', { name: /^Cadastrar acolhido$/ }).click(); await esp(1500);
+  cobrar('o cadastro grava e abre o perfil da criança', /Teodoro/.test(await texto()) &&
+    !(await mainK().locator('.notice.c-crit[role=alert]').count()));
+  const geral = await abaK('Geral');
+  cobrar('a criança de agora está na casa e no acolhimento desde hoje', /há 0 dias/.test(geral) && !/há \d+ meses/.test(geral), geral.slice(0, 400));
+  cobrar('sem escola, PIA ou equipe que ninguém informou', /Escola não informada/.test(geral) && /Sem PIA/.test(geral) && !/EMEF/.test(geral), geral.slice(0, 500));
+  cobrar('os cuidados escritos no cadastro aparecem na Geral', /luz do corredor acesa/.test(geral));
+  cobrar('e nenhuma memória de fábrica', /memórias guardadas 0/.test(geral), geral.slice(0, 600));
+  const familia = await abaK('Família');
+  cobrar('sem família nem visitas que ninguém registrou', /Nenhum contato cadastrado/.test(familia) && /desde o início: 0/.test(familia), familia.slice(0, 500));
+  const dia = await abaK('Dia a dia');
+  cobrar('o dia a dia dela é só o que alguém registrou', /Nada registrado sobre Teodoro neste dia/.test(dia), dia.slice(0, 300));
+  const jud = await abaK('Judiciário');
+  cobrar('a ficha da chegada vai para o perfil: quem trouxe, a referência e como chegou',
+    /Conselho Tutelar da região leste/.test(jud) && /Dona Lurdes/.test(jud) && /mochila e o caderno/.test(jud), jud.slice(0, 500));
+  await abaK('Documentos');
+  await mainK().getByRole('button', { name: /Dossiê: documentos e vivências/ }).click(); await esp(1100);
+  const certidao = mainK().locator('li').filter({ hasText: /Certidão de nascimento/ }).first();
+  await certidao.getByRole('button', { name: /Anexar/ }).click(); await esp(500);
+  await pgK.locator('#anx-arq-arquivo').setInputFiles({ name: 'certidao.pdf', mimeType: 'application/pdf',
+    buffer: Buffer.from('%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF') }); await esp(500);
+  await pgK.locator('#anx-tit').fill('Certidão de nascimento');
+  await pgK.locator('.overlay .sheet .rodape button:not(.sec)').last().click(); await esp(900);
+  cobrar('a certidão anexada aparece no item do dossiê', /certidao\.pdf/.test((await certidao.innerText()).replace(/\s+/g, ' ')));
+  await pgK.getByRole('button', { name: /← Perfil/ }).first().click(); await esp(700);
+  cobrar('e na lista da aba Documentos', /Certidão de nascimento/.test(await abaK('Documentos')));
+  await pgK.locator('select.troca-cargo-sel').selectOption('educador'); await esp(900);
+  await pgK.getByRole('button', { name: /^Acolhidos/ }).filter({ visible: true }).first().click(); await esp(900);
+  cobrar('o educador da casa encontra a criança nova na lista', /Teodoro/.test(await texto()));
+  cobrar('nenhuma exceção no cadastro', errosK.length === 0, errosK[0]);
+  await pgK.close();
+}
+
 await navegador.close();
 console.log(achados.length
   ? `\n${achados.length} ACHADO(S):\n  ${achados.join('\n  ')}`

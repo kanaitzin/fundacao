@@ -4255,15 +4255,21 @@ const ROTULO_DETALHE: Record<string, string> = {
   escolaEndereco: 'Endereço da escola', equipeReferencia: 'Equipe de referência',
   observacoes: 'Observações',
 };
+/** A criança cadastrada nesta demonstração, que não tem história semeada (fase 253). */
+function ehNova(k: Kid): boolean { return NOVOS.includes(k); }
+
 /** O que está valendo: o de fábrica da criança, coberto pelo que foi editado. */
 function detalheDe(k: Kid): Record<string, string | null> {
+  /* A criança cadastrada nesta demonstração não tem escola nem equipe de fábrica
+     (fase 253): o cadastro não pergunta, e quem preenche é o Atualizar escola. */
+  const nova = ehNova(k);
   return {
     cuidadosEssenciais: k.cuidado ?? null,
-    escolaNome: 'EMEF Vila Nova (fictícia)',
-    escolaSerie: k.serie,
-    escolaTurno: k.turno,
-    escolaEndereco: 'Rua Fictícia, 100 — Porto Alegre/RS',
-    equipeReferencia: 'Equipe técnica Casa 03',
+    escolaNome: nova ? null : 'EMEF Vila Nova (fictícia)',
+    escolaSerie: nova ? null : k.serie,
+    escolaTurno: nova ? null : k.turno,
+    escolaEndereco: nova ? null : 'Rua Fictícia, 100 — Porto Alegre/RS',
+    equipeReferencia: nova ? null : 'Equipe técnica Casa 03',
     observacoes: null,
     ...(DETALHE[k.id] ?? {}),
   };
@@ -6210,7 +6216,9 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     const entre = (de: string, ate: string) =>
       Math.round((Date.parse(`${ate}T12:00:00Z`) - Date.parse(`${de}T12:00:00Z`)) / 86_400_000);
     const ep = (k.episodios ?? []).find((e: any) => !e.ended_at) ?? null;
-    const acolhidaDesde = ep?.started_at ?? '2026-02-28';
+    /* A criança cadastrada no protótipo não tem episódio semeado: o acolhimento
+       começa no dia da ficha da chegada (fase 253), e não sete meses atrás. */
+    const acolhidaDesde = ep?.started_at ?? ACOLHIMENTOS[k.id]?.ingressoEm ?? '2026-02-28';
     const casaDesde = '2026-02-28' > acolhidaDesde ? '2026-02-28' : acolhidaDesde;
     const semente = [...String(k.id)].reduce((t, c) => t + c.charCodeAt(0), 0);
     const deHoje = DOSES.filter((d) => d.personId === k.id);
@@ -6225,8 +6233,14 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         acolhidaDesde, diasNoAcolhimento: entre(acolhidaDesde, HOJE), episodio: ep?.number ?? 1,
         episodios: (k.episodios ?? []).length || 1, casaDesde, diasNaCasa: entre(casaDesde, HOJE),
         casasNesteAcolhimento: 1,
+        /* Como o servidor: quem lê o PIA recebe a data dele, e a criança cadastrada
+           nesta demonstração ainda não tem PIA anexado (fase 253). */
         pia: ['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)
-          ? (() => { const vence = emDias(40 + (semente % 90) - 30).slice(0, 10); return { vence, dias: entre(HOJE, vence) }; })()
+          ? (ehNova(k)
+              ? (() => { const vence = DOSSIE_DOCS.filter((d) => d.personId === k.id && d.chave === 'pia' && d.validoAte)
+                    .map((d) => d.validoAte!).sort().pop() ?? null;
+                  return { vence, dias: vence ? entre(HOJE, vence) : null }; })()
+              : (() => { const vence = emDias(40 + (semente % 90) - 30).slice(0, 10); return { vence, dias: entre(HOJE, vence) }; })())
           : null,
       },
       saude: {
@@ -6885,10 +6899,13 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       const pid = String(q.get('personId'));
       const k = todosKids().find((x) => x.id === pid);
       const data = String(q.get('date') || HOJE);
+      /* A criança cadastrada nesta demonstração não tem dia sorteado (fase 253): o
+         dia a dia dela é só o que alguém registrou. */
+      const sorteado = (d: string) => (k && ehNova(k) ? [] : diaDaCrianca(d, pid, k?.nome ?? ''));
       const eventos = data === HOJE
         ? [...LINHA.filter((e) => e.personId === pid).map((e) => ({ ...e, actions: [], note: null })),
-           ...diaDaCrianca(data, pid, k?.nome ?? '').filter((e) => Date.parse(e.at) <= Date.now())]
-        : diaDaCrianca(data, pid, k?.nome ?? '');
+           ...sorteado(data).filter((e) => Date.parse(e.at) <= Date.now())]
+        : sorteado(data);
       return { data, modo: 'individual', incompleta: false, fontesIndisponiveis: [],
         resumo: { total: eventos.length, criticos: 0, atencao: 0, individuais: eventos.length, coletivos: 0 },
         eventos };
@@ -9387,7 +9404,28 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         guia: b.judicial?.guideNumber ?? '', guiaEm: b.judicial?.guideDate ?? '',
       },
     };
+    /* A HISTÓRIA FICTÍCIA É SÓ DE QUEM JÁ ESTAVA (fase 253). As visitas de seis
+       meses são semeadas na primeira vez que alguém abre a Portaria ou as visitas,
+       para todas as crianças daquele momento: a criança cadastrada antes disso
+       ganhava seis meses de visitas que não viveu, e uma família inventada (os
+       contatos nascem do `familiaDe` para quem não tem nenhum). Semeia antes,
+       e a criança nova começa sem contato. */
+    semearVisitas();
     NOVOS.push(novo);
+    CONTATOS[novo.id] = [];
+    /* A FICHA DA CHEGADA, como o servidor grava em `admission_record` (fase 253).
+       Sem isto a criança cadastrada no protótipo nascia sem "Como ela chegou" e
+       sem a referência familiar que a técnica acabou de escrever. */
+    const ac = b.acolhimento ?? {};
+    ACOLHIMENTOS[novo.id] = {
+      ingressoEm: String(ac.admittedOn ?? HOJE).slice(0, 10),
+      conduzidoPor: ac.broughtBy ?? '', municipioOrigem: ac.originCity ?? '',
+      acolhimentoAnterior: ac.previousShelter ?? null, irmaos: ac.siblingsNote ?? null,
+      referenciaFamiliar: ac.familyReference ?? null, chegada: ac.arrivalNote ?? '',
+      acimaDoLimite: acima, justificativaLimite: acima ? String(ac.capacityReason ?? '') : null,
+      ...(semCpf ? { motivoProvisorio: String(ac.provisionalReason ?? '') } : {}),
+      cadastradoPor: eu.fullName, cadastradoEm: new Date().toISOString(),
+    };
     return {
       personId: novo.id, episodeId: uid(), episodio: 1, cpfPendente: semCpf,
       acimaDoLimite: acima, capacidade: 20, ocupadas: todosKids().length,
@@ -10331,7 +10369,8 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       id: k.id, nome: k.nome, nomeCivil: k.civil, nomeSocial: k.nome, idade: k.idade,
       nascimento: k.nascimento, cpf: k.semCpf ? null : '***.***.123-**',
       cpfPendente: !!k.semCpf, idProvisorio: k.provisorio ?? null,
-      casaAtual: { id: CASA.id, codigo: CASA.code, nome: CASA.name, desde: '2026-02-28' },
+      casaAtual: { id: CASA.id, codigo: CASA.code, nome: CASA.name,
+                   desde: ehNova(k) ? ACOLHIMENTOS[k.id]?.ingressoEm ?? HOJE : '2026-02-28' },
       noAcervo: false,
       alertasEssenciais: alertasDe(k),
       condicoesSaude: [...(k.alerta ? [{ id: `h1-${k.id}`, kind: k.alerta.tipo, description: k.alerta.descricao,
@@ -10354,8 +10393,10 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       observacoes: ['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)
         ? detalheDe(k).observacoes : undefined,
       episodios: k.episodios
-        ?? [{ number: 1, started_at: '2026-02-28', ended_at: null, end_reason: null, status: 'ativo' }],
-      documentos: podeDoc ? [
+        ?? [{ number: 1, started_at: ehNova(k) ? ACOLHIMENTOS[k.id]?.ingressoEm ?? HOJE : '2026-02-28',
+              ended_at: null, end_reason: null, status: 'ativo' }],
+      /* Os documentos e a memória de fábrica são das crianças semeadas (fase 253). */
+      documentos: podeDoc && !ehNova(k) ? [
         { id: 'doc1', category: 'saude', title: 'Receita em vigência', issued_on: '2026-08-01', valid_until: null },
         { id: 'doc2', category: 'escolar', title: 'Boletim do semestre', issued_on: '2026-07-15', valid_until: null },
         ...(restritos === 0 ? [
@@ -10384,7 +10425,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         ? CAMPOS_DO_PERFIL.filter((c) => CAMPOS_DESLIGADOS[c.code])
             .map((c) => ({ code: c.code, rotulo: c.rotulo, ...CAMPOS_DESLIGADOS[c.code] }))
         : [],
-      memorias: [{ id: 'mem1', event_type: 'aniversário', happened_on: '2026-07-14',
+      memorias: ehNova(k) ? [] : [{ id: 'mem1', event_type: 'aniversário', happened_on: '2026-07-14',
                    description: 'Comemoração na casa com bolo escolhido pelo grupo.',
                    has_photo: false, photo_authorized: false }],
       beneficios: { acessivel: ['coordenador', 'gestor_geral'].includes(eu.role),
