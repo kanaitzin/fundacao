@@ -14,7 +14,8 @@
  */
 import * as ts from 'typescript';
 import { readdirSync, readFileSync, statSync } from 'fs';
-import { join } from 'path';
+import { join, relative } from 'path';
+import { ALCANCE_POR_CARGO } from '../src/modules/identity/alcance';
 
 const RAIZ = join(__dirname, '..', '..');
 
@@ -83,7 +84,100 @@ function tiposDoPrototipo(): Set<string> {
   return new Set([...`${semeados}\n${novos}`.matchAll(/entidade: '([a-z_]+)'/g)].map((m) => m[1]));
 }
 
+/**
+ * Os cargos de cada nível de aviso, lidos das migrações das notificações (0290 e
+ * as seguintes). A Coordenação Geral não tem cargo próprio: é a coordenação com a
+ * marca das oito casas (1634).
+ */
+function cargosDosNiveis(): Map<string, string[]> {
+  const dir = join(RAIZ, 'backend', 'src', 'modules', 'notifications', 'migrations');
+  const mapa = new Map<string, string[]>();
+  for (const f of readdirSync(dir).sort()) {
+    const sql = readFileSync(join(dir, f), 'utf8');
+    for (const m of sql.matchAll(/\('([a-z_]+)',\s*ARRAY\[([^\]]*)\]/g)) {
+      mapa.set(m[1], [...m[2].matchAll(/'([a-z_]+)'/g)].map((x) => x[1]));
+    }
+  }
+  if (mapa.has('coordenacao_geral')) mapa.set('coordenacao_geral', ['coordenador']);
+  return mapa;
+}
+
+/**
+ * Os níveis de um aviso: o texto fixo, as duas pontas de um `? :`, ou a lista do
+ * laço que o envolve (`for (const level of ['equipe', 'lider_noturno'])`, ou de
+ * uma constante do arquivo, com os `push` dela). O que não se lê volta vazio, e
+ * reprova: nível que a conferência não sabe ler é nível que ninguém conferiu.
+ */
+function niveisDe(no: ts.ObjectLiteralExpression, src: ts.SourceFile): string[] {
+  const lv = no.properties.find((p) => p.name?.getText() === 'level');
+  if (!lv) return [];
+  const textos = (n: ts.Node): string[] => {
+    if (ts.isStringLiteral(n)) return [n.text];
+    if (ts.isConditionalExpression(n)) return [...textos(n.whenTrue), ...textos(n.whenFalse)];
+    if (ts.isAsExpression(n)) return textos(n.expression);
+    if (ts.isArrayLiteralExpression(n)) return n.elements.flatMap(textos);
+    return [];
+  };
+  if (ts.isPropertyAssignment(lv) && !ts.isIdentifier(lv.initializer)) return textos(lv.initializer);
+  const nome = ts.isPropertyAssignment(lv) ? lv.initializer.getText() : lv.name!.getText();
+  for (let p: ts.Node | undefined = no.parent; p; p = p.parent) {
+    if (ts.isForOfStatement(p) && p.initializer.getText().endsWith(nome)) {
+      if (ts.isArrayLiteralExpression(p.expression)) return textos(p.expression);
+      const lista = p.expression.getText();
+      const achados: string[] = [];
+      const visita = (n: ts.Node) => {
+        if (ts.isVariableDeclaration(n) && n.name.getText() === lista && n.initializer) achados.push(...textos(n.initializer));
+        if (ts.isCallExpression(n) && n.expression.getText() === `${lista}.push`) achados.push(...n.arguments.flatMap(textos));
+        ts.forEachChild(n, visita);
+      };
+      visita(src);
+      return achados;
+    }
+  }
+  return [];
+}
+
 describe('Todo aviso tem destino', () => {
+  it('quem recebe o aviso alcança a tela para onde ele leva', () => {
+    /* O combinado da reunião era avisado de propósito ao Líder Noturno Geral, que
+       também responde a pauta (fase 94), e a tela dos Combinados não estava no
+       mapa dele: o aviso levava a uma porta que ele não abria (fase 251). */
+    const destinos = destinosDoSino();
+    const niveis = cargosDosNiveis();
+    const alcance = new Map(ALCANCE_POR_CARGO.map((a) => [a.cargo, new Set(a.areas.map((x) => x.area))]));
+    const problemas: string[] = [];
+    let conferidos = 0;
+    for (const f of arquivos(join(RAIZ, 'backend', 'src'))) {
+      const src = ts.createSourceFile(f, readFileSync(f, 'utf8'), ts.ScriptTarget.Latest, true);
+      const visita = (no: ts.Node) => {
+        if (ts.isObjectLiteralExpression(no)) {
+          const en = no.properties.find((p) => p.name?.getText() === 'entity');
+          const temNivel = no.properties.some((p) => p.name?.getText() === 'level');
+          if (temNivel && en && ts.isPropertyAssignment(en) && ts.isStringLiteral(en.initializer)) {
+            const onde = `${relative(RAIZ, f)}:${src.getLineAndCharacterOfPosition(no.getStart()).line + 1}`;
+            const aba = destinos.get(en.initializer.text);
+            const lidos = niveisDe(no, src);
+            if (!lidos.length) problemas.push(`${onde} o nível do aviso não se lê`);
+            for (const nivel of lidos) {
+              const cargos = niveis.get(nivel);
+              if (!cargos) { problemas.push(`${onde} nível ${nivel} não existe`); continue; }
+              conferidos += 1;
+              for (const c of cargos) {
+                if (aba && !alcance.get(c)?.has(aba)) {
+                  problemas.push(`${onde} ${en.initializer.text} leva a ${aba}, e ${c} (nível ${nivel}) não alcança`);
+                }
+              }
+            }
+          }
+        }
+        ts.forEachChild(no, visita);
+      };
+      visita(src);
+    }
+    expect(conferidos).toBeGreaterThan(20);
+    expect(problemas).toEqual([]);
+  });
+
   it('os avisos do protótipo também têm destino no sino', () => {
     const destinos = destinosDoSino();
     const tipos = tiposDoPrototipo();

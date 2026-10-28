@@ -3038,6 +3038,25 @@ cobrar('e não conta mais o retorno como data passada', !/com a data já passada
 cobrar('nenhuma exceção no retorno', erros.length === 0, erros[0]);
 await fechar();
 
+// ====================================================== Os combinados chegam ao Líder Noturno (fase 251)
+/*
+ * O combinado novo da reunião é avisado ao Líder Noturno Geral, e é ele quem
+ * responde a pauta que o educador da noite propõe (fase 94). A tela dos
+ * Combinados não estava no mapa dele: o aviso levava a uma porta que ele não abria.
+ */
+console.log('\n🌙 Os combinados chegam ao Líder Noturno');
+await fechar();
+await trocar('lider_noturno_geral');
+erros.length = 0;
+const abriuComb = await aba('Combinados') || await doMais('Combinados');
+cobrar('o Líder Noturno Geral alcança os Combinados da equipe', abriuComb);
+const comb251 = abriuComb ? await pg.locator('main.conteudo').innerText() : '';
+cobrar('e lê os combinados da casa', /combinad/i.test(comb251), comb251.slice(0, 300));
+cobrar('e não vê como registrar reunião, que é da técnica e da coordenação',
+  !(await pg.locator('main.conteudo button', { hasText: /Registrar uma reunião/ }).count()));
+cobrar('nenhuma exceção nos Combinados do noturno', erros.length === 0, erros[0]);
+await fechar();
+
 // ====================================================== O portão (fase 160)
 /*
  * A PORTARIA ENTRA COM LOGIN MÍNIMO (decisão de 26/09). O que se cobra é o que

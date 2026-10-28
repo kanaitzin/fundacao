@@ -467,6 +467,12 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
         faz: 'Abre, preenche casa a casa e assina.',
         servidor: 'Casa sem chamado também entra, com a noite tranquila registrada.' },
       { area: 'ocorrencias', titulo: AREAS.ocorrencias, faz: 'Abre e encerra a etapa operacional.' },
+      /* Os combinados chegam a ele por aviso, e é ele quem responde a pauta que o
+         educador da noite propõe (fase 94); sem a área, o aviso levava a uma tela
+         que ele não abria (fase 251). */
+      { area: 'alinhamentos', titulo: AREAS.alinhamentos,
+        faz: 'Lê os combinados das casas que alcança e responde a pauta que o educador da noite propõe.',
+        servidor: 'Registrar reunião e combinado é da equipe técnica e da coordenação.' },
       { area: 'unidades', titulo: AREAS.unidades, faz: 'O dia das unidades, em ordem.' },
       { area: 'dia', titulo: AREAS.dia, faz: 'Vê o dia da casa que está acompanhando.' },
       { area: 'chamada', titulo: AREAS.chamada, faz: 'Confere a chamada da noite.' },
@@ -571,9 +577,6 @@ export const ALCANCE_POR_CARGO: Alcance[] = [
         faz: 'Abre e encerra a internação, e designa o educador que acompanha as visitas.' },
       { area: 'saude', titulo: AREAS.saude, faz: 'Acompanha o painel; não assina evolução.',
         servidor: 'Deixa o remédio da receita como rascunho, com a foto; quem ativa é a Enfermagem.' },
-      { area: 'alinhamentos', titulo: AREAS.alinhamentos,
-        faz: 'Lê o que a equipe combinou, inclusive o que foi decidido em reunião em que não esteve.',
-        servidor: 'Registrar reunião e combinado é da equipe técnica e da coordenação.' },
       { area: 'alinhamentos', titulo: AREAS.alinhamentos,
         faz: 'Registra a reunião e os combinados, e encerra um combinado com o motivo escrito.',
         servidor: 'Para mudar um combinado, registra-se outro; a mudança fica com autor e motivo.' },
