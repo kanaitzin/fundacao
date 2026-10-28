@@ -9393,6 +9393,11 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       idade: Math.max(0, new Date().getFullYear() - Number(nasc.slice(0, 4))),
       cuidado: b.pessoa?.essentialCare, serie: '—', turno: '—',
       semCpf, provisorio: semCpf ? `PROV-${uid().toUpperCase()}` : undefined,
+      /* A identificação complementar que o cadastro pede (fase 253): sem isto a
+         criança cadastrada no protótipo perdia o gênero, a naturalidade e o NIS. */
+      genero: b.pessoa?.gender || undefined, raca: b.pessoa?.race || undefined,
+      naturalidade: b.pessoa?.birthplace || undefined, nis: b.pessoa?.nis || undefined,
+      registroCivil: b.pessoa?.civilRegistry || undefined,
       judicial: {
         motivo: (responder('/people/admission/options', [], q, {}, 'GET') as any)
           .motivos.find((m: any) => m.cod === b.judicial?.reasonCategory)?.label ?? '—',

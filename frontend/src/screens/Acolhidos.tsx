@@ -811,8 +811,10 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
   }
 
   if (dossie) {
+    /* A volta relê o perfil (fase 253): o documento anexado no dossiê tem de
+       estar na lista da aba Documentos, e não só depois de sair e entrar de novo. */
     return <Dossie personId={personId} nome={p.nome} papel={papel}
-                   onVoltar={() => setDossie(false)} />;
+                   onVoltar={() => { setDossie(false); void recarregar(); }} />;
   }
 
   const leAtendimento = QUEM_LE_ATENDIMENTO.includes(papel);
