@@ -196,7 +196,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 28/10/2026, fase 251
+### Onde estamos — 28/10/2026, fase 252
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -311,8 +311,9 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 249 | **os caminhos sem fim** (pedido de 27/10): o **registro sem internet que não pôde ser gravado não avisava ninguém** (hoje avisa a técnica e a coordenação); o **sino dizia o nome cru da tabela** e não levava à tela (o `ONDE` do `Avisos.tsx`, o botão Abrir e o `todo-aviso-tem-destino.spec.ts`); e o **retorno médico marcado nunca terminava**, e a Saúde dizia *a reagendar* sobre a consulta feita (a folha pergunta de qual retorno é a consulta; nursing/1665) |
 | 250 | **o relato pedido chega a quem deve escrever**: a cobrança de relato da ocorrência grave só aparecia para quem abrisse as Ocorrências, e o educador cobrado não era avisado; hoje recebe *O seu relato foi pedido* (statements/1666) |
 | 251 | **o aviso leva a uma tela que quem o recebe abre**: o combinado da reunião era avisado ao Líder Noturno Geral, que responde a pauta, e a tela dos Combinados não estava no mapa dele (`alcance.ts`); o cruzamento aviso, nível, cargo e tela virou teste (`todo-aviso-tem-destino`) |
+| 252 | **o que nasce aberto e o que ninguém lê**: as 54 colunas de fim contra todo `UPDATE` e `INSERT`, e cada tabela contra toda leitura; nada fica aberto para sempre nem sem chegar a alguém, e a `substitution_request.acknowledged_at`, que dizia ciência do substituto e nunca foi escrita, ganhou o comentário certo (activities/1667) |
 
-**Medido no fim da 251:** 206 migrações, 144 tabelas, 160 suítes, 1418 testes; nas 237 e 238, a suíte inteira
+**Medido no fim da 252:** 207 migrações, 144 tabelas, 160 suítes, 1418 testes; nas 237 e 238, a suíte inteira
 verde (1363 de 1363, depois de consertar as três conferências que o relatório das vivências deixou soltas) e o
 `ensaio:uso` (739 cobranças, sem reprovação, com o relatório das vivências aberto e o Word baixado); **não rodou**
 nas 237 e 238 o relógio adiantado, o do celular, o de acessibilidade, o `ensaio:acolhe` nem a simulação contra o servidor;
@@ -421,6 +422,11 @@ posto em ordem no **PARA-A-REUNIAO §0**: as cinco perguntas que mais destravam,
 responder, os documentos de papel e os dados a receber, o que o DPO vê, o que se assina e as 30
 decisões de produto abertas. **Quando a resposta vier, ela entra lá e no §10 ou §11 do documento**, e
 o item respondido sai do §0.
+
+**FEITO — fase 252** (§2): as colunas de fim e as tabelas sem leitor, medidas. **Coluna de fim nova** (`*_at`
+de fechado, respondido, decidido) nasce com quem a escreve; **tabela nova** nasce com quem a lê, ou com o motivo de
+não ter (marca de já avisei, registro que repete a auditoria). **A guarda das colunas MORTAS confere pelo nome**:
+coluna morta com nome que outra tabela usa vai com comentário `SEM USO`, como a 1667. **Medido na 252:** as conferências dos documentos (`numeros-da-documentacao`, `documentacao`, `arquivo-tem-saida`, `o-guia-do-sistema`); a suíte inteira nas duas condições está rodando. **Próxima etapa:** a mesma da 247.
 
 **FEITO — fase 251** (§2): o aviso leva a uma tela que quem o recebe abre. **Aviso novo com nível** é
 conferido sozinho pelo `todo-aviso-tem-destino`: o nível sai do código (texto fixo, `? :`, laço ou constante com

@@ -406,10 +406,10 @@ erDiagram
     text urgent_reason "urgência sem motivo escrito vira rotina"
   }
   SUBSTITUTION_REQUEST {
-    text status "pedida | autorizada | recusada"
+    text status "solicitada | atribuida | recusada | cancelada"
     text decision_note "recusar também é decisão, e precisa de motivo"
-    uuid substitute_id
-    timestamptz acknowledged_at
+    uuid substitute_id "quem assume toma ciência na atividade (activity_acknowledgement)"
+    timestamptz acknowledged_at "sem uso desde a 0110 (comentário da 1667)"
   }
 ```
 

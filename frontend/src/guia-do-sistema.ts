@@ -138,6 +138,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 252, dia: '28/10/2026',
+    texto: 'Nada muda na tela. Para quem cuida do sistema: conferimos que todo registro que espera uma resposta tem como terminar e que tudo o que se grava chega a alguém, e corrigimos a descrição da substituição no documento das tabelas.' },
   { fase: 251, dia: '28/10/2026', aba: 'alinhamentos',
     texto: 'O Líder Noturno Geral passa a ter os Combinados da equipe no menu: lê o que a casa combinou em reunião e responde ali a pauta que o educador da noite propõe. O aviso do combinado novo agora leva até a tela.' },
   { fase: 250, dia: '27/10/2026',

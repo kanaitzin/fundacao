@@ -90,7 +90,7 @@ discordavam entre si.
 | Quanto | De onde sai |
 |---|---|
 | **19 partições** isoladas | pastas em `backend/src/modules/` |
-| **206 migrações** | `.sql` dentro das partições |
+| **207 migrações** | `.sql` dentro das partições |
 | **144 tabelas** | `CREATE TABLE` nas migrações |
 | **160 suítes** | `backend/test/*.spec.ts` |
 | **1418 testes** | `it(` / `test(` nas suítes |
@@ -462,6 +462,7 @@ arqueologia.
 | 249 | **Os caminhos sem fim** (pedido de 27/10: *"procure por caminhos que não têm fim, coisas que começamos e não demos destino, informações que não vão para onde deviam"*). Três achados, consertados. **O registro feito sem internet que não pôde ser gravado** abria o conflito na Sincronização e não avisava ninguém: o evento `sync.conflict` não tinha ouvinte, e a tela só era vista por quem já a abria; hoje sai o aviso à equipe técnica e à coordenação, que são quem decide (`sync.service.ts`, cobrado no cenário 17 do `operacao.e2e`). **O sino** dizia *Continua em: medication_dose* em metade dos avisos, porque a lista que traduz o tipo do registro para a tela tinha ficado para trás, e não levava a tela nenhuma; hoje o `ONDE` do `Avisos.tsx` dá a tela e a aba de cada tipo, com o botão **Abrir** quando o cargo alcança a aba, e o `todo-aviso-tem-destino.spec.ts` lê do código do servidor e do protótipo todo objeto de aviso e reprova o tipo sem destino. **O retorno médico marcado nunca terminava** (0210): a consulta seguinte criava outro atendimento, e passada a data a Saúde, a folha de saúde em Word e o painel da Enfermagem diziam *a reagendar* sobre o retorno que já tinha acontecido; hoje a folha do atendimento pergunta *É o retorno de uma consulta marcada?*, com os retornos marcados da criança (`GET /nursing/evolutions/options?personId=`), e o de antes fica *Retorno feito*, com a data marcada guardada (`return_done_in`, nursing/1665). A varredura das situações pelo catálogo (toda coluna de estado com os valores listados, contra todo `UPDATE` do código) não achou outro estado que nasce e não muda. Ficam para a Fundação a resposta às sugestões de melhoria e o retorno desmarcado (PARA-A-REUNIAO §4.36) |
 | 250 | **O relato pedido chega a quem deve escrever** (continuação do pedido de 27/10, os caminhos sem fim). Conferi cada frase que promete um aviso (a Enfermagem é avisada, a técnica e a coordenação são avisadas) contra o aviso que o código manda, e cada pedido que espera resposta (`statement_request`, `kitchen_request`, `meeting_agenda_item`, `ata_read_request`) contra quem responde. As promessas se cumprem; o pedido de relato, não. A 1000 criou a cobrança porque *quem não estivesse olhando a ocorrência simplesmente não escrevia*, e a cobrança só aparecia para quem abrisse a tela de Ocorrências: **o educador cobrado não recebia aviso nenhum**. Hoje a `app_cobrar_relatos` devolve quem foi cobrado agora (statements/1666) e cada um recebe *O seu relato foi pedido*, sem o fato, com o botão Abrir das Ocorrências; quem abriu a ocorrência não é avisado do próprio relato, e reabrir não repete o aviso (cobrado no `cobranca-de-relato`). **No protótipo** a cobrança continua semeada e sem aviso, porque lá os avisos não são separados por pessoa |
 | 251 | **O aviso leva a uma tela que quem o recebe abre** (os caminhos sem fim, outra vez). Cruzei cada aviso do servidor com os cargos do nível dele e com as telas que esses cargos alcançam. Um não fechava: o combinado novo da reunião é avisado ao Líder Noturno Geral, que também responde a pauta proposta pelo educador da noite (fase 94), e **a tela dos Combinados não estava no mapa dele**: ele recebia o aviso e podia responder a pauta no servidor, mas não tinha por onde entrar. Hoje a área está no `alcance.ts` dele, lendo e respondendo a pauta, e o cruzamento virou teste no `todo-aviso-tem-destino` (o nível de cada aviso lido do código, inclusive o do laço e o da constante com `push`, e os cargos lidos das migrações; nível que não se lê reprova). De passagem, **a coordenação tinha a área dos Combinados duas vezes no mapa**, uma com o texto de quem só lê; saiu a repetida |
+| 252 | **O que nasce aberto e o que ninguém lê** (os caminhos sem fim, por mais dois lados). Toda coluna que marca um fim (fechado, encerrado, respondido, decidido, devolvido, ciência e as outras 54), conferida contra todo `UPDATE` e `INSERT` do código; e toda tabela, contra toda leitura das funções, das visões e do servidor. **Nenhum registro nasce aberto para sempre**: a condição de saúde e a restrição alimentar se encerram pelo serviço, que escreve o fim pelo nome da tabela numa variável. **Nenhuma tabela gravada fica sem chegar a quem usa**: as marcas de já avisei se leem pelo `ON CONFLICT`, o lote das atividades coletivas aparece em cada atividade com a nota e o nome de quem marcou, e o `export_log` repete o que a auditoria já guarda, com a finalidade. Sobrou uma coluna que mentia: **`substitution_request.acknowledged_at` dizia ciência do substituto e nunca foi escrita**, porque a ciência mora na atividade (`activity_acknowledgement`); o banco ganhou o comentário que diz isso (activities/1667), e o `der.md`, que listava situações da substituição que não existem, foi corrigido |
 
 ---
 
@@ -509,7 +510,7 @@ cd frontend && npm run prototipo
 ```
 
 O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as
-206 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
+207 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
 
 ### Os ensaios — e por que cada um existe
 
@@ -3026,7 +3027,7 @@ crescimento. Vídeo não entra no álbum: um minuto de vídeo de celular pesa co
 npm run ensaio:producao
 ```
 
-Constrói, cria um banco virgem, aplica as 206 migrações **pelo binário
+Constrói, cria um banco virgem, aplica as 207 migrações **pelo binário
 compilado**, sobe o serviço e confere `/health`. Não publica nada e não toca no
 banco de trabalho.
 
