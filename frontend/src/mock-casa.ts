@@ -10364,7 +10364,6 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     const k = kid(seg[1]);
     if (!k) return new Recusa(404, 'Não encontrado.');
     const podeDoc = !['cozinha'].includes(eu.role);
-    const restritos = ['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role) ? 0 : 2;
     return {
       id: k.id, nome: k.nome, nomeCivil: k.civil, nomeSocial: k.nome, idade: k.idade,
       nascimento: k.nascimento, cpf: k.semCpf ? null : '***.***.123-**',
@@ -10395,16 +10394,27 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       episodios: k.episodios
         ?? [{ number: 1, started_at: ehNova(k) ? ACOLHIMENTOS[k.id]?.ingressoEm ?? HOJE : '2026-02-28',
               ended_at: null, end_reason: null, status: 'ativo' }],
-      /* Os documentos e a memória de fábrica são das crianças semeadas (fase 253). */
-      documentos: podeDoc && !ehNova(k) ? [
-        { id: 'doc1', category: 'saude', title: 'Receita em vigência', issued_on: '2026-08-01', valid_until: null },
-        { id: 'doc2', category: 'escolar', title: 'Boletim do semestre', issued_on: '2026-07-15', valid_until: null },
-        ...(restritos === 0 ? [
+      /* OS DOCUMENTOS DA CRIANÇA, como o servidor (fase 253): o que o dossiê guardou,
+         pela mesma regra do banco (`app_can_open_doc`), e a contagem do que o cargo
+         não abre. A lista era fixa, e o que se anexava no dossiê nunca chegava a ela;
+         as quatro de fábrica continuam nas crianças semeadas. */
+      ...(() => {
+        semearDossie();
+        const fabrica = ehNova(k) ? [] : [
+          { id: 'doc1', category: 'saude', title: 'Receita em vigência', issued_on: '2026-08-01', valid_until: null },
+          { id: 'doc2', category: 'escolar', title: 'Boletim do semestre', issued_on: '2026-07-15', valid_until: null },
           { id: 'doc3', category: 'pessoal', title: 'Certidão de nascimento', issued_on: null, valid_until: null },
           { id: 'doc4', category: 'judicial_socioassistencial', title: 'Guia de acolhimento', issued_on: '2026-02-25', valid_until: null },
-        ] : []),
-      ] : [],
-      documentosRestritos: restritos,
+        ];
+        const doDossie = DOSSIE_DOCS.filter((d) => d.personId === k.id)
+          .map((d) => ({ id: d.id, category: d.categoria, title: d.titulo, issued_on: d.emitidoEm, valid_until: d.validoAte }));
+        const todos = [...doDossie, ...fabrica.filter((f) => !doDossie.some((d) => d.title === f.title))];
+        const abre = (cat: string) => ({ educador: ['saude', 'escolar'], lider_diurno: ['saude', 'escolar'],
+          lider_noturno_geral: ['saude'], enfermagem: ['saude'], cozinha: [] as string[] } as Record<string, string[]>)[eu.role]
+          ?.includes(cat) ?? ['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role);
+        return { documentos: podeDoc ? todos.filter((d) => abre(d.category)) : [],
+                 documentosRestritos: todos.filter((d) => !abre(d.category)).length };
+      })(),
       rg: k.rg ?? null,
       cns: k.cns ?? null,
       filiacao: k.filiacao ?? null,
