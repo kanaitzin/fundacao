@@ -426,7 +426,7 @@ o item respondido sai do §0.
 **FEITO — fase 252** (§2): as colunas de fim e as tabelas sem leitor, medidas. **Coluna de fim nova** (`*_at`
 de fechado, respondido, decidido) nasce com quem a escreve; **tabela nova** nasce com quem a lê, ou com o motivo de
 não ter (marca de já avisei, registro que repete a auditoria). **A guarda das colunas MORTAS confere pelo nome**:
-coluna morta com nome que outra tabela usa vai com comentário `SEM USO`, como a 1667. **Medido na 252:** as conferências dos documentos (`numeros-da-documentacao`, `documentacao`, `arquivo-tem-saida`, `o-guia-do-sistema`); a suíte inteira nas duas condições está rodando. **Próxima etapa:** a mesma da 247.
+coluna morta com nome que outra tabela usa vai com comentário `SEM USO`, como a 1667. **Medido na 252:** as conferências dos documentos (`numeros-da-documentacao`, `documentacao`, `arquivo-tem-saida`, `o-guia-do-sistema`) e a suíte inteira nas DUAS condições de relógio (1425 de 1425). **Não rodou** nenhum ensaio de navegador: nenhuma tela mudou. **Próxima etapa:** a mesma da 247.
 
 **FEITO — fase 251** (§2): o aviso leva a uma tela que quem o recebe abre. **Aviso novo com nível** é
 conferido sozinho pelo `todo-aviso-tem-destino`: o nível sai do código (texto fixo, `? :`, laço ou constante com
