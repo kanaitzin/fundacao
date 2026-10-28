@@ -426,7 +426,7 @@ o item respondido sai do §0.
 conferido sozinho pelo `todo-aviso-tem-destino`: o nível sai do código (texto fixo, `? :`, laço ou constante com
 `push`), os cargos saem das migrações das notificações e as telas, do `alcance.ts`; **nível escrito de outro jeito
 reprova** até alguém ensinar a leitura. **Quem tirar uma área do mapa de um cargo** confere antes se algum aviso o
-leva lá. **Medido na 251:** o `todo-aviso-tem-destino` (reprova sem o conserto, com o combinado do noturno), o `alcance` e o `o-guia-do-sistema`; o protótipo, o `ensaio:uso`, o do celular e as duas suítes estão rodando. **Próxima etapa:** a mesma da 247.
+leva lá. **Medido na 251:** o `todo-aviso-tem-destino` (reprova sem o conserto, com o combinado do noturno), o `alcance` e o `o-guia-do-sistema`; a suíte inteira nas DUAS condições de relógio (1425 de 1425), o `ensaio:uso` (sem reprovação, com o Líder Noturno abrindo os Combinados) e o do celular (322 telas, sem achado). **Não rodou** o de acessibilidade (nenhuma cor nova), o `ensaio:acolhe` nem a simulação contra o servidor. **Próxima etapa:** a mesma da 247.
 
 **FEITO — fase 250** (§2): o relato pedido chega a quem deve escrever. **Frase que promete aviso** (*a
 Enfermagem é avisada*) se confere contra o `publish` que a cumpre, e **pedido que espera resposta** contra quem
