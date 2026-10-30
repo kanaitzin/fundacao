@@ -476,7 +476,8 @@ for (const conta of CONTAS) {
           const item = pg.locator('main li').filter({ has: pg.getByRole('button', { name: /^Anexar/ }) }).first();
           if (!(await item.count())) anota(conta.quem, onde, 'o dossiê não tem item com Anexar');
           else {
-            const titulo = `Documento da simulação ${Date.now()}`;
+            // Sem número longo: onze dígitos seguidos a tela lê como CPF e recusa o título.
+            const titulo = `Documento da simulação ${Date.now().toString(36)}`;
             await item.getByRole('button', { name: /^Anexar/ }).first().click();
             await pg.waitForTimeout(700);
             await pg.locator('#anx-arq-arquivo').setInputFiles({ name: 'documento.png', mimeType: 'image/png', buffer: png });
