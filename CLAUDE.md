@@ -196,7 +196,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 28/10/2026, fase 253
+### Onde estamos — 30/10/2026, fase 254
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -313,6 +313,7 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 251 | **o aviso leva a uma tela que quem o recebe abre**: o combinado da reunião era avisado ao Líder Noturno Geral, que responde a pauta, e a tela dos Combinados não estava no mapa dele (`alcance.ts`); o cruzamento aviso, nível, cargo e tela virou teste (`todo-aviso-tem-destino`) |
 | 252 | **o que nasce aberto e o que ninguém lê**: as 54 colunas de fim contra todo `UPDATE` e `INSERT`, e cada tabela contra toda leitura; nada fica aberto para sempre nem sem chegar a alguém, e a `substitution_request.acknowledged_at`, que dizia ciência do substituto e nunca foi escrita, ganhou o comentário certo (activities/1667) |
 | 253 | **o cadastro, o perfil, os documentos e os menus** (pedido de 28/10): oito cargos, 146 telas, 167 abas e 21 perfis sem achado; nenhum ensaio passava pelo Cadastrar acolhido, e no protótipo a criança cadastrada **perdia a ficha da chegada e ganhava uma história que ninguém registrou** (família, visitas, escola, PIA, memória, o dia de hoje); e, **no sistema de verdade também**, voltar do dossiê não relia o perfil e o documento recém-anexado não aparecia na aba Documentos; consertados, e no `ensaio:uso` |
+| 254 | **o alto contraste sai** (pedido de 30/10: o Pão não vê necessidade): fora da lista, do CSS e do ensaio de acessibilidade; quem o tinha guardado volta ao tema do aparelho; e **a equipe de design** começa o estudo do visual (pedido de 30/10: *"ainda acho muito feio e amador"*), com direções para a Fundação escolher |
 
 **Medido no fim da 252:** 207 migrações, 144 tabelas, 160 suítes, 1418 testes; nas 237 e 238, a suíte inteira
 verde (1363 de 1363, depois de consertar as três conferências que o relatório das vivências deixou soltas) e o
@@ -405,9 +406,9 @@ leitura acima de 155 ms; na API, a mesma recusa.
 **As TRÊS cores do sistema, porque confundi-las é o pior que esta tela pode
 fazer** — está escrito por extenso em `frontend/src/cargos.tsx`:
 
-**Os TEMAS são oito** (claro, escuro, alto contraste, desde a 182 rosa, azul claro,
-verde e colorido, e desde a 197 o Rio Grande do Sul — `frontend/src/tema.ts`). Tema muda fundo, moldura e marca, **nunca**
-as três cores abaixo. Cor nova passa pelo `ensaio:acessibilidade`, que mede os OITO.
+**Os TEMAS são sete** (claro, escuro, desde a 182 rosa, azul claro, verde e colorido, e desde a 197 o Rio
+Grande do Sul — `frontend/src/tema.ts`; o alto contraste saiu na 254, a pedido da Fundação). Tema muda fundo, moldura e marca, **nunca**
+as três cores abaixo. Cor nova passa pelo `ensaio:acessibilidade`, que mede os SETE.
 
 | A cor | Responde | Onde |
 |---|---|---|
@@ -423,6 +424,18 @@ posto em ordem no **PARA-A-REUNIAO §0**: as cinco perguntas que mais destravam,
 responder, os documentos de papel e os dados a receber, o que o DPO vê, o que se assina e as 30
 decisões de produto abertas. **Quando a resposta vier, ela entra lá e no §10 ou §11 do documento**, e
 o item respondido sai do §0.
+
+**EM ANDAMENTO — fase 254** (§2): o alto contraste saiu (feito, com o `ensaio:uso` e o de acessibilidade a rodar);
+e o pedido de 30/10, *"ainda acho muito feio e amador as telas [...] quero um momento dedicado em melhorar a
+qualidade visual de tudo"*: cinco especialistas (direção de arte, design systems, retratos, cor, movimento e
+ícones) estudam as telas e as referências, com relatórios no scratchpad da sessão (`design/1-…` a `5-…`, que
+se perdem com o contêiner: **o que valer vai para o `docs/historico/`**). **Próxima etapa:** juntar os
+relatórios em duas ou três direções visuais, mostradas lado a lado à Fundação, que escolhe uma; só então o
+redesenho, tela por tela, com o `ensaio:celular`, o de acessibilidade e o `ensaio:uso` a cada passo. **Os
+retratos ilustrados do protótipo** (`retratos.ts`) são refeitos junto: a Fundação os achou feios.
+**Depois da 253, medido na 254:** a Casa 03 em trinta dias contra o servidor de verdade (onze contas e o
+esqueci, sem achado, com o percurso novo do dossiê: a técnica anexa e o documento aparece na aba Documentos ao
+voltar) e o do celular (322 telas, sem achado).
 
 **FEITO — fase 253** (§2, PARA-A-REUNIAO §4.37): o cadastro, o perfil, os documentos e os menus conferidos, a
 pedido de 28/10. **Dado de fábrica do protótipo é das crianças semeadas**: o que o servidor de mentira inventa para

@@ -253,14 +253,14 @@ await clicar(/Abrir chamada/);
 cobrar('e o botão leva mesmo à chamada',
   /Janta|Almoço|Café|conferid/i.test(await conteudo()), (await conteudo()).slice(0, 100));
 
-/* A COR DA TELA (fase 182; o Rio Grande do Sul desde 11/10): a folha mostra as oito, escolher troca a tela e
+/* A COR DA TELA (fase 182; o Rio Grande do Sul desde 11/10; sem o alto contraste desde 30/10): a folha mostra as sete, escolher troca a tela e
    fica lembrado no aparelho; volta-se ao claro para o resto do percurso. */
 {
   await abrirCor();
   await pg.waitForTimeout(300);
   const folhaTema = await corpo();
-  cobrar('a folha de cores traz as oito', ['Claro', 'Escuro', 'Alto contraste', 'Rosa', 'Azul claro',
-    'Verde', 'Colorido', 'Rio Grande do Sul'].every((n) => folhaTema.includes(n)));
+  cobrar('a folha de cores traz as sete, sem o alto contraste', ['Claro', 'Escuro', 'Rosa', 'Azul claro',
+    'Verde', 'Colorido', 'Rio Grande do Sul'].every((n) => folhaTema.includes(n)) && !folhaTema.includes('Alto contraste'));
   await pg.locator('.overlay .sheet button', { hasText: /^Rosa$/ }).click();
   await pg.waitForTimeout(200);
   cobrar('escolher Rosa pinta a tela e fica lembrado neste aparelho',
@@ -3263,10 +3263,8 @@ const escolherTema = async (nome) => {
 };
 await escolherTema('Escuro');
 cobrar('o tema vai ao escuro', (await temaAgora()) === 'dark');
-await escolherTema('Alto contraste');
-cobrar('e ao alto contraste', (await temaAgora()) === 'contraste');
 cobrar('e o aparelho lembra a escolha',
-  (await pg.evaluate(() => localStorage.getItem('rede-acolher.tema'))) === 'contraste');
+  (await pg.evaluate(() => localStorage.getItem('rede-acolher.tema'))) === 'dark');
 await escolherTema('Colorido');
 cobrar('e ao colorido, que também fica lembrado',
   (await temaAgora()) === 'colorido'

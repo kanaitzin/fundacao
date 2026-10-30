@@ -1,16 +1,16 @@
 /**
- * O TEMA DA TELA (27/09): claro, escuro e alto contraste.
+ * O TEMA DA TELA (27/09): claro e escuro, e desde 30/09 as cores para escolher.
  *
  * Era um botão só do protótipo, que alternava claro/escuro. Agora vale no
  * sistema de verdade: o tema é preferência de quem USA o aparelho — a educadora
- * da madrugada escolhe o escuro, a colega que enxerga pouco escolhe o contraste
- * — e fica lembrado NESTE aparelho (localStorage), nunca na conta: o celular da
+ * da madrugada escolhe o escuro — e fica lembrado NESTE aparelho (localStorage), nunca na conta: o celular da
  * casa passa de mão em mão, e cada turno troca se quiser.
  *
  * Sem escolha guardada, vale o do sistema operacional (claro ou escuro), como
- * sempre foi.
+ * sempre foi. O alto contraste saiu em 30/10, a pedido da Fundação: o aparelho
+ * que o tinha guardado volta ao do sistema operacional.
  */
-export type Tema = 'light' | 'dark' | 'contraste' | 'rosa' | 'azul' | 'verde' | 'colorido' | 'rs';
+export type Tema = 'light' | 'dark' | 'rosa' | 'azul' | 'verde' | 'colorido' | 'rs';
 
 /*
  * AS CORES PARA ESCOLHER (pedido de 30/09): rosa, azul claro, verde e
@@ -21,7 +21,6 @@ export type Tema = 'light' | 'dark' | 'contraste' | 'rosa' | 'azul' | 'verde' | 
 export const TEMAS: { cod: Tema; nome: string; amostra: string }[] = [
   { cod: 'light', nome: 'Claro', amostra: '#EDF1F7' },
   { cod: 'dark', nome: 'Escuro', amostra: '#151E28' },
-  { cod: 'contraste', nome: 'Alto contraste', amostra: 'linear-gradient(135deg,#000 50%,#fff 50%)' },
   { cod: 'rosa', nome: 'Rosa', amostra: '#F4B8D3' },
   { cod: 'azul', nome: 'Azul claro', amostra: '#A9D8F2' },
   { cod: 'verde', nome: 'Verde', amostra: '#A8DBB8' },

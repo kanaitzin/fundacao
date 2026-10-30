@@ -483,7 +483,7 @@ anexar no dossiê. Ela **não** edita cadastro, escola nem cuidados essenciais.
 
 ## 4.12 A tela (fase 163, pedido de 27/09)
 
-- **Três temas**: claro, escuro e **alto contraste**, no botão redondo do alto
+- **Três temas**: claro, escuro e **alto contraste** (o alto contraste saiu em 30/10, a pedido da Fundação), no botão redondo do alto
   (o de meia-lua). Vale no sistema de verdade, e cada aparelho lembra o seu.
 - **A Portaria em cartões**, com a foto 3×4 de cada visitante à vista. A foto é
   anexada pela **técnica e pela coordenação**, ali mesmo no portão; a portaria

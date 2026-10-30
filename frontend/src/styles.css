@@ -1188,55 +1188,6 @@ textarea{
 }
 
 /* ============================================================
-   TEMA ALTO CONTRASTE (pedido de 27/09)
-   ------------------------------------------------------------
-   Preto sobre branco, bordas de 2px e foco grosso: para quem enxerga pouco, e
-   para o celular do corredor lido no sol. Ele ganha do "escuro do sistema"
-   (o escuro do sistema só vale sem tema escolhido, `:not([data-theme])`), porque quem
-   escolheu contraste escolheu por necessidade.
-
-   As cores de ESTADO continuam existindo — só ficam mais escuras, todas com
-   folga sobre o branco (o ensaio de acessibilidade confere o tema inteiro). A
-   cor nunca é a única portadora do sentido: ao lado há sempre a palavra.
-   ============================================================ */
-:root[data-theme="contraste"] {
-  --ground:#FFFFFF; --surface:#FFFFFF; --raised:#FFFFFF; --sunken:#F0F0F0;
-  --ink:#000000; --ink-2:#000000; --muted:#1F1F1F; --line:#000000; --line-2:#000000;
-
-  --navy:#000000; --navy-2:#000000;
-  --titulo:#000000;
-  --brand:#002C80; --brand-2:#002C80; --brand-soft:#E3E9F7; --brand-solid:#002C80;
-  --on-navy:#FFFFFF;
-
-  --emerald:#005C36; --emerald-solid:#005C36;
-  --amber:#6B2E00;   --amber-solid:#6B2E00;
-  --red:#8A0000;     --red-solid:#8A0000;
-  --blue:#002C80;    --blue-solid:#002C80;
-  --violet:#4A0080;  --violet-solid:#4A0080;
-  --cyan:#00505E;    --cyan-solid:#00505E;
-  --pink:#7A0040;    --pink-solid:#7A0040;
-  --slate:#262626;   --slate-solid:#262626;
-  --on-solid:#FFFFFF;
-
-  --shadow-1:none; --shadow-2:none;
-  --focus:#000000;
-  --gr-tinta:#002C80; --gr-tinta-2:#6B2E00;
-}
-:root[data-theme="contraste"] .card,
-:root[data-theme="contraste"] .sheet,
-:root[data-theme="contraste"] .notice,
-:root[data-theme="contraste"] .tile,
-:root[data-theme="contraste"] input,
-:root[data-theme="contraste"] select,
-:root[data-theme="contraste"] textarea{ border:2px solid #000 }
-:root[data-theme="contraste"] .btn{ border:2px solid #000 }
-:root[data-theme="contraste"] .pill{ border:1.5px solid currentColor; font-weight:800 }
-:root[data-theme="contraste"] a{ text-decoration:underline }
-:root[data-theme="contraste"] :focus-visible{ outline:3px solid #000; outline-offset:2px }
-:root[data-theme="contraste"] .tabbar button.on,
-:root[data-theme="contraste"] .portas-lateral button.on{ outline:2px solid #000; outline-offset:1px }
-
-/* ============================================================
    A COLUNA DO MONITOR, COM BOTÕES DE VERDADE (pedido de 27/09)
    ------------------------------------------------------------
    Cada porta ganha um "azulejo" para o desenho — o mesmo raio dos cartões —,
