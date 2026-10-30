@@ -428,8 +428,9 @@ o item respondido sai do §0.
 **EM ANDAMENTO — fase 254** (§2): o alto contraste saiu (feito, com o `ensaio:uso` e o de acessibilidade a rodar);
 e o pedido de 30/10, *"ainda acho muito feio e amador as telas [...] quero um momento dedicado em melhorar a
 qualidade visual de tudo"*: cinco especialistas (direção de arte, design systems, retratos, cor, movimento e
-ícones) estudam as telas e as referências, com relatórios no scratchpad da sessão (`design/1-…` a `5-…`, que
-se perdem com o contêiner: **o que valer vai para o `docs/historico/`**). **Próxima etapa:** juntar os
+ícones) estudaram as telas e as referências: **os cinco relatórios estão em
+`docs/historico/equipe-de-design-30-10/`**, com o gerador novo dos retratos, os tokens de cor e a tabela de
+contraste em `anexos/`. A pesquisa recomenda a direção C, *Coração* (viva e expressiva), entre três. **Próxima etapa:** juntar os
 relatórios em duas ou três direções visuais, mostradas lado a lado à Fundação, que escolhe uma; só então o
 redesenho, tela por tela, com o `ensaio:celular`, o de acessibilidade e o `ensaio:uso` a cada passo. **Os
 retratos ilustrados do protótipo** (`retratos.ts`) são refeitos junto: a Fundação os achou feios.
