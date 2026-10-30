@@ -462,6 +462,40 @@ for (const conta of CONTAS) {
           const bloco = await pg.locator('section.atendimentos-tecnicos').innerText().catch(() => '');
           if (!bloco.includes(relato)) anota(conta.quem, onde, 'o atendimento registrado não aparece no perfil');
         }
+
+        /* O DOCUMENTO ANEXADO NO DOSSIÊ volta na lista da aba Documentos (fase 253):
+           a volta do dossiê não relia o perfil, e o documento só aparecia depois de
+           sair e entrar de novo na criança. */
+        await pg.getByRole('tab', { name: /Documentos/ }).click().catch(() => {});
+        await pg.waitForTimeout(900);
+        const dossie = pg.getByRole('button', { name: /Dossiê: documentos e vivências/ });
+        if (!(await dossie.count())) anota(conta.quem, onde, 'a aba Documentos não tem a entrada do dossiê');
+        else {
+          await dossie.first().click();
+          await pg.waitForTimeout(1500);
+          const item = pg.locator('main li').filter({ has: pg.getByRole('button', { name: /^Anexar/ }) }).first();
+          if (!(await item.count())) anota(conta.quem, onde, 'o dossiê não tem item com Anexar');
+          else {
+            const titulo = `Documento da simulação ${Date.now()}`;
+            await item.getByRole('button', { name: /^Anexar/ }).first().click();
+            await pg.waitForTimeout(700);
+            await pg.locator('#anx-arq-arquivo').setInputFiles({ name: 'documento.png', mimeType: 'image/png', buffer: png });
+            await pg.waitForTimeout(700);
+            await pg.locator('#anx-tit').fill(titulo);
+            await pg.locator('.overlay .sheet .rodape button:not(.sec)').last().click();
+            await pg.waitForTimeout(1800);
+            const { rows } = await db.query(
+              `SELECT count(*)::int AS n FROM document
+                WHERE title = $1 AND created_by = (SELECT id FROM app_user WHERE email = $2)`, [titulo, conta.email]);
+            if (rows[0].n !== 1) anota(conta.quem, onde, 'o documento anexado no dossiê não chegou ao banco');
+            await pg.getByRole('button', { name: /← Perfil/ }).first().click();
+            await pg.waitForTimeout(1500);
+            await pg.getByRole('tab', { name: /Documentos/ }).click().catch(() => {});
+            await pg.waitForTimeout(900);
+            const lista = await pg.locator('#perfil-documentos').innerText().catch(() => '');
+            if (!lista.includes(titulo)) anota(conta.quem, onde, 'voltando do dossiê, o documento anexado não aparece na lista da aba Documentos');
+          }
+        }
         await db.end();
       }
       telas.push(onde);
