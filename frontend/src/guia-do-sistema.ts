@@ -138,6 +138,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 255, dia: '31/10/2026',
+    texto: 'Conferimos que toda tela cabe, rola até o fim e tem como voltar, em cada cargo, no celular e no computador. Ganharam caminho de volta: a folha do acompanhamento (Fechar), a lista inteira das visitas no perfil (Mostrar só as cinco mais recentes), a área restrita do Judiciário (Fechar a área restrita) e a folha das oito casas aberta pelo Arquivo da ATA (Voltar ao Arquivo).' },
   { fase: 254, dia: '30/10/2026',
     texto: 'O tema alto contraste saiu da folha Cor da tela, a pedido da Fundação, e as outras sete cores continuam. E pequenos consertos que a equipe de design achou: a hora da linha do Dia aparece inteira no celular, a borda dos campos de escrever ficou mais visível, a Cozinha tem as suas telas direto na barra de baixo, a tecla Esc fecha a folha que não tem nada escrito, e a Chamada e os Avisos não dizem que está vazio antes de carregar.' },
   { fase: 253, dia: '28/10/2026', aba: 'acolhidos',

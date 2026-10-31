@@ -160,6 +160,7 @@ e qual é o caminho certo.
 | `frontend/ensaio-celular.mjs` | **o sistema no celular** (fase 184): oito cargos a 360 e 390 px, todas as abas, o "Mais" e cada porta. Mede o que o axe não mede: tela que anda para o lado, texto cortado ou vazando do botão, **botões encostados**, alvo abaixo de 24 px, conteúdo atrás da barra do pé. Fotos em `/tmp/ensaio-celular`. O `ensaio:uso-celular` faz o percurso de uso como celular. **Mudou tela, roda os dois** |
 | `backend/src/modules/relogio/implantacao.regra.ts` | **a regra da saúde da implantação** (fase 185): quando cada sinal está em dia, em atenção ou parado, e a frase. Não importa nada, como o `alcance.ts`: o servidor e o protótipo leem a MESMA. **Quem roda sozinho anota** por `anotarImplantacao` (`kernel/implantacao/anotar.ts`) ou, nos scripts, por `app_anotar_implantacao` no `psql`; anotar nunca derruba quem anota |
 | `scripts/arquivar-wal.sh`, `base-do-banco.sh`, `restaurar-ponto-no-tempo.sh`, `copiar-arquivos.sh` | **nada se perde no servidor do Pão** (fase 220): o arquivo contínuo do banco, a base semanal conferida, a volta a qualquer minuto e a cópia das fotos; o `postgresql-do-servidor.conf` liga o arquivo. **Mudou um deles, roda o `npm run ensaio:ponto-no-tempo`**, que prova os quatro num banco à parte |
+| `frontend/ensaio-cabe-e-volta.mjs` | **cabe, rola e volta** (fase 255): cada cargo, a 390 px e no monitor, em cada tela, aba, folha de criar (`data-acolhe-abre`), entrada (`data-acolhe-entra`, o cartão da criança, a primeira linha de cada lista) e botão de abrir, até três níveis; mede vazamento, conteúdo preso sem rolagem e o fim da folha, e **aperta a volta e confere que voltou**. `ENSAIO_CARGOS`, `ENSAIO_LARGURAS`, `ENSAIO_PROFUNDIDADE`. Leva uns dez minutos por cargo e largura. **Folha ou subtela nova nasce com a volta dela**: Fechar, Cancelar, Voltar ou ← |
 | `frontend/ensaio-aparelhos.mjs` | **o que o aparelho faz de diferente** (fase 222): oito aparelhos simulados, a câmera do tamanho de cada um (vídeo Y4M gerado), o reconhecimento de voz como o Safari do iPhone e o Chrome do Android, as falhas do microfone, a galeria de 12 e 50 MP e HEIC, e todo formulário de folha rolado até o fim. `ENSAIO_APARELHOS="iPhone SE"` mede um; `=extras`, o resto. **Mexeu em ditado, câmera, anexo ou folha, roda este.** Não prova o Safari de verdade nem a voz de verdade (PARA-A-REUNIAO §4.27) |
 | `scripts/rotas-sem-teste.mjs` | acha **rota** que nenhum teste chamou — o outro lado da mesma pergunta. Separa *candidata forte* (a URL não aparece em suíte nenhuma) de *par incerto* (a suíte chama por auxiliar e o método fica noutra linha). **Não é teste** |
 | `backend/src/kernel/common/data-do-dia.pipe.ts` | **toda data que vem da URL passa por aqui** (fase 148). Sete de dez rotas de data devolviam 500 para uma data que não é data; a conferência mora num lugar só, e há teste estático que cobra que todo `@Query('de')` e `@Param('data')` use o pipe |
@@ -196,7 +197,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 30/10/2026, fase 254
+### Onde estamos — 31/10/2026, fase 255
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -314,6 +315,7 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 252 | **o que nasce aberto e o que ninguém lê**: as 54 colunas de fim contra todo `UPDATE` e `INSERT`, e cada tabela contra toda leitura; nada fica aberto para sempre nem sem chegar a alguém, e a `substitution_request.acknowledged_at`, que dizia ciência do substituto e nunca foi escrita, ganhou o comentário certo (activities/1667) |
 | 253 | **o cadastro, o perfil, os documentos e os menus** (pedido de 28/10): oito cargos, 146 telas, 167 abas e 21 perfis sem achado; nenhum ensaio passava pelo Cadastrar acolhido, e no protótipo a criança cadastrada **perdia a ficha da chegada e ganhava uma história que ninguém registrou** (família, visitas, escola, PIA, memória, o dia de hoje); e, **no sistema de verdade também**, voltar do dossiê não relia o perfil e o documento recém-anexado não aparecia na aba Documentos; consertados, e no `ensaio:uso` |
 | 254 | **o alto contraste sai** (pedido de 30/10: o Pão não vê necessidade): fora da lista, do CSS e do ensaio de acessibilidade; quem o tinha guardado volta ao tema do aparelho; e **a equipe de design** começa o estudo do visual (pedido de 30/10: *"ainda acho muito feio e amador"*), com direções para a Fundação escolher |
+| 255 | **toda tela cabe, rola e tem volta** (pedido de 31/10): o `ensaio:cabe` entra em cada tela, aba, folha e subtela de cada cargo e aperta a volta; a folha do acompanhamento sem Fechar, as visitas que não recolhiam, a área restrita que não se fechava e a folha das oito casas sem volta ao Arquivo, consertadas |
 
 **Medido no fim da 252:** 207 migrações, 144 tabelas, 160 suítes, 1418 testes; nas 237 e 238, a suíte inteira
 verde (1363 de 1363, depois de consertar as três conferências que o relatório das vivências deixou soltas) e o
@@ -425,14 +427,25 @@ responder, os documentos de papel e os dados a receber, o que o DPO vê, o que s
 decisões de produto abertas. **Quando a resposta vier, ela entra lá e no §10 ou §11 do documento**, e
 o item respondido sai do §0.
 
+**FEITO — fase 255** (§2): toda tela cabe, rola e tem volta, medido pelo `ensaio:cabe` nos oito cargos a 390 px e no
+monitor. **Folha nova nasce com Fechar ou Cancelar** (a do acompanhamento só saía gravando), **lista que se abre
+inteira também se recolhe**, e **o que mostra dado restrito também se fecha**. **Mudou tela, roda o `ensaio:cabe` do
+cargo que a usa.** A fase 254 continua em andamento: a escolha da direção visual, na página
+`claude.ai/artifact/HEEEViKherDM4Bi77R3LZS` (privada; o dono compartilha). **Medido na 255:** o `ensaio:cabe`
+(986 estados a 390 px e 1181 no monitor, nada vazando nem preso; os achados consertados).
+
 **EM ANDAMENTO — fase 254** (§2): o alto contraste saiu (feito, com o `ensaio:uso` e o de acessibilidade a rodar);
 e o pedido de 30/10, *"ainda acho muito feio e amador as telas [...] quero um momento dedicado em melhorar a
 qualidade visual de tudo"*: cinco especialistas (direção de arte, design systems, retratos, cor, movimento e
 ícones) estudaram as telas e as referências: **os cinco relatórios estão em
 `docs/historico/equipe-de-design-30-10/`**, com o gerador novo dos retratos, os tokens de cor e a tabela de
-contraste em `anexos/`. A pesquisa recomenda a direção C, *Coração* (viva e expressiva), entre três. **Próxima etapa:** juntar os
-relatórios em duas ou três direções visuais, mostradas lado a lado à Fundação, que escolhe uma; só então o
-redesenho, tela por tela, com o `ensaio:celular`, o de acessibilidade e o `ensaio:uso` a cada passo. **Os
+contraste em `anexos/`. A pesquisa recomenda a direção C, *Coração* (viva e expressiva), entre três. **As três direções foram
+aplicadas às telas do protótipo por CSS de prévia** e mostradas lado a lado com o de hoje na página de escolha
+(`claude.ai/artifact/HEEEViKherDM4Bi77R3LZS`), com as três perguntas: a direção, os retratos com rosto ou em
+silhueta, e as cores novas dos cargos (três repetiam o hex de uma cor de estado). **Os CSS de prévia e as fotos
+ficaram no scratchpad da sessão**: se ela se perder, o caminho de refazer está no
+`docs/historico/equipe-de-design-30-10/2-referencias.md` §3. **Próxima etapa:** a resposta da Fundação; só então
+o redesenho, tela por tela, com o `ensaio:celular`, o de acessibilidade, o `ensaio:cabe` e o `ensaio:uso` a cada passo. **Os
 retratos ilustrados do protótipo** (`retratos.ts`) são refeitos junto: a Fundação os achou feios.
 **Depois da 253, medido na 254:** a Casa 03 em trinta dias contra o servidor de verdade (onze contas e o
 esqueci, sem achado, com o percurso novo do dossiê: a técnica anexa e o documento aparece na aba Documentos ao
