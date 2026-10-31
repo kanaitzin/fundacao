@@ -433,7 +433,8 @@ o item respondido sai do §0.
 **botão que depende de um dado que ainda vai chegar** nasce com a tela, para nada empurrar o que já se lê.
 **Ficam para a Fundação, com a 254:** a criança conferida na Chamada no lugar ou no fim, a vibração, e os nomes
 *Painel* e *Painel das unidades*. **Medido na 256:** a sonda no protótipo (as doses em ordem; o topo do perfil com
-208 px ao abrir e depois); o `ensaio:uso` e o do celular estão no fim desta linha quando terminarem.
+208 px ao abrir e depois), o `ensaio:uso` (808 cobranças, sem reprovação) e o do celular (322 telas, sem achado).
+**Não rodou** a suíte do servidor (nada no servidor mudou) nem o de acessibilidade (o recado novo usa as cores de sempre).
 
 **FEITO — fase 255** (§2): toda tela cabe, rola e tem volta, medido pelo `ensaio:cabe` nos oito cargos a 390 px e no
 monitor. **Folha nova nasce com Fechar ou Cancelar** (a do acompanhamento só saía gravando), **lista que se abre
