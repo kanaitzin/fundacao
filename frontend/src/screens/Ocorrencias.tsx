@@ -1033,8 +1033,8 @@ function FolhaNova({ categorias, pessoas, onFechar, onAbrir }: {
       <div className="sheet modal">
         <h3 id="t-oco">Registrar ocorrência</h3>
         <div className="notice c-crit">
-          Proteção primeiro. Este formulário existe para o depois — e aceita o mínimo,
-          para não roubar tempo do que importa agora.
+          Primeiro a proteção da criança. Registre depois, só o mínimo, e complete
+          quando a situação acalmar.
         </div>
 
         <label className="f">Categoria</label>

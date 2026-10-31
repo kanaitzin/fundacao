@@ -326,7 +326,33 @@ const TELAS_DA_CASA = new Set(['dia', 'chamada', 'acolhidos', 'passagem', 'agend
   'rotina', 'cozinha', 'portaria', 'campos_do_perfil', 'escala', 'internacao', 'saude',
   'ocorrencias', 'ata', 'alinhamentos', 'painel', 'acompanhamentos', 'cofre', 'periodo']);
 
+/*
+ * A TECLA ESC FECHA A FOLHA DE CIMA (fase 254): a do Mais, a da cor, a da
+ * conta, a que só mostra. Folha com algo escrito NÃO fecha: é a mesma escolha
+ * do voltar (27/09), para ninguém perder um relato por uma tecla. Quem fecha
+ * é o próprio botão Fechar, Cancelar ou Voltar da folha, com o que ele já faz.
+ */
+const SEM_TEXTO = new Set(['checkbox', 'radio', 'hidden', 'file', 'button', 'submit', 'range', 'color']);
+function fecharAFolhaDeCima(e: KeyboardEvent) {
+  if (e.key !== 'Escape' || e.defaultPrevented) return;
+  const folhas = document.querySelectorAll<HTMLElement>('.overlay');
+  const folha = folhas[folhas.length - 1];
+  if (!folha) return;
+  const escrito = [...folha.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('input, textarea')]
+    .some((c) => !SEM_TEXTO.has(c.type) && !c.readOnly && !c.disabled && c.value.trim() !== '');
+  if (escrito) return;
+  const fechar = [...folha.querySelectorAll<HTMLButtonElement>('button')].find((b) =>
+    /^(Fechar|Cancelar|Voltar)$/i.test((b.getAttribute('aria-label') ?? b.textContent ?? '').trim()));
+  if (!fechar) return;
+  e.preventDefault();
+  fechar.click();
+}
+
 export function App() {
+  useEffect(() => {
+    window.addEventListener('keydown', fecharAFolhaDeCima);
+    return () => window.removeEventListener('keydown', fecharAFolhaDeCima);
+  }, []);
   const [me, setMe] = useState<Me | null>(null);
   const [houses, setHouses] = useState<House[]>([]);
   const [erro, setErro] = useState('');
@@ -569,7 +595,15 @@ export function App() {
    * fosse a única do cargo, e aí a pessoa ficaria sem o botão que abre a tela.
    */
   const doMais = PORTAS.map((porta) => porta.aba).filter((a) => ve(a));
-  const temMais = doMais.length > 0;
+  /*
+   * QUEM NÃO TEM ABA DO TURNO E TEM POUCAS PORTAS (a cozinha: o Guia e a
+   * Cozinha) recebe as portas na própria barra do pé. Antes a barra tinha um
+   * "Mais" sozinho, da largura da tela, que abria uma folha com dois botões.
+   * No monitor elas já estão na coluna, e por isso são só do celular.
+   */
+  const portasNaBarra = abasDoTurno.length === 0 && doMais.length <= 4
+    ? PORTAS.filter((porta) => ve(porta.aba)) : [];
+  const temMais = doMais.length > 0 && !portasNaBarra.length;
 
   /*
    * A aba EFETIVA, e não a guardada.
@@ -822,6 +856,12 @@ export function App() {
             <button key={t.aba} className={abaEfetiva === t.aba ? 'on' : ''}
                     onClick={() => tocarAba(t.aba)}>
               <Icone nome={t.icone} /> <span className="rotulo">{t.label}</span>
+            </button>
+          ))}
+          {portasNaBarra.map((porta) => (
+            <button key={porta.aba} className={`so-no-celular ${abaEfetiva === porta.aba ? 'on' : ''}`}
+                    onClick={() => tocarAba(porta.aba)}>
+              <Icone nome={porta.icone} /> <span className="rotulo">{porta.titulo}</span>
             </button>
           ))}
           {temMais && (

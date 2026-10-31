@@ -100,7 +100,15 @@ async function aba(nome) {
 
 async function doMais(nome) {
   const m = pg.locator('nav.tabbar button', { hasText: 'Mais' });
-  if (!(await m.count())) return false;
+  if (!(await m.count())) {
+    /* Quem tem poucas portas e nenhuma aba do turno (a cozinha) as recebe na
+       própria barra, sem o Mais (fase 254). */
+    const naBarra = pg.locator('nav.tabbar button', { hasText: nome }).filter({ visible: true });
+    if (!(await naBarra.count())) return false;
+    await naBarra.first().click();
+    await pg.waitForTimeout(1100);
+    return true;
+  }
   await m.first().click();
   await pg.waitForTimeout(350);
   const porta = pg.locator('.overlay .sheet button.card.row', { hasText: nome });

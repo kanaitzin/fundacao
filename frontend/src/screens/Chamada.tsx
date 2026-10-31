@@ -86,6 +86,9 @@ const hhmm = (iso: string) => new Date(iso).toLocaleTimeString('pt-BR',
 
 export function Chamada({ houseId }: { houseId: string }) {
   const [lista, setLista] = useState<Resumo[]>([]);
+  /* Até a primeira resposta chegar, a tela não diz "nenhuma chamada" (fase 254):
+     o vazio de antes de carregar é ainda não sei, e não um fato. */
+  const [carregou, setCarregou] = useState(false);
   const [aberta, setAberta] = useState<Chamada | null>(null);
   const [erro, setErro] = useState('');
   const [aviso, setAviso] = useState('');
@@ -106,6 +109,7 @@ export function Chamada({ houseId }: { houseId: string }) {
     setErro('');
     try { setLista(await api<Resumo[]>(`/checks?houseId=${houseId}`)); }
     catch (e) { setErro(e instanceof Error ? e.message : 'Não foi possível carregar as chamadas.'); }
+    finally { setCarregou(true); }
   }, [houseId]);
 
   useEffect(() => { carregarLista(); }, [carregarLista]);
@@ -359,7 +363,7 @@ export function Chamada({ houseId }: { houseId: string }) {
               </span>
             </button>
           ))}
-          {lista.length === 0 && !(modelos && modelos.modelos.length > 0) && (
+          {carregou && lista.length === 0 && !(modelos && modelos.modelos.length > 0) && (
             <div className="card">
               <p className="mutetxt" style={{ margin: 0 }}>
                 Nenhuma chamada aberta hoje. Abra a do café, do almoço, da escola, da janta

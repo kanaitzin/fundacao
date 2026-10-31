@@ -186,8 +186,14 @@ main { flex: 1; padding: 16px 14px 40px; }
 
 label { display: block; font-size: 13px; font-weight: 800; margin: 14px 0 6px;
         font-family: "Plus Jakarta Sans", sans-serif; }
+/* A BORDA DO CAMPO (fase 254): contorno de controle precisa de 3:1 contra o
+   fundo (WCAG 1.4.11), e a `--line-2` dava 1,5:1 no claro. Ela sai da tinta de
+   apoio, que passa em todo tema, misturada com a superfície; a `--line-2`
+   continua nas linhas que só separam. O axe não mede isto: mede o
+   `ensaio:acessibilidade`, que calcula a borda de cada campo. */
+:root{ --campo: color-mix(in srgb, var(--muted) 80%, var(--surface)) }
 input {
-  width: 100%; padding: 11px 12px; border: 1.5px solid var(--line-2);
+  width: 100%; padding: 11px 12px; border: 1.5px solid var(--campo);
   border-radius: var(--r-sm); background: var(--raised); color: var(--ink); font: inherit; font-size: 15px;
 }
 .btn {
@@ -462,7 +468,7 @@ input {
   font-size:16px; font-weight:700; color:var(--titulo); letter-spacing:.04em;
 }
 select{
-  width:100%; padding:11px 12px; border:1px solid var(--line-2); border-radius:10px;
+  width:100%; padding:11px 12px; border:1px solid var(--campo); border-radius:10px;
   background:var(--surface); color:var(--ink); font-size:14.5px; font-family:inherit;
 }
 select:focus, .logincard input:focus{ outline:2px solid var(--brand); outline-offset:1px }
@@ -637,7 +643,7 @@ button.card:hover{ border-color:var(--brand) }
 }
 .sheet h3{ margin:0 0 6px; font-size:18px; color:var(--titulo) }
 textarea{
-  width:100%; min-height:96px; padding:11px 12px; border:1px solid var(--line-2);
+  width:100%; min-height:96px; padding:11px 12px; border:1px solid var(--campo);
   border-radius:10px; background:var(--surface); color:var(--ink);
   font:inherit; font-size:14.5px; resize:vertical;
 }
@@ -1535,8 +1541,8 @@ div.acoes{ display:flex; flex-wrap:wrap; gap:8px; align-items:center }
 .acolhe-topo{ display:flex; align-items:center; gap:10px; padding:12px 12px 8px 16px; border-bottom:1px solid var(--line); color:var(--titulo) }
 .acolhe-topo h2{ margin:0; font-size:17px }
 .acolhe-opcoes{ display:flex; flex-wrap:wrap; gap:8px 14px; align-items:center; padding:8px 16px; border-bottom:1px solid var(--line); font-size:13.5px }
-.acolhe-opcoes label{ display:flex; align-items:center; gap:8px; margin:0; font-size:13.5px; font-weight:600 }
-.acolhe-opcoes label span{ white-space:nowrap }
+.acolhe-opcoes label{ display:flex; align-items:center; gap:8px; margin:0; font-size:13.5px; font-weight:600; min-width:0 }
+.acolhe-opcoes label span{ white-space:normal; min-width:0 }
 .acolhe-voz select{ width:auto; min-height:36px; margin:0; border-radius:10px; padding:0 8px }
 .acolhe-ler{ min-height:36px }
 .acolhe-ler input{ width:20px; height:20px; margin:0; flex:none }
@@ -1562,7 +1568,7 @@ div.acoes{ display:flex; flex-wrap:wrap; gap:8px; align-items:center }
 .acolhe-estado.erro{ color:var(--red-solid) }
 .acolhe-anexar{ padding:8px 16px 0; border-top:1px solid var(--line) }
 .acolhe-escrever{ padding:10px 12px 12px; border-top:1px solid var(--line); display:flex; flex-direction:column; gap:8px }
-.acolhe-escrever textarea{ width:100%; resize:none; border-radius:12px; border:1px solid var(--line-2); padding:8px 10px; font:inherit; background:var(--surface); color:var(--ink) }
+.acolhe-escrever textarea{ width:100%; resize:none; border-radius:12px; border:1px solid var(--campo); padding:8px 10px; font:inherit; background:var(--surface); color:var(--ink) }
 .acolhe-acoes{ gap:8px; align-items:center }
 .iconbtn.ativo{ background:var(--brand-soft); border-color:var(--brand); color:var(--titulo) }
 /* Fase 193: a Acolhe+AI mexendo na tela. O campo em que ela escreve fica em
@@ -1685,7 +1691,7 @@ div.acoes{ display:flex; flex-wrap:wrap; gap:8px; align-items:center }
 .cuidado-palavras span{ flex:1 1 180px; min-width:0 }
 .acolhe-ensinar{ margin:8px 12px; padding:10px 12px; border:1px solid var(--line-2); border-radius:10px; background:var(--raised) }
 .acolhe-fala{ margin:0; font-size:13px; color:var(--muted); line-height:1.4 }
-.acolhe-rascunho textarea{ width:100%; resize:vertical; border-radius:10px; border:1px solid var(--line-2); padding:8px 10px; font:inherit; line-height:1.45; background:var(--surface); color:var(--ink) }
+.acolhe-rascunho textarea{ width:100%; resize:vertical; border-radius:10px; border:1px solid var(--campo); padding:8px 10px; font:inherit; line-height:1.45; background:var(--surface); color:var(--ink) }
 .acolhe-rascunho-fotos{ list-style:none; margin:0; padding:0; display:flex; gap:8px; flex-wrap:wrap }
 .acolhe-rascunho-fotos li{ display:flex; flex-direction:column; gap:4px; align-items:flex-start }
 .acolhe-rascunho-fotos img{ height:72px; width:auto; border-radius:8px; border:1px solid var(--line-2) }
@@ -1824,12 +1830,15 @@ div.acoes{ display:flex; flex-wrap:wrap; gap:8px; align-items:center }
   color:var(--on-solid); background:var(--brand-solid); border-radius:999px; padding:3px 11px;
 }
 @media (max-width:760px){
-  .linha::before{ left:51px }
-  .linha .ev{ grid-template-columns:42px 1fr; gap:22px; padding:0 }
-  .linha .ev::before{ left:45px }
-  .linha .hora{ font-size:13.5px }
-  .linha .agora{ grid-template-columns:42px 1fr; gap:22px }
-  .linha .agora::before{ left:42px }
+  /* A coluna da hora tem de caber "23:59" inteiro: com 42px o anel do ponto
+     pintava por cima do último dígito, e o celular lia "08:0C". O ponto fica
+     no meio do vão, e o trilho no meio do ponto. */
+  .linha::before{ left:59px }
+  .linha .ev{ grid-template-columns:48px 1fr; gap:24px; padding:0 }
+  .linha .ev::before{ left:53px }
+  .linha .hora{ font-size:13.5px; padding-right:4px }
+  .linha .agora{ grid-template-columns:48px 1fr; gap:24px }
+  .linha .agora::before{ left:48px }
   .perfil-topo .retrato{ width:88px; height:88px }
   .perfil-topo h2{ font-size:24px }
 }
@@ -1845,10 +1854,11 @@ div.acoes{ display:flex; flex-wrap:wrap; gap:8px; align-items:center }
    empurrar a tela para o lado. Achado pelo `ensaio:celular`. */
 .linha .corpo .pill{ white-space:normal; max-width:100% }
 @media (max-width:420px){
-  .linha::before{ left:45px }
-  .linha .ev, .linha .agora{ grid-template-columns:38px 1fr; gap:18px }
-  .linha .ev::before{ left:39px; width:12px; height:12px; top:15px }
-  .linha .agora::before{ left:38px }
+  .linha::before{ left:59px }
+  .linha .ev, .linha .agora{ grid-template-columns:50px 1fr; gap:22px }
+  .linha .ev::before{ left:55px; width:12px; height:12px; top:15px }
+  .linha .hora{ padding-right:4px }
+  .linha .agora::before{ left:50px }
   .linha .hora{ font-size:12.5px }
   .linha .ev .corpo{ padding:10px 11px }
 }

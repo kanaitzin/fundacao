@@ -92,6 +92,43 @@ async function conferir(onde) {
     a.ondes.push(onde);
     if (!a.exemplo) a.exemplo = (v.nodes[0]?.html ?? '').slice(0, 120);
   }
+  /*
+   * A BORDA DO CAMPO (fase 254). O axe não mede o contorno de controle (WCAG
+   * 1.4.11, 3:1 contra o fundo), e a borda dos campos dava 1,5:1 no claro com
+   * este ensaio verde. Aqui cada campo visível tem a cor da borda comparada com
+   * o fundo que está por trás dele.
+   */
+  const fracos = await pg.evaluate(() => {
+    const rgb = (c) => { const m = c.match(/[\d.]+/g); return m ? m.map(Number) : null; };
+    const lum = ([r, g, b]) => [r, g, b].map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; })
+      .reduce((t, v, i) => t + v * [0.2126, 0.7152, 0.0722][i], 0);
+    const fundo = (el) => {
+      for (let e = el.parentElement; e; e = e.parentElement) {
+        const c = rgb(getComputedStyle(e).backgroundColor);
+        if (c && (c.length < 4 || c[3] > 0.9)) return c;
+      }
+      return [255, 255, 255];
+    };
+    const sem = new Set(['checkbox', 'radio', 'hidden', 'file', 'button', 'submit', 'range', 'color']);
+    const out = [];
+    for (const el of document.querySelectorAll('input, select, textarea')) {
+      if (sem.has(el.type) || !el.offsetParent) continue;
+      const cs = getComputedStyle(el);
+      if (parseFloat(cs.borderTopWidth) < 0.5 || cs.borderTopStyle === 'none') continue;
+      const b = rgb(cs.borderTopColor), f = fundo(el);
+      if (!b) continue;
+      const [a1, a2] = [lum(b.slice(0, 3)), lum(f.slice(0, 3))].sort((x, y) => y - x);
+      const razao = (a1 + 0.05) / (a2 + 0.05);
+      if (razao < 3) out.push(`${el.id || el.name || el.tagName.toLowerCase()} ${razao.toFixed(2)}:1`);
+    }
+    return out;
+  });
+  if (fracos.length) {
+    if (!achados.has('borda-do-campo')) {
+      achados.set('borda-do-campo', { impacto: 'serious', ajuda: 'A borda do campo precisa de 3:1 contra o fundo (WCAG 1.4.11)', ondes: [], exemplo: fracos[0] });
+    }
+    achados.get('borda-do-campo').ondes.push(onde);
+  }
 }
 
 const seletor = pg.locator('select.troca-cargo-sel');

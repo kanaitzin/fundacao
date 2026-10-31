@@ -88,6 +88,8 @@ export function Avisos({ onMudou, irPara, alcanca = () => false }: {
   irPara?: (aba: string) => void; alcanca?: (aba: string) => boolean;
 }) {
   const [lista, setLista] = useState<Aviso[]>([]);
+  /* Antes da primeira resposta, nada de "Nada esperando você" (fase 254). */
+  const [carregou, setCarregou] = useState(false);
   const [so, setSo] = useState<'todos' | 'nao_lidos'>('nao_lidos');
   const [erro, setErro] = useState('');
 
@@ -101,7 +103,7 @@ export function Avisos({ onMudou, irPara, alcanca = () => false }: {
         : await api<Aviso[]>('/notifications'));
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Não foi possível carregar os avisos.');
-    }
+    } finally { setCarregou(true); }
   }
   useEffect(() => { carregar(); }, []);
 
@@ -189,7 +191,7 @@ export function Avisos({ onMudou, irPara, alcanca = () => false }: {
           </div>
         ))}
 
-        {lista.length === 0 && (
+        {carregou && lista.length === 0 && (
           <div className="card">
             <p className="mutetxt" style={{ margin: 0 }}>
               {so === 'nao_lidos'

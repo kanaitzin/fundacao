@@ -139,7 +139,7 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
   { fase: 254, dia: '30/10/2026',
-    texto: 'O tema alto contraste saiu da folha Cor da tela, a pedido da Fundação. Quem tinha escolhido o alto contraste volta ao claro ou ao escuro do aparelho, e as outras sete cores continuam.' },
+    texto: 'O tema alto contraste saiu da folha Cor da tela, a pedido da Fundação, e as outras sete cores continuam. E pequenos consertos que a equipe de design achou: a hora da linha do Dia aparece inteira no celular, a borda dos campos de escrever ficou mais visível, a Cozinha tem as suas telas direto na barra de baixo, a tecla Esc fecha a folha que não tem nada escrito, e a Chamada e os Avisos não dizem que está vazio antes de carregar.' },
   { fase: 253, dia: '28/10/2026', aba: 'acolhidos',
     texto: 'Conferimos o cadastro de uma criança de ponta a ponta, o perfil com as oito abas, os documentos do dossiê e todos os menus de todos os cargos. No protótipo, a criança cadastrada agora mostra só o que foi registrado, e o que se escreve na chegada (quem trouxe, a referência familiar e como chegou) aparece no perfil, na aba Judiciário.' },
   { fase: 252, dia: '28/10/2026',
