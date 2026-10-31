@@ -268,7 +268,10 @@ for (const largura of LARGURAS) {
     if (!problemas.length) return 0;
     const foto = `${SAIDA}/${largura}-${cargo}-${String(++fotos).padStart(3, '0')}.png`;
     await pg.screenshot({ path: foto }).catch(() => {});
-    for (const p of problemas) achados.push(`[${largura} · ${cargo} · ${onde}] ${p} (${foto})`);
+    for (const p of problemas) {
+      achados.push(`[${largura} · ${cargo} · ${onde}] ${p} (${foto})`);
+      console.log(`    ✗ ${onde}: ${p}`);
+    }
     return problemas.length;
   }
 
