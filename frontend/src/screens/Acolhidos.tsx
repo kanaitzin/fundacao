@@ -1436,6 +1436,15 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
                 podeAnexar={VE_JUDICIAL.includes(papel)} />
             </div>
           )}
+          {/* Aberta, a área restrita também se fecha (fase 255): quem lê o motivo
+              do acolhimento com alguém chegando perto precisa tirá-lo da tela num
+              toque. Fechar só esconde; abrir de novo fica registrado outra vez. */}
+          {(judicial || semJudicial) && (
+            <button className="btn sec block" style={{ marginTop: 14 }}
+                    onClick={() => { setJudicial(null); setSemJudicial(false); setEditandoJudicial(false); }}>
+              Fechar a área restrita
+            </button>
+          )}
         </Secao>
       )}
 
