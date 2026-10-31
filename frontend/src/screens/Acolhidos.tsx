@@ -4408,9 +4408,11 @@ function VisitasDoAcolhido({ personId }: { personId: string }) {
               </li>
             ))}
           </ul>
-          {dados.visitas.length > 5 && !todas && (
-            <button className="btn sm ghost" onClick={() => setTodas(true)}>
-              Ver as {dados.visitas.length} visitas do período
+          {/* Aberta a lista inteira, ela também se recolhe (fase 255): sem isto o
+              botão sumia e quem abriu 44 visitas não tinha como voltar às cinco. */}
+          {dados.visitas.length > 5 && (
+            <button className="btn sm ghost" aria-expanded={todas} onClick={() => setTodas(!todas)}>
+              {todas ? 'Mostrar só as cinco mais recentes' : `Ver as ${dados.visitas.length} visitas do período`}
             </button>
           )}
         </>

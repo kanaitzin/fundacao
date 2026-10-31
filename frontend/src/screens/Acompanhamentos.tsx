@@ -542,6 +542,9 @@ function FolhaEixos({ acompanhamento, eixos, onFechar, onSalvar }: {
 
         {!bloqueado && (
           <div className="row rodape">
+            {/* Sem Fechar, a folha só saía gravando ou tocando fora dela, e no
+                celular não há fora (fase 255). Fechar não grava nada. */}
+            <button className="btn ghost" onClick={onFechar}>Fechar</button>
             <button className="btn sec grow" onClick={() => onSalvar(valores, false)}>
               Salvar rascunho
             </button>

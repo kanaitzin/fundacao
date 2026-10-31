@@ -99,7 +99,14 @@ async function conferir(onde) {
    * o fundo que está por trás dele.
    */
   const fracos = await pg.evaluate(() => {
-    const rgb = (c) => { const m = c.match(/[\d.]+/g); return m ? m.map(Number) : null; };
+    /* A cor calculada volta como rgb(0–255) ou, quando nasce de um color-mix,
+       como color(srgb 0–1): lida errada, a borda passaria ou reprovaria por engano. */
+    const rgb = (c) => {
+      const m = c.match(/[\d.]+/g); if (!m) return null;
+      const n = m.map(Number);
+      if (/^color\(srgb/.test(c)) return [n[0] * 255, n[1] * 255, n[2] * 255, n[3] ?? 1];
+      return n;
+    };
     const lum = ([r, g, b]) => [r, g, b].map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; })
       .reduce((t, v, i) => t + v * [0.2126, 0.7152, 0.0722][i], 0);
     const fundo = (el) => {

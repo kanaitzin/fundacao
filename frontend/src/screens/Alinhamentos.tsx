@@ -320,8 +320,9 @@ export function Alinhamentos({ houseId, casaLabel }: { houseId: string; casaLabe
                   <>
                     <button className="btn block ghost"
                             onClick={() => setVerEncerradas(!verEncerradas)}>
-                      {verEncerradas ? 'Esconder' : 'Mostrar'} as {encerradas.length} que
-                      {encerradas.length === 1 ? ' deixou' : ' deixaram'} de valer
+                      {encerradas.length === 1
+                        ? `${verEncerradas ? 'Esconder' : 'Mostrar'} a regra que deixou de valer`
+                        : `${verEncerradas ? 'Esconder' : 'Mostrar'} as ${encerradas.length} regras que deixaram de valer`}
                     </button>
                     {verEncerradas && (
                       <ul className="stack lista">
