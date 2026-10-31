@@ -2865,7 +2865,10 @@ function FotoDoAcolhido({ perfil, papel, onTrocou }: {
         {src ? <img src={src} alt={`Foto de identificação de ${perfil.nome}`} /> : <span>{iniciais}</span>}
       </div>
 
-      {src && (
+      {/* O botão nasce junto com o perfil quando ele diz que há foto, e não quando
+          a foto chega (fase 256): aparecendo depois, ele empurrava para baixo a
+          faixa da alergia no meio da leitura. Tocado antes, a foto abre ao chegar. */}
+      {(src || perfil.foto) && (
         <div style={{ marginTop: 6 }}>
           <BotaoOlho rotulo="Ver a foto" onClick={() => setVendoMaior(true)} />
         </div>

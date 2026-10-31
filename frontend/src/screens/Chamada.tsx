@@ -433,7 +433,15 @@ export function Chamada({ houseId }: { houseId: string }) {
       </div>
 
       {erro && <div className="notice c-crit" role="alert">{erro}</div>}
-      {aviso && <div className="notice c-ok" role="status">{aviso}</div>}
+      {/* O recado da marcação fica onde o olho está (fase 256): no alto da tela ele
+          nascia fora da vista de quem já tinha rolado até a criança da vez, e
+          "a marcação ficou guardada neste aparelho" passava sem ninguém ler. */}
+      {aviso && (
+        <div className="notice c-ok recado-da-vez" role="status">
+          <span className="grow">{aviso}</span>
+          <button type="button" className="btn sm ghost" onClick={() => setAviso('')}>Fechar</button>
+        </div>
+      )}
 
       {/* Quem falta aparece por nome — os primeiros, para caber na tela. No
           começo da chamada isso seria a lista inteira, então mostra a conta e

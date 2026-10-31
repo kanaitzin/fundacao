@@ -197,7 +197,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 31/10/2026, fase 255
+### Onde estamos — 31/10/2026, fase 256
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -316,6 +316,7 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 253 | **o cadastro, o perfil, os documentos e os menus** (pedido de 28/10): oito cargos, 146 telas, 167 abas e 21 perfis sem achado; nenhum ensaio passava pelo Cadastrar acolhido, e no protótipo a criança cadastrada **perdia a ficha da chegada e ganhava uma história que ninguém registrou** (família, visitas, escola, PIA, memória, o dia de hoje); e, **no sistema de verdade também**, voltar do dossiê não relia o perfil e o documento recém-anexado não aparecia na aba Documentos; consertados, e no `ensaio:uso` |
 | 254 | **o alto contraste sai** (pedido de 30/10: o Pão não vê necessidade): fora da lista, do CSS e do ensaio de acessibilidade; quem o tinha guardado volta ao tema do aparelho; e **a equipe de design** começa o estudo do visual (pedido de 30/10: *"ainda acho muito feio e amador"*), com direções para a Fundação escolher |
 | 255 | **toda tela cabe, rola e tem volta** (pedido de 31/10): o `ensaio:cabe` entra em cada tela, aba, folha e subtela de cada cargo e aperta a volta; a folha do acompanhamento sem Fechar, as visitas que não recolhiam, a área restrita que não se fechava e a folha das oito casas sem volta ao Arquivo, consertadas |
+| 256 | **os pequenos defeitos da equipe de design**: o sino recontado junto com a lista, o perfil que pulava quando a foto chegava, o recado da Chamada sem internet fora da vista (hoje acima da barra do pé), e as doses do protótipo fora da ordem da hora |
 
 **Medido no fim da 252:** 207 migrações, 144 tabelas, 160 suítes, 1418 testes; nas 237 e 238, a suíte inteira
 verde (1363 de 1363, depois de consertar as três conferências que o relatório das vivências deixou soltas) e o
@@ -426,6 +427,13 @@ posto em ordem no **PARA-A-REUNIAO §0**: as cinco perguntas que mais destravam,
 responder, os documentos de papel e os dados a receber, o que o DPO vê, o que se assina e as 30
 decisões de produto abertas. **Quando a resposta vier, ela entra lá e no §10 ou §11 do documento**, e
 o item respondido sai do §0.
+
+**FEITO — fase 256** (§2): os pequenos defeitos achados pela equipe de design que não dependem da escolha visual.
+**Recado do que a pessoa acabou de fazer** fica onde o olho está (o `recado-da-vez`, acima da barra do pé), e
+**botão que depende de um dado que ainda vai chegar** nasce com a tela, para nada empurrar o que já se lê.
+**Ficam para a Fundação, com a 254:** a criança conferida na Chamada no lugar ou no fim, a vibração, e os nomes
+*Painel* e *Painel das unidades*. **Medido na 256:** a sonda no protótipo (as doses em ordem; o topo do perfil com
+208 px ao abrir e depois); o `ensaio:uso` e o do celular estão no fim desta linha quando terminarem.
 
 **FEITO — fase 255** (§2): toda tela cabe, rola e tem volta, medido pelo `ensaio:cabe` nos oito cargos a 390 px e no
 monitor. **Folha nova nasce com Fechar ou Cancelar** (a do acompanhamento só saía gravando), **lista que se abre

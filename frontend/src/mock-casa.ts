@@ -10476,7 +10476,14 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
            garante que a chave EXISTA mesmo na dose que não é "se necessário". */
         motivoQuandoNecessario: d.motivoQuandoNecessario ?? null,
         desfechoQuandoNecessario: d.desfechoQuandoNecessario ?? null,
-      }));
+      }))
+      /* Na ordem da hora, e no empate pelo nome: igual ao servidor (`ORDER BY
+         a.scheduled_at, pessoa`). Sem isto a grade lia 08:30, 08:50, 04:35 (fase 256). */
+      .sort((a, b) => {
+        /* A dose "se necessário" não tem hora e vai para o fim, como o NULL no Postgres. */
+        const t = (h: string | null | undefined) => (h ? new Date(h).getTime() : Number.POSITIVE_INFINITY);
+        return (t(a.horario) - t(b.horario) || 0) || a.acolhido.nome.localeCompare(b.acolhido.nome, 'pt-BR');
+      });
   }
 
   // ---- agenda

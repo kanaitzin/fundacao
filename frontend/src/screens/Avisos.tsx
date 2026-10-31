@@ -114,10 +114,10 @@ export function Avisos({ onMudou, irPara, alcanca = () => false }: {
       // do caminho esconde do verificador qual rota está sendo chamada.
       if (acao === 'read') await api(`/notifications/${id}/read`, { method: 'POST', body: '{}' });
       else await api(`/notifications/${id}/acknowledge`, { method: 'POST', body: '{}' });
-      await carregar();
       // O sino da barra de cima conta os não lidos: ele precisa saber agora,
-      // e não daqui a dois minutos.
-      onMudou?.();
+      // e não daqui a dois minutos. E junto com a lista, e não depois dela
+      // (fase 256): em sequência, a lista mostrava 5 e o sino 6 por meio segundo.
+      await Promise.all([carregar(), Promise.resolve(onMudou?.())]);
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Não foi possível concluir.');
     }

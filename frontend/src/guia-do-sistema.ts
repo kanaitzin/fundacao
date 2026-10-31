@@ -138,6 +138,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 256, dia: '31/10/2026',
+    texto: 'Pequenos acertos de tela: o número do sino muda junto com o aviso marcado como lido, o perfil da criança não dá mais um pulo quando a foto chega, o recado da Chamada sem internet aparece logo acima da barra de baixo, com Fechar, e no protótipo as doses da Saúde ficam na ordem da hora.' },
   { fase: 255, dia: '31/10/2026',
     texto: 'Conferimos que toda tela cabe, rola até o fim e tem como voltar, em cada cargo, no celular e no computador. Ganharam caminho de volta: a folha do acompanhamento (Fechar), a lista inteira das visitas no perfil (Mostrar só as cinco mais recentes), a área restrita do Judiciário (Fechar a área restrita) e a folha das oito casas aberta pelo Arquivo da ATA (Voltar ao Arquivo).' },
   { fase: 254, dia: '30/10/2026',
