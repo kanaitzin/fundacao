@@ -432,7 +432,10 @@ monitor. **Folha nova nasce com Fechar ou Cancelar** (a do acompanhamento só sa
 inteira também se recolhe**, e **o que mostra dado restrito também se fecha**. **Mudou tela, roda o `ensaio:cabe` do
 cargo que a usa.** A fase 254 continua em andamento: a escolha da direção visual, na página
 `claude.ai/artifact/HEEEViKherDM4Bi77R3LZS` (privada; o dono compartilha). **Medido na 255:** o `ensaio:cabe`
-(986 estados a 390 px e 1181 no monitor, nada vazando nem preso; os achados consertados).
+(986 estados a 390 px e 1181 no monitor, nada vazando nem preso; os achados consertados) e, depois dos consertos,
+o de acessibilidade (1155 telas, sete temas, nenhuma violação, agora medindo a borda dos campos), o do celular (322
+telas, sem achado) e o `ensaio:uso` (808 cobranças, sem reprovação). **Não rodou** a suíte do servidor (nada no
+servidor mudou) nem a simulação contra o servidor.
 
 **EM ANDAMENTO — fase 254** (§2): o alto contraste saiu (feito, com o `ensaio:uso` e o de acessibilidade a rodar);
 e o pedido de 30/10, *"ainda acho muito feio e amador as telas [...] quero um momento dedicado em melhorar a

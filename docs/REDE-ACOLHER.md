@@ -97,7 +97,7 @@ discordavam entre si.
 | **40 telas React** | `frontend/src/screens/*.tsx` |
 | **10 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **12 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
-| protótipo com **≈7603 KB** | `prototipo/rede-acolher-prototipo.html` |
+| protótipo com **≈7644 KB** | `prototipo/rede-acolher-prototipo.html` |
 
 *A frase importa: o conferidor lê o NÚMERO colado ao substantivo. Escrever
 "Telas React … 31" numa coluna separada faz o teste passar sem conferir nada —
