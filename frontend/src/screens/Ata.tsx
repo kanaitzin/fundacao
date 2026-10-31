@@ -506,6 +506,9 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
    * data dela. O texto e os adendos vêm junto, sempre do servidor.
    */
   const [doArquivo, setDoArquivo] = useState<string | null>(null);
+  /* A ATA Geral de um dia passado, aberta pelo Arquivo (fase 255): ganha o caminho
+     de volta, e a aba da ATA Geral volta à de hoje em vez de continuar nela. */
+  const [geralDoArquivo, setGeralDoArquivo] = useState(false);
   async function abrirDoArquivo(plantaoId: string) {
     setErro('');
     try {
@@ -604,7 +607,10 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
         <button role="tab" aria-selected={aba === 'casa'} className={aba === 'casa' ? 'on' : ''}
                 onClick={() => setAba('casa')}>ATA da casa</button>
         <button role="tab" aria-selected={aba === 'geral'} className={aba === 'geral' ? 'on' : ''}
-                onClick={() => setAba('geral')}>ATA Geral Noturna</button>
+                onClick={() => {
+                  if (geralDoArquivo) { setGeralDoArquivo(false); setGeral(null); }
+                  setAba('geral');
+                }}>ATA Geral Noturna</button>
         {CONSULTA_ARQUIVO.includes(papel) && (
           <button role="tab" aria-selected={aba === 'arquivo'} className={aba === 'arquivo' ? 'on' : ''}
                   onClick={() => { setAba('arquivo'); if (!arquivo) consultar(); }}>
@@ -1292,6 +1298,12 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
 
       {aba === 'geral' && (
         <>
+          {geralDoArquivo && (
+            <button className="btn sm ghost" style={{ alignSelf: 'flex-start', marginBottom: 8 }}
+                    onClick={() => { setGeralDoArquivo(false); setGeral(null); setAba('arquivo'); }}>
+              ← Voltar ao Arquivo
+            </button>
+          )}
           {semGeral && <div className="notice c-info">{semGeral}</div>}
           {geral && (
             <div className="card raise stack">
@@ -1643,6 +1655,7 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
                       <button className="btn sm ghost" style={{ marginTop: 8 }}
                               onClick={async () => {
                                 setAba('geral');
+                                setGeralDoArquivo(true);
                                 setGeral(await api<AtaGeral>(`/shifts/general-ata/${d.geral!.id}`));
                                 setSemGeral('');
                               }}>

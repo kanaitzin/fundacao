@@ -197,6 +197,7 @@ for (const largura of LARGURAS) {
   /** Abre uma tela de primeiro nível pelo nome, como a pessoa abre. */
   async function abrirTela(nome) {
     await fecharTudo();
+    if (nome === '(a tela única)') { await esp(pg, 300); return true; }
     if (celular) {
       const naBarra = pg.locator('nav.tabbar button').filter({ hasText: nome }).filter({ visible: true });
       if (await naBarra.count()) { await naBarra.first().click({ timeout: 5000 }).catch(() => {}); await esp(pg, 700); return true; }
@@ -216,12 +217,20 @@ for (const largura of LARGURAS) {
   }
 
   /** Os passos que levam a um estado: a tela e o que se apertou depois. */
-  async function irPara(tela, passos) {
+  async function irPara(tela, passos, deNovo = true) {
     if (!(await abrirTela(tela))) return false;
     for (const p of passos) {
       const alvo = pg.locator('main.conteudo').locator(p.sel).filter({ visible: true }).filter({ hasText: p.texto });
-      if ((await alvo.count()) <= p.n) return false;
-      if (!(await alvo.nth(p.n).click({ timeout: 5000 }).then(() => true).catch(() => false))) return false;
+      const achou = (await alvo.count()) > p.n
+        && await alvo.nth(p.n).click({ timeout: 5000 }).then(() => true).catch(() => false);
+      /* O que se abriu da vez anterior continua aberto quando a tela volta (um
+         formulário, um plantão), e o botão que o abriu não está mais à vista:
+         recomeça do zero, uma vez. */
+      if (!achou) {
+        if (!deNovo) return false;
+        await recomecar();
+        return irPara(tela, passos, false);
+      }
       await esp(pg, 700);
     }
     return true;
@@ -388,6 +397,9 @@ for (const largura of LARGURAS) {
       telas = (await pg.locator('nav.tabbar button .rotulo, nav.portas-lateral button .rotulo').filter({ visible: true }).allInnerTexts()).map(limpo);
     }
     telas = [...new Set(telas.filter(Boolean))];
+    /* Quem tem uma tela só (a portaria) não tem barra: a tela é a que abre. */
+    const unica = !telas.length;
+    if (unica) telas = ['(a tela única)'];
     let n = 0;
     for (const tela of telas) {
       if (!(await abrirTela(tela))) { n += await anotar(cargo.valor, tela, ['a tela não abriu pelo menu']); continue; }
