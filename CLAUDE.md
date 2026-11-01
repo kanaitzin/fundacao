@@ -434,7 +434,10 @@ o item respondido sai do §0.
 **Movimento novo** usa os tokens (`--mov-*`, `--curva-*`), só `transform` e `opacity`, nada acima de 250 ms, e tem a
 versão de Reduzir movimento; **nunca** entra na ocorrência grave, no remédio, na faixa da alergia nem em erro. **O que
 falta do relatório 5** (o recado no botão, a linha da Chamada, o número, o realce, a vibração) pede marcação ou
-decisão. **Medido na 258:** no fim desta linha quando os ensaios terminarem.
+decisão. **Medido na 258:** a sonda no protótipo a 390 px (a tela entra e
+termina sem `transform`, a folha sobe e para no lugar, com Reduzir movimento nada se desloca, nenhum erro), o
+`ensaio:uso` (sem reprovação), o do celular (322 telas, sem achado) e o de acessibilidade (1155 telas, sete temas,
+nenhuma violação). **Não rodou** a suíte do servidor (nada no servidor mudou) nem o `ensaio:cabe`.
 
 **FEITO — fase 257** (§2): os retratos do protótipo refeitos com o gerador da equipe de design. **Quem acrescentar
 criança ao protótipo** confere a grade dos retratos (a idade vai junto, e o `RETRATO_A_MAO` do `mock-casa.ts` acerta
