@@ -349,9 +349,22 @@ const KIDS: Kid[] = [
  * ele que mostra as iniciais e o "Pôr foto" de quem acabou de chegar.
  */
 const MENINAS = new Set(['Alice', 'Gabi', 'Helena', 'Lara', 'Nina', 'Sofia', 'Vitória', 'Yasmin']);
+/* Os meninos que o sorteio fazia quase iguais (o Bruno e o Caio, o Enzo e o
+   Felipe) ganham o cabelo e a roupa à mão, para a lista não parecer de clones.
+   O resto continua saindo do nome (fase 257). */
+const RETRATO_A_MAO: Record<string, { pele?: number; cabelo?: string; cor?: number }> = {
+  Bruno: { pele: 6, cabelo: 'raspado', cor: 0 },
+  Caio: { pele: 4, cabelo: 'cacheado', cor: 2 },
+  Enzo: { pele: 5, cabelo: 'nago', cor: 3 },
+  Felipe: { pele: 2, cabelo: 'ondulado', cor: 8 },
+  Pedro: { pele: 3, cabelo: 'curto', cor: 10 },
+  Théo: { pele: 7, cabelo: 'crespo', cor: 5 },
+};
 for (const k of KIDS) {
   if (k.nome === 'Théo') { delete k.foto; continue; }
-  const r = retratoFicticio(k.civil, (MENINAS.has(k.nome) ? 'menina' : 'menino') as Feitio);
+  /* A idade muda o corpo do desenho (fase 257): o bebê de macacão, o adolescente maior. */
+  const r = retratoFicticio(k.civil, (MENINAS.has(k.nome) ? 'menina' : 'menino') as Feitio,
+    { idade: k.idade, ...RETRATO_A_MAO[k.nome] });
   k.foto = r.conteudo; k.fotoTipo = r.tipo; k.fotoEm = k.fotoEm ?? emHoras(9, 0);
 }
 /** O retrato de um adulto, como a foto 3×4 guardada do contato (com o prefixo, como o contato guarda). */

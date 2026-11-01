@@ -197,7 +197,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 31/10/2026, fase 256
+### Onde estamos — 01/11/2026, fase 257
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -317,6 +317,7 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 254 | **o alto contraste sai** (pedido de 30/10: o Pão não vê necessidade): fora da lista, do CSS e do ensaio de acessibilidade; quem o tinha guardado volta ao tema do aparelho; e **a equipe de design** começa o estudo do visual (pedido de 30/10: *"ainda acho muito feio e amador"*), com direções para a Fundação escolher |
 | 255 | **toda tela cabe, rola e tem volta** (pedido de 31/10): o `ensaio:cabe` entra em cada tela, aba, folha e subtela de cada cargo e aperta a volta; a folha do acompanhamento sem Fechar, as visitas que não recolhiam, a área restrita que não se fechava e a folha das oito casas sem volta ao Arquivo, consertadas |
 | 256 | **os pequenos defeitos da equipe de design**: o sino recontado junto com a lista, o perfil que pulava quando a foto chegava, o recado da Chamada sem internet fora da vista (hoje acima da barra do pé), e as doses do protótipo fora da ordem da hora |
+| 257 | **os retratos do protótipo refeitos** (pedido de 30/10): o gerador da equipe de design no `retratos.ts`, com idade, pele e cabelo, roupa fora das cores de estado, e os meninos parecidos acertados à mão; a silhueta segue como opção da Fundação |
 
 **Medido no fim da 252:** 207 migrações, 144 tabelas, 160 suítes, 1418 testes; nas 237 e 238, a suíte inteira
 verde (1363 de 1363, depois de consertar as três conferências que o relatório das vivências deixou soltas) e o
@@ -428,6 +429,12 @@ responder, os documentos de papel e os dados a receber, o que o DPO vê, o que s
 decisões de produto abertas. **Quando a resposta vier, ela entra lá e no §10 ou §11 do documento**, e
 o item respondido sai do §0.
 
+**FEITO — fase 257** (§2): os retratos do protótipo refeitos com o gerador da equipe de design. **Quem acrescentar
+criança ao protótipo** confere a grade dos retratos (a idade vai junto, e o `RETRATO_A_MAO` do `mock-casa.ts` acerta
+os que saírem parecidos). **Depende da Fundação:** rosto desenhado ou silhueta (página da 254). **Medido na 257:** a
+grade das vinte crianças e a lista e o perfil abertos a 390 px, sem erro; o `ensaio:uso` e o do celular no fim desta
+linha quando terminarem.
+
 **FEITO — fase 256** (§2): os pequenos defeitos achados pela equipe de design que não dependem da escolha visual.
 **Recado do que a pessoa acabou de fazer** fica onde o olho está (o `recado-da-vez`, acima da barra do pé), e
 **botão que depende de um dado que ainda vai chegar** nasce com a tela, para nada empurrar o que já se lê.
@@ -458,7 +465,7 @@ silhueta, e as cores novas dos cargos (três repetiam o hex de uma cor de estado
 ficaram no scratchpad da sessão**: se ela se perder, o caminho de refazer está no
 `docs/historico/equipe-de-design-30-10/2-referencias.md` §3. **Próxima etapa:** a resposta da Fundação; só então
 o redesenho, tela por tela, com o `ensaio:celular`, o de acessibilidade, o `ensaio:cabe` e o `ensaio:uso` a cada passo. **Os
-retratos ilustrados do protótipo** (`retratos.ts`) são refeitos junto: a Fundação os achou feios.
+retratos ilustrados do protótipo** (`retratos.ts`) foram refeitos na 257.
 **Depois da 253, medido na 254:** a Casa 03 em trinta dias contra o servidor de verdade (onze contas e o
 esqueci, sem achado, com o percurso novo do dossiê: a técnica anexa e o documento aparece na aba Documentos ao
 voltar) e o do celular (322 telas, sem achado).

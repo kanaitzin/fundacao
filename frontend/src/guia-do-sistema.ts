@@ -138,6 +138,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 257, dia: '01/11/2026', aba: 'acolhidos',
+    texto: 'No protótipo, os retratos desenhados das crianças foram refeitos: cada um mostra a idade, o tom de pele e o cabelo da criança, e as roupas não usam mais as cores de alerta. Continuam sendo desenhos, e no sistema de verdade aparece a foto ou as iniciais.' },
   { fase: 256, dia: '31/10/2026',
     texto: 'Pequenos acertos de tela: o número do sino muda junto com o aviso marcado como lido, o perfil da criança não dá mais um pulo quando a foto chega, o recado da Chamada sem internet aparece logo acima da barra de baixo, com Fechar, e no protótipo as doses da Saúde ficam na ordem da hora.' },
   { fase: 255, dia: '31/10/2026',
