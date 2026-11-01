@@ -821,7 +821,7 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
 
   return (
     <>
-      <div className="diahead perfil-topo">
+      <div className="diahead perfil-topo" data-chegou-aqui>
         <div className="row" style={{ gap: 16, alignItems: 'flex-start' }}>
           {/*
             * A FOTO DE IDENTIFICAÇÃO.

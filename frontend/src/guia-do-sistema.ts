@@ -138,6 +138,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 259, dia: '01/11/2026',
+    texto: 'Quando um aviso, a linha do dia ou a busca levam você a outra tela, o que você foi buscar aparece contornado por um instante. O número do sino acende quando muda, a Acolhe+AI mostra três pontinhos enquanto pensa, o microfone ligado ganha um anel em volta, e o Como funciona abre o texto suave.' },
   { fase: 258, dia: '01/11/2026',
     texto: 'As telas respondem ao toque: o botão afunda quando se aperta, a folha sobe de baixo e a tela que se abre aparece de leve. Tudo rápido, para não atrasar o plantão. Quem ligou Reduzir movimento no celular vê só a mudança de cor.' },
   { fase: 257, dia: '01/11/2026', aba: 'acolhidos',

@@ -1264,7 +1264,12 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
             <Texto t={humanizar(escrevendo)} />
           </div>
         )}
-        {(ocupada || lendo) && <p className="mutetxt" role="status">{lendo ? `Lendo: ${lendo}…` : escrevendo.trim() ? 'Escrevendo…' : 'Pensando…'}</p>}
+        {(ocupada || lendo) && (
+          <p className="mutetxt acolhe-pensa" role="status">
+            {lendo ? `Lendo: ${lendo}` : escrevendo.trim() ? 'Escrevendo' : 'Pensando'}
+            <span className="pontos" aria-hidden="true"><i /><i /><i /></span>
+          </p>
+        )}
         <div ref={fim} />
       </div>
       {avisoVoz && (

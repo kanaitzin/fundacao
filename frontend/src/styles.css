@@ -2327,3 +2327,48 @@ button.card:active, .opt:active, .tabbar button:active{
 @media (prefers-reduced-motion: reduce){
   main.conteudo > *{ animation:mov-aparece var(--mov-curto) linear backwards }
 }
+
+/* O QUE ESTÁ ACONTECENDO, E O QUE MUDOU (fase 259, relatório 5: M7 a M11).
+   Os laços daqui acabam sozinhos: os pontos somem quando a resposta chega e o
+   anel some quando o microfone desliga. Com Reduzir movimento, tudo fica parado,
+   e a palavra (Pensando, Ouvindo) continua dizendo o estado. */
+
+/* "Foi aqui": o destino de um aviso, da linha do dia ou da busca. É cor. */
+/* O cartão de cima já terminou de entrar quando o realce chega (450 ms), e o
+   seletor repete o de "a tela que entra" para ganhar dele. */
+.chegou-aqui, main.conteudo > .chegou-aqui{ outline:3px solid var(--titulo); outline-offset:3px;
+  animation:mov-apaga-contorno 1400ms var(--curva-padrao) 400ms forwards }
+@keyframes mov-apaga-contorno{ to{ outline-color:transparent } }
+
+/* O selo do sino aparece já no número novo; só acende, nunca conta. */
+@keyframes mov-selo{ 50%{ transform:scale(1.18) } }
+@media (prefers-reduced-motion: no-preference){
+  .badge.mudou{ animation:mov-selo 180ms var(--curva-entra) }
+}
+
+/* A Acolhe+AI pensando: três pontos que respiram (opacidade), não pulam. */
+.acolhe-pensa .pontos{ display:inline-flex; gap:3px; margin-left:3px; vertical-align:middle }
+.acolhe-pensa .pontos i{ width:4px; height:4px; border-radius:50%; background:currentColor; opacity:.35 }
+@keyframes mov-respira{ 40%{ opacity:1 } }
+@media (prefers-reduced-motion: no-preference){
+  .acolhe-pensa .pontos i{ animation:mov-respira 1.2s var(--curva-padrao) infinite }
+  .acolhe-pensa .pontos i:nth-child(2){ animation-delay:.2s }
+  .acolhe-pensa .pontos i:nth-child(3){ animation-delay:.4s }
+}
+@media (prefers-reduced-motion: reduce){ .acolhe-pensa .pontos i{ opacity:.7 } }
+
+/* O microfone ligado: um anel que respira em volta, junto da palavra Ouvindo. */
+.iconbtn[aria-pressed="true"][aria-label^="Parar de ouvir"], .ditado-botao.ativo{ position:relative }
+.iconbtn[aria-pressed="true"][aria-label^="Parar de ouvir"]::after, .ditado-botao.ativo::after{
+  content:""; position:absolute; inset:-4px; border-radius:inherit; pointer-events:none;
+  box-shadow:0 0 0 2px var(--brand); opacity:.5 }
+@keyframes mov-anel{ 50%{ opacity:.15 } }
+@media (prefers-reduced-motion: no-preference){
+  .iconbtn[aria-pressed="true"][aria-label^="Parar de ouvir"]::after, .ditado-botao.ativo::after{
+    animation:mov-anel 1.6s var(--curva-padrao) infinite }
+}
+
+/* Como funciona: o texto que abre aparece, sem empurrar de repente. */
+@media (prefers-reduced-motion: no-preference){
+  .explica-texto{ animation:mov-aparece var(--mov-medio) var(--curva-padrao) }
+}

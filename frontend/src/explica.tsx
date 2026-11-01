@@ -31,7 +31,7 @@ export function Explica({ children, resumo, className = 'mutetxt', style, role }
   if (!curto) return <div className={className} style={style} role={role}>{children}</div>;
   return (
     <div className={className} style={style} role={role} data-explica>
-      {aberto ? children : curto}{' '}
+      <span key={aberto ? 'tudo' : 'resumo'} className="explica-texto">{aberto ? children : curto}</span>{' '}
       <button type="button" className="explica-mais" aria-expanded={aberto}
               onClick={() => setAberto(!aberto)}>
         {aberto ? 'Mostrar menos' : 'Como funciona'}

@@ -1,3 +1,4 @@
+import { marcarChegada } from './chegou-aqui';
 import { useEffect, useState } from 'react';
 import { ROTULO_CARGO } from './rotulos';
 import {
@@ -669,7 +670,7 @@ export function App() {
               casa aberta. */}
           {casaAtual && ve('acolhidos') && (
             <BuscaCrianca houseId={casaAtual.id}
-                          onAbrir={(id) => { setAbrirCrianca({ id }); setAba('acolhidos'); setMais(false); }} />
+                          onAbrir={(id) => { setAbrirCrianca({ id }); setAba('acolhidos'); setMais(false); marcarChegada(); }} />
           )}
           {/* A COR E A LETRA DA TELA (27/09 e fase 183), lembradas neste aparelho. */}
           <button className="iconbtn so-no-monitor" title={`Cor da tela: ${nomeDoTema(temaGuardado() ?? temaAtual())}`}
@@ -705,7 +706,7 @@ export function App() {
                   aria-label={naoLidos ? `Avisos: ${naoLidos} não lidos` : 'Avisos'}
                   onClick={() => setAba('avisos')}>
             <Icone nome="sino" />
-            {naoLidos > 0 && <span className="badge">{naoLidos > 9 ? '9+' : naoLidos}</span>}
+            {naoLidos > 0 && <span key={naoLidos} className="badge mudou">{naoLidos > 9 ? '9+' : naoLidos}</span>}
           </button>
           <button className="iconbtn so-no-monitor" title="Trocar minha senha" aria-label="Trocar minha senha"
                   onClick={() => setTrocarSenha(true)}><Icone nome="chave" /></button>
@@ -951,7 +952,7 @@ export function App() {
                       aberta", "passagem por assinar", "ocorrência em
                       acompanhamento". Sem esta função, o evento chegava com
                       a ação escrita pelo servidor e sem botão nenhum. */
-                   irPara={(destino) => { setAba(destino as typeof aba); setMais(false); }}
+                   irPara={(destino) => { setAba(destino as typeof aba); setMais(false); marcarChegada(); }}
                    alcanca={ve} pessoa={me.id} />
             : (
               <div className="card">
@@ -964,7 +965,7 @@ export function App() {
         )}
 
         {abaEfetiva === 'avisos' && (
-          <Avisos alcanca={ve} irPara={(destino) => { setAba(destino as typeof aba); setMais(false); }}
+          <Avisos alcanca={ve} irPara={(destino) => { setAba(destino as typeof aba); setMais(false); marcarChegada(); }}
                   onMudou={() => {
             api<{ naoLidas: number }>('/notifications/count')
               .then((r) => setNaoLidos(r.naoLidas)).catch(() => {});
@@ -1078,7 +1079,7 @@ export function App() {
         {abaEfetiva === 'implantacao' && ve('implantacao') && <Implantacao />}
         {abaEfetiva === 'guia' && ve('guia') && (
           <Guia papel={me.role} todasAsCasas={!!me.todasAsCasas} doTurno={abasDoTurno} ve={ve}
-                irPara={(destino) => { setAba(destino as typeof aba); setMais(false); window.scrollTo(0, 0); }} />
+                irPara={(destino) => { setAba(destino as typeof aba); setMais(false); window.scrollTo(0, 0); marcarChegada(); }} />
         )}
         {abaEfetiva === 'sugestoes' && ve('sugestoes') && (
           <Sugestoes houseId={casaAtual?.id ?? null} casaLabel={casaAtual ? `${casaAtual.code} · ${casaAtual.name}` : ''}
@@ -1135,7 +1136,7 @@ export function App() {
           { chave: 'avisos', titulo: 'Avisos', frase: 'O sino: o que precisa de alguém.' },
         ]}
         navegar={(tela) => { setAba(tela as typeof aba); setMais(false); }}
-        abrirCrianca={(id) => { setAbrirCrianca({ id }); setAba('acolhidos'); setMais(false); }}
+        abrirCrianca={(id) => { setAbrirCrianca({ id }); setAba('acolhidos'); setMais(false); marcarChegada(); }}
       />
 
       {/* O DITADO (fase 195): o microfone junto de todo campo de texto longo. */}

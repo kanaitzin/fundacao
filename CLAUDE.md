@@ -197,7 +197,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 01/11/2026, fase 258
+### Onde estamos — 01/11/2026, fase 259
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -319,6 +319,7 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 256 | **os pequenos defeitos da equipe de design**: o sino recontado junto com a lista, o perfil que pulava quando a foto chegava, o recado da Chamada sem internet fora da vista (hoje acima da barra do pé), e as doses do protótipo fora da ordem da hora |
 | 257 | **os retratos do protótipo refeitos** (pedido de 30/10): o gerador da equipe de design no `retratos.ts`, com idade, pele e cabelo, roupa fora das cores de estado, e os meninos parecidos acertados à mão; a silhueta segue como opção da Fundação |
 | 258 | **o movimento** (pedido de 30/10, relatório 5): o toque que responde em 90 ms, a folha que sobe de baixo e a tela que entra, só em CSS e nunca de lado; com Reduzir movimento, só a cor muda |
+| 259 | **o que está acontecendo, e o que mudou** (relatório 5): o destino de um aviso, da linha do dia, do Guia ou da busca se acende e apaga (`chegou-aqui.ts`), o selo do sino acende quando muda, a Acolhe+AI pensa com três pontos, o microfone ligado ganha um anel, e o Como funciona abre suave |
 
 **Medido no fim da 252:** 207 migrações, 144 tabelas, 160 suítes, 1418 testes; nas 237 e 238, a suíte inteira
 verde (1363 de 1363, depois de consertar as três conferências que o relatório das vivências deixou soltas) e o
@@ -429,6 +430,14 @@ posto em ordem no **PARA-A-REUNIAO §0**: as cinco perguntas que mais destravam,
 responder, os documentos de papel e os dados a receber, o que o DPO vê, o que se assina e as 30
 decisões de produto abertas. **Quando a resposta vier, ela entra lá e no §10 ou §11 do documento**, e
 o item respondido sai do §0.
+
+**FEITO — fase 259** (§2): o que está acontecendo e o que mudou, do relatório 5. **Tela nova que recebe gente de
+outra tela** marca o seu cabeçalho com `data-chegou-aqui` (sem a marca, acende o primeiro cartão); **quem leva a
+outra tela** chama `marcarChegada()`. **Laço novo** só existe enquanto o estado existe, e com Reduzir movimento
+fica parado com a palavra dizendo o estado. **Fica para depois:** o *Registrado às 23:04* no botão (M5), tela por
+tela. **Depende da Fundação:** a linha da Chamada (M6) e a vibração (M12). **Medido na 259:** a sonda no protótipo
+a 390 px (o aviso leva à ATA e o cartão se acende e apaga em 1,4 s; a busca acende o topo do perfil; o selo e os
+pontos animam, e com Reduzir movimento ficam parados; nenhum erro); os ensaios no fim desta linha quando terminarem.
 
 **FEITO — fase 258** (§2): o movimento que não depende da direção visual, no bloco `O MOVIMENTO` do `styles.css`.
 **Movimento novo** usa os tokens (`--mov-*`, `--curva-*`), só `transform` e `opacity`, nada acima de 250 ms, e tem a
