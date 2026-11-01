@@ -437,7 +437,9 @@ outra tela** chama `marcarChegada()`. **Laço novo** só existe enquanto o estad
 fica parado com a palavra dizendo o estado. **Fica para depois:** o *Registrado às 23:04* no botão (M5), tela por
 tela. **Depende da Fundação:** a linha da Chamada (M6) e a vibração (M12). **Medido na 259:** a sonda no protótipo
 a 390 px (o aviso leva à ATA e o cartão se acende e apaga em 1,4 s; a busca acende o topo do perfil; o selo e os
-pontos animam, e com Reduzir movimento ficam parados; nenhum erro); os ensaios no fim desta linha quando terminarem.
+pontos animam, e com Reduzir movimento ficam parados; nenhum erro); o `ensaio:uso` (808 cobranças, sem reprovação), o do celular (322 telas, sem achado), o de
+acessibilidade (1155 telas, sete temas, nenhuma violação) e o `ensaio:aparelhos` no Pixel 7 (com o ditado e o
+microfone, sem achado). **Não rodou** a suíte do servidor (nada no servidor mudou) nem o `ensaio:cabe`.
 
 **FEITO — fase 258** (§2): o movimento que não depende da direção visual, no bloco `O MOVIMENTO` do `styles.css`.
 **Movimento novo** usa os tokens (`--mov-*`, `--curva-*`), só `transform` e `opacity`, nada acima de 250 ms, e tem a
