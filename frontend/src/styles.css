@@ -121,10 +121,7 @@ h1, h2, h3, .ff {
   margin: 0; letter-spacing: -.011em; text-wrap: balance;
 }
 :focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; border-radius: 6px; }
-@media (prefers-reduced-motion: no-preference) {
-  .btn { transition: transform .13s ease, box-shadow .13s ease, background-color .13s ease; }
-  .btn:active { transform: scale(.975); }
-}
+/* O toque e o movimento moram no fim do arquivo, em O MOVIMENTO (fase 258). */
 
 /* ---------- Layout ---------- */
 .wrap { max-width: 468px; margin: 0 auto; min-height: 100dvh; display: flex; flex-direction: column; }
@@ -2272,3 +2269,61 @@ button.cal-turno:focus-visible{ outline:3px solid var(--brand); outline-offset:1
   display:flex; align-items:center; gap:10px; margin:0; box-shadow:var(--shadow-2);
 }
 @media (min-width:1080px){ .recado-da-vez{ left:auto; right:96px; width:min(560px, calc(100vw - 400px)) } }
+
+/* ============================================================
+   O MOVIMENTO (fase 258, do relatório 5 da equipe de design)
+   ------------------------------------------------------------
+   Resposta, nunca espetáculo: nada passa de 250 ms, só `transform` e
+   `opacity` se movem, nada bloqueia o toque seguinte, e nenhum laço roda
+   sozinho. Com "Reduzir movimento" no aparelho, o deslocamento some e a
+   cor e a opacidade continuam mudando: o feedback fica, o movimento sai.
+   ============================================================ */
+:root{
+  --mov-toque:90ms; --mov-curto:140ms; --mov-medio:200ms;
+  --curva-padrao:cubic-bezier(.2, 0, 0, 1);
+  --curva-entra:cubic-bezier(.05, .7, .1, 1);
+  --mov-sobe:8px;
+}
+@media (prefers-reduced-motion: reduce){ :root{ --mov-sobe:0px } }
+
+/* O TOQUE QUE RESPONDE: o botão afunda antes de o dedo subir, e o cartão muda
+   de cor. No celular, sem o atraso do toque duplo nem o clarão cinza. */
+button, a, [role=tab]{ touch-action:manipulation; -webkit-tap-highlight-color:transparent }
+@media (prefers-reduced-motion: no-preference){
+  .btn, button.card, .opt, .tabbar button, .iconbtn, .portas-lateral button{
+    transition:transform var(--mov-toque) var(--curva-padrao),
+               background-color var(--mov-curto) var(--curva-padrao),
+               box-shadow var(--mov-curto) var(--curva-padrao);
+  }
+  .btn:active, .opt:active, .iconbtn:active{ transform:scale(.97) }
+  button.card:active{ transform:scale(.99) }
+}
+button.card:active, .opt:active, .tabbar button:active{
+  background-color:color-mix(in srgb, var(--brand) 8%, var(--surface));
+}
+
+/* A FOLHA QUE VEM DE BAIXO: sobe 24 px, e não a tela inteira, em 200 ms; o
+   fundo escurece junto. A saída continua na hora: a folha some quando fecha. */
+@media (prefers-reduced-motion: no-preference){
+  .overlay{ transition:background-color var(--mov-medio) var(--curva-padrao) }
+  .overlay > .sheet{ transition:transform var(--mov-medio) var(--curva-entra), opacity var(--mov-curto) linear }
+  @starting-style{
+    .overlay{ background-color:rgba(4,18,36,0) }
+    .overlay > .sheet{ transform:translateY(24px); opacity:.4 }
+  }
+}
+@media (prefers-reduced-motion: reduce){
+  .overlay > .sheet{ transition:opacity var(--mov-curto) linear }
+  @starting-style{ .overlay > .sheet{ opacity:0 } }
+}
+
+/* A TELA QUE ENTRA: o que se abre sobe 8 px e aparece, sem deslizar de lado
+   (entre o Dia, a Chamada e os Acolhidos não há esquerda e direita). */
+@keyframes mov-entra{ from{ opacity:0; transform:translateY(var(--mov-sobe)) } }
+@keyframes mov-aparece{ from{ opacity:0 } }
+@media (prefers-reduced-motion: no-preference){
+  main.conteudo > *{ animation:mov-entra var(--mov-medio) var(--curva-entra) backwards }
+}
+@media (prefers-reduced-motion: reduce){
+  main.conteudo > *{ animation:mov-aparece var(--mov-curto) linear backwards }
+}

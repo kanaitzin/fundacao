@@ -138,6 +138,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 258, dia: '01/11/2026',
+    texto: 'As telas respondem ao toque: o botão afunda quando se aperta, a folha sobe de baixo e a tela que se abre aparece de leve. Tudo rápido, para não atrasar o plantão. Quem ligou Reduzir movimento no celular vê só a mudança de cor.' },
   { fase: 257, dia: '01/11/2026', aba: 'acolhidos',
     texto: 'No protótipo, os retratos desenhados das crianças foram refeitos: cada um mostra a idade, o tom de pele e o cabelo da criança, e as roupas não usam mais as cores de alerta. Continuam sendo desenhos, e no sistema de verdade aparece a foto ou as iniciais.' },
   { fase: 256, dia: '31/10/2026',
