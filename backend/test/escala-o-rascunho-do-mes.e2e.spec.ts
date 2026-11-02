@@ -55,8 +55,13 @@ describe('O rascunho da escala do mês', () => {
     /* O mês três à frente; o dia 1 e o dia 29 dele, e os dias de origem pela
        regra: 28 dias antes, ou 56 se 28 cair no próprio mês. O dia 29 volta,
        por isso, ao MESMO dia de origem do dia 1 (29 - 56 = 1 - 28). */
+    /* O mês tem de ter o dia 29 (fase 263): em novembro, três meses à frente é
+       fevereiro, e num fevereiro de 28 dias o dia 1 + 28 já é março. O teste
+       reprovava todo novembro de ano não bissexto. Sem o dia 29, vai um mês além. */
     const { rows: [d] } = await admin.query(`
-      WITH m AS (SELECT date_trunc('month', app_hoje() + interval '3 months')::date AS mes)
+      WITH t AS (SELECT date_trunc('month', app_hoje() + interval '3 months')::date AS tres),
+           m AS (SELECT CASE WHEN (tres + 28) < (tres + interval '1 month')::date THEN tres
+                             ELSE (tres + interval '1 month')::date END AS mes FROM t)
       SELECT mes::text AS mes, mes::text AS dia, (mes - 28)::text AS origem,
              (mes + 28)::text AS dia2, (mes + 28 - 56)::text AS origem2,
              (mes + 1)::text AS livre
