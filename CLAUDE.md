@@ -161,7 +161,7 @@ e qual é o caminho certo.
 | `backend/src/modules/relogio/implantacao.regra.ts` | **a regra da saúde da implantação** (fase 185): quando cada sinal está em dia, em atenção ou parado, e a frase. Não importa nada, como o `alcance.ts`: o servidor e o protótipo leem a MESMA. **Quem roda sozinho anota** por `anotarImplantacao` (`kernel/implantacao/anotar.ts`) ou, nos scripts, por `app_anotar_implantacao` no `psql`; anotar nunca derruba quem anota |
 | `scripts/arquivar-wal.sh`, `base-do-banco.sh`, `restaurar-ponto-no-tempo.sh`, `copiar-arquivos.sh` | **nada se perde no servidor do Pão** (fase 220): o arquivo contínuo do banco, a base semanal conferida, a volta a qualquer minuto e a cópia das fotos; o `postgresql-do-servidor.conf` liga o arquivo. **Mudou um deles, roda o `npm run ensaio:ponto-no-tempo`**, que prova os quatro num banco à parte |
 | `frontend/ensaio-cabe-e-volta.mjs` | **cabe, rola e volta** (fase 255): cada cargo, a 390 px e no monitor, em cada tela, aba, folha de criar (`data-acolhe-abre`), entrada (`data-acolhe-entra`, o cartão da criança, a primeira linha de cada lista) e botão de abrir, até três níveis; mede vazamento, conteúdo preso sem rolagem e o fim da folha, e **aperta a volta e confere que voltou**. `ENSAIO_CARGOS`, `ENSAIO_LARGURAS`, `ENSAIO_PROFUNDIDADE`. Leva uns dez minutos por cargo e largura. **Folha ou subtela nova nasce com a volta dela**: Fechar, Cancelar, Voltar ou ← |
-| `frontend/ensaio-vazio.mjs` | **o vazio que mente** (fase 260): alonga a pausa do protótipo (`__pausaDoPrototipo`), abre cada aba e porta de cada cargo e reprova a frase de vazio ou o zero que a tela mostrou antes de o dado chegar e que sumiu depois. **Lista nova nasce com o `carregou`** |
+| `frontend/ensaio-vazio.mjs` | **o vazio que mente** (fase 260): alonga a pausa do protótipo (`__pausaDoPrototipo`), abre cada aba e porta de cada cargo e reprova a frase de vazio ou o zero que a tela mostrou antes de o dado chegar e que sumiu depois; desde a 261, também as abas de dentro e o perfil com as abas dele. **Lista nova nasce com o `carregou`** |
 | `frontend/ensaio-aparelhos.mjs` | **o que o aparelho faz de diferente** (fase 222): oito aparelhos simulados, a câmera do tamanho de cada um (vídeo Y4M gerado), o reconhecimento de voz como o Safari do iPhone e o Chrome do Android, as falhas do microfone, a galeria de 12 e 50 MP e HEIC, e todo formulário de folha rolado até o fim. `ENSAIO_APARELHOS="iPhone SE"` mede um; `=extras`, o resto. **Mexeu em ditado, câmera, anexo ou folha, roda este.** Não prova o Safari de verdade nem a voz de verdade (PARA-A-REUNIAO §4.27) |
 | `scripts/rotas-sem-teste.mjs` | acha **rota** que nenhum teste chamou — o outro lado da mesma pergunta. Separa *candidata forte* (a URL não aparece em suíte nenhuma) de *par incerto* (a suíte chama por auxiliar e o método fica noutra linha). **Não é teste** |
 | `backend/src/kernel/common/data-do-dia.pipe.ts` | **toda data que vem da URL passa por aqui** (fase 148). Sete de dez rotas de data devolviam 500 para uma data que não é data; a conferência mora num lugar só, e há teste estático que cobra que todo `@Query('de')` e `@Param('data')` use o pipe |
@@ -198,7 +198,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 02/11/2026, fase 260
+### Onde estamos — 02/11/2026, fase 261
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -322,6 +322,7 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 258 | **o movimento** (pedido de 30/10, relatório 5): o toque que responde em 90 ms, a folha que sobe de baixo e a tela que entra, só em CSS e nunca de lado; com Reduzir movimento, só a cor muda |
 | 259 | **o que está acontecendo, e o que mudou** (relatório 5): o destino de um aviso, da linha do dia, do Guia ou da busca se acende e apaga (`chegou-aqui.ts`), o selo do sino acende quando muda, a Acolhe+AI pensa com três pontos, o microfone ligado ganha um anel, e o Como funciona abre suave |
 | 260 | **o vazio que mente** (relatório 5): onze telas diziam *Nenhum…* antes de o dado chegar; o `ensaio:vazio` alonga a rede do protótipo, abre cada aba e porta de cada cargo e achou 57 casos; consertados, e a Cozinha que dizia *Nenhum pedido* quando a busca falhava |
+| 261 | **o vazio que mente, por dentro**: o `ensaio:vazio` passa pelas abas de dentro e pelo perfil com as abas dele (293 telas); achou as Saídas da Portaria, as Compras da Saúde e as Comunicações externas, consertadas |
 
 **Medido no fim da 252:** 207 migrações, 144 tabelas, 160 suítes, 1418 testes; nas 237 e 238, a suíte inteira
 verde (1363 de 1363, depois de consertar as três conferências que o relatório das vivências deixou soltas) e o
@@ -433,10 +434,14 @@ responder, os documentos de papel e os dados a receber, o que o DPO vê, o que s
 decisões de produto abertas. **Quando a resposta vier, ela entra lá e no §10 ou §11 do documento**, e
 o item respondido sai do §0.
 
+**FEITO — fase 261** (§2): o vazio que mente por dentro. **Aba nova dentro de uma tela** também espera o dado
+antes de dizer *Nenhum…* ou contar zero; o `ensaio:vazio` a acha sozinho pelo `role="tab"`. **Medido na 261:** no
+fim desta linha quando os ensaios terminarem.
+
 **FEITO — fase 260** (§2): o vazio que mente, medido. **Lista nova numa tela** só diz *Nenhum…* depois de o dado
 chegar (um `carregou` que vira verdadeiro com a resposta), e **busca que falha não vira lista vazia**: diz que não
-conseguiu. **Mudou tela, roda o `ensaio:vazio`** (uns quinze minutos; `ENSAIO_CARGOS` para um cargo). **Fica de
-fora:** as subtelas, que o ensaio ainda não percorre. **Medido na 260:** o `ensaio:vazio` (57 achados na primeira rodada, 13 na segunda com a régua
+conseguiu. **Mudou tela, roda o `ensaio:vazio`** (uns quarenta minutos com as abas de dentro; `ENSAIO_CARGOS` para um cargo). **As subtelas
+vieram na 261.** **Medido na 260:** o `ensaio:vazio` (57 achados na primeira rodada, 13 na segunda com a régua
 do zero, nenhum na terceira: 154 telas de oito cargos), o `ensaio:uso` (sem reprovação), o do celular (322 telas, sem
 achado) e o de acessibilidade (1155 telas, sete temas, nenhuma violação). **Não rodou** a suíte do servidor (nada no
 servidor mudou), o `ensaio:cabe` nem a simulação contra o servidor.

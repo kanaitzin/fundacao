@@ -138,6 +138,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 261, dia: '02/11/2026',
+    texto: 'O mesmo cuidado chegou às abas de dentro das telas: as Saídas das crianças na Portaria, as Compras na Saúde e as Comunicações externas nas Ocorrências esperam a resposta antes de dizer que não há nada.' },
   { fase: 260, dia: '02/11/2026',
     texto: 'Com a internet lenta, as telas não dizem mais que não há nada antes de a resposta chegar. Antes, por um instante, a tela dizia Nenhum acolhido ou Nenhum plantão aberto enquanto ainda buscava. E a Cozinha avisa quando não conseguiu buscar os pedidos, em vez de dizer que ninguém pediu.' },
   { fase: 259, dia: '01/11/2026',

@@ -709,9 +709,9 @@ export function Saude({ houseId, casaLabel, papel }: {
                        gerarCom={(finalidade) => api('/medications/purchases/export', {
                          method: 'POST', body: JSON.stringify({ houseId, de: inicioDoMes, ate: hoje, finalidade }) })} />
 
-          <div className="eyebrow">Compras do período · {compras?.linhas.length ?? 0}</div>
+          <div className="eyebrow">Compras do período{compras ? ` · ${compras.linhas.length}` : ''}</div>
           <div className="stack">
-            {(compras?.linhas ?? []).length === 0 && (
+            {compras && compras.linhas.length === 0 && (
               <p className="mutetxt">
                 Nenhuma compra registrada no período. A lista vazia quer dizer que ninguém
                 registrou — não que a casa não comprou.

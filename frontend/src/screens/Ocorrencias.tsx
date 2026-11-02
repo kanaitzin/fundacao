@@ -178,6 +178,8 @@ export function Ocorrencias({ houseId, papel }: { houseId: string; papel: string
   const [abrindo, setAbrindo] = useState(false);
   const [aba, setAba] = useState<'ocorrencias' | 'comunicacoes'>('ocorrencias');
   const [comunicacoes, setComunicacoes] = useState<Comunicacao[]>([]);
+  /* Chegaram as comunicações (fase 261): antes disso, a aba não diz que não há. */
+  const [chegaramAsComunicacoes, setChegaramAsComunicacoes] = useState(false);
   const [comunicando, setComunicando] = useState<ItemLista | 'avulsa' | null>(null);
   const [anexando, setAnexando] = useState<ItemLista | null>(null);
   const [contendo, setContendo] = useState<ItemLista | null>(null);
@@ -257,7 +259,7 @@ export function Ocorrencias({ houseId, papel }: { houseId: string; papel: string
 
   async function carregarComunicacoes() {
     setErro('');
-    try { setComunicacoes(await api<Comunicacao[]>(`/incidents/communications?houseId=${houseId}`)); }
+    try { setComunicacoes(await api<Comunicacao[]>(`/incidents/communications?houseId=${houseId}`)); setChegaramAsComunicacoes(true); }
     catch (e) {
       setErro(e instanceof Error ? e.message : 'Não foi possível carregar as comunicações.');
     }
@@ -826,7 +828,7 @@ export function Ocorrencias({ houseId, papel }: { houseId: string; papel: string
               );
             })}
 
-            {comunicacoes.length === 0 && (
+            {chegaramAsComunicacoes && comunicacoes.length === 0 && (
               <div className="card"><p className="mutetxt" style={{ margin: 0 }}>
                 Nenhuma comunicação externa registrada nesta casa. Comunicar não é o mesmo
                 que registrar a ocorrência: aqui fica o que a instituição escreveu PARA FORA,
