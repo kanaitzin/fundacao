@@ -435,8 +435,10 @@ decisões de produto abertas. **Quando a resposta vier, ela entra lá e no §10 
 o item respondido sai do §0.
 
 **FEITO — fase 261** (§2): o vazio que mente por dentro. **Aba nova dentro de uma tela** também espera o dado
-antes de dizer *Nenhum…* ou contar zero; o `ensaio:vazio` a acha sozinho pelo `role="tab"`. **Medido na 261:** no
-fim desta linha quando os ensaios terminarem.
+antes de dizer *Nenhum…* ou contar zero; o `ensaio:vazio` a acha sozinho pelo `role="tab"`. **Medido na 261:** o
+`ensaio:vazio` (31 achados por dentro, nenhum depois: 293 telas de oito cargos), o `ensaio:uso` (sem reprovação), o do
+celular (322 telas, sem achado) e o de acessibilidade (1155 telas, sete temas, nenhuma violação). **Não rodou** a
+suíte do servidor (nada no servidor mudou), o `ensaio:cabe` nem a simulação contra o servidor.
 
 **FEITO — fase 260** (§2): o vazio que mente, medido. **Lista nova numa tela** só diz *Nenhum…* depois de o dado
 chegar (um `carregou` que vira verdadeiro com a resposta), e **busca que falha não vira lista vazia**: diz que não
