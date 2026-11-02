@@ -59,6 +59,8 @@ export function Transferencias({ houseId }: { houseId: string }) {
   const [caixa, setCaixa] = useState<'recebida' | 'enviada'>('recebida');
   const [recebidas, setRecebidas] = useState<Recebida[]>([]);
   const [enviadas, setEnviadas] = useState<Enviada[]>([]);
+  /* Chegaram as caixas (fase 260): antes disso, a tela não diz que estão vazias. */
+  const [carregou, setCarregou] = useState(false);
   const [avisoCaixa, setAvisoCaixa] = useState('');
   const [casas, setCasas] = useState<Casa[]>([]);
   const [pessoas, setPessoas] = useState<Pessoa[]>([]);
@@ -79,7 +81,7 @@ export function Transferencias({ houseId }: { houseId: string }) {
         api<Pessoa[]>(`/people?houseId=${houseId}`).catch(() => [] as Pessoa[]),
       ]);
       setRecebidas(r.solicitacoes); setAvisoCaixa(r.aviso);
-      setEnviadas(e.solicitacoes); setCasas(c); setPessoas(p);
+      setEnviadas(e.solicitacoes); setCasas(c); setPessoas(p); setCarregou(true);
       setMensagens({}); setConversa(null);
     } catch (err) {
       setErro(err instanceof Error ? err.message : 'Não foi possível carregar as transferências.');
@@ -202,7 +204,7 @@ export function Transferencias({ houseId }: { houseId: string }) {
                 <Conversa id={t.id} quantas={t.mensagens} />
               </div>
             ))}
-            {recebidas.length === 0 && (
+            {carregou && recebidas.length === 0 && (
               <div className="card"><p className="mutetxt" style={{ margin: 0 }}>
                 Nenhuma solicitação nesta caixa no momento.</p></div>
             )}
@@ -248,7 +250,7 @@ export function Transferencias({ houseId }: { houseId: string }) {
               <Conversa id={t.id} quantas={t.mensagens} />
             </div>
           ))}
-          {enviadas.length === 0 && (
+          {carregou && enviadas.length === 0 && (
             <div className="card"><p className="mutetxt" style={{ margin: 0 }}>
               Nenhuma solicitação nesta caixa no momento.</p></div>
           )}

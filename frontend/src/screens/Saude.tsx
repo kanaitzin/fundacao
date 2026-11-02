@@ -327,6 +327,8 @@ export function Saude({ houseId, casaLabel, papel }: {
   const [rascunho, setRascunho] = useState<{ id: string; medicamento: string } | null>(null);
   const [painel, setPainel] = useState<Painel | null>(null);
   const [doses, setDoses] = useState<Dose[]>([]);
+  /* Chegou a grade (fase 260): antes disso, a tela não diz que não há dose. */
+  const [chegouAGrade, setChegouAGrade] = useState(false);
   const [estoque, setEstoque] = useState<Item[]>([]);
   const [triagem, setTriagem] = useState<Evolucao[]>([]);
   const [erro, setErro] = useState('');
@@ -367,7 +369,7 @@ export function Saude({ houseId, casaLabel, papel }: {
         api<Item[]>(`/medications/stock?houseId=${houseId}`),
         api<Evolucao[]>(`/nursing/triage?houseId=${houseId}`),
       ]);
-      setPainel(p); setDoses(g); setEstoque(e); setTriagem(t);
+      setPainel(p); setDoses(g); setEstoque(e); setTriagem(t); setChegouAGrade(true);
       // Os esquemas e o protocolo não travam a grade do dia: falhar aqui não
       // pode impedir a Enfermagem de confirmar a dose das 19h30.
       const esq = await api<{ esquemas: Esquema[]; aviso: string }>(
@@ -577,7 +579,7 @@ export function Saude({ houseId, casaLabel, papel }: {
                 )}
               </li>
             ))}
-            {doses.length === 0 && (
+            {chegouAGrade && doses.length === 0 && (
               <li className="vazio"><div className="mutetxt">Nenhuma dose na grade de hoje nesta casa.</div></li>
             )}
           </ul>

@@ -68,6 +68,9 @@ export function Cozinha({ houseId, casaLabel, papel }: {
   const [aviso, setAviso] = useState('');
   const [lista, setLista] = useState<Restricao[]>([]);
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
+  /* Chegaram os pedidos (fase 260). Antes disso, e quando a busca falha, a tela
+     não diz que ninguém pediu: era o que ela dizia, com a lista vazia por falta de rede. */
+  const [chegaramOsPedidos, setChegaramOsPedidos] = useState(false);
   const [resumo, setResumo] = useState<Resumo | null>(null);
   const [kids, setKids] = useState<Kid[]>([]);
   const [pedindo, setPedindo] = useState<'lanche' | 'cesta_basica' | null>(null);
@@ -86,8 +89,10 @@ export function Cozinha({ houseId, casaLabel, papel }: {
                      'equipe_tecnica', 'coordenador'].includes(papel);
 
   async function carregarPedidos() {
-    setPedidos(await api<Pedido[]>(
-      `/people/kitchen-requests?houseId=${houseId}&de=${de}&ate=${ate}`).catch(() => []));
+    const p = await api<Pedido[]>(
+      `/people/kitchen-requests?houseId=${houseId}&de=${de}&ate=${ate}`).catch(() => null);
+    if (p) { setPedidos(p); setChegaramOsPedidos(true); }
+    else setErro('Não consegui buscar os pedidos agora. Volte a esta aba daqui a pouco.');
     setResumo(await api<Resumo>(
       `/people/kitchen-requests/summary?houseId=${houseId}&de=${de}&ate=${ate}`)
       .catch(() => null));
@@ -264,9 +269,9 @@ export function Cozinha({ houseId, casaLabel, papel }: {
             </div>
           )}
 
-          <div className="eyebrow">Pedidos do período · {pedidos.length}</div>
+          <div className="eyebrow">Pedidos do período{chegaramOsPedidos ? ` · ${pedidos.length}` : ''}</div>
           <div className="stack">
-            {pedidos.length === 0 && (
+            {chegaramOsPedidos && pedidos.length === 0 && (
               <p className="mutetxt">
                 Nenhum pedido neste período. A lista vazia quer dizer que ninguém pediu —
                 não que o pedido se perdeu.

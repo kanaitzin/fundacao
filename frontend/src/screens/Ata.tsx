@@ -329,6 +329,8 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
 }) {
   const [aba, setAba] = useState<'casa' | 'geral' | 'arquivo'>('casa');
   const [doDia, setDoDia] = useState<PlantaoDoDia[]>([]);
+  /* Chegaram os plantões do dia (fase 260): antes disso, a tela não diz que não há. */
+  const [chegouODia, setChegouODia] = useState(false);
   const [escolhido, setEscolhido] = useState<string | null>(null);
   const [plantao, setPlantao] = useState<Plantao | null>(null);
   const [secoes, setSecoes] = useState<Secoes | null>(null);
@@ -433,7 +435,7 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
         api<Secoes>('/shifts/ata-sections'),
         api<AcolhidoDaCasa[]>(`/people?houseId=${houseId}`).catch(() => [] as AcolhidoDaCasa[]),
       ]);
-      setDoDia(lista); setSecoes(s); setAcolhidos(gente);
+      setDoDia(lista); setSecoes(s); setAcolhidos(gente); setChegouODia(true);
       // Abre no plantão que ainda está aberto; se todos fecharam, no último.
       const alvo = escolhido && lista.some((p) => p.id === escolhido)
         ? escolhido
@@ -763,7 +765,7 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
             </div>
           )}
 
-          {doDia.length === 0 && (
+          {chegouODia && doDia.length === 0 && (
             <div className="card"><p className="mutetxt" style={{ margin: 0 }}>
               Nenhum plantão aberto hoje nesta casa. A ATA nasce com o plantão — não é um
               documento à parte. Quem chega abre o plantão na tela Passagem, no botão Abrir o

@@ -183,8 +183,26 @@ function juntarAsCasas(rota: string, q: URLSearchParams, daModelo: unknown): unk
   return daModelo;
 }
 
+/*
+ * A PAUSA DA REDE, E QUANTOS PEDIDOS ESTÃO NO AR (fase 260). O protótipo
+ * responde em 120 ms, e nesse tempo a frase de vazio que a tela mostra antes do
+ * dado chegar passa despercebida. O `ensaio:vazio` alonga a pausa como numa rede
+ * lenta às 23h e conta os pedidos no ar para saber quando a tela terminou de
+ * chegar. Fora do ensaio, nada muda.
+ */
+const ensaio = globalThis as { __pausaDoPrototipo?: number; __pedidosNoAr?: number };
+
 export async function mockApi<T>(path: string, init?: RequestInit): Promise<T> {
-  await new Promise((r) => setTimeout(r, 120));   // uma pausa curta, como a rede real
+  ensaio.__pedidosNoAr = (ensaio.__pedidosNoAr ?? 0) + 1;
+  try {
+    return await mockApiNaCasa<T>(path, init);
+  } finally {
+    ensaio.__pedidosNoAr = (ensaio.__pedidosNoAr ?? 1) - 1;
+  }
+}
+
+async function mockApiNaCasa<T>(path: string, init?: RequestInit): Promise<T> {
+  await new Promise((r) => setTimeout(r, ensaio.__pausaDoPrototipo ?? 120));   // uma pausa curta, como a rede real
   if (semSinal) {
     throw new SemConexao(
       'Sem conexão com o servidor. O que você registrar fica guardado neste aparelho.',

@@ -72,6 +72,8 @@ export function Agenda({ houseId, papel }: { houseId: string; papel: string }) {
   const [vista, setVista] = useState<'proximos' | 'vigentes'>('proximos');
   const [dias, setDias] = useState(14);
   const [ocorrencias, setOcorrencias] = useState<Ocorrencia[]>([]);
+  /* Chegou a agenda (fase 260): antes disso, a tela não diz que nada está marcado. */
+  const [carregou, setCarregou] = useState(false);
   const [vigentes, setVigentes] = useState<Vigente[]>([]);
   const [opcoes, setOpcoes] = useState<Opcoes | null>(null);
   const [pessoas, setPessoas] = useState<Pessoa[]>([]);
@@ -93,7 +95,7 @@ export function Agenda({ houseId, papel }: { houseId: string; papel: string }) {
         await api<Ocorrencia[]>(`/activities/agenda?houseId=${houseId}&de=${de}&ate=${maisDias(de, dias)}`),
         await api<Vigente[]>(`/activities/agenda/commitments?houseId=${houseId}`),
       ];
-      setOcorrencias(proj); setVigentes(vig);
+      setOcorrencias(proj); setVigentes(vig); setCarregou(true);
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Não foi possível carregar a agenda.');
     }
@@ -190,7 +192,7 @@ export function Agenda({ houseId, papel }: { houseId: string; papel: string }) {
 
       {vista === 'proximos' ? (
         <>
-          {porDia.size === 0 && (
+          {carregou && porDia.size === 0 && (
             <div className="card" style={{ marginTop: 12 }}>
               <p className="mutetxt" style={{ margin: 0 }}>
                 Nada marcado nos próximos {dias} dias.

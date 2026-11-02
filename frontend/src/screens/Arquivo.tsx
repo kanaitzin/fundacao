@@ -73,6 +73,8 @@ const PROCESSA = ['equipe_tecnica', 'coordenador', 'gestor_geral'];
 
 export function Arquivo({ houseId, papel }: { houseId: string; papel: string }) {
   const [fila, setFila] = useState<ItemFila[]>([]);
+  /* Chegou a fila (fase 260): antes disso, a tela não diz que nada está na fila. */
+  const [carregou, setCarregou] = useState(false);
   const [conta, setConta] = useState<Reconciliacao | null>(null);
   const [detalhe, setDetalhe] = useState<Record<string, Detalhe>>({});
   const [aberto, setAberto] = useState<string | null>(null);
@@ -87,7 +89,7 @@ export function Arquivo({ houseId, papel }: { houseId: string; papel: string }) 
         api<ItemFila[]>('/archive/queue?limite=50'),
         api<Reconciliacao>(`/archive/reconcile?houseId=${houseId}`),
       ]);
-      setFila(f); setConta(r); setDetalhe({}); setAberto(null);
+      setFila(f); setConta(r); setDetalhe({}); setAberto(null); setCarregou(true);
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Não foi possível abrir o arquivo.');
     }
@@ -233,7 +235,7 @@ export function Arquivo({ houseId, papel }: { houseId: string; papel: string }) 
             </div>
           );
         })}
-        {fila.length === 0 && (
+        {carregou && fila.length === 0 && (
           <div className="card"><p className="mutetxt" style={{ margin: 0 }}>
             Nada na fila: tudo o que fechou já foi enviado e conferido.</p></div>
         )}

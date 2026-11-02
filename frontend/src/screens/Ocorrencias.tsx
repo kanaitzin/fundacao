@@ -164,6 +164,8 @@ export const ABRE_OCORRENCIA = ['educador', 'lider_diurno', 'lider_noturno_geral
 
 export function Ocorrencias({ houseId, papel }: { houseId: string; papel: string }) {
   const [lista, setLista] = useState<ItemLista[]>([]);
+  /* Chegou a lista (fase 260): antes disso, a tela não diz que não há ocorrência. */
+  const [carregou, setCarregou] = useState(false);
   const [catalogo, setCatalogo] = useState<Catalogo | null>(null);
   const [pessoas, setPessoas] = useState<Pessoa[]>([]);
   const [detalhes, setDetalhes] = useState<Record<string, Detalhe>>({});
@@ -202,7 +204,7 @@ export function Ocorrencias({ houseId, papel }: { houseId: string; papel: string
         api<Pessoa[]>(`/people?houseId=${houseId}`),
         api<OpcaoTestemunho[]>('/statements/options').catch(() => [] as OpcaoTestemunho[]),
       ]);
-      setLista(o); setCatalogo(c); setPessoas(p); setTestemunhos(t);
+      setLista(o); setCatalogo(c); setPessoas(p); setTestemunhos(t); setCarregou(true);
       /* Falhar aqui não pode travar a tela: as ocorrências continuam servindo
          mesmo que a cobrança não carregue. */
       setCobrancas(await api<Cobranca[]>('/statements/requests').catch(() => []));
@@ -732,7 +734,7 @@ export function Ocorrencias({ houseId, papel }: { houseId: string; papel: string
             </div>
           );
         })}
-        {lista.length === 0 && (
+        {carregou && lista.length === 0 && (
           <div className="card"><p className="mutetxt" style={{ margin: 0 }}>
             Nenhuma ocorrência registrada nesta casa.</p></div>
         )}

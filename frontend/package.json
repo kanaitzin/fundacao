@@ -19,6 +19,7 @@
     "ensaio:uso-celular": "ENSAIO_CELULAR=1 node ensaio-uso.mjs",
     "ensaio:celular": "node ensaio-celular.mjs",
     "ensaio:cabe": "node ensaio-cabe-e-volta.mjs",
+    "ensaio:vazio": "node ensaio-vazio.mjs",
     "fontes": "node ../scripts/gerar-fontes.mjs",
     "ensaio:acolhe": "node ensaio-acolhe.mjs",
     "ensaio:aparelhos": "node ensaio-aparelhos.mjs"

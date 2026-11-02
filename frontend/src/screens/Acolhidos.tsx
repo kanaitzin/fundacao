@@ -281,6 +281,8 @@ export function Acolhidos({ houseId, casaLabel, papel, abrir, paraALista }: {
   abrir?: { id: string } | null;
 }) {
   const [lista, setLista] = useState<Resumo[]>([]);
+  /* Chegou a lista (fase 260): antes disso, a tela não diz que não há acolhido. */
+  const [carregou, setCarregou] = useState(false);
   const [abertoId, setAbertoId] = useState<string | null>(abrir?.id ?? null);
   useEffect(() => { if (abrir) setAbertoId(abrir.id); }, [abrir]);
   useEffect(() => { if (paraALista) { setAbertoId(null); setVendoAcervo(false); } }, [paraALista]);
@@ -315,6 +317,7 @@ export function Acolhidos({ houseId, casaLabel, papel, abrir, paraALista }: {
         `/people/outing-permissions?houseId=${houseId}`).catch(() => []));
     }
     catch (e) { setErro(e instanceof Error ? e.message : 'Não foi possível carregar os acolhidos.'); }
+    finally { setCarregou(true); }
   }, [houseId]);
 
   useEffect(() => { carregar(); }, [carregar]);
@@ -716,7 +719,7 @@ export function Acolhidos({ houseId, casaLabel, papel, abrir, paraALista }: {
       {lista.length > 0 && filtrada.length === 0 && (
         <div className="card"><p className="mutetxt" style={{ margin: 0 }}>Nenhum nome com "{busca}".</p></div>
       )}
-      {lista.length === 0 && !erro && (
+      {carregou && lista.length === 0 && !erro && (
         <div className="card">
           <p className="mutetxt" style={{ margin: 0 }}>
             Nenhum acolhido ativo nesta casa.

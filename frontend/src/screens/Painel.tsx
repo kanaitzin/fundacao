@@ -115,6 +115,8 @@ export function Painel({ houseId, casaLabel, papel }: {
   houseId: string; casaLabel: string; papel: string;
 }) {
   const [cartoes, setCartoes] = useState<Cartao[]>([]);
+  /* Chegaram as unidades (fase 260): antes disso, nem zero unidades nem nenhuma. */
+  const [carregou, setCarregou] = useState(false);
   const [mes, setMes] = useState(mesDaInstituicao());
   const [aberta, setAberta] = useState<Cartao | null>(null);
   const [mensal, setMensal] = useState<Mensal | null>(null);
@@ -135,7 +137,7 @@ export function Painel({ houseId, casaLabel, papel }: {
     setErro('');
     try {
       const lista = await api<Cartao[]>('/reports/panel');
-      setCartoes(lista);
+      setCartoes(lista); setCarregou(true);
       // Quem alcança uma casa só não deveria ter de escolher qual abrir.
       setAberta((atual) => {
         const alvo = atual
@@ -208,9 +210,9 @@ export function Painel({ houseId, casaLabel, papel }: {
 
       {aviso && <div className="notice c-ok" role="status">{aviso}</div>}
 
-      <div className="eyebrow">Agora · {quantos(cartoes.length, 'unidade', 'unidades')} no seu alcance</div>
+      <div className="eyebrow">Agora{carregou ? ` · ${quantos(cartoes.length, 'unidade', 'unidades')} no seu alcance` : ''}</div>
       <div className="unidades-grade">
-        {cartoes.length === 0 && (
+        {carregou && cartoes.length === 0 && (
           <p className="mutetxt">Nenhuma unidade no seu alcance.</p>
         )}
         {cartoes.map((c) => (

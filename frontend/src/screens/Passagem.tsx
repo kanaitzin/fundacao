@@ -97,6 +97,8 @@ function paraCampo(iso: string | null): string {
 
 export function Passagem({ houseId }: { houseId: string }) {
   const [lista, setLista] = useState<Resumo[]>([]);
+  /* Chegou a lista (fase 260): antes disso, a tela não diz que não há plantão. */
+  const [carregou, setCarregou] = useState(false);
   const [aberto, setAberto] = useState<Plantao | null>(null);
   const [erro, setErro] = useState('');
   const [aviso, setAviso] = useState('');
@@ -112,7 +114,7 @@ export function Passagem({ houseId }: { houseId: string }) {
 
   const carregarLista = useCallback(async () => {
     setErro('');
-    try { setLista(await api<Resumo[]>(`/shifts?houseId=${houseId}`)); }
+    try { setLista(await api<Resumo[]>(`/shifts?houseId=${houseId}`)); setCarregou(true); }
     catch (e) { setErro(e instanceof Error ? e.message : 'Não foi possível carregar os plantões.'); }
     const h = await api<{ agora: { turno: 'diurno' | 'noturno' } }>(`/houses/${houseId}/turnos`)
       .catch(() => null);
@@ -286,7 +288,7 @@ export function Passagem({ houseId }: { houseId: string }) {
               </span>
             </button>
           ))}
-          {lista.length === 0 && (
+          {carregou && lista.length === 0 && (
             <div className="card">
               <p className="mutetxt" style={{ margin: 0 }}>
                 Nenhum plantão aberto hoje nesta casa.

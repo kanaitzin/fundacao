@@ -104,6 +104,8 @@ export function Sincronizacao({ houseId, casaLabel, papel }: {
 }) {
   const [status, setStatus] = useState<Status | null>(null);
   const [conflitos, setConflitos] = useState<Conflito[]>([]);
+  /* Chegou a lista (fase 260): antes disso, a tela não diz que não há conflito. */
+  const [carregou, setCarregou] = useState(false);
   const [erro, setErro] = useState('');
   const [aviso, setAviso] = useState('');
   const [resolvendo, setResolvendo] = useState<Conflito | null>(null);
@@ -120,7 +122,7 @@ export function Sincronizacao({ houseId, casaLabel, papel }: {
         api<Status>('/sync/status'),
         api<Conflito[]>(`/sync/conflicts?houseId=${houseId}`),
       ]);
-      setStatus(s); setConflitos(c);
+      setStatus(s); setConflitos(c); setCarregou(true);
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Não foi possível abrir a sincronização.');
     }
@@ -176,7 +178,7 @@ export function Sincronizacao({ houseId, casaLabel, papel }: {
         Conflitos em aberto{conflitos.length > 0 ? ` · ${conflitos.length}` : ''}
       </div>
 
-      {conflitos.length === 0 && !erro && (
+      {carregou && conflitos.length === 0 && !erro && (
         <div className="card">
           <p className="mutetxt" style={{ margin: 0 }}>
             <b>Nenhum conflito em aberto nesta casa.</b> Isto é o estado normal: o conflito só
