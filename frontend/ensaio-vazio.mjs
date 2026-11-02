@@ -14,6 +14,9 @@
  * que estava na tela antes e sumiu depois é achado: ela disse que não havia, e
  * havia.
  *
+ * Desde a 261, também por dentro: as abas de cada tela e o perfil aberto de uma
+ * criança, com as abas dele.
+ *
  * O que NÃO é achado: "Carregando", "Abrindo", "Buscando" e o esqueleto, que
  * dizem a verdade; e o vazio que continua depois, que é o vazio de verdade.
  *
@@ -98,6 +101,7 @@ const medir = async (cargo, onde, abrir) => {
   const depois = new Set(await frases());
   await pg.evaluate(() => { globalThis.__pausaDoPrototipo = 120; });
   telas++;
+  if (process.env.ENSAIO_VER) console.log(`    · ${onde}`);
   for (const f of antes) {
     if (depois.has(f) || !VAZIO.test(f)) continue;
     achados.push(`[${cargo} · ${onde}] antes do dado: "${f.slice(0, 120)}"`);
@@ -106,6 +110,31 @@ const medir = async (cargo, onde, abrir) => {
      pedido no ar: lê-se depois de doze pausas, e isso é informação, não achado. */
   if (!chegou) semSossego.push(`${cargo} · ${onde}`);
   for (const e of erros) achados.push(`[${cargo} · ${onde}] erro: ${e}`);
+};
+
+/*
+ * POR DENTRO (fase 261): a 260 olhava só a tela que abre. Aqui, depois de cada
+ * tela, cada aba de dentro dela (`[role=tab]` no conteúdo) e, nos Acolhidos, o
+ * perfil da primeira criança e cada aba do perfil.
+ */
+const abasDeDentro = async (cargo, onde) => {
+  const nomes = await pg.locator('main.conteudo [role=tab]').evaluateAll((ts) =>
+    ts.filter((t) => t.getAttribute('aria-selected') !== 'true' && t.offsetParent)
+      .map((t) => (t.innerText || '').replace(/\s+/g, ' ').trim()).filter(Boolean));
+  for (const nome of [...new Set(nomes)]) {
+    const aba = pg.locator('main.conteudo [role=tab]').filter({ hasText: nome }).first();
+    if (!(await aba.count())) continue;
+    await medir(cargo, `${onde} › ${nome}`, async () => { await aba.click(); });
+  }
+};
+const porDentro = async (cargo, onde) => {
+  await esperarChegar();
+  await abasDeDentro(cargo, onde);
+  if (onde !== 'Acolhidos') return;
+  const cartao = pg.locator('main.conteudo .pessoa-cartao').first();
+  if (!(await cartao.count())) return;
+  await medir(cargo, 'perfil', async () => { await cartao.click(); });
+  await abasDeDentro(cargo, 'perfil');
 };
 
 const seletor = pg.locator('select.troca-cargo-sel');
@@ -126,6 +155,7 @@ for (const cargo of cargos) {
       await pg.waitForTimeout(50);
       await pg.locator('nav.tabbar button').nth(i).click();
     });
+    await porDentro(cargo.valor, abas[i]);
   }
   if (await pg.locator('nav.tabbar button', { hasText: 'Mais' }).count()) {
     await pg.locator('nav.tabbar button', { hasText: 'Mais' }).first().click();
@@ -141,6 +171,7 @@ for (const cargo of cargos) {
         await pg.waitForTimeout(300);
         await pg.locator('.overlay .sheet button.card.row').nth(i).click();
       });
+      await porDentro(cargo.valor, portas[i].trim());
     }
   }
   const n = achados.length - antes;

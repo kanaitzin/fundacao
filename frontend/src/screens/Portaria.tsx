@@ -596,8 +596,8 @@ function AcolhidosNoPortao({ houseId }: { houseId: string }) {
       {erro && <div className="notice c-crit" role="alert">{erro}</div>}
       {aviso && <div className="notice c-ok" role="status">{aviso}</div>}
 
-      <div className="eyebrow">Fora da casa agora · {fora.length}</div>
-      {fora.length === 0 && <p className="mutetxt">Nenhuma criança fora pelo portão agora.</p>}
+      <div className="eyebrow">Fora da casa agora{lista ? ` · ${fora.length}` : ''}</div>
+      {lista && fora.length === 0 && <p className="mutetxt">Nenhuma criança fora pelo portão agora.</p>}
       <ul className="saidas-do-portao">
         {fora.map((a) => (
           <li key={a.personId} className="card stack">
@@ -626,7 +626,7 @@ function AcolhidosNoPortao({ houseId }: { houseId: string }) {
       <input id="port-acolhido" type="search" className="busca-grande" value={busca}
              onChange={(e) => setBusca(e.target.value)} placeholder="Ex.: Kauã" />
 
-      <div className="eyebrow">As crianças da casa · {todos.length}</div>
+      <div className="eyebrow">As crianças da casa{lista ? ` · ${todos.length}` : ''}</div>
       <ul className="saidas-do-portao">
         {achados.map((a) => (
           <li key={a.personId} className="card stack">
