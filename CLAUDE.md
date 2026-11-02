@@ -198,7 +198,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 02/11/2026, fase 261
+### Onde estamos — 02/11/2026, fase 262
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -323,6 +323,7 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 259 | **o que está acontecendo, e o que mudou** (relatório 5): o destino de um aviso, da linha do dia, do Guia ou da busca se acende e apaga (`chegou-aqui.ts`), o selo do sino acende quando muda, a Acolhe+AI pensa com três pontos, o microfone ligado ganha um anel, e o Como funciona abre suave |
 | 260 | **o vazio que mente** (relatório 5): onze telas diziam *Nenhum…* antes de o dado chegar; o `ensaio:vazio` alonga a rede do protótipo, abre cada aba e porta de cada cargo e achou 57 casos; consertados, e a Cozinha que dizia *Nenhum pedido* quando a busca falhava |
 | 261 | **o vazio que mente, por dentro**: o `ensaio:vazio` passa pelas abas de dentro e pelo perfil com as abas dele (293 telas); achou as Saídas da Portaria, as Compras da Saúde e as Comunicações externas, consertadas |
+| 262 | **as fases 255 a 261 contra o servidor de verdade**: a Casa 03 em trinta dias (onze contas, 327 telas, sem achado), a Acolhe+AI com o modelo, o `ensaio:cabe` e o `ensaio:acolhe`; nenhum defeito |
 
 **Medido no fim da 252:** 207 migrações, 144 tabelas, 160 suítes, 1418 testes; nas 237 e 238, a suíte inteira
 verde (1363 de 1363, depois de consertar as três conferências que o relatório das vivências deixou soltas) e o
@@ -433,6 +434,14 @@ posto em ordem no **PARA-A-REUNIAO §0**: as cinco perguntas que mais destravam,
 responder, os documentos de papel e os dados a receber, o que o DPO vê, o que se assina e as 30
 decisões de produto abertas. **Quando a resposta vier, ela entra lá e no §10 ou §11 do documento**, e
 o item respondido sai do §0.
+
+**FEITO — fase 262** (§2): a conferência das fases 255 a 261 contra o servidor de verdade, sem defeito. **Medido
+na 262:** a Casa 03 em trinta dias (`SIM_CASAS=AI3 … 30`: tudo bate, nenhuma leitura acima de 172 ms; na API, só a
+recusa conhecida das vagas; onze contas e 327 telas no navegador, sem achado; a Acolhe+AI com o modelo, dezenove
+cobranças verdes), o `ensaio:cabe` a 390 px (1142 estados, 601 voltas, sem achado) e o `ensaio:acolhe` (todas as
+telas, subtelas e formulários dos nove cargos). **Não rodou** o `ensaio:cabe` no monitor nem a suíte do servidor
+(nenhum código mudou). **Próxima etapa:** a resposta da Fundação à página das direções (254); sem ela, o que sobra
+do relatório 5 é o *Registrado às 23:04* no botão, tela por tela.
 
 **FEITO — fase 261** (§2): o vazio que mente por dentro. **Aba nova dentro de uma tela** também espera o dado
 antes de dizer *Nenhum…* ou contar zero; o `ensaio:vazio` a acha sozinho pelo `role="tab"`. **Medido na 261:** o
