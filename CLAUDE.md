@@ -436,7 +436,10 @@ o item respondido sai do §0.
 **FEITO — fase 260** (§2): o vazio que mente, medido. **Lista nova numa tela** só diz *Nenhum…* depois de o dado
 chegar (um `carregou` que vira verdadeiro com a resposta), e **busca que falha não vira lista vazia**: diz que não
 conseguiu. **Mudou tela, roda o `ensaio:vazio`** (uns quinze minutos; `ENSAIO_CARGOS` para um cargo). **Fica de
-fora:** as subtelas, que o ensaio ainda não percorre. **Medido na 260:** no fim desta linha quando os ensaios terminarem.
+fora:** as subtelas, que o ensaio ainda não percorre. **Medido na 260:** o `ensaio:vazio` (57 achados na primeira rodada, 13 na segunda com a régua
+do zero, nenhum na terceira: 154 telas de oito cargos), o `ensaio:uso` (sem reprovação), o do celular (322 telas, sem
+achado) e o de acessibilidade (1155 telas, sete temas, nenhuma violação). **Não rodou** a suíte do servidor (nada no
+servidor mudou), o `ensaio:cabe` nem a simulação contra o servidor.
 
 **FEITO — fase 259** (§2): o que está acontecendo e o que mudou, do relatório 5. **Tela nova que recebe gente de
 outra tela** marca o seu cabeçalho com `data-chegou-aqui` (sem a marca, acende o primeiro cartão); **quem leva a
