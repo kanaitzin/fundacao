@@ -100,7 +100,7 @@ if [[ "${1:-}" == "--ensaio" ]]; then
     echo "    (num banco com cofre em uso, esta é a conferência que mais importa)"
   else
     if DATABASE_URL="$DESTINO" node "$RAIZ/scripts/conferir-cofre.mjs"; then
-      echo "  ✓ as $cifrados credencial(is) restauradas abrem com a CREDENTIAL_KEY atual"
+      if (( cifrados == 1 )); then echo "  ✓ a credencial restaurada abre com a CREDENTIAL_KEY atual"; else echo "  ✓ as $cifrados credenciais restauradas abrem com a CREDENTIAL_KEY atual"; fi
     else
       echo "  ✗ o cofre NÃO abre: a chave deste ambiente não é a que cifrou estes dados."
       falhas=$((falhas + 1))
@@ -119,7 +119,7 @@ if [[ "${1:-}" == "--ensaio" ]]; then
     echo "✓ ciclo completo: backup → restauração → conferência, sem perda."
     exit 0
   fi
-  echo "✗ $falhas conferência(s) falharam. Este backup NÃO restaura o sistema."
+  if (( falhas == 1 )); then echo "✗ 1 conferência falhou. Este backup NÃO restaura o sistema."; else echo "✗ $falhas conferências falharam. Este backup NÃO restaura o sistema."; fi
   exit 1
 fi
 

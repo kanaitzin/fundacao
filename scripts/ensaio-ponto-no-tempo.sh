@@ -130,5 +130,5 @@ ARQUIVOS_DIR="$T/fotos" ARQUIVO_DRIVE_DIR="$T/acervo" ARQUIVOS_COPIA_DIR="$T/cop
 [[ -f "$T/copia/dossie/a1" ]] && ok "a foto que sumiu da origem continua no segundo disco" || erro "a cópia apagou o que sumiu da origem"
 
 echo
-if (( FALHAS )); then echo "✗ $FALHAS conferência(s) falharam. Logs em $T."; exit 1; fi
+if (( FALHAS )); then if (( FALHAS == 1 )); then echo "✗ 1 conferência falhou. Logs em $T."; else echo "✗ $FALHAS conferências falharam. Logs em $T."; fi; exit 1; fi
 echo "✓ Nada se perdeu: o banco voltou até o minuto e até o fim, e as fotos estão no segundo disco."

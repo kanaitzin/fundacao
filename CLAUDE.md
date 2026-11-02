@@ -198,7 +198,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 02/11/2026, fase 262
+### Onde estamos — 02/11/2026, fase 263
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -324,6 +324,7 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 260 | **o vazio que mente** (relatório 5): onze telas diziam *Nenhum…* antes de o dado chegar; o `ensaio:vazio` alonga a rede do protótipo, abre cada aba e porta de cada cargo e achou 57 casos; consertados, e a Cozinha que dizia *Nenhum pedido* quando a busca falhava |
 | 261 | **o vazio que mente, por dentro**: o `ensaio:vazio` passa pelas abas de dentro e pelo perfil com as abas dele (293 telas); achou as Saídas da Portaria, as Compras da Saúde e as Comunicações externas, consertadas |
 | 262 | **as fases 255 a 261 contra o servidor de verdade**: a Casa 03 em trinta dias (onze contas, 327 telas, sem achado), a Acolhe+AI com o modelo, o `ensaio:cabe` e o `ensaio:acolhe`; nenhum defeito |
+| 263 | **o sistema inteiro conferido, e o banco** (pedido de 02/11): a **falha crítica de endereço falsificado atrás do proxy** e mais quatro dependências do servidor consertadas, o teste da escala que reprovava todo novembro, e as quantidades com parênteses nos scripts; o resto limpo (suíte nas duas condições, catálogo, varreduras, cópia e volta no tempo, produção, ensaios) |
 
 **Medido no fim da 252:** 207 migrações, 144 tabelas, 160 suítes, 1418 testes; nas 237 e 238, a suíte inteira
 verde (1363 de 1363, depois de consertar as três conferências que o relatório das vivências deixou soltas) e o
@@ -434,6 +435,17 @@ posto em ordem no **PARA-A-REUNIAO §0**: as cinco perguntas que mais destravam,
 responder, os documentos de papel e os dados a receber, o que o DPO vê, o que se assina e as 30
 decisões de produto abertas. **Quando a resposta vier, ela entra lá e no §10 ou §11 do documento**, e
 o item respondido sai do §0.
+
+**FEITO — fase 263** (§2): a verificação completa pedida em 02/11. **Dependência nova ou atualizada passa pelo
+`npm audit --omit=dev`**, e a que o Nest 10 prende se sobe pelos `overrides` do `package.json` (hoje `body-parser`,
+`qs` e `multer`), conferindo depois com a suíte inteira. **Fica aberto:** seis avisos em partes que o sistema não usa
+(`@Sse`, `lodash`, `file-type`, envio de arquivo por formulário), que só fecham com o Nest 12, troca de versão grande
+que pede uma fase própria. **Teste que escolhe data a partir de hoje** confere o tamanho do mês, ou reprova em algum
+mês do ano. **Medido na 263:** a suíte inteira nas DUAS condições de relógio (1425 de 1425, depois das dependências
+novas), o catálogo do banco, a `varredura-de-pontas`, o `rotas-sem-teste`, o `superficies-sem-teste`, o
+`ensaio:ponto-no-tempo`, o `ensaio:producao`, a restauração, o `o-servidor-do-pao` e os ensaios `ensaio`, `largo`,
+`fila`, `folhas` e `roteiro` (o `uso-celular` no fim desta linha quando terminar). **Não rodou** a simulação contra o servidor (rodou na 262, e nada de tela
+mudou) nem o `ensaio:acolhe`.
 
 **FEITO — fase 262** (§2): a conferência das fases 255 a 261 contra o servidor de verdade, sem defeito. **Medido
 na 262:** a Casa 03 em trinta dias (`SIM_CASAS=AI3 … 30`: tudo bate, nenhuma leitura acima de 172 ms; na API, só a

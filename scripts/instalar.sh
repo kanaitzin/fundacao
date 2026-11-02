@@ -163,11 +163,11 @@ secao "5. O serviço"
 
 echo
 if [[ $faltam -gt 0 ]]; then
-  echo "Faltam $faltam item(ns)$([[ $avisos -gt 0 ]] && echo " e há $avisos opcional(is)"). Nada foi mudado."
+  echo "$( (( faltam == 1 )) && echo "Falta 1 item" || echo "Faltam $faltam itens")$( (( avisos == 1 )) && echo " e há 1 opcional" ; (( avisos > 1 )) && echo " e há $avisos opcionais"). Nada foi mudado."
   [[ "$MODO" == --instalar ]] && echo "A instalação só segue com tudo pronto."
   exit 1
 fi
-echo "Tudo pronto$([[ $avisos -gt 0 ]] && echo ", com $avisos opcional(is) desligado(s)")."
+echo "Tudo pronto$( (( avisos == 1 )) && echo ", com 1 opcional desligado" ; (( avisos > 1 )) && echo ", com $avisos opcionais desligados")."
 [[ "$MODO" != --instalar ]] && exit 0
 
 secao "Construindo e migrando (§12.3)"

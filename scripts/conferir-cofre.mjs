@@ -56,12 +56,12 @@ if (!rows.length) {
 
 const fechadas = rows.filter((r) => !abre(r.secret_enc)).map((r) => r.id);
 if (!fechadas.length) {
-  console.log(`${rows.length} credencial(is): todas abrem com a chave deste ambiente.`);
+  console.log(rows.length === 1 ? '1 credencial: abre com a chave deste ambiente.' : `${rows.length} credenciais: todas abrem com a chave deste ambiente.`);
   process.exit(0);
 }
 
 console.error(
-  `${fechadas.length} de ${rows.length} credencial(is) NÃO abrem com esta chave.\n`
+  `${fechadas.length} de ${rows.length} ${rows.length === 1 ? 'credencial' : 'credenciais'} NÃO ${fechadas.length === 1 ? 'abre' : 'abrem'} com esta chave.\n`
   + 'Isto quase sempre significa uma coisa só: a CREDENTIAL_KEY deste ambiente\n'
   + 'não é a que cifrou estes dados. Não recadastre nada antes de procurar a\n'
   + 'chave certa — recadastrar apaga a única pista de que ela existiu.\n'
