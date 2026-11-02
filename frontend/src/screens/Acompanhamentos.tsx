@@ -95,6 +95,8 @@ export function Acompanhamentos({ houseId, casaLabel, papel }: {
   const [aba, setAba] = useState<'acomp' | 'relat'>('acomp');
   const [eixos, setEixos] = useState<Eixo[]>([]);
   const [lista, setLista] = useState<Acompanhamento[]>([]);
+  /* Chegou a lista (fase 260): antes disso, a conta não diz zero. */
+  const [carregou, setCarregou] = useState(false);
   const [relatorios, setRelatorios] = useState<Relatorio[]>([]);
   const [baixando, setBaixando] = useState('');
   /* A folha antes de baixar: conferir sem sair da tela. */
@@ -120,7 +122,7 @@ export function Acompanhamentos({ houseId, casaLabel, papel }: {
         // pode ver dado bancário não recebe o tipo de benefícios na lista.
         api<TipoRelatorio[]>('/reports/kinds').catch(() => [] as TipoRelatorio[]),
       ]);
-      setEixos(e); setLista(f); setRelatorios(r); setTipos(t);
+      setEixos(e); setLista(f); setRelatorios(r); setTipos(t); setCarregou(true);
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Não foi possível carregar os acompanhamentos.');
     }
@@ -315,7 +317,7 @@ export function Acompanhamentos({ houseId, casaLabel, papel }: {
             </Explica>
           </div>
 
-          <div className="eyebrow">Abertos · {abertos.length}</div>
+          <div className="eyebrow">Abertos{carregou ? ` · ${abertos.length}` : ''}</div>
           <div className="stack">{abertos.map(cartao)}</div>
 
           <div className="eyebrow">Aprovados — retrato daquele momento</div>

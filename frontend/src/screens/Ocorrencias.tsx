@@ -359,7 +359,7 @@ export function Ocorrencias({ houseId, papel }: { houseId: string; papel: string
       </div>
       )}
 
-      <div className="eyebrow">Em acompanhamento · {abertas.length}</div>
+      <div className="eyebrow">Em acompanhamento{carregou ? ` · ${abertas.length}` : ''}</div>
       <div className="stack">
         {lista.map((o) => {
           const s = SITUACAO[o.status] ?? { label: o.status, tom: 'c-mute' };

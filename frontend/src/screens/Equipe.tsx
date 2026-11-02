@@ -81,6 +81,8 @@ const TONS = Object.keys(NOME_DO_TOM);
 export function Equipe({ papel }: { papel: string }) {
   const [aba, setAba] = useState<'pessoas' | 'aparelhos'>('pessoas');
   const [membros, setMembros] = useState<Membro[]>([]);
+  /* Chegou a equipe (fase 260): antes disso, a conta não diz zero. */
+  const [carregou, setCarregou] = useState(false);
   const [setores, setSetores] = useState<Setor[]>([]);
   const [casas, setCasas] = useState<Casa[]>([]);
   const [aparelhos, setAparelhos] = useState<Aparelho[]>([]);
@@ -107,7 +109,7 @@ export function Equipe({ papel }: { papel: string }) {
         api<Setor[]>('/staff/sectors'),
         api<Casa[]>('/houses/directory').catch(() => [] as Casa[]),
       ]);
-      setMembros(m); setSetores(s); setCasas(c);
+      setMembros(m); setSetores(s); setCasas(c); setCarregou(true);
       // Falhar aqui não pode travar a equipe: a aba dos aparelhos apenas fica
       // vazia, e a de pessoas continua servindo a coordenação.
       setAparelhos(await api<Aparelho[]>('/devices').catch(() => []));
@@ -178,7 +180,7 @@ export function Equipe({ papel }: { papel: string }) {
       <div className="card raise">
         <div className="row" style={{ marginBottom: 12 }}>
           <h3 className="grow" style={{ fontSize: 17, margin: 0 }}>Equipe cadastrada</h3>
-          <span className="mutetxt">{membros.filter((m) => m.ativo).length} ativos · {membros.length} no total</span>
+          {carregou && <span className="mutetxt">{membros.filter((m) => m.ativo).length} ativos · {membros.length} no total</span>}
           {setores.length > 0 && (
             <button data-acolhe-abre="" className="btn sm" onClick={() => { setEditando(null); setForm(true); }}>
               + Novo cadastro
