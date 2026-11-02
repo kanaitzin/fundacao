@@ -444,7 +444,7 @@ que pede uma fase própria. **Teste que escolhe data a partir de hoje** confere 
 mês do ano. **Medido na 263:** a suíte inteira nas DUAS condições de relógio (1425 de 1425, depois das dependências
 novas), o catálogo do banco, a `varredura-de-pontas`, o `rotas-sem-teste`, o `superficies-sem-teste`, o
 `ensaio:ponto-no-tempo`, o `ensaio:producao`, a restauração, o `o-servidor-do-pao` e os ensaios `ensaio`, `largo`,
-`fila`, `folhas` e `roteiro` (o `uso-celular` no fim desta linha quando terminar). **Não rodou** a simulação contra o servidor (rodou na 262, e nada de tela
+`fila`, `folhas`, `roteiro` e `uso-celular` (sem reprovação). **Não rodou** a simulação contra o servidor (rodou na 262, e nada de tela
 mudou) nem o `ensaio:acolhe`.
 
 **FEITO — fase 262** (§2): a conferência das fases 255 a 261 contra o servidor de verdade, sem defeito. **Medido
