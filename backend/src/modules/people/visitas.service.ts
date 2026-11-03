@@ -10,6 +10,7 @@ import { AuthenticatedUser } from '../../kernel/contracts';
 import { maskCpf } from '../../kernel/common/cpf';
 import { diasEmPortugues } from '../../kernel/common/semana';
 import { hojeNaInstituicao } from '../../kernel/common/tempo';
+import { QUEM_LE_O_ULTIMO_CONTATO, UltimoContato, VINCULO_QUE_NAO_CONTA, ultimoContato } from './ultimo-contato.regra';
 import { ESCREVE_CONTATO, rotuloDoVinculo } from './contatos.service';
 
 /**
@@ -248,8 +249,24 @@ export class VisitasService {
       x.visitas += 1; x.minutos += minutos(r) ?? 0;
       porVisitante.set(k, x);
     }
+    /*
+     * HÁ QUANTO TEMPO A FAMÍLIA NÃO VISITA (fase 271): a última visita, de todas e
+     * não só do período, e a última ida à casa da família. Só para quem lê a área
+     * restrita, e só no perfil desta criança.
+     */
+    let contato: UltimoContato | undefined;
+    if (QUEM_LE_O_ULTIMO_CONTATO.includes(user.role)) {
+      const daFamilia = linhas.filter((r: any) => r.bond !== VINCULO_QUE_NAO_CONTA);
+      const ultimaVisita = daFamilia.length ? String(daFamilia[0].dia) : null;
+      const base = await this.db.asUser(user.id, async (c) => (await c.query(
+        `SELECT (SELECT max((f.started_at AT TIME ZONE app_fuso())::date)::text
+                   FROM family_stay f WHERE f.person_id = $1) AS convivencia,
+                (SELECT out_desde::text FROM app_reavaliacao_base($1)) AS desde`, [personId])).rows[0]);
+      contato = ultimoContato(ultimaVisita, base?.convivencia ?? null, base?.desde ?? desdeQuando, hoje);
+    }
     return {
       periodo: { de: inicio, ate: fim },
+      ultimoContato: contato,
       contagem: {
         noPeriodo: noPeriodo.length,
         noMes: conta(`${hoje.slice(0, 7)}-01`, hoje),

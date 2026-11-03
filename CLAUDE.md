@@ -199,7 +199,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 03/11/2026, fase 270
+### Onde estamos — 03/11/2026, fase 271
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -333,8 +333,9 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 268 | **as fases 265 a 267 conferidas com todos os ensaios que não tinham rodado**: a suíte nas duas condições de relógio, o de acessibilidade, o `ensaio:vazio`, o `ensaio:cabe` nos oito cargos a 390 px e no monitor, o `ensaio:acolhe` nos nove cargos e o relatório pela voz, o `roteiro`, o `uso-celular`, o `ensaio`, o `largo`, o `folhas` e o `ensaio:aparelhos`; nenhum defeito, nenhum código mudou |
 | 269 | **o prazo da reavaliação ao Juízo** (pedido de 03/11): o ECA manda reavaliar no máximo a cada três meses (art. 19), e ninguém contava; o dossiê ganha o *Relatório de reavaliação*, a área restrita do perfil diz o último e o próximo, com o tempo de acolhimento, e o relógio avisa a técnica e a coordenação quinze dias antes (`reavaliacao.regra.ts`, people/1668, `GET /people/:id/reavaliacao`) |
 | 270 | **a saída com a história** (pedido de 03/11): a folha de transição, para quem recebe a criança (cuidados, saúde, alimentação, remédios com horários, escola e documentos, com recibo), e o livro da vida, para ela (conquistas e vivências, só fotos autorizadas), na aba Documentos e na folha da saída; nada da área restrita (`reports/saida-folha.ts`, `/impacto/saida/:id/...`) |
+| 271 | **há quanto tempo a família não visita** (pedido de 03/11): no perfil, na aba Família e visitas, a técnica, a coordenação e a gestão leem a última visita da família e a última ida à casa dela, com os dias; sem cor, sem limite e sem lista entre crianças (`ultimo-contato.regra.ts`, no `GET /people/:id/visitas`) |
 
-**Medido no fim da 270:** 208 migrações, 145 tabelas, 163 suítes, 1430 testes; nas 237 e 238, a suíte inteira
+**Medido no fim da 271:** 208 migrações, 145 tabelas, 164 suítes, 1432 testes; nas 237 e 238, a suíte inteira
 verde (1363 de 1363, depois de consertar as três conferências que o relatório das vivências deixou soltas) e o
 `ensaio:uso` (739 cobranças, sem reprovação, com o relatório das vivências aberto e o Word baixado); **não rodou**
 nas 237 e 238 o relógio adiantado, o do celular, o de acessibilidade, o `ensaio:acolhe` nem a simulação contra o servidor;
@@ -443,6 +444,14 @@ posto em ordem no **PARA-A-REUNIAO §0**: as cinco perguntas que mais destravam,
 responder, os documentos de papel e os dados a receber, o que o DPO vê, o que se assina e as 30
 decisões de produto abertas. **Quando a resposta vier, ela entra lá e no §10 ou §11 do documento**, e
 o item respondido sai do §0.
+
+**FEITO — fase 271** (§2, PARA-A-REUNIAO §4.40): o último contato com a família, e com ela **o pedido de 03/11
+(*pense no que eu não pensei*) está feito**: 269, 270 e 271; o 4 (o peso do turno) e o 5 (a prestação de contas)
+foram recusados pela pessoa da Fundação (a linha do tempo tem que ser limpa, e o Pão tem financeiro próprio).
+**Número de uma criança** mora só no perfil dela, para quem lê a área restrita, sem cor quando ele não diz se algo
+precisa de alguém. **Depende da Fundação:** as quatro escolhas da §4.40, a principal a lista que não fiz.
+**Medido nas 269 a 271:** ver a linha abaixo, depois da rodada inteira. **Próxima etapa:** a mesma de antes do
+pedido: a resposta da Fundação à página das direções (254) e a pauta de 21/10, agora com as §4.38 a §4.40.
 
 **FEITO — fase 270** (§2, PARA-A-REUNIAO §4.39): a saída com a história. **Documento que sai da instituição
 com a criança** nunca leva nada da área restrita, e a suíte cobra o que NÃO entra, não só o que entra. **Foto que

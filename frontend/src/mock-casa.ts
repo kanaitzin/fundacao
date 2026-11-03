@@ -36,6 +36,8 @@ import { ALCANCE_POR_CARGO } from '../../backend/src/modules/identity/alcance';
 import { avaliar, avaliarArquivo, avaliarDrive, TITULOS } from '../../backend/src/modules/relogio/implantacao.regra';
 import { QUEM_LE_O_QUE_MUDOU } from '../../backend/src/modules/reports/o-que-mudou.regra';
 import { prazoDaReavaliacao } from '../../backend/src/modules/people/reavaliacao.regra';
+import { QUEM_LE_O_ULTIMO_CONTATO, VINCULO_QUE_NAO_CONTA, ultimoContato }
+  from '../../backend/src/modules/people/ultimo-contato.regra';
 import { QUEM_PREPARA_A_SAIDA, ROTULO_DA_VIVENCIA, folhaDeTransicao, folhaDoLivroDaVida }
   from '../../backend/src/modules/reports/saida-folha';
 import { quantos } from '../../backend/src/kernel/common/quantos';
@@ -10101,7 +10103,18 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       return new Recusa(404, 'Acolhido não encontrado, ou fora do seu alcance.');
     }
     semearVisitas();
-    return visitasDaCrianca(seg[1], q.get('de') ?? undefined, q.get('ate') ?? undefined);
+    const r = visitasDaCrianca(seg[1], q.get('de') ?? undefined, q.get('ate') ?? undefined);
+    /* HÁ QUANTO TEMPO A FAMÍLIA NÃO VISITA (fase 271), pela regra do servidor:
+       só para quem lê a área restrita, e só no perfil desta criança. */
+    if (!QUEM_LE_O_ULTIMO_CONTATO.includes(eu.role)) return r;
+    const diaDe = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo',
+      year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(iso));
+    const visita = VISITAS.filter((v) => v.kidId === seg[1]
+        && (acharContato(v.contatoId) as any)?.vinculo !== VINCULO_QUE_NAO_CONTA)
+      .map((v) => diaDe(v.entrou)).sort().pop() ?? null;
+    const convivencia = CONVIVENCIAS.filter((f) => f.personId === seg[1])
+      .map((f) => diaDe(f.saiuEm)).sort().pop() ?? null;
+    return { ...r, ultimoContato: ultimoContato(visita, convivencia, ACOLHIMENTOS[seg[1]]?.ingressoEm ?? null, HOJE) };
   }
   if (seg[0] === 'people' && seg[2] === 'visitas' && seg[3] === 'export' && metodo === 'POST') {
     if (eu.role === 'portaria' || eu.role === 'cozinha') {

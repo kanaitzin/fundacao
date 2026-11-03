@@ -4392,6 +4392,8 @@ function VisitasDoAcolhido({ personId }: { personId: string }) {
                              depois: { entrouEm: string; saiuEm: string | null };
                              motivo: string; por: string | null; em: string }[] }[];
     aviso: string;
+    /** Há quanto tempo a família não visita (fase 271): só para a técnica, a coordenação e a gestão. */
+    ultimoContato?: { frases: string[] };
   } | null>(null);
   const [de, setDe] = useState('');
   const [ate, setAte] = useState('');
@@ -4435,6 +4437,17 @@ function VisitasDoAcolhido({ personId }: { personId: string }) {
 
   return (
     <Secao titulo="Visitas">
+      {/* HÁ QUANTO TEMPO A FAMÍLIA NÃO VISITA (fase 271): só no perfil desta criança, sem
+          cor e sem limite, para a equipe técnica procurar a família a tempo. */}
+      {dados.ultimoContato && (
+        <div className="bloco" data-ultimo-contato style={{ marginTop: 0, marginBottom: 12 }}>
+          <small>Último contato com a família</small>
+          {dados.ultimoContato.frases.map((f) => <div key={f}>{f}</div>)}
+          <div className="mutetxt" style={{ marginTop: 4 }}>
+            Para a equipe técnica procurar a família quando o tempo ficar longo.
+          </div>
+        </div>
+      )}
       <div className="row">
         <span className="grow">
           <label className="f" htmlFor="visp-de">De</label>

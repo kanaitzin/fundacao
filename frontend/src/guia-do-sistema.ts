@@ -138,6 +138,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 271, dia: '03/11/2026', aba: 'acolhidos',
+    texto: 'No perfil da criança, na aba Família e visitas, a equipe técnica e a coordenação veem quando foi a última visita da família e a última ida à casa dela, e há quantos dias, para procurar a família a tempo. Só no perfil de cada criança, sem cor e sem lista entre crianças.' },
   { fase: 270, dia: '03/11/2026', aba: 'acolhidos',
     texto: 'A saída com a história: na aba Documentos do perfil, e na própria folha da saída, a equipe técnica e a coordenação preparam a folha de transição, para quem recebe a criança (cuidados, alergias, alimentação, remédios com os horários, escola e os documentos, com o recibo), e o livro da vida, para ela (as conquistas e as vivências, só com as fotografias autorizadas). Nada da área restrita vai em nenhuma das duas.' },
   { fase: 269, dia: '03/11/2026', aba: 'acolhidos',

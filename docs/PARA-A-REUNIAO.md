@@ -201,7 +201,7 @@ contando o conceito escolar (fase 137). Nada disso volta à mesa.
   196 também dentro do perfil da criança (*quero registrar a alergia do Bruno*), do dossiê, da
   internação aberta e do acervo: os 36 formulários do sistema. **Para o DPO:**
   o ditado usa o reconhecimento do navegador; no Chrome, o áudio vai ao Google.
-- **270 fases.** 163 suítes e 1430 testes; a suíte inteira, verde em duas condições de
+- **271 fases.** 164 suítes e 1432 testes; a suíte inteira, verde em duas condições de
   relógio na fase 268, antes e depois da virada do UTC, que em Porto Alegre é às 21h.
 - **O aviso no celular** (fase 189, decidido em 06/10): quem liga na Minha conta
   recebe no celular todos os avisos do sino, mesmo com o sistema fechado. Na
@@ -1020,6 +1020,21 @@ muda numa linha:
 4. **O livro leva as conquistas de todo o tempo**, também de um acolhimento anterior, porque a história
    é dela. (Hoje: todas.)
 5. **Quem prepara**: a equipe técnica, a coordenação e a gestão, os mesmos que registram a saída.
+
+## 4.40 Há quanto tempo a família não visita (fase 271, 03/11)
+
+No perfil da criança, na aba Família e visitas, a técnica, a coordenação e a gestão leem quando foi a
+última visita da família e a última ida à casa dela, e há quantos dias. Escolhi, e cada uma se muda
+numa linha:
+
+1. **Sem cor e sem limite**: o número não julga a família, e quantos dias é muito depende da
+   história de cada criança. (Hoje: só o texto.)
+2. **O serviço da rede não conta como visita da família**; padrinho, madrinha e vínculo comunitário
+   contam. (Hoje: assim.)
+3. **Não há lista de crianças sem visita.** Ela ajudaria a técnica, mas é a primeira coisa que vira
+   comparação entre crianças, e a regra de 26/09 a proíbe. Se a Fundação quiser, a lista pode existir
+   só para a técnica, em ordem de nome e nunca de tempo. (Hoje: não existe.)
+4. **O educador não vê o tempo**; ele continua vendo as visitas, como antes.
 
 ## 5. As decisões que são do Marcelo *(§10 — responda pelo número)*
 
