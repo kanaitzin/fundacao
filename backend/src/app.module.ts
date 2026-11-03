@@ -88,9 +88,10 @@ export class AppModule implements NestModule, OnApplicationBootstrap {
   constructor(@Inject(HttpAdapterHost) private readonly adaptador: HttpAdapterHost) {}
 
   /* A porta para a internet (fase 179): cabeçalhos e CORS no módulo, e não no
-     `main.ts`, para a suíte passar por eles também. */
+     `main.ts`, para a suíte passar por eles também. O curinga tem nome desde o
+     Express 5 (fase 264): o `*` sozinho virava aviso a cada subida. */
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(corsDaInstituicao(), cabecalhosDeSeguranca).forRoutes('*');
+    consumer.apply(corsDaInstituicao(), cabecalhosDeSeguranca).forRoutes('{*caminho}');
   }
 
   onApplicationBootstrap() {

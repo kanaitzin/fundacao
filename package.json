@@ -21,7 +21,6 @@
     "ensaio:ponto-no-tempo": "bash scripts/ensaio-ponto-no-tempo.sh"
   },
   "overrides": {
-    "body-parser": "1.20.9",
     "multer": "2.5.0",
     "qs": "6.16.2"
   }

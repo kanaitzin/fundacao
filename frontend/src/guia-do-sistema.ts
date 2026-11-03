@@ -138,6 +138,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 264, dia: '03/11/2026',
+    texto: 'Sem mudança nas telas: o servidor passou para a versão nova da peça que o sustenta, e com ela fecharam as últimas correções de segurança que faltavam. Tudo o que funcionava continua igual.' },
   { fase: 263, dia: '02/11/2026',
     texto: 'Uma revisão do sistema inteiro e do banco de dados, sem mudança nas telas. O servidor ganhou as correções de segurança de cinco peças que ele usa, entre elas uma que permitia esconder de onde vinha um acesso. O resto conferido está em ordem.' },
   { fase: 262, dia: '02/11/2026',

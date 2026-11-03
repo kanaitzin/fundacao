@@ -119,8 +119,11 @@ describe('Nenhuma escrita cai com 500', () => {
       if (Object.keys(FORA).some((f) => r.url === f || r.url.startsWith(`${f}/`))) continue;
       /* Identificador inventado em todo `:param`: nada real é tocado. */
       const url = `/api/v1${r.url.replace(/:[A-Za-z]+/g, () => randomUUID())}`;
-      for (const [rotulo, corpo] of [['vazio', {}], ['lixo', LIXO]] as const) {
-        const x = await request(http)[r.metodo](url).set(auth(tokens.coord)).send(corpo);
+      /* E sem corpo NENHUM (fase 264): o Express 5 deixa `undefined` onde o 4
+         deixava `{}`, e só o pedido sem `send` exercita essa diferença. */
+      for (const [rotulo, corpo] of [['vazio', {}], ['lixo', LIXO], ['sem corpo', null]] as const) {
+        const pedido = request(http)[r.metodo](url).set(auth(tokens.coord));
+        const x = await (corpo === null ? pedido : pedido.send(corpo));
         if (x.status >= 500) caidas.push(`${r.metodo.toUpperCase()} ${r.url} [${rotulo}]: ${x.status}`);
       }
     }

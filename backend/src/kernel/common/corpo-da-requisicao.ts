@@ -19,6 +19,11 @@ import { ExpressAdapter } from '@nestjs/platform-express';
  * sobe. O Nest liga os leitores dentro do `init()`, antes de qualquer
  * middleware de módulo, e pula o leitor que já está ligado; por isso o limite
  * entra no próprio registro dos leitores.
+ *
+ * O CORPO QUE NÃO VEIO (fase 264). Até o Express 4, o leitor deixava `{}` no
+ * pedido sem corpo; desde o Express 5 deixa `undefined`. Os controladores leem
+ * `body.campo` e contavam com o `{}`: o `POST` sem corpo nenhum viraria 500 em
+ * vez da recusa com frase. O `{}` volta aqui, depois dos leitores, num lugar só.
  */
 export const LIMITE_DO_CORPO = '25mb';
 
@@ -30,7 +35,12 @@ if (!proto[MARCA]) {
   proto.registerParserMiddleware = function (this: any, prefix?: string, rawBody?: boolean) {
     this.useBodyParser('json', rawBody, { limit: LIMITE_DO_CORPO });
     this.useBodyParser('urlencoded', rawBody, { limit: LIMITE_DO_CORPO, extended: true });
-    return original.call(this, prefix, rawBody);
+    const r = original.call(this, prefix, rawBody);
+    this.use(function corpoQueNaoVeio(req: { body?: unknown }, _res: unknown, next: () => void) {
+      if (req.body === undefined) req.body = {};
+      next();
+    });
+    return r;
   };
   proto[MARCA] = true;
 }
