@@ -48,6 +48,27 @@ const navegador = await chromium.launch({
   /* A câmera falsa do Chromium (fase 194): imagem de verdade, sem pedir licença. */
   args: ['--no-sandbox', '--disable-dev-shm-usage', '--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'],
 });
+/*
+ * O QUE OS BOTÕES GRAVARAM (fase 265). O `botao-que-grava.ts` anota, em memória,
+ * cada botão que disparou uma escrita e se ganhou a frase "Registrado às…". A
+ * anotação morre com a página; por isso ela é colhida antes de cada página
+ * fechar ou navegar, e o resumo sai no fim.
+ */
+const gravaram = [];
+{
+  const colher = async (p) => gravaram.push(
+    ...await p.evaluate(() => globalThis.__botoesQueGravaram ?? []).catch(() => []));
+  const novaPagina = navegador.newPage.bind(navegador);
+  navegador.newPage = async (...a) => {
+    const p = await novaPagina(...a);
+    for (const nome of ['close', 'goto', 'reload']) {
+      const original = p[nome].bind(p);
+      p[nome] = async (...b) => { await colher(p); return original(...b); };
+    }
+    return p;
+  };
+}
+
 /* `ENSAIO_CELULAR=1` percorre o mesmo uso como um celular de verdade: 360 px,
  * toque, tela de densidade dupla e o navegador em português (fase 184). */
 const comoCelular = process.env.ENSAIO_CELULAR === '1';
@@ -57,6 +78,8 @@ const pg = await navegador.newPage(comoCelular
   : { viewport: { width: 420, height: 900 } });
 const erros = [];
 pg.on('pageerror', (e) => erros.push(e.message));
+const colherPrincipal = async () => gravaram.push(
+  ...await pg.evaluate(() => globalThis.__botoesQueGravaram ?? []).catch(() => []));
 pg.on('console', (m) => {
   if (m.type() === 'error' && !/net::|Failed to load/.test(m.text())) erros.push(m.text());
 });
@@ -5240,6 +5263,69 @@ console.log('\n🧒 A criança cadastrada pela tela (fase 253)');
   cobrar('nenhuma exceção no cadastro', errosK.length === 0, errosK[0]);
   await pgK.close();
 }
+
+/*
+ * O BOTÃO QUE GRAVA (fase 265). A educadora toca duas vezes em Registrar linha
+ * com a rede lenta: a linha entra uma vez só, e o botão diz que gravou e a hora.
+ * Antes, a mesma linha entrava duas vezes na ATA, e a linha da ATA não se apaga.
+ */
+console.log('\n✔️  O botão que grava (fase 265)');
+{
+  const pgB = await navegador.newPage({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  const errosB = [];
+  pgB.on('pageerror', (e) => errosB.push(e.message));
+  await pgB.goto(`file://${ARQUIVO}`);
+  await pgB.waitForTimeout(800);
+  await pgB.getByRole('button', { name: 'Marcelo Barbosa' }).click();
+  await pgB.getByRole('button', { name: /Entrar no sistema/i }).click();
+  await pgB.waitForTimeout(1200);
+  await pgB.locator('select.troca-cargo-sel').selectOption('educador');
+  await pgB.waitForTimeout(900);
+  const naBarra = pgB.locator('nav.tabbar button', { hasText: /^ATA$/ });
+  if (await naBarra.count()) await naBarra.first().click();
+  else {
+    await pgB.locator('nav.tabbar button', { hasText: 'Mais' }).first().click();
+    await pgB.waitForTimeout(350);
+    await pgB.locator('.overlay .sheet button.card.row', { hasText: /^ATA/ }).first().click();
+  }
+  await pgB.waitForTimeout(1200);
+  const frase = 'A Bia chegou da escola às 18h e jantou bem, conferindo o toque duplo.';
+  await pgB.locator('#linha-ata').fill(frase);
+  await pgB.locator('#linha-ata').dispatchEvent('input');
+  await pgB.waitForTimeout(300);
+  await pgB.evaluate(() => { globalThis.__pausaDoPrototipo = 1500; });
+  const botao = pgB.getByRole('button', { name: /^Registrar linha/ });
+  await botao.tap();
+  await pgB.waitForTimeout(250);
+  cobrar('enquanto grava, o botão fica pálido e não aceita outro toque',
+    await botao.evaluate((b) => b.hasAttribute('data-gravando') && b.getAttribute('aria-busy') === 'true'));
+  await botao.tap({ force: true }).catch(() => {});
+  await pgB.waitForTimeout(1500);
+  const feito = await botao.getAttribute('data-feito');
+  cobrar('quando volta, o próprio botão diz que gravou e a hora', /^Registrado às \d\d:\d\d$/.test(feito ?? ''), feito);
+  cobrar('e o leitor de tela ouve a mesma frase', (await pgB.locator('#anuncio-do-botao').textContent({ timeout: 1000 }).catch(() => null)) === feito);
+  cobrar('sem mudar o nome do botão', /^Registrar linha$/.test((await botao.textContent()).trim()));
+  await pgB.waitForTimeout(2500);
+  await pgB.evaluate(() => { globalThis.__pausaDoPrototipo = 120; });
+  /* A ATA relê a lista depois de gravar, consulta por consulta com a rede lenta:
+     conta-se quando não há mais pedido no ar. */
+  for (let i = 0; i < 80 && await pgB.evaluate(() => globalThis.__pedidosNoAr ?? 0); i++) await pgB.waitForTimeout(250);
+  await pgB.waitForTimeout(300);
+  const vezes = (await pgB.locator('main.conteudo').innerText()).split(frase).length - 1;
+  cobrar('os dois toques gravaram a linha UMA vez só', vezes === 1, `${vezes} vezes`);
+  cobrar('e depois de 1,6 s o botão volta a ser o de sempre', !(await botao.getAttribute('data-feito')));
+  cobrar('nenhuma exceção no botão que grava', errosB.length === 0, errosB[0]);
+  await pgB.close();
+}
+
+await colherPrincipal();
+const semFrase = gravaram.filter((g) => g.fora === 'outro-verbo');
+console.log(`\n${gravaram.length} escritas por botão no percurso; `
+  + `${gravaram.filter((g) => g.frase && !g.fora).length} com a frase no botão.`);
+const porMotivo = {};
+for (const g of gravaram) if (g.fora) (porMotivo[g.fora] ??= new Set()).add(g.rotulo);
+for (const [m, r] of Object.entries(porMotivo)) console.log(`  sem a frase (${m}): ${[...r].join(' · ')}`);
+if (process.env.ENSAIO_VER_BOTOES) console.log(JSON.stringify(semFrase, null, 1));
 
 await navegador.close();
 console.log(achados.length

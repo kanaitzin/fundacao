@@ -1,3 +1,4 @@
+import { comecarEscrita } from './botao-que-grava';
 import { enfileirar, definirEnviador, ligarFila, RecusaDaFila, type AoEnfileirar, type RespostaPush } from './fila-offline';
 
 const BASE = '/api/v1';
@@ -85,7 +86,26 @@ let casaAbertaNoPrototipo: string | null = null;
 export function casaAbertaNaTela(id: string | null) { casaAbertaNoPrototipo = id; }
 export function casaDaTela() { return casaAbertaNoPrototipo; }
 
+/**
+ * Toda escrita que nasce de um toque segura o botão tocado até a resposta, e o
+ * botão diz que gravou (fase 265, `botao-que-grava.ts`). A fila que sobe sozinha
+ * quando o sinal volta não nasce de toque nenhum.
+ */
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
+  const metodo = (init?.method ?? 'GET').toUpperCase();
+  if (metodo === 'GET' || path === '/sync/push') return pedir<T>(path, init);
+  const terminar = comecarEscrita(path);
+  try {
+    const r = await pedir<T>(path, init);
+    terminar(true);
+    return r;
+  } catch (e) {
+    terminar(false);
+    throw e;
+  }
+}
+
+async function pedir<T>(path: string, init?: RequestInit): Promise<T> {
   if (PROTOTIPO) {
     const { mockApi, abrirCasaNoPrototipo } = await import('./mock');
     abrirCasaNoPrototipo(casaAbertaNoPrototipo);

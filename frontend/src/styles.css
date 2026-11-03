@@ -2372,3 +2372,20 @@ button.card:active, .opt:active, .tabbar button:active{
 @media (prefers-reduced-motion: no-preference){
   .explica-texto{ animation:mov-aparece var(--mov-medio) var(--curva-padrao) }
 }
+
+/* O BOTÃO QUE GRAVA (fase 265, `botao-que-grava.ts`). Enquanto grava, ele não
+   aceita outro toque e fica pálido; quando volta certo, diz o fato e a hora por
+   1,6 s, no lugar do rótulo. A frase vem do atributo e fica fora do nome
+   acessível (o leitor de tela ouve a região de estado). Só a cor muda: vale
+   igual com Reduzir movimento, e não há ✓ nem festa. */
+button[data-gravando]{ cursor:progress }
+.btn[data-gravando]{ opacity:.6 }
+.btn[data-feito]{
+  position:relative; background:var(--emerald-solid); border-color:var(--emerald-solid);
+  color:transparent; box-shadow:none; transition:background-color var(--mov-curto) var(--curva-padrao) }
+.btn[data-feito] > *{ visibility:hidden }
+.btn[data-feito]::after{
+  content:attr(data-feito); content:attr(data-feito) / "";
+  position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  padding:0 8px; color:var(--on-solid); white-space:nowrap; visibility:visible }
+@media print{ .btn[data-feito]::after{ content:none } }

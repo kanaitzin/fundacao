@@ -138,6 +138,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 265, dia: '03/11/2026',
+    texto: 'O botão que grava não grava duas vezes: enquanto o registro vai, ele fica pálido e não aceita outro toque, mesmo com a internet lenta. E quando gravou, o próprio botão diz Registrado às e a hora, por um instante, ali onde o dedo está.' },
   { fase: 264, dia: '03/11/2026',
     texto: 'Sem mudança nas telas: o servidor passou para a versão nova da peça que o sustenta, e com ela fecharam as últimas correções de segurança que faltavam. Tudo o que funcionava continua igual.' },
   { fase: 263, dia: '02/11/2026',

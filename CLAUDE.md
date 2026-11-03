@@ -169,6 +169,7 @@ e qual é o caminho certo.
 | `frontend/src/portas.ts` | **as vinte e cinco telas do sistema, numa lista só** (fase 150). A folha "Mais" do celular, a coluna do monitor e a conferência leem dela. A lista existia em DOIS lugares e as duas discordavam — `as-portas-e-os-icones.spec.ts` é o que impede a divergência voltar |
 | `frontend/src/icones.tsx` | **os desenhos da moldura**, em traço e `currentColor`, no lugar dos emoji (fase 150). Emoji muda de cara conforme o aparelho, não herda a cor e carrega significado que ninguém pediu. Nenhum ícone é o único portador do sentido: ao lado há sempre a palavra |
 | `frontend/src/anexos.tsx` | **o `EscolherAnexo`** (fase 165): câmera, galeria, arquivo, com prévia, ampliar, descartar e tirar outra. Todo lugar que recebe foto ou documento usa este, e não um `<input type="file">` solto, e desde a 194 **o `todo-anexo-pela-camera.spec.ts` cobra**. **E o `lerArquivo` daqui é a única leitura de arquivo** (fase 175): é ele que reduz a foto antes de enviar, e leitura por conta própria manda a foto do tamanho da câmera |
+| `frontend/src/botao-que-grava.ts` | **o botão que grava** (fase 265): toda escrita do `api()` segura o botão tocado até a resposta (nada de linha repetida com a rede lenta) e o faz dizer *Registrado às 23:04*; a frase pelo verbo mora em `botao-que-grava.regra.ts`. **Escrita nova vai pelo `api()`**, e o `o-botao-que-grava.spec.ts` cobra |
 | `backend/src/kernel/arquivos/anexos-da-mensagem.regra.ts` | **os anexos de uma mensagem** (fase 233): dez por mensagem e 15 MB por envio, na linha da ATA, no diário da internação, na ocorrência, no atendimento técnico e na Acolhe+AI. O servidor recusa e a tela avisa lendo a MESMA regra; na tela, o `AnexosDaMensagem` (`anexos.tsx`) com Ver e Tirar, e a câmera em sequência (`varias` no `camera.tsx`) |
 | `backend/test/o-que-entra-volta-inteiro.e2e.spec.ts` | **todo Word abre e todo anexo volta** (fase 233): as exportações conferidas contra os controladores (negando por padrão), cada Word aberto e cobrado (XML, imagens, texto sem lixo, entrelinha com tipo), e cada porta de anexo devolvendo o arquivo byte por byte e conferido no disco. `DOCUMENTOS_DIR=pasta` grava os Words para abrir no LibreOffice |
 | `frontend/src/ocr.ts` | **a leitura do texto do papel no aparelho** (fase 234): Tesseract com o português embutido, importado só no toque; o trabalhador numa peça só, com o `fetch` que recusa tudo o que não é o português. Quem usa é o `LerTextoDoPapel` (`anexos.tsx`), que sempre deixa a pessoa conferir e corrigir. No servidor, o texto conferido em `document_text` |
@@ -198,7 +199,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 03/11/2026, fase 264
+### Onde estamos — 03/11/2026, fase 265
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -326,8 +327,9 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 262 | **as fases 255 a 261 contra o servidor de verdade**: a Casa 03 em trinta dias (onze contas, 327 telas, sem achado), a Acolhe+AI com o modelo, o `ensaio:cabe` e o `ensaio:acolhe`; nenhum defeito |
 | 263 | **o sistema inteiro conferido, e o banco** (pedido de 02/11): a **falha crítica de endereço falsificado atrás do proxy** e mais quatro dependências do servidor consertadas, o teste da escala que reprovava todo novembro, e as quantidades com parênteses nos scripts; o resto limpo (suíte nas duas condições, catálogo, varreduras, cópia e volta no tempo, produção, ensaios) |
 | 264 | **o servidor no Nest 11 e no Express 5** (pedido de 02/11): os seis avisos de segurança que sobravam, fechados sem a troca para ESM que o Nest 12 pede; o Express 5 deixava **o pedido sem corpo nenhum como `undefined`**, e cerca de cinquenta rotas de escrita dariam 500 (o `{}` volta no `corpo-da-requisicao.ts`, e a suíte da 155 manda o pedido sem corpo); o curinga com nome no `forRoutes` |
+| 265 | **o botão que grava não grava duas vezes, e diz que gravou** (o M5 do relatório 5): com a rede lenta, **dois toques em Registrar linha gravavam a mesma linha duas vezes na ATA**, que não se apaga; agora todo botão que dispara escrita fica pálido e não aceita outro toque até a resposta (`botao-que-grava.ts`, ligado pelo `api()`), e o próprio botão diz *Registrado às 23:04* por 1,6 s |
 
-**Medido no fim da 252:** 207 migrações, 144 tabelas, 160 suítes, 1418 testes; nas 237 e 238, a suíte inteira
+**Medido no fim da 265:** 207 migrações, 144 tabelas, 161 suítes, 1422 testes; nas 237 e 238, a suíte inteira
 verde (1363 de 1363, depois de consertar as três conferências que o relatório das vivências deixou soltas) e o
 `ensaio:uso` (739 cobranças, sem reprovação, com o relatório das vivências aberto e o Word baixado); **não rodou**
 nas 237 e 238 o relógio adiantado, o do celular, o de acessibilidade, o `ensaio:acolhe` nem a simulação contra o servidor;
@@ -436,6 +438,12 @@ posto em ordem no **PARA-A-REUNIAO §0**: as cinco perguntas que mais destravam,
 responder, os documentos de papel e os dados a receber, o que o DPO vê, o que se assina e as 30
 decisões de produto abertas. **Quando a resposta vier, ela entra lá e no §10 ou §11 do documento**, e
 o item respondido sai do §0.
+
+**FEITO — fase 265** (§2): o botão que grava, num lugar só (`frontend/src/botao-que-grava.ts`, a frase em
+`botao-que-grava.regra.ts`). **Escrita nova vai pelo `api()`**, nunca por um `fetch` solto: é ele que segura o botão
+tocado e o faz dizer que gravou, e o `o-botao-que-grava.spec.ts` reprova `fetch` novo no `api.ts`. **Botão de gravar
+com verbo novo** entra no `FEITO_DO_VERBO`; o `ensaio:uso` imprime no fim os botões que gravaram sem a frase, e por
+quê. **Depende da Fundação:** a vibração junto (M12). **Medido na 265:** a sonda com a rede lenta, o `ensaio:uso` (sem reprovação; o bloco novo reprova sem a guarda), o do celular (322 telas, sem achado), a Casa 03 em trinta dias contra o servidor (onze contas, 327 telas e o esqueci, sem achado) e o `o-botao-que-grava`. **Não rodou** a suíte inteira do servidor (nada nele mudou) nem o de acessibilidade (o verde é a cor de estado de sempre).
 
 **FEITO — fase 264** (§2): o servidor no Nest 11.2.8, no `@nestjs/config` 4.0.4 e no Express 5, a pedido de 02/11;
 o `npm audit --omit=dev` diz **nenhuma falha**. **O Nest 12 fica para depois do piloto**: ele só roda como módulo ESM,
@@ -1343,6 +1351,10 @@ novo.
   corpo, e o 5 deixa `undefined`: cerca de cinquenta rotas de escrita dariam 500 depois da
   troca, com a suíte verde, porque ela mandava `{}` e nunca um pedido sem corpo. **Teste o
   pedido como ele chega**, e prove que o teste reprova tirando o conserto.
+- **O toque duplo só aparece com a rede lenta** (265). No protótipo a resposta vem em 120 ms e nenhum
+  ensaio tocava duas vezes: a linha repetida na ATA só apareceu com a pausa alongada (`__pausaDoPrototipo`).
+  **E o ensaio que conta o resultado espera a tela reler**: a ATA relê a lista consulta por consulta, e a
+  primeira contagem, feita cedo demais, disse zero linhas onde havia uma.
 - **Frase de tela que envelhece é frase que mente**, e a cobrança do ensaio que a
   guarda tem de ser reescrita junto. A ressalva do painel sobre nota escolar já foi
   reescrita três vezes. **Isto inclui este arquivo.**
