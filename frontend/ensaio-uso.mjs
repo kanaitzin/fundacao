@@ -3234,6 +3234,14 @@ await folhaNota.getByRole('button', { name: /^Registrar$/ }).click();
 await pg.waitForTimeout(800);
 cobrar('a nota repetida é recusada, dizendo quem já lançou',
   /Nota repetida: esta nota já foi lançada por /.test((await folhaNota.innerText())));
+/* A recusa nasce no alto da folha, fora da vista de quem tocou em Registrar: ela
+   aparece também logo acima do botão, e sai com o Entendi (fase 266). */
+const recusaPerto = pg.locator('#recusa-perto-do-botao');
+cobrar('e a recusa fora da vista aparece perto do botão tocado',
+  /Nota repetida/.test(await recusaPerto.innerText({ timeout: 1500 }).catch(() => '')));
+await recusaPerto.getByRole('button', { name: 'Entendi' }).click().catch(() => {});
+await pg.waitForTimeout(300);
+cobrar('e sai com o Entendi', (await recusaPerto.count()) === 0);
 cobrar('nenhuma exceção no armário', erros.length === 0, erros[0]);
 
 // ====================================================== A cozinha recebe a lista (fase 162)
@@ -5324,6 +5332,11 @@ console.log(`\n${gravaram.length} escritas por botão no percurso; `
   + `${gravaram.filter((g) => g.frase && !g.fora).length} com a frase no botão.`);
 const porMotivo = {};
 for (const g of gravaram) if (g.fora) (porMotivo[g.fora] ??= new Set()).add(g.rotulo);
+/* A recusa perto do dedo (fase 266): onde estava a frase quando a recusa chegou. */
+for (const lugar of ['a-vista', 'perto-do-botao']) {
+  const r = gravaram.filter((g) => g.recusa === lugar).map((g) => `${g.rotulo} (${g.caminho})`);
+  if (r.length) console.log(`  recusa ${lugar === 'a-vista' ? 'já à vista' : 'levada para perto do botão'}: ${[...new Set(r)].join(' · ')}`);
+}
 for (const [m, r] of Object.entries(porMotivo)) console.log(`  sem a frase (${m}): ${[...r].join(' · ')}`);
 if (process.env.ENSAIO_VER_BOTOES) console.log(JSON.stringify(semFrase, null, 1));
 

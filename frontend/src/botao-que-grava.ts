@@ -42,7 +42,7 @@ const DURA_O_FEITO_MS = 1600;
 const GUARDA_MAXIMA_MS = 60_000;
 
 let ultimoToque: { botao: HTMLButtonElement; quando: number; rotulo: string } | null = null;
-const noAr = new WeakMap<HTMLButtonElement, { n: number; falhou: boolean; solta: number }>();
+const noAr = new WeakMap<HTMLButtonElement, { n: number; falhou: boolean; solta: number; recusa?: string }>();
 const apagaFeito = new WeakMap<HTMLButtonElement, number>();
 let ligado = false;
 
@@ -109,7 +109,7 @@ function soltar(botao: HTMLButtonElement) {
  * Marca o botão tocado há pouco enquanto a escrita está no ar. Devolve a função
  * que a escrita chama ao terminar, dizendo se deu certo. Sem botão, nada.
  */
-export function comecarEscrita(caminho: string): (deuCerto: boolean) => void {
+export function comecarEscrita(caminho: string): (deuCerto: boolean, recusa?: string) => void {
   const toque = botaoDoToque();
   if (!toque) return () => {};
   const { botao, rotulo } = toque;
@@ -118,20 +118,32 @@ export function comecarEscrita(caminho: string): (deuCerto: boolean) => void {
   else {
     const solta = window.setTimeout(() => soltar(botao), GUARDA_MAXIMA_MS);
     noAr.set(botao, { n: 1, falhou: false, solta });
+    tirarRecusa();
     window.clearTimeout(apagaFeito.get(botao));
     botao.removeAttribute('data-feito');
     botao.setAttribute('data-gravando', '');
     botao.setAttribute('aria-busy', 'true');
   }
   const daEntrada = caminho.startsWith('/auth');
-  return (deuCerto) => {
+  return (deuCerto, recusa) => {
     const estado = noAr.get(botao);
     if (!estado) return;
     estado.n -= 1;
     if (!deuCerto) estado.falhou = true;
+    if (recusa) estado.recusa = recusa;
     if (estado.n > 0) return;
     const falhou = estado.falhou;
     soltar(botao);
+    if (falhou && estado.recusa && !daEntrada) {
+      const frase = estado.recusa;
+      /* Espera a tela desenhar a recusa dela, e só então confere se está à vista. */
+      window.setTimeout(() => {
+        const aVista = recusaAVista(frase);
+        if (!aVista) mostrarRecusaPerto(botao, frase);
+        ((globalThis as { __botoesQueGravaram?: unknown[] }).__botoesQueGravaram ??= [])
+          .push({ rotulo: rotulo.trim().slice(0, 60), caminho, recusa: aVista ? 'a-vista' : 'perto-do-botao' });
+      }, 400);
+    }
     const frase = fraseDoFeito(rotulo, horaNaInstituicao());
     const fora = falhou ? 'falhou' : daEntrada ? 'entrada' : !botao.isConnected ? 'sumiu'
       : !botao.classList.contains('btn') ? 'nao-e-btn'
@@ -143,5 +155,78 @@ export function comecarEscrita(caminho: string): (deuCerto: boolean) => void {
     botao.setAttribute('data-feito', frase);
     anunciar(frase);
     apagaFeito.set(botao, window.setTimeout(() => botao.removeAttribute('data-feito'), DURA_O_FEITO_MS));
+  };
+}
+
+/*
+ * A RECUSA PERTO DO DEDO (fase 266). A tela escreve a recusa do servidor no
+ * alto dela, e quem tocou no botão lá embaixo não a vê: acha que gravou, ou
+ * toca de novo. Se a frase não está à vista quando a resposta chega, ela
+ * aparece logo acima do botão tocado, com a cor de erro da tela e um Entendi.
+ * A frase é a do servidor, a mesma que a tela escreveu lá em cima; sai com o
+ * Entendi, com o próximo toque no botão, com a rolagem ou em quinze segundos.
+ */
+const RECUSA_DURA_MS = 15_000;
+let recusaAberta: { el: HTMLElement; apaga: () => void } | null = null;
+
+function tirarRecusa() {
+  recusaAberta?.apaga();
+  recusaAberta = null;
+}
+
+/** A frase está escrita em algum lugar que a pessoa enxerga agora? */
+function recusaAVista(frase: string): boolean {
+  const pedaco = frase.replace(/\s+/g, ' ').trim().slice(0, 40);
+  if (!pedaco) return true;
+  const alto = window.innerHeight;
+  for (const el of Array.from(document.body.querySelectorAll<HTMLElement>('[role=alert], .notice, p, div, span'))) {
+    if (el.closest('#recusa-perto-do-botao')) continue;
+    const tem = (e: Element) => ((e as HTMLElement).innerText || '').replace(/\s+/g, ' ').includes(pedaco);
+    if (!tem(el)) continue;
+    /* Só o elemento mais de dentro: a raiz da página também "contém" a frase. */
+    if (Array.from(el.children).some(tem)) continue;
+    const r = el.getBoundingClientRect();
+    if (r.width > 0 && r.height > 0 && r.bottom > 0 && r.top < alto) return true;
+  }
+  return false;
+}
+
+function mostrarRecusaPerto(botao: HTMLButtonElement, frase: string) {
+  tirarRecusa();
+  if (!botao.isConnected) return;
+  const r = botao.getBoundingClientRect();
+  const el = document.createElement('div');
+  el.id = 'recusa-perto-do-botao';
+  el.className = 'notice c-crit recusa-perto';
+  el.setAttribute('role', 'alert');
+  const texto = document.createElement('span');
+  texto.textContent = frase;
+  const entendi = document.createElement('button');
+  entendi.type = 'button';
+  entendi.className = 'btn sm ghost';
+  entendi.textContent = 'Entendi';
+  el.append(texto, entendi);
+  /* No celular, de lado a lado; no monitor, junto do botão. */
+  const largura = window.innerWidth < 700 ? window.innerWidth - 32
+    : Math.min(Math.max(r.width, 320), window.innerWidth - 32);
+  el.style.left = `${Math.max(16, Math.min(r.left, window.innerWidth - 16 - largura))}px`;
+  el.style.width = `${largura}px`;
+  /* Acima do botão; se ele está no alto da tela, abaixo dele. */
+  if (r.top > 140) el.style.bottom = `${window.innerHeight - r.top + 8}px`;
+  else el.style.top = `${r.bottom + 8}px`;
+  document.body.appendChild(el);
+  const inicio = performance.now();
+  const aoRolar = () => { if (performance.now() - inicio > 300) tirarRecusa(); };
+  const vigia = window.setInterval(() => { if (!botao.isConnected) tirarRecusa(); }, 500);
+  const prazo = window.setTimeout(tirarRecusa, RECUSA_DURA_MS);
+  window.addEventListener('scroll', aoRolar, { passive: true, capture: true });
+  entendi.addEventListener('click', tirarRecusa);
+  recusaAberta = {
+    el,
+    apaga: () => {
+      window.clearInterval(vigia); window.clearTimeout(prazo);
+      window.removeEventListener('scroll', aoRolar, { capture: true });
+      el.remove();
+    },
   };
 }

@@ -2389,3 +2389,13 @@ button[data-gravando]{ cursor:progress }
   position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
   padding:0 8px; color:var(--on-solid); white-space:nowrap; visibility:visible }
 @media print{ .btn[data-feito]::after{ content:none } }
+
+/* A RECUSA PERTO DO DEDO (fase 266, `botao-que-grava.ts`): quando a frase de recusa
+   da tela está fora da vista, ela aparece logo acima do botão tocado. Acima das
+   folhas e da Acolhe+AI, abaixo da câmera. */
+.recusa-perto{
+  position:fixed; z-index:59; margin:0; box-shadow:var(--shadow-2);
+  display:flex; align-items:center; gap:10px; flex-wrap:wrap }
+.recusa-perto > span{ flex:1 1 180px; min-width:0 }
+.recusa-perto > .btn{ width:auto; margin:0 }
+@media print{ .recusa-perto{ display:none } }

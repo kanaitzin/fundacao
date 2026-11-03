@@ -33,10 +33,21 @@ describe('O botão que grava', () => {
     const corpo = api.slice(api.indexOf('export async function api<T>'), api.indexOf('async function pedir<T>'));
     expect(corpo).toMatch(/comecarEscrita\(path\)/);
     expect(corpo).toMatch(/terminar\(true\)/);
-    expect(corpo).toMatch(/terminar\(false\)/);
+    /* A recusa vai junto (fase 266), menos a falta de sinal e a sessão vencida. */
+    expect(corpo).toMatch(/terminar\(false, recusa\)/);
+    expect(corpo).toMatch(/e instanceof SemConexao \|\| \(e instanceof ErroApi && e\.status === 401\)/);
     /* Só a fila que sobe sozinha fica de fora: ela não nasce de toque nenhum. */
     expect(corpo).toMatch(/metodo === 'GET' \|\| path === '\/sync\/push'/);
     expect(ler('main.tsx')).toMatch(/ligarBotaoQueGrava\(\);/);
+  });
+
+  it('a recusa fora da vista aparece perto do botão, com a frase do servidor e um Entendi', () => {
+    const g = ler('botao-que-grava.ts');
+    expect(g).toMatch(/if \(!aVista\) mostrarRecusaPerto\(botao, frase\)/);
+    expect(g).toMatch(/setAttribute\('role', 'alert'\)/);
+    expect(g).toMatch(/textContent = 'Entendi'/);
+    /* A frase vai como texto, nunca como HTML: ela vem do servidor. */
+    expect(g).not.toMatch(/innerHTML/);
   });
 
   it('nenhuma escrita nova vai ao servidor por fora do api()', () => {

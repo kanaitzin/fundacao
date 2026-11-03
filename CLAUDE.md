@@ -199,7 +199,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 03/11/2026, fase 265
+### Onde estamos — 03/11/2026, fase 266
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -328,8 +328,9 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 263 | **o sistema inteiro conferido, e o banco** (pedido de 02/11): a **falha crítica de endereço falsificado atrás do proxy** e mais quatro dependências do servidor consertadas, o teste da escala que reprovava todo novembro, e as quantidades com parênteses nos scripts; o resto limpo (suíte nas duas condições, catálogo, varreduras, cópia e volta no tempo, produção, ensaios) |
 | 264 | **o servidor no Nest 11 e no Express 5** (pedido de 02/11): os seis avisos de segurança que sobravam, fechados sem a troca para ESM que o Nest 12 pede; o Express 5 deixava **o pedido sem corpo nenhum como `undefined`**, e cerca de cinquenta rotas de escrita dariam 500 (o `{}` volta no `corpo-da-requisicao.ts`, e a suíte da 155 manda o pedido sem corpo); o curinga com nome no `forRoutes` |
 | 265 | **o botão que grava não grava duas vezes, e diz que gravou** (o M5 do relatório 5): com a rede lenta, **dois toques em Registrar linha gravavam a mesma linha duas vezes na ATA**, que não se apaga; agora todo botão que dispara escrita fica pálido e não aceita outro toque até a resposta (`botao-que-grava.ts`, ligado pelo `api()`), e o próprio botão diz *Registrado às 23:04* por 1,6 s |
+| 266 | **a recusa perto do dedo**: a frase de recusa nascia no alto da tela ou da folha, fora da vista de quem tocou o botão lá embaixo (medido: a nota fiscal repetida, dentro da folha rolada); agora, se ela não está à vista, aparece logo acima do botão tocado, com Entendi (`botao-que-grava.ts`); e **o `ensaio:celular` nunca tinha medido o fim da tela atrás da barra** (perguntava à `nav`, e quem é fixo é o invólucro); agora mede, e também o botão da Acolhe+AI |
 
-**Medido no fim da 265:** 207 migrações, 144 tabelas, 161 suítes, 1422 testes; nas 237 e 238, a suíte inteira
+**Medido no fim da 266:** 207 migrações, 144 tabelas, 161 suítes, 1423 testes; nas 237 e 238, a suíte inteira
 verde (1363 de 1363, depois de consertar as três conferências que o relatório das vivências deixou soltas) e o
 `ensaio:uso` (739 cobranças, sem reprovação, com o relatório das vivências aberto e o Word baixado); **não rodou**
 nas 237 e 238 o relógio adiantado, o do celular, o de acessibilidade, o `ensaio:acolhe` nem a simulação contra o servidor;
@@ -438,6 +439,11 @@ posto em ordem no **PARA-A-REUNIAO §0**: as cinco perguntas que mais destravam,
 responder, os documentos de papel e os dados a receber, o que o DPO vê, o que se assina e as 30
 decisões de produto abertas. **Quando a resposta vier, ela entra lá e no §10 ou §11 do documento**, e
 o item respondido sai do §0.
+
+**FEITO — fase 266** (§2): a recusa perto do dedo, no mesmo `botao-que-grava.ts`. **Recusa nova do servidor** chega
+à pessoa sem nada a fazer na tela: se a tela a escreve fora da vista, ela aparece acima do botão. Falta de sinal e
+sessão vencida ficam de fora (a fila e a entrada cuidam delas). O `ensaio:uso` imprime no fim cada recusa e onde ela
+estava. **Medido na 266:** o `ensaio:uso` (sem reprovação), o do celular (322 telas, sem achado; 44 reprovam com a folga zerada), a sonda da nota repetida, a Casa 03 em trinta dias contra o servidor (onze contas, 327 telas e o esqueci, sem achado) e o `o-botao-que-grava`. **Não rodou** a suíte inteira do servidor (nada nele mudou) nem o de acessibilidade. **Sobra da 265:** a marca única por pedido, conferida pelo servidor, para o mesmo registro que chega duas vezes de dois aparelhos ou pela rede.
 
 **FEITO — fase 265** (§2): o botão que grava, num lugar só (`frontend/src/botao-que-grava.ts`, a frase em
 `botao-que-grava.regra.ts`). **Escrita nova vai pelo `api()`**, nunca por um `fetch` solto: é ele que segura o botão
@@ -1355,6 +1361,11 @@ novo.
   ensaio tocava duas vezes: a linha repetida na ATA só apareceu com a pausa alongada (`__pausaDoPrototipo`).
   **E o ensaio que conta o resultado espera a tela reler**: a ATA relê a lista consulta por consulta, e a
   primeira contagem, feita cedo demais, disse zero linhas onde havia uma.
+- **Conferência que nunca acusa pode não estar rodando** (266). A do fim da tela atrás da barra do
+  pé passou por dezenas de rodadas sem achado: ela perguntava se a `nav.tabbar` era fixa, e desde que
+  a barra ganhou o invólucro `.navegacao` a resposta era não, e o bloco inteiro era pulado. Só apareceu
+  porque a conferência nova, ao lado, também não reprovou com a folga zerada. **Prove que reprova**,
+  sempre, tirando o que ela protege.
 - **Frase de tela que envelhece é frase que mente**, e a cobrança do ensaio que a
   guarda tem de ser reescrita junto. A ressalva do painel sobre nota escolar já foi
   reescrita três vezes. **Isto inclui este arquivo.**

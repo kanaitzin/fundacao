@@ -129,8 +129,11 @@ async function medir(pg) {
       }
     }
     /* O fim da tela não pode morar atrás da barra de baixo. */
-    const barra = document.querySelector('nav.tabbar');
-    if (barra && getComputedStyle(barra).position === 'fixed') {
+    /* A barra é fixa pelo invólucro dela (`.navegacao`), e a `nav.tabbar` de dentro é
+       estática: até a fase 266 esta conferência perguntava à `nav` e nunca rodava. */
+    let barra = document.querySelector('nav.tabbar');
+    while (barra && getComputedStyle(barra).position !== 'fixed') barra = barra.parentElement;
+    if (barra) {
       window.scrollTo(0, document.documentElement.scrollHeight);
       const topo = barra.getBoundingClientRect().top;
       const ultimos = [...document.querySelectorAll('main.conteudo button, main.conteudo input, main.conteudo a[href], main.conteudo textarea, main.conteudo select')]
@@ -139,6 +142,11 @@ async function medir(pg) {
       if (ultimo) {
         const b = ultimo.getBoundingClientRect();
         if (b.bottom > topo + 1 && b.top < vh) r.escondido = `${nome(ultimo)} embaixo da barra (${Math.round(b.bottom - topo)}px)`;
+        /* Nem embaixo do botão redondo da Acolhe+AI (fase 266): a folga do fim da tela é para ele. */
+        const fab = document.querySelector('.acolhe-botao');
+        const f = fab && visivel(fab) ? fab.getBoundingClientRect() : null;
+        if (!r.escondido && f && b.right > f.left + 1 && b.left < f.right - 1 && b.bottom > f.top + 1 && b.top < f.bottom - 1)
+          r.escondido = `${nome(ultimo)} embaixo do botão da Acolhe+AI`;
       }
       window.scrollTo(0, 0);
     }
@@ -232,4 +240,4 @@ if (achados.length) {
   for (const a of achados) console.log(`  · ${a}`);
   process.exit(1);
 }
-console.log('Nenhum achado: nada anda para o lado, nada passa da borda, nenhum texto cortado ou vazando do botão, nenhum botão encostado, nenhum abaixo de 24 px, nada escondido atrás da barra.');
+console.log('Nenhum achado: nada anda para o lado, nada passa da borda, nenhum texto cortado ou vazando do botão, nenhum botão encostado, nenhum abaixo de 24 px, nada escondido atrás da barra nem do botão da Acolhe+AI.');

@@ -100,7 +100,11 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
     terminar(true);
     return r;
   } catch (e) {
-    terminar(false);
+    /* A falta de sinal vai para a fila, e a sessão vencida abre a entrada:
+       nenhuma das duas é recusa para mostrar perto do botão (fase 266). */
+    const recusa = e instanceof SemConexao || (e instanceof ErroApi && e.status === 401)
+      ? undefined : (e as Error)?.message;
+    terminar(false, recusa);
     throw e;
   }
 }
