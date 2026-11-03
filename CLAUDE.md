@@ -199,7 +199,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 03/11/2026, fase 267
+### Onde estamos — 03/11/2026, fase 268
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -330,8 +330,9 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 265 | **o botão que grava não grava duas vezes, e diz que gravou** (o M5 do relatório 5): com a rede lenta, **dois toques em Registrar linha gravavam a mesma linha duas vezes na ATA**, que não se apaga; agora todo botão que dispara escrita fica pálido e não aceita outro toque até a resposta (`botao-que-grava.ts`, ligado pelo `api()`), e o próprio botão diz *Registrado às 23:04* por 1,6 s |
 | 266 | **a recusa perto do dedo**: a frase de recusa nascia no alto da tela ou da folha, fora da vista de quem tocou o botão lá embaixo (medido: a nota fiscal repetida, dentro da folha rolada); agora, se ela não está à vista, aparece logo acima do botão tocado, com Entendi (`botao-que-grava.ts`); e **o `ensaio:celular` nunca tinha medido o fim da tela atrás da barra** (perguntava à `nav`, e quem é fixo é o invólucro); agora mede, e também o botão da Acolhe+AI |
 | 267 | **sem sinal, a tela dizia que tinha guardado o que não guardou**: toda falha de rede dizia *O que você registrar fica guardado neste aparelho*, e só a Chamada, a Passagem e o Concluí do Dia passam pela fila; a linha da ATA, a ocorrência e o resto não ficavam em lugar nenhum. Agora a escrita diz *NÃO foi salvo* (`frase-sem-sinal.ts`), perto do botão, e só o que a fila guarda diz que guardou (`vaiParaAFila`). E a marca única no servidor ficou de fora: a marcação da chamada já é única por criança e a fila leva o `clientOpId` |
+| 268 | **as fases 265 a 267 conferidas com todos os ensaios que não tinham rodado**: a suíte nas duas condições de relógio, o de acessibilidade, o `ensaio:vazio`, o `ensaio:cabe` nos oito cargos a 390 px, o `ensaio:acolhe` nos nove cargos e o relatório pela voz, o `roteiro`, o `uso-celular`, o `ensaio`, o `largo`, o `folhas` e o `ensaio:aparelhos`; nenhum defeito, nenhum código mudou |
 
-**Medido no fim da 267:** 207 migrações, 144 tabelas, 161 suítes, 1424 testes; nas 237 e 238, a suíte inteira
+**Medido no fim da 268:** 207 migrações, 144 tabelas, 161 suítes, 1424 testes; nas 237 e 238, a suíte inteira
 verde (1363 de 1363, depois de consertar as três conferências que o relatório das vivências deixou soltas) e o
 `ensaio:uso` (739 cobranças, sem reprovação, com o relatório das vivências aberto e o Word baixado); **não rodou**
 nas 237 e 238 o relógio adiantado, o do celular, o de acessibilidade, o `ensaio:acolhe` nem a simulação contra o servidor;
@@ -440,6 +441,17 @@ posto em ordem no **PARA-A-REUNIAO §0**: as cinco perguntas que mais destravam,
 responder, os documentos de papel e os dados a receber, o que o DPO vê, o que se assina e as 30
 decisões de produto abertas. **Quando a resposta vier, ela entra lá e no §10 ou §11 do documento**, e
 o item respondido sai do §0.
+
+**FEITO — fase 268** (§2): a conferência das 265 a 267 com tudo o que elas deixaram sem rodar, sem defeito e sem
+código novo. **Rodada que passa de duas horas se divide por cargo** (`ENSAIO_CARGOS`): o `ensaio:cabe` dos oito cargos
+numa vez só foi interrompido no terceiro cargo pelo limite do comando da sessão, e o que ele já tinha medido valeu.
+**Medido na 268:** a suíte inteira nas DUAS condições de relógio (1431 de 1431), o de acessibilidade (1155 telas, sete
+temas, nenhuma violação), o `ensaio:vazio` (293 telas, sem achado), o `ensaio:cabe` a 390 px nos oito cargos (Coordenação
+e Equipe técnica numa rodada, os outros seis em duas: 711 estados e 356 voltas, sem achado), o `ensaio:acolhe` (todas as
+telas, subtelas e formulários dos nove cargos, por texto e por voz, e o relatório pela voz), o `roteiro`, o
+`uso-celular`, o `ensaio`, o `largo`, o `folhas` e o `ensaio:aparelhos` (sem achado). **Não rodou** o `ensaio:cabe` no
+monitor nem a simulação contra o servidor (rodou na 267). **Próxima etapa:** a resposta da Fundação à página das
+direções (254) e a pauta de 21/10.
 
 **FEITO — fase 267** (§2): a falta de sinal diz o que aconteceu. **Escrita nova que deve sobreviver sem sinal**
 vai pelo `apiOuFila`, com tipo no `tipos-offline.ts`; **o resto**, sem sinal, diz *NÃO foi salvo* perto do botão e

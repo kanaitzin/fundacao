@@ -138,6 +138,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 268, dia: '03/11/2026',
+    texto: 'Conferimos, em todas as telas e em todos os cargos, no celular e no computador, o botão que grava uma vez só, o motivo da recusa perto do dedo e a frase de quando falta internet. Nada mudou no que você vê.' },
   { fase: 267, dia: '03/11/2026',
     texto: 'Sem internet, a tela diz a verdade: a linha da ATA, a ocorrência e os outros registros mostram, perto do botão, que NÃO foram salvos, e o texto continua no campo para você tocar de novo quando o sinal voltar. Só a chamada, a passagem e o Concluí do Dia ficam guardados no aparelho, e dizem isso.' },
   { fase: 266, dia: '03/11/2026',
