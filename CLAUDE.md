@@ -454,8 +454,8 @@ precisa de alguém. **Depende da Fundação:** as quatro escolhas da §4.40, a p
 reprovação), o do celular (322 telas, sem achado), o `ensaio:cabe` a 390 px da técnica e da coordenação (470 estados e
 282 voltas, sem achado), o `ensaio:acolhe` dos mesmos dois cargos (todas as telas e formulários, por texto e por voz) e
 a Casa 03 em trinta dias contra o servidor de verdade (onze contas e 327 telas e o esqueci, sem achado; na API, só a
-recusa conhecida das vagas; a Acolhe+AI com o modelo, verde). **Não rodou** o de acessibilidade (nenhuma cor nova)
-nem o `ensaio:vazio`. **Próxima etapa:** a mesma de antes do
+recusa conhecida das vagas; a Acolhe+AI com o modelo, verde); e, depois, o de acessibilidade (1155 telas, sete temas,
+nenhuma violação) e o `ensaio:vazio` da técnica, da coordenação e do educador (130 telas com a rede lenta, sem achado). **Próxima etapa:** a mesma de antes do
 pedido: a resposta da Fundação à página das direções (254) e a pauta de 21/10, agora com as §4.38 a §4.40.
 
 **FEITO — fase 270** (§2, PARA-A-REUNIAO §4.39): a saída com a história. **Documento que sai da instituição
