@@ -36,6 +36,8 @@ import { ALCANCE_POR_CARGO } from '../../backend/src/modules/identity/alcance';
 import { avaliar, avaliarArquivo, avaliarDrive, TITULOS } from '../../backend/src/modules/relogio/implantacao.regra';
 import { QUEM_LE_O_QUE_MUDOU } from '../../backend/src/modules/reports/o-que-mudou.regra';
 import { prazoDaReavaliacao } from '../../backend/src/modules/people/reavaliacao.regra';
+import { QUEM_PREPARA_A_SAIDA, ROTULO_DA_VIVENCIA, folhaDeTransicao, folhaDoLivroDaVida }
+  from '../../backend/src/modules/reports/saida-folha';
 import { quantos } from '../../backend/src/kernel/common/quantos';
 import { bytesDoBase64, recusaDosAnexos } from '../../backend/src/kernel/arquivos/anexos-da-mensagem.regra';
 import { TIPOS_OFFLINE, TIPOS_OFFLINE_KINDS } from '../../backend/src/modules/sync/tipos-offline';
@@ -13337,6 +13339,62 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       fotosForaPeloCargo: escolhas.comFotos ? fotosForaPeloCargo(vivenciasEscolhidas(dados.itens, escolhas), eu.role) : 0,
       incluiTodasAsFotos: incluiTodasAsFotos(eu.role),
     };
+  }
+
+  /* A SAÍDA COM A HISTÓRIA (fase 270): a mesma folha do servidor (`saida-folha.ts`),
+     com o perfil, os remédios, o dossiê e o álbum do protótipo. O Word do protótipo
+     não leva imagem: a fotografia autorizada sai como legenda. */
+  if (seg[0] === 'impacto' && seg[1] === 'saida' && seg.length === 5
+      && (seg[4] === 'folha' ? metodo === 'GET' : seg[4] === 'export' && metodo === 'POST')) {
+    if (!QUEM_PREPARA_A_SAIDA.includes(eu.role)) {
+      return new Recusa(403, 'A folha de transição e o livro da vida são preparados pela equipe técnica e pela coordenação.');
+    }
+    semearDossie();
+    const k = todosKids().find((x) => x.id === seg[2]);
+    if (!k) return new Recusa(404, 'Acolhido não encontrado, ou fora do seu alcance.');
+    const perfil: any = responder(`/people/${k.id}`, ['people', k.id], q, {}, 'GET');
+    if (perfil instanceof Recusa) return perfil;
+    const desde = ACOLHIMENTOS[k.id]?.ingressoEm
+      ?? k.episodios?.find((e) => e.status === 'ativo')?.started_at?.slice(0, 10) ?? null;
+    const crianca = { nome: k.nome, nascimento: k.nascimento ?? null, casa: `${CASA.code} · ${CASA.name}`, desde };
+    let folha;
+    if (seg[3] === 'transicao') {
+      const ultimoDeCada = new Map<string, DocumentoMock>();
+      for (const d of DOSSIE_DOCS.filter((x) => x.personId === k.id && x.categoria !== 'judicial_socioassistencial')) {
+        const chave = d.chave ?? d.id;
+        const antes = ultimoDeCada.get(chave);
+        if (!antes || antes.anexadoEm < d.anexadoEm) ultimoDeCada.set(chave, d);
+      }
+      folha = folhaDeTransicao({
+        crianca,
+        cuidados: perfil.cuidadosEssenciais ?? null,
+        saude: (perfil.condicoesSaude ?? []).map((c: any) => ({
+          tipo: c.kind, descricao: c.rotulo ?? c.description, gravidade: c.severity ?? null })),
+        alimentacao: (perfil.restricoesAlimentares ?? []).map((r: any) => ({
+          restricao: r.restriction, substituicao: r.substitution ?? null, orientacao: r.guidance ?? null })),
+        remedios: ESQUEMAS.filter((e) => e.acolhido.id === k.id && e.status === 'ativa'
+            && (!e.fim || e.fim >= diasAtras(0)))
+          .map((e) => ({ nome: e.medicamento, dose: e.dose, via: e.via, horarios: [...e.horarios].sort(),
+                         orientacao: e.condicaoUso, ate: e.fim })),
+        escola: perfil.escola?.nome
+          ? { nome: perfil.escola.nome, serie: perfil.escola.serie ?? null, turno: perfil.escola.turno ?? null } : null,
+        documentos: [...ultimoDeCada.values()]
+          .map((d) => ({ titulo: d.titulo, data: d.emitidoEm ?? d.anexadoEm.slice(0, 10) }))
+          .sort((a, b) => a.titulo.localeCompare(b.titulo)),
+      }, autorDaFolha());
+    } else if (seg[3] === 'livro') {
+      const traj: any = responder(`/impacto/trajetoria/${k.id}`, ['impacto', 'trajetoria', k.id], q, {}, 'GET');
+      folha = folhaDoLivroDaVida({
+        crianca: { nome: crianca.nome, casa: crianca.casa, desde },
+        marcos: traj instanceof Recusa ? [] : (traj.marcos ?? []).map((m: any) => ({
+          tipo: m.tipoRotulo ?? 'Conquista', quando: String(m.quando).slice(0, 10),
+          descricao: m.descricao, instituicao: m.instituicao ?? null })),
+        vivencias: VIVENCIAS.filter((v) => v.personId === k.id).map((v) => ({
+          tipo: ROTULO_DA_VIVENCIA[v.tipo] ?? v.tipo, quando: String(v.quando).slice(0, 10), descricao: v.descricao,
+          fotos: v.fotos.map((f) => ({ autorizada: f.autorizacaoRegistrada, foto: null })) })),
+      }, autorDaFolha());
+    } else return new Recusa(404, 'Não encontrado.');
+    return seg[4] === 'export' ? exportarFolha(folha) : folha;
   }
 
   if (seg[0] === 'reports' && seg[2] === 'preview' && metodo === 'POST') {

@@ -199,7 +199,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 03/11/2026, fase 269
+### Onde estamos — 03/11/2026, fase 270
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -332,8 +332,9 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 267 | **sem sinal, a tela dizia que tinha guardado o que não guardou**: toda falha de rede dizia *O que você registrar fica guardado neste aparelho*, e só a Chamada, a Passagem e o Concluí do Dia passam pela fila; a linha da ATA, a ocorrência e o resto não ficavam em lugar nenhum. Agora a escrita diz *NÃO foi salvo* (`frase-sem-sinal.ts`), perto do botão, e só o que a fila guarda diz que guardou (`vaiParaAFila`). E a marca única no servidor ficou de fora: a marcação da chamada já é única por criança e a fila leva o `clientOpId` |
 | 268 | **as fases 265 a 267 conferidas com todos os ensaios que não tinham rodado**: a suíte nas duas condições de relógio, o de acessibilidade, o `ensaio:vazio`, o `ensaio:cabe` nos oito cargos a 390 px e no monitor, o `ensaio:acolhe` nos nove cargos e o relatório pela voz, o `roteiro`, o `uso-celular`, o `ensaio`, o `largo`, o `folhas` e o `ensaio:aparelhos`; nenhum defeito, nenhum código mudou |
 | 269 | **o prazo da reavaliação ao Juízo** (pedido de 03/11): o ECA manda reavaliar no máximo a cada três meses (art. 19), e ninguém contava; o dossiê ganha o *Relatório de reavaliação*, a área restrita do perfil diz o último e o próximo, com o tempo de acolhimento, e o relógio avisa a técnica e a coordenação quinze dias antes (`reavaliacao.regra.ts`, people/1668, `GET /people/:id/reavaliacao`) |
+| 270 | **a saída com a história** (pedido de 03/11): a folha de transição, para quem recebe a criança (cuidados, saúde, alimentação, remédios com horários, escola e documentos, com recibo), e o livro da vida, para ela (conquistas e vivências, só fotos autorizadas), na aba Documentos e na folha da saída; nada da área restrita (`reports/saida-folha.ts`, `/impacto/saida/:id/...`) |
 
-**Medido no fim da 269:** 208 migrações, 145 tabelas, 162 suítes, 1426 testes; nas 237 e 238, a suíte inteira
+**Medido no fim da 270:** 208 migrações, 145 tabelas, 163 suítes, 1430 testes; nas 237 e 238, a suíte inteira
 verde (1363 de 1363, depois de consertar as três conferências que o relatório das vivências deixou soltas) e o
 `ensaio:uso` (739 cobranças, sem reprovação, com o relatório das vivências aberto e o Word baixado); **não rodou**
 nas 237 e 238 o relógio adiantado, o do celular, o de acessibilidade, o `ensaio:acolhe` nem a simulação contra o servidor;
@@ -442,6 +443,16 @@ posto em ordem no **PARA-A-REUNIAO §0**: as cinco perguntas que mais destravam,
 responder, os documentos de papel e os dados a receber, o que o DPO vê, o que se assina e as 30
 decisões de produto abertas. **Quando a resposta vier, ela entra lá e no §10 ou §11 do documento**, e
 o item respondido sai do §0.
+
+**FEITO — fase 270** (§2, PARA-A-REUNIAO §4.39): a saída com a história. **Documento que sai da instituição
+com a criança** nunca leva nada da área restrita, e a suíte cobra o que NÃO entra, não só o que entra. **Foto que
+sai da instituição** vai só com autorização registrada, qualquer que seja o cargo. **Folha que junta perfil e
+remédio** mora no `reports`, que lê os dois; o nome de tipo que vem de outro módulo é repetido com teste que
+confere (`ROTULO_DA_VIVENCIA`). **Depende da Fundação e do DPO:** as cinco escolhas da §4.39. **Medido na 270:** o
+`a-saida-com-a-historia`, o `o-que-entra-volta-inteiro` (os dois Words abertos), o `arquitetura`, o
+`a-voz-dos-documentos`, o `a-acolhe-conhece-o-sistema` e a sonda no protótipo a 390 px (as duas folhas pela aba
+Documentos e pela folha da saída, sem erro). **Não rodou** ainda a suíte inteira nem os ensaios: rodam no fim da
+271. **Próxima: 271**, há quanto tempo a família não visita.
 
 **FEITO — fase 269** (§2, PARA-A-REUNIAO §4.38): o prazo da reavaliação ao Juízo. **Prazo novo que a lei impõe**
 segue o desenho do PIA e da reavaliação: a regra num arquivo que não importa nada (lido pelo servidor e pelo

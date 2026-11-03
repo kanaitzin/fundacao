@@ -10,6 +10,10 @@ import { hojeNaInstituicao } from '../../kernel/common/tempo';
 import { DocumentosService } from '../../kernel/documentos/documentos.service';
 import { cargoNoDocumento } from '../../kernel/documentos/folha';
 import { folhaDoImpacto, folhaDaTrajetoria } from './impacto-folha';
+import {
+  DadosDaTransicao, DadosDoLivro, QUEM_PREPARA_A_SAIDA, ROTULO_DA_VIVENCIA,
+  folhaDeTransicao, folhaDoLivroDaVida,
+} from './saida-folha';
 
 /**
  * O TRABALHO SOCIAL, E NÃO O TURNO (migração 0900).
@@ -528,4 +532,147 @@ export class ImpactoService {
     });
   }
 
+
+  // ------------------------------------------------------------------
+  // A saída com a história (fase 270): a folha de transição e o livro da vida
+  // ------------------------------------------------------------------
+
+  private quemPreparaASaida(user: AuthenticatedUser) {
+    if (!QUEM_PREPARA_A_SAIDA.includes(user.role)) {
+      throw new ForbiddenException(
+        'A folha de transição e o livro da vida são preparados pela equipe técnica e pela coordenação.');
+    }
+  }
+
+  /** A criança, a casa e o dia do ingresso no acolhimento de agora, lidos com a identidade de quem pede. */
+  private async criancaDaSaida(c: any, personId: string) {
+    const { rows: [p] } = await c.query(
+      `SELECT app_person_display_name($1) AS nome, p.birth_date::text AS nascimento,
+              (SELECT app_house_label(s.house_id) FROM house_stay s
+                WHERE s.person_id = $1 AND s.status = 'ativa' LIMIT 1) AS casa,
+              /* O ingresso da ficha de entrada, como no prazo da reavaliação (fase 269). */
+              (SELECT out_desde::text FROM app_reavaliacao_base($1)) AS desde
+         FROM person p WHERE p.id = $1`, [personId]);
+    if (!p?.nome) throw new NotFoundException('Acolhido não encontrado, ou fora do seu alcance.');
+    return { nome: p.nome, nascimento: p.nascimento ?? null, casa: p.casa ?? '', desde: p.desde ?? null };
+  }
+
+  /**
+   * O que quem recebe a criança precisa para cuidar dela. Os documentos são os do
+   * dossiê fora da área restrita (pessoais, saúde, escola, convivência), o último
+   * de cada tipo; o que é judicial segue pelo Juízo.
+   */
+  async dadosDaTransicao(user: AuthenticatedUser, personId: string): Promise<DadosDaTransicao> {
+    this.quemPreparaASaida(user);
+    return this.db.asUser(user.id, async (c) => {
+      const crianca = await this.criancaDaSaida(c, personId);
+      const { rows: [perfil] } = await c.query(
+        `SELECT essential_care, school_name, school_grade, school_shift
+           FROM profile_detail WHERE person_id = $1`, [personId]);
+      const { rows: saude } = await c.query(
+        `SELECT kind, description, severity FROM health_condition
+          WHERE person_id = $1 AND active ORDER BY (kind = 'alergia') DESC, created_at`, [personId]);
+      const { rows: alimentacao } = await c.query(
+        `SELECT restriction, substitution, guidance FROM food_restriction
+          WHERE person_id = $1 AND active ORDER BY created_at`, [personId]);
+      const { rows: remedios } = await c.query(
+        `SELECT pr.id, pr.medication, pr.dose, pr.route, pr.instructions, pr.ends_on::text AS ate,
+                coalesce((SELECT array_agg(to_char(ms.time_of_day, 'HH24:MI') ORDER BY ms.time_of_day)
+                            FROM medication_schedule ms WHERE ms.prescription_id = pr.id), '{}') AS horarios
+           FROM prescription pr
+          WHERE pr.person_id = $1 AND pr.status = 'ativa'
+            AND (pr.ends_on IS NULL OR pr.ends_on >= app_hoje())
+          ORDER BY pr.medication`, [personId]);
+      const { rows: documentos } = await c.query(
+        `SELECT DISTINCT ON (coalesce(d.checklist_key, d.id::text)) d.title,
+                coalesce(d.issued_on, (d.created_at AT TIME ZONE app_fuso())::date)::text AS data
+           FROM document d
+          WHERE d.person_id = $1 AND d.category <> 'judicial_socioassistencial'
+          ORDER BY coalesce(d.checklist_key, d.id::text), d.created_at DESC`, [personId]);
+      return {
+        crianca,
+        cuidados: perfil?.essential_care ?? null,
+        saude: saude.map((s: any) => ({ tipo: s.kind, descricao: s.description, gravidade: s.severity ?? null })),
+        alimentacao: alimentacao.map((a: any) => ({
+          restricao: a.restriction, substituicao: a.substitution ?? null, orientacao: a.guidance ?? null })),
+        remedios: remedios.map((r: any) => ({
+          nome: r.medication, dose: r.dose, via: r.route, horarios: r.horarios ?? [],
+          orientacao: r.instructions ?? null, ate: r.ate ?? null })),
+        escola: perfil?.school_name
+          ? { nome: perfil.school_name, serie: perfil.school_grade ?? null, turno: perfil.school_shift ?? null }
+          : null,
+        documentos: documentos
+          .map((x: any) => ({ titulo: x.title, data: x.data ?? null }))
+          .sort((a: any, b: any) => a.titulo.localeCompare(b.titulo)),
+      };
+    });
+  }
+
+  async folhaDaTransicao(user: AuthenticatedUser, personId: string) {
+    return folhaDeTransicao(await this.dadosDaTransicao(user, personId),
+      { nome: user.fullName, cargo: cargoNoDocumento(user.role) });
+  }
+
+  async exportarTransicao(user: AuthenticatedUser, personId: string, finalidade: string) {
+    const folha = await this.folhaDaTransicao(user, personId);
+    return this.documentos.exportar(user, folha, {
+      entidade: 'transicao', entidadeId: personId, finalidade,
+      houseId: await this.audit.casaDoAcolhido(user.id, personId),
+    });
+  }
+
+  /**
+   * As conquistas e as vivências da criança, para o livro da vida. Os bytes só
+   * das fotografias com autorização de imagem, e só para gerar o arquivo.
+   */
+  async dadosDoLivro(user: AuthenticatedUser, personId: string, comBytes: boolean): Promise<DadosDoLivro> {
+    this.quemPreparaASaida(user);
+    const lido = await this.db.asUser(user.id, async (c) => {
+      const crianca = await this.criancaDaSaida(c, personId);
+      const { rows: itens } = await c.query(
+        `SELECT m.id, m.event_type, m.happened_on::text AS quando, m.description
+           FROM memory_record m WHERE m.person_id = $1`, [personId]);
+      const { rows: fotos } = await c.query(
+        `SELECT memory_id, storage_key, mime, photo_authorized
+           FROM memory_photo WHERE person_id = $1 ORDER BY memory_id, position, created_at`, [personId]);
+      return { crianca, itens, fotos };
+    });
+    const marcos = await this.marcos(user, { personId, de: '1900-01-01' });
+    const vivencias = [];
+    for (const m of lido.itens) {
+      const fotos = [];
+      for (const f of lido.fotos.filter((x: any) => x.memory_id === m.id)) {
+        const autorizada = f.photo_authorized === true;
+        let foto = null;
+        if (comBytes && autorizada && (f.mime === 'image/jpeg' || f.mime === 'image/png')) {
+          const bytes = await this.arquivos.ler(f.storage_key);
+          if (bytes) foto = { tipo: f.mime, dados: new Uint8Array(bytes) };
+        }
+        fotos.push({ autorizada, foto });
+      }
+      vivencias.push({ tipo: ROTULO_DA_VIVENCIA[m.event_type] ?? m.event_type,
+                       quando: String(m.quando).slice(0, 10), descricao: m.description, fotos });
+    }
+    return {
+      crianca: { nome: lido.crianca.nome, casa: lido.crianca.casa, desde: lido.crianca.desde },
+      marcos: marcos.map((m: any) => ({
+        tipo: m.tipoRotulo ?? 'Conquista', quando: String(m.quando).slice(0, 10),
+        descricao: m.descricao, instituicao: m.instituicao ?? null })),
+      vivencias,
+    };
+  }
+
+  async folhaDoLivro(user: AuthenticatedUser, personId: string) {
+    return folhaDoLivroDaVida(await this.dadosDoLivro(user, personId, false),
+      { nome: user.fullName, cargo: cargoNoDocumento(user.role) });
+  }
+
+  async exportarLivro(user: AuthenticatedUser, personId: string, finalidade: string) {
+    const folha = folhaDoLivroDaVida(await this.dadosDoLivro(user, personId, true),
+      { nome: user.fullName, cargo: cargoNoDocumento(user.role) });
+    return this.documentos.exportar(user, folha, {
+      entidade: 'livro_da_vida', entidadeId: personId, finalidade,
+      houseId: await this.audit.casaDoAcolhido(user.id, personId),
+    });
+  }
 }

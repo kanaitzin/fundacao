@@ -169,6 +169,38 @@ export class ImpactoController {
     return this.impacto.exportarTrajetoria(user, personId, body?.finalidade ?? '');
   }
 
+  /*
+   * A SAÍDA COM A HISTÓRIA (fase 270): a folha de transição, para quem recebe a
+   * criança, e o livro da vida, para ela. Equipe técnica, coordenação e gestão.
+   */
+  @RegistroDaRota('personId', 'person')
+  @Get('saida/:personId/transicao/folha')
+  folhaDaTransicao(@CurrentUser() user: AuthenticatedUser,
+                   @Param('personId', ParseUUIDPipe) personId: string) {
+    return this.impacto.folhaDaTransicao(user, personId);
+  }
+
+  @Post('saida/:personId/transicao/export')
+  exportarTransicao(@CurrentUser() user: AuthenticatedUser,
+                    @Param('personId', ParseUUIDPipe) personId: string,
+                    @Body(CorpoConferido) body: { finalidade?: string }) {
+    return this.impacto.exportarTransicao(user, personId, body?.finalidade ?? '');
+  }
+
+  @RegistroDaRota('personId', 'person')
+  @Get('saida/:personId/livro/folha')
+  folhaDoLivro(@CurrentUser() user: AuthenticatedUser,
+               @Param('personId', ParseUUIDPipe) personId: string) {
+    return this.impacto.folhaDoLivro(user, personId);
+  }
+
+  @Post('saida/:personId/livro/export')
+  exportarLivro(@CurrentUser() user: AuthenticatedUser,
+                @Param('personId', ParseUUIDPipe) personId: string,
+                @Body(CorpoConferido) body: { finalidade?: string }) {
+    return this.impacto.exportarLivro(user, personId, body?.finalidade ?? '');
+  }
+
   /** O comprovante de um marco: diploma, certificado, carteira. */
   @Get('marcos/:id/comprovante')
   comprovante(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {

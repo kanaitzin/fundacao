@@ -243,6 +243,8 @@ describe('O que entra volta inteiro, e o que se baixa abre', () => {
       { rota: '/impacto/export', quem: 'gestor', corpo: { finalidade: fin('Relatório de impacto do semestre') } },
       { rota: `/impacto/trajetoria/${ids.crianca}/export`, quem: 'coord', corpo: { finalidade: fin('Audiência concentrada') } },
       { rota: `/people/${ids.crianca}/memories/export`, quem: 'coord', corpo: { finalidade: fin('Reunião do PIA') } },
+      { rota: `/impacto/saida/${ids.crianca}/transicao/export`, quem: 'tecnica', corpo: { finalidade: fin('Entregar à família') } },
+      { rota: `/impacto/saida/${ids.crianca}/livro/export`, quem: 'tecnica', corpo: { finalidade: fin('Entregar à criança') } },
       { rota: '/reports/period/export', quem: 'coord', corpo: { houseId: ids.AI3, de: '2026-09-01', ate: hoje, finalidade: fin('Reunião de equipe') } },
       { rota: `/reports/${ids.relatorio}/export`, quem: 'tecnica', corpo: { formato: 'docx', finalidade: fin('Rascunho para a revisão') } },
       { rota: '/medications/export', quem: 'coord', corpo: { houseId: ids.AI3, finalidade: fin('Grade para a parede') } },

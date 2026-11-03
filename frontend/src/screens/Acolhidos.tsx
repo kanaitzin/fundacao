@@ -16,6 +16,7 @@ import {
   CampoDoPapel, ROTULO_DO_CAMPO, camposDoPapel, nomeDiferente,
 } from '../../../backend/src/modules/people/campos-do-papel.regra';
 import type { PrazoDaReavaliacao } from '../../../backend/src/modules/people/reavaliacao.regra';
+import type { Folha as DocumentoWord } from '../../../backend/src/kernel/documentos/folha';
 import { dia, horaSemSegundos } from '../rotulos';
 import { Icone } from '../icones';
 import { Avatar, esquecerFoto } from '../avatar';
@@ -749,6 +750,8 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
   const [encerrandoSaude, setEncerrandoSaude] = useState<{ qual: 'condicao' | 'restricao'; id: string; nome: string } | null>(null);
   const [aviso, setAviso] = useState('');
   const [saindo, setSaindo] = useState(false);
+  /* A SAÍDA COM A HISTÓRIA (fase 270): a folha de transição e o livro da vida. */
+  const [docDaSaida, setDocDaSaida] = useState<{ tipo: 'transicao' | 'livro'; doc: DocumentoWord } | null>(null);
   /** O dossiê é tela própria: a pasta da criança não cabe dentro do perfil. */
   const [dossie, setDossie] = useState(false);
   /** Corrigir a identificação (§6.2): exige motivo, e deixa histórico legível. */
@@ -784,6 +787,18 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
       }
     })();
   }, [personId, houseId]);
+
+  async function abrirFolhaDaSaida(tipo: 'transicao' | 'livro') {
+    setErro('');
+    try {
+      const doc = tipo === 'transicao'
+        ? await api<DocumentoWord>(`/impacto/saida/${personId}/transicao/folha`)
+        : await api<DocumentoWord>(`/impacto/saida/${personId}/livro/folha`);
+      setDocDaSaida({ tipo, doc });
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Não foi possível montar a folha.');
+    }
+  }
 
   async function abrirJudicial() {
     setErroJudicial(''); setSemJudicial(false);
@@ -1485,6 +1500,20 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
             apagado</b>: vai para o acervo histórico com tudo o que foi registrado, e um
             retorno abre episódio novo no mesmo perfil.
           </p>
+          {/* A SAÍDA COM A HISTÓRIA (fase 270): o que vai com quem recebe a criança,
+              e o que vai com ela. Ver antes de baixar, como todo documento. */}
+          <p className="mutetxt">
+            Quando a saída estiver combinada, prepare a <b>folha de transição</b>, para quem
+            recebe a criança, e o <b>livro da vida</b>, para ela.
+          </p>
+          <div className="acoes" style={{ marginBottom: 10 }}>
+            <button className="btn sec sm" onClick={() => abrirFolhaDaSaida('transicao')}>
+              <Icone nome="documento" /> Folha de transição
+            </button>
+            <button className="btn sec sm" onClick={() => abrirFolhaDaSaida('livro')}>
+              <Icone nome="documento" /> Livro da vida
+            </button>
+          </div>
           <button className="btn sec" onClick={() => setSaindo(true)}>
             Registrar saída de {p.nome}
           </button>
@@ -1576,6 +1605,7 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
       {saindo && (
         <FolhaSaida
           nome={p.nome}
+          onAbrirFolha={abrirFolhaDaSaida}
           onFechar={() => setSaindo(false)}
           onConfirmar={async (motivo) => {
             setErro(''); setAviso('');
@@ -1591,6 +1621,15 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
               setErro(e instanceof Error ? e.message : 'Não foi possível registrar a saída.');
             }
           }} />
+      )}
+      {docDaSaida && (
+        <FolhaDocumento
+          doc={docDaSaida.doc} onFechar={() => setDocDaSaida(null)}
+          exportar={(finalidade: string) => docDaSaida.tipo === 'transicao'
+            ? api(`/impacto/saida/${personId}/transicao/export`,
+                  { method: 'POST', body: JSON.stringify({ finalidade }) })
+            : api(`/impacto/saida/${personId}/livro/export`,
+                  { method: 'POST', body: JSON.stringify({ finalidade }) })} />
       )}
 
       {aba === 'geral' && p.memorias.length > 0 && (
@@ -1626,8 +1665,10 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
  *    um retorno, que é episódio NOVO — e é assim que tem de ser: a criança
  *    que voltou não desfez a saída, ela voltou.
  */
-function FolhaSaida({ nome, onFechar, onConfirmar }: {
+function FolhaSaida({ nome, onFechar, onConfirmar, onAbrirFolha }: {
   nome: string; onFechar: () => void; onConfirmar: (motivo: string) => void;
+  /** A folha de transição e o livro da vida (fase 270), abertos por cima desta folha. */
+  onAbrirFolha: (tipo: 'transicao' | 'livro') => void;
 }) {
   const [motivo, setMotivo] = useState('');
   const pode = motivo.trim().length >= 3;
@@ -1657,6 +1698,19 @@ function FolhaSaida({ nome, onFechar, onConfirmar }: {
         </div>
         <textarea id="saida-motivo" value={motivo} onChange={(e) => setMotivo(e.target.value)}
                   placeholder="Ex.: reintegração familiar, com acompanhamento da rede de origem; determinação da Vara em 12/08." />
+
+        <p className="mutetxt" style={{ marginBottom: 6 }}>
+          Antes de registrar, prepare o que vai com ela: a folha de transição, para quem a
+          recebe, e o livro da vida, para ela.
+        </p>
+        <div className="acoes" style={{ marginBottom: 10 }}>
+          <button type="button" className="btn sec sm" onClick={() => onAbrirFolha('transicao')}>
+            Folha de transição
+          </button>
+          <button type="button" className="btn sec sm" onClick={() => onAbrirFolha('livro')}>
+            Livro da vida
+          </button>
+        </div>
 
         <p className="mutetxt">
           Não há como desfazer. Se a criança voltar, registre um <b>retorno</b> pelo acervo —

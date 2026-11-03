@@ -111,7 +111,7 @@ export const ABAS_DO_PERFIL_NO_GUIA: { id: string; titulo: string; texto: string
     texto: 'Como a criança chegou, a área restrita com o prazo da reavaliação ao Juízo e os documentos que a equipe técnica guarda ali (a guia, as decisões, o relatório de acolhimento, os relatórios de reavaliação) e os ofícios.',
     quem: 'A área restrita abre para a equipe técnica e a coordenação.' },
   { id: 'documentos', titulo: 'Documentos',
-    texto: 'Começa pelo dossiê (certidão, RG, carteira de vacina, receitas, laudos, PIA, cada um com a validade e o que falta) e pela lista dos documentos da criança. Depois, corrigir e atualizar o cadastro, as correções feitas e quem mexeu no perfil, com data e nome.' },
+    texto: 'Começa pelo dossiê (certidão, RG, carteira de vacina, receitas, laudos, PIA, cada um com a validade e o que falta) e pela lista dos documentos da criança. Depois, corrigir e atualizar o cadastro, as correções feitas, quem mexeu no perfil, com data e nome, e a saída da casa, com a folha de transição e o livro da vida.' },
 ];
 
 /** O alto do perfil, que vem antes das abas. */
@@ -138,6 +138,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 270, dia: '03/11/2026', aba: 'acolhidos',
+    texto: 'A saída com a história: na aba Documentos do perfil, e na própria folha da saída, a equipe técnica e a coordenação preparam a folha de transição, para quem recebe a criança (cuidados, alergias, alimentação, remédios com os horários, escola e os documentos, com o recibo), e o livro da vida, para ela (as conquistas e as vivências, só com as fotografias autorizadas). Nada da área restrita vai em nenhuma das duas.' },
   { fase: 269, dia: '03/11/2026', aba: 'acolhidos',
     texto: 'O prazo da reavaliação ao Juízo: a área restrita do perfil, na aba Judiciário, diz quando foi o último relatório de reavaliação e até quando vai o próximo, no máximo a cada três meses, e há quanto tempo a criança está em acolhimento. A técnica e a coordenação são avisadas quinze dias antes. Anexe o relatório enviado no dossiê como Relatório de reavaliação, com a data do envio.' },
   { fase: 268, dia: '03/11/2026',

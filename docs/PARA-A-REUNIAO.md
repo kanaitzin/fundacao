@@ -201,7 +201,7 @@ contando o conceito escolar (fase 137). Nada disso volta à mesa.
   196 também dentro do perfil da criança (*quero registrar a alergia do Bruno*), do dossiê, da
   internação aberta e do acervo: os 36 formulários do sistema. **Para o DPO:**
   o ditado usa o reconhecimento do navegador; no Chrome, o áudio vai ao Google.
-- **268 fases.** 162 suítes e 1426 testes; a suíte inteira, verde em duas condições de
+- **270 fases.** 163 suítes e 1430 testes; a suíte inteira, verde em duas condições de
   relógio na fase 268, antes e depois da virada do UTC, que em Porto Alegre é às 21h.
 - **O aviso no celular** (fase 189, decidido em 06/10): quem liga na Minha conta
   recebe no celular todos os avisos do sino, mesmo com o sistema fechado. Na
@@ -1000,6 +1000,26 @@ nenhum, o prazo conta do ingresso. Escolhi, e cada uma se muda numa linha:
    (Hoje: só o perfil diz.)
 4. **Os dezoito meses aparecem como informação**, junto do tempo de acolhimento, e nunca como
    alerta: quem decide o destino é o juiz. (Hoje: informação.)
+
+## 4.39 A saída com a história (fase 270, 03/11)
+
+Quando a criança sai, a equipe técnica e a coordenação preparam, na aba Documentos do perfil ou na
+própria folha da saída, duas folhas em Word. A **folha de transição** vai com quem recebe a criança:
+os cuidados do dia a dia, as alergias e as condições de saúde, a alimentação, os remédios em uso com
+os horários, a escola e os documentos que acompanham, com a caixa de entregue e o recibo. O **livro da
+vida** vai com ela: as conquistas e as vivências, na ordem em que aconteceram. Escolhi, e cada uma se
+muda numa linha:
+
+1. **A folha de transição leva as condições de saúde**, além das alergias, como estão registradas: a
+   família que recebe uma criança com asma precisa saber. Nada da área restrita vai: nem o motivo do
+   acolhimento, nem documento judicial, nem ocorrência, nem atendimento. **O DPO confere.**
+2. **Os documentos listados são os do dossiê fora da área restrita**, o último de cada tipo. A folha
+   não entrega o papel; ela lista, e quem entrega marca o que foi. (Hoje: a lista e a caixa.)
+3. **O livro leva só as fotografias com autorização de imagem**, para todo cargo: ele sai da
+   instituição. No relatório das vivências (fase 237), a técnica inclui todas. (Hoje: só as autorizadas.)
+4. **O livro leva as conquistas de todo o tempo**, também de um acolhimento anterior, porque a história
+   é dela. (Hoje: todas.)
+5. **Quem prepara**: a equipe técnica, a coordenação e a gestão, os mesmos que registram a saída.
 
 ## 5. As decisões que são do Marcelo *(§10 — responda pelo número)*
 

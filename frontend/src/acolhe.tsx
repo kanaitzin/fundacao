@@ -440,6 +440,8 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
        Atendimento é o da equipe técnica; o que a casa registrou no dia é o Dia a dia.
        Aba não grava. */
     const ABA_DO_ASSUNTO: [RegExp, string][] = [
+      /* A saída com a história (fase 270) mora na aba Documentos, antes da regra das saídas. */
+      [/\b(livro da vida|folha de transicao|transicao)\b/, 'Documentos'],
       [/\b(atendimento\w*|psicolog\w*|psicopedagog\w*|servico social|sessao|sessoes|desenho\w*)\b/, 'Atendimentos'],
       [/\b(dia a dia|historico|o dia d[ea]l[ea]|refeic\w*|almoc\w*|janta\w*|chamada\w*|presenca)\b/, 'Dia a dia'],
       [/\b(tudo sobre|quem e|dados d[ea]l[ea]|idade|quanto tempo|tempo de acolhimento|pia)\b/, 'Geral'],
