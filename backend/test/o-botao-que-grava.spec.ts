@@ -10,6 +10,8 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fraseDoFeito } from '../../frontend/src/botao-que-grava.regra';
+import { fraseSemSinal } from '../../frontend/src/frase-sem-sinal';
+
 
 const SRC = join(__dirname, '..', '..', 'frontend', 'src');
 const ler = (f: string) => readFileSync(join(SRC, f), 'utf8');
@@ -35,7 +37,8 @@ describe('O botão que grava', () => {
     expect(corpo).toMatch(/terminar\(true\)/);
     /* A recusa vai junto (fase 266), menos a falta de sinal e a sessão vencida. */
     expect(corpo).toMatch(/terminar\(false, recusa\)/);
-    expect(corpo).toMatch(/e instanceof SemConexao \|\| \(e instanceof ErroApi && e\.status === 401\)/);
+    expect(corpo).toMatch(/e instanceof SemConexao && init && vaiParaAFila\.has\(init\)/);
+    expect(corpo).toMatch(/e instanceof ErroApi && e\.status === 401/);
     /* Só a fila que sobe sozinha fica de fora: ela não nasce de toque nenhum. */
     expect(corpo).toMatch(/metodo === 'GET' \|\| path === '\/sync\/push'/);
     expect(ler('main.tsx')).toMatch(/ligarBotaoQueGrava\(\);/);
@@ -48,6 +51,20 @@ describe('O botão que grava', () => {
     expect(g).toMatch(/textContent = 'Entendi'/);
     /* A frase vai como texto, nunca como HTML: ela vem do servidor. */
     expect(g).not.toMatch(/innerHTML/);
+  });
+
+  it('sem sinal, a escrita diz que NÃO foi salva, e só a fila diz que guardou (fase 267)', () => {
+    expect(ler('api.ts')).toMatch(/import \{ fraseSemSinal \} from '\.\/frase-sem-sinal'/);
+    /* A frase antiga prometia guardar em toda escrita, e só a fila guarda. */
+    for (const f of ['api.ts', 'mock.ts']) {
+      const fonte = ler(f).split('\n').filter((l) => !/^\s*(\*|\/\/|\/\*)/.test(l)).join('\n');
+      expect(fonte).not.toMatch(/fica guardado neste aparelho/);
+      expect(fonte).toMatch(/new SemConexao\(fraseSemSinal\(/);
+    }
+    expect(fraseSemSinal('POST')).toMatch(/NÃO foi salvo/);
+    expect(fraseSemSinal('PATCH')).toMatch(/NÃO foi salvo/);
+    expect(fraseSemSinal('GET')).not.toMatch(/salvo/);
+    expect(fraseSemSinal()).not.toMatch(/salvo/);
   });
 
   it('nenhuma escrita nova vai ao servidor por fora do api()', () => {

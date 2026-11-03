@@ -111,6 +111,11 @@ cobrar('o selo da fila apareceu no cabeçalho',
 const texto = await pg.locator('main.conteudo').innerText();
 cobrar('a tela diz onde a marcação ficou',
   /guardad[ao] neste aparelho|sem internet/i.test(texto), texto.slice(0, 120));
+/* Guardada pela fila, a marcação não ganha o NÃO foi salvo perto do botão (fase 267). */
+await pg.waitForTimeout(600);
+cobrar('e o que a fila guardou não diz, perto do botão, que não foi salvo',
+  (await pg.locator('#recusa-perto-do-botao').count()) === 0
+  && !/NÃO foi salvo/.test(await pg.locator('body').innerText()));
 
 const op = fila[0];
 if (op) {

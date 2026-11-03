@@ -1,4 +1,5 @@
 import { comecarEscrita } from './botao-que-grava';
+import { fraseSemSinal } from './frase-sem-sinal';
 import { enfileirar, definirEnviador, ligarFila, RecusaDaFila, type AoEnfileirar, type RespostaPush } from './fila-offline';
 
 const BASE = '/api/v1';
@@ -31,6 +32,8 @@ export class ErroApi extends Error {
  * escrever: recusa do servidor é para mostrar, falta de sinal é para guardar
  * na fila local (§17.1).
  */
+export { fraseSemSinal };
+
 export class SemConexao extends Error {
   constructor(message = 'Sem conexão com o servidor.') {
     super(message);
@@ -100,9 +103,11 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
     terminar(true);
     return r;
   } catch (e) {
-    /* A falta de sinal vai para a fila, e a sessão vencida abre a entrada:
-       nenhuma das duas é recusa para mostrar perto do botão (fase 266). */
-    const recusa = e instanceof SemConexao || (e instanceof ErroApi && e.status === 401)
+    /* A sessão vencida abre a entrada, e a falta de sinal no que vai para a
+       fila tem a frase da fila: nenhuma das duas vai perto do botão (fase 266).
+       A falta de sinal no resto, sim: ali NADA foi salvo (fase 267). */
+    const recusa = (e instanceof SemConexao && init && vaiParaAFila.has(init))
+      || (e instanceof ErroApi && e.status === 401)
       ? undefined : (e as Error)?.message;
     terminar(false, recusa);
     throw e;
@@ -131,9 +136,7 @@ async function pedir<T>(path: string, init?: RequestInit): Promise<T> {
       },
     });
   } catch {
-    throw new SemConexao(
-      'Sem conexão com o servidor. O que você registrar fica guardado neste aparelho.',
-    );
+    throw new SemConexao(fraseSemSinal(init?.method));
   }
 
   if (!res.ok) await recusa(res, path);
@@ -164,7 +167,7 @@ export async function apiAosPoucos<T>(path: string, init: RequestInit, aoEscreve
       headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}), ...init.headers },
     });
   } catch {
-    throw new SemConexao('Sem conexão com o servidor.');
+    throw new SemConexao(fraseSemSinal(init.method));
   }
   if (!res.ok) await recusa(res, path);
   if (!res.body || !/ndjson/.test(res.headers.get('content-type') ?? '')) return res.json();
@@ -211,11 +214,15 @@ export async function apiAosPoucos<T>(path: string, init: RequestInit, aoEscreve
  * O `kind` e o `payload` são os do `POST /sync/push`, não os da rota REST: é o
  * servidor que aplica a operação depois, pelo módulo dono dela.
  */
+/** Os pedidos que a fila guarda se o sinal faltar (fase 267). */
+const vaiParaAFila = new WeakSet<RequestInit>();
+
 export async function apiOuFila<T>(
   path: string,
   init: RequestInit,
   offline: AoEnfileirar,
 ): Promise<{ resposta?: T; enfileirada: boolean; recusa?: string }> {
+  vaiParaAFila.add(init);
   try {
     const resposta = await api<T>(path, init);
     return { resposta, enfileirada: false };

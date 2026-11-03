@@ -18,7 +18,7 @@
  * resposta (os que nascem dentro das funções) são trocados pelos desta casa na
  * saída.
  */
-import { SemConexao, ErroApi } from './api';
+import { SemConexao, ErroApi, fraseSemSinal } from './api';
 import { CASA_MODELO, CASAS_DA_FUNDACAO, configDaCasa } from './casas-ficticias';
 import { criarServidorDaCasa } from './mock-casa';
 
@@ -204,9 +204,7 @@ export async function mockApi<T>(path: string, init?: RequestInit): Promise<T> {
 async function mockApiNaCasa<T>(path: string, init?: RequestInit): Promise<T> {
   await new Promise((r) => setTimeout(r, ensaio.__pausaDoPrototipo ?? 120));   // uma pausa curta, como a rede real
   if (semSinal) {
-    throw new SemConexao(
-      'Sem conexão com o servidor. O que você registrar fica guardado neste aparelho.',
-    );
+    throw new SemConexao(fraseSemSinal(init?.method));
   }
   const comCasa = tirarACasa(path);
   const corpoTexto = init?.body ? tirarACasa(String(init.body)) : { casa: null, texto: '' };

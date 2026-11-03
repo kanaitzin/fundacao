@@ -199,7 +199,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 03/11/2026, fase 266
+### Onde estamos — 03/11/2026, fase 267
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -329,8 +329,9 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 264 | **o servidor no Nest 11 e no Express 5** (pedido de 02/11): os seis avisos de segurança que sobravam, fechados sem a troca para ESM que o Nest 12 pede; o Express 5 deixava **o pedido sem corpo nenhum como `undefined`**, e cerca de cinquenta rotas de escrita dariam 500 (o `{}` volta no `corpo-da-requisicao.ts`, e a suíte da 155 manda o pedido sem corpo); o curinga com nome no `forRoutes` |
 | 265 | **o botão que grava não grava duas vezes, e diz que gravou** (o M5 do relatório 5): com a rede lenta, **dois toques em Registrar linha gravavam a mesma linha duas vezes na ATA**, que não se apaga; agora todo botão que dispara escrita fica pálido e não aceita outro toque até a resposta (`botao-que-grava.ts`, ligado pelo `api()`), e o próprio botão diz *Registrado às 23:04* por 1,6 s |
 | 266 | **a recusa perto do dedo**: a frase de recusa nascia no alto da tela ou da folha, fora da vista de quem tocou o botão lá embaixo (medido: a nota fiscal repetida, dentro da folha rolada); agora, se ela não está à vista, aparece logo acima do botão tocado, com Entendi (`botao-que-grava.ts`); e **o `ensaio:celular` nunca tinha medido o fim da tela atrás da barra** (perguntava à `nav`, e quem é fixo é o invólucro); agora mede, e também o botão da Acolhe+AI |
+| 267 | **sem sinal, a tela dizia que tinha guardado o que não guardou**: toda falha de rede dizia *O que você registrar fica guardado neste aparelho*, e só a Chamada, a Passagem e o Concluí do Dia passam pela fila; a linha da ATA, a ocorrência e o resto não ficavam em lugar nenhum. Agora a escrita diz *NÃO foi salvo* (`frase-sem-sinal.ts`), perto do botão, e só o que a fila guarda diz que guardou (`vaiParaAFila`). E a marca única no servidor ficou de fora: a marcação da chamada já é única por criança e a fila leva o `clientOpId` |
 
-**Medido no fim da 266:** 207 migrações, 144 tabelas, 161 suítes, 1423 testes; nas 237 e 238, a suíte inteira
+**Medido no fim da 267:** 207 migrações, 144 tabelas, 161 suítes, 1424 testes; nas 237 e 238, a suíte inteira
 verde (1363 de 1363, depois de consertar as três conferências que o relatório das vivências deixou soltas) e o
 `ensaio:uso` (739 cobranças, sem reprovação, com o relatório das vivências aberto e o Word baixado); **não rodou**
 nas 237 e 238 o relógio adiantado, o do celular, o de acessibilidade, o `ensaio:acolhe` nem a simulação contra o servidor;
@@ -440,10 +441,16 @@ responder, os documentos de papel e os dados a receber, o que o DPO vê, o que s
 decisões de produto abertas. **Quando a resposta vier, ela entra lá e no §10 ou §11 do documento**, e
 o item respondido sai do §0.
 
+**FEITO — fase 267** (§2): a falta de sinal diz o que aconteceu. **Escrita nova que deve sobreviver sem sinal**
+vai pelo `apiOuFila`, com tipo no `tipos-offline.ts`; **o resto**, sem sinal, diz *NÃO foi salvo* perto do botão e
+mantém o texto no campo. **Frase de sem sinal** mora em `frase-sem-sinal.ts`, lida pelo `api.ts` e pelo protótipo.
+**Decidido sem código:** a marca única por pedido no servidor (a sobra da 265) não entra; o único caminho que reenvia
+sozinho é a fila, e a marcação da chamada já é única por criança e por chamada. **Medido na 267:** a sonda sem sinal, o `ensaio:uso` (sem reprovação; o Concluí reprova sem a marca), o `ensaio:fila`, a Casa 03 em trinta dias contra o servidor (sem achado) e o `o-botao-que-grava`. **Não rodou** a suíte inteira do servidor nem o do celular.
+
 **FEITO — fase 266** (§2): a recusa perto do dedo, no mesmo `botao-que-grava.ts`. **Recusa nova do servidor** chega
 à pessoa sem nada a fazer na tela: se a tela a escreve fora da vista, ela aparece acima do botão. Falta de sinal e
 sessão vencida ficam de fora (a fila e a entrada cuidam delas). O `ensaio:uso` imprime no fim cada recusa e onde ela
-estava. **Medido na 266:** o `ensaio:uso` (sem reprovação), o do celular (322 telas, sem achado; 44 reprovam com a folga zerada), a sonda da nota repetida, a Casa 03 em trinta dias contra o servidor (onze contas, 327 telas e o esqueci, sem achado) e o `o-botao-que-grava`. **Não rodou** a suíte inteira do servidor (nada nele mudou) nem o de acessibilidade. **Sobra da 265:** a marca única por pedido, conferida pelo servidor, para o mesmo registro que chega duas vezes de dois aparelhos ou pela rede.
+estava. **Medido na 266:** o `ensaio:uso` (sem reprovação), o do celular (322 telas, sem achado; 44 reprovam com a folga zerada), a sonda da nota repetida, a Casa 03 em trinta dias contra o servidor (onze contas, 327 telas e o esqueci, sem achado) e o `o-botao-que-grava`. **Não rodou** a suíte inteira do servidor (nada nele mudou) nem o de acessibilidade. A sobra da 265 foi decidida na 267.
 
 **FEITO — fase 265** (§2): o botão que grava, num lugar só (`frontend/src/botao-que-grava.ts`, a frase em
 `botao-que-grava.regra.ts`). **Escrita nova vai pelo `api()`**, nunca por um `fetch` solto: é ele que segura o botão

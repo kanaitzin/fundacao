@@ -138,6 +138,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 267, dia: '03/11/2026',
+    texto: 'Sem internet, a tela diz a verdade: a linha da ATA, a ocorrência e os outros registros mostram, perto do botão, que NÃO foram salvos, e o texto continua no campo para você tocar de novo quando o sinal voltar. Só a chamada, a passagem e o Concluí do Dia ficam guardados no aparelho, e dizem isso.' },
   { fase: 266, dia: '03/11/2026',
     texto: 'Quando um registro não pode ser gravado e o motivo ficou fora da vista, lá no alto da tela ou da folha, o motivo aparece também logo acima do botão que você tocou, com um Entendi.' },
   { fase: 265, dia: '03/11/2026',

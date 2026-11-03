@@ -5322,6 +5322,38 @@ console.log('\n✔️  O botão que grava (fase 265)');
   const vezes = (await pgB.locator('main.conteudo').innerText()).split(frase).length - 1;
   cobrar('os dois toques gravaram a linha UMA vez só', vezes === 1, `${vezes} vezes`);
   cobrar('e depois de 1,6 s o botão volta a ser o de sempre', !(await botao.getAttribute('data-feito')));
+  /* Sem sinal, a linha da ATA NÃO foi salva, e a tela diz isso perto do botão;
+     antes ela dizia que tinha ficado guardada no aparelho (fase 267). */
+  const semSinal = 'A Bia dormiu cedo, sem sinal no corredor.';
+  await pgB.locator('#linha-ata').fill(semSinal);
+  await pgB.locator('#linha-ata').dispatchEvent('input');
+  await pgB.getByRole('button', { name: 'Simular sem sinal' }).first().click();
+  await pgB.waitForTimeout(300);
+  await botao.tap();
+  await pgB.waitForTimeout(1200);
+  const recado = await pgB.locator('#recusa-perto-do-botao').innerText({ timeout: 1500 }).catch(() => '');
+  cobrar('sem sinal, a linha diz perto do botão que NÃO foi salva', /NÃO foi salvo/.test(recado), recado);
+  cobrar('e não promete que ficou guardada', !/guardad[ao] neste aparelho/.test(await pgB.locator('body').innerText()));
+  cobrar('e o texto continua no campo, para tocar de novo', (await pgB.locator('#linha-ata').inputValue()) === semSinal);
+  /* O Concluí do Dia vai para a fila, e o botão fica na tela: ele não pode dizer
+     que não foi salvo, porque foi guardado (a marca `vaiParaAFila`, fase 267). */
+  await pgB.locator('#recusa-perto-do-botao').getByRole('button', { name: 'Entendi' }).click().catch(() => {});
+  /* O Dia abre com sinal (sem ele a lista nem chega), e o sinal cai antes do toque. */
+  await pgB.getByRole('button', { name: 'Voltar a ter sinal' }).first().click();
+  await pgB.locator('nav.tabbar').getByRole('button', { name: 'Dia', exact: true }).first().click();
+  await pgB.waitForTimeout(1500);
+  await pgB.getByRole('button', { name: 'Simular sem sinal' }).first().click();
+  await pgB.waitForTimeout(300);
+  const conclui = pgB.locator('main.conteudo').getByRole('button', { name: /^Concluí$/ }).first();
+  if (await conclui.count()) {
+    await conclui.tap();
+    await pgB.waitForTimeout(1500);
+    const dia = await pgB.locator('main.conteudo').innerText();
+    cobrar('o Concluí sem sinal fica guardado, e a tela diz isso', /ficou guardado neste aparelho/.test(dia));
+    cobrar('e não ganha, perto do botão, que não foi salvo',
+      (await pgB.locator('#recusa-perto-do-botao').count()) === 0 && !/NÃO foi salvo/.test(dia));
+  } else cobrar('o Dia do educador tem um Concluí para o ensaio', false);
+  await pgB.getByRole('button', { name: 'Voltar a ter sinal' }).first().click();
   cobrar('nenhuma exceção no botão que grava', errosB.length === 0, errosB[0]);
   await pgB.close();
 }
