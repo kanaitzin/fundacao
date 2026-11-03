@@ -450,7 +450,12 @@ o item respondido sai do §0.
 foram recusados pela pessoa da Fundação (a linha do tempo tem que ser limpa, e o Pão tem financeiro próprio).
 **Número de uma criança** mora só no perfil dela, para quem lê a área restrita, sem cor quando ele não diz se algo
 precisa de alguém. **Depende da Fundação:** as quatro escolhas da §4.40, a principal a lista que não fiz.
-**Medido nas 269 a 271:** ver a linha abaixo, depois da rodada inteira. **Próxima etapa:** a mesma de antes do
+**Medido nas 269 a 271:** a suíte inteira nas DUAS condições de relógio (1439 de 1439), o `ensaio:uso` (sem
+reprovação), o do celular (322 telas, sem achado), o `ensaio:cabe` a 390 px da técnica e da coordenação (470 estados e
+282 voltas, sem achado), o `ensaio:acolhe` dos mesmos dois cargos (todas as telas e formulários, por texto e por voz) e
+a Casa 03 em trinta dias contra o servidor de verdade (onze contas e 327 telas e o esqueci, sem achado; na API, só a
+recusa conhecida das vagas; a Acolhe+AI com o modelo, verde). **Não rodou** o de acessibilidade (nenhuma cor nova)
+nem o `ensaio:vazio`. **Próxima etapa:** a mesma de antes do
 pedido: a resposta da Fundação à página das direções (254) e a pauta de 21/10, agora com as §4.38 a §4.40.
 
 **FEITO — fase 270** (§2, PARA-A-REUNIAO §4.39): a saída com a história. **Documento que sai da instituição
