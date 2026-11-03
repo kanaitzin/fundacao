@@ -35,6 +35,7 @@ import {
 import { ALCANCE_POR_CARGO } from '../../backend/src/modules/identity/alcance';
 import { avaliar, avaliarArquivo, avaliarDrive, TITULOS } from '../../backend/src/modules/relogio/implantacao.regra';
 import { QUEM_LE_O_QUE_MUDOU } from '../../backend/src/modules/reports/o-que-mudou.regra';
+import { prazoDaReavaliacao } from '../../backend/src/modules/people/reavaliacao.regra';
 import { quantos } from '../../backend/src/kernel/common/quantos';
 import { bytesDoBase64, recusaDosAnexos } from '../../backend/src/kernel/arquivos/anexos-da-mensagem.regra';
 import { TIPOS_OFFLINE, TIPOS_OFFLINE_KINDS } from '../../backend/src/modules/sync/tipos-offline';
@@ -4393,6 +4394,10 @@ function semearDossie() {
     doc('cartao_sus', 'pessoal', 'Cartão SUS', false),
     doc('caderneta_vacinacao', 'pessoal', 'Caderneta de vacinação', true, diasAtras(-120)),
     doc('guia_acolhimento', 'judicial_socioassistencial', 'Guia de acolhimento', true),
+    /* O último relatório de reavaliação da Alice (fase 269), enviado há oitenta dias:
+       o próximo prazo cai em dez, e a área restrita mostra o prazo chegando. */
+    { ...doc('relatorio_reavaliacao', 'judicial_socioassistencial', 'Relatório de reavaliação', true),
+      emitidoEm: diasAtras(80) },
   );
   VIVENCIAS.push(
     /* TRÊS FOTOS numa vivência só (fase 124): é a festa que antes virava três
@@ -9624,6 +9629,21 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       if (b[campo] !== undefined) JUDICIAL_EXTRA[campo] = b[campo] ? String(b[campo]) : null;
     }
     return { atualizado: true };
+  }
+  /* O prazo da reavaliação (fase 269), pela mesma regra do servidor: o último
+     relatório de reavaliação do dossiê, ou o dia do ingresso. Área restrita. */
+  if (seg[0] === 'people' && seg[2] === 'reavaliacao' && metodo === 'GET') {
+    const k = kid(seg[1]);
+    if (!['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)) {
+      return new Recusa(403, 'O prazo da reavaliação fica na área restrita, da equipe técnica e da coordenação.');
+    }
+    if (!k) return new Recusa(404, 'Não há acolhimento em curso para esta criança.');
+    semearDossie();
+    const desde = ACOLHIMENTOS[k.id]?.ingressoEm
+      ?? k.episodios?.find((e) => e.status === 'ativo')?.started_at?.slice(0, 10) ?? diasAtras(40);
+    const ultimo = DOSSIE_DOCS.filter((d) => d.personId === k.id && d.chave === 'relatorio_reavaliacao')
+      .map((d) => d.emitidoEm ?? d.anexadoEm.slice(0, 10)).sort().pop() ?? null;
+    return prazoDaReavaliacao(desde, ultimo, diasAtras(0));
   }
   if (seg[0] === 'people' && seg[2] === 'judicial') {
     const k = kid(seg[1]);

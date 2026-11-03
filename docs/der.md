@@ -829,6 +829,13 @@ de que ele vence em até trinta dias (decisão de 28/09): `document_id`, a
 `valid_until` que foi avisada e `avisado_em`. É ela que faz o aviso sair uma vez só.
 Mora no `people`, e não no escalonamento, porque o módulo de avisos é removível.
 
+**`reavaliacao_aviso` é O PRAZO DA REAVALIAÇÃO QUE JÁ FOI AVISADO** (migração 1668,
+fase 269). Uma linha por criança e por prazo (`person_id`, `proximo_ate`, `avisado_em`),
+gravada quando o relógio do dia avisa a técnica e a coordenação de que o relatório de
+reavaliação ao Juízo vence em até quinze dias (ECA, art. 19). O prazo conta do último
+documento `relatorio_reavaliacao` do dossiê ou, sem ele, do ingresso da ficha de entrada
+(`app_reavaliacao_base`). Só a função `app_reavaliacao_chegando` lê e escreve aqui.
+
 **`birthday_ack` é A CIÊNCIA DO ANIVERSÁRIO** (migração 1160, fase 98). Uma
 linha por criança e por ano, quando alguém da casa diz "estamos cientes".
 
@@ -969,12 +976,12 @@ ensinou, quem decide e a TI; **a palavra aprovada**, todos, porque é ela que a 
 de todos entende. Nada se apaga nem se reescreve: aprovar e recusar só o que espera,
 retirar só o aprovado (gatilho `app_ordem_da_decisao_da_palavra`).
 
-## Inventário — 144 tabelas por partição
+## Inventário — 145 tabelas por partição
 
 | Partição | Tabelas |
 |---|---|
 | identity (17) | institution, house, app_user, user_house_assignment, work_schedule, shift_assignment, user_session, login_attempt, audit_event, institutional_device, staff_role_grant, house_capacity_change, user_invite, house_shift_hours, app_user_role_period, shift_draft, shift_draft_item |
-| people (37) | person, care_episode, house_stay, profile_detail, health_condition, food_restriction, document, document_version, benefit_record, memory_record, memory_photo, transfer_request, transfer_message, admission_record, judicial_record, person_credential, person_correction, profile_detail_change, person_contact, family_stay, family_stay_note, outing_permission, kitchen_request, house_field_permission, birthday_ack, contact_visit_change, visit, visit_correction, kitchen_request_change, pia_aviso, document_due_notice, child_outing, memory_photo_person, person_contact_change, technical_session, technical_session_attachment, document_text |
+| people (38) | person, care_episode, house_stay, profile_detail, health_condition, food_restriction, document, document_version, benefit_record, memory_record, memory_photo, transfer_request, transfer_message, admission_record, judicial_record, person_credential, person_correction, profile_detail_change, person_contact, family_stay, family_stay_note, outing_permission, kitchen_request, house_field_permission, birthday_ack, contact_visit_change, visit, visit_correction, kitchen_request_change, pia_aviso, document_due_notice, child_outing, memory_photo_person, person_contact_change, technical_session, technical_session_attachment, document_text, reavaliacao_aviso |
 | shifts (15) | shift, handover, handover_receipt, handover_note, ata, ata_note, ata_note_attachment, ata_addendum, ata_episode, ata_episode_ack, general_night_ata, general_night_house_entry, general_night_house_amendment, ata_read_request, shift_fim_aviso |
 | incidents (7) | incident, incident_person, incident_protected, incident_restraint, incident_synthesis, external_communication, incident_attachment |
 | medications (13) | prescription, medication_schedule, medication_administration, medication_stock, medication_stock_movement, medication_protocol, medication_authorization, medication_protocol_change, prescription_restriction_change, medication_purchase, medication_purchase_item, prescription_document, family_stay_medication |

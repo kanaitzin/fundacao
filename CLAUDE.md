@@ -199,7 +199,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 03/11/2026, fase 268
+### Onde estamos — 03/11/2026, fase 269
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -331,8 +331,9 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 266 | **a recusa perto do dedo**: a frase de recusa nascia no alto da tela ou da folha, fora da vista de quem tocou o botão lá embaixo (medido: a nota fiscal repetida, dentro da folha rolada); agora, se ela não está à vista, aparece logo acima do botão tocado, com Entendi (`botao-que-grava.ts`); e **o `ensaio:celular` nunca tinha medido o fim da tela atrás da barra** (perguntava à `nav`, e quem é fixo é o invólucro); agora mede, e também o botão da Acolhe+AI |
 | 267 | **sem sinal, a tela dizia que tinha guardado o que não guardou**: toda falha de rede dizia *O que você registrar fica guardado neste aparelho*, e só a Chamada, a Passagem e o Concluí do Dia passam pela fila; a linha da ATA, a ocorrência e o resto não ficavam em lugar nenhum. Agora a escrita diz *NÃO foi salvo* (`frase-sem-sinal.ts`), perto do botão, e só o que a fila guarda diz que guardou (`vaiParaAFila`). E a marca única no servidor ficou de fora: a marcação da chamada já é única por criança e a fila leva o `clientOpId` |
 | 268 | **as fases 265 a 267 conferidas com todos os ensaios que não tinham rodado**: a suíte nas duas condições de relógio, o de acessibilidade, o `ensaio:vazio`, o `ensaio:cabe` nos oito cargos a 390 px e no monitor, o `ensaio:acolhe` nos nove cargos e o relatório pela voz, o `roteiro`, o `uso-celular`, o `ensaio`, o `largo`, o `folhas` e o `ensaio:aparelhos`; nenhum defeito, nenhum código mudou |
+| 269 | **o prazo da reavaliação ao Juízo** (pedido de 03/11): o ECA manda reavaliar no máximo a cada três meses (art. 19), e ninguém contava; o dossiê ganha o *Relatório de reavaliação*, a área restrita do perfil diz o último e o próximo, com o tempo de acolhimento, e o relógio avisa a técnica e a coordenação quinze dias antes (`reavaliacao.regra.ts`, people/1668, `GET /people/:id/reavaliacao`) |
 
-**Medido no fim da 268:** 207 migrações, 144 tabelas, 161 suítes, 1424 testes; nas 237 e 238, a suíte inteira
+**Medido no fim da 269:** 208 migrações, 145 tabelas, 162 suítes, 1426 testes; nas 237 e 238, a suíte inteira
 verde (1363 de 1363, depois de consertar as três conferências que o relatório das vivências deixou soltas) e o
 `ensaio:uso` (739 cobranças, sem reprovação, com o relatório das vivências aberto e o Word baixado); **não rodou**
 nas 237 e 238 o relógio adiantado, o do celular, o de acessibilidade, o `ensaio:acolhe` nem a simulação contra o servidor;
@@ -441,6 +442,16 @@ posto em ordem no **PARA-A-REUNIAO §0**: as cinco perguntas que mais destravam,
 responder, os documentos de papel e os dados a receber, o que o DPO vê, o que se assina e as 30
 decisões de produto abertas. **Quando a resposta vier, ela entra lá e no §10 ou §11 do documento**, e
 o item respondido sai do §0.
+
+**FEITO — fase 269** (§2, PARA-A-REUNIAO §4.38): o prazo da reavaliação ao Juízo. **Prazo novo que a lei impõe**
+segue o desenho do PIA e da reavaliação: a regra num arquivo que não importa nada (lido pelo servidor e pelo
+protótipo), a função do banco que repete a conta com teste que confere as duas, a marca de já avisei no módulo
+da casa e não no de avisos, e o prazo passado sem aviso. **Data do acolhimento é a do ingresso** da ficha de
+entrada (`admission_record.admitted_on`), nunca a do episódio no sistema. **Depende da Fundação:** as quatro
+escolhas da §4.38. **Medido na 269:** o `o-prazo-da-reavaliacao` (a conta do banco e a da regra, o aviso uma vez
+só, o prazo na área restrita e a recusa ao educador), o `relogio` (nove rotinas), as conferências estáticas e do
+banco e a sonda no protótipo a 390 px (a Alice com o prazo chegando, sem erro). **Não rodou** ainda a suíte
+inteira nem os ensaios: rodam no fim da 271, que mexe nas mesmas telas. **Próxima: 270**, a saída com a história.
 
 **FEITO — fase 268** (§2): a conferência das 265 a 267 com tudo o que elas deixaram sem rodar, sem defeito e sem
 código novo. **Rodada que passa de duas horas se divide por cargo** (`ENSAIO_CARGOS`): o `ensaio:cabe` dos oito cargos

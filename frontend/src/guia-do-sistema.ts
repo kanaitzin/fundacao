@@ -108,7 +108,7 @@ export const ABAS_DO_PERFIL_NO_GUIA: { id: string; titulo: string; texto: string
     texto: 'O relatório da equipe técnica (psicologia, psicopedagogia, serviço social e pedagogia), o mais recente em cima, com os números por área e os arquivos de cada atendimento.',
     quem: 'Aparece para a equipe técnica, a coordenação e a gestão.' },
   { id: 'judiciario', titulo: 'Judiciário',
-    texto: 'Como a criança chegou, a área restrita com os documentos que a equipe técnica guarda ali (a guia, as decisões, o relatório de acolhimento) e os ofícios.',
+    texto: 'Como a criança chegou, a área restrita com o prazo da reavaliação ao Juízo e os documentos que a equipe técnica guarda ali (a guia, as decisões, o relatório de acolhimento, os relatórios de reavaliação) e os ofícios.',
     quem: 'A área restrita abre para a equipe técnica e a coordenação.' },
   { id: 'documentos', titulo: 'Documentos',
     texto: 'Começa pelo dossiê (certidão, RG, carteira de vacina, receitas, laudos, PIA, cada um com a validade e o que falta) e pela lista dos documentos da criança. Depois, corrigir e atualizar o cadastro, as correções feitas e quem mexeu no perfil, com data e nome.' },
@@ -138,6 +138,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 269, dia: '03/11/2026', aba: 'acolhidos',
+    texto: 'O prazo da reavaliação ao Juízo: a área restrita do perfil, na aba Judiciário, diz quando foi o último relatório de reavaliação e até quando vai o próximo, no máximo a cada três meses, e há quanto tempo a criança está em acolhimento. A técnica e a coordenação são avisadas quinze dias antes. Anexe o relatório enviado no dossiê como Relatório de reavaliação, com a data do envio.' },
   { fase: 268, dia: '03/11/2026',
     texto: 'Conferimos, em todas as telas e em todos os cargos, no celular e no computador, o botão que grava uma vez só, o motivo da recusa perto do dedo e a frase de quando falta internet. Nada mudou no que você vê.' },
   { fase: 267, dia: '03/11/2026',

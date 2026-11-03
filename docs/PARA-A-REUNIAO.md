@@ -201,7 +201,7 @@ contando o conceito escolar (fase 137). Nada disso volta à mesa.
   196 também dentro do perfil da criança (*quero registrar a alergia do Bruno*), do dossiê, da
   internação aberta e do acervo: os 36 formulários do sistema. **Para o DPO:**
   o ditado usa o reconhecimento do navegador; no Chrome, o áudio vai ao Google.
-- **268 fases.** 161 suítes e 1424 testes; a suíte inteira, verde em duas condições de
+- **268 fases.** 162 suítes e 1426 testes; a suíte inteira, verde em duas condições de
   relógio na fase 268, antes e depois da virada do UTC, que em Porto Alegre é às 21h.
 - **O aviso no celular** (fase 189, decidido em 06/10): quem liga na Minha conta
   recebe no celular todos os avisos do sino, mesmo com o sistema fechado. Na
@@ -982,6 +982,24 @@ protótipo e foram consertados (§2 do documento, linha 253). Fica uma escolha:
    acrescentar um contato. Quem está de plantão à noite pode ler isso como criança sem referência
    nenhuma. A proposta: na aba Geral e na Família e visitas, enquanto não houver contato, mostrar
    *Referência escrita no cadastro: …*, com o que a técnica escreveu. (Hoje: só no Judiciário.)
+
+## 4.38 O prazo da reavaliação ao Juízo (fase 269, 03/11)
+
+O ECA manda reavaliar a situação de cada criança no máximo a cada três meses, com relatório da
+equipe técnica (art. 19, § 1º). Agora a área restrita do perfil diz quando foi o último relatório
+de reavaliação e até quando vai o próximo, e a técnica e a coordenação são avisadas antes. O
+relatório enviado se anexa no dossiê como *Relatório de reavaliação*, com a data do envio; sem
+nenhum, o prazo conta do ingresso. Escolhi, e cada uma se muda numa linha:
+
+1. **Três meses**, o que a lei diz. Se a Vara de Porto Alegre pede em outro ritmo, ou marca o dia
+   em cada audiência, o prazo passa a vir de lá. (Hoje: três meses do último relatório.)
+2. **O aviso sai quinze dias antes**, à técnica e à coordenação da casa, uma vez por prazo. O PIA
+   avisa com trinta. (Hoje: quinze.)
+3. **Prazo que já passou não vira aviso**, só aparece no perfil: no dia da implantação, toda
+   criança sem relatório anexado estaria vencida sem estar, porque o relatório foi no papel.
+   (Hoje: só o perfil diz.)
+4. **Os dezoito meses aparecem como informação**, junto do tempo de acolhimento, e nunca como
+   alerta: quem decide o destino é o juiz. (Hoje: informação.)
 
 ## 5. As decisões que são do Marcelo *(§10 — responda pelo número)*
 

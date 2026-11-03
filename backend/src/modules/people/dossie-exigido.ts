@@ -117,6 +117,11 @@ export const DOSSIE_EXIGIDO: ItemDoDossie[] = [
   { chave: 'decisao_judicial', label: 'Decisão judicial', categoria: 'judicial_socioassistencial',
     titulo: 'Decisão judicial', obrigatorio: false,
     ajuda: 'O TEOR não vai no título. "Decisão judicial — 04/02" basta para achar.' },
+  /* O relatório da equipe técnica para a reavaliação trimestral (fase 269, ECA art. 19):
+     a data do documento é a do envio ao Juízo, e é dela que o próximo prazo é contado. */
+  { chave: 'relatorio_reavaliacao', label: 'Relatório de reavaliação',
+    categoria: 'judicial_socioassistencial', titulo: 'Relatório de reavaliação', obrigatorio: false,
+    ajuda: 'O relatório da equipe técnica ao Juízo, no máximo a cada três meses. A data do documento é a do envio, e o próximo prazo é contado dela.' },
   { chave: 'relatorio_rede', label: 'Relatório para a rede',
     categoria: 'judicial_socioassistencial', titulo: 'Relatório para a rede', obrigatorio: false },
   { chave: 'pia', label: 'PIA — Plano Individual de Atendimento',

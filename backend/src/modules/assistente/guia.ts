@@ -112,7 +112,7 @@ Anotar sugestões de melhoria: quando a pessoa reclamar, pedir algo que o sistem
 - Sincronização (sincronizacao): o que ficou pendurado entre o aparelho e o servidor.
 - Saúde da implantação (implantacao): o relógio, o backup, o e-mail e a fila do Drive.
 - Sugestões de melhoria (sugestoes): o que a equipe pediu para o sistema melhorar, com o nome de quem pediu.
-- Avisos (avisos): o sino, com o que precisa de alguém. Dose sem confirmação, ocorrência à espera de revisão, PIA, receita e vacinação chegando ao vencimento.
+- Avisos (avisos): o sino, com o que precisa de alguém. Dose sem confirmação, ocorrência à espera de revisão, PIA, relatório de reavaliação ao Juízo, receita e vacinação chegando ao vencimento.
 Minha conta, no topo, tem cor e letra da tela, senha, aviso no celular e sair.
 Ninguém no sistema é anônimo e nada se apaga: tudo tem autor e histórico.
 
@@ -125,6 +125,7 @@ Ninguém no sistema é anônimo e nada se apaga: tudo tem autor e histórico.
 - /people/ID/admission  o acolhimento da criança
 - /people/ID/contacts  família e contatos da criança
 - /people/ID/judicial  dados judiciais da criança
+- /people/ID/reavaliacao  o prazo do próximo relatório de reavaliação ao Juízo (no máximo a cada três meses) e há quanto tempo a criança está em acolhimento
 - /people/ID/memories  memórias e vivências da criança, com quem aparece em cada foto
 - /people/ID/aparece-em  as fotos de outras vivências em que a criança foi marcada
 - /people/ID/family-stays  convivências com a família

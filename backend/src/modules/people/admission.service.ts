@@ -7,6 +7,7 @@ import { EventBus } from '../../kernel/events/event-bus.service';
 import { AuditService } from '../../kernel/audit/audit.service';
 import { AuthenticatedUser } from '../../kernel/contracts';
 import { isValidCpf, normalizeCpf } from '../../kernel/common/cpf';
+import { ReavaliacaoService } from './reavaliacao.service';
 
 /**
  * CADASTRO COMPLETO DO ACOLHIDO (§6.1, §13.1).
@@ -69,6 +70,7 @@ export class AdmissionService {
     @Inject(DatabaseService) private readonly db: DatabaseService,
     @Inject(AuditService) private readonly audit: AuditService,
     @Inject(EventBus) private readonly bus: EventBus,
+    @Inject(ReavaliacaoService) private readonly reavaliacao: ReavaliacaoService,
   ) {}
 
   /**
@@ -304,6 +306,23 @@ export class AdmissionService {
       guia: row.guide_number, guiaEm: row.guide_date, determinadoEm: row.determined_on,
       situacao: row.legal_status, observacoes: row.notes, atualizadoEm: row.updated_at,
     };
+  }
+
+  /**
+   * O PRAZO DA REAVALIAÇÃO AO JUÍZO (fase 269), na área restrita.
+   *
+   * Rota própria, e não um campo do bloco judicial: o prazo vale para toda criança
+   * acolhida, também a que chegou de noite e ainda não tem o motivo nem a ficha
+   * completos. Só datas, e para quem abre a área restrita.
+   */
+  async prazoDaReavaliacao(user: AuthenticatedUser, personId: string) {
+    if (!CARGOS_AREA_RESTRITA.includes(user.role)) {
+      throw new ForbiddenException(
+        'O prazo da reavaliação fica na área restrita, da equipe técnica e da coordenação.');
+    }
+    const prazo = await this.reavaliacao.prazoDa(user, personId);
+    if (!prazo) throw new NotFoundException('Não há acolhimento em curso para esta criança.');
+    return prazo;
   }
 
   /** Atualizar a situação judicial — o caso anda, e o registro precisa andar junto. */

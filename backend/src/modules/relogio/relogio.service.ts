@@ -4,7 +4,7 @@ import { AuditService } from '../../kernel/audit/audit.service';
 import { AuthenticatedUser } from '../../kernel/contracts';
 import { MedicationsService } from '../medications';
 import { ActivitiesService, AgendaService } from '../activities';
-import { AniversariosService, PiaService, VencimentosService } from '../people';
+import { AniversariosService, PiaService, ReavaliacaoService, VencimentosService } from '../people';
 import { hojeNaInstituicao } from '../../kernel/common/tempo';
 import { anotarImplantacao } from '../../kernel/implantacao/anotar';
 
@@ -46,6 +46,7 @@ export class RelogioService {
     @Inject(AniversariosService) private readonly aniversarios: AniversariosService,
     @Inject(PiaService) private readonly pia: PiaService,
     @Inject(VencimentosService) private readonly vencimentos: VencimentosService,
+    @Inject(ReavaliacaoService) private readonly reavaliacao: ReavaliacaoService,
   ) {}
 
   /** A conta em nome de quem o relógio escreve. */
@@ -95,6 +96,7 @@ export class RelogioService {
       ['aniversários', (casa) => this.aniversarios.avisarDaCasa(user, casa)],
       ['PIA chegando', (casa) => this.pia.avisarDaCasa(user, casa)],
       ['receita e vacinação vencendo', (casa) => this.vencimentos.avisarDaCasa(user, casa)],
+      ['reavaliação chegando', (casa) => this.reavaliacao.avisarDaCasa(user, casa)],
     ];
 
     for (const casa of casas) {

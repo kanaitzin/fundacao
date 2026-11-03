@@ -119,6 +119,13 @@ export class PeopleController {
     return this.admission.judicial(user, id);
   }
 
+  /** O prazo da reavaliação ao Juízo (fase 269): área restrita, só datas. */
+  @RegistroDaRota('id', 'person')
+  @Get(':id/reavaliacao')
+  reavaliacao(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.admission.prazoDaReavaliacao(user, id);
+  }
+
   @Patch(':id/judicial')
   judicialUpdate(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
                  @Body() body: Record<string, string | null>) {

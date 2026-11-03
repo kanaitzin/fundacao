@@ -15,6 +15,7 @@ import { recusaDosAnexos } from '../../../backend/src/kernel/arquivos/anexos-da-
 import {
   CampoDoPapel, ROTULO_DO_CAMPO, camposDoPapel, nomeDiferente,
 } from '../../../backend/src/modules/people/campos-do-papel.regra';
+import type { PrazoDaReavaliacao } from '../../../backend/src/modules/people/reavaliacao.regra';
 import { dia, horaSemSegundos } from '../rotulos';
 import { Icone } from '../icones';
 import { Avatar, esquecerFoto } from '../avatar';
@@ -741,6 +742,7 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
   const [erro, setErro] = useState('');
   const [erroJudicial, setErroJudicial] = useState('');
   const [semJudicial, setSemJudicial] = useState(false);
+  const [prazo, setPrazo] = useState<PrazoDaReavaliacao | null>(null);
   const [evolucao, setEvolucao] = useState(false);
   /* Alergia, condição e restrição (fase 166): registrar e encerrar. */
   const [registrandoSaude, setRegistrandoSaude] = useState<'condicao' | 'restricao' | null>(null);
@@ -785,6 +787,9 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
 
   async function abrirJudicial() {
     setErroJudicial(''); setSemJudicial(false);
+    /* O prazo da reavaliação (fase 269) vem por rota própria: vale também para a
+       criança sem o motivo judicial cadastrado. Sem ele, a área abre do mesmo jeito. */
+    api<PrazoDaReavaliacao>(`/people/${personId}/reavaliacao`).then(setPrazo).catch(() => setPrazo(null));
     try {
       setJudicial(await api<Judicial>(`/people/${personId}/judicial`));
     } catch (e) {
@@ -1376,6 +1381,17 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
             </>
           )}
           {erroJudicial && <div className="notice c-crit" role="alert">{erroJudicial}</div>}
+          {/* O PRAZO DA REAVALIAÇÃO (fase 269): o ECA manda reavaliar no máximo a
+              cada três meses, e o tempo de acolhimento vai junto, como informação.
+              A cor é de estado (precisa de alguém), nunca sobre a criança. */}
+          {(judicial || semJudicial) && prazo && (
+            <div className={`bloco${prazo.situacao === 'em_dia' ? '' : ' notice c-warn'}`}
+                 data-reavaliacao={prazo.situacao} style={{ marginTop: 0, marginBottom: 12 }}>
+              <small>Reavaliação ao Juízo</small>
+              <div>{prazo.frase}</div>
+              <div className="mutetxt" style={{ marginTop: 4 }}>{prazo.fraseDoTempo}</div>
+            </div>
+          )}
           {semJudicial && (
             <div className="notice c-warn" role="status">
               <b>Sem motivo judicial cadastrado.</b>
@@ -1444,7 +1460,7 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
               toque. Fechar só esconde; abrir de novo fica registrado outra vez. */}
           {(judicial || semJudicial) && (
             <button className="btn sec block" style={{ marginTop: 14 }}
-                    onClick={() => { setJudicial(null); setSemJudicial(false); setEditandoJudicial(false); }}>
+                    onClick={() => { setJudicial(null); setSemJudicial(false); setEditandoJudicial(false); setPrazo(null); }}>
               Fechar a área restrita
             </button>
           )}
