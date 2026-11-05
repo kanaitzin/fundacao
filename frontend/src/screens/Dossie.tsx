@@ -625,7 +625,7 @@ function FolhaConferencia({ personId, documento, onFechar, onAceitar, onTextoGua
           ? <img src={arquivo.dataUrl} alt={documento.titulo}
                  style={{ maxWidth: '100%', borderRadius: 10, display: 'block' }} />
           : <iframe src={arquivo.dataUrl} title={documento.titulo}
-                    style={{ width: '100%', height: '46vh', border: 0, borderRadius: 10,
+                    style={{ width: '100%', height: 'calc(46vh / var(--zoom-da-letra, 1))', border: 0, borderRadius: 10,
                              background: '#fff' }} />)}
 
         {/* O texto do papel, lido neste aparelho e conferido pela pessoa (fase 234). */}

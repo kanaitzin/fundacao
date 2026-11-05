@@ -124,7 +124,7 @@ h1, h2, h3, .ff {
 /* O toque e o movimento moram no fim do arquivo, em O MOVIMENTO (fase 258). */
 
 /* ---------- Layout ---------- */
-.wrap { max-width: 468px; margin: 0 auto; min-height: 100dvh; display: flex; flex-direction: column; }
+.wrap { max-width: 468px; margin: 0 auto; min-height: calc(100dvh / var(--zoom-da-letra, 1)); display: flex; flex-direction: column; }
 /*
  * A BARRA DO TOPO FICOU CLARA (fase 150, decisão da Fundação em 23/09).
  *
@@ -270,7 +270,7 @@ input {
    para que o olho vá direto ao que precisa ser preenchido.
    ============================================================ */
 .loginwrap{
-  min-height:100dvh; display:grid; place-items:center; padding:24px;
+  min-height:calc(100dvh / var(--zoom-da-letra, 1)); display:grid; place-items:center; padding:24px;
   background:
     radial-gradient(1200px 600px at 50% -10%, #0A4A86 0%, transparent 60%),
     linear-gradient(160deg, var(--navy) 0%, var(--navy-2) 55%, #001B38 100%);
@@ -449,7 +449,7 @@ input {
 }
 .sheet.modal{
   background:var(--surface); border-radius:16px; padding:24px;
-  width:100%; max-width:480px; max-height:88dvh; overflow:auto;
+  width:100%; max-width:480px; max-height:calc(88dvh / var(--zoom-da-letra, 1)); overflow:auto;
   box-shadow:0 24px 60px rgba(0,20,45,.4);
 }
 .sheet.modal h3{ margin:0 0 6px; font-size:17px; color:var(--titulo) }
@@ -635,7 +635,7 @@ button.card:hover{ border-color:var(--brand) }
      nenhum aviso: só um texto que não dava para ler. */
   color:var(--ink);
   background:var(--surface); border-radius:16px; padding:24px;
-  width:100%; max-width:520px; max-height:88dvh; overflow:auto;
+  width:100%; max-width:520px; max-height:calc(88dvh / var(--zoom-da-letra, 1)); overflow:auto;
   box-shadow:0 24px 60px rgba(0,20,45,.4);
 }
 .sheet h3{ margin:0 0 6px; font-size:18px; color:var(--titulo) }
@@ -937,7 +937,7 @@ textarea{
   background:#FFFDF9; color:#1A1A1A;
   border:1px solid #D9D2C7; border-radius:8px;
   padding:22px 20px; margin-top:10px;
-  max-height:56vh; overflow:auto;
+  max-height:calc(56vh / var(--zoom-da-letra, 1)); overflow:auto;
   font-family:Georgia, "Times New Roman", serif; font-size:13.5px; line-height:1.6;
 }
 .papel-timbre{
@@ -1013,7 +1013,7 @@ textarea{
    não entra: recortar a prévia esconderia justamente a borda cortada que a
    pessoa está aqui para ver. */
 .so-leitor{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
-.previa-img.ampliada{max-height:80vh;width:100%;object-fit:contain}
+.previa-img.ampliada{max-height:calc(80vh / var(--zoom-da-letra, 1));width:100%;object-fit:contain}
 .previa-img{
   max-width:100%; height:auto; display:block;
   border-radius:10px; border:1px solid var(--line);
@@ -1022,7 +1022,7 @@ textarea{
 /* O PDF em quadro. Fundo branco fixo porque a folha digitalizada é branca —
    no tema escuro, um quadro transparente devolve texto preto sobre preto. */
 .previa-quadro{
-  width:100%; height:46vh; border:0; border-radius:10px;
+  width:100%; height:calc(46vh / var(--zoom-da-letra, 1)); border:0; border-radius:10px;
   background:#fff; display:block;
 }
 
@@ -1407,8 +1407,12 @@ textarea{
 
 /* O TAMANHO DA LETRA (fase 183): a página inteira cresce junto, com o botão
    do tamanho da palavra. O `zoom` reflui o layout, sem rolagem lateral. */
-:root[data-letra="grande"]{ zoom:1.15 }
-:root[data-letra="maior"]{ zoom:1.3 }
+:root[data-letra="grande"]{ zoom:1.15; --zoom-da-letra:1.15 }
+:root[data-letra="maior"]{ zoom:1.3; --zoom-da-letra:1.3 }
+/* A ALTURA PELA TELA, COM A LETRA AUMENTADA (05/11). Dentro do zoom, 88dvh vira 88% da
+   tela vezes o zoom: no computador, a folha passava da borda de baixo e o botão do fim
+   ficava fora de alcance (Atividade urgente, Mudar a chamada). Toda altura medida pela
+   tela se divide por --zoom-da-letra, que vale 1 sem a letra aumentada. */
 .prefs-linha{ display:flex; gap:8px; margin:8px 0 14px }
 .prefs-linha button{
   flex:1; min-height:48px; border:2px solid var(--line); border-radius:12px;
@@ -1540,7 +1544,7 @@ div.acoes{ display:flex; flex-wrap:wrap; gap:8px; align-items:center }
 .acolhe-botao:focus-visible{ outline:3px solid var(--titulo); outline-offset:3px }
 .acolhe-painel{
   position:fixed; right:16px; bottom:16px; z-index:56; width:420px; max-width:calc(100vw - 32px);
-  height:min(720px, calc(100vh - 32px)); display:flex; flex-direction:column;
+  height:min(720px, calc((100vh - 32px) / var(--zoom-da-letra, 1))); display:flex; flex-direction:column;
   background:var(--surface); color:var(--ink); border:1px solid var(--line); border-radius:18px;
   box-shadow:0 12px 40px rgba(0,0,0,.28); overflow:hidden;
 }
