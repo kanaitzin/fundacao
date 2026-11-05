@@ -52,7 +52,11 @@ jobs:
           touch site/.nojekyll
           ls -la site
 
+      # Tenta ligar o Pages na primeira vez; se o GitHub recusar, o clique do
+      # dono em Settings, Pages, Source: GitHub Actions resolve, uma vez só.
       - uses: actions/configure-pages@v5
+        with:
+          enablement: true
 
       - uses: actions/upload-pages-artifact@v3
         with:
