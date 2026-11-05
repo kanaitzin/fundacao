@@ -21,6 +21,10 @@
  * Fotografa cada tela inteira em /tmp/ensaio-celular, para quem conferir olhar.
  * Uso: ENSAIO_CHROMIUM=/caminho/do/chrome npm run ensaio:celular
  *      ENSAIO_LARGURAS=360 para uma largura só.
+ *      ENSAIO_LETRA=grande ou maior mede com a letra aumentada da folha Cor e
+ *      letra da tela (pedido de 05/11: com a letra grande, coisas vazavam da
+ *      tela e dos botões). A letra é um `zoom` da página: o Chromium mede a
+ *      largura da página SEM o zoom e as caixas COM ele, e a régua converte.
  */
 import { chromium } from 'playwright-core';
 import { existsSync, mkdirSync } from 'node:fs';
@@ -31,8 +35,9 @@ const AQUI = dirname(fileURLToPath(import.meta.url));
 const ARQUIVO = process.env.ENSAIO_ARQUIVO
   ?? resolve(AQUI, '..', 'prototipo', 'rede-acolher-prototipo.html');
 const EXECUTAVEL = process.env.ENSAIO_CHROMIUM;
-const SAIDA = process.env.ENSAIO_SAIDA ?? '/tmp/ensaio-celular';
+const SAIDA = process.env.ENSAIO_SAIDA ?? `/tmp/ensaio-celular${process.env.ENSAIO_LETRA ? `-${process.env.ENSAIO_LETRA}` : ''}`;
 const LARGURAS = (process.env.ENSAIO_LARGURAS ?? '360,390').split(',').map(Number);
+const LETRA = process.env.ENSAIO_LETRA ?? 'normal';
 
 if (!EXECUTAVEL || !existsSync(EXECUTAVEL)) {
   console.error('ENSAIO_CHROMIUM não aponta para um executável. Rode `bash scripts/preparar-ambiente.sh`.');
@@ -50,7 +55,10 @@ let alvosMedios = 0;
 /** O que a tela aberta agora tem de errado no celular. */
 async function medir(pg) {
   return pg.evaluate(() => {
-    const vw = document.documentElement.clientWidth;
+    /* Com a letra aumentada (zoom na raiz), a largura da página vem sem o zoom e
+       as caixas vêm com ele: a régua das caixas é a largura vezes o zoom. */
+    const z = parseFloat(getComputedStyle(document.documentElement).zoom) || 1;
+    const vw = document.documentElement.clientWidth * z;
     const vh = window.innerHeight;
     const r = { vaza: 0, fora: [], cortado: [], naoCabe: [], encostados: [], pequeno: [], medio: 0, escondido: null, raciocinio: [] };
     const MARCAS = /o sistema não|não existe|de prop[óo]sito|justamente|não é (medição|avaliação|julgamento|supervisão)|por construção|é por isso que|quem consulta também|filtro de tela/i;
@@ -59,7 +67,7 @@ async function medir(pg) {
         if (MARCAS.test(linha)) r.raciocinio.push(linha.trim().slice(0, 120));
       }
     }
-    r.vaza = document.documentElement.scrollWidth - vw;
+    r.vaza = Math.round((document.documentElement.scrollWidth - document.documentElement.clientWidth) * z);
     const visivel = (e) => {
       const s = getComputedStyle(e);
       if (s.visibility === 'hidden' || s.display === 'none' || Number(s.opacity) === 0) return false;
@@ -163,6 +171,8 @@ for (const largura of LARGURAS) {
   });
   const erros = [];
   pg.on('pageerror', (e) => erros.push(e.message));
+  /* A letra escolhida, guardada no aparelho antes de a página abrir. */
+  await pg.addInitScript((l) => { try { localStorage.setItem('rede-acolher.letra', l); } catch { /* sem guarda */ } }, LETRA);
   await pg.goto(`file://${ARQUIVO}`);
   await pg.waitForTimeout(900);
   /* A entrada abre vazia (fase 188): o atalho do protótipo preenche o Marcelo. */
@@ -172,7 +182,7 @@ for (const largura of LARGURAS) {
   const seletor = pg.locator('select.troca-cargo-sel');
   const cargos = await seletor.locator('option').evaluateAll((os) =>
     os.map((o) => ({ valor: o.value, rotulo: o.textContent.trim() })));
-  console.log(`\n📱 ${largura} px — ${cargos.length} cargos`);
+  console.log(`\n📱 ${largura} px, letra ${LETRA} — ${cargos.length} cargos`);
 
   const conferir = async (cargo, onde) => {
     erros.length = 0;

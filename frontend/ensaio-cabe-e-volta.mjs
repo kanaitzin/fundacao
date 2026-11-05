@@ -29,6 +29,8 @@
  *
  * Uso: ENSAIO_CHROMIUM=/caminho/do/chrome npm run ensaio:cabe
  *      ENSAIO_LARGURAS=360 para uma largura; ENSAIO_CARGOS=educador para um cargo.
+ *      ENSAIO_LETRA=grande ou maior mede com a letra aumentada (pedido de 05/11),
+ *      com a régua convertida: a página mede sem o zoom, as caixas com ele.
  * Foto de cada achado em /tmp/ensaio-cabe.
  */
 import { chromium } from 'playwright-core';
@@ -40,7 +42,8 @@ const AQUI = dirname(fileURLToPath(import.meta.url));
 const ARQUIVO = process.env.ENSAIO_ARQUIVO
   ?? resolve(AQUI, '..', 'prototipo', 'rede-acolher-prototipo.html');
 const EXECUTAVEL = process.env.ENSAIO_CHROMIUM;
-const SAIDA = process.env.ENSAIO_SAIDA ?? '/tmp/ensaio-cabe';
+const SAIDA = process.env.ENSAIO_SAIDA ?? `/tmp/ensaio-cabe${process.env.ENSAIO_LETRA ? `-${process.env.ENSAIO_LETRA}` : ''}`;
+const LETRA = process.env.ENSAIO_LETRA ?? 'normal';
 const LARGURAS = (process.env.ENSAIO_LARGURAS ?? '360,390,1366').split(',').map(Number);
 const SO_CARGOS = (process.env.ENSAIO_CARGOS ?? '').split(',').filter(Boolean);
 /** Até quantos níveis abaixo da tela ele entra (a lista, o perfil, o dossiê). */
@@ -76,7 +79,8 @@ const VOLTA_DA_SUBTELA = /^(←|Voltar\b|Fechar\b|Cancelar\b)/i;
 async function medir(pg) {
   return pg.evaluate(({ voltaFolha, voltaSub }) => {
     const re = (s) => new RegExp(s.source, s.flags);
-    const vw = document.documentElement.clientWidth;
+    const z = parseFloat(getComputedStyle(document.documentElement).zoom) || 1;
+    const vw = document.documentElement.clientWidth * z;
     const vh = window.innerHeight;
     const out = [];
     const visivel = (e) => {
@@ -102,13 +106,25 @@ async function medir(pg) {
     const raiz = folha ?? document.querySelector('main.conteudo') ?? document.body;
 
     /* VAZA */
-    const vaza = document.documentElement.scrollWidth - vw;
+    const vaza = Math.round((document.documentElement.scrollWidth - document.documentElement.clientWidth) * z);
     if (vaza > 1) out.push(`a página anda ${vaza}px para o lado`);
     let fora = 0;
     for (const e of raiz.querySelectorAll('*')) {
       if (fora >= 3 || !visivel(e)) continue;
       const b = e.getBoundingClientRect();
       if (b.right > vw + 1 && b.left < vw && !rolaDeLado(e)) { out.push(`passa da borda: ${nome(e)} até ${Math.round(b.right)}px`); fora++; }
+    }
+
+    /* O TEXTO QUE VAZA DO PRÓPRIO BOTÃO (pedido de 05/11, com a letra grande).
+       O selo posto por cima (o número de avisos) é absoluto e não conta. */
+    let naoCabe = 0;
+    for (const e of raiz.querySelectorAll('button, [role=tab]')) {
+      if (naoCabe >= 3 || !visivel(e)) continue;
+      const temSelo = [...e.querySelectorAll('*')].some((f) => ['absolute', 'fixed'].includes(getComputedStyle(f).position));
+      const s = getComputedStyle(e);
+      if (!temSelo && s.overflowX === 'visible' && e.scrollWidth > e.clientWidth + 2) {
+        out.push(`texto não cabe no botão: ${nome(e)} ${e.scrollWidth}>${e.clientWidth}`); naoCabe++;
+      }
     }
 
     /* PRESO: caixa que esconde o que transborda, com controle ou texto lá embaixo. */
@@ -163,6 +179,8 @@ for (const largura of LARGURAS) {
   });
   const erros = [];
   pg.on('pageerror', (e) => erros.push(e.message));
+  /* A letra escolhida, guardada no aparelho antes de a página abrir (vale também no recomeço). */
+  await pg.addInitScript((l) => { try { localStorage.setItem('rede-acolher.letra', l); } catch { /* sem guarda */ } }, LETRA);
   await pg.goto(`file://${ARQUIVO}`);
   await esp(pg, 900);
   await pg.getByRole('button', { name: 'Marcelo Barbosa' }).click();
@@ -172,7 +190,7 @@ for (const largura of LARGURAS) {
   const cargos = (await seletor.locator('option').evaluateAll((os) =>
     os.map((o) => ({ valor: o.value, rotulo: o.textContent.trim() }))))
     .filter((c) => !SO_CARGOS.length || SO_CARGOS.includes(c.valor));
-  console.log(`\n${celular ? '📱' : '🖥️ '} ${largura} px — ${cargos.length} cargos`);
+  console.log(`\n${celular ? '📱' : '🖥️ '} ${largura} px, letra ${LETRA} — ${cargos.length} cargos`);
 
   /** Entra de novo do zero, no mesmo cargo: para quando uma folha não deixa sair. */
   let cargoAtual = null;
