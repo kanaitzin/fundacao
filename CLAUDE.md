@@ -455,7 +455,7 @@ Portaria e pelo protótipo; a política da `photo_change` confere o cargo de nov
 a de antes vai para a `photo_change` na mesma transação. **Medido na 274:** a `a-foto-que-nao-se-apaga` (3 de 3), o
 contrato de rotas, as rotas sem porta, a Acolhe+AI, o anexo pela câmera, as recusas e o botão que grava, e a sonda no
 protótipo a 390 e a 1366 px (abrir, fechar pelo X, Esc e toque fora, pôr, trocar e tirar na criança e no familiar, o
-familiar novo com foto, e o educador e o gestor que veem e não mexem; nenhum erro de página).
+familiar novo com foto, e o educador e o gestor que veem e não mexem; nenhum erro de página), o `ensaio:cabe` da técnica e da coordenação a 390 px (468 estados, 280 voltas, sem achado), o axe no visor aberto nos temas claro, escuro e RS (nenhuma violação) e a suíte inteira (1442 de 1444; as duas reprovações eram as frases da auditoria para a foto tirada, escritas e conferidas). **Não rodou** a suíte inteira de novo depois das frases, nem o relógio adiantado.
 **Pergunta aberta:** *Este contato não vale mais* virar *Retirar este familiar* (retirar e acrescentar já existem).
 **Próxima: 275**, o pedido de 05/11 da ordem do perfil: em cada aba, cada lista do mais novo para o mais antigo, a
 data e a hora em cada anotação de atendimento, e a busca nos atendimentos; a Geral continua com familiares,
