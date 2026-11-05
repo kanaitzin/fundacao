@@ -585,7 +585,7 @@ export class ImpactoService {
           ORDER BY pr.medication`, [personId]);
       const { rows: documentos } = await c.query(
         `SELECT DISTINCT ON (coalesce(d.checklist_key, d.id::text)) d.title,
-                coalesce(d.issued_on, (d.created_at AT TIME ZONE app_fuso())::date)::text AS data
+                d.issued_on::text AS data
            FROM document d
           WHERE d.person_id = $1 AND d.category <> 'judicial_socioassistencial'
           ORDER BY coalesce(d.checklist_key, d.id::text), d.created_at DESC`, [personId]);

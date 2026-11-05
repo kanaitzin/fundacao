@@ -31,6 +31,7 @@ export interface DadosDaTransicao {
   remedios: { nome: string; dose: string; via: string; horarios: string[];
               orientacao: string | null; ate: string | null }[];
   escola: { nome: string; serie: string | null; turno: string | null } | null;
+  /** A data é a da emissão do papel; sem ela, fica em branco (o dia em que foi anexado não diz nada a quem recebe). */
   documentos: { titulo: string; data: string | null }[];
 }
 
@@ -88,7 +89,7 @@ export function folhaDeTransicao(d: DadosDaTransicao, autor: AutorDaFolha): Folh
     ? {
         titulo: 'Documentos que acompanham',
         tabela: {
-          cabecalho: ['Documento', 'Data', 'Entregue'],
+          cabecalho: ['Documento', 'Emitido em', 'Entregue'],
           linhas: d.documentos.map((x) => [x.titulo, x.data ? diaBR(x.data) : '', '(  ) sim   (  ) não']),
         },
       }

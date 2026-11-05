@@ -335,7 +335,7 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 270 | **a saída com a história** (pedido de 03/11): a folha de transição, para quem recebe a criança (cuidados, saúde, alimentação, remédios com horários, escola e documentos, com recibo), e o livro da vida, para ela (conquistas e vivências, só fotos autorizadas), na aba Documentos e na folha da saída; nada da área restrita (`reports/saida-folha.ts`, `/impacto/saida/:id/...`) |
 | 271 | **há quanto tempo a família não visita** (pedido de 03/11): no perfil, na aba Família e visitas, a técnica, a coordenação e a gestão leem a última visita da família e a última ida à casa dela, com os dias; sem cor, sem limite e sem lista entre crianças (`ultimo-contato.regra.ts`, no `GET /people/:id/visitas`) |
 
-**Medido no fim da 271:** 208 migrações, 145 tabelas, 164 suítes, 1432 testes; nas 237 e 238, a suíte inteira
+**Medido no fim da 271:** 208 migrações, 145 tabelas, 164 suítes, 1433 testes; nas 237 e 238, a suíte inteira
 verde (1363 de 1363, depois de consertar as três conferências que o relatório das vivências deixou soltas) e o
 `ensaio:uso` (739 cobranças, sem reprovação, com o relatório das vivências aberto e o Word baixado); **não rodou**
 nas 237 e 238 o relógio adiantado, o do celular, o de acessibilidade, o `ensaio:acolhe` nem a simulação contra o servidor;
@@ -444,6 +444,8 @@ posto em ordem no **PARA-A-REUNIAO §0**: as cinco perguntas que mais destravam,
 responder, os documentos de papel e os dados a receber, o que o DPO vê, o que se assina e as 30
 decisões de produto abertas. **Quando a resposta vier, ela entra lá e no §10 ou §11 do documento**, e
 o item respondido sai do §0.
+
+**Conferido pelo link em 05/11** (§2, linha 271): a folha de transição datava o documento pelo dia em que foi anexado (hoje *Emitido em*), e o Word do protótipo não levava foto no corpo (hoje leva, como o servidor). **O link do raw.githack não abre daqui** (a rede da sessão o recusa, mesmo liberado depois de a sessão começar): confere-se baixando os mesmos bytes pelo `raw.githubusercontent.com` e servindo como `text/html`.
 
 **FEITO — fase 271** (§2, PARA-A-REUNIAO §4.40): o último contato com a família, e com ela **o pedido de 03/11
 (*pense no que eu não pensei*) está feito**: 269, 270 e 271; o 4 (o peso do turno) e o 5 (a prestação de contas)

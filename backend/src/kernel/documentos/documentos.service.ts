@@ -9,7 +9,7 @@ import {
 import { AuditService } from '../audit/audit.service';
 import { AuthenticatedUser } from '../contracts';
 import {
-  Folha, PASSOS_DA_BARRA, SecaoDaFolha, diaBR, nomeDaPlanilha, nomeDoArquivo, passosDaBarra, planilhaDaFolha,
+  Folha, PASSOS_DA_BARRA, dimensoesDaImagem, SecaoDaFolha, diaBR, nomeDaPlanilha, nomeDoArquivo, passosDaBarra, planilhaDaFolha,
 } from './folha';
 
 /**
@@ -478,27 +478,5 @@ export class DocumentosService {
   }
 }
 
-/**
- * A largura e a altura de um PNG ou JPEG, lidas do cabeçalho — o Word precisa
- * do tamanho para não deformar a imagem, e não há biblioteca de imagem aqui.
- */
-export function dimensoesDaImagem(b: Uint8Array): { largura: number; altura: number } | null {
-  if (b.length > 24 && b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) {
-    const v = new DataView(b.buffer, b.byteOffset, b.byteLength);
-    return { largura: v.getUint32(16), altura: v.getUint32(20) };
-  }
-  if (b.length > 4 && b[0] === 0xff && b[1] === 0xd8) {
-    let i = 2;
-    while (i + 9 < b.length) {
-      if (b[i] !== 0xff) { i++; continue; }
-      const marca = b[i + 1];
-      const tam = (b[i + 2] << 8) + b[i + 3];
-      /* SOF0..SOF15, menos DHT (C4), JPG (C8) e DAC (CC). */
-      if (marca >= 0xc0 && marca <= 0xcf && ![0xc4, 0xc8, 0xcc].includes(marca)) {
-        return { altura: (b[i + 5] << 8) + b[i + 6], largura: (b[i + 7] << 8) + b[i + 8] };
-      }
-      i += 2 + tam;
-    }
-  }
-  return null;
-}
+/* A medida da imagem mora na folha (`folha.ts`), que o protótipo também lê (05/11). */
+export { dimensoesDaImagem };

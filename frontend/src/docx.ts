@@ -45,7 +45,7 @@ export type {
   Folha as DocumentoWord,
 } from '../../backend/src/kernel/documentos/folha';
 import type { Folha as DocumentoWord } from '../../backend/src/kernel/documentos/folha';
-import { PASSOS_DA_BARRA, passosDaBarra } from '../../backend/src/kernel/documentos/folha';
+import { PASSOS_DA_BARRA, dimensoesDaImagem, passosDaBarra } from '../../backend/src/kernel/documentos/folha';
 
 
 // ---------------------------------------------------------------- utilidades
@@ -223,11 +223,13 @@ function grafico(barras: { rotulo: string; valor: number }[]): string {
     + linhas + '</w:tbl>' + par('', { espacoDepois: 60 });
 }
 
-function corpoDoDocumento(d: DocumentoWord): string {
+/** As fotografias que vão no corpo do Word, na ordem em que aparecem. */
+interface Midia { nome: string; dados: Uint8Array }
+
+function corpoDoDocumento(d: DocumentoWord, midia: Midia[]): string {
   const partes: string[] = [];
 
-  /* A capa (fase 165): o protótipo não leva imagem, e a capa dele é só o
-     texto, centralizado, seguido de quebra de página. */
+  /* A capa (fase 165): só o texto, centralizado, seguido de quebra de página. */
   if (d.capa) {
     partes.push(par('', { espacoDepois: 1600 }));
     partes.push(par('FUNDAÇÃO O PÃO DOS POBRES DE SANTO ANTÔNIO', { alinhamento: 'center', negrito: true, espacoDepois: 60 }));
@@ -273,9 +275,21 @@ function corpoDoDocumento(d: DocumentoWord): string {
     }
     if (s.tabela) partes.push(tabela(s.tabela.cabecalho, s.tabela.linhas));
     if (s.grafico?.barras.length) partes.push(grafico(s.grafico.barras));
+    /* A fotografia vai no papel, como no servidor (05/11: o livro da vida saía do
+       protótipo só com as legendas). Cabe na largura útil sem deformar. */
     for (const im of s.imagens ?? []) {
-      partes.push(par(im.semFoto ? `${im.legenda}. ${im.semFoto}.` : `${im.legenda}. Documento disponível no registro eletrônico.`, {
-        italico: true, tamanho: MENOR, alinhamento: 'left', espacoDepois: 80 }));
+      const ext = im.foto?.tipo === 'image/jpeg' ? 'jpeg' : im.foto?.tipo === 'image/png' ? 'png' : null;
+      const medida = im.foto && ext ? dimensoesDaImagem(im.foto.dados) : null;
+      if (im.foto && ext && medida) {
+        midia.push({ nome: `foto${midia.length + 1}.${ext}`, dados: im.foto.dados });
+        const escala = Math.min(1, 560 / medida.largura, 720 / medida.altura);
+        partes.push('<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="120" w:after="40"/></w:pPr>'
+          + desenho(midia.length, Math.round(medida.largura * escala), Math.round(medida.altura * escala))
+          + '</w:p>');
+      }
+      partes.push(par(medida ? im.legenda
+        : im.semFoto ? `${im.legenda}. ${im.semFoto}.` : `${im.legenda}. Documento disponível no registro eletrônico.`, {
+        italico: true, tamanho: MENOR, alinhamento: medida ? 'center' : 'left', espacoDepois: 80 }));
     }
 
     if (s.aPreencher) {
@@ -318,6 +332,7 @@ const CONTENT_TYPES = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
   + '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
   + '<Default Extension="xml" ContentType="application/xml"/>'
   + '<Default Extension="png" ContentType="image/png"/>'
+  + '<Default Extension="jpeg" ContentType="image/jpeg"/>'
   + '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>'
   + '<Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>'
   + '<Override PartName="/word/header1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml"/>'
@@ -329,12 +344,27 @@ const RELS = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
   + '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>'
   + '</Relationships>';
 
-const DOC_RELS = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+const relacoesDoDocumento = (midia: Midia[]) => '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
   + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
   + '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>'
   + '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header" Target="header1.xml"/>'
   + '<Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer1.xml"/>'
+  + midia.map((m, i) => `<Relationship Id="rIdFoto${i + 1}" `
+    + `Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/${m.nome}"/>`).join('')
   + '</Relationships>';
+
+/** Uma fotografia do corpo, do tamanho dado em pixels (9525 EMU cada). */
+function desenho(n: number, largura: number, altura: number): string {
+  const cx = largura * 9525, cy = altura * 9525;
+  return '<w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0">'
+    + `<wp:extent cx="${cx}" cy="${cy}"/><wp:docPr id="${100 + n}" name="Fotografia ${n}"/>`
+    + '<a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">'
+    + `<pic:pic><pic:nvPicPr><pic:cNvPr id="${100 + n}" name="foto${n}"/><pic:cNvPicPr/></pic:nvPicPr>`
+    + `<pic:blipFill><a:blip r:embed="rIdFoto${n}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>`
+    + `<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm>`
+    + '<a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr>'
+    + '</pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>';
+}
 
 const HEADER_RELS = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
   + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
@@ -393,7 +423,7 @@ function rodape(geradoPor: string): string {
     + '</w:p></w:ftr>';
 }
 
-function documento(d: DocumentoWord): string {
+function documento(d: DocumentoWord, midia: Midia[]): string {
   // A4 e as margens da ABNT: 3 cm no topo e à esquerda, 2 cm à direita e
   // embaixo. Em twips (1 cm = 566,93), arredondado como o Word faz.
   const secao = '<w:sectPr>'
@@ -406,7 +436,7 @@ function documento(d: DocumentoWord): string {
     + 'w:header="567" w:footer="567" w:gutter="0"/>'
     + '</w:sectPr>';
   return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
-    + `<w:document ${NS}><w:body>${corpoDoDocumento(d)}${secao}</w:body></w:document>`;
+    + `<w:document ${NS}><w:body>${corpoDoDocumento(d, midia)}${secao}</w:body></w:document>`;
 }
 
 /**
@@ -415,15 +445,18 @@ function documento(d: DocumentoWord): string {
  */
 export function gerarDocx(d: DocumentoWord, timbrePng?: Uint8Array | null): string {
   const enc = new TextEncoder();
+  const midia: Midia[] = [];
+  const corpo = documento(d, midia);
   const arquivos: ArquivoZip[] = [
     { nome: '[Content_Types].xml', dados: enc.encode(CONTENT_TYPES) },
     { nome: '_rels/.rels', dados: enc.encode(RELS) },
-    { nome: 'word/document.xml', dados: enc.encode(documento(d)) },
-    { nome: 'word/_rels/document.xml.rels', dados: enc.encode(DOC_RELS) },
+    { nome: 'word/document.xml', dados: enc.encode(corpo) },
+    { nome: 'word/_rels/document.xml.rels', dados: enc.encode(relacoesDoDocumento(midia)) },
     { nome: 'word/styles.xml', dados: enc.encode(ESTILOS) },
     { nome: 'word/header1.xml', dados: enc.encode(cabecalho(!!timbrePng)) },
     { nome: 'word/footer1.xml', dados: enc.encode(rodape(d.geradoPor)) },
   ];
+  for (const m of midia) arquivos.push({ nome: `word/media/${m.nome}`, dados: m.dados });
   if (timbrePng) {
     arquivos.push({ nome: 'word/_rels/header1.xml.rels', dados: enc.encode(HEADER_RELS) });
     arquivos.push({ nome: 'word/media/timbre.png', dados: timbrePng });

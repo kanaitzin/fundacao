@@ -10,7 +10,11 @@
  *    autorização de imagem registrada, mesmo para a técnica, que no relatório das
  *    vivências inclui todas;
  *  - o educador não prepara nenhuma das duas;
- *  - os nomes dos tipos de vivência do livro são os do álbum.
+ *  - os nomes dos tipos de vivência do livro são os do álbum;
+ *  - a data de cada documento é a da emissão do papel, e não a do dia em que
+ *    foi anexado (achado de 05/11: a certidão de 2019 saía com a data de hoje);
+ *  - o Word do protótipo leva a fotografia, como o do servidor (achado de 05/11:
+ *    o livro da vida saía do protótipo só com as legendas).
  */
 import { Test } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
@@ -19,7 +23,8 @@ import { Client } from 'pg';
 import JSZip from 'jszip';
 import { AppModule } from '../src/app.module';
 import { TIPOS_DE_VIVENCIA } from '../src/modules/people/dossie-exigido';
-import { ROTULO_DA_VIVENCIA, QUEM_PREPARA_A_SAIDA } from '../src/modules/reports/saida-folha';
+import { ROTULO_DA_VIVENCIA, QUEM_PREPARA_A_SAIDA, folhaDoLivroDaVida } from '../src/modules/reports/saida-folha';
+import { gerarDocx } from '../../frontend/src/docx';
 
 const SENHA = 'senha-dev-123';
 const adminUrl = process.env.DATABASE_URL
@@ -96,6 +101,9 @@ describe('A saída com a história', () => {
       chave: 'certidao_nascimento', categoria: 'pessoal', titulo: 'Certidão de nascimento',
       conteudo: PNG, nomeArquivo: 'certidao.png', emitidoEm: '2016-06-10' })).status).toBe(201);
     expect((await post(t.tecnica, `/people/${crianca}/documents`, {
+      chave: 'cartao_sus', categoria: 'pessoal', titulo: 'Cartão SUS',
+      conteudo: PNG, nomeArquivo: 'cartao-sus.png' })).status).toBe(201);
+    expect((await post(t.tecnica, `/people/${crianca}/documents`, {
       chave: 'decisao_judicial', categoria: 'judicial_socioassistencial', titulo: 'Decisão judicial',
       conteudo: PNG, nomeArquivo: 'decisao.png' })).status).toBe(201);
 
@@ -111,6 +119,11 @@ describe('A saída com a história', () => {
     expect(f).not.toContain('Decisão judicial');
     expect(f).not.toMatch(/[Nn]eglig/);
     expect(f).not.toMatch(/undefined|null|NaN/);
+    /* A data é a da emissão; sem ela, em branco, e nunca o dia em que foi anexado. */
+    const docs = r.body.secoes.find((s: any) => s.titulo === 'Documentos que acompanham').tabela;
+    expect(docs.cabecalho).toEqual(['Documento', 'Emitido em', 'Entregue']);
+    expect(docs.linhas.find((l: string[]) => l[0] === 'Certidão de nascimento')[1]).toBe('10/06/2016');
+    expect(docs.linhas.find((l: string[]) => l[0] === 'Cartão SUS')[1]).toBe('');
 
     /* Os remédios, com os horários do banco. */
     const { rows: remedios } = await admin.query(
@@ -157,6 +170,27 @@ describe('A saída com a história', () => {
     expect(doc).toContain('Passeio ao parque com a turma, com pipoca.');
     /* Uma entrada de fotografia só: a sem autorização não aparece nem como legenda. */
     expect(doc.match(/Fotografia/g)?.length).toBe(1);
+  });
+
+  it('o Word do protótipo leva a fotografia autorizada, e só ela', async () => {
+    /* Uma imagem que tem medida: o JPEG mínimo das outras conferências não tem. */
+    const foto = { tipo: 'image/png', dados: new Uint8Array(Buffer.from(PNG, 'base64')) };
+    const folha = folhaDoLivroDaVida({
+      crianca: { nome: 'Saída', casa: 'AI3', desde: '2026-01-10' },
+      marcos: [],
+      vivencias: [{ tipo: 'Passeio', quando: '2026-09-20', descricao: 'Passeio ao parque.',
+                    fotos: [{ autorizada: true, foto }, { autorizada: false, foto }] }],
+    }, { nome: 'Técnica Fictícia', cargo: 'Equipe técnica' });
+    const zip = await JSZip.loadAsync(Buffer.from(gerarDocx(folha, null), 'base64'));
+    const doc = await zip.file('word/document.xml')!.async('string');
+    const rels = await zip.file('word/_rels/document.xml.rels')!.async('string');
+    expect(doc.match(/<w:drawing>/g)).toHaveLength(1);
+    expect(rels).toContain('Target="media/foto1.png"');
+    expect(Buffer.from(await zip.file('word/media/foto1.png')!.async('uint8array')))
+      .toEqual(Buffer.from(PNG, 'base64'));
+    expect(await zip.file('[Content_Types].xml')!.async('string')).toContain('Extension="png"');
+    /* Com a foto no papel, a legenda não diz que ela está em outro lugar. */
+    expect(doc).not.toContain('registro eletrônico');
   });
 
   it('o educador não prepara nenhuma das duas folhas', async () => {

@@ -4205,6 +4205,19 @@ interface VivenciaMock {
 /* alcance:judicial — quem lê a área restrita. O educador não entra. */
 const VE_JUDICIAL = ['equipe_tecnica', 'coordenador', 'gestor_geral'];
 
+/** Os bytes de uma foto guardada, para o Word (05/11): só JPEG e PNG, como no servidor. */
+function fotoParaOWord(conteudo: string | undefined | null): { tipo: string; dados: Uint8Array } | null {
+  if (!conteudo) return null;
+  const tipo = tipoDoDataUrl(conteudo);
+  if (tipo !== 'image/jpeg' && tipo !== 'image/png') return null;
+  try {
+    const bin = atob(conteudo.split(',')[1] ?? '');
+    const dados = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) dados[i] = bin.charCodeAt(i);
+    return { tipo, dados };
+  } catch { return null; }
+}
+
 /** O tipo REAL, pelos primeiros bytes — a extensão não entra na conta. */
 function tipoDoDataUrl(dataUrl: string): string | null {
   const b64 = (dataUrl.split(',')[1] ?? '').slice(0, 24);
@@ -13326,7 +13339,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
 
   /* O RELATÓRIO DAS VIVÊNCIAS (fase 237): a mesma regra do servidor
      (`vivencias-folha.ts`), com as escolhas de quem pede e as fotos conforme o cargo.
-     O Word do protótipo não leva imagem: a foto sai como legenda. */
+     Os bytes das fotos só vão para gerar o Word, como no servidor. */
   if (seg[0] === 'people' && seg[2] === 'memories' && (seg[3] === 'folha' || seg[3] === 'export') && metodo === 'POST') {
     semearDossie();
     const crianca = todosKids().find((k) => k.id === seg[1]);
@@ -13336,7 +13349,8 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       itens: VIVENCIAS.filter((v) => v.personId === seg[1]).map((v) => ({
         id: v.id, tipo: v.tipo, quando: String(v.quando).slice(0, 10), descricao: v.descricao,
         registradoPor: v.registradoPor ?? null,
-        fotos: v.fotos.map((f) => ({ id: f.id, autorizada: f.autorizacaoRegistrada, foto: null })),
+        fotos: v.fotos.map((f) => ({ id: f.id, autorizada: f.autorizacaoRegistrada,
+          foto: seg[3] === 'export' ? fotoParaOWord(f.conteudo) : null })),
       })),
       rotulos: Object.fromEntries(TIPOS_DE_VIVENCIA.map((t) => [t.code, t.label])),
     };
@@ -13355,8 +13369,8 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
   }
 
   /* A SAÍDA COM A HISTÓRIA (fase 270): a mesma folha do servidor (`saida-folha.ts`),
-     com o perfil, os remédios, o dossiê e o álbum do protótipo. O Word do protótipo
-     não leva imagem: a fotografia autorizada sai como legenda. */
+     com o perfil, os remédios, o dossiê e o álbum do protótipo. O Word leva só as
+     fotografias com autorização de imagem, e os bytes só vão para gerar o arquivo. */
   if (seg[0] === 'impacto' && seg[1] === 'saida' && seg.length === 5
       && (seg[4] === 'folha' ? metodo === 'GET' : seg[4] === 'export' && metodo === 'POST')) {
     if (!QUEM_PREPARA_A_SAIDA.includes(eu.role)) {
@@ -13392,7 +13406,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         escola: perfil.escola?.nome
           ? { nome: perfil.escola.nome, serie: perfil.escola.serie ?? null, turno: perfil.escola.turno ?? null } : null,
         documentos: [...ultimoDeCada.values()]
-          .map((d) => ({ titulo: d.titulo, data: d.emitidoEm ?? d.anexadoEm.slice(0, 10) }))
+          .map((d) => ({ titulo: d.titulo, data: d.emitidoEm ?? null }))
           .sort((a, b) => a.titulo.localeCompare(b.titulo)),
       }, autorDaFolha());
     } else if (seg[3] === 'livro') {
@@ -13404,7 +13418,8 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
           descricao: m.descricao, instituicao: m.instituicao ?? null })),
         vivencias: VIVENCIAS.filter((v) => v.personId === k.id).map((v) => ({
           tipo: ROTULO_DA_VIVENCIA[v.tipo] ?? v.tipo, quando: String(v.quando).slice(0, 10), descricao: v.descricao,
-          fotos: v.fotos.map((f) => ({ autorizada: f.autorizacaoRegistrada, foto: null })) })),
+          fotos: v.fotos.map((f) => ({ autorizada: f.autorizacaoRegistrada,
+            foto: seg[4] === 'export' && f.autorizacaoRegistrada ? fotoParaOWord(f.conteudo) : null })) })),
       }, autorDaFolha());
     } else return new Recusa(404, 'Não encontrado.');
     return seg[4] === 'export' ? exportarFolha(folha) : folha;
