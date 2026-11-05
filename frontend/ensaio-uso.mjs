@@ -4534,9 +4534,11 @@ console.log('\n📷 Quem aparece na foto, e a foto pequena (fase 209)');
   await pgF.locator('select.troca-cargo-sel').selectOption('equipe_tecnica'); await esp(900);
   await pgF.getByRole('button', { name: /^Acolhidos/ }).filter({ visible: true }).first().click(); await esp(900);
   await pgF.locator('.pessoa-cartao').filter({ hasText: 'Alice' }).first().click(); await esp(1200);
-  await pgF.getByRole('tab', { name: 'Geral' }).click(); await esp(1000);
-  cobrar('a Geral mostra as fotos de outras vivências em que a Alice foi marcada',
+  /* Desde a 277 as fotos, as conquistas e as memórias moram na aba Vivências. */
+  await pgF.getByRole('tab', { name: 'Vivências' }).click(); await esp(1000);
+  cobrar('a aba Vivências mostra as fotos de outras vivências em que a Alice foi marcada',
     /Fotos em que Alice aparece · [1-9]/i.test(await pgF.locator('main.conteudo').innerText()));
+  await pgF.getByRole('tab', { name: 'Documentos' }).click(); await esp(800);
   await pgF.getByRole('button', { name: /Dossiê: documentos e vivências/ }).click(); await esp(1200);
   await pgF.getByRole('tab', { name: /Vivências|Álbum/ }).first().click().catch(() => {}); await esp(900);
   cobrar('o álbum lista as miniaturas', await pgF.locator('.miniatura img').count() > 0);
@@ -4899,8 +4901,8 @@ console.log('\n🖍️ O atendimento da equipe técnica, com o desenho (fase 218
   await pgP.getByRole('tab', { name: /Família e visitas/ }).click(); await esp(900);
   cobrar('a Família traz os números da convivência',
     /A convivência de Alice em números/i.test(await pgP.locator('main.conteudo').innerText()));
-  await pgP.getByRole('tab', { name: /^Geral/ }).click(); await esp(900);
-  cobrar('a vida na casa entrou na Geral, com os números dela (pedido de 20/10)',
+  await pgP.getByRole('tab', { name: /^Vivências/ }).click(); await esp(900);
+  cobrar('a vida na casa tem a aba Vivências, com os números dela (pedidos de 20/10 e 05/11)',
     /A vida de Alice na casa em números/i.test(await pgP.locator('main.conteudo').innerText())
     && await pgP.getByRole('tab', { name: /Vida na casa/ }).count() === 0);
   await pgP.getByRole('tab', { name: /^Documentos/ }).click(); await esp(900);
@@ -5327,7 +5329,8 @@ console.log('\n🧒 A criança cadastrada pela tela (fase 253)');
   cobrar('a criança de agora está na casa e no acolhimento desde hoje', /há 0 dias/.test(geral) && !/há \d+ meses/.test(geral), geral.slice(0, 400));
   cobrar('sem escola, PIA ou equipe que ninguém informou', /Escola não informada/.test(geral) && /Sem PIA/.test(geral) && !/EMEF/.test(geral), geral.slice(0, 500));
   cobrar('os cuidados escritos no cadastro aparecem na Geral', /luz do corredor acesa/.test(geral));
-  cobrar('e nenhuma memória de fábrica', /memórias guardadas 0/.test(geral), geral.slice(0, 600));
+  const vivencias = await abaK('Vivências');
+  cobrar('e nenhuma memória de fábrica', /memórias guardadas 0/.test(vivencias), vivencias.slice(0, 600));
   const familia = await abaK('Família');
   cobrar('sem família nem visitas que ninguém registrou', /Nenhum contato cadastrado/.test(familia) && /desde o início: 0/.test(familia), familia.slice(0, 500));
   const dia = await abaK('Dia a dia');
