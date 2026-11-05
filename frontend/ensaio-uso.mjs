@@ -4872,8 +4872,10 @@ console.log('\n🖍️ O atendimento da equipe técnica, com o desenho (fase 218
   const at = await pgP.locator('section.atendimentos-tecnicos').innerText();
   cobrar('os Atendimentos são só os da equipe técnica, sem café nem almoço',
     !/Café da manhã|Almoço/.test(at) && /Psicologia/.test(at) && /Psicopedagogia/.test(at));
-  const datas = await pgP.locator('.relatorio-item .oc-quando').allInnerTexts();
-  const iso = datas.map((d) => { const [dm, a] = d.split('\n'); const [dd2, mm] = dm.split('/'); return `${a}-${mm}-${dd2}`; });
+  /* A data inteira, com a hora quando há (fase 275): o quadradinho da data mostra a hora no lugar do ano. */
+  const datas = await pgP.locator('.relatorio-item').allInnerTexts();
+  const iso = datas.map((d) => { const m = /(\d{2})\/(\d{2})\/(\d{4})(?: às (\d{2}:\d{2}))?/.exec(d);
+    return m ? `${m[3]}-${m[2]}-${m[1]} ${m[4] ?? ''}` : ''; });
   cobrar('o relatório vem do mais novo para o mais antigo',
     iso.length >= 3 && iso.every((d, i) => i === 0 || iso[i - 1] >= d), iso.join(' '));
   cobrar('os Atendimentos têm os números por área', /em números/i.test(at) && /psicopedagogia/.test(at));

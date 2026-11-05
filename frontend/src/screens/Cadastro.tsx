@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api, ErroApi } from '../api';
+import { quantos } from '../../../backend/src/kernel/common/quantos';
 
 /**
  * CADASTRO COMPLETO DO ACOLHIDO (§6.1, §13.1).
@@ -100,11 +101,11 @@ export function Cadastro({ houseId, casaLabel, onPronto }: {
 
   const cheia = !!ocupacao && ocupacao.vagas <= 0;
 
-  async function conferirCpf() {
+  async function conferirCpf(numero = cpf) {
     setErro(''); setConfere(null); setOcupado(true);
     try {
       setConfere(await api<ConfereCpf>('/people/check-cpf', {
-        method: 'POST', body: JSON.stringify({ cpf }),
+        method: 'POST', body: JSON.stringify({ cpf: numero }),
       }));
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Não foi possível conferir o CPF.');
@@ -116,6 +117,19 @@ export function Cadastro({ houseId, casaLabel, onPronto }: {
   const cpfResolvido = semCpf
     ? motivoSemCpf.trim().length >= 10
     : (confere !== null && !CPF_BLOQUEIA[confere.situacao]);
+  /* O CPF SE CONFERE SOZINHO (avaliação humana de 05/11): o cadastro "não avançava"
+     porque, com o CPF digitado, nada acontecia até tocar em Conferir, e o resto
+     da folha só aparecia depois. Com os onze números, a conferência sai sozinha. */
+  const digitosDoCpf = cpf.replace(/\D/g, '');
+  useEffect(() => {
+    if (semCpf || digitosDoCpf.length !== 11 || confere || ocupado) return;
+    const t = setTimeout(() => { void conferirCpf(cpf); }, 350);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [digitosDoCpf, semCpf]);
+  /* Sem CPF, a identificação aparece na hora: o motivo continua obrigatório para
+     seguir, e a frase acima do botão diz o que falta. */
+  const mostraIdentificacao = semCpf || (confere !== null && !CPF_BLOQUEIA[confere.situacao]);
 
   const podeAvancar = [
     cpfResolvido && fullName.trim().length >= 3 && birthDate !== '',
@@ -237,12 +251,20 @@ export function Cadastro({ houseId, casaLabel, onPronto }: {
                 <div className="row" style={{ gap: 8 }}>
                   <input id="cpf" className="field grow" inputMode="numeric" value={cpf}
                          onChange={(e) => { setCpf(e.target.value); setConfere(null); }}
+                         onKeyDown={(e) => { if (e.key === 'Enter' && digitosDoCpf.length === 11) void conferirCpf(); }}
                          placeholder="000.000.000-00" />
-                  <button className="btn sec" disabled={cpf.length < 11 || ocupado}
-                          onClick={conferirCpf}>
-                    Conferir
+                  <button className="btn sec" disabled={digitosDoCpf.length !== 11 || ocupado}
+                          onClick={() => void conferirCpf()}>
+                    {ocupado ? 'Conferindo…' : 'Conferir'}
                   </button>
                 </div>
+                {!confere && (
+                  <p className="mutetxt" role="status">
+                    {digitosDoCpf.length === 0 ? 'Digite os 11 números: a conferência sai sozinha.'
+                      : digitosDoCpf.length < 11 ? `Falta${11 - digitosDoCpf.length === 1 ? '' : 'm'} ${quantos(11 - digitosDoCpf.length, 'número', 'números')}.`
+                        : ocupado ? 'Conferindo o CPF…' : 'Toque em Conferir.'}
+                  </p>
+                )}
 
                 {confere && (
                   <div className={`notice ${CPF_BLOQUEIA[confere.situacao] ? 'c-warn' : 'c-ok'}`}
@@ -260,7 +282,7 @@ export function Cadastro({ houseId, casaLabel, onPronto }: {
             )}
           </div>
 
-          {cpfResolvido && (
+          {mostraIdentificacao && (
             <>
               <div className="eyebrow">Identificação</div>
               <div className="card">
@@ -469,7 +491,23 @@ export function Cadastro({ houseId, casaLabel, onPronto }: {
         </section>
       )}
 
-      <div className="row rodape">
+      <div className="row rodape" style={{ flexWrap: 'wrap' }}>
+        {/* O que falta, logo ACIMA do botão (avaliação de 05/11): embaixo dele, a
+            frase ficava atrás do botão da Acolhe+AI no celular. */}
+        {!podeAvancar && passo < 3 && (
+          <p className="notice c-info o-que-falta" role="status" style={{ flexBasis: '100%', margin: 0 }}>
+            {passo === 0
+              ? (!cpfResolvido
+                  ? (semCpf
+                      ? `Escreva o motivo do ingresso urgente, com pelo menos 10 letras.${motivoSemCpf.trim().length ? ` Falta${10 - motivoSemCpf.trim().length === 1 ? '' : 'm'} ${quantos(10 - motivoSemCpf.trim().length, 'letra', 'letras')}.` : ''}`
+                      : 'Digite o CPF para conferir, ou marque "Chegou sem CPF" e escreva o motivo do ingresso urgente.')
+                  : 'Falta o nome completo e a data de nascimento.')
+              : passo === 1
+                ? (cheia ? 'A casa está no limite de vagas: escreva a justificativa, com pelo menos 15 letras, e a data do acolhimento.'
+                  : 'Informe a data do acolhimento.')
+                : 'Escolha o motivo do acolhimento e quem o determinou.'}
+          </p>
+        )}
         {passo > 0 && (
           <button className="btn sec grow" onClick={() => setPasso(passo - 1)}>Voltar</button>
         )}
@@ -484,17 +522,6 @@ export function Cadastro({ houseId, casaLabel, onPronto }: {
         )}
       </div>
 
-      {!podeAvancar && passo < 3 && (
-        <p className="mutetxt">
-          {passo === 0
-            ? (!cpfResolvido
-                ? 'Confira o CPF, ou marque "chegou sem CPF" e escreva o motivo do ingresso urgente.'
-                : 'Falta o nome completo e a data de nascimento.')
-            : passo === 1
-              ? 'Informe a data do acolhimento e, com a casa no limite, a justificativa.'
-              : 'Escolha o motivo do acolhimento e quem o determinou.'}
-        </p>
-      )}
     </>
   );
 }
