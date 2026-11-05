@@ -320,15 +320,19 @@ function TrocaCargo({ cargoAtual, onChange }: { cargoAtual: string; onChange: (r
  */
 function BotaoSemSinal() {
   const [sem, setSem] = useState(false);
+  /* O desenho é a ferramenta, e não o sinal (fase 276): na avaliação de 05/11, o
+     desenho do sinal no alto parecia dizer "conectado" sem olhar a conexão. Quem
+     diz a conexão de verdade é o selo da fila, que aparece sem internet. */
   return (
-    <button className="iconbtn" title={sem ? 'Voltar a ter sinal' : 'Simular sem sinal'}
+    <button className="iconbtn" title={sem ? 'Teste do protótipo: voltar a ter sinal' : 'Teste do protótipo: simular sem sinal'}
+            aria-pressed={sem}
             aria-label={sem ? 'Voltar a ter sinal' : 'Simular sem sinal'}
             onClick={async () => {
               const { simularSemSinal } = await import('./mock');
               simularSemSinal(!sem);
               setSem(!sem);
             }}>
-      <Icone nome={sem ? 'sem_sinal' : 'com_sinal'} />
+      <Icone nome="ferramenta" />
     </button>
   );
 }
@@ -607,7 +611,7 @@ export function App() {
      * primeira aba do cargo. O acesso total continua inteiro, uma aba adiante.
      */
     { aba: 'metricas', icone: 'painel_numeros', label: 'Painel' },
-    { aba: 'dia', icone: 'dia', label: 'Dia' },
+    { aba: 'dia', icone: 'dia', label: 'O Dia da Casa' },   // o nome da equipe (decisão de 05/11)
     { aba: 'chamada', icone: 'chamada', label: 'Chamada' },
     { aba: 'acolhidos', icone: 'acolhidos', label: 'Acolhidos' },
     { aba: 'passagem', icone: 'passagem', label: 'Passagem' },

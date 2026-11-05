@@ -95,7 +95,7 @@ export const CURTA_DO_TURNO: Record<string, string> = {
 /** As abas do perfil da criança, na ordem em que aparecem. */
 export const ABAS_DO_PERFIL_NO_GUIA: { id: string; titulo: string; texto: string; quem?: string }[] = [
   { id: 'geral', titulo: 'Geral',
-    texto: 'A primeira aba: idade, casa, há quanto tempo está no acolhimento, escola, a equipe de referência, a família, os cuidados essenciais, os próximos compromissos e a identificação. Embaixo, a vida na casa: aniversário, conquistas, fotos (com quem aparece em cada uma) e memórias, e o botão do dossiê. O PIA aparece para a equipe técnica.' },
+    texto: 'A primeira aba: idade, casa, há quanto tempo está no acolhimento, escola, a equipe de referência, a família, os cuidados essenciais, os próximos compromissos e a identificação, e o botão do dossiê. O PIA aparece para a equipe técnica.' },
   { id: 'familia', titulo: 'Família e visitas',
     texto: 'Os contatos da família, as visitas com o relatório, as saídas, a convivência familiar e os números da convivência. O familiar se edita com o motivo, e o de antes fica guardado; ele também se retira, com o motivo. Toda lista vem com o mais recente em cima.' },
   { id: 'saude', titulo: 'Saúde',
@@ -104,6 +104,8 @@ export const ABAS_DO_PERFIL_NO_GUIA: { id: string; titulo: string; texto: string
     texto: 'O que a casa registrou num dia escolhido (refeição, remédio, chamada, saídas), para consultar, e as chamadas dos últimos trinta dias.' },
   { id: 'educacao', titulo: 'Educação',
     texto: 'A escola, a evolução educacional e o conceito de cada bimestre, com o porquê.' },
+  { id: 'vivencias', titulo: 'Vivências',
+    texto: 'A vida dela na casa: o aniversário, o tempo de casa, as conquistas, as fotos (com quem aparece em cada uma) e as memórias, o mais recente em cima.' },
   { id: 'atendimentos', titulo: 'Atendimentos',
     texto: 'O relatório da equipe técnica (psicologia, psicopedagogia, serviço social e pedagogia), o mais recente em cima, com a data e a hora de cada atendimento e quando foi registrado, a busca por palavra e por período, os números por área e os arquivos de cada atendimento.',
     quem: 'Aparece para a equipe técnica, a coordenação e a gestão.' },
@@ -138,6 +140,10 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 277, dia: '05/11/2026', aba: 'portaria',
+    texto: 'As decisões da avaliação de 05/11. Na Portaria, o CPF e o RG do visitante aparecem escondidos para todos, e a portaria, a equipe técnica e a coordenação tocam em Ver o documento para ler os números inteiros; cada abertura fica registrada com o nome de quem abriu. A folha impressa para a guarita continua com o documento inteiro. Nomes novos, sem tirar nada: O Dia da Casa (a tela do Dia), Vivências (uma aba do perfil com a vida na casa, as conquistas, as fotos e as memórias), Registro Educacional (na aba Educação) e Atas do Mês (o antigo Arquivo da ATA). E a demonstração fica mais parecida com uma casa de verdade: a Casa 03 com quinze acolhidos, as outras cinco crianças no acervo de quem saiu, e os nomes sem a palavra fictício, que fica só na faixa do alto.' },
+  { fase: 276, dia: '05/11/2026', aba: 'chamada',
+    texto: 'O funcionamento, como a avaliação pediu. A chamada confirmada diz no próprio cartão quem a abriu e quem a confirmou, com a hora, e ao confirmar a tela volta para a lista com o recado do que foi feito. A data e a hora ficam no alto de toda tela. As saídas de hoje dizem o dia, desde quando valem, quem decidiu e para onde. E o botão do recorte já escolhido, como os Próximos 30 dias da escala, fica marcado, para não parecer que não faz nada.' },
   { fase: 275, dia: '05/11/2026', aba: 'acolhidos',
     texto: 'O perfil da criança em ordem: em todas as abas, cada lista vem com o mais recente em cima e o mais antigo embaixo, com a data e, quando há, a hora. A aba Saúde ganha o histórico de saúde, com as consultas e os registros de quem acompanhou. Cada atendimento da equipe técnica tem o dia e a hora em que aconteceu e quando foi registrado, e a aba Atendimentos ganha a busca por palavra e por período. E o cadastro de acolhido avança: o CPF se confere sozinho ao completar os onze números, sem CPF a identificação aparece na hora, e o que falta para continuar fica escrito logo acima do botão.' },
   { fase: 274, dia: '05/11/2026', aba: 'acolhidos',

@@ -199,7 +199,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 05/11/2026, fase 275
+### Onde estamos — 05/11/2026, fase 277
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -338,6 +338,8 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 273 | **o que já foi feito fica verde** (pedido de 05/11): a linha do dia ganha `feito` no contrato (`TimelineEvent`), dito pelo servidor e não adivinhado pelo texto: atividade concluída, dose administrada, chamada confirmada (por qualquer um, verde para todos) e ATA fechada sem pendência; não realizada, recusa, cancelada e reagendada seguem cinza. Na Chamada, o cartão confirmado fica verde e a barra da casa continua. O verde nunca sozinho (visto e palavra), e **no RS e no Verde, onde o fundo da tela já é verde, o feito leva verde mais cheio e borda inteira** (`--feito-fundo`, `--feito-borda`); no protótipo, a linha do Dia passa a acompanhar a dose dada e a chamada confirmada |
 | 274 | **a foto grande, e a foto do familiar** (pedido de 05/11): tocar no rosto abre a foto do tamanho da tela, com X, Esc e toque fora, sem baixar (`FotoAmpliada`, `AvatarQueAbre`), no perfil, nos familiares, em quem visitou e na Portaria; **pôr, trocar e tirar é só da técnica e da coordenação** (`QUEM_POE_FOTO`, `people/foto.regra.ts`, servidor, tela e protótipo; o gestor passa a só ver); o familiar ganha Pôr, Trocar e Tirar foto no cartão e a foto no Acrescentar contato; **trocar guarda a de antes e tirar pede o motivo** (`photo_change`, people/1669): até aqui o banco esquecia a foto trocada |
 | 275 | **o perfil em ordem, com a data e a hora** (pedido de 05/11): toda lista com data do perfil passa pelo `maisNovoEmCima` (`rotulos.ts`), o mais recente em cima, e o instante sai com a hora (`diaEHora`); a convivência familiar estava fora de ordem; a Saúde do perfil ganha o **histórico de saúde** (consultas e registros, `HistoricoDeSaude`); o atendimento técnico ganha **a hora** (`happened_time`, people/1670, obrigatória) e *Registrado em*, e a aba Atendimentos **a busca** por palavra e período |
+| 276 | **o funcionamento** (avaliação de 05/11): a chamada confirmada diz quem abriu e quem confirmou, com a hora, sem abrir (`app_user_display_name` na lista do `/checks`), e a confirmação volta à lista com o recado; a data e a hora no alto (`RelogioDoTopo`); as saídas de hoje com o dia, desde quando, quem decidiu e para onde (people/1671); o recorte já escolhido fica marcado (`aria-pressed`); o botão de teste do protótipo deixa de parecer indicador de conexão |
+| 277 | **as decisões de 05/11**: o CPF e o RG do visitante escondidos para todos na lista do portão, e inteiros ao tocar em *Ver o documento* (portaria, técnica e coordenação; `app_cpf_do_visitante`, people/1672; auditoria `visitante.cpf_visto` sem o número); a folha impressa da guarita continua inteira; *O Dia da Casa*, a aba *Vivências*, *Registro Educacional* e *Atas do Mês*; e o protótipo com quinze na Casa 03 (cinco no acervo) e sem *fictício* nos nomes (`sem-a-marca.ts`, na saída do servidor de mentira) |
 
 **Medido no fim da 275:** 210 migrações, 146 tabelas, 165 suítes, 1437 testes; nas 237 e 238, a suíte inteira
 verde (1363 de 1363, depois de consertar as três conferências que o relatório das vivências deixou soltas) e o
@@ -448,6 +450,21 @@ posto em ordem no **PARA-A-REUNIAO §0**: as cinco perguntas que mais destravam,
 responder, os documentos de papel e os dados a receber, o que o DPO vê, o que se assina e as 30
 decisões de produto abertas. **Quando a resposta vier, ela entra lá e no §10 ou §11 do documento**, e
 o item respondido sai do §0.
+
+**FEITO — fases 276 e 277** (§2, PARA-A-REUNIAO §4.41): o funcionamento e as decisões da avaliação de 05/11.
+**Nome de outra pessoa numa lista** (quem abriu, quem confirmou, quem decidiu) sai pelo `app_user_display_name`.
+**Recorte já escolhido** (dois ou três botões que escolhem o período) leva `aria-pressed`. **Documento inteiro de
+terceiro na tela** só ao toque, com a regra num arquivo lido pelo servidor e pelo protótipo e a auditoria sem o
+número (`cpf-na-portaria.regra.ts`); a folha impressa da guarita continua inteira, por decisão de 05/11. **Nome
+de tela ou de aba que muda** muda também no Guia, no `assistente/guia.ts`, no `acolhe.tsx` (a aba pelo assunto),
+no roteiro da Casa 03 (com o Word regerado) e nas cobranças dos ensaios. **Dado novo do protótipo nasce sem a
+palavra fictício**: os nomes são inventados e a faixa do alto diz que é demonstração; pessoa, no
+`servidor-de-mentira.spec`, é o nome com todas as palavras em maiúscula, e a regra foi provada reprovando um
+autor de fora. **A Casa 03 do protótipo tem quinze**: o Caio, o Davi, o Miguel, o Rafa e a Yasmin estão no
+acervo; quem conta a casa no protótipo usa o `todosKids()`, nunca o `KIDS`. **Medido nas 276 e 277, até aqui:** a `o-documento-inteiro-na-portaria` e as três suítes da Portaria (33 de 33), o `servidor-de-mentira` (9 de 9, e reprovando com um autor de fora), as conferências da Acolhe+AI, do Guia, das rotas e das recusas (91 de 91). **Rodando ao fechar este texto:** o `ensaio:uso` sobre o protótipo novo e a medição dos botões parados dos outros sete cargos; **não rodou ainda** a suíte inteira nem o do celular.
+**Próxima: 278**, a organização da avaliação: O Dia da Casa com *Pendentes* e *Toda a rotina*, por manhã, tarde e
+noite, com *Ver detalhes* levando ao registro; a Equipe e a escala em calendário; a agenda com local, endereço,
+responsável e duração; e quem fecha a ATA de outro turno. Depois, os módulos, na ordem do arquivo da avaliação.
 
 **FEITO — fase 275** (§2): o perfil em ordem, com a data e a hora. **Lista nova com data no perfil** passa pelo
 `maisNovoEmCima` de `rotulos.ts` (a tela ordena, nunca confia na ordem que chegou), e **instante na tela** sai pelo

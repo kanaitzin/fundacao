@@ -34,21 +34,21 @@ export interface CasaFicticia {
 
 export const CASAS_DA_FUNDACAO: CasaFicticia[] = [
   { id: 'casa-ai1', code: 'AI1', name: 'Abrigo Institucional 1', kind: 'abrigo_institucional', apelido: 'Casa 01',
-    endereco: 'Rua das Acácias, 120, Partenon (endereço fictício)', telefone: '51 3000-0101', capacidade: 20 },
+    endereco: 'Rua das Acácias, 120, Partenon', telefone: '51 3000-0101', capacidade: 20 },
   { id: 'casa-ai2', code: 'AI2', name: 'Abrigo Institucional 2', kind: 'abrigo_institucional', apelido: 'Casa 02',
-    endereco: 'Rua dos Ipês, 45, Glória (endereço fictício)', telefone: '51 3000-0102', capacidade: 20 },
+    endereco: 'Rua dos Ipês, 45, Glória', telefone: '51 3000-0102', capacidade: 20 },
   { id: 'casa-ai3', code: 'AI3', name: 'Casa 03 (piloto)', kind: 'abrigo_institucional', apelido: 'Casa 03',
-    endereco: 'Rua das Hortênsias, 300, Santana (endereço fictício)', telefone: '51 3000-0103', capacidade: 20 },
+    endereco: 'Rua das Hortênsias, 300, Santana', telefone: '51 3000-0103', capacidade: 20 },
   { id: 'casa-ai4', code: 'AI4', name: 'Abrigo Institucional 4', kind: 'abrigo_institucional', apelido: 'Casa 04',
-    endereco: 'Avenida dos Jacarandás, 812, Teresópolis (endereço fictício)', telefone: '51 3000-0104', capacidade: 20 },
+    endereco: 'Avenida dos Jacarandás, 812, Teresópolis', telefone: '51 3000-0104', capacidade: 20 },
   { id: 'casa-arm1', code: 'ARM1', name: 'Casa-Lar ARM1', kind: 'casa_lar', apelido: 'Casa-Lar 1',
-    endereco: 'Rua das Margaridas, 77, Menino Deus (endereço fictício)', telefone: '51 3000-0201', capacidade: 20 },
+    endereco: 'Rua das Margaridas, 77, Menino Deus', telefone: '51 3000-0201', capacidade: 20 },
   { id: 'casa-arm2', code: 'ARM2', name: 'Casa-Lar ARM2', kind: 'casa_lar', apelido: 'Casa-Lar 2',
-    endereco: 'Rua dos Girassóis, 19, Cristal (endereço fictício)', telefone: '51 3000-0202', capacidade: 20 },
+    endereco: 'Rua dos Girassóis, 19, Cristal', telefone: '51 3000-0202', capacidade: 20 },
   { id: 'casa-arm3', code: 'ARM3', name: 'Casa-Lar ARM3', kind: 'casa_lar', apelido: 'Casa-Lar 3',
-    endereco: 'Rua das Violetas, 254, Medianeira (endereço fictício)', telefone: '51 3000-0203', capacidade: 20 },
+    endereco: 'Rua das Violetas, 254, Medianeira', telefone: '51 3000-0203', capacidade: 20 },
   { id: 'casa-arm4', code: 'ARM4', name: 'Casa-Lar ARM4', kind: 'casa_lar', apelido: 'Casa-Lar 4',
-    endereco: 'Rua das Camélias, 63, Petrópolis (endereço fictício)', telefone: '51 3000-0204', capacidade: 20 },
+    endereco: 'Rua das Camélias, 63, Petrópolis', telefone: '51 3000-0204', capacidade: 20 },
 ];
 
 export const CASA_MODELO = 'casa-ai3';
@@ -65,17 +65,17 @@ const MENINOS_DO_MODELO = ['Bruno', 'Caio', 'Davi', 'Enzo', 'Felipe', 'Igor', 'K
  * Gestor, Coordenação Geral, Marcelo) não está aqui: é a mesma pessoa nas oito.
  */
 const EQUIPE_DO_MODELO: { nome: string; curto: string; cargo: string; f: boolean }[] = [
-  { nome: 'Carla Coordenadora (fictícia)', curto: 'Carla', cargo: 'coordenador', f: true },
-  { nome: 'Cátia Coordenadora (fictícia)', curto: 'Cátia', cargo: 'coordenador', f: true },
-  { nome: 'Tatiane Técnica (fictícia)', curto: 'Tatiane', cargo: 'equipe_tecnica', f: true },
-  { nome: 'Sara Assistente Social (fictícia)', curto: 'Sara', cargo: 'equipe_tecnica', f: true },
-  { nome: 'Paula Psicopedagoga (fictícia)', curto: 'Paula', cargo: 'equipe_tecnica', f: true },
-  { nome: 'Lúcia Líder Diurna (fictícia)', curto: 'Lúcia', cargo: 'lider_diurno', f: true },
-  { nome: 'Mário Silva (fictício)', curto: 'Mário', cargo: 'educador', f: false },
-  { nome: 'Joana Lima (fictícia)', curto: 'Joana', cargo: 'educador', f: true },
-  { nome: 'Tainá Souza (fictícia)', curto: 'Tainá', cargo: 'educador', f: true },
-  { nome: 'Paulo da Portaria (fictício)', curto: 'Paulo', cargo: 'portaria', f: false },
-  { nome: 'Cida da Cozinha (fictícia)', curto: 'Cida', cargo: 'cozinha', f: true },
+  { nome: 'Carla Coordenadora', curto: 'Carla', cargo: 'coordenador', f: true },
+  { nome: 'Cátia Coordenadora', curto: 'Cátia', cargo: 'coordenador', f: true },
+  { nome: 'Tatiane Técnica', curto: 'Tatiane', cargo: 'equipe_tecnica', f: true },
+  { nome: 'Sara Assistente Social', curto: 'Sara', cargo: 'equipe_tecnica', f: true },
+  { nome: 'Paula Psicopedagoga', curto: 'Paula', cargo: 'equipe_tecnica', f: true },
+  { nome: 'Lúcia Líder Diurna', curto: 'Lúcia', cargo: 'lider_diurno', f: true },
+  { nome: 'Mário Silva', curto: 'Mário', cargo: 'educador', f: false },
+  { nome: 'Joana Lima', curto: 'Joana', cargo: 'educador', f: true },
+  { nome: 'Tainá Souza', curto: 'Tainá', cargo: 'educador', f: true },
+  { nome: 'Paulo da Portaria', curto: 'Paulo', cargo: 'portaria', f: false },
+  { nome: 'Cida da Cozinha', curto: 'Cida', cargo: 'cozinha', f: true },
 ];
 
 /** As famílias da casa-modelo que aparecem por nome (contatos e visitas). */
@@ -156,7 +156,7 @@ function nomeDeEquipe(r: () => number, mulher: boolean, usados: Set<string>) {
   for (;;) {
     const primeiro = embaralhar(mulher ? NOMES_DE_MULHER : NOMES_DE_HOMEM, r)[0];
     const sobrenome = embaralhar(SOBRENOMES, r)[0];
-    const nome = `${primeiro} ${sobrenome} (${mulher ? 'fictícia' : 'fictício'})`;
+    const nome = `${primeiro} ${sobrenome}`;
     if (!usados.has(primeiro)) { usados.add(primeiro); return { nome, curto: primeiro }; }
   }
 }

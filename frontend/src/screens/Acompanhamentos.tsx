@@ -863,7 +863,7 @@ function FolhaEntrega({ relatorio, onFechar, onRegistrar }: {
 
         <label className="f" htmlFor="ent-dest">Destinatário</label>
         <input id="ent-dest" value={destino} onChange={(e) => setDestino(e.target.value)}
-               placeholder="Ex.: 1ª Vara da Infância e Juventude (fictícia)" />
+               placeholder="Ex.: 1ª Vara da Infância e Juventude" />
 
         <label className="f" htmlFor="ent-meio">Meio</label>
         <select id="ent-meio" value={meio} onChange={(e) => setMeio(e.target.value)}>

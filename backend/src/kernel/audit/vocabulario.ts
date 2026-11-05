@@ -110,6 +110,7 @@ export const VOCABULARIO_DA_AUDITORIA: Record<string, string> = {
   'foto.contato.guardada': 'Foto do familiar guardada',
   'foto.identificacao.retirada': 'Foto de identificação tirada, com o motivo',
   'foto.contato.retirada': 'Foto do familiar tirada, com o motivo',
+  'visitante.cpf_visto': 'Documento inteiro do visitante visto na portaria',
   'marco.registrado': 'Marco de vida registrado',
   'marco.comprovante.lido': 'Comprovante de marco de vida aberto',
 

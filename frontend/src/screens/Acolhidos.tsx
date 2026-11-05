@@ -935,11 +935,11 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
         * alcança. Sem este bloco, a fase 58 tinha criado uma tabela que só a
         * API sabia preencher.
         */}
-      {/* A VIDA NA CASA entrou na Geral (pedido de 20/10): o aniversário, as
-          conquistas e as fotos são de quem ela é, e não de uma aba à parte. */}
-      {aba === 'geral' && <VidaNaCasa perfil={p} numeros={numeros} />}
-      {aba === 'geral' && <FotosEmQueAparece personId={p.id} nome={p.nome} />}
-      {aba === 'geral' && <Conquistas perfil={p} papel={papel} />}
+      {/* A VIDA NA CASA entrou na Geral em 20/10 e, pela decisão de 05/11 (fase 277),
+          ganhou a aba Vivências: o aniversário, as conquistas, as fotos e as memórias. */}
+      {aba === 'vivencias' && <VidaNaCasa perfil={p} numeros={numeros} />}
+      {aba === 'vivencias' && <FotosEmQueAparece personId={p.id} nome={p.nome} />}
+      {aba === 'vivencias' && <Conquistas perfil={p} papel={papel} />}
 
       {/*
         * QUEM APARECE POR ESTA CRIANÇA.
@@ -1646,7 +1646,7 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
                   { method: 'POST', body: JSON.stringify({ finalidade }) })} />
       )}
 
-      {aba === 'geral' && p.memorias.length > 0 && (
+      {aba === 'vivencias' && p.memorias.length > 0 && (
         <Secao titulo="Memórias">
           <ul className="lista">
             {maisNovoEmCima(p.memorias, (m) => m.happened_on).map((m) => (
@@ -1869,7 +1869,7 @@ function CompromissosDoAcolhido({ houseId, personId, nome }: { houseId: string; 
  * cor de estado, de autor nem de cargo: mora só na barra da aba e no desenho,
  * nunca numa pílula, e o nome da aba vem sempre escrito.
  */
-type AbaDoPerfil = 'geral' | 'familia' | 'saude' | 'rotina' | 'educacao' | 'atendimentos'
+type AbaDoPerfil = 'geral' | 'familia' | 'saude' | 'rotina' | 'educacao' | 'vivencias' | 'atendimentos'
   | 'judiciario' | 'documentos';
 const ABAS_DO_PERFIL: { id: AbaDoPerfil; rotulo: string; icone: string }[] = [
   { id: 'geral', rotulo: 'Geral', icone: 'identidade' },
@@ -1877,6 +1877,9 @@ const ABAS_DO_PERFIL: { id: AbaDoPerfil; rotulo: string; icone: string }[] = [
   { id: 'saude', rotulo: 'Saúde', icone: 'saude_ic' },
   { id: 'rotina', rotulo: 'Dia a dia', icone: 'linha_do_dia' },
   { id: 'educacao', rotulo: 'Educação', icone: 'formatura' },
+  /* VIVÊNCIAS (fase 277, decisão de 05/11): a vida na casa, as conquistas, as fotos
+     e as memórias saem do fim da Geral e ganham a aba delas. Nada sumiu. */
+  { id: 'vivencias', rotulo: 'Vivências', icone: 'conquista' },
   { id: 'atendimentos', rotulo: 'Atendimentos', icone: 'ouvir' },
   { id: 'judiciario', rotulo: 'Judiciário', icone: 'instituicao' },
   { id: 'documentos', rotulo: 'Documentos', icone: 'documento' },
@@ -2144,7 +2147,7 @@ function VidaNaCasa({ perfil, numeros }: { perfil: Perfil; numeros: NumerosDaCri
           </p>
         )}
         <p className="mutetxt" style={{ margin: 0 }}>
-          As fotos e as memórias de {perfil.nome} ficam no dossiê, logo abaixo.
+          O álbum inteiro de {perfil.nome} fica no dossiê, na aba Documentos.
         </p>
       </Secao>
     </>
@@ -4346,7 +4349,7 @@ function FolhaConquistaDoPerfil({ perfil, onFechar, onSalvou }: {
         </label>
         <textarea id="cp-d" value={d.descricao}
                   onChange={(e) => setD({ ...d, descricao: e.target.value })}
-                  placeholder="Ex.: passou para o 7º ano na Escola Fictícia, com recuperação em matemática vencida no fim do ano." />
+                  placeholder="Ex.: passou para o 7º ano na Escola do Bairro, com recuperação em matemática vencida no fim do ano." />
 
         <label className="f" htmlFor="cp-i">Escola, curso ou empresa</label>
         <input id="cp-i" value={d.instituicao}
@@ -5316,14 +5319,16 @@ function Educacao({ personId, houseId, papel }: {
 
   return (
     <>
-      <div className="eyebrow">Educação</div>
+      {/* REGISTRO EDUCACIONAL (fase 277, decisão de 05/11): o nome que a equipe usa,
+          no lugar de *Registrar apoio educacional*. O que se registra é o mesmo. */}
+      <div className="eyebrow">Registro Educacional</div>
       {!dados && <p className="mutetxt">Abrindo…</p>}
 
       {dados && (
         <div className="card stack">
           {!a && (
             <p className="mutetxt" style={{ margin: 0 }}>
-              Nada registrado sobre apoio educacional. <b>O que fica em branco aqui sai como
+              Nada no Registro Educacional ainda. <b>O que fica em branco aqui sai como
               "não há"</b> no relatório de desenvolvimento e na audiência concentrada.
             </p>
           )}
@@ -5366,7 +5371,7 @@ function Educacao({ personId, houseId, papel }: {
           )}
           {pode && (
             <button data-acolhe-abre="" className="btn sm ghost" onClick={() => setEditando(true)}>
-              {a ? 'Atualizar o apoio educacional' : 'Registrar o apoio educacional'}
+              {a ? 'Atualizar o Registro Educacional' : 'Registro Educacional'}
             </button>
           )}
         </div>
@@ -5522,7 +5527,7 @@ function FolhaApoioEducacional({ atual, servicos, onFechar, onSalvar }: {
     <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-edu"
          onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
       <div className="sheet modal">
-        <h3 id="t-edu">Apoio educacional</h3>
+        <h3 id="t-edu">Registro Educacional</h3>
         <div className="notice c-info">
           O que ficar em branco aqui sai como <b>"não há"</b> no relatório e na audiência — e num
           documento judicial, seção vazia se lê como ausência de trabalho.

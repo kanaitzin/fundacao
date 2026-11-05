@@ -313,6 +313,13 @@ export class PeopleController {
     return this.visitas.doPortao(user, houseId);
   }
 
+  /* O CPF inteiro de um visitante, ao toque (fase 277): POST porque registra quem viu. */
+  @Post('portaria/visitante/:contactId/cpf')
+  cpfDoVisitante(@CurrentUser() user: AuthenticatedUser,
+                 @Param('contactId', ParseUUIDPipe) contactId: string) {
+    return this.visitas.cpfInteiro(user, contactId);
+  }
+
   @Get('portaria/visitante/:contactId/foto')
   fotoNoPortao(@CurrentUser() user: AuthenticatedUser,
                @Param('contactId', ParseUUIDPipe) contactId: string) {

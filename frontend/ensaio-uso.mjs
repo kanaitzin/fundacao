@@ -435,11 +435,11 @@ cobrar('o plantão aberto oferece assinar a passagem',
  */
 if ((await aba('ATA')) || (await doMais('ATA'))) {
   await pg.waitForTimeout(900);
-  const temArquivo = await pg.locator('[role="tab"]', { hasText: /Arquivo/ }).count();
+  const temArquivo = await pg.locator('[role="tab"]', { hasText: /Atas do Mês/ }).count();
   cobrar('o educador tem a aba do Arquivo das ATAS', temArquivo > 0,
     'era a lista de cargos de app_consulta_arquivo_ata que o barrava');
   if (temArquivo) {
-    await clicar(/Arquivo/);
+    await clicar(/Atas do Mês/);
     await pg.waitForTimeout(1200);
     const arq = await conteudo();
     cobrar('e a janela de vários dias abre para ele',
@@ -459,8 +459,8 @@ if ((await aba('ATA')) || (await doMais('ATA'))) {
    * ser verdadeira. É a lição transversal do repositório em dois dias seguidos:
    * quem muda a regra reescreve a frase, e a cobrança junto.
    */
-  cobrar('a aba da Geral manda ao Arquivo — e agora a Geral está lá para ele',
-    /use o Arquivo/i.test(await conteudo()),
+  cobrar('a aba da Geral manda às Atas do Mês — e agora a Geral está lá para ele',
+    /abra as Atas do Mês/i.test(await conteudo()),
     'a 1540 fez a linha desta casa na Geral aparecer no Arquivo para todo cargo da casa');
   await aba('Passagem');
 }
@@ -675,7 +675,7 @@ cobrar('e a tela diz que corrigir não apaga o anterior',
  * campo vazio sem explicação.
  */
 const folhaDoApoio = pg.locator('main.conteudo button')
-  .filter({ hasText: /apoio educacional/i });
+  .filter({ hasText: /Registro Educacional/i });
 if (!(await folhaDoApoio.count())) {
   cobrar('a folha do apoio educacional tem porta', false, 'não achei o botão');
 } else {
@@ -1026,7 +1026,7 @@ await fechar();
 await trocar('coordenador');
 erros.length = 0;
 cobrar('a coordenação alcança a ATA', await doMais('ATA'));
-const abaArquivo = pg.locator('main.conteudo [role="tab"]').filter({ hasText: /Arquivo/ });
+const abaArquivo = pg.locator('main.conteudo [role="tab"]').filter({ hasText: /Atas do Mês/ });
 cobrar('e alcança o Arquivo, onde a linha desta casa fica',
   (await abaArquivo.count()) > 0);
 if (await abaArquivo.count()) {
@@ -2187,8 +2187,9 @@ if (await verMovimento.count()) {
   cobrar('e o movimento conta a história: o que entrou, e o que saiu',
     /Chegou remédio/i.test(folha) && /Dose administrada/i.test(folha),
     'o histórico mostrava caixas chegando e nenhuma saindo — era esse o defeito');
+  /* O nome de alguém da equipe (até a 277 se achava pela palavra fictícia). */
   cobrar('cada linha do movimento tem o nome de quem a fez',
-    /Fictícia|Fictício/.test(folha));
+    /Enfermeira Clara|Carla Coordenadora|Cátia Coordenadora|Tatiane Técnica|Sara Assistente Social|Paula Psicopedagoga|Lúcia Líder Diurna|Tainá Souza|Joana Lima|Mário Silva/.test(folha));
   await fechar();
 }
 
@@ -2206,7 +2207,7 @@ cobrar('a coordenação vê o rastro do registro da criança',
 cobrar('e o rastro abre', await clicar(/Ver o rastro/));
 const rastro = await conteudo();
 cobrar('com o nome de quem agiu e a FINALIDADE declarada',
-  /Finalidade declarada/i.test(rastro) && /Fictícia|Fictício/.test(rastro),
+  /Finalidade declarada/i.test(rastro) && /Enfermeira Clara|Carla Coordenadora|Cátia Coordenadora|Tatiane Técnica|Sara Assistente Social|Paula Psicopedagoga|Lúcia Líder Diurna|Tainá Souza|Joana Lima|Mário Silva/.test(rastro),
   'a finalidade é a razão de metade destas linhas existirem');
 /*
  * O TRABALHO DA EQUIPE (fase 117).
@@ -2245,7 +2246,7 @@ cobrar('com a finalidade escrita, o período abre e mostra o que foi feito',
   /Chamada aberta|ATA|Dose confirmada|Pedido à cozinha/i.test(trabalho),
   trabalho.slice(0, 200));
 cobrar('cada linha tem o nome de quem fez, e a hora',
-  /fict[íi]ci[ao]/i.test(trabalho) && /\d{2}:\d{2}/.test(trabalho),
+  /Enfermeira Clara|Carla Coordenadora|Cátia Coordenadora|Tatiane Técnica|Sara Assistente Social|Paula Psicopedagoga|Lúcia Líder Diurna|Tainá Souza|Joana Lima|Mário Silva/.test(trabalho) && /\d{2}:\d{2}/.test(trabalho),
   trabalho.slice(0, 200));
 cobrar('e NENHUM total aparece — nem registros, nem plantões, nem média',
   !/\b\d+\s*(registros|plantões|a[çc][õo]es|doses no per[íi]odo)\b/i.test(trabalho),
@@ -2441,7 +2442,8 @@ cobrar('a tela diz que nenhuma contagem é por criança',
   'a regra 3 protege quem é cuidado, e não foi o que a Fundação revisou');
 /* A ordem é a regra: por NOME, nunca por total. Uma lista ordenada por número
  * JÁ É a classificação, e ela apareceria sem ninguém ter decidido fazê-la. */
-const nomesNaTela = [...contagens.matchAll(/^(.+?) \(fictíci[ao]\)$/gim)].map((x) => x[1]);
+/* As linhas que são só o nome de alguém (até a 277 se achavam pela marca fictícia). */
+const nomesNaTela = [...contagens.matchAll(/^([A-ZÁÉÍÓÚÂÊÔ][a-zà-ú]+(?: (?:d[aeo]s? )?[A-ZÁÉÍÓÚÂÊÔ][a-zà-ú]+)+)$/gm)].map((x) => x[1]);
 cobrar('e a ordem é por nome, nunca por total',
   nomesNaTela.length === 0
   || JSON.stringify(nomesNaTela) === JSON.stringify([...nomesNaTela].sort((a, b) => a.localeCompare(b))),
@@ -3591,7 +3593,7 @@ cobrar('a leitura abre o dia com a diurna e depois a noturna',
    data, e depois da meia-noite "ontem" é outro dia): a cobrança confere a seção dos registros
    com a hora e o nome de quem escreveu, e não uma frase. */
 cobrar('e cada ATA vem como a folha, com o que a equipe escreveu',
-  /REGISTROS DA EQUIPE NO TURNO\s+\d{2}:\d{2}\. .+\(fictíci[oa]\)/.test(sequencia),
+  /REGISTROS DA EQUIPE NO TURNO\s+\d{2}:\d{2}\. .{12,}/.test(sequencia),
   sequencia.slice(0, 300));
 await fechar();
 await pg.getByRole('tab', { name: /^Só noturno$/ }).click();
@@ -4372,7 +4374,7 @@ console.log('\n🔗 De um setor ao outro');
   const saldo = async () => {
     await pgS.getByRole('tab', { name: 'Estoque' }).click(); await esp(800);
     const t = (await txt()).replace(/\s+/g, ' ');
-    return Number(t.match(/ARMÁRIO DE MEDICAMENTOS DA CASA.*?Colírio lubrificante \(fictício\) (-?\d+) frasco/i)?.[1] ?? NaN);
+    return Number(t.match(/ARMÁRIO DE MEDICAMENTOS DA CASA.*?Colírio lubrificante (-?\d+) frasco/i)?.[1] ?? NaN);
   };
   const antes = await saldo();
   const insulina = (await pgS.locator('main.conteudo .card').filter({ hasText: /Estoque nominal de/ }).filter({ hasText: /Insulina/ }).first().innerText()).replace(/\s+/g, ' ');
@@ -4440,7 +4442,7 @@ console.log('\n📅 O calendário das ATAs e dos plantões (fase 206)');
   /* Na ATA, aba Arquivo: o mesmo calendário, e a ATA abre com o texto DELA. */
   await pgC.locator('nav.portas-lateral').getByRole('button', { name: 'ATA', exact: true }).click(); await esp(1000);
   const textoDeHoje = await txt();
-  await pgC.getByRole('tab', { name: /Arquivo/ }).or(pgC.locator('main.conteudo button', { hasText: /^Arquivo$/ })).first().click(); await esp(1000);
+  await pgC.getByRole('tab', { name: /Atas do Mês/ }).or(pgC.locator('main.conteudo button', { hasText: /^Atas do Mês$/ })).first().click(); await esp(1000);
   await pgC.locator('.calendario').getByRole('button', { name: 'Mês anterior' }).click(); await esp(800);
   await pgC.locator('.calendario button.cal-turno').nth(4).click(); await esp(1200);
   const ata = await txt();
@@ -5416,7 +5418,7 @@ console.log('\n✔️  O botão que grava (fase 265)');
   await pgB.locator('#recusa-perto-do-botao').getByRole('button', { name: 'Entendi' }).click().catch(() => {});
   /* O Dia abre com sinal (sem ele a lista nem chega), e o sinal cai antes do toque. */
   await pgB.getByRole('button', { name: 'Voltar a ter sinal' }).first().click();
-  await pgB.locator('nav.tabbar').getByRole('button', { name: 'Dia', exact: true }).first().click();
+  await pgB.locator('nav.tabbar').getByRole('button', { name: 'O Dia da Casa', exact: true }).first().click();
   await pgB.waitForTimeout(1500);
   await pgB.getByRole('button', { name: 'Simular sem sinal' }).first().click();
   await pgB.waitForTimeout(300);

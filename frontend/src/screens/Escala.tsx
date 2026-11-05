@@ -168,10 +168,15 @@ export function Escala({ houseId, casaLabel, papel }: {
           </label>
         </div>
         <div className="row">
-          <button className="btn sec grow" onClick={() => { setDe(hoje); setAte(somaDias(hoje, 29)); }}>
+          {/* O recorte escolhido fica marcado (fase 276): na avaliação de 05/11, o botão
+              do recorte que já estava aberto parecia não fazer nada. */}
+          <button className="btn sec grow" aria-pressed={de === hoje && ate === somaDias(hoje, 29)}
+                  onClick={() => { setDe(hoje); setAte(somaDias(hoje, 29)); }}>
             Próximos 30 dias
           </button>
-          <button className="btn sec grow" onClick={() => {
+          <button className="btn sec grow"
+                  aria-pressed={de === somaDias(`${hoje.slice(0, 7)}-01`, -31).slice(0, 8) + '01' && ate === somaDias(`${hoje.slice(0, 7)}-01`, -1)}
+                  onClick={() => {
             /* O mês passado inteiro: é o recorte de quem está investigando um
                evento, que foi o motivo do pedido. */
             const primeiroDesteMes = `${hoje.slice(0, 7)}-01`;

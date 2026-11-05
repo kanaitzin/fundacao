@@ -37,7 +37,9 @@ interface Visitante {
   visitaAberta: { id: string; entrouEm: string } | null;
 }
 interface Portao {
-  podeAbrirExcecao: boolean; podeGerarFolha: boolean; podeAnexarFoto?: boolean; visitantes: Visitante[];
+  podeAbrirExcecao: boolean; podeGerarFolha: boolean; podeAnexarFoto?: boolean;
+  /** Fase 277: quem pode tocar em Ver o CPF (portaria, técnica e coordenação). */
+  podeVerCpfInteiro?: boolean; visitantes: Visitante[];
 }
 
 const hora = (iso: string) => new Date(iso).toLocaleTimeString('pt-BR', {
@@ -50,6 +52,11 @@ const paraCampo = (iso: string) => new Intl.DateTimeFormat('sv-SE', {
 /** E de volta: o que a pessoa digitou é a hora de Porto Alegre, não a do aparelho. */
 const doCampo = (v: string) => (v ? `${v}:00-03:00` : '');
 const erroDe = (e: unknown, padrao: string) => (e instanceof Error ? e.message : padrao);
+/** O CPF com os pontos e o traço, como no documento que a pessoa mostra. */
+const comPontos = (cpf: string) => {
+  const d = cpf.replace(/\D/g, '');
+  return d.length === 11 ? `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}` : cpf;
+};
 
 export function Portaria({ houseId, casaLabel }: { houseId: string; casaLabel: string }) {
   const [portao, setPortao] = useState<Portao | null>(null);
@@ -160,7 +167,7 @@ export function Portaria({ houseId, casaLabel }: { houseId: string; casaLabel: s
               <ul className="visitantes">
                 {dentro.map((v) => (
                   <CartaoDoVisitante key={v.contatoId} v={v} foto={fotos[v.contatoId]}
-                    onVerFoto={() => verFoto(v)}>
+                    podeVerCpf={!!portao.podeVerCpfInteiro} onVerFoto={() => verFoto(v)}>
                     <button className="btn block" onClick={() => sair(v)}>
                       Registrar a saída de {v.nomeSocial || v.nome}
                     </button>
@@ -199,7 +206,7 @@ export function Portaria({ houseId, casaLabel }: { houseId: string; casaLabel: s
               <ul className="visitantes">
                 {vs.map((v) => (
                   <CartaoDoVisitante key={v.contatoId} v={v} foto={fotos[v.contatoId]}
-                    onVerFoto={() => verFoto(v)}
+                    podeVerCpf={!!portao.podeVerCpfInteiro} onVerFoto={() => verFoto(v)}
                     onAnexar={portao.podeAnexarFoto ? () => setAnexando(v) : undefined}>
                     {!v.visitaAberta && (!v.foraDoCombinado || portao.podeAbrirExcecao) && (
                       <button className={`btn block${v.foraDoCombinado ? ' sec' : ''}`} onClick={() => setEntrando(v)}>
@@ -428,10 +435,23 @@ function FolhaEmPapel({ houseId }: { houseId: string }) {
  * eram três frases emendadas, e a Fundação disse que estava apertado; e as
  * ações embaixo, na largura toda, que é o alvo que o polegar acerta.
  */
-function CartaoDoVisitante({ v, foto, onVerFoto, onAnexar, children }: {
-  v: Visitante; foto?: string; onVerFoto: () => void; onAnexar?: () => void; children?: React.ReactNode;
+function CartaoDoVisitante({ v, foto, podeVerCpf, onVerFoto, onAnexar, children }: {
+  v: Visitante; foto?: string; podeVerCpf: boolean; onVerFoto: () => void; onAnexar?: () => void;
+  children?: React.ReactNode;
 }) {
   const nome = v.nomeSocial || v.nome;
+  /* O DOCUMENTO INTEIRO AO TOCAR (fase 277, decisão de 05/11): a lista chega com o
+     CPF e o RG escondidos para todos; quem confere no portão toca e vê, e o servidor anota
+     quem abriu. Fica só na memória da tela: ao sair, volta escondido. */
+  const [inteiro, setInteiro] = useState<{ cpf: string; rg: string } | null>(null);
+  const [erroCpf, setErroCpf] = useState('');
+  const verCpf = async () => {
+    setErroCpf('');
+    try {
+      const r = await api<{ cpf: string | null; rg: string | null }>(`/people/portaria/visitante/${v.contatoId}/cpf`, { method: 'POST', body: '{}' });
+      setInteiro({ cpf: r.cpf ? comPontos(r.cpf) : '', rg: r.rg ?? '' });
+    } catch (e) { setErroCpf(erroDe(e, 'Não consegui abrir o CPF. Tente de novo.')); }
+  };
   return (
     <li className="visitante">
       <div className="visitante-foto">
@@ -468,7 +488,18 @@ function CartaoDoVisitante({ v, foto, onVerFoto, onAnexar, children }: {
           <dt>Vínculo</dt><dd>{v.vinculoRotulo} de {v.acolhido}</dd>
           {v.nomeSocial && <><dt>No documento</dt><dd>{v.nome}</dd></>}
           <dt>Documento</dt>
-          <dd>{v.cpf ? `CPF ${v.cpf}` : 'CPF não cadastrado'}{v.rg ? ` · RG ${v.rg}` : ''}</dd>
+          <dd>
+            {inteiro?.cpf ? `CPF ${inteiro.cpf}` : v.cpf ? `CPF ${v.cpf}` : 'CPF não cadastrado'}
+            {inteiro?.rg ? ` · RG ${inteiro.rg}` : v.rg ? ` · RG ${v.rg}` : ''}
+            {podeVerCpf && (v.cpf || v.rg) && !inteiro && (
+              <button type="button" className="btn sm ghost ver-cpf" onClick={verCpf}
+                      aria-label={`Ver o documento inteiro de ${nome}`}>
+                Ver o documento
+              </button>
+            )}
+            {inteiro && <small className="mutetxt ver-cpf-nota">A abertura ficou registrada com o seu nome.</small>}
+            {erroCpf && <small className="ver-cpf-nota erro" role="alert">{erroCpf}</small>}
+          </dd>
           <dt>Quando pode vir</dt>
           <dd>
             {v.dias ? `${v.dias}, das ${v.de} às ${v.ate}` : 'Sem dia combinado'}

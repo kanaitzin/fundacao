@@ -97,11 +97,11 @@ Leitura recomendada antes da aplicação, para quem conduz.
   técnica, a coordenação e a gestão.
 - O perfil da criança abre na aba *Geral*, com os dados dela: idade, casa, há
   quanto tempo está no acolhimento, escola, PIA, equipe de referência e a
-  família. O dia de hoje fica no Dia e na ATA. O que a casa registrou em cada dia
+  família. O dia de hoje fica no Dia da Casa e na ATA. O que a casa registrou em cada dia
   se consulta na aba *Dia a dia*, e a aba *Atendimentos* é o relatório da equipe
   técnica, o mais recente em cima. Cada aba traz os números da criança.
-- O aniversário, as conquistas, as fotos e as memórias da criança ficam no fim da
-  aba *Geral*. A aba que se chamava Cadastro passou a se chamar *Documentos* e abre
+- O aniversário, as conquistas, as fotos e as memórias da criança ficam na aba
+  *Vivências*. A aba que se chamava Cadastro passou a se chamar *Documentos* e abre
   no dossiê e na lista dos documentos da criança; as correções e o registro de
   quem mexeu no perfil vêm depois.
 

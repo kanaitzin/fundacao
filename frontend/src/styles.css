@@ -210,6 +210,10 @@ input {
            border:1px solid color-mix(in srgb, var(--brand) 26%, transparent); }
 .btn.ghost { background: transparent; border: 1.5px solid var(--line-2); color: var(--ink-2);
              box-shadow: none; font-weight:600; }
+/* O recorte escolhido entre dois ou três (fase 276): fica cheio, como a opção
+   escolhida, para o toque nele não parecer um botão que não faz nada. */
+.btn.sec[aria-pressed="true"]{ background:var(--brand-solid); color:var(--on-solid);
+           border-color:transparent }
 .btn:disabled { opacity: .42; cursor: not-allowed; box-shadow: none; }
 @media (prefers-reduced-motion: no-preference) {
   .btn.sec:hover, .btn.ghost:hover { border-color: var(--brand); }
@@ -1280,6 +1284,9 @@ textarea{
   font-size:14px }
 .visitante-dados dt{ color:var(--muted); font-weight:700; font-size:12.5px; padding-top:1px }
 .visitante-dados dd{ margin:0; color:var(--ink); overflow-wrap:anywhere }
+.visitante-dados .ver-cpf{ margin-left:8px; min-height:28px; vertical-align:baseline }
+.visitante-dados .ver-cpf-nota{ display:block; font-size:12.5px; margin-top:2px }
+.visitante-dados .ver-cpf-nota.erro{ color:var(--red-solid) }
 .visitante-aviso{ margin:0; font-size:14px }
 .visitante-acoes{ display:flex; flex-direction:column; gap:8px; margin-top:2px }
 .visitante-acoes:empty{ display:none }
@@ -2235,6 +2242,9 @@ button.cal-turno:focus-visible{ outline:3px solid var(--brand); outline-offset:1
    traz os seus números nas contas em blocos da fase 200. */
 :root{ --aba-geral:#1F6FB2; --aba-rotina:#8C6A00 }
 .aba-geral{ --aba:var(--aba-geral) } .aba-rotina{ --aba:var(--aba-rotina) }
+/* Vivências (fase 277): um verde-oliva, longe do vermelho e do âmbar das cores de estado. */
+:root{ --aba-vivencias:#6B7A1F }
+.aba-vivencias{ --aba:var(--aba-vivencias) }
 .ficha-geral{ list-style:none; margin:0; padding:0; display:grid; gap:8px;
   grid-template-columns:repeat(auto-fill, minmax(min(210px, 100%), 1fr)) }
 .ficha-geral li{ display:flex; flex-direction:column; gap:2px; background:var(--surface);

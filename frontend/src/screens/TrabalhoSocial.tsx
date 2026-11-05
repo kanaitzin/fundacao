@@ -289,7 +289,7 @@ function FolhaConquista({ onFechar, onSalvou }: {
         </label>
         <textarea id="cq-d" value={d.descricao}
                   onChange={(e) => setD({ ...d, descricao: e.target.value })}
-                  placeholder="Ex.: passou para o 7º ano na Escola Fictícia, com recuperação em matemática vencida no fim do ano." />
+                  placeholder="Ex.: passou para o 7º ano na Escola do Bairro, com recuperação em matemática vencida no fim do ano." />
 
         <label className="f" htmlFor="cq-i">Escola, curso ou empresa</label>
         <input id="cq-i" value={d.instituicao}

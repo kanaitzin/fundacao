@@ -449,7 +449,7 @@ export function AcolheAI({ casa, telaAtual, telas, navegar, abrirCrianca }: {
       [/\b(saude|alergi\w*|remedio\w*|doenca\w*|consulta\w*|internac\w*|restric\w*)\b/, 'Saúde'],
       [/\b(escola\w*|educac\w*|estud\w*|bimestre|conceito|curso\w*)\b/, 'Educação'],
       [/\b(judic\w*|juiz\w*|juizo|processo\w*|oficio\w*|reavalia\w*|como (ela |ele )?chegou)\b/, 'Judiciário'],
-      [/\b(aniversari\w*|conquista\w*|foto\w*|memoria\w*|vivencia\w*)\b/, 'Geral'],
+      [/\b(aniversari\w*|conquista\w*|foto\w*|memoria\w*|vivencia\w*)\b/, 'Vivências'],
       [/\b(documento\w*|cadastro|correc\w*|quem mexeu|certidao|rg|cpf)\b/, 'Documentos'],
     ];
     const daAba = ABA_DO_ASSUNTO.find(([re]) => re.test(sem(t)))?.[1];

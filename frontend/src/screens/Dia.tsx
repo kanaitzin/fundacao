@@ -388,7 +388,7 @@ export function Dia({ houseId, casaLabel, papel, irPara, alcanca = () => true, p
       <div className="diahead">
         <div>
           <div className="eyebrow" style={{ margin: 0 }}>{casaLabel}</div>
-          <h2>Hoje</h2>
+          <h2>O Dia da Casa</h2>
         </div>
         {dados && filtro !== 'os20' && (
           <div className="resumo">

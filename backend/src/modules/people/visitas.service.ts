@@ -12,6 +12,7 @@ import { diasEmPortugues } from '../../kernel/common/semana';
 import { hojeNaInstituicao } from '../../kernel/common/tempo';
 import { QUEM_LE_O_ULTIMO_CONTATO, UltimoContato, VINCULO_QUE_NAO_CONTA, ultimoContato } from './ultimo-contato.regra';
 import { ESCREVE_CONTATO, rotuloDoVinculo } from './contatos.service';
+import { QUEM_VE_CPF_INTEIRO } from './cpf-na-portaria.regra';
 import { QUEM_POE_FOTO } from './foto.regra';
 
 /**
@@ -87,12 +88,11 @@ export class VisitasService {
       const { rows } = await c.query(`SELECT * FROM app_portaria_da_casa($1)`, [houseId]);
       return rows;
     }).catch((e) => this.traduz(e));
-    /* O documento do visitante é de TERCEIRO: inteiro só para quem escreve no
-       cadastro; no portão, os dígitos do meio — o bastante para conferir. */
-    const inteiro = ESCREVE_CONTATO.includes(user.role);
+    /* O documento do visitante é de TERCEIRO: na lista, os dígitos do meio para
+       todos (fase 277, decisão de 05/11). O número inteiro sai um visitante por
+       vez, ao tocar em Ver o CPF, e cada pedido vai à auditoria (`cpfInteiro`). */
     const mascara = (doc: string | null) => {
       if (!doc) return null;
-      if (inteiro) return doc;
       const d = doc.replace(/\D/g, '');
       return d.length === 11 ? maskCpf(d) : `${'•'.repeat(Math.max(d.length - 3, 0))}${d.slice(-3)}`;
     };
@@ -104,6 +104,7 @@ export class VisitasService {
          27/09): a portaria VÊ a foto grande para conferir com o documento, e
          não anexa nem troca. A rota é a do contato (`/people/contacts/:id/photo`). */
       podeAnexarFoto: QUEM_POE_FOTO.includes(user.role),
+      podeVerCpfInteiro: QUEM_VE_CPF_INTEIRO.includes(user.role),
       visitantes: rows.map((r: any) => ({
         contatoId: r.contact_id, nome: r.visitante, nomeSocial: r.nome_social,
         vinculoRotulo: rotuloDoVinculo(r.vinculo, r.vinculo_outro),
@@ -115,6 +116,33 @@ export class VisitasService {
         visitaAberta: r.visita_aberta ? { id: r.visita_aberta, entrouEm: r.entrou_em } : null,
       })),
     };
+  }
+
+  /**
+   * O DOCUMENTO INTEIRO DE UM VISITANTE, CPF e RG (fase 277, decisão de 05/11): só para quem
+   * confere no portão ou responde pelo cadastro, e cada pedido fica na auditoria
+   * com a casa. O número nunca vai ao log nem à auditoria: só o id do contato.
+   */
+  async cpfInteiro(user: AuthenticatedUser, contatoId: string) {
+    if (!QUEM_VE_CPF_INTEIRO.includes(user.role)) {
+      throw new ForbiddenException('O CPF inteiro do visitante é visto pela portaria, pela equipe técnica ou pela coordenação.');
+    }
+    const r = await this.db.asUser(user.id, async (c) => {
+      const { rows: [x] } = await c.query(`SELECT * FROM app_cpf_do_visitante($1)`, [contatoId]);
+      return x;
+    }).catch((e) => {
+      if (String(e?.message ?? '').includes('sem_permissao_cpf_inteiro')) {
+        throw new ForbiddenException('O CPF inteiro do visitante é visto pela portaria, pela equipe técnica ou pela coordenação.');
+      }
+      return this.traduz(e);
+    });
+    if (!r) throw new NotFoundException('Visitante não encontrado, ou fora do seu alcance.');
+    await this.audit.log({
+      action: 'visitante.cpf_visto', actorId: user.id, institutionId: user.institutionId,
+      houseId: r.house_id, entity: 'person_contact', entityId: contatoId,
+      detail: { temCpf: !!r.cpf, temRg: !!r.rg },
+    });
+    return { cpf: r.cpf ?? null, rg: r.rg ?? null, aviso: 'A abertura ficou registrada com o seu nome.' };
   }
 
   async fotoDoVisitante(user: AuthenticatedUser, contatoId: string) {

@@ -35,8 +35,10 @@ continua pedindo a justificativa, e a frase agora diz isso no segundo passo.
 ## As decisões de 05/11 (pessoa da Fundação, nesta sessão)
 
 1. **CPF na Portaria:** a portaria, a técnica e a coordenação veem o CPF inteiro **ao tocar em
-   Ver o CPF**; cada abertura vai à auditoria com o nome e a hora; nunca em aviso, lista ou
-   documento para baixar. Os outros cargos continuam com o CPF mascarado.
+   Ver o CPF**; cada abertura vai à auditoria com o nome e a hora; nunca em aviso ou lista. Os
+   outros cargos continuam com o CPF mascarado. **Depois, no mesmo dia:** a folha impressa para a
+   guarita, que já trazia o documento inteiro desde a fase 92, continua assim, e o toque mostra o
+   CPF e o RG juntos (*Ver o documento*).
 2. **A demonstração:** a Casa 03 do protótipo fica com quinze acolhidos ativos (as outras cinco
    crianças passam a egressas no Arquivo, nada some), e a palavra *fictício* sai de cada nome,
    ficando só a faixa *Protótipo, dados fictícios* no alto de toda tela.

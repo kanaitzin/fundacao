@@ -475,11 +475,11 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
        */
       setSemGeral(LE_ATA_GERAL.includes(papel)
         ? 'A ATA Geral Noturna do dia é aberta pelo Líder Noturno Geral. Para consultar '
-          + 'o que ele registrou sobre ESTA casa, em qualquer data, use o Arquivo — a folha '
+          + 'o que ele registrou sobre ESTA casa, em qualquer data, abra as Atas do Mês. A folha '
           + 'completa das oito casas fica com quem responde pela instituição.'
         : 'A ATA Geral Noturna é o que a instituição registra sobre as oito casas à noite, e '
           + 'quem a lê é a coordenação, a equipe técnica e os líderes. O que houve NESTA casa, '
-          + 'dia a dia, você folheia no Arquivo.');
+          + 'dia a dia, você folheia nas Atas do Mês.');
       return;
     }
     try {
@@ -616,7 +616,7 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
         {CONSULTA_ARQUIVO.includes(papel) && (
           <button role="tab" aria-selected={aba === 'arquivo'} className={aba === 'arquivo' ? 'on' : ''}
                   onClick={() => { setAba('arquivo'); if (!arquivo) consultar(); }}>
-            <Icone nome="livros" /> Arquivo
+            <Icone nome="livros" /> Atas do Mês
           </button>
         )}
       </div>
@@ -1303,7 +1303,7 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
           {geralDoArquivo && (
             <button className="btn sm ghost" style={{ alignSelf: 'flex-start', marginBottom: 8 }}
                     onClick={() => { setGeralDoArquivo(false); setGeral(null); setAba('arquivo'); }}>
-              ← Voltar ao Arquivo
+              ← Voltar às Atas do Mês
             </button>
           )}
           {semGeral && <div className="notice c-info">{semGeral}</div>}
@@ -1469,7 +1469,7 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
             *    lista que vaza tudo quando alguém tira um print.
             */}
           <div className="card raise stack">
-            <h3 style={{ fontSize: 17, margin: 0 }}>Arquivo das ATAS</h3>
+            <h3 style={{ fontSize: 17, margin: 0 }}>Atas do Mês</h3>
             <div className="mutetxt">
               O livro folheado para trás: os últimos 30 dias, um dia, uma semana ou um mês desta casa.
             </div>

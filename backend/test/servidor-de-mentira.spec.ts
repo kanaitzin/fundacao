@@ -151,9 +151,13 @@ describe('O servidor de mentira do protótipo', () => {
     for (const campo of CAMPOS_DE_AUTORIA_DA_CASA) {
       for (const m of mock.matchAll(new RegExp(`${campo}: '([^']+)'`, 'g'))) {
         const nome = m[1];
-        /* Só nomes de PESSOA fictícia: 'Casa toda', 'Educador do plantão
-           diurno' e afins são papéis, não gente com conta. */
-        if (!/\(fict/.test(nome)) continue;
+        /* Só nomes de PESSOA: 'Casa toda', 'Educador do plantão diurno' e
+           afins são papéis, não gente com conta. Até a fase 277 a pessoa se
+           reconhecia pela marca "(fictício)" no nome; a marca saiu da
+           demonstração (decisão de 05/11), e a pessoa passa a ser o nome em que
+           toda palavra, fora as ligações, começa com maiúscula. */
+        const palavras = nome.split(' ').filter((w) => !['da', 'de', 'do', 'das', 'dos', 'e'].includes(w));
+        if (palavras.length < 2 || !palavras.every((w) => /^[A-ZÁÉÍÓÚÂÊÔÃÕÇ]/.test(w))) continue;
         if (daCasa.has(nome)) continue;
         const linha = mock.slice(0, m.index ?? 0).split('\n').length;
         erros.push(`linha ${linha}: ${campo} '${nome}' não está no quadro da casa`);
