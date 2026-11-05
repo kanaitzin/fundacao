@@ -107,7 +107,9 @@ export const VOCABULARIO_DA_AUDITORIA: Record<string, string> = {
   'memory.record': 'Vivência registrada no álbum',
   'memory.open': 'Foto do álbum de vivências aberta',
   'foto.identificacao.guardada': 'Foto de identificação guardada',
-  'foto.contato.guardada': 'Foto de visitante guardada',
+  'foto.contato.guardada': 'Foto do familiar guardada',
+  'foto.identificacao.retirada': 'Foto de identificação tirada, com o motivo',
+  'foto.contato.retirada': 'Foto do familiar tirada, com o motivo',
   'marco.registrado': 'Marco de vida registrado',
   'marco.comprovante.lido': 'Comprovante de marco de vida aberto',
 
