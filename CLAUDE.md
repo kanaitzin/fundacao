@@ -461,7 +461,14 @@ no roteiro da Casa 03 (com o Word regerado) e nas cobranças dos ensaios. **Dado
 palavra fictício**: os nomes são inventados e a faixa do alto diz que é demonstração; pessoa, no
 `servidor-de-mentira.spec`, é o nome com todas as palavras em maiúscula, e a regra foi provada reprovando um
 autor de fora. **A Casa 03 do protótipo tem quinze**: o Caio, o Davi, o Miguel, o Rafa e a Yasmin estão no
-acervo; quem conta a casa no protótipo usa o `todosKids()`, nunca o `KIDS`. **Medido nas 276 e 277, até aqui:** a `o-documento-inteiro-na-portaria` e as três suítes da Portaria (33 de 33), o `servidor-de-mentira` (9 de 9, e reprovando com um autor de fora), as conferências da Acolhe+AI, do Guia, das rotas e das recusas (91 de 91). **Rodando ao fechar este texto:** o `ensaio:uso` sobre o protótipo novo e a medição dos botões parados dos outros sete cargos; **não rodou ainda** a suíte inteira nem o do celular.
+acervo; quem conta a casa no protótipo usa o `todosKids()`, nunca o `KIDS`. **Medido nas 276 e 277:** a suíte inteira (1444 de 1449; as cinco reprovações eram desta fase, o nome do Dia na
+Acolhe+AI, a rota nova na sondagem de escrita e os números da documentação, consertadas e conferidas, 44 de 44), o
+`ensaio:uso` sobre o protótipo (829 cobranças, sem reprovação, depois de ajustar as cobranças que liam *fictício*, o
+*Arquivo* e a vida na casa na Geral), o do celular (322 telas, sem achado, depois de a barra de baixo ganhar a forma
+curta *Dia da Casa*: o nome inteiro saía cortado a 390 px) e a sonda dos botões que não fazem nada (educador,
+Enfermagem e Gestor Geral inteiros; cinco achados consertados). **Não rodou:** o relógio adiantado, o de
+acessibilidade (a cor nova é só a borda da aba Vivências) e a sonda inteira da técnica, do Líder Diurno, da
+coordenação e do Líder Noturno (a sonda leva mais de uma hora por cargo).
 **Próxima: 278**, a organização da avaliação: O Dia da Casa com *Pendentes* e *Toda a rotina*, por manhã, tarde e
 noite, com *Ver detalhes* levando ao registro; a Equipe e a escala em calendário; a agenda com local, endereço,
 responsável e duração; e quem fecha a ATA de outro turno. Depois, os módulos, na ordem do arquivo da avaliação.
