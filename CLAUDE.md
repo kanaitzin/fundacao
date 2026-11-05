@@ -341,7 +341,7 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 276 | **o funcionamento** (avaliação de 05/11): a chamada confirmada diz quem abriu e quem confirmou, com a hora, sem abrir (`app_user_display_name` na lista do `/checks`), e a confirmação volta à lista com o recado; a data e a hora no alto (`RelogioDoTopo`); as saídas de hoje com o dia, desde quando, quem decidiu e para onde (people/1671); o recorte já escolhido fica marcado (`aria-pressed`); o botão de teste do protótipo deixa de parecer indicador de conexão |
 | 277 | **as decisões de 05/11**: o CPF e o RG do visitante escondidos para todos na lista do portão, e inteiros ao tocar em *Ver o documento* (portaria, técnica e coordenação; `app_cpf_do_visitante`, people/1672; auditoria `visitante.cpf_visto` sem o número); a folha impressa da guarita continua inteira; *O Dia da Casa*, a aba *Vivências*, *Registro Educacional* e *Atas do Mês*; e o protótipo com quinze na Casa 03 (cinco no acervo) e sem *fictício* nos nomes (`sem-a-marca.ts`, na saída do servidor de mentira) |
 
-**Medido no fim da 275:** 210 migrações, 146 tabelas, 165 suítes, 1437 testes; nas 237 e 238, a suíte inteira
+**Medido no fim da 277:** 212 migrações, 146 tabelas, 166 suítes, 1441 testes; nas 237 e 238, a suíte inteira
 verde (1363 de 1363, depois de consertar as três conferências que o relatório das vivências deixou soltas) e o
 `ensaio:uso` (739 cobranças, sem reprovação, com o relatório das vivências aberto e o Word baixado); **não rodou**
 nas 237 e 238 o relógio adiantado, o do celular, o de acessibilidade, o `ensaio:acolhe` nem a simulação contra o servidor;

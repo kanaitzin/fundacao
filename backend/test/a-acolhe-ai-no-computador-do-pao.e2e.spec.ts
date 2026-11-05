@@ -135,7 +135,7 @@ describe('A tradução para o modelo do Pão', () => {
 
   it('o modelo do Pão recebe só as telas do cargo, e as regras da Fundação inteiras (fase 240)', () => {
     const g = guiaDoCargo(['dia', 'ata', 'acolhidos']);
-    expect(g).toContain('- Dia (dia):');
+    expect(g).toContain('- O Dia da Casa (dia):');
     expect(g).toContain('- ATA (ata):');
     expect(g).not.toContain('(escala):');
     expect(g).not.toContain('(metricas):');

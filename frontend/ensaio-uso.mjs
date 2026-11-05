@@ -2443,7 +2443,8 @@ cobrar('a tela diz que nenhuma contagem é por criança',
 /* A ordem é a regra: por NOME, nunca por total. Uma lista ordenada por número
  * JÁ É a classificação, e ela apareceria sem ninguém ter decidido fazê-la. */
 /* As linhas que são só o nome de alguém (até a 277 se achavam pela marca fictícia). */
-const nomesNaTela = [...contagens.matchAll(/^([A-ZÁÉÍÓÚÂÊÔ][a-zà-ú]+(?: (?:d[aeo]s? )?[A-ZÁÉÍÓÚÂÊÔ][a-zà-ú]+)+)$/gm)].map((x) => x[1]);
+const CARGOS_NA_TELA = /^(Líder Diurno|Líder Noturno|Coordenação|Equipe técnica|Enfermagem|Educador social|Portaria|Gestor Geral|Coordenação Geral)$/;
+const nomesNaTela = [...contagens.matchAll(/^([A-ZÁÉÍÓÚÂÊÔ][a-zà-ú]+(?: (?:d[aeo]s? )?[A-ZÁÉÍÓÚÂÊÔ][a-zà-ú]+)+)$/gm)].map((x) => x[1]).filter((n) => !CARGOS_NA_TELA.test(n));
 cobrar('e a ordem é por nome, nunca por total',
   nomesNaTela.length === 0
   || JSON.stringify(nomesNaTela) === JSON.stringify([...nomesNaTela].sort((a, b) => a.localeCompare(b))),
@@ -2618,8 +2619,9 @@ if (!((await aba('Agenda')) || (await doMais('Agenda')))) {
     const folha = await corpo();
     const comAviso = (folha.match(/\(fora da escala deste horário\)/g) ?? []).length;
     /* Os nomes da lista: as linhas do select de responsável. */
+    /* As pessoas da lista (até a 277 se achavam pela marca fictícia). */
     const nomes = (await pg.locator('select option').allInnerTexts())
-      .filter((t) => /\(fict/i.test(t));
+      .filter((t) => /^[A-ZÁÉÍÓÚÂÊÔ][a-zà-ú]+ [A-ZÁÉÍÓÚÂÊÔ][a-zà-ú]+/.test(t));
 
     cobrar('a lista de responsáveis traz nomes', nomes.length > 1,
       `veio ${JSON.stringify(nomes)}`);
@@ -2963,7 +2965,8 @@ await clicar(/Alice/);
 cobrar('o perfil tem por onde registrar o atendimento de saúde',
   await clicar(/Registrar atendimento de saúde/),
   'quem acompanhou é quem escreve, e o educador tem de alcançar esta folha');
-const folha133 = await corpo();
+/* Só a folha: atrás dela está o perfil, com o histórico de saúde (fase 275). */
+const folha133 = await pg.locator('.overlay .sheet').last().innerText().catch(() => corpo());
 cobrar('a folha pergunta quem levou a criança', /Quem levou a criança/i.test(folha133),
   folha133.slice(0, 300));
 cobrar('a lista de tipos NÃO oferece mais "Vacina"',

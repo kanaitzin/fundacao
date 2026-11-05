@@ -121,6 +121,7 @@ const REGRAS: Array<[RegExp, string, string]> = [
   [/^\/people\/health-conditions\/:conditionId/, 'conditionId', 'health_condition'],
   [/^\/people\/kitchen-requests\/:id/, 'id', 'kitchen_request'],
   [/^\/people\/portaria\/visitas\/:id/, 'id', 'visit'],
+  [/^\/people\/portaria\/visitante\/:contactId/, 'contactId', 'person_contact'],
   [/^\/people\/portaria\/saidas\/:id/, 'id', 'child_outing'],
   [/^\/people\/memory-photos\/:fotoId/, 'fotoId', 'memory_photo'],
   [/^\/people\/memory-tags\/:marcaId/, 'marcaId', 'memory_photo_person'],
