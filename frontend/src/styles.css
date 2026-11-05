@@ -43,6 +43,9 @@
    * cheio — folga nos dois usos. Achado pelo `npm run ensaio:acessibilidade`.
    */
   --emerald:#10B981; --emerald-solid:#047857;
+  /* O fundo e a borda do que já foi feito (fase 273). */
+  --feito-fundo:color-mix(in srgb, var(--emerald) 14%, var(--surface));
+  --feito-borda:color-mix(in srgb, var(--emerald-solid) 45%, transparent);
   --amber:#F59E0B;   --amber-solid:#92400E;
   --red:#EF4444;     --red-solid:#B91C1C;
   --blue:#3B82F6;    --blue-solid:#1D4ED8;
@@ -1820,6 +1823,34 @@ div.acoes{ display:flex; flex-wrap:wrap; gap:8px; align-items:center }
 .linha .ev.feito{ background:transparent }
 .linha .ev.feito .corpo{ background:var(--sunken); box-shadow:none }
 .linha .ev.feito::before{ opacity:.55 }
+/* O QUE JÁ FOI FEITO, EM VERDE (fase 273, pedido de 05/11): a atividade concluída, a
+   dose dada, a chamada confirmada por qualquer pessoa da equipe e a ATA fechada. É cor
+   de ESTADO (o verde do ok), nunca de pessoa, e nunca sozinha: o visto e a palavra vão
+   na etiqueta. Não realizada, cancelada e reagendada continuam no cinza de encerrado.
+   A borda da esquerda segue sendo a da categoria, e na Chamada a barra e o ponto
+   seguem sendo a cor da casa. */
+.linha .ev.feito-ok{ color:var(--ink) }
+.linha .ev.feito-ok .corpo{
+  background:var(--feito-fundo); border-color:var(--feito-borda); border-left-color:var(--cat, var(--feito-borda));
+  box-shadow:none;
+}
+.linha .ev.feito-ok::before{ opacity:1 }
+.linha .ev.feito-ok b{ font-weight:700 }
+.chamadacard.feito-ok{ background:var(--feito-fundo); border-color:var(--feito-borda) }
+.pill.pill-feito{ display:inline-flex; align-items:center; gap:4px }
+.pill.pill-feito svg{ flex:none }
+/* No Rio Grande do Sul e no Verde, o fundo da tela já é verde-claro, e o feito no tom de
+   sempre quase sumia nele (pedido de 05/11: não confundir as equipes). Ali o feito leva
+   um verde mais cheio e a borda inteira, sem perder a palavra e o visto. */
+:root[data-theme="rs"], :root[data-theme="verde"]{
+  --feito-fundo:color-mix(in srgb, var(--emerald) 30%, var(--surface));
+  --feito-borda:var(--emerald-solid);
+}
+:root[data-theme="rs"] .chamadacard.feito-ok, :root[data-theme="verde"] .chamadacard.feito-ok,
+:root[data-theme="rs"] .linha .ev.feito-ok .corpo, :root[data-theme="verde"] .linha .ev.feito-ok .corpo{
+  /* Os três lados: o da esquerda é a cor da casa ou da categoria, e fica como está. */
+  border-top-width:2px; border-right-width:2px; border-bottom-width:2px;
+}
 .linha .hora{
   font-family:"Plus Jakarta Sans",sans-serif; font-size:15px; font-weight:800;
   color:var(--titulo); text-align:right; padding-top:10px;

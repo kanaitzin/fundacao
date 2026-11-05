@@ -65,6 +65,14 @@ export interface TimelineEvent {
   note?: string | null;
   /** Ações que este papel pode executar sobre o evento. */
   actions?: TimelineAction[];
+  /**
+   * JÁ FOI FEITO (fase 273, pedido de 05/11): a atividade concluída, a dose
+   * administrada, a chamada confirmada por qualquer pessoa da equipe, a ATA
+   * fechada sem assinatura faltando. A tela pinta de verde, sempre com a palavra
+   * e o visto junto. Recusa, não realizada, cancelada e reagendada não são feito:
+   * aconteceram, mas não foram feitas, e continuam no cinza de encerrado.
+   */
+  feito?: boolean;
 }
 
 export type TimelineKind =

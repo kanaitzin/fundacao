@@ -1056,6 +1056,12 @@ const acoes = (e: Ev, papel: string) => {
   ];
 };
 
+/* JÁ FOI FEITO (fase 273): o mesmo que o servidor manda em `feito`, aqui lido do
+   estado da linha, que é o rótulo que o servidor escreve. Recusa, não realizada,
+   cancelada e reagendada não são feito. */
+const ESTADO_FEITO = /^(Concluída no horário|Concluída com atraso|Administrado no horário|Chamada confirmada|ATA fechada)$|^Dada (às|fora do horário)/;
+const comFeito = <T extends { state: string }>(e: T) => ({ ...e, feito: ESTADO_FEITO.test(e.state) });
+
 let LINHA: Ev[] = [
   { id: 'activity:a1', source: 'rotina', at: emHoras(7, 0), kind: 'rotina', title: 'Despertar e higiene',
     personId: null, personName: null, state: 'Concluída no horário', severity: 'normal' },
@@ -6876,7 +6882,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
    */
   if (rota === '/timeline/all') {
     /* Esta casa só; o `mock.ts` junta as casas que a pessoa alcança (fase 225). */
-    const eventos = LINHA.map((e) => ({ ...e, casa: CASA.code }))
+    const eventos = LINHA.map((e) => ({ ...comFeito(e), casa: CASA.code }))
       .sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
     return {
       data: String(q.get('date') ?? ''),
@@ -6943,7 +6949,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         : sorteado(data);
       return { data, modo: 'individual', incompleta: false, fontesIndisponiveis: [],
         resumo: { total: eventos.length, criticos: 0, atencao: 0, individuais: eventos.length, coletivos: 0 },
-        eventos };
+        eventos: eventos.map(comFeito) };
     }
     const so = q.get('mode') === 'minhas';
     /*
@@ -6968,7 +6974,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
                 individuais: eventos.filter((e) => e.personId).length,
                 coletivos: eventos.filter((e) => !e.personId).length },
       eventos: eventos.map((e) => ({
-        ...e,
+        ...comFeito(e),
         /* O cargo do responsável, como o servidor manda (fase 172). */
         responsibleCargo: cargoPeloNome(e.responsible),
         actions: acoes(e, eu.role),
@@ -7574,6 +7580,11 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     /* E quem fecha assina (`confirmed_by`, fase 113). */
     k.confirmadaPor = eu.fullName;
     k.confirmadaEm = new Date().toISOString();
+    /* A linha do Dia acompanha (fase 273): a chamada confirmada por alguém fica feita
+       para todos, como o `checks.timeline` do servidor diz. */
+    for (const ev of LINHA.filter((e) => e.source === 'chamada' && e.title.startsWith(`${k.titulo} — `))) {
+      ev.state = 'Chamada confirmada'; ev.severity = 'normal'; ev.note = null; ev.actions = [];
+    }
     return { aviso: 'Chamada confirmada. O que foi registrado na hora continua como foi registrado.' };
   }
 
@@ -10848,6 +10859,10 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     d.rotulo = estado === 'administrado_com_atraso'
       ? rotuloForaDoHorario(d.horario, d.administradaEm) : ESTADO_DOSE[estado];
     d.observacao = String(b.nota ?? '').trim() || null;
+    /* A linha do Dia acompanha a dose (fase 273), pelo id que ela carrega. */
+    for (const ev of LINHA.filter((e) => e.id === `medication:${d.id}` || e.id === `dose:${d.id}`)) {
+      ev.state = d.rotulo; ev.severity = 'normal'; ev.actions = [];
+    }
     /*
      * A BAIXA NO ARMÁRIO, como o `app_confirm_dose` (fase 204). O protótipo
      * confirmava a dose e o armário ficava igual: a Enfermagem que dava a dose

@@ -164,6 +164,26 @@ describe('Fase 3 — Rotina, atividades, chamadas, linha do tempo e offline', ()
     expect(comNota.body.rotulo).toBe('Concluída no horário');
   });
 
+  it('a linha do dia diz o que já foi feito, e só o que foi feito (fase 273)', async () => {
+    /* A tela pinta de verde o que vem com `feito`. A concluída é feita; o que aconteceu
+       sem ser feito (não realizada, recusa, sem confirmação) nunca é. */
+    const { rows: [cafe] } = await admin.query(`SELECT id FROM activity WHERE title='Café da manhã'`);
+    const dia = new Date(Date.now() - 3 * 3600_000).toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
+    const hoje = new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
+    const eventos: any[] = [];
+    for (const date of new Set([dia, hoje])) {
+      const r = await request(http).get('/api/v1/timeline').query({ houseId: AI3, date }).set(auth(tokens.educador));
+      expect(r.status).toBe(200);
+      eventos.push(...r.body.eventos);
+    }
+    const concluida = eventos.find((e) => e.id === `activity:${cafe.id}`);
+    expect(concluida?.feito).toBe(true);
+    const FEITO = /^(Concluída no horário|Concluída com atraso|Administrado no horário|Chamada confirmada|ATA fechada)$|^Dada (às|fora do horário)/;
+    expect(eventos.length).toBeGreaterThan(0);
+    for (const e of eventos) expect([e.id, !!e.feito]).toEqual([e.id, FEITO.test(e.state)]);
+    expect(eventos.some((e) => !e.feito)).toBe(true);
+  });
+
   it('vencida sem confirmação vira “sem confirmação”, nunca “não realizada”', async () => {
     // Cria uma atividade no passado e deixa vencer
     const urg = await request(http).post('/api/v1/activities/urgent').set(auth(tokens.lider))

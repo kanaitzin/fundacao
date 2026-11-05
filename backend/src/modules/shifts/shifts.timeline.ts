@@ -41,6 +41,7 @@ export class ShiftsTimelineProvider implements TimelineProvider, OnModuleInit {
           ? (pendente ? `ATA fechada com ${quantos(s.assinaturasFaltantes, 'assinatura pendente', 'assinaturas pendentes')}` : 'ATA fechada')
           : `Plantão aberto, ${quantos(s.passagensAssinadas, 'passagem assinada', 'passagens assinadas')}`,
         severity: pendente ? 'atencao' : 'normal',
+        feito: fechado && !pendente,
         note: fechado ? null : 'Cada profissional assina a própria passagem.',
         actions: fechado
           ? [{ command: 'ata.view', label: 'Ver ATA' }]

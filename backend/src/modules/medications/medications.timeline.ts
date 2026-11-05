@@ -53,6 +53,7 @@ export class MedicationsTimelineProvider implements TimelineProvider, OnModuleIn
         personName: d.acolhido.nome,
         houseId: q.houseId,
         state: d.rotulo,
+        feito: ['administrado_no_horario', 'administrado_com_atraso'].includes(d.estado),
         // Dose vencida sem registro é o alerta mais alto da tela — mas o rótulo
         // continua sendo "aguardando confirmação", nunca "não administrado".
         severity: atrasada ? 'critico' : d.pendente ? 'atencao' : 'normal',

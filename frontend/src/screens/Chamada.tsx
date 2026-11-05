@@ -250,6 +250,10 @@ export function Chamada({ houseId }: { houseId: string }) {
           * horário, quantas pessoas costumam estar e a cor que a casa escolheu.
           * A cor diz QUAL chamada é, na barra e no ponto, e nunca numa pílula; o
           * que diz se ela já foi feita é a pílula de estado, como sempre.
+          *
+          * A CHAMADA FEITA EM VERDE (fase 273, pedido de 05/11): confirmada por
+          * qualquer pessoa da equipe, o cartão inteiro fica verde para todos, com o
+          * visto e a palavra Confirmada junto. A barra e o ponto continuam na cor da casa.
           */}
         {modelos && (modelos.modelos.length > 0 || modelos.podeEditar) && (
           <section className="chamadas-da-casa" aria-labelledby="t-da-casa">
@@ -266,7 +270,8 @@ export function Chamada({ houseId }: { houseId: string }) {
                 const cor = corDaCasa(m.cor);
                 return (
                   <div key={m.id} className="chamada-da-casa" style={{ ['--cor-da-casa' as string]: cor.hex }}>
-                    <button className="card row chamadacard grow" disabled={ocupado === m.id}
+                    <button className={`card row chamadacard grow${feita?.status === 'confirmada' ? ' feito-ok' : ''}`}
+                            disabled={ocupado === m.id}
                             onClick={async () => {
                               if (feita) { await abrir(feita.id); return; }
                               setOcupado(m.id);
@@ -282,7 +287,8 @@ export function Chamada({ houseId }: { houseId: string }) {
                         </div>
                       </div>
                       {feita
-                        ? <span className={`pill ${feita.status === 'confirmada' ? 'c-ok' : 'c-warn'}`}>
+                        ? <span className={`pill ${feita.status === 'confirmada' ? 'c-ok pill-feito' : 'c-warn'}`}>
+                            {feita.status === 'confirmada' && <Icone nome="conferido" tamanho={14} />}
                             {feita.status === 'confirmada' ? 'Confirmada' : 'Aberta'}
                           </span>
                         : <span className="pill c-mute">Abrir</span>}
@@ -353,12 +359,14 @@ export function Chamada({ houseId }: { houseId: string }) {
         )}
         <div className="stack">
           {(modelos ? outras(lista, modelos.modelos) : lista).map((c) => (
-            <button key={c.id} className="card row chamadacard" onClick={() => abrir(c.id)}>
+            <button key={c.id} className={`card row chamadacard${c.status === 'confirmada' ? ' feito-ok' : ''}`}
+                    onClick={() => abrir(c.id)}>
               <div className="grow" style={{ textAlign: 'left' }}>
                 <b className="ff">{c.titulo}</b>
                 <div className="mutetxt">{hhmm(c.horario)} · {c.conferidos} de {c.esperados}</div>
               </div>
-              <span className={`pill ${c.status === 'confirmada' ? 'c-ok' : 'c-warn'}`}>
+              <span className={`pill ${c.status === 'confirmada' ? 'c-ok pill-feito' : 'c-warn'}`}>
+                {c.status === 'confirmada' && <Icone nome="conferido" tamanho={14} />}
                 {c.status === 'confirmada' ? 'Confirmada' : 'Aberta'}
               </span>
             </button>

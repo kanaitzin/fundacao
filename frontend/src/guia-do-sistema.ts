@@ -138,6 +138,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 273, dia: '05/11/2026',
+    texto: 'O que já foi feito fica verde: no Dia, a atividade concluída, a dose dada, a chamada confirmada e a ATA fechada; na Chamada, a chamada que alguém da equipe confirmou fica verde para todos. O verde vem sempre com o visto e a palavra. O que não foi feito, como não realizada, recusa, cancelada ou reagendada, continua em cinza.' },
   { fase: 272, dia: '05/11/2026',
     texto: 'A letra Grande e a Maior, escolhidas em Cor e letra da tela, agora cabem: no celular e no computador, nada passa da borda nem vaza dos botões, o que não cabe ao lado de um título desce para a linha de baixo, e o botão do fim de cada folha fica sempre à vista.' },
   { fase: 271, dia: '03/11/2026', aba: 'acolhidos',

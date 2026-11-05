@@ -45,6 +45,8 @@ interface Evento {
   responsibleCargo?: string | null;
   note?: string | null;
   actions?: { command: string; label: string }[];
+  /** Já foi feito (fase 273): concluída, dose dada, chamada confirmada, ATA fechada. */
+  feito?: boolean;
 }
 
 interface Aniversariante {
@@ -483,7 +485,7 @@ export function Dia({ houseId, casaLabel, papel, irPara, alcanca = () => true, p
             <li className="agora" aria-hidden="true"><span>agora · {hhmm(new Date().toISOString())}</span></li>
           )}
           <li
-              className={`ev ${categoriaDe(ev.kind).classe} ${FINALIZADOS.has(ev.state) ? 'feito' : ''}`}>
+              className={`ev ${categoriaDe(ev.kind).classe} ${ev.feito ? 'feito feito-ok' : FINALIZADOS.has(ev.state) ? 'feito' : ''}`}>
             <div className="hora">{hhmm(ev.at)}</div>
             <div className="corpo">
               <div className="tit">
@@ -501,7 +503,12 @@ export function Dia({ houseId, casaLabel, papel, irPara, alcanca = () => true, p
                 {ev.responsible}
               </div>
               <div className="estado">
-                <span className={`pill ${TOM_SEVERIDADE[ev.severity]}`}>{ev.state}</span>
+                {/* O FEITO EM VERDE (fase 273): a cor nunca sozinha; o visto e a palavra do
+                    estado vão junto, para quem não distingue a cor e no tema do Rio Grande do
+                    Sul, que tem o verde da bandeira na moldura. */}
+                <span className={`pill ${ev.feito ? 'c-ok pill-feito' : TOM_SEVERIDADE[ev.severity]}`}>
+                  {ev.feito && <Icone nome="conferido" tamanho={14} />}{ev.state}
+                </span>
               </div>
               {ev.note && <div className="mutetxt">{ev.note}</div>}
 

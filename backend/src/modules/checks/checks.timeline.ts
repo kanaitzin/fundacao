@@ -48,6 +48,8 @@ export class ChecksTimelineProvider implements TimelineProvider, OnModuleInit {
         houseId: q.houseId,
         state: pendente ? `Chamada aberta — ${k.conferidos}/${k.esperados} conferidos` : 'Chamada confirmada',
         severity: pendente ? (faltam > 0 ? 'atencao' : 'normal') : 'normal',
+        /* Coletiva: confirmada por qualquer pessoa da equipe, fica feita para todos. */
+        feito: !pendente,
         note: pendente && faltam > 0 ? `Faltam ${faltam} acolhidos para conferir` : null,
         actions: pendente ? [{ command: 'check.open', label: 'Abrir chamada' }] : [],
       };
