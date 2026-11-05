@@ -467,7 +467,7 @@ tem lista com data que a sonda leia.
 `feito`** quando o que ela mostra foi feito, e só então: a tela não adivinha pelo texto do estado (no protótipo, o
 `ESTADO_FEITO` do `mock-casa.ts` lê o rótulo, e a `operacao` cobra que os dois concordam). **O verde de feito mora em
 `--feito-fundo` e `--feito-borda`**, que seguem o tema; tema novo com fundo verde ganha o reforço do RS e do Verde.
-**Medido na 273, até aqui:** a `operacao` (26 de 26; o teste do feito reprova sem o conserto), e as fotos do Dia e da Chamada nos temas claro, escuro, colorido, RS e Verde. **Em andamento:** o de acessibilidade, o `ensaio:uso` e o do celular sobre o protótipo novo.
+**Medido na 273:** a `operacao` (26 de 26; o teste do feito reprova sem o conserto), as fotos do Dia e da Chamada nos temas claro, escuro, colorido, RS e Verde, e sobre o protótipo novo o de acessibilidade (1155 telas, sete temas, nenhuma violação), o `ensaio:uso` (822 cobranças, sem reprovação) e o do celular (sem achado).
 
 **FEITO — fase 272** (§2): a letra Grande e a Maior cabem no celular e no computador. **A letra é um `zoom` da
 página**: o Chromium mede a largura da página SEM o zoom e as caixas COM ele, e a altura pela tela (`vh`, `dvh`) cresce
