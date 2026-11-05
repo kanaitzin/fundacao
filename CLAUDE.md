@@ -1439,6 +1439,12 @@ novo.
   `prototipo/rede-acolher-prototipo.html`. Baixar do GitHub em *Download raw file*
   e dar dois cliques; não instala nada, não precisa de banco, dados fictícios. O
   sistema de verdade está no §12.3 do documento.
+  **Endereço fixo, sempre na última versão** (pedido de 05/11, para a reunião no Pão):
+  `https://kanaitzin.github.io/fundacao/`, publicado pelo workflow
+  `.github/workflows/prototipo-no-ar.yml` a cada protótipo novo neste branch; só o arquivo
+  do protótipo sai, com `noindex`. **Liga-se uma vez**, por quem é dono do repositório:
+  *Settings → Pages → Source: GitHub Actions*, e depois *Actions → O protótipo no ar → Run
+  workflow*. A rodada do workflow aparece pelas ferramentas do GitHub desta sessão.
   **Link público, sem login** (pedido de 28/09; o repositório é público):
   `https://raw.githack.com/kanaitzin/fundacao/<commit>/prototipo/rede-acolher-prototipo.html`,
   com o commit do protótipo que se quer mostrar. Fica preso àquela versão: a cada
