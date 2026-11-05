@@ -85,9 +85,9 @@ Leitura recomendada antes da aplicação, para quem conduz.
   acompanhante), com motivo, autor e desde quando. A portaria vê o que vale, sem o motivo.
 - A portaria tem acesso próprio, com a relação de visitantes autorizados de
   cada acolhido, a foto 3x4 e o registro de entrada e saída das visitas.
-- O contato de quem aparece pela criança se corrige pelo botão *Corrigir*, com o
-  motivo, e o que constava antes fica guardado. Encerrar continua sendo para quem
-  deixou de fazer parte da vida da criança.
+- O familiar de quem aparece pela criança se corrige pelo botão *Editar*, com o
+  motivo, e o que constava antes fica guardado. *Retirar este familiar* continua sendo
+  para quem deixou de fazer parte da vida da criança.
 - A área restrita do Judiciário guarda os documentos dela: a guia, as decisões e
   o relatório de acolhimento, em PDF ou fotografados pela câmera.
 - Na aba Saúde do perfil, cada alergia, condição e restrição alimentar recebe o
@@ -363,9 +363,9 @@ este cargo em 31/08; vale observar se ela espera encontrá-la.
    são recusadas, e a reação dela a isso é o que se observa.)*
 
 8. **Atualize os contatos da Rayssa: a madrinha mudou de telefone.**
-   Observar: ela encontra *Quem aparece por…* e o botão *Corrigir* no contato, ou
-   encerra o contato e cadastra de novo? Repara que a correção pede o motivo e que
-   o telefone anterior fica em *Correções anteriores*? Entende que encerrar é para
+   Observar: ela encontra *Quem aparece por…* e o botão *Editar* no familiar, ou
+   retira o familiar e cadastra de novo? Repara que a correção pede o motivo e que
+   o telefone anterior fica em *Correções anteriores*? Entende que retirar é para
    quem deixou de fazer parte da vida da criança, com motivo, e não para mudar um
    número? Repara na marca de aproximação restrita, e o que comenta sobre ela?
 

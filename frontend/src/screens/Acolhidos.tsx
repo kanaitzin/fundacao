@@ -3459,11 +3459,14 @@ function Contatos({ perfil, papel, onMudou }: {
                   </button>
                 )}
                 <button className="btn sm ghost" onClick={() => setCorrigindo(c)}
-                        aria-label={`Corrigir o contato ${c.nome}`}>
-                  Corrigir
+                        aria-label={`Editar ${c.nome}`}>
+                  Editar
                 </button>
-                <button className="btn sm ghost" onClick={() => setEncerrando(c)}>
-                  Este contato não vale mais
+                {/* Retirar o familiar (pedido de 05/11, era "Este contato não vale mais"):
+                    sai da lista do plantão e fica no cadastro, com o motivo. */}
+                <button className="btn sm ghost" onClick={() => setEncerrando(c)}
+                        aria-label={`Retirar ${c.nome}`}>
+                  Retirar este familiar
                 </button>
               </div>
             )}
@@ -4027,7 +4030,7 @@ function FolhaCorrigirContato({ contato, onFechar, onSalvar }: {
     <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-corr-cont"
          onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
       <div className="sheet modal">
-        <h3 id="t-corr-cont">Corrigir o contato {contato.nome}</h3>
+        <h3 id="t-corr-cont">Editar {contato.nome}</h3>
         {erro && <div className="notice c-crit" role="alert">{erro}</div>}
         <label className="f" htmlFor="cc-nome">Nome</label>
         <input id="cc-nome" className="field" value={dados.nome}
@@ -4054,7 +4057,7 @@ function FolhaCorrigirContato({ contato, onFechar, onSalvar }: {
         <label className="f" htmlFor="cc-obs">Observação</label>
         <textarea id="cc-obs" rows={2} value={dados.observacao}
                   onChange={(e) => setDados({ ...dados, observacao: e.target.value })} />
-        <label className="f" htmlFor="cc-motivo">Por que está corrigindo</label>
+        <label className="f" htmlFor="cc-motivo">Por que está editando</label>
         <input id="cc-motivo" className="field" value={motivo} placeholder="Ex.: a mãe trocou de número"
                onChange={(e) => setMotivo(e.target.value)} />
         <p className="mutetxt">O que constava antes fica guardado, com o seu nome e o motivo.</p>
@@ -4069,7 +4072,7 @@ function FolhaCorrigirContato({ contato, onFechar, onSalvar }: {
             } catch (e) {
               setErro(e instanceof Error ? e.message : 'Não foi possível corrigir o contato.');
             } finally { setOcupado(false); }
-          }}>Guardar a correção</button>
+          }}>Guardar</button>
         </div>
         {historico.length > 0 && (
           <>
@@ -4102,7 +4105,7 @@ function FolhaEncerrarContato({ contato, onFechar, onEncerrar }: {
     <div className="overlay" role="dialog" aria-modal="true"
          onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
       <div className="sheet">
-        <h3>Este contato não vale mais</h3>
+        <h3>Retirar {contato.nome}</h3>
         <p className="mutetxt">
           <b>{contato.nome}</b> sai da lista do plantão e continua no cadastro, com o motivo.
           O telefone que deixou de valer é informação: alguém tentou por ele e não conseguiu.
@@ -4117,7 +4120,7 @@ function FolhaEncerrarContato({ contato, onFechar, onEncerrar }: {
                   onClick={async () => {
                     try { await onEncerrar(motivo.trim()); }
                     catch (e) { setErro(e instanceof Error ? e.message : 'Não foi possível.'); }
-                  }}>Encerrar contato</button>
+                  }}>Retirar este familiar</button>
         </div>
       </div>
     </div>

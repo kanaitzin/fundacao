@@ -4620,14 +4620,14 @@ console.log('\n👪 Corrigir um familiar, com o antes guardado (fase 215)');
   await pgK.getByRole('button', { name: /^Acolhidos/ }).filter({ visible: true }).first().click(); await esp(900);
   await pgK.locator('.pessoa-cartao').filter({ hasText: 'Alice' }).first().click(); await esp(1200);
   await pgK.getByRole('tab', { name: /Família/ }).click(); await esp(800);
-  await pgK.getByRole('button', { name: /^Corrigir o contato Rosângela/ }).click(); await esp(500);
+  await pgK.getByRole('button', { name: /^Editar Rosângela/ }).click(); await esp(500);
   const folha = pgK.locator('.overlay');
   cobrar('a folha de corrigir vem preenchida com o que consta', (await folha.locator('#cc-tel').inputValue()).length > 5);
   await folha.locator('#cc-tel').fill('51 97777-1234');
   await folha.locator('#cc-motivo').fill('A mãe trocou de número.');
-  await folha.getByRole('button', { name: 'Guardar a correção' }).click(); await esp(900);
+  await folha.getByRole('button', { name: 'Guardar', exact: true }).click(); await esp(900);
   cobrar('o telefone novo aparece no cartão', /51 97777-1234/.test(await pgK.locator('main.conteudo').innerText()));
-  await pgK.getByRole('button', { name: /^Corrigir o contato Rosângela/ }).click(); await esp(700);
+  await pgK.getByRole('button', { name: /^Editar Rosângela/ }).click(); await esp(700);
   const t = await folha.innerText();
   cobrar('e a correção anterior aparece, com o que constava e o motivo',
     /Correções anteriores/i.test(t) && /trocou de número/.test(t));

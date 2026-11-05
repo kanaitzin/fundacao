@@ -10413,7 +10413,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
   }
   if (seg[0] === 'people' && seg[1] === 'contacts' && seg[3] === 'end' && metodo === 'POST') {
     if (String(b.motivo ?? '').trim().length < 5) {
-      return new Recusa(400, 'Escreva por que este contato não vale mais.');
+      return new Recusa(400, 'Escreva por que este familiar está sendo retirado.');
     }
     for (const lista of Object.values(CONTATOS)) {
       const c = lista.find((x) => x.id === seg[2]);

@@ -237,7 +237,7 @@ export class ContatosService {
    */
   async encerrar(user: AuthenticatedUser, contatoId: string, motivo: string) {
     if ((motivo ?? '').trim().length < 5) {
-      throw new BadRequestException('Escreva por que este contato não vale mais.');
+      throw new BadRequestException('Escreva por que este familiar está sendo retirado.');
     }
     return this.db.asUser(user.id, async (c) => {
       const { rows: [r] } = await c.query(

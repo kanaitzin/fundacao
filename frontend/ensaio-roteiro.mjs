@@ -227,7 +227,7 @@ const TAREFAS = [
     cargo: 'equipe_tecnica', secao: '3.8',
     nome: 'Os contatos de quem aparece pela criança',
     caminho: [{ aba: 'Acolhidos' }, { clicar: /Alice/ }],
-    procurar: [/quem aparece por/i, /acrescentar contato/i, /Corrigir/],
+    procurar: [/quem aparece por/i, /acrescentar contato/i, /Editar/],
   },
   {
     cargo: 'equipe_tecnica', secao: '3.13.1',
