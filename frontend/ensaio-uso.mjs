@@ -3575,7 +3575,7 @@ console.log('\n📖 As ATAs do dia em sequência, com o filtro de turno (fase 17
 await fechar();
 await trocar('coordenador');
 if (!(await aba('ATA'))) await doMais('ATA');
-await pg.getByRole('tab', { name: /^Arquivo/ }).click();
+await pg.getByRole('tab', { name: /Atas do Mês/ }).click();
 await pg.waitForTimeout(900);
 /* Ontem, pela data, e não pela posição na lista: a semana de uma segunda-feira só tem hoje. */
 cobrar('o arquivo abre nos últimos 30 dias (decisão de 28/09)',
@@ -3611,7 +3611,7 @@ cobrar('e a leitura traz só a noturna', /ATA noturna de/.test(soNoite) && !/ATA
 await fechar();
 await trocar('educador');
 if (!(await aba('ATA'))) await doMais('ATA');
-await pg.getByRole('tab', { name: /^Arquivo/ }).click();
+await pg.getByRole('tab', { name: /Atas do Mês/ }).click();
 await pg.waitForTimeout(900);
 cobrar('o educador folheia o arquivo, sem a leitura em sequência',
   (await pg.getByRole('button', { name: /em sequência/ }).count()) === 0);

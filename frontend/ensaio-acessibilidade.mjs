@@ -222,7 +222,7 @@ await pg.waitForTimeout(700);
     await pg.locator('.overlay .sheet button.card.row', { hasText: 'ATA' }).first().click();
   }
   await pg.waitForTimeout(900);
-  await pg.getByRole('tab', { name: /^Arquivo/ }).click();
+  await pg.getByRole('tab', { name: /Atas do Mês/ }).click();
   await pg.waitForTimeout(700);
   await pg.getByRole('tab', { name: /^Um dia$/ }).click();
   await pg.locator('#arq-data').fill(new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' })
