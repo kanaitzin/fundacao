@@ -1442,9 +1442,10 @@ novo.
   **Endereço fixo, sempre na última versão** (pedido de 05/11, para a reunião no Pão):
   `https://kanaitzin.github.io/fundacao/`, publicado pelo workflow
   `.github/workflows/prototipo-no-ar.yml` a cada protótipo novo neste branch; só o arquivo
-  do protótipo sai, com `noindex`. **Liga-se uma vez**, por quem é dono do repositório:
-  *Settings → Pages → Source: GitHub Actions*, e depois *Actions → O protótipo no ar → Run
-  workflow*. A rodada do workflow aparece pelas ferramentas do GitHub desta sessão.
+  do protótipo sai, com `noindex`. **Ligado em 05/11** pela conta kanaitzin (*Settings →
+  Pages → Source: GitHub Actions*; só ela vê a aba *Settings*). Primeira publicação no ar
+  no mesmo dia. A rodada do workflow aparece pelas ferramentas do GitHub desta sessão,
+  que também a disparam (*run_workflow*); o `github.io` não abre daqui.
   **Link público, sem login** (pedido de 28/09; o repositório é público):
   `https://raw.githack.com/kanaitzin/fundacao/<commit>/prototipo/rede-acolher-prototipo.html`,
   com o commit do protótipo que se quer mostrar. Fica preso àquela versão: a cada
