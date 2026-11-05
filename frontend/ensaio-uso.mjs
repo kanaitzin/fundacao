@@ -262,6 +262,10 @@ cobrar('o fecho não é a mesma pessoa que abriu — são dois atos',
   /Aberta por Educadora/.test(cafe) && /confirmada por Líder/.test(cafe),
   cafe.slice(0, 200));
 await clicar(/← Chamadas/);
+/* E a lista diz quem fez sem precisar abrir (fase 276, avaliação humana de 05/11). */
+const listaDasChamadas = await conteudo();
+cobrar('o cartão da chamada confirmada diz quem confirmou e a que horas, sem abrir',
+  /Confirmada por Líder[^\n]* às \d{2}:\d{2}/.test(listaDasChamadas), listaDasChamadas.slice(0, 300));
 
 await aba('Dia');
 /*

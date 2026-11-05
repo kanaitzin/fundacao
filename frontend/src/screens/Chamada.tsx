@@ -70,6 +70,26 @@ interface Chamada {
 interface Resumo {
   id: string; tipo: string; titulo: string; status: string;
   esperados: number; conferidos: number; horario: string;
+  /** Quem abriu e quem confirmou, com a hora (fase 276). */
+  abertaPor?: string | null; abertaEm?: string | null;
+  confirmadaPor?: string | null; confirmadaEm?: string | null;
+}
+/**
+ * QUEM FEZ, NO CARTÃO (fase 276, avaliação humana de 05/11): embaixo do
+ * Confirmada, o nome de quem confirmou e a hora; e, quando quem abriu foi outra
+ * pessoa, quem abriu também. A sequência fica à vista sem abrir a chamada.
+ */
+function QuemFezAChamada({ c }: { c: Resumo }) {
+  if (c.status !== 'confirmada' && !c.abertaPor) return null;
+  const partes: string[] = [];
+  if (c.abertaPor && (c.status !== 'confirmada' || c.abertaPor !== c.confirmadaPor)) {
+    partes.push(`Aberta por ${c.abertaPor}${c.abertaEm ? ` às ${hhmm(c.abertaEm)}` : ''}`);
+  }
+  if (c.status === 'confirmada' && c.confirmadaPor) {
+    partes.push(`Confirmada por ${c.confirmadaPor}${c.confirmadaEm ? ` às ${hhmm(c.confirmadaEm)}` : ''}`);
+  }
+  if (!partes.length) return null;
+  return <div className="mutetxt quem-fez">{partes.join(' · ')}</div>;
 }
 /** O vocabulário vem do servidor: `kind` é um enum do banco (§10). */
 interface TipoDeChamada { cod: string; label: string; sugestao: string }
@@ -222,9 +242,14 @@ export function Chamada({ houseId }: { houseId: string }) {
       const r = await api<{ aviso?: string }>(`/checks/${aberta.id}/confirm`, {
         method: 'POST', body: '{}',
       });
-      setAviso(r?.aviso ?? 'Chamada confirmada.');
-      setAberta(await api<Chamada>(`/checks/${aberta.id}`));
+      /* Confirmada, a chamada fecha e a tela volta à lista (fase 276, avaliação de
+         05/11), com o recado no alto, à vista e longe do botão da Acolhe+AI. Se a
+         gravação falhar, nada fecha: o erro aparece e a chamada continua aberta. */
+      const agora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' });
+      setAviso(`${aberta.titulo}: confirmada às ${agora}. ${r?.aviso ?? ''}`.trim());
+      setAberta(null);
       await carregarLista();
+      window.scrollTo({ top: 0 });
     } catch (e) {
       // A recusa aqui é útil: o servidor diz QUEM falta.
       setErro(e instanceof Error ? e.message : 'Não foi possível confirmar.');
@@ -285,6 +310,7 @@ export function Chamada({ houseId }: { houseId: string }) {
                           {m.hora}{m.pessoas ? ` · costumam ser ${m.pessoas}` : ''}
                           {feita ? ` · ${feita.conferidos} de ${feita.esperados} conferidos` : ''}
                         </div>
+                        {feita && <QuemFezAChamada c={feita} />}
                       </div>
                       {feita
                         ? <span className={`pill ${feita.status === 'confirmada' ? 'c-ok pill-feito' : 'c-warn'}`}>
@@ -364,6 +390,7 @@ export function Chamada({ houseId }: { houseId: string }) {
               <div className="grow" style={{ textAlign: 'left' }}>
                 <b className="ff">{c.titulo}</b>
                 <div className="mutetxt">{hhmm(c.horario)} · {c.conferidos} de {c.esperados}</div>
+                <QuemFezAChamada c={c} />
               </div>
               <span className={`pill ${c.status === 'confirmada' ? 'c-ok pill-feito' : 'c-warn'}`}>
                 {c.status === 'confirmada' && <Icone nome="conferido" tamanho={14} />}

@@ -246,6 +246,8 @@ const hhmm = (iso: string) => new Date(iso).toLocaleTimeString('pt-BR',
 interface SaidaSozinho {
   personId: string; quem: string; status: string; motivo: string;
   ate: string | null; aRevisar: boolean;
+  /** Desde quando vale, quem decidiu e para onde (fase 276, avaliação de 05/11). */
+  desde?: string | null; decididoPor?: string | null; onde?: string | null;
 }
 
 /** O rótulo que o educador lê às sete da manhã. Nunca um número. */
@@ -488,7 +490,10 @@ export function Acolhidos({ houseId, casaLabel, papel, abrir, paraALista }: {
         */}
       {observar.length > 0 && (
         <div className="card stack" style={{ marginBottom: 12 }}>
-          <div className="eyebrow">Saídas de hoje: atenção</div>
+          {/* Com a data por extenso (fase 276, avaliação de 05/11): "hoje" vira o dia. */}
+          <div className="eyebrow">
+            Saídas de hoje, {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit', timeZone: 'America/Sao_Paulo' })}: atenção
+          </div>
           {observar.map((o) => (
             <div key={o.personId}>
               <div className="row">
@@ -498,6 +503,13 @@ export function Acolhidos({ houseId, casaLabel, papel, abrir, paraALista }: {
                 </span>
               </div>
               <div className="mutetxt">{o.motivo}</div>
+              {(o.desde || o.decididoPor) && (
+                <div className="mutetxt">
+                  {o.desde ? `Vale desde ${dia(o.desde)}` : 'Vale'}
+                  {o.decididoPor ? `, decidido por ${o.decididoPor}` : ''}
+                  {o.onde ? `. Para: ${o.onde}` : ''}.
+                </div>
+              )}
               {o.aRevisar && (
                 <div className="mutetxt">
                   <b>Combinado revisar até {new Date(o.ate!).toLocaleDateString('pt-BR')}.</b>{' '}

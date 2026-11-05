@@ -2501,3 +2501,8 @@ button[data-gravando]{ cursor:progress }
    A barra abre espaço à direita para o botão, que fica ao lado do Continuar. */
 .conteudo .rodape:not(.sheet .rodape){ padding-right:176px }
 @media (max-width:420px){ .conteudo .rodape:not(.sheet .rodape){ padding-right:72px } }
+
+/* ---------- A data e a hora no alto (fase 276) ---------- */
+.relogio-topo{ font-size:13px; color:var(--muted); white-space:nowrap; font-variant-numeric:tabular-nums; padding:0 4px }
+.relogio-topo b{ color:var(--titulo); font-weight:700 }
+@media (max-width:420px){ .relogio-topo .relogio-semana{ display:none } .relogio-topo{ font-size:12px; padding:0 2px } }

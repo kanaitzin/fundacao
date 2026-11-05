@@ -217,6 +217,32 @@ function FolhaTema({ onFechar }: { onFechar: () => void }) {
  * perfil dela. É a lista que a casa já lê, filtrada aqui: não há busca por
  * pessoa da equipe, nem entre casas.
  */
+/**
+ * A DATA E A HORA NO ALTO (fase 276, avaliação humana de 05/11): o plantão
+ * pergunta "que dia é hoje" a toda hora, e o "hoje" das telas vira data aqui.
+ * Sempre no fuso de Porto Alegre, que é o da casa, e não o do aparelho. Anda de
+ * meio em meio minuto; não diz "conectado": quem diz a falta de sinal é o selo
+ * da fila, que pergunta ao servidor.
+ */
+function RelogioDoTopo() {
+  const [agora, setAgora] = useState(() => new Date());
+  useEffect(() => {
+    const t = setInterval(() => setAgora(new Date()), 30_000);
+    return () => clearInterval(t);
+  }, []);
+  const fuso = 'America/Sao_Paulo';
+  const semana = agora.toLocaleDateString('pt-BR', { weekday: 'short', timeZone: fuso }).replace('.', '');
+  const dia = agora.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', timeZone: fuso });
+  const hora = agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: fuso });
+  const extenso = agora.toLocaleString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long',
+    hour: '2-digit', minute: '2-digit', timeZone: fuso });
+  return (
+    <time className="relogio-topo" dateTime={agora.toISOString()} aria-label={`Agora: ${extenso}`}>
+      <span className="relogio-semana">{semana}, </span>{dia} · <b>{hora}</b>
+    </time>
+  );
+}
+
 function BuscaCrianca({ houseId, onAbrir }: { houseId: string; onAbrir: (id: string) => void }) {
   const [aberto, setAberto] = useState(false);
   const [termo, setTermo] = useState('');
@@ -666,6 +692,7 @@ export function App() {
             {me.todasAsCasas ? 'Coordenação Geral' : (ROLE_LABEL[me.role] ?? me.role)}
           </span>
           <span className="grow" />
+          <RelogioDoTopo />
           {/* A BUSCA DE CRIANÇA (fase 183): só para quem vê os acolhidos, e só na
               casa aberta. */}
           {casaAtual && ve('acolhidos') && (

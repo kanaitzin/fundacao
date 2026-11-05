@@ -189,6 +189,10 @@ describe('Sair sozinho', () => {
     expect(item).toBeDefined();
     // O motivo vem junto: "vai acompanhado" sem o porquê é ordem sem explicação.
     expect(item.motivo).toMatch(/medida disciplinar/i);
+    // E desde quando vale e quem decidiu (fase 276, avaliação humana de 05/11):
+    // o aviso da manhã diz a data e a pessoa responsável, lidos pelo educador.
+    expect(new Date(item.desde).getTime()).toBeGreaterThan(Date.now() - 60 * 60_000);
+    expect(item.decididoPor).toBeTruthy();
   });
 
   it('nenhum campo carrega pontuação, nota ou contagem', async () => {

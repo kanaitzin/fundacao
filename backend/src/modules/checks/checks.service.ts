@@ -620,6 +620,10 @@ export class ChecksService {
         // ninguém tinha deixado de conferir. É a mesma contagem de
         // app_confirm_check: quem está ativo na casa AGORA.
         `SELECT k.id, k.kind, k.title, k.reference_at, k.status, k.expected,
+                -- Quem abriu e quem confirmou, com a hora (fase 276, avaliação de
+                -- 05/11): o cartão da lista diz quem fez, sem precisar abrir.
+                app_user_display_name(k.created_by) AS aberta_por, k.created_at AS aberta_em,
+                app_user_display_name(k.confirmed_by) AS confirmada_por, k.confirmed_at,
                 (SELECT count(*)::int FROM check_result r WHERE r.check_id = k.id) AS conferidos,
                 (SELECT count(*)::int FROM house_stay s
                   WHERE s.house_id = k.house_id AND s.status = 'ativa') AS ativos
@@ -648,6 +652,8 @@ export class ChecksService {
         id: r.id, tipo: r.kind, titulo: r.title, horario: r.reference_at,
         status: r.status, esperados: r.ativos, esperadosNaAbertura: r.expected,
         conferidos: r.conferidos,
+        abertaPor: r.aberta_por ?? null, abertaEm: r.aberta_em ?? null,
+        confirmadaPor: r.confirmada_por ?? null, confirmadaEm: r.confirmed_at ?? null,
       }));
     });
   }

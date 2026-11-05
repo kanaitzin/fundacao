@@ -357,6 +357,17 @@ describe('Fase 3 — Rotina, atividades, chamadas, linha do tempo e offline', ()
     const brunoRow = rows.find((r: any) => r.person_id === bruno);
     expect(brunoRow.option_code).toBe('parcial');
     expect(brunoRow.note).toMatch(/metade do prato/);
+
+    // A lista do dia diz quem confirmou e quando, sem abrir (fase 276, avaliação de 05/11),
+    // lida por OUTRO cargo: o nome de outra pessoa sai por função, nunca por JOIN.
+    const { rows: [k] } = await admin.query(
+      `SELECT house_id, (reference_at AT TIME ZONE 'America/Sao_Paulo')::date::text AS dia FROM collective_check WHERE id = $1`, [checkId]);
+    const lista = await request(http).get(`/api/v1/checks?houseId=${k.house_id}&date=${k.dia}`).set(auth(tokens.coord));
+    expect(lista.status).toBe(200);
+    const naLista = lista.body.find((x: any) => x.id === checkId);
+    expect(naLista.status).toBe('confirmada');
+    expect(naLista.confirmadaPor).toBeTruthy();
+    expect(new Date(naLista.confirmadaEm).getTime()).toBeGreaterThan(Date.now() - 60 * 60_000);
   });
 
   it('chamada confirmada não aceita alteração direta', async () => {

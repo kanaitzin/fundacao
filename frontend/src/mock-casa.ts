@@ -7196,6 +7196,9 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       esperados: todosKids().filter((p) =>
         (!estaInternado(p.id) && !estaComAFamilia(p.id)) || k.resultados[p.id]).length,
       conferidos: Object.keys(k.resultados).length,
+      /* Quem abriu e quem confirmou, com a hora (fase 276), como o servidor. */
+      abertaPor: k.abertaPor ?? null, abertaEm: k.abertaEm ?? null,
+      confirmadaPor: k.confirmadaPor ?? null, confirmadaEm: k.confirmadaEm ?? null,
     }));
   }
   /* As chamadas da casa (fase 211): palavra fixa antes de `/checks/:id`. */
@@ -9204,6 +9207,8 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
         personId: pid, quem: todosKids().find((k) => k.id === pid)?.nome ?? '—',
         status: v.status, motivo: v.motivo, ate: v.ate,
         aRevisar: !!v.ate && v.ate <= hoje,
+        /* Desde quando vale e quem decidiu (fase 276), como o servidor. */
+        desde: v.desde, decididoPor: v.quem, onde: v.onde,
       }];
     });
   }

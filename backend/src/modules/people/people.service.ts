@@ -586,6 +586,8 @@ export class PeopleService {
       return rows.map((r) => ({
         personId: r.person_id, quem: r.quem, status: r.status,
         motivo: r.motivo, ate: r.ate, aRevisar: r.a_revisar === true,
+        /* Desde quando vale e quem decidiu (fase 276): o aviso com data e responsável. */
+        desde: r.desde ?? null, decididoPor: r.decidido_por ?? null, onde: r.onde ?? null,
       }));
     });
   }
