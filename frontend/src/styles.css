@@ -849,7 +849,7 @@ textarea{
 .conferidos li.saiu b{ font-weight:600 }
 
 .mutetxt{ color:var(--muted); font-size:13px; line-height:1.45 }
-.mono{ font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12.5px }
+.mono{ font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12.5px; overflow-wrap:anywhere }
 .divider{ border:0; border-top:1px solid var(--line); margin:12px 0 }
 
 /* Quatro números de estado operacional. Não é placar: são contagens do
@@ -1420,6 +1420,15 @@ textarea{
 /* Com a letra aumentada, a pílula longa quebra a linha em vez de empurrar a
    tela para o lado ("Plantão aberto, 1 passagem assinada" passava de 390px). */
 :root[data-letra] .pill{ white-space:normal; max-width:100%; text-align:left }
+/* COM A LETRA AUMENTADA, O QUE NÃO CABE DESCE PARA A LINHA DE BAIXO (05/11). A letra
+   Maior deixa uns 277 px num celular de 360: o título ao lado de uma etiqueta ou de um
+   botão ficava espremido em 19 px, e a linha que não quebrava empurrava a tela. O texto
+   da linha pede pelo menos oito letras de largura; sem elas, o vizinho desce. O espaço
+   vazio que só empurra (`<span class="grow" />`) não pede nada. */
+:root[data-letra] .row > .grow:not(:empty){ flex-basis:8em }
+:root[data-letra] .unidade > .row{ flex-wrap:wrap !important }
+/* As contas da casa: duas colunas só se cada uma tiver nove letras; senão, uma. */
+:root[data-letra] .unidade .lista.contas{ grid-template-columns:repeat(auto-fill, minmax(min(9em, 100%), 1fr)) }
 /* As cinco abas de baixo, com a letra aumentada: o nome da aba encolhe dentro
    do zoom (ainda maior que o normal) para "Chamada" e "Acolhidos" caberem
    inteiros num celular de 360px em vez de virarem "Ch…" e "Ac…". */
@@ -2000,7 +2009,7 @@ div.acoes{ display:flex; flex-wrap:wrap; gap:8px; align-items:center }
 }
 
 /* O PAINEL DAS UNIDADES */
-.unidades-grade{ display:grid; gap:12px; grid-template-columns:1fr }
+.unidades-grade{ display:grid; gap:12px; grid-template-columns:minmax(0, 1fr) }
 @media (min-width:900px){ .unidades-grade{ grid-template-columns:repeat(2, minmax(0, 1fr)) } }
 @media (min-width:1500px){ .unidades-grade{ grid-template-columns:repeat(3, minmax(0, 1fr)) } }
 .unidade{ border-radius:18px; padding:16px 18px }
