@@ -4,7 +4,7 @@ import { EscolherAnexo, Escolhido } from '../anexos';
 import { Icone } from '../icones';
 import { FolhaDocumento, ArquivoGerado } from '../documentos';
 import type { DocumentoWord } from '../docx';
-import { Avatar } from '../avatar';
+import { Avatar, FotoAmpliada } from '../avatar';
 import { Explica } from '../explica';
 
 /**
@@ -231,16 +231,11 @@ export function Portaria({ houseId, casaLabel }: { houseId: string; casaLabel: s
             setAnexando(null); recarregar(msg);
           }} />
       )}
+      {/* A foto grande, com o X (fase 274): o mesmo visor do perfil. */}
       {foto && (
-        <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-foto-vis"
-             onClick={(e) => { if (e.target === e.currentTarget) setFoto(null); }}>
-          <div className="sheet">
-            <h3 id="t-foto-vis">{foto.nome}</h3>
-            <img src={foto.src} alt={`Foto 3×4 de ${foto.nome}`} className="foto34-grande" />
-            <p className="mutetxt">Confira o rosto com o documento que a pessoa mostrou.</p>
-            <button className="btn sec block" onClick={() => setFoto(null)}>Fechar</button>
-          </div>
-        </div>
+        <FotoAmpliada src={foto.src} nome={foto.nome}
+                      legenda="Confira o rosto com o documento que a pessoa mostrou."
+                      onFechar={() => setFoto(null)} />
       )}
     </>
   );

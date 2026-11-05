@@ -19,7 +19,8 @@ import type { PrazoDaReavaliacao } from '../../../backend/src/modules/people/rea
 import type { Folha as DocumentoWord } from '../../../backend/src/kernel/documentos/folha';
 import { dia, horaSemSegundos } from '../rotulos';
 import { Icone } from '../icones';
-import { Avatar, esquecerFoto } from '../avatar';
+import { Avatar, AvatarQueAbre, FotoAmpliada, esquecerFoto } from '../avatar';
+import { QUEM_POE_FOTO } from '../../../backend/src/modules/people/foto.regra';
 import { Explica } from '../explica';
 import { quantos } from '../../../backend/src/kernel/common/quantos';
 
@@ -2008,7 +2009,8 @@ function VisaoGeral({ perfil: p, numeros, papel, houseId, onAba }: {
           <ul className="familiares">
             {familiares.map((c) => (
               <li key={c.id}>
-                <Avatar nome={c.nomeSocial || c.nome} de={{ contato: c.id }} temFoto={c.temFoto} tamanho={40} />
+                <AvatarQueAbre nome={c.nomeSocial || c.nome} de={{ contato: c.id }} temFoto={c.temFoto} tamanho={40}
+                               legenda={c.vinculoRotulo} />
                 <div className="grow">
                   <b className="ff">{c.nomeSocial || c.nome}</b>
                   <div className="mutetxt">
@@ -2885,6 +2887,55 @@ function FolhaJudicial({ judicial, onFechar, onSalvar }: {
  *  * **a foto não é botão de download.** Ela é vista aqui; quem precisar dela
  *    num documento vai ter que pedir, e aí a decisão é de quem pede.
  */
+/**
+ * TIRAR A FOTO (fase 274; pedido de 05/11).
+ *
+ * Para a foto posta por engano, ou de outra pessoa. Pede o motivo, e a foto de
+ * antes continua guardada no histórico, com quem a pôs e quem a tirou: nada se
+ * apaga. Serve à criança e ao familiar.
+ */
+function FolhaTirarFoto({ nome, oQue, de, onFechar, onTirou }: {
+  nome: string; oQue: string; de: { acolhido: string } | { contato: string };
+  onFechar: () => void; onTirou: () => void;
+}) {
+  const [motivo, setMotivo] = useState('');
+  const [erro, setErro] = useState('');
+  const [ocupado, setOcupado] = useState(false);
+  async function tirar() {
+    setErro(''); setOcupado(true);
+    try {
+      /* As duas rotas escritas por extenso: o contrato de rotas confere cada uma. */
+      const body = JSON.stringify({ motivo });
+      await ('acolhido' in de
+        ? api(`/people/${de.acolhido}/photo/retirar`, { method: 'POST', body })
+        : api(`/people/contacts/${de.contato}/photo/retirar`, { method: 'POST', body }));
+      onTirou();
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Não foi possível tirar a foto.');
+    } finally { setOcupado(false); }
+  }
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-tirar-foto"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet modal" style={{ textAlign: 'left' }}>
+        <h3 id="t-tirar-foto">Tirar {oQue} de {nome}</h3>
+        <p className="mutetxt">A foto sai da tela e da folha da portaria, e fica guardada no histórico com o motivo.</p>
+        <label className="f">Por que tirar
+          <textarea rows={3} value={motivo} onChange={(e) => setMotivo(e.target.value)}
+                    placeholder="Ex.: foto de outra pessoa, posta por engano" />
+        </label>
+        {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+        <div className="row rodape">
+          <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
+          <button className="btn grow" disabled={ocupado || motivo.trim().length < 5} onClick={() => void tirar()}>
+            {ocupado ? 'Tirando…' : 'Tirar a foto'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function FotoDoAcolhido({ perfil, papel, onTrocou }: {
   perfil: Perfil; papel: string; onTrocou: () => void;
 }) {
@@ -2899,7 +2950,10 @@ function FotoDoAcolhido({ perfil, papel, onTrocou }: {
      câmera do sistema, a galeria e o arquivo, e a confirmação logo abaixo. */
   const [pondoFoto, setPondoFoto] = useState(false);
   const [vendoMaior, setVendoMaior] = useState(false);
-  const podeTrocar = QUEM_CADASTRA.includes(papel);
+  /* Tirar a foto posta por engano (fase 274): pede o motivo, e a de antes fica
+     no histórico. Pôr, trocar e tirar é da equipe técnica e da coordenação. */
+  const [tirando, setTirando] = useState(false);
+  const podeTrocar = QUEM_POE_FOTO.includes(papel);
 
   useEffect(() => {
     let vivo = true;
@@ -2934,9 +2988,21 @@ function FotoDoAcolhido({ perfil, papel, onTrocou }: {
 
   return (
     <div style={{ flex: 'none', textAlign: 'center' }}>
-      <div className="retrato" aria-label={src ? `Foto de ${perfil.nome}` : 'Sem foto'}>
-        {src ? <img src={src} alt={`Foto de identificação de ${perfil.nome}`} /> : <span>{iniciais}</span>}
-      </div>
+      {/* Tocar no rosto abre a foto grande (fase 274), como o Ver a foto. */}
+      {(src || perfil.foto)
+        ? (
+          <button type="button" className="retrato-que-abre" onClick={() => setVendoMaior(true)}
+                  aria-label={`Ver a foto de ${perfil.nome} em tamanho grande`}>
+            <span className="retrato">
+              {src ? <img src={src} alt="" /> : <span>{iniciais}</span>}
+            </span>
+          </button>
+        )
+        : (
+          <div className="retrato" aria-label="Sem foto">
+            <span>{iniciais}</span>
+          </div>
+        )}
 
       {/* O botão nasce junto com o perfil quando ele diz que há foto, e não quando
           a foto chega (fase 256): aparecendo depois, ele empurrava para baixo a
@@ -2950,25 +3016,33 @@ function FotoDoAcolhido({ perfil, papel, onTrocou }: {
       {podeTrocar && (
         <button type="button" className="btn sm ghost" style={{ marginTop: 6 }}
                 onClick={() => { setErro(''); setPondoFoto(true); }}>
-          {ocupado ? 'Enviando…' : (src ? 'Trocar foto' : 'Pôr foto')}
+          {ocupado ? 'Enviando…' : (perfil.foto ? 'Trocar foto' : 'Pôr foto')}
         </button>
       )}
+      {podeTrocar && perfil.foto && (
+        <div>
+          <button type="button" className="btn sm ghost" style={{ marginTop: 2 }}
+                  onClick={() => { setErro(''); setTirando(true); }}>
+            Tirar foto
+          </button>
+        </div>
+      )}
       {erro && <div className="mutetxt">{erro}</div>}
+      {tirando && (
+        <FolhaTirarFoto nome={perfil.nome} oQue="a foto de identificação"
+          de={{ acolhido: perfil.id }}
+          onFechar={() => setTirando(false)}
+          onTirou={() => { setTirando(false); esquecerFoto({ acolhido: perfil.id }); onTrocou(); }} />
+      )}
 
       {/* A foto GUARDADA, em tamanho de olhar. Sem botão de baixar: ela é vista
           aqui, e quem precisar dela num documento pede — a decisão é de quem
           pede, e fica com o nome dele. */}
-      {vendoMaior && src && (
-        <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-foto-id"
-             onClick={(e) => { if (e.target === e.currentTarget) setVendoMaior(false); }}>
-          <div className="sheet modal">
-            <h3 id="t-foto-id">Foto de identificação · {perfil.nome}</h3>
-            <img src={src} alt={`Foto de identificação de ${perfil.nome}`} className="previa-img" />
-            <div className="row rodape">
-              <button className="btn grow" onClick={() => setVendoMaior(false)}>Fechar</button>
-            </div>
-          </div>
-        </div>
+      {/* A foto GUARDADA, em tamanho de olhar, com o X (fase 274). Sem botão de
+          baixar: ela é vista aqui, e quem precisar dela num documento pede. */}
+      {vendoMaior && (
+        <FotoAmpliada src={src} nome={perfil.nome} legenda="Foto de identificação"
+                      onFechar={() => setVendoMaior(false)} />
       )}
 
       {/* A CONFIRMAÇÃO. O texto pergunta as duas coisas que dão errado: é a
@@ -3289,7 +3363,11 @@ function Contatos({ perfil, papel, onMudou }: {
   const [saindoCom, setSaindoCom] = useState<Contato | null>(null);
   const [erroSaida, setErroSaida] = useState('');
   const [portariaDe, setPortariaDe] = useState<Contato | null>(null);
+  /* A foto do familiar (fase 274): pôr, trocar e tirar, só técnica e coordenação. */
+  const [fotoDe, setFotoDe] = useState<Contato | null>(null);
+  const [tirandoFotoDe, setTirandoFotoDe] = useState<Contato | null>(null);
   const podeEscrever = QUEM_CADASTRA.includes(papel);
+  const podePorFoto = QUEM_POE_FOTO.includes(papel);
   const ativos = (perfil.contatos ?? []).filter((c) => c.ativo);
 
   return (
@@ -3305,7 +3383,8 @@ function Contatos({ perfil, papel, onMudou }: {
         {ativos.map((c) => (
           <div key={c.id} className="card contato-cartao">
             <div className="row contato-cabeca">
-              <Avatar nome={c.nome} de={{ contato: c.id }} temFoto={c.temFoto} tamanho={48} />
+              <AvatarQueAbre nome={c.nome} de={{ contato: c.id }} temFoto={c.temFoto} tamanho={48}
+                             legenda={c.vinculoRotulo} />
               <div className="grow">
                 <b className="ff">{c.nome}</b>
                 {c.telefone && <div className="mutetxt">{c.telefone}</div>}
@@ -3335,6 +3414,20 @@ function Contatos({ perfil, papel, onMudou }: {
             {c.restrito && (
               <div className="notice c-crit" role="alert">
                 <b>Aproximação restrita.</b> {c.motivoDaRestricao}
+              </div>
+            )}
+            {podePorFoto && (
+              <div className="acoes">
+                <button className="btn sm ghost" onClick={() => setFotoDe(c)}
+                        aria-label={`${c.temFoto ? 'Trocar a foto' : 'Pôr foto'} de ${c.nome}`}>
+                  {c.temFoto ? 'Trocar foto' : 'Pôr foto'}
+                </button>
+                {c.temFoto && (
+                  <button className="btn sm ghost" onClick={() => setTirandoFotoDe(c)}
+                          aria-label={`Tirar a foto de ${c.nome}`}>
+                    Tirar foto
+                  </button>
+                )}
               </div>
             )}
             {podeEscrever && (
@@ -3385,6 +3478,17 @@ function Contatos({ perfil, papel, onMudou }: {
 
       {erroSaida && <div className="notice c-crit" role="alert">{erroSaida}</div>}
 
+      {fotoDe && (
+        <FolhaFotoDoFamiliar contato={fotoDe} onFechar={() => setFotoDe(null)}
+          onGuardou={() => { esquecerFoto({ contato: fotoDe.id }); setFotoDe(null); onMudou(); }} />
+      )}
+      {tirandoFotoDe && (
+        <FolhaTirarFoto nome={tirandoFotoDe.nome} oQue="a foto"
+          de={{ contato: tirandoFotoDe.id }}
+          onFechar={() => setTirandoFotoDe(null)}
+          onTirou={() => { esquecerFoto({ contato: tirandoFotoDe.id }); setTirandoFotoDe(null); onMudou(); }} />
+      )}
+
       {saindoCom && (
         <FolhaSaidaFamiliar
           pessoa={perfil.nome} contato={saindoCom}
@@ -3414,12 +3518,17 @@ function Contatos({ perfil, papel, onMudou }: {
 
       {novo && (
         <FolhaContato
-          nome={perfil.nome}
+          nome={perfil.nome} podePorFoto={podePorFoto}
           onFechar={() => setNovo(false)}
-          onSalvar={async (d) => {
-            await api(`/people/${perfil.id}/contacts`, {
+          onSalvar={async (d, foto) => {
+            const c = await api<{ id: string }>(`/people/${perfil.id}/contacts`, {
               method: 'POST', body: JSON.stringify(d),
             });
+            if (foto && c?.id) {
+              await api(`/people/contacts/${c.id}/photo`, {
+                method: 'POST', body: JSON.stringify({ conteudo: base64De(foto.dataUrl), nomeArquivo: foto.nome }),
+              });
+            }
             setNovo(false); onMudou();
           }} />
       )}
@@ -3727,10 +3836,62 @@ function FolhaVisita({ contato, crianca, onFechar, onSalvou }: {
   );
 }
 
-function FolhaContato({ nome, onFechar, onSalvar }: {
-  nome: string; onFechar: () => void;
-  onSalvar: (d: Record<string, unknown>) => Promise<void>;
+/**
+ * PÔR OU TROCAR A FOTO DO FAMILIAR (fase 274; pedido de 05/11).
+ *
+ * Até aqui a foto do familiar só entrava pela folha da portaria, e só de quem
+ * podia visitar. Agora entra pelo próprio cartão, de qualquer familiar. Trocar
+ * guarda a de antes no histórico.
+ */
+function FolhaFotoDoFamiliar({ contato, onFechar, onGuardou }: {
+  contato: Contato; onFechar: () => void; onGuardou: () => void;
 }) {
+  const [arquivo, setArquivo] = useState<Escolhido | null>(null);
+  const [erro, setErro] = useState('');
+  const [ocupado, setOcupado] = useState(false);
+  async function guardar() {
+    if (!arquivo) return;
+    setErro(''); setOcupado(true);
+    try {
+      await api(`/people/contacts/${contato.id}/photo`, {
+        method: 'POST', body: JSON.stringify({ conteudo: base64De(arquivo.dataUrl), nomeArquivo: arquivo.nome }),
+      });
+      onGuardou();
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Não foi possível guardar a foto.');
+    } finally { setOcupado(false); }
+  }
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-foto-fam"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet modal" style={{ textAlign: 'left' }}>
+        <h3 id="t-foto-fam">A foto de {contato.nome}</h3>
+        {contato.temFoto && (
+          <p className="mutetxt">A foto de hoje fica guardada no histórico, com quem a pôs.</p>
+        )}
+        <EscolherAnexo id="foto-fam" arquivo={arquivo} onEscolher={setArquivo}
+          aceita="image/jpeg,image/png" maximoMb={4}
+          pergunta={<>É {contato.nome}? Rosto de frente, sem boné nem óculos escuros. Esta foto aparece
+            no perfil e na portaria.</>} />
+        {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+        <div className="row rodape">
+          <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
+          <button className="btn grow" disabled={ocupado || !arquivo} onClick={() => void guardar()}>
+            {ocupado ? 'Enviando…' : <><Icone nome="conferido" /> É esta foto</>}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FolhaContato({ nome, podePorFoto, onFechar, onSalvar }: {
+  nome: string; podePorFoto?: boolean; onFechar: () => void;
+  onSalvar: (d: Record<string, unknown>, foto: Escolhido | null) => Promise<void>;
+}) {
+  /* A foto já no cadastro (fase 274), para quem pode pôr: a técnica que
+     cadastra a mãe com ela na frente não precisa voltar depois. */
+  const [foto, setFoto] = useState<Escolhido | null>(null);
   const [vocab, setVocab] = useState<{ vinculos: { code: string; label: string }[]; nota: string } | null>(null);
   const [dados, setDados] = useState({
     nome: '', vinculo: 'madrinha', vinculoOutro: '', telefone: '', observacao: '',
@@ -3799,6 +3960,15 @@ function FolhaContato({ nome, onFechar, onSalvar }: {
           </>
         )}
 
+        {podePorFoto && (
+          <>
+            <label className="f">Foto <small>(se tiver agora; dá para pôr depois)</small></label>
+            <EscolherAnexo id="ct-foto" arquivo={foto} onEscolher={setFoto}
+              aceita="image/jpeg,image/png" maximoMb={4}
+              pergunta={<>É {dados.nome.trim() || 'esta pessoa'}? Rosto de frente, sem boné nem óculos escuros.</>} />
+          </>
+        )}
+
         {erro && <div className="notice c-crit" role="alert">{erro}</div>}
         <div className="row rodape">
           <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
@@ -3807,7 +3977,7 @@ function FolhaContato({ nome, onFechar, onSalvar }: {
               await onSalvar({
                 ...dados, nome: dados.nome.trim(),
                 restrito, motivoDaRestricao: restrito ? motivoRestricao.trim() : undefined,
-              });
+              }, foto);
             } catch (e) {
               setErro(e instanceof Error ? e.message : 'Não foi possível salvar.');
             }
@@ -4469,8 +4639,10 @@ function VisitasDoAcolhido({ personId }: { personId: string }) {
           <ul className="lista visitantes">
             {dados.visitantes.map((v) => (
               <li key={`${v.nome}|${v.vinculo}`}>
-                <Avatar nome={v.nome} de={v.contatoId ? { contato: v.contatoId } : undefined}
-                        temFoto={v.temFoto} tamanho={38} />
+                {v.contatoId
+                  ? <AvatarQueAbre nome={v.nome} de={{ contato: v.contatoId }} temFoto={v.temFoto} tamanho={38}
+                                   legenda={v.vinculo} />
+                  : <Avatar nome={v.nome} temFoto={false} tamanho={38} />}
                 <span className="grow">{v.nome} <span className="mutetxt">({v.vinculo})</span></span>
                 <span className="mutetxt">{v.visitas} {v.visitas === 1 ? 'visita' : 'visitas'} · {tempo(v.minutos)}</span>
               </li>

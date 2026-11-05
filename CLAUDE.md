@@ -199,7 +199,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 05/11/2026, fase 273
+### Onde estamos — 05/11/2026, fase 274
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -336,8 +336,9 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 271 | **há quanto tempo a família não visita** (pedido de 03/11): no perfil, na aba Família e visitas, a técnica, a coordenação e a gestão leem a última visita da família e a última ida à casa dela, com os dias; sem cor, sem limite e sem lista entre crianças (`ultimo-contato.regra.ts`, no `GET /people/:id/visitas`) |
 | 272 | **a letra Grande e a Maior cabem** (pedido de 05/11): é um `zoom` da página, e nenhum ensaio media com ela; com a Maior, um celular de 360 px fica com uns 277 px, e a **Equipe, o Painel das unidades e o Arquivo documental andavam para o lado**; no computador, **o botão do fim de toda folha comprida ficava abaixo da borda** (88dvh vezes o zoom). Grades com `min()`, o vizinho do título desce (`flex-basis` com a letra), o caminho quebra, e toda altura pela tela se divide por `--zoom-da-letra`; `ENSAIO_LETRA` no `ensaio:celular` e no `ensaio:cabe`, com a régua convertida |
 | 273 | **o que já foi feito fica verde** (pedido de 05/11): a linha do dia ganha `feito` no contrato (`TimelineEvent`), dito pelo servidor e não adivinhado pelo texto: atividade concluída, dose administrada, chamada confirmada (por qualquer um, verde para todos) e ATA fechada sem pendência; não realizada, recusa, cancelada e reagendada seguem cinza. Na Chamada, o cartão confirmado fica verde e a barra da casa continua. O verde nunca sozinho (visto e palavra), e **no RS e no Verde, onde o fundo da tela já é verde, o feito leva verde mais cheio e borda inteira** (`--feito-fundo`, `--feito-borda`); no protótipo, a linha do Dia passa a acompanhar a dose dada e a chamada confirmada |
+| 274 | **a foto grande, e a foto do familiar** (pedido de 05/11): tocar no rosto abre a foto do tamanho da tela, com X, Esc e toque fora, sem baixar (`FotoAmpliada`, `AvatarQueAbre`), no perfil, nos familiares, em quem visitou e na Portaria; **pôr, trocar e tirar é só da técnica e da coordenação** (`QUEM_POE_FOTO`, `people/foto.regra.ts`, servidor, tela e protótipo; o gestor passa a só ver); o familiar ganha Pôr, Trocar e Tirar foto no cartão e a foto no Acrescentar contato; **trocar guarda a de antes e tirar pede o motivo** (`photo_change`, people/1669): até aqui o banco esquecia a foto trocada |
 
-**Medido no fim da 273:** 208 migrações, 145 tabelas, 164 suítes, 1434 testes; nas 237 e 238, a suíte inteira
+**Medido no fim da 274:** 209 migrações, 146 tabelas, 165 suítes, 1436 testes; nas 237 e 238, a suíte inteira
 verde (1363 de 1363, depois de consertar as três conferências que o relatório das vivências deixou soltas) e o
 `ensaio:uso` (739 cobranças, sem reprovação, com o relatório das vivências aberto e o Word baixado); **não rodou**
 nas 237 e 238 o relógio adiantado, o do celular, o de acessibilidade, o `ensaio:acolhe` nem a simulação contra o servidor;
@@ -447,13 +448,26 @@ responder, os documentos de papel e os dados a receber, o que o DPO vê, o que s
 decisões de produto abertas. **Quando a resposta vier, ela entra lá e no §10 ou §11 do documento**, e
 o item respondido sai do §0.
 
+**FEITO — fase 274** (§2): a foto grande ao tocar, e a foto do familiar. **Rosto novo numa lista** usa o
+`AvatarQueAbre` quando há foto, e **visor novo de foto** usa o `FotoAmpliada`, que já fecha pelo X, pelo Esc e pelo
+toque fora e não oferece baixar. **Quem mexe na foto** sai do `QUEM_POE_FOTO`, lido pelo servidor, pela tela, pela
+Portaria e pelo protótipo; a política da `photo_change` confere o cargo de novo. **Foto trocada ou tirada nunca some**:
+a de antes vai para a `photo_change` na mesma transação. **Medido na 274:** a `a-foto-que-nao-se-apaga` (3 de 3), o
+contrato de rotas, as rotas sem porta, a Acolhe+AI, o anexo pela câmera, as recusas e o botão que grava, e a sonda no
+protótipo a 390 e a 1366 px (abrir, fechar pelo X, Esc e toque fora, pôr, trocar e tirar na criança e no familiar, o
+familiar novo com foto, e o educador e o gestor que veem e não mexem; nenhum erro de página).
+**Pergunta aberta:** *Este contato não vale mais* virar *Retirar este familiar* (retirar e acrescentar já existem).
+**Próxima: 275**, o pedido de 05/11 da ordem do perfil: em cada aba, cada lista do mais novo para o mais antigo, a
+data e a hora em cada anotação de atendimento, e a busca nos atendimentos; a Geral continua com familiares,
+documentos e dados. **Medido antes de começar** (sonda no protótipo, técnica, Alice): as visitas, a evolução escolar e
+os atendimentos já vêm do mais novo, mas os atendimentos sem hora; a convivência familiar vem misturada; a Saúde não
+tem lista com data que a sonda leia.
+
 **FEITO — fase 273** (§2): o que já foi feito fica verde no Dia e na Chamada. **Linha nova da linha do dia diz
 `feito`** quando o que ela mostra foi feito, e só então: a tela não adivinha pelo texto do estado (no protótipo, o
 `ESTADO_FEITO` do `mock-casa.ts` lê o rótulo, e a `operacao` cobra que os dois concordam). **O verde de feito mora em
 `--feito-fundo` e `--feito-borda`**, que seguem o tema; tema novo com fundo verde ganha o reforço do RS e do Verde.
 **Medido na 273, até aqui:** a `operacao` (26 de 26; o teste do feito reprova sem o conserto), e as fotos do Dia e da Chamada nos temas claro, escuro, colorido, RS e Verde. **Em andamento:** o de acessibilidade, o `ensaio:uso` e o do celular sobre o protótipo novo.
-**Próxima: 274**, a foto grande ao tocar e o pôr, trocar e tirar foto no familiar (só técnica e coordenação);
-**pergunta aberta:** *Este contato não vale mais* virar *Retirar este familiar*.
 
 **FEITO — fase 272** (§2): a letra Grande e a Maior cabem no celular e no computador. **A letra é um `zoom` da
 página**: o Chromium mede a largura da página SEM o zoom e as caixas COM ele, e a altura pela tela (`vh`, `dvh`) cresce

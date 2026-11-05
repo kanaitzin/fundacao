@@ -102,3 +102,65 @@ export function useComFoto(houseId: string): Set<string> | null {
   }, [houseId]);
   return ids;
 }
+
+/*
+ * A FOTO GRANDE, AO TOCAR (fase 274; pedido de 05/11).
+ *
+ * Tocar no rosto abre a foto do tamanho da tela, para olhar bem a cara da
+ * pessoa, e o X fecha. Fecha também com Esc e tocando fora. Não há botão de
+ * baixar: a foto se olha aqui, e ninguém precisa levá-la para o aparelho.
+ */
+export function FotoAmpliada({ src, nome, legenda, onFechar }: {
+  src: string | null; nome: string; legenda?: string; onFechar: () => void;
+}) {
+  useEffect(() => {
+    const tecla = (e: KeyboardEvent) => { if (e.key === 'Escape') onFechar(); };
+    window.addEventListener('keydown', tecla);
+    return () => window.removeEventListener('keydown', tecla);
+  }, [onFechar]);
+  return (
+    <div className="overlay foto-ampliada" role="dialog" aria-modal="true" aria-label={`Foto de ${nome}`}
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <figure className="foto-ampliada-quadro">
+        <button type="button" className="foto-ampliada-x" onClick={onFechar} aria-label="Fechar" autoFocus>
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none"
+               stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+            <path d="M6 6l12 12M18 6L6 18" />
+          </svg>
+        </button>
+        {src
+          ? <img src={src} alt={`Foto de ${nome}`} draggable={false}
+                 onContextMenu={(e) => e.preventDefault()} />
+          : <div className="foto-ampliada-espera">Carregando a foto…</div>}
+        <figcaption><b>{nome}</b>{legenda ? <span>{legenda}</span> : null}</figcaption>
+      </figure>
+    </div>
+  );
+}
+
+/**
+ * O rosto que abre grande ao tocar. Sem foto, ficam as iniciais, e o toque não
+ * faz nada: não há o que ampliar.
+ */
+export function AvatarQueAbre({ nome, de, temFoto, tamanho = 44, legenda }: {
+  nome: string; de: DeQuem; temFoto?: boolean; tamanho?: number; legenda?: string;
+}) {
+  const [aberta, setAberta] = useState(false);
+  const [src, setSrc] = useState<string | null>(null);
+  useEffect(() => {
+    let vivo = true;
+    if (aberta && temFoto) void buscar(de).then((s) => { if (vivo) setSrc(s); });
+    return () => { vivo = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aberta, temFoto, chaveDe(de)]);
+  if (!temFoto) return <Avatar nome={nome} de={de} temFoto={false} tamanho={tamanho} />;
+  return (
+    <>
+      <button type="button" className="avatar-que-abre" onClick={() => setAberta(true)}
+              aria-label={`Ver a foto de ${nome} em tamanho grande`}>
+        <Avatar nome={nome} de={de} temFoto tamanho={tamanho} />
+      </button>
+      {aberta && <FotoAmpliada src={src} nome={nome} legenda={legenda} onFechar={() => setAberta(false)} />}
+    </>
+  );
+}

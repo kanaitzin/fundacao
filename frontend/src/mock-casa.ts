@@ -73,6 +73,7 @@ import { CATEGORIAS_DOSSIE, DOSSIE_EXIGIDO, TIPOS_DE_VIVENCIA, TAMANHO_MAXIMO,
          TIPOS_DE_ARQUIVO, tituloProibido }
   from '../../backend/src/modules/people/dossie-exigido';
 import { CASAS_DA_FUNDACAO, CASA_MODELO, trocadorDeNomes, type ConfigDaCasa } from './casas-ficticias';
+import { QUEM_POE_FOTO } from '../../backend/src/modules/people/foto.regra';
 
 /**
  * UMA CASA DO PROTÓTIPO (fase 225). Tudo o que está abaixo é o servidor de
@@ -4736,6 +4737,8 @@ function resumoInternacao(i: InternacaoMock) {
 const CONTATOS: Record<string, any[]> = {};
 let proximoContato = 1;
 const ESCREVE_CONTATO = ['equipe_tecnica', 'coordenador', 'gestor_geral'];
+/* A foto de antes, a cada troca ou retirada (fase 274), como a `photo_change` do servidor: nada se apaga. */
+const HISTORICO_DA_FOTO: { de: string; acao: 'trocada' | 'retirada'; antes: string; por: string; em: string; motivo?: string }[] = [];
 
 /**
  * O que a coordenação liga e desliga para o plantão (fase 93). A mesma lista
@@ -10053,7 +10056,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       }));
     return { podeAbrirExcecao: ABRE_EXCECAO.includes(eu.role),
              podeGerarFolha: ESCREVE_CONTATO.includes(eu.role),
-             podeAnexarFoto: ESCREVE_CONTATO.includes(eu.role), visitantes };
+             podeAnexarFoto: QUEM_POE_FOTO.includes(eu.role), visitantes };
   }
   if (seg[0] === 'people' && seg[1] === 'portaria' && seg[2] === 'visitante' && seg[4] === 'foto') {
     const c = REGISTRA_VISITA.includes(eu.role) ? acharContato(seg[3]) : null;
@@ -10286,11 +10289,24 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       .map((h, i) => ({ id: `cvc-${i}`, autorizado: h.autorizado, motivo: h.motivo,
                         por: h.por, em: h.em }));
   }
-  if (seg[0] === 'people' && seg[1] === 'contacts' && seg[3] === 'photo') {
+  /* Tirar a foto do familiar (fase 274): com o motivo, e a de antes no histórico. */
+  if (seg[0] === 'people' && seg[1] === 'contacts' && seg[3] === 'photo' && seg[4] === 'retirar' && metodo === 'POST') {
+    const c = acharContato(seg[2]);
+    if (!c) return new Recusa(404, 'Contato não encontrado, ou fora do seu alcance.');
+    if (!QUEM_POE_FOTO.includes(eu.role)) return new Recusa(403, 'A foto é tirada pela equipe técnica ou pela coordenação.');
+    if (String(b.motivo ?? '').trim().length < 5) return new Recusa(400, 'Escreva o motivo para tirar a foto.');
+    if (!c.foto) return new Recusa(400, 'Não há foto para tirar.');
+    HISTORICO_DA_FOTO.push({ de: `c:${c.id}`, acao: 'retirada', antes: c.foto, por: eu.id, em: new Date().toISOString(),
+                             motivo: String(b.motivo).trim() });
+    c.foto = undefined; c.temFoto = false;
+    return { ok: true, aviso: 'Foto tirada. Ela continua guardada no histórico, com o motivo.' };
+  }
+  if (seg[0] === 'people' && seg[1] === 'contacts' && seg[3] === 'photo' && seg.length === 4) {
     const c = acharContato(seg[2]);
     if (!c) return new Recusa(404, 'Contato não encontrado, ou fora do seu alcance.');
     if (metodo === 'POST') {
-      if (!ESCREVE_CONTATO.includes(eu.role)) return new Recusa(403, 'A foto do visitante é cadastrada pela técnica ou pela coordenação.');
+      if (!QUEM_POE_FOTO.includes(eu.role)) return new Recusa(403, 'A foto do familiar é posta pela equipe técnica ou pela coordenação.');
+      if (c.foto) HISTORICO_DA_FOTO.push({ de: `c:${c.id}`, acao: 'trocada', antes: c.foto, por: eu.id, em: new Date().toISOString() });
       if (!String(b.conteudo ?? '')) return new Recusa(400, 'Nenhuma foto foi enviada.');
       c.temFoto = true;
       /* A foto FICA. Até a fase 107 o protótipo guardava só o "sim, tem foto" e
@@ -10414,10 +10430,23 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     return { nome: 'identificacao', tipo: k.fotoTipo ?? 'image/png', conteudo: k.foto };
   }
 
-  if (seg[0] === 'people' && seg[2] === 'photo' && metodo === 'POST') {
-    if (!['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(eu.role)) {
+  /* Tirar a foto da criança (fase 274): com o motivo, e a de antes no histórico. */
+  if (seg[0] === 'people' && seg[2] === 'photo' && seg[3] === 'retirar' && metodo === 'POST') {
+    if (!QUEM_POE_FOTO.includes(eu.role)) return new Recusa(403, 'A foto é tirada pela equipe técnica ou pela coordenação.');
+    const k = kid(seg[1]);
+    if (!k) return new Recusa(404, 'Acolhido não encontrado, ou fora do seu alcance.');
+    if (String(b.motivo ?? '').trim().length < 5) return new Recusa(400, 'Escreva o motivo para tirar a foto.');
+    if (!k.foto) return new Recusa(400, 'Não há foto para tirar.');
+    HISTORICO_DA_FOTO.push({ de: `a:${k.id}`, acao: 'retirada', antes: k.foto, por: eu.id, em: new Date().toISOString(),
+                             motivo: String(b.motivo).trim() });
+    k.foto = undefined; k.fotoTipo = undefined; k.fotoEm = new Date().toISOString();
+    return { ok: true, aviso: 'Foto tirada. Ela continua guardada no histórico, com o motivo.' };
+  }
+
+  if (seg[0] === 'people' && seg[2] === 'photo' && seg.length === 3 && metodo === 'POST') {
+    if (!QUEM_POE_FOTO.includes(eu.role)) {
       return new Recusa(403,
-        'A foto de identificação é cadastrada pela técnica ou pela coordenação.');
+        'A foto de identificação é posta pela equipe técnica ou pela coordenação.');
     }
     const k = kid(seg[1]);
     if (!k) return new Recusa(404, 'Acolhido não encontrado, ou fora do seu alcance.');
@@ -10430,6 +10459,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       /* RIFF é o contêiner; WebP é o formato, no 9º byte (fase 114). */
       || (cabeca.slice(0, 4) === 'RIFF' && cabeca.slice(8, 12) === 'WEBP');
     if (!ehImagem) return new Recusa(400, 'Envie uma foto em JPG, PNG ou WEBP.');
+    if (k.foto) HISTORICO_DA_FOTO.push({ de: `a:${k.id}`, acao: 'trocada', antes: k.foto, por: eu.id, em: new Date().toISOString() });
     k.foto = limpo;
     k.fotoTipo = cabeca.startsWith('\x89PNG') ? 'image/png' : cabeca.startsWith('\xFF\xD8\xFF') ? 'image/jpeg' : 'image/webp';
     k.fotoEm = new Date().toISOString();

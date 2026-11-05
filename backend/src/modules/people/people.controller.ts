@@ -400,6 +400,13 @@ export class PeopleController {
     return this.contatos.guardarFotoDoContato(user, contactId, body ?? {});
   }
 
+  /** Tirar a foto do familiar, com o motivo; a de antes fica no histórico (fase 274). */
+  @Post('contacts/:contactId/photo/retirar')
+  retirarFotoDoContato(@CurrentUser() user: AuthenticatedUser,
+                       @Param('contactId', ParseUUIDPipe) contactId: string, @Body() body: any) {
+    return this.contatos.retirarFoto(user, { contatoId: contactId }, body ?? {});
+  }
+
   /* ---------------- Sair sozinho (1020) ---------------- */
 
   @Get('outing-permissions')
@@ -488,6 +495,13 @@ export class PeopleController {
   guardarFoto(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
               @Body() body: any) {
     return this.contatos.guardarFoto(user, id, body ?? {});
+  }
+
+  /** Tirar a foto de identificação, com o motivo; a de antes fica no histórico (fase 274). */
+  @Post(':id/photo/retirar')
+  retirarFoto(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string,
+              @Body() body: any) {
+    return this.contatos.retirarFoto(user, { personId: id }, body ?? {});
   }
 
   /** O vocabulário dos vínculos — rota de palavra fixa, antes de `:id`. */

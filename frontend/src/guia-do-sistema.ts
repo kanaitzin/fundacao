@@ -138,6 +138,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 274, dia: '05/11/2026', aba: 'acolhidos',
+    texto: 'A foto grande: no perfil da criança, nos familiares, em quem visitou e na Portaria, tocar no rosto abre a foto do tamanho da tela, e o X fecha. No cartão de cada familiar, a equipe técnica e a coordenação põem, trocam e tiram a foto, e o familiar novo já pode nascer com ela. Tirar pede o motivo, e a foto de antes, a cada troca ou retirada, fica guardada no histórico com quem a pôs e quem a tirou. Os outros cargos veem a foto e não mexem.' },
   { fase: 273, dia: '05/11/2026',
     texto: 'O que já foi feito fica verde: no Dia, a atividade concluída, a dose dada, a chamada confirmada e a ATA fechada; na Chamada, a chamada que alguém da equipe confirmou fica verde para todos. O verde vem sempre com o visto e a palavra. O que não foi feito, como não realizada, recusa, cancelada ou reagendada, continua em cinza.' },
   { fase: 272, dia: '05/11/2026',

@@ -12,6 +12,7 @@ import { diasEmPortugues } from '../../kernel/common/semana';
 import { hojeNaInstituicao } from '../../kernel/common/tempo';
 import { QUEM_LE_O_ULTIMO_CONTATO, UltimoContato, VINCULO_QUE_NAO_CONTA, ultimoContato } from './ultimo-contato.regra';
 import { ESCREVE_CONTATO, rotuloDoVinculo } from './contatos.service';
+import { QUEM_POE_FOTO } from './foto.regra';
 
 /**
  * A VISITA QUE ENTRA E SAI (fase 160).
@@ -102,7 +103,7 @@ export class VisitasService {
       /* A foto 3×4 é anexada por quem responde pelo cadastro (decisão de
          27/09): a portaria VÊ a foto grande para conferir com o documento, e
          não anexa nem troca. A rota é a do contato (`/people/contacts/:id/photo`). */
-      podeAnexarFoto: ESCREVE_CONTATO.includes(user.role),
+      podeAnexarFoto: QUEM_POE_FOTO.includes(user.role),
       visitantes: rows.map((r: any) => ({
         contatoId: r.contact_id, nome: r.visitante, nomeSocial: r.nome_social,
         vinculoRotulo: rotuloDoVinculo(r.vinculo, r.vinculo_outro),

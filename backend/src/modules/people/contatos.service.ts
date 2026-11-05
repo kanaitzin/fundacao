@@ -1,6 +1,7 @@
 import {
   BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException,
 } from '@nestjs/common';
+import { QUEM_POE_FOTO } from './foto.regra';
 import { createHash } from 'node:crypto';
 import { DatabaseService } from '../../kernel/database/database.service';
 import { AuditService } from '../../kernel/audit/audit.service';
@@ -11,6 +12,8 @@ import { DIAS_DA_SEMANA, diasEmPortugues } from '../../kernel/common/semana';
 
 /** Quem ESCREVE no cadastro de contatos — e quem autoriza visita (fase 92). */
 export const ESCREVE_CONTATO = ['equipe_tecnica', 'coordenador', 'gestor_geral'];
+/* Quem põe, troca e tira foto mora na regra (fase 274), lida também pela tela. */
+export { QUEM_POE_FOTO };
 
 export const VINCULOS_DO_CONTATO = [
   { code: 'genitora', label: 'Genitora' },
@@ -600,17 +603,22 @@ export class ContatosService {
    * espaço marcado. Guardada como a do acolhido, e pelas mesmas pessoas.
    */
   async guardarFotoDoContato(user: AuthenticatedUser, contatoId: string, input: { conteudo?: string }) {
-    if (!ESCREVE_CONTATO.includes(user.role)) {
-      throw new ForbiddenException('A foto do visitante é cadastrada pela técnica ou pela coordenação.');
+    if (!QUEM_POE_FOTO.includes(user.role)) {
+      throw new ForbiddenException('A foto do familiar é posta pela equipe técnica ou pela coordenação.');
     }
     const { chave, mime: tipo, tamanho } = await this.guardarAFoto(input);
     /* De quem é este visitante: a casa da linha de auditoria vem da criança. */
     const deQuem = await this.db.asUser(user.id, async (c) => {
-      const { rowCount, rows } = await c.query(
+      const { rows: [antes] } = await c.query(
+        `SELECT person_id, photo_key, photo_mime, photo_at, photo_by
+           FROM person_contact WHERE id = $1 AND active FOR UPDATE`, [contatoId]);
+      if (!antes) throw new NotFoundException('Contato não encontrado, encerrado, ou fora do seu alcance.');
+      /* A foto de antes não some (fase 274). */
+      if (antes.photo_key) await this.guardarAFotoDeAntes(c, user, antes.person_id, contatoId, antes, 'trocada', null);
+      await c.query(
         `UPDATE person_contact SET photo_key = $2, photo_mime = $3, photo_at = now(), photo_by = $4
-          WHERE id = $1 AND active RETURNING person_id`, [contatoId, chave, tipo, user.id]);
-      if (!rowCount) throw new NotFoundException('Contato não encontrado, encerrado, ou fora do seu alcance.');
-      return rows[0].person_id as string;
+          WHERE id = $1`, [contatoId, chave, tipo, user.id]);
+      return antes.person_id as string;
     });
     await this.audit.log({
       action: 'foto.contato.guardada', actorId: user.id, institutionId: user.institutionId,
@@ -645,8 +653,8 @@ export class ContatosService {
   async guardarFoto(user: AuthenticatedUser, personId: string, input: {
     conteudo?: string; nomeArquivo?: string;
   }) {
-    if (!['equipe_tecnica', 'coordenador', 'gestor_geral'].includes(user.role)) {
-      throw new ForbiddenException('A foto de identificação é cadastrada pela técnica ou pela coordenação.');
+    if (!QUEM_POE_FOTO.includes(user.role)) {
+      throw new ForbiddenException('A foto de identificação é posta pela equipe técnica ou pela coordenação.');
     }
     /*
      * O tipo vem da ASSINATURA do arquivo, e não da extensão: renomear é um
@@ -655,10 +663,14 @@ export class ContatosService {
     const { chave, mime: tipo, tamanho } = await this.guardarAFoto(input);
 
     await this.db.asUser(user.id, async (c) => {
-      const { rowCount } = await c.query(
+      const { rows: [antes] } = await c.query(
+        `SELECT photo_key, photo_mime, photo_at, photo_by FROM person WHERE id = $1 FOR UPDATE`, [personId]);
+      if (!antes) throw new NotFoundException('Acolhido não encontrado, ou fora do seu alcance.');
+      /* A foto de antes não some (fase 274). */
+      if (antes.photo_key) await this.guardarAFotoDeAntes(c, user, personId, null, antes, 'trocada', null);
+      await c.query(
         `UPDATE person SET photo_key = $2, photo_mime = $3, photo_at = now(), photo_by = $4
           WHERE id = $1`, [personId, chave, tipo, user.id]);
-      if (!rowCount) throw new NotFoundException('Acolhido não encontrado, ou fora do seu alcance.');
     });
 
     await this.audit.log({
@@ -670,6 +682,53 @@ export class ContatosService {
     });
     return { ok: true, aviso: 'Foto de identificação guardada. Ela aparece no alto do perfil '
       + 'e não entra em documento nenhum por padrão.' };
+  }
+
+  /** A foto de antes, no histórico (fase 274): o arquivo fica, e aqui fica de quem era. */
+  private async guardarAFotoDeAntes(c: any, user: AuthenticatedUser, personId: string, contatoId: string | null,
+                                    antes: { photo_key: string; photo_mime: string | null; photo_at: string | null; photo_by: string | null },
+                                    acao: 'trocada' | 'retirada', motivo: string | null) {
+    await c.query(
+      `INSERT INTO photo_change (person_id, contact_id, action, previous_key, previous_mime, previous_at,
+                                 previous_by, changed_by, reason)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+      [personId, contatoId, acao, antes.photo_key, antes.photo_mime, antes.photo_at, antes.photo_by, user.id, motivo]);
+  }
+
+  /**
+   * TIRAR A FOTO (fase 274): a da criança ou a do familiar, com o motivo. O arquivo
+   * continua guardado e a foto de antes fica no histórico; o perfil volta a mostrar
+   * as iniciais, e a folha da portaria, o espaço marcado.
+   */
+  async retirarFoto(user: AuthenticatedUser, quem: { personId?: string; contatoId?: string },
+                    input: { motivo?: string }) {
+    if (!QUEM_POE_FOTO.includes(user.role)) {
+      throw new ForbiddenException('A foto é tirada pela equipe técnica ou pela coordenação.');
+    }
+    const motivo = String(input?.motivo ?? '').trim();
+    if (motivo.length < 5) throw new BadRequestException('Escreva o motivo para tirar a foto.');
+    const deQuem = await this.db.asUser(user.id, async (c) => {
+      const tabela = quem.contatoId ? 'person_contact' : 'person';
+      const { rows: [antes] } = await c.query(
+        `SELECT ${quem.contatoId ? 'person_id' : 'id AS person_id'}, photo_key, photo_mime, photo_at, photo_by
+           FROM ${tabela} WHERE id = $1 FOR UPDATE`, [quem.contatoId ?? quem.personId]);
+      if (!antes) throw new NotFoundException(quem.contatoId
+        ? 'Contato não encontrado, ou fora do seu alcance.' : 'Acolhido não encontrado, ou fora do seu alcance.');
+      if (!antes.photo_key) throw new BadRequestException('Não há foto para tirar.');
+      await this.guardarAFotoDeAntes(c, user, antes.person_id, quem.contatoId ?? null, antes, 'retirada', motivo);
+      await c.query(
+        `UPDATE ${tabela} SET photo_key = NULL, photo_mime = NULL, photo_at = now(), photo_by = $2
+          WHERE id = $1`, [quem.contatoId ?? quem.personId, user.id]);
+      return antes.person_id as string;
+    });
+    await this.audit.log({
+      action: quem.contatoId ? 'foto.contato.retirada' : 'foto.identificacao.retirada',
+      actorId: user.id, institutionId: user.institutionId,
+      houseId: await this.audit.casaDoAcolhido(user.id, deQuem),
+      entity: quem.contatoId ? 'person_contact' : 'person', entityId: quem.contatoId ?? deQuem,
+      detail: {},
+    });
+    return { ok: true, aviso: 'Foto tirada. Ela continua guardada no histórico, com o motivo.' };
   }
 
   async lerFoto(user: AuthenticatedUser, personId: string) {
