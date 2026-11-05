@@ -611,7 +611,9 @@ export function App() {
      * primeira aba do cargo. O acesso total continua inteiro, uma aba adiante.
      */
     { aba: 'metricas', icone: 'painel_numeros', label: 'Painel' },
-    { aba: 'dia', icone: 'dia', label: 'O Dia da Casa' },   // o nome da equipe (decisão de 05/11)
+    /* O nome da equipe (decisão de 05/11). Na barra do celular vai a forma curta:
+       a 390 px, "O Dia da Casa" saía cortado em todas as telas (ensaio:celular). */
+    { aba: 'dia', icone: 'dia', label: 'O Dia da Casa', curto: 'Dia da Casa' },
     { aba: 'chamada', icone: 'chamada', label: 'Chamada' },
     { aba: 'acolhidos', icone: 'acolhidos', label: 'Acolhidos' },
     { aba: 'passagem', icone: 'passagem', label: 'Passagem' },
@@ -886,8 +888,9 @@ export function App() {
         <nav className="tabbar" aria-label="Seções">
           {abasDoTurno.map((t) => (
             <button key={t.aba} className={abaEfetiva === t.aba ? 'on' : ''}
+                    aria-label={'curto' in t && t.curto ? t.label : undefined}
                     onClick={() => tocarAba(t.aba)}>
-              <Icone nome={t.icone} /> <span className="rotulo">{t.label}</span>
+              <Icone nome={t.icone} /> <span className="rotulo">{'curto' in t && t.curto ? t.curto : t.label}</span>
             </button>
           ))}
           {portasNaBarra.map((porta) => (
