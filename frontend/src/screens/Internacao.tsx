@@ -128,10 +128,10 @@ export function Internacao({ houseId, casaLabel, papel }: {
       )}
 
       <nav className="filtros" aria-label="O que mostrar">
-        <button className={!encerradas ? 'on' : ''} onClick={() => setEncerradas(false)}>
+        <button className={!encerradas ? 'on' : ''} aria-pressed={!encerradas} onClick={() => setEncerradas(false)}>
           Em andamento
         </button>
-        <button className={encerradas ? 'on' : ''} onClick={() => setEncerradas(true)}>
+        <button className={encerradas ? 'on' : ''} aria-pressed={encerradas} onClick={() => setEncerradas(true)}>
           Todas
         </button>
       </nav>

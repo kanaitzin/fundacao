@@ -44,6 +44,8 @@ export function Implantacao() {
   const [sinais, setSinais] = useState<Sinal[] | null>(null);
   const [erro, setErro] = useState('');
   const [lidoEm, setLidoEm] = useState<string | null>(null);
+  /* Ler de novo diz que leu (fase 276): o dado igual deixava o toque parecer parado. */
+  const [releu, setReleu] = useState('');
 
   const carregar = useCallback(async () => {
     setErro('');
@@ -66,7 +68,7 @@ export function Implantacao() {
           <div className="eyebrow" style={{ margin: 0 }}>O servidor das oito casas</div>
           <h2>Saúde da implantação</h2>
         </div>
-        <button className="btn sm sec" onClick={() => void carregar()}>Ler de novo</button>
+        <button className="btn sm sec" onClick={() => { void carregar().then(() => setReleu(`Lido de novo às ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })}.`)); }}>Ler de novo</button>
       </div>
       <Explica>
         O que roda sozinho, sem ninguém apertar botão. Quando algo aqui para, a casa só percebe
@@ -84,6 +86,7 @@ export function Implantacao() {
               ? 'Nada parado, mas há o que conferir.'
               : 'Tudo em dia.'}
           {lidoEm && <> Lido às {quando(lidoEm)?.slice(-5)}.</>}
+          {releu && <span role="status"> {releu}</span>}
         </div>
       )}
 

@@ -227,8 +227,10 @@ export function Painel({ houseId, casaLabel, papel }: {
                   {' '}{quantos(c.entradas30d, 'entrada', 'entradas')} em 30 dias
                 </div>
               </div>
-              <button className="btn sm ghost" onClick={() => setAberta(c)}>
-                {aberta?.id === c.id ? 'Aberta' : 'Abrir o mês'}
+              {/* O mês já aberto fecha no mesmo botão (fase 276): o "Aberta" não fazia nada ao toque. */}
+              <button className="btn sm ghost" aria-expanded={aberta?.id === c.id}
+                      onClick={() => setAberta(aberta?.id === c.id ? null : c)}>
+                {aberta?.id === c.id ? 'Fechar o mês' : 'Abrir o mês'}
               </button>
             </div>
             {/*

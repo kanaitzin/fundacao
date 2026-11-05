@@ -107,6 +107,8 @@ export function Metricas() {
   const [recorte, setRecorte] = useState<keyof Casa>('acolhidos');
   const [erro, setErro] = useState('');
   const [carregando, setCarregando] = useState(true);
+  /* Ver este período diz que leu (fase 276): o mesmo período deixava o toque parecer parado. */
+  const [leuEm, setLeuEm] = useState('');
 
   async function carregar(d?: string, a?: string) {
     setErro(''); setCarregando(true);
@@ -155,9 +157,10 @@ export function Metricas() {
           <input id="me-ate" type="date" value={ate} onChange={(e) => setAte(e.target.value)} />
         </div>
       </div>
-      <button className="btn sec block" onClick={() => void carregar(de || undefined, ate || undefined)}>
+      <button className="btn sec block" onClick={() => { void carregar(de || undefined, ate || undefined).then(() => setLeuEm(new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' }))); }}>
         {carregando ? 'Abrindo…' : 'Ver este período'}
       </button>
+      {leuEm && <p className="mutetxt" role="status" style={{ margin: 0 }}>Período lido às {leuEm}.</p>}
 
       {/*
         * O QUE A INSTITUIÇÃO FEZ — os números do conjunto, antes das casas.
