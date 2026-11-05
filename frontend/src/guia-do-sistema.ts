@@ -138,6 +138,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 272, dia: '05/11/2026',
+    texto: 'A letra Grande e a Maior, escolhidas em Cor e letra da tela, agora cabem: no celular e no computador, nada passa da borda nem vaza dos botões, o que não cabe ao lado de um título desce para a linha de baixo, e o botão do fim de cada folha fica sempre à vista.' },
   { fase: 271, dia: '03/11/2026', aba: 'acolhidos',
     texto: 'No perfil da criança, na aba Família e visitas, a equipe técnica e a coordenação veem quando foi a última visita da família e a última ida à casa dela, e há quantos dias, para procurar a família a tempo. Só no perfil de cada criança, sem cor e sem lista entre crianças.' },
   { fase: 270, dia: '03/11/2026', aba: 'acolhidos',

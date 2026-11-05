@@ -157,7 +157,7 @@ e qual é o caminho certo.
 | `.claude/hooks/session-start.sh` | o preparo que roda antes de a sessão na web começar |
 | `scripts/varredura-de-pontas.mjs` | acha coluna que é gravada e não chega a lugar nenhum, medindo contra funções, políticas, visões e o TypeScript. **Não é teste**: devolve candidato, e quem confirma olha |
 | `scripts/superficies-sem-teste.mjs` | acha tabela que **nenhum teste jamais escreveu** — a lição da fase 141 medida em vez de lembrada. Roda DEPOIS do `npm test`, na mesma rodada, e usa o `n_tup_ins` do banco porque contar linhas no fim não distingue "ninguém escreveu" de "a suíte limpou". **Não é teste**, e recusa concluir se a rodada foi parcial |
-| `frontend/ensaio-celular.mjs` | **o sistema no celular** (fase 184): oito cargos a 360 e 390 px, todas as abas, o "Mais" e cada porta. Mede o que o axe não mede: tela que anda para o lado, texto cortado ou vazando do botão, **botões encostados**, alvo abaixo de 24 px, conteúdo atrás da barra do pé. Fotos em `/tmp/ensaio-celular`. O `ensaio:uso-celular` faz o percurso de uso como celular. **Mudou tela, roda os dois** |
+| `frontend/ensaio-celular.mjs` | **o sistema no celular** (fase 184): oito cargos a 360 e 390 px, todas as abas, o "Mais" e cada porta. Mede o que o axe não mede: tela que anda para o lado, texto cortado ou vazando do botão, **botões encostados**, alvo abaixo de 24 px, conteúdo atrás da barra do pé. Fotos em `/tmp/ensaio-celular`. O `ensaio:uso-celular` faz o percurso de uso como celular. **Mudou tela, roda os dois**, e desde a 272 também com `ENSAIO_LETRA=maior` (o mesmo vale para o `ensaio:cabe`) |
 | `backend/src/modules/relogio/implantacao.regra.ts` | **a regra da saúde da implantação** (fase 185): quando cada sinal está em dia, em atenção ou parado, e a frase. Não importa nada, como o `alcance.ts`: o servidor e o protótipo leem a MESMA. **Quem roda sozinho anota** por `anotarImplantacao` (`kernel/implantacao/anotar.ts`) ou, nos scripts, por `app_anotar_implantacao` no `psql`; anotar nunca derruba quem anota |
 | `scripts/arquivar-wal.sh`, `base-do-banco.sh`, `restaurar-ponto-no-tempo.sh`, `copiar-arquivos.sh` | **nada se perde no servidor do Pão** (fase 220): o arquivo contínuo do banco, a base semanal conferida, a volta a qualquer minuto e a cópia das fotos; o `postgresql-do-servidor.conf` liga o arquivo. **Mudou um deles, roda o `npm run ensaio:ponto-no-tempo`**, que prova os quatro num banco à parte |
 | `frontend/ensaio-cabe-e-volta.mjs` | **cabe, rola e volta** (fase 255): cada cargo, a 390 px e no monitor, em cada tela, aba, folha de criar (`data-acolhe-abre`), entrada (`data-acolhe-entra`, o cartão da criança, a primeira linha de cada lista) e botão de abrir, até três níveis; mede vazamento, conteúdo preso sem rolagem e o fim da folha, e **aperta a volta e confere que voltou**. `ENSAIO_CARGOS`, `ENSAIO_LARGURAS`, `ENSAIO_PROFUNDIDADE`. Leva uns dez minutos por cargo e largura. **Folha ou subtela nova nasce com a volta dela**: Fechar, Cancelar, Voltar ou ← |
@@ -199,7 +199,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 03/11/2026, fase 271
+### Onde estamos — 05/11/2026, fase 272
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -334,8 +334,9 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 269 | **o prazo da reavaliação ao Juízo** (pedido de 03/11): o ECA manda reavaliar no máximo a cada três meses (art. 19), e ninguém contava; o dossiê ganha o *Relatório de reavaliação*, a área restrita do perfil diz o último e o próximo, com o tempo de acolhimento, e o relógio avisa a técnica e a coordenação quinze dias antes (`reavaliacao.regra.ts`, people/1668, `GET /people/:id/reavaliacao`) |
 | 270 | **a saída com a história** (pedido de 03/11): a folha de transição, para quem recebe a criança (cuidados, saúde, alimentação, remédios com horários, escola e documentos, com recibo), e o livro da vida, para ela (conquistas e vivências, só fotos autorizadas), na aba Documentos e na folha da saída; nada da área restrita (`reports/saida-folha.ts`, `/impacto/saida/:id/...`) |
 | 271 | **há quanto tempo a família não visita** (pedido de 03/11): no perfil, na aba Família e visitas, a técnica, a coordenação e a gestão leem a última visita da família e a última ida à casa dela, com os dias; sem cor, sem limite e sem lista entre crianças (`ultimo-contato.regra.ts`, no `GET /people/:id/visitas`) |
+| 272 | **a letra Grande e a Maior cabem** (pedido de 05/11): é um `zoom` da página, e nenhum ensaio media com ela; com a Maior, um celular de 360 px fica com uns 277 px, e a **Equipe, o Painel das unidades e o Arquivo documental andavam para o lado**; no computador, **o botão do fim de toda folha comprida ficava abaixo da borda** (88dvh vezes o zoom). Grades com `min()`, o vizinho do título desce (`flex-basis` com a letra), o caminho quebra, e toda altura pela tela se divide por `--zoom-da-letra`; `ENSAIO_LETRA` no `ensaio:celular` e no `ensaio:cabe`, com a régua convertida |
 
-**Medido no fim da 271:** 208 migrações, 145 tabelas, 164 suítes, 1433 testes; nas 237 e 238, a suíte inteira
+**Medido no fim da 272:** 208 migrações, 145 tabelas, 164 suítes, 1433 testes; nas 237 e 238, a suíte inteira
 verde (1363 de 1363, depois de consertar as três conferências que o relatório das vivências deixou soltas) e o
 `ensaio:uso` (739 cobranças, sem reprovação, com o relatório das vivências aberto e o Word baixado); **não rodou**
 nas 237 e 238 o relógio adiantado, o do celular, o de acessibilidade, o `ensaio:acolhe` nem a simulação contra o servidor;
@@ -444,6 +445,15 @@ posto em ordem no **PARA-A-REUNIAO §0**: as cinco perguntas que mais destravam,
 responder, os documentos de papel e os dados a receber, o que o DPO vê, o que se assina e as 30
 decisões de produto abertas. **Quando a resposta vier, ela entra lá e no §10 ou §11 do documento**, e
 o item respondido sai do §0.
+
+**FEITO — fase 272** (§2): a letra Grande e a Maior cabem no celular e no computador. **A letra é um `zoom` da
+página**: o Chromium mede a largura da página SEM o zoom e as caixas COM ele, e a altura pela tela (`vh`, `dvh`) cresce
+junto; **altura nova medida pela tela se divide por `var(--zoom-da-letra, 1)`**, e **grade nova com mínimo em px usa
+`min(Npx, 100%)`**. **Mudou tela, roda também com `ENSAIO_LETRA=maior`** (o `ensaio:celular` e o `ensaio:cabe` do cargo).
+**Fila combinada com a pessoa da Fundação em 05/11:** 273, o que já foi feito fica verde no Dia e na Chamada (conferido no
+tema RS e nos sete, com a palavra e o visto junto); 274, a foto grande ao tocar, e pôr, trocar e tirar foto no familiar,
+só técnica e coordenação (pergunta aberta: *Este contato não vale mais* virar *Retirar este familiar*).
+**Medido na 272, até aqui:** o `ensaio:celular` com a letra Normal (161 telas, sem achado, a régua nova não inventa), a Grande e a Maior (360 e 390 px, sem achado depois dos consertos), e o `ensaio:cabe` com a Maior a 360 px nos oito cargos (cerca de 1.200 estados, sem achado) e a 1366 px em quatro cargos (sem achado depois do conserto das folhas). **Em andamento:** o `ensaio:cabe` a 1366 px nos outros quatro e o celular nas três letras sobre o protótipo final.
 
 **Conferido pelo link em 05/11** (§2, linha 271): a folha de transição datava o documento pelo dia em que foi anexado (hoje *Emitido em*), e o Word do protótipo não levava foto no corpo (hoje leva, como o servidor). **O link do raw.githack não abre daqui** (a rede da sessão o recusa, mesmo liberado depois de a sessão começar): confere-se baixando os mesmos bytes pelo `raw.githubusercontent.com` e servindo como `text/html`.
 
@@ -1424,6 +1434,12 @@ novo.
   a barra ganhou o invólucro `.navegacao` a resposta era não, e o bloco inteiro era pulado. Só apareceu
   porque a conferência nova, ao lado, também não reprovou com a folga zerada. **Prove que reprova**,
   sempre, tirando o que ela protege.
+- **O zoom muda a régua, e o processo filho sobrevive ao pai** (272). Com a letra aumentada, a largura da
+  página sai sem o zoom e as caixas saem com ele: a régua antiga acusaria tudo ou nada, e foi conferida primeiro
+  numa página de três linhas. E um `pkill` no `bash -c` da medição velha deixou o `node` dela vivo, escrevendo
+  no mesmo arquivo da medição nova: 75 achados que eram do protótipo de antes do conserto. **Antes de ler um
+  resultado, confira quem está escrevendo nele** (`pgrep -f` e o `ENSAIO_ARQUIVO` de cada um), e cada rodada
+  escreve no seu arquivo.
 - **Frase de tela que envelhece é frase que mente**, e a cobrança do ensaio que a
   guarda tem de ser reescrita junto. A ressalva do painel sobre nota escolar já foi
   reescrita três vezes. **Isto inclui este arquivo.**
