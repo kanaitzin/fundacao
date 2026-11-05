@@ -285,7 +285,7 @@ describe('Os anexos da mensagem', () => {
 
   it('o atendimento técnico leva dez arquivos, e não onze', async () => {
     const hoje = (await admin.query(`SELECT app_hoje()::text AS d`)).rows[0].d;
-    const corpo = (n: number) => ({ area: 'psicopedagogia', dia: hoje,
+    const corpo = (n: number) => ({ area: 'psicopedagogia', dia: hoje, hora: '00:00',
       relato: 'Atividade de leitura com fotos das folhas preenchidas.',
       anexos: Array(n).fill(0).map((_, i) => ({ conteudo: b64(foto()), nomeArquivo: `folha-${i + 1}.jpg` })) });
     const dez = await request(http).post(`/api/v1/people/${ids.crianca3}/technical-sessions`).set(auth(tokens.tecnica)).send(corpo(10));

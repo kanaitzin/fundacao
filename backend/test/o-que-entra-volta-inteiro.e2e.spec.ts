@@ -374,7 +374,7 @@ describe('O que entra volta inteiro, e o que se baixa abre', () => {
     // O atendimento da equipe técnica, com dois arquivos.
     {
       const r = await request(http).post(`/api/v1/people/${ids.crianca}/technical-sessions`).set(auth(tokens.tecnica))
-        .send({ area: 'psicologia', dia: hoje, relato: `Desenho da família e conversa sobre a escola (${marca}).`,
+        .send({ area: 'psicologia', dia: hoje, hora: '00:00', relato: `Desenho da família e conversa sobre a escola (${marca}).`,
                 anexos: [{ conteudo: b64(foto), nomeArquivo: 'desenho.jpg' }, { conteudo: b64(pdf), nomeArquivo: 'folha.pdf' }] });
       if (r.status !== 201) problemas.push(`atendimento: ${r.status} ${r.body?.message}`);
       else {

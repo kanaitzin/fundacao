@@ -1264,7 +1264,8 @@ fotografado, a folha da atividade, o relatório digitalizado).
 
 `technical_session` — `person_id`, `area` (`psicologia`, `psicopedagogia`,
 `servico_social`, `pedagogia`, `outra`), `area_other` (obrigatório quando `outra`),
-`happened_on` (nunca depois de `app_hoje()`), `summary` (o que foi trabalhado),
+`happened_on` (nunca depois de `app_hoje()`), `happened_time` (a hora em que aconteceu, desde a fase 275,
+people/1670; nula nos de antes), `summary` (o que foi trabalhado),
 `created_by`, `created_at`. `technical_session_attachment` — `session_id`, `person_id`,
 `storage_key`, `sha256`, `mime`, `file_name`, `size_bytes`, `caption`, `created_by`,
 `created_at`. Escrevem a equipe técnica e a coordenação; leem as duas e a gestão

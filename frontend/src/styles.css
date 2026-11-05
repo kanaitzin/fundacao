@@ -2487,3 +2487,11 @@ button[data-gravando]{ cursor:progress }
 .avatar-que-abre:focus-visible{ outline:3px solid var(--brand); outline-offset:2px }
 .retrato-que-abre{ padding:0; border:0; background:none; cursor:zoom-in; display:inline-block }
 .retrato-que-abre:focus-visible{ outline:3px solid var(--brand); outline-offset:3px; border-radius:16px }
+
+/* ---------- A busca nos atendimentos (fase 275) ----------
+   A palavra numa linha e o período em duas colunas que descem no celular. */
+.busca-atendimentos{ display:grid; gap:6px }
+.busca-atendimentos input[type="search"]{ width:100% }
+.busca-periodo{ display:grid; gap:8px; grid-template-columns:repeat(auto-fit, minmax(min(9.5em, 100%), 1fr)) }
+.busca-periodo label.f{ display:grid; gap:4px; margin:0 }
+.busca-periodo input{ width:100%; min-width:0 }

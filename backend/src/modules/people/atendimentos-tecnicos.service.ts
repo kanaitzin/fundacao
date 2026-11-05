@@ -49,7 +49,8 @@ export class AtendimentosTecnicosService {
     }
     const rows = await this.db.asUser(user.id, async (c) => {
       const { rows: r } = await c.query(
-        `SELECT s.id, s.area, s.area_other, s.happened_on, s.summary, s.created_at,
+        `SELECT s.id, s.area, s.area_other, s.happened_on, to_char(s.happened_time, 'HH24:MI') AS hora,
+                s.summary, s.created_at,
                 app_user_display_name(s.created_by) AS por,
                 (SELECT coalesce(json_agg(json_build_object(
                           'id', a.id, 'nome', a.file_name, 'tipo', a.mime,
@@ -57,18 +58,18 @@ export class AtendimentosTecnicosService {
                    FROM technical_session_attachment a WHERE a.session_id = s.id) AS anexos
            FROM technical_session s
           WHERE s.person_id = $1
-          ORDER BY s.happened_on DESC, s.created_at DESC`, [personId]);
+          ORDER BY s.happened_on DESC, s.happened_time DESC NULLS LAST, s.created_at DESC`, [personId]);
       return r;
     });
     return rows.map((r: any) => ({
       id: r.id, area: r.area, areaRotulo: rotuloDaArea(r.area, r.area_other),
-      dia: r.happened_on, relato: r.summary, registradoEm: r.created_at, por: r.por,
+      dia: r.happened_on, hora: r.hora ?? null, relato: r.summary, registradoEm: r.created_at, por: r.por,
       anexos: r.anexos,
     }));
   }
 
   async registrar(user: AuthenticatedUser, personId: string, input: {
-    area?: string; areaOutra?: string; dia?: string; relato?: string;
+    area?: string; areaOutra?: string; dia?: string; hora?: string; relato?: string;
     anexos?: { conteudo?: string; nomeArquivo?: string; legenda?: string }[];
   }) {
     if (!QUEM_REGISTRA_ATENDIMENTO.includes(user.role)) {
@@ -83,6 +84,11 @@ export class AtendimentosTecnicosService {
     }
     if (!/^\d{4}-\d{2}-\d{2}$/.test(String(input.dia ?? ''))) {
       throw new BadRequestException('Diga o dia do atendimento.');
+    }
+    /* A hora (fase 275): cada anotação de atendimento com a data e a hora. */
+    const hora = String(input.hora ?? '').trim();
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(hora)) {
+      throw new BadRequestException('Diga a hora do atendimento.');
     }
     const relato = (input.relato ?? '').trim();
     if (relato.length < 10) {
@@ -111,14 +117,18 @@ export class AtendimentosTecnicosService {
     }
 
     const id = await this.db.asUser(user.id, async (c) => {
-      const { rows: [h] } = await c.query(`SELECT $1::date > app_hoje() AS futuro`, [input.dia]);
+      const { rows: [h] } = await c.query(
+        `SELECT $1::date > app_hoje() AS futuro,
+                ($1::date + $2::time) > (now() AT TIME ZONE app_fuso()) + interval '5 minutes' AS hora_futura`,
+        [input.dia, hora]);
       if (h.futuro) throw new BadRequestException('O dia do atendimento ainda não chegou.');
+      if (h.hora_futura) throw new BadRequestException('A hora do atendimento ainda não chegou.');
       let s: any;
       try {
         ({ rows: [s] } = await c.query(
-          `INSERT INTO technical_session (person_id, area, area_other, happened_on, summary, created_by)
-           VALUES ($1,$2,$3,$4::date,$5,$6) RETURNING id`,
-          [personId, input.area, input.area === 'outra' ? areaOutra : null, input.dia, relato, user.id]));
+          `INSERT INTO technical_session (person_id, area, area_other, happened_on, happened_time, summary, created_by)
+           VALUES ($1,$2,$3,$4::date,$5::time,$6,$7) RETURNING id`,
+          [personId, input.area, input.area === 'outra' ? areaOutra : null, input.dia, hora, relato, user.id]));
       } catch (e: any) {
         if (String(e?.message ?? '').includes('row-level security')) {
           throw new NotFoundException('Acolhido não encontrado, ou fora do seu alcance.');

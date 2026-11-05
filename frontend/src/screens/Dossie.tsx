@@ -3,7 +3,7 @@ import { api } from '../api';
 import { baixarArquivo, FolhaDocumento } from '../documentos';
 import type { ArquivoGerado } from '../documentos';
 import type { DocumentoWord } from '../docx';
-import { dia } from '../rotulos';
+import { dia, diaEHora, maisNovoEmCima } from '../rotulos';
 import { Icone } from '../icones';
 import { EscolherAnexo, LerTextoDoPapel, miniaturaDe } from '../anexos';
 import type { Escolhido } from '../anexos';
@@ -232,7 +232,7 @@ export function Dossie({ personId, nome, papel, onVoltar }: {
                       {/* O arquivo numa linha, quem respondeu por ele noutra, e
                           o botão embaixo: enfiar o botão no meio da frase fazia
                           "conferido por Marcelo" quebrar em cima dele. */}
-                      {i.documentos.map((d) => (
+                      {maisNovoEmCima(i.documentos, (d) => d.anexadoEm).map((d) => (
                         <div className="docdoitem" key={d.id}>
                           <div className="mutetxt">
                             {d.arquivo?.nome ?? d.titulo}
@@ -293,7 +293,7 @@ export function Dossie({ personId, nome, papel, onVoltar }: {
                 </div>
               </div>
               <ul className="lista">
-                {dossie.avulsos.map((d) => (
+                {maisNovoEmCima(dossie.avulsos, (d) => d.anexadoEm).map((d) => (
                   <li key={d.id} className="row">
                     <div className="grow">
                       <b className="ff">{d.titulo}</b>
@@ -347,7 +347,7 @@ export function Dossie({ personId, nome, papel, onVoltar }: {
           )}
 
           <div className="stack" style={{ marginTop: 12 }}>
-            {album.itens.map((v) => (
+            {maisNovoEmCima(album.itens, (v) => v.quando).map((v) => (
               <article className="card" key={v.id}>
                 <div className="row">
                   <div className="grow">
@@ -1136,7 +1136,7 @@ export function DocumentosDaCategoria({ personId, categoria, titulo, explicacao,
       <div className="grow">
         <b className="ff">{d.titulo}</b>
         <div className="mutetxt">
-          {d.arquivo?.nome ?? 'sem arquivo'} · anexado por {d.anexadoPor} em {dia(String(d.anexadoEm).slice(0, 10))}
+          {d.arquivo?.nome ?? 'sem arquivo'} · anexado por {d.anexadoPor} em {diaEHora(d.anexadoEm)}
           {d.aceitoEm ? ` · conferido por ${d.aceitoPor}` : ' · ainda não conferido'}
         </div>
       </div>
@@ -1168,7 +1168,7 @@ export function DocumentosDaCategoria({ personId, categoria, titulo, explicacao,
                           onClick={() => setAnexando(i)}>Anexar</button>
                 )}
               </div>
-              {i.documentos.length > 0 && <ul className="lista">{i.documentos.map(linhaDoDocumento)}</ul>}
+              {i.documentos.length > 0 && <ul className="lista">{maisNovoEmCima(i.documentos, (d) => d.anexadoEm).map(linhaDoDocumento)}</ul>}
             </li>
           ))}
         </ul>
@@ -1176,7 +1176,7 @@ export function DocumentosDaCategoria({ personId, categoria, titulo, explicacao,
       {avulsos.length > 0 && (
         <>
           <div className="mutetxt" style={{ marginTop: 8 }}>Outros documentos</div>
-          <ul className="lista">{avulsos.map(linhaDoDocumento)}</ul>
+          <ul className="lista">{maisNovoEmCima(avulsos, (d) => d.anexadoEm).map(linhaDoDocumento)}</ul>
         </>
       )}
       {podeAnexar && dossie && (
@@ -1253,7 +1253,7 @@ export function AnexosDoRegistroDeSaude({ personId, registro, documentos, podeAn
   return (
     <div className="anexos-do-registro">
       {erro && <div className="notice c-crit" role="alert">{erro}</div>}
-      {documentos.map((d) => (
+      {maisNovoEmCima(documentos, (d) => d.anexadoEm).map((d) => (
         <div key={d.id} className="row" style={{ gap: 8 }}>
           <span className="mutetxt grow">
             <Icone nome="anexo" /> {d.titulo} · {dia(String(d.anexadoEm).slice(0, 10))}

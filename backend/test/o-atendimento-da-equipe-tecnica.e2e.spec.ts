@@ -60,16 +60,28 @@ describe('O atendimento da equipe técnica', () => {
 
   it('a técnica registra o atendimento com o desenho, e a coordenação lê', async () => {
     const r = await request(http).post(`/api/v1/people/${ids.crianca}/technical-sessions`).set(auth(tokens.tecnica))
-      .send({ area: 'psicologia', dia: hoje, relato: 'Sessão com desenho livre da família (conferência 218).',
+      .send({ area: 'psicologia', dia: hoje, hora: '00:00', relato: 'Sessão com desenho livre da família (conferência 218).',
               anexos: [{ conteudo: PNG, nomeArquivo: 'desenho.png', legenda: 'O desenho da sessão' }] })
       .expect(201);
     ids.sessao = r.body.id;
     const lista = await request(http).get(`/api/v1/people/${ids.crianca}/technical-sessions`).set(auth(tokens.coord)).expect(200);
     const s = lista.body.find((x: any) => x.id === ids.sessao);
-    expect(s).toMatchObject({ area: 'psicologia', areaRotulo: 'Psicologia', dia: hoje });
+    expect(s).toMatchObject({ area: 'psicologia', areaRotulo: 'Psicologia', dia: hoje, hora: '00:00' });
     expect(s.por).toBeTruthy();
     expect(s.anexos).toEqual([expect.objectContaining({ nome: 'desenho.png', tipo: 'image/png', legenda: 'O desenho da sessão' })]);
     ids.anexo = s.anexos[0].id;
+  });
+
+  it('o mesmo dia em ordem de hora, o mais novo em cima, com a hora e quando foi registrado (fase 275)', async () => {
+    const r = await request(http).post(`/api/v1/people/${ids.crianca}/technical-sessions`).set(auth(tokens.tecnica))
+      .send({ area: 'servico_social', dia: hoje, hora: '00:01', relato: 'Contato com a família por telefone (conferência 275).' })
+      .expect(201);
+    const lista = (await request(http).get(`/api/v1/people/${ids.crianca}/technical-sessions`).set(auth(tokens.coord)).expect(200)).body;
+    const meus = lista.filter((x: any) => [ids.sessao, r.body.id].includes(x.id));
+    expect(meus.map((x: any) => x.hora)).toEqual(['00:01', '00:00']);
+    expect(meus[0].registradoEm).toBeTruthy();
+    const chaves = lista.map((x: any) => `${x.dia} ${x.hora ?? ''}`);
+    expect(chaves).toEqual([...chaves].sort().reverse());
   });
 
   it('o arquivo abre como foi guardado, e a abertura fica na auditoria, com a casa', async () => {
@@ -85,7 +97,7 @@ describe('O atendimento da equipe técnica', () => {
   it('o educador não lê nem registra, e a outra casa não alcança', async () => {
     expect((await request(http).get(`/api/v1/people/${ids.crianca}/technical-sessions`).set(auth(tokens.educador))).status).toBe(403);
     expect((await request(http).post(`/api/v1/people/${ids.crianca}/technical-sessions`).set(auth(tokens.educador))
-      .send({ area: 'psicologia', dia: hoje, relato: 'Tentando registrar pelo plantão.' })).status).toBe(403);
+      .send({ area: 'psicologia', dia: hoje, hora: '00:00', relato: 'Tentando registrar pelo plantão.' })).status).toBe(403);
     expect((await request(http).get(`/api/v1/people/technical-sessions/attachments/${ids.anexo}/file`)
       .set(auth(tokens.educador))).status).toBe(404);
     expect([403, 404]).toContain((await request(http).get(`/api/v1/people/${ids.crianca}/technical-sessions`)
@@ -94,7 +106,7 @@ describe('O atendimento da equipe técnica', () => {
       .set(auth(tokens.coord4))).status).toBe(404);
     const { rows: [{ n: antes }] } = await admin.query(`SELECT count(*)::int AS n FROM technical_session WHERE person_id = $1`, [ids.crianca]);
     expect([403, 404]).toContain((await request(http).post(`/api/v1/people/${ids.crianca}/technical-sessions`)
-      .set(auth(tokens.coord4)).send({ area: 'psicologia', dia: hoje, relato: 'De outra casa, não pode.' })).status);
+      .set(auth(tokens.coord4)).send({ area: 'psicologia', dia: hoje, hora: '00:00', relato: 'De outra casa, não pode.' })).status);
     const { rows: [{ n: depois }] } = await admin.query(`SELECT count(*)::int AS n FROM technical_session WHERE person_id = $1`, [ids.crianca]);
     expect(depois).toBe(antes);
   });
@@ -102,10 +114,14 @@ describe('O atendimento da equipe técnica', () => {
   it('sem área, sem relato ou com o dia por vir, não entra', async () => {
     const enviar = (corpo: any) => request(http).post(`/api/v1/people/${ids.crianca}/technical-sessions`)
       .set(auth(tokens.tecnica)).send(corpo);
-    expect((await enviar({ dia: hoje, relato: 'Sem área nenhuma escrita.' })).status).toBe(400);
+    expect((await enviar({ dia: hoje, hora: '00:00', relato: 'Sem área nenhuma escrita.' })).status).toBe(400);
+    /* Sem a hora, não entra (fase 275): cada anotação com a data e a hora. */
+    const semHora = await enviar({ area: 'psicologia', dia: hoje, relato: 'Um atendimento sem a hora escrita.' });
+    expect(semHora.status).toBe(400);
+    expect(semHora.body.message).toMatch(/hora do atendimento/);
     expect((await enviar({ area: 'psicopedagogia', dia: hoje, relato: 'curto' })).status).toBe(400);
     expect((await enviar({ area: 'outra', dia: hoje, relato: 'Outra área sem dizer qual.' })).status).toBe(400);
-    const futuro = await enviar({ area: 'psicologia', dia: '2099-01-01', relato: 'Um atendimento que não aconteceu.' });
+    const futuro = await enviar({ area: 'psicologia', dia: '2099-01-01', hora: '10:00', relato: 'Um atendimento que não aconteceu.' });
     expect(futuro.status).toBe(400);
     expect(futuro.body.message).toMatch(/ainda não chegou/);
   });

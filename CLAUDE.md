@@ -199,7 +199,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 05/11/2026, fase 274
+### Onde estamos — 05/11/2026, fase 275
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -337,8 +337,9 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 272 | **a letra Grande e a Maior cabem** (pedido de 05/11): é um `zoom` da página, e nenhum ensaio media com ela; com a Maior, um celular de 360 px fica com uns 277 px, e a **Equipe, o Painel das unidades e o Arquivo documental andavam para o lado**; no computador, **o botão do fim de toda folha comprida ficava abaixo da borda** (88dvh vezes o zoom). Grades com `min()`, o vizinho do título desce (`flex-basis` com a letra), o caminho quebra, e toda altura pela tela se divide por `--zoom-da-letra`; `ENSAIO_LETRA` no `ensaio:celular` e no `ensaio:cabe`, com a régua convertida |
 | 273 | **o que já foi feito fica verde** (pedido de 05/11): a linha do dia ganha `feito` no contrato (`TimelineEvent`), dito pelo servidor e não adivinhado pelo texto: atividade concluída, dose administrada, chamada confirmada (por qualquer um, verde para todos) e ATA fechada sem pendência; não realizada, recusa, cancelada e reagendada seguem cinza. Na Chamada, o cartão confirmado fica verde e a barra da casa continua. O verde nunca sozinho (visto e palavra), e **no RS e no Verde, onde o fundo da tela já é verde, o feito leva verde mais cheio e borda inteira** (`--feito-fundo`, `--feito-borda`); no protótipo, a linha do Dia passa a acompanhar a dose dada e a chamada confirmada |
 | 274 | **a foto grande, e a foto do familiar** (pedido de 05/11): tocar no rosto abre a foto do tamanho da tela, com X, Esc e toque fora, sem baixar (`FotoAmpliada`, `AvatarQueAbre`), no perfil, nos familiares, em quem visitou e na Portaria; **pôr, trocar e tirar é só da técnica e da coordenação** (`QUEM_POE_FOTO`, `people/foto.regra.ts`, servidor, tela e protótipo; o gestor passa a só ver); o familiar ganha Pôr, Trocar e Tirar foto no cartão e a foto no Acrescentar contato; **trocar guarda a de antes e tirar pede o motivo** (`photo_change`, people/1669): até aqui o banco esquecia a foto trocada |
+| 275 | **o perfil em ordem, com a data e a hora** (pedido de 05/11): toda lista com data do perfil passa pelo `maisNovoEmCima` (`rotulos.ts`), o mais recente em cima, e o instante sai com a hora (`diaEHora`); a convivência familiar estava fora de ordem; a Saúde do perfil ganha o **histórico de saúde** (consultas e registros, `HistoricoDeSaude`); o atendimento técnico ganha **a hora** (`happened_time`, people/1670, obrigatória) e *Registrado em*, e a aba Atendimentos **a busca** por palavra e período |
 
-**Medido no fim da 274:** 209 migrações, 146 tabelas, 165 suítes, 1436 testes; nas 237 e 238, a suíte inteira
+**Medido no fim da 275:** 210 migrações, 146 tabelas, 165 suítes, 1437 testes; nas 237 e 238, a suíte inteira
 verde (1363 de 1363, depois de consertar as três conferências que o relatório das vivências deixou soltas) e o
 `ensaio:uso` (739 cobranças, sem reprovação, com o relatório das vivências aberto e o Word baixado); **não rodou**
 nas 237 e 238 o relógio adiantado, o do celular, o de acessibilidade, o `ensaio:acolhe` nem a simulação contra o servidor;
@@ -447,6 +448,15 @@ posto em ordem no **PARA-A-REUNIAO §0**: as cinco perguntas que mais destravam,
 responder, os documentos de papel e os dados a receber, o que o DPO vê, o que se assina e as 30
 decisões de produto abertas. **Quando a resposta vier, ela entra lá e no §10 ou §11 do documento**, e
 o item respondido sai do §0.
+
+**FEITO — fase 275** (§2): o perfil em ordem, com a data e a hora. **Lista nova com data no perfil** passa pelo
+`maisNovoEmCima` de `rotulos.ts` (a tela ordena, nunca confia na ordem que chegou), e **instante na tela** sai pelo
+`diaEHora`. **Registro novo de atendimento** leva a hora; quem acrescentar outra anotação ao perfil guarda o instante,
+e não só o dia. **Lista que é o que vem** (os próximos compromissos) segue do mais perto ao mais longe. **Medido na
+275, até aqui:** a sonda da ordem nas abas (técnica e coordenação, Alice e Bruno: toda lista do mais recente para o
+mais antigo), a `o-atendimento-da-equipe-tecnica` (7 de 7, com a ordem no mesmo dia) e as suítes que mandam
+atendimento. **Em andamento:** o `ensaio:uso` (com o bloco novo) e o do celular. **Ficou de fora, de propósito:** as
+doses no histórico do perfil (são muitas por dia, e moram no Dia e na Saúde).
 
 **FEITO — fase 274** (§2): a foto grande ao tocar, e a foto do familiar. **Rosto novo numa lista** usa o
 `AvatarQueAbre` quando há foto, e **visor novo de foto** usa o `FotoAmpliada`, que já fecha pelo X, pelo Esc e pelo

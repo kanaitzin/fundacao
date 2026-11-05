@@ -160,6 +160,9 @@ async function fecharCor() {
 
 async function fechar() {
   for (let i = 0; i < 3; i++) {
+    /* A foto grande (fase 274) fecha pelo X, que tem o nome Fechar e não a palavra escrita. */
+    const x = pg.locator('.overlay.foto-ampliada').getByRole('button', { name: 'Fechar', exact: true });
+    if (await x.count()) { await x.first().click(); await pg.waitForTimeout(350); continue; }
     /* `.folha` e `.overlay` são as duas caixas do sistema: a folha que sobe de
      * baixo e o cartão que cobre a tela. Fechar só uma das duas deixava a
      * seguinte clicando por baixo de uma caixa aberta. */
@@ -1883,7 +1886,7 @@ await clicar(/Alice/);
 
 cobrar('a foto de identificação tem botão de olho', await clicar(/Ver a foto/));
 cobrar('e o olho abre a IMAGEM, não o nome do arquivo',
-  (await pg.locator('.overlay img.previa-img').count()) > 0,
+  (await pg.locator('.overlay img.previa-img, .overlay.foto-ampliada img').count()) > 0,
   'um retângulo cinza escrito "foto.png" não deixa ninguém conferir se é a criança certa');
 await fechar();
 
@@ -4634,6 +4637,73 @@ console.log('\n👪 Corrigir um familiar, com o antes guardado (fase 215)');
   await folha.getByRole('button', { name: 'Cancelar' }).click();
   cobrar('nenhuma exceção ao corrigir o familiar', errosK.length === 0, errosK[0]);
   await pgK.close();
+}
+
+console.log('\n🕘 O perfil em ordem, com a hora e a busca dos atendimentos (fase 275)');
+{
+  const pgO = await navegador.newPage({ viewport: { width: 390, height: 844 } });
+  const errosO = [];
+  pgO.on('pageerror', (e) => errosO.push(e.message));
+  const esp = (ms = 800) => pgO.waitForTimeout(ms);
+  await pgO.goto(`file://${ARQUIVO}`); await esp(700);
+  await pgO.getByRole('button', { name: 'Marcelo Barbosa', exact: true }).click();
+  await pgO.getByRole('button', { name: /Entrar no sistema/i }).click(); await esp(1200);
+  await pgO.locator('select.troca-cargo-sel').selectOption('equipe_tecnica'); await esp(900);
+  cargoAtual = 'equipe_tecnica';
+  const ac = pgO.getByRole('button', { name: 'Acolhidos', exact: true }).filter({ visible: true });
+  if (await ac.count()) await ac.first().click();
+  else { await pgO.getByRole('button', { name: 'Mais' }).first().click(); await esp(300);
+         await pgO.getByRole('button', { name: /Acolhidos/ }).filter({ visible: true }).first().click(); }
+  await esp(900);
+  await pgO.locator('main').getByText(/Alice/).first().click(); await esp(1200);
+  /* As datas de uma lista, na ordem em que aparecem. */
+  const datas = async (sel) => (await pgO.locator(sel).allInnerTexts()).map((t) => {
+    const m = /(\d{2})\/(\d{2})\/(\d{4})(?: às (\d{2}):(\d{2}))?/.exec(t);
+    return m ? `${m[3]}${m[2]}${m[1]}${m[4] ?? '00'}${m[5] ?? '00'}` : null;
+  }).filter(Boolean);
+  const emOrdem = (l) => l.length > 1 && l.every((x, i) => i === 0 || l[i - 1] >= x);
+
+  await pgO.getByRole('tab', { name: /Saúde/ }).click(); await esp(900);
+  const saude = await datas('.historico-saude > li');
+  cobrar('a Saúde do perfil tem o histórico de saúde, com a data e a hora', saude.length > 1);
+  cobrar('e o histórico vem com o mais recente em cima', emOrdem(saude), saude.join(' '));
+
+  await pgO.getByRole('tab', { name: /Atendimentos/ }).click(); await esp(900);
+  const antes = await datas('ol.relatorio-tecnico > li');
+  cobrar('os atendimentos vêm com o mais recente em cima', emOrdem(antes), antes.join(' '));
+  cobrar('cada atendimento diz a hora em que aconteceu',
+    (await pgO.locator('ol.relatorio-tecnico > li').allInnerTexts()).every((t) => / às \d{2}:\d{2}/.test(t)));
+  cobrar('e quando foi registrado', /Registrado em \d{2}\/\d{2}\/\d{4} às/.test(await pgO.locator('main').innerText()));
+
+  await pgO.getByRole('button', { name: /Registrar atendimento da equipe técnica/ }).click(); await esp(600);
+  const f = pgO.locator('.overlay').last();
+  cobrar('a folha do atendimento pede a hora, já com a hora de agora', /^\d{2}:\d{2}$/.test(await f.locator('#at-hora').inputValue()));
+  await f.getByRole('button', { name: 'Serviço social' }).click();
+  await f.locator('#at-hora').fill('00:05');
+  await f.locator('#at-relato').fill('Ligação para a madrinha sobre o passeio da escola (ensaio 275).');
+  await f.getByRole('button', { name: /^Registrar/ }).last().click(); await esp(1300);
+  const primeiro = await pgO.locator('ol.relatorio-tecnico > li').first().innerText();
+  cobrar('o atendimento registrado aparece no alto, com a hora escrita', /às 00:05/.test(primeiro) && /madrinha/.test(primeiro), primeiro.slice(0, 120));
+
+  await pgO.locator('#at-busca').fill('madrinha passeio'); await esp(400);
+  const achados = await pgO.locator('ol.relatorio-tecnico > li').count();
+  cobrar('a busca por palavra acha o atendimento', achados >= 1 && /encontrado/.test(await pgO.locator('main').innerText()));
+  await pgO.locator('#at-busca').fill('palavra-que-nao-existe-em-lugar-nenhum'); await esp(400);
+  cobrar('a busca sem achado diz que não achou', /Nenhum atendimento com essa busca/.test(await pgO.locator('main').innerText()));
+  await pgO.getByRole('button', { name: 'Limpar a busca' }).click(); await esp(300);
+  const todos = await pgO.locator('ol.relatorio-tecnico > li').count();
+  const de = antes.at(-1) ? `${antes.at(-1).slice(0, 4)}-${antes.at(-1).slice(4, 6)}-${antes.at(-1).slice(6, 8)}` : '';
+  if (de) {
+    await pgO.locator('.busca-periodo input[type=date]').nth(1).fill(de); await esp(400);
+    const noPeriodo = await pgO.locator('ol.relatorio-tecnico > li').count();
+    cobrar('a busca por período deixa só o que está até a data', noPeriodo >= 1 && noPeriodo < todos, `${noPeriodo} de ${todos}`);
+  }
+
+  await pgO.getByRole('tab', { name: /Família/ }).click(); await esp(900);
+  const visitas = await pgO.locator('.lista').filter({ hasText: /visit|Visit/ }).first().allInnerTexts();
+  cobrar('nenhuma exceção no perfil em ordem', errosO.length === 0, errosO[0]);
+  void visitas;
+  await pgO.close();
 }
 
 console.log('\n🗂️ Os documentos na área restrita do Judiciário (fase 216)');

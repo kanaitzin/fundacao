@@ -17,7 +17,7 @@ import {
 } from '../../../backend/src/modules/people/campos-do-papel.regra';
 import type { PrazoDaReavaliacao } from '../../../backend/src/modules/people/reavaliacao.regra';
 import type { Folha as DocumentoWord } from '../../../backend/src/kernel/documentos/folha';
-import { dia, horaSemSegundos } from '../rotulos';
+import { dia, diaEHora, horaSemSegundos, maisNovoEmCima } from '../rotulos';
 import { Icone } from '../icones';
 import { Avatar, AvatarQueAbre, FotoAmpliada, esquecerFoto } from '../avatar';
 import { QUEM_POE_FOTO } from '../../../backend/src/modules/people/foto.regra';
@@ -1080,14 +1080,14 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
             Correções de cadastro · {correcoes.length}
           </div>
           <ul className="lista">
-            {correcoes.map((c) => (
+            {maisNovoEmCima(correcoes, (c) => c.quando).map((c) => (
               <li key={c.id}>
                 <b className="ff">{c.campo}</b>
                 <div className="mutetxt linhadois">
                   de <b>{c.antes || '(em branco)'}</b> para <b>{c.depois || '(em branco)'}</b>
                 </div>
                 <div className="mutetxt">{c.motivo}</div>
-                <div className="mutetxt">{c.por} · {dia(c.quando)}</div>
+                <div className="mutetxt">{c.por} · {diaEHora(c.quando)}</div>
               </li>
             ))}
           </ul>
@@ -1106,13 +1106,13 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
             O que mudou no perfil · {alteracoes.length}
           </div>
           <ul className="lista">
-            {alteracoes.map((a) => (
+            {maisNovoEmCima(alteracoes, (a) => a.quando).map((a) => (
               <li key={a.id}>
                 <b className="ff">{a.campo}</b>
                 <div className="mutetxt linhadois">
                   de <b>{a.antes || '(em branco)'}</b> para <b>{a.depois || '(em branco)'}</b>
                 </div>
-                <div className="mutetxt">{a.por} · {dia(a.quando)}</div>
+                <div className="mutetxt">{a.por} · {diaEHora(a.quando)}</div>
               </li>
             ))}
           </ul>
@@ -1211,6 +1211,7 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
         )}
       </Secao>
       )}
+      {aba === 'saude' && <HistoricoDeSaude personId={p.id} nome={p.nome} />}
       {aba === 'saude' && <InternacoesDoAcolhido personId={p.id} />}
 
       {/*
@@ -1636,7 +1637,7 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
       {aba === 'geral' && p.memorias.length > 0 && (
         <Secao titulo="Memórias">
           <ul className="lista">
-            {p.memorias.map((m) => (
+            {maisNovoEmCima(p.memorias, (m) => m.happened_on).map((m) => (
               <li key={m.id}>
                 <b className="ff">{m.description}</b>
                 <div className="mutetxt">{m.event_type} · {dia(m.happened_on)}</div>
@@ -2177,7 +2178,7 @@ function FotosEmQueAparece({ personId, nome }: { personId: string; nome: string 
   return (
     <Secao titulo={`Fotos em que ${nome} aparece · ${fotos.length}`}>
       <div className="miniaturas">
-        {fotos.map((f) => (
+        {maisNovoEmCima(fotos, (f) => f.quando).map((f) => (
           <button key={f.marcaId} type="button" className="miniatura" onClick={() => abrir(f)}
                   aria-label={`Abrir a foto: ${f.descricao}`}>
             {srcs[f.fotoId] ? <img src={srcs[f.fotoId]} alt="" /> : <Icone nome="foto" />}
@@ -2240,7 +2241,8 @@ function DiaADia({ houseId, personId, nome }: { houseId: string; personId: strin
     const d = new Date(`${atual}T12:00:00Z`); d.setUTCDate(d.getUTCDate() + n);
     setData(d.toISOString().slice(0, 10));
   };
-  const eventos = [...(dados?.eventos ?? [])].sort((a, b) => a.at.localeCompare(b.at));
+  /* O mais novo em cima, como o resto do perfil (fase 275). */
+  const eventos = maisNovoEmCima(dados?.eventos, (e) => e.at);
   return (
     <section className="passagem" id="perfil-dia-a-dia">
       <div className="eyebrow">O dia a dia de {nome}, como ficou registrado</div>
@@ -2283,6 +2285,95 @@ function DiaADia({ houseId, personId, nome }: { houseId: string; personId: strin
         </ol>
       </div>
     </section>
+  );
+}
+
+/**
+ * O HISTÓRICO DE SAÚDE NO PERFIL (fase 275, pedido de 05/11).
+ *
+ * *"Na saúde os mais antigos vão ficando pro final e a cada lançamento vai
+ * ficando mais acima, assim fica mais fácil acompanhar o desenvolvimento."* O
+ * histórico existia na tela da Saúde, atrás de um botão por criança; o perfil
+ * mostrava a alergia e o remédio e não a história. Aqui ele é uma linha só, as
+ * consultas e os registros de quem acompanhou, cada um com a data e a hora, o
+ * mais novo em cima. Lê pela mesma rota da Saúde, com o acesso de quem abre: se
+ * a rota recusa, o bloco não aparece. As doses do dia ficam no Dia e na Saúde.
+ */
+type ItemDoHistorico = {
+  id: string; quando: string; tipo: 'consulta' | 'registro'; titulo: string;
+  linhas: string[]; estado: string; tom: string;
+};
+function HistoricoDeSaude({ personId, nome }: { personId: string; nome: string }) {
+  const [itens, setItens] = useState<ItemDoHistorico[] | null>(null);
+  const [recusou, setRecusou] = useState(false);
+  const [todos, setTodos] = useState(false);
+  useEffect(() => {
+    let vivo = true;
+    api<{ atendimentos: any[]; evolucoes: any[] }>(`/nursing/history/${personId}`)
+      .then((d) => {
+        if (!vivo) return;
+        const consultas: ItemDoHistorico[] = (d.atendimentos ?? []).map((a) => ({
+          id: `c-${a.id}`, quando: a.quando, tipo: 'consulta', titulo: a.tipoRotulo,
+          linhas: [
+            [a.especialidade, a.local].filter(Boolean).join(' · '),
+            a.profissional ? `Atendeu: ${a.profissional}` : '',
+            a.motivo ? `Motivo: ${a.motivo}` : '',
+            a.desfecho ? `Desfecho: ${a.desfecho}` : '',
+            a.retornoEm ? `Retorno em ${dia(a.retornoEm)}${a.retornoVencido ? ', a data já passou' : ''}` : '',
+          ].filter(Boolean),
+          estado: a.statusRotulo,
+          tom: a.retornoVencido ? 'c-crit' : a.status === 'em_andamento' ? 'c-warn'
+            : a.status === 'retorno_pendente' ? 'c-med' : 'c-ok',
+        }));
+        const registros: ItemDoHistorico[] = (d.evolucoes ?? []).map((e) => ({
+          id: `r-${e.id}`, quando: e.quando, tipo: 'registro', titulo: e.tipoRotulo,
+          linhas: [
+            e.quemLevou ? `Levou: ${e.quemLevou}${e.acompanhante ? ` · registrou: ${e.acompanhante}` : ''}`
+              : e.acompanhante ? `Acompanhou: ${e.acompanhante}` : '',
+            e.estadoRetorno ? `Como voltou: ${e.estadoRetorno}` : '',
+            e.orientacoes ? `Orientações: ${e.orientacoes}` : '',
+            e.complementoEnfermagem ? `A Enfermagem: ${e.complementoEnfermagem}` : '',
+          ].filter(Boolean),
+          estado: e.statusRotulo,
+          tom: e.status === 'assinada' ? 'c-ok' : e.status === 'complemento_solicitado' ? 'c-warn' : 'c-med',
+        }));
+        setItens(maisNovoEmCima([...consultas, ...registros], (x) => x.quando));
+      })
+      .catch(() => { if (vivo) setRecusou(true); });
+    return () => { vivo = false; };
+  }, [personId]);
+  if (recusou) return null;
+  const mostrados = todos ? (itens ?? []) : (itens ?? []).slice(0, 8);
+  return (
+    <Secao titulo="Histórico de saúde, o mais recente em cima" id="perfil-historico-saude">
+      {!itens && <p className="mutetxt" style={{ margin: 0 }}>Abrindo…</p>}
+      {itens && itens.length === 0 && (
+        <p className="mutetxt" style={{ margin: 0 }}>
+          Nenhuma consulta nem registro de saúde de {nome} ainda.
+        </p>
+      )}
+      {itens && itens.length > 0 && (
+        <ul className="lista historico-saude">
+          {mostrados.map((x) => (
+            <li key={x.id}>
+              <div className="row">
+                <div className="grow">
+                  <b className="ff">{x.titulo}</b>
+                  <div className="mutetxt">{diaEHora(x.quando)}</div>
+                </div>
+                <span className={`pill ${x.tom}`}>{x.estado}</span>
+              </div>
+              {x.linhas.map((l) => <div key={l} className="mutetxt">{l}</div>)}
+            </li>
+          ))}
+        </ul>
+      )}
+      {itens && itens.length > 8 && (
+        <button type="button" className="btn sm ghost" onClick={() => setTodos(!todos)}>
+          {todos ? 'Recolher' : `Ver todo o histórico, ${quantos(itens.length, 'registro', 'registros')}`}
+        </button>
+      )}
+    </Secao>
   );
 }
 
@@ -3335,7 +3426,7 @@ function SairSozinho({ perfil, papel, onMudou }: {
         <details style={{ marginBottom: 12 }}>
           <summary className="mutetxt">Saídas pelo portão · {saidas.length}</summary>
           <ul className="lista-seca">
-            {saidas.map((x) => (
+            {maisNovoEmCima(saidas, (x) => x.saiuEm).map((x) => (
               <li key={x.id}>
                 <b>{diaDe(x.saiuEm)}</b>, saiu às {hhmmDe(x.saiuEm)}
                 {x.sozinho ? ' sem acompanhante' : x.comQuem ? ` com ${x.comQuem}` : ''}
@@ -3809,13 +3900,13 @@ function FolhaVisita({ contato, crianca, onFechar, onSalvou }: {
           <div className="bloco">
             <h4>O que já aconteceu com esta autorização</h4>
             <div className="stack">
-              {passado.map((h) => (
+              {maisNovoEmCima(passado, (h) => h.em).map((h) => (
                 <div key={h.id} className="card">
                   <div className="row">
                     <span className={`pill ${h.autorizado ? 'c-ok' : 'c-warn'}`}>
                       {h.autorizado ? 'Entrou na folha' : 'Saiu da folha'}
                     </span>
-                    <span className="mutetxt grow">{h.por} · {dia(h.em)}</span>
+                    <span className="mutetxt grow">{h.por} · {diaEHora(h.em)}</span>
                   </div>
                   {h.motivo && <div>{h.motivo}</div>}
                 </div>
@@ -4078,14 +4169,14 @@ function FolhaCorrigirContato({ contato, onFechar, onSalvar }: {
           <>
             <div className="eyebrow" style={{ marginTop: 14 }}>Correções anteriores</div>
             <ul className="lista">
-              {historico.map((h, i) => (
+              {maisNovoEmCima(historico, (h) => h.em).map((h, i) => (
                 <li key={i}>
                   <div>
                     {Object.keys(h.depois).map((k) => (
                       <span key={k}>{ROTULO[k] ?? k}: <s>{String(h.antes[k] ?? 'vazio')}</s> → {String(h.depois[k] ?? 'vazio')}. </span>
                     ))}
                   </div>
-                  <div className="mutetxt">{h.motivo} · {h.por ?? 'equipe'} · {new Date(h.em).toLocaleDateString('pt-BR')}</div>
+                  <div className="mutetxt">{h.motivo} · {h.por ?? 'equipe'} · {diaEHora(h.em)}</div>
                 </li>
               ))}
             </ul>
@@ -4166,7 +4257,7 @@ function Conquistas({ perfil, papel }: { perfil: Perfil; papel: string }) {
         </p>
       )}
       <div className="stack">
-        {(lista ?? []).slice(0, 3).map((m) => (
+        {maisNovoEmCima(lista, (m) => m.quando).slice(0, 3).map((m) => (
           <div key={m.id} className="card">
             <div className="row">
               <span className="ic"><Icone nome={m.icone} /></span>
@@ -4452,7 +4543,7 @@ function ConvivenciaFamiliar({ personId, quem }: { personId: string; quem: strin
   return (
     <Secao titulo="Convivência familiar">
       <div className="stack">
-        {linhas.map((f) => (
+        {maisNovoEmCima(linhas, (f) => f.saiuEm).map((f) => (
           <div className="card" key={f.id}>
             <div className="row">
               <span className={`pill ${f.status === 'em_andamento' ? 'c-warn' : 'c-ok'}`}>
@@ -4461,8 +4552,8 @@ function ConvivenciaFamiliar({ personId, quem }: { personId: string; quem: strin
               <b className="ff grow">{f.comQuem}{f.vinculo ? ` · ${f.vinculo}` : ''}</b>
             </div>
             <div className="mutetxt">
-              Saiu {dia(String(f.saiuEm).slice(0, 10))}
-              {f.voltouEm ? ` · voltou ${dia(String(f.voltouEm).slice(0, 10))}` : ''}
+              Saiu {diaEHora(f.saiuEm)}
+              {f.voltouEm ? ` · voltou ${diaEHora(f.voltouEm)}` : ''}
               {f.liberou ? ` · liberou: ${f.liberou}` : ''}
               {f.recebeu ? ` · recebeu: ${f.recebeu}` : ''}
             </div>
@@ -4504,14 +4595,14 @@ function ConvivenciaFamiliar({ personId, quem }: { personId: string; quem: strin
                 O que foi sendo registrado depois
               </div>
               <ul className="lista">
-                {f.relatos.map((n) => (
+                {maisNovoEmCima(f.relatos, (n) => n.quando).map((n) => (
                   <li key={n.id}>
                     {n.houveAlteracao && (
                       <span className="pill c-warn">alteração observada</span>
                     )}
                     <div className="bloco" style={{ marginBottom: 0 }}>{n.relato}</div>
                     <div className="mutetxt">
-                      {n.por ?? '—'} · {dia(String(n.quando).slice(0, 10))}
+                      {n.por ?? '—'} · {diaEHora(n.quando)}
                     </div>
                   </li>
                 ))}
@@ -4592,7 +4683,9 @@ function VisitasDoAcolhido({ personId }: { personId: string }) {
   };
   const quando = (iso: string) => new Date(iso).toLocaleString('pt-BR', {
     timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-  const mostradas = todas ? dados.visitas : dados.visitas.slice(0, 5);
+  /* Da mais recente (fase 275): a tela ordena, e não confia na ordem que chegou. */
+  const emOrdem = maisNovoEmCima(dados.visitas, (v) => v.entrouEm);
+  const mostradas = todas ? emOrdem : emOrdem.slice(0, 5);
 
   async function exportar() {
     setMsg(''); setExportando(true);
@@ -4670,7 +4763,7 @@ function VisitasDoAcolhido({ personId }: { personId: string }) {
                   {v.excecao && <div className="mutetxt">Entrada por exceção: {v.excecao}</div>}
                   {/* O histórico da correção (fase 179): o que constava antes, quem
                       corrigiu, quando e por quê. A tela prometia e não mostrava. */}
-                  {(v.correcoes ?? []).map((k, i) => (
+                  {maisNovoEmCima(v.correcoes, (k) => k.em).map((k, i) => (
                     <div key={i} className="mutetxt">
                       Corrigida em {quando(k.em)}{k.por ? ` por ${k.por}` : ''}. Constava:{' '}
                       {quando(k.antes.entrouEm)}{k.antes.saiuEm ? ` — ${quando(k.antes.saiuEm)}` : ', sem saída'}.
@@ -4724,7 +4817,7 @@ function InternacoesDoAcolhido({ personId }: { personId: string }) {
   return (
     <Secao titulo="Internações hospitalares">
       <ul className="lista">
-        {linhas.map((h) => (
+        {maisNovoEmCima(linhas, (h) => h.desde).map((h) => (
           <li key={h.id}>
             <div className="grow">
               <b className="ff">{h.hospital}</b>
@@ -4778,7 +4871,7 @@ function OficiosDoAcolhido({ personId }: { personId: string }) {
         instituição, e fica registrada aqui com o nome de quem entregou.
       </p>
       <ul className="lista">
-        {linhas.map((o) => (
+        {maisNovoEmCima(linhas, (o) => o.quando).map((o) => (
           <li key={o.id}>
             <div className="grow">
               <b className="ff">{o.orgao}</b>
@@ -4850,22 +4943,22 @@ function Presenca({ personId, nome }: { personId: string; nome: string }) {
           dia, vira paisagem — e é o mesmo motivo pelo qual a lista de quem sai
           sozinho mostra só quem NÃO está simplesmente liberado (§8.7.2). */}
       <div className="stack">
-        {linhas.filter((l) => aberto || l.excecao || l.correcoes.length).map((l) => (
+        {maisNovoEmCima(linhas, (l) => l.quando).filter((l) => aberto || l.excecao || l.correcoes.length).map((l) => (
           <div className="card" key={l.id}>
             <div className="row">
               <span className={`pill ${l.excecao ? 'c-warn' : 'c-ok'}`}>{l.resultado}</span>
               <b className="ff grow">{l.titulo}</b>
-              <span className="mutetxt">{dia(l.quando)}</span>
+              <span className="mutetxt">{diaEHora(l.quando)}</span>
             </div>
             {l.justificativa && <div>{l.justificativa}</div>}
             <div className="mutetxt">
               Registrado por {l.por}{l.offline ? ' · registrado sem sinal' : ''}
             </div>
-            {l.correcoes.map((c, n) => (
+            {maisNovoEmCima(l.correcoes, (c) => c.em).map((c, n) => (
               <div className="notice c-info" key={n}>
                 Antes constava <b>{c.antes}</b>
                 {c.justificativaAntes ? ` — "${c.justificativaAntes}"` : ''}, de {c.eraDe}.
-                Corrigido por {c.corrigidoPor} em {dia(c.em)}.
+                Corrigido por {c.corrigidoPor} em {diaEHora(c.em)}.
               </div>
             ))}
           </div>
@@ -5277,10 +5370,10 @@ function Educacao({ personId, houseId, papel }: {
             </p>
           )}
           <div className="stack">
-            {dados.evolucoes.slice(0, 6).map((e) => (
+            {maisNovoEmCima(dados.evolucoes, (e) => e.em).slice(0, 6).map((e) => (
               <div className="card" key={e.id}>
                 <div className="row">
-                  <span className="pill c-info">{dia(e.em)}</span>
+                  <span className="pill c-info">{diaEHora(e.em)}</span>
                   <span className="mutetxt grow">{e.por ?? '—'}</span>
                 </div>
                 <div>{e.texto}</div>
@@ -5316,7 +5409,8 @@ function Educacao({ personId, houseId, papel }: {
             </p>
           )}
           <div className="stack">
-            {dados.conceitos.map((k) => (
+            {maisNovoEmCima(dados.conceitos,
+              (k) => `${k.ano}-${String(Number(k.bimestre) * 2).padStart(2, '0')}-01`).map((k) => (
               <div className="card" key={k.id} style={k.substituido ? { opacity: 0.65 } : undefined}>
                 <div className="row">
                   <span className={`pill ${k.conceito === 'nao_acompanha' ? 'c-warn' : 'c-info'}`}>
@@ -5613,7 +5707,7 @@ function AuditoriaDoAcolhido({ personId, papel }: { personId: string; papel: str
       {aberto && linhas && linhas.length > 0 && (
         <>
           <div className="stack">
-            {linhas.slice(0, 40).map((l) => (
+            {maisNovoEmCima(linhas, (l) => l.quando).slice(0, 40).map((l) => (
               <div className="card" key={l.id}>
                 <div className="row">
                   {/* A finalidade é o que separa "abriu" de "abriu e disse
@@ -5976,6 +6070,8 @@ function RemediosEReceitas({ personId, houseId, papel }: { personId: string; hou
  */
 interface AtendimentoTecnico {
   id: string; area: string; areaRotulo: string; dia: string; relato: string; por: string;
+  /** A hora em que aconteceu (fase 275); nula nos de antes. E quando foi registrado. */
+  hora?: string | null; registradoEm?: string;
   anexos: { id: string; nome: string; tipo: string; tamanho: number; legenda: string | null }[];
 }
 function AtendimentosDaEquipeTecnica({ personId, nome, papel }: { personId: string; nome: string; papel: string }) {
@@ -5986,6 +6082,12 @@ function AtendimentosDaEquipeTecnica({ personId, nome, papel }: { personId: stri
   const [vendo, setVendo] = useState<{ id: string; nome: string } | null>(null);
   /** O filtro por área: a psicopedagoga lê os dela sem perder os outros de vista. */
   const [area, setArea] = useState('');
+  /* A BUSCA (fase 275, pedido de 05/11): por palavra (o que foi trabalhado, a área,
+     quem atendeu, o nome do arquivo) e por período. Tudo aqui na tela, sobre os
+     atendimentos desta criança, que já chegaram inteiros. */
+  const [busca, setBusca] = useState('');
+  const [de, setDe] = useState('');
+  const [ate, setAte] = useState('');
   const carregar = useCallback(async () => {
     try { setLista(await api<AtendimentoTecnico[]>(`/people/${personId}/technical-sessions`)); }
     catch (e) { setErro(e instanceof Error ? e.message : 'Não foi possível abrir os atendimentos.'); }
@@ -5993,9 +6095,22 @@ function AtendimentosDaEquipeTecnica({ personId, nome, papel }: { personId: stri
   useEffect(() => { void carregar(); }, [carregar]);
 
   /* O relatório é LINEAR: o mais novo em cima, e quem lê desce no tempo. O
-     servidor já devolve nesta ordem; a tela garante, porque é o contrato. */
-  const todos = [...(lista ?? [])].sort((a, b) => b.dia.localeCompare(a.dia));
-  const mostrados = area ? todos.filter((a) => a.area === area) : todos;
+     servidor já devolve nesta ordem; a tela garante, porque é o contrato. No
+     mesmo dia, a hora decide (fase 275); sem hora, o registro mais novo. */
+  const todos = [...(lista ?? [])].sort((a, b) =>
+    b.dia.localeCompare(a.dia) || (b.hora ?? '').localeCompare(a.hora ?? '')
+    || String(b.registradoEm ?? '').localeCompare(String(a.registradoEm ?? '')));
+  const semAcento = (t: string) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  const palavras = semAcento(busca).split(/\s+/).filter(Boolean);
+  const buscando = palavras.length > 0 || !!de || !!ate;
+  const mostrados = todos
+    .filter((a) => !area || a.area === area)
+    .filter((a) => (!de || a.dia >= de) && (!ate || a.dia <= ate))
+    .filter((a) => {
+      if (!palavras.length) return true;
+      const texto = semAcento([a.relato, a.areaRotulo, a.por, ...a.anexos.map((x) => `${x.nome} ${x.legenda ?? ''}`)].join(' '));
+      return palavras.every((p) => texto.includes(p));
+    });
   const hoje = hojeISO();
   const ultimo = todos[0];
   const desdeUltimo = ultimo
@@ -6036,6 +6151,31 @@ function AtendimentosDaEquipeTecnica({ personId, nome, papel }: { personId: stri
             <Icone nome="escrever" /> Registrar atendimento da equipe técnica
           </button>
         )}
+        {lista && lista.length > 0 && (
+          <div className="busca-atendimentos" role="search" aria-label="Buscar nos atendimentos">
+            <label className="f" htmlFor="at-busca">Buscar nos atendimentos</label>
+            <input id="at-busca" type="search" value={busca} data-sem-ditado=""
+                   placeholder="Uma palavra: escola, visita, desenho, o nome de quem atendeu"
+                   onChange={(e) => setBusca(e.target.value)} />
+            <div className="busca-periodo">
+              <label className="f">De
+                <input type="date" value={de} max={ate || undefined} onChange={(e) => setDe(e.target.value)} />
+              </label>
+              <label className="f">Até
+                <input type="date" value={ate} min={de || undefined} onChange={(e) => setAte(e.target.value)} />
+              </label>
+            </div>
+            {buscando && (
+              <div className="row">
+                <span className="mutetxt grow" role="status">
+                  {quantos(mostrados.length, 'atendimento encontrado', 'atendimentos encontrados')} de {todos.length}
+                </span>
+                <button type="button" className="btn sm ghost"
+                        onClick={() => { setBusca(''); setDe(''); setAte(''); }}>Limpar a busca</button>
+              </div>
+            )}
+          </div>
+        )}
         {porArea.length > 1 && (
           <div className="opts" role="group" aria-label="Mostrar os atendimentos de">
             <button type="button" className="opt c-other" aria-pressed={!area} onClick={() => setArea('')}>
@@ -6052,6 +6192,9 @@ function AtendimentosDaEquipeTecnica({ personId, nome, papel }: { personId: stri
         {lista && lista.length === 0 && (
           <p className="mutetxt" style={{ margin: 0 }}>Nenhum atendimento da equipe técnica registrado com {nome} ainda.</p>
         )}
+        {lista && lista.length > 0 && mostrados.length === 0 && (
+          <p className="mutetxt" style={{ margin: 0 }}>Nenhum atendimento com essa busca. Tente outra palavra ou outro período.</p>
+        )}
         <ol className="relatorio-tecnico">
           {mostrados.map((a, i) => (
             <li key={a.id}>
@@ -6061,11 +6204,17 @@ function AtendimentosDaEquipeTecnica({ personId, nome, papel }: { personId: stri
               <article className={`relatorio-item area-${a.area}`}>
                 <span className="oc-quando">
                   <b>{dia(a.dia).slice(0, 5)}</b>
-                  <span>{a.dia.slice(0, 4)}</span>
+                  <span>{a.hora ?? a.dia.slice(0, 4)}</span>
                 </span>
                 <div className="grow">
                   <b className="ff">{a.areaRotulo}</b>
-                  <div className="mutetxt">{a.por}</div>
+                  {/* A data e a hora por extenso (fase 275), e quando foi registrado. */}
+                  <div className="mutetxt">
+                    {dia(a.dia)}{a.hora ? ` às ${a.hora}` : ''} · {a.por}
+                  </div>
+                  {a.registradoEm && (
+                    <div className="mutetxt">Registrado em {diaEHora(a.registradoEm)}</div>
+                  )}
                   <div className="relatorio-texto">{a.relato}</div>
                   {a.anexos.map((x) => (
                     <div key={x.id} className="row" style={{ gap: 8, marginTop: 4 }}>
@@ -6101,13 +6250,16 @@ function FolhaAtendimentoTecnico({ personId, nome, onFechar, onRegistrado }: {
   const [area, setArea] = useState('');
   const [areaOutra, setAreaOutra] = useState('');
   const [quando, setQuando] = useState(hoje);
+  /* A hora do atendimento (fase 275): já vem com a hora de agora, para corrigir se foi antes. */
+  const [hora, setHora] = useState(() => new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_Paulo',
+    hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date()));
   const [relato, setRelato] = useState('');
   const [arquivos, setArquivos] = useState<Escolhido[]>([]);
   /* A legenda de cada arquivo, na mesma ordem (o desenho da família, a folha da leitura). */
   const [legendas, setLegendas] = useState<string[]>([]);
   const [erro, setErro] = useState('');
   const [enviando, setEnviando] = useState(false);
-  const pode = !!area && (area !== 'outra' || areaOutra.trim().length >= 3) && relato.trim().length >= 10 && !enviando
+  const pode = !!area && /^\d{2}:\d{2}$/.test(hora) && (area !== 'outra' || areaOutra.trim().length >= 3) && relato.trim().length >= 10 && !enviando
     && !recusaDosAnexos(arquivos.map((a) => a.tamanho));
 
   async function guardar() {
@@ -6116,7 +6268,7 @@ function FolhaAtendimentoTecnico({ personId, nome, onFechar, onRegistrado }: {
       const r = await api<{ aviso: string }>(`/people/${personId}/technical-sessions`, {
         method: 'POST',
         body: JSON.stringify({
-          area, areaOutra: area === 'outra' ? areaOutra.trim() : undefined, dia: quando, relato: relato.trim(),
+          area, areaOutra: area === 'outra' ? areaOutra.trim() : undefined, dia: quando, hora, relato: relato.trim(),
           anexos: arquivos.map((a, i) => ({ conteudo: base64De(a.dataUrl), nomeArquivo: a.nome,
                                             legenda: (legendas[i] ?? '').trim() || undefined })),
         }),
@@ -6145,8 +6297,14 @@ function FolhaAtendimentoTecnico({ personId, nome, onFechar, onRegistrado }: {
             <input id="at-outra" value={areaOutra} maxLength={60} onChange={(e) => setAreaOutra(e.target.value)} />
           </>
         )}
-        <label className="f" htmlFor="at-dia">O dia</label>
-        <input id="at-dia" type="date" value={quando} max={hoje} onChange={(e) => setQuando(e.target.value)} />
+        <div className="busca-periodo">
+          <label className="f" htmlFor="at-dia">O dia
+            <input id="at-dia" type="date" value={quando} max={hoje} onChange={(e) => setQuando(e.target.value)} />
+          </label>
+          <label className="f" htmlFor="at-hora">A hora
+            <input id="at-hora" type="time" value={hora} onChange={(e) => setHora(e.target.value)} />
+          </label>
+        </div>
         <label className="f" htmlFor="at-relato">O que foi trabalhado</label>
         <textarea id="at-relato" rows={5} value={relato} onChange={(e) => setRelato(e.target.value)}
                   placeholder="O que foi proposto, como a criança participou, o que fica para o próximo encontro." />

@@ -4318,8 +4318,8 @@ const JUDICIAL_EXTRA: Record<string, string | null> = {};
 
 /** Os atendimentos da equipe técnica nesta demonstração (fase 218). */
 interface AtendimentoMock {
-  id: string; personId: string; area: string; areaOutra: string | null; dia: string; relato: string;
-  registradoEm: string; por: string;
+  id: string; personId: string; area: string; areaOutra: string | null; dia: string; hora: string | null;
+  relato: string; registradoEm: string; por: string;
   anexos: { id: string; nome: string; tipo: string; tamanho: number; legenda: string | null; conteudo: string }[];
 }
 const ATENDIMENTOS_TECNICOS: AtendimentoMock[] = [];
@@ -4327,10 +4327,10 @@ const ATENDIMENTOS_TECNICOS: AtendimentoMock[] = [];
 function semearAtendimentos() {
   if (ATENDIMENTOS_TECNICOS.length) return;
   ATENDIMENTOS_TECNICOS.push({
-    id: 'atend-alice-1', personId: 'p01', area: 'psicologia', areaOutra: null, dia: diasAtras(6),
+    id: 'atend-alice-1', personId: 'p01', area: 'psicologia', areaOutra: null, dia: diasAtras(6), hora: '14:30',
     relato: 'Desenho livre com o tema da casa. Alice desenhou a família e os colegas do quarto, falou com '
       + 'calma sobre a visita da avó. Fica para o próximo encontro retomar o desenho (fictício).',
-    registradoEm: emHoras(15, 20), por: 'Tatiane Técnica (fictícia)',
+    registradoEm: `${diasAtras(6)}T15:20:00-03:00`, por: 'Tatiane Técnica (fictícia)',
     anexos: [{ id: 'atend-alice-1-a', nome: 'desenho.jpg', tipo: 'image/jpeg', tamanho: 48_000,
                legenda: 'O desenho da sessão', conteudo: jpegFicticio('Desenho da sessão') }],
   });
@@ -4348,8 +4348,10 @@ function semearAtendimentos() {
       + 'cansa depois de quinze minutos. Plano: encontros semanais de meia hora, com jogo no fim (fictício).'],
   ];
   for (const [d, area, por, relato] of mais) {
+    /* A hora de cada atendimento (fase 275), e o registro feito no fim da tarde do mesmo dia. */
+    const hora = ['09:00', '10:30', '14:00', '15:30'][d % 4];
     ATENDIMENTOS_TECNICOS.push({ id: `atend-alice-${d}`, personId: 'p01', area, areaOutra: null, dia: diasAtras(d),
-      relato, registradoEm: emHoras(15, 20), por, anexos: [] });
+      hora, relato, registradoEm: `${diasAtras(d)}T17:${String(10 + (d % 40)).padStart(2, '0')}:00-03:00`, por, anexos: [] });
   }
 }
 const DOSSIE_DOCS: DocumentoMock[] = [];
@@ -9578,6 +9580,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       return new Recusa(400, 'Escreva qual é a área do atendimento.');
     }
     if (!/^\d{4}-\d{2}-\d{2}$/.test(String(b.dia ?? ''))) return new Recusa(400, 'Diga o dia do atendimento.');
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(String(b.hora ?? ''))) return new Recusa(400, 'Diga a hora do atendimento.');
     if (String(b.dia) > HOJE) return new Recusa(400, 'O dia do atendimento ainda não chegou.');
     const relato = String(b.relato ?? '').trim();
     if (relato.length < 10) return new Recusa(400, 'Escreva o que foi trabalhado no atendimento.');
@@ -9597,7 +9600,7 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     }
     const id = uid();
     ATENDIMENTOS_TECNICOS.unshift({ id, personId: String(seg[1]), area: String(b.area),
-      areaOutra: b.area === 'outra' ? String(b.areaOutra).trim() : null, dia: String(b.dia), relato,
+      areaOutra: b.area === 'outra' ? String(b.areaOutra).trim() : null, dia: String(b.dia), hora: String(b.hora), relato,
       registradoEm: new Date().toISOString(), por: eu.fullName, anexos });
     return { id, aviso: anexos.length
       ? 'Atendimento registrado, com os arquivos. Aparece no perfil para a equipe técnica e a coordenação.'
@@ -13845,6 +13848,8 @@ function resumoDaCozinha() {
         if (!(k.id === 'p01' && d > -70)) {
           ATENDIMENTOS_TECNICOS.push({
             id: `atend-h-${k.id}-${-d}`, personId: k.id, area, areaOutra: null, dia: dia(d),
+            /* A hora pelo próprio dia, sem sortear: o sorteio desta casa segue igual (fase 275). */
+            hora: `${String(9 + (-d % 7)).padStart(2, '0')}:${['00', '15', '30', '45'][-d % 4]}`,
             relato: r.um(RELATOS[area])(k), registradoEm: emDias(d, 16, r.entre(0, 50)), por: POR_AREA[area], anexos: [],
           });
         }

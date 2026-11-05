@@ -92,6 +92,42 @@ function instanteDoDia(iso: string): Date {
   return new Date(texto.length <= 10 ? `${texto}T12:00:00-03:00` : texto);
 }
 
+/**
+ * O MAIS NOVO EM CIMA (fase 275, pedido de 05/11).
+ *
+ * *"Os mais antigos vão ficando pro final e a cada lançamento vai ficando mais
+ * acima, assim fica mais fácil acompanhar o desenvolvimento do atendido."* Toda
+ * lista com data no perfil passa por aqui, e não confia na ordem em que o
+ * servidor ou o protótipo devolveram: cada um tinha a sua. Sem data vai para o
+ * fim; com a mesma data, fica a ordem de chegada.
+ */
+export function maisNovoEmCima<T>(lista: readonly T[] | null | undefined,
+                                  quando: (x: T) => string | null | undefined): T[] {
+  const valor = (x: T) => {
+    const v = quando(x);
+    if (!v) return Number.NEGATIVE_INFINITY;
+    const t = instanteDoDia(String(v)).getTime();
+    return Number.isNaN(t) ? Number.NEGATIVE_INFINITY : t;
+  };
+  return (lista ?? []).map((x, i) => ({ x, i, t: valor(x) }))
+    .sort((a, b) => (a.t === b.t ? a.i - b.i : b.t > a.t ? 1 : -1))
+    .map((o) => o.x);
+}
+
+/**
+ * `21/09/2026 às 14:05` (fase 275): a data e a hora de cada anotação. Dia puro,
+ * sem hora guardada, sai só com a data.
+ */
+export function diaEHora(iso: string | null | undefined): string {
+  if (!iso) return '—';
+  const texto = String(iso);
+  if (texto.length <= 10) return dia(texto);
+  const d = new Date(texto);
+  if (Number.isNaN(d.getTime())) return '—';
+  const hora = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: FUSO });
+  return `${dia(texto)} às ${hora}`;
+}
+
 /** `21/09/2026`. Devolve `—` para vazio e para data que não existe. */
 export function dia(iso: string | null | undefined): string {
   if (!iso) return '—';

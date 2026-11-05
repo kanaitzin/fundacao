@@ -97,15 +97,15 @@ export const ABAS_DO_PERFIL_NO_GUIA: { id: string; titulo: string; texto: string
   { id: 'geral', titulo: 'Geral',
     texto: 'A primeira aba: idade, casa, há quanto tempo está no acolhimento, escola, a equipe de referência, a família, os cuidados essenciais, os próximos compromissos e a identificação. Embaixo, a vida na casa: aniversário, conquistas, fotos (com quem aparece em cada uma) e memórias, e o botão do dossiê. O PIA aparece para a equipe técnica.' },
   { id: 'familia', titulo: 'Família e visitas',
-    texto: 'Os contatos da família, as visitas com o relatório, as saídas, a convivência familiar e os números da convivência. O contato se corrige com o motivo, e o de antes fica guardado.' },
+    texto: 'Os contatos da família, as visitas com o relatório, as saídas, a convivência familiar e os números da convivência. O familiar se edita com o motivo, e o de antes fica guardado; ele também se retira, com o motivo. Toda lista vem com o mais recente em cima.' },
   { id: 'saude', titulo: 'Saúde',
-    texto: 'Os números dos últimos trinta dias, as alergias, condições e restrições com o laudo ou a receita anexados, e os remédios em uso com as receitas.' },
+    texto: 'Os números dos últimos trinta dias, as alergias, condições e restrições com o laudo ou a receita anexados, os remédios em uso com as receitas, e o histórico de saúde (consultas e registros de quem acompanhou), com a data e a hora, o mais recente em cima.' },
   { id: 'rotina', titulo: 'Dia a dia',
     texto: 'O que a casa registrou num dia escolhido (refeição, remédio, chamada, saídas), para consultar, e as chamadas dos últimos trinta dias.' },
   { id: 'educacao', titulo: 'Educação',
     texto: 'A escola, a evolução educacional e o conceito de cada bimestre, com o porquê.' },
   { id: 'atendimentos', titulo: 'Atendimentos',
-    texto: 'O relatório da equipe técnica (psicologia, psicopedagogia, serviço social e pedagogia), o mais recente em cima, com os números por área e os arquivos de cada atendimento.',
+    texto: 'O relatório da equipe técnica (psicologia, psicopedagogia, serviço social e pedagogia), o mais recente em cima, com a data e a hora de cada atendimento e quando foi registrado, a busca por palavra e por período, os números por área e os arquivos de cada atendimento.',
     quem: 'Aparece para a equipe técnica, a coordenação e a gestão.' },
   { id: 'judiciario', titulo: 'Judiciário',
     texto: 'Como a criança chegou, a área restrita com o prazo da reavaliação ao Juízo e os documentos que a equipe técnica guarda ali (a guia, as decisões, o relatório de acolhimento, os relatórios de reavaliação) e os ofícios.',
@@ -138,6 +138,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 275, dia: '05/11/2026', aba: 'acolhidos',
+    texto: 'O perfil da criança em ordem: em todas as abas, cada lista vem com o mais recente em cima e o mais antigo embaixo, com a data e, quando há, a hora. A aba Saúde ganha o histórico de saúde, com as consultas e os registros de quem acompanhou. Cada atendimento da equipe técnica tem o dia e a hora em que aconteceu e quando foi registrado, e a aba Atendimentos ganha a busca por palavra e por período.' },
   { fase: 274, dia: '05/11/2026', aba: 'acolhidos',
     texto: 'A foto grande: no perfil da criança, nos familiares, em quem visitou e na Portaria, tocar no rosto abre a foto do tamanho da tela, e o X fecha. No cartão de cada familiar, a equipe técnica e a coordenação põem, trocam e tiram a foto, e o familiar novo já pode nascer com ela. Tirar pede o motivo, e a foto de antes, a cada troca ou retirada, fica guardada no histórico com quem a pôs e quem a tirou. Os outros cargos veem a foto e não mexem. E o cartão do familiar diz o que faz: Editar (nome, vínculo, telefone, CPF e observação, com o motivo) e Retirar este familiar.' },
   { fase: 273, dia: '05/11/2026',
