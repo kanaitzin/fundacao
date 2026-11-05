@@ -184,6 +184,13 @@ for (const largura of LARGURAS) {
     os.map((o) => ({ valor: o.value, rotulo: o.textContent.trim() })));
   console.log(`\n📱 ${largura} px, letra ${LETRA} — ${cargos.length} cargos`);
 
+  /* Toque que não trava o ensaio: quando a tela vaza, o celular encolhe a página
+     inteira e o toque pelo Playwright pode cair fora do botão. O achado já foi
+     anotado pela medida; aqui o ensaio só precisa seguir para a próxima tela. */
+  const tocar = async (loc) => {
+    await loc.click({ timeout: 5000 }).catch(() => loc.evaluate((e) => e.click()));
+  };
+
   const conferir = async (cargo, onde) => {
     erros.length = 0;
     const m = await medir(pg);
@@ -218,21 +225,21 @@ for (const largura of LARGURAS) {
     const abas = (await pg.locator('nav.tabbar button').allInnerTexts())
       .map((t) => t.replace(/\s+/g, ' ').trim()).filter((t) => !/Mais$/i.test(t));
     for (let i = 0; i < abas.length; i++) {
-      await pg.locator('nav.tabbar button').nth(i).click();
+      await tocar(pg.locator('nav.tabbar button').nth(i));
       await pg.waitForTimeout(700);
       n += await conferir(cargo.valor, abas[i]);
     }
     if (await pg.locator('nav.tabbar button', { hasText: 'Mais' }).count()) {
-      await pg.locator('nav.tabbar button', { hasText: 'Mais' }).first().click();
+      await tocar(pg.locator('nav.tabbar button', { hasText: 'Mais' }).first());
       await pg.waitForTimeout(350);
       n += await conferir(cargo.valor, 'folha Mais');
       const portas = await pg.locator('.overlay .sheet button.card.row b.ff').allInnerTexts();
-      await pg.locator('.overlay .sheet button', { hasText: /^Fechar$/ }).click();
+      await tocar(pg.locator('.overlay .sheet button', { hasText: /^Fechar$/ }));
       await pg.waitForTimeout(250);
       for (let i = 0; i < portas.length; i++) {
-        await pg.locator('nav.tabbar button', { hasText: 'Mais' }).first().click();
+        await tocar(pg.locator('nav.tabbar button', { hasText: 'Mais' }).first());
         await pg.waitForTimeout(300);
-        await pg.locator('.overlay .sheet button.card.row').nth(i).click();
+        await tocar(pg.locator('.overlay .sheet button.card.row').nth(i));
         await pg.waitForTimeout(800);
         n += await conferir(cargo.valor, portas[i].trim());
       }

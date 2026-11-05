@@ -440,7 +440,7 @@ input {
 .tabela .acoes .btn, .card > .row > .btn, .setores .btn{ width:auto; display:inline-flex }
 .tabela .acoes .btn{ margin-left:6px }
 .tabela .pill + .pill{ margin-left:6px }
-.setores{ display:grid; gap:10px; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)) }
+.setores{ display:grid; gap:10px; grid-template-columns:repeat(auto-fit,minmax(min(300px, 100%), 1fr)) }
 
 /* ---------- Modal ---------- */
 .overlay{
@@ -855,7 +855,7 @@ textarea{
 /* Quatro números de estado operacional. Não é placar: são contagens do
    turno — nada aqui ordena casas, equipes ou crianças. */
 .painel{
-  display:grid; gap:10px; grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+  display:grid; gap:10px; grid-template-columns:repeat(auto-fit,minmax(min(150px, 100%), 1fr));
   margin-bottom:14px;
 }
 .painel .tile{
@@ -1250,7 +1250,7 @@ textarea{
   display:grid; gap:12px; grid-template-columns:1fr;
 }
 @media (min-width:900px){
-  .visitantes{ grid-template-columns:repeat(auto-fill, minmax(380px, 1fr)) }
+  .visitantes{ grid-template-columns:repeat(auto-fill, minmax(min(380px, 100%), 1fr)) }
 }
 .visitante{
   display:grid; grid-template-columns:96px 1fr; gap:14px; align-items:start;
@@ -1658,7 +1658,7 @@ div.acoes{ display:flex; flex-wrap:wrap; gap:8px; align-items:center }
 /* Os anexos de uma mensagem (fase 233): miniaturas em grade, cada uma com Ver e
    Tirar com tamanho de dedo, e o que o anexo pede (a categoria, a legenda) embaixo. */
 .anexos-grade{ list-style:none; margin:0; padding:0; display:grid; gap:10px;
-  grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)) }
+  grid-template-columns:repeat(auto-fill, minmax(min(140px, 100%), 1fr)) }
 .anexo-cartao{ display:flex; flex-direction:column; gap:6px; min-width:0; padding:8px;
   border:1px solid var(--line-2); border-radius:var(--r-md); background:var(--raised) }
 .anexo-cartao > img{ display:block; width:100%; height:110px; object-fit:cover; border-radius:6px; background:#fff }
@@ -1734,7 +1734,7 @@ div.acoes{ display:flex; flex-wrap:wrap; gap:8px; align-items:center }
 .pessoas .pessoa-cartao:hover{ box-shadow:0 6px 18px rgba(15,28,46,.10); transform:translateY(-1px) }
 .pessoas .pessoa-cartao b{ font-size:16px }
 @media (min-width:900px){
-  .pessoas{ display:grid; grid-template-columns:repeat(auto-fill, minmax(290px, 1fr)); gap:12px }
+  .pessoas{ display:grid; grid-template-columns:repeat(auto-fill, minmax(min(290px, 100%), 1fr)); gap:12px }
 }
 
 /* O PERFIL: um cabeçalho com o retrato grande, sobre uma faixa da cor da marca. */
@@ -1968,7 +1968,7 @@ div.acoes{ display:flex; flex-wrap:wrap; gap:8px; align-items:center }
 /* A EQUIPE */
 .equipe-cartoes{
   list-style:none; margin:0; padding:0; display:grid; gap:12px;
-  grid-template-columns:repeat(auto-fill, minmax(330px, 1fr));
+  grid-template-columns:repeat(auto-fill, minmax(min(330px, 100%), 1fr));
 }
 .membro{
   display:flex; flex-direction:column; gap:12px; min-width:0;
@@ -1976,7 +1976,10 @@ div.acoes{ display:flex; flex-wrap:wrap; gap:8px; align-items:center }
   padding:14px 16px; box-shadow:var(--shadow-1);
 }
 .membro.inativo{ background:var(--sunken); box-shadow:none; color:var(--ink-2) }
-.membro-cabeca{ display:flex; gap:12px; align-items:flex-start }
+.membro-cabeca{ display:flex; flex-wrap:wrap; gap:8px 12px; align-items:flex-start }
+/* O nome tem pelo menos dez letras de largura; sem isso a situação desce para a
+   linha de baixo, em vez de espremer o nome numa coluna de 70 px (letra Maior, 05/11). */
+.membro-cabeca > .grow{ flex:1 1 10em }
 .membro-cabeca .cargo-chip{ width:44px; height:44px; font-size:15px; flex:none }
 .membro-cabeca b.ff{ font-size:15.5px }
 .membro-email{ color:var(--muted); overflow-wrap:anywhere; margin-top:2px }
@@ -2012,7 +2015,7 @@ div.acoes{ display:flex; flex-wrap:wrap; gap:8px; align-items:center }
 .ocupacao span{ display:block; height:100%; border-radius:999px; background:var(--brand-solid) }
 
 /* AS CONTAS EM BLOCOS: o número grande, a palavra embaixo. */
-.lista.contas{ display:grid; gap:8px; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)) }
+.lista.contas{ display:grid; gap:8px; grid-template-columns:repeat(auto-fill, minmax(min(150px, 100%), 1fr)) }
 .lista.contas li, .lista.contas li:first-child{
   display:flex; flex-direction:column-reverse; align-items:flex-start; justify-content:flex-end; gap:2px;
   background:var(--sunken); border:0; border-radius:12px; padding:10px 12px;
@@ -2078,7 +2081,7 @@ button.cal-turno:focus-visible{ outline:3px solid var(--brand); outline-offset:1
 /* AS SAÍDAS DAS CRIANÇAS NO PORTÃO (fase 207): um cartão por criança, o que vale em palavras. */
 .saidas-do-portao{ list-style:none; margin:0 0 16px; padding:0; display:grid; gap:10px }
 @media (min-width: 900px){
-  .saidas-do-portao{ grid-template-columns:repeat(auto-fill, minmax(340px, 1fr)) }
+  .saidas-do-portao{ grid-template-columns:repeat(auto-fill, minmax(min(340px, 100%), 1fr)) }
 }
 .saidas-do-portao .card{ margin:0 }
 
@@ -2189,7 +2192,7 @@ button.cal-turno:focus-visible{ outline:3px solid var(--brand); outline-offset:1
 :root{ --aba-geral:#1F6FB2; --aba-rotina:#8C6A00 }
 .aba-geral{ --aba:var(--aba-geral) } .aba-rotina{ --aba:var(--aba-rotina) }
 .ficha-geral{ list-style:none; margin:0; padding:0; display:grid; gap:8px;
-  grid-template-columns:repeat(auto-fill, minmax(210px, 1fr)) }
+  grid-template-columns:repeat(auto-fill, minmax(min(210px, 100%), 1fr)) }
 .ficha-geral li{ display:flex; flex-direction:column; gap:2px; background:var(--surface);
   border:1px solid var(--line); border-radius:12px; padding:10px 12px; min-width:0 }
 .ficha-geral li > span{ font-size:12.5px; color:var(--ink-2); font-weight:700; letter-spacing:.01em }
@@ -2199,7 +2202,7 @@ button.cal-turno:focus-visible{ outline:3px solid var(--brand); outline-offset:1
 .ficha-geral.ficha-miuda li{ background:var(--sunken); border:0 }
 .ficha-geral.ficha-miuda li > b{ font-size:15px }
 .familiares{ list-style:none; margin:0; padding:0; display:grid; gap:8px;
-  grid-template-columns:repeat(auto-fill, minmax(240px, 1fr)) }
+  grid-template-columns:repeat(auto-fill, minmax(min(240px, 100%), 1fr)) }
 .familiares li{ display:flex; align-items:center; gap:10px; min-width:0 }
 /* O relatório da equipe técnica: o mês em bloco, e cada atendimento com a data ao lado. */
 .relatorio-tecnico{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:10px }
