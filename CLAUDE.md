@@ -455,8 +455,17 @@ o item respondido sai do §0.
 e não só o dia. **Lista que é o que vem** (os próximos compromissos) segue do mais perto ao mais longe. **Medido na
 275, até aqui:** a sonda da ordem nas abas (técnica e coordenação, Alice e Bruno: toda lista do mais recente para o
 mais antigo), a `o-atendimento-da-equipe-tecnica` (7 de 7, com a ordem no mesmo dia) e as suítes que mandam
-atendimento. **Em andamento:** o `ensaio:uso` (com o bloco novo) e o do celular. **Ficou de fora, de propósito:** as
+atendimento. E o `ensaio:uso` (sem reprovação, com o bloco novo, depois de consertar a cobrança antiga que lia a hora como
+ano), o do celular (322 telas, sem achado) e a suíte inteira (1445 de 1445). **Ficou de fora, de propósito:** as
 doses no histórico do perfil (são muitas por dia, e moram no Dia e na Saúde).
+**E a primeira avaliação humana de 05/11** (`docs/historico/primeira-avaliacao-humana-05-11.md`, PARA-A-REUNIAO
+§4.41): o cadastro que não avançava, consertado na 275 (o CPF se confere sozinho, a frase do que falta dentro da barra
+dos botões, e o botão da Acolhe+AI que cobria o Continuar). **Decidido em 05/11:** o CPF ao tocar na Portaria, com
+auditoria; a demonstração com quinze acolhidos e sem *fictício* nos nomes; *O Dia da Casa*, *Vivências*, *Registro
+Educacional* e *Atas do Mês*; e o funcionamento primeiro. **Próxima: 276**, o funcionamento: a confirmação da chamada
+com quem e a hora, a data e a hora no alto com a conexão de verdade, os avisos com a data, e os cartões que parecem
+botão e não fazem nada; **277** as decisões de 05/11; **278 em diante** a organização e os módulos, na ordem do
+arquivo da avaliação.
 
 **FEITO — fase 274** (§2): a foto grande ao tocar, e a foto do familiar. **Rosto novo numa lista** usa o
 `AvatarQueAbre` quando há foto, e **visor novo de foto** usa o `FotoAmpliada`, que já fecha pelo X, pelo Esc e pelo

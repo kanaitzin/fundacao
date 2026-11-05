@@ -1036,6 +1036,16 @@ numa linha:
    só para a técnica, em ordem de nome e nunca de tempo. (Hoje: não existe.)
 4. **O educador não vê o tempo**; ele continua vendo as visitas, como antes.
 
+## 4.41 A primeira avaliação humana (05/11)
+
+O documento da avaliação, o que já existia, o conserto do cadastro e o plano estão em
+`docs/historico/primeira-avaliacao-humana-05-11.md`. **Decidido em 05/11 pela pessoa da Fundação:**
+o CPF inteiro na Portaria só ao tocar em *Ver o CPF*, para a portaria, a técnica e a coordenação,
+com cada abertura na auditoria; a demonstração com quinze acolhidos e sem *fictício* nos nomes; os
+nomes *O Dia da Casa*, *Vivências*, *Registro Educacional* e *Atas do Mês*; e o funcionamento
+primeiro. **Para o DPO conferir:** a exibição do CPF inteiro de visitante na Portaria, ao toque e
+auditada.
+
 ## 5. As decisões que são do Marcelo *(§10 — responda pelo número)*
 
 Nenhuma é problema de código. **Sobra uma só, a 5** (a grade para a parede), que é escolha da casa.
