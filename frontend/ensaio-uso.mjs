@@ -4870,6 +4870,9 @@ console.log('\n🖍️ O atendimento da equipe técnica, com o desenho (fase 218
   await pgT.locator('.pessoa-cartao').filter({ hasText: 'Alice' }).first().click(); await esp(1200);
   await pgT.getByRole('tab', { name: /Atendimentos/ }).click(); await esp(900);
   const bloco = pgT.locator('section.atendimentos-tecnicos');
+  /* Desde a 284 os arquivos ficam no cartão, atrás de Ver os arquivos. */
+  await bloco.locator('ol.relatorio-tecnico > li').filter({ hasText: 'Desenho livre' }).first()
+    .getByRole('button', { name: 'Ver os arquivos' }).click(); await esp(300);
   cobrar('a aba Atendimentos traz os da equipe técnica, com o desenho',
     (await bloco.count()) > 0 && /Psicologia/.test(await bloco.innerText()) && /O desenho da sessão/.test(await bloco.innerText()));
   await bloco.getByRole('button', { name: 'Abrir O desenho da sessão' }).click(); await esp(900);
@@ -4879,12 +4882,15 @@ console.log('\n🖍️ O atendimento da equipe técnica, com o desenho (fase 218
   await bloco.getByRole('button', { name: 'Registrar atendimento da equipe técnica' }).click(); await esp(600);
   const folha = pgT.locator('.overlay');
   await folha.getByRole('button', { name: 'Psicopedagogia' }).click();
+  await folha.getByRole('button', { name: /^Interno/ }).click();
+  await folha.locator('#at-local').fill('Sala de estudos');
   await folha.locator('#at-relato').fill('Atividade de leitura com jogo de palavras; a folha da atividade vai anexada.');
   const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
   await pgT.locator('#at-arq-arquivo').setInputFiles({ name: 'atividade.png', mimeType: 'image/png', buffer: png }); await esp(700);
   /* Desde a 233 o arquivo escolhido já entra na lista da mensagem, sem o Pôr no atendimento. */
   await folha.getByRole('textbox', { name: 'O que é atividade.png' }).fill('A folha da atividade');
   await folha.getByRole('button', { name: 'Registrar o atendimento' }).click(); await esp(1200);
+  await bloco.locator('ol.relatorio-tecnico > li').first().getByRole('button', { name: 'Ver os arquivos' }).click(); await esp(300);
   const depois = await bloco.innerText();
   cobrar('o atendimento novo aparece, com a folha da atividade',
     /Psicopedagogia/.test(depois) && /A folha da atividade/.test(depois) && /Atendimento registrado/.test(depois), depois.slice(0, 300));
