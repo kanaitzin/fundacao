@@ -571,7 +571,7 @@ export class PeopleController {
   @RegistroDaRota('id', 'person')
   @Post(':id/technical-sessions/export')
   exportarAtendimentos(@CurrentUser() user: AuthenticatedUser,
-                       @Param('id', ParseUUIDPipe) id: string, @Body() body: any) {
+                       @Param('id', ParseUUIDPipe) id: string, @Body(CorpoConferido) body: any) {
     return this.atendimentos.exportar(user, id, body ?? {});
   }
 

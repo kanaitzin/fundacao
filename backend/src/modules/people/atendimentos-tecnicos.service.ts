@@ -275,7 +275,9 @@ export class AtendimentosTecnicosService {
     if (de && ate && de > ate) throw new BadRequestException('A data inicial vem depois da final.');
     const crianca = await this.db.asUser(user.id, async (c) => (await c.query(
       `SELECT coalesce(p.social_name, p.full_name) AS nome,
-              (SELECT h.name FROM house_stay s JOIN house h ON h.id = s.house_id
+              (SELECT h.name FROM house_stay s
+                 -- rls-join-ok (house): a estada só chega aqui se a criança está no alcance de quem baixa
+                 JOIN house h ON h.id = s.house_id
                 WHERE s.person_id = p.id AND s.status = 'ativa' LIMIT 1) AS casa
          FROM person p WHERE p.id = $1`, [personId])).rows[0]);
     if (!crianca) throw new NotFoundException('Acolhido não encontrado, ou fora do seu alcance.');
