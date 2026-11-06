@@ -107,7 +107,7 @@ export const ABAS_DO_PERFIL_NO_GUIA: { id: string; titulo: string; texto: string
   { id: 'vivencias', titulo: 'Vivências',
     texto: 'A vida dela na casa: o aniversário, o tempo de casa, as conquistas, as fotos (com quem aparece em cada uma) e as memórias, o mais recente em cima.' },
   { id: 'atendimentos', titulo: 'Atendimentos',
-    texto: 'O relatório da equipe técnica (psicologia, psicopedagogia, serviço social e pedagogia), o mais recente em cima, com a data e a hora de cada atendimento e quando foi registrado, a busca por palavra e por período, os números por área e os arquivos de cada atendimento.',
+    texto: 'O relatório da equipe técnica (psicologia, psicopedagogia, Assistência Social e pedagogia), o mais recente em cima, com a data e a hora de cada atendimento, onde foi e quem atendeu, a busca por palavra e por período, os números por área e os arquivos à vista em cada cartão; a técnica e a coordenação baixam os atendimentos de um período em Word.',
     quem: 'Aparece para a equipe técnica, a coordenação e a gestão.' },
   { id: 'judiciario', titulo: 'Judiciário',
     texto: 'Como a criança chegou, a área restrita com o prazo da reavaliação ao Juízo e os documentos que a equipe técnica guarda ali (a guia, as decisões, o relatório de acolhimento, os relatórios de reavaliação) e os ofícios.',
@@ -140,6 +140,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 284, dia: '06/11/2026', aba: 'acolhidos',
+    texto: 'Os atendimentos da equipe técnica, na aba Atendimentos do perfil: a área se chama Assistência Social, e cada atendimento diz se foi interno, na casa, ou externo, fora dela, o local e quem atendeu, quando não foi quem registrou. Os arquivos aparecem no próprio cartão, com Ver os arquivos, e quem registrou pode juntar um arquivo depois, como o laudo que chegou na semana seguinte. A técnica e a coordenação baixam os atendimentos do mês, do mês passado, de todo o acolhimento ou de datas escolhidas em Word, dizendo para quê.' },
   { fase: 283, dia: '06/11/2026', aba: 'dia',
     texto: 'Foi à aula hoje? No Dia da Casa, as crianças com aula no dia, de cada vínculo educacional. O plantão toca em Foi, Não foi (com o motivo informado) ou Não teve aula (feriado, recesso, suspensão), e pode juntar o bilhete ou o atestado. Sem marca, fica Ainda não verificado, e nunca vira falta. No perfil, na aba Educação, cada vínculo mostra os dias de aula do último mês, e a técnica e a coordenação marcam os dias de antes e corrigem com o motivo; a marca anterior continua legível.' },
   { fase: 282, dia: '06/11/2026', aba: 'acolhidos',

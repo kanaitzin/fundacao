@@ -256,6 +256,7 @@ describe('O que entra volta inteiro, e o que se baixa abre', () => {
       { rota: '/people/kitchen-requests/export/cestas', quem: 'coord', corpo: { houseId: ids.AI3, de: '2026-09-01', ate: hoje, finalidade: fin('Cozinha') } },
       { rota: '/people/portaria/export', quem: 'coord', corpo: { houseId: ids.AI3, finalidade: fin('Guarita') } },
       { rota: `/people/${ids.crianca}/visitas/export`, quem: 'tecnica', corpo: { finalidade: fin('Audiência concentrada') } },
+      { rota: `/people/${ids.crianca}/technical-sessions/export`, quem: 'tecnica', corpo: { de: '2026-09-01', ate: hoje, finalidade: fin('Estudo de caso') } },
       { rota: `/people/${ids.crianca}/benefits/export`, quem: 'coord', corpo: { formato: 'docx', finalidade: fin('Perícia do INSS') } },
     ];
   };

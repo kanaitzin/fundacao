@@ -7,7 +7,7 @@
 export const AREAS_DO_ATENDIMENTO = [
   { cod: 'psicologia', label: 'Psicologia' },
   { cod: 'psicopedagogia', label: 'Psicopedagogia' },
-  { cod: 'servico_social', label: 'Serviço social' },
+  { cod: 'servico_social', label: 'Assistência Social' },
   { cod: 'pedagogia', label: 'Pedagogia' },
   { cod: 'outra', label: 'Outra área' },
 ] as const;
@@ -28,6 +28,15 @@ export const QUEM_LE_ATENDIMENTO = ['equipe_tecnica', 'coordenador', 'gestor_ger
  * (`anexos-da-mensagem.regra.ts`), dito numa linha só.
  */
 export { MAXIMO_DE_ANEXOS_POR_MENSAGEM as MAXIMO_DE_ANEXOS_DO_ATENDIMENTO } from '../../kernel/arquivos/anexos-da-mensagem.regra';
+
+/** Onde foi (fase 284): na casa ou fora dela. */
+export const ONDE_FOI_O_ATENDIMENTO = [
+  { cod: 'interno', label: 'Interno, na casa' },
+  { cod: 'externo', label: 'Externo, fora da casa' },
+] as const;
+
+/** Quem baixa os atendimentos de um período (fase 284): quem atende e a coordenação. */
+export const QUEM_BAIXA_ATENDIMENTOS = ['equipe_tecnica', 'coordenador'];
 
 export function rotuloDaArea(cod: string, outra?: string | null): string {
   if (cod === 'outra' && outra) return outra;

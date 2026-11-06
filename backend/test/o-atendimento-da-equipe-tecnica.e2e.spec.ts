@@ -15,6 +15,7 @@
 import { Test } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
+import JSZip from 'jszip';
 import { Client } from 'pg';
 import { AppModule } from '../src/app.module';
 import { AREAS_DO_ATENDIMENTO } from '../src/modules/people/atendimento-tecnico.regra';
@@ -151,4 +152,60 @@ describe('O atendimento da equipe técnica', () => {
               has_table_privilege('rede_app', 'technical_session_attachment', 'UPDATE') AS ua`);
     expect(g).toEqual({ u: false, d: false, ua: false });
   });
+
+  it('o atendimento diz onde foi e quem atendeu, e a Assistência Social tem esse nome (fase 284)', async () => {
+    const errado = await request(http).post(`/api/v1/people/${ids.crianca}/technical-sessions`).set(auth(tokens.tecnica))
+      .send({ area: 'servico_social', dia: hoje, hora: '00:00', relato: 'Visita domiciliar com a família (fictício).',
+              ondeFoi: 'na rua' });
+    expect(errado.status).toBe(400);
+    const r = await request(http).post(`/api/v1/people/${ids.crianca}/technical-sessions`).set(auth(tokens.tecnica))
+      .send({ area: 'servico_social', dia: hoje, hora: '00:00', relato: 'Visita domiciliar com a família (fictício).',
+              ondeFoi: 'externo', local: 'Casa da avó, Restinga (fictício)', profissional: 'Assistente social do CREAS (fictício)' });
+    expect(r.status).toBe(201);
+    ids.externo = r.body.id;
+    const lista = (await request(http).get(`/api/v1/people/${ids.crianca}/technical-sessions`).set(auth(tokens.coord))).body;
+    const s = lista.find((x: any) => x.id === ids.externo);
+    expect(s).toMatchObject({ areaRotulo: 'Assistência Social', ondeFoi: 'externo', ondeFoiRotulo: 'Externo, fora da casa',
+      local: 'Casa da avó, Restinga (fictício)', profissional: 'Assistente social do CREAS (fictício)', podeAnexar: false });
+    const minha = (await request(http).get(`/api/v1/people/${ids.crianca}/technical-sessions`).set(auth(tokens.tecnica))).body
+      .find((x: any) => x.id === ids.externo);
+    expect(minha.podeAnexar).toBe(true);
+  });
+
+  it('quem registrou junta o arquivo que faltou, e só quem registrou (fase 284)', async () => {
+    const outra = await request(http).post(`/api/v1/people/technical-sessions/${ids.externo}/attachments`)
+      .set(auth(tokens.coord)).send({ anexos: [{ conteudo: PNG, nomeArquivo: 'relatorio.png' }] });
+    expect(outra.status).toBe(403);
+    const ok = await request(http).post(`/api/v1/people/technical-sessions/${ids.externo}/attachments`)
+      .set(auth(tokens.tecnica)).send({ anexos: [{ conteudo: PNG, nomeArquivo: 'relatorio.png', legenda: 'Relatório da visita' }] });
+    expect(ok.status).toBe(201);
+    const s = (await request(http).get(`/api/v1/people/${ids.crianca}/technical-sessions`).set(auth(tokens.coord))).body
+      .find((x: any) => x.id === ids.externo);
+    expect(s.anexos).toHaveLength(1);
+    const { rows } = await admin.query(
+      `SELECT house_id FROM audit_event WHERE action = 'atendimento_tecnico.anexo.juntado' AND entity_id = $1`, [ids.externo]);
+    expect(rows).toEqual([{ house_id: ids.AI3 }]);
+  });
+
+  it('a técnica baixa os atendimentos do período em Word, com a finalidade, e o educador não (fase 284)', async () => {
+    const corpo = { de: hoje, ate: hoje, finalidade: 'Reunião de estudo de caso (fictício)' };
+    expect((await request(http).post(`/api/v1/people/${ids.crianca}/technical-sessions/export`)
+      .set(auth(tokens.educador)).send(corpo)).status).toBe(403);
+    expect((await request(http).post(`/api/v1/people/${ids.crianca}/technical-sessions/export`)
+      .set(auth(tokens.tecnica)).send({ ...corpo, finalidade: 'curta' })).status).toBe(400);
+    const r = await request(http).post(`/api/v1/people/${ids.crianca}/technical-sessions/export`)
+      .set(auth(tokens.tecnica)).send(corpo);
+    expect(r.status).toBe(201);
+    expect(r.body.nomeArquivo).toMatch(/\.docx$/);
+    const z = await JSZip.loadAsync(Buffer.from(r.body.conteudoBase64, 'base64'));
+    const xml = await z.file('word/document.xml')!.async('string');
+    expect(xml).toContain('Assistência Social');
+    expect(xml).toContain('Externo, fora da casa');
+    expect(xml).toContain('Relatório da visita');
+    const { rows } = await admin.query(
+      `SELECT purpose, house_id FROM audit_event WHERE action = 'documento.export' AND entity = 'technical_session'
+         AND entity_id = $1 ORDER BY at DESC LIMIT 1`, [ids.crianca]);
+    expect(rows[0]).toEqual({ purpose: 'Reunião de estudo de caso (fictício)', house_id: ids.AI3 });
+  });
 });
+

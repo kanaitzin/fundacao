@@ -199,7 +199,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 06/11/2026, fase 283
+### Onde estamos — 06/11/2026, fase 284
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -346,8 +346,9 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 281 | **quem escreve na ATA de outro turno** (avaliação de 05/11, módulo 10; decidido em 06/11): escreve quem está na escala do turno, mais técnica, coordenação, Enfermagem e o líder do turno; sem escala lançada, ninguém é travado; os outros pedem e o líder do turno ou a coordenação autoriza ou recusa (`ata_write_request`, `app_pode_escrever_na_ata`, gatilho na `ata_note`, shifts/1673) |
 | 282 | **os vínculos educacionais** (avaliação de 05/11, módulo 07; decidido em 06/11): escola, SCFV, integral, aprendizagem, estágio e curso, como contratos em linha na aba Educação, vários ao mesmo tempo, o triângulo que abre turma, dias, endereço, notas e histórico; corrigir guarda o antes com o motivo; o fim previsto avisa técnica, coordenação e Líder Diurno a 30 e 7 dias (`education_link`, `education_grade`, nursing/1674) |
 | 283 | **a frequência escolar** (avaliação de 05/11, módulo 07; decidido em 06/11): *Foi à aula hoje?* no Dia da Casa, com foi, não foi com o motivo e não teve aula; sem marca é ainda não verificado, nunca falta; o plantão marca hoje e ontem, a técnica e a coordenação corrigem com o motivo e o comprovante; os dias do último mês em cada vínculo (`education_attendance`, nursing/1675) |
+| 284 | **os atendimentos da equipe técnica** (avaliação de 05/11, módulo 08): *Assistência Social* no lugar de serviço social; interno ou externo, o local e quem atendeu (people/1676); os arquivos à vista no cartão e juntar arquivo depois, só quem registrou; e os atendimentos de um período em Word para técnica e coordenação (`QUEM_BAIXA_ATENDIMENTOS`) |
 
-**Medido no fim da 277:** 215 migrações, 152 tabelas, 169 suítes, 1460 testes; nas 237 e 238, a suíte inteira
+**Medido no fim da 277:** 216 migrações, 152 tabelas, 169 suítes, 1463 testes; nas 237 e 238, a suíte inteira
 verde (1363 de 1363, depois de consertar as três conferências que o relatório das vivências deixou soltas) e o
 `ensaio:uso` (739 cobranças, sem reprovação, com o relatório das vivências aberto e o Word baixado); **não rodou**
 nas 237 e 238 o relógio adiantado, o do celular, o de acessibilidade, o `ensaio:acolhe` nem a simulação contra o servidor;
@@ -471,13 +472,18 @@ o item respondido sai do §0.
    Claude com chave, ou o computador do Pão) é o 2.0. O protótipo continua no GitHub Pages para mostrar, e o 1.0 fica um mês
    com eles. **Publicar o 1.0 é deploy: fazer só quando ela pedir, e com o que ela mandar (e-mail do Marcelo, senha de app).**
 
+**FEITO — fase 284** (§2): os atendimentos técnicos do módulo 08. **Campo novo no atendimento** entra no
+`listar`, no `exportar` (o Word) e no `ATENDIMENTOS_TECNICOS` do protótipo; **rota nova no `people.controller`**
+confere que o `@RegistroDaRota` continua colado na rota que ele guardava (a 284 o separou da lista, e a Casa 04
+recebia 200). **Medido na 284:** MEDIDO_284.
+**Próxima: 285**, o Judiciário em blocos (módulo 09); depois a Cozinha por refeição (13) e o sigilo por registro
+de saúde.
+
 **FEITO — fase 283** (§2): a frequência escolar. **Falta não é estado**: o dia de aula sem marca é *ainda não
 verificado*, e quem quiser contar ausências conta só as marcadas como *não foi*, com o motivo ao lado. **O dia de
 aula sai dos dias da semana do vínculo** (`weekdays`), e a regra mora no `app_marcar_frequencia`, repetida no
 `frequenciaDoVinculo` (servidor) e no `frequenciaMock` (protótipo). **Medido na 283:** a `a-frequencia-escolar` (7 de 7), a suíte inteira (1468 de 1468), o `ensaio:uso` sobre o protótipo novo (843 cobranças, sem reprovação), o do celular (322 telas, sem achado) e a sonda a 390 px (o educador marca Foi e Não foi com o motivo no Dia da Casa; a técnica corrige um dia do Kauã com o motivo; nenhum erro). **Não rodou** o relógio adiantado.
-**Próxima: 284**, o módulo 08 da avaliação, os atendimentos técnicos: o rótulo *Assistência Social*, o local e se foi
-interno ou externo, o anexo à vista no cartão, e baixar por mês ou período para técnica e coordenação. Depois, o
-Judiciário em blocos (09), a Cozinha por refeição (13) e o sigilo por registro de saúde.
+**A 284 veio a seguir** (os atendimentos técnicos).
 
 **FEITO — fase 282** (§2): os vínculos educacionais, com as decisões de 06/11 (a frequência marcada pelo educador
 no Dia da Casa e corrigida pela técnica e pela coordenação; o aviso do fim à técnica, à coordenação e ao Líder Diurno;

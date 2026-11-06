@@ -30,7 +30,7 @@ import { SemConexao, ErroApi } from './api';
 import { retratoFicticio, type Feitio } from './retratos';
 import {
   AREAS_DO_ATENDIMENTO, MAXIMO_DE_ANEXOS_DO_ATENDIMENTO, QUEM_LE_ATENDIMENTO, QUEM_REGISTRA_ATENDIMENTO,
-  rotuloDaArea,
+  rotuloDaArea, ONDE_FOI_O_ATENDIMENTO, QUEM_BAIXA_ATENDIMENTOS,
 } from '../../backend/src/modules/people/atendimento-tecnico.regra';
 import { ALCANCE_POR_CARGO } from '../../backend/src/modules/identity/alcance';
 import { avaliar, avaliarArquivo, avaliarDrive, TITULOS } from '../../backend/src/modules/relogio/implantacao.regra';
@@ -4534,6 +4534,8 @@ const JUDICIAL_EXTRA: Record<string, string | null> = {};
 interface AtendimentoMock {
   id: string; personId: string; area: string; areaOutra: string | null; dia: string; hora: string | null;
   relato: string; registradoEm: string; por: string;
+  /* Onde foi, o local e quem atendeu (fase 284). */
+  ondeFoi?: string | null; local?: string | null; profissional?: string | null; criadoPorEmail?: string;
   anexos: { id: string; nome: string; tipo: string; tamanho: number; legenda: string | null; conteudo: string }[];
 }
 const ATENDIMENTOS_TECNICOS: AtendimentoMock[] = [];
@@ -4545,6 +4547,7 @@ function semearAtendimentos() {
     relato: 'Desenho livre com o tema da casa. Alice desenhou a família e os colegas do quarto, falou com '
       + 'calma sobre a visita da avó. Fica para o próximo encontro retomar o desenho.',
     registradoEm: `${diasAtras(6)}T15:20:00-03:00`, por: 'Tatiane Técnica',
+    ondeFoi: 'interno', local: 'Sala de atendimento da casa', profissional: null,
     anexos: [{ id: 'atend-alice-1-a', nome: 'desenho.jpg', tipo: 'image/jpeg', tamanho: 48_000,
                legenda: 'O desenho da sessão', conteudo: jpegFicticio('Desenho da sessão') }],
   });
@@ -4565,7 +4568,11 @@ function semearAtendimentos() {
     /* A hora de cada atendimento (fase 275), e o registro feito no fim da tarde do mesmo dia. */
     const hora = ['09:00', '10:30', '14:00', '15:30'][d % 4];
     ATENDIMENTOS_TECNICOS.push({ id: `atend-alice-${d}`, personId: 'p01', area, areaOutra: null, dia: diasAtras(d),
-      hora, relato, registradoEm: `${diasAtras(d)}T17:${String(10 + (d % 40)).padStart(2, '0')}:00-03:00`, por, anexos: [] });
+      hora, relato, registradoEm: `${diasAtras(d)}T17:${String(10 + (d % 40)).padStart(2, '0')}:00-03:00`, por, anexos: [],
+      ondeFoi: area === 'servico_social' ? 'externo' : 'interno',
+      local: area === 'servico_social' ? 'Casa da avó, no bairro Partenon' : area === 'psicopedagogia'
+        ? 'Sala de estudos da casa' : 'Sala de atendimento da casa',
+      profissional: null });
   }
 }
 const DOSSIE_DOCS: DocumentoMock[] = [];
@@ -9973,10 +9980,86 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     if (!QUEM_LE_ATENDIMENTO.includes(eu.role)) {
       return new Recusa(403, 'Os atendimentos da equipe técnica são lidos pela equipe técnica e pela coordenação.');
     }
-    return ATENDIMENTOS_TECNICOS.filter((x) => x.personId === seg[1]).map(({ personId: _p, anexos, ...x }) => ({
-      ...x, areaRotulo: rotuloDaArea(x.area, x.areaOutra),
-      anexos: anexos.map(({ conteudo: _c, ...r }) => r),
-    }));
+    return ATENDIMENTOS_TECNICOS.filter((x) => x.personId === seg[1])
+      .map(({ personId: _p, anexos, criadoPorEmail, ...x }) => ({
+        ...x, areaRotulo: rotuloDaArea(x.area, x.areaOutra),
+        ondeFoi: x.ondeFoi ?? null, local: x.local ?? null, profissional: x.profissional ?? null,
+        ondeFoiRotulo: ONDE_FOI_O_ATENDIMENTO.find((o) => o.cod === x.ondeFoi)?.label ?? null,
+        /* Junta arquivo depois só quem registrou (fase 284); os semeados são da técnica. */
+        podeAnexar: criadoPorEmail ? criadoPorEmail === eu.id : (eu.role === 'equipe_tecnica' && x.por === 'Tatiane Técnica'),
+        anexos: anexos.map(({ conteudo: _c, ...r }) => r),
+      }));
+  }
+  /* Juntar arquivo ao atendimento já registrado (fase 284): só quem registrou. */
+  if (seg[0] === 'people' && seg[1] === 'technical-sessions' && seg[3] === 'attachments' && metodo === 'POST') {
+    semearAtendimentos();
+    if (!QUEM_REGISTRA_ATENDIMENTO.includes(eu.role)) {
+      return new Recusa(403, 'O arquivo do atendimento é juntado por quem o registrou.');
+    }
+    const at = ATENDIMENTOS_TECNICOS.find((x) => x.id === seg[2]);
+    if (!at) return new Recusa(404, 'Atendimento não encontrado, ou fora do seu alcance.');
+    const meu = at.criadoPorEmail ? at.criadoPorEmail === eu.id : (eu.role === 'equipe_tecnica' && at.por === 'Tatiane Técnica');
+    if (!meu) return new Recusa(403, 'O arquivo do atendimento é juntado por quem o registrou.');
+    const lista = Array.isArray(b.anexos) ? b.anexos : [];
+    if (!lista.length) return new Recusa(400, 'Escolha o arquivo para juntar.');
+    if (at.anexos.length + lista.length > MAXIMO_DE_ANEXOS_DO_ATENDIMENTO) {
+      return new Recusa(400, `Um atendimento leva até ${MAXIMO_DE_ANEXOS_DO_ATENDIMENTO} arquivos, e este já tem ${at.anexos.length}.`);
+    }
+    const novos = [];
+    for (const a of lista) {
+      const dataUrl = String(a.conteudo ?? '').startsWith('data:') ? String(a.conteudo)
+        : `data:application/octet-stream;base64,${a.conteudo ?? ''}`;
+      const tipo = tipoDoDataUrl(dataUrl);
+      if (!tipo) return new Recusa(400, 'O atendimento recebe foto ou PDF.');
+      novos.push({ id: uid(), nome: String(a.nomeArquivo ?? 'arquivo'), tipo,
+        tamanho: Math.round(dataUrl.length * 0.75), legenda: a.legenda ? String(a.legenda) : null,
+        conteudo: `data:${tipo};base64,${dataUrl.split(',')[1] ?? ''}` });
+    }
+    at.anexos.push(...novos);
+    return { ok: true, aviso: `${quantos(novos.length, 'arquivo juntado', 'arquivos juntados')} ao atendimento.` };
+  }
+  /* Os atendimentos de um período em Word (fase 284): técnica e coordenação, com a finalidade. */
+  if (seg[0] === 'people' && seg[2] === 'technical-sessions' && seg[3] === 'export' && metodo === 'POST') {
+    semearAtendimentos();
+    if (!QUEM_BAIXA_ATENDIMENTOS.includes(eu.role)) {
+      return new Recusa(403, 'Os atendimentos são baixados pela equipe técnica e pela coordenação.');
+    }
+    if (String(b.finalidade ?? '').trim().length < 10) {
+      return new Recusa(400, 'Descreva a finalidade da exportação (mínimo 10 caracteres).');
+    }
+    const de = b.de ? String(b.de) : null;
+    const ate = b.ate ? String(b.ate) : null;
+    if (de && ate && de > ate) return new Recusa(400, 'A data inicial vem depois da final.');
+    const k = todosKids().find((x) => x.id === seg[1]);
+    if (!k) return new Recusa(404, 'Acolhido não encontrado, ou fora do seu alcance.');
+    const lista = ATENDIMENTOS_TECNICOS.filter((x) => x.personId === seg[1]
+      && (!de || x.dia >= de) && (!ate || x.dia <= ate)).slice().sort((a, c) => a.dia.localeCompare(c.dia));
+    const br = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}/${d.slice(0, 4)}`;
+    const periodo = de && ate ? `de ${br(de)} a ${br(ate)}` : de ? `a partir de ${br(de)}` : ate ? `até ${br(ate)}` : 'todo o acolhimento';
+    const f = {
+      titulo: `Atendimentos da equipe técnica de ${k.nome}`, subtitulo: `Período: ${periodo}`,
+      identificacao: [
+        { rotulo: 'Criança', valor: k.nome }, { rotulo: 'Unidade', valor: cfg.casa.name },
+        { rotulo: 'Período', valor: periodo }, { rotulo: 'Atendimentos', valor: String(lista.length) },
+      ],
+      secoes: lista.length ? lista.map((a) => {
+        const onde = ONDE_FOI_O_ATENDIMENTO.find((o) => o.cod === a.ondeFoi)?.label;
+        return {
+          titulo: `${br(a.dia)}${a.hora ? `, ${a.hora}` : ''}. ${rotuloDaArea(a.area, a.areaOutra)}`,
+          paragrafos: [
+            [a.profissional ? `Atendimento por ${a.profissional}, registrado por ${a.por}.` : `Atendimento por ${a.por}.`,
+             onde ? `${onde}${a.local ? `, em ${a.local}` : ''}.` : (a.local ? `Local: ${a.local}.` : '')]
+              .filter(Boolean).join(' '),
+            a.relato,
+          ],
+          itens: a.anexos.length ? a.anexos.map((x) => `Arquivo no registro: ${x.legenda ?? x.nome}`) : undefined,
+        };
+      }) : [{ titulo: 'Atendimentos', paragrafos: ['Nenhum atendimento registrado no período.'] }],
+      geradoPor: eu.fullName, cargo: cargoNoDocumento(eu.role),
+      ressalva: 'Documento de acesso restrito à equipe técnica e à coordenação. Os arquivos citados ficam no registro do acolhimento.',
+    };
+    return { nomeArquivo: nomeDaFolha(f.titulo), conteudoBase64: gerarDocx(f as any, timbreEmBytes()),
+             aviso: 'Documento gerado em Word, com timbre. Exportação registrada com o seu nome, a finalidade e o horário.' };
   }
   if (seg[0] === 'people' && seg[2] === 'technical-sessions' && metodo === 'POST') {
     semearAtendimentos();
@@ -9984,7 +10067,10 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
       return new Recusa(403, 'O atendimento é registrado pela equipe técnica ou pela coordenação.');
     }
     if (!AREAS_DO_ATENDIMENTO.some((a) => a.cod === b.area)) {
-      return new Recusa(400, 'Diga a área do atendimento: psicologia, psicopedagogia, serviço social, pedagogia ou outra.');
+      return new Recusa(400, 'Diga a área do atendimento: psicologia, psicopedagogia, Assistência Social, pedagogia ou outra.');
+    }
+    if (b.ondeFoi && !ONDE_FOI_O_ATENDIMENTO.some((o) => o.cod === b.ondeFoi)) {
+      return new Recusa(400, 'Diga se o atendimento foi interno, na casa, ou externo, fora dela.');
     }
     if (b.area === 'outra' && String(b.areaOutra ?? '').trim().length < 3) {
       return new Recusa(400, 'Escreva qual é a área do atendimento.');
@@ -10011,7 +10097,9 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     const id = uid();
     ATENDIMENTOS_TECNICOS.unshift({ id, personId: String(seg[1]), area: String(b.area),
       areaOutra: b.area === 'outra' ? String(b.areaOutra).trim() : null, dia: String(b.dia), hora: String(b.hora), relato,
-      registradoEm: new Date().toISOString(), por: eu.fullName, anexos });
+      registradoEm: new Date().toISOString(), por: eu.fullName, anexos, criadoPorEmail: eu.id,
+      ondeFoi: b.ondeFoi ? String(b.ondeFoi) : null, local: String(b.local ?? '').trim() || null,
+      profissional: String(b.profissional ?? '').trim() || null });
     return { id, aviso: anexos.length
       ? 'Atendimento registrado, com os arquivos. Aparece no perfil para a equipe técnica e a coordenação.'
       : 'Atendimento registrado. Aparece no perfil para a equipe técnica e a coordenação.' };

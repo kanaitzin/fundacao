@@ -560,6 +560,21 @@ export class PeopleController {
     return this.atendimentos.arquivo(user, anexoId);
   }
 
+  /** Juntar o arquivo que faltou a um atendimento (fase 284): só quem o registrou. */
+  @Post('technical-sessions/:sessionId/attachments')
+  juntarAoAtendimento(@CurrentUser() user: AuthenticatedUser,
+                      @Param('sessionId', ParseUUIDPipe) sessionId: string, @Body() body: any) {
+    return this.atendimentos.anexar(user, sessionId, body ?? {});
+  }
+
+  /** Baixar os atendimentos de um período em Word (fase 284), com a finalidade registrada. */
+  @RegistroDaRota('id', 'person')
+  @Post(':id/technical-sessions/export')
+  exportarAtendimentos(@CurrentUser() user: AuthenticatedUser,
+                       @Param('id', ParseUUIDPipe) id: string, @Body() body: any) {
+    return this.atendimentos.exportar(user, id, body ?? {});
+  }
+
   @RegistroDaRota('id', 'person')
   @Get(':id/technical-sessions')
   atendimentosDo(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {

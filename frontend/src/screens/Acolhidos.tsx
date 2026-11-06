@@ -4,6 +4,7 @@ import { Dossie, DocumentosDaCategoria, AnexosDoRegistroDeSaude } from './Dossie
 import { FolhaReceitas } from './Saude';
 import {
   AREAS_DO_ATENDIMENTO, MAXIMO_DE_ANEXOS_DO_ATENDIMENTO, QUEM_LE_ATENDIMENTO, QUEM_REGISTRA_ATENDIMENTO,
+  ONDE_FOI_O_ATENDIMENTO, QUEM_BAIXA_ATENDIMENTOS,
 } from '../../../backend/src/modules/people/atendimento-tecnico.regra';
 import { api, ErroApi } from '../api';
 import { Cadastro } from './Cadastro';
@@ -6653,6 +6654,9 @@ interface AtendimentoTecnico {
   /** A hora em que aconteceu (fase 275); nula nos de antes. E quando foi registrado. */
   hora?: string | null; registradoEm?: string;
   anexos: { id: string; nome: string; tipo: string; tamanho: number; legenda: string | null }[];
+  /** Fase 284: onde foi, interno ou externo, e quem atendeu quando não foi quem registrou. */
+  local?: string | null; ondeFoi?: string | null; ondeFoiRotulo?: string | null;
+  profissional?: string | null; podeAnexar?: boolean;
 }
 function AtendimentosDaEquipeTecnica({ personId, nome, papel }: { personId: string; nome: string; papel: string }) {
   const [lista, setLista] = useState<AtendimentoTecnico[] | null>(null);
@@ -6660,6 +6664,10 @@ function AtendimentosDaEquipeTecnica({ personId, nome, papel }: { personId: stri
   const [aviso, setAviso] = useState('');
   const [registrando, setRegistrando] = useState(false);
   const [vendo, setVendo] = useState<{ id: string; nome: string } | null>(null);
+  /* Fase 284: os arquivos de cada atendimento abertos no toque, juntar o que faltou, e baixar. */
+  const [arquivosDe, setArquivosDe] = useState<string | null>(null);
+  const [juntandoEm, setJuntandoEm] = useState<AtendimentoTecnico | null>(null);
+  const [baixando, setBaixando] = useState(false);
   /** O filtro por área: a psicopedagoga lê os dela sem perder os outros de vista. */
   const [area, setArea] = useState('');
   /* A BUSCA (fase 275, pedido de 05/11): por palavra (o que foi trabalhado, a área,
@@ -6688,7 +6696,7 @@ function AtendimentosDaEquipeTecnica({ personId, nome, papel }: { personId: stri
     .filter((a) => (!de || a.dia >= de) && (!ate || a.dia <= ate))
     .filter((a) => {
       if (!palavras.length) return true;
-      const texto = semAcento([a.relato, a.areaRotulo, a.por, ...a.anexos.map((x) => `${x.nome} ${x.legenda ?? ''}`)].join(' '));
+      const texto = semAcento([a.relato, a.areaRotulo, a.por, a.local ?? '', a.profissional ?? '', ...a.anexos.map((x) => `${x.nome} ${x.legenda ?? ''}`)].join(' '));
       return palavras.every((p) => texto.includes(p));
     });
   const hoje = hojeISO();
@@ -6720,8 +6728,8 @@ function AtendimentosDaEquipeTecnica({ personId, nome, papel }: { personId: stri
       <div className="eyebrow">O relatório dos atendimentos, o mais recente em cima</div>
       <div className="card stack">
         <p className="mutetxt" style={{ margin: 0 }}>
-          Psicologia, psicopedagogia, serviço social e pedagogia. Cada atendimento entra aqui com
-          o dia, a área e o que foi trabalhado. Leem a equipe técnica, a coordenação e a gestão, e
+          Psicologia, psicopedagogia, Assistência Social e pedagogia. Cada atendimento entra aqui com
+          o dia, a área, onde foi, quem atendeu e o que foi trabalhado. Leem a equipe técnica, a coordenação e a gestão, e
           cada arquivo aberto fica registrado.
         </p>
         {erro && <div className="notice c-crit" role="alert">{erro}</div>}
@@ -6792,11 +6800,30 @@ function AtendimentosDaEquipeTecnica({ personId, nome, papel }: { personId: stri
                   <div className="mutetxt">
                     {dia(a.dia)}{a.hora ? ` às ${a.hora}` : ''} · {a.por}
                   </div>
+                  {(a.ondeFoiRotulo || a.local) && (
+                    <div className="mutetxt">{[a.ondeFoiRotulo, a.local].filter(Boolean).join(', ')}</div>
+                  )}
+                  {a.profissional && <div className="mutetxt">Atendimento por {a.profissional}</div>}
                   {a.registradoEm && (
                     <div className="mutetxt">Registrado em {diaEHora(a.registradoEm)}</div>
                   )}
                   <div className="relatorio-texto">{a.relato}</div>
-                  {a.anexos.map((x) => (
+                  {/* Os arquivos à vista no cartão (fase 284): quantos são, e o toque abre a lista. */}
+                  <div className="row atendimento-arquivos">
+                    <span className={`pill ${a.anexos.length ? 'c-info' : 'c-mute'}`}>
+                      <Icone nome="anexo" /> {a.anexos.length ? quantos(a.anexos.length, 'arquivo', 'arquivos') : 'Sem arquivo'}
+                    </span>
+                    {a.anexos.length > 0 && (
+                      <button type="button" className="btn sm ghost" aria-expanded={arquivosDe === a.id}
+                              onClick={() => setArquivosDe(arquivosDe === a.id ? null : a.id)}>
+                        {arquivosDe === a.id ? 'Esconder os arquivos' : 'Ver os arquivos'}
+                      </button>
+                    )}
+                    {a.podeAnexar && (
+                      <button type="button" className="btn sm ghost" onClick={() => setJuntandoEm(a)}>Juntar arquivo</button>
+                    )}
+                  </div>
+                  {arquivosDe === a.id && a.anexos.map((x) => (
                     <div key={x.id} className="row" style={{ gap: 8, marginTop: 4 }}>
                       <span className="mutetxt grow"><Icone nome="anexo" /> {x.legenda || x.nome}</span>
                       <button className="btn sm sec" aria-label={`Abrir ${x.legenda || x.nome}`}
@@ -6808,7 +6835,20 @@ function AtendimentosDaEquipeTecnica({ personId, nome, papel }: { personId: stri
             </li>
           ))}
         </ol>
+        {QUEM_BAIXA_ATENDIMENTOS.includes(papel) && lista && lista.length > 0 && (
+          <button type="button" className="btn sec block" onClick={() => setBaixando(true)}>
+            Baixar os atendimentos em Word
+          </button>
+        )}
       </div>
+      {baixando && (
+        <FolhaBaixarAtendimentos personId={personId} nome={nome} onFechar={() => setBaixando(false)}
+          onBaixado={(msg) => { setBaixando(false); setAviso(msg); }} />
+      )}
+      {juntandoEm && (
+        <FolhaJuntarAoAtendimento atendimento={juntandoEm} onFechar={() => setJuntandoEm(null)}
+          onJuntado={async (msg) => { setJuntandoEm(null); setAviso(msg); setArquivosDe(juntandoEm.id); await carregar(); }} />
+      )}
       {registrando && (
         <FolhaAtendimentoTecnico personId={personId} nome={nome} onFechar={() => setRegistrando(false)}
           onRegistrado={async (msg) => { setRegistrando(false); setAviso(msg); await carregar(); }} />
@@ -6819,6 +6859,122 @@ function AtendimentosDaEquipeTecnica({ personId, nome, papel }: { personId: stri
           onFechar={() => setVendo(null)} />
       )}
     </section>
+  );
+}
+
+/** Juntar o arquivo que faltou a um atendimento (fase 284): só quem o registrou. */
+function FolhaJuntarAoAtendimento({ atendimento, onFechar, onJuntado }: {
+  atendimento: AtendimentoTecnico; onFechar: () => void; onJuntado: (aviso: string) => void;
+}) {
+  const [arquivos, setArquivos] = useState<Escolhido[]>([]);
+  const [legendas, setLegendas] = useState<string[]>([]);
+  const [erro, setErro] = useState('');
+  const [enviando, setEnviando] = useState(false);
+  const resta = MAXIMO_DE_ANEXOS_DO_ATENDIMENTO - atendimento.anexos.length;
+  const pode = arquivos.length > 0 && !enviando && !recusaDosAnexos(arquivos.map((a) => a.tamanho));
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-junta"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet">
+        <h3 id="t-junta">Juntar arquivo ao atendimento</h3>
+        <p className="mutetxt">{atendimento.areaRotulo}, {dia(atendimento.dia)}. O atendimento fica como está; o arquivo entra com a hora de agora.</p>
+        <AnexosDaMensagem id="junta-arq" anexos={arquivos} maximo={Math.max(resta, 0)}
+          aceita="application/pdf,image/jpeg,image/png,image/heic,image/heif"
+          rotulo="Arquivos (o desenho, a folha da atividade, um relatório)"
+          onMudar={(lista) => {
+            setLegendas((ls) => lista.map((a) => { const k = arquivos.indexOf(a); return k >= 0 ? ls[k] ?? '' : ''; }));
+            setArquivos(lista);
+          }}
+          extra={(a, i) => (
+            <input aria-label={`O que é ${a.nome}`} placeholder="O que é (opcional)" value={legendas[i] ?? ''}
+                   maxLength={80}
+                   onChange={(e) => setLegendas((ls) => arquivos.map((_, j) => (j === i ? e.target.value : ls[j] ?? '')))} />
+          )} />
+        {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+        <div className="row rodape">
+          <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
+          <button className="btn grow" disabled={!pode} onClick={async () => {
+            setErro(''); setEnviando(true);
+            try {
+              const r = await api<{ aviso: string }>(`/people/technical-sessions/${atendimento.id}/attachments`, {
+                method: 'POST', body: JSON.stringify({ anexos: arquivos.map((a, i) => ({
+                  conteudo: base64De(a.dataUrl), nomeArquivo: a.nome, legenda: (legendas[i] ?? '').trim() || undefined })) }),
+              });
+              onJuntado(r.aviso);
+            } catch (e) { setErro(e instanceof Error ? e.message : 'Não foi possível juntar o arquivo.'); }
+            finally { setEnviando(false); }
+          }}>{enviando ? 'Juntando…' : 'Juntar ao atendimento'}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Baixar os atendimentos de um período em Word (fase 284): este mês, o mês passado,
+ * todo o acolhimento ou as datas escolhidas, com a finalidade, que fica registrada.
+ */
+function FolhaBaixarAtendimentos({ personId, nome, onFechar, onBaixado }: {
+  personId: string; nome: string; onFechar: () => void; onBaixado: (aviso: string) => void;
+}) {
+  const hoje = hojeISO();
+  const inicioDoMes = `${hoje.slice(0, 7)}-01`;
+  const passado = new Date(`${inicioDoMes}T12:00:00Z`); passado.setUTCMonth(passado.getUTCMonth() - 1);
+  const inicioPassado = passado.toISOString().slice(0, 10);
+  const fimPassado = new Date(Date.parse(`${inicioDoMes}T12:00:00Z`) - 86_400_000).toISOString().slice(0, 10);
+  const [recorte, setRecorte] = useState<'mes' | 'passado' | 'todo' | 'datas'>('mes');
+  const [de, setDe] = useState(inicioDoMes);
+  const [ate, setAte] = useState(hoje);
+  const [finalidade, setFinalidade] = useState('');
+  const [erro, setErro] = useState('');
+  const [enviando, setEnviando] = useState(false);
+  const periodo = recorte === 'mes' ? { de: inicioDoMes, ate: hoje }
+    : recorte === 'passado' ? { de: inicioPassado, ate: fimPassado }
+    : recorte === 'todo' ? { de: null, ate: null } : { de, ate };
+  const pode = !enviando && finalidade.trim().length >= 10 && (recorte !== 'datas' || (!!de && !!ate && de <= ate));
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-baixa-at"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet">
+        <h3 id="t-baixa-at">Baixar os atendimentos de {nome}</h3>
+        <p className="mutetxt">
+          Em Word, com o que foi trabalhado e a lista dos arquivos. É documento restrito: a finalidade fica
+          registrada com o seu nome.
+        </p>
+        <label className="f">O período</label>
+        <div className="opts" role="group" aria-label="O período">
+          {([['mes', 'Este mês'], ['passado', 'Mês passado'], ['todo', 'Todo o acolhimento'], ['datas', 'Escolher as datas']] as const)
+            .map(([cod, rot]) => (
+              <button type="button" key={cod} className="opt c-other" aria-pressed={recorte === cod}
+                      onClick={() => setRecorte(cod)}>{rot}</button>
+            ))}
+        </div>
+        {recorte === 'datas' && (
+          <div className="busca-periodo">
+            <label className="f">De <input type="date" value={de} max={ate || undefined} onChange={(e) => setDe(e.target.value)} /></label>
+            <label className="f">Até <input type="date" value={ate} min={de || undefined} onChange={(e) => setAte(e.target.value)} /></label>
+          </div>
+        )}
+        <label className="f" htmlFor="baixa-at-fin">Para quê</label>
+        <textarea id="baixa-at-fin" value={finalidade} onChange={(e) => setFinalidade(e.target.value)}
+                  placeholder="Ex.: estudo de caso na reunião da equipe técnica; relatório ao Juízo." />
+        {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+        <div className="row rodape">
+          <button className="btn sec grow" onClick={onFechar}>Cancelar</button>
+          <button className="btn grow" disabled={!pode} onClick={async () => {
+            setErro(''); setEnviando(true);
+            try {
+              const r = await api<{ nomeArquivo: string; conteudoBase64: string; aviso: string }>(
+                `/people/${personId}/technical-sessions/export`,
+                { method: 'POST', body: JSON.stringify({ ...periodo, finalidade: finalidade.trim() }) });
+              entregarArquivo(r.nomeArquivo, r.conteudoBase64);
+              onBaixado(r.aviso);
+            } catch (e) { setErro(e instanceof Error ? e.message : 'Não foi possível gerar o documento.'); }
+            finally { setEnviando(false); }
+          }}>{enviando ? 'Gerando…' : 'Baixar em Word'}</button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -6834,12 +6990,17 @@ function FolhaAtendimentoTecnico({ personId, nome, onFechar, onRegistrado }: {
   const [hora, setHora] = useState(() => new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_Paulo',
     hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date()));
   const [relato, setRelato] = useState('');
+  /* Fase 284: onde foi e quem atendeu. */
+  const [ondeFoi, setOndeFoi] = useState('');
+  const [local, setLocal] = useState('');
+  const [profissional, setProfissional] = useState('');
   const [arquivos, setArquivos] = useState<Escolhido[]>([]);
   /* A legenda de cada arquivo, na mesma ordem (o desenho da família, a folha da leitura). */
   const [legendas, setLegendas] = useState<string[]>([]);
   const [erro, setErro] = useState('');
   const [enviando, setEnviando] = useState(false);
   const pode = !!area && /^\d{2}:\d{2}$/.test(hora) && (area !== 'outra' || areaOutra.trim().length >= 3) && relato.trim().length >= 10 && !enviando
+    && !!ondeFoi && local.trim().length >= 2
     && !recusaDosAnexos(arquivos.map((a) => a.tamanho));
 
   async function guardar() {
@@ -6849,6 +7010,7 @@ function FolhaAtendimentoTecnico({ personId, nome, onFechar, onRegistrado }: {
         method: 'POST',
         body: JSON.stringify({
           area, areaOutra: area === 'outra' ? areaOutra.trim() : undefined, dia: quando, hora, relato: relato.trim(),
+          ondeFoi, local: local.trim(), profissional: profissional.trim() || undefined,
           anexos: arquivos.map((a, i) => ({ conteudo: base64De(a.dataUrl), nomeArquivo: a.nome,
                                             legenda: (legendas[i] ?? '').trim() || undefined })),
         }),
@@ -6885,6 +7047,19 @@ function FolhaAtendimentoTecnico({ personId, nome, onFechar, onRegistrado }: {
             <input id="at-hora" type="time" value={hora} onChange={(e) => setHora(e.target.value)} />
           </label>
         </div>
+        <label className="f">Onde foi</label>
+        <div className="opts">
+          {ONDE_FOI_O_ATENDIMENTO.map((o) => (
+            <button type="button" key={o.cod} className="opt c-other" aria-pressed={ondeFoi === o.cod}
+                    onClick={() => setOndeFoi(o.cod)}>{o.label}</button>
+          ))}
+        </div>
+        <label className="f" htmlFor="at-local">O local</label>
+        <input id="at-local" value={local} maxLength={120} onChange={(e) => setLocal(e.target.value)}
+               placeholder={ondeFoi === 'externo' ? 'Ex.: UBS do bairro; CAPSi; casa da avó' : 'Ex.: sala de atendimento; sala individual; sala de recursos'} />
+        <label className="f" htmlFor="at-prof">Quem atendeu <small>se não foi você</small></label>
+        <input id="at-prof" value={profissional} maxLength={120} onChange={(e) => setProfissional(e.target.value)}
+               placeholder="Ex.: a fonoaudióloga da UBS; a assistente social do CREAS" />
         <label className="f" htmlFor="at-relato">O que foi trabalhado</label>
         <textarea id="at-relato" rows={5} value={relato} onChange={(e) => setRelato(e.target.value)}
                   placeholder="O que foi proposto, como a criança participou, o que fica para o próximo encontro." />
