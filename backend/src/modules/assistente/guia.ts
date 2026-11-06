@@ -185,8 +185,9 @@ Ninguém no sistema é anônimo e nada se apaga: tudo tem autor e histórico.
 - /nursing/triage?houseId=  triagem
 - /nursing/history/ID  histórico de saúde de uma criança
 - /nursing/summary/ID/issues  pontos de saúde de uma criança
-- /nursing/education/ID  educação em saúde de uma criança
-- /nursing/education/kinds  tipos de educação em saúde
+- /nursing/education/ID  a educação de uma criança: os vínculos (escola, SCFV, aprendizagem, estágio) com a frequência e as notas, o registro educacional, a evolução e o conceito
+- /nursing/education/kinds  os tipos de vínculo, os turnos e os serviços da educação
+- /nursing/education-attendance?houseId=  quem tem aula hoje na casa e se já foi marcado: foi, não foi ou não teve aula
 - /nursing/evolutions/options  opções da evolução
 - /nursing/hospitalizations?houseId=  internações
 - /nursing/hospitalizations/ID  uma internação com o diário

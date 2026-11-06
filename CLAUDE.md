@@ -199,7 +199,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 06/11/2026, fase 282
+### Onde estamos — 06/11/2026, fase 283
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -345,8 +345,9 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 280 | **a agenda com o compromisso inteiro** (avaliação de 05/11, módulo 12): cada data com quem, tipo, início e fim, duração, saída, local, endereço, responsável e situação; o responsável chega a cada data (`agenda.service.ts`, pelo `app_user_display_name`); o período em grade (`GradeDaAgenda`); até um ano à frente |
 | 281 | **quem escreve na ATA de outro turno** (avaliação de 05/11, módulo 10; decidido em 06/11): escreve quem está na escala do turno, mais técnica, coordenação, Enfermagem e o líder do turno; sem escala lançada, ninguém é travado; os outros pedem e o líder do turno ou a coordenação autoriza ou recusa (`ata_write_request`, `app_pode_escrever_na_ata`, gatilho na `ata_note`, shifts/1673) |
 | 282 | **os vínculos educacionais** (avaliação de 05/11, módulo 07; decidido em 06/11): escola, SCFV, integral, aprendizagem, estágio e curso, como contratos em linha na aba Educação, vários ao mesmo tempo, o triângulo que abre turma, dias, endereço, notas e histórico; corrigir guarda o antes com o motivo; o fim previsto avisa técnica, coordenação e Líder Diurno a 30 e 7 dias (`education_link`, `education_grade`, nursing/1674) |
+| 283 | **a frequência escolar** (avaliação de 05/11, módulo 07; decidido em 06/11): *Foi à aula hoje?* no Dia da Casa, com foi, não foi com o motivo e não teve aula; sem marca é ainda não verificado, nunca falta; o plantão marca hoje e ontem, a técnica e a coordenação corrigem com o motivo e o comprovante; os dias do último mês em cada vínculo (`education_attendance`, nursing/1675) |
 
-**Medido no fim da 277:** 214 migrações, 151 tabelas, 168 suítes, 1453 testes; nas 237 e 238, a suíte inteira
+**Medido no fim da 277:** 215 migrações, 152 tabelas, 169 suítes, 1460 testes; nas 237 e 238, a suíte inteira
 verde (1363 de 1363, depois de consertar as três conferências que o relatório das vivências deixou soltas) e o
 `ensaio:uso` (739 cobranças, sem reprovação, com o relatório das vivências aberto e o Word baixado); **não rodou**
 nas 237 e 238 o relógio adiantado, o do celular, o de acessibilidade, o `ensaio:acolhe` nem a simulação contra o servidor;
@@ -470,15 +471,19 @@ o item respondido sai do §0.
    Claude com chave, ou o computador do Pão) é o 2.0. O protótipo continua no GitHub Pages para mostrar, e o 1.0 fica um mês
    com eles. **Publicar o 1.0 é deploy: fazer só quando ela pedir, e com o que ela mandar (e-mail do Marcelo, senha de app).**
 
+**FEITO — fase 283** (§2): a frequência escolar. **Falta não é estado**: o dia de aula sem marca é *ainda não
+verificado*, e quem quiser contar ausências conta só as marcadas como *não foi*, com o motivo ao lado. **O dia de
+aula sai dos dias da semana do vínculo** (`weekdays`), e a regra mora no `app_marcar_frequencia`, repetida no
+`frequenciaDoVinculo` (servidor) e no `frequenciaMock` (protótipo). **Medido na 283:** MEDIDO_283
+**Próxima: 284**, o módulo 08 da avaliação, os atendimentos técnicos: o rótulo *Assistência Social*, o local e se foi
+interno ou externo, o anexo à vista no cartão, e baixar por mês ou período para técnica e coordenação. Depois, o
+Judiciário em blocos (09), a Cozinha por refeição (13) e o sigilo por registro de saúde.
+
 **FEITO — fase 282** (§2): os vínculos educacionais, com as decisões de 06/11 (a frequência marcada pelo educador
 no Dia da Casa e corrigida pela técnica e pela coordenação; o aviso do fim à técnica, à coordenação e ao Líder Diurno;
 30 e 7 dias fixos; os vínculos na aba Educação em linha, com o triângulo, vários ao mesmo tempo e as notas). **Vínculo
 novo de outro tipo** entra na lista `TIPOS_DE_VINCULO` do `educacao.service.ts`, no `CHECK` da `education_link` e no
 `TIPOS_DE_VINCULO_MOCK`. **Medido na 282:** a `os-vinculos-educacionais` (7 de 7), a suíte inteira (1460 de 1461; a única reprovação era o `relogio`, que contava nove rotinas, e passou com dez, 6 de 6), o `ensaio:uso` sobre o protótipo novo (843 cobranças, sem reprovação), o do celular (322 telas, sem achado) e a sonda a 390 px como técnica (o Kauã com o ensino médio de manhã e a aprendizagem à tarde, cadastrar, abrir pelo triângulo e corrigir com o histórico dizendo só o que mudou; a tabela das notas não cabia e virou lista; nenhum erro). **Não rodou** o relógio adiantado.
-**Próxima: 283**, a frequência: nos dias do vínculo, o Dia da Casa pergunta *Foi à aula?* (foi, não foi com o motivo
-informado, ou ainda não verificado, nunca falta presumida), a justificativa com anexo, a correção da técnica e da
-coordenação com o motivo, e os dias sem aula (feriado, recesso, suspensão). Depois, os módulos 08 a 13 que sobram.
-
 **FEITO — fase 281** (§2): quem escreve na ATA de outro turno. **Regra nova de quem escreve na ATA** mora em
 `app_pode_escrever_na_ata` (o gatilho da `ata_note` e a tela leem a mesma) e no `podeEscreverNaAta` do protótipo.
 **Suíte que escreve linha na ATA** como educador numa data com escala lançada põe o educador na escala ou escreve

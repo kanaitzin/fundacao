@@ -751,6 +751,17 @@ legível. `education_link_notice` é a marca de já avisei do fim previsto, a 30
 à coordenação e ao Líder Diurno (`app_vinculos_terminando`, pelo relógio do dia). Escreve a equipe do
 Registro Educacional; lê quem alcança a casa.
 
+### `education_attendance`
+**A FREQUÊNCIA ESCOLAR** (migração 1675, fase 283; decidido em 06/11: o educador marca no Dia da Casa, e a
+técnica e a coordenação corrigem com o motivo e o comprovante). Uma marca por vínculo e dia de aula:
+`presente`, `ausente` (com o motivo informado, `reason`) ou `sem_aula` (feriado, recesso, suspensão, com o
+motivo). **Falta não existe como estado**: o dia de aula sem marca é *ainda não verificado*. Corrigir é outra
+linha com `replaces_id` e `correction_reason`, e a anterior ganha `replaced_at` (o índice único parcial deixa
+uma viva por vínculo e dia). O comprovante (foto ou PDF) fica no armazenamento, com `proof_key`, `proof_sha256`,
+`proof_mime`, `proof_name` e `proof_size`, todos juntos ou nenhum. Escreve só `app_marcar_frequencia`: o
+plantão marca hoje e ontem e não corrige; a técnica e a coordenação marcam qualquer dia do vínculo e corrigem.
+O dia precisa ser dia de aula do vínculo (`weekdays`), dentro do começo e do encerramento.
+
 ### `general_night_house_amendment`
 **O que constava ANTES numa linha da ATA Geral** (migração 1440, fase 138), da
 decisão da Fundação em 21/09/2026: *"quem corrige a ata é o educador líder,
@@ -1003,7 +1014,7 @@ ensinou, quem decide e a TI; **a palavra aprovada**, todos, porque é ela que a 
 de todos entende. Nada se apaga nem se reescreve: aprovar e recusar só o que espera,
 retirar só o aprovado (gatilho `app_ordem_da_decisao_da_palavra`).
 
-## Inventário — 151 tabelas por partição
+## Inventário — 152 tabelas por partição
 
 | Partição | Tabelas |
 |---|---|
@@ -1013,7 +1024,7 @@ retirar só o aprovado (gatilho `app_ordem_da_decisao_da_palavra`).
 | incidents (7) | incident, incident_person, incident_protected, incident_restraint, incident_synthesis, external_communication, incident_attachment |
 | medications (13) | prescription, medication_schedule, medication_administration, medication_stock, medication_stock_movement, medication_protocol, medication_authorization, medication_protocol_change, prescription_restriction_change, medication_purchase, medication_purchase_item, prescription_document, family_stay_medication |
 | activities (8) | activity, activity_assignment, activity_acknowledgement, activity_execution, substitution_request, commitment, commitment_exception, activity_bulk |
-| nursing (16) | health_encounter, health_evolution, nursing_triage, health_summary_issue, education_support, education_evolution, education_concept, education_link, education_link_change, education_grade, education_link_notice, hospitalization, hospitalization_note, hospitalization_note_attachment, hospitalization_medication, hospitalization_companion |
+| nursing (17) | health_encounter, health_evolution, nursing_triage, health_summary_issue, education_support, education_evolution, education_concept, education_link, education_link_change, education_grade, education_link_notice, education_attendance, hospitalization, hospitalization_note, hospitalization_note_attachment, hospitalization_medication, hospitalization_companion |
 | reports (7) | followup, followup_source, report_document, report_delivery, export_log, life_milestone, followup_return |
 | checks (5) | collective_check, check_result, check_result_amendment, check_bulk, house_check_model |
 | notifications (5) | notification, escalation, escalation_level, push_subscription, notification_push |

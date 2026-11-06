@@ -42,6 +42,8 @@ const PARTES: Record<string, { livres?: Record<string, string>; so?: string[] }>
     "@Post('education-links/:id/correct')": 'a escola da criança não entrou na decisão',
     "@Post('education-links/:id/end')": 'a escola da criança não entrou na decisão',
     "@Post('education-links/:id/grades')": 'a escola da criança não entrou na decisão',
+    "@Post('education-links/:id/attendance')": 'a escola da criança não entrou na decisão',
+    "@Post('education-attendance/:id/proof')": 'é leitura do comprovante, feita por POST para ir à auditoria',
     "@Post('evolutions')": 'a evolução de saúde tem a regra dela, da Enfermagem',
     "@Post('evolutions/:id/triage')": 'a triagem é da Enfermagem',
     "@Post('history/:personId/export')": 'baixar o papel é ler',

@@ -20,7 +20,7 @@ começava escolhendo em qual acreditar.*
 
 | Arquivo | Por que sobreviveu |
 |---|---|
-| `der.md` | as 151 tabelas com o que cada coluna guarda. É referência de dado, não narrativa, e o `documentacao.spec.ts` cobra que toda tabela apareça lá |
+| `der.md` | as 152 tabelas com o que cada coluna guarda. É referência de dado, não narrativa, e o `documentacao.spec.ts` cobra que toda tabela apareça lá |
 | `roteiro-marcelo.md` (+ `.docx`) | é entregue à Casa 03, escrito para quem não conhece o sistema. O `.docx` é GERADO do `.md` por `scripts/roteiro-em-word.mjs` — não editar o Word à mão |
 
 ---
@@ -90,14 +90,14 @@ discordavam entre si.
 | Quanto | De onde sai |
 |---|---|
 | **19 partições** isoladas | pastas em `backend/src/modules/` |
-| **214 migrações** | `.sql` dentro das partições |
-| **151 tabelas** | `CREATE TABLE` nas migrações |
-| **168 suítes** | `backend/test/*.spec.ts` |
-| **1453 testes** | `it(` / `test(` nas suítes |
+| **215 migrações** | `.sql` dentro das partições |
+| **152 tabelas** | `CREATE TABLE` nas migrações |
+| **169 suítes** | `backend/test/*.spec.ts` |
+| **1460 testes** | `it(` / `test(` nas suítes |
 | **40 telas React** | `frontend/src/screens/*.tsx` |
 | **10 rotas sem porta** de tela | lista de exceções do `rotas-sem-porta.spec.ts` |
 | **13 ensaios de navegador** | scripts `ensaio*` do `frontend/package.json` |
-| protótipo com **≈7693 KB** | `prototipo/rede-acolher-prototipo.html` |
+| protótipo com **≈7759 KB** | `prototipo/rede-acolher-prototipo.html` |
 
 *A frase importa: o conferidor lê o NÚMERO colado ao substantivo. Escrever
 "Telas React … 31" numa coluna separada faz o teste passar sem conferir nada —
@@ -493,6 +493,7 @@ arqueologia.
 | 280 | **A agenda com o compromisso inteiro** (primeira avaliação humana de 05/11, módulo 12: *"dar a cada compromisso detalhes completos: acolhido ou grupo, tipo, data, início e fim, duração, local, endereço, responsável e situação [...] visualização mensal e acesso a datas futuras"*). O compromisso já guardava quase tudo, e a lista mostrava só o nome, o local e os minutos. Agora cada data, em *Próximos dias*, mostra em linhas com rótulo com quem, o tipo, o horário de início e de fim com a duração por extenso, a hora de sair da casa, o local, o endereço, **quem responde** e se está marcado ou desmarcado. O responsável passou a chegar a cada data da agenda (`GET /activities/agenda`, com o nome pelo `app_user_display_name`, lido no teste por outro cargo); sem nome, a tela diz *quem estiver no plantão do horário*. Em cima, o período em grade (`GradeDaAgenda`), com quantos compromissos marcados tem cada dia, e o toque leva ao dia na lista; *Ver mais 30 dias* vai até um ano. O roteiro da Casa 03 acompanhou (tarefa 1.10, Word regerado). |
 | 281 | **Quem escreve na ATA de outro turno** (primeira avaliação humana de 05/11, módulo 10: *"um funcionário escalado no diurno não deve poder assumir ou fechar indevidamente a ata do noturno; acesso para atuação fora do plantão deve depender de solicitação e autorização do líder ou coordenação, com registro de ambas"*; decidido pela pessoa da Fundação em 06/11, pedido e autorização). Fechar a ATA já era do líder do turno, da técnica e da coordenação (`app_close_ata`); o que faltava era a linha, que qualquer educador da casa escrevia em qualquer turno. Agora escreve na ATA de um turno quem está na escala dele, e também a equipe técnica, a coordenação, a Enfermagem e o líder daquele turno; **sem escala lançada no turno, ninguém é travado** (a escala não se deduz). Quem não está pede, com o motivo (`ata_write_request`, shifts/1673), o aviso vai ao líder do turno e à técnica e coordenação, e **o líder do turno ou a coordenação autoriza ou recusa** na própria ATA, uma vez, com o nome e a hora; o pedido, a decisão e a auditoria ficam (`ata.escrita.pedida`, `autorizada`, `recusada`). A regra mora numa função (`app_pode_escrever_na_ata`) que o gatilho da `ata_note` usa para recusar a linha de quem não pode, com a frase em português no servidor, e o protótipo repete a regra pela escala dele. Ler continua como era. Rotas novas: `GET /shifts/ata/:ataId/write-requests`, `POST /shifts/ata/:ataId/write-request` e `POST /shifts/ata-write-requests/:id/decide`, as duas de escrita com `@OGestorSoLe()`. A `quem-escreve-na-ata-de-outro-turno` cobra a recusa, o pedido, o pedido repetido, quem não decide, a autorização pelo Líder Diurno, a técnica e o turno sem escala, e a auditoria. |
 | 282 | **Os vínculos educacionais** (primeira avaliação humana de 05/11, módulo 07; decidido pela pessoa da Fundação em 06/11: *"os vínculos ficam na aba Educação em ordem linear, parecido com um contrato, educação infantil de tal época a tal época [...] SCFV, educação integral, aprendizagem, estágio, ensino médio, ensino fundamental e superior [...] podendo colocar o jovem em mais de uma coisa ao mesmo tempo [...] sendo possível até colocar as notas"*; o aviso do fim à técnica, à coordenação e ao Líder Diurno, a 30 e a 7 dias, fixos). Até aqui a escola era um campo só do perfil, sem começo nem fim. Agora cada vínculo tem tipo, instituição, curso, série, turma, turno, dias, unidade, empresa, endereço, começo, previsão de término e encerramento com motivo (`education_link`, nursing/1674); vários vigentes ao mesmo tempo; **corrigir guarda o que constava antes** com o motivo, o nome e a hora (`education_link_change`); a **nota da escola** por período e disciplina, como a escola deu, e corrigir é outra linha que aponta para a anterior (`education_grade`); o relógio do dia avisa o fim previsto uma vez a 30 e outra a 7 dias (`app_vinculos_terminando`, `education_link_notice`, a décima rotina). Na aba Educação, o *Agora* com o que vale em cada turno e a linha do mais novo ao mais antigo, cada vínculo com o triângulo que abre o resto, as notas e o histórico. Escreve a equipe do Registro Educacional; a cozinha e a portaria leem e não escrevem. Rotas novas: `POST /nursing/education/:personId/links`, `POST /nursing/education-links/:id/correct`, `/end` e `/grades`; os vínculos chegam no `GET /nursing/education/:personId`. A `os-vinculos-educacionais` cobra os dois vigentes, a correção lida por outro cargo, o encerramento, a nota corrigida, a recusa à cozinha, o aviso uma vez só e a auditoria. **A frequência (pedida no mesmo módulo) é a 283.** |
+| 283 | **A frequência escolar** (primeira avaliação humana de 05/11, módulo 07: *"não presumir automaticamente falta injustificada: diferenciar ausência informada, presença confirmada e ausência ainda não verificada"*; decidido pela pessoa da Fundação em 06/11: o educador marca no Dia da Casa, e a técnica e a coordenação corrigem com o motivo e o comprovante). No Dia da Casa, o cartão **Foi à aula hoje?** com os vínculos que têm aula no dia (pelos dias da semana do vínculo), e três respostas: *Foi*, *Não foi* com o motivo informado e *Não teve aula* (feriado, recesso, suspensão) com o motivo, e o comprovante se houver. **Sem marca é ainda não verificado, e nunca falta.** O plantão (educador e líderes) marca hoje e ontem, uma vez; a técnica e a coordenação marcam qualquer dia do vínculo e corrigem com o motivo, e a marca anterior continua legível (`education_attendance`, nursing/1675, `app_marcar_frequencia`). No perfil, cada vínculo mostra os dias de aula dos últimos 30 dias com a contagem de cada situação, quem marcou, a correção e o comprovante (aberto com auditoria). Rotas novas: `GET /nursing/education-attendance?houseId=`, `POST /nursing/education-links/:id/attendance` e `POST /nursing/education-attendance/:id/proof`. A `a-frequencia-escolar` cobra o não verificado, a marca única do plantão, o dia antigo, o motivo, o dia sem aula do vínculo, a correção com comprovante, a contagem do perfil, a recusa à cozinha e a auditoria. |
 
 ---
 
@@ -540,7 +541,7 @@ cd frontend && npm run prototipo
 ```
 
 O `globalSetup` do Jest derruba e recria o schema a cada rodada, roda as
-214 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
+215 migrações em ordem e aplica os seeds (`seed.ts`, `seed-fase2.ts`, `seed-fase4.ts`).
 
 ### Os ensaios — e por que cada um existe
 
@@ -607,7 +608,7 @@ rede-acolher/
 │   │   │   ├── documentos/     o contrato da folha e o gerador de .docx
 │   │   │   └── common/         CPF, criptografia, segredo, fuso da instituição
 │   │   └── modules/       19 partições, cada uma dona das próprias migrações
-│   ├── test/              168 suítes (e2e contra PostgreSQL real + estáticas)
+│   ├── test/              169 suítes (e2e contra PostgreSQL real + estáticas)
 │   ├── scripts/           ensaio-carga.ts, migrador compilado
 │   └── assets/timbre.png  a marca da Fundação, usada no documento em Word
 ├── frontend/
@@ -3057,7 +3058,7 @@ crescimento. Vídeo não entra no álbum: um minuto de vídeo de celular pesa co
 npm run ensaio:producao
 ```
 
-Constrói, cria um banco virgem, aplica as 214 migrações **pelo binário
+Constrói, cria um banco virgem, aplica as 215 migrações **pelo binário
 compilado**, sobe o serviço e confere `/health`. Não publica nada e não toca no
 banco de trabalho.
 

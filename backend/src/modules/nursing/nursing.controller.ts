@@ -92,6 +92,29 @@ export class NursingController {
     return this.educacao.lancarNota(user, id, body ?? {});
   }
 
+  /**
+   * A FREQUÊNCIA (fase 283): os vínculos com aula no dia, para o Dia da Casa; marcar ou
+   * corrigir um dia; e abrir o comprovante. Sem marca é ainda não verificado.
+   */
+  @Get('education-attendance')
+  frequenciaDoDia(@CurrentUser() user: AuthenticatedUser,
+                  @Query('houseId', ParseUUIDPipe) houseId: string,
+                  @Query('date', DataDoDia) date?: string) {
+    return this.educacao.frequenciaDoDia(user, houseId, date);
+  }
+
+  @Post('education-links/:id/attendance')
+  marcarFrequencia(@CurrentUser() user: AuthenticatedUser,
+                   @Param('id', ParseUUIDPipe) id: string, @Body() body: any) {
+    return this.educacao.marcarFrequencia(user, id, body ?? {});
+  }
+
+  @Post('education-attendance/:id/proof')
+  lerComprovante(@CurrentUser() user: AuthenticatedUser,
+                 @Param('id', ParseUUIDPipe) id: string) {
+    return this.educacao.lerComprovante(user, id);
+  }
+
   @Post('education/:personId/evolutions')
   registrarEvolucaoEducacional(@CurrentUser() user: AuthenticatedUser,
                                @Param('personId', ParseUUIDPipe) personId: string,

@@ -8,6 +8,8 @@ import type { AoEnfileirar } from '../fila-offline';
 import { FolhaDose } from './Saude';
 import type { Dose } from './Saude';
 import { quantos } from '../../../backend/src/kernel/common/quantos';
+import { EscolherAnexo, base64De } from '../anexos';
+import type { Escolhido } from '../anexos';
 
 /**
  * O DIA — a linha do tempo (§9).
@@ -434,6 +436,9 @@ export function Dia({ houseId, casaLabel, papel, irPara, alcanca = () => true, p
       {/* O que mudou desde o último plantão (fase 186): antes do filtro do dia,
           porque é a primeira coisa que quem chega precisa saber. */}
       <OQueMudou pessoa={pessoa} papel={papel} houseId={houseId} irPara={irPara} alcanca={alcanca} />
+
+      {/* Foi à aula? (fase 283): os vínculos com aula hoje, para o plantão marcar. */}
+      <FoiAAula houseId={houseId} />
 
       <nav className="filtros" aria-label="Filtro do dia">
         {([['pendentes', 'Pendentes'], ['tudo', 'Toda a rotina'], ['minhas', 'Minhas'],
@@ -1741,6 +1746,160 @@ function FolhaDesfecho({ dose, onFechar, onRegistrar }: {
           Escreve-se uma vez e não se reescreve: é esta observação que a Enfermagem compara
           com a próxima.
         </p>
+      </div>
+    </div>
+  );
+}
+
+
+/* ======================================================================
+ * FOI À AULA? (fase 283, decidido em 06/11).
+ *
+ * Os vínculos educacionais com aula hoje, para o plantão marcar: foi, não foi com o
+ * motivo informado, ou não teve aula. Sem marca fica ainda não verificado, e nunca
+ * falta. O plantão marca uma vez; quem corrige é a técnica e a coordenação, no perfil.
+ * ====================================================================== */
+interface VinculoDoDia {
+  id: string; personId: string; nome: string; tipoRotulo: string; instituicao: string;
+  turnoRotulo: string | null; situacao: string; rotulo: string; motivo: string | null;
+  por: string | null; em: string | null;
+}
+function horaDoInstante(iso: string): string {
+  return new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' });
+}
+export const COR_DA_FREQUENCIA: Record<string, string> = {
+  presente: 'c-ok', ausente: 'c-info', sem_aula: 'c-mute', nao_verificado: 'c-warn',
+};
+
+function FoiAAula({ houseId }: { houseId: string }) {
+  const [dados, setDados] = useState<{ dia: string; marca: boolean; vinculos: VinculoDoDia[] } | null>(null);
+  const [folha, setFolha] = useState<{ v: VinculoDoDia; situacao: 'ausente' | 'sem_aula' } | null>(null);
+  const [recado, setRecado] = useState('');
+  const [erro, setErro] = useState('');
+  const carregar = useCallback(async () => {
+    try { setDados(await api(`/nursing/education-attendance?houseId=${houseId}`)); }
+    catch { setDados(null); }
+  }, [houseId]);
+  useEffect(() => { void carregar(); }, [carregar]);
+  if (!dados || dados.vinculos.length === 0) return null;
+  const faltam = dados.vinculos.filter((v) => v.situacao === 'nao_verificado').length;
+
+  return (
+    <section className="card foi-a-aula" aria-labelledby="t-foi-a-aula">
+      <div className="row">
+        <h2 id="t-foi-a-aula" className="grow" style={{ margin: 0, fontSize: 17 }}>Foi à aula hoje?</h2>
+        {faltam > 0 && <span className="pill c-warn">{quantos(faltam, 'a verificar', 'a verificar')}</span>}
+      </div>
+      {recado && <div className="notice c-ok" role="status">{recado}</div>}
+      {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+      <ul className="foi-a-aula-lista">
+        {dados.vinculos.map((v) => (
+          <li key={v.id}>
+            <div className="row">
+              <span className="grow"><b>{v.nome}</b>
+                <span className="mutetxt"> · {v.tipoRotulo}, {v.instituicao}{v.turnoRotulo ? `, ${v.turnoRotulo.toLowerCase()}` : ''}</span>
+              </span>
+              <span className={`pill ${COR_DA_FREQUENCIA[v.situacao] ?? 'c-mute'}`}>{v.rotulo}</span>
+            </div>
+            {v.situacao !== 'nao_verificado' && (
+              <div className="mutetxt">
+                {v.motivo ? `${v.motivo}. ` : ''}Marcado por {v.por ?? '—'}{v.em ? ` às ${horaDoInstante(v.em)}` : ''}.
+              </div>
+            )}
+            {v.situacao === 'nao_verificado' && dados.marca && (
+              <div className="row foi-a-aula-botoes">
+                <button type="button" className="btn sm" onClick={async () => {
+                  setErro(''); setRecado('');
+                  try {
+                    const r = await api<{ aviso: string }>(`/nursing/education-links/${v.id}/attendance`,
+                      { method: 'POST', body: JSON.stringify({ dia: dados.dia, situacao: 'presente' }) });
+                    setRecado(`${v.nome}: ${r?.aviso ?? 'marcado.'}`); await carregar();
+                  } catch (e) { setErro(e instanceof Error ? e.message : 'Não foi possível marcar.'); }
+                }}>Foi</button>
+                <button type="button" className="btn sm sec" onClick={() => setFolha({ v, situacao: 'ausente' })}>Não foi</button>
+                <button type="button" className="btn sm ghost" onClick={() => setFolha({ v, situacao: 'sem_aula' })}>Não teve aula</button>
+              </div>
+            )}
+          </li>
+        ))}
+      </ul>
+      {folha && (
+        <FolhaFrequencia titulo={`${folha.v.nome}: ${folha.situacao === 'ausente' ? 'não foi à aula' : 'não teve aula'}`}
+          situacaoFixa={folha.situacao} corrige={false} onFechar={() => setFolha(null)}
+          onSalvar={async (corpo) => {
+            const r = await api<{ aviso: string }>(`/nursing/education-links/${folha.v.id}/attendance`,
+              { method: 'POST', body: JSON.stringify({ dia: dados.dia, ...corpo }) });
+            setRecado(`${folha.v.nome}: ${r?.aviso ?? 'marcado.'}`); setFolha(null); await carregar();
+          }} />
+      )}
+    </section>
+  );
+}
+
+/**
+ * A folha da frequência: o motivo, o comprovante e, para quem corrige, a situação e
+ * o motivo da correção. Usada pelo Dia da Casa e pelo perfil.
+ */
+export function FolhaFrequencia({ titulo, situacaoFixa, corrige, onFechar, onSalvar }: {
+  titulo: string; situacaoFixa?: 'presente' | 'ausente' | 'sem_aula'; corrige: boolean;
+  onFechar: () => void; onSalvar: (c: Record<string, unknown>) => Promise<void>;
+}) {
+  const [situacao, setSituacao] = useState<string>(situacaoFixa ?? '');
+  const [motivo, setMotivo] = useState('');
+  const [correcao, setCorrecao] = useState('');
+  const [comprovante, setComprovante] = useState<Escolhido | null>(null);
+  const [erro, setErro] = useState('');
+  const [salvando, setSalvando] = useState(false);
+  const pode = !salvando && situacao !== '' && (situacao === 'presente' || motivo.trim().length >= 3)
+    && (!corrige || correcao.trim().length >= 5);
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="t-freq"
+         onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="sheet modal">
+        <h3 id="t-freq">{titulo}</h3>
+        {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+        {!situacaoFixa && (
+          <>
+            <label className="f">Como foi</label>
+            <div className="opts">
+              {([['presente', 'Foi'], ['ausente', 'Não foi'], ['sem_aula', 'Não teve aula']] as const).map(([cod, rot]) => (
+                <button type="button" key={cod} className="opt c-med" aria-pressed={situacao === cod}
+                        onClick={() => setSituacao(cod)}>{rot}</button>
+              ))}
+            </div>
+          </>
+        )}
+        {situacao !== 'presente' && situacao !== '' && (
+          <>
+            <label className="f" htmlFor="freq-mot">
+              {situacao === 'ausente' ? 'Motivo informado' : 'Por que não teve aula'}
+            </label>
+            <textarea id="freq-mot" value={motivo} onChange={(e) => setMotivo(e.target.value)}
+                      placeholder={situacao === 'ausente' ? 'Ex.: febre de manhã; consulta marcada; a escola pediu para ficar em casa.'
+                        : 'Ex.: feriado; recesso; aula suspensa pela escola.'} />
+          </>
+        )}
+        <EscolherAnexo id="freq-comp" arquivo={comprovante} onEscolher={setComprovante}
+          pergunta="Comprovante, se houver: o bilhete, o atestado ou o aviso da escola." />
+        {corrige && (
+          <>
+            <label className="f" htmlFor="freq-corr">Motivo da correção</label>
+            <textarea id="freq-corr" value={correcao} onChange={(e) => setCorrecao(e.target.value)}
+                      placeholder="Ex.: a escola mandou o retorno do mês." />
+          </>
+        )}
+        <div className="row rodape">
+          <button type="button" className="btn sec grow" onClick={onFechar}>Cancelar</button>
+          <button type="button" className="btn grow" disabled={!pode} onClick={async () => {
+            setSalvando(true); setErro('');
+            try {
+              await onSalvar({ situacao, motivo: motivo.trim() || null,
+                ...(corrige ? { correcao: correcao.trim() } : {}),
+                ...(comprovante ? { comprovante: base64De(comprovante.dataUrl) } : {}) });
+            } catch (e) { setErro(e instanceof Error ? e.message : 'Não foi possível registrar.'); }
+            finally { setSalvando(false); }
+          }}>{salvando ? 'Registrando…' : 'Registrar com o meu nome'}</button>
+        </div>
       </div>
     </div>
   );

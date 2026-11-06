@@ -271,6 +271,9 @@ export const VOCABULARIO_DA_AUDITORIA: Record<string, string> = {
   'education.link.corrected': 'Vínculo educacional corrigido',
   'education.link.ended': 'Vínculo educacional encerrado',
   'education.grade': 'Nota da escola lançada',
+  'education.attendance': 'Frequência marcada',
+  'education.attendance.corrected': 'Frequência corrigida',
+  'education.attendance.proof.read': 'Comprovante da frequência aberto',
 
   // -------------------------------------------------------------------- Cozinha
   'kitchen.request': 'Pedido à cozinha registrado',

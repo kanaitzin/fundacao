@@ -2575,3 +2575,9 @@ button[data-gravando]{ cursor:progress }
 .vinculo-nota{ font-size:16px }
 .grade-2{ display:grid; grid-template-columns:repeat(auto-fit, minmax(min(140px, 100%), 1fr)); gap:0 12px }
 @media (prefers-reduced-motion: reduce){ .vinculo-triangulo{ transition:none } }
+
+/* A FREQUÊNCIA (fase 283): o cartão do Dia e os dias no vínculo. */
+.foi-a-aula{ display:grid; gap:8px }
+.foi-a-aula-lista, .vinculo-dias{ list-style:none; margin:0; padding:0; display:grid; gap:8px }
+.foi-a-aula-lista li, .vinculo-dias li{ padding:6px 0; border-bottom:1px solid var(--line); display:grid; gap:4px }
+.foi-a-aula-botoes{ flex-wrap:wrap; gap:8px }

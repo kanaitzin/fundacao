@@ -1407,6 +1407,61 @@ const VINCULOS_EDU: Record<string, VinculoMock[]> = {
   ],
 };
 /**
+ * A FREQUÊNCIA no servidor de mentira (fase 283). A semana passada do Kauã e da Alice
+ * já marcada, com um dia em que ele não foi (com o motivo) e um feriado; o resto
+ * fica ainda não verificado, que é o que a tela diz quando ninguém marcou.
+ */
+interface MarcaDeFrequenciaMock {
+  id: string; dia: string; situacao: string; rotulo: string; motivo: string | null;
+  comprovante: { nome: string; tipo: string } | null; corrigida: boolean; corrigeUmaAnterior: boolean;
+  motivoDaCorrecao: string | null; em: string; por: string | null;
+}
+const ROTULO_FREQ_MOCK: Record<string, string> = {
+  presente: 'Foi', ausente: 'Não foi', sem_aula: 'Não teve aula', nao_verificado: 'Ainda não verificado',
+};
+function diaIsoDaSemana(d: string): number {
+  const n = new Date(`${d}T12:00:00Z`).getUTCDay(); return n === 0 ? 7 : n;
+}
+function marcaMock(dia: string, situacao: string, motivo: string | null, por: string): MarcaDeFrequenciaMock {
+  return { id: `fm-${dia}-${situacao}-${por.length}`, dia, situacao, rotulo: ROTULO_FREQ_MOCK[situacao], motivo,
+    comprovante: null, corrigida: false, corrigeUmaAnterior: false, motivoDaCorrecao: null,
+    em: `${dia}T13:30:00-03:00`, por };
+}
+const FREQUENCIA_EDU: Record<string, MarcaDeFrequenciaMock[]> = {};
+const COMPROVANTES_EDU: Record<string, string> = {};
+function semearFrequencia() {
+  for (const id of ['ve2', 've5', 've6']) {
+    const lista: MarcaDeFrequenciaMock[] = [];
+    for (let n = 1; n <= 8; n++) {
+      const d = diaRelativo(-n);
+      const v = Object.values(VINCULOS_EDU).flat().find((x) => x.id === id);
+      if (!v || !v.dias.includes(diaIsoDaSemana(d)) || d < v.inicio) continue;
+      if (id === 've5' && n === 3) lista.push(marcaMock(d, 'ausente', 'Febre de manhã; a Enfermagem acompanhou', 'Joana Lima'));
+      else if (n === 6) lista.push(marcaMock(d, 'sem_aula', 'Feriado municipal', 'Joana Lima'));
+      else if (n !== 2) lista.push(marcaMock(d, 'presente', null, 'Joana Lima'));
+    }
+    FREQUENCIA_EDU[id] = lista;
+  }
+}
+semearFrequencia();
+function frequenciaMock(v: VinculoMock) {
+  const marcas = FREQUENCIA_EDU[v.id] ?? [];
+  const ate = v.encerradoEm && v.encerradoEm < HOJE ? v.encerradoEm : HOJE;
+  const deMin = diaRelativo(-29);
+  const de = v.inicio > deMin ? v.inicio : deMin;
+  const vivas = new Map(marcas.filter((m) => !m.corrigida).map((m) => [m.dia, m]));
+  const dias: { dia: string; situacao: string }[] = [];
+  for (let n = 0; n <= 29; n++) {
+    const d = diaRelativo(-n);
+    if (d < de || d > ate) continue;
+    if (v.turno === 'variavel' ? !vivas.has(d) : !v.dias.includes(diaIsoDaSemana(d))) continue;
+    dias.push({ dia: d, situacao: vivas.get(d)?.situacao ?? 'nao_verificado' });
+  }
+  const contagem: Record<string, number> = { presente: 0, ausente: 0, sem_aula: 0, nao_verificado: 0 };
+  for (const d of dias) contagem[d.situacao] += 1;
+  return { de, ate, dias, contagem, marcas };
+}
+/**
  * O CONCEITO POR BIMESTRE (fase 137).
  *
  * Três linhas de propósito, e são três casos diferentes: o bimestre que foi bem,
@@ -7508,7 +7563,67 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
   }
   if (seg[0] === 'nursing' && seg[1] === 'education' && seg.length === 3 && metodo === 'GET') {
     return { apoio: APOIO_EDU[seg[2]] ?? null, evolucoes: EVOLUCOES_EDU[seg[2]] ?? [],
-      conceitos: CONCEITOS_EDU[seg[2]] ?? [], vinculos: VINCULOS_EDU[seg[2]] ?? [] };
+      conceitos: CONCEITOS_EDU[seg[2]] ?? [],
+      vinculos: (VINCULOS_EDU[seg[2]] ?? []).map((v) => ({ ...v, frequencia: frequenciaMock(v) })) };
+  }
+
+  /* A FREQUÊNCIA (fase 283): as mesmas recusas do servidor. */
+  if (seg[0] === 'nursing' && seg[1] === 'education-attendance' && seg.length === 2 && metodo === 'GET') {
+    const dia = q.get('date') || HOJE;
+    const vinculos = todosKids().flatMap((k) => (VINCULOS_EDU[k.id] ?? [])
+      .filter((v) => v.inicio <= dia && (!v.encerradoEm || v.encerradoEm >= dia)
+        && (v.turno === 'variavel' || v.dias.includes(diaIsoDaSemana(dia))))
+      .map((v) => {
+        const m = (FREQUENCIA_EDU[v.id] ?? []).find((x) => x.dia === dia && !x.corrigida);
+        return { id: v.id, personId: k.id, nome: k.nome, tipoRotulo: v.tipoRotulo, instituicao: v.instituicao,
+          turnoRotulo: v.turnoRotulo, situacao: m?.situacao ?? 'nao_verificado',
+          rotulo: ROTULO_FREQ_MOCK[m?.situacao ?? 'nao_verificado'], motivo: m?.motivo ?? null,
+          por: m?.por ?? null, em: m?.em ?? null };
+      }));
+    return { dia, marca: ['educador', 'lider_diurno', 'lider_noturno_geral', 'equipe_tecnica', 'coordenador'].includes(eu.role),
+      corrige: ['equipe_tecnica', 'coordenador'].includes(eu.role), vinculos };
+  }
+  if (seg[0] === 'nursing' && seg[1] === 'education-attendance' && seg[3] === 'proof' && metodo === 'POST') {
+    const m = Object.values(FREQUENCIA_EDU).flat().find((x) => x.id === seg[2]);
+    if (!m?.comprovante) return new Recusa(404, 'Comprovante não encontrado, ou fora do seu alcance.');
+    return { nome: m.comprovante.nome, tipo: m.comprovante.tipo, conteudo: COMPROVANTES_EDU[m.id] ?? '' };
+  }
+  if (seg[0] === 'nursing' && seg[1] === 'education-links' && seg[3] === 'attendance' && metodo === 'POST') {
+    const papel = eu.role;
+    if (!['educador', 'lider_diurno', 'lider_noturno_geral', 'equipe_tecnica', 'coordenador'].includes(papel)) {
+      return new Recusa(403, 'Quem marca a frequência é o plantão: educador, líderes, técnica e coordenação.');
+    }
+    const v = Object.values(VINCULOS_EDU).flat().find((x) => x.id === seg[2]);
+    if (!v) return new Recusa(404, 'Vínculo não encontrado.');
+    const dia = String(b.dia ?? HOJE);
+    const situacao = String(b.situacao ?? '');
+    const motivo = String(b.motivo ?? '').trim();
+    if (!['presente', 'ausente', 'sem_aula'].includes(situacao)) return new Recusa(400, 'Escolha: foi, não foi, ou não teve aula.');
+    if (situacao !== 'presente' && motivo.length < 3) {
+      return new Recusa(400, situacao === 'ausente' ? 'Diga o motivo informado: doença, consulta, a escola avisou.'
+        : 'Diga por que não teve aula: feriado, recesso, suspensão.');
+    }
+    if (dia > HOJE) return new Recusa(400, 'Este dia ainda não chegou.');
+    if (dia < v.inicio || (v.encerradoEm && dia > v.encerradoEm)) return new Recusa(400, 'Este dia está fora do começo e do encerramento do vínculo.');
+    if (v.turno !== 'variavel' && !v.dias.includes(diaIsoDaSemana(dia))) {
+      return new Recusa(400, 'Este dia da semana não é dia de aula deste vínculo. Corrija os dias no vínculo, se mudaram.');
+    }
+    const lista = FREQUENCIA_EDU[v.id] ?? (FREQUENCIA_EDU[v.id] = []);
+    const viva = lista.find((x) => x.dia === dia && !x.corrigida);
+    const doPlantao = ['educador', 'lider_diurno', 'lider_noturno_geral'].includes(papel);
+    if (doPlantao && viva) return new Recusa(400, 'Este dia já foi marcado. Quem corrige é a técnica ou a coordenação.');
+    if (doPlantao && dia < diaRelativo(-1)) return new Recusa(400, 'O plantão marca hoje e ontem. Os dias de antes, a técnica ou a coordenação marca.');
+    const correcao = String(b.correcao ?? '').trim();
+    if (viva && correcao.length < 5) return new Recusa(400, 'Este dia já tinha uma marca. Escreva o motivo da correção.');
+    if (viva) viva.corrigida = true;
+    const id = uid();
+    if (b.comprovante) COMPROVANTES_EDU[id] = String(b.comprovante);
+    lista.unshift({ id, dia, situacao, rotulo: ROTULO_FREQ_MOCK[situacao], motivo: motivo || null,
+      comprovante: b.comprovante ? { nome: 'comprovante.jpg', tipo: 'image/jpeg' } : null,
+      corrigida: false, corrigeUmaAnterior: viva != null, motivoDaCorrecao: viva ? correcao : null,
+      em: new Date().toISOString(), por: eu.fullName });
+    return { ok: true, aviso: viva ? 'Frequência corrigida. A marca anterior continua legível, com o nome de quem marcou.'
+      : `Marcado como ${ROTULO_FREQ_MOCK[situacao]}.` };
   }
 
   /* OS VÍNCULOS EDUCACIONAIS (fase 282): as mesmas recusas do servidor. */

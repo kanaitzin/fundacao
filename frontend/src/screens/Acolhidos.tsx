@@ -22,6 +22,7 @@ import { Icone } from '../icones';
 import { Avatar, AvatarQueAbre, FotoAmpliada, esquecerFoto } from '../avatar';
 import { QUEM_POE_FOTO } from '../../../backend/src/modules/people/foto.regra';
 import { Explica } from '../explica';
+import { FolhaFrequencia, COR_DA_FREQUENCIA } from './Dia';
 import { quantos } from '../../../backend/src/kernel/common/quantos';
 
 /**
@@ -5279,7 +5280,21 @@ export interface VinculoEducacional {
   motivoDoEncerramento: string | null; vigente: boolean;
   criadoPor: string | null; criadoEm: string; mudadoPor: string | null; mudadoEm: string;
   historico: MudancaDoVinculo[]; notas: NotaDoVinculo[];
+  frequencia?: FrequenciaDoVinculo;
 }
+/** A frequência (fase 283): os dias de aula dos últimos 30 dias e as marcas, as corrigidas inclusive. */
+interface MarcaDeFrequencia {
+  id: string; dia: string; situacao: string; rotulo: string; motivo: string | null;
+  comprovante: { nome: string; tipo: string } | null; corrigida: boolean; corrigeUmaAnterior: boolean;
+  motivoDaCorrecao: string | null; em: string; por: string | null;
+}
+interface FrequenciaDoVinculo {
+  de: string; ate: string; dias: { dia: string; situacao: string }[];
+  contagem: Record<string, number>; marcas: MarcaDeFrequencia[];
+}
+const ROTULO_DA_FREQUENCIA: Record<string, string> = {
+  presente: 'Foi', ausente: 'Não foi', sem_aula: 'Não teve aula', nao_verificado: 'Ainda não verificado',
+};
 type Opcao = { cod: string; label: string };
 
 const DIAS_DA_SEMANA = [
@@ -5319,14 +5334,18 @@ function valorEscrito(campo: string, valor: unknown, rotulos: { tipos: Opcao[]; 
   return String(valor);
 }
 
-function VinculosEducacionais({ personId, vinculos, pode, tipos, turnos, recarregar }: {
-  personId: string; vinculos: VinculoEducacional[]; pode: boolean;
+function VinculosEducacionais({ personId, vinculos, pode, corrige, tipos, turnos, recarregar }: {
+  personId: string; vinculos: VinculoEducacional[]; pode: boolean; corrige: boolean;
   tipos: Opcao[]; turnos: Opcao[]; recarregar: () => Promise<void>;
 }) {
   const [aberto, setAberto] = useState<string | null>(null);
   const [folha, setFolha] = useState<null | { qual: 'corrigir' | 'encerrar' | 'nota'; v: VinculoEducacional; nota?: NotaDoVinculo }>(null);
   /* Cadastrar fica num estado à parte: o botão que a Acolhe+AI pode apertar só abre a folha. */
   const [novo, setNovo] = useState(false);
+  /* A frequência (fase 283): o dia a marcar ou corrigir, e o comprovante aberto. */
+  const [marcando, setMarcando] = useState<{ v: VinculoEducacional; dia: string; corrige: boolean } | null>(null);
+  const [comprovante, setComprovante] = useState<MarcaDeFrequencia | null>(null);
+  const [todosOsDias, setTodosOsDias] = useState<string | null>(null);
   const [recado, setRecado] = useState('');
   const agora = vinculos.filter((v) => v.vigente)
     .sort((a, b) => (ORDEM_DO_TURNO[a.turno ?? ''] ?? 9) - (ORDEM_DO_TURNO[b.turno ?? ''] ?? 9));
@@ -5386,6 +5405,59 @@ function VinculosEducacionais({ personId, vinculos, pode, tipos, turnos, recarre
                     {v.encerradoEm && <><dt>Encerrado em</dt><dd>{dia(v.encerradoEm)}. {v.motivoDoEncerramento}</dd></>}
                     <dt>Cadastrado por</dt><dd>{v.criadoPor ?? '—'}, {diaEHora(v.criadoEm)}</dd>
                   </dl>
+
+                  {v.frequencia && (
+                    <>
+                      <div className="vinculo-parte">Frequência dos últimos 30 dias</div>
+                      {v.frequencia.dias.length === 0 && <p className="mutetxt">Nenhum dia de aula nesse período.</p>}
+                      {v.frequencia.dias.length > 0 && (
+                        <p className="mutetxt" style={{ margin: '0 0 6px' }}>
+                          {(['presente', 'ausente', 'sem_aula', 'nao_verificado'] as const)
+                            .map((k) => `${ROTULO_DA_FREQUENCIA[k]}: ${v.frequencia!.contagem[k] ?? 0}`).join(' · ')}
+                        </p>
+                      )}
+                      <ul className="vinculo-dias">
+                        {(todosOsDias === v.id ? v.frequencia.dias : v.frequencia.dias.slice(0, 7)).map((d) => {
+                          const marcas = v.frequencia!.marcas.filter((m) => m.dia === d.dia);
+                          const viva = marcas.find((m) => !m.corrigida);
+                          return (
+                            <li key={d.dia}>
+                              <div className="row">
+                                <span className="grow">{dia(d.dia)}</span>
+                                <span className={`pill ${COR_DA_FREQUENCIA[d.situacao] ?? 'c-mute'}`}>{ROTULO_DA_FREQUENCIA[d.situacao]}</span>
+                              </div>
+                              {viva && (
+                                <div className="mutetxt">
+                                  {viva.motivo ? `${viva.motivo}. ` : ''}{viva.por ?? '—'}, {diaEHora(viva.em)}
+                                  {viva.motivoDaCorrecao ? `. Corrigido: ${viva.motivoDaCorrecao}` : ''}
+                                </div>
+                              )}
+                              {marcas.filter((m) => m.corrigida).map((m) => (
+                                <div className="mutetxt" key={m.id}>Antes: {m.rotulo}, por {m.por ?? '—'}, {diaEHora(m.em)}.</div>
+                              ))}
+                              <div className="row vinculo-acoes">
+                                {viva?.comprovante && (
+                                  <button type="button" className="btn sm ghost" onClick={() => setComprovante(viva)}>Ver o comprovante</button>
+                                )}
+                                {corrige && (
+                                  <button type="button" className="btn sm ghost"
+                                          onClick={() => setMarcando({ v, dia: d.dia, corrige: d.situacao !== 'nao_verificado' })}>
+                                    {d.situacao === 'nao_verificado' ? 'Marcar' : 'Corrigir'}
+                                  </button>
+                                )}
+                              </div>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                      {v.frequencia.dias.length > 7 && (
+                        <button type="button" className="btn sm ghost"
+                                onClick={() => setTodosOsDias(todosOsDias === v.id ? null : v.id)}>
+                          {todosOsDias === v.id ? 'Mostrar só a última semana' : `Ver os ${v.frequencia.dias.length} dias`}
+                        </button>
+                      )}
+                    </>
+                  )}
 
                   <div className="vinculo-parte">Notas</div>
                   {v.notas.length === 0 && <p className="mutetxt">Nenhuma nota lançada.</p>}
@@ -5479,6 +5551,20 @@ function VinculosEducacionais({ personId, vinculos, pode, tipos, turnos, recarre
               { method: 'POST', body: JSON.stringify(corpo) });
             setFolha(null); setRecado(r?.aviso ?? ''); await recarregar();
           }} />
+      )}
+      {marcando && (
+        <FolhaFrequencia titulo={`${marcando.v.instituicao}, ${dia(marcando.dia)}`} corrige={marcando.corrige}
+          onFechar={() => setMarcando(null)}
+          onSalvar={async (corpo) => {
+            const r = await api<{ aviso: string }>(`/nursing/education-links/${marcando.v.id}/attendance`,
+              { method: 'POST', body: JSON.stringify({ dia: marcando.dia, ...corpo }) });
+            setMarcando(null); setRecado(r?.aviso ?? ''); await recarregar();
+          }} />
+      )}
+      {comprovante && (
+        <FolhaArquivo titulo="Comprovante da frequência" legenda={`${dia(comprovante.dia)}: ${comprovante.rotulo}`}
+          carregar={() => api(`/nursing/education-attendance/${comprovante.id}/proof`, { method: 'POST' })}
+          onFechar={() => setComprovante(null)} />
       )}
       {folha && folha.qual === 'encerrar' && (
         <FolhaEncerrarVinculo v={folha.v} onFechar={() => setFolha(null)}
@@ -5794,6 +5880,7 @@ function Educacao({ personId, houseId, papel }: {
 
       {dados && (
         <VinculosEducacionais personId={personId} vinculos={dados.vinculos ?? []} pode={pode}
+          corrige={['equipe_tecnica', 'coordenador'].includes(papel)}
           tipos={vocabulario?.tiposDeVinculo ?? []} turnos={vocabulario?.turnos ?? []}
           recarregar={carregar} />
       )}

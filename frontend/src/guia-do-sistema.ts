@@ -140,6 +140,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 283, dia: '06/11/2026', aba: 'dia',
+    texto: 'Foi à aula hoje? No Dia da Casa, as crianças com aula no dia, de cada vínculo educacional. O plantão toca em Foi, Não foi (com o motivo informado) ou Não teve aula (feriado, recesso, suspensão), e pode juntar o bilhete ou o atestado. Sem marca, fica Ainda não verificado, e nunca vira falta. No perfil, na aba Educação, cada vínculo mostra os dias de aula do último mês, e a técnica e a coordenação marcam os dias de antes e corrigem com o motivo; a marca anterior continua legível.' },
   { fase: 282, dia: '06/11/2026', aba: 'acolhidos',
     texto: 'Os vínculos educacionais na aba Educação do perfil: escola, educação infantil, fundamental, médio, superior, EJA, técnico, educação integral, SCFV, aprendizagem, estágio e curso, em linha, do mais novo ao mais antigo, como contratos de tal época a tal época. A criança pode ter mais de um ao mesmo tempo, e Agora mostra o que vale em cada turno. O triângulo abre o vínculo inteiro: turma, série, dias, endereço, empresa, as notas da escola e o histórico. Corrigir pede o motivo e guarda o que estava antes; encerrar pede o dia e o porquê, e o vínculo continua na linha. A técnica, a coordenação e o Líder Diurno recebem o aviso no último mês e na última semana antes do fim previsto.' },
   { fase: 281, dia: '06/11/2026', aba: 'ata',

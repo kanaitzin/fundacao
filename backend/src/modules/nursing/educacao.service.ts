@@ -5,6 +5,8 @@ import { DatabaseService } from '../../kernel/database/database.service';
 import { AuditService } from '../../kernel/audit/audit.service';
 import { AuthenticatedUser } from '../../kernel/contracts';
 import { EventBus } from '../../kernel/events/event-bus.service';
+import { ArquivosService, RegraDoArquivo } from '../../kernel/arquivos/arquivos.service';
+import { hojeNaInstituicao } from '../../kernel/common/tempo';
 
 /**
  * O PRONTUÁRIO DE EDUCAÇÃO — que existia no banco e não tinha por onde ser
@@ -98,6 +100,43 @@ const CAMPOS_DO_VINCULO: Record<string, string> = {
   inicio: 'starts_on', fimPrevisto: 'expected_end',
 };
 
+/**
+ * A FREQUÊNCIA (fase 283, decidido em 06/11). Quem marca no dia é o plantão; quem
+ * corrige depois, com o motivo e o comprovante, é a técnica e a coordenação.
+ */
+export const MARCAM_FREQUENCIA = ['educador', 'lider_diurno', 'lider_noturno_geral', 'equipe_tecnica', 'coordenador'];
+export const CORRIGEM_FREQUENCIA = ['equipe_tecnica', 'coordenador'];
+const ROTULO_FREQUENCIA: Record<string, string> = {
+  presente: 'Foi', ausente: 'Não foi', sem_aula: 'Não teve aula', nao_verificado: 'Ainda não verificado',
+};
+/** O comprovante: o bilhete, o atestado ou o aviso da escola, em foto ou PDF. */
+const O_COMPROVANTE: RegraDoArquivo = {
+  aceita: ['application/pdf', 'image/jpeg', 'image/png'],
+  maximo: 10 * 1024 * 1024,
+  conferirInteireza: true,
+  recusas: {
+    vazio: 'O comprovante chegou vazio. Escolha de novo e envie.',
+    grande: 'O comprovante passa de 10 MB. Digitalize com menos páginas.',
+    tipo: 'O comprovante vai em foto (JPG ou PNG) ou em PDF.',
+    incompleto: 'O comprovante chegou incompleto, provavelmente porque o sinal caiu. Envie de novo.',
+  },
+};
+/** Os dias de um intervalo, como texto AAAA-MM-DD. */
+function diasEntre(de: string, ate: string): string[] {
+  const out: string[] = [];
+  const d = new Date(`${de}T12:00:00Z`);
+  const fim = new Date(`${ate}T12:00:00Z`);
+  while (d <= fim) { out.push(d.toISOString().slice(0, 10)); d.setUTCDate(d.getUTCDate() + 1); }
+  return out;
+}
+function diaDaSemana(dia: string): number {
+  const n = new Date(`${dia}T12:00:00Z`).getUTCDay();
+  return n === 0 ? 7 : n;
+}
+function somarDias(dia: string, n: number): string {
+  const d = new Date(`${dia}T12:00:00Z`); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10);
+}
+
 /** Quem digita o conceito — decisão da Fundação em 21/09/2026, por extenso. */
 const DIGITAM_CONCEITO = ['equipe_tecnica', 'coordenador', 'lider_diurno'];
 
@@ -107,6 +146,7 @@ export class EducacaoService {
     @Inject(DatabaseService) private readonly db: DatabaseService,
     @Inject(AuditService) private readonly audit: AuditService,
     @Inject(EventBus) private readonly bus: EventBus,
+    @Inject(ArquivosService) private readonly arquivos: ArquivosService,
   ) {}
 
   vocabulario() {
@@ -181,6 +221,13 @@ export class EducacaoService {
                 app_user_display_name(changed_by) AS por
            FROM education_link_change WHERE link_id = ANY($1::uuid[])
           ORDER BY changed_at DESC`, [ids]) : { rows: [] as any[] };
+      const { rows: marcas } = ids.length ? await c.query(
+        `SELECT id, link_id, on_date::text AS dia, status, reason, proof_name, proof_mime,
+                replaces_id, replaced_at, correction_reason, created_at,
+                app_user_display_name(created_by) AS por
+           FROM education_attendance
+          WHERE link_id = ANY($1::uuid[]) AND on_date >= app_hoje() - 90
+          ORDER BY on_date DESC, created_at DESC`, [ids]) : { rows: [] as any[] };
       const { rows: notas } = ids.length ? await c.query(
         `SELECT id, link_id, period, subject, grade, note, replaces_id, replaced_at, created_at,
                 app_user_display_name(created_by) AS por
@@ -201,6 +248,7 @@ export class EducacaoService {
           historico: mudancas.filter((m) => m.link_id === v.id).map((m) => ({
             id: m.id, tipo: m.kind, antes: m.before, motivo: m.reason, em: m.changed_at, por: m.por,
           })),
+          frequencia: this.frequenciaDoVinculo(v, marcas.filter((m) => m.link_id === v.id)),
           notas: notas.filter((n) => n.link_id === v.id).map((n) => ({
             id: n.id, periodo: n.period, disciplina: n.subject, nota: n.grade, observacao: n.note,
             corrigeUmaAnterior: n.replaces_id != null, substituida: n.replaced_at != null,
@@ -575,5 +623,131 @@ export class EducacaoService {
         { actorId: user.id, houseId });
     }
     return { ok: true, avisados: linhas.length };
+  }
+
+  /* ===================== A FREQUÊNCIA (fase 283) ===================== */
+
+  /**
+   * Os últimos 30 dias de um vínculo: cada dia de aula com a marca viva, ou ainda
+   * não verificado. Nunca falta presumida. E as marcas dos últimos 90 dias, as
+   * corrigidas inclusive, com quem marcou.
+   */
+  private frequenciaDoVinculo(v: any, marcas: any[]) {
+    const hoje = hojeNaInstituicao();
+    const ate = v.encerrado_em && v.encerrado_em < hoje ? v.encerrado_em : hoje;
+    const deMin = somarDias(hoje, -29);
+    const de = v.inicio > deMin ? v.inicio : deMin;
+    const vivas = new Map(marcas.filter((m) => !m.replaced_at).map((m) => [m.dia, m]));
+    const dias = de > ate ? [] : diasEntre(de, ate)
+      .filter((d) => v.shift === 'variavel' ? vivas.has(d) : (v.weekdays ?? []).map(Number).includes(diaDaSemana(d)))
+      .map((d) => ({ dia: d, situacao: vivas.get(d)?.status ?? 'nao_verificado' }));
+    const contagem = { presente: 0, ausente: 0, sem_aula: 0, nao_verificado: 0 } as Record<string, number>;
+    for (const d of dias) contagem[d.situacao] += 1;
+    return {
+      de, ate, dias: dias.reverse(), contagem,
+      marcas: marcas.map((m) => ({
+        id: m.id, dia: m.dia, situacao: m.status, rotulo: ROTULO_FREQUENCIA[m.status], motivo: m.reason,
+        comprovante: m.proof_name ? { nome: m.proof_name, tipo: m.proof_mime } : null,
+        corrigida: m.replaced_at != null, corrigeUmaAnterior: m.replaces_id != null,
+        motivoDaCorrecao: m.correction_reason, em: m.created_at, por: m.por,
+      })),
+    };
+  }
+
+  /** Os vínculos com aula no dia, para o Dia da Casa: quem, onde e o que foi marcado. */
+  async frequenciaDoDia(user: AuthenticatedUser, houseId: string, dia?: string) {
+    const d = dia ?? hojeNaInstituicao();
+    const linhas = await this.db.asUser(user.id, async (c) => (await c.query(
+      `SELECT l.id, l.person_id, coalesce(p.social_name, p.full_name) AS nome, l.kind, l.kind_other,
+              l.institution, l.shift, a.id AS marca, a.status, a.reason, a.created_at AS marcado_em,
+              app_user_display_name(a.created_by) AS por
+         FROM education_link l
+         -- rls-join-ok (person): a criança do vínculo, que está na casa pedida e no alcance de quem pede.
+         JOIN person p ON p.id = l.person_id
+         JOIN house_stay s ON s.person_id = l.person_id AND s.status = 'ativa' AND s.house_id = $1
+         LEFT JOIN education_attendance a ON a.link_id = l.id AND a.on_date = $2::date AND a.replaced_at IS NULL
+        WHERE l.house_id = $1 AND l.starts_on <= $2::date
+          AND (l.ended_on IS NULL OR l.ended_on >= $2::date)
+          AND (l.shift = 'variavel' OR extract(isodow FROM $2::date)::smallint = ANY (l.weekdays))
+        ORDER BY nome, l.shift NULLS LAST`, [houseId, d])).rows);
+    return {
+      dia: d,
+      marca: MARCAM_FREQUENCIA.includes(user.role),
+      corrige: CORRIGEM_FREQUENCIA.includes(user.role),
+      vinculos: linhas.map((r) => ({
+        id: r.id, personId: r.person_id, nome: r.nome,
+        tipoRotulo: r.kind === 'outro' ? (r.kind_other ?? 'Outro') : ROTULO_TIPO[r.kind],
+        instituicao: r.institution, turnoRotulo: r.shift ? ROTULO_TURNO[r.shift] : null,
+        situacao: r.status ?? 'nao_verificado', rotulo: ROTULO_FREQUENCIA[r.status ?? 'nao_verificado'],
+        motivo: r.reason ?? null, por: r.por ?? null, em: r.marcado_em ?? null,
+      })),
+    };
+  }
+
+  /** Marca, ou corrige, o dia de um vínculo. O comprovante vai ao disco antes da linha. */
+  async marcarFrequencia(user: AuthenticatedUser, linkId: string, input: any) {
+    if (!MARCAM_FREQUENCIA.includes(user.role)) {
+      throw new ForbiddenException('Quem marca a frequência é o plantão: educador, líderes, técnica e coordenação.');
+    }
+    const dia = String(input?.dia ?? hojeNaInstituicao());
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dia)) throw new BadRequestException('Diga o dia da aula.');
+    const situacao = String(input?.situacao ?? '');
+    if (!['presente', 'ausente', 'sem_aula'].includes(situacao)) {
+      throw new BadRequestException('Escolha: foi, não foi, ou não teve aula.');
+    }
+    const motivo = String(input?.motivo ?? '').trim();
+    if (situacao !== 'presente' && motivo.length < 3) {
+      throw new BadRequestException(situacao === 'ausente'
+        ? 'Diga o motivo informado: doença, consulta, a escola avisou.'
+        : 'Diga por que não teve aula: feriado, recesso, suspensão.');
+    }
+    const g = input?.comprovante ? await this.arquivos.guardar(input.comprovante, O_COMPROVANTE) : null;
+    if (input?.comprovante && !g) throw new BadRequestException('O comprovante chegou vazio. Escolha de novo e envie.');
+    const anexo = g ? { chave: g.chave, sha256: g.sha256, mime: g.mime, tamanho: g.tamanho,
+      nome: g.mime === 'application/pdf' ? 'comprovante.pdf' : `comprovante.${g.mime === 'image/png' ? 'png' : 'jpg'}` } : null;
+    let houseId: string;
+    try {
+      houseId = await this.db.asUser(user.id, async (c) => (await c.query(
+        `SELECT app_marcar_frequencia($1, $2::date, $3, $4, $5, $6::jsonb) AS casa`,
+        [linkId, dia, situacao, motivo || null, input?.correcao ?? null, anexo ? JSON.stringify(anexo) : null])).rows[0].casa);
+    } catch (e: any) {
+      const m = String(e?.message ?? '');
+      if (m.includes('sem_permissao_frequencia')) throw new ForbiddenException('Quem marca a frequência é o plantão: educador, líderes, técnica e coordenação.');
+      if (m.includes('vinculo_inexistente')) throw new NotFoundException('Vínculo não encontrado.');
+      if (m.includes('dia_no_futuro')) throw new BadRequestException('Este dia ainda não chegou.');
+      if (m.includes('dia_fora_do_vinculo')) throw new BadRequestException('Este dia está fora do começo e do encerramento do vínculo.');
+      if (m.includes('dia_sem_aula_no_vinculo')) throw new BadRequestException('Este dia da semana não é dia de aula deste vínculo. Corrija os dias no vínculo, se mudaram.');
+      if (m.includes('frequencia_ja_marcada')) throw new BadRequestException('Este dia já foi marcado. Quem corrige é a técnica ou a coordenação.');
+      if (m.includes('dia_antigo_para_o_plantao')) throw new BadRequestException('O plantão marca hoje e ontem. Os dias de antes, a técnica ou a coordenação marca.');
+      if (m.includes('correcao_sem_motivo')) throw new BadRequestException('Este dia já tinha uma marca. Escreva o motivo da correção.');
+      if (m.includes('motivo_curto')) throw new BadRequestException('Diga o motivo, em poucas palavras.');
+      throw e;
+    }
+    await this.audit.log({
+      action: input?.correcao ? 'education.attendance.corrected' : 'education.attendance', actorId: user.id,
+      houseId: houseId!, entity: 'education_link', entityId: linkId,
+      detail: { dia, situacao, comprovante: anexo != null },
+    });
+    return { ok: true, aviso: input?.correcao
+      ? 'Frequência corrigida. A marca anterior continua legível, com o nome de quem marcou.'
+      : `Marcado como ${ROTULO_FREQUENCIA[situacao]}.` };
+  }
+
+  /** Abrir o comprovante de uma marca. A abertura vai à auditoria da casa. */
+  async lerComprovante(user: AuthenticatedUser, marcaId: string) {
+    const x = await this.db.asUser(user.id, async (c) => (await c.query(
+      `SELECT proof_key, proof_mime, proof_name, house_id, link_id FROM education_attendance WHERE id = $1`,
+      [marcaId])).rows[0]);
+    if (!x?.proof_key) throw new NotFoundException('Comprovante não encontrado, ou fora do seu alcance.');
+    const bytes = await this.arquivos.ler(x.proof_key);
+    if (!bytes) {
+      throw new NotFoundException('O comprovante está registrado mas não foi encontrado no armazenamento. '
+        + 'Avise quem cuida do servidor.');
+    }
+    await this.audit.log({
+      action: 'education.attendance.proof.read', actorId: user.id, houseId: x.house_id,
+      entity: 'education_attendance', entityId: marcaId, detail: { linkId: x.link_id, tipo: x.proof_mime },
+    });
+    return { nome: x.proof_name, tipo: x.proof_mime, conteudo: bytes.toString('base64') };
   }
 }
