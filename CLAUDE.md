@@ -474,7 +474,7 @@ o item respondido sai do §0.
 no Dia da Casa e corrigida pela técnica e pela coordenação; o aviso do fim à técnica, à coordenação e ao Líder Diurno;
 30 e 7 dias fixos; os vínculos na aba Educação em linha, com o triângulo, vários ao mesmo tempo e as notas). **Vínculo
 novo de outro tipo** entra na lista `TIPOS_DE_VINCULO` do `educacao.service.ts`, no `CHECK` da `education_link` e no
-`TIPOS_DE_VINCULO_MOCK`. **Medido na 282:** MEDIDO_282
+`TIPOS_DE_VINCULO_MOCK`. **Medido na 282:** a `os-vinculos-educacionais` (7 de 7), a suíte inteira (1460 de 1461; a única reprovação era o `relogio`, que contava nove rotinas, e passou com dez, 6 de 6), o `ensaio:uso` sobre o protótipo novo (843 cobranças, sem reprovação), o do celular (322 telas, sem achado) e a sonda a 390 px como técnica (o Kauã com o ensino médio de manhã e a aprendizagem à tarde, cadastrar, abrir pelo triângulo e corrigir com o histórico dizendo só o que mudou; a tabela das notas não cabia e virou lista; nenhum erro). **Não rodou** o relógio adiantado.
 **Próxima: 283**, a frequência: nos dias do vínculo, o Dia da Casa pergunta *Foi à aula?* (foi, não foi com o motivo
 informado, ou ainda não verificado, nunca falta presumida), a justificativa com anexo, a correção da técnica e da
 coordenação com o motivo, e os dias sem aula (feriado, recesso, suspensão). Depois, os módulos 08 a 13 que sobram.
