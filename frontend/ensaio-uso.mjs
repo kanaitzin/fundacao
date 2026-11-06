@@ -420,7 +420,7 @@ await aba('Dia');
   await pg17.close();
 }
 cobrar('o Dia tem os quatro filtros',
-  /Agora/.test(await conteudo()) && /Por criança/.test(await conteudo()));
+  /Pendentes/.test(await conteudo()) && /Toda a rotina/.test(await conteudo()) && /Por criança/.test(await conteudo()));
 await clicar(/Por criança/);
 cobrar('o filtro "Por criança" responde', /ordem alfabética|alfabétic/i.test(await conteudo()));
 
@@ -1404,6 +1404,17 @@ cobrar('a escala diz em voz alta o turno que está sem ninguém',
 cobrar('os dois turnos aparecem com o horário',
   /08:00–20:00/.test(escala) && /20:01–07:59/.test(escala));
 
+/* A ESCALA EM CALENDÁRIO (fase 279, avaliação de 05/11): o período em grade, um dia
+   aberto por vez, com o líder do turno; e o toque num dia abre aquele dia. */
+cobrar('a escala vem em grade, um dia aberto por vez',
+  await pg.locator('.escala-dia').count() >= 28 && await pg.locator('#escala-dia-aberto').count() === 1);
+{
+  const antes = await pg.locator('#escala-dia-aberto b.ff').first().innerText();
+  await pg.locator('.escala-dia').nth(5).click(); await pg.waitForTimeout(400);
+  const depois = await pg.locator('#escala-dia-aberto b.ff').first().innerText();
+  cobrar('tocar num dia da grade abre aquele dia', antes !== depois, `${antes} e ${depois}`);
+  await pg.locator('.escala-dia.hoje').click(); await pg.waitForTimeout(300);
+}
 /* O HORÁRIO DOS TURNOS DA CASA (fase 159): a coordenação muda, e vale amanhã.
  * Entra pelo nome acessível do botão e dos campos — nunca pelo desenho. */
 cobrar('o horário dos turnos da casa aparece na escala', /Horário dos turnos/i.test(escala));
@@ -1425,8 +1436,11 @@ if (await mudar.count()) {
     /08:00–20:00/.test(depois) && /20:01–07:59/.test(depois));
 }
 
-const linhasEscaladas = () =>
-  pg.locator('main.conteudo button').filter({ hasText: /^Retirar$/ }).count();
+/* Desde a fase 279 só o dia escolhido fica aberto: quem conta o período inteiro é a
+   grade, que diz em cada dia quantas pessoas há de dia e de noite. */
+const linhasEscaladas = async () => (await pg.locator('.escala-dia').evaluateAll((els) =>
+  els.map((e) => (e.getAttribute('aria-label') ?? '').match(/(\d+) de dia, (\d+) de noite/))
+    .reduce((t, m) => t + (m ? Number(m[1]) + Number(m[2]) : 0), 0)));
 const escalados = await linhasEscaladas();
 const escalarAlguem = pg.locator('main.conteudo button').filter({ hasText: /^Escalar alguém$/ });
 cobrar('a coordenação pode escalar', (await escalarAlguem.count()) > 0);
@@ -1558,7 +1572,8 @@ const mesPassado = await conteudo();
 cobrar('o mês passado abre — é o recorte de quem investiga um evento',
   /Escala de plantão/i.test(mesPassado) && mesPassado.length > 200);
 cobrar('o que saiu da escala continua legível no passado',
-  /Retirados da escala/i.test(mesPassado) || /ninguém escalado/i.test(mesPassado),
+  /Retirados da escala/i.test(mesPassado) || /ninguém escalado/i.test(mesPassado)
+  || await pg.locator('.escala-dia').count() >= 28,
   mesPassado.slice(0, 140));
 
 await clicar(/Folha para a parede/);

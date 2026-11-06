@@ -2525,3 +2525,12 @@ button[data-gravando]{ cursor:progress }
 .detalhes-do-dia dt{ color:var(--muted); font-weight:700 }
 .detalhes-do-dia dd{ margin:0; overflow-wrap:anywhere }
 .detalhes-do-dia .detalhes-origem{ grid-column:1 / -1; margin-top:4px }
+
+/* A ESCALA EM CALENDÁRIO (fase 279): a grade do período e o dia aberto. */
+.escala-grade .cal-dias{ gap:4px }
+.escala-dia{ font:inherit; cursor:pointer; border:1.5px solid transparent; align-items:center; padding:4px 2px; min-height:58px }
+.escala-dia.aberto{ border-color:var(--brand); background:color-mix(in srgb, var(--brand) 12%, var(--surface)) }
+.escala-dia.falta{ background:color-mix(in srgb, var(--amber, #b45309) 12%, var(--surface)) }
+.escala-dia:focus-visible{ outline:3px solid var(--brand); outline-offset:1px }
+.escala-conta{ display:inline-flex; align-items:center; gap:2px; font-size:11.5px; color:var(--ink-2); line-height:1.1 }
+.escala-falta{ font-size:10.5px; font-weight:800; color:var(--amber-solid, #92400e); text-transform:uppercase }

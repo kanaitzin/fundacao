@@ -111,6 +111,10 @@ export function Escala({ houseId, casaLabel, papel }: {
   const [documento, setDocumento] = useState<DocumentoWord | null>(null);
   const [turnos, setTurnos] = useState<Turnos | null>(null);
   const TURNOS = turnosDaCasa(turnos);
+  /* A ESCALA EM CALENDÁRIO (fase 279, avaliação de 05/11): o período em grade, e
+     só o dia escolhido aberto embaixo, no lugar de trinta cartões em lista. */
+  const [diaAberto, setDiaAberto] = useState(hoje);
+  const [outrasDatas, setOutrasDatas] = useState(false);
 
   /*
    * QUEM MONTA — os três cargos que a Fundação nomeou em 15/09, mais a gestão:
@@ -155,6 +159,7 @@ export function Escala({ houseId, casaLabel, papel }: {
       <div className="eyebrow">Escala de plantão · {casaLabel}</div>
 
       <div className="card stack">
+        {outrasDatas && (
         <div className="row">
           <label className="f grow" htmlFor="esc-de">
             De
@@ -167,6 +172,7 @@ export function Escala({ houseId, casaLabel, papel }: {
                    onChange={(e) => setAte(e.target.value)} />
           </label>
         </div>
+        )}
         <div className="row">
           {/* O recorte escolhido fica marcado (fase 276): na avaliação de 05/11, o botão
               do recorte que já estava aberto parecia não fazer nada. */}
@@ -184,6 +190,9 @@ export function Escala({ houseId, casaLabel, papel }: {
             setAte(somaDias(primeiroDesteMes, -1));
           }}>
             Mês passado
+          </button>
+          <button className="btn ghost grow" aria-expanded={outrasDatas} onClick={() => setOutrasDatas(!outrasDatas)}>
+            {outrasDatas ? 'Fechar as datas' : 'Outras datas'}
           </button>
         </div>
         {dados && (
@@ -205,18 +214,14 @@ export function Escala({ houseId, casaLabel, papel }: {
         </button>
       </div>
 
-      {turnos && (
-        <HorarioDosTurnos houseId={houseId} turnos={turnos}
-                          onMudou={async (msg) => { setAviso(msg); await carregar(); }} />
+      {dados && dados.dias.length > 0 && (
+        <GradeDaEscala dias={dados.dias} hoje={hoje}
+                       aberto={dados.dias.some((d) => d.data === diaAberto) ? diaAberto : dados.dias[0].data}
+                       onAbrir={setDiaAberto} />
       )}
 
-      {monta && (
-        <RascunhoDoMes houseId={houseId} equipe={equipe} hoje={hoje}
-                       onPublicado={async (msg) => { setAviso(msg); await carregar(); }} />
-      )}
-
-      {dados?.dias.map((d) => (
-        <article className={`card stack ${d.data === hoje ? 'raise' : ''}`} key={d.data}>
+      {dados?.dias.filter((d) => d.data === (dados.dias.some((x) => x.data === diaAberto) ? diaAberto : dados.dias[0].data)).map((d) => (
+        <article className={`card stack ${d.data === hoje ? 'raise' : ''}`} key={d.data} id="escala-dia-aberto">
           <div className="row">
             <b className="ff grow">
               {dia(d.data)} · {diaSemana(d.data)}
@@ -231,9 +236,12 @@ export function Escala({ houseId, casaLabel, papel }: {
 
           {TURNOS.map(({ cod, label, horas }) => {
             const gente = d[cod];
+            const lider = gente.find((p) => (p.cargo ?? '').startsWith('lider'));
             return (
               <div className="bloco" key={cod}>
                 <small>{label} <span className="mutetxt">{horas}</span></small>
+                {/* O líder de referência do turno, à vista (fase 279). */}
+                {lider && <div className="mutetxt">Líder do turno: <b>{lider.quem}</b></div>}
                 {gente.length === 0 ? (
                   <div className="mutetxt">ninguém escalado</div>
                 ) : (
@@ -319,6 +327,18 @@ export function Escala({ houseId, casaLabel, papel }: {
         </article>
       ))}
 
+      {/* O horário dos turnos e montar um mês vêm depois da grade (fase 279): são do
+          começo do mês, e a grade é do dia a dia. */}
+      {turnos && (
+        <HorarioDosTurnos houseId={houseId} turnos={turnos}
+                          onMudou={async (msg) => { setAviso(msg); await carregar(); }} />
+      )}
+
+      {monta && (
+        <RascunhoDoMes houseId={houseId} equipe={equipe} hoje={hoje}
+                       onPublicado={async (msg) => { setAviso(msg); await carregar(); }} />
+      )}
+
       {escalando && (
         <FolhaEscalar
           equipe={equipe}
@@ -382,6 +402,46 @@ export function Escala({ houseId, casaLabel, papel }: {
  * uma data de fim sozinha na tela faz a pessoa achar que está escalando um
  * período inteiro quando escalou um dia.
  */
+const SEMANA = ['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom'];
+const MESES_CURTOS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+
+/**
+ * A GRADE DA ESCALA (fase 279). Cada dia do período diz quantas pessoas estão de
+ * dia e de noite; o turno sem ninguém aparece em atenção, com a palavra. Tocar
+ * abre o dia embaixo. A grade conta gente por turno, nunca por pessoa: total de
+ * plantões por nome é medição de gente (§3.3).
+ */
+function GradeDaEscala({ dias, hoje, aberto, onAbrir }: {
+  dias: Dia[]; hoje: string; aberto: string; onAbrir: (d: string) => void;
+}) {
+  const recuo = (new Date(`${dias[0].data}T12:00:00Z`).getUTCDay() + 6) % 7;
+  return (
+    <div className="card calendario escala-grade">
+      <div className="cal-semana" aria-hidden="true">{SEMANA.map((s) => <span key={s}>{s}</span>)}</div>
+      <div className="cal-dias">
+        {Array.from({ length: recuo }, (_, i) => <span key={`v${i}`} className="cal-dia fora" />)}
+        {dias.map((d) => {
+          const n = Number(d.data.slice(8));
+          const mes = Number(d.data.slice(5, 7));
+          const falta = d.semNinguem.length > 0;
+          return (
+            <button key={d.data} type="button"
+                    className={`cal-dia escala-dia${d.data === hoje ? ' hoje' : ''}${d.data === aberto ? ' aberto' : ''}${falta ? ' falta' : ''}`}
+                    aria-pressed={d.data === aberto}
+                    aria-label={`${n} de ${MESES_CURTOS[mes - 1]}: ${d.diurno.length} de dia, ${d.noturno.length} de noite${falta ? ', turno sem ninguém' : ''}`}
+                    onClick={() => onAbrir(d.data)}>
+              <span className="cal-num">{n === 1 || d === dias[0] ? `${n} ${MESES_CURTOS[mes - 1]}` : n}</span>
+              <span className="escala-conta"><Icone nome="sol" tamanho={12} />{d.diurno.length}</span>
+              <span className="escala-conta"><Icone nome="lua" tamanho={12} />{d.noturno.length}</span>
+              {falta && <span className="escala-falta">falta</span>}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function FolhaEscalar({ equipe, data, turno, passado, onFechar, onEscalar }: {
   equipe: Membro[]; data: string; turno: string; passado: boolean;
   onFechar: () => void;

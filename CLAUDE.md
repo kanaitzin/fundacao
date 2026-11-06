@@ -199,7 +199,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 06/11/2026, fase 278
+### Onde estamos — 06/11/2026, fase 279
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -341,6 +341,7 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 276 | **o funcionamento** (avaliação de 05/11): a chamada confirmada diz quem abriu e quem confirmou, com a hora, sem abrir (`app_user_display_name` na lista do `/checks`), e a confirmação volta à lista com o recado; a data e a hora no alto (`RelogioDoTopo`); as saídas de hoje com o dia, desde quando, quem decidiu e para onde (people/1671); o recorte já escolhido fica marcado (`aria-pressed`); o botão de teste do protótipo deixa de parecer indicador de conexão |
 | 277 | **as decisões de 05/11**: o CPF e o RG do visitante escondidos para todos na lista do portão, e inteiros ao tocar em *Ver o documento* (portaria, técnica e coordenação; `app_cpf_do_visitante`, people/1672; auditoria `visitante.cpf_visto` sem o número); a folha impressa da guarita continua inteira; *O Dia da Casa*, a aba *Vivências*, *Registro Educacional* e *Atas do Mês*; e o protótipo com quinze na Casa 03 (cinco no acervo) e sem *fictício* nos nomes (`sem-a-marca.ts`, na saída do servidor de mentira) |
 | 278 | **O Dia da Casa organizado** (avaliação de 05/11, módulo 11): abre em *Pendentes* (o feito sai da lista ativa e não do registro), *Toda a rotina* com o dia inteiro ou manhã, tarde e noite, *Você* e *Coletivo* na linha, e *Ver detalhes* com o resumo e a porta do registro de origem (`ORIGEM` no `Dia.tsx`); sem rota nova |
+| 279 | **a escala em calendário** (avaliação de 05/11, módulo 12): o período em grade (`GradeDaEscala` no `Escala.tsx`), cada dia com quantos de dia e de noite e *falta* no turno vazio, um dia aberto por vez com o líder do turno; datas em botões compactos; sem rota nova |
 
 **Medido no fim da 277:** 212 migrações, 146 tabelas, 166 suítes, 1441 testes; nas 237 e 238, a suíte inteira
 verde (1363 de 1363, depois de consertar as três conferências que o relatório das vivências deixou soltas) e o
@@ -465,6 +466,11 @@ o item respondido sai do §0.
    ele cadastrar as coordenações das outras casas. **A Acolhe+AI do 1.0 começa em modo guia** (custo zero); o modelo (o
    Claude com chave, ou o computador do Pão) é o 2.0. O protótipo continua no GitHub Pages para mostrar, e o 1.0 fica um mês
    com eles. **Publicar o 1.0 é deploy: fazer só quando ela pedir, e com o que ela mandar (e-mail do Marcelo, senha de app).**
+
+**FEITO — fase 279** (§2): a escala em calendário. **Quem conta a escala inteira no ensaio lê a grade** (o
+`aria-label` de cada `.escala-dia`), porque só um dia fica aberto. **Medido na 279:** a sonda a 390 px como coordenação
+(30 dias na grade, 10 com falta, um dia aberto com o líder, o toque trocando o dia, nada andando para o lado, nenhum
+erro). **Próxima: 280**, a agenda com local, endereço, responsável e duração.
 
 **FEITO — fase 278** (§2): O Dia da Casa organizado, pelo módulo 11 da avaliação de 05/11. **Linha nova da linha do
 dia** que tem tela de origem ganha a entrada no `ORIGEM` do `Dia.tsx`: o Ver detalhes leva lá, e só lá se edita. **O

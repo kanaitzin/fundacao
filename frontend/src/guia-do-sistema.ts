@@ -140,6 +140,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 279, dia: '06/11/2026', aba: 'escala',
+    texto: 'A escala de plantão em calendário: o período em grade, e cada dia diz quantas pessoas estão de dia e de noite, com falta escrito no turno sem ninguém. Tocar num dia abre só aquele dia embaixo, com quem está, os horários e o líder do turno. As datas ficam em dois botões, Próximos 30 dias e Mês passado, e Outras datas abre o resto; o horário dos turnos e montar um mês vêm depois da grade.' },
   { fase: 278, dia: '06/11/2026', aba: 'dia',
     texto: 'O Dia da Casa abre em Pendentes: só o que ainda espera alguém. O que foi feito sai dessa lista e continua em Toda a rotina, em verde, com quem fez e a hora; Toda a rotina mostra o dia inteiro ou só a manhã, a tarde ou a noite. Cada linha diz Você quando a atividade é sua e Coletivo quando é de quem estiver no plantão, e Ver detalhes abre o resumo com o botão que leva ao registro de origem, na Saúde, na Chamada, na Agenda, nas Ocorrências ou na rotina da casa.' },
   { fase: 277, dia: '05/11/2026', aba: 'portaria',
