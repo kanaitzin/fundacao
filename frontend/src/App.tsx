@@ -987,7 +987,7 @@ export function App() {
                       acompanhamento". Sem esta função, o evento chegava com
                       a ação escrita pelo servidor e sem botão nenhum. */
                    irPara={(destino) => { setAba(destino as typeof aba); setMais(false); marcarChegada(); }}
-                   alcanca={ve} pessoa={me.id} />
+                   alcanca={ve} pessoa={me.id} meuNome={me.fullName} />
             : (
               <div className="card">
                 <p className="mutetxt" style={{ margin: 0 }}>

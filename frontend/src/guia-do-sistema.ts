@@ -140,6 +140,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 278, dia: '06/11/2026', aba: 'dia',
+    texto: 'O Dia da Casa abre em Pendentes: só o que ainda espera alguém. O que foi feito sai dessa lista e continua em Toda a rotina, em verde, com quem fez e a hora; Toda a rotina mostra o dia inteiro ou só a manhã, a tarde ou a noite. Cada linha diz Você quando a atividade é sua e Coletivo quando é de quem estiver no plantão, e Ver detalhes abre o resumo com o botão que leva ao registro de origem, na Saúde, na Chamada, na Agenda, nas Ocorrências ou na rotina da casa.' },
   { fase: 277, dia: '05/11/2026', aba: 'portaria',
     texto: 'As decisões da avaliação de 05/11. Na Portaria, o CPF e o RG do visitante aparecem escondidos para todos, e a portaria, a equipe técnica e a coordenação tocam em Ver o documento para ler os números inteiros; cada abertura fica registrada com o nome de quem abriu. A folha impressa para a guarita continua com o documento inteiro. Nomes novos, sem tirar nada: O Dia da Casa (a tela do Dia), Vivências (uma aba do perfil com a vida na casa, as conquistas, as fotos e as memórias), Registro Educacional (na aba Educação) e Atas do Mês (o antigo Arquivo da ATA). E a demonstração fica mais parecida com uma casa de verdade: a Casa 03 com quinze acolhidos, as outras cinco crianças no acervo de quem saiu, e os nomes sem a palavra fictício, que fica só na faixa do alto.' },
   { fase: 276, dia: '05/11/2026', aba: 'chamada',

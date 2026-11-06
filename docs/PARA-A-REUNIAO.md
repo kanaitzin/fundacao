@@ -1048,6 +1048,9 @@ e o RG inteiros, porque a guarita sem sistema confere pelo papel; o toque mostra
 (*Ver o documento*), porque a lista passou a esconder os dois para todos (fases 276 e 277). **Para o
 DPO conferir:** a exibição do documento inteiro de visitante na Portaria, ao toque e auditada, e a
 folha impressa com o documento inteiro, sem registro de quem a lê.
+**Para decidir (fase 278):** juntar o Painel do plantão ao Dia da Casa, como a avaliação sugere. O Dia da Casa já
+abre em Pendentes, com Toda a rotina, Você e Coletivo e Ver detalhes; o Painel continua à parte porque tem as
+substituições e o quadro por pessoa. Juntar muda a tela de entrada dos líderes.
 
 ## 5. As decisões que são do Marcelo *(§10 — responda pelo número)*
 

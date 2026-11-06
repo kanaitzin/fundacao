@@ -19,7 +19,7 @@ import { quantos } from '../../../backend/src/kernel/common/quantos';
  *
  * As decisões de tela, todas com a mesma razão — velocidade no meio do turno:
  *
- *  * **filtros, não uma busca.** "Agora", "Minhas" e "Tudo" recortam a mesma
+ *  * **filtros, não uma busca.** "Pendentes", "Toda a rotina" e "Minhas" recortam a mesma
  *    linha; "Por criança" troca a pergunta — de "o que acontece agora" para
  *    "como está cada um". Quem está de plantão quer ver, não pesquisar;
  *  * **o que já passou não some.** Some do topo, mas continua na lista, com o
@@ -76,6 +76,27 @@ interface Resposta {
  * esta tela não sabe atender é botão que não existe, e ninguém percebe pelo
  * `tsc`.
  */
+/**
+ * DE ONDE VEM CADA LINHA (fase 278): o Ver detalhes leva ao registro de origem, e
+ * a tela de origem continua sendo o único lugar em que ele se edita.
+ */
+const ORIGEM: Record<string, { aba: string; rotulo: string }> = {
+  medicamento: { aba: 'saude', rotulo: 'Abrir na Saúde' },
+  saude: { aba: 'saude', rotulo: 'Abrir na Saúde' },
+  chamada: { aba: 'chamada', rotulo: 'Abrir a Chamada' },
+  refeicao: { aba: 'chamada', rotulo: 'Abrir a Chamada' },
+  ocorrencia: { aba: 'ocorrencias', rotulo: 'Abrir nas Ocorrências' },
+  plantao: { aba: 'passagem', rotulo: 'Abrir a Passagem' },
+  rotina: { aba: 'rotina', rotulo: 'Abrir a rotina da casa' },
+  atividade: { aba: 'agenda', rotulo: 'Abrir na Agenda' },
+  saida: { aba: 'acolhidos', rotulo: 'Abrir os Acolhidos' },
+};
+/** Manhã das 5h ao meio-dia, tarde até as 18h, noite o resto, no relógio de Porto Alegre. */
+function parteDoDia(iso: string): 'manha' | 'tarde' | 'noite' {
+  const h = Number(new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', hour12: false, timeZone: 'America/Sao_Paulo' }).slice(0, 2));
+  return h >= 5 && h < 12 ? 'manha' : h >= 12 && h < 18 ? 'tarde' : 'noite';
+}
+
 const DESTINO: Record<string, string> = {
   'check.open': 'chamada',
   'handover.sign': 'passagem',
@@ -155,8 +176,10 @@ interface PainelCasa {
   }[];
 }
 
-export function Dia({ houseId, casaLabel, papel, irPara, alcanca = () => true, pessoa = '' }: {
+export function Dia({ houseId, casaLabel, papel, irPara, alcanca = () => true, pessoa = '', meuNome = '' }: {
   houseId: string; casaLabel: string; papel: string;
+  /** O nome de quem usa (fase 278): a linha da pessoa diz Você. */
+  meuNome?: string;
   /** Quem está usando (fase 186): o "já li" da folha do plantão é por pessoa. */
   pessoa?: string;
   /** Leva a pessoa à tela que o evento aponta — ver `DESTINO` abaixo. */
@@ -169,7 +192,13 @@ export function Dia({ houseId, casaLabel, papel, irPara, alcanca = () => true, p
   const soLe = papel === 'gestor_geral';
   const [dados, setDados] = useState<Resposta | null>(null);
   const [erro, setErro] = useState('');
-  const [filtro, setFiltro] = useState<'agora' | 'minhas' | 'tudo' | 'os20'>('agora');
+  /* PENDENTES E TODA A ROTINA (fase 278, avaliação de 05/11): o Dia da Casa abre no
+     que ainda espera alguém; Toda a rotina traz o feito, o passado e o que vem,
+     por manhã, tarde e noite. O feito sai de Pendentes e continua no registro. */
+  const [filtro, setFiltro] = useState<'pendentes' | 'minhas' | 'tudo' | 'os20'>('pendentes');
+  const [parte, setParte] = useState<'dia' | 'manha' | 'tarde' | 'noite'>('dia');
+  /** A atividade aberta em Ver detalhes, uma por vez. */
+  const [detalhe, setDetalhe] = useState<string | null>(null);
   const [painel, setPainel] = useState<PainelCasa | null>(null);
   const [ocupado, setOcupado] = useState<string | null>(null);
   /** Qual atividade está com as ações do líder abertas — uma por vez. */
@@ -229,19 +258,18 @@ export function Dia({ houseId, casaLabel, papel, irPara, alcanca = () => true, p
   }, [houseId]);
 
   /**
-   * "Agora" mostra a janela do momento: o que ainda não foi resolvido e o que
-   * acabou de acontecer. Sem isso, no meio da tarde a tela abre nas 7h da
-   * manhã e alguém precisa rolar até achar onde está.
+   * "Pendentes" mostra o que ainda espera alguém, e o que foi feito sai da lista
+   * sem sair do registro; "Toda a rotina" mostra o dia inteiro, com o feito em
+   * verde, ou só a manhã, a tarde ou a noite (fase 278).
    */
   const eventos = useMemo(() => {
     const lista = dados?.eventos ?? [];
-    if (filtro !== 'agora') return lista;
-    const agora = Date.now();
-    const emAberto = lista.filter((e) => !FINALIZADOS.has(e.state));
-    const recentes = lista.filter((e) =>
-      FINALIZADOS.has(e.state) && Math.abs(new Date(e.at).getTime() - agora) < 2 * 3600_000);
-    return [...emAberto, ...recentes].sort((a, b) => a.at.localeCompare(b.at));
-  }, [dados, filtro]);
+    if (filtro === 'pendentes') {
+      return lista.filter((e) => !e.feito && !FINALIZADOS.has(e.state)).sort((a, b) => a.at.localeCompare(b.at));
+    }
+    if (filtro === 'tudo' && parte !== 'dia') return lista.filter((e) => parteDoDia(e.at) === parte);
+    return lista;
+  }, [dados, filtro, parte]);
 
   /* Onde entra o traço do AGORA: antes do primeiro evento que ainda vem. Sem
      evento depois de agora, ou sem nenhum antes, o traço não aparece. */
@@ -408,7 +436,7 @@ export function Dia({ houseId, casaLabel, papel, irPara, alcanca = () => true, p
       <OQueMudou pessoa={pessoa} papel={papel} houseId={houseId} irPara={irPara} alcanca={alcanca} />
 
       <nav className="filtros" aria-label="Filtro do dia">
-        {([['agora', 'Agora'], ['minhas', 'Minhas'], ['tudo', 'Tudo'],
+        {([['pendentes', 'Pendentes'], ['tudo', 'Toda a rotina'], ['minhas', 'Minhas'],
            ['os20', 'Por criança']] as const).map(([cod, label]) => (
           <button key={cod} className={filtro === cod ? 'on' : ''}
                   aria-pressed={filtro === cod} onClick={() => setFiltro(cod)}>
@@ -416,6 +444,16 @@ export function Dia({ houseId, casaLabel, papel, irPara, alcanca = () => true, p
           </button>
         ))}
       </nav>
+      {filtro === 'tudo' && (
+        <nav className="filtros" aria-label="Parte do dia">
+          {([['dia', 'O dia inteiro'], ['manha', 'Manhã'], ['tarde', 'Tarde'], ['noite', 'Noite']] as const).map(([cod, label]) => (
+            <button key={cod} className={parte === cod ? 'on' : ''}
+                    aria-pressed={parte === cod} onClick={() => setParte(cod)}>
+              {label}
+            </button>
+          ))}
+        </nav>
+      )}
 
       {!soLe && filtro !== 'os20' && coletivasAteAgora.length > 0 && !concluindo && (
         <button className="btn sec block" onClick={() => setConcluindo(true)}>
@@ -496,6 +534,11 @@ export function Dia({ houseId, casaLabel, papel, irPara, alcanca = () => true, p
                   linha é o que sobra na impressão em preto e branco. */}
               <div className="catrot">{categoriaDe(ev.kind).rotulo}</div>
               <div className="mutetxt com-cargo">
+                {/* VOCÊ E COLETIVO (fase 278): o que é da pessoa que usa e o que é de quem
+                    estiver no plantão, escrito na linha. */}
+                {meuNome && ev.responsible === meuNome
+                  ? <span className="pill c-info pill-voce">Você</span>
+                  : !ev.responsible && <span className="pill c-mute pill-voce">Coletivo</span>}{' '}
                 {ev.personName ?? 'Casa toda'}{ev.responsible ? ' · ' : ''}
                 {/* O círculo do cargo de quem é responsável (fase 172). O nome
                     continua escrito ao lado: o círculo é apoio, não substituto. */}
@@ -511,6 +554,29 @@ export function Dia({ houseId, casaLabel, papel, irPara, alcanca = () => true, p
                 </span>
               </div>
               {ev.note && <div className="mutetxt">{ev.note}</div>}
+
+              {/* VER DETALHES (fase 278): o resumo do que já existe e a porta para o
+                  registro de origem, sem copiar o registro para cá. */}
+              <button type="button" className="btn sm ghost ver-detalhes" aria-expanded={detalhe === ev.id}
+                      onClick={() => setDetalhe(detalhe === ev.id ? null : ev.id)}>
+                {detalhe === ev.id ? 'Fechar os detalhes' : 'Ver detalhes'}
+              </button>
+              {detalhe === ev.id && (
+                <dl className="detalhes-do-dia">
+                  <dt>Quando</dt><dd>{hhmm(ev.at)}, {categoriaDe(ev.kind).rotulo.toLowerCase()}</dd>
+                  <dt>Situação</dt><dd>{ev.state}</dd>
+                  <dt>Com quem</dt><dd>{ev.personName ?? 'A casa toda'}</dd>
+                  <dt>Responsável</dt><dd>{ev.responsible ?? 'Quem estiver no plantão'}</dd>
+                  {ev.note && <><dt>Anotação</dt><dd>{ev.note}</dd></>}
+                  {ORIGEM[ev.kind] && alcanca(ORIGEM[ev.kind].aba) && (
+                    <dd className="detalhes-origem">
+                      <button type="button" className="btn sm sec" onClick={() => irPara(ORIGEM[ev.kind].aba)}>
+                        {ORIGEM[ev.kind].rotulo}
+                      </button>
+                    </dd>
+                  )}
+                </dl>
+              )}
 
               {!soLe && (ev.actions ?? []).length > 0 && (
                 <div className="acoes">
@@ -820,10 +886,12 @@ export function Dia({ houseId, casaLabel, papel, irPara, alcanca = () => true, p
       {dados && eventos.length === 0 && (
         <div className="card">
           <p className="mutetxt" style={{ margin: 0 }}>
-            {filtro === 'agora'
-              ? 'Nada em aberto agora. Toque em "Tudo" para ver o dia inteiro.'
+            {filtro === 'pendentes'
+              ? 'Nada pendente agora. Toque em Toda a rotina para ver o dia inteiro, com o que já foi feito.'
+              : filtro === 'tudo' && parte !== 'dia'
+                ? 'Nada nesta parte do dia.'
               : filtro === 'minhas'
-                ? 'Nada atribuído a você hoje. O que é do plantão aparece em "Tudo".'
+                ? 'Nada atribuído a você hoje. O que é do plantão aparece em Toda a rotina.'
                 : 'O dia ainda não foi gerado. Fale com o Líder Diurno.'}
           </p>
         </div>

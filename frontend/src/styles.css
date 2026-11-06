@@ -2516,3 +2516,12 @@ button[data-gravando]{ cursor:progress }
 .relogio-topo{ font-size:13px; color:var(--muted); white-space:nowrap; font-variant-numeric:tabular-nums; padding:0 4px }
 .relogio-topo b{ color:var(--titulo); font-weight:700 }
 @media (max-width:420px){ .relogio-topo .relogio-semana{ display:none } .relogio-topo{ font-size:12px; padding:0 2px } }
+
+/* O DIA DA CASA (fase 278): Você e Coletivo na linha, e o Ver detalhes. */
+.linha .pill-voce{ font-size:11.5px; padding:1px 8px; margin-right:2px }
+.linha .ver-detalhes{ align-self:flex-start; margin-top:4px }
+.detalhes-do-dia{ display:grid; grid-template-columns:max-content 1fr; gap:3px 12px; margin:6px 0 0;
+  padding:8px 10px; border-radius:10px; background:var(--surface-2, var(--surface)); border:1px solid var(--line); font-size:13.5px }
+.detalhes-do-dia dt{ color:var(--muted); font-weight:700 }
+.detalhes-do-dia dd{ margin:0; overflow-wrap:anywhere }
+.detalhes-do-dia .detalhes-origem{ grid-column:1 / -1; margin-top:4px }

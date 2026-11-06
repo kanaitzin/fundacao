@@ -275,7 +275,31 @@ await aba('Dia');
  * navegação. Até 09/09/2026 a tela não sabia desenhar nenhuma delas: o evento
  * chegava com "Chamada aberta — 4/12 conferidos" e nada para tocar.
  */
-await clicar(/^Tudo$/);
+/* O DIA DA CASA ABRE EM PENDENTES (fase 278, avaliação de 05/11): o que foi feito sai
+   da lista ativa e continua em Toda a rotina, em verde; e Ver detalhes leva à origem. */
+{
+  const filtros = await pg.locator('nav[aria-label="Filtro do dia"] button').allInnerTexts();
+  cobrar('o Dia da Casa abre em Pendentes, com Toda a rotina ao lado',
+    filtros[0] === 'Pendentes' && filtros.includes('Toda a rotina')
+    && await pg.locator('nav[aria-label="Filtro do dia"] button[aria-pressed="true"]').innerText() === 'Pendentes',
+    JSON.stringify(filtros));
+  cobrar('em Pendentes não aparece o que já foi feito',
+    await pg.locator('ol.linha li.ev.feito').count() === 0);
+  const pendentes = await pg.locator('ol.linha li.ev').count();
+  await clicar(/^Toda a rotina$/);
+  cobrar('Toda a rotina traz o feito em verde, e mais linhas que Pendentes',
+    await pg.locator('ol.linha li.ev.feito-ok').count() > 0 && await pg.locator('ol.linha li.ev').count() > pendentes);
+  await pg.getByRole('button', { name: 'Manhã', exact: true }).click(); await pg.waitForTimeout(400);
+  const manha = await pg.locator('ol.linha li.ev').count();
+  await pg.getByRole('button', { name: 'O dia inteiro', exact: true }).click(); await pg.waitForTimeout(400);
+  cobrar('a manhã é parte do dia', manha > 0 && manha < await pg.locator('ol.linha li.ev').count());
+  await pg.locator('ol.linha .ver-detalhes').first().click(); await pg.waitForTimeout(300);
+  cobrar('Ver detalhes abre o resumo, com quem é responsável e a porta da origem',
+    /Responsável/.test(await pg.locator('.detalhes-do-dia').first().innerText())
+    && await pg.locator('.detalhes-do-dia .detalhes-origem button').count() > 0);
+  await pg.locator('ol.linha .ver-detalhes').first().click(); await pg.waitForTimeout(200);
+}
+await clicar(/^Toda a rotina$/);
 const linhaInteira = await conteudo();
 cobrar('a linha do tempo traz a chamada aberta',
   /Chamada aberta/.test(linhaInteira), linhaInteira.slice(0, 120));
@@ -967,7 +991,7 @@ cobrar('a aba do Dia abre para o educador', await aba('Dia'));
  * rota, que agrupa por criança e onde a ausência é INFORMAÇÃO ("no hospital") e
  * não pendência. Cobrar a linha do dia sem voltar o filtro media a tela errada.
  */
-await clicar(/^Tudo$/);
+await clicar(/^Toda a rotina$/);
 await pg.waitForTimeout(900);
 const dia141 = await conteudo();
 cobrar('a grade do dia perde o horário individual de quem está no hospital',
@@ -1310,7 +1334,7 @@ if (await marcar.count()) {
  */
 await trocar('educador');
 await aba('Dia');
-await clicar(/^Tudo$/);
+await clicar(/^Toda a rotina$/);
 const linhaDoEducador = await conteudo();
 cobrar('a dose chega à linha do tempo do educador',
   /Insulina/i.test(linhaDoEducador), linhaDoEducador.slice(0, 160));
