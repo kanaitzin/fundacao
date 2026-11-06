@@ -177,6 +177,9 @@ export const VOCABULARIO_DA_AUDITORIA: Record<string, string> = {
      alguém precisa saber sobre uma criança, e log não copia conteúdo sensível
      (§5). Ficam na tabela, com RLS. Aqui fica o ATO, e quem o fez. */
   'ata.leitura.pedida': 'Pedido para ler observação restrita de ATA',
+  'ata.escrita.pedida': 'Pedido para escrever na ATA de outro turno',
+  'ata.escrita.autorizada': 'Pedido para escrever na ATA autorizado',
+  'ata.escrita.recusada': 'Pedido para escrever na ATA recusado',
   'ata.leitura.liberada': 'Leitura de observação restrita liberada',
   'ata.leitura.negada': 'Leitura de observação restrita negada',
   'ata.leitura.revogada': 'Liberação de leitura de observação restrita retirada',

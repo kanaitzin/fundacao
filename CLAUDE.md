@@ -199,7 +199,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 06/11/2026, fase 280
+### Onde estamos — 06/11/2026, fase 281
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -343,8 +343,9 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 278 | **O Dia da Casa organizado** (avaliação de 05/11, módulo 11): abre em *Pendentes* (o feito sai da lista ativa e não do registro), *Toda a rotina* com o dia inteiro ou manhã, tarde e noite, *Você* e *Coletivo* na linha, e *Ver detalhes* com o resumo e a porta do registro de origem (`ORIGEM` no `Dia.tsx`); sem rota nova |
 | 279 | **a escala em calendário** (avaliação de 05/11, módulo 12): o período em grade (`GradeDaEscala` no `Escala.tsx`), cada dia com quantos de dia e de noite e *falta* no turno vazio, um dia aberto por vez com o líder do turno; datas em botões compactos; sem rota nova |
 | 280 | **a agenda com o compromisso inteiro** (avaliação de 05/11, módulo 12): cada data com quem, tipo, início e fim, duração, saída, local, endereço, responsável e situação; o responsável chega a cada data (`agenda.service.ts`, pelo `app_user_display_name`); o período em grade (`GradeDaAgenda`); até um ano à frente |
+| 281 | **quem escreve na ATA de outro turno** (avaliação de 05/11, módulo 10; decidido em 06/11): escreve quem está na escala do turno, mais técnica, coordenação, Enfermagem e o líder do turno; sem escala lançada, ninguém é travado; os outros pedem e o líder do turno ou a coordenação autoriza ou recusa (`ata_write_request`, `app_pode_escrever_na_ata`, gatilho na `ata_note`, shifts/1673) |
 
-**Medido no fim da 277:** 212 migrações, 146 tabelas, 166 suítes, 1441 testes; nas 237 e 238, a suíte inteira
+**Medido no fim da 277:** 213 migrações, 147 tabelas, 167 suítes, 1446 testes; nas 237 e 238, a suíte inteira
 verde (1363 de 1363, depois de consertar as três conferências que o relatório das vivências deixou soltas) e o
 `ensaio:uso` (739 cobranças, sem reprovação, com o relatório das vivências aberto e o Word baixado); **não rodou**
 nas 237 e 238 o relógio adiantado, o do celular, o de acessibilidade, o `ensaio:acolhe` nem a simulação contra o servidor;
@@ -467,6 +468,11 @@ o item respondido sai do §0.
    ele cadastrar as coordenações das outras casas. **A Acolhe+AI do 1.0 começa em modo guia** (custo zero); o modelo (o
    Claude com chave, ou o computador do Pão) é o 2.0. O protótipo continua no GitHub Pages para mostrar, e o 1.0 fica um mês
    com eles. **Publicar o 1.0 é deploy: fazer só quando ela pedir, e com o que ela mandar (e-mail do Marcelo, senha de app).**
+
+**FEITO — fase 281** (§2): quem escreve na ATA de outro turno. **Regra nova de quem escreve na ATA** mora em
+`app_pode_escrever_na_ata` (o gatilho da `ata_note` e a tela leem a mesma) e no `podeEscreverNaAta` do protótipo.
+**Suíte que escreve linha na ATA** como educador numa data com escala lançada põe o educador na escala ou escreve
+como técnica. **Medido na 281:** a `quem-escreve-na-ata-de-outro-turno` (5 de 5). MEDIDO_281
 
 **FEITO — fase 280** (§2): a agenda com o compromisso inteiro. **Medido na 280:** o `agenda` (12 de 12, com o
 responsável da data lido pela técnica, que não é a nomeada), o `desmarcar-ocorrencia` e a sonda a 390 px como técnica

@@ -208,6 +208,7 @@ Ninguém no sistema é anônimo e nada se apaga: tudo tem autor e histórico.
 - /shifts/abertas?houseId=  ATAs ainda abertas
 - /shifts/ata-archive?houseId=&escala=&data=  arquivo das ATAs (escala dia, semana, mes ou 30dias; o calendário pede o mês)
 - /shifts/ata-read-requests?houseId=  pedidos de leitura da ATA restrita
+- /shifts/ata/ID/write-requests  se a pessoa escreve nesta ATA e os pedidos para escrever fora do turno
 - /shifts/ata-sections  seções da ATA
 - /shifts/ata/ID/addenda  adendos de uma ATA
 - /shifts/general-ata/ID  a ATA Geral

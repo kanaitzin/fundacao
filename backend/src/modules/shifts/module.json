@@ -23,6 +23,7 @@
     "ata_note",
     "ata_note_attachment",
     "ata_read_request",
+    "ata_write_request",
     "general_night_ata",
     "general_night_house_amendment",
     "general_night_house_entry",

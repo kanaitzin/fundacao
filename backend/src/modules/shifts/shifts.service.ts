@@ -50,6 +50,9 @@ const O_ANEXO_DA_ATA: RegraDoArquivo = {
   },
 };
 
+/** A recusa de quem não está na escala do turno (fase 281). */
+const FORA_DO_TURNO = 'Você não está na escala deste turno. Peça para escrever nesta ATA: o líder do turno ou a coordenação autoriza.';
+
 @Injectable()
 export class ShiftsService {
   constructor(
@@ -577,6 +580,9 @@ export class ShiftsService {
         return r.id as string;
       });
     } catch (e: any) {
+      if (String(e?.message ?? '').includes('fora_do_turno_da_ata')) {
+        throw new ForbiddenException(FORA_DO_TURNO);
+      }
       if (e?.code === '42501' || /row-level security/i.test(e?.message ?? '')) {
         /* Duas recusas caem aqui, e a frase diz qual: escrever em nome de
          * outro, e marcar como restrita sem poder relê-la depois. */
@@ -1517,8 +1523,97 @@ export class ShiftsService {
   }
 
   /** As recusas do banco em português, num lugar só. */
+  // ==================================================================
+  // QUEM ESCREVE NA ATA DE OUTRO TURNO (1673, fase 281, decisão de 06/11)
+  // ==================================================================
+
+  /** Se quem pergunta escreve nesta ATA, se decide os pedidos dela, e os pedidos. */
+  async pedidosDeEscrita(user: AuthenticatedUser, ataId: string) {
+    const r = await this.db.asUser(user.id, async (c) => {
+      const { rows: [a] } = await c.query(
+        `SELECT a.id, a.period, app_pode_escrever_na_ata(a.id) AS pode,
+                app_decide_escrita_na_ata(a.period) AS decide
+           FROM ata a WHERE a.id = $1`, [ataId]);
+      if (!a) return null;
+      const { rows } = await c.query(
+        `SELECT r.id, app_user_display_name(r.requested_by) AS quem, r.requested_by,
+                r.request_reason, r.requested_at, r.granted,
+                app_user_display_name(r.decided_by) AS decidiu, r.decided_at, r.decision_reason
+           FROM ata_write_request r
+          WHERE r.ata_id = $1 AND ($2 OR r.requested_by = app_current_user())
+          ORDER BY r.requested_at DESC`, [ataId, a.decide]);
+      return { a, rows };
+    });
+    if (!r) throw new NotFoundException('Não encontrado, ou fora do seu alcance.');
+    return {
+      podeEscrever: r.a.pode === true, decide: r.a.decide === true,
+      pedidos: r.rows.map((x: any) => ({
+        id: x.id, quem: x.quem, motivo: x.request_reason, pedidoEm: x.requested_at,
+        situacao: x.granted === null ? 'esperando' : x.granted ? 'autorizado' : 'recusado',
+        decidiu: x.decidiu, decididoEm: x.decided_at, motivoDaDecisao: x.decision_reason,
+      })),
+    };
+  }
+
+  /** Pedir para escrever numa ATA de turno em que a pessoa não está na escala. */
+  async pedirEscritaNaAta(user: AuthenticatedUser, ataId: string, motivo: string) {
+    const id = await this.db.asUser(user.id, async (c) => {
+      const { rows: [r] } = await c.query(
+        `SELECT app_pedir_escrita_na_ata($1,$2) AS id`, [ataId, motivo ?? null]);
+      return r.id as string;
+    }).catch((e: any) => { throw this.emPortugues(e); });
+    const casa = await this.casaDaAta(user, ataId);
+    const periodo = await this.db.asUser(user.id, async (c) =>
+      (await c.query(`SELECT period FROM ata WHERE id = $1`, [ataId])).rows[0]?.period as string);
+    await this.audit.log({
+      action: 'ata.escrita.pedida', actorId: user.id, houseId: casa,
+      entity: 'ata_write_request', entityId: id, detail: { ataId, cargo: user.role },
+    });
+    const corpo = `${user.fullName} pediu para escrever na ATA de um turno em que não está na escala. `
+      + 'O motivo está no pedido. Quem autoriza ou recusa é o líder do turno ou a coordenação.';
+    await this.bus.publish('escalation.requested', {
+      level: periodo === 'noturno' ? 'lider_noturno' : 'lider',
+      entity: 'ata_write_request', entityId: id,
+      reason: 'pedido para escrever na ATA de outro turno', title: 'Pedido para escrever na ATA',
+      body: corpo, priority: 'normal', groupKey: `ata-write:${id}:lider`,
+    }, { houseId: casa });
+    await this.bus.publish('escalation.requested', {
+      level: 'tecnica_coordenacao',
+      entity: 'ata_write_request', entityId: id,
+      reason: 'pedido para escrever na ATA de outro turno', title: 'Pedido para escrever na ATA',
+      body: corpo, priority: 'normal', groupKey: `ata-write:${id}:coordenacao`,
+    }, { houseId: casa });
+    return { id, aviso: 'Pedido registrado, com o seu motivo. O líder do turno ou a coordenação responde, e a resposta aparece aqui.' };
+  }
+
+  /** Autorizar ou recusar: o líder do turno ou a coordenação, com o nome e a hora. */
+  async decidirEscritaNaAta(user: AuthenticatedUser, pedidoId: string, autoriza: boolean, motivo: string) {
+    if (typeof autoriza !== 'boolean') throw new BadRequestException('Diga se o pedido está autorizado ou recusado.');
+    const casa = await this.db.asUser(user.id, async (c) => {
+      const { rows: [r] } = await c.query(
+        `SELECT app_decidir_escrita_na_ata($1,$2,$3) AS casa`, [pedidoId, autoriza, motivo ?? null]);
+      return r?.casa as string;
+    }).catch((e: any) => { throw this.emPortugues(e); });
+    await this.audit.log({
+      action: autoriza ? 'ata.escrita.autorizada' : 'ata.escrita.recusada',
+      actorId: user.id, houseId: casa ?? null,
+      entity: 'ata_write_request', entityId: pedidoId, detail: { cargo: user.role },
+    });
+    return { ok: true, aviso: autoriza
+      ? 'Autorizado, com o seu nome. A pessoa passa a escrever nesta ATA, e em mais nenhuma.'
+      : 'Recusado, com o seu nome. Quem pediu lê a resposta.' };
+  }
+
   private emPortugues(e: any): Error {
     const m = String(e?.message ?? '');
+    if (m.includes('ja_pode_escrever')) return new BadRequestException('Você já escreve nesta ATA.');
+    if (m.includes('pedido_ja_feito')) return new BadRequestException('O seu pedido para esta ATA já está esperando resposta.');
+    if (m.includes('motivo_curto')) return new BadRequestException('Escreva o motivo do pedido.');
+    if (m.includes('ata_ja_fechada')) return new BadRequestException('Esta ATA já foi fechada. Para acrescentar, use o adendo.');
+    if (m.includes('pedido_ja_decidido')) return new BadRequestException('Este pedido já foi respondido.');
+    if (m.includes('sem_permissao_decidir_escrita')) {
+      return new ForbiddenException('Quem autoriza é o líder deste turno ou a coordenação.');
+    }
     if (m.includes('fora_de_escopo')) {
       return new ForbiddenException('Esta casa não está no seu alcance.');
     }

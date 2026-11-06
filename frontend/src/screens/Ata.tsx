@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { dia, cargo } from '../rotulos';
 import { ConvivenciasDoTurno, ConvivenciaDoTurno } from '../convivencias';
 import { api } from '../api';
@@ -1046,6 +1046,7 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
                 )}
 
                 {papel !== SO_LE_A_ATA && !lendoAnterior && plantao.ata && ['rascunho', 'reaberta'].includes(plantao.ata.status) && (
+                  <QuemEscreveNaAta ataId={plantao.ata.id}>
                   <div className="card stack">
                     <label className="f" htmlFor="linha-ata">
                       Escrever uma linha <small>(fica com o seu nome)</small>
@@ -1082,6 +1083,7 @@ export function Ata({ houseId, papel, casaLabel = 'Casa 03 (piloto)' }: {
                         : 'Registrar linha'}
                     </button>
                   </div>
+                  </QuemEscreveNaAta>
                 )}
 
                 {/*
@@ -2198,5 +2200,90 @@ function SituacaoDoPedido({ pedido }: { pedido: PedidoDeLeitura }) {
     <div className="notice c-warn" role="status">
       A liberação foi retirada por {pedido.retiradoPor}: {pedido.motivoDaRetirada}
     </div>
+  );
+}
+
+/**
+ * QUEM ESCREVE NA ATA DE OUTRO TURNO (fase 281, decisão de 06/11).
+ *
+ * Quem está na escala do turno (e a técnica, a coordenação, a Enfermagem e o líder
+ * do turno) vê a caixa da linha. Quem não está vê o pedido: escreve o motivo, e o
+ * líder do turno ou a coordenação autoriza ou recusa, com o nome e a hora. Quem
+ * decide vê os pedidos desta ATA logo acima da caixa.
+ */
+interface PedidoDeEscrita {
+  id: string; quem: string; motivo: string; pedidoEm: string;
+  situacao: 'esperando' | 'autorizado' | 'recusado';
+  decidiu: string | null; decididoEm: string | null; motivoDaDecisao: string | null;
+}
+function QuemEscreveNaAta({ ataId, children }: { ataId: string; children: React.ReactNode }) {
+  const [estado, setEstado] = useState<{ podeEscrever: boolean; decide: boolean; pedidos: PedidoDeEscrita[] } | null>(null);
+  const [motivo, setMotivo] = useState('');
+  const [aviso, setAviso] = useState('');
+  const [erro, setErro] = useState('');
+  const carregar = useCallback(async () => {
+    try { setEstado(await api(`/shifts/ata/${ataId}/write-requests`)); }
+    catch { setEstado({ podeEscrever: true, decide: false, pedidos: [] }); }
+  }, [ataId]);
+  useEffect(() => { void carregar(); }, [carregar]);
+  const hora = (iso: string | null) => (iso ? new Date(iso).toLocaleString('pt-BR', {
+    timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '');
+  if (!estado) return null;
+  const esperando = estado.pedidos.filter((x) => x.situacao === 'esperando');
+  const decidir = async (id: string, autoriza: boolean) => {
+    setErro(''); setAviso('');
+    try {
+      const r = await api<{ aviso: string }>(`/shifts/ata-write-requests/${id}/decide`, { method: 'POST', body: JSON.stringify({ autoriza }) });
+      setAviso(r.aviso); await carregar();
+    } catch (e) { setErro(e instanceof Error ? e.message : 'Não foi possível responder.'); }
+  };
+  return (
+    <>
+      {erro && <div className="notice c-crit" role="alert">{erro}</div>}
+      {aviso && <div className="notice c-ok" role="status">{aviso}</div>}
+      {estado.decide && esperando.length > 0 && (
+        <div className="card stack">
+          <b className="ff">Pedidos para escrever nesta ATA</b>
+          {esperando.map((x) => (
+            <div key={x.id} className="bloco">
+              <div><b>{x.quem}</b> <span className="mutetxt">· {hora(x.pedidoEm)}</span></div>
+              <div className="mutetxt">{x.motivo}</div>
+              <div className="row" style={{ gap: 8, marginTop: 6 }}>
+                <button className="btn sm" onClick={() => decidir(x.id, true)}>Autorizar</button>
+                <button className="btn sm sec" onClick={() => decidir(x.id, false)}>Recusar</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      {estado.podeEscrever ? children : (
+        <div className="card stack">
+          <b className="ff">Você não está na escala deste turno</b>
+          <p className="mutetxt" style={{ margin: 0 }}>
+            Para escrever nesta ATA, peça ao líder do turno ou à coordenação. O pedido e a resposta ficam registrados.
+          </p>
+          {estado.pedidos.map((x) => (
+            <div key={x.id} className={`notice ${x.situacao === 'autorizado' ? 'c-ok' : x.situacao === 'recusado' ? 'c-warn' : 'c-info'}`}>
+              Pedido de {hora(x.pedidoEm)}: {x.situacao === 'esperando' ? 'esperando resposta.'
+                : `${x.situacao} por ${x.decidiu} em ${hora(x.decididoEm)}${x.motivoDaDecisao ? `. ${x.motivoDaDecisao}` : '.'}`}
+            </div>
+          ))}
+          {!estado.pedidos.some((x) => x.situacao === 'esperando') && (
+            <>
+              <label className="f" htmlFor="pedido-escrita">Por que você precisa escrever neste turno?</label>
+              <textarea id="pedido-escrita" rows={2} value={motivo} onChange={(e) => setMotivo(e.target.value)}
+                        placeholder="Ex.: fiquei até as 21h e acompanhei a volta do Bruno da visita." />
+              <button className="btn block" disabled={motivo.trim().length < 5} onClick={async () => {
+                setErro(''); setAviso('');
+                try {
+                  const r = await api<{ aviso: string }>(`/shifts/ata/${ataId}/write-request`, { method: 'POST', body: JSON.stringify({ motivo: motivo.trim() }) });
+                  setAviso(r.aviso); setMotivo(''); await carregar();
+                } catch (e) { setErro(e instanceof Error ? e.message : 'Não foi possível pedir.'); }
+              }}>Pedir para escrever neste turno</button>
+            </>
+          )}
+        </div>
+      )}
+    </>
   );
 }

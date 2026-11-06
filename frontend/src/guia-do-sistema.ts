@@ -140,6 +140,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 281, dia: '06/11/2026', aba: 'ata',
+    texto: 'Quem escreve na ATA de outro turno: na ATA de cada turno escreve quem está na escala dele, e também a equipe técnica, a coordenação, a Enfermagem e o líder do turno. Quem não está na escala toca em Pedir para escrever neste turno e diz o motivo; o líder do turno ou a coordenação vê o pedido na própria ATA e autoriza ou recusa, e as duas coisas ficam registradas com o nome e a hora. Sem escala lançada no turno, ninguém é travado. Ler continua como era.' },
   { fase: 280, dia: '06/11/2026', aba: 'agenda',
     texto: 'A agenda com o compromisso inteiro: cada data diz com quem, o tipo, o horário de início e de fim com a duração, a hora de sair da casa, o local, o endereço, quem responde (o nome, ou quem estiver no plantão) e se está marcado ou desmarcado. Em cima, o período em grade, com quantos compromissos tem cada dia, e o toque leva até o dia. Ver mais 30 dias vai até um ano à frente.' },
   { fase: 279, dia: '06/11/2026', aba: 'escala',

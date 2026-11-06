@@ -101,6 +101,7 @@ const MAPA: Record<string, string> = {
   '/nursing/hospitalizations/:id/notes/:notaId/anexos/:anexoId#notaId': 'hospitalization_note',
   '/nursing/hospitalizations/:id/notes/:notaId/anexos/:anexoId#anexoId': 'hospitalization_note_attachment',
   '/shifts/ata-notes/attachments/:anexoId/file#anexoId': 'ata_note_attachment',
+  '/shifts/ata/:ataId/write-requests#ataId': 'ata',
   '/people/kitchen-requests/:id/history#id': 'kitchen_request',
   '/people/portaria/visitante/:contactId/foto#contactId': 'person_contact',
   '/people/technical-sessions/attachments/:anexoId/file#anexoId': 'technical_session_attachment',

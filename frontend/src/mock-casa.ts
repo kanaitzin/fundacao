@@ -2274,6 +2274,16 @@ const ESCALA: EscalaMock[] = (() => {
         revogadaEm: null, motivoRevogacao: null, revogadaPor: null });
     }
   }
+  /* O EDUCADOR DA DEMONSTRAÇÃO NO TURNO ABERTO (fase 281): o Mário está na escala de
+     hoje nos dois turnos e na noite de ontem, para escrever na ATA aberta a qualquer
+     hora; na ATA do sábado, em que não está, ele vê o pedido para escrever. */
+  for (const [d, turno] of [[0, 'diurno'], [0, 'noturno'], [-1, 'noturno']] as const) {
+    const data = diaRelativo(d);
+    if (!out.some((e) => e.userId === 'u1' && e.data === data && e.turno === turno)) {
+      out.push({ id: `esc-${++n}`, ...gente[0], data, turno,
+        inicio: null, fim: null, nota: null, revogadaEm: null, motivoRevogacao: null, revogadaPor: null });
+    }
+  }
   /* Uma retirada, para a demonstração mostrar que nada some: a linha fica
      riscada, com quem retirou e o motivo. */
   out.push({ id: 'esc-ret-1', userId: 'u6', quem: 'Joana Lima', cargo: 'educador',
@@ -2372,6 +2382,38 @@ const PEDIDOS_DE_LEITURA: PedidoLeituraMock[] = [
 const DECIDE_LEITURA = ['equipe_tecnica', 'coordenador', 'lider_diurno'];
 
 /** A liberação VIVA desta pessoa para esta ATA. */
+/*
+ * QUEM ESCREVE NA ATA DE OUTRO TURNO (fase 281, decisão de 06/11): a mesma regra de
+ * `app_pode_escrever_na_ata` (shifts/1673). Escrevem sem pedir a técnica, a
+ * coordenação, a Enfermagem, o líder do próprio turno e quem está na escala dele;
+ * sem escala lançada no turno, ninguém é travado; os outros pedem, e o líder do
+ * turno ou a coordenação autoriza ou recusa.
+ */
+interface PedidoDeEscrita {
+  id: string; ataId: string; quemId: string; quem: string; motivo: string; em: string;
+  autorizado: boolean | null; decidiu: string | null; decididoEm: string | null; motivoDaDecisao: string | null;
+}
+const PEDIDOS_DE_ESCRITA: PedidoDeEscrita[] = [];
+function turnoDaAta(ataId: string): { data: string; turno: string } | null {
+  const a = ATAS.find((x) => x.id === ataId);
+  const p = a && PLANTOES.find((x) => x.id === a.plantaoId);
+  return p ? { data: p.data ?? HOJE, turno: p.turno } : null;
+}
+function podeEscreverNaAta(ataId: string, papel: string, quemId: string): boolean {
+  if (['equipe_tecnica', 'coordenador', 'enfermagem'].includes(papel)) return true;
+  const t = turnoDaAta(ataId);
+  if (!t) return true;
+  if ((t.turno === 'diurno' && papel === 'lider_diurno') || (t.turno === 'noturno' && papel === 'lider_noturno_geral')) return true;
+  const doTurno = ESCALA.filter((e) => e.data === t.data && e.turno === t.turno && !e.revogadaEm);
+  if (!doTurno.length || doTurno.some((e) => e.userId === quemId)) return true;
+  return PEDIDOS_DE_ESCRITA.some((x) => x.ataId === ataId && x.quemId === quemId && x.autorizado === true);
+}
+function decideEscritaNaAta(ataId: string, papel: string): boolean {
+  const t = turnoDaAta(ataId);
+  return papel === 'coordenador' || (t?.turno === 'diurno' && papel === 'lider_diurno')
+    || (t?.turno === 'noturno' && papel === 'lider_noturno_geral');
+}
+
 function temLiberacao(ataId: string, quemId: string) {
   return PEDIDOS_DE_LEITURA.some((x) => x.ataId === ataId && x.quemId === quemId
     && x.liberado === true && !x.retiradoEm);
@@ -8211,7 +8253,47 @@ function responder(rota: string, seg: string[], q: URLSearchParams,
     }
     return { nome: x.nome, tipo: x.tipo, conteudo: x.conteudo };
   }
+  if (seg[0] === 'shifts' && seg[1] === 'ata' && seg[3] === 'write-requests' && metodo === 'GET') {
+    const decide = decideEscritaNaAta(seg[2], eu.role);
+    return {
+      podeEscrever: podeEscreverNaAta(seg[2], eu.role, eu.id), decide,
+      pedidos: PEDIDOS_DE_ESCRITA.filter((x) => x.ataId === seg[2] && (decide || x.quemId === eu.id))
+        .slice().reverse().map((x) => ({
+          id: x.id, quem: x.quem, motivo: x.motivo, pedidoEm: x.em,
+          situacao: x.autorizado === null ? 'esperando' : x.autorizado ? 'autorizado' : 'recusado',
+          decidiu: x.decidiu, decididoEm: x.decididoEm, motivoDaDecisao: x.motivoDaDecisao,
+        })),
+    };
+  }
+  if (seg[0] === 'shifts' && seg[1] === 'ata' && seg[3] === 'write-request' && metodo === 'POST') {
+    if (eu.role === 'gestor_geral') return new Recusa(403, 'O Gestor Geral lê a ATA e não registra nela.');
+    if (podeEscreverNaAta(seg[2], eu.role, eu.id)) return new Recusa(400, 'Você já escreve nesta ATA.');
+    const motivo = String(b.motivo ?? '').trim();
+    if (motivo.length < 5) return new Recusa(400, 'Escreva o motivo do pedido.');
+    if (PEDIDOS_DE_ESCRITA.some((x) => x.ataId === seg[2] && x.quemId === eu.id && x.autorizado === null)) {
+      return new Recusa(400, 'O seu pedido para esta ATA já está esperando resposta.');
+    }
+    const id = uid();
+    PEDIDOS_DE_ESCRITA.push({ id, ataId: seg[2], quemId: eu.id, quem: eu.fullName, motivo,
+      em: new Date().toISOString(), autorizado: null, decidiu: null, decididoEm: null, motivoDaDecisao: null });
+    return { id, aviso: 'Pedido registrado, com o seu motivo. O líder do turno ou a coordenação responde, e a resposta aparece aqui.' };
+  }
+  if (seg[0] === 'shifts' && seg[1] === 'ata-write-requests' && seg[3] === 'decide' && metodo === 'POST') {
+    const pedido = PEDIDOS_DE_ESCRITA.find((x) => x.id === seg[2]);
+    if (!pedido) return new Recusa(404, 'Não encontrado, ou fora do seu alcance.');
+    if (!decideEscritaNaAta(pedido.ataId, eu.role)) return new Recusa(403, 'Quem autoriza é o líder deste turno ou a coordenação.');
+    if (pedido.autorizado !== null) return new Recusa(400, 'Este pedido já foi respondido.');
+    if (typeof b.autoriza !== 'boolean') return new Recusa(400, 'Diga se o pedido está autorizado ou recusado.');
+    pedido.autorizado = b.autoriza; pedido.decidiu = eu.fullName;
+    pedido.decididoEm = new Date().toISOString(); pedido.motivoDaDecisao = String(b.motivo ?? '').trim() || null;
+    return { ok: true, aviso: b.autoriza
+      ? 'Autorizado, com o seu nome. A pessoa passa a escrever nesta ATA, e em mais nenhuma.'
+      : 'Recusado, com o seu nome. Quem pediu lê a resposta.' };
+  }
   if (seg[0] === 'shifts' && seg[1] === 'ata' && seg[3] === 'notes' && metodo === 'POST') {
+    if (!podeEscreverNaAta(seg[2], eu.role, eu.id)) {
+      return new Recusa(403, 'Você não está na escala deste turno. Peça para escrever nesta ATA: o líder do turno ou a coordenação autoriza.');
+    }
     const texto = String(b.texto ?? '').trim();
     if (texto.length < 3) return new Recusa(400, 'Escreva a linha antes de registrar.');
     const restrita = b.restrita === true;

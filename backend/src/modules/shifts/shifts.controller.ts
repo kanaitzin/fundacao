@@ -47,6 +47,27 @@ export class ShiftsController {
     return this.shifts.pedidosDeLeitura(user, houseId);
   }
 
+  /** QUEM ESCREVE NA ATA DE OUTRO TURNO (fase 281). Palavras fixas, antes do `@Get(':id')`. */
+  @Get('ata/:ataId/write-requests')
+  pedidosDeEscrita(@CurrentUser() user: AuthenticatedUser,
+                   @Param('ataId', ParseUUIDPipe) ataId: string) {
+    return this.shifts.pedidosDeEscrita(user, ataId);
+  }
+
+  @Post('ata/:ataId/write-request')
+  @OGestorSoLe()
+  pedirEscrita(@CurrentUser() user: AuthenticatedUser,
+               @Param('ataId', ParseUUIDPipe) ataId: string, @Body() body: any) {
+    return this.shifts.pedirEscritaNaAta(user, ataId, body?.motivo ?? '');
+  }
+
+  @Post('ata-write-requests/:id/decide')
+  @OGestorSoLe()
+  decidirEscrita(@CurrentUser() user: AuthenticatedUser,
+                 @Param('id', ParseUUIDPipe) id: string, @Body() body: any) {
+    return this.shifts.decidirEscritaNaAta(user, id, body?.autoriza, body?.motivo ?? '');
+  }
+
   @Post('ata/:ataId/read-request')
   pedirLeitura(@CurrentUser() user: AuthenticatedUser,
                @Param('ataId', ParseUUIDPipe) ataId: string, @Body() body: any) {
