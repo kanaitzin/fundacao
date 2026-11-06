@@ -475,7 +475,7 @@ o item respondido sai do §0.
 **FEITO — fase 284** (§2): os atendimentos técnicos do módulo 08. **Campo novo no atendimento** entra no
 `listar`, no `exportar` (o Word) e no `ATENDIMENTOS_TECNICOS` do protótipo; **rota nova no `people.controller`**
 confere que o `@RegistroDaRota` continua colado na rota que ele guardava (a 284 o separou da lista, e a Casa 04
-recebia 200). **Medido na 284:** MEDIDO_284.
+recebia 200). **Medido na 284:** a `o-atendimento-da-equipe-tecnica` (10 de 10), a suíte inteira (1469 de 1471; as duas reprovações eram conferências estáticas da própria 284, o JOIN sem justificativa e a exportação sem o `CorpoConferido`, consertadas e conferidas, 32 de 32), o `ensaio:uso` sobre o protótipo novo (846 cobranças, sem reprovação, depois de trocar *Serviço social* e abrir os arquivos pelo cartão), o do celular (322 telas, sem achado) e a sonda a 390 px (a técnica registra um atendimento externo com o local e quem atendeu, junta arquivo e baixa o Word; a coordenação baixa; nenhum erro). **Não rodou** o relógio adiantado.
 **Próxima: 285**, o Judiciário em blocos (módulo 09); depois a Cozinha por refeição (13) e o sigilo por registro
 de saúde.
 
