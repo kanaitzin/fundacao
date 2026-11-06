@@ -1323,7 +1323,10 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
         * uma irmã na Casa 01 e que chegou sem nada além da roupa do corpo.
         */}
       {aba === 'judiciario' && acolhimento && (
-        <Secao titulo="Como ela chegou">
+        <BlocoQueAbre chave="chegada" titulo="Como ela chegou"
+          resumo={[`Entrada em ${dia(acolhimento.ingressoEm)}`,
+                   acolhimento.conduzidoPor ? `trazida por ${acolhimento.conduzidoPor}` : null,
+                   acolhimento.municipioOrigem].filter(Boolean).join(', ')}>
           <ul className="lista">
             <li>
               <b className="ff">{dia(acolhimento.ingressoEm)}</b>
@@ -1367,7 +1370,7 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
               {acolhimento.cadastradoEm ? ` em ${dia(String(acolhimento.cadastradoEm).slice(0, 10))}` : ''}.
             </p>
           )}
-        </Secao>
+        </BlocoQueAbre>
       )}
 
       {/*
@@ -1379,7 +1382,8 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
         * de um perfil, e era justamente onde não aparecia (fase 116).
         */}
       {aba === 'judiciario' && p.episodios && p.episodios.length > 1 && (
-        <Secao titulo="Episódios de acolhimento">
+        <BlocoQueAbre chave="episodios" titulo="Episódios de acolhimento"
+          resumo={`${quantos(p.episodios.length, 'passagem', 'passagens')} pela instituição, ${p.episodios.some((e) => !e.ended_at) ? 'esta em curso' : 'todas encerradas'}`}>
           <p className="mutetxt" style={{ marginTop: 0 }}>
             Esta criança já esteve acolhida antes. O que aconteceu em cada passagem continua
             no registro dela — reacolhimento não recomeça a história do zero.
@@ -1396,7 +1400,7 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
               </li>
             ))}
           </ul>
-        </Secao>
+        </BlocoQueAbre>
       )}
 
       {aba === 'judiciario' && VE_JUDICIAL.includes(papel) && (
@@ -1434,6 +1438,8 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
           )}
           {judicial && (
             <>
+              <BlocoQueAbre chave="situacao" titulo="Situação e motivo" aberto
+                resumo={judicial.situacao ? 'A situação de hoje e o motivo do acolhimento' : 'O motivo do acolhimento'}>
               {/* A SITUAÇÃO vem primeiro, e é o que mais muda: audiência
                   concentrada, decisão nova, reavaliação marcada. O servidor
                   devolvia este campo desde a fase 0 e a tela nunca o desenhou
@@ -1448,6 +1454,10 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
                 <small>Motivo</small>{judicial.motivo}
               </p>
               {judicial.detalhe && <p className="bloco"><small>Detalhe</small>{judicial.detalhe}</p>}
+              {judicial.observacoes && <p className="bloco"><small>Observações</small>{judicial.observacoes}</p>}
+              </BlocoQueAbre>
+              <BlocoQueAbre chave="processo" titulo="Medida e processo"
+                resumo={[judicial.medida, judicial.vara ?? judicial.orgao].filter(Boolean).join(', ')}>
               <ul className="lista">
                 <li><b className="ff">{judicial.medida}</b><div className="mutetxt">medida</div></li>
                 <li><b className="ff">{judicial.orgao}</b><div className="mutetxt">órgão determinante</div></li>
@@ -1464,7 +1474,7 @@ function Perfil({ personId, houseId, papel, onVoltar }: {
                   </li>
                 )}
               </ul>
-              {judicial.observacoes && <p className="bloco"><small>Observações</small>{judicial.observacoes}</p>}
+              </BlocoQueAbre>
               {/* A situação judicial MUDA — audiência concentrada, decisão
                   nova, processo que trocou de vara. O motivo do acolhimento e
                   a medida não se editam por aqui: eles são do episódio. */}
@@ -2391,6 +2401,30 @@ function HistoricoDeSaude({ personId, nome }: { personId: string; nome: string }
         </button>
       )}
     </Secao>
+  );
+}
+
+/**
+ * O BLOCO QUE ABRE (fase 285, avaliação de 05/11, módulo 09: o Judiciário em blocos que se
+ * abrem). O título e uma linha do que tem dentro ficam à vista; o resto abre no toque, com o
+ * triângulo dos vínculos educacionais (282). Fechado não apaga nada: só tira da frente.
+ */
+function BlocoQueAbre({ titulo, resumo, aberto: inicial = false, chave, children }: {
+  titulo: string; resumo?: React.ReactNode; aberto?: boolean; chave: string; children: React.ReactNode;
+}) {
+  const [aberto, setAberto] = useState(inicial);
+  return (
+    <section className="passagem bloco-que-abre" data-bloco={chave}>
+      <button type="button" className="bloco-cabeca vinculo-cabeca" aria-expanded={aberto}
+              aria-controls={`bloco-${chave}`} onClick={() => setAberto(!aberto)}>
+        <span className="vinculo-triangulo" aria-hidden="true">▸</span>
+        <span className="vinculo-resumo">
+          <b>{titulo}</b>
+          {resumo && <span className="mutetxt">{resumo}</span>}
+        </span>
+      </button>
+      {aberto && <div className="bloco-corpo" id={`bloco-${chave}`}>{children}</div>}
+    </section>
   );
 }
 
@@ -4882,7 +4916,15 @@ function OficiosDoAcolhido({ personId }: { personId: string }) {
 
   if (!linhas || linhas.length === 0) return null;
   return (
-    <Secao titulo="Comunicações a órgãos externos">
+    <BlocoQueAbre chave="oficios" titulo="Comunicações a órgãos externos"
+      resumo={(() => {
+        const ultimo = maisNovoEmCima(linhas, (o) => o.quando)[0];
+        const pendentes = linhas.filter((o) => o.status !== 'entregue_manualmente').length;
+        return [quantos(linhas.length, 'ofício', 'ofícios'),
+                ultimo?.quando ? `o último em ${dia(String(ultimo.quando).slice(0, 10))}` : null,
+                pendentes ? `${quantos(pendentes, 'ainda não entregue', 'ainda não entregues')}` : null]
+          .filter(Boolean).join(', ');
+      })()}>
       <p className="mutetxt" style={{ marginTop: 0 }}>
         Ofícios redigidos sobre esta criança. A entrega é feita pelo canal de costume da
         instituição, e fica registrada aqui com o nome de quem entregou.
@@ -4908,7 +4950,7 @@ function OficiosDoAcolhido({ personId }: { personId: string }) {
           </li>
         ))}
       </ul>
-    </Secao>
+    </BlocoQueAbre>
   );
 }
 

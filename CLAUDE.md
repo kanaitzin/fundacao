@@ -199,7 +199,7 @@ e qual é o caminho certo.
 > falta, próxima etapa — porque é o que sobrevive à compactação da sessão. Se ela
 > discordar do §9 do documento, **o §9 manda**, e quem notar conserta esta aqui.
 
-### Onde estamos — 06/11/2026, fase 284
+### Onde estamos — 06/11/2026, fase 285
 
 **Não falta código para o piloto.** O Grupo 1 do §9 está vazio desde a fase 139.
 A frente do visual (150 e 151) está FEITA. **A lista de rotas sem teste do §9
@@ -347,6 +347,7 @@ as quatro últimas fases acharam defeito em código que compilava e passava.
 | 282 | **os vínculos educacionais** (avaliação de 05/11, módulo 07; decidido em 06/11): escola, SCFV, integral, aprendizagem, estágio e curso, como contratos em linha na aba Educação, vários ao mesmo tempo, o triângulo que abre turma, dias, endereço, notas e histórico; corrigir guarda o antes com o motivo; o fim previsto avisa técnica, coordenação e Líder Diurno a 30 e 7 dias (`education_link`, `education_grade`, nursing/1674) |
 | 283 | **a frequência escolar** (avaliação de 05/11, módulo 07; decidido em 06/11): *Foi à aula hoje?* no Dia da Casa, com foi, não foi com o motivo e não teve aula; sem marca é ainda não verificado, nunca falta; o plantão marca hoje e ontem, a técnica e a coordenação corrigem com o motivo e o comprovante; os dias do último mês em cada vínculo (`education_attendance`, nursing/1675) |
 | 284 | **os atendimentos da equipe técnica** (avaliação de 05/11, módulo 08): *Assistência Social* no lugar de serviço social; interno ou externo, o local e quem atendeu (people/1676); os arquivos à vista no cartão e juntar arquivo depois, só quem registrou; e os atendimentos de um período em Word para técnica e coordenação (`QUEM_BAIXA_ATENDIMENTOS`) |
+| 285 | **o Judiciário em blocos que se abrem** (avaliação de 05/11, módulo 09): como chegou, episódios e ofícios fechados com uma linha do que tem dentro; na área restrita, situação e motivo aberto e medida e processo à parte (`BlocoQueAbre`); sem rota nova |
 
 **Medido no fim da 277:** 216 migrações, 152 tabelas, 169 suítes, 1463 testes; nas 237 e 238, a suíte inteira
 verde (1363 de 1363, depois de consertar as três conferências que o relatório das vivências deixou soltas) e o
@@ -472,12 +473,17 @@ o item respondido sai do §0.
    Claude com chave, ou o computador do Pão) é o 2.0. O protótipo continua no GitHub Pages para mostrar, e o 1.0 fica um mês
    com eles. **Publicar o 1.0 é deploy: fazer só quando ela pedir, e com o que ela mandar (e-mail do Marcelo, senha de app).**
 
+**FEITO — fase 285** (§2): o Judiciário em blocos. **Parte nova de aba que pode esperar o toque** usa o
+`BlocoQueAbre` do `Acolhidos.tsx` (título, uma linha do que tem dentro, triângulo); **aviso que precisa de alguém
+não entra em bloco fechado** (o da reavaliação ficou à vista). **Ensaio que lê o perfil** passa pelo `abrirBlocos`.
+**Medido na 285:** MEDIDO_285.
+**Próxima: 286**, a Cozinha em resumo por refeição (módulo 13); depois o sigilo por registro de saúde.
+
 **FEITO — fase 284** (§2): os atendimentos técnicos do módulo 08. **Campo novo no atendimento** entra no
 `listar`, no `exportar` (o Word) e no `ATENDIMENTOS_TECNICOS` do protótipo; **rota nova no `people.controller`**
 confere que o `@RegistroDaRota` continua colado na rota que ele guardava (a 284 o separou da lista, e a Casa 04
 recebia 200). **Medido na 284:** a `o-atendimento-da-equipe-tecnica` (10 de 10), a suíte inteira (1469 de 1471; as duas reprovações eram conferências estáticas da própria 284, o JOIN sem justificativa e a exportação sem o `CorpoConferido`, consertadas e conferidas, 32 de 32), o `ensaio:uso` sobre o protótipo novo (846 cobranças, sem reprovação, depois de trocar *Serviço social* e abrir os arquivos pelo cartão), o do celular (322 telas, sem achado) e a sonda a 390 px (a técnica registra um atendimento externo com o local e quem atendeu, junta arquivo e baixa o Word; a coordenação baixa; nenhum erro). **Não rodou** o relógio adiantado.
-**Próxima: 285**, o Judiciário em blocos (módulo 09); depois a Cozinha por refeição (13) e o sigilo por registro
-de saúde.
+**A 285 veio a seguir** (o Judiciário em blocos).
 
 **FEITO — fase 283** (§2): a frequência escolar. **Falta não é estado**: o dia de aula sem marca é *ainda não
 verificado*, e quem quiser contar ausências conta só as marcadas como *não foi*, com o motivo ao lado. **O dia de

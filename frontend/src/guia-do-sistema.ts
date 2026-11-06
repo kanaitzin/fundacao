@@ -110,7 +110,7 @@ export const ABAS_DO_PERFIL_NO_GUIA: { id: string; titulo: string; texto: string
     texto: 'O relatório da equipe técnica (psicologia, psicopedagogia, Assistência Social e pedagogia), o mais recente em cima, com a data e a hora de cada atendimento, onde foi e quem atendeu, a busca por palavra e por período, os números por área e os arquivos à vista em cada cartão; a técnica e a coordenação baixam os atendimentos de um período em Word.',
     quem: 'Aparece para a equipe técnica, a coordenação e a gestão.' },
   { id: 'judiciario', titulo: 'Judiciário',
-    texto: 'Como a criança chegou, a área restrita com o prazo da reavaliação ao Juízo e os documentos que a equipe técnica guarda ali (a guia, as decisões, o relatório de acolhimento, os relatórios de reavaliação) e os ofícios.',
+    texto: 'Como a criança chegou, a área restrita com o prazo da reavaliação ao Juízo e os documentos que a equipe técnica guarda ali (a guia, as decisões, o relatório de acolhimento, os relatórios de reavaliação) e os ofícios, cada parte num bloco que abre com o triângulo, com uma linha do que tem dentro.',
     quem: 'A área restrita abre para a equipe técnica e a coordenação.' },
   { id: 'documentos', titulo: 'Documentos',
     texto: 'Começa pelo dossiê (certidão, RG, carteira de vacina, receitas, laudos, PIA, cada um com a validade e o que falta) e pela lista dos documentos da criança. Depois, corrigir e atualizar o cadastro, as correções feitas, quem mexeu no perfil, com data e nome, e a saída da casa, com a folha de transição e o livro da vida.' },
@@ -140,6 +140,8 @@ export const MINHA_CONTA_NO_GUIA: string[] = [
  * `CLAUDE.md` não é a primeira desta lista.
  */
 export const NOVIDADES: { fase: number; dia: string; texto: string; aba?: string }[] = [
+  { fase: 285, dia: '06/11/2026', aba: 'acolhidos',
+    texto: 'A aba Judiciário do perfil em blocos que se abrem: Como ela chegou, Episódios de acolhimento e Comunicações a órgãos externos aparecem fechados, cada um com uma linha do que tem dentro, e o triângulo abre e fecha. Dentro da área restrita, a situação e o motivo vêm abertos, e a medida e o processo ficam num bloco à parte. Nada saiu da aba.' },
   { fase: 284, dia: '06/11/2026', aba: 'acolhidos',
     texto: 'Os atendimentos da equipe técnica, na aba Atendimentos do perfil: a área se chama Assistência Social, e cada atendimento diz se foi interno, na casa, ou externo, fora dela, o local e quem atendeu, quando não foi quem registrou. Os arquivos aparecem no próprio cartão, com Ver os arquivos, e quem registrou pode juntar um arquivo depois, como o laudo que chegou na semana seguinte. A técnica e a coordenação baixam os atendimentos do mês, do mês passado, de todo o acolhimento ou de datas escolhidas em Word, dizendo para quê.' },
   { fase: 283, dia: '06/11/2026', aba: 'dia',

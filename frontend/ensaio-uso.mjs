@@ -87,6 +87,11 @@ pg.on('console', (m) => {
 const corpo = () => pg.locator('body').innerText();
 /* No perfil em abas (fase 208), o conteúdo é o de todas as abas, como quem as
    percorre; a aba que estava aberta volta a ficar aberta. */
+/* Os blocos que abrem (fase 285): o ensaio lê o que tem dentro, abrindo cada um como a pessoa abriria. */
+const abrirBlocos = async (onde) => {
+  const fechados = onde.locator('button.bloco-cabeca[aria-expanded="false"]');
+  for (let k = await fechados.count(); k > 0; k--) { await fechados.first().click(); await onde.page().waitForTimeout(80); }
+};
 const conteudo = async () => {
   const abas = pg.locator('main.conteudo nav.abas-perfil [role=tab]');
   const n = await abas.count();
@@ -96,10 +101,13 @@ const conteudo = async () => {
   for (let i = 0; i < n; i++) if ((await abas.nth(i).getAttribute('aria-selected')) === 'true') aberta = i;
   /* Primeiro a aba aberta, como está: trocar de aba desmonta o aviso que a
      ação acabou de mostrar. */
+  await abrirBlocos(pg.locator('main.conteudo'));
   let t = await pg.locator('main.conteudo').innerText();
   for (let i = 0; i < n; i++) {
     if (i === aberta) continue;
-    await abas.nth(i).click(); await pg.waitForTimeout(350); t += '\n' + await pg.locator('main.conteudo').innerText();
+    await abas.nth(i).click(); await pg.waitForTimeout(350);
+    await abrirBlocos(pg.locator('main.conteudo'));
+    t += '\n' + await pg.locator('main.conteudo').innerText();
   }
   await abas.nth(aberta).click(); await pg.waitForTimeout(250);
   return t;
@@ -4789,7 +4797,18 @@ console.log('\n🗂️ Os documentos na área restrita do Judiciário (fase 216)
   await pgJ.getByRole('button', { name: /^Acolhidos/ }).filter({ visible: true }).first().click(); await esp(900);
   await pgJ.locator('.pessoa-cartao').filter({ hasText: 'Alice' }).first().click(); await esp(1200);
   await pgJ.getByRole('tab', { name: /Judiciário/ }).click(); await esp(800);
+  /* O Judiciário em blocos que se abrem (fase 285). */
+  const chegada = pgJ.locator('section.bloco-que-abre[data-bloco=chegada]');
+  const cabecaChegada = chegada.locator('button.bloco-cabeca');
+  cobrar('o Judiciário abre em blocos fechados, com uma linha do que tem dentro (fase 285)',
+    (await cabecaChegada.getAttribute('aria-expanded')) === 'false' && /Entrada em \d{2}\/\d{2}\/\d{4}/.test(await cabecaChegada.innerText())
+      && !/quem trouxe/.test(await chegada.innerText()), await cabecaChegada.innerText());
+  await cabecaChegada.click(); await esp(300);
+  cobrar('e o toque no triângulo abre o bloco', /quem trouxe/.test(await chegada.innerText()));
+  await cabecaChegada.click(); await esp(300);
+  cobrar('e fecha de novo', (await cabecaChegada.getAttribute('aria-expanded')) === 'false');
   await pgJ.getByRole('button', { name: 'Abrir a área restrita' }).click(); await esp(1200);
+
   const bloco = pgJ.locator('section.documentos-da-categoria');
   cobrar('a área restrita aberta mostra os documentos, com o relatório de acolhimento',
     (await bloco.count()) > 0 && /Relatório de acolhimento/.test(await bloco.innerText()));
@@ -4801,6 +4820,18 @@ console.log('\n🗂️ Os documentos na área restrita do Judiciário (fase 216)
   cobrar('o relatório anexado aparece, ainda por conferir', /relatorio\.pdf/.test(depois) && /ainda não conferido/.test(depois), depois.slice(0, 300));
   await bloco.getByRole('button', { name: /^Abrir Relatório de acolhimento/ }).first().click(); await esp(900);
   cobrar('e abre para conferir', /Conferir|Documento/.test(await pgJ.locator('.overlay').innerText()));
+  /* A Lara tem o motivo judicial cadastrado: os blocos de dentro da área restrita (fase 285). */
+  await pgJ.locator('.overlay').getByRole('button', { name: /Fechar|Voltar|Cancelar/ }).first().click().catch(() => {}); await esp(400);
+  await pgJ.getByRole('button', { name: /^Acolhidos/ }).filter({ visible: true }).first().click(); await esp(900);
+  await pgJ.getByRole('button', { name: /^Acolhidos/ }).filter({ visible: true }).first().click(); await esp(700);
+  await pgJ.locator('.pessoa-cartao').filter({ hasText: 'Lara' }).first().click(); await esp(1200);
+  await pgJ.getByRole('tab', { name: /Judiciário/ }).click(); await esp(800);
+  await pgJ.getByRole('button', { name: 'Abrir a área restrita' }).click(); await esp(1200);
+  const sit = pgJ.locator('section.bloco-que-abre[data-bloco=situacao] button.bloco-cabeca');
+  const proc = pgJ.locator('section.bloco-que-abre[data-bloco=processo] button.bloco-cabeca');
+  cobrar('dentro da área restrita, a situação e o motivo abertos, e a medida e o processo num bloco com a linha do que tem',
+    (await sit.getAttribute('aria-expanded')) === 'true' && (await proc.getAttribute('aria-expanded')) === 'false'
+      && /Acolhimento institucional/.test(await proc.innerText()), await proc.innerText().catch(() => 'sem o bloco'));
   cobrar('nenhuma exceção nos documentos do Judiciário', errosJ.length === 0, errosJ[0]);
   await pgJ.close();
 }
@@ -5360,7 +5391,7 @@ console.log('\n🧒 A criança cadastrada pela tela (fase 253)');
   const esp = (ms = 800) => pgK.waitForTimeout(ms);
   const mainK = () => pgK.locator('main.conteudo');
   const texto = async () => (await mainK().innerText().catch(() => '')).replace(/\s+/g, ' ');
-  const abaK = async (n) => { await mainK().locator('nav.abas-perfil [role=tab]').filter({ hasText: n }).first().click(); await esp(600); return texto(); };
+  const abaK = async (n) => { await mainK().locator('nav.abas-perfil [role=tab]').filter({ hasText: n }).first().click(); await esp(600); await abrirBlocos(mainK()); return texto(); };
   await pgK.goto(`file://${ARQUIVO}`); await esp(700);
   await pgK.getByRole('button', { name: 'Marcelo Barbosa', exact: true }).click();
   await pgK.getByRole('button', { name: /Entrar no sistema/i }).click(); await esp(1200);

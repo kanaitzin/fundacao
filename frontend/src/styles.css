@@ -2584,3 +2584,9 @@ button[data-gravando]{ cursor:progress }
 
 /* O atendimento com os arquivos à vista (fase 284). */
 .atendimento-arquivos{ flex-wrap:wrap; gap:8px; margin-top:6px }
+
+/* O BLOCO QUE ABRE (fase 285): o Judiciário em blocos, com o triângulo dos vínculos. */
+.bloco-que-abre{ background:var(--surface); border:1px solid var(--line); border-radius:12px; margin:0 0 12px }
+.bloco-que-abre .bloco-corpo{ padding:0 12px 12px 34px }
+.bloco-que-abre .bloco-corpo > .lista:first-child, .bloco-que-abre .bloco-corpo > p:first-child{ margin-top:0 }
+.card .bloco-que-abre{ background:transparent; margin:0 0 10px }
